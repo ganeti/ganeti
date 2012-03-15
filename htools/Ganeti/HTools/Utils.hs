@@ -2,7 +2,7 @@
 
 {-
 
-Copyright (C) 2009, 2010, 2011 Google Inc.
+Copyright (C) 2009, 2010, 2011, 2012 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -40,7 +40,6 @@ module Ganeti.HTools.Utils
 
 import Data.Char (toUpper)
 import Data.List
-import Data.Ratio ((%))
 
 import Debug.Trace
 
@@ -178,8 +177,8 @@ parseUnitValue unit
   | unit == "T" || upper == "TB"  = return $ mbFactor * kbDecimal * kbDecimal
   | otherwise = fail $ "Unknown unit '" ++ unit ++ "'"
   where upper = map toUpper unit
-        kbBinary = 1024
-        kbDecimal = 1000
+        kbBinary = 1024 :: Rational
+        kbDecimal = 1000 :: Rational
         decToBin = kbDecimal / kbBinary -- factor for 1K conversion
         mbFactor = decToBin * decToBin -- twice the factor for just 1K
 

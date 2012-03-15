@@ -1260,8 +1260,8 @@ computeMoves i inam mv c d =
     ReplacePrimary _ -> (printf "f r:%s f" c, [mig, rep c, mig])
   where morf = if Instance.isRunning i then "migrate" else "failover"
         mig = printf "%s -f %s" morf inam::String
-        mig_any = printf "%s -f -n %s %s" morf c inam
-        rep n = printf "replace-disks -n %s %s" n inam
+        mig_any = printf "%s -f -n %s %s" morf c inam::String
+        rep n = printf "replace-disks -n %s %s" n inam::String
 
 -- | Converts a placement to string format.
 printSolutionLine :: Node.List     -- ^ The node list
@@ -1285,14 +1285,13 @@ printSolutionLine nl il nmlen imlen plc pos =
       (moves, cmds) =  computeMoves inst inam mv npri nsec
       -- FIXME: this should check instead/also the disk template
       ostr = if old_sec == Node.noSecondary
-               then printf "%s" opri
-               else printf "%s:%s" opri osec
+               then printf "%s" opri::String
+               else printf "%s:%s" opri osec::String
       nstr = if s == Node.noSecondary
-               then printf "%s" npri
-               else printf "%s:%s" npri nsec
+               then printf "%s" npri::String
+               else printf "%s:%s" npri nsec::String
   in (printf "  %3d. %-*s %-*s => %-*s %12.8f a=%s"
-      pos imlen inam pmlen (ostr::String)
-      pmlen (nstr::String) c moves,
+      pos imlen inam pmlen ostr pmlen nstr c moves,
       cmds)
 
 -- | Return the instance and involved nodes in an instance move.
