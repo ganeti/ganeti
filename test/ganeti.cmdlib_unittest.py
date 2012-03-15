@@ -688,7 +688,7 @@ class TestComputeIPolicyInstanceViolation(unittest.TestCase):
     beparams = {
       constants.BE_MAXMEM: 2048,
       constants.BE_VCPUS: 2,
-      constants.BE_SPINDLE_USAGE: 4,
+      constants.BE_SPINDLE_USE: 4,
       }
     disks = [objects.Disk(size=512)]
     instance = objects.Instance(beparams=beparams, disks=disks, nics=[])

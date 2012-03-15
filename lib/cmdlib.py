@@ -1144,7 +1144,7 @@ def _ComputeIPolicyInstanceViolation(ipolicy, instance,
   """
   mem_size = instance.beparams.get(constants.BE_MAXMEM, None)
   cpu_count = instance.beparams.get(constants.BE_VCPUS, None)
-  spindle_use = instance.beparams.get(constants.BE_SPINDLE_USAGE, None)
+  spindle_use = instance.beparams.get(constants.BE_SPINDLE_USE, None)
   disk_count = len(instance.disks)
   disk_sizes = [disk.size for disk in instance.disks]
   nic_count = len(instance.nics)
@@ -9352,7 +9352,7 @@ class LUInstanceCreate(LogicalUnit):
                      os=self.op.os_type,
                      vcpus=self.be_full[constants.BE_VCPUS],
                      memory=self.be_full[constants.BE_MAXMEM],
-                     spindle_usage=self.be_full[constants.BE_SPINDLE_USAGE],
+                     spindle_use=self.be_full[constants.BE_SPINDLE_USE],
                      disks=self.disks,
                      nics=nics,
                      hypervisor=self.op.hypervisor,
@@ -9848,7 +9848,7 @@ class LUInstanceCreate(LogicalUnit):
     nodenames = [pnode.name] + self.secondaries
 
     # Verify instance specs
-    spindle_use = self.be_full.get(constants.BE_SPINDLE_USAGE, None)
+    spindle_use = self.be_full.get(constants.BE_SPINDLE_USE, None)
     ispec = {
       constants.ISPEC_MEM_SIZE: self.be_full.get(constants.BE_MAXMEM, None),
       constants.ISPEC_CPU_COUNT: self.be_full.get(constants.BE_VCPUS, None),
@@ -14516,7 +14516,7 @@ class IAllocator(object):
     self.in_text = self.out_text = self.in_data = self.out_data = None
     # init all input fields so that pylint is happy
     self.mode = mode
-    self.memory = self.disks = self.disk_template = self.spindle_usage = None
+    self.memory = self.disks = self.disk_template = self.spindle_use = None
     self.os = self.tags = self.nics = self.vcpus = None
     self.hypervisor = None
     self.relocate_from = None
@@ -14722,7 +14722,7 @@ class IAllocator(object):
         "admin_state": iinfo.admin_state,
         "vcpus": beinfo[constants.BE_VCPUS],
         "memory": beinfo[constants.BE_MAXMEM],
-        "spindle_usage": beinfo[constants.BE_SPINDLE_USAGE],
+        "spindle_use": beinfo[constants.BE_SPINDLE_USE],
         "os": iinfo.os,
         "nodes": [iinfo.primary_node] + list(iinfo.secondary_nodes),
         "nics": nic_data,
@@ -14762,7 +14762,7 @@ class IAllocator(object):
       "os": self.os,
       "vcpus": self.vcpus,
       "memory": self.memory,
-      "spindle_usage": self.spindle_usage,
+      "spindle_use": self.spindle_use,
       "disks": self.disks,
       "disk_space_total": disk_space,
       "nics": self.nics,
@@ -14876,7 +14876,7 @@ class IAllocator(object):
        [
         ("name", ht.TString),
         ("memory", ht.TInt),
-        ("spindle_usage", ht.TInt),
+        ("spindle_use", ht.TInt),
         ("disks", ht.TListOf(ht.TDict)),
         ("disk_template", ht.TString),
         ("os", ht.TString),
