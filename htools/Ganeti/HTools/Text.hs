@@ -107,7 +107,7 @@ serializeInstance nl inst =
        (Instance.vcpus inst) (instanceStatusToRaw (Instance.runSt inst))
        (if Instance.autoBalance inst then "Y" else "N")
        pnode snode (diskTemplateToRaw (Instance.diskTemplate inst))
-       (intercalate "," (Instance.tags inst)) (Instance.spindleUsage inst)
+       (intercalate "," (Instance.tags inst)) (Instance.spindleUse inst)
 
 -- | Generate instance file data from instance objects.
 serializeInstances :: Node.List -> Instance.List -> String
@@ -223,12 +223,12 @@ loadInst ktn [ name, mem, dsk, vcpus, status, auto_bal, pnode, snode
                          "' for instance " ++ name
   disk_template <- annotateResult ("Instance " ++ name)
                    (diskTemplateFromRaw dt)
-  spindle_usage <- tryRead name su
+  spindle_use <- tryRead name su
   when (sidx == pidx) $ fail $ "Instance " ++ name ++
            " has same primary and secondary node - " ++ pnode
   let vtags = commaSplit tags
       newinst = Instance.create name vmem vdsk vvcpus vstatus vtags
-                auto_balance pidx sidx disk_template spindle_usage
+                auto_balance pidx sidx disk_template spindle_use
   return (name, newinst)
 
 loadInst ktn [ name, mem, dsk, vcpus, status, auto_bal, pnode, snode

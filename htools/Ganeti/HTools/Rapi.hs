@@ -123,7 +123,7 @@ parseInstance ktn a = do
   tags <- extract "tags" a
   auto_balance <- extract "auto_balance" beparams
   dt <- extract "disk_template" a
-  su <- extract "spindle_usage" beparams
+  su <- extract "spindle_use" beparams
   let inst = Instance.create name mem disk vcpus running tags
              auto_balance pnode snode dt su
   return (name, inst)

@@ -316,9 +316,9 @@ buildPeers t il =
   in t {peers=pmap, failN1 = new_failN1, rMem = new_rmem, pRem = new_prem}
 
 -- | Calculate the new spindle usage
-calcSpindleUsage :: Node -> Instance.Instance -> Double
-calcSpindleUsage n i = incIf (Instance.usesLocalStorage i) (instSpindles n)
-                         (fromIntegral $ Instance.spindleUsage i)
+calcSpindleUse :: Node -> Instance.Instance -> Double
+calcSpindleUse n i = incIf (Instance.usesLocalStorage i) (instSpindles n)
+                       (fromIntegral $ Instance.spindleUse i)
 
 -- | Assigns an instance to a node as primary and update the used VCPU
 -- count, utilisation data and tags map.
@@ -328,7 +328,7 @@ setPri t inst = t { pList = Instance.idx inst:pList t
                   , pCpu = fromIntegral new_count / tCpu t
                   , utilLoad = utilLoad t `T.addUtil` Instance.util inst
                   , pTags = addTags (pTags t) (Instance.tags inst)
-                  , instSpindles = calcSpindleUsage t inst
+                  , instSpindles = calcSpindleUse t inst
                   }
   where new_count = Instance.applyIfOnline inst (+ Instance.vcpus inst)
                     (uCpu t )
@@ -338,7 +338,7 @@ setSec :: Node -> Instance.Instance -> Node
 setSec t inst = t { sList = Instance.idx inst:sList t
                   , utilLoad = old_load { T.dskWeight = T.dskWeight old_load +
                                           T.dskWeight (Instance.util inst) }
-                  , instSpindles = calcSpindleUsage t inst
+                  , instSpindles = calcSpindleUse t inst
                   }
   where old_load = utilLoad t
 

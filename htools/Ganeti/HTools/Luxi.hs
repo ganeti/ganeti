@@ -107,7 +107,7 @@ queryInstancesMsg =
   L.Query L.QRInstance ["name", "disk_usage", "be/memory", "be/vcpus",
                         "status", "pnode", "snodes", "tags", "oper_ram",
                         "be/auto_balance", "disk_template",
-                        "be/spindle_usage"] ()
+                        "be/spindle_use"] ()
 
 -- | The input data for cluster query.
 queryClusterInfoMsg :: L.LuxiOp
@@ -163,7 +163,7 @@ parseInstance ktn [ name, disk, mem, vcpus
   xtags <- convert "tags" tags
   xauto_balance <- convert "auto_balance" auto_balance
   xdt <- convert "disk_template" disk_template
-  xsu <- convert "be/spindle_usage" su
+  xsu <- convert "be/spindle_use" su
   let inst = Instance.create xname xmem xdisk xvcpus
              xrunning xtags xauto_balance xpnode snode xdt xsu
   return (xname, inst)

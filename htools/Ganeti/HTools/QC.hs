@@ -796,7 +796,7 @@ prop_Text_Load_Instance name mem dsk vcpus status
                                       then Node.noSecondary
                                       else sdx) &&
                Instance.autoBalance i == autobal &&
-               Instance.spindleUsage i == su &&
+               Instance.spindleUse i == su &&
                Types.isBad fail1
 
 prop_Text_Load_InstanceFail ktn fields =
