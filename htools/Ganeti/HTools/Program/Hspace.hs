@@ -53,6 +53,7 @@ options =
   [ oPrintNodes
   , oDataFile
   , oDiskTemplate
+  , oSpindleUse
   , oNodeSim
   , oRapiMaster
   , oLuxiSocket
@@ -386,10 +387,10 @@ runAllocation cdata stop_allocation actual_result spec dt mode opts = do
   return (sortReasons reasons, new_nl, length new_ixes, tieredSpecMap new_ixes)
 
 -- | Create an instance from a given spec.
-instFromSpec :: RSpec -> DiskTemplate -> Instance.Instance
-instFromSpec spx disk_template =
+instFromSpec :: RSpec -> DiskTemplate -> Int -> Instance.Instance
+instFromSpec spx disk_template su =
   Instance.create "new" (rspecMem spx) (rspecDsk spx)
-    (rspecCpu spx) Running [] True (-1) (-1) disk_template 1
+    (rspecCpu spx) Running [] True (-1) (-1) disk_template su
 
 -- | Main function.
 main :: Options -> [String] -> IO ()
@@ -418,6 +419,8 @@ main opts args = do
       disk_template = fromMaybe cluster_disk_template (optDiskTemplate opts)
       req_nodes = Instance.requiredNodes disk_template
       csf = commonSuffix fixed_nl il
+      su = fromMaybe (iSpecSpindleUse $ iPolicyStdSpec ipol)
+                     (optSpindleUse opts)
 
   when (not (null csf) && verbose > 1) $
        hPrintf stderr "Note: Stripping common suffix of '%s' from names\n" csf
@@ -447,7 +450,7 @@ main opts args = do
   (treason, trl_nl, _, spec_map) <-
     runAllocation cdata stop_allocation
        (Cluster.tieredAlloc nl il alloclimit
-        (instFromSpec tspec disk_template) allocnodes [] [])
+        (instFromSpec tspec disk_template su) allocnodes [] [])
        tspec disk_template SpecTiered opts
 
   printTiered machine_r spec_map nl trl_nl treason
@@ -460,7 +463,7 @@ main opts args = do
   (sreason, fin_nl, allocs, _) <-
       runAllocation cdata stop_allocation
             (Cluster.iterateAlloc nl il alloclimit
-             (instFromSpec ispec disk_template) allocnodes [] [])
+             (instFromSpec ispec disk_template su) allocnodes [] [])
             ispec disk_template SpecNormal opts
 
   printResults machine_r nl fin_nl num_instances allocs sreason

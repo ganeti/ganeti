@@ -44,6 +44,7 @@ module Ganeti.HTools.CLI
   , oDataFile
   , oDiskMoves
   , oDiskTemplate
+  , oSpindleUse
   , oDynuFile
   , oEvacMode
   , oExInst
@@ -113,6 +114,7 @@ data Options = Options
   , optDiskMoves   :: Bool           -- ^ Allow disk moves
   , optInstMoves   :: Bool           -- ^ Allow instance moves
   , optDiskTemplate :: Maybe DiskTemplate  -- ^ Override for the disk template
+  , optSpindleUse  :: Maybe Int      -- ^ Override for the spindle usage
   , optDynuFile    :: Maybe FilePath -- ^ Optional file with dynamic use data
   , optEvacMode    :: Bool           -- ^ Enable evacuation mode
   , optExInst      :: [String]       -- ^ Instances to be excluded
@@ -154,6 +156,7 @@ defaultOptions  = Options
   , optDiskMoves   = True
   , optInstMoves   = True
   , optDiskTemplate = Nothing
+  , optSpindleUse  = Nothing
   , optDynuFile    = Nothing
   , optEvacMode    = False
   , optExInst      = []
@@ -227,6 +230,17 @@ oDiskTemplate = Option "" ["disk-template"]
                            dt <- diskTemplateFromRaw t
                            return $ opts { optDiskTemplate = Just dt })
                  "TEMPLATE") "select the desired disk template"
+
+oSpindleUse :: OptType
+oSpindleUse = Option "" ["spindle-use"]
+              (ReqArg (\ n opts -> do
+                         su <- tryRead "parsing spindle-use" n
+                         when (su < 0) $
+                              fail "Invalid value of the spindle-use\
+                                   \ (expected >= 0)"
+                         return $ opts { optSpindleUse = Just su })
+               "SPINDLES") "select how many virtual spindle instances use\
+                           \ [default read from cluster]"
 
 oSelInst :: OptType
 oSelInst = Option "" ["select-instances"]

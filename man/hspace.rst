@@ -207,6 +207,11 @@ The options that can be passed to the program are as follows:
   one of the Ganeti disk templates (e.g. plain, drbd, so on) should be
   passed in.
 
+\--spindle-use *spindles*
+  Override the spindle use for the instance read from the cluster. The
+  value can be 0 (for example for instances that use very low I/O), but not
+  negative. For shared storage the value is ignored.
+
 \--max-cpu=*cpu-ratio*
   The maximum virtual to physical cpu ratio, as a floating point number
   greater than or equal to one. For example, specifying *cpu-ratio* as
