@@ -244,15 +244,15 @@ commands = {
     "Evacuate all instances within a group"),
   "list-tags": (
     ListTags, ARGS_ONE_GROUP, [PRIORITY_OPT],
-    "<instance_name>", "List the tags of the given instance"),
+    "<group_name>", "List the tags of the given group"),
   "add-tags": (
     AddTags, [ArgGroup(min=1, max=1), ArgUnknown()],
     [TAG_SRC_OPT, PRIORITY_OPT],
-    "<instance_name> tag...", "Add tags to the given instance"),
+    "<group_name> tag...", "Add tags to the given group"),
   "remove-tags": (
     RemoveTags, [ArgGroup(min=1, max=1), ArgUnknown()],
     [TAG_SRC_OPT, PRIORITY_OPT],
-    "<instance_name> tag...", "Remove tags from given instance"),
+    "<group_name> tag...", "Remove tags from the given group"),
   }
 
 
