@@ -1250,7 +1250,7 @@ REPLACE-DISKS
 [\--disks *idx*] {*instance*}
 
 **replace-disks** [\--submit] [\--early-release] [\--ignore-ipolicy]
-{\--iallocator *name* \| \--node *node* } {*instance*}
+{{-I\|\--iallocator} *name* \| \--node *node* } {*instance*}
 
 **replace-disks** [\--submit] [\--early-release] [\--ignore-ipolicy]
 {\--auto} {*instance*}

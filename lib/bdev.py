@@ -1058,7 +1058,7 @@ class BaseDRBD(BlockDev): # pylint: disable=W0223
   def _CheckMetaSize(meta_device):
     """Check if the given meta device looks like a valid one.
 
-    This currently only check the size, which must be around
+    This currently only checks the size, which must be around
     128MiB.
 
     """
@@ -1197,7 +1197,7 @@ class DRBD8(BaseDRBD):
   def _GetShowParser(cls):
     """Return a parser for `drbd show` output.
 
-    This will either create or return an already-create parser for the
+    This will either create or return an already-created parser for the
     output of the command `drbd show`.
 
     """
