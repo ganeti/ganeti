@@ -2074,4 +2074,4 @@ FAKE_OP_MASTER_TURNUP = "OP_CLUSTER_IP_TURNUP"
 FAKE_OP_MASTER_TURNDOWN = "OP_CLUSTER_IP_TURNDOWN"
 
 # Do not re-export imported modules
-del re, _vcsversion, _autoconf
+del re, _vcsversion, _autoconf, socket
