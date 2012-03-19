@@ -95,9 +95,10 @@ interpreted as stdin.
 EVACUATE
 ~~~~~~~~
 
-**evacuate** [-f] [\--early-release] [\--iallocator *NAME* \|
-\--new-secondary *destination\_node*]
-[\--primary-only \| \--secondary-only] [\--early-release] {*node*}
+| **evacuate** [-f] [\--early-release]
+| [{-I|\--iallocator} *NAME* \| {-n|\--new-secondary} *destination\_node*]
+| [{-p|\--primary-only} \| {-s|\--secondary-only} ]
+|  {*node*}
 
 This command will move instances away from the given node. If
 ``--primary-only`` is given, only primary instances are evacuated, with

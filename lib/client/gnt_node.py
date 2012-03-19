@@ -889,7 +889,7 @@ commands = {
     EvacuateNode, ARGS_ONE_NODE,
     [FORCE_OPT, IALLOCATOR_OPT, NEW_SECONDARY_OPT, EARLY_RELEASE_OPT,
      PRIORITY_OPT, PRIMARY_ONLY_OPT, SECONDARY_ONLY_OPT],
-    "[-f] {-I <iallocator> | -n <dst>} <node>",
+    "[-f] {-I <iallocator> | -n <dst>} [-p | -s] [options...] <node>",
     "Relocate the primary and/or secondary instances from a node"),
   "failover": (
     FailoverNode, ARGS_ONE_NODE, [FORCE_OPT, IGNORE_CONSIST_OPT,
