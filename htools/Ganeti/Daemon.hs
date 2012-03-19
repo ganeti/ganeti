@@ -125,7 +125,7 @@ oNoUserChecks = Option "" ["no-user-checks"]
          "Ignore user checks"
 
 oPort :: Int -> OptType
-oPort def = Option "p" ["--port"]
+oPort def = Option "p" ["port"]
             (reqWithConversion (tryRead "reading port")
              (\port opts -> Ok opts { optPort = Just port }) "PORT")
             ("Network port (default: " ++ show def ++ ")")
