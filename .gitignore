@@ -102,7 +102,7 @@
 
 /htools/htools
 /htools/hconfd
-/htools/htools-hpc
+/htools/hpc-htools
 /htools/test
 /htools/*.prof*
 /htools/*.stat

@@ -19,7 +19,7 @@
 
 # This is an shell testing configuration fragment.
 
-HBINARY=${HBINARY:-./htools/htools-hpc}
+HBINARY=${HBINARY:-./htools/hpc-htools}
 
 TESTDATA_DIR=${TOP_SRCDIR:-.}/test/data/htools
 

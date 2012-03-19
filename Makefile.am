@@ -356,7 +356,7 @@ docrst = \
 HS_PROGS = htools/htools htools/hconfd
 HS_BIN_ROLES = hbal hscan hspace hinfo
 
-HS_ALL_PROGS = $(HS_PROGS) htools/test htools/htools-hpc
+HS_ALL_PROGS = $(HS_PROGS) htools/test htools/hpc-htools
 HS_PROG_SRCS = $(patsubst %,%.hs,$(HS_ALL_PROGS))
 # we don't add -Werror by default
 HFLAGS = -O -Wall -fwarn-monomorphism-restriction -fwarn-tabs -ihtools
@@ -540,11 +540,11 @@ htools/test: HEXTRA_INT=-fhpc -Wwarn -fno-warn-missing-signatures \
 	-fno-warn-monomorphism-restriction -fno-warn-orphans \
 	-fno-warn-missing-methods -fno-warn-unused-imports
 
-# we compile the htools-hpc binary with the program coverage
-htools/htools-hpc: HEXTRA_INT=-fhpc
+# we compile the hpc-htools binary with the program coverage
+htools/hpc-htools: HEXTRA_INT=-fhpc
 
 # test dependency
-htools/offline-tests.sh: htools/htools-hpc
+htools/offline-tests.sh: htools/hpc-htools
 
 # rules for building profiling-enabled versions of the haskell
 # programs: hs-prof does the full two-step build, whereas
@@ -839,7 +839,7 @@ check_SCRIPTS =
 if WANT_HTOOLSTESTS
 nodist_TESTS += $(haskell_tests)
 dist_TESTS += htools/offline-test.sh
-check_SCRIPTS += htools/htools-hpc
+check_SCRIPTS += htools/hpc-htools
 endif
 
 TESTS = $(dist_TESTS) $(nodist_TESTS)
@@ -1236,10 +1236,10 @@ check-local: check-dirs $(BUILT_SOURCES)
 	done
 
 .PHONY: hs-check
-hs-check: htools/test htools/htools-hpc
+hs-check: htools/test htools/hpc-htools
 	@rm -f test.tix
 	./htools/test
-	HBINARY="./htools/htools-hpc" ./htools/offline-test.sh
+	HBINARY="./htools/hpc-htools" ./htools/offline-test.sh
 
 # E111: indentation is not a multiple of four
 # E261: at least two spaces before inline comment
@@ -1404,12 +1404,12 @@ py-coverage: $(BUILT_SOURCES) $(python_tests)
 	$(python_tests)
 
 .PHONY: hs-coverage
-hs-coverage: $(haskell_tests) htools/htools-hpc
+hs-coverage: $(haskell_tests) htools/hpc-htools
 	rm -f *.tix && $(MAKE) hs-check
 	@mkdir_p@ $(COVERAGE_HS_DIR)
-	hpc combine $(HPCEXCL) test.tix htools-hpc.tix > htools-coverage.tix
-	hpc markup --destdir=$(COVERAGE_HS_DIR) htools-coverage.tix
-	hpc report htools-coverage.tix
+	hpc combine $(HPCEXCL) test.tix hpc-htools.tix > coverage-htools.tix
+	hpc markup --destdir=$(COVERAGE_HS_DIR) coverage-htools.tix
+	hpc report coverage-htools.tix
 	$(LN_S) -f hpc_index.html $(COVERAGE_HS_DIR)/index.html
 
 # Special "kind-of-QA" target for htools, needs special setup (all
