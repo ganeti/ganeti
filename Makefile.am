@@ -87,6 +87,7 @@ DIRS = \
 	test \
 	test/data \
 	test/data/htools \
+	test/data/htools/rapi \
 	test/data/ovfdata \
 	test/data/ovfdata/other \
 	tools
