@@ -11377,7 +11377,7 @@ class LUInstanceChangeGroup(LogicalUnit):
 
     if self.req_target_uuids:
       # User requested specific target groups
-      self.target_uuids = self.req_target_uuids
+      self.target_uuids = frozenset(self.req_target_uuids)
     else:
       # All groups except those used by the instance are potential targets
       self.target_uuids = owned_groups - inst_groups
