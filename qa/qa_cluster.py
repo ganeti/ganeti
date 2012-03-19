@@ -202,7 +202,8 @@ def TestClusterEpo():
   # All instances should have been stopped now
   result_output = GetCommandOutput(master["primary"],
                                    "gnt-instance list --no-headers -o status")
-  AssertEqual(compat.all(status == "ADMIN_down"
+  # ERROR_down because the instance is stopped but not recorded as such
+  AssertEqual(compat.all(status == "ERROR_down"
                          for status in result_output.splitlines()), True)
 
   # Now start everything again
