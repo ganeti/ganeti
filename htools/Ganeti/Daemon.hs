@@ -33,7 +33,9 @@ module Ganeti.Daemon
   , oNoUserChecks
   , oDebug
   , oPort
+  , oBindAddress
   , parseArgs
+  , parseAddress
   , writePidFile
   , genericMain
   ) where
@@ -41,6 +43,7 @@ module Ganeti.Daemon
 import Control.Monad
 import qualified Data.Version
 import Data.Word
+import qualified Network.Socket as Socket
 import System.Console.GetOpt
 import System.Exit
 import System.Environment
@@ -59,6 +62,7 @@ import Ganeti.BasicTypes
 import Ganeti.HTools.Utils
 import qualified Ganeti.HTools.Version as Version(version)
 import qualified Ganeti.Constants as C
+import qualified Ganeti.Ssconf as Ssconf
 
 -- * Data types
 
@@ -70,6 +74,7 @@ data DaemonOptions = DaemonOptions
   , optPort         :: Maybe Word16   -- ^ Override for the network port
   , optDebug        :: Bool           -- ^ Enable debug messages
   , optNoUserChecks :: Bool           -- ^ Ignore user checks
+  , optBindAddress  :: Maybe String   -- ^ Override for the bind address
   }
 
 -- | Default values for the command line options.
@@ -81,6 +86,7 @@ defaultOptions  = DaemonOptions
   , optPort         = Nothing
   , optDebug        = False
   , optNoUserChecks = False
+  , optBindAddress  = Nothing
   }
 
 -- | Abrreviation for the option type.
@@ -129,6 +135,12 @@ oPort def = Option "p" ["port"]
             (reqWithConversion (tryRead "reading port")
              (\port opts -> Ok opts { optPort = Just port }) "PORT")
             ("Network port (default: " ++ show def ++ ")")
+
+oBindAddress :: OptType
+oBindAddress = Option "b" ["bind"]
+               (ReqArg (\addr opts -> Ok opts { optBindAddress = Just addr })
+                "ADDR")
+               "Bind address (default depends on cluster configuration)"
 
 -- | Usage info.
 usageHelp :: String -> [OptType] -> String
@@ -193,6 +205,46 @@ setupDaemonEnv cwd umask = do
   _ <- setFileCreationMask umask
   _ <- createSession
   return ()
+
+-- | Computes the default bind address for a given family.
+defaultBindAddr :: Int                  -- ^ The port we want
+                -> Socket.Family        -- ^ The cluster IP family
+                -> Result (Socket.Family, Socket.SockAddr)
+defaultBindAddr port Socket.AF_INET =
+  Ok $ (Socket.AF_INET,
+        Socket.SockAddrInet (fromIntegral port) Socket.iNADDR_ANY)
+defaultBindAddr port Socket.AF_INET6 =
+  Ok $ (Socket.AF_INET6,
+        Socket.SockAddrInet6 (fromIntegral port) 0 Socket.iN6ADDR_ANY 0)
+defaultBindAddr _ fam = Bad $ "Unsupported address family: " ++ show fam
+
+-- | Default hints for the resolver
+resolveAddrHints :: Maybe Socket.AddrInfo
+resolveAddrHints =
+  Just Socket.defaultHints { Socket.addrFlags = [Socket.AI_NUMERICHOST,
+                                                 Socket.AI_NUMERICSERV] }
+
+-- | Resolves a numeric address.
+resolveAddr :: Int -> String -> IO (Result (Socket.Family, Socket.SockAddr))
+resolveAddr port str = do
+  resolved <- Socket.getAddrInfo resolveAddrHints (Just str) (Just (show port))
+  return $ case resolved of
+             [] -> Bad "Invalid results from lookup?"
+             best:_ -> Ok $ (Socket.addrFamily best, Socket.addrAddress best)
+
+-- | Based on the options, compute the socket address to use for the
+-- daemon.
+parseAddress :: DaemonOptions      -- ^ Command line options
+             -> Int                -- ^ Default port for this daemon
+             -> IO (Result (Socket.Family, Socket.SockAddr))
+parseAddress opts defport = do
+  let port = maybe defport fromIntegral $ optPort opts
+  def_family <- Ssconf.getPrimaryIPFamily Nothing
+  ainfo <- case optBindAddress opts of
+             Nothing -> return (def_family >>= defaultBindAddr port)
+             Just saddr -> catch (resolveAddr port saddr)
+                           (annotateIOError $ "Invalid address " ++ saddr)
+  return ainfo
 
 -- | Run an I/O action as a daemon.
 --
