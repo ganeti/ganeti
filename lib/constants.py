@@ -22,6 +22,7 @@
 """Module holding different constants."""
 
 import re
+import socket
 
 from ganeti import _autoconf
 from ganeti import _vcsversion
@@ -636,6 +637,10 @@ IP6_ADDRESS_ANY = "::"
 IP4_VERSION = 4
 IP6_VERSION = 6
 VALID_IP_VERSIONS = frozenset([IP4_VERSION, IP6_VERSION])
+# for export to htools
+IP4_FAMILY = socket.AF_INET
+IP6_FAMILY = socket.AF_INET6
+
 TCP_PING_TIMEOUT = 10
 GANETI_RUNAS = "root"
 DEFAULT_VG = "xenvg"
