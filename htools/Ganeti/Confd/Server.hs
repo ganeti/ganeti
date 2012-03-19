@@ -6,7 +6,7 @@
 
 {-
 
-Copyright (C) 2011 Google Inc.
+Copyright (C) 2011, 2012 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -51,6 +51,7 @@ import Ganeti.Confd
 import Ganeti.Config
 import Ganeti.Hash
 import Ganeti.Logging
+import Ganeti.BasicTypes
 import qualified Ganeti.Constants as C
 
 -- * Types and constants definitions
@@ -502,9 +503,10 @@ listener s hmac resp = do
 -- | Main function.
 main :: DaemonOptions -> IO ()
 main opts = do
-  s <- S.socket S.AF_INET S.Datagram S.defaultProtocol
-  let port = maybe C.defaultConfdPort fromIntegral $ optPort opts
-  S.bindSocket s (S.SockAddrInet (fromIntegral port) S.iNADDR_ANY)
+  parseresult <- parseAddress opts C.defaultConfdPort
+  (af_family, bindaddr) <- exitIfBad parseresult
+  s <- S.socket af_family S.Datagram S.defaultProtocol
+  S.bindSocket s bindaddr
   cref <- newIORef (Bad "Configuration not yet loaded")
   statemvar <- newMVar initialState
   hmac <- getClusterHmac

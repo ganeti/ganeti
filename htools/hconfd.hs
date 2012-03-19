@@ -4,7 +4,7 @@
 
 {-
 
-Copyright (C) 2009, 2011 Google Inc.
+Copyright (C) 2009, 2011, 2012 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -39,6 +39,7 @@ options =
   , oNoUserChecks
   , oDebug
   , oPort C.defaultConfdPort
+  , oBindAddress
   ]
 
 -- | Main function.
