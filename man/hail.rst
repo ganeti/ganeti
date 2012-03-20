@@ -24,6 +24,9 @@ state and the request details, and output (on stdout) a JSON-formatted
 response. In case of critical failures, the error message is printed
 on stderr and the exit code is changed to show failure.
 
+If the input file name is ``-`` (a single minus sign), then the request
+data will be read from *stdin*.
+
 ALGORITHM
 ~~~~~~~~~
 

@@ -347,7 +347,9 @@ processRequest request =
 -- | Reads the request from the data file(s).
 readRequest :: FilePath -> IO Request
 readRequest fp = do
-  input_data <- readFile fp
+  input_data <- case fp of
+                  "-" -> getContents
+                  _   -> readFile fp
   case parseData input_data of
     Bad err -> do
       hPutStrLn stderr $ "Error: " ++ err
