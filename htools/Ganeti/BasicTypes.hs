@@ -1,6 +1,6 @@
 {-
 
-Copyright (C) 2009, 2010, 2011 Google Inc.
+Copyright (C) 2009, 2010, 2011, 2012 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -25,9 +25,13 @@ module Ganeti.BasicTypes
   , isBad
   , eitherToResult
   , annotateResult
+  , annotateIOError
+  , exitIfBad
   ) where
 
 import Control.Monad
+import System.IO (hPutStrLn, stderr)
+import System.Exit
 
 -- | This is similar to the JSON library Result type - /very/ similar,
 -- but we want to use it in multiple places, so we abstract it into a
@@ -71,3 +75,17 @@ eitherToResult (Right v) = Ok v
 annotateResult :: String -> Result a -> Result a
 annotateResult owner (Bad s) = Bad $ owner ++ ": " ++ s
 annotateResult _ v = v
+
+-- | Annotates and transforms IOErrors into a Result type. This can be
+-- used in the error handler argument to 'catch', for example.
+annotateIOError :: String -> IOError -> IO (Result a)
+annotateIOError description exc =
+  return . Bad $ description ++ ": " ++ show exc
+
+-- | Unwraps a 'Result', exiting the program if it is a 'Bad' value,
+-- otherwise returning the actual contained value.
+exitIfBad :: Result a -> IO a
+exitIfBad (Bad s) = do
+  hPutStrLn stderr $ "Failure: " ++ s
+  exitWith (ExitFailure 1)
+exitIfBad (Ok v) = return v
