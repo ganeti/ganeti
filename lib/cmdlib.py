@@ -12503,7 +12503,7 @@ class LUInstanceSetParams(LogicalUnit):
                                       disk_info, None, None, 0, feedback_fn,
                                       self.diskparams)
     info = _GetInstanceInfoText(instance)
-    feedback_fn("Creating aditional volumes...")
+    feedback_fn("Creating additional volumes...")
     # first, create the missing data and meta devices
     for disk in new_disks:
       # unfortunately this is... not too nice
