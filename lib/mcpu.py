@@ -246,7 +246,7 @@ class Processor(object):
   """Object which runs OpCodes"""
   DISPATCH_TABLE = _ComputeDispatchTable()
 
-  def __init__(self, context, ec_id):
+  def __init__(self, context, ec_id, enable_locks=True):
     """Constructor for Processor
 
     @type context: GanetiContext
@@ -260,6 +260,16 @@ class Processor(object):
     self._cbs = None
     self.rpc = context.rpc
     self.hmclass = HooksMaster
+    self._enable_locks = enable_locks
+
+  def _CheckLocksEnabled(self):
+    """Checks if locking is enabled.
+
+    @raise errors.ProgrammerError: In case locking is not enabled
+
+    """
+    if not self._enable_locks:
+      raise errors.ProgrammerError("Attempted to use disabled locks")
 
   def _AcquireLocks(self, level, names, shared, timeout, priority):
     """Acquires locks via the Ganeti lock manager.
@@ -276,6 +286,8 @@ class Processor(object):
         amount of time
 
     """
+    self._CheckLocksEnabled()
+
     if self._cbs:
       self._cbs.CheckCancel()
 
@@ -350,6 +362,8 @@ class Processor(object):
                                 " others")
 
     elif adding_locks or acquiring_locks:
+      self._CheckLocksEnabled()
+
       lu.DeclareLocks(level)
       share = lu.share_locks[level]
 
@@ -420,12 +434,17 @@ class Processor(object):
 
     self._cbs = cbs
     try:
-      # Acquire the Big Ganeti Lock exclusively if this LU requires it,
-      # and in a shared fashion otherwise (to prevent concurrent run with
-      # an exclusive LU.
-      self._AcquireLocks(locking.LEVEL_CLUSTER, locking.BGL,
-                          not lu_class.REQ_BGL, calc_timeout(),
-                          priority)
+      if self._enable_locks:
+        # Acquire the Big Ganeti Lock exclusively if this LU requires it,
+        # and in a shared fashion otherwise (to prevent concurrent run with
+        # an exclusive LU.
+        self._AcquireLocks(locking.LEVEL_CLUSTER, locking.BGL,
+                            not lu_class.REQ_BGL, calc_timeout(),
+                            priority)
+      elif lu_class.REQ_BGL:
+        raise errors.ProgrammerError("Opcode '%s' requires BGL, but locks are"
+                                     " disabled" % op.OP_ID)
+
       try:
         lu = lu_class(self, op, self.context, self.rpc)
         lu.ExpandNames()
@@ -438,7 +457,10 @@ class Processor(object):
           if self._ec_id:
             self.context.cfg.DropECReservations(self._ec_id)
       finally:
-        self.context.glm.release(locking.LEVEL_CLUSTER)
+        # Release BGL if owned
+        if self.context.glm.is_owned(locking.LEVEL_CLUSTER):
+          assert self._enable_locks
+          self.context.glm.release(locking.LEVEL_CLUSTER)
     finally:
       self._cbs = None
 
