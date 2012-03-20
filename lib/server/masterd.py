@@ -361,7 +361,7 @@ class ClientOps:
 
     """
     # Queries don't have a job id
-    proc = mcpu.Processor(self.server.context, None)
+    proc = mcpu.Processor(self.server.context, None, enable_locks=False)
 
     # TODO: Executing an opcode using locks will acquire them in blocking mode.
     # Consider using a timeout for retries.
