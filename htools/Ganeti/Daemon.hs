@@ -300,7 +300,7 @@ genericMain daemon options main = do
 innerMain :: GanetiDaemon -> DaemonOptions -> IO () -> IO ()
 innerMain daemon opts main = do
   setupLogging (daemonLogFile daemon) (daemonName daemon) (optDebug opts)
-                 (not (optDaemonize opts)) False
+                 (not (optDaemonize opts)) False SyslogNo
   pid_fd <- writePidFile (daemonPidFile daemon)
   case pid_fd of
     Bad msg -> do

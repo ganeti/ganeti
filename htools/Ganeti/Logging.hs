@@ -1,9 +1,9 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 {-| Implementation of the Ganeti logging functionality.
 
 This currently lacks the following (FIXME):
 
-- syslog logging
-- handling of the three-state syslog yes/no/only
 - log file reopening
 
 Note that this requires the hslogger library version 1.1 and above.
@@ -12,7 +12,7 @@ Note that this requires the hslogger library version 1.1 and above.
 
 {-
 
-Copyright (C) 2011 Google Inc.
+Copyright (C) 2011, 2012 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -41,15 +41,28 @@ module Ganeti.Logging
   , logCritical
   , logAlert
   , logEmergency
+  , SyslogUsage(..)
+  , syslogUsageToRaw
+  , syslogUsageFromRaw
   ) where
 
+import Control.Monad (when)
 import System.Log.Logger
 import System.Log.Handler.Simple
-import System.Log.Handler (setFormatter)
+import System.Log.Handler.Syslog
+import System.Log.Handler (setFormatter, LogHandler)
 import System.Log.Formatter
 import System.IO
 
+import Ganeti.THH
 import qualified Ganeti.Constants as C
+
+-- | Syslog usage type.
+$(declareSADT "SyslogUsage"
+  [ ("SyslogNo",   'C.syslogNo)
+  , ("SyslogYes",  'C.syslogYes)
+  , ("SyslogOnly", 'C.syslogOnly)
+  ])
 
 -- | Builds the log formatter.
 logFormatter :: String  -- ^ Program
@@ -66,28 +79,44 @@ logFormatter prog mt syslog =
               ]
   in simpleLogFormatter $ concat parts
 
+-- | Helper to open and set the formatter on a log if enabled by a
+-- given condition, otherwise returning an empty list.
+openFormattedHandler :: (LogHandler a) => Bool
+                     -> LogFormatter a -> IO a -> IO [a]
+openFormattedHandler False _ _ = return []
+openFormattedHandler True fmt opener = do
+  handler <- opener
+  return [setFormatter handler fmt]
+
 -- | Sets up the logging configuration.
 setupLogging :: String    -- ^ Log file
              -> String    -- ^ Program name
              -> Bool      -- ^ Debug level
              -> Bool      -- ^ Log to stderr
              -> Bool      -- ^ Log to console
+             -> SyslogUsage -- ^ Syslog usage
              -> IO ()
-setupLogging logf program debug stderr_logging console = do
+setupLogging logf program debug stderr_logging console syslog = do
   let level = if debug then DEBUG else INFO
       destf = if console then C.devConsole else logf
       fmt = logFormatter program False False
 
   updateGlobalLogger rootLoggerName (setLevel level)
 
-  stderr_handlers <-  if stderr_logging
-                        then do
-                          stderr_handler <- streamHandler stderr level
-                          return [setFormatter stderr_handler fmt]
-                        else return []
-  file_handler <- fileHandler destf level
-  let handlers = setFormatter file_handler fmt:stderr_handlers
+  stderr_handlers <- openFormattedHandler stderr_logging fmt $
+                     streamHandler stderr level
+
+  file_handlers <- openFormattedHandler (syslog /= SyslogOnly) fmt $
+                   fileHandler destf level
+
+  let handlers = concat [file_handlers, stderr_handlers]
   updateGlobalLogger rootLoggerName $ setHandlers handlers
+  -- syslog handler is special (another type, still instance of the
+  -- typeclass, and has a built-in formatter), so we can't pass it in
+  -- the above list
+  when (syslog /= SyslogNo) $ do
+    syslog_handler <- openlog program [PID] DAEMON INFO
+    updateGlobalLogger rootLoggerName $ addHandler syslog_handler
 
 -- * Logging function aliases
 
