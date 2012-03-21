@@ -759,7 +759,19 @@ TEST_FILES = \
 	test/data/vgreduce-removemissing-2.02.66-ok.txt \
 	test/data/vgs-missing-pvs-2.02.02.txt \
 	test/data/vgs-missing-pvs-2.02.66.txt \
-	test/import-export_unittest-helper
+	test/import-export_unittest-helper \
+	test/htools-balancing.test \
+	test/htools-basic.test \
+	test/htools-dynutil.test \
+	test/htools-excl.test \
+	test/htools-hail.test \
+	test/htools-hspace.test \
+	test/htools-invalid.test \
+	test/htools-multi-group.test \
+	test/htools-no-backend.test \
+	test/htools-rapi.test \
+	test/htools-single-group.test \
+	test/htools-text-backend.test
 
 python_tests = \
 	test/ganeti.asyncnotifier_unittest.py \

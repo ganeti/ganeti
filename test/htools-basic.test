@@ -1,0 +1,21 @@
+# help/version tests
+./test/hail --version
+>>>= 0
+./test/hail --help
+>>>= 0
+./test/hbal --version
+>>>= 0
+./test/hbal --help
+>>>= 0
+./test/hspace --version
+>>>= 0
+./test/hspace --help
+>>>= 0
+./test/hscan --version
+>>>= 0
+./test/hscan --help
+>>>= 0
+./test/hinfo --version
+>>>= 0
+./test/hinfo --help
+>>>= 0

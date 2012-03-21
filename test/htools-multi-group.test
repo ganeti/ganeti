@@ -1,0 +1,35 @@
+# standard multi-group tests
+./test/hinfo -v -v -p --print-instances -t$T/simu-twogroups.standard
+>>>= 0
+./test/hbal -t$T/simu-twogroups.standard
+>>>= !0
+
+# hbal should not be able to balance
+./test/hbal -t$T/simu-twogroups.standard
+>>>2 /Found multiple node groups/
+>>>= !0
+
+# but hbal should be able to balance one node group
+./test/hbal -t$T/simu-twogroups.standard -G group-01
+>>>= 0
+# and it should not find an invalid group
+./test/hbal -t$T/simu-twogroups.standard -G no-such-group
+>>>= !0
+
+# tiered allocs multi-group tests
+./test/hinfo -v -v -p --print-instances -t$T/simu-twogroups.tiered
+>>>= 0
+./test/hbal -t$T/simu-twogroups.tiered
+>>>= !0
+
+# hbal should not be able to balance
+./test/hbal -t$T/simu-twogroups.tiered
+>>>2 /Found multiple node groups/
+>>>= !0
+
+# but hbal should be able to balance one node group
+./test/hbal -t$T/simu-twogroups.tiered -G group-01
+>>>= 0
+# and it should not find an invalid group
+./test/hbal -t$T/simu-twogroups.tiered -G no-such-group
+>>>= !0

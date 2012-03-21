@@ -1,0 +1,11 @@
+# test loading data via RAPI
+./test/hinfo -v -v -p --print-instances -m $RAPI_URL
+>>>= 0
+
+./test/hbal -v -v -p --print-instances -m $RAPI_URL
+>>>= 0
+
+# this compares generated files from hscan
+diff -u $T/hscan/direct.hinfo $T/hscan/fromtext.hinfo
+>>>
+>>>= 0

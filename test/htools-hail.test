@@ -1,0 +1,77 @@
+# test that on invalid files it can't parse the request
+./test/hail /dev/null
+>>>2 /Invalid JSON/
+>>>= !0
+
+# another invalid example
+echo '[]' | ./test/hail -
+>>>2 /Unable to read JSObject/
+>>>= !0
+
+# empty dict
+echo '{}' | ./test/hail -
+>>>2 /key 'request' not found/
+>>>= !0
+
+echo '{"request": 0}' | ./test/hail -
+>>>2 /key 'request'/
+>>>= !0
+
+./test/hail $TESTDATA_DIR/hail-invalid-reloc.json
+>>>2 /key 'name': Unable to read String/
+>>>= !0
+
+# and now start the real tests
+./test/hail $TESTDATA_DIR/hail-alloc-drbd.json
+>>> /"success":true,.*,"result":\["node2","node1"\]/
+>>>= 0
+
+./test/hail $TESTDATA_DIR/hail-reloc-drbd.json
+>>> /"success":true,.*,"result":\["node1"\]/
+>>>= 0
+
+./test/hail $TESTDATA_DIR/hail-node-evac.json
+>>> /"success":true,"info":"Request successful: 0 instances failed to move and 1 were moved successfully"/
+>>>= 0
+
+./test/hail $TESTDATA_DIR/hail-change-group.json
+>>> /"success":true,"info":"Request successful: 0 instances failed to move and 1 were moved successfully"/
+>>>= 0
+
+# check that hail can use the simu backend
+./test/hail --simu p,8,8T,16g,16 $TESTDATA_DIR/hail-alloc-drbd.json
+>>> /"success":true,/
+>>>= 0
+
+# check that hail can use the text backend
+./test/hail -t $T/simu-rebal-merged.standard $TESTDATA_DIR/hail-alloc-drbd.json
+>>> /"success":true,/
+>>>= 0
+
+# check that hail can use the simu backend
+./test/hail -t $T/simu-rebal-merged.standard $TESTDATA_DIR/hail-alloc-drbd.json
+>>> /"success":true,/
+>>>= 0
+
+# check that hail pre/post saved state differs after allocation
+./test/hail -v -v -v -p $TESTDATA_DIR/hail-alloc-drbd.json -S $T/hail-alloc >/dev/null 2>&1 && ! diff -q $T/hail-alloc.pre-ialloc $T/hail-alloc.post-ialloc
+>>> /Files .* and .* differ/
+>>>= 0
+
+# check that hail pre/post saved state differs after relocation
+./test/hail -v -v -v -p $TESTDATA_DIR/hail-reloc-drbd.json -S $T/hail-reloc >/dev/null 2>&1 && ! diff -q $T/hail-reloc.pre-ialloc $T/hail-reloc.post-ialloc
+>>> /Files .* and .* differ/
+>>>= 0
+
+# evac tests
+./test/hail $T/hail-node-evac.json.primary-only
+>>> /"success":true,"info":"Request successful: 0 instances failed to move and 1 were moved successfully"/
+>>>= 0
+
+./test/hail $T/hail-node-evac.json.secondary-only
+>>> /"success":true,"info":"Request successful: 0 instances failed to move and 1 were moved successfully"/
+>>>= 0
+
+./test/hail $T/hail-node-evac.json.all
+>>> /"success":true,"info":"Request successful: 0 instances failed to move and 1 were moved successfully"/
+>>>= 0
