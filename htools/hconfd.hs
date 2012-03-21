@@ -40,6 +40,7 @@ options =
   , oDebug
   , oPort C.defaultConfdPort
   , oBindAddress
+  , oSyslogUsage
   ]
 
 -- | Main function.

@@ -34,6 +34,7 @@ module Ganeti.Daemon
   , oDebug
   , oPort
   , oBindAddress
+  , oSyslogUsage
   , parseArgs
   , parseAddress
   , writePidFile
@@ -75,6 +76,7 @@ data DaemonOptions = DaemonOptions
   , optDebug        :: Bool           -- ^ Enable debug messages
   , optNoUserChecks :: Bool           -- ^ Ignore user checks
   , optBindAddress  :: Maybe String   -- ^ Override for the bind address
+  , optSyslogUsage  :: Maybe SyslogUsage -- ^ Override for Syslog usage
   }
 
 -- | Default values for the command line options.
@@ -87,6 +89,7 @@ defaultOptions  = DaemonOptions
   , optDebug        = False
   , optNoUserChecks = False
   , optBindAddress  = Nothing
+  , optSyslogUsage  = Nothing
   }
 
 -- | Abrreviation for the option type.
@@ -141,6 +144,15 @@ oBindAddress = Option "b" ["bind"]
                (ReqArg (\addr opts -> Ok opts { optBindAddress = Just addr })
                 "ADDR")
                "Bind address (default depends on cluster configuration)"
+
+oSyslogUsage :: OptType
+oSyslogUsage = Option "" ["syslog"]
+               (reqWithConversion syslogUsageFromRaw
+                (\su opts -> Ok opts { optSyslogUsage = Just su })
+                "SYSLOG")
+               ("Enable logging to syslog (except debug \
+                \messages); one of 'no', 'yes' or 'only' [" ++ C.syslogUsage ++
+                "]")
 
 -- | Usage info.
 usageHelp :: String -> [OptType] -> String
@@ -291,16 +303,21 @@ genericMain daemon options main = do
         exitWith $ ExitFailure C.exitFailure
       Ok ents -> verifyDaemonUser daemon ents
 
+  syslog <- case optSyslogUsage opts of
+              Nothing -> exitIfBad $
+                         annotateResult "Invalid cluster syslog setting" $
+                         syslogUsageFromRaw C.syslogUsage
+              Just v -> return v
   let processFn = if optDaemonize opts then daemonize else id
-  processFn $ innerMain daemon opts (main opts)
+  processFn $ innerMain daemon opts syslog (main opts)
 
 -- | Inner daemon function.
 --
 -- This is executed after daemonization.
-innerMain :: GanetiDaemon -> DaemonOptions -> IO () -> IO ()
-innerMain daemon opts main = do
+innerMain :: GanetiDaemon -> DaemonOptions -> SyslogUsage -> IO () -> IO ()
+innerMain daemon opts syslog main = do
   setupLogging (daemonLogFile daemon) (daemonName daemon) (optDebug opts)
-                 (not (optDaemonize opts)) False SyslogNo
+                 (not (optDaemonize opts)) False syslog
   pid_fd <- writePidFile (daemonPidFile daemon)
   case pid_fd of
     Bad msg -> do
