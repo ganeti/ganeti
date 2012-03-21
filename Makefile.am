@@ -354,7 +354,10 @@ docrst = \
 	doc/upgrade.rst \
 	doc/walkthrough.rst
 
-HS_PROGS = htools/htools htools/hconfd
+HS_PROGS = htools/htools
+if WANT_CONFD
+HS_PROGS += htools/hconfd
+endif
 HS_BIN_ROLES = hbal hscan hspace hinfo
 
 HS_ALL_PROGS = $(HS_PROGS) htools/test htools/hpc-htools
@@ -538,7 +541,6 @@ $(HS_ALL_PROGS): %: %.hs $(HS_LIB_SRCS) $(HS_BUILT_SRCS) Makefile
 	  $(HTOOLS_NOCURL) $(HTOOLS_PARALLEL3) \
 	  -osuf $$BINARY.o -hisuf $$BINARY.hi \
 	  $(HEXTRA) $(HEXTRA_INT) $@
-
 # for the htools/test binary, we need to enable profiling/coverage
 htools/test: HEXTRA_INT=-fhpc -Wwarn -fno-warn-missing-signatures \
 	-fno-warn-monomorphism-restriction -fno-warn-orphans \

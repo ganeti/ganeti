@@ -287,6 +287,8 @@ AC_ARG_ENABLE([confd],
   [enable_confd=True])
 AC_SUBST(ENABLE_CONFD, $enable_confd)
 
+AM_CONDITIONAL([WANT_CONFD], [test x$enable_confd = xTrue])
+
 # --with-disk-separator=...
 AC_ARG_WITH([disk-separator],
   [AS_HELP_STRING([--with-disk-separator=STRING],
