@@ -1555,7 +1555,7 @@ class LUClusterVerifyConfig(NoHooksLU, _VerifyErrors):
   """Verifies the cluster config.
 
   """
-  REQ_BGL = True
+  REQ_BGL = False
 
   def _VerifyHVP(self, hvp_data):
     """Verifies locally the syntax of the hypervisor parameters.
@@ -1572,13 +1572,17 @@ class LUClusterVerifyConfig(NoHooksLU, _VerifyErrors):
         self._ErrorIf(True, self.ECLUSTERCFG, None, msg % str(err))
 
   def ExpandNames(self):
-    # Information can be safely retrieved as the BGL is acquired in exclusive
-    # mode
-    assert locking.BGL in self.owned_locks(locking.LEVEL_CLUSTER)
+    self.needed_locks = dict.fromkeys(locking.LEVELS, locking.ALL_SET)
+    self.share_locks = _ShareAll()
+
+  def CheckPrereq(self):
+    """Check prerequisites.
+
+    """
+    # Retrieve all information
     self.all_group_info = self.cfg.GetAllNodeGroupsInfo()
     self.all_node_info = self.cfg.GetAllNodesInfo()
     self.all_inst_info = self.cfg.GetAllInstancesInfo()
-    self.needed_locks = {}
 
   def Exec(self, feedback_fn):
     """Verify integrity of cluster, performing various test on nodes.
