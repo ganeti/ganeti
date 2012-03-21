@@ -840,10 +840,10 @@ class SharedLock(object):
       if not acquired:
         acquired = self.__acquire_unlocked(0, timeout, priority)
 
+      if acquired:
         assert self.__is_exclusive() and not self.__is_sharer(), \
           "Lock wasn't acquired in exclusive mode"
 
-      if acquired:
         self.__deleted = True
         self.__exc = None
 
