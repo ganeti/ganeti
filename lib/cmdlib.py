@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -570,7 +570,7 @@ def _CheckInstancesNodeGroups(cfg, instances, owned_groups, owned_nodes,
   @type owned_nodes: iterable of string
   @param owned_nodes: List of owned nodes
   @type cur_group_uuid: string or None
-  @type cur_group_uuid: Optional group UUID to check against instance's groups
+  @param cur_group_uuid: Optional group UUID to check against instance's groups
 
   """
   for (name, inst) in instances.items():
