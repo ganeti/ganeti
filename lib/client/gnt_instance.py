@@ -1178,7 +1178,15 @@ def ShowInstanceConfig(opts, args):
     ##          instance["auto_balance"])
     buf.write("  Nodes:\n")
     buf.write("    - primary: %s\n" % instance["pnode"])
-    buf.write("    - secondaries: %s\n" % utils.CommaJoin(instance["snodes"]))
+    buf.write("      group: %s (UUID %s)\n" %
+              (instance["pnode_group_name"], instance["pnode_group_uuid"]))
+    buf.write("    - secondaries: %s\n" %
+              utils.CommaJoin("%s (group %s, group UUID %s)" %
+                                (name, group_name, group_uuid)
+                              for (name, group_name, group_uuid) in
+                                zip(instance["snodes"],
+                                    instance["snodes_group_names"],
+                                    instance["snodes_group_uuids"])))
     buf.write("  Operating system: %s\n" % instance["os"])
     FormatParameterDict(buf, instance["os_instance"], instance["os_actual"],
                         level=2)

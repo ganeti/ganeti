@@ -1082,6 +1082,17 @@ class ConfigWriter:
                      for member_name in
                        self._UnlockedGetNodeGroup(ngfn(node_name)).members)
 
+  @locking.ssynchronized(_config_lock, shared=1)
+  def GetMultiNodeGroupInfo(self, group_uuids):
+    """Get the configuration of multiple node groups.
+
+    @param group_uuids: List of node group UUIDs
+    @rtype: list
+    @return: List of tuples of (group_uuid, group_info)
+
+    """
+    return [(uuid, self._UnlockedGetNodeGroup(uuid)) for uuid in group_uuids]
+
   @locking.ssynchronized(_config_lock)
   def AddInstance(self, instance, ec_id):
     """Add an instance to the config.

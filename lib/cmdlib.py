@@ -10559,12 +10559,25 @@ class LUInstanceQueryData(NoHooksLU):
       else:
         self.needed_locks[locking.LEVEL_INSTANCE] = self.wanted_names
 
+      self.needed_locks[locking.LEVEL_NODEGROUP] = []
       self.needed_locks[locking.LEVEL_NODE] = []
       self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_REPLACE
 
   def DeclareLocks(self, level):
-    if self.op.use_locking and level == locking.LEVEL_NODE:
-      self._LockInstancesNodes()
+    if self.op.use_locking:
+      if level == locking.LEVEL_NODEGROUP:
+        owned_instances = self.owned_locks(locking.LEVEL_INSTANCE)
+
+        # Lock all groups used by instances optimistically; this requires going
+        # via the node before it's locked, requiring verification later on
+        self.needed_locks[locking.LEVEL_NODEGROUP] = \
+          frozenset(group_uuid
+                    for instance_name in owned_instances
+                    for group_uuid in
+                      self.cfg.GetInstanceNodeGroups(instance_name))
+
+      elif level == locking.LEVEL_NODE:
+        self._LockInstancesNodes()
 
   def CheckPrereq(self):
     """Check prerequisites.
@@ -10572,12 +10585,23 @@ class LUInstanceQueryData(NoHooksLU):
     This only checks the optional instance list against the existing names.
 
     """
+    owned_instances = frozenset(self.owned_locks(locking.LEVEL_INSTANCE))
+    owned_groups = frozenset(self.owned_locks(locking.LEVEL_NODEGROUP))
+    owned_nodes = frozenset(self.owned_locks(locking.LEVEL_NODE))
+
     if self.wanted_names is None:
       assert self.op.use_locking, "Locking was not used"
-      self.wanted_names = self.owned_locks(locking.LEVEL_INSTANCE)
+      self.wanted_names = owned_instances
 
-    self.wanted_instances = \
-        map(compat.snd, self.cfg.GetMultiInstanceInfo(self.wanted_names))
+    instances = dict(self.cfg.GetMultiInstanceInfo(self.wanted_names))
+
+    if self.op.use_locking:
+      _CheckInstancesNodeGroups(self.cfg, instances, owned_groups, owned_nodes,
+                                None)
+    else:
+      assert not (owned_instances or owned_groups or owned_nodes)
+
+    self.wanted_instances = instances.values()
 
   def _ComputeBlockdevStatus(self, node, instance_name, dev):
     """Returns the status of a block device
@@ -10642,9 +10666,17 @@ class LUInstanceQueryData(NoHooksLU):
 
     cluster = self.cfg.GetClusterInfo()
 
-    pri_nodes = self.cfg.GetMultiNodeInfo(i.primary_node
-                                          for i in self.wanted_instances)
-    for instance, (_, pnode) in zip(self.wanted_instances, pri_nodes):
+    node_names = itertools.chain(*(i.all_nodes for i in self.wanted_instances))
+    nodes = dict(self.cfg.GetMultiNodeInfo(node_names))
+
+    groups = dict(self.cfg.GetMultiNodeGroupInfo(node.group
+                                                 for node in nodes.values()))
+
+    group2name_fn = lambda uuid: groups[uuid].name
+
+    for instance in self.wanted_instances:
+      pnode = nodes[instance.primary_node]
+
       if self.op.static or pnode.offline:
         remote_state = None
         if pnode.offline:
@@ -10670,12 +10702,19 @@ class LUInstanceQueryData(NoHooksLU):
       disks = map(compat.partial(self._ComputeDiskStatus, instance, None),
                   instance.disks)
 
+      snodes_group_uuids = [nodes[snode_name].group
+                            for snode_name in instance.secondary_nodes]
+
       result[instance.name] = {
         "name": instance.name,
         "config_state": config_state,
         "run_state": remote_state,
         "pnode": instance.primary_node,
+        "pnode_group_uuid": pnode.group,
+        "pnode_group_name": group2name_fn(pnode.group),
         "snodes": instance.secondary_nodes,
+        "snodes_group_uuids": snodes_group_uuids,
+        "snodes_group_names": map(group2name_fn, snodes_group_uuids),
         "os": instance.os,
         # this happens to be the same format used for hooks
         "nics": _NICListToTuple(self, instance.nics),
