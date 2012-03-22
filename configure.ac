@@ -361,8 +361,6 @@ then
   AC_MSG_ERROR([socat not found])
 fi
 
-if test "$enable_htools" != "no"; then
-
 # Check for qemu-img
 AC_ARG_VAR(QEMUIMG_PATH, [qemu-img path])
 AC_PATH_PROG(QEMUIMG_PATH, [qemu-img], [])
@@ -370,6 +368,8 @@ if test -z "$QEMUIMG_PATH"
 then
   AC_MSG_WARN([qemu-img not found, using ovfconverter will not be possible])
 fi
+
+if test "$enable_htools" != "no"; then
 
 # Check for ghc
 AC_ARG_VAR(GHC, [ghc path])
