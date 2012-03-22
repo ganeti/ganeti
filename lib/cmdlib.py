@@ -32,7 +32,6 @@ import os
 import os.path
 import time
 import re
-import platform
 import logging
 import copy
 import OpenSSL
@@ -59,6 +58,7 @@ from ganeti import query
 from ganeti import qlang
 from ganeti import opcodes
 from ganeti import ht
+from ganeti import runtime
 
 import ganeti.masterd.instance # pylint: disable=W0611
 
@@ -5520,7 +5520,7 @@ class LUClusterQuery(NoHooksLU):
       "config_version": constants.CONFIG_VERSION,
       "os_api_version": max(constants.OS_API_VERSIONS),
       "export_version": constants.EXPORT_VERSION,
-      "architecture": (platform.architecture()[0], platform.machine()),
+      "architecture": runtime.GetArchInfo(),
       "name": cluster.cluster_name,
       "master": cluster.master_node,
       "default_hypervisor": cluster.enabled_hypervisors[0],
