@@ -355,12 +355,9 @@ docrst = \
 	doc/walkthrough.rst
 
 HS_PROGS = htools/htools
-if WANT_CONFD
-HS_PROGS += htools/hconfd
-endif
 HS_BIN_ROLES = hbal hscan hspace hinfo
 
-HS_ALL_PROGS = $(HS_PROGS) htools/test htools/hpc-htools
+HS_ALL_PROGS = $(HS_PROGS) htools/test htools/hpc-htools htools/hconfd
 HS_PROG_SRCS = $(patsubst %,%.hs,$(HS_ALL_PROGS))
 HS_BUILT_TEST_HELPERS = $(HS_BIN_ROLES:%=test/%) test/hail
 
@@ -485,12 +482,15 @@ gnt_scripts = \
 	scripts/gnt-os
 
 PYTHON_BOOTSTRAP_SBIN = \
-	daemons/ganeti-confd \
 	daemons/ganeti-masterd \
 	daemons/ganeti-noded \
 	daemons/ganeti-watcher \
 	daemons/ganeti-rapi \
 	$(gnt_scripts)
+
+if PY_CONFD
+PYTHON_BOOTSTRAP_SBIN += daemons/ganeti-confd
+endif
 
 PYTHON_BOOTSTRAP = \
 	$(PYTHON_BOOTSTRAP_SBIN) \
@@ -523,6 +523,9 @@ install-exec-hook:
 		$(LN_S) -f htools \
 			   $(DESTDIR)$(bindir)/$$role ; \
 	done
+if HS_CONFD
+	mv $(DESTDIR)$(sbindir)/hconfd $(DESTDIR)$(sbindir)/ganeti-confd
+endif
 endif
 
 $(HS_ALL_PROGS): %: %.hs $(HS_LIB_SRCS) $(HS_BUILT_SRCS) Makefile
@@ -572,6 +575,10 @@ dist_sbin_SCRIPTS = \
 nodist_sbin_SCRIPTS = \
 	$(PYTHON_BOOTSTRAP_SBIN) \
 	daemons/ganeti-cleaner
+
+if HS_CONFD
+nodist_sbin_SCRIPTS += htools/hconfd
+endif
 
 python_scripts = \
 	tools/burnin \
@@ -1109,6 +1116,8 @@ lib/_autoconf.py: Makefile | lib/.dir
 	    echo "HTOOLS = False"; \
 	  fi; \
 	  echo "ENABLE_CONFD = $(ENABLE_CONFD)"; \
+	  echo "PY_CONFD = $(PY_CONFD)"; \
+	  echo "HS_CONFD = $(HS_CONFD)"; \
 	} > $@
 
 lib/_vcsversion.py: Makefile vcs-version | lib/.dir

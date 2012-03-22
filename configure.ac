@@ -270,13 +270,22 @@ AC_ARG_ENABLE([htools-rapi],
 ENABLE_CONFD=
 AC_ARG_ENABLE([confd],
   [AS_HELP_STRING([--enable-confd],
-  [enable the ganeti-confd daemon (default: yes)])],
+  [enable the ganeti-confd daemon (default: python, options haskell/python/no)])],
   [[case "$enableval" in
       no)
         enable_confd=False
+        py_confd=False
+        hs_confd=False
         ;;
-      yes)
+      yes|python)
         enable_confd=True
+        py_confd=True
+        hs_confd=False
+        ;;
+      haskell)
+        enable_confd=True
+        py_confd=False
+        hs_confd=True
         ;;
       *)
         echo "Invalid value for enable-confd '$enableval'"
@@ -284,10 +293,14 @@ AC_ARG_ENABLE([confd],
         ;;
     esac
   ]],
-  [enable_confd=True])
+  [enable_confd=True;py_confd=True;hs_confd=False])
 AC_SUBST(ENABLE_CONFD, $enable_confd)
+AC_SUBST(PY_CONFD, $py_confd)
+AC_SUBST(HS_CONFD, $hs_confd)
 
 AM_CONDITIONAL([WANT_CONFD], [test x$enable_confd = xTrue])
+AM_CONDITIONAL([PY_CONFD], [test x$py_confd = xTrue])
+AM_CONDITIONAL([HS_CONFD], [test x$hs_confd = xTrue])
 
 # --with-disk-separator=...
 AC_ARG_WITH([disk-separator],
@@ -484,6 +497,11 @@ fi
 AC_SUBST(HTOOLS_APIDOC)
 
 fi # end if enable_htools, define automake conditions
+
+if test "$HTOOLS" != "yes" && test "$HS_CONFD" = "True"; then
+   AC_MSG_ERROR(m4_normalize([cannot enable Haskell version of ganeti-confd if
+                              htools support is not enabled]))
+fi
 
 AM_CONDITIONAL([WANT_HTOOLS], [test x$HTOOLS = xyes])
 AM_CONDITIONAL([WANT_HTOOLSTESTS], [test "x$GHC_PKG_QUICKCHECK" != x])
