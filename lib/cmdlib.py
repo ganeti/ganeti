@@ -557,6 +557,32 @@ def _ShareAll():
   return dict.fromkeys(locking.LEVELS, 1)
 
 
+def _CheckInstancesNodeGroups(cfg, instances, owned_groups, owned_nodes,
+                              cur_group_uuid):
+  """Checks if node groups for locked instances are still correct.
+
+  @type cfg: L{config.ConfigWriter}
+  @param cfg: Cluster configuration
+  @type instances: dict; string as key, L{objects.Instance} as value
+  @param instances: Dictionary, instance name as key, instance object as value
+  @type owned_groups: iterable of string
+  @param owned_groups: List of owned groups
+  @type owned_nodes: iterable of string
+  @param owned_nodes: List of owned nodes
+  @type cur_group_uuid: string or None
+  @type cur_group_uuid: Optional group UUID to check against instance's groups
+
+  """
+  for (name, inst) in instances.items():
+    assert owned_nodes.issuperset(inst.all_nodes), \
+      "Instance %s's nodes changed while we kept the lock" % name
+
+    inst_groups = _CheckInstanceNodeGroups(cfg, name, owned_groups)
+
+    assert cur_group_uuid is None or cur_group_uuid in inst_groups, \
+      "Instance %s has no node in group %s" % (name, cur_group_uuid)
+
+
 def _CheckInstanceNodeGroups(cfg, instance_name, owned_groups):
   """Checks if the owned node groups are still correct for an instance.
 
@@ -3116,15 +3142,8 @@ class LUGroupVerifyDisks(NoHooksLU):
     self.instances = dict(self.cfg.GetMultiInstanceInfo(owned_instances))
 
     # Check if node groups for locked instances are still correct
-    for (instance_name, inst) in self.instances.items():
-      assert owned_nodes.issuperset(inst.all_nodes), \
-        "Instance %s's nodes changed while we kept the lock" % instance_name
-
-      inst_groups = _CheckInstanceNodeGroups(self.cfg, instance_name,
-                                             owned_groups)
-
-      assert self.group_uuid in inst_groups, \
-        "Instance %s has no node in group %s" % (instance_name, self.group_uuid)
+    _CheckInstancesNodeGroups(self.cfg, self.instances,
+                              owned_groups, owned_nodes, self.group_uuid)
 
   def Exec(self, feedback_fn):
     """Verify integrity of cluster disks.
@@ -12523,16 +12542,8 @@ class LUGroupEvacuate(LogicalUnit):
     self.instances = dict(self.cfg.GetMultiInstanceInfo(owned_instances))
 
     # Check if node groups for locked instances are still correct
-    for instance_name in owned_instances:
-      inst = self.instances[instance_name]
-      assert owned_nodes.issuperset(inst.all_nodes), \
-        "Instance %s's nodes changed while we kept the lock" % instance_name
-
-      inst_groups = _CheckInstanceNodeGroups(self.cfg, instance_name,
-                                             owned_groups)
-
-      assert self.group_uuid in inst_groups, \
-        "Instance %s has no node in group %s" % (instance_name, self.group_uuid)
+    _CheckInstancesNodeGroups(self.cfg, self.instances,
+                              owned_groups, owned_nodes, self.group_uuid)
 
     if self.req_target_uuids:
       # User requested specific target groups
