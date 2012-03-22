@@ -720,6 +720,7 @@ TEST_FILES = \
 	test/data/sys_drbd_usermode_helper.txt \
 	test/data/htools/hail-alloc-drbd.json \
 	test/data/htools/hail-change-group.json \
+	test/data/htools/hail-invalid-reloc.json \
 	test/data/htools/hail-node-evac.json \
 	test/data/htools/hail-reloc-drbd.json \
 	test/data/htools/common-suffix.data \
