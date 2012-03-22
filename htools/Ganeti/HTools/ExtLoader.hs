@@ -8,7 +8,7 @@ libraries implementing the low-level protocols.
 
 {-
 
-Copyright (C) 2009, 2010, 2011 Google Inc.
+Copyright (C) 2009, 2010, 2011, 2012 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -37,7 +37,6 @@ import Control.Monad
 import Data.Maybe (isJust, fromJust)
 import System.FilePath
 import System.IO
-import System.Exit
 import Text.Printf (hPrintf)
 
 import qualified Ganeti.HTools.Luxi as Luxi
@@ -50,7 +49,7 @@ import Ganeti.HTools.Loader (mergeData, checkData, ClusterData(..)
 
 import Ganeti.HTools.Types
 import Ganeti.HTools.CLI
-import Ganeti.HTools.Utils (sepSplit, tryRead)
+import Ganeti.HTools.Utils (sepSplit, tryRead, exitIfBad, exitWhen)
 
 -- | Error beautifier.
 wrapIO :: IO (Result a) -> IO (Result a)
@@ -92,20 +91,12 @@ loadExternalData opts = do
       selInsts = optSelInst opts
       exInsts = optExInst opts
 
-  when (length allSet > 1) $
-       do
-         hPutStrLn stderr ("Error: Only one of the rapi, luxi, and data" ++
-                           " files options should be given.")
-         exitWith $ ExitFailure 1
+  exitWhen (length allSet > 1) "Only one of the rapi, luxi, and data\
+                               \ files options should be given"
 
   util_contents <- maybe (return "") readFile (optDynuFile opts)
-  let util_data = mapM parseUtilisation $ lines util_contents
-  util_data' <- case util_data of
-                  Ok x  -> return x
-                  Bad y -> do
-                    hPutStrLn stderr ("Error: can't parse utilisation" ++
-                                      " data: " ++ show y)
-                    exitWith $ ExitFailure 1
+  util_data <- exitIfBad "can't parse utilisation data" .
+               mapM parseUtilisation $ lines util_contents
   input_data <-
     case () of
       _ | setRapi -> wrapIO $ Rapi.loadData mhost
@@ -115,14 +106,8 @@ loadExternalData opts = do
         | setIAllocSrc -> wrapIO $ IAlloc.loadData $ fromJust iallocsrc
         | otherwise -> return $ Bad "No backend selected! Exiting."
 
-  let ldresult = input_data >>= mergeData util_data' exTags selInsts exInsts
-  cdata <-
-    case ldresult of
-      Ok x -> return x
-      Bad s -> do
-        hPrintf stderr
-          "Error: failed to load data, aborting. Details:\n%s\n" s:: IO ()
-        exitWith $ ExitFailure 1
+  let ldresult = input_data >>= mergeData util_data exTags selInsts exInsts
+  cdata <- exitIfBad "failed to load data, aborting" ldresult
   let (fix_msgs, nl) = checkData (cdNodes cdata) (cdInstances cdata)
 
   unless (optVerbose opts == 0) $ maybeShowWarnings fix_msgs

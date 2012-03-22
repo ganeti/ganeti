@@ -88,7 +88,7 @@ import System.Console.GetOpt
 import System.IO
 import System.Info
 import System.Exit
-import Text.Printf (printf, hPrintf)
+import Text.Printf (printf)
 
 import qualified Ganeti.HTools.Version as Version(version)
 import qualified Ganeti.HTools.Container as Container
@@ -577,9 +577,8 @@ setNodeStatus opts fixed_nl = do
       m_dsk = optMdsk opts
 
   unless (null offline_wrong) $ do
-         hPrintf stderr "Error: Wrong node name(s) set as offline: %s\n"
-                     (commaJoin (map lrContent offline_wrong)) :: IO ()
-         exitWith $ ExitFailure 1
+         exitErr $ printf "wrong node name(s) set as offline: %s\n"
+                   (commaJoin (map lrContent offline_wrong))
   let setMCpuFn = case m_cpu of
                     Nothing -> id
                     Just new_mcpu -> flip Node.setMcpu new_mcpu

@@ -171,13 +171,8 @@ parseOpts argv progname options =
     (opt_list, args, []) ->
       do
         parsed_opts <-
-          case foldM (flip id) defaultOptions opt_list of
-            Bad msg -> do
-              hPutStrLn stderr "Error while parsing command\
-                               \line arguments:"
-              hPutStrLn stderr msg
-              exitWith $ ExitFailure 1
-            Ok val -> return val
+          exitIfBad "Error while parsing command line arguments" $
+          foldM (flip id) defaultOptions opt_list
         return (parsed_opts, args)
     (_, _, errs) -> do
       hPutStrLn stderr $ "Command line error: "  ++ concat errs
@@ -291,21 +286,16 @@ genericMain daemon options main = do
            compilerName (Data.Version.showVersion compilerVersion)
            os arch :: IO ()
     exitWith ExitSuccess
-  unless (null args) $ do
-         hPutStrLn stderr "This program doesn't take any arguments"
-         exitWith $ ExitFailure C.exitFailure
+
+  exitUnless (null args) "This program doesn't take any arguments"
 
   unless (optNoUserChecks opts) $ do
     runtimeEnts <- getEnts
-    case runtimeEnts of
-      Bad msg -> do
-        hPutStrLn stderr $ "Can't find required user/groups: " ++ msg
-        exitWith $ ExitFailure C.exitFailure
-      Ok ents -> verifyDaemonUser daemon ents
+    ents <- exitIfBad "Can't find required user/groups" runtimeEnts
+    verifyDaemonUser daemon ents
 
   syslog <- case optSyslogUsage opts of
-              Nothing -> exitIfBad $
-                         annotateResult "Invalid cluster syslog setting" $
+              Nothing -> exitIfBad "Invalid cluster syslog setting" $
                          syslogUsageFromRaw C.syslogUsage
               Just v -> return v
   let processFn = if optDaemonize opts then daemonize else id
@@ -319,11 +309,6 @@ innerMain daemon opts syslog main = do
   setupLogging (daemonLogFile daemon) (daemonName daemon) (optDebug opts)
                  (not (optDaemonize opts)) False syslog
   pid_fd <- writePidFile (daemonPidFile daemon)
-  case pid_fd of
-    Bad msg -> do
-         hPutStrLn stderr $ "Cannot write PID file; already locked? Error: " ++
-                   msg
-         exitWith $ ExitFailure 1
-    _ -> return ()
+  _ <- exitIfBad "Cannot write PID file; already locked? Error" pid_fd
   logNotice "starting"
   main

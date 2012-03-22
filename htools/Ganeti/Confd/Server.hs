@@ -51,7 +51,6 @@ import Ganeti.Confd
 import Ganeti.Config
 import Ganeti.Hash
 import Ganeti.Logging
-import Ganeti.BasicTypes
 import qualified Ganeti.Constants as C
 
 -- * Types and constants definitions
@@ -504,7 +503,7 @@ listener s hmac resp = do
 main :: DaemonOptions -> IO ()
 main opts = do
   parseresult <- parseAddress opts C.defaultConfdPort
-  (af_family, bindaddr) <- exitIfBad parseresult
+  (af_family, bindaddr) <- exitIfBad "parsing bind address" parseresult
   s <- S.socket af_family S.Datagram S.defaultProtocol
   S.bindSocket s bindaddr
   cref <- newIORef (Bad "Configuration not yet loaded")

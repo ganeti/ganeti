@@ -31,7 +31,6 @@ import Data.Function (on)
 import Data.List
 import Data.Maybe (fromMaybe)
 import Data.Ord (comparing)
-import System.Exit
 import System.IO
 
 import Text.Printf (printf, hPrintf)
@@ -173,12 +172,10 @@ printResults True _ fin_nl num_instances allocs sreason = do
   let fin_stats = Cluster.totalResources fin_nl
       fin_instances = num_instances + allocs
 
-  when (num_instances + allocs /= Cluster.csNinst fin_stats) $
-       do
-         hPrintf stderr "ERROR: internal inconsistency, allocated (%d)\
-                        \ != counted (%d)\n" (num_instances + allocs)
-                                 (Cluster.csNinst fin_stats) :: IO ()
-         exitWith $ ExitFailure 1
+  exitWhen (num_instances + allocs /= Cluster.csNinst fin_stats) $
+           printf "internal inconsistency, allocated (%d)\
+                  \ != counted (%d)\n" (num_instances + allocs)
+           (Cluster.csNinst fin_stats)
 
   printKeys $ printStats PFinal fin_stats
   printKeys [ ("ALLOC_USAGE", printf "%.8f"
@@ -350,12 +347,6 @@ failureReason = show . fst . head
 sortReasons :: [(FailMode, Int)] -> [(FailMode, Int)]
 sortReasons = reverse . sortBy (comparing snd)
 
--- | Aborts the program if we get a bad value.
-exitIfBad :: Result a -> IO a
-exitIfBad (Bad s) =
-  hPrintf stderr "Failure: %s\n" s >> exitWith (ExitFailure 1)
-exitIfBad (Ok v) = return v
-
 -- | Runs an allocation algorithm and saves cluster state.
 runAllocation :: ClusterData                -- ^ Cluster data
               -> Maybe Cluster.AllocResult  -- ^ Optional stop-allocation
@@ -369,7 +360,7 @@ runAllocation cdata stop_allocation actual_result spec dt mode opts = do
   (reasons, new_nl, new_il, new_ixes, _) <-
       case stop_allocation of
         Just result_noalloc -> return result_noalloc
-        Nothing -> exitIfBad actual_result
+        Nothing -> exitIfBad "failure during allocation" actual_result
 
   let name = head . words . specDescription $ mode
       descr = name ++ " allocation"
@@ -395,9 +386,7 @@ instFromSpec spx disk_template su =
 -- | Main function.
 main :: Options -> [String] -> IO ()
 main opts args = do
-  unless (null args) $ do
-         hPutStrLn stderr "Error: this program doesn't take any arguments."
-         exitWith $ ExitFailure 1
+  exitUnless (null args) "this program doesn't take any arguments"
 
   let verbose = optVerbose opts
       machine_r = optMachineReadable opts
@@ -408,10 +397,7 @@ main opts args = do
   cluster_disk_template <-
     case iPolicyDiskTemplates ipol of
       first_templ:_ -> return first_templ
-      _ -> do
-         _ <- hPutStrLn stderr $ "Error: null list of disk templates\
-                               \ received from cluster!"
-         exitWith $ ExitFailure 1
+      _ -> exitErr "null list of disk templates received from cluster"
 
   let num_instances = Container.size il
       all_nodes = Container.elems fixed_nl
@@ -440,7 +426,8 @@ main opts args = do
                    then Nothing
                    else Just (optMaxLength opts)
 
-  allocnodes <- exitIfBad $ Cluster.genAllocNodes gl nl req_nodes True
+  allocnodes <- exitIfBad "failure during allocation" $
+                Cluster.genAllocNodes gl nl req_nodes True
 
   -- Run the tiered allocation
 

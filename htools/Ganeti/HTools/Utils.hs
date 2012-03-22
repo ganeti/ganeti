@@ -36,12 +36,20 @@ module Ganeti.HTools.Utils
   , printTable
   , parseUnit
   , plural
+  , exitIfBad
+  , exitErr
+  , exitWhen
+  , exitUnless
   ) where
 
 import Data.Char (toUpper)
 import Data.List
 
 import Debug.Trace
+
+import Ganeti.BasicTypes
+import System.IO
+import System.Exit
 
 -- * Debug functions
 
@@ -198,3 +206,27 @@ parseUnit str =
         scaling <- parseUnitValue unit
         return $ truncate (fromIntegral v * scaling)
     _ -> fail $ "Can't parse string '" ++ str ++ "'"
+
+-- | Unwraps a 'Result', exiting the program if it is a 'Bad' value,
+-- otherwise returning the actual contained value.
+exitIfBad :: String -> Result a -> IO a
+exitIfBad msg (Bad s) = do
+  hPutStrLn stderr $ "Error: " ++ msg ++ ": " ++ s
+  exitWith (ExitFailure 1)
+exitIfBad _ (Ok v) = return v
+
+-- | Exits immediately with an error message.
+exitErr :: String -> IO a
+exitErr errmsg = do
+  hPutStrLn stderr $ "Error: " ++ errmsg ++ "."
+  exitWith (ExitFailure 1)
+
+-- | Exits with an error message if the given boolean condition if true.
+exitWhen :: Bool -> String -> IO ()
+exitWhen True msg = exitErr msg
+exitWhen False _  = return ()
+
+-- | Exits with an error message /unless/ the given boolean condition
+-- if true, the opposite of 'exitWhen'.
+exitUnless :: Bool -> String -> IO ()
+exitUnless cond = exitWhen (not cond)

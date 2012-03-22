@@ -26,12 +26,9 @@ module Ganeti.BasicTypes
   , eitherToResult
   , annotateResult
   , annotateIOError
-  , exitIfBad
   ) where
 
 import Control.Monad
-import System.IO (hPutStrLn, stderr)
-import System.Exit
 
 -- | This is similar to the JSON library Result type - /very/ similar,
 -- but we want to use it in multiple places, so we abstract it into a
@@ -81,11 +78,3 @@ annotateResult _ v = v
 annotateIOError :: String -> IOError -> IO (Result a)
 annotateIOError description exc =
   return . Bad $ description ++ ": " ++ show exc
-
--- | Unwraps a 'Result', exiting the program if it is a 'Bad' value,
--- otherwise returning the actual contained value.
-exitIfBad :: Result a -> IO a
-exitIfBad (Bad s) = do
-  hPutStrLn stderr $ "Failure: " ++ s
-  exitWith (ExitFailure 1)
-exitIfBad (Ok v) = return v
