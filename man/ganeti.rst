@@ -305,6 +305,30 @@ Perl. The language is not generic. Each condition must consist of a field name
 and a value (except for boolean checks), a field can not be compared to another
 field. Keywords are case-sensitive.
 
+Examples (see below for syntax details):
+
+- List webservers::
+
+    gnt-instance list --filter 'name =* "web*.example.com"'
+
+- List instances with three or six virtual CPUs and whose primary
+  nodes reside in groups starting with the string "rack"::
+
+    gnt-instance list --filter
+      '(be/vcpus == 3 or be/vcpus == 6) and pnode.group =~ m/^rack/'
+
+- Nodes hosting primary instances::
+
+    gnt-node list --filter 'pinst_cnt != 0'
+
+- Nodes which aren't master candidates::
+
+    gnt-node list --filter 'not master_candidate'
+
+- Short version for globbing patterns::
+
+    gnt-instance list '*.site1' '*.site2'
+
 Syntax in pseudo-BNF::
 
   <quoted-string> ::= /* String quoted with single or double quotes,
@@ -364,9 +388,6 @@ Operators:
   Logically negated from *=\**
 *in*, *not in*
   Collection membership and negation
-
-As a shortcut globbing patterns can be specified as names, e.g.
-``gnt-instance list '*.site1' '*.site2'``.
 
 
 Common daemon functionality
