@@ -1,0 +1,72 @@
+# test the various gnt-commands for common options
+$SCRIPTS/gnt-node --help
+>>>/Usage:/
+>>>2
+>>>= 1
+$SCRIPTS/gnt-node --version
+>>>/^gnt-/
+>>>2
+>>>= 0
+
+$SCRIPTS/gnt-instance --help
+>>>/Usage:/
+>>>2
+>>>= 1
+$SCRIPTS/gnt-instance --version
+>>>/^gnt-instance/
+>>>2
+>>>= 0
+
+$SCRIPTS/gnt-os --help
+>>>/Usage:/
+>>>2
+>>>= 1
+$SCRIPTS/gnt-os --version
+>>>/^gnt-/
+>>>2
+>>>= 0
+
+$SCRIPTS/gnt-group --help
+>>>/Usage:/
+>>>2
+>>>= 1
+$SCRIPTS/gnt-group --version
+>>>/^gnt-/
+>>>2
+>>>= 0
+
+$SCRIPTS/gnt-job --help
+>>>/Usage:/
+>>>2
+>>>= 1
+$SCRIPTS/gnt-job --version
+>>>/^gnt-/
+>>>2
+>>>= 0
+
+$SCRIPTS/gnt-cluster --help
+>>>/Usage:/
+>>>2
+>>>= 1
+$SCRIPTS/gnt-cluster --version
+>>>/^gnt-/
+>>>2
+>>>= 0
+
+$SCRIPTS/gnt-backup --help
+>>>/Usage:/
+>>>2
+>>>= 1
+$SCRIPTS/gnt-backup --version
+>>>/^gnt-/
+>>>2
+>>>= 0
+
+$SCRIPTS/gnt-debug --help
+>>>/Usage:/
+>>>2
+>>>= 1
+$SCRIPTS/gnt-debug --version
+>>>/^gnt-/
+>>>2
+>>>= 0

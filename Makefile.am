@@ -768,6 +768,8 @@ TEST_FILES = \
 	test/data/vgs-missing-pvs-2.02.02.txt \
 	test/data/vgs-missing-pvs-2.02.66.txt \
 	test/import-export_unittest-helper \
+	test/gnt-cli.test \
+	test/ganeti-cli.test \
 	test/htools-balancing.test \
 	test/htools-basic.test \
 	test/htools-dynutil.test \
@@ -857,6 +859,7 @@ dist_TESTS = \
 	test/daemon-util_unittest.bash \
 	test/ganeti-cleaner_unittest.bash \
 	test/import-export_unittest.bash \
+	test/cli-test.bash \
 	$(python_tests)
 
 nodist_TESTS =
@@ -872,8 +875,10 @@ TESTS = $(dist_TESTS) $(nodist_TESTS)
 
 # Environment for all tests
 PLAIN_TESTS_ENVIRONMENT = \
-	PYTHONPATH=. TOP_SRCDIR=$(abs_top_srcdir) PYTHON=$(PYTHON) \
-	FAKEROOT=$(FAKEROOT_PATH) $(RUN_IN_TEMPDIR)
+	PYTHONPATH=. \
+	TOP_SRCDIR=$(abs_top_srcdir) TOP_BUILDDIR=$(abs_top_builddir) \
+	PYTHON=$(PYTHON) FAKEROOT=$(FAKEROOT_PATH) \
+	$(RUN_IN_TEMPDIR)
 
 # Environment for tests run by automake
 TESTS_ENVIRONMENT = \
@@ -906,6 +911,7 @@ srclink_files = \
 	test/daemon-util_unittest.bash \
 	test/ganeti-cleaner_unittest.bash \
 	test/import-export_unittest.bash \
+	test/cli-test.bash \
 	htools/offline-test.sh \
 	htools/cli-tests-defs.sh \
 	$(all_python_code) \

@@ -1,0 +1,36 @@
+# test the various gnt-commands for common options
+$SCRIPTS/ganeti-masterd --help
+>>>/Usage:/
+>>>2
+>>>= 0
+$SCRIPTS/ganeti-masterd --version
+>>>/^ganeti-/
+>>>2
+>>>= 0
+
+$SCRIPTS/ganeti-noded --help
+>>>/Usage:/
+>>>2
+>>>= 0
+$SCRIPTS/ganeti-noded --version
+>>>/^ganeti-/
+>>>2
+>>>= 0
+
+$SCRIPTS/ganeti-rapi --help
+>>>/Usage:/
+>>>2
+>>>= 0
+$SCRIPTS/ganeti-rapi --version
+>>>/^ganeti-/
+>>>2
+>>>= 0
+
+$SCRIPTS/ganeti-watcher --help
+>>>/Usage:/
+>>>2
+>>>= 0
+$SCRIPTS/ganeti-watcher --version
+>>>/^ganeti-/
+>>>2
+>>>= 0
