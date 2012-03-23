@@ -927,8 +927,20 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if mem_path:
       kvm_cmd.extend(["-mem-path", mem_path, "-mem-prealloc"])
 
+    monitor_dev = ("unix:%s,server,nowait" %
+                   self._InstanceMonitor(instance.name))
+    kvm_cmd.extend(["-monitor", monitor_dev])
+    if hvp[constants.HV_SERIAL_CONSOLE]:
+      serial_dev = ("unix:%s,server,nowait" %
+                    self._InstanceSerial(instance.name))
+      kvm_cmd.extend(["-serial", serial_dev])
+    else:
+      kvm_cmd.extend(["-serial", "none"])
+
     mouse_type = hvp[constants.HV_USB_MOUSE]
     vnc_bind_address = hvp[constants.HV_VNC_BIND_ADDRESS]
+    spice_bind = hvp[constants.HV_KVM_SPICE_BIND]
+    spice_ip_version = None
 
     if mouse_type:
       kvm_cmd.extend(["-usb"])
@@ -980,22 +992,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         vnc_arg = "unix:%s/%s.vnc" % (vnc_bind_address, instance.name)
 
       kvm_cmd.extend(["-vnc", vnc_arg])
-    else:
-      kvm_cmd.extend(["-nographic"])
-
-    monitor_dev = ("unix:%s,server,nowait" %
-                   self._InstanceMonitor(instance.name))
-    kvm_cmd.extend(["-monitor", monitor_dev])
-    if hvp[constants.HV_SERIAL_CONSOLE]:
-      serial_dev = ("unix:%s,server,nowait" %
-                    self._InstanceSerial(instance.name))
-      kvm_cmd.extend(["-serial", serial_dev])
-    else:
-      kvm_cmd.extend(["-serial", "none"])
-
-    spice_bind = hvp[constants.HV_KVM_SPICE_BIND]
-    spice_ip_version = None
-    if spice_bind:
+    elif spice_bind:
       if netutils.IsValidInterface(spice_bind):
         # The user specified a network interface, we have to figure out the IP
         # address.
@@ -1065,6 +1062,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
       # Tell kvm to use the paravirtualized graphic card, optimized for SPICE
       kvm_cmd.extend(["-vga", "qxl"])
+
+    else:
+      kvm_cmd.extend(["-nographic"])
 
     if hvp[constants.HV_USE_LOCALTIME]:
       kvm_cmd.extend(["-localtime"])
