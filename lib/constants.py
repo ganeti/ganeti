@@ -280,6 +280,7 @@ XEN_INITRD = _autoconf.XEN_INITRD
 XEN_CMD = "xm"
 
 KVM_PATH = _autoconf.KVM_PATH
+KVM_KERNEL = _autoconf.KVM_KERNEL
 SOCAT_PATH = _autoconf.SOCAT_PATH
 SOCAT_USE_ESCAPE = _autoconf.SOCAT_USE_ESCAPE
 SOCAT_USE_COMPRESS = _autoconf.SOCAT_USE_COMPRESS
@@ -1758,7 +1759,7 @@ HVC_DEFAULTS = {
     HV_CPU_MASK: CPU_PINNING_ALL,
     },
   HT_KVM: {
-    HV_KERNEL_PATH: "/boot/vmlinuz-2.6-kvmU",
+    HV_KERNEL_PATH: KVM_KERNEL,
     HV_INITRD_PATH: "",
     HV_KERNEL_ARGS: "ro",
     HV_ROOT_PATH: "/dev/vda1",

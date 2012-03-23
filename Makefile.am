@@ -1089,6 +1089,7 @@ lib/_autoconf.py: Makefile | lib/.dir
 	  echo "XEN_BOOTLOADER = '$(XEN_BOOTLOADER)'"; \
 	  echo "XEN_KERNEL = '$(XEN_KERNEL)'"; \
 	  echo "XEN_INITRD = '$(XEN_INITRD)'"; \
+	  echo "KVM_KERNEL = '$(KVM_KERNEL)'"; \
 	  echo "FILE_STORAGE_DIR = '$(FILE_STORAGE_DIR)'"; \
 	  echo "ENABLE_FILE_STORAGE = $(ENABLE_FILE_STORAGE)"; \
 	  echo "SHARED_FILE_STORAGE_DIR = '$(SHARED_FILE_STORAGE_DIR)'"; \

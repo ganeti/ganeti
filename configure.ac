@@ -83,20 +83,29 @@ AC_SUBST(XEN_BOOTLOADER, $xen_bootloader)
 # --with-xen-kernel=...
 AC_ARG_WITH([xen-kernel],
   [AS_HELP_STRING([--with-xen-kernel=PATH],
-    [DomU kernel image for Xen hypervisor (default is /boot/vmlinuz-2.6-xenU)]
+    [DomU kernel image for Xen hypervisor (default is /boot/vmlinuz-3-xenU)]
   )],
   [xen_kernel="$withval"],
-  [xen_kernel="/boot/vmlinuz-2.6-xenU"])
+  [xen_kernel="/boot/vmlinuz-3-xenU"])
 AC_SUBST(XEN_KERNEL, $xen_kernel)
 
 # --with-xen-initrd=...
 AC_ARG_WITH([xen-initrd],
   [AS_HELP_STRING([--with-xen-initrd=PATH],
-    [DomU initrd image for Xen hypervisor (default is /boot/initrd-2.6-xenU)]
+    [DomU initrd image for Xen hypervisor (default is /boot/initrd-3-xenU)]
   )],
   [xen_initrd="$withval"],
-  [xen_initrd="/boot/initrd-2.6-xenU"])
+  [xen_initrd="/boot/initrd-3-xenU"])
 AC_SUBST(XEN_INITRD, $xen_initrd)
+
+# --with-kvm-kernel=...
+AC_ARG_WITH([kvm-kernel],
+  [AS_HELP_STRING([--with-kvm-kernel=PATH],
+    [Guest kernel image for KVM hypervisor (default is /boot/vmlinuz-3-kvmU)]
+  )],
+  [kvm_kernel="$withval"],
+  [kvm_kernel="/boot/vmlinuz-3-kvmU"])
+AC_SUBST(KVM_KERNEL, $kvm_kernel)
 
 # --with-file-storage-dir=...
 AC_ARG_WITH([file-storage-dir],
