@@ -5080,6 +5080,18 @@ class LUNodeAdd(LogicalUnit):
     if self.op.ndparams:
       utils.ForceDictType(self.op.ndparams, constants.NDS_PARAMETER_TYPES)
 
+    # check connectivity
+    result = self.rpc.call_version([self.new_node.name])[self.new_node.name]
+    result.Raise("Can't get version information from node %s" % node)
+    if constants.PROTOCOL_VERSION == result.payload:
+      logging.info("Communication to node %s fine, sw version %s match",
+                   node, result.payload)
+    else:
+      raise errors.OpPrereqError("Version mismatch master version %s,"
+                                 " node version %s" %
+                                 (constants.PROTOCOL_VERSION, result.payload),
+                                 errors.ECODE_ENVIRON)
+
   def Exec(self, feedback_fn):
     """Adds the new node to the cluster.
 
@@ -5114,17 +5126,6 @@ class LUNodeAdd(LogicalUnit):
       new_node.ndparams = self.op.ndparams
     else:
       new_node.ndparams = {}
-
-    # check connectivity
-    result = self.rpc.call_version([node])[node]
-    result.Raise("Can't get version information from node %s" % node)
-    if constants.PROTOCOL_VERSION == result.payload:
-      logging.info("Communication to node %s fine, sw version %s match",
-                   node, result.payload)
-    else:
-      raise errors.OpExecError("Version mismatch master version %s,"
-                               " node version %s" %
-                               (constants.PROTOCOL_VERSION, result.payload))
 
     # Add node to our /etc/hosts, and add key to known_hosts
     if self.cfg.GetClusterInfo().modify_etc_hosts:
