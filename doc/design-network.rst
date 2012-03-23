@@ -49,9 +49,9 @@ Proposed changes
 
 In order to deal with the above shortcomings, we propose to extend
 Ganeti with high-level network management logic, which consists of a new
-NIC mode called ``managed``, a new "Network" configuration object and
-logic to perform IP address pool management, i.e. maintain a set of
-available and occupied IP addresses.
+NIC slot called ``network``, a new ``Network`` configuration object
+(cluster level) and logic to perform IP address pool management, i.e.
+maintain a set of available and occupied IP addresses.
 
 Configuration changes
 +++++++++++++++++++++
@@ -70,10 +70,15 @@ containing (at least) the following data:
   of the current NIC ``link``.
 - Tags
 
-Each network will be connected to any number of node groups, possibly
-overriding connectivity mode and host interface for each node group.
-This is achieved by adding a ``networks`` slot to the NodeGroup object
-and using the networks' UUIDs as keys.
+Each network will be connected to any number of node groups. During the
+connection of a network to a nodegroup, we define the corresponding
+connectivity mode (bridged or routed) and the host interface (br100 or
+routing_table_200). This is achieved by adding a ``networks`` slot to
+the NodeGroup object and using the networks' UUIDs as keys. The value
+for each key is a dictionary containing the network's ``mode`` and
+``link`` (netparams). Every NIC assigned to the network will eventually
+inherit the network's netparams, as its nicparams.
+
 
 IP pool management
 ++++++++++++++++++
@@ -107,28 +112,33 @@ networks, as they are expected to be densely populated. IPv6 networks
 can use different approaches, e.g. sequential address asignment or
 EUI-64 addresses.
 
-Managed NIC mode
-++++++++++++++++
+New NIC parameter: network
+++++++++++++++++++++++++++
 
 In order to be able to use the new network facility while maintaining
-compatibility with the current networking model, a new network mode is
-introduced, called ``managed`` to reflect the fact that the given NICs
-network configuration is managed by Ganeti itself. A managed mode NIC
-accepts the network it is connected to in its ``link`` argument.
-Userspace tools can refer to networks using their symbolic names,
-however internally, the link argument stores the network's UUID.
+compatibility with the current networking model, a new NIC parameter is
+introduced, called ``network`` to reflect the fact that the given NIC
+belongs to the given network and its configuration is managed by Ganeti
+itself. To keep backwards compatibility, existing code is executed if
+the ``network`` value is 'none' or omitted during NIC creation. If we
+want our NIC to be assigned to a network, then only the ip (optional)
+and the network parameters should be passed. Mode and link are inherited
+from the network-nodegroup mapping configuration (netparams). This
+provides the desired abstraction between the VM's network and the
+node-specific underlying infrastructure.
 
 We also introduce a new ``ip`` address value, ``constants.NIC_IP_POOL``,
 that specifies that a given NIC's IP address should be obtained using
 the IP address pool of the specified network. This value is only valid
-for managed-mode NICs, where it is also used as a default instead of
-``constants.VALUE_AUTO``. A managed-mode NIC's IP address can also be
-specified manually, as long as it is compatible with the network the NIC
+for NICs belonging to a network. A NIC's IP address can also be
+specified manually, as long as it is contained in the network the NIC
 is connected to.
 
 
 Hooks
 +++++
+
+Introduce new hooks concerning network operations:
 
 ``OP_NETWORK_ADD``
   Add a network to Ganeti
@@ -137,83 +147,93 @@ Hooks
   :pre-execution: master node
   :post-execution: master node
 
-``OP_NETWORK_CONNECT``
-  Connect a network to a node group. This hook can be used to e.g.
-  configure network interfaces on the group's nodes.
-
-  :directory: network-connect
-  :pre-execution: master node, all nodes in the connected group
-  :post-execution: master node, all nodes in the connected group
-
-``OP_NETWORK_DISCONNECT``
-  Disconnect a network to a node group. This hook can be used to e.g.
-  deconfigure network interfaces on the group's nodes.
-
-  :directory: network-disconnect
-  :pre-execution: master node, all nodes in the connected group
-  :post-execution: master node, all nodes in the connected group
-
 ``OP_NETWORK_REMOVE``
   Remove a network from Ganeti
 
-  :directory: network-add
-  :pre-execution: master node, all nodes
-  :post-execution: master node, all nodes
+  :directory: network-remove
+  :pre-execution: master node
+  :post-execution: master node
+
+``OP_NETWORK_SET_PARAMS``
+  Modify a network
+
+  :directory: network-modify
+  :pre-execution: master node
+  :post-execution: master node
+
+For connect/disconnect operations use existing:
+
+``OP_GROUP_SET_PARAMS``
+  Modify a nodegroup
+
+  :directory: group-modify
+  :pre-execution: master node
+  :post-execution: master node
 
 Hook variables
 ^^^^^^^^^^^^^^
 
-``INSTANCE_NICn_MANAGED``
-  Non-zero if NIC n is a managed-mode NIC
+During instance related operations:
 
 ``INSTANCE_NICn_NETWORK``
   The friendly name of the network
 
-``INSTANCE_NICn_NETWORK_UUID``
-  The network's UUID
+During network related operations:
 
-``INSTANCE_NICn_NETWORK_TAGS``
-  The network's tags
+``NETWORK_NAME``
+  The friendly name of the network
 
-``INSTANCE_NICn_NETWORK_IPV4_CIDR``, ``INSTANCE_NICn_NETWORK_IPV6_CIDR``
-  The subnet in CIDR notation
+``NETWORK_SUBNET``
+  The ip range of the network
 
-``INSTANCE_NICn_NETWORK_IPV4_GATEWAY``, ``INSTANCE_NICn_NETWORK_IPV6_GATEWAY``
-  The subnet's default gateway
+``NETWORK_GATEWAY``
+  The gateway of the network
 
+During nodegroup related operations:
+
+``GROUP_NETWORK``
+  The friendly name of the network
+
+``GROUP_NETWORK_MODE``
+  The mode (bridged or routed) of the netparams
+
+``GROUP_NETWORK_LINK``
+  The link of the netparams
 
 Backend changes
 +++++++++++++++
 
-In order to keep the hypervisor-visible changes to a minimum, and
-maintain compatibility with the existing network configuration scripts,
-the instance's hypervisor configuration will have host-level link and
-mode replaced by the *connectivity mode* and *host interface* of the
-given network on the current node group.
+To keep the hypervisor-visible changes to a minimum, and maintain
+compatibility with the existing network configuration scripts, the
+instance's hypervisor configuration will have host-level mode and link
+replaced by the *connectivity mode* and *host interface* (netparams) of
+the given network on the current node group.
 
-The managed mode can be detected by the presence of new environment
-variables in network configuration scripts:
+Network configuration scripts detect if a NIC is assigned to a Network
+by the presence of the new environment variable:
 
 Network configuration script variables
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-``MANAGED``
-  Non-zero if NIC is a managed-mode NIC
-
 ``NETWORK``
   The friendly name of the network
 
-``NETWORK_UUID``
-  The network's UUID
+Conflicting IPs
++++++++++++++++
 
-``NETWORK_TAGS``
-  The network's tags
+To ensure IP uniqueness inside a nodegroup, we introduce the term
+``conflicting ips``. Conflicting IPs occur: (a) when creating a
+networkless NIC with IP contained in a network already connected to the
+instance's nodegroup  (b) when connecting/disconnecting a network
+to/from a nodegroup and at the same time instances with IPs inside the
+network's range still exist. Conflicting IPs produce prereq errors.
 
-``NETWORK_IPv4_CIDR``, ``NETWORK_IPv6_CIDR``
-  The subnet in CIDR notation
+Handling of conflicting IP with --force option:
 
-``NETWORK_IPV4_GATEWAY``, ``NETWORK_IPV6_GATEWAY``
-  The subnet's default gateway
+For case (a) reserve the IP and assign the NIC to the Network.
+For case (b) during connect same as (a), during disconnect release IP and
+reset NIC's network parameter to None
+
 
 Userland interface
 ++++++++++++++++++
@@ -225,77 +245,68 @@ Network addition/deletion
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 ::
 
- gnt-network add --cidr=192.0.2.0/24 --gateway=192.0.2.1 \
-                --cidr6=2001:db8:2ffc::/64 --gateway6=2001:db8:2ffc::1 \
-                --nic_connectivity=bridged --host_interface=br0 public
- gnt-network remove public (only allowed if no instances are using the network)
-
-Manual IP address reservation
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-::
-
- gnt-network reserve-ips public 192.0.2.2 192.0.2.10-192.0.2.20
- gnt-network release-ips public 192.0.2.3
+ gnt-network add --network=192.168.100.0/28 --gateway=192.168.100.1 \
+                 --network6=2001:db8:2ffc::/64 --gateway6=2001:db8:2ffc::1 \
+                 --reserved-ips=192.168.100.10,192.168.100.11 net100
+  (Checks for already exising name and valid IP values)
+ gnt-network remove network_name
+  (Checks if not connected to any nodegroup)
 
 
 Network modification
 ^^^^^^^^^^^^^^^^^^^^
 ::
 
- gnt-network modify --cidr=192.0.2.0/25 public (only allowed if all current reservations fit in the new network)
- gnt-network modify --gateway=192.0.2.126 public
- gnt-network modify --host_interface=test --nic_connectivity=routed public (issues warning about instances that need to be rebooted)
- gnt-network rename public public2
+ gnt-network modify --gateway=192.168.100.5 net100
+  (Changes the gateway only if ip is available)
+ gnt-network modify --reserved-ips=192.168.100.11 net100
+  (Toggles externally reserved ip)
 
 
 Assignment to node groups
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 ::
 
- gnt-network connect public nodegroup1
- gnt-network connect --host_interface=br1 public nodegroup2
- gnt-network disconnect public nodegroup1 (only permitted if no instances are currently using this network in the group)
+ gnt-network connect net100 nodegroup1 bridged br100
+  (Checks for existing bridge among nodegroup)
+ gnt-network connect net100 nodegroup2 routed rt_table
+  (Checks for conflicting IPs)
+ gnt-network disconnect net101 nodegroup1
+  (Checks for conflicting IPs)
 
-Tagging
-^^^^^^^
-::
-
- gnt-network add-tags public foo bar:baz
 
 Network listing
 ^^^^^^^^^^^^^^^
 ::
 
  gnt-network list
-  Name		IPv4 Network	IPv4 Gateway	      IPv6 Network	       IPv6 Gateway		Connected to
-  public	 192.0.2.0/24	192.0.2.1	2001:db8:dead:beef::/64	   2001:db8:dead:beef::1       nodegroup1:br0
-  private	 10.0.1.0/24	   -			 -				-
+
+ Network      Subnet           Gateway       NodeGroups GroupList
+ net100       192.168.100.0/28 192.168.100.1          1 default(bridged, br100)
+ net101       192.168.101.0/28 192.168.101.1          1 default(routed, rt_tab)
 
 Network information
 ^^^^^^^^^^^^^^^^^^^
 ::
 
- gnt-network info public
-  Name: public
-  IPv4 Network: 192.0.2.0/24
-  IPv4 Gateway: 192.0.2.1
-  IPv6 Network: 2001:db8:dead:beef::/64
-  IPv6 Gateway: 2001:db8:dead:beef::1
-  Total IPv4 count: 256
-  Free address count: 201 (80% free)
-  IPv4 pool status: XXX.........XXXXXXXXXXXXXX...XX.............
-                    XXX..........XXX...........................X
-                    ....XXX..........XXX.....................XXX
-                                            X: occupied  .: free
-  Externally reserved IPv4 addresses:
-    192.0.2.3, 192.0.2.22
-  Connected to node groups:
-   default (link br0), other_group(link br1)
-  Used by 22 instances:
-   inst1
-   inst2
-   inst32
-   ..
+ gnt-network info testnet1
+
+ Network name: testnet1
+  subnet: 192.168.100.0/28
+  gateway: 192.168.100.1
+  size: 16
+  free: 10 (62.50%)
+  usage map:
+        0 XXXXX..........X                                                 63
+          (X) used    (.) free
+  externally reserved IPs:
+    192.168.100.0, 192.168.100.1, 192.168.100.15
+  connected to node groups:
+    default(bridged, br100)
+  used by 3 instances:
+    test1 : 0:192.168.100.4
+    test2 : 0:192.168.100.2
+    test3 : 0:192.168.100.3
 
 
 IAllocator changes
