@@ -9,6 +9,8 @@ the :doc:`install`. A glossary of terms can be found in the
 Software Requirements
 ---------------------
 
+.. highlight:: shell-example
+
 Before installing, please verify that you have the following programs:
 
 - `Xen Hypervisor <http://www.xen.org/>`_, version 3.0 or above, if
@@ -16,11 +18,11 @@ Before installing, please verify that you have the following programs:
 - `KVM Hypervisor <http://www.linux-kvm.org>`_, version 72 or above, if
   running on KVM. In order to use advanced features, such as live
   migration, virtio, etc, an even newer version is recommended (qemu-kvm
-  versions 0.11.X or above have shown good behavior).
+  versions 0.11.X and above have shown good behavior).
 - `DRBD <http://www.drbd.org/>`_, kernel module and userspace utils,
-  version 8.0.7 or above
-- `RBD <http://ceph.newdream.net/>`_, kernel modules (rbd.ko/libceph.ko)
-  and userspace utils (ceph-common)
+  version 8.0.7 or above; note that Ganeti doesn't yet support version 8.4
+- `RBD <http://ceph.newdream.net/>`_, kernel modules
+  (``rbd.ko``/``libceph.ko``) and userspace utils (``ceph-common``)
 - `LVM2 <http://sourceware.org/lvm2/>`_
 - `OpenSSH <http://www.openssh.com/portable.html>`_
 - `bridge utilities <http://www.linuxfoundation.org/en/Net:Bridge>`_
@@ -44,8 +46,8 @@ Before installing, please verify that you have the following programs:
 - `affinity Python module <http://pypi.python.org/pypi/affinity/0.1.0>`_,
   optional python package for supporting CPU pinning under KVM
 - `ElementTree Python module <http://effbot.org/zone/element-index.htm>`_,
-  if running python 2.4 (optional, used by ovfconverter tool)
-- `qemu-img <http://qemu.org/>`_, if you want to use ovfconverter
+  if running python 2.4 (optional, used by the ``ovfconverter`` tool)
+- `qemu-img <http://qemu.org/>`_, if you want to use ``ovfconverter``
 - `fping <http://fping.sourceforge.net/>`_
 
 These programs are supplied as part of most Linux distributions, so
@@ -59,40 +61,6 @@ packages, except for RBD, DRBD and Xen::
                     python-pyparsing python-simplejson \
                     python-pyinotify python-pycurl socat \
                     python-elementtree qemu
-
-If you want to also enable the `htools` components, which is recommended
-on bigger deployments (they give you automatic instance placement,
-cluster balancing, etc.), then you need to have a Haskell compiler
-installed. More specifically:
-
-- `GHC <http://www.haskell.org/ghc/>`_ version 6.12 or higher
-- or even better, `The Haskell Platform
-  <http://hackage.haskell.org/platform/>`_ which gives you a simple way
-  to bootstrap Haskell
-- `json <http://hackage.haskell.org/package/json>`_, a JSON library
-- `network <http://hackage.haskell.org/package/network>`_, a basic
-  network library
-- `parallel <http://hackage.haskell.org/package/parallel>`_, a parallel
-  programming library (note: tested with up to version 3.x)
-- `curl <http://hackage.haskell.org/package/curl>`_, bindings for the
-  curl library, only needed if you want these tools to connect to remote
-  clusters (as opposed to the local one)
-
-All of these are also available as package in Debian/Ubuntu::
-
-  $ apt-get install ghc6 libghc6-json-dev libghc6-network-dev \
-                    libghc6-parallel-dev libghc6-curl-dev
-
-Note that more recent version have switched to GHC 7.x and the packages
-were renamed::
-
-  $ apt-get install ghc libghc-json-dev libghc-network-dev \
-                    libghc-parallel-dev libghc-curl-dev
-
-The compilation of the htools components is automatically enabled when
-the compiler and the requisite libraries are found. You can use the
-``--enable-htools`` configure flag to force the selection (at which
-point ``./configure`` will fail if it doesn't find the prerequisites).
 
 If you want to build from source, please see doc/devnotes.rst for more
 dependencies.
@@ -120,15 +88,82 @@ dependencies.
   The patches and more information can be found on
   http://www.dest-unreach.org/socat/contrib/socat-opensslcompress.html.
 
+Haskell requirements
+~~~~~~~~~~~~~~~~~~~~
+
+If you want to enable the `htools` component, which is recommended on
+bigger deployments (this give you automatic instance placement, cluster
+balancing, etc.), then you need to have a Haskell compiler installed on
+your build machine (but this is not required on the machines which are
+just going to run Ganeti). More specifically:
+
+- `GHC <http://www.haskell.org/ghc/>`_ version 6.12 or higher
+- or even better, `The Haskell Platform
+  <http://hackage.haskell.org/platform/>`_ which gives you a simple way
+  to bootstrap Haskell
+- `json <http://hackage.haskell.org/package/json>`_, a JSON library
+- `network <http://hackage.haskell.org/package/network>`_, a basic
+  network library
+- `parallel <http://hackage.haskell.org/package/parallel>`_, a parallel
+  programming library (note: tested with up to version 3.x)
+- `curl <http://hackage.haskell.org/package/curl>`_, bindings for the
+  curl library, only needed if you want these tools to connect to remote
+  clusters (as opposed to the local one)
+
+All of these are also available as package in Debian/Ubuntu::
+
+  $ apt-get install ghc6 libghc6-json-dev libghc6-network-dev \
+                    libghc6-parallel-dev libghc6-curl-dev
+
+Note that more recent version have switched to GHC 7.x and the packages
+were renamed::
+
+  $ apt-get install ghc libghc-json-dev libghc-network-dev \
+                    libghc-parallel-dev libghc-curl-dev
+
+If using a distribution which does not provide them, the first install
+the Haskell platform and then install the additional libraries via
+``cabal``::
+
+  $ cabal install json network parallel curl
+
+The compilation of the htools components is automatically enabled when
+the compiler and the requisite libraries are found. You can use the
+``--enable-htools`` configure flag to force the selection (at which
+point ``./configure`` will fail if it doesn't find the prerequisites).
+
+In Ganeti version 2.6, one of the daemons (``ganeti-confd``) is shipped
+in two versions: the Python default version (which has no extra
+dependencies), and an experimental Haskell version. This latter version
+can be enabled via the ``./configure`` flag ``--enable-confd=haskell``
+and a few has extra dependencies:
+
+- `hslogger <http://software.complete.org/hslogger>`_, version 1.1 and
+  above (note that Debian Squeeze only has version 1.0.9)
+- `Crypto <http://hackage.haskell.org/package/Crypto>`_, tested with
+  version 4.2.4
+- `text <http://hackage.haskell.org/package/text>`_
+- ``bytestring``, which usually comes with the compiler
+
+These libraries are available in Debian Wheezy (but not in Squeeze), so
+you can use either apt::
+
+  $ apt-get install libghc-hslogger-dev libghc-crypto-dev libghc-text-dev
+
+or ``cabal``::
+
+  $ cabal install hslogger Crypto text
+
+to install them.
 
 Installation of the software
 ----------------------------
 
 To install, simply run the following command::
 
-  ./configure --localstatedir=/var --sysconfdir=/etc && \
-  make && \
-  make install
+  $ ./configure --localstatedir=/var --sysconfdir=/etc && \
+    make && \
+    make install
 
 This will install the software under ``/usr/local``. You then need to
 copy ``doc/examples/ganeti.initd`` to ``/etc/init.d/ganeti`` and

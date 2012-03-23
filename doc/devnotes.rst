@@ -1,6 +1,8 @@
 Developer notes
 ===============
 
+.. highlight:: shell-example
+
 Build dependencies
 ------------------
 
@@ -19,7 +21,7 @@ Most dependencies from :doc:`install-quick`, plus (for Python):
 - `pep8 <https://github.com/jcrocholl/pep8/>`_
 
 Note that for pylint, at the current moment the following versions
-need to be used::
+must be used::
 
     $ pylint --version
     pylint 0.21.1,
@@ -42,23 +44,27 @@ document, plus:
   library, version 2.x
 - ``hpc``, which comes with the compiler, so you should already have
   it
+- `shelltestrunner <http://joyful.com/shelltestrunner>`_, used for
+  running unit-tests
 
-Under Debian, these can be installed (on top of the required ones from
-the quick install document) via::
+Under Debian Wheezy or later, these can be installed (on top of the
+required ones from the quick install document) via::
 
-  apt-get install libghc-quickcheck2-dev hscolour hlint
+  $ apt-get install libghc-quickcheck2-dev hscolour hlint
+
+Or alternatively via ``cabal``::
+
+  $ cabal install quickcheck hscolour hlint shelltestrunner
 
 
 Configuring for development
 ---------------------------
 
-.. highlight:: sh
-
 Run the following command (only use ``PYTHON=...`` if you need to use a
 different python version)::
 
-  ./autogen.sh && \
-  ./configure --prefix=/usr/local --sysconfdir=/etc --localstatedir=/var
+  $ ./autogen.sh && \
+    ./configure --prefix=/usr/local --sysconfdir=/etc --localstatedir=/var
 
 Haskell development notes
 -------------------------
@@ -68,7 +74,7 @@ code.
 
 You can run the Haskell linter :command:`hlint` via::
 
-  make hlint
+  $ make hlint
 
 This is not enabled by default (as the htools component is
 optional). The above command will generate both output on the terminal
@@ -78,16 +84,16 @@ and, if any warnings are found, also an HTML report at
 When writing or debugging TemplateHaskell code, it's useful to see
 what the splices are converted to. This can be done via::
 
-  make HEXTRA="-ddump-splices"
+  $ make HEXTRA="-ddump-splices"
 
 Due to the way TemplateHaskell works, it's not straightforward to
 build profiling code. The recommended way is to run ``make hs-prof``,
 or alternatively the manual sequence is::
 
-  make clean
-  make htools/htools HEXTRA="-osuf .o"
-  rm htools/htools
-  make htools/htools HEXTRA="-osuf .prof_o -prof -auto-all"
+  $ make clean
+  $ make htools/htools HEXTRA="-osuf .o"
+  $ rm htools/htools
+  $ make htools/htools HEXTRA="-osuf .prof_o -prof -auto-all"
 
 This will build the binary twice, per the TemplateHaskell
 documentation, the second one with profiling enabled.
