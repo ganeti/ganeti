@@ -246,7 +246,7 @@ strADTDecl name constructors =
 -- @
 genToRaw :: Name -> Name -> Name -> [(String, Either String Name)] -> Q [Dec]
 genToRaw traw fname tname constructors = do
-  sigt <- [t| $(conT tname) -> $(conT traw) |]
+  let sigt = AppT (AppT ArrowT (ConT tname)) (ConT traw)
   -- the body clauses, matching on the constructor and returning the
   -- raw value
   clauses <- mapM  (\(c, v) -> clause [recP (mkName c) []]
