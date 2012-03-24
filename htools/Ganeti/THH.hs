@@ -328,8 +328,10 @@ declareSADT = declareADT ''String
 -- @
 --
 -- in an instance JSON /name/ declaration
-genShowJSON :: String -> Q [Dec]
-genShowJSON name = [d| showJSON = JSON.showJSON . $(varE (toRawName name)) |]
+genShowJSON :: String -> Q Dec
+genShowJSON name = do
+  body <- [| JSON.showJSON . $(varE (toRawName name)) |]
+  return $ FunD (mkName "showJSON") [Clause [] (NormalB body) []]
 
 -- | Creates the readJSON member of a JSON instance declaration.
 --
@@ -363,7 +365,7 @@ makeJSONInstance name = do
   let base = nameBase name
   showJ <- genShowJSON base
   readJ <- genReadJSON base
-  return [InstanceD [] (AppT (ConT ''JSON.JSON) (ConT name)) (readJ:showJ)]
+  return [InstanceD [] (AppT (ConT ''JSON.JSON) (ConT name)) [readJ,showJ]]
 
 -- * Template code for opcodes
 
@@ -595,7 +597,7 @@ buildObjectSerialisation sname fields = do
   shjson <- objectShowJSON sname
   rdjson <- objectReadJSON sname
   let instdecl = InstanceD [] (AppT (ConT ''JSON.JSON) (ConT name))
-                 (rdjson:shjson)
+                 [rdjson, shjson]
   return $ savedecls ++ [loadsig, loadfn, instdecl]
 
 genSaveObject :: (Name -> Field -> Q Exp)
@@ -634,9 +636,10 @@ saveObjectField fvar field
         nameE = stringE (fieldName field)
         fvarE = varE fvar
 
-objectShowJSON :: String -> Q [Dec]
-objectShowJSON name =
-  [d| showJSON = JSON.showJSON . $(varE . mkName $ "save" ++ name) |]
+objectShowJSON :: String -> Q Dec
+objectShowJSON name = do
+  body <- [| JSON.showJSON . $(varE . mkName $ "save" ++ name) |]
+  return $ FunD (mkName "showJSON") [Clause [] (NormalB body) []]
 
 genLoadObject :: (Field -> Q (Name, Stmt))
               -> String -> [Field] -> Q (Dec, Dec)
@@ -732,7 +735,7 @@ buildPParamSerialisation sname fields = do
   shjson <- objectShowJSON sname
   rdjson <- objectReadJSON sname
   let instdecl = InstanceD [] (AppT (ConT ''JSON.JSON) (ConT name))
-                 (rdjson:shjson)
+                 [rdjson, shjson]
   return $ savedecls ++ [loadsig, loadfn, instdecl]
 
 savePParamField :: Name -> Field -> Q Exp
