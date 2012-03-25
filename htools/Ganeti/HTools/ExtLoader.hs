@@ -34,7 +34,9 @@ module Ganeti.HTools.ExtLoader
   ) where
 
 import Control.Monad
+import Control.Exception
 import Data.Maybe (isJust, fromJust)
+import Prelude hiding (catch)
 import System.FilePath
 import System.IO
 import Text.Printf (hPrintf)
@@ -53,7 +55,7 @@ import Ganeti.HTools.Utils (sepSplit, tryRead, exitIfBad, exitWhen)
 
 -- | Error beautifier.
 wrapIO :: IO (Result a) -> IO (Result a)
-wrapIO = flip catch (return . Bad . show)
+wrapIO = flip catch (\e -> return . Bad . show $ (e::IOException))
 
 -- | Parses a user-supplied utilisation string.
 parseUtilisation :: String -> Result (String, DynUtil)

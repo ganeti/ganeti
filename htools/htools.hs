@@ -25,10 +25,14 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Main (main) where
 
+import Control.Exception
+import Control.Monad (guard)
 import Data.Char (toLower)
+import Prelude hiding (catch)
 import System.Environment
 import System.Exit
 import System.IO
+import System.IO.Error (isDoesNotExistError)
 
 import Ganeti.HTools.Utils
 import Ganeti.HTools.CLI (parseOpts)
@@ -47,7 +51,8 @@ usage name = do
 
 main :: IO ()
 main = do
-  binary <- getEnv "HTOOLS" `catch` const getProgName
+  binary <- catchJust (guard . isDoesNotExistError)
+            (getEnv "HTOOLS") (const getProgName)
   let name = map toLower binary
       boolnames = map (\(x, y) -> (x == name, Just y)) personalities
   case select Nothing boolnames of
