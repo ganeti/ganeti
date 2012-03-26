@@ -5589,6 +5589,19 @@ class LUNodeAdd(LogicalUnit):
     if self.op.disk_state:
       self.new_disk_state = _MergeAndVerifyDiskState(self.op.disk_state, None)
 
+    # TODO: If we need to have multiple DnsOnlyRunner we probably should make
+    #       it a property on the base class.
+    result = rpc.DnsOnlyRunner().call_version([node])[node]
+    result.Raise("Can't get version information from node %s" % node)
+    if constants.PROTOCOL_VERSION == result.payload:
+      logging.info("Communication to node %s fine, sw version %s match",
+                   node, result.payload)
+    else:
+      raise errors.OpPrereqError("Version mismatch master version %s,"
+                                 " node version %s" %
+                                 (constants.PROTOCOL_VERSION, result.payload),
+                                 errors.ECODE_ENVIRON)
+
   def Exec(self, feedback_fn):
     """Adds the new node to the cluster.
 
@@ -5632,17 +5645,6 @@ class LUNodeAdd(LogicalUnit):
 
     if self.op.disk_state:
       new_node.disk_state_static = self.new_disk_state
-
-    # check connectivity
-    result = self.rpc.call_version([node])[node]
-    result.Raise("Can't get version information from node %s" % node)
-    if constants.PROTOCOL_VERSION == result.payload:
-      logging.info("Communication to node %s fine, sw version %s match",
-                   node, result.payload)
-    else:
-      raise errors.OpExecError("Version mismatch master version %s,"
-                               " node version %s" %
-                               (constants.PROTOCOL_VERSION, result.payload))
 
     # Add node to our /etc/hosts, and add key to known_hosts
     if self.cfg.GetClusterInfo().modify_etc_hosts:
