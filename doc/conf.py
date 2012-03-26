@@ -29,6 +29,7 @@ extensions = [
   "sphinx.ext.todo",
   "sphinx.ext.graphviz",
   "ganeti.build.sphinx_ext",
+  "ganeti.build.shell_example_lexer",
   ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -45,7 +46,7 @@ master_doc = "index"
 
 # General information about the project.
 project = u"Ganeti"
-copyright = u"2006, 2007, 2008, 2009, 2010, 2011, Google Inc."
+copyright = u"2006, 2007, 2008, 2009, 2010, 2011, 2012, Google Inc."
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the

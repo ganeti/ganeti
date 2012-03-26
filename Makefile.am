@@ -197,7 +197,8 @@ nodist_pkgpython_PYTHON = \
 
 noinst_PYTHON = \
 	lib/build/__init__.py \
-	lib/build/sphinx_ext.py
+	lib/build/sphinx_ext.py \
+	lib/build/shell_example_lexer.py
 
 pkgpython_PYTHON = \
 	lib/__init__.py \
@@ -427,7 +428,8 @@ $(RUN_IN_TEMPDIR): | $(all_dirfiles)
 # successfully, but we certainly don't want the docs to be rebuilt if
 # it changes
 doc/html/index.html: $(docrst) $(docpng) doc/conf.py configure.ac \
-	$(RUN_IN_TEMPDIR) lib/build/sphinx_ext.py lib/opcodes.py lib/ht.py \
+	$(RUN_IN_TEMPDIR) lib/build/sphinx_ext.py \
+	lib/build/shell_example_lexer.py lib/opcodes.py lib/ht.py \
 	| $(BUILT_PYTHON_SOURCES)
 	@test -n "$(SPHINX)" || \
 	    { echo 'sphinx-build' not found during configure; exit 1; }
@@ -991,7 +993,8 @@ man/footer.html: man/footer.rst
 	  { echo 'pandoc' not found during configure; exit 1; }
 	$(PANDOC) -f rst -t html -o $@ $<
 
-man/%.gen: man/%.rst lib/query.py lib/build/sphinx_ext.py
+man/%.gen: man/%.rst lib/query.py lib/build/sphinx_ext.py \
+	lib/build/shell_example_lexer.py
 	PYTHONPATH=. $(RUN_IN_TEMPDIR) $(CURDIR)/$(DOCPP) < $< > $@
 
 man/%.7.in man/%.8.in man/%.1.in: man/%.gen man/footer.man
