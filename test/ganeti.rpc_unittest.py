@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2010, 2011 Google Inc.
+# Copyright (C) 2010, 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -59,6 +59,13 @@ def GetFakeSimpleStoreClass(fn):
     GetPrimaryIPFamily = lambda _: None
 
   return FakeSimpleStore
+
+
+def _RaiseNotImplemented():
+  """Simple wrapper to raise NotImplementedError.
+
+  """
+  raise NotImplementedError
 
 
 class TestRpcProcessor(unittest.TestCase):
@@ -331,7 +338,7 @@ class TestSsconfResolver(unittest.TestCase):
     node_list = ["node%d.example.com" % n for n in range(0, 255, 13)]
     node_addr_list = [" ".join(t) for t in zip(node_list, addr_list)]
     ssc = GetFakeSimpleStoreClass(lambda _: node_addr_list)
-    result = rpc._SsconfResolver(node_list, NotImplemented,
+    result = rpc._SsconfResolver(True, node_list, NotImplemented,
                                  ssc=ssc, nslookup_fn=NotImplemented)
     self.assertEqual(result, zip(node_list, addr_list))
 
@@ -341,7 +348,17 @@ class TestSsconfResolver(unittest.TestCase):
     ssc = GetFakeSimpleStoreClass(lambda _: [])
     node_addr_map = dict(zip(node_list, addr_list))
     nslookup_fn = lambda name, family=None: node_addr_map.get(name)
-    result = rpc._SsconfResolver(node_list, NotImplemented,
+    result = rpc._SsconfResolver(True, node_list, NotImplemented,
+                                 ssc=ssc, nslookup_fn=nslookup_fn)
+    self.assertEqual(result, zip(node_list, addr_list))
+
+  def testDisabledSsconfIp(self):
+    addr_list = ["192.0.2.%d" % n for n in range(0, 255, 13)]
+    node_list = ["node%d.example.com" % n for n in range(0, 255, 13)]
+    ssc = GetFakeSimpleStoreClass(_RaiseNotImplemented)
+    node_addr_map = dict(zip(node_list, addr_list))
+    nslookup_fn = lambda name, family=None: node_addr_map.get(name)
+    result = rpc._SsconfResolver(False, node_list, NotImplemented,
                                  ssc=ssc, nslookup_fn=nslookup_fn)
     self.assertEqual(result, zip(node_list, addr_list))
 
@@ -353,7 +370,7 @@ class TestSsconfResolver(unittest.TestCase):
     ssc = GetFakeSimpleStoreClass(lambda _: node_addr_list)
     node_addr_map = dict(zip(node_list[:n], addr_list[:n]))
     nslookup_fn = lambda name, family=None: node_addr_map.get(name)
-    result = rpc._SsconfResolver(node_list, NotImplemented,
+    result = rpc._SsconfResolver(True, node_list, NotImplemented,
                                  ssc=ssc, nslookup_fn=nslookup_fn)
     self.assertEqual(result, zip(node_list, addr_list))
 
@@ -362,7 +379,7 @@ class TestSsconfResolver(unittest.TestCase):
     node_list = ["node%d.example.com" % n for n in range(0, 255, 11)]
     node_addr_list = [" ".join(t) for t in zip(node_list, addr_list)]
     ssc = GetFakeSimpleStoreClass(lambda _: node_addr_list)
-    result = rpc._SsconfResolver(node_list, NotImplemented,
+    result = rpc._SsconfResolver(True, node_list, NotImplemented,
                                  ssc=ssc, nslookup_fn=NotImplemented)
     self.assertEqual(result, zip(node_list, addr_list))
 

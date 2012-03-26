@@ -222,6 +222,8 @@ def _WaitForNodeDaemon(node_name):
 
   """
   def _CheckNodeDaemon():
+    # Pylint bug <http://www.logilab.org/ticket/35642>
+    # pylint: disable=E1101
     result = rpc.BootstrapRunner().call_version([node_name])[node_name]
     if result.fail_msg:
       raise utils.RetryAgain()

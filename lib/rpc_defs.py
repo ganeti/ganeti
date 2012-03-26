@@ -543,7 +543,10 @@ CALLS = {
      "Requests a node to clean the cluster information it has"),
     ("master_info", MULTI, None, TMO_URGENT, [], None, None,
      "Query master info"),
-    ("version", MULTI, None, TMO_URGENT, [], None, None, "Query node version"),
+    ]),
+  "RpcClientDnsOnly": _Prepare([
+    ("version", MULTI, ACCEPT_OFFLINE_NODE, TMO_URGENT, [], None, None,
+     "Query node version"),
     ]),
   "RpcClientConfig": _Prepare([
     ("upload_file", MULTI, None, TMO_NORMAL, [

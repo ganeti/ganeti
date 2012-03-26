@@ -239,11 +239,13 @@ class RpcResult(object):
     raise ec(*args) # pylint: disable=W0142
 
 
-def _SsconfResolver(node_list, _,
+def _SsconfResolver(ssconf_ips, node_list, _,
                     ssc=ssconf.SimpleStore,
                     nslookup_fn=netutils.Hostname.GetIP):
   """Return addresses for given node names.
 
+  @type ssconf_ips: bool
+  @param ssconf_ips: Use the ssconf IPs
   @type node_list: list
   @param node_list: List of node names
   @type ssc: class
@@ -255,9 +257,13 @@ def _SsconfResolver(node_list, _,
 
   """
   ss = ssc()
-  iplist = ss.GetNodePrimaryIPList()
   family = ss.GetPrimaryIPFamily()
-  ipmap = dict(entry.split() for entry in iplist)
+
+  if ssconf_ips:
+    iplist = ss.GetNodePrimaryIPList()
+    ipmap = dict(entry.split() for entry in iplist)
+  else:
+    ipmap = {}
 
   result = []
   for node in node_list:
@@ -584,6 +590,7 @@ _ENCODERS = {
 class RpcRunner(_RpcClientBase,
                 _generated_rpc.RpcClientDefault,
                 _generated_rpc.RpcClientBootstrap,
+                _generated_rpc.RpcClientDnsOnly,
                 _generated_rpc.RpcClientConfig):
   """RPC runner class.
 
@@ -624,6 +631,7 @@ class RpcRunner(_RpcClientBase,
                             _req_process_fn=_req_process_fn)
     _generated_rpc.RpcClientConfig.__init__(self)
     _generated_rpc.RpcClientBootstrap.__init__(self)
+    _generated_rpc.RpcClientDnsOnly.__init__(self)
     _generated_rpc.RpcClientDefault.__init__(self)
 
   def _InstDict(self, instance, hvp=None, bep=None, osp=None):
@@ -684,7 +692,7 @@ class JobQueueRunner(_RpcClientBase, _generated_rpc.RpcClientJobQueue):
 
     """
     if address_list is None:
-      resolver = _SsconfResolver
+      resolver = compat.partial(_SsconfResolver, True)
     else:
       # Caller provided an address list
       resolver = _StaticResolver(address_list)
@@ -694,7 +702,9 @@ class JobQueueRunner(_RpcClientBase, _generated_rpc.RpcClientJobQueue):
     _generated_rpc.RpcClientJobQueue.__init__(self)
 
 
-class BootstrapRunner(_RpcClientBase, _generated_rpc.RpcClientBootstrap):
+class BootstrapRunner(_RpcClientBase,
+                      _generated_rpc.RpcClientBootstrap,
+                      _generated_rpc.RpcClientDnsOnly):
   """RPC wrappers for bootstrapping.
 
   """
@@ -702,8 +712,27 @@ class BootstrapRunner(_RpcClientBase, _generated_rpc.RpcClientBootstrap):
     """Initializes this class.
 
     """
-    _RpcClientBase.__init__(self, _SsconfResolver, _ENCODERS.get)
+    # Pylint doesn't recognize multiple inheritance properly, see
+    # <http://www.logilab.org/ticket/36586> and
+    # <http://www.logilab.org/ticket/35642>
+    # pylint: disable=W0233
+    _RpcClientBase.__init__(self, compat.partial(_SsconfResolver, True),
+                            _ENCODERS.get)
     _generated_rpc.RpcClientBootstrap.__init__(self)
+    _generated_rpc.RpcClientDnsOnly.__init__(self)
+
+
+class DnsOnlyRunner(_RpcClientBase, _generated_rpc.RpcClientDnsOnly):
+  """RPC wrappers for calls using only DNS.
+
+  """
+  def __init__(self):
+    """Initialize this class.
+
+    """
+    _RpcClientBase.__init__(self, compat.partial(_SsconfResolver, False),
+                            _ENCODERS.get)
+    _generated_rpc.RpcClientDnsOnly.__init__(self)
 
 
 class ConfigRunner(_RpcClientBase, _generated_rpc.RpcClientConfig):
@@ -721,7 +750,7 @@ class ConfigRunner(_RpcClientBase, _generated_rpc.RpcClientConfig):
       lock_monitor_cb = None
 
     if address_list is None:
-      resolver = _SsconfResolver
+      resolver = compat.partial(_SsconfResolver, True)
     else:
       # Caller provided an address list
       resolver = _StaticResolver(address_list)

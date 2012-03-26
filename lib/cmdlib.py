@@ -5909,9 +5909,7 @@ class LUNodeSetParams(LogicalUnit):
 
     if old_role == self._ROLE_OFFLINE and new_role != old_role:
       # Trying to transition out of offline status
-      # TODO: Use standard RPC runner, but make sure it works when the node is
-      # still marked offline
-      result = rpc.BootstrapRunner().call_version([node.name])[node.name]
+      result = self.rpc.call_version([node.name])[node.name]
       if result.fail_msg:
         raise errors.OpPrereqError("Node %s is being de-offlined but fails"
                                    " to report its version: %s" %
