@@ -5,7 +5,7 @@ Documents Ganeti version |version|
 
 .. contents::
 
-.. highlight:: text
+.. highlight:: shell-example
 
 Introduction
 ------------
@@ -32,16 +32,16 @@ Cluster creation
 Follow the :doc:`install` document and prepare the nodes. Then it's time
 to initialise the cluster::
 
-  node1# gnt-cluster init -s 192.0.2.1 --enabled-hypervisors=xen-pvm example-cluster
-  node1#
+  $ gnt-cluster init -s %192.0.2.1% --enabled-hypervisors=xen-pvm %example-cluster%
+  $
 
 The creation was fine. Let's check that one node we have is functioning
 correctly::
 
-  node1# gnt-node list
+  $ gnt-node list
   Node  DTotal DFree MTotal MNode MFree Pinst Sinst
   node1   1.3T  1.3T  32.0G  1.0G 30.5G     0     0
-  node1# gnt-cluster verify
+  $ gnt-cluster verify
   Mon Oct 26 02:08:51 2009 * Verifying global settings
   Mon Oct 26 02:08:51 2009 * Gathering data (1 nodes)
   Mon Oct 26 02:08:52 2009 * Verifying node status
@@ -51,41 +51,39 @@ correctly::
   Mon Oct 26 02:08:52 2009 * Verifying N+1 Memory redundancy
   Mon Oct 26 02:08:52 2009 * Other Notes
   Mon Oct 26 02:08:52 2009 * Hooks Results
-  node1#
+  $
 
 Since this proceeded correctly, let's add the other two nodes::
 
-  node1# gnt-node add -s 192.0.2.2 node2
+  $ gnt-node add -s %192.0.2.2% %node2%
   -- WARNING --
   Performing this operation is going to replace the ssh daemon keypair
   on the target machine (node2) with the ones of the current one
   and grant full intra-cluster ssh root access to/from it
 
-  The authenticity of host 'node2 (192.0.2.2)' can't be established.
-  RSA key fingerprint is 9f:…
-  Are you sure you want to continue connecting (yes/no)? yes
-  root@node2's password:
+  Unable to verify hostkey of host xen-devi-5.fra.corp.google.com:
+  f7:…. Do you want to accept it?
+  y/[n]/?: %y%
+  Mon Oct 26 02:11:53 2009  Authentication to node2 via public key failed, trying password
+  root password:
   Mon Oct 26 02:11:54 2009  - INFO: Node will be a master candidate
-  node1# gnt-node add -s 192.0.2.3 node3
+  $ gnt-node add -s %192.0.2.3% %node3%
   -- WARNING --
   Performing this operation is going to replace the ssh daemon keypair
-  on the target machine (node2) with the ones of the current one
+  on the target machine (node3) with the ones of the current one
   and grant full intra-cluster ssh root access to/from it
 
-  The authenticity of host 'node3 (192.0.2.3)' can't be established.
-  RSA key fingerprint is 9f:…
-  Are you sure you want to continue connecting (yes/no)? yes
-  root@node2's password:
-  Mon Oct 26 02:11:54 2009  - INFO: Node will be a master candidate
+  …
+  Mon Oct 26 02:12:43 2009  - INFO: Node will be a master candidate
 
 Checking the cluster status again::
 
-  node1# gnt-node list
+  $ gnt-node list
   Node  DTotal DFree MTotal MNode MFree Pinst Sinst
   node1   1.3T  1.3T  32.0G  1.0G 30.5G     0     0
   node2   1.3T  1.3T  32.0G  1.0G 30.5G     0     0
   node3   1.3T  1.3T  32.0G  1.0G 30.5G     0     0
-  node1# gnt-cluster verify
+  $ gnt-cluster verify
   Mon Oct 26 02:15:14 2009 * Verifying global settings
   Mon Oct 26 02:15:14 2009 * Gathering data (3 nodes)
   Mon Oct 26 02:15:16 2009 * Verifying node status
@@ -95,11 +93,11 @@ Checking the cluster status again::
   Mon Oct 26 02:15:16 2009 * Verifying N+1 Memory redundancy
   Mon Oct 26 02:15:16 2009 * Other Notes
   Mon Oct 26 02:15:16 2009 * Hooks Results
-  node1#
+  $
 
 And let's check that we have a valid OS::
 
-  node1# gnt-os list
+  $ gnt-os list
   Name
   debootstrap
   node1#
@@ -112,7 +110,7 @@ works correctly, that the hypervisor can actually create instances,
 etc. This is done via the debootstrap tool as described in the admin
 guide. Similar output lines are replaced with ``…`` in the below log::
 
-  node1# /usr/lib/ganeti/tools/burnin -o debootstrap -p instance{1..5}
+  $ /usr/lib/ganeti/tools/burnin -o debootstrap -p instance{1..5}
   - Testing global parameters
   - Creating instances
     * instance instance1
@@ -261,7 +259,7 @@ guide. Similar output lines are replaced with ``…`` in the below log::
     * Submitted job ID(s) 235, 236, 237, 238, 239
       waiting for job 235 for instance1
       …
-  node1#
+  $
 
 You can see in the above what operations the burn-in does. Ideally, the
 burn-in log would proceed successfully through all the steps and end
@@ -276,36 +274,36 @@ Creation
 At this point, Ganeti and the hardware seems to be functioning
 correctly, so we'll follow up with creating the instances manually::
 
-  node1# gnt-instance add -t drbd -o debootstrap -s 256m -n node1:node2 instance3
+  $ gnt-instance add -t drbd -o debootstrap -s %256m% -n %node1%:%node2% %instance3%
   Mon Oct 26 04:06:52 2009  - INFO: Selected nodes for instance instance1 via iallocator hail: node2, node3
   Mon Oct 26 04:06:53 2009 * creating instance disks...
   Mon Oct 26 04:06:57 2009 adding instance instance1 to cluster config
   Mon Oct 26 04:06:57 2009  - INFO: Waiting for instance instance1 to sync disks.
-  Mon Oct 26 04:06:57 2009  - INFO: - device disk/0: 20.00% done, 4 estimated seconds remaining
+  Mon Oct 26 04:06:57 2009  - INFO: - device disk/0: 20.00\% done, 4 estimated seconds remaining
   Mon Oct 26 04:07:01 2009  - INFO: Instance instance1's disks are in sync.
   Mon Oct 26 04:07:01 2009 creating os for instance instance1 on node node2
   Mon Oct 26 04:07:01 2009 * running the instance OS create scripts...
   Mon Oct 26 04:07:14 2009 * starting instance...
-  node1# gnt-instance add -t drbd -o debootstrap -s 256m -n node1:node2 instanc<drbd -o debootstrap -s 256m -n node1:node2 instance2
+  $ gnt-instance add -t drbd -o debootstrap -s %256m% -n %node1%:%node2% %instance2%
   Mon Oct 26 04:11:37 2009 * creating instance disks...
   Mon Oct 26 04:11:40 2009 adding instance instance2 to cluster config
   Mon Oct 26 04:11:41 2009  - INFO: Waiting for instance instance2 to sync disks.
-  Mon Oct 26 04:11:41 2009  - INFO: - device disk/0: 35.40% done, 1 estimated seconds remaining
-  Mon Oct 26 04:11:42 2009  - INFO: - device disk/0: 58.50% done, 1 estimated seconds remaining
-  Mon Oct 26 04:11:43 2009  - INFO: - device disk/0: 86.20% done, 0 estimated seconds remaining
-  Mon Oct 26 04:11:44 2009  - INFO: - device disk/0: 92.40% done, 0 estimated seconds remaining
-  Mon Oct 26 04:11:44 2009  - INFO: - device disk/0: 97.00% done, 0 estimated seconds remaining
+  Mon Oct 26 04:11:41 2009  - INFO: - device disk/0: 35.40\% done, 1 estimated seconds remaining
+  Mon Oct 26 04:11:42 2009  - INFO: - device disk/0: 58.50\% done, 1 estimated seconds remaining
+  Mon Oct 26 04:11:43 2009  - INFO: - device disk/0: 86.20\% done, 0 estimated seconds remaining
+  Mon Oct 26 04:11:44 2009  - INFO: - device disk/0: 92.40\% done, 0 estimated seconds remaining
+  Mon Oct 26 04:11:44 2009  - INFO: - device disk/0: 97.00\% done, 0 estimated seconds remaining
   Mon Oct 26 04:11:44 2009  - INFO: Instance instance2's disks are in sync.
   Mon Oct 26 04:11:44 2009 creating os for instance instance2 on node node1
   Mon Oct 26 04:11:44 2009 * running the instance OS create scripts...
   Mon Oct 26 04:11:57 2009 * starting instance...
-  node1#
+  $
 
 The above shows one instance created via an iallocator script, and one
 being created with manual node assignment. The other three instances
 were also created and now it's time to check them::
 
-  node1# gnt-instance list
+  $ gnt-instance list
   Instance  Hypervisor OS          Primary_node Status  Memory
   instance1 xen-pvm    debootstrap node2        running   128M
   instance2 xen-pvm    debootstrap node1        running   128M
@@ -318,7 +316,7 @@ Accessing instances
 
 Accessing an instance's console is easy::
 
-  node1# gnt-instance console instance2
+  $ gnt-instance console %instance2%
   [    0.000000] Bootdata ok (command line is root=/dev/sda1 ro)
   [    0.000000] Linux version 2.6…
   [    0.000000] BIOS-provided physical RAM map:
@@ -347,24 +345,24 @@ At this moment you can login to the instance and, after configuring the
 network (and doing this on all instances), we can check their
 connectivity::
 
-  node1# fping instance{1..5}
+  $ fping %instance{1..5}%
   instance1 is alive
   instance2 is alive
   instance3 is alive
   instance4 is alive
   instance5 is alive
-  node1#
+  $
 
 Removal
 +++++++
 
 Removing unwanted instances is also easy::
 
-  node1# gnt-instance remove instance5
+  $ gnt-instance remove %instance5%
   This will remove the volumes of the instance instance5 (including
   mirrors), thus removing all the data of the instance. Continue?
-  y/[n]/?: y
-  node1#
+  y/[n]/?: %y%
+  $
 
 
 Recovering from hardware failures
@@ -376,7 +374,7 @@ Recovering from node failure
 We are now left with four instances. Assume that at this point, node3,
 which has one primary and one secondary instance, crashes::
 
-  node1# gnt-node info node3
+  $ gnt-node info %node3%
   Node name: node3
     primary ip: 198.51.100.1
     secondary ip: 192.0.2.3
@@ -387,47 +385,47 @@ which has one primary and one secondary instance, crashes::
       - instance4
     secondary for instances:
       - instance1
-  node1# fping node3
+  $ fping %node3%
   node3 is unreachable
 
 At this point, the primary instance of that node (instance4) is down,
 but the secondary instance (instance1) is not affected except it has
 lost disk redundancy::
 
-  node1# fping instance{1,4}
+  $ fping %instance{1,4}%
   instance1 is alive
   instance4 is unreachable
-  node1#
+  $
 
 If we try to check the status of instance4 via the instance info
 command, it fails because it tries to contact node3 which is down::
 
-  node1# gnt-instance info instance4
+  $ gnt-instance info %instance4%
   Failure: command execution error:
   Error checking node node3: Connection failed (113: No route to host)
-  node1#
+  $
 
 So we need to mark node3 as being *offline*, and thus Ganeti won't talk
 to it anymore::
 
-  node1# gnt-node modify -O yes -f node3
+  $ gnt-node modify -O yes -f %node3%
   Mon Oct 26 04:34:12 2009  - WARNING: Not enough master candidates (desired 10, new value will be 2)
   Mon Oct 26 04:34:15 2009  - WARNING: Communication failure to node node3: Connection failed (113: No route to host)
   Modified node node3
    - offline -> True
    - master_candidate -> auto-demotion due to offline
-  node1#
+  $
 
 And now we can failover the instance::
 
-  node1# gnt-instance failover --ignore-consistency instance4
+  $ gnt-instance failover --ignore-consistency %instance4%
   Failover will happen to image instance4. This requires a shutdown of
   the instance. Continue?
-  y/[n]/?: y
+  y/[n]/?: %y%
   Mon Oct 26 04:35:34 2009 * checking disk consistency between source and target
   Failure: command execution error:
   Disk disk/0 is degraded on target node, aborting failover.
-  node1# gnt-instance failover --ignore-consistency instance4
+  $ gnt-instance failover --ignore-consistency %instance4%
   Failover will happen to image instance4. This requires a shutdown of
   the instance. Continue?
   y/[n]/?: y
@@ -439,24 +437,24 @@ And now we can failover the instance::
   Mon Oct 26 04:35:47 2009 * activating the instance's disks on target node
   Mon Oct 26 04:35:47 2009  - WARNING: Could not prepare block device disk/0 on node node3 (is_primary=False, pass=1): Node is marked offline
   Mon Oct 26 04:35:48 2009 * starting the instance on the target node
-  node1#
+  $
 
 Note in our first attempt, Ganeti refused to do the failover since it
 wasn't sure what is the status of the instance's disks. We pass the
 ``--ignore-consistency`` flag and then we can failover::
 
-  node1# gnt-instance list
+  $ gnt-instance list
   Instance  Hypervisor OS          Primary_node Status  Memory
   instance1 xen-pvm    debootstrap node2        running   128M
   instance2 xen-pvm    debootstrap node1        running   128M
   instance3 xen-pvm    debootstrap node1        running   128M
   instance4 xen-pvm    debootstrap node1        running   128M
-  node1#
+  $
 
 But at this point, both instance1 and instance4 are without disk
 redundancy::
 
-  node1# gnt-instance info instance1
+  $ gnt-instance info %instance1%
   Instance name: instance1
   UUID: 45173e82-d1fa-417c-8758-7d582ab7eef4
   Serial number: 2
@@ -503,10 +501,10 @@ to run the node evacuate command which will change from the current
 secondary node to a new one (in this case, we only have two working
 nodes, so all instances will be end on nodes one and two)::
 
-  node1# gnt-node evacuate -I hail node3
+  $ gnt-node evacuate -I hail %node3%
   Relocate instance(s) 'instance1','instance4' from node
    node3 using iallocator hail?
-  y/[n]/?: y
+  y/[n]/?: %y%
   Mon Oct 26 05:05:39 2009  - INFO: Selected new secondary for instance 'instance1': node1
   Mon Oct 26 05:05:40 2009  - INFO: Selected new secondary for instance 'instance4': node2
   Mon Oct 26 05:05:40 2009 Replacing disk(s) 0 for instance1
@@ -527,7 +525,7 @@ nodes, so all instances will be end on nodes one and two)::
   Mon Oct 26 05:05:45 2009  - INFO: Attaching primary drbds to new secondary (standalone => connected)
   Mon Oct 26 05:05:46 2009 STEP 5/6 Sync devices
   Mon Oct 26 05:05:46 2009  - INFO: Waiting for instance instance1 to sync disks.
-  Mon Oct 26 05:05:46 2009  - INFO: - device disk/0: 13.90% done, 7 estimated seconds remaining
+  Mon Oct 26 05:05:46 2009  - INFO: - device disk/0: 13.90\% done, 7 estimated seconds remaining
   Mon Oct 26 05:05:53 2009  - INFO: Instance instance1's disks are in sync.
   Mon Oct 26 05:05:53 2009 STEP 6/6 Removing old storage
   Mon Oct 26 05:05:53 2009  - INFO: Remove logical volumes for 0
@@ -553,7 +551,7 @@ nodes, so all instances will be end on nodes one and two)::
   Mon Oct 26 05:05:55 2009  - INFO: Attaching primary drbds to new secondary (standalone => connected)
   Mon Oct 26 05:05:56 2009 STEP 5/6 Sync devices
   Mon Oct 26 05:05:56 2009  - INFO: Waiting for instance instance4 to sync disks.
-  Mon Oct 26 05:05:56 2009  - INFO: - device disk/0: 12.40% done, 8 estimated seconds remaining
+  Mon Oct 26 05:05:56 2009  - INFO: - device disk/0: 12.40\% done, 8 estimated seconds remaining
   Mon Oct 26 05:06:04 2009  - INFO: Instance instance4's disks are in sync.
   Mon Oct 26 05:06:04 2009 STEP 6/6 Removing old storage
   Mon Oct 26 05:06:04 2009  - INFO: Remove logical volumes for 0
@@ -561,11 +559,11 @@ nodes, so all instances will be end on nodes one and two)::
   Mon Oct 26 05:06:04 2009       Hint: remove unused LVs manually
   Mon Oct 26 05:06:04 2009  - WARNING: Can't remove old LV: Node is marked offline
   Mon Oct 26 05:06:04 2009       Hint: remove unused LVs manually
-  node1#
+  $
 
 And now node3 is completely free of instances and can be repaired::
 
-  node1# gnt-node list
+  $ gnt-node list
   Node  DTotal DFree MTotal MNode MFree Pinst Sinst
   node1   1.3T  1.3T  32.0G  1.0G 30.2G     3     1
   node2   1.3T  1.3T  32.0G  1.0G 30.4G     1     3
@@ -574,11 +572,10 @@ And now node3 is completely free of instances and can be repaired::
 Re-adding a node to the cluster
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-
 Let's say node3 has been repaired and is now ready to be
 reused. Re-adding it is simple::
 
-  node1# gnt-node add --readd node3
+  $ gnt-node add --readd %node3%
   The authenticity of host 'node3 (198.51.100.1)' can't be established.
   RSA key fingerprint is 9f:2e:5a:2e:e0:bd:00:09:e4:5c:32:f2:27:57:7a:f4.
   Are you sure you want to continue connecting (yes/no)? yes
@@ -587,7 +584,7 @@ reused. Re-adding it is simple::
 
 And it is now working again::
 
-  node1# gnt-node list
+  $ gnt-node list
   Node  DTotal DFree MTotal MNode MFree Pinst Sinst
   node1   1.3T  1.3T  32.0G  1.0G 30.2G     3     1
   node2   1.3T  1.3T  32.0G  1.0G 30.4G     1     3
@@ -608,7 +605,7 @@ traffic.
 Let take the cluster status in the above listing, and check what volumes
 are in use::
 
-  node1# gnt-node volumes -o phys,instance node2
+  $ gnt-node volumes -o phys,instance %node2%
   PhysDev   Instance
   /dev/sdb1 instance4
   /dev/sdb1 instance4
@@ -618,14 +615,15 @@ are in use::
   /dev/sdb1 instance3
   /dev/sdb1 instance2
   /dev/sdb1 instance2
-  node1#
+  $
 
 You can see that all instances on node2 have logical volumes on
 ``/dev/sdb1``. Let's simulate a disk failure on that disk::
 
-  node1# ssh node2
-  node2# echo offline > /sys/block/sdb/device/state
-  node2# vgs
+  $ ssh node2
+  # on node2
+  $ echo offline > /sys/block/sdb/device/state
+  $ vgs
     /dev/sdb1: read failed after 0 of 4096 at 0: Input/output error
     /dev/sdb1: read failed after 0 of 4096 at 750153695232: Input/output error
     /dev/sdb1: read failed after 0 of 4096 at 0: Input/output error
@@ -636,12 +634,12 @@ You can see that all instances on node2 have logical volumes on
     Couldn't find device with uuid '954bJA-mNL0-7ydj-sdpW-nc2C-ZrCi-zFp91c'.
     Couldn't find all physical volumes for volume group xenvg.
     Volume group xenvg not found
-  node2#
+  $
 
 At this point, the node is broken and if we are to examine
 instance2 we get (simplified output shown)::
 
-  node1# gnt-instance info instance2
+  $ gnt-instance info %instance2%
   Instance name: instance2
   State: configured to be up, actual state is up
     Nodes:
@@ -655,7 +653,7 @@ instance2 we get (simplified output shown)::
 This instance has a secondary only on node2. Let's verify a primary
 instance of node2::
 
-  node1# gnt-instance info instance1
+  $ gnt-instance info %instance1%
   Instance name: instance1
   State: configured to be up, actual state is up
     Nodes:
@@ -665,7 +663,7 @@ instance of node2::
       - disk/0: drbd8, size 256M
         on primary:   /dev/drbd0 (147:0) in sync, status *DEGRADED* *MISSING DISK*
         on secondary: /dev/drbd3 (147:3) in sync, status ok
-  node1# gnt-instance console instance1
+  $ gnt-instance console %instance1%
 
   Debian GNU/Linux 5.0 instance1 tty1
 
@@ -697,18 +695,18 @@ involved instances.
 
 ::
 
-  node1# gnt-node repair-storage node2 lvm-vg xenvg
+  $ gnt-node repair-storage %node2% lvm-vg %xenvg%
   Mon Oct 26 18:14:03 2009 Repairing storage unit 'xenvg' on node2 ...
-  node1# ssh node2 vgs
-    VG    #PV #LV #SN Attr   VSize   VFree
-    xenvg   1   8   0 wz--n- 673.84G 673.84G
-  node1#
+  $ ssh %node2% vgs
+  VG    #PV #LV #SN Attr   VSize   VFree
+  xenvg   1   8   0 wz--n- 673.84G 673.84G
+  $
 
 This has removed the 'bad' disk from the volume group, which is now left
 with only one PV. We can now replace the disks for the involved
 instances::
 
-  node1# for i in instance{1..4}; do gnt-instance replace-disks -a $i; done
+  $ for i in %instance{1..4}%; do gnt-instance replace-disks -a $i; done
   Mon Oct 26 18:15:38 2009 Replacing disk(s) 0 for instance1
   Mon Oct 26 18:15:38 2009 STEP 1/6 Check device existence
   Mon Oct 26 18:15:38 2009  - INFO: Checking disk/0 on node1
@@ -725,7 +723,7 @@ instances::
   Mon Oct 26 18:15:40 2009  - INFO: Adding new mirror component on node2
   Mon Oct 26 18:15:41 2009 STEP 5/6 Sync devices
   Mon Oct 26 18:15:41 2009  - INFO: Waiting for instance instance1 to sync disks.
-  Mon Oct 26 18:15:41 2009  - INFO: - device disk/0: 12.40% done, 9 estimated seconds remaining
+  Mon Oct 26 18:15:41 2009  - INFO: - device disk/0: 12.40\% done, 9 estimated seconds remaining
   Mon Oct 26 18:15:50 2009  - INFO: Instance instance1's disks are in sync.
   Mon Oct 26 18:15:50 2009 STEP 6/6 Removing old storage
   Mon Oct 26 18:15:50 2009  - INFO: Remove logical volumes for disk/0
@@ -744,7 +742,7 @@ instances::
   …
   Mon Oct 26 18:16:18 2009 STEP 6/6 Removing old storage
   Mon Oct 26 18:16:18 2009  - INFO: Remove logical volumes for disk/0
-  node1#
+  $
 
 As this point, all instances should be healthy again.
 
@@ -753,9 +751,9 @@ As this point, all instances should be healthy again.
    with argument ``-p`` and once secondary instances with argument
    ``-s``, but otherwise the operations are similar::
 
-     node1# gnt-instance replace-disks -p instance1
+     $ gnt-instance replace-disks -p instance1
      …
-     node1# for i in instance{2..4}; do gnt-instance replace-disks -s $i; done
+     $ for i in %instance{2..4}%; do gnt-instance replace-disks -s $i; done
 
 Common cluster problems
 -----------------------
@@ -766,7 +764,7 @@ this exercise we will consider the case of node3, which was broken
 previously and re-added to the cluster without reinstallation. Running
 cluster verify on the cluster reports::
 
-  node1# gnt-cluster verify
+  $ gnt-cluster verify
   Mon Oct 26 18:30:08 2009 * Verifying global settings
   Mon Oct 26 18:30:08 2009 * Gathering data (3 nodes)
   Mon Oct 26 18:30:10 2009 * Verifying node status
@@ -783,7 +781,7 @@ cluster verify on the cluster reports::
   Mon Oct 26 18:30:10 2009 * Verifying N+1 Memory redundancy
   Mon Oct 26 18:30:10 2009 * Other Notes
   Mon Oct 26 18:30:10 2009 * Hooks Results
-  node1#
+  $
 
 Instance status
 +++++++++++++++
@@ -796,7 +794,7 @@ network environment and anyone who tries to use it.
 Ganeti doesn't directly handle this case. It is recommended to logon to
 node3 and run::
 
-  node3# xm destroy instance4
+  $ xm destroy %instance4%
 
 Unallocated DRBD minors
 +++++++++++++++++++++++
@@ -804,9 +802,11 @@ Unallocated DRBD minors
 There are still unallocated DRBD minors on node3. Again, these are not
 handled by Ganeti directly and need to be cleaned up via DRBD commands::
 
-  node3# drbdsetup /dev/drbd0 down
-  node3# drbdsetup /dev/drbd1 down
-  node3#
+  $ ssh %node3%
+  # on node 3
+  $ drbdsetup /dev/drbd%0% down
+  $ drbdsetup /dev/drbd%1% down
+  $
 
 Orphan volumes
 ++++++++++++++
@@ -816,20 +816,22 @@ At this point, the only remaining problem should be the so-called
 disk-replace, or similar situation where Ganeti was not able to recover
 automatically. Here you need to remove them manually via LVM commands::
 
-  node3# lvremove xenvg
-  Do you really want to remove active logical volume "22459cf8-117d-4bea-a1aa-791667d07800.disk0_data"? [y/n]: y
+  $ ssh %node3%
+  # on node3
+  $ lvremove %xenvg%
+  Do you really want to remove active logical volume "22459cf8-117d-4bea-a1aa-791667d07800.disk0_data"? [y/n]: %y%
     Logical volume "22459cf8-117d-4bea-a1aa-791667d07800.disk0_data" successfully removed
-  Do you really want to remove active logical volume "22459cf8-117d-4bea-a1aa-791667d07800.disk0_meta"? [y/n]: y
+  Do you really want to remove active logical volume "22459cf8-117d-4bea-a1aa-791667d07800.disk0_meta"? [y/n]: %y%
     Logical volume "22459cf8-117d-4bea-a1aa-791667d07800.disk0_meta" successfully removed
-  Do you really want to remove active logical volume "1aaf4716-e57f-4101-a8d6-03af5da9dc50.disk0_data"? [y/n]: y
+  Do you really want to remove active logical volume "1aaf4716-e57f-4101-a8d6-03af5da9dc50.disk0_data"? [y/n]: %y%
     Logical volume "1aaf4716-e57f-4101-a8d6-03af5da9dc50.disk0_data" successfully removed
-  Do you really want to remove active logical volume "1aaf4716-e57f-4101-a8d6-03af5da9dc50.disk0_meta"? [y/n]: y
+  Do you really want to remove active logical volume "1aaf4716-e57f-4101-a8d6-03af5da9dc50.disk0_meta"? [y/n]: %y%
     Logical volume "1aaf4716-e57f-4101-a8d6-03af5da9dc50.disk0_meta" successfully removed
   node3#
 
 At this point cluster verify shouldn't complain anymore::
 
-  node1# gnt-cluster verify
+  $ gnt-cluster verify
   Mon Oct 26 18:37:51 2009 * Verifying global settings
   Mon Oct 26 18:37:51 2009 * Gathering data (3 nodes)
   Mon Oct 26 18:37:53 2009 * Verifying node status
@@ -839,7 +841,7 @@ At this point cluster verify shouldn't complain anymore::
   Mon Oct 26 18:37:53 2009 * Verifying N+1 Memory redundancy
   Mon Oct 26 18:37:53 2009 * Other Notes
   Mon Oct 26 18:37:53 2009 * Hooks Results
-  node1#
+  $
 
 N+1 errors
 ++++++++++
@@ -856,19 +858,19 @@ increase the memory of the current instances to 4G, and add three new
 instances, two on node2:node3 with 8GB of RAM and one on node1:node2,
 with 12GB of RAM (numbers chosen so that we run out of memory)::
 
-  node1# gnt-instance modify -B memory=4G instance1
+  $ gnt-instance modify -B memory=%4G% %instance1%
   Modified instance instance1
    - be/maxmem -> 4096
    - be/minmem -> 4096
   Please don't forget that these parameters take effect only at the next start of the instance.
-  node1# gnt-instance modify …
+  $ gnt-instance modify …
 
-  node1# gnt-instance add -t drbd -n node2:node3 -s 512m -B memory=8G -o debootstrap instance5
+  $ gnt-instance add -t drbd -n %node2%:%node3% -s %512m% -B memory=%8G% -o %debootstrap% %instance5%
   …
-  node1# gnt-instance add -t drbd -n node2:node3 -s 512m -B memory=8G -o debootstrap instance6
+  $ gnt-instance add -t drbd -n %node2%:%node3% -s %512m% -B memory=%8G% -o %debootstrap% %instance6%
   …
-  node1# gnt-instance add -t drbd -n node1:node2 -s 512m -B memory=8G -o debootstrap instance7
-  node1# gnt-instance reboot --all
+  $ gnt-instance add -t drbd -n %node1%:%node2% -s %512m% -B memory=%8G% -o %debootstrap% %instance7%
+  $ gnt-instance reboot --all
   The reboot will operate on 7 instances.
   Do you want to continue?
   Affected instances:
@@ -879,7 +881,7 @@ with 12GB of RAM (numbers chosen so that we run out of memory)::
     instance5
     instance6
     instance7
-  y/[n]/?: y
+  y/[n]/?: %y%
   Submitted jobs 677, 678, 679, 680, 681, 682, 683
   Waiting for job 677 for instance1...
   Waiting for job 678 for instance2...
@@ -888,17 +890,17 @@ with 12GB of RAM (numbers chosen so that we run out of memory)::
   Waiting for job 681 for instance5...
   Waiting for job 682 for instance6...
   Waiting for job 683 for instance7...
-  node1#
+  $
 
-We rebooted instances for the memory changes to have effect. Now the
+We rebooted the instances for the memory changes to have effect. Now the
 cluster looks like::
 
-  node1# gnt-node list
+  $ gnt-node list
   Node  DTotal DFree MTotal MNode MFree Pinst Sinst
   node1   1.3T  1.3T  32.0G  1.0G  6.5G     4     1
   node2   1.3T  1.3T  32.0G  1.0G 10.5G     3     4
   node3   1.3T  1.3T  32.0G  1.0G 30.5G     0     2
-  node1# gnt-cluster verify
+  $ gnt-cluster verify
   Mon Oct 26 18:59:36 2009 * Verifying global settings
   Mon Oct 26 18:59:36 2009 * Gathering data (3 nodes)
   Mon Oct 26 18:59:37 2009 * Verifying node status
@@ -909,7 +911,7 @@ cluster looks like::
   Mon Oct 26 18:59:37 2009   - ERROR: node node2: not enough memory to accommodate instance failovers should node node1 fail
   Mon Oct 26 18:59:37 2009 * Other Notes
   Mon Oct 26 18:59:37 2009 * Hooks Results
-  node1#
+  $
 
 The cluster verify error above shows that if node1 fails, node2 will not
 have enough memory to failover all primary instances on node1 to it. To
@@ -937,7 +939,7 @@ In case a node has problems with the network (usually the secondary
 network, as problems with the primary network will render the node
 unusable for ganeti commands), it will show up in cluster verify as::
 
-  node1# gnt-cluster verify
+  $ gnt-cluster verify
   Mon Oct 26 19:07:19 2009 * Verifying global settings
   Mon Oct 26 19:07:19 2009 * Gathering data (3 nodes)
   Mon Oct 26 19:07:23 2009 * Verifying node status
@@ -952,7 +954,7 @@ unusable for ganeti commands), it will show up in cluster verify as::
   Mon Oct 26 19:07:23 2009 * Verifying N+1 Memory redundancy
   Mon Oct 26 19:07:23 2009 * Other Notes
   Mon Oct 26 19:07:23 2009 * Hooks Results
-  node1#
+  $
 
 This shows that both node1 and node2 have problems contacting node3 over
 the secondary network, and node3 has problems contacting them. From this
@@ -975,12 +977,12 @@ It is always safe to run this command as long as the instance has good
 data on its primary node (i.e. not showing as degraded). If so, you can
 simply run::
 
-  node1# gnt-instance migrate --cleanup instance1
+  $ gnt-instance migrate --cleanup %instance1%
   Instance instance1 will be recovered from a failed migration. Note
   that the migration procedure (including cleanup) is **experimental**
   in this version. This might impact the instance if anything goes
   wrong. Continue?
-  y/[n]/?: y
+  y/[n]/?: %y%
   Mon Oct 26 19:13:49 2009 Migrating instance instance1
   Mon Oct 26 19:13:49 2009 * checking where the instance actually runs (if this hangs, the hypervisor might be in a bad state)
   Mon Oct 26 19:13:49 2009 * instance confirmed to be running on its primary node (node2)
@@ -990,7 +992,7 @@ simply run::
   Mon Oct 26 19:13:50 2009 * changing disks into single-master mode
   Mon Oct 26 19:13:50 2009 * wait until resync is done
   Mon Oct 26 19:13:51 2009 * done
-  node1#
+  $
 
 In use disks at instance shutdown
 +++++++++++++++++++++++++++++++++
@@ -998,7 +1000,7 @@ In use disks at instance shutdown
 If you see something like the following when trying to shutdown or
 deactivate disks for an instance::
 
-  node1# gnt-instance shutdown instance1
+  $ gnt-instance shutdown %instance1%
   Mon Oct 26 19:16:23 2009  - WARNING: Could not shutdown block device disk/0 on node node2: drbd0: can't shutdown drbd device: /dev/drbd0: State change failed: (-12) Device is held open by someone\n
 
 It most likely means something is holding open the underlying DRBD
@@ -1018,20 +1020,20 @@ and pay attention to the hypervisor being used:
 
 For Xen, check if it's not using the disks itself::
 
-  node1# xenstore-ls /local/domain/0/backend/vbd|grep -e "domain =" -e physical-device
+  $ xenstore-ls /local/domain/%0%/backend/vbd|grep -e "domain =" -e physical-device
   domain = "instance2"
   physical-device = "93:0"
   domain = "instance3"
   physical-device = "93:1"
   domain = "instance4"
   physical-device = "93:2"
-  node1#
+  $
 
 You can see in the above output that the node exports three disks, to
 three instances. The ``physical-device`` key is in major:minor format in
-hexadecimal, and 0x93 represents DRBD's major number. Thus we can see
-from the above that instance2 has /dev/drbd0, instance3 /dev/drbd1, and
-instance4 /dev/drbd2.
+hexadecimal, and ``0x93`` represents DRBD's major number. Thus we can
+see from the above that instance2 has /dev/drbd0, instance3 /dev/drbd1,
+and instance4 /dev/drbd2.
 
 LUXI version mismatch
 +++++++++++++++++++++
@@ -1040,7 +1042,7 @@ LUXI is the protocol used for communication between clients and the
 master daemon. Starting in Ganeti 2.3, the peers exchange their version
 in each message. When they don't match, an error is raised::
 
-  $ gnt-node modify -O yes node3
+  $ gnt-node modify -O yes %node3%
   Unhandled Ganeti error: LUXI version mismatch, server 2020000, request 2030000
 
 Usually this means that server and client are from different Ganeti
