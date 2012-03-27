@@ -5,7 +5,7 @@ Documents Ganeti version |version|
 
 .. contents::
 
-.. highlight:: text
+.. highlight:: shell-example
 
 Introduction
 ------------
@@ -173,8 +173,8 @@ or to nodes or instances. They are useful as a very simplistic
 information store for helping with cluster administration, for example
 by attaching owner information to each instance after it's created::
 
-  gnt-instance add … instance1
-  gnt-instance add-tags instance1 owner:user2
+  $ gnt-instance add … %instance1%
+  $ gnt-instance add-tags %instance1% %owner:user2%
 
 And then by listing each instance and its tags, this information could
 be used for contacting the users of each instance.
@@ -184,7 +184,7 @@ Jobs and OpCodes
 
 While not directly visible by an end-user, it's useful to know that a
 basic cluster operation (e.g. starting an instance) is represented
-internall by Ganeti as an *OpCode* (abbreviation from operation
+internally by Ganeti as an *OpCode* (abbreviation from operation
 code). These OpCodes are executed as part of a *Job*. The OpCodes in a
 single Job are processed serially by Ganeti, but different Jobs will be
 processed (depending on resource availability) in parallel. They will
@@ -238,11 +238,11 @@ installed any iallocator script.
 
 With the above parameters in mind, the command is::
 
-  gnt-instance add \
-    -n TARGET_NODE:SECONDARY_NODE \
-    -o OS_TYPE \
-    -t DISK_TEMPLATE -s DISK_SIZE \
-    INSTANCE_NAME
+  $ gnt-instance add \
+    -n %TARGET_NODE%:%SECONDARY_NODE% \
+    -o %OS_TYPE% \
+    -t %DISK_TEMPLATE% -s %DISK_SIZE% \
+    %INSTANCE_NAME%
 
 The instance name must be resolvable (e.g. exist in DNS) and usually
 points to an address in the same subnet as the cluster itself.
@@ -265,7 +265,7 @@ For example if you want to create an highly available instance, with a
 single disk of 50GB and the default memory size, having primary node
 ``node1`` and secondary node ``node3``, use the following command::
 
-  gnt-instance add -n node1:node3 -o debootstrap -t drbd \
+  $ gnt-instance add -n node1:node3 -o debootstrap -t drbd -s 50G \
     instance1
 
 There is a also a command for batch instance creation from a
@@ -282,7 +282,7 @@ Removing an instance is even easier than creating one. This operation is
 irreversible and destroys all the contents of your instance. Use with
 care::
 
-  gnt-instance remove INSTANCE_NAME
+  $ gnt-instance remove %INSTANCE_NAME%
 
 .. _instance-startup-label:
 
@@ -292,7 +292,7 @@ Startup/shutdown
 Instances are automatically started at instance creation time. To
 manually start one which is currently stopped you can run::
 
-  gnt-instance startup INSTANCE_NAME
+  $ gnt-instance startup %INSTANCE_NAME%
 
 Ganeti will start an instance with up to its maximum instance memory. If
 not enough memory is available Ganeti will use all the available memory
@@ -303,17 +303,17 @@ Note, that this will not work when an instance is in a permanently
 stopped state ``offline``. In this case, you will first have to
 put it back to online mode by running::
 
-  gnt-instance modify --online INSTANCE_NAME
+  $ gnt-instance modify --online %INSTANCE_NAME%
 
 The command to stop the running instance is::
 
-  gnt-instance shutdown INSTANCE_NAME
+  $ gnt-instance shutdown %INSTANCE_NAME%
 
 If you want to shut the instance down more permanently, so that it
 does not require dynamically allocated resources (memory and vcpus),
 after shutting down an instance, execute the following::
 
-  gnt-instance modify --offline INSTANCE_NAME
+  $ gnt-instance modify --offline %INSTANCE_NAME%
 
 .. warning:: Do not use the Xen or KVM commands directly to stop
    instances. If you run for example ``xm shutdown`` or ``xm destroy``
@@ -330,7 +330,7 @@ instances.
 
 The command to see all the instances configured and their status is::
 
-  gnt-instance list
+  $ gnt-instance list
 
 The command can return a custom set of information when using the ``-o``
 option (as always, check the manpage for a detailed specification). Each
@@ -339,7 +339,7 @@ this output via the usual shell utilities (grep, sed, etc.).
 
 To get more detailed information about an instance, you can run::
 
-  gnt-instance info INSTANCE
+  $ gnt-instance info %INSTANCE%
 
 which will give a multi-line block of information about the instance,
 it's hardware resources (especially its disks and their redundancy
@@ -359,7 +359,7 @@ order to free up space for an instance.
 If you find that you need more memory on a node any instance can be
 manually resized without downtime, with the command::
 
-  gnt-instance modify -m SIZE INSTANCE_NAME
+  $ gnt-instance modify -m %SIZE% %INSTANCE_NAME%
 
 The same command can also be used to increase the memory available on an
 instance, provided that enough free memory is available on its node, and
@@ -375,7 +375,7 @@ You can create a snapshot of an instance disk and its Ganeti
 configuration, which then you can backup, or import into another
 cluster. The way to export an instance is::
 
-  gnt-backup export -n TARGET_NODE INSTANCE_NAME
+  $ gnt-backup export -n %TARGET_NODE% %INSTANCE_NAME%
 
 
 The target node can be any node in the cluster with enough space under
@@ -389,8 +389,8 @@ them out of the Ganeti exports directory.
 Importing an instance is similar to creating a new one, but additionally
 one must specify the location of the snapshot. The command is::
 
-  gnt-backup import -n TARGET_NODE \
-    --src-node=NODE --src-dir=DIR INSTANCE_NAME
+  $ gnt-backup import -n %TARGET_NODE% \
+    --src-node=%NODE% --src-dir=%DIR% %INSTANCE_NAME%
 
 By default, parameters will be read from the export information, but you
 can of course pass them in via the command line - most of the options
@@ -408,8 +408,8 @@ For this, ensure that the original, non-managed instance is stopped,
 then create a Ganeti instance in the usual way, except that instead of
 passing the disk information you specify the current volumes::
 
-  gnt-instance add -t plain -n HOME_NODE ... \
-    --disk 0:adopt=lv_name[,vg=vg_name] INSTANCE_NAME
+  $ gnt-instance add -t plain -n %HOME_NODE% ... \
+    --disk 0:adopt=%lv_name%[,vg=%vg_name%] %INSTANCE_NAME%
 
 This will take over the given logical volumes, rename them to the Ganeti
 standard (UUID-based), and without installing the OS on them start
@@ -504,7 +504,7 @@ fail it over to its secondary node, even if the primary has somehow
 failed and it's not up anymore. Doing it is really easy, on the master
 node you can just run::
 
-  gnt-instance failover INSTANCE_NAME
+  $ gnt-instance failover %INSTANCE_NAME%
 
 That's it. After the command completes the secondary node is now the
 primary, and vice-versa.
@@ -519,7 +519,7 @@ the target node (which can be any node) explicitly, or specify an
 iallocator plugin. If you omit both, the default iallocator will be
 used to determine the target node::
 
-  gnt-instance failover -n TARGET_NODE INSTANCE_NAME
+  $ gnt-instance failover -n %TARGET_NODE% %INSTANCE_NAME%
 
 Live migrating an instance
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -528,7 +528,7 @@ If an instance is built in highly available mode, it currently runs and
 both its nodes are running fine, you can at migrate it over to its
 secondary node, without downtime. On the master node you need to run::
 
-  gnt-instance migrate INSTANCE_NAME
+  $ gnt-instance migrate %INSTANCE_NAME%
 
 The current load on the instance and its memory size will influence how
 long the migration will take. In any case, for both KVM and Xen
@@ -546,7 +546,7 @@ the target node (which can be any node) explicitly, or specify an
 iallocator plugin. If you omit both, the default iallocator will be
 used to determine the target node::
 
-   gnt-instance migrate -n TARGET_NODE INSTANCE_NAME
+   $ gnt-instance migrate -n %TARGET_NODE% %INSTANCE_NAME%
 
 Moving an instance (offline)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -554,7 +554,7 @@ Moving an instance (offline)
 If an instance has not been create as mirrored, then the only way to
 change its primary node is to execute the move command::
 
-  gnt-instance move -n NEW_NODE INSTANCE
+  $ gnt-instance move -n %NEW_NODE% %INSTANCE%
 
 This has a few prerequisites:
 
@@ -583,13 +583,11 @@ for LVM, this means that the LVM commands must not return failures; it
 is common that after a complete disk failure, any LVM command aborts
 with an error similar to::
 
-  # vgs
+  $ vgs
   /dev/sdb1: read failed after 0 of 4096 at 0: Input/output error
-  /dev/sdb1: read failed after 0 of 4096 at 750153695232: Input/output
-  error
+  /dev/sdb1: read failed after 0 of 4096 at 750153695232: Input/output error
   /dev/sdb1: read failed after 0 of 4096 at 0: Input/output error
-  Couldn't find device with uuid
-  't30jmN-4Rcf-Fr5e-CURS-pawt-z0jU-m1TgeJ'.
+  Couldn't find device with uuid 't30jmN-4Rcf-Fr5e-CURS-pawt-z0jU-m1TgeJ'.
   Couldn't find all physical volumes for volume group xenvg.
 
 Before restoring an instance's disks to healthy status, it's needed to
@@ -600,7 +598,7 @@ process:
 #. first, if the disk is completely gone and LVM commands exit with
    “Couldn't find device with uuid…” then you need to run the command::
 
-    vgreduce --removemissing VOLUME_GROUP
+    $ vgreduce --removemissing %VOLUME_GROUP%
 
 #. after the above command, the LVM commands should be executing
    normally (warnings are normal, but the commands will not fail
@@ -609,7 +607,7 @@ process:
 #. if the failed disk is still visible in the output of the ``pvs``
    command, you need to deactivate it from allocations by running::
 
-    pvs -x n /dev/DISK
+    $ pvs -x n /dev/%DISK%
 
 At this point, the volume group should be consistent and any bad
 physical volumes should not longer be available for allocation.
@@ -638,15 +636,15 @@ though everything is already fine.
 For all three cases, the ``replace-disks`` operation can be used::
 
   # re-create disks on the primary node
-  gnt-instance replace-disks -p INSTANCE_NAME
+  $ gnt-instance replace-disks -p %INSTANCE_NAME%
   # re-create disks on the current secondary
-  gnt-instance replace-disks -s INSTANCE_NAME
+  $ gnt-instance replace-disks -s %INSTANCE_NAME%
   # change the secondary node, via manual specification
-  gnt-instance replace-disks -n NODE INSTANCE_NAME
+  $ gnt-instance replace-disks -n %NODE% %INSTANCE_NAME%
   # change the secondary node, via an iallocator script
-  gnt-instance replace-disks -I SCRIPT INSTANCE_NAME
+  $ gnt-instance replace-disks -I %SCRIPT% %INSTANCE_NAME%
   # since Ganeti 2.1: automatically fix the primary or secondary node
-  gnt-instance replace-disks -a INSTANCE_NAME
+  $ gnt-instance replace-disks -a %INSTANCE_NAME%
 
 Since the process involves copying all data from the working node to the
 target node, it will take a while, depending on the instance's disk
@@ -663,7 +661,7 @@ re-create the disks. But it's possible to at-least re-create empty
 disks, after which a reinstall can be run, via the ``recreate-disks``
 command::
 
-  gnt-instance recreate-disks INSTANCE
+  $ gnt-instance recreate-disks %INSTANCE%
 
 Note that this will fail if the disks already exists.
 
@@ -675,17 +673,17 @@ It is possible to convert between a non-redundant instance of type
 modify`` command::
 
   # start with a non-redundant instance
-  gnt-instance add -t plain ... INSTANCE
+  $ gnt-instance add -t plain ... %INSTANCE%
 
   # later convert it to redundant
-  gnt-instance stop INSTANCE
-  gnt-instance modify -t drbd -n NEW_SECONDARY INSTANCE
-  gnt-instance start INSTANCE
+  $ gnt-instance stop %INSTANCE%
+  $ gnt-instance modify -t drbd -n %NEW_SECONDARY% %INSTANCE%
+  $ gnt-instance start %INSTANCE%
 
   # and convert it back
-  gnt-instance stop INSTANCE
-  gnt-instance modify -t plain INSTANCE
-  gnt-instance start INSTANCE
+  $ gnt-instance stop %INSTANCE%
+  $ gnt-instance modify -t plain %INSTANCE%
+  $ gnt-instance start %INSTANCE%
 
 The conversion must be done while the instance is stopped, and
 converting from plain to drbd template presents a small risk, especially
@@ -706,7 +704,7 @@ instance, or will break replication and your data will be
 inconsistent. The correct way to access an instance's disks is to run
 (on the master node, as usual) the command::
 
-  gnt-instance activate-disks INSTANCE
+  $ gnt-instance activate-disks %INSTANCE%
 
 And then, *on the primary node of the instance*, access the device that
 gets created. For example, you could mount the given disks, then edit
@@ -715,22 +713,24 @@ files on the filesystem, etc.
 Note that with partitioned disks (as opposed to whole-disk filesystems),
 you will need to use a tool like :manpage:`kpartx(8)`::
 
-  node1# gnt-instance activate-disks instance1
-  …
-  node1# ssh node3
-  node3# kpartx -l /dev/…
-  node3# kpartx -a /dev/…
-  node3# mount /dev/mapper/… /mnt/
+  # on node1
+  $ gnt-instance activate-disks %instance1%
+  node3:disk/0:…
+  $ ssh node3
+  # on node 3
+  $ kpartx -l /dev/…
+  $ kpartx -a /dev/…
+  $ mount /dev/mapper/… /mnt/
   # edit files under mnt as desired
-  node3# umount /mnt/
-  node3# kpartx -d /dev/…
-  node3# exit
-  node1#
+  $ umount /mnt/
+  $ kpartx -d /dev/…
+  $ exit
+  # back to node 1
 
 After you've finished you can deactivate them with the deactivate-disks
 command, which works in the same way::
 
-  gnt-instance deactivate-disks INSTANCE
+  $ gnt-instance deactivate-disks %INSTANCE%
 
 Note that if any process started by you is still using the disks, the
 above command will error out, and you **must** cleanup and ensure that
@@ -742,7 +742,7 @@ Accessing an instance's console
 
 The command to access a running instance's console is::
 
-  gnt-instance console INSTANCE_NAME
+  $ gnt-instance console %INSTANCE_NAME%
 
 Use the console normally and then type ``^]`` when done, to exit.
 
@@ -754,7 +754,7 @@ Reboot
 
 There is a wrapper command for rebooting instances::
 
-  gnt-instance reboot instance2
+  $ gnt-instance reboot %instance2%
 
 By default, this does the equivalent of shutting down and then starting
 the instance, but it accepts parameters to perform a soft-reboot (via
@@ -768,7 +768,7 @@ Instance OS definitions debugging
 Should you have any problems with instance operating systems the command
 to see a complete status for all your nodes is::
 
-   gnt-os diagnose
+   $ gnt-os diagnose
 
 .. _instance-relocation-label:
 
@@ -780,13 +780,13 @@ nodes ``(C, D)`` in a single move, it is possible to do so in a few
 steps::
 
   # instance is located on A, B
-  node1# gnt-instance replace -n nodeC instance1
+  $ gnt-instance replace -n %nodeC% %instance1%
   # instance has moved from (A, B) to (A, C)
   # we now flip the primary/secondary nodes
-  node1# gnt-instance migrate instance1
+  $ gnt-instance migrate %instance1%
   # instance lives on (C, A)
   # we can then change A to D via:
-  node1# gnt-instance replace -n nodeD instance1
+  $ gnt-instance replace -n %nodeD% %instance1%
 
 Which brings it into the final configuration of ``(C, D)``. Note that we
 needed to do two replace-disks operation (two copies of the instance
@@ -805,7 +805,7 @@ Add/readd
 It is at any time possible to extend the cluster with one more node, by
 using the node add operation::
 
-  gnt-node add NEW_NODE
+  $ gnt-node add %NEW_NODE%
 
 If the cluster has a replication network defined, then you need to pass
 the ``-s REPLICATION_IP`` parameter to this option.
@@ -814,7 +814,7 @@ A variation of this command can be used to re-configure a node if its
 Ganeti configuration is broken, for example if it has been reinstalled
 by mistake::
 
-  gnt-node add --readd EXISTING_NODE
+  $ gnt-node add --readd %EXISTING_NODE%
 
 This will reinitialise the node as if it's been newly added, but while
 keeping its existing configuration in the cluster (primary/secondary IP,
@@ -833,7 +833,7 @@ Failing over the master node
 If you want to promote a different node to the master role (for whatever
 reason), run on any other master-candidate node the command::
 
-  gnt-cluster master-failover
+  $ gnt-cluster master-failover
 
 and the node you ran it on is now the new master. In case you try to run
 this on a non master-candidate node, you will get an error telling you
@@ -845,13 +845,13 @@ Changing between the other roles
 The ``gnt-node modify`` command can be used to select a new role::
 
   # change to master candidate
-  gnt-node modify -C yes NODE
+  $ gnt-node modify -C yes %NODE%
   # change to drained status
-  gnt-node modify -D yes NODE
+  $ gnt-node modify -D yes %NODE%
   # change to offline status
-  gnt-node modify -O yes NODE
+  $ gnt-node modify -O yes %NODE%
   # change to regular mode (reset all flags)
-  gnt-node modify -O no -D no -C no NODE
+  $ gnt-node modify -O no -D no -C no %NODE%
 
 Note that the cluster requires that at any point in time, a certain
 number of nodes are master candidates, so changing from master candidate
@@ -876,8 +876,8 @@ For this step, you can use either individual instance move
 commands (as seen in :ref:`instance-change-primary-label`) or the bulk
 per-node versions; these are::
 
-  gnt-node migrate NODE
-  gnt-node evacuate NODE
+  $ gnt-node migrate %NODE%
+  $ gnt-node evacuate -s %NODE%
 
 Note that the instance “move” command doesn't currently have a node
 equivalent.
@@ -894,8 +894,8 @@ Secondary instance evacuation
 For the evacuation of secondary instances, a command called
 :command:`gnt-node evacuate` is provided and its syntax is::
 
-  gnt-node evacuate -I IALLOCATOR_SCRIPT NODE
-  gnt-node evacuate -n DESTINATION_NODE NODE
+  $ gnt-node evacuate -I %IALLOCATOR_SCRIPT% %NODE%
+  $ gnt-node evacuate -n %DESTINATION_NODE% %NODE%
 
 The first version will compute the new secondary for each instance in
 turn using the given iallocator script, whereas the second one will
@@ -907,7 +907,7 @@ Removal
 Once a node no longer has any instances (neither primary nor secondary),
 it's easy to remove it from the cluster::
 
-  gnt-node remove NODE_NAME
+  $ gnt-node remove %NODE_NAME%
 
 This will deconfigure the node, stop the ganeti daemons on it and leave
 it hopefully like before it joined to the cluster.
@@ -927,7 +927,7 @@ This is a command specific to LVM handling. It allows listing the
 logical volumes on a given node or on all nodes and their association to
 instances via the ``volumes`` command::
 
-  node1# gnt-node volumes
+  $ gnt-node volumes
   Node  PhysDev   VG    Name             Size Instance
   node1 /dev/sdb1 xenvg e61fbc97-….disk0 512M instance17
   node1 /dev/sdb1 xenvg ebd1a7d1-….disk0 512M instance19
@@ -951,7 +951,7 @@ uses.
 
 First is listing the backend storage and their space situation::
 
-  node1# gnt-node list-storage
+  $ gnt-node list-storage
   Node  Name        Size Used   Free
   node1 /dev/sda7 673.8G   0M 673.8G
   node1 /dev/sdb1 698.6G 1.5G 697.1G
@@ -961,7 +961,7 @@ First is listing the backend storage and their space situation::
 The default is to list LVM physical volumes. It's also possible to list
 the LVM volume groups::
 
-  node1# gnt-node list-storage -t lvm-vg
+  $ gnt-node list-storage -t lvm-vg
   Node  Name  Size
   node1 xenvg 1.3T
   node2 xenvg 1.3T
@@ -969,14 +969,14 @@ the LVM volume groups::
 Next is repairing storage units, which is currently only implemented for
 volume groups and does the equivalent of ``vgreduce --removemissing``::
 
-  node1# gnt-node repair-storage node2 lvm-vg xenvg
+  $ gnt-node repair-storage %node2% lvm-vg xenvg
   Sun Oct 25 22:21:45 2009 Repairing storage unit 'xenvg' on node2 ...
 
 Last is the modification of volume properties, which is (again) only
 implemented for LVM physical volumes and allows toggling the
 ``allocatable`` value::
 
-  node1# gnt-node modify-storage --allocatable=no node2 lvm-pv /dev/sdb1
+  $ gnt-node modify-storage --allocatable=no %node2% lvm-pv /dev/%sdb1%
 
 Use of the storage commands
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1008,14 +1008,14 @@ Standard operations
 One of the few commands that can be run on any node (not only the
 master) is the ``getmaster`` command::
 
-  node2# gnt-cluster getmaster
+  # on node2
+  $ gnt-cluster getmaster
   node1.example.com
-  node2#
 
 It is possible to query and change global cluster parameters via the
 ``info`` and ``modify`` commands::
 
-  node1# gnt-cluster info
+  $ gnt-cluster info
   Cluster name: cluster.example.com
   Cluster UUID: 07805e6f-f0af-4310-95f1-572862ee939c
   Creation time: 2009-09-25 05:04:15
@@ -1055,7 +1055,7 @@ commands as follows:
 For detailed option list see the :manpage:`gnt-cluster(8)` man page.
 
 The cluster version can be obtained via the ``version`` command::
-  node1# gnt-cluster version
+  $ gnt-cluster version
   Software version: 2.1.0
   Internode protocol: 20
   Configuration format: 2010000
@@ -1070,8 +1070,8 @@ Global node commands
 There are two commands provided for replicating files to all nodes of a
 cluster and for running commands on all the nodes::
 
-  node1# gnt-cluster copyfile /path/to/file
-  node1# gnt-cluster command ls -l /path/to/file
+  $ gnt-cluster copyfile %/path/to/file%
+  $ gnt-cluster command %ls -l /path/to/file%
 
 These are simple wrappers over scp/ssh and more advanced usage can be
 obtained using :manpage:`dsh(1)` and similar commands. But they are
@@ -1085,7 +1085,7 @@ one is ``verify`` which gives an overview on the cluster state,
 highlighting any issues. In normal operation, this command should return
 no ``ERROR`` messages::
 
-  node1# gnt-cluster verify
+  $ gnt-cluster verify
   Sun Oct 25 23:08:58 2009 * Verifying global settings
   Sun Oct 25 23:08:58 2009 * Gathering data (2 nodes)
   Sun Oct 25 23:09:00 2009 * Verifying node status
@@ -1101,7 +1101,7 @@ The second command is ``verify-disks``, which checks that the instance's
 disks have the correct status based on the desired instance state
 (up/down)::
 
-  node1# gnt-cluster verify-disks
+  $ gnt-cluster verify-disks
 
 Note that this command will show no output when disks are healthy.
 
@@ -1109,7 +1109,7 @@ The last command is used to repair any discrepancies in Ganeti's
 recorded disk size and the actual disk size (disk size information is
 needed for proper activation and growth of DRBD-based disks)::
 
-  node1# gnt-cluster repair-disk-sizes
+  $ gnt-cluster repair-disk-sizes
   Sun Oct 25 23:13:16 2009  - INFO: Disk 0 of instance instance1 has mismatched size, correcting: recorded 512, actual 2048
   Sun Oct 25 23:13:17 2009  - WARNING: Invalid result from node node4, ignoring node results
 
@@ -1125,8 +1125,7 @@ and other nodes, due to some node problems or if you manually modified
 configuration files, you can force an push of the master configuration
 to all other nodes via the ``redist-conf`` command::
 
-  node1# gnt-cluster redist-conf
-  node1#
+  $ gnt-cluster redist-conf
 
 This command will be silent unless there are problems sending updates to
 the other nodes.
@@ -1139,12 +1138,12 @@ It is possible to rename a cluster, or to change its IP address, via the
 ``rename`` command. If only the IP has changed, you need to pass the
 current name and Ganeti will realise its IP has changed::
 
-  node1# gnt-cluster rename cluster.example.com
+  $ gnt-cluster rename %cluster.example.com%
   This will rename the cluster to 'cluster.example.com'. If
   you are connected over the network to the cluster name, the operation
   is very dangerous as the IP address will be removed from the node and
   the change may not go through. Continue?
-  y/[n]/?: y
+  y/[n]/?: %y%
   Failure: prerequisites not met for this operation:
   Neither the name nor the IP address of the cluster has changed
 
@@ -1157,14 +1156,14 @@ Queue operations
 The job queue execution in Ganeti 2.0 and higher can be inspected,
 suspended and resumed via the ``queue`` command::
 
-  node1~# gnt-cluster queue info
+  $ gnt-cluster queue info
   The drain flag is unset
-  node1~# gnt-cluster queue drain
-  node1~# gnt-instance stop instance1
+  $ gnt-cluster queue drain
+  $ gnt-instance stop %instance1%
   Failed to submit job for instance1: Job queue is drained, refusing job
-  node1~# gnt-cluster queue info
+  $ gnt-cluster queue info
   The drain flag is set
-  node1~# gnt-cluster queue undrain
+  $ gnt-cluster queue undrain
 
 This is most useful if you have an active cluster and you need to
 upgrade the Ganeti software, or simply restart the software on any node:
@@ -1189,23 +1188,22 @@ via commenting out the cron job is not so good as this can be
 forgotten. Thus there are some commands for automated control of the
 watcher: ``pause``, ``info`` and ``continue``::
 
-  node1~# gnt-cluster watcher info
+  $ gnt-cluster watcher info
   The watcher is not paused.
-  node1~# gnt-cluster watcher pause 1h
+  $ gnt-cluster watcher pause %1h%
   The watcher is paused until Mon Oct 26 00:30:37 2009.
-  node1~# gnt-cluster watcher info
+  $ gnt-cluster watcher info
   The watcher is paused until Mon Oct 26 00:30:37 2009.
-  node1~# ganeti-watcher -d
+  $ ganeti-watcher -d
   2009-10-25 23:30:47,984:  pid=28867 ganeti-watcher:486 DEBUG Pause has been set, exiting
-  node1~# gnt-cluster watcher continue
+  $ gnt-cluster watcher continue
   The watcher is no longer paused.
-  node1~# ganeti-watcher -d
+  $ ganeti-watcher -d
   2009-10-25 23:31:04,789:  pid=28976 ganeti-watcher:345 DEBUG Archived 0 jobs, left 0
   2009-10-25 23:31:05,884:  pid=28976 ganeti-watcher:280 DEBUG Got data from cluster, writing instance status file
   2009-10-25 23:31:06,061:  pid=28976 ganeti-watcher:150 DEBUG Data didn't change, just touching status file
-  node1~# gnt-cluster watcher info
+  $ gnt-cluster watcher info
   The watcher is not paused.
-  node1~#
 
 The exact details of the argument to the ``pause`` command are available
 in the manpage.
@@ -1307,9 +1305,9 @@ Operations
 
 Tags can be added via ``add-tags``::
 
-  gnt-instance add-tags INSTANCE a b c
-  gnt-node add-tags INSTANCE a b c
-  gnt-cluster add-tags a b c
+  $ gnt-instance add-tags %INSTANCE% %a% %b% %c%
+  $ gnt-node add-tags %INSTANCE% %a% %b% %c%
+  $ gnt-cluster add-tags %a% %b% %c%
 
 
 The above commands add three tags to an instance, to a node and to the
@@ -1322,13 +1320,13 @@ argument. The file is expected to contain one tag per line.
 
 Tags can also be remove via a syntax very similar to the add one::
 
-  gnt-instance remove-tags INSTANCE a b c
+  $ gnt-instance remove-tags %INSTANCE% %a% %b% %c%
 
 And listed via::
 
-  gnt-instance list-tags
-  gnt-node list-tags
-  gnt-cluster list-tags
+  $ gnt-instance list-tags
+  $ gnt-node list-tags
+  $ gnt-cluster list-tags
 
 Global tag search
 +++++++++++++++++
@@ -1336,14 +1334,14 @@ Global tag search
 It is also possible to execute a global search on the all tags defined
 in the cluster configuration, via a cluster command::
 
-  gnt-cluster search-tags REGEXP
+  $ gnt-cluster search-tags %REGEXP%
 
 The parameter expected is a regular expression (see
 :manpage:`regex(7)`). This will return all tags that match the search,
 together with the object they are defined in (the names being show in a
 hierarchical kind of way)::
 
-  node1# gnt-cluster search-tags o
+  $ gnt-cluster search-tags %o%
   /cluster foo
   /instances/instance1 owner:bar
 
@@ -1357,7 +1355,7 @@ examined, canceled and archived by various invocations of the
 
 First is the job list command::
 
-  node1# gnt-job list
+  $ gnt-job list
   17771 success INSTANCE_QUERY_DATA
   17773 success CLUSTER_VERIFY_DISKS
   17775 success CLUSTER_REPAIR_DISK_SIZES
@@ -1368,7 +1366,7 @@ First is the job list command::
 More detailed information about a job can be found via the ``info``
 command::
 
-  node1# gnt-job info 17776
+  $ gnt-job info %17776%
   Job ID: 17776
     Status: error
     Received:         2009-10-25 23:18:02.180569
@@ -1391,9 +1389,9 @@ During the execution of a job, it's possible to follow the output of a
 job, similar to the log that one get from the ``gnt-`` commands, via the
 watch command::
 
-  node1# gnt-instance add --submit … instance1
+  $ gnt-instance add --submit … %instance1%
   JobID: 17818
-  node1# gnt-job watch 17818
+  $ gnt-job watch %17818%
   Output from job 17818 follows
   -----------------------------
   Mon Oct 26 00:22:48 2009  - INFO: Selected nodes for instance instance1 via iallocator dumb: node1, node2
@@ -1404,18 +1402,18 @@ watch command::
   Mon Oct 26 00:23:03 2009 creating os for instance instance1 on node node1
   Mon Oct 26 00:23:03 2009 * running the instance OS create scripts...
   Mon Oct 26 00:23:13 2009 * starting instance...
-  node1#
+  $
 
 This is useful if you need to follow a job's progress from multiple
 terminals.
 
 A job that has not yet started to run can be canceled::
 
-  node1# gnt-job cancel 17810
+  $ gnt-job cancel %17810%
 
 But not one that has already started execution::
 
-  node1# gnt-job cancel 17805
+  $ gnt-job cancel %17805%
   Job 17805 is no longer waiting in the queue
 
 There are two queues for jobs: the *current* and the *archive*
@@ -1450,11 +1448,11 @@ should not be considered in the normal capacity planning, evacuation
 strategies, etc. In order to accomplish this, mark these nodes as
 non-``vm_capable``::
 
-  node1# gnt-node modify --vm-capable=no node3
+  $ gnt-node modify --vm-capable=no %node3%
 
 The vm_capable status can be listed as usual via ``gnt-node list``::
 
-  node1# gnt-node list -oname,vm_capable
+  $ gnt-node list -oname,vm_capable
   Node  VMCapable
   node1 Y
   node2 Y
@@ -1482,7 +1480,7 @@ candidates, either manually or automatically.
 
 As usual, the node modify operation can change this flag::
 
-  node1# gnt-node modify --auto-promote --master-capable=no node3
+  $ gnt-node modify --auto-promote --master-capable=no %node3%
   Fri Jan  7 06:23:07 2011  - INFO: Demoting from master candidate
   Fri Jan  7 06:23:08 2011  - INFO: Promoted nodes to master candidate role: node4
   Modified node node3
@@ -1491,7 +1489,7 @@ As usual, the node modify operation can change this flag::
 
 And the node list operation will list this flag::
 
-  node1# gnt-node list -oname,master_capable node1 node2 node3
+  $ gnt-node list -oname,master_capable %node1% %node2% %node3%
   Node  MasterCapable
   node1 Y
   node2 Y
