@@ -46,12 +46,13 @@ class ShellExampleLexer(RegexLexer):
       # switch to state input on '$ ' at the start of the line
       (r"^\$ ", Text, "input"),
       (r"\s+", Text),
-      (r"[^#%\s]+", Text),
+      (r"[^#%\s\\]+", Text),
+      (r"\\", Text),
       ],
     "input": [
       include("comments"),
       include("userinput"),
-      (r"[^%\\\s]+", Generic.Strong),
+      (r"[^#%\s\\]+", Generic.Strong),
       (r"\\\n", Generic.Strong),
       (r"\\", Generic.Strong),
       # switch to prev state at non-escaped new-line
@@ -62,7 +63,7 @@ class ShellExampleLexer(RegexLexer):
       (r"#.*\n", Comment.Single),
       ],
     "userinput": [
-      (r"\\%", Text),
+      (r"(\\)(%)", bygroups(None, Text)),
       (r"(%)([^%]*)(%)", bygroups(None, Name.Variable, None)),
       ],
     }
