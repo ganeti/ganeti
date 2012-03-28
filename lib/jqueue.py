@@ -570,7 +570,7 @@ class _JobChangesChecker(object):
     @param prev_log_serial: previous job serial, as passed by the LUXI client
 
     """
-    self._fields = fields
+    self._squery = _SimpleJobQuery(fields)
     self._prev_job_info = prev_job_info
     self._prev_log_serial = prev_log_serial
 
@@ -584,7 +584,7 @@ class _JobChangesChecker(object):
     assert not job.writable, "Expected read-only job"
 
     status = job.CalcStatus()
-    job_info = job.GetInfo(self._fields)
+    job_info = self._squery(job)
     log_entries = job.GetLogEntries(self._prev_log_serial)
 
     # Serializing and deserializing data can cause type changes (e.g. from
