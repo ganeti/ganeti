@@ -2481,6 +2481,51 @@ def OSEnvironment(instance, inst_os, debug=0):
   return result
 
 
+def DiagnoseExtStorage(top_dirs=None):
+  """Compute the validity for all ExtStorage Providers.
+
+  @type top_dirs: list
+  @param top_dirs: the list of directories in which to
+      search (if not given defaults to
+      L{pathutils.ES_SEARCH_PATH})
+  @rtype: list of L{objects.ExtStorage}
+  @return: a list of tuples (name, path, status, diagnose, parameters)
+      for all (potential) ExtStorage Providers under all
+      search paths, where:
+          - name is the (potential) ExtStorage Provider
+          - path is the full path to the ExtStorage Provider
+          - status True/False is the validity of the ExtStorage Provider
+          - diagnose is the error message for an invalid ExtStorage Provider,
+            otherwise empty
+          - parameters is a list of (name, help) parameters, if any
+
+  """
+  if top_dirs is None:
+    top_dirs = pathutils.ES_SEARCH_PATH
+
+  result = []
+  for dir_name in top_dirs:
+    if os.path.isdir(dir_name):
+      try:
+        f_names = utils.ListVisibleFiles(dir_name)
+      except EnvironmentError, err:
+        logging.exception("Can't list the ExtStorage directory %s: %s",
+                          dir_name, err)
+        break
+      for name in f_names:
+        es_path = utils.PathJoin(dir_name, name)
+        status, es_inst = bdev.ExtStorageFromDisk(name, base_dir=dir_name)
+        if status:
+          diagnose = ""
+          parameters = es_inst.supported_parameters
+        else:
+          diagnose = es_inst
+          parameters = []
+        result.append((name, es_path, status, diagnose, parameters))
+
+  return result
+
+
 def BlockdevGrow(disk, amount, dryrun, backingstore):
   """Grow a stack of block devices.
 

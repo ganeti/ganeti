@@ -444,6 +444,9 @@ $(genOpCode "OpCode"
   , ("OpOsDiagnose",
      [ pOutputFields
      , pNames ])
+  , ("OpExtStorageDiagnose",
+     [ pOutputFields
+     , pNames ])
   , ("OpBackupQuery",
      [ pUseLocking
      , pNodes

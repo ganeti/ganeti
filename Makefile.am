@@ -282,7 +282,8 @@ client_PYTHON = \
 	lib/client/gnt_job.py \
 	lib/client/gnt_node.py \
 	lib/client/gnt_network.py \
-	lib/client/gnt_os.py
+	lib/client/gnt_os.py \
+	lib/client/gnt_storage.py
 
 hypervisor_PYTHON = \
 	lib/hypervisor/__init__.py \
@@ -621,7 +622,8 @@ gnt_scripts = \
 	scripts/gnt-job \
 	scripts/gnt-network \
 	scripts/gnt-node \
-	scripts/gnt-os
+	scripts/gnt-os \
+	scripts/gnt-storage
 
 PYTHON_BOOTSTRAP_SBIN = \
 	daemons/ganeti-masterd \

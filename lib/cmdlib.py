@@ -5163,6 +5163,159 @@ class LUOsDiagnose(NoHooksLU):
     return self.oq.OldStyleQuery(self)
 
 
+class _ExtStorageQuery(_QueryBase):
+  FIELDS = query.EXTSTORAGE_FIELDS
+
+  def ExpandNames(self, lu):
+    # Lock all nodes in shared mode
+    # Temporary removal of locks, should be reverted later
+    # TODO: reintroduce locks when they are lighter-weight
+    lu.needed_locks = {}
+    #self.share_locks[locking.LEVEL_NODE] = 1
+    #self.needed_locks[locking.LEVEL_NODE] = locking.ALL_SET
+
+    # The following variables interact with _QueryBase._GetNames
+    if self.names:
+      self.wanted = self.names
+    else:
+      self.wanted = locking.ALL_SET
+
+    self.do_locking = self.use_locking
+
+  def DeclareLocks(self, lu, level):
+    pass
+
+  @staticmethod
+  def _DiagnoseByProvider(rlist):
+    """Remaps a per-node return list into an a per-provider per-node dictionary
+
+    @param rlist: a map with node names as keys and ExtStorage objects as values
+
+    @rtype: dict
+    @return: a dictionary with extstorage providers as keys and as
+        value another map, with nodes as keys and tuples of
+        (path, status, diagnose, parameters) as values, eg::
+
+          {"provider1": {"node1": [(/usr/lib/..., True, "", [])]
+                         "node2": [(/srv/..., False, "missing file")]
+                         "node3": [(/srv/..., True, "", [])]
+          }
+
+    """
+    all_es = {}
+    # we build here the list of nodes that didn't fail the RPC (at RPC
+    # level), so that nodes with a non-responding node daemon don't
+    # make all OSes invalid
+    good_nodes = [node_name for node_name in rlist
+                  if not rlist[node_name].fail_msg]
+    for node_name, nr in rlist.items():
+      if nr.fail_msg or not nr.payload:
+        continue
+      for (name, path, status, diagnose, params) in nr.payload:
+        if name not in all_es:
+          # build a list of nodes for this os containing empty lists
+          # for each node in node_list
+          all_es[name] = {}
+          for nname in good_nodes:
+            all_es[name][nname] = []
+        # convert params from [name, help] to (name, help)
+        params = [tuple(v) for v in params]
+        all_es[name][node_name].append((path, status, diagnose, params))
+    return all_es
+
+  def _GetQueryData(self, lu):
+    """Computes the list of nodes and their attributes.
+
+    """
+    # Locking is not used
+    assert not (compat.any(lu.glm.is_owned(level)
+                           for level in locking.LEVELS
+                           if level != locking.LEVEL_CLUSTER) or
+                self.do_locking or self.use_locking)
+
+    valid_nodes = [node.name
+                   for node in lu.cfg.GetAllNodesInfo().values()
+                   if not node.offline and node.vm_capable]
+    pol = self._DiagnoseByProvider(lu.rpc.call_extstorage_diagnose(valid_nodes))
+
+    data = {}
+
+    nodegroup_list = lu.cfg.GetNodeGroupList()
+
+    for (es_name, es_data) in pol.items():
+      # For every provider compute the nodegroup validity.
+      # To do this we need to check the validity of each node in es_data
+      # and then construct the corresponding nodegroup dict:
+      #      { nodegroup1: status
+      #        nodegroup2: status
+      #      }
+      ndgrp_data = {}
+      for nodegroup in nodegroup_list:
+        ndgrp = lu.cfg.GetNodeGroup(nodegroup)
+
+        nodegroup_nodes = ndgrp.members
+        nodegroup_name = ndgrp.name
+        node_statuses = []
+
+        for node in nodegroup_nodes:
+          if node in valid_nodes:
+            if es_data[node] != []:
+              node_status = es_data[node][0][1]
+              node_statuses.append(node_status)
+            else:
+              node_statuses.append(False)
+
+        if False in node_statuses:
+          ndgrp_data[nodegroup_name] = False
+        else:
+          ndgrp_data[nodegroup_name] = True
+
+      # Compute the provider's parameters
+      parameters = set()
+      for idx, esl in enumerate(es_data.values()):
+        valid = bool(esl and esl[0][1])
+        if not valid:
+          break
+
+        node_params = esl[0][3]
+        if idx == 0:
+          # First entry
+          parameters.update(node_params)
+        else:
+          # Filter out inconsistent values
+          parameters.intersection_update(node_params)
+
+      params = list(parameters)
+
+      # Now fill all the info for this provider
+      info = query.ExtStorageInfo(name=es_name, node_status=es_data,
+                                  nodegroup_status=ndgrp_data,
+                                  parameters=params)
+
+      data[es_name] = info
+
+    # Prepare data in requested order
+    return [data[name] for name in self._GetNames(lu, pol.keys(), None)
+            if name in data]
+
+
+class LUExtStorageDiagnose(NoHooksLU):
+  """Logical unit for ExtStorage diagnose/query.
+
+  """
+  REQ_BGL = False
+
+  def CheckArguments(self):
+    self.eq = _ExtStorageQuery(qlang.MakeSimpleFilter("name", self.op.names),
+                               self.op.output_fields, False)
+
+  def ExpandNames(self):
+    self.eq.ExpandNames(self)
+
+  def Exec(self, feedback_fn):
+    return self.eq.OldStyleQuery(self)
+
+
 class LUNodeRemove(LogicalUnit):
   """Logical unit for removing a node.
 
@@ -16604,6 +16757,7 @@ _QUERY_IMPL = {
   constants.QR_GROUP: _GroupQuery,
   constants.QR_NETWORK: _NetworkQuery,
   constants.QR_OS: _OsQuery,
+  constants.QR_EXTSTORAGE: _ExtStorageQuery,
   constants.QR_EXPORT: _ExportQuery,
   }
 

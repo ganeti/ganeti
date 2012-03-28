@@ -58,6 +58,7 @@ RAPI_OPCODE_EXCLUDE = compat.UniqueFrozenset([
   opcodes.OpTagsSearch,
   opcodes.OpClusterActivateMasterIp,
   opcodes.OpClusterDeactivateMasterIp,
+  opcodes.OpExtStorageDiagnose,
 
   # Difficult if not impossible
   opcodes.OpClusterDestroy,

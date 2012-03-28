@@ -291,6 +291,8 @@ instance Arbitrary OpCodes.OpCode where
           genMaybe genNameNE <*> genMaybe genNamesNE
       "OP_OS_DIAGNOSE" ->
         OpCodes.OpOsDiagnose <$> genFieldsNE <*> genNamesNE
+      "OP_EXT_STORAGE_DIAGNOSE" ->
+        OpCodes.OpOsDiagnose <$> genFieldsNE <*> genNamesNE
       "OP_BACKUP_QUERY" ->
         OpCodes.OpBackupQuery <$> arbitrary <*> genNodeNamesNE
       "OP_BACKUP_PREPARE" ->

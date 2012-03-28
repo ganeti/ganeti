@@ -357,6 +357,8 @@ class CompletionWriter:
           WriteCompReply(sw, "-W \"$(_ganeti_instances)\"", cur=cur)
         elif suggest == cli.OPT_COMPL_ONE_OS:
           WriteCompReply(sw, "-W \"$(_ganeti_os)\"", cur=cur)
+        elif suggest == cli.OPT_COMPL_ONE_EXTSTORAGE:
+          WriteCompReply(sw, "-W \"$(_ganeti_extstorage)\"", cur=cur)
         elif suggest == cli.OPT_COMPL_ONE_IALLOCATOR:
           WriteCompReply(sw, "-W \"$(_ganeti_iallocator)\"", cur=cur)
         elif suggest == cli.OPT_COMPL_ONE_NODEGROUP:
@@ -467,6 +469,8 @@ class CompletionWriter:
           choices = "$(_ganeti_jobs)"
         elif isinstance(arg, cli.ArgOs):
           choices = "$(_ganeti_os)"
+        elif isinstance(arg, cli.ArgExtStorage):
+          choices = "$(_ganeti_extstorage)"
         elif isinstance(arg, cli.ArgFile):
           choices = ""
           compgenargs.append("-f")

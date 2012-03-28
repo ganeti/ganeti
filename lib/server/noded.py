@@ -869,6 +869,15 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     required, name, checks, params = params
     return backend.ValidateOS(required, name, checks, params)
 
+  # extstorage -----------------------
+
+  @staticmethod
+  def perspective_extstorage_diagnose(params):
+    """Query detailed information about existing extstorage providers.
+
+    """
+    return backend.DiagnoseExtStorage()
+
   # hooks -----------------------
 
   @staticmethod
