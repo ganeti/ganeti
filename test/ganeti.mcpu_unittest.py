@@ -40,6 +40,11 @@ class TestLockAttemptTimeoutStrategy(unittest.TestCase):
     self.assert_(len(tpa) > LOCK_ATTEMPTS_TIMEOUT / LOCK_ATTEMPTS_MAXWAIT)
     self.assert_(sum(tpa) >= LOCK_ATTEMPTS_TIMEOUT)
 
+    self.assertTrue(LOCK_ATTEMPTS_TIMEOUT >= 1800,
+                    msg="Waiting less than half an hour per priority")
+    self.assertTrue(LOCK_ATTEMPTS_TIMEOUT <= 3600,
+                    msg="Waiting more than an hour per priority")
+
   def testSimple(self):
     strat = mcpu.LockAttemptTimeoutStrategy(_random_fn=lambda: 0.5,
                                             _time_fn=lambda: 0.0)
