@@ -1527,14 +1527,6 @@ class GanetiLockManager:
     """
     return self._monitor.QueryLocks(fields)
 
-  def OldStyleQueryLocks(self, fields):
-    """Queries information from all locks, returning old-style data.
-
-    See L{LockMonitor.OldStyleQueryLocks}.
-
-    """
-    return self._monitor.OldStyleQueryLocks(fields)
-
   def _names(self, level):
     """List the lock names at the given level.
 
@@ -1808,14 +1800,3 @@ class LockMonitor(object):
 
     # Prepare query response
     return query.GetQueryResponse(qobj, ctx)
-
-  def OldStyleQueryLocks(self, fields):
-    """Queries information from all locks, returning old-style data.
-
-    @type fields: list of strings
-    @param fields: List of fields to return
-
-    """
-    (qobj, ctx) = self._Query(fields)
-
-    return qobj.OldStyleQuery(ctx)
