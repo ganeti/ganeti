@@ -186,6 +186,12 @@ class TestMakeFilter(unittest.TestCase):
                      [qlang.OP_OR, [qlang.OP_EQUAL, "name", "web1"],
                                    [qlang.OP_EQUAL, "name", "web2"]])
 
+  def testPlainNamesOtherNamefield(self):
+    self.assertEqual(qlang.MakeFilter(["mailA", "mailB"], False,
+                                      namefield="id"),
+                     [qlang.OP_OR, [qlang.OP_EQUAL, "id", "mailA"],
+                                   [qlang.OP_EQUAL, "id", "mailB"]])
+
   def testForcedFilter(self):
     for i in [None, [], ["1", "2"], ["", "", ""], ["a", "b", "c", "d"]]:
       self.assertRaises(errors.OpPrereqError, qlang.MakeFilter, i, True)

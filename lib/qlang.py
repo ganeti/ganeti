@@ -292,7 +292,7 @@ def _MakeFilterPart(namefield, text):
     return [OP_EQUAL, namefield, text]
 
 
-def MakeFilter(args, force_filter):
+def MakeFilter(args, force_filter, namefield=None):
   """Try to make a filter from arguments to a command.
 
   If the name could be a filter it is parsed as such. If it's just a globbing
@@ -303,10 +303,16 @@ def MakeFilter(args, force_filter):
   @param args: Arguments to command
   @type force_filter: bool
   @param force_filter: Whether to force treatment as a full-fledged filter
+  @type namefield: string
+  @param namefield: Name of field to use for simple filters (use L{None} for
+    a default of "name")
   @rtype: list
   @return: Query filter
 
   """
+  if namefield is None:
+    namefield = "name"
+
   if (force_filter or
       (args and len(args) == 1 and _CheckFilter(args[0]))):
     try:
@@ -317,7 +323,7 @@ def MakeFilter(args, force_filter):
 
     result = ParseFilter(filter_text)
   elif args:
-    result = [OP_OR] + map(compat.partial(_MakeFilterPart, "name"), args)
+    result = [OP_OR] + map(compat.partial(_MakeFilterPart, namefield), args)
   else:
     result = None
 
