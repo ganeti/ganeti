@@ -255,7 +255,8 @@ class ClientOps:
     self.server = server
 
   def handle_request(self, method, args): # pylint: disable=R0911
-    queue = self.server.context.jobqueue
+    context = self.server.context
+    queue = context.jobqueue
 
     # TODO: Parameter validation
     if not isinstance(args, (tuple, list)):
@@ -308,7 +309,9 @@ class ClientOps:
       elif req.what == constants.QR_LOCK:
         if req.qfilter is not None:
           raise errors.OpPrereqError("Lock queries can't be filtered")
-        return self.server.context.glm.QueryLocks(req.fields)
+        return context.glm.QueryLocks(req.fields)
+      elif req.what == constants.QR_JOB:
+        return queue.QueryJobs(req.fields, req.qfilter)
       elif req.what in constants.QR_VIA_LUXI:
         raise NotImplementedError
       else:
@@ -336,7 +339,7 @@ class ClientOps:
       else:
         msg = str(job_ids)
       logging.info("Received job query request for %s", msg)
-      return queue.QueryJobs(job_ids, fields)
+      return queue.OldStyleQueryJobs(job_ids, fields)
 
     elif method == luxi.REQ_QUERY_INSTANCES:
       (names, fields, use_locking) = args
