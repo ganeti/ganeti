@@ -31,6 +31,7 @@ from ganeti import constants
 from ganeti import errors
 from ganeti import utils
 from ganeti import cli
+from ganeti import qlang
 
 
 #: default list of fields for L{ListJobs}
@@ -49,6 +50,16 @@ _USER_JOB_STATUS = {
   }
 
 
+def _FormatStatus(value):
+  """Formats a job status.
+
+  """
+  try:
+    return _USER_JOB_STATUS[value]
+  except KeyError:
+    raise errors.ProgrammerError("Unknown job status code '%s'" % value)
+
+
 def ListJobs(opts, args):
   """List the jobs
 
@@ -61,60 +72,31 @@ def ListJobs(opts, args):
   """
   selected_fields = ParseFields(opts.output, _LIST_DEF_FIELDS)
 
-  output = GetClient().QueryJobs(args, selected_fields)
-  if not opts.no_headers:
-    # TODO: Implement more fields
-    headers = {
-      "id": "ID",
-      "status": "Status",
-      "priority": "Prio",
-      "ops": "OpCodes",
-      "opresult": "OpCode_result",
-      "opstatus": "OpCode_status",
-      "oplog": "OpCode_log",
-      "summary": "Summary",
-      "opstart": "OpCode_start",
-      "opexec": "OpCode_exec",
-      "opend": "OpCode_end",
-      "oppriority": "OpCode_prio",
-      "start_ts": "Start",
-      "end_ts": "End",
-      "received_ts": "Received",
-      }
-  else:
-    headers = None
+  fmtoverride = {
+    "status": (_FormatStatus, False),
+    "summary": (lambda value: ",".join(str(item) for item in value), False),
+    }
+  fmtoverride.update(dict.fromkeys(["opstart", "opexec", "opend"],
+    (lambda value: map(FormatTimestamp, value), None)))
 
-  numfields = ["priority"]
+  return GenericList(constants.QR_JOB, selected_fields, args, None,
+                     opts.separator, not opts.no_headers,
+                     format_override=fmtoverride, verbose=opts.verbose,
+                     force_filter=opts.force_filter, namefield="id")
 
-  # change raw values to nicer strings
-  for row_id, row in enumerate(output):
-    if row is None:
-      ToStderr("No such job: %s" % args[row_id])
-      continue
 
-    for idx, field in enumerate(selected_fields):
-      val = row[idx]
-      if field == "status":
-        if val in _USER_JOB_STATUS:
-          val = _USER_JOB_STATUS[val]
-        else:
-          raise errors.ProgrammerError("Unknown job status code '%s'" % val)
-      elif field == "summary":
-        val = ",".join(val)
-      elif field in ("start_ts", "end_ts", "received_ts"):
-        val = FormatTimestamp(val)
-      elif field in ("opstart", "opexec", "opend"):
-        val = [FormatTimestamp(entry) for entry in val]
+def ListJobFields(opts, args):
+  """List job fields.
 
-      row[idx] = str(val)
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: fields to list, or empty for all
+  @rtype: int
+  @return: the desired exit code
 
-  data = GenerateTable(separator=opts.separator, headers=headers,
-                       fields=selected_fields, data=output,
-                       numfields=numfields)
-  for line in data:
-    ToStdout(line)
-
-  return 0
+  """
+  return GenericListFields(constants.QR_JOB, args, opts.separator,
+                           not opts.no_headers)
 
 
 def ArchiveJobs(opts, args):
@@ -358,13 +340,17 @@ def WatchJob(opts, args):
 commands = {
   "list": (
     ListJobs, [ArgJobId()],
-    [NOHDR_OPT, SEP_OPT, FIELDS_OPT],
+    [NOHDR_OPT, SEP_OPT, FIELDS_OPT, VERBOSE_OPT, FORCE_FILTER_OPT],
     "[job_id ...]",
-    "List the jobs and their status. The available fields are"
-    " (see the man page for details): id, status, op_list,"
-    " op_status, op_result."
-    " The default field"
-    " list is (in order): %s." % utils.CommaJoin(_LIST_DEF_FIELDS)),
+    "Lists the jobs and their status. The available fields can be shown"
+    " using the \"list-fields\" command (see the man page for details)."
+    " The default field list is (in order): %s." %
+    utils.CommaJoin(_LIST_DEF_FIELDS)),
+  "list-fields": (
+    ListJobFields, [ArgUnknown()],
+    [NOHDR_OPT, SEP_OPT],
+    "[fields...]",
+    "Lists all available fields for jobs"),
   "archive": (
     ArchiveJobs, [ArgJobId(min=1)], [],
     "<job-id> [<job-id> ...]", "Archive specified jobs"),

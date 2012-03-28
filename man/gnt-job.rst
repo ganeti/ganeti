@@ -74,59 +74,21 @@ scripting.
 The ``-o`` option takes a comma-separated list of output fields.
 The available fields and their meaning are:
 
-
-
-id
-    the job id
-
-status
-    the status of the job
-
-priority
-    current priority of the job
-
-received_ts
-    the timestamp the job was received
-
-start_ts
-    the timestamp when the job was started
-
-end_ts
-    the timestamp when the job was ended
-
-summary
-    a summary of the opcodes that define the job
-
-ops
-    the list of opcodes defining the job
-
-opresult
-    the list of opcode results
-
-opstatus
-    the list of opcode statuses
-
-oplog
-    the list of opcode logs
-
-opstart
-    the list of opcode start times (before acquiring locks)
-
-opexec
-    the list of opcode execution start times (after acquiring any
-    necessary locks)
-
-opend
-    the list of opcode end times
-
-oppriority
-    the priority of each opcode
-
+@QUERY_FIELDS_JOB@
 
 If the value of the option starts with the character ``+``, the new
 fields will be added to the default list. This allows one to quickly
 see the default list plus a few other fields, instead of retyping
 the entire list of fields.
+
+
+LIST-FIELDS
+~~~~~~~~~~~
+
+**list-fields** [field...]
+
+Lists available fields for jobs.
+
 
 WATCH
 ~~~~~
