@@ -140,8 +140,9 @@
     "# on whether they support the `gnt-instance console' command.": null,
     "instance-console": false,
 
-    "# Disabled by default because it takes rather long": null,
+    "# Disabled by default because they take rather long": null,
     "instance-replace-disks": false,
+    "instance-recreate-disks": false,
 
     "# Whether to test the tools/move-instance utility": null,
     "inter-cluster-instance-move": false,

@@ -433,6 +433,56 @@ def TestReplaceDisks(instance, pnode, snode, othernode):
   AssertCommand(["gnt-instance", "start", instance["name"]])
 
 
+def _AssertRecreateDisks(cmdargs, instance, fail=False, check=True,
+                         destroy=True):
+  """Execute gnt-instance recreate-disks and check the result
+
+  @param cmdargs: Arguments (instance name excluded)
+  @param instance: Instance to operate on
+  @param fail: True if the command is expected to fail
+  @param check: If True and fail is False, check that the disks work
+  @prama destroy: If True, destroy the old disks first
+
+  """
+  if destroy:
+    _DestroyInstanceVolumes(instance)
+  AssertCommand((["gnt-instance", "recreate-disks"] + cmdargs +
+                 [instance["name"]]), fail)
+  if not fail and check:
+    # Quick check that the disks are there
+    AssertCommand(["gnt-instance", "activate-disks", instance["name"]])
+    AssertCommand(["gnt-instance", "deactivate-disks", instance["name"]])
+
+@InstanceCheck(INST_UP, INST_UP, FIRST_ARG)
+def TestRecreateDisks(instance, pnode, snode, othernodes):
+  """gnt-instance recreate-disks
+
+  @param instance: Instance to work on
+  @param pnode: Primary node
+  @param snode: Secondary node, or None for sigle-homed instances
+  @param othernodes: list/tuple of nodes where to temporarily recreate disks
+
+  """
+  other_seq = ":".join([n["primary"] for n in othernodes])
+  orig_seq = pnode["primary"]
+  if snode:
+    orig_seq = orig_seq + ":" + snode["primary"]
+  # This fails beacuse the instance is running
+  _AssertRecreateDisks(["-n", other_seq], instance, fail=True, destroy=False)
+  AssertCommand(["gnt-instance", "stop", instance["name"]])
+  # Disks exist: this should fail
+  _AssertRecreateDisks([], instance, fail=True, destroy=False)
+  # Recreate disks in place
+  _AssertRecreateDisks([], instance)
+  # Move disks away
+  _AssertRecreateDisks(["-n", other_seq], instance)
+  # Move disks back
+  _AssertRecreateDisks(["-n", orig_seq], instance, check=False)
+  # This and InstanceCheck decoration check that the disks are working
+  AssertCommand(["gnt-instance", "reinstall", "-f", instance["name"]])
+  AssertCommand(["gnt-instance", "start", instance["name"]])
+
+
 @InstanceCheck(INST_UP, INST_UP, FIRST_ARG)
 def TestInstanceExport(instance, node):
   """gnt-backup export -n ..."""

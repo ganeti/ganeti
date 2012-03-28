@@ -34,6 +34,7 @@ import qa_cluster
 import qa_config
 import qa_daemon
 import qa_env
+import qa_error
 import qa_group
 import qa_instance
 import qa_node
@@ -391,6 +392,19 @@ def RunDaemonTests(instance):
   RunTest(qa_daemon.TestResumeWatcher)
 
 
+def RunSingleHomedHardwareFailureTests(instance, pnode):
+  """Test hardware failure recovery for single-homed instances.
+
+  """
+  if qa_config.TestEnabled("instance-recreate-disks"):
+    othernode = qa_config.AcquireNode(exclude=[pnode])
+    try:
+      RunTest(qa_instance.TestRecreateDisks,
+              instance, pnode, None, [othernode])
+    finally:
+      qa_config.ReleaseNode(othernode)
+
+
 def RunHardwareFailureTests(instance, pnode, snode):
   """Test cluster internal hardware failure recovery.
 
@@ -411,6 +425,21 @@ def RunHardwareFailureTests(instance, pnode, snode):
               instance, pnode, snode, othernode)
     finally:
       qa_config.ReleaseNode(othernode)
+
+  if qa_config.TestEnabled("instance-recreate-disks"):
+    othernode1 = qa_config.AcquireNode(exclude=[pnode, snode])
+    try:
+      othernode2 = qa_config.AcquireNode(exclude=[pnode, snode, othernode1])
+    except qa_error.OutOfNodesError:
+      # Let's reuse one of the nodes if the cluster is not big enough
+      othernode2 = pnode
+    try:
+      RunTest(qa_instance.TestRecreateDisks,
+              instance, pnode, snode, [othernode1, othernode2])
+    finally:
+      qa_config.ReleaseNode(othernode1)
+      if othernode2 != pnode:
+        qa_config.ReleaseNode(othernode2)
 
   RunTestIf("node-evacuate", qa_node.TestNodeEvacuate, pnode, snode)
 
@@ -477,6 +506,7 @@ def RunQa():
       RunExportImportTests(instance, pnode, None)
       RunDaemonTests(instance)
       RunRepairDiskSizes()
+      RunSingleHomedHardwareFailureTests(instance, pnode)
       RunTest(qa_instance.TestInstanceRemove, instance)
       del instance
 
