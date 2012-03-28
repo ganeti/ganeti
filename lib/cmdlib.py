@@ -4019,7 +4019,7 @@ class LUOobCommand(NoHooksLU):
   """Logical unit for OOB handling.
 
   """
-  REG_BGL = False
+  REQ_BGL = False
   _SKIP_MASTER = (constants.OOB_POWER_OFF, constants.OOB_POWER_CYCLE)
 
   def ExpandNames(self):
