@@ -101,7 +101,7 @@ class _QueuedOpCode(object):
                "__weakref__"]
 
   def __init__(self, op):
-    """Constructor for the _QuededOpCode.
+    """Initializes instances of this class.
 
     @type op: L{opcodes.OpCode}
     @param op: the opcode we encapsulate
