@@ -305,7 +305,7 @@ class TestQueuedJob(unittest.TestCase):
       self.assertEqual(len(job.ops), len(ops))
       self.assert_(compat.all(inp.__getstate__() == op.input.__getstate__()
                               for (inp, op) in zip(ops, job.ops)))
-      self.assertRaises(errors.OpExecError, job.GetInfo,
+      self.assertRaises(errors.OpPrereqError, job.GetInfo,
                         ["unknown-field"])
       self.assertEqual(job.GetInfo(["summary"]),
                        [[op.input.Summary() for op in job.ops]])
@@ -674,7 +674,7 @@ class TestJobProcessor(unittest.TestCase, _JobProcessorTestUtils):
              for i in range(opcount)]
 
       # Create job
-      job = self._CreateJob(queue, job_id, ops)
+      job = self._CreateJob(queue, str(job_id), ops)
 
       opexec = _FakeExecOpCodeForProc(queue, None, None)
 
@@ -702,7 +702,7 @@ class TestJobProcessor(unittest.TestCase, _JobProcessorTestUtils):
 
       # Check job status
       self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_ERROR)
-      self.assertEqual(job.GetInfo(["id"]), [job_id])
+      self.assertEqual(job.GetInfo(["id"]), [str(job_id)])
       self.assertEqual(job.GetInfo(["status"]), [constants.JOB_STATUS_ERROR])
 
       # Check opcode status
@@ -926,7 +926,7 @@ class TestJobProcessor(unittest.TestCase, _JobProcessorTestUtils):
            for i in range(3)]
 
     # Create job
-    job_id = 28492
+    job_id = str(28492)
     job = self._CreateJob(queue, job_id, ops)
 
     self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_QUEUED)

@@ -57,6 +57,8 @@ from ganeti import runtime
 from ganeti import netutils
 from ganeti import compat
 from ganeti import ht
+from ganeti import query
+from ganeti import qlang
 
 
 JOBQUEUE_THREADS = 25
@@ -81,6 +83,25 @@ def TimeStampNow():
 
   """
   return utils.SplitTime(time.time())
+
+
+class _SimpleJobQuery:
+  """Wrapper for job queries.
+
+  Instance keeps list of fields cached, useful e.g. in L{_JobChangesChecker}.
+
+  """
+  def __init__(self, fields):
+    """Initializes this class.
+
+    """
+    self._query = query.Query(query.JOB_FIELDS, fields)
+
+  def __call__(self, job):
+    """Executes a job query using cached field list.
+
+    """
+    return self._query.OldStyleQuery([(job.id, job)], sort_by_name=False)[0]
 
 
 class _QueuedOpCode(object):
@@ -383,41 +404,7 @@ class _QueuedJob(object):
         has been passed
 
     """
-    row = []
-    for fname in fields:
-      if fname == "id":
-        row.append(self.id)
-      elif fname == "status":
-        row.append(self.CalcStatus())
-      elif fname == "priority":
-        row.append(self.CalcPriority())
-      elif fname == "ops":
-        row.append([op.input.__getstate__() for op in self.ops])
-      elif fname == "opresult":
-        row.append([op.result for op in self.ops])
-      elif fname == "opstatus":
-        row.append([op.status for op in self.ops])
-      elif fname == "oplog":
-        row.append([op.log for op in self.ops])
-      elif fname == "opstart":
-        row.append([op.start_timestamp for op in self.ops])
-      elif fname == "opexec":
-        row.append([op.exec_timestamp for op in self.ops])
-      elif fname == "opend":
-        row.append([op.end_timestamp for op in self.ops])
-      elif fname == "oppriority":
-        row.append([op.priority for op in self.ops])
-      elif fname == "received_ts":
-        row.append(self.received_timestamp)
-      elif fname == "start_ts":
-        row.append(self.start_timestamp)
-      elif fname == "end_ts":
-        row.append(self.end_timestamp)
-      elif fname == "summary":
-        row.append([op.input.Summary() for op in self.ops])
-      else:
-        raise errors.OpExecError("Invalid self query field '%s'" % fname)
-    return row
+    return _SimpleJobQuery(fields)(self)
 
   def MarkUnfinishedOps(self, status, result):
     """Mark unfinished opcodes with a given status and result.
