@@ -38,6 +38,7 @@ import qa_group
 import qa_instance
 import qa_node
 import qa_os
+import qa_job
 import qa_rapi
 import qa_tags
 import qa_utils
@@ -130,6 +131,7 @@ def SetupCluster(rapi_user, rapi_secret):
   # Test on empty cluster
   RunTestIf("node-list", qa_node.TestNodeList)
   RunTestIf("instance-list", qa_instance.TestInstanceList)
+  RunTestIf("job-list", qa_job.TestJobList)
 
   RunTestIf("create-cluster", qa_node.TestNodeAddAll)
   if not qa_config.TestEnabled("create-cluster"):
@@ -146,6 +148,7 @@ def SetupCluster(rapi_user, rapi_secret):
   # Test listing fields
   RunTestIf("node-list", qa_node.TestNodeListFields)
   RunTestIf("instance-list", qa_instance.TestInstanceListFields)
+  RunTestIf("job-list", qa_job.TestJobListFields)
 
   RunTestIf("node-info", qa_node.TestNodeInfo)
 
@@ -289,6 +292,9 @@ def RunCommonInstanceTests(instance):
 
   # Lists instances, too
   RunTestIf("node-list", qa_node.TestNodeList)
+
+  # Some jobs have been run, let's test listing them
+  RunTestIf("job-list", qa_job.TestJobList)
 
 
 def RunCommonNodeTests():

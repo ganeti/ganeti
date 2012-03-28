@@ -506,6 +506,7 @@ qa_scripts = \
 	qa/qa_error.py \
 	qa/qa_group.py \
 	qa/qa_instance.py \
+	qa/qa_job.py \
 	qa/qa_node.py \
 	qa/qa_os.py \
 	qa/qa_rapi.py \

@@ -113,6 +113,8 @@
     "instance-rename": true,
     "instance-shutdown": true,
 
+    "job-list": true,
+
     "# cron/ganeti-watcher should be disabled for these tests": null,
     "instance-automatic-restart": false,
     "instance-consecutive-failures": false,
