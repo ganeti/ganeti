@@ -2133,6 +2133,113 @@ def _BuildOsFields():
   return _PrepareFieldList(fields, [])
 
 
+def _JobUnavailInner(fn, ctx, (job_id, job)): # pylint: disable=W0613
+  """Return L{_FS_UNAVAIL} if job is None.
+
+  When listing specifc jobs (e.g. "gnt-job list 1 2 3"), a job may not be
+  found, in which case this function converts it to L{_FS_UNAVAIL}.
+
+  """
+  if job is None:
+    return _FS_UNAVAIL
+  else:
+    return fn(job)
+
+
+def _JobUnavail(inner):
+  """Wrapper for L{_JobUnavailInner}.
+
+  """
+  return compat.partial(_JobUnavailInner, inner)
+
+
+def _PerJobOpInner(fn, job):
+  """Executes a function per opcode in a job.
+
+  """
+  return map(fn, job.ops)
+
+
+def _PerJobOp(fn):
+  """Wrapper for L{_PerJobOpInner}.
+
+  """
+  return _JobUnavail(compat.partial(_PerJobOpInner, fn))
+
+
+def _JobTimestampInner(fn, job):
+  """Converts unavailable timestamp to L{_FS_UNAVAIL}.
+
+  """
+  timestamp = fn(job)
+
+  if timestamp is None:
+    return _FS_UNAVAIL
+  else:
+    return timestamp
+
+
+def _JobTimestamp(fn):
+  """Wrapper for L{_JobTimestampInner}.
+
+  """
+  return _JobUnavail(compat.partial(_JobTimestampInner, fn))
+
+
+def _BuildJobFields():
+  """Builds list of fields for job queries.
+
+  """
+  fields = [
+    (_MakeField("id", "ID", QFT_TEXT, "Job ID"),
+     None, 0, lambda _, (job_id, job): job_id),
+    (_MakeField("status", "Status", QFT_TEXT, "Job status"),
+     None, 0, _JobUnavail(lambda job: job.CalcStatus())),
+    (_MakeField("priority", "Priority", QFT_NUMBER,
+                ("Current job priority (%s to %s)" %
+                 (constants.OP_PRIO_LOWEST, constants.OP_PRIO_HIGHEST))),
+     None, 0, _JobUnavail(lambda job: job.CalcPriority())),
+    (_MakeField("ops", "OpCodes", QFT_OTHER, "List of all opcodes"),
+     None, 0, _PerJobOp(lambda op: op.input.__getstate__())),
+    (_MakeField("opresult", "OpCode_result", QFT_OTHER,
+                "List of opcodes results"),
+     None, 0, _PerJobOp(operator.attrgetter("result"))),
+    (_MakeField("opstatus", "OpCode_status", QFT_OTHER,
+                "List of opcodes status"),
+     None, 0, _PerJobOp(operator.attrgetter("status"))),
+    (_MakeField("oplog", "OpCode_log", QFT_OTHER,
+                "List of opcode output logs"),
+     None, 0, _PerJobOp(operator.attrgetter("log"))),
+    (_MakeField("opstart", "OpCode_start", QFT_OTHER,
+                "List of opcode start timestamps (before acquiring locks)"),
+     None, 0, _PerJobOp(operator.attrgetter("start_timestamp"))),
+    (_MakeField("opexec", "OpCode_exec", QFT_OTHER,
+                "List of opcode execution start timestamps (after acquiring"
+                " locks)"),
+     None, 0, _PerJobOp(operator.attrgetter("exec_timestamp"))),
+    (_MakeField("opend", "OpCode_end", QFT_OTHER,
+                "List of opcode execution end timestamps"),
+     None, 0, _PerJobOp(operator.attrgetter("end_timestamp"))),
+    (_MakeField("oppriority", "OpCode_prio", QFT_OTHER,
+                "List of opcode priorities"),
+     None, 0, _PerJobOp(operator.attrgetter("priority"))),
+    (_MakeField("received_ts", "Received", QFT_OTHER,
+                "Timestamp of when job was received"),
+     None, 0, _JobTimestamp(operator.attrgetter("received_timestamp"))),
+    (_MakeField("start_ts", "Start", QFT_OTHER,
+                "Timestamp of job start"),
+     None, 0, _JobTimestamp(operator.attrgetter("start_timestamp"))),
+    (_MakeField("end_ts", "End", QFT_OTHER,
+                "Timestamp of job end"),
+     None, 0, _JobTimestamp(operator.attrgetter("end_timestamp"))),
+    (_MakeField("summary", "Summary", QFT_OTHER,
+                "List of per-opcode summaries"),
+     None, 0, _PerJobOp(lambda op: op.input.Summary())),
+    ]
+
+  return _PrepareFieldList(fields, [])
+
+
 #: Fields available for node queries
 NODE_FIELDS = _BuildNodeFields()
 
@@ -2148,6 +2255,9 @@ GROUP_FIELDS = _BuildGroupFields()
 #: Fields available for operating system queries
 OS_FIELDS = _BuildOsFields()
 
+#: Fields available for job queries
+JOB_FIELDS = _BuildJobFields()
+
 #: All available resources
 ALL_FIELDS = {
   constants.QR_INSTANCE: INSTANCE_FIELDS,
@@ -2155,6 +2265,7 @@ ALL_FIELDS = {
   constants.QR_LOCK: LOCK_FIELDS,
   constants.QR_GROUP: GROUP_FIELDS,
   constants.QR_OS: OS_FIELDS,
+  constants.QR_JOB: JOB_FIELDS,
   }
 
 #: All available field lists
