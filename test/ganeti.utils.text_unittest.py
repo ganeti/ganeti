@@ -429,21 +429,25 @@ class TestFormatTime(unittest.TestCase):
   """Testing case for FormatTime"""
 
   @staticmethod
-  def _TestInProcess(tz, timestamp, expected):
+  def _TestInProcess(tz, timestamp, usecs, expected):
     os.environ["TZ"] = tz
     time.tzset()
-    return utils.FormatTime(timestamp) == expected
+    return utils.FormatTime(timestamp, usecs=usecs) == expected
 
   def _Test(self, *args):
     # Need to use separate process as we want to change TZ
     self.assert_(utils.RunInSeparateProcess(self._TestInProcess, *args))
 
   def test(self):
-    self._Test("UTC", 0, "1970-01-01 00:00:00")
-    self._Test("America/Sao_Paulo", 1292606926, "2010-12-17 15:28:46")
-    self._Test("Europe/London", 1292606926, "2010-12-17 17:28:46")
-    self._Test("Europe/Zurich", 1292606926, "2010-12-17 18:28:46")
-    self._Test("Australia/Sydney", 1292606926, "2010-12-18 04:28:46")
+    self._Test("UTC", 0, None, "1970-01-01 00:00:00")
+    self._Test("America/Sao_Paulo", 1292606926, None, "2010-12-17 15:28:46")
+    self._Test("Europe/London", 1292606926, None, "2010-12-17 17:28:46")
+    self._Test("Europe/Zurich", 1292606926, None, "2010-12-17 18:28:46")
+    self._Test("Europe/Zurich", 1332944288, 8787, "2012-03-28 16:18:08.008787")
+    self._Test("Australia/Sydney", 1292606926, None, "2010-12-18 04:28:46")
+    self._Test("Australia/Sydney", 1292606926, None, "2010-12-18 04:28:46")
+    self._Test("Australia/Sydney", 1292606926, 999999,
+               "2010-12-18 04:28:46.999999")
 
   def testNone(self):
     self.failUnlessEqual(utils.FormatTime(None), "N/A")

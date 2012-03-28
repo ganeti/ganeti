@@ -22,6 +22,7 @@
 """Script for unittesting the cli module"""
 
 import unittest
+import time
 from cStringIO import StringIO
 
 import ganeti
@@ -906,6 +907,19 @@ class TestGetOnlineNodes(unittest.TestCase):
     self.assertEqual(cli.GetOnlineNodes(None, cl=cl, nodegroup="foobar"),
                      ["master.example.com", "node3.example.com"])
     self.assertEqual(cl.CountPending(), 0)
+
+
+class TestFormatTimestamp(unittest.TestCase):
+  def testGood(self):
+    self.assertEqual(cli.FormatTimestamp((0, 1)),
+                     time.strftime("%F %T", time.localtime(0)) + ".000001")
+    self.assertEqual(cli.FormatTimestamp((1332944009, 17376)),
+                     (time.strftime("%F %T", time.localtime(1332944009)) +
+                      ".017376"))
+
+  def testWrong(self):
+    for i in [0, [], {}, "", [1]]:
+      self.assertEqual(cli.FormatTimestamp(i), "?")
 
 
 if __name__ == '__main__':

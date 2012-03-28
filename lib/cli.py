@@ -2986,8 +2986,9 @@ def FormatTimestamp(ts):
   """
   if not isinstance(ts, (tuple, list)) or len(ts) != 2:
     return "?"
-  sec, usec = ts
-  return time.strftime("%F %T", time.localtime(sec)) + ".%06d" % usec
+
+  (sec, usecs) = ts
+  return utils.FormatTime(sec, usecs=usecs)
 
 
 def ParseTimespec(value):

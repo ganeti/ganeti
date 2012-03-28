@@ -412,7 +412,7 @@ def CommaJoin(names):
   return ", ".join([str(val) for val in names])
 
 
-def FormatTime(val):
+def FormatTime(val, usecs=None):
   """Formats a time value.
 
   @type val: float or None
@@ -423,9 +423,15 @@ def FormatTime(val):
   """
   if val is None or not isinstance(val, (int, float)):
     return "N/A"
+
   # these two codes works on Linux, but they are not guaranteed on all
   # platforms
-  return time.strftime("%F %T", time.localtime(val))
+  result = time.strftime("%F %T", time.localtime(val))
+
+  if usecs is not None:
+    result += ".%06d" % usecs
+
+  return result
 
 
 def FormatSeconds(secs):
