@@ -75,6 +75,30 @@ stop_all() {
     done
 }
 
+status_all() {
+    local daemons="$1" status ret
+
+    if [ -z "$daemons" ]; then
+      daemons=$($DAEMON_UTIL list-start-daemons)
+    fi
+
+    status=0
+
+    for i in $daemons; do
+      if status_of_proc $($DAEMON_UTIL daemon-executable $i) $i; then
+          ret=0
+      else
+          ret=$?
+          # Use exit code from first failed call
+          if [ "$status" -eq 0 ]; then
+              status=$ret
+          fi
+      fi
+    done
+
+    exit $status
+}
+
 if [ -n "$2" ] && ! errmsg=$($DAEMON_UTIL is-daemon-name "$2" 2>&1); then
     log_failure_msg "$errmsg"
     exit 1
@@ -93,6 +117,9 @@ case "$1" in
         log_daemon_msg "Restarting $DESC" "$2"
         stop_all "$2"
         start_all "$2"
+        ;;
+    status)
+        status_all "$2"
         ;;
     *)
         log_success_msg "Usage: $SCRIPTNAME {start|stop|force-reload|restart}"
