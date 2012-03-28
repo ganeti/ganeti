@@ -909,6 +909,9 @@ class Disk(ConfigObject):
         constants.LDP_POOL: dt_params[constants.RBD_POOL],
         }))
 
+    elif disk_template == constants.DT_EXT:
+      result.append(constants.DISK_LD_DEFAULTS[constants.LD_EXT])
+
     return result
 
 
@@ -1249,6 +1252,8 @@ class ExtStorage(ConfigObject):
     "attach_script",
     "detach_script",
     "setinfo_script",
+    "verify_script",
+    "supported_parameters",
     ]
 
 

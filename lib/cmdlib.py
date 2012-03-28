@@ -7302,6 +7302,7 @@ class LUInstanceRecreateDisks(LogicalUnit):
     # TODO: Implement support changing VG while recreating
     constants.IDISK_VG,
     constants.IDISK_METAVG,
+    constants.IDISK_PROVIDER,
     ]))
 
   def _RunAllocator(self):
@@ -9192,13 +9193,26 @@ def _GenerateDiskTemplate(
     elif template_name == constants.DT_RBD:
       logical_id_fn = lambda idx, _, disk: ("rbd", names[idx])
     elif template_name == constants.DT_EXT:
-      logical_id_fn = lambda idx, _, disk: ("ext", names[idx])
+      def logical_id_fn(idx, _, disk):
+        provider = disk.get(constants.IDISK_PROVIDER, None)
+        if provider is None:
+          raise errors.ProgrammerError("Disk template is %s, but '%s' is"
+                                       " not found", constants.DT_EXT,
+                                       constants.IDISK_PROVIDER)
+        return (provider, names[idx])
     else:
       raise errors.ProgrammerError("Unknown disk template '%s'" % template_name)
 
     dev_type = _DISK_TEMPLATE_DEVICE_TYPE[template_name]
 
     for idx, disk in enumerate(disk_info):
+      params = {}
+      # Only for the Ext template add disk_info to params
+      if template_name == constants.DT_EXT:
+        params[constants.IDISK_PROVIDER] = disk[constants.IDISK_PROVIDER]
+        for key in disk:
+          if key not in constants.IDISK_PARAMS:
+            params[key] = disk[key]
       disk_index = idx + base_index
       size = disk[constants.IDISK_SIZE]
       feedback_fn("* disk %s, size %s" %
@@ -9207,7 +9221,7 @@ def _GenerateDiskTemplate(
                                 logical_id=logical_id_fn(idx, disk_index, disk),
                                 iv_name="disk/%d" % disk_index,
                                 mode=disk[constants.IDISK_MODE],
-                                params={}))
+                                params=params))
 
   return disks
 
@@ -9657,7 +9671,7 @@ def _ComputeDisks(op, default_vg):
   @param op: The instance opcode
   @param default_vg: The default_vg to assume
 
-  @return: The computer disks
+  @return: The computed disks
 
   """
   disks = []
@@ -9675,16 +9689,37 @@ def _ComputeDisks(op, default_vg):
       raise errors.OpPrereqError("Invalid disk size '%s'" % size,
                                  errors.ECODE_INVAL)
 
+    ext_provider = disk.get(constants.IDISK_PROVIDER, None)
+    if ext_provider and op.disk_template != constants.DT_EXT:
+      raise errors.OpPrereqError("The '%s' option is only valid for the %s"
+                                 " disk template, not %s" %
+                                 (constants.IDISK_PROVIDER, constants.DT_EXT,
+                                 op.disk_template), errors.ECODE_INVAL)
+
     data_vg = disk.get(constants.IDISK_VG, default_vg)
     new_disk = {
       constants.IDISK_SIZE: size,
       constants.IDISK_MODE: mode,
       constants.IDISK_VG: data_vg,
       }
+
     if constants.IDISK_METAVG in disk:
       new_disk[constants.IDISK_METAVG] = disk[constants.IDISK_METAVG]
     if constants.IDISK_ADOPT in disk:
       new_disk[constants.IDISK_ADOPT] = disk[constants.IDISK_ADOPT]
+
+    # For extstorage, demand the `provider' option and add any
+    # additional parameters (ext-params) to the dict
+    if op.disk_template == constants.DT_EXT:
+      if ext_provider:
+        new_disk[constants.IDISK_PROVIDER] = ext_provider
+        for key in disk:
+          if key not in constants.IDISK_PARAMS:
+            new_disk[key] = disk[key]
+      else:
+        raise errors.OpPrereqError("Missing provider for template '%s'" %
+                                   constants.DT_EXT, errors.ECODE_INVAL)
+
     disks.append(new_disk)
 
   return disks
@@ -9751,7 +9786,8 @@ class LUInstanceCreate(LogicalUnit):
     # check disks. parameter names and consistent adopt/no-adopt strategy
     has_adopt = has_no_adopt = False
     for disk in self.op.disks:
-      utils.ForceDictType(disk, constants.IDISK_PARAMS_TYPES)
+      if self.op.disk_template != constants.DT_EXT:
+        utils.ForceDictType(disk, constants.IDISK_PARAMS_TYPES)
       if constants.IDISK_ADOPT in disk:
         has_adopt = True
       else:
@@ -10543,6 +10579,9 @@ class LUInstanceCreate(LogicalUnit):
     _CheckOSParams(self, True, nodenames, self.op.os_type, self.os_full)
 
     _CheckNicsBridgesExist(self, self.nics, self.pnode.name)
+
+    #TODO: _CheckExtParams (remotely)
+    # Check parameters for extstorage
 
     # memory check on primary node
     #TODO(dynmem): use MINMEM for checking

@@ -2802,6 +2802,7 @@ class ExtStorageDevice(BlockDev):
       raise ValueError("Invalid configuration data %s" % str(unique_id))
 
     self.driver, self.vol_name = unique_id
+    self.ext_params = params
 
     self.major = self.minor = None
     self.Attach()
@@ -2820,7 +2821,8 @@ class ExtStorageDevice(BlockDev):
 
     # Call the External Storage's create script,
     # to provision a new Volume inside the External Storage
-    _ExtStorageAction(constants.ES_ACTION_CREATE, unique_id, str(size))
+    _ExtStorageAction(constants.ES_ACTION_CREATE, unique_id,
+                      params, str(size))
 
     return ExtStorageDevice(unique_id, children, size, params)
 
@@ -2837,7 +2839,8 @@ class ExtStorageDevice(BlockDev):
 
     # Call the External Storage's remove script,
     # to remove the Volume from the External Storage
-    _ExtStorageAction(constants.ES_ACTION_REMOVE, self.unique_id)
+    _ExtStorageAction(constants.ES_ACTION_REMOVE, self.unique_id,
+                      self.ext_params)
 
   def Rename(self, new_id):
     """Rename this device.
@@ -2857,7 +2860,7 @@ class ExtStorageDevice(BlockDev):
     # Call the External Storage's attach script,
     # to attach an existing Volume to a block device under /dev
     self.dev_path = _ExtStorageAction(constants.ES_ACTION_ATTACH,
-                                      self.unique_id)
+                                      self.unique_id, self.ext_params)
 
     try:
       st = os.stat(self.dev_path)
@@ -2891,7 +2894,8 @@ class ExtStorageDevice(BlockDev):
 
     # Call the External Storage's detach script,
     # to detach an existing Volume from it's block device under /dev
-    _ExtStorageAction(constants.ES_ACTION_DETACH, self.unique_id)
+    _ExtStorageAction(constants.ES_ACTION_DETACH, self.unique_id,
+                      self.ext_params)
 
     self.minor = None
     self.dev_path = None
@@ -2932,7 +2936,7 @@ class ExtStorageDevice(BlockDev):
     # Call the External Storage's grow script,
     # to grow an existing Volume inside the External Storage
     _ExtStorageAction(constants.ES_ACTION_GROW, self.unique_id,
-                      str(self.size), grow=str(new_size))
+                      self.ext_params, str(self.size), grow=str(new_size))
 
   def SetInfo(self, text):
     """Update metadata with info text.
@@ -2948,10 +2952,11 @@ class ExtStorageDevice(BlockDev):
     # Call the External Storage's setinfo script,
     # to set metadata for an existing Volume inside the External Storage
     _ExtStorageAction(constants.ES_ACTION_SETINFO, self.unique_id,
-                      metadata=text)
+                      self.ext_params, metadata=text)
 
 
-def _ExtStorageAction(action, unique_id, size=None, grow=None, metadata=None):
+def _ExtStorageAction(action, unique_id, ext_params,
+                      size=None, grow=None, metadata=None):
   """Take an External Storage action.
 
   Take an External Storage action concerning or affecting
@@ -2963,6 +2968,8 @@ def _ExtStorageAction(action, unique_id, size=None, grow=None, metadata=None):
   @type unique_id: tuple (driver, vol_name)
   @param unique_id: a tuple containing the type of ExtStorage (driver)
                     and the Volume name
+  @type ext_params: dict
+  @param ext_params: ExtStorage parameters
   @type size: integer
   @param size: the size of the Volume in mebibytes
   @type grow: integer
@@ -2980,7 +2987,8 @@ def _ExtStorageAction(action, unique_id, size=None, grow=None, metadata=None):
     _ThrowError("%s" % inst_es)
 
   # Create the basic environment for the driver's scripts
-  create_env = _ExtStorageEnvironment(unique_id, size, grow, metadata)
+  create_env = _ExtStorageEnvironment(unique_id, ext_params, size,
+                                      grow, metadata)
 
   # Do not use log file for action `attach' as we need
   # to get the output from RunResult
@@ -3053,7 +3061,9 @@ def ExtStorageFromDisk(name, base_dir=None):
   # an optional one
   es_files = dict.fromkeys(constants.ES_SCRIPTS, True)
 
-  for filename in es_files:
+  es_files[constants.ES_PARAMETERS_FILE] = True
+
+  for (filename, _) in es_files.items():
     es_files[filename] = utils.PathJoin(es_dir, filename)
 
     try:
@@ -3071,6 +3081,16 @@ def ExtStorageFromDisk(name, base_dir=None):
         return False, ("File '%s' under path '%s' is not executable" %
                        (filename, es_dir))
 
+  parameters = []
+  if constants.ES_PARAMETERS_FILE in es_files:
+    parameters_file = es_files[constants.ES_PARAMETERS_FILE]
+    try:
+      parameters = utils.ReadFile(parameters_file).splitlines()
+    except EnvironmentError, err:
+      return False, ("Error while reading the EXT parameters file at %s: %s" %
+                     (parameters_file, utils.ErrnoOrStr(err)))
+    parameters = [v.split(None, 1) for v in parameters]
+
   es_obj = \
     objects.ExtStorage(name=name, path=es_dir,
                        create_script=es_files[constants.ES_SCRIPT_CREATE],
@@ -3078,15 +3098,20 @@ def ExtStorageFromDisk(name, base_dir=None):
                        grow_script=es_files[constants.ES_SCRIPT_GROW],
                        attach_script=es_files[constants.ES_SCRIPT_ATTACH],
                        detach_script=es_files[constants.ES_SCRIPT_DETACH],
-                       setinfo_script=es_files[constants.ES_SCRIPT_SETINFO])
+                       setinfo_script=es_files[constants.ES_SCRIPT_SETINFO],
+                       verify_script=es_files[constants.ES_SCRIPT_VERIFY],
+                       supported_parameters=parameters)
   return True, es_obj
 
 
-def _ExtStorageEnvironment(unique_id, size=None, grow=None, metadata=None):
+def _ExtStorageEnvironment(unique_id, ext_params,
+                           size=None, grow=None, metadata=None):
   """Calculate the environment for an External Storage script.
 
   @type unique_id: tuple (driver, vol_name)
   @param unique_id: ExtStorage pool and name of the Volume
+  @type ext_params: dict
+  @param ext_params: the EXT parameters
   @type size: string
   @param size: size of the Volume (in mebibytes)
   @type grow: string
@@ -3101,6 +3126,10 @@ def _ExtStorageEnvironment(unique_id, size=None, grow=None, metadata=None):
 
   result = {}
   result["VOL_NAME"] = vol_name
+
+  # EXT params
+  for pname, pvalue in ext_params.items():
+    result["EXTP_%s" % pname.upper()] = str(pvalue)
 
   if size is not None:
     result["VOL_SIZE"] = size
