@@ -218,27 +218,26 @@ def ShowJobs(opts, args):
     "opstart", "opexec", "opend", "received_ts", "start_ts", "end_ts",
     ]
 
-  result = GetClient().QueryJobs(args, selected_fields)
+  result = GetClient().Query(constants.QR_JOB, selected_fields,
+                             qlang.MakeSimpleFilter("id", args)).data
 
   first = True
 
-  for idx, entry in enumerate(result):
+  for entry in result:
     if not first:
       format_msg(0, "")
     else:
       first = False
 
-    if entry is None:
-      if idx <= len(args):
-        format_msg(0, "Job ID %s not found" % args[idx])
-      else:
-        # this should not happen, when we don't pass args it will be a
-        # valid job returned
-        format_msg(0, "Job ID requested as argument %s not found" % (idx + 1))
+    ((_, job_id), (rs_status, status), (_, ops), (_, opresult), (_, opstatus),
+     (_, oplog), (_, opstart), (_, opexec), (_, opend), (_, recv_ts),
+     (_, start_ts), (_, end_ts)) = entry
+
+    # Detect non-normal results
+    if rs_status != constants.RS_NORMAL:
+      format_msg(0, "Job ID %s not found" % job_id)
       continue
 
-    (job_id, status, ops, opresult, opstatus, oplog,
-     opstart, opexec, opend, recv_ts, start_ts, end_ts) = entry
     format_msg(0, "Job ID: %s" % job_id)
     if status in _USER_JOB_STATUS:
       status = _USER_JOB_STATUS[status]
