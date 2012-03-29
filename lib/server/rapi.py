@@ -71,44 +71,21 @@ class RemoteApiHandler(http.auth.HttpServerRequestAuthentication,
   """
   AUTH_REALM = "Ganeti Remote API"
 
-  def __init__(self, _client_cls=None):
+  def __init__(self, user_fn, _client_cls=None):
+    """Initializes this class.
+
+    @type user_fn: callable
+    @param user_fn: Function receiving username as string and returning
+      L{http.auth.PasswordFileUser} or C{None} if user is not found
+
+    """
     # pylint: disable=W0233
     # it seems pylint doesn't see the second parent class there
     http.server.HttpServerHandler.__init__(self)
     http.auth.HttpServerRequestAuthentication.__init__(self)
     self._client_cls = _client_cls
     self._resmap = connector.Mapper()
-    self._users = None
-
-  def LoadUsers(self, filename):
-    """Loads a file containing users and passwords.
-
-    @type filename: string
-    @param filename: Path to file
-
-    """
-    logging.info("Reading users file at %s", filename)
-    try:
-      try:
-        contents = utils.ReadFile(filename)
-      except EnvironmentError, err:
-        self._users = None
-        if err.errno == errno.ENOENT:
-          logging.warning("No users file at %s", filename)
-        else:
-          logging.warning("Error while reading %s: %s", filename, err)
-        return False
-
-      users = http.auth.ParsePasswordFile(contents)
-
-    except Exception, err: # pylint: disable=W0703
-      # We don't care about the type of exception
-      logging.error("Error while parsing %s: %s", filename, err)
-      return False
-
-    self._users = users
-
-    return True
+    self._user_fn = user_fn
 
   @staticmethod
   def FormatErrorMessage(values):
@@ -172,15 +149,10 @@ class RemoteApiHandler(http.auth.HttpServerRequestAuthentication,
     """
     ctx = self._GetRequestContext(req)
 
-    # Check username and password
-    valid_user = False
-    if self._users:
-      user = self._users.get(username, None)
-      if user and self.VerifyBasicAuthPassword(req, username, password,
-                                               user.password):
-        valid_user = True
-
-    if not valid_user:
+    user = self._user_fn(username)
+    if not (user and
+            self.VerifyBasicAuthPassword(req, username, password,
+                                         user.password)):
       # Unknown user or password wrong
       return False
 
@@ -230,6 +202,53 @@ class RemoteApiHandler(http.auth.HttpServerRequestAuthentication,
     req.resp_headers[http.HTTP_CONTENT_TYPE] = http.HTTP_APP_JSON
 
     return serializer.DumpJson(result)
+
+
+class RapiUsers:
+  def __init__(self):
+    """Initializes this class.
+
+    """
+    self._users = None
+
+  def Get(self, username):
+    """Checks whether a user exists.
+
+    """
+    if self._users:
+      return self._users.get(username, None)
+    else:
+      return None
+
+  def Load(self, filename):
+    """Loads a file containing users and passwords.
+
+    @type filename: string
+    @param filename: Path to file
+
+    """
+    logging.info("Reading users file at %s", filename)
+    try:
+      try:
+        contents = utils.ReadFile(filename)
+      except EnvironmentError, err:
+        self._users = None
+        if err.errno == errno.ENOENT:
+          logging.warning("No users file at %s", filename)
+        else:
+          logging.warning("Error while reading %s: %s", filename, err)
+        return False
+
+      users = http.auth.ParsePasswordFile(contents)
+
+    except Exception, err: # pylint: disable=W0703
+      # We don't care about the type of exception
+      logging.error("Error while parsing %s: %s", filename, err)
+      return False
+
+    self._users = users
+
+    return True
 
 
 class FileEventHandler(asyncnotifier.FileEventHandlerBase):
@@ -304,13 +323,16 @@ def PrepRapi(options, _):
 
   """
   mainloop = daemon.Mainloop()
-  handler = RemoteApiHandler()
+
+  users = RapiUsers()
+
+  handler = RemoteApiHandler(users.Get)
 
   # Setup file watcher (it'll be driven by asyncore)
   SetupFileWatcher(constants.RAPI_USERS_FILE,
-                   compat.partial(handler.LoadUsers, constants.RAPI_USERS_FILE))
+                   compat.partial(users.Load, constants.RAPI_USERS_FILE))
 
-  handler.LoadUsers(constants.RAPI_USERS_FILE)
+  users.Load(constants.RAPI_USERS_FILE)
 
   server = \
     http.server.HttpServer(mainloop, options.bind_address, options.port,
