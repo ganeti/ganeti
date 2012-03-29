@@ -71,11 +71,12 @@ class RemoteApiHandler(http.auth.HttpServerRequestAuthentication,
   """
   AUTH_REALM = "Ganeti Remote API"
 
-  def __init__(self):
+  def __init__(self, _client_cls=None):
     # pylint: disable=W0233
     # it seems pylint doesn't see the second parent class there
     http.server.HttpServerHandler.__init__(self)
     http.auth.HttpServerRequestAuthentication.__init__(self)
+    self._client_cls = _client_cls
     self._resmap = connector.Mapper()
     self._users = None
 
@@ -132,7 +133,7 @@ class RemoteApiHandler(http.auth.HttpServerRequestAuthentication,
                      self._resmap.getController(req.request_path)
 
       ctx = RemoteApiRequestContext()
-      ctx.handler = HandlerClass(items, args, req)
+      ctx.handler = HandlerClass(items, args, req, _client_cls=self._client_cls)
 
       method = req.request_method.upper()
       try:

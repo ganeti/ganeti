@@ -289,7 +289,7 @@ class ResourceBase(object):
   POST_ACCESS = [rapi.RAPI_ACCESS_WRITE]
   DELETE_ACCESS = [rapi.RAPI_ACCESS_WRITE]
 
-  def __init__(self, items, queryargs, req, _client_cls=luxi.Client):
+  def __init__(self, items, queryargs, req, _client_cls=None):
     """Generic resource constructor.
 
     @param items: a list with variables encoded in the URL
@@ -301,6 +301,10 @@ class ResourceBase(object):
     self.items = items
     self.queryargs = queryargs
     self._req = req
+
+    if _client_cls is None:
+      _client_cls = luxi.Client
+
     self._client_cls = _client_cls
 
   def _GetRequestBody(self):
