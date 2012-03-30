@@ -74,7 +74,7 @@ class RapiMock(object):
   def GetLastRequestData(self):
     return self._last_req_data
 
-  def FetchResponse(self, path, method, request_body):
+  def FetchResponse(self, path, method, headers, request_body):
     self._last_req_data = request_body
 
     try:
@@ -139,11 +139,11 @@ class RapiMockTest(unittest.TestCase):
   def test(self):
     rapi = RapiMock()
     path = "/version"
-    self.assertEqual((404, None), rapi.FetchResponse("/foo", "GET", None))
+    self.assertEqual((404, None), rapi.FetchResponse("/foo", "GET", None, None))
     self.assertEqual((501, "Method not implemented"),
-                     rapi.FetchResponse("/version", "POST", None))
+                     rapi.FetchResponse("/version", "POST", None, None))
     rapi.AddResponse("2")
-    code, response = rapi.FetchResponse("/version", "GET", None)
+    code, response = rapi.FetchResponse("/version", "GET", None, None)
     self.assertEqual(200, code)
     self.assertEqual("2", response)
     self.failUnless(isinstance(rapi.GetLastHandler(), rlib2.R_version))

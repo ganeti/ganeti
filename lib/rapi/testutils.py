@@ -25,10 +25,14 @@
 
 import logging
 import re
+import mimetools
+import base64
 import pycurl
+from cStringIO import StringIO
 
 from ganeti import errors
 from ganeti import opcodes
+from ganeti import http
 
 
 _URI_RE = re.compile(r"https://(?P<host>.*):(?P<port>\d+)(?P<path>/.*)")
@@ -154,8 +158,29 @@ class FakeCurl:
     request_body = self._opts[pycurl.POSTFIELDS]
     writefn = self._opts[pycurl.WRITEFUNCTION]
 
+    if pycurl.HTTPHEADER in self._opts:
+      baseheaders = "\n".join(self._opts[pycurl.HTTPHEADER])
+    else:
+      baseheaders = ""
+
+    headers = mimetools.Message(StringIO(baseheaders), 0)
+
+    if request_body:
+      headers[http.HTTP_CONTENT_LENGTH] = str(len(request_body))
+
+    if self._opts.get(pycurl.HTTPAUTH, 0) & pycurl.HTTPAUTH_BASIC:
+      try:
+        userpwd = self._opts[pycurl.USERPWD]
+      except KeyError:
+        raise errors.ProgrammerError("Basic authentication requires username"
+                                     " and password")
+
+      headers[http.HTTP_AUTHORIZATION] = \
+        "%s %s" % (http.auth.HTTP_BASIC_AUTH, base64.b64encode(userpwd))
+
     path = _GetPathFromUri(url)
-    (code, resp_body) = self._handler.FetchResponse(path, method, request_body)
+    (code, resp_body) = \
+      self._handler.FetchResponse(path, method, headers, request_body)
 
     self._info[pycurl.RESPONSE_CODE] = code
     if resp_body is not None:
