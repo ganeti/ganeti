@@ -35,6 +35,7 @@ from ganeti import http
 from ganeti import utils
 from ganeti import netutils
 from ganeti import compat
+from ganeti import errors
 
 
 WEEKDAYNAME = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
@@ -233,7 +234,8 @@ def _HandleServerRequestInner(handler, req_msg):
 
       # Call actual request handler
       result = handler.HandleRequest(handler_context)
-    except (http.HttpException, KeyboardInterrupt, SystemExit):
+    except (http.HttpException, errors.RapiTestResult,
+            KeyboardInterrupt, SystemExit):
       raise
     except Exception, err:
       logging.exception("Caught exception")

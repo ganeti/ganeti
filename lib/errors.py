@@ -429,6 +429,12 @@ class QueryFilterParseError(ParseError):
             str(inner)]
 
 
+class RapiTestResult(GenericError):
+  """Exception containing results from RAPI test utilities.
+
+  """
+
+
 # errors should be added above
 
 

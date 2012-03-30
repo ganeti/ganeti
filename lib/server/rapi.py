@@ -194,10 +194,6 @@ class RemoteApiHandler(http.auth.HttpServerRequestAuthentication,
       raise http.HttpGatewayTimeout()
     except luxi.ProtocolError, err:
       raise http.HttpBadGateway(str(err))
-    except:
-      method = req.request_method.upper()
-      logging.exception("Error while handling the %s request", method)
-      raise
 
     req.resp_headers[http.HTTP_CONTENT_TYPE] = http.HTTP_APP_JSON
 
