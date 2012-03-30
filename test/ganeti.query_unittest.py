@@ -1128,72 +1128,78 @@ class TestQueryFields(unittest.TestCase):
 
 class TestQueryFilter(unittest.TestCase):
   def testRequestedNames(self):
-    innerfilter = [["=", "name", "x%s" % i] for i in range(4)]
-
     for fielddefs in query.ALL_FIELD_LISTS:
-      assert "name" in fielddefs
+      if "id" in fielddefs:
+        namefield = "id"
+      else:
+        namefield = "name"
+
+      assert namefield in fielddefs
+
+      innerfilter = [["=", namefield, "x%s" % i] for i in range(4)]
 
       # No name field
-      q = query.Query(fielddefs, ["name"], qfilter=["=", "name", "abc"],
+      q = query.Query(fielddefs, [namefield], qfilter=["=", namefield, "abc"],
                       namefield=None)
       self.assertEqual(q.RequestedNames(), None)
 
       # No filter
-      q = query.Query(fielddefs, ["name"], qfilter=None, namefield="name")
+      q = query.Query(fielddefs, [namefield], qfilter=None, namefield=namefield)
       self.assertEqual(q.RequestedNames(), None)
 
       # Check empty query
-      q = query.Query(fielddefs, ["name"], qfilter=["|"], namefield="name")
+      q = query.Query(fielddefs, [namefield], qfilter=["|"],
+                      namefield=namefield)
       self.assertEqual(q.RequestedNames(), None)
 
       # Check order
-      q = query.Query(fielddefs, ["name"], qfilter=["|"] + innerfilter,
-                      namefield="name")
+      q = query.Query(fielddefs, [namefield], qfilter=["|"] + innerfilter,
+                      namefield=namefield)
       self.assertEqual(q.RequestedNames(), ["x0", "x1", "x2", "x3"])
 
       # Check reverse order
-      q = query.Query(fielddefs, ["name"],
+      q = query.Query(fielddefs, [namefield],
                       qfilter=["|"] + list(reversed(innerfilter)),
-                      namefield="name")
+                      namefield=namefield)
       self.assertEqual(q.RequestedNames(), ["x3", "x2", "x1", "x0"])
 
       # Duplicates
-      q = query.Query(fielddefs, ["name"],
+      q = query.Query(fielddefs, [namefield],
                       qfilter=["|"] + innerfilter + list(reversed(innerfilter)),
-                      namefield="name")
+                      namefield=namefield)
       self.assertEqual(q.RequestedNames(), ["x0", "x1", "x2", "x3"])
 
       # Unknown name field
-      self.assertRaises(AssertionError, query.Query, fielddefs, ["name"],
+      self.assertRaises(AssertionError, query.Query, fielddefs, [namefield],
                         namefield="_unknown_field_")
 
       # Filter with AND
-      q = query.Query(fielddefs, ["name"],
-                      qfilter=["|", ["=", "name", "foo"],
-                                    ["&", ["=", "name", ""]]],
-                      namefield="name")
+      q = query.Query(fielddefs, [namefield],
+                      qfilter=["|", ["=", namefield, "foo"],
+                                    ["&", ["=", namefield, ""]]],
+                      namefield=namefield)
       self.assertTrue(q.RequestedNames() is None)
 
       # Filter with NOT
-      q = query.Query(fielddefs, ["name"],
-                      qfilter=["|", ["=", "name", "foo"],
-                                    ["!", ["=", "name", ""]]],
-                      namefield="name")
+      q = query.Query(fielddefs, [namefield],
+                      qfilter=["|", ["=", namefield, "foo"],
+                                    ["!", ["=", namefield, ""]]],
+                      namefield=namefield)
       self.assertTrue(q.RequestedNames() is None)
 
       # Filter with only OR (names must be in correct order)
-      q = query.Query(fielddefs, ["name"],
-                      qfilter=["|", ["=", "name", "x17361"],
-                                    ["|", ["=", "name", "x22015"]],
-                                    ["|", ["|", ["=", "name", "x13193"]]],
-                                    ["=", "name", "x15215"]],
-                      namefield="name")
+      q = query.Query(fielddefs, [namefield],
+                      qfilter=["|", ["=", namefield, "x17361"],
+                                    ["|", ["=", namefield, "x22015"]],
+                                    ["|", ["|", ["=", namefield, "x13193"]]],
+                                    ["=", namefield, "x15215"]],
+                      namefield=namefield)
       self.assertEqual(q.RequestedNames(),
                        ["x17361", "x22015", "x13193", "x15215"])
 
   @staticmethod
-  def _GenNestedFilter(op, depth):
-    nested = ["=", "name", "value"]
+  def _GenNestedFilter(namefield, op, depth):
+    nested = ["=", namefield, "value"]
     for i in range(depth):
       nested = [op, nested]
     return nested
@@ -1201,21 +1207,26 @@ class TestQueryFilter(unittest.TestCase):
   def testCompileFilter(self):
     levels_max = query._FilterCompilerHelper._LEVELS_MAX
 
-    checks = [
-      [], ["="], ["=", "foo"], ["unknownop"], ["!"],
-      ["=", "_unknown_field", "value"],
-      self._GenNestedFilter("|", levels_max),
-      self._GenNestedFilter("|", levels_max * 3),
-      self._GenNestedFilter("!", levels_max),
-      ]
-
     for fielddefs in query.ALL_FIELD_LISTS:
+      if "id" in fielddefs:
+        namefield = "id"
+      else:
+        namefield = "name"
+
+      checks = [
+        [], ["="], ["=", "foo"], ["unknownop"], ["!"],
+        ["=", "_unknown_field", "value"],
+        self._GenNestedFilter(namefield, "|", levels_max),
+        self._GenNestedFilter(namefield, "|", levels_max * 3),
+        self._GenNestedFilter(namefield, "!", levels_max),
+        ]
+
       for qfilter in checks:
         self.assertRaises(errors.ParameterError, query._CompileFilter,
                           fielddefs, None, qfilter)
 
       for op in ["|", "!"]:
-        qfilter = self._GenNestedFilter(op, levels_max - 1)
+        qfilter = self._GenNestedFilter(namefield, op, levels_max - 1)
         self.assertTrue(callable(query._CompileFilter(fielddefs, None,
                                                       qfilter)))
 
