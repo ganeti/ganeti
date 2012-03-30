@@ -110,6 +110,7 @@
 /scripts/gnt-node
 /scripts/gnt-os
 /scripts/gnt-network
+/scripts/gnt-storage
 
 # htools-specific rules
 /htools/apidoc

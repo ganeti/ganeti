@@ -838,6 +838,7 @@ man_MANS = \
 	man/ganeti-masterd.8 \
 	man/ganeti-noded.8 \
 	man/ganeti-os-interface.7 \
+	man/ganeti-extstorage-interface.7 \
 	man/ganeti-rapi.8 \
 	man/ganeti-watcher.8 \
 	man/ganeti.7 \
@@ -850,6 +851,7 @@ man_MANS = \
 	man/gnt-job.8 \
 	man/gnt-node.8 \
 	man/gnt-os.8 \
+	man/gnt-storage.8 \
 	man/hail.1 \
 	man/hbal.1 \
 	man/hcheck.1 \

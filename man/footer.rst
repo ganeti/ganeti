@@ -9,14 +9,15 @@ SEE ALSO
 --------
 
 Ganeti overview and specifications: **ganeti**(7) (general overview),
-**ganeti-os-interface**(7) (guest OS definitions).
+**ganeti-os-interface**(7) (guest OS definitions),
+**ganeti-extstorage-interface**(7) (external storage providers).
 
 Ganeti commands: **gnt-cluster**(8) (cluster-wide commands),
 **gnt-job**(8) (job-related commands), **gnt-node**(8) (node-related
-commands), **gnt-instance**(8) (instance commands), **gnt-os**(8)
-(guest OS commands), **gnt-group**(8) (node group commands),
-**gnt-backup**(8) (instance import/export commands), **gnt-debug**(8)
-(debug commands).
+commands), **gnt-instance**(8) (instance commands), **gnt-os**(8) (guest
+OS commands), **gnt-storage**(8) (storage commands), **gnt-group**(8)
+(node group commands), **gnt-backup**(8) (instance import/export
+commands), **gnt-debug**(8) (debug commands).
 
 Ganeti daemons: **ganeti-watcher**(8) (automatic instance restarter),
 **ganeti-cleaner**(8) (job queue cleaner), **ganeti-noded**(8) (node
