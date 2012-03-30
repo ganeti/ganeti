@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -648,12 +648,15 @@ class ConfigWriter:
   def AddTcpUdpPort(self, port):
     """Adds a new port to the available port pool.
 
+    @warning: this method does not "flush" the configuration (via
+        L{_WriteConfig}); callers should do that themselves once the
+        configuration is stable
+
     """
     if not isinstance(port, int):
       raise errors.ProgrammerError("Invalid type passed for port")
 
     self._config_data.cluster.tcpudp_port_pool.add(port)
-    self._WriteConfig()
 
   @locking.ssynchronized(_config_lock, shared=1)
   def GetPortList(self):
