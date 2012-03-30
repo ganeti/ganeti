@@ -9697,7 +9697,6 @@ class LUInstanceSetParams(LogicalUnit):
         self.LogWarning("Could not remove metadata for disk %d on node %s,"
                         " continuing anyway: %s", idx, pnode, msg)
 
-
   def Exec(self, feedback_fn):
     """Modifies an instance.
 
