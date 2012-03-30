@@ -232,6 +232,19 @@ class ConfigWriter:
     return self._config_data.cluster.FillND(node, nodegroup)
 
   @locking.ssynchronized(_config_lock, shared=1)
+  def GetInstanceDiskParams(self, instance):
+    """Get the disk params populated with inherit chain.
+
+    @type instance: L{objects.Instance}
+    @param instance: The instance we want to know the params for
+    @return: A dict with the filled in disk params
+
+    """
+    node = self._UnlockedGetNodeInfo(instance.primary_node)
+    nodegroup = self._UnlockedGetNodeGroup(node.group)
+    return self._config_data.cluster.SimpleFillDP(nodegroup.diskparams)
+
+  @locking.ssynchronized(_config_lock, shared=1)
   def GenerateMAC(self, ec_id):
     """Generate a MAC for an instance.
 

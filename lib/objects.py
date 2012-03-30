@@ -1610,6 +1610,15 @@ class Cluster(TaggableObject):
       obj.tcpudp_port_pool = set(obj.tcpudp_port_pool)
     return obj
 
+  def SimpleFillDP(self, diskparams):
+    """Fill a given diskparams dict with cluster defaults.
+
+    @param diskparams: The diskparams
+    @return: The defaults dict
+
+    """
+    return FillDiskParams(self.diskparams, diskparams)
+
   def GetHVDefaults(self, hypervisor, os_name=None, skip_keys=None):
     """Get the default hypervisor parameters for the cluster.
 
