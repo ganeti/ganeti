@@ -112,6 +112,19 @@ def FillIPolicy(default_ipolicy, custom_ipolicy, skip_keys=None):
   return ret_dict
 
 
+def FillDiskParams(default_dparams, custom_dparams, skip_keys=None):
+  """Fills the disk parameter defaults.
+
+  @see FillDict: For parameters and return value
+
+  """
+  assert frozenset(default_dparams.keys()) == constants.DISK_TEMPLATES
+
+  return dict((dt, FillDict(default_dparams[dt], custom_dparams.get(dt, {}),
+                             skip_keys=skip_keys))
+              for dt in constants.DISK_TEMPLATES)
+
+
 def UpgradeGroupedParams(target, defaults):
   """Update all groups for the target parameter.
 
@@ -155,12 +168,7 @@ def UpgradeDiskParams(diskparams):
   if diskparams is None:
     result = constants.DISK_DT_DEFAULTS.copy()
   else:
-    # Update the disk parameter values for each disk template.
-    # The code iterates over constants.DISK_TEMPLATES because new templates
-    # might have been added.
-    result = dict((dt, FillDict(constants.DISK_DT_DEFAULTS[dt],
-                                diskparams.get(dt, {})))
-                  for dt in constants.DISK_TEMPLATES)
+    result = FillDiskParams(constants.DISK_DT_DEFAULTS, diskparams)
 
   return result
 
