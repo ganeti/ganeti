@@ -6,6 +6,7 @@ This document describes the changes in Ganeti 2.3+ compared to Ganeti
 2.3 storage model.
 
 .. contents:: :depth: 4
+.. highlight:: shell-example
 
 Objective
 =========
@@ -64,15 +65,11 @@ The design addresses the following procedures:
   filesystems.
 - Introduction of shared block device disk template with device
   adoption.
+- Introduction of an External Storage Interface.
 
 Additionally, mid- to long-term goals include:
 
 - Support for external “storage pools”.
-- Introduction of an interface for communicating with external scripts,
-  providing methods for the various stages of a block device's and
-  instance's life-cycle. In order to provide storage provisioning
-  capabilities for various SAN appliances, external helpers in the form
-  of a “storage driver” will be possibly introduced as well.
 
 Refactoring of all code referring to constants.DTS_NET_MIRROR
 =============================================================
@@ -159,14 +156,117 @@ The shared block device template will make the following assumptions:
 - The device will be available with the same path under all nodes in the
   node group.
 
+Introduction of an External Storage Interface
+==============================================
+Overview
+--------
+
+To extend the shared block storage template and give Ganeti the ability
+to control and manipulate external storage (provisioning, removal,
+growing, etc.) we need a more generic approach. The generic method for
+supporting external shared storage in Ganeti will be to have an
+ExtStorage provider for each external shared storage hardware type. The
+ExtStorage provider will be a set of files (executable scripts and text
+files), contained inside a directory which will be named after the
+provider. This directory must be present across all nodes of a nodegroup
+(Ganeti doesn't replicate it), in order for the provider to be usable by
+Ganeti for this nodegroup (valid). The external shared storage hardware
+should also be accessible by all nodes of this nodegroup too.
+
+An “ExtStorage provider” will have to provide the following methods:
+
+- Create a disk
+- Remove a disk
+- Grow a disk
+- Attach a disk to a given node
+- Detach a disk from a given node
+- Verify its supported parameters
+
+The proposed ExtStorage interface borrows heavily from the OS
+interface and follows a one-script-per-function approach. An ExtStorage
+provider is expected to provide the following scripts:
+
+- ``create``
+- ``remove``
+- ``grow``
+- ``attach``
+- ``detach``
+- ``verify``
+
+All scripts will be called with no arguments and get their input via
+environment variables. A common set of variables will be exported for
+all commands, and some of them might have extra ones.
+
+``VOL_NAME``
+  The name of the volume. This is unique for Ganeti and it
+  uses it to refer to a specific volume inside the external storage.
+``VOL_SIZE``
+  The volume's size in mebibytes.
+``VOL_NEW_SIZE``
+  Available only to the `grow` script. It declares the
+  new size of the volume after grow (in mebibytes).
+``EXTP_name``
+  ExtStorage parameter, where `name` is the parameter in
+  upper-case (same as OS interface's ``OSP_*`` parameters).
+
+All scripts except `attach` should return 0 on success and non-zero on
+error, accompanied by an appropriate error message on stderr. The
+`attach` script should return a string on stdout on success, which is
+the block device's full path, after it has been successfully attached to
+the host node. On error it should return non-zero.
+
+Implementation
+--------------
+
+To support the ExtStorage interface, we will introduce a new disk
+template called `ext`. This template will implement the existing Ganeti
+disk interface in `lib/bdev.py` (create, remove, attach, assemble,
+shutdown, grow), and will simultaneously pass control to the external
+scripts to actually handle the above actions. The `ext` disk template
+will act as a translation layer between the current Ganeti disk
+interface and the ExtStorage providers.
+
+We will also introduce a new IDISK_PARAM called `IDISK_PROVIDER =
+provider`, which will be used at the command line to select the desired
+ExtStorage provider. This parameter will be valid only for template
+`ext` e.g.::
+
+  $ gnt-instance add -t ext --disk=0:size=2G,provider=sample_provider1
+
+The Extstorage interface will support different disks to be created by
+different providers. e.g.::
+
+  $ gnt-instance add -t ext --disk=0:size=2G,provider=sample_provider1 \
+                            --disk=1:size=1G,provider=sample_provider2 \
+                            --disk=2:size=3G,provider=sample_provider1
+
+Finally, the ExtStorage interface will support passing of parameters to
+the ExtStorage provider. This will also be done per disk, from the
+command line::
+
+ $ gnt-instance add -t ext --disk=0:size=1G,provider=sample_provider1,\
+                                            param1=value1,param2=value2
+
+The above parameters will be exported to the ExtStorage provider's
+scripts as the enviromental variables:
+
+- `EXTP_PARAM1 = str(value1)`
+- `EXTP_PARAM2 = str(value2)`
+
+We will also introduce a new Ganeti client called `gnt-storage` which
+will be used to diagnose ExtStorage providers and show information about
+them, similarly to the way  `gnt-os diagose` and `gnt-os info` handle OS
+definitions.
+
 Long-term shared storage goals
 ==============================
+
 Storage pool handling
 ---------------------
 
 A new cluster configuration attribute will be introduced, named
 “storage_pools”, modeled as a dictionary mapping storage pools to
-external storage drivers (see below), e.g.::
+external storage providers (see below), e.g.::
 
  {
   "nas1": "foostore",
@@ -180,101 +280,27 @@ will provide methods for manipulating them under some basic constraints
 storage pools will be performed by implementing new options to the
 `gnt-cluster` command::
 
- gnt-cluster modify --add-pool nas1 foostore
- gnt-cluster modify --remove-pool nas1 # There may be no instances using
-                                       # the pool to remove it
+ $ gnt-cluster modify --add-pool nas1 foostore
+ $ gnt-cluster modify --remove-pool nas1 # There must be no instances using
+                                         # the pool to remove it
 
 Furthermore, the storage pools will be used to indicate the availability
 of storage pools to different node groups, thus specifying the
 instances' “mobility domain”.
 
-New disk templates will also be necessary to facilitate the use of external
-storage. The proposed addition is a whole template namespace created by
-prefixing the pool names with a fixed string, e.g. “ext:”, forming names
-like “ext:nas1”, “ext:foo”.
+The pool, in which to put the new instance's disk, will be defined at
+the command line during `instance add`. This will become possible by
+replacing the IDISK_PROVIDER parameter with a new one, called `IDISK_POOL
+= pool`. The cmdlib logic will then look at the cluster-level mapping
+dictionary to determine the ExtStorage provider for the given pool.
 
-Interface to the external storage drivers
------------------------------------------
+gnt-storage
+-----------
 
-In addition to external storage pools, a new interface will be
-introduced to allow external scripts to provision and manipulate shared
-storage.
-
-In order to provide storage provisioning and manipulation (e.g. growing,
-renaming) capabilities, each instance's disk template can possibly be
-associated with an external “storage driver” which, based on the
-instance's configuration and tags, will perform all supported storage
-operations using auxiliary means (e.g. XML-RPC, ssh, etc.).
-
-A “storage driver” will have to provide the following methods:
-
-- Create a disk
-- Remove a disk
-- Rename a disk
-- Resize a disk
-- Attach a disk to a given node
-- Detach a disk from a given node
-
-The proposed storage driver architecture borrows heavily from the OS
-interface and follows a one-script-per-function approach. A storage
-driver is expected to provide the following scripts:
-
-- `create`
-- `resize`
-- `rename`
-- `remove`
-- `attach`
-- `detach`
-
-These executables will be called once for each disk with no arguments
-and all required information will be passed through environment
-variables. The following environment variables will always be present on
-each invocation:
-
-- `INSTANCE_NAME`: The instance's name
-- `INSTANCE_UUID`: The instance's UUID
-- `INSTANCE_TAGS`: The instance's tags
-- `DISK_INDEX`: The current disk index.
-- `LOGICAL_ID`: The disk's logical id (if existing)
-- `POOL`: The storage pool the instance belongs to.
-
-Additional variables may be available in a per-script context (see
-below).
-
-Of particular importance is the disk's logical ID, which will act as
-glue between Ganeti and the external storage drivers; there are two
-possible ways of using a disk's logical ID in a storage driver:
-
-1. Simply use it as a unique identifier (e.g. UUID) and keep a separate,
-   external database linking it to the actual storage.
-2. Encode all useful storage information in the logical ID and have the
-   driver decode it at runtime.
-
-All scripts should return 0 on success and non-zero on error accompanied by
-an appropriate error message on stderr. Furthermore, the following
-special cases are defined:
-
-1. `create` In case of success, a string representing the disk's logical
-   id must be returned on stdout, which will be saved in the instance's
-   configuration and can be later used by the other scripts of the same
-   storage driver. The logical id may be based on instance name,
-   instance uuid and/or disk index.
-
-   Additional environment variables present:
-     - `DISK_SIZE`: The requested disk size in MiB
-
-2. `resize` In case of success, output the new disk size.
-
-   Additional environment variables present:
-     - `DISK_SIZE`: The requested disk size in MiB
-
-3. `rename` On success, a new logical id should be returned, which will
-   replace the old one. This script is meant to rename the instance's
-   backing store and update the disk's logical ID in case one of them is
-   bound to the instance name.
-
-   Additional environment variables present:
-     - `NEW_INSTANCE_NAME`: The instance's new name.
-
+The ``gnt-storage`` client can be extended to support pool management
+(creation/modification/deletion of pools, connection/disconnection of
+pools to nodegroups, etc.). It can also be extended to diagnose and
+provide information for internal disk templates too, such as lvm and
+drbd.
 
 .. vim: set textwidth=72 :
