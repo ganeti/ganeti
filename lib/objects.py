@@ -922,6 +922,94 @@ class Disk(ConfigObject):
                              self.params)
     # add here config upgrade for this disk
 
+  @staticmethod
+  def ComputeLDParams(disk_template, disk_params):
+    """Computes Logical Disk parameters from Disk Template parameters.
+
+    @type disk_template: string
+    @param disk_template: disk template, one of L{constants.DISK_TEMPLATES}
+    @type disk_params: dict
+    @param disk_params: disk template parameters;
+                        dict(template_name -> parameters
+    @rtype: list(dict)
+    @return: a list of dicts, one for each node of the disk hierarchy. Each dict
+      contains the LD parameters of the node. The tree is flattened in-order.
+
+    """
+    if disk_template not in constants.DISK_TEMPLATES:
+      raise errors.ProgrammerError("Unknown disk template %s" % disk_template)
+
+    assert disk_template in disk_params
+
+    result = list()
+    dt_params = disk_params[disk_template]
+    if disk_template == constants.DT_DRBD8:
+      drbd_params = {
+        constants.LDP_RESYNC_RATE: dt_params[constants.DRBD_RESYNC_RATE],
+        constants.LDP_BARRIERS: dt_params[constants.DRBD_DISK_BARRIERS],
+        constants.LDP_NO_META_FLUSH: dt_params[constants.DRBD_META_BARRIERS],
+        constants.LDP_DEFAULT_METAVG: dt_params[constants.DRBD_DEFAULT_METAVG],
+        constants.LDP_DISK_CUSTOM: dt_params[constants.DRBD_DISK_CUSTOM],
+        constants.LDP_NET_CUSTOM: dt_params[constants.DRBD_NET_CUSTOM],
+        constants.LDP_DYNAMIC_RESYNC: dt_params[constants.DRBD_DYNAMIC_RESYNC],
+        constants.LDP_PLAN_AHEAD: dt_params[constants.DRBD_PLAN_AHEAD],
+        constants.LDP_FILL_TARGET: dt_params[constants.DRBD_FILL_TARGET],
+        constants.LDP_DELAY_TARGET: dt_params[constants.DRBD_DELAY_TARGET],
+        constants.LDP_MAX_RATE: dt_params[constants.DRBD_MAX_RATE],
+        constants.LDP_MIN_RATE: dt_params[constants.DRBD_MIN_RATE],
+        }
+
+      drbd_params = \
+        FillDict(constants.DISK_LD_DEFAULTS[constants.LD_DRBD8],
+                 drbd_params)
+
+      result.append(drbd_params)
+
+      # data LV
+      data_params = {
+        constants.LDP_STRIPES: dt_params[constants.DRBD_DATA_STRIPES],
+        }
+      data_params = \
+        FillDict(constants.DISK_LD_DEFAULTS[constants.LD_LV],
+                 data_params)
+      result.append(data_params)
+
+      # metadata LV
+      meta_params = {
+        constants.LDP_STRIPES: dt_params[constants.DRBD_META_STRIPES],
+        }
+      meta_params = \
+        FillDict(constants.DISK_LD_DEFAULTS[constants.LD_LV],
+                 meta_params)
+      result.append(meta_params)
+
+    elif (disk_template == constants.DT_FILE or
+          disk_template == constants.DT_SHARED_FILE):
+      result.append(constants.DISK_LD_DEFAULTS[constants.LD_FILE])
+
+    elif disk_template == constants.DT_PLAIN:
+      params = {
+        constants.LDP_STRIPES: dt_params[constants.LV_STRIPES],
+        }
+      params = \
+        FillDict(constants.DISK_LD_DEFAULTS[constants.LD_LV],
+                 params)
+      result.append(params)
+
+    elif disk_template == constants.DT_BLOCK:
+      result.append(constants.DISK_LD_DEFAULTS[constants.LD_BLOCKDEV])
+
+    elif disk_template == constants.DT_RBD:
+      params = {
+        constants.LDP_POOL: dt_params[constants.RBD_POOL]
+        }
+      params = \
+        FillDict(constants.DISK_LD_DEFAULTS[constants.LD_RBD],
+                 params)
+      result.append(params)
+
+    return result
+
 
 class InstancePolicy(ConfigObject):
   """Config object representing instance policy limits dictionary.

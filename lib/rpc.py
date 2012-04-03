@@ -575,6 +575,56 @@ def _EncodeBlockdevRename(value):
   return [(d.ToDict(), uid) for d, uid in value]
 
 
+def _AnnotateDParamsDRBD(disk, (drbd_params, data_params, meta_params)):
+  """Annotates just DRBD disks layouts.
+
+  """
+  assert disk.dev_type == constants.LD_DRBD8
+
+  disk.params = objects.FillDict(drbd_params, disk.params)
+  (dev_data, dev_meta) = disk.children
+  dev_data.params = objects.FillDict(data_params, dev_data.params)
+  dev_meta.params = objects.FillDict(meta_params, dev_meta.params)
+
+  return disk
+
+
+def _AnnotateDParamsGeneric(disk, (params, )):
+  """Generic disk parameter annotation routine.
+
+  """
+  assert disk.dev_type != constants.LD_DRBD8
+
+  disk.params = objects.FillDict(params, disk.params)
+
+  return disk
+
+
+def AnnotateDiskParams(template, disks, disk_params):
+  """Annotates the disk objects with the disk parameters.
+
+  @param template: The disk template used
+  @param disks: The list of disks objects to annotate
+  @param disk_params: The disk paramaters for annotation
+  @returns: A list of disk objects annotated
+
+  """
+  ld_params = objects.Disk.ComputeLDParams(template, disk_params)
+
+  if template == constants.DT_DRBD8:
+    annotation_fn = _AnnotateDParamsDRBD
+  elif template == constants.DT_DISKLESS:
+    annotation_fn = lambda disk, _: disk
+  else:
+    annotation_fn = _AnnotateDParamsGeneric
+
+  new_disks = []
+  for disk in disks:
+    new_disks.append(annotation_fn(disk.Copy(), ld_params))
+
+  return new_disks
+
+
 #: Generic encoders
 _ENCODERS = {
   rpc_defs.ED_OBJECT_DICT: _ObjectToDict,
