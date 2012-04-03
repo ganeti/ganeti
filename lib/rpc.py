@@ -664,6 +664,10 @@ class RpcRunner(_RpcClientBase,
       rpc_defs.ED_INST_DICT_HVP_BEP: self._InstDictHvpBep,
       rpc_defs.ED_INST_DICT_OSP: self._InstDictOsp,
 
+      # Encoders annotating disk parameters
+      rpc_defs.ED_DISKS_DICT_DP: self._DisksDictDP,
+      rpc_defs.ED_SINGLE_DISK_DICT_DP: self._SingleDiskDictDP,
+
       # Encoders with special requirements
       rpc_defs.ED_FILE_DETAILS: compat.partial(_PrepareFileUpload, _getents),
       })
@@ -731,6 +735,22 @@ class RpcRunner(_RpcClientBase,
 
     """
     return self._InstDict(instance, osp=osparams)
+
+  def _DisksDictDP(self, (disks, instance)):
+    """Wrapper for L{AnnotateDiskParams}.
+
+    """
+    diskparams = self._cfg.GetInstanceDiskParams(instance)
+    return [disk.ToDict()
+            for disk in AnnotateDiskParams(instance.disk_template,
+                                           disks, diskparams)]
+
+  def _SingleDiskDictDP(self, (disk, instance)):
+    """Wrapper for L{AnnotateDiskParams}.
+
+    """
+    (anno_disk,) = self._DisksDictDP(([disk], instance))
+    return anno_disk
 
 
 class JobQueueRunner(_RpcClientBase, _generated_rpc.RpcClientJobQueue):
