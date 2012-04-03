@@ -336,7 +336,7 @@ _BLOCKDEV_CALLS = [
     ("info", None, None),
     ], None, None, "Request creation of a given block device"),
   ("blockdev_wipe", SINGLE, None, TMO_SLOW, [
-    ("bdev", ED_OBJECT_DICT, None),
+    ("bdev", ED_SINGLE_DISK_DICT_DP, None),
     ("offset", None, None),
     ("size", None, None),
     ], None, None,
@@ -345,11 +345,11 @@ _BLOCKDEV_CALLS = [
     ("bdev", ED_OBJECT_DICT, None),
     ], None, None, "Request removal of a given block device"),
   ("blockdev_pause_resume_sync", SINGLE, None, TMO_NORMAL, [
-    ("disks", ED_OBJECT_DICT_LIST, None),
+    ("disks", ED_DISKS_DICT_DP, None),
     ("pause", None, None),
     ], None, None, "Request a pause/resume of given block device"),
   ("blockdev_assemble", SINGLE, None, TMO_NORMAL, [
-    ("disk", ED_OBJECT_DICT, None),
+    ("disk", ED_SINGLE_DISK_DICT_DP, None),
     ("owner", None, None),
     ("on_primary", None, None),
     ("idx", None, None),
@@ -358,7 +358,7 @@ _BLOCKDEV_CALLS = [
     ("disk", ED_OBJECT_DICT, None),
     ], None, None, "Request shutdown of a given block device"),
   ("blockdev_addchildren", SINGLE, None, TMO_NORMAL, [
-    ("bdev", ED_OBJECT_DICT, None),
+    ("bdev", ED_SINGLE_DISK_DICT_DP, None),
     ("ndevs", ED_OBJECT_DICT_LIST, None),
     ], None, None,
    "Request adding a list of children to a (mirroring) device"),
@@ -380,28 +380,28 @@ _BLOCKDEV_CALLS = [
     ], None, None, "Disconnects the network of the given drbd devices"),
   ("drbd_attach_net", MULTI, None, TMO_NORMAL, [
     ("nodes_ip", None, None),
-    ("disks", ED_OBJECT_DICT_LIST, None),
+    ("disks", ED_DISKS_DICT_DP, None),
     ("instance_name", None, None),
     ("multimaster", None, None),
     ], None, None, "Connects the given DRBD devices"),
   ("drbd_wait_sync", MULTI, None, TMO_SLOW, [
     ("nodes_ip", None, None),
-    ("disks", ED_OBJECT_DICT_LIST, None),
+    ("disks", ED_DISKS_DICT_DP, None),
     ], None, None,
    "Waits for the synchronization of drbd devices is complete"),
   ("blockdev_grow", SINGLE, None, TMO_NORMAL, [
-    ("cf_bdev", ED_OBJECT_DICT, None),
+    ("cf_bdev", ED_SINGLE_DISK_DICT_DP, None),
     ("amount", None, None),
     ("dryrun", None, None),
     ], None, None, "Request a snapshot of the given block device"),
   ("blockdev_export", SINGLE, None, TMO_1DAY, [
-    ("cf_bdev", ED_OBJECT_DICT, None),
+    ("cf_bdev", ED_SINGLE_DISK_DICT_DP, None),
     ("dest_node", None, None),
     ("dest_path", None, None),
     ("cluster_name", None, None),
     ], None, None, "Export a given disk to another node"),
   ("blockdev_snapshot", SINGLE, None, TMO_NORMAL, [
-    ("cf_bdev", ED_OBJECT_DICT, None),
+    ("cf_bdev", ED_SINGLE_DISK_DICT_DP, None),
     ], None, None, "Export a given disk to another node"),
   ("blockdev_rename", SINGLE, None, TMO_NORMAL, [
     ("devlist", ED_BLOCKDEV_RENAME, None),
