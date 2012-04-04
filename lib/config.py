@@ -242,7 +242,28 @@ class ConfigWriter:
     """
     node = self._UnlockedGetNodeInfo(instance.primary_node)
     nodegroup = self._UnlockedGetNodeGroup(node.group)
-    return self._config_data.cluster.SimpleFillDP(nodegroup.diskparams)
+    return self._UnlockedGetGroupDiskParams(nodegroup)
+
+  @locking.ssynchronized(_config_lock, shared=1)
+  def GetGroupDiskParams(self, group):
+    """Get the disk params populated with inherit chain.
+
+    @type group: L{objects.Group}
+    @param group: The group we want to know the params for
+    @return: A dict with the filled in disk params
+
+    """
+    return self._UnlockedGetGroupDiskParams(group)
+
+  def _UnlockedGetGroupDiskParams(self, group):
+    """Get the disk params populated with inherit chain down to node-group.
+
+    @type group: L{objects.Group}
+    @param group: The group we want to know the params for
+    @return: A dict with the filled in disk params
+
+    """
+    return self._config_data.cluster.SimpleFillDP(group.diskparams)
 
   @locking.ssynchronized(_config_lock, shared=1)
   def GenerateMAC(self, ec_id):

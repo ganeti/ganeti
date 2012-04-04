@@ -165,8 +165,8 @@ def UpgradeDiskParams(diskparams):
   @return: the upgraded disk parameters dict
 
   """
-  if diskparams is None:
-    result = constants.DISK_DT_DEFAULTS.copy()
+  if not diskparams:
+    result = {}
   else:
     result = FillDiskParams(constants.DISK_DT_DEFAULTS, diskparams)
 
@@ -1660,7 +1660,10 @@ class Cluster(TaggableObject):
     if self.use_external_mip_script is None:
       self.use_external_mip_script = False
 
-    self.diskparams = UpgradeDiskParams(self.diskparams)
+    if self.diskparams:
+      self.diskparams = UpgradeDiskParams(self.diskparams)
+    else:
+      self.diskparams = constants.DISK_DT_DEFAULTS.copy()
 
     # instance policy added before 2.6
     if self.ipolicy is None:

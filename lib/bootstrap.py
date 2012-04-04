@@ -584,7 +584,7 @@ def InitConfig(version, cluster_config, master_node_config,
     uuid=uuid_generator.Generate([], utils.NewUUID, _INITCONF_ECID),
     name=constants.INITIAL_NODE_GROUP_NAME,
     members=[master_node_config.name],
-    diskparams=cluster_config.diskparams,
+    diskparams={},
     )
   nodegroups = {
     default_nodegroup.uuid: default_nodegroup,

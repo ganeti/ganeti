@@ -29,6 +29,7 @@ import tempfile
 import shutil
 import operator
 import itertools
+import copy
 
 from ganeti import constants
 from ganeti import mcpu
@@ -974,6 +975,9 @@ class _FakeConfigForGenDiskTemplate:
   def GenerateDRBDSecret(self, ec_id):
     return "ec%s-secret%s" % (ec_id, self._secret.next())
 
+  def GetInstanceInfo(self, _):
+    return "foobar"
+
 
 class _FakeProcForGenDiskTemplate:
   def GetECId(self):
@@ -991,6 +995,10 @@ class TestGenerateDiskTemplate(unittest.TestCase):
     self.lu = _FakeLU(cfg=cfg, proc=proc)
     self.nodegroup = nodegroup
 
+  @staticmethod
+  def GetDiskParams():
+    return copy.deepcopy(constants.DISK_DT_DEFAULTS)
+
   def testWrongDiskTemplate(self):
     gdt = cmdlib._GenerateDiskTemplate
     disk_template = "##unknown##"
@@ -1000,7 +1008,7 @@ class TestGenerateDiskTemplate(unittest.TestCase):
     self.assertRaises(errors.ProgrammerError, gdt, self.lu, disk_template,
                       "inst26831.example.com", "node30113.example.com", [], [],
                       NotImplemented, NotImplemented, 0, self.lu.LogInfo,
-                      self.nodegroup.diskparams)
+                      self.GetDiskParams())
 
   def testDiskless(self):
     gdt = cmdlib._GenerateDiskTemplate
@@ -1008,7 +1016,7 @@ class TestGenerateDiskTemplate(unittest.TestCase):
     result = gdt(self.lu, constants.DT_DISKLESS, "inst27734.example.com",
                  "node30113.example.com", [], [],
                  NotImplemented, NotImplemented, 0, self.lu.LogInfo,
-                 self.nodegroup.diskparams)
+                 self.GetDiskParams())
     self.assertEqual(result, [])
 
   def _TestTrivialDisk(self, template, disk_info, base_index, exp_dev_type,
@@ -1027,14 +1035,14 @@ class TestGenerateDiskTemplate(unittest.TestCase):
                       template, "inst25088.example.com",
                       "node185.example.com", ["node323.example.com"], [],
                       NotImplemented, NotImplemented, base_index,
-                      self.lu.LogInfo, self.nodegroup.diskparams,
+                      self.lu.LogInfo, self.GetDiskParams(),
                       _req_file_storage=req_file_storage,
                       _req_shr_file_storage=req_shr_file_storage)
 
     result = gdt(self.lu, template, "inst21662.example.com",
                  "node21741.example.com", [],
                  disk_info, file_storage_dir, file_driver, base_index,
-                 self.lu.LogInfo, self.nodegroup.diskparams,
+                 self.lu.LogInfo, self.GetDiskParams(),
                  _req_file_storage=req_file_storage,
                  _req_shr_file_storage=req_shr_file_storage)
 
@@ -1184,12 +1192,12 @@ class TestGenerateDiskTemplate(unittest.TestCase):
     self.assertRaises(errors.ProgrammerError, gdt, self.lu, constants.DT_DRBD8,
                       "inst827.example.com", "node1334.example.com", [],
                       disk_info, NotImplemented, NotImplemented, 0,
-                      self.lu.LogInfo, self.nodegroup.diskparams)
+                      self.lu.LogInfo, self.GetDiskParams())
 
     result = gdt(self.lu, constants.DT_DRBD8, "inst827.example.com",
                  "node1334.example.com", ["node12272.example.com"],
                  disk_info, NotImplemented, NotImplemented, 0, self.lu.LogInfo,
-                 self.nodegroup.diskparams)
+                 self.GetDiskParams())
 
     for (idx, disk) in enumerate(result):
       self.assertTrue(isinstance(disk, objects.Disk))
