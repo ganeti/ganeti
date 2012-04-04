@@ -2667,10 +2667,8 @@ def FindDevice(disk, children):
 
   """
   _VerifyDiskType(disk.dev_type)
-  dev_params = objects.FillDict(constants.DISK_LD_DEFAULTS[disk.dev_type],
-                                disk.params)
   device = DEV_MAP[disk.dev_type](disk.physical_id, children, disk.size,
-                                  dev_params)
+                                  disk.params)
   if not device.attached:
     return None
   return device
@@ -2690,10 +2688,8 @@ def Assemble(disk, children):
 
   """
   _VerifyDiskType(disk.dev_type)
-  dev_params = objects.FillDict(constants.DISK_LD_DEFAULTS[disk.dev_type],
-                                disk.params)
   device = DEV_MAP[disk.dev_type](disk.physical_id, children, disk.size,
-                                  dev_params)
+                                  disk.params)
   device.Assemble()
   return device
 
@@ -2709,8 +2705,6 @@ def Create(disk, children):
 
   """
   _VerifyDiskType(disk.dev_type)
-  dev_params = objects.FillDict(constants.DISK_LD_DEFAULTS[disk.dev_type],
-                                disk.params)
   device = DEV_MAP[disk.dev_type].Create(disk.physical_id, children, disk.size,
-                                         dev_params)
+                                         disk.params)
   return device
