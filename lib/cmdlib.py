@@ -13583,11 +13583,12 @@ class LUGroupAdd(LogicalUnit):
 
     if self.op.diskparams:
       for templ in constants.DISK_TEMPLATES:
-        if templ not in self.op.diskparams:
-          self.op.diskparams[templ] = {}
-        utils.ForceDictType(self.op.diskparams[templ], constants.DISK_DT_TYPES)
+        if templ in self.op.diskparams:
+          utils.ForceDictType(self.op.diskparams[templ],
+                              constants.DISK_DT_TYPES)
+      self.new_diskparams = self.op.diskparams
     else:
-      self.op.diskparams = self.cfg.GetClusterInfo().diskparams
+      self.new_diskparams = None
 
     if self.op.ipolicy:
       cluster = self.cfg.GetClusterInfo()
@@ -13621,7 +13622,7 @@ class LUGroupAdd(LogicalUnit):
                                   uuid=self.group_uuid,
                                   alloc_policy=self.op.alloc_policy,
                                   ndparams=self.op.ndparams,
-                                  diskparams=self.op.diskparams,
+                                  diskparams=self.new_diskparams,
                                   ipolicy=self.op.ipolicy,
                                   hv_state_static=self.new_hv_state,
                                   disk_state_static=self.new_disk_state)
@@ -13904,6 +13905,15 @@ class LUGroupSetParams(LogicalUnit):
       self.needed_locks[locking.LEVEL_INSTANCE] = \
           self.cfg.GetNodeGroupInstances(self.group_uuid)
 
+  @staticmethod
+  def _UpdateAndVerifyDiskParams(old, new):
+    """Updates and verifies disk parameters.
+
+    """
+    new_params = _GetUpdatedParams(old, new)
+    utils.ForceDictType(new_params, constants.DISK_DT_TYPES)
+    return new_params
+
   def CheckPrereq(self):
     """Check prerequisites.
 
@@ -13926,14 +13936,13 @@ class LUGroupSetParams(LogicalUnit):
       self.new_ndparams = new_ndparams
 
     if self.op.diskparams:
-      self.new_diskparams = dict()
-      for templ in constants.DISK_TEMPLATES:
-        if templ not in self.op.diskparams:
-          self.op.diskparams[templ] = {}
-        new_templ_params = _GetUpdatedParams(self.group.diskparams[templ],
-                                             self.op.diskparams[templ])
-        utils.ForceDictType(new_templ_params, constants.DISK_DT_TYPES)
-        self.new_diskparams[templ] = new_templ_params
+      diskparams = self.group.diskparams
+      new_diskparams = dict((dt,
+                             self._UpdateAndVerifyDiskParams(diskparams[dt],
+                                                        self.op.diskparams[dt]))
+                            for dt in constants.DISK_TEMPLATES
+                            if dt in self.op.diskparams)
+      self.new_diskparams = objects.FillDiskParams(diskparams, new_diskparams)
 
     if self.op.hv_state:
       self.new_hv_state = _MergeAndVerifyHvState(self.op.hv_state,
