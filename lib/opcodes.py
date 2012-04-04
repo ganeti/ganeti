@@ -1440,6 +1440,8 @@ class OpInstanceRecreateDisks(OpCode):
      " index and a possibly empty dictionary with disk parameter changes"),
     ("nodes", ht.EmptyList, ht.TListOf(ht.TNonEmptyString),
      "New instance nodes, if relocation is desired"),
+    ("iallocator", None, ht.TMaybeString,
+     "Iallocator for deciding new nodes"),
     ]
   OP_RESULT = ht.TNone
 

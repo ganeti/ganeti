@@ -7154,6 +7154,10 @@ class LUInstanceRecreateDisks(LogicalUnit):
                                  " once: %s" % utils.CommaJoin(duplicates),
                                  errors.ECODE_INVAL)
 
+    if self.op.iallocator and self.op.nodes:
+      raise errors.OpPrereqError("Give either the iallocator or the new"
+                                 " nodes, not both", errors.ECODE_INVAL)
+
     for (idx, params) in self.op.disks:
       utils.ForceDictType(params, constants.IDISK_PARAMS_TYPES)
       unsupported = frozenset(params.keys()) - self._MODIFYABLE
@@ -7171,14 +7175,42 @@ class LUInstanceRecreateDisks(LogicalUnit):
       self.needed_locks[locking.LEVEL_NODE] = list(self.op.nodes)
     else:
       self.needed_locks[locking.LEVEL_NODE] = []
+      if self.op.iallocator:
+        # iallocator will select a new node in the same group
+        self.needed_locks[locking.LEVEL_NODEGROUP] = []
     self.needed_locks[locking.LEVEL_NODE_RES] = []
 
   def DeclareLocks(self, level):
-    if level == locking.LEVEL_NODE:
-      # if we replace the nodes, we only need to lock the old primary,
-      # otherwise we need to lock all nodes for disk re-creation
-      primary_only = bool(self.op.nodes)
-      self._LockInstancesNodes(primary_only=primary_only)
+    if level == locking.LEVEL_NODEGROUP:
+      assert self.op.iallocator is not None
+      assert not self.op.nodes
+      assert not self.needed_locks[locking.LEVEL_NODEGROUP]
+      self.share_locks[locking.LEVEL_NODEGROUP] = 1
+      # Lock the primary group used by the instance optimistically; this
+      # requires going via the node before it's locked, requiring
+      # verification later on
+      self.needed_locks[locking.LEVEL_NODEGROUP] = \
+        self.cfg.GetInstanceNodeGroups(self.op.instance_name, primary_only=True)
+
+    elif level == locking.LEVEL_NODE:
+      # If an allocator is used, then we lock all the nodes in the current
+      # instance group, as we don't know yet which ones will be selected;
+      # if we replace the nodes without using an allocator, we only need to
+      # lock the old primary for doing RPCs (FIXME: we don't lock nodes for
+      # RPC anymore), otherwise we need to lock all the instance nodes for
+      # disk re-creation
+      if self.op.iallocator:
+        assert not self.op.nodes
+        assert not self.needed_locks[locking.LEVEL_NODE]
+        assert len(self.owned_locks(locking.LEVEL_NODEGROUP)) == 1
+
+        # Lock member nodes of the group of the primary node
+        for group_uuid in self.owned_locks(locking.LEVEL_NODEGROUP):
+          self.needed_locks[locking.LEVEL_NODE].extend(
+            self.cfg.GetNodeGroup(group_uuid).members)
+      else:
+        primary_only = bool(self.op.nodes)
+        self._LockInstancesNodes(primary_only=primary_only)
     elif level == locking.LEVEL_NODE_RES:
       # Copy node locks
       self.needed_locks[locking.LEVEL_NODE_RES] = \
@@ -7222,18 +7254,27 @@ class LUInstanceRecreateDisks(LogicalUnit):
       primary_node = self.op.nodes[0]
     else:
       primary_node = instance.primary_node
-    _CheckNodeOnline(self, primary_node)
+    if not self.op.iallocator:
+      _CheckNodeOnline(self, primary_node)
 
     if instance.disk_template == constants.DT_DISKLESS:
       raise errors.OpPrereqError("Instance '%s' has no disks" %
                                  self.op.instance_name, errors.ECODE_INVAL)
+
+    # Verify if node group locks are still correct
+    owned_groups = self.owned_locks(locking.LEVEL_NODEGROUP)
+    if owned_groups:
+      # Node group locks are acquired only for the primary node (and only
+      # when the allocator is used)
+      _CheckInstanceNodeGroups(self.cfg, self.op.instance_name, owned_groups,
+                               primary_only=True)
 
     # if we replace nodes *and* the old primary is offline, we don't
     # check
     assert instance.primary_node in self.owned_locks(locking.LEVEL_NODE)
     assert instance.primary_node in self.owned_locks(locking.LEVEL_NODE_RES)
     old_pnode = self.cfg.GetNodeInfo(instance.primary_node)
-    if not (self.op.nodes and old_pnode.offline):
+    if not ((self.op.iallocator or self.op.nodes) and old_pnode.offline):
       _CheckInstanceState(self, instance, INSTANCE_NOT_RUNNING,
                           msg="cannot recreate disks")
 
@@ -7247,13 +7288,20 @@ class LUInstanceRecreateDisks(LogicalUnit):
       raise errors.OpPrereqError("Invalid disk index '%s'" % maxidx,
                                  errors.ECODE_INVAL)
 
-    if (self.op.nodes and
+    if ((self.op.nodes or self.op.iallocator) and
         sorted(self.disks.keys()) != range(len(instance.disks))):
       raise errors.OpPrereqError("Can't recreate disks partially and"
                                  " change the nodes at the same time",
                                  errors.ECODE_INVAL)
 
     self.instance = instance
+
+    if self.op.iallocator:
+      self._RunAllocator()
+
+    # Release unneeded node and node resource locks
+    _ReleaseLocks(self, locking.LEVEL_NODE, keep=self.op.nodes)
+    _ReleaseLocks(self, locking.LEVEL_NODE_RES, keep=self.op.nodes)
 
   def Exec(self, feedback_fn):
     """Recreate the disks.
