@@ -1164,7 +1164,7 @@ class ExportInstanceHelper:
 
       # result.payload will be a snapshot of an lvm leaf of the one we
       # passed
-      result = self._lu.rpc.call_blockdev_snapshot(src_node, disk)
+      result = self._lu.rpc.call_blockdev_snapshot(src_node, (disk, instance))
       new_dev = False
       msg = result.fail_msg
       if msg:
