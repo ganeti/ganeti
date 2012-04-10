@@ -786,6 +786,7 @@ TEST_FILES = \
 	test/htools-text-backend.test
 
 python_tests = \
+	doc/examples/rapi_testutils.py \
 	test/ganeti.asyncnotifier_unittest.py \
 	test/ganeti.backend_unittest.py \
 	test/ganeti.bdev_unittest.py \
