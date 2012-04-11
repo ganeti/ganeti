@@ -6589,7 +6589,7 @@ def _RemoveInstance(lu, feedback_fn, instance, ignore_failures):
   """
   logging.info("Removing block devices for instance %s", instance.name)
 
-  if not _RemoveDisks(lu, instance):
+  if not _RemoveDisks(lu, instance, ignore_failures=ignore_failures):
     if not ignore_failures:
       raise errors.OpExecError("Can't remove instance's disks")
     feedback_fn("Warning: can't remove instance's disks")
@@ -7934,7 +7934,7 @@ def _CreateDisks(lu, instance, to_skip=None, target_node=None):
       _CreateBlockDev(lu, node, instance, device, f_create, info, f_create)
 
 
-def _RemoveDisks(lu, instance, target_node=None):
+def _RemoveDisks(lu, instance, target_node=None, ignore_failures=False):
   """Remove all disks for an instance.
 
   This abstracts away some work from `AddInstance()` and
@@ -7955,6 +7955,7 @@ def _RemoveDisks(lu, instance, target_node=None):
   logging.info("Removing block devices for instance %s", instance.name)
 
   all_result = True
+  ports_to_release = set()
   for device in instance.disks:
     if target_node:
       edata = [(target_node, device)]
@@ -7970,8 +7971,11 @@ def _RemoveDisks(lu, instance, target_node=None):
 
     # if this is a DRBD disk, return its port to the pool
     if device.dev_type in constants.LDS_DRBD:
-      tcp_port = device.logical_id[2]
-      lu.cfg.AddTcpUdpPort(tcp_port)
+      ports_to_release.add(device.logical_id[2])
+
+  if all_result or ignore_failures:
+    for port in ports_to_release:
+      lu.cfg.AddTcpUdpPort(port)
 
   if instance.disk_template == constants.DT_FILE:
     file_storage_dir = os.path.dirname(instance.disks[0].logical_id[1])
