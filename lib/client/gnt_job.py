@@ -79,10 +79,13 @@ def ListJobs(opts, args):
   fmtoverride.update(dict.fromkeys(["opstart", "opexec", "opend"],
     (lambda value: map(FormatTimestamp, value), None)))
 
+  qfilter = qlang.MakeSimpleFilter("status", opts.status_filter)
+
   return GenericList(constants.QR_JOB, selected_fields, args, None,
                      opts.separator, not opts.no_headers,
                      format_override=fmtoverride, verbose=opts.verbose,
-                     force_filter=opts.force_filter, namefield="id")
+                     force_filter=opts.force_filter, namefield="id",
+                     qfilter=qfilter)
 
 
 def ListJobFields(opts, args):
@@ -337,10 +340,43 @@ def WatchJob(opts, args):
   return retcode
 
 
+_PENDING_OPT = \
+  cli_option("--pending", default=None,
+             action="store_const", dest="status_filter",
+             const=frozenset([
+               constants.JOB_STATUS_QUEUED,
+               constants.JOB_STATUS_WAITING,
+               ]),
+             help="Show only jobs pending execution")
+
+_RUNNING_OPT = \
+  cli_option("--running", default=None,
+             action="store_const", dest="status_filter",
+             const=frozenset([
+               constants.JOB_STATUS_RUNNING,
+               ]),
+             help="Show jobs currently running only")
+
+_ERROR_OPT = \
+  cli_option("--error", default=None,
+             action="store_const", dest="status_filter",
+             const=frozenset([
+               constants.JOB_STATUS_ERROR,
+               ]),
+             help="Show failed jobs only")
+
+_FINISHED_OPT = \
+  cli_option("--finished", default=None,
+             action="store_const", dest="status_filter",
+             const=constants.JOBS_FINALIZED,
+             help="Show finished jobs only")
+
+
 commands = {
   "list": (
     ListJobs, [ArgJobId()],
-    [NOHDR_OPT, SEP_OPT, FIELDS_OPT, VERBOSE_OPT, FORCE_FILTER_OPT],
+    [NOHDR_OPT, SEP_OPT, FIELDS_OPT, VERBOSE_OPT, FORCE_FILTER_OPT,
+     _PENDING_OPT, _RUNNING_OPT, _ERROR_OPT, _FINISHED_OPT],
     "[job_id ...]",
     "Lists the jobs and their status. The available fields can be shown"
     " using the \"list-fields\" command (see the man page for details)."

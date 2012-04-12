@@ -2800,7 +2800,7 @@ def _WarnUnknownFields(fdefs):
 
 def GenericList(resource, fields, names, unit, separator, header, cl=None,
                 format_override=None, verbose=False, force_filter=False,
-                namefield=None):
+                namefield=None, qfilter=None):
   """Generic implementation for listing all items of a resource.
 
   @param resource: One of L{constants.QR_VIA_LUXI}
@@ -2826,12 +2826,19 @@ def GenericList(resource, fields, names, unit, separator, header, cl=None,
   @type namefield: string
   @param namefield: Name of field to use for simple filters (see
     L{qlang.MakeFilter} for details)
+  @type qfilter: list or None
+  @param qfilter: Query filter (in addition to names)
 
   """
   if not names:
     names = None
 
-  qfilter = qlang.MakeFilter(names, force_filter, namefield=namefield)
+  namefilter = qlang.MakeFilter(names, force_filter, namefield=namefield)
+
+  if qfilter is None:
+    qfilter = namefilter
+  elif namefilter is not None:
+    qfilter = [qlang.OP_AND, namefilter, qfilter]
 
   if cl is None:
     cl = GetClient()
