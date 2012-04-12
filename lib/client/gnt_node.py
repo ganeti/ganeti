@@ -948,15 +948,16 @@ commands = {
     ListTags, ARGS_ONE_NODE, [],
     "<node_name>", "List the tags of the given node"),
   "add-tags": (
-    AddTags, [ArgNode(min=1, max=1), ArgUnknown()], [TAG_SRC_OPT, PRIORITY_OPT],
+    AddTags, [ArgNode(min=1, max=1), ArgUnknown()],
+    [TAG_SRC_OPT, PRIORITY_OPT, SUBMIT_OPT],
     "<node_name> tag...", "Add tags to the given node"),
   "remove-tags": (
     RemoveTags, [ArgNode(min=1, max=1), ArgUnknown()],
-    [TAG_SRC_OPT, PRIORITY_OPT],
+    [TAG_SRC_OPT, PRIORITY_OPT, SUBMIT_OPT],
     "<node_name> tag...", "Remove tags from the given node"),
   "health": (
     Health, ARGS_MANY_NODES,
-    [NOHDR_OPT, SEP_OPT, SUBMIT_OPT, PRIORITY_OPT, OOB_TIMEOUT_OPT],
+    [NOHDR_OPT, SEP_OPT, PRIORITY_OPT, OOB_TIMEOUT_OPT],
     "[<node_name>...]", "List health of node(s) using out-of-band"),
   }
 

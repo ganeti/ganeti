@@ -243,15 +243,15 @@ commands = {
     "[-I <iallocator>] [--to <group>]",
     "Evacuate all instances within a group"),
   "list-tags": (
-    ListTags, ARGS_ONE_GROUP, [PRIORITY_OPT],
+    ListTags, ARGS_ONE_GROUP, [],
     "<instance_name>", "List the tags of the given instance"),
   "add-tags": (
     AddTags, [ArgGroup(min=1, max=1), ArgUnknown()],
-    [TAG_SRC_OPT, PRIORITY_OPT],
+    [TAG_SRC_OPT, PRIORITY_OPT, SUBMIT_OPT],
     "<instance_name> tag...", "Add tags to the given instance"),
   "remove-tags": (
     RemoveTags, [ArgGroup(min=1, max=1), ArgUnknown()],
-    [TAG_SRC_OPT, PRIORITY_OPT],
+    [TAG_SRC_OPT, PRIORITY_OPT, SUBMIT_OPT],
     "<instance_name> tag...", "Remove tags from given instance"),
   }
 

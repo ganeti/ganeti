@@ -1539,15 +1539,15 @@ commands = {
     [TO_GROUP_OPT, IALLOCATOR_OPT, EARLY_RELEASE_OPT],
     "[-I <iallocator>] [--to <group>]", "Change group of instance"),
   "list-tags": (
-    ListTags, ARGS_ONE_INSTANCE, [PRIORITY_OPT],
+    ListTags, ARGS_ONE_INSTANCE, [],
     "<instance_name>", "List the tags of the given instance"),
   "add-tags": (
     AddTags, [ArgInstance(min=1, max=1), ArgUnknown()],
-    [TAG_SRC_OPT, PRIORITY_OPT],
+    [TAG_SRC_OPT, PRIORITY_OPT, SUBMIT_OPT],
     "<instance_name> tag...", "Add tags to the given instance"),
   "remove-tags": (
     RemoveTags, [ArgInstance(min=1, max=1), ArgUnknown()],
-    [TAG_SRC_OPT, PRIORITY_OPT],
+    [TAG_SRC_OPT, PRIORITY_OPT, SUBMIT_OPT],
     "<instance_name> tag...", "Remove tags from given instance"),
   }
 
