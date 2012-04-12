@@ -1181,12 +1181,13 @@ def _OobPower(opts, node_list, power):
   return True
 
 
-def _InstanceStart(opts, inst_list, start):
+def _InstanceStart(opts, inst_list, start, no_remember=False):
   """Puts the instances in the list to desired state.
 
   @param opts: The command line options selected by the user
   @param inst_list: The list of instances to operate on
   @param start: True if they should be started, False for shutdown
+  @param no_remember: If the instance state should be remembered
   @return: The success of the operation (none failed)
 
   """
@@ -1195,7 +1196,8 @@ def _InstanceStart(opts, inst_list, start):
     text_submit, text_success, text_failed = ("startup", "started", "starting")
   else:
     opcls = compat.partial(opcodes.OpInstanceShutdown,
-                           timeout=opts.shutdown_timeout)
+                           timeout=opts.shutdown_timeout,
+                           no_remember=no_remember)
     text_submit, text_success, text_failed = ("shutdown", "stopped", "stopping")
 
   jex = JobExecutor(opts=opts)
@@ -1375,7 +1377,7 @@ def _EpoOff(opts, node_list, inst_map):
   @return: The desired exit status
 
   """
-  if not _InstanceStart(opts, inst_map.keys(), False):
+  if not _InstanceStart(opts, inst_map.keys(), False, no_remember=True):
     ToStderr("Please investigate and stop instances manually before continuing")
     return constants.EXIT_FAILURE
 
@@ -1521,10 +1523,10 @@ commands = {
   "list-tags": (
     ListTags, ARGS_NONE, [], "", "List the tags of the cluster"),
   "add-tags": (
-    AddTags, [ArgUnknown()], [TAG_SRC_OPT, PRIORITY_OPT],
+    AddTags, [ArgUnknown()], [TAG_SRC_OPT, PRIORITY_OPT, SUBMIT_OPT],
     "tag...", "Add tags to the cluster"),
   "remove-tags": (
-    RemoveTags, [ArgUnknown()], [TAG_SRC_OPT, PRIORITY_OPT],
+    RemoveTags, [ArgUnknown()], [TAG_SRC_OPT, PRIORITY_OPT, SUBMIT_OPT],
     "tag...", "Remove tags from the cluster"),
   "search-tags": (
     SearchTags, [ArgUnknown(min=1, max=1)], [PRIORITY_OPT], "",

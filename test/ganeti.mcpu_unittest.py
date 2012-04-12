@@ -34,6 +34,19 @@ from ganeti.constants import \
 import testutils
 
 
+REQ_BGL_WHITELIST = frozenset([
+  opcodes.OpClusterActivateMasterIp,
+  opcodes.OpClusterDeactivateMasterIp,
+  opcodes.OpClusterDestroy,
+  opcodes.OpClusterPostInit,
+  opcodes.OpClusterRename,
+  opcodes.OpInstanceRename,
+  opcodes.OpNodeAdd,
+  opcodes.OpNodeRemove,
+  opcodes.OpTestAllocator,
+  ])
+
+
 class TestLockAttemptTimeoutStrategy(unittest.TestCase):
   def testConstants(self):
     tpa = mcpu.LockAttemptTimeoutStrategy._TIMEOUT_PER_ATTEMPT
@@ -71,6 +84,16 @@ class TestDispatchTable(unittest.TestCase):
         continue
       self.assertTrue(opcls in mcpu.Processor.DISPATCH_TABLE,
                       msg="%s missing handler class" % opcls)
+
+      # Check against BGL whitelist
+      lucls = mcpu.Processor.DISPATCH_TABLE[opcls]
+      if lucls.REQ_BGL:
+        self.assertTrue(opcls in REQ_BGL_WHITELIST,
+                        msg=("%s not whitelisted for BGL" % opcls.OP_ID))
+      else:
+        self.assertFalse(opcls in REQ_BGL_WHITELIST,
+                         msg=("%s whitelisted for BGL, but doesn't use it" %
+                              opcls.OP_ID))
 
 
 if __name__ == "__main__":

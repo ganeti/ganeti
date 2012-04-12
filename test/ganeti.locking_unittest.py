@@ -433,7 +433,31 @@ class TestSharedLock(_ThreadedTestCase):
     self.assertRaises(errors.LockError, self.sl.delete)
 
   def testDeleteTimeout(self):
-    self.sl.delete(timeout=60)
+    self.assertTrue(self.sl.delete(timeout=60))
+
+  def testDeleteTimeoutFail(self):
+    ready = threading.Event()
+    finish = threading.Event()
+
+    def fn():
+      self.sl.acquire(shared=0)
+      ready.set()
+
+      finish.wait()
+      self.sl.release()
+
+    self._addThread(target=fn)
+    ready.wait()
+
+    # Test if deleting a lock owned in exclusive mode by another thread fails
+    # to delete when a timeout is used
+    self.assertFalse(self.sl.delete(timeout=0.02))
+
+    finish.set()
+    self._waitThreads()
+
+    self.assertTrue(self.sl.delete())
+    self.assertRaises(errors.LockError, self.sl.acquire)
 
   def testNoDeleteIfSharer(self):
     self.sl.acquire(shared=1)
@@ -928,6 +952,84 @@ class TestSharedLock(_ThreadedTestCase):
                       for acquires in [perprio[i]
                                        for i in sorted(perprio.keys())]
                       for (shared, _, threads) in acquires])
+
+  class _FakeTimeForSpuriousNotifications:
+    def __init__(self, now, check_end):
+      self.now = now
+      self.check_end = check_end
+
+      # Deterministic random number generator
+      self.rnd = random.Random(15086)
+
+    def time(self):
+      # Advance time if the random number generator thinks so (this is to test
+      # multiple notifications without advancing the time)
+      if self.rnd.random() < 0.3:
+        self.now += self.rnd.random()
+
+      self.check_end(self.now)
+
+      return self.now
+
+  @_Repeat
+  def testAcquireTimeoutWithSpuriousNotifications(self):
+    ready = threading.Event()
+    locked = threading.Event()
+    req = Queue.Queue(0)
+
+    epoch = 4000.0
+    timeout = 60.0
+
+    def check_end(now):
+      self.assertFalse(locked.isSet())
+
+      # If we waited long enough (in virtual time), tell main thread to release
+      # lock, otherwise tell it to notify once more
+      req.put(now < (epoch + (timeout * 0.8)))
+
+    time_fn = self._FakeTimeForSpuriousNotifications(epoch, check_end).time
+
+    sl = locking.SharedLock("test", _time_fn=time_fn)
+
+    # Acquire in exclusive mode
+    sl.acquire(shared=0)
+
+    def fn():
+      self.assertTrue(sl.acquire(shared=0, timeout=timeout,
+                                 test_notify=ready.set))
+      locked.set()
+      sl.release()
+      self.done.put("success")
+
+    # Start acquire with timeout and wait for it to be ready
+    self._addThread(target=fn)
+    ready.wait()
+
+    # The separate thread is now waiting to acquire the lock, so start sending
+    # spurious notifications.
+
+    # Wait for separate thread to ask for another notification
+    count = 0
+    while req.get():
+      # After sending the notification, the lock will take a short amount of
+      # time to notice and to retrieve the current time
+      sl._notify_topmost()
+      count += 1
+
+    self.assertTrue(count > 100, "Not enough notifications were sent")
+
+    self.assertFalse(locked.isSet())
+
+    # Some notifications have been sent, now actually release the lock
+    sl.release()
+
+    # Wait for lock to be acquired
+    locked.wait()
+
+    self._waitThreads()
+
+    self.assertEqual(self.done.get_nowait(), "success")
+    self.assertRaises(Queue.Empty, self.done.get_nowait)
 
 
 class TestSharedLockInCondition(_ThreadedTestCase):

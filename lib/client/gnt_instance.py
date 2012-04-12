@@ -1203,7 +1203,15 @@ def ShowInstanceConfig(opts, args):
     ##          instance["auto_balance"])
     buf.write("  Nodes:\n")
     buf.write("    - primary: %s\n" % instance["pnode"])
-    buf.write("    - secondaries: %s\n" % utils.CommaJoin(instance["snodes"]))
+    buf.write("      group: %s (UUID %s)\n" %
+              (instance["pnode_group_name"], instance["pnode_group_uuid"]))
+    buf.write("    - secondaries: %s\n" %
+              utils.CommaJoin("%s (group %s, group UUID %s)" %
+                                (name, group_name, group_uuid)
+                              for (name, group_name, group_uuid) in
+                                zip(instance["snodes"],
+                                    instance["snodes_group_names"],
+                                    instance["snodes_group_uuids"])))
     buf.write("  Operating system: %s\n" % instance["os"])
     FormatParameterDict(buf, instance["os_instance"], instance["os_actual"],
                         level=2)
@@ -1638,15 +1646,15 @@ commands = {
     [TO_GROUP_OPT, IALLOCATOR_OPT, EARLY_RELEASE_OPT],
     "[-I <iallocator>] [--to <group>]", "Change group of instance"),
   "list-tags": (
-    ListTags, ARGS_ONE_INSTANCE, [PRIORITY_OPT],
+    ListTags, ARGS_ONE_INSTANCE, [],
     "<instance_name>", "List the tags of the given instance"),
   "add-tags": (
     AddTags, [ArgInstance(min=1, max=1), ArgUnknown()],
-    [TAG_SRC_OPT, PRIORITY_OPT],
+    [TAG_SRC_OPT, PRIORITY_OPT, SUBMIT_OPT],
     "<instance_name> tag...", "Add tags to the given instance"),
   "remove-tags": (
     RemoveTags, [ArgInstance(min=1, max=1), ArgUnknown()],
-    [TAG_SRC_OPT, PRIORITY_OPT],
+    [TAG_SRC_OPT, PRIORITY_OPT, SUBMIT_OPT],
     "<instance_name> tag...", "Remove tags from given instance"),
   }
 

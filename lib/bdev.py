@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2010, 2011 Google Inc.
+# Copyright (C) 2006, 2007, 2010, 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -618,8 +618,8 @@ class LogicalVolume(BlockDev):
       return False
 
     status, major, minor, pe_size, stripes = out
-    if len(status) != 6:
-      logging.error("lvs lv_attr is not 6 characters (%s)", status)
+    if len(status) < 6:
+      logging.error("lvs lv_attr is not at least 6 characters (%s)", status)
       return False
 
     try:

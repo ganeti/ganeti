@@ -20,10 +20,10 @@ Version 2.6.0 beta1
   a future version. :pyeval:`luxi.REQ_QUERY` should be used instead.
 
 
-Version 2.5.0 rc5
------------------
+Version 2.5.0
+-------------
 
-*(Released Mon, 9 Jan 2012)*
+*(Released Thu, 12 Apr 2012)*
 
 Incompatible/important changes and bugfixes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -59,6 +59,9 @@ Incompatible/important changes and bugfixes
 - Offline nodes are ignored when failing over an instance.
 - Support for KVM version 1.0, which changed the version reporting format
   from 3 to 2 digits.
+- TCP/IP ports used by DRBD disks are returned to a pool upon instance
+  removal.
+- ``Makefile`` is now compatible with Automake 1.11.2
 - Includes all bugfixes made in the 2.4 series
 
 New features
@@ -151,6 +154,25 @@ Misc
 - A short delay when waiting for job changes reduces the number of LUXI
   requests significantly.
 - DRBD metadata volumes are overwritten with zeros during disk creation.
+- Out-of-band commands no longer acquire the cluster lock in exclusive
+  mode.
+- ``devel/upload`` now uses correct permissions for directories.
+
+
+Version 2.5.0 rc6
+-----------------
+
+*(Released Fri, 23 Mar 2012)*
+
+This was the sixth release candidate of the 2.5 series.
+
+
+Version 2.5.0 rc5
+-----------------
+
+*(Released Mon, 9 Jan 2012)*
+
+This was the fifth release candidate of the 2.5 series.
 
 
 Version 2.5.0 rc4

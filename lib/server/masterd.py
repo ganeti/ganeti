@@ -57,6 +57,7 @@ from ganeti import bootstrap
 from ganeti import netutils
 from ganeti import objects
 from ganeti import query
+from ganeti import runtime
 
 
 CLIENT_REQUEST_WORKERS = 16
@@ -625,6 +626,9 @@ def CheckMasterd(options, args):
     print >> sys.stderr, ("User or group not existing on system: %s:%s" %
                           (constants.MASTERD_USER, constants.DAEMONS_GROUP))
     sys.exit(constants.EXIT_FAILURE)
+
+  # Determine static runtime architecture information
+  runtime.InitArchInfo()
 
   # Check the configuration is sane before anything else
   try:

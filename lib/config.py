@@ -723,12 +723,15 @@ class ConfigWriter:
   def AddTcpUdpPort(self, port):
     """Adds a new port to the available port pool.
 
+    @warning: this method does not "flush" the configuration (via
+        L{_WriteConfig}); callers should do that themselves once the
+        configuration is stable
+
     """
     if not isinstance(port, int):
       raise errors.ProgrammerError("Invalid type passed for port")
 
     self._config_data.cluster.tcpudp_port_pool.add(port)
-    self._WriteConfig()
 
   @locking.ssynchronized(_config_lock, shared=1)
   def GetPortList(self):
@@ -1181,6 +1184,17 @@ class ConfigWriter:
                      for node_name in nodes
                      for member_name in
                        self._UnlockedGetNodeGroup(ngfn(node_name)).members)
+
+  @locking.ssynchronized(_config_lock, shared=1)
+  def GetMultiNodeGroupInfo(self, group_uuids):
+    """Get the configuration of multiple node groups.
+
+    @param group_uuids: List of node group UUIDs
+    @rtype: list
+    @return: List of tuples of (group_uuid, group_info)
+
+    """
+    return [(uuid, self._UnlockedGetNodeGroup(uuid)) for uuid in group_uuids]
 
   @locking.ssynchronized(_config_lock)
   def AddInstance(self, instance, ec_id):

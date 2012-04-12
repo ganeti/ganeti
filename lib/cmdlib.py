@@ -32,7 +32,6 @@ import os
 import os.path
 import time
 import re
-import platform
 import logging
 import copy
 import OpenSSL
@@ -60,6 +59,7 @@ from ganeti import qlang
 from ganeti import opcodes
 from ganeti import ht
 from ganeti import rpc
+from ganeti import runtime
 
 import ganeti.masterd.instance # pylint: disable=W0611
 
@@ -594,6 +594,32 @@ def _MakeLegacyNodeInfo(data):
   return utils.JoinDisjointDicts(utils.JoinDisjointDicts(vg_info, hv_info), {
     "bootid": bootid,
     })
+
+
+def _CheckInstancesNodeGroups(cfg, instances, owned_groups, owned_nodes,
+                              cur_group_uuid):
+  """Checks if node groups for locked instances are still correct.
+
+  @type cfg: L{config.ConfigWriter}
+  @param cfg: Cluster configuration
+  @type instances: dict; string as key, L{objects.Instance} as value
+  @param instances: Dictionary, instance name as key, instance object as value
+  @type owned_groups: iterable of string
+  @param owned_groups: List of owned groups
+  @type owned_nodes: iterable of string
+  @param owned_nodes: List of owned nodes
+  @type cur_group_uuid: string or None
+  @param cur_group_uuid: Optional group UUID to check against instance's groups
+
+  """
+  for (name, inst) in instances.items():
+    assert owned_nodes.issuperset(inst.all_nodes), \
+      "Instance %s's nodes changed while we kept the lock" % name
+
+    inst_groups = _CheckInstanceNodeGroups(cfg, name, owned_groups)
+
+    assert cur_group_uuid is None or cur_group_uuid in inst_groups, \
+      "Instance %s has no node in group %s" % (name, cur_group_uuid)
 
 
 def _CheckInstanceNodeGroups(cfg, instance_name, owned_groups):
@@ -1885,7 +1911,7 @@ class LUClusterVerifyConfig(NoHooksLU, _VerifyErrors):
   """Verifies the cluster config.
 
   """
-  REQ_BGL = True
+  REQ_BGL = False
 
   def _VerifyHVP(self, hvp_data):
     """Verifies locally the syntax of the hypervisor parameters.
@@ -1902,13 +1928,17 @@ class LUClusterVerifyConfig(NoHooksLU, _VerifyErrors):
         self._ErrorIf(True, constants.CV_ECLUSTERCFG, None, msg % str(err))
 
   def ExpandNames(self):
-    # Information can be safely retrieved as the BGL is acquired in exclusive
-    # mode
-    assert locking.BGL in self.owned_locks(locking.LEVEL_CLUSTER)
+    self.needed_locks = dict.fromkeys(locking.LEVELS, locking.ALL_SET)
+    self.share_locks = _ShareAll()
+
+  def CheckPrereq(self):
+    """Check prerequisites.
+
+    """
+    # Retrieve all information
     self.all_group_info = self.cfg.GetAllNodeGroupsInfo()
     self.all_node_info = self.cfg.GetAllNodesInfo()
     self.all_inst_info = self.cfg.GetAllInstancesInfo()
-    self.needed_locks = {}
 
   def Exec(self, feedback_fn):
     """Verify integrity of cluster, performing various test on nodes.
@@ -3499,15 +3529,8 @@ class LUGroupVerifyDisks(NoHooksLU):
     self.instances = dict(self.cfg.GetMultiInstanceInfo(owned_instances))
 
     # Check if node groups for locked instances are still correct
-    for (instance_name, inst) in self.instances.items():
-      assert owned_nodes.issuperset(inst.all_nodes), \
-        "Instance %s's nodes changed while we kept the lock" % instance_name
-
-      inst_groups = _CheckInstanceNodeGroups(self.cfg, instance_name,
-                                             owned_groups)
-
-      assert self.group_uuid in inst_groups, \
-        "Instance %s has no node in group %s" % (instance_name, self.group_uuid)
+    _CheckInstancesNodeGroups(self.cfg, self.instances,
+                              owned_groups, owned_nodes, self.group_uuid)
 
   def Exec(self, feedback_fn):
     """Verify integrity of cluster disks.
@@ -4512,7 +4535,7 @@ class LUOobCommand(NoHooksLU):
   """Logical unit for OOB handling.
 
   """
-  REG_BGL = False
+  REQ_BGL = False
   _SKIP_MASTER = (constants.OOB_POWER_OFF, constants.OOB_POWER_CYCLE)
 
   def ExpandNames(self):
@@ -6096,7 +6119,7 @@ class LUClusterQuery(NoHooksLU):
       "config_version": constants.CONFIG_VERSION,
       "os_api_version": max(constants.OS_API_VERSIONS),
       "export_version": constants.EXPORT_VERSION,
-      "architecture": (platform.architecture()[0], platform.machine()),
+      "architecture": runtime.GetArchInfo(),
       "name": cluster.cluster_name,
       "master": cluster.master_node,
       "default_hypervisor": cluster.primary_hypervisor,
@@ -7319,7 +7342,7 @@ def _RemoveInstance(lu, feedback_fn, instance, ignore_failures):
   """
   logging.info("Removing block devices for instance %s", instance.name)
 
-  if not _RemoveDisks(lu, instance):
+  if not _RemoveDisks(lu, instance, ignore_failures=ignore_failures):
     if not ignore_failures:
       raise errors.OpExecError("Can't remove instance's disks")
     feedback_fn("Warning: can't remove instance's disks")
@@ -8934,7 +8957,7 @@ def _CreateDisks(lu, instance, to_skip=None, target_node=None):
       _CreateBlockDev(lu, node, instance, device, f_create, info, f_create)
 
 
-def _RemoveDisks(lu, instance, target_node=None):
+def _RemoveDisks(lu, instance, target_node=None, ignore_failures=False):
   """Remove all disks for an instance.
 
   This abstracts away some work from `AddInstance()` and
@@ -8955,6 +8978,7 @@ def _RemoveDisks(lu, instance, target_node=None):
   logging.info("Removing block devices for instance %s", instance.name)
 
   all_result = True
+  ports_to_release = set()
   for (idx, device) in enumerate(instance.disks):
     if target_node:
       edata = [(target_node, device)]
@@ -8970,8 +8994,11 @@ def _RemoveDisks(lu, instance, target_node=None):
 
     # if this is a DRBD disk, return its port to the pool
     if device.dev_type in constants.LDS_DRBD:
-      tcp_port = device.logical_id[2]
-      lu.cfg.AddTcpUdpPort(tcp_port)
+      ports_to_release.add(device.logical_id[2])
+
+  if all_result or ignore_failures:
+    for port in ports_to_release:
+      lu.cfg.AddTcpUdpPort(port)
 
   if instance.disk_template == constants.DT_FILE:
     file_storage_dir = os.path.dirname(instance.disks[0].logical_id[1])
@@ -11656,12 +11683,25 @@ class LUInstanceQueryData(NoHooksLU):
       else:
         self.needed_locks[locking.LEVEL_INSTANCE] = self.wanted_names
 
+      self.needed_locks[locking.LEVEL_NODEGROUP] = []
       self.needed_locks[locking.LEVEL_NODE] = []
       self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_REPLACE
 
   def DeclareLocks(self, level):
-    if self.op.use_locking and level == locking.LEVEL_NODE:
-      self._LockInstancesNodes()
+    if self.op.use_locking:
+      if level == locking.LEVEL_NODEGROUP:
+        owned_instances = self.owned_locks(locking.LEVEL_INSTANCE)
+
+        # Lock all groups used by instances optimistically; this requires going
+        # via the node before it's locked, requiring verification later on
+        self.needed_locks[locking.LEVEL_NODEGROUP] = \
+          frozenset(group_uuid
+                    for instance_name in owned_instances
+                    for group_uuid in
+                      self.cfg.GetInstanceNodeGroups(instance_name))
+
+      elif level == locking.LEVEL_NODE:
+        self._LockInstancesNodes()
 
   def CheckPrereq(self):
     """Check prerequisites.
@@ -11669,12 +11709,23 @@ class LUInstanceQueryData(NoHooksLU):
     This only checks the optional instance list against the existing names.
 
     """
+    owned_instances = frozenset(self.owned_locks(locking.LEVEL_INSTANCE))
+    owned_groups = frozenset(self.owned_locks(locking.LEVEL_NODEGROUP))
+    owned_nodes = frozenset(self.owned_locks(locking.LEVEL_NODE))
+
     if self.wanted_names is None:
       assert self.op.use_locking, "Locking was not used"
-      self.wanted_names = self.owned_locks(locking.LEVEL_INSTANCE)
+      self.wanted_names = owned_instances
 
-    self.wanted_instances = \
-        map(compat.snd, self.cfg.GetMultiInstanceInfo(self.wanted_names))
+    instances = dict(self.cfg.GetMultiInstanceInfo(self.wanted_names))
+
+    if self.op.use_locking:
+      _CheckInstancesNodeGroups(self.cfg, instances, owned_groups, owned_nodes,
+                                None)
+    else:
+      assert not (owned_instances or owned_groups or owned_nodes)
+
+    self.wanted_instances = instances.values()
 
   def _ComputeBlockdevStatus(self, node, instance_name, dev):
     """Returns the status of a block device
@@ -11739,9 +11790,17 @@ class LUInstanceQueryData(NoHooksLU):
 
     cluster = self.cfg.GetClusterInfo()
 
-    pri_nodes = self.cfg.GetMultiNodeInfo(i.primary_node
-                                          for i in self.wanted_instances)
-    for instance, (_, pnode) in zip(self.wanted_instances, pri_nodes):
+    node_names = itertools.chain(*(i.all_nodes for i in self.wanted_instances))
+    nodes = dict(self.cfg.GetMultiNodeInfo(node_names))
+
+    groups = dict(self.cfg.GetMultiNodeGroupInfo(node.group
+                                                 for node in nodes.values()))
+
+    group2name_fn = lambda uuid: groups[uuid].name
+
+    for instance in self.wanted_instances:
+      pnode = nodes[instance.primary_node]
+
       if self.op.static or pnode.offline:
         remote_state = None
         if pnode.offline:
@@ -11765,12 +11824,19 @@ class LUInstanceQueryData(NoHooksLU):
       disks = map(compat.partial(self._ComputeDiskStatus, instance, None),
                   instance.disks)
 
+      snodes_group_uuids = [nodes[snode_name].group
+                            for snode_name in instance.secondary_nodes]
+
       result[instance.name] = {
         "name": instance.name,
         "config_state": instance.admin_state,
         "run_state": remote_state,
         "pnode": instance.primary_node,
+        "pnode_group_uuid": pnode.group,
+        "pnode_group_name": group2name_fn(pnode.group),
         "snodes": instance.secondary_nodes,
+        "snodes_group_uuids": snodes_group_uuids,
+        "snodes_group_names": map(group2name_fn, snodes_group_uuids),
         "os": instance.os,
         # this happens to be the same format used for hooks
         "nics": _NICListToTuple(self, instance.nics),
@@ -12564,6 +12630,12 @@ class LUInstanceSetParams(LogicalUnit):
       child.size = parent.size
       child.mode = parent.mode
 
+    # this is a DRBD disk, return its port to the pool
+    # NOTE: this must be done right before the call to cfg.Update!
+    for disk in old_disks:
+      tcp_port = disk.logical_id[2]
+      self.cfg.AddTcpUdpPort(tcp_port)
+
     # update instance structure
     instance.disks = new_disks
     instance.disk_template = constants.DT_PLAIN
@@ -12588,13 +12660,6 @@ class LUInstanceSetParams(LogicalUnit):
       if msg:
         self.LogWarning("Could not remove metadata for disk %d on node %s,"
                         " continuing anyway: %s", idx, pnode, msg)
-
-    # this is a DRBD disk, return its port to the pool
-    for disk in old_disks:
-      tcp_port = disk.logical_id[2]
-      self.cfg.AddTcpUdpPort(tcp_port)
-
-    # Node resource locks will be released by caller
 
   def _CreateNewDisk(self, idx, params, _):
     """Creates a new disk.
@@ -12890,7 +12955,7 @@ class LUInstanceChangeGroup(LogicalUnit):
 
     if self.req_target_uuids:
       # User requested specific target groups
-      self.target_uuids = self.req_target_uuids
+      self.target_uuids = frozenset(self.req_target_uuids)
     else:
       # All groups except those used by the instance are potential targets
       self.target_uuids = owned_groups - inst_groups
@@ -14081,16 +14146,8 @@ class LUGroupEvacuate(LogicalUnit):
     self.instances = dict(self.cfg.GetMultiInstanceInfo(owned_instances))
 
     # Check if node groups for locked instances are still correct
-    for instance_name in owned_instances:
-      inst = self.instances[instance_name]
-      assert owned_nodes.issuperset(inst.all_nodes), \
-        "Instance %s's nodes changed while we kept the lock" % instance_name
-
-      inst_groups = _CheckInstanceNodeGroups(self.cfg, instance_name,
-                                             owned_groups)
-
-      assert self.group_uuid in inst_groups, \
-        "Instance %s has no node in group %s" % (instance_name, self.group_uuid)
+    _CheckInstancesNodeGroups(self.cfg, self.instances,
+                              owned_groups, owned_nodes, self.group_uuid)
 
     if self.req_target_uuids:
       # User requested specific target groups

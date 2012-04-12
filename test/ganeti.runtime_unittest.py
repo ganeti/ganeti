@@ -23,6 +23,7 @@
 from ganeti import constants
 from ganeti import errors
 from ganeti import runtime
+from ganeti import ht
 
 import testutils
 import unittest
@@ -136,6 +137,38 @@ class TestErrors(unittest.TestCase):
     self.assertRaises(errors.ConfigurationError, self.resolver.LookupGid, 9999)
     self.assertRaises(errors.ConfigurationError,
                       self.resolver.LookupGroup, "does-not-exist-foo")
+
+
+class TestArchInfo(unittest.TestCase):
+  EXP_TYPES = \
+    ht.TAnd(ht.TIsLength(2),
+            ht.TItems([
+              ht.TNonEmptyString,
+              ht.TNonEmptyString,
+              ]))
+
+  def setUp(self):
+    self.assertTrue(runtime._arch is None)
+
+  def tearDown(self):
+    runtime._arch = None
+
+  def testNotInitialized(self):
+    self.assertRaises(errors.ProgrammerError, runtime.GetArchInfo)
+
+  def testInitializeMultiple(self):
+    runtime.InitArchInfo()
+
+    self.assertRaises(errors.ProgrammerError, runtime.InitArchInfo)
+
+  def testNormal(self):
+    runtime.InitArchInfo()
+
+    info = runtime.GetArchInfo()
+
+    self.assertTrue(self.EXP_TYPES(info),
+                    msg=("Doesn't match expected type description: %s" %
+                         self.EXP_TYPES))
 
 
 if __name__ == "__main__":

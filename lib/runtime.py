@@ -26,6 +26,7 @@
 import grp
 import pwd
 import threading
+import platform
 
 from ganeti import constants
 from ganeti import errors
@@ -34,6 +35,9 @@ from ganeti import utils
 
 _priv = None
 _priv_lock = threading.Lock()
+
+#: Architecture information
+_arch = None
 
 
 def GetUid(user, _getpwnam):
@@ -187,3 +191,35 @@ def GetEnts(resolver=GetentResolver):
       _priv_lock.release()
 
   return _priv
+
+
+def InitArchInfo():
+  """Initialize architecture information.
+
+  We can assume this information never changes during the lifetime of a
+  process, therefore the information can easily be cached.
+
+  @note: This function uses C{platform.architecture} to retrieve the Python
+    binary architecture and does so by forking to run C{file} (see Python
+    documentation for more information). Therefore it must not be used in a
+    multi-threaded environment.
+
+  """
+  global _arch # pylint: disable=W0603
+
+  if _arch is not None:
+    raise errors.ProgrammerError("Architecture information can only be"
+                                 " initialized once")
+
+  _arch = (platform.architecture()[0], platform.machine())
+
+
+def GetArchInfo():
+  """Returns previsouly initialized architecture information.
+
+  """
+  if _arch is None:
+    raise errors.ProgrammerError("Architecture information hasn't been"
+                                 " initialized")
+
+  return _arch
