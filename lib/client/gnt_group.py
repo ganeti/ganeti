@@ -70,7 +70,7 @@ def AddGroup(opts, args):
                           diskparams=diskparams, ipolicy=ipolicy,
                           hv_state=hv_state,
                           disk_state=disk_state)
-  SubmitOpCode(op, opts=opts)
+  SubmitOrSend(op, opts)
 
 
 def AssignNodes(opts, args):
@@ -88,7 +88,7 @@ def AssignNodes(opts, args):
 
   op = opcodes.OpGroupAssignNodes(group_name=group_name, nodes=node_names,
                                   force=opts.force)
-  SubmitOpCode(op, opts=opts)
+  SubmitOrSend(op, opts)
 
 
 def _FmtDict(data):
@@ -224,7 +224,7 @@ def RemoveGroup(opts, args):
   """
   (group_name,) = args
   op = opcodes.OpGroupRemove(group_name=group_name)
-  SubmitOpCode(op, opts=opts)
+  SubmitOrSend(op, opts)
 
 
 def RenameGroup(opts, args):
@@ -239,7 +239,7 @@ def RenameGroup(opts, args):
   """
   group_name, new_name = args
   op = opcodes.OpGroupRename(group_name=group_name, new_name=new_name)
-  SubmitOpCode(op, opts=opts)
+  SubmitOrSend(op, opts)
 
 
 def EvacuateGroup(opts, args):
@@ -254,7 +254,7 @@ def EvacuateGroup(opts, args):
                                iallocator=opts.iallocator,
                                target_groups=opts.to,
                                early_release=opts.early_release)
-  result = SubmitOpCode(op, cl=cl, opts=opts)
+  result = SubmitOrSend(op, opts, cl=cl)
 
   # Keep track of submitted jobs
   jex = JobExecutor(cl=cl, opts=opts)
@@ -277,10 +277,12 @@ commands = {
   "add": (
     AddGroup, ARGS_ONE_GROUP,
     [DRY_RUN_OPT, ALLOC_POLICY_OPT, NODE_PARAMS_OPT, DISK_PARAMS_OPT,
-     HV_STATE_OPT, DISK_STATE_OPT] + INSTANCE_POLICY_OPTS,
+     HV_STATE_OPT, DISK_STATE_OPT, PRIORITY_OPT,
+     SUBMIT_OPT] + INSTANCE_POLICY_OPTS,
     "<group_name>", "Add a new node group to the cluster"),
   "assign-nodes": (
-    AssignNodes, ARGS_ONE_GROUP + ARGS_MANY_NODES, [DRY_RUN_OPT, FORCE_OPT],
+    AssignNodes, ARGS_ONE_GROUP + ARGS_MANY_NODES,
+    [DRY_RUN_OPT, FORCE_OPT, PRIORITY_OPT, SUBMIT_OPT],
     "<group_name> <node>...", "Assign nodes to a group"),
   "list": (
     ListGroups, ARGS_MANY_GROUPS,
@@ -295,18 +297,19 @@ commands = {
   "modify": (
     SetGroupParams, ARGS_ONE_GROUP,
     [DRY_RUN_OPT, SUBMIT_OPT, ALLOC_POLICY_OPT, NODE_PARAMS_OPT, HV_STATE_OPT,
-     DISK_STATE_OPT, DISK_PARAMS_OPT] + INSTANCE_POLICY_OPTS,
+     DISK_STATE_OPT, DISK_PARAMS_OPT, PRIORITY_OPT] + INSTANCE_POLICY_OPTS,
     "<group_name>", "Alters the parameters of a node group"),
   "remove": (
-    RemoveGroup, ARGS_ONE_GROUP, [DRY_RUN_OPT],
+    RemoveGroup, ARGS_ONE_GROUP, [DRY_RUN_OPT, PRIORITY_OPT, SUBMIT_OPT],
     "[--dry-run] <group-name>",
     "Remove an (empty) node group from the cluster"),
   "rename": (
-    RenameGroup, [ArgGroup(min=2, max=2)], [DRY_RUN_OPT],
+    RenameGroup, [ArgGroup(min=2, max=2)],
+    [DRY_RUN_OPT, SUBMIT_OPT, PRIORITY_OPT],
     "[--dry-run] <group-name> <new-name>", "Rename a node group"),
   "evacuate": (
     EvacuateGroup, [ArgGroup(min=1, max=1)],
-    [TO_GROUP_OPT, IALLOCATOR_OPT, EARLY_RELEASE_OPT],
+    [TO_GROUP_OPT, IALLOCATOR_OPT, EARLY_RELEASE_OPT, SUBMIT_OPT, PRIORITY_OPT],
     "[-I <iallocator>] [--to <group>]",
     "Evacuate all instances within a group"),
   "list-tags": (

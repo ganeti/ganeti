@@ -23,7 +23,7 @@ COMMANDS
 ADD
 ~~~
 
-| **add**
+| **add** [\--submit]
 | [\--node-parameters=*NDPARAMS*]
 | [\--alloc-policy=*POLICY*]
 | [{-D|\--disk-parameters} *disk-template*:*disk-param*=*value*[,*disk-param*=*value*...]]
@@ -71,11 +71,14 @@ The ``--specs-...`` and ``--ipol-disk-templates`` options specify
 instance policies on the node group, and are documented in the
 **gnt-cluster**(8) man page.
 
+See **ganeti(7)** for a description of ``--submit`` and other common
+options.
+
 ASSIGN-NODES
 ~~~~~~~~~~~~
 
 | **assign-nodes**
-| [\--force]
+| [\--force] [\--submit]
 | {*group*} {*node*...}
 
 Assigns one or more nodes to the specified group, moving them from their
@@ -87,10 +90,13 @@ instance is an instance with a mirrored disk template, e.g. DRBD, that
 has the primary and secondary nodes in different node groups). You can
 force the operation with ``--force``.
 
+See **ganeti(7)** for a description of ``--submit`` and other common
+options.
+
 MODIFY
 ~~~~~~
 
-| **modify**
+| **modify** [\--submit]
 | [\--node-parameters=*NDPARAMS*]
 | [\--alloc-policy=*POLICY*]
 | [\--hypervisor-state *hvstate*]
@@ -118,13 +124,19 @@ The ``--specs-...`` and ``--ipol-disk-templates`` options specify
 instance policies on the node group, and are documented in the
 **gnt-cluster**(8) man page.
 
+See **ganeti(7)** for a description of ``--submit`` and other common
+options.
+
 REMOVE
 ~~~~~~
 
-| **remove** {*group*}
+| **remove** [\--submit] {*group*}
 
 Deletes the indicated node group, which must be empty. There must always be at
 least one group, so the last group cannot be removed.
+
+See **ganeti(7)** for a description of ``--submit`` and other common
+options.
 
 LIST
 ~~~~
@@ -170,15 +182,18 @@ List available fields for node groups.
 RENAME
 ~~~~~~
 
-| **rename** {*oldname*} {*newname*}
+| **rename** [\--submit] {*oldname*} {*newname*}
 
 Renames a given group from *oldname* to *newname*.
+
+See **ganeti(7)** for a description of ``--submit`` and other common
+options.
 
 
 EVACUATE
 ~~~~~~~~
 
-**evacuate** [\--iallocator *NAME*] [\--to *GROUP*...] {*group*}
+**evacuate** [\--submit] [\--iallocator *NAME*] [\--to *GROUP*...] {*group*}
 
 This command will move all instances out of the given node group.
 Instances are placed in a new group by an iallocator, either given on
@@ -186,6 +201,9 @@ the command line or as a cluster default.
 
 If no specific destination groups are specified using ``--to``, all
 groups except the evacuated group are considered.
+
+See **ganeti(7)** for a description of ``--submit`` and other common
+options.
 
 Example::
 
