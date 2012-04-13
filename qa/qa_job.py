@@ -30,7 +30,8 @@ import qa_utils
 
 def TestJobList():
   """gnt-job list"""
-  qa_utils.GenericQueryTest("gnt-job", query.JOB_FIELDS.keys())
+  qa_utils.GenericQueryTest("gnt-job", query.JOB_FIELDS.keys(),
+                            namefield="id", test_unknown=False)
 
 
 def TestJobListFields():

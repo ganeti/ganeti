@@ -410,7 +410,7 @@ def _List(listcmd, fields, names):
                           utils.ShellQuoteArgs(cmd)).splitlines()
 
 
-def GenericQueryTest(cmd, fields):
+def GenericQueryTest(cmd, fields, namefield="name", test_unknown=True):
   """Runs a number of tests on query commands.
 
   @param cmd: Command name
@@ -426,7 +426,7 @@ def GenericQueryTest(cmd, fields):
   for testfields in _SelectQueryFields(rnd, fields):
     AssertCommand([cmd, "list", "--output", ",".join(testfields)])
 
-  namelist_fn = compat.partial(_List, cmd, ["name"])
+  namelist_fn = compat.partial(_List, cmd, [namefield])
 
   # When no names were requested, the list must be sorted
   names = namelist_fn(None)
@@ -440,8 +440,10 @@ def GenericQueryTest(cmd, fields):
   rnd.shuffle(randnames)
   AssertEqual(namelist_fn(randnames), randnames)
 
-  # Listing unknown items must fail
-  AssertCommand([cmd, "list", "this.name.certainly.does.not.exist"], fail=True)
+  if test_unknown:
+    # Listing unknown items must fail
+    AssertCommand([cmd, "list", "this.name.certainly.does.not.exist"],
+                  fail=True)
 
   # Check exit code for listing unknown field
   AssertEqual(AssertCommand([cmd, "list", "--output=field/does/not/exist"],
