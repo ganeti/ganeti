@@ -1069,7 +1069,7 @@ def SetClusterParams(opts, args):
                                   hv_state=hv_state,
                                   disk_state=disk_state,
                                   )
-  SubmitOpCode(op, opts=opts)
+  SubmitOrSend(op, opts)
   return 0
 
 
@@ -1550,7 +1550,7 @@ commands = {
      DRBD_HELPER_OPT, NODRBD_STORAGE_OPT, DEFAULT_IALLOCATOR_OPT,
      RESERVED_LVS_OPT, DRY_RUN_OPT, PRIORITY_OPT, PREALLOC_WIPE_DISKS_OPT,
      NODE_PARAMS_OPT, USE_EXTERNAL_MIP_SCRIPT, DISK_PARAMS_OPT, HV_STATE_OPT,
-     DISK_STATE_OPT] +
+     DISK_STATE_OPT, SUBMIT_OPT] +
     INSTANCE_POLICY_OPTS,
     "[opts...]",
     "Alters the parameters of the cluster"),

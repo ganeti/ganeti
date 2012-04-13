@@ -554,7 +554,7 @@ be 1.
 MODIFY
 ~~~~~~
 
-| **modify**
+| **modify** [\--submit]
 | [\--vg-name *vg-name*]
 | [\--no-lvm-storage]
 | [\--enabled-hypervisors *hypervisors*]
@@ -596,7 +596,7 @@ The ``--vg-name``, ``--no-lvm-storarge``, ``--enabled-hypervisors``,
 command.
 
 The ``--hypervisor-state`` and ``--disk-state`` options are described in
-detail in **ganeti**(7).
+detail in **ganeti(7)**.
 
 The ``--add-uids`` and ``--remove-uids`` options can be used to
 modify the user-id pool by adding/removing a list of user-ids or
@@ -620,6 +620,9 @@ command. To clear the default iallocator, just pass an empty string
 
 The ``--specs-...`` and ``--ipol-disk-templates`` options are described
 in the **init** command.
+
+See **ganeti(7)** for a description of ``--submit`` and other common
+options.
 
 QUEUE
 ~~~~~
