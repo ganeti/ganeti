@@ -24,8 +24,9 @@ COMMANDS
 EXPORT
 ~~~~~~
 
-**export** {-n *node*} [\--shutdown-timeout=*N*] [\--noshutdown]
-[\--remove-instance] [\--ignore-remove-failures] {*instance*}
+| **export** {-n *node*} [\--shutdown-timeout=*N*] [\--noshutdown]
+| [\--remove-instance] [\--ignore-remove-failures] [\--submit]
+| {*instance*}
 
 Exports an instance to the target node. All the instance data and
 its configuration will be exported under the
@@ -53,6 +54,9 @@ execution (and will be stored in the job log). It is recommended
 that for any non-zero exit code, the backup is considered invalid,
 and retried.
 
+See **ganeti(7)** for a description of ``--submit`` and other common
+options.
+
 Example::
 
     # gnt-backup export -n node1.example.com instance3.example.com
@@ -71,6 +75,7 @@ IMPORT
 | [-t [diskless | plain | drbd | file]]
 | [\--identify-defaults]
 | [\--ignore-ipolicy]
+| [\--submit]
 | {*instance*}
 
 Imports a new instance from an export residing on *source-node* in
@@ -204,6 +209,9 @@ value matches the current cluster default and mark it as such
 (default value), pass the ``--identify-defaults`` option. This will
 affect the hypervisor, backend and NIC parameters, both read from
 the export file and passed in via the command line.
+
+See **ganeti(7)** for a description of ``--submit`` and other common
+options.
 
 Example for identical instance import::
 

@@ -80,7 +80,7 @@ def ExportInstance(opts, args):
                               remove_instance=opts.remove_instance,
                               ignore_remove_failures=ignore_remove_failures)
 
-  SubmitOpCode(op, opts=opts)
+  SubmitOrSend(op, opts)
   return 0
 
 
@@ -106,7 +106,7 @@ def RemoveExport(opts, args):
   """
   op = opcodes.OpBackupRemove(instance_name=args[0])
 
-  SubmitOpCode(op, opts=opts)
+  SubmitOrSend(op, opts)
   return 0
 
 
@@ -128,7 +128,7 @@ commands = {
     ExportInstance, ARGS_ONE_INSTANCE,
     [FORCE_OPT, SINGLE_NODE_OPT, NOSHUTDOWN_OPT, SHUTDOWN_TIMEOUT_OPT,
      REMOVE_INSTANCE_OPT, IGNORE_REMOVE_FAILURES_OPT, DRY_RUN_OPT,
-     PRIORITY_OPT],
+     PRIORITY_OPT, SUBMIT_OPT],
     "-n <target_node> [opts...] <name>",
     "Exports an instance to an image"),
   "import": (
@@ -136,7 +136,8 @@ commands = {
     "[...] -t disk-type -n node[:secondary-node] <name>",
     "Imports an instance from an exported image"),
   "remove": (
-    RemoveExport, [ArgUnknown(min=1, max=1)], [DRY_RUN_OPT, PRIORITY_OPT],
+    RemoveExport, [ArgUnknown(min=1, max=1)],
+    [DRY_RUN_OPT, PRIORITY_OPT, SUBMIT_OPT],
     "<name>", "Remove exports of named instance from the filesystem."),
   }
 
