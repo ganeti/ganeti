@@ -95,7 +95,7 @@ interpreted as stdin.
 EVACUATE
 ~~~~~~~~
 
-| **evacuate** [-f] [\--early-release]
+| **evacuate** [-f] [\--early-release] [\--submit]
 | [{-I|\--iallocator} *NAME* \| {-n|\--new-secondary} *destination\_node*]
 | [{-p|\--primary-only} \| {-s|\--secondary-only} ]
 |  {*node*}
@@ -137,6 +137,9 @@ each affected instance individually:
 - ``--secondary-only`` is equivalent to ``gnt-instance replace-disks``
   in the secondary node change mode (only valid for DRBD instances)
 - when neither of the above is done a combination of the two cases is run
+
+See **ganeti(7)** for a description of ``--submit`` and other common
+options.
 
 Example::
 
@@ -250,8 +253,8 @@ List the tags of the given node.
 MIGRATE
 ~~~~~~~
 
-**migrate** [-f] [\--non-live] [\--migration-mode=live\|non-live]
-[\--ignore-ipolicy] {*node*}
+| **migrate** [-f] [\--non-live] [\--migration-mode=live\|non-live]
+| [\--ignore-ipolicy] [\--submit] {*node*}
 
 This command will migrate all instances having the given node as
 primary to their secondary nodes. This works only for instances
@@ -263,6 +266,9 @@ can be given to influence the migration type.
 
 If ``--ignore-ipolicy`` is given any instance policy violations occuring
 during this operation are ignored.
+
+See **ganeti(7)** for a description of ``--submit`` and other common
+options.
 
 Example::
 
@@ -471,8 +477,8 @@ Example::
 MODIFY-STORAGE
 ~~~~~~~~~~~~~~
 
-**modify-storage** [``--allocatable=yes|no``]
-{*node*} {*storage-type*} {*volume-name*}
+| **modify-storage** [\--allocatable={yes|no}] [\--submit]
+| {*node*} {*storage-type*} {*volume-name*}
 
 Modifies storage volumes on a node. Only LVM physical volumes can
 be modified at the moment. They have a storage type of "lvm-pv".
@@ -485,8 +491,8 @@ Example::
 REPAIR-STORAGE
 ~~~~~~~~~~~~~~
 
-**repair-storage** [\--ignore-consistency] {*node*} {*storage-type*}
-{*volume-name*}
+| **repair-storage** [\--ignore-consistency] ]\--submit]
+| {*node*} {*storage-type*} {*volume-name*}
 
 Repairs a storage volume on a node. Only LVM volume groups can be
 repaired at this time. They have the storage type "lvm-vg".
@@ -511,7 +517,7 @@ Example::
 POWERCYCLE
 ~~~~~~~~~~
 
-**powercycle** [``--yes``] [``--force``] {*node*}
+**powercycle** [\--yes] [\--force] [\--submit] {*node*}
 
 This command (tries to) forcefully reboot a node. It is a command
 that can be used if the node environment is broken, such that the
@@ -526,6 +532,9 @@ enabled.
 The ``--yes`` option can be used to skip confirmation, while the
 ``--force`` option is needed if the target node is the master
 node.
+
+See **ganeti(7)** for a description of ``--submit`` and other common
+options.
 
 POWER
 ~~~~~

@@ -324,7 +324,7 @@ def EvacuateNode(opts, args):
                               remote_node=opts.dst_node,
                               iallocator=opts.iallocator,
                               early_release=opts.early_release)
-  result = SubmitOpCode(op, cl=cl, opts=opts)
+  result = SubmitOrSend(op, opts, cl=cl)
 
   # Keep track of submitted jobs
   jex = JobExecutor(cl=cl, opts=opts)
@@ -430,7 +430,7 @@ def MigrateNode(opts, args):
                              allow_runtime_changes=opts.allow_runtime_chgs,
                              ignore_ipolicy=opts.ignore_ipolicy)
 
-  result = SubmitOpCode(op, cl=cl, opts=opts)
+  result = SubmitOrSend(op, opts, cl=cl)
 
   # Keep track of submitted jobs
   jex = JobExecutor(cl=cl, opts=opts)
@@ -537,7 +537,7 @@ def PowercycleNode(opts, args):
     return 2
 
   op = opcodes.OpNodePowercycle(node_name=node, force=opts.force)
-  result = SubmitOpCode(op, opts=opts)
+  result = SubmitOrSend(op, opts)
   if result:
     ToStderr(result)
   return 0
@@ -799,7 +799,7 @@ def ModifyStorage(opts, args):
                                      storage_type=storage_type,
                                      name=volume_name,
                                      changes=changes)
-    SubmitOpCode(op, opts=opts)
+    SubmitOrSend(op, opts)
   else:
     ToStderr("No changes to perform, exiting.")
 
@@ -822,7 +822,7 @@ def RepairStorage(opts, args):
                                    storage_type=storage_type,
                                    name=volume_name,
                                    ignore_consistency=opts.ignore_consistency)
-  SubmitOpCode(op, opts=opts)
+  SubmitOrSend(op, opts)
 
 
 def SetNodeParams(opts, args):
@@ -888,7 +888,7 @@ commands = {
   "evacuate": (
     EvacuateNode, ARGS_ONE_NODE,
     [FORCE_OPT, IALLOCATOR_OPT, NEW_SECONDARY_OPT, EARLY_RELEASE_OPT,
-     PRIORITY_OPT, PRIMARY_ONLY_OPT, SECONDARY_ONLY_OPT],
+     PRIORITY_OPT, PRIMARY_ONLY_OPT, SECONDARY_ONLY_OPT, SUBMIT_OPT],
     "[-f] {-I <iallocator> | -n <dst>} [-p | -s] [options...] <node>",
     "Relocate the primary and/or secondary instances from a node"),
   "failover": (
@@ -901,7 +901,7 @@ commands = {
     MigrateNode, ARGS_ONE_NODE,
     [FORCE_OPT, NONLIVE_OPT, MIGRATION_MODE_OPT, DST_NODE_OPT,
      IALLOCATOR_OPT, PRIORITY_OPT, IGNORE_IPOLICY_OPT,
-     NORUNTIME_CHGS_OPT],
+     NORUNTIME_CHGS_OPT, SUBMIT_OPT, PRIORITY_OPT],
     "[-f] <node>",
     "Migrate all the primary instance on a node away from it"
     " (only for instances of type drbd)"),
@@ -931,7 +931,7 @@ commands = {
     "<node_name>", "Alters the parameters of a node"),
   "powercycle": (
     PowercycleNode, ARGS_ONE_NODE,
-    [FORCE_OPT, CONFIRM_OPT, DRY_RUN_OPT, PRIORITY_OPT],
+    [FORCE_OPT, CONFIRM_OPT, DRY_RUN_OPT, PRIORITY_OPT, SUBMIT_OPT],
     "<node_name>", "Tries to forcefully powercycle a node"),
   "power": (
     PowerNode,
@@ -960,14 +960,14 @@ commands = {
     [ArgNode(min=1, max=1),
      ArgChoice(min=1, max=1, choices=_MODIFIABLE_STORAGE_TYPES),
      ArgFile(min=1, max=1)],
-    [ALLOCATABLE_OPT, DRY_RUN_OPT, PRIORITY_OPT],
+    [ALLOCATABLE_OPT, DRY_RUN_OPT, PRIORITY_OPT, SUBMIT_OPT],
     "<node_name> <storage_type> <name>", "Modify storage volume on a node"),
   "repair-storage": (
     RepairStorage,
     [ArgNode(min=1, max=1),
      ArgChoice(min=1, max=1, choices=_REPAIRABLE_STORAGE_TYPES),
      ArgFile(min=1, max=1)],
-    [IGNORE_CONSIST_OPT, DRY_RUN_OPT, PRIORITY_OPT],
+    [IGNORE_CONSIST_OPT, DRY_RUN_OPT, PRIORITY_OPT, SUBMIT_OPT],
     "<node_name> <storage_type> <name>",
     "Repairs a storage volume on a node"),
   "list-tags": (
