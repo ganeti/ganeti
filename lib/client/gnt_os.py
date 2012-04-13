@@ -274,7 +274,7 @@ def ModifyOS(opts, args):
                                   osparams=osp,
                                   hidden_os=ohid,
                                   blacklisted_os=oblk)
-  SubmitOpCode(op, opts=opts)
+  SubmitOrSend(op, opts)
 
   return 0
 
@@ -293,7 +293,7 @@ commands = {
   "modify": (
     ModifyOS, ARGS_ONE_OS,
     [HVLIST_OPT, OSPARAMS_OPT, DRY_RUN_OPT, PRIORITY_OPT,
-     HID_OS_OPT, BLK_OS_OPT],
+     HID_OS_OPT, BLK_OS_OPT, SUBMIT_OPT],
     "", "Modify the OS parameters"),
   }
 

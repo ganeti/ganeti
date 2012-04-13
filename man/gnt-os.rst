@@ -44,7 +44,7 @@ in the cluster, including its validity status, the supported API
 versions, the supported parameters (if any) and their
 documentations, etc.
 
-| **modify** [-H *HYPERVISOR*:option=*value*[,...]]
+| **modify** [\--submit] [-H *HYPERVISOR*:option=*value*[,...]]
 | [\--hidden=*yes|no*] [\--blacklisted=*yes|no*]
 | {*OS*}
 
@@ -65,6 +65,9 @@ creations (but can be used for reinstalling old instances).
 Note: The given operating system doesn't have to exists. This allows
 preseeding the settings for operating systems not yet known to
 **gnt-os**.
+
+See **ganeti(7)** for a description of ``--submit`` and other common
+options.
 
 .. vim: set textwidth=72 :
 .. Local Variables:
