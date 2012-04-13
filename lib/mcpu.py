@@ -31,6 +31,7 @@ are two kinds of classes defined:
 import logging
 import random
 import time
+import itertools
 
 from ganeti import opcodes
 from ganeti import constants
@@ -171,6 +172,54 @@ def _ComputeDispatchTable():
               if op.WITH_LU)
 
 
+def _SetBaseOpParams(src, defcomment, dst):
+  """Copies basic opcode parameters.
+
+  @type src: L{opcodes.OpCode}
+  @param src: Source opcode
+  @type defcomment: string
+  @param defcomment: Comment to specify if not already given
+  @type dst: L{opcodes.OpCode}
+  @param dst: Destination opcode
+
+  """
+  if hasattr(src, "debug_level"):
+    dst.debug_level = src.debug_level
+
+  if (getattr(dst, "priority", None) is None and
+      hasattr(src, "priority")):
+    dst.priority = src.priority
+
+  if not getattr(dst, opcodes.COMMENT_ATTR, None):
+    dst.comment = defcomment
+
+
+def _ProcessResult(submit_fn, op, result):
+  """Examines opcode result.
+
+  If necessary, additional processing on the result is done.
+
+  """
+  if isinstance(result, cmdlib.ResultWithJobs):
+    # Copy basic parameters (e.g. priority)
+    map(compat.partial(_SetBaseOpParams, op,
+                       "Submitted by %s" % op.OP_ID),
+        itertools.chain(*result.jobs))
+
+    # Submit jobs
+    job_submission = submit_fn(result.jobs)
+
+    # Build dictionary
+    result = result.other
+
+    assert constants.JOB_IDS_KEY not in result, \
+      "Key '%s' found in additional return values" % constants.JOB_IDS_KEY
+
+    result[constants.JOB_IDS_KEY] = job_submission
+
+  return result
+
+
 def _RpcResultsToHooksResults(rpc_results):
   """Function to convert RPC results to the format expected by HooksMaster.
 
@@ -230,26 +279,6 @@ class Processor(object):
 
     return acquired
 
-  def _ProcessResult(self, result):
-    """Examines opcode result.
-
-    If necessary, additional processing on the result is done.
-
-    """
-    if isinstance(result, cmdlib.ResultWithJobs):
-      # Submit jobs
-      job_submission = self._cbs.SubmitManyJobs(result.jobs)
-
-      # Build dictionary
-      result = result.other
-
-      assert constants.JOB_IDS_KEY not in result, \
-        "Key '%s' found in additional return values" % constants.JOB_IDS_KEY
-
-      result[constants.JOB_IDS_KEY] = job_submission
-
-    return result
-
   def _ExecLU(self, lu):
     """Logical Unit execution sequence.
 
@@ -271,7 +300,8 @@ class Processor(object):
       return lu.dry_run_result
 
     try:
-      result = self._ProcessResult(lu.Exec(self.Log))
+      result = _ProcessResult(self._cbs.SubmitManyJobs, lu.op,
+                              lu.Exec(self.Log))
       h_results = hm.RunPhase(constants.HOOKS_PHASE_POST)
       result = lu.HooksCallBack(constants.HOOKS_PHASE_POST, h_results,
                                 self.Log, result)

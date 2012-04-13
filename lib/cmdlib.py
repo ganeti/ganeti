@@ -82,7 +82,7 @@ class ResultWithJobs:
   """Data container for LU results with jobs.
 
   Instances of this class returned from L{LogicalUnit.Exec} will be recognized
-  by L{mcpu.Processor._ProcessResult}. The latter will then submit the jobs
+  by L{mcpu._ProcessResult}. The latter will then submit the jobs
   contained in the C{jobs} attribute and include the job IDs in the opcode
   result.
 
