@@ -868,7 +868,7 @@ def MigrateInstance(opts, args):
                                  allow_failover=opts.allow_failover,
                                  allow_runtime_changes=opts.allow_runtime_chgs,
                                  ignore_ipolicy=opts.ignore_ipolicy)
-  SubmitOpCode(op, cl=cl, opts=opts)
+  SubmitOrSend(op, cl=cl, opts=opts)
   return 0
 
 
@@ -1439,7 +1439,7 @@ def ChangeGroup(opts, args):
                                      iallocator=opts.iallocator,
                                      target_groups=opts.to,
                                      early_release=opts.early_release)
-  result = SubmitOpCode(op, cl=cl, opts=opts)
+  result = SubmitOrSend(op, opts, cl=cl)
 
   # Keep track of submitted jobs
   jex = JobExecutor(cl=cl, opts=opts)
@@ -1541,7 +1541,7 @@ commands = {
     MigrateInstance, ARGS_ONE_INSTANCE,
     [FORCE_OPT, NONLIVE_OPT, MIGRATION_MODE_OPT, CLEANUP_OPT, DRY_RUN_OPT,
      PRIORITY_OPT, DST_NODE_OPT, IALLOCATOR_OPT, ALLOW_FAILOVER_OPT,
-     IGNORE_IPOLICY_OPT, NORUNTIME_CHGS_OPT],
+     IGNORE_IPOLICY_OPT, NORUNTIME_CHGS_OPT, SUBMIT_OPT],
     "[-f] <instance>", "Migrate instance to its secondary node"
     " (only for mirrored instances)"),
   "move": (
@@ -1643,7 +1643,7 @@ commands = {
     "<instance> <disk> <size>", "Grow an instance's disk"),
   "change-group": (
     ChangeGroup, ARGS_ONE_INSTANCE,
-    [TO_GROUP_OPT, IALLOCATOR_OPT, EARLY_RELEASE_OPT],
+    [TO_GROUP_OPT, IALLOCATOR_OPT, EARLY_RELEASE_OPT, PRIORITY_OPT, SUBMIT_OPT],
     "[-I <iallocator>] [--to <group>]", "Change group of instance"),
   "list-tags": (
     ListTags, ARGS_ONE_INSTANCE, [],

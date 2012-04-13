@@ -1446,12 +1446,12 @@ Example::
 MIGRATE
 ^^^^^^^
 
-**migrate** [-f] {\--cleanup} {*instance*}
+| **migrate** [-f] [\--allow-failover] [\--non-live]
+| [\--migration-mode=live\|non-live] [\--ignore-ipolicy]
+| [\--no-runtime-changes] [\--submit]
+| [{-n|\--target-node} *node* \| {-I|\--iallocator} *name*] {*instance*}
 
-**migrate** [-f] [\--allow-failover] [\--non-live]
-[\--migration-mode=live\|non-live] [\--ignore-ipolicy]
-[\--no-runtime-changes]
-[{-n|\--target-node} *node* \| {-I|\--iallocator} *name*] {*instance*}
+| **migrate** [-f] \--cleanup [\--submit] {*instance*}
 
 Migrate will move the instance to its secondary node without shutdown.
 As with failover, it only works for instances having the drbd disk
@@ -1500,6 +1500,9 @@ during this operation are ignored.
 The ``--no-runtime-changes`` option forbids migrate to alter an
 instance's runtime before migrating it (eg. ballooning an instance
 down because the target node doesn't have enough available memory).
+
+See **ganeti(7)** for a description of ``--submit`` and other common
+options.
 
 Example (and expected output)::
 
@@ -1562,7 +1565,8 @@ Example::
 CHANGE-GROUP
 ~~~~~~~~~~~~
 
-**change-group** [\--iallocator *NAME*] [\--to *GROUP*...] {*instance*}
+| **change-group** [\--submit]
+| [\--iallocator *NAME*] [\--to *GROUP*...] {*instance*}
 
 This command moves an instance to another node group. The move is
 calculated by an iallocator, either given on the command line or as a
@@ -1570,6 +1574,9 @@ cluster default.
 
 If no specific destination groups are specified using ``--to``, all
 groups except the one containing the instance are considered.
+
+See **ganeti(7)** for a description of ``--submit`` and other common
+options.
 
 Example::
 
