@@ -628,13 +628,11 @@ blktap
     better performance. Especially if you use a network file system
     (e.g. NFS) to store your instances this is the recommended choice.
 
-
-The ``--submit`` option is used to send the job to the master daemon
-but not wait for its completion. The job ID will be shown so that it
-can be examined via **gnt-job info**.
-
 If ``--ignore-ipolicy`` is given any instance policy violations occuring
 during this operation are ignored.
+
+See **ganeti(7)** for a description of ``--submit`` and other common
+options.
 
 Example::
 
@@ -761,11 +759,10 @@ before forcing the shutdown (e.g. ``xm destroy`` in Xen, killing the
 kvm process for KVM, etc.). By default two minutes are given to each
 instance to stop.
 
-The ``--submit`` option is used to send the job to the master daemon
-but not wait for its completion. The job ID will be shown so that it
-can be examined via **gnt-job info**.
-
 The ``--force`` option is used to skip the interactive confirmation.
+
+See **ganeti(7)** for a description of ``--submit`` and other common
+options.
 
 Example::
 
@@ -927,12 +924,11 @@ fails if the instance was not in the ``offline`` state, otherwise it
 changes instance's state to ``down``. These modifications take effect
 immediately.
 
-The ``--submit`` option is used to send the job to the master daemon
-but not wait for its completion. The job ID will be shown so that it
-can be examined via **gnt-job info**.
-
 If ``--ignore-ipolicy`` is given any instance policy violations occuring
 during this operation are ignored.
+
+See **ganeti(7)** for a description of ``--submit`` and other common
+options.
 
 Most of the changes take effect at the next restart. If the instance is
 running, there is no effect on the instance.
@@ -962,9 +958,8 @@ arguments or by using the ``--node``, ``--primary``, ``--secondary``
 or ``--all`` options), the user must pass the ``--force-multiple``
 options to skip the interactive confirmation.
 
-The ``--submit`` option is used to send the job to the master daemon
-but not wait for its completion. The job ID will be shown so that it
-can be examined via **gnt-job info**.
+See **ganeti(7)** for a description of ``--submit`` and other common
+options.
 
 RENAME
 ^^^^^^
@@ -985,9 +980,8 @@ that the resolved name matches the provided name. Since the name check
 is used to compute the IP address, if you pass this option you must also
 pass the ``--no-ip-check`` option.
 
-The ``--submit`` option is used to send the job to the master daemon
-but not wait for its completion. The job ID will be shown so that it
-can be examined via **gnt-job info**.
+See **ganeti(7)** for a description of ``--submit`` and other common
+options.
 
 Starting/stopping/connecting to console
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1075,15 +1069,15 @@ and the instance instance2 with 2GB of RAM (this time only, unless
 that is the actual instance memory size already). Note that the values
 override the instance parameters (and not extend them): an instance
 with "kernel\_args=ro" when started with -H kernel\_args=single will
-result in "single", not "ro single".  The ``--submit`` option is used
-to send the job to the master daemon but not wait for its
-completion. The job ID will be shown so that it can be examined via
-**gnt-job info**.
+result in "single", not "ro single".
 
 The ``--paused`` option is only valid for Xen and kvm hypervisors.  This
 pauses the instance at the start of bootup, awaiting ``gnt-instance
 console`` to unpause it, allowing the entire boot process to be
 monitored for debugging.
+
+See **ganeti(7)** for a description of ``--submit`` and other common
+options.
 
 Example::
 
@@ -1118,10 +1112,6 @@ The ``--instance``, ``--node``, ``--primary``, ``--secondary``,
 ``--sec-node-tags`` options are similar as for the **startup** command
 and they influence the actual instances being shutdown.
 
-The ``--submit`` option is used to send the job to the master daemon
-but not wait for its completion. The job ID will be shown so that it
-can be examined via **gnt-job info**.
-
 ``--ignore-offline`` can be used to ignore offline primary nodes and
 force the instance to be marked as stopped. This option should be used
 with care as it can lead to an inconsistent cluster state.
@@ -1134,6 +1124,9 @@ up and some as down, and you don't want to change the running state:
 you just need to disable the watcher, shutdown all instances with
 ``--no-remember``, and when the watcher is activated again it will
 restore the correct runtime state for all instances.
+
+See **ganeti(7)** for a description of ``--submit`` and other common
+options.
 
 Example::
 
@@ -1176,6 +1169,9 @@ to stop.
 
 The ``--force-multiple`` will skip the interactive confirmation in the
 case the more than one instance will be affected.
+
+See **ganeti(7)** for a description of ``--submit`` and other common
+options.
 
 Example::
 
@@ -1242,15 +1238,14 @@ selected automatically by the specified allocator plugin, otherwise
 the new secondary node will be the one chosen manually via the
 ``--new-secondary`` option.
 
+Note that it is not possible to select an offline or drained node as a
+new secondary.
+
 The fourth form (when using ``--auto``) will automatically determine
 which disks of an instance are faulty and replace them within the same
 node. The ``--auto`` option works only when an instance has only
 faulty disks on either the primary or secondary node; it doesn't work
 when both sides have faulty disks.
-
-The ``--submit`` option is used to send the job to the master daemon
-but not wait for its completion. The job ID will be shown so that it
-can be examined via **gnt-job info**.
 
 The ``--early-release`` changes the code so that the old storage on
 secondary node(s) is removed early (before the resync is completed)
@@ -1265,8 +1260,8 @@ The ``--ignore-ipolicy`` let the command ignore instance policy
 violations if replace-disks changes groups and the instance would
 violate the new groups instance policy.
 
-Note that it is not possible to select an offline or drained node as a
-new secondary.
+See **ganeti(7)** for a description of ``--submit`` and other common
+options.
 
 ACTIVATE-DISKS
 ^^^^^^^^^^^^^^
@@ -1284,10 +1279,7 @@ In this example, *node1.example.com* is the name of the node on which
 the devices have been activated. The *disk/0* and *disk/1* are the
 Ganeti-names of the instance disks; how they are visible inside the
 instance is hypervisor-specific. */dev/drbd0* and */dev/drbd1* are the
-actual block devices as visible on the node.  The ``--submit`` option
-is used to send the job to the master daemon but not wait for its
-completion. The job ID will be shown so that it can be examined via
-**gnt-job info**.
+actual block devices as visible on the node.
 
 The ``--ignore-size`` option can be used to activate disks ignoring
 the currently configured size in Ganeti. This can be used in cases
@@ -1298,6 +1290,9 @@ when activate-disks fails without it.
 
 Note that it is safe to run this command while the instance is already
 running.
+
+See **ganeti(7)** for a description of ``--submit`` and other common
+options.
 
 DEACTIVATE-DISKS
 ^^^^^^^^^^^^^^^^
@@ -1317,15 +1312,14 @@ option passed it will skip this check and directly try to deactivate
 the disks. This can still fail due to the instance actually running or
 other issues.
 
-The ``--submit`` option is used to send the job to the master daemon
-but not wait for its completion. The job ID will be shown so that it
-can be examined via **gnt-job info**.
+See **ganeti(7)** for a description of ``--submit`` and other common
+options.
 
 GROW-DISK
 ^^^^^^^^^
 
-**grow-disk** [\--no-wait-for-sync] [\--submit] {*instance*} {*disk*}
-{*amount*}
+| **grow-disk** [\--no-wait-for-sync] [\--submit] {*instance*} {*disk*}
+| {*amount*}
 
 Grows an instance's disk. This is only possible for instances having a
 plain, drbd or rbd disk template.
@@ -1356,9 +1350,8 @@ create problems (except for unused space).
 If you do not want gnt-instance to wait for the new disk region to be
 synced, use the ``--no-wait-for-sync`` option.
 
-The ``--submit`` option is used to send the job to the master daemon
-but not wait for its completion. The job ID will be shown so that it
-can be examined via **gnt-job info**.
+See **ganeti(7)** for a description of ``--submit`` and other common
+options.
 
 Example (increase the first disk for instance1 by 16GiB)::
 
@@ -1398,9 +1391,8 @@ passed must equal the number of nodes that the instance currently
 has. Note that changing nodes is only allowed when all disks are
 replaced, e.g. when no ``--disk`` option is passed.
 
-The ``--submit`` option is used to send the job to the master daemon
-but not wait for its completion. The job ID will be shown so that it
-can be examined via **gnt-job info**.
+See **ganeti(7)** for a description of ``--submit`` and other common
+options.
 
 Recovery
 ~~~~~~~~
@@ -1440,12 +1432,11 @@ before forcing the shutdown (xm destroy in xen, killing the kvm
 process, for kvm). By default two minutes are given to each instance
 to stop.
 
-The ``--submit`` option is used to send the job to the master daemon
-but not wait for its completion. The job ID will be shown so that it
-can be examined via **gnt-job info**.
-
 If ``--ignore-ipolicy`` is given any instance policy violations occuring
 during this operation are ignored.
+
+See **ganeti(7)** for a description of ``--submit`` and other common
+options.
 
 Example::
 
@@ -1537,9 +1528,9 @@ Example (and expected output)::
 MOVE
 ^^^^
 
-**move** [-f] [\--ignore-consistency]
-[-n *node*] [\--shutdown-timeout=*N*] [\--submit] [\--ignore-ipolicy]
-{*instance*}
+| **move** [-f] [\--ignore-consistency]
+| [-n *node*] [\--shutdown-timeout=*N*] [\--submit] [\--ignore-ipolicy]
+| {*instance*}
 
 Move will move the instance to an arbitrary node in the cluster.  This
 works only for instances having a plain or file disk template.
@@ -1557,12 +1548,11 @@ The ``--ignore-consistency`` option will make Ganeti ignore any errors
 in trying to shutdown the instance on its node; useful if the
 hypervisor is broken and you want to recuperate the data.
 
-The ``--submit`` option is used to send the job to the master daemon
-but not wait for its completion. The job ID will be shown so that it
-can be examined via **gnt-job info**.
-
 If ``--ignore-ipolicy`` is given any instance policy violations occuring
 during this operation are ignored.
+
+See **ganeti(7)** for a description of ``--submit`` and other common
+options.
 
 Example::
 

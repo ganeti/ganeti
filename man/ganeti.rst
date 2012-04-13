@@ -225,13 +225,18 @@ Many Ganeti commands provide the following options. The
 availability for a certain command can be checked by calling the
 command using the ``--help`` option.
 
-**gnt-...** *command* [\--dry-run] [\--priority {low | normal | high}]
+| **gnt-...** *command* [\--dry-run] [\--priority {low | normal | high}]
+| [\--submit]
 
 The ``--dry-run`` option can be used to check whether an operation
 would succeed.
 
 The option ``--priority`` sets the priority for opcodes submitted
 by the command.
+
+The ``--submit`` option is used to send the job to the master daemon but
+not wait for its completion. The job ID will be shown so that it can be
+examined using **gnt-job info**.
 
 Defaults
 ~~~~~~~~

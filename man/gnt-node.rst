@@ -286,7 +286,7 @@ MODIFY
 This command changes the role of the node. Each options takes
 either a literal yes or no, and only one option should be given as
 yes. The meaning of the roles and flags are described in the
-manpage **ganeti**(7).
+manpage **ganeti(7)**.
 
 The option ``--node-powered`` can be used to modify state-of-record if
 it doesn't reflect the reality anymore.
@@ -308,6 +308,9 @@ candidate role if is in that role)::
 The ``-s (--secondary-ip)`` option can be used to change the node's
 secondary ip. No drbd instances can be running on the node, while this
 operation is taking place.
+
+See **ganeti(7)** for a description of ``--submit`` and other common
+options.
 
 Example (setting the node back to online and master candidate)::
 

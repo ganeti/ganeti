@@ -661,9 +661,8 @@ master node to the other nodes in the cluster. This is normally not
 needed, but can be run if the **verify** complains about
 configuration mismatches.
 
-The ``--submit`` option is used to send the job to the master
-daemon but not wait for its completion. The job ID will be shown so
-that it can be examined via **gnt-job info**.
+See **ganeti(7)** for a description of ``--submit`` and other common
+options.
 
 REMOVE-TAGS
 ~~~~~~~~~~~
