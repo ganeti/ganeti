@@ -987,7 +987,13 @@ commands = {
     "[<node_name>...]", "List health of node(s) using out-of-band"),
   }
 
+#: dictionary with aliases for commands
+aliases = {
+  "show": "info",
+  }
+
 
 def Main():
-  return GenericMain(commands, override={"tag_type": constants.TAG_NODE},
+  return GenericMain(commands, aliases=aliases,
+                     override={"tag_type": constants.TAG_NODE},
                      env_override=_ENV_OVERRIDE)

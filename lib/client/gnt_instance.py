@@ -1662,6 +1662,7 @@ commands = {
 aliases = {
   "start": "startup",
   "stop": "shutdown",
+  "show": "info",
   }
 
 

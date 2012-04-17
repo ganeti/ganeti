@@ -1579,6 +1579,7 @@ commands = {
 #: dictionary with aliases for commands
 aliases = {
   "masterfailover": "master-failover",
+  "show": "info",
 }
 
 
