@@ -1894,17 +1894,6 @@ class _QueryResponseBase(ConfigObject):
     return obj
 
 
-class QueryRequest(ConfigObject):
-  """Object holding a query request.
-
-  """
-  __slots__ = [
-    "what",
-    "fields",
-    "qfilter",
-    ]
-
-
 class QueryResponse(_QueryResponseBase):
   """Object holding the response to a query.
 

@@ -302,21 +302,20 @@ class ClientOps:
 
     elif method == luxi.REQ_QUERY:
       (what, fields, qfilter) = args
-      req = objects.QueryRequest(what=what, fields=fields, qfilter=qfilter)
 
-      if req.what in constants.QR_VIA_OP:
-        result = self._Query(opcodes.OpQuery(what=req.what, fields=req.fields,
-                                             qfilter=req.qfilter))
-      elif req.what == constants.QR_LOCK:
-        if req.qfilter is not None:
+      if what in constants.QR_VIA_OP:
+        result = self._Query(opcodes.OpQuery(what=what, fields=fields,
+                                             qfilter=qfilter))
+      elif what == constants.QR_LOCK:
+        if qfilter is not None:
           raise errors.OpPrereqError("Lock queries can't be filtered")
-        return context.glm.QueryLocks(req.fields)
-      elif req.what == constants.QR_JOB:
-        return queue.QueryJobs(req.fields, req.qfilter)
-      elif req.what in constants.QR_VIA_LUXI:
+        return context.glm.QueryLocks(fields)
+      elif what == constants.QR_JOB:
+        return queue.QueryJobs(fields, qfilter)
+      elif what in constants.QR_VIA_LUXI:
         raise NotImplementedError
       else:
-        raise errors.OpPrereqError("Resource type '%s' unknown" % req.what,
+        raise errors.OpPrereqError("Resource type '%s' unknown" % what,
                                    errors.ECODE_INVAL)
 
       return result
