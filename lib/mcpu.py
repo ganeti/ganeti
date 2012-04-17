@@ -220,6 +220,14 @@ def _ProcessResult(submit_fn, op, result):
   return result
 
 
+def _FailingSubmitManyJobs(_):
+  """Implementation of L{OpExecCbBase.SubmitManyJobs} to raise an exception.
+
+  """
+  raise errors.ProgrammerError("Opcodes processed without callbacks (e.g."
+                               " queries) can not submit jobs")
+
+
 def _RpcResultsToHooksResults(rpc_results):
   """Function to convert RPC results to the format expected by HooksMaster.
 
@@ -299,9 +307,13 @@ class Processor(object):
                    " the operation")
       return lu.dry_run_result
 
+    if self._cbs:
+      submit_mj_fn = self._cbs.SubmitManyJobs
+    else:
+      submit_mj_fn = _FailingSubmitManyJobs
+
     try:
-      result = _ProcessResult(self._cbs.SubmitManyJobs, lu.op,
-                              lu.Exec(self.Log))
+      result = _ProcessResult(submit_mj_fn, lu.op, lu.Exec(self.Log))
       h_results = hm.RunPhase(constants.HOOKS_PHASE_POST)
       result = lu.HooksCallBack(constants.HOOKS_PHASE_POST, h_results,
                                 self.Log, result)
