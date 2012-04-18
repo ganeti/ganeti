@@ -233,6 +233,11 @@ def TestRapiQuery():
   rnd = random.Random(7818)
 
   for what in constants.QR_VIA_RAPI:
+    if what == constants.QR_JOB:
+      namefield = "id"
+    else:
+      namefield = "name"
+
     all_fields = query.ALL_FIELDS[what].keys()
     rnd.shuffle(all_fields)
 
@@ -242,7 +247,7 @@ def TestRapiQuery():
     AssertEqual(len(qresult.fields), len(all_fields))
 
     # One field
-    result = _rapi_client.QueryFields(what, fields=["name"])
+    result = _rapi_client.QueryFields(what, fields=[namefield])
     qresult = objects.QueryFieldsResponse.FromDict(result)
     AssertEqual(len(qresult.fields), 1)
 
@@ -287,24 +292,25 @@ def TestRapiQuery():
       ("/2/query/%s?fields=%s" % (what, ",".join(all_fields)),
        compat.partial(_Check, all_fields), "GET", None),
 
-      ("/2/query/%s?fields=name" % what,
-       compat.partial(_Check, ["name"]), "GET", None),
+      ("/2/query/%s?fields=%s" % (what, namefield),
+       compat.partial(_Check, [namefield]), "GET", None),
 
       # Note the spaces
-      ("/2/query/%s?fields=name,%%20name%%09,name%%20" % what,
-       compat.partial(_Check, ["name"] * 3), "GET", None),
+      ("/2/query/%s?fields=%s,%%20%s%%09,%s%%20" %
+       (what, namefield, namefield, namefield),
+       compat.partial(_Check, [namefield] * 3), "GET", None),
 
       # PUT with fields in query
-      ("/2/query/%s?fields=name" % what,
-       compat.partial(_Check, ["name"]), "PUT", {}),
+      ("/2/query/%s?fields=%s" % (what, namefield),
+       compat.partial(_Check, [namefield]), "PUT", {}),
 
       # Fields in body
       ("/2/query/%s" % what, compat.partial(_Check, all_fields), "PUT", {
          "fields": all_fields,
          }),
 
-      ("/2/query/%s" % what, compat.partial(_Check, ["name"] * 4), "PUT", {
-         "fields": ["name"] * 4,
+      ("/2/query/%s" % what, compat.partial(_Check, [namefield] * 4), "PUT", {
+         "fields": [namefield] * 4,
          }),
       ])
 
@@ -313,7 +319,7 @@ def TestRapiQuery():
         # With filter
         ("/2/query/%s" % what, compat.partial(_Check, all_fields), "PUT", {
            "fields": all_fields,
-           "filter": [qlang.OP_TRUE, "name"],
+           "filter": [qlang.OP_TRUE, namefield],
            }),
         ])
 
