@@ -14292,14 +14292,25 @@ class TagsLU(NoHooksLU): # pylint: disable=W0223
   def ExpandNames(self):
     self.group_uuid = None
     self.needed_locks = {}
+
     if self.op.kind == constants.TAG_NODE:
       self.op.name = _ExpandNodeName(self.cfg, self.op.name)
-      self.needed_locks[locking.LEVEL_NODE] = self.op.name
+      lock_level = locking.LEVEL_NODE
+      lock_name = self.op.name
     elif self.op.kind == constants.TAG_INSTANCE:
       self.op.name = _ExpandInstanceName(self.cfg, self.op.name)
-      self.needed_locks[locking.LEVEL_INSTANCE] = self.op.name
+      lock_level = locking.LEVEL_INSTANCE
+      lock_name = self.op.name
     elif self.op.kind == constants.TAG_NODEGROUP:
       self.group_uuid = self.cfg.LookupNodeGroup(self.op.name)
+      lock_level = locking.LEVEL_NODEGROUP
+      lock_name = self.group_uuid
+    else:
+      lock_level = None
+      lock_name = None
+
+    if lock_level and getattr(self.op, "use_locking", True):
+      self.needed_locks[lock_level] = lock_name
 
     # FIXME: Acquire BGL for cluster tag operations (as of this writing it's
     # not possible to acquire the BGL based on opcode parameters)

@@ -16,9 +16,9 @@ Version 2.6.0 beta1
   ``Query(what=QR_LOCK, ...)`` instead.
 - The LUXI requests :pyeval:`luxi.REQ_QUERY_JOBS`,
   :pyeval:`luxi.REQ_QUERY_INSTANCES`, :pyeval:`luxi.REQ_QUERY_NODES`,
-  :pyeval:`luxi.REQ_QUERY_GROUPS` and :pyeval:`luxi.REQ_QUERY_EXPORTS`
-  are deprecated and will be removed in a future version.
-  :pyeval:`luxi.REQ_QUERY` should be used instead.
+  :pyeval:`luxi.REQ_QUERY_GROUPS`, :pyeval:`luxi.REQ_QUERY_EXPORTS` and
+  :pyeval:`luxi.REQ_QUERY_TAGS` are deprecated and will be removed in a
+  future version. :pyeval:`luxi.REQ_QUERY` should be used instead.
 
 
 Version 2.5.0

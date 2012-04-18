@@ -1737,6 +1737,8 @@ class OpTagsGet(OpCode):
   OP_DSC_FIELD = "name"
   OP_PARAMS = [
     _PTagKind,
+    # Not using _PUseLocking as the default is different for historical reasons
+    ("use_locking", True, ht.TBool, "Whether to use synchronization"),
     # Name is only meaningful for nodes and instances
     ("name", ht.NoDefault, ht.TMaybeString, None),
     ]
