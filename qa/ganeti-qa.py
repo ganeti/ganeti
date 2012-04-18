@@ -149,6 +149,7 @@ def SetupCluster(rapi_user, rapi_secret):
   RunTestIf("node-list", qa_node.TestNodeListFields)
   RunTestIf("instance-list", qa_instance.TestInstanceListFields)
   RunTestIf("job-list", qa_job.TestJobListFields)
+  RunTestIf("instance-export", qa_instance.TestBackupListFields)
 
   RunTestIf("node-info", qa_node.TestNodeInfo)
 

@@ -228,16 +228,40 @@ Explicit configuration example::
 LIST
 ~~~~
 
-**list** [\--node=*NODE*]
+| **list** [\--node=*NODE*] [\--no-headers] [\--separator=*SEPARATOR*]
+| [-o *[+]FIELD,...*]
 
 Lists the exports currently available in the default directory in
 all the nodes of the current cluster, or optionally only a subset
 of them specified using the ``--node`` option (which can be used
 multiple times)
 
+The ``--no-headers`` option will skip the initial header line. The
+``--separator`` option takes an argument which denotes what will be
+used between the output fields. Both these options are to help
+scripting.
+
+The ``-o`` option takes a comma-separated list of output fields.
+The available fields and their meaning are:
+
+@QUERY_FIELDS_EXPORT@
+
+If the value of the option starts with the character ``+``, the new
+fields will be added to the default list. This allows one to quickly
+see the default list plus a few other fields, instead of retyping
+the entire list of fields.
+
 Example::
 
-    # gnt-backup list --nodes node1 --nodes node2
+    # gnt-backup list --node node1 --node node2
+
+
+LIST-FIELDS
+~~~~~~~~~~~
+
+**list-fields** [field...]
+
+Lists available fields for exports.
 
 
 REMOVE

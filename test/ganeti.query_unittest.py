@@ -1128,9 +1128,11 @@ class TestQueryFields(unittest.TestCase):
 
 class TestQueryFilter(unittest.TestCase):
   def testRequestedNames(self):
-    for fielddefs in query.ALL_FIELD_LISTS:
-      if "id" in fielddefs:
+    for (what, fielddefs) in query.ALL_FIELDS.items():
+      if what == constants.QR_JOB:
         namefield = "id"
+      elif what == constants.QR_EXPORT:
+        namefield = "export"
       else:
         namefield = "name"
 
@@ -1207,9 +1209,11 @@ class TestQueryFilter(unittest.TestCase):
   def testCompileFilter(self):
     levels_max = query._FilterCompilerHelper._LEVELS_MAX
 
-    for fielddefs in query.ALL_FIELD_LISTS:
-      if "id" in fielddefs:
+    for (what, fielddefs) in query.ALL_FIELDS.items():
+      if what == constants.QR_JOB:
         namefield = "id"
+      elif what == constants.QR_EXPORT:
+        namefield = "export"
       else:
         namefield = "name"
 

@@ -30,6 +30,10 @@ from ganeti.cli import *
 from ganeti import opcodes
 from ganeti import constants
 from ganeti import errors
+from ganeti import qlang
+
+
+_LIST_DEF_FIELDS = ["node", "export"]
 
 
 def PrintExportList(opts, args):
@@ -42,18 +46,27 @@ def PrintExportList(opts, args):
   @return: the desired exit code
 
   """
-  exports = GetClient().QueryExports(opts.nodes, False)
-  retcode = 0
-  for node in exports:
-    ToStdout("Node: %s", node)
-    ToStdout("Exports:")
-    if isinstance(exports[node], list):
-      for instance_name in exports[node]:
-        ToStdout("\t%s", instance_name)
-    else:
-      ToStdout("  Could not get exports list")
-      retcode = 1
-  return retcode
+  selected_fields = ParseFields(opts.output, _LIST_DEF_FIELDS)
+
+  qfilter = qlang.MakeSimpleFilter("node", opts.nodes)
+
+  return GenericList(constants.QR_EXPORT, selected_fields, None, opts.units,
+                     opts.separator, not opts.no_headers,
+                     verbose=opts.verbose, qfilter=qfilter)
+
+
+def ListExportFields(opts, args):
+  """List export fields.
+
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: fields to list, or empty for all
+  @rtype: int
+  @return: the desired exit code
+
+  """
+  return GenericListFields(constants.QR_EXPORT, args, opts.separator,
+                           not opts.no_headers)
 
 
 def ExportInstance(opts, args):
@@ -122,8 +135,13 @@ import_opts = [
 commands = {
   "list": (
     PrintExportList, ARGS_NONE,
-    [NODE_LIST_OPT],
+    [NODE_LIST_OPT, NOHDR_OPT, SEP_OPT, USEUNITS_OPT, FIELDS_OPT, VERBOSE_OPT],
     "", "Lists instance exports available in the ganeti cluster"),
+  "list-fields": (
+    ListExportFields, [ArgUnknown()],
+    [NOHDR_OPT, SEP_OPT],
+    "[fields...]",
+    "Lists all available fields for exports"),
   "export": (
     ExportInstance, ARGS_ONE_INSTANCE,
     [FORCE_OPT, SINGLE_NODE_OPT, NOSHUTDOWN_OPT, SHUTDOWN_TIMEOUT_OPT,

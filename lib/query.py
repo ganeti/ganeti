@@ -2240,6 +2240,30 @@ def _BuildJobFields():
   return _PrepareFieldList(fields, [])
 
 
+def _GetExportName(_, (node_name, expname)): # pylint: disable=W0613
+  """Returns an export name if available.
+
+  """
+  if expname is None:
+    return _FS_UNAVAIL
+  else:
+    return expname
+
+
+def _BuildExportFields():
+  """Builds list of fields for exports.
+
+  """
+  fields = [
+    (_MakeField("node", "Node", QFT_TEXT, "Node name"),
+     None, QFF_HOSTNAME, lambda _, (node_name, expname): node_name),
+    (_MakeField("export", "Export", QFT_TEXT, "Export name"),
+     None, 0, _GetExportName),
+    ]
+
+  return _PrepareFieldList(fields, [])
+
+
 #: Fields available for node queries
 NODE_FIELDS = _BuildNodeFields()
 
@@ -2258,6 +2282,9 @@ OS_FIELDS = _BuildOsFields()
 #: Fields available for job queries
 JOB_FIELDS = _BuildJobFields()
 
+#: Fields available for exports
+EXPORT_FIELDS = _BuildExportFields()
+
 #: All available resources
 ALL_FIELDS = {
   constants.QR_INSTANCE: INSTANCE_FIELDS,
@@ -2266,6 +2293,7 @@ ALL_FIELDS = {
   constants.QR_GROUP: GROUP_FIELDS,
   constants.QR_OS: OS_FIELDS,
   constants.QR_JOB: JOB_FIELDS,
+  constants.QR_EXPORT: EXPORT_FIELDS,
   }
 
 #: All available field lists

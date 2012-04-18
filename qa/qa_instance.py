@@ -358,6 +358,14 @@ def TestBackupList(expnode):
   """gnt-backup list"""
   AssertCommand(["gnt-backup", "list", "--node=%s" % expnode["primary"]])
 
+  qa_utils.GenericQueryTest("gnt-backup", query.EXPORT_FIELDS.keys(),
+                            namefield=None, test_unknown=False)
+
+
+def TestBackupListFields():
+  """gnt-backup list-fields"""
+  qa_utils.GenericQueryFieldsTest("gnt-backup", query.EXPORT_FIELDS.keys())
+
 
 def _TestInstanceDiskFailure(instance, node, node2, onmaster):
   """Testing disk failure."""

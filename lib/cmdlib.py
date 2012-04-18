@@ -493,6 +493,9 @@ class _QueryBase:
   #: Attribute holding field definitions
   FIELDS = None
 
+  #: Field to sort by
+  SORT_FIELD = "name"
+
   def __init__(self, qfilter, fields, use_locking):
     """Initializes this class.
 
@@ -500,7 +503,7 @@ class _QueryBase:
     self.use_locking = use_locking
 
     self.query = query.Query(self.FIELDS, fields, qfilter=qfilter,
-                             namefield="name")
+                             namefield=self.SORT_FIELD)
     self.requested_data = self.query.RequestedData()
     self.names = self.query.RequestedNames()
 
@@ -13024,32 +13027,73 @@ class LUBackupQuery(NoHooksLU):
   """
   REQ_BGL = False
 
+  def CheckArguments(self):
+    self.expq = _ExportQuery(qlang.MakeSimpleFilter("node", self.op.nodes),
+                             ["node", "export"], self.op.use_locking)
+
   def ExpandNames(self):
-    self.needed_locks = {}
-    self.share_locks[locking.LEVEL_NODE] = 1
-    if not self.op.nodes:
-      self.needed_locks[locking.LEVEL_NODE] = locking.ALL_SET
-    else:
-      self.needed_locks[locking.LEVEL_NODE] = \
-        _GetWantedNodes(self, self.op.nodes)
+    self.expq.ExpandNames(self)
+
+  def DeclareLocks(self, level):
+    self.expq.DeclareLocks(self, level)
 
   def Exec(self, feedback_fn):
-    """Compute the list of all the exported system images.
-
-    @rtype: dict
-    @return: a dictionary with the structure node->(export-list)
-        where export-list is a list of the instances exported on
-        that node.
-
-    """
-    self.nodes = self.owned_locks(locking.LEVEL_NODE)
-    rpcresult = self.rpc.call_export_list(self.nodes)
     result = {}
-    for node in rpcresult:
-      if rpcresult[node].fail_msg:
+
+    for (node, expname) in self.expq.OldStyleQuery(self):
+      if expname is None:
         result[node] = False
       else:
-        result[node] = rpcresult[node].payload
+        result.setdefault(node, []).append(expname)
+
+    return result
+
+
+class _ExportQuery(_QueryBase):
+  FIELDS = query.EXPORT_FIELDS
+
+  #: The node name is not a unique key for this query
+  SORT_FIELD = "node"
+
+  def ExpandNames(self, lu):
+    lu.needed_locks = {}
+
+    # The following variables interact with _QueryBase._GetNames
+    if self.names:
+      self.wanted = _GetWantedNodes(lu, self.names)
+    else:
+      self.wanted = locking.ALL_SET
+
+    self.do_locking = self.use_locking
+
+    if self.do_locking:
+      lu.share_locks = _ShareAll()
+      lu.needed_locks = {
+        locking.LEVEL_NODE: self.wanted,
+        }
+
+  def DeclareLocks(self, lu, level):
+    pass
+
+  def _GetQueryData(self, lu):
+    """Computes the list of nodes and their attributes.
+
+    """
+    # Locking is not used
+    assert not (compat.any(lu.glm.is_owned(level)
+                           for level in locking.LEVELS
+                           if level != locking.LEVEL_CLUSTER) or
+                self.do_locking or self.use_locking)
+
+    nodes = self._GetNames(lu, lu.cfg.GetNodeList(), locking.LEVEL_NODE)
+
+    result = []
+
+    for (node, nres) in lu.rpc.call_export_list(nodes).items():
+      if nres.fail_msg:
+        result.append((node, None))
+      else:
+        result.extend((node, expname) for expname in nres.payload)
 
     return result
 
@@ -15174,6 +15218,7 @@ _QUERY_IMPL = {
   constants.QR_NODE: _NodeQuery,
   constants.QR_GROUP: _GroupQuery,
   constants.QR_OS: _OsQuery,
+  constants.QR_EXPORT: _ExportQuery,
   }
 
 assert set(_QUERY_IMPL.keys()) == constants.QR_VIA_OP

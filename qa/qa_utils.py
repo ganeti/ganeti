@@ -426,19 +426,20 @@ def GenericQueryTest(cmd, fields, namefield="name", test_unknown=True):
   for testfields in _SelectQueryFields(rnd, fields):
     AssertCommand([cmd, "list", "--output", ",".join(testfields)])
 
-  namelist_fn = compat.partial(_List, cmd, [namefield])
+  if namefield is not None:
+    namelist_fn = compat.partial(_List, cmd, [namefield])
 
-  # When no names were requested, the list must be sorted
-  names = namelist_fn(None)
-  AssertEqual(names, utils.NiceSort(names))
+    # When no names were requested, the list must be sorted
+    names = namelist_fn(None)
+    AssertEqual(names, utils.NiceSort(names))
 
-  # When requesting specific names, the order must be kept
-  revnames = list(reversed(names))
-  AssertEqual(namelist_fn(revnames), revnames)
+    # When requesting specific names, the order must be kept
+    revnames = list(reversed(names))
+    AssertEqual(namelist_fn(revnames), revnames)
 
-  randnames = list(names)
-  rnd.shuffle(randnames)
-  AssertEqual(namelist_fn(randnames), randnames)
+    randnames = list(names)
+    rnd.shuffle(randnames)
+    AssertEqual(namelist_fn(randnames), randnames)
 
   if test_unknown:
     # Listing unknown items must fail
