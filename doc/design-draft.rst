@@ -14,6 +14,7 @@ Design document drafts
    design-node-state-cache.rst
    design-resource-model.rst
    design-virtual-clusters.rst
+   design-query-splitting.rst
 
 .. vim: set textwidth=72 :
 .. Local Variables:
