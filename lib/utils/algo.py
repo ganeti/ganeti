@@ -32,7 +32,6 @@ from ganeti.utils import text
 
 _SORTER_GROUPS = 8
 _SORTER_RE = re.compile("^%s(.*)$" % (_SORTER_GROUPS * "(\D+|\d+)?"))
-_SORTER_DIGIT = re.compile("^\d+$")
 
 
 def UniqueSequence(seq):
@@ -100,7 +99,7 @@ def _NiceSortTryInt(val):
   """Attempts to convert a string to an integer.
 
   """
-  if val and _SORTER_DIGIT.match(val):
+  if val and val.isdigit():
     return int(val)
   else:
     return val
