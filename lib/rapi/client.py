@@ -472,7 +472,7 @@ class GanetiRapiClient(object): # pylint: disable=R0904
         if err.args[0] in _CURL_SSL_CERT_ERRORS:
           raise CertificateError("SSL certificate error %s" % err)
 
-        raise GanetiApiError(str(err))
+        raise GanetiApiError(str(err), code=err.args[0])
     finally:
       # Reset settings to not keep references to large objects in memory
       # between requests
