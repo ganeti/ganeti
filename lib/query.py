@@ -62,6 +62,7 @@ from ganeti import utils
 from ganeti import compat
 from ganeti import objects
 from ganeti import ht
+from ganeti import runtime
 from ganeti import qlang
 
 from ganeti.constants import (QFT_UNKNOWN, QFT_TEXT, QFT_BOOL, QFT_NUMBER,
@@ -93,6 +94,10 @@ from ganeti.constants import (QFT_UNKNOWN, QFT_TEXT, QFT_BOOL, QFT_NUMBER,
 (GQ_CONFIG,
  GQ_NODE,
  GQ_INST) = range(200, 203)
+
+(CQ_CONFIG,
+ CQ_QUEUE_DRAINED,
+ CQ_WATCHER_PAUSE) = range(300, 303)
 
 # Query field flags
 QFF_HOSTNAME = 0x01
@@ -872,6 +877,20 @@ def _MakeField(name, title, kind, doc):
   """
   return objects.QueryFieldDefinition(name=name, title=title, kind=kind,
                                       doc=doc)
+
+
+def _StaticValueInner(value, ctx, _): # pylint: disable=W0613
+  """Returns a static value.
+
+  """
+  return value
+
+
+def _StaticValue(value):
+  """Prepares a function to return a static value.
+
+  """
+  return compat.partial(_StaticValueInner, value)
 
 
 def _GetNodeRole(node, master_name):
@@ -2264,6 +2283,99 @@ def _BuildExportFields():
   return _PrepareFieldList(fields, [])
 
 
+_CLUSTER_VERSION_FIELDS = {
+  "software_version": ("SoftwareVersion", QFT_TEXT, constants.RELEASE_VERSION,
+                       "Software version"),
+  "protocol_version": ("ProtocolVersion", QFT_NUMBER,
+                       constants.PROTOCOL_VERSION,
+                       "RPC protocol version"),
+  "config_version": ("ConfigVersion", QFT_NUMBER, constants.CONFIG_VERSION,
+                     "Configuration format version"),
+  "os_api_version": ("OsApiVersion", QFT_NUMBER, max(constants.OS_API_VERSIONS),
+                     "API version for OS template scripts"),
+  "export_version": ("ExportVersion", QFT_NUMBER, constants.EXPORT_VERSION,
+                     "Import/export file format version"),
+  }
+
+
+_CLUSTER_SIMPLE_FIELDS = {
+  "cluster_name": ("Name", QFT_TEXT, QFF_HOSTNAME, "Cluster name"),
+  "master_node": ("Master", QFT_TEXT, QFF_HOSTNAME, "Master node name"),
+  "volume_group_name": ("VgName", QFT_TEXT, 0, "LVM volume group name"),
+  }
+
+
+class ClusterQueryData:
+  def __init__(self, cluster, drain_flag, watcher_pause):
+    """Initializes this class.
+
+    @type cluster: L{objects.Cluster}
+    @param cluster: Instance of cluster object
+    @type drain_flag: bool
+    @param drain_flag: Whether job queue is drained
+    @type watcher_pause: number
+    @param watcher_pause: Until when watcher is paused (Unix timestamp)
+
+    """
+    self._cluster = cluster
+    self.drain_flag = drain_flag
+    self.watcher_pause = watcher_pause
+
+  def __iter__(self):
+    return iter([self._cluster])
+
+
+def _ClusterWatcherPause(ctx, _):
+  """Returns until when watcher is paused (if available).
+
+  """
+  if ctx.watcher_pause is None:
+    return _FS_UNAVAIL
+  else:
+    return ctx.watcher_pause
+
+
+def _BuildClusterFields():
+  """Builds list of fields for cluster information.
+
+  """
+  fields = [
+    (_MakeField("tags", "Tags", QFT_OTHER, "Tags"), CQ_CONFIG, 0,
+     lambda ctx, cluster: list(cluster.GetTags())),
+    (_MakeField("architecture", "ArchInfo", QFT_OTHER,
+                "Architecture information"), None, 0,
+     lambda ctx, _: runtime.GetArchInfo()),
+    (_MakeField("drain_flag", "QueueDrained", QFT_BOOL,
+                "Flag whether job queue is drained"), CQ_QUEUE_DRAINED, 0,
+     lambda ctx, _: ctx.drain_flag),
+    (_MakeField("watcher_pause", "WatcherPause", QFT_TIMESTAMP,
+                "Until when watcher is paused"), CQ_WATCHER_PAUSE, 0,
+     _ClusterWatcherPause),
+    ]
+
+  # Simple fields
+  fields.extend([
+    (_MakeField(name, title, kind, doc), CQ_CONFIG, flags, _GetItemAttr(name))
+    for (name, (title, kind, flags, doc)) in _CLUSTER_SIMPLE_FIELDS.items()
+    ])
+
+  # Version fields
+  fields.extend([
+    (_MakeField(name, title, kind, doc), None, 0, _StaticValue(value))
+    for (name, (title, kind, value, doc)) in _CLUSTER_VERSION_FIELDS.items()
+    ])
+
+  # Add timestamps
+  fields.extend(_GetItemTimestampFields(CQ_CONFIG))
+
+  return _PrepareFieldList(fields, [
+    ("name", "cluster_name"),
+    ])
+
+
+#: Fields for cluster information
+CLUSTER_FIELDS = _BuildClusterFields()
+
 #: Fields available for node queries
 NODE_FIELDS = _BuildNodeFields()
 
@@ -2287,6 +2399,7 @@ EXPORT_FIELDS = _BuildExportFields()
 
 #: All available resources
 ALL_FIELDS = {
+  constants.QR_CLUSTER: CLUSTER_FIELDS,
   constants.QR_INSTANCE: INSTANCE_FIELDS,
   constants.QR_NODE: NODE_FIELDS,
   constants.QR_LOCK: LOCK_FIELDS,

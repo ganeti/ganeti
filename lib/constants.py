@@ -1611,6 +1611,7 @@ JQT_ALL = frozenset([
   ])
 
 # Query resources
+QR_CLUSTER = "cluster"
 QR_INSTANCE = "instance"
 QR_NODE = "node"
 QR_LOCK = "lock"
@@ -1621,6 +1622,7 @@ QR_EXPORT = "export"
 
 #: List of resources which can be queried using L{opcodes.OpQuery}
 QR_VIA_OP = frozenset([
+  QR_CLUSTER,
   QR_INSTANCE,
   QR_NODE,
   QR_GROUP,

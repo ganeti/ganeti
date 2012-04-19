@@ -6165,38 +6165,70 @@ class LUClusterConfigQuery(NoHooksLU):
 
   """
   REQ_BGL = False
-  _FIELDS_DYNAMIC = utils.FieldSet()
-  _FIELDS_STATIC = utils.FieldSet("cluster_name", "master_node", "drain_flag",
-                                  "watcher_pause", "volume_group_name")
 
   def CheckArguments(self):
-    _CheckOutputFields(static=self._FIELDS_STATIC,
-                       dynamic=self._FIELDS_DYNAMIC,
-                       selected=self.op.output_fields)
+    self.cq = _ClusterQuery(None, self.op.output_fields, False)
 
   def ExpandNames(self):
-    self.needed_locks = {}
+    self.cq.ExpandNames(self)
+
+  def DeclareLocks(self, level):
+    self.cq.DeclareLocks(self, level)
 
   def Exec(self, feedback_fn):
-    """Dump a representation of the cluster config to the standard output.
+    result = self.cq.OldStyleQuery(self)
+
+    assert len(result) == 1
+
+    return result[0]
+
+
+class _ClusterQuery(_QueryBase):
+  FIELDS = query.CLUSTER_FIELDS
+
+  #: Do not sort (there is only one item)
+  SORT_FIELD = None
+
+  def ExpandNames(self, lu):
+    lu.needed_locks = {}
+
+    # The following variables interact with _QueryBase._GetNames
+    self.wanted = locking.ALL_SET
+    self.do_locking = self.use_locking
+
+    if self.do_locking:
+      raise errors.OpPrereqError("Can not use locking for cluster queries",
+                                 errors.ECODE_INVAL)
+
+  def DeclareLocks(self, lu, level):
+    pass
+
+  def _GetQueryData(self, lu):
+    """Computes the list of nodes and their attributes.
 
     """
-    values = []
-    for field in self.op.output_fields:
-      if field == "cluster_name":
-        entry = self.cfg.GetClusterName()
-      elif field == "master_node":
-        entry = self.cfg.GetMasterNode()
-      elif field == "drain_flag":
-        entry = os.path.exists(constants.JOB_QUEUE_DRAIN_FILE)
-      elif field == "watcher_pause":
-        entry = utils.ReadWatcherPauseFile(constants.WATCHER_PAUSEFILE)
-      elif field == "volume_group_name":
-        entry = self.cfg.GetVGName()
-      else:
-        raise errors.ParameterError(field)
-      values.append(entry)
-    return values
+    # Locking is not used
+    assert not (compat.any(lu.glm.is_owned(level)
+                           for level in locking.LEVELS
+                           if level != locking.LEVEL_CLUSTER) or
+                self.do_locking or self.use_locking)
+
+    if query.CQ_CONFIG in self.requested_data:
+      cluster = lu.cfg.GetClusterInfo()
+    else:
+      cluster = NotImplemented
+
+    if query.CQ_QUEUE_DRAINED in self.requested_data:
+      drain_flag = os.path.exists(constants.JOB_QUEUE_DRAIN_FILE)
+    else:
+      drain_flag = NotImplemented
+
+    if query.CQ_WATCHER_PAUSE in self.requested_data:
+      watcher_pause = utils.ReadWatcherPauseFile(constants.WATCHER_PAUSEFILE)
+    else:
+      watcher_pause = NotImplemented
+
+    return query.ClusterQueryData(cluster, drain_flag, watcher_pause)
 
 
 class LUInstanceActivateDisks(NoHooksLU):
@@ -13080,6 +13112,7 @@ class _ExportQuery(_QueryBase):
 
     """
     # Locking is not used
+    # TODO
     assert not (compat.any(lu.glm.is_owned(level)
                            for level in locking.LEVELS
                            if level != locking.LEVEL_CLUSTER) or
@@ -15214,6 +15247,7 @@ class LUTestAllocator(NoHooksLU):
 
 #: Query type implementations
 _QUERY_IMPL = {
+  constants.QR_CLUSTER: _ClusterQuery,
   constants.QR_INSTANCE: _InstanceQuery,
   constants.QR_NODE: _NodeQuery,
   constants.QR_GROUP: _GroupQuery,
