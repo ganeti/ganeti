@@ -139,19 +139,9 @@ RUN_DIRS_MODE = 0775
 SOCKET_DIR = RUN_GANETI_DIR + "/socket"
 SECURE_DIR_MODE = 0700
 SECURE_FILE_MODE = 0600
-SOCKET_DIR_MODE = 0750
 CRYPTO_KEYS_DIR = RUN_GANETI_DIR + "/crypto"
-CRYPTO_KEYS_DIR_MODE = SECURE_DIR_MODE
 IMPORT_EXPORT_DIR = RUN_GANETI_DIR + "/import-export"
-IMPORT_EXPORT_DIR_MODE = 0755
 ADOPTABLE_BLOCKDEV_ROOT = "/dev/disk/"
-# keep RUN_GANETI_DIR first here, to make sure all get created when the node
-# daemon is started (this takes care of RUN_DIR being tmpfs)
-SUB_RUN_DIRS = [
-  RUN_GANETI_DIR,
-  BDEV_CACHE_DIR,
-  DISK_LINKS_DIR,
-  ]
 LOCK_DIR = _autoconf.LOCALSTATEDIR + "/lock"
 SSCONF_LOCK_FILE = LOCK_DIR + "/ganeti-ssconf.lock"
 # User-id pool lock directory
@@ -235,7 +225,6 @@ DEFAULT_NLD_PORT = DAEMONS_PORTS[NLD][1]
 
 FIRST_DRBD_PORT = 11000
 LAST_DRBD_PORT = 14999
-MASTER_SCRIPT = "ganeti-master"
 
 LOG_DIR = _autoconf.LOCALSTATEDIR + "/log/ganeti/"
 DAEMONS_LOGFILES = {
@@ -1527,8 +1516,6 @@ JOB_QUEUE_SERIAL_FILE = QUEUE_DIR + "/serial"
 JOB_QUEUE_ARCHIVE_DIR = QUEUE_DIR + "/archive"
 JOB_QUEUE_DRAIN_FILE = QUEUE_DIR + "/drain"
 JOB_QUEUE_SIZE_HARD_LIMIT = 5000
-JOB_QUEUE_DIRS = [QUEUE_DIR, JOB_QUEUE_ARCHIVE_DIR]
-JOB_QUEUE_DIRS_MODE = SECURE_DIR_MODE
 
 JOB_ID_TEMPLATE = r"\d+"
 JOB_FILE_RE = re.compile(r"^job-(%s)$" % JOB_ID_TEMPLATE)
@@ -1603,7 +1590,6 @@ LOCK_ATTEMPTS_MINWAIT = 1.0
 
 # Execution log types
 ELOG_MESSAGE = "message"
-ELOG_PROGRESS = "progress"
 ELOG_REMOTE_IMPORT = "remote-import"
 ELOG_JQUEUE_TEST = "jqueue-test"
 
