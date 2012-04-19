@@ -235,6 +235,8 @@ def TestRapiQuery():
   for what in constants.QR_VIA_RAPI:
     if what == constants.QR_JOB:
       namefield = "id"
+    elif what == constants.QR_EXPORT:
+      namefield = "export"
     else:
       namefield = "name"
 
