@@ -68,7 +68,14 @@ def TestEnabled(tests):
   """
   if isinstance(tests, basestring):
     tests = [tests]
-  return compat.all(cfg.get("tests", {}).get(t, True) for t in tests)
+
+  # Get settings for all tests
+  all_tests = cfg.get("tests", {})
+
+  # Get default setting
+  default = all_tests.get("default", True)
+
+  return compat.all(all_tests.get(name, default) for name in tests)
 
 
 def GetMasterNode():
