@@ -51,6 +51,9 @@
   },
 
   "tests": {
+    "# Whether tests are enabled or disabled by default": null,
+    "default": true,
+
     "env": true,
     "os": true,
     "tags": true,
