@@ -19,6 +19,7 @@ Version 2.6.0 beta1
   :pyeval:`luxi.REQ_QUERY_GROUPS`, :pyeval:`luxi.REQ_QUERY_EXPORTS` and
   :pyeval:`luxi.REQ_QUERY_TAGS` are deprecated and will be removed in a
   future version. :pyeval:`luxi.REQ_QUERY` should be used instead.
+- CertificateError now derives from GanetiApiError in the RAPI client.
 
 
 Version 2.5.0
