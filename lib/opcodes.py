@@ -80,10 +80,12 @@ _PMigrationLive = ("live", None, ht.TMaybeBool,
                    "Legacy setting for live migration, do not use")
 
 #: Tag type
-_PTagKind = ("kind", ht.NoDefault, ht.TElemOf(constants.VALID_TAG_TYPES), None)
+_PTagKind = ("kind", ht.NoDefault, ht.TElemOf(constants.VALID_TAG_TYPES),
+             "Tag kind")
 
 #: List of tag strings
-_PTags = ("tags", ht.NoDefault, ht.TListOf(ht.TNonEmptyString), None)
+_PTags = ("tags", ht.NoDefault, ht.TListOf(ht.TNonEmptyString),
+          "List of tag names")
 
 _PForceVariant = ("force_variant", False, ht.TBool,
                   "Whether to force an unknown OS variant")
@@ -1740,7 +1742,8 @@ class OpTagsGet(OpCode):
     # Not using _PUseLocking as the default is different for historical reasons
     ("use_locking", True, ht.TBool, "Whether to use synchronization"),
     # Name is only meaningful for nodes and instances
-    ("name", ht.NoDefault, ht.TMaybeString, None),
+    ("name", ht.NoDefault, ht.TMaybeString,
+     "Name of object to retrieve tags from"),
     ]
   OP_RESULT = ht.TListOf(ht.TNonEmptyString)
 
@@ -1749,7 +1752,8 @@ class OpTagsSearch(OpCode):
   """Searches the tags in the cluster for a given pattern."""
   OP_DSC_FIELD = "pattern"
   OP_PARAMS = [
-    ("pattern", ht.NoDefault, ht.TNonEmptyString, None),
+    ("pattern", ht.NoDefault, ht.TNonEmptyString,
+     "Search pattern (regular expression)"),
     ]
   OP_RESULT = ht.TListOf(ht.TAnd(ht.TIsLength(2), ht.TItems([
     ht.TNonEmptyString,
@@ -1763,7 +1767,8 @@ class OpTagsSet(OpCode):
     _PTagKind,
     _PTags,
     # Name is only meaningful for nodes and instances
-    ("name", ht.NoDefault, ht.TMaybeString, None),
+    ("name", ht.NoDefault, ht.TMaybeString,
+     "Name of object where tag(s) should be added"),
     ]
   OP_RESULT = ht.TNone
 
@@ -1774,7 +1779,8 @@ class OpTagsDel(OpCode):
     _PTagKind,
     _PTags,
     # Name is only meaningful for nodes and instances
-    ("name", ht.NoDefault, ht.TMaybeString, None),
+    ("name", ht.NoDefault, ht.TMaybeString,
+     "Name of object where tag(s) should be deleted"),
     ]
   OP_RESULT = ht.TNone
 
