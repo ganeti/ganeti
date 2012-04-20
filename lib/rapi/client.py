@@ -133,13 +133,6 @@ class Error(Exception):
   pass
 
 
-class CertificateError(Error):
-  """Raised when a problem is found with the SSL certificate.
-
-  """
-  pass
-
-
 class GanetiApiError(Error):
   """Generic error raised from Ganeti API.
 
@@ -147,6 +140,13 @@ class GanetiApiError(Error):
   def __init__(self, msg, code=None):
     Error.__init__(self, msg)
     self.code = code
+
+
+class CertificateError(GanetiApiError):
+  """Raised when a problem is found with the SSL certificate.
+
+  """
+  pass
 
 
 def _AppendIf(container, condition, value):
@@ -470,7 +470,8 @@ class GanetiRapiClient(object): # pylint: disable=R0904
         curl.perform()
       except pycurl.error, err:
         if err.args[0] in _CURL_SSL_CERT_ERRORS:
-          raise CertificateError("SSL certificate error %s" % err)
+          raise CertificateError("SSL certificate error %s" % err,
+                                 code=err.args[0])
 
         raise GanetiApiError(str(err), code=err.args[0])
     finally:
