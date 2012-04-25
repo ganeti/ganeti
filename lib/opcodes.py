@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -1536,7 +1536,7 @@ class OpInstanceGrowDisk(OpCode):
     _PInstanceName,
     _PWaitForSync,
     ("disk", ht.NoDefault, ht.TInt, "Disk index"),
-    ("amount", ht.NoDefault, ht.TInt,
+    ("amount", ht.NoDefault, ht.TPositiveInt,
      "Amount of disk space to add (megabytes)"),
     ]
   OP_RESULT = ht.TNone
