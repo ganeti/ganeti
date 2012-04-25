@@ -11585,6 +11585,7 @@ class LUInstanceGrowDisk(LogicalUnit):
     env = {
       "DISK": self.op.disk,
       "AMOUNT": self.op.amount,
+      "ABSOLUTE": self.op.absolute,
       }
     env.update(_BuildInstanceHookEnvByObject(self, self.instance))
     return env
@@ -11617,13 +11618,30 @@ class LUInstanceGrowDisk(LogicalUnit):
 
     self.disk = instance.FindDisk(self.op.disk)
 
+    if self.op.absolute:
+      self.target = self.op.amount
+      self.delta = self.target - self.disk.size
+      if self.delta < 0:
+        raise errors.OpPrereqError("Requested size (%s) is smaller than "
+                                   "current disk size (%s)" %
+                                   (utils.FormatUnit(self.target, "h"),
+                                    utils.FormatUnit(self.disk.size, "h")),
+                                   errors.ECODE_STATE)
+    else:
+      self.delta = self.op.amount
+      self.target = self.disk.size + self.delta
+      if self.delta < 0:
+        raise errors.OpPrereqError("Requested increment (%s) is negative" %
+                                   utils.FormatUnit(self.delta, "h"),
+                                   errors.ECODE_INVAL)
+
     if instance.disk_template not in (constants.DT_FILE,
                                       constants.DT_SHARED_FILE,
                                       constants.DT_RBD):
       # TODO: check the free disk space for file, when that feature will be
       # supported
       _CheckNodesFreeDiskPerVG(self, nodenames,
-                               self.disk.ComputeGrowth(self.op.amount))
+                               self.disk.ComputeGrowth(self.delta))
 
   def Exec(self, feedback_fn):
     """Execute disk grow.
@@ -11640,21 +11658,22 @@ class LUInstanceGrowDisk(LogicalUnit):
     if not disks_ok:
       raise errors.OpExecError("Cannot activate block device to grow")
 
-    feedback_fn("Growing disk %s of instance '%s' by %s" %
+    feedback_fn("Growing disk %s of instance '%s' by %s to %s" %
                 (self.op.disk, instance.name,
-                 utils.FormatUnit(self.op.amount, "h")))
+                 utils.FormatUnit(self.delta, "h"),
+                 utils.FormatUnit(self.target, "h")))
 
     # First run all grow ops in dry-run mode
     for node in instance.all_nodes:
       self.cfg.SetDiskID(disk, node)
-      result = self.rpc.call_blockdev_grow(node, disk, self.op.amount, True)
+      result = self.rpc.call_blockdev_grow(node, disk, self.delta, True)
       result.Raise("Grow request failed to node %s" % node)
 
     # We know that (as far as we can test) operations across different
     # nodes will succeed, time to run it for real
     for node in instance.all_nodes:
       self.cfg.SetDiskID(disk, node)
-      result = self.rpc.call_blockdev_grow(node, disk, self.op.amount, False)
+      result = self.rpc.call_blockdev_grow(node, disk, self.delta, False)
       result.Raise("Grow request failed to node %s" % node)
 
       # TODO: Rewrite code to work properly
@@ -11664,7 +11683,7 @@ class LUInstanceGrowDisk(LogicalUnit):
       # time is a work-around.
       time.sleep(5)
 
-    disk.RecordGrow(self.op.amount)
+    disk.RecordGrow(self.delta)
     self.cfg.Update(instance, feedback_fn)
 
     # Changes have been recorded, release node lock

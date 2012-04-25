@@ -1538,6 +1538,8 @@ class OpInstanceGrowDisk(OpCode):
     ("disk", ht.NoDefault, ht.TInt, "Disk index"),
     ("amount", ht.NoDefault, ht.TPositiveInt,
      "Amount of disk space to add (megabytes)"),
+    ("absolute", False, ht.TBool,
+     "Whether the amount parameter is an absolute target or a relative one"),
     ]
   OP_RESULT = ht.TNone
 
