@@ -106,6 +106,7 @@
 
     "instance-export": true,
     "instance-failover": true,
+    "instance-grow-disk": true,
     "instance-import": true,
     "instance-info": true,
     "instance-list": true,

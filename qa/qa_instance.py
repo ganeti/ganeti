@@ -279,6 +279,28 @@ def TestInstanceConvertDisk(instance, snode):
                  "-n", snode["primary"], name])
 
 
+def TestInstanceGrowDisk(instance):
+  """gnt-instance grow-disk"""
+  name = instance["name"]
+  all_size = qa_config.get("disk")
+  all_grow = qa_config.get("disk-growth")
+  if not all_grow:
+    # missing disk sizes but instance grow disk has been enabled,
+    # let's set fixed/nomimal growth
+    all_grow = ["128M" for _ in all_size]
+  for idx, (size, grow) in enumerate(zip(all_size, all_grow)):
+    # succeed in grow by amount
+    AssertCommand(["gnt-instance", "grow-disk", name, str(idx), grow])
+    # fail in grow to the old size
+    AssertCommand(["gnt-instance", "grow-disk", "--absolute", name, str(idx),
+                   size], fail=True)
+    # succeed to grow to old size + 2 * growth
+    int_size = utils.ParseUnit(size)
+    int_grow = utils.ParseUnit(grow)
+    AssertCommand(["gnt-instance", "grow-disk", "--absolute", name, str(idx),
+                   str(int_size + 2 * int_grow)])
+
+
 def TestInstanceList():
   """gnt-instance list"""
   qa_utils.GenericQueryTest("gnt-instance", query.INSTANCE_FIELDS.keys())
