@@ -50,6 +50,7 @@ from optparse import (OptionParser, TitledHelpFormatter,
 
 __all__ = [
   # Command line options
+  "ABSOLUTE_OPT",
   "ADD_UIDS_OPT",
   "ALLOCATABLE_OPT",
   "ALLOC_POLICY_OPT",
@@ -1380,6 +1381,11 @@ RUNTIME_MEM_OPT = cli_option("-m", "--runtime-memory", dest="runtime_mem",
                              help="Sets the instance's runtime memory,"
                              " ballooning it up or down to the new value",
                              default=None, type="unit", metavar="<size>")
+
+ABSOLUTE_OPT = cli_option("--absolute", dest="absolute",
+                          action="store_true", default=False,
+                          help="Marks the grow as absolute instead of the"
+                          " (default) relative mode")
 
 #: Options provided by all commands
 COMMON_OPTS = [DEBUG_OPT]

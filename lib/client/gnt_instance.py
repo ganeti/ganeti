@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -663,7 +663,8 @@ def GrowDisk(opts, args):
   amount = utils.ParseUnit(args[2])
   op = opcodes.OpInstanceGrowDisk(instance_name=instance,
                                   disk=disk, amount=amount,
-                                  wait_for_sync=opts.wait_for_sync)
+                                  wait_for_sync=opts.wait_for_sync,
+                                  absolute=opts.absolute)
   SubmitOrSend(op, opts)
   return 0
 
@@ -1639,7 +1640,7 @@ commands = {
     GrowDisk,
     [ArgInstance(min=1, max=1), ArgUnknown(min=1, max=1),
      ArgUnknown(min=1, max=1)],
-    [SUBMIT_OPT, NWSYNC_OPT, DRY_RUN_OPT, PRIORITY_OPT],
+    [SUBMIT_OPT, NWSYNC_OPT, DRY_RUN_OPT, PRIORITY_OPT, ABSOLUTE_OPT],
     "<instance> <disk> <size>", "Grow an instance's disk"),
   "change-group": (
     ChangeGroup, ARGS_ONE_INSTANCE,
