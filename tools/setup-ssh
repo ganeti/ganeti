@@ -29,10 +29,16 @@ This is needed before we can join the node into the cluster.
 
 import getpass
 import logging
-import paramiko
 import os.path
 import optparse
 import sys
+
+# workaround paramiko warnings
+# FIXME: use 'with warnings.catch_warnings' once we drop Python 2.4
+import warnings
+warnings.simplefilter("ignore")
+import paramiko
+warnings.resetwarnings()
 
 from ganeti import cli
 from ganeti import constants
