@@ -498,6 +498,7 @@ PYTHON_BOOTSTRAP = \
 	tools/ensure-dirs
 
 qa_scripts = \
+	qa/__init__.py \
 	qa/ganeti-qa.py \
 	qa/qa_cluster.py \
 	qa/qa_config.py \
@@ -847,6 +848,7 @@ python_tests = \
 	test/ganeti.utils.x509_unittest.py \
 	test/ganeti.utils_unittest.py \
 	test/ganeti.workerpool_unittest.py \
+	test/qa.qa_config_unittest.py \
 	test/cfgupgrade_unittest.py \
 	test/docs_unittest.py \
 	test/pycurl_reset_unittest.py \

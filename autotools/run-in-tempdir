@@ -10,7 +10,7 @@ trap "rm -rf $tmpdir" EXIT
 
 mkdir $tmpdir/doc
 
-cp -r autotools daemons scripts lib tools test $tmpdir
+cp -r autotools daemons scripts lib tools test qa $tmpdir
 cp -r doc/examples $tmpdir/doc
 
 mv $tmpdir/lib $tmpdir/ganeti

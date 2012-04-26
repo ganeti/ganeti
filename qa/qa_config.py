@@ -60,22 +60,79 @@ def get(name, default=None):
   return cfg.get(name, default)
 
 
-def TestEnabled(tests):
-  """Returns True if the given tests are enabled.
+class Either:
+  def __init__(self, tests):
+    """Initializes this class.
 
-  @param tests: a single test, or a list of tests to check
+    @type tests: list or string
+    @param tests: List of test names
+    @see: L{TestEnabled} for details
+
+    """
+    self.tests = tests
+
+
+def _MakeSequence(value):
+  """Make sequence of single argument.
+
+  If the single argument is not already a list or tuple, a list with the
+  argument as a single item is returned.
 
   """
-  if isinstance(tests, basestring):
-    tests = [tests]
+  if isinstance(value, (list, tuple)):
+    return value
+  else:
+    return [value]
+
+
+def _TestEnabledInner(check_fn, names, fn):
+  """Evaluate test conditions.
+
+  @type check_fn: callable
+  @param check_fn: Callback to check whether a test is enabled
+  @type names: sequence or string
+  @param names: Test name(s)
+  @type fn: callable
+  @param fn: Aggregation function
+  @rtype: bool
+  @return: Whether test is enabled
+
+  """
+  names = _MakeSequence(names)
+
+  result = []
+
+  for name in names:
+    if isinstance(name, Either):
+      value = _TestEnabledInner(check_fn, name.tests, compat.any)
+    elif isinstance(name, (list, tuple)):
+      value = _TestEnabledInner(check_fn, name, compat.all)
+    else:
+      value = check_fn(name)
+
+    result.append(value)
+
+  return fn(result)
+
+
+def TestEnabled(tests, _cfg=None):
+  """Returns True if the given tests are enabled.
+
+  @param tests: A single test as a string, or a list of tests to check; can
+    contain L{Either} for OR conditions, AND is default
+
+  """
+  if _cfg is None:
+    _cfg = cfg
 
   # Get settings for all tests
-  all_tests = cfg.get("tests", {})
+  cfg_tests = _cfg.get("tests", {})
 
   # Get default setting
-  default = all_tests.get("default", True)
+  default = cfg_tests.get("default", True)
 
-  return compat.all(all_tests.get(name, default) for name in tests)
+  return _TestEnabledInner(lambda name: cfg_tests.get(name, default),
+                           tests, compat.all)
 
 
 def GetMasterNode():
