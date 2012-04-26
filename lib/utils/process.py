@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2010, 2011 Google Inc.
+# Copyright (C) 2006, 2007, 2010, 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -192,9 +192,9 @@ def RunCmd(cmd, env=None, output=None, cwd="/", reset_env=False,
     shell = False
 
   if output:
-    logging.debug("RunCmd %s, output file '%s'", strcmd, output)
+    logging.info("RunCmd %s, output file '%s'", strcmd, output)
   else:
-    logging.debug("RunCmd %s", strcmd)
+    logging.info("RunCmd %s", strcmd)
 
   cmd_env = _BuildCmdEnvironment(env, reset_env)
 
