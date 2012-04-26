@@ -252,7 +252,12 @@ def RunCommonInstanceTests(instance):
   RunTestIf(["instance-console", "rapi"],
             qa_rapi.TestRapiInstanceConsole, instance)
 
-  DOWN_TESTS = ["instance-reinstall", "instance-rename", "instance-grow-disk"]
+  DOWN_TESTS = qa_config.Either([
+    "instance-reinstall",
+    "instance-rename",
+    "instance-grow-disk",
+    ])
+
   # shutdown instance for any 'down' tests
   RunTestIf(DOWN_TESTS, qa_instance.TestInstanceShutdown, instance)
 
