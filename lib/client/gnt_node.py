@@ -138,6 +138,9 @@ def _RunSetupSSH(options, nodes):
   @param nodes: The nodes to setup
 
   """
+
+  assert nodes, "Empty node list"
+
   cmd = [constants.SETUP_SSH]
 
   # Pass --debug|--verbose to the external script if set on our invocation

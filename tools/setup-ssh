@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2010 Google Inc.
+# Copyright (C) 2010, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -252,6 +252,10 @@ def ParseOptions():
                                     help="Force the join of the host"))
 
   (options, args) = parser.parse_args()
+
+  if not args:
+    parser.print_help()
+    sys.exit(constants.EXIT_FAILURE)
 
   return (options, args)
 
