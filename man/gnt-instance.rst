@@ -1318,8 +1318,8 @@ options.
 GROW-DISK
 ^^^^^^^^^
 
-| **grow-disk** [\--no-wait-for-sync] [\--submit] {*instance*} {*disk*}
-| {*amount*}
+| **grow-disk** [\--no-wait-for-sync] [\--submit] [\--absolute]
+| {*instance*} {*disk*} {*amount*}
 
 Grows an instance's disk. This is only possible for instances having a
 plain, drbd or rbd disk template.
@@ -1337,10 +1337,15 @@ disk. Usually, you will need to:
    the partition table on the disk
 
 The *disk* argument is the index of the instance disk to grow. The
-*amount* argument is given either as a number (and it represents the
-amount to increase the disk with in mebibytes) or can be given similar
-to the arguments in the create instance operation, with a suffix
-denoting the unit.
+*amount* argument is given as a number which can have a suffix (like the
+disk size in instance create); if the suffix is missing, the value will
+be interpreted as mebibytes.
+
+By default, the *amount* value represents the desired increase in the
+disk size (e.g. an amount of 1G will take a disk of size 3G to 4G). If
+the optional ``--absolute`` parameter is passed, then the *amount*
+argument doesn't represent the delta, but instead the desired final disk
+size (e.g. an amount of 8G will take a disk of size 4G to 8G).
 
 For instances with a drbd template, note that the disk grow operation
 might complete on one node but fail on the other; this will leave the
@@ -1357,6 +1362,9 @@ Example (increase the first disk for instance1 by 16GiB)::
 
     # gnt-instance grow-disk instance1.example.com 0 16g
 
+Example for increasing the disk size to a certain size::
+
+   # gnt-instance grow-disk --absolute instance1.example.com 0 32g
 
 Also note that disk shrinking is not supported; use **gnt-backup
 export** and then **gnt-backup import** to reduce the disk size of an
