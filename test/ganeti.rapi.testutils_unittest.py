@@ -129,7 +129,7 @@ class TestInputTestClient(unittest.TestCase):
     result = self.cl.PrepareExport("inst1.example.com",
                                    constants.EXPORT_MODE_LOCAL)
     self.assertTrue(result is NotImplemented)
-    self.assertRaises(rapi.client.GanetiApiError, self.cl.PrepareExport,
+    self.assertRaises(rapi.testutils.VerificationError, self.cl.PrepareExport,
                       "inst1.example.com", "###invalid###")
 
   def testGetJobs(self):
