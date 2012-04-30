@@ -34,12 +34,14 @@ module Ganeti.Ssconf
 
 import Ganeti.THH
 
+import Control.Exception
 import Control.Monad (liftM)
 import Data.Char (isSpace)
 import Data.Maybe (fromMaybe)
+import Prelude hiding (catch)
 import qualified Network.Socket as Socket
 import System.FilePath ((</>))
-import System.IO.Error
+import System.IO.Error (isDoesNotExistError)
 
 import qualified Ganeti.Constants as C
 import Ganeti.BasicTypes

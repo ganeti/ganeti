@@ -41,10 +41,12 @@ module Ganeti.Daemon
   , genericMain
   ) where
 
+import Control.Exception
 import Control.Monad
 import qualified Data.Version
 import Data.Word
 import qualified Network.Socket as Socket
+import Prelude hiding (catch)
 import System.Console.GetOpt
 import System.Exit
 import System.Environment
@@ -199,11 +201,16 @@ _writePidFile path = do
   _ <- fdWrite fd (show my_pid ++ "\n")
   return fd
 
+-- | Helper to format an IOError.
+formatIOError :: String -> IOError -> String
+formatIOError msg err = msg ++ ": " ++  show err
+
 -- | Wrapper over '_writePidFile' that transforms IO exceptions into a
 -- 'Bad' value.
 writePidFile :: FilePath -> IO (Result Fd)
 writePidFile path = do
-  catch (fmap Ok $ _writePidFile path) (return . Bad . show)
+  catch (fmap Ok $ _writePidFile path)
+    (return . Bad . formatIOError "Failure during writing of the pid file")
 
 -- | Sets up a daemon's environment.
 setupDaemonEnv :: FilePath -> FileMode -> IO ()

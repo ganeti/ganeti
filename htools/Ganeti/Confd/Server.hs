@@ -30,12 +30,14 @@ module Ganeti.Confd.Server
   ) where
 
 import Control.Concurrent
+import Control.Exception
 import Control.Monad (forever)
 import qualified Data.ByteString as B
 import Data.IORef
 import Data.List
 import qualified Data.Map as M
 import qualified Network.Socket as S
+import Prelude hiding (catch)
 import System.Posix.Files
 import System.Posix.Types
 import System.Time
@@ -300,7 +302,8 @@ safeUpdateConfig path oldfstat cref = do
                     updateConfig path cref
                     return (nt', ConfigReloaded)
         ) (\e -> do
-             let msg = "Failure during configuration update: " ++ show e
+             let msg = "Failure during configuration update: " ++
+                       show (e::IOError)
              writeIORef cref (Bad msg)
              return (nullFStat, ConfigIOError)
           )
@@ -416,7 +419,7 @@ addNotifier :: INotify -> FilePath -> CRef -> MVar ServerState -> IO Bool
 addNotifier inotify path cref mstate = do
   catch (addWatch inotify [CloseWrite] path
                     (onInotify inotify path cref mstate) >> return True)
-        (const $ return False)
+        (\e -> const (return False) (e::IOError))
 
 -- | Inotify event handler.
 onInotify :: INotify -> String -> CRef -> MVar ServerState -> Event -> IO ()
