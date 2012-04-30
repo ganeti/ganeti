@@ -20,6 +20,9 @@ Version 2.6.0 beta1
   :pyeval:`luxi.REQ_QUERY_TAGS` are deprecated and will be removed in a
   future version. :pyeval:`luxi.REQ_QUERY` should be used instead.
 - CertificateError now derives from GanetiApiError in the RAPI client.
+- Deprecation warnings due to pycrypto/paramiko import in
+  tools/setup-ssh have been silenced, as usually they are safe; please
+  make sure to run an up-to-date paramiko version
 
 
 Version 2.5.0
