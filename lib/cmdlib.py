@@ -8574,14 +8574,28 @@ class TLMigrateInstance(Tasklet):
         return self._ExecMigration()
 
 
-def _CreateBlockDev(lu, node, instance, device, force_create,
-                    info, force_open):
+def _CreateBlockDev(lu, node, instance, device, force_create, info,
+                    force_open):
+  """Wrapper around L{_CreateBlockDevInner}.
+
+  This method annotates the root device first.
+
+  """
+  (disk,) = _AnnotateDiskParams(instance, [device], lu.cfg)
+  return _CreateBlockDevInner(lu, node, instance, disk, force_create, info,
+                              force_open)
+
+
+def _CreateBlockDevInner(lu, node, instance, device, force_create,
+                         info, force_open):
   """Create a tree of block devices on a given node.
 
   If this device type has to be created on secondaries, create it and
   all its children.
 
   If not, just recurse to children keeping the same 'force' value.
+
+  @attention: The device has to be annotated already.
 
   @param lu: the lu on whose behalf we execute
   @param node: the node on which to create the device
@@ -8607,8 +8621,8 @@ def _CreateBlockDev(lu, node, instance, device, force_create,
 
   if device.children:
     for child in device.children:
-      _CreateBlockDev(lu, node, instance, child, force_create,
-                      info, force_open)
+      _CreateBlockDevInner(lu, node, instance, child, force_create,
+                           info, force_open)
 
   if not force_create:
     return
@@ -10797,7 +10811,8 @@ class TLReplaceDisks(Tasklet):
     """
     iv_names = {}
 
-    for idx, dev in enumerate(self.instance.disks):
+    disks = _AnnotateDiskParams(self.instance, self.instance.disks, self.cfg)
+    for idx, dev in enumerate(disks):
       if idx not in self.disks:
         continue
 
@@ -10808,12 +10823,15 @@ class TLReplaceDisks(Tasklet):
       lv_names = [".disk%d_%s" % (idx, suffix) for suffix in ["data", "meta"]]
       names = _GenerateUniqueNames(self.lu, lv_names)
 
-      vg_data = dev.children[0].logical_id[0]
+      (data_disk, meta_disk) = dev.children
+      vg_data = data_disk.logical_id[0]
       lv_data = objects.Disk(dev_type=constants.LD_LV, size=dev.size,
-                             logical_id=(vg_data, names[0]), params={})
-      vg_meta = dev.children[1].logical_id[0]
+                             logical_id=(vg_data, names[0]),
+                             params=data_disk.params)
+      vg_meta = meta_disk.logical_id[0]
       lv_meta = objects.Disk(dev_type=constants.LD_LV, size=DRBD_META_SIZE,
-                             logical_id=(vg_meta, names[1]), params={})
+                             logical_id=(vg_meta, names[1]),
+                             params=meta_disk.params)
 
       new_lvs = [lv_data, lv_meta]
       old_lvs = [child.Copy() for child in dev.children]
@@ -10821,8 +10839,8 @@ class TLReplaceDisks(Tasklet):
 
       # we pass force_create=True to force the LVM creation
       for new_lv in new_lvs:
-        _CreateBlockDev(self.lu, node_name, self.instance, new_lv, True,
-                        _GetInstanceInfoText(self.instance), False)
+        _CreateBlockDevInner(self.lu, node_name, self.instance, new_lv, True,
+                             _GetInstanceInfoText(self.instance), False)
 
     return iv_names
 
@@ -11031,13 +11049,14 @@ class TLReplaceDisks(Tasklet):
 
     # Step: create new storage
     self.lu.LogStep(3, steps_total, "Allocate new storage")
-    for idx, dev in enumerate(self.instance.disks):
+    disks = _AnnotateDiskParams(self.instance, self.instance.disks, self.cfg)
+    for idx, dev in enumerate(disks):
       self.lu.LogInfo("Adding new local storage on %s for disk/%d" %
                       (self.new_node, idx))
       # we pass force_create=True to force LVM creation
       for new_lv in dev.children:
-        _CreateBlockDev(self.lu, self.new_node, self.instance, new_lv, True,
-                        _GetInstanceInfoText(self.instance), False)
+        _CreateBlockDevInner(self.lu, self.new_node, self.instance, new_lv,
+                             True, _GetInstanceInfoText(self.instance), False)
 
     # Step 4: dbrd minors and drbd setups changes
     # after this, we must manually remove the drbd minors on both the
@@ -11076,8 +11095,11 @@ class TLReplaceDisks(Tasklet):
                               children=dev.children,
                               size=dev.size,
                               params={})
+      (anno_new_drbd,) = _AnnotateDiskParams(self.instance, [new_drbd],
+                                             self.cfg)
       try:
-        _CreateSingleBlockDev(self.lu, self.new_node, self.instance, new_drbd,
+        _CreateSingleBlockDev(self.lu, self.new_node, self.instance,
+                              anno_new_drbd,
                               _GetInstanceInfoText(self.instance), False)
       except errors.GenericError:
         self.cfg.ReleaseDRBDMinors(self.instance.name)
@@ -12553,10 +12575,12 @@ class LUInstanceSetParams(LogicalUnit):
                                       instance.name, pnode, [snode],
                                       disk_info, None, None, 0, feedback_fn,
                                       self.diskparams)
+    anno_disks = rpc.AnnotateDiskParams(constants.DT_DRBD8, new_disks,
+                                        self.diskparams)
     info = _GetInstanceInfoText(instance)
     feedback_fn("Creating additional volumes...")
     # first, create the missing data and meta devices
-    for disk in new_disks:
+    for disk in anno_disks:
       # unfortunately this is... not too nice
       _CreateSingleBlockDev(self, pnode, instance, disk.children[1],
                             info, True)
@@ -12572,7 +12596,7 @@ class LUInstanceSetParams(LogicalUnit):
 
     feedback_fn("Initializing DRBD devices...")
     # all child devices are in place, we can now create the DRBD devices
-    for disk in new_disks:
+    for disk in anno_disks:
       for node in [pnode, snode]:
         f_create = node == pnode
         _CreateSingleBlockDev(self, node, instance, disk, info, f_create)
