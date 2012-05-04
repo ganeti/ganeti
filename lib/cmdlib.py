@@ -4515,8 +4515,34 @@ def _WaitForSync(lu, instance, disks=None, oneshot=False):
   return not cumul_degraded
 
 
+def _BlockdevFind(lu, node, dev, instance):
+  """Wrapper around call_blockdev_find to annotate diskparams.
+
+  @param lu: A reference to the lu object
+  @param node: The node to call out
+  @param dev: The device to find
+  @param instance: The instance object the device belongs to
+  @returns The result of the rpc call
+
+  """
+  (disk,) = _AnnotateDiskParams(instance, [dev], lu.cfg)
+  return lu.rpc.call_blockdev_find(node, disk)
+
+
 def _CheckDiskConsistency(lu, instance, dev, node, on_primary, ldisk=False):
+  """Wrapper around L{_CheckDiskConistencyInner}.
+
+  """
+  (disk,) = _AnnotateDiskParams(instance, [dev], lu.cfg)
+  return _CheckDiskConsistencyInner(lu, instance, disk, node, on_primary,
+                                    ldisk=ldisk)
+
+
+def _CheckDiskConsistencyInner(lu, instance, dev, node, on_primary,
+                               ldisk=False):
   """Check that mirrors are not degraded.
+
+  @attention: The device has to be annotated already.
 
   The ldisk parameter, if True, will change the test from the
   is_degraded attribute (which represents overall non-ok status for
@@ -4544,8 +4570,8 @@ def _CheckDiskConsistency(lu, instance, dev, node, on_primary, ldisk=False):
 
   if dev.children:
     for child in dev.children:
-      result = result and _CheckDiskConsistency(lu, instance, child, node,
-                                                on_primary)
+      result = result and _CheckDiskConsistencyInner(lu, instance, child, node,
+                                                     on_primary)
 
   return result
 
@@ -10514,7 +10540,7 @@ class TLReplaceDisks(Tasklet):
         self.lu.LogInfo("Checking disk/%d on %s", idx, node)
         self.cfg.SetDiskID(dev, node)
 
-        result = self.rpc.call_blockdev_find(node, dev)
+        result = _BlockdevFind(self, node, dev, instance)
 
         if result.offline:
           continue
@@ -10779,7 +10805,7 @@ class TLReplaceDisks(Tasklet):
         self.lu.LogInfo("Checking disk/%d on %s" % (idx, node))
         self.cfg.SetDiskID(dev, node)
 
-        result = self.rpc.call_blockdev_find(node, dev)
+        result = _BlockdevFind(self, node, dev, self.instance)
 
         msg = result.fail_msg
         if msg or not result.payload:
@@ -10848,7 +10874,7 @@ class TLReplaceDisks(Tasklet):
     for name, (dev, _, _) in iv_names.iteritems():
       self.cfg.SetDiskID(dev, node_name)
 
-      result = self.rpc.call_blockdev_find(node_name, dev)
+      result = _BlockdevFind(self, node_name, dev, self.instance)
 
       msg = result.fail_msg
       if msg or not result.payload:
@@ -10970,8 +10996,7 @@ class TLReplaceDisks(Tasklet):
       # Now that the new lvs have the old name, we can add them to the device
       self.lu.LogInfo("Adding new mirror component on %s" % self.target_node)
       result = self.rpc.call_blockdev_addchildren(self.target_node,
-                                                  (dev, self.instance),
-                                                  (new_lvs, self.instance))
+                                                  (dev, self.instance), new_lvs)
       msg = result.fail_msg
       if msg:
         for new_lv in new_lvs:
@@ -11761,6 +11786,16 @@ class LUInstanceQueryData(NoHooksLU):
     """Compute block device status.
 
     """
+    (anno_dev,) = _AnnotateDiskParams(instance, [dev], self.cfg)
+
+    return self._ComputeDiskStatusInner(instance, snode, anno_dev)
+
+  def _ComputeDiskStatusInner(self, instance, snode, dev):
+    """Compute block device status.
+
+    @attention: The device has to be annotated already.
+
+    """
     if dev.dev_type in constants.LDS_DRBD:
       # we change the snode then (otherwise we use the one passed in)
       if dev.logical_id[0] == instance.primary_node:
@@ -11773,7 +11808,7 @@ class LUInstanceQueryData(NoHooksLU):
     dev_sstatus = self._ComputeBlockdevStatus(snode, instance, dev)
 
     if dev.children:
-      dev_children = map(compat.partial(self._ComputeDiskStatus,
+      dev_children = map(compat.partial(self._ComputeDiskStatusInner,
                                         instance, snode),
                          dev.children)
     else:
