@@ -84,13 +84,54 @@ def HaskellTypeVal(value):
     return None
 
 
-def ConvertVariable(prefix, name, value):
+def IdentifyOrigin(all_items, value):
+  """Tries to identify a constant name from a constant's value.
+
+  This uses a simple algorithm: is there a constant (and only one)
+  with the same value? If so, then it returns that constants' name.
+
+  @note: it is recommended to use this only for tuples/lists/sets, and
+      not for individual (top-level) values
+  @param all_items: a dictionary of name/values for the current module
+  @param value: the value for which we try to find an origin
+
+  """
+  found = [name for (name, v) in all_items.items() if v is value]
+  if len(found) == 1:
+    return found[0]
+  else:
+    return None
+
+
+def FormatListElems(all_items, pfx_name, ovals, tvals):
+  """Formats a list's elements.
+
+  This formats the elements as either values or, if we find all
+  origins, as names.
+
+  @param all_items: a dictionary of name/values for the current module
+  @param pfx_name: the prefix name currently used
+  @param ovals: the list of actual (Python) values
+  @param tvals: the list of values we want to format in the Haskell form
+
+  """
+  origins = [IdentifyOrigin(all_items, v) for v in ovals]
+  if compat.all(x is not None for x in origins):
+    values = [NameRules(pfx_name + origin) for origin in origins]
+  else:
+    values = tvals
+  return ", ".join(values)
+
+
+def ConvertVariable(prefix, name, value, all_items):
   """Converts a given variable to Haskell code.
 
   @param prefix: a prefix for the Haskell name (useful for module
       identification)
   @param name: the Python name
   @param value: the value
+  @param all_items: a dictionary of name/value for the module being
+      processed
   @return: a list of Haskell code lines
 
   """
@@ -121,12 +162,13 @@ def ConvertVariable(prefix, name, value):
     if value:
       lines.append("-- Following lines come from dictionary %s" % fqn)
       for k in sorted(value.keys()):
-        lines.extend(ConvertVariable(prefix, DictKeyName(name, k), value[k]))
+        lines.extend(ConvertVariable(prefix, DictKeyName(name, k),
+                                     value[k], all_items))
   elif isinstance(value, tuple):
     tvs = [HaskellTypeVal(elem) for elem in value]
     if compat.all(e is not None for e in tvs):
       ttypes = ", ".join(e[0] for e in tvs)
-      tvals = ", ".join(e[1] for e in tvs)
+      tvals = FormatListElems(all_items, pfx_name, value, [e[1] for e in tvs])
       lines.append("-- | Converted from Python tuple %s" % fqn)
       lines.append("%s :: (%s)" % (hs_name, ttypes))
       lines.append("%s = (%s)" % (hs_name, tvals))
@@ -145,9 +187,10 @@ def ConvertVariable(prefix, name, value):
       ttypes, tvals = zip(*tvs)
       uniq_types = set(ttypes)
       if len(uniq_types) == 1:
+        values = FormatListElems(all_items, pfx_name, value, tvals)
         lines.append("-- | Converted from Python list or set %s" % fqn)
         lines.append("%s :: [%s]" % (hs_name, uniq_types.pop()))
-        lines.append("%s = [%s]" % (hs_name, ", ".join(tvals)))
+        lines.append("%s = [%s]" % (hs_name, values))
       else:
         lines.append("-- | Skipped list/set %s, is not homogeneous" % fqn)
     else:
@@ -169,11 +212,11 @@ def Convert(module, prefix):
   """
   lines = [""]
 
-  all_names = dir(module)
+  all_items = dict((name, getattr(module, name)) for name in dir(module))
 
-  for name in all_names:
-    value = getattr(module, name)
-    new_lines = ConvertVariable(prefix, name, value)
+  for name in sorted(all_items.keys()):
+    value = all_items[name]
+    new_lines = ConvertVariable(prefix, name, value, all_items)
     if new_lines:
       lines.extend(new_lines)
       lines.append("")
