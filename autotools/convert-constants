@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2011 Google Inc.
+# Copyright (C) 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -23,12 +23,17 @@
 """
 
 import re
+import types
 
-from ganeti import constants
 from ganeti import compat
+from ganeti import constants
+from ganeti import luxi
 
 #: Constant name regex
 CONSTANT_RE = re.compile("^[A-Z][A-Z0-9_-]+$")
+
+#: Private name regex
+PRIVATE_RE = re.compile("^__.+__$")
 
 #: The type of regex objects
 RE_TYPE = type(CONSTANT_RE)
@@ -79,40 +84,54 @@ def HaskellTypeVal(value):
     return None
 
 
-def ConvertVariable(name, value):
+def ConvertVariable(prefix, name, value):
   """Converts a given variable to Haskell code.
 
+  @param prefix: a prefix for the Haskell name (useful for module
+      identification)
   @param name: the Python name
   @param value: the value
   @return: a list of Haskell code lines
 
   """
   lines = []
-  hs_name = NameRules(name)
+  if prefix:
+    pfx_name = prefix + "_"
+    fqn = prefix + "." + name
+  else:
+    pfx_name = ""
+    fqn = name
+  hs_name = NameRules(pfx_name + name)
   hs_typeval = HaskellTypeVal(value)
-  if not CONSTANT_RE.match(name):
-    lines.append("-- Skipped %s, not constant" % name)
+  if (isinstance(value, types.ModuleType) or callable(value) or
+      PRIVATE_RE.match(name)):
+    # no sense in marking these, as we don't _want_ to convert them; the
+    # message in the next if block is for datatypes we don't _know_
+    # (yet) how to convert
+    pass
+  elif not CONSTANT_RE.match(name):
+    lines.append("-- Skipped %s %s, not constant" % (fqn, type(value)))
   elif hs_typeval is not None:
     # this is a simple value
     (hs_type, hs_val) = hs_typeval
-    lines.append("-- | Converted from Python constant %s" % name)
+    lines.append("-- | Converted from Python constant %s" % fqn)
     lines.append("%s :: %s" % (hs_name, hs_type))
     lines.append("%s = %s" % (hs_name, hs_val))
   elif isinstance(value, dict):
     if value:
-      lines.append("-- Following lines come from dictionary %s" % name)
+      lines.append("-- Following lines come from dictionary %s" % fqn)
       for k in sorted(value.keys()):
-        lines.extend(ConvertVariable(DictKeyName(name, k), value[k]))
+        lines.extend(ConvertVariable(prefix, DictKeyName(name, k), value[k]))
   elif isinstance(value, tuple):
     tvs = [HaskellTypeVal(elem) for elem in value]
     if compat.all(e is not None for e in tvs):
       ttypes = ", ".join(e[0] for e in tvs)
       tvals = ", ".join(e[1] for e in tvs)
-      lines.append("-- | Converted from Python tuple %s" % name)
+      lines.append("-- | Converted from Python tuple %s" % fqn)
       lines.append("%s :: (%s)" % (hs_name, ttypes))
       lines.append("%s = (%s)" % (hs_name, tvals))
     else:
-      lines.append("-- Skipped tuple %s, cannot convert all elements" % name)
+      lines.append("-- Skipped tuple %s, cannot convert all elements" % fqn)
   elif isinstance(value, (list, set, frozenset)):
     # Lists and frozensets are handled the same in Haskell: as lists,
     # since lists are immutable and we don't need for constants the
@@ -126,42 +145,45 @@ def ConvertVariable(name, value):
       ttypes, tvals = zip(*tvs)
       uniq_types = set(ttypes)
       if len(uniq_types) == 1:
-        lines.append("-- | Converted from Python list or set %s" % name)
+        lines.append("-- | Converted from Python list or set %s" % fqn)
         lines.append("%s :: [%s]" % (hs_name, uniq_types.pop()))
         lines.append("%s = [%s]" % (hs_name, ", ".join(tvals)))
       else:
-        lines.append("-- | Skipped list/set %s, is not homogeneous" % name)
+        lines.append("-- | Skipped list/set %s, is not homogeneous" % fqn)
     else:
-      lines.append("-- | Skipped list/set %s, cannot convert all elems" % name)
+      lines.append("-- | Skipped list/set %s, cannot convert all elems" % fqn)
   elif isinstance(value, RE_TYPE):
     tvs = HaskellTypeVal(value.pattern)
     assert tvs is not None
-    lines.append("-- | Converted from Python RE object %s" % name)
+    lines.append("-- | Converted from Python RE object %s" % fqn)
     lines.append("%s :: %s" % (hs_name, tvs[0]))
     lines.append("%s = %s" % (hs_name, tvs[1]))
   else:
-    lines.append("-- Skipped %s, %s not handled" % (name, type(value)))
+    lines.append("-- Skipped %s, %s not handled" % (fqn, type(value)))
   return lines
 
 
-def Convert():
+def Convert(module, prefix):
   """Converts the constants to Haskell.
 
   """
   lines = [""]
 
-  all_names = dir(constants)
+  all_names = dir(module)
 
   for name in all_names:
-    value = getattr(constants, name)
-    lines.extend(ConvertVariable(name, value))
-    lines.append("")
+    value = getattr(module, name)
+    new_lines = ConvertVariable(prefix, name, value)
+    if new_lines:
+      lines.extend(new_lines)
+      lines.append("")
 
   return "\n".join(lines)
 
 
 def main():
-  print Convert()
+  print Convert(constants, "")
+  print Convert(luxi, "luxi")
 
 
 if __name__ == "__main__":
