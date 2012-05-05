@@ -543,7 +543,10 @@ genLuxiOp name cons = do
             cons
   let declD = DataD [] (mkName name) [] decl_d [''Show, ''Read]
   (savesig, savefn) <- genSaveLuxiOp cons
-  return [declD, savesig, savefn]
+  req_defs <- declareSADT "LuxiReq" .
+              map (\(str, _) -> ("Req" ++ str, mkName ("luxiReq" ++ str))) $
+                  cons
+  return $ [declD, savesig, savefn] ++ req_defs
 
 -- | Generates the \"save\" expression for a single luxi parameter.
 saveLuxiField :: Name -> LuxiParam -> Q Exp

@@ -29,6 +29,7 @@ module Ganeti.Luxi
   ( LuxiOp(..)
   , QrViaLuxi(..)
   , ResultStatus(..)
+  , LuxiReq(..)
   , Client
   , checkRS
   , getClient
@@ -143,6 +144,8 @@ $(genLuxiOp "LuxiOp"
      [ ("duration", [t| Double |], [| id |]) ]
     )
   ])
+
+$(makeJSONInstance ''LuxiReq)
 
 -- | The serialisation of LuxiOps into strings in messages.
 $(genStrOfOp ''LuxiOp "strOfOp")
