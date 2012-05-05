@@ -39,6 +39,7 @@ module Ganeti.HTools.QC
   , testLoader
   , testTypes
   , testCLI
+  , testJSON
   ) where
 
 import Test.QuickCheck
@@ -1633,4 +1634,26 @@ testSuite "CLI"
           , 'prop_CLI_parseYesNo
           , 'prop_CLI_StringArg
           , 'prop_CLI_stdopts
+          ]
+
+-- * JSON tests
+
+prop_JSON_toArray :: [Int] -> Property
+prop_JSON_toArray intarr =
+  let arr = map J.showJSON intarr in
+  case JSON.toArray (J.JSArray arr) of
+    Types.Ok arr' -> arr ==? arr'
+    Types.Bad err -> failTest $ "Failed to parse array: " ++ err
+
+prop_JSON_toArrayFail :: Int -> String -> Bool -> Property
+prop_JSON_toArrayFail i s b =
+  -- poor man's instance Arbitrary JSValue
+  forAll (elements [J.showJSON i, J.showJSON s, J.showJSON b]) $ \item ->
+  case JSON.toArray item of
+    Types.Bad _ -> property True
+    Types.Ok result -> failTest $ "Unexpected parse, got " ++ show result
+
+testSuite "JSON"
+          [ 'prop_JSON_toArray
+          , 'prop_JSON_toArrayFail
           ]

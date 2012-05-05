@@ -123,6 +123,7 @@ allTests =
   , (fast, testLoader)
   , (fast, testTypes)
   , (fast, testCLI)
+  , (fast, testJSON)
   , (slow, testCluster)
   ]
 

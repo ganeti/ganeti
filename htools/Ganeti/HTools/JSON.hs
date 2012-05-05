@@ -2,7 +2,7 @@
 
 {-
 
-Copyright (C) 2009, 2010, 2011 Google Inc.
+Copyright (C) 2009, 2010, 2011, 2012 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -34,6 +34,7 @@ module Ganeti.HTools.JSON
   , asJSObject
   , asObjectList
   , tryFromObj
+  , toArray
   )
   where
 
@@ -126,3 +127,8 @@ tryFromObj :: (J.JSON a) =>
            -> String     -- ^ The desired key from the object
            -> Result a
 tryFromObj t o = annotateResult t . fromObj o
+
+-- | Ensure a given JSValue is actually a JSArray.
+toArray :: (Monad m) => J.JSValue -> m [J.JSValue]
+toArray (J.JSArray arr) = return arr
+toArray o = fail $ "Invalid input, expected array but got " ++ show o
