@@ -6,7 +6,7 @@
 
 {-
 
-Copyright (C) 2009, 2010, 2011 Google Inc.
+Copyright (C) 2009, 2010, 2011, 2012 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -77,69 +77,69 @@ $(makeJSONInstance ''QrViaLuxi)
 
 -- | Currently supported Luxi operations and JSON serialization.
 $(genLuxiOp "LuxiOp"
-  [("Query" ,
+  [(luxiReqQuery,
     [ ("what",    [t| QrViaLuxi |], [| id |])
     , ("fields",  [t| [String]  |], [| id |])
     , ("qfilter", [t| ()        |], [| const JSNull |])
     ])
-  , ("QueryNodes",
+  , (luxiReqQueryNodes,
      [ ("names",  [t| [String] |], [| id |])
      , ("fields", [t| [String] |], [| id |])
      , ("lock",   [t| Bool     |], [| id |])
      ])
-  , ("QueryGroups",
+  , (luxiReqQueryGroups,
      [ ("names",  [t| [String] |], [| id |])
      , ("fields", [t| [String] |], [| id |])
      , ("lock",   [t| Bool     |], [| id |])
      ])
-  , ("QueryInstances",
+  , (luxiReqQueryInstances,
      [ ("names",  [t| [String] |], [| id |])
      , ("fields", [t| [String] |], [| id |])
      , ("lock",   [t| Bool     |], [| id |])
      ])
-  , ("QueryJobs",
+  , (luxiReqQueryJobs,
      [ ("ids",    [t| [Int]    |], [| map show |])
      , ("fields", [t| [String] |], [| id |])
      ])
-  , ("QueryExports",
+  , (luxiReqQueryExports,
      [ ("nodes", [t| [String] |], [| id |])
      , ("lock",  [t| Bool     |], [| id |])
      ])
-  , ("QueryConfigValues",
+  , (luxiReqQueryConfigValues,
      [ ("fields", [t| [String] |], [| id |]) ]
     )
-  , ("QueryClusterInfo", [])
-  , ("QueryTags",
+  , (luxiReqQueryClusterInfo, [])
+  , (luxiReqQueryTags,
      [ ("kind", [t| String |], [| id |])
      , ("name", [t| String |], [| id |])
      ])
-  , ("SubmitJob",
+  , (luxiReqSubmitJob,
      [ ("job", [t| [OpCode] |], [| id |]) ]
     )
-  , ("SubmitManyJobs",
+  , (luxiReqSubmitManyJobs,
      [ ("ops", [t| [[OpCode]] |], [| id |]) ]
     )
-  , ("WaitForJobChange",
+  , (luxiReqWaitForJobChange,
      [ ("job",      [t| Int     |], [| id |])
      , ("fields",   [t| [String]|], [| id |])
      , ("prev_job", [t| JSValue |], [| id |])
      , ("prev_log", [t| JSValue |], [| id |])
      , ("tmout",    [t| Int     |], [| id |])
      ])
-  , ("ArchiveJob",
+  , (luxiReqArchiveJob,
      [ ("job", [t| Int |], [| show |]) ]
     )
-  , ("AutoArchiveJobs",
+  , (luxiReqAutoArchiveJobs,
      [ ("age",   [t| Int |], [| id |])
      , ("tmout", [t| Int |], [| id |])
      ])
-  , ("CancelJob",
+  , (luxiReqCancelJob,
      [ ("job", [t| Int |], [| show |]) ]
     )
-  , ("SetDrainFlag",
+  , (luxiReqSetDrainFlag,
      [ ("flag", [t| Bool |], [| id |]) ]
     )
-  , ("SetWatcherPause",
+  , (luxiReqSetWatcherPause,
      [ ("duration", [t| Double |], [| id |]) ]
     )
   ])
