@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2010, 2011 Google Inc.
+# Copyright (C) 2006, 2007, 2010, 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -288,7 +288,7 @@ class ClientOps:
       logging.info("Received job archive request for %s", job_id)
       return queue.ArchiveJob(job_id)
 
-    elif method == luxi.REQ_AUTOARCHIVE_JOBS:
+    elif method == luxi.REQ_AUTO_ARCHIVE_JOBS:
       (age, timeout) = args
       logging.info("Received job autoarchive request for age %s, timeout %s",
                    age, timeout)
@@ -396,7 +396,7 @@ class ClientOps:
       op = opcodes.OpTagsGet(kind=kind, name=name, use_locking=False)
       return self._Query(op)
 
-    elif method == luxi.REQ_QUEUE_SET_DRAIN_FLAG:
+    elif method == luxi.REQ_SET_DRAIN_FLAG:
       (drain_flag, ) = args
       logging.info("Received queue drain flag change request to %s",
                    drain_flag)

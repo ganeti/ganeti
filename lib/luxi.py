@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2011 Google Inc.
+# Copyright (C) 2006, 2007, 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -53,7 +53,7 @@ REQ_SUBMIT_MANY_JOBS = "SubmitManyJobs"
 REQ_WAIT_FOR_JOB_CHANGE = "WaitForJobChange"
 REQ_CANCEL_JOB = "CancelJob"
 REQ_ARCHIVE_JOB = "ArchiveJob"
-REQ_AUTOARCHIVE_JOBS = "AutoArchiveJobs"
+REQ_AUTO_ARCHIVE_JOBS = "AutoArchiveJobs"
 REQ_QUERY = "Query"
 REQ_QUERY_FIELDS = "QueryFields"
 REQ_QUERY_JOBS = "QueryJobs"
@@ -64,13 +64,13 @@ REQ_QUERY_EXPORTS = "QueryExports"
 REQ_QUERY_CONFIG_VALUES = "QueryConfigValues"
 REQ_QUERY_CLUSTER_INFO = "QueryClusterInfo"
 REQ_QUERY_TAGS = "QueryTags"
-REQ_QUEUE_SET_DRAIN_FLAG = "SetDrainFlag"
+REQ_SET_DRAIN_FLAG = "SetDrainFlag"
 REQ_SET_WATCHER_PAUSE = "SetWatcherPause"
 
 #: List of all LUXI requests
 REQ_ALL = frozenset([
   REQ_ARCHIVE_JOB,
-  REQ_AUTOARCHIVE_JOBS,
+  REQ_AUTO_ARCHIVE_JOBS,
   REQ_CANCEL_JOB,
   REQ_QUERY,
   REQ_QUERY_CLUSTER_INFO,
@@ -82,7 +82,7 @@ REQ_ALL = frozenset([
   REQ_QUERY_JOBS,
   REQ_QUERY_NODES,
   REQ_QUERY_TAGS,
-  REQ_QUEUE_SET_DRAIN_FLAG,
+  REQ_SET_DRAIN_FLAG,
   REQ_SET_WATCHER_PAUSE,
   REQ_SUBMIT_JOB,
   REQ_SUBMIT_MANY_JOBS,
@@ -466,7 +466,7 @@ class Client(object):
                           version=constants.LUXI_VERSION)
 
   def SetQueueDrainFlag(self, drain_flag):
-    return self.CallMethod(REQ_QUEUE_SET_DRAIN_FLAG, (drain_flag, ))
+    return self.CallMethod(REQ_SET_DRAIN_FLAG, (drain_flag, ))
 
   def SetWatcherPause(self, until):
     return self.CallMethod(REQ_SET_WATCHER_PAUSE, (until, ))
@@ -489,7 +489,7 @@ class Client(object):
 
   def AutoArchiveJobs(self, age):
     timeout = (DEF_RWTO - 1) / 2
-    return self.CallMethod(REQ_AUTOARCHIVE_JOBS, (age, timeout))
+    return self.CallMethod(REQ_AUTO_ARCHIVE_JOBS, (age, timeout))
 
   def WaitForJobChangeOnce(self, job_id, fields,
                            prev_job_info, prev_log_serial,
