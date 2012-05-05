@@ -1057,7 +1057,8 @@ htools/Ganeti/HTools/Version.hs: htools/Ganeti/HTools/Version.hs.in vcs-version
 	sed -e "s/%ver%/$$VCSVER/" < $< > $@
 
 htools/Ganeti/Constants.hs: htools/Ganeti/Constants.hs.in \
-	lib/constants.py lib/_autoconf.py $(CONVERT_CONSTANTS) \
+	lib/constants.py lib/_autoconf.py lib/luxi.py \
+	$(CONVERT_CONSTANTS) \
 	| lib/_vcsversion.py
 	set -e; \
 	{ cat $< ; PYTHONPATH=. $(CONVERT_CONSTANTS); } > $@
