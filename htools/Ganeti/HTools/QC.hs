@@ -40,6 +40,7 @@ module Ganeti.HTools.QC
   , testTypes
   , testCLI
   , testJSON
+  , testLUXI
   ) where
 
 import Test.QuickCheck
@@ -56,7 +57,7 @@ import qualified Data.IntMap as IntMap
 
 import qualified Ganeti.OpCodes as OpCodes
 import qualified Ganeti.Jobs as Jobs
-import qualified Ganeti.Luxi
+import qualified Ganeti.Luxi as Luxi
 import qualified Ganeti.HTools.CLI as CLI
 import qualified Ganeti.HTools.Cluster as Cluster
 import qualified Ganeti.HTools.Container as Container
@@ -65,7 +66,7 @@ import qualified Ganeti.HTools.IAlloc as IAlloc
 import qualified Ganeti.HTools.Instance as Instance
 import qualified Ganeti.HTools.JSON as JSON
 import qualified Ganeti.HTools.Loader as Loader
-import qualified Ganeti.HTools.Luxi
+import qualified Ganeti.HTools.Luxi as HTools.Luxi
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Group as Group
 import qualified Ganeti.HTools.PeerMap as PeerMap
@@ -1682,4 +1683,51 @@ prop_JSON_toArrayFail i s b =
 testSuite "JSON"
           [ 'prop_JSON_toArray
           , 'prop_JSON_toArrayFail
+          ]
+
+-- * Luxi tests
+
+instance Arbitrary Luxi.LuxiReq where
+  arbitrary = elements [minBound..maxBound]
+
+instance Arbitrary Luxi.QrViaLuxi where
+  arbitrary = elements [minBound..maxBound]
+
+instance Arbitrary Luxi.LuxiOp where
+  arbitrary = do
+    lreq <- arbitrary
+    case lreq of
+      Luxi.ReqQuery -> Luxi.Query <$> arbitrary <*> getFields <*> arbitrary
+      Luxi.ReqQueryNodes -> Luxi.QueryNodes <$> (listOf getFQDN) <*>
+                            getFields <*> arbitrary
+      Luxi.ReqQueryGroups -> Luxi.QueryGroups <$> arbitrary <*>
+                             arbitrary <*> arbitrary
+      Luxi.ReqQueryInstances -> Luxi.QueryInstances <$> (listOf getFQDN) <*>
+                                getFields <*> arbitrary
+      Luxi.ReqQueryJobs -> Luxi.QueryJobs <$> arbitrary <*> getFields
+      Luxi.ReqQueryExports -> Luxi.QueryExports <$>
+                              (listOf getFQDN) <*> arbitrary
+      Luxi.ReqQueryConfigValues -> Luxi.QueryConfigValues <$> getFields
+      Luxi.ReqQueryClusterInfo -> pure Luxi.QueryClusterInfo
+      Luxi.ReqQueryTags -> Luxi.QueryTags <$> getName <*> getFQDN
+      Luxi.ReqSubmitJob -> Luxi.SubmitJob <$> (resize maxOpCodes arbitrary)
+      Luxi.ReqSubmitManyJobs -> Luxi.SubmitManyJobs <$>
+                                (resize maxOpCodes arbitrary)
+      Luxi.ReqWaitForJobChange -> Luxi.WaitForJobChange <$> arbitrary <*>
+                                  getFields <*> pure J.JSNull <*>
+                                  pure J.JSNull <*> arbitrary
+      Luxi.ReqArchiveJob -> Luxi.ArchiveJob <$> arbitrary
+      Luxi.ReqAutoArchiveJobs -> Luxi.AutoArchiveJobs <$> arbitrary <*>
+                                 arbitrary
+      Luxi.ReqCancelJob -> Luxi.CancelJob <$> arbitrary
+      Luxi.ReqSetDrainFlag -> Luxi.SetDrainFlag <$> arbitrary
+      Luxi.ReqSetWatcherPause -> Luxi.SetWatcherPause <$> arbitrary
+
+-- | Simple check that encoding/decoding of LuxiOp works.
+prop_Luxi_CallEncoding :: Luxi.LuxiOp -> Property
+prop_Luxi_CallEncoding op =
+  (Luxi.validateCall (Luxi.buildCall op) >>= Luxi.decodeCall) ==? Types.Ok op
+
+testSuite "LUXI"
+          [ 'prop_Luxi_CallEncoding
           ]

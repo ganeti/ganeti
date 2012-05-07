@@ -37,6 +37,9 @@ module Ganeti.Luxi
   , callMethod
   , submitManyJobs
   , queryJobsStatus
+  , buildCall
+  , validateCall
+  , decodeCall
   ) where
 
 import Data.IORef
@@ -49,6 +52,7 @@ import qualified Network.Socket as S
 
 import Ganeti.HTools.JSON
 import Ganeti.HTools.Types
+import Ganeti.HTools.Utils
 
 import Ganeti.Constants
 import Ganeti.Jobs (JobStatus)
@@ -121,7 +125,7 @@ $(genLuxiOp "LuxiOp"
      [ ("ops", [t| [[OpCode]] |], [| id |]) ]
     )
   , (luxiReqWaitForJobChange,
-     [ ("job",      [t| Int     |], [| id |])
+     [ ("job",      [t| Int     |], [| show |])
      , ("fields",   [t| [String]|], [| id |])
      , ("prev_job", [t| JSValue |], [| id |])
      , ("prev_log", [t| JSValue |], [| id |])
@@ -159,6 +163,9 @@ $(declareIADT "ResultStatus"
   ])
 
 $(makeJSONInstance ''ResultStatus)
+
+-- | Type holding the initial (unparsed) Luxi call.
+data LuxiCall = LuxiCall LuxiReq JSValue
 
 -- | Check that ResultStatus is success or fail with descriptive message.
 checkRS :: (Monad m) => ResultStatus -> a -> m a
@@ -237,6 +244,93 @@ buildCall lo =
            ]
       jo = toJSObject ja
   in encodeStrict jo
+
+-- | Check that luxi request contains the required keys and parse it.
+validateCall :: String -> Result LuxiCall
+validateCall s = do
+  arr <- fromJResult "luxi call" $ decodeStrict s::Result (JSObject JSValue)
+  let aobj = fromJSObject arr
+  call <- fromObj aobj (strOfKey Method)::Result LuxiReq
+  args <- fromObj aobj (strOfKey Args)
+  return (LuxiCall call args)
+
+-- | Converts Luxi call arguments into a 'LuxiOp' data structure.
+--
+-- This is currently hand-coded until we make it more uniform so that
+-- it can be generated using TH.
+decodeCall :: LuxiCall -> Result LuxiOp
+decodeCall (LuxiCall call args) =
+  case call of
+    ReqQueryJobs -> do
+              (jid, jargs) <- fromJVal args
+              rid <- mapM (tryRead "parsing job ID" . fromJSString) jid
+              let rargs = map fromJSString jargs
+              return $ QueryJobs rid rargs
+    ReqQueryInstances -> do
+              (names, fields, locking) <- fromJVal args
+              return $ QueryInstances names fields locking
+    ReqQueryNodes -> do
+              (names, fields, locking) <- fromJVal args
+              return $ QueryNodes names fields locking
+    ReqQueryGroups -> do
+              (names, fields, locking) <- fromJVal args
+              return $ QueryGroups names fields locking
+    ReqQueryClusterInfo -> do
+              return QueryClusterInfo
+    ReqQuery -> do
+              (what, fields, _) <-
+                fromJVal args::Result (QrViaLuxi, [String], JSValue)
+              return $ Query what fields ()
+    ReqSubmitJob -> do
+              [ops1] <- fromJVal args
+              ops2 <- mapM (fromJResult (luxiReqToRaw call) . J.readJSON) ops1
+              return $ SubmitJob ops2
+    ReqSubmitManyJobs -> do
+              [ops1] <- fromJVal args
+              ops2 <- mapM (fromJResult (luxiReqToRaw call) . J.readJSON) ops1
+              return $ SubmitManyJobs ops2
+    ReqWaitForJobChange -> do
+              (jid, fields, pinfo, pidx, wtmout) <-
+                -- No instance for 5-tuple, code copied from the
+                -- json sources and adapted
+                fromJResult "Parsing WaitForJobChange message" $
+                case args of
+                  JSArray [a, b, c, d, e] ->
+                    (,,,,) `fmap`
+                    J.readJSON a `ap`
+                    J.readJSON b `ap`
+                    J.readJSON c `ap`
+                    J.readJSON d `ap`
+                    J.readJSON e
+                  _ -> J.Error "Not enough values"
+              rid <- tryRead "parsing job ID" jid
+              return $ WaitForJobChange rid fields pinfo pidx wtmout
+    ReqArchiveJob -> do
+              [jid] <- fromJVal args
+              rid <- tryRead "parsing job ID" jid
+              return $ ArchiveJob rid
+    ReqAutoArchiveJobs -> do
+              (age, tmout) <- fromJVal args
+              return $ AutoArchiveJobs age tmout
+    ReqQueryExports -> do
+              (nodes, lock) <- fromJVal args
+              return $ QueryExports nodes lock
+    ReqQueryConfigValues -> do
+              [fields] <- fromJVal args
+              return $ QueryConfigValues fields
+    ReqQueryTags -> do
+              (kind, name) <- fromJVal args
+              return $ QueryTags kind name
+    ReqCancelJob -> do
+              [job] <- fromJVal args
+              rid <- tryRead "parsing job ID" job
+              return $ CancelJob rid
+    ReqSetDrainFlag -> do
+              [flag] <- fromJVal args
+              return $ SetDrainFlag flag
+    ReqSetWatcherPause -> do
+              [duration] <- fromJVal args
+              return $ SetWatcherPause duration
 
 -- | Check that luxi responses contain the required keys and that the
 -- call was successful.

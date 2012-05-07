@@ -541,7 +541,7 @@ genLuxiOp name cons = do
                                fields
                     return $ NormalC (mkName cname) fields')
             cons
-  let declD = DataD [] (mkName name) [] decl_d [''Show, ''Read]
+  let declD = DataD [] (mkName name) [] decl_d [''Show, ''Read, ''Eq]
   (savesig, savefn) <- genSaveLuxiOp cons
   req_defs <- declareSADT "LuxiReq" .
               map (\(str, _) -> ("Req" ++ str, mkName ("luxiReq" ++ str))) $

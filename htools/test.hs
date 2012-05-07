@@ -124,6 +124,7 @@ allTests =
   , (fast, testTypes)
   , (fast, testCLI)
   , (fast, testJSON)
+  , (fast, testLUXI)
   , (slow, testCluster)
   ]
 
