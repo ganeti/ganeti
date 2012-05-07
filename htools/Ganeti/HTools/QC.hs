@@ -48,6 +48,7 @@ import Data.List (findIndex, intercalate, nub, isPrefixOf)
 import qualified Data.Set as Set
 import Data.Maybe
 import Control.Monad
+import Control.Applicative
 import qualified System.Console.GetOpt as GetOpt
 import qualified Text.JSON as J
 import qualified Data.Map
@@ -105,6 +106,15 @@ maxVcpuRatio = 1024.0
 -- | Max spindle ratio (random value).
 maxSpindleRatio :: Double
 maxSpindleRatio = 1024.0
+
+-- | Max nodes, used just to limit arbitrary instances for smaller
+-- opcode definitions (e.g. list of nodes in OpTestDelay).
+maxNodes :: Int
+maxNodes = 32
+
+-- | Max opcodes or jobs in a submit job and submit many jobs.
+maxOpCodes :: Int
+maxOpCodes = 16
 
 -- | All disk templates (used later)
 allDiskTemplates :: [Types.DiskTemplate]
@@ -260,15 +270,30 @@ instance Arbitrary DNSChar where
 getName :: Gen String
 getName = do
   n <- choose (1, 64)
-  dn <- vector n::Gen [DNSChar]
+  dn <- vector n
   return (map dnsGetChar dn)
 
 -- | Generates an entire FQDN.
 getFQDN :: Gen String
 getFQDN = do
   ncomps <- choose (1, 4)
-  names <- mapM (const getName) [1..ncomps::Int]
+  names <- vectorOf ncomps getName
   return $ intercalate "." names
+
+-- | Combinator that generates a 'Maybe' using a sub-combinator.
+getMaybe :: Gen a -> Gen (Maybe a)
+getMaybe subgen = do
+  bool <- arbitrary
+  if bool
+    then Just <$> subgen
+    else return Nothing
+
+-- | Generates a fields list. This uses the same character set as a
+-- DNS name (just for simplicity).
+getFields :: Gen [String]
+getFields = do
+  n <- choose (1, 32)
+  vectorOf n getName
 
 -- | Defines a tag type.
 newtype TagChar = TagChar { tagGetChar :: Char }
@@ -386,16 +411,17 @@ instance Arbitrary OpCodes.OpCode where
                       ]
     case op_id of
       "OP_TEST_DELAY" ->
-        liftM3 OpCodes.OpTestDelay arbitrary arbitrary arbitrary
+        OpCodes.OpTestDelay <$> arbitrary <*> arbitrary
+                 <*> resize maxNodes (listOf getFQDN)
       "OP_INSTANCE_REPLACE_DISKS" ->
-        liftM5 OpCodes.OpInstanceReplaceDisks arbitrary arbitrary
-          arbitrary arbitrary arbitrary
+        OpCodes.OpInstanceReplaceDisks <$> getFQDN <*> getMaybe getFQDN <*>
+          arbitrary <*> resize C.maxDisks arbitrary <*> getMaybe getName
       "OP_INSTANCE_FAILOVER" ->
-        liftM3 OpCodes.OpInstanceFailover arbitrary arbitrary
-          arbitrary
+        OpCodes.OpInstanceFailover <$> getFQDN <*> arbitrary <*>
+          getMaybe getFQDN
       "OP_INSTANCE_MIGRATE" ->
-        liftM5 OpCodes.OpInstanceMigrate arbitrary arbitrary
-          arbitrary arbitrary arbitrary
+        OpCodes.OpInstanceMigrate <$> getFQDN <*> arbitrary <*>
+          arbitrary <*> arbitrary <*> getMaybe getFQDN
       _ -> fail "Wrong opcode"
 
 instance Arbitrary Jobs.OpStatus where
@@ -425,8 +451,8 @@ instance Arbitrary Types.EvacMode where
 instance Arbitrary a => Arbitrary (Types.OpResult a) where
   arbitrary = arbitrary >>= \c ->
               if c
-                then liftM Types.OpGood arbitrary
-                else liftM Types.OpFail arbitrary
+                then Types.OpGood <$> arbitrary
+                else Types.OpFail <$> arbitrary
 
 instance Arbitrary Types.ISpec where
   arbitrary = do
