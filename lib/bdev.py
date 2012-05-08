@@ -2653,6 +2653,16 @@ def _VerifyDiskType(dev_type):
     raise errors.ProgrammerError("Invalid block device type '%s'" % dev_type)
 
 
+def _VerifyDiskParams(disk):
+  """Verifies if all disk parameters are set.
+
+  """
+  missing = set(constants.DISK_LD_DEFAULTS[disk.dev_type]) - set(disk.params)
+  if missing:
+    raise errors.ProgrammerError("Block device is missing disk parameters: %s" %
+                                 missing)
+
+
 def FindDevice(disk, children):
   """Search for an existing, assembled device.
 
@@ -2688,6 +2698,7 @@ def Assemble(disk, children):
 
   """
   _VerifyDiskType(disk.dev_type)
+  _VerifyDiskParams(disk)
   device = DEV_MAP[disk.dev_type](disk.physical_id, children, disk.size,
                                   disk.params)
   device.Assemble()
@@ -2705,6 +2716,7 @@ def Create(disk, children):
 
   """
   _VerifyDiskType(disk.dev_type)
+  _VerifyDiskParams(disk)
   device = DEV_MAP[disk.dev_type].Create(disk.physical_id, children, disk.size,
                                          disk.params)
   return device
