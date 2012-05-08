@@ -599,6 +599,21 @@ def _MakeLegacyNodeInfo(data):
     })
 
 
+def _AnnotateDiskParams(instance, devs, cfg):
+  """Little helper wrapper to the rpc annotation method.
+
+  @param instance: The instance object
+  @type devs: List of L{objects.Disk}
+  @param devs: The root devices (not any of its children!)
+  @param cfg: The config object
+  @returns The annotated disk copies
+  @see L{rpc.AnnotateDiskParams}
+
+  """
+  return rpc.AnnotateDiskParams(instance.disk_template, devs,
+                                cfg.GetInstanceDiskParams(instance))
+
+
 def _CheckInstancesNodeGroups(cfg, instances, owned_groups, owned_nodes,
                               cur_group_uuid):
   """Checks if node groups for locked instances are still correct.
