@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2010 Google Inc.
+# Copyright (C) 2010, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -53,14 +53,25 @@ class TestErrors(testutils.GanetiTestCase):
                            ("GenericError", (True, 100, "foo", ["x", "y"])))
 
   def testMaybeRaise(self):
+    testvals = [None, 1, 2, 3, "Hello World", (1, ), (1, 2, 3),
+                ("NoErrorClassName", []), ("NoErrorClassName", None),
+                ("GenericError", [1, 2, 3], None), ("GenericError", 1)]
     # These shouldn't raise
-    for i in [None, 1, 2, 3, "Hello World", (1, ), (1, 2, 3),
-              ("NoErrorClassName", []), ("NoErrorClassName", None),
-              ("GenericError", [1, 2, 3], None), ("GenericError", 1)]:
+    for i in testvals:
       errors.MaybeRaise(i)
 
     self.assertRaises(errors.GenericError, errors.MaybeRaise,
                       ("GenericError", ["Hello"]))
+    # Check error encoding
+    for i in testvals:
+      src = errors.GenericError(i)
+      try:
+        errors.MaybeRaise(errors.EncodeException(src))
+      except errors.GenericError, dst:
+        self.assertEqual(src.args, dst.args)
+        self.assertEqual(src.__class__, dst.__class__)
+      else:
+        self.fail("Exception %s not raised" % repr(src))
 
   def testGetEncodedError(self):
     self.assertEqualValues(errors.GetEncodedError(["GenericError",
