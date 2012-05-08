@@ -472,20 +472,22 @@ Modifies the cluster parameters.
 :pre-execution: master node
 :post-execution: master node
 
-:pyeval:`constants.FAKE_OP_MASTER_TURNUP`
-+++++++++++++++++++++++++++++++++++++++++
+Virtual operation :pyeval:`constants.FAKE_OP_MASTER_TURNUP`
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-Called when the master IP is activated.
+This doesn't correspond to an actual op-code, but it is called when the
+master IP is activated.
 
 :directory: master-ip-turnup
 :env. vars: MASTER_NETDEV, MASTER_IP, MASTER_NETMASK, CLUSTER_IP_VERSION
 :pre-execution: master node
 :post-execution: master node
 
-:pyeval:`constants.FAKE_OP_MASTER_TURNDOWN`
-+++++++++++++++++++++++++++++++++++++++++++
+Virtual operation :pyeval:`constants.FAKE_OP_MASTER_TURNDOWN`
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-Called when the master IP is deactivated.
+This doesn't correspond to an actual op-code, but it is called when the
+master IP is deactivated.
 
 :directory: master-ip-turndown
 :env. vars: MASTER_NETDEV, MASTER_IP, MASTER_NETMASK, CLUSTER_IP_VERSION
