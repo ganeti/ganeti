@@ -2204,6 +2204,11 @@ def OSCoreEnv(os_name, inst_os, os_params, debug=0):
   for pname, pvalue in os_params.items():
     result["OSP_%s" % pname.upper()] = pvalue
 
+  # Set a default path otherwise programs called by OS scripts (or
+  # even hooks called from OS scripts) might break, and we don't want
+  # to have each script require setting a PATH variable
+  result["PATH"] = constants.HOOKS_PATH
+
   return result
 
 
