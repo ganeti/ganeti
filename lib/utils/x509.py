@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2010, 2011 Google Inc.
+# Copyright (C) 2006, 2007, 2010, 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -180,8 +180,10 @@ def VerifyX509Certificate(cert, warn_days, error_days):
   # Depending on the pyOpenSSL version, this can just return (None, None)
   (not_before, not_after) = GetX509CertValidity(cert)
 
+  now = time.time() + constants.NODE_MAX_CLOCK_SKEW
+
   return _VerifyCertificateInner(cert.has_expired(), not_before, not_after,
-                                 time.time(), warn_days, error_days)
+                                 now, warn_days, error_days)
 
 
 def SignX509Certificate(cert, key, salt):
