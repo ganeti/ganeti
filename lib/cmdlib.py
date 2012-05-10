@@ -4530,7 +4530,7 @@ def _BlockdevFind(lu, node, dev, instance):
 
 
 def _CheckDiskConsistency(lu, instance, dev, node, on_primary, ldisk=False):
-  """Wrapper around L{_CheckDiskConistencyInner}.
+  """Wrapper around L{_CheckDiskConsistencyInner}.
 
   """
   (disk,) = _AnnotateDiskParams(instance, [dev], lu.cfg)

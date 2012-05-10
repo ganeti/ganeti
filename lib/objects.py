@@ -115,7 +115,7 @@ def FillIPolicy(default_ipolicy, custom_ipolicy, skip_keys=None):
 def FillDiskParams(default_dparams, custom_dparams, skip_keys=None):
   """Fills the disk parameter defaults.
 
-  @see FillDict: For parameters and return value
+  @see: L{FillDict} for parameters and return value
 
   """
   assert frozenset(default_dparams.keys()) == constants.DISK_TEMPLATES

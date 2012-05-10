@@ -248,7 +248,7 @@ class ConfigWriter:
   def GetGroupDiskParams(self, group):
     """Get the disk params populated with inherit chain.
 
-    @type group: L{objects.Group}
+    @type group: L{objects.NodeGroup}
     @param group: The group we want to know the params for
     @return: A dict with the filled in disk params
 
@@ -258,7 +258,7 @@ class ConfigWriter:
   def _UnlockedGetGroupDiskParams(self, group):
     """Get the disk params populated with inherit chain down to node-group.
 
-    @type group: L{objects.Group}
+    @type group: L{objects.NodeGroup}
     @param group: The group we want to know the params for
     @return: A dict with the filled in disk params
 
