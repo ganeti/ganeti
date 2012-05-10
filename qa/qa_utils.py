@@ -30,9 +30,15 @@ import subprocess
 import random
 import tempfile
 
+try:
+  import functools
+except ImportError, err:
+  raise ImportError("Python 2.5 or higher is required: %s" % err)
+
 from ganeti import utils
 from ganeti import compat
 from ganeti import constants
+from ganeti import ht
 
 import qa_config
 import qa_error
@@ -44,6 +50,16 @@ _ERROR_SEQ = None
 _RESET_SEQ = None
 
 _MULTIPLEXERS = {}
+
+#: Unique ID per QA run
+_RUN_UUID = utils.NewUUID()
+
+
+(INST_DOWN,
+ INST_UP) = range(500, 502)
+
+(FIRST_ARG,
+ RETURN_VALUE) = range(1000, 1002)
 
 
 def _SetupColours():
@@ -522,3 +538,91 @@ def RemoveFromEtcHosts(hostnames):
                                               quoted_tmp_hosts))
   except qa_error.Error:
     AssertCommand(["rm", tmp_hosts])
+
+
+def RunInstanceCheck(instance, running):
+  """Check if instance is running or not.
+
+  """
+  script = qa_config.GetInstanceCheckScript()
+  if not script:
+    return
+
+  master_node = qa_config.GetMasterNode()
+  instance_name = instance["name"]
+
+  # Build command to connect to master node
+  master_ssh = GetSSHCommand(master_node["primary"], "--")
+
+  if running:
+    running_shellval = "1"
+    running_text = ""
+  else:
+    running_shellval = ""
+    running_text = "not "
+
+  print FormatInfo("Checking if instance '%s' is %srunning" %
+                   (instance_name, running_text))
+
+  args = [script, instance_name]
+  env = {
+    "PATH": constants.HOOKS_PATH,
+    "RUN_UUID": _RUN_UUID,
+    "MASTER_SSH": utils.ShellQuoteArgs(master_ssh),
+    "INSTANCE_NAME": instance_name,
+    "INSTANCE_RUNNING": running_shellval,
+    }
+
+  result = os.spawnve(os.P_WAIT, script, args, env)
+  if result != 0:
+    raise qa_error.Error("Instance check failed with result %s" % result)
+
+
+_TInstCheck = ht.TStrictDict(False, False, {
+  "name": ht.TNonEmptyString,
+  })
+
+
+def _InstanceCheckInner(expected, instarg, args, result):
+  """Helper function used by L{InstanceCheck}.
+
+  """
+  if instarg == FIRST_ARG:
+    instance = args[0]
+  elif instarg == RETURN_VALUE:
+    instance = result
+  else:
+    raise Exception("Invalid value '%s' for instance argument" % instarg)
+
+  if expected in (INST_DOWN, INST_UP):
+    if not _TInstCheck(instance):
+      raise Exception("Invalid instance: %s" % instance)
+
+    RunInstanceCheck(instance, (expected == INST_UP))
+  elif expected is not None:
+    raise Exception("Invalid value '%s'" % expected)
+
+
+def InstanceCheck(before, after, instarg):
+  """Decorator to check instance status before and after test.
+
+  @param before: L{INST_DOWN} if instance must be stopped before test,
+    L{INST_UP} if instance must be running before test, L{None} to not check.
+  @param after: L{INST_DOWN} if instance must be stopped after test,
+    L{INST_UP} if instance must be running after test, L{None} to not check.
+  @param instarg: L{FIRST_ARG} to use first argument to test as instance (a
+    dictionary), L{RETURN_VALUE} to use return value (disallows pre-checks)
+
+  """
+  def decorator(fn):
+    @functools.wraps(fn)
+    def wrapper(*args, **kwargs):
+      _InstanceCheckInner(before, instarg, args, NotImplemented)
+
+      result = fn(*args, **kwargs)
+
+      _InstanceCheckInner(after, instarg, args, result)
+
+      return result
+    return wrapper
+  return decorator

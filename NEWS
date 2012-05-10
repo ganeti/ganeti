@@ -23,6 +23,7 @@ Version 2.6.0 beta1
 - Deprecation warnings due to pycrypto/paramiko import in
   tools/setup-ssh have been silenced, as usually they are safe; please
   make sure to run an up-to-date paramiko version
+- The QA scripts now depend on Python 2.5 or above
 
 
 Version 2.5.0

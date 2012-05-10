@@ -23,12 +23,16 @@
 
 """
 
+import os
 
 from ganeti import utils
 from ganeti import serializer
 from ganeti import compat
 
 import qa_error
+
+
+_INSTANCE_CHECK_KEY = "instance-check"
 
 
 cfg = None
@@ -54,6 +58,14 @@ def Validate():
   if len(cfg["disk"]) != len(cfg["disk-growth"]):
     raise qa_error.Error("Config options 'disk' and 'disk-growth' must have"
                          " the same number of items")
+
+  check = GetInstanceCheckScript()
+  if check:
+    try:
+      os.stat(check)
+    except EnvironmentError, err:
+      raise qa_error.Error("Can't find instance check script '%s': %s" %
+                           (check, err))
 
 
 def get(name, default=None):
@@ -133,6 +145,13 @@ def TestEnabled(tests, _cfg=None):
 
   return _TestEnabledInner(lambda name: cfg_tests.get(name, default),
                            tests, compat.all)
+
+
+def GetInstanceCheckScript():
+  """Returns path to instance check script or C{None}.
+
+  """
+  return cfg.get(_INSTANCE_CHECK_KEY, None)
 
 
 def GetMasterNode():

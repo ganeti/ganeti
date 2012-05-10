@@ -24,6 +24,9 @@
   "disk": ["1G", "512M"],
   "disk-growth": ["2G", "768M"],
 
+  "# Script to check instance status": null,
+  "instance-check": null,
+
   "nodes": [
     {
       "# Master node": null,
