@@ -44,6 +44,7 @@ import qa_utils
 import qa_error
 
 from qa_utils import (AssertEqual, AssertIn, AssertMatch, StartLocalCommand)
+from qa_utils import InstanceCheck, INST_DOWN, INST_UP, FIRST_ARG
 
 
 _rapi_ca = None
@@ -349,6 +350,7 @@ def TestRapiQuery():
         ])
 
 
+@InstanceCheck(INST_UP, INST_UP, FIRST_ARG)
 def TestInstance(instance):
   """Testing getting instance(s) info via remote API.
 
@@ -577,6 +579,7 @@ def TestRapiInstanceAdd(node, use_client):
     raise
 
 
+@InstanceCheck(None, INST_DOWN, FIRST_ARG)
 def TestRapiInstanceRemove(instance, use_client):
   """Test removing instance via RAPI"""
   if use_client:
@@ -591,32 +594,39 @@ def TestRapiInstanceRemove(instance, use_client):
   qa_config.ReleaseInstance(instance)
 
 
+@InstanceCheck(INST_UP, INST_UP, FIRST_ARG)
 def TestRapiInstanceMigrate(instance):
   """Test migrating instance via RAPI"""
   # Move to secondary node
   _WaitForRapiJob(_rapi_client.MigrateInstance(instance["name"]))
+  qa_utils.RunInstanceCheck(instance, True)
   # And back to previous primary
   _WaitForRapiJob(_rapi_client.MigrateInstance(instance["name"]))
 
 
+@InstanceCheck(INST_UP, INST_UP, FIRST_ARG)
 def TestRapiInstanceFailover(instance):
   """Test failing over instance via RAPI"""
   # Move to secondary node
   _WaitForRapiJob(_rapi_client.FailoverInstance(instance["name"]))
+  qa_utils.RunInstanceCheck(instance, True)
   # And back to previous primary
   _WaitForRapiJob(_rapi_client.FailoverInstance(instance["name"]))
 
 
+@InstanceCheck(INST_UP, INST_DOWN, FIRST_ARG)
 def TestRapiInstanceShutdown(instance):
   """Test stopping an instance via RAPI"""
   _WaitForRapiJob(_rapi_client.ShutdownInstance(instance["name"]))
 
 
+@InstanceCheck(INST_DOWN, INST_UP, FIRST_ARG)
 def TestRapiInstanceStartup(instance):
   """Test starting an instance via RAPI"""
   _WaitForRapiJob(_rapi_client.StartupInstance(instance["name"]))
 
 
+@InstanceCheck(INST_UP, INST_UP, FIRST_ARG)
 def TestRapiInstanceRenameAndBack(rename_source, rename_target):
   """Test renaming instance via RAPI
 
@@ -625,14 +635,19 @@ def TestRapiInstanceRenameAndBack(rename_source, rename_target):
 
   """
   _WaitForRapiJob(_rapi_client.RenameInstance(rename_source, rename_target))
+  qa_utils.RunInstanceCheck(rename_source, False)
+  qa_utils.RunInstanceCheck(rename_target, True)
   _WaitForRapiJob(_rapi_client.RenameInstance(rename_target, rename_source))
+  qa_utils.RunInstanceCheck(rename_target, False)
 
 
+@InstanceCheck(INST_DOWN, INST_DOWN, FIRST_ARG)
 def TestRapiInstanceReinstall(instance):
   """Test reinstalling an instance via RAPI"""
   _WaitForRapiJob(_rapi_client.ReinstallInstance(instance["name"]))
 
 
+@InstanceCheck(INST_UP, INST_UP, FIRST_ARG)
 def TestRapiInstanceReplaceDisks(instance):
   """Test replacing instance disks via RAPI"""
   _WaitForRapiJob(_rapi_client.ReplaceInstanceDisks(instance["name"],
@@ -641,6 +656,7 @@ def TestRapiInstanceReplaceDisks(instance):
     mode=constants.REPLACE_DISK_SEC, disks="0"))
 
 
+@InstanceCheck(INST_UP, INST_UP, FIRST_ARG)
 def TestRapiInstanceModify(instance):
   """Test modifying instance via RAPI"""
   def _ModifyInstance(**kwargs):
@@ -663,6 +679,7 @@ def TestRapiInstanceModify(instance):
     })
 
 
+@InstanceCheck(INST_UP, INST_UP, FIRST_ARG)
 def TestRapiInstanceConsole(instance):
   """Test getting instance console information via RAPI"""
   result = _rapi_client.GetInstanceConsole(instance["name"])
@@ -671,6 +688,7 @@ def TestRapiInstanceConsole(instance):
   AssertEqual(console.instance, qa_utils.ResolveInstanceName(instance["name"]))
 
 
+@InstanceCheck(INST_DOWN, INST_DOWN, FIRST_ARG)
 def TestRapiStoppedInstanceConsole(instance):
   """Test getting stopped instance's console information via RAPI"""
   try:
@@ -727,4 +745,7 @@ def TestInterClusterInstanceMove(src_instance, dest_instance,
       si,
       ]
 
+    qa_utils.RunInstanceCheck(di, False)
     AssertEqual(StartLocalCommand(cmd).wait(), 0)
+    qa_utils.RunInstanceCheck(si, False)
+    qa_utils.RunInstanceCheck(di, True)

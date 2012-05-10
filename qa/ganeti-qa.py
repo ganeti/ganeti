@@ -354,7 +354,7 @@ def RunExportImportTests(instance, pnode, snode):
       if qa_config.TestEnabled("instance-import"):
         newinst = qa_config.AcquireInstance()
         try:
-          RunTest(qa_instance.TestInstanceImport, pnode, newinst,
+          RunTest(qa_instance.TestInstanceImport, newinst, pnode,
                   expnode, name)
           RunTest(qa_instance.TestInstanceRemove, newinst)
         finally:
