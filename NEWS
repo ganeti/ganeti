@@ -7,8 +7,9 @@ Version 2.6.0 beta1
 
 *(unreleased)*
 
-- Deprecated ``admin_up`` field. Instead, ``admin_state`` is introduced,
-  with 3 possible values -- ``up``, ``down`` and ``offline``.
+- Deprecated ``admin_up`` instance field. Instead, ``admin_state`` is
+  introduced, with 3 possible values -- ``up``, ``down`` and
+  ``offline``.
 - Replaced ``--disks`` option of ``gnt-instance replace-disks`` with a
   more flexible ``--disk`` option. Now disk size and mode can be changed
   upon recreation.
@@ -19,10 +20,10 @@ Version 2.6.0 beta1
   :pyeval:`luxi.REQ_QUERY_GROUPS`, :pyeval:`luxi.REQ_QUERY_EXPORTS` and
   :pyeval:`luxi.REQ_QUERY_TAGS` are deprecated and will be removed in a
   future version. :pyeval:`luxi.REQ_QUERY` should be used instead.
-- CertificateError now derives from GanetiApiError in the RAPI client.
-- Deprecation warnings due to pycrypto/paramiko import in
-  tools/setup-ssh have been silenced, as usually they are safe; please
-  make sure to run an up-to-date paramiko version
+- RAPI client: ``CertificateError`` now derives from ``GanetiApiError``
+- Deprecation warnings due to PyCrypto/paramiko import in
+  ``tools/setup-ssh`` have been silenced, as usually they are safe;
+  please make sure to run an up-to-date paramiko version
 - The QA scripts now depend on Python 2.5 or above
 
 
