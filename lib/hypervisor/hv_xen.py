@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008, 2009, 2010 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -86,7 +86,14 @@ class XenHypervisor(hv_base.BaseHypervisor):
     This version of the function just writes the config file from static data.
 
     """
-    utils.WriteFile(XenHypervisor._ConfigFileName(instance_name), data=data)
+    # just in case it exists
+    utils.RemoveFile("/etc/xen/auto/%s" % instance_name)
+    cfg_file = XenHypervisor._ConfigFileName(instance_name)
+    try:
+      utils.WriteFile(cfg_file, data=data)
+    except EnvironmentError, err:
+      raise errors.HypervisorError("Cannot write Xen instance configuration"
+                                   " file %s: %s" % (cfg_file, err))
 
   @staticmethod
   def _ReadConfigFile(instance_name):
@@ -685,15 +692,7 @@ class XenPvmHypervisor(XenHypervisor):
       config.write("on_reboot = 'destroy'\n")
     config.write("on_crash = 'restart'\n")
     config.write("extra = '%s'\n" % hvp[constants.HV_KERNEL_ARGS])
-    # just in case it exists
-    utils.RemoveFile("/etc/xen/auto/%s" % instance.name)
-    try:
-      utils.WriteFile(cls._ConfigFileName(instance.name),
-                      data=config.getvalue())
-    except EnvironmentError, err:
-      raise errors.HypervisorError("Cannot write Xen instance confile"
-                                   " file %s: %s" %
-                                   (cls._ConfigFileName(instance.name), err))
+    cls._WriteConfigFileStatic(instance.name, config.getvalue())
 
     return True
 
@@ -836,14 +835,6 @@ class XenHvmHypervisor(XenHypervisor):
     else:
       config.write("on_reboot = 'destroy'\n")
     config.write("on_crash = 'restart'\n")
-    # just in case it exists
-    utils.RemoveFile("/etc/xen/auto/%s" % instance.name)
-    try:
-      utils.WriteFile(cls._ConfigFileName(instance.name),
-                      data=config.getvalue())
-    except EnvironmentError, err:
-      raise errors.HypervisorError("Cannot write Xen instance confile"
-                                   " file %s: %s" %
-                                   (cls._ConfigFileName(instance.name), err))
+    cls._WriteConfigFileStatic(instance.name, config.getvalue())
 
     return True
