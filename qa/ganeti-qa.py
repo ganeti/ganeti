@@ -72,7 +72,7 @@ def _DescriptionOf(fn):
   return desc.rstrip(".")
 
 
-def RunTest(fn, *args):
+def RunTest(fn, *args, **kwargs):
   """Runs a test after printing a header.
 
   """
@@ -85,7 +85,7 @@ def RunTest(fn, *args):
   print _FormatHeader("%s start %s" % (tstart, desc))
 
   try:
-    retval = fn(*args)
+    retval = fn(*args, **kwargs)
     return retval
   finally:
     tstop = datetime.datetime.now()
@@ -93,7 +93,7 @@ def RunTest(fn, *args):
     print _FormatHeader("%s time=%s %s" % (tstop, tdelta, desc))
 
 
-def RunTestIf(testnames, fn, *args):
+def RunTestIf(testnames, fn, *args, **kwargs):
   """Runs a test conditionally.
 
   @param testnames: either a single test name in the configuration
@@ -101,7 +101,7 @@ def RunTestIf(testnames, fn, *args):
 
   """
   if qa_config.TestEnabled(testnames):
-    RunTest(fn, *args)
+    RunTest(fn, *args, **kwargs)
   else:
     tstart = datetime.datetime.now()
     desc = _DescriptionOf(fn)
