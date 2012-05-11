@@ -2,6 +2,45 @@ News
 ====
 
 
+Version 2.5.1
+-------------
+
+*(Released Fri, 11 May 2012)*
+
+A small bugfix release.
+
+The main issues solved are on the topic of compatibility with newer LVM
+releases:
+
+- fixed parsing of ``lv_attr`` field
+- adapted to new ``vgreduce --removemissing`` behaviour where sometimes
+  the ``--force`` flag is needed
+
+Also on the topic of compatibility, ``tools/lvmstrap`` has been changed
+to accept kernel 3.x too (was hardcoded to 2.6.*).
+
+A regression present in 2.5.0 that broke handling (in the gnt-* scripts)
+of hook results and that also made display of other errors suboptimal
+was fixed; the code behaves now like 2.4 and earlier.
+
+Another change in 2.5, the cleanup of the OS scripts environment, is too
+aggressive: it removed even the ``PATH`` variable, which requires the OS
+scripts to *always* need to export it. Since this is a bit too strict,
+we now export a minimal PATH, the same that we export for hooks.
+
+The fix for issue 201 (Preserve bridge MTU in KVM ifup script) was
+integrated into this release.
+
+Finally, a few other miscellaneous changes were done (no new features,
+just small improvements):
+
+- Fix ``gnt-group --help`` display
+- Fix hardcoded Xen kernel path
+- Fix grow-disk handling of invalid units
+- Update synopsis for ``gnt-cluster repair-disk-sizes``
+- Accept both PUT and POST in noded (makes future upgrade to 2.6 easier)
+
+
 Version 2.5.0
 -------------
 
