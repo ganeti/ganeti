@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -78,7 +78,7 @@ _IES_PID_FILE = "pid"
 _IES_CA_FILE = "ca"
 
 #: Valid LVS output line regex
-_LVSLINE_REGEX = re.compile("^ *([^|]+)\|([^|]+)\|([0-9.]+)\|([^|]{6})\|?$")
+_LVSLINE_REGEX = re.compile("^ *([^|]+)\|([^|]+)\|([0-9.]+)\|([^|]{6,})\|?$")
 
 
 class RPCFail(Exception):
@@ -2252,6 +2252,11 @@ def OSCoreEnv(os_name, inst_os, os_params, debug=0):
   # OS params
   for pname, pvalue in os_params.items():
     result["OSP_%s" % pname.upper()] = pvalue
+
+  # Set a default path otherwise programs called by OS scripts (or
+  # even hooks called from OS scripts) might break, and we don't want
+  # to have each script require setting a PATH variable
+  result["PATH"] = constants.HOOKS_PATH
 
   return result
 

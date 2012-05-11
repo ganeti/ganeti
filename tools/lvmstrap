@@ -272,9 +272,9 @@ def CheckPrereq():
     raise PrereqError("This tool only runs on Linux"
                       " (detected OS: %s)." % osname)
 
-  if not release.startswith("2.6."):
+  if not (release.startswith("2.6.") or release.startswith("3.")):
     raise PrereqError("Wrong major kernel version (detected %s, needs"
-                      " 2.6.*)" % release)
+                      " 2.6.* or 3.*)" % release)
 
   if not os.path.ismount("/sys"):
     raise PrereqError("Can't find a filesystem mounted at /sys."
