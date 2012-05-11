@@ -13939,12 +13939,16 @@ class LUGroupSetParams(LogicalUnit):
 
     if self.op.diskparams:
       diskparams = self.group.diskparams
+      uavdp = self._UpdateAndVerifyDiskParams
+      # For each disktemplate subdict update and verify the values
       new_diskparams = dict((dt,
-                             self._UpdateAndVerifyDiskParams(diskparams[dt],
-                                                        self.op.diskparams[dt]))
+                             uavdp(diskparams.get(dt, {}),
+                                   self.op.diskparams[dt]))
                             for dt in constants.DISK_TEMPLATES
                             if dt in self.op.diskparams)
-      self.new_diskparams = objects.FillDiskParams(diskparams, new_diskparams)
+      # As we've all subdicts of diskparams ready, lets merge the actual
+      # dict with all updated subdicts
+      self.new_diskparams = objects.FillDict(diskparams, new_diskparams)
 
     if self.op.hv_state:
       self.new_hv_state = _MergeAndVerifyHvState(self.op.hv_state,
