@@ -248,6 +248,14 @@ this case, there is not need to pass tags on the command line (if you
 do, tags from both sources will be removed). A file name of ``-`` will
 be interpreted as stdin.
 
+INFO
+~~~~
+
+**info** [group...]
+
+Shows config information for all (or given) groups.
+
+
 .. vim: set textwidth=72 :
 .. Local Variables:
 .. mode: rst

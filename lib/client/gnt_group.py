@@ -29,6 +29,7 @@ from ganeti import constants
 from ganeti import objects
 from ganeti import opcodes
 from ganeti import utils
+from cStringIO import StringIO
 
 
 #: default list of fields for L{ListGroups}
@@ -273,6 +274,44 @@ def EvacuateGroup(opts, args):
 
   return rcode
 
+
+def _FormatDict(custom, actual, level=2):
+  """Helper function to L{cli.FormatParameterDict}.
+
+  @param custom: The customized dict
+  @param actual: The fully filled dict
+
+  """
+  buf = StringIO()
+  FormatParameterDict(buf, custom, actual, level=level)
+  return buf.getvalue().rstrip("\n")
+
+
+def GroupInfo(_, args):
+  """Shows info about node group.
+
+  """
+  cl = GetClient()
+  selected_fields = ["name",
+                     "ndparams", "custom_ndparams",
+                     "diskparams", "custom_diskparams",
+                     "ipolicy", "custom_ipolicy"]
+  result = cl.QueryGroups(names=args, fields=selected_fields,
+                          use_locking=False)
+
+  for (name,
+       ndparams, custom_ndparams,
+       diskparams, custom_diskparams,
+       ipolicy, custom_ipolicy) in result:
+    ToStdout("Node group: %s" % name)
+    ToStdout("  Node parameters:")
+    ToStdout(_FormatDict(custom_ndparams, ndparams))
+    ToStdout("  Disk parameters:")
+    ToStdout(_FormatDict(custom_diskparams, diskparams))
+    ToStdout("  Instance policy:")
+    ToStdout(_FormatDict(custom_ipolicy, ipolicy))
+
+
 commands = {
   "add": (
     AddGroup, ARGS_ONE_GROUP,
@@ -323,6 +362,8 @@ commands = {
     RemoveTags, [ArgGroup(min=1, max=1), ArgUnknown()],
     [TAG_SRC_OPT, PRIORITY_OPT, SUBMIT_OPT],
     "<group_name> tag...", "Remove tags from the given group"),
+  "info": (
+    GroupInfo, ARGS_MANY_GROUPS, [], "<group_name>", "Show group information"),
   }
 
 
