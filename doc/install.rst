@@ -449,6 +449,26 @@ outside of ganeti. The vif scripts will only add /32 routes to your
 instances, through their interface, in the table you specified (under
 KVM, and in the main table under Xen).
 
+.. admonition:: Bridging issues with certain kernels
+
+    Some kernel versions (e.g. 2.6.32) have an issue where the bridge
+    will automatically change its ``MAC`` address to the lower-numbered
+    slave on port addition and removal. This means that, depending on
+    the ``MAC`` address of the actual NIC on the node and the addresses
+    of the instances, it could be that starting, stopping or migrating
+    instances will lead to timeouts due to the address of the bridge
+    (and thus node itself) changing.
+
+    To prevent this, it's enough to set the bridge manually to a
+    specific ``MAC`` address, which will disable this automatic address
+    change. In Debian, this can be done as follows in the bridge
+    configuration snippet::
+
+      up ip link set addr $(cat /sys/class/net/$IFACE/address) dev $IFACE
+
+    which will "set" the bridge address to the initial one, disallowing
+    changes.
+
 .. admonition:: Bridging under Debian
 
    The recommended way to configure the Xen bridge is to edit your
@@ -465,6 +485,8 @@ KVM, and in the main table under Xen).
         bridge_ports eth0
         bridge_stp off
         bridge_fd 0
+        # example for setting manually the bridge address to the eth0 NIC
+        up ip link set addr $(cat /sys/class/net/eth0/address) dev $IFACE
 
 The following commands need to be executed on the local console::
 
