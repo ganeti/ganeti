@@ -6177,6 +6177,7 @@ class LUClusterQuery(NoHooksLU):
       "ipolicy": cluster.ipolicy,
       "nicparams": cluster.nicparams,
       "ndparams": cluster.ndparams,
+      "diskparams": cluster.diskparams,
       "candidate_pool_size": cluster.candidate_pool_size,
       "master_netdev": cluster.master_netdev,
       "master_netmask": cluster.master_netmask,

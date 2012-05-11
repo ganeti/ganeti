@@ -462,6 +462,9 @@ def ShowClusterConfig(opts, args):
   ToStdout("Default nic parameters:")
   _PrintGroupedParams(result["nicparams"], roman=opts.roman_integers)
 
+  ToStdout("Default disk parameters:")
+  _PrintGroupedParams(result["diskparams"], roman=opts.roman_integers)
+
   ToStdout("Instance policy - limits for instances:")
   for key in constants.IPOLICY_ISPECS:
     ToStdout("  - %s", key)
