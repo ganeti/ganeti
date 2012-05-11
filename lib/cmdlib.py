@@ -13841,7 +13841,8 @@ class _GroupQuery(_QueryBase):
     return query.GroupQueryData(self._cluster,
                                 [self._all_groups[uuid]
                                  for uuid in self.wanted],
-                                group_to_nodes, group_to_instances)
+                                group_to_nodes, group_to_instances,
+                                query.GQ_DISKPARAMS in self.requested_data)
 
 
 class LUGroupQuery(NoHooksLU):

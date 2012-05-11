@@ -961,12 +961,14 @@ class TestGroupQuery(unittest.TestCase):
                         alloc_policy=constants.ALLOC_POLICY_PREFERRED,
                         ipolicy=objects.MakeEmptyIPolicy(),
                         ndparams={},
+                        diskparams={},
                         ),
       objects.NodeGroup(name="restricted",
                         uuid="d2a40a74-18e7-11e0-9143-001d0904baeb",
                         alloc_policy=constants.ALLOC_POLICY_LAST_RESORT,
                         ipolicy=objects.MakeEmptyIPolicy(),
-                        ndparams={}
+                        ndparams={},
+                        diskparams={},
                         ),
       ]
     self.cluster = objects.Cluster(cluster_name="testcluster",
@@ -979,6 +981,7 @@ class TestGroupQuery(unittest.TestCase):
         },
       ndparams=constants.NDC_DEFAULTS,
       ipolicy=constants.IPOLICY_DEFAULTS,
+      diskparams=constants.DISK_DT_DEFAULTS,
       )
 
   def _Create(self, selected):
@@ -986,7 +989,7 @@ class TestGroupQuery(unittest.TestCase):
 
   def testSimple(self):
     q = self._Create(["name", "uuid", "alloc_policy"])
-    gqd = query.GroupQueryData(self.cluster, self.groups, None, None)
+    gqd = query.GroupQueryData(self.cluster, self.groups, None, None, False)
 
     self.assertEqual(q.RequestedData(), set([query.GQ_CONFIG]))
 
@@ -1008,7 +1011,8 @@ class TestGroupQuery(unittest.TestCase):
       }
 
     q = self._Create(["name", "node_cnt", "node_list"])
-    gqd = query.GroupQueryData(self.cluster, self.groups, groups_to_nodes, None)
+    gqd = query.GroupQueryData(self.cluster, self.groups, groups_to_nodes, None,
+                               False)
 
     self.assertEqual(q.RequestedData(), set([query.GQ_CONFIG, query.GQ_NODE]))
 
@@ -1031,7 +1035,7 @@ class TestGroupQuery(unittest.TestCase):
 
     q = self._Create(["pinst_cnt", "pinst_list"])
     gqd = query.GroupQueryData(self.cluster, self.groups, None,
-      groups_to_instances)
+      groups_to_instances, False)
 
     self.assertEqual(q.RequestedData(), set([query.GQ_INST]))
 

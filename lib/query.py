@@ -93,7 +93,8 @@ from ganeti.constants import (QFT_UNKNOWN, QFT_TEXT, QFT_BOOL, QFT_NUMBER,
 
 (GQ_CONFIG,
  GQ_NODE,
- GQ_INST) = range(200, 203)
+ GQ_INST,
+ GQ_DISKPARAMS) = range(200, 204)
 
 (CQ_CONFIG,
  CQ_QUEUE_DRAINED,
@@ -2002,7 +2003,8 @@ class GroupQueryData:
   """Data container for node group data queries.
 
   """
-  def __init__(self, cluster, groups, group_to_nodes, group_to_instances):
+  def __init__(self, cluster, groups, group_to_nodes, group_to_instances,
+               want_diskparams):
     """Initializes this class.
 
     @param cluster: Cluster object
@@ -2011,16 +2013,20 @@ class GroupQueryData:
     @param group_to_nodes: Per-group list of nodes
     @type group_to_instances: dict; group UUID as key
     @param group_to_instances: Per-group list of (primary) instances
+    @type want_diskparams: bool
+    @param want_diskparams: Whether diskparamters should be calculated
 
     """
     self.groups = groups
     self.group_to_nodes = group_to_nodes
     self.group_to_instances = group_to_instances
     self.cluster = cluster
+    self.want_diskparams = want_diskparams
 
     # Used for individual rows
     self.group_ipolicy = None
     self.ndparams = None
+    self.group_dp = None
 
   def __iter__(self):
     """Iterate over all node groups.
@@ -2032,6 +2038,10 @@ class GroupQueryData:
     for group in self.groups:
       self.group_ipolicy = self.cluster.SimpleFillIPolicy(group.ipolicy)
       self.ndparams = self.cluster.SimpleFillND(group.ndparams)
+      if self.want_diskparams:
+        self.group_dp = self.cluster.SimpleFillDP(group.diskparams)
+      else:
+        self.group_dp = None
       yield group
 
 
@@ -2095,6 +2105,12 @@ def _BuildGroupFields():
     (_MakeField("ndparams", "NDParams", QFT_OTHER,
                 "Node parameters"),
      GQ_CONFIG, 0, lambda ctx, _: ctx.ndparams),
+    (_MakeField("diskparams", "DiskParameters", QFT_OTHER,
+                "Disk parameters (merged)"),
+     GQ_DISKPARAMS, 0, lambda ctx, _: ctx.group_dp),
+    (_MakeField("custom_diskparams", "CustomDiskParameters", QFT_OTHER,
+                "Custom disk parameters"),
+     GQ_CONFIG, 0, _GetItemAttr("diskparams")),
     ])
 
   # ND parameters
