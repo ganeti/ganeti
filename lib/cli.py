@@ -3342,9 +3342,18 @@ def FormatParameterDict(buf, param_dict, actual, level=1):
 
   """
   indent = "  " * level
+
   for key in sorted(actual):
-    val = param_dict.get(key, "default (%s)" % actual[key])
-    buf.write("%s- %s: %s\n" % (indent, key, val))
+    data = actual[key]
+    buf.write("%s- %s:" % (indent, key))
+
+    if isinstance(data, dict) and data:
+      buf.write("\n")
+      FormatParameterDict(buf, param_dict.get(key, {}), data,
+                          level=level + 1)
+    else:
+      val = param_dict.get(key, "default (%s)" % data)
+      buf.write(" %s\n" % val)
 
 
 def ConfirmOperation(names, list_type, text, extra=""):
