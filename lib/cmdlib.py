@@ -9657,6 +9657,9 @@ class LUInstanceCreate(LogicalUnit):
     if self.op.mode == constants.INSTANCE_IMPORT:
       export_info = self._ReadExportInfo()
       self._ReadExportParams(export_info)
+      self._old_instance_name = export_info.get(constants.INISECT_INS, "name")
+    else:
+      self._old_instance_name = None
 
     if (not self.cfg.GetVGName() and
         self.op.disk_template not in constants.DTS_NOT_LVM):
@@ -9810,8 +9813,7 @@ class LUInstanceCreate(LogicalUnit):
 
       self.src_images = disk_images
 
-      old_name = export_info.get(constants.INISECT_INS, "name")
-      if self.op.instance_name == old_name:
+      if self.op.instance_name == self._old_instance_name:
         for idx, nic in enumerate(self.nics):
           if nic.mac == constants.VALUE_AUTO:
             nic_mac_ini = "nic%d_mac" % idx
@@ -10162,66 +10164,72 @@ class LUInstanceCreate(LogicalUnit):
           os_add_result.Raise("Could not add os for instance %s"
                               " on node %s" % (instance, pnode_name))
 
-      elif self.op.mode == constants.INSTANCE_IMPORT:
-        feedback_fn("* running the instance OS import scripts...")
+      else:
+        if self.op.mode == constants.INSTANCE_IMPORT:
+          feedback_fn("* running the instance OS import scripts...")
 
-        transfers = []
+          transfers = []
 
-        for idx, image in enumerate(self.src_images):
-          if not image:
-            continue
+          for idx, image in enumerate(self.src_images):
+            if not image:
+              continue
 
-          # FIXME: pass debug option from opcode to backend
-          dt = masterd.instance.DiskTransfer("disk/%s" % idx,
-                                             constants.IEIO_FILE, (image, ),
-                                             constants.IEIO_SCRIPT,
-                                             (iobj.disks[idx], idx),
-                                             None)
-          transfers.append(dt)
+            # FIXME: pass debug option from opcode to backend
+            dt = masterd.instance.DiskTransfer("disk/%s" % idx,
+                                               constants.IEIO_FILE, (image, ),
+                                               constants.IEIO_SCRIPT,
+                                               (iobj.disks[idx], idx),
+                                               None)
+            transfers.append(dt)
 
-        import_result = \
-          masterd.instance.TransferInstanceData(self, feedback_fn,
-                                                self.op.src_node, pnode_name,
-                                                self.pnode.secondary_ip,
-                                                iobj, transfers)
-        if not compat.all(import_result):
-          self.LogWarning("Some disks for instance %s on node %s were not"
-                          " imported successfully" % (instance, pnode_name))
+          import_result = \
+            masterd.instance.TransferInstanceData(self, feedback_fn,
+                                                  self.op.src_node, pnode_name,
+                                                  self.pnode.secondary_ip,
+                                                  iobj, transfers)
+          if not compat.all(import_result):
+            self.LogWarning("Some disks for instance %s on node %s were not"
+                            " imported successfully" % (instance, pnode_name))
 
-      elif self.op.mode == constants.INSTANCE_REMOTE_IMPORT:
-        feedback_fn("* preparing remote import...")
-        # The source cluster will stop the instance before attempting to make a
-        # connection. In some cases stopping an instance can take a long time,
-        # hence the shutdown timeout is added to the connection timeout.
-        connect_timeout = (constants.RIE_CONNECT_TIMEOUT +
-                           self.op.source_shutdown_timeout)
-        timeouts = masterd.instance.ImportExportTimeouts(connect_timeout)
+          rename_from = self._old_instance_name
 
-        assert iobj.primary_node == self.pnode.name
-        disk_results = \
-          masterd.instance.RemoteImport(self, feedback_fn, iobj, self.pnode,
-                                        self.source_x509_ca,
-                                        self._cds, timeouts)
-        if not compat.all(disk_results):
-          # TODO: Should the instance still be started, even if some disks
-          # failed to import (valid for local imports, too)?
-          self.LogWarning("Some disks for instance %s on node %s were not"
-                          " imported successfully" % (instance, pnode_name))
+        elif self.op.mode == constants.INSTANCE_REMOTE_IMPORT:
+          feedback_fn("* preparing remote import...")
+          # The source cluster will stop the instance before attempting to make
+          # a connection. In some cases stopping an instance can take a long
+          # time, hence the shutdown timeout is added to the connection
+          # timeout.
+          connect_timeout = (constants.RIE_CONNECT_TIMEOUT +
+                             self.op.source_shutdown_timeout)
+          timeouts = masterd.instance.ImportExportTimeouts(connect_timeout)
+
+          assert iobj.primary_node == self.pnode.name
+          disk_results = \
+            masterd.instance.RemoteImport(self, feedback_fn, iobj, self.pnode,
+                                          self.source_x509_ca,
+                                          self._cds, timeouts)
+          if not compat.all(disk_results):
+            # TODO: Should the instance still be started, even if some disks
+            # failed to import (valid for local imports, too)?
+            self.LogWarning("Some disks for instance %s on node %s were not"
+                            " imported successfully" % (instance, pnode_name))
+
+          rename_from = self.source_instance_name
+
+        else:
+          # also checked in the prereq part
+          raise errors.ProgrammerError("Unknown OS initialization mode '%s'"
+                                       % self.op.mode)
 
         # Run rename script on newly imported instance
         assert iobj.name == instance
         feedback_fn("Running rename script for %s" % instance)
         result = self.rpc.call_instance_run_rename(pnode_name, iobj,
-                                                   self.source_instance_name,
+                                                   rename_from,
                                                    self.op.debug_level)
         if result.fail_msg:
           self.LogWarning("Failed to run rename script for %s on node"
                           " %s: %s" % (instance, pnode_name, result.fail_msg))
-
-      else:
-        # also checked in the prereq part
-        raise errors.ProgrammerError("Unknown OS initialization mode '%s'"
-                                     % self.op.mode)
 
     assert not self.owned_locks(locking.LEVEL_NODE_RES)
 
