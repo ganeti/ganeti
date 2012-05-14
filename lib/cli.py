@@ -43,6 +43,7 @@ from ganeti import ssh
 from ganeti import compat
 from ganeti import netutils
 from ganeti import qlang
+from ganeti import objects
 
 from optparse import (OptionParser, TitledHelpFormatter,
                       Option, OptionValueError)
@@ -201,6 +202,7 @@ __all__ = [
   "INSTANCE_POLICY_OPTS",
   # Generic functions for CLI programs
   "ConfirmOperation",
+  "CreateIPolicyFromOpts",
   "GenericMain",
   "GenericInstanceCreate",
   "GenericList",
@@ -283,6 +285,19 @@ _PRIONAME_TO_VALUE = dict(_PRIORITY_NAMES)
 
 #: Maximum batch size for ChooseJob
 _CHOOSE_BATCH = 25
+
+
+# constants used to create InstancePolicy dictionary
+TISPECS_GROUP_TYPES = {
+  constants.ISPECS_MIN: constants.VTYPE_INT,
+  constants.ISPECS_MAX: constants.VTYPE_INT,
+  }
+
+TISPECS_CLUSTER_TYPES = {
+  constants.ISPECS_MIN: constants.VTYPE_INT,
+  constants.ISPECS_MAX: constants.VTYPE_INT,
+  constants.ISPECS_STD: constants.VTYPE_INT,
+  }
 
 
 class _Argument:
@@ -3393,3 +3408,62 @@ def ConfirmOperation(names, list_type, text, extra=""):
     choices.pop(1)
     choice = AskUser(msg + affected, choices)
   return choice
+
+
+def CreateIPolicyFromOpts(ispecs_mem_size=None,
+                          ispecs_cpu_count=None,
+                          ispecs_disk_count=None,
+                          ispecs_disk_size=None,
+                          ispecs_nic_count=None,
+                          ipolicy_disk_templates=None,
+                          ipolicy_vcpu_ratio=None,
+                          group_ipolicy=False,
+                          allowed_values=None,
+                          fill_all=False):
+  """Creation of instance policy based on command line options.
+
+  @param fill_all: whether for cluster policies we should ensure that
+    all values are filled
+
+
+  """
+  # prepare ipolicy dict
+  ipolicy_transposed = {
+    constants.ISPEC_MEM_SIZE: ispecs_mem_size,
+    constants.ISPEC_CPU_COUNT: ispecs_cpu_count,
+    constants.ISPEC_DISK_COUNT: ispecs_disk_count,
+    constants.ISPEC_DISK_SIZE: ispecs_disk_size,
+    constants.ISPEC_NIC_COUNT: ispecs_nic_count,
+    }
+
+  # first, check that the values given are correct
+  if group_ipolicy:
+    forced_type = TISPECS_GROUP_TYPES
+  else:
+    forced_type = TISPECS_CLUSTER_TYPES
+
+  for specs in ipolicy_transposed.values():
+    utils.ForceDictType(specs, forced_type, allowed_values=allowed_values)
+
+  # then transpose
+  ipolicy_out = objects.MakeEmptyIPolicy()
+  for name, specs in ipolicy_transposed.iteritems():
+    assert name in constants.ISPECS_PARAMETERS
+    for key, val in specs.items(): # {min: .. ,max: .., std: ..}
+      ipolicy_out[key][name] = val
+
+  # no filldict for non-dicts
+  if not group_ipolicy and fill_all:
+    if ipolicy_disk_templates is None:
+      ipolicy_disk_templates = constants.DISK_TEMPLATES
+    if ipolicy_vcpu_ratio is None:
+      ipolicy_vcpu_ratio = \
+        constants.IPOLICY_DEFAULTS[constants.IPOLICY_VCPU_RATIO]
+  if ipolicy_disk_templates is not None:
+    ipolicy_out[constants.IPOLICY_DTS] = list(ipolicy_disk_templates)
+  if ipolicy_vcpu_ratio is not None:
+    ipolicy_out[constants.IPOLICY_VCPU_RATIO] = ipolicy_vcpu_ratio
+
+  assert not (frozenset(ipolicy_out.keys()) - constants.IPOLICY_ALL_KEYS)
+
+  return ipolicy_out

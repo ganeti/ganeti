@@ -26,7 +26,6 @@
 
 from ganeti.cli import *
 from ganeti import constants
-from ganeti import objects
 from ganeti import opcodes
 from ganeti import utils
 from cStringIO import StringIO
@@ -49,13 +48,13 @@ def AddGroup(opts, args):
   @return: the desired exit code
 
   """
-  ipolicy = \
-    objects.CreateIPolicyFromOpts(ispecs_mem_size=opts.ispecs_mem_size,
-                                  ispecs_cpu_count=opts.ispecs_cpu_count,
-                                  ispecs_disk_count=opts.ispecs_disk_count,
-                                  ispecs_disk_size=opts.ispecs_disk_size,
-                                  ispecs_nic_count=opts.ispecs_nic_count,
-                                  group_ipolicy=True)
+  ipolicy = CreateIPolicyFromOpts(
+    ispecs_mem_size=opts.ispecs_mem_size,
+    ispecs_cpu_count=opts.ispecs_cpu_count,
+    ispecs_disk_count=opts.ispecs_disk_count,
+    ispecs_disk_size=opts.ispecs_disk_size,
+    ispecs_nic_count=opts.ispecs_nic_count,
+    group_ipolicy=True)
 
   (group_name,) = args
   diskparams = dict(opts.diskparams)
@@ -185,7 +184,7 @@ def SetGroupParams(opts, args):
         if ispec[param].lower() == "default":
           ispec[param] = constants.VALUE_DEFAULT
   # create ipolicy object
-  ipolicy = objects.CreateIPolicyFromOpts(\
+  ipolicy = CreateIPolicyFromOpts(
     ispecs_mem_size=opts.ispecs_mem_size,
     ispecs_cpu_count=opts.ispecs_cpu_count,
     ispecs_disk_count=opts.ispecs_disk_count,

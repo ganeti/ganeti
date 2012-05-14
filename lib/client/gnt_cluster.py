@@ -143,7 +143,7 @@ def InitCluster(opts, args):
     utils.ForceDictType(diskparams[templ], constants.DISK_DT_TYPES)
 
   # prepare ipolicy dict
-  ipolicy_raw = objects.CreateIPolicyFromOpts(
+  ipolicy_raw = CreateIPolicyFromOpts(
     ispecs_mem_size=opts.ispecs_mem_size,
     ispecs_cpu_count=opts.ispecs_cpu_count,
     ispecs_disk_count=opts.ispecs_disk_count,
@@ -1002,7 +1002,7 @@ def SetClusterParams(opts, args):
   if ndparams is not None:
     utils.ForceDictType(ndparams, constants.NDS_PARAMETER_TYPES)
 
-  ipolicy = objects.CreateIPolicyFromOpts(
+  ipolicy = CreateIPolicyFromOpts(
     ispecs_mem_size=opts.ispecs_mem_size,
     ispecs_cpu_count=opts.ispecs_cpu_count,
     ispecs_disk_count=opts.ispecs_disk_count,
