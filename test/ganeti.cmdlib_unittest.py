@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2008, 2011 Google Inc.
+# Copyright (C) 2008, 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -586,24 +586,24 @@ class TestComputeMinMaxSpec(unittest.TestCase):
       }
 
   def testNoneValue(self):
-    self.assertTrue(cmdlib._ComputeMinMaxSpec(constants.ISPEC_MEM_SIZE,
+    self.assertTrue(cmdlib._ComputeMinMaxSpec(constants.ISPEC_MEM_SIZE, None,
                                               self.ipolicy, None) is None)
 
   def testAutoValue(self):
-    self.assertTrue(cmdlib._ComputeMinMaxSpec(constants.ISPEC_MEM_SIZE,
+    self.assertTrue(cmdlib._ComputeMinMaxSpec(constants.ISPEC_MEM_SIZE, None,
                                               self.ipolicy,
                                               constants.VALUE_AUTO) is None)
 
   def testNotDefined(self):
-    self.assertTrue(cmdlib._ComputeMinMaxSpec(constants.ISPEC_NIC_COUNT,
+    self.assertTrue(cmdlib._ComputeMinMaxSpec(constants.ISPEC_NIC_COUNT, None,
                                               self.ipolicy, 3) is None)
 
   def testNoMinDefined(self):
-    self.assertTrue(cmdlib._ComputeMinMaxSpec(constants.ISPEC_DISK_SIZE,
+    self.assertTrue(cmdlib._ComputeMinMaxSpec(constants.ISPEC_DISK_SIZE, None,
                                               self.ipolicy, 128) is None)
 
   def testNoMaxDefined(self):
-    self.assertTrue(cmdlib._ComputeMinMaxSpec(constants.ISPEC_DISK_COUNT,
+    self.assertTrue(cmdlib._ComputeMinMaxSpec(constants.ISPEC_DISK_COUNT, None,
                                                 self.ipolicy, 16) is None)
 
   def testOutOfRange(self):
@@ -613,8 +613,13 @@ class TestComputeMinMaxSpec(unittest.TestCase):
                         (constants.ISPEC_DISK_COUNT, 0)):
       min_v = self.ipolicy[constants.ISPECS_MIN].get(name, val)
       max_v = self.ipolicy[constants.ISPECS_MAX].get(name, val)
-      self.assertEqual(cmdlib._ComputeMinMaxSpec(name, self.ipolicy, val),
+      self.assertEqual(cmdlib._ComputeMinMaxSpec(name, None,
+                                                 self.ipolicy, val),
                        "%s value %s is not in range [%s, %s]" %
+                       (name, val,min_v, max_v))
+      self.assertEqual(cmdlib._ComputeMinMaxSpec(name, "1",
+                                                 self.ipolicy, val),
+                       "%s/1 value %s is not in range [%s, %s]" %
                        (name, val,min_v, max_v))
 
   def test(self):
@@ -625,7 +630,7 @@ class TestComputeMinMaxSpec(unittest.TestCase):
                         (constants.ISPEC_DISK_SIZE, 0),
                         (constants.ISPEC_DISK_COUNT, 1),
                         (constants.ISPEC_DISK_COUNT, 5)):
-      self.assertTrue(cmdlib._ComputeMinMaxSpec(name, self.ipolicy, val)
+      self.assertTrue(cmdlib._ComputeMinMaxSpec(name, None, self.ipolicy, val)
                       is None)
 
 

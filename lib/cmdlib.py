@@ -1116,10 +1116,12 @@ def _CheckInstanceState(lu, instance, req_states, msg=None):
                                  (instance.name, msg), errors.ECODE_STATE)
 
 
-def _ComputeMinMaxSpec(name, ipolicy, value):
+def _ComputeMinMaxSpec(name, qualifier, ipolicy, value):
   """Computes if value is in the desired range.
 
   @param name: name of the parameter for which we perform the check
+  @param qualifier: a qualifier used in the error message (e.g. 'disk/1',
+      not just 'disk')
   @param ipolicy: dictionary containing min, max and std values
   @param value: actual value that we want to use
   @return: None or element not meeting the criteria
@@ -1131,8 +1133,12 @@ def _ComputeMinMaxSpec(name, ipolicy, value):
   max_v = ipolicy[constants.ISPECS_MAX].get(name, value)
   min_v = ipolicy[constants.ISPECS_MIN].get(name, value)
   if value > max_v or min_v > value:
+    if qualifier:
+      fqn = "%s/%s" % (name, qualifier)
+    else:
+      fqn = name
     return ("%s value %s is not in range [%s, %s]" %
-            (name, value, min_v, max_v))
+            (fqn, value, min_v, max_v))
   return None
 
 
@@ -1162,16 +1168,17 @@ def _ComputeIPolicySpecViolation(ipolicy, mem_size, cpu_count, disk_count,
   assert disk_count == len(disk_sizes)
 
   test_settings = [
-    (constants.ISPEC_MEM_SIZE, mem_size),
-    (constants.ISPEC_CPU_COUNT, cpu_count),
-    (constants.ISPEC_DISK_COUNT, disk_count),
-    (constants.ISPEC_NIC_COUNT, nic_count),
-    (constants.ISPEC_SPINDLE_USE, spindle_use),
-    ] + map((lambda d: (constants.ISPEC_DISK_SIZE, d)), disk_sizes)
+    (constants.ISPEC_MEM_SIZE, "", mem_size),
+    (constants.ISPEC_CPU_COUNT, "", cpu_count),
+    (constants.ISPEC_DISK_COUNT, "", disk_count),
+    (constants.ISPEC_NIC_COUNT, "", nic_count),
+    (constants.ISPEC_SPINDLE_USE, "", spindle_use),
+    ] + [(constants.ISPEC_DISK_SIZE, str(idx), d)
+         for idx, d in enumerate(disk_sizes)]
 
   return filter(None,
-                (_compute_fn(name, ipolicy, value)
-                 for (name, value) in test_settings))
+                (_compute_fn(name, qualifier, ipolicy, value)
+                 for (name, qualifier, value) in test_settings))
 
 
 def _ComputeIPolicyInstanceViolation(ipolicy, instance,
