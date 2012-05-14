@@ -2421,7 +2421,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
     ipolicy = _CalculateGroupIPolicy(self.cfg.GetClusterInfo(), self.group_info)
     err = _ComputeIPolicyInstanceViolation(ipolicy, instanceconfig)
-    _ErrorIf(err, constants.CV_EINSTANCEPOLICY, instance, err)
+    _ErrorIf(err, constants.CV_EINSTANCEPOLICY, instance, utils.CommaJoin(err))
 
     for node in node_vol_should:
       n_img = node_image[node]
@@ -3995,7 +3995,7 @@ class LUClusterSetParams(LogicalUnit):
       if violations:
         self.LogWarning("After the ipolicy change the following instances"
                         " violate them: %s",
-                        utils.CommaJoin(violations))
+                        utils.CommaJoin(utils.NiceSort(violations)))
 
     if self.op.nicparams:
       utils.ForceDictType(self.op.nicparams, constants.NICS_PARAMETER_TYPES)
