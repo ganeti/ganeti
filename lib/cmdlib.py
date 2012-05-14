@@ -1276,11 +1276,12 @@ def _ComputeNewInstanceViolations(old_ipolicy, new_ipolicy, instances):
   @param old_ipolicy: The current (still in-place) ipolicy
   @param new_ipolicy: The new (to become) ipolicy
   @param instances: List of instances to verify
-  @return: A list of instances which violates the new ipolicy but did not before
+  @return: A list of instances which violates the new ipolicy but
+      did not before
 
   """
-  return (_ComputeViolatingInstances(old_ipolicy, instances) -
-          _ComputeViolatingInstances(new_ipolicy, instances))
+  return (_ComputeViolatingInstances(new_ipolicy, instances) -
+          _ComputeViolatingInstances(old_ipolicy, instances))
 
 
 def _ExpandItemName(fn, name, kind):
