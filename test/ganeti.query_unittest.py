@@ -955,6 +955,12 @@ class TestInstanceQuery(unittest.TestCase):
 class TestGroupQuery(unittest.TestCase):
 
   def setUp(self):
+    self.custom_diskparams = {
+      constants.DT_DRBD8: {
+        constants.DRBD_DEFAULT_METAVG: "foobar",
+      },
+    }
+
     self.groups = [
       objects.NodeGroup(name="default",
                         uuid="c0e89160-18e7-11e0-a46e-001d0904baeb",
@@ -968,7 +974,7 @@ class TestGroupQuery(unittest.TestCase):
                         alloc_policy=constants.ALLOC_POLICY_LAST_RESORT,
                         ipolicy=objects.MakeEmptyIPolicy(),
                         ndparams={},
-                        diskparams={},
+                        diskparams=self.custom_diskparams,
                         ),
       ]
     self.cluster = objects.Cluster(cluster_name="testcluster",
@@ -1047,6 +1053,27 @@ class TestGroupQuery(unittest.TestCase):
                        (constants.RS_NORMAL, ["inst1", "inst9", "inst10"]),
                        ],
                       ])
+
+  def testDiskparams(self):
+    q = self._Create(["name", "uuid", "diskparams", "custom_diskparams"])
+    gqd = query.GroupQueryData(self.cluster, self.groups, None, None, True)
+
+    self.assertEqual(q.RequestedData(),
+                     set([query.GQ_CONFIG, query.GQ_DISKPARAMS]))
+
+    self.assertEqual(q.Query(gqd),
+      [[(constants.RS_NORMAL, "default"),
+        (constants.RS_NORMAL, "c0e89160-18e7-11e0-a46e-001d0904baeb"),
+        (constants.RS_NORMAL, constants.DISK_DT_DEFAULTS),
+        (constants.RS_NORMAL, {}),
+        ],
+       [(constants.RS_NORMAL, "restricted"),
+        (constants.RS_NORMAL, "d2a40a74-18e7-11e0-9143-001d0904baeb"),
+        (constants.RS_NORMAL, objects.FillDiskParams(constants.DISK_DT_DEFAULTS,
+                                                     self.custom_diskparams)),
+        (constants.RS_NORMAL, self.custom_diskparams),
+        ],
+       ])
 
 
 class TestOsQuery(unittest.TestCase):
