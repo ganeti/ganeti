@@ -626,7 +626,7 @@ def TestRapiInstanceStartup(instance):
   _WaitForRapiJob(_rapi_client.StartupInstance(instance["name"]))
 
 
-@InstanceCheck(INST_UP, INST_UP, FIRST_ARG)
+@InstanceCheck(INST_DOWN, INST_DOWN, FIRST_ARG)
 def TestRapiInstanceRenameAndBack(rename_source, rename_target):
   """Test renaming instance via RAPI
 
@@ -636,7 +636,7 @@ def TestRapiInstanceRenameAndBack(rename_source, rename_target):
   """
   _WaitForRapiJob(_rapi_client.RenameInstance(rename_source, rename_target))
   qa_utils.RunInstanceCheck(rename_source, False)
-  qa_utils.RunInstanceCheck(rename_target, True)
+  qa_utils.RunInstanceCheck(rename_target, False)
   _WaitForRapiJob(_rapi_client.RenameInstance(rename_target, rename_source))
   qa_utils.RunInstanceCheck(rename_target, False)
 
@@ -645,6 +645,12 @@ def TestRapiInstanceRenameAndBack(rename_source, rename_target):
 def TestRapiInstanceReinstall(instance):
   """Test reinstalling an instance via RAPI"""
   _WaitForRapiJob(_rapi_client.ReinstallInstance(instance["name"]))
+  # By default, the instance is started again
+  qa_utils.RunInstanceCheck(instance, True)
+
+  # Reinstall again without starting
+  _WaitForRapiJob(_rapi_client.ReinstallInstance(instance["name"],
+                                                 no_startup=True))
 
 
 @InstanceCheck(INST_UP, INST_UP, FIRST_ARG)

@@ -156,7 +156,7 @@ def _CheckSsconfInstanceList(instance):
            _ReadSsconfInstanceList())
 
 
-@InstanceCheck(INST_UP, INST_UP, FIRST_ARG)
+@InstanceCheck(INST_DOWN, INST_DOWN, FIRST_ARG)
 def TestInstanceRenameAndBack(rename_source, rename_target):
   """gnt-instance rename
 
@@ -179,7 +179,7 @@ def TestInstanceRenameAndBack(rename_source, rename_target):
   AssertCommand(["gnt-instance", "rename", rename_source, rename_target])
   _CheckSsconfInstanceList(rename_target)
   qa_utils.RunInstanceCheck(rename_source, False)
-  qa_utils.RunInstanceCheck(rename_target, True)
+  qa_utils.RunInstanceCheck(rename_target, False)
 
   # and back
   AssertCommand(["gnt-instance", "rename", rename_target, rename_source])
@@ -393,7 +393,7 @@ def TestInstanceExport(instance, node):
   return qa_utils.ResolveInstanceName(name)
 
 
-@InstanceCheck(INST_UP, None, FIRST_ARG)
+@InstanceCheck(None, INST_DOWN, FIRST_ARG)
 def TestInstanceExportWithRemove(instance, node):
   """gnt-backup export --remove-instance"""
   AssertCommand(["gnt-backup", "export", "-n", node["primary"],
@@ -406,7 +406,7 @@ def TestInstanceExportNoTarget(instance):
   AssertCommand(["gnt-backup", "export", instance["name"]], fail=True)
 
 
-@InstanceCheck(None, INST_UP, FIRST_ARG)
+@InstanceCheck(None, INST_DOWN, FIRST_ARG)
 def TestInstanceImport(newinst, node, expnode, name):
   """gnt-backup import"""
   cmd = (["gnt-backup", "import",

@@ -265,10 +265,6 @@ def RunCommonInstanceTests(instance):
   RunTestIf("instance-reinstall", qa_instance.TestInstanceReinstall, instance)
   RunTestIf(["instance-reinstall", "rapi"],
             qa_rapi.TestRapiInstanceReinstall, instance)
-  # RAPI reinstall will leave the instance up by default, so we have
-  # to stop it again
-  RunTestIf(["instance-reinstall", "rapi"],
-            qa_rapi.TestRapiInstanceShutdown, instance)
 
   if qa_config.TestEnabled("instance-rename"):
     rename_source = instance["name"]
@@ -356,6 +352,8 @@ def RunExportImportTests(instance, pnode, snode):
         try:
           RunTest(qa_instance.TestInstanceImport, newinst, pnode,
                   expnode, name)
+          # Check if starting the instance works
+          RunTest(qa_instance.TestInstanceStartup, newinst)
           RunTest(qa_instance.TestInstanceRemove, newinst)
         finally:
           qa_config.ReleaseInstance(newinst)
