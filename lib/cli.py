@@ -810,25 +810,31 @@ DISK_PARAMS_OPT = cli_option("-D", "--disk-parameters", dest="diskparams",
 
 SPECS_MEM_SIZE_OPT = cli_option("--specs-mem-size", dest="ispecs_mem_size",
                                  type="keyval", default={},
-                                 help="Memory count specs: min, max, std"
-                                 " (in MB)")
+                                 help="Memory size specs: list of key=value,"
+                                " where key is one of min, max, std"
+                                 " (in MB or using a unit)")
 
 SPECS_CPU_COUNT_OPT = cli_option("--specs-cpu-count", dest="ispecs_cpu_count",
                                  type="keyval", default={},
-                                 help="CPU count specs: min, max, std")
+                                 help="CPU count specs: list of key=value,"
+                                 " where key is one of min, max, std")
 
 SPECS_DISK_COUNT_OPT = cli_option("--specs-disk-count",
                                   dest="ispecs_disk_count",
                                   type="keyval", default={},
-                                  help="Disk count specs: min, max, std")
+                                  help="Disk count specs: list of key=value,"
+                                  " where key is one of min, max, std")
 
 SPECS_DISK_SIZE_OPT = cli_option("--specs-disk-size", dest="ispecs_disk_size",
                                  type="keyval", default={},
-                                 help="Disk size specs: min, max, std (in MB)")
+                                 help="Disk size specs: list of key=value,"
+                                " where key is one of min, max, std"
+                                 " (in MB or using a unit)")
 
 SPECS_NIC_COUNT_OPT = cli_option("--specs-nic-count", dest="ispecs_nic_count",
                                  type="keyval", default={},
-                                 help="NIC count specs: min, max, std")
+                                 help="NIC count specs: list of key=value,"
+                                 " where key is one of min, max, std")
 
 IPOLICY_DISK_TEMPLATES = cli_option("--ipolicy-disk-templates",
                                  dest="ipolicy_disk_templates",
@@ -3427,6 +3433,19 @@ def CreateIPolicyFromOpts(ispecs_mem_size=None,
 
 
   """
+  try:
+    if ispecs_mem_size:
+      for k in ispecs_mem_size:
+        ispecs_mem_size[k] = utils.ParseUnit(ispecs_mem_size[k])
+    if ispecs_disk_size:
+      for k in ispecs_disk_size:
+        ispecs_disk_size[k] = utils.ParseUnit(ispecs_disk_size[k])
+  except (TypeError, ValueError, errors.UnitParseError), err:
+    raise errors.OpPrereqError("Invalid disk (%s) or memory (%s) size"
+                               " in policy: %s" %
+                               (ispecs_disk_size, ispecs_mem_size, err),
+                               errors.ECODE_INVAL)
+
   # prepare ipolicy dict
   ipolicy_transposed = {
     constants.ISPEC_MEM_SIZE: ispecs_mem_size,
