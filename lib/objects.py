@@ -1496,7 +1496,8 @@ class NodeGroup(TaggableObject):
     if self.mtime is None:
       self.mtime = time.time()
 
-    self.diskparams = UpgradeDiskParams(self.diskparams)
+    if self.diskparams is None:
+      self.diskparams = {}
     if self.ipolicy is None:
       self.ipolicy = MakeEmptyIPolicy()
 

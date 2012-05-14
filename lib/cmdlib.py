@@ -13589,7 +13589,7 @@ class LUGroupAdd(LogicalUnit):
                               constants.DISK_DT_TYPES)
       self.new_diskparams = self.op.diskparams
     else:
-      self.new_diskparams = None
+      self.new_diskparams = {}
 
     if self.op.ipolicy:
       cluster = self.cfg.GetClusterInfo()
