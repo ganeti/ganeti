@@ -544,12 +544,19 @@ def RunInstanceCheck(instance, running):
   """Check if instance is running or not.
 
   """
+  if isinstance(instance, basestring):
+    instance_name = instance
+  else:
+    instance_name = instance["name"]
+
+  if not ht.TNonEmptyString(instance_name):
+    raise Exception("Invalid instance name '%s'" % instance_name)
+
   script = qa_config.GetInstanceCheckScript()
   if not script:
     return
 
   master_node = qa_config.GetMasterNode()
-  instance_name = instance["name"]
 
   # Build command to connect to master node
   master_ssh = GetSSHCommand(master_node["primary"], "--")
@@ -578,11 +585,6 @@ def RunInstanceCheck(instance, running):
     raise qa_error.Error("Instance check failed with result %s" % result)
 
 
-_TInstCheck = ht.TStrictDict(False, False, {
-  "name": ht.TNonEmptyString,
-  })
-
-
 def _InstanceCheckInner(expected, instarg, args, result):
   """Helper function used by L{InstanceCheck}.
 
@@ -595,9 +597,6 @@ def _InstanceCheckInner(expected, instarg, args, result):
     raise Exception("Invalid value '%s' for instance argument" % instarg)
 
   if expected in (INST_DOWN, INST_UP):
-    if not _TInstCheck(instance):
-      raise Exception("Invalid instance: %s" % instance)
-
     RunInstanceCheck(instance, (expected == INST_UP))
   elif expected is not None:
     raise Exception("Invalid value '%s'" % expected)
