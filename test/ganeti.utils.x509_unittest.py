@@ -195,7 +195,7 @@ class TestCertVerification(testutils.GanetiTestCase):
       self.assertEqual(result, (None, None))
 
     # skew too great, not accepting certs
-    for before in [SKEW + 1, SKEW * 2, SKEW * 10]:
+    for before in [SKEW * 2, SKEW * 10]:
       cert = self._GenCert(key, before, validity)
       (status, msg) = utils.VerifyX509Certificate(cert, 1, 2)
       self.assertEqual(status, utils.CERT_WARNING)
