@@ -898,7 +898,7 @@ the default volume group to create the disk on. For DRBD disks, the
 ``metavg=``*VG* option specifies the volume group for the metadata
 device. ``--disk`` *N*``:add,size=``**SIZE** can be used to add a
 disk at a specific index. The ``--disk remove`` option will remove the
-last disk of the instance. Use ``--disk ``*N*``:remove`` to remove a
+last disk of the instance. Use ``--disk `` *N*``:remove`` to remove a
 disk by its index. The ``--disk`` *N*``:mode=``*MODE* option will change
 the mode of the Nth disk of the instance between read-only (``ro``) and
 read-write (``rw``).
