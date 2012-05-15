@@ -7,24 +7,289 @@ Version 2.6.0 beta1
 
 *(unreleased)*
 
-- Deprecated ``admin_up`` instance field. Instead, ``admin_state`` is
-  introduced, with 3 possible values -- ``up``, ``down`` and
-  ``offline``.
-- Replaced ``--disks`` option of ``gnt-instance replace-disks`` with a
-  more flexible ``--disk`` option. Now disk size and mode can be changed
-  upon recreation.
-- Removed deprecated ``QueryLocks`` LUXI request. Use
-  ``Query(what=QR_LOCK, ...)`` instead.
-- The LUXI requests :pyeval:`luxi.REQ_QUERY_JOBS`,
-  :pyeval:`luxi.REQ_QUERY_INSTANCES`, :pyeval:`luxi.REQ_QUERY_NODES`,
-  :pyeval:`luxi.REQ_QUERY_GROUPS`, :pyeval:`luxi.REQ_QUERY_EXPORTS` and
-  :pyeval:`luxi.REQ_QUERY_TAGS` are deprecated and will be removed in a
-  future version. :pyeval:`luxi.REQ_QUERY` should be used instead.
-- RAPI client: ``CertificateError`` now derives from ``GanetiApiError``
-- Deprecation warnings due to PyCrypto/paramiko import in
-  ``tools/setup-ssh`` have been silenced, as usually they are safe;
-  please make sure to run an up-to-date paramiko version
-- The QA scripts now depend on Python 2.5 or above
+New features
+~~~~~~~~~~~~
+
+Instance run status
++++++++++++++++++++
+
+The current ``admin_up`` field, which used to denote whether an instance
+should be running or not, has been removed. Instead, ``admin_state`` is
+introduced, with 3 possible values -- ``up``, ``down`` and ``offline``.
+
+The rational behind this is that an instance being “down” can have
+different meanings:
+
+- it could be down during a reboot
+- it could be temporarily be down for a reinstall
+- or it could be down because it is deprecated and kept just for its
+  disk
+
+The previous Boolean state was making it difficult to do capacity
+calculations: should Ganeti reserve memory for a down instance? Now, the
+tri-state field makes it clear:
+
+- in ``up`` and ``down`` state, all resources are reserved for the
+  instance, and it can be at any time brought up if it is down
+- in ``offline`` state, only disk space is reserved for it, but not
+  memory or CPUs
+
+The field can have an extra use: since the transition between ``up`` and
+``down`` and vice-versus is done via ``gnt-instance start/stop``, but
+transition between ``offline`` and ``down`` is done via ``gnt-instance
+modify``, it is possible to given different rights to users. For
+example, owners of an instance could be allowed to start/stop it, but
+not transition it out of the offline state.
+
+Instance policies and specs
++++++++++++++++++++++++++++
+
+In previous Ganeti versions, an instance creation request was not
+limited on the minimum size and on the maximum size just by the cluster
+resources. As such, any policy could be implemented only in third-party
+clients (RAPI clients, or shell wrappers over ``gnt-*``
+tools). Furthermore, calculating cluster capacity via ``hspace`` again
+required external input with regards to instance sizes.
+
+In order to improve these workflows and to allow for example better
+per-node group differentiation, we introduced instance specs, which
+allow declaring:
+
+- minimum instance disk size, disk count, memory size, cpu count
+- maximum values for the above metrics
+- and “standard” values (used in ``hspace`` to calculate the standard
+  sized instances)
+
+The minimum/maximum values can be also customised at node-group level,
+for example allowing more powerful hardware to support bigger instance
+memory sizes.
+
+Beside the instance specs, there are a few other settings belonging to
+the instance policy framework. It is possible now to customise, per
+cluster and node-group:
+
+- the list of allowed disk templates
+- the maximum ratio of VCPUs per PCPUs (to control CPU oversubscription)
+- the maximum ratio of instance to spindles (see below for more
+  information) for local storage
+
+All these together should allow all tools that talk to Ganeti to know
+what are the ranges of allowed values for instances and the
+over-subscription that is allowed.
+
+For the VCPU/PCPU ratio, we already have the VCPU configuration from the
+instance configuration, and the physical CPU configuration from the
+node. For the spindle ratios however, we didn't track before these
+values, so new parameters have been added:
+
+- a new node parameter ``spindle_count``, defaults to 1, customisable at
+  node group or node level
+- at new backend parameter (for instances), ``spindle_use`` defaults to 1
+
+Note that spindles in this context doesn't need to mean actual
+mechanical hard-drives; it's just a relative number for both the node
+I/O capacity and instance I/O consumption.
+
+Instance migration behaviour
+++++++++++++++++++++++++++++
+
+While live-migration is in general desirable over failover, it is
+possible that for some workloads it is actually worse, due to the
+variable time of the “suspend” phase during live migration.
+
+To allow the tools to work consistently over such instances (without
+having to hard-code instance names), a new backend parameter
+``always_failover`` has been added to control the migration/failover
+behaviour. When set to True, all migration requests for an instance will
+instead fall-back to failover.
+
+Instance memory ballooning
+++++++++++++++++++++++++++
+
+Initial support for memory ballooning has been added. The memory for an
+instance is no longer fixed (backend parameter ``memory``), but instead
+can vary between minimum and maximum values (backend parameters
+``minmem`` and ``maxmem``). Currently we only change an instance's
+memory when:
+
+- live migrating or failing over and instance and the target node
+  doesn't have enough memory
+- user requests changing the memory via ``gnt-instance modify
+  --runtime-memory``
+
+Instance CPU pinning
+++++++++++++++++++++
+
+In order to control the use of specific CPUs by instance, support for
+controlling CPU pinning has been added for the Xen, HVM and LXC
+hypervisors. This is controlled by a new hypervisor parameter
+``cpu_mask``; details about possible values for this are in the
+:manpage:`gnt-instance(8)`. Note that use of the most specific (precise
+VCPU-to-CPU mapping) form will work well only when all nodes in your
+cluster have the same amount of CPUs.
+
+Disk parameters
++++++++++++++++
+
+Another area in which Ganeti was not customisable were the parameters
+used for storage configuration, e.g. how many stripes to use for LVM,
+DRBD resync configuration, etc.
+
+To improve this area, we've added disks parameters, which are
+customisable at cluster and node group level, and which allow to
+specify various parameters for disks (DRBD has the most parameters
+currently), for example:
+
+- DRBD resync algorithm and parameters (e.g. speed)
+- the default VG for meta-data volumes for DRBD
+- number of stripes for LVM (plain disk template)
+- the RBD pool
+
+These parameters can be modified via ``gnt-cluster modify -D …`` and
+``gnt-group modify -D …``, and are used at either instance creation (in
+case of LVM stripes, for example) or at disk “activation” time
+(e.g. resync speed).
+
+Rados block device support
+++++++++++++++++++++++++++
+
+A Rados (http://ceph.com/wiki/Rbd) storage backend has been added,
+denoted by the ``rbd`` disk template type. This is considered
+experimental, feedback is welcome. For details on configuring it, see
+the :doc:`install` document and the :manpage:`gnt-cluster(8)` man page.
+
+Master IP setup
++++++++++++++++
+
+The existing master IP functionality works well only in simple setups (a
+single network shared by all nodes); however, if nodes belong to
+different networks, then the ``/32`` setup and lack of routing
+information is not enough.
+
+To allow the master IP to function well in more complex cases, the
+system was reworked as follows:
+
+- a master IP netmask setting has been added
+- the master IP activation/turn-down code was moved from the node daemon
+  to a separate script
+- whether to run the Ganeti-supplied master IP script or a user-supplied
+  on is a ``gnt-cluster init`` setting
+
+Details about the location of the standard and custom setup scripts are
+in the man page :manpage:`gnt-cluster(8)`; for information about the
+setup script protocol, look at the Ganeti-supplied script.
+
+SPICE support
++++++++++++++
+
+The `SPICE <http://www.linux-kvm.org/page/SPICE>`_ support has been
+improved.
+
+It is now possible to use TLS-protected connections, and when renewing
+or changing the cluster certificates (via ``gnt-cluster renew-crypto``,
+it is now possible to specify spice or spice CA certificates. Also, it
+is possible to configure a password for SPICE sessions via the
+hypervisor parameter ``spice_password_file``.
+
+There are also new parameters to control the compression and streaming
+options (e.g. ``spice_image_compression``, ``spice_streaming_video``,
+etc.). For details, see the man page :manpage:`gnt-instance(8)` and look
+for the spice parameters.
+
+Lastly, it is now possible to see the SPICE connection information via
+``gnt-instance console``.
+
+OVF converter
++++++++++++++
+
+A new tool (``tools/ovfconverter``) has been added that supports
+conversion between Ganeti and the `Open Virtualization Format
+<http://en.wikipedia.org/wiki/Open_Virtualization_Format>`_ (both to and
+from).
+
+This relies on the ``qemu-img`` tool to convert the disk formats, so the
+actual compatibility with other virtualization solutions depends on it.
+
+Confd daemon changes
+++++++++++++++++++++
+
+The configuration query daemon (``ganeti-confd``) is now optional, and
+has been rewritten in Haskell; whether to use the daemon at all, use the
+Python (default) or the Haskell version is selectable at configure time
+via the ``--enable-confd`` parameter, which can take one of the
+``haskell``, ``python`` or ``no`` values. If not used, disabling the
+daemon will result in a smaller footprint; for larger systems, we
+welcome feedback on the Haskell version which might become the default
+in future versions.
+
+
+User interface changes
+~~~~~~~~~~~~~~~~~~~~~~
+
+We have replaced the ``--disks`` option of ``gnt-instance
+replace-disks`` with a more flexible ``--disk`` option, which allows
+adding and removing disks at arbitrary indices (Issue 188). Furthermore,
+disk size and mode can be changed upon recreation (via ``gnt-instance
+recreate-disks``, which accepts the same ``--disk`` option).
+
+As many people are used to a ``show`` command, we have added that as an
+alias to ``info`` on all ``gnt-*`` commands.
+
+The ``gnt-instance grow-disk`` command has a new mode in which it can
+accept the target size of the disk, instead of the delta; this can be
+more safe since two runs in absolute mode will be idempotent, and
+sometimes it's also easier to specify the desired size directly.
+
+API changes
+~~~~~~~~~~~
+
+RAPI coverage has improved, with (for example) new resources for
+recreate-disks, node power-cycle, etc.
+
+Compatibility
+~~~~~~~~~~~~~
+
+There is partial support for ``xl`` in the Xen hypervisor; feedback is
+welcome.
+
+Python 2.7 is better supported, and after Ganeti 2.6 we will investigate
+whether to still support Python 2.4 or move to Python 2.6 as minimum
+required version.
+
+Internal changes
+~~~~~~~~~~~~~~~~
+
+The deprecated ``QueryLocks`` LUXI request has been removed. Use
+``Query(what=QR_LOCK, ...)`` instead.
+
+The LUXI requests :pyeval:`luxi.REQ_QUERY_JOBS`,
+:pyeval:`luxi.REQ_QUERY_INSTANCES`, :pyeval:`luxi.REQ_QUERY_NODES`,
+:pyeval:`luxi.REQ_QUERY_GROUPS`, :pyeval:`luxi.REQ_QUERY_EXPORTS` and
+:pyeval:`luxi.REQ_QUERY_TAGS` are deprecated and will be removed in a
+future version. :pyeval:`luxi.REQ_QUERY` should be used instead.
+
+RAPI client: ``CertificateError`` now derives from
+``GanetiApiError``. This should make it more easy to handle Ganeti
+errors.
+
+Deprecation warnings due to PyCrypto/paramiko import in
+``tools/setup-ssh`` have been silenced, as usually they are safe; please
+make sure to run an up-to-date paramiko version, if you use this tool.
+
+The QA scripts now depend on Python 2.5 or above (the main code base
+still works with Python 2.4).
+
+The configuration file (``config.data``) is now written without
+indentation for performance reasons; if you want to edit it, it can be
+re-formatted via ``tools/fmtjson``.
+
+A number of bugs has been fixed in the cluster merge tool.
+
+``x509`` certification verification (used in import-export) has been
+changed to allow the same clock skew as permitted by the cluster
+verification. This will remove some rare but hard to diagnose errors in
+import-export.
+
 
 
 Version 2.5.1
