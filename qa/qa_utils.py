@@ -133,6 +133,28 @@ def AssertMatch(string, pattern):
     raise qa_error.Error("%r doesn't match /%r/" % (string, pattern))
 
 
+def _GetName(entity, key):
+  """Tries to get name of an entity.
+
+  @type entity: string or dict
+  @type key: string
+  @param key: Dictionary key containing name
+
+  """
+  if isinstance(entity, basestring):
+    result = entity
+  elif isinstance(entity, dict):
+    result = entity[key]
+  else:
+    raise qa_error.Error("Expected string or dictionary, got %s: %s" %
+                         (type(entity), entity))
+
+  if not ht.TNonEmptyString(result):
+    raise Exception("Invalid name '%s'" % result)
+
+  return result
+
+
 def AssertCommand(cmd, fail=False, node=None):
   """Checks that a remote command succeeds.
 
@@ -148,10 +170,7 @@ def AssertCommand(cmd, fail=False, node=None):
   if node is None:
     node = qa_config.GetMasterNode()
 
-  if isinstance(node, basestring):
-    nodename = node
-  else:
-    nodename = node["primary"]
+  nodename = _GetName(node, "primary")
 
   if isinstance(cmd, basestring):
     cmdstr = cmd
@@ -544,13 +563,7 @@ def RunInstanceCheck(instance, running):
   """Check if instance is running or not.
 
   """
-  if isinstance(instance, basestring):
-    instance_name = instance
-  else:
-    instance_name = instance["name"]
-
-  if not ht.TNonEmptyString(instance_name):
-    raise Exception("Invalid instance name '%s'" % instance_name)
+  instance_name = _GetName(instance, "name")
 
   script = qa_config.GetInstanceCheckScript()
   if not script:
