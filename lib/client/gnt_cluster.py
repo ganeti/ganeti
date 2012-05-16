@@ -151,6 +151,7 @@ def InitCluster(opts, args):
     ispecs_nic_count=opts.ispecs_nic_count,
     ipolicy_disk_templates=opts.ipolicy_disk_templates,
     ipolicy_vcpu_ratio=opts.ipolicy_vcpu_ratio,
+    ipolicy_spindle_ratio=opts.ipolicy_spindle_ratio,
     fill_all=True)
   ipolicy = objects.FillIPolicy(constants.IPOLICY_DEFAULTS, ipolicy_raw)
 
@@ -958,7 +959,8 @@ def SetClusterParams(opts, args):
           opts.ispecs_disk_size or
           opts.ispecs_nic_count or
           opts.ipolicy_disk_templates is not None or
-          opts.ipolicy_vcpu_ratio is not None):
+          opts.ipolicy_vcpu_ratio is not None or
+          opts.ipolicy_spindle_ratio is not None):
     ToStderr("Please give at least one of the parameters.")
     return 1
 
@@ -1010,6 +1012,7 @@ def SetClusterParams(opts, args):
     ispecs_nic_count=opts.ispecs_nic_count,
     ipolicy_disk_templates=opts.ipolicy_disk_templates,
     ipolicy_vcpu_ratio=opts.ipolicy_vcpu_ratio,
+    ipolicy_spindle_ratio=opts.ipolicy_spindle_ratio,
     )
 
   mnh = opts.maintain_node_health
