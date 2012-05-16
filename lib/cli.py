@@ -847,6 +847,12 @@ IPOLICY_VCPU_RATIO = cli_option("--ipolicy-vcpu-ratio",
                                  type="float", default=None,
                                  help="The maximum allowed vcpu-to-cpu ratio")
 
+IPOLICY_SPINDLE_RATIO = cli_option("--ipolicy-spindle-ratio",
+                                   dest="ipolicy_spindle_ratio",
+                                   type="float", default=None,
+                                   help=("The maximum allowed instances to"
+                                         " spindle ratio"))
+
 HYPERVISOR_OPT = cli_option("-H", "--hypervisor-parameters", dest="hypervisor",
                             help="Hypervisor and hypervisor options, in the"
                             " format hypervisor:option=value,option=value,...",
@@ -1444,6 +1450,7 @@ INSTANCE_POLICY_OPTS = [
   SPECS_NIC_COUNT_OPT,
   IPOLICY_DISK_TEMPLATES,
   IPOLICY_VCPU_RATIO,
+  IPOLICY_SPINDLE_RATIO,
   ]
 
 
@@ -3423,6 +3430,7 @@ def CreateIPolicyFromOpts(ispecs_mem_size=None,
                           ispecs_nic_count=None,
                           ipolicy_disk_templates=None,
                           ipolicy_vcpu_ratio=None,
+                          ipolicy_spindle_ratio=None,
                           group_ipolicy=False,
                           allowed_values=None,
                           fill_all=False):
@@ -3478,10 +3486,15 @@ def CreateIPolicyFromOpts(ispecs_mem_size=None,
     if ipolicy_vcpu_ratio is None:
       ipolicy_vcpu_ratio = \
         constants.IPOLICY_DEFAULTS[constants.IPOLICY_VCPU_RATIO]
+    if ipolicy_spindle_ratio is None:
+      ipolicy_spindle_ratio = \
+        constants.IPOLICY_DEFAULTS[constants.IPOLICY_SPINDLE_RATIO]
   if ipolicy_disk_templates is not None:
     ipolicy_out[constants.IPOLICY_DTS] = list(ipolicy_disk_templates)
   if ipolicy_vcpu_ratio is not None:
     ipolicy_out[constants.IPOLICY_VCPU_RATIO] = ipolicy_vcpu_ratio
+  if ipolicy_spindle_ratio is not None:
+    ipolicy_out[constants.IPOLICY_SPINDLE_RATIO] = ipolicy_spindle_ratio
 
   assert not (frozenset(ipolicy_out.keys()) - constants.IPOLICY_ALL_KEYS)
 
