@@ -25,6 +25,7 @@
 # W0614: Unused import %s from wildcard import (since we need cli)
 # C0103: Invalid name gnt-instance
 
+import copy
 import itertools
 import simplejson
 import logging
@@ -1249,23 +1250,12 @@ def ShowInstanceConfig(opts, args):
     FormatParameterDict(buf, instance["hv_instance"], instance["hv_actual"],
                         level=2)
     buf.write("  Hardware:\n")
-    buf.write("    - VCPUs: %s\n" %
-              compat.TryToRoman(instance["be_actual"][constants.BE_VCPUS],
-                                convert=opts.roman_integers))
-    buf.write("    - maxmem: %sMiB\n" %
-              compat.TryToRoman(instance["be_actual"][constants.BE_MAXMEM],
-                                convert=opts.roman_integers))
-    buf.write("    - minmem: %sMiB\n" %
-              compat.TryToRoman(instance["be_actual"][constants.BE_MINMEM],
-                                convert=opts.roman_integers))
     # deprecated "memory" value, kept for one version for compatibility
     # TODO(ganeti 2.7) remove.
-    buf.write("    - memory: %sMiB\n" %
-              compat.TryToRoman(instance["be_actual"][constants.BE_MAXMEM],
-                                convert=opts.roman_integers))
-    buf.write("    - %s: %s\n" %
-              (constants.BE_ALWAYS_FAILOVER,
-               instance["be_actual"][constants.BE_ALWAYS_FAILOVER]))
+    be_actual = copy.deepcopy(instance["be_actual"])
+    be_actual["memory"] = be_actual[constants.BE_MAXMEM]
+    FormatParameterDict(buf, instance["be_instance"], be_actual, level=2)
+    # TODO(ganeti 2.7) rework the NICs as well
     buf.write("    - NICs:\n")
     for idx, (ip, mac, mode, link) in enumerate(instance["nics"]):
       buf.write("      - nic/%d: MAC: %s, IP: %s, mode: %s, link: %s\n" %
