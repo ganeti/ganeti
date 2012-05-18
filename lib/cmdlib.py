@@ -12434,7 +12434,7 @@ class LUInstanceSetParams(LogicalUnit):
       self.be_proposed = cluster.SimpleFillBE(instance.beparams)
     be_old = cluster.FillBE(instance)
 
-    # CPU param validation -- checking every time a paramtere is
+    # CPU param validation -- checking every time a parameter is
     # changed to cover all cases where either CPU mask or vcpus have
     # changed
     if (constants.BE_VCPUS in self.be_proposed and
