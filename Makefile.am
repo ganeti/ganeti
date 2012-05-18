@@ -637,6 +637,7 @@ EXTRA_DIST = \
 	autotools/docpp \
 	autotools/gen-coverage \
 	autotools/testrunner \
+	autotools/wrong-hardcoded-paths \
 	$(RUN_IN_TEMPDIR) \
 	daemons/daemon-util.in \
 	daemons/ganeti-cleaner.in \
@@ -999,6 +1000,11 @@ man/footer.html: man/footer.rst
 
 man/%.gen: man/%.rst lib/query.py lib/build/sphinx_ext.py \
 	lib/build/shell_example_lexer.py
+	@echo "Checking $< for hardcoded paths..."
+	@if grep -nEf autotools/wrong-hardcoded-paths $<; then \
+	  echo "Man page $< has harcoded paths (see above)!" 1>&2 ; \
+	  exit 1; \
+	fi
 	PYTHONPATH=. $(RUN_IN_TEMPDIR) $(CURDIR)/$(DOCPP) < $< > $@
 
 man/%.7.in man/%.8.in man/%.1.in: man/%.gen man/footer.man
