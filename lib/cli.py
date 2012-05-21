@@ -617,6 +617,18 @@ def check_list(option, opt, value): # pylint: disable=W0613
     return utils.UnescapeAndSplit(value)
 
 
+def check_maybefloat(option, opt, value): # pylint: disable=W0613
+  """Custom parser for float numbers which might be also defaults.
+
+  """
+  value = value.lower()
+
+  if value == constants.VALUE_DEFAULT:
+    return value
+  else:
+    return float(value)
+
+
 # completion_suggestion is normally a list. Using numeric values not evaluating
 # to False for dynamic completion.
 (OPT_COMPL_MANY_NODES,
@@ -651,6 +663,7 @@ class CliOption(Option):
     "unit",
     "bool",
     "list",
+    "maybefloat",
     )
   TYPE_CHECKER = Option.TYPE_CHECKER.copy()
   TYPE_CHECKER["identkeyval"] = check_ident_key_val
@@ -658,6 +671,7 @@ class CliOption(Option):
   TYPE_CHECKER["unit"] = check_unit
   TYPE_CHECKER["bool"] = check_bool
   TYPE_CHECKER["list"] = check_list
+  TYPE_CHECKER["maybefloat"] = check_maybefloat
 
 
 # optparse.py sets make_option, so we do it for our own option class, too
@@ -844,12 +858,12 @@ IPOLICY_DISK_TEMPLATES = cli_option("--ipolicy-disk-templates",
 
 IPOLICY_VCPU_RATIO = cli_option("--ipolicy-vcpu-ratio",
                                  dest="ipolicy_vcpu_ratio",
-                                 type="float", default=None,
+                                 type="maybefloat", default=None,
                                  help="The maximum allowed vcpu-to-cpu ratio")
 
 IPOLICY_SPINDLE_RATIO = cli_option("--ipolicy-spindle-ratio",
                                    dest="ipolicy_spindle_ratio",
-                                   type="float", default=None,
+                                   type="maybefloat", default=None,
                                    help=("The maximum allowed instances to"
                                          " spindle ratio"))
 
@@ -3423,6 +3437,19 @@ def ConfirmOperation(names, list_type, text, extra=""):
   return choice
 
 
+def _MaybeParseUnit(elements):
+  """Parses and returns an array of potential values with units.
+
+  """
+  parsed = []
+  for e in elements:
+    if e == constants.VALUE_DEFAULT:
+      parsed.append(e)
+    else:
+      parsed.append(utils.ParseUnit(e))
+  return parsed
+
+
 def CreateIPolicyFromOpts(ispecs_mem_size=None,
                           ispecs_cpu_count=None,
                           ispecs_disk_count=None,
@@ -3443,11 +3470,9 @@ def CreateIPolicyFromOpts(ispecs_mem_size=None,
   """
   try:
     if ispecs_mem_size:
-      for k in ispecs_mem_size:
-        ispecs_mem_size[k] = utils.ParseUnit(ispecs_mem_size[k])
+      ispecs_mem_size = _MaybeParseUnit(ispecs_mem_size)
     if ispecs_disk_size:
-      for k in ispecs_disk_size:
-        ispecs_disk_size[k] = utils.ParseUnit(ispecs_disk_size[k])
+      ispecs_disk_size = _MaybeParseUnit(ispecs_disk_size)
   except (TypeError, ValueError, errors.UnitParseError), err:
     raise errors.OpPrereqError("Invalid disk (%s) or memory (%s) size"
                                " in policy: %s" %

@@ -793,7 +793,8 @@ def _GetUpdatedIPolicy(old_ipolicy, new_ipolicy, group_policy=False):
                                        use_none=use_none,
                                        use_default=use_default)
     else:
-      if not value or value == [constants.VALUE_DEFAULT]:
+      if (not value or value == [constants.VALUE_DEFAULT] or
+          value == constants.VALUE_DEFAULT):
         if group_policy:
           del ipolicy[key]
         else:
