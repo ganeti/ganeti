@@ -3441,12 +3441,12 @@ def _MaybeParseUnit(elements):
   """Parses and returns an array of potential values with units.
 
   """
-  parsed = []
-  for e in elements:
-    if e == constants.VALUE_DEFAULT:
-      parsed.append(e)
+  parsed = {}
+  for k, v in elements.items():
+    if v == constants.VALUE_DEFAULT:
+      parsed[k] = v
     else:
-      parsed.append(utils.ParseUnit(e))
+      parsed[k] = utils.ParseUnit(v)
   return parsed
 
 
