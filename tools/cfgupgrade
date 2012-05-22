@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2007, 2008, 2009, 2010 Google Inc.
+# Copyright (C) 2007, 2008, 2009, 2010, 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -44,6 +44,12 @@ from ganeti import netutils
 
 options = None
 args = None
+
+
+#: Target major version we will upgrade to
+TARGET_MAJOR = 2
+#: Target minor version we will upgrade to
+TARGET_MINOR = 6
 
 
 class Error(Exception):
@@ -175,13 +181,14 @@ def main():
                 " configuration file")
 
   # Upgrade from 2.0/2.1/2.2/2.3 to 2.4
-  if config_major == 2 and config_minor in (0, 1, 2, 3, 4):
+  if config_major == 2 and config_minor in (0, 1, 2, 3, 4, 5):
     if config_revision != 0:
       logging.warning("Config revision is %s, not 0", config_revision)
 
-    config_data["version"] = constants.BuildVersion(2, 5, 0)
+    config_data["version"] = constants.BuildVersion(TARGET_MAJOR,
+                                                    TARGET_MINOR, 0)
 
-  elif config_major == 2 and config_minor == 5:
+  elif config_major == TARGET_MAJOR and config_minor == TARGET_MINOR:
     logging.info("No changes necessary")
 
   else:
