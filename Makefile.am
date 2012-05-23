@@ -415,7 +415,8 @@ HS_LIB_SRCS = \
 	htools/Ganeti/OpCodes.hs \
 	htools/Ganeti/Runtime.hs \
 	htools/Ganeti/Ssconf.hs \
-	htools/Ganeti/THH.hs
+	htools/Ganeti/THH.hs \
+	htools/Ganeti/Query2.hs
 
 HS_BUILT_SRCS = htools/Ganeti/HTools/Version.hs htools/Ganeti/Constants.hs
 HS_BUILT_SRCS_IN = $(patsubst %,%.in,$(HS_BUILT_SRCS))
