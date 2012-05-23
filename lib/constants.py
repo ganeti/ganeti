@@ -120,6 +120,7 @@ CPU_PINNING_ALL_XEN = "0-63"
 # A KVM-specific implementation detail - the following value is used
 # to set CPU affinity to all processors (#0 through #31), per taskset
 # man page.
+# FIXME: This only works for machines with up to 32 CPU cores
 CPU_PINNING_ALL_KVM = 0xFFFFFFFF
 
 # Wipe

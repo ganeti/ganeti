@@ -241,11 +241,11 @@ master IP. The netmask must be specified as an integer, and will be
 interpreted as a CIDR netmask. The default value is 32 for an IPv4
 address and 128 for an IPv6 address.
 
-The ``--use-external-mip-script`` options allows to specify
-whether to use an user-supplied master IP address setup script, whose
-location is ``/etc/ganeti/scripts/master-ip-setup``. If the option value
-is set to False, the default script, whose location is
-``/usr/local/lib/ganeti/tools/master-ip-setup``, will be executed.
+The ``--use-external-mip-script`` option allows to specify whether to
+use an user-supplied master IP address setup script, whose location is
+``@SYSCONFDIR@/ganeti/scripts/master-ip-setup``. If the option value is
+set to False, the default script (located at
+``@PKGLIBDIR@/tools/master-ip-setup``) will be executed.
 
 The ``-m (--mac-prefix)`` option will let you specify a three byte
 prefix under which the virtual MAC addresses of your instances will be

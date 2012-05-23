@@ -527,14 +527,49 @@ migration\_downtime
     versions >= 0.11.0.
 
 cpu\_mask
-    Valid for the LXC hypervisor.
+    Valid for the Xen, KVM and LXC hypervisors.
 
     The processes belonging to the given instance are only scheduled
     on the specified CPUs.
 
-    The parameter format is a comma-separated list of CPU IDs or CPU
-    ID ranges. The ranges are defined by a lower and higher boundary,
-    separated by a dash. The boundaries are inclusive.
+    The format of the mask can be given in three forms. First, the word
+    "all", which signifies the common case where all VCPUs can live on
+    any CPU, based on the hypervisor's decisions.
+
+    Second, a comma-separated list of CPU IDs or CPU ID ranges. The
+    ranges are defined by a lower and higher boundary, separated by a
+    dash, and the boundaries are inclusive. In this form, all VCPUs of
+    the instance will be mapped on the selected list of CPUs. Example:
+    ``0-2,5``, mapping all VCPUs (no matter how many) onto physical CPUs
+    0, 1, 2 and 5.
+
+    The last form is used for explicit control of VCPU-CPU pinnings. In
+    this form, the list of VCPU mappings is given as a colon (:)
+    separated list, whose elements are the possible values for the
+    second or first form above. In this form, the number of elements in
+    the colon-separated list _must_ equal the number of VCPUs of the
+    instance.
+
+    Example::
+
+      # Map the entire instance to CPUs 0-2
+      gnt-instance modify -H cpu_mask=0-2 my-inst
+
+      # Map vCPU 0 to physical CPU 1 and vCPU 1 to CPU 3 (assuming 2 vCPUs)
+      gnt-instance modify -H cpu_mask=1:3 my-inst
+
+      # Pin vCPU 0 to CPUs 1 or 2, and vCPU 1 to any CPU
+      gnt-instance modify -H cpu_mask=1-2:all my-inst
+
+      # Pin vCPU 0 to any CPU, vCPU 1 to CPUs 1, 3, 4 or 5, and CPU 2 to
+      # CPU 0 (backslashes for escaping the comma)
+      gnt-instance modify -H cpu_mask=all:1\\,3-5:0 my-inst
+
+      # Pin entire VM to CPU 0
+      gnt-instance modify -H cpu_mask=0 my-inst
+
+      # Turn off CPU pinning (default setting)
+      gnt-instance modify -H cpu_mask=all my-inst
 
 usb\_mouse
     Valid for the KVM hypervisor.
@@ -898,7 +933,7 @@ the default volume group to create the disk on. For DRBD disks, the
 ``metavg=``*VG* option specifies the volume group for the metadata
 device. ``--disk`` *N*``:add,size=``**SIZE** can be used to add a
 disk at a specific index. The ``--disk remove`` option will remove the
-last disk of the instance. Use ``--disk ``*N*``:remove`` to remove a
+last disk of the instance. Use ``--disk `` *N*``:remove`` to remove a
 disk by its index. The ``--disk`` *N*``:mode=``*MODE* option will change
 the mode of the Nth disk of the instance between read-only (``ro``) and
 read-write (``rw``).

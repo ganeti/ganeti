@@ -54,6 +54,8 @@ def AddGroup(opts, args):
     ispecs_disk_count=opts.ispecs_disk_count,
     ispecs_disk_size=opts.ispecs_disk_size,
     ispecs_nic_count=opts.ispecs_nic_count,
+    ipolicy_vcpu_ratio=opts.ipolicy_vcpu_ratio,
+    ipolicy_spindle_ratio=opts.ipolicy_spindle_ratio,
     group_ipolicy=True)
 
   (group_name,) = args
@@ -156,7 +158,8 @@ def SetGroupParams(opts, args):
   allmods = [opts.ndparams, opts.alloc_policy, opts.diskparams, opts.hv_state,
              opts.disk_state, opts.ispecs_mem_size, opts.ispecs_cpu_count,
              opts.ispecs_disk_count, opts.ispecs_disk_size,
-             opts.ispecs_nic_count, opts.diskparams]
+             opts.ispecs_nic_count, opts.ipolicy_vcpu_ratio,
+             opts.ipolicy_spindle_ratio, opts.diskparams]
   if allmods.count(None) == len(allmods):
     ToStderr("Please give at least one of the parameters.")
     return 1
@@ -191,6 +194,8 @@ def SetGroupParams(opts, args):
     ispecs_disk_size=opts.ispecs_disk_size,
     ispecs_nic_count=opts.ispecs_nic_count,
     ipolicy_disk_templates=opts.ipolicy_disk_templates,
+    ipolicy_vcpu_ratio=opts.ipolicy_vcpu_ratio,
+    ipolicy_spindle_ratio=opts.ipolicy_spindle_ratio,
     group_ipolicy=True,
     allowed_values=[constants.VALUE_DEFAULT])
 

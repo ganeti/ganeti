@@ -793,7 +793,8 @@ def _GetUpdatedIPolicy(old_ipolicy, new_ipolicy, group_policy=False):
                                        use_none=use_none,
                                        use_default=use_default)
     else:
-      if not value or value == [constants.VALUE_DEFAULT]:
+      if (not value or value == [constants.VALUE_DEFAULT] or
+          value == constants.VALUE_DEFAULT):
         if group_policy:
           del ipolicy[key]
         else:
@@ -12434,7 +12435,7 @@ class LUInstanceSetParams(LogicalUnit):
       self.be_proposed = cluster.SimpleFillBE(instance.beparams)
     be_old = cluster.FillBE(instance)
 
-    # CPU param validation -- checking every time a paramtere is
+    # CPU param validation -- checking every time a parameter is
     # changed to cover all cases where either CPU mask or vcpus have
     # changed
     if (constants.BE_VCPUS in self.be_proposed and

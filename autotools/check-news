@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2011 Google Inc.
+# Copyright (C) 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -23,6 +23,9 @@
 
 """
 
+# pylint: disable=C0103
+# [C0103] Invalid name
+
 import sys
 import time
 import datetime
@@ -37,12 +40,35 @@ RELEASED_RE = re.compile(r"^\*\(Released (?P<day>[A-Z][a-z]{2}),"
 UNRELEASED_RE = re.compile(r"^\*\(unreleased\)\*$")
 VERSION_RE = re.compile(r"^Version \d+(\.\d+)+( (beta|rc)\d+)?$")
 
+errors = []
+
+
+def Error(msg):
+  """Log an error for later display.
+
+  """
+  errors.append(msg)
+
+
+def ReqNLines(req, count_empty, lineno, line):
+  """Check if we have N empty lines.
+
+  """
+  if count_empty < req:
+    Error("Line %s: Missing empty line(s) before %s,"
+          " %d needed but got only %d" %
+          (lineno, line, req, count_empty))
+  if count_empty > req:
+    Error("Line %s: Too many empty lines before %s,"
+          " %d needed but got %d" %
+          (lineno, line, req, count_empty))
+
 
 def main():
   # Ensure "C" locale is used
   curlocale = locale.getlocale()
   if curlocale != (None, None):
-    raise Exception("Invalid locale %s" % curlocale)
+    Error("Invalid locale %s" % curlocale)
 
   prevline = None
   expect_date = False
@@ -52,14 +78,10 @@ def main():
     line = line.rstrip("\n")
 
     if VERSION_RE.match(line):
-      if count_empty != 2:
-        raise Exception("Line %s: Missing 2 empty lines before %s" %
-                        (fileinput.filelineno(), line))
+      ReqNLines(2, count_empty, fileinput.filelineno(), line)
 
     if UNRELEASED_RE.match(line) or RELEASED_RE.match(line):
-      if count_empty != 1:
-        raise Exception("Line %s: Missing 1 empty line before %s" %
-                        (fileinput.filelineno(), line))
+      ReqNLines(1, count_empty, fileinput.filelineno(), line)
 
     if line:
       count_empty = 0
@@ -68,11 +90,11 @@ def main():
 
     if DASHES_RE.match(line):
       if not VERSION_RE.match(prevline):
-        raise Exception("Line %s: Invalid title" %
-                        (fileinput.filelineno() - 1))
+        Error("Line %s: Invalid title" %
+              (fileinput.filelineno() - 1))
       if len(line) != len(prevline):
-        raise Exception("Line %s: Invalid dashes length" %
-                        (fileinput.filelineno()))
+        Error("Line %s: Invalid dashes length" %
+              (fileinput.filelineno()))
       expect_date = True
 
     elif expect_date:
@@ -87,8 +109,7 @@ def main():
 
       m = RELEASED_RE.match(line)
       if not m:
-        raise Exception("Line %s: Invalid release line" %
-                        fileinput.filelineno())
+        Error("Line %s: Invalid release line" % fileinput.filelineno())
 
       # Including the weekday in the date string does not work as time.strptime
       # would return an inconsistent result if the weekday is incorrect.
@@ -98,15 +119,20 @@ def main():
 
       # Check weekday
       if m.group("day") != weekday:
-        raise Exception("Line %s: %s was/is a %s, not %s" %
-                        (fileinput.filelineno(), parsed, weekday,
-                         m.group("day")))
+        Error("Line %s: %s was/is a %s, not %s" %
+              (fileinput.filelineno(), parsed, weekday,
+               m.group("day")))
 
       expect_date = False
 
     prevline = line
 
-  sys.exit(0)
+  if errors:
+    for msg in errors:
+      print >> sys.stderr, msg
+    sys.exit(1)
+  else:
+    sys.exit(0)
 
 
 if __name__ == "__main__":

@@ -617,6 +617,18 @@ def check_list(option, opt, value): # pylint: disable=W0613
     return utils.UnescapeAndSplit(value)
 
 
+def check_maybefloat(option, opt, value): # pylint: disable=W0613
+  """Custom parser for float numbers which might be also defaults.
+
+  """
+  value = value.lower()
+
+  if value == constants.VALUE_DEFAULT:
+    return value
+  else:
+    return float(value)
+
+
 # completion_suggestion is normally a list. Using numeric values not evaluating
 # to False for dynamic completion.
 (OPT_COMPL_MANY_NODES,
@@ -651,6 +663,7 @@ class CliOption(Option):
     "unit",
     "bool",
     "list",
+    "maybefloat",
     )
   TYPE_CHECKER = Option.TYPE_CHECKER.copy()
   TYPE_CHECKER["identkeyval"] = check_ident_key_val
@@ -658,6 +671,7 @@ class CliOption(Option):
   TYPE_CHECKER["unit"] = check_unit
   TYPE_CHECKER["bool"] = check_bool
   TYPE_CHECKER["list"] = check_list
+  TYPE_CHECKER["maybefloat"] = check_maybefloat
 
 
 # optparse.py sets make_option, so we do it for our own option class, too
@@ -844,8 +858,14 @@ IPOLICY_DISK_TEMPLATES = cli_option("--ipolicy-disk-templates",
 
 IPOLICY_VCPU_RATIO = cli_option("--ipolicy-vcpu-ratio",
                                  dest="ipolicy_vcpu_ratio",
-                                 type="float", default=None,
+                                 type="maybefloat", default=None,
                                  help="The maximum allowed vcpu-to-cpu ratio")
+
+IPOLICY_SPINDLE_RATIO = cli_option("--ipolicy-spindle-ratio",
+                                   dest="ipolicy_spindle_ratio",
+                                   type="maybefloat", default=None,
+                                   help=("The maximum allowed instances to"
+                                         " spindle ratio"))
 
 HYPERVISOR_OPT = cli_option("-H", "--hypervisor-parameters", dest="hypervisor",
                             help="Hypervisor and hypervisor options, in the"
@@ -1444,6 +1464,7 @@ INSTANCE_POLICY_OPTS = [
   SPECS_NIC_COUNT_OPT,
   IPOLICY_DISK_TEMPLATES,
   IPOLICY_VCPU_RATIO,
+  IPOLICY_SPINDLE_RATIO,
   ]
 
 
@@ -3416,6 +3437,19 @@ def ConfirmOperation(names, list_type, text, extra=""):
   return choice
 
 
+def _MaybeParseUnit(elements):
+  """Parses and returns an array of potential values with units.
+
+  """
+  parsed = {}
+  for k, v in elements.items():
+    if v == constants.VALUE_DEFAULT:
+      parsed[k] = v
+    else:
+      parsed[k] = utils.ParseUnit(v)
+  return parsed
+
+
 def CreateIPolicyFromOpts(ispecs_mem_size=None,
                           ispecs_cpu_count=None,
                           ispecs_disk_count=None,
@@ -3423,6 +3457,7 @@ def CreateIPolicyFromOpts(ispecs_mem_size=None,
                           ispecs_nic_count=None,
                           ipolicy_disk_templates=None,
                           ipolicy_vcpu_ratio=None,
+                          ipolicy_spindle_ratio=None,
                           group_ipolicy=False,
                           allowed_values=None,
                           fill_all=False):
@@ -3435,11 +3470,9 @@ def CreateIPolicyFromOpts(ispecs_mem_size=None,
   """
   try:
     if ispecs_mem_size:
-      for k in ispecs_mem_size:
-        ispecs_mem_size[k] = utils.ParseUnit(ispecs_mem_size[k])
+      ispecs_mem_size = _MaybeParseUnit(ispecs_mem_size)
     if ispecs_disk_size:
-      for k in ispecs_disk_size:
-        ispecs_disk_size[k] = utils.ParseUnit(ispecs_disk_size[k])
+      ispecs_disk_size = _MaybeParseUnit(ispecs_disk_size)
   except (TypeError, ValueError, errors.UnitParseError), err:
     raise errors.OpPrereqError("Invalid disk (%s) or memory (%s) size"
                                " in policy: %s" %
@@ -3478,10 +3511,15 @@ def CreateIPolicyFromOpts(ispecs_mem_size=None,
     if ipolicy_vcpu_ratio is None:
       ipolicy_vcpu_ratio = \
         constants.IPOLICY_DEFAULTS[constants.IPOLICY_VCPU_RATIO]
+    if ipolicy_spindle_ratio is None:
+      ipolicy_spindle_ratio = \
+        constants.IPOLICY_DEFAULTS[constants.IPOLICY_SPINDLE_RATIO]
   if ipolicy_disk_templates is not None:
     ipolicy_out[constants.IPOLICY_DTS] = list(ipolicy_disk_templates)
   if ipolicy_vcpu_ratio is not None:
     ipolicy_out[constants.IPOLICY_VCPU_RATIO] = ipolicy_vcpu_ratio
+  if ipolicy_spindle_ratio is not None:
+    ipolicy_out[constants.IPOLICY_SPINDLE_RATIO] = ipolicy_spindle_ratio
 
   assert not (frozenset(ipolicy_out.keys()) - constants.IPOLICY_ALL_KEYS)
 
