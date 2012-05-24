@@ -62,6 +62,13 @@ packages, except for RBD, DRBD and Xen::
                     python-pyinotify python-pycurl socat \
                     python-elementtree qemu
 
+On Fedora to install all required packages except RBD, DRBD and Xen::
+
+  $ yum install openssh openssh-clients bridge-utils iproute ndisc6 \
+                pyOpenSSL pyparsing python-simplejson python-inotify \
+                python-lxml python-paramiko socat qemu-img
+
+
 If you want to build from source, please see doc/devnotes.rst for more
 dependencies.
 
@@ -114,6 +121,14 @@ All of these are also available as package in Debian/Ubuntu::
 
   $ apt-get install ghc6 libghc6-json-dev libghc6-network-dev \
                     libghc6-parallel-dev libghc6-curl-dev
+
+Or in Fedora running::
+
+  $ yum install ghc ghc-json-devel ghc-network-devel ghc-parallel-devel
+
+The most recent Fedora doesn't provide ``ghc-curl``. So this needs to be
+installed using ``cabal`` or alternatively htools can be build without
+curl support.
 
 Note that more recent version have switched to GHC 7.x and the packages
 were renamed::
