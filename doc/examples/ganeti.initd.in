@@ -1,6 +1,8 @@
 #!/bin/sh
 # ganeti daemons init script
-# based on skeleton from Debian GNU/Linux
+#
+# chkconfig: 2345 99 01
+# description: Ganeti Cluster Manager
 ### BEGIN INIT INFO
 # Provides:          ganeti
 # Required-Start:    $syslog $remote_fs
@@ -20,7 +22,14 @@ SCRIPTNAME="@SYSCONFDIR@/init.d/ganeti"
 
 test -f "$DAEMON_UTIL" || exit 0
 
-. /lib/lsb/init-functions
+if [ -r /lib/lsb/init-functions ]; then
+  . /lib/lsb/init-functions
+elif [ -r /etc/rc.d/init.d/functions ]; then
+  . /etc/rc.d/init.d/functions
+else
+  echo "Unable to find init functions"
+  exit 1
+fi
 
 check_exitcode() {
     RC=$1
