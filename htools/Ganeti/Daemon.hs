@@ -59,6 +59,7 @@ import System.Posix.Files
 import System.Posix.IO
 import System.Posix.Process
 import System.Posix.Types
+import System.Posix.Signals
 import Text.Printf
 
 import Ganeti.Logging
@@ -228,6 +229,12 @@ setupDaemonEnv cwd umask = do
   _ <- createSession
   return ()
 
+-- | Signal handler for reopening log files.
+handleSigHup :: FilePath -> IO ()
+handleSigHup path = do
+  setupDaemonFDs (Just path)
+  logInfo "Reopening log files after receiving SIGHUP"
+
 -- | Sets up a daemon's standard file descriptors.
 setupDaemonFDs :: Maybe FilePath -> IO ()
 setupDaemonFDs logfile = do
@@ -294,6 +301,7 @@ daemonize logfile action = do
     -- in the child
     setupDaemonEnv "/" (unionFileModes groupModes otherModes)
     setupDaemonFDs $ Just logfile
+    _ <- installHandler lostConnection (Catch (handleSigHup logfile)) Nothing
     _ <- forkProcess action
     exitImmediately ExitSuccess
   exitImmediately ExitSuccess
