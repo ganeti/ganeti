@@ -43,8 +43,10 @@ module Ganeti.Daemon
 
 import Control.Exception
 import Control.Monad
+import Data.Maybe (fromMaybe)
 import qualified Data.Version
 import Data.Word
+import GHC.IO.Handle (hDuplicateTo)
 import qualified Network.Socket as Socket
 import Prelude hiding (catch)
 import System.Console.GetOpt
@@ -66,6 +68,12 @@ import Ganeti.HTools.Utils
 import qualified Ganeti.HTools.Version as Version(version)
 import qualified Ganeti.Constants as C
 import qualified Ganeti.Ssconf as Ssconf
+
+-- * Constants
+
+-- | \/dev\/null path.
+devNull :: FilePath
+devNull = "/dev/null"
 
 -- * Data types
 
@@ -220,6 +228,17 @@ setupDaemonEnv cwd umask = do
   _ <- createSession
   return ()
 
+-- | Sets up a daemon's standard file descriptors.
+setupDaemonFDs :: Maybe FilePath -> IO ()
+setupDaemonFDs logfile = do
+  null_in_handle <- openFile devNull ReadMode
+  null_out_handle <- openFile (fromMaybe devNull logfile) AppendMode
+  hDuplicateTo null_in_handle stdin
+  hDuplicateTo null_out_handle stdout
+  hDuplicateTo null_out_handle stderr
+  hClose null_in_handle
+  hClose null_out_handle
+
 -- | Computes the default bind address for a given family.
 defaultBindAddr :: Int                  -- ^ The port we want
                 -> Socket.Family        -- ^ The cluster IP family
@@ -268,12 +287,13 @@ parseAddress opts defport = do
 --
 -- FIXME: this doesn't support error reporting and the prepfn
 -- functionality.
-daemonize :: IO () -> IO ()
-daemonize action = do
+daemonize :: FilePath -> IO () -> IO ()
+daemonize logfile action = do
   -- first fork
   _ <- forkProcess $ do
     -- in the child
     setupDaemonEnv "/" (unionFileModes groupModes otherModes)
+    setupDaemonFDs $ Just logfile
     _ <- forkProcess action
     exitImmediately ExitSuccess
   exitImmediately ExitSuccess
@@ -305,7 +325,9 @@ genericMain daemon options main = do
               Nothing -> exitIfBad "Invalid cluster syslog setting" $
                          syslogUsageFromRaw C.syslogUsage
               Just v -> return v
-  let processFn = if optDaemonize opts then daemonize else id
+  let processFn = if optDaemonize opts
+                    then daemonize (daemonLogFile daemon)
+                    else id
   processFn $ innerMain daemon opts syslog (main opts)
 
 -- | Inner daemon function.
@@ -313,8 +335,10 @@ genericMain daemon options main = do
 -- This is executed after daemonization.
 innerMain :: GanetiDaemon -> DaemonOptions -> SyslogUsage -> IO () -> IO ()
 innerMain daemon opts syslog main = do
-  setupLogging (daemonLogFile daemon) (daemonName daemon) (optDebug opts)
-                 (not (optDaemonize opts)) False syslog
+  let logfile = if optDaemonize opts
+                  then Nothing
+                  else Just $ daemonLogFile daemon
+  setupLogging logfile (daemonName daemon) (optDebug opts) True False syslog
   pid_fd <- writePidFile (daemonPidFile daemon)
   _ <- exitIfBad "Cannot write PID file; already locked? Error" pid_fd
   logNotice "starting"

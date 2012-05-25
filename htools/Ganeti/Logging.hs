@@ -89,7 +89,7 @@ openFormattedHandler True fmt opener = do
   return [setFormatter handler fmt]
 
 -- | Sets up the logging configuration.
-setupLogging :: String    -- ^ Log file
+setupLogging :: Maybe String    -- ^ Log file
              -> String    -- ^ Program name
              -> Bool      -- ^ Debug level
              -> Bool      -- ^ Log to stderr
@@ -98,16 +98,19 @@ setupLogging :: String    -- ^ Log file
              -> IO ()
 setupLogging logf program debug stderr_logging console syslog = do
   let level = if debug then DEBUG else INFO
-      destf = if console then C.devConsole else logf
+      destf = if console then Just C.devConsole else logf
       fmt = logFormatter program False False
+      file_logging = syslog /= SyslogOnly
 
   updateGlobalLogger rootLoggerName (setLevel level)
 
   stderr_handlers <- openFormattedHandler stderr_logging fmt $
                      streamHandler stderr level
 
-  file_handlers <- openFormattedHandler (syslog /= SyslogOnly) fmt $
-                   fileHandler destf level
+  file_handlers <- case destf of
+                     Nothing -> return []
+                     Just path -> openFormattedHandler file_logging fmt $
+                                  fileHandler path level
 
   let handlers = concat [file_handlers, stderr_handlers]
   updateGlobalLogger rootLoggerName $ setHandlers handlers
