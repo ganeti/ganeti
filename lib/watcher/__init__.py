@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -303,8 +303,8 @@ def _VerifyDisks(cl, uuid, nodes, instances):
       continue
 
     if inst.status in HELPLESS_STATES or _CheckForOfflineNodes(nodes, inst):
-      logging.info("Skipping instance '%s' because it is in a helpless state or"
-                   " has offline secondaries", name)
+      logging.info("Skipping instance '%s' because it is in a helpless state"
+                   " or has offline secondaries", name)
       continue
 
     job.append(opcodes.OpInstanceActivateDisks(instance_name=name))
@@ -367,7 +367,8 @@ def ParseOptions():
   parser.add_option("--wait-children", dest="wait_children",
                     action="store_true", help="Wait for child processes")
   parser.add_option("--no-wait-children", dest="wait_children",
-                    action="store_false", help="Don't wait for child processes")
+                    action="store_false",
+                    help="Don't wait for child processes")
   # See optparse documentation for why default values are not set by options
   parser.set_defaults(wait_children=True)
   options, args = parser.parse_args()
@@ -706,7 +707,8 @@ def _GroupWatcher(opts):
     raise errors.GenericError("Node group '%s' is not known by ssconf" %
                               group_uuid)
 
-  # Group UUID has been verified and should not contain any dangerous characters
+  # Group UUID has been verified and should not contain any dangerous
+  # characters
   state_path = constants.WATCHER_GROUP_STATE_FILE % group_uuid
   inst_status_path = constants.WATCHER_GROUP_INSTANCE_STATUS_FILE % group_uuid
 
