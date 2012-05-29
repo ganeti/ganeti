@@ -1404,14 +1404,17 @@ IGNORE_ERRORS_OPT = cli_option("-I", "--ignore-errors", default=[],
 
 DISK_STATE_OPT = cli_option("--disk-state", default=[], dest="disk_state",
                             action="append",
-                            help=("Specify disk state information in the format"
-                                  " storage_type/identifier:option=value,..."),
+                            help=("Specify disk state information in the"
+                                  " format"
+                                  " storage_type/identifier:option=value,...;"
+                                  " note this is unused for now"),
                             type="identkeyval")
 
 HV_STATE_OPT = cli_option("--hypervisor-state", default=[], dest="hv_state",
                           action="append",
                           help=("Specify hypervisor state information in the"
-                                " format hypervisor:option=value,..."),
+                                " format hypervisor:option=value,...;"
+                                " note this is unused for now"),
                           type="identkeyval")
 
 IGNORE_IPOLICY_OPT = cli_option("--ignore-ipolicy", dest="ignore_ipolicy",

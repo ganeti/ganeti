@@ -144,6 +144,9 @@ cpu_node
   discovered or set manually. Only used for estimating how many VCPUs
   are left for instances
 
+Note that currently this option is unused by Ganeti; values will be
+recorded but will not influence the Ganeti operation.
+
 
 Disk State Parameters
 ~~~~~~~~~~~~~~~~~~~~~
@@ -165,6 +168,9 @@ disk_reserved
 disk_overhead
   Disk that is expected to be used by other volumes (set via
   ``reserved_lvs``); usually should be zero
+
+Note that currently this option is unused by Ganeti; values will be
+recorded but will not influence the Ganeti operation.
 
 
 Cluster configuration
