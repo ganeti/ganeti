@@ -47,7 +47,7 @@ Use cases
 We consider the following use cases:
 
 - A virtualization cluster with FibreChannel shared storage, mapping at
-  leaste one LUN per instance, accessible by the whole cluster.
+  least one LUN per instance, accessible by the whole cluster.
 - A virtualization cluster with instance images stored as files on an
   NFS server.
 - A virtualization cluster storing instance images on a Ceph volume.
