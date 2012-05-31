@@ -3152,6 +3152,8 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
     for instance in self.my_inst_names:
       inst_config = self.my_inst_info[instance]
+      if inst_config.admin_state == constants.ADMINST_OFFLINE:
+        i_offline += 1
 
       for nname in inst_config.all_nodes:
         if nname not in node_image:
@@ -3291,12 +3293,6 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
         non_primary_inst = set(nimg.instances).difference(nimg.pinst)
 
         for inst in non_primary_inst:
-          # FIXME: investigate best way to handle offline insts
-          if inst.admin_state == constants.ADMINST_OFFLINE:
-            if verbose:
-              feedback_fn("* Skipping offline instance %s" % inst.name)
-            i_offline += 1
-            continue
           test = inst in self.all_inst_info
           _ErrorIf(test, constants.CV_EINSTANCEWRONGNODE, inst,
                    "instance should not run on node %s", node_i.name)
