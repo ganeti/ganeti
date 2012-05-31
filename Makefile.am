@@ -1138,6 +1138,7 @@ lib/_autoconf.py: Makefile | lib/.dir
 	  echo "ENABLE_CONFD = $(ENABLE_CONFD)"; \
 	  echo "PY_CONFD = $(PY_CONFD)"; \
 	  echo "HS_CONFD = $(HS_CONFD)"; \
+	  echo "XEN_CMD = '$(XEN_CMD)'"; \
 	} > $@
 
 lib/_vcsversion.py: Makefile vcs-version | lib/.dir

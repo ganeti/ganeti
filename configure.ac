@@ -98,6 +98,19 @@ AC_ARG_WITH([xen-initrd],
   [xen_initrd="/boot/initrd-3-xenU"])
 AC_SUBST(XEN_INITRD, $xen_initrd)
 
+# --with-xen-cmd=...
+AC_ARG_WITH([xen-cmd],
+  [AS_HELP_STRING([--with-xen-cmd=CMD],
+    [Sets the xen cli interface command (default is xm)]
+  )],
+  [xen_cmd="$withval"],
+  [xen_cmd="xm"])
+AC_SUBST(XEN_CMD, $xen_cmd)
+
+if ! (test "$XEN_CMD" == "xl" || test "$XEN_CMD" == "xm"); then
+  AC_MSG_ERROR([Unsupported xen command specified])
+fi
+
 # --with-kvm-kernel=...
 AC_ARG_WITH([kvm-kernel],
   [AS_HELP_STRING([--with-kvm-kernel=PATH],
