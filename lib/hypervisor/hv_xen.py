@@ -537,13 +537,19 @@ class XenHypervisor(hv_base.BaseHypervisor):
                                    " %s, cannot migrate" % (target, port))
 
     # FIXME: migrate must be upgraded for transitioning to "xl" (xen 4.1).
-    #  -l doesn't exist anymore
-    #  -p doesn't exist anymore
-    #  -C config_file must be passed
+    #        This should be reworked in Ganeti 2.7
     #  ssh must recognize the key of the target host for the migration
-    args = [constants.XEN_CMD, "migrate", "-p", "%d" % port]
-    if live:
-      args.append("-l")
+    args = [constants.XEN_CMD, "migrate"]
+    if constants.XEN_CMD == constants.XEN_CMD_XM:
+      args.extend(["-p", "%d" % port])
+      if live:
+        args.append("-l")
+    elif constants.XEN_CMD == constants.XEN_CMD_XL:
+      args.extend(["-C", self._ConfigFileName(instance.name)])
+    else:
+      raise errors.HypervisorError("Unsupported xen command: %s" %
+                                   constants.XEN_CMD)
+
     args.extend([instance.name, target])
     result = utils.RunCmd(args)
     if result.failed:

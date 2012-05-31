@@ -267,7 +267,10 @@ EXPORT_CONF_FILE = "config.ini"
 XEN_BOOTLOADER = _autoconf.XEN_BOOTLOADER
 XEN_KERNEL = _autoconf.XEN_KERNEL
 XEN_INITRD = _autoconf.XEN_INITRD
-XEN_CMD = "xm"
+XEN_CMD_XM = "xm"
+XEN_CMD_XL = "xl"
+# FIXME: This will be made configurable using hvparams in Ganeti 2.7
+XEN_CMD = _autoconf.XEN_CMD
 
 KVM_PATH = _autoconf.KVM_PATH
 KVM_KERNEL = _autoconf.KVM_KERNEL
