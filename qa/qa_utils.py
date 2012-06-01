@@ -191,7 +191,7 @@ def AssertCommand(cmd, fail=False, node=None):
   return rcode
 
 
-def GetSSHCommand(node, cmd, strict=True, opts=None, tty=True):
+def GetSSHCommand(node, cmd, strict=True, opts=None, tty=None):
   """Builds SSH command to be executed.
 
   @type node: string
@@ -203,11 +203,14 @@ def GetSSHCommand(node, cmd, strict=True, opts=None, tty=True):
   @param strict: whether to enable strict host key checking
   @type opts: list
   @param opts: list of additional options
-  @type tty: Bool
-  @param tty: If we should use tty
+  @type tty: boolean or None
+  @param tty: if we should use tty; if None, will be auto-detected
 
   """
   args = ["ssh", "-oEscapeChar=none", "-oBatchMode=yes", "-l", "root"]
+
+  if tty is None:
+    tty = sys.stdout.isatty()
 
   if tty:
     args.append("-t")
@@ -275,7 +278,7 @@ def CloseMultiplexers():
     utils.RemoveFile(sname)
 
 
-def GetCommandOutput(node, cmd, tty=True):
+def GetCommandOutput(node, cmd, tty=None):
   """Returns the output of a command executed on the given node.
 
   """
