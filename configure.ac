@@ -107,7 +107,7 @@ AC_ARG_WITH([xen-cmd],
   [xen_cmd="xm"])
 AC_SUBST(XEN_CMD, $xen_cmd)
 
-if ! (test "$XEN_CMD" == "xl" || test "$XEN_CMD" == "xm"); then
+if ! test "$XEN_CMD" = xl -o "$XEN_CMD" = xm; then
   AC_MSG_ERROR([Unsupported xen command specified])
 fi
 
