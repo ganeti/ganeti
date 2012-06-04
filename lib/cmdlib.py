@@ -40,6 +40,7 @@ import tempfile
 import shutil
 import itertools
 import operator
+import ipaddr
 
 from ganeti import ssh
 from ganeti import utils
@@ -61,6 +62,7 @@ from ganeti import rpc
 from ganeti import runtime
 from ganeti import pathutils
 from ganeti import vcluster
+from ganeti import network
 from ganeti.masterd import iallocator
 
 import ganeti.masterd.instance # pylint: disable=W0611
@@ -15303,19 +15305,169 @@ class LUTestAllocator(NoHooksLU):
 
 # Network LUs
 class LUNetworkAdd(LogicalUnit):
+  """Logical unit for creating networks.
+
+  """
+  HPATH = "network-add"
+  HTYPE = constants.HTYPE_NETWORK
+  REQ_BGL = False
+
   def BuildHooksNodes(self):
-    pass
+    """Build hooks nodes.
+
+    """
+    mn = self.cfg.GetMasterNode()
+    return ([mn], [mn])
+
+  def ExpandNames(self):
+    self.network_uuid = self.cfg.GenerateUniqueID(self.proc.GetECId())
+    self.needed_locks = {}
+    self.add_locks[locking.LEVEL_NETWORK] = self.network_uuid
+
+  def CheckPrereq(self):
+    """Check prerequisites.
+
+    This checks that the given group name is not an existing node group
+    already.
+
+    """
+    if self.op.network is None:
+      raise errors.OpPrereqError("Network must be given",
+                                 errors.ECODE_INVAL)
+
+    uuid = self.cfg.LookupNetwork(self.op.network_name)
+
+    if uuid:
+      raise errors.OpPrereqError("Network '%s' already defined" %
+                                 self.op.network, errors.ECODE_EXISTS)
+
 
   def BuildHooksEnv(self):
-    pass
+    """Build hooks env.
+
+    """
+    env = {
+      "NETWORK_NAME": self.op.network_name,
+      "NETWORK_SUBNET": self.op.network,
+      "NETWORK_GATEWAY": self.op.gateway,
+      "NETWORK_SUBNET6": self.op.network6,
+      "NETWORK_GATEWAY6": self.op.gateway6,
+      "NETWORK_MAC_PREFIX": self.op.mac_prefix,
+      "NETWORK_TYPE": self.op.network_type,
+      }
+    return env
+
+  def Exec(self, feedback_fn):
+    """Add the ip pool to the cluster.
+
+    """
+    nobj = objects.Network(name=self.op.network_name,
+                           network=self.op.network,
+                           gateway=self.op.gateway,
+                           network6=self.op.network6,
+                           gateway6=self.op.gateway6,
+                           mac_prefix=self.op.mac_prefix,
+                           network_type=self.op.network_type,
+                           uuid=self.network_uuid,
+                           family=4)
+    # Initialize the associated address pool
+    try:
+      pool = network.AddressPool.InitializeNetwork(nobj)
+    except errors.AddressPoolError, e:
+      raise errors.OpExecError("Cannot create IP pool for this network. %s" % e)
+
+    # Check if we need to reserve the nodes and the cluster master IP
+    # These may not be allocated to any instances in routed mode, as
+    # they wouldn't function anyway.
+    for node in self.cfg.GetAllNodesInfo().values():
+      for ip in [node.primary_ip, node.secondary_ip]:
+        try:
+          pool.Reserve(ip)
+          self.LogInfo("Reserved node %s's IP (%s)", node.name, ip)
+
+        except errors.AddressPoolError:
+          pass
+
+    master_ip = self.cfg.GetClusterInfo().master_ip
+    try:
+      pool.Reserve(master_ip)
+      self.LogInfo("Reserved cluster master IP (%s)", master_ip)
+    except errors.AddressPoolError:
+      pass
+
+    if self.op.add_reserved_ips:
+      for ip in self.op.add_reserved_ips:
+        try:
+          pool.Reserve(ip, external=True)
+        except errors.AddressPoolError, e:
+          raise errors.OpExecError("Cannot reserve IP %s. %s " % (ip, e))
+
+    self.cfg.AddNetwork(nobj, self.proc.GetECId(), check_uuid=False)
+    del self.remove_locks[locking.LEVEL_NETWORK]
 
 
 class LUNetworkRemove(LogicalUnit):
-  def BuildHooksNodes(self):
-    pass
+  HPATH = "network-remove"
+  HTYPE = constants.HTYPE_NETWORK
+  REQ_BGL = False
+
+  def ExpandNames(self):
+    self.network_uuid = self.cfg.LookupNetwork(self.op.network_name)
+
+    self.needed_locks = {
+      locking.LEVEL_NETWORK: [self.network_uuid],
+      }
+
+
+  def CheckPrereq(self):
+    """Check prerequisites.
+
+    This checks that the given network name exists as a network, that is
+    empty (i.e., contains no nodes), and that is not the last group of the
+    cluster.
+
+    """
+    if not self.network_uuid:
+      raise errors.OpPrereqError("Network %s not found" % self.op.network_name,
+                                 errors.ECODE_INVAL)
+
+    # Verify that the network is not conncted.
+    node_groups = [group.name
+                   for group in self.cfg.GetAllNodeGroupsInfo().values()
+                   for network in group.networks.keys()
+                   if network == self.network_uuid]
+
+    if node_groups:
+      self.LogWarning("Nework '%s' is connected to the following"
+                      " node groups: %s" % (self.op.network_name,
+                      utils.CommaJoin(utils.NiceSort(node_groups))))
+      raise errors.OpPrereqError("Network still connected",
+                                 errors.ECODE_STATE)
 
   def BuildHooksEnv(self):
-    pass
+    """Build hooks env.
+
+    """
+    return {
+      "NETWORK_NAME": self.op.network_name,
+      }
+
+  def BuildHooksNodes(self):
+    """Build hooks nodes.
+
+    """
+    mn = self.cfg.GetMasterNode()
+    return ([mn], [mn])
+
+  def Exec(self, feedback_fn):
+    """Remove the network.
+
+    """
+    try:
+      self.cfg.RemoveNetwork(self.network_uuid)
+    except errors.ConfigurationError:
+      raise errors.OpExecError("Network '%s' with UUID %s disappeared" %
+                               (self.op.network_name, self.network_uuid))
 
 
 class LUNetworkSetParams(LogicalUnit):

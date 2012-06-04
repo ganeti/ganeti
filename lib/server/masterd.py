@@ -487,7 +487,8 @@ class GanetiContext(object):
     self.glm = locking.GanetiLockManager(
       self.cfg.GetNodeList(),
       self.cfg.GetNodeGroupList(),
-      self.cfg.GetInstanceList())
+      self.cfg.GetInstanceList(),
+      self.cfg.GetNetworkList())
 
     self.cfg.SetContext(self)
 
