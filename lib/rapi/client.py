@@ -1688,6 +1688,117 @@ class GanetiRapiClient(object): # pylint: disable=R0904
                              ("/%s/nodes/%s/tags" %
                               (GANETI_RAPI_VERSION, node)), query, None)
 
+  def GetNetworks(self, bulk=False):
+    """Gets all networks in the cluster.
+
+    @type bulk: bool
+    @param bulk: whether to return all information about the networks
+
+    @rtype: list of dict or str
+    @return: if bulk is true, a list of dictionaries with info about all
+        networks in the cluster, else a list of names of those networks
+
+    """
+    query = []
+    _AppendIf(query, bulk, ("bulk", 1))
+
+    networks = self._SendRequest(HTTP_GET, "/%s/networks" % GANETI_RAPI_VERSION,
+                               query, None)
+    if bulk:
+      return networks
+    else:
+      return [n["name"] for n in networks]
+
+  def GetNetwork(self, network):
+    """Gets information about a network.
+
+    @type group: str
+    @param group: name of the network whose info to return
+
+    @rtype: dict
+    @return: info about the network
+
+    """
+    return self._SendRequest(HTTP_GET,
+                             "/%s/networks/%s" % (GANETI_RAPI_VERSION, network),
+                             None, None)
+
+  def CreateNetwork(self, network_name, network, gateway=None, network6=None,
+                    gateway6=None, mac_prefix=None, network_type=None,
+                    add_reserved_ips=None, dry_run=False):
+    """Creates a new network.
+
+    @type name: str
+    @param name: the name of network to create
+    @type dry_run: bool
+    @param dry_run: whether to peform a dry run
+
+    @rtype: string
+    @return: job id
+
+    """
+    query = []
+    _AppendDryRunIf(query, dry_run)
+
+    body = {
+      "network_name": network_name,
+      "gateway": gateway,
+      "network": network,
+      "gateway6": gateway6,
+      "network6": network6,
+      "mac_prefix": mac_prefix,
+      "network_type": network_type,
+      "add_reserved_ips": add_reserved_ips
+      }
+
+    return self._SendRequest(HTTP_POST, "/%s/networks" % GANETI_RAPI_VERSION,
+                             query, body)
+
+  def ConnectNetwork(self, network_name, group_name, mode, link):
+    """Connects a Network to a NodeGroup with the given netparams
+
+    """
+    body = {
+      "group_name": group_name,
+      "network_mode": mode,
+      "network_link": link
+      }
+
+    return self._SendRequest(HTTP_PUT,
+                             ("/%s/networks/%s/connect" %
+                             (GANETI_RAPI_VERSION, network_name)), None, body)
+
+  def DisconnectNetwork(self, network_name, group_name):
+    """Connects a Network to a NodeGroup with the given netparams
+
+    """
+    body = {
+      "group_name": group_name
+      }
+    return self._SendRequest(HTTP_PUT,
+                             ("/%s/networks/%s/disconnect" %
+                             (GANETI_RAPI_VERSION, network_name)), None, body)
+
+
+  def DeleteNetwork(self, network, dry_run=False):
+    """Deletes a network.
+
+    @type group: str
+    @param group: the network to delete
+    @type dry_run: bool
+    @param dry_run: whether to peform a dry run
+
+    @rtype: string
+    @return: job id
+
+    """
+    query = []
+    _AppendDryRunIf(query, dry_run)
+
+    return self._SendRequest(HTTP_DELETE,
+                             ("/%s/networks/%s" %
+                              (GANETI_RAPI_VERSION, network)), query, None)
+
   def GetGroups(self, bulk=False):
     """Gets all node groups in the cluster.
 

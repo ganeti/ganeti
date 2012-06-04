@@ -71,7 +71,8 @@ _COMMON_FIELDS = ["ctime", "mtime", "uuid", "serial_no", "tags"]
 I_FIELDS = ["name", "admin_state", "os",
             "pnode", "snodes",
             "disk_template",
-            "nic.ips", "nic.macs", "nic.modes", "nic.links", "nic.bridges",
+            "nic.ips", "nic.macs", "nic.modes",
+            "nic.links", "nic.networks", "nic.bridges",
             "network_port",
             "disk.sizes", "disk_usage",
             "beparams", "hvparams",
@@ -90,6 +91,14 @@ N_FIELDS = ["name", "offline", "master_candidate", "drained",
             "ndparams",
             "group.uuid",
             ] + _COMMON_FIELDS
+
+NET_FIELDS = ["name", "network", "gateway",
+              "network6", "gateway6",
+              "mac_prefix", "network_type",
+              "free_count", "reserved_count",
+              "map", "group_list", "inst_list",
+              "external_reservations",
+             ] 
 
 G_FIELDS = [
   "alloc_policy",
@@ -643,6 +652,101 @@ class R_2_nodes_name_storage_repair(baserlib.OpcodeResource):
       })
 
 
+class R_2_networks(baserlib.OpcodeResource):
+  """/2/networks resource.
+
+  """
+  GET_OPCODE = opcodes.OpNetworkQuery
+  POST_OPCODE = opcodes.OpNetworkAdd
+  POST_RENAME = {
+    "name": "network_name",
+    }
+
+  def GetPostOpInput(self):
+    """Create a network.
+
+    """
+    assert not self.items
+    return (self.request_body, {
+      "dry_run": self.dryRun(),
+      })
+
+  def GET(self):
+    """Returns a list of all networks.
+
+    """
+    client = self.GetClient()
+
+    if self.useBulk():
+      bulkdata = client.QueryNetworks([], NET_FIELDS, False)
+      return baserlib.MapBulkFields(bulkdata, NET_FIELDS)
+    else:
+      data = client.QueryNetworks([], ["name"], False)
+      networknames = [row[0] for row in data]
+      return baserlib.BuildUriList(networknames, "/2/networks/%s",
+                                   uri_fields=("name", "uri"))
+
+
+class R_2_networks_name(baserlib.OpcodeResource):
+  """/2/network/[network_name] resource.
+
+  """
+  DELETE_OPCODE = opcodes.OpNetworkRemove
+
+  def GET(self):
+    """Send information about a network.
+
+    """
+    network_name = self.items[0]
+    client = self.GetClient()
+
+    result = baserlib.HandleItemQueryErrors(client.QueryNetworks,
+                                            names=[network_name],
+                                            fields=NET_FIELDS,
+                                            use_locking=self.useLocking())
+
+    return baserlib.MapFields(NET_FIELDS, result[0])
+
+  def GetDeleteOpInput(self):
+    """Delete a network.
+
+    """
+    assert len(self.items) == 1
+    return (self.request_body, {
+      "network_name": self.items[0],
+      "dry_run": self.dryRun(),
+      })
+
+class R_2_networks_name_connect(baserlib.OpcodeResource):
+  """/2/network/[network_name]/connect.
+
+  """
+  PUT_OPCODE = opcodes.OpNetworkConnect
+
+  def GetPutOpInput(self):
+    """Changes some parameters of node group.
+
+    """
+    assert self.items
+    return (self.request_body, {
+      "network_name": self.items[0],
+      })
+
+class R_2_networks_name_disconnect(baserlib.OpcodeResource):
+  """/2/network/[network_name]/disconnect.
+
+  """
+  PUT_OPCODE = opcodes.OpNetworkDisconnect
+
+  def GetPutOpInput(self):
+    """Changes some parameters of node group.
+
+    """
+    assert self.items
+    return (self.request_body, {
+      "network_name": self.items[0],
+      })
+
 class R_2_groups(baserlib.OpcodeResource):
   """/2/groups resource.
 
@@ -655,6 +759,7 @@ class R_2_groups(baserlib.OpcodeResource):
 
   def GetPostOpInput(self):
     """Create a node group.
+
 
     """
     assert not self.items
