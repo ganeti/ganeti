@@ -135,6 +135,15 @@ def WritePreamble(sw, support_debug):
     sw.DecIndent()
   sw.Write("}")
 
+  sw.Write("_ganeti_network() {")
+  sw.IncIndent()
+  try:
+    networks_path = os.path.join(pathutils.DATA_DIR, "ssconf_networks")
+    sw.Write("cat %s 2>/dev/null || :", utils.ShellQuote(networks_path))
+  finally:
+    sw.DecIndent()
+  sw.Write("}")
+
   # Params: <offset> <options with values> <options without values>
   # Result variable: $first_arg_idx
   sw.Write("_ganeti_find_first_arg() {")
@@ -352,6 +361,8 @@ class CompletionWriter:
           WriteCompReply(sw, "-W \"$(_ganeti_iallocator)\"", cur=cur)
         elif suggest == cli.OPT_COMPL_ONE_NODEGROUP:
           WriteCompReply(sw, "-W \"$(_ganeti_nodegroup)\"", cur=cur)
+        elif suggest == cli.OPT_COMPL_ONE_NETWORK:
+          WriteCompReply(sw, "-W \"$(_ganeti_network)\"", cur=cur)
         elif suggest == cli.OPT_COMPL_INST_ADD_NODES:
           sw.Write("local tmp= node1= pfx= curvalue=\"${optcur#*:}\"")
 
@@ -450,6 +461,8 @@ class CompletionWriter:
           choices = "$(_ganeti_nodes)"
         elif isinstance(arg, cli.ArgGroup):
           choices = "$(_ganeti_nodegroup)"
+        elif isinstance(arg, cli.ArgNetwork):
+          choices = "$(_ganeti_network)"
         elif isinstance(arg, cli.ArgJobId):
           choices = "$(_ganeti_jobs)"
         elif isinstance(arg, cli.ArgOs):

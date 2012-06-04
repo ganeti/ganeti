@@ -263,6 +263,7 @@ pkgpython_PYTHON = \
 	lib/storage.py \
 	lib/uidpool.py \
 	lib/vcluster.py \
+	lib/network.py \
 	lib/workerpool.py
 
 client_PYTHON = \
@@ -274,6 +275,7 @@ client_PYTHON = \
 	lib/client/gnt_instance.py \
 	lib/client/gnt_job.py \
 	lib/client/gnt_node.py \
+	lib/client/gnt_network.py \
 	lib/client/gnt_os.py
 
 hypervisor_PYTHON = \
@@ -591,6 +593,7 @@ gnt_scripts = \
 	scripts/gnt-group \
 	scripts/gnt-instance \
 	scripts/gnt-job \
+	scripts/gnt-network \
 	scripts/gnt-node \
 	scripts/gnt-os
 
@@ -796,6 +799,7 @@ man_MANS = \
 	man/gnt-cluster.8 \
 	man/gnt-debug.8 \
 	man/gnt-group.8 \
+	man/gnt-network.8 \
 	man/gnt-instance.8 \
 	man/gnt-job.8 \
 	man/gnt-node.8 \
