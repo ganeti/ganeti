@@ -35,6 +35,7 @@ opcodes.
 
 import logging
 import re
+import ipaddr
 
 from ganeti import constants
 from ganeti import errors
@@ -167,6 +168,9 @@ _PIgnoreIpolicy = ("ignore_ipolicy", False, ht.TBool,
 _PAllowRuntimeChgs = ("allow_runtime_changes", True, ht.TBool,
                       "Allow runtime changes (eg. memory ballooning)")
 
+#: a required network name
+_PNetworkName = ("network_name", ht.NoDefault, ht.TNonEmptyString,
+                 "Set network name")
 
 #: OP_ID conversion regular expression
 _OPID_RE = re.compile("([a-z])([A-Z])")
@@ -343,6 +347,51 @@ def _CheckStorageType(storage_type):
 _PStorageType = ("storage_type", ht.NoDefault, _CheckStorageType,
                  "Storage type")
 
+_CheckNetworkType = ht.TElemOf(constants.NETWORK_VALID_TYPES)
+
+#: Network type parameter
+_PNetworkType = ("network_type", None, ht.TOr(ht.TNone, _CheckNetworkType),
+                 "Network type")
+
+def _CheckCIDRNetNotation(value):
+  """Ensure a given cidr notation type is valid.
+
+  """
+  try:
+    ipaddr.IPv4Network(value)
+  except ipaddr.AddressValueError:
+    return False
+  return True
+
+def _CheckCIDRAddrNotation(value):
+  """Ensure a given cidr notation type is valid.
+
+  """
+  try:
+    ipaddr.IPv4Address(value)
+  except ipaddr.AddressValueError:
+    return False
+  return True
+
+def _CheckCIDR6AddrNotation(value):
+  """Ensure a given cidr notation type is valid.
+
+  """
+  try:
+    ipaddr.IPv6Address(value)
+  except ipaddr.AddressValueError:
+    return False
+  return True
+
+def _CheckCIDR6NetNotation(value):
+  """Ensure a given cidr notation type is valid.
+
+  """
+  try:
+    ipaddr.IPv6Network(value)
+  except ipaddr.AddressValueError:
+    return False
+  return True
 
 class _AutoOpParamSlots(objectutils.AutoSlots):
   """Meta class for opcode definitions.
@@ -1201,6 +1250,7 @@ class OpInstanceCreate(OpCode):
     ("identify_defaults", False, ht.TBool,
      "Reset instance parameters to default if equal"),
     ("ip_check", True, ht.TBool, _PIpCheckDoc),
+    ("conflicts_check", True, ht.TBool, "Check for conflicting IPs"),
     ("mode", ht.NoDefault, ht.TElemOf(constants.INSTANCE_CREATE_MODES),
      "Instance creation mode"),
     ("nics", ht.NoDefault, ht.TListOf(_TestNicDef),
@@ -1594,6 +1644,7 @@ class OpInstanceSetParams(OpCode):
     ("wait_for_sync", True, ht.TBool,
      "Whether to wait for the disk to synchronize, when changing template"),
     ("offline", None, ht.TMaybeBool, "Whether to mark instance as offline"),
+    ("conflicts_check", True, ht.TBool, "Check for conflicting IPs"),
     ]
   OP_RESULT = _TSetParamsResult
 
@@ -1950,6 +2001,88 @@ class OpTestDummy(OpCode):
     ("submit_jobs", None, ht.NoType, None),
     ]
   WITH_LU = False
+
+
+# Network opcodes
+# Add a new network in the cluster
+class OpNetworkAdd(OpCode):
+  """Add an IP network to the cluster."""
+  OP_DSC_FIELD = "network_name"
+  OP_PARAMS = [
+    _PNetworkName,
+    _PNetworkType,
+    ("network", None, ht.TAnd(ht.TString ,_CheckCIDRNetNotation), None),
+    ("gateway", None, ht.TOr(ht.TNone, _CheckCIDRAddrNotation), None),
+    ("network6", None, ht.TOr(ht.TNone, _CheckCIDR6NetNotation), None),
+    ("gateway6", None, ht.TOr(ht.TNone, _CheckCIDR6AddrNotation), None),
+    ("mac_prefix", None, ht.TMaybeString, None),
+    ("add_reserved_ips", None,
+     ht.TOr(ht.TNone, ht.TListOf(_CheckCIDRAddrNotation)), None),
+    ]
+
+class OpNetworkRemove(OpCode):
+  """Remove an existing network from the cluster.
+     Must not be connected to any nodegroup.
+
+  """
+  OP_DSC_FIELD = "network_name"
+  OP_PARAMS = [
+    _PNetworkName,
+    _PForce,
+    ]
+
+class OpNetworkSetParams(OpCode):
+  """Modify Network's parameters except for IPv4 subnet"""
+  OP_DSC_FIELD = "network_name"
+  OP_PARAMS = [
+    _PNetworkName,
+    _PNetworkType,
+    ("gateway", None, ht.TOr(ht.TNone, _CheckCIDRAddrNotation), None),
+    ("network6", None, ht.TOr(ht.TNone, _CheckCIDR6NetNotation), None),
+    ("gateway6", None, ht.TOr(ht.TNone, _CheckCIDR6AddrNotation), None),
+    ("mac_prefix", None, ht.TMaybeString, None),
+    ("add_reserved_ips", None,
+     ht.TOr(ht.TNone, ht.TListOf(_CheckCIDRAddrNotation)), None),
+    ("remove_reserved_ips", None,
+     ht.TOr(ht.TNone, ht.TListOf(_CheckCIDRAddrNotation)), None),
+    ]
+
+class OpNetworkConnect(OpCode):
+  """Connect a Network to a specific Nodegroup with the defined netparams
+     (mode, link). Nics in this Network will inherit those params.
+     Produce errors if a NIC (that its not already assigned to a network)
+     has an IP that is contained in the Network this will produce error unless
+     --no-conflicts-check is passed.
+
+  """
+  OP_DSC_FIELD = "network_name"
+  OP_PARAMS = [
+    _PGroupName,
+    _PNetworkName,
+    ("network_mode", None, ht.TString, None),
+    ("network_link", None, ht.TString, None),
+    ("conflicts_check", True, ht.TBool, "Check for conflicting IPs"),
+    ]
+
+class OpNetworkDisconnect(OpCode):
+  """Disconnect a Network from a Nodegroup. Produce errors if NICs are
+     present in the Network unless --no-conficts-check option is passed.
+
+  """
+  OP_DSC_FIELD = "network_name"
+  OP_PARAMS = [
+    _PGroupName,
+    _PNetworkName,
+    ("conflicts_check", True, ht.TBool, "Check for conflicting IPs"),
+    ]
+
+class OpNetworkQuery(OpCode):
+  """Compute the list of networks."""
+  OP_PARAMS = [
+    _POutputFields,
+    ("names", ht.EmptyList, ht.TListOf(ht.TNonEmptyString),
+     "Empty list to query all groups, group names otherwise"),
+    ]
 
 
 def _GetOpList():

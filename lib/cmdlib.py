@@ -15301,6 +15301,61 @@ class LUTestAllocator(NoHooksLU):
       result = ial.out_text
     return result
 
+# Network LUs
+class LUNetworkAdd(LogicalUnit):
+  def BuildHooksNodes(self):
+    pass
+
+  def BuildHooksEnv(self):
+    pass
+
+
+class LUNetworkRemove(LogicalUnit):
+  def BuildHooksNodes(self):
+    pass
+
+  def BuildHooksEnv(self):
+    pass
+
+
+class LUNetworkSetParams(LogicalUnit):
+  def BuildHooksNodes(self):
+    pass
+
+  def BuildHooksEnv(self):
+    pass
+
+
+class _NetworkQuery(_QueryBase):
+  def ExpandNames(self, lu):
+    pass
+
+  def DeclareLocks(self, lu, level):
+    pass
+
+  def _GetQueryData(self, lu):
+    pass
+
+
+class LUNetworkQuery(NoHooksLU):
+  pass
+
+
+class LUNetworkConnect(LogicalUnit):
+  def BuildHooksNodes(self):
+    pass
+
+  def BuildHooksEnv(self):
+    pass
+
+
+class LUNetworkDisconnect(LogicalUnit):
+  def BuildHooksNodes(self):
+    pass
+
+  def BuildHooksEnv(self):
+    pass
+
 
 #: Query type implementations
 _QUERY_IMPL = {
@@ -15308,6 +15363,7 @@ _QUERY_IMPL = {
   constants.QR_INSTANCE: _InstanceQuery,
   constants.QR_NODE: _NodeQuery,
   constants.QR_GROUP: _GroupQuery,
+  constants.QR_NETWORK: _NetworkQuery,
   constants.QR_OS: _OsQuery,
   constants.QR_EXPORT: _ExportQuery,
   }

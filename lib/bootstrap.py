@@ -603,6 +603,7 @@ def InitConfig(version, cluster_config, master_node_config,
                                    nodegroups=nodegroups,
                                    nodes=nodes,
                                    instances={},
+                                   networks={},
                                    serial_no=1,
                                    ctime=now, mtime=now)
   utils.WriteFile(cfg_file,

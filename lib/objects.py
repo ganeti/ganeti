@@ -51,7 +51,7 @@ from socket import AF_INET
 
 
 __all__ = ["ConfigObject", "ConfigData", "NIC", "Disk", "Instance",
-           "OS", "Node", "NodeGroup", "Cluster", "FillDict"]
+           "OS", "Node", "NodeGroup", "Cluster", "FillDict", "Network"]
 
 _TIMESTAMPS = ["ctime", "mtime"]
 _UUID = ["uuid"]
@@ -432,6 +432,7 @@ class ConfigData(ConfigObject):
     "nodes",
     "nodegroups",
     "instances",
+    "networks",
     "serial_no",
     ] + _TIMESTAMPS
 
@@ -444,7 +445,7 @@ class ConfigData(ConfigObject):
     """
     mydict = super(ConfigData, self).ToDict()
     mydict["cluster"] = mydict["cluster"].ToDict()
-    for key in "nodes", "instances", "nodegroups":
+    for key in "nodes", "instances", "nodegroups", "networks":
       mydict[key] = self._ContainerToDicts(mydict[key])
 
     return mydict
@@ -459,6 +460,7 @@ class ConfigData(ConfigObject):
     obj.nodes = cls._ContainerFromDicts(obj.nodes, dict, Node)
     obj.instances = cls._ContainerFromDicts(obj.instances, dict, Instance)
     obj.nodegroups = cls._ContainerFromDicts(obj.nodegroups, dict, NodeGroup)
+    obj.networks = cls._ContainerFromDicts(obj.networks, dict, Network)
     return obj
 
   def HasAnyDiskOfType(self, dev_type):
@@ -495,11 +497,13 @@ class ConfigData(ConfigObject):
       # gives a good approximation.
       if self.HasAnyDiskOfType(constants.LD_DRBD8):
         self.cluster.drbd_usermode_helper = constants.DEFAULT_DRBD_HELPER
+    if self.networks is None:
+      self.networks = {}
 
 
 class NIC(ConfigObject):
   """Config object representing a network card."""
-  __slots__ = ["mac", "ip", "nicparams"]
+  __slots__ = ["mac", "ip", "network", "nicparams"]
 
   @classmethod
   def CheckParameterSyntax(cls, nicparams):
@@ -1359,6 +1363,7 @@ class NodeGroup(TaggableObject):
     "hv_state_static",
     "disk_state_static",
     "alloc_policy",
+    "networks",
     ] + _TIMESTAMPS + _UUID
 
   def ToDict(self):
@@ -1405,6 +1410,9 @@ class NodeGroup(TaggableObject):
       self.diskparams = {}
     if self.ipolicy is None:
       self.ipolicy = MakeEmptyIPolicy()
+
+    if self.networks is None:
+      self.networks = {}
 
   def FillND(self, node):
     """Return filled out ndparams for L{objects.Node}
@@ -1987,6 +1995,26 @@ class InstanceConsole(ConfigObject):
                                          constants.CONS_SPICE,
                                          constants.CONS_SSH]
     return True
+
+
+class Network(ConfigObject):
+  """Object representing a network definition for ganeti.
+
+  """
+  __slots__ = [
+    "name",
+    "serial_no",
+    "network_type",
+    "mac_prefix",
+    "family",
+    "network",
+    "network6",
+    "gateway",
+    "gateway6",
+    "size",
+    "reservations",
+    "ext_reservations",
+    ] + _TIMESTAMPS + _UUID
 
 
 class SerializableConfigParser(ConfigParser.SafeConfigParser):
