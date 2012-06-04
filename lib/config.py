@@ -2224,6 +2224,8 @@ class ConfigWriter:
       test = target in self._config_data.instances.values()
     elif isinstance(target, objects.NodeGroup):
       test = target in self._config_data.nodegroups.values()
+    elif isinstance(target, objects.Network):
+      test = target in self._config_data.networks.values()
     else:
       raise errors.ProgrammerError("Invalid object type (%s) passed to"
                                    " ConfigWriter.Update" % type(target))

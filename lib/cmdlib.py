@@ -15471,11 +15471,156 @@ class LUNetworkRemove(LogicalUnit):
 
 
 class LUNetworkSetParams(LogicalUnit):
-  def BuildHooksNodes(self):
-    pass
+  """Modifies the parameters of a network.
+
+  """
+  HPATH = "network-modify"
+  HTYPE = constants.HTYPE_NETWORK
+  REQ_BGL = False
+
+  def CheckArguments(self):
+    if (self.op.gateway and
+        (self.op.add_reserved_ips or self.op.remove_reserved_ips)):
+      raise errors.OpPrereqError("Cannot modify gateway and reserved ips"
+                                 " at once", errors.ECODE_INVAL)
+
+
+  def ExpandNames(self):
+    self.network_uuid = self.cfg.LookupNetwork(self.op.network_name)
+    self.network = self.cfg.GetNetwork(self.network_uuid)
+    self.needed_locks = {
+      locking.LEVEL_NETWORK: [self.network_uuid],
+      }
+
+
+    if self.network is None:
+      raise errors.OpPrereqError("Could not retrieve network '%s' (UUID: %s)" %
+                                 (self.op.network_name, self.network_uuid),
+                                 errors.ECODE_INVAL)
+
+  def CheckPrereq(self):
+    """Check prerequisites.
+
+    """
+    self.gateway = self.network.gateway
+    self.network_type = self.network.network_type
+    self.mac_prefix = self.network.mac_prefix
+    self.network6 = self.network.network6
+    self.gateway6 = self.network.gateway6
+
+    self.pool = network.AddressPool(self.network)
+
+    if self.op.gateway:
+      if self.op.gateway == constants.VALUE_NONE:
+        self.gateway = None
+      else:
+        self.gateway = self.op.gateway
+        if self.pool.IsReserved(self.gateway):
+          raise errors.OpPrereqError("%s is already reserved" %
+                                     self.gateway, errors.ECODE_INVAL)
+
+    if self.op.network_type:
+      if self.op.network_type == constants.VALUE_NONE:
+        self.network_type = None
+      else:
+        self.network_type = self.op.network_type
+
+    if self.op.mac_prefix:
+      if self.op.mac_prefix == constants.VALUE_NONE:
+        self.mac_prefix = None
+      else:
+        self.mac_prefix = self.op.mac_prefix
+
+    if self.op.gateway6:
+      if self.op.gateway6 == constants.VALUE_NONE:
+        self.gateway6 = None
+      else:
+        self.gateway6 = self.op.gateway6
+
+    if self.op.network6:
+      if self.op.network6 == constants.VALUE_NONE:
+        self.network6 = None
+      else:
+        self.network6 = self.op.network6
+
+
 
   def BuildHooksEnv(self):
-    pass
+    """Build hooks env.
+
+    """
+    env = {
+      "NETWORK_NAME": self.op.network_name,
+      "NETWORK_SUBNET": self.network.network,
+      "NETWORK_GATEWAY": self.gateway,
+      "NETWORK_SUBNET6": self.network6,
+      "NETWORK_GATEWAY6": self.gateway6,
+      "NETWORK_MAC_PREFIX": self.mac_prefix,
+      "NETWORK_TYPE": self.network_type,
+      }
+    return env
+
+  def BuildHooksNodes(self):
+    """Build hooks nodes.
+
+    """
+    mn = self.cfg.GetMasterNode()
+    return ([mn], [mn])
+
+  def Exec(self, feedback_fn):
+    """Modifies the network.
+
+    """
+    #TODO: reserve/release via temporary reservation manager
+    #      extend cfg.ReserveIp/ReleaseIp with the external flag
+    if self.op.gateway:
+      if self.gateway == self.network.gateway:
+        self.LogWarning("Gateway is already %s" % self.gateway)
+      else:
+        if self.gateway:
+          self.pool.Reserve(self.gateway, external=True)
+        if self.network.gateway:
+          self.pool.Release(self.network.gateway, external=True)
+        self.network.gateway = self.gateway
+
+    if self.op.add_reserved_ips:
+      for ip in self.op.add_reserved_ips:
+        try:
+          if self.pool.IsReserved(ip):
+            self.LogWarning("IP %s is already reserved" % ip)
+          else:
+            self.pool.Reserve(ip, external=True)
+        except errors.AddressPoolError, e:
+          self.LogWarning("Cannot reserve ip %s. %s" % (ip, e))
+
+    if self.op.remove_reserved_ips:
+      for ip in self.op.remove_reserved_ips:
+        if ip == self.network.gateway:
+          self.LogWarning("Cannot unreserve Gateway's IP")
+          continue
+        try:
+          if not self.pool.IsReserved(ip):
+            self.LogWarning("IP %s is already unreserved" % ip)
+          else:
+            self.pool.Release(ip, external=True)
+        except errors.AddressPoolError, e:
+          self.LogWarning("Cannot release ip %s. %s" % (ip, e))
+
+    if self.op.mac_prefix:
+      self.network.mac_prefix = self.mac_prefix
+
+    if self.op.network6:
+      self.network.network6 = self.network6
+
+    if self.op.gateway6:
+      self.network.gateway6 = self.gateway6
+
+    if self.op.network_type:
+      self.network.network_type = self.network_type
+
+    self.pool.Validate()
+
+    self.cfg.Update(self.network, feedback_fn)
 
 
 class _NetworkQuery(_QueryBase):
