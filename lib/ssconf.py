@@ -297,6 +297,7 @@ class SimpleStore(object):
     constants.SS_MAINTAIN_NODE_HEALTH,
     constants.SS_UID_POOL,
     constants.SS_NODEGROUPS,
+    constants.SS_NETWORKS,
     )
   _MAX_SIZE = 131072
 
@@ -458,6 +459,14 @@ class SimpleStore(object):
 
     """
     data = self._ReadFile(constants.SS_NODEGROUPS)
+    nl = data.splitlines(False)
+    return nl
+
+  def GetNetworkList(self):
+    """Return the list of networks.
+
+    """
+    data = self._ReadFile(constants.SS_NETWORKS)
     nl = data.splitlines(False)
     return nl
 
