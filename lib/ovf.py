@@ -515,7 +515,7 @@ class OVFReader(object):
                        (OVF_SCHEMA, OVF_SCHEMA))
     network_names = self._GetAttributes(networks_search,
                                         "{%s}name" % OVF_SCHEMA)
-    required = ["ip", "mac", "link", "mode"]
+    required = ["ip", "mac", "link", "mode", "network"]
     for (counter, network_name) in enumerate(network_names):
       network_search = ("{%s}VirtualSystem/{%s}VirtualHardwareSection/{%s}Item"
                         % (OVF_SCHEMA, OVF_SCHEMA, OVF_SCHEMA))
@@ -537,6 +537,8 @@ class OVFReader(object):
                                                          GANETI_SCHEMA)
         ganeti_data["link"] = network_ganeti_data.findtext("{%s}Link" %
                                                            GANETI_SCHEMA)
+        ganeti_data["network"] = network_ganeti_data.findtext("{%s}Network" %
+                                                              GANETI_SCHEMA)
       mac_data = None
       if network_data:
         mac_data = network_data.findtext("{%s}Address" % RASD_SCHEMA)
@@ -758,6 +760,7 @@ class OVFWriter(object):
       SubElementText(nic, "gnt:MACAddress", network["mac"])
       SubElementText(nic, "gnt:IPAddress", network["ip"])
       SubElementText(nic, "gnt:Link", network["link"])
+      SubElementText(nic, "gnt:Network", network["network"])
 
   def SaveVirtualSystemData(self, name, vcpus, memory):
     """Convert virtual system information to OVF sections.
@@ -1329,6 +1332,8 @@ class OVFImporter(Converter):
       results["nic%s_mac" % nic_id] = nic_desc.get("mac", constants.VALUE_AUTO)
       results["nic%s_link" % nic_id] = \
         nic_desc.get("link", constants.VALUE_AUTO)
+      results["nic%s_network" % nic_id] = \
+        nic_desc.get("network", constants.VALUE_AUTO)
       if nic_desc.get("mode") == "bridged":
         results["nic%s_ip" % nic_id] = constants.VALUE_NONE
       else:
@@ -1660,7 +1665,7 @@ class OVFExporter(Converter):
     counter = 0
     while True:
       data_link = \
-        self.config_parser.get(constants.INISECT_INS, "nic%s_link" % counter)
+        self.config_parser.get(constants.INISECT_INS, "nic%s_network" % counter)
       if data_link is None:
         break
       results.append({
@@ -1670,7 +1675,9 @@ class OVFExporter(Converter):
                                       "nic%s_mac" % counter),
         "ip": self.config_parser.get(constants.INISECT_INS,
                                      "nic%s_ip" % counter),
-        "link": data_link,
+        "link": self.config_parser.get(constants.INISECT_INS,
+                                       "nic%s_link" % counter),
+        "network": data_link,
       })
       if results[counter]["mode"] not in constants.NIC_VALID_MODES:
         raise errors.OpPrereqError("Network mode %s not recognized"
