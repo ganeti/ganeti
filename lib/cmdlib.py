@@ -1340,7 +1340,7 @@ def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
   @type vcpus: string
   @param vcpus: the count of VCPUs the instance has
   @type nics: list
-  @param nics: list of tuples (ip, mac, mode, link) representing
+  @param nics: list of tuples (ip, mac, mode, link, network) representing
       the NICs the instance has
   @type disk_template: string
   @param disk_template: the disk template of the instance
@@ -1375,13 +1375,14 @@ def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
   }
   if nics:
     nic_count = len(nics)
-    for idx, (ip, mac, mode, link) in enumerate(nics):
+    for idx, (ip, mac, mode, link, network) in enumerate(nics):
       if ip is None:
         ip = ""
       env["INSTANCE_NIC%d_IP" % idx] = ip
       env["INSTANCE_NIC%d_MAC" % idx] = mac
       env["INSTANCE_NIC%d_MODE" % idx] = mode
       env["INSTANCE_NIC%d_LINK" % idx] = link
+      env["INSTANCE_NIC%d_NETWORK" % idx] = network
       if mode == constants.NIC_MODE_BRIDGED:
         env["INSTANCE_NIC%d_BRIDGE" % idx] = link
   else:
@@ -1431,7 +1432,8 @@ def _NICListToTuple(lu, nics):
     filled_params = cluster.SimpleFillNIC(nic.nicparams)
     mode = filled_params[constants.NIC_MODE]
     link = filled_params[constants.NIC_LINK]
-    hooks_nics.append((ip, mac, mode, link))
+    network = nic.network
+    hooks_nics.append((ip, mac, mode, link, network))
   return hooks_nics
 
 
@@ -9411,14 +9413,19 @@ def _ComputeNics(op, cluster, default_ip, cfg, proc):
     if nic_mode is None or nic_mode == constants.VALUE_AUTO:
       nic_mode = cluster.nicparams[constants.PP_DEFAULT][constants.NIC_MODE]
 
-    # in routed mode, for the first nic, the default ip is 'auto'
-    if nic_mode == constants.NIC_MODE_ROUTED and idx == 0:
-      default_ip_mode = constants.VALUE_AUTO
+    net = nic.get(constants.INIC_NETWORK, None)
+    link = nic.get(constants.NIC_LINK, None)
+    ip = nic.get(constants.INIC_IP, None)
+
+    if net is None or net.lower() == constants.VALUE_NONE:
+      net = None
     else:
-      default_ip_mode = constants.VALUE_NONE
+      if nic_mode_req is not None or link is not None:
+        raise errors.OpPrereqError("If network is given, no mode or link"
+                                   " is allowed to be passed",
+                                   errors.ECODE_INVAL)
 
     # ip validity checks
-    ip = nic.get(constants.INIC_IP, default_ip_mode)
     if ip is None or ip.lower() == constants.VALUE_NONE:
       nic_ip = None
     elif ip.lower() == constants.VALUE_AUTO:
@@ -9428,9 +9435,18 @@ def _ComputeNics(op, cluster, default_ip, cfg, proc):
                                    errors.ECODE_INVAL)
       nic_ip = default_ip
     else:
-      if not netutils.IPAddress.IsValid(ip):
+      # We defer pool operations until later, so that the iallocator has
+      # filled in the instance's node(s) dimara
+      if ip.lower() == constants.NIC_IP_POOL:
+        if net is None:
+          raise errors.OpPrereqError("if ip=pool, parameter network"
+                                     " must be passed too",
+                                     errors.ECODE_INVAL)
+
+      elif not netutils.IPAddress.IsValid(ip):
         raise errors.OpPrereqError("Invalid IP address '%s'" % ip,
                                    errors.ECODE_INVAL)
+
       nic_ip = ip
 
     # TODO: check the ip address for uniqueness
@@ -9452,9 +9468,6 @@ def _ComputeNics(op, cluster, default_ip, cfg, proc):
                                    errors.ECODE_NOTUNIQUE)
 
     #  Build nic parameters
-    link = nic.get(constants.INIC_LINK, None)
-    if link == constants.VALUE_AUTO:
-      link = cluster.nicparams[constants.PP_DEFAULT][constants.NIC_LINK]
     nicparams = {}
     if nic_mode_req:
       nicparams[constants.NIC_MODE] = nic_mode
@@ -9749,6 +9762,8 @@ class LUInstanceCreate(LogicalUnit):
     """Run the allocator based on input opcode.
 
     """
+    #TODO Export network to iallocator so that it chooses a pnode
+    #     in a nodegroup that has the desired network connected to
     req = _CreateInstanceAllocRequest(self.op, self.disks,
                                       self.nics, self.be_full)
     ial = iallocator.IAllocator(self.cfg, self.rpc, req)
@@ -10137,6 +10152,45 @@ class LUInstanceCreate(LogicalUnit):
                                  " '%s'" % pnode.name, errors.ECODE_STATE)
 
     self.secondaries = []
+
+    # Fill in any IPs from IP pools. This must happen here, because we need to
+    # know the nic's primary node, as specified by the iallocator
+    for idx, nic in enumerate(self.nics):
+      net = nic.network
+      if net is not None:
+        netparams = self.cfg.GetGroupNetParams(net, self.pnode.name)
+        if netparams is None:
+          raise errors.OpPrereqError("No netparams found for network"
+                                     " %s. Propably not connected to"
+                                     " node's %s nodegroup" %
+                                     (net, self.pnode.name),
+                                     errors.ECODE_INVAL)
+        self.LogInfo("NIC/%d inherits netparams %s" %
+                     (idx, netparams.values()))
+        nic.nicparams = dict(netparams)
+        if nic.ip is not None:
+          filled_params = cluster.SimpleFillNIC(nic.nicparams)
+          if nic.ip.lower() == constants.NIC_IP_POOL:
+            try:
+              nic.ip = self.cfg.GenerateIp(net, self.proc.GetECId())
+            except errors.ReservationError:
+              raise errors.OpPrereqError("Unable to get a free IP for NIC %d"
+                                         " from the address pool" % idx,
+                                         errors.ECODE_STATE)
+            self.LogInfo("Chose IP %s from network %s", nic.ip, net)
+          else:
+            try:
+              self.cfg.ReserveIp(net, nic.ip, self.proc.GetECId())
+            except errors.ReservationError:
+              raise errors.OpPrereqError("IP address %s already in use"
+                                         " or does not belong to network %s" %
+                                         (nic.ip, net),
+                                         errors.ECODE_NOTUNIQUE)
+      else:
+        # net is None, ip None or given
+        if self.op.conflicts_check:
+          _CheckForConflictingIp(self, nic.ip, self.pnode.name)
+
 
     # mirror node verification
     if self.op.disk_template in constants.DTS_INT_MIRROR:
@@ -15943,3 +15997,20 @@ def _GetQueryImplementation(name):
   except KeyError:
     raise errors.OpPrereqError("Unknown query resource '%s'" % name,
                                errors.ECODE_INVAL)
+
+def _CheckForConflictingIp(lu, ip, node):
+  """In case of conflicting ip raise error.
+
+  @type ip: string
+  @param ip: ip address
+  @type node: string
+  @param node: node name
+
+  """
+  (conf_net, conf_netparams) = lu.cfg.CheckIPInNodeGroup(ip, node)
+  if conf_net is not None:
+    raise errors.OpPrereqError("Conflicting IP found:"
+                               " %s <> %s." % (ip, conf_net),
+                               errors.ECODE_INVAL)
+
+  return (None, None)
