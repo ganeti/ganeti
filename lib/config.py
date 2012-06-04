@@ -1421,6 +1421,16 @@ class ConfigWriter:
     if network_port is not None:
       self._config_data.cluster.tcpudp_port_pool.add(network_port)
 
+    instance = self._UnlockedGetInstanceInfo(instance_name)
+
+    for nic in instance.nics:
+      if nic.network is not None and nic.ip is not None:
+        net_uuid = self._UnlockedLookupNetwork(nic.network)
+        if net_uuid:
+          # Return all IP addresses to the respective address pools
+          self._UnlockedCommitIp('release', net_uuid, nic.ip)
+
+
     del self._config_data.instances[instance_name]
     self._config_data.cluster.serial_no += 1
     self._WriteConfig()
