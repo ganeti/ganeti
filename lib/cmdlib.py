@@ -12658,28 +12658,36 @@ class LUInstanceSetParams(LogicalUnit):
     """
     if op in (constants.DDM_ADD, constants.DDM_MODIFY):
       ip = params.get(constants.INIC_IP, None)
-      if ip is None:
-        pass
-      elif ip.lower() == constants.VALUE_NONE:
-        params[constants.INIC_IP] = None
-      elif not netutils.IPAddress.IsValid(ip):
-        raise errors.OpPrereqError("Invalid IP address '%s'" % ip,
-                                   errors.ECODE_INVAL)
-
-      bridge = params.get("bridge", None)
-      link = params.get(constants.INIC_LINK, None)
-      if bridge and link:
-        raise errors.OpPrereqError("Cannot pass 'bridge' and 'link'"
-                                   " at the same time", errors.ECODE_INVAL)
-      elif bridge and bridge.lower() == constants.VALUE_NONE:
-        params["bridge"] = None
-      elif link and link.lower() == constants.VALUE_NONE:
-        params[constants.INIC_LINK] = None
+      req_net = params.get(constants.INIC_NETWORK, None)
+      link = params.get(constants.NIC_LINK, None)
+      mode = params.get(constants.NIC_MODE, None)
+      if req_net is not None:
+        if req_net.lower() == constants.VALUE_NONE:
+          params[constants.INIC_NETWORK] = None
+          req_net = None
+        elif link is not None or mode is not None:
+          raise errors.OpPrereqError("If network is given"
+                                     " mode or link should not",
+                                     errors.ECODE_INVAL)
 
       if op == constants.DDM_ADD:
         macaddr = params.get(constants.INIC_MAC, None)
         if macaddr is None:
           params[constants.INIC_MAC] = constants.VALUE_AUTO
+
+      if ip is not None:
+        if ip.lower() == constants.VALUE_NONE:
+          params[constants.INIC_IP] = None
+        else:
+          if ip.lower() == constants.NIC_IP_POOL:
+            if op == constants.DDM_ADD and req_net is None:
+              raise errors.OpPrereqError("If ip=pool, parameter network"
+                                         " cannot be none",
+                                         errors.ECODE_INVAL)
+          else:
+            if not netutils.IPAddress.IsValid(ip):
+              raise errors.OpPrereqError("Invalid IP address '%s'" % ip,
+                                         errors.ECODE_INVAL)
 
       if constants.INIC_MAC in params:
         macaddr = params[constants.INIC_MAC]
@@ -12768,7 +12776,7 @@ class LUInstanceSetParams(LogicalUnit):
         nicparams = self.cluster.SimpleFillNIC(nic.nicparams)
         mode = nicparams[constants.NIC_MODE]
         link = nicparams[constants.NIC_LINK]
-        nics.append((nic.ip, nic.mac, mode, link))
+        nics.append((nic.ip, nic.mac, mode, link, nic.network))
 
       args["nics"] = nics
 
@@ -12787,16 +12795,27 @@ class LUInstanceSetParams(LogicalUnit):
     nl = [self.cfg.GetMasterNode()] + list(self.instance.all_nodes)
     return (nl, nl)
 
-  def _PrepareNicModification(self, params, private, old_ip, old_params,
-                              cluster, pnode):
+  def _PrepareNicModification(self, params, private, old_ip, old_net,
+                              old_params, cluster, pnode):
+
     update_params_dict = dict([(key, params[key])
                                for key in constants.NICS_PARAMETERS
                                if key in params])
 
-    if "bridge" in params:
-      update_params_dict[constants.NIC_LINK] = params["bridge"]
+    req_link = update_params_dict.get(constants.NIC_LINK, None)
+    req_mode = update_params_dict.get(constants.NIC_MODE, None)
 
-    new_params = _GetUpdatedParams(old_params, update_params_dict)
+    new_net = params.get(constants.INIC_NETWORK, old_net)
+    if new_net is not None:
+      netparams = self.cfg.GetGroupNetParams(new_net, pnode)
+      if netparams is None:
+        raise errors.OpPrereqError("No netparams found for the network"
+                                   " %s, propably not connected." % new_net,
+                                   errors.ECODE_INVAL)
+      new_params = dict(netparams)
+    else:
+      new_params = _GetUpdatedParams(old_params, update_params_dict)
+
     utils.ForceDictType(new_params, constants.NICS_PARAMETER_TYPES)
 
     new_filled_params = cluster.SimpleFillNIC(new_params)
@@ -12836,6 +12855,64 @@ class LUInstanceSetParams(LogicalUnit):
           raise errors.OpPrereqError("MAC address '%s' already in use"
                                      " in cluster" % mac,
                                      errors.ECODE_NOTUNIQUE)
+    elif new_net != old_net:
+      def get_net_prefix(net):
+        if net:
+          uuid = self.cfg.LookupNetwork(net)
+          if uuid:
+            nobj = self.cfg.GetNetwork(uuid)
+            return nobj.mac_prefix
+        return None
+      new_prefix = get_net_prefix(new_net)
+      old_prefix = get_net_prefix(old_net)
+      if old_prefix != new_prefix:
+        params[constants.INIC_MAC] = \
+          self.cfg.GenerateMAC(self.proc.GetECId())
+
+    #if there is a change in nic-network configuration
+    new_ip = params.get(constants.INIC_IP, old_ip)
+    if (new_ip, new_net) != (old_ip, old_net):
+      if new_ip:
+        if new_net:
+          if new_ip.lower() == constants.NIC_IP_POOL:
+            try:
+              new_ip = self.cfg.GenerateIp(new_net, self.proc.GetECId())
+            except errors.ReservationError:
+              raise errors.OpPrereqError("Unable to get a free IP"
+                                         " from the address pool",
+                                         errors.ECODE_STATE)
+            self.LogInfo("Chose IP %s from pool %s", new_ip, new_net)
+            params[constants.INIC_IP] = new_ip
+          elif new_ip != old_ip or new_net != old_net:
+            try:
+              self.LogInfo("Reserving IP %s in pool %s", new_ip, new_net)
+              self.cfg.ReserveIp(new_net, new_ip, self.proc.GetECId())
+            except errors.ReservationError:
+              raise errors.OpPrereqError("IP %s not available in network %s" %
+                                         (new_ip, new_net),
+                                         errors.ECODE_NOTUNIQUE)
+        elif new_ip.lower() == constants.NIC_IP_POOL:
+          raise errors.OpPrereqError("ip=pool, but no network found",
+                                     ECODEE_INVAL)
+        else:
+          # new net is None
+          if self.op.conflicts_check:
+            _CheckForConflictingIp(self, new_ip, pnode)
+
+      if old_ip:
+        if old_net:
+          try:
+            self.cfg.ReleaseIp(old_net, old_ip, self.proc.GetECId())
+          except errors.AddressPoolError:
+            logging.warning("Release IP %s not contained in network %s",
+                            old_ip, old_net)
+
+    # there are no changes in (net, ip) tuple
+    elif (old_net is not None and
+          (req_link is not None or req_mode is not None)):
+      raise errors.OpPrereqError("Not allowed to change link or mode of"
+                                 " a NIC that is connected to a network.",
+                                 errors.ECODE_INVAL)
 
     private.params = new_params
     private.filled = new_filled_params
@@ -13073,18 +13150,25 @@ class LUInstanceSetParams(LogicalUnit):
                                  " diskless instances", errors.ECODE_INVAL)
 
     def _PrepareNicCreate(_, params, private):
-      self._PrepareNicModification(params, private, None, {}, cluster, pnode)
+      self._PrepareNicModification(params, private, None, None,
+                                   {}, cluster, pnode)
       return (None, None)
 
     def _PrepareNicMod(_, nic, params, private):
-      self._PrepareNicModification(params, private, nic.ip,
+      self._PrepareNicModification(params, private, nic.ip, nic.network,
                                    nic.nicparams, cluster, pnode)
       return None
+
+    def _PrepareNicRemove(_, params, private):
+      ip = params.ip
+      net = params.network
+      if net is not None and ip is not None:
+        self.cfg.ReleaseIp(net, ip, self.proc.GetECId())
 
     # Verify NIC changes (operating on copy)
     nics = instance.nics[:]
     ApplyContainerMods("NIC", nics, None, self.nicmod,
-                       _PrepareNicCreate, _PrepareNicMod, None)
+                       _PrepareNicCreate, _PrepareNicMod, _PrepareNicRemove)
     if len(nics) > constants.MAX_NICS:
       raise errors.OpPrereqError("Instance has too many network interfaces"
                                  " (%d), cannot add more" % constants.MAX_NICS,
@@ -13301,13 +13385,16 @@ class LUInstanceSetParams(LogicalUnit):
     """
     mac = params[constants.INIC_MAC]
     ip = params.get(constants.INIC_IP, None)
-    nicparams = private.params
+    network = params.get(constants.INIC_NETWORK, None)
+    #TODO: not private.filled?? can a nic have no nicparams??
+    nicparams = private.filled
 
-    return (objects.NIC(mac=mac, ip=ip, nicparams=nicparams), [
+    return (objects.NIC(mac=mac, ip=ip, network=network, nicparams=nicparams), [
       ("nic.%d" % idx,
-       "add:mac=%s,ip=%s,mode=%s,link=%s" %
+       "add:mac=%s,ip=%s,mode=%s,link=%s,network=%s" %
        (mac, ip, private.filled[constants.NIC_MODE],
-       private.filled[constants.NIC_LINK])),
+       private.filled[constants.NIC_LINK],
+       network)),
       ])
 
   @staticmethod
@@ -13317,15 +13404,15 @@ class LUInstanceSetParams(LogicalUnit):
     """
     changes = []
 
-    for key in [constants.INIC_MAC, constants.INIC_IP]:
+    for key in [constants.INIC_MAC, constants.INIC_IP, constants.INIC_NETWORK]:
       if key in params:
         changes.append(("nic.%s/%d" % (key, idx), params[key]))
         setattr(nic, key, params[key])
 
-    if private.params:
-      nic.nicparams = private.params
+    if private.filled:
+      nic.nicparams = private.filled
 
-      for (key, val) in params.items():
+      for (key, val) in nic.nicparams.items():
         changes.append(("nic.%s/%d" % (key, idx), val))
 
     return changes
@@ -13433,7 +13520,7 @@ class LUInstanceSetParams(LogicalUnit):
       self.cfg.MarkInstanceDown(instance.name)
       result.append(("admin_state", constants.ADMINST_DOWN))
 
-    self.cfg.Update(instance, feedback_fn)
+    self.cfg.Update(instance, feedback_fn, self.proc.GetECId())
 
     assert not (self.owned_locks(locking.LEVEL_NODE_RES) or
                 self.owned_locks(locking.LEVEL_NODE)), \

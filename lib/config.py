@@ -2303,7 +2303,7 @@ class ConfigWriter:
     return self._config_data.HasAnyDiskOfType(dev_type)
 
   @locking.ssynchronized(_config_lock)
-  def Update(self, target, feedback_fn):
+  def Update(self, target, feedback_fn, ec_id=None):
     """Notify function to be called after updates.
 
     This function must be called when an object (as returned by
@@ -2349,6 +2349,10 @@ class ConfigWriter:
 
     if isinstance(target, objects.Instance):
       self._UnlockedReleaseDRBDMinors(target.name)
+
+    if ec_id is not None:
+      # Commit all ips reserved by OpInstanceSetParams and OpGroupSetParams
+      self._UnlockedCommitTemporaryIps(ec_id)
 
     self._WriteConfig(feedback_fn=feedback_fn)
 
