@@ -62,6 +62,7 @@ REQ_QUERY_JOBS = "QueryJobs"
 REQ_QUERY_INSTANCES = "QueryInstances"
 REQ_QUERY_NODES = "QueryNodes"
 REQ_QUERY_GROUPS = "QueryGroups"
+REQ_QUERY_NETWORKS = "QueryNetworks"
 REQ_QUERY_EXPORTS = "QueryExports"
 REQ_QUERY_CONFIG_VALUES = "QueryConfigValues"
 REQ_QUERY_CLUSTER_INFO = "QueryClusterInfo"
@@ -565,6 +566,9 @@ class Client(object):
 
   def QueryGroups(self, names, fields, use_locking):
     return self.CallMethod(REQ_QUERY_GROUPS, (names, fields, use_locking))
+
+  def QueryNetworks(self, names, fields, use_locking):
+    return self.CallMethod(REQ_QUERY_NETWORKS, (names, fields, use_locking))
 
   def QueryExports(self, nodes, use_locking):
     return self.CallMethod(REQ_QUERY_EXPORTS, (nodes, use_locking))

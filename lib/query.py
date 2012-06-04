@@ -71,6 +71,10 @@ from ganeti.constants import (QFT_UNKNOWN, QFT_TEXT, QFT_BOOL, QFT_NUMBER,
                               RS_NORMAL, RS_UNKNOWN, RS_NODATA,
                               RS_UNAVAIL, RS_OFFLINE)
 
+(NETQ_CONFIG,
+ NETQ_GROUP,
+ NETQ_STATS,
+ NETQ_INST) = range(300, 304)
 
 # Constants for requesting data from the caller/data provider. Each property
 # collected/computed separately by the data provider should have its own to
@@ -2422,6 +2426,131 @@ def _BuildClusterFields():
     ])
 
 
+class NetworkQueryData:
+  """Data container for network data queries.
+
+  """
+  def __init__(self, networks, network_to_groups,
+               network_to_instances, stats):
+    """Initializes this class.
+
+    @param networks: List of network objects
+    @type network_to_groups: dict; network UUID as key
+    @param network_to_groups: Per-network list of groups
+    @type network_to_instances: dict; network UUID as key
+    @param network_to_instances: Per-network list of instances
+    @type stats: dict; network UUID as key
+    @param stats: Per-network usage statistics
+
+    """
+    self.networks = networks
+    self.network_to_groups = network_to_groups
+    self.network_to_instances = network_to_instances
+    self.stats = stats
+
+  def __iter__(self):
+    """Iterate over all networks.
+
+    """
+    for net in self.networks:
+      if self.stats:
+        self.curstats = self.stats.get(net.uuid, None)
+      else:
+        self.curstats = None
+      yield net
+
+
+_NETWORK_SIMPLE_FIELDS = {
+  "name": ("Network", QFT_TEXT, 0, "The network"),
+  "network": ("Subnet", QFT_TEXT, 0, "The subnet"),
+  "gateway": ("Gateway", QFT_OTHER, 0, "The gateway"),
+  "network6": ("IPv6Subnet", QFT_OTHER, 0, "The ipv6 subnet"),
+  "gateway6": ("IPv6Gateway", QFT_OTHER, 0, "The ipv6 gateway"),
+  "mac_prefix": ("MacPrefix", QFT_OTHER, 0, "The mac prefix"),
+  "network_type": ("NetworkType", QFT_OTHER, 0, "The network type"),
+  }
+
+
+_NETWORK_STATS_FIELDS = {
+  "free_count": ("FreeCount", QFT_NUMBER, 0, "How many addresses are free"),
+  "reserved_count": ("ReservedCount", QFT_NUMBER, 0, "How many addresses are reserved"),
+  "map": ("Map", QFT_TEXT, 0, "The actual mapping"),
+  "external_reservations": ("ExternalReservations", QFT_TEXT, 0, "The external reservations"),
+  }
+
+
+def _GetNetworkStatsField(field, kind, ctx, net):
+  """Gets the value of a "stats" field from L{NetworkQueryData}.
+
+  @param field: Field name
+  @param kind: Data kind, one of L{constants.QFT_ALL}
+  @type ctx: L{NetworkQueryData}
+
+  """
+
+  try:
+    value = ctx.curstats[field]
+  except KeyError:
+    return _FS_UNAVAIL
+
+  if kind == QFT_TEXT:
+    return value
+
+  assert kind in (QFT_NUMBER, QFT_UNIT)
+
+  # Try to convert into number
+  try:
+    return int(value)
+  except (ValueError, TypeError):
+    logging.exception("Failed to convert network field '%s' (value %r) to int",
+                      value, field)
+    return _FS_UNAVAIL
+
+
+def _BuildNetworkFields():
+  """Builds list of fields for network queries.
+
+  """
+  # Add simple fields
+  fields = [
+    (_MakeField(name, title, kind, doc),
+     NETQ_CONFIG, 0, _GetItemAttr(name))
+    for (name, (title, kind, flags, doc)) in _NETWORK_SIMPLE_FIELDS.items()]
+
+  def _GetLength(getter):
+    return lambda ctx, network: len(getter(ctx)[network.uuid])
+
+  def _GetSortedList(getter):
+    return lambda ctx, network: utils.NiceSort(getter(ctx)[network.uuid])
+
+  network_to_groups = operator.attrgetter("network_to_groups")
+  network_to_instances = operator.attrgetter("network_to_instances")
+
+  # Add fields for node groups
+  fields.extend([
+    (_MakeField("group_cnt", "NodeGroups", QFT_NUMBER, "Number of nodegroups"),
+     NETQ_GROUP, 0, _GetLength(network_to_groups)),
+	(_MakeField("group_list", "GroupList", QFT_OTHER, "List of nodegroups"),
+     NETQ_GROUP, 0, _GetSortedList(network_to_groups)),
+    ])
+
+  # Add fields for instances
+  fields.extend([
+    (_MakeField("inst_cnt", "Instances", QFT_NUMBER, "Number of instances"),
+     NETQ_INST, 0, _GetLength(network_to_instances)),
+    (_MakeField("inst_list", "InstanceList", QFT_OTHER, "List of instances"),
+     NETQ_INST, 0, _GetSortedList(network_to_instances)),
+    ])
+
+  # Add fields for usage statistics
+  fields.extend([
+    (_MakeField(name, title, kind, doc), NETQ_STATS, 0,
+    compat.partial(_GetNetworkStatsField, name, kind))
+    for (name, (title, kind, flags, doc)) in _NETWORK_STATS_FIELDS.items()
+    ])
+
+  return _PrepareFieldList(fields, [])
+
 #: Fields for cluster information
 CLUSTER_FIELDS = _BuildClusterFields()
 
@@ -2446,6 +2575,9 @@ JOB_FIELDS = _BuildJobFields()
 #: Fields available for exports
 EXPORT_FIELDS = _BuildExportFields()
 
+#: Fields available for network queries
+NETWORK_FIELDS = _BuildNetworkFields()
+
 #: All available resources
 ALL_FIELDS = {
   constants.QR_CLUSTER: CLUSTER_FIELDS,
@@ -2456,6 +2588,7 @@ ALL_FIELDS = {
   constants.QR_OS: OS_FIELDS,
   constants.QR_JOB: JOB_FIELDS,
   constants.QR_EXPORT: EXPORT_FIELDS,
+  constants.QR_NETWORK: NETWORK_FIELDS,
   }
 
 #: All available field lists

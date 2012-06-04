@@ -15479,18 +15479,120 @@ class LUNetworkSetParams(LogicalUnit):
 
 
 class _NetworkQuery(_QueryBase):
+  FIELDS = query.NETWORK_FIELDS
+
   def ExpandNames(self, lu):
-    pass
+    lu.needed_locks = {}
+
+    self._all_networks = lu.cfg.GetAllNetworksInfo()
+    name_to_uuid = dict((n.name, n.uuid) for n in self._all_networks.values())
+
+    if not self.names:
+      self.wanted = [name_to_uuid[name]
+                     for name in utils.NiceSort(name_to_uuid.keys())]
+    else:
+      # Accept names to be either names or UUIDs.
+      missing = []
+      self.wanted = []
+      all_uuid = frozenset(self._all_networks.keys())
+
+      for name in self.names:
+        if name in all_uuid:
+          self.wanted.append(name)
+        elif name in name_to_uuid:
+          self.wanted.append(name_to_uuid[name])
+        else:
+          missing.append(name)
+
+      if missing:
+        raise errors.OpPrereqError("Some networks do not exist: %s" % missing,
+                                   errors.ECODE_NOENT)
 
   def DeclareLocks(self, lu, level):
     pass
 
   def _GetQueryData(self, lu):
-    pass
+    """Computes the list of networks and their attributes.
+
+    """
+    do_instances = query.NETQ_INST in self.requested_data
+    do_groups = do_instances or (query.NETQ_GROUP in self.requested_data)
+    do_stats = query.NETQ_STATS in self.requested_data
+    cluster = lu.cfg.GetClusterInfo()
+
+    network_to_groups = None
+    network_to_instances = None
+    stats = None
+
+    # For NETQ_GROUP, we need to map network->[groups]
+    if do_groups:
+      all_groups = lu.cfg.GetAllNodeGroupsInfo()
+      network_to_groups = dict((uuid, []) for uuid in self.wanted)
+      default_nicpp = cluster.nicparams[constants.PP_DEFAULT]
+
+      if do_instances:
+        all_instances = lu.cfg.GetAllInstancesInfo()
+        all_nodes = lu.cfg.GetAllNodesInfo()
+        network_to_instances = dict((uuid, []) for uuid in self.wanted)
+
+
+      for group in all_groups.values():
+        if do_instances:
+          group_nodes = [node.name for node in all_nodes.values() if
+                         node.group == group.uuid]
+          group_instances = [instance for instance in all_instances.values()
+                             if instance.primary_node in group_nodes]
+
+        for net_uuid in group.networks.keys():
+          if net_uuid in network_to_groups:
+            netparams = group.networks[net_uuid]
+            mode = netparams[constants.NIC_MODE]
+            link = netparams[constants.NIC_LINK]
+            info = group.name + '(' + mode + ', ' + link + ')'
+            network_to_groups[net_uuid].append(info)
+
+            if do_instances:
+              for instance in group_instances:
+                for nic in instance.nics:
+                  if nic.network == self._all_networks[net_uuid].name:
+                    network_to_instances[net_uuid].append(instance.name)
+                    break
+
+    if do_stats:
+      stats = {}
+      for uuid, net in self._all_networks.items():
+        if uuid in self.wanted:
+          pool = network.AddressPool(net)
+          stats[uuid] = {
+            "free_count": pool.GetFreeCount(),
+            "reserved_count": pool.GetReservedCount(),
+            "map": pool.GetMap(),
+            "external_reservations": ", ".join(pool.GetExternalReservations()),
+            }
+
+    return query.NetworkQueryData([self._all_networks[uuid]
+                                   for uuid in self.wanted],
+                                   network_to_groups,
+                                   network_to_instances,
+                                   stats)
 
 
 class LUNetworkQuery(NoHooksLU):
-  pass
+  """Logical unit for querying networks.
+
+  """
+  REQ_BGL = False
+
+  def CheckArguments(self):
+    self.nq = _NetworkQuery(qlang.MakeSimpleFilter("name", self.op.names),
+                            self.op.output_fields, False)
+
+  def ExpandNames(self):
+    self.nq.ExpandNames(self)
+
+  def Exec(self, feedback_fn):
+    return self.nq.OldStyleQuery(self)
+
 
 
 class LUNetworkConnect(LogicalUnit):
