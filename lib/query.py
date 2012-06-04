@@ -1550,6 +1550,20 @@ def _GetInstNic(index, cb):
   return fn
 
 
+def _GetInstNicNetwork(ctx, _, nic): # pylint: disable=W0613
+  """Get a NIC's Network.
+
+  @type ctx: L{InstanceQueryData}
+  @type nic: L{objects.NIC}
+  @param nic: NIC object
+
+  """
+  if nic.network is None:
+    return _FS_UNAVAIL
+  else:
+    return nic.network
+
+
 def _GetInstNicIp(ctx, _, nic): # pylint: disable=W0613
   """Get a NIC's IP address.
 
@@ -1661,6 +1675,9 @@ def _GetInstanceNetworkFields():
     (_MakeField("nic.bridges", "NIC_bridges", QFT_OTHER,
                 "List containing each network interface's bridge"),
      IQ_CONFIG, 0, _GetInstAllNicBridges),
+    (_MakeField("nic.networks", "NIC_networks", QFT_OTHER,
+                "List containing each interface's network"), IQ_CONFIG, 0,
+     lambda ctx, inst: [nic.network for nic in inst.nics]),
     ]
 
   # NICs by number
@@ -1682,6 +1699,9 @@ def _GetInstanceNetworkFields():
       (_MakeField("nic.bridge/%s" % i, "NicBridge/%s" % i, QFT_TEXT,
                   "Bridge of %s network interface" % numtext),
        IQ_CONFIG, 0, _GetInstNic(i, _GetInstNicBridge)),
+      (_MakeField("nic.network/%s" % i, "NicNetwork/%s" % i, QFT_TEXT,
+                  "Network of %s network interface" % numtext),
+       IQ_CONFIG, 0, _GetInstNic(i, _GetInstNicNetwork)),
       ])
 
   aliases = [
@@ -1691,6 +1711,7 @@ def _GetInstanceNetworkFields():
     ("bridge", "nic.bridge/0"),
     ("nic_mode", "nic.mode/0"),
     ("nic_link", "nic.link/0"),
+    ("nic_network", "nic.network/0"),
     ]
 
   return (fields, aliases)

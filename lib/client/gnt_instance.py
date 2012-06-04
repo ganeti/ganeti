@@ -220,6 +220,7 @@ def ListInstances(opts, args):
 
   fmtoverride = dict.fromkeys(["tags", "disk.sizes", "nic.macs", "nic.ips",
                                "nic.modes", "nic.links", "nic.bridges",
+                               "nic.networks",
                                "snodes", "snodes.group", "snodes.group.uuid"],
                               (lambda value: ",".join(str(item)
                                                       for item in value),
@@ -1177,9 +1178,10 @@ def ShowInstanceConfig(opts, args):
     FormatParameterDict(buf, instance["be_instance"], be_actual, level=2)
     # TODO(ganeti 2.7) rework the NICs as well
     buf.write("    - NICs:\n")
-    for idx, (ip, mac, mode, link) in enumerate(instance["nics"]):
-      buf.write("      - nic/%d: MAC: %s, IP: %s, mode: %s, link: %s\n" %
-                (idx, mac, ip, mode, link))
+    for idx, (ip, mac, mode, link, network) in enumerate(instance["nics"]):
+      buf.write("      - nic/%d: MAC: %s, IP: %s,"
+                " mode: %s, link: %s, network: %s\n" %
+                (idx, mac, ip, mode, link, network))
     buf.write("  Disk template: %s\n" % instance["disk_template"])
     buf.write("  Disks:\n")
 

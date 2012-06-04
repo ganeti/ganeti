@@ -2467,6 +2467,7 @@ def GenericInstanceCreate(mode, opts, args):
                                 disks=disks,
                                 disk_template=opts.disk_template,
                                 nics=nics,
+                                conflicts_check=opts.conflicts_check,
                                 pnode=pnode, snode=snode,
                                 ip_check=opts.ip_check,
                                 name_check=opts.name_check,
