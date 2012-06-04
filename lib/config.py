@@ -108,6 +108,13 @@ class TemporaryReservationManager:
       all_reserved.update(holder_reserved)
     return all_reserved
 
+  def GetECReserved(self, ec_id):
+    ec_reserved = set()
+    if ec_id in self._ec_reserved:
+      ec_reserved.update(self._ec_reserved[ec_id])
+    return ec_reserved
+
+
   def Generate(self, existing, generate_one_fn, ec_id):
     """Generate a new resource of this type
 
@@ -178,8 +185,10 @@ class ConfigWriter:
     self._temporary_macs = TemporaryReservationManager()
     self._temporary_secrets = TemporaryReservationManager()
     self._temporary_lvs = TemporaryReservationManager()
+    self._temporary_ips = TemporaryReservationManager()
     self._all_rms = [self._temporary_ids, self._temporary_macs,
-                     self._temporary_secrets, self._temporary_lvs]
+                     self._temporary_secrets, self._temporary_lvs,
+                     self._temporary_ips]
     # Note: in order to prevent errors when resolving our name in
     # _DistributeConfig, we compute it here once and reuse it; it's
     # better to raise an error before starting to modify the config
@@ -290,6 +299,93 @@ class ConfigWriter:
       raise errors.ReservationError("mac already in use")
     else:
       self._temporary_macs.Reserve(ec_id, mac)
+
+  def _UnlockedCommitTemporaryIps(self, ec_id):
+    """Commit all reserved IP address to their respective pools
+
+    """
+    for action, address, net_uuid in self._temporary_ips.GetECReserved(ec_id):
+      self._UnlockedCommitIp(action, net_uuid, address)
+
+  def _UnlockedCommitIp(self, action, net_uuid, address):
+    """Commit a reserved IP address to an IP pool.
+
+    The IP address is taken from the network's IP pool and marked as reserved.
+
+    """
+    nobj = self._UnlockedGetNetwork(net_uuid)
+    pool = network.AddressPool(nobj)
+    if action == 'reserve':
+      pool.Reserve(address)
+    elif action == 'release':
+      pool.Release(address)
+
+  def _UnlockedReleaseIp(self, net_uuid, address, ec_id):
+    """Give a specific IP address back to an IP pool.
+
+    The IP address is returned to the IP pool designated by pool_id and marked
+    as reserved.
+
+    """
+    nobj = self._UnlockedGetNetwork(net_uuid)
+    pool = network.AddressPool(nobj)
+    self._temporary_ips.Reserve(ec_id, ('release', address, net_uuid))
+
+  @locking.ssynchronized(_config_lock, shared=1)
+  def ReleaseIp(self, network, address, ec_id):
+    """Give a specified IP address back to an IP pool.
+
+    This is just a wrapper around _UnlockedReleaseIp.
+
+    """
+    net_uuid = self._UnlockedLookupNetwork(network)
+    if net_uuid:
+      self._UnlockedReleaseIp(net_uuid, address, ec_id)
+
+  @locking.ssynchronized(_config_lock, shared=1)
+  def GenerateIp(self, net, ec_id):
+    """Find a free IPv4 address for an instance.
+
+    """
+    net_uuid = self._UnlockedLookupNetwork(net)
+    nobj = self._UnlockedGetNetwork(net_uuid)
+    pool = network.AddressPool(nobj)
+    gen_free = pool.GenerateFree()
+
+    def gen_one():
+      try:
+        ip = gen_free()
+      except StopIteration:
+        raise errors.ReservationError("Cannot generate IP. Network is full")
+      return ("reserve", ip, net_uuid)
+
+    _ ,address, _ = self._temporary_ips.Generate([], gen_one, ec_id)
+    return address
+
+  def _UnlockedReserveIp(self, net_uuid, address, ec_id):
+    """Reserve a given IPv4 address for use by an instance.
+
+    """
+    nobj = self._UnlockedGetNetwork(net_uuid)
+    pool = network.AddressPool(nobj)
+    try:
+      isreserved = pool.IsReserved(address)
+    except errors.AddressPoolError:
+      raise errors.ReservationError("IP address not in network")
+    if isreserved:
+      raise errors.ReservationError("IP address already in use")
+
+    return self._temporary_ips.Reserve(ec_id, ('reserve', address, net_uuid))
+
+
+  @locking.ssynchronized(_config_lock, shared=1)
+  def ReserveIp(self, net, address, ec_id):
+    """Reserve a given IPv4 address for use by an instance.
+
+    """
+    net_uuid = self._UnlockedLookupNetwork(net)
+    if net_uuid:
+      return self._UnlockedReserveIp(net_uuid, address, ec_id)
 
   @locking.ssynchronized(_config_lock, shared=1)
   def ReserveLV(self, lv_name, ec_id):
@@ -682,7 +778,7 @@ class ConfigWriter:
         else:
           raise errors.ProgrammerError("NIC mode '%s' not handled" % nic_mode)
 
-        _AddIpAddress("%s/%s" % (link, nic.ip),
+        _AddIpAddress("%s/%s/%s" % (link, nic.ip, nic.network),
                       "instance:%s/nic:%d" % (instance.name, idx))
 
     for ip, owners in ips.items():
@@ -2390,3 +2486,58 @@ class ConfigWriter:
     del self._config_data.networks[network_uuid]
     self._config_data.cluster.serial_no += 1
     self._WriteConfig()
+
+  def _UnlockedGetGroupNetParams(self, net, node):
+    """Get the netparams (mode, link) of a network.
+
+    Get a network's netparams for a given node.
+
+    @type net: string
+    @param net: network name
+    @type node: string
+    @param node: node name
+    @rtype: dict or None
+    @return: netparams
+
+    """
+    net_uuid = self._UnlockedLookupNetwork(net)
+    if net_uuid is None:
+      return None
+
+    node_info = self._UnlockedGetNodeInfo(node)
+    nodegroup_info = self._UnlockedGetNodeGroup(node_info.group)
+    netparams = nodegroup_info.networks.get(net_uuid, None)
+
+    return netparams
+
+  @locking.ssynchronized(_config_lock, shared=1)
+  def GetGroupNetParams(self, net, node):
+    """Locking wrapper of _UnlockedGetGroupNetParams()
+
+    """
+    return self._UnlockedGetGroupNetParams(net, node)
+
+
+  @locking.ssynchronized(_config_lock, shared=1)
+  def CheckIPInNodeGroup(self, ip, node):
+    """Check for conflictig IP.
+
+    @type ip: string
+    @param ip: ip address
+    @type node: string
+    @param node: node name
+    @rtype: (string, dict) or (None, None)
+    @return: (network name, netparams)
+
+    """
+    if ip is None:
+      return (None, None)
+    node_info = self._UnlockedGetNodeInfo(node)
+    nodegroup_info = self._UnlockedGetNodeGroup(node_info.group)
+    for net_uuid in nodegroup_info.networks.keys():
+      net_info = self._UnlockedGetNetwork(net_uuid)
+      pool = network.AddressPool(net_info)
+      if pool._Contains(ip):
+        return (net_info.name, nodegroup_info.networks[net_uuid])
+
+    return (None, None)
