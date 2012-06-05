@@ -39,6 +39,7 @@ import random
 import logging
 import time
 import itertools
+from functools import wraps
 
 from ganeti import errors
 from ganeti import locking
@@ -219,16 +220,30 @@ class ConfigWriter:
     """
     return os.path.exists(pathutils.CLUSTER_CONF_FILE)
 
-  def _GenerateOneMAC(self):
+  def _GenerateMACPrefix(self, net=None):
+    def _get_mac_prefix(view_func):
+      def _decorator(*args, **kwargs):
+        prefix = self._config_data.cluster.mac_prefix
+        if net:
+          net_uuid = self._UnlockedLookupNetwork(net)
+          if net_uuid:
+            nobj = self._UnlockedGetNetwork(net_uuid)
+            if nobj.mac_prefix:
+              prefix = nobj.mac_prefix
+        suffix = view_func(*args, **kwargs)
+        return prefix+':'+suffix
+      return wraps(view_func)(_decorator)
+    return _get_mac_prefix
+
+  def _GenerateMACSuffix(self):
     """Generate one mac address
 
     """
-    prefix = self._config_data.cluster.mac_prefix
     byte1 = random.randrange(0, 256)
     byte2 = random.randrange(0, 256)
     byte3 = random.randrange(0, 256)
-    mac = "%s:%02x:%02x:%02x" % (prefix, byte1, byte2, byte3)
-    return mac
+    suffix = "%02x:%02x:%02x" % (byte1, byte2, byte3)
+    return suffix
 
   @locking.ssynchronized(_config_lock, shared=1)
   def GetNdParams(self, node):
@@ -277,14 +292,15 @@ class ConfigWriter:
     return self._config_data.cluster.SimpleFillDP(group.diskparams)
 
   @locking.ssynchronized(_config_lock, shared=1)
-  def GenerateMAC(self, ec_id):
+  def GenerateMAC(self, net, ec_id):
     """Generate a MAC for an instance.
 
     This should check the current instances for duplicates.
 
     """
     existing = self._AllMACs()
-    return self._temporary_ids.Generate(existing, self._GenerateOneMAC, ec_id)
+    gen_mac = self._GenerateMACPrefix(net)(self._GenerateMACSuffix)
+    return self._temporary_ids.Generate(existing, gen_mac, ec_id)
 
   @locking.ssynchronized(_config_lock, shared=1)
   def ReserveMAC(self, mac, ec_id):
