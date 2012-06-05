@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2007, 2011 Google Inc.
+# Copyright (C) 2007, 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -207,7 +207,7 @@ def GetSSHCommand(node, cmd, strict=True, opts=None, tty=None):
   @param tty: if we should use tty; if None, will be auto-detected
 
   """
-  args = ["ssh", "-oEscapeChar=none", "-oBatchMode=yes", "-l", "root"]
+  args = ["ssh", "-oEscapeChar=none", "-oBatchMode=yes", "-lroot"]
 
   if tty is None:
     tty = sys.stdout.isatty()
@@ -235,11 +235,15 @@ def GetSSHCommand(node, cmd, strict=True, opts=None, tty=None):
   return args
 
 
-def StartLocalCommand(cmd, **kwargs):
+def StartLocalCommand(cmd, _nolog_opts=False, **kwargs):
   """Starts a local command.
 
   """
-  print "Command: %s" % utils.ShellQuoteArgs(cmd)
+  if _nolog_opts:
+    pcmd = [i for i in cmd if not i.startswith("-")]
+  else:
+    pcmd = cmd
+  print "Command: %s" % utils.ShellQuoteArgs(pcmd)
   return subprocess.Popen(cmd, shell=False, **kwargs)
 
 
@@ -247,7 +251,8 @@ def StartSSH(node, cmd, strict=True):
   """Starts SSH.
 
   """
-  return StartLocalCommand(GetSSHCommand(node, cmd, strict=strict))
+  return StartLocalCommand(GetSSHCommand(node, cmd, strict=strict),
+                           _nolog_opts=True)
 
 
 def StartMultiplexer(node):
