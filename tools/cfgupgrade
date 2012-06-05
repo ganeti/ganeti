@@ -97,6 +97,19 @@ def CheckHostname(path):
                   " the master node", ssconf_master_node, hostname)
   return False
 
+def UpgradeNetworks(config_data):
+  networks = config_data.get("networks", None)
+  if not networks:
+    config_data["networks"] = {}
+
+
+def UpgradeGroups(config_data):
+  nicparams = config_data["cluster"]["nicparams"]["default"]
+  for group in config_data["nodegroups"].values():
+    networks = group.get("networks", None)
+    if not networks:
+      group["networks"] = {}
+
 
 def main():
   """Main program.
@@ -278,6 +291,9 @@ def main():
                     mode=0600,
                     dry_run=options.dry_run,
                     backup=True)
+
+  UpgradeNetworks(config_data)
+  UpgradeGroups(config_data)
 
   try:
     logging.info("Writing configuration file to %s", options.CONFIG_DATA_PATH)
