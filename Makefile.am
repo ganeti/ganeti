@@ -151,8 +151,8 @@ CLEANFILES = \
 	.hpc/*.mix htools/*.tix \
 	doc/hs-lint.html
 
-# BUILT_SOURCES should only be used as a dependency on phony targets. Otherwise
-# it'll cause the target to rebuild every time.
+# BUILT_SOURCES should only be used as a dependency on phony
+# targets. Otherwise it'll cause the target to rebuild every time.
 BUILT_SOURCES = \
 	ganeti \
 	stamp-srclinks \
@@ -830,8 +830,12 @@ man/footer.html: man/footer.rst
 	  { echo 'pandoc' not found during configure; exit 1; }
 	$(PANDOC) -f rst -t html -o $@ $<
 
-man/%.gen: man/%.rst lib/query.py lib/build/sphinx_ext.py
-	PYTHONPATH=. $(RUN_IN_TEMPDIR) $(CURDIR)/$(DOCPP) < $< > $@
+man/%.gen: man/%.rst lib/query.py lib/build/sphinx_ext.py \
+	| $(RUN_IN_TEMPDIR) $(BUILT_PYTHON_SOURCES)
+	set -e ; \
+	trap 'echo auto-removing $@; rm $@' EXIT; \
+	PYTHONPATH=. $(RUN_IN_TEMPDIR) $(CURDIR)/$(DOCPP) < $< > $@ ;\
+	trap - EXIT
 
 man/%.7.in man/%.8.in man/%.1.in: man/%.gen man/footer.man
 	@test -n "$(PANDOC)" || \
