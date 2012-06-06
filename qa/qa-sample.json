@@ -27,6 +27,9 @@
   "# Script to check instance status": null,
   "instance-check": null,
 
+  "# Regular expression to ignore existing tags": null,
+  "ignore-tags-re": null,
+
   "nodes": [
     {
       "# Master node": null,

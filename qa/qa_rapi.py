@@ -25,6 +25,8 @@
 
 import tempfile
 import random
+import re
+import itertools
 
 from ganeti import utils
 from ganeti import constants
@@ -416,6 +418,18 @@ def TestNode(node):
     ])
 
 
+def _FilterTags(seq):
+  """Removes unwanted tags from a sequence.
+
+  """
+  ignore_re = qa_config.get("ignore-tags-re", None)
+
+  if ignore_re:
+    return itertools.ifilterfalse(re.compile(ignore_re).match, seq)
+  else:
+    return seq
+
+
 def TestTags(kind, name, tags):
   """Tests .../tags resources.
 
@@ -432,7 +446,7 @@ def TestTags(kind, name, tags):
     raise errors.ProgrammerError("Unknown tag kind")
 
   def _VerifyTags(data):
-    AssertEqual(sorted(tags), sorted(data))
+    AssertEqual(sorted(tags), sorted(_FilterTags(data)))
 
   queryargs = "&".join("tag=%s" % i for i in tags)
 
