@@ -553,7 +553,11 @@ def TestRapiInstanceAdd(node, use_client):
   try:
     disk_sizes = [utils.ParseUnit(size) for size in qa_config.get("disk")]
     disks = [{"size": size} for size in disk_sizes]
-    nics = [{}]
+    nic0_mac = qa_config.GetInstanceNicMac(instance,
+                                           default=constants.VALUE_GENERATE)
+    nics = [{
+      constants.INIC_MAC: nic0_mac,
+      }]
 
     beparams = {
       constants.BE_MAXMEM: utils.ParseUnit(qa_config.get(constants.BE_MAXMEM)),

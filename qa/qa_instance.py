@@ -42,7 +42,7 @@ def _GetDiskStatePath(disk):
   return "/sys/block/%s/device/state" % disk
 
 
-def _GetGenericAddParameters():
+def _GetGenericAddParameters(inst):
   params = ["-B"]
   params.append("%s=%s,%s=%s" % (constants.BE_MINMEM,
                                  qa_config.get(constants.BE_MINMEM),
@@ -50,6 +50,12 @@ def _GetGenericAddParameters():
                                  qa_config.get(constants.BE_MAXMEM)))
   for idx, size in enumerate(qa_config.get("disk")):
     params.extend(["--disk", "%s:size=%s" % (idx, size)])
+
+  # Set static MAC address if configured
+  nic0_mac = qa_config.GetInstanceNicMac(inst)
+  if nic0_mac:
+    params.extend(["--net", "0:mac=%s" % nic0_mac])
+
   return params
 
 
@@ -60,7 +66,7 @@ def _DiskTest(node, disk_template):
             "--os-type=%s" % qa_config.get("os"),
             "--disk-template=%s" % disk_template,
             "--node=%s" % node] +
-           _GetGenericAddParameters())
+           _GetGenericAddParameters(instance))
     cmd.append(instance["name"])
 
     AssertCommand(cmd)
@@ -412,11 +418,10 @@ def TestInstanceImport(newinst, node, expnode, name):
   cmd = (["gnt-backup", "import",
           "--disk-template=plain",
           "--no-ip-check",
-          "--net", "0:mac=generate",
           "--src-node=%s" % expnode["primary"],
           "--src-dir=%s/%s" % (constants.EXPORT_DIR, name),
           "--node=%s" % node["primary"]] +
-         _GetGenericAddParameters())
+         _GetGenericAddParameters(newinst))
   cmd.append(newinst["name"])
   AssertCommand(cmd)
 
