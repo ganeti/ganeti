@@ -70,7 +70,8 @@ ACCEPT_OFFLINE_NODE = object()
  ED_COMPRESS,
  ED_BLOCKDEV_RENAME,
  ED_DISKS_DICT_DP,
- ED_SINGLE_DISK_DICT_DP) = range(1, 14)
+ ED_SINGLE_DISK_DICT_DP,
+ ED_NIC_DICT) = range(1, 15)
 
 
 def _Prepare(calls):

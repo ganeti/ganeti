@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -35,6 +35,7 @@ import zlib
 import base64
 import pycurl
 import threading
+import copy
 
 from ganeti import utils
 from ganeti import objects
@@ -666,6 +667,7 @@ class RpcRunner(_RpcClientBase,
       rpc_defs.ED_INST_DICT: self._InstDict,
       rpc_defs.ED_INST_DICT_HVP_BEP_DP: self._InstDictHvpBepDp,
       rpc_defs.ED_INST_DICT_OSP_DP: self._InstDictOspDp,
+      rpc_defs.ED_NIC_DICT: self._NicDict,
 
       # Encoders annotating disk parameters
       rpc_defs.ED_DISKS_DICT_DP: self._DisksDictDP,
@@ -690,6 +692,18 @@ class RpcRunner(_RpcClientBase,
     _generated_rpc.RpcClientBootstrap.__init__(self)
     _generated_rpc.RpcClientDnsOnly.__init__(self)
     _generated_rpc.RpcClientDefault.__init__(self)
+
+  def _NicDict(self, nic):
+    """Convert the given nic to a dict and encapsulate netinfo
+
+    """
+    n = copy.deepcopy(nic)
+    if n.network:
+      net_uuid = self._cfg.LookupNetwork(n.network)
+      if net_uuid:
+        nobj = self._cfg.GetNetwork(net_uuid)
+        n.netinfo = objects.Network.ToDict(nobj)
+    return n.ToDict()
 
   def _InstDict(self, instance, hvp=None, bep=None, osp=None):
     """Convert the given instance to a dict.
@@ -721,11 +735,17 @@ class RpcRunner(_RpcClientBase,
     idict["osparams"] = cluster.SimpleFillOS(instance.os, instance.osparams)
     if osp is not None:
       idict["osparams"].update(osp)
+    idict["disks"] = self._DisksDictDP((instance.disks, instance))
     for nic in idict["nics"]:
       nic["nicparams"] = objects.FillDict(
         cluster.nicparams[constants.PP_DEFAULT],
         nic["nicparams"])
-    idict["disks"] = self._DisksDictDP((instance.disks, instance))
+      network = nic.get("network", None)
+      if network:
+        net_uuid = self._cfg.LookupNetwork(network)
+        if net_uuid:
+          nobj = self._cfg.GetNetwork(net_uuid)
+          nic["netinfo"] = objects.Network.ToDict(nobj)
     return idict
 
   def _InstDictHvpBepDp(self, (instance, hvp, bep)):
