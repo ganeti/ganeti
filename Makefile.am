@@ -160,8 +160,8 @@ CLEANFILES = \
 	.hpc/*.mix htools/*.tix \
 	doc/hs-lint.html
 
-# BUILT_SOURCES should only be used as a dependency on phony targets. Otherwise
-# it'll cause the target to rebuild every time.
+# BUILT_SOURCES should only be used as a dependency on phony
+# targets. Otherwise it'll cause the target to rebuild every time.
 BUILT_SOURCES = \
   $(built_base_sources) \
 	$(BUILT_PYTHON_SOURCES) \
@@ -999,13 +999,17 @@ man/footer.html: man/footer.rst
 	$(PANDOC) -f rst -t html -o $@ $<
 
 man/%.gen: man/%.rst lib/query.py lib/build/sphinx_ext.py \
-	lib/build/shell_example_lexer.py
+	lib/build/shell_example_lexer.py \
+	| $(RUN_IN_TEMPDIR) $(BUILT_PYTHON_SOURCES)
 	@echo "Checking $< for hardcoded paths..."
 	@if grep -nEf autotools/wrong-hardcoded-paths $<; then \
 	  echo "Man page $< has harcoded paths (see above)!" 1>&2 ; \
 	  exit 1; \
 	fi
-	PYTHONPATH=. $(RUN_IN_TEMPDIR) $(CURDIR)/$(DOCPP) < $< > $@
+	set -e ; \
+	trap 'echo auto-removing $@; rm $@' EXIT; \
+	PYTHONPATH=. $(RUN_IN_TEMPDIR) $(CURDIR)/$(DOCPP) < $< > $@ ;\
+	trap - EXIT
 
 man/%.7.in man/%.8.in man/%.1.in: man/%.gen man/footer.man
 	@test -n "$(PANDOC)" || \
