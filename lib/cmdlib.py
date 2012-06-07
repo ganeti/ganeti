@@ -1315,6 +1315,39 @@ def _ExpandInstanceName(cfg, name):
   """Wrapper over L{_ExpandItemName} for instance."""
   return _ExpandItemName(cfg.ExpandInstanceName, name, "Instance")
 
+def _BuildNetworkHookEnv(name, network, gateway, network6, gateway6,
+                         network_type, mac_prefix):
+  env = dict()
+  if name:
+    env["NETWORK_NAME"] = name
+  if network:
+    env["NETWORK_SUBNET"] = network
+  if gateway:
+    env["NETWORK_GATEWAY"] = gateway
+  if network6:
+    env["NETWORK_SUBNET6"] = network6
+  if gateway6:
+    env["NETWORK_GATEWAY6"] = gateway6
+  if mac_prefix:
+    env["NETWORK_MAC_PREFIX"] = mac_prefix
+  if network_type:
+    env["NETWORK_TYPE"] = network_type
+
+  return env
+
+
+def _BuildNetworkHookEnvByObject(lu, network):
+  args = {
+    "name": network.name,
+    "network": network.network,
+    "gateway": network.gateway,
+    "network6": network.network6,
+    "gateway6": network.gateway6,
+    "network_type": network.network_type,
+    "mac_prefix": network.mac_prefix,
+  }
+  return _BuildNetworkHookEnv(**args)
+
 
 def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
                           minmem, maxmem, vcpus, nics, disk_template, disks,
@@ -1375,14 +1408,29 @@ def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
   }
   if nics:
     nic_count = len(nics)
-    for idx, (ip, mac, mode, link, network) in enumerate(nics):
+    for idx, (ip, mac, mode, link, network, netinfo) in enumerate(nics):
       if ip is None:
         ip = ""
       env["INSTANCE_NIC%d_IP" % idx] = ip
       env["INSTANCE_NIC%d_MAC" % idx] = mac
       env["INSTANCE_NIC%d_MODE" % idx] = mode
       env["INSTANCE_NIC%d_LINK" % idx] = link
-      env["INSTANCE_NIC%d_NETWORK" % idx] = network
+      if network:
+        env["INSTANCE_NIC%d_NETWORK" % idx] = network
+        if netinfo:
+          nobj = objects.Network.FromDict(netinfo)
+          if nobj.network:
+            env["INSTANCE_NIC%d_NETWORK_SUBNET" % idx] = nobj.network
+          if nobj.gateway:
+            env["INSTANCE_NIC%d_NETWORK_GATEWAY" % idx] = nobj.gateway
+          if nobj.network6:
+            env["INSTANCE_NIC%d_NETWORK_SUBNET6" % idx] = nobj.network6
+          if nobj.gateway6:
+            env["INSTANCE_NIC%d_NETWORK_GATEWAY6" % idx] = nobj.gateway6
+          if nobj.mac_prefix:
+            env["INSTANCE_NIC%d_NETWORK_MAC_PREFIX" % idx] = nobj.mac_prefix
+          if nobj.network_type:
+            env["INSTANCE_NIC%d_NETWORK_TYPE" % idx] = nobj.network_type
       if mode == constants.NIC_MODE_BRIDGED:
         env["INSTANCE_NIC%d_BRIDGE" % idx] = link
   else:
@@ -1411,6 +1459,29 @@ def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
 
   return env
 
+def _NICToTuple(lu, nic):
+  """Build a tupple of nic information.
+
+  @type lu:  L{LogicalUnit}
+  @param lu: the logical unit on whose behalf we execute
+  @type nic: L{objects.NIC}
+  @param nic: nic to convert to hooks tuple
+
+  """
+  cluster = lu.cfg.GetClusterInfo()
+  ip = nic.ip
+  mac = nic.mac
+  filled_params = cluster.SimpleFillNIC(nic.nicparams)
+  mode = filled_params[constants.NIC_MODE]
+  link = filled_params[constants.NIC_LINK]
+  network = nic.network
+  netinfo = None
+  if network:
+    net_uuid = lu.cfg.LookupNetwork(network)
+    if net_uuid:
+      nobj = lu.cfg.GetNetwork(net_uuid)
+      netinfo = objects.Network.ToDict(nobj)
+  return (ip, mac, mode, link, network, netinfo)
 
 def _NICListToTuple(lu, nics):
   """Build a list of nic information tuples.
@@ -1427,15 +1498,8 @@ def _NICListToTuple(lu, nics):
   hooks_nics = []
   cluster = lu.cfg.GetClusterInfo()
   for nic in nics:
-    ip = nic.ip
-    mac = nic.mac
-    filled_params = cluster.SimpleFillNIC(nic.nicparams)
-    mode = filled_params[constants.NIC_MODE]
-    link = filled_params[constants.NIC_LINK]
-    network = nic.network
-    hooks_nics.append((ip, mac, mode, link, network))
+    hooks_nics.append(_NICToTuple(lu, nic))
   return hooks_nics
-
 
 def _BuildInstanceHookEnvByObject(lu, instance, override=None):
   """Builds instance related env variables for hooks from an object.
@@ -12773,10 +12837,10 @@ class LUInstanceSetParams(LogicalUnit):
       nics = []
 
       for nic in self._new_nics:
-        nicparams = self.cluster.SimpleFillNIC(nic.nicparams)
-        mode = nicparams[constants.NIC_MODE]
-        link = nicparams[constants.NIC_LINK]
-        nics.append((nic.ip, nic.mac, mode, link, nic.network))
+        n = copy.deepcopy(nic)
+        nicparams = self.cluster.SimpleFillNIC(n.nicparams)
+        n.nicparams = nicparams
+        nics.append(_NICToTuple(self, n))
 
       args["nics"] = nics
 
@@ -15489,16 +15553,16 @@ class LUNetworkAdd(LogicalUnit):
     """Build hooks env.
 
     """
-    env = {
-      "NETWORK_NAME": self.op.network_name,
-      "NETWORK_SUBNET": self.op.network,
-      "NETWORK_GATEWAY": self.op.gateway,
-      "NETWORK_SUBNET6": self.op.network6,
-      "NETWORK_GATEWAY6": self.op.gateway6,
-      "NETWORK_MAC_PREFIX": self.op.mac_prefix,
-      "NETWORK_TYPE": self.op.network_type,
+    args = {
+      "name": self.op.network_name,
+      "network": self.op.network,
+      "gateway": self.op.gateway,
+      "network6": self.op.network6,
+      "gateway6": self.op.gateway6,
+      "mac_prefix": self.op.mac_prefix,
+      "network_type": self.op.network_type,
       }
-    return env
+    return _BuildNetworkHookEnv(**args)
 
   def Exec(self, feedback_fn):
     """Add the ip pool to the cluster.
@@ -15693,16 +15757,16 @@ class LUNetworkSetParams(LogicalUnit):
     """Build hooks env.
 
     """
-    env = {
-      "NETWORK_NAME": self.op.network_name,
-      "NETWORK_SUBNET": self.network.network,
-      "NETWORK_GATEWAY": self.gateway,
-      "NETWORK_SUBNET6": self.network6,
-      "NETWORK_GATEWAY6": self.gateway6,
-      "NETWORK_MAC_PREFIX": self.mac_prefix,
-      "NETWORK_TYPE": self.network_type,
+    args = {
+      "name": self.op.network_name,
+      "network": self.network.network,
+      "gateway": self.gateway,
+      "network6": self.network6,
+      "gateway6": self.gateway6,
+      "mac_prefix": self.mac_prefix,
+      "network_type": self.network_type,
       }
-    return env
+    return _BuildNetworkHookEnv(**args)
 
   def BuildHooksNodes(self):
     """Build hooks nodes.
@@ -15921,9 +15985,9 @@ class LUNetworkConnect(LogicalUnit):
   def BuildHooksEnv(self):
     ret = dict()
     ret["GROUP_NAME"] = self.group_name
-    ret["GROUP_NETWORK_NAME"] = self.network_name
     ret["GROUP_NETWORK_MODE"] = self.network_mode
     ret["GROUP_NETWORK_LINK"] = self.network_link
+    ret.update(_BuildNetworkHookEnvByObject(self, self.network))
     return ret
 
   def BuildHooksNodes(self):
@@ -16015,7 +16079,7 @@ class LUNetworkDisconnect(LogicalUnit):
   def BuildHooksEnv(self):
     ret = dict()
     ret["GROUP_NAME"] = self.group_name
-    ret["GROUP_NETWORK_NAME"] = self.network_name
+    ret.update(_BuildNetworkHookEnvByObject(self, self.network))
     return ret
 
   def BuildHooksNodes(self):
