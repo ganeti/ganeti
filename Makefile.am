@@ -1335,7 +1335,6 @@ hlint: $(HS_BUILT_SRCS) htools/lint-hints.hs
 	  --ignore "Use first" \
 	  --ignore "Use comparing" \
 	  --ignore "Use on" \
-	  --ignore "Use Control.Exception.catch" \
 	  --ignore "Reduce duplication" \
 	  --hint htools/lint-hints \
 	  $(filter-out htools/Ganeti/THH.hs,$(HS_LIB_SRCS))
