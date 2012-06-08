@@ -30,6 +30,8 @@ module Ganeti.Ssconf
   , sSKeyToRaw
   , sSKeyFromRaw
   , getPrimaryIPFamily
+  , keyToFilename
+  , sSFilePrefix
   ) where
 
 import Ganeti.THH
@@ -50,6 +52,10 @@ import Ganeti.HTools.Utils
 -- | Maximum ssconf file size we support.
 maxFileSize :: Int
 maxFileSize = 131072
+
+-- | ssconf file prefix, re-exported from Constants.
+sSFilePrefix :: FilePath
+sSFilePrefix = C.ssconfFileprefix
 
 $(declareSADT "SSKey"
   [ ("SSClusterName",          'C.ssClusterName)
@@ -80,7 +86,8 @@ $(declareSADT "SSKey"
 keyToFilename :: Maybe FilePath     -- ^ Optional config path override
               -> SSKey              -- ^ ssconf key
               -> FilePath
-keyToFilename optpath key = fromMaybe C.dataDir optpath </> sSKeyToRaw key
+keyToFilename optpath key = fromMaybe C.dataDir optpath </>
+                            sSFilePrefix ++ sSKeyToRaw key
 
 -- | Runs an IO action while transforming any error into 'Bad'
 -- values. It also accepts an optional value to use in case the error
