@@ -1698,6 +1698,8 @@ RSS_DESCRIPTION = {
 MAX_NICS = 8
 MAX_DISKS = 16
 
+# SSCONF file prefix
+SSCONF_FILEPREFIX = "ssconf_"
 # SSCONF keys
 SS_CLUSTER_NAME = "cluster_name"
 SS_CLUSTER_TAGS = "cluster_tags"
