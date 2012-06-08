@@ -42,7 +42,7 @@ def _GetDiskStatePath(disk):
   return "/sys/block/%s/device/state" % disk
 
 
-def _GetGenericAddParameters(inst):
+def _GetGenericAddParameters(inst, force_mac=None):
   params = ["-B"]
   params.append("%s=%s,%s=%s" % (constants.BE_MINMEM,
                                  qa_config.get(constants.BE_MINMEM),
@@ -52,7 +52,10 @@ def _GetGenericAddParameters(inst):
     params.extend(["--disk", "%s:size=%s" % (idx, size)])
 
   # Set static MAC address if configured
-  nic0_mac = qa_config.GetInstanceNicMac(inst)
+  if force_mac:
+    nic0_mac = force_mac
+  else:
+    nic0_mac = qa_config.GetInstanceNicMac(inst)
   if nic0_mac:
     params.extend(["--net", "0:mac=%s" % nic0_mac])
 
@@ -421,7 +424,7 @@ def TestInstanceImport(newinst, node, expnode, name):
           "--src-node=%s" % expnode["primary"],
           "--src-dir=%s/%s" % (constants.EXPORT_DIR, name),
           "--node=%s" % node["primary"]] +
-         _GetGenericAddParameters(newinst))
+         _GetGenericAddParameters(newinst, force_mac=constants.VALUE_GENERATE))
   cmd.append(newinst["name"])
   AssertCommand(cmd)
 
