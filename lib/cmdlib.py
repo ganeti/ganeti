@@ -5925,7 +5925,8 @@ class LUNodeSetParams(LogicalUnit):
       if mc_remaining < mc_should:
         raise errors.OpPrereqError("Not enough master candidates, please"
                                    " pass auto promote option to allow"
-                                   " promotion", errors.ECODE_STATE)
+                                   " promotion (--auto-promote or RAPI"
+                                   " auto_promote=True)", errors.ECODE_STATE)
 
     self.old_flags = old_flags = (node.master_candidate,
                                   node.drained, node.offline)
