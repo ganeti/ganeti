@@ -1547,7 +1547,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     @type text: string
     @param text: output of kvm --help
     @return: (version, v_maj, v_min, v_rev)
-    @raise L{errors.HypervisorError}: when the KVM version cannot be retrieved
+    @raise errors.HypervisorError: when the KVM version cannot be retrieved
 
     """
     match = cls._VERSION_RE.search(text.splitlines()[0])
@@ -1568,7 +1568,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     """Return the installed KVM version.
 
     @return: (version, v_maj, v_min, v_rev)
-    @raise L{errors.HypervisorError}: when the KVM version cannot be retrieved
+    @raise errors.HypervisorError: when the KVM version cannot be retrieved
 
     """
     result = utils.RunCmd([constants.KVM_PATH, "--help"])
