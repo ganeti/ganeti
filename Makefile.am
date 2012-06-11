@@ -1314,24 +1314,40 @@ PEP8_IGNORE = E111,E261,E501
 # For excluding pep8 expects filenames only, not whole paths
 PEP8_EXCLUDE = $(subst $(space),$(comma),$(strip $(notdir $(BUILT_PYTHON_SOURCES))))
 
+LINT_TARGETS = pylint pylint-qa
+if HAS_PEP8
+LINT_TARGETS += pep8
+endif
+if HAS_HLINT
+LINT_TARGETS += hlint
+endif
+
 .PHONY: lint
-lint: $(BUILT_SOURCES)
+lint: $(LINT_TARGETS)
+
+.PHONY: pylint
+pylint: $(BUILT_SOURCES)
 	@test -n "$(PYLINT)" || { echo 'pylint' not found during configure; exit 1; }
-	if test -z "$(PEP8)"; then \
-		echo '"pep8" not found during configure' >&2; \
-	else \
-		$(PEP8) --repeat --ignore='$(PEP8_IGNORE)' --exclude='$(PEP8_EXCLUDE)' \
-			$(pep8_python_code); \
-	fi
 	$(PYLINT) $(LINT_OPTS) $(lint_python_code)
+
+.PHONY: pylint-qa
+pylint-qa: $(BUILT_SOURCES)
+	@test -n "$(PYLINT)" || { echo 'pylint' not found during configure; exit 1; }
 	cd $(top_srcdir)/qa && \
 	  PYTHONPATH=$(abs_top_srcdir) $(PYLINT) $(LINT_OPTS) \
 	  --rcfile  ../pylintrc $(patsubst qa/%.py,%,$(qa_scripts))
 
+.PHONY: pep8
+pep8: $(BUILT_SOURCES)
+	@test -n "$(PEP8)" || { echo 'pep8' not found during configure; exit 1; }
+	$(PEP8) --ignore='$(PEP8_IGNORE)' --exclude='$(PEP8_EXCLUDE)' \
+		--repeat $(pep8_python_code)
+
 .PHONY: hlint
 hlint: $(HS_BUILT_SRCS) htools/lint-hints.hs
+	@test -n "$(HLINT)" || { echo 'hlint' not found during configure; exit 1; }
 	if tty -s; then C="-c"; else C=""; fi; \
-	hlint --report=doc/hs-lint.html --cross $$C \
+	$(HLINT) --report=doc/hs-lint.html --cross $$C \
 	  --ignore "Use first" \
 	  --ignore "Use comparing" \
 	  --ignore "Use on" \

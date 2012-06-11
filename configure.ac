@@ -387,6 +387,7 @@ if test -z "$PEP8"
 then
   AC_MSG_WARN([pep8 not found, checking code will not be complete])
 fi
+AM_CONDITIONAL([HAS_PEP8], [test "$PEP8"])
 
 # Check for socat
 AC_ARG_VAR(SOCAT, [socat path])
@@ -518,6 +519,14 @@ if test "$HADDOCK" && test "$HSCOLOUR"; then
 fi
 AC_SUBST(HTOOLS_APIDOC)
 
+# Check for hlint
+HLINT=no
+AC_ARG_VAR(HLINT, [hlint path])
+AC_PATH_PROG(HLINT, [hlint], [])
+if test -z "$HLINT"; then
+  AC_MSG_WARN([hlint not found, checking code will not be possible])
+fi
+
 fi # end if enable_htools, define automake conditions
 
 if test "$HTOOLS" != "yes" && test "$HS_CONFD" = "True"; then
@@ -528,6 +537,7 @@ fi
 AM_CONDITIONAL([WANT_HTOOLS], [test x$HTOOLS = xyes])
 AM_CONDITIONAL([WANT_HTOOLSTESTS], [test "x$GHC_PKG_QUICKCHECK" != x])
 AM_CONDITIONAL([WANT_HTOOLSAPIDOC], [test x$HTOOLS_APIDOC = xyes])
+AM_CONDITIONAL([HAS_HLINT], [test "$HLINT"])
 
 # Check for fakeroot
 AC_ARG_VAR(FAKEROOT_PATH, [fakeroot path])
