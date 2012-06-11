@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2008, 2009, 2010, 2011 Google Inc.
+# Copyright (C) 2008, 2009, 2010, 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -147,7 +147,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   # a separate directory, called 'chroot-quarantine'.
   _CHROOT_QUARANTINE_DIR = _ROOT_DIR + "/chroot-quarantine"
   _DIRS = [_ROOT_DIR, _PIDS_DIR, _UIDS_DIR, _CTRL_DIR, _CONF_DIR, _NICS_DIR,
-           _CHROOT_DIR, _CHROOT_QUARANTINE_DIR]
+           _CHROOT_DIR, _CHROOT_QUARANTINE_DIR, _KEYMAP_DIR]
 
   PARAMETERS = {
     constants.HV_KERNEL_PATH: hv_base.OPT_FILE_CHECK,
