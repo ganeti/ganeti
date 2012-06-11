@@ -1052,12 +1052,16 @@ vcs-version:
 	  echo "Cannot auto-generate $@ file"; exit 1; \
 	fi
 
+.PHONY: clean-vcs-version
+clean-vcs-version:
+	rm -f vcs-version
+
 .PHONY: regen-vcs-version
 regen-vcs-version:
 	set -e; \
 	cd $(srcdir); \
 	if test -d .git; then \
-	  rm -f vcs-version; \
+	  $(MAKE) clean-vcs-version; \
 	  $(MAKE) vcs-version; \
 	fi
 
@@ -1358,8 +1362,8 @@ hlint: $(HS_BUILT_SRCS) htools/lint-hints.hs
 # a dist hook rule for updating the vcs-version file; this is
 # hardcoded due to where it needs to build the file...
 dist-hook:
-	$(MAKE) regen-vcs-version && \
-	rm -f $(top_distdir)/vcs-version && \
+	$(MAKE) regen-vcs-version
+	rm -f $(top_distdir)/vcs-version
 	cp -p $(srcdir)/vcs-version $(top_distdir)
 
 # a distcheck hook rule for catching revision control directories
@@ -1485,7 +1489,8 @@ py-coverage: $(BUILT_SOURCES) $(python_tests)
 
 .PHONY: hs-coverage
 hs-coverage: $(haskell_tests) htools/hpc-htools
-	rm -f *.tix && $(MAKE) hs-check
+	rm -f *.tix
+	$(MAKE) hs-check
 	@mkdir_p@ $(COVERAGE_HS_DIR)
 	hpc combine $(HPCEXCL) test.tix hpc-htools.tix > coverage-htools.tix
 	hpc markup --destdir=$(COVERAGE_HS_DIR) coverage-htools.tix
