@@ -203,6 +203,9 @@ start() {
   fi
 
   local name="$1"; shift
+  # Convert daemon name to uppercase after removing "ganeti-" prefix
+  local plain_name=${name#ganeti-}
+  local ucname=$(tr a-z A-Z <<<$plain_name)
   local pidfile=$(_daemon_pidfile $name)
   local usergroup=$(_daemon_usergroup $plain_name)
   local daemonexec=$(_daemon_executable $name)
@@ -212,10 +215,6 @@ start() {
     echo 'ganeti-confd disabled at build time' >&2
     return 1
   fi
-
-  # Convert daemon name to uppercase after removing "ganeti-" prefix
-  local plain_name=${name#ganeti-}
-  local ucname=$(tr a-z A-Z <<<$plain_name)
 
   # Read $<daemon>_ARGS and $EXTRA_<daemon>_ARGS
   eval local args="\"\$${ucname}_ARGS \$EXTRA_${ucname}_ARGS\""
