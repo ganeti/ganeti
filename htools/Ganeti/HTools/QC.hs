@@ -41,6 +41,7 @@ module Ganeti.HTools.QC
   , testCLI
   , testJSON
   , testLUXI
+  , testSsconf
   ) where
 
 import Test.QuickCheck
@@ -58,6 +59,7 @@ import qualified Data.IntMap as IntMap
 import qualified Ganeti.OpCodes as OpCodes
 import qualified Ganeti.Jobs as Jobs
 import qualified Ganeti.Luxi as Luxi
+import qualified Ganeti.Ssconf as Ssconf
 import qualified Ganeti.HTools.CLI as CLI
 import qualified Ganeti.HTools.Cluster as Cluster
 import qualified Ganeti.HTools.Container as Container
@@ -1731,3 +1733,16 @@ prop_Luxi_CallEncoding op =
 testSuite "LUXI"
           [ 'prop_Luxi_CallEncoding
           ]
+
+-- * Ssconf tests
+
+instance Arbitrary Ssconf.SSKey where
+  arbitrary = elements [minBound..maxBound]
+
+prop_Ssconf_filename key =
+  printTestCase "Key doesn't start with correct prefix" $
+    Ssconf.sSFilePrefix `isPrefixOf` Ssconf.keyToFilename (Just "") key
+
+testSuite "Ssconf"
+  [ 'prop_Ssconf_filename
+  ]

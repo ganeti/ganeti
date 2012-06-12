@@ -27,6 +27,9 @@
   "# Script to check instance status": null,
   "instance-check": null,
 
+  "# Regular expression to ignore existing tags": null,
+  "ignore-tags-re": null,
+
   "nodes": [
     {
       "# Master node": null,
@@ -42,10 +45,16 @@
 
   "instances": [
     {
-      "name": "xen-test-inst1"
+      "name": "xen-test-inst1",
+
+      "# Static MAC address": null,
+      "#nic.mac/0": "AA:00:00:11:11:11"
     },
     {
-      "name": "xen-test-inst2"
+      "name": "xen-test-inst2",
+
+      "# Static MAC address": null,
+      "#nic.mac/0": "AA:00:00:22:22:22"
     }
   ],
 
@@ -106,6 +115,7 @@
     "instance-add-plain-disk": true,
     "instance-add-drbd-disk": true,
     "instance-convert-disk": true,
+    "instance-plain-rapi-common-tests": true,
 
     "instance-export": true,
     "instance-failover": true,

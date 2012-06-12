@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2008, 2009, 2010, 2011 Google Inc.
+# Copyright (C) 2008, 2009, 2010, 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -420,7 +420,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   # a separate directory, called 'chroot-quarantine'.
   _CHROOT_QUARANTINE_DIR = _ROOT_DIR + "/chroot-quarantine"
   _DIRS = [_ROOT_DIR, _PIDS_DIR, _UIDS_DIR, _CTRL_DIR, _CONF_DIR, _NICS_DIR,
-           _CHROOT_DIR, _CHROOT_QUARANTINE_DIR]
+           _CHROOT_DIR, _CHROOT_QUARANTINE_DIR, _KEYMAP_DIR]
 
   PARAMETERS = {
     constants.HV_KERNEL_PATH: hv_base.OPT_FILE_CHECK,
@@ -944,6 +944,13 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   def _GenerateKVMRuntime(self, instance, block_devices, startup_paused):
     """Generate KVM information to start an instance.
 
+    @attention: this function must not have any side-effects; for
+        example, it must not write to the filesystem, or read values
+        from the current system the are expected to differ between
+        nodes, since it is only run once at instance startup;
+        actions/kvm arguments that can vary between systems should be
+        done in L{_ExecuteKVMRuntime}
+
     """
     # pylint: disable=R0914,R0915
     _, v_major, v_min, _ = self._GetKVMVersion()
@@ -1099,16 +1106,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     elif vnc_bind_address:
       kvm_cmd.extend(["-usbdevice", constants.HT_MOUSE_TABLET])
 
-    keymap = hvp[constants.HV_KEYMAP]
-    if keymap:
-      keymap_path = self._InstanceKeymapFile(instance.name)
-      # If a keymap file is specified, KVM won't use its internal defaults. By
-      # first including the "en-us" layout, an error on loading the actual
-      # layout (e.g. because it can't be found) won't lead to a non-functional
-      # keyboard. A keyboard with incorrect keys is still better than none.
-      utils.WriteFile(keymap_path, data="include en-us\ninclude %s\n" % keymap)
-      kvm_cmd.extend(["-k", keymap_path])
-
     if vnc_bind_address:
       if netutils.IP4Address.IsValid(vnc_bind_address):
         if instance.network_port > constants.VNC_BASE_PORT:
@@ -1144,6 +1141,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
       kvm_cmd.extend(["-vnc", vnc_arg])
     elif spice_bind:
+      # FIXME: this is wrong here; the iface ip address differs
+      # between systems, so it should be done in _ExecuteKVMRuntime
       if netutils.IsValidInterface(spice_bind):
         # The user specified a network interface, we have to figure out the IP
         # address.
@@ -1314,7 +1313,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       raise errors.HypervisorError("Failed to start instance %s" % name)
 
   def _ExecuteKVMRuntime(self, instance, kvm_runtime, incoming=None):
-    """Execute a KVM cmd, after completing it with some last minute data
+    """Execute a KVM cmd, after completing it with some last minute data.
 
     @type incoming: tuple of strings
     @param incoming: (target_host_ip, port)
@@ -1344,6 +1343,16 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     security_model = conf_hvp[constants.HV_SECURITY_MODEL]
     if security_model == constants.HT_SM_USER:
       kvm_cmd.extend(["-runas", conf_hvp[constants.HV_SECURITY_DOMAIN]])
+
+    keymap = conf_hvp[constants.HV_KEYMAP]
+    if keymap:
+      keymap_path = self._InstanceKeymapFile(name)
+      # If a keymap file is specified, KVM won't use its internal defaults. By
+      # first including the "en-us" layout, an error on loading the actual
+      # layout (e.g. because it can't be found) won't lead to a non-functional
+      # keyboard. A keyboard with incorrect keys is still better than none.
+      utils.WriteFile(keymap_path, data="include en-us\ninclude %s\n" % keymap)
+      kvm_cmd.extend(["-k", keymap_path])
 
     # We have reasons to believe changing something like the nic driver/type
     # upon migration won't exactly fly with the instance kernel, so for nic
@@ -1538,7 +1547,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     @type text: string
     @param text: output of kvm --help
     @return: (version, v_maj, v_min, v_rev)
-    @raise L{errors.HypervisorError}: when the KVM version cannot be retrieved
+    @raise errors.HypervisorError: when the KVM version cannot be retrieved
 
     """
     match = cls._VERSION_RE.search(text.splitlines()[0])
@@ -1559,7 +1568,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     """Return the installed KVM version.
 
     @return: (version, v_maj, v_min, v_rev)
-    @raise L{errors.HypervisorError}: when the KVM version cannot be retrieved
+    @raise errors.HypervisorError: when the KVM version cannot be retrieved
 
     """
     result = utils.RunCmd([constants.KVM_PATH, "--help"])

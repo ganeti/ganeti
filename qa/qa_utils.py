@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2007, 2011 Google Inc.
+# Copyright (C) 2007, 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -191,7 +191,7 @@ def AssertCommand(cmd, fail=False, node=None):
   return rcode
 
 
-def GetSSHCommand(node, cmd, strict=True, opts=None, tty=True):
+def GetSSHCommand(node, cmd, strict=True, opts=None, tty=None):
   """Builds SSH command to be executed.
 
   @type node: string
@@ -203,11 +203,14 @@ def GetSSHCommand(node, cmd, strict=True, opts=None, tty=True):
   @param strict: whether to enable strict host key checking
   @type opts: list
   @param opts: list of additional options
-  @type tty: Bool
-  @param tty: If we should use tty
+  @type tty: boolean or None
+  @param tty: if we should use tty; if None, will be auto-detected
 
   """
-  args = ["ssh", "-oEscapeChar=none", "-oBatchMode=yes", "-l", "root"]
+  args = ["ssh", "-oEscapeChar=none", "-oBatchMode=yes", "-lroot"]
+
+  if tty is None:
+    tty = sys.stdout.isatty()
 
   if tty:
     args.append("-t")
@@ -232,11 +235,15 @@ def GetSSHCommand(node, cmd, strict=True, opts=None, tty=True):
   return args
 
 
-def StartLocalCommand(cmd, **kwargs):
+def StartLocalCommand(cmd, _nolog_opts=False, **kwargs):
   """Starts a local command.
 
   """
-  print "Command: %s" % utils.ShellQuoteArgs(cmd)
+  if _nolog_opts:
+    pcmd = [i for i in cmd if not i.startswith("-")]
+  else:
+    pcmd = cmd
+  print "Command: %s" % utils.ShellQuoteArgs(pcmd)
   return subprocess.Popen(cmd, shell=False, **kwargs)
 
 
@@ -244,7 +251,8 @@ def StartSSH(node, cmd, strict=True):
   """Starts SSH.
 
   """
-  return StartLocalCommand(GetSSHCommand(node, cmd, strict=strict))
+  return StartLocalCommand(GetSSHCommand(node, cmd, strict=strict),
+                           _nolog_opts=True)
 
 
 def StartMultiplexer(node):
@@ -275,7 +283,7 @@ def CloseMultiplexers():
     utils.RemoveFile(sname)
 
 
-def GetCommandOutput(node, cmd, tty=True):
+def GetCommandOutput(node, cmd, tty=None):
   """Returns the output of a command executed on the given node.
 
   """

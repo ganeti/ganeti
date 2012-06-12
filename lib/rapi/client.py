@@ -256,6 +256,9 @@ def GenericCurlConfig(verbose=False, use_signal=False,
     lcsslver = sslver.lower()
     if lcsslver.startswith("openssl/"):
       pass
+    elif lcsslver.startswith("nss/"):
+      # TODO: investigate compatibility beyond a simple test
+      pass
     elif lcsslver.startswith("gnutls/"):
       if capath:
         raise Error("cURL linked against GnuTLS has no support for a"

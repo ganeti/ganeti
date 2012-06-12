@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008, 2010 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2010, 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -273,7 +273,6 @@ class SimpleStore(object):
     - keys are restricted to predefined values
 
   """
-  _SS_FILEPREFIX = "ssconf_"
   _VALID_KEYS = (
     constants.SS_CLUSTER_NAME,
     constants.SS_CLUSTER_TAGS,
@@ -314,7 +313,7 @@ class SimpleStore(object):
       raise errors.ProgrammerError("Invalid key requested from SSConf: '%s'"
                                    % str(key))
 
-    filename = self._cfg_dir + "/" + self._SS_FILEPREFIX + key
+    filename = self._cfg_dir + "/" + constants.SSCONF_FILEPREFIX + key
     return filename
 
   def _ReadFile(self, key, default=None):

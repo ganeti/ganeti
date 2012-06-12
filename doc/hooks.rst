@@ -8,10 +8,11 @@ Documents Ganeti version 2.6
 Introduction
 ------------
 
-
-In order to allow customisation of operations, ganeti runs scripts
-under ``/etc/ganeti/hooks`` based on certain rules.
-
+In order to allow customisation of operations, Ganeti runs scripts in
+sub-directories of ``@SYSCONFDIR@/ganeti/hooks``. These sub-directories
+are named ``$hook-$phase.d``, where ``$phase`` is either ``pre`` or
+``post`` and ``$hook`` matches the directory name given for a hook (e.g.
+``cluster-verify-post.d`` or ``node-add-pre.d``).
 
 This is similar to the ``/etc/network/`` structure present in Debian
 for network interface handling.

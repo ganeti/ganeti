@@ -2,10 +2,10 @@ News
 ====
 
 
-Version 2.6.0 beta1
+Version 2.6.0 beta2
 -------------------
 
-*(Released Wed, 23 Mar 2011)*
+*(Released Mon, 11 Jun 2012)*
 
 New features
 ~~~~~~~~~~~~
@@ -256,6 +256,10 @@ Python 2.7 is better supported, and after Ganeti 2.6 we will investigate
 whether to still support Python 2.4 or move to Python 2.6 as minimum
 required version.
 
+Support for Fedora has been slightly improved; the provided example
+init.d script should work better on it and the INSTALL file should
+document the needed dependencies.
+
 Internal changes
 ~~~~~~~~~~~~~~~~
 
@@ -289,6 +293,30 @@ A number of bugs has been fixed in the cluster merge tool.
 changed to allow the same clock skew as permitted by the cluster
 verification. This will remove some rare but hard to diagnose errors in
 import-export.
+
+
+Version 2.6.0 beta1
+-------------------
+
+*(Released Wed, 23 May 2012)*
+
+First beta release of 2.6. The following changes were done from beta1 to
+beta2:
+
+- integrated patch for distributions without ``start-stop-daemon``
+- adapted example init.d script to work on Fedora
+- fixed log handling in Haskell daemons
+- adapted checks in the watcher for pycurl linked against libnss
+- add partial support for ``xl`` instead of ``xm`` for Xen
+- fixed a type issue in cluster verification
+- fixed ssconf handling in the Haskell code (was breaking confd in IPv6
+  clusters)
+
+Plus integrated fixes from the 2.5 branch:
+
+- fixed ``kvm-ifup`` to use ``/bin/bash``
+- fixed parallel build failures
+- KVM live migration when using a custom keymap
 
 
 Version 2.5.1

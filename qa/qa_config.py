@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2007, 2011 Google Inc.
+# Copyright (C) 2007, 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -152,6 +152,13 @@ def GetInstanceCheckScript():
 
   """
   return cfg.get(_INSTANCE_CHECK_KEY, None)
+
+
+def GetInstanceNicMac(inst, default=None):
+  """Returns MAC address for instance's network interface.
+
+  """
+  return inst.get("nic.mac/0", default)
 
 
 def GetMasterNode():

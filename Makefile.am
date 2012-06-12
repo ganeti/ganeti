@@ -160,8 +160,8 @@ CLEANFILES = \
 	.hpc/*.mix htools/*.tix \
 	doc/hs-lint.html
 
-# BUILT_SOURCES should only be used as a dependency on phony targets. Otherwise
-# it'll cause the target to rebuild every time.
+# BUILT_SOURCES should only be used as a dependency on phony
+# targets. Otherwise it'll cause the target to rebuild every time.
 BUILT_SOURCES = \
   $(built_base_sources) \
 	$(BUILT_PYTHON_SOURCES) \
@@ -999,13 +999,17 @@ man/footer.html: man/footer.rst
 	$(PANDOC) -f rst -t html -o $@ $<
 
 man/%.gen: man/%.rst lib/query.py lib/build/sphinx_ext.py \
-	lib/build/shell_example_lexer.py
+	lib/build/shell_example_lexer.py \
+	| $(RUN_IN_TEMPDIR) $(BUILT_PYTHON_SOURCES)
 	@echo "Checking $< for hardcoded paths..."
 	@if grep -nEf autotools/wrong-hardcoded-paths $<; then \
 	  echo "Man page $< has harcoded paths (see above)!" 1>&2 ; \
 	  exit 1; \
 	fi
-	PYTHONPATH=. $(RUN_IN_TEMPDIR) $(CURDIR)/$(DOCPP) < $< > $@
+	set -e ; \
+	trap 'echo auto-removing $@; rm $@' EXIT; \
+	PYTHONPATH=. $(RUN_IN_TEMPDIR) $(CURDIR)/$(DOCPP) < $< > $@ ;\
+	trap - EXIT
 
 man/%.7.in man/%.8.in man/%.1.in: man/%.gen man/footer.man
 	@test -n "$(PANDOC)" || \
@@ -1048,12 +1052,16 @@ vcs-version:
 	  echo "Cannot auto-generate $@ file"; exit 1; \
 	fi
 
+.PHONY: clean-vcs-version
+clean-vcs-version:
+	rm -f vcs-version
+
 .PHONY: regen-vcs-version
 regen-vcs-version:
 	set -e; \
 	cd $(srcdir); \
 	if test -d .git; then \
-	  rm -f vcs-version; \
+	  $(MAKE) clean-vcs-version; \
 	  $(MAKE) vcs-version; \
 	fi
 
@@ -1138,6 +1146,7 @@ lib/_autoconf.py: Makefile | lib/.dir
 	  echo "ENABLE_CONFD = $(ENABLE_CONFD)"; \
 	  echo "PY_CONFD = $(PY_CONFD)"; \
 	  echo "HS_CONFD = $(HS_CONFD)"; \
+	  echo "XEN_CMD = '$(XEN_CMD)'"; \
 	} > $@
 
 lib/_vcsversion.py: Makefile vcs-version | lib/.dir
@@ -1309,28 +1318,43 @@ PEP8_IGNORE = E111,E261,E501
 # For excluding pep8 expects filenames only, not whole paths
 PEP8_EXCLUDE = $(subst $(space),$(comma),$(strip $(notdir $(BUILT_PYTHON_SOURCES))))
 
+LINT_TARGETS = pylint pylint-qa
+if HAS_PEP8
+LINT_TARGETS += pep8
+endif
+if HAS_HLINT
+LINT_TARGETS += hlint
+endif
+
 .PHONY: lint
-lint: $(BUILT_SOURCES)
+lint: $(LINT_TARGETS)
+
+.PHONY: pylint
+pylint: $(BUILT_SOURCES)
 	@test -n "$(PYLINT)" || { echo 'pylint' not found during configure; exit 1; }
-	if test -z "$(PEP8)"; then \
-		echo '"pep8" not found during configure' >&2; \
-	else \
-		$(PEP8) --repeat --ignore='$(PEP8_IGNORE)' --exclude='$(PEP8_EXCLUDE)' \
-			$(pep8_python_code); \
-	fi
 	$(PYLINT) $(LINT_OPTS) $(lint_python_code)
+
+.PHONY: pylint-qa
+pylint-qa: $(BUILT_SOURCES)
+	@test -n "$(PYLINT)" || { echo 'pylint' not found during configure; exit 1; }
 	cd $(top_srcdir)/qa && \
 	  PYTHONPATH=$(abs_top_srcdir) $(PYLINT) $(LINT_OPTS) \
 	  --rcfile  ../pylintrc $(patsubst qa/%.py,%,$(qa_scripts))
 
+.PHONY: pep8
+pep8: $(BUILT_SOURCES)
+	@test -n "$(PEP8)" || { echo 'pep8' not found during configure; exit 1; }
+	$(PEP8) --ignore='$(PEP8_IGNORE)' --exclude='$(PEP8_EXCLUDE)' \
+		--repeat $(pep8_python_code)
+
 .PHONY: hlint
 hlint: $(HS_BUILT_SRCS) htools/lint-hints.hs
+	@test -n "$(HLINT)" || { echo 'hlint' not found during configure; exit 1; }
 	if tty -s; then C="-c"; else C=""; fi; \
-	hlint --report=doc/hs-lint.html --cross $$C \
+	$(HLINT) --report=doc/hs-lint.html --cross $$C \
 	  --ignore "Use first" \
 	  --ignore "Use comparing" \
 	  --ignore "Use on" \
-	  --ignore "Use Control.Exception.catch" \
 	  --ignore "Reduce duplication" \
 	  --hint htools/lint-hints \
 	  $(filter-out htools/Ganeti/THH.hs,$(HS_LIB_SRCS))
@@ -1338,8 +1362,8 @@ hlint: $(HS_BUILT_SRCS) htools/lint-hints.hs
 # a dist hook rule for updating the vcs-version file; this is
 # hardcoded due to where it needs to build the file...
 dist-hook:
-	$(MAKE) regen-vcs-version && \
-	rm -f $(top_distdir)/vcs-version && \
+	$(MAKE) regen-vcs-version
+	rm -f $(top_distdir)/vcs-version
 	cp -p $(srcdir)/vcs-version $(top_distdir)
 
 # a distcheck hook rule for catching revision control directories
@@ -1465,7 +1489,8 @@ py-coverage: $(BUILT_SOURCES) $(python_tests)
 
 .PHONY: hs-coverage
 hs-coverage: $(haskell_tests) htools/hpc-htools
-	rm -f *.tix && $(MAKE) hs-check
+	rm -f *.tix
+	$(MAKE) hs-check
 	@mkdir_p@ $(COVERAGE_HS_DIR)
 	hpc combine $(HPCEXCL) test.tix hpc-htools.tix > coverage-htools.tix
 	hpc markup --destdir=$(COVERAGE_HS_DIR) coverage-htools.tix

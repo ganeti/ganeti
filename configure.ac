@@ -2,7 +2,7 @@
 m4_define([gnt_version_major], [2])
 m4_define([gnt_version_minor], [6])
 m4_define([gnt_version_revision], [0])
-m4_define([gnt_version_suffix], [~beta1])
+m4_define([gnt_version_suffix], [~beta2])
 m4_define([gnt_version_full],
           m4_format([%d.%d.%d%s],
                     gnt_version_major, gnt_version_minor,
@@ -97,6 +97,19 @@ AC_ARG_WITH([xen-initrd],
   [xen_initrd="$withval"],
   [xen_initrd="/boot/initrd-3-xenU"])
 AC_SUBST(XEN_INITRD, $xen_initrd)
+
+# --with-xen-cmd=...
+AC_ARG_WITH([xen-cmd],
+  [AS_HELP_STRING([--with-xen-cmd=CMD],
+    [Sets the xen cli interface command (default is xm)]
+  )],
+  [xen_cmd="$withval"],
+  [xen_cmd="xm"])
+AC_SUBST(XEN_CMD, $xen_cmd)
+
+if ! test "$XEN_CMD" = xl -o "$XEN_CMD" = xm; then
+  AC_MSG_ERROR([Unsupported xen command specified])
+fi
 
 # --with-kvm-kernel=...
 AC_ARG_WITH([kvm-kernel],
@@ -374,6 +387,7 @@ if test -z "$PEP8"
 then
   AC_MSG_WARN([pep8 not found, checking code will not be complete])
 fi
+AM_CONDITIONAL([HAS_PEP8], [test "$PEP8"])
 
 # Check for socat
 AC_ARG_VAR(SOCAT, [socat path])
@@ -505,6 +519,14 @@ if test "$HADDOCK" && test "$HSCOLOUR"; then
 fi
 AC_SUBST(HTOOLS_APIDOC)
 
+# Check for hlint
+HLINT=no
+AC_ARG_VAR(HLINT, [hlint path])
+AC_PATH_PROG(HLINT, [hlint], [])
+if test -z "$HLINT"; then
+  AC_MSG_WARN([hlint not found, checking code will not be possible])
+fi
+
 fi # end if enable_htools, define automake conditions
 
 if test "$HTOOLS" != "yes" && test "$HS_CONFD" = "True"; then
@@ -515,6 +537,7 @@ fi
 AM_CONDITIONAL([WANT_HTOOLS], [test x$HTOOLS = xyes])
 AM_CONDITIONAL([WANT_HTOOLSTESTS], [test "x$GHC_PKG_QUICKCHECK" != x])
 AM_CONDITIONAL([WANT_HTOOLSAPIDOC], [test x$HTOOLS_APIDOC = xyes])
+AM_CONDITIONAL([HAS_HLINT], [test "$HLINT"])
 
 # Check for fakeroot
 AC_ARG_VAR(FAKEROOT_PATH, [fakeroot path])

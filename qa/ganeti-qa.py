@@ -464,7 +464,8 @@ def RunQa():
         for use_client in [True, False]:
           rapi_instance = RunTest(qa_rapi.TestRapiInstanceAdd, pnode,
                                   use_client)
-          RunCommonInstanceTests(rapi_instance)
+          if qa_config.TestEnabled("instance-plain-rapi-common-tests"):
+            RunCommonInstanceTests(rapi_instance)
           RunTest(qa_rapi.TestRapiInstanceRemove, rapi_instance, use_client)
           del rapi_instance
 
@@ -553,7 +554,12 @@ def main():
 
   qa_config.Load(config_file)
 
-  qa_utils.StartMultiplexer(qa_config.GetMasterNode()["primary"])
+  primary = qa_config.GetMasterNode()["primary"]
+  qa_utils.StartMultiplexer(primary)
+  print ("SSH command for primary node: %s" %
+         utils.ShellQuoteArgs(qa_utils.GetSSHCommand(primary, "")))
+  print ("SSH command for other nodes: %s" %
+         utils.ShellQuoteArgs(qa_utils.GetSSHCommand("NODE", "")))
   try:
     RunQa()
   finally:

@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2006, 2007, 2011 Google Inc.
+# Copyright (C) 2006, 2007, 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -336,7 +336,7 @@ def CheckSysDev(name, devnum):
 
   @param name: the device name, e.g. 'sda'
   @param devnum: the device number, e.g. 0x803 (2051 in decimal) for sda3
-  @raises L{SysconfigError}: in case of failure of the check
+  @raises SysconfigError: in case of failure of the check
 
   """
   path = "/dev/%s" % name

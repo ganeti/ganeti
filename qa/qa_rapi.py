@@ -25,6 +25,8 @@
 
 import tempfile
 import random
+import re
+import itertools
 
 from ganeti import utils
 from ganeti import constants
@@ -416,6 +418,18 @@ def TestNode(node):
     ])
 
 
+def _FilterTags(seq):
+  """Removes unwanted tags from a sequence.
+
+  """
+  ignore_re = qa_config.get("ignore-tags-re", None)
+
+  if ignore_re:
+    return itertools.ifilterfalse(re.compile(ignore_re).match, seq)
+  else:
+    return seq
+
+
 def TestTags(kind, name, tags):
   """Tests .../tags resources.
 
@@ -432,7 +446,7 @@ def TestTags(kind, name, tags):
     raise errors.ProgrammerError("Unknown tag kind")
 
   def _VerifyTags(data):
-    AssertEqual(sorted(tags), sorted(data))
+    AssertEqual(sorted(tags), sorted(_FilterTags(data)))
 
   queryargs = "&".join("tag=%s" % i for i in tags)
 
@@ -539,7 +553,11 @@ def TestRapiInstanceAdd(node, use_client):
   try:
     disk_sizes = [utils.ParseUnit(size) for size in qa_config.get("disk")]
     disks = [{"size": size} for size in disk_sizes]
-    nics = [{}]
+    nic0_mac = qa_config.GetInstanceNicMac(instance,
+                                           default=constants.VALUE_GENERATE)
+    nics = [{
+      constants.INIC_MAC: nic0_mac,
+      }]
 
     beparams = {
       constants.BE_MAXMEM: utils.ParseUnit(qa_config.get(constants.BE_MAXMEM)),
