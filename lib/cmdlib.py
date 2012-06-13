@@ -10138,6 +10138,11 @@ class LUInstanceCreate(LogicalUnit):
     _ReleaseLocks(self, locking.LEVEL_NODE_RES)
 
     if iobj.disk_template != constants.DT_DISKLESS and not self.adopt_disks:
+      # we need to set the disks ID to the primary node, since the
+      # preceding code might or might have not done it, depending on
+      # disk template and other options
+      for disk in iobj.disks:
+        self.cfg.SetDiskID(disk, pnode_name)
       if self.op.mode == constants.INSTANCE_CREATE:
         if not self.op.no_install:
           pause_sync = (iobj.disk_template in constants.DTS_INT_MIRROR and
