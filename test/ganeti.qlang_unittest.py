@@ -147,6 +147,11 @@ class TestParseFilter(unittest.TestCase):
                [qlang.OP_NOT, [qlang.OP_REGEXP, "field",
                                utils.DnsNameGlobPattern("*.example.*")]])
 
+    self._Test("ctime < 1234", [qlang.OP_LT, "ctime", 1234])
+    self._Test("ctime > 1234", [qlang.OP_GT, "ctime", 1234])
+    self._Test("mtime <= 9999", [qlang.OP_LE, "mtime", 9999])
+    self._Test("mtime >= 9999", [qlang.OP_GE, "mtime", 9999])
+
   def testAllFields(self):
     for name in frozenset(i for d in query.ALL_FIELD_LISTS for i in d.keys()):
       self._Test("%s == \"value\"" % name, [qlang.OP_EQUAL, name, "value"])
@@ -166,6 +171,11 @@ class TestParseFilter(unittest.TestCase):
 
     # Non-matching regexp delimiters
     tests.append("name =~ /foobarbaz#")
+
+    # Invalid operators
+    tests.append("name <> value")
+    tests.append("name => value")
+    tests.append("name =< value")
 
     for qfilter in tests:
       try:
