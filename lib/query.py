@@ -64,6 +64,7 @@ from ganeti import objects
 from ganeti import ht
 from ganeti import runtime
 from ganeti import qlang
+from ganeti import jstore
 
 from ganeti.constants import (QFT_UNKNOWN, QFT_TEXT, QFT_BOOL, QFT_NUMBER,
                               QFT_UNIT, QFT_TIMESTAMP, QFT_OTHER,
@@ -103,8 +104,10 @@ from ganeti.constants import (QFT_UNKNOWN, QFT_TEXT, QFT_BOOL, QFT_NUMBER,
 # Query field flags
 QFF_HOSTNAME = 0x01
 QFF_IP_ADDRESS = 0x02
-# Next values: 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x100, 0x200
-QFF_ALL = (QFF_HOSTNAME | QFF_IP_ADDRESS)
+QFF_JOB_ID = 0x04
+QFF_SPLIT_TIMESTAMP = 0x08
+# Next values: 0x10, 0x20, 0x40, 0x80, 0x100, 0x200
+QFF_ALL = (QFF_HOSTNAME | QFF_IP_ADDRESS | QFF_JOB_ID | QFF_SPLIT_TIMESTAMP)
 
 FIELD_NAME_RE = re.compile(r"^[a-z0-9/._]+$")
 TITLE_RE = re.compile(r"^[^\s]+$")
@@ -345,6 +348,36 @@ def _PrepareRegex(pattern):
     raise errors.ParameterError("Invalid regex pattern (%s)" % err)
 
 
+def _PrepareSplitTimestamp(value):
+  """Prepares a value for comparison by L{_MakeSplitTimestampComparison}.
+
+  """
+  if ht.TNumber(value):
+    return value
+  else:
+    return utils.MergeTime(value)
+
+
+def _MakeSplitTimestampComparison(fn):
+  """Compares split timestamp values after converting to float.
+
+  """
+  return lambda lhs, rhs: fn(utils.MergeTime(lhs), rhs)
+
+
+def _MakeComparisonChecks(fn):
+  """Prepares flag-specific comparisons using a comparison function.
+
+  """
+  return [
+    (QFF_SPLIT_TIMESTAMP, _MakeSplitTimestampComparison(fn),
+     _PrepareSplitTimestamp),
+    (QFF_JOB_ID, lambda lhs, rhs: fn(jstore.ParseJobId(lhs), rhs),
+     jstore.ParseJobId),
+    (None, fn, None),
+    ]
+
+
 class _FilterCompilerHelper:
   """Converts a query filter to a callable usable for filtering.
 
@@ -363,7 +396,7 @@ class _FilterCompilerHelper:
 
   List of tuples containing flags and a callable receiving the left- and
   right-hand side of the operator. The flags are an OR-ed value of C{QFF_*}
-  (e.g. L{QFF_HOSTNAME}).
+  (e.g. L{QFF_HOSTNAME} or L{QFF_SPLIT_TIMESTAMP}).
 
   Order matters. The first item with flags will be used. Flags are checked
   using binary AND.
@@ -374,6 +407,8 @@ class _FilterCompilerHelper:
      lambda lhs, rhs: utils.MatchNameComponent(rhs, [lhs],
                                                case_sensitive=False),
      None),
+    (QFF_SPLIT_TIMESTAMP, _MakeSplitTimestampComparison(operator.eq),
+     _PrepareSplitTimestamp),
     (None, operator.eq, None),
     ]
 
@@ -403,18 +438,10 @@ class _FilterCompilerHelper:
     qlang.OP_NOT_EQUAL:
       (_OPTYPE_BINARY, [(flags, compat.partial(_WrapNot, fn), valprepfn)
                         for (flags, fn, valprepfn) in _EQUALITY_CHECKS]),
-    qlang.OP_LT: (_OPTYPE_BINARY, [
-      (None, operator.lt, None),
-      ]),
-    qlang.OP_GT: (_OPTYPE_BINARY, [
-      (None, operator.gt, None),
-      ]),
-    qlang.OP_LE: (_OPTYPE_BINARY, [
-      (None, operator.le, None),
-      ]),
-    qlang.OP_GE: (_OPTYPE_BINARY, [
-      (None, operator.ge, None),
-      ]),
+    qlang.OP_LT: (_OPTYPE_BINARY, _MakeComparisonChecks(operator.lt)),
+    qlang.OP_LE: (_OPTYPE_BINARY, _MakeComparisonChecks(operator.le)),
+    qlang.OP_GT: (_OPTYPE_BINARY, _MakeComparisonChecks(operator.gt)),
+    qlang.OP_GE: (_OPTYPE_BINARY, _MakeComparisonChecks(operator.ge)),
     qlang.OP_REGEXP: (_OPTYPE_BINARY, [
       (None, lambda lhs, rhs: rhs.search(lhs), _PrepareRegex),
       ]),
@@ -2239,7 +2266,7 @@ def _BuildJobFields():
   """
   fields = [
     (_MakeField("id", "ID", QFT_TEXT, "Job ID"),
-     None, 0, lambda _, (job_id, job): job_id),
+     None, QFF_JOB_ID, lambda _, (job_id, job): job_id),
     (_MakeField("status", "Status", QFT_TEXT, "Job status"),
      None, 0, _JobUnavail(lambda job: job.CalcStatus())),
     (_MakeField("priority", "Priority", QFT_NUMBER,
@@ -2270,19 +2297,24 @@ def _BuildJobFields():
     (_MakeField("oppriority", "OpCode_prio", QFT_OTHER,
                 "List of opcode priorities"),
      None, 0, _PerJobOp(operator.attrgetter("priority"))),
-    (_MakeField("received_ts", "Received", QFT_OTHER,
-                "Timestamp of when job was received"),
-     None, 0, _JobTimestamp(operator.attrgetter("received_timestamp"))),
-    (_MakeField("start_ts", "Start", QFT_OTHER,
-                "Timestamp of job start"),
-     None, 0, _JobTimestamp(operator.attrgetter("start_timestamp"))),
-    (_MakeField("end_ts", "End", QFT_OTHER,
-                "Timestamp of job end"),
-     None, 0, _JobTimestamp(operator.attrgetter("end_timestamp"))),
     (_MakeField("summary", "Summary", QFT_OTHER,
                 "List of per-opcode summaries"),
      None, 0, _PerJobOp(lambda op: op.input.Summary())),
     ]
+
+  # Timestamp fields
+  for (name, attr, title, desc) in [
+    ("received_ts", "received_timestamp", "Received",
+     "Timestamp of when job was received"),
+    ("start_ts", "start_timestamp", "Start", "Timestamp of job start"),
+    ("end_ts", "end_timestamp", "End", "Timestamp of job end"),
+    ]:
+    getter = operator.attrgetter(attr)
+    fields.extend([
+      (_MakeField(name, title, QFT_OTHER,
+                  "%s (tuple containing seconds and microseconds)" % desc),
+       None, QFF_SPLIT_TIMESTAMP, _JobTimestamp(getter)),
+      ])
 
   return _PrepareFieldList(fields, [])
 

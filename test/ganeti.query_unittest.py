@@ -1777,6 +1777,90 @@ class TestQueryFilter(unittest.TestCase):
     self.assertEqual(q.Query(data),
                      [[(constants.RS_NORMAL, i)] for i in range(50, 100)])
 
+  def testFilterLessGreaterJobId(self):
+    fielddefs = query._PrepareFieldList([
+      (query._MakeField("id", "ID", constants.QFT_TEXT, "Job ID"),
+       None, query.QFF_JOB_ID, lambda ctx, item: item),
+      ], [])
+
+    data = ["1", "2", "3", "10", "102", "120", "125", "15", "100", "7"]
+
+    assert data != utils.NiceSort(data), "Test data should not be sorted"
+
+    q = query.Query(fielddefs, ["id"], qfilter=["<", "id", "20"])
+    self.assertTrue(q.RequestedNames() is None)
+    self.assertEqual(q.Query(data), [
+      [(constants.RS_NORMAL, "1")],
+      [(constants.RS_NORMAL, "2")],
+      [(constants.RS_NORMAL, "3")],
+      [(constants.RS_NORMAL, "10")],
+      [(constants.RS_NORMAL, "15")],
+      [(constants.RS_NORMAL, "7")],
+      ])
+
+    q = query.Query(fielddefs, ["id"], qfilter=[">=", "id", "100"])
+    self.assertTrue(q.RequestedNames() is None)
+    self.assertEqual(q.Query(data), [
+      [(constants.RS_NORMAL, "102")],
+      [(constants.RS_NORMAL, "120")],
+      [(constants.RS_NORMAL, "125")],
+      [(constants.RS_NORMAL, "100")],
+      ])
+
+    # Integers are no valid job IDs
+    self.assertRaises(errors.ParameterError, query.Query,
+                      fielddefs, ["id"], qfilter=[">=", "id", 10])
+
+  def testFilterLessGreaterSplitTimestamp(self):
+    fielddefs = query._PrepareFieldList([
+      (query._MakeField("ts", "Timestamp", constants.QFT_OTHER, "Timestamp"),
+       None, query.QFF_SPLIT_TIMESTAMP, lambda ctx, item: item),
+      ], [])
+
+    data = [
+      utils.SplitTime(0),
+      utils.SplitTime(0.1),
+      utils.SplitTime(18224.7872),
+      utils.SplitTime(919896.12623),
+      utils.SplitTime(999),
+      utils.SplitTime(989.9999),
+      ]
+
+    for i in [0, [0, 0]]:
+      q = query.Query(fielddefs, ["ts"], qfilter=["<", "ts", i])
+      self.assertTrue(q.RequestedNames() is None)
+      self.assertEqual(q.Query(data), [])
+
+    q = query.Query(fielddefs, ["ts"], qfilter=["<", "ts", 1000])
+    self.assertTrue(q.RequestedNames() is None)
+    self.assertEqual(q.Query(data), [
+      [(constants.RS_NORMAL, (0, 0))],
+      [(constants.RS_NORMAL, (0, 100000))],
+      [(constants.RS_NORMAL, (999, 0))],
+      [(constants.RS_NORMAL, (989, 999900))],
+      ])
+
+    q = query.Query(fielddefs, ["ts"], qfilter=[">=", "ts", 5000.3])
+    self.assertTrue(q.RequestedNames() is None)
+    self.assertEqual(q.Query(data), [
+      [(constants.RS_NORMAL, (18224, 787200))],
+      [(constants.RS_NORMAL, (919896, 126230))],
+      ])
+
+    for i in [18224.7772, utils.SplitTime(18224.7772)]:
+      q = query.Query(fielddefs, ["ts"], qfilter=[">=", "ts", i])
+      self.assertTrue(q.RequestedNames() is None)
+      self.assertEqual(q.Query(data), [
+        [(constants.RS_NORMAL, (18224, 787200))],
+        [(constants.RS_NORMAL, (919896, 126230))],
+        ])
+
+    q = query.Query(fielddefs, ["ts"], qfilter=[">", "ts", 18224.7880])
+    self.assertTrue(q.RequestedNames() is None)
+    self.assertEqual(q.Query(data), [
+      [(constants.RS_NORMAL, (919896, 126230))],
+      ])
+
 
 if __name__ == "__main__":
   testutils.GanetiTestProgram()

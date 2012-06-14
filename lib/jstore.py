@@ -203,4 +203,14 @@ def GetArchiveDirectory(job_id):
   @return: Directory name
 
   """
-  return str(int(job_id) / JOBS_PER_ARCHIVE_DIRECTORY)
+  return str(ParseJobId(job_id) / JOBS_PER_ARCHIVE_DIRECTORY)
+
+
+def ParseJobId(job_id):
+  """Parses a job ID and converts it to integer.
+
+  """
+  try:
+    return int(job_id)
+  except (ValueError, TypeError):
+    raise errors.ParameterError("Invalid job ID '%s'" % job_id)
