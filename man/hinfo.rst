@@ -1,5 +1,5 @@
 HINFO(1) Ganeti | Version @GANETI_VERSION@
-=========================================
+==========================================
 
 NAME
 ----
@@ -16,7 +16,7 @@ SYNOPSIS
 
 Backend options:
 
-{ **-m** *cluster* | **-L[** *path* **] [-X]** | **-t** *data-file* |
+{ **-m** *cluster* | **-L[** *path* **]** | **-t** *data-file* |
 **-I** *path* }
 
 Algorithm options:
