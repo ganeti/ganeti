@@ -101,6 +101,10 @@ data Filter
     | NotFilter Filter -- ^ ! <expression>
     | TrueFilter FilterField -- ^ ? <field>
     | EqualFilter FilterField FilterValue -- ^ (=|!=) <field> <value>
+    | LessThanFilter FilterField FilterValue -- ^ < <field> <value>
+    | GreaterThanFilter FilterField FilterValue -- ^ > <field> <value>
+    | LEThanFilter FilterField FilterValue -- ^ <= <field> <value>
+    | GEThanFilter FilterField FilterValue -- ^ >= <field> <value>
     | RegexpFilter FilterField FilterRegexp -- ^ =~ <field> <regexp>
     | ContainsFilter FilterField FilterValue -- ^ =[] <list-field> <value>
 
