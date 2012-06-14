@@ -62,7 +62,6 @@ from ganeti import qlang
 
 
 JOBQUEUE_THREADS = 25
-JOBS_PER_ARCHIVE_DIRECTORY = 10000
 
 # member lock names to be passed to @ssynchronized decorator
 _LOCK = "_lock"
@@ -1797,39 +1796,6 @@ class JobQueue(object):
     result = self._GetRpc(addrs).call_jobqueue_rename(names, rename)
     self._CheckRpcResult(result, self._nodes, "Renaming files (%r)" % rename)
 
-  @staticmethod
-  def _FormatJobID(job_id):
-    """Convert a job ID to string format.
-
-    Currently this just does C{str(job_id)} after performing some
-    checks, but if we want to change the job id format this will
-    abstract this change.
-
-    @type job_id: int or long
-    @param job_id: the numeric job id
-    @rtype: str
-    @return: the formatted job id
-
-    """
-    if not isinstance(job_id, (int, long)):
-      raise errors.ProgrammerError("Job ID '%s' not numeric" % job_id)
-    if job_id < 0:
-      raise errors.ProgrammerError("Job ID %s is negative" % job_id)
-
-    return str(job_id)
-
-  @classmethod
-  def _GetArchiveDirectory(cls, job_id):
-    """Returns the archive directory for a job.
-
-    @type job_id: str
-    @param job_id: Job identifier
-    @rtype: str
-    @return: Directory name
-
-    """
-    return str(int(job_id) / JOBS_PER_ARCHIVE_DIRECTORY)
-
   def _NewSerialsUnlocked(self, count):
     """Generates a new job identifier.
 
@@ -1850,7 +1816,7 @@ class JobQueue(object):
     self._UpdateJobQueueFile(constants.JOB_QUEUE_SERIAL_FILE,
                              "%s\n" % serial, True)
 
-    result = [self._FormatJobID(v)
+    result = [jstore.FormatJobID(v)
               for v in range(self._last_serial + 1, serial + 1)]
 
     # Keep it only if we were able to write the file
@@ -1872,8 +1838,8 @@ class JobQueue(object):
     """
     return utils.PathJoin(constants.QUEUE_DIR, "job-%s" % job_id)
 
-  @classmethod
-  def _GetArchivedJobPath(cls, job_id):
+  @staticmethod
+  def _GetArchivedJobPath(job_id):
     """Returns the archived job file for a give job id.
 
     @type job_id: str
@@ -1883,7 +1849,8 @@ class JobQueue(object):
 
     """
     return utils.PathJoin(constants.JOB_QUEUE_ARCHIVE_DIR,
-                          cls._GetArchiveDirectory(job_id), "job-%s" % job_id)
+                          jstore.GetArchiveDirectory(job_id),
+                          "job-%s" % job_id)
 
   @staticmethod
   def _GetJobIDsUnlocked(sort=True):
@@ -2220,7 +2187,7 @@ class JobQueue(object):
 
     """
     if not isinstance(job_id, basestring):
-      job_id = self._FormatJobID(job_id)
+      job_id = jstore.FormatJobID(job_id)
 
     # Not using in-memory cache as doing so would require an exclusive lock
 

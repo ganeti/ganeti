@@ -30,6 +30,9 @@ from ganeti import runtime
 from ganeti import utils
 
 
+JOBS_PER_ARCHIVE_DIRECTORY = 10000
+
+
 def _ReadNumericFile(file_name):
   """Reads a file containing a number.
 
@@ -168,3 +171,36 @@ def SetDrainFlag(drain_flag):
     utils.RemoveFile(constants.JOB_QUEUE_DRAIN_FILE)
 
   assert (not drain_flag) ^ CheckDrainFlag()
+
+
+def FormatJobID(job_id):
+  """Convert a job ID to string format.
+
+  Currently this just does C{str(job_id)} after performing some
+  checks, but if we want to change the job id format this will
+  abstract this change.
+
+  @type job_id: int or long
+  @param job_id: the numeric job id
+  @rtype: str
+  @return: the formatted job id
+
+  """
+  if not isinstance(job_id, (int, long)):
+    raise errors.ProgrammerError("Job ID '%s' not numeric" % job_id)
+  if job_id < 0:
+    raise errors.ProgrammerError("Job ID %s is negative" % job_id)
+
+  return str(job_id)
+
+
+def GetArchiveDirectory(job_id):
+  """Returns the archive directory for a job.
+
+  @type job_id: str
+  @param job_id: Job identifier
+  @rtype: str
+  @return: Directory name
+
+  """
+  return str(int(job_id) / JOBS_PER_ARCHIVE_DIRECTORY)
