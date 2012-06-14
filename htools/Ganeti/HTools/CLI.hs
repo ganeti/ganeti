@@ -62,6 +62,7 @@ module Ganeti.HTools.CLI
   , oMinGainLim
   , oMinScore
   , oNoHeaders
+  , oNoSimulation
   , oNodeSim
   , oOfflineNode
   , oOutputDir
@@ -133,6 +134,7 @@ data Options = Options
   , optMinGainLim  :: Score          -- ^ Limit below which we apply mingain
   , optMinScore    :: Score          -- ^ The minimum score we aim for
   , optNoHeaders   :: Bool           -- ^ Do not show a header line
+  , optNoSimulation :: Bool          -- ^ Skip the rebalancing dry-run
   , optNodeSim     :: [String]       -- ^ Cluster simulation mode
   , optOffline     :: [String]       -- ^ Names of offline nodes
   , optOutPath     :: FilePath       -- ^ Path to the output directory
@@ -175,6 +177,7 @@ defaultOptions  = Options
   , optMinGainLim  = 1e-1
   , optMinScore    = 1e-9
   , optNoHeaders   = False
+  , optNoSimulation = False
   , optNodeSim     = []
   , optOffline     = []
   , optOutPath     = "."
@@ -348,6 +351,11 @@ oNoHeaders :: OptType
 oNoHeaders = Option "" ["no-headers"]
              (NoArg (\ opts -> Ok opts { optNoHeaders = True }))
              "do not show a header line"
+
+oNoSimulation :: OptType
+oNoSimulation = Option "" ["no-simulation"]
+                (NoArg (\opts -> Ok opts {optNoSimulation = True}))
+                "do not perform rebalancing simulation"
 
 oNodeSim :: OptType
 oNodeSim = Option "" ["simulate"]

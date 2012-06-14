@@ -356,7 +356,7 @@ docrst = \
 	doc/walkthrough.rst
 
 HS_PROGS = htools/htools
-HS_BIN_ROLES = hbal hscan hspace hinfo
+HS_BIN_ROLES = hbal hscan hspace hinfo hcheck
 
 HS_ALL_PROGS = $(HS_PROGS) htools/test htools/hpc-htools htools/hconfd
 HS_PROG_SRCS = $(patsubst %,%.hs,$(HS_ALL_PROGS))
@@ -399,6 +399,7 @@ HS_LIB_SRCS = \
 	htools/Ganeti/HTools/Program.hs \
 	htools/Ganeti/HTools/Program/Hail.hs \
 	htools/Ganeti/HTools/Program/Hbal.hs \
+	htools/Ganeti/HTools/Program/Hcheck.hs \
 	htools/Ganeti/HTools/Program/Hinfo.hs \
 	htools/Ganeti/HTools/Program/Hscan.hs \
 	htools/Ganeti/HTools/Program/Hspace.hs \
@@ -692,6 +693,7 @@ man_MANS = \
 	man/gnt-os.8 \
 	man/hail.1 \
 	man/hbal.1 \
+  man/hcheck.1 \
 	man/hinfo.1 \
 	man/hscan.1 \
 	man/hspace.1 \

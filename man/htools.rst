@@ -12,6 +12,9 @@ SYNOPSIS
 **hbal**
   cluster balancer
 
+**hcheck**
+  cluster checker
+
 **hspace**
   cluster capacity computation
 
@@ -34,6 +37,9 @@ environment variable HTOOLS can be used to set the desired role.
 
 Installed as ``hbal``, it computes and optionally executes a suite of
 instance moves in order to balance the cluster.
+
+Installed as ``hcheck``, it preforms cluster checks and optionally
+simulates rebalancing with all the ``hbal`` options available.
 
 Installed as ``hspace``, it computes how many additional instances can
 be fit on a cluster, while maintaining N+1 status. It can run on models
