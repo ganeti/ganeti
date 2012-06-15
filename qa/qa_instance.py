@@ -82,6 +82,45 @@ def _DiskTest(node, disk_template):
     raise
 
 
+def _DestroyInstanceVolumes(instance):
+  """Remove all the LVM volumes of an instance.
+
+  This is used to simulate HW errors (dead nodes, broken disks...); the
+  configuration of the instance is not affected.
+
+  """
+  master = qa_config.GetMasterNode()
+  infocmd = utils.ShellQuoteArgs(["gnt-instance", "info", instance["name"]])
+  info_out = qa_utils.GetCommandOutput(master["primary"], infocmd)
+  re_node = re.compile(r"^\s+-\s+(?:primary|secondaries):\s+(\S.+)$")
+  node_elem = r"([^,()]+)(?:\s+\([^)]+\))?"
+  # re_nodelist matches a list of nodes returned by gnt-instance info, e.g.:
+  #  node1.fqdn
+  #  node2.fqdn,node3.fqdn
+  #  node4.fqdn (group mygroup, group UUID 01234567-abcd-0123-4567-0123456789ab)
+  # FIXME This works with no more than 2 secondaries
+  re_nodelist = re.compile(node_elem + "(?:," + node_elem + ")?$")
+  re_vol = re.compile(r"^\s+logical_id:\s+(\S+)$")
+  nodes = []
+  vols = []
+  for line in info_out.splitlines():
+    m = re_node.match(line)
+    if m:
+      nodestr = m.group(1)
+      m2 = re_nodelist.match(nodestr)
+      if m2:
+        nodes.extend(filter(None, m2.groups()))
+      else:
+        nodes.append(nodestr)
+    m = re_vol.match(line)
+    if m:
+      vols.append(m.group(1))
+  assert vols
+  assert nodes
+  for node in nodes:
+    AssertCommand(["lvremove", "-f"] + vols, node=node)
+
+
 @InstanceCheck(None, INST_UP, RETURN_VALUE)
 def TestInstanceAddWithPlainDisk(node):
   """gnt-instance add -t plain"""
