@@ -362,7 +362,7 @@ Syntax in pseudo-BNF::
 
   <condition> ::=
     { /* Value comparison */
-      <field> { == | != } <value>
+      <field> { == | != | < | <= | >= | > } <value>
 
       /* Collection membership */
       | <value> [ not ] in <field>
@@ -389,6 +389,14 @@ Operators:
   Equality
 *!=*
   Inequality
+*<*
+  Less than
+*<=*
+  Less than or equal
+*>*
+  Greater than
+*>=*
+  Greater than or equal
 *=~*
   Pattern match using regular expression
 *!~*

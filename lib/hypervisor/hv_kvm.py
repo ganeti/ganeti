@@ -936,6 +936,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       try:
         info = self.GetInstanceInfo(name)
       except errors.HypervisorError:
+        # Ignore exceptions due to instances being shut down
         continue
       if info:
         data.append(info)

@@ -58,12 +58,16 @@ OP_TRUE = "?"
 # operator-specific value
 OP_EQUAL = "="
 OP_NOT_EQUAL = "!="
+OP_LT = "<"
+OP_LE = "<="
+OP_GT = ">"
+OP_GE = ">="
 OP_REGEXP = "=~"
 OP_CONTAINS = "=[]"
 
 
 #: Characters used for detecting user-written filters (see L{_CheckFilter})
-FILTER_DETECTION_CHARS = frozenset("()=/!~'\"\\" + string.whitespace)
+FILTER_DETECTION_CHARS = frozenset("()=/!~'\"\\<>" + string.whitespace)
 
 #: Characters used to detect globbing filters (see L{_CheckGlobbing})
 GLOB_DETECTION_CHARS = frozenset("*?")
@@ -165,6 +169,10 @@ def BuildFilterParser():
   binopstbl = {
     "==": OP_EQUAL,
     "!=": OP_NOT_EQUAL,
+    "<": OP_LT,
+    "<=": OP_LE,
+    ">": OP_GT,
+    ">=": OP_GE,
     }
 
   binary_cond = (field_name + pyp.oneOf(binopstbl.keys()) + rval)

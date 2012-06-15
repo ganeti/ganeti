@@ -654,7 +654,7 @@ The ``continue`` option will let the watcher continue.
 
 The ``info`` option shows whether the watcher is currently paused.
 
-redist-conf
+REDIST-CONF
 ~~~~~~~~~~~
 
 **redist-conf** [\--submit]

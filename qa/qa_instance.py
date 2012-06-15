@@ -513,7 +513,7 @@ def _TestInstanceDiskFailure(instance, node, node2, onmaster):
     AssertCommand(" && ".join(cmds), node=[node2, node][int(onmaster)])
 
     print qa_utils.FormatInfo("Write to disks and give some time to notice"
-                              " to notice the problem")
+                              " the problem")
     cmds = []
     for disk in devpath:
       cmds.append(sq(["dd", "count=1", "bs=512", "conv=notrunc",

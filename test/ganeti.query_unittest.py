@@ -1745,6 +1745,38 @@ class TestQueryFilter(unittest.TestCase):
     self.assertRaises(errors.ParameterError, query.Query, fielddefs, ["name"],
                       qfilter=["=~", "name", r"["])
 
+  def testFilterLessGreater(self):
+    fielddefs = query._PrepareFieldList([
+      (query._MakeField("value", "Value", constants.QFT_NUMBER, "Value"),
+       None, 0, lambda ctx, item: item),
+      ], [])
+
+    data = range(100)
+
+    q = query.Query(fielddefs, ["value"],
+                    qfilter=["<", "value", 20])
+    self.assertTrue(q.RequestedNames() is None)
+    self.assertEqual(q.Query(data),
+                     [[(constants.RS_NORMAL, i)] for i in range(20)])
+
+    q = query.Query(fielddefs, ["value"],
+                    qfilter=["<=", "value", 30])
+    self.assertTrue(q.RequestedNames() is None)
+    self.assertEqual(q.Query(data),
+                     [[(constants.RS_NORMAL, i)] for i in range(31)])
+
+    q = query.Query(fielddefs, ["value"],
+                    qfilter=[">", "value", 40])
+    self.assertTrue(q.RequestedNames() is None)
+    self.assertEqual(q.Query(data),
+                     [[(constants.RS_NORMAL, i)] for i in range(41, 100)])
+
+    q = query.Query(fielddefs, ["value"],
+                    qfilter=[">=", "value", 50])
+    self.assertTrue(q.RequestedNames() is None)
+    self.assertEqual(q.Query(data),
+                     [[(constants.RS_NORMAL, i)] for i in range(50, 100)])
+
 
 if __name__ == "__main__":
   testutils.GanetiTestProgram()

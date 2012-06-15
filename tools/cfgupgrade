@@ -188,6 +188,21 @@ def main():
     config_data["version"] = constants.BuildVersion(TARGET_MAJOR,
                                                     TARGET_MINOR, 0)
 
+    if "instances" not in config_data:
+      raise Error("Can't find the 'instances' key in the configuration!")
+    for instance, iobj in config_data["instances"].items():
+      if "disks" not in iobj:
+        raise Error("Instance '%s' doesn't have a disks entry?!" % instance)
+      disks = iobj["disks"]
+      for idx, dobj in enumerate(disks):
+        expected = "disk/%s" % idx
+        current = dobj.get("iv_name", "")
+        if current != expected:
+          logging.warning("Updating iv_name for instance %s/disk %s"
+                          " from '%s' to '%s'",
+                          instance, idx, current, expected)
+          dobj["iv_name"] = expected
+
   elif config_major == TARGET_MAJOR and config_minor == TARGET_MINOR:
     logging.info("No changes necessary")
 
