@@ -3856,6 +3856,11 @@ class LUClusterSetParams(LogicalUnit):
     if self.op.diskparams:
       for dt_params in self.op.diskparams.values():
         utils.ForceDictType(dt_params, constants.DISK_DT_TYPES)
+      try:
+        utils.VerifyDictOptions(self.op.diskparams, constants.DISK_DT_DEFAULTS)
+      except errors.OpPrereqError, err:
+        raise errors.OpPrereqError("While verify diskparams options: %s" % err,
+                                   errors.ECODE_INVAL)
 
   def ExpandNames(self):
     # FIXME: in the future maybe other cluster params won't require checking on
@@ -13607,6 +13612,11 @@ class LUGroupAdd(LogicalUnit):
           utils.ForceDictType(self.op.diskparams[templ],
                               constants.DISK_DT_TYPES)
       self.new_diskparams = self.op.diskparams
+      try:
+        utils.VerifyDictOptions(self.new_diskparams, constants.DISK_DT_DEFAULTS)
+      except errors.OpPrereqError, err:
+        raise errors.OpPrereqError("While verify diskparams options: %s" % err,
+                                   errors.ECODE_INVAL)
     else:
       self.new_diskparams = {}
 
@@ -13968,6 +13978,11 @@ class LUGroupSetParams(LogicalUnit):
       # As we've all subdicts of diskparams ready, lets merge the actual
       # dict with all updated subdicts
       self.new_diskparams = objects.FillDict(diskparams, new_diskparams)
+      try:
+        utils.VerifyDictOptions(self.new_diskparams, constants.DISK_DT_DEFAULTS)
+      except errors.OpPrereqError, err:
+        raise errors.OpPrereqError("While verify diskparams options: %s" % err,
+                                   errors.ECODE_INVAL)
 
     if self.op.hv_state:
       self.new_hv_state = _MergeAndVerifyHvState(self.op.hv_state,

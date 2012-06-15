@@ -463,6 +463,11 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
                                  " %s" % (template,
                                           utils.CommaJoin(unknown_params)))
     utils.ForceDictType(dt_params, constants.DISK_DT_TYPES)
+  try:
+    utils.VerifyDictOptions(diskparams, constants.DISK_DT_DEFAULTS)
+  except errors.OpPrereqError, err:
+    raise errors.OpPrereqError("While verify diskparam options: %s" % err,
+                               errors.ECODE_INVAL)
 
   # set up ssh config and /etc/hosts
   sshline = utils.ReadFile(constants.SSH_HOST_RSA_PUB)
