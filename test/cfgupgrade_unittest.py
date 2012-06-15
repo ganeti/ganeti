@@ -91,6 +91,7 @@ class TestCfgupgrade(unittest.TestCase):
     utils.WriteFile(self.config_path, data=serializer.DumpJson({
       "version": constants.CONFIG_VERSION,
       "cluster": {},
+      "instances": {},
       }))
 
     hostname = netutils.GetHostname().name
@@ -105,6 +106,7 @@ class TestCfgupgrade(unittest.TestCase):
     utils.WriteFile(self.config_path, data=serializer.DumpJson({
       "version": constants.CONFIG_VERSION,
       "cluster": {},
+      "instances": {},
       }))
 
     utils.WriteFile(self.ss_master_node_path,
@@ -120,6 +122,7 @@ class TestCfgupgrade(unittest.TestCase):
       "cluster": {
         "config_version": 0,
         },
+      "instances": {},
       }
     utils.WriteFile(self.config_path, data=serializer.DumpJson(cfg))
     self.assertRaises(Exception, _RunUpgrade, self.tmpdir, False, True)
@@ -134,6 +137,7 @@ class TestCfgupgrade(unittest.TestCase):
     cfg = {
       "version": from_version,
       "cluster": {},
+      "instances": {},
       }
     self._CreateValidConfigDir()
     utils.WriteFile(self.config_path, data=serializer.DumpJson(cfg))
