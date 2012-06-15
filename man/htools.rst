@@ -24,6 +24,9 @@ SYNOPSIS
 **hscan**
   saves cluster state for later reuse
 
+**hinfo**
+  cluster information printer
+
 
 DESCRIPTION
 -----------
@@ -50,6 +53,9 @@ by Ganeti to compute new instance allocations and instance moves.
 
 Installed as ``hscan``, it scans the local or remote cluster state and
 saves it to files which can later be reused by the other roles.
+
+Installed as ``hinfo``, it prints information about the current cluster
+state.
 
 COMMON OPTIONS
 --------------
