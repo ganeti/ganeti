@@ -97,7 +97,7 @@ def TestClusterInit(rapi_user, rapi_secret):
   cmd = [
     "gnt-cluster", "init",
     "--primary-ip-version=%d" % qa_config.get("primary_ip_version", 4),
-    "--enabled-hypervisors=%s" % qa_config.GetEnabledHypervisors(),
+    "--enabled-hypervisors=%s" % ",".join(qa_config.GetEnabledHypervisors()),
     ]
 
   for spec_type in ("mem-size", "disk-size", "disk-count", "cpu-count",
