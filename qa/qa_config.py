@@ -25,6 +25,7 @@
 
 import os
 
+from ganeti import constants
 from ganeti import utils
 from ganeti import serializer
 from ganeti import compat
@@ -33,6 +34,7 @@ import qa_error
 
 
 _INSTANCE_CHECK_KEY = "instance-check"
+_ENABLED_HV_KEY = "enabled-hypervisors"
 
 
 cfg = None
@@ -66,6 +68,15 @@ def Validate():
     except EnvironmentError, err:
       raise qa_error.Error("Can't find instance check script '%s': %s" %
                            (check, err))
+
+  enabled_hv = frozenset(GetEnabledHypervisors())
+  if not enabled_hv:
+    raise qa_error.Error("No hypervisor is enabled")
+
+  difference = enabled_hv - constants.HYPER_TYPES
+  if difference:
+    raise qa_error.Error("Unknown hypervisor(s) enabled: %s" %
+                         utils.CommaJoin(difference))
 
 
 def get(name, default=None):
@@ -152,6 +163,34 @@ def GetInstanceCheckScript():
 
   """
   return cfg.get(_INSTANCE_CHECK_KEY, None)
+
+
+def GetEnabledHypervisors():
+  """Returns list of enabled hypervisors.
+
+  @rtype: list
+
+  """
+  try:
+    value = cfg[_ENABLED_HV_KEY]
+  except KeyError:
+    return [constants.DEFAULT_ENABLED_HYPERVISOR]
+  else:
+    if isinstance(value, basestring):
+      # The configuration key ("enabled-hypervisors") implies there can be
+      # multiple values. Multiple hypervisors are comma-separated on the
+      # command line option to "gnt-cluster init", so we need to handle them
+      # equally here.
+      return value.split(",")
+    else:
+      return value
+
+
+def GetDefaultHypervisor():
+  """Returns the default hypervisor to be used.
+
+  """
+  return GetEnabledHypervisors()[0]
 
 
 def GetInstanceNicMac(inst, default=None):
