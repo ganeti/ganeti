@@ -869,13 +869,13 @@ class OpClusterSetParams(OpCode):
     ("reserved_lvs", None, ht.TMaybeListOf(ht.TNonEmptyString),
      "List of reserved LVs"),
     ("hidden_os", None, _TestClusterOsList,
-     "Modify list of hidden operating systems. Each modification must have"
-     " two items, the operation and the OS name. The operation can be"
-     " ``%s`` or ``%s``." % (constants.DDM_ADD, constants.DDM_REMOVE)),
+     "Modify list of hidden operating systems: each modification must have"
+     " two items, the operation and the OS name; the operation can be"
+     " ``%s`` or ``%s``" % (constants.DDM_ADD, constants.DDM_REMOVE)),
     ("blacklisted_os", None, _TestClusterOsList,
-     "Modify list of blacklisted operating systems. Each modification must have"
-     " two items, the operation and the OS name. The operation can be"
-     " ``%s`` or ``%s``." % (constants.DDM_ADD, constants.DDM_REMOVE)),
+     "Modify list of blacklisted operating systems: each modification must"
+     " have two items, the operation and the OS name; the operation can be"
+     " ``%s`` or ``%s``" % (constants.DDM_ADD, constants.DDM_REMOVE)),
     ("use_external_mip_script", None, ht.TMaybeBool,
      "Whether to use an external master IP address setup script"),
     ]
@@ -1500,17 +1500,17 @@ class OpInstanceSetParams(OpCode):
     _PForceVariant,
     _PIgnoreIpolicy,
     ("nics", ht.EmptyList, TestNicModifications,
-     "List of NIC changes. Each item is of the form ``(op, index, settings)``."
-     " ``op`` is one of ``%s``, ``%s`` or ``%s``. ``index`` can be either -1 to"
-     " refer to the last position, or a zero-based index number. A deprecated"
-     " version of this parameter used the form ``(op, settings)``, where "
-     " ``op`` can be ``%s`` to add a new NIC with the specified settings,"
-     " ``%s`` to remove the last NIC or a number to modify the settings"
-     " of the NIC with that index." %
+     "List of NIC changes: each item is of the form ``(op, index, settings)``,"
+     " ``op`` is one of ``%s``, ``%s`` or ``%s``, ``index`` can be either -1"
+     " to refer to the last position, or a zero-based index number; a"
+     " deprecated version of this parameter used the form ``(op, settings)``,"
+     " where ``op`` can be ``%s`` to add a new NIC with the specified"
+     " settings, ``%s`` to remove the last NIC or a number to modify the"
+     " settings of the NIC with that index" %
      (constants.DDM_ADD, constants.DDM_MODIFY, constants.DDM_REMOVE,
       constants.DDM_ADD, constants.DDM_REMOVE)),
     ("disks", ht.EmptyList, TestDiskModifications,
-     "List of disk changes. See ``nics``."),
+     "List of disk changes; see ``nics``"),
     ("beparams", ht.EmptyDict, ht.TDict, "Per-instance backend parameters"),
     ("runtime_mem", None, ht.TMaybeStrictPositiveInt, "New runtime memory"),
     ("hvparams", ht.EmptyDict, ht.TDict,
@@ -1520,7 +1520,7 @@ class OpInstanceSetParams(OpCode):
     ("remote_node", None, ht.TMaybeString,
      "Secondary node (used when changing disk template)"),
     ("os_name", None, ht.TMaybeString,
-     "Change instance's OS name. Does not reinstall the instance."),
+     "Change the instance's OS without reinstalling the instance"),
     ("osparams", None, ht.TMaybeDict, "Per-instance OS parameters"),
     ("wait_for_sync", True, ht.TBool,
      "Whether to wait for the disk to synchronize, when changing template"),

@@ -220,8 +220,8 @@ The instance policy specification is a dict with the following fields:
     The numbers of nics used
   :pyeval:`constants.ISPEC_SPINDLE_USE`
     The numbers of virtual disk spindles used by this instance. They are
-    not real, but useful for account the spindle usage on the residing
-    node.
+    not real in the sense of actual HDD spindles, but useful for
+    accounting the spindle usage on the residing node
 :pyeval:`constants.IPOLICY_DTS`
   A `list` of disk templates allowed for instances using this policy
 :pyeval:`constants.IPOLICY_VCPU_RATIO`
@@ -388,12 +388,12 @@ features:
                              rlib2._NODE_EVAC_RES1])
 
 :pyeval:`rlib2._INST_CREATE_REQV1`
-  Instance creation request data version 1 supported.
+  Instance creation request data version 1 supported
 :pyeval:`rlib2._INST_REINSTALL_REQV1`
-  Instance reinstall supports body parameters.
+  Instance reinstall supports body parameters
 :pyeval:`rlib2._NODE_MIGRATE_REQV1`
   Whether migrating a node (``/2/nodes/[node_name]/migrate``) supports
-  request body parameters.
+  request body parameters
 :pyeval:`rlib2._NODE_EVAC_RES1`
   Whether evacuating a node (``/2/nodes/[node_name]/evacuate``) returns
   a new-style result (see resource description)
@@ -449,7 +449,7 @@ If the optional bool *bulk* argument is provided and set to a true value
 (i.e ``?bulk=1``), the output contains detailed information about node
 groups as a list.
 
-Returned fields: :pyeval:`utils.CommaJoin(sorted(rlib2.G_FIELDS))`
+Returned fields: :pyeval:`utils.CommaJoin(sorted(rlib2.G_FIELDS))`.
 
 Example::
 
@@ -508,7 +508,7 @@ It supports the following commands: ``GET``, ``DELETE``.
 Returns information about a node group, similar to the bulk output from
 the node group list.
 
-Returned fields: :pyeval:`utils.CommaJoin(sorted(rlib2.G_FIELDS))`
+Returned fields: :pyeval:`utils.CommaJoin(sorted(rlib2.G_FIELDS))`.
 
 ``DELETE``
 ~~~~~~~~~~
@@ -657,7 +657,7 @@ If the optional bool *bulk* argument is provided and set to a true value
 (i.e ``?bulk=1``), the output contains detailed information about
 instances as a list.
 
-Returned fields: :pyeval:`utils.CommaJoin(sorted(rlib2.I_FIELDS))`
+Returned fields: :pyeval:`utils.CommaJoin(sorted(rlib2.I_FIELDS))`.
 
 Example::
 
@@ -732,7 +732,7 @@ It supports the following commands: ``GET``, ``DELETE``.
 Returns information about an instance, similar to the bulk output from
 the instance list.
 
-Returned fields: :pyeval:`utils.CommaJoin(sorted(rlib2.I_FIELDS))`
+Returned fields: :pyeval:`utils.CommaJoin(sorted(rlib2.I_FIELDS))`.
 
 ``DELETE``
 ~~~~~~~~~~
@@ -1120,25 +1120,25 @@ console. Contained keys:
      ])
 
 ``instance``
-  Instance name.
+  Instance name
 ``kind``
   Console type, one of :pyeval:`constants.CONS_SSH`,
   :pyeval:`constants.CONS_VNC`, :pyeval:`constants.CONS_SPICE`
-  or :pyeval:`constants.CONS_MESSAGE`.
+  or :pyeval:`constants.CONS_MESSAGE`
 ``message``
-  Message to display (:pyeval:`constants.CONS_MESSAGE` type only).
+  Message to display (:pyeval:`constants.CONS_MESSAGE` type only)
 ``host``
   Host to connect to (:pyeval:`constants.CONS_SSH`,
-  :pyeval:`constants.CONS_VNC` or :pyeval:`constants.CONS_SPICE` only).
+  :pyeval:`constants.CONS_VNC` or :pyeval:`constants.CONS_SPICE` only)
 ``port``
   TCP port to connect to (:pyeval:`constants.CONS_VNC` or
-  :pyeval:`constants.CONS_SPICE` only).
+  :pyeval:`constants.CONS_SPICE` only)
 ``user``
-  Username to use (:pyeval:`constants.CONS_SSH` only).
+  Username to use (:pyeval:`constants.CONS_SSH` only)
 ``command``
   Command to execute on machine (:pyeval:`constants.CONS_SSH` only)
 ``display``
-  VNC display number (:pyeval:`constants.CONS_VNC` only).
+  VNC display number (:pyeval:`constants.CONS_VNC` only)
 
 
 ``/2/instances/[instance_name]/tags``
@@ -1201,7 +1201,7 @@ as a list.
 
 Returned fields for bulk requests (unlike other bulk requests, these
 fields are not the same as for per-job requests):
-:pyeval:`utils.CommaJoin(sorted(rlib2.J_FIELDS_BULK))`
+:pyeval:`utils.CommaJoin(sorted(rlib2.J_FIELDS_BULK))`.
 
 ``/2/jobs/[job_id]``
 ++++++++++++++++++++
@@ -1309,14 +1309,14 @@ Waits for changes on a job. Takes the following body parameters in a
 dict:
 
 ``fields``
-  The job fields on which to watch for changes.
+  The job fields on which to watch for changes
 
 ``previous_job_info``
-  Previously received field values or None if not yet available.
+  Previously received field values or None if not yet available
 
 ``previous_log_serial``
   Highest log serial number received so far or None if not yet
-  available.
+  available
 
 Returns None if no changes have been detected and a dict with two keys,
 ``job_info`` and ``log_entries`` otherwise.
@@ -1351,7 +1351,7 @@ If the optional bool *bulk* argument is provided and set to a true value
 (i.e ``?bulk=1``), the output contains detailed information about nodes
 as a list.
 
-Returned fields: :pyeval:`utils.CommaJoin(sorted(rlib2.N_FIELDS))`
+Returned fields: :pyeval:`utils.CommaJoin(sorted(rlib2.N_FIELDS))`.
 
 Example::
 
@@ -1378,7 +1378,7 @@ Returns information about a node.
 
 It supports the following commands: ``GET``.
 
-Returned fields: :pyeval:`utils.CommaJoin(sorted(rlib2.N_FIELDS))`
+Returned fields: :pyeval:`utils.CommaJoin(sorted(rlib2.N_FIELDS))`.
 
 ``/2/nodes/[node_name]/powercycle``
 +++++++++++++++++++++++++++++++++++
