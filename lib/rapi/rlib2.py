@@ -96,6 +96,11 @@ G_FIELDS = [
   "node_cnt",
   "node_list",
   "ipolicy",
+  "custom_ipolicy",
+  "diskparams",
+  "custom_diskparams",
+  "ndparams",
+  "custom_ndparams",
   ] + _COMMON_FIELDS
 
 J_FIELDS_BULK = [
