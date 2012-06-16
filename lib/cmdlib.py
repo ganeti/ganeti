@@ -5996,13 +5996,33 @@ class LUNodeSetParams(LogicalUnit):
                         " without using re-add. Please make sure the node"
                         " is healthy!")
 
+    # When changing the secondary ip, verify if this is a single-homed to
+    # multi-homed transition or vice versa, and apply the relevant
+    # restrictions.
     if self.op.secondary_ip:
       # Ok even without locking, because this can't be changed by any LU
       master = self.cfg.GetNodeInfo(self.cfg.GetMasterNode())
       master_singlehomed = master.secondary_ip == master.primary_ip
-      if master_singlehomed and self.op.secondary_ip:
-        raise errors.OpPrereqError("Cannot change the secondary ip on a single"
-                                   " homed cluster", errors.ECODE_INVAL)
+      if master_singlehomed and self.op.secondary_ip != node.primary_ip:
+        if self.op.force and node.name == master.name:
+          self.LogWarning("Transitioning from single-homed to multi-homed"
+                          " cluster. All nodes will require a secondary ip.")
+        else:
+          raise errors.OpPrereqError("Changing the secondary ip on a"
+                                     " single-homed cluster requires the"
+                                     " --force option to be passed, and the"
+                                     " target node to be the master",
+                                     errors.ECODE_INVAL)
+      elif not master_singlehomed and self.op.secondary_ip == node.primary_ip:
+        if self.op.force and node.name == master.name:
+          self.LogWarning("Transitioning from multi-homed to single-homed"
+                          " cluster. Secondary IPs will have to be removed.")
+        else:
+          raise errors.OpPrereqError("Cannot set the secondary IP to be the"
+                                     " same as the primary IP on a multi-homed"
+                                     " cluster, unless the --force option is"
+                                     " passed, and the target node is the"
+                                     " master", errors.ECODE_INVAL)
 
       assert not (frozenset(affected_instances) -
                   self.owned_locks(locking.LEVEL_INSTANCE))

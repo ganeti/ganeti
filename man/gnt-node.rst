@@ -313,7 +313,12 @@ candidate role if is in that role)::
 
 The ``-s (--secondary-ip)`` option can be used to change the node's
 secondary ip. No drbd instances can be running on the node, while this
-operation is taking place.
+operation is taking place. Remember that the secondary ip must be
+reachable from the master secondary ip, when being changed, so be sure
+that the node has the new IP already configured and active. In order to
+convert a cluster from single homed to multi-homed or vice versa
+``--force`` is needed as well, and the target node for the first change
+must be the master.
 
 See **ganeti(7)** for a description of ``--submit`` and other common
 options.

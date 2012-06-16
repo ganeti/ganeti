@@ -912,6 +912,37 @@ it's easy to remove it from the cluster::
 This will deconfigure the node, stop the ganeti daemons on it and leave
 it hopefully like before it joined to the cluster.
 
+Replication network changes
++++++++++++++++++++++++++++
+
+The :command:`gnt-node modify -s` command can be used to change the
+secondary IP of a node. This operation can only be performed if:
+
+- No instance is active on the target node
+- The new target IP is reachable from the master's secondary IP
+
+Also this operation will not allow to change a node from single-homed
+(same primary and secondary ip) to multi-homed (separate replication
+network) or vice versa, unless:
+
+- The target node is the master node and `--force` is passed.
+- The target cluster is single-homed and the new primary ip is a change
+  to single homed for a particular node.
+- The target cluster is multi-homed and the new primary ip is a change
+  to multi homed for a particular node.
+
+For example to do a single-homed to multi-homed conversion::
+
+  $ gnt-node modify --force -s %SECONDARY_IP% %MASTER_NAME%
+  $ gnt-node modify -s %SECONDARY_IP% %NODE1_NAME%
+  $ gnt-node modify -s %SECONDARY_IP% %NODE2_NAME%
+  $ gnt-node modify -s %SECONDARY_IP% %NODE3_NAME%
+  ...
+
+The same commands can be used for multi-homed to single-homed except the
+secondary IPs should be the same as the primaries for each node, for
+that case.
+
 Storage handling
 ++++++++++++++++
 
