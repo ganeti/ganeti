@@ -32,7 +32,8 @@ from textwrap import wrap
 
 
 #: default list of fields for L{ListNetworks}
-_LIST_DEF_FIELDS = ["name", "network", "gateway", "group_cnt", "group_list"]
+_LIST_DEF_FIELDS = ["name", "network", "gateway",
+                    "network_type", "mac_prefix", "group_list"]
 
 
 def _HandleReservedIPs(ips):
