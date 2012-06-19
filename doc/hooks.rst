@@ -148,16 +148,6 @@ Changes a node's parameters.
 :pre-execution: master node, the target node
 :post-execution: master node, the target node
 
-OP_NODE_EVACUATE
-++++++++++++++++
-
-Relocate secondary instances from a node.
-
-:directory: node-evacuate
-:env. vars: NEW_SECONDARY, NODE_NAME
-:pre-execution: master node, target node
-:post-execution: master node, target node
-
 OP_NODE_MIGRATE
 ++++++++++++++++
 
@@ -342,16 +332,6 @@ Remove an instance.
 :directory: instance-remove
 :env. vars: SHUTDOWN_TIMEOUT
 :pre-execution: master node
-:post-execution: master node, primary and secondary nodes
-
-OP_INSTANCE_REPLACE_DISKS
-+++++++++++++++++++++++++
-
-Replace an instance's disks.
-
-:directory: mirror-replace
-:env. vars: MODE, NEW_SECONDARY, OLD_SECONDARY
-:pre-execution: master node, primary and secondary nodes
 :post-execution: master node, primary and secondary nodes
 
 OP_INSTANCE_GROW_DISK
