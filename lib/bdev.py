@@ -1633,7 +1633,7 @@ class DRBD8(BaseDRBD):
       msg = ("Can't change syncer rate: %s - %s" %
              (result.fail_reason, result.output))
       logging.error(msg)
-      return msg
+      return [msg]
 
     return []
 
