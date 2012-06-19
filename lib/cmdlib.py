@@ -12338,8 +12338,6 @@ class LUInstanceSetParams(LogicalUnit):
     private.params = new_params
     private.filled = new_filled_params
 
-    return (None, None)
-
   def CheckPrereq(self):
     """Check prerequisites.
 
@@ -12574,12 +12572,13 @@ class LUInstanceSetParams(LogicalUnit):
                                  errors.ECODE_INVAL)
 
     def _PrepareNicCreate(_, params, private):
-      return self._PrepareNicModification(params, private, None, {},
-                                          cluster, pnode)
+      self._PrepareNicModification(params, private, None, {}, cluster, pnode)
+      return (None, None)
 
     def _PrepareNicMod(_, nic, params, private):
-      return self._PrepareNicModification(params, private, nic.ip,
-                                          nic.nicparams, cluster, pnode)
+      self._PrepareNicModification(params, private, nic.ip,
+                                   nic.nicparams, cluster, pnode)
+      return None
 
     # Verify NIC changes (operating on copy)
     nics = instance.nics[:]
