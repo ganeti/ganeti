@@ -683,12 +683,10 @@ def TestRapiInstanceReplaceDisks(instance):
 @InstanceCheck(INST_UP, INST_UP, FIRST_ARG)
 def TestRapiInstanceModify(instance):
   """Test modifying instance via RAPI"""
+  default_hv = qa_config.GetDefaultHypervisor()
+
   def _ModifyInstance(**kwargs):
     _WaitForRapiJob(_rapi_client.ModifyInstance(instance["name"], **kwargs))
-
-  _ModifyInstance(hvparams={
-    constants.HV_KERNEL_ARGS: "single",
-    })
 
   _ModifyInstance(beparams={
     constants.BE_VCPUS: 3,
@@ -698,9 +696,20 @@ def TestRapiInstanceModify(instance):
     constants.BE_VCPUS: constants.VALUE_DEFAULT,
     })
 
-  _ModifyInstance(hvparams={
-    constants.HV_KERNEL_ARGS: constants.VALUE_DEFAULT,
-    })
+  if default_hv == constants.HT_XEN_PVM:
+    _ModifyInstance(hvparams={
+      constants.HV_KERNEL_ARGS: "single",
+      })
+    _ModifyInstance(hvparams={
+      constants.HV_KERNEL_ARGS: constants.VALUE_DEFAULT,
+      })
+  elif default_hv == constants.HT_XEN_HVM:
+    _ModifyInstance(hvparams={
+      constants.HV_BOOT_ORDER: "acn",
+      })
+    _ModifyInstance(hvparams={
+      constants.HV_BOOT_ORDER: constants.VALUE_DEFAULT,
+      })
 
 
 @InstanceCheck(INST_UP, INST_UP, FIRST_ARG)
