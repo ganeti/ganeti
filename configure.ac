@@ -235,7 +235,7 @@ AC_ARG_ENABLE([drbd-barriers],
       DRBD_BARRIERS=n
       DRBD_NO_META_FLUSH=False
     else
-      DRBD_BARRIERS=bfd
+      DRBD_BARRIERS=bf
       DRBD_NO_META_FLUSH=True
     fi
   ]],
