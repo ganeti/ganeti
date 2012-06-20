@@ -101,17 +101,17 @@ NIC_%N_IP
     instance.
 
 NIC_%N_MODE
-    The NIC mode, either routed or bridged
+    The NIC mode, routed, bridged or openvswitch
 
 NIC_%N_BRIDGE
     The bridge to which this NIC will be attached. This variable is
     defined only when the NIC is in bridged mode.
 
 NIC_%N_LINK
-    If the NIC is in bridged mode, this is the same as
-    ``NIC_%N_BRIDGE``.  If it is in routed mode, the routing table
-    which will be used by the hypervisor to insert the appropriate
-    routes.
+    In bridged or openvswitch mode, this is the interface to which the
+    NIC will be attached (same as ``NIC_%N_BRIDGE`` for bridged). In
+    routed mode it is the routing table which will be used by the
+    hypervisor to insert the appropriate routes.
 
 NIC_%N_FRONTEND_TYPE
     (Optional) If applicable, the type of the exported NIC to the

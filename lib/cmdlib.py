@@ -13053,6 +13053,10 @@ class LUInstanceSetParams(LogicalUnit):
         raise errors.OpPrereqError("Cannot set the NIC IP address to None"
                                    " on a routed NIC", errors.ECODE_INVAL)
 
+    elif new_mode == constants.NIC_MODE_OVS:
+      # TODO: check OVS link
+      self.LogInfo("OVS links are currently not checked for correctness")
+
     if constants.INIC_MAC in params:
       mac = params[constants.INIC_MAC]
       if mac is None:

@@ -47,6 +47,10 @@ if [ "$MODE" = "bridged" ]; then
 
   # Connect the interface to the bridge
   brctl addif $BRIDGE $INTERFACE
+
+elif [ "$MODE" = "openvswitch" ]; then
+  ovs-vsctl add-port ${LINK} $INTERFACE
+
 else
   ip link set $INTERFACE up
 
@@ -65,6 +69,7 @@ else
     ip route replace $IP proto static dev $INTERFACE
   fi
 
+  # Allow routing and arp proxying, or ndp proxying (IPv6)
   if [ -d "/proc/sys/net/ipv4/conf/$INTERFACE" ]; then
     echo 1 > /proc/sys/net/ipv4/conf/$INTERFACE/proxy_arp
     echo 1 > /proc/sys/net/ipv4/conf/$INTERFACE/forwarding

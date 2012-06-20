@@ -421,12 +421,12 @@ Configuring the network
 
 **Mandatory** on all nodes.
 
-You can run Ganeti either in "bridged mode" or in "routed mode". In
-bridged mode, the default, the instances network interfaces will be
-attached to a software bridge running in dom0. Xen by default creates
-such a bridge at startup, but your distribution might have a different
-way to do things, and you'll definitely need to manually set it up under
-KVM.
+You can run Ganeti either in "bridged mode", "routed mode" or
+"openvswitch mode". In bridged mode, the default, the instances network
+interfaces will be attached to a software bridge running in dom0. Xen by
+default creates such a bridge at startup, but your distribution might
+have a different way to do things, and you'll definitely need to
+manually set it up under KVM.
 
 Beware that the default name Ganeti uses is ``xen-br0`` (which was used
 in Xen 2.0) while Xen 3.0 uses ``xenbr0`` by default. See the
@@ -448,6 +448,10 @@ You will need to configure your routing table basic routes and rules
 outside of ganeti. The vif scripts will only add /32 routes to your
 instances, through their interface, in the table you specified (under
 KVM, and in the main table under Xen).
+
+Also for "openvswitch mode" under Xen a custom network script is needed.
+Under KVM everything should work, but you'll need to configure your
+switches outside of Ganeti (as for bridges).
 
 .. admonition:: Bridging issues with certain kernels
 

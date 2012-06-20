@@ -366,6 +366,7 @@ $(THH.makeJSONInstance ''NetworkType)
 $(THH.declareSADT "NICMode"
   [ ("NMBridged", 'C.nicModeBridged)
   , ("NMRouted",  'C.nicModeRouted)
+  , ("NMOvs",     'C.nicModeOvs)
   ])
 $(THH.makeJSONInstance ''NICMode)
 
