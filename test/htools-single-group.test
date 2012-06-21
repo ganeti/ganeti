@@ -22,3 +22,8 @@
 ./test/hbal -t$T/simu-onegroup.tiered
 >>> /(Nothing to do, exiting|No solution found)/
 >>>= 0
+
+# hcheck should not find reason to rebalance
+./test/hcheck -t$T/simu-onegroup.tiered --machine-readable
+>>>1 /HCHECK_INIT_CLUSTER_NEED_REBALANCE=0/
+>>>= 0

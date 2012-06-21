@@ -33,3 +33,8 @@
 # and it should not find an invalid group
 ./test/hbal -t$T/simu-twogroups.tiered -G no-such-group
 >>>= !0
+
+# hcheck should be able to run with multiple groups
+./test/hcheck -t$T/simu-twogroups.tiered --machine-readable
+>>>1 /HCHECK_OK=1/
+>>>= 0
