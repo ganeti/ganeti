@@ -26,7 +26,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 module Ganeti.HTools.Program.Hspace (main, options) where
 
 import Control.Monad
-import Data.Char (toUpper, isAlphaNum, toLower)
+import Data.Char (toUpper, toLower)
 import Data.Function (on)
 import Data.List
 import Data.Maybe (fromMaybe)
@@ -80,6 +80,10 @@ data Phase = PInitial
 -- | The kind of instance spec we print.
 data SpecType = SpecNormal
               | SpecTiered
+
+-- | Prefix for machine readable names
+htsPrefix :: String
+htsPrefix = "HTS"
 
 -- | What we prefix a spec with.
 specPrefix :: SpecType -> String
@@ -177,14 +181,14 @@ printResults True _ fin_nl num_instances allocs sreason = do
                   \ != counted (%d)\n" (num_instances + allocs)
            (Cluster.csNinst fin_stats)
 
-  printKeys $ printStats PFinal fin_stats
-  printKeys [ ("ALLOC_USAGE", printf "%.8f"
+  printKeysHTS $ printStats PFinal fin_stats
+  printKeysHTS [ ("ALLOC_USAGE", printf "%.8f"
                                 ((fromIntegral num_instances::Double) /
                                  fromIntegral fin_instances))
             , ("ALLOC_INSTANCES", printf "%d" allocs)
             , ("ALLOC_FAIL_REASON", map toUpper . show . fst $ head sreason)
             ]
-  printKeys $ map (\(x, y) -> (printf "ALLOC_%s_CNT" (show x),
+  printKeysHTS $ map (\(x, y) -> (printf "ALLOC_%s_CNT" (show x),
                                printf "%d" y)) sreason
 
 printResults False ini_nl fin_nl _ allocs sreason = do
@@ -193,12 +197,8 @@ printResults False ini_nl fin_nl _ allocs sreason = do
   printFRScores ini_nl fin_nl sreason
 
 -- | Prints the final @OK@ marker in machine readable output.
-printFinal :: Bool -> IO ()
-printFinal True =
-  -- this should be the final entry
-  printKeys [("OK", "1")]
-
-printFinal False = return ()
+printFinalHTS :: Bool -> IO ()
+printFinalHTS = printFinal htsPrefix
 
 -- | Compute the tiered spec counts from a list of allocated
 -- instances.
@@ -232,20 +232,13 @@ printAllocationStats ini_nl fin_nl = do
   let ini_stats = Cluster.totalResources ini_nl
       fin_stats = Cluster.totalResources fin_nl
       (rini, ralo, runa) = Cluster.computeAllocationDelta ini_stats fin_stats
-  printKeys $ formatRSpec "USED" rini
-  printKeys $ formatRSpec "POOL" ralo
-  printKeys $ formatRSpec "UNAV" runa
-
--- | Ensure a value is quoted if needed.
-ensureQuoted :: String -> String
-ensureQuoted v = if not (all (\c -> isAlphaNum c || c == '.') v)
-                 then '\'':v ++ "'"
-                 else v
+  printKeysHTS $ formatRSpec "USED" rini
+  printKeysHTS $ formatRSpec "POOL" ralo
+  printKeysHTS $ formatRSpec "UNAV" runa
 
 -- | Format a list of key\/values as a shell fragment.
-printKeys :: [(String, String)] -> IO ()
-printKeys = mapM_ (\(k, v) ->
-                   printf "HTS_%s=%s\n" (map toUpper k) (ensureQuoted v))
+printKeysHTS :: [(String, String)] -> IO ()
+printKeysHTS = printKeys htsPrefix
 
 -- | Converts instance data to a list of strings.
 printInstance :: Node.List -> Instance.Instance -> [String]
@@ -280,9 +273,9 @@ formatResources res =
 -- | Print the cluster resources.
 printCluster :: Bool -> Cluster.CStats -> Int -> IO ()
 printCluster True ini_stats node_count = do
-  printKeys $ map (\(a, fn) -> ("CLUSTER_" ++ a, fn ini_stats)) clusterData
-  printKeys [("CLUSTER_NODES", printf "%d" node_count)]
-  printKeys $ printStats PInitial ini_stats
+  printKeysHTS $ map (\(a, fn) -> ("CLUSTER_" ++ a, fn ini_stats)) clusterData
+  printKeysHTS [("CLUSTER_NODES", printf "%d" node_count)]
+  printKeysHTS $ printStats PInitial ini_stats
 
 printCluster False ini_stats node_count = do
   printf "The cluster has %d nodes and the following resources:\n  %s.\n"
@@ -294,9 +287,9 @@ printCluster False ini_stats node_count = do
 -- | Prints the normal instance spec.
 printISpec :: Bool -> RSpec -> SpecType -> DiskTemplate -> IO ()
 printISpec True ispec spec disk_template = do
-  printKeys $ map (\(a, fn) -> (prefix ++ "_" ++ a, fn ispec)) specData
-  printKeys [ (prefix ++ "_RQN", printf "%d" req_nodes) ]
-  printKeys [ (prefix ++ "_DISK_TEMPLATE",
+  printKeysHTS $ map (\(a, fn) -> (prefix ++ "_" ++ a, fn ispec)) specData
+  printKeysHTS [ (prefix ++ "_RQN", printf "%d" req_nodes) ]
+  printKeysHTS [ (prefix ++ "_DISK_TEMPLATE",
                diskTemplateToRaw disk_template) ]
       where req_nodes = Instance.requiredNodes disk_template
             prefix = specPrefix spec
@@ -311,8 +304,8 @@ printISpec False ispec spec disk_template =
 printTiered :: Bool -> [(RSpec, Int)]
             -> Node.List -> Node.List -> [(FailMode, Int)] -> IO ()
 printTiered True spec_map nl trl_nl _ = do
-  printKeys $ printStats PTiered (Cluster.totalResources trl_nl)
-  printKeys [("TSPEC", unwords (formatSpecMap spec_map))]
+  printKeysHTS $ printStats PTiered (Cluster.totalResources trl_nl)
+  printKeysHTS [("TSPEC", unwords (formatSpecMap spec_map))]
   printAllocationStats nl trl_nl
 
 printTiered False spec_map ini_nl fin_nl sreason = do
@@ -457,4 +450,4 @@ main opts args = do
 
   -- Print final result
 
-  printFinal machine_r
+  printFinalHTS machine_r
