@@ -76,14 +76,28 @@ options =
 data Phase = Initial
            | Rebalanced
 
+-- | Level of presented statistics.
+data Level = GroupLvl
+           | ClusterLvl
+
 -- | Prefix for machine readable names
 htcPrefix :: String
 htcPrefix = "HCHECK"
+
+-- | Phase-specific prefix for machine readable version.
+phasePrefix :: Phase -> String
+phasePrefix Initial = "INIT"
+phasePrefix Rebalanced = "FINAL"
 
 -- | Description of phases for human readable version.
 phaseDescription :: Phase -> String
 phaseDescription Initial = "initially"
 phaseDescription Rebalanced = "after rebalancing"
+
+-- | Level-specific prefix for machine readable version.
+levelPrefix :: Level -> String
+levelPrefix GroupLvl = "GROUP"
+levelPrefix ClusterLvl = "CLUSTER"
 
 -- | Data showed both per group and per cluster.
 commonData :: [(String, String)]
@@ -101,9 +115,21 @@ groupData = commonData ++ [("SCORE", "Group score")]
 clusterData :: [(String, String)]
 clusterData = commonData ++ [("NEED_REBALANCE", "Cluster is not healthy")]
 
+-- | Format a list of key, value as a shell fragment.
+printKeysHTC :: [(String, String)] -> IO ()
+printKeysHTC = printKeys htcPrefix
+
 -- | Print all the statistics on a group level.
 printGroupStats :: Int -> Bool -> Phase -> Gdx -> [Int] -> Double -> IO ()
-printGroupStats _ True _ _ _ _  = return ()
+printGroupStats _ True phase gidx stats score = do
+  let printstats = map (printf "%d") stats ++ [printf "%.8f" score] :: [String]
+      printkeys = map (printf "%s_%s_%d_%s"
+                                  (phasePrefix phase)
+                                  (levelPrefix GroupLvl)
+                                  gidx)
+                       (map fst groupData) :: [String]
+  printKeysHTC (zip printkeys printstats)
+
 printGroupStats verbose False phase gidx stats score = do
   let printstats = map (printf "%d") stats ++ [printf "%.8f" score] :: [String]
 
@@ -115,8 +141,15 @@ printGroupStats verbose False phase gidx stats score = do
 
 -- | Print all the statistics on a cluster (global) level.
 printClusterStats :: Int -> Bool -> Phase -> [Int] -> IO (Bool)
-printClusterStats _ True _ stats = do
+printClusterStats _ True phase stats = do
   let needrebal = sum stats
+      printstats = map (printf "%d") $ stats ++ [needrebal]
+                 :: [String]
+      printkeys = map (printf "%s_%s_%s"
+                              (phasePrefix phase)
+                              (levelPrefix ClusterLvl))
+                      (map fst clusterData) :: [String]
+  printKeysHTC (zip printkeys printstats)
   return $ needrebal > 0
 
 printClusterStats verbose False phase stats = do
