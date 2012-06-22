@@ -2,10 +2,10 @@ News
 ====
 
 
-Version 2.6.0 beta2
--------------------
+Version 2.6.0 rc1
+-----------------
 
-*(Released Mon, 11 Jun 2012)*
+*(Released Mon, 25 Jun 2012)*
 
 New features
 ~~~~~~~~~~~~
@@ -293,6 +293,29 @@ A number of bugs has been fixed in the cluster merge tool.
 changed to allow the same clock skew as permitted by the cluster
 verification. This will remove some rare but hard to diagnose errors in
 import-export.
+
+
+Version 2.6.0 beta2
+-------------------
+
+*(Released Mon, 11 Jun 2012)*
+
+Second beta release of 2.6. The following changes were done from beta2
+to rc1:
+
+- Fixed daemon-util with non-root user models
+- Fixed creation of plain instances with --no-wait-for-sync
+- Upgrade wrong iv_names at cfgupgrade time
+- Export more information in RAPI group queries
+- Fixed bug in instance net changes
+- Extended burnin to do NIC changes
+- query: Added ``<``, ``>``, ``<=``, ``>=`` comparison operators
+- Changed default for DRBD barriers
+- Fixed DRBD error reporting for syncer rate
+- Verify the options on disk parameters
+
+And of course various fixes to documentation and improved unittests and
+QA.
 
 
 Version 2.6.0 beta1
