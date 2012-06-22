@@ -303,11 +303,11 @@ Version 2.6.0 beta2
 Second beta release of 2.6. The following changes were done from beta2
 to rc1:
 
-- Fixed daemon-util with non-root user models
-- Fixed creation of plain instances with --no-wait-for-sync
-- Upgrade wrong iv_names at cfgupgrade time
+- Fixed ``daemon-util`` with non-root user models
+- Fixed creation of plain instances with ``--no-wait-for-sync``
+- Fix wrong iv_names when running ``cfgupgrade``
 - Export more information in RAPI group queries
-- Fixed bug in instance net changes
+- Fixed bug when changing instance network interfaces
 - Extended burnin to do NIC changes
 - query: Added ``<``, ``>``, ``<=``, ``>=`` comparison operators
 - Changed default for DRBD barriers
