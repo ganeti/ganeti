@@ -1061,6 +1061,7 @@ class OpNodeQueryStorage(OpCode):
 
 class OpNodeModifyStorage(OpCode):
   """Modifies the properies of a storage unit"""
+  OP_DSC_FIELD = "node_name"
   OP_PARAMS = [
     _PNodeName,
     _PStorageType,
