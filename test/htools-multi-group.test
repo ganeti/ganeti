@@ -36,5 +36,5 @@
 
 # hcheck should be able to run with multiple groups
 ./test/hcheck -t$T/simu-twogroups.tiered --machine-readable
->>>1 /HCHECK_OK=1/
+>>> /HCHECK_OK=1/
 >>>= 0

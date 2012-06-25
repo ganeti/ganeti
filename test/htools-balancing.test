@@ -34,7 +34,7 @@ diff -u $T/simu-rebal-merged.standard $T/simu-rebal.standard.original
 
 # hcheck sees no reason to rebalance after rebalancing was already done
 ./test/hcheck -t$T/simu-rebal.standard.balanced --machine-readable
->>>1 /HCHECK_INIT_CLUSTER_NEED_REBALANCE=0/
+>>> /HCHECK_INIT_CLUSTER_NEED_REBALANCE=0/
 >>>= 0
 
 ### now tiered tests

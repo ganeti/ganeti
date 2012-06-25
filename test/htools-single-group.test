@@ -25,5 +25,5 @@
 
 # hcheck should not find reason to rebalance
 ./test/hcheck -t$T/simu-onegroup.tiered --machine-readable
->>>1 /HCHECK_INIT_CLUSTER_NEED_REBALANCE=0/
+>>> /HCHECK_INIT_CLUSTER_NEED_REBALANCE=0/
 >>>= 0
