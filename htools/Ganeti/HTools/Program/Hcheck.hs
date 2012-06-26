@@ -161,27 +161,27 @@ printGroupStats verbose False phase grp stats score = do
           (zip groupData printstats)
 
 -- | Print all the statistics on a cluster (global) level.
-printClusterStats :: Int -> Bool -> Phase -> [Int] -> Bool -> IO (Bool)
-printClusterStats _ True phase stats canrebal = do
-  let needrebal = sum stats > 0
-      printstats = map (printf "%d") stats ++
+printClusterStats :: Int -> Bool -> Phase -> [Int] -> Bool -> Bool -> IO ()
+printClusterStats _ True phase stats needrebal canrebal = do
+  let printstats = map (printf "%d") stats ++
                    map (printBool True) [needrebal, canrebal]
       printkeys = map (printf "%s_%s_%s"
                               (phasePrefix phase)
                               (levelPrefix ClusterLvl))
                       (map fst clusterData) :: [String]
   printKeysHTC (zip printkeys printstats)
-  return needrebal
 
-printClusterStats verbose False phase stats canrebal = do
-  let needrebal = sum stats > 0
-      printstats = map (printf "%d") stats ++
+printClusterStats verbose False phase stats needrebal canrebal = do
+  let printstats = map (printf "%d") stats ++
                    map (printBool False) [needrebal, canrebal]
   unless (verbose == 0) $ do
       printf "\nCluster statistics %s\n" (phaseDescription phase) :: IO ()
       mapM_ (\(a,b) -> printf "    %s: %s\n" (snd a) b :: IO ())
             (zip clusterData printstats)
-  return needrebal
+
+-- | Check if any of cluster metrics is non-zero.
+clusterNeedsRebalance :: [Int] -> Bool
+clusterNeedsRebalance stats = sum stats > 0
 
 {- | Check group for N+1 hapiness, conflicts of primaries on nodes and
 instances residing on offline nodes.
@@ -267,8 +267,9 @@ main opts args = do
 
   groupsstats <- mapM (perGroupChecks verbose machineread Initial gl) splitcluster
   let clusterstats = map sum (transpose groupsstats) :: [Int]
+      needrebalance = clusterNeedsRebalance clusterstats
       canrebalance = length splitinstances == 0
-  needrebalance <- printClusterStats verbose machineread Initial clusterstats canrebalance
+  printClusterStats verbose machineread Initial clusterstats needrebalance canrebalance
 
   when nosimulation $ do
     unless (verbose == 0 || machineread) $
@@ -293,11 +294,11 @@ main opts args = do
     -- We do not introduce new split instances during rebalance
     let newsplitinstances = splitinstances
         newclusterstats = map sum (transpose newgroupstats) :: [Int]
+        newneedrebalance = clusterNeedsRebalance clusterstats
         newcanrebalance = length newsplitinstances == 0
 
-    _ <- printClusterStats verbose machineread Rebalanced newclusterstats
-                           newcanrebalance
-    return ()
+    printClusterStats verbose machineread Rebalanced newclusterstats
+                           newneedrebalance newcanrebalance
 
   printFinalHTC machineread
 
