@@ -2924,12 +2924,12 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
       node_disks[nname] = disks
 
-      # Creating copies as SetDiskID below will modify the objects and that can
-      # lead to incorrect data returned from nodes
-      devonly = [dev.Copy() for (_, dev) in disks]
-
-      for dev in devonly:
-        self.cfg.SetDiskID(dev, nname)
+      # _AnnotateDiskParams makes already copies of the disks
+      devonly = []
+      for (inst, dev) in disks:
+        (anno_disk,) = _AnnotateDiskParams(instanceinfo[inst], [dev], self.cfg)
+        self.cfg.SetDiskID(anno_disk, nname)
+        devonly.append(anno_disk)
 
       node_disks_devonly[nname] = devonly
 
