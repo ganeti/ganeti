@@ -183,13 +183,13 @@ printResults True _ fin_nl num_instances allocs sreason = do
 
   printKeysHTS $ printStats PFinal fin_stats
   printKeysHTS [ ("ALLOC_USAGE", printf "%.8f"
-                                ((fromIntegral num_instances::Double) /
-                                 fromIntegral fin_instances))
-            , ("ALLOC_INSTANCES", printf "%d" allocs)
-            , ("ALLOC_FAIL_REASON", map toUpper . show . fst $ head sreason)
-            ]
+                                   ((fromIntegral num_instances::Double) /
+                                   fromIntegral fin_instances))
+               , ("ALLOC_INSTANCES", printf "%d" allocs)
+               , ("ALLOC_FAIL_REASON", map toUpper . show . fst $ head sreason)
+               ]
   printKeysHTS $ map (\(x, y) -> (printf "ALLOC_%s_CNT" (show x),
-                               printf "%d" y)) sreason
+                                  printf "%d" y)) sreason
 
 printResults False ini_nl fin_nl _ allocs sreason = do
   putStrLn "Normal (fixed-size) allocation results:"
@@ -290,7 +290,7 @@ printISpec True ispec spec disk_template = do
   printKeysHTS $ map (\(a, fn) -> (prefix ++ "_" ++ a, fn ispec)) specData
   printKeysHTS [ (prefix ++ "_RQN", printf "%d" req_nodes) ]
   printKeysHTS [ (prefix ++ "_DISK_TEMPLATE",
-               diskTemplateToRaw disk_template) ]
+                  diskTemplateToRaw disk_template) ]
       where req_nodes = Instance.requiredNodes disk_template
             prefix = specPrefix spec
 

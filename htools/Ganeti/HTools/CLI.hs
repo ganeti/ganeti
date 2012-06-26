@@ -567,12 +567,17 @@ maybeShowWarnings fix_msgs =
     hPutStrLn stderr . unlines . map (printf "  - %s") $ fix_msgs
 
 -- | Format a list of key, value as a shell fragment.
-printKeys :: String -> [(String, String)] -> IO ()
+printKeys :: String              -- ^ Prefix to printed variables
+          -> [(String, String)]  -- ^ List of (key, value) pairs to be printed
+          -> IO ()
 printKeys prefix = mapM_ (\(k, v) ->
                        printf "%s_%s=%s\n" prefix (map toUpper k) (ensureQuoted v))
 
 -- | Prints the final @OK@ marker in machine readable output.
-printFinal :: String -> Bool -> IO ()
+printFinal :: String    -- ^ Prefix to printed variable
+           -> Bool      -- ^ Whether output should be machine readable
+                        -- Note: if not, there is nothing to print
+           -> IO ()
 printFinal prefix True =
   -- this should be the final entry
   printKeys prefix [("OK", "1")]
