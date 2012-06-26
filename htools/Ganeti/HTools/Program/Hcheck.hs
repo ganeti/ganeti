@@ -132,6 +132,14 @@ printBool True True = "1"
 printBool True False = "0"
 printBool False b = show b
 
+-- | Print mapping from group idx to group uuid (only in machine readable mode).
+printGroupsMappings :: Group.List -> IO ()
+printGroupsMappings gl = do
+    let extract_vals = \g -> (printf "GROUP_UUID_%d" $ Group.idx g :: String,
+                              printf "%s" $ Group.uuid g :: String)
+        printpairs = map extract_vals (Container.elems gl)
+    printKeysHTC printpairs
+
 -- | Print all the statistics on a group level.
 printGroupStats :: Int -> Bool -> Phase -> Group.Group -> [Int] -> Double -> IO ()
 printGroupStats _ True phase grp stats score = do
@@ -246,6 +254,7 @@ main opts args = do
   let splitinstances = Cluster.findSplitInstances nlf ilf
       splitcluster = Cluster.splitCluster nlf ilf
 
+  when machineread $ printGroupsMappings gl
 
   groupsstats <- mapM (perGroupChecks verbose machineread Initial gl) splitcluster
   let clusterstats = map sum (transpose groupsstats) :: [Int]
