@@ -33,6 +33,7 @@ import Text.Printf (printf)
 
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Cluster as Cluster
+import qualified Ganeti.HTools.Group as Group
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
 
@@ -132,22 +133,22 @@ printBool True False = "0"
 printBool False b = show b
 
 -- | Print all the statistics on a group level.
-printGroupStats :: Int -> Bool -> Phase -> Gdx -> [Int] -> Double -> IO ()
-printGroupStats _ True phase gidx stats score = do
+printGroupStats :: Int -> Bool -> Phase -> Group.Group -> [Int] -> Double -> IO ()
+printGroupStats _ True phase grp stats score = do
   let printstats = map (printf "%d") stats ++ [printf "%.8f" score] :: [String]
       printkeys = map (printf "%s_%s_%d_%s"
                                   (phasePrefix phase)
                                   (levelPrefix GroupLvl)
-                                  gidx)
+                                  (Group.idx grp))
                        (map fst groupData) :: [String]
   printKeysHTC (zip printkeys printstats)
 
-printGroupStats verbose False phase gidx stats score = do
+printGroupStats verbose False phase grp stats score = do
   let printstats = map (printf "%d") stats ++ [printf "%.8f" score] :: [String]
 
   unless (verbose == 0) $ do
-    printf "\nStatistics for group %d %s\n"
-               gidx (phaseDescription phase) :: IO ()
+    printf "\nStatistics for group %s %s\n"
+               (Group.name grp) (phaseDescription phase) :: IO ()
     mapM_ (\(a,b) -> printf "    %s: %s\n" (snd a) b :: IO ())
           (zip groupData printstats)
 
@@ -178,10 +179,11 @@ printClusterStats verbose False phase stats canrebal = do
 instances residing on offline nodes.
 
 -}
-perGroupChecks :: Int -> Bool -> Phase -> (Gdx, (Node.List, Instance.List))
-               -> IO ([Int])
-perGroupChecks verbose machineread phase (gidx, (nl, il)) = do
-  let offnl = filter Node.offline (Container.elems nl)
+perGroupChecks :: Int -> Bool -> Phase -> Group.List ->
+                  (Gdx, (Node.List, Instance.List)) -> IO ([Int])
+perGroupChecks verbose machineread phase gl (gidx, (nl, il)) = do
+  let grp = Container.find gidx gl
+      offnl = filter Node.offline (Container.elems nl)
       n1violated = length $ fst $ Cluster.computeBadItems nl il
       conflicttags = length $ filter (>0)
                      (map Node.conflictingPrimaries (Container.elems nl))
@@ -193,7 +195,7 @@ perGroupChecks verbose machineread phase (gidx, (nl, il)) = do
                    , offline_pri
                    , offline_sec
                    ]
-  printGroupStats verbose machineread phase gidx groupstats score
+  printGroupStats verbose machineread phase grp groupstats score
   return groupstats
 
 -- | Use Hbal's iterateDepth to simulate group rebalance.
@@ -238,13 +240,14 @@ main opts args = do
       machineread = optMachineReadable opts
       nosimulation = optNoSimulation opts
 
-  (ClusterData _ fixed_nl ilf _ _) <- loadExternalData opts
+  (ClusterData gl fixed_nl ilf _ _) <- loadExternalData opts
   nlf <- setNodeStatus opts fixed_nl
 
   let splitinstances = Cluster.findSplitInstances nlf ilf
       splitcluster = Cluster.splitCluster nlf ilf
 
-  groupsstats <- mapM (perGroupChecks verbose machineread Initial) splitcluster
+
+  groupsstats <- mapM (perGroupChecks verbose machineread Initial gl) splitcluster
   let clusterstats = map sum (transpose groupsstats) :: [Int]
       canrebalance = length splitinstances == 0
   needrebalance <- printClusterStats verbose machineread Initial clusterstats canrebalance
@@ -267,7 +270,7 @@ main opts args = do
     exitWith ExitSuccess
 
   rebalancedcluster <- mapM (simulateRebalance opts) splitcluster
-  newgroupstats <- mapM (perGroupChecks verbose machineread Rebalanced)
+  newgroupstats <- mapM (perGroupChecks verbose machineread Rebalanced gl)
                      rebalancedcluster
   let newclusterstats = map sum (transpose newgroupstats) :: [Int]
   _ <- printClusterStats verbose machineread Rebalanced newclusterstats canrebalance
