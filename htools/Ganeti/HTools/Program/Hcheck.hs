@@ -207,31 +207,34 @@ perGroupChecks verbose machineread phase gl (gidx, (nl, il)) = do
   return groupstats
 
 -- | Use Hbal's iterateDepth to simulate group rebalance.
-simulateRebalance :: Options ->
-                     (Gdx, (Node.List, Instance.List)) ->
+executeSimulation :: Options -> Cluster.Table -> Double ->
+                     Gdx -> Node.List -> Instance.List ->
                      IO ( (Gdx, (Node.List, Instance.List)) )
-simulateRebalance opts (gidx, (nl, il)) = do
+executeSimulation opts ini_tbl min_cv gidx nl il = do
+  let imlen = maximum . map (length . Instance.alias) $ Container.elems il
+      nmlen = maximum . map (length . Node.alias) $ Container.elems nl
+
+  (fin_tbl, _) <- Hbal.iterateDepth False ini_tbl
+                                    (optMaxLength opts)
+                                    (optDiskMoves opts)
+                                    (optInstMoves opts)
+                                    nmlen imlen [] min_cv
+                                    (optMinGainLim opts) (optMinGain opts)
+                                    (optEvacMode opts)
+
+  let (Cluster.Table fin_nl fin_il _ _) = fin_tbl
+  return (gidx, (fin_nl, fin_il))
+
+-- | Simulate group rebalance if group's score is not good
+maybeSimulateGroupRebalance :: Options -> (Gdx, (Node.List, Instance.List))
+                               -> IO ((Gdx, (Node.List, Instance.List)))
+maybeSimulateGroupRebalance opts (gidx, (nl, il)) = do
   let ini_cv = Cluster.compCV nl
       ini_tbl = Cluster.Table nl il ini_cv []
       min_cv = optMinScore opts
-
-
   if (ini_cv < min_cv)
     then return (gidx, (nl, il))
-    else do
-      let imlen = maximum . map (length . Instance.alias) $ Container.elems il
-          nmlen = maximum . map (length . Node.alias) $ Container.elems nl
-
-      (fin_tbl, _) <- Hbal.iterateDepth False ini_tbl
-                                        (optMaxLength opts)
-                                        (optDiskMoves opts)
-                                        (optInstMoves opts)
-                                        nmlen imlen [] min_cv
-                                        (optMinGainLim opts) (optMinGain opts)
-                                        (optEvacMode opts)
-
-      let (Cluster.Table fin_nl fin_il _ _) = fin_tbl
-      return (gidx, (fin_nl, fin_il))
+    else executeSimulation opts ini_tbl min_cv gidx nl il
 
 -- | Decide whether to simulate rebalance.
 maybeSimulateRebalance :: Bool             -- ^ Whether to simulate rebalance
@@ -239,7 +242,7 @@ maybeSimulateRebalance :: Bool             -- ^ Whether to simulate rebalance
                        -> [(Gdx, (Node.List, Instance.List))] -- ^ Group data
                        -> IO([(Gdx, (Node.List, Instance.List))])
 maybeSimulateRebalance True opts cluster =
-    mapM (simulateRebalance opts) cluster
+    mapM (maybeSimulateGroupRebalance opts) cluster
 maybeSimulateRebalance False _ cluster = return cluster
 
 -- | Prints the final @OK@ marker in machine readable output.
@@ -269,7 +272,8 @@ main opts args = do
   let clusterstats = map sum (transpose groupsstats) :: [Int]
       needrebalance = clusterNeedsRebalance clusterstats
       canrebalance = length splitinstances == 0
-  printClusterStats verbose machineread Initial clusterstats needrebalance canrebalance
+  printClusterStats verbose machineread Initial clusterstats needrebalance
+                    canrebalance
 
   when nosimulation $ do
     unless (verbose == 0 || machineread) $
