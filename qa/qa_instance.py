@@ -453,6 +453,7 @@ def _AssertRecreateDisks(cmdargs, instance, fail=False, check=True,
     AssertCommand(["gnt-instance", "activate-disks", instance["name"]])
     AssertCommand(["gnt-instance", "deactivate-disks", instance["name"]])
 
+
 @InstanceCheck(INST_UP, INST_UP, FIRST_ARG)
 def TestRecreateDisks(instance, pnode, snode, othernodes):
   """gnt-instance recreate-disks
