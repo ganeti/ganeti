@@ -81,7 +81,7 @@ data Phase = Initial
 data Level = GroupLvl
            | ClusterLvl
 
--- | Prefix for machine readable names
+-- | Prefix for machine readable names.
 htcPrefix :: String
 htcPrefix = "HCHECK"
 
