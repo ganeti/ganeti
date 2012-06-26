@@ -113,11 +113,23 @@ groupData = commonData ++ [("SCORE", "Group score")]
 
 -- | Data showed per cluster.
 clusterData :: [(String, String)]
-clusterData = commonData ++ [("NEED_REBALANCE", "Cluster is not healthy")]
+clusterData = commonData ++
+              [ ("NEED_REBALANCE", "Cluster is not healthy")
+              , ("CAN_REBALANCE", "Possible to run rebalance")
+              ]
+
 
 -- | Format a list of key, value as a shell fragment.
 printKeysHTC :: [(String, String)] -> IO ()
 printKeysHTC = printKeys htcPrefix
+
+-- | Prepare string from boolean value.
+printBool :: Bool    -- ^ Whether the result should be machine readable
+          -> Bool    -- ^ Value to be converted to string
+          -> String
+printBool True True = "1"
+printBool True False = "0"
+printBool False b = show b
 
 -- | Print all the statistics on a group level.
 printGroupStats :: Int -> Bool -> Phase -> Gdx -> [Int] -> Double -> IO ()
@@ -140,26 +152,27 @@ printGroupStats verbose False phase gidx stats score = do
           (zip groupData printstats)
 
 -- | Print all the statistics on a cluster (global) level.
-printClusterStats :: Int -> Bool -> Phase -> [Int] -> IO (Bool)
-printClusterStats _ True phase stats = do
-  let needrebal = sum stats
-      printstats = map (printf "%d") $ stats ++ [needrebal]
-                 :: [String]
+printClusterStats :: Int -> Bool -> Phase -> [Int] -> Bool -> IO (Bool)
+printClusterStats _ True phase stats canrebal = do
+  let needrebal = sum stats > 0
+      printstats = map (printf "%d") stats ++
+                   map (printBool True) [needrebal, canrebal]
       printkeys = map (printf "%s_%s_%s"
                               (phasePrefix phase)
                               (levelPrefix ClusterLvl))
                       (map fst clusterData) :: [String]
   printKeysHTC (zip printkeys printstats)
-  return $ needrebal > 0
+  return needrebal
 
-printClusterStats verbose False phase stats = do
-  let needrebal = sum stats
-      printstats = map (printf "%d") stats :: [String]
+printClusterStats verbose False phase stats canrebal = do
+  let needrebal = sum stats > 0
+      printstats = map (printf "%d") stats ++
+                   map (printBool False) [needrebal, canrebal]
   unless (verbose == 0) $ do
       printf "\nCluster statistics %s\n" (phaseDescription phase) :: IO ()
       mapM_ (\(a,b) -> printf "    %s: %s\n" (snd a) b :: IO ())
-            (zip clusterData (printstats ++ [show (needrebal>0)]))
-  return $ needrebal > 0
+            (zip clusterData printstats)
+  return needrebal
 
 {- | Check group for N+1 hapiness, conflicts of primaries on nodes and
 instances residing on offline nodes.
@@ -233,7 +246,8 @@ main opts args = do
 
   groupsstats <- mapM (perGroupChecks verbose machineread Initial) splitcluster
   let clusterstats = map sum (transpose groupsstats) :: [Int]
-  needrebalance <- printClusterStats verbose machineread Initial clusterstats
+      canrebalance = length splitinstances == 0
+  needrebalance <- printClusterStats verbose machineread Initial clusterstats canrebalance
 
   when nosimulation $ do
     unless (verbose == 0 || machineread) $
@@ -256,6 +270,6 @@ main opts args = do
   newgroupstats <- mapM (perGroupChecks verbose machineread Rebalanced)
                      rebalancedcluster
   let newclusterstats = map sum (transpose newgroupstats) :: [Int]
-  _ <- printClusterStats verbose machineread Rebalanced newclusterstats
+  _ <- printClusterStats verbose machineread Rebalanced newclusterstats canrebalance
 
   printFinalHTC machineread
