@@ -1611,7 +1611,8 @@ def _FindFaultyInstanceDisks(cfg, rpc_runner, instance, node_name, prereq):
   for dev in instance.disks:
     cfg.SetDiskID(dev, node_name)
 
-  result = rpc_runner.call_blockdev_getmirrorstatus(node_name, instance.disks)
+  result = rpc_runner.call_blockdev_getmirrorstatus(node_name, (instance.disks,
+                                                                instance))
   result.Raise("Failed to get disk status from node %s" % node_name,
                prereq=prereq, ecode=errors.ECODE_ENVIRON)
 
@@ -4475,7 +4476,7 @@ def _WaitForSync(lu, instance, disks=None, oneshot=False):
     max_time = 0
     done = True
     cumul_degraded = False
-    rstats = lu.rpc.call_blockdev_getmirrorstatus(node, disks)
+    rstats = lu.rpc.call_blockdev_getmirrorstatus(node, (disks, instance))
     msg = rstats.fail_msg
     if msg:
       lu.LogWarning("Can't get any data from node %s: %s", node, msg)

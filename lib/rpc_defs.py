@@ -411,7 +411,7 @@ _BLOCKDEV_CALLS = [
     ], None, _BlockdevFindPostProc,
     "Request identification of a given block device"),
   ("blockdev_getmirrorstatus", SINGLE, None, TMO_NORMAL, [
-    ("disks", ED_OBJECT_DICT_LIST, None),
+    ("disks", ED_DISKS_DICT_DP, None),
     ], None, _BlockdevGetMirrorStatusPostProc,
     "Request status of a (mirroring) device"),
   ("blockdev_getmirrorstatus_multi", MULTI, None, TMO_NORMAL, [
