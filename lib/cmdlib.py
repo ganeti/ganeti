@@ -9005,7 +9005,8 @@ def _RemoveDisks(lu, instance, target_node=None, ignore_failures=False):
 
   all_result = True
   ports_to_release = set()
-  for (idx, device) in enumerate(instance.disks):
+  anno_disks = _AnnotateDiskParams(instance, instance.disks, lu.cfg)
+  for (idx, device) in enumerate(anno_disks):
     if target_node:
       edata = [(target_node, device)]
     else:
@@ -12691,8 +12692,8 @@ class LUInstanceSetParams(LogicalUnit):
     snode = instance.secondary_nodes[0]
     feedback_fn("Converting template to plain")
 
-    old_disks = instance.disks
-    new_disks = [d.children[0] for d in old_disks]
+    old_disks = _AnnotateDiskParams(instance, instance.disks, self.cfg)
+    new_disks = [d.children[0] for d in instance.disks]
 
     # copy over size and mode
     for parent, child in zip(old_disks, new_disks):
@@ -12782,7 +12783,8 @@ class LUInstanceSetParams(LogicalUnit):
     """Removes a disk.
 
     """
-    for node, disk in root.ComputeNodeTree(self.instance.primary_node):
+    (anno_disk,) = _AnnotateDiskParams(self.instance, [root], self.cfg)
+    for node, disk in anno_disk.ComputeNodeTree(self.instance.primary_node):
       self.cfg.SetDiskID(disk, node)
       msg = self.rpc.call_blockdev_remove(node, disk).fail_msg
       if msg:
