@@ -233,6 +233,15 @@ simulateRebalance opts (gidx, (nl, il)) = do
       let (Cluster.Table fin_nl fin_il _ _) = fin_tbl
       return (gidx, (fin_nl, fin_il))
 
+-- | Decide whether to simulate rebalance.
+maybeSimulateRebalance :: Bool             -- ^ Whether to simulate rebalance
+                       -> Options          -- ^ Command line options
+                       -> [(Gdx, (Node.List, Instance.List))] -- ^ Group data
+                       -> IO([(Gdx, (Node.List, Instance.List))])
+maybeSimulateRebalance True opts cluster =
+    mapM (simulateRebalance opts) cluster
+maybeSimulateRebalance False _ cluster = return cluster
+
 -- | Prints the final @OK@ marker in machine readable output.
 printFinalHTC :: Bool -> IO ()
 printFinalHTC = printFinal htcPrefix
@@ -264,24 +273,32 @@ main opts args = do
   when nosimulation $ do
     unless (verbose == 0 || machineread) $
       printf "Running in no-simulation mode. Exiting.\n"
-    printFinalHTC machineread
-    exitWith ExitSuccess
 
   when (length splitinstances > 0) $ do
     unless (verbose == 0 || machineread) $
        printf "Split instances found, simulation of re-balancing not possible\n"
-    exitWith $ ExitFailure 1
 
   unless needrebalance $ do
     unless (verbose == 0 || machineread) $
       printf "No need to rebalance cluster, no problems found. Exiting.\n"
-    printFinalHTC machineread
-    exitWith ExitSuccess
 
-  rebalancedcluster <- mapM (simulateRebalance opts) splitcluster
-  newgroupstats <- mapM (perGroupChecks verbose machineread Rebalanced gl)
+  let exitOK = nosimulation || not needrebalance
+      simulate = not nosimulation && length splitinstances == 0 && needrebalance
+
+  rebalancedcluster <- maybeSimulateRebalance simulate opts splitcluster
+
+  when (simulate || machineread) $ do
+    newgroupstats <- mapM (perGroupChecks verbose machineread Rebalanced gl)
                      rebalancedcluster
-  let newclusterstats = map sum (transpose newgroupstats) :: [Int]
-  _ <- printClusterStats verbose machineread Rebalanced newclusterstats canrebalance
+    -- We do not introduce new split instances during rebalance
+    let newsplitinstances = splitinstances
+        newclusterstats = map sum (transpose newgroupstats) :: [Int]
+        newcanrebalance = length newsplitinstances == 0
+
+    _ <- printClusterStats verbose machineread Rebalanced newclusterstats
+                           newcanrebalance
+    return ()
 
   printFinalHTC machineread
+
+  unless exitOK $ exitWith $ ExitFailure 1
