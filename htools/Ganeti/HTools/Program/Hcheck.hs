@@ -114,11 +114,29 @@ levelPrefix :: Level -> String
 levelPrefix GroupLvl = "GROUP"
 levelPrefix ClusterLvl = "CLUSTER"
 
+-- | Machine-readable keys to show depending on given level.
+keysData :: Level -> [String]
+keysData GroupLvl = map fst groupData
+keysData ClusterLvl = map fst clusterData
+
 -- | Description of phases for human readable version.
 phaseDescr :: Phase -> String
 phaseDescr Initial = "initially"
 phaseDescr Rebalanced = "after rebalancing"
 
+-- | Description to show depending on given level.
+descrData :: Level -> [String]
+descrData GroupLvl = map snd groupData
+descrData ClusterLvl = map snd clusterData
+
+-- | Human readable prefix for statistics.
+phaseLevelDescr :: Phase -> Level -> Maybe String -> String
+phaseLevelDescr phase GroupLvl (Just name) =
+    printf "Statistics for group %s %s\n" name $ phaseDescr phase
+phaseLevelDescr phase GroupLvl Nothing =
+    printf "Statistics for group %s\n" $ phaseDescr phase
+phaseLevelDescr phase ClusterLvl _ =
+    printf "Cluster statistics %s\n" $ phaseDescr phase
 
 -- | Format a list of key, value as a shell fragment.
 printKeysHTC :: [(String, String)] -> IO ()
@@ -140,44 +158,60 @@ printGroupsMappings gl = do
         printpairs = map extract_vals (Container.elems gl)
     printKeysHTC printpairs
 
--- | Print all the statistics on a group level.
-printGroupStats :: Int -> Bool -> Phase -> Group.Group -> [Int] -> Double -> IO ()
-printGroupStats _ True phase grp stats score = do
-  let printstats = map (printf "%d") stats ++ [printf "%.8f" score] :: [String]
-      printkeys = map (printf "%s_%s_%d_%s"
-                                  (phasePrefix phase)
-                                  (levelPrefix GroupLvl)
-                                  (Group.idx grp))
-                       (map fst groupData) :: [String]
-  printKeysHTC (zip printkeys printstats)
+-- | Prepare a single key given a certain level and phase of simulation.
+prepareKey :: Level -> Phase -> Maybe String -> String -> String
+prepareKey level phase Nothing suffix =
+  printf "%s_%s_%s" (phasePrefix phase) (levelPrefix level) suffix
+prepareKey level phase (Just idx) suffix =
+  printf "%s_%s_%s_%s" (phasePrefix phase) (levelPrefix level) idx suffix
 
-printGroupStats verbose False phase grp stats score = do
-  let printstats = map (printf "%d") stats ++ [printf "%.8f" score] :: [String]
+-- | Print all the statistics for given level and phase.
+printStats :: Int            -- ^ Verbosity level
+           -> Bool           -- ^ If the output should be machine readable
+           -> Level          -- ^ Level on which we are printing
+           -> Phase          -- ^ Current phase of simulation
+           -> [String]       -- ^ Values to print
+           -> Maybe String   -- ^ Additional data for groups
+           -> IO ()
+printStats _ True level phase values gidx = do
+  let keys = map (prepareKey level phase gidx) (keysData level)
+  printKeysHTC $ zip keys values
 
+printStats verbose False level phase values name = do
+  let prefix = phaseLevelDescr phase level name
+      descr = descrData level
   unless (verbose == 0) $ do
-    printf "\nStatistics for group %s %s\n"
-               (Group.name grp) (phaseDescr phase) :: IO ()
-    mapM_ (\(a,b) -> printf "    %s: %s\n" (snd a) b :: IO ())
-          (zip groupData printstats)
+    printf "\n%s" prefix :: IO ()
+    mapM_ (\(a,b) -> printf "    %s: %s\n" a b) (zip descr values)
+
+-- | Extract name or idx from group.
+extractGroupData :: Bool -> Group.Group -> String
+extractGroupData True grp = printf "%d" $ Group.idx grp
+extractGroupData False grp = Group.name grp
+
+-- | Prepare values for group.
+prepareGroupValues :: [Int] -> Double -> [String]
+prepareGroupValues stats score =
+  map (printf "%d") stats ++ [printf "%.8f" score]
+
+-- | Prepare values for cluster.
+prepareClusterValues :: Bool -> [Int] -> [Bool] -> [String]
+prepareClusterValues machineread stats bstats =
+  map (printf "%d")  stats ++ map (printBool machineread) bstats
+
+-- | Print all the statistics on a group level.
+printGroupStats :: Int -> Bool -> Phase -> Group.Group -> [Int] -> Double
+                -> IO ()
+printGroupStats verbose machineread phase grp stats score = do
+  let values = prepareGroupValues stats score
+      extradata = extractGroupData machineread grp
+  printStats verbose machineread GroupLvl phase values (Just extradata)
 
 -- | Print all the statistics on a cluster (global) level.
 printClusterStats :: Int -> Bool -> Phase -> [Int] -> Bool -> Bool -> IO ()
-printClusterStats _ True phase stats needrebal canrebal = do
-  let printstats = map (printf "%d") stats ++
-                   map (printBool True) [needrebal, canrebal]
-      printkeys = map (printf "%s_%s_%s"
-                              (phasePrefix phase)
-                              (levelPrefix ClusterLvl))
-                      (map fst clusterData) :: [String]
-  printKeysHTC (zip printkeys printstats)
-
-printClusterStats verbose False phase stats needrebal canrebal = do
-  let printstats = map (printf "%d") stats ++
-                   map (printBool False) [needrebal, canrebal]
-  unless (verbose == 0) $ do
-      printf "\nCluster statistics %s\n" (phaseDescr phase) :: IO ()
-      mapM_ (\(a,b) -> printf "    %s: %s\n" (snd a) b :: IO ())
-            (zip clusterData printstats)
+printClusterStats verbose machineread phase stats needhbal canhbal = do
+  let values = prepareClusterValues machineread stats [needhbal, canhbal]
+  printStats verbose machineread ClusterLvl phase values Nothing
 
 -- | Check if any of cluster metrics is non-zero.
 clusterNeedsRebalance :: [Int] -> Bool
