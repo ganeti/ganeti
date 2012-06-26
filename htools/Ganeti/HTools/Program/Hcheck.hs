@@ -85,21 +85,6 @@ data Level = GroupLvl
 htcPrefix :: String
 htcPrefix = "HCHECK"
 
--- | Phase-specific prefix for machine readable version.
-phasePrefix :: Phase -> String
-phasePrefix Initial = "INIT"
-phasePrefix Rebalanced = "FINAL"
-
--- | Description of phases for human readable version.
-phaseDescription :: Phase -> String
-phaseDescription Initial = "initially"
-phaseDescription Rebalanced = "after rebalancing"
-
--- | Level-specific prefix for machine readable version.
-levelPrefix :: Level -> String
-levelPrefix GroupLvl = "GROUP"
-levelPrefix ClusterLvl = "CLUSTER"
-
 -- | Data showed both per group and per cluster.
 commonData :: [(String, String)]
 commonData =[ ("N1_FAIL", "Nodes not N+1 happy")
@@ -118,6 +103,21 @@ clusterData = commonData ++
               [ ("NEED_REBALANCE", "Cluster is not healthy")
               , ("CAN_REBALANCE", "Possible to run rebalance")
               ]
+
+-- | Phase-specific prefix for machine readable version.
+phasePrefix :: Phase -> String
+phasePrefix Initial = "INIT"
+phasePrefix Rebalanced = "FINAL"
+
+-- | Level-specific prefix for machine readable version.
+levelPrefix :: Level -> String
+levelPrefix GroupLvl = "GROUP"
+levelPrefix ClusterLvl = "CLUSTER"
+
+-- | Description of phases for human readable version.
+phaseDescr :: Phase -> String
+phaseDescr Initial = "initially"
+phaseDescr Rebalanced = "after rebalancing"
 
 
 -- | Format a list of key, value as a shell fragment.
@@ -156,7 +156,7 @@ printGroupStats verbose False phase grp stats score = do
 
   unless (verbose == 0) $ do
     printf "\nStatistics for group %s %s\n"
-               (Group.name grp) (phaseDescription phase) :: IO ()
+               (Group.name grp) (phaseDescr phase) :: IO ()
     mapM_ (\(a,b) -> printf "    %s: %s\n" (snd a) b :: IO ())
           (zip groupData printstats)
 
@@ -175,7 +175,7 @@ printClusterStats verbose False phase stats needrebal canrebal = do
   let printstats = map (printf "%d") stats ++
                    map (printBool False) [needrebal, canrebal]
   unless (verbose == 0) $ do
-      printf "\nCluster statistics %s\n" (phaseDescription phase) :: IO ()
+      printf "\nCluster statistics %s\n" (phaseDescr phase) :: IO ()
       mapM_ (\(a,b) -> printf "    %s: %s\n" (snd a) b :: IO ())
             (zip clusterData printstats)
 
