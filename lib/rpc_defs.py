@@ -355,7 +355,7 @@ _BLOCKDEV_CALLS = [
     ("idx", None, None),
     ], None, None, "Request assembling of a given block device"),
   ("blockdev_shutdown", SINGLE, None, TMO_NORMAL, [
-    ("disk", ED_OBJECT_DICT, None),
+    ("disk", ED_SINGLE_DISK_DICT_DP, None),
     ], None, None, "Request shutdown of a given block device"),
   ("blockdev_addchildren", SINGLE, None, TMO_NORMAL, [
     ("bdev", ED_SINGLE_DISK_DICT_DP, None),

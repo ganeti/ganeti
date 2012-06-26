@@ -6510,7 +6510,7 @@ def _ShutdownInstanceDisks(lu, instance, disks=None, ignore_primary=False):
   for disk in disks:
     for node, top_disk in disk.ComputeNodeTree(instance.primary_node):
       lu.cfg.SetDiskID(top_disk, node)
-      result = lu.rpc.call_blockdev_shutdown(node, top_disk)
+      result = lu.rpc.call_blockdev_shutdown(node, (top_disk, instance))
       msg = result.fail_msg
       if msg:
         lu.LogWarning("Could not shutdown block device %s on node %s: %s",
@@ -8494,7 +8494,7 @@ class TLMigrateInstance(Tasklet):
       disks = _ExpandCheckDisks(instance, instance.disks)
       self.feedback_fn("* unmapping instance's disks from %s" % source_node)
       for disk in disks:
-        result = self.rpc.call_blockdev_shutdown(source_node, disk)
+        result = self.rpc.call_blockdev_shutdown(source_node, (disk, instance))
         msg = result.fail_msg
         if msg:
           logging.error("Migration was successful, but couldn't unmap the"
@@ -11161,7 +11161,8 @@ class TLReplaceDisks(Tasklet):
     for idx, dev in enumerate(self.instance.disks):
       self.lu.LogInfo("Shutting down drbd for disk/%d on old node" % idx)
       self.cfg.SetDiskID(dev, self.target_node)
-      msg = self.rpc.call_blockdev_shutdown(self.target_node, dev).fail_msg
+      msg = self.rpc.call_blockdev_shutdown(self.target_node,
+                                            (dev, self.instance)).fail_msg
       if msg:
         self.lu.LogWarning("Failed to shutdown drbd for disk/%d on old"
                            "node: %s" % (idx, msg),
