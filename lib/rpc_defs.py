@@ -66,7 +66,7 @@ ACCEPT_OFFLINE_NODE = object()
  ED_INST_DICT,
  ED_INST_DICT_HVP_BEP,
  ED_NODE_TO_DISK_DICT,
- ED_INST_DICT_OSP,
+ ED_INST_DICT_OSP_DP,
  ED_IMPEXP_IO,
  ED_FILE_DETAILS,
  ED_FINALIZE_EXPORT_DISKS,
@@ -270,7 +270,7 @@ _INSTANCE_CALLS = [
     ("startup_paused", None, None),
     ], None, None, "Starts an instance"),
   ("instance_os_add", SINGLE, None, TMO_1DAY, [
-    ("instance_osp", ED_INST_DICT_OSP, None),
+    ("instance_osp", ED_INST_DICT_OSP_DP, None),
     ("reinstall", None, None),
     ("debug", None, None),
     ], None, None, "Starts an instance"),
