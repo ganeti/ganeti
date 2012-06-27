@@ -26,7 +26,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 module Ganeti.HTools.Program.Hcheck (main, options) where
 
 import Control.Monad
-import List (transpose)
+import Data.List (transpose)
 import System.Exit
 import System.IO
 import Text.Printf (printf)
