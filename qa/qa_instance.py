@@ -481,15 +481,16 @@ def TestRecreateDisks(instance, pnode, snode, othernodes):
   orig_seq = pnode["primary"]
   if snode:
     orig_seq = orig_seq + ":" + snode["primary"]
-  # This fails beacuse the instance is running
+  # These fail because the instance is running
   _AssertRecreateDisks(["-n", other_seq], instance, fail=True, destroy=False)
+  _AssertRecreateDisks(["-I", "hail"], instance, fail=True, destroy=False)
   AssertCommand(["gnt-instance", "stop", instance["name"]])
   # Disks exist: this should fail
   _AssertRecreateDisks([], instance, fail=True, destroy=False)
   # Recreate disks in place
   _AssertRecreateDisks([], instance)
   # Move disks away
-  _AssertRecreateDisks(["-n", other_seq], instance)
+  _AssertRecreateDisks(["-I", "hail"], instance)
   # Move disks back
   _AssertRecreateDisks(["-n", orig_seq], instance, check=False)
   # This and InstanceCheck decoration check that the disks are working
