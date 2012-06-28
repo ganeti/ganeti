@@ -233,7 +233,7 @@ support all options. Some common options are:
   - the cpu core count for the nodes
   - the spindle count for the nodes
 
-  An example description would be **preferred,B20,100G,16g,4,2**
+  An example description would be **preferred,20,100G,16g,4,2**
   describing a 20-node cluster where each node has 100GB of disk space,
   16GiB of memory, 4 CPU cores and 2 disk spindles. Note that all nodes
   must have the same specs currently.
