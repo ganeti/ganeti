@@ -363,7 +363,8 @@ oNoSimulation = Option "" ["no-simulation"]
 oNodeSim :: OptType
 oNodeSim = Option "" ["simulate"]
             (ReqArg (\ f o -> Ok o { optNodeSim = f:optNodeSim o }) "SPEC")
-            "simulate an empty cluster, given as 'num_nodes,disk,ram,cpu'"
+            "simulate an empty cluster, given as\
+            \ 'alloc_policy,num_nodes,disk,ram,cpu'"
 
 oOfflineNode :: OptType
 oOfflineNode = Option "O" ["offline"]
