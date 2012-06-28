@@ -2,10 +2,10 @@ News
 ====
 
 
-Version 2.6.0 rc1
+Version 2.6.0 rc2
 -----------------
 
-*(Released Mon, 25 Jun 2012)*
+*(Released Tue, 03 Jul 2012)*
 
 New features
 ~~~~~~~~~~~~
@@ -293,6 +293,23 @@ A number of bugs has been fixed in the cluster merge tool.
 changed to allow the same clock skew as permitted by the cluster
 verification. This will remove some rare but hard to diagnose errors in
 import-export.
+
+
+Version 2.6.0 rc1
+-----------------
+
+*(Released Mon, 25 Jun 2012)*
+
+First release candidate for 2.6. The following changes were done from
+rc1 to rc2:
+
+- Fixed bugs with disk parameters and ``rbd`` templates as well as
+  ``instance_os_add``
+- Made ``gnt-instance modify`` with more consistent regard new NIC/Disk
+  behaviour. It supports now the modify operation
+- ``hcheck`` implemented to analyze cluster health and possibility of
+  improving health by rebalance
+- ``hbal`` has been improved in dealing with split instances
 
 
 Version 2.6.0 beta2
