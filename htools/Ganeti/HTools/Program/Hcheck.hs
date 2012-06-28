@@ -180,7 +180,8 @@ printStats verbose False level phase values name = do
   let prefix = phaseLevelDescr phase level name
       descr = descrData level
   unless (verbose == 0) $ do
-    printf "\n%s" prefix :: IO ()
+    putStrLn ""
+    putStr prefix
     mapM_ (\(a,b) -> printf "    %s: %s\n" a b) (zip descr values)
 
 -- | Extract name or idx from group.
@@ -199,9 +200,9 @@ prepareClusterValues machineread stats bstats =
   map show stats ++ map (printBool machineread) bstats
 
 -- | Print all the statistics on a group level.
-printGroupStats :: Int -> Bool -> Phase -> Group.Group -> [Int] -> Double
+printGroupStats :: Int -> Bool -> Phase -> ((Group.Group, Double), [Int])
                 -> IO ()
-printGroupStats verbose machineread phase grp stats score = do
+printGroupStats verbose machineread phase ((grp, score), stats) = do
   let values = prepareGroupValues stats score
       extradata = extractGroupData machineread grp
   printStats verbose machineread GroupLvl phase values (Just extradata)
@@ -220,9 +221,10 @@ clusterNeedsRebalance stats = sum stats > 0
 instances residing on offline nodes.
 
 -}
-perGroupChecks :: Int -> Bool -> Phase -> Group.List
-               -> (Gdx, (Node.List, Instance.List)) -> IO ([Int])
-perGroupChecks verbose machineread phase gl (gidx, (nl, il)) = do
+perGroupChecks :: Group.List
+               -> (Gdx, (Node.List, Instance.List))
+               -> ((Group.Group, Double), [Int])
+perGroupChecks gl (gidx, (nl, il)) =
   let grp = Container.find gidx gl
       offnl = filter Node.offline (Container.elems nl)
       n1violated = length $ fst $ Cluster.computeBadItems nl il
@@ -236,8 +238,7 @@ perGroupChecks verbose machineread phase gl (gidx, (nl, il)) = do
                    , offline_pri
                    , offline_sec
                    ]
-  printGroupStats verbose machineread phase grp groupstats score
-  return groupstats
+  in ((grp, score), groupstats)
 
 -- | Use Hbal's iterateDepth to simulate group rebalance.
 executeSimulation :: Options -> Cluster.Table -> Double
@@ -300,19 +301,20 @@ main opts args = do
 
   when machineread $ printGroupsMappings gl
 
-  groupsstats <- mapM (perGroupChecks verbose machineread Initial gl)
-                 splitcluster
-  let clusterstats = map sum (transpose groupsstats) :: [Int]
+  let groupsstats = map (perGroupChecks gl) splitcluster
+      clusterstats = map sum . transpose . map snd $ groupsstats
       needrebalance = clusterNeedsRebalance clusterstats
+
+  unless (verbose == 0 || machineread) $
+    if nosimulation
+      then putStrLn "Running in no-simulation mode."
+      else if needrebalance
+             then putStrLn "Cluster needs rebalancing."
+             else putStrLn "No need to rebalance cluster, no problems found."
+
+  mapM_ (printGroupStats verbose machineread Initial) groupsstats
+
   printClusterStats verbose machineread Initial clusterstats needrebalance
-
-  when nosimulation $ do
-    unless (verbose == 0 || machineread) $
-      putStrLn "Running in no-simulation mode. Exiting."
-
-  unless needrebalance $ do
-    unless (verbose == 0 || machineread) $
-      putStrLn "No need to rebalance cluster, no problems found. Exiting."
 
   let exitOK = nosimulation || not needrebalance
       simulate = not nosimulation && needrebalance
@@ -320,10 +322,11 @@ main opts args = do
   rebalancedcluster <- maybeSimulateRebalance simulate opts splitcluster
 
   when (simulate || machineread) $ do
-    newgroupstats <- mapM (perGroupChecks verbose machineread Rebalanced gl)
-                     rebalancedcluster
-    let newclusterstats = map sum (transpose newgroupstats) :: [Int]
+    let newgroupstats = map (perGroupChecks gl) rebalancedcluster
+        newclusterstats = map sum . transpose . map snd $ newgroupstats
         newneedrebalance = clusterNeedsRebalance clusterstats
+
+    mapM_ (printGroupStats verbose machineread Rebalanced) newgroupstats
 
     printClusterStats verbose machineread Rebalanced newclusterstats
                            newneedrebalance
