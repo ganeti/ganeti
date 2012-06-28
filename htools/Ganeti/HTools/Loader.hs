@@ -55,6 +55,7 @@ import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Instance as Instance
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Group as Group
+import qualified Ganeti.HTools.Cluster as Cluster
 
 import Ganeti.HTools.Types
 import Ganeti.HTools.Utils
@@ -246,6 +247,13 @@ updateMovable selinsts exinsts inst =
     then Instance.setMovable inst False
     else inst
 
+-- | Disables moves for instances with a split group.
+disableSplitMoves :: Node.List -> Instance.Instance -> Instance.Instance
+disableSplitMoves nl inst =
+  if not . isOk . Cluster.instanceGroup nl $ inst
+    then Instance.setMovable inst False
+    else inst
+
 -- | Compute the longest common suffix of a list of strings that
 -- starts with a dot.
 longestDomain :: [String] -> String
@@ -302,8 +310,9 @@ mergeData um extags selinsts exinsts cdata@(ClusterData gl nl il2 tags _) =
       nl3 = Container.map (setNodePolicy gl .
                            computeAlias common_suffix .
                            (`Node.buildPeers` il4)) nl2
+      il5 = Container.map (disableSplitMoves nl3) il4
   in if' (null lkp_unknown)
-         (Ok cdata { cdNodes = nl3, cdInstances = il4 })
+         (Ok cdata { cdNodes = nl3, cdInstances = il5 })
          (Bad $ "Unknown instance(s): " ++ show(map lrContent lkp_unknown))
 
 -- | Checks the cluster data for consistency.

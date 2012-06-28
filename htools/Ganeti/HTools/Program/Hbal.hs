@@ -301,11 +301,10 @@ checkCluster verbose nl il = do
 
   -- hbal doesn't currently handle split clusters
   let split_insts = Cluster.findSplitInstances nl il
-  unless (null split_insts) $ do
+  unless (null split_insts || verbose <= 1) $ do
     hPutStrLn stderr "Found instances belonging to multiple node groups:"
     mapM_ (\i -> hPutStrLn stderr $ "  " ++ Instance.name i) split_insts
-    hPutStrLn stderr "Aborting."
-    exitWith $ ExitFailure 1
+    hPutStrLn stderr "These instances will not be moved."
 
   printf "Loaded %d nodes, %d instances\n"
              (Container.size nl)
