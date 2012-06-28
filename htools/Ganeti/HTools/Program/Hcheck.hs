@@ -100,9 +100,7 @@ groupData = commonData ++ [("SCORE", "Group score")]
 -- | Data showed per cluster.
 clusterData :: [(String, String)]
 clusterData = commonData ++
-              [ ("NEED_REBALANCE", "Cluster is not healthy")
-              , ("CAN_REBALANCE", "Possible to run rebalance")
-              ]
+              [ ("NEED_REBALANCE", "Cluster is not healthy") ]
 
 -- | Phase-specific prefix for machine readable version.
 phasePrefix :: Phase -> String
@@ -209,9 +207,9 @@ printGroupStats verbose machineread phase grp stats score = do
   printStats verbose machineread GroupLvl phase values (Just extradata)
 
 -- | Print all the statistics on a cluster (global) level.
-printClusterStats :: Int -> Bool -> Phase -> [Int] -> Bool -> Bool -> IO ()
-printClusterStats verbose machineread phase stats needhbal canhbal = do
-  let values = prepareClusterValues machineread stats [needhbal, canhbal]
+printClusterStats :: Int -> Bool -> Phase -> [Int] -> Bool -> IO ()
+printClusterStats verbose machineread phase stats needhbal = do
+  let values = prepareClusterValues machineread stats [needhbal]
   printStats verbose machineread ClusterLvl phase values Nothing
 
 -- | Check if any of cluster metrics is non-zero.
@@ -298,8 +296,7 @@ main opts args = do
   (ClusterData gl fixed_nl ilf _ _) <- loadExternalData opts
   nlf <- setNodeStatus opts fixed_nl
 
-  let splitinstances = Cluster.findSplitInstances nlf ilf
-      splitcluster = Cluster.splitCluster nlf ilf
+  let splitcluster = Cluster.splitCluster nlf ilf
 
   when machineread $ printGroupsMappings gl
 
@@ -307,40 +304,29 @@ main opts args = do
                  splitcluster
   let clusterstats = map sum (transpose groupsstats) :: [Int]
       needrebalance = clusterNeedsRebalance clusterstats
-      canrebalance = length splitinstances == 0
   printClusterStats verbose machineread Initial clusterstats needrebalance
-                    canrebalance
 
   when nosimulation $ do
     unless (verbose == 0 || machineread) $
       putStrLn "Running in no-simulation mode. Exiting."
-
-  when (length splitinstances > 0) $ do
-    unless (verbose == 0 || machineread) $
-       putStrLn "Split instances found, simulation of re-balancing\
-                \ not possible"
 
   unless needrebalance $ do
     unless (verbose == 0 || machineread) $
       putStrLn "No need to rebalance cluster, no problems found. Exiting."
 
   let exitOK = nosimulation || not needrebalance
-      simulate = not nosimulation && length splitinstances == 0
-                 && needrebalance
+      simulate = not nosimulation && needrebalance
 
   rebalancedcluster <- maybeSimulateRebalance simulate opts splitcluster
 
   when (simulate || machineread) $ do
     newgroupstats <- mapM (perGroupChecks verbose machineread Rebalanced gl)
                      rebalancedcluster
-    -- We do not introduce new split instances during rebalance
-    let newsplitinstances = splitinstances
-        newclusterstats = map sum (transpose newgroupstats) :: [Int]
+    let newclusterstats = map sum (transpose newgroupstats) :: [Int]
         newneedrebalance = clusterNeedsRebalance clusterstats
-        newcanrebalance = length newsplitinstances == 0
 
     printClusterStats verbose machineread Rebalanced newclusterstats
-                           newneedrebalance newcanrebalance
+                           newneedrebalance
 
   printFinalHTC machineread
 
