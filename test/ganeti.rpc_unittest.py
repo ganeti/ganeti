@@ -713,6 +713,9 @@ class _FakeConfigForRpcRunner:
   def GetClusterInfo(self):
     return self._cluster
 
+  def GetInstanceDiskParams(self, _):
+    return constants.DISK_DT_DEFAULTS
+
 
 class TestRpcRunner(unittest.TestCase):
   def testUploadFile(self):
@@ -795,6 +798,7 @@ class TestRpcRunner(unittest.TestCase):
           constants.NIC_MODE: "mymode",
           }),
         ],
+      disk_template=constants.DT_DISKLESS,
       disks=[])
     inst.UpgradeConfig()
 
@@ -832,7 +836,7 @@ class TestRpcRunner(unittest.TestCase):
       })
 
     # Instance with OS parameters
-    result = runner._encoder((rpc_defs.ED_INST_DICT_OSP, (inst, {
+    result = runner._encoder((rpc_defs.ED_INST_DICT_OSP_DP, (inst, {
       "role": "webserver",
       "other": "field",
       })))
