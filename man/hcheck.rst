@@ -48,10 +48,13 @@ DESCRIPTION
 
 hcheck is the cluster checker. It prints information about cluster's
 health and checks whether a rebalance done using **hbal** would help.
+
 This information can be presented in both human-readable and
 machine-readable way.
+
 Note that it does not take any action, only performs a rebalance
 simulation if necessary.
+
 For more information about the algorithm details check **hbal(1)**.
 
 OPTIONS
