@@ -736,6 +736,8 @@ class XenHvmHypervisor(XenHypervisor):
     constants.HV_USE_LOCALTIME: hv_base.NO_CHECK,
     # TODO: Add a check for the blockdev prefix (matching [a-z:] or similar).
     constants.HV_BLOCKDEV_PREFIX: hv_base.NO_CHECK,
+    # Add PCI passthrough
+    constants.HV_PASSTHROUGH:  hv_base.NO_CHECK,
     constants.HV_REBOOT_BEHAVIOR:
       hv_base.ParamInSet(True, constants.REBOOT_BEHAVIORS),
     constants.HV_CPU_MASK: hv_base.OPT_MULTI_CPU_MASK_CHECK,
@@ -834,7 +836,12 @@ class XenHvmHypervisor(XenHypervisor):
       disk_data.append(iso)
 
     config.write("disk = [%s]\n" % (",".join(disk_data)))
-
+    # Add PCI passthrough
+    pci_pass_arr = []
+    pci_pass = hvp[constants.HV_PASSTHROUGH]
+    if pci_pass:
+        pci_pass_arr = pci_pass.split(";")
+        config.write("pci = %s \n" % pci_pass_arr)
     config.write("on_poweroff = 'destroy'\n")
     if hvp[constants.HV_REBOOT_BEHAVIOR] == constants.INSTANCE_REBOOT_ALLOWED:
       config.write("on_reboot = 'restart'\n")
