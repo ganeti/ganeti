@@ -81,6 +81,12 @@ data Phase = Initial
 data Level = GroupLvl
            | ClusterLvl
 
+-- | A type alias for a group index and node\/instance lists.
+type GroupInfo = (Gdx, (Node.List, Instance.List))
+
+-- | A type alias for group stats.
+type GroupStats = ((Group.Group, Double), [Int])
+
 -- | Prefix for machine readable names.
 htcPrefix :: String
 htcPrefix = "HCHECK"
@@ -200,8 +206,7 @@ prepareClusterValues machineread stats bstats =
   map show stats ++ map (printBool machineread) bstats
 
 -- | Print all the statistics on a group level.
-printGroupStats :: Int -> Bool -> Phase -> ((Group.Group, Double), [Int])
-                -> IO ()
+printGroupStats :: Int -> Bool -> Phase -> GroupStats -> IO ()
 printGroupStats verbose machineread phase ((grp, score), stats) = do
   let values = prepareGroupValues stats score
       extradata = extractGroupData machineread grp
@@ -221,9 +226,7 @@ clusterNeedsRebalance stats = sum stats > 0
 instances residing on offline nodes.
 
 -}
-perGroupChecks :: Group.List
-               -> (Gdx, (Node.List, Instance.List))
-               -> ((Group.Group, Double), [Int])
+perGroupChecks :: Group.List -> GroupInfo -> GroupStats
 perGroupChecks gl (gidx, (nl, il)) =
   let grp = Container.find gidx gl
       offnl = filter Node.offline (Container.elems nl)
@@ -243,7 +246,7 @@ perGroupChecks gl (gidx, (nl, il)) =
 -- | Use Hbal's iterateDepth to simulate group rebalance.
 executeSimulation :: Options -> Cluster.Table -> Double
                   -> Gdx -> Node.List -> Instance.List
-                  -> IO (Gdx, (Node.List, Instance.List))
+                  -> IO GroupInfo
 executeSimulation opts ini_tbl min_cv gidx nl il = do
   let imlen = maximum . map (length . Instance.alias) $ Container.elems il
       nmlen = maximum . map (length . Node.alias) $ Container.elems nl
@@ -260,8 +263,7 @@ executeSimulation opts ini_tbl min_cv gidx nl il = do
   return (gidx, (fin_nl, fin_il))
 
 -- | Simulate group rebalance if group's score is not good
-maybeSimulateGroupRebalance :: Options -> (Gdx, (Node.List, Instance.List))
-                            -> IO (Gdx, (Node.List, Instance.List))
+maybeSimulateGroupRebalance :: Options -> GroupInfo -> IO GroupInfo
 maybeSimulateGroupRebalance opts (gidx, (nl, il)) = do
   let ini_cv = Cluster.compCV nl
       ini_tbl = Cluster.Table nl il ini_cv []
@@ -273,8 +275,8 @@ maybeSimulateGroupRebalance opts (gidx, (nl, il)) = do
 -- | Decide whether to simulate rebalance.
 maybeSimulateRebalance :: Bool             -- ^ Whether to simulate rebalance
                        -> Options          -- ^ Command line options
-                       -> [(Gdx, (Node.List, Instance.List))] -- ^ Group data
-                       -> IO [(Gdx, (Node.List, Instance.List))]
+                       -> [GroupInfo]      -- ^ Group data
+                       -> IO [GroupInfo]
 maybeSimulateRebalance True opts cluster =
     mapM (maybeSimulateGroupRebalance opts) cluster
 maybeSimulateRebalance False _ cluster = return cluster
