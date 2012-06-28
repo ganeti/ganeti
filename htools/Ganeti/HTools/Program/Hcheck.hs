@@ -89,8 +89,8 @@ htcPrefix = "HCHECK"
 commonData :: [(String, String)]
 commonData =[ ("N1_FAIL", "Nodes not N+1 happy")
             , ("CONFLICT_TAGS", "Nodes with conflicting instances")
-            , ("OFFLINE_PRI", "Instances with primary on an offline node")
-            , ("OFFLINE_SEC", "Instances with seondary on an offline node")
+            , ("OFFLINE_PRI", "Instances having the primary node offline")
+            , ("OFFLINE_SEC", "Instances having a secondary node offline")
             ]
 
 -- | Data showed per group.
