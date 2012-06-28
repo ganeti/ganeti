@@ -328,7 +328,7 @@ checkGroup verbose gname nl il = do
              "Initial check done: %d bad nodes, %d bad instances.\n"
              (length bad_nodes) (length bad_instances)
 
-  when (length bad_nodes > 0) $
+  when (not (null bad_nodes)) $
          putStrLn "Cluster is not N+1 happy, continuing but no guarantee \
                   \that the cluster will end N+1 happy."
 
