@@ -548,6 +548,8 @@ $(HS_ALL_PROGS): %: %.hs $(HS_LIB_SRCS) $(HS_BUILT_SRCS) Makefile
 	  $(HTOOLS_NOCURL) $(HTOOLS_PARALLEL3) \
 	  -osuf $$BINARY.o -hisuf $$BINARY.hi \
 	  $(HEXTRA) $(HEXTRA_INT) $@
+	@touch "$@"
+
 # for the htools/test binary, we need to enable profiling/coverage
 htools/test: HEXTRA_INT=-fhpc -Wwarn -fno-warn-missing-signatures \
 	-fno-warn-monomorphism-restriction -fno-warn-orphans \
