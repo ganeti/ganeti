@@ -38,3 +38,8 @@
 ./test/hcheck -t$T/simu-twogroups.tiered --machine-readable
 >>> /HCHECK_OK=1/
 >>>= 0
+
+# hcheck should be able to improve a group with split instances
+./test/hbal -t $TESTDATA_DIR/hbal-split-insts.data -G group-01 -O node-01-001
+>>> /Cluster score improved from .* to .*/
+>>>= 0
