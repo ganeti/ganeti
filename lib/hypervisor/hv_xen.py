@@ -841,7 +841,7 @@ class XenHvmHypervisor(XenHypervisor):
     pci_pass = hvp[constants.HV_PASSTHROUGH]
     if pci_pass:
         pci_pass_arr = pci_pass.split(";")
-        config.write("pci = %s \n" % pci_pass_arr)
+        config.write("pci = %s\n" % pci_pass_arr)
     config.write("on_poweroff = 'destroy'\n")
     if hvp[constants.HV_REBOOT_BEHAVIOR] == constants.INSTANCE_REBOOT_ALLOWED:
       config.write("on_reboot = 'restart'\n")
