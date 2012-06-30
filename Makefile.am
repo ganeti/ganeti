@@ -1520,6 +1520,14 @@ live-test: all
 
 commit-check: distcheck lint apidoc
 
+.PHONY: gitignore-check
+gitignore-check:
+	@if [ -n "`git status --short`" ]; then \
+	  echo "Git status is not clean!" 1>&2 ; \
+	  git status --short; \
+	  exit 1; \
+	fi
+
 -include ./Makefile.local
 
 # vim: set noet :
