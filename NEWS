@@ -305,7 +305,7 @@ rc1 to rc2:
 
 - Fixed bugs with disk parameters and ``rbd`` templates as well as
   ``instance_os_add``
-- Made ``gnt-instance modify`` with more consistent regard new NIC/Disk
+- Made ``gnt-instance modify`` more consistent regarding new NIC/Disk
   behaviour. It supports now the modify operation
 - ``hcheck`` implemented to analyze cluster health and possibility of
   improving health by rebalance
