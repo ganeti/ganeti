@@ -6,19 +6,24 @@ Developer notes
 Build dependencies
 ------------------
 
-Most dependencies from :doc:`install-quick`, plus (for Python):
+Most dependencies from :doc:`install-quick`, including ``qemu-img``
+(marked there as optional) plus (for Python):
 
 - `GNU make <http://www.gnu.org/software/make/>`_
 - `GNU tar <http://www.gnu.org/software/tar/>`_
 - `Gzip <http://www.gnu.org/software/gzip/>`_
 - `pandoc <http://johnmacfarlane.net/pandoc/>`_
+- `python-epydoc <http://epydoc.sourceforge.net/>`_
 - `python-sphinx <http://sphinx.pocoo.org/>`_
-  (tested with version 0.6.1)
+  (tested with version 1.1.3)
 - `graphviz <http://www.graphviz.org/>`_
 - the `en_US.UTF-8` locale must be enabled on the system
 - `pylint <http://www.logilab.org/857>`_ and its associated
   dependencies
 - `pep8 <https://github.com/jcrocholl/pep8/>`_
+
+For older developement (Ganeti < 2.4) ``docbook`` was used instead
+``pandoc``.
 
 Note that for pylint, at the current moment the following versions
 must be used::
@@ -27,8 +32,25 @@ must be used::
     pylint 0.21.1,
     astng 0.20.1, common 0.50.3
 
+The same with pep8, other versions may give you errors::
+
+     $ pep8 --version
+     0.6.1
+
 To generate unittest coverage reports (``make coverage``), `coverage
 <http://pypi.python.org/pypi/coverage>`_ needs to be installed.
+
+Installation of all dependencies listed here::
+
+     $ apt-get install python-setuptools
+     $ apt-get install pandoc python-epydoc graphviz
+     $ cd / && sudo easy_install \
+               sphinx \
+               logilab-astng==0.20.1 \
+               logilab-common==0.50.3 \
+               pylint==0.21.1 \
+               pep8==0.6.1 \
+               coverage
 
 For Haskell development, again all things from the quick install
 document, plus:

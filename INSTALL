@@ -46,7 +46,7 @@ Before installing, please verify that you have the following programs:
 - `affinity Python module <http://pypi.python.org/pypi/affinity/0.1.0>`_,
   optional python package for supporting CPU pinning under KVM
 - `ElementTree Python module <http://effbot.org/zone/element-index.htm>`_,
-  if running python 2.4 (optional, used by the ``ovfconverter`` tool)
+  if running on python 2.4 (optional, used by the ``ovfconverter`` tool)
 - `qemu-img <http://qemu.org/>`_, if you want to use ``ovfconverter``
 - `fping <http://fping.sourceforge.net/>`_
 
@@ -59,15 +59,30 @@ packages, except for RBD, DRBD and Xen::
   $ apt-get install lvm2 ssh bridge-utils iproute iputils-arping \
                     ndisc6 python python-pyopenssl openssl \
                     python-pyparsing python-simplejson \
-                    python-pyinotify python-pycurl socat \
-                    python-elementtree qemu
+                    python-pyinotify python-pycurl socat fping
+
+Note that this does not install optional packages::
+
+  $ apt-get install python-paramiko python-affinity qemu-img
+
+If some of the python packages are not available in your system,
+you can try installing them using ``easy_install`` command.
+For example::
+
+  $ apt-get install python-setuptools
+  $ cd / && sudo easy_install \
+            affinity
+
 
 On Fedora to install all required packages except RBD, DRBD and Xen::
 
   $ yum install openssh openssh-clients bridge-utils iproute ndisc6 \
                 pyOpenSSL pyparsing python-simplejson python-inotify \
-                python-lxml python-paramiko socat qemu-img
+                python-lxm socat fping
 
+For optional packages use the command::
+
+  $ yum install python-paramiko python-affinity qemu-img
 
 If you want to build from source, please see doc/devnotes.rst for more
 dependencies.
@@ -136,8 +151,12 @@ were renamed::
   $ apt-get install ghc libghc-json-dev libghc-network-dev \
                     libghc-parallel-dev libghc-curl-dev
 
-If using a distribution which does not provide them, the first install
-the Haskell platform and then install the additional libraries via
+If using a distribution which does not provide them, first install
+the Haskell platform. You can also install ``cabal`` manualy::
+
+  $ apt-get install cabal-install
+
+Then install the additional libraries via
 ``cabal``::
 
   $ cabal install json network parallel curl
@@ -170,6 +189,14 @@ or ``cabal``::
   $ cabal install hslogger Crypto text
 
 to install them.
+
+.. _cabal-note:
+.. note::
+  If one of the cabal packages fails to install due to unfulfilled
+  dependencies, you can try enabling symlinks in ``~/.cabal/config``.
+
+  Make sure that your ``~/.cabal/bin`` directory (or whatever else
+  is defined as ``bindir``) is in your ``PATH``.
 
 Installation of the software
 ----------------------------
