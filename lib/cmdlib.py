@@ -4366,7 +4366,8 @@ def _RedistributeAncillaryFiles(lu, additional_nodes=None, additional_vm=True):
   master_info = lu.cfg.GetNodeInfo(lu.cfg.GetMasterNode())
 
   online_nodes = lu.cfg.GetOnlineNodeList()
-  vm_nodes = lu.cfg.GetVmCapableNodeList()
+  online_set = frozenset(online_nodes)
+  vm_nodes = list(online_set.intersection(lu.cfg.GetVmCapableNodeList()))
 
   if additional_nodes is not None:
     online_nodes.extend(additional_nodes)
