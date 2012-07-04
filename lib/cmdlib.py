@@ -4310,6 +4310,9 @@ def _ComputeAncillaryFiles(cluster, redist):
   if cluster.modify_etc_hosts:
     files_all.add(constants.ETC_HOSTS)
 
+  if cluster.use_external_mip_script:
+    files_all.add(constants.EXTERNAL_MASTER_SETUP_SCRIPT)
+
   # Files which are optional, these must:
   # - be present in one other category as well
   # - either exist or not exist on all nodes of that category (mc, vm all)
@@ -4322,10 +4325,6 @@ def _ComputeAncillaryFiles(cluster, redist):
 
   if not redist:
     files_mc.add(constants.CLUSTER_CONF_FILE)
-
-    # FIXME: this should also be replicated but Ganeti doesn't support files_mc
-    # replication
-    files_mc.add(constants.DEFAULT_MASTER_SETUP_SCRIPT)
 
   # Files which should only be on VM-capable nodes
   files_vm = set(filename
