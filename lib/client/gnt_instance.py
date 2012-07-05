@@ -566,7 +566,8 @@ def ActivateDisks(opts, args):
   """
   instance_name = args[0]
   op = opcodes.OpInstanceActivateDisks(instance_name=instance_name,
-                                       ignore_size=opts.ignore_size)
+                                       ignore_size=opts.ignore_size,
+                                       wait_for_sync=opts.wait_for_sync)
   disks_info = SubmitOrSend(op, opts)
   for host, iname, nname in disks_info:
     ToStdout("%s:%s:%s", host, iname, nname)
@@ -1620,7 +1621,7 @@ commands = {
     "<instance>", "Reboots an instance"),
   "activate-disks": (
     ActivateDisks, ARGS_ONE_INSTANCE,
-    [SUBMIT_OPT, IGNORE_SIZE_OPT, PRIORITY_OPT],
+    [SUBMIT_OPT, IGNORE_SIZE_OPT, PRIORITY_OPT, WFSYNC_OPT],
     "<instance>", "Activate an instance's disks"),
   "deactivate-disks": (
     DeactivateDisks, ARGS_ONE_INSTANCE,

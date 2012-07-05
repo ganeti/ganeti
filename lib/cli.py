@@ -195,6 +195,7 @@ __all__ = [
   "USE_REPL_NET_OPT",
   "VERBOSE_OPT",
   "VG_NAME_OPT",
+  "WFSYNC_OPT",
   "YES_DOIT_OPT",
   "DISK_STATE_OPT",
   "HV_STATE_OPT",
@@ -746,6 +747,10 @@ DEBUG_SIMERR_OPT = cli_option("--debug-simulate-errors", default=False,
 NWSYNC_OPT = cli_option("--no-wait-for-sync", dest="wait_for_sync",
                         default=True, action="store_false",
                         help="Don't wait for sync (DANGEROUS!)")
+
+WFSYNC_OPT = cli_option("--wait-for-sync", dest="wait_for_sync",
+                        default=False, action="store_true",
+                        help="Wait for disks to sync")
 
 ONLINE_INST_OPT = cli_option("--online", dest="online_inst",
                              action="store_true", default=False,

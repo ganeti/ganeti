@@ -1301,7 +1301,7 @@ options.
 ACTIVATE-DISKS
 ^^^^^^^^^^^^^^
 
-**activate-disks** [\--submit] [\--ignore-size] {*instance*}
+**activate-disks** [\--submit] [\--ignore-size] [\--wait-for-sync] {*instance*}
 
 Activates the block devices of the given instance. If successful, the
 command will show the location and name of the block devices::
@@ -1322,6 +1322,13 @@ where the configuration has gotten out of sync with the real-world
 (e.g. after a partially-failed grow-disk operation or due to rounding
 in LVM devices). This should not be used in normal cases, but only
 when activate-disks fails without it.
+
+The ``--wait-for-sync`` option will ensure that the command returns only
+after the instance's disks are synchronised (mostly for DRBD); this can
+be useful to ensure consistency, as otherwise there are no commands that
+can wait until synchronisation is done. However when passing this
+option, the command will have additional output, making it harder to
+parse the disk information.
 
 Note that it is safe to run this command while the instance is already
 running.
