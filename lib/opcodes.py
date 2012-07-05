@@ -93,6 +93,10 @@ _PForceVariant = ("force_variant", False, ht.TBool,
 _PWaitForSync = ("wait_for_sync", True, ht.TBool,
                  "Whether to wait for the disk to synchronize")
 
+_PWaitForSyncFalse = ("wait_for_sync", False, ht.TBool,
+                      "Whether to wait for the disk to synchronize"
+                      " (defaults to false)")
+
 _PIgnoreConsistency = ("ignore_consistency", False, ht.TBool,
                        "Whether to ignore disk consistency")
 
@@ -1402,6 +1406,7 @@ class OpInstanceActivateDisks(OpCode):
   OP_PARAMS = [
     _PInstanceName,
     ("ignore_size", False, ht.TBool, "Whether to ignore recorded size"),
+    _PWaitForSyncFalse,
     ]
   OP_RESULT = ht.TListOf(ht.TAnd(ht.TIsLength(3),
                                  ht.TItems([ht.TNonEmptyString,

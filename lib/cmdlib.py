@@ -6336,6 +6336,10 @@ class LUInstanceActivateDisks(NoHooksLU):
     if not disks_ok:
       raise errors.OpExecError("Cannot activate block devices")
 
+    if self.op.wait_for_sync:
+      if not _WaitForSync(self, self.instance):
+        raise errors.OpExecError("Some disks of the instance are degraded!")
+
     return disks_info
 
 
