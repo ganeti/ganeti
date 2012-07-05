@@ -429,6 +429,8 @@ def TestReplaceDisks(instance, pnode, snode, othernode):
   AssertCommand(["gnt-instance", "stop", instance["name"]])
   AssertCommand(buildcmd(["-a"]), fail=True)
   AssertCommand(["gnt-instance", "activate-disks", instance["name"]])
+  AssertCommand(["gnt-instance", "activate-disks", "--wait-for-sync",
+                 instance["name"]])
   AssertCommand(buildcmd(["-a"]))
   AssertCommand(["gnt-instance", "start", instance["name"]])
 
@@ -451,6 +453,8 @@ def _AssertRecreateDisks(cmdargs, instance, fail=False, check=True,
   if not fail and check:
     # Quick check that the disks are there
     AssertCommand(["gnt-instance", "activate-disks", instance["name"]])
+    AssertCommand(["gnt-instance", "activate-disks", "--wait-for-sync",
+                   instance["name"]])
     AssertCommand(["gnt-instance", "deactivate-disks", instance["name"]])
 
 
