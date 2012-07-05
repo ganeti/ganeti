@@ -415,9 +415,15 @@ EXIT STATUS
 -----------
 
 The exit status of the command will be zero, unless for some reason the
-algorithm fatally failed (e.g. wrong node or instance data), or (in case
-of job execution) either one of the jobs has failed or the balancing was
-interrupted early.
+algorithm failed (e.g. wrong node or instance data), invalid command
+line options, or (in case of job execution) one of the jobs has failed.
+
+Once job execution via Luxi has started (``-X``), if the balancing was
+interrupted early (via *SIGINT*, or via ``--max-length``) but all jobs
+executed successfully, then the exit status is zero; a non-zero exit
+code means that the cluster state should be investigated, since a job
+failed or we couldn't compute its status and this can also point to a
+problem on the Ganeti side.
 
 BUGS
 ----

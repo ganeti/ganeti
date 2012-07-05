@@ -180,7 +180,7 @@ execWrapper master nl il cref alljss = do
     then do
       hPrintf stderr "Exiting early due to user request, %d\
                      \ jobset(s) remaining." (length alljss)::IO ()
-      return False
+      return True
     else execJobSet master nl il cref alljss
 
 -- | Execute an entire jobset.
