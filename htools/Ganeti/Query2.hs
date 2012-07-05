@@ -26,7 +26,13 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 
 module Ganeti.Query2
-    ( Filter
+    ( Filter(..)
+    , Query(..)
+    , QueryResult(..)
+    , QueryFields(..)
+    , QueryFieldsResult(..)
+    , FieldDefinition(..)
+    , ResultEntry(..)
     ) where
 
 
@@ -34,7 +40,6 @@ import Text.JSON.Types
 import Text.JSON
 
 import qualified Ganeti.Constants as C
-import Ganeti.HTools.JSON
 import Ganeti.THH
 
 -- * THH declarations, that require ordering.
