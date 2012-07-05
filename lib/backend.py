@@ -2443,7 +2443,7 @@ def OSEnvironment(instance, inst_os, debug=0):
   return result
 
 
-def BlockdevGrow(disk, amount, dryrun):
+def BlockdevGrow(disk, amount, dryrun, backingstore):
   """Grow a stack of block devices.
 
   This function is called recursively, with the childrens being the
@@ -2456,6 +2456,9 @@ def BlockdevGrow(disk, amount, dryrun):
   @type dryrun: boolean
   @param dryrun: whether to execute the operation in simulation mode
       only, without actually increasing the size
+  @param backingstore: whether to execute the operation on backing storage
+      only, or on "logical" storage only; e.g. DRBD is logical storage,
+      whereas LVM, file, RBD are backing storage
   @rtype: (status, result)
   @return: a tuple with the status of the operation (True/False), and
       the errors message if status is False
@@ -2466,7 +2469,7 @@ def BlockdevGrow(disk, amount, dryrun):
     _Fail("Cannot find block device %s", disk)
 
   try:
-    r_dev.Grow(amount, dryrun)
+    r_dev.Grow(amount, dryrun, backingstore)
   except errors.BlockDeviceError, err:
     _Fail("Failed to grow block device: %s", err, exc=True)
 

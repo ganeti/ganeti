@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -393,7 +393,9 @@ _BLOCKDEV_CALLS = [
     ("cf_bdev", ED_SINGLE_DISK_DICT_DP, None),
     ("amount", None, None),
     ("dryrun", None, None),
-    ], None, None, "Request a snapshot of the given block device"),
+    ("backingstore", None, None),
+    ], None, None, "Request growing of the given block device by a"
+   " given amount"),
   ("blockdev_export", SINGLE, None, TMO_1DAY, [
     ("cf_bdev", ED_SINGLE_DISK_DICT_DP, None),
     ("dest_node", None, None),

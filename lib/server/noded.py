@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2010, 2011 Google Inc.
+# Copyright (C) 2006, 2007, 2010, 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -332,10 +332,14 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     """Grow a stack of devices.
 
     """
+    if len(params) < 4:
+      raise ValueError("Received only 3 parameters in blockdev_grow,"
+                       " old master?")
     cfbd = objects.Disk.FromDict(params[0])
     amount = params[1]
     dryrun = params[2]
-    return backend.BlockdevGrow(cfbd, amount, dryrun)
+    backingstore = params[3]
+    return backend.BlockdevGrow(cfbd, amount, dryrun, backingstore)
 
   @staticmethod
   def perspective_blockdev_close(params):

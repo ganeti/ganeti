@@ -11683,23 +11683,23 @@ class LUInstanceGrowDisk(LogicalUnit):
     for node in instance.all_nodes:
       self.cfg.SetDiskID(disk, node)
       result = self.rpc.call_blockdev_grow(node, (disk, instance), self.delta,
-                                           True)
+                                           True, True)
       result.Raise("Grow request failed to node %s" % node)
 
     # We know that (as far as we can test) operations across different
-    # nodes will succeed, time to run it for real
+    # nodes will succeed, time to run it for real on the backing storage
     for node in instance.all_nodes:
       self.cfg.SetDiskID(disk, node)
       result = self.rpc.call_blockdev_grow(node, (disk, instance), self.delta,
-                                           False)
+                                           False, True)
       result.Raise("Grow request failed to node %s" % node)
 
-      # TODO: Rewrite code to work properly
-      # DRBD goes into sync mode for a short amount of time after executing the
-      # "resize" command. DRBD 8.x below version 8.0.13 contains a bug whereby
-      # calling "resize" in sync mode fails. Sleeping for a short amount of
-      # time is a work-around.
-      time.sleep(5)
+    # And now execute it for logical storage, on the primary node
+    node = instance.primary_node
+    self.cfg.SetDiskID(disk, node)
+    result = self.rpc.call_blockdev_grow(node, (disk, instance), self.delta,
+                                         False, False)
+    result.Raise("Grow request failed to node %s" % node)
 
     disk.RecordGrow(self.delta)
     self.cfg.Update(instance, feedback_fn)
