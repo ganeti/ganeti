@@ -549,9 +549,7 @@ $(HS_ALL_PROGS): %: %.hs $(HS_LIB_SRCS) $(HS_BUILT_SRCS) Makefile
 	  -osuf $$BINARY.o -hisuf $$BINARY.hi \
 	  $(HEXTRA) $(HEXTRA_INT) $@
 # for the htools/test binary, we need to enable profiling/coverage
-htools/test: HEXTRA_INT=-fhpc -Wwarn -fno-warn-missing-signatures \
-	-fno-warn-monomorphism-restriction -fno-warn-orphans \
-	-fno-warn-missing-methods -fno-warn-unused-imports
+htools/test: HEXTRA_INT=-fhpc
 
 # we compile the hpc-htools binary with the program coverage
 htools/hpc-htools: HEXTRA_INT=-fhpc

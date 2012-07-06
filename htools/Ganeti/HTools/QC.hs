@@ -1,4 +1,10 @@
 {-# LANGUAGE TemplateHaskell #-}
+{-# OPTIONS_GHC -fno-warn-orphans -fno-warn-unused-imports #-}
+
+-- FIXME: should remove the no-warn-unused-imports option, once we get
+-- around to testing function from all modules; until then, we keep
+-- the (unused) imports here to generate correct coverage (0 for
+-- modules we don't use)
 
 {-| Unittests for ganeti-htools.
 
@@ -46,8 +52,7 @@ module Ganeti.HTools.QC
 
 import Test.QuickCheck
 import Text.Printf (printf)
-import Data.List (findIndex, intercalate, nub, isPrefixOf)
-import qualified Data.Set as Set
+import Data.List (intercalate, nub, isPrefixOf)
 import Data.Maybe
 import Control.Monad
 import Control.Applicative
@@ -124,6 +129,7 @@ allDiskTemplates :: [Types.DiskTemplate]
 allDiskTemplates = [minBound..maxBound]
 
 -- | Null iPolicy, and by null we mean very liberal.
+nullIPolicy :: Types.IPolicy
 nullIPolicy = Types.IPolicy
   { Types.iPolicyMinSpec = Types.ISpec { Types.iSpecMemorySize = 0
                                        , Types.iSpecCpuCount   = 0
@@ -183,6 +189,8 @@ failTest :: String -> Property
 failTest msg = printTestCase msg False
 
 -- | Update an instance to be smaller than a node.
+setInstanceSmallerThanNode :: Node.Node
+                           -> Instance.Instance -> Instance.Instance
 setInstanceSmallerThanNode node inst =
   inst { Instance.mem = Node.availMem node `div` 2
        , Instance.dsk = Node.availDisk node `div` 2
@@ -190,6 +198,7 @@ setInstanceSmallerThanNode node inst =
        }
 
 -- | Create an instance given its spec.
+createInstance :: Int -> Int -> Int -> Instance.Instance
 createInstance mem dsk vcpus =
   Instance.create "inst-unnamed" mem dsk vcpus Types.Running [] True (-1) (-1)
     Types.DTDrbd8 1
@@ -512,30 +521,33 @@ instance Arbitrary Types.IPolicy where
 -- ** Utils tests
 
 -- | Helper to generate a small string that doesn't contain commas.
+genNonCommaString :: Gen [Char]
 genNonCommaString = do
   size <- choose (0, 20) -- arbitrary max size
   vectorOf size (arbitrary `suchThat` ((/=) ','))
 
 -- | If the list is not just an empty element, and if the elements do
 -- not contain commas, then join+split should be idempotent.
+prop_Utils_commaJoinSplit :: Property
 prop_Utils_commaJoinSplit =
   forAll (choose (0, 20)) $ \llen ->
   forAll (vectorOf llen genNonCommaString `suchThat` ((/=) [""])) $ \lst ->
   Utils.sepSplit ',' (Utils.commaJoin lst) ==? lst
 
 -- | Split and join should always be idempotent.
+prop_Utils_commaSplitJoin :: [Char] -> Property
 prop_Utils_commaSplitJoin s =
   Utils.commaJoin (Utils.sepSplit ',' s) ==? s
 
 -- | fromObjWithDefault, we test using the Maybe monad and an integer
 -- value.
+prop_Utils_fromObjWithDefault :: Integer -> String -> Bool
 prop_Utils_fromObjWithDefault def_value random_key =
   -- a missing key will be returned with the default
   JSON.fromObjWithDefault [] random_key def_value == Just def_value &&
   -- a found key will be returned as is, not with default
   JSON.fromObjWithDefault [(random_key, J.showJSON def_value)]
        random_key (def_value+1) == Just def_value
-    where _types = def_value :: Integer
 
 -- | Test that functional if' behaves like the syntactic sugar if.
 prop_Utils_if'if :: Bool -> Int -> Int -> Gen Prop
@@ -572,6 +584,7 @@ prop_Utils_select_undefv lst1 (NonEmpty lst2) =
           tlist = zip (repeat True)  lst2
           cndlist = flist ++ tlist ++ [undefined]
 
+prop_Utils_parseUnit :: NonNegative Int -> Property
 prop_Utils_parseUnit (NonNegative n) =
   Utils.parseUnit (show n) ==? Types.Ok n .&&.
   Utils.parseUnit (show n ++ "m") ==? Types.Ok n .&&.
@@ -583,8 +596,7 @@ prop_Utils_parseUnit (NonNegative n) =
   printTestCase "Internal error/overflow?"
     (n_mb >=0 && n_gb >= 0 && n_tb >= 0) .&&.
   property (Types.isBad (Utils.parseUnit (show n ++ "x")::Types.Result Int))
-  where _types = (n::Int)
-        n_mb = (fromIntegral n::Rational) * 1000 * 1000 / 1024 / 1024
+  where n_mb = (fromIntegral n::Rational) * 1000 * 1000 / 1024 / 1024
         n_gb = n_mb * 1000
         n_tb = n_gb * 1000
 
@@ -603,39 +615,39 @@ testSuite "Utils"
 -- ** PeerMap tests
 
 -- | Make sure add is idempotent.
+prop_PeerMap_addIdempotent :: PeerMap.PeerMap
+                           -> PeerMap.Key -> PeerMap.Elem -> Property
 prop_PeerMap_addIdempotent pmap key em =
   fn puniq ==? fn (fn puniq)
-    where _types = (pmap::PeerMap.PeerMap,
-                    key::PeerMap.Key, em::PeerMap.Elem)
-          fn = PeerMap.add key em
+    where fn = PeerMap.add key em
           puniq = PeerMap.accumArray const pmap
 
 -- | Make sure remove is idempotent.
+prop_PeerMap_removeIdempotent :: PeerMap.PeerMap -> PeerMap.Key -> Property
 prop_PeerMap_removeIdempotent pmap key =
   fn puniq ==? fn (fn puniq)
-    where _types = (pmap::PeerMap.PeerMap, key::PeerMap.Key)
-          fn = PeerMap.remove key
+    where fn = PeerMap.remove key
           puniq = PeerMap.accumArray const pmap
 
 -- | Make sure a missing item returns 0.
+prop_PeerMap_findMissing :: PeerMap.PeerMap -> PeerMap.Key -> Property
 prop_PeerMap_findMissing pmap key =
   PeerMap.find key (PeerMap.remove key puniq) ==? 0
-    where _types = (pmap::PeerMap.PeerMap, key::PeerMap.Key)
-          puniq = PeerMap.accumArray const pmap
+    where puniq = PeerMap.accumArray const pmap
 
 -- | Make sure an added item is found.
+prop_PeerMap_addFind :: PeerMap.PeerMap
+                     -> PeerMap.Key -> PeerMap.Elem -> Property
 prop_PeerMap_addFind pmap key em =
   PeerMap.find key (PeerMap.add key em puniq) ==? em
-    where _types = (pmap::PeerMap.PeerMap,
-                    key::PeerMap.Key, em::PeerMap.Elem)
-          puniq = PeerMap.accumArray const pmap
+    where puniq = PeerMap.accumArray const pmap
 
 -- | Manual check that maxElem returns the maximum indeed, or 0 for null.
+prop_PeerMap_maxElem :: PeerMap.PeerMap -> Property
 prop_PeerMap_maxElem pmap =
   PeerMap.maxElem puniq ==? if null puniq then 0
                               else (maximum . snd . unzip) puniq
-    where _types = pmap::PeerMap.PeerMap
-          puniq = PeerMap.accumArray const pmap
+    where puniq = PeerMap.accumArray const pmap
 
 -- | List of tests for the PeerMap module.
 testSuite "PeerMap"
@@ -650,14 +662,14 @@ testSuite "PeerMap"
 
 -- we silence the following due to hlint bug fixed in later versions
 {-# ANN prop_Container_addTwo "HLint: ignore Avoid lambda" #-}
+prop_Container_addTwo :: [Container.Key] -> Int -> Int -> Bool
 prop_Container_addTwo cdata i1 i2 =
   fn i1 i2 cont == fn i2 i1 cont &&
   fn i1 i2 cont == fn i1 i2 (fn i1 i2 cont)
-    where _types = (cdata::[Int],
-                    i1::Int, i2::Int)
-          cont = foldl (\c x -> Container.add x x c) Container.empty cdata
+    where cont = foldl (\c x -> Container.add x x c) Container.empty cdata
           fn x1 x2 = Container.addTwo x1 x1 x2 x2
 
+prop_Container_nameOf :: Node.Node -> Property
 prop_Container_nameOf node =
   let nl = makeSmallCluster node 1
       fnode = head (Container.elems nl)
@@ -666,6 +678,7 @@ prop_Container_nameOf node =
 -- | We test that in a cluster, given a random node, we can find it by
 -- its name and alias, as long as all names and aliases are unique,
 -- and that we fail to find a non-existing name.
+prop_Container_findByName :: Node.Node -> Property
 prop_Container_findByName node =
   forAll (choose (1, 20)) $ \ cnt ->
   forAll (choose (0, cnt - 1)) $ \ fidx ->
@@ -694,49 +707,53 @@ testSuite "Container"
 
 -- Simple instance tests, we only have setter/getters
 
+prop_Instance_creat :: Instance.Instance -> Property
 prop_Instance_creat inst =
   Instance.name inst ==? Instance.alias inst
 
+prop_Instance_setIdx :: Instance.Instance -> Types.Idx -> Property
 prop_Instance_setIdx inst idx =
   Instance.idx (Instance.setIdx inst idx) ==? idx
-    where _types = (inst::Instance.Instance, idx::Types.Idx)
 
+prop_Instance_setName :: Instance.Instance -> String -> Bool
 prop_Instance_setName inst name =
   Instance.name newinst == name &&
   Instance.alias newinst == name
-    where _types = (inst::Instance.Instance, name::String)
-          newinst = Instance.setName inst name
+    where newinst = Instance.setName inst name
 
+prop_Instance_setAlias :: Instance.Instance -> String -> Bool
 prop_Instance_setAlias inst name =
   Instance.name newinst == Instance.name inst &&
   Instance.alias newinst == name
-    where _types = (inst::Instance.Instance, name::String)
-          newinst = Instance.setAlias inst name
+    where newinst = Instance.setAlias inst name
 
+prop_Instance_setPri :: Instance.Instance -> Types.Ndx -> Property
 prop_Instance_setPri inst pdx =
   Instance.pNode (Instance.setPri inst pdx) ==? pdx
-    where _types = (inst::Instance.Instance, pdx::Types.Ndx)
 
+prop_Instance_setSec :: Instance.Instance -> Types.Ndx -> Property
 prop_Instance_setSec inst sdx =
   Instance.sNode (Instance.setSec inst sdx) ==? sdx
-    where _types = (inst::Instance.Instance, sdx::Types.Ndx)
 
+prop_Instance_setBoth :: Instance.Instance -> Types.Ndx -> Types.Ndx -> Bool
 prop_Instance_setBoth inst pdx sdx =
   Instance.pNode si == pdx && Instance.sNode si == sdx
-    where _types = (inst::Instance.Instance, pdx::Types.Ndx, sdx::Types.Ndx)
-          si = Instance.setBoth inst pdx sdx
+    where si = Instance.setBoth inst pdx sdx
 
+prop_Instance_shrinkMG :: Instance.Instance -> Property
 prop_Instance_shrinkMG inst =
   Instance.mem inst >= 2 * Types.unitMem ==>
     case Instance.shrinkByType inst Types.FailMem of
       Types.Ok inst' -> Instance.mem inst' == Instance.mem inst - Types.unitMem
       _ -> False
 
+prop_Instance_shrinkMF :: Instance.Instance -> Property
 prop_Instance_shrinkMF inst =
   forAll (choose (0, 2 * Types.unitMem - 1)) $ \mem ->
     let inst' = inst { Instance.mem = mem}
     in Types.isBad $ Instance.shrinkByType inst' Types.FailMem
 
+prop_Instance_shrinkCG :: Instance.Instance -> Property
 prop_Instance_shrinkCG inst =
   Instance.vcpus inst >= 2 * Types.unitCpu ==>
     case Instance.shrinkByType inst Types.FailCPU of
@@ -744,11 +761,13 @@ prop_Instance_shrinkCG inst =
         Instance.vcpus inst' == Instance.vcpus inst - Types.unitCpu
       _ -> False
 
+prop_Instance_shrinkCF :: Instance.Instance -> Property
 prop_Instance_shrinkCF inst =
   forAll (choose (0, 2 * Types.unitCpu - 1)) $ \vcpus ->
     let inst' = inst { Instance.vcpus = vcpus }
     in Types.isBad $ Instance.shrinkByType inst' Types.FailCPU
 
+prop_Instance_shrinkDG :: Instance.Instance -> Property
 prop_Instance_shrinkDG inst =
   Instance.dsk inst >= 2 * Types.unitDsk ==>
     case Instance.shrinkByType inst Types.FailDisk of
@@ -756,11 +775,13 @@ prop_Instance_shrinkDG inst =
         Instance.dsk inst' == Instance.dsk inst - Types.unitDsk
       _ -> False
 
+prop_Instance_shrinkDF :: Instance.Instance -> Property
 prop_Instance_shrinkDF inst =
   forAll (choose (0, 2 * Types.unitDsk - 1)) $ \dsk ->
     let inst' = inst { Instance.dsk = dsk }
     in Types.isBad $ Instance.shrinkByType inst' Types.FailDisk
 
+prop_Instance_setMovable :: Instance.Instance -> Bool -> Property
 prop_Instance_setMovable inst m =
   Instance.movable inst' ==? m
     where inst' = Instance.setMovable inst m
@@ -788,6 +809,10 @@ testSuite "Instance"
 
 -- Instance text loader tests
 
+prop_Text_Load_Instance :: String -> Int -> Int -> Int -> Types.InstanceStatus
+                        -> NonEmptyList Char -> [Char]
+                        -> NonNegative Int -> NonNegative Int -> Bool
+                        -> Types.DiskTemplate -> Int -> Property
 prop_Text_Load_Instance name mem dsk vcpus status
                         (NonEmpty pnode) snode
                         (NonNegative pdx) (NonNegative sdx) autobal dt su =
@@ -810,10 +835,6 @@ prop_Text_Load_Instance name mem dsk vcpus status
       fail1 = Text.loadInst nl
               [name, mem_s, dsk_s, vcpus_s, status_s,
                sbal, pnode, pnode, tags]
-      _types = ( name::String, mem::Int, dsk::Int
-               , vcpus::Int, status::Types.InstanceStatus
-               , snode::String
-               , autobal::Bool)
   in case inst of
        Types.Bad msg -> failTest $ "Failed to load instance: " ++ msg
        Types.Ok (_, i) -> printTestCase "Mismatch in some field while\
@@ -829,6 +850,7 @@ prop_Text_Load_Instance name mem dsk vcpus status
                Instance.spindleUse i == su &&
                Types.isBad fail1
 
+prop_Text_Load_InstanceFail :: [(String, Int)] -> [String] -> Property
 prop_Text_Load_InstanceFail ktn fields =
   length fields /= 10 && length fields /= 11 ==>
     case Text.loadInst nl fields of
@@ -837,6 +859,8 @@ prop_Text_Load_InstanceFail ktn fields =
                        "Invalid/incomplete instance data: '" `isPrefixOf` msg
     where nl = Data.Map.fromList ktn
 
+prop_Text_Load_Node :: String -> Int -> Int -> Int -> Int -> Int
+                    -> Int -> Bool -> Bool
 prop_Text_Load_Node name tm nm fm td fd tc fo =
   let conv v = if v < 0
                  then "?"
@@ -867,9 +891,11 @@ prop_Text_Load_Node name tm nm fm td fd tc fo =
                 Node.fDsk node == fd &&
                 Node.tCpu node == fromIntegral tc
 
+prop_Text_Load_NodeFail :: [String] -> Property
 prop_Text_Load_NodeFail fields =
   length fields /= 8 ==> isNothing $ Text.loadNode Data.Map.empty fields
 
+prop_Text_NodeLSIdempotent :: Node.Node -> Property
 prop_Text_NodeLSIdempotent node =
   (Text.loadNode defGroupAssoc.
        Utils.sepSplit '|' . Text.serializeNode defGroupList) n ==?
@@ -878,12 +904,14 @@ prop_Text_NodeLSIdempotent node =
     where n = Node.setPolicy Types.defIPolicy $
               node { Node.failN1 = True, Node.offline = False }
 
+prop_Text_ISpecIdempotent :: Types.ISpec -> Property
 prop_Text_ISpecIdempotent ispec =
   case Text.loadISpec "dummy" . Utils.sepSplit ',' .
        Text.serializeISpec $ ispec of
     Types.Bad msg -> failTest $ "Failed to load ispec: " ++ msg
     Types.Ok ispec' -> ispec ==? ispec'
 
+prop_Text_IPolicyIdempotent :: Types.IPolicy -> Property
 prop_Text_IPolicyIdempotent ipol =
   case Text.loadIPolicy . Utils.sepSplit '|' $
        Text.serializeIPolicy owner ipol of
@@ -898,6 +926,7 @@ prop_Text_IPolicyIdempotent ipol =
 -- allocations, not for the business logic). As such, it's a quite
 -- complex and slow test, and that's the reason we restrict it to
 -- small cluster sizes.
+prop_Text_CreateSerialise :: Property
 prop_Text_CreateSerialise =
   forAll genTags $ \ctags ->
   forAll (choose (1, 20)) $ \maxiter ->
@@ -955,6 +984,7 @@ genSimuSpec = do
 
 -- | Checks that given a set of corrects specs, we can load them
 -- successfully, and that at high-level the values look right.
+prop_SimuLoad :: Property
 prop_SimuLoad =
   forAll (choose (0, 10)) $ \ngroups ->
   forAll (replicateM ngroups genSimuSpec) $ \specs ->
@@ -964,7 +994,8 @@ prop_SimuLoad =
       mdc_in = concatMap (\(_, n, d, m, c) ->
                             replicate n (fromIntegral m, fromIntegral d,
                                          fromIntegral c,
-                                         fromIntegral m, fromIntegral d)) specs
+                                         fromIntegral m, fromIntegral d))
+               specs :: [(Double, Double, Double, Int, Int)]
   in case Simu.parseData strspecs of
        Types.Bad msg -> failTest $ "Failed to load specs: " ++ msg
        Types.Ok (Loader.ClusterData gl nl il tags ipol) ->
@@ -989,38 +1020,42 @@ testSuite "Simu"
 
 -- ** Node tests
 
+prop_Node_setAlias :: Node.Node -> String -> Bool
 prop_Node_setAlias node name =
   Node.name newnode == Node.name node &&
   Node.alias newnode == name
-    where _types = (node::Node.Node, name::String)
-          newnode = Node.setAlias node name
+    where newnode = Node.setAlias node name
 
+prop_Node_setOffline :: Node.Node -> Bool -> Property
 prop_Node_setOffline node status =
   Node.offline newnode ==? status
     where newnode = Node.setOffline node status
 
+prop_Node_setXmem :: Node.Node -> Int -> Property
 prop_Node_setXmem node xm =
   Node.xMem newnode ==? xm
     where newnode = Node.setXmem node xm
 
+prop_Node_setMcpu :: Node.Node -> Double -> Property
 prop_Node_setMcpu node mc =
   Types.iPolicyVcpuRatio (Node.iPolicy newnode) ==? mc
     where newnode = Node.setMcpu node mc
 
 -- | Check that an instance add with too high memory or disk will be
 -- rejected.
+prop_Node_addPriFM :: Node.Node -> Instance.Instance -> Property
 prop_Node_addPriFM node inst =
   Instance.mem inst >= Node.fMem node && not (Node.failN1 node) &&
   not (Instance.isOffline inst) ==>
   case Node.addPri node inst'' of
     Types.OpFail Types.FailMem -> True
     _ -> False
-  where _types = (node::Node.Node, inst::Instance.Instance)
-        inst' = setInstanceSmallerThanNode node inst
+  where inst' = setInstanceSmallerThanNode node inst
         inst'' = inst' { Instance.mem = Instance.mem inst }
 
 -- | Check that adding a primary instance with too much disk fails
 -- with type FailDisk.
+prop_Node_addPriFD :: Node.Node -> Instance.Instance -> Property
 prop_Node_addPriFD node inst =
   forAll (elements Instance.localStorageTemplates) $ \dt ->
   Instance.dsk inst >= Node.fDsk node && not (Node.failN1 node) ==>
@@ -1033,6 +1068,7 @@ prop_Node_addPriFD node inst =
 
 -- | Check that adding a primary instance with too many VCPUs fails
 -- with type FailCPU.
+prop_Node_addPriFC :: Property
 prop_Node_addPriFC =
   forAll (choose (1, maxCpu)) $ \extra ->
   forAll genOnlineNode $ \node ->
@@ -1045,16 +1081,17 @@ prop_Node_addPriFC =
 
 -- | Check that an instance add with too high memory or disk will be
 -- rejected.
+prop_Node_addSec :: Node.Node -> Instance.Instance -> Int -> Property
 prop_Node_addSec node inst pdx =
   ((Instance.mem inst >= (Node.fMem node - Node.rMem node) &&
     not (Instance.isOffline inst)) ||
    Instance.dsk inst >= Node.fDsk node) &&
   not (Node.failN1 node) ==>
       isFailure (Node.addSec node inst pdx)
-        where _types = (node::Node.Node, inst::Instance.Instance, pdx::Int)
 
 -- | Check that an offline instance with reasonable disk size but
 -- extra mem/cpu can always be added.
+prop_Node_addOfflinePri :: NonNegative Int -> NonNegative Int -> Property
 prop_Node_addOfflinePri (NonNegative extra_mem) (NonNegative extra_cpu) =
   forAll genOnlineNode $ \node ->
   forAll (genInstanceSmallerThanNode node) $ \inst ->
@@ -1067,6 +1104,8 @@ prop_Node_addOfflinePri (NonNegative extra_mem) (NonNegative extra_cpu) =
 
 -- | Check that an offline instance with reasonable disk size but
 -- extra mem/cpu can always be added.
+prop_Node_addOfflineSec :: NonNegative Int -> NonNegative Int
+                        -> Types.Ndx -> Property
 prop_Node_addOfflineSec (NonNegative extra_mem) (NonNegative extra_cpu) pdx =
   forAll genOnlineNode $ \node ->
   forAll (genInstanceSmallerThanNode node) $ \inst ->
@@ -1079,6 +1118,7 @@ prop_Node_addOfflineSec (NonNegative extra_mem) (NonNegative extra_cpu) pdx =
        v -> failTest $ "Expected OpGood/OpGood, but got: " ++ show v
 
 -- | Checks for memory reservation changes.
+prop_Node_rMem :: Instance.Instance -> Property
 prop_Node_rMem inst =
   not (Instance.isOffline inst) ==>
   forAll (genOnlineNode `suchThat` ((> Types.unitMem) . Node.fMem)) $ \node ->
@@ -1112,6 +1152,7 @@ prop_Node_rMem inst =
        x -> failTest $ "Failed to add/remove instances: " ++ show x
 
 -- | Check mdsk setting.
+prop_Node_setMdsk :: Node.Node -> SmallRatio -> Bool
 prop_Node_setMdsk node mx =
   Node.loDsk node' >= 0 &&
   fromIntegral (Node.loDsk node') <= Node.tDsk node &&
@@ -1119,26 +1160,29 @@ prop_Node_setMdsk node mx =
   Node.availDisk node' <= Node.fDsk node' &&
   fromIntegral (Node.availDisk node') <= Node.tDsk node' &&
   Node.mDsk node' == mx'
-    where _types = (node::Node.Node, mx::SmallRatio)
-          node' = Node.setMdsk node mx'
+    where node' = Node.setMdsk node mx'
           SmallRatio mx' = mx
 
 -- Check tag maps
+prop_Node_tagMaps_idempotent :: Property
 prop_Node_tagMaps_idempotent =
   forAll genTags $ \tags ->
   Node.delTags (Node.addTags m tags) tags ==? m
     where m = Data.Map.empty
 
+prop_Node_tagMaps_reject :: Property
 prop_Node_tagMaps_reject =
   forAll (genTags `suchThat` (not . null)) $ \tags ->
   let m = Node.addTags Data.Map.empty tags
   in all (\t -> Node.rejectAddTags m [t]) tags
 
+prop_Node_showField :: Node.Node -> Property
 prop_Node_showField node =
   forAll (elements Node.defaultFields) $ \ field ->
   fst (Node.showHeader field) /= Types.unknownField &&
   Node.showField node field /= Types.unknownField
 
+prop_Node_computeGroups :: [Node.Node] -> Bool
 prop_Node_computeGroups nodes =
   let ng = Node.computeGroups nodes
       onlyuuid = map fst ng
@@ -1148,6 +1192,7 @@ prop_Node_computeGroups nodes =
      (null nodes || not (null ng))
 
 -- Check idempotence of add/remove operations
+prop_Node_addPri_idempotent :: Property
 prop_Node_addPri_idempotent =
   forAll genOnlineNode $ \node ->
   forAll (genInstanceSmallerThanNode node) $ \inst ->
@@ -1155,6 +1200,7 @@ prop_Node_addPri_idempotent =
     Types.OpGood node' -> Node.removePri node' inst ==? node
     _ -> failTest "Can't add instance"
 
+prop_Node_addSec_idempotent :: Property
 prop_Node_addSec_idempotent =
   forAll genOnlineNode $ \node ->
   forAll (genInstanceSmallerThanNode node) $ \inst ->
@@ -1190,6 +1236,7 @@ testSuite "Node"
 
 -- | Check that the cluster score is close to zero for a homogeneous
 -- cluster.
+prop_Score_Zero :: Node.Node -> Property
 prop_Score_Zero node =
   forAll (choose (1, 1024)) $ \count ->
     (not (Node.offline node) && not (Node.failN1 node) && (count > 0) &&
@@ -1202,6 +1249,7 @@ prop_Score_Zero node =
   in score <= 1e-12
 
 -- | Check that cluster stats are sane.
+prop_CStats_sane :: Property
 prop_CStats_sane =
   forAll (choose (1, 1024)) $ \count ->
   forAll genOnlineNode $ \node ->
@@ -1214,6 +1262,7 @@ prop_CStats_sane =
 
 -- | Check that one instance is allocated correctly, without
 -- rebalances needed.
+prop_ClusterAlloc_sane :: Instance.Instance -> Property
 prop_ClusterAlloc_sane inst =
   forAll (choose (5, 20)) $ \count ->
   forAll genOnlineNode $ \node ->
@@ -1234,6 +1283,7 @@ prop_ClusterAlloc_sane inst =
 -- instance spec via tiered allocation (whatever the original instance
 -- spec), on either one or two nodes. Furthermore, we test that
 -- computed allocation statistics are correct.
+prop_ClusterCanTieredAlloc :: Instance.Instance -> Property
 prop_ClusterCanTieredAlloc inst =
   forAll (choose (2, 5)) $ \count ->
   forAll (genOnlineNode `suchThat` (isNodeBig 4)) $ \node ->
@@ -1264,6 +1314,8 @@ prop_ClusterCanTieredAlloc inst =
 
 -- | Helper function to create a cluster with the given range of nodes
 -- and allocate an instance on it.
+genClusterAlloc :: Int -> Node.Node -> Instance.Instance
+                -> Types.Result (Node.List, Instance.List, Instance.Instance)
 genClusterAlloc count node inst =
   let nl = makeSmallCluster node count
       reqnodes = Instance.requiredNodes $ Instance.diskTemplate inst
@@ -1279,6 +1331,7 @@ genClusterAlloc count node inst =
 
 -- | Checks that on a 4-8 node cluster, once we allocate an instance,
 -- we can also relocate it.
+prop_ClusterAllocRelocate :: Property
 prop_ClusterAllocRelocate =
   forAll (choose (4, 8)) $ \count ->
   forAll (genOnlineNode `suchThat` (isNodeBig 4)) $ \node ->
@@ -1296,6 +1349,9 @@ prop_ClusterAllocRelocate =
 
 -- | Helper property checker for the result of a nodeEvac or
 -- changeGroup operation.
+check_EvacMode :: Group.Group -> Instance.Instance
+               -> Types.Result (Node.List, Instance.List, Cluster.EvacSolution)
+               -> Property
 check_EvacMode grp inst result =
   case result of
     Types.Bad msg -> failTest $ "Couldn't evacuate/change group:" ++ msg
@@ -1311,11 +1367,13 @@ check_EvacMode grp inst result =
                                failmsg "wrong target group"
                                          (gdx == Group.idx grp)
            v -> failmsg  ("invalid solution: " ++ show v) False
-  where failmsg = \msg -> printTestCase ("Failed to evacuate: " ++ msg)
+  where failmsg :: String -> Bool -> Property
+        failmsg = \msg -> printTestCase ("Failed to evacuate: " ++ msg)
         idx = Instance.idx inst
 
 -- | Checks that on a 4-8 node cluster, once we allocate an instance,
 -- we can also node-evacuate it.
+prop_ClusterAllocEvacuate :: Property
 prop_ClusterAllocEvacuate =
   forAll (choose (4, 8)) $ \count ->
   forAll (genOnlineNode `suchThat` (isNodeBig 4)) $ \node ->
@@ -1332,6 +1390,7 @@ prop_ClusterAllocEvacuate =
 -- | Checks that on a 4-8 node cluster with two node groups, once we
 -- allocate an instance on the first node group, we can also change
 -- its group.
+prop_ClusterAllocChangeGroup :: Property
 prop_ClusterAllocChangeGroup =
   forAll (choose (4, 8)) $ \count ->
   forAll (genOnlineNode `suchThat` (isNodeBig 4)) $ \node ->
@@ -1353,6 +1412,7 @@ prop_ClusterAllocChangeGroup =
 
 -- | Check that allocating multiple instances on a cluster, then
 -- adding an empty node, results in a valid rebalance.
+prop_ClusterAllocBalance :: Property
 prop_ClusterAllocBalance =
   forAll (genNode (Just 5) (Just 128)) $ \node ->
   forAll (choose (3, 5)) $ \count ->
@@ -1374,6 +1434,7 @@ prop_ClusterAllocBalance =
             canBalance tbl True True False
 
 -- | Checks consistency.
+prop_ClusterCheckConsistency :: Node.Node -> Instance.Instance -> Bool
 prop_ClusterCheckConsistency node inst =
   let nl = makeSmallCluster node 3
       [node1, node2, node3] = Container.elems nl
@@ -1388,6 +1449,7 @@ prop_ClusterCheckConsistency node inst =
      (not . null $ ccheck [(0, inst3)])
 
 -- | For now, we only test that we don't lose instances during the split.
+prop_ClusterSplitCluster :: Node.Node -> Instance.Instance -> Property
 prop_ClusterSplitCluster node inst =
   forAll (choose (0, 100)) $ \icnt ->
   let nl = makeSmallCluster node 2
@@ -1411,10 +1473,11 @@ canAllocOn nl reqnodes inst =
            Just _ -> True
 
 -- | Checks that allocation obeys minimum and maximum instance
--- policies. The unittest generates a random node, duplicates it count
+-- policies. The unittest generates a random node, duplicates it /count/
 -- times, and generates a random instance that can be allocated on
 -- this mini-cluster; it then checks that after applying a policy that
 -- the instance doesn't fits, the allocation fails.
+prop_ClusterAllocPolicy :: Node.Node -> Property
 prop_ClusterAllocPolicy node =
   -- rqn is the required nodes (1 or 2)
   forAll (choose (1, 2)) $ \rqn ->
@@ -1444,11 +1507,11 @@ testSuite "Cluster"
 -- ** OpCodes tests
 
 -- | Check that opcode serialization is idempotent.
+prop_OpCodes_serialization :: OpCodes.OpCode -> Property
 prop_OpCodes_serialization op =
   case J.readJSON (J.showJSON op) of
     J.Error e -> failTest $ "Cannot deserialise: " ++ e
     J.Ok op' -> op ==? op'
-  where _types = op::OpCodes.OpCode
 
 testSuite "OpCodes"
             [ 'prop_OpCodes_serialization ]
@@ -1456,17 +1519,17 @@ testSuite "OpCodes"
 -- ** Jobs tests
 
 -- | Check that (queued) job\/opcode status serialization is idempotent.
+prop_OpStatus_serialization :: Jobs.OpStatus -> Property
 prop_OpStatus_serialization os =
   case J.readJSON (J.showJSON os) of
     J.Error e -> failTest $ "Cannot deserialise: " ++ e
     J.Ok os' -> os ==? os'
-  where _types = os::Jobs.OpStatus
 
+prop_JobStatus_serialization :: Jobs.JobStatus -> Property
 prop_JobStatus_serialization js =
   case J.readJSON (J.showJSON js) of
     J.Error e -> failTest $ "Cannot deserialise: " ++ e
     J.Ok js' -> js ==? js'
-  where _types = js::Jobs.JobStatus
 
 testSuite "Jobs"
             [ 'prop_OpStatus_serialization
@@ -1475,14 +1538,17 @@ testSuite "Jobs"
 
 -- ** Loader tests
 
+prop_Loader_lookupNode :: [(String, Int)] -> String -> String -> Property
 prop_Loader_lookupNode ktn inst node =
   Loader.lookupNode nl inst node ==? Data.Map.lookup node nl
     where nl = Data.Map.fromList ktn
 
+prop_Loader_lookupInstance :: [(String, Int)] -> String -> Property
 prop_Loader_lookupInstance kti inst =
   Loader.lookupInstance il inst ==? Data.Map.lookup inst il
     where il = Data.Map.fromList kti
 
+prop_Loader_assignIndices :: Property
 prop_Loader_assignIndices =
   -- generate nodes with unique names
   forAll (arbitrary `suchThat`
@@ -1499,6 +1565,7 @@ prop_Loader_assignIndices =
 
 -- | Checks that the number of primary instances recorded on the nodes
 -- is zero.
+prop_Loader_mergeData :: [Node.Node] -> Bool
 prop_Loader_mergeData ns =
   let na = Container.fromList $ map (\n -> (Node.idx n, n)) ns
   in case Loader.mergeData [] [] [] []
@@ -1533,36 +1600,37 @@ testSuite "Loader"
 
 -- ** Types tests
 
+prop_Types_AllocPolicy_serialisation :: Types.AllocPolicy -> Property
 prop_Types_AllocPolicy_serialisation apol =
   case J.readJSON (J.showJSON apol) of
     J.Ok p -> p ==? apol
     J.Error s -> failTest $ "Failed to deserialise: " ++ s
-      where _types = apol::Types.AllocPolicy
 
+prop_Types_DiskTemplate_serialisation :: Types.DiskTemplate -> Property
 prop_Types_DiskTemplate_serialisation dt =
   case J.readJSON (J.showJSON dt) of
     J.Ok p -> p ==? dt
     J.Error s -> failTest $ "Failed to deserialise: " ++ s
-      where _types = dt::Types.DiskTemplate
 
+prop_Types_ISpec_serialisation :: Types.ISpec -> Property
 prop_Types_ISpec_serialisation ispec =
   case J.readJSON (J.showJSON ispec) of
     J.Ok p -> p ==? ispec
     J.Error s -> failTest $ "Failed to deserialise: " ++ s
-      where _types = ispec::Types.ISpec
 
+prop_Types_IPolicy_serialisation :: Types.IPolicy -> Property
 prop_Types_IPolicy_serialisation ipol =
   case J.readJSON (J.showJSON ipol) of
     J.Ok p -> p ==? ipol
     J.Error s -> failTest $ "Failed to deserialise: " ++ s
-      where _types = ipol::Types.IPolicy
 
+prop_Types_EvacMode_serialisation :: Types.EvacMode -> Property
 prop_Types_EvacMode_serialisation em =
   case J.readJSON (J.showJSON em) of
     J.Ok p -> p ==? em
     J.Error s -> failTest $ "Failed to deserialise: " ++ s
-      where _types = em::Types.EvacMode
 
+prop_Types_opToResult :: Types.OpResult Int -> Bool
 prop_Types_opToResult op =
   case op of
     Types.OpFail _ -> Types.isBad r
@@ -1570,8 +1638,8 @@ prop_Types_opToResult op =
                         Types.Bad _ -> False
                         Types.Ok v' -> v == v'
   where r = Types.opToResult op
-        _types = op::Types.OpResult Int
 
+prop_Types_eitherToResult :: Either String Int -> Bool
 prop_Types_eitherToResult ei =
   case ei of
     Left _ -> Types.isBad r
@@ -1579,7 +1647,6 @@ prop_Types_eitherToResult ei =
                  Types.Bad _ -> False
                  Types.Ok v' -> v == v'
     where r = Types.eitherToResult ei
-          _types = ei::Either String Int
 
 testSuite "Types"
             [ 'prop_Types_AllocPolicy_serialisation
@@ -1594,11 +1661,13 @@ testSuite "Types"
 -- ** CLI tests
 
 -- | Test correct parsing.
+prop_CLI_parseISpec :: String -> Int -> Int -> Int -> Property
 prop_CLI_parseISpec descr dsk mem cpu =
-  let str = printf "%d,%d,%d" dsk mem cpu
+  let str = printf "%d,%d,%d" dsk mem cpu::String
   in CLI.parseISpecString descr str ==? Types.Ok (Types.RSpec cpu mem dsk)
 
 -- | Test parsing failure due to wrong section count.
+prop_CLI_parseISpecFail :: String -> Property
 prop_CLI_parseISpecFail descr =
   forAll (choose (0,100) `suchThat` ((/=) 3)) $ \nelems ->
   forAll (replicateM nelems arbitrary) $ \values ->
@@ -1608,6 +1677,7 @@ prop_CLI_parseISpecFail descr =
        _ -> property True
 
 -- | Test parseYesNo.
+prop_CLI_parseYesNo :: Bool -> Bool -> [Char] -> Property
 prop_CLI_parseYesNo def testval val =
   forAll (elements [val, "yes", "no"]) $ \actual_val ->
   if testval
@@ -1618,6 +1688,10 @@ prop_CLI_parseYesNo def testval val =
               else property $ Types.isBad result
 
 -- | Helper to check for correct parsing of string arg.
+checkStringArg :: [Char]
+               -> (GetOpt.OptDescr (CLI.Options -> Types.Result CLI.Options),
+                   CLI.Options -> Maybe [Char])
+               -> Property
 checkStringArg val (opt, fn) =
   let GetOpt.Option _ longs _ _ = opt
   in case longs of
@@ -1628,6 +1702,7 @@ checkStringArg val (opt, fn) =
            Right (options, _) -> fn options ==? Just val
 
 -- | Test a few string arguments.
+prop_CLI_StringArg :: [Char] -> Property
 prop_CLI_StringArg argument =
   let args = [ (CLI.oDataFile,      CLI.optDataFile)
              , (CLI.oDynuFile,      CLI.optDynuFile)
@@ -1639,6 +1714,7 @@ prop_CLI_StringArg argument =
   in conjoin $ map (checkStringArg argument) args
 
 -- | Helper to test that a given option is accepted OK with quick exit.
+checkEarlyExit :: String -> [CLI.OptType] -> String -> Property
 checkEarlyExit name options param =
   case CLI.parseOptsInner [param] name options of
     Left (code, _) -> if code == 0
@@ -1651,6 +1727,7 @@ checkEarlyExit name options param =
 
 -- | Test that all binaries support some common options. There is
 -- nothing actually random about this test...
+prop_CLI_stdopts :: Property
 prop_CLI_stdopts =
   let params = ["-h", "--help", "-V", "--version"]
       opts = map (\(name, (_, o)) -> (name, o)) Program.personalities
@@ -1739,6 +1816,7 @@ testSuite "LUXI"
 instance Arbitrary Ssconf.SSKey where
   arbitrary = elements [minBound..maxBound]
 
+prop_Ssconf_filename :: Ssconf.SSKey -> Property
 prop_Ssconf_filename key =
   printTestCase "Key doesn't start with correct prefix" $
     Ssconf.sSFilePrefix `isPrefixOf` Ssconf.keyToFilename (Just "") key
