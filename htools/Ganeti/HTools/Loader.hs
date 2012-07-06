@@ -124,23 +124,19 @@ emptyCluster = ClusterData Container.empty Container.empty Container.empty []
 -- | Lookups a node into an assoc list.
 lookupNode :: (Monad m) => NameAssoc -> String -> String -> m Ndx
 lookupNode ktn inst node =
-  case M.lookup node ktn of
-    Nothing -> fail $ "Unknown node '" ++ node ++ "' for instance " ++ inst
-    Just idx -> return idx
+  maybe (fail $ "Unknown node '" ++ node ++ "' for instance " ++ inst) return $
+    M.lookup node ktn
 
 -- | Lookups an instance into an assoc list.
 lookupInstance :: (Monad m) => NameAssoc -> String -> m Idx
 lookupInstance kti inst =
-  case M.lookup inst kti of
-    Nothing -> fail $ "Unknown instance '" ++ inst ++ "'"
-    Just idx -> return idx
+  maybe (fail $ "Unknown instance '" ++ inst ++ "'") return $ M.lookup inst kti
 
 -- | Lookups a group into an assoc list.
 lookupGroup :: (Monad m) => NameAssoc -> String -> String -> m Gdx
 lookupGroup ktg nname gname =
-  case M.lookup gname ktg of
-    Nothing -> fail $ "Unknown group '" ++ gname ++ "' for node " ++ nname
-    Just idx -> return idx
+  maybe (fail $ "Unknown group '" ++ gname ++ "' for node " ++ nname) return $
+    M.lookup gname ktg
 
 -- | Check for prefix matches in names.
 -- Implemented in Ganeti core utils.text.MatchNameComponent
