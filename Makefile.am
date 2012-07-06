@@ -1493,7 +1493,8 @@ hs-coverage: $(haskell_tests) htools/hpc-htools
 	rm -f *.tix
 	$(MAKE) hs-check
 	@mkdir_p@ $(COVERAGE_HS_DIR)
-	hpc combine $(HPCEXCL) test.tix hpc-htools.tix > coverage-htools.tix
+	hpc combine --union $(HPCEXCL) \
+	  test.tix hpc-htools.tix > coverage-htools.tix
 	hpc markup --destdir=$(COVERAGE_HS_DIR) coverage-htools.tix
 	hpc report coverage-htools.tix
 	$(LN_S) -f hpc_index.html $(COVERAGE_HS_DIR)/index.html

@@ -61,21 +61,29 @@ import qualified Text.JSON as J
 import qualified Data.Map
 import qualified Data.IntMap as IntMap
 
-import qualified Ganeti.OpCodes as OpCodes
+import qualified Ganeti.Confd as Confd
+import qualified Ganeti.Config as Config
+import qualified Ganeti.Daemon as Daemon
+import qualified Ganeti.Hash as Hash
 import qualified Ganeti.Jobs as Jobs
+import qualified Ganeti.Logging as Logging
 import qualified Ganeti.Luxi as Luxi
+import qualified Ganeti.Objects as Objects
+import qualified Ganeti.OpCodes as OpCodes
+import qualified Ganeti.Query2 as Query2
+import qualified Ganeti.Runtime as Runtime
 import qualified Ganeti.Ssconf as Ssconf
 import qualified Ganeti.HTools.CLI as CLI
 import qualified Ganeti.HTools.Cluster as Cluster
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.ExtLoader
+import qualified Ganeti.HTools.Group as Group
 import qualified Ganeti.HTools.IAlloc as IAlloc
 import qualified Ganeti.HTools.Instance as Instance
 import qualified Ganeti.HTools.JSON as JSON
 import qualified Ganeti.HTools.Loader as Loader
 import qualified Ganeti.HTools.Luxi as HTools.Luxi
 import qualified Ganeti.HTools.Node as Node
-import qualified Ganeti.HTools.Group as Group
 import qualified Ganeti.HTools.PeerMap as PeerMap
 import qualified Ganeti.HTools.Rapi
 import qualified Ganeti.HTools.Simu as Simu
