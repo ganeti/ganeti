@@ -6374,10 +6374,12 @@ def _AssembleInstanceDisks(lu, instance, disks=None, ignore_secondaries=False,
                                              False, idx)
       msg = result.fail_msg
       if msg:
+        is_offline_secondary = (node in instance.secondary_nodes and
+                                result.offline)
         lu.proc.LogWarning("Could not prepare block device %s on node %s"
                            " (is_primary=False, pass=1): %s",
                            inst_disk.iv_name, node, msg)
-        if not ignore_secondaries:
+        if not (ignore_secondaries or is_offline_secondary):
           disks_ok = False
 
   # FIXME: race condition on drbd migration to primary
