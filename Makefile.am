@@ -1466,10 +1466,11 @@ hs-apidoc: $(HS_BUILT_SRCS)
 .PHONY: TAGS
 TAGS: $(BUILT_SOURCES)
 	rm -f TAGS
+	$(GHC) -e ":etags" -v0 $(HFLAGS) $(HS_LIB_SRCS)
 	find . -path './lib/*.py' -o -path './scripts/gnt-*' -o \
 	  -path './daemons/ganeti-*' -o -path './tools/*' -o \
 	  -path './qa/*.py' | \
-	  etags -l python -
+	  etags -l python -a -
 
 .PHONY: coverage
 if WANT_HTOOLS
