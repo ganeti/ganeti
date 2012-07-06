@@ -156,6 +156,21 @@ ALL_FEATURES = frozenset([
 _WFJC_TIMEOUT = 10
 
 
+# FIXME: For compatibility we update the beparams/memory field. Needs to be
+#        removed in Ganeti 2.7
+def _UpdateBeparams(inst):
+  """Updates the beparams dict of inst to support the memory field.
+
+  @param inst: Inst dict
+  @return: Updated inst dict
+
+  """
+  beparams = inst["beparams"]
+  beparams[constants.BE_MEMORY] = beparams[constants.BE_MAXMEM]
+
+  return inst
+
+
 class R_root(baserlib.ResourceBase):
   """/ resource.
 
@@ -763,7 +778,7 @@ class R_2_instances(baserlib.OpcodeResource):
     use_locking = self.useLocking()
     if self.useBulk():
       bulkdata = client.QueryInstances([], I_FIELDS, use_locking)
-      return baserlib.MapBulkFields(bulkdata, I_FIELDS)
+      return map(_UpdateBeparams, baserlib.MapBulkFields(bulkdata, I_FIELDS))
     else:
       instancesdata = client.QueryInstances([], ["name"], use_locking)
       instanceslist = [row[0] for row in instancesdata]
@@ -816,7 +831,7 @@ class R_2_instances_name(baserlib.OpcodeResource):
                                             fields=I_FIELDS,
                                             use_locking=self.useLocking())
 
-    return baserlib.MapFields(I_FIELDS, result[0])
+    return _UpdateBeparams(baserlib.MapFields(I_FIELDS, result[0]))
 
   def GetDeleteOpInput(self):
     """Delete an instance.
