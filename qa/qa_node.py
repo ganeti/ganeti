@@ -58,6 +58,12 @@ def _NodeRemove(node):
   node["_added"] = False
 
 
+def MakeNodeOffline(node, value):
+  """gnt-node modify --offline=value"""
+  # value in ["yes", "no"]
+  AssertCommand(["gnt-node", "modify", "--offline", value, node["primary"]])
+
+
 def TestNodeAddAll():
   """Adding all nodes to cluster."""
   master = qa_config.GetMasterNode()
