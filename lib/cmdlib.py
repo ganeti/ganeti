@@ -9015,11 +9015,12 @@ def _RemoveDisks(lu, instance, target_node=None, ignore_failures=False):
       edata = device.ComputeNodeTree(instance.primary_node)
     for node, disk in edata:
       lu.cfg.SetDiskID(disk, node)
-      msg = lu.rpc.call_blockdev_remove(node, disk).fail_msg
-      if msg:
+      result = lu.rpc.call_blockdev_remove(node, disk)
+      if result.fail_msg:
         lu.LogWarning("Could not remove disk %s on node %s,"
-                      " continuing anyway: %s", idx, node, msg)
-        all_result = False
+                      " continuing anyway: %s", idx, node, result.fail_msg)
+        if not (result.offline and node != instance.primary_node):
+          all_result = False
 
     # if this is a DRBD disk, return its port to the pool
     if device.dev_type in constants.LDS_DRBD:
