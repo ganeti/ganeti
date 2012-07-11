@@ -2,10 +2,10 @@ News
 ====
 
 
-Version 2.6.0 rc2
+Version 2.6.0 rc3
 -----------------
 
-*(Released Tue, 03 Jul 2012)*
+*(Released Fri, 13 Jul 2012)*
 
 New features
 ~~~~~~~~~~~~
@@ -240,6 +240,10 @@ accept the target size of the disk, instead of the delta; this can be
 more safe since two runs in absolute mode will be idempotent, and
 sometimes it's also easier to specify the desired size directly.
 
+Also the handling of instances with regard to offline secondaries has
+been improved. Instance operations should not fail because one of it's
+secondary nodes is offline, even though it's safe to proceed.
+
 API changes
 ~~~~~~~~~~~
 
@@ -293,6 +297,27 @@ A number of bugs has been fixed in the cluster merge tool.
 changed to allow the same clock skew as permitted by the cluster
 verification. This will remove some rare but hard to diagnose errors in
 import-export.
+
+
+Version 2.6.0 rc2
+-----------------
+
+*(Released Tue, 03 Jul 2012)*
+
+Second release candidate for 2.6. The following changes were done from
+rc2 to rc3:
+
+- Fixed ``gnt-cluster verify`` regarding ``master-ip-script`` on non
+  master candidates
+- Fixed a RAPI regression on missing beparams/memory
+- Fixed redistribution of files on offline nodes
+- Added possibility to run activate-disks even though secondaries are
+  offline. With this change it relaxes also the strictness on some other
+  commands which use activate disks internally:
+  * ``gnt-instance start|reboot|rename|backup|export``
+- Made it possible to remove safely an instance if its secondaries are
+  offline
+- Made it possible to reinstall even though secondaries are offline
 
 
 Version 2.6.0 rc1
