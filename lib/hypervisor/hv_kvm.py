@@ -493,6 +493,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     constants.HV_REBOOT_BEHAVIOR:
       hv_base.ParamInSet(True, constants.REBOOT_BEHAVIORS),
     constants.HV_CPU_MASK: hv_base.OPT_MULTI_CPU_MASK_CHECK,
+    constants.HV_CPU_TYPE: hv_base.NO_CHECK
     }
 
   _MIGRATION_STATUS_RE = re.compile("Migration\s+status:\s+(\w+)",
@@ -1242,6 +1243,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     if hvp[constants.HV_KVM_USE_CHROOT]:
       kvm_cmd.extend(["-chroot", self._InstanceChrootDir(instance.name)])
+
+    # Add qemu-KVM -cpu param
+    if hvp[constants.HV_CPU_TYPE]:
+      kvm_cmd.extend(["-cpu", hvp[constants.HV_CPU_TYPE]])
 
     # Save the current instance nics, but defer their expansion as parameters,
     # as we'll need to generate executable temp files for them.

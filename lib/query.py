@@ -1773,6 +1773,7 @@ def _GetInstanceParameterFields():
     constants.HV_PAE: "PAE",
     constants.HV_VNC_BIND_ADDRESS: "VNC_bind_address",
     constants.HV_PASSTHROUGH: "pci_pass",
+    constants.HV_CPU_TYPE: "cpu_type",
     }
 
   fields = [

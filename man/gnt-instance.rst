@@ -385,6 +385,19 @@ spice\_use\_vdagent
 
     Enables or disables passing mouse events via SPICE vdagent.
 
+cpu\_type
+    Valid for the KVM hypervisor.
+
+    This parameter determines the emulated cpu for the instance. If this
+    parameter is empty (which is the default configuration), it will not
+    be passed to KVM.
+
+    Be aware of setting this parameter to ``"host"`` if you have nodes
+    with different CPUs from each other. Live migration may stop working
+    in this situation.
+
+    For more information please refer to the KVM manual.
+
 acpi
     Valid for the Xen HVM and KVM hypervisors.
 
