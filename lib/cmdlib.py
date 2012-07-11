@@ -6985,9 +6985,6 @@ class LUInstanceReinstall(LogicalUnit):
       "Cannot retrieve locked instance %s" % self.op.instance_name
     _CheckNodeOnline(self, instance.primary_node, "Instance primary node"
                      " offline, cannot reinstall")
-    for node in instance.secondary_nodes:
-      _CheckNodeOnline(self, node, "Instance secondary node offline,"
-                       " cannot reinstall")
 
     if instance.disk_template == constants.DT_DISKLESS:
       raise errors.OpPrereqError("Instance '%s' has no disks" %
