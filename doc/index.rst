@@ -30,6 +30,7 @@ Contents:
    rapi.rst
    move-instance.rst
    ovfconverter.rst
+   design-bulk-create.rst
    devnotes.rst
    news.rst
    glossary.rst

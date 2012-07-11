@@ -335,6 +335,7 @@ docrst = \
 	doc/design-shared-storage.rst \
 	doc/design-node-state-cache.rst \
 	doc/design-virtual-clusters.rst \
+	doc/design-bulk-create.rst \
 	doc/devnotes.rst \
 	doc/glossary.rst \
 	doc/hooks.rst \
