@@ -18,6 +18,10 @@
 ./test/hinfo --no-such-option
 >>>= 2
 
+# invalid option test
+./test/hcheck --no-such-option
+>>>= 2
+
 # extra arguments
 ./test/hspace unexpected-argument
 >>>2
@@ -30,6 +34,11 @@ Error: this program doesn't take any arguments.
 >>>=1
 
 ./test/hinfo unexpected-argument
+>>>2
+Error: this program doesn't take any arguments.
+>>>=1
+
+./test/hcheck unexpected-argument
 >>>2
 Error: this program doesn't take any arguments.
 >>>=1

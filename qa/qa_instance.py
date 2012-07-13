@@ -298,6 +298,8 @@ def TestInstanceInfo(instance):
 @InstanceCheck(INST_UP, INST_UP, FIRST_ARG)
 def TestInstanceModify(instance):
   """gnt-instance modify"""
+  default_hv = qa_config.GetDefaultHypervisor()
+
   # Assume /sbin/init exists on all systems
   test_kernel = "/sbin/init"
   test_initrd = test_kernel
@@ -305,6 +307,7 @@ def TestInstanceModify(instance):
   orig_maxmem = qa_config.get(constants.BE_MAXMEM)
   orig_minmem = qa_config.get(constants.BE_MINMEM)
   #orig_bridge = qa_config.get("bridge", "xen-br0")
+
   args = [
     ["-B", "%s=128" % constants.BE_MINMEM],
     ["-B", "%s=128" % constants.BE_MAXMEM],
@@ -318,18 +321,24 @@ def TestInstanceModify(instance):
 
     ["-H", "%s=%s" % (constants.HV_KERNEL_PATH, test_kernel)],
     ["-H", "%s=%s" % (constants.HV_KERNEL_PATH, constants.VALUE_DEFAULT)],
-    ["-H", "%s=%s" % (constants.HV_INITRD_PATH, test_initrd)],
-    ["-H", "no_%s" % (constants.HV_INITRD_PATH, )],
-    ["-H", "%s=%s" % (constants.HV_INITRD_PATH, constants.VALUE_DEFAULT)],
 
     # TODO: bridge tests
     #["--bridge", "xen-br1"],
     #["--bridge", orig_bridge],
-
-    # TODO: Do these tests only with xen-hvm
-    #["-H", "%s=acn" % constants.HV_BOOT_ORDER],
-    #["-H", "%s=%s" % (constants.HV_BOOT_ORDER, constants.VALUE_DEFAULT)],
     ]
+
+  if default_hv == constants.HT_XEN_PVM:
+    args.extend([
+      ["-H", "%s=%s" % (constants.HV_INITRD_PATH, test_initrd)],
+      ["-H", "no_%s" % (constants.HV_INITRD_PATH, )],
+      ["-H", "%s=%s" % (constants.HV_INITRD_PATH, constants.VALUE_DEFAULT)],
+      ])
+  elif default_hv == constants.HT_XEN_HVM:
+    args.extend([
+      ["-H", "%s=acn" % constants.HV_BOOT_ORDER],
+      ["-H", "%s=%s" % (constants.HV_BOOT_ORDER, constants.VALUE_DEFAULT)],
+      ])
+
   for alist in args:
     AssertCommand(["gnt-instance", "modify"] + alist + [instance["name"]])
 

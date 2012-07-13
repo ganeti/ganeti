@@ -31,6 +31,7 @@ module Ganeti.HTools.Utils
   , select
   , applyIf
   , commaJoin
+  , ensureQuoted
   , tryRead
   , formatTable
   , printTable
@@ -42,7 +43,7 @@ module Ganeti.HTools.Utils
   , exitUnless
   ) where
 
-import Data.Char (toUpper)
+import Data.Char (toUpper, isAlphaNum)
 import Data.List
 
 import Debug.Trace
@@ -90,6 +91,12 @@ sepSplit sep s
 plural :: Int -> String -> String -> String
 plural 1 s _ = s
 plural _ _ p = p
+
+-- | Ensure a value is quoted if needed.
+ensureQuoted :: String -> String
+ensureQuoted v = if not (all (\c -> isAlphaNum c || c == '.') v)
+                 then '\'':v ++ "'"
+                 else v
 
 -- * Mathematical functions
 

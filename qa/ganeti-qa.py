@@ -537,6 +537,18 @@ def RunQa():
         finally:
           qa_config.ReleaseNode(snode)
 
+    # Test removing instance with offline drbd secondary
+    if qa_config.TestEnabled("instance-remove-drbd-offline"):
+      snode = qa_config.AcquireNode(exclude=pnode)
+      instance = \
+        qa_instance.TestInstanceAddWithDrbdDisk(pnode, snode)
+      try:
+        qa_node.MakeNodeOffline(snode, "yes")
+        RunTest(qa_instance.TestInstanceRemove, instance)
+      finally:
+        qa_node.MakeNodeOffline(snode, "no")
+        qa_config.ReleaseNode(snode)
+
     if qa_config.TestEnabled(["instance-add-plain-disk", "instance-export"]):
       for shutdown in [False, True]:
         instance = RunTest(qa_instance.TestInstanceAddWithPlainDisk, pnode)

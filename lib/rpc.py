@@ -662,7 +662,7 @@ class RpcRunner(_RpcClientBase,
       # Encoders requiring configuration object
       rpc_defs.ED_INST_DICT: self._InstDict,
       rpc_defs.ED_INST_DICT_HVP_BEP: self._InstDictHvpBep,
-      rpc_defs.ED_INST_DICT_OSP: self._InstDictOsp,
+      rpc_defs.ED_INST_DICT_OSP_DP: self._InstDictOspDp,
 
       # Encoders annotating disk parameters
       rpc_defs.ED_DISKS_DICT_DP: self._DisksDictDP,
@@ -730,11 +730,13 @@ class RpcRunner(_RpcClientBase,
     """
     return self._InstDict(instance, hvp=hvp, bep=bep)
 
-  def _InstDictOsp(self, (instance, osparams)):
+  def _InstDictOspDp(self, (instance, osparams)):
     """Wrapper for L{_InstDict}.
 
     """
-    return self._InstDict(instance, osp=osparams)
+    updated_inst = self._InstDict(instance, osp=osparams)
+    updated_inst["disks"] = self._DisksDictDP((instance.disks, instance))
+    return updated_inst
 
   def _DisksDictDP(self, (disks, instance)):
     """Wrapper for L{AnnotateDiskParams}.

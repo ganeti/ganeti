@@ -315,5 +315,59 @@ class TestTryConvert(unittest.TestCase):
       self.assertEqual(utils.TryConvert(fn, src), result)
 
 
+class TestVerifyDictOptions(unittest.TestCase):
+  def setUp(self):
+    self.defaults = {
+      "first_key": "foobar",
+      "foobar": {
+        "key1": "value2",
+        "key2": "value1",
+        },
+      "another_key": "another_value",
+      }
+
+  def test(self):
+    some_keys = {
+      "first_key": "blubb",
+      "foobar": {
+        "key2": "foo",
+        },
+      }
+    utils.VerifyDictOptions(some_keys, self.defaults)
+
+  def testInvalid(self):
+    some_keys = {
+      "invalid_key": "blubb",
+      "foobar": {
+        "key2": "foo",
+        },
+      }
+    self.assertRaises(errors.OpPrereqError, utils.VerifyDictOptions,
+                      some_keys, self.defaults)
+
+  def testNestedInvalid(self):
+    some_keys = {
+      "foobar": {
+        "key2": "foo",
+        "key3": "blibb"
+        },
+      }
+    self.assertRaises(errors.OpPrereqError, utils.VerifyDictOptions,
+                      some_keys, self.defaults)
+
+  def testMultiInvalid(self):
+    some_keys = {
+        "foobar": {
+          "key1": "value3",
+          "key6": "Right here",
+        },
+        "invalid_with_sub": {
+          "sub1": "value3",
+        },
+      }
+    self.assertRaises(errors.OpPrereqError, utils.VerifyDictOptions,
+                      some_keys, self.defaults)
+
+
 if __name__ == '__main__':
   testutils.GanetiTestProgram()

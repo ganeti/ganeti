@@ -86,6 +86,11 @@ def _ReadDocFile(filename):
 
 
 class TestHooksDocs(unittest.TestCase):
+  HOOK_PATH_OK = frozenset([
+    "master-ip-turnup",
+    "master-ip-turndown",
+    ])
+
   def test(self):
     """Check whether all hooks are documented.
 
@@ -98,34 +103,62 @@ class TestHooksDocs(unittest.TestCase):
     assert len(lu2opcode) == len(mcpu.Processor.DISPATCH_TABLE), \
       "Found duplicate entries"
 
+    hooks_paths = frozenset(re.findall("^:directory:\s*(.+)\s*$", hooksdoc,
+                                       re.M))
+    self.assertTrue(self.HOOK_PATH_OK.issubset(hooks_paths),
+                    msg="Whitelisted path not found in documentation")
+
+    raw_hooks_ops = re.findall("^OP_(?!CODE$).+$", hooksdoc, re.M)
+    hooks_ops = set()
+    duplicate_ops = set()
+    for op in raw_hooks_ops:
+      if op in hooks_ops:
+        duplicate_ops.add(op)
+      else:
+        hooks_ops.add(op)
+
+    self.assertFalse(duplicate_ops,
+                     msg="Found duplicate opcode documentation: %s" %
+                         utils.CommaJoin(duplicate_ops))
+
+    seen_paths = set()
+    seen_ops = set()
+
+    self.assertFalse(duplicate_ops,
+                     msg="Found duplicated hook documentation: %s" %
+                         utils.CommaJoin(duplicate_ops))
+
     for name in dir(cmdlib):
-      obj = getattr(cmdlib, name)
+      lucls = getattr(cmdlib, name)
 
-      if (isinstance(obj, type) and
-          issubclass(obj, cmdlib.LogicalUnit) and
-          hasattr(obj, "HPATH")):
-        self._CheckHook(name, obj, hooksdoc, lu2opcode)
+      if (isinstance(lucls, type) and
+          issubclass(lucls, cmdlib.LogicalUnit) and
+          hasattr(lucls, "HPATH")):
+        if lucls.HTYPE is None:
+          continue
 
-  def _CheckHook(self, name, lucls, hooksdoc, lu2opcode):
-    opcls = lu2opcode.get(lucls, None)
+        opcls = lu2opcode.get(lucls, None)
 
-    if lucls.HTYPE is None:
-      return
+        if opcls:
+          seen_ops.add(opcls.OP_ID)
+          self.assertTrue(opcls.OP_ID in hooks_ops,
+                          msg="Missing hook documentation for %s" %
+                              opcls.OP_ID)
+        self.assertTrue(lucls.HPATH in hooks_paths,
+                        msg="Missing documentation for hook %s/%s" %
+                            (lucls.HTYPE, lucls.HPATH))
+        seen_paths.add(lucls.HPATH)
 
-    # TODO: Improve this test (e.g. find hooks documented but no longer
-    # existing)
+    missed_ops = hooks_ops - seen_ops
+    missed_paths = hooks_paths - seen_paths - self.HOOK_PATH_OK
 
-    if opcls:
-      self.assertTrue(re.findall("^%s$" % re.escape(opcls.OP_ID),
-                                 hooksdoc, re.M),
-                      msg=("Missing hook documentation for %s" %
-                           (opcls.OP_ID)))
+    self.assertFalse(missed_ops,
+                     msg="Op documents hook not existing anymore: %s" %
+                         utils.CommaJoin(missed_ops))
 
-    pattern = r"^:directory:\s*%s\s*$" % re.escape(lucls.HPATH)
-
-    self.assert_(re.findall(pattern, hooksdoc, re.M),
-                 msg=("Missing documentation for hook %s/%s" %
-                      (lucls.HTYPE, lucls.HPATH)))
+    self.assertFalse(missed_paths,
+                     msg="Hook path does not exist in opcode: %s" %
+                         utils.CommaJoin(missed_paths))
 
 
 class TestRapiDocs(unittest.TestCase):

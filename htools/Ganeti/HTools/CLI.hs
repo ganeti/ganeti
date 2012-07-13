@@ -39,6 +39,8 @@ module Ganeti.HTools.CLI
   , maybePrintNodes
   , maybePrintInsts
   , maybeShowWarnings
+  , printKeys
+  , printFinal
   , setNodeStatus
   -- * The options
   , oDataFile
@@ -62,6 +64,7 @@ module Ganeti.HTools.CLI
   , oMinGainLim
   , oMinScore
   , oNoHeaders
+  , oNoSimulation
   , oNodeSim
   , oOfflineNode
   , oOutputDir
@@ -82,6 +85,7 @@ module Ganeti.HTools.CLI
   ) where
 
 import Control.Monad
+import Data.Char (toUpper)
 import Data.Maybe (fromMaybe)
 import qualified Data.Version
 import System.Console.GetOpt
@@ -133,6 +137,7 @@ data Options = Options
   , optMinGainLim  :: Score          -- ^ Limit below which we apply mingain
   , optMinScore    :: Score          -- ^ The minimum score we aim for
   , optNoHeaders   :: Bool           -- ^ Do not show a header line
+  , optNoSimulation :: Bool          -- ^ Skip the rebalancing dry-run
   , optNodeSim     :: [String]       -- ^ Cluster simulation mode
   , optOffline     :: [String]       -- ^ Names of offline nodes
   , optOutPath     :: FilePath       -- ^ Path to the output directory
@@ -175,6 +180,7 @@ defaultOptions  = Options
   , optMinGainLim  = 1e-1
   , optMinScore    = 1e-9
   , optNoHeaders   = False
+  , optNoSimulation = False
   , optNodeSim     = []
   , optOffline     = []
   , optOutPath     = "."
@@ -349,10 +355,16 @@ oNoHeaders = Option "" ["no-headers"]
              (NoArg (\ opts -> Ok opts { optNoHeaders = True }))
              "do not show a header line"
 
+oNoSimulation :: OptType
+oNoSimulation = Option "" ["no-simulation"]
+                (NoArg (\opts -> Ok opts {optNoSimulation = True}))
+                "do not perform rebalancing simulation"
+
 oNodeSim :: OptType
 oNodeSim = Option "" ["simulate"]
             (ReqArg (\ f o -> Ok o { optNodeSim = f:optNodeSim o }) "SPEC")
-            "simulate an empty cluster, given as 'num_nodes,disk,ram,cpu'"
+            "simulate an empty cluster, given as\
+            \ 'alloc_policy,num_nodes,disk,ram,cpu'"
 
 oOfflineNode :: OptType
 oOfflineNode = Option "O" ["offline"]
@@ -554,6 +566,24 @@ maybeShowWarnings fix_msgs =
   unless (null fix_msgs) $ do
     hPutStrLn stderr "Warning: cluster has inconsistent data:"
     hPutStrLn stderr . unlines . map (printf "  - %s") $ fix_msgs
+
+-- | Format a list of key, value as a shell fragment.
+printKeys :: String              -- ^ Prefix to printed variables
+          -> [(String, String)]  -- ^ List of (key, value) pairs to be printed
+          -> IO ()
+printKeys prefix = mapM_ (\(k, v) ->
+                       printf "%s_%s=%s\n" prefix (map toUpper k) (ensureQuoted v))
+
+-- | Prints the final @OK@ marker in machine readable output.
+printFinal :: String    -- ^ Prefix to printed variable
+           -> Bool      -- ^ Whether output should be machine readable
+                        -- Note: if not, there is nothing to print
+           -> IO ()
+printFinal prefix True =
+  -- this should be the final entry
+  printKeys prefix [("OK", "1")]
+
+printFinal _ False = return ()
 
 -- | Potentially set the node as offline based on passed offline list.
 setNodeOffline :: [Ndx] -> Node.Node -> Node.Node

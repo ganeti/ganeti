@@ -94,10 +94,11 @@ def TestClusterInit(rapi_user, rapi_secret):
     fh.close()
 
   # Initialize cluster
-  cmd = ["gnt-cluster", "init"]
-
-  cmd.append("--primary-ip-version=%d" %
-             qa_config.get("primary_ip_version", 4))
+  cmd = [
+    "gnt-cluster", "init",
+    "--primary-ip-version=%d" % qa_config.get("primary_ip_version", 4),
+    "--enabled-hypervisors=%s" % ",".join(qa_config.GetEnabledHypervisors()),
+    ]
 
   for spec_type in ("mem-size", "disk-size", "disk-count", "cpu-count",
                     "nic-count"):
@@ -114,10 +115,6 @@ def TestClusterInit(rapi_user, rapi_secret):
   if bridge:
     cmd.append("--bridge=%s" % bridge)
     cmd.append("--master-netdev=%s" % bridge)
-
-  htype = qa_config.get("enabled-hypervisors", None)
-  if htype:
-    cmd.append("--enabled-hypervisors=%s" % htype)
 
   cmd.append(qa_config.get("name"))
   AssertCommand(cmd)

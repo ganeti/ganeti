@@ -155,6 +155,46 @@ def ValidateServiceName(name):
   return name
 
 
+def _ComputeMissingKeys(key_path, options, defaults):
+  """Helper functions to compute which keys a invalid.
+
+  @param key_path: The current key path (if any)
+  @param options: The user provided options
+  @param defaults: The default dictionary
+  @return: A list of invalid keys
+
+  """
+  defaults_keys = frozenset(defaults.keys())
+  invalid = []
+  for key, value in options.items():
+    if key_path:
+      new_path = "%s/%s" % (key_path, key)
+    else:
+      new_path = key
+
+    if key not in defaults_keys:
+      invalid.append(new_path)
+    elif isinstance(value, dict):
+      invalid.extend(_ComputeMissingKeys(new_path, value, defaults[key]))
+
+  return invalid
+
+
+def VerifyDictOptions(options, defaults):
+  """Verify a dict has only keys set which also are in the defaults dict.
+
+  @param options: The user provided options
+  @param defaults: The default dictionary
+  @raise error.OpPrereqError: If one of the keys is not supported
+
+  """
+  invalid = _ComputeMissingKeys("", options, defaults)
+
+  if invalid:
+    raise errors.OpPrereqError("Provided option keys not supported: %s" %
+                               CommaJoin(invalid), errors.ECODE_INVAL)
+
+
 def ListVolumeGroups():
   """List volume groups and their size
 

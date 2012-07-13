@@ -19,3 +19,7 @@
 >>>= 0
 ./test/hinfo --help
 >>>= 0
+./test/hcheck --version
+>>>= 0
+./test/hcheck --help
+>>>= 0

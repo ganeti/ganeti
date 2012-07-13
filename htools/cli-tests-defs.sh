@@ -43,4 +43,8 @@ hinfo() {
   HTOOLS=hinfo $HBINARY "$@"
 }
 
-ALL_ROLES="hbal hscan hail hspace hinfo"
+hcheck() {
+  HTOOLS=hinfo $HBINARY "$@"
+}
+
+ALL_ROLES="hbal hscan hail hspace hinfo hcheck"

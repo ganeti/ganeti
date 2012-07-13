@@ -81,6 +81,14 @@
 /man/*.gen
 /man/footer.man
 
+# test
+/test/hail
+/test/hbal
+/test/hcheck
+/test/hinfo
+/test/hscan
+/test/hspace
+
 # tools
 /tools/kvm-ifup
 /tools/ensure-dirs

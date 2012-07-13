@@ -116,6 +116,7 @@
     "instance-add-drbd-disk": true,
     "instance-convert-disk": true,
     "instance-plain-rapi-common-tests": true,
+    "instance-remove-drbd-offline": true,
 
     "instance-export": true,
     "instance-failover": true,

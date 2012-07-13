@@ -23,7 +23,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 -}
 
-module Ganeti.HTools.Program.Hbal (main, options) where
+module Ganeti.HTools.Program.Hbal
+    ( main
+    , options
+    , iterateDepth
+    ) where
 
 import Control.Concurrent (threadDelay)
 import Control.Exception (bracket)
@@ -90,7 +94,8 @@ options =
 we find a valid solution or we exceed the maximum depth.
 
 -}
-iterateDepth :: Cluster.Table    -- ^ The starting table
+iterateDepth :: Bool             -- ^ Whether to print moves
+             -> Cluster.Table    -- ^ The starting table
              -> Int              -- ^ Remaining length
              -> Bool             -- ^ Allow disk moves
              -> Bool             -- ^ Allow instance moves
@@ -103,7 +108,7 @@ iterateDepth :: Cluster.Table    -- ^ The starting table
              -> Bool             -- ^ Enable evacuation mode
              -> IO (Cluster.Table, [MoveJob]) -- ^ The resulting table
                                               -- and commands
-iterateDepth ini_tbl max_rounds disk_moves inst_moves nmlen imlen
+iterateDepth printmove ini_tbl max_rounds disk_moves inst_moves nmlen imlen
              cmd_strs min_score mg_limit min_gain evac_mode =
   let Cluster.Table ini_nl ini_il _ _ = ini_tbl
       allowed_next = Cluster.doNextBalance ini_tbl max_rounds min_score
@@ -121,9 +126,10 @@ iterateDepth ini_tbl max_rounds disk_moves inst_moves nmlen imlen
                                   nmlen imlen cur_plc fin_plc_len
                afn = Cluster.involvedNodes ini_il cur_plc
                upd_cmd_strs = (afn, idx, move, cmds):cmd_strs
-           putStrLn sol_line
-           hFlush stdout
-           iterateDepth fin_tbl max_rounds disk_moves inst_moves
+           when printmove $ do
+               putStrLn sol_line
+               hFlush stdout
+           iterateDepth printmove fin_tbl max_rounds disk_moves inst_moves
                         nmlen imlen upd_cmd_strs min_score
                         mg_limit min_gain evac_mode
        Nothing -> return (ini_tbl, cmd_strs)
@@ -295,11 +301,10 @@ checkCluster verbose nl il = do
 
   -- hbal doesn't currently handle split clusters
   let split_insts = Cluster.findSplitInstances nl il
-  unless (null split_insts) $ do
+  unless (null split_insts || verbose <= 1) $ do
     hPutStrLn stderr "Found instances belonging to multiple node groups:"
     mapM_ (\i -> hPutStrLn stderr $ "  " ++ Instance.name i) split_insts
-    hPutStrLn stderr "Aborting."
-    exitWith $ ExitFailure 1
+    hPutStrLn stderr "These instances will not be moved."
 
   printf "Loaded %d nodes, %d instances\n"
              (Container.size nl)
@@ -323,7 +328,7 @@ checkGroup verbose gname nl il = do
              "Initial check done: %d bad nodes, %d bad instances.\n"
              (length bad_nodes) (length bad_instances)
 
-  when (length bad_nodes > 0) $
+  when (not (null bad_nodes)) $
          putStrLn "Cluster is not N+1 happy, continuing but no guarantee \
                   \that the cluster will end N+1 happy."
 
@@ -382,7 +387,7 @@ main opts args = do
   let imlen = maximum . map (length . Instance.alias) $ Container.elems il
       nmlen = maximum . map (length . Node.alias) $ Container.elems nl
 
-  (fin_tbl, cmd_strs) <- iterateDepth ini_tbl (optMaxLength opts)
+  (fin_tbl, cmd_strs) <- iterateDepth True ini_tbl (optMaxLength opts)
                          (optDiskMoves opts)
                          (optInstMoves opts)
                          nmlen imlen [] min_cv

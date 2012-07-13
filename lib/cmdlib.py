@@ -1611,7 +1611,8 @@ def _FindFaultyInstanceDisks(cfg, rpc_runner, instance, node_name, prereq):
   for dev in instance.disks:
     cfg.SetDiskID(dev, node_name)
 
-  result = rpc_runner.call_blockdev_getmirrorstatus(node_name, instance.disks)
+  result = rpc_runner.call_blockdev_getmirrorstatus(node_name, (instance.disks,
+                                                                instance))
   result.Raise("Failed to get disk status from node %s" % node_name,
                prereq=prereq, ecode=errors.ECODE_ENVIRON)
 
@@ -2923,12 +2924,12 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
       node_disks[nname] = disks
 
-      # Creating copies as SetDiskID below will modify the objects and that can
-      # lead to incorrect data returned from nodes
-      devonly = [dev.Copy() for (_, dev) in disks]
-
-      for dev in devonly:
-        self.cfg.SetDiskID(dev, nname)
+      # _AnnotateDiskParams makes already copies of the disks
+      devonly = []
+      for (inst, dev) in disks:
+        (anno_disk,) = _AnnotateDiskParams(instanceinfo[inst], [dev], self.cfg)
+        self.cfg.SetDiskID(anno_disk, nname)
+        devonly.append(anno_disk)
 
       node_disks_devonly[nname] = devonly
 
@@ -3856,6 +3857,11 @@ class LUClusterSetParams(LogicalUnit):
     if self.op.diskparams:
       for dt_params in self.op.diskparams.values():
         utils.ForceDictType(dt_params, constants.DISK_DT_TYPES)
+      try:
+        utils.VerifyDictOptions(self.op.diskparams, constants.DISK_DT_DEFAULTS)
+      except errors.OpPrereqError, err:
+        raise errors.OpPrereqError("While verify diskparams options: %s" % err,
+                                   errors.ECODE_INVAL)
 
   def ExpandNames(self):
     # FIXME: in the future maybe other cluster params won't require checking on
@@ -4304,6 +4310,9 @@ def _ComputeAncillaryFiles(cluster, redist):
   if cluster.modify_etc_hosts:
     files_all.add(constants.ETC_HOSTS)
 
+  if cluster.use_external_mip_script:
+    files_all.add(constants.EXTERNAL_MASTER_SETUP_SCRIPT)
+
   # Files which are optional, these must:
   # - be present in one other category as well
   # - either exist or not exist on all nodes of that category (mc, vm all)
@@ -4316,10 +4325,6 @@ def _ComputeAncillaryFiles(cluster, redist):
 
   if not redist:
     files_mc.add(constants.CLUSTER_CONF_FILE)
-
-    # FIXME: this should also be replicated but Ganeti doesn't support files_mc
-    # replication
-    files_mc.add(constants.DEFAULT_MASTER_SETUP_SCRIPT)
 
   # Files which should only be on VM-capable nodes
   files_vm = set(filename
@@ -4361,7 +4366,8 @@ def _RedistributeAncillaryFiles(lu, additional_nodes=None, additional_vm=True):
   master_info = lu.cfg.GetNodeInfo(lu.cfg.GetMasterNode())
 
   online_nodes = lu.cfg.GetOnlineNodeList()
-  vm_nodes = lu.cfg.GetVmCapableNodeList()
+  online_set = frozenset(online_nodes)
+  vm_nodes = list(online_set.intersection(lu.cfg.GetVmCapableNodeList()))
 
   if additional_nodes is not None:
     online_nodes.extend(additional_nodes)
@@ -4470,7 +4476,7 @@ def _WaitForSync(lu, instance, disks=None, oneshot=False):
     max_time = 0
     done = True
     cumul_degraded = False
-    rstats = lu.rpc.call_blockdev_getmirrorstatus(node, disks)
+    rstats = lu.rpc.call_blockdev_getmirrorstatus(node, (disks, instance))
     msg = rstats.fail_msg
     if msg:
       lu.LogWarning("Can't get any data from node %s: %s", node, msg)
@@ -6392,10 +6398,12 @@ def _AssembleInstanceDisks(lu, instance, disks=None, ignore_secondaries=False,
                                              False, idx)
       msg = result.fail_msg
       if msg:
+        is_offline_secondary = (node in instance.secondary_nodes and
+                                result.offline)
         lu.proc.LogWarning("Could not prepare block device %s on node %s"
                            " (is_primary=False, pass=1): %s",
                            inst_disk.iv_name, node, msg)
-        if not ignore_secondaries:
+        if not (ignore_secondaries or is_offline_secondary):
           disks_ok = False
 
   # FIXME: race condition on drbd migration to primary
@@ -6528,7 +6536,7 @@ def _ShutdownInstanceDisks(lu, instance, disks=None, ignore_primary=False):
   for disk in disks:
     for node, top_disk in disk.ComputeNodeTree(instance.primary_node):
       lu.cfg.SetDiskID(top_disk, node)
-      result = lu.rpc.call_blockdev_shutdown(node, top_disk)
+      result = lu.rpc.call_blockdev_shutdown(node, (top_disk, instance))
       msg = result.fail_msg
       if msg:
         lu.LogWarning("Could not shutdown block device %s on node %s: %s",
@@ -7001,9 +7009,6 @@ class LUInstanceReinstall(LogicalUnit):
       "Cannot retrieve locked instance %s" % self.op.instance_name
     _CheckNodeOnline(self, instance.primary_node, "Instance primary node"
                      " offline, cannot reinstall")
-    for node in instance.secondary_nodes:
-      _CheckNodeOnline(self, node, "Instance secondary node offline,"
-                       " cannot reinstall")
 
     if instance.disk_template == constants.DT_DISKLESS:
       raise errors.OpPrereqError("Instance '%s' has no disks" %
@@ -8512,7 +8517,7 @@ class TLMigrateInstance(Tasklet):
       disks = _ExpandCheckDisks(instance, instance.disks)
       self.feedback_fn("* unmapping instance's disks from %s" % source_node)
       for disk in disks:
-        result = self.rpc.call_blockdev_shutdown(source_node, disk)
+        result = self.rpc.call_blockdev_shutdown(source_node, (disk, instance))
         msg = result.fail_msg
         if msg:
           logging.error("Migration was successful, but couldn't unmap the"
@@ -9023,18 +9028,20 @@ def _RemoveDisks(lu, instance, target_node=None, ignore_failures=False):
 
   all_result = True
   ports_to_release = set()
-  for (idx, device) in enumerate(instance.disks):
+  anno_disks = _AnnotateDiskParams(instance, instance.disks, lu.cfg)
+  for (idx, device) in enumerate(anno_disks):
     if target_node:
       edata = [(target_node, device)]
     else:
       edata = device.ComputeNodeTree(instance.primary_node)
     for node, disk in edata:
       lu.cfg.SetDiskID(disk, node)
-      msg = lu.rpc.call_blockdev_remove(node, disk).fail_msg
-      if msg:
+      result = lu.rpc.call_blockdev_remove(node, disk)
+      if result.fail_msg:
         lu.LogWarning("Could not remove disk %s on node %s,"
-                      " continuing anyway: %s", idx, node, msg)
-        all_result = False
+                      " continuing anyway: %s", idx, node, result.fail_msg)
+        if not (result.offline and node != instance.primary_node):
+          all_result = False
 
     # if this is a DRBD disk, return its port to the pool
     if device.dev_type in constants.LDS_DRBD:
@@ -11178,7 +11185,8 @@ class TLReplaceDisks(Tasklet):
     for idx, dev in enumerate(self.instance.disks):
       self.lu.LogInfo("Shutting down drbd for disk/%d on old node" % idx)
       self.cfg.SetDiskID(dev, self.target_node)
-      msg = self.rpc.call_blockdev_shutdown(self.target_node, dev).fail_msg
+      msg = self.rpc.call_blockdev_shutdown(self.target_node,
+                                            (dev, self.instance)).fail_msg
       if msg:
         self.lu.LogWarning("Failed to shutdown drbd for disk/%d on old"
                            "node: %s" % (idx, msg),
@@ -12357,8 +12365,6 @@ class LUInstanceSetParams(LogicalUnit):
     private.params = new_params
     private.filled = new_filled_params
 
-    return (None, None)
-
   def CheckPrereq(self):
     """Check prerequisites.
 
@@ -12593,12 +12599,13 @@ class LUInstanceSetParams(LogicalUnit):
                                  errors.ECODE_INVAL)
 
     def _PrepareNicCreate(_, params, private):
-      return self._PrepareNicModification(params, private, None, {},
-                                          cluster, pnode)
+      self._PrepareNicModification(params, private, None, {}, cluster, pnode)
+      return (None, None)
 
     def _PrepareNicMod(_, nic, params, private):
-      return self._PrepareNicModification(params, private, nic.ip,
-                                          nic.nicparams, cluster, pnode)
+      self._PrepareNicModification(params, private, nic.ip,
+                                   nic.nicparams, cluster, pnode)
+      return None
 
     # Verify NIC changes (operating on copy)
     nics = instance.nics[:]
@@ -12710,8 +12717,8 @@ class LUInstanceSetParams(LogicalUnit):
     snode = instance.secondary_nodes[0]
     feedback_fn("Converting template to plain")
 
-    old_disks = instance.disks
-    new_disks = [d.children[0] for d in old_disks]
+    old_disks = _AnnotateDiskParams(instance, instance.disks, self.cfg)
+    new_disks = [d.children[0] for d in instance.disks]
 
     # copy over size and mode
     for parent, child in zip(old_disks, new_disks):
@@ -12801,7 +12808,8 @@ class LUInstanceSetParams(LogicalUnit):
     """Removes a disk.
 
     """
-    for node, disk in root.ComputeNodeTree(self.instance.primary_node):
+    (anno_disk,) = _AnnotateDiskParams(self.instance, [root], self.cfg)
+    for node, disk in anno_disk.ComputeNodeTree(self.instance.primary_node):
       self.cfg.SetDiskID(disk, node)
       msg = self.rpc.call_blockdev_remove(node, disk).fail_msg
       if msg:
@@ -13631,6 +13639,11 @@ class LUGroupAdd(LogicalUnit):
           utils.ForceDictType(self.op.diskparams[templ],
                               constants.DISK_DT_TYPES)
       self.new_diskparams = self.op.diskparams
+      try:
+        utils.VerifyDictOptions(self.new_diskparams, constants.DISK_DT_DEFAULTS)
+      except errors.OpPrereqError, err:
+        raise errors.OpPrereqError("While verify diskparams options: %s" % err,
+                                   errors.ECODE_INVAL)
     else:
       self.new_diskparams = {}
 
@@ -13992,6 +14005,11 @@ class LUGroupSetParams(LogicalUnit):
       # As we've all subdicts of diskparams ready, lets merge the actual
       # dict with all updated subdicts
       self.new_diskparams = objects.FillDict(diskparams, new_diskparams)
+      try:
+        utils.VerifyDictOptions(self.new_diskparams, constants.DISK_DT_DEFAULTS)
+      except errors.OpPrereqError, err:
+        raise errors.OpPrereqError("While verify diskparams options: %s" % err,
+                                   errors.ECODE_INVAL)
 
     if self.op.hv_state:
       self.new_hv_state = _MergeAndVerifyHvState(self.op.hv_state,

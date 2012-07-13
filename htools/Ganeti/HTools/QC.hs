@@ -686,8 +686,9 @@ prop_Container_nameOf node =
 -- | We test that in a cluster, given a random node, we can find it by
 -- its name and alias, as long as all names and aliases are unique,
 -- and that we fail to find a non-existing name.
-prop_Container_findByName :: Node.Node -> Property
-prop_Container_findByName node =
+prop_Container_findByName :: Property
+prop_Container_findByName =
+  forAll (genNode (Just 1) Nothing) $ \node ->
   forAll (choose (1, 20)) $ \ cnt ->
   forAll (choose (0, cnt - 1)) $ \ fidx ->
   forAll (genUniquesList (cnt * 2)) $ \ allnames ->
@@ -701,9 +702,10 @@ prop_Container_findByName node =
                $ zip names nodes
       nl' = Container.fromList nodes'
       target = snd (nodes' !! fidx)
-  in Container.findByName nl' (Node.name target) == Just target &&
-     Container.findByName nl' (Node.alias target) == Just target &&
-     isNothing (Container.findByName nl' othername)
+  in Container.findByName nl' (Node.name target) ==? Just target .&&.
+     Container.findByName nl' (Node.alias target) ==? Just target .&&.
+     printTestCase "Found non-existing name"
+       (isNothing (Container.findByName nl' othername))
 
 testSuite "Container"
             [ 'prop_Container_addTwo
@@ -903,14 +905,16 @@ prop_Text_Load_NodeFail :: [String] -> Property
 prop_Text_Load_NodeFail fields =
   length fields /= 8 ==> isNothing $ Text.loadNode Data.Map.empty fields
 
-prop_Text_NodeLSIdempotent :: Node.Node -> Property
-prop_Text_NodeLSIdempotent node =
-  (Text.loadNode defGroupAssoc.
-       Utils.sepSplit '|' . Text.serializeNode defGroupList) n ==?
-  Just (Node.name n, n)
-    -- override failN1 to what loadNode returns by default
-    where n = Node.setPolicy Types.defIPolicy $
-              node { Node.failN1 = True, Node.offline = False }
+prop_Text_NodeLSIdempotent :: Property
+prop_Text_NodeLSIdempotent =
+  forAll (genNode (Just 1) Nothing) $ \node ->
+  -- override failN1 to what loadNode returns by default
+  let n = Node.setPolicy Types.defIPolicy $
+          node { Node.failN1 = True, Node.offline = False }
+  in
+    (Text.loadNode defGroupAssoc.
+         Utils.sepSplit '|' . Text.serializeNode defGroupList) n ==?
+    Just (Node.name n, n)
 
 prop_Text_ISpecIdempotent :: Types.ISpec -> Property
 prop_Text_ISpecIdempotent ispec =

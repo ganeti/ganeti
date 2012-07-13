@@ -2,7 +2,7 @@
 m4_define([gnt_version_major], [2])
 m4_define([gnt_version_minor], [6])
 m4_define([gnt_version_revision], [0])
-m4_define([gnt_version_suffix], [~beta2])
+m4_define([gnt_version_suffix], [~rc3])
 m4_define([gnt_version_full],
           m4_format([%d.%d.%d%s],
                     gnt_version_major, gnt_version_minor,
@@ -235,7 +235,7 @@ AC_ARG_ENABLE([drbd-barriers],
       DRBD_BARRIERS=n
       DRBD_NO_META_FLUSH=False
     else
-      DRBD_BARRIERS=bfd
+      DRBD_BARRIERS=bf
       DRBD_NO_META_FLUSH=True
     fi
   ]],

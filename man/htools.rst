@@ -12,6 +12,9 @@ SYNOPSIS
 **hbal**
   cluster balancer
 
+**hcheck**
+  cluster checker
+
 **hspace**
   cluster capacity computation
 
@@ -20,6 +23,9 @@ SYNOPSIS
 
 **hscan**
   saves cluster state for later reuse
+
+**hinfo**
+  cluster information printer
 
 
 DESCRIPTION
@@ -35,6 +41,9 @@ environment variable HTOOLS can be used to set the desired role.
 Installed as ``hbal``, it computes and optionally executes a suite of
 instance moves in order to balance the cluster.
 
+Installed as ``hcheck``, it preforms cluster checks and optionally
+simulates rebalancing with all the ``hbal`` options available.
+
 Installed as ``hspace``, it computes how many additional instances can
 be fit on a cluster, while maintaining N+1 status. It can run on models
 of existing clusters or of simulated clusters.
@@ -44,6 +53,9 @@ by Ganeti to compute new instance allocations and instance moves.
 
 Installed as ``hscan``, it scans the local or remote cluster state and
 saves it to files which can later be reused by the other roles.
+
+Installed as ``hinfo``, it prints information about the current cluster
+state.
 
 COMMON OPTIONS
 --------------
@@ -221,7 +233,7 @@ support all options. Some common options are:
   - the cpu core count for the nodes
   - the spindle count for the nodes
 
-  An example description would be **preferred,B20,100G,16g,4,2**
+  An example description would be **preferred,20,100G,16g,4,2**
   describing a 20-node cluster where each node has 100GB of disk space,
   16GiB of memory, 4 CPU cores and 2 disk spindles. Note that all nodes
   must have the same specs currently.

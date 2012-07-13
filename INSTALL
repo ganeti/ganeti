@@ -178,15 +178,17 @@ and a few has extra dependencies:
   version 4.2.4
 - `text <http://hackage.haskell.org/package/text>`_
 - ``bytestring``, which usually comes with the compiler
+- `hinotify <http://hackage.haskell.org/package/hinotify>`_
 
 These libraries are available in Debian Wheezy (but not in Squeeze), so
 you can use either apt::
 
-  $ apt-get install libghc-hslogger-dev libghc-crypto-dev libghc-text-dev
+  $ apt-get install libghc-hslogger-dev libghc-crypto-dev libghc-text-dev \
+                    libghc-hinotify-dev
 
 or ``cabal``::
 
-  $ cabal install hslogger Crypto text
+  $ cabal install hslogger Crypto text hinotify
 
 to install them.
 

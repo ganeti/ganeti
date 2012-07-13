@@ -66,7 +66,7 @@ ACCEPT_OFFLINE_NODE = object()
  ED_INST_DICT,
  ED_INST_DICT_HVP_BEP,
  ED_NODE_TO_DISK_DICT,
- ED_INST_DICT_OSP,
+ ED_INST_DICT_OSP_DP,
  ED_IMPEXP_IO,
  ED_FILE_DETAILS,
  ED_FINALIZE_EXPORT_DISKS,
@@ -270,7 +270,7 @@ _INSTANCE_CALLS = [
     ("startup_paused", None, None),
     ], None, None, "Starts an instance"),
   ("instance_os_add", SINGLE, None, TMO_1DAY, [
-    ("instance_osp", ED_INST_DICT_OSP, None),
+    ("instance_osp", ED_INST_DICT_OSP_DP, None),
     ("reinstall", None, None),
     ("debug", None, None),
     ], None, None, "Starts an instance"),
@@ -355,7 +355,7 @@ _BLOCKDEV_CALLS = [
     ("idx", None, None),
     ], None, None, "Request assembling of a given block device"),
   ("blockdev_shutdown", SINGLE, None, TMO_NORMAL, [
-    ("disk", ED_OBJECT_DICT, None),
+    ("disk", ED_SINGLE_DISK_DICT_DP, None),
     ], None, None, "Request shutdown of a given block device"),
   ("blockdev_addchildren", SINGLE, None, TMO_NORMAL, [
     ("bdev", ED_SINGLE_DISK_DICT_DP, None),
@@ -413,7 +413,7 @@ _BLOCKDEV_CALLS = [
     ], None, _BlockdevFindPostProc,
     "Request identification of a given block device"),
   ("blockdev_getmirrorstatus", SINGLE, None, TMO_NORMAL, [
-    ("disks", ED_OBJECT_DICT_LIST, None),
+    ("disks", ED_DISKS_DICT_DP, None),
     ], None, _BlockdevGetMirrorStatusPostProc,
     "Request status of a (mirroring) device"),
   ("blockdev_getmirrorstatus_multi", MULTI, None, TMO_NORMAL, [

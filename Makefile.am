@@ -356,7 +356,7 @@ docrst = \
 	doc/walkthrough.rst
 
 HS_PROGS = htools/htools
-HS_BIN_ROLES = hbal hscan hspace hinfo
+HS_BIN_ROLES = hbal hscan hspace hinfo hcheck
 
 HS_ALL_PROGS = $(HS_PROGS) htools/test htools/hpc-htools htools/hconfd
 HS_PROG_SRCS = $(patsubst %,%.hs,$(HS_ALL_PROGS))
@@ -399,6 +399,7 @@ HS_LIB_SRCS = \
 	htools/Ganeti/HTools/Program.hs \
 	htools/Ganeti/HTools/Program/Hail.hs \
 	htools/Ganeti/HTools/Program/Hbal.hs \
+	htools/Ganeti/HTools/Program/Hcheck.hs \
 	htools/Ganeti/HTools/Program/Hinfo.hs \
 	htools/Ganeti/HTools/Program/Hscan.hs \
 	htools/Ganeti/HTools/Program/Hspace.hs \
@@ -548,6 +549,8 @@ $(HS_ALL_PROGS): %: %.hs $(HS_LIB_SRCS) $(HS_BUILT_SRCS) Makefile
 	  $(HTOOLS_NOCURL) $(HTOOLS_PARALLEL3) \
 	  -osuf $$BINARY.o -hisuf $$BINARY.hi \
 	  $(HEXTRA) $(HEXTRA_INT) $@
+	@touch "$@"
+
 # for the htools/test binary, we need to enable profiling/coverage
 htools/test: HEXTRA_INT=-fhpc
 
@@ -691,6 +694,7 @@ man_MANS = \
 	man/gnt-os.8 \
 	man/hail.1 \
 	man/hbal.1 \
+	man/hcheck.1 \
 	man/hinfo.1 \
 	man/hscan.1 \
 	man/hspace.1 \
@@ -733,6 +737,7 @@ TEST_FILES = \
 	test/data/htools/hail-invalid-reloc.json \
 	test/data/htools/hail-node-evac.json \
 	test/data/htools/hail-reloc-drbd.json \
+	test/data/htools/hbal-split-insts.data \
 	test/data/htools/common-suffix.data \
 	test/data/htools/invalid-node.data \
 	test/data/htools/missing-resources.data \
@@ -1516,6 +1521,14 @@ live-test: all
 	hpc report --srcdir=.. live-test $(HPCEXCL)
 
 commit-check: distcheck lint apidoc
+
+.PHONY: gitignore-check
+gitignore-check:
+	@if [ -n "`git status --short`" ]; then \
+	  echo "Git status is not clean!" 1>&2 ; \
+	  git status --short; \
+	  exit 1; \
+	fi
 
 -include ./Makefile.local
 
