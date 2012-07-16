@@ -144,11 +144,18 @@ checkNonOptDef (Field { fieldDefault = (Just _), fieldName = name }) =
   fail $ "Default field " ++ name ++ " used in parameter declaration"
 checkNonOptDef _ = return ()
 
-loadFn :: Field -> Q Exp -> Q Exp
-loadFn (Field { fieldIsContainer = True }) expr = [| $expr >>= readContainer |]
-loadFn (Field { fieldRead = Just readfn }) expr = [| $expr >>= $readfn |]
-loadFn _ expr = expr
-
+-- | Produces the expression that will de-serialise a given
+-- field. Since some custom parsing functions might need to use the
+-- entire object, we do take and pass the object to any custom read
+-- functions.
+loadFn :: Field   -- ^ The field definition
+       -> Q Exp   -- ^ The value of the field as existing in the JSON message
+       -> Q Exp   -- ^ The entire object in JSON object format
+       -> Q Exp   -- ^ Resulting expression
+loadFn (Field { fieldIsContainer = True }) expr _ =
+  [| $expr >>= readContainer |]
+loadFn (Field { fieldRead = Just readfn }) expr o = [| $expr >>= $readfn $o |]
+loadFn _ expr _ = expr
 
 -- * Common field declarations
 
@@ -632,7 +639,9 @@ saveObjectField fvar field
                   |]
   | otherwise = case fieldShow field of
       Nothing -> [| [( $nameE, JSON.showJSON $fvarE)] |]
-      Just fn -> [| [( $nameE, JSON.showJSON . $fn $ $fvarE)] |]
+      Just fn -> [| let (actual, extra) = $fn $fvarE
+                    in extra ++ [( $nameE, JSON.showJSON actual)]
+                  |]
   where isContainer = fieldIsContainer field
         fisOptional  = fieldIsOptional field
         nameE = stringE (fieldName field)
@@ -676,7 +685,7 @@ loadObjectField field = do
                    [| $(varNameE "fromObjWithDefault") $objvar
                       $objfield $defv |]
                  Nothing -> [| $(varNameE "fromObj") $objvar $objfield |]
-  bexp <- loadFn field loadexp
+  bexp <- loadFn field loadexp objvar
 
   return (fvar, BindS (VarP fvar) bexp)
 
@@ -761,7 +770,7 @@ loadPParamField field = do
   let objvar = varNameE "o"
       objfield = stringE name
       loadexp = [| $(varNameE "maybeFromObj") $objvar $objfield |]
-  bexp <- loadFn field loadexp
+  bexp <- loadFn field loadexp objvar
   return (fvar, BindS (VarP fvar) bexp)
 
 -- | Builds a simple declaration of type @n_x = fromMaybe f_x p_x@.
