@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2009 Google Inc.
+# Copyright (C) 2009, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -292,3 +292,11 @@ class InstancesIpsQuery(ConfdQuery):
     answer = self.reader.GetInstancesIps(link)
 
     return status, answer
+
+
+class NodeDrbdQuery(ConfdQuery):
+  """A query for node drbd minors.
+
+  This is not implemented in the Python confd.
+
+  """

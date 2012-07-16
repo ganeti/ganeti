@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2009 Google Inc.
+# Copyright (C) 2009, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -55,6 +55,7 @@ class ConfdProcessor(object):
     constants.CONFD_REQ_NODE_PIP_LIST: querylib.NodesPipsQuery,
     constants.CONFD_REQ_MC_PIP_LIST: querylib.MasterCandidatesPipsQuery,
     constants.CONFD_REQ_INSTANCES_IPS_LIST: querylib.InstancesIpsQuery,
+    constants.CONFD_REQ_NODE_DRBD: querylib.NodeDrbdQuery,
     }
 
   def __init__(self):
