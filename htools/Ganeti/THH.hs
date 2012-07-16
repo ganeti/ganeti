@@ -110,9 +110,12 @@ containerField :: Field -> Field
 containerField field = field { fieldIsContainer = True }
 
 -- | Sets custom functions on a field.
-customField :: Q Exp -> Q Exp -> Field -> Field
+customField :: Name    -- ^ The name of the read function
+            -> Name    -- ^ The name of the show function
+            -> Field   -- ^ The original field
+            -> Field   -- ^ Updated field
 customField readfn showfn field =
-  field { fieldRead = Just readfn, fieldShow = Just showfn }
+  field { fieldRead = Just (varE readfn), fieldShow = Just (varE showfn) }
 
 fieldRecordName :: Field -> String
 fieldRecordName (Field { fieldName = name, fieldConstr = alias }) =
