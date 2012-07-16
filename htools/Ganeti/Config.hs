@@ -33,10 +33,12 @@ module Ganeti.Config
     , getInstance
     , getInstPrimaryNode
     , buildLinkIpInstnameMap
+    , instNodes
     ) where
 
 import Data.List (foldl')
 import qualified Data.Map as M
+import qualified Data.Set as S
 import qualified Text.JSON as J
 
 import Ganeti.HTools.JSON
@@ -62,13 +64,36 @@ loadConfig = fmap parseConfig . readConfig
 
 -- * Query functions
 
+-- | Computes the nodes covered by a disk.
+computeDiskNodes :: Disk -> S.Set String
+computeDiskNodes dsk =
+  case diskLogicalId dsk of
+    LIDDrbd8 nodeA nodeB _ _ _ _ -> S.fromList [nodeA, nodeB]
+    _ -> S.empty
+
+-- | Computes all disk-related nodes of an instance. For non-DRBD,
+-- this will be empty, for DRBD it will contain both the primary and
+-- the secondaries.
+instDiskNodes :: Instance -> S.Set String
+instDiskNodes = S.unions . map computeDiskNodes . instDisks
+
+-- | Computes all nodes of an instance.
+instNodes :: Instance -> S.Set String
+instNodes inst = instPrimaryNode inst `S.insert` instDiskNodes inst
+
+-- | Computes the secondary nodes of an instance. Since this is valid
+-- only for DRBD, we call directly 'instDiskNodes', skipping over the
+-- extra primary insert.
+instSecondaryNodes :: Instance -> S.Set String
+instSecondaryNodes inst =
+  instPrimaryNode inst `S.delete` instDiskNodes inst
+
 -- | Get instances of a given node.
 getNodeInstances :: ConfigData -> String -> ([Instance], [Instance])
 getNodeInstances cfg nname =
     let all_inst = M.elems . configInstances $ cfg
         pri_inst = filter ((== nname) . instPrimaryNode) all_inst
-        -- FIXME: actually compute the secondary nodes
-        sec_inst = undefined
+        sec_inst = filter ((nname `S.member`) . instSecondaryNodes) all_inst
     in (pri_inst, sec_inst)
 
 -- | Returns the default cluster link.
