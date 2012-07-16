@@ -36,6 +36,7 @@ module Ganeti.Objects
   , PartialNIC(..)
   , DiskMode(..)
   , DiskType(..)
+  , DiskLogicalId(..)
   , Disk(..)
   , DiskTemplate(..)
   , PartialBEParams(..)
@@ -54,7 +55,8 @@ module Ganeti.Objects
   ) where
 
 import Data.Maybe
-import Text.JSON (makeObj, showJSON, readJSON)
+import Text.JSON (makeObj, showJSON, readJSON, JSON, JSValue(..))
+import qualified Text.JSON as J
 
 import qualified Ganeti.Constants as C
 import Ganeti.HTools.JSON
@@ -93,16 +95,119 @@ $(declareSADT "DiskType"
   , ("LD_DRBD8",    'C.ldDrbd8)
   , ("LD_FILE",     'C.ldFile)
   , ("LD_BLOCKDEV", 'C.ldBlockdev)
+  , ("LD_RADOS",    'C.ldRbd)
   ])
 $(makeJSONInstance ''DiskType)
+
+-- | The file driver type.
+$(declareSADT "FileDriver"
+  [ ("FileLoop",   'C.fdLoop)
+  , ("FileBlktap", 'C.fdBlktap)
+  ])
+$(makeJSONInstance ''FileDriver)
+
+-- | The persistent block driver type. Currently only one type is allowed.
+$(declareSADT "BlockDriver"
+  [ ("BlockDrvManual", 'C.blockdevDriverManual)
+  ])
+$(makeJSONInstance ''BlockDriver)
+
+-- | Constant for the dev_type key entry in the disk config.
+devType :: String
+devType = "dev_type"
+
+-- | The disk configuration type. This includes the disk type itself,
+-- for a more complete consistency. Note that since in the Python
+-- code-base there's no authoritative place where we document the
+-- logical id, this is probably a good reference point.
+data DiskLogicalId
+  = LIDPlain String String  -- ^ Volume group, logical volume
+  | LIDDrbd8 String String Int Int Int String
+  -- ^ NodeA, NodeB, Port, MinorA, MinorB, Secret
+  | LIDFile FileDriver String -- ^ Driver, path
+  | LIDBlockDev BlockDriver String -- ^ Driver, path (must be under /dev)
+  | LIDRados String String -- ^ Unused, path
+    deriving (Read, Show, Eq)
+
+-- | Mapping from a logical id to a disk type.
+lidDiskType :: DiskLogicalId -> DiskType
+lidDiskType (LIDPlain {}) = LD_LV
+lidDiskType (LIDDrbd8 {}) = LD_DRBD8
+lidDiskType (LIDFile  {}) = LD_FILE
+lidDiskType (LIDBlockDev {}) = LD_BLOCKDEV
+lidDiskType (LIDRados {}) = LD_RADOS
+
+-- | Builds the extra disk_type field for a given logical id.
+lidEncodeType :: DiskLogicalId -> [(String, JSValue)]
+lidEncodeType v = [(devType, showJSON . lidDiskType $ v)]
+
+-- | Custom encoder for DiskLogicalId (logical id only).
+encodeDLId :: DiskLogicalId -> JSValue
+encodeDLId (LIDPlain vg lv) = JSArray [showJSON vg, showJSON lv]
+encodeDLId (LIDDrbd8 nodeA nodeB port minorA minorB key) =
+  JSArray [ showJSON nodeA, showJSON nodeB, showJSON port
+          , showJSON minorA, showJSON minorB, showJSON key ]
+encodeDLId (LIDRados pool name) = JSArray [showJSON pool, showJSON name]
+encodeDLId (LIDFile driver name) = JSArray [showJSON driver, showJSON name]
+encodeDLId (LIDBlockDev driver name) = JSArray [showJSON driver, showJSON name]
+
+-- | Custom encoder for DiskLogicalId, composing both the logical id
+-- and the extra disk_type field.
+encodeFullDLId :: DiskLogicalId -> (JSValue, [(String, JSValue)])
+encodeFullDLId v = (encodeDLId v, lidEncodeType v)
+
+-- | Custom decoder for DiskLogicalId. This is manual for now, since
+-- we don't have yet automation for separate-key style fields.
+decodeDLId :: [(String, JSValue)] -> JSValue -> J.Result DiskLogicalId
+decodeDLId obj lid = do
+  dtype <- fromObj obj devType
+  case dtype of
+    LD_DRBD8 ->
+      case lid of
+        JSArray [nA, nB, p, mA, mB, k] -> do
+          nA' <- readJSON nA
+          nB' <- readJSON nB
+          p'  <- readJSON p
+          mA' <- readJSON mA
+          mB' <- readJSON mB
+          k'  <- readJSON k
+          return $ LIDDrbd8 nA' nB' p' mA' mB' k'
+        _ -> fail $ "Can't read logical_id for DRBD8 type"
+    LD_LV ->
+      case lid of
+        JSArray [vg, lv] -> do
+          vg' <- readJSON vg
+          lv' <- readJSON lv
+          return $ LIDPlain vg' lv'
+        _ -> fail $ "Can't read logical_id for plain type"
+    LD_FILE ->
+      case lid of
+        JSArray [driver, path] -> do
+          driver' <- readJSON driver
+          path'   <- readJSON path
+          return $ LIDFile driver' path'
+        _ -> fail $ "Can't read logical_id for file type"
+    LD_BLOCKDEV ->
+      case lid of
+        JSArray [driver, path] -> do
+          driver' <- readJSON driver
+          path'   <- readJSON path
+          return $ LIDBlockDev driver' path'
+        _ -> fail $ "Can't read logical_id for blockdev type"
+    LD_RADOS ->
+      case lid of
+        JSArray [driver, path] -> do
+          driver' <- readJSON driver
+          path'   <- readJSON path
+          return $ LIDRados driver' path'
+        _ -> fail $ "Can't read logical_id for rdb type"
 
 -- | Disk data structure.
 --
 -- This is declared manually as it's a recursive structure, and our TH
 -- code currently can't build it.
 data Disk = Disk
-  { diskDevType    :: DiskType
---  , diskLogicalId  :: String
+  { diskLogicalId  :: DiskLogicalId
 --  , diskPhysicalId :: String
   , diskChildren   :: [Disk]
   , diskIvName     :: String
@@ -111,8 +216,8 @@ data Disk = Disk
   } deriving (Read, Show, Eq)
 
 $(buildObjectSerialisation "Disk"
-  [ simpleField "dev_type"      [t| DiskMode |]
---  , simpleField "logical_id"  [t| String   |]
+  [ customField 'decodeDLId 'encodeFullDLId $
+      simpleField "logical_id"    [t| DiskLogicalId   |]
 --  , simpleField "physical_id" [t| String   |]
   , defaultField  [| [] |] $ simpleField "children" [t| [Disk] |]
   , defaultField [| "" |] $ simpleField "iv_name" [t| String |]
