@@ -146,10 +146,6 @@ loadFn (Field { fieldIsContainer = True }) expr = [| $expr >>= readContainer |]
 loadFn (Field { fieldRead = Just readfn }) expr = [| $expr >>= $readfn |]
 loadFn _ expr = expr
 
-saveFn :: Field -> Q Exp -> Q Exp
-saveFn (Field { fieldIsContainer = True }) expr = [| showContainer $expr |]
-saveFn (Field { fieldRead = Just readfn }) expr = [| $readfn $expr |]
-saveFn _ expr = expr
 
 -- * Common field declarations
 
