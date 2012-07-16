@@ -1098,10 +1098,10 @@ class DRBD8(BaseDRBD):
   doesn't do anything to the supposed peer. If you need a fully
   connected DRBD pair, you need to use this class on both hosts.
 
-  The unique_id for the drbd device is the (local_ip, local_port,
-  remote_ip, remote_port) tuple, and it must have two children: the
-  data device and the meta_device. The meta device is checked for
-  valid size and is zeroed on create.
+  The unique_id for the drbd device is a (local_ip, local_port,
+  remote_ip, remote_port, local_minor, secret) tuple, and it must have
+  two children: the data device and the meta_device. The meta device
+  is checked for valid size and is zeroed on create.
 
   """
   _MAX_MINORS = 255
