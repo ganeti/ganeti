@@ -844,11 +844,9 @@ class Disk(ConfigObject):
       for child in self.children:
         child.UpgradeConfig()
 
-    if not self.params:
-      self.params = constants.DISK_LD_DEFAULTS[self.dev_type].copy()
-    else:
-      self.params = FillDict(constants.DISK_LD_DEFAULTS[self.dev_type],
-                             self.params)
+    # FIXME: Make this configurable in Ganeti 2.7
+    if self.params:
+      self.params = {}
     # add here config upgrade for this disk
 
   @staticmethod
