@@ -272,7 +272,7 @@ class ClientOps:
       ops = [opcodes.OpCode.LoadOpCode(state) for state in job_def]
       return queue.SubmitJob(ops)
 
-    if method == luxi.REQ_SUBMIT_MANY_JOBS:
+    elif method == luxi.REQ_SUBMIT_MANY_JOBS:
       logging.info("Received multiple jobs")
       (job_defs, ) = args
       jobs = []
