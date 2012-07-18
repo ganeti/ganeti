@@ -32,6 +32,7 @@ module Ganeti.Config
     , getNode
     , getInstance
     , getInstPrimaryNode
+    , getInstMinorsForNode
     , buildLinkIpInstnameMap
     , instNodes
     ) where
@@ -132,6 +133,43 @@ getInstance cfg name = getItem "Instance" name (configInstances cfg)
 getInstPrimaryNode :: ConfigData -> String -> Result Node
 getInstPrimaryNode cfg name =
   getInstance cfg name >>= return . instPrimaryNode >>= getNode cfg
+
+-- | Filters DRBD minors for a given node.
+getDrbdMinorsForNode :: String -> Disk -> [(Int, String)]
+getDrbdMinorsForNode node disk =
+  let child_minors = concatMap (getDrbdMinorsForNode node) (diskChildren disk)
+      this_minors =
+        case diskLogicalId disk of
+          LIDDrbd8 nodeA nodeB _ minorA minorB _
+            | nodeA == node -> [(minorA, nodeB)]
+            | nodeB == node -> [(minorB, nodeA)]
+          _ -> []
+  in this_minors ++ child_minors
+
+-- | String for primary role.
+rolePrimary :: String
+rolePrimary = "primary"
+
+-- | String for secondary role.
+roleSecondary :: String
+roleSecondary = "secondary"
+
+-- | Gets the list of DRBD minors for an instance that are related to
+-- a given node.
+getInstMinorsForNode :: String -> Instance
+                     -> [(String, Int, String, String, String, String)]
+getInstMinorsForNode node inst =
+  let role = if node == instPrimaryNode inst
+               then rolePrimary
+               else roleSecondary
+      iname = instName inst
+  -- FIXME: the disk/ build there is hack-ish; unify this in a
+  -- separate place, or reuse the iv_name (but that is deprecated on
+  -- the Python side)
+  in concatMap (\(idx, dsk) ->
+            [(node, minor, iname, "disk/" ++ show idx, role, peer)
+               | (minor, peer) <- getDrbdMinorsForNode node dsk]) .
+     zip [(0::Int)..] . instDisks $ inst
 
 -- | Builds link -> ip -> instname map.
 --

@@ -227,6 +227,19 @@ buildResponse cdata (ConfdRequest { confdRqType = ReqNodePipByInstPip
 buildResponse _ (ConfdRequest { confdRqType = ReqNodePipByInstPip }) =
   return queryArgumentError
 
+buildResponse cdata req@(ConfdRequest { confdRqType = ReqNodeDrbd }) = do
+  let cfg = fst cdata
+  node_name <- case confdRqQuery req of
+                 PlainQuery str -> return str
+                 _ -> fail $ "Invalid query type " ++ show (confdRqQuery req)
+  node <- getNode cfg node_name
+  let minors = concatMap (getInstMinorsForNode (nodeName node)) .
+               M.elems . configInstances $ cfg
+      encoded = [J.JSArray [J.showJSON a, J.showJSON b, J.showJSON c,
+                             J.showJSON d, J.showJSON e, J.showJSON f] |
+                 (a, b, c, d, e, f) <- minors]
+  return (ReplyStatusOk, J.showJSON encoded)
+
 -- | Parses a signed request.
 parseRequest :: HashKey -> String -> Result (String, String, ConfdRequest)
 parseRequest key str = do
