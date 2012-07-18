@@ -845,8 +845,7 @@ class Disk(ConfigObject):
         child.UpgradeConfig()
 
     # FIXME: Make this configurable in Ganeti 2.7
-    if self.params:
-      self.params = {}
+    self.params = {}
     # add here config upgrade for this disk
 
   @staticmethod
