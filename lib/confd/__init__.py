@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2009 Google Inc.
+# Copyright (C) 2009, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -25,9 +25,18 @@
 
 from ganeti import constants
 from ganeti import errors
+from ganeti import ht
 
 
 _FOURCC_LEN = 4
+
+
+#: Items in the individual rows of the NodeDrbd query
+_HTNodeDrbdItems = [ht.TString, ht.TInt, ht.TString,
+                    ht.TString, ht.TString, ht.TString]
+#: Type for the (top-level) result of NodeDrbd query
+HTNodeDrbd = ht.TListOf(ht.TAnd(ht.TList, ht.TIsLength(len(_HTNodeDrbdItems)),
+                                ht.TItems(_HTNodeDrbdItems)))
 
 
 def PackMagic(payload):

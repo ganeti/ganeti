@@ -174,6 +174,7 @@ TOOLSDIR = _autoconf.TOOLSDIR
 CONF_DIR = SYSCONFDIR + "/ganeti"
 USER_SCRIPTS_DIR = CONF_DIR + "/scripts"
 ENABLE_CONFD = _autoconf.ENABLE_CONFD
+HS_CONFD = _autoconf.HS_CONFD
 
 #: Lock file for watcher, locked in shared mode by watcher; lock in exclusive
 # mode to block watcher (see L{cli._RunWhileClusterStoppedHelper.Call}
