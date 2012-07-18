@@ -95,6 +95,8 @@
     "cluster-redist-conf": true,
     "cluster-repair-disk-sizes": true,
 
+    "haskell-confd": true,
+
     "group-list": true,
     "group-rwops": true,
 

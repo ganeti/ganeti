@@ -490,6 +490,8 @@ def RunQa():
         snode = qa_config.AcquireNode(exclude=pnode)
         try:
           instance = RunTest(func, pnode, snode)
+          RunTestIf("haskell-confd", qa_node.TestNodeListDrbd, pnode)
+          RunTestIf("haskell-confd", qa_node.TestNodeListDrbd, snode)
           RunCommonInstanceTests(instance)
           RunGroupListTests()
           RunTest(qa_group.TestAssignNodesIncludingSplit,

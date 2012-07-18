@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2007, 2011 Google Inc.
+# Copyright (C) 2007, 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -417,3 +417,8 @@ def TestNodeList():
 def TestNodeListFields():
   """gnt-node list-fields"""
   qa_utils.GenericQueryFieldsTest("gnt-node", query.NODE_FIELDS.keys())
+
+
+def TestNodeListDrbd(node):
+  """gnt-node list-drbd"""
+  AssertCommand(["gnt-node", "list-drbd", node["primary"]])
