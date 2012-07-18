@@ -81,17 +81,27 @@ getInstancesIpByLink :: LinkIpMap -> String -> [String]
 getInstancesIpByLink linkipmap link =
   M.keys $ M.findWithDefault M.empty link linkipmap
 
+-- | Generic lookup function that converts from a possible abbreviated
+-- name to a full name.
+getItem :: String -> String -> M.Map String a -> Result a
+getItem kind name allitems = do
+  let lresult = lookupName (M.keys allitems) name
+      err = \details -> Bad $ kind ++ " name " ++ name ++ " " ++ details
+  fullname <- case lrMatchPriority lresult of
+                PartialMatch -> Ok $ lrContent lresult
+                ExactMatch -> Ok $ lrContent lresult
+                MultipleMatch -> err "has multiple matches"
+                FailMatch -> err "not found"
+  maybe (err "not found after successfull match?!") Ok $
+        M.lookup fullname allitems
+
 -- | Looks up a node.
 getNode :: ConfigData -> String -> Result Node
-getNode cfg name =
-  maybe (Bad $ "Node " ++ name ++ " not found") Ok $
-        M.lookup name (configNodes cfg)
+getNode cfg name = getItem "Node" name (configNodes cfg)
 
 -- | Looks up an instance.
 getInstance :: ConfigData -> String -> Result Instance
-getInstance cfg name =
-  maybe (Bad $ "Instance " ++ name ++ " not found") Ok $
-        M.lookup name (configInstances cfg)
+getInstance cfg name = getItem "Instance" name (configInstances cfg)
 
 -- | Looks up an instance's primary node.
 getInstPrimaryNode :: ConfigData -> String -> Result Node
