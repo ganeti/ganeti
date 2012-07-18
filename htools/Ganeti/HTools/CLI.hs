@@ -100,7 +100,7 @@ import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.Constants as C
 import Ganeti.HTools.Types
 import Ganeti.HTools.Utils
-import Ganeti.HTools.Loader
+import Ganeti.BasicTypes
 
 -- * Constants
 

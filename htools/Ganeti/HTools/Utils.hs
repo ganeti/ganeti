@@ -132,13 +132,6 @@ if' :: Bool -- ^ condition
 if' True x _ = x
 if' _    _ y = y
 
--- | Return the first result with a True condition, or the default otherwise.
-select :: a            -- ^ default result
-       -> [(Bool, a)]  -- ^ list of \"condition, result\"
-       -> a            -- ^ first result which has a True condition, or default
-select def = maybe def snd . find fst
-
-
 -- * Parsing utility functions
 
 -- | Parse results from readsPrec.

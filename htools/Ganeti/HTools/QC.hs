@@ -56,6 +56,7 @@ import qualified Text.JSON as J
 import qualified Data.Map
 import qualified Data.IntMap as IntMap
 
+import qualified Ganeti.BasicTypes as BasicTypes
 import qualified Ganeti.OpCodes as OpCodes
 import qualified Ganeti.Jobs as Jobs
 import qualified Ganeti.Luxi as Luxi
@@ -1517,14 +1518,14 @@ prop_Loader_mergeData ns =
 -- | Check that compareNameComponent on equal strings works.
 prop_Loader_compareNameComponent_equal :: String -> Bool
 prop_Loader_compareNameComponent_equal s =
-  Loader.compareNameComponent s s ==
-    Loader.LookupResult Loader.ExactMatch s
+  BasicTypes.compareNameComponent s s ==
+    BasicTypes.LookupResult BasicTypes.ExactMatch s
 
 -- | Check that compareNameComponent on prefix strings works.
 prop_Loader_compareNameComponent_prefix :: NonEmptyList Char -> String -> Bool
 prop_Loader_compareNameComponent_prefix (NonEmpty s1) s2 =
-  Loader.compareNameComponent (s1 ++ "." ++ s2) s1 ==
-    Loader.LookupResult Loader.PartialMatch s1
+  BasicTypes.compareNameComponent (s1 ++ "." ++ s2) s1 ==
+    BasicTypes.LookupResult BasicTypes.PartialMatch s1
 
 testSuite "Loader"
             [ 'prop_Loader_lookupNode
