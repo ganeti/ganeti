@@ -960,8 +960,11 @@ def ListDrbd(opts, args):
     return constants.EXIT_FAILURE
 
   fields = ["node", "minor", "instance", "disk", "role", "peer"]
-  headers = {"node": "Node", "minor": "Minor", "instance": "Instance",
-             "disk": "Disk", "role": "Role", "peer": "PeerNode"}
+  if opts.no_headers:
+    headers = None
+  else:
+    headers = {"node": "Node", "minor": "Minor", "instance": "Instance",
+               "disk": "Disk", "role": "Role", "peer": "PeerNode"}
 
   data = GenerateTable(separator=opts.separator, headers=headers,
                        fields=fields, data=sorted(status.answer),
