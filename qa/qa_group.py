@@ -90,11 +90,19 @@ def TestGroupModify():
 
   AssertCommand(["gnt-group", "add", group1])
 
+  std_defaults = constants.IPOLICY_DEFAULTS[constants.ISPECS_STD]
+  min_v = std_defaults[constants.ISPEC_MEM_SIZE] * 10
+  max_v = min_v * 10
+
   try:
     AssertCommand(["gnt-group", "modify", "--alloc-policy", "unallocable",
                    "--node-parameters", "oob_program=/bin/false", group1])
     AssertCommand(["gnt-group", "modify",
                    "--alloc-policy", "notvalid", group1], fail=True)
+    AssertCommand(["gnt-group", "modify", "--specs-mem-size",
+                   "min=%s,max=%s,std=0" % (min_v, max_v), group1], fail=True)
+    AssertCommand(["gnt-group", "modify", "--specs-mem-size",
+                   "min=%s,max=%s" % (min_v, max_v), group1])
   finally:
     AssertCommand(["gnt-group", "remove", group1])
 
