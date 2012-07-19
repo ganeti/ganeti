@@ -1108,13 +1108,16 @@ def _CheckInstanceState(lu, instance, req_states, msg=None):
 
   if constants.ADMINST_UP not in req_states:
     pnode = instance.primary_node
-    ins_l = lu.rpc.call_instance_list([pnode], [instance.hypervisor])[pnode]
-    ins_l.Raise("Can't contact node %s for instance information" % pnode,
-                prereq=True, ecode=errors.ECODE_ENVIRON)
-
-    if instance.name in ins_l.payload:
-      raise errors.OpPrereqError("Instance %s is running, %s" %
-                                 (instance.name, msg), errors.ECODE_STATE)
+    if not lu.cfg.GetNodeInfo(pnode).offline:
+      ins_l = lu.rpc.call_instance_list([pnode], [instance.hypervisor])[pnode]
+      ins_l.Raise("Can't contact node %s for instance information" % pnode,
+                  prereq=True, ecode=errors.ECODE_ENVIRON)
+      if instance.name in ins_l.payload:
+        raise errors.OpPrereqError("Instance %s is running, %s" %
+                                   (instance.name, msg), errors.ECODE_STATE)
+    else:
+      lu.LogWarning("Primary node offline, ignoring check that instance"
+                     " is down")
 
 
 def _ComputeMinMaxSpec(name, qualifier, ipolicy, value):
