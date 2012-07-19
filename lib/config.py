@@ -480,9 +480,9 @@ class ConfigWriter:
       except errors.ConfigurationError, err:
         result.append("%s has invalid nicparams: %s" % (owner, err))
 
-    def _helper_ipolicy(owner, params):
+    def _helper_ipolicy(owner, params, check_std):
       try:
-        objects.InstancePolicy.CheckParameterSyntax(params)
+        objects.InstancePolicy.CheckParameterSyntax(params, check_std)
       except errors.ConfigurationError, err:
         result.append("%s has invalid instance policy: %s" % (owner, err))
 
@@ -510,7 +510,7 @@ class ConfigWriter:
     _helper_nic("cluster", cluster.SimpleFillNIC({}))
     _helper("cluster", "ndparams", cluster.SimpleFillND({}),
             constants.NDS_PARAMETER_TYPES)
-    _helper_ipolicy("cluster", cluster.SimpleFillIPolicy({}))
+    _helper_ipolicy("cluster", cluster.SimpleFillIPolicy({}), True)
     _helper_ispecs("cluster", cluster.SimpleFillIPolicy({}))
 
     # per-instance checks
@@ -636,7 +636,8 @@ class ConfigWriter:
       else:
         nodegroups_names.add(nodegroup.name)
       group_name = "group %s" % nodegroup.name
-      _helper_ipolicy(group_name, cluster.SimpleFillIPolicy(nodegroup.ipolicy))
+      _helper_ipolicy(group_name, cluster.SimpleFillIPolicy(nodegroup.ipolicy),
+                      False)
       _helper_ispecs(group_name, cluster.SimpleFillIPolicy(nodegroup.ipolicy))
       if nodegroup.ndparams:
         _helper(group_name, "ndparams",

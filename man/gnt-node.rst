@@ -235,6 +235,37 @@ If no node names are given, then all nodes are queried. Otherwise,
 only the given nodes will be listed.
 
 
+LIST-DRBD
+~~~~~~~~~
+
+**list-drbd** [\--no-headers] [\--separator=*SEPARATOR*] node
+
+Lists the mapping of DRBD minors for a given node. This outputs a static
+list of fields (it doesn't accept the ``--output`` option), as follows:
+
+``Node``
+  The (full) name of the node we are querying
+``Minor``
+  The DRBD minor
+``Instance``
+  The instance the DRBD minor belongs to
+``Disk``
+  The disk index that the DRBD minor belongs to
+``Role``
+  Either ``primary`` or ``secondary``, denoting the role of the node for
+  the instance (note: this is not the live status of the DRBD device,
+  but the configuration value)
+``PeerNode``
+  The node that the minor is connected to on the other end
+
+This command can be used as a reverse lookup (from node and minor) to a
+given instance, which can be useful when debugging DRBD issues.
+
+Note that this command queries Ganeti via :manpage:`ganeti-confd(8)`, so
+it won't be available if support for ``confd`` has not been enabled at
+build time; furthermore, in Ganeti 2.6 this is only available via the
+Haskell version of confd (again selected at build time).
+
 LIST-FIELDS
 ~~~~~~~~~~~
 

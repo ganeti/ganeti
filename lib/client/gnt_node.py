@@ -38,6 +38,8 @@ from ganeti import errors
 from ganeti import netutils
 from cStringIO import StringIO
 
+from ganeti import confd
+from ganeti.confd import client as confd_client
 
 #: default list of field for L{ListNodes}
 _LIST_DEF_FIELDS = [
@@ -877,6 +879,101 @@ def SetNodeParams(opts, args):
   return 0
 
 
+class ReplyStatus(object):
+  """Class holding a reply status for synchronous confd clients.
+
+  """
+  def __init__(self):
+    self.failure = True
+    self.answer = False
+
+
+def ListDrbd(opts, args):
+  """Modifies a node.
+
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: should contain only one element, the node name
+  @rtype: int
+  @return: the desired exit code
+
+  """
+  if len(args) != 1:
+    ToStderr("Please give one (and only one) node.")
+    return constants.EXIT_FAILURE
+
+  if not constants.ENABLE_CONFD:
+    ToStderr("Error: this command requires confd support, but it has not"
+             " been enabled at build time.")
+    return constants.EXIT_FAILURE
+
+  if not constants.HS_CONFD:
+    ToStderr("Error: this command requires the Haskell version of confd,"
+             " but it has not been enabled at build time.")
+    return constants.EXIT_FAILURE
+
+  status = ReplyStatus()
+
+  def ListDrbdConfdCallback(reply):
+    """Callback for confd queries"""
+    if reply.type == confd_client.UPCALL_REPLY:
+      answer = reply.server_reply.answer
+      reqtype = reply.orig_request.type
+      if reqtype == constants.CONFD_REQ_NODE_DRBD:
+        if reply.server_reply.status != constants.CONFD_REPL_STATUS_OK:
+          ToStderr("Query gave non-ok status '%s': %s" %
+                   (reply.server_reply.status,
+                    reply.server_reply.answer))
+          status.failure = True
+          return
+        if not confd.HTNodeDrbd(answer):
+          ToStderr("Invalid response from server: expected %s, got %s",
+                   confd.HTNodeDrbd, answer)
+          status.failure = True
+        else:
+          status.failure = False
+          status.answer = answer
+      else:
+        ToStderr("Unexpected reply %s!?", reqtype)
+        status.failure = True
+
+  node = args[0]
+  hmac = utils.ReadFile(constants.CONFD_HMAC_KEY)
+  filter_callback = confd_client.ConfdFilterCallback(ListDrbdConfdCallback)
+  counting_callback = confd_client.ConfdCountingCallback(filter_callback)
+  cf_client = confd_client.ConfdClient(hmac, [constants.IP4_ADDRESS_LOCALHOST],
+                                       counting_callback)
+  req = confd_client.ConfdClientRequest(type=constants.CONFD_REQ_NODE_DRBD,
+                                        query=node)
+
+  def DoConfdRequestReply(req):
+    counting_callback.RegisterQuery(req.rsalt)
+    cf_client.SendRequest(req, async=False)
+    while not counting_callback.AllAnswered():
+      if not cf_client.ReceiveReply():
+        ToStderr("Did not receive all expected confd replies")
+        break
+
+  DoConfdRequestReply(req)
+
+  if status.failure:
+    return constants.EXIT_FAILURE
+
+  fields = ["node", "minor", "instance", "disk", "role", "peer"]
+  if opts.no_headers:
+    headers = None
+  else:
+    headers = {"node": "Node", "minor": "Minor", "instance": "Instance",
+               "disk": "Disk", "role": "Role", "peer": "PeerNode"}
+
+  data = GenerateTable(separator=opts.separator, headers=headers,
+                       fields=fields, data=sorted(status.answer),
+                       numfields=["minor"])
+  for line in data:
+    ToStdout(line)
+
+  return constants.EXIT_SUCCESS
+
 commands = {
   "add": (
     AddNode, [ArgHost(min=1, max=1)],
@@ -988,6 +1085,10 @@ commands = {
     Health, ARGS_MANY_NODES,
     [NOHDR_OPT, SEP_OPT, PRIORITY_OPT, OOB_TIMEOUT_OPT],
     "[<node_name>...]", "List health of node(s) using out-of-band"),
+  "list-drbd": (
+    ListDrbd, ARGS_ONE_NODE,
+    [NOHDR_OPT, SEP_OPT],
+    "[<node_name>]", "Query the list of used DRBD minors on the given node"),
   }
 
 #: dictionary with aliases for commands

@@ -2,10 +2,10 @@ News
 ====
 
 
-Version 2.6.0 rc3
+Version 2.6.0 rc4
 -----------------
 
-*(Released Fri, 13 Jul 2012)*
+*(Released Thu, 19 Jul 2012)*
 
 New features
 ~~~~~~~~~~~~
@@ -222,6 +222,9 @@ daemon will result in a smaller footprint; for larger systems, we
 welcome feedback on the Haskell version which might become the default
 in future versions.
 
+If you want to use ``gnt-node list-drbd`` you need to have the Haskell
+daemon running. The Python version doesn't implement the new call.
+
 
 User interface changes
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -243,6 +246,10 @@ sometimes it's also easier to specify the desired size directly.
 Also the handling of instances with regard to offline secondaries has
 been improved. Instance operations should not fail because one of it's
 secondary nodes is offline, even though it's safe to proceed.
+
+A new command ``list-drbd`` has been added to the ``gnt-node`` script to
+support debugging of DRBD issues on nodes. It provides a mapping of DRBD
+minors to instance name.
 
 API changes
 ~~~~~~~~~~~
@@ -297,6 +304,28 @@ A number of bugs has been fixed in the cluster merge tool.
 changed to allow the same clock skew as permitted by the cluster
 verification. This will remove some rare but hard to diagnose errors in
 import-export.
+
+The ``LUXI`` protocol has been made more consistent regarding its
+handling of command arguments. This, however, leads to incompatibility
+issues with previous versions. Please ensure that you restart Ganeti
+daemons after the upgrade, otherwise job submission will fail.
+
+
+Version 2.6.0 rc3
+-----------------
+
+*(Released Fri, 13 Jul 2012)*
+
+Third release candidate for 2.6. The following changes were done from
+rc3 to rc4:
+
+- Fixed ``UpgradeConfig`` w.r.t. to disk parameters on disk objects.
+- Fixed an inconsistency in the LUXI protocol with the provided
+  arguments (NOT backwards compatible)
+- Fixed a bug with node groups ipolicy where ``min`` was greater than
+  the cluster ``std`` value
+- Implemented a new ``gnt-node list-drbd`` call to list DRBD minors for
+  easier instance debugging on nodes (requires ``hconfd`` to work)
 
 
 Version 2.6.0 rc2
