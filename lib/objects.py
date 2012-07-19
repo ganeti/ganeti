@@ -946,12 +946,12 @@ class InstancePolicy(ConfigObject):
 
   """
   @classmethod
-  def CheckParameterSyntax(cls, ipolicy):
+  def CheckParameterSyntax(cls, ipolicy, check_std):
     """ Check the instance policy for validity.
 
     """
     for param in constants.ISPECS_PARAMETERS:
-      InstancePolicy.CheckISpecSyntax(ipolicy, param)
+      InstancePolicy.CheckISpecSyntax(ipolicy, param, check_std)
     if constants.IPOLICY_DTS in ipolicy:
       InstancePolicy.CheckDiskTemplates(ipolicy[constants.IPOLICY_DTS])
     for key in constants.IPOLICY_PARAMETERS:
@@ -963,7 +963,7 @@ class InstancePolicy(ConfigObject):
                                       utils.CommaJoin(wrong_keys))
 
   @classmethod
-  def CheckISpecSyntax(cls, ipolicy, name):
+  def CheckISpecSyntax(cls, ipolicy, name, check_std):
     """Check the instance policy for validity on a given key.
 
     We check if the instance policy makes sense for a given key, that is
@@ -973,17 +973,26 @@ class InstancePolicy(ConfigObject):
     @param ipolicy: dictionary with min, max, std specs
     @type name: string
     @param name: what are the limits for
+    @type check_std: bool
+    @param check_std: Whether to check std value or just assume compliance
     @raise errors.ConfigureError: when specs for given name are not valid
 
     """
     min_v = ipolicy[constants.ISPECS_MIN].get(name, 0)
-    std_v = ipolicy[constants.ISPECS_STD].get(name, min_v)
+
+    if check_std:
+      std_v = ipolicy[constants.ISPECS_STD].get(name, min_v)
+      std_msg = std_v
+    else:
+      std_v = min_v
+      std_msg = "-"
+
     max_v = ipolicy[constants.ISPECS_MAX].get(name, std_v)
     err = ("Invalid specification of min/max/std values for %s: %s/%s/%s" %
            (name,
             ipolicy[constants.ISPECS_MIN].get(name, "-"),
             ipolicy[constants.ISPECS_MAX].get(name, "-"),
-            ipolicy[constants.ISPECS_STD].get(name, "-")))
+            std_msg))
     if min_v > std_v or std_v > max_v:
       raise errors.ConfigurationError(err)
 

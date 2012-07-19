@@ -815,7 +815,7 @@ def _GetUpdatedIPolicy(old_ipolicy, new_ipolicy, group_policy=False):
           # in a nicer way
           ipolicy[key] = list(value)
   try:
-    objects.InstancePolicy.CheckParameterSyntax(ipolicy)
+    objects.InstancePolicy.CheckParameterSyntax(ipolicy, not group_policy)
   except errors.ConfigurationError, err:
     raise errors.OpPrereqError("Invalid instance policy: %s" % err,
                                errors.ECODE_INVAL)
@@ -13627,7 +13627,7 @@ class LUGroupAdd(LogicalUnit):
       cluster = self.cfg.GetClusterInfo()
       full_ipolicy = cluster.SimpleFillIPolicy(self.op.ipolicy)
       try:
-        objects.InstancePolicy.CheckParameterSyntax(full_ipolicy)
+        objects.InstancePolicy.CheckParameterSyntax(full_ipolicy, False)
       except errors.ConfigurationError, err:
         raise errors.OpPrereqError("Invalid instance policy: %s" % err,
                                    errors.ECODE_INVAL)
