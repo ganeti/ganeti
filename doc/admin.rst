@@ -138,6 +138,10 @@ drbd
   to obtain a highly available instance that can be failed over to a
   remote node should the primary one fail.
 
+  .. note:: Ganeti does not support DRBD stacked devices:
+     DRBD stacked setup is not fully symmetric and as such it is
+     not working with live migration.
+
 rbd
   The instance will use Volumes inside a RADOS cluster as backend for its
   disks. It will access them using the RADOS block device (RBD).
