@@ -1031,8 +1031,8 @@ man/%.html.in: man/%.gen man/footer.html
 man/%: man/%.in  $(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@
 
-epydoc.conf: epydoc.conf.in Makefile
-	sed -e 's#@MODULES@#$(strip $(lint_python_code))#g' < $< > $@
+epydoc.conf: epydoc.conf.in $(REPLACE_VARS_SED)
+	sed -f $(REPLACE_VARS_SED) < $< > $@
 
 vcs-version:
 	if test -d .git; then \
@@ -1189,6 +1189,7 @@ $(REPLACE_VARS_SED): Makefile stamp-directories
 	  echo 's#@GNTMASTERDGROUP@#$(MASTERD_GROUP)#g'; \
 	  echo 's#@GNTDAEMONSGROUP@#$(DAEMONS_GROUP)#g'; \
 	  echo 's#@CUSTOM_ENABLE_CONFD@#$(ENABLE_CONFD)#g'; \
+	  echo 's#@MODULES@#$(strip $(lint_python_code))#g'; \
 	} > $@
 
 # Using deferred evaluation
