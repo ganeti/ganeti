@@ -1527,6 +1527,13 @@ gitignore-check:
 	  exit 1; \
 	fi
 
+# we don't need the ancient implicit rules:
+%: %,v
+%: RCS/%,v
+%: RCS/%
+%: s.%
+%: SCCS/s.%
+
 -include ./Makefile.local
 
 # vim: set noet :
