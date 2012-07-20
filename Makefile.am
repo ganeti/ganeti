@@ -158,7 +158,7 @@ CLEANFILES = \
 	.hpc/*.mix htools/*.tix \
 	doc/hs-lint.html
 
-BUILT_SOURCES = \
+GENERATED_FILES = \
 	$(built_base_sources) \
 	$(BUILT_PYTHON_SOURCES) \
 	$(PYTHON_BOOTSTRAP)
@@ -981,7 +981,8 @@ doc/examples/hooks/%: doc/examples/hooks/%.in $(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@
 
 doc/examples/bash_completion: $(BUILD_BASH_COMPLETION) $(RUN_IN_TEMPDIR) \
-	lib/cli.py $(gnt_scripts) $(client_PYTHON) tools/burnin
+	lib/cli.py $(gnt_scripts) $(client_PYTHON) tools/burnin \
+	$(GENERATED_FILES)
 	PYTHONPATH=. $(RUN_IN_TEMPDIR) $(CURDIR)/$(BUILD_BASH_COMPLETION) > $@
 
 doc/%.png: doc/%.dot
@@ -1065,14 +1066,15 @@ regen-vcs-version:
 	  $(MAKE) $(AM_MAKEFLAGS) vcs-version; \
 	fi
 
-htools/Ganeti/HTools/Version.hs: htools/Ganeti/HTools/Version.hs.in vcs-version
+htools/Ganeti/HTools/Version.hs: htools/Ganeti/HTools/Version.hs.in \
+	vcs-version $(built_base_sources)
 	set -e; \
 	VCSVER=`cat $(abs_top_srcdir)/vcs-version`; \
 	sed -e "s/%ver%/$$VCSVER/" < $< > $@
 
 htools/Ganeti/Constants.hs: htools/Ganeti/Constants.hs.in \
 	lib/constants.py lib/_autoconf.py lib/luxi.py \
-	$(CONVERT_CONSTANTS) \
+	$(CONVERT_CONSTANTS) $(built_base_sources) \
 	| lib/_vcsversion.py
 	set -e; \
 	{ cat $< ; PYTHONPATH=. $(CONVERT_CONSTANTS); } > $@
@@ -1173,7 +1175,7 @@ lib/_vcsversion.py: Makefile vcs-version | stamp-directories
 lib/_generated_rpc.py: lib/rpc_defs.py $(BUILD_RPC)
 	PYTHONPATH=. $(RUN_IN_TEMPDIR) $(CURDIR)/$(BUILD_RPC) lib/rpc_defs.py > $@
 
-$(REPLACE_VARS_SED): Makefile
+$(REPLACE_VARS_SED): Makefile stamp-directories
 	set -e; \
 	{ echo 's#@PREFIX@#$(prefix)#g'; \
 	  echo 's#@SYSCONFDIR@#$(sysconfdir)#g'; \
@@ -1267,7 +1269,7 @@ ganeti:
 	cd $(top_builddir) && test -h "$@" || { rm -f $@ && $(LN_S) lib $@; }
 
 .PHONY: check-dirs
-check-dirs: $(BUILT_SOURCES)
+check-dirs: $(GENERATED_FILES)
 	@set -e; \
 	find . -type d \( \( -name . \) -o \( \
 		-name .git -o \
@@ -1290,7 +1292,7 @@ check-dirs: $(BUILT_SOURCES)
 	}
 
 .PHONY: check-local
-check-local: check-dirs $(BUILT_SOURCES)
+check-local: check-dirs $(GENERATED_FILES)
 	$(CHECK_PYTHON_CODE) $(check_python_code)
 	PYTHONPATH=. $(CHECK_HEADER) $(check_python_code)
 	$(CHECK_VERSION) $(VERSION) $(top_srcdir)/NEWS
@@ -1335,19 +1337,19 @@ endif
 lint: $(LINT_TARGETS)
 
 .PHONY: pylint
-pylint: $(BUILT_SOURCES)
+pylint: $(GENERATED_FILES)
 	@test -n "$(PYLINT)" || { echo 'pylint' not found during configure; exit 1; }
 	$(PYLINT) $(LINT_OPTS) $(lint_python_code)
 
 .PHONY: pylint-qa
-pylint-qa: $(BUILT_SOURCES)
+pylint-qa: $(GENERATED_FILES)
 	@test -n "$(PYLINT)" || { echo 'pylint' not found during configure; exit 1; }
 	cd $(top_srcdir)/qa && \
 	  PYTHONPATH=$(abs_top_srcdir) $(PYLINT) $(LINT_OPTS) \
 	  --rcfile  ../pylintrc $(patsubst qa/%.py,%,$(qa_scripts))
 
 .PHONY: pep8
-pep8: $(BUILT_SOURCES)
+pep8: $(GENERATED_FILES)
 	@test -n "$(PEP8)" || { echo 'pep8' not found during configure; exit 1; }
 	$(PEP8) --ignore='$(PEP8_IGNORE)' --exclude='$(PEP8_EXCLUDE)' \
 		--repeat $(pep8_python_code)
@@ -1425,7 +1427,7 @@ apidoc: py-apidoc
 endif
 
 .PHONY: py-apidoc
-py-apidoc: epydoc.conf $(RUN_IN_TEMPDIR) $(BUILT_SOURCES)
+py-apidoc: epydoc.conf $(RUN_IN_TEMPDIR) $(GENERATED_FILES)
 	$(RUN_IN_TEMPDIR) epydoc -v \
 		--conf $(CURDIR)/epydoc.conf \
 		--output $(CURDIR)/$(APIDOC_PY_DIR)
@@ -1464,7 +1466,7 @@ hs-apidoc: $(HS_BUILT_SRCS)
 		$(filter-out Ganeti/HTools/ExtLoader.hs,$(HS_LIB_SRCS:htools/%=%))
 
 .PHONY: TAGS
-TAGS: $(BUILT_SOURCES)
+TAGS: $(GENERATED_FILES)
 	rm -f TAGS
 	$(GHC) -e ":etags" -v0 $(HFLAGS) $(HS_LIB_SRCS)
 	find . -path './lib/*.py' -o -path './scripts/gnt-*' -o \
@@ -1480,7 +1482,7 @@ coverage: py-coverage
 endif
 
 .PHONY: py-coverage
-py-coverage: $(BUILT_SOURCES) $(python_tests)
+py-coverage: $(GENERATED_FILES) $(python_tests)
 	set -e; \
 	COVERAGE_FILE=$(CURDIR)/$(COVERAGE_PY_DIR)/data \
 	TEXT_COVERAGE=$(CURDIR)/$(COVERAGE_PY_DIR)/report.txt \
