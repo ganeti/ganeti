@@ -977,9 +977,6 @@ daemons/%:: daemons/%.in $(REPLACE_VARS_SED)
 doc/examples/%:: doc/examples/%.in $(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@
 
-doc/examples/hooks/%:: doc/examples/hooks/%.in $(REPLACE_VARS_SED)
-	sed -f $(REPLACE_VARS_SED) < $< > $@
-
 doc/examples/bash_completion: $(BUILD_BASH_COMPLETION) $(RUN_IN_TEMPDIR) \
 	lib/cli.py $(gnt_scripts) $(client_PYTHON) tools/burnin \
 	$(GENERATED_FILES)
@@ -1031,16 +1028,7 @@ man/%.html.in: man/%.gen man/footer.html
 	$(PANDOC) -s -f rst -t html -A man/footer.html $< | \
 	  sed -e 's/\\@/@/g' > $@
 
-man/%.1: man/%.1.in $(REPLACE_VARS_SED)
-	sed -f $(REPLACE_VARS_SED) < $< > $@
-
-man/%.7: man/%.7.in $(REPLACE_VARS_SED)
-	sed -f $(REPLACE_VARS_SED) < $< > $@
-
-man/%.8: man/%.8.in $(REPLACE_VARS_SED)
-	sed -f $(REPLACE_VARS_SED) < $< > $@
-
-man/%.html: man/%.html.in $(REPLACE_VARS_SED)
+man/%: man/%.in  $(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@
 
 epydoc.conf: epydoc.conf.in Makefile
