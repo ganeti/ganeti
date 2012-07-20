@@ -970,14 +970,14 @@ devel/upload: devel/upload.in $(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@
 	chmod u+x $@
 
-daemons/%: daemons/%.in $(REPLACE_VARS_SED)
+daemons/%:: daemons/%.in $(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@
 	chmod +x $@
 
-doc/examples/%: doc/examples/%.in $(REPLACE_VARS_SED)
+doc/examples/%:: doc/examples/%.in $(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@
 
-doc/examples/hooks/%: doc/examples/hooks/%.in $(REPLACE_VARS_SED)
+doc/examples/hooks/%:: doc/examples/hooks/%.in $(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@
 
 doc/examples/bash_completion: $(BUILD_BASH_COMPLETION) $(RUN_IN_TEMPDIR) \
