@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2009 Google Inc.
+# Copyright (C) 2009, 2010, 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -319,7 +319,7 @@ class CompletionWriter:
 
     wrote_opt = False
 
-    for (suggest, allnames) in values.iteritems():
+    for (suggest, allnames) in values.items():
       longnames = [i for i in allnames if i.startswith("--")]
 
       if wrote_opt:
@@ -551,14 +551,16 @@ def WriteCompletion(sw, scriptname, funcname,
 
       # Group commands by arguments and options
       grouped_cmds = {}
-      for cmd, (_, argdef, optdef, _, _) in commands.iteritems():
+      for cmd, (_, argdef, optdef, _, _) in commands.items():
         if not (argdef or optdef):
           continue
         grouped_cmds.setdefault((tuple(argdef), tuple(optdef)), set()).add(cmd)
 
       # We're doing options and arguments to commands
       sw.Write("""case "${COMP_WORDS[1]}" in""")
-      for ((argdef, optdef), cmds) in grouped_cmds.items():
+      sort_grouped = sorted(grouped_cmds.items(),
+                            key=lambda (_, y): sorted(y)[0])
+      for ((argdef, optdef), cmds) in sort_grouped:
         assert argdef or optdef
         sw.Write("%s)", "|".join(map(utils.ShellQuote, sorted(cmds))))
         sw.IncIndent()
@@ -610,7 +612,7 @@ def GetCommands(filename, module):
   aliases = getattr(module, "aliases", {})
   if aliases:
     commands = commands.copy()
-    for name, target in aliases.iteritems():
+    for name, target in aliases.items():
       commands[name] = commands[target]
 
   return commands
