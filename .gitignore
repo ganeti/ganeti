@@ -11,7 +11,6 @@
 *.o
 *.hi
 *.hp
-.dir
 
 # /
 /Makefile
@@ -30,6 +29,7 @@
 /epydoc.conf
 /ganeti
 /stamp-srclinks
+/stamp-directories
 /vcs-version
 /*.patch
 /*.tar.bz2
