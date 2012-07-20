@@ -158,15 +158,12 @@ CLEANFILES = \
 	.hpc/*.mix htools/*.tix \
 	doc/hs-lint.html
 
-# BUILT_SOURCES should only be used as a dependency on phony
-# targets. Otherwise it'll cause the target to rebuild every time.
 BUILT_SOURCES = \
 	$(built_base_sources) \
 	$(BUILT_PYTHON_SOURCES) \
 	$(PYTHON_BOOTSTRAP)
 
 built_base_sources = \
-	ganeti \
 	stamp-directories \
 	stamp-srclinks
 
@@ -1250,6 +1247,7 @@ $(HS_BUILT_TEST_HELPERS): Makefile
 	chmod u+x $@
 
 stamp-directories: Makefile
+	$(MAKE) $(AM_MAKEFLAGS) ganeti
 	@mkdir_p@ $(DIRS) $(BUILDTIME_DIR_AUTOCREATE)
 	touch $@
 
