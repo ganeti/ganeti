@@ -61,7 +61,6 @@ class GenericError(Exception):
   """Base exception for Ganeti.
 
   """
-  pass
 
 
 class LVMError(GenericError):
@@ -70,7 +69,6 @@ class LVMError(GenericError):
   This exception codifies problems with LVM setup.
 
   """
-  pass
 
 
 class LockError(GenericError):
@@ -79,7 +77,6 @@ class LockError(GenericError):
   This signifies problems in the locking subsystem.
 
   """
-  pass
 
 
 class PidFileLockError(LockError):
@@ -95,7 +92,6 @@ class HypervisorError(GenericError):
   properly.
 
   """
-  pass
 
 
 class ProgrammerError(GenericError):
@@ -106,7 +102,6 @@ class ProgrammerError(GenericError):
   parts of our code. It signifies a real programming bug.
 
   """
-  pass
 
 
 class BlockDeviceError(GenericError):
@@ -116,7 +111,6 @@ class BlockDeviceError(GenericError):
   properly.
 
   """
-  pass
 
 
 class ConfigurationError(GenericError):
@@ -126,7 +120,6 @@ class ConfigurationError(GenericError):
   exist in the config or such raise this exception.
 
   """
-  pass
 
 
 class ConfigVersionMismatch(ConfigurationError):
@@ -136,7 +129,6 @@ class ConfigVersionMismatch(ConfigurationError):
   version.
 
   """
-  pass
 
 
 class ReservationError(GenericError):
@@ -152,7 +144,6 @@ class RemoteError(GenericError):
   remote node.  It usually signifies a real programming bug.
 
   """
-  pass
 
 
 class SignatureError(GenericError):
@@ -163,7 +154,6 @@ class SignatureError(GenericError):
   because of spurious traffic.
 
   """
-  pass
 
 
 class ParameterError(GenericError):
@@ -176,7 +166,6 @@ class ParameterError(GenericError):
   The argument to this exception should be the parameter name.
 
   """
-  pass
 
 
 class OpPrereqError(GenericError):
