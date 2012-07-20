@@ -566,13 +566,13 @@ htools/offline-tests.sh: htools/hpc-htools
 # run before)
 .PHONY: hs-prof hs-prof-quick
 hs-prof:
-	$(MAKE) clean
-	$(MAKE) $(HS_ALL_PROGS) HEXTRA="-osuf .o"
+	$(MAKE) $(AM_MAKEFLAGS) clean
+	$(MAKE) $(AM_MAKEFLAGS) $(HS_ALL_PROGS) HEXTRA="-osuf .o"
 	rm -f $(HS_ALL_PROGS)
-	$(MAKE) hs-prof-quick
+	$(MAKE) $(AM_MAKEFLAGS) hs-prof-quick
 
 hs-prof-quick:
-	$(MAKE) $(HS_ALL_PROGS) HEXTRA="-osuf .prof_o -prof -auto-all"
+	$(MAKE) $(AM_MAKEFLAGS) $(HS_ALL_PROGS) HEXTRA="-osuf .prof_o -prof -auto-all"
 
 dist_sbin_SCRIPTS = \
 	tools/ganeti-listrunner
@@ -1066,8 +1066,8 @@ regen-vcs-version:
 	set -e; \
 	cd $(srcdir); \
 	if test -d .git; then \
-	  $(MAKE) clean-vcs-version; \
-	  $(MAKE) vcs-version; \
+	  $(MAKE) $(AM_MAKEFLAGS) clean-vcs-version; \
+	  $(MAKE) $(AM_MAKEFLAGS) vcs-version; \
 	fi
 
 htools/Ganeti/HTools/Version.hs: htools/Ganeti/HTools/Version.hs.in vcs-version
@@ -1367,7 +1367,7 @@ hlint: $(HS_BUILT_SRCS) htools/lint-hints.hs
 # a dist hook rule for updating the vcs-version file; this is
 # hardcoded due to where it needs to build the file...
 dist-hook:
-	$(MAKE) regen-vcs-version
+	$(MAKE) $(AM_MAKEFLAGS) regen-vcs-version
 	rm -f $(top_distdir)/vcs-version
 	cp -p $(srcdir)/vcs-version $(top_distdir)
 
@@ -1496,7 +1496,7 @@ py-coverage: $(BUILT_SOURCES) $(python_tests)
 .PHONY: hs-coverage
 hs-coverage: $(haskell_tests) htools/hpc-htools
 	rm -f *.tix
-	$(MAKE) hs-check
+	$(MAKE) $(AM_MAKEFLAGS) hs-check
 	@mkdir_p@ $(COVERAGE_HS_DIR)
 	hpc combine --union $(HPCEXCL) \
 	  test.tix hpc-htools.tix > coverage-htools.tix
