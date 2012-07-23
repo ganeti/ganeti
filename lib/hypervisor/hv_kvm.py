@@ -551,10 +551,14 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       kvm_cmd.extend(["-no-reboot"])
 
     hvp = instance.hvparams
-    boot_disk = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_DISK
-    boot_cdrom = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_CDROM
-    boot_floppy = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_FLOPPY
-    boot_network = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_NETWORK
+    kernel_path = hvp[constants.HV_KERNEL_PATH]
+    if kernel_path:
+      boot_disk = boot_cdrom = boot_floppy = boot_network = False
+    else:
+      boot_disk = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_DISK
+      boot_cdrom = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_CDROM
+      boot_floppy = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_FLOPPY
+      boot_network = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_NETWORK
 
     self.ValidateParameters(hvp)
 
@@ -645,7 +649,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       drive_val = "file=%s%s" % (floppy_image, options)
       kvm_cmd.extend(["-drive", drive_val])
 
-    kernel_path = hvp[constants.HV_KERNEL_PATH]
     if kernel_path:
       kvm_cmd.extend(["-kernel", kernel_path])
       initrd_path = hvp[constants.HV_INITRD_PATH]
