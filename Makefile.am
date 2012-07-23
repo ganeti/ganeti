@@ -335,6 +335,7 @@ docrst = \
 	doc/design-network.rst \
 	doc/design-chained-jobs.rst \
 	doc/design-ovf-support.rst \
+	doc/design-autorepair.rst \
 	doc/design-resource-model.rst \
 	doc/cluster-merge.rst \
 	doc/design-shared-storage.rst \
