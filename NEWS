@@ -18,8 +18,8 @@ A small bugfix release, with no new features:
 
 Additionally, a few fixes were done to the build system (fixed parallel
 build failures) and to the unittests (fixed race condition in test for
-*FileID functions, and the default enable/disable mode for QA test is
-now customisable).
+FileID functions, and the default enable/disable mode for QA test is now
+customisable).
 
 
 Version 2.5.1
