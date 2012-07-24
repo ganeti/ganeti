@@ -413,6 +413,26 @@ Plus integrated fixes from the 2.5 branch:
 - KVM live migration when using a custom keymap
 
 
+Version 2.5.2
+-------------
+
+*(Released Tue, 24 Jul 2012)*
+
+A small bugfix release, with no new features:
+
+- fixed bash-isms in kvm-ifup, for compatibility with systems which use a
+  different default shell (e.g. Debian, Ubuntu)
+- fixed KVM startup and live migration with a custom keymap (fixes Issue
+  243 and Debian bug #650664)
+- fixed compatibility with KVM versions that don't support multiple boot
+  devices (fixes Issue 230 and Debian bug #624256)
+
+Additionally, a few fixes were done to the build system (fixed parallel
+build failures) and to the unittests (fixed race condition in test for
+FileID functions, and the default enable/disable mode for QA test is now
+customisable).
+
+
 Version 2.5.1
 -------------
 

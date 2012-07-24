@@ -973,10 +973,14 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       kvm_cmd.extend(["-no-reboot"])
 
     hvp = instance.hvparams
-    boot_disk = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_DISK
-    boot_cdrom = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_CDROM
-    boot_floppy = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_FLOPPY
-    boot_network = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_NETWORK
+    kernel_path = hvp[constants.HV_KERNEL_PATH]
+    if kernel_path:
+      boot_disk = boot_cdrom = boot_floppy = boot_network = False
+    else:
+      boot_disk = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_DISK
+      boot_cdrom = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_CDROM
+      boot_floppy = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_FLOPPY
+      boot_network = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_NETWORK
 
     self.ValidateParameters(hvp)
 
@@ -990,6 +994,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     if boot_network:
       kvm_cmd.extend(["-boot", "n"])
+
+    # whether this is an older KVM version that uses the boot=on flag
+    # on devices
+    needs_boot_flag = (v_major, v_min) < (0, 14)
 
     disk_type = hvp[constants.HV_DISK_TYPE]
     if disk_type == constants.HT_DISK_PARAVIRTUAL:
@@ -1018,7 +1026,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       if boot_disk:
         kvm_cmd.extend(["-boot", "c"])
         boot_disk = False
-        if (v_major, v_min) < (0, 14) and disk_type != constants.HT_DISK_IDE:
+        if needs_boot_flag and disk_type != constants.HT_DISK_IDE:
           boot_val = ",boot=on"
 
       drive_val = "file=%s,format=raw%s%s%s" % (dev_path, if_val, boot_val,
@@ -1033,19 +1041,22 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     iso_image = hvp[constants.HV_CDROM_IMAGE_PATH]
     if iso_image:
       options = ",format=raw,media=cdrom"
+      # set cdrom 'if' type
+      if boot_cdrom:
+        actual_cdrom_type = constants.HT_DISK_IDE
+      elif cdrom_disk_type == constants.HT_DISK_PARAVIRTUAL:
+        actual_cdrom_type = "virtio"
+      else:
+        actual_cdrom_type = cdrom_disk_type
+      if_val = ",if=%s" % actual_cdrom_type
+      # set boot flag, if needed
+      boot_val = ""
       if boot_cdrom:
         kvm_cmd.extend(["-boot", "d"])
-        if cdrom_disk_type != constants.HT_DISK_IDE:
-          options = "%s,boot=on,if=%s" % (options, constants.HT_DISK_IDE)
-        else:
-          options = "%s,boot=on" % options
-      else:
-        if cdrom_disk_type == constants.HT_DISK_PARAVIRTUAL:
-          if_val = ",if=virtio"
-        else:
-          if_val = ",if=%s" % cdrom_disk_type
-        options = "%s%s" % (options, if_val)
-      drive_val = "file=%s%s" % (iso_image, options)
+        if needs_boot_flag:
+          boot_val = ",boot=on"
+      # and finally build the entire '-drive' value
+      drive_val = "file=%s%s%s%s" % (iso_image, options, if_val, boot_val)
       kvm_cmd.extend(["-drive", drive_val])
 
     iso_image2 = hvp[constants.HV_KVM_CDROM2_IMAGE_PATH]
@@ -1055,8 +1066,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         if_val = ",if=virtio"
       else:
         if_val = ",if=%s" % cdrom_disk_type
-      options = "%s%s" % (options, if_val)
-      drive_val = "file=%s%s" % (iso_image2, options)
+      drive_val = "file=%s%s%s" % (iso_image2, options, if_val)
       kvm_cmd.extend(["-drive", drive_val])
 
     floppy_image = hvp[constants.HV_KVM_FLOPPY_IMAGE_PATH]
@@ -1070,7 +1080,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       drive_val = "file=%s%s" % (floppy_image, options)
       kvm_cmd.extend(["-drive", drive_val])
 
-    kernel_path = hvp[constants.HV_KERNEL_PATH]
     if kernel_path:
       kvm_cmd.extend(["-kernel", kernel_path])
       initrd_path = hvp[constants.HV_INITRD_PATH]
