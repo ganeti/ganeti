@@ -640,7 +640,8 @@ def _CheckInstancesNodeGroups(cfg, instances, owned_groups, owned_nodes,
       "Instance %s has no node in group %s" % (name, cur_group_uuid)
 
 
-def _CheckInstanceNodeGroups(cfg, instance_name, owned_groups):
+def _CheckInstanceNodeGroups(cfg, instance_name, owned_groups,
+                             primary_only=False):
   """Checks if the owned node groups are still correct for an instance.
 
   @type cfg: L{config.ConfigWriter}
@@ -649,9 +650,11 @@ def _CheckInstanceNodeGroups(cfg, instance_name, owned_groups):
   @param instance_name: Instance name
   @type owned_groups: set or frozenset
   @param owned_groups: List of currently owned node groups
+  @type primary_only: boolean
+  @param primary_only: Whether to check node groups for only the primary node
 
   """
-  inst_groups = cfg.GetInstanceNodeGroups(instance_name)
+  inst_groups = cfg.GetInstanceNodeGroups(instance_name, primary_only)
 
   if not owned_groups.issuperset(inst_groups):
     raise errors.OpPrereqError("Instance %s's node groups changed since"
