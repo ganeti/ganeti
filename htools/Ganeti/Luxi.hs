@@ -357,6 +357,19 @@ callMethod method s = do
   let rval = validateResult result
   return rval
 
+-- | Parses a job ID.
+parseJobId :: JSValue -> Result JobId
+parseJobId (JSString x) = Ok $ fromJSString x
+parseJobId x = Bad $ "Wrong type/value for job id: " ++ show x
+
+-- | Parse job submission result.
+parseSubmitJobResult :: JSValue -> Result JobId
+parseSubmitJobResult (JSArray [JSBool True, v]) = parseJobId v
+parseSubmitJobResult (JSArray [JSBool False, JSString x]) =
+  Bad (fromJSString x)
+parseSubmitJobResult v = Bad $ "Unknown result from the master daemon" ++
+                         show v
+
 -- | Specialized submitManyJobs call.
 submitManyJobs :: Client -> [[OpCode]] -> IO (Result [JobId])
 submitManyJobs s jobs = do
@@ -364,14 +377,7 @@ submitManyJobs s jobs = do
   -- map each result (status, payload) pair into a nice Result ADT
   return $ case rval of
              Bad x -> Bad x
-             Ok (JSArray r) ->
-                 mapM (\v -> case v of
-                               JSArray [JSBool True, JSString x] ->
-                                   Ok (fromJSString x)
-                               JSArray [JSBool False, JSString x] ->
-                                   Bad (fromJSString x)
-                               _ -> Bad "Unknown result from the master daemon"
-                      ) r
+             Ok (JSArray r) -> mapM parseSubmitJobResult r
              x -> Bad ("Cannot parse response from Ganeti: " ++ show x)
 
 -- | Custom queryJobs call.
