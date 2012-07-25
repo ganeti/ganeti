@@ -160,7 +160,7 @@ saveBalanceCommands opts cmd_data = do
 
 -- | Polls a set of jobs at a fixed interval until all are finished
 -- one way or another.
-waitForJobs :: L.Client -> [String] -> IO (Result [JobStatus])
+waitForJobs :: L.Client -> [L.JobId] -> IO (Result [JobStatus])
 waitForJobs client jids = do
   sts <- L.queryJobsStatus client jids
   case sts of

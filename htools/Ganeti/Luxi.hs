@@ -31,6 +31,7 @@ module Ganeti.Luxi
   , ResultStatus(..)
   , LuxiReq(..)
   , Client
+  , JobId
   , checkRS
   , getClient
   , closeClient
@@ -70,6 +71,9 @@ withTimeout secs descr action = do
     Just v -> return v
 
 -- * Generic protocol functionality
+
+-- | The Ganeti job type.
+type JobId = String
 
 $(declareSADT "QrViaLuxi"
   [ ("QRLock", 'qrLock)
@@ -354,7 +358,7 @@ callMethod method s = do
   return rval
 
 -- | Specialized submitManyJobs call.
-submitManyJobs :: Client -> [[OpCode]] -> IO (Result [String])
+submitManyJobs :: Client -> [[OpCode]] -> IO (Result [JobId])
 submitManyJobs s jobs = do
   rval <- callMethod (SubmitManyJobs jobs) s
   -- map each result (status, payload) pair into a nice Result ADT
@@ -371,7 +375,7 @@ submitManyJobs s jobs = do
              x -> Bad ("Cannot parse response from Ganeti: " ++ show x)
 
 -- | Custom queryJobs call.
-queryJobsStatus :: Client -> [String] -> IO (Result [JobStatus])
+queryJobsStatus :: Client -> [JobId] -> IO (Result [JobStatus])
 queryJobsStatus s jids = do
   rval <- callMethod (QueryJobs (map read jids) ["status"]) s
   return $ case rval of
