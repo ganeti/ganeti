@@ -64,7 +64,7 @@ An opcode runs only once all its dependency requirements have been
 fulfilled.
 
 Any job referring to a cancelled job is also cancelled unless it
-explicitely lists :pyeval:`constants.JOB_STATUS_CANCELED` as a requested
+explicitly lists :pyeval:`constants.JOB_STATUS_CANCELED` as a requested
 status.
 
 In case a referenced job can not be found in the normal queue or the

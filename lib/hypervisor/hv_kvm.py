@@ -1517,9 +1517,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       self.BalloonInstanceMemory(instance, start_memory)
 
     if start_kvm_paused:
-      # To control CPU pinning, ballooning, and vnc/spice passwords the VM was
-      # started in a frozen state. If freezing was not explicitely requested
-      # resume the vm status.
+      # To control CPU pinning, ballooning, and vnc/spice passwords
+      # the VM was started in a frozen state. If freezing was not
+      # explicitly requested resume the vm status.
       self._CallMonitorCommand(instance.name, self._CONT_CMD)
 
   def StartInstance(self, instance, block_devices, startup_paused):

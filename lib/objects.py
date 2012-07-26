@@ -29,7 +29,7 @@ pass to and from external parties.
 # pylint: disable=E0203,W0201,R0902
 
 # E0203: Access to member %r before its definition, since we use
-# objects.py which doesn't explicitely initialise its members
+# objects.py which doesn't explicitly initialise its members
 
 # W0201: Attribute '%s' defined outside __init__
 

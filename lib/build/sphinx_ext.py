@@ -124,7 +124,7 @@ def _BuildOpcodeParams(op_id, include, exclude, alias):
                    key=compat.fst)
 
   for (rapi_name, name, default, test, doc) in params_with_alias:
-    # Hide common parameters if not explicitely included
+    # Hide common parameters if not explicitly included
     if (name in COMMON_PARAM_NAMES and
         (not include or name not in include)):
       continue
