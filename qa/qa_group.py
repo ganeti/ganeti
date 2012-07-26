@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2010, 2011 Google Inc.
+# Copyright (C) 2010, 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -103,6 +103,12 @@ def TestGroupModify():
                    "min=%s,max=%s,std=0" % (min_v, max_v), group1], fail=True)
     AssertCommand(["gnt-group", "modify", "--specs-mem-size",
                    "min=%s,max=%s" % (min_v, max_v), group1])
+    AssertCommand(["gnt-group", "modify",
+                   "--node-parameters", "spindle_count=10", group1])
+    if qa_config.TestEnabled("htools"):
+      AssertCommand(["hbal", "-L", "-G", group1])
+    AssertCommand(["gnt-group", "modify",
+                   "--node-parameters", "spindle_count=default", group1])
   finally:
     AssertCommand(["gnt-group", "remove", group1])
 
