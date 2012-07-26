@@ -13966,7 +13966,7 @@ class LUGroupSetParams(LogicalUnit):
 
     if self.op.ndparams:
       new_ndparams = _GetUpdatedParams(self.group.ndparams, self.op.ndparams)
-      utils.ForceDictType(self.op.ndparams, constants.NDS_PARAMETER_TYPES)
+      utils.ForceDictType(new_ndparams, constants.NDS_PARAMETER_TYPES)
       self.new_ndparams = new_ndparams
 
     if self.op.diskparams:
