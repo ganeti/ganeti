@@ -538,11 +538,13 @@ TAG_CLUSTER = "cluster"
 TAG_NODEGROUP = "nodegroup"
 TAG_NODE = "node"
 TAG_INSTANCE = "instance"
+TAG_NETWORK = "network"
 VALID_TAG_TYPES = frozenset([
   TAG_CLUSTER,
   TAG_NODEGROUP,
   TAG_NODE,
   TAG_INSTANCE,
+  TAG_NETWORK,
   ])
 MAX_TAG_LEN = 128
 MAX_TAGS_PER_OBJ = 4096

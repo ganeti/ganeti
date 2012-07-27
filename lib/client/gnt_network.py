@@ -33,7 +33,7 @@ from textwrap import wrap
 
 #: default list of fields for L{ListNetworks}
 _LIST_DEF_FIELDS = ["name", "network", "gateway",
-                    "network_type", "mac_prefix", "group_list"]
+                    "network_type", "mac_prefix", "group_list", "tags"]
 
 
 def _HandleReservedIPs(ips):
@@ -56,6 +56,11 @@ def AddNetwork(opts, args):
   """
   (network_name, ) = args
 
+  if opts.tags is not None:
+    tags = opts.tags.split(",")
+  else:
+    tags = []
+
   op = opcodes.OpNetworkAdd(network_name=network_name,
                             gateway=opts.gateway,
                             network=opts.network,
@@ -63,7 +68,8 @@ def AddNetwork(opts, args):
                             network6=opts.network6,
                             mac_prefix=opts.mac_prefix,
                             network_type=opts.network_type,
-                            add_reserved_ips=_HandleReservedIPs(opts.add_reserved_ips))
+                            add_reserved_ips=_HandleReservedIPs(opts.add_reserved_ips),
+                            tags=tags)
   SubmitOpCode(op, opts=opts)
 
 
@@ -139,6 +145,7 @@ def ListNetworks(opts, args):
   fmtoverride = {
     "group_list": (",".join, False),
     "inst_list": (",".join, False),
+    "tags": (",".join, False),
   }
 
   return GenericList(constants.QR_NETWORK, desired_fields, args, None,
@@ -283,7 +290,7 @@ def RemoveNetwork(opts, args):
 commands = {
   "add": (
     AddNetwork, ARGS_ONE_NETWORK,
-    [DRY_RUN_OPT, NETWORK_OPT, GATEWAY_OPT, ADD_RESERVED_IPS_OPT,
+    [DRY_RUN_OPT, NETWORK_OPT, GATEWAY_OPT, ADD_RESERVED_IPS_OPT, TAG_ADD_OPT,
      MAC_PREFIX_OPT, NETWORK_TYPE_OPT, NETWORK6_OPT, GATEWAY6_OPT],
     "<network_name>", "Add a new IP network to the cluster"),
   "list": (
@@ -322,8 +329,19 @@ commands = {
     RemoveNetwork, ARGS_ONE_NETWORK, [FORCE_OPT, DRY_RUN_OPT],
     "[--dry-run] <network_id>",
     "Remove an (empty) network from the cluster"),
+  "list-tags": (
+    ListTags, ARGS_ONE_NETWORK, [],
+    "<network_name>", "List the tags of the given network"),
+  "add-tags": (
+    AddTags, [ArgNetwork(min=1, max=1), ArgUnknown()],
+    [TAG_SRC_OPT, PRIORITY_OPT, SUBMIT_OPT],
+    "<network_name> tag...", "Add tags to the given network"),
+  "remove-tags": (
+    RemoveTags, [ArgNetwork(min=1, max=1), ArgUnknown()],
+    [TAG_SRC_OPT, PRIORITY_OPT, SUBMIT_OPT],
+    "<network_name> tag...", "Remove tags from given network"),
 }
 
 
 def Main():
-  return GenericMain(commands)
+  return GenericMain(commands, override={"tag_type": constants.TAG_NETWORK})

@@ -97,7 +97,7 @@ NET_FIELDS = ["name", "network", "gateway",
               "mac_prefix", "network_type",
               "free_count", "reserved_count",
               "map", "group_list", "inst_list",
-              "external_reservations",
+              "external_reservations", "tags",
              ] 
 
 G_FIELDS = [

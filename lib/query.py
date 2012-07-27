@@ -2532,11 +2532,17 @@ def _BuildNetworkFields():
   """Builds list of fields for network queries.
 
   """
-  # Add simple fields
   fields = [
+    (_MakeField("tags", "Tags", QFT_OTHER, "Tags"), IQ_CONFIG, 0,
+     lambda ctx, inst: list(inst.GetTags())),
+    ]
+
+  # Add simple fields
+  fields.extend([
     (_MakeField(name, title, kind, doc),
      NETQ_CONFIG, 0, _GetItemAttr(name))
-    for (name, (title, kind, flags, doc)) in _NETWORK_SIMPLE_FIELDS.items()]
+     for (name, (title, kind, flags, doc)) in _NETWORK_SIMPLE_FIELDS.items()
+    ])
 
   def _GetLength(getter):
     return lambda ctx, network: len(getter(ctx)[network.uuid])

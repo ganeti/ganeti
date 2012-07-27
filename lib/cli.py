@@ -435,6 +435,7 @@ def _ExtractTagsObject(opts, args):
     retval = kind, None
   elif kind in (constants.TAG_NODEGROUP,
                 constants.TAG_NODE,
+                constants.TAG_NETWORK,
                 constants.TAG_INSTANCE):
     if not args:
       raise errors.OpPrereqError("no arguments passed to the command",

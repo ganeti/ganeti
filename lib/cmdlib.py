@@ -1316,7 +1316,7 @@ def _ExpandInstanceName(cfg, name):
   return _ExpandItemName(cfg.ExpandInstanceName, name, "Instance")
 
 def _BuildNetworkHookEnv(name, network, gateway, network6, gateway6,
-                         network_type, mac_prefix):
+                         network_type, mac_prefix, tags):
   env = dict()
   if name:
     env["NETWORK_NAME"] = name
@@ -1332,6 +1332,8 @@ def _BuildNetworkHookEnv(name, network, gateway, network6, gateway6,
     env["NETWORK_MAC_PREFIX"] = mac_prefix
   if network_type:
     env["NETWORK_TYPE"] = network_type
+  if tags:
+    env["NETWORK_TAGS"] = " ".join(tags)
 
   return env
 
@@ -1345,6 +1347,7 @@ def _BuildNetworkHookEnvByObject(lu, network):
     "gateway6": network.gateway6,
     "network_type": network.network_type,
     "mac_prefix": network.mac_prefix,
+    "tags" : network.tags,
   }
   return _BuildNetworkHookEnv(**args)
 
@@ -1431,6 +1434,8 @@ def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
             env["INSTANCE_NIC%d_NETWORK_MAC_PREFIX" % idx] = nobj.mac_prefix
           if nobj.network_type:
             env["INSTANCE_NIC%d_NETWORK_TYPE" % idx] = nobj.network_type
+          if nobj.tags:
+            env["INSTANCE_NIC%d_NETWORK_TAGS" % idx] = " ".join(nobj.tags)
       if mode == constants.NIC_MODE_BRIDGED:
         env["INSTANCE_NIC%d_BRIDGE" % idx] = link
   else:
@@ -15017,6 +15022,10 @@ class TagsLU(NoHooksLU): # pylint: disable=W0223
       self.group_uuid = self.cfg.LookupNodeGroup(self.op.name)
       lock_level = locking.LEVEL_NODEGROUP
       lock_name = self.group_uuid
+    elif self.op.kind == constants.TAG_NETWORK:
+      self.network_uuid = self.cfg.LookupNetwork(self.op.name)
+      lock_level = locking.LEVEL_NETWORK
+      lock_name = self.network_uuid
     else:
       lock_level = None
       lock_name = None
@@ -15039,6 +15048,8 @@ class TagsLU(NoHooksLU): # pylint: disable=W0223
       self.target = self.cfg.GetInstanceInfo(self.op.name)
     elif self.op.kind == constants.TAG_NODEGROUP:
       self.target = self.cfg.GetNodeGroup(self.group_uuid)
+    elif self.op.kind == constants.TAG_NETWORK:
+      self.target = self.cfg.GetNetwork(self.network_uuid)
     else:
       raise errors.OpPrereqError("Wrong tag type requested (%s)" %
                                  str(self.op.kind), errors.ECODE_INVAL)
@@ -15549,6 +15560,11 @@ class LUNetworkAdd(LogicalUnit):
     if self.op.mac_prefix:
       utils.NormalizeAndValidateMac(self.op.mac_prefix+":00:00:00")
 
+    # Check tag validity
+    for tag in self.op.tags:
+      objects.TaggableObject.ValidateTag(tag)
+
+
   def BuildHooksEnv(self):
     """Build hooks env.
 
@@ -15561,6 +15577,7 @@ class LUNetworkAdd(LogicalUnit):
       "gateway6": self.op.gateway6,
       "mac_prefix": self.op.mac_prefix,
       "network_type": self.op.network_type,
+      "tags": self.op.tags,
       }
     return _BuildNetworkHookEnv(**args)
 
@@ -15608,6 +15625,10 @@ class LUNetworkAdd(LogicalUnit):
           pool.Reserve(ip, external=True)
         except errors.AddressPoolError, e:
           raise errors.OpExecError("Cannot reserve IP %s. %s " % (ip, e))
+
+    if self.op.tags:
+      for tag in self.op.tags:
+        nobj.AddTag(tag)
 
     self.cfg.AddNetwork(nobj, self.proc.GetECId(), check_uuid=False)
     del self.remove_locks[locking.LEVEL_NETWORK]
@@ -15714,6 +15735,7 @@ class LUNetworkSetParams(LogicalUnit):
     self.mac_prefix = self.network.mac_prefix
     self.network6 = self.network.network6
     self.gateway6 = self.network.gateway6
+    self.tags = self.network.tags
 
     self.pool = network.AddressPool(self.network)
 
@@ -15765,6 +15787,7 @@ class LUNetworkSetParams(LogicalUnit):
       "gateway6": self.gateway6,
       "mac_prefix": self.mac_prefix,
       "network_type": self.network_type,
+      "tags": self.tags,
       }
     return _BuildNetworkHookEnv(**args)
 

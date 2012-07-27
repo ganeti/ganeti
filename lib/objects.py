@@ -1997,7 +1997,7 @@ class InstanceConsole(ConfigObject):
     return True
 
 
-class Network(ConfigObject):
+class Network(TaggableObject):
   """Object representing a network definition for ganeti.
 
   """

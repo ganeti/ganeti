@@ -2018,6 +2018,7 @@ class OpNetworkAdd(OpCode):
     ("mac_prefix", None, ht.TMaybeString, None),
     ("add_reserved_ips", None,
      ht.TOr(ht.TNone, ht.TListOf(_CheckCIDRAddrNotation)), None),
+    ("tags", ht.EmptyList, ht.TListOf(ht.TNonEmptyString), "Network tags"),
     ]
 
 class OpNetworkRemove(OpCode):
