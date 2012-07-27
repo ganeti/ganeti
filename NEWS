@@ -2,10 +2,20 @@ News
 ====
 
 
-Version 2.6.0 rc4
------------------
+Version 2.6.0
+-------------
 
-*(Released Thu, 19 Jul 2012)*
+*(Released Fri, 27 Jul 2012)*
+
+
+.. attention:: The ``LUXI`` protocol has been made more consistent
+   regarding its handling of command arguments. This, however, leads to
+   incompatibility issues with previous versions. Please ensure that you
+   restart Ganeti daemons soon after the upgrade, otherwise most
+   ``LUXI`` calls (job submission, setting/resetting the drain flag,
+   pausing/resuming the watcher, cancelling and archiving jobs, querying
+   the cluster configuration) will fail.
+
 
 New features
 ~~~~~~~~~~~~
@@ -305,10 +315,20 @@ changed to allow the same clock skew as permitted by the cluster
 verification. This will remove some rare but hard to diagnose errors in
 import-export.
 
-The ``LUXI`` protocol has been made more consistent regarding its
-handling of command arguments. This, however, leads to incompatibility
-issues with previous versions. Please ensure that you restart Ganeti
-daemons after the upgrade, otherwise job submission will fail.
+
+Version 2.6.0 rc4
+-----------------
+
+*(Released Thu, 19 Jul 2012)*
+
+Very few changes from rc4 to the final release, only bugfixes:
+
+- integrated fixes from release 2.5.2 (fix general boot flag for KVM
+  instance, fix CDROM booting for KVM instances)
+- fixed node group modification of node parameters
+- fixed issue in LUClusterVerifyGroup with multi-group clusters
+- fixed generation of bash completion to ensure a stable ordering
+- fixed a few typos
 
 
 Version 2.6.0 rc3
