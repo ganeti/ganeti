@@ -76,7 +76,7 @@ class TestRpcProcessor(unittest.TestCase):
     self.assertEqual(req.host, "127.0.0.1")
     self.assertEqual(req.port, 24094)
     self.assertEqual(req.path, "/version")
-    self.assertEqual(req.read_timeout, rpc._TMO_URGENT)
+    self.assertEqual(req.read_timeout, constants.RPC_TMO_URGENT)
     req.success = True
     req.resp_status_code = http.HTTP_OK
     req.resp_body = serializer.DumpJson((True, 123))
@@ -242,7 +242,8 @@ class TestRpcProcessor(unittest.TestCase):
     http_proc = \
       _FakeRequestProcessor(compat.partial(self._GetHttpErrorResponse,
                                            httperrnodes, failnodes))
-    result = proc(nodes, "vg_list", body, rpc._TMO_URGENT, NotImplemented,
+    result = proc(nodes, "vg_list", body,
+                  constants.RPC_TMO_URGENT, NotImplemented,
                   _req_process_fn=http_proc)
     self.assertEqual(sorted(result.keys()), sorted(nodes))
 
@@ -491,7 +492,7 @@ class TestCompress(unittest.TestCase):
 
 class TestRpcClientBase(unittest.TestCase):
   def testNoHosts(self):
-    cdef = ("test_call", NotImplemented, None, rpc_defs.TMO_SLOW, [],
+    cdef = ("test_call", NotImplemented, None, constants.RPC_TMO_SLOW, [],
             None, None, NotImplemented)
     http_proc = _FakeRequestProcessor(NotImplemented)
     client = rpc._RpcClientBase(rpc._StaticResolver([]), NotImplemented,
@@ -561,7 +562,7 @@ class TestRpcClientBase(unittest.TestCase):
       AT2: hash,
       }
 
-    cdef = ("test_call", NotImplemented, None, rpc_defs.TMO_NORMAL, [
+    cdef = ("test_call", NotImplemented, None, constants.RPC_TMO_NORMAL, [
       ("arg0", None, NotImplemented),
       ("arg1", AT1, NotImplemented),
       ("arg1", AT2, NotImplemented),
@@ -605,7 +606,7 @@ class TestRpcClientBase(unittest.TestCase):
       res.payload = sum(res.payload)
       return res
 
-    cdef = ("test_call", NotImplemented, None, rpc_defs.TMO_NORMAL, [],
+    cdef = ("test_call", NotImplemented, None, constants.RPC_TMO_NORMAL, [],
             None, _PostProc, NotImplemented)
 
     # Seeded random generator
@@ -642,7 +643,7 @@ class TestRpcClientBase(unittest.TestCase):
       self.assertEqual(len(data), 1)
       return data[0] + node
 
-    cdef = ("test_call", NotImplemented, None, rpc_defs.TMO_NORMAL, [
+    cdef = ("test_call", NotImplemented, None, constants.RPC_TMO_NORMAL, [
       ("arg0", None, NotImplemented),
       ], _PreProc, None, NotImplemented)
 
@@ -687,7 +688,8 @@ class TestRpcClientBase(unittest.TestCase):
       ]
 
     for (resolver_opts, arg0, expected) in tests:
-      cdef = ("test_call", NotImplemented, resolver_opts, rpc_defs.TMO_NORMAL, [
+      cdef = ("test_call", NotImplemented, resolver_opts,
+              constants.RPC_TMO_NORMAL, [
         ("arg0", None, NotImplemented),
         ], None, None, NotImplemented)
 

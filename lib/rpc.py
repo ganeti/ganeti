@@ -55,21 +55,10 @@ from ganeti import _generated_rpc
 import ganeti.http.client  # pylint: disable=W0611
 
 
-# Timeout for connecting to nodes (seconds)
-_RPC_CONNECT_TIMEOUT = 5
-
 _RPC_CLIENT_HEADERS = [
   "Content-type: %s" % http.HTTP_APP_JSON,
   "Expect:",
   ]
-
-# Various time constants for the timeout table
-_TMO_URGENT = 60 # one minute
-_TMO_FAST = 5 * 60 # five minutes
-_TMO_NORMAL = 15 * 60 # 15 minutes
-_TMO_SLOW = 3600 # one hour
-_TMO_4HRS = 4 * 3600
-_TMO_1DAY = 86400
 
 #: Special value to describe an offline host
 _OFFLINE = object()
@@ -114,7 +103,7 @@ def _ConfigRpcCurl(curl):
   curl.setopt(pycurl.SSLCERT, noded_cert)
   curl.setopt(pycurl.SSLKEYTYPE, "PEM")
   curl.setopt(pycurl.SSLKEY, noded_cert)
-  curl.setopt(pycurl.CONNECTTIMEOUT, _RPC_CONNECT_TIMEOUT)
+  curl.setopt(pycurl.CONNECTTIMEOUT, constants.RPC_CONNECT_TIMEOUT)
 
 
 def RunWithRPC(fn):

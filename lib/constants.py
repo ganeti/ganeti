@@ -653,6 +653,17 @@ RUNPARTS_STATUS = frozenset([RUNPARTS_SKIP, RUNPARTS_RUN, RUNPARTS_ERR])
 (RPC_ENCODING_NONE,
  RPC_ENCODING_ZLIB_BASE64) = range(2)
 
+# Various time constants for the timeout table
+RPC_TMO_URGENT = 60 # one minute
+RPC_TMO_FAST = 5 * 60 # five minutes
+RPC_TMO_NORMAL = 15 * 60 # 15 minutes
+RPC_TMO_SLOW = 3600 # one hour
+RPC_TMO_4HRS = 4 * 3600
+RPC_TMO_1DAY = 86400
+
+# Timeout for connecting to nodes (seconds)
+RPC_CONNECT_TIMEOUT = 5
+
 # os related constants
 OS_SCRIPT_CREATE = "create"
 OS_SCRIPT_IMPORT = "import"
