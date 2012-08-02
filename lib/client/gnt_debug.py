@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2010, 2011 Google Inc.
+# Copyright (C) 2006, 2007, 2010, 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -192,7 +192,7 @@ def _TestJobDependency(opts):
     SubmitOpCode(opcodes.OpTestDelay(duration=0, depends=[(-1, None)]), cl=cl)
   except errors.GenericError, err:
     if opts.debug:
-      ToStdout("Ignoring error: %s", err)
+      ToStdout("Ignoring error for 'wrong dependencies' test: %s", err)
   else:
     raise errors.OpExecError("Submitting plain opcode with relative job ID"
                              " did not fail as expected")
@@ -297,7 +297,7 @@ def _TestJobSubmission(opts):
       cl.SubmitJob(ops)
     except errors.GenericError, err:
       if opts.debug:
-        ToStdout("Ignoring error: %s", err)
+        ToStdout("Ignoring error for 'wrong priority' test: %s", err)
     else:
       raise errors.OpExecError("Submitting opcode with priority %s did not"
                                " fail when it should (allowed are %s)" %
@@ -511,7 +511,7 @@ def TestJobqueue(opts, _):
     except errors.OpExecError, err:
       if not fail:
         raise
-      ToStdout("Ignoring error: %s", err)
+      ToStdout("Ignoring error for 'job fail' test: %s", err)
     else:
       if fail:
         raise errors.OpExecError("Job didn't fail when it should")
