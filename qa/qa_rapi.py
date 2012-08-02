@@ -148,7 +148,8 @@ def _DoTests(uris):
 
 
 def _VerifyReturnsJob(data):
-  AssertMatch(data, r"^\d+$")
+  if not isinstance(data, int):
+    AssertMatch(data, r"^\d+$")
 
 
 def TestVersion():

@@ -36,10 +36,10 @@ import testutils
 
 class TestFormatJobID(testutils.GanetiTestCase):
   def test(self):
-    self.assertEqual(jstore.FormatJobID(0), "0")
-    self.assertEqual(jstore.FormatJobID(30498), "30498")
+    self.assertEqual(jstore.FormatJobID(0), 0)
+    self.assertEqual(jstore.FormatJobID(30498), 30498)
     self.assertEqual(jstore.FormatJobID(319472592764518609),
-                     "319472592764518609")
+                     319472592764518609)
 
   def testErrors(self):
     for i in [-1, -2288, -9667, -0.205641, 0.0, 0.1, 13041.4472, "", "Hello",

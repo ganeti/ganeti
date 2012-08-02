@@ -746,6 +746,7 @@ class Query:
         (status, name) = _ProcessResult(self._name_fn(ctx, item))
         assert status == constants.RS_NORMAL
         # TODO: Are there cases where we wouldn't want to use NiceSort?
+        # Answer: if the name field is non-string...
         result.append((utils.NiceSortKey(name), idx, row))
       else:
         result.append(row)
@@ -2267,7 +2268,7 @@ def _BuildJobFields():
 
   """
   fields = [
-    (_MakeField("id", "ID", QFT_TEXT, "Job ID"),
+    (_MakeField("id", "ID", QFT_NUMBER, "Job ID"),
      None, QFF_JOB_ID, lambda _, (job_id, job): job_id),
     (_MakeField("status", "Status", QFT_TEXT, "Job status"),
      None, 0, _JobUnavail(lambda job: job.CalcStatus())),

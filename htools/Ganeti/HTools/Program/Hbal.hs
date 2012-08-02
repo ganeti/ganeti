@@ -205,7 +205,7 @@ execJobSet master nl il cref (js:jss) = do
             case jids of
               Bad x -> return $ Bad x
               Ok x -> do
-                putStrLn $ "Got job IDs " ++ commaJoin x
+                putStrLn $ "Got job IDs " ++ commaJoin (map show x)
                 waitForJobs client x
          )
   case jrs of

@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -174,15 +174,14 @@ def SetDrainFlag(drain_flag):
 
 
 def FormatJobID(job_id):
-  """Convert a job ID to string format.
+  """Convert a job ID to int format.
 
-  Currently this just does C{str(job_id)} after performing some
-  checks, but if we want to change the job id format this will
-  abstract this change.
+  Currently this just is a no-op that performs some checks, but if we
+  want to change the job id format this will abstract this change.
 
   @type job_id: int or long
   @param job_id: the numeric job id
-  @rtype: str
+  @rtype: int
   @return: the formatted job id
 
   """
@@ -191,7 +190,7 @@ def FormatJobID(job_id):
   if job_id < 0:
     raise errors.ProgrammerError("Job ID %s is negative" % job_id)
 
-  return str(job_id)
+  return job_id
 
 
 def GetArchiveDirectory(job_id):

@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007 Google Inc.
+# Copyright (C) 2006, 2007, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -60,6 +60,21 @@ def _FormatStatus(value):
     raise errors.ProgrammerError("Unknown job status code '%s'" % value)
 
 
+def _ParseJobIds(args):
+  """Parses a list of string job IDs into integers.
+
+  @param args: list of strings
+  @return: list of integers
+  @raise OpPrereqError: in case of invalid values
+
+  """
+  try:
+    return [int(a) for a in args]
+  except (ValueError, TypeError), err:
+    raise errors.OpPrereqError("Invalid job ID passed: %s" % err,
+                               errors.ECODE_INVAL)
+
+
 def ListJobs(opts, args):
   """List the jobs
 
@@ -85,7 +100,7 @@ def ListJobs(opts, args):
                      opts.separator, not opts.no_headers,
                      format_override=fmtoverride, verbose=opts.verbose,
                      force_filter=opts.force_filter, namefield="id",
-                     qfilter=qfilter)
+                     qfilter=qfilter, isnumeric=True)
 
 
 def ListJobFields(opts, args):
@@ -203,8 +218,8 @@ def ShowJobs(opts, args):
     "opstart", "opexec", "opend", "received_ts", "start_ts", "end_ts",
     ]
 
-  result = GetClient().Query(constants.QR_JOB, selected_fields,
-                             qlang.MakeSimpleFilter("id", args)).data
+  qfilter = qlang.MakeSimpleFilter("id", _ParseJobIds(args))
+  result = GetClient().Query(constants.QR_JOB, selected_fields, qfilter).data
 
   first = True
 

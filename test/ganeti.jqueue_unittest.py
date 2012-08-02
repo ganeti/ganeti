@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2010, 2011 Google Inc.
+# Copyright (C) 2010, 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -702,7 +702,7 @@ class TestJobProcessor(unittest.TestCase, _JobProcessorTestUtils):
 
       # Check job status
       self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_ERROR)
-      self.assertEqual(job.GetInfo(["id"]), [str(job_id)])
+      self.assertEqual(job.GetInfo(["id"]), [job_id])
       self.assertEqual(job.GetInfo(["status"]), [constants.JOB_STATUS_ERROR])
 
       # Check opcode status
@@ -926,7 +926,7 @@ class TestJobProcessor(unittest.TestCase, _JobProcessorTestUtils):
            for i in range(3)]
 
     # Create job
-    job_id = str(28492)
+    job_id = 28492
     job = self._CreateJob(queue, job_id, ops)
 
     self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_QUEUED)

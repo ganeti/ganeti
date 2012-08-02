@@ -312,7 +312,8 @@ def _TestJobSubmission(opts):
     result = cl.SubmitManyJobs(jobs)
     if not (len(result) == 2 and
             compat.all(len(i) == 2 for i in result) and
-            compat.all(isinstance(i[1], basestring) for i in result) and
+            isinstance(result[0][1], int) and
+            isinstance(result[1][1], basestring) and
             result[0][0] and not result[1][0]):
       raise errors.OpExecError("Submitting multiple jobs did not work as"
                                " expected, result %s" % result)

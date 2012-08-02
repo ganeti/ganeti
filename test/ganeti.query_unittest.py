@@ -1162,14 +1162,19 @@ class TestQueryFilter(unittest.TestCase):
     for (what, fielddefs) in query.ALL_FIELDS.items():
       if what == constants.QR_JOB:
         namefield = "id"
-      elif what == constants.QR_EXPORT:
-        namefield = "export"
+        nameval = 123
+        namevalempty = 0
+        genval = lambda i: i * 10
+        randvals = [17361, 22015, 13193, 15215]
       else:
-        namefield = "name"
-      nameval = "abc"
-      namevalempty = ""
-      genval = lambda i: "x%s" % i
-      randvals = ["x17361", "x22015", "x13193", "x15215"]
+        nameval = "abc"
+        namevalempty = ""
+        genval = lambda i: "x%s" % i
+        randvals = ["x17361", "x22015", "x13193", "x15215"]
+        if what == constants.QR_EXPORT:
+          namefield = "export"
+        else:
+          namefield = "name"
 
       assert namefield in fielddefs
 
@@ -1247,11 +1252,13 @@ class TestQueryFilter(unittest.TestCase):
     for (what, fielddefs) in query.ALL_FIELDS.items():
       if what == constants.QR_JOB:
         namefield = "id"
+        nameval = 123
       elif what == constants.QR_EXPORT:
         namefield = "export"
+        nameval = "value"
       else:
         namefield = "name"
-      nameval = "value"
+        nameval = "value"
 
       checks = [
         [], ["="], ["=", "foo"], ["unknownop"], ["!"],

@@ -298,7 +298,7 @@ def _MakeFilterPart(namefield, text, isnumeric=False):
     try:
       number = int(text)
     except (TypeError, ValueError), err:
-      raise errors.OpPrereqError("Invalid integer passed: %s" % str(err),
+      raise errors.OpPrereqError("Invalid job ID passed: %s" % str(err),
                                  errors.ECODE_INVAL)
     return [OP_EQUAL, namefield, number]
   elif _CheckGlobbing(text):

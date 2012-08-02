@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -220,7 +220,7 @@ class _QueuedJob(object):
       raise errors.GenericError("A job needs at least one opcode")
 
     self.queue = queue
-    self.id = job_id
+    self.id = int(job_id)
     self.ops = [_QueuedOpCode(op) for op in ops]
     self.log_serial = 0
     self.received_timestamp = TimeStampNow()
@@ -267,7 +267,7 @@ class _QueuedJob(object):
     """
     obj = _QueuedJob.__new__(cls)
     obj.queue = queue
-    obj.id = state["id"]
+    obj.id = int(state["id"])
     obj.received_timestamp = state.get("received_timestamp", None)
     obj.start_timestamp = state.get("start_timestamp", None)
     obj.end_timestamp = state.get("end_timestamp", None)
@@ -1384,14 +1384,14 @@ class _JobDependencyManager:
 
     @type job: L{_QueuedJob}
     @param job: Job object
-    @type dep_job_id: string
+    @type dep_job_id: int
     @param dep_job_id: ID of dependency job
     @type dep_status: list
     @param dep_status: Required status
 
     """
-    assert ht.TString(job.id)
-    assert ht.TString(dep_job_id)
+    assert ht.TJobId(job.id)
+    assert ht.TJobId(dep_job_id)
     assert ht.TListOf(ht.TElemOf(constants.JOBS_FINALIZED))(dep_status)
 
     if job.id == dep_job_id:
@@ -1446,11 +1446,11 @@ class _JobDependencyManager:
 
     @attention: Do not call until L{CheckAndRegister} returned a status other
       than C{WAITDEP} for C{job_id}, or behaviour is undefined
-    @type job_id: string
+    @type job_id: int
     @param job_id: Job ID
 
     """
-    assert ht.TString(job_id)
+    assert ht.TJobId(job_id)
 
     self._lock.acquire()
     try:
@@ -1803,8 +1803,8 @@ class JobQueue(object):
 
     @type count: integer
     @param count: how many serials to return
-    @rtype: str
-    @return: a string representing the job identifier.
+    @rtype: list of int
+    @return: a list of job identifiers.
 
     """
     assert ht.TPositiveInt(count)
@@ -1870,9 +1870,9 @@ class JobQueue(object):
     for filename in utils.ListVisibleFiles(constants.QUEUE_DIR):
       m = constants.JOB_FILE_RE.match(filename)
       if m:
-        jlist.append(m.group(1))
+        jlist.append(int(m.group(1)))
     if sort:
-      jlist = utils.NiceSort(jlist)
+      jlist.sort()
     return jlist
 
   def _LoadJobUnlocked(self, job_id):
@@ -1882,6 +1882,7 @@ class JobQueue(object):
     existing, or try to load the job from the disk. If loading from
     disk, it will also add the job to the cache.
 
+    @type job_id: int
     @param job_id: the job id
     @rtype: L{_QueuedJob} or None
     @return: either None or the job object
@@ -1920,7 +1921,7 @@ class JobQueue(object):
 
     Given a job file, read, load and restore it in a _QueuedJob format.
 
-    @type job_id: string
+    @type job_id: int
     @param job_id: job identifier
     @type try_archived: bool
     @param try_archived: Whether to try loading an archived job
@@ -1968,7 +1969,7 @@ class JobQueue(object):
     In case of error reading the job, it gets returned as None, and the
     exception is logged.
 
-    @type job_id: string
+    @type job_id: int
     @param job_id: job identifier
     @type try_archived: bool
     @param try_archived: Whether to try loading an archived job
@@ -2181,14 +2182,11 @@ class JobQueue(object):
   def _GetJobStatusForDependencies(self, job_id):
     """Gets the status of a job for dependencies.
 
-    @type job_id: string
+    @type job_id: int
     @param job_id: Job ID
     @raise errors.JobLost: If job can't be found
 
     """
-    if not isinstance(job_id, basestring):
-      job_id = jstore.FormatJobID(job_id)
-
     # Not using in-memory cache as doing so would require an exclusive lock
 
     # Try to load from disk
@@ -2229,7 +2227,7 @@ class JobQueue(object):
                         timeout):
     """Waits for changes in a job.
 
-    @type job_id: string
+    @type job_id: int
     @param job_id: Job identifier
     @type fields: list of strings
     @param fields: Which fields to check for changes
@@ -2264,7 +2262,7 @@ class JobQueue(object):
 
     This will only succeed if the job has not started yet.
 
-    @type job_id: string
+    @type job_id: int
     @param job_id: job ID of job to be cancelled.
 
     """
@@ -2331,7 +2329,7 @@ class JobQueue(object):
 
     This is just a wrapper over L{_ArchiveJobsUnlocked}.
 
-    @type job_id: string
+    @type job_id: int
     @param job_id: Job ID of job to be archived.
     @rtype: bool
     @return: Whether job was archived
@@ -2433,9 +2431,9 @@ class JobQueue(object):
     @param qfilter: Query filter
 
     """
-    (qobj, ctx, sort_by_name) = self._Query(fields, qfilter)
+    (qobj, ctx, _) = self._Query(fields, qfilter)
 
-    return query.GetQueryResponse(qobj, ctx, sort_by_name=sort_by_name)
+    return query.GetQueryResponse(qobj, ctx, sort_by_name=False)
 
   def OldStyleQueryJobs(self, job_ids, fields):
     """Returns a list of jobs in queue.
@@ -2449,11 +2447,13 @@ class JobQueue(object):
         the requested fields
 
     """
+    # backwards compat:
+    job_ids = [int(jid) for jid in job_ids]
     qfilter = qlang.MakeSimpleFilter("id", job_ids)
 
-    (qobj, ctx, sort_by_name) = self._Query(fields, qfilter)
+    (qobj, ctx, _) = self._Query(fields, qfilter)
 
-    return qobj.OldStyleQuery(ctx, sort_by_name=sort_by_name)
+    return qobj.OldStyleQuery(ctx, sort_by_name=False)
 
   @locking.ssynchronized(_LOCK)
   def PrepareShutdown(self):

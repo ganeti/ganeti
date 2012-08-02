@@ -44,6 +44,7 @@ module Ganeti.Luxi
   ) where
 
 import Data.IORef
+import Data.Ratio (numerator, denominator)
 import Control.Monad
 import Text.JSON (encodeStrict, decodeStrict)
 import qualified Text.JSON as J
@@ -73,7 +74,7 @@ withTimeout secs descr action = do
 -- * Generic protocol functionality
 
 -- | The Ganeti job type.
-type JobId = String
+type JobId = Int
 
 $(declareSADT "QrViaLuxi"
   [ ("QRLock", 'qrLock)
@@ -107,7 +108,7 @@ $(genLuxiOp "LuxiOp"
      , ("lock",   [t| Bool     |], [| id |])
      ])
   , (luxiReqQueryJobs,
-     [ ("ids",    [t| [Int]    |], [| map show |])
+     [ ("ids",    [t| [Int]    |], [| id |])
      , ("fields", [t| [String] |], [| id |])
      ])
   , (luxiReqQueryExports,
@@ -129,21 +130,21 @@ $(genLuxiOp "LuxiOp"
      [ ("ops", [t| [[OpCode]] |], [| id |]) ]
     )
   , (luxiReqWaitForJobChange,
-     [ ("job",      [t| Int     |], [| show |])
+     [ ("job",      [t| Int     |], [| id |])
      , ("fields",   [t| [String]|], [| id |])
      , ("prev_job", [t| JSValue |], [| id |])
      , ("prev_log", [t| JSValue |], [| id |])
      , ("tmout",    [t| Int     |], [| id |])
      ])
   , (luxiReqArchiveJob,
-     [ ("job", [t| Int |], [| show |]) ]
+     [ ("job", [t| Int |], [| id |]) ]
     )
   , (luxiReqAutoArchiveJobs,
      [ ("age",   [t| Int |], [| id |])
      , ("tmout", [t| Int |], [| id |])
      ])
   , (luxiReqCancelJob,
-     [ ("job", [t| Int |], [| show |]) ]
+     [ ("job", [t| Int |], [| id |]) ]
     )
   , (luxiReqSetDrainFlag,
      [ ("flag", [t| Bool |], [| id |]) ]
@@ -267,7 +268,7 @@ decodeCall (LuxiCall call args) =
   case call of
     ReqQueryJobs -> do
               (jid, jargs) <- fromJVal args
-              rid <- mapM (tryRead "parsing job ID" . fromJSString) jid
+              rid <- mapM parseJobId jid
               let rargs = map fromJSString jargs
               return $ QueryJobs rid rargs
     ReqQueryInstances -> do
@@ -307,11 +308,11 @@ decodeCall (LuxiCall call args) =
                     J.readJSON d `ap`
                     J.readJSON e
                   _ -> J.Error "Not enough values"
-              rid <- tryRead "parsing job ID" jid
+              rid <- parseJobId jid
               return $ WaitForJobChange rid fields pinfo pidx wtmout
     ReqArchiveJob -> do
               [jid] <- fromJVal args
-              rid <- tryRead "parsing job ID" jid
+              rid <- parseJobId jid
               return $ ArchiveJob rid
     ReqAutoArchiveJobs -> do
               (age, tmout) <- fromJVal args
@@ -327,7 +328,7 @@ decodeCall (LuxiCall call args) =
               return $ QueryTags kind name
     ReqCancelJob -> do
               [job] <- fromJVal args
-              rid <- tryRead "parsing job ID" job
+              rid <- parseJobId job
               return $ CancelJob rid
     ReqSetDrainFlag -> do
               [flag] <- fromJVal args
@@ -359,7 +360,12 @@ callMethod method s = do
 
 -- | Parses a job ID.
 parseJobId :: JSValue -> Result JobId
-parseJobId (JSString x) = Ok $ fromJSString x
+parseJobId (JSString x) = tryRead "parsing job id" . fromJSString $ x
+parseJobId (JSRational _ x) =
+  if denominator x /= 1
+    then Bad $ "Got fractional job ID from master daemon?! Value:" ++ show x
+    -- FIXME: potential integer overflow here on 32-bit platforms
+    else Ok . fromIntegral . numerator $ x
 parseJobId x = Bad $ "Wrong type/value for job id: " ++ show x
 
 -- | Parse job submission result.
@@ -383,7 +389,7 @@ submitManyJobs s jobs = do
 -- | Custom queryJobs call.
 queryJobsStatus :: Client -> [JobId] -> IO (Result [JobStatus])
 queryJobsStatus s jids = do
-  rval <- callMethod (QueryJobs (map read jids) ["status"]) s
+  rval <- callMethod (QueryJobs jids ["status"]) s
   return $ case rval of
              Bad x -> Bad x
              Ok y -> case J.readJSON y::(J.Result [[JobStatus]]) of
