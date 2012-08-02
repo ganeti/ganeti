@@ -614,7 +614,7 @@ def RecreateDisks(opts, args):
 
       if not ht.TDict(ddict):
         msg = "Invalid disk/%d value: expected dict, got %s" % (didx, ddict)
-        raise errors.OpPrereqError(msg)
+        raise errors.OpPrereqError(msg, errors.ECODE_INVAL)
 
       if constants.IDISK_SIZE in ddict:
         try:
@@ -622,7 +622,7 @@ def RecreateDisks(opts, args):
             utils.ParseUnit(ddict[constants.IDISK_SIZE])
         except ValueError, err:
           raise errors.OpPrereqError("Invalid disk size for disk %d: %s" %
-                                     (didx, err))
+                                     (didx, err), errors.ECODE_INVAL)
 
       disks.append((didx, ddict))
 

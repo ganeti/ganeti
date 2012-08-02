@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2010, 2011 Google Inc.
+# Copyright (C) 2010, 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -327,7 +327,7 @@ def MakeFilter(args, force_filter, namefield=None):
       (filter_text, ) = args
     except (TypeError, ValueError):
       raise errors.OpPrereqError("Exactly one argument must be given as a"
-                                 " filter")
+                                 " filter", errors.ECODE_INVAL)
 
     result = ParseFilter(filter_text)
   elif args:

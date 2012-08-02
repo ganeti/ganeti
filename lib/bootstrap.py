@@ -318,12 +318,13 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
     ipcls = netutils.IPAddress.GetClassFromIpVersion(primary_ip_version)
   except errors.ProgrammerError:
     raise errors.OpPrereqError("Invalid primary ip version: %d." %
-                               primary_ip_version)
+                               primary_ip_version, errors.ECODE_INVAL)
 
   hostname = netutils.GetHostname(family=ipcls.family)
   if not ipcls.IsValid(hostname.ip):
     raise errors.OpPrereqError("This host's IP (%s) is not a valid IPv%d"
-                               " address." % (hostname.ip, primary_ip_version))
+                               " address." % (hostname.ip, primary_ip_version),
+                               errors.ECODE_INVAL)
 
   if ipcls.IsLoopback(hostname.ip):
     raise errors.OpPrereqError("This host's IP (%s) resolves to a loopback"
@@ -363,7 +364,8 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
   if master_netmask is not None:
     if not ipcls.ValidateNetmask(master_netmask):
       raise errors.OpPrereqError("CIDR netmask (%s) not valid for IPv%s " %
-                                  (master_netmask, primary_ip_version))
+                                  (master_netmask, primary_ip_version),
+                                 errors.ECODE_INVAL)
   else:
     master_netmask = ipcls.iplen
 
@@ -461,7 +463,8 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
       unknown_params = param_keys - default_param_keys
       raise errors.OpPrereqError("Invalid parameters for disk template %s:"
                                  " %s" % (template,
-                                          utils.CommaJoin(unknown_params)))
+                                          utils.CommaJoin(unknown_params)),
+                                 errors.ECODE_INVAL)
     utils.ForceDictType(dt_params, constants.DISK_DT_TYPES)
   try:
     utils.VerifyDictOptions(diskparams, constants.DISK_DT_DEFAULTS)

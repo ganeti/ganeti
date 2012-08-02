@@ -416,7 +416,8 @@ def _ExtractTagsObject(opts, args):
                 constants.TAG_NODE,
                 constants.TAG_INSTANCE):
     if not args:
-      raise errors.OpPrereqError("no arguments passed to the command")
+      raise errors.OpPrereqError("no arguments passed to the command",
+                                 errors.ECODE_INVAL)
     name = args.pop(0)
     retval = kind, name
   else:
@@ -483,7 +484,7 @@ def AddTags(opts, args):
   kind, name = _ExtractTagsObject(opts, args)
   _ExtendTags(opts, args)
   if not args:
-    raise errors.OpPrereqError("No tags to be added")
+    raise errors.OpPrereqError("No tags to be added", errors.ECODE_INVAL)
   op = opcodes.OpTagsSet(kind=kind, name=name, tags=args)
   SubmitOrSend(op, opts)
 
@@ -500,7 +501,7 @@ def RemoveTags(opts, args):
   kind, name = _ExtractTagsObject(opts, args)
   _ExtendTags(opts, args)
   if not args:
-    raise errors.OpPrereqError("No tags to be removed")
+    raise errors.OpPrereqError("No tags to be removed", errors.ECODE_INVAL)
   op = opcodes.OpTagsDel(kind=kind, name=name, tags=args)
   SubmitOrSend(op, opts)
 
@@ -2091,13 +2092,14 @@ def GetClient():
       ss.GetMasterNode()
     except errors.ConfigurationError:
       raise errors.OpPrereqError("Cluster not initialized or this machine is"
-                                 " not part of a cluster")
+                                 " not part of a cluster",
+                                 errors.ECODE_INVAL)
 
     master, myself = ssconf.GetMasterAndMyself(ss=ss)
     if master != myself:
       raise errors.OpPrereqError("This is not the master node, please connect"
                                  " to node '%s' and rerun the command" %
-                                 master)
+                                 master, errors.ECODE_INVAL)
     raise
   return client
 
@@ -2271,7 +2273,8 @@ def ParseNicOption(optvalue):
   try:
     nic_max = max(int(nidx[0]) + 1 for nidx in optvalue)
   except (TypeError, ValueError), err:
-    raise errors.OpPrereqError("Invalid NIC index passed: %s" % str(err))
+    raise errors.OpPrereqError("Invalid NIC index passed: %s" % str(err),
+                               errors.ECODE_INVAL)
 
   nics = [{}] * nic_max
   for nidx, ndict in optvalue:
@@ -2279,7 +2282,7 @@ def ParseNicOption(optvalue):
 
     if not isinstance(ndict, dict):
       raise errors.OpPrereqError("Invalid nic/%d value: expected dict,"
-                                 " got %s" % (nidx, ndict))
+                                 " got %s" % (nidx, ndict), errors.ECODE_INVAL)
 
     utils.ForceDictType(ndict, constants.INIC_PARAMS_TYPES)
 
@@ -2323,15 +2326,16 @@ def GenericInstanceCreate(mode, opts, args):
   if opts.disk_template == constants.DT_DISKLESS:
     if opts.disks or opts.sd_size is not None:
       raise errors.OpPrereqError("Diskless instance but disk"
-                                 " information passed")
+                                 " information passed", errors.ECODE_INVAL)
     disks = []
   else:
     if (not opts.disks and not opts.sd_size
         and mode == constants.INSTANCE_CREATE):
-      raise errors.OpPrereqError("No disk information specified")
+      raise errors.OpPrereqError("No disk information specified",
+                                 errors.ECODE_INVAL)
     if opts.disks and opts.sd_size is not None:
       raise errors.OpPrereqError("Please use either the '--disk' or"
-                                 " '-s' option")
+                                 " '-s' option", errors.ECODE_INVAL)
     if opts.sd_size is not None:
       opts.disks = [(0, {constants.IDISK_SIZE: opts.sd_size})]
 
@@ -2339,7 +2343,8 @@ def GenericInstanceCreate(mode, opts, args):
       try:
         disk_max = max(int(didx[0]) + 1 for didx in opts.disks)
       except ValueError, err:
-        raise errors.OpPrereqError("Invalid disk index passed: %s" % str(err))
+        raise errors.OpPrereqError("Invalid disk index passed: %s" % str(err),
+                                   errors.ECODE_INVAL)
       disks = [{}] * disk_max
     else:
       disks = []
@@ -2347,25 +2352,25 @@ def GenericInstanceCreate(mode, opts, args):
       didx = int(didx)
       if not isinstance(ddict, dict):
         msg = "Invalid disk/%d value: expected dict, got %s" % (didx, ddict)
-        raise errors.OpPrereqError(msg)
+        raise errors.OpPrereqError(msg, errors.ECODE_INVAL)
       elif constants.IDISK_SIZE in ddict:
         if constants.IDISK_ADOPT in ddict:
           raise errors.OpPrereqError("Only one of 'size' and 'adopt' allowed"
-                                     " (disk %d)" % didx)
+                                     " (disk %d)" % didx, errors.ECODE_INVAL)
         try:
           ddict[constants.IDISK_SIZE] = \
             utils.ParseUnit(ddict[constants.IDISK_SIZE])
         except ValueError, err:
           raise errors.OpPrereqError("Invalid disk size for disk %d: %s" %
-                                     (didx, err))
+                                     (didx, err), errors.ECODE_INVAL)
       elif constants.IDISK_ADOPT in ddict:
         if mode == constants.INSTANCE_IMPORT:
           raise errors.OpPrereqError("Disk adoption not allowed for instance"
-                                     " import")
+                                     " import", errors.ECODE_INVAL)
         ddict[constants.IDISK_SIZE] = 0
       else:
         raise errors.OpPrereqError("Missing size or adoption source for"
-                                   " disk %d" % didx)
+                                   " disk %d" % didx, errors.ECODE_INVAL)
       disks[didx] = ddict
 
   if opts.tags is not None:
@@ -3074,7 +3079,8 @@ def ParseTimespec(value):
   """
   value = str(value)
   if not value:
-    raise errors.OpPrereqError("Empty time specification passed")
+    raise errors.OpPrereqError("Empty time specification passed",
+                               errors.ECODE_INVAL)
   suffix_map = {
     "s": 1,
     "m": 60,
@@ -3086,17 +3092,19 @@ def ParseTimespec(value):
     try:
       value = int(value)
     except (TypeError, ValueError):
-      raise errors.OpPrereqError("Invalid time specification '%s'" % value)
+      raise errors.OpPrereqError("Invalid time specification '%s'" % value,
+                                 errors.ECODE_INVAL)
   else:
     multiplier = suffix_map[value[-1]]
     value = value[:-1]
     if not value: # no data left after stripping the suffix
       raise errors.OpPrereqError("Invalid time specification (only"
-                                 " suffix passed)")
+                                 " suffix passed)", errors.ECODE_INVAL)
     try:
       value = int(value) * multiplier
     except (TypeError, ValueError):
-      raise errors.OpPrereqError("Invalid time specification '%s'" % value)
+      raise errors.OpPrereqError("Invalid time specification '%s'" % value,
+                                 errors.ECODE_INVAL)
   return value
 
 

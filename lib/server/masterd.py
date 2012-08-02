@@ -310,7 +310,8 @@ class ClientOps:
                                              qfilter=qfilter))
       elif what == constants.QR_LOCK:
         if qfilter is not None:
-          raise errors.OpPrereqError("Lock queries can't be filtered")
+          raise errors.OpPrereqError("Lock queries can't be filtered",
+                                     errors.ECODE_INVAL)
         return context.glm.QueryLocks(fields)
       elif what == constants.QR_JOB:
         return queue.QueryJobs(fields, qfilter)

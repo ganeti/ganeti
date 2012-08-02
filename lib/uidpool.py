@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2010 Google Inc.
+# Copyright (C) 2010, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -65,7 +65,7 @@ def ParseUidPool(value, separator=None):
     if n_elements > 2:
       raise errors.OpPrereqError(
           "Invalid user-id range definition. Only one hyphen allowed: %s"
-          % boundaries)
+          % boundaries, errors.ECODE_INVAL)
     try:
       lower = int(boundaries[0])
     except (ValueError, TypeError), err:

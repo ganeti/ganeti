@@ -1655,7 +1655,7 @@ def _CheckIAllocatorOrNode(lu, iallocator_slot, node_slot):
                                  " cluster-wide default iallocator found;"
                                  " please specify either an iallocator or a"
                                  " node, or set a cluster-wide default"
-                                 " iallocator")
+                                 " iallocator", errors.ECODE_INVAL)
 
 
 def _GetDefaultIAllocator(cfg, iallocator):
@@ -3827,10 +3827,10 @@ def _ValidateNetmask(cfg, netmask):
     ipcls = netutils.IPAddress.GetClassFromIpFamily(ip_family)
   except errors.ProgrammerError:
     raise errors.OpPrereqError("Invalid primary ip family: %s." %
-                               ip_family)
+                               ip_family, errors.ECODE_INVAL)
   if not ipcls.ValidateNetmask(netmask):
     raise errors.OpPrereqError("CIDR netmask (%s) not valid" %
-                                (netmask))
+                                (netmask), errors.ECODE_INVAL)
 
 
 class LUClusterSetParams(LogicalUnit):
@@ -4029,7 +4029,7 @@ class LUClusterSetParams(LogicalUnit):
                               " address" % (instance.name, nic_idx))
       if nic_errors:
         raise errors.OpPrereqError("Cannot apply the change, errors:\n%s" %
-                                   "\n".join(nic_errors))
+                                   "\n".join(nic_errors), errors.ECODE_INVAL)
 
     # hypervisor list/parameters
     self.new_hvparams = new_hvp = objects.FillDict(cluster.hvparams, {})
@@ -5957,11 +5957,12 @@ class LUNodeSetParams(LogicalUnit):
                                            self.op.powered == True):
         raise errors.OpPrereqError(("Node %s needs to be turned on before its"
                                     " offline status can be reset") %
-                                   self.op.node_name)
+                                   self.op.node_name, errors.ECODE_STATE)
     elif self.op.powered is not None:
       raise errors.OpPrereqError(("Unable to change powered state for node %s"
                                   " as it does not support out-of-band"
-                                  " handling") % self.op.node_name)
+                                  " handling") % self.op.node_name,
+                                 errors.ECODE_STATE)
 
     # If we're being deofflined/drained, we'll MC ourself if needed
     if (self.op.drained == False or self.op.offline == False or
@@ -6038,10 +6039,10 @@ class LUNodeSetParams(LogicalUnit):
 
       if node.offline:
         if affected_instances:
-          raise errors.OpPrereqError("Cannot change secondary IP address:"
-                                     " offline node has instances (%s)"
-                                     " configured to use it" %
-                                     utils.CommaJoin(affected_instances.keys()))
+          msg = ("Cannot change secondary IP address: offline node has"
+                 " instances (%s) configured to use it" %
+                 utils.CommaJoin(affected_instances.keys()))
+          raise errors.OpPrereqError(msg, errors.ECODE_STATE)
       else:
         # On online nodes, check that no instances are running, and that
         # the node has the new ip and we can reach it.
@@ -8142,7 +8143,8 @@ class TLMigrateInstance(Tasklet):
       if self.target_node == instance.primary_node:
         raise errors.OpPrereqError("Cannot migrate instance %s"
                                    " to its primary (%s)" %
-                                   (instance.name, instance.primary_node))
+                                   (instance.name, instance.primary_node),
+                                   errors.ECODE_STATE)
 
       if len(self.lu.tasklets) == 1:
         # It is safe to release locks only when we're the only tasklet
@@ -9670,7 +9672,9 @@ class LUInstanceCreate(LogicalUnit):
         if self.op.disk_template not in constants.DISK_TEMPLATES:
           raise errors.OpPrereqError("Disk template specified in configuration"
                                      " file is not one of the allowed values:"
-                                     " %s" % " ".join(constants.DISK_TEMPLATES))
+                                     " %s" %
+                                     " ".join(constants.DISK_TEMPLATES),
+                                     errors.ECODE_INVAL)
       else:
         raise errors.OpPrereqError("No disk template specified and the export"
                                    " is missing the disk_template information",
@@ -9783,7 +9787,8 @@ class LUInstanceCreate(LogicalUnit):
 
       cfg_storagedir = get_fsd_fn()
       if not cfg_storagedir:
-        raise errors.OpPrereqError("Cluster file storage dir not defined")
+        raise errors.OpPrereqError("Cluster file storage dir not defined",
+                                   errors.ECODE_STATE)
       joinargs.append(cfg_storagedir)
 
       if self.op.file_storage_dir is not None:
@@ -12654,8 +12659,7 @@ class LUInstanceSetParams(LogicalUnit):
             raise errors.OpPrereqError("This change will prevent the instance"
                                        " from starting, due to %d MB of memory"
                                        " missing on its primary node" %
-                                       miss_mem,
-                                       errors.ECODE_NORES)
+                                       miss_mem, errors.ECODE_NORES)
 
       if be_new[constants.BE_AUTO_BALANCE]:
         for node, nres in nodeinfo.items():
@@ -12681,8 +12685,8 @@ class LUInstanceSetParams(LogicalUnit):
                                                 instance.hypervisor)
       remote_info.Raise("Error checking node %s" % instance.primary_node)
       if not remote_info.payload: # not running already
-        raise errors.OpPrereqError("Instance %s is not running" % instance.name,
-                                   errors.ECODE_STATE)
+        raise errors.OpPrereqError("Instance %s is not running" %
+                                   instance.name, errors.ECODE_STATE)
 
       current_memory = remote_info.payload["memory"]
       if (not self.op.force and
@@ -12704,8 +12708,7 @@ class LUInstanceSetParams(LogicalUnit):
 
     if self.op.disks and instance.disk_template == constants.DT_DISKLESS:
       raise errors.OpPrereqError("Disk operations not supported for"
-                                 " diskless instances",
-                                 errors.ECODE_INVAL)
+                                 " diskless instances", errors.ECODE_INVAL)
 
     def _PrepareNicCreate(_, params, private):
       self._PrepareNicModification(params, private, None, {}, cluster, pnode)
@@ -13212,8 +13215,7 @@ class LUInstanceChangeGroup(LogicalUnit):
       raise errors.OpPrereqError("Can't compute solution for changing group of"
                                  " instance '%s' using iallocator '%s': %s" %
                                  (self.op.instance_name, self.op.iallocator,
-                                  ial.info),
-                                 errors.ECODE_NORES)
+                                  ial.info), errors.ECODE_NORES)
 
     jobs = _LoadNodeEvacResult(self, ial.result, self.op.early_release, False)
 
@@ -13442,7 +13444,7 @@ class LUBackupExport(LogicalUnit):
         self.instance.admin_state == constants.ADMINST_UP and
         not self.op.shutdown):
       raise errors.OpPrereqError("Can not remove instance without shutting it"
-                                 " down before")
+                                 " down before", errors.ECODE_STATE)
 
     if self.op.mode == constants.EXPORT_MODE_LOCAL:
       self.op.target_node = _ExpandNodeName(self.cfg, self.op.target_node)
@@ -13472,7 +13474,8 @@ class LUBackupExport(LogicalUnit):
       try:
         (key_name, hmac_digest, hmac_salt) = self.x509_key_name
       except (TypeError, ValueError), err:
-        raise errors.OpPrereqError("Invalid data for X509 key name: %s" % err)
+        raise errors.OpPrereqError("Invalid data for X509 key name: %s" % err,
+                                   errors.ECODE_INVAL)
 
       if not utils.VerifySha1Hmac(cds, key_name, hmac_digest, salt=hmac_salt):
         raise errors.OpPrereqError("HMAC for X509 key name is wrong",
@@ -14227,9 +14230,8 @@ class LUGroupRemove(LogicalUnit):
 
     # Verify the cluster would not be left group-less.
     if len(self.cfg.GetNodeGroupList()) == 1:
-      raise errors.OpPrereqError("Group '%s' is the only group,"
-                                 " cannot be removed" %
-                                 self.op.group_name,
+      raise errors.OpPrereqError("Group '%s' is the only group, cannot be"
+                                 " removed" % self.op.group_name,
                                  errors.ECODE_STATE)
 
   def BuildHooksEnv(self):
