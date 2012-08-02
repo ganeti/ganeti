@@ -290,17 +290,24 @@ def _CheckGlobbing(text):
   return bool(frozenset(text) & GLOB_DETECTION_CHARS)
 
 
-def _MakeFilterPart(namefield, text):
+def _MakeFilterPart(namefield, text, isnumeric=False):
   """Generates filter for one argument.
 
   """
-  if _CheckGlobbing(text):
+  if isnumeric:
+    try:
+      number = int(text)
+    except (TypeError, ValueError), err:
+      raise errors.OpPrereqError("Invalid integer passed: %s" % str(err),
+                                 errors.ECODE_INVAL)
+    return [OP_EQUAL, namefield, number]
+  elif _CheckGlobbing(text):
     return [OP_REGEXP, namefield, utils.DnsNameGlobPattern(text)]
   else:
     return [OP_EQUAL, namefield, text]
 
 
-def MakeFilter(args, force_filter, namefield=None):
+def MakeFilter(args, force_filter, namefield=None, isnumeric=False):
   """Try to make a filter from arguments to a command.
 
   If the name could be a filter it is parsed as such. If it's just a globbing
@@ -314,6 +321,9 @@ def MakeFilter(args, force_filter, namefield=None):
   @type namefield: string
   @param namefield: Name of field to use for simple filters (use L{None} for
     a default of "name")
+  @type isnumeric: bool
+  @param isnumeric: Whether the namefield type is numeric, as opposed to
+    the default string type; this influences how the filter is built
   @rtype: list
   @return: Query filter
 
@@ -331,7 +341,8 @@ def MakeFilter(args, force_filter, namefield=None):
 
     result = ParseFilter(filter_text)
   elif args:
-    result = [OP_OR] + map(compat.partial(_MakeFilterPart, namefield), args)
+    result = [OP_OR] + map(compat.partial(_MakeFilterPart, namefield,
+                                          isnumeric=isnumeric), args)
   else:
     result = None
 

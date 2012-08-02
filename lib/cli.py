@@ -2861,7 +2861,7 @@ def _WarnUnknownFields(fdefs):
 
 def GenericList(resource, fields, names, unit, separator, header, cl=None,
                 format_override=None, verbose=False, force_filter=False,
-                namefield=None, qfilter=None):
+                namefield=None, qfilter=None, isnumeric=False):
   """Generic implementation for listing all items of a resource.
 
   @param resource: One of L{constants.QR_VIA_LUXI}
@@ -2889,12 +2889,17 @@ def GenericList(resource, fields, names, unit, separator, header, cl=None,
     L{qlang.MakeFilter} for details)
   @type qfilter: list or None
   @param qfilter: Query filter (in addition to names)
+  @param isnumeric: bool
+  @param isnumeric: Whether the namefield's type is numeric, and therefore
+    any simple filters built by namefield should use integer values to
+    reflect that
 
   """
   if not names:
     names = None
 
-  namefilter = qlang.MakeFilter(names, force_filter, namefield=namefield)
+  namefilter = qlang.MakeFilter(names, force_filter, namefield=namefield,
+                                isnumeric=isnumeric)
 
   if qfilter is None:
     qfilter = namefilter
