@@ -1166,14 +1166,19 @@ class TestQueryFilter(unittest.TestCase):
         namefield = "export"
       else:
         namefield = "name"
+      nameval = "abc"
+      namevalempty = ""
+      genval = lambda i: "x%s" % i
+      randvals = ["x17361", "x22015", "x13193", "x15215"]
 
       assert namefield in fielddefs
 
-      innerfilter = [["=", namefield, "x%s" % i] for i in range(4)]
+      reqnames = [genval(i) for i in range(4)]
+      innerfilter = [["=", namefield, v] for v in reqnames]
 
       # No name field
-      q = query.Query(fielddefs, [namefield], qfilter=["=", namefield, "abc"],
-                      namefield=None)
+      q = query.Query(fielddefs, [namefield],
+                      qfilter=["=", namefield, nameval], namefield=None)
       self.assertEqual(q.RequestedNames(), None)
 
       # No filter
@@ -1188,19 +1193,19 @@ class TestQueryFilter(unittest.TestCase):
       # Check order
       q = query.Query(fielddefs, [namefield], qfilter=["|"] + innerfilter,
                       namefield=namefield)
-      self.assertEqual(q.RequestedNames(), ["x0", "x1", "x2", "x3"])
+      self.assertEqual(q.RequestedNames(), reqnames)
 
       # Check reverse order
       q = query.Query(fielddefs, [namefield],
                       qfilter=["|"] + list(reversed(innerfilter)),
                       namefield=namefield)
-      self.assertEqual(q.RequestedNames(), ["x3", "x2", "x1", "x0"])
+      self.assertEqual(q.RequestedNames(), list(reversed(reqnames)))
 
       # Duplicates
       q = query.Query(fielddefs, [namefield],
                       qfilter=["|"] + innerfilter + list(reversed(innerfilter)),
                       namefield=namefield)
-      self.assertEqual(q.RequestedNames(), ["x0", "x1", "x2", "x3"])
+      self.assertEqual(q.RequestedNames(), reqnames)
 
       # Unknown name field
       self.assertRaises(AssertionError, query.Query, fielddefs, [namefield],
@@ -1208,31 +1213,30 @@ class TestQueryFilter(unittest.TestCase):
 
       # Filter with AND
       q = query.Query(fielddefs, [namefield],
-                      qfilter=["|", ["=", namefield, "foo"],
-                                    ["&", ["=", namefield, ""]]],
+                      qfilter=["|", ["=", namefield, nameval],
+                                    ["&", ["=", namefield, namevalempty]]],
                       namefield=namefield)
       self.assertTrue(q.RequestedNames() is None)
 
       # Filter with NOT
       q = query.Query(fielddefs, [namefield],
-                      qfilter=["|", ["=", namefield, "foo"],
-                                    ["!", ["=", namefield, ""]]],
+                      qfilter=["|", ["=", namefield, nameval],
+                                    ["!", ["=", namefield, namevalempty]]],
                       namefield=namefield)
       self.assertTrue(q.RequestedNames() is None)
 
       # Filter with only OR (names must be in correct order)
       q = query.Query(fielddefs, [namefield],
-                      qfilter=["|", ["=", namefield, "x17361"],
-                                    ["|", ["=", namefield, "x22015"]],
-                                    ["|", ["|", ["=", namefield, "x13193"]]],
-                                    ["=", namefield, "x15215"]],
+                      qfilter=["|", ["=", namefield, randvals[0]],
+                                    ["|", ["=", namefield, randvals[1]]],
+                                    ["|", ["|", ["=", namefield, randvals[2]]]],
+                                    ["=", namefield, randvals[3]]],
                       namefield=namefield)
-      self.assertEqual(q.RequestedNames(),
-                       ["x17361", "x22015", "x13193", "x15215"])
+      self.assertEqual(q.RequestedNames(), randvals)
 
   @staticmethod
-  def _GenNestedFilter(namefield, op, depth):
-    nested = ["=", namefield, "value"]
+  def _GenNestedFilter(namefield, op, depth, nameval):
+    nested = ["=", namefield, nameval]
     for i in range(depth):
       nested = [op, nested]
     return nested
@@ -1247,13 +1251,14 @@ class TestQueryFilter(unittest.TestCase):
         namefield = "export"
       else:
         namefield = "name"
+      nameval = "value"
 
       checks = [
         [], ["="], ["=", "foo"], ["unknownop"], ["!"],
         ["=", "_unknown_field", "value"],
-        self._GenNestedFilter(namefield, "|", levels_max),
-        self._GenNestedFilter(namefield, "|", levels_max * 3),
-        self._GenNestedFilter(namefield, "!", levels_max),
+        self._GenNestedFilter(namefield, "|", levels_max, nameval),
+        self._GenNestedFilter(namefield, "|", levels_max * 3, nameval),
+        self._GenNestedFilter(namefield, "!", levels_max, nameval),
         ]
 
       for qfilter in checks:
@@ -1261,7 +1266,7 @@ class TestQueryFilter(unittest.TestCase):
                           fielddefs, None, qfilter)
 
       for op in ["|", "!"]:
-        qfilter = self._GenNestedFilter(namefield, op, levels_max - 1)
+        qfilter = self._GenNestedFilter(namefield, op, levels_max - 1, nameval)
         self.assertTrue(callable(query._CompileFilter(fielddefs, None,
                                                       qfilter)))
 
