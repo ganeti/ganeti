@@ -131,6 +131,9 @@ just going to run Ganeti). More specifically:
 - `curl <http://hackage.haskell.org/package/curl>`_, bindings for the
   curl library, only needed if you want these tools to connect to remote
   clusters (as opposed to the local one)
+- `bytestring <http://hackage.haskell.org/package/bytestring>`_ and
+  `utf8-string <http://hackage.haskell.org/package/utf8-string>`_
+  libraries; these usually come with the GHC compiler
 
 All of these are also available as package in Debian/Ubuntu::
 
@@ -177,7 +180,6 @@ and a few has extra dependencies:
 - `Crypto <http://hackage.haskell.org/package/Crypto>`_, tested with
   version 4.2.4
 - `text <http://hackage.haskell.org/package/text>`_
-- ``bytestring``, which usually comes with the compiler
 - `hinotify <http://hackage.haskell.org/package/hinotify>`_
 
 These libraries are available in Debian Wheezy (but not in Squeeze), so
