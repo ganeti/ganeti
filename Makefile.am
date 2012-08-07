@@ -340,6 +340,7 @@ docrst = \
 	doc/design-shared-storage.rst \
 	doc/design-node-state-cache.rst \
 	doc/design-virtual-clusters.rst \
+	doc/design-query-splitting.rst \
 	doc/devnotes.rst \
 	doc/glossary.rst \
 	doc/hooks.rst \
@@ -350,6 +351,7 @@ docrst = \
 	doc/locking.rst \
 	doc/move-instance.rst \
 	doc/news.rst \
+	doc/ovfconverter.rst \
 	doc/rapi.rst \
 	doc/security.rst \
 	doc/upgrade.rst \
