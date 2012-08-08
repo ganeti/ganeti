@@ -1406,6 +1406,19 @@ distcheck-hook:
 distcheck-release dist-release: export BUILD_RELEASE = 1
 distcheck-release: distcheck
 
+distrebuildcheck: dist
+	set -e; \
+	builddir=$$(mktemp -d $(abs_srcdir)/distrebuildcheck.XXXXXXX); \
+	trap "echo Removing $$builddir; cd $(abs_srcdir); rm -rf $$builddir" EXIT; \
+	cd $$builddir; \
+	tar xzf $(abs_srcdir)/$(distdir).tar.gz; \
+	cd $(distdir); \
+	./configure; \
+	$(MAKE) maintainer-clean; \
+	cp $(abs_srcdir)/vcs-version .; \
+	./configure; \
+	$(MAKE) $(AM_MAKEFLAGS)
+
 dist-release: dist
 	set -e; \
 	for i in $(DIST_ARCHIVES); do \
