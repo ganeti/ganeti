@@ -1001,7 +1001,7 @@ commands = {
     MigrateNode, ARGS_ONE_NODE,
     [FORCE_OPT, NONLIVE_OPT, MIGRATION_MODE_OPT, DST_NODE_OPT,
      IALLOCATOR_OPT, PRIORITY_OPT, IGNORE_IPOLICY_OPT,
-     NORUNTIME_CHGS_OPT, SUBMIT_OPT, PRIORITY_OPT],
+     NORUNTIME_CHGS_OPT, SUBMIT_OPT],
     "[-f] <node>",
     "Migrate all the primary instance on a node away from it"
     " (only for instances of type drbd)"),
