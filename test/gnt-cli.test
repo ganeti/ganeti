@@ -70,3 +70,8 @@ $SCRIPTS/gnt-debug --version
 >>>/^gnt-/
 >>>2
 >>>= 0
+
+# test that verifies all sub-commands can be run with --help, checking
+# that optparse doesn't reject the options list
+set -e; for c in scripts/gnt-*; do for i in $($c --help|grep '^ [^ ]'|awk '{print $1}'); do echo Checking command ${c##/}/$i; $c $i --help >/dev/null; done; done
+>>>= 0
