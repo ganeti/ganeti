@@ -201,7 +201,10 @@ ALL_CERT_FILES = frozenset([
   SPICE_CACERT_FILE,
   ])
 
+#: LUXI socket used for job execution
 MASTER_SOCKET = SOCKET_DIR + "/ganeti-master"
+#: LUXI socket used for queries only
+QUERY_SOCKET = SOCKET_DIR + "/ganeti-query"
 
 NODED = "ganeti-noded"
 CONFD = "ganeti-confd"
