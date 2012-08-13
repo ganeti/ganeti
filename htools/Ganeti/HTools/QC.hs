@@ -51,6 +51,7 @@ module Ganeti.HTools.QC
   ) where
 
 import Test.QuickCheck
+import Test.QuickCheck.Monadic (assert, monadicIO, run)
 import Text.Printf (printf)
 import Data.List (intercalate, nub, isPrefixOf)
 import Data.Maybe
@@ -60,6 +61,11 @@ import qualified System.Console.GetOpt as GetOpt
 import qualified Text.JSON as J
 import qualified Data.Map
 import qualified Data.IntMap as IntMap
+import Control.Concurrent (forkIO)
+import Control.Exception (bracket, catchJust)
+import System.Directory (getTemporaryDirectory, removeFile)
+import System.IO (hClose, openTempFile)
+import System.IO.Error (isEOFErrorType, ioeGetErrorType)
 
 import qualified Ganeti.Confd as Confd
 import qualified Ganeti.Config as Config
@@ -286,6 +292,9 @@ instance Arbitrary DNSChar where
   arbitrary = do
     x <- elements (['a'..'z'] ++ ['0'..'9'] ++ "_-")
     return (DNSChar x)
+
+instance Show DNSChar where
+  show = show . dnsGetChar
 
 -- | Generates a single name component.
 getName :: Gen String
@@ -1820,8 +1829,63 @@ prop_Luxi_CallEncoding :: Luxi.LuxiOp -> Property
 prop_Luxi_CallEncoding op =
   (Luxi.validateCall (Luxi.buildCall op) >>= Luxi.decodeCall) ==? Types.Ok op
 
+-- | Helper to a get a temporary file name.
+getTempFileName :: IO FilePath
+getTempFileName = do
+  tempdir <- getTemporaryDirectory
+  (fpath, handle) <- openTempFile tempdir "luxitest"
+  _ <- hClose handle
+  removeFile fpath
+  return fpath
+
+-- | Helper to execute recvMsg but return Nothing if we reach EOF.
+handleEOF :: (IO a) -> IO (Maybe a)
+handleEOF action =
+  catchJust
+    (\e -> if isEOFErrorType (ioeGetErrorType e) then Just () else Nothing)
+    (liftM Just action)
+    (\_ -> return Nothing)
+
+-- | Server ping-pong helper.
+luxiServerPong :: Luxi.Client -> IO ()
+luxiServerPong c = do
+  msg <- handleEOF (Luxi.recvMsg c)
+  case msg of
+    Nothing -> return ()
+    Just m -> Luxi.sendMsg c m >> luxiServerPong c
+
+-- | Client ping-pong helper.
+luxiClientPong :: Luxi.Client -> [String] -> IO [String]
+luxiClientPong c =
+  mapM (\m -> Luxi.sendMsg c m >> Luxi.recvMsg c)
+
+-- | Monadic check that, given a server socket, we can connect via a
+-- client to it, and that we can send a list of arbitrary messages and
+-- get back what we sent.
+prop_Luxi_ClientServer :: [[DNSChar]] -> Property
+prop_Luxi_ClientServer dnschars = monadicIO $ do
+  let msgs = map (map dnsGetChar) dnschars
+  fpath <- run $ getTempFileName
+  -- we need to create the server first, otherwise (if we do it in the
+  -- forked thread) the client could try to connect to it before it's
+  -- ready
+  server <- run $ Luxi.getServer fpath
+  -- fork the server responder
+  _ <- run $ forkIO $
+    bracket
+      (Luxi.acceptClient server)
+      (\c -> Luxi.closeClient c >> removeFile fpath)
+      luxiServerPong
+  replies <- run $
+    bracket
+      (Luxi.getClient fpath)
+      Luxi.closeClient
+      (\c -> luxiClientPong c msgs)
+  assert $ replies == msgs
+
 testSuite "LUXI"
           [ 'prop_Luxi_CallEncoding
+          , 'prop_Luxi_ClientServer
           ]
 
 -- * Ssconf tests

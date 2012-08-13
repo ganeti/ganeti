@@ -34,6 +34,8 @@ module Ganeti.Luxi
   , JobId
   , checkRS
   , getClient
+  , getServer
+  , acceptClient
   , closeClient
   , callMethod
   , submitManyJobs
@@ -41,6 +43,8 @@ module Ganeti.Luxi
   , buildCall
   , validateCall
   , decodeCall
+  , recvMsg
+  , sendMsg
   ) where
 
 import Data.IORef
@@ -215,6 +219,23 @@ getClient path = do
   rf <- newIORef B.empty
   h <- S.socketToHandle s ReadWriteMode
   return Client { socket=h, rbuf=rf }
+
+-- | Creates and returns a server endpoint.
+getServer :: FilePath -> IO S.Socket
+getServer path = do
+  s <- S.socket S.AF_UNIX S.Stream S.defaultProtocol
+  S.bindSocket s (S.SockAddrUnix path)
+  S.listen s 5 -- 5 is the max backlog
+  return s
+
+-- | Accepts a client
+acceptClient :: S.Socket -> IO Client
+acceptClient s = do
+  -- second return is the address of the client, which we ignore here
+  (client_socket, _) <- S.accept s
+  new_buffer <- newIORef B.empty
+  handle <- S.socketToHandle client_socket ReadWriteMode
+  return Client { socket=handle, rbuf=new_buffer }
 
 -- | Closes the client socket.
 closeClient :: Client -> IO ()
