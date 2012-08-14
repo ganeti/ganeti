@@ -35,11 +35,14 @@ module Ganeti.HTools.JSON
   , asObjectList
   , tryFromObj
   , toArray
+  , Container(..)
   )
   where
 
+import Control.Arrow (second)
 import Control.Monad (liftM)
 import Data.Maybe (fromMaybe)
+import qualified Data.Map as Map
 import Text.Printf (printf)
 
 import qualified Text.JSON as J
@@ -132,3 +135,28 @@ tryFromObj t o = annotateResult t . fromObj o
 toArray :: (Monad m) => J.JSValue -> m [J.JSValue]
 toArray (J.JSArray arr) = return arr
 toArray o = fail $ "Invalid input, expected array but got " ++ show o
+
+-- * Container type (special type for JSON serialisation)
+
+-- | The container type, a wrapper over Data.Map
+newtype Container a = Container { fromContainer :: Map.Map String a }
+  deriving (Show, Read, Eq)
+
+-- | Container loader.
+readContainer :: (Monad m, J.JSON a) =>
+                 J.JSObject J.JSValue -> m (Container a)
+readContainer obj = do
+  let kjvlist = J.fromJSObject obj
+  kalist <- mapM (\(k, v) -> fromKeyValue k v >>= \a -> return (k, a)) kjvlist
+  return $ Container (Map.fromList kalist)
+
+-- | Container dumper.
+showContainer :: (J.JSON a) => Container a -> J.JSValue
+showContainer =
+  J.makeObj . map (second J.showJSON) . Map.toList . fromContainer
+
+instance (J.JSON a) => J.JSON (Container a) where
+  showJSON = showContainer
+  readJSON (J.JSObject o) = readContainer o
+  readJSON v = fail $ "Failed to load container, expected object but got "
+               ++ show v

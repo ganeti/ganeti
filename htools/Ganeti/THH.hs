@@ -54,11 +54,9 @@ module Ganeti.THH ( declareSADT
                   , Container
                   ) where
 
-import Control.Arrow
 import Control.Monad (liftM, liftM2)
 import Data.Char
 import Data.List
-import qualified Data.Map as M
 import qualified Data.Set as Set
 import Language.Haskell.TH
 
@@ -67,8 +65,6 @@ import qualified Text.JSON as JSON
 import Ganeti.HTools.JSON
 
 -- * Exported types
-
-type Container = M.Map String
 
 -- | Serialised field data type.
 data Field = Field { fieldName        :: String
@@ -155,7 +151,7 @@ loadFn :: Field   -- ^ The field definition
        -> Q Exp   -- ^ The entire object in JSON object format
        -> Q Exp   -- ^ Resulting expression
 loadFn (Field { fieldIsContainer = True }) expr _ =
-  [| $expr >>= readContainer |]
+  [| $expr |]
 loadFn (Field { fieldRead = Just readfn }) expr o = [| $expr >>= $readfn $o |]
 loadFn _ expr _ = expr
 
@@ -224,18 +220,6 @@ reprE = either stringE varE
 appFn :: Exp -> Exp -> Exp
 appFn f x | f == VarE 'id = x
           | otherwise = AppE f x
-
--- | Container loader
-readContainer :: (Monad m, JSON.JSON a) =>
-                 JSON.JSObject JSON.JSValue -> m (Container a)
-readContainer obj = do
-  let kjvlist = JSON.fromJSObject obj
-  kalist <- mapM (\(k, v) -> fromKeyValue k v >>= \a -> return (k, a)) kjvlist
-  return $ M.fromList kalist
-
--- | Container dumper
-showContainer :: (JSON.JSON a) => Container a -> JSON.JSValue
-showContainer = JSON.makeObj . map (second JSON.showJSON) . M.toList
 
 -- * Template code for simple raw type-equivalent ADTs
 
@@ -639,7 +623,7 @@ genSaveObject save_fn sname fields = do
 
 saveObjectField :: Name -> Field -> Q Exp
 saveObjectField fvar field
-  | isContainer = [| [( $nameE , JSON.showJSON . showContainer $ $fvarE)] |]
+  | isContainer = [| [( $nameE , JSON.showJSON $fvarE)] |]
   | fisOptional = [| case $(varE fvar) of
                       Nothing -> []
                       Just v -> [( $nameE, JSON.showJSON v)]

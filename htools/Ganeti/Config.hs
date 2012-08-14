@@ -92,7 +92,7 @@ instSecondaryNodes inst =
 -- | Get instances of a given node.
 getNodeInstances :: ConfigData -> String -> ([Instance], [Instance])
 getNodeInstances cfg nname =
-    let all_inst = M.elems . configInstances $ cfg
+    let all_inst = M.elems . fromContainer . configInstances $ cfg
         pri_inst = filter ((== nname) . instPrimaryNode) all_inst
         sec_inst = filter ((nname `S.member`) . instSecondaryNodes) all_inst
     in (pri_inst, sec_inst)
@@ -100,7 +100,8 @@ getNodeInstances cfg nname =
 -- | Returns the default cluster link.
 getDefaultNicLink :: ConfigData -> String
 getDefaultNicLink =
-  nicpLink . (M.! C.ppDefault) . clusterNicparams . configCluster
+  nicpLink . (M.! C.ppDefault) . fromContainer .
+  clusterNicparams . configCluster
 
 -- | Returns instances of a given link.
 getInstancesIpByLink :: LinkIpMap -> String -> [String]
@@ -123,11 +124,12 @@ getItem kind name allitems = do
 
 -- | Looks up a node.
 getNode :: ConfigData -> String -> Result Node
-getNode cfg name = getItem "Node" name (configNodes cfg)
+getNode cfg name = getItem "Node" name (fromContainer $ configNodes cfg)
 
 -- | Looks up an instance.
 getInstance :: ConfigData -> String -> Result Instance
-getInstance cfg name = getItem "Instance" name (configInstances cfg)
+getInstance cfg name =
+  getItem "Instance" name (fromContainer $ configInstances cfg)
 
 -- | Looks up an instance's primary node.
 getInstPrimaryNode :: ConfigData -> String -> Result Node
@@ -183,8 +185,8 @@ getInstMinorsForNode node inst =
 buildLinkIpInstnameMap :: ConfigData -> LinkIpMap
 buildLinkIpInstnameMap cfg =
   let cluster = configCluster cfg
-      instances = M.elems . configInstances $ cfg
-      defparams = (M.!) (clusterNicparams cluster) C.ppDefault
+      instances = M.elems . fromContainer . configInstances $ cfg
+      defparams = (M.!) (fromContainer $ clusterNicparams cluster) C.ppDefault
       nics = concatMap (\i -> [(instName i, nic) | nic <- instNics i])
              instances
   in foldl' (\accum (iname, nic) ->

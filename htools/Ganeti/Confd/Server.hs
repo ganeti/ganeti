@@ -137,7 +137,7 @@ getClusterHmac = fmap B.unpack $ B.readFile C.confdHmacKey
 nodeRole :: ConfigData -> String -> Result ConfdNodeRole
 nodeRole cfg name =
   let cmaster = clusterMasterNode . configCluster $ cfg
-      mnode = M.lookup name . configNodes $ cfg
+      mnode = M.lookup name . fromContainer . configNodes $ cfg
   in case mnode of
        Nothing -> Bad "Node not found"
        Just node | cmaster == name -> Ok NodeRoleMaster
@@ -194,7 +194,7 @@ buildResponse cdata (ConfdRequest { confdRqType = ReqNodePipList }) =
   -- versions of the library
   return (ReplyStatusOk, J.showJSON $
           M.foldlWithKey (\accu _ n -> nodePrimaryIp n:accu) []
-          (configNodes (fst cdata)))
+          (fromContainer . configNodes . fst $ cdata))
 
 buildResponse cdata (ConfdRequest { confdRqType = ReqMcPipList }) =
   -- note: we use foldlWithKey because that's present accross more
@@ -203,7 +203,7 @@ buildResponse cdata (ConfdRequest { confdRqType = ReqMcPipList }) =
           M.foldlWithKey (\accu _ n -> if nodeMasterCandidate n
                                          then nodePrimaryIp n:accu
                                          else accu) []
-          (configNodes (fst cdata)))
+          (fromContainer . configNodes . fst $ cdata))
 
 buildResponse (cfg, linkipmap)
               req@(ConfdRequest { confdRqType = ReqInstIpsList }) = do
@@ -234,7 +234,7 @@ buildResponse cdata req@(ConfdRequest { confdRqType = ReqNodeDrbd }) = do
                  _ -> fail $ "Invalid query type " ++ show (confdRqQuery req)
   node <- getNode cfg node_name
   let minors = concatMap (getInstMinorsForNode (nodeName node)) .
-               M.elems . configInstances $ cfg
+               M.elems . fromContainer . configInstances $ cfg
       encoded = [J.JSArray [J.showJSON a, J.showJSON b, J.showJSON c,
                              J.showJSON d, J.showJSON e, J.showJSON f] |
                  (a, b, c, d, e, f) <- minors]
