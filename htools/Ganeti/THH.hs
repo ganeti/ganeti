@@ -42,7 +42,6 @@ module Ganeti.THH ( declareSADT
                   , defaultField
                   , optionalField
                   , renameField
-                  , containerField
                   , customField
                   , timeStampFields
                   , uuidFields
@@ -51,7 +50,6 @@ module Ganeti.THH ( declareSADT
                   , buildObject
                   , buildObjectSerialisation
                   , buildParam
-                  , Container
                   ) where
 
 import Control.Monad (liftM, liftM2)
@@ -62,8 +60,6 @@ import Language.Haskell.TH
 
 import qualified Text.JSON as JSON
 
-import Ganeti.HTools.JSON
-
 -- * Exported types
 
 -- | Serialised field data type.
@@ -73,7 +69,6 @@ data Field = Field { fieldName        :: String
                    , fieldShow        :: Maybe (Q Exp)
                    , fieldDefault     :: Maybe (Q Exp)
                    , fieldConstr      :: Maybe String
-                   , fieldIsContainer :: Bool
                    , fieldIsOptional  :: Bool
                    }
 
@@ -86,7 +81,6 @@ simpleField fname ftype =
         , fieldShow        = Nothing
         , fieldDefault     = Nothing
         , fieldConstr      = Nothing
-        , fieldIsContainer = False
         , fieldIsOptional  = False
         }
 
@@ -102,10 +96,6 @@ defaultField defval field = field { fieldDefault = Just defval }
 -- | Marks a field optional (turning its base type into a Maybe).
 optionalField :: Field -> Field
 optionalField field = field { fieldIsOptional = True }
-
--- | Marks a field as a container.
-containerField :: Field -> Field
-containerField field = field { fieldIsContainer = True }
 
 -- | Sets custom functions on a field.
 customField :: Name    -- ^ The name of the read function
@@ -130,8 +120,7 @@ fieldVariable f =
     _ -> map (\c -> if c == '-' then '_' else c) $ fieldName f
 
 actualFieldType :: Field -> Q Type
-actualFieldType f | fieldIsContainer f = [t| Container $t |]
-                  | fieldIsOptional f  = [t| Maybe $t     |]
+actualFieldType f | fieldIsOptional f  = [t| Maybe $t     |]
                   | otherwise = t
                   where t = fieldType f
 
@@ -150,8 +139,6 @@ loadFn :: Field   -- ^ The field definition
        -> Q Exp   -- ^ The value of the field as existing in the JSON message
        -> Q Exp   -- ^ The entire object in JSON object format
        -> Q Exp   -- ^ Resulting expression
-loadFn (Field { fieldIsContainer = True }) expr _ =
-  [| $expr |]
 loadFn (Field { fieldRead = Just readfn }) expr o = [| $expr >>= $readfn $o |]
 loadFn _ expr _ = expr
 
@@ -623,7 +610,6 @@ genSaveObject save_fn sname fields = do
 
 saveObjectField :: Name -> Field -> Q Exp
 saveObjectField fvar field
-  | isContainer = [| [( $nameE , JSON.showJSON $fvarE)] |]
   | fisOptional = [| case $(varE fvar) of
                       Nothing -> []
                       Just v -> [( $nameE, JSON.showJSON v)]
@@ -633,8 +619,7 @@ saveObjectField fvar field
       Just fn -> [| let (actual, extra) = $fn $fvarE
                     in extra ++ [( $nameE, JSON.showJSON actual)]
                   |]
-  where isContainer = fieldIsContainer field
-        fisOptional  = fieldIsOptional field
+  where fisOptional  = fieldIsOptional field
         nameE = stringE (fieldName field)
         fvarE = varE fvar
 

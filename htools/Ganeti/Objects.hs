@@ -357,9 +357,9 @@ $(buildObject "Cluster" "cluster" $
   , simpleField "enabled_hypervisors"       [t| [String] |]
 -- , simpleField "hvparams"                [t| [(String, [(String, String)])] |]
 -- , simpleField "os_hvp"                  [t| [(String, String)] |]
-  , containerField $ simpleField "beparams" [t| FilledBEParams |]
+  , simpleField "beparams" [t| Container FilledBEParams |]
 -- , simpleField "osparams"                [t| [(String, String)] |]
-  , containerField $ simpleField "nicparams" [t| FilledNICParams    |]
+  , simpleField "nicparams" [t| Container FilledNICParams    |]
 --  , simpleField "ndparams"                  [t| FilledNDParams |]
   , simpleField "candidate_pool_size"       [t| Int                |]
   , simpleField "modify_etc_hosts"          [t| Bool               |]
@@ -381,10 +381,10 @@ $(buildObject "Cluster" "cluster" $
 
 $(buildObject "ConfigData" "config" $
 --  timeStampFields ++
-  [ simpleField "version"       [t| Int                |]
-  , simpleField "cluster"       [t| Cluster            |]
-  , containerField $ simpleField "nodes"      [t| Node     |]
-  , containerField $ simpleField "nodegroups" [t| NodeGroup |]
-  , containerField $ simpleField "instances"  [t| Instance |]
+  [ simpleField "version"    [t| Int                 |]
+  , simpleField "cluster"    [t| Cluster             |]
+  , simpleField "nodes"      [t| Container Node      |]
+  , simpleField "nodegroups" [t| Container NodeGroup |]
+  , simpleField "instances"  [t| Container Instance  |]
   ]
   ++ serialFields)
