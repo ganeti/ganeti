@@ -47,6 +47,7 @@ module Ganeti.THH ( declareSADT
                   , timeStampFields
                   , uuidFields
                   , serialFields
+                  , tagsFields
                   , buildObject
                   , buildObjectSerialisation
                   , buildParam
@@ -58,6 +59,7 @@ import Control.Monad (liftM, liftM2)
 import Data.Char
 import Data.List
 import qualified Data.Map as M
+import qualified Data.Set as Set
 import Language.Haskell.TH
 
 import qualified Text.JSON as JSON
@@ -171,6 +173,11 @@ serialFields =
 
 uuidFields :: [Field]
 uuidFields = [ simpleField "uuid" [t| String |] ]
+
+-- | Tag field description.
+tagsFields :: [Field]
+tagsFields = [ defaultField [| Set.empty |] $
+               simpleField "tags" [t| Set.Set String |] ]
 
 -- * Helper functions
 

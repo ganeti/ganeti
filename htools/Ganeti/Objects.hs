@@ -372,7 +372,10 @@ $(buildObject "Cluster" "cluster" $
   , simpleField "primary_ip_family"         [t| Int                |]
   , simpleField "prealloc_wipe_disks"       [t| Bool               |]
  ]
- ++ serialFields)
+ ++ serialFields
+ ++ timeStampFields
+ ++ uuidFields
+ ++ tagsFields)
 
 -- * ConfigData definitions
 
