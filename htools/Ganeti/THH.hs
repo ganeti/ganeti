@@ -131,7 +131,7 @@ fieldVariable :: Field -> String
 fieldVariable f =
   case (fieldConstr f) of
     Just name -> ensureLower name
-    _ -> fieldName f
+    _ -> map (\c -> if c == '-' then '_' else c) $ fieldName f
 
 actualFieldType :: Field -> Q Type
 actualFieldType f | fieldIsContainer f = [t| Container $t |]
@@ -390,7 +390,7 @@ deCamelCase =
 -- | Transform an underscore_name into a CamelCase one.
 camelCase :: String -> String
 camelCase = concatMap (ensureUpper . drop 1) .
-            groupBy (\_ b -> b /= '_') . ('_':)
+            groupBy (\_ b -> b /= '_' && b /= '-') . ('_':)
 
 -- | Computes the name of a given constructor.
 constructorName :: Con -> Q Name
@@ -463,7 +463,7 @@ saveConstructor :: String    -- ^ The constructor name
                 -> Q Clause  -- ^ Resulting clause
 saveConstructor sname fields = do
   let cname = mkName sname
-  let fnames = map (mkName . fieldVariable) fields
+  fnames <- mapM (newName . fieldVariable) fields
   let pat = conP cname (map varP fnames)
   let felems = map (uncurry saveObjectField) (zip fnames fields)
       -- now build the OP_ID serialisation
@@ -620,7 +620,7 @@ genSaveObject :: (Name -> Field -> Q Exp)
               -> String -> [Field] -> Q [Dec]
 genSaveObject save_fn sname fields = do
   let name = mkName sname
-  let fnames = map (mkName . fieldVariable) fields
+  fnames <- mapM (newName . fieldVariable) fields
   let pat = conP name (map varP fnames)
   let tdname = mkName ("toDict" ++ sname)
   tdsigt <- [t| $(conT name) -> [(String, JSON.JSValue)] |]
@@ -680,7 +680,7 @@ genLoadObject load_fn sname fields = do
 loadObjectField :: Field -> Q (Name, Stmt)
 loadObjectField field = do
   let name = fieldVariable field
-      fvar = mkName name
+  fvar <- newName name
   -- these are used in all patterns below
   let objvar = varNameE "o"
       objfield = stringE (fieldName field)
@@ -772,7 +772,7 @@ loadPParamField :: Field -> Q (Name, Stmt)
 loadPParamField field = do
   checkNonOptDef field
   let name = fieldName field
-      fvar = mkName name
+  fvar <- newName name
   -- these are used in all patterns below
   let objvar = varNameE "o"
       objfield = stringE name
