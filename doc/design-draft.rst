@@ -16,6 +16,7 @@ Design document drafts
    design-partitioned.rst
    design-monitoring-agent.rst
    design-hroller.rst
+   design-storagespace.rst
 
 .. vim: set textwidth=72 :
 .. Local Variables:
