@@ -8885,6 +8885,7 @@ def _WipeDisks(lu, instance):
   result = lu.rpc.call_blockdev_pause_resume_sync(node,
                                                   (instance.disks, instance),
                                                   True)
+  result.Raise("Failed RPC to node %s for pausing the disk syncing" % node)
 
   for idx, success in enumerate(result.payload):
     if not success:
@@ -8932,12 +8933,17 @@ def _WipeDisks(lu, instance):
                                                     (instance.disks, instance),
                                                     False)
 
-    for idx, success in enumerate(result.payload):
-      if not success:
-        lu.LogWarning("Resume sync of disk %d failed, please have a"
-                      " look at the status and troubleshoot the issue", idx)
-        logging.warn("resume-sync of instance %s for disks %d failed",
-                     instance.name, idx)
+    if result.fail_msg:
+      lu.LogWarning("RPC call to %s for resuming disk syncing failed,"
+                    " please have a look at the status and troubleshoot"
+                    " the issue: %s", node, result.fail_msg)
+    else:
+      for idx, success in enumerate(result.payload):
+        if not success:
+          lu.LogWarning("Resume sync of disk %d failed, please have a"
+                        " look at the status and troubleshoot the issue", idx)
+          logging.warn("resume-sync of instance %s for disks %d failed",
+                       instance.name, idx)
 
 
 def _CreateDisks(lu, instance, to_skip=None, target_node=None):
