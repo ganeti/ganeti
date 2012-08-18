@@ -32,31 +32,40 @@ module Ganeti.Luxi
   , LuxiReq(..)
   , Client
   , JobId
+  , RecvResult(..)
+  , strOfOp
   , checkRS
   , getClient
   , getServer
   , acceptClient
   , closeClient
+  , closeServer
   , callMethod
   , submitManyJobs
   , queryJobsStatus
   , buildCall
+  , buildResponse
   , validateCall
   , decodeCall
   , recvMsg
+  , recvMsgExt
   , sendMsg
   ) where
 
+import Control.Exception (catch)
 import Data.IORef
 import Data.Ratio (numerator, denominator)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.UTF8 as UTF8
 import Data.Word (Word8)
 import Control.Monad
+import Prelude hiding (catch)
 import Text.JSON (encodeStrict, decodeStrict)
 import qualified Text.JSON as J
 import Text.JSON.Types
+import System.Directory (removeFile)
 import System.IO (hClose, hFlush, hWaitForInput, Handle, IOMode(..))
+import System.IO.Error (isEOFError)
 import System.Timeout
 import qualified Network.Socket as S
 
@@ -80,6 +89,12 @@ withTimeout secs descr action = do
     Just v -> return v
 
 -- * Generic protocol functionality
+
+-- | Result of receiving a message from the socket.
+data RecvResult = RecvConnClosed    -- ^ Connection closed
+                | RecvError String  -- ^ Any other error
+                | RecvOk String     -- ^ Successfull receive
+                  deriving (Show, Read, Eq)
 
 -- | The Ganeti job type.
 type JobId = Int
@@ -228,6 +243,13 @@ getServer path = do
   S.listen s 5 -- 5 is the max backlog
   return s
 
+-- | Closes a server endpoint.
+-- FIXME: this should be encapsulated into a nicer type.
+closeServer :: FilePath -> S.Socket -> IO ()
+closeServer path sock = do
+  S.sClose sock
+  removeFile path
+
 -- | Accepts a client
 acceptClient :: S.Socket -> IO Client
 acceptClient s = do
@@ -276,6 +298,14 @@ recvMsg s = do
   writeIORef (rbuf s) nbuf
   return $ UTF8.toString msg
 
+-- | Extended wrapper over recvMsg.
+recvMsgExt :: Client -> IO RecvResult
+recvMsgExt s =
+  catch (liftM RecvOk (recvMsg s)) $ \e ->
+    if isEOFError e
+      then return RecvConnClosed
+      else return $ RecvError (show e)
+
 -- | Serialize a request to String.
 buildCall :: LuxiOp  -- ^ The method
           -> String  -- ^ The serialized form
@@ -286,10 +316,21 @@ buildCall lo =
       jo = toJSObject ja
   in encodeStrict jo
 
+-- | Serialize the response to String.
+buildResponse :: Bool    -- ^ Success
+              -> JSValue -- ^ The arguments
+              -> String  -- ^ The serialized form
+buildResponse success args =
+  let ja = [ (strOfKey Success, JSBool success)
+           , (strOfKey Result, args)]
+      jo = toJSObject ja
+  in encodeStrict jo
+
 -- | Check that luxi request contains the required keys and parse it.
 validateCall :: String -> Result LuxiCall
 validateCall s = do
-  arr <- fromJResult "luxi call" $ decodeStrict s::Result (JSObject JSValue)
+  arr <- fromJResult "parsing top-level luxi message" $
+         decodeStrict s::Result (JSObject JSValue)
   let aobj = fromJSObject arr
   call <- fromObj aobj (strOfKey Method)::Result LuxiReq
   args <- fromObj aobj (strOfKey Args)
