@@ -53,6 +53,8 @@ module Ganeti.Objects
   , Node(..)
   , AllocPolicy(..)
   , NodeGroup(..)
+  , IpFamily(..)
+  , ipFamilyToVersion
   , Cluster(..)
   , ConfigData(..)
   ) where
@@ -251,6 +253,7 @@ $(declareSADT "DiskTemplate"
   , ("DTPlain",      'C.dtPlain)
   , ("DTBlock",      'C.dtBlock)
   , ("DTDrbd8",      'C.dtDrbd8)
+  , ("DTRados",      'C.dtRbd)
   ])
 $(makeJSONInstance ''DiskTemplate)
 
@@ -302,7 +305,7 @@ $(buildObject "Node" "node" $
   , simpleField "group"            [t| String |]
   , simpleField "master_capable"   [t| Bool   |]
   , simpleField "vm_capable"       [t| Bool   |]
---  , simpleField "ndparams"       [t| PartialNDParams |]
+  , simpleField "ndparams"         [t| PartialNDParams |]
   , simpleField "powered"          [t| Bool   |]
   ]
   ++ timeStampFields
@@ -329,12 +332,25 @@ $(makeJSONInstance ''AllocPolicy)
 $(buildObject "NodeGroup" "group" $
   [ simpleField "name"         [t| String |]
   , defaultField  [| [] |] $ simpleField "members" [t| [String] |]
---  , simpleField "ndparams"   [t| PartialNDParams |]
+  , simpleField "ndparams"     [t| PartialNDParams |]
   , simpleField "alloc_policy" [t| AllocPolicy |]
   ]
   ++ timeStampFields
   ++ uuidFields
   ++ serialFields)
+
+-- | IP family type
+$(declareIADT "IpFamily"
+  [ ("IpFamilyV4", 'C.ip4Family)
+  , ("IpFamilyV6", 'C.ip6Family)
+  ])
+$(makeJSONInstance ''IpFamily)
+
+-- | Conversion from IP family to IP version. This is needed because
+-- Python uses both, depending on context.
+ipFamilyToVersion :: IpFamily -> Int
+ipFamilyToVersion IpFamilyV4 = C.ip4Version
+ipFamilyToVersion IpFamilyV6 = C.ip6Version
 
 -- * Cluster definitions
 $(buildObject "Cluster" "cluster" $
@@ -344,32 +360,33 @@ $(buildObject "Cluster" "cluster" $
   , simpleField "mac_prefix"                [t| String   |]
   , simpleField "volume_group_name"         [t| String   |]
   , simpleField "reserved_lvs"              [t| [String] |]
---  , simpleField "drbd_usermode_helper"      [t| String   |]
+  , optionalField $ simpleField "drbd_usermode_helper" [t| String |]
 -- , simpleField "default_bridge"          [t| String   |]
 -- , simpleField "default_hypervisor"      [t| String   |]
   , simpleField "master_node"               [t| String   |]
   , simpleField "master_ip"                 [t| String   |]
   , simpleField "master_netdev"             [t| String   |]
--- , simpleField "master_netmask"          [t| String   |]
+  , simpleField "master_netmask"            [t| Int   |]
+  , simpleField "use_external_mip_script"   [t| Bool |]
   , simpleField "cluster_name"              [t| String   |]
   , simpleField "file_storage_dir"          [t| String   |]
--- , simpleField "shared_file_storage_dir" [t| String   |]
+  , simpleField "shared_file_storage_dir"   [t| String   |]
   , simpleField "enabled_hypervisors"       [t| [String] |]
 -- , simpleField "hvparams"                [t| [(String, [(String, String)])] |]
 -- , simpleField "os_hvp"                  [t| [(String, String)] |]
   , simpleField "beparams" [t| Container FilledBEParams |]
--- , simpleField "osparams"                [t| [(String, String)] |]
+  , simpleField "osparams"                  [t| Container (Container String) |]
   , simpleField "nicparams" [t| Container FilledNICParams    |]
---  , simpleField "ndparams"                  [t| FilledNDParams |]
+  , simpleField "ndparams"                  [t| FilledNDParams |]
   , simpleField "candidate_pool_size"       [t| Int                |]
   , simpleField "modify_etc_hosts"          [t| Bool               |]
   , simpleField "modify_ssh_setup"          [t| Bool               |]
   , simpleField "maintain_node_health"      [t| Bool               |]
-  , simpleField "uid_pool"                  [t| [Int]              |]
+  , simpleField "uid_pool"                  [t| [(Int, Int)]       |]
   , simpleField "default_iallocator"        [t| String             |]
   , simpleField "hidden_os"                 [t| [String]           |]
   , simpleField "blacklisted_os"            [t| [String]           |]
-  , simpleField "primary_ip_family"         [t| Int                |]
+  , simpleField "primary_ip_family"         [t| IpFamily           |]
   , simpleField "prealloc_wipe_disks"       [t| Bool               |]
  ]
  ++ serialFields

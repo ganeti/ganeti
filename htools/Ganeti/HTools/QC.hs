@@ -539,11 +539,14 @@ instance Arbitrary Types.IPolicy where
 instance Arbitrary Objects.Hypervisor where
   arbitrary = elements [minBound..maxBound]
 
+instance Arbitrary Objects.PartialNDParams where
+  arbitrary = Objects.PartialNDParams <$> arbitrary
+
 instance Arbitrary Objects.Node where
   arbitrary = Objects.Node <$> getFQDN <*> getFQDN <*> getFQDN
               <*> arbitrary <*> arbitrary <*> arbitrary <*> getFQDN
               <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
-              <*> arbitrary <*> getFQDN  <*> arbitrary
+              <*> arbitrary <*> arbitrary <*> getFQDN <*> arbitrary
 
 instance Arbitrary Rpc.RpcCallAllInstancesInfo where
   arbitrary = Rpc.RpcCallAllInstancesInfo <$> arbitrary
