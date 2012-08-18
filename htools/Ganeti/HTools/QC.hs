@@ -1847,6 +1847,9 @@ testSuite "JSON"
 
 -- * Luxi tests
 
+instance Arbitrary Luxi.TagObject where
+  arbitrary = elements [minBound..maxBound]
+
 instance Arbitrary Luxi.LuxiReq where
   arbitrary = elements [minBound..maxBound]
 
@@ -1866,7 +1869,7 @@ instance Arbitrary Luxi.LuxiOp where
                               (listOf getFQDN) <*> arbitrary
       Luxi.ReqQueryConfigValues -> Luxi.QueryConfigValues <$> getFields
       Luxi.ReqQueryClusterInfo -> pure Luxi.QueryClusterInfo
-      Luxi.ReqQueryTags -> Luxi.QueryTags <$> getName <*> getFQDN
+      Luxi.ReqQueryTags -> Luxi.QueryTags <$> arbitrary <*> getFQDN
       Luxi.ReqSubmitJob -> Luxi.SubmitJob <$> (resize maxOpCodes arbitrary)
       Luxi.ReqSubmitManyJobs -> Luxi.SubmitManyJobs <$>
                                 (resize maxOpCodes arbitrary)
