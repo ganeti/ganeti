@@ -39,7 +39,7 @@ import qualified Ganeti.HTools.Group as Group
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
 import Ganeti.HTools.JSON
-import Ganeti.Query2 as Query2
+import Ganeti.Qlang as Qlang
 
 {-# ANN module "HLint: ignore Eta reduce" #-}
 
@@ -100,7 +100,7 @@ queryNodesMsg :: L.LuxiOp
 queryNodesMsg =
   L.Query L.QRNode ["name", "mtotal", "mnode", "mfree", "dtotal", "dfree",
                     "ctotal", "offline", "drained", "vm_capable",
-                    "ndp/spindle_count", "group.uuid"] Query2.EmptyFilter
+                    "ndp/spindle_count", "group.uuid"] Qlang.EmptyFilter
 
 -- | The input data for instance query.
 queryInstancesMsg :: L.LuxiOp
@@ -108,7 +108,7 @@ queryInstancesMsg =
   L.Query L.QRInstance ["name", "disk_usage", "be/memory", "be/vcpus",
                         "status", "pnode", "snodes", "tags", "oper_ram",
                         "be/auto_balance", "disk_template",
-                        "be/spindle_use"] Query2.EmptyFilter
+                        "be/spindle_use"] Qlang.EmptyFilter
 
 -- | The input data for cluster query.
 queryClusterInfoMsg :: L.LuxiOp
@@ -118,7 +118,7 @@ queryClusterInfoMsg = L.QueryClusterInfo
 queryGroupsMsg :: L.LuxiOp
 queryGroupsMsg =
   L.Query L.QRGroup ["uuid", "name", "alloc_policy", "ipolicy"]
-   Query2.EmptyFilter
+   Qlang.EmptyFilter
 
 -- | Wraper over 'callMethod' doing node query.
 queryNodes :: L.Client -> IO (Result JSValue)

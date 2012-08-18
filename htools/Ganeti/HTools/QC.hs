@@ -49,7 +49,7 @@ module Ganeti.HTools.QC
   , testLUXI
   , testSsconf
   , testRpc
-  , testQuery2
+  , testQlang
   ) where
 
 import Test.QuickCheck
@@ -79,7 +79,7 @@ import qualified Ganeti.Logging as Logging
 import qualified Ganeti.Luxi as Luxi
 import qualified Ganeti.Objects as Objects
 import qualified Ganeti.OpCodes as OpCodes
-import qualified Ganeti.Query2 as Query2
+import qualified Ganeti.Qlang as Qlang
 import qualified Ganeti.Rpc as Rpc
 import qualified Ganeti.Runtime as Runtime
 import qualified Ganeti.Ssconf as Ssconf
@@ -558,33 +558,33 @@ instance Arbitrary Rpc.RpcCallInstanceList where
 instance Arbitrary Rpc.RpcCallNodeInfo where
   arbitrary = Rpc.RpcCallNodeInfo <$> arbitrary <*> arbitrary
 
--- | Custom 'Query2.Filter' generator (top-level), which enforces a
+-- | Custom 'Qlang.Filter' generator (top-level), which enforces a
 -- (sane) limit on the depth of the generated filters.
-genFilter :: Gen Query2.Filter
+genFilter :: Gen Qlang.Filter
 genFilter = choose (0, 10) >>= genFilter'
 
 -- | Custom generator for filters that correctly halves the state of
 -- the generators at each recursive step, per the QuickCheck
 -- documentation, in order not to run out of memory.
-genFilter' :: Int -> Gen Query2.Filter
+genFilter' :: Int -> Gen Qlang.Filter
 genFilter' 0 =
-  oneof [ return Query2.EmptyFilter
-        , Query2.TrueFilter     <$> getName
-        , Query2.EQFilter       <$> getName <*> value
-        , Query2.LTFilter       <$> getName <*> value
-        , Query2.GTFilter       <$> getName <*> value
-        , Query2.LEFilter       <$> getName <*> value
-        , Query2.GEFilter       <$> getName <*> value
-        , Query2.RegexpFilter   <$> getName <*> getName
-        , Query2.ContainsFilter <$> getName <*> value
+  oneof [ return Qlang.EmptyFilter
+        , Qlang.TrueFilter     <$> getName
+        , Qlang.EQFilter       <$> getName <*> value
+        , Qlang.LTFilter       <$> getName <*> value
+        , Qlang.GTFilter       <$> getName <*> value
+        , Qlang.LEFilter       <$> getName <*> value
+        , Qlang.GEFilter       <$> getName <*> value
+        , Qlang.RegexpFilter   <$> getName <*> getName
+        , Qlang.ContainsFilter <$> getName <*> value
         ]
-    where value = oneof [ Query2.QuotedString <$> getName
-                        , Query2.NumericValue <$> arbitrary
+    where value = oneof [ Qlang.QuotedString <$> getName
+                        , Qlang.NumericValue <$> arbitrary
                         ]
 genFilter' n = do
-  oneof [ Query2.AndFilter  <$> vectorOf n'' (genFilter' n')
-        , Query2.OrFilter   <$> vectorOf n'' (genFilter' n')
-        , Query2.NotFilter  <$> genFilter' n'
+  oneof [ Qlang.AndFilter  <$> vectorOf n'' (genFilter' n')
+        , Qlang.OrFilter   <$> vectorOf n'' (genFilter' n')
+        , Qlang.NotFilter  <$> genFilter' n'
         ]
   where n' = n `div` 2 -- sub-filter generator size
         n'' = max n' 2 -- but we don't want empty or 1-element lists,
@@ -1988,15 +1988,15 @@ testSuite "Rpc"
   , 'prop_Rpc_noffl_request_nodeinfo
   ]
 
--- * Query2 tests
+-- * Qlang tests
 
 -- | Tests that serialisation/deserialisation of filters is
 -- idempotent.
-prop_Query2_Serialisation :: Property
-prop_Query2_Serialisation =
+prop_Qlang_Serialisation :: Property
+prop_Qlang_Serialisation =
   forAll genFilter $ \flt ->
   J.readJSON (J.showJSON flt) ==? J.Ok flt
 
-testSuite "Query2"
-  [ 'prop_Query2_Serialisation
+testSuite "Qlang"
+  [ 'prop_Qlang_Serialisation
   ]

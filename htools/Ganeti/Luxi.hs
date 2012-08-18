@@ -76,7 +76,7 @@ import Ganeti.HTools.Utils
 import Ganeti.Constants
 import Ganeti.Jobs (JobStatus)
 import Ganeti.OpCodes (OpCode)
-import qualified Ganeti.Query2 as Query2
+import qualified Ganeti.Qlang as Qlang
 import Ganeti.THH
 
 -- * Utility functions
@@ -115,7 +115,7 @@ $(genLuxiOp "LuxiOp"
   [(luxiReqQuery,
     [ ("what",    [t| QrViaLuxi |], [| id |])
     , ("fields",  [t| [String]  |], [| id |])
-    , ("qfilter", [t| Query2.Filter  |], [| id |])
+    , ("qfilter", [t| Qlang.Filter |], [| id |])
     ])
   , (luxiReqQueryNodes,
      [ ("names",  [t| [String] |], [| id |])

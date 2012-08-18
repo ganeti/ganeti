@@ -25,7 +25,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 -}
 
-module Ganeti.Query2
+module Ganeti.Qlang
     ( Filter(..)
     , FilterValue(..)
     , Query(..)
@@ -69,7 +69,7 @@ $(declareSADT "FieldType"
   ])
 $(makeJSONInstance ''FieldType)
 
--- | Supported items on which Query2 works.
+-- | Supported items on which Qlang works.
 $(declareSADT "ItemType"
   [ ("QRCluster",  'C.qrCluster )
   , ("QRInstance", 'C.qrInstance )
@@ -82,7 +82,7 @@ $(declareSADT "ItemType"
   ])
 $(makeJSONInstance ''ItemType)
 
--- * Main Query2 queries and responses.
+-- * Main Qlang queries and responses.
 
 -- | Query2 query.
 data Query = Query ItemType Fields (Maybe Filter)
