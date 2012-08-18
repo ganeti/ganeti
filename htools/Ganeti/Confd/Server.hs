@@ -31,7 +31,7 @@ module Ganeti.Confd.Server
 
 import Control.Concurrent
 import Control.Exception
-import Control.Monad (forever)
+import Control.Monad (forever, liftM)
 import qualified Data.ByteString as B
 import Data.IORef
 import Data.List
@@ -54,6 +54,7 @@ import Ganeti.Config
 import Ganeti.Hash
 import Ganeti.Logging
 import qualified Ganeti.Constants as C
+import Ganeti.Queryd (runQueryD)
 
 -- * Types and constants definitions
 
@@ -515,6 +516,12 @@ listener s hmac resp = do
     else logDebug "Invalid magic code!" >> return ()
   return ()
 
+-- | Extract the configuration from our IORef.
+configReader :: CRef -> IO (Result ConfigData)
+configReader cref = do
+  cdata <- readIORef cref
+  return $ liftM fst cdata
+
 -- | Main function.
 main :: DaemonOptions -> IO ()
 main opts = do
@@ -532,5 +539,7 @@ main opts = do
   _ <- forkIO $ onTimeoutTimer inotiaction C.clusterConfFile cref statemvar
   -- fork the polling timer
   _ <- forkIO $ onReloadTimer inotiaction C.clusterConfFile cref statemvar
+  -- launch the queryd listener
+  _ <- forkIO $ runQueryD Nothing (configReader cref)
   -- and finally enter the responder loop
   forever $ listener s hmac (responder cref)
