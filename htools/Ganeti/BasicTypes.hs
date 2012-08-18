@@ -56,6 +56,10 @@ instance Monad Result where
   return = Ok
   fail = Bad
 
+instance Functor Result where
+  fmap _ (Bad msg) = Bad msg
+  fmap fn (Ok val) = Ok (fn val)
+
 instance MonadPlus Result where
   mzero = Bad "zero Result when used as MonadPlus"
   -- for mplus, when we 'add' two Bad values, we concatenate their
