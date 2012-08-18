@@ -27,7 +27,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Ganeti.Luxi
   ( LuxiOp(..)
-  , QrViaLuxi(..)
   , ResultStatus(..)
   , LuxiReq(..)
   , Client
@@ -100,20 +99,10 @@ data RecvResult = RecvConnClosed    -- ^ Connection closed
 -- | The Ganeti job type.
 type JobId = Int
 
-$(declareSADT "QrViaLuxi"
-  [ ("QRLock",     'qrLock)
-  , ("QRInstance", 'qrInstance)
-  , ("QRNode",     'qrNode)
-  , ("QRGroup",    'qrGroup)
-  , ("QROs",       'qrOs)
-  , ("QRJob",      'qrJob)
-  ])
-$(makeJSONInstance ''QrViaLuxi)
-
 -- | Currently supported Luxi operations and JSON serialization.
 $(genLuxiOp "LuxiOp"
   [(luxiReqQuery,
-    [ ("what",    [t| QrViaLuxi |])
+    [ ("what",    [t| Qlang.ItemType |])
     , ("fields",  [t| [String]  |])
     , ("qfilter", [t| Qlang.Filter |])
     ])

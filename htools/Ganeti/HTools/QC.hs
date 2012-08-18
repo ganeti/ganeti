@@ -590,6 +590,9 @@ genFilter' n = do
         n'' = max n' 2 -- but we don't want empty or 1-element lists,
                        -- so use this for and/or filter list length
 
+instance Arbitrary Qlang.ItemType where
+  arbitrary = elements [minBound..maxBound]
+
 -- * Actual tests
 
 -- ** Utils tests
@@ -1845,9 +1848,6 @@ testSuite "JSON"
 -- * Luxi tests
 
 instance Arbitrary Luxi.LuxiReq where
-  arbitrary = elements [minBound..maxBound]
-
-instance Arbitrary Luxi.QrViaLuxi where
   arbitrary = elements [minBound..maxBound]
 
 instance Arbitrary Luxi.LuxiOp where

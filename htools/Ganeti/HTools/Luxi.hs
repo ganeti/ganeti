@@ -98,17 +98,17 @@ genericConvert otype oname oattr =
 -- | The input data for node query.
 queryNodesMsg :: L.LuxiOp
 queryNodesMsg =
-  L.Query L.QRNode ["name", "mtotal", "mnode", "mfree", "dtotal", "dfree",
-                    "ctotal", "offline", "drained", "vm_capable",
-                    "ndp/spindle_count", "group.uuid"] Qlang.EmptyFilter
+  L.Query Qlang.QRNode ["name", "mtotal", "mnode", "mfree", "dtotal", "dfree",
+                        "ctotal", "offline", "drained", "vm_capable",
+                        "ndp/spindle_count", "group.uuid"] Qlang.EmptyFilter
 
 -- | The input data for instance query.
 queryInstancesMsg :: L.LuxiOp
 queryInstancesMsg =
-  L.Query L.QRInstance ["name", "disk_usage", "be/memory", "be/vcpus",
-                        "status", "pnode", "snodes", "tags", "oper_ram",
-                        "be/auto_balance", "disk_template",
-                        "be/spindle_use"] Qlang.EmptyFilter
+  L.Query Qlang.QRInstance ["name", "disk_usage", "be/memory", "be/vcpus",
+                            "status", "pnode", "snodes", "tags", "oper_ram",
+                            "be/auto_balance", "disk_template",
+                            "be/spindle_use"] Qlang.EmptyFilter
 
 -- | The input data for cluster query.
 queryClusterInfoMsg :: L.LuxiOp
@@ -117,7 +117,7 @@ queryClusterInfoMsg = L.QueryClusterInfo
 -- | The input data for node group query.
 queryGroupsMsg :: L.LuxiOp
 queryGroupsMsg =
-  L.Query L.QRGroup ["uuid", "name", "alloc_policy", "ipolicy"]
+  L.Query Qlang.QRGroup ["uuid", "name", "alloc_policy", "ipolicy"]
    Qlang.EmptyFilter
 
 -- | Wraper over 'callMethod' doing node query.

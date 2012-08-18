@@ -34,6 +34,7 @@ module Ganeti.Qlang
     , QueryFieldsResult(..)
     , FieldDefinition(..)
     , ResultEntry(..)
+    , ItemType(..)
     ) where
 
 import Control.Applicative
