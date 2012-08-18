@@ -113,69 +113,69 @@ $(makeJSONInstance ''QrViaLuxi)
 -- | Currently supported Luxi operations and JSON serialization.
 $(genLuxiOp "LuxiOp"
   [(luxiReqQuery,
-    [ ("what",    [t| QrViaLuxi |], [| id |])
-    , ("fields",  [t| [String]  |], [| id |])
-    , ("qfilter", [t| Qlang.Filter |], [| id |])
+    [ ("what",    [t| QrViaLuxi |])
+    , ("fields",  [t| [String]  |])
+    , ("qfilter", [t| Qlang.Filter |])
     ])
   , (luxiReqQueryNodes,
-     [ ("names",  [t| [String] |], [| id |])
-     , ("fields", [t| [String] |], [| id |])
-     , ("lock",   [t| Bool     |], [| id |])
+     [ ("names",  [t| [String] |])
+     , ("fields", [t| [String] |])
+     , ("lock",   [t| Bool     |])
      ])
   , (luxiReqQueryGroups,
-     [ ("names",  [t| [String] |], [| id |])
-     , ("fields", [t| [String] |], [| id |])
-     , ("lock",   [t| Bool     |], [| id |])
+     [ ("names",  [t| [String] |])
+     , ("fields", [t| [String] |])
+     , ("lock",   [t| Bool     |])
      ])
   , (luxiReqQueryInstances,
-     [ ("names",  [t| [String] |], [| id |])
-     , ("fields", [t| [String] |], [| id |])
-     , ("lock",   [t| Bool     |], [| id |])
+     [ ("names",  [t| [String] |])
+     , ("fields", [t| [String] |])
+     , ("lock",   [t| Bool     |])
      ])
   , (luxiReqQueryJobs,
-     [ ("ids",    [t| [Int]    |], [| id |])
-     , ("fields", [t| [String] |], [| id |])
+     [ ("ids",    [t| [Int]    |])
+     , ("fields", [t| [String] |])
      ])
   , (luxiReqQueryExports,
-     [ ("nodes", [t| [String] |], [| id |])
-     , ("lock",  [t| Bool     |], [| id |])
+     [ ("nodes", [t| [String] |])
+     , ("lock",  [t| Bool     |])
      ])
   , (luxiReqQueryConfigValues,
-     [ ("fields", [t| [String] |], [| id |]) ]
+     [ ("fields", [t| [String] |]) ]
     )
   , (luxiReqQueryClusterInfo, [])
   , (luxiReqQueryTags,
-     [ ("kind", [t| String |], [| id |])
-     , ("name", [t| String |], [| id |])
+     [ ("kind", [t| String |])
+     , ("name", [t| String |])
      ])
   , (luxiReqSubmitJob,
-     [ ("job", [t| [OpCode] |], [| id |]) ]
+     [ ("job", [t| [OpCode] |]) ]
     )
   , (luxiReqSubmitManyJobs,
-     [ ("ops", [t| [[OpCode]] |], [| id |]) ]
+     [ ("ops", [t| [[OpCode]] |]) ]
     )
   , (luxiReqWaitForJobChange,
-     [ ("job",      [t| Int     |], [| id |])
-     , ("fields",   [t| [String]|], [| id |])
-     , ("prev_job", [t| JSValue |], [| id |])
-     , ("prev_log", [t| JSValue |], [| id |])
-     , ("tmout",    [t| Int     |], [| id |])
+     [ ("job",      [t| Int     |])
+     , ("fields",   [t| [String]|])
+     , ("prev_job", [t| JSValue |])
+     , ("prev_log", [t| JSValue |])
+     , ("tmout",    [t| Int     |])
      ])
   , (luxiReqArchiveJob,
-     [ ("job", [t| Int |], [| id |]) ]
+     [ ("job", [t| Int |]) ]
     )
   , (luxiReqAutoArchiveJobs,
-     [ ("age",   [t| Int |], [| id |])
-     , ("tmout", [t| Int |], [| id |])
+     [ ("age",   [t| Int |])
+     , ("tmout", [t| Int |])
      ])
   , (luxiReqCancelJob,
-     [ ("job", [t| Int |], [| id |]) ]
+     [ ("job", [t| Int |]) ]
     )
   , (luxiReqSetDrainFlag,
-     [ ("flag", [t| Bool |], [| id |]) ]
+     [ ("flag", [t| Bool |]) ]
     )
   , (luxiReqSetWatcherPause,
-     [ ("duration", [t| Double |], [| id |]) ]
+     [ ("duration", [t| Double |]) ]
     )
   ])
 

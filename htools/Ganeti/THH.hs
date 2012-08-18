@@ -52,7 +52,7 @@ module Ganeti.THH ( declareSADT
                   , buildParam
                   ) where
 
-import Control.Monad (liftM, liftM2)
+import Control.Monad (liftM)
 import Data.Char
 import Data.List
 import qualified Data.Set as Set
@@ -499,7 +499,7 @@ genStrOfKey :: Name -> String -> Q [Dec]
 genStrOfKey = genConstrToStr ensureLower
 
 -- | LuxiOp parameter type.
-type LuxiParam = (String, Q Type, Q Exp)
+type LuxiParam = (String, Q Type)
 
 -- | Generates the LuxiOp data type.
 --
@@ -508,19 +508,16 @@ type LuxiParam = (String, Q Type, Q Exp)
 -- We can't use anything less generic, because the way different
 -- operations are serialized differs on both parameter- and top-level.
 --
--- There are three things to be defined for each parameter:
+-- There are two things to be defined for each parameter:
 --
 -- * name
 --
 -- * type
 --
--- * operation; this is the operation performed on the parameter before
---   serialization
---
 genLuxiOp :: String -> [(String, [LuxiParam])] -> Q [Dec]
 genLuxiOp name cons = do
   decl_d <- mapM (\(cname, fields) -> do
-                    fields' <- mapM (\(_, qt, _) ->
+                    fields' <- mapM (\(_, qt) ->
                                          qt >>= \t -> return (NotStrict, t))
                                fields
                     return $ NormalC (mkName cname) fields')
@@ -534,14 +531,14 @@ genLuxiOp name cons = do
 
 -- | Generates the \"save\" expression for a single luxi parameter.
 saveLuxiField :: Name -> LuxiParam -> Q Exp
-saveLuxiField fvar (_, qt, fn) =
-    [| JSON.showJSON ( $(liftM2 appFn fn $ varE fvar) ) |]
+saveLuxiField fvar (_, qt) =
+    [| JSON.showJSON $(varE fvar) |]
 
 -- | Generates the \"save\" clause for entire LuxiOp constructor.
 saveLuxiConstructor :: (String, [LuxiParam]) -> Q Clause
 saveLuxiConstructor (sname, fields) = do
   let cname = mkName sname
-      fnames = map (\(nm, _, _) -> mkName nm) fields
+      fnames = map (mkName . fst) fields
       pat = conP cname (map varP fnames)
       flist = map (uncurry saveLuxiField) (zip fnames fields)
       finval = if null flist
