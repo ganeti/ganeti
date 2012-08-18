@@ -28,6 +28,7 @@ import types
 from ganeti import compat
 from ganeti import constants
 from ganeti import luxi
+from ganeti import qlang
 
 #: Constant name regex
 CONSTANT_RE = re.compile("^[A-Z][A-Z0-9_-]+$")
@@ -227,6 +228,7 @@ def Convert(module, prefix):
 def main():
   print Convert(constants, "")
   print Convert(luxi, "luxi")
+  print Convert(qlang, "qlang")
 
 
 if __name__ == "__main__":
