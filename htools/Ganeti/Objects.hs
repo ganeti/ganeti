@@ -52,6 +52,12 @@ module Ganeti.Objects
   , fillNDParams
   , Node(..)
   , AllocPolicy(..)
+  , FilledISpecParams(..)
+  , PartialISpecParams(..)
+  , fillISpecParams
+  , FilledIPolicy(..)
+  , PartialIPolicy(..)
+  , fillIPolicy
   , NodeGroup(..)
   , IpFamily(..)
   , ipFamilyToVersion
@@ -289,10 +295,68 @@ $(buildObject "Instance" "inst" $
   ++ uuidFields
   ++ serialFields)
 
+-- * IPolicy definitions
+
+$(buildParam "ISpec" "ispec" $
+  [ simpleField C.ispecMemSize     [t| Int |]
+  , simpleField C.ispecDiskSize    [t| Int |]
+  , simpleField C.ispecDiskCount   [t| Int |]
+  , simpleField C.ispecCpuCount    [t| Int |]
+  , simpleField C.ispecSpindleUse  [t| Int |]
+  ])
+
+-- | Custom partial ipolicy. This is not built via buildParam since it
+-- has a special 2-level inheritance mode.
+$(buildObject "PartialIPolicy" "ipolicy" $
+  [ renameField "MinSpecP" $ simpleField "min" [t| PartialISpecParams |]
+  , renameField "MaxSpecP" $ simpleField "max" [t| PartialISpecParams |]
+  , renameField "StdSpecP" $ simpleField "std" [t| PartialISpecParams |]
+  , optionalField . renameField "SpindleRatioP"
+                    $ simpleField "spindle-ratio"  [t| Double |]
+  , optionalField . renameField "VcpuRatioP"
+                    $ simpleField "vcpu-ratio"     [t| Double |]
+  , optionalField . renameField "DiskTemplatesP"
+                    $ simpleField "disk-templates" [t| [DiskTemplate] |]
+  ])
+
+-- | Custom filled ipolicy. This is not built via buildParam since it
+-- has a special 2-level inheritance mode.
+$(buildObject "FilledIPolicy" "ipolicy" $
+  [ renameField "MinSpec" $ simpleField "min" [t| FilledISpecParams |]
+  , renameField "MaxSpec" $ simpleField "max" [t| FilledISpecParams |]
+  , renameField "StdSpec" $ simpleField "std" [t| FilledISpecParams |]
+  , simpleField "spindle-ratio"  [t| Double |]
+  , simpleField "vcpu-ratio"     [t| Double |]
+  , simpleField "disk-templates" [t| [DiskTemplate] |]
+  ])
+
+-- | Custom filler for the ipolicy types.
+fillIPolicy :: FilledIPolicy -> PartialIPolicy -> FilledIPolicy
+fillIPolicy (FilledIPolicy { ipolicyMinSpec       = fmin
+                           , ipolicyMaxSpec       = fmax
+                           , ipolicyStdSpec       = fstd
+                           , ipolicySpindleRatio  = fspindleRatio
+                           , ipolicyVcpuRatio     = fvcpuRatio
+                           , ipolicyDiskTemplates = fdiskTemplates})
+            (PartialIPolicy { ipolicyMinSpecP       = pmin
+                            , ipolicyMaxSpecP       = pmax
+                            , ipolicyStdSpecP       = pstd
+                            , ipolicySpindleRatioP  = pspindleRatio
+                            , ipolicyVcpuRatioP     = pvcpuRatio
+                            , ipolicyDiskTemplatesP = pdiskTemplates}) =
+  FilledIPolicy { ipolicyMinSpec       = fillISpecParams fmin pmin
+                , ipolicyMaxSpec       = fillISpecParams fmax pmax
+                , ipolicyStdSpec       = fillISpecParams fstd pstd
+                , ipolicySpindleRatio  = fromMaybe fspindleRatio pspindleRatio
+                , ipolicyVcpuRatio     = fromMaybe fvcpuRatio pvcpuRatio
+                , ipolicyDiskTemplates = fromMaybe fdiskTemplates
+                                         pdiskTemplates
+                }
 -- * Node definitions
 
 $(buildParam "ND" "ndp" $
-  [ simpleField "oob_program" [t| String |]
+  [ simpleField "oob_program"   [t| String |]
+  , simpleField "spindle_count" [t| Int    |]
   ])
 
 $(buildObject "Node" "node" $
@@ -333,7 +397,8 @@ $(buildObject "NodeGroup" "group" $
   [ simpleField "name"         [t| String |]
   , defaultField  [| [] |] $ simpleField "members" [t| [String] |]
   , simpleField "ndparams"     [t| PartialNDParams |]
-  , simpleField "alloc_policy" [t| AllocPolicy |]
+  , simpleField "alloc_policy" [t| AllocPolicy     |]
+  , simpleField "ipolicy"      [t| PartialIPolicy  |]
   ]
   ++ timeStampFields
   ++ uuidFields
@@ -388,6 +453,7 @@ $(buildObject "Cluster" "cluster" $
   , simpleField "blacklisted_os"            [t| [String]           |]
   , simpleField "primary_ip_family"         [t| IpFamily           |]
   , simpleField "prealloc_wipe_disks"       [t| Bool               |]
+  , simpleField "ipolicy"                   [t| FilledIPolicy      |]
  ]
  ++ serialFields
  ++ timeStampFields

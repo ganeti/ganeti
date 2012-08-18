@@ -540,7 +540,7 @@ instance Arbitrary Objects.Hypervisor where
   arbitrary = elements [minBound..maxBound]
 
 instance Arbitrary Objects.PartialNDParams where
-  arbitrary = Objects.PartialNDParams <$> arbitrary
+  arbitrary = Objects.PartialNDParams <$> arbitrary <*> arbitrary
 
 instance Arbitrary Objects.Node where
   arbitrary = Objects.Node <$> getFQDN <*> getFQDN <*> getFQDN
