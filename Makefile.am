@@ -413,6 +413,7 @@ HS_LIB_SRCS = \
 	htools/Ganeti/Objects.hs \
 	htools/Ganeti/OpCodes.hs \
 	htools/Ganeti/Rpc.hs \
+	htools/Ganeti/Queryd.hs \
 	htools/Ganeti/Runtime.hs \
 	htools/Ganeti/Ssconf.hs \
 	htools/Ganeti/THH.hs \
