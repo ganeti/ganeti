@@ -126,6 +126,7 @@ allTests =
   , (fast, testJSON)
   , (fast, testLUXI)
   , (fast, testSsconf)
+  , (fast, testQuery2)
   , (slow, testCluster)
   , (fast, testRpc)
   ]

@@ -49,6 +49,7 @@ module Ganeti.HTools.QC
   , testLUXI
   , testSsconf
   , testRpc
+  , testQuery2
   ) where
 
 import Test.QuickCheck
@@ -556,6 +557,38 @@ instance Arbitrary Rpc.RpcCallInstanceList where
 
 instance Arbitrary Rpc.RpcCallNodeInfo where
   arbitrary = Rpc.RpcCallNodeInfo <$> arbitrary <*> arbitrary
+
+-- | Custom 'Query2.Filter' generator (top-level), which enforces a
+-- (sane) limit on the depth of the generated filters.
+genFilter :: Gen Query2.Filter
+genFilter = choose (0, 10) >>= genFilter'
+
+-- | Custom generator for filters that correctly halves the state of
+-- the generators at each recursive step, per the QuickCheck
+-- documentation, in order not to run out of memory.
+genFilter' :: Int -> Gen Query2.Filter
+genFilter' 0 =
+  oneof [ return Query2.EmptyFilter
+        , Query2.TrueFilter     <$> getName
+        , Query2.EQFilter       <$> getName <*> value
+        , Query2.LTFilter       <$> getName <*> value
+        , Query2.GTFilter       <$> getName <*> value
+        , Query2.LEFilter       <$> getName <*> value
+        , Query2.GEFilter       <$> getName <*> value
+        , Query2.RegexpFilter   <$> getName <*> getName
+        , Query2.ContainsFilter <$> getName <*> value
+        ]
+    where value = oneof [ Query2.QuotedString <$> getName
+                        , Query2.NumericValue <$> arbitrary
+                        ]
+genFilter' n = do
+  oneof [ Query2.AndFilter  <$> vectorOf n'' (genFilter' n')
+        , Query2.OrFilter   <$> vectorOf n'' (genFilter' n')
+        , Query2.NotFilter  <$> genFilter' n'
+        ]
+  where n' = n `div` 2 -- sub-filter generator size
+        n'' = max n' 2 -- but we don't want empty or 1-element lists,
+                       -- so use this for and/or filter list length
 
 -- * Actual tests
 
@@ -1953,4 +1986,17 @@ testSuite "Rpc"
   [ 'prop_Rpc_noffl_request_allinstinfo
   , 'prop_Rpc_noffl_request_instlist
   , 'prop_Rpc_noffl_request_nodeinfo
+  ]
+
+-- * Query2 tests
+
+-- | Tests that serialisation/deserialisation of filters is
+-- idempotent.
+prop_Query2_Serialisation :: Property
+prop_Query2_Serialisation =
+  forAll genFilter $ \flt ->
+  J.readJSON (J.showJSON flt) ==? J.Ok flt
+
+testSuite "Query2"
+  [ 'prop_Query2_Serialisation
   ]

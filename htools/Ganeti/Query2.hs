@@ -27,6 +27,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Ganeti.Query2
     ( Filter(..)
+    , FilterValue(..)
     , Query(..)
     , QueryResult(..)
     , QueryFields(..)
@@ -35,7 +36,9 @@ module Ganeti.Query2
     , ResultEntry(..)
     ) where
 
-
+import Control.Applicative
+import Data.Ratio (numerator, denominator)
+import Text.JSON.Pretty (pp_value)
 import Text.JSON.Types
 import Text.JSON
 
@@ -101,23 +104,136 @@ type Fields = [ String ]
 
 -- | Query2 filter expression.
 data Filter
-    = AndFilter [ Filter ] -- ^ & [<expression>, ...]
-    | OrFilter [ Filter ] -- ^ | [<expression>, ...]
-    | NotFilter Filter -- ^ ! <expression>
-    | TrueFilter FilterField -- ^ ? <field>
-    | EqualFilter FilterField FilterValue -- ^ (=|!=) <field> <value>
-    | LessThanFilter FilterField FilterValue -- ^ < <field> <value>
-    | GreaterThanFilter FilterField FilterValue -- ^ > <field> <value>
-    | LEThanFilter FilterField FilterValue -- ^ <= <field> <value>
-    | GEThanFilter FilterField FilterValue -- ^ >= <field> <value>
-    | RegexpFilter FilterField FilterRegexp -- ^ =~ <field> <regexp>
-    | ContainsFilter FilterField FilterValue -- ^ =[] <list-field> <value>
+    = EmptyFilter                             -- ^ No filter at all
+    | AndFilter      [ Filter ]               -- ^ & [<expression>, ...]
+    | OrFilter       [ Filter ]               -- ^ | [<expression>, ...]
+    | NotFilter      Filter                   -- ^ ! <expression>
+    | TrueFilter     FilterField              -- ^ ? <field>
+    | EQFilter       FilterField FilterValue  -- ^ (=|!=) <field> <value>
+    | LTFilter       FilterField FilterValue  -- ^ < <field> <value>
+    | GTFilter       FilterField FilterValue  -- ^ > <field> <value>
+    | LEFilter       FilterField FilterValue  -- ^ <= <field> <value>
+    | GEFilter       FilterField FilterValue  -- ^ >= <field> <value>
+    | RegexpFilter   FilterField FilterRegexp -- ^ =~ <field> <regexp>
+    | ContainsFilter FilterField FilterValue  -- ^ =[] <list-field> <value>
+      deriving (Show, Read, Eq)
+
+-- | Serialiser for the 'Filter' data type.
+showFilter :: Filter -> JSValue
+showFilter (EmptyFilter)          = JSNull
+showFilter (AndFilter exprs)      =
+  JSArray $ (showJSON C.qlangOpAnd):(map showJSON exprs)
+showFilter (OrFilter  exprs)      =
+  JSArray $ (showJSON C.qlangOpOr):(map showJSON exprs)
+showFilter (NotFilter flt)        =
+  JSArray [showJSON C.qlangOpNot, showJSON flt]
+showFilter (TrueFilter field)     =
+  JSArray [showJSON C.qlangOpTrue, showJSON field]
+showFilter (EQFilter field value) =
+  JSArray [showJSON C.qlangOpEqual, showJSON field, showJSON value]
+showFilter (LTFilter field value) =
+  JSArray [showJSON C.qlangOpLt, showJSON field, showJSON value]
+showFilter (GTFilter field value) =
+  JSArray [showJSON C.qlangOpGt, showJSON field, showJSON value]
+showFilter (LEFilter field value) =
+  JSArray [showJSON C.qlangOpLe, showJSON field, showJSON value]
+showFilter (GEFilter field value) =
+  JSArray [showJSON C.qlangOpGe, showJSON field, showJSON value]
+showFilter (RegexpFilter field regexp) =
+  JSArray [showJSON C.qlangOpRegexp, showJSON field, showJSON regexp]
+showFilter (ContainsFilter field value) =
+  JSArray [showJSON C.qlangOpContains, showJSON field, showJSON value]
+
+-- | Deserializer for the 'Filter' data type.
+readFilter :: JSValue -> Result Filter
+readFilter JSNull = Ok EmptyFilter
+readFilter (JSArray (JSString op:args)) =
+  readFilterArray (fromJSString op) args
+readFilter v =
+  Error $ "Cannot deserialise filter: expected array [string, args], got " ++
+        show (pp_value v)
+
+-- | Helper to deserialise an array corresponding to a single filter
+-- and return the built filter. Note this looks generic but is (at
+-- least currently) only used for the NotFilter.
+readFilterArg :: (Filter -> Filter) -- ^ Constructor
+              -> [JSValue]          -- ^ Single argument
+              -> Result Filter
+readFilterArg constr [flt] = constr <$> readJSON flt
+readFilterArg _ v = Error $ "Cannot deserialise field, expected [filter]\
+                            \ but got " ++ show (pp_value (showJSON v))
+
+-- | Helper to deserialise an array corresponding to a single field
+-- and return the built filter.
+readFilterField :: (FilterField -> Filter) -- ^ Constructor
+                -> [JSValue]               -- ^ Single argument
+                -> Result Filter
+readFilterField constr [field] = constr <$> readJSON field
+readFilterField _ v = Error $ "Cannot deserialise field, expected [fieldname]\
+                              \ but got " ++ show (pp_value (showJSON v))
+
+-- | Helper to deserialise an array corresponding to a field and
+-- value, returning the built filter.
+readFilterFieldValue :: (JSON a) =>
+                        (FilterField -> a -> Filter) -- ^ Constructor
+                     -> [JSValue] -- ^ Arguments array
+                     -> Result Filter
+readFilterFieldValue constr [field, value] =
+  constr <$> readJSON field <*> readJSON value
+readFilterFieldValue _ v =
+  Error $ "Cannot deserialise field/value pair, expected [fieldname, value]\
+          \ but got " ++ show (pp_value (showJSON v))
+
+-- | Inner deserialiser for 'Filter'.
+readFilterArray :: String -> [JSValue] -> Result Filter
+readFilterArray op args
+  | op == C.qlangOpAnd      = AndFilter <$> mapM readJSON args
+  | op == C.qlangOpOr       = OrFilter  <$> mapM readJSON args
+  | op == C.qlangOpNot      = readFilterArg        NotFilter args
+  | op == C.qlangOpTrue     = readFilterField      TrueFilter args
+  | op == C.qlangOpEqual    = readFilterFieldValue EQFilter args
+  | op == C.qlangOpLt       = readFilterFieldValue LTFilter args
+  | op == C.qlangOpGt       = readFilterFieldValue GTFilter args
+  | op == C.qlangOpLe       = readFilterFieldValue LEFilter args
+  | op == C.qlangOpGe       = readFilterFieldValue GEFilter args
+  | op == C.qlangOpRegexp   = readFilterFieldValue RegexpFilter args
+  | op == C.qlangOpContains = readFilterFieldValue ContainsFilter args
+  | otherwise = Error $ "Unknown filter operand '" ++ op ++ "'"
+
+instance JSON Filter where
+  showJSON = showFilter
+  readJSON = readFilter
 
 -- | Field name to filter on.
 type FilterField = String
 
 -- | Value to compare the field value to, for filtering purposes.
-type FilterValue = String
+data FilterValue = QuotedString String
+                 | NumericValue Integer
+                   deriving (Read, Show, Eq)
+
+-- | Serialiser for 'FilterValue'. The Python code just sends this to
+-- JSON as-is, so we'll do the same.
+showFilterValue :: FilterValue -> JSValue
+showFilterValue (QuotedString str) = showJSON str
+showFilterValue (NumericValue val) = showJSON val
+
+-- | Decoder for 'FilterValue'. We have to see what it contains, since
+-- the context doesn't give us hints on what to expect.
+readFilterValue :: JSValue -> Result FilterValue
+readFilterValue (JSString a) = Ok . QuotedString $ fromJSString a
+readFilterValue (JSRational _ x) =
+  if denominator x /= 1
+    then Error $ "Cannot deserialise numeric filter value,\
+                 \ expecting integral but\
+                 \ got a fractional value: " ++ show x
+    else Ok . NumericValue $ numerator x
+readFilterValue v = Error $ "Cannot deserialise filter value, expecting\
+                            \ string or integer, got " ++ show (pp_value v)
+
+instance JSON FilterValue where
+  showJSON = showFilterValue
+  readJSON = readFilterValue
 
 -- | Regexp to apply to the filter value, for filteriong purposes.
 type FilterRegexp = String
