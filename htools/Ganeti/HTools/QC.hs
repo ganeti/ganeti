@@ -1426,7 +1426,7 @@ prop_ClusterAllocEvacuate =
   case genClusterAlloc count node inst of
     Types.Bad msg -> failTest msg
     Types.Ok (nl, il, inst') ->
-      conjoin $ map (\mode -> check_EvacMode defGroup inst' $
+      conjoin . map (\mode -> check_EvacMode defGroup inst' $
                               Cluster.tryNodeEvac defGroupList nl il mode
                                 [Instance.idx inst']) .
                               evacModeOptions .
@@ -1894,7 +1894,7 @@ prop_Luxi_ClientServer dnschars = monadicIO $ do
   -- ready
   server <- run $ Luxi.getServer fpath
   -- fork the server responder
-  _ <- run $ forkIO $
+  _ <- run . forkIO $
     bracket
       (Luxi.acceptClient server)
       (\c -> Luxi.closeClient c >> removeFile fpath)

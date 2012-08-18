@@ -314,13 +314,13 @@ genericMain daemon options main = do
 
   when (optShowHelp opts) $ do
     putStr $ usageHelp progname options
-    exitWith ExitSuccess
+    exitSuccess
   when (optShowVer opts) $ do
     printf "%s %s\ncompiled with %s %s\nrunning on %s %s\n"
            progname Version.version
            compilerName (Data.Version.showVersion compilerVersion)
            os arch :: IO ()
-    exitWith ExitSuccess
+    exitSuccess
 
   exitUnless (null args) "This program doesn't take any arguments"
 

@@ -47,7 +47,7 @@ stringToWord8 = B.unpack . encodeUtf8 . T.pack
 
 -- | Converts a list of bytes to a string.
 word8ToString :: HashKey -> String
-word8ToString = concat . map (printf "%02x")
+word8ToString = concatMap (printf "%02x")
 
 -- | Computes the HMAC for a given key/test and salt.
 computeMac :: HashKey -> Maybe String -> String -> String

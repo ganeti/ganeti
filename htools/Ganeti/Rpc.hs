@@ -102,7 +102,7 @@ instance Show RpcError where
     "Node " ++ nodeName node ++ " is marked as offline"
 
 rpcErrorJsonReport :: (Monad m) => J.Result a -> m (Either RpcError a)
-rpcErrorJsonReport (J.Error x) = return $ Left $ JsonDecodeError x
+rpcErrorJsonReport (J.Error x) = return . Left $ JsonDecodeError x
 rpcErrorJsonReport (J.Ok x) = return $ Right x
 
 -- | Basic timeouts for RPC calls.
@@ -162,9 +162,9 @@ executeHttpRequest node (Right request) = do
       url = requestUrl request
   -- FIXME: This is very similar to getUrl in Htools/Rapi.hs
   (code, !body) <- curlGetString url $ curlOpts ++ reqOpts
-  case code of
-    CurlOK -> return $ Right body
-    _ -> return $ Left $ CurlLayerError node (show code)
+  return $ case code of
+             CurlOK -> Right body
+             _ -> Left $ CurlLayerError node (show code)
 #endif
 
 -- | Prepare url for the HTTP request.

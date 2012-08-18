@@ -112,7 +112,7 @@ setupLogging logf program debug stderr_logging console syslog = do
                      Just path -> openFormattedHandler file_logging fmt $
                                   fileHandler path level
 
-  let handlers = concat [file_handlers, stderr_handlers]
+  let handlers = file_handlers ++ stderr_handlers
   updateGlobalLogger rootLoggerName $ setHandlers handlers
   -- syslog handler is special (another type, still instance of the
   -- typeclass, and has a built-in formatter), so we can't pass it in

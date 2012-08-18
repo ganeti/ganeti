@@ -31,11 +31,12 @@ module Ganeti.Confd.Server
 
 import Control.Concurrent
 import Control.Exception
-import Control.Monad (forever, liftM)
+import Control.Monad (forever, liftM, when)
 import qualified Data.ByteString as B
 import Data.IORef
 import Data.List
 import qualified Data.Map as M
+import Data.Maybe (fromMaybe)
 import qualified Network.Socket as S
 import Prelude hiding (catch)
 import System.Posix.Files
@@ -217,7 +218,7 @@ buildResponse (cfg, linkipmap)
 buildResponse cdata (ConfdRequest { confdRqType = ReqNodePipByInstPip
                                   , confdRqQuery = DictQuery query}) =
   let (cfg, linkipmap) = cdata
-      link = maybe (getDefaultNicLink cfg) id (confdReqQLink query)
+      link = fromMaybe (getDefaultNicLink cfg) (confdReqQLink query)
   in case confdReqQIp query of
        Just ip -> return $ getNodePipByInstanceIp cfg linkipmap link ip
        Nothing -> return (ReplyStatusOk,
@@ -333,7 +334,7 @@ buildFileStatus ofs =
 -- | Wrapper over 'buildFileStatus'. This reads the data from the
 -- filesystem and then builds our cache structure.
 getFStat :: FilePath -> IO FStat
-getFStat p = getFileStatus p >>= (return . buildFileStatus)
+getFStat p = liftM buildFileStatus (getFileStatus p)
 
 -- | Check if the file needs reloading
 needsReload :: FStat -> FilePath -> IO (Maybe FStat)
@@ -389,12 +390,10 @@ onTimeoutInner path cref state  = do
 onReloadTimer :: IO Bool -> FilePath -> CRef -> MVar ServerState -> IO ()
 onReloadTimer inotiaction path cref state = do
   continue <- modifyMVar state (onReloadInner inotiaction path cref)
-  if continue
-    then do
-      threadDelay configReloadRatelimit
-      onReloadTimer inotiaction path cref state
-    else -- the inotify watch has been re-established, we can exit
-      return ()
+  when continue $
+    do threadDelay configReloadRatelimit
+       onReloadTimer inotiaction path cref state
+  -- the inotify watch has been re-established, we can exit
 
 -- | Inner onReload handler.
 --
@@ -425,6 +424,9 @@ onReloadInner inotiaction path cref
                    _            -> True
   return (state' { reloadModel = newmode }, continue)
 
+-- the following hint is because hlint doesn't understand our const
+-- (return False) is so that we can give a signature to 'e'
+{-# ANN addNotifier "HLint: ignore Evaluate" #-}
 -- | Setup inotify watcher.
 --
 -- This tries to setup the watch descriptor; in case of any IO errors,

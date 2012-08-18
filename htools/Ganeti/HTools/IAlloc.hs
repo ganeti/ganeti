@@ -276,7 +276,7 @@ processRelocate gl nl il idx 1 exndx = do
       MirrorNone -> fail "Can't relocate non-mirrored instances"
       MirrorInternal -> return (sorig, "secondary", ChangeSecondary)
       MirrorExternal -> return (porig, "primary", ChangePrimary)
-  when (exndx /= [exp_node]) $
+  when (exndx /= [exp_node]) .
        -- FIXME: we can't use the excluded nodes here; the logic is
        -- already _but only partially_ implemented in tryNodeEvac...
        fail $ "Unsupported request: excluded nodes not equal to\

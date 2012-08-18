@@ -310,8 +310,8 @@ recvMsgExt s =
 buildCall :: LuxiOp  -- ^ The method
           -> String  -- ^ The serialized form
 buildCall lo =
-  let ja = [ (strOfKey Method, JSString $ toJSString $ strOfOp lo::JSValue)
-           , (strOfKey Args, opToArgs lo::JSValue)
+  let ja = [ (strOfKey Method, J.showJSON $ strOfOp lo)
+           , (strOfKey Args, opToArgs lo)
            ]
       jo = toJSObject ja
   in encodeStrict jo

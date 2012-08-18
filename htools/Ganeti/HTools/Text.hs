@@ -182,7 +182,7 @@ loadNode :: (Monad m) =>
 loadNode ktg [name, tm, nm, fm, td, fd, tc, fo, gu, spindles] = do
   gdx <- lookupGroup ktg name gu
   new_node <-
-      if any (== "?") [tm,nm,fm,td,fd,tc] || fo == "Y" then
+      if "?" `elem` [tm,nm,fm,td,fd,tc] || fo == "Y" then
           return $ Node.create name 0 0 0 0 0 0 True 0 gdx
       else do
         vtm <- tryRead name tm
@@ -224,7 +224,7 @@ loadInst ktn [ name, mem, dsk, vcpus, status, auto_bal, pnode, snode
   disk_template <- annotateResult ("Instance " ++ name)
                    (diskTemplateFromRaw dt)
   spindle_use <- tryRead name su
-  when (sidx == pidx) $ fail $ "Instance " ++ name ++
+  when (sidx == pidx) . fail $ "Instance " ++ name ++
            " has same primary and secondary node - " ++ pnode
   let vtags = commaSplit tags
       newinst = Instance.create name vmem vdsk vvcpus vstatus vtags

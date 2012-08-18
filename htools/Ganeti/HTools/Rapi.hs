@@ -85,7 +85,7 @@ getUrl url = do
 -- | Helper to convert I/O errors in 'Bad' values.
 ioErrToResult :: IO a -> IO (Result a)
 ioErrToResult ioaction =
-  catch (ioaction >>= return . Ok)
+  catch (liftM Ok ioaction)
         (\e -> return . Bad . show $ (e::IOException))
 
 -- | Append the default port if not passed in.
@@ -203,10 +203,10 @@ readDataHttp master = do
 readDataFile:: String -- ^ Path to the directory containing the files
              -> IO (Result String, Result String, Result String, Result String)
 readDataFile path = do
-  group_body <- ioErrToResult $ readFile $ path </> "groups.json"
-  node_body <- ioErrToResult $ readFile $ path </> "nodes.json"
-  inst_body <- ioErrToResult $ readFile $ path </> "instances.json"
-  info_body <- ioErrToResult $ readFile $ path </> "info.json"
+  group_body <- ioErrToResult . readFile $ path </> "groups.json"
+  node_body <- ioErrToResult . readFile $ path </> "nodes.json"
+  inst_body <- ioErrToResult . readFile $ path </> "instances.json"
+  info_body <- ioErrToResult . readFile $ path </> "info.json"
   return (group_body, node_body, inst_body, info_body)
 
 -- | Loads data via either 'readDataFile' or 'readDataHttp'.

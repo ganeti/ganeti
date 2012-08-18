@@ -1358,6 +1358,7 @@ pep8: $(GENERATED_FILES)
 	$(PEP8) --ignore='$(PEP8_IGNORE)' --exclude='$(PEP8_EXCLUDE)' \
 		--repeat $(pep8_python_code)
 
+# FIXME: remove ignore "Use void" when GHC 6.x is deprecated
 .PHONY: hlint
 hlint: $(HS_BUILT_SRCS) htools/lint-hints.hs
 	@test -n "$(HLINT)" || { echo 'hlint' not found during configure; exit 1; }
@@ -1367,6 +1368,8 @@ hlint: $(HS_BUILT_SRCS) htools/lint-hints.hs
 	  --ignore "Use comparing" \
 	  --ignore "Use on" \
 	  --ignore "Reduce duplication" \
+	  --ignore "Use &&&" \
+	  --ignore "Use void" \
 	  --hint htools/lint-hints \
 	  $(filter-out htools/Ganeti/THH.hs,$(HS_LIB_SRCS))
 

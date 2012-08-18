@@ -37,6 +37,7 @@ module Ganeti.Config
     , instNodes
     ) where
 
+import Control.Monad (liftM)
 import Data.List (foldl')
 import qualified Data.Map as M
 import qualified Data.Set as S
@@ -134,7 +135,7 @@ getInstance cfg name =
 -- | Looks up an instance's primary node.
 getInstPrimaryNode :: ConfigData -> String -> Result Node
 getInstPrimaryNode cfg name =
-  getInstance cfg name >>= return . instPrimaryNode >>= getNode cfg
+  liftM instPrimaryNode (getInstance cfg name) >>= getNode cfg
 
 -- | Filters DRBD minors for a given node.
 getDrbdMinorsForNode :: String -> Disk -> [(Int, String)]

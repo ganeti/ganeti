@@ -75,10 +75,10 @@ main opts args = do
 
   let Request rq cdata = request
 
-  when (verbose > 1) $
+  when (verbose > 1) .
        hPutStrLn stderr $ "Received request: " ++ show rq
 
-  when (verbose > 2) $
+  when (verbose > 2) .
        hPutStrLn stderr $ "Received cluster data: " ++ show cdata
 
   maybePrintNodes shownodes "Initial cluster"

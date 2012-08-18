@@ -188,7 +188,7 @@ printStats verbose False level phase values name = do
   unless (verbose == 0) $ do
     putStrLn ""
     putStr prefix
-    mapM_ (\(a,b) -> printf "    %s: %s\n" a b) (zip descr values)
+    mapM_ (uncurry (printf "    %s: %s\n")) (zip descr values)
 
 -- | Extract name or idx from group.
 extractGroupData :: Bool -> Group.Group -> String
@@ -230,7 +230,7 @@ perGroupChecks :: Group.List -> GroupInfo -> GroupStats
 perGroupChecks gl (gidx, (nl, il)) =
   let grp = Container.find gidx gl
       offnl = filter Node.offline (Container.elems nl)
-      n1violated = length $ fst $ Cluster.computeBadItems nl il
+      n1violated = length . fst $ Cluster.computeBadItems nl il
       conflicttags = length $ filter (>0)
                      (map Node.conflictingPrimaries (Container.elems nl))
       offline_pri = sum . map length $ map Node.pList offnl
@@ -335,4 +335,4 @@ main opts args = do
 
   printFinalHTC machineread
 
-  unless exitOK $ exitWith $ ExitFailure 1
+  unless exitOK . exitWith $ ExitFailure 1

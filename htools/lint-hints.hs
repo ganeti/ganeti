@@ -1,3 +1,12 @@
+{- Custom hint lints for Ganeti.
+
+Since passing --hint to hlint will override, not extend the built-in hints, we need to import the existing hints so that we get full coverage.
+
+-}
+
+import "hint" HLint.Default
+import "hint" HLint.Dollar
+
 -- The following two hints warn to simplify e.g. "map (\v -> (v,
 -- True)) lst" to "zip lst (repeat True)", which is more abstract
 warn = map (\v -> (v, x)) y ==> zip y (repeat x)

@@ -118,7 +118,7 @@ writeDataInner nlen name opts cdata fixdata = do
       oname = odir </> fixSlash name
   putStrLn $ printCluster nl il
   hFlush stdout
-  when (isJust shownodes) $
+  when (isJust shownodes) .
        putStr $ Cluster.printNodes nl (fromJust shownodes)
   writeFile (oname <.> "data") (serializeCluster cdata)
   return True
@@ -142,7 +142,7 @@ main opts clusters = do
          let name = local
          input_data <- Luxi.loadData lsock
          result <- writeData nlen name opts input_data
-         unless result $ exitWith $ ExitFailure 2
+         unless result . exitWith $ ExitFailure 2
 
   results <- mapM (\name -> Rapi.loadData name >>= writeData nlen name opts)
              clusters

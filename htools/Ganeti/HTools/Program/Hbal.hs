@@ -297,7 +297,7 @@ checkCluster verbose nl il = do
   -- nothing to do on an empty cluster
   when (Container.null il) $ do
          printf "Cluster is empty, exiting.\n"::IO ()
-         exitWith ExitSuccess
+         exitSuccess
 
   -- hbal doesn't currently handle split clusters
   let split_insts = Cluster.findSplitInstances nl il
@@ -328,7 +328,7 @@ checkGroup verbose gname nl il = do
              "Initial check done: %d bad nodes, %d bad instances.\n"
              (length bad_nodes) (length bad_instances)
 
-  when (not (null bad_nodes)) $
+  unless (null bad_nodes) $
          putStrLn "Cluster is not N+1 happy, continuing but no guarantee \
                   \that the cluster will end N+1 happy."
 
@@ -340,7 +340,7 @@ checkNeedRebalance opts ini_cv = do
          printf "Cluster is already well balanced (initial score %.6g,\n\
                 \minimum score %.6g).\nNothing to do, exiting\n"
                 ini_cv min_cv:: IO ()
-         exitWith ExitSuccess
+         exitSuccess
 
 -- | Main function.
 main :: Options -> [String] -> IO ()
@@ -411,7 +411,7 @@ main opts args = do
 
   let cmd_jobs = Cluster.splitJobs cmd_strs
 
-  when (isJust $ optShowCmds opts) $
+  when (isJust $ optShowCmds opts) .
        saveBalanceCommands opts $ Cluster.formatCmds cmd_jobs
 
   maybeSaveData (optSaveCluster opts) "balanced" "after balancing"

@@ -931,7 +931,7 @@ nodeEvacInstance nl il ChangeAll
     let no_nodes = Left "no nodes available"
         node_pairs = [(p,s) | p <- avail_nodes, s <- avail_nodes, p /= s]
     (nl', il', ops, _) <-
-        annotateResult "Can't find any good nodes for relocation" $
+        annotateResult "Can't find any good nodes for relocation" .
         eitherToResult $
         foldl'
         (\accu nodes -> case evacDrbdAllInner nl il inst gdx nodes of
@@ -974,7 +974,7 @@ evacOneNodeOnly nl il inst gdx avail_nodes = do
              MirrorNone -> Bad "Can't relocate/evacuate non-mirrored instances"
              MirrorInternal -> Ok ReplaceSecondary
              MirrorExternal -> Ok FailoverToAny
-  (nl', inst', _, ndx) <- annotateResult "Can't find any good node" $
+  (nl', inst', _, ndx) <- annotateResult "Can't find any good node" .
                           eitherToResult $
                           foldl' (evacOneNodeInner nl inst gdx op_fn)
                           (Left "no nodes available") avail_nodes
@@ -1046,7 +1046,7 @@ evacDrbdAllInner nl il inst gdx (t_pdx, t_sdx) = do
     if Node.offline primary
       then do
         (nl', inst', _, _) <-
-          annotateResult "Failing over to the secondary" $
+          annotateResult "Failing over to the secondary" .
           opToResult $ applyMove nl inst Failover
         return (nl', inst', [Failover])
       else return (nl, inst, [])
@@ -1056,17 +1056,17 @@ evacDrbdAllInner nl il inst gdx (t_pdx, t_sdx) = do
   -- we now need to execute a replace secondary to the future
   -- primary node
   (nl2, inst2, _, _) <-
-    annotateResult "Changing secondary to new primary" $
+    annotateResult "Changing secondary to new primary" .
     opToResult $
     applyMove nl1 inst1 o1
   let ops2 = o1:ops1
   -- we now execute another failover, the primary stays fixed now
-  (nl3, inst3, _, _) <- annotateResult "Failing over to new primary" $
+  (nl3, inst3, _, _) <- annotateResult "Failing over to new primary" .
                         opToResult $ applyMove nl2 inst2 o2
   let ops3 = o2:ops2
   -- and finally another replace secondary, to the final secondary
   (nl4, inst4, _, _) <-
-    annotateResult "Changing secondary to final secondary" $
+    annotateResult "Changing secondary to final secondary" .
     opToResult $
     applyMove nl3 inst3 o3
   let ops4 = o3:ops3

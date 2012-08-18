@@ -55,7 +55,7 @@ import Ganeti.HTools.Utils (sepSplit, tryRead, exitIfBad, exitWhen)
 
 -- | Error beautifier.
 wrapIO :: IO (Result a) -> IO (Result a)
-wrapIO = flip catch (\e -> return . Bad . show $ (e::IOException))
+wrapIO = handle (\e -> return . Bad . show $ (e::IOException))
 
 -- | Parses a user-supplied utilisation string.
 parseUtilisation :: String -> Result (String, DynUtil)
@@ -102,10 +102,10 @@ loadExternalData opts = do
   input_data <-
     case () of
       _ | setRapi -> wrapIO $ Rapi.loadData mhost
-        | setLuxi -> wrapIO $ Luxi.loadData $ fromJust lsock
+        | setLuxi -> wrapIO . Luxi.loadData $ fromJust lsock
         | setSim -> Simu.loadData simdata
-        | setFile -> wrapIO $ Text.loadData $ fromJust tfile
-        | setIAllocSrc -> wrapIO $ IAlloc.loadData $ fromJust iallocsrc
+        | setFile -> wrapIO . Text.loadData $ fromJust tfile
+        | setIAllocSrc -> wrapIO . IAlloc.loadData $ fromJust iallocsrc
         | otherwise -> return $ Bad "No backend selected! Exiting."
 
   let ldresult = input_data >>= mergeData util_data exTags selInsts exInsts

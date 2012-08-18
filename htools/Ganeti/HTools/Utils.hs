@@ -168,7 +168,7 @@ formatTable vals numpos =
 -- | Constructs a printable table from given header and rows
 printTable :: String -> [String] -> [[String]] -> [Bool] -> String
 printTable lp header rows isnum =
-  unlines . map ((++) lp) . map ((:) ' ' . unwords) $
+  unlines . map ((++) lp . (:) ' ' . unwords) $
   formatTable (header:rows) isnum
 
 -- | Converts a unit (e.g. m or GB) into a scaling factor.

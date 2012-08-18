@@ -128,5 +128,5 @@ parseIPFamily fam | fam == C.ip4Family = Ok Socket.AF_INET
 getPrimaryIPFamily :: Maybe FilePath -> IO (Result Socket.Family)
 getPrimaryIPFamily optpath = do
   result <- readSSConfFile optpath (Just (show C.ip4Family)) SSPrimaryIpFamily
-  return (result >>= return . rstripSpace >>=
+  return (liftM rstripSpace result >>=
           tryRead "Parsing af_family" >>= parseIPFamily)

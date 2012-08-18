@@ -89,14 +89,14 @@ $(makeJSONInstance ''ConfdReqField)
 -- converts them to strings anyway, as they're used as dict-keys.
 
 $(buildObject "ConfdReqQ" "confdReqQ"
-  [ renameField "Ip" $
+  [ renameField "Ip" .
                 optionalField $ simpleField C.confdReqqIp [t| String   |]
-  , renameField "IpList" $
+  , renameField "IpList" .
                 defaultField [| [] |] $
                 simpleField C.confdReqqIplist [t| [String] |]
-  , renameField "Link" $ optionalField $
+  , renameField "Link" . optionalField $
                 simpleField C.confdReqqLink [t| String   |]
-  , renameField "Fields" $ defaultField [| [] |] $
+  , renameField "Fields" . defaultField [| [] |] $
                 simpleField C.confdReqqFields [t| [ConfdReqField] |]
   ])
 

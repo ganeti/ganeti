@@ -30,7 +30,7 @@ module Ganeti.HTools.Simu
   , parseData
   ) where
 
-import Control.Monad (mplus)
+import Control.Monad (mplus, zipWithM)
 import Text.Printf (printf)
 
 import Ganeti.HTools.Utils
@@ -90,7 +90,7 @@ createGroup grpIndex spec = do
 parseData :: [String] -- ^ Cluster description in text format
           -> Result ClusterData
 parseData ndata = do
-  grpNodeData <- mapM (uncurry createGroup) $ zip [1..] ndata
+  grpNodeData <- zipWithM createGroup [1..] ndata
   let (groups, nodes) = unzip grpNodeData
       nodes' = concat nodes
   let ktn = map (\(idx, n) -> (idx, Node.setIdx n idx))
