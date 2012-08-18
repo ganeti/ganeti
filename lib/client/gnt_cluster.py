@@ -334,7 +334,7 @@ def ShowClusterVersion(opts, args):
   @return: the desired exit code
 
   """
-  cl = GetClient()
+  cl = GetClient(query=True)
   result = cl.QueryClusterInfo()
   ToStdout("Software version: %s", result["software_version"])
   ToStdout("Internode protocol: %s", result["protocol_version"])

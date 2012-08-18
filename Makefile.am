@@ -1142,6 +1142,7 @@ lib/_autoconf.py: Makefile | stamp-directories
 	  echo "PY_CONFD = $(PY_CONFD)"; \
 	  echo "HS_CONFD = $(HS_CONFD)"; \
 	  echo "XEN_CMD = '$(XEN_CMD)'"; \
+	  echo "ENABLE_SPLIT_QUERY = $(ENABLE_SPLIT_QUERY)"; \
 	} > $@
 
 lib/_vcsversion.py: Makefile vcs-version | stamp-directories
@@ -1195,6 +1196,7 @@ $(REPLACE_VARS_SED): Makefile stamp-directories
 	  echo 's#@GNTDAEMONSGROUP@#$(DAEMONS_GROUP)#g'; \
 	  echo 's#@CUSTOM_ENABLE_CONFD@#$(ENABLE_CONFD)#g'; \
 	  echo 's#@MODULES@#$(strip $(lint_python_code))#g'; \
+	  echo 's#@ENABLE_SPLIT_QUERY@#$(ENABLE_SPLIT_QUERY)#g'; \
 	} > $@
 
 # Using deferred evaluation

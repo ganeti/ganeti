@@ -2082,10 +2082,23 @@ def SetGenericOpcodeOpts(opcode_list, options):
       op.priority = _PRIONAME_TO_VALUE[options.priority]
 
 
-def GetClient():
+def GetClient(query=False):
+  """Connects to the a luxi socket and returns a client.
+
+  @type query: boolean
+  @param query: this signifies that the client will only be
+      used for queries; if the build-time parameter
+      enable-split-queries is enabled, then the client will be
+      connected to the query socket instead of the masterd socket
+
+  """
+  if query and constants.ENABLE_SPLIT_QUERY:
+    address = constants.QUERY_SOCKET
+  else:
+    address = None
   # TODO: Cache object?
   try:
-    client = luxi.Client()
+    client = luxi.Client(address=address)
   except luxi.NoMasterError:
     ss = ssconf.SimpleStore()
 

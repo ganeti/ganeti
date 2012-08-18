@@ -288,7 +288,7 @@ AC_ARG_ENABLE([htools-rapi],
         [],
         [enable_htools_rapi=no])
 
-# --enable-htools
+# --enable-confd
 ENABLE_CONFD=
 AC_ARG_ENABLE([confd],
   [AS_HELP_STRING([--enable-confd],
@@ -323,6 +323,31 @@ AC_SUBST(HS_CONFD, $hs_confd)
 AM_CONDITIONAL([WANT_CONFD], [test x$enable_confd = xTrue])
 AM_CONDITIONAL([PY_CONFD], [test x$py_confd = xTrue])
 AM_CONDITIONAL([HS_CONFD], [test x$hs_confd = xTrue])
+
+# --enable-split-query
+ENABLE_SPLIT_QUERY=
+AC_ARG_ENABLE([split-query],
+  [AS_HELP_STRING([--enable-split-query],
+  [enable use of custom query daemon via Haskell confd])],
+  [[case "$enableval" in
+      no)
+        enable_split_query=False
+        ;;
+      yes)
+        enable_split_query=True
+        ;;
+      *)
+        echo "Invalid value for enable-confd '$enableval'"
+        exit 1
+        ;;
+    esac
+  ]],
+  [enable_split_query=False])
+AC_SUBST(ENABLE_SPLIT_QUERY, $enable_split_query)
+
+if test x$enable_split_query = xTrue -a x$hs_confd != xTrue; then
+  AC_MSG_ERROR([Split queries require the Haskell confd])
+fi
 
 # --with-disk-separator=...
 AC_ARG_WITH([disk-separator],
