@@ -1854,7 +1854,7 @@ instance Arbitrary Luxi.LuxiOp where
   arbitrary = do
     lreq <- arbitrary
     case lreq of
-      Luxi.ReqQuery -> Luxi.Query <$> arbitrary <*> getFields <*> arbitrary
+      Luxi.ReqQuery -> Luxi.Query <$> arbitrary <*> getFields <*> genFilter
       Luxi.ReqQueryNodes -> Luxi.QueryNodes <$> (listOf getFQDN) <*>
                             getFields <*> arbitrary
       Luxi.ReqQueryGroups -> Luxi.QueryGroups <$> arbitrary <*>

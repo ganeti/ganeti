@@ -76,6 +76,7 @@ import Ganeti.HTools.Utils
 import Ganeti.Constants
 import Ganeti.Jobs (JobStatus)
 import Ganeti.OpCodes (OpCode)
+import qualified Ganeti.Query2 as Query2
 import Ganeti.THH
 
 -- * Utility functions
@@ -100,11 +101,12 @@ data RecvResult = RecvConnClosed    -- ^ Connection closed
 type JobId = Int
 
 $(declareSADT "QrViaLuxi"
-  [ ("QRLock", 'qrLock)
+  [ ("QRLock",     'qrLock)
   , ("QRInstance", 'qrInstance)
-  , ("QRNode", 'qrNode)
-  , ("QRGroup", 'qrGroup)
-  , ("QROs", 'qrOs)
+  , ("QRNode",     'qrNode)
+  , ("QRGroup",    'qrGroup)
+  , ("QROs",       'qrOs)
+  , ("QRJob",      'qrJob)
   ])
 $(makeJSONInstance ''QrViaLuxi)
 
@@ -113,7 +115,7 @@ $(genLuxiOp "LuxiOp"
   [(luxiReqQuery,
     [ ("what",    [t| QrViaLuxi |], [| id |])
     , ("fields",  [t| [String]  |], [| id |])
-    , ("qfilter", [t| ()        |], [| const JSNull |])
+    , ("qfilter", [t| Query2.Filter  |], [| id |])
     ])
   , (luxiReqQueryNodes,
      [ ("names",  [t| [String] |], [| id |])
@@ -360,9 +362,8 @@ decodeCall (LuxiCall call args) =
     ReqQueryClusterInfo -> do
               return QueryClusterInfo
     ReqQuery -> do
-              (what, fields, _) <-
-                fromJVal args::Result (QrViaLuxi, [String], JSValue)
-              return $ Query what fields ()
+              (what, fields, qfilter) <- fromJVal args
+              return $ Query what fields qfilter
     ReqSubmitJob -> do
               [ops1] <- fromJVal args
               ops2 <- mapM (fromJResult (luxiReqToRaw call) . J.readJSON) ops1
