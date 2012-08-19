@@ -56,7 +56,7 @@ import qualified Test.HUnit as HUnit
 import Test.QuickCheck
 import Test.QuickCheck.Monadic (assert, monadicIO, run, stop)
 import Text.Printf (printf)
-import Data.List (intercalate, nub, isPrefixOf)
+import Data.List (intercalate, nub, isPrefixOf, sort, (\\))
 import Data.Maybe
 import qualified Data.Set as Set
 import Control.Monad
@@ -1617,8 +1617,26 @@ prop_OpCodes_serialization op =
     J.Error e -> failTest $ "Cannot deserialise: " ++ e
     J.Ok op' -> op ==? op'
 
+-- | Check that Python and Haskell defined the same opcode list.
+case_OpCodes_AllDefined :: HUnit.Assertion
+case_OpCodes_AllDefined = do
+  py_stdout <- runPython "from ganeti import opcodes\n\
+                         \print '\\n'.join(opcodes.OP_MAPPING.keys())" "" >>=
+               checkPythonResult
+  let py_ops = sort $ lines py_stdout
+      hs_ops = OpCodes.allOpIDs
+      -- extra_py = py_ops \\ hs_ops
+      extra_hs = hs_ops \\ py_ops
+  -- FIXME: uncomment when we have parity
+  -- HUnit.assertBool ("OpCodes missing from Haskell code:\n" ++
+  --                  unlines extra_py) (null extra_py)
+  HUnit.assertBool ("Extra OpCodes in the Haskell code code:\n" ++
+                    unlines extra_hs) (null extra_hs)
+
 testSuite "OpCodes"
-            [ 'prop_OpCodes_serialization ]
+            [ 'prop_OpCodes_serialization
+            , 'case_OpCodes_AllDefined
+            ]
 
 -- ** Jobs tests
 
