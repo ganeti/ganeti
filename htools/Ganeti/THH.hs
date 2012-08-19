@@ -369,6 +369,15 @@ constructorName (NormalC name _) = return name
 constructorName (RecC name _)    = return name
 constructorName x                = fail $ "Unhandled constructor " ++ show x
 
+-- | Extract all constructor names from a given type.
+reifyConsNames :: Name -> Q [String]
+reifyConsNames name = do
+  reify_result <- reify name
+  case reify_result of
+    TyConI (DataD _ _ _ cons _) -> mapM (liftM nameBase . constructorName) cons
+    o -> fail $ "Unhandled name passed to reifyConsNames, expected\
+                \ type constructor but got '" ++ show o ++ "'"
+
 -- | Builds the generic constructor-to-string function.
 --
 -- This generates a simple function of the following form:
@@ -382,8 +391,7 @@ constructorName x                = fail $ "Unhandled constructor " ++ show x
 -- 'genToRaw' to actually generate the function
 genConstrToStr :: (String -> String) -> Name -> String -> Q [Dec]
 genConstrToStr trans_fun name fname = do
-  TyConI (DataD _ _ _ cons _) <- reify name
-  cnames <- mapM (liftM nameBase . constructorName) cons
+  cnames <- reifyConsNames name
   let svalues = map (Left . trans_fun) cnames
   genToRaw ''String (mkName fname) name $ zip cnames svalues
 
