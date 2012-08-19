@@ -1895,21 +1895,13 @@ getTempFileName = do
   removeFile fpath
   return fpath
 
--- | Helper to execute recvMsg but return Nothing if we reach EOF.
-handleEOF :: (IO a) -> IO (Maybe a)
-handleEOF action =
-  catchJust
-    (\e -> if isEOFErrorType (ioeGetErrorType e) then Just () else Nothing)
-    (liftM Just action)
-    (\_ -> return Nothing)
-
 -- | Server ping-pong helper.
 luxiServerPong :: Luxi.Client -> IO ()
 luxiServerPong c = do
-  msg <- handleEOF (Luxi.recvMsg c)
+  msg <- Luxi.recvMsgExt c
   case msg of
-    Nothing -> return ()
-    Just m -> Luxi.sendMsg c m >> luxiServerPong c
+    Luxi.RecvOk m -> Luxi.sendMsg c m >> luxiServerPong c
+    _ -> return ()
 
 -- | Client ping-pong helper.
 luxiClientPong :: Luxi.Client -> [String] -> IO [String]
