@@ -46,7 +46,7 @@ module Ganeti.HTools.QC
   , testTypes
   , testCLI
   , testJSON
-  , testLUXI
+  , testLuxi
   , testSsconf
   , testRpc
   , testQlang
@@ -1063,8 +1063,8 @@ genSimuSpec = do
 
 -- | Checks that given a set of corrects specs, we can load them
 -- successfully, and that at high-level the values look right.
-prop_SimuLoad :: Property
-prop_SimuLoad =
+prop_Simu_Load :: Property
+prop_Simu_Load =
   forAll (choose (0, 10)) $ \ngroups ->
   forAll (replicateM ngroups genSimuSpec) $ \specs ->
   let strspecs = map (\(p, n, d, m, c) -> printf "%s,%d,%d,%d,%d"
@@ -1094,7 +1094,7 @@ prop_SimuLoad =
              replicate ngroups Types.defIPolicy
 
 testSuite "Simu"
-            [ 'prop_SimuLoad
+            [ 'prop_Simu_Load
             ]
 
 -- ** Node tests
@@ -1315,8 +1315,8 @@ testSuite "Node"
 
 -- | Check that the cluster score is close to zero for a homogeneous
 -- cluster.
-prop_Score_Zero :: Node.Node -> Property
-prop_Score_Zero node =
+prop_Cluster_Score_Zero :: Node.Node -> Property
+prop_Cluster_Score_Zero node =
   forAll (choose (1, 1024)) $ \count ->
     (not (Node.offline node) && not (Node.failN1 node) && (count > 0) &&
      (Node.tDsk node > 0) && (Node.tMem node > 0)) ==>
@@ -1328,8 +1328,8 @@ prop_Score_Zero node =
   in score <= 1e-12
 
 -- | Check that cluster stats are sane.
-prop_CStats_sane :: Property
-prop_CStats_sane =
+prop_Cluster_CStats_sane :: Property
+prop_Cluster_CStats_sane =
   forAll (choose (1, 1024)) $ \count ->
   forAll genOnlineNode $ \node ->
   let fn = Node.buildPeers node Container.empty
@@ -1341,8 +1341,8 @@ prop_CStats_sane =
 
 -- | Check that one instance is allocated correctly, without
 -- rebalances needed.
-prop_ClusterAlloc_sane :: Instance.Instance -> Property
-prop_ClusterAlloc_sane inst =
+prop_Cluster_Alloc_sane :: Instance.Instance -> Property
+prop_Cluster_Alloc_sane inst =
   forAll (choose (5, 20)) $ \count ->
   forAll genOnlineNode $ \node ->
   let (nl, il, inst') = makeSmallEmptyCluster node count inst
@@ -1362,8 +1362,8 @@ prop_ClusterAlloc_sane inst =
 -- instance spec via tiered allocation (whatever the original instance
 -- spec), on either one or two nodes. Furthermore, we test that
 -- computed allocation statistics are correct.
-prop_ClusterCanTieredAlloc :: Instance.Instance -> Property
-prop_ClusterCanTieredAlloc inst =
+prop_Cluster_CanTieredAlloc :: Instance.Instance -> Property
+prop_Cluster_CanTieredAlloc inst =
   forAll (choose (2, 5)) $ \count ->
   forAll (genOnlineNode `suchThat` (isNodeBig 4)) $ \node ->
   let nl = makeSmallCluster node count
@@ -1410,8 +1410,8 @@ genClusterAlloc count node inst =
 
 -- | Checks that on a 4-8 node cluster, once we allocate an instance,
 -- we can also relocate it.
-prop_ClusterAllocRelocate :: Property
-prop_ClusterAllocRelocate =
+prop_Cluster_AllocRelocate :: Property
+prop_Cluster_AllocRelocate =
   forAll (choose (4, 8)) $ \count ->
   forAll (genOnlineNode `suchThat` (isNodeBig 4)) $ \node ->
   forAll (genInstanceSmallerThanNode node `suchThat` isMirrored) $ \inst ->
@@ -1452,8 +1452,8 @@ check_EvacMode grp inst result =
 
 -- | Checks that on a 4-8 node cluster, once we allocate an instance,
 -- we can also node-evacuate it.
-prop_ClusterAllocEvacuate :: Property
-prop_ClusterAllocEvacuate =
+prop_Cluster_AllocEvacuate :: Property
+prop_Cluster_AllocEvacuate =
   forAll (choose (4, 8)) $ \count ->
   forAll (genOnlineNode `suchThat` (isNodeBig 4)) $ \node ->
   forAll (genInstanceSmallerThanNode node `suchThat` isMirrored) $ \inst ->
@@ -1469,8 +1469,8 @@ prop_ClusterAllocEvacuate =
 -- | Checks that on a 4-8 node cluster with two node groups, once we
 -- allocate an instance on the first node group, we can also change
 -- its group.
-prop_ClusterAllocChangeGroup :: Property
-prop_ClusterAllocChangeGroup =
+prop_Cluster_AllocChangeGroup :: Property
+prop_Cluster_AllocChangeGroup =
   forAll (choose (4, 8)) $ \count ->
   forAll (genOnlineNode `suchThat` (isNodeBig 4)) $ \node ->
   forAll (genInstanceSmallerThanNode node `suchThat` isMirrored) $ \inst ->
@@ -1491,8 +1491,8 @@ prop_ClusterAllocChangeGroup =
 
 -- | Check that allocating multiple instances on a cluster, then
 -- adding an empty node, results in a valid rebalance.
-prop_ClusterAllocBalance :: Property
-prop_ClusterAllocBalance =
+prop_Cluster_AllocBalance :: Property
+prop_Cluster_AllocBalance =
   forAll (genNode (Just 5) (Just 128)) $ \node ->
   forAll (choose (3, 5)) $ \count ->
   not (Node.offline node) && not (Node.failN1 node) ==>
@@ -1513,8 +1513,8 @@ prop_ClusterAllocBalance =
             canBalance tbl True True False
 
 -- | Checks consistency.
-prop_ClusterCheckConsistency :: Node.Node -> Instance.Instance -> Bool
-prop_ClusterCheckConsistency node inst =
+prop_Cluster_CheckConsistency :: Node.Node -> Instance.Instance -> Bool
+prop_Cluster_CheckConsistency node inst =
   let nl = makeSmallCluster node 3
       [node1, node2, node3] = Container.elems nl
       node3' = node3 { Node.group = 1 }
@@ -1528,8 +1528,8 @@ prop_ClusterCheckConsistency node inst =
      (not . null $ ccheck [(0, inst3)])
 
 -- | For now, we only test that we don't lose instances during the split.
-prop_ClusterSplitCluster :: Node.Node -> Instance.Instance -> Property
-prop_ClusterSplitCluster node inst =
+prop_Cluster_SplitCluster :: Node.Node -> Instance.Instance -> Property
+prop_Cluster_SplitCluster node inst =
   forAll (choose (0, 100)) $ \icnt ->
   let nl = makeSmallCluster node 2
       (nl', il') = foldl (\(ns, is) _ -> assignInstance ns is inst 0 1)
@@ -1556,8 +1556,8 @@ canAllocOn nl reqnodes inst =
 -- times, and generates a random instance that can be allocated on
 -- this mini-cluster; it then checks that after applying a policy that
 -- the instance doesn't fits, the allocation fails.
-prop_ClusterAllocPolicy :: Node.Node -> Property
-prop_ClusterAllocPolicy node =
+prop_Cluster_AllocPolicy :: Node.Node -> Property
+prop_Cluster_AllocPolicy node =
   -- rqn is the required nodes (1 or 2)
   forAll (choose (1, 2)) $ \rqn ->
   forAll (choose (5, 20)) $ \count ->
@@ -1570,17 +1570,17 @@ prop_ClusterAllocPolicy node =
   in not $ canAllocOn nl rqn inst
 
 testSuite "Cluster"
-            [ 'prop_Score_Zero
-            , 'prop_CStats_sane
-            , 'prop_ClusterAlloc_sane
-            , 'prop_ClusterCanTieredAlloc
-            , 'prop_ClusterAllocRelocate
-            , 'prop_ClusterAllocEvacuate
-            , 'prop_ClusterAllocChangeGroup
-            , 'prop_ClusterAllocBalance
-            , 'prop_ClusterCheckConsistency
-            , 'prop_ClusterSplitCluster
-            , 'prop_ClusterAllocPolicy
+            [ 'prop_Cluster_Score_Zero
+            , 'prop_Cluster_CStats_sane
+            , 'prop_Cluster_Alloc_sane
+            , 'prop_Cluster_CanTieredAlloc
+            , 'prop_Cluster_AllocRelocate
+            , 'prop_Cluster_AllocEvacuate
+            , 'prop_Cluster_AllocChangeGroup
+            , 'prop_Cluster_AllocBalance
+            , 'prop_Cluster_CheckConsistency
+            , 'prop_Cluster_SplitCluster
+            , 'prop_Cluster_AllocPolicy
             ]
 
 -- ** OpCodes tests
@@ -1598,21 +1598,21 @@ testSuite "OpCodes"
 -- ** Jobs tests
 
 -- | Check that (queued) job\/opcode status serialization is idempotent.
-prop_OpStatus_serialization :: Jobs.OpStatus -> Property
-prop_OpStatus_serialization os =
+prop_Jobs_OpStatus_serialization :: Jobs.OpStatus -> Property
+prop_Jobs_OpStatus_serialization os =
   case J.readJSON (J.showJSON os) of
     J.Error e -> failTest $ "Cannot deserialise: " ++ e
     J.Ok os' -> os ==? os'
 
-prop_JobStatus_serialization :: Jobs.JobStatus -> Property
-prop_JobStatus_serialization js =
+prop_Jobs_JobStatus_serialization :: Jobs.JobStatus -> Property
+prop_Jobs_JobStatus_serialization js =
   case J.readJSON (J.showJSON js) of
     J.Error e -> failTest $ "Cannot deserialise: " ++ e
     J.Ok js' -> js ==? js'
 
 testSuite "Jobs"
-            [ 'prop_OpStatus_serialization
-            , 'prop_JobStatus_serialization
+            [ 'prop_Jobs_OpStatus_serialization
+            , 'prop_Jobs_JobStatus_serialization
             ]
 
 -- ** Loader tests
@@ -1932,7 +1932,7 @@ prop_Luxi_ClientServer dnschars = monadicIO $ do
       (\c -> luxiClientPong c msgs)
   assert $ replies == msgs
 
-testSuite "LUXI"
+testSuite "Luxi"
           [ 'prop_Luxi_CallEncoding
           , 'prop_Luxi_ClientServer
           ]

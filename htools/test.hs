@@ -66,7 +66,7 @@ allTests =
   , (True, testTypes)
   , (True, testCLI)
   , (True, testJSON)
-  , (True, testLUXI)
+  , (True, testLuxi)
   , (True, testSsconf)
   , (True, testQlang)
   , (True, testRpc)
