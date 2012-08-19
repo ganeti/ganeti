@@ -31,6 +31,7 @@ module Ganeti.Config
     , getInstancesIpByLink
     , getNode
     , getInstance
+    , getGroup
     , getInstPrimaryNode
     , getInstMinorsForNode
     , buildLinkIpInstnameMap
@@ -131,6 +132,18 @@ getNode cfg name = getItem "Node" name (fromContainer $ configNodes cfg)
 getInstance :: ConfigData -> String -> Result Instance
 getInstance cfg name =
   getItem "Instance" name (fromContainer $ configInstances cfg)
+
+-- | Looks up a node group. This is more tricky than for
+-- node/instances since the groups map is indexed by uuid, not name.
+getGroup :: ConfigData -> String -> Result NodeGroup
+getGroup cfg name =
+  let groups = fromContainer (configNodegroups cfg)
+  in case getItem "NodeGroup" name groups of
+       -- if not found by uuid, we need to look it up by name, slow
+       Ok grp -> Ok grp
+       Bad _ -> let by_name = M.mapKeys
+                              (\k -> groupName ((M.!) groups k )) groups
+                in getItem "NodeGroup" name by_name
 
 -- | Looks up an instance's primary node.
 getInstPrimaryNode :: ConfigData -> String -> Result Node
