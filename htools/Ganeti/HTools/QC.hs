@@ -438,11 +438,7 @@ instance Arbitrary OpCodes.ReplaceDisksMode where
 
 instance Arbitrary OpCodes.OpCode where
   arbitrary = do
-    op_id <- elements [ "OP_TEST_DELAY"
-                      , "OP_INSTANCE_REPLACE_DISKS"
-                      , "OP_INSTANCE_FAILOVER"
-                      , "OP_INSTANCE_MIGRATE"
-                      ]
+    op_id <- elements OpCodes.allOpIDs
     case op_id of
       "OP_TEST_DELAY" ->
         OpCodes.OpTestDelay <$> arbitrary <*> arbitrary

@@ -6,7 +6,7 @@
 
 {-
 
-Copyright (C) 2009, 2010, 2011 Google Inc.
+Copyright (C) 2009, 2010, 2011, 2012 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -29,6 +29,7 @@ module Ganeti.OpCodes
   ( OpCode(..)
   , ReplaceDisksMode(..)
   , opID
+  , allOpIDs
   ) where
 
 import Text.JSON (readJSON, showJSON, makeObj, JSON)
@@ -78,7 +79,11 @@ $(genOpCode "OpCode"
      ])
   ])
 
+-- | Returns the OP_ID for a given opcode value.
 $(genOpID ''OpCode "opID")
+
+-- | A list of all defined/supported opcode IDs.
+$(genAllOpIDs ''OpCode "allOpIDs")
 
 instance JSON OpCode where
   readJSON = loadOpCode

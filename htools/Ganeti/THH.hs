@@ -33,6 +33,7 @@ module Ganeti.THH ( declareSADT
                   , declareIADT
                   , makeJSONInstance
                   , genOpID
+                  , genAllOpIDs
                   , genOpCode
                   , genStrOfOp
                   , genStrOfKey
@@ -398,6 +399,28 @@ genConstrToStr trans_fun name fname = do
 -- | Constructor-to-string for OpCode.
 genOpID :: Name -> String -> Q [Dec]
 genOpID = genConstrToStr deCamelCase
+
+-- | Builds a list with all defined constructor names for a type.
+--
+-- @
+-- vstr :: String
+-- vstr = [...]
+-- @
+--
+-- Where the actual values of the string are the constructor names
+-- mapped via @trans_fun@.
+genAllConstr :: (String -> String) -> Name -> String -> Q [Dec]
+genAllConstr trans_fun name vstr = do
+  cnames <- reifyConsNames name
+  let svalues = sort $ map trans_fun cnames
+      vname = mkName vstr
+      sig = SigD vname (AppT ListT (ConT ''String))
+      body = NormalB (ListE (map (LitE . StringL) svalues))
+  return $ [sig, ValD (VarP vname) body []]
+
+-- | Generates a list of all defined opcode IDs.
+genAllOpIDs :: Name -> String -> Q [Dec]
+genAllOpIDs = genAllConstr deCamelCase
 
 -- | OpCode parameter (field) type.
 type OpParam = (String, Q Type, Q Exp)
