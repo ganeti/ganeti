@@ -29,28 +29,44 @@ module Ganeti.HTools.QCHelper
   ( testSuite
   ) where
 
-import Data.List (stripPrefix)
+import Data.List (stripPrefix, isPrefixOf)
 import Data.Maybe (fromMaybe)
-import Test.QuickCheck
 import Test.Framework
+import Test.Framework.Providers.HUnit
 import Test.Framework.Providers.QuickCheck2
+import Test.HUnit (Assertion)
+import Test.QuickCheck
 import Language.Haskell.TH
 
 -- | Tries to drop a prefix from a string.
 simplifyName :: String -> String -> String
 simplifyName pfx string = fromMaybe string (stripPrefix pfx string)
 
--- | Builds a test from a property and given arguments.
-run :: Testable prop => String -> String -> prop -> Test
-run pfx name = testProperty (simplifyName ("prop_" ++ pfx ++ "_") name)
+-- | Builds a test from a QuickCheck property.
+runQC :: Testable prop => String -> String -> prop -> Test
+runQC pfx name = testProperty (simplifyName ("prop_" ++ pfx ++ "_") name)
+
+-- | Builds a test for a HUnit test case.
+runHUnit :: String -> String -> Assertion -> Test
+runHUnit pfx name = testCase (simplifyName ("case_" ++ pfx ++ "_") name)
+
+-- | Runs the correct test provider for a given test, based on its
+-- name (not very nice, but...).
+run :: String -> Name -> Q Exp
+run tsname name =
+  let str = nameBase name
+      nameE = varE name
+      strE = litE (StringL str)
+  in case () of
+       _ | "prop_" `isPrefixOf` str -> [| runQC tsname $strE $nameE |]
+         | "case_" `isPrefixOf` str -> [| runHUnit tsname $strE $nameE |]
+         | otherwise -> fail $ "Unsupported test function name '" ++ str ++ "'"
 
 -- | Builds a test suite.
 testSuite :: String -> [Name] -> Q [Dec]
 testSuite tsname tdef = do
   let fullname = mkName $ "test" ++ tsname
-  tests <- mapM (\n -> [| run tsname
-                          $(litE . StringL . nameBase $ n) $(varE n) |])
-           tdef
+  tests <- mapM (run tsname) tdef
   sigtype <- [t| (String, [Test]) |]
   return [ SigD fullname sigtype
          , ValD (VarP fullname) (NormalB (TupE [LitE (StringL tsname),
