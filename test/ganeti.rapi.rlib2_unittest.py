@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2010 Google Inc.
+# Copyright (C) 2010, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -57,7 +57,7 @@ def _CreateHandler(cls, items, queryargs, body_data, client_cls):
 
 
 class _FakeClient:
-  def __init__(self):
+  def __init__(self, address=None):
     self._jobs = []
 
   def GetNextSubmittedJob(self):
@@ -77,8 +77,8 @@ class _FakeClientFactory:
   def GetNextClient(self):
     return self._clients.pop(0)
 
-  def __call__(self):
-    cl = self._client_cls()
+  def __call__(self, address=None):
+    cl = self._client_cls(address=address)
     self._clients.append(cl)
     return cl
 
@@ -103,7 +103,7 @@ class TestConstants(unittest.TestCase):
 
 class TestClientConnectError(unittest.TestCase):
   @staticmethod
-  def _FailingClient():
+  def _FailingClient(address=None):
     raise luxi.NoMasterError("test")
 
   def test(self):
@@ -119,6 +119,9 @@ class TestClientConnectError(unittest.TestCase):
 
 class TestJobSubmitError(unittest.TestCase):
   class _SubmitErrorClient:
+    def __init__(self, address=None):
+      pass
+
     @staticmethod
     def SubmitJob(ops):
       raise errors.JobQueueFull("test")
@@ -1714,7 +1717,7 @@ class TestSimpleResources(unittest.TestCase):
 
 class TestClusterInfo(unittest.TestCase):
   class _ClusterInfoClient:
-    def __init__(self):
+    def __init__(self, address=None):
       self.cluster_info = None
 
     def QueryClusterInfo(self):

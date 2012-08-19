@@ -294,7 +294,7 @@ class _LuxiCallRecorder:
     """
     return self._called
 
-  def __call__(self):
+  def __call__(self, address=None):
     """Creates an instrumented LUXI client.
 
     The LUXI client will record all method calls (use L{CalledNames} to
@@ -302,7 +302,8 @@ class _LuxiCallRecorder:
 
     """
     return luxi.Client(transport=compat.partial(_TestLuxiTransport,
-                                                self.Record))
+                                                self.Record),
+                       address=address)
 
 
 def _TestWrapper(fn, *args, **kwargs):

@@ -34,6 +34,7 @@ from ganeti import rapi
 from ganeti import http
 from ganeti import errors
 from ganeti import compat
+from ganeti import constants
 
 
 # Dummy value to detect unchanged parameters
@@ -382,13 +383,22 @@ class ResourceBase(object):
     """
     return bool(self._checkIntVariable("dry-run"))
 
-  def GetClient(self):
+  def GetClient(self, query=False):
     """Wrapper for L{luxi.Client} with HTTP-specific error handling.
 
+    @param query: this signifies that the client will only be used for
+        queries; if the build-time parameter enable-split-queries is
+        enabled, then the client will be connected to the query socket
+        instead of the masterd socket
+
     """
+    if query and constants.ENABLE_SPLIT_QUERY:
+      address = constants.QUERY_SOCKET
+    else:
+      address = None
     # Could be a function, pylint: disable=R0201
     try:
-      return self._client_cls()
+      return self._client_cls(address=address)
     except luxi.NoMasterError, err:
       raise http.HttpBadGateway("Can't connect to master daemon: %s" % err)
     except luxi.PermissionError:
