@@ -52,6 +52,7 @@ module Ganeti.HTools.QC
   , testQlang
   ) where
 
+import qualified Test.HUnit as HUnit
 import Test.QuickCheck
 import Test.QuickCheck.Monadic (assert, monadicIO, run, stop)
 import Text.Printf (printf)
@@ -67,8 +68,11 @@ import qualified Data.IntMap as IntMap
 import Control.Concurrent (forkIO)
 import Control.Exception (bracket, catchJust)
 import System.Directory (getTemporaryDirectory, removeFile)
+import System.Environment (getEnv)
+import System.Exit (ExitCode(..))
 import System.IO (hClose, openTempFile)
-import System.IO.Error (isEOFErrorType, ioeGetErrorType)
+import System.IO.Error (isEOFErrorType, ioeGetErrorType, isDoesNotExistError)
+import System.Process (readProcessWithExitCode)
 
 import qualified Ganeti.Confd as Confd
 import qualified Ganeti.Config as Config
@@ -206,6 +210,27 @@ infix 3 ==?
 -- | Show a message and fail the test.
 failTest :: String -> Property
 failTest msg = printTestCase msg False
+
+-- | Return the python binary to use. If the PYTHON environment
+-- variable is defined, use its value, otherwise use just \"python\".
+pythonCmd :: IO String
+pythonCmd = catchJust (guard . isDoesNotExistError)
+            (getEnv "PYTHON") (const (return "python"))
+
+-- | Run Python with an expression, returning the exit code, standard
+-- output and error.
+runPython :: String -> String -> IO (ExitCode, String, String)
+runPython expr stdin = do
+  py_binary <- pythonCmd
+  readProcessWithExitCode py_binary ["-c", expr] stdin
+
+-- | Check python exit code, and fail via HUnit assertions if
+-- non-zero. Otherwise, return the standard output.
+checkPythonResult :: (ExitCode, String, String) -> IO String
+checkPythonResult (py_code, py_stdout, py_stderr) = do
+  HUnit.assertEqual ("python exited with error: " ++ py_stderr)
+       ExitSuccess py_code
+  return py_stdout
 
 -- | Update an instance to be smaller than a node.
 setInstanceSmallerThanNode :: Node.Node
