@@ -1339,7 +1339,7 @@ class _R_Tags(baserlib.OpcodeResource):
       if not self.name:
         raise http.HttpBadRequest("Missing name on tag request")
 
-      cl = self.GetClient()
+      cl = self.GetClient(query=True)
       tags = list(cl.QueryTags(kind, self.name))
 
     elif kind == constants.TAG_CLUSTER:

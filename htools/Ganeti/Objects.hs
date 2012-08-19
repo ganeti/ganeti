@@ -293,7 +293,8 @@ $(buildObject "Instance" "inst" $
   ]
   ++ timeStampFields
   ++ uuidFields
-  ++ serialFields)
+  ++ serialFields
+  ++ tagsFields)
 
 -- * IPolicy definitions
 
@@ -374,7 +375,8 @@ $(buildObject "Node" "node" $
   ]
   ++ timeStampFields
   ++ uuidFields
-  ++ serialFields)
+  ++ serialFields
+  ++ tagsFields)
 
 -- * NodeGroup definitions
 
@@ -402,7 +404,8 @@ $(buildObject "NodeGroup" "group" $
   ]
   ++ timeStampFields
   ++ uuidFields
-  ++ serialFields)
+  ++ serialFields
+  ++ tagsFields)
 
 -- | IP family type
 $(declareIADT "IpFamily"

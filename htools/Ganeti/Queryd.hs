@@ -29,6 +29,7 @@ module Ganeti.Queryd
 
 where
 
+import Control.Applicative
 import Control.Concurrent
 import Control.Exception
 import Data.Bits (bitSize)
@@ -41,7 +42,7 @@ import System.Info (arch)
 
 import qualified Ganeti.Constants as C
 import Ganeti.Objects
---import Ganeti.Config
+import qualified Ganeti.Config as Config
 import Ganeti.BasicTypes
 import Ganeti.Logging
 import Ganeti.Luxi
@@ -117,6 +118,14 @@ handleCall cdata QueryClusterInfo =
             ]
 
   in return . Ok . J.makeObj $ obj
+
+handleCall cfg (QueryTags kind name) =
+  let tags = case kind of
+               TagCluster -> Ok . clusterTags $ configCluster cfg
+               TagGroup -> groupTags <$> Config.getGroup cfg name
+               TagNode -> nodeTags <$> Config.getNode cfg name
+               TagInstance -> instTags <$> Config.getInstance cfg name
+  in return (J.showJSON <$> tags)
 
 handleCall _ op =
   return . Bad $ "Luxi call '" ++ strOfOp op ++ "' not implemented"

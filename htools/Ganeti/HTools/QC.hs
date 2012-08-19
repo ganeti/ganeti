@@ -57,6 +57,7 @@ import Test.QuickCheck.Monadic (assert, monadicIO, run, stop)
 import Text.Printf (printf)
 import Data.List (intercalate, nub, isPrefixOf)
 import Data.Maybe
+import qualified Data.Set as Set
 import Control.Monad
 import Control.Applicative
 import qualified System.Console.GetOpt as GetOpt
@@ -548,6 +549,7 @@ instance Arbitrary Objects.Node where
               <*> arbitrary <*> arbitrary <*> arbitrary <*> getFQDN
               <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
               <*> arbitrary <*> arbitrary <*> getFQDN <*> arbitrary
+              <*> (Set.fromList <$> genTags)
 
 instance Arbitrary Rpc.RpcCallAllInstancesInfo where
   arbitrary = Rpc.RpcCallAllInstancesInfo <$> arbitrary

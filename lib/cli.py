@@ -464,7 +464,7 @@ def ListTags(opts, args):
 
   """
   kind, name = _ExtractTagsObject(opts, args)
-  cl = GetClient()
+  cl = GetClient(query=True)
   result = cl.QueryTags(kind, name)
   result = list(result)
   result.sort()
