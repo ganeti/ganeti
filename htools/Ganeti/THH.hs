@@ -56,6 +56,7 @@ module Ganeti.THH ( declareSADT
 import Control.Monad (liftM)
 import Data.Char
 import Data.List
+import Data.Maybe (fromMaybe)
 import qualified Data.Set as Set
 import Language.Haskell.TH
 
@@ -106,9 +107,12 @@ customField :: Name    -- ^ The name of the read function
 customField readfn showfn field =
   field { fieldRead = Just (varE readfn), fieldShow = Just (varE showfn) }
 
+-- | Computes the record name for a given field, based on either the
+-- string value in the JSON serialisation or the custom named if any
+-- exists.
 fieldRecordName :: Field -> String
 fieldRecordName (Field { fieldName = name, fieldConstr = alias }) =
-  maybe (camelCase name) id alias
+  fromMaybe (camelCase name) alias
 
 -- | Computes the preferred variable name to use for the value of this
 -- field. If the field has a specific constructor name, then we use a
@@ -145,16 +149,19 @@ loadFn _ expr _ = expr
 
 -- * Common field declarations
 
+-- | Timestamp fields description.
 timeStampFields :: [Field]
 timeStampFields =
     [ defaultField [| 0::Double |] $ simpleField "ctime" [t| Double |]
     , defaultField [| 0::Double |] $ simpleField "mtime" [t| Double |]
     ]
 
+-- | Serial number fields description.
 serialFields :: [Field]
 serialFields =
     [ renameField  "Serial" $ simpleField "serial_no" [t| Int |] ]
 
+-- | UUID fields description.
 uuidFields :: [Field]
 uuidFields = [ simpleField "uuid" [t| String |] ]
 
@@ -196,8 +203,7 @@ toRawName = mkName . (++ "ToRaw") . ensureLower
 fromRawName :: String -> Name
 fromRawName = mkName . (++ "FromRaw") . ensureLower
 
--- | Converts a name to it's varE/litE representations.
---
+-- | Converts a name to it's varE\/litE representations.
 reprE :: Either String Name -> Q Exp
 reprE = either stringE varE
 
@@ -286,7 +292,7 @@ genFromRaw traw fname tname constructors = do
 --
 -- * /name/FromRaw, which (monadically) converts from a raw type to the type
 --
--- Note that this is basically just a custom show/read instance,
+-- Note that this is basically just a custom show\/read instance,
 -- nothing else.
 declareADT :: Name -> String -> [(String, Name)] -> Q [Dec]
 declareADT traw sname cons = do
@@ -388,8 +394,8 @@ reifyConsNames name = do
 -- fname (ConStructorTwo {}) = trans_fun("ConStructorTwo")
 -- @
 --
--- This builds a custom list of name/string pairs and then uses
--- 'genToRaw' to actually generate the function
+-- This builds a custom list of name\/string pairs and then uses
+-- 'genToRaw' to actually generate the function.
 genConstrToStr :: (String -> String) -> Name -> String -> Q [Dec]
 genConstrToStr trans_fun name fname = do
   cnames <- reifyConsNames name
@@ -487,6 +493,7 @@ genSaveOpCode opdefs = do
   sigt <- [t| $(conT (mkName "OpCode")) -> JSON.JSValue |]
   return $ (SigD fname sigt, FunD fname cclauses)
 
+-- | Generates load code for a single constructor of the opcode data type.
 loadConstructor :: String -> [Field] -> Q Exp
 loadConstructor sname fields = do
   let name = mkName sname
@@ -496,6 +503,7 @@ loadConstructor sname fields = do
       fstmts' = fstmts ++ [NoBindS (AppE (VarE 'return) cval)]
   return $ DoE fstmts'
 
+-- | Generates the loadOpCode function.
 genLoadOpCode :: [(String, [Field])] -> Q (Dec, Dec)
 genLoadOpCode opdefs = do
   let fname = mkName "loadOpCode"
@@ -604,6 +612,7 @@ buildObject sname field_pfx fields = do
   ser_decls <- buildObjectSerialisation sname fields
   return $ declD:ser_decls
 
+-- | Generates an object definition: data type and its JSON instance.
 buildObjectSerialisation :: String -> [Field] -> Q [Dec]
 buildObjectSerialisation sname fields = do
   let name = mkName sname
@@ -615,6 +624,7 @@ buildObjectSerialisation sname fields = do
                  [rdjson, shjson]
   return $ savedecls ++ [loadsig, loadfn, instdecl]
 
+-- | Generates the save object functionality.
 genSaveObject :: (Name -> Field -> Q Exp)
               -> String -> [Field] -> Q [Dec]
 genSaveObject save_fn sname fields = do
@@ -636,6 +646,8 @@ genSaveObject save_fn sname fields = do
   return [SigD tdname tdsigt, FunD tdname [tclause],
           SigD fname sigt, ValD (VarP fname) (NormalB cclause) []]
 
+-- | Generates the code for saving an object's field, handling the
+-- various types of fields that we have.
 saveObjectField :: Name -> Field -> Q Exp
 saveObjectField fvar field
   | fisOptional = [| case $(varE fvar) of
@@ -651,11 +663,13 @@ saveObjectField fvar field
         nameE = stringE (fieldName field)
         fvarE = varE fvar
 
+-- | Generates the showJSON clause for a given object name.
 objectShowJSON :: String -> Q Dec
 objectShowJSON name = do
   body <- [| JSON.showJSON . $(varE . mkName $ "save" ++ name) |]
   return $ FunD (mkName "showJSON") [Clause [] (NormalB body) []]
 
+-- | Generates the load object functionality.
 genLoadObject :: (Field -> Q (Name, Stmt))
               -> String -> [Field] -> Q (Dec, Dec)
 genLoadObject load_fn sname fields = do
@@ -674,6 +688,7 @@ genLoadObject load_fn sname fields = do
   return $ (SigD funname sigt,
             FunD funname [Clause [VarP arg1] (NormalB (DoE fstmts')) []])
 
+-- | Generates code for loading an object's field.
 loadObjectField :: Field -> Q (Name, Stmt)
 loadObjectField field = do
   let name = fieldVariable field
@@ -693,6 +708,7 @@ loadObjectField field = do
 
   return (fvar, BindS (VarP fvar) bexp)
 
+-- | Builds the readJSON instance for a given object name.
 objectReadJSON :: String -> Q Dec
 objectReadJSON name = do
   let s = mkName "s"
@@ -742,6 +758,7 @@ buildParam sname field_pfx fields = do
   fill_decls <- fillParam sname field_pfx fields
   return $ [declF, declP] ++ ser_decls_f ++ ser_decls_p ++ fill_decls
 
+-- | Generates the serialisation for a partial parameter.
 buildPParamSerialisation :: String -> [Field] -> Q [Dec]
 buildPParamSerialisation sname fields = do
   let name = mkName sname
@@ -753,6 +770,7 @@ buildPParamSerialisation sname fields = do
                  [rdjson, shjson]
   return $ savedecls ++ [loadsig, loadfn, instdecl]
 
+-- | Generates code to save an optional parameter field.
 savePParamField :: Name -> Field -> Q Exp
 savePParamField fvar field = do
   checkNonOptDef field
@@ -765,6 +783,8 @@ savePParamField fvar field = do
                              , Match (ConP 'Just [VarP actualVal])
                                        (NormalB normalexpr) []
                              ]
+
+-- | Generates code to load an optional parameter field.
 loadPParamField :: Field -> Q (Name, Stmt)
 loadPParamField field = do
   checkNonOptDef field
@@ -785,6 +805,8 @@ buildFromMaybe fname =
                         $(varNameE $ "f_" ++ fname)
                         $(varNameE $ "p_" ++ fname) |]) []
 
+-- | Builds a function that executes the filling of partial parameter
+-- from a full copy (similar to Python's fillDict).
 fillParam :: String -> String -> [Field] -> Q [Dec]
 fillParam sname field_pfx fields = do
   let fnames = map (\fd -> field_pfx ++ fieldRecordName fd) fields
