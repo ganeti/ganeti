@@ -1340,16 +1340,7 @@ class _R_Tags(baserlib.OpcodeResource):
         raise http.HttpBadRequest("Missing name on tag request")
 
       cl = self.GetClient()
-      if kind == constants.TAG_INSTANCE:
-        fn = cl.QueryInstances
-      elif kind == constants.TAG_NODEGROUP:
-        fn = cl.QueryGroups
-      else:
-        fn = cl.QueryNodes
-      result = fn(names=[self.name], fields=["tags"], use_locking=False)
-      if not result or not result[0]:
-        raise http.HttpBadGateway("Invalid response from tag query")
-      tags = result[0][0]
+      tags = list(cl.QueryTags(kind, self.name))
 
     elif kind == constants.TAG_CLUSTER:
       assert not self.name
