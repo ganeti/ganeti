@@ -1931,7 +1931,7 @@ prop_Luxi_ClientServer dnschars = monadicIO $ do
   _ <- run . forkIO $
     bracket
       (Luxi.acceptClient server)
-      (\c -> Luxi.closeClient c >> removeFile fpath)
+      (\c -> Luxi.closeClient c >> Luxi.closeServer fpath server)
       luxiServerPong
   replies <- run $
     bracket
