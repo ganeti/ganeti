@@ -25,161 +25,82 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Main(main) where
 
-import Data.Char
-import Data.IORef
-import Data.List
-import Data.Maybe (fromMaybe)
-import System.Console.GetOpt ()
+import Data.Monoid (mappend)
+import Test.Framework
 import System.Environment (getArgs)
-import System.Exit
-import System.IO
-import Test.QuickCheck
-import Text.Printf
 
 import Ganeti.HTools.QC
-import Ganeti.HTools.CLI
-import Ganeti.HTools.Utils (sepSplit)
 
--- | Options list and functions.
-options :: [OptType]
-options =
-  [ oReplay
-  , oVerbose
-  , oShowVer
-  , oShowHelp
-  , oTestCount
-  ]
-
-fast :: Args
-fast = stdArgs
-       { maxSuccess = 500
-       , chatty     = False
+-- | Our default test options, overring the built-in test-framework
+-- ones.
+fast :: TestOptions
+fast = TestOptions
+       { topt_seed                               = Nothing
+       , topt_maximum_generated_tests            = Just 500
+       , topt_maximum_unsuitable_generated_tests = Just 5000
+       , topt_maximum_test_size                  = Nothing
+       , topt_maximum_test_depth                 = Nothing
+       , topt_timeout                            = Nothing
        }
 
-slow :: Args
-slow = stdArgs
-       { maxSuccess = 50
-       , chatty     = False
+-- | Our slow test options.
+slow :: TestOptions
+slow = fast
+       { topt_maximum_generated_tests            = Just 50
+       , topt_maximum_unsuitable_generated_tests = Just 500
        }
 
-incIORef :: IORef Int -> IO ()
-incIORef ir = atomicModifyIORef ir (\x -> (x + 1, ()))
-
--- | Wrapper over a test runner with error counting.
-wrapTest :: IORef Int
-         -> (Args -> IO Result, String)
-         -> Args
-         -> IO (Result, Char, String)
-wrapTest ir (test, desc) opts = do
-  r <- test opts
-  c <- case r of
-         Success {} -> return '.'
-         GaveUp  {} -> return '?'
-         Failure {} -> incIORef ir >> return '#'
-         NoExpectedFailure {} -> incIORef ir >> return '*'
-  return (r, c, desc)
-
-runTests :: String
-         -> Args
-         -> [Args -> IO (Result, Char, String)]
-         -> Int
-         -> IO [(Result, String)]
-
-runTests name opts tests max_count = do
-  _ <- printf "%25s : " name
-  hFlush stdout
-  results <- mapM (\t -> do
-                     (r, c, desc) <- t opts
-                     putChar c
-                     hFlush stdout
-                     return (r, desc)
-                  ) tests
-  let alldone = sum . map (numTests . fst) $ results
-  _ <- printf "%*s(%d)\n" (max_count - length tests + 1) " " alldone
-  mapM_ (\(r, desc) ->
-             case r of
-               Failure { output = o, usedSeed = u, usedSize = size } ->
-                   printf "Test %s failed (seed was %s, test size %d): %s\n"
-                          desc (show u) size o
-               GaveUp { numTests = passed } ->
-                   printf "Test %s incomplete: gave up with only %d\
-                          \ passes after discarding %d tests\n"
-                          desc passed (maxDiscard opts)
-               _ -> return ()
-        ) results
-  return results
-
-allTests :: [(Args, (String, [(Args -> IO Result, String)]))]
+-- | All our defined tests.
+allTests :: [(Bool, (String, [Test]))]
 allTests =
-  [ (fast, testUtils)
-  , (fast, testPeerMap)
-  , (fast, testContainer)
-  , (fast, testInstance)
-  , (fast, testNode)
-  , (fast, testText)
-  , (fast, testSimu)
-  , (fast, testOpCodes)
-  , (fast, testJobs)
-  , (fast, testLoader)
-  , (fast, testTypes)
-  , (fast, testCLI)
-  , (fast, testJSON)
-  , (fast, testLUXI)
-  , (fast, testSsconf)
-  , (fast, testQlang)
-  , (slow, testCluster)
-  , (fast, testRpc)
+  [ (True, testUtils)
+  , (True, testPeerMap)
+  , (True, testContainer)
+  , (True, testInstance)
+  , (True, testNode)
+  , (True, testText)
+  , (True, testSimu)
+  , (True, testOpCodes)
+  , (True, testJobs)
+  , (True, testLoader)
+  , (True, testTypes)
+  , (True, testCLI)
+  , (True, testJSON)
+  , (True, testLUXI)
+  , (True, testSsconf)
+  , (True, testQlang)
+  , (True, testRpc)
+  , (False, testCluster)
   ]
 
--- | Extracts the name of a test group.
-extractName :: (Args, (String, [(Args -> IO Result, String)])) -> String
-extractName (_, (name, _)) = name
+-- | Slow a test's max tests, if provided as such.
+makeSlowOrFast :: Bool -> TestOptions -> TestOptions
+makeSlowOrFast is_fast opts =
+  let template = if is_fast then fast else slow
+      fn_val v = if is_fast then v else v `div` 10
+  in case topt_maximum_generated_tests opts of
+       -- user didn't override the max_tests, so we'll do it here
+       Nothing -> opts `mappend` template
+       -- user did override, so we ignore the template and just directly
+       -- decrease the max_tests, if needed
+       Just max_tests -> opts { topt_maximum_generated_tests =
+                                  Just (fn_val max_tests)
+                              }
 
--- | Lowercase a string.
-lower :: String -> String
-lower = map toLower
-
-transformTestOpts :: Args -> Options -> IO Args
-transformTestOpts args opts = do
-  r <- case optReplay opts of
-         Nothing -> return Nothing
-         Just str -> do
-           let vs = sepSplit ',' str
-           case vs of
-             [rng, size] -> return $ Just (read rng, read size)
-             _ -> fail "Invalid state given"
-  return args { chatty = optVerbose opts > 1
-              , replay = r
-              , maxSuccess = fromMaybe (maxSuccess args) (optTestCount opts)
-              , maxDiscard = fromMaybe (maxDiscard args) (optTestCount opts)
-              }
-
+-- | Main function. Note we don't use defaultMain since we want to
+-- control explicitly our test sizes (and override the default).
 main :: IO ()
 main = do
-  errs <- newIORef 0
-  let wrap = map (wrapTest errs)
-  cmd_args <- getArgs
-  (opts, args) <- parseOpts cmd_args "test" options
-  tests <- if null args
-             then return allTests
-             else let args' = map lower args
-                      selected = filter ((`elem` args') . lower .
-                                         extractName) allTests
-                  in if null selected
-                       then do
-                         hPutStrLn stderr $ "No tests matching '"
-                            ++ unwords args ++ "', available tests: "
-                            ++ intercalate ", " (map extractName allTests)
-                         exitWith $ ExitFailure 1
-                       else return selected
-
-  let max_count = maximum $ map (\(_, (_, t)) -> length t) tests
-  mapM_ (\(targs, (name, tl)) ->
-           transformTestOpts targs opts >>= \newargs ->
-           runTests name newargs (wrap tl) max_count) tests
-  terr <- readIORef errs
-  if terr > 0
-    then do
-      hPutStrLn stderr $ "A total of " ++ show terr ++ " tests failed."
-      exitWith $ ExitFailure 1
-    else putStrLn "All tests succeeded."
+  ropts <- getArgs >>= interpretArgsOrExit
+  -- note: we do this overriding here since we need some groups to
+  -- have a smaller test count; so in effect we're basically
+  -- overriding t-f's inheritance here, but only for max_tests
+  let (act_fast, act_slow) =
+       case ropt_test_options ropts of
+         Nothing -> (fast, slow)
+         Just topts -> (makeSlowOrFast True topts, makeSlowOrFast False topts)
+      actual_opts is_fast = if is_fast then act_fast else act_slow
+  let tests = map (\(is_fast, (group_name, group_tests)) ->
+                     plusTestOptions (actual_opts is_fast) $
+                     testGroup group_name group_tests) allTests
+  defaultMainWithOpts tests ropts

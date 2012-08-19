@@ -64,15 +64,25 @@ document, plus:
   above (tested with 1.8.15)
 - the `QuickCheck <http://hackage.haskell.org/package/QuickCheck>`_
   library, version 2.x
+- the `HUnit <http://hunit.sourceforge.net/>`_ library (tested with
+  1.2.x)
+- the `test-framework
+  <http://batterseapower.github.com/test-framework/>`_ libraries,
+  tested versions: ``test-framework``: 0.6, ``test-framework-hunit``:
+  0.2.7, ``test-framework-quickcheck2``: 0.2.12
 - ``hpc``, which comes with the compiler, so you should already have
   it
 - `shelltestrunner <http://joyful.com/shelltestrunner>`_, used for
-  running unit-tests
+  running shell-based unit-tests
 
 Under Debian Wheezy or later, these can be installed (on top of the
 required ones from the quick install document) via::
 
-  $ apt-get install libghc-quickcheck2-dev hscolour hlint
+  $ apt-get install libghc-quickcheck2-dev libghc-hunit-dev \
+        libghc-test-framework-dev \
+        libghc-test-framework-quickcheck2-dev \
+        libghc-test-framework-hunit-dev \
+        hscolour hlint
 
 Or alternatively via ``cabal``::
 

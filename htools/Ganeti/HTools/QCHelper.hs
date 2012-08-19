@@ -6,7 +6,7 @@
 
 {-
 
-Copyright (C) 2011 Google Inc.
+Copyright (C) 2011, 2012 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -29,18 +29,29 @@ module Ganeti.HTools.QCHelper
   ( testSuite
   ) where
 
+import Data.List (stripPrefix)
+import Data.Maybe (fromMaybe)
 import Test.QuickCheck
+import Test.Framework
+import Test.Framework.Providers.QuickCheck2
 import Language.Haskell.TH
 
-run :: Testable prop => prop -> Args -> IO Result
-run = flip quickCheckWithResult
+-- | Tries to drop a prefix from a string.
+simplifyName :: String -> String -> String
+simplifyName pfx string = fromMaybe string (stripPrefix pfx string)
 
+-- | Builds a test from a property and given arguments.
+run :: Testable prop => String -> String -> prop -> Test
+run pfx name = testProperty (simplifyName ("prop_" ++ pfx ++ "_") name)
+
+-- | Builds a test suite.
 testSuite :: String -> [Name] -> Q [Dec]
 testSuite tsname tdef = do
   let fullname = mkName $ "test" ++ tsname
-  tests <- mapM (\n -> [| (run $(varE n), $(litE . StringL . nameBase $ n)) |])
+  tests <- mapM (\n -> [| run tsname
+                          $(litE . StringL . nameBase $ n) $(varE n) |])
            tdef
-  sigtype <- [t| (String, [(Args -> IO Result, String)]) |]
+  sigtype <- [t| (String, [Test]) |]
   return [ SigD fullname sigtype
          , ValD (VarP fullname) (NormalB (TupE [LitE (StringL tsname),
                                                 ListE tests])) []
