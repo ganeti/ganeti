@@ -84,15 +84,26 @@ fromObj o k =
                k (show (map fst o))
     Just val -> fromKeyValue k val
 
--- | Reads the value of an optional key in a JSON object.
+-- | Reads the value of an optional key in a JSON object. Missing
+-- keys, or keys that have a \'null\' value, will be returned as
+-- 'Nothing', otherwise we attempt deserialisation and return a 'Just'
+-- value.
 maybeFromObj :: (J.JSON a, Monad m) =>
                 JSRecord -> String -> m (Maybe a)
 maybeFromObj o k =
   case lookup k o of
     Nothing -> return Nothing
+    -- a optional key with value JSNull is the same as missing, since
+    -- we can't convert it meaningfully anyway to a Haskell type, and
+    -- the Python code can emit 'null' for optional values (depending
+    -- on usage), and finally our encoding rules treat 'null' values
+    -- as 'missing'
+    Just J.JSNull -> return Nothing
     Just val -> liftM Just (fromKeyValue k val)
 
--- | Reads the value of a key in a JSON object with a default if missing.
+-- | Reads the value of a key in a JSON object with a default if
+-- missing. Note that both missing keys and keys with value \'null\'
+-- will case the default value to be returned.
 fromObjWithDefault :: (J.JSON a, Monad m) =>
                       JSRecord -> String -> a -> m a
 fromObjWithDefault o k d = liftM (fromMaybe d) $ maybeFromObj o k
