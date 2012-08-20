@@ -1636,9 +1636,57 @@ case_OpCodes_AllDefined = do
   HUnit.assertBool ("Extra OpCodes in the Haskell code code:\n" ++
                     unlines extra_hs) (null extra_hs)
 
+-- | Custom HUnit test case that forks a Python process and checks
+-- correspondence between Haskell-generated OpCodes and their Python
+-- decoded, validated and re-encoded version.
+--
+-- Note that we have a strange beast here: since launching Python is
+-- expensive, we don't do this via a usual QuickProperty, since that's
+-- slow (I've tested it, and it's indeed quite slow). Rather, we use a
+-- single HUnit assertion, and in it we manually use QuickCheck to
+-- generate 500 opcodes times the number of defined opcodes, which
+-- then we pass in bulk to Python. The drawbacks to this method are
+-- two fold: we cannot control the number of generated opcodes, since
+-- HUnit assertions don't get access to the test options, and for the
+-- same reason we can't run a repeatable seed. We should probably find
+-- a better way to do this, for example by having a
+-- separately-launched Python process (if not running the tests would
+-- be skipped).
+case_OpCodes_py_compat :: HUnit.Assertion
+case_OpCodes_py_compat = do
+  let num_opcodes = length OpCodes.allOpIDs * 500
+  sample_opcodes <- sample' (vectorOf num_opcodes
+                             (arbitrary::Gen OpCodes.OpCode))
+  let opcodes = head sample_opcodes
+      serialized = J.encode opcodes
+  py_stdout <-
+     runPython "from ganeti import opcodes\n\
+               \import sys\n\
+               \from ganeti import serializer\n\
+               \op_data = serializer.Load(sys.stdin.read())\n\
+               \decoded = [opcodes.OpCode.LoadOpCode(o) for o in op_data]\n\
+               \for op in decoded:\n\
+               \  op.Validate(True)\n\
+               \encoded = [op.__getstate__() for op in decoded]\n\
+               \print serializer.Dump(encoded)" serialized
+     >>= checkPythonResult
+  let deserialised = (J.decode py_stdout::J.Result [OpCodes.OpCode])
+  decoded <- case deserialised of
+               J.Ok ops -> return ops
+               J.Error msg ->
+                 HUnit.assertFailure ("Unable to decode opcodes: " ++ msg)
+                 -- this already raised an expection, but we need it
+                 -- for proper types
+                 >> fail "Unable to decode opcodes"
+  HUnit.assertEqual "Mismatch in number of returned opcodes"
+    (length opcodes) (length decoded)
+  mapM_ (uncurry (HUnit.assertEqual "Different result after encoding/decoding")
+        ) $ zip opcodes decoded
+
 testSuite "OpCodes"
             [ 'prop_OpCodes_serialization
             , 'case_OpCodes_AllDefined
+            , 'case_OpCodes_py_compat
             ]
 
 -- ** Jobs tests
