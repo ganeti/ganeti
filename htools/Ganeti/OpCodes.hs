@@ -28,6 +28,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 module Ganeti.OpCodes
   ( OpCode(..)
   , ReplaceDisksMode(..)
+  , DiskIndex
+  , mkDiskIndex
+  , unDiskIndex
   , opID
   , allOpIDs
   ) where
@@ -48,6 +51,22 @@ $(declareSADT "ReplaceDisksMode"
   ])
 $(makeJSONInstance ''ReplaceDisksMode)
 
+-- | Disk index type (embedding constraints on the index value via a
+-- smart constructor).
+newtype DiskIndex = DiskIndex { unDiskIndex :: Int }
+  deriving (Show, Read, Eq, Ord)
+
+-- | Smart constructor for 'DiskIndex'.
+mkDiskIndex :: (Monad m) => Int -> m DiskIndex
+mkDiskIndex i | i >= 0 && i < C.maxDisks = return (DiskIndex i)
+              | otherwise = fail $ "Invalid value for disk index '" ++
+                            show i ++ "', required between 0 and " ++
+                            show C.maxDisks
+
+instance JSON DiskIndex where
+  readJSON v = readJSON v >>= mkDiskIndex
+  showJSON = showJSON . unDiskIndex
+
 -- | OpCode representation.
 --
 -- We only implement a subset of Ganeti opcodes, but only what we
@@ -62,7 +81,7 @@ $(genOpCode "OpCode"
      [ simpleField "instance_name" [t| String |]
      , optionalField $ simpleField "remote_node" [t| String |]
      , simpleField "mode"  [t| ReplaceDisksMode |]
-     , simpleField "disks" [t| [Int] |]
+     , simpleField "disks" [t| [DiskIndex] |]
      , optionalField $ simpleField "iallocator" [t| String |]
      ])
   , ("OpInstanceFailover",

@@ -461,6 +461,9 @@ instance Arbitrary Node.Node where
 instance Arbitrary OpCodes.ReplaceDisksMode where
   arbitrary = elements [minBound..maxBound]
 
+instance Arbitrary OpCodes.DiskIndex where
+  arbitrary = choose (0, C.maxDisks - 1) >>= OpCodes.mkDiskIndex
+
 instance Arbitrary OpCodes.OpCode where
   arbitrary = do
     op_id <- elements OpCodes.allOpIDs
