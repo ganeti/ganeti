@@ -33,13 +33,13 @@ import Text.JSON.Types
 import qualified Text.JSON
 
 import qualified Ganeti.Luxi as L
+import qualified Ganeti.Qlang as Qlang
 import Ganeti.HTools.Loader
 import Ganeti.HTools.Types
 import qualified Ganeti.HTools.Group as Group
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
 import Ganeti.HTools.JSON
-import Ganeti.Qlang as Qlang
 
 {-# ANN module "HLint: ignore Eta reduce" #-}
 
@@ -78,7 +78,7 @@ extractArray v =
 fromJValWithStatus :: (Text.JSON.JSON a, Monad m) => (JSValue, JSValue) -> m a
 fromJValWithStatus (st, v) = do
   st' <- fromJVal st
-  L.checkRS st' v >>= fromJVal
+  Qlang.checkRS st' v >>= fromJVal
 
 -- | Annotate errors when converting values with owner/attribute for
 -- better debugging.

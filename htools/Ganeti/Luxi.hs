@@ -27,14 +27,12 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Ganeti.Luxi
   ( LuxiOp(..)
-  , ResultStatus(..)
   , LuxiReq(..)
   , Client
   , JobId
   , RecvResult(..)
   , TagObject(..)
   , strOfOp
-  , checkRS
   , getClient
   , getServer
   , acceptClient
@@ -183,26 +181,8 @@ $(makeJSONInstance ''LuxiReq)
 -- | The serialisation of LuxiOps into strings in messages.
 $(genStrOfOp ''LuxiOp "strOfOp")
 
-$(declareIADT "ResultStatus"
-  [ ("RSNormal", 'rsNormal)
-  , ("RSUnknown", 'rsUnknown)
-  , ("RSNoData", 'rsNodata)
-  , ("RSUnavailable", 'rsUnavail)
-  , ("RSOffline", 'rsOffline)
-  ])
-
-$(makeJSONInstance ''ResultStatus)
-
 -- | Type holding the initial (unparsed) Luxi call.
 data LuxiCall = LuxiCall LuxiReq JSValue
-
--- | Check that ResultStatus is success or fail with descriptive message.
-checkRS :: (Monad m) => ResultStatus -> a -> m a
-checkRS RSNormal val    = return val
-checkRS RSUnknown _     = fail "Unknown field"
-checkRS RSNoData _      = fail "No data for a field"
-checkRS RSUnavailable _ = fail "Ganeti reports unavailable data"
-checkRS RSOffline _     = fail "Ganeti reports resource as offline"
 
 -- | The end-of-message separator.
 eOM :: Word8

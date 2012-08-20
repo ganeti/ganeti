@@ -32,7 +32,6 @@ module Ganeti.Confd.Server
 import Control.Concurrent
 import Control.Exception
 import Control.Monad (forever, liftM, when)
-import qualified Data.ByteString as B
 import Data.IORef
 import Data.List
 import qualified Data.Map as M
@@ -51,6 +50,7 @@ import Ganeti.HTools.Types
 import Ganeti.HTools.Utils
 import Ganeti.Objects
 import Ganeti.Confd
+import Ganeti.Confd.Utils
 import Ganeti.Config
 import Ganeti.Hash
 import Ganeti.Logging
@@ -130,10 +130,6 @@ getCurrentTime = do
   return ctime
 
 -- * Confd base functionality
-
--- | Returns the HMAC key.
-getClusterHmac :: IO HashKey
-getClusterHmac = fmap B.unpack $ B.readFile C.confdHmacKey
 
 -- | Computes the node role.
 nodeRole :: ConfigData -> String -> Result ConfdNodeRole
@@ -242,15 +238,6 @@ buildResponse cdata req@(ConfdRequest { confdRqType = ReqNodeDrbd }) = do
                  (a, b, c, d, e, f) <- minors]
   return (ReplyStatusOk, J.showJSON encoded)
 
--- | Parses a signed request.
-parseRequest :: HashKey -> String -> Result (String, String, ConfdRequest)
-parseRequest key str = do
-  (SignedMessage hmac msg salt) <- fromJResult "parsing request" $ J.decode str
-  req <- if verifyMac key (Just salt) msg hmac
-           then fromJResult "parsing message" $ J.decode msg
-           else Bad "HMAC verification failed"
-  return (salt, msg, req)
-
 -- | Creates a ConfdReply from a given answer.
 serializeResponse :: Result StatusAnswer -> ConfdReply
 serializeResponse r =
@@ -261,15 +248,6 @@ serializeResponse r =
                   , confdReplyStatus   = status
                   , confdReplyAnswer   = result
                   , confdReplySerial   = 0 }
-
--- | Signs a message with a given key and salt.
-signMessage :: HashKey -> String -> String -> SignedMessage
-signMessage key salt msg =
-  SignedMessage { signedMsgMsg  = msg
-                , signedMsgSalt = salt
-                , signedMsgHmac = hmac
-                }
-    where hmac = computeMac key (Just salt) msg
 
 -- * Configuration handling
 
@@ -482,17 +460,6 @@ responder cfgref socket hmac msg peer = do
               return ()
     Bad err -> logInfo $ "Failed to parse incoming message: " ++ err
   return ()
-
--- | Mesage parsing. This can either result in a good, valid message,
--- or fail in the Result monad.
-parseMessage :: HashKey -> String -> Integer
-             -> Result (String, ConfdRequest)
-parseMessage hmac msg curtime = do
-  (salt, origmsg, request) <- parseRequest hmac msg
-  ts <- tryRead "Parsing timestamp" salt::Result Integer
-  if (abs (ts - curtime) > (fromIntegral C.confdMaxClockSkew))
-    then fail "Too old/too new timestamp or clock skew"
-    else return (origmsg, request)
 
 -- | Inner helper function for a given client. This generates the
 -- final encoded message (as a string), ready to be sent out to the

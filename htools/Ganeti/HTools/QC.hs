@@ -75,6 +75,8 @@ import System.IO.Error (isEOFErrorType, ioeGetErrorType, isDoesNotExistError)
 import System.Process (readProcessWithExitCode)
 
 import qualified Ganeti.Confd as Confd
+import qualified Ganeti.Confd.Server as Confd.Server
+import qualified Ganeti.Confd.Utils as Confd.Utils
 import qualified Ganeti.Config as Config
 import qualified Ganeti.Daemon as Daemon
 import qualified Ganeti.Hash as Hash

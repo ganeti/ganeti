@@ -35,6 +35,7 @@ module Ganeti.Qlang
     , FieldDefinition(..)
     , ResultEntry(..)
     , ItemType(..)
+    , checkRS
     ) where
 
 import Control.Applicative
@@ -57,6 +58,15 @@ $(declareIADT "ResultStatus"
   , ("RSOffline", 'C.rsOffline )
   ])
 $(makeJSONInstance ''ResultStatus)
+
+-- | Check that ResultStatus is success or fail with descriptive
+-- message.
+checkRS :: (Monad m) => ResultStatus -> a -> m a
+checkRS RSNormal val = return val
+checkRS RSUnknown  _ = fail "Unknown field"
+checkRS RSNoData   _ = fail "No data for a field"
+checkRS RSUnavail  _ = fail "Ganeti reports unavailable data"
+checkRS RSOffline  _ = fail "Ganeti reports resource as offline"
 
 -- | Type of a query field.
 $(declareSADT "FieldType"

@@ -404,6 +404,7 @@ HS_LIB_SRCS = \
 	htools/Ganeti/BasicTypes.hs \
 	htools/Ganeti/Confd.hs \
 	htools/Ganeti/Confd/Server.hs \
+	htools/Ganeti/Confd/Utils.hs \
 	htools/Ganeti/Config.hs \
 	htools/Ganeti/Daemon.hs \
 	htools/Ganeti/Hash.hs \
