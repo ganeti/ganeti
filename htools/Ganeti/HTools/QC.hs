@@ -78,6 +78,7 @@ import qualified Ganeti.Luxi as Luxi
 import qualified Ganeti.Objects as Objects
 import qualified Ganeti.OpCodes as OpCodes
 import qualified Ganeti.Query2 as Query2
+import qualified Ganeti.Rpc as Rpc
 import qualified Ganeti.Runtime as Runtime
 import qualified Ganeti.Ssconf as Ssconf
 import qualified Ganeti.HTools.CLI as CLI
