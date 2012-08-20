@@ -70,6 +70,7 @@ allTests =
   , (True, testSsconf)
   , (True, testQlang)
   , (True, testRpc)
+  , (True, testConfd)
   , (False, testCluster)
   ]
 

@@ -50,6 +50,7 @@ module Ganeti.HTools.QC
   , testSsconf
   , testRpc
   , testQlang
+  , testConfd
   ) where
 
 import qualified Test.HUnit as HUnit
@@ -2088,4 +2089,75 @@ prop_Qlang_Serialisation =
 
 testSuite "Qlang"
   [ 'prop_Qlang_Serialisation
+  ]
+
+
+-- * Confd tests (generic library)
+
+instance Arbitrary Confd.ConfdRequestType where
+  arbitrary = elements [minBound..maxBound]
+
+instance Arbitrary Confd.ConfdReqField where
+  arbitrary = elements [minBound..maxBound]
+
+instance Arbitrary Confd.ConfdReqQ where
+  arbitrary = Confd.ConfdReqQ <$> arbitrary <*> arbitrary <*>
+              arbitrary <*> arbitrary
+
+instance Arbitrary Confd.ConfdQuery where
+  arbitrary = oneof [ pure Confd.EmptyQuery
+                    , Confd.PlainQuery <$> getName
+                    , Confd.DictQuery <$> arbitrary
+                    ]
+
+instance Arbitrary Confd.ConfdRequest where
+  arbitrary = Confd.ConfdRequest <$> arbitrary <*> arbitrary <*> arbitrary
+              <*> arbitrary
+
+-- | Test that signing messages and checking signatures is correct. It
+-- also tests, indirectly the serialisation of messages so we don't
+-- need a separate test for that.
+prop_Confd_req_sign :: Hash.HashKey        -- ^ The hash key
+                    -> NonNegative Integer -- ^ The base timestamp
+                    -> Positive Integer    -- ^ Delta for out of window
+                    -> Bool                -- ^ Whether delta should be + or -
+                    -> Confd.ConfdRequest
+                    -> Property
+prop_Confd_req_sign key (NonNegative timestamp) (Positive bad_delta) pm crq =
+  forAll (choose (0, fromIntegral C.confdMaxClockSkew)) $ \ good_delta ->
+  let encoded = J.encode crq
+      salt = show timestamp
+      signed = J.encode $ Confd.Utils.signMessage key salt encoded
+      good_timestamp = timestamp + if pm then good_delta else (-good_delta)
+      bad_delta' = fromIntegral C.confdMaxClockSkew + bad_delta
+      bad_timestamp = timestamp + if pm then bad_delta' else (-bad_delta')
+      ts_ok = Confd.Utils.parseMessage key signed good_timestamp
+      ts_bad = Confd.Utils.parseMessage key signed bad_timestamp
+  in printTestCase "Failed to parse good message"
+       (ts_ok ==? Types.Ok (encoded, crq)) .&&.
+     printTestCase ("Managed to deserialise message with bad\
+                    \ timestamp, got " ++ show ts_bad)
+       (ts_bad ==? Types.Bad "Too old/too new timestamp or clock skew")
+
+-- | Tests that signing with a different key fails detects failure
+-- correctly.
+prop_Confd_bad_key :: String             -- ^ Salt
+                   -> Confd.ConfdRequest -- ^ Request
+                   -> Property
+prop_Confd_bad_key salt crq =
+  -- fixme: we hardcode here the expected length of a sha1 key, as
+  -- otherwise we could have two short keys that differ only in the
+  -- final zero elements count, and those will be expanded to be the
+  -- same
+  forAll (vector 20) $ \key_sign ->
+  forAll (vector 20 `suchThat` (/= key_sign)) $ \key_verify ->
+  let signed = Confd.Utils.signMessage key_sign salt (J.encode crq)
+      encoded = J.encode signed
+  in printTestCase ("Accepted message signed with different key" ++ encoded) $
+    Types.Bad "HMAC verification failed" ==?
+     Confd.Utils.parseRequest key_verify encoded
+
+testSuite "Confd"
+  [ 'prop_Confd_req_sign
+  , 'prop_Confd_bad_key
   ]
