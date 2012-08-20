@@ -1,4 +1,5 @@
-{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies #-}
+{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, CPP,
+  BangPatterns #-}
 
 {-| Implementation of the RPC client.
 
@@ -30,6 +31,7 @@ module Ganeti.Rpc
   , RpcResult
   , Rpc
   , RpcError(..)
+  , executeRpcCall
 
   , rpcCallName
   , rpcCallTimeout
@@ -41,7 +43,28 @@ module Ganeti.Rpc
 
 import qualified Text.JSON as J
 
+#ifndef NO_CURL
+import Network.Curl
+#endif
+
+import qualified Ganeti.Constants as C
 import Ganeti.Objects
+import Ganeti.HTools.Compat
+
+#ifndef NO_CURL
+-- | The curl options used for RPC.
+curlOpts :: [CurlOption]
+curlOpts = [ CurlFollowLocation False
+           , CurlCAInfo C.nodedCertFile
+           , CurlSSLVerifyHost 0
+           , CurlSSLVerifyPeer True
+           , CurlSSLCertType "PEM"
+           , CurlSSLCert C.nodedCertFile
+           , CurlSSLKeyType "PEM"
+           , CurlSSLKey C.nodedCertFile
+           , CurlConnectTimeout (fromIntegral C.rpcConnectTimeout)
+           ]
+#endif
 
 -- | Data type for RPC error reporting.
 data RpcError
@@ -88,3 +111,72 @@ class (J.JSON a) => RpcResult a where
 -- | Generic class that ensures matching RPC call with its respective
 -- result.
 class (RpcCall a, RpcResult b) => Rpc a b | a -> b
+
+-- | Http Request definition.
+data HttpClientRequest = HttpClientRequest
+  { requestTimeout :: Int
+  , requestUrl :: String
+  , requestPostData :: String
+  }
+
+-- | Execute the request and return the result as a plain String. When
+-- curl reports an error, we propagate it.
+executeHttpRequest :: Node -> Either RpcError HttpClientRequest
+                   -> IO (Either RpcError String)
+
+executeHttpRequest _ (Left rpc_err) = return $ Left rpc_err
+#ifdef NO_CURL
+executeHttpRequest _ _ = return $ Left CurlDisabledError
+#else
+executeHttpRequest node (Right request) = do
+  let reqOpts = [ CurlTimeout (fromIntegral $ requestTimeout request)
+                , CurlPostFields [requestPostData request]
+                ]
+      url = requestUrl request
+  -- FIXME: This is very similar to getUrl in Htools/Rapi.hs
+  (code, !body) <- curlGetString url $ curlOpts ++ reqOpts
+  case code of
+    CurlOK -> return $ Right body
+    _ -> return $ Left $ CurlLayerError node (show code)
+#endif
+
+-- | Prepare url for the HTTP request.
+prepareUrl :: (RpcCall a) => Node -> a -> String
+prepareUrl node call =
+  let node_ip = nodePrimaryIp node
+      port = snd C.daemonsPortsGanetiNoded
+      path_prefix = "https://" ++ (node_ip) ++ ":" ++ (show port) in
+  path_prefix ++ "/" ++ rpcCallName call
+
+-- | Create HTTP request for a given node provided it is online,
+-- otherwise create empty response.
+prepareHttpRequest ::  (RpcCall a) => Node -> a
+                   -> Either RpcError HttpClientRequest
+prepareHttpRequest node call
+  | rpcCallAcceptOffline call ||
+    (not $ nodeOffline node) =
+      Right $ HttpClientRequest { requestTimeout = rpcCallTimeout call
+                                , requestUrl = prepareUrl node call
+                                , requestPostData = rpcCallData node call
+                                }
+  | otherwise = Left $ OfflineNodeError node
+
+-- | Parse the response or propagate the error.
+parseHttpResponse :: (Monad m, RpcResult a) => Either RpcError String
+                  -> m (Either RpcError a)
+parseHttpResponse (Left err) = return $ Left err
+parseHttpResponse (Right response) = rpcResultFill response
+
+-- | Execute RPC call for a sigle node.
+executeSingleRpcCall :: (Rpc a b) => Node -> a -> IO (Node, Either RpcError b)
+executeSingleRpcCall node call = do
+  let request = prepareHttpRequest node call
+  response <- executeHttpRequest node request
+  result <- parseHttpResponse response
+  return (node, result)
+
+-- | Execute RPC call for many nodes in parallel.
+executeRpcCall :: (Rpc a b) => [Node] -> a -> IO [(Node, Either RpcError b)]
+executeRpcCall nodes call =
+  sequence $ parMap rwhnf (uncurry executeSingleRpcCall)
+               (zip nodes $ repeat call)
