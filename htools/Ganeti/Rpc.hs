@@ -1,5 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, CPP,
-  BangPatterns #-}
+  BangPatterns, TemplateHaskell #-}
 
 {-| Implementation of the RPC client.
 
@@ -39,9 +39,16 @@ module Ganeti.Rpc
   , rpcCallAcceptOffline
 
   , rpcResultFill
+
+  , InstanceInfo(..)
+  , RpcCallAllInstancesInfo(..)
+  , RpcResultAllInstancesInfo(..)
+
+  , rpcTimeoutFromRaw -- FIXME: Not used anywhere
   ) where
 
 import qualified Text.JSON as J
+import Text.JSON (makeObj)
 
 #ifndef NO_CURL
 import Network.Curl
@@ -49,7 +56,9 @@ import Network.Curl
 
 import qualified Ganeti.Constants as C
 import Ganeti.Objects
+import Ganeti.THH
 import Ganeti.HTools.Compat
+import Ganeti.HTools.JSON
 
 #ifndef NO_CURL
 -- | The curl options used for RPC.
@@ -87,6 +96,16 @@ instance Show RpcError where
 rpcErrorJsonReport :: (Monad m) => J.Result a -> m (Either RpcError a)
 rpcErrorJsonReport (J.Error x) = return $ Left $ JsonDecodeError x
 rpcErrorJsonReport (J.Ok x) = return $ Right x
+
+-- | Basic timeouts for RPC calls.
+$(declareIADT "RpcTimeout"
+  [ ( "Urgent",    'C.rpcTmoUrgent )
+  , ( "Fast",      'C.rpcTmoFast )
+  , ( "Normal",    'C.rpcTmoNormal )
+  , ( "Slow",      'C.rpcTmoSlow )
+  , ( "FourHours", 'C.rpcTmo4hrs )
+  , ( "OneDay",    'C.rpcTmo1day )
+  ])
 
 -- | A generic class for RPC calls.
 class (J.JSON a) => RpcCall a where
@@ -180,3 +199,30 @@ executeRpcCall :: (Rpc a b) => [Node] -> a -> IO [(Node, Either RpcError b)]
 executeRpcCall nodes call =
   sequence $ parMap rwhnf (uncurry executeSingleRpcCall)
                (zip nodes $ repeat call)
+
+-- * RPC calls and results
+
+-- | AllInstancesInfo
+--   Returns information about all instances on the given nodes
+$(buildObject "RpcCallAllInstancesInfo" "rpcCallAllInstInfo" $
+  [ simpleField "hypervisors" [t| [Hypervisor] |] ])
+
+$(buildObject "InstanceInfo" "instInfo" $
+  [ simpleField "name"   [t| String |]
+  , simpleField "memory" [t| Int|]
+  , simpleField "state"  [t| AdminState |]
+  , simpleField "vcpus"  [t| Int |]
+  , simpleField "time"   [t| Int |]
+  ])
+
+$(buildObject "RpcResultAllInstancesInfo" "rpcResAllInstInfo" $
+  [ simpleField "instances" [t| [InstanceInfo] |] ])
+
+instance RpcCall RpcCallAllInstancesInfo where
+  rpcCallName _ = "all_instances_info"
+  rpcCallTimeout _ = rpcTimeoutToRaw Urgent
+  rpcCallAcceptOffline _ = False
+
+instance RpcResult RpcResultAllInstancesInfo
+
+instance Rpc RpcCallAllInstancesInfo RpcResultAllInstancesInfo
