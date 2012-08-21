@@ -173,6 +173,10 @@ def UpgradeNDParams(ndparams):
   if ndparams is None:
     ndparams = {}
 
+  if (constants.ND_OOB_PROGRAM in ndparams and
+      ndparams[constants.ND_OOB_PROGRAM] is None):
+    # will be reset by the line below
+    del ndparams[constants.ND_OOB_PROGRAM]
   return FillDict(constants.NDC_DEFAULTS, ndparams)
 
 
