@@ -64,7 +64,7 @@ import Control.Monad
 import Control.Applicative
 import qualified System.Console.GetOpt as GetOpt
 import qualified Text.JSON as J
-import qualified Data.Map
+import qualified Data.Map as Map
 import qualified Data.IntMap as IntMap
 import Control.Concurrent (forkIO)
 import Control.Exception (bracket, catchJust)
@@ -193,8 +193,8 @@ defGroup = flip Group.setIdx 0 $
 defGroupList :: Group.List
 defGroupList = Container.fromList [(Group.idx defGroup, defGroup)]
 
-defGroupAssoc :: Data.Map.Map String Types.Gdx
-defGroupAssoc = Data.Map.singleton (Group.uuid defGroup) (Group.idx defGroup)
+defGroupAssoc :: Map.Map String Types.Gdx
+defGroupAssoc = Map.singleton (Group.uuid defGroup) (Group.idx defGroup)
 
 -- * Helper functions
 
@@ -933,7 +933,7 @@ prop_Text_Load_Instance name mem dsk vcpus status
       ndx = if null snode
               then [(pnode, pdx)]
               else [(pnode, pdx), (snode, sdx)]
-      nl = Data.Map.fromList ndx
+      nl = Map.fromList ndx
       tags = ""
       sbal = if autobal then "Y" else "N"
       sdt = Types.diskTemplateToRaw dt
@@ -965,7 +965,7 @@ prop_Text_Load_InstanceFail ktn fields =
       Types.Ok _ -> failTest "Managed to load instance from invalid data"
       Types.Bad msg -> printTestCase ("Unrecognised error message: " ++ msg) $
                        "Invalid/incomplete instance data: '" `isPrefixOf` msg
-    where nl = Data.Map.fromList ktn
+    where nl = Map.fromList ktn
 
 prop_Text_Load_Node :: String -> Int -> Int -> Int -> Int -> Int
                     -> Int -> Bool -> Bool
@@ -1001,7 +1001,7 @@ prop_Text_Load_Node name tm nm fm td fd tc fo =
 
 prop_Text_Load_NodeFail :: [String] -> Property
 prop_Text_Load_NodeFail fields =
-  length fields /= 8 ==> isNothing $ Text.loadNode Data.Map.empty fields
+  length fields /= 8 ==> isNothing $ Text.loadNode Map.empty fields
 
 prop_Text_NodeLSIdempotent :: Property
 prop_Text_NodeLSIdempotent =
@@ -1278,12 +1278,12 @@ prop_Node_tagMaps_idempotent :: Property
 prop_Node_tagMaps_idempotent =
   forAll genTags $ \tags ->
   Node.delTags (Node.addTags m tags) tags ==? m
-    where m = Data.Map.empty
+    where m = Map.empty
 
 prop_Node_tagMaps_reject :: Property
 prop_Node_tagMaps_reject =
   forAll (genTags `suchThat` (not . null)) $ \tags ->
-  let m = Node.addTags Data.Map.empty tags
+  let m = Node.addTags Map.empty tags
   in all (\t -> Node.rejectAddTags m [t]) tags
 
 prop_Node_showField :: Node.Node -> Property
@@ -1716,13 +1716,13 @@ testSuite "Jobs"
 
 prop_Loader_lookupNode :: [(String, Int)] -> String -> String -> Property
 prop_Loader_lookupNode ktn inst node =
-  Loader.lookupNode nl inst node ==? Data.Map.lookup node nl
-    where nl = Data.Map.fromList ktn
+  Loader.lookupNode nl inst node ==? Map.lookup node nl
+    where nl = Map.fromList ktn
 
 prop_Loader_lookupInstance :: [(String, Int)] -> String -> Property
 prop_Loader_lookupInstance kti inst =
-  Loader.lookupInstance il inst ==? Data.Map.lookup inst il
-    where il = Data.Map.fromList kti
+  Loader.lookupInstance il inst ==? Map.lookup inst il
+    where il = Map.fromList kti
 
 prop_Loader_assignIndices :: Property
 prop_Loader_assignIndices =
@@ -1733,7 +1733,7 @@ prop_Loader_assignIndices =
              in length names == length (nub names))) $ \nodes ->
   let (nassoc, kt) =
         Loader.assignIndices (map (\n -> (Node.name n, n)) nodes)
-  in Data.Map.size nassoc == length nodes &&
+  in Map.size nassoc == length nodes &&
      Container.size kt == length nodes &&
      if not (null nodes)
        then maximum (IntMap.keys kt) == length nodes - 1
