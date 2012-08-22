@@ -61,11 +61,14 @@ module Ganeti.Objects
   , NodeGroup(..)
   , IpFamily(..)
   , ipFamilyToVersion
+  , fillDict
   , Cluster(..)
   , ConfigData(..)
   ) where
 
+import Data.List (foldl')
 import Data.Maybe
+import qualified Data.Map as Map
 import Text.JSON (makeObj, showJSON, readJSON, JSON, JSValue(..))
 import qualified Text.JSON as J
 
@@ -73,6 +76,15 @@ import qualified Ganeti.Constants as C
 import Ganeti.HTools.JSON
 
 import Ganeti.THH
+
+-- * Generic definitions
+
+-- | Fills one map with keys from the other map, if not already
+-- existing. Mirrors objects.py:FillDict.
+fillDict :: (Ord k) => Map.Map k v -> Map.Map k v -> [k] -> Map.Map k v
+fillDict defaults custom skip_keys =
+  let updated = Map.union custom defaults
+  in foldl' (flip Map.delete) updated skip_keys
 
 -- * NIC definitions
 

@@ -71,6 +71,7 @@ allTests =
   , (True, testQlang)
   , (True, testRpc)
   , (True, testConfd)
+  , (True, testObjects)
   , (False, testCluster)
   ]
 
