@@ -39,6 +39,12 @@ PRIVATE_RE = re.compile("^__.+__$")
 #: The type of regex objects
 RE_TYPE = type(CONSTANT_RE)
 
+#: Keys which do not declare a value (manually maintained). By adding
+# values here, we can make more lists use the actual names; otherwise
+# we'll have (e.g.) both DEFAULT_ENABLED_HYPERVISOR and HT_XEN_PVM
+# declare the same value, and thus the list of valid hypervisors will
+# have strings instead of easily looked-up names.
+IGNORED_DECL_NAMES = ["DEFAULT_ENABLED_HYPERVISOR"]
 
 def NameRules(name):
   """Converts the upper-cased Python name to Haskell camelCase.
@@ -97,7 +103,8 @@ def IdentifyOrigin(all_items, value):
   @param value: the value for which we try to find an origin
 
   """
-  found = [name for (name, v) in all_items.items() if v is value]
+  found = [name for (name, v) in all_items.items()
+           if v is value and name not in IGNORED_DECL_NAMES]
   if len(found) == 1:
     return found[0]
   else:
