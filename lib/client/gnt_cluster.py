@@ -389,7 +389,7 @@ def ShowClusterConfig(opts, args):
   @return: the desired exit code
 
   """
-  cl = GetClient()
+  cl = GetClient(query=True)
   result = cl.QueryClusterInfo()
 
   ToStdout("Cluster name: %s", result["name"])

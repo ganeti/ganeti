@@ -214,7 +214,7 @@ class R_2_info(baserlib.OpcodeResource):
     """Returns cluster information.
 
     """
-    client = self.GetClient()
+    client = self.GetClient(query=True)
     return client.QueryClusterInfo()
 
 

@@ -66,8 +66,6 @@ handleCall cdata QueryClusterInfo =
       hypervisors = clusterEnabledHypervisors cluster
       bits = show (bitSize (0::Int)) ++ "bits"
       arch_tuple = [bits, arch]
-      -- FIXME: this is for the missing *params fields
-      empty_params = showJSON $ J.makeObj ([]::[(String, JSValue)])
       obj = [ ("software_version", showJSON $ C.releaseVersion)
             , ("protocol_version", showJSON $ C.protocolVersion)
             , ("config_version", showJSON $ C.configVersion)
@@ -78,15 +76,14 @@ handleCall cdata QueryClusterInfo =
             , ("master", showJSON $ clusterMasterNode cluster)
             , ("default_hypervisor", showJSON $ head hypervisors)
             , ("enabled_hypervisors", showJSON $ hypervisors)
-            -- FIXME: *params missing
-            , ("hvparams", empty_params)
-            , ("os_hvp", empty_params)
+            , ("hvparams", showJSON $ clusterHvparams cluster)
+            , ("os_hvp", showJSON $ clusterOsHvp cluster)
             , ("beparams", showJSON $ clusterBeparams cluster)
             , ("osparams", showJSON $ clusterOsparams cluster)
             , ("ipolicy", showJSON $ clusterIpolicy cluster)
             , ("nicparams", showJSON $ clusterNicparams cluster)
             , ("ndparams", showJSON $ clusterNdparams cluster)
-            , ("diskparams", empty_params)
+            , ("diskparams", showJSON $ clusterDiskparams cluster)
             , ("candidate_pool_size",
                showJSON $ clusterCandidatePoolSize cluster)
             , ("master_netdev",  showJSON $ clusterMasterNetdev cluster)
