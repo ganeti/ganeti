@@ -29,19 +29,21 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 
 module Ganeti.Objects
-  ( NICMode(..)
-  , PartialNICParams(..)
-  , FilledNICParams(..)
-  , fillNICParams
-  , PartialNIC(..)
+  ( HvParams
+  , OsParams
+  , NICMode(..)
+  , PartialNicParams(..)
+  , FilledNicParams(..)
+  , fillNicParams
+  , PartialNic(..)
   , DiskMode(..)
   , DiskType(..)
   , DiskLogicalId(..)
   , Disk(..)
   , DiskTemplate(..)
-  , PartialBEParams(..)
-  , FilledBEParams(..)
-  , fillBEParams
+  , PartialBeParams(..)
+  , FilledBeParams(..)
+  , fillBeParams
   , Hypervisor(..)
   , AdminState(..)
   , adminStateFromRaw
@@ -58,10 +60,16 @@ module Ganeti.Objects
   , FilledIPolicy(..)
   , PartialIPolicy(..)
   , fillIPolicy
+  , DiskParams
   , NodeGroup(..)
   , IpFamily(..)
   , ipFamilyToVersion
   , fillDict
+  , ClusterHvParams
+  , OsHvParams
+  , ClusterBeParams
+  , ClusterOsParams
+  , ClusterNicParams
   , Cluster(..)
   , ConfigData(..)
   ) where
@@ -86,6 +94,15 @@ fillDict defaults custom skip_keys =
   let updated = Map.union custom defaults
   in foldl' (flip Map.delete) updated skip_keys
 
+-- | The hypervisor parameter type. This is currently a simple map,
+-- without type checking on key/value pairs.
+type HvParams = Container JSValue
+
+-- | The OS parameters type. This is, and will remain, a string
+-- container, since the keys are dynamically declared by the OSes, and
+-- the values are always strings.
+type OsParams = Container String
+
 -- * NIC definitions
 
 $(declareSADT "NICMode"
@@ -94,15 +111,15 @@ $(declareSADT "NICMode"
   ])
 $(makeJSONInstance ''NICMode)
 
-$(buildParam "NIC" "nicp"
+$(buildParam "Nic" "nicp"
   [ simpleField "mode" [t| NICMode |]
   , simpleField "link" [t| String  |]
   ])
 
-$(buildObject "PartialNIC" "nic"
+$(buildObject "PartialNic" "nic"
   [ simpleField "mac" [t| String |]
   , optionalField $ simpleField "ip" [t| String |]
-  , simpleField "nicparams" [t| PartialNICParams |]
+  , simpleField "nicparams" [t| PartialNicParams |]
   ])
 
 -- * Disk definitions
@@ -282,7 +299,7 @@ $(declareSADT "AdminState"
   ])
 $(makeJSONInstance ''AdminState)
 
-$(buildParam "BE" "bep" $
+$(buildParam "Be" "bep" $
   [ simpleField "minmem"       [t| Int  |]
   , simpleField "maxmem"       [t| Int  |]
   , simpleField "vcpus"        [t| Int  |]
@@ -293,15 +310,15 @@ $(buildObject "Instance" "inst" $
   [ simpleField "name"           [t| String             |]
   , simpleField "primary_node"   [t| String             |]
   , simpleField "os"             [t| String             |]
-  , simpleField "hypervisor"     [t| String             |]
---  , simpleField "hvparams"     [t| [(String, String)] |]
-  , simpleField "beparams"       [t| PartialBEParams |]
---  , simpleField "osparams"     [t| [(String, String)] |]
+  , simpleField "hypervisor"     [t| Hypervisor         |]
+  , simpleField "hvparams"       [t| HvParams           |]
+  , simpleField "beparams"       [t| PartialBeParams    |]
+  , simpleField "osparams"       [t| OsParams           |]
   , simpleField "admin_state"    [t| AdminState         |]
-  , simpleField "nics"           [t| [PartialNIC]              |]
+  , simpleField "nics"           [t| [PartialNic]       |]
   , simpleField "disks"          [t| [Disk]             |]
   , simpleField "disk_template"  [t| DiskTemplate       |]
-  , optionalField $ simpleField "network_port" [t| Int |]
+  , optionalField $ simpleField "network_port" [t| Int  |]
   ]
   ++ timeStampFields
   ++ uuidFields
@@ -407,12 +424,16 @@ $(declareSADT "AllocPolicy"
   ])
 $(makeJSONInstance ''AllocPolicy)
 
+-- | The disk parameters type.
+type DiskParams = Container (Container JSValue)
+
 $(buildObject "NodeGroup" "group" $
   [ simpleField "name"         [t| String |]
   , defaultField  [| [] |] $ simpleField "members" [t| [String] |]
   , simpleField "ndparams"     [t| PartialNDParams |]
   , simpleField "alloc_policy" [t| AllocPolicy     |]
   , simpleField "ipolicy"      [t| PartialIPolicy  |]
+  , simpleField "diskparams"   [t| DiskParams      |]
   ]
   ++ timeStampFields
   ++ uuidFields
@@ -432,43 +453,61 @@ ipFamilyToVersion :: IpFamily -> Int
 ipFamilyToVersion IpFamilyV4 = C.ip4Version
 ipFamilyToVersion IpFamilyV6 = C.ip6Version
 
+-- | Cluster HvParams (hvtype to hvparams mapping).
+type ClusterHvParams = Container HvParams
+
+-- | Cluster Os-HvParams (os to hvparams mapping).
+type OsHvParams = Container ClusterHvParams
+
+-- | Cluser BeParams.
+type ClusterBeParams = Container FilledBeParams
+
+-- | Cluster OsParams.
+type ClusterOsParams = Container OsParams
+
+-- | Cluster NicParams.
+type ClusterNicParams = Container FilledNicParams
+
+-- | Cluster UID Pool, list (low, high) UID ranges.
+type UidPool = [(Int, Int)]
+
 -- * Cluster definitions
 $(buildObject "Cluster" "cluster" $
-  [ simpleField "rsahostkeypub"             [t| String   |]
-  , simpleField "highest_used_port"         [t| Int      |]
-  , simpleField "tcpudp_port_pool"          [t| [Int]    |]
-  , simpleField "mac_prefix"                [t| String   |]
-  , simpleField "volume_group_name"         [t| String   |]
-  , simpleField "reserved_lvs"              [t| [String] |]
-  , optionalField $ simpleField "drbd_usermode_helper" [t| String |]
--- , simpleField "default_bridge"          [t| String   |]
--- , simpleField "default_hypervisor"      [t| String   |]
-  , simpleField "master_node"               [t| String   |]
-  , simpleField "master_ip"                 [t| String   |]
-  , simpleField "master_netdev"             [t| String   |]
-  , simpleField "master_netmask"            [t| Int   |]
-  , simpleField "use_external_mip_script"   [t| Bool |]
-  , simpleField "cluster_name"              [t| String   |]
-  , simpleField "file_storage_dir"          [t| String   |]
-  , simpleField "shared_file_storage_dir"   [t| String   |]
-  , simpleField "enabled_hypervisors"       [t| [String] |]
--- , simpleField "hvparams"                [t| [(String, [(String, String)])] |]
--- , simpleField "os_hvp"                  [t| [(String, String)] |]
-  , simpleField "beparams" [t| Container FilledBEParams |]
-  , simpleField "osparams"                  [t| Container (Container String) |]
-  , simpleField "nicparams" [t| Container FilledNICParams    |]
-  , simpleField "ndparams"                  [t| FilledNDParams |]
-  , simpleField "candidate_pool_size"       [t| Int                |]
-  , simpleField "modify_etc_hosts"          [t| Bool               |]
-  , simpleField "modify_ssh_setup"          [t| Bool               |]
-  , simpleField "maintain_node_health"      [t| Bool               |]
-  , simpleField "uid_pool"                  [t| [(Int, Int)]       |]
-  , simpleField "default_iallocator"        [t| String             |]
-  , simpleField "hidden_os"                 [t| [String]           |]
-  , simpleField "blacklisted_os"            [t| [String]           |]
-  , simpleField "primary_ip_family"         [t| IpFamily           |]
-  , simpleField "prealloc_wipe_disks"       [t| Bool               |]
-  , simpleField "ipolicy"                   [t| FilledIPolicy      |]
+  [ simpleField "rsahostkeypub"           [t| String           |]
+  , simpleField "highest_used_port"       [t| Int              |]
+  , simpleField "tcpudp_port_pool"        [t| [Int]            |]
+  , simpleField "mac_prefix"              [t| String           |]
+  , simpleField "volume_group_name"       [t| String           |]
+  , simpleField "reserved_lvs"            [t| [String]         |]
+  , optionalField $
+    simpleField "drbd_usermode_helper"    [t| String           |]
+  , simpleField "master_node"             [t| String           |]
+  , simpleField "master_ip"               [t| String           |]
+  , simpleField "master_netdev"           [t| String           |]
+  , simpleField "master_netmask"          [t| Int              |]
+  , simpleField "use_external_mip_script" [t| Bool             |]
+  , simpleField "cluster_name"            [t| String           |]
+  , simpleField "file_storage_dir"        [t| String           |]
+  , simpleField "shared_file_storage_dir" [t| String           |]
+  , simpleField "enabled_hypervisors"     [t| [String]         |]
+  , simpleField "hvparams"                [t| ClusterHvParams  |]
+  , simpleField "os_hvp"                  [t| OsHvParams       |]
+  , simpleField "beparams"                [t| ClusterBeParams  |]
+  , simpleField "osparams"                [t| ClusterOsParams  |]
+  , simpleField "nicparams"               [t| ClusterNicParams |]
+  , simpleField "ndparams"                [t| FilledNDParams   |]
+  , simpleField "diskparams"              [t| DiskParams       |]
+  , simpleField "candidate_pool_size"     [t| Int              |]
+  , simpleField "modify_etc_hosts"        [t| Bool             |]
+  , simpleField "modify_ssh_setup"        [t| Bool             |]
+  , simpleField "maintain_node_health"    [t| Bool             |]
+  , simpleField "uid_pool"                [t| UidPool          |]
+  , simpleField "default_iallocator"      [t| String           |]
+  , simpleField "hidden_os"               [t| [String]         |]
+  , simpleField "blacklisted_os"          [t| [String]         |]
+  , simpleField "primary_ip_family"       [t| IpFamily         |]
+  , simpleField "prealloc_wipe_disks"     [t| Bool             |]
+  , simpleField "ipolicy"                 [t| FilledIPolicy    |]
  ]
  ++ serialFields
  ++ timeStampFields

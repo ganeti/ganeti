@@ -205,7 +205,7 @@ buildLinkIpInstnameMap cfg =
              instances
   in foldl' (\accum (iname, nic) ->
                let pparams = nicNicparams nic
-                   fparams = fillNICParams defparams pparams
+                   fparams = fillNicParams defparams pparams
                    link = nicpLink fparams
                in case nicIp nic of
                     Nothing -> accum
