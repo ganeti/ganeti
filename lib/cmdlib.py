@@ -9083,7 +9083,7 @@ def _ComputeDiskSizePerVG(disk_template, disks):
 
 
 def _ComputeDiskSize(disk_template, disks):
-  """Compute disk size requirements in the volume group
+  """Compute disk size requirements according to disk template
 
   """
   # Required free disk space as a function of disk and swap space
@@ -9093,10 +9093,10 @@ def _ComputeDiskSize(disk_template, disks):
     # 128 MB are added for drbd metadata for each disk
     constants.DT_DRBD8:
       sum(d[constants.IDISK_SIZE] + DRBD_META_SIZE for d in disks),
-    constants.DT_FILE: None,
-    constants.DT_SHARED_FILE: 0,
+    constants.DT_FILE: sum(d[constants.IDISK_SIZE] for d in disks),
+    constants.DT_SHARED_FILE: sum(d[constants.IDISK_SIZE] for d in disks),
     constants.DT_BLOCK: 0,
-    constants.DT_RBD: 0,
+    constants.DT_RBD: sum(d[constants.IDISK_SIZE] for d in disks),
   }
 
   if disk_template not in req_size_dict:
