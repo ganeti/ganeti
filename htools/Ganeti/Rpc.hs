@@ -47,6 +47,11 @@ module Ganeti.Rpc
   , RpcCallInstanceList(..)
   , RpcResultInstanceList(..)
 
+  , HvInfo(..)
+  , VgInfo(..)
+  , RpcCallNodeInfo(..)
+  , RpcResultNodeInfo(..)
+
   , rpcTimeoutFromRaw -- FIXME: Not used anywhere
   ) where
 
@@ -248,3 +253,41 @@ instance RpcCall RpcCallInstanceList where
 instance RpcResult RpcResultInstanceList
 
 instance Rpc RpcCallInstanceList RpcResultInstanceList
+
+-- | NodeInfo
+-- Return node information.
+$(buildObject "RpcCallNodeInfo" "rpcCallNodeInfo" $
+  [ simpleField "hypervisors" [t| [Hypervisor] |]
+  , simpleField "volume_groups" [t| [String] |]
+  ])
+
+$(buildObject "VgInfo" "vgInfo" $
+  [ simpleField "name" [t| String |]
+  , simpleField "free" [t| Int |]
+  , simpleField "size" [t| Int |]
+  ])
+
+-- | We only provide common fields as described in hv_base.py.
+$(buildObject "HvInfo" "hvInfo" $
+  [ simpleField "memory_total" [t| Int |]
+  , simpleField "memory_free" [t| Int |]
+  , simpleField "memory_dom0" [t| Int |]
+  , simpleField "cpu_total" [t| Int |]
+  , simpleField "cpu_nodes" [t| Int |]
+  , simpleField "cpu_sockets" [t| Int |]
+  ])
+
+$(buildObject "RpcResultNodeInfo" "rpcResNodeInfo" $
+  [ simpleField "boot_id" [t| String |]
+  , simpleField "vg_info" [t| [VgInfo] |]
+  , simpleField "hv_info" [t| [HvInfo] |]
+  ])
+
+instance RpcCall RpcCallNodeInfo where
+  rpcCallName _ = "node_info"
+  rpcCallTimeout _ = rpcTimeoutToRaw Urgent
+  rpcCallAcceptOffline _ = False
+
+instance RpcResult RpcResultNodeInfo
+
+instance Rpc RpcCallNodeInfo RpcResultNodeInfo
