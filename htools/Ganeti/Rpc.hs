@@ -44,6 +44,9 @@ module Ganeti.Rpc
   , RpcCallAllInstancesInfo(..)
   , RpcResultAllInstancesInfo(..)
 
+  , RpcCallInstanceList(..)
+  , RpcResultInstanceList(..)
+
   , rpcTimeoutFromRaw -- FIXME: Not used anywhere
   ) where
 
@@ -226,3 +229,22 @@ instance RpcCall RpcCallAllInstancesInfo where
 instance RpcResult RpcResultAllInstancesInfo
 
 instance Rpc RpcCallAllInstancesInfo RpcResultAllInstancesInfo
+
+-- | InstanceList
+-- Returns the list of running instances on the given nodes.
+$(buildObject "RpcCallInstanceList" "rpcCallInstList" $
+  [ simpleField "hypervisors" [t| [Hypervisor] |] ])
+
+$(buildObject "RpcResultInstanceList" "rpcResInstList" $
+  [ simpleField "node"      [t| Node |]
+  , simpleField "instances" [t| [String] |]
+  ])
+
+instance RpcCall RpcCallInstanceList where
+  rpcCallName _ = "instance_list"
+  rpcCallTimeout _ = rpcTimeoutToRaw Urgent
+  rpcCallAcceptOffline _ = False
+
+instance RpcResult RpcResultInstanceList
+
+instance Rpc RpcCallInstanceList RpcResultInstanceList
