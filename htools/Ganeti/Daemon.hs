@@ -37,6 +37,7 @@ module Ganeti.Daemon
   , oSyslogUsage
   , parseArgs
   , parseAddress
+  , cleanupSocket
   , writePidFile
   , genericMain
   ) where
@@ -54,6 +55,7 @@ import System.Exit
 import System.Environment
 import System.Info
 import System.IO
+import System.IO.Error (isDoesNotExistError)
 import System.Posix.Directory
 import System.Posix.Files
 import System.Posix.IO
@@ -220,6 +222,13 @@ writePidFile :: FilePath -> IO (Result Fd)
 writePidFile path = do
   catch (fmap Ok $ _writePidFile path)
     (return . Bad . formatIOError "Failure during writing of the pid file")
+
+-- | Helper function to ensure a socket doesn't exist. Should only be
+-- called once we have locked the pid file successfully.
+cleanupSocket :: FilePath -> IO ()
+cleanupSocket socketPath = do
+  catchJust (guard . isDoesNotExistError) (removeLink socketPath)
+            (const $ return ())
 
 -- | Sets up a daemon's environment.
 setupDaemonEnv :: FilePath -> FileMode -> IO ()

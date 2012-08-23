@@ -26,8 +26,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 
 module Ganeti.Queryd
-
-where
+  ( ConfigReader
+  , runQueryD
+  ) where
 
 import Control.Applicative
 import Control.Concurrent
@@ -41,6 +42,7 @@ import Text.JSON.Pretty (pp_value)
 import System.Info (arch)
 
 import qualified Ganeti.Constants as C
+import Ganeti.Daemon
 import Ganeti.Objects
 import qualified Ganeti.Config as Config
 import Ganeti.BasicTypes
@@ -183,6 +185,7 @@ mainLoop creader socket = do
 runQueryD :: Maybe FilePath -> ConfigReader -> IO ()
 runQueryD fpath creader = do
   let socket_path = fromMaybe C.querySocket fpath
+  cleanupSocket socket_path
   bracket
     (getServer socket_path)
     (closeServer socket_path)
