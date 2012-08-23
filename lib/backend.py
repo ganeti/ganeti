@@ -252,7 +252,7 @@ def GetMasterInfo():
   except errors.ConfigurationError, err:
     _Fail("Cluster configuration incomplete: %s", err, exc=True)
   return (master_netdev, master_ip, master_node, primary_ip_family,
-      master_netmask)
+          master_netmask)
 
 
 def RunLocalHooks(hook_opcode, hooks_path, env_builder_fn):
@@ -698,7 +698,7 @@ def VerifyNode(what, cluster_name):
     else:
       source = None
     result[constants.NV_MASTERIP] = netutils.TcpPing(master_ip, port,
-                                                  source=source)
+                                                     source=source)
 
   if constants.NV_USERSCRIPTS in what:
     result[constants.NV_USERSCRIPTS] = \
@@ -3602,7 +3602,7 @@ class HooksRunner(object):
 
     runparts_results = utils.RunParts(dir_name, env=env, reset_env=True)
 
-    for (relname, relstatus, runresult)  in runparts_results:
+    for (relname, relstatus, runresult) in runparts_results:
       if relstatus == constants.RUNPARTS_SKIP:
         rrval = constants.HKR_SKIP
         output = ""

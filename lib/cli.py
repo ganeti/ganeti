@@ -788,18 +788,19 @@ IALLOCATOR_OPT = cli_option("-I", "--iallocator", metavar="<NAME>",
                             completion_suggest=OPT_COMPL_ONE_IALLOCATOR)
 
 DEFAULT_IALLOCATOR_OPT = cli_option("-I", "--default-iallocator",
-                            metavar="<NAME>",
-                            help="Set the default instance allocator plugin",
-                            default=None, type="string",
-                            completion_suggest=OPT_COMPL_ONE_IALLOCATOR)
+                                    metavar="<NAME>",
+                                    help="Set the default instance"
+                                    " allocator plugin",
+                                    default=None, type="string",
+                                    completion_suggest=OPT_COMPL_ONE_IALLOCATOR)
 
 OS_OPT = cli_option("-o", "--os-type", dest="os", help="What OS to run",
                     metavar="<os>",
                     completion_suggest=OPT_COMPL_ONE_OS)
 
 OSPARAMS_OPT = cli_option("-O", "--os-parameters", dest="osparams",
-                         type="keyval", default={},
-                         help="OS parameters")
+                          type="keyval", default={},
+                          help="OS parameters")
 
 FORCE_VARIANT_OPT = cli_option("--force-variant", dest="force_variant",
                                action="store_true", default=False,
@@ -848,7 +849,7 @@ SPECS_DISK_COUNT_OPT = cli_option("--specs-disk-count",
 SPECS_DISK_SIZE_OPT = cli_option("--specs-disk-size", dest="ispecs_disk_size",
                                  type="keyval", default={},
                                  help="Disk size specs: list of key=value,"
-                                " where key is one of min, max, std"
+                                 " where key is one of min, max, std"
                                  " (in MB or using a unit)")
 
 SPECS_NIC_COUNT_OPT = cli_option("--specs-nic-count", dest="ispecs_nic_count",
@@ -857,10 +858,10 @@ SPECS_NIC_COUNT_OPT = cli_option("--specs-nic-count", dest="ispecs_nic_count",
                                  " where key is one of min, max, std")
 
 IPOLICY_DISK_TEMPLATES = cli_option("--ipolicy-disk-templates",
-                                 dest="ipolicy_disk_templates",
-                                 type="list", default=None,
-                                 help="Comma-separated list of"
-                                 " enabled disk templates")
+                                    dest="ipolicy_disk_templates",
+                                    type="list", default=None,
+                                    help="Comma-separated list of"
+                                    " enabled disk templates")
 
 IPOLICY_VCPU_RATIO = cli_option("--ipolicy-vcpu-ratio",
                                  dest="ipolicy_vcpu_ratio",
@@ -1087,12 +1088,12 @@ DRAINED_OPT = cli_option("-D", "--drained", dest="drained", metavar=_YORNO,
                                " (excluded from allocation operations)"))
 
 CAPAB_MASTER_OPT = cli_option("--master-capable", dest="master_capable",
-                    type="bool", default=None, metavar=_YORNO,
-                    help="Set the master_capable flag on the node")
+                              type="bool", default=None, metavar=_YORNO,
+                              help="Set the master_capable flag on the node")
 
 CAPAB_VM_OPT = cli_option("--vm-capable", dest="vm_capable",
-                    type="bool", default=None, metavar=_YORNO,
-                    help="Set the vm_capable flag on the node")
+                          type="bool", default=None, metavar=_YORNO,
+                          help="Set the vm_capable flag on the node")
 
 ALLOCATABLE_OPT = cli_option("--allocatable", dest="allocatable",
                              type="bool", default=None, metavar=_YORNO,
@@ -1149,11 +1150,12 @@ MASTER_NETMASK_OPT = cli_option("--master-netmask", dest="master_netmask",
                                 default=None)
 
 USE_EXTERNAL_MIP_SCRIPT = cli_option("--use-external-mip-script",
-                                dest="use_external_mip_script",
-                                help="Specify whether to run a user-provided"
-                                " script for the master IP address turnup and"
-                                " turndown operations",
-                                type="bool", metavar=_YORNO, default=None)
+                                     dest="use_external_mip_script",
+                                     help="Specify whether to run a"
+                                     " user-provided script for the master"
+                                     " IP address turnup and"
+                                     " turndown operations",
+                                     type="bool", metavar=_YORNO, default=None)
 
 GLOBAL_FILEDIR_OPT = cli_option("--file-storage-dir", dest="file_storage_dir",
                                 help="Specify the default directory (cluster-"
@@ -1162,14 +1164,13 @@ GLOBAL_FILEDIR_OPT = cli_option("--file-storage-dir", dest="file_storage_dir",
                                 metavar="DIR",
                                 default=constants.DEFAULT_FILE_STORAGE_DIR)
 
-GLOBAL_SHARED_FILEDIR_OPT = cli_option("--shared-file-storage-dir",
-                            dest="shared_file_storage_dir",
-                            help="Specify the default directory (cluster-"
-                            "wide) for storing the shared file-based"
-                            " disks [%s]" %
-                            constants.DEFAULT_SHARED_FILE_STORAGE_DIR,
-                            metavar="SHAREDDIR",
-                            default=constants.DEFAULT_SHARED_FILE_STORAGE_DIR)
+GLOBAL_SHARED_FILEDIR_OPT = cli_option(
+  "--shared-file-storage-dir",
+  dest="shared_file_storage_dir",
+  help="Specify the default directory (cluster-wide) for storing the"
+  " shared file-based disks [%s]" %
+  constants.DEFAULT_SHARED_FILE_STORAGE_DIR,
+  metavar="SHAREDDIR", default=constants.DEFAULT_SHARED_FILE_STORAGE_DIR)
 
 NOMODIFY_ETCHOSTS_OPT = cli_option("--no-etc-hosts", dest="modify_etc_hosts",
                                    help="Don't modify /etc/hosts",
@@ -1207,9 +1208,10 @@ TIMEOUT_OPT = cli_option("--timeout", dest="timeout", type="int",
                          help="Maximum time to wait")
 
 SHUTDOWN_TIMEOUT_OPT = cli_option("--shutdown-timeout",
-                         dest="shutdown_timeout", type="int",
-                         default=constants.DEFAULT_SHUTDOWN_TIMEOUT,
-                         help="Maximum time to wait for instance shutdown")
+                                  dest="shutdown_timeout", type="int",
+                                  default=constants.DEFAULT_SHUTDOWN_TIMEOUT,
+                                  help="Maximum time to wait for instance"
+                                  " shutdown")
 
 INTERVAL_OPT = cli_option("--interval", dest="interval", type="int",
                           default=None,
@@ -1237,19 +1239,19 @@ NEW_RAPI_CERT_OPT = cli_option("--new-rapi-certificate", dest="new_rapi_cert",
                                      " certificate"))
 
 SPICE_CERT_OPT = cli_option("--spice-certificate", dest="spice_cert",
-                           default=None,
-                           help="File containing new SPICE certificate")
+                            default=None,
+                            help="File containing new SPICE certificate")
 
 SPICE_CACERT_OPT = cli_option("--spice-ca-certificate", dest="spice_cacert",
-                           default=None,
-                           help="File containing the certificate of the CA"
-                                " which signed the SPICE certificate")
+                              default=None,
+                              help="File containing the certificate of the CA"
+                              " which signed the SPICE certificate")
 
 NEW_SPICE_CERT_OPT = cli_option("--new-spice-certificate",
-                               dest="new_spice_cert", default=None,
-                               action="store_true",
-                               help=("Generate a new self-signed SPICE"
-                                     " certificate"))
+                                dest="new_spice_cert", default=None,
+                                action="store_true",
+                                help=("Generate a new self-signed SPICE"
+                                      " certificate"))
 
 NEW_CONFD_HMAC_KEY_OPT = cli_option("--new-confd-hmac-key",
                                     dest="new_confd_hmac_key",
@@ -1307,10 +1309,10 @@ REMOVE_UIDS_OPT = cli_option("--remove-uids", default=None,
                                    " removed from the user-id pool"))
 
 RESERVED_LVS_OPT = cli_option("--reserved-lvs", default=None,
-                             action="store", dest="reserved_lvs",
-                             help=("A comma-separated list of reserved"
-                                   " logical volumes names, that will be"
-                                   " ignored by cluster verify"))
+                              action="store", dest="reserved_lvs",
+                              help=("A comma-separated list of reserved"
+                                    " logical volumes names, that will be"
+                                    " ignored by cluster verify"))
 
 ROMAN_OPT = cli_option("--roman",
                        dest="roman_integers", default=False,
@@ -1365,8 +1367,8 @@ NODE_POWERED_OPT = cli_option("--node-powered", default=None,
                               help="Specify if the SoR for node is powered")
 
 OOB_TIMEOUT_OPT = cli_option("--oob-timeout", dest="oob_timeout", type="int",
-                         default=constants.OOB_TIMEOUT,
-                         help="Maximum time to wait for out-of-band helper")
+                             default=constants.OOB_TIMEOUT,
+                             help="Maximum time to wait for out-of-band helper")
 
 POWER_DELAY_OPT = cli_option("--power-delay", dest="power_delay", type="float",
                              default=constants.OOB_POWER_DELAY,
@@ -2143,7 +2145,7 @@ def FormatError(err):
   elif isinstance(err, errors.OpPrereqError):
     if len(err.args) == 2:
       obuf.write("Failure: prerequisites not met for this"
-               " operation:\nerror type: %s, error details:\n%s" %
+                 " operation:\nerror type: %s, error details:\n%s" %
                  (err.args[1], err.args[0]))
     else:
       obuf.write("Failure: prerequisites not met for this"

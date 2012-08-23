@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2010, 2011 Google Inc.
+# Copyright (C) 2006, 2007, 2010, 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -525,7 +525,7 @@ def CreateBackup(file_name):
   """
   if not os.path.isfile(file_name):
     raise errors.ProgrammerError("Can't make a backup of a non-file '%s'" %
-                                file_name)
+                                 file_name)
 
   prefix = ("%s.backup-%s." %
             (os.path.basename(file_name), TimestampForFilename()))

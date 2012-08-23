@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008, 2010, 2011 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2010, 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -420,7 +420,7 @@ class AsyncAwaker(GanetiBaseAsyncoreDispatcher):
 
     """
     GanetiBaseAsyncoreDispatcher.__init__(self)
-    assert signal_fn == None or callable(signal_fn)
+    assert signal_fn is None or callable(signal_fn)
     (self.in_socket, self.out_socket) = socket.socketpair(socket.AF_UNIX,
                                                           socket.SOCK_STREAM)
     self.in_socket.setblocking(0)

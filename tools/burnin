@@ -892,10 +892,10 @@ class Burner(object):
     Log("Adding and removing disks")
     for instance in self.instances:
       Log("instance %s", instance, indent=1)
-      op_add = opcodes.OpInstanceSetParams(\
+      op_add = opcodes.OpInstanceSetParams(
         instance_name=instance,
         disks=[(constants.DDM_ADD, {"size": self.disk_size[0]})])
-      op_rem = opcodes.OpInstanceSetParams(\
+      op_rem = opcodes.OpInstanceSetParams(
         instance_name=instance, disks=[(constants.DDM_REMOVE, {})])
       op_stop = self.StopInstanceOp(instance)
       op_start = self.StartInstanceOp(instance)
@@ -909,12 +909,12 @@ class Burner(object):
     Log("Adding and removing NICs")
     for instance in self.instances:
       Log("instance %s", instance, indent=1)
-      op_add = opcodes.OpInstanceSetParams(\
+      op_add = opcodes.OpInstanceSetParams(
         instance_name=instance, nics=[(constants.DDM_ADD, {})])
-      op_chg = opcodes.OpInstanceSetParams(\
+      op_chg = opcodes.OpInstanceSetParams(
         instance_name=instance, nics=[(constants.DDM_MODIFY,
                                        -1, {"mac": constants.VALUE_GENERATE})])
-      op_rem = opcodes.OpInstanceSetParams(\
+      op_rem = opcodes.OpInstanceSetParams(
         instance_name=instance, nics=[(constants.DDM_REMOVE, {})])
       Log("adding a NIC", indent=2)
       Log("changing a NIC", indent=2)

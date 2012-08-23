@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2007, 2008, 2010 Google Inc.
+# Copyright (C) 2007, 2008, 2010, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -202,7 +202,7 @@ class _HttpClientToServerMessageReader(http.HttpMessageReader):
 
       if version_number >= (2, 0):
         raise http.HttpVersionNotSupported("Invalid HTTP Version (%s)" %
-                                      base_version_number)
+                                           base_version_number)
 
     elif len(words) == 2:
       version = http.HTTP_0_9

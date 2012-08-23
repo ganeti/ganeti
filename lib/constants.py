@@ -1816,8 +1816,7 @@ HVC_DEFAULTS = {
     HV_CPU_MASK: CPU_PINNING_ALL,
     HV_CPU_TYPE: "",
     },
-  HT_FAKE: {
-    },
+  HT_FAKE: {},
   HT_CHROOT: {
     HV_INIT_SCRIPT: "/ganeti-chroot",
     },
@@ -1870,10 +1869,8 @@ DISK_LD_DEFAULTS = {
   LD_LV: {
     LDP_STRIPES: _autoconf.LVM_STRIPECOUNT
     },
-  LD_FILE: {
-    },
-  LD_BLOCKDEV: {
-    },
+  LD_FILE: {},
+  LD_BLOCKDEV: {},
   LD_RBD: {
     LDP_POOL: "rbd"
     },
@@ -1903,14 +1900,10 @@ DISK_DT_DEFAULTS = {
     DRBD_MAX_RATE: _DRBD_DEFAULTS[LDP_MAX_RATE],
     DRBD_MIN_RATE: _DRBD_DEFAULTS[LDP_MIN_RATE],
     },
-  DT_DISKLESS: {
-    },
-  DT_FILE: {
-    },
-  DT_SHARED_FILE: {
-    },
-  DT_BLOCK: {
-    },
+  DT_DISKLESS: {},
+  DT_FILE: {},
+  DT_SHARED_FILE: {},
+  DT_BLOCK: {},
   DT_RBD: {
     RBD_POOL: DISK_LD_DEFAULTS[LD_RBD][LDP_POOL]
     },

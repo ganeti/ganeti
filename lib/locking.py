@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -1637,11 +1637,11 @@ class GanetiLockManager:
     # point in acquiring any other lock, unless perhaps we are half way through
     # the migration of the current opcode.
     assert (self._contains_BGL(level, names) or self._BGL_owned()), (
-            "You must own the Big Ganeti Lock before acquiring any other")
+      "You must own the Big Ganeti Lock before acquiring any other")
 
     # Check we don't own locks at the same or upper levels.
     assert not self._upper_owned(level), ("Cannot acquire locks at a level"
-           " while owning some at a greater one")
+                                          " while owning some at a greater one")
 
     # Acquire the locks in the set.
     return self.__keyring[level].acquire(names, shared=shared, timeout=timeout,
@@ -1679,10 +1679,10 @@ class GanetiLockManager:
     assert level in LEVELS, "Invalid locking level %s" % level
     assert (not self._contains_BGL(level, names) or
             not self._upper_owned(LEVEL_CLUSTER)), (
-            "Cannot release the Big Ganeti Lock while holding something"
-            " at upper levels (%r)" %
-            (utils.CommaJoin(["%s=%r" % (LEVEL_NAMES[i], self.list_owned(i))
-                              for i in self.__keyring.keys()]), ))
+              "Cannot release the Big Ganeti Lock while holding something"
+              " at upper levels (%r)" %
+              (utils.CommaJoin(["%s=%r" % (LEVEL_NAMES[i], self.list_owned(i))
+                                for i in self.__keyring.keys()]), ))
 
     # Release will complain if we don't own the locks already
     return self.__keyring[level].release(names)
@@ -1702,9 +1702,9 @@ class GanetiLockManager:
     """
     assert level in LEVELS_MOD, "Invalid or immutable level %s" % level
     assert self._BGL_owned(), ("You must own the BGL before performing other"
-           " operations")
+                               " operations")
     assert not self._upper_owned(level), ("Cannot add locks at a level"
-           " while owning some at a greater one")
+                                          " while owning some at a greater one")
     return self.__keyring[level].add(names, acquired=acquired, shared=shared)
 
   def remove(self, level, names):
@@ -1722,7 +1722,7 @@ class GanetiLockManager:
     """
     assert level in LEVELS_MOD, "Invalid or immutable level %s" % level
     assert self._BGL_owned(), ("You must own the BGL before performing other"
-           " operations")
+                               " operations")
     # Check we either own the level or don't own anything from here
     # up. LockSet.remove() will check the case in which we don't own
     # all the needed resources, or we have a shared ownership.

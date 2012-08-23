@@ -779,7 +779,7 @@ def MasterFailover(no_voting=False):
   msg = result.fail_msg
   if msg:
     logging.error("Could not disable the master role on the old master"
-                 " %s, please disable manually: %s", old_master, msg)
+                  " %s, please disable manually: %s", old_master, msg)
 
   logging.info("Checking master IP non-reachability...")
 

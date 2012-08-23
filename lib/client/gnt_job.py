@@ -92,7 +92,8 @@ def ListJobs(opts, args):
     "summary": (lambda value: ",".join(str(item) for item in value), False),
     }
   fmtoverride.update(dict.fromkeys(["opstart", "opexec", "opend"],
-    (lambda value: map(FormatTimestamp, value), None)))
+                                   (lambda value: map(FormatTimestamp, value),
+                                    None)))
 
   qfilter = qlang.MakeSimpleFilter("status", opts.status_filter)
 

@@ -342,11 +342,12 @@ def TestRapiQuery():
 
     if what == constants.QR_NODE:
       # Test with filter
-      (nodes, ) = _DoTests([("/2/query/%s" % what,
-        compat.partial(_Check, ["name", "master"]), "PUT", {
-        "fields": ["name", "master"],
-        "filter": [qlang.OP_TRUE, "master"],
-        })])
+      (nodes, ) = _DoTests(
+        [("/2/query/%s" % what,
+          compat.partial(_Check, ["name", "master"]), "PUT",
+          {"fields": ["name", "master"],
+           "filter": [qlang.OP_TRUE, "master"],
+           })])
       qresult = objects.QueryResponse.FromDict(nodes)
       AssertEqual(qresult.data, [
         [[constants.RS_NORMAL, master_name], [constants.RS_NORMAL, True]],
@@ -675,10 +676,11 @@ def TestRapiInstanceReinstall(instance):
 @InstanceCheck(INST_UP, INST_UP, FIRST_ARG)
 def TestRapiInstanceReplaceDisks(instance):
   """Test replacing instance disks via RAPI"""
-  _WaitForRapiJob(_rapi_client.ReplaceInstanceDisks(instance["name"],
-    mode=constants.REPLACE_DISK_AUTO, disks=[]))
-  _WaitForRapiJob(_rapi_client.ReplaceInstanceDisks(instance["name"],
-    mode=constants.REPLACE_DISK_SEC, disks="0"))
+  fn = _rapi_client.ReplaceInstanceDisks
+  _WaitForRapiJob(fn(instance["name"],
+                     mode=constants.REPLACE_DISK_AUTO, disks=[]))
+  _WaitForRapiJob(fn(instance["name"],
+                     mode=constants.REPLACE_DISK_SEC, disks="0"))
 
 
 @InstanceCheck(INST_UP, INST_UP, FIRST_ARG)

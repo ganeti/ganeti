@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2009, 2010 Google Inc.
+# Copyright (C) 2009, 2010, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -283,7 +283,7 @@ class ConfdClient:
                                         server_port=port,
                                         extra_args=rq.args,
                                         client=self,
-                                       )
+                                        )
       self._callback(client_reply)
 
     finally:

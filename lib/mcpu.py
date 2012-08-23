@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2011 Google Inc.
+# Copyright (C) 2006, 2007, 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -527,8 +527,8 @@ class Processor(object):
 
 class HooksMaster(object):
   def __init__(self, opcode, hooks_path, nodes, hooks_execution_fn,
-    hooks_results_adapt_fn, build_env_fn, log_fn, htype=None, cluster_name=None,
-    master_name=None):
+               hooks_results_adapt_fn, build_env_fn, log_fn, htype=None,
+               cluster_name=None, master_name=None):
     """Base class for hooks masters.
 
     This class invokes the execution of hooks according to the behaviour

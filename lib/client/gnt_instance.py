@@ -116,7 +116,7 @@ def _ExpandMultiNames(mode, names, client=None):
       if not names:
         raise errors.OpPrereqError("No node names passed", errors.ECODE_INVAL)
       ndata = client.QueryNodes(names, ["name", "pinst_list", "sinst_list"],
-                              False)
+                                False)
 
     ipri = [row[1] for row in ndata]
     pri_names = list(itertools.chain(*ipri))

@@ -1059,8 +1059,8 @@ def PrepNoded(options, _):
   mainloop = daemon.Mainloop()
   server = \
     http.server.HttpServer(mainloop, options.bind_address, options.port,
-      handler, ssl_params=ssl_params, ssl_verify_peer=True,
-      request_executor_class=request_executor_class)
+                           handler, ssl_params=ssl_params, ssl_verify_peer=True,
+                           request_executor_class=request_executor_class)
   server.Start()
 
   return (mainloop, server)

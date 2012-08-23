@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008, 2009, 2010 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -81,11 +81,11 @@ def _IsMultiCpuMaskWellFormed(cpu_mask):
 
 # must be afile
 _FILE_CHECK = (utils.IsNormAbsPath, "must be an absolute normalized path",
-              os.path.isfile, "not found or not a file")
+               os.path.isfile, "not found or not a file")
 
 # must be a directory
 _DIR_CHECK = (utils.IsNormAbsPath, "must be an absolute normalized path",
-             os.path.isdir, "not found or not a directory")
+              os.path.isdir, "not found or not a directory")
 
 # CPU mask must be well-formed
 # TODO: implement node level check for the CPU mask

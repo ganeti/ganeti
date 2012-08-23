@@ -990,12 +990,13 @@ class BaseDRBD(BlockDev): # pylint: disable=W0223
                                     first_line)
 
     values = version.groups()
-    retval = {"k_major": int(values[0]),
-              "k_minor": int(values[1]),
-              "k_point": int(values[2]),
-              "api": int(values[3]),
-              "proto": int(values[4]),
-             }
+    retval = {
+      "k_major": int(values[0]),
+      "k_minor": int(values[1]),
+      "k_point": int(values[2]),
+      "api": int(values[3]),
+      "proto": int(values[4]),
+      }
     if values[5] is not None:
       retval["proto2"] = values[5]
 
@@ -1393,7 +1394,7 @@ class DRBD8(BaseDRBD):
 
   @classmethod
   def _ComputeDiskBarrierArgs(cls, vmaj, vmin, vrel, disabled_barriers,
-      disable_meta_flush):
+                              disable_meta_flush):
     """Compute the DRBD command line parameters for disk barriers
 
     Returns a list of the disk barrier parameters as requested via the
@@ -1627,7 +1628,7 @@ class DRBD8(BaseDRBD):
                    "--c-delay-target", params[constants.LDP_DELAY_TARGET],
                    "--c-max-rate", params[constants.LDP_MAX_RATE],
                    "--c-min-rate", params[constants.LDP_MIN_RATE],
-                  ])
+                   ])
 
     else:
       args.extend(["-r", "%d" % params[constants.LDP_RESYNC_RATE]])

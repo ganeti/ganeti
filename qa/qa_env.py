@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2007, 2010, 2011 Google Inc.
+# Copyright (C) 2007, 2010, 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -43,18 +43,18 @@ def TestGanetiCommands():
 
   """
   cmds = (["gnt-backup", "--version"],
-           ["gnt-cluster", "--version"],
-           ["gnt-debug", "--version"],
-           ["gnt-instance", "--version"],
-           ["gnt-job", "--version"],
-           ["gnt-node", "--version"],
-           ["gnt-os", "--version"],
-           ["ganeti-masterd", "--version"],
-           ["ganeti-noded", "--version"],
-           ["ganeti-rapi", "--version"],
-           ["ganeti-watcher", "--version"],
-           ["ganeti-confd", "--version"],
-           )
+          ["gnt-cluster", "--version"],
+          ["gnt-debug", "--version"],
+          ["gnt-instance", "--version"],
+          ["gnt-job", "--version"],
+          ["gnt-node", "--version"],
+          ["gnt-os", "--version"],
+          ["ganeti-masterd", "--version"],
+          ["ganeti-noded", "--version"],
+          ["ganeti-rapi", "--version"],
+          ["ganeti-watcher", "--version"],
+          ["ganeti-confd", "--version"],
+          )
 
   cmd = " && ".join([utils.ShellQuoteArgs(i) for i in cmds])
 

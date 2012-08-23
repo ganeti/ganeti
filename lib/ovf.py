@@ -187,7 +187,7 @@ def LinkFile(old_path, prefix=None, suffix=None, directory=None):
     except OSError, err:
       if err.errno == errno.EEXIST:
         new_path = utils.PathJoin(directory,
-          "%s_%s%s" % (prefix, counter, suffix))
+                                  "%s_%s%s" % (prefix, counter, suffix))
         counter += 1
       else:
         raise errors.OpPrereqError("Error moving the file %s to %s location:"
@@ -357,7 +357,7 @@ class OVFReader(object):
           sha1_sum = match.group(2)
           manifest_files[file_name] = sha1_sum
       files_with_paths = [utils.PathJoin(self.input_dir, file_name)
-        for file_name in self.files_list]
+                          for file_name in self.files_list]
       sha1_sums = utils.FingerprintFiles(files_with_paths)
       for file_name, value in manifest_files.iteritems():
         if sha1_sums.get(utils.PathJoin(self.input_dir, file_name)) != value:
@@ -401,7 +401,7 @@ class OVFReader(object):
       return {"hypervisor_name": constants.VALUE_AUTO}
     results = {
       "hypervisor_name": hypervisor_data.findtext("{%s}Name" % GANETI_SCHEMA,
-                           default=constants.VALUE_AUTO),
+                                                  default=constants.VALUE_AUTO),
     }
     parameters = hypervisor_data.find("{%s}Parameters" % GANETI_SCHEMA)
     results.update(self._GetDictParameters(parameters, GANETI_SCHEMA))
@@ -440,7 +440,7 @@ class OVFReader(object):
     vcpus = self._GetElementMatchingText(find_vcpus, match_vcpus)
     if vcpus:
       vcpus_count = vcpus.findtext("{%s}VirtualQuantity" % RASD_SCHEMA,
-        default=constants.VALUE_AUTO)
+                                   default=constants.VALUE_AUTO)
     else:
       vcpus_count = constants.VALUE_AUTO
     results["vcpus"] = str(vcpus_count)
@@ -451,21 +451,21 @@ class OVFReader(object):
     memory_raw = None
     if memory:
       alloc_units = memory.findtext("{%s}AllocationUnits" % RASD_SCHEMA)
-      matching_units = [units for units, variants in
-        ALLOCATION_UNITS.iteritems() if alloc_units.lower() in variants]
+      matching_units = [units for units, variants in ALLOCATION_UNITS.items()
+                        if alloc_units.lower() in variants]
       if matching_units == []:
         raise errors.OpPrereqError("Unit %s for RAM memory unknown" %
                                    alloc_units, errors.ECODE_INVAL)
       units = matching_units[0]
       memory_raw = int(memory.findtext("{%s}VirtualQuantity" % RASD_SCHEMA,
-            default=constants.VALUE_AUTO))
+                                       default=constants.VALUE_AUTO))
       memory_count = CONVERT_UNITS_TO_MB[units](memory_raw)
     else:
       memory_count = constants.VALUE_AUTO
     results["memory"] = str(memory_count)
 
     find_balance = ("{%s}GanetiSection/{%s}AutoBalance" %
-                   (GANETI_SCHEMA, GANETI_SCHEMA))
+                    (GANETI_SCHEMA, GANETI_SCHEMA))
     balance = self.tree.findtext(find_balance, default=constants.VALUE_AUTO)
     results["auto_balance"] = balance
 
@@ -513,7 +513,7 @@ class OVFReader(object):
     networks_search = ("{%s}NetworkSection/{%s}Network" %
                        (OVF_SCHEMA, OVF_SCHEMA))
     network_names = self._GetAttributes(networks_search,
-      "{%s}name" % OVF_SCHEMA)
+                                        "{%s}name" % OVF_SCHEMA)
     required = ["ip", "mac", "link", "mode"]
     for (counter, network_name) in enumerate(network_names):
       network_search = ("{%s}VirtualSystem/{%s}VirtualHardwareSection/{%s}Item"
@@ -524,7 +524,7 @@ class OVFReader(object):
       ganeti_match = ("{%s}name" % OVF_SCHEMA, network_name)
       network_data = self._GetElementMatchingText(network_search, network_match)
       network_ganeti_data = self._GetElementMatchingAttr(ganeti_search,
-        ganeti_match)
+                                                         ganeti_match)
 
       ganeti_data = {}
       if network_ganeti_data:
@@ -703,7 +703,7 @@ class OVFWriter(object):
       SubElementText(network_item, "rasd:ElementName", network_name)
       SubElementText(network_item, "rasd:InstanceID", self.next_instance_id)
       SubElementText(network_item, "rasd:ResourceType",
-        RASD_TYPE["ethernet-adapter"])
+                     RASD_TYPE["ethernet-adapter"])
       self.hardware_list.append(network_item)
       self.next_instance_id += 1
 
@@ -737,9 +737,9 @@ class OVFWriter(object):
 
     SubElementText(ganeti_section, "gnt:Version", ganeti.get("version"))
     SubElementText(ganeti_section, "gnt:DiskTemplate",
-      ganeti.get("disk_template"))
+                   ganeti.get("disk_template"))
     SubElementText(ganeti_section, "gnt:AutoBalance",
-      ganeti.get("auto_balance"))
+                   ganeti.get("auto_balance"))
     SubElementText(ganeti_section, "gnt:Tags", ganeti.get("tags"))
 
     osys = ET.SubElement(ganeti_section, "gnt:OperatingSystem")
@@ -779,7 +779,7 @@ class OVFWriter(object):
     name_section.text = name
     os_attrib = {"ovf:id": "0"}
     os_section = ET.SubElement(virtual_system, "OperatingSystemSection",
-      attrib=os_attrib)
+                               attrib=os_attrib)
     SubElementText(os_section, "Info", "Installed guest operating system")
     hardware_section = ET.SubElement(virtual_system, "VirtualHardwareSection")
     SubElementText(hardware_section, "Info", "Virtual hardware requirements")
@@ -794,7 +794,7 @@ class OVFWriter(object):
     # Item for vcpus
     vcpus_item = ET.SubElement(hardware_section, "Item")
     SubElementText(vcpus_item, "rasd:ElementName",
-      "%s virtual CPU(s)" % vcpus)
+                   "%s virtual CPU(s)" % vcpus)
     SubElementText(vcpus_item, "rasd:InstanceID", INSTANCE_ID["vcpus"])
     SubElementText(vcpus_item, "rasd:ResourceType", RASD_TYPE["vcpus"])
     SubElementText(vcpus_item, "rasd:VirtualQuantity", vcpus)
@@ -909,7 +909,7 @@ class Converter(object):
     elif action == COMPRESS:
       prefix = disk_file
     new_path = utils.GetClosedTempfile(suffix=COMPRESSION_EXT, prefix=prefix,
-      dir=self.output_dir)
+                                       dir=self.output_dir)
     self.temp_file_manager.Add(new_path)
     args = ["gzip", "-c", disk_path]
     run_result = utils.RunCmd(args, output=new_path)
@@ -940,8 +940,8 @@ class Converter(object):
       logging.warning("Conversion of disk image to %s format, this may take"
                       " a while", disk_format)
 
-    new_disk_path = utils.GetClosedTempfile(suffix=".%s" % disk_format,
-      prefix=disk_name, dir=self.output_dir)
+    new_disk_path = utils.GetClosedTempfile(
+      suffix=".%s" % disk_format, prefix=disk_name, dir=self.output_dir)
     self.temp_file_manager.Add(new_disk_path)
     args = [
       constants.QEMUIMG_PATH,
@@ -1122,7 +1122,7 @@ class OVFImporter(Converter):
       raise errors.OpPrereqError("No %s file in %s package found" %
                                  (OVF_EXT, OVA_EXT), errors.ECODE_ENVIRON)
     logging.warning("Unpacking the %s archive, this may take a while",
-      input_path)
+                    input_path)
     self.input_dir = temp_dir
     self.input_path = utils.PathJoin(self.temp_dir, input_name)
     try:
@@ -1150,7 +1150,8 @@ class OVFImporter(Converter):
 
     """
     self.results_name = self._GetInfo("instance name", self.options.name,
-      self._ParseNameOptions, self.ovf_reader.GetInstanceName)
+                                      self._ParseNameOptions,
+                                      self.ovf_reader.GetInstanceName)
     if not self.results_name:
       raise errors.OpPrereqError("Name of instance not provided",
                                  errors.ECODE_INVAL)
@@ -1162,33 +1163,34 @@ class OVFImporter(Converter):
       raise errors.OpPrereqError("Failed to create directory %s: %s" %
                                  (self.output_dir, err), errors.ECODE_ENVIRON)
 
-    self.results_template = self._GetInfo("disk template",
-      self.options.disk_template, self._ParseTemplateOptions,
+    self.results_template = self._GetInfo(
+      "disk template", self.options.disk_template, self._ParseTemplateOptions,
       self.ovf_reader.GetDiskTemplate)
     if not self.results_template:
       logging.info("Disk template not given")
 
-    self.results_hypervisor = self._GetInfo("hypervisor",
-      self.options.hypervisor, self._ParseHypervisorOptions,
+    self.results_hypervisor = self._GetInfo(
+      "hypervisor", self.options.hypervisor, self._ParseHypervisorOptions,
       self.ovf_reader.GetHypervisorData)
     assert self.results_hypervisor["hypervisor_name"]
     if self.results_hypervisor["hypervisor_name"] == constants.VALUE_AUTO:
       logging.debug("Default hypervisor settings from the cluster will be used")
 
-    self.results_os = self._GetInfo("OS", self.options.os,
-      self._ParseOSOptions, self.ovf_reader.GetOSData)
+    self.results_os = self._GetInfo(
+      "OS", self.options.os, self._ParseOSOptions, self.ovf_reader.GetOSData)
     if not self.results_os.get("os_name"):
       raise errors.OpPrereqError("OS name must be provided",
                                  errors.ECODE_INVAL)
 
-    self.results_backend = self._GetInfo("backend", self.options.beparams,
+    self.results_backend = self._GetInfo(
+      "backend", self.options.beparams,
       self._ParseBackendOptions, self.ovf_reader.GetBackendData)
     assert self.results_backend.get("vcpus")
     assert self.results_backend.get("memory")
     assert self.results_backend.get("auto_balance") is not None
 
-    self.results_tags = self._GetInfo("tags", self.options.tags,
-      self._ParseTags, self.ovf_reader.GetTagsData)
+    self.results_tags = self._GetInfo(
+      "tags", self.options.tags, self._ParseTags, self.ovf_reader.GetTagsData)
 
     ovf_version = self.ovf_reader.GetVersionData()
     if ovf_version:
@@ -1196,12 +1198,12 @@ class OVFImporter(Converter):
     else:
       self.results_version = constants.EXPORT_VERSION
 
-    self.results_network = self._GetInfo("network", self.options.nics,
-      self._ParseNicOptions, self.ovf_reader.GetNetworkData,
-      ignore_test=self.options.no_nics)
+    self.results_network = self._GetInfo(
+      "network", self.options.nics, self._ParseNicOptions,
+      self.ovf_reader.GetNetworkData, ignore_test=self.options.no_nics)
 
-    self.results_disk = self._GetInfo("disk", self.options.disks,
-      self._ParseDiskOptions, self._GetDiskInfo,
+    self.results_disk = self._GetInfo(
+      "disk", self.options.disks, self._ParseDiskOptions, self._GetDiskInfo,
       ignore_test=self.results_template == constants.DT_DISKLESS)
 
     if not self.results_disk and not self.results_network:
@@ -1211,7 +1213,7 @@ class OVFImporter(Converter):
 
   @staticmethod
   def _GetInfo(name, cmd_arg, cmd_function, nocmd_function,
-    ignore_test=False):
+               ignore_test=False):
     """Get information about some section - e.g. disk, network, hypervisor.
 
     @type name: string
@@ -1232,7 +1234,7 @@ class OVFImporter(Converter):
       results = cmd_function()
     else:
       logging.info("Information for %s will be parsed from %s file",
-        name, OVF_EXT)
+                   name, OVF_EXT)
       results = nocmd_function()
     logging.info("Options for %s were succesfully read", name)
     return results
@@ -1398,14 +1400,14 @@ class OVFImporter(Converter):
       disk_path = utils.PathJoin(self.input_dir, disk_name)
       if disk_compression not in NO_COMPRESSION:
         _, disk_path = self._CompressDisk(disk_path, disk_compression,
-          DECOMPRESS)
+                                          DECOMPRESS)
         disk, _ = os.path.splitext(disk)
       if self._GetDiskQemuInfo(disk_path, "file format: (\S+)") != "raw":
         logging.info("Conversion to raw format is required")
       ext, new_disk_path = self._ConvertDisk("raw", disk_path)
 
       final_disk_path = LinkFile(new_disk_path, prefix=disk, suffix=ext,
-        directory=self.output_dir)
+                                 directory=self.output_dir)
       final_name = os.path.basename(final_disk_path)
       disk_size = os.path.getsize(final_disk_path) / (1024 * 1024)
       results["disk%s_dump" % counter] = final_name
@@ -1453,7 +1455,7 @@ class OVFImporter(Converter):
     results[constants.INISECT_HYP].update(self.results_hypervisor)
 
     output_file_name = utils.PathJoin(self.output_dir,
-      constants.EXPORT_CONF_FILE)
+                                      constants.EXPORT_CONF_FILE)
 
     output = []
     for section, options in results.iteritems():
@@ -1480,8 +1482,8 @@ class ConfigParserWithDefaults(ConfigParser.SafeConfigParser):
   """
   def get(self, section, options, raw=None, vars=None): # pylint: disable=W0622
     try:
-      result = ConfigParser.SafeConfigParser.get(self, section, options, \
-        raw=raw, vars=vars)
+      result = ConfigParser.SafeConfigParser.get(self, section, options,
+                                                 raw=raw, vars=vars)
     except ConfigParser.NoOptionError:
       result = None
     return result
@@ -1662,11 +1664,11 @@ class OVFExporter(Converter):
         break
       results.append({
         "mode": self.config_parser.get(constants.INISECT_INS,
-           "nic%s_mode" % counter),
+                                       "nic%s_mode" % counter),
         "mac": self.config_parser.get(constants.INISECT_INS,
-           "nic%s_mac" % counter),
+                                      "nic%s_mac" % counter),
         "ip": self.config_parser.get(constants.INISECT_INS,
-           "nic%s_ip" % counter),
+                                     "nic%s_ip" % counter),
         "link": data_link,
       })
       if results[counter]["mode"] not in constants.NIC_VALID_MODES:
@@ -1698,16 +1700,16 @@ class OVFExporter(Converter):
     disk_name, _ = os.path.splitext(disk_file)
     ext, new_disk_path = self._ConvertDisk(self.options.disk_format, disk_path)
     results["format"] = self.options.disk_format
-    results["virt-size"] = self._GetDiskQemuInfo(new_disk_path,
-      "virtual size: \S+ \((\d+) bytes\)")
+    results["virt-size"] = self._GetDiskQemuInfo(
+      new_disk_path, "virtual size: \S+ \((\d+) bytes\)")
     if compression:
       ext2, new_disk_path = self._CompressDisk(new_disk_path, "gzip",
-        COMPRESS)
+                                               COMPRESS)
       disk_name, _ = os.path.splitext(disk_name)
       results["compression"] = "gzip"
       ext += ext2
     final_disk_path = LinkFile(new_disk_path, prefix=disk_name, suffix=ext,
-      directory=self.output_dir)
+                               directory=self.output_dir)
     final_disk_name = os.path.basename(final_disk_path)
     results["real-size"] = os.path.getsize(final_disk_path)
     results["path"] = final_disk_name
@@ -1815,7 +1817,7 @@ class OVFExporter(Converter):
       self.ovf_writer.SaveGanetiData(self.results_ganeti, self.results_network)
 
     self.ovf_writer.SaveVirtualSystemData(self.results_name, self.results_vcpus,
-      self.results_memory)
+                                          self.results_memory)
 
     data = self.ovf_writer.PrettyXmlDump()
     utils.WriteFile(self.output_path, data=data)

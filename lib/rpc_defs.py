@@ -502,7 +502,7 @@ _MISC_CALLS = [
   ]
 
 CALLS = {
-  "RpcClientDefault": \
+  "RpcClientDefault":
     _Prepare(_IMPEXP_CALLS + _X509_CALLS + _OS_CALLS + _NODE_CALLS +
              _FILE_STORAGE_CALLS + _MISC_CALLS + _INSTANCE_CALLS +
              _BLOCKDEV_CALLS + _STORAGE_CALLS),

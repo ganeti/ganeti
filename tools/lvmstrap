@@ -568,13 +568,13 @@ def ShowDiskInfo(opts):
 
   print "------- Disk information -------"
   headers = {
-      "name": "Name",
-      "size": "Size[M]",
-      "used": "Used",
-      "mount": "Mount",
-      "lvm": "LVM?",
-      "info": "Info"
-      }
+    "name": "Name",
+    "size": "Size[M]",
+    "used": "Used",
+    "mount": "Mount",
+    "lvm": "LVM?",
+    "info": "Info"
+    }
   fields = ["name", "size", "used", "mount", "lvm", "info"]
 
   flatlist = []
@@ -905,7 +905,7 @@ def BootStrap():
   status, lv_count, size, _ = CheckVGExists(vgname)
   if status:
     print "Done! %s: size %s GiB, disks: %s" % (vgname, size,
-                                              ",".join(disklist))
+                                                ",".join(disklist))
   else:
     raise OperationalError("Although everything seemed ok, the volume"
                            " group did not get created.")

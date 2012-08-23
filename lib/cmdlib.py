@@ -1208,8 +1208,8 @@ def _ComputeIPolicyInstanceViolation(ipolicy, instance,
                      disk_sizes, spindle_use)
 
 
-def _ComputeIPolicyInstanceSpecViolation(ipolicy, instance_spec,
-    _compute_fn=_ComputeIPolicySpecViolation):
+def _ComputeIPolicyInstanceSpecViolation(
+  ipolicy, instance_spec, _compute_fn=_ComputeIPolicySpecViolation):
   """Compute if instance specs meets the specs of ipolicy.
 
   @type ipolicy: dict
@@ -1920,10 +1920,11 @@ class LUClusterVerify(NoHooksLU):
       # Always depend on global verification
       depends_fn = lambda: [(-len(jobs), [])]
 
-    jobs.extend([opcodes.OpClusterVerifyGroup(group_name=group,
-                                            ignore_errors=self.op.ignore_errors,
-                                            depends=depends_fn())]
-                for group in groups)
+    jobs.extend(
+      [opcodes.OpClusterVerifyGroup(group_name=group,
+                                    ignore_errors=self.op.ignore_errors,
+                                    depends=depends_fn())]
+      for group in groups)
 
     # Fix up all parameters
     for op in itertools.chain(*jobs): # pylint: disable=W0142
@@ -2645,7 +2646,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
     if drbd_helper:
       helper_result = nresult.get(constants.NV_DRBDHELPER, None)
-      test = (helper_result == None)
+      test = (helper_result is None)
       _ErrorIf(test, constants.CV_ENODEDRBDHELPER, node,
                "no drbd usermode helper returned")
       if helper_result:
@@ -3572,9 +3573,9 @@ class LUGroupVerifyDisks(NoHooksLU):
     res_instances = set()
     res_missing = {}
 
-    nv_dict = _MapInstanceDisksToNodes([inst
-            for inst in self.instances.values()
-            if inst.admin_state == constants.ADMINST_UP])
+    nv_dict = _MapInstanceDisksToNodes(
+      [inst for inst in self.instances.values()
+       if inst.admin_state == constants.ADMINST_UP])
 
     if nv_dict:
       nodes = utils.NiceSort(set(self.owned_locks(locking.LEVEL_NODE)) &
@@ -4330,11 +4331,13 @@ def _ComputeAncillaryFiles(cluster, redist):
     files_mc.add(constants.CLUSTER_CONF_FILE)
 
   # Files which should only be on VM-capable nodes
-  files_vm = set(filename
+  files_vm = set(
+    filename
     for hv_name in cluster.enabled_hypervisors
     for filename in hypervisor.GetHypervisor(hv_name).GetAncillaryFiles()[0])
 
-  files_opt |= set(filename
+  files_opt |= set(
+    filename
     for hv_name in cluster.enabled_hypervisors
     for filename in hypervisor.GetHypervisor(hv_name).GetAncillaryFiles()[1])
 
@@ -4757,10 +4760,10 @@ class LUOobCommand(NoHooksLU):
                     type(result.payload))
 
     if self.op.command in [
-        constants.OOB_POWER_ON,
-        constants.OOB_POWER_OFF,
-        constants.OOB_POWER_CYCLE,
-        ]:
+      constants.OOB_POWER_ON,
+      constants.OOB_POWER_OFF,
+      constants.OOB_POWER_CYCLE,
+      ]:
       if result.payload is not None:
         errs.append("%s is expected to not return payload but got '%s'" %
                     (self.op.command, result.payload))
@@ -5636,7 +5639,7 @@ class LUNodeAdd(LogicalUnit):
     if not newbie_singlehomed:
       # check reachability from my secondary ip to newbie's secondary ip
       if not netutils.TcpPing(secondary_ip, constants.DEFAULT_NODED_PORT,
-                           source=myself.secondary_ip):
+                              source=myself.secondary_ip):
         raise errors.OpPrereqError("Node secondary ip not reachable by TCP"
                                    " based ping to node daemon port",
                                    errors.ECODE_ENVIRON)
@@ -5814,10 +5817,10 @@ class LUNodeSetParams(LogicalUnit):
                                  errors.ECODE_INVAL)
 
     # Boolean value that tells us whether we might be demoting from MC
-    self.might_demote = (self.op.master_candidate == False or
-                         self.op.offline == True or
-                         self.op.drained == True or
-                         self.op.master_capable == False)
+    self.might_demote = (self.op.master_candidate is False or
+                         self.op.offline is True or
+                         self.op.drained is True or
+                         self.op.master_capable is False)
 
     if self.op.secondary_ip:
       if not netutils.IP4Address.IsValid(self.op.secondary_ip):
@@ -5918,7 +5921,7 @@ class LUNodeSetParams(LogicalUnit):
                                  " it a master candidate" % node.name,
                                  errors.ECODE_STATE)
 
-    if self.op.vm_capable == False:
+    if self.op.vm_capable is False:
       (ipri, isec) = self.cfg.GetNodeInstances(self.op.node_name)
       if ipri or isec:
         raise errors.OpPrereqError("Node %s hosts instances, cannot unset"
@@ -5944,7 +5947,7 @@ class LUNodeSetParams(LogicalUnit):
 
     # Check for ineffective changes
     for attr in self._FLAGS:
-      if (getattr(self.op, attr) == False and getattr(node, attr) == False):
+      if (getattr(self.op, attr) is False and getattr(node, attr) is False):
         self.LogInfo("Ignoring request to unset flag %s, already unset", attr)
         setattr(self.op, attr, None)
 
@@ -5954,7 +5957,7 @@ class LUNodeSetParams(LogicalUnit):
     # TODO: We might query the real power state if it supports OOB
     if _SupportsOob(self.cfg, node):
       if self.op.offline is False and not (node.powered or
-                                           self.op.powered == True):
+                                           self.op.powered is True):
         raise errors.OpPrereqError(("Node %s needs to be turned on before its"
                                     " offline status can be reset") %
                                    self.op.node_name, errors.ECODE_STATE)
@@ -5965,14 +5968,14 @@ class LUNodeSetParams(LogicalUnit):
                                  errors.ECODE_STATE)
 
     # If we're being deofflined/drained, we'll MC ourself if needed
-    if (self.op.drained == False or self.op.offline == False or
+    if (self.op.drained is False or self.op.offline is False or
         (self.op.master_capable and not node.master_capable)):
       if _DecideSelfPromotion(self):
         self.op.master_candidate = True
         self.LogInfo("Auto-promoting node to master candidate")
 
     # If we're no longer master capable, we'll demote ourselves from MC
-    if self.op.master_capable == False and node.master_candidate:
+    if self.op.master_capable is False and node.master_candidate:
       self.LogInfo("Demoting from master candidate")
       self.op.master_candidate = False
 
@@ -8279,8 +8282,8 @@ class TLMigrateInstance(Tasklet):
                                   ial.required_nodes), errors.ECODE_FAULT)
     self.target_node = ial.result[0]
     self.lu.LogInfo("Selected nodes for instance %s via iallocator %s: %s",
-                 self.instance_name, self.lu.op.iallocator,
-                 utils.CommaJoin(ial.result))
+                    self.instance_name, self.lu.op.iallocator,
+                    utils.CommaJoin(ial.result))
 
   def _WaitUntilSync(self):
     """Poll with custom rpc for disk sync.
@@ -8450,8 +8453,8 @@ class TLMigrateInstance(Tasklet):
       # Don't raise an exception here, as we stil have to try to revert the
       # disk status, even if this step failed.
 
-    abort_result = self.rpc.call_instance_finalize_migration_src(source_node,
-        instance, False, self.live)
+    abort_result = self.rpc.call_instance_finalize_migration_src(
+      source_node, instance, False, self.live)
     abort_msg = abort_result.fail_msg
     if abort_msg:
       logging.error("Aborting migration failed on source node %s: %s",
@@ -8885,10 +8888,11 @@ _DISK_TEMPLATE_DEVICE_TYPE = {
   }
 
 
-def _GenerateDiskTemplate(lu, template_name, instance_name, primary_node,
-    secondary_nodes, disk_info, file_storage_dir, file_driver, base_index,
-    feedback_fn, full_disk_params, _req_file_storage=opcodes.RequireFileStorage,
-    _req_shr_file_storage=opcodes.RequireSharedFileStorage):
+def _GenerateDiskTemplate(
+  lu, template_name, instance_name, primary_node, secondary_nodes,
+  disk_info, file_storage_dir, file_driver, base_index,
+  feedback_fn, full_disk_params, _req_file_storage=opcodes.RequireFileStorage,
+  _req_shr_file_storage=opcodes.RequireSharedFileStorage):
   """Generate the entire disk layout for a given template type.
 
   """
@@ -9825,8 +9829,8 @@ class LUInstanceCreate(LogicalUnit):
     enabled_hvs = cluster.enabled_hypervisors
     if self.op.hypervisor not in enabled_hvs:
       raise errors.OpPrereqError("Selected hypervisor (%s) not enabled in the"
-                                 " cluster (%s)" % (self.op.hypervisor,
-                                  ",".join(enabled_hvs)),
+                                 " cluster (%s)" %
+                                 (self.op.hypervisor, ",".join(enabled_hvs)),
                                  errors.ECODE_STATE)
 
     # Check tag validity
@@ -10547,9 +10551,10 @@ class LUInstanceReplaceDisks(LogicalUnit):
         assert not self.needed_locks[locking.LEVEL_NODE]
 
         # Lock member nodes of all locked groups
-        self.needed_locks[locking.LEVEL_NODE] = [node_name
-          for group_uuid in self.owned_locks(locking.LEVEL_NODEGROUP)
-          for node_name in self.cfg.GetNodeGroup(group_uuid).members]
+        self.needed_locks[locking.LEVEL_NODE] = \
+            [node_name
+             for group_uuid in self.owned_locks(locking.LEVEL_NODEGROUP)
+             for node_name in self.cfg.GetNodeGroup(group_uuid).members]
       else:
         self._LockInstancesNodes()
     elif level == locking.LEVEL_NODE_RES:
@@ -12337,12 +12342,10 @@ class LUInstanceSetParams(LogicalUnit):
     if self.op.hvparams:
       _CheckGlobalHvParams(self.op.hvparams)
 
-    self.op.disks = \
-      self._UpgradeDiskNicMods("disk", self.op.disks,
-        opcodes.OpInstanceSetParams.TestDiskModifications)
-    self.op.nics = \
-      self._UpgradeDiskNicMods("NIC", self.op.nics,
-        opcodes.OpInstanceSetParams.TestNicModifications)
+    self.op.disks = self._UpgradeDiskNicMods(
+      "disk", self.op.disks, opcodes.OpInstanceSetParams.TestDiskModifications)
+    self.op.nics = self._UpgradeDiskNicMods(
+      "NIC", self.op.nics, opcodes.OpInstanceSetParams.TestNicModifications)
 
     # Check disk modifications
     self._CheckMods("disk", self.op.disks, constants.IDISK_PARAMS_TYPES,
@@ -12642,7 +12645,7 @@ class LUInstanceSetParams(LogicalUnit):
                            " free memory information" % pnode)
         elif instance_info.fail_msg:
           self.warn.append("Can't get instance runtime information: %s" %
-                          instance_info.fail_msg)
+                           instance_info.fail_msg)
         else:
           if instance_info.payload:
             current_mem = int(instance_info.payload["memory"])
@@ -12694,7 +12697,8 @@ class LUInstanceSetParams(LogicalUnit):
             self.op.runtime_mem < self.be_proposed[constants.BE_MINMEM])):
         raise errors.OpPrereqError("Instance %s must have memory between %d"
                                    " and %d MB of memory unless --force is"
-                                   " given" % (instance.name,
+                                   " given" %
+                                   (instance.name,
                                     self.be_proposed[constants.BE_MINMEM],
                                     self.be_proposed[constants.BE_MAXMEM]),
                                    errors.ECODE_INVAL)
@@ -15202,12 +15206,12 @@ class IAllocator(object):
                        ht.TItems([ht.TNonEmptyString,
                                   ht.TNonEmptyString,
                                   ht.TListOf(ht.TNonEmptyString),
-                                 ])))
+                                  ])))
   _NEVAC_FAILED = \
     ht.TListOf(ht.TAnd(ht.TIsLength(2),
                        ht.TItems([ht.TNonEmptyString,
                                   ht.TMaybeString,
-                                 ])))
+                                  ])))
   _NEVAC_RESULT = ht.TAnd(ht.TIsLength(3),
                           ht.TItems([_NEVAC_MOVED, _NEVAC_FAILED, _JOB_LIST]))
 

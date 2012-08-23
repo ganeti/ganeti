@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2010 Google Inc.
+# Copyright (C) 2010, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -253,10 +253,10 @@ class Merger(object):
     """
     for _ in range(max_attempts):
       result = self.ssh_runner.Run(hostname=hostname, command=command,
-                                 user=user, use_cluster_key=use_cluster_key,
-                                 strict_host_check=strict_host_check,
-                                 private_key=private_key, batch=batch,
-                                 ask_key=ask_key)
+                                   user=user, use_cluster_key=use_cluster_key,
+                                   strict_host_check=strict_host_check,
+                                   private_key=private_key, batch=batch,
+                                   ask_key=ask_key)
       if not result.failed:
         break
 
@@ -659,7 +659,7 @@ class Merger(object):
     if result.failed:
       raise errors.CommandError("Redistribution failed. Fail reason: %s;"
                                 " output: %s" % (result.fail_reason,
-                                                result.output))
+                                                 result.output))
 
   # R0201: Method could be a function
   def _StartupAllInstances(self): # pylint: disable=R0201

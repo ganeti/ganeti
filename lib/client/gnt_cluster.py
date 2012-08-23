@@ -49,8 +49,8 @@ ON_OPT = cli_option("--on", default=False,
                     help="Recover from an EPO")
 
 GROUPS_OPT = cli_option("--groups", default=False,
-                    action="store_true", dest="groups",
-                    help="Arguments are node groups instead of nodes")
+                        action="store_true", dest="groups",
+                        help="Arguments are node groups instead of nodes")
 
 SHOW_MACHINE_OPT = cli_option("-M", "--show-machine-names", default=False,
                               action="store_true",
@@ -787,7 +787,7 @@ def _ReadAndVerifyCert(cert_filename, verify_private_key=False):
   return pem
 
 
-def _RenewCrypto(new_cluster_cert, new_rapi_cert, #pylint: disable=R0911
+def _RenewCrypto(new_cluster_cert, new_rapi_cert, # pylint: disable=R0911
                  rapi_cert_filename, new_spice_cert, spice_cert_filename,
                  spice_cacert_filename, new_confd_hmac_key, new_cds,
                  cds_filename, force):

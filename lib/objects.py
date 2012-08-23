@@ -1098,7 +1098,7 @@ class Instance(TaggableObject):
         GetVolumeList()
 
     """
-    if node == None:
+    if node is None:
       node = self.primary_node
 
     if lvmap is None:
@@ -1557,8 +1557,8 @@ class Cluster(TaggableObject):
     # code can be removed once upgrading straight from 2.0 is deprecated.
     if self.default_hypervisor is not None:
       self.enabled_hypervisors = ([self.default_hypervisor] +
-        [hvname for hvname in self.enabled_hypervisors
-         if hvname != self.default_hypervisor])
+                                  [hvname for hvname in self.enabled_hypervisors
+                                   if hvname != self.default_hypervisor])
       self.default_hypervisor = None
 
     # maintain_node_health added after 2.1.1
@@ -1970,8 +1970,7 @@ class QueryFieldsResponse(_QueryResponseBase):
   @ivar fields: List of L{QueryFieldDefinition} objects
 
   """
-  __slots__ = [
-    ]
+  __slots__ = []
 
 
 class MigrationStatus(ConfigObject):

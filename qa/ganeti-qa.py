@@ -581,8 +581,8 @@ def main():
   """
   parser = optparse.OptionParser(usage="%prog [options] <config-file>")
   parser.add_option("--yes-do-it", dest="yes_do_it",
-      action="store_true",
-      help="Really execute the tests")
+                    action="store_true",
+                    help="Really execute the tests")
   (qa_config.options, args) = parser.parse_args()
 
   if len(args) == 1:

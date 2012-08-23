@@ -1054,10 +1054,9 @@ class ConfigWriter:
 
     """
     cluster = self._config_data.cluster
-    result = objects.MasterNetworkParameters(name=cluster.master_node,
-      ip=cluster.master_ip,
-      netmask=cluster.master_netmask,
-      netdev=cluster.master_netdev,
+    result = objects.MasterNetworkParameters(
+      name=cluster.master_node, ip=cluster.master_ip,
+      netmask=cluster.master_netmask, netdev=cluster.master_netdev,
       ip_family=cluster.primary_ip_family)
 
     return result

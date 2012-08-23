@@ -446,17 +446,17 @@ class KVMHypervisor(hv_base.BaseHypervisor):
        None, None),
     constants.HV_KVM_SPICE_PASSWORD_FILE: hv_base.OPT_FILE_CHECK,
     constants.HV_KVM_SPICE_LOSSLESS_IMG_COMPR:
-      hv_base.ParamInSet(False,
-        constants.HT_KVM_SPICE_VALID_LOSSLESS_IMG_COMPR_OPTIONS),
+      hv_base.ParamInSet(
+        False, constants.HT_KVM_SPICE_VALID_LOSSLESS_IMG_COMPR_OPTIONS),
     constants.HV_KVM_SPICE_JPEG_IMG_COMPR:
-      hv_base.ParamInSet(False,
-        constants.HT_KVM_SPICE_VALID_LOSSY_IMG_COMPR_OPTIONS),
+      hv_base.ParamInSet(
+        False, constants.HT_KVM_SPICE_VALID_LOSSY_IMG_COMPR_OPTIONS),
     constants.HV_KVM_SPICE_ZLIB_GLZ_IMG_COMPR:
-      hv_base.ParamInSet(False,
-        constants.HT_KVM_SPICE_VALID_LOSSY_IMG_COMPR_OPTIONS),
+      hv_base.ParamInSet(
+        False, constants.HT_KVM_SPICE_VALID_LOSSY_IMG_COMPR_OPTIONS),
     constants.HV_KVM_SPICE_STREAMING_VIDEO_DETECTION:
-      hv_base.ParamInSet(False,
-        constants.HT_KVM_SPICE_VALID_VIDEO_STREAM_DETECTION_OPTIONS),
+      hv_base.ParamInSet(
+        False, constants.HT_KVM_SPICE_VALID_VIDEO_STREAM_DETECTION_OPTIONS),
     constants.HV_KVM_SPICE_AUDIO_COMPR: hv_base.NO_CHECK,
     constants.HV_KVM_SPICE_USE_TLS: hv_base.NO_CHECK,
     constants.HV_KVM_SPICE_TLS_CIPHERS: hv_base.NO_CHECK,
@@ -787,7 +787,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   def _VerifyAffinityPackage():
     if affinity is None:
       raise errors.HypervisorError("affinity Python package not"
-        " found; cannot use CPU pinning under KVM")
+                                   " found; cannot use CPU pinning under KVM")
 
   @staticmethod
   def _BuildAffinityCpuMask(cpu_list):
@@ -833,8 +833,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         # If CPU pinning has one non-all entry, map the entire VM to
         # one set of physical CPUs
         cls._VerifyAffinityPackage()
-        affinity.set_process_affinity_mask(process_id,
-          cls._BuildAffinityCpuMask(all_cpu_mapping))
+        affinity.set_process_affinity_mask(
+          process_id, cls._BuildAffinityCpuMask(all_cpu_mapping))
     else:
       # The number of vCPUs mapped should match the number of vCPUs
       # reported by KVM. This was already verified earlier, so
@@ -845,7 +845,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       # For each vCPU, map it to the proper list of physical CPUs
       for vcpu, i in zip(cpu_list, range(len(cpu_list))):
         affinity.set_process_affinity_mask(thread_dict[i],
-          cls._BuildAffinityCpuMask(vcpu))
+                                           cls._BuildAffinityCpuMask(vcpu))
 
   def _GetVcpuThreadIds(self, instance_name):
     """Get a mapping of vCPU no. to thread IDs for the instance
@@ -1184,10 +1184,12 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
       spice_arg = "addr=%s" % spice_address
       if hvp[constants.HV_KVM_SPICE_USE_TLS]:
-        spice_arg = "%s,tls-port=%s,x509-cacert-file=%s" % (spice_arg,
-            instance.network_port, constants.SPICE_CACERT_FILE)
-        spice_arg = "%s,x509-key-file=%s,x509-cert-file=%s" % (spice_arg,
-            constants.SPICE_CERT_FILE, constants.SPICE_CERT_FILE)
+        spice_arg = ("%s,tls-port=%s,x509-cacert-file=%s" %
+                     (spice_arg, instance.network_port,
+                      constants.SPICE_CACERT_FILE))
+        spice_arg = ("%s,x509-key-file=%s,x509-cert-file=%s" %
+                     (spice_arg, constants.SPICE_CERT_FILE,
+                      constants.SPICE_CERT_FILE))
         tls_ciphers = hvp[constants.HV_KVM_SPICE_TLS_CIPHERS]
         if tls_ciphers:
           spice_arg = "%s,tls-ciphers=%s" % (spice_arg, tls_ciphers)
@@ -1385,7 +1387,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
             tap_extra = ",vhost=on"
           else:
             raise errors.HypervisorError("vhost_net is configured"
-                                        " but it is not available")
+                                         " but it is not available")
       else:
         nic_model = nic_type
 
@@ -1427,7 +1429,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if (v_major, v_min) >= (0, 14):
       logging.debug("Enabling QMP")
       kvm_cmd.extend(["-qmp", "unix:%s,server,nowait" %
-                    self._InstanceQmpMonitor(instance.name)])
+                      self._InstanceQmpMonitor(instance.name)])
 
     # Configure the network now for starting instances and bridged interfaces,
     # during FinalizeMigration for incoming instances' routed interfaces
@@ -1712,11 +1714,11 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       self._CallMonitorCommand(instance_name, "stop")
 
     migrate_command = ("migrate_set_speed %dm" %
-        instance.hvparams[constants.HV_MIGRATION_BANDWIDTH])
+                       instance.hvparams[constants.HV_MIGRATION_BANDWIDTH])
     self._CallMonitorCommand(instance_name, migrate_command)
 
     migrate_command = ("migrate_set_downtime %dms" %
-        instance.hvparams[constants.HV_MIGRATION_DOWNTIME])
+                       instance.hvparams[constants.HV_MIGRATION_DOWNTIME])
     self._CallMonitorCommand(instance_name, migrate_command)
 
     migrate_command = "migrate -d tcp:%s:%s" % (target, port)
@@ -1777,7 +1779,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       time.sleep(self._MIGRATION_INFO_RETRY_DELAY)
 
     return objects.MigrationStatus(status=constants.HV_MIGRATION_FAILED,
-                                  info="Too many 'info migrate' broken answers")
+                                   info="Too many 'info migrate'"
+                                   " broken answers")
 
   def BalloonInstanceMemory(self, instance, mem):
     """Balloon an instance memory to a certain value.
