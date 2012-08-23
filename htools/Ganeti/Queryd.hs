@@ -48,7 +48,8 @@ import qualified Ganeti.Config as Config
 import Ganeti.BasicTypes
 import Ganeti.Logging
 import Ganeti.Luxi
-
+import qualified Ganeti.Qlang as Qlang
+import Ganeti.Query.Query
 
 -- | A type for functions that can return the configuration when
 -- executed.
@@ -125,6 +126,10 @@ handleCall cfg (QueryTags kind name) =
                TagNode -> nodeTags <$> Config.getNode cfg name
                TagInstance -> instTags <$> Config.getInstance cfg name
   in return (J.showJSON <$> tags)
+
+handleCall cfg (Query qkind qfields qfilter) = do
+  result <- query cfg (Qlang.Query qkind qfields qfilter)
+  return $ J.showJSON <$> result
 
 handleCall _ op =
   return . Bad $ "Luxi call '" ++ strOfOp op ++ "' not implemented"

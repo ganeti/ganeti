@@ -28,12 +28,15 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 module Ganeti.Qlang
     ( Filter(..)
     , FilterValue(..)
+    , Fields
     , Query(..)
     , QueryResult(..)
     , QueryFields(..)
     , QueryFieldsResult(..)
+    , FieldType(..)
     , FieldDefinition(..)
     , ResultEntry(..)
+    , ResultStatus(..)
     , ItemType(..)
     , checkRS
     ) where
@@ -46,6 +49,7 @@ import Text.JSON
 
 import qualified Ganeti.Constants as C
 import Ganeti.THH
+import Ganeti.HTools.JSON
 
 -- * THH declarations, that require ordering.
 
@@ -92,21 +96,6 @@ $(declareSADT "ItemType"
   , ("QRExport",   'C.qrExport )
   ])
 $(makeJSONInstance ''ItemType)
-
--- * Main Qlang queries and responses.
-
--- | Query2 query.
-data Query = Query ItemType Fields (Maybe Filter)
-
--- | Query2 result.
-data QueryResult = QueryResult [ FieldDefinition ] [ ResultEntry ]
-
--- | Query2 Fields query.
--- (to get supported fields names, descriptions, and types)
-data QueryFields = QueryFields ItemType Fields
-
--- | Query2 Fields result.
-data QueryFieldsResult = QueryFieldsResult [ FieldDefinition ]
 
 -- * Sub data types for query2 queries and responses.
 
@@ -249,9 +238,6 @@ instance JSON FilterValue where
 -- | Regexp to apply to the filter value, for filteriong purposes.
 type FilterRegexp = String
 
--- | Definition of a field.
-data FieldDefinition = FieldDefinition FieldName FieldTitle FieldType FieldDoc
-
 -- | Name of a field.
 type FieldName = String
 -- | Title of a field, when represented in tabular format.
@@ -259,9 +245,49 @@ type FieldTitle = String
 -- | Human redable description of a field.
 type FieldDoc = String
 
+-- | Definition of a field.
+$(buildObject "FieldDefinition" "fdef"
+  [ simpleField "name"  [t| FieldName  |] -- FIXME: the name has restrictions
+  , simpleField "title" [t| FieldTitle |]
+  , simpleField "kind"  [t| FieldType  |]
+  , simpleField "doc"   [t| FieldDoc   |]
+  ])
+
 --- | Single field entry result.
 data ResultEntry = ResultEntry ResultStatus (Maybe ResultValue)
+                   deriving (Show, Read, Eq)
+
+instance JSON ResultEntry where
+  showJSON (ResultEntry rs rv) =
+    showJSON (showJSON rs, maybe JSNull showJSON rv)
+  readJSON v = do
+    (rs, rv) <- readJSON v
+    rv' <- case rv of
+             JSNull -> return Nothing
+             x -> readJSON x
+    return $ ResultEntry rs rv'
+
+-- | The type of one result row.
+type ResultRow = [ ResultEntry ]
 
 -- | Value of a field, in json encoding.
 -- (its type will be depending on ResultStatus and FieldType)
 type ResultValue = JSValue
+
+-- * Main Qlang queries and responses.
+
+-- | Query2 query.
+data Query = Query ItemType Fields Filter
+
+-- | Query2 result.
+$(buildObject "QueryResult" "qres"
+  [ simpleField "fields" [t| [ FieldDefinition ] |]
+  , simpleField "data"   [t| [ ResultRow       ] |]
+  ])
+
+-- | Query2 Fields query.
+-- (to get supported fields names, descriptions, and types)
+data QueryFields = QueryFields ItemType Fields
+
+-- | Query2 Fields result.
+data QueryFieldsResult = QueryFieldsResult [ FieldDefinition ]

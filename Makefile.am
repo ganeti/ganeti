@@ -58,7 +58,8 @@ HTOOLS_DIRS = \
 	htools/Ganeti \
 	htools/Ganeti/Confd \
 	htools/Ganeti/HTools \
-	htools/Ganeti/HTools/Program
+	htools/Ganeti/HTools/Program \
+	htools/Ganeti/Query
 
 DIRS = \
 	autotools \
@@ -415,6 +416,7 @@ HS_LIB_SRCS = \
 	htools/Ganeti/OpCodes.hs \
 	htools/Ganeti/Rpc.hs \
 	htools/Ganeti/Qlang.hs \
+	htools/Ganeti/Query/Query.hs \
 	htools/Ganeti/Queryd.hs \
 	htools/Ganeti/Runtime.hs \
 	htools/Ganeti/Ssconf.hs \
@@ -1464,6 +1466,7 @@ hs-apidoc: $(HS_BUILT_SRCS)
 	rm -rf $(APIDOC_HS_DIR)/*
 	@mkdir_p@ $(APIDOC_HS_DIR)/Ganeti/HTools/Program
 	@mkdir_p@ $(APIDOC_HS_DIR)/Ganeti/Confd
+	@mkdir_p@ $(APIDOC_HS_DIR)/Ganeti/Query
 	$(HSCOLOUR) -print-css > $(APIDOC_HS_DIR)/Ganeti/hscolour.css
 	$(LN_S) ../hscolour.css $(APIDOC_HS_DIR)/Ganeti/HTools/hscolour.css
 	$(LN_S) ../hscolour.css $(APIDOC_HS_DIR)/Ganeti/Confd/hscolour.css
