@@ -29,7 +29,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 
 module Ganeti.Objects
-  ( HvParams
+  ( VType(..)
+  , vTypeFromRaw
+  , HvParams
   , OsParams
   , NICMode(..)
   , PartialNicParams(..)
@@ -106,6 +108,16 @@ fillDict :: (Ord k) => Map.Map k v -> Map.Map k v -> [k] -> Map.Map k v
 fillDict defaults custom skip_keys =
   let updated = Map.union custom defaults
   in foldl' (flip Map.delete) updated skip_keys
+
+-- | The VTYPES, a mini-type system in Python.
+$(declareSADT "VType"
+  [ ("VTypeString",      'C.vtypeString)
+  , ("VTypeMaybeString", 'C.vtypeMaybeString)
+  , ("VTypeBool",        'C.vtypeBool)
+  , ("VTypeSize",        'C.vtypeSize)
+  , ("VTypeInt",         'C.vtypeInt)
+  ])
+$(makeJSONInstance ''VType)
 
 -- | The hypervisor parameter type. This is currently a simple map,
 -- without type checking on key/value pairs.
