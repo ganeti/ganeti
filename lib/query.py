@@ -145,12 +145,6 @@ _VTToQFT = {
 
 _SERIAL_NO_DOC = "%s object serial number, incremented on each modification"
 
-# TODO: Consider moving titles closer to constants
-NDP_TITLE = {
-  constants.ND_OOB_PROGRAM: "OutOfBandProgram",
-  constants.ND_SPINDLE_COUNT: "SpindleCount",
-  }
-
 
 def _GetUnknownField(ctx, item): # pylint: disable=W0613
   """Gets the contents of an unknown field.
@@ -987,7 +981,9 @@ def _BuildNDFields(is_group):
     field_kind = GQ_CONFIG
   else:
     field_kind = NQ_GROUP
-  return [(_MakeField("ndp/%s" % name, NDP_TITLE.get(name, "ndp/%s" % name),
+  return [(_MakeField("ndp/%s" % name,
+                      constants.NDS_PARAMETER_TITLES.get(name,
+                                                         "ndp/%s" % name),
                       _VTToQFT[kind], "The \"%s\" node parameter" % name),
            field_kind, 0, _GetNDParam(name))
           for name, kind in constants.NDS_PARAMETER_TYPES.items()]
@@ -1755,28 +1751,6 @@ def _GetInstanceParameterFields():
   @return: List of field definitions used as input for L{_PrepareFieldList}
 
   """
-  # TODO: Consider moving titles closer to constants
-  be_title = {
-    constants.BE_AUTO_BALANCE: "Auto_balance",
-    constants.BE_MAXMEM: "ConfigMaxMem",
-    constants.BE_MINMEM: "ConfigMinMem",
-    constants.BE_VCPUS: "ConfigVCPUs",
-    }
-
-  hv_title = {
-    constants.HV_ACPI: "ACPI",
-    constants.HV_BOOT_ORDER: "Boot_order",
-    constants.HV_CDROM_IMAGE_PATH: "CDROM_image_path",
-    constants.HV_DISK_TYPE: "Disk_type",
-    constants.HV_INITRD_PATH: "Initrd_path",
-    constants.HV_KERNEL_PATH: "Kernel_path",
-    constants.HV_NIC_TYPE: "NIC_type",
-    constants.HV_PAE: "PAE",
-    constants.HV_VNC_BIND_ADDRESS: "VNC_bind_address",
-    constants.HV_PASSTHROUGH: "pci_pass",
-    constants.HV_CPU_TYPE: "cpu_type",
-    }
-
   fields = [
     # Filled parameters
     (_MakeField("hvparams", "HypervisorParameters", QFT_OTHER,
@@ -1809,7 +1783,8 @@ def _GetInstanceParameterFields():
     return lambda ctx, _: ctx.inst_hvparams.get(name, _FS_UNAVAIL)
 
   fields.extend([
-    (_MakeField("hv/%s" % name, hv_title.get(name, "hv/%s" % name),
+    (_MakeField("hv/%s" % name,
+                constants.HVS_PARAMETER_TITLES.get(name, "hv/%s" % name),
                 _VTToQFT[kind], "The \"%s\" hypervisor parameter" % name),
      IQ_CONFIG, 0, _GetInstHvParam(name))
     for name, kind in constants.HVS_PARAMETER_TYPES.items()
@@ -1821,7 +1796,8 @@ def _GetInstanceParameterFields():
     return lambda ctx, _: ctx.inst_beparams.get(name, None)
 
   fields.extend([
-    (_MakeField("be/%s" % name, be_title.get(name, "be/%s" % name),
+    (_MakeField("be/%s" % name,
+                constants.BES_PARAMETER_TITLES.get(name, "be/%s" % name),
                 _VTToQFT[kind], "The \"%s\" backend parameter" % name),
      IQ_CONFIG, 0, _GetInstBeParam(name))
     for name, kind in constants.BES_PARAMETER_TYPES.items()

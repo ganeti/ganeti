@@ -849,6 +849,20 @@ HVS_PARAMETER_TYPES = {
 
 HVS_PARAMETERS = frozenset(HVS_PARAMETER_TYPES.keys())
 
+HVS_PARAMETER_TITLES = {
+  HV_ACPI: "ACPI",
+  HV_BOOT_ORDER: "Boot_order",
+  HV_CDROM_IMAGE_PATH: "CDROM_image_path",
+  HV_DISK_TYPE: "Disk_type",
+  HV_INITRD_PATH: "Initrd_path",
+  HV_KERNEL_PATH: "Kernel_path",
+  HV_NIC_TYPE: "NIC_type",
+  HV_PAE: "PAE",
+  HV_VNC_BIND_ADDRESS: "VNC_bind_address",
+  HV_PASSTHROUGH: "pci_pass",
+  HV_CPU_TYPE: "cpu_type",
+  }
+
 # Migration statuses
 HV_MIGRATION_COMPLETED = "completed"
 HV_MIGRATION_ACTIVE = "active"
@@ -936,6 +950,13 @@ BES_PARAMETER_TYPES = {
   BE_SPINDLE_USE: VTYPE_INT,
   }
 
+BES_PARAMETER_TITLES = {
+  BE_AUTO_BALANCE: "Auto_balance",
+  BE_MAXMEM: "ConfigMaxMem",
+  BE_MINMEM: "ConfigMinMem",
+  BE_VCPUS: "ConfigVCPUs",
+  }
+
 BES_PARAMETER_COMPAT = {
   BE_MEMORY: VTYPE_SIZE,
   }
@@ -994,6 +1015,11 @@ NDS_PARAMETER_TYPES = {
   }
 
 NDS_PARAMETERS = frozenset(NDS_PARAMETER_TYPES.keys())
+
+NDS_PARAMETER_TITLES = {
+  ND_OOB_PROGRAM: "OutOfBandProgram",
+  ND_SPINDLE_COUNT: "SpindleCount",
+  }
 
 # Logical Disks parameters
 LDP_RESYNC_RATE = "resync-rate"
