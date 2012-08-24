@@ -25,13 +25,18 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Ganeti.Config
     ( LinkIpMap
+    , NdParamObject(..)
     , loadConfig
     , getNodeInstances
+    , getNodeRole
+    , getNodeNdParams
     , getDefaultNicLink
     , getInstancesIpByLink
     , getNode
     , getInstance
     , getGroup
+    , getGroupNdParams
+    , getGroupOfNode
     , getInstPrimaryNode
     , getInstMinorsForNode
     , buildLinkIpInstnameMap
@@ -52,6 +57,10 @@ import Ganeti.Objects
 
 -- | Type alias for the link and ip map.
 type LinkIpMap = M.Map String (M.Map String String)
+
+-- | Type class denoting objects which have node parameters.
+class NdParamObject a where
+  getNdParamsOf :: ConfigData -> a -> Maybe FilledNDParams
 
 -- | Reads the config file.
 readConfig :: FilePath -> IO String
@@ -99,6 +108,15 @@ getNodeInstances cfg nname =
         sec_inst = filter ((nname `S.member`) . instSecondaryNodes) all_inst
     in (pri_inst, sec_inst)
 
+-- | Computes the role of a node.
+getNodeRole :: ConfigData -> Node -> NodeRole
+getNodeRole cfg node
+  | nodeName node == (clusterMasterNode $ configCluster cfg) = NRMaster
+  | nodeMasterCandidate node = NRCandidate
+  | nodeDrained node = NRDrained
+  | nodeOffline node = NROffline
+  | otherwise = NRRegular
+
 -- | Returns the default cluster link.
 getDefaultNicLink :: ConfigData -> String
 getDefaultNicLink =
@@ -144,6 +162,11 @@ getGroup cfg name =
        Bad _ -> let by_name = M.mapKeys
                               (\k -> groupName ((M.!) groups k )) groups
                 in getItem "NodeGroup" name by_name
+
+-- | Computes a node group's node params.
+getGroupNdParams :: ConfigData -> NodeGroup -> FilledNDParams
+getGroupNdParams cfg ng =
+  fillNDParams (clusterNdparams $ configCluster cfg) (groupNdparams ng)
 
 -- | Looks up an instance's primary node.
 getInstPrimaryNode :: ConfigData -> String -> Result Node
@@ -214,3 +237,26 @@ buildLinkIpInstnameMap cfg =
                                    newipmap = M.insert ip iname oldipmap
                                in M.insert link newipmap accum
             ) M.empty nics
+
+
+-- | Returns a node's group, with optional failure if we can't find it
+-- (configuration corrupt).
+getGroupOfNode :: ConfigData -> Node -> Maybe NodeGroup
+getGroupOfNode cfg node =
+  M.lookup (nodeGroup node) (fromContainer . configNodegroups $ cfg)
+
+-- | Returns a node's ndparams, filled.
+getNodeNdParams :: ConfigData -> Node -> Maybe FilledNDParams
+getNodeNdParams cfg node = do
+  group <- getGroupOfNode cfg node
+  let gparams = getGroupNdParams cfg group
+  return $ fillNDParams gparams (nodeNdparams node)
+
+instance NdParamObject Node where
+  getNdParamsOf = getNodeNdParams
+
+instance NdParamObject NodeGroup where
+  getNdParamsOf cfg = Just . getGroupNdParams cfg
+
+instance NdParamObject Cluster where
+  getNdParamsOf _ = Just . clusterNdparams

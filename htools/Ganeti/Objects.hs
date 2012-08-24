@@ -53,6 +53,9 @@ module Ganeti.Objects
   , FilledNDParams(..)
   , fillNDParams
   , Node(..)
+  , NodeRole(..)
+  , nodeRoleToRaw
+  , roleDescription
   , AllocPolicy(..)
   , FilledISpecParams(..)
   , PartialISpecParams(..)
@@ -124,6 +127,25 @@ class SerialNoObject a where
 -- | Class of objects that have tags.
 class TagsObject a where
   tagsOf :: a -> Set.Set String
+
+-- * Node role object
+
+$(declareSADT "NodeRole"
+  [ ("NROffline",   'C.nrOffline)
+  , ("NRDrained",   'C.nrDrained)
+  , ("NRRegular",   'C.nrRegular)
+  , ("NRCandidate", 'C.nrMcandidate)
+  , ("NRMaster",    'C.nrMaster)
+  ])
+$(makeJSONInstance ''NodeRole)
+
+-- | The description of the node role.
+roleDescription :: NodeRole -> String
+roleDescription NROffline   = "offline"
+roleDescription NRDrained   = "drained"
+roleDescription NRRegular   = "regular"
+roleDescription NRCandidate = "master candidate"
+roleDescription NRMaster    = "master"
 
 -- * NIC definitions
 
