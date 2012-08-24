@@ -109,10 +109,14 @@ $(makeJSONInstance ''TagObject)
 
 -- | Currently supported Luxi operations and JSON serialization.
 $(genLuxiOp "LuxiOp"
-  [(luxiReqQuery,
+  [ (luxiReqQuery,
     [ ("what",    [t| Qlang.ItemType |])
     , ("fields",  [t| [String]  |])
     , ("qfilter", [t| Qlang.Filter |])
+    ])
+  , (luxiReqQueryFields,
+    [ ("what",    [t| Qlang.ItemType |])
+    , ("fields",  [t| [String]  |])
     ])
   , (luxiReqQueryNodes,
      [ ("names",  [t| [String] |])
@@ -343,6 +347,12 @@ decodeCall (LuxiCall call args) =
     ReqQuery -> do
               (what, fields, qfilter) <- fromJVal args
               return $ Query what fields qfilter
+    ReqQueryFields -> do
+              (what, fields) <- fromJVal args
+              fields' <- case fields of
+                           JSNull -> return []
+                           _ -> fromJVal fields
+              return $ QueryFields what fields'
     ReqSubmitJob -> do
               [ops1] <- fromJVal args
               ops2 <- mapM (fromJResult (luxiReqToRaw call) . J.readJSON) ops1

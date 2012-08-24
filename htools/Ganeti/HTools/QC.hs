@@ -1954,6 +1954,7 @@ instance Arbitrary Luxi.LuxiOp where
     lreq <- arbitrary
     case lreq of
       Luxi.ReqQuery -> Luxi.Query <$> arbitrary <*> getFields <*> genFilter
+      Luxi.ReqQueryFields -> Luxi.QueryFields <$> arbitrary <*> getFields
       Luxi.ReqQueryNodes -> Luxi.QueryNodes <$> (listOf getFQDN) <*>
                             getFields <*> arbitrary
       Luxi.ReqQueryGroups -> Luxi.QueryGroups <$> arbitrary <*>
