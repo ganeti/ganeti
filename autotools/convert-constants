@@ -131,6 +131,55 @@ def FormatListElems(all_items, pfx_name, ovals, tvals):
   return ", ".join(values)
 
 
+def FormatDict(all_items, pfx_name, py_name, hs_name, mydict):
+  """Converts a dictionary to a Haskell association list ([(k, v)]),
+  if possible.
+
+  @param all_items: a dictionary of name/values for the current module
+  @param pfx_name: the prefix name currently used
+  @param py_name: the Python name
+  @param hs_name: the Haskell name
+  @param mydict: a dictonary, unknown yet if homogenous or not
+
+  """
+  # need this for ordering
+  orig_list = mydict.items()
+  list_form = [(HaskellTypeVal(k), HaskellTypeVal(v)) for k, v in orig_list]
+  if compat.any(v is None or k is None for k, v in list_form):
+    # type not known
+    return []
+  all_keys = [k for k, _ in list_form]
+  all_vals = [v for _, v in list_form]
+  key_types = set(k[0] for k in all_keys)
+  val_types = set(v[0] for v in all_vals)
+  if not(len(key_types) == 1 and len(val_types) == 1):
+    # multiple types
+    return []
+  # record the key and value Haskell types
+  key_type = key_types.pop()
+  val_type = val_types.pop()
+
+  # now try to find names for the keys, instead of raw values
+  key_origins = [IdentifyOrigin(all_items, k) for k, _ in orig_list]
+  if compat.all(x is not None for x in key_origins):
+    key_v = [NameRules(pfx_name + origin) for origin in key_origins]
+  else:
+    key_v = [k[1] for k in all_keys]
+  # ... and for values
+  val_origins = [IdentifyOrigin(all_items, v) for _, v in orig_list]
+  if compat.all(x is not None for x in val_origins):
+    val_v = [NameRules(pfx_name + origin) for origin in val_origins]
+  else:
+    val_v = [v[1] for v in all_vals]
+
+  # finally generate the output
+  kv_pairs = ["(%s, %s)" % (k, v) for k, v in zip(key_v, val_v)]
+  return ["-- | Converted from Python dictionary %s" % py_name,
+          "%s :: [(%s, %s)]" % (hs_name, key_type, val_type),
+          "%s = [%s]" % (hs_name, ", ".join(kv_pairs)),
+          ]
+
+
 def ConvertVariable(prefix, name, value, all_items):
   """Converts a given variable to Haskell code.
 
@@ -169,6 +218,10 @@ def ConvertVariable(prefix, name, value, all_items):
   elif isinstance(value, dict):
     if value:
       lines.append("-- Following lines come from dictionary %s" % fqn)
+      # try to build a real map here, if all keys have same type, and
+      # all values too (i.e. we have a homogeneous dictionary)
+      lines.extend(FormatDict(all_items, pfx_name, fqn, hs_name, value))
+      # and now create individual names
       for k in sorted(value.keys()):
         lines.extend(ConvertVariable(prefix, DictKeyName(name, k),
                                      value[k], all_items))
