@@ -35,6 +35,7 @@ module Ganeti.Objects
   , PartialNicParams(..)
   , FilledNicParams(..)
   , fillNicParams
+  , allNicParamFields
   , PartialNic(..)
   , DiskMode(..)
   , DiskType(..)
@@ -44,6 +45,7 @@ module Ganeti.Objects
   , PartialBeParams(..)
   , FilledBeParams(..)
   , fillBeParams
+  , allBeParamFields
   , Hypervisor(..)
   , AdminState(..)
   , adminStateFromRaw
@@ -52,6 +54,7 @@ module Ganeti.Objects
   , PartialNDParams(..)
   , FilledNDParams(..)
   , fillNDParams
+  , allNDParamFields
   , Node(..)
   , NodeRole(..)
   , nodeRoleToRaw
@@ -60,6 +63,7 @@ module Ganeti.Objects
   , FilledISpecParams(..)
   , PartialISpecParams(..)
   , fillISpecParams
+  , allISpecParamFields
   , FilledIPolicy(..)
   , PartialIPolicy(..)
   , fillIPolicy
@@ -79,6 +83,7 @@ module Ganeti.Objects
   , UuidObject(..)
   , SerialNoObject(..)
   , TagsObject(..)
+  , DictObject(..) -- re-exported from THH
   ) where
 
 import Data.List (foldl')

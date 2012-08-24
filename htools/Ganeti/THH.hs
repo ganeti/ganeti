@@ -51,6 +51,7 @@ module Ganeti.THH ( declareSADT
                   , buildObject
                   , buildObjectSerialisation
                   , buildParam
+                  , DictObject(..)
                   ) where
 
 import Control.Monad (liftM)
@@ -63,6 +64,11 @@ import Language.Haskell.TH
 import qualified Text.JSON as JSON
 
 -- * Exported types
+
+-- | Class of objects that can be converted to 'JSObject'
+-- lists-format.
+class DictObject a where
+  toDict :: a -> [(String, JSON.JSValue)]
 
 -- | Serialised field data type.
 data Field = Field { fieldName        :: String
@@ -624,6 +630,10 @@ buildObjectSerialisation sname fields = do
                  [rdjson, shjson]
   return $ savedecls ++ [loadsig, loadfn, instdecl]
 
+-- | The toDict function name for a given type.
+toDictName :: String -> Name
+toDictName sname = mkName ("toDict" ++ sname)
+
 -- | Generates the save object functionality.
 genSaveObject :: (Name -> Field -> Q Exp)
               -> String -> [Field] -> Q [Dec]
@@ -631,7 +641,7 @@ genSaveObject save_fn sname fields = do
   let name = mkName sname
   fnames <- mapM (newName . fieldVariable) fields
   let pat = conP name (map varP fnames)
-  let tdname = mkName ("toDict" ++ sname)
+  let tdname = toDictName sname
   tdsigt <- [t| $(conT name) -> [(String, JSON.JSValue)] |]
 
   let felems = map (uncurry save_fn) (zip fnames fields)
@@ -756,7 +766,23 @@ buildParam sname field_pfx fields = do
   ser_decls_f <- buildObjectSerialisation sname_f fields
   ser_decls_p <- buildPParamSerialisation sname_p fields
   fill_decls <- fillParam sname field_pfx fields
-  return $ [declF, declP] ++ ser_decls_f ++ ser_decls_p ++ fill_decls
+  return $ [declF, declP] ++ ser_decls_f ++ ser_decls_p ++ fill_decls ++
+           buildParamAllFields sname fields ++
+           buildDictObjectInst name_f sname_f
+
+-- | Builds a list of all fields of a parameter.
+buildParamAllFields :: String -> [Field] -> [Dec]
+buildParamAllFields sname fields =
+  let vname = mkName ("all" ++ sname ++ "ParamFields")
+      sig = SigD vname (AppT ListT (ConT ''String))
+      val = ListE $ map (LitE . StringL . fieldName) fields
+  in [sig, ValD (VarP vname) (NormalB val) []]
+
+-- | Builds the 'DictObject' instance for a filled parameter.
+buildDictObjectInst :: Name -> String -> [Dec]
+buildDictObjectInst name sname =
+  [InstanceD [] (AppT (ConT ''DictObject) (ConT name))
+   [ValD (VarP 'toDict) (NormalB (VarE (toDictName sname))) []]]
 
 -- | Generates the serialisation for a partial parameter.
 buildPParamSerialisation :: String -> [Field] -> Q [Dec]
