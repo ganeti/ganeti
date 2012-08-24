@@ -33,10 +33,14 @@ module Ganeti.Qlang
     , QueryResult(..)
     , QueryFields(..)
     , QueryFieldsResult(..)
+    , FieldName
+    , FieldTitle
     , FieldType(..)
+    , FieldDoc
     , FieldDefinition(..)
     , ResultEntry(..)
     , ResultStatus(..)
+    , ResultValue
     , ItemType(..)
     , checkRS
     ) where
