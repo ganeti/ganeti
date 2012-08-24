@@ -25,6 +25,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Ganeti.Query.Query
     ( query
+    , queryFields
     ) where
 
 import Data.Maybe (fromMaybe)
@@ -79,3 +80,14 @@ query cfg (Query QRNode fields _) = return $ do
 
 query _ (Query qkind _ _) =
   return . Bad $ "Query '" ++ show qkind ++ "' not supported"
+
+-- | Query fields call.
+queryFields :: QueryFields -> Result QueryFieldsResult
+queryFields (QueryFields QRNode fields) =
+  let selected = if null fields
+                   then map snd $ Map.toAscList nodeFieldsMap
+                   else getSelectedFields nodeFieldsMap fields
+  in Ok $ QueryFieldsResult (map fst selected)
+
+queryFields (QueryFields qkind _) =
+  Bad $ "QueryFields '" ++ show qkind ++ "' not supported"

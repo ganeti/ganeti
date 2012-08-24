@@ -294,4 +294,6 @@ $(buildObject "QueryResult" "qres"
 data QueryFields = QueryFields ItemType Fields
 
 -- | Query2 Fields result.
-data QueryFieldsResult = QueryFieldsResult [ FieldDefinition ]
+$(buildObject "QueryFieldsResult" "qfieldres"
+  [ simpleField "fields" [t| [FieldDefinition ] |]
+  ])

@@ -131,6 +131,10 @@ handleCall cfg (Query qkind qfields qfilter) = do
   result <- query cfg (Qlang.Query qkind qfields qfilter)
   return $ J.showJSON <$> result
 
+handleCall _ (QueryFields qkind qfields) = do
+  let result = queryFields (Qlang.QueryFields qkind qfields)
+  return $ J.showJSON <$> result
+
 handleCall _ op =
   return . Bad $ "Luxi call '" ++ strOfOp op ++ "' not implemented"
 
