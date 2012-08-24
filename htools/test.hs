@@ -127,6 +127,7 @@ allTests =
   , (fast, testLUXI)
   , (fast, testSsconf)
   , (slow, testCluster)
+  , (fast, testRpc)
   ]
 
 -- | Extracts the name of a test group.

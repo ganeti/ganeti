@@ -48,10 +48,11 @@ module Ganeti.HTools.QC
   , testJSON
   , testLUXI
   , testSsconf
+  , testRpc
   ) where
 
 import Test.QuickCheck
-import Test.QuickCheck.Monadic (assert, monadicIO, run)
+import Test.QuickCheck.Monadic (assert, monadicIO, run, stop)
 import Text.Printf (printf)
 import Data.List (intercalate, nub, isPrefixOf)
 import Data.Maybe
@@ -534,6 +535,24 @@ instance Arbitrary Types.IPolicy where
                          , Types.iPolicyVcpuRatio = vcpu_ratio
                          , Types.iPolicySpindleRatio = spindle_ratio
                          }
+
+instance Arbitrary Objects.Hypervisor where
+  arbitrary = elements [minBound..maxBound]
+
+instance Arbitrary Objects.Node where
+  arbitrary = Objects.Node <$> getFQDN <*> getFQDN <*> getFQDN
+              <*> arbitrary <*> arbitrary <*> arbitrary <*> getFQDN
+              <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+              <*> arbitrary <*> getFQDN  <*> arbitrary
+
+instance Arbitrary Rpc.RpcCallAllInstancesInfo where
+  arbitrary = Rpc.RpcCallAllInstancesInfo <$> arbitrary
+
+instance Arbitrary Rpc.RpcCallInstanceList where
+  arbitrary = Rpc.RpcCallInstanceList <$> arbitrary
+
+instance Arbitrary Rpc.RpcCallNodeInfo where
+  arbitrary = Rpc.RpcCallNodeInfo <$> arbitrary <*> arbitrary
 
 -- * Actual tests
 
@@ -1901,4 +1920,34 @@ prop_Ssconf_filename key =
 
 testSuite "Ssconf"
   [ 'prop_Ssconf_filename
+  ]
+
+-- * Rpc tests
+
+-- | Monadic check that, for an offline node and a call that does not
+-- offline nodes, we get a OfflineNodeError response.
+-- FIXME: We need a way of generalizing this, running it for
+-- every call manually will soon get problematic
+prop_Rpc_noffl_request_allinstinfo :: Rpc.RpcCallAllInstancesInfo -> Property
+prop_Rpc_noffl_request_allinstinfo call =
+  forAll (arbitrary `suchThat` Objects.nodeOffline) $ \node -> monadicIO $ do
+      res <- run $ Rpc.executeRpcCall [node] call
+      stop $ res ==? [(node, Left (Rpc.OfflineNodeError node))]
+
+prop_Rpc_noffl_request_instlist :: Rpc.RpcCallInstanceList -> Property
+prop_Rpc_noffl_request_instlist call =
+  forAll (arbitrary `suchThat` Objects.nodeOffline) $ \node -> monadicIO $ do
+      res <- run $ Rpc.executeRpcCall [node] call
+      stop $ res ==? [(node, Left (Rpc.OfflineNodeError node))]
+
+prop_Rpc_noffl_request_nodeinfo :: Rpc.RpcCallNodeInfo -> Property
+prop_Rpc_noffl_request_nodeinfo call =
+  forAll (arbitrary `suchThat` Objects.nodeOffline) $ \node -> monadicIO $ do
+      res <- run $ Rpc.executeRpcCall [node] call
+      stop $ res ==? [(node, Left (Rpc.OfflineNodeError node))]
+
+testSuite "Rpc"
+  [ 'prop_Rpc_noffl_request_allinstinfo
+  , 'prop_Rpc_noffl_request_instlist
+  , 'prop_Rpc_noffl_request_nodeinfo
   ]
