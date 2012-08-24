@@ -1305,7 +1305,7 @@ def _BuildNodeFields():
                  constants.NR_REGULAR, constants.NR_DRAINED,
                  constants.NR_OFFLINE)
   role_doc = ("Node role; \"%s\" for master, \"%s\" for master candidate,"
-              " \"%s\" for regular, \"%s\" for a drained, \"%s\" for offline" %
+              " \"%s\" for regular, \"%s\" for drained, \"%s\" for offline" %
               role_values)
   fields.append((_MakeField("role", "Role", QFT_TEXT, role_doc), NQ_CONFIG, 0,
                  lambda ctx, node: _GetNodeRole(node, ctx.master_name)))
