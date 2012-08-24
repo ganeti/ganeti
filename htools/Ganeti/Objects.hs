@@ -72,11 +72,16 @@ module Ganeti.Objects
   , ClusterNicParams
   , Cluster(..)
   , ConfigData(..)
+  , TimeStampObject(..)
+  , UuidObject(..)
+  , SerialNoObject(..)
+  , TagsObject(..)
   ) where
 
 import Data.List (foldl')
 import Data.Maybe
 import qualified Data.Map as Map
+import qualified Data.Set as Set
 import Text.JSON (makeObj, showJSON, readJSON, JSON, JSValue(..))
 import qualified Text.JSON as J
 
@@ -102,6 +107,23 @@ type HvParams = Container JSValue
 -- container, since the keys are dynamically declared by the OSes, and
 -- the values are always strings.
 type OsParams = Container String
+
+-- | Class of objects that have timestamps.
+class TimeStampObject a where
+  cTimeOf :: a -> Double
+  mTimeOf :: a -> Double
+
+-- | Class of objects that have an UUID.
+class UuidObject a where
+  uuidOf :: a -> String
+
+-- | Class of object that have a serial number.
+class SerialNoObject a where
+  serialOf :: a -> Int
+
+-- | Class of objects that have tags.
+class TagsObject a where
+  tagsOf :: a -> Set.Set String
 
 -- * NIC definitions
 
@@ -325,6 +347,19 @@ $(buildObject "Instance" "inst" $
   ++ serialFields
   ++ tagsFields)
 
+instance TimeStampObject Instance where
+  cTimeOf = instCtime
+  mTimeOf = instMtime
+
+instance UuidObject Instance where
+  uuidOf = instUuid
+
+instance SerialNoObject Instance where
+  serialOf = instSerial
+
+instance TagsObject Instance where
+  tagsOf = instTags
+
 -- * IPolicy definitions
 
 $(buildParam "ISpec" "ispec" $
@@ -407,6 +442,19 @@ $(buildObject "Node" "node" $
   ++ serialFields
   ++ tagsFields)
 
+instance TimeStampObject Node where
+  cTimeOf = nodeCtime
+  mTimeOf = nodeMtime
+
+instance UuidObject Node where
+  uuidOf = nodeUuid
+
+instance SerialNoObject Node where
+  serialOf = nodeSerial
+
+instance TagsObject Node where
+  tagsOf = nodeTags
+
 -- * NodeGroup definitions
 
 -- | The Group allocation policy type.
@@ -439,6 +487,19 @@ $(buildObject "NodeGroup" "group" $
   ++ uuidFields
   ++ serialFields
   ++ tagsFields)
+
+instance TimeStampObject NodeGroup where
+  cTimeOf = groupCtime
+  mTimeOf = groupMtime
+
+instance UuidObject NodeGroup where
+  uuidOf = groupUuid
+
+instance SerialNoObject NodeGroup where
+  serialOf = groupSerial
+
+instance TagsObject NodeGroup where
+  tagsOf = groupTags
 
 -- | IP family type
 $(declareIADT "IpFamily"
@@ -509,10 +570,23 @@ $(buildObject "Cluster" "cluster" $
   , simpleField "prealloc_wipe_disks"     [t| Bool             |]
   , simpleField "ipolicy"                 [t| FilledIPolicy    |]
  ]
- ++ serialFields
  ++ timeStampFields
  ++ uuidFields
+ ++ serialFields
  ++ tagsFields)
+
+instance TimeStampObject Cluster where
+  cTimeOf = clusterCtime
+  mTimeOf = clusterMtime
+
+instance UuidObject Cluster where
+  uuidOf = clusterUuid
+
+instance SerialNoObject Cluster where
+  serialOf = clusterSerial
+
+instance TagsObject Cluster where
+  tagsOf = clusterTags
 
 -- * ConfigData definitions
 
@@ -525,3 +599,6 @@ $(buildObject "ConfigData" "config" $
   , simpleField "instances"  [t| Container Instance  |]
   ]
   ++ serialFields)
+
+instance SerialNoObject ConfigData where
+  serialOf = configSerial
