@@ -112,7 +112,7 @@ $(genLuxiOp "LuxiOp"
   [ (luxiReqQuery,
     [ ("what",    [t| Qlang.ItemType |])
     , ("fields",  [t| [String]  |])
-    , ("qfilter", [t| Qlang.Filter |])
+    , ("qfilter", [t| Qlang.Filter Qlang.FilterField |])
     ])
   , (luxiReqQueryFields,
     [ ("what",    [t| Qlang.ItemType |])

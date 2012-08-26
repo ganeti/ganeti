@@ -27,6 +27,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Ganeti.Qlang
     ( Filter(..)
+    , FilterField
     , FilterValue(..)
     , Fields
     , Query(..)
@@ -46,6 +47,8 @@ module Ganeti.Qlang
     ) where
 
 import Control.Applicative
+import Data.Foldable
+import Data.Traversable (Traversable, traverse, fmapDefault, foldMapDefault)
 import Data.Ratio (numerator, denominator)
 import Text.JSON.Pretty (pp_value)
 import Text.JSON.Types
@@ -106,24 +109,26 @@ $(makeJSONInstance ''ItemType)
 -- | List of requested fields.
 type Fields = [ String ]
 
--- | Query2 filter expression.
-data Filter
-    = EmptyFilter                             -- ^ No filter at all
-    | AndFilter      [ Filter ]               -- ^ & [<expression>, ...]
-    | OrFilter       [ Filter ]               -- ^ | [<expression>, ...]
-    | NotFilter      Filter                   -- ^ ! <expression>
-    | TrueFilter     FilterField              -- ^ ? <field>
-    | EQFilter       FilterField FilterValue  -- ^ (=|!=) <field> <value>
-    | LTFilter       FilterField FilterValue  -- ^ < <field> <value>
-    | GTFilter       FilterField FilterValue  -- ^ > <field> <value>
-    | LEFilter       FilterField FilterValue  -- ^ <= <field> <value>
-    | GEFilter       FilterField FilterValue  -- ^ >= <field> <value>
-    | RegexpFilter   FilterField FilterRegexp -- ^ =~ <field> <regexp>
-    | ContainsFilter FilterField FilterValue  -- ^ =[] <list-field> <value>
+-- | Query2 filter expression. It's a parameteric type since we can
+-- filter different \"things\"; e.g. field names, or actual field
+-- getters, etc.
+data Filter a
+    = EmptyFilter                   -- ^ No filter at all
+    | AndFilter      [ Filter a ]   -- ^ & [<expression>, ...]
+    | OrFilter       [ Filter a ]   -- ^ | [<expression>, ...]
+    | NotFilter      (Filter a)     -- ^ ! <expression>
+    | TrueFilter     a              -- ^ ? <field>
+    | EQFilter       a FilterValue  -- ^ (=|!=) <field> <value>
+    | LTFilter       a FilterValue  -- ^ < <field> <value>
+    | GTFilter       a FilterValue  -- ^ > <field> <value>
+    | LEFilter       a FilterValue  -- ^ <= <field> <value>
+    | GEFilter       a FilterValue  -- ^ >= <field> <value>
+    | RegexpFilter   a FilterRegexp -- ^ =~ <field> <regexp>
+    | ContainsFilter a FilterValue  -- ^ =[] <list-field> <value>
       deriving (Show, Read, Eq)
 
 -- | Serialiser for the 'Filter' data type.
-showFilter :: Filter -> JSValue
+showFilter :: (JSON a) => Filter a -> JSValue
 showFilter (EmptyFilter)          = JSNull
 showFilter (AndFilter exprs)      =
   JSArray $ (showJSON C.qlangOpAnd):(map showJSON exprs)
@@ -149,7 +154,7 @@ showFilter (ContainsFilter field value) =
   JSArray [showJSON C.qlangOpContains, showJSON field, showJSON value]
 
 -- | Deserializer for the 'Filter' data type.
-readFilter :: JSValue -> Result Filter
+readFilter :: (JSON a) => JSValue -> Result (Filter a)
 readFilter JSNull = Ok EmptyFilter
 readFilter (JSArray (JSString op:args)) =
   readFilterArray (fromJSString op) args
@@ -160,28 +165,30 @@ readFilter v =
 -- | Helper to deserialise an array corresponding to a single filter
 -- and return the built filter. Note this looks generic but is (at
 -- least currently) only used for the NotFilter.
-readFilterArg :: (Filter -> Filter) -- ^ Constructor
-              -> [JSValue]          -- ^ Single argument
-              -> Result Filter
+readFilterArg :: (JSON a) =>
+                 (Filter a -> Filter a) -- ^ Constructor
+              -> [JSValue]              -- ^ Single argument
+              -> Result (Filter a)
 readFilterArg constr [flt] = constr <$> readJSON flt
 readFilterArg _ v = Error $ "Cannot deserialise field, expected [filter]\
                             \ but got " ++ show (pp_value (showJSON v))
 
 -- | Helper to deserialise an array corresponding to a single field
 -- and return the built filter.
-readFilterField :: (FilterField -> Filter) -- ^ Constructor
-                -> [JSValue]               -- ^ Single argument
-                -> Result Filter
+readFilterField :: (JSON a) =>
+                   (a -> Filter a)   -- ^ Constructor
+                -> [JSValue]         -- ^ Single argument
+                -> Result (Filter a)
 readFilterField constr [field] = constr <$> readJSON field
 readFilterField _ v = Error $ "Cannot deserialise field, expected [fieldname]\
                               \ but got " ++ show (pp_value (showJSON v))
 
 -- | Helper to deserialise an array corresponding to a field and
 -- value, returning the built filter.
-readFilterFieldValue :: (JSON a) =>
-                        (FilterField -> a -> Filter) -- ^ Constructor
-                     -> [JSValue] -- ^ Arguments array
-                     -> Result Filter
+readFilterFieldValue :: (JSON a, JSON b) =>
+                        (a -> b -> Filter a) -- ^ Constructor
+                     -> [JSValue]            -- ^ Arguments array
+                     -> Result (Filter a)
 readFilterFieldValue constr [field, value] =
   constr <$> readJSON field <*> readJSON value
 readFilterFieldValue _ v =
@@ -189,7 +196,7 @@ readFilterFieldValue _ v =
           \ but got " ++ show (pp_value (showJSON v))
 
 -- | Inner deserialiser for 'Filter'.
-readFilterArray :: String -> [JSValue] -> Result Filter
+readFilterArray :: (JSON a) => String -> [JSValue] -> Result (Filter a)
 readFilterArray op args
   | op == C.qlangOpAnd      = AndFilter <$> mapM readJSON args
   | op == C.qlangOpOr       = OrFilter  <$> mapM readJSON args
@@ -204,9 +211,33 @@ readFilterArray op args
   | op == C.qlangOpContains = readFilterFieldValue ContainsFilter args
   | otherwise = Error $ "Unknown filter operand '" ++ op ++ "'"
 
-instance JSON Filter where
+instance (JSON a) => JSON (Filter a) where
   showJSON = showFilter
   readJSON = readFilter
+
+-- Traversable implementation for 'Filter'.
+traverseFlt :: (Applicative f) => (a -> f b) -> Filter a -> f (Filter b)
+traverseFlt _ EmptyFilter       = pure EmptyFilter
+traverseFlt f (AndFilter flts)  = AndFilter <$> (traverse (traverseFlt f) flts)
+traverseFlt f (OrFilter  flts)  = OrFilter  <$> (traverse (traverseFlt f) flts)
+traverseFlt f (NotFilter flt)   = NotFilter <$> (traverseFlt f flt)
+traverseFlt f (TrueFilter a)    = TrueFilter <$> f a
+traverseFlt f (EQFilter a fval) = EQFilter <$> f a <*> pure fval
+traverseFlt f (LTFilter a fval) = LTFilter <$> f a <*> pure fval
+traverseFlt f (GTFilter a fval) = GTFilter <$> f a <*> pure fval
+traverseFlt f (LEFilter a fval) = LEFilter <$> f a <*> pure fval
+traverseFlt f (GEFilter a fval) = GEFilter <$> f a <*> pure fval
+traverseFlt f (RegexpFilter a re)     = RegexpFilter <$> f a <*> pure re
+traverseFlt f (ContainsFilter a fval) = ContainsFilter <$> f a <*> pure fval
+
+instance Traversable Filter where
+  traverse = traverseFlt
+
+instance Functor Filter where
+  fmap = fmapDefault
+
+instance Foldable Filter where
+  foldMap = foldMapDefault
 
 -- | Field name to filter on.
 type FilterField = String
@@ -281,7 +312,7 @@ type ResultValue = JSValue
 -- * Main Qlang queries and responses.
 
 -- | Query2 query.
-data Query = Query ItemType Fields Filter
+data Query = Query ItemType Fields (Filter FilterField)
 
 -- | Query2 result.
 $(buildObject "QueryResult" "qres"

@@ -590,13 +590,13 @@ instance Arbitrary Rpc.RpcCallNodeInfo where
 
 -- | Custom 'Qlang.Filter' generator (top-level), which enforces a
 -- (sane) limit on the depth of the generated filters.
-genFilter :: Gen Qlang.Filter
+genFilter :: Gen (Qlang.Filter Qlang.FilterField)
 genFilter = choose (0, 10) >>= genFilter'
 
 -- | Custom generator for filters that correctly halves the state of
 -- the generators at each recursive step, per the QuickCheck
 -- documentation, in order not to run out of memory.
-genFilter' :: Int -> Gen Qlang.Filter
+genFilter' :: Int -> Gen (Qlang.Filter Qlang.FilterField)
 genFilter' 0 =
   oneof [ return Qlang.EmptyFilter
         , Qlang.TrueFilter     <$> getName
