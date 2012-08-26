@@ -139,9 +139,10 @@ handleClientMsg client creader args = do
   call_result <- handleCallWrapper cfg args
   (!status, !rval) <-
     case call_result of
-      Bad x -> do
-        logWarning $ "Failed to execute request: " ++ x
-        return (False, JSString $ J.toJSString x)
+      Bad err -> do
+        let errmsg = "Failed to execute request: " ++ err
+        logWarning errmsg
+        return (False, showJSON errmsg)
       Ok result -> do
         logDebug $ "Result " ++ show (pp_value result)
         return (True, result)
@@ -159,8 +160,11 @@ handleClient client creader = do
                      return False
     RecvOk payload ->
       case validateCall payload >>= decodeCall of
-        Bad err -> logWarning ("Failed to parse request: " ++ err) >>
-                   return False
+        Bad err -> do
+             let errmsg = "Failed to parse request: " ++ err
+             logWarning errmsg
+             sendMsg client $ buildResponse False (showJSON errmsg)
+             return False
         Ok args -> handleClientMsg client creader args
 
 -- | Main client loop: runs one loop of 'handleClient', and if that
