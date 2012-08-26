@@ -46,6 +46,7 @@ import qualified Data.Map as Map
 import Text.Printf (printf)
 
 import qualified Text.JSON as J
+import Text.JSON.Pretty (pp_value)
 
 import Ganeti.BasicTypes
 
@@ -120,7 +121,7 @@ fromKeyValue k val =
 fromJVal :: (Monad m, J.JSON a) => J.JSValue -> m a
 fromJVal v =
   case J.readJSON v of
-    J.Error s -> fail ("Cannot convert value '" ++ show v ++
+    J.Error s -> fail ("Cannot convert value '" ++ show (pp_value v) ++
                        "', error: " ++ s)
     J.Ok x -> return x
 
@@ -145,7 +146,8 @@ tryFromObj t o = annotateResult t . fromObj o
 -- | Ensure a given JSValue is actually a JSArray.
 toArray :: (Monad m) => J.JSValue -> m [J.JSValue]
 toArray (J.JSArray arr) = return arr
-toArray o = fail $ "Invalid input, expected array but got " ++ show o
+toArray o =
+  fail $ "Invalid input, expected array but got " ++ show (pp_value o)
 
 -- * Container type (special type for JSON serialisation)
 
@@ -170,4 +172,4 @@ instance (J.JSON a) => J.JSON (Container a) where
   showJSON = showContainer
   readJSON (J.JSObject o) = readContainer o
   readJSON v = fail $ "Failed to load container, expected object but got "
-               ++ show v
+               ++ show (pp_value v)
