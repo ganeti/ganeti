@@ -134,8 +134,10 @@ just going to run Ganeti). More specifically:
 - `bytestring <http://hackage.haskell.org/package/bytestring>`_ and
   `utf8-string <http://hackage.haskell.org/package/utf8-string>`_
   libraries; these usually come with the GHC compiler
+- `regex-pcre <http://hackage.haskell.org/package/regex-pcre>`_,
+  bindings for the ``pcre`` library
 
-All of these are also available as package in Debian/Ubuntu::
+Some of these are also available as package in Debian/Ubuntu::
 
   $ apt-get install ghc6 libghc6-json-dev libghc6-network-dev \
                     libghc6-parallel-dev libghc6-curl-dev
@@ -152,7 +154,8 @@ Note that more recent version have switched to GHC 7.x and the packages
 were renamed::
 
   $ apt-get install ghc libghc-json-dev libghc-network-dev \
-                    libghc-parallel-dev libghc-curl-dev
+                    libghc-parallel-dev libghc-curl-dev \
+                    libghc-regex-pcre-dev
 
 If using a distribution which does not provide them, first install
 the Haskell platform. You can also install ``cabal`` manualy::
@@ -162,7 +165,7 @@ the Haskell platform. You can also install ``cabal`` manualy::
 Then install the additional libraries via
 ``cabal``::
 
-  $ cabal install json network parallel curl
+  $ cabal install json network parallel curl regex-pcre
 
 The compilation of the htools components is automatically enabled when
 the compiler and the requisite libraries are found. You can use the

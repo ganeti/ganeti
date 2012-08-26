@@ -23,11 +23,34 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 -}
 
+{-
+
+TODO: problems with the current model:
+
+1. There's nothing preventing a result such as ResultEntry RSNormal
+Nothing, or ResultEntry RSNoData (Just ...); ideally, we would
+separate the the RSNormal and other types; we would need a new data
+type for this, though, with JSON encoding/decoding
+
+2. We don't have a way to 'bind' a FieldDefinition's field type
+(e.q. QFTBool) with the actual value that is returned from a
+FieldGetter. This means that the various getter functions can return
+divergent types for the same field when evaluated against multiple
+items. This is bad; it only works today because we 'hide' everything
+behind JSValue, but is not nice at all. We should probably remove the
+separation between FieldDefinition and the FieldGetter, and introduce
+a new abstract data type, similar to QFT*, that contains the values
+too.
+
+-}
+
 module Ganeti.Query.Query
+
     ( query
     , queryFields
     ) where
 
+import Control.Monad (filterM)
 import Data.Maybe (fromMaybe)
 import qualified Data.Map as Map
 
@@ -35,6 +58,7 @@ import Ganeti.BasicTypes
 import Ganeti.HTools.JSON
 import Ganeti.Qlang
 import Ganeti.Query.Common
+import Ganeti.Query.Filter
 import Ganeti.Query.Types
 import Ganeti.Query.Node
 import Ganeti.Objects
@@ -70,12 +94,19 @@ query :: ConfigData   -- ^ The current configuration
       -> Query        -- ^ The query (item, fields, filter)
       -> IO (Result QueryResult) -- ^ Result
 
-query cfg (Query QRNode fields _) = return $ do
+query cfg (Query QRNode fields qfilter) = return $ do
+  cfilter <- compileFilter nodeFieldsMap qfilter
   let selected = getSelectedFields nodeFieldsMap fields
       (fdefs, fgetters) = unzip selected
       nodes = Map.elems . fromContainer $ configNodes cfg
-      fdata = map (\node -> map (execGetter cfg NodeRuntime node) fgetters)
-              nodes
+  -- runs first pass of the filter, without a runtime context; this
+  -- will limit the nodes that we'll contact for runtime data
+  fnodes <- filterM (\n -> evaluateFilter cfg Nothing n cfilter)
+            nodes
+  -- here we would run the runtime data gathering, then filter again
+  -- the nodes, based on existing runtime data
+  let fdata = map (\node -> map (execGetter cfg NodeRuntime node) fgetters)
+              fnodes
   return QueryResult { qresFields = fdefs, qresData = fdata }
 
 query _ (Query qkind _ _) =
