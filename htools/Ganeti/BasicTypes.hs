@@ -36,6 +36,7 @@ module Ganeti.BasicTypes
   , compareNameComponent
   ) where
 
+import Control.Applicative
 import Control.Monad
 import Data.Function
 import Data.List
@@ -67,6 +68,12 @@ instance MonadPlus Result where
   (Bad x) `mplus` (Bad y) = Bad (x ++ "; " ++ y)
   (Bad _) `mplus` x = x
   x@(Ok _) `mplus` _ = x
+
+instance Applicative Result where
+  pure = Ok
+  (Bad f) <*> _       = Bad f
+  _       <*> (Bad x) = Bad x
+  (Ok f)  <*> (Ok x)  = Ok $ f x
 
 -- | Simple checker for whether a 'Result' is OK.
 isOk :: Result a -> Bool
