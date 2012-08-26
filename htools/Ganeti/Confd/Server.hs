@@ -55,7 +55,7 @@ import Ganeti.Config
 import Ganeti.Hash
 import Ganeti.Logging
 import qualified Ganeti.Constants as C
-import Ganeti.Queryd (runQueryD)
+import Ganeti.Query.Server (runQueryD)
 
 -- * Types and constants definitions
 

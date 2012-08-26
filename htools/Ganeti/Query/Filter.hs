@@ -58,7 +58,7 @@ import Text.Regex.PCRE ((=~))
 
 import Ganeti.BasicTypes
 import Ganeti.Objects
-import Ganeti.Qlang
+import Ganeti.Query.Language
 import Ganeti.Query.Types
 import Ganeti.HTools.JSON
 

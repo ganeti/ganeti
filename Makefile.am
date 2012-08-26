@@ -415,14 +415,14 @@ HS_LIB_SRCS = \
 	htools/Ganeti/Luxi.hs \
 	htools/Ganeti/Objects.hs \
 	htools/Ganeti/OpCodes.hs \
-	htools/Ganeti/Rpc.hs \
-	htools/Ganeti/Qlang.hs \
 	htools/Ganeti/Query/Common.hs \
 	htools/Ganeti/Query/Filter.hs \
+	htools/Ganeti/Query/Language.hs \
 	htools/Ganeti/Query/Node.hs \
 	htools/Ganeti/Query/Query.hs \
+	htools/Ganeti/Query/Server.hs \
 	htools/Ganeti/Query/Types.hs \
-	htools/Ganeti/Queryd.hs \
+	htools/Ganeti/Rpc.hs \
 	htools/Ganeti/Runtime.hs \
 	htools/Ganeti/Ssconf.hs \
 	htools/Ganeti/THH.hs

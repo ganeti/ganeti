@@ -30,7 +30,7 @@ module Ganeti.Query.Types where
 
 import qualified Data.Map as Map
 
-import Ganeti.Qlang
+import Ganeti.Query.Language
 import Ganeti.Objects
 
 -- | The type of field getters. The \"a\" type represents the type

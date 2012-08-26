@@ -56,7 +56,7 @@ import qualified Data.Map as Map
 
 import Ganeti.BasicTypes
 import Ganeti.HTools.JSON
-import Ganeti.Qlang
+import Ganeti.Query.Language
 import Ganeti.Query.Common
 import Ganeti.Query.Filter
 import Ganeti.Query.Types

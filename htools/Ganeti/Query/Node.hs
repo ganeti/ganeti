@@ -34,7 +34,7 @@ import qualified Data.Map as Map
 
 import Ganeti.Config
 import Ganeti.Objects
-import Ganeti.Qlang
+import Ganeti.Query.Language
 import Ganeti.Query.Common
 import Ganeti.Query.Types
 

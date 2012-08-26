@@ -74,7 +74,7 @@ import Ganeti.HTools.Utils
 import Ganeti.Constants
 import Ganeti.Jobs (JobStatus)
 import Ganeti.OpCodes (OpCode)
-import qualified Ganeti.Qlang as Qlang
+import qualified Ganeti.Query.Language as Qlang
 import Ganeti.THH
 
 -- * Utility functions

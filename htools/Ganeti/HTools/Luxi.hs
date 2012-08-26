@@ -33,7 +33,7 @@ import Text.JSON.Types
 import qualified Text.JSON
 
 import qualified Ganeti.Luxi as L
-import qualified Ganeti.Qlang as Qlang
+import qualified Ganeti.Query.Language as Qlang
 import Ganeti.HTools.Loader
 import Ganeti.HTools.Types
 import qualified Ganeti.HTools.Group as Group

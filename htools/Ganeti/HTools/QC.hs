@@ -88,8 +88,8 @@ import qualified Ganeti.Logging as Logging
 import qualified Ganeti.Luxi as Luxi
 import qualified Ganeti.Objects as Objects
 import qualified Ganeti.OpCodes as OpCodes
-import qualified Ganeti.Qlang as Qlang
 import qualified Ganeti.Rpc as Rpc
+import qualified Ganeti.Query.Language as Qlang
 import qualified Ganeti.Runtime as Runtime
 import qualified Ganeti.Ssconf as Ssconf
 import qualified Ganeti.HTools.CLI as CLI

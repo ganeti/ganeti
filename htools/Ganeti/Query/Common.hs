@@ -45,7 +45,7 @@ import Text.JSON (JSON, showJSON)
 import qualified Ganeti.Constants as C
 import Ganeti.Config
 import Ganeti.Objects
-import Ganeti.Qlang
+import Ganeti.Query.Language
 import Ganeti.Query.Types
 
 -- * Generic functions

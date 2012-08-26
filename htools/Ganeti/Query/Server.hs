@@ -25,7 +25,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 -}
 
-module Ganeti.Queryd
+module Ganeti.Query.Server
   ( ConfigReader
   , runQueryD
   ) where
@@ -48,7 +48,7 @@ import qualified Ganeti.Config as Config
 import Ganeti.BasicTypes
 import Ganeti.Logging
 import Ganeti.Luxi
-import qualified Ganeti.Qlang as Qlang
+import qualified Ganeti.Query.Language as Qlang
 import Ganeti.Query.Query
 
 -- | A type for functions that can return the configuration when
