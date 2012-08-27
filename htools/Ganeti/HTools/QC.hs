@@ -605,7 +605,7 @@ genFilter' 0 =
         , Qlang.GTFilter       <$> getName <*> value
         , Qlang.LEFilter       <$> getName <*> value
         , Qlang.GEFilter       <$> getName <*> value
-        , Qlang.RegexpFilter   <$> getName <*> getName
+        , Qlang.RegexpFilter   <$> getName <*> arbitrary
         , Qlang.ContainsFilter <$> getName <*> value
         ]
     where value = oneof [ Qlang.QuotedString <$> getName
@@ -622,6 +622,9 @@ genFilter' n = do
 
 instance Arbitrary Qlang.ItemType where
   arbitrary = elements [minBound..maxBound]
+
+instance Arbitrary Qlang.FilterRegex where
+  arbitrary = getName >>= Qlang.mkRegex -- a name should be a good regex
 
 -- * Actual tests
 
@@ -2089,8 +2092,15 @@ prop_Qlang_Serialisation =
   forAll genFilter $ \flt ->
   J.readJSON (J.showJSON flt) ==? J.Ok flt
 
+prop_Qlang_FilterRegex_instances :: Qlang.FilterRegex -> Property
+prop_Qlang_FilterRegex_instances rex =
+  printTestCase "failed JSON encoding"
+    (J.readJSON (J.showJSON rex) ==? J.Ok rex) .&&.
+  printTestCase "failed read/show instances" (read (show rex) ==? rex)
+
 testSuite "Qlang"
   [ 'prop_Qlang_Serialisation
+  , 'prop_Qlang_FilterRegex_instances
   ]
 
 

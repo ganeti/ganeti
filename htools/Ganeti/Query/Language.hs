@@ -29,6 +29,10 @@ module Ganeti.Query.Language
     ( Filter(..)
     , FilterField
     , FilterValue(..)
+    , FilterRegex -- note: we don't export the constructor, must use helpers
+    , mkRegex
+    , stringRegex
+    , compiledRegex
     , Fields
     , Query(..)
     , QueryResult(..)
@@ -53,6 +57,7 @@ import Data.Ratio (numerator, denominator)
 import Text.JSON.Pretty (pp_value)
 import Text.JSON.Types
 import Text.JSON
+import qualified Text.Regex.PCRE as PCRE
 
 import qualified Ganeti.Constants as C
 import Ganeti.THH
@@ -123,7 +128,7 @@ data Filter a
     | GTFilter       a FilterValue  -- ^ > <field> <value>
     | LEFilter       a FilterValue  -- ^ <= <field> <value>
     | GEFilter       a FilterValue  -- ^ >= <field> <value>
-    | RegexpFilter   a FilterRegexp -- ^ =~ <field> <regexp>
+    | RegexpFilter   a FilterRegex  -- ^ =~ <field> <regexp>
     | ContainsFilter a FilterValue  -- ^ =[] <list-field> <value>
       deriving (Show, Read, Eq)
 
@@ -270,8 +275,50 @@ instance JSON FilterValue where
   showJSON = showFilterValue
   readJSON = readFilterValue
 
--- | Regexp to apply to the filter value, for filteriong purposes.
-type FilterRegexp = String
+-- | Regexp to apply to the filter value, for filtering purposes. It
+-- holds both the string format, and the \"compiled\" format, so that
+-- we don't re-compile the regex at each match attempt.
+data FilterRegex = FilterRegex
+  { stringRegex   :: String      -- ^ The string version of the regex
+  , compiledRegex :: PCRE.Regex  -- ^ The compiled regex
+  }
+
+-- | Builder for 'FilterRegex'. We always attempt to compile the
+-- regular expression on the initialisation of the data structure;
+-- this might fail, if the RE is not well-formed.
+mkRegex :: (Monad m) => String -> m FilterRegex
+mkRegex str = do
+  compiled <- case PCRE.getVersion of
+                Nothing -> fail "regex-pcre library compiled without\
+                                \ libpcre, regex functionality not available"
+                _ -> PCRE.makeRegexM str
+  return $ FilterRegex str compiled
+
+-- | 'Show' instance: we show the constructor plus the string version
+-- of the regex.
+instance Show FilterRegex where
+  show (FilterRegex re _) = "mkRegex " ++ show re
+
+-- | 'Read' instance: we manually read \"mkRegex\" followed by a
+-- string, and build the 'FilterRegex' using that.
+instance Read FilterRegex where
+  readsPrec _ str = do
+    ("mkRegex", s') <- lex str
+    (re, s'') <- reads s'
+    filterre <- mkRegex re
+    return (filterre, s'')
+
+-- | 'Eq' instance: we only compare the string versions of the regexes.
+instance Eq FilterRegex where
+  (FilterRegex re1 _) == (FilterRegex re2 _) = re1 == re2
+
+-- | 'JSON' instance: like for show and read instances, we work only
+-- with the string component.
+instance JSON FilterRegex where
+  showJSON (FilterRegex re _) = showJSON re
+  readJSON s = do
+    re <- readJSON s
+    mkRegex re
 
 -- | Name of a field.
 type FieldName = String

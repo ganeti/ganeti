@@ -54,7 +54,7 @@ import qualified Data.Map as Map
 import Data.Traversable (traverse)
 import Text.JSON (JSValue(..), fromJSString)
 import Text.JSON.Pretty (pp_value)
-import Text.Regex.PCRE ((=~))
+import qualified Text.Regex.PCRE as PCRE
 
 import Ganeti.BasicTypes
 import Ganeti.Objects
@@ -115,8 +115,9 @@ binOpFilter _ expr actual =
       show (pp_value actual) ++ " with '" ++ show expr ++ "'"
 
 -- | Implements the 'RegexpFilter' matching.
-regexpFilter :: String -> JSValue -> Result Bool
-regexpFilter re (JSString val) = Ok $ (fromJSString val) =~ re
+regexpFilter :: FilterRegex -> JSValue -> Result Bool
+regexpFilter re (JSString val) =
+  Ok $ PCRE.match (compiledRegex re) (fromJSString val)
 regexpFilter _ x =
   Bad $ "Invalid field value used in regexp matching,\
         \ expecting string but got '" ++ show (pp_value x) ++ "'"
