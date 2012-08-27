@@ -2,10 +2,20 @@ News
 ====
 
 
-Version 2.6.0 rc4
------------------
+Version 2.6.0
+-------------
 
-*(Released Thu, 19 Jul 2012)*
+*(Released Fri, 27 Jul 2012)*
+
+
+.. attention:: The ``LUXI`` protocol has been made more consistent
+   regarding its handling of command arguments. This, however, leads to
+   incompatibility issues with previous versions. Please ensure that you
+   restart Ganeti daemons soon after the upgrade, otherwise most
+   ``LUXI`` calls (job submission, setting/resetting the drain flag,
+   pausing/resuming the watcher, cancelling and archiving jobs, querying
+   the cluster configuration) will fail.
+
 
 New features
 ~~~~~~~~~~~~
@@ -305,10 +315,20 @@ changed to allow the same clock skew as permitted by the cluster
 verification. This will remove some rare but hard to diagnose errors in
 import-export.
 
-The ``LUXI`` protocol has been made more consistent regarding its
-handling of command arguments. This, however, leads to incompatibility
-issues with previous versions. Please ensure that you restart Ganeti
-daemons after the upgrade, otherwise job submission will fail.
+
+Version 2.6.0 rc4
+-----------------
+
+*(Released Thu, 19 Jul 2012)*
+
+Very few changes from rc4 to the final release, only bugfixes:
+
+- integrated fixes from release 2.5.2 (fix general boot flag for KVM
+  instance, fix CDROM booting for KVM instances)
+- fixed node group modification of node parameters
+- fixed issue in LUClusterVerifyGroup with multi-group clusters
+- fixed generation of bash completion to ensure a stable ordering
+- fixed a few typos
 
 
 Version 2.6.0 rc3
@@ -411,6 +431,26 @@ Plus integrated fixes from the 2.5 branch:
 - fixed ``kvm-ifup`` to use ``/bin/bash``
 - fixed parallel build failures
 - KVM live migration when using a custom keymap
+
+
+Version 2.5.2
+-------------
+
+*(Released Tue, 24 Jul 2012)*
+
+A small bugfix release, with no new features:
+
+- fixed bash-isms in kvm-ifup, for compatibility with systems which use a
+  different default shell (e.g. Debian, Ubuntu)
+- fixed KVM startup and live migration with a custom keymap (fixes Issue
+  243 and Debian bug #650664)
+- fixed compatibility with KVM versions that don't support multiple boot
+  devices (fixes Issue 230 and Debian bug #624256)
+
+Additionally, a few fixes were done to the build system (fixed parallel
+build failures) and to the unittests (fixed race condition in test for
+FileID functions, and the default enable/disable mode for QA test is now
+customisable).
 
 
 Version 2.5.1

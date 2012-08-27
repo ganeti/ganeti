@@ -1143,7 +1143,7 @@ class ConfigWriter:
     if target is None:
       if len(self._config_data.nodegroups) != 1:
         raise errors.OpPrereqError("More than one node group exists. Target"
-                                   " group must be specified explicitely.")
+                                   " group must be specified explicitly.")
       else:
         return self._config_data.nodegroups.keys()[0]
     if target in self._config_data.nodegroups:

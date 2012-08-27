@@ -1111,13 +1111,16 @@ def _CheckInstanceState(lu, instance, req_states, msg=None):
 
   if constants.ADMINST_UP not in req_states:
     pnode = instance.primary_node
-    ins_l = lu.rpc.call_instance_list([pnode], [instance.hypervisor])[pnode]
-    ins_l.Raise("Can't contact node %s for instance information" % pnode,
-                prereq=True, ecode=errors.ECODE_ENVIRON)
-
-    if instance.name in ins_l.payload:
-      raise errors.OpPrereqError("Instance %s is running, %s" %
-                                 (instance.name, msg), errors.ECODE_STATE)
+    if not lu.cfg.GetNodeInfo(pnode).offline:
+      ins_l = lu.rpc.call_instance_list([pnode], [instance.hypervisor])[pnode]
+      ins_l.Raise("Can't contact node %s for instance information" % pnode,
+                  prereq=True, ecode=errors.ECODE_ENVIRON)
+      if instance.name in ins_l.payload:
+        raise errors.OpPrereqError("Instance %s is running, %s" %
+                                   (instance.name, msg), errors.ECODE_STATE)
+    else:
+      lu.LogWarning("Primary node offline, ignoring check that instance"
+                     " is down")
 
 
 def _ComputeMinMaxSpec(name, qualifier, ipolicy, value):
@@ -3218,10 +3221,12 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       if master_node not in self.my_node_info:
         additional_nodes.append(master_node)
         vf_node_info.append(self.all_node_info[master_node])
-      # Add the first vm_capable node we find which is not included
+      # Add the first vm_capable node we find which is not included,
+      # excluding the master node (which we already have)
       for node in absent_nodes:
         nodeinfo = self.all_node_info[node]
-        if nodeinfo.vm_capable and not nodeinfo.offline:
+        if (nodeinfo.vm_capable and not nodeinfo.offline and
+            node != master_node):
           additional_nodes.append(node)
           vf_node_info.append(self.all_node_info[node])
           break
@@ -9022,6 +9027,7 @@ def _WipeDisks(lu, instance):
   result = lu.rpc.call_blockdev_pause_resume_sync(node,
                                                   (instance.disks, instance),
                                                   True)
+  result.Raise("Failed RPC to node %s for pausing the disk syncing" % node)
 
   for idx, success in enumerate(result.payload):
     if not success:
@@ -9069,12 +9075,17 @@ def _WipeDisks(lu, instance):
                                                     (instance.disks, instance),
                                                     False)
 
-    for idx, success in enumerate(result.payload):
-      if not success:
-        lu.LogWarning("Resume sync of disk %d failed, please have a"
-                      " look at the status and troubleshoot the issue", idx)
-        logging.warn("resume-sync of instance %s for disks %d failed",
-                     instance.name, idx)
+    if result.fail_msg:
+      lu.LogWarning("RPC call to %s for resuming disk syncing failed,"
+                    " please have a look at the status and troubleshoot"
+                    " the issue: %s", node, result.fail_msg)
+    else:
+      for idx, success in enumerate(result.payload):
+        if not success:
+          lu.LogWarning("Resume sync of disk %d failed, please have a"
+                        " look at the status and troubleshoot the issue", idx)
+          logging.warn("resume-sync of instance %s for disks %d failed",
+                       instance.name, idx)
 
 
 def _CreateDisks(lu, instance, to_skip=None, target_node=None):
@@ -9214,7 +9225,7 @@ def _ComputeDiskSizePerVG(disk_template, disks):
 
 
 def _ComputeDiskSize(disk_template, disks):
-  """Compute disk size requirements in the volume group
+  """Compute disk size requirements according to disk template
 
   """
   # Required free disk space as a function of disk and swap space
@@ -9224,10 +9235,10 @@ def _ComputeDiskSize(disk_template, disks):
     # 128 MB are added for drbd metadata for each disk
     constants.DT_DRBD8:
       sum(d[constants.IDISK_SIZE] + DRBD_META_SIZE for d in disks),
-    constants.DT_FILE: None,
-    constants.DT_SHARED_FILE: 0,
+    constants.DT_FILE: sum(d[constants.IDISK_SIZE] for d in disks),
+    constants.DT_SHARED_FILE: sum(d[constants.IDISK_SIZE] for d in disks),
     constants.DT_BLOCK: 0,
-    constants.DT_RBD: 0,
+    constants.DT_RBD: sum(d[constants.IDISK_SIZE] for d in disks),
   }
 
   if disk_template not in req_size_dict:
@@ -14106,7 +14117,7 @@ class LUGroupSetParams(LogicalUnit):
 
     if self.op.ndparams:
       new_ndparams = _GetUpdatedParams(self.group.ndparams, self.op.ndparams)
-      utils.ForceDictType(self.op.ndparams, constants.NDS_PARAMETER_TYPES)
+      utils.ForceDictType(new_ndparams, constants.NDS_PARAMETER_TYPES)
       self.new_ndparams = new_ndparams
 
     if self.op.diskparams:

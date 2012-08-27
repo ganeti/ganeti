@@ -309,7 +309,7 @@ oMachineReadable = Option "" ["machine-readable"]
                      flag <- parseYesNo True f
                      return $ opts { optMachineReadable = flag }) "CHOICE")
           "enable machine readable output (pass either 'yes' or 'no' to\
-          \ explicitely control the flag, or without an argument defaults to\
+          \ explicitly control the flag, or without an argument defaults to\
           \ yes"
 
 oMaxCpu :: OptType

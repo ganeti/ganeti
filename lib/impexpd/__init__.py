@@ -262,9 +262,9 @@ class CommandBuilder(object):
       dd_cmd.write(" && ")
 
     dd_cmd.write("{ ")
-    # Setting LC_ALL since we want to parse the output and explicitely
-    # redirecting stdin, as the background process (dd) would have /dev/null as
-    # stdin otherwise
+    # Setting LC_ALL since we want to parse the output and explicitly
+    # redirecting stdin, as the background process (dd) would have
+    # /dev/null as stdin otherwise
     dd_cmd.write("LC_ALL=C dd bs=%s <&0 2>&%d & pid=${!};" %
                  (BUFSIZE, self._dd_stderr_fd))
     # Send PID to daemon

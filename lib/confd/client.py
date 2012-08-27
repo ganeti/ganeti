@@ -48,7 +48,7 @@ confirming what you already got.
 # pylint: disable=E0203
 
 # E0203: Access to member %r before its definition, since we use
-# objects.py which doesn't explicitely initialise its members
+# objects.py which doesn't explicitly initialise its members
 
 import time
 import random

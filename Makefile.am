@@ -336,6 +336,7 @@ docrst = \
 	doc/design-node-state-cache.rst \
 	doc/design-virtual-clusters.rst \
 	doc/design-bulk-create.rst \
+	doc/design-query-splitting.rst \
 	doc/devnotes.rst \
 	doc/glossary.rst \
 	doc/hooks.rst \
@@ -346,6 +347,7 @@ docrst = \
 	doc/locking.rst \
 	doc/move-instance.rst \
 	doc/news.rst \
+	doc/ovfconverter.rst \
 	doc/rapi.rst \
 	doc/security.rst \
 	doc/upgrade.rst \
@@ -1405,6 +1407,19 @@ distcheck-hook:
 # When building a release, stricter checks should be used
 distcheck-release dist-release: export BUILD_RELEASE = 1
 distcheck-release: distcheck
+
+distrebuildcheck: dist
+	set -e; \
+	builddir=$$(mktemp -d $(abs_srcdir)/distrebuildcheck.XXXXXXX); \
+	trap "echo Removing $$builddir; cd $(abs_srcdir); rm -rf $$builddir" EXIT; \
+	cd $$builddir; \
+	tar xzf $(abs_srcdir)/$(distdir).tar.gz; \
+	cd $(distdir); \
+	./configure; \
+	$(MAKE) maintainer-clean; \
+	cp $(abs_srcdir)/vcs-version .; \
+	./configure; \
+	$(MAKE) $(AM_MAKEFLAGS)
 
 dist-release: dist
 	set -e; \

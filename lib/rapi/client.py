@@ -923,7 +923,8 @@ class GanetiRapiClient(object): # pylint: disable=R0904
                              ("/%s/instances/%s/reboot" %
                               (GANETI_RAPI_VERSION, instance)), query, None)
 
-  def ShutdownInstance(self, instance, dry_run=False, no_remember=False):
+  def ShutdownInstance(self, instance, dry_run=False, no_remember=False,
+                       **kwargs):
     """Shuts down an instance.
 
     @type instance: str
@@ -937,12 +938,14 @@ class GanetiRapiClient(object): # pylint: disable=R0904
 
     """
     query = []
+    body = kwargs
+
     _AppendDryRunIf(query, dry_run)
     _AppendIf(query, no_remember, ("no-remember", 1))
 
     return self._SendRequest(HTTP_PUT,
                              ("/%s/instances/%s/shutdown" %
-                              (GANETI_RAPI_VERSION, instance)), query, None)
+                              (GANETI_RAPI_VERSION, instance)), query, body)
 
   def StartupInstance(self, instance, dry_run=False, no_remember=False):
     """Starts up an instance.

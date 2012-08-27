@@ -103,7 +103,7 @@ dependencies.
   distributions need to apply the patches on their own.
 
   Ganeti will use the option if it's detected by the ``configure``
-  script; auto-detection can be disabled by explicitely passing
+  script; auto-detection can be disabled by explicitly passing
   ``--enable-socat-compress`` (use the option to disable compression) or
   ``--disable-socat-compress`` (don't use the option).
 

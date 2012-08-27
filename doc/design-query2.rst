@@ -392,7 +392,7 @@ Other discussed solutions
 
 Another solution discussed was to add an additional column for each
 non-static field containing the status. Clients interested in the status
-could explicitely query for it.
+could explicitly query for it.
 
 .. vim: set textwidth=72 :
 .. Local Variables:
