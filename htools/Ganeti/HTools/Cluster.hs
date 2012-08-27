@@ -35,6 +35,7 @@ module Ganeti.HTools.Cluster
   , CStats(..)
   , AllocResult
   , AllocMethod
+  , AllocSolutionList
   -- * Generic functions
   , totalResources
   , computeAllocationDelta
@@ -64,6 +65,7 @@ module Ganeti.HTools.Cluster
   , tryNodeEvac
   , tryChangeGroup
   , collapseFailures
+  , allocList
   -- * Allocation functions
   , iterateAlloc
   , tieredAlloc
@@ -111,6 +113,9 @@ data EvacSolution = EvacSolution
 -- | Allocation results, as used in 'iterateAlloc' and 'tieredAlloc'.
 type AllocResult = (FailStats, Node.List, Instance.List,
                     [Instance.Instance], [CStats])
+
+-- | Type alias for easier handling.
+type AllocSolutionList = [(Instance.Instance, AllocSolution)]
 
 -- | A type denoting the valid allocation mode/pairs.
 --
@@ -843,6 +848,36 @@ tryMGAlloc mggl mgnl mgil inst cnt = do
   let group_name = Group.name $ Container.find best_group mggl
       selmsg = "Selected group: " ++ group_name
   return $ solution { asLog = selmsg:all_msgs }
+
+-- | Calculate the new instance list after allocation solution.
+updateIl :: Instance.List           -- ^ The original instance list
+         -> Maybe Node.AllocElement -- ^ The result of the allocation attempt
+         -> Instance.List           -- ^ The updated instance list
+updateIl il Nothing = il
+updateIl il (Just (_, xi, _, _)) = Container.add (Container.size il) xi il
+
+-- | Extract the the new node list from the allocation solution.
+extractNl :: Node.List               -- ^ The original node list
+          -> Maybe Node.AllocElement -- ^ The result of the allocation attempt
+          -> Node.List               -- ^ The new node list
+extractNl nl Nothing = nl
+extractNl _ (Just (xnl, _, _, _)) = xnl
+
+-- | Try to allocate a list of instances on a multi-group cluster.
+allocList :: Group.List                  -- ^ The group list
+          -> Node.List                   -- ^ The node list
+          -> Instance.List               -- ^ The instance list
+          -> [(Instance.Instance, Int)]  -- ^ The instance to allocate
+          -> AllocSolutionList           -- ^ Possible solution list
+          -> Result (Node.List, Instance.List,
+                     AllocSolutionList)  -- ^ The final solution list
+allocList _  nl il [] result = Ok (nl, il, result)
+allocList gl nl il ((xi, xicnt):xies) result = do
+  ares <- tryMGAlloc gl nl il xi xicnt
+  let sol = asSolution ares
+      nl' = extractNl nl sol
+      il' = updateIl il sol
+  allocList gl nl' il' xies ((xi, ares):result)
 
 -- | Function which fails if the requested mode is change secondary.
 --
