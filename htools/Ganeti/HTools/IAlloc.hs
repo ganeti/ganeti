@@ -31,7 +31,7 @@ module Ganeti.HTools.IAlloc
   ) where
 
 import Data.Either ()
-import Data.Maybe (fromMaybe)
+import Data.Maybe (fromMaybe, isJust, fromJust)
 import Data.List
 import Control.Monad
 import Text.JSON (JSObject, JSValue(JSArray),
@@ -145,7 +145,8 @@ parseData body = do
       extrObj x = tryFromObj "invalid iallocator message" obj x
   -- request parser
   request <- liftM fromJSObject (extrObj "request")
-  let extrReq x = tryFromObj "invalid request dict" request x
+  let extrFromReq r x = tryFromObj "invalid request dict" r x
+  let extrReq x = extrFromReq request x
   -- existing group parsing
   glist <- liftM fromJSObject (extrObj "nodegroups")
   gobj <- mapM (\(x, y) -> asJSObject y >>= parseGroup x . fromJSObject) glist
@@ -203,7 +204,18 @@ parseData body = do
               let rl_idx = map Instance.idx rl_insts
               rl_mode <- extrReq "evac_mode"
               return $ NodeEvacuate rl_idx rl_mode
-
+        | optype == C.iallocatorModeMultiAlloc ->
+            do
+              arry <- extrReq "instances" :: Result [JSObject JSValue]
+              let inst_reqs = map fromJSObject arry
+              prqs <- mapM (\r ->
+                               do
+                                 rname     <- extrFromReq r "name"
+                                 req_nodes <- extrFromReq r "required_nodes"
+                                 inew      <- parseBaseInstance rname r
+                                 let io = snd inew
+                                 return (io, req_nodes)) inst_reqs
+              return $ MultiAllocate prqs
         | otherwise -> fail ("Invalid request type '" ++ optype ++ "'")
   return (msgs, Request rqtype cdata)
 
@@ -232,6 +244,24 @@ formatAllocate il as = do
       do
         let il' = Container.add (Instance.idx inst) inst il
         return (info, showJSON $ map Node.name nodes, nl, il')
+
+-- | Convert multi allocation results into the result format.
+formatMultiAlloc :: (Node.List, Instance.List, Cluster.AllocSolutionList)
+                 -> Result IAllocResult
+formatMultiAlloc (fin_nl, fin_il, ars) =
+  let rars = reverse ars
+      (allocated, failed) = partition (isJust . Cluster.asSolution . snd) rars
+      aars = map (\(_, ar) ->
+                     let (_, inst, nodes, _) = fromJust $ Cluster.asSolution ar
+                         iname = Instance.name inst
+                         nnames = map Node.name nodes
+                     in (iname, nnames)) allocated
+      fars = map (\(inst, ar) ->
+                     let iname = Instance.name inst
+                     in (iname, describeSolution ar)) failed
+      info = show (length failed) ++ " instances failed to allocate and " ++
+             show (length allocated) ++ " were allocated successfully"
+  in return (info, showJSON (aars, fars), fin_nl, fin_il)
 
 -- | Convert a node-evacuation/change group result.
 formatNodeEvac :: Group.List
@@ -343,6 +373,8 @@ processRequest request =
        NodeEvacuate xi mode ->
          Cluster.tryNodeEvac gl nl il mode xi >>=
                 formatNodeEvac gl nl il
+       MultiAllocate xies ->
+         Cluster.allocList gl nl il xies [] >>= formatMultiAlloc
 
 -- | Reads the request from the data file(s).
 readRequest :: FilePath -> IO Request
