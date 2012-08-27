@@ -8888,6 +8888,7 @@ def _WipeDisks(lu, instance):
   result = lu.rpc.call_blockdev_pause_resume_sync(node,
                                                   (instance.disks, instance),
                                                   True)
+  result.Raise("Failed RPC to node %s for pausing the disk syncing" % node)
 
   for idx, success in enumerate(result.payload):
     if not success:
@@ -8935,12 +8936,17 @@ def _WipeDisks(lu, instance):
                                                     (instance.disks, instance),
                                                     False)
 
-    for idx, success in enumerate(result.payload):
-      if not success:
-        lu.LogWarning("Resume sync of disk %d failed, please have a"
-                      " look at the status and troubleshoot the issue", idx)
-        logging.warn("resume-sync of instance %s for disks %d failed",
-                     instance.name, idx)
+    if result.fail_msg:
+      lu.LogWarning("RPC call to %s for resuming disk syncing failed,"
+                    " please have a look at the status and troubleshoot"
+                    " the issue: %s", node, result.fail_msg)
+    else:
+      for idx, success in enumerate(result.payload):
+        if not success:
+          lu.LogWarning("Resume sync of disk %d failed, please have a"
+                        " look at the status and troubleshoot the issue", idx)
+          logging.warn("resume-sync of instance %s for disks %d failed",
+                       instance.name, idx)
 
 
 def _CreateDisks(lu, instance, to_skip=None, target_node=None):
@@ -9080,7 +9086,7 @@ def _ComputeDiskSizePerVG(disk_template, disks):
 
 
 def _ComputeDiskSize(disk_template, disks):
-  """Compute disk size requirements in the volume group
+  """Compute disk size requirements according to disk template
 
   """
   # Required free disk space as a function of disk and swap space
@@ -9090,10 +9096,10 @@ def _ComputeDiskSize(disk_template, disks):
     # 128 MB are added for drbd metadata for each disk
     constants.DT_DRBD8:
       sum(d[constants.IDISK_SIZE] + DRBD_META_SIZE for d in disks),
-    constants.DT_FILE: None,
-    constants.DT_SHARED_FILE: 0,
+    constants.DT_FILE: sum(d[constants.IDISK_SIZE] for d in disks),
+    constants.DT_SHARED_FILE: sum(d[constants.IDISK_SIZE] for d in disks),
     constants.DT_BLOCK: 0,
-    constants.DT_RBD: 0,
+    constants.DT_RBD: sum(d[constants.IDISK_SIZE] for d in disks),
   }
 
   if disk_template not in req_size_dict:

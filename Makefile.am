@@ -1318,9 +1318,17 @@ hs-check: htools/test htools/hpc-htools $(HS_BUILT_TEST_HELPERS)
 	HBINARY="./htools/hpc-htools" ./htools/offline-test.sh
 
 # E111: indentation is not a multiple of four
+# E121: continuation line indentation is not a multiple of four
+#       (since our indent level is not 4)
+# E125: continuation line does not distinguish itself from next logical line
+#       (since our indent level is not 4)
+# E127: continuation line over-indented for visual indent
+#       (since our indent level is not 4)
+# E122,E123,E126,E128,E262,E272,E502,E711,: added temporarily to not
+#       modify stable code; do NOT merge these into master!
 # E261: at least two spaces before inline comment
 # E501: line too long (80 characters)
-PEP8_IGNORE = E111,E261,E501
+PEP8_IGNORE = E111,E121,E122,E123,E125,E126,E127,E128,E261,E262,E272,E501,E502,E711
 
 # For excluding pep8 expects filenames only, not whole paths
 PEP8_EXCLUDE = $(subst $(space),$(comma),$(strip $(notdir $(BUILT_PYTHON_SOURCES))))
@@ -1405,6 +1413,19 @@ distcheck-hook:
 # When building a release, stricter checks should be used
 distcheck-release dist-release: export BUILD_RELEASE = 1
 distcheck-release: distcheck
+
+distrebuildcheck: dist
+	set -e; \
+	builddir=$$(mktemp -d $(abs_srcdir)/distrebuildcheck.XXXXXXX); \
+	trap "echo Removing $$builddir; cd $(abs_srcdir); rm -rf $$builddir" EXIT; \
+	cd $$builddir; \
+	tar xzf $(abs_srcdir)/$(distdir).tar.gz; \
+	cd $(distdir); \
+	./configure; \
+	$(MAKE) maintainer-clean; \
+	cp $(abs_srcdir)/vcs-version .; \
+	./configure; \
+	$(MAKE) $(AM_MAKEFLAGS)
 
 dist-release: dist
 	set -e; \
