@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2010 Google Inc.
+# Copyright (C) 2010, 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -42,6 +42,7 @@ from ganeti import rapi
 
 import ganeti.rapi.client # pylint: disable=W0611
 import ganeti.rapi.client_utils
+from ganeti.rapi.client import UsesRapiClient
 
 
 SRC_RAPI_PORT_OPT = \
@@ -836,7 +837,7 @@ def CheckOptions(parser, options, args):
   return (src_cluster_name, dest_cluster_name, instance_names)
 
 
-@rapi.client.UsesRapiClient
+@UsesRapiClient
 def main():
   """Main routine.
 

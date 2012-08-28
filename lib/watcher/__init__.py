@@ -51,6 +51,7 @@ from ganeti import ssconf
 from ganeti import ht
 
 import ganeti.rapi.client # pylint: disable=W0611
+from ganeti.rapi.client import UsesRapiClient
 
 from ganeti.watcher import nodemaint
 from ganeti.watcher import state
@@ -569,7 +570,7 @@ def _CheckMaster(cl):
     raise NotMasterError("This is not the master node")
 
 
-@rapi.client.UsesRapiClient
+@UsesRapiClient
 def _GlobalWatcher(opts):
   """Main function for global watcher.
 
