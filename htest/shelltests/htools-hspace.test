@@ -1,8 +1,8 @@
 # test that hspace machine readable output looks correct
-./test/hspace --simu p,4,8T,64g,16 --machine-readable --disk-template drbd -l 8
+./htest/hspace --simu p,4,8T,64g,16 --machine-readable --disk-template drbd -l 8
 >>> /^HTS_OK=1/
 >>>= 0
 
 # test again via a file and shell parsing
-./test/hspace --simu p,4,8T,64g,16 --machine-readable --disk-template drbd -l 8 > $T/capacity && sh -c ". $T/capacity && test x\$HTS_OK = x1"
+./htest/hspace --simu p,4,8T,64g,16 --machine-readable --disk-template drbd -l 8 > $T/capacity && sh -c ". $T/capacity && test x\$HTS_OK = x1"
 >>>= 0

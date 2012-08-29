@@ -361,7 +361,7 @@ HS_BIN_ROLES = hbal hscan hspace hinfo hcheck
 
 HS_ALL_PROGS = $(HS_PROGS) htest/test htest/hpc-htools htools/hconfd
 HS_PROG_SRCS = $(patsubst %,%.hs,$(HS_ALL_PROGS))
-HS_BUILT_TEST_HELPERS = $(HS_BIN_ROLES:%=test/%) test/hail
+HS_BUILT_TEST_HELPERS = $(HS_BIN_ROLES:%=htest/%) htest/hail
 
 HFLAGS = -O -Wall -Werror -fwarn-monomorphism-restriction -fwarn-tabs -ihtools
 # extra flags that can be overriden on the command line (e.g. -Wwarn, etc.)
@@ -1212,7 +1212,7 @@ daemons/ganeti-%: MODULE = ganeti.server.$(patsubst ganeti-%,%,$(notdir $@))
 daemons/ganeti-watcher: MODULE = ganeti.watcher
 scripts/%: MODULE = ganeti.client.$(subst -,_,$(notdir $@))
 tools/ensure-dirs: MODULE = ganeti.tools.ensure_dirs
-$(HS_BUILT_TEST_HELPERS): TESTROLE = $(patsubst test/%,%,$@)
+$(HS_BUILT_TEST_HELPERS): TESTROLE = $(patsubst htest/%,%,$@)
 
 $(PYTHON_BOOTSTRAP): Makefile | stamp-directories
 	test -n "$(MODULE)" || { echo Missing module; exit 1; }

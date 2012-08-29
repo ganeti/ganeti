@@ -1,20 +1,20 @@
 ### std tests
 
 # test basic parsing
-./test/hinfo -v -v -p --print-instances $BACKEND_BAL_STD
+./htest/hinfo -v -v -p --print-instances $BACKEND_BAL_STD
 >>>= 0
-./test/hbal -v -v -v -p --print-instances $BACKEND_BAL_STD -G group-01
+./htest/hbal -v -v -v -p --print-instances $BACKEND_BAL_STD -G group-01
 >>> !/(Nothing to do, exiting|No solution found)/
 >>>2 !/(Nothing to do, exiting|No solution found)/
 >>>= 0
 
 # test command output
-./test/hbal $BACKEND_BAL_STD -G group-01 -C -S $T/simu-rebal.standard
+./htest/hbal $BACKEND_BAL_STD -G group-01 -C -S $T/simu-rebal.standard
 >>> /gnt-instance (failover|migrate|replace-disks)/
 >>>= 0
 
 # test saving commands
-./test/hbal $BACKEND_BAL_STD -G group-01 -C$T/rebal-cmds.standard
+./htest/hbal $BACKEND_BAL_STD -G group-01 -C$T/rebal-cmds.standard
 >>>= 0
 # and now check the file (depends on previous test)
 cat $T/rebal-cmds.standard
@@ -28,32 +28,32 @@ diff -u $T/simu-rebal-merged.standard $T/simu-rebal.standard.original
 >>>= 0
 
 # no double rebalance; depends on previous test
-./test/hbal -t $T/simu-rebal.standard.balanced -G group-01
+./htest/hbal -t $T/simu-rebal.standard.balanced -G group-01
 >>> /(Nothing to do, exiting|No solution found)/
 >>>= 0
 
 # hcheck sees no reason to rebalance after rebalancing was already done
-./test/hcheck -t$T/simu-rebal.standard.balanced --machine-readable
+./htest/hcheck -t$T/simu-rebal.standard.balanced --machine-readable
 >>> /HCHECK_INIT_CLUSTER_NEED_REBALANCE=0/
 >>>= 0
 
 ### now tiered tests
 
 # test basic parsing
-./test/hinfo -v -v -p --print-instances $BACKEND_BAL_TIER
+./htest/hinfo -v -v -p --print-instances $BACKEND_BAL_TIER
 >>>= 0
-./test/hbal -v -v -v -p --print-instances $BACKEND_BAL_TIER -G group-01
+./htest/hbal -v -v -v -p --print-instances $BACKEND_BAL_TIER -G group-01
 >>> !/(Nothing to do, exiting|No solution found)/
 >>>2 !/(Nothing to do, exiting|No solution found)/
 >>>= 0
 
 # test command output
-./test/hbal $BACKEND_BAL_TIER -G group-01 -C -S $T/simu-rebal.tiered
+./htest/hbal $BACKEND_BAL_TIER -G group-01 -C -S $T/simu-rebal.tiered
 >>> /gnt-instance (failover|migrate|replace-disks)/
 >>>= 0
 
 # test saving commands
-./test/hbal $BACKEND_BAL_TIER -G group-01 -C$T/rebal-cmds.tiered
+./htest/hbal $BACKEND_BAL_TIER -G group-01 -C$T/rebal-cmds.tiered
 >>>= 0
 # and now check the file (depends on previous test)
 cat $T/rebal-cmds.tiered
@@ -67,6 +67,6 @@ diff -u $T/simu-rebal-merged.tiered $T/simu-rebal.tiered.original
 >>>= 0
 
 # no double rebalance; depends on previous test
-./test/hbal -t $T/simu-rebal.tiered.balanced -G group-01
+./htest/hbal -t $T/simu-rebal.tiered.balanced -G group-01
 >>> /(Nothing to do, exiting|No solution found)/
 >>>= 0

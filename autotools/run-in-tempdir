@@ -23,7 +23,8 @@ for hfile in htools; do
   fi
 done
 
-for hfile in hpc-htools test offline-test.sh cli-tests-defs.sh; do
+for hfile in hpc-htools test offline-test.sh cli-tests-defs.sh \
+  hbal hscan hspace hinfo hcheck hail; do
   if [ -e htest/$hfile ]; then
     cp -p htest/$hfile $tmpdir/htest/
   fi

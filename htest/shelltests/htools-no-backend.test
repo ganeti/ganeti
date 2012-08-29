@@ -1,21 +1,21 @@
 # hail no input file
-./test/hail
+./htest/hail
 >>>= 1
 
 # hbal no backend
-./test/hbal
+./htest/hbal
 >>>= 1
 
 # hspace no backend
-./test/hspace
+./htest/hspace
 >>>= 1
 
 # hinfo no backend
-./test/hinfo
+./htest/hinfo
 >>>= 1
 
 # hbal multiple backends
-./test/hbal -t /dev/null -m localhost
+./htest/hbal -t /dev/null -m localhost
 >>>2
 Error: Only one of the rapi, luxi, and data files options should be given.
 >>>= 1

@@ -1,30 +1,30 @@
 # missing resources test
-./test/hbal -t $TESTDATA_DIR/missing-resources.data
+./htest/hbal -t $TESTDATA_DIR/missing-resources.data
 >>>2 /node node2 is missing .* ram and .* disk/
 >>>= 0
-./test/hinfo -t $TESTDATA_DIR/missing-resources.data
+./htest/hinfo -t $TESTDATA_DIR/missing-resources.data
 >>>2 /node node2 is missing .* ram and .* disk/
 >>>= 0
 
 
 # common suffix test
-./test/hbal -t $TESTDATA_DIR/common-suffix.data -v -v
+./htest/hbal -t $TESTDATA_DIR/common-suffix.data -v -v
 >>>/Stripping common suffix of '\.example\.com' from names/
 >>>= 0
-./test/hinfo -t $TESTDATA_DIR/common-suffix.data -v -v
+./htest/hinfo -t $TESTDATA_DIR/common-suffix.data -v -v
 >>>/Stripping common suffix of '\.example\.com' from names/
 >>>= 0
 
 
 # invalid node test
-./test/hbal -t $TESTDATA_DIR/invalid-node.data
+./htest/hbal -t $TESTDATA_DIR/invalid-node.data
 >>>2 /Unknown node '.*' for instance new-0/
 >>>= !0
 
-./test/hspace -t $TESTDATA_DIR/invalid-node.data
+./htest/hspace -t $TESTDATA_DIR/invalid-node.data
 >>>2 /Unknown node '.*' for instance new-0/
 >>>= !0
 
-./test/hinfo -t $TESTDATA_DIR/invalid-node.data
+./htest/hinfo -t $TESTDATA_DIR/invalid-node.data
 >>>2 /Unknown node '.*' for instance new-0/
 >>>= !0

@@ -1,10 +1,10 @@
-./test/hbal $BACKEND_EXCL --exclude-instances no-such-instance
+./htest/hbal $BACKEND_EXCL --exclude-instances no-such-instance
 >>>2 /Unknown instance/
 >>>= !0
 
-./test/hbal $BACKEND_EXCL --select-instances no-such-instances
+./htest/hbal $BACKEND_EXCL --select-instances no-such-instances
 >>>2 /Unknown instance/
 >>>= !0
 
-./test/hbal $BACKEND_EXCL --exclude-instances new-0 --select-instances new-1
+./htest/hbal $BACKEND_EXCL --exclude-instances new-0 --select-instances new-1
 >>>= 0

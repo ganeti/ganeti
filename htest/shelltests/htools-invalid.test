@@ -1,44 +1,44 @@
 # invalid option test
-./test/hail --no-such-option
+./htest/hail --no-such-option
 >>>= 2
 
 # invalid option test
-./test/hbal --no-such-option
+./htest/hbal --no-such-option
 >>>= 2
 
 # invalid option test
-./test/hspace --no-such-option
+./htest/hspace --no-such-option
 >>>= 2
 
 # invalid option test
-./test/hscan --no-such-option
+./htest/hscan --no-such-option
 >>>= 2
 
 # invalid option test
-./test/hinfo --no-such-option
+./htest/hinfo --no-such-option
 >>>= 2
 
 # invalid option test
-./test/hcheck --no-such-option
+./htest/hcheck --no-such-option
 >>>= 2
 
 # extra arguments
-./test/hspace unexpected-argument
+./htest/hspace unexpected-argument
 >>>2
 Error: this program doesn't take any arguments.
 >>>=1
 
-./test/hbal unexpected-argument
+./htest/hbal unexpected-argument
 >>>2
 Error: this program doesn't take any arguments.
 >>>=1
 
-./test/hinfo unexpected-argument
+./htest/hinfo unexpected-argument
 >>>2
 Error: this program doesn't take any arguments.
 >>>=1
 
-./test/hcheck unexpected-argument
+./htest/hcheck unexpected-argument
 >>>2
 Error: this program doesn't take any arguments.
 >>>=1
