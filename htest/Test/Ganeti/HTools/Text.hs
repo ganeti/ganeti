@@ -26,7 +26,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 -}
 
-module Test.Ganeti.HTools.Text (testText) where
+module Test.Ganeti.HTools.Text (testHTools_Text) where
 
 import Test.QuickCheck
 
@@ -199,7 +199,7 @@ prop_CreateSerialise =
                 defGroupList ==? gl2 .&&.
                 nl' ==? nl2
 
-testSuite "Text"
+testSuite "HTools/Text"
             [ 'prop_Load_Instance
             , 'prop_Load_InstanceFail
             , 'prop_Load_Node

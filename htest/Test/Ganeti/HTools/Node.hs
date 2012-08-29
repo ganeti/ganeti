@@ -27,7 +27,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 
 module Test.Ganeti.HTools.Node
-  ( testNode
+  ( testHTools_Node
   , Node.Node(..)
   , setInstanceSmallerThanNode
   , genNode
@@ -289,7 +289,7 @@ prop_addSec_idempotent =
        Types.OpGood node' -> Node.removeSec node' inst'' ==? node
        _ -> failTest "Can't add instance"
 
-testSuite "Node"
+testSuite "HTools/Node"
             [ 'prop_setAlias
             , 'prop_setOffline
             , 'prop_setMcpu

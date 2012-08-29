@@ -26,7 +26,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 -}
 
-module Test.Ganeti.Confd.Utils (testConfdUtils) where
+module Test.Ganeti.Confd.Utils (testConfd_Utils) where
 
 import Control.Applicative
 import Test.QuickCheck
@@ -105,7 +105,7 @@ prop_bad_key salt crq =
     BasicTypes.Bad "HMAC verification failed" ==?
      Confd.Utils.parseRequest key_verify encoded
 
-testSuite "ConfdUtils"
+testSuite "Confd/Utils"
   [ 'prop_req_sign
   , 'prop_bad_key
   ]

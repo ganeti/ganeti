@@ -26,7 +26,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 -}
 
-module Test.Ganeti.HTools.Utils (testUtils) where
+module Test.Ganeti.HTools.Utils (testHTools_Utils) where
 
 import Test.QuickCheck
 
@@ -120,7 +120,7 @@ prop_parseUnit (NonNegative n) =
         n_tb = n_gb * 1000
 
 -- | Test list for the Utils module.
-testSuite "Utils"
+testSuite "HTools/Utils"
             [ 'prop_commaJoinSplit
             , 'prop_commaSplitJoin
             , 'prop_fromObjWithDefault

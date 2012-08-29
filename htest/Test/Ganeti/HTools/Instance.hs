@@ -27,7 +27,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 
 module Test.Ganeti.HTools.Instance
-  ( testInstance
+  ( testHTools_Instance
   , genInstanceSmallerThanNode
   , Instance.Instance(..)
   ) where
@@ -151,7 +151,7 @@ prop_setMovable inst m =
   Instance.movable inst' ==? m
     where inst' = Instance.setMovable inst m
 
-testSuite "Instance"
+testSuite "HTools/Instance"
             [ 'prop_creat
             , 'prop_setIdx
             , 'prop_setName

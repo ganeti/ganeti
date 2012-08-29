@@ -27,7 +27,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 
 module Test.Ganeti.HTools.Types
-  ( testTypes
+  ( testHTools_Types
   , Types.AllocPolicy(..)
   , Types.DiskTemplate(..)
   , Types.FailMode(..)
@@ -175,7 +175,7 @@ prop_eitherToResult ei =
                  Types.Ok v' -> v == v'
     where r = Types.eitherToResult ei
 
-testSuite "Types"
+testSuite "HTools/Types"
             [ 'prop_AllocPolicy_serialisation
             , 'prop_DiskTemplate_serialisation
             , 'prop_ISpec_serialisation

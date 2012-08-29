@@ -26,7 +26,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 -}
 
-module Test.Ganeti.HTools.PeerMap (testPeerMap) where
+module Test.Ganeti.HTools.PeerMap (testHTools_PeerMap) where
 
 import Test.QuickCheck
 
@@ -71,7 +71,7 @@ prop_maxElem pmap =
     where puniq = PeerMap.accumArray const pmap
 
 -- | List of tests for the PeerMap module.
-testSuite "PeerMap"
+testSuite "HTools/PeerMap"
             [ 'prop_addIdempotent
             , 'prop_removeIdempotent
             , 'prop_maxElem

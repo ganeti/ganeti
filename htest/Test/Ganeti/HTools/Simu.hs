@@ -26,7 +26,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 -}
 
-module Test.Ganeti.HTools.Simu (testSimu) where
+module Test.Ganeti.HTools.Simu (testHTools_Simu) where
 
 import Test.QuickCheck
 
@@ -92,6 +92,6 @@ prop_Load =
          map Group.iPolicy (Container.elems gl) ==?
              replicate ngroups Types.defIPolicy
 
-testSuite "Simu"
+testSuite "HTools/Simu"
             [ 'prop_Load
             ]

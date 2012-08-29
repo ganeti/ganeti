@@ -26,7 +26,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 -}
 
-module Test.Ganeti.HTools.CLI (testCLI) where
+module Test.Ganeti.HTools.CLI (testHTools_CLI) where
 
 import Test.QuickCheck
 
@@ -116,7 +116,7 @@ prop_stdopts =
       -- apply checkEarlyExit across the cartesian product of params and opts
   in conjoin [checkEarlyExit n o p | p <- params, (n, o) <- opts]
 
-testSuite "CLI"
+testSuite "HTools/CLI"
           [ 'prop_parseISpec
           , 'prop_parseISpecFail
           , 'prop_parseYesNo

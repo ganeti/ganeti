@@ -26,7 +26,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 -}
 
-module Test.Ganeti.HTools.Loader (testLoader) where
+module Test.Ganeti.HTools.Loader (testHTools_Loader) where
 
 import Test.QuickCheck
 
@@ -95,7 +95,7 @@ prop_compareNameComponent_prefix (NonEmpty s1) s2 =
   BasicTypes.compareNameComponent (s1 ++ "." ++ s2) s1 ==
     BasicTypes.LookupResult BasicTypes.PartialMatch s1
 
-testSuite "Loader"
+testSuite "HTools/Loader"
             [ 'prop_lookupNode
             , 'prop_lookupInstance
             , 'prop_assignIndices

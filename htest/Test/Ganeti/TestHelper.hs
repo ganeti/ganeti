@@ -70,10 +70,14 @@ run name =
          | casePrefix `isPrefixOf` str -> [| runCase $strE $nameE |]
          | otherwise -> fail $ "Unsupported test function name '" ++ str ++ "'"
 
+-- | Convert slashes in a name to underscores.
+mapSlashes :: String -> String
+mapSlashes = map (\c -> if c == '/' then '_' else c)
+
 -- | Builds a test suite.
 testSuite :: String -> [Name] -> Q [Dec]
 testSuite tsname tdef = do
-  let fullname = mkName $ "test" ++ tsname
+  let fullname = mkName $ "test" ++ mapSlashes tsname
   tests <- mapM run tdef
   sigtype <- [t| (String, [Test]) |]
   return [ SigD fullname sigtype

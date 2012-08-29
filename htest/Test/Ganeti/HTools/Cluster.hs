@@ -26,7 +26,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 -}
 
-module Test.Ganeti.HTools.Cluster (testCluster) where
+module Test.Ganeti.HTools.Cluster (testHTools_Cluster) where
 
 import Test.QuickCheck
 
@@ -352,7 +352,7 @@ prop_AllocPolicy node =
       nl = makeSmallCluster node' count
   in not $ canAllocOn nl rqn inst
 
-testSuite "Cluster"
+testSuite "HTools/Cluster"
             [ 'prop_Score_Zero
             , 'prop_CStats_sane
             , 'prop_Alloc_sane

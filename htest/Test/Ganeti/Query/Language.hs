@@ -27,7 +27,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 
 module Test.Ganeti.Query.Language
-  ( testQlang
+  ( testQuery_Language
   , genFilter
   ) where
 
@@ -92,7 +92,7 @@ prop_FilterRegex_instances rex =
     (J.readJSON (J.showJSON rex) ==? J.Ok rex) .&&.
   printTestCase "failed read/show instances" (read (show rex) ==? rex)
 
-testSuite "Qlang"
+testSuite "Query/Language"
   [ 'prop_Serialisation
   , 'prop_FilterRegex_instances
   ]

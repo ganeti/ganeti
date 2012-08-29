@@ -26,7 +26,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 -}
 
-module Test.Ganeti.HTools.Container (testContainer) where
+module Test.Ganeti.HTools.Container (testHTools_Container) where
 
 import Test.QuickCheck
 
@@ -79,7 +79,7 @@ prop_findByName =
      printTestCase "Found non-existing name"
        (isNothing (Container.findByName nl' othername))
 
-testSuite "Container"
+testSuite "HTools/Container"
             [ 'prop_addTwo
             , 'prop_nameOf
             , 'prop_findByName
