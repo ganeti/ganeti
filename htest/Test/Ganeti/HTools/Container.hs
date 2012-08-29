@@ -41,16 +41,16 @@ import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Node as Node
 
 -- we silence the following due to hlint bug fixed in later versions
-{-# ANN prop_Container_addTwo "HLint: ignore Avoid lambda" #-}
-prop_Container_addTwo :: [Container.Key] -> Int -> Int -> Bool
-prop_Container_addTwo cdata i1 i2 =
+{-# ANN prop_addTwo "HLint: ignore Avoid lambda" #-}
+prop_addTwo :: [Container.Key] -> Int -> Int -> Bool
+prop_addTwo cdata i1 i2 =
   fn i1 i2 cont == fn i2 i1 cont &&
   fn i1 i2 cont == fn i1 i2 (fn i1 i2 cont)
     where cont = foldl (\c x -> Container.add x x c) Container.empty cdata
           fn x1 x2 = Container.addTwo x1 x1 x2 x2
 
-prop_Container_nameOf :: Node.Node -> Property
-prop_Container_nameOf node =
+prop_nameOf :: Node.Node -> Property
+prop_nameOf node =
   let nl = makeSmallCluster node 1
       fnode = head (Container.elems nl)
   in Container.nameOf nl (Node.idx fnode) ==? Node.name fnode
@@ -58,8 +58,8 @@ prop_Container_nameOf node =
 -- | We test that in a cluster, given a random node, we can find it by
 -- its name and alias, as long as all names and aliases are unique,
 -- and that we fail to find a non-existing name.
-prop_Container_findByName :: Property
-prop_Container_findByName =
+prop_findByName :: Property
+prop_findByName =
   forAll (genNode (Just 1) Nothing) $ \node ->
   forAll (choose (1, 20)) $ \ cnt ->
   forAll (choose (0, cnt - 1)) $ \ fidx ->
@@ -80,7 +80,7 @@ prop_Container_findByName =
        (isNothing (Container.findByName nl' othername))
 
 testSuite "Container"
-            [ 'prop_Container_addTwo
-            , 'prop_Container_nameOf
-            , 'prop_Container_findByName
+            [ 'prop_addTwo
+            , 'prop_nameOf
+            , 'prop_findByName
             ]

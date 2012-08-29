@@ -81,18 +81,18 @@ instance Arbitrary Qlang.FilterRegex where
 
 -- | Tests that serialisation/deserialisation of filters is
 -- idempotent.
-prop_Qlang_Serialisation :: Property
-prop_Qlang_Serialisation =
+prop_Serialisation :: Property
+prop_Serialisation =
   forAll genFilter $ \flt ->
   J.readJSON (J.showJSON flt) ==? J.Ok flt
 
-prop_Qlang_FilterRegex_instances :: Qlang.FilterRegex -> Property
-prop_Qlang_FilterRegex_instances rex =
+prop_FilterRegex_instances :: Qlang.FilterRegex -> Property
+prop_FilterRegex_instances rex =
   printTestCase "failed JSON encoding"
     (J.readJSON (J.showJSON rex) ==? J.Ok rex) .&&.
   printTestCase "failed read/show instances" (read (show rex) ==? rex)
 
 testSuite "Qlang"
-  [ 'prop_Qlang_Serialisation
-  , 'prop_Qlang_FilterRegex_instances
+  [ 'prop_Serialisation
+  , 'prop_FilterRegex_instances
   ]

@@ -64,13 +64,13 @@ instance Arbitrary Confd.ConfdRequest where
 -- | Test that signing messages and checking signatures is correct. It
 -- also tests, indirectly the serialisation of messages so we don't
 -- need a separate test for that.
-prop_ConfdUtils_req_sign :: Hash.HashKey        -- ^ The hash key
-                    -> NonNegative Integer -- ^ The base timestamp
-                    -> Positive Integer    -- ^ Delta for out of window
-                    -> Bool                -- ^ Whether delta should be + or -
-                    -> Confd.ConfdRequest
-                    -> Property
-prop_ConfdUtils_req_sign key (NonNegative timestamp) (Positive bad_delta)
+prop_req_sign :: Hash.HashKey        -- ^ The hash key
+              -> NonNegative Integer -- ^ The base timestamp
+              -> Positive Integer    -- ^ Delta for out of window
+              -> Bool                -- ^ Whether delta should be + or -
+              -> Confd.ConfdRequest
+              -> Property
+prop_req_sign key (NonNegative timestamp) (Positive bad_delta)
                          pm crq =
   forAll (choose (0, fromIntegral C.confdMaxClockSkew)) $ \ good_delta ->
   let encoded = J.encode crq
@@ -89,10 +89,10 @@ prop_ConfdUtils_req_sign key (NonNegative timestamp) (Positive bad_delta)
 
 -- | Tests that signing with a different key fails detects failure
 -- correctly.
-prop_ConfdUtils_bad_key :: String             -- ^ Salt
-                   -> Confd.ConfdRequest -- ^ Request
-                   -> Property
-prop_ConfdUtils_bad_key salt crq =
+prop_bad_key :: String             -- ^ Salt
+             -> Confd.ConfdRequest -- ^ Request
+             -> Property
+prop_bad_key salt crq =
   -- fixme: we hardcode here the expected length of a sha1 key, as
   -- otherwise we could have two short keys that differ only in the
   -- final zero elements count, and those will be expanded to be the
@@ -106,6 +106,6 @@ prop_ConfdUtils_bad_key salt crq =
      Confd.Utils.parseRequest key_verify encoded
 
 testSuite "ConfdUtils"
-  [ 'prop_ConfdUtils_req_sign
-  , 'prop_ConfdUtils_bad_key
+  [ 'prop_req_sign
+  , 'prop_bad_key
   ]

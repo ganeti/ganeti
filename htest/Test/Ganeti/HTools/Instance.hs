@@ -72,98 +72,98 @@ instance Arbitrary Instance.Instance where
 
 -- Simple instance tests, we only have setter/getters
 
-prop_Instance_creat :: Instance.Instance -> Property
-prop_Instance_creat inst =
+prop_creat :: Instance.Instance -> Property
+prop_creat inst =
   Instance.name inst ==? Instance.alias inst
 
-prop_Instance_setIdx :: Instance.Instance -> Types.Idx -> Property
-prop_Instance_setIdx inst idx =
+prop_setIdx :: Instance.Instance -> Types.Idx -> Property
+prop_setIdx inst idx =
   Instance.idx (Instance.setIdx inst idx) ==? idx
 
-prop_Instance_setName :: Instance.Instance -> String -> Bool
-prop_Instance_setName inst name =
+prop_setName :: Instance.Instance -> String -> Bool
+prop_setName inst name =
   Instance.name newinst == name &&
   Instance.alias newinst == name
     where newinst = Instance.setName inst name
 
-prop_Instance_setAlias :: Instance.Instance -> String -> Bool
-prop_Instance_setAlias inst name =
+prop_setAlias :: Instance.Instance -> String -> Bool
+prop_setAlias inst name =
   Instance.name newinst == Instance.name inst &&
   Instance.alias newinst == name
     where newinst = Instance.setAlias inst name
 
-prop_Instance_setPri :: Instance.Instance -> Types.Ndx -> Property
-prop_Instance_setPri inst pdx =
+prop_setPri :: Instance.Instance -> Types.Ndx -> Property
+prop_setPri inst pdx =
   Instance.pNode (Instance.setPri inst pdx) ==? pdx
 
-prop_Instance_setSec :: Instance.Instance -> Types.Ndx -> Property
-prop_Instance_setSec inst sdx =
+prop_setSec :: Instance.Instance -> Types.Ndx -> Property
+prop_setSec inst sdx =
   Instance.sNode (Instance.setSec inst sdx) ==? sdx
 
-prop_Instance_setBoth :: Instance.Instance -> Types.Ndx -> Types.Ndx -> Bool
-prop_Instance_setBoth inst pdx sdx =
+prop_setBoth :: Instance.Instance -> Types.Ndx -> Types.Ndx -> Bool
+prop_setBoth inst pdx sdx =
   Instance.pNode si == pdx && Instance.sNode si == sdx
     where si = Instance.setBoth inst pdx sdx
 
-prop_Instance_shrinkMG :: Instance.Instance -> Property
-prop_Instance_shrinkMG inst =
+prop_shrinkMG :: Instance.Instance -> Property
+prop_shrinkMG inst =
   Instance.mem inst >= 2 * Types.unitMem ==>
     case Instance.shrinkByType inst Types.FailMem of
       Types.Ok inst' -> Instance.mem inst' == Instance.mem inst - Types.unitMem
       _ -> False
 
-prop_Instance_shrinkMF :: Instance.Instance -> Property
-prop_Instance_shrinkMF inst =
+prop_shrinkMF :: Instance.Instance -> Property
+prop_shrinkMF inst =
   forAll (choose (0, 2 * Types.unitMem - 1)) $ \mem ->
     let inst' = inst { Instance.mem = mem}
     in Types.isBad $ Instance.shrinkByType inst' Types.FailMem
 
-prop_Instance_shrinkCG :: Instance.Instance -> Property
-prop_Instance_shrinkCG inst =
+prop_shrinkCG :: Instance.Instance -> Property
+prop_shrinkCG inst =
   Instance.vcpus inst >= 2 * Types.unitCpu ==>
     case Instance.shrinkByType inst Types.FailCPU of
       Types.Ok inst' ->
         Instance.vcpus inst' == Instance.vcpus inst - Types.unitCpu
       _ -> False
 
-prop_Instance_shrinkCF :: Instance.Instance -> Property
-prop_Instance_shrinkCF inst =
+prop_shrinkCF :: Instance.Instance -> Property
+prop_shrinkCF inst =
   forAll (choose (0, 2 * Types.unitCpu - 1)) $ \vcpus ->
     let inst' = inst { Instance.vcpus = vcpus }
     in Types.isBad $ Instance.shrinkByType inst' Types.FailCPU
 
-prop_Instance_shrinkDG :: Instance.Instance -> Property
-prop_Instance_shrinkDG inst =
+prop_shrinkDG :: Instance.Instance -> Property
+prop_shrinkDG inst =
   Instance.dsk inst >= 2 * Types.unitDsk ==>
     case Instance.shrinkByType inst Types.FailDisk of
       Types.Ok inst' ->
         Instance.dsk inst' == Instance.dsk inst - Types.unitDsk
       _ -> False
 
-prop_Instance_shrinkDF :: Instance.Instance -> Property
-prop_Instance_shrinkDF inst =
+prop_shrinkDF :: Instance.Instance -> Property
+prop_shrinkDF inst =
   forAll (choose (0, 2 * Types.unitDsk - 1)) $ \dsk ->
     let inst' = inst { Instance.dsk = dsk }
     in Types.isBad $ Instance.shrinkByType inst' Types.FailDisk
 
-prop_Instance_setMovable :: Instance.Instance -> Bool -> Property
-prop_Instance_setMovable inst m =
+prop_setMovable :: Instance.Instance -> Bool -> Property
+prop_setMovable inst m =
   Instance.movable inst' ==? m
     where inst' = Instance.setMovable inst m
 
 testSuite "Instance"
-            [ 'prop_Instance_creat
-            , 'prop_Instance_setIdx
-            , 'prop_Instance_setName
-            , 'prop_Instance_setAlias
-            , 'prop_Instance_setPri
-            , 'prop_Instance_setSec
-            , 'prop_Instance_setBoth
-            , 'prop_Instance_shrinkMG
-            , 'prop_Instance_shrinkMF
-            , 'prop_Instance_shrinkCG
-            , 'prop_Instance_shrinkCF
-            , 'prop_Instance_shrinkDG
-            , 'prop_Instance_shrinkDF
-            , 'prop_Instance_setMovable
+            [ 'prop_creat
+            , 'prop_setIdx
+            , 'prop_setName
+            , 'prop_setAlias
+            , 'prop_setPri
+            , 'prop_setSec
+            , 'prop_setBoth
+            , 'prop_shrinkMG
+            , 'prop_shrinkMF
+            , 'prop_shrinkCG
+            , 'prop_shrinkCF
+            , 'prop_shrinkDG
+            , 'prop_shrinkDF
+            , 'prop_setMovable
             ]

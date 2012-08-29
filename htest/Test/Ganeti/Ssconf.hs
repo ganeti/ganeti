@@ -41,11 +41,11 @@ import qualified Ganeti.Ssconf as Ssconf
 instance Arbitrary Ssconf.SSKey where
   arbitrary = elements [minBound..maxBound]
 
-prop_Ssconf_filename :: Ssconf.SSKey -> Property
-prop_Ssconf_filename key =
+prop_filename :: Ssconf.SSKey -> Property
+prop_filename key =
   printTestCase "Key doesn't start with correct prefix" $
     Ssconf.sSFilePrefix `isPrefixOf` Ssconf.keyToFilename (Just "") key
 
 testSuite "Ssconf"
-  [ 'prop_Ssconf_filename
+  [ 'prop_filename
   ]

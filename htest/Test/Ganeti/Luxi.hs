@@ -86,8 +86,8 @@ instance Arbitrary Luxi.LuxiOp where
       Luxi.ReqSetWatcherPause -> Luxi.SetWatcherPause <$> arbitrary
 
 -- | Simple check that encoding/decoding of LuxiOp works.
-prop_Luxi_CallEncoding :: Luxi.LuxiOp -> Property
-prop_Luxi_CallEncoding op =
+prop_CallEncoding :: Luxi.LuxiOp -> Property
+prop_CallEncoding op =
   (Luxi.validateCall (Luxi.buildCall op) >>= Luxi.decodeCall) ==? Ok op
 
 -- | Helper to a get a temporary file name.
@@ -115,8 +115,8 @@ luxiClientPong c =
 -- | Monadic check that, given a server socket, we can connect via a
 -- client to it, and that we can send a list of arbitrary messages and
 -- get back what we sent.
-prop_Luxi_ClientServer :: [[DNSChar]] -> Property
-prop_Luxi_ClientServer dnschars = monadicIO $ do
+prop_ClientServer :: [[DNSChar]] -> Property
+prop_ClientServer dnschars = monadicIO $ do
   let msgs = map (map dnsGetChar) dnschars
   fpath <- run $ getTempFileName
   -- we need to create the server first, otherwise (if we do it in the
@@ -137,6 +137,6 @@ prop_Luxi_ClientServer dnschars = monadicIO $ do
   stop $ replies ==? msgs
 
 testSuite "Luxi"
-          [ 'prop_Luxi_CallEncoding
-          , 'prop_Luxi_ClientServer
+          [ 'prop_CallEncoding
+          , 'prop_ClientServer
           ]

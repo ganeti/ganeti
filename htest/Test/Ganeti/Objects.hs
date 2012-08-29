@@ -55,8 +55,8 @@ instance Arbitrary Objects.Node where
               <*> (Set.fromList <$> genTags)
 
 -- | Tests that fillDict behaves correctly
-prop_Objects_fillDict :: [(Int, Int)] -> [(Int, Int)] -> Property
-prop_Objects_fillDict defaults custom =
+prop_fillDict :: [(Int, Int)] -> [(Int, Int)] -> Property
+prop_fillDict defaults custom =
   let d_map = Map.fromList defaults
       d_keys = map fst defaults
       c_map = Map.fromList custom
@@ -69,5 +69,5 @@ prop_Objects_fillDict defaults custom =
       (Objects.fillDict d_map c_map (d_keys++c_keys) == Map.empty)
 
 testSuite "Objects"
-  [ 'prop_Objects_fillDict
+  [ 'prop_fillDict
   ]

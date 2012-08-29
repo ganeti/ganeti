@@ -43,14 +43,14 @@ import qualified Ganeti.HTools.Program as Program
 import qualified Ganeti.HTools.Types as Types
 
 -- | Test correct parsing.
-prop_CLI_parseISpec :: String -> Int -> Int -> Int -> Property
-prop_CLI_parseISpec descr dsk mem cpu =
+prop_parseISpec :: String -> Int -> Int -> Int -> Property
+prop_parseISpec descr dsk mem cpu =
   let str = printf "%d,%d,%d" dsk mem cpu::String
   in CLI.parseISpecString descr str ==? Types.Ok (Types.RSpec cpu mem dsk)
 
 -- | Test parsing failure due to wrong section count.
-prop_CLI_parseISpecFail :: String -> Property
-prop_CLI_parseISpecFail descr =
+prop_parseISpecFail :: String -> Property
+prop_parseISpecFail descr =
   forAll (choose (0,100) `suchThat` ((/=) 3)) $ \nelems ->
   forAll (replicateM nelems arbitrary) $ \values ->
   let str = intercalate "," $ map show (values::[Int])
@@ -59,8 +59,8 @@ prop_CLI_parseISpecFail descr =
        _ -> property True
 
 -- | Test parseYesNo.
-prop_CLI_parseYesNo :: Bool -> Bool -> [Char] -> Property
-prop_CLI_parseYesNo def testval val =
+prop_parseYesNo :: Bool -> Bool -> [Char] -> Property
+prop_parseYesNo def testval val =
   forAll (elements [val, "yes", "no"]) $ \actual_val ->
   if testval
     then CLI.parseYesNo def Nothing ==? Types.Ok def
@@ -84,8 +84,8 @@ checkStringArg val (opt, fn) =
            Right (options, _) -> fn options ==? Just val
 
 -- | Test a few string arguments.
-prop_CLI_StringArg :: [Char] -> Property
-prop_CLI_StringArg argument =
+prop_StringArg :: [Char] -> Property
+prop_StringArg argument =
   let args = [ (CLI.oDataFile,      CLI.optDataFile)
              , (CLI.oDynuFile,      CLI.optDynuFile)
              , (CLI.oSaveCluster,   CLI.optSaveCluster)
@@ -109,17 +109,17 @@ checkEarlyExit name options param =
 
 -- | Test that all binaries support some common options. There is
 -- nothing actually random about this test...
-prop_CLI_stdopts :: Property
-prop_CLI_stdopts =
+prop_stdopts :: Property
+prop_stdopts =
   let params = ["-h", "--help", "-V", "--version"]
       opts = map (\(name, (_, o)) -> (name, o)) Program.personalities
       -- apply checkEarlyExit across the cartesian product of params and opts
   in conjoin [checkEarlyExit n o p | p <- params, (n, o) <- opts]
 
 testSuite "CLI"
-          [ 'prop_CLI_parseISpec
-          , 'prop_CLI_parseISpecFail
-          , 'prop_CLI_parseYesNo
-          , 'prop_CLI_StringArg
-          , 'prop_CLI_stdopts
+          [ 'prop_parseISpec
+          , 'prop_parseISpecFail
+          , 'prop_parseYesNo
+          , 'prop_StringArg
+          , 'prop_stdopts
           ]

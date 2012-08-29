@@ -44,18 +44,18 @@ import qualified Ganeti.HTools.Loader as Loader
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Types as Types
 
-prop_Loader_lookupNode :: [(String, Int)] -> String -> String -> Property
-prop_Loader_lookupNode ktn inst node =
+prop_lookupNode :: [(String, Int)] -> String -> String -> Property
+prop_lookupNode ktn inst node =
   Loader.lookupNode nl inst node ==? Map.lookup node nl
     where nl = Map.fromList ktn
 
-prop_Loader_lookupInstance :: [(String, Int)] -> String -> Property
-prop_Loader_lookupInstance kti inst =
+prop_lookupInstance :: [(String, Int)] -> String -> Property
+prop_lookupInstance kti inst =
   Loader.lookupInstance il inst ==? Map.lookup inst il
     where il = Map.fromList kti
 
-prop_Loader_assignIndices :: Property
-prop_Loader_assignIndices =
+prop_assignIndices :: Property
+prop_assignIndices =
   -- generate nodes with unique names
   forAll (arbitrary `suchThat`
           (\nodes ->
@@ -71,8 +71,8 @@ prop_Loader_assignIndices =
 
 -- | Checks that the number of primary instances recorded on the nodes
 -- is zero.
-prop_Loader_mergeData :: [Node.Node] -> Bool
-prop_Loader_mergeData ns =
+prop_mergeData :: [Node.Node] -> Bool
+prop_mergeData ns =
   let na = Container.fromList $ map (\n -> (Node.idx n, n)) ns
   in case Loader.mergeData [] [] [] []
          (Loader.emptyCluster {Loader.cdNodes = na}) of
@@ -84,22 +84,22 @@ prop_Loader_mergeData ns =
          null instances
 
 -- | Check that compareNameComponent on equal strings works.
-prop_Loader_compareNameComponent_equal :: String -> Bool
-prop_Loader_compareNameComponent_equal s =
+prop_compareNameComponent_equal :: String -> Bool
+prop_compareNameComponent_equal s =
   BasicTypes.compareNameComponent s s ==
     BasicTypes.LookupResult BasicTypes.ExactMatch s
 
 -- | Check that compareNameComponent on prefix strings works.
-prop_Loader_compareNameComponent_prefix :: NonEmptyList Char -> String -> Bool
-prop_Loader_compareNameComponent_prefix (NonEmpty s1) s2 =
+prop_compareNameComponent_prefix :: NonEmptyList Char -> String -> Bool
+prop_compareNameComponent_prefix (NonEmpty s1) s2 =
   BasicTypes.compareNameComponent (s1 ++ "." ++ s2) s1 ==
     BasicTypes.LookupResult BasicTypes.PartialMatch s1
 
 testSuite "Loader"
-            [ 'prop_Loader_lookupNode
-            , 'prop_Loader_lookupInstance
-            , 'prop_Loader_assignIndices
-            , 'prop_Loader_mergeData
-            , 'prop_Loader_compareNameComponent_equal
-            , 'prop_Loader_compareNameComponent_prefix
+            [ 'prop_lookupNode
+            , 'prop_lookupInstance
+            , 'prop_assignIndices
+            , 'prop_mergeData
+            , 'prop_compareNameComponent_equal
+            , 'prop_compareNameComponent_prefix
             ]

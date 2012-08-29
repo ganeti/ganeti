@@ -47,21 +47,21 @@ genNonCommaString = do
 
 -- | If the list is not just an empty element, and if the elements do
 -- not contain commas, then join+split should be idempotent.
-prop_Utils_commaJoinSplit :: Property
-prop_Utils_commaJoinSplit =
+prop_commaJoinSplit :: Property
+prop_commaJoinSplit =
   forAll (choose (0, 20)) $ \llen ->
   forAll (vectorOf llen genNonCommaString `suchThat` ((/=) [""])) $ \lst ->
   Utils.sepSplit ',' (Utils.commaJoin lst) ==? lst
 
 -- | Split and join should always be idempotent.
-prop_Utils_commaSplitJoin :: [Char] -> Property
-prop_Utils_commaSplitJoin s =
+prop_commaSplitJoin :: [Char] -> Property
+prop_commaSplitJoin s =
   Utils.commaJoin (Utils.sepSplit ',' s) ==? s
 
 -- | fromObjWithDefault, we test using the Maybe monad and an integer
 -- value.
-prop_Utils_fromObjWithDefault :: Integer -> String -> Bool
-prop_Utils_fromObjWithDefault def_value random_key =
+prop_fromObjWithDefault :: Integer -> String -> Bool
+prop_fromObjWithDefault def_value random_key =
   -- a missing key will be returned with the default
   JSON.fromObjWithDefault [] random_key def_value == Just def_value &&
   -- a found key will be returned as is, not with default
@@ -69,42 +69,42 @@ prop_Utils_fromObjWithDefault def_value random_key =
        random_key (def_value+1) == Just def_value
 
 -- | Test that functional if' behaves like the syntactic sugar if.
-prop_Utils_if'if :: Bool -> Int -> Int -> Gen Prop
-prop_Utils_if'if cnd a b =
+prop_if'if :: Bool -> Int -> Int -> Gen Prop
+prop_if'if cnd a b =
   Utils.if' cnd a b ==? if cnd then a else b
 
 -- | Test basic select functionality
-prop_Utils_select :: Int      -- ^ Default result
-                  -> [Int]    -- ^ List of False values
-                  -> [Int]    -- ^ List of True values
-                  -> Gen Prop -- ^ Test result
-prop_Utils_select def lst1 lst2 =
+prop_select :: Int      -- ^ Default result
+            -> [Int]    -- ^ List of False values
+            -> [Int]    -- ^ List of True values
+            -> Gen Prop -- ^ Test result
+prop_select def lst1 lst2 =
   Utils.select def (flist ++ tlist) ==? expectedresult
     where expectedresult = Utils.if' (null lst2) def (head lst2)
           flist = zip (repeat False) lst1
           tlist = zip (repeat True)  lst2
 
 -- | Test basic select functionality with undefined default
-prop_Utils_select_undefd :: [Int]            -- ^ List of False values
-                         -> NonEmptyList Int -- ^ List of True values
-                         -> Gen Prop         -- ^ Test result
-prop_Utils_select_undefd lst1 (NonEmpty lst2) =
+prop_select_undefd :: [Int]            -- ^ List of False values
+                   -> NonEmptyList Int -- ^ List of True values
+                   -> Gen Prop         -- ^ Test result
+prop_select_undefd lst1 (NonEmpty lst2) =
   Utils.select undefined (flist ++ tlist) ==? head lst2
     where flist = zip (repeat False) lst1
           tlist = zip (repeat True)  lst2
 
 -- | Test basic select functionality with undefined list values
-prop_Utils_select_undefv :: [Int]            -- ^ List of False values
-                         -> NonEmptyList Int -- ^ List of True values
-                         -> Gen Prop         -- ^ Test result
-prop_Utils_select_undefv lst1 (NonEmpty lst2) =
+prop_select_undefv :: [Int]            -- ^ List of False values
+                   -> NonEmptyList Int -- ^ List of True values
+                   -> Gen Prop         -- ^ Test result
+prop_select_undefv lst1 (NonEmpty lst2) =
   Utils.select undefined cndlist ==? head lst2
     where flist = zip (repeat False) lst1
           tlist = zip (repeat True)  lst2
           cndlist = flist ++ tlist ++ [undefined]
 
-prop_Utils_parseUnit :: NonNegative Int -> Property
-prop_Utils_parseUnit (NonNegative n) =
+prop_parseUnit :: NonNegative Int -> Property
+prop_parseUnit (NonNegative n) =
   Utils.parseUnit (show n) ==? Types.Ok n .&&.
   Utils.parseUnit (show n ++ "m") ==? Types.Ok n .&&.
   Utils.parseUnit (show n ++ "M") ==? Types.Ok (truncate n_mb::Int) .&&.
@@ -121,12 +121,12 @@ prop_Utils_parseUnit (NonNegative n) =
 
 -- | Test list for the Utils module.
 testSuite "Utils"
-            [ 'prop_Utils_commaJoinSplit
-            , 'prop_Utils_commaSplitJoin
-            , 'prop_Utils_fromObjWithDefault
-            , 'prop_Utils_if'if
-            , 'prop_Utils_select
-            , 'prop_Utils_select_undefd
-            , 'prop_Utils_select_undefv
-            , 'prop_Utils_parseUnit
+            [ 'prop_commaJoinSplit
+            , 'prop_commaSplitJoin
+            , 'prop_fromObjWithDefault
+            , 'prop_if'if
+            , 'prop_select
+            , 'prop_select_undefd
+            , 'prop_select_undefv
+            , 'prop_parseUnit
             ]

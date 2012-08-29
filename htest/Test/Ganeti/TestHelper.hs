@@ -38,35 +38,43 @@ import Test.HUnit (Assertion)
 import Test.QuickCheck
 import Language.Haskell.TH
 
+-- | Test property prefix.
+propPrefix :: String
+propPrefix = "prop_"
+
+-- | Test case prefix.
+casePrefix :: String
+casePrefix = "case_"
+
 -- | Tries to drop a prefix from a string.
 simplifyName :: String -> String -> String
 simplifyName pfx string = fromMaybe string (stripPrefix pfx string)
 
 -- | Builds a test from a QuickCheck property.
-runQC :: Testable prop => String -> String -> prop -> Test
-runQC pfx name = testProperty (simplifyName ("prop_" ++ pfx ++ "_") name)
+runProp :: Testable prop => String -> prop -> Test
+runProp = testProperty . simplifyName propPrefix
 
 -- | Builds a test for a HUnit test case.
-runHUnit :: String -> String -> Assertion -> Test
-runHUnit pfx name = testCase (simplifyName ("case_" ++ pfx ++ "_") name)
+runCase :: String -> Assertion -> Test
+runCase = testCase . simplifyName casePrefix
 
 -- | Runs the correct test provider for a given test, based on its
 -- name (not very nice, but...).
-run :: String -> Name -> Q Exp
-run tsname name =
+run :: Name -> Q Exp
+run name =
   let str = nameBase name
       nameE = varE name
       strE = litE (StringL str)
   in case () of
-       _ | "prop_" `isPrefixOf` str -> [| runQC tsname $strE $nameE |]
-         | "case_" `isPrefixOf` str -> [| runHUnit tsname $strE $nameE |]
+       _ | propPrefix `isPrefixOf` str -> [| runProp $strE $nameE |]
+         | casePrefix `isPrefixOf` str -> [| runCase $strE $nameE |]
          | otherwise -> fail $ "Unsupported test function name '" ++ str ++ "'"
 
 -- | Builds a test suite.
 testSuite :: String -> [Name] -> Q [Dec]
 testSuite tsname tdef = do
   let fullname = mkName $ "test" ++ tsname
-  tests <- mapM (run tsname) tdef
+  tests <- mapM run tdef
   sigtype <- [t| (String, [Test]) |]
   return [ SigD fullname sigtype
          , ValD (VarP fullname) (NormalB (TupE [LitE (StringL tsname),

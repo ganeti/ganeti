@@ -48,19 +48,19 @@ instance Arbitrary Jobs.JobStatus where
 -- * Test cases
 
 -- | Check that (queued) job\/opcode status serialization is idempotent.
-prop_Jobs_OpStatus_serialization :: Jobs.OpStatus -> Property
-prop_Jobs_OpStatus_serialization os =
+prop_OpStatus_serialization :: Jobs.OpStatus -> Property
+prop_OpStatus_serialization os =
   case J.readJSON (J.showJSON os) of
     J.Error e -> failTest $ "Cannot deserialise: " ++ e
     J.Ok os' -> os ==? os'
 
-prop_Jobs_JobStatus_serialization :: Jobs.JobStatus -> Property
-prop_Jobs_JobStatus_serialization js =
+prop_JobStatus_serialization :: Jobs.JobStatus -> Property
+prop_JobStatus_serialization js =
   case J.readJSON (J.showJSON js) of
     J.Error e -> failTest $ "Cannot deserialise: " ++ e
     J.Ok js' -> js ==? js'
 
 testSuite "Jobs"
-            [ 'prop_Jobs_OpStatus_serialization
-            , 'prop_Jobs_JobStatus_serialization
+            [ 'prop_OpStatus_serialization
+            , 'prop_JobStatus_serialization
             ]

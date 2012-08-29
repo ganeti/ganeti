@@ -73,15 +73,15 @@ instance Arbitrary OpCodes.OpCode where
 -- * Test cases
 
 -- | Check that opcode serialization is idempotent.
-prop_OpCodes_serialization :: OpCodes.OpCode -> Property
-prop_OpCodes_serialization op =
+prop_serialization :: OpCodes.OpCode -> Property
+prop_serialization op =
   case J.readJSON (J.showJSON op) of
     J.Error e -> failTest $ "Cannot deserialise: " ++ e
     J.Ok op' -> op ==? op'
 
 -- | Check that Python and Haskell defined the same opcode list.
-case_OpCodes_AllDefined :: HUnit.Assertion
-case_OpCodes_AllDefined = do
+case_AllDefined :: HUnit.Assertion
+case_AllDefined = do
   py_stdout <- runPython "from ganeti import opcodes\n\
                          \print '\\n'.join(opcodes.OP_MAPPING.keys())" "" >>=
                checkPythonResult
@@ -111,8 +111,8 @@ case_OpCodes_AllDefined = do
 -- a better way to do this, for example by having a
 -- separately-launched Python process (if not running the tests would
 -- be skipped).
-case_OpCodes_py_compat :: HUnit.Assertion
-case_OpCodes_py_compat = do
+case_py_compat :: HUnit.Assertion
+case_py_compat = do
   let num_opcodes = length OpCodes.allOpIDs * 500
   sample_opcodes <- sample' (vectorOf num_opcodes
                              (arbitrary::Gen OpCodes.OpCode))
@@ -143,7 +143,7 @@ case_OpCodes_py_compat = do
         ) $ zip opcodes decoded
 
 testSuite "OpCodes"
-            [ 'prop_OpCodes_serialization
-            , 'case_OpCodes_AllDefined
-            , 'case_OpCodes_py_compat
+            [ 'prop_serialization
+            , 'case_AllDefined
+            , 'case_py_compat
             ]

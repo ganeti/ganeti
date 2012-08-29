@@ -36,45 +36,45 @@ import Test.Ganeti.TestCommon
 import qualified Ganeti.HTools.PeerMap as PeerMap
 
 -- | Make sure add is idempotent.
-prop_PeerMap_addIdempotent :: PeerMap.PeerMap
-                           -> PeerMap.Key -> PeerMap.Elem -> Property
-prop_PeerMap_addIdempotent pmap key em =
+prop_addIdempotent :: PeerMap.PeerMap
+                   -> PeerMap.Key -> PeerMap.Elem -> Property
+prop_addIdempotent pmap key em =
   fn puniq ==? fn (fn puniq)
     where fn = PeerMap.add key em
           puniq = PeerMap.accumArray const pmap
 
 -- | Make sure remove is idempotent.
-prop_PeerMap_removeIdempotent :: PeerMap.PeerMap -> PeerMap.Key -> Property
-prop_PeerMap_removeIdempotent pmap key =
+prop_removeIdempotent :: PeerMap.PeerMap -> PeerMap.Key -> Property
+prop_removeIdempotent pmap key =
   fn puniq ==? fn (fn puniq)
     where fn = PeerMap.remove key
           puniq = PeerMap.accumArray const pmap
 
 -- | Make sure a missing item returns 0.
-prop_PeerMap_findMissing :: PeerMap.PeerMap -> PeerMap.Key -> Property
-prop_PeerMap_findMissing pmap key =
+prop_findMissing :: PeerMap.PeerMap -> PeerMap.Key -> Property
+prop_findMissing pmap key =
   PeerMap.find key (PeerMap.remove key puniq) ==? 0
     where puniq = PeerMap.accumArray const pmap
 
 -- | Make sure an added item is found.
-prop_PeerMap_addFind :: PeerMap.PeerMap
+prop_addFind :: PeerMap.PeerMap
                      -> PeerMap.Key -> PeerMap.Elem -> Property
-prop_PeerMap_addFind pmap key em =
+prop_addFind pmap key em =
   PeerMap.find key (PeerMap.add key em puniq) ==? em
     where puniq = PeerMap.accumArray const pmap
 
 -- | Manual check that maxElem returns the maximum indeed, or 0 for null.
-prop_PeerMap_maxElem :: PeerMap.PeerMap -> Property
-prop_PeerMap_maxElem pmap =
+prop_maxElem :: PeerMap.PeerMap -> Property
+prop_maxElem pmap =
   PeerMap.maxElem puniq ==? if null puniq then 0
                               else (maximum . snd . unzip) puniq
     where puniq = PeerMap.accumArray const pmap
 
 -- | List of tests for the PeerMap module.
 testSuite "PeerMap"
-            [ 'prop_PeerMap_addIdempotent
-            , 'prop_PeerMap_removeIdempotent
-            , 'prop_PeerMap_maxElem
-            , 'prop_PeerMap_addFind
-            , 'prop_PeerMap_findMissing
+            [ 'prop_addIdempotent
+            , 'prop_removeIdempotent
+            , 'prop_maxElem
+            , 'prop_addFind
+            , 'prop_findMissing
             ]

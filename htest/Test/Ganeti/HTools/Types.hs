@@ -127,38 +127,38 @@ instance Arbitrary Types.IPolicy where
 
 -- * Test cases
 
-prop_Types_AllocPolicy_serialisation :: Types.AllocPolicy -> Property
-prop_Types_AllocPolicy_serialisation apol =
+prop_AllocPolicy_serialisation :: Types.AllocPolicy -> Property
+prop_AllocPolicy_serialisation apol =
   case J.readJSON (J.showJSON apol) of
     J.Ok p -> p ==? apol
     J.Error s -> failTest $ "Failed to deserialise: " ++ s
 
-prop_Types_DiskTemplate_serialisation :: Types.DiskTemplate -> Property
-prop_Types_DiskTemplate_serialisation dt =
+prop_DiskTemplate_serialisation :: Types.DiskTemplate -> Property
+prop_DiskTemplate_serialisation dt =
   case J.readJSON (J.showJSON dt) of
     J.Ok p -> p ==? dt
     J.Error s -> failTest $ "Failed to deserialise: " ++ s
 
-prop_Types_ISpec_serialisation :: Types.ISpec -> Property
-prop_Types_ISpec_serialisation ispec =
+prop_ISpec_serialisation :: Types.ISpec -> Property
+prop_ISpec_serialisation ispec =
   case J.readJSON (J.showJSON ispec) of
     J.Ok p -> p ==? ispec
     J.Error s -> failTest $ "Failed to deserialise: " ++ s
 
-prop_Types_IPolicy_serialisation :: Types.IPolicy -> Property
-prop_Types_IPolicy_serialisation ipol =
+prop_IPolicy_serialisation :: Types.IPolicy -> Property
+prop_IPolicy_serialisation ipol =
   case J.readJSON (J.showJSON ipol) of
     J.Ok p -> p ==? ipol
     J.Error s -> failTest $ "Failed to deserialise: " ++ s
 
-prop_Types_EvacMode_serialisation :: Types.EvacMode -> Property
-prop_Types_EvacMode_serialisation em =
+prop_EvacMode_serialisation :: Types.EvacMode -> Property
+prop_EvacMode_serialisation em =
   case J.readJSON (J.showJSON em) of
     J.Ok p -> p ==? em
     J.Error s -> failTest $ "Failed to deserialise: " ++ s
 
-prop_Types_opToResult :: Types.OpResult Int -> Bool
-prop_Types_opToResult op =
+prop_opToResult :: Types.OpResult Int -> Bool
+prop_opToResult op =
   case op of
     Types.OpFail _ -> Types.isBad r
     Types.OpGood v -> case r of
@@ -166,8 +166,8 @@ prop_Types_opToResult op =
                         Types.Ok v' -> v == v'
   where r = Types.opToResult op
 
-prop_Types_eitherToResult :: Either String Int -> Bool
-prop_Types_eitherToResult ei =
+prop_eitherToResult :: Either String Int -> Bool
+prop_eitherToResult ei =
   case ei of
     Left _ -> Types.isBad r
     Right v -> case r of
@@ -176,11 +176,11 @@ prop_Types_eitherToResult ei =
     where r = Types.eitherToResult ei
 
 testSuite "Types"
-            [ 'prop_Types_AllocPolicy_serialisation
-            , 'prop_Types_DiskTemplate_serialisation
-            , 'prop_Types_ISpec_serialisation
-            , 'prop_Types_IPolicy_serialisation
-            , 'prop_Types_EvacMode_serialisation
-            , 'prop_Types_opToResult
-            , 'prop_Types_eitherToResult
+            [ 'prop_AllocPolicy_serialisation
+            , 'prop_DiskTemplate_serialisation
+            , 'prop_ISpec_serialisation
+            , 'prop_IPolicy_serialisation
+            , 'prop_EvacMode_serialisation
+            , 'prop_opToResult
+            , 'prop_eitherToResult
             ]

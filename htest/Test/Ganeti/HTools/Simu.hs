@@ -62,8 +62,8 @@ genSimuSpec = do
 
 -- | Checks that given a set of corrects specs, we can load them
 -- successfully, and that at high-level the values look right.
-prop_Simu_Load :: Property
-prop_Simu_Load =
+prop_Load :: Property
+prop_Load =
   forAll (choose (0, 10)) $ \ngroups ->
   forAll (replicateM ngroups genSimuSpec) $ \specs ->
   let strspecs = map (\(p, n, d, m, c) -> printf "%s,%d,%d,%d,%d"
@@ -93,5 +93,5 @@ prop_Simu_Load =
              replicate ngroups Types.defIPolicy
 
 testSuite "Simu"
-            [ 'prop_Simu_Load
+            [ 'prop_Load
             ]

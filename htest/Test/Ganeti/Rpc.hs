@@ -53,26 +53,26 @@ instance Arbitrary Rpc.RpcCallNodeInfo where
 -- offline nodes, we get a OfflineNodeError response.
 -- FIXME: We need a way of generalizing this, running it for
 -- every call manually will soon get problematic
-prop_Rpc_noffl_request_allinstinfo :: Rpc.RpcCallAllInstancesInfo -> Property
-prop_Rpc_noffl_request_allinstinfo call =
+prop_noffl_request_allinstinfo :: Rpc.RpcCallAllInstancesInfo -> Property
+prop_noffl_request_allinstinfo call =
   forAll (arbitrary `suchThat` Objects.nodeOffline) $ \node -> monadicIO $ do
       res <- run $ Rpc.executeRpcCall [node] call
       stop $ res ==? [(node, Left (Rpc.OfflineNodeError node))]
 
-prop_Rpc_noffl_request_instlist :: Rpc.RpcCallInstanceList -> Property
-prop_Rpc_noffl_request_instlist call =
+prop_noffl_request_instlist :: Rpc.RpcCallInstanceList -> Property
+prop_noffl_request_instlist call =
   forAll (arbitrary `suchThat` Objects.nodeOffline) $ \node -> monadicIO $ do
       res <- run $ Rpc.executeRpcCall [node] call
       stop $ res ==? [(node, Left (Rpc.OfflineNodeError node))]
 
-prop_Rpc_noffl_request_nodeinfo :: Rpc.RpcCallNodeInfo -> Property
-prop_Rpc_noffl_request_nodeinfo call =
+prop_noffl_request_nodeinfo :: Rpc.RpcCallNodeInfo -> Property
+prop_noffl_request_nodeinfo call =
   forAll (arbitrary `suchThat` Objects.nodeOffline) $ \node -> monadicIO $ do
       res <- run $ Rpc.executeRpcCall [node] call
       stop $ res ==? [(node, Left (Rpc.OfflineNodeError node))]
 
 testSuite "Rpc"
-  [ 'prop_Rpc_noffl_request_allinstinfo
-  , 'prop_Rpc_noffl_request_instlist
-  , 'prop_Rpc_noffl_request_nodeinfo
+  [ 'prop_noffl_request_allinstinfo
+  , 'prop_noffl_request_instlist
+  , 'prop_noffl_request_nodeinfo
   ]

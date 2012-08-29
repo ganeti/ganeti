@@ -38,15 +38,15 @@ import Test.Ganeti.TestCommon
 import qualified Ganeti.BasicTypes as BasicTypes
 import qualified Ganeti.JSON as JSON
 
-prop_JSON_toArray :: [Int] -> Property
-prop_JSON_toArray intarr =
+prop_toArray :: [Int] -> Property
+prop_toArray intarr =
   let arr = map J.showJSON intarr in
   case JSON.toArray (J.JSArray arr) of
     BasicTypes.Ok arr' -> arr ==? arr'
     BasicTypes.Bad err -> failTest $ "Failed to parse array: " ++ err
 
-prop_JSON_toArrayFail :: Int -> String -> Bool -> Property
-prop_JSON_toArrayFail i s b =
+prop_toArrayFail :: Int -> String -> Bool -> Property
+prop_toArrayFail i s b =
   -- poor man's instance Arbitrary JSValue
   forAll (elements [J.showJSON i, J.showJSON s, J.showJSON b]) $ \item ->
   case JSON.toArray item of
@@ -54,6 +54,6 @@ prop_JSON_toArrayFail i s b =
     BasicTypes.Ok result -> failTest $ "Unexpected parse, got " ++ show result
 
 testSuite "JSON"
-          [ 'prop_JSON_toArray
-          , 'prop_JSON_toArrayFail
+          [ 'prop_toArray
+          , 'prop_toArrayFail
           ]

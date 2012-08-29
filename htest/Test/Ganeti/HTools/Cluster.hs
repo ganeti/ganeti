@@ -98,8 +98,8 @@ evacModeOptions Types.MirrorExternal = [Types.ChangePrimary, Types.ChangeAll]
 
 -- | Check that the cluster score is close to zero for a homogeneous
 -- cluster.
-prop_Cluster_Score_Zero :: Node.Node -> Property
-prop_Cluster_Score_Zero node =
+prop_Score_Zero :: Node.Node -> Property
+prop_Score_Zero node =
   forAll (choose (1, 1024)) $ \count ->
     (not (Node.offline node) && not (Node.failN1 node) && (count > 0) &&
      (Node.tDsk node > 0) && (Node.tMem node > 0)) ==>
@@ -111,8 +111,8 @@ prop_Cluster_Score_Zero node =
   in score <= 1e-12
 
 -- | Check that cluster stats are sane.
-prop_Cluster_CStats_sane :: Property
-prop_Cluster_CStats_sane =
+prop_CStats_sane :: Property
+prop_CStats_sane =
   forAll (choose (1, 1024)) $ \count ->
   forAll genOnlineNode $ \node ->
   let fn = Node.buildPeers node Container.empty
@@ -124,8 +124,8 @@ prop_Cluster_CStats_sane =
 
 -- | Check that one instance is allocated correctly, without
 -- rebalances needed.
-prop_Cluster_Alloc_sane :: Instance.Instance -> Property
-prop_Cluster_Alloc_sane inst =
+prop_Alloc_sane :: Instance.Instance -> Property
+prop_Alloc_sane inst =
   forAll (choose (5, 20)) $ \count ->
   forAll genOnlineNode $ \node ->
   let (nl, il, inst') = makeSmallEmptyCluster node count inst
@@ -145,8 +145,8 @@ prop_Cluster_Alloc_sane inst =
 -- instance spec via tiered allocation (whatever the original instance
 -- spec), on either one or two nodes. Furthermore, we test that
 -- computed allocation statistics are correct.
-prop_Cluster_CanTieredAlloc :: Instance.Instance -> Property
-prop_Cluster_CanTieredAlloc inst =
+prop_CanTieredAlloc :: Instance.Instance -> Property
+prop_CanTieredAlloc inst =
   forAll (choose (2, 5)) $ \count ->
   forAll (genOnlineNode `suchThat` (isNodeBig 4)) $ \node ->
   let nl = makeSmallCluster node count
@@ -193,8 +193,8 @@ genClusterAlloc count node inst =
 
 -- | Checks that on a 4-8 node cluster, once we allocate an instance,
 -- we can also relocate it.
-prop_Cluster_AllocRelocate :: Property
-prop_Cluster_AllocRelocate =
+prop_AllocRelocate :: Property
+prop_AllocRelocate =
   forAll (choose (4, 8)) $ \count ->
   forAll (genOnlineNode `suchThat` (isNodeBig 4)) $ \node ->
   forAll (genInstanceSmallerThanNode node `suchThat` isMirrored) $ \inst ->
@@ -235,8 +235,8 @@ check_EvacMode grp inst result =
 
 -- | Checks that on a 4-8 node cluster, once we allocate an instance,
 -- we can also node-evacuate it.
-prop_Cluster_AllocEvacuate :: Property
-prop_Cluster_AllocEvacuate =
+prop_AllocEvacuate :: Property
+prop_AllocEvacuate =
   forAll (choose (4, 8)) $ \count ->
   forAll (genOnlineNode `suchThat` (isNodeBig 4)) $ \node ->
   forAll (genInstanceSmallerThanNode node `suchThat` isMirrored) $ \inst ->
@@ -252,8 +252,8 @@ prop_Cluster_AllocEvacuate =
 -- | Checks that on a 4-8 node cluster with two node groups, once we
 -- allocate an instance on the first node group, we can also change
 -- its group.
-prop_Cluster_AllocChangeGroup :: Property
-prop_Cluster_AllocChangeGroup =
+prop_AllocChangeGroup :: Property
+prop_AllocChangeGroup =
   forAll (choose (4, 8)) $ \count ->
   forAll (genOnlineNode `suchThat` (isNodeBig 4)) $ \node ->
   forAll (genInstanceSmallerThanNode node `suchThat` isMirrored) $ \inst ->
@@ -274,8 +274,8 @@ prop_Cluster_AllocChangeGroup =
 
 -- | Check that allocating multiple instances on a cluster, then
 -- adding an empty node, results in a valid rebalance.
-prop_Cluster_AllocBalance :: Property
-prop_Cluster_AllocBalance =
+prop_AllocBalance :: Property
+prop_AllocBalance =
   forAll (genNode (Just 5) (Just 128)) $ \node ->
   forAll (choose (3, 5)) $ \count ->
   not (Node.offline node) && not (Node.failN1 node) ==>
@@ -296,8 +296,8 @@ prop_Cluster_AllocBalance =
             canBalance tbl True True False
 
 -- | Checks consistency.
-prop_Cluster_CheckConsistency :: Node.Node -> Instance.Instance -> Bool
-prop_Cluster_CheckConsistency node inst =
+prop_CheckConsistency :: Node.Node -> Instance.Instance -> Bool
+prop_CheckConsistency node inst =
   let nl = makeSmallCluster node 3
       [node1, node2, node3] = Container.elems nl
       node3' = node3 { Node.group = 1 }
@@ -311,8 +311,8 @@ prop_Cluster_CheckConsistency node inst =
      (not . null $ ccheck [(0, inst3)])
 
 -- | For now, we only test that we don't lose instances during the split.
-prop_Cluster_SplitCluster :: Node.Node -> Instance.Instance -> Property
-prop_Cluster_SplitCluster node inst =
+prop_SplitCluster :: Node.Node -> Instance.Instance -> Property
+prop_SplitCluster node inst =
   forAll (choose (0, 100)) $ \icnt ->
   let nl = makeSmallCluster node 2
       (nl', il') = foldl (\(ns, is) _ -> assignInstance ns is inst 0 1)
@@ -339,8 +339,8 @@ canAllocOn nl reqnodes inst =
 -- times, and generates a random instance that can be allocated on
 -- this mini-cluster; it then checks that after applying a policy that
 -- the instance doesn't fits, the allocation fails.
-prop_Cluster_AllocPolicy :: Node.Node -> Property
-prop_Cluster_AllocPolicy node =
+prop_AllocPolicy :: Node.Node -> Property
+prop_AllocPolicy node =
   -- rqn is the required nodes (1 or 2)
   forAll (choose (1, 2)) $ \rqn ->
   forAll (choose (5, 20)) $ \count ->
@@ -353,15 +353,15 @@ prop_Cluster_AllocPolicy node =
   in not $ canAllocOn nl rqn inst
 
 testSuite "Cluster"
-            [ 'prop_Cluster_Score_Zero
-            , 'prop_Cluster_CStats_sane
-            , 'prop_Cluster_Alloc_sane
-            , 'prop_Cluster_CanTieredAlloc
-            , 'prop_Cluster_AllocRelocate
-            , 'prop_Cluster_AllocEvacuate
-            , 'prop_Cluster_AllocChangeGroup
-            , 'prop_Cluster_AllocBalance
-            , 'prop_Cluster_CheckConsistency
-            , 'prop_Cluster_SplitCluster
-            , 'prop_Cluster_AllocPolicy
+            [ 'prop_Score_Zero
+            , 'prop_CStats_sane
+            , 'prop_Alloc_sane
+            , 'prop_CanTieredAlloc
+            , 'prop_AllocRelocate
+            , 'prop_AllocEvacuate
+            , 'prop_AllocChangeGroup
+            , 'prop_AllocBalance
+            , 'prop_CheckConsistency
+            , 'prop_SplitCluster
+            , 'prop_AllocPolicy
             ]

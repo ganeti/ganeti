@@ -52,13 +52,13 @@ import qualified Ganeti.HTools.Utils as Utils
 
 -- * Instance text loader tests
 
-prop_Text_Load_Instance :: String -> Int -> Int -> Int -> Types.InstanceStatus
-                        -> NonEmptyList Char -> [Char]
-                        -> NonNegative Int -> NonNegative Int -> Bool
-                        -> Types.DiskTemplate -> Int -> Property
-prop_Text_Load_Instance name mem dsk vcpus status
-                        (NonEmpty pnode) snode
-                        (NonNegative pdx) (NonNegative sdx) autobal dt su =
+prop_Load_Instance :: String -> Int -> Int -> Int -> Types.InstanceStatus
+                   -> NonEmptyList Char -> [Char]
+                   -> NonNegative Int -> NonNegative Int -> Bool
+                   -> Types.DiskTemplate -> Int -> Property
+prop_Load_Instance name mem dsk vcpus status
+                   (NonEmpty pnode) snode
+                   (NonNegative pdx) (NonNegative sdx) autobal dt su =
   pnode /= snode && pdx /= sdx ==>
   let vcpus_s = show vcpus
       dsk_s = show dsk
@@ -93,8 +93,8 @@ prop_Text_Load_Instance name mem dsk vcpus status
                Instance.spindleUse i == su &&
                Types.isBad fail1
 
-prop_Text_Load_InstanceFail :: [(String, Int)] -> [String] -> Property
-prop_Text_Load_InstanceFail ktn fields =
+prop_Load_InstanceFail :: [(String, Int)] -> [String] -> Property
+prop_Load_InstanceFail ktn fields =
   length fields /= 10 && length fields /= 11 ==>
     case Text.loadInst nl fields of
       Types.Ok _ -> failTest "Managed to load instance from invalid data"
@@ -102,9 +102,9 @@ prop_Text_Load_InstanceFail ktn fields =
                        "Invalid/incomplete instance data: '" `isPrefixOf` msg
     where nl = Map.fromList ktn
 
-prop_Text_Load_Node :: String -> Int -> Int -> Int -> Int -> Int
-                    -> Int -> Bool -> Bool
-prop_Text_Load_Node name tm nm fm td fd tc fo =
+prop_Load_Node :: String -> Int -> Int -> Int -> Int -> Int
+               -> Int -> Bool -> Bool
+prop_Load_Node name tm nm fm td fd tc fo =
   let conv v = if v < 0
                  then "?"
                  else show v
@@ -134,12 +134,12 @@ prop_Text_Load_Node name tm nm fm td fd tc fo =
                 Node.fDsk node == fd &&
                 Node.tCpu node == fromIntegral tc
 
-prop_Text_Load_NodeFail :: [String] -> Property
-prop_Text_Load_NodeFail fields =
+prop_Load_NodeFail :: [String] -> Property
+prop_Load_NodeFail fields =
   length fields /= 8 ==> isNothing $ Text.loadNode Map.empty fields
 
-prop_Text_NodeLSIdempotent :: Property
-prop_Text_NodeLSIdempotent =
+prop_NodeLSIdempotent :: Property
+prop_NodeLSIdempotent =
   forAll (genNode (Just 1) Nothing) $ \node ->
   -- override failN1 to what loadNode returns by default
   let n = Node.setPolicy Types.defIPolicy $
@@ -149,15 +149,15 @@ prop_Text_NodeLSIdempotent =
          Utils.sepSplit '|' . Text.serializeNode defGroupList) n ==?
     Just (Node.name n, n)
 
-prop_Text_ISpecIdempotent :: Types.ISpec -> Property
-prop_Text_ISpecIdempotent ispec =
+prop_ISpecIdempotent :: Types.ISpec -> Property
+prop_ISpecIdempotent ispec =
   case Text.loadISpec "dummy" . Utils.sepSplit ',' .
        Text.serializeISpec $ ispec of
     Types.Bad msg -> failTest $ "Failed to load ispec: " ++ msg
     Types.Ok ispec' -> ispec ==? ispec'
 
-prop_Text_IPolicyIdempotent :: Types.IPolicy -> Property
-prop_Text_IPolicyIdempotent ipol =
+prop_IPolicyIdempotent :: Types.IPolicy -> Property
+prop_IPolicyIdempotent ipol =
   case Text.loadIPolicy . Utils.sepSplit '|' $
        Text.serializeIPolicy owner ipol of
     Types.Bad msg -> failTest $ "Failed to load ispec: " ++ msg
@@ -171,8 +171,8 @@ prop_Text_IPolicyIdempotent ipol =
 -- allocations, not for the business logic). As such, it's a quite
 -- complex and slow test, and that's the reason we restrict it to
 -- small cluster sizes.
-prop_Text_CreateSerialise :: Property
-prop_Text_CreateSerialise =
+prop_CreateSerialise :: Property
+prop_CreateSerialise =
   forAll genTags $ \ctags ->
   forAll (choose (1, 20)) $ \maxiter ->
   forAll (choose (2, 10)) $ \count ->
@@ -200,12 +200,12 @@ prop_Text_CreateSerialise =
                 nl' ==? nl2
 
 testSuite "Text"
-            [ 'prop_Text_Load_Instance
-            , 'prop_Text_Load_InstanceFail
-            , 'prop_Text_Load_Node
-            , 'prop_Text_Load_NodeFail
-            , 'prop_Text_NodeLSIdempotent
-            , 'prop_Text_ISpecIdempotent
-            , 'prop_Text_IPolicyIdempotent
-            , 'prop_Text_CreateSerialise
+            [ 'prop_Load_Instance
+            , 'prop_Load_InstanceFail
+            , 'prop_Load_Node
+            , 'prop_Load_NodeFail
+            , 'prop_NodeLSIdempotent
+            , 'prop_ISpecIdempotent
+            , 'prop_IPolicyIdempotent
+            , 'prop_CreateSerialise
             ]

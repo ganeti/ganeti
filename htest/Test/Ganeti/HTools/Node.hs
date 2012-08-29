@@ -98,31 +98,31 @@ instance Arbitrary Node.Node where
 
 -- * Test cases
 
-prop_Node_setAlias :: Node.Node -> String -> Bool
-prop_Node_setAlias node name =
+prop_setAlias :: Node.Node -> String -> Bool
+prop_setAlias node name =
   Node.name newnode == Node.name node &&
   Node.alias newnode == name
     where newnode = Node.setAlias node name
 
-prop_Node_setOffline :: Node.Node -> Bool -> Property
-prop_Node_setOffline node status =
+prop_setOffline :: Node.Node -> Bool -> Property
+prop_setOffline node status =
   Node.offline newnode ==? status
     where newnode = Node.setOffline node status
 
-prop_Node_setXmem :: Node.Node -> Int -> Property
-prop_Node_setXmem node xm =
+prop_setXmem :: Node.Node -> Int -> Property
+prop_setXmem node xm =
   Node.xMem newnode ==? xm
     where newnode = Node.setXmem node xm
 
-prop_Node_setMcpu :: Node.Node -> Double -> Property
-prop_Node_setMcpu node mc =
+prop_setMcpu :: Node.Node -> Double -> Property
+prop_setMcpu node mc =
   Types.iPolicyVcpuRatio (Node.iPolicy newnode) ==? mc
     where newnode = Node.setMcpu node mc
 
 -- | Check that an instance add with too high memory or disk will be
 -- rejected.
-prop_Node_addPriFM :: Node.Node -> Instance.Instance -> Property
-prop_Node_addPriFM node inst =
+prop_addPriFM :: Node.Node -> Instance.Instance -> Property
+prop_addPriFM node inst =
   Instance.mem inst >= Node.fMem node && not (Node.failN1 node) &&
   not (Instance.isOffline inst) ==>
   case Node.addPri node inst'' of
@@ -133,8 +133,8 @@ prop_Node_addPriFM node inst =
 
 -- | Check that adding a primary instance with too much disk fails
 -- with type FailDisk.
-prop_Node_addPriFD :: Node.Node -> Instance.Instance -> Property
-prop_Node_addPriFD node inst =
+prop_addPriFD :: Node.Node -> Instance.Instance -> Property
+prop_addPriFD node inst =
   forAll (elements Instance.localStorageTemplates) $ \dt ->
   Instance.dsk inst >= Node.fDsk node && not (Node.failN1 node) ==>
   let inst' = setInstanceSmallerThanNode node inst
@@ -146,8 +146,8 @@ prop_Node_addPriFD node inst =
 
 -- | Check that adding a primary instance with too many VCPUs fails
 -- with type FailCPU.
-prop_Node_addPriFC :: Property
-prop_Node_addPriFC =
+prop_addPriFC :: Property
+prop_addPriFC =
   forAll (choose (1, maxCpu)) $ \extra ->
   forAll genOnlineNode $ \node ->
   forAll (arbitrary `suchThat` Instance.notOffline) $ \inst ->
@@ -159,8 +159,8 @@ prop_Node_addPriFC =
 
 -- | Check that an instance add with too high memory or disk will be
 -- rejected.
-prop_Node_addSec :: Node.Node -> Instance.Instance -> Int -> Property
-prop_Node_addSec node inst pdx =
+prop_addSec :: Node.Node -> Instance.Instance -> Int -> Property
+prop_addSec node inst pdx =
   ((Instance.mem inst >= (Node.fMem node - Node.rMem node) &&
     not (Instance.isOffline inst)) ||
    Instance.dsk inst >= Node.fDsk node) &&
@@ -169,8 +169,8 @@ prop_Node_addSec node inst pdx =
 
 -- | Check that an offline instance with reasonable disk size but
 -- extra mem/cpu can always be added.
-prop_Node_addOfflinePri :: NonNegative Int -> NonNegative Int -> Property
-prop_Node_addOfflinePri (NonNegative extra_mem) (NonNegative extra_cpu) =
+prop_addOfflinePri :: NonNegative Int -> NonNegative Int -> Property
+prop_addOfflinePri (NonNegative extra_mem) (NonNegative extra_cpu) =
   forAll genOnlineNode $ \node ->
   forAll (genInstanceSmallerThanNode node) $ \inst ->
   let inst' = inst { Instance.runSt = Types.AdminOffline
@@ -182,9 +182,9 @@ prop_Node_addOfflinePri (NonNegative extra_mem) (NonNegative extra_cpu) =
 
 -- | Check that an offline instance with reasonable disk size but
 -- extra mem/cpu can always be added.
-prop_Node_addOfflineSec :: NonNegative Int -> NonNegative Int
-                        -> Types.Ndx -> Property
-prop_Node_addOfflineSec (NonNegative extra_mem) (NonNegative extra_cpu) pdx =
+prop_addOfflineSec :: NonNegative Int -> NonNegative Int
+                   -> Types.Ndx -> Property
+prop_addOfflineSec (NonNegative extra_mem) (NonNegative extra_cpu) pdx =
   forAll genOnlineNode $ \node ->
   forAll (genInstanceSmallerThanNode node) $ \inst ->
   let inst' = inst { Instance.runSt = Types.AdminOffline
@@ -196,8 +196,8 @@ prop_Node_addOfflineSec (NonNegative extra_mem) (NonNegative extra_cpu) pdx =
        v -> failTest $ "Expected OpGood/OpGood, but got: " ++ show v
 
 -- | Checks for memory reservation changes.
-prop_Node_rMem :: Instance.Instance -> Property
-prop_Node_rMem inst =
+prop_rMem :: Instance.Instance -> Property
+prop_rMem inst =
   not (Instance.isOffline inst) ==>
   forAll (genOnlineNode `suchThat` ((> Types.unitMem) . Node.fMem)) $ \node ->
   -- ab = auto_balance, nb = non-auto_balance
@@ -230,8 +230,8 @@ prop_Node_rMem inst =
        x -> failTest $ "Failed to add/remove instances: " ++ show x
 
 -- | Check mdsk setting.
-prop_Node_setMdsk :: Node.Node -> SmallRatio -> Bool
-prop_Node_setMdsk node mx =
+prop_setMdsk :: Node.Node -> SmallRatio -> Bool
+prop_setMdsk node mx =
   Node.loDsk node' >= 0 &&
   fromIntegral (Node.loDsk node') <= Node.tDsk node &&
   Node.availDisk node' >= 0 &&
@@ -242,26 +242,26 @@ prop_Node_setMdsk node mx =
           SmallRatio mx' = mx
 
 -- Check tag maps
-prop_Node_tagMaps_idempotent :: Property
-prop_Node_tagMaps_idempotent =
+prop_tagMaps_idempotent :: Property
+prop_tagMaps_idempotent =
   forAll genTags $ \tags ->
   Node.delTags (Node.addTags m tags) tags ==? m
     where m = Map.empty
 
-prop_Node_tagMaps_reject :: Property
-prop_Node_tagMaps_reject =
+prop_tagMaps_reject :: Property
+prop_tagMaps_reject =
   forAll (genTags `suchThat` (not . null)) $ \tags ->
   let m = Node.addTags Map.empty tags
   in all (\t -> Node.rejectAddTags m [t]) tags
 
-prop_Node_showField :: Node.Node -> Property
-prop_Node_showField node =
+prop_showField :: Node.Node -> Property
+prop_showField node =
   forAll (elements Node.defaultFields) $ \ field ->
   fst (Node.showHeader field) /= Types.unknownField &&
   Node.showField node field /= Types.unknownField
 
-prop_Node_computeGroups :: [Node.Node] -> Bool
-prop_Node_computeGroups nodes =
+prop_computeGroups :: [Node.Node] -> Bool
+prop_computeGroups nodes =
   let ng = Node.computeGroups nodes
       onlyuuid = map fst ng
   in length nodes == sum (map (length . snd) ng) &&
@@ -270,16 +270,16 @@ prop_Node_computeGroups nodes =
      (null nodes || not (null ng))
 
 -- Check idempotence of add/remove operations
-prop_Node_addPri_idempotent :: Property
-prop_Node_addPri_idempotent =
+prop_addPri_idempotent :: Property
+prop_addPri_idempotent =
   forAll genOnlineNode $ \node ->
   forAll (genInstanceSmallerThanNode node) $ \inst ->
   case Node.addPri node inst of
     Types.OpGood node' -> Node.removePri node' inst ==? node
     _ -> failTest "Can't add instance"
 
-prop_Node_addSec_idempotent :: Property
-prop_Node_addSec_idempotent =
+prop_addSec_idempotent :: Property
+prop_addSec_idempotent =
   forAll genOnlineNode $ \node ->
   forAll (genInstanceSmallerThanNode node) $ \inst ->
   let pdx = Node.idx node + 1
@@ -290,22 +290,22 @@ prop_Node_addSec_idempotent =
        _ -> failTest "Can't add instance"
 
 testSuite "Node"
-            [ 'prop_Node_setAlias
-            , 'prop_Node_setOffline
-            , 'prop_Node_setMcpu
-            , 'prop_Node_setXmem
-            , 'prop_Node_addPriFM
-            , 'prop_Node_addPriFD
-            , 'prop_Node_addPriFC
-            , 'prop_Node_addSec
-            , 'prop_Node_addOfflinePri
-            , 'prop_Node_addOfflineSec
-            , 'prop_Node_rMem
-            , 'prop_Node_setMdsk
-            , 'prop_Node_tagMaps_idempotent
-            , 'prop_Node_tagMaps_reject
-            , 'prop_Node_showField
-            , 'prop_Node_computeGroups
-            , 'prop_Node_addPri_idempotent
-            , 'prop_Node_addSec_idempotent
+            [ 'prop_setAlias
+            , 'prop_setOffline
+            , 'prop_setMcpu
+            , 'prop_setXmem
+            , 'prop_addPriFM
+            , 'prop_addPriFD
+            , 'prop_addPriFC
+            , 'prop_addSec
+            , 'prop_addOfflinePri
+            , 'prop_addOfflineSec
+            , 'prop_rMem
+            , 'prop_setMdsk
+            , 'prop_tagMaps_idempotent
+            , 'prop_tagMaps_reject
+            , 'prop_showField
+            , 'prop_computeGroups
+            , 'prop_addPri_idempotent
+            , 'prop_addSec_idempotent
             ]
