@@ -118,37 +118,7 @@ import qualified Ganeti.HTools.Program.Hscan
 import qualified Ganeti.HTools.Program.Hspace
 
 import Test.Ganeti.TestHelper (testSuite)
-
--- * Constants
-
--- | Maximum memory (1TiB, somewhat random value).
-maxMem :: Int
-maxMem = 1024 * 1024
-
--- | Maximum disk (8TiB, somewhat random value).
-maxDsk :: Int
-maxDsk = 1024 * 1024 * 8
-
--- | Max CPUs (1024, somewhat random value).
-maxCpu :: Int
-maxCpu = 1024
-
--- | Max vcpu ratio (random value).
-maxVcpuRatio :: Double
-maxVcpuRatio = 1024.0
-
--- | Max spindle ratio (random value).
-maxSpindleRatio :: Double
-maxSpindleRatio = 1024.0
-
--- | Max nodes, used just to limit arbitrary instances for smaller
--- opcode definitions (e.g. list of nodes in OpTestDelay).
-maxNodes :: Int
-maxNodes = 32
-
--- | Max opcodes or jobs in a submit job and submit many jobs.
-maxOpCodes :: Int
-maxOpCodes = 16
+import Test.Ganeti.TestCommon
 
 -- | All disk templates (used later)
 allDiskTemplates :: [Types.DiskTemplate]
@@ -202,17 +172,6 @@ defGroupAssoc = Map.singleton (Group.uuid defGroup) (Group.idx defGroup)
 isFailure :: Types.OpResult a -> Bool
 isFailure (Types.OpFail _) = True
 isFailure _ = False
-
--- | Checks for equality with proper annotation.
-(==?) :: (Show a, Eq a) => a -> a -> Property
-(==?) x y = printTestCase
-            ("Expected equality, but '" ++
-             show x ++ "' /= '" ++ show y ++ "'") (x == y)
-infix 3 ==?
-
--- | Show a message and fail the test.
-failTest :: String -> Property
-failTest msg = printTestCase msg False
 
 -- | Return the python binary to use. If the PYTHON environment
 -- variable is defined, use its value, otherwise use just \"python\".
@@ -314,41 +273,6 @@ evacModeOptions :: Types.MirrorType -> [Types.EvacMode]
 evacModeOptions Types.MirrorNone     = []
 evacModeOptions Types.MirrorInternal = [minBound..maxBound] -- DRBD can do all
 evacModeOptions Types.MirrorExternal = [Types.ChangePrimary, Types.ChangeAll]
-
--- * Arbitrary instances
-
--- | Defines a DNS name.
-newtype DNSChar = DNSChar { dnsGetChar::Char }
-
-instance Arbitrary DNSChar where
-  arbitrary = do
-    x <- elements (['a'..'z'] ++ ['0'..'9'] ++ "_-")
-    return (DNSChar x)
-
-instance Show DNSChar where
-  show = show . dnsGetChar
-
--- | Generates a single name component.
-getName :: Gen String
-getName = do
-  n <- choose (1, 64)
-  dn <- vector n
-  return (map dnsGetChar dn)
-
--- | Generates an entire FQDN.
-getFQDN :: Gen String
-getFQDN = do
-  ncomps <- choose (1, 4)
-  names <- vectorOf ncomps getName
-  return $ intercalate "." names
-
--- | Combinator that generates a 'Maybe' using a sub-combinator.
-getMaybe :: Gen a -> Gen (Maybe a)
-getMaybe subgen = do
-  bool <- arbitrary
-  if bool
-    then Just <$> subgen
-    else return Nothing
 
 -- | Generates a fields list. This uses the same character set as a
 -- DNS name (just for simplicity).
@@ -2100,75 +2024,4 @@ prop_Qlang_FilterRegex_instances rex =
 testSuite "Qlang"
   [ 'prop_Qlang_Serialisation
   , 'prop_Qlang_FilterRegex_instances
-  ]
-
-
--- * Confd tests (generic library)
-
-instance Arbitrary Confd.ConfdRequestType where
-  arbitrary = elements [minBound..maxBound]
-
-instance Arbitrary Confd.ConfdReqField where
-  arbitrary = elements [minBound..maxBound]
-
-instance Arbitrary Confd.ConfdReqQ where
-  arbitrary = Confd.ConfdReqQ <$> arbitrary <*> arbitrary <*>
-              arbitrary <*> arbitrary
-
-instance Arbitrary Confd.ConfdQuery where
-  arbitrary = oneof [ pure Confd.EmptyQuery
-                    , Confd.PlainQuery <$> getName
-                    , Confd.DictQuery <$> arbitrary
-                    ]
-
-instance Arbitrary Confd.ConfdRequest where
-  arbitrary = Confd.ConfdRequest <$> arbitrary <*> arbitrary <*> arbitrary
-              <*> arbitrary
-
--- | Test that signing messages and checking signatures is correct. It
--- also tests, indirectly the serialisation of messages so we don't
--- need a separate test for that.
-prop_Confd_req_sign :: Hash.HashKey        -- ^ The hash key
-                    -> NonNegative Integer -- ^ The base timestamp
-                    -> Positive Integer    -- ^ Delta for out of window
-                    -> Bool                -- ^ Whether delta should be + or -
-                    -> Confd.ConfdRequest
-                    -> Property
-prop_Confd_req_sign key (NonNegative timestamp) (Positive bad_delta) pm crq =
-  forAll (choose (0, fromIntegral C.confdMaxClockSkew)) $ \ good_delta ->
-  let encoded = J.encode crq
-      salt = show timestamp
-      signed = J.encode $ Confd.Utils.signMessage key salt encoded
-      good_timestamp = timestamp + if pm then good_delta else (-good_delta)
-      bad_delta' = fromIntegral C.confdMaxClockSkew + bad_delta
-      bad_timestamp = timestamp + if pm then bad_delta' else (-bad_delta')
-      ts_ok = Confd.Utils.parseMessage key signed good_timestamp
-      ts_bad = Confd.Utils.parseMessage key signed bad_timestamp
-  in printTestCase "Failed to parse good message"
-       (ts_ok ==? Types.Ok (encoded, crq)) .&&.
-     printTestCase ("Managed to deserialise message with bad\
-                    \ timestamp, got " ++ show ts_bad)
-       (ts_bad ==? Types.Bad "Too old/too new timestamp or clock skew")
-
--- | Tests that signing with a different key fails detects failure
--- correctly.
-prop_Confd_bad_key :: String             -- ^ Salt
-                   -> Confd.ConfdRequest -- ^ Request
-                   -> Property
-prop_Confd_bad_key salt crq =
-  -- fixme: we hardcode here the expected length of a sha1 key, as
-  -- otherwise we could have two short keys that differ only in the
-  -- final zero elements count, and those will be expanded to be the
-  -- same
-  forAll (vector 20) $ \key_sign ->
-  forAll (vector 20 `suchThat` (/= key_sign)) $ \key_verify ->
-  let signed = Confd.Utils.signMessage key_sign salt (J.encode crq)
-      encoded = J.encode signed
-  in printTestCase ("Accepted message signed with different key" ++ encoded) $
-    Types.Bad "HMAC verification failed" ==?
-     Confd.Utils.parseRequest key_verify encoded
-
-testSuite "Confd"
-  [ 'prop_Confd_req_sign
-  , 'prop_Confd_bad_key
   ]

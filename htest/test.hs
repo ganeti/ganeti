@@ -30,6 +30,7 @@ import Test.Framework
 import System.Environment (getArgs)
 
 import Ganeti.HTools.QC
+import Test.Ganeti.Confd.Utils
 import Test.Ganeti.Objects
 
 -- | Our default test options, overring the built-in test-framework
@@ -71,7 +72,7 @@ allTests =
   , (True, testSsconf)
   , (True, testQlang)
   , (True, testRpc)
-  , (True, testConfd)
+  , (True, testConfdUtils)
   , (True, testObjects)
   , (False, testCluster)
   ]
