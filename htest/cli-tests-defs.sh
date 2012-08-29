@@ -21,7 +21,7 @@
 
 HBINARY=${HBINARY:-./htest/hpc-htools}
 
-export TESTDATA_DIR=${TOP_SRCDIR:-.}/test/data/htools
+export TESTDATA_DIR=${TOP_SRCDIR:-.}/htest/data
 
 hbal() {
   HTOOLS=hbal $HBINARY "$@"

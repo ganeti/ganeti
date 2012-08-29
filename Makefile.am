@@ -88,10 +88,10 @@ DIRS = \
 	qa \
 	test \
 	test/data \
-	test/data/htools \
-	test/data/htools/rapi \
 	test/data/ovfdata \
 	test/data/ovfdata/other \
+	htest/data \
+	htest/data/rapi \
 	tools
 
 BUILDTIME_DIR_AUTOCREATE = \
@@ -740,19 +740,6 @@ TEST_FILES = \
 	test/data/kvm_0.12.5_help.txt \
 	test/data/kvm_0.9.1_help.txt \
 	test/data/sys_drbd_usermode_helper.txt \
-	test/data/htools/hail-alloc-drbd.json \
-	test/data/htools/hail-change-group.json \
-	test/data/htools/hail-invalid-reloc.json \
-	test/data/htools/hail-node-evac.json \
-	test/data/htools/hail-reloc-drbd.json \
-	test/data/htools/hbal-split-insts.data \
-	test/data/htools/common-suffix.data \
-	test/data/htools/invalid-node.data \
-	test/data/htools/missing-resources.data \
-	test/data/htools/rapi/groups.json \
-	test/data/htools/rapi/info.json \
-	test/data/htools/rapi/instances.json \
-	test/data/htools/rapi/nodes.json \
 	test/data/ovfdata/compr_disk.vmdk.gz \
 	test/data/ovfdata/config.ini \
 	test/data/ovfdata/corrupted_resources.ovf \
@@ -797,7 +784,20 @@ TEST_FILES = \
 	test/htools-no-backend.test \
 	test/htools-rapi.test \
 	test/htools-single-group.test \
-	test/htools-text-backend.test
+	test/htools-text-backend.test \
+	htest/data/hail-alloc-drbd.json \
+	htest/data/hail-change-group.json \
+	htest/data/hail-invalid-reloc.json \
+	htest/data/hail-node-evac.json \
+	htest/data/hail-reloc-drbd.json \
+	htest/data/hbal-split-insts.data \
+	htest/data/common-suffix.data \
+	htest/data/invalid-node.data \
+	htest/data/missing-resources.data \
+	htest/data/rapi/groups.json \
+	htest/data/rapi/info.json \
+	htest/data/rapi/instances.json \
+	htest/data/rapi/nodes.json
 
 python_tests = \
 	doc/examples/rapi_testutils.py \
