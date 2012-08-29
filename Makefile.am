@@ -382,7 +382,7 @@ HPCEXCL = --exclude Main \
 	--exclude Test.Ganeti.TestCommon \
 	--exclude Test.Ganeti.TestHTools \
 	--exclude Test.Ganeti.TestHelper \
-	$(patsubst htools.%,--exclude Test.%,$(subst /,.,$(patsubst %.hs,%, $(filter-out htest/%,$(HS_LIB_SRCS)))))
+	$(patsubst htools.%,--exclude Test.%,$(subst /,.,$(patsubst %.hs,%, $(HS_LIB_SRCS))))
 
 HS_LIB_SRCS = \
 	htools/Ganeti/HTools/CLI.hs \
@@ -433,7 +433,9 @@ HS_LIB_SRCS = \
 	htools/Ganeti/Rpc.hs \
 	htools/Ganeti/Runtime.hs \
 	htools/Ganeti/Ssconf.hs \
-	htools/Ganeti/THH.hs \
+	htools/Ganeti/THH.hs
+
+HS_TEST_SRCS = \
 	htest/Test/Ganeti/Confd/Utils.hs \
 	htest/Test/Ganeti/HTools/CLI.hs \
 	htest/Test/Ganeti/HTools/Cluster.hs \
@@ -458,6 +460,7 @@ HS_LIB_SRCS = \
 	htest/Test/Ganeti/TestHTools.hs \
 	htest/Test/Ganeti/TestHelper.hs
 
+HS_LIBTEST_SRCS = $(HS_LIB_SRCS) $(HS_TEST_SRCS)
 
 HS_BUILT_SRCS = htools/Ganeti/HTools/Version.hs htools/Ganeti/Constants.hs
 HS_BUILT_SRCS_IN = $(patsubst %,%.in,$(HS_BUILT_SRCS))
@@ -573,7 +576,7 @@ if HS_CONFD
 endif
 endif
 
-$(HS_ALL_PROGS): %: %.hs $(HS_LIB_SRCS) $(HS_BUILT_SRCS) Makefile
+$(HS_ALL_PROGS): %: %.hs $(HS_LIBTEST_SRCS) $(HS_BUILT_SRCS) Makefile
 	@if [ -z "$(HTOOLS)" ]; then \
 	  echo "Error: htools compilation disabled at configure time" 1>&2 ;\
 	  exit 1; \
@@ -707,7 +710,7 @@ EXTRA_DIST = \
 	$(maninput) \
 	qa/qa-sample.json \
 	$(qa_scripts) \
-	$(HS_LIB_SRCS) $(HS_BUILT_SRCS_IN) \
+	$(HS_LIBTEST_SRCS) $(HS_BUILT_SRCS_IN) \
 	$(HS_PROG_SRCS) \
 	htools/lint-hints.hs \
 	htest/cli-tests-defs.sh \
@@ -965,7 +968,7 @@ srclink_files = \
 	htest/offline-test.sh \
 	htest/cli-tests-defs.sh \
 	$(all_python_code) \
-	$(HS_LIB_SRCS) $(HS_PROG_SRCS)
+	$(HS_LIBTEST_SRCS) $(HS_PROG_SRCS)
 
 check_python_code = \
 	$(BUILD_BASH_COMPLETION) \
@@ -1412,7 +1415,7 @@ hlint: $(HS_BUILT_SRCS) htools/lint-hints.hs
 	  --ignore "Use &&&" \
 	  --ignore "Use void" \
 	  --hint htools/lint-hints \
-	  $(filter-out htools/Ganeti/THH.hs,$(HS_LIB_SRCS))
+	  $(filter-out htools/Ganeti/THH.hs,$(HS_LIBTEST_SRCS))
 
 # a dist hook rule for updating the vcs-version file; this is
 # hardcoded due to where it needs to build the file...
@@ -1530,7 +1533,7 @@ hs-apidoc: $(HS_BUILT_SRCS)
 .PHONY: TAGS
 TAGS: $(GENERATED_FILES)
 	rm -f TAGS
-	$(GHC) -e ":etags" -v0 $(HFLAGS) $(HS_LIB_SRCS)
+	$(GHC) -e ":etags" -v0 $(HFLAGS) $(HS_LIBTEST_SRCS)
 	find . -path './lib/*.py' -o -path './scripts/gnt-*' -o \
 	  -path './daemons/ganeti-*' -o -path './tools/*' -o \
 	  -path './qa/*.py' | \
