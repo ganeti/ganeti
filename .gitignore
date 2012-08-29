@@ -110,11 +110,14 @@
 
 /htools/htools
 /htools/hconfd
-/htools/hpc-htools
-/htools/test
+/htest/hpc-htools
+/htest/test
 /htools/*.prof*
 /htools/*.stat
 /htools/*.tix
+/htest/*.prof*
+/htest/*.stat
+/htest/*.tix
 /.hpc/
 /*.tix
 

@@ -15,10 +15,17 @@ cp -r doc/examples $tmpdir/doc
 
 mv $tmpdir/lib $tmpdir/ganeti
 ln -T -s $tmpdir/ganeti $tmpdir/lib
-mkdir -p $tmpdir/htools
-for htest in htools hpc-htools test offline-test.sh cli-tests-defs.sh; do
-  if [ -e htools/$htest ]; then
-    cp -p htools/$htest $tmpdir/htools/
+
+mkdir -p $tmpdir/htools $tmpdir/htest
+for hfile in htools; do
+  if [ -e htools/$hfile ]; then
+    cp -p htools/$hfile $tmpdir/htools/
+  fi
+done
+
+for hfile in hpc-htools test offline-test.sh cli-tests-defs.sh; do
+  if [ -e htest/$hfile ]; then
+    cp -p htest/$hfile $tmpdir/htest/
   fi
 done
 
