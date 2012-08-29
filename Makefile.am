@@ -64,6 +64,7 @@ HTOOLS_DIRS = \
 	htest/Test \
 	htest/Test/Ganeti \
 	htest/Test/Ganeti/Confd \
+	htest/Test/Ganeti/HTools \
 	htest/Test/Ganeti/Query
 
 DIRS = \
@@ -378,8 +379,9 @@ HPCEXCL = --exclude Main \
 	--exclude Ganeti.THH \
 	--exclude Ganeti.HTools.QC \
 	--exclude Ganeti.HTools.Version \
-	--exclude Test.Ganeti.TestHelper \
 	--exclude Test.Ganeti.TestCommon \
+	--exclude Test.Ganeti.TestHTools \
+	--exclude Test.Ganeti.TestHelper \
 	$(patsubst htools.%,--exclude Test.%,$(subst /,.,$(patsubst %.hs,%, $(filter-out htest/%,$(HS_LIB_SRCS)))))
 
 HS_LIB_SRCS = \
@@ -432,15 +434,27 @@ HS_LIB_SRCS = \
 	htools/Ganeti/Runtime.hs \
 	htools/Ganeti/Ssconf.hs \
 	htools/Ganeti/THH.hs \
-	htest/Test/Ganeti/TestHelper.hs \
-	htest/Test/Ganeti/TestCommon.hs \
 	htest/Test/Ganeti/Confd/Utils.hs \
+	htest/Test/Ganeti/HTools/CLI.hs \
+	htest/Test/Ganeti/HTools/Cluster.hs \
+	htest/Test/Ganeti/HTools/Container.hs \
+	htest/Test/Ganeti/HTools/Instance.hs \
+	htest/Test/Ganeti/HTools/Loader.hs \
+	htest/Test/Ganeti/HTools/Node.hs \
+	htest/Test/Ganeti/HTools/PeerMap.hs \
+	htest/Test/Ganeti/HTools/Simu.hs \
+	htest/Test/Ganeti/HTools/Text.hs \
+	htest/Test/Ganeti/HTools/Types.hs \
+	htest/Test/Ganeti/HTools/Utils.hs \
 	htest/Test/Ganeti/Luxi.hs \
 	htest/Test/Ganeti/Objects.hs \
 	htest/Test/Ganeti/OpCodes.hs \
 	htest/Test/Ganeti/Query/Language.hs \
 	htest/Test/Ganeti/Rpc.hs \
-	htest/Test/Ganeti/Ssconf.hs
+	htest/Test/Ganeti/Ssconf.hs \
+	htest/Test/Ganeti/TestCommon.hs \
+	htest/Test/Ganeti/TestHTools.hs \
+	htest/Test/Ganeti/TestHelper.hs
 
 
 HS_BUILT_SRCS = htools/Ganeti/HTools/Version.hs htools/Ganeti/Constants.hs

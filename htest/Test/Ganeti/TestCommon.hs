@@ -174,3 +174,16 @@ getFields :: Gen [String]
 getFields = do
   n <- choose (1, 32)
   vectorOf n getName
+
+-- | Generates a list of a given size with non-duplicate elements.
+genUniquesList :: (Eq a, Arbitrary a) => Int -> Gen [a]
+genUniquesList cnt =
+  foldM (\lst _ -> do
+           newelem <- arbitrary `suchThat` (`notElem` lst)
+           return (newelem:lst)) [] [1..cnt]
+
+newtype SmallRatio = SmallRatio Double deriving Show
+instance Arbitrary SmallRatio where
+  arbitrary = do
+    v <- choose (0, 1)
+    return $ SmallRatio v

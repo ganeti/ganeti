@@ -31,6 +31,17 @@ import System.Environment (getArgs)
 
 import Ganeti.HTools.QC
 import Test.Ganeti.Confd.Utils
+import Test.Ganeti.HTools.CLI
+import Test.Ganeti.HTools.Cluster
+import Test.Ganeti.HTools.Container
+import Test.Ganeti.HTools.Loader
+import Test.Ganeti.HTools.Instance
+import Test.Ganeti.HTools.Node
+import Test.Ganeti.HTools.PeerMap
+import Test.Ganeti.HTools.Simu
+import Test.Ganeti.HTools.Text
+import Test.Ganeti.HTools.Types
+import Test.Ganeti.HTools.Utils
 import Test.Ganeti.Luxi
 import Test.Ganeti.Objects
 import Test.Ganeti.OpCodes
