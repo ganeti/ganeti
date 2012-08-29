@@ -55,7 +55,7 @@ import Data.Maybe (fromMaybe)
 import qualified Data.Map as Map
 
 import Ganeti.BasicTypes
-import Ganeti.HTools.JSON
+import Ganeti.JSON
 import Ganeti.Query.Language
 import Ganeti.Query.Common
 import Ganeti.Query.Filter

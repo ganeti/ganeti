@@ -40,7 +40,7 @@ import Text.JSON (readJSON, showJSON, makeObj, JSON)
 import qualified Ganeti.Constants as C
 import Ganeti.THH
 
-import Ganeti.HTools.JSON
+import Ganeti.JSON
 
 -- | Replace disks type.
 $(declareSADT "ReplaceDisksMode"

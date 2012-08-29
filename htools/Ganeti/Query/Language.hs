@@ -61,7 +61,7 @@ import qualified Text.Regex.PCRE as PCRE
 
 import qualified Ganeti.Constants as C
 import Ganeti.THH
-import Ganeti.HTools.JSON
+import Ganeti.JSON
 
 -- * THH declarations, that require ordering.
 

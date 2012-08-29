@@ -60,7 +60,7 @@ import Ganeti.BasicTypes
 import Ganeti.Objects
 import Ganeti.Query.Language
 import Ganeti.Query.Types
-import Ganeti.HTools.JSON
+import Ganeti.JSON
 
 -- | Compiles a filter based on field names to one based on getters.
 compileFilter :: FieldMap a b

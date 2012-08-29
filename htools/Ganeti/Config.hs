@@ -49,7 +49,7 @@ import qualified Data.Map as M
 import qualified Data.Set as S
 import qualified Text.JSON as J
 
-import Ganeti.HTools.JSON
+import Ganeti.JSON
 import Ganeti.BasicTypes
 
 import qualified Ganeti.Constants as C

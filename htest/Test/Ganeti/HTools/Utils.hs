@@ -35,7 +35,7 @@ import qualified Text.JSON as J
 import Test.Ganeti.TestHelper
 import Test.Ganeti.TestCommon
 
-import qualified Ganeti.HTools.JSON as JSON
+import qualified Ganeti.JSON as JSON
 import qualified Ganeti.HTools.Types as Types
 import qualified Ganeti.HTools.Utils as Utils
 

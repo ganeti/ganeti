@@ -87,7 +87,7 @@ import Text.JSON (makeObj, readJSON, showJSON)
 import qualified Ganeti.Constants as C
 import qualified Ganeti.THH as THH
 import Ganeti.BasicTypes
-import Ganeti.HTools.JSON
+import Ganeti.JSON
 
 -- | The instance index type.
 type Idx = Int

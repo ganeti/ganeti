@@ -387,13 +387,11 @@ HPCEXCL = --exclude Main \
 HS_LIB_SRCS = \
 	htools/Ganeti/HTools/CLI.hs \
 	htools/Ganeti/HTools/Cluster.hs \
-	htools/Ganeti/HTools/Compat.hs \
 	htools/Ganeti/HTools/Container.hs \
 	htools/Ganeti/HTools/ExtLoader.hs \
 	htools/Ganeti/HTools/Group.hs \
 	htools/Ganeti/HTools/IAlloc.hs \
 	htools/Ganeti/HTools/Instance.hs \
-	htools/Ganeti/HTools/JSON.hs \
 	htools/Ganeti/HTools/Loader.hs \
 	htools/Ganeti/HTools/Luxi.hs \
 	htools/Ganeti/HTools/Node.hs \
@@ -412,6 +410,7 @@ HS_LIB_SRCS = \
 	htools/Ganeti/HTools/Program/Hscan.hs \
 	htools/Ganeti/HTools/Program/Hspace.hs \
 	htools/Ganeti/BasicTypes.hs \
+	htools/Ganeti/Compat.hs \
 	htools/Ganeti/Confd.hs \
 	htools/Ganeti/Confd/Server.hs \
 	htools/Ganeti/Confd/Utils.hs \
@@ -419,6 +418,7 @@ HS_LIB_SRCS = \
 	htools/Ganeti/Daemon.hs \
 	htools/Ganeti/Hash.hs \
 	htools/Ganeti/Jobs.hs \
+	htools/Ganeti/JSON.hs \
 	htools/Ganeti/Logging.hs \
 	htools/Ganeti/Luxi.hs \
 	htools/Ganeti/Objects.hs \

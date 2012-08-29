@@ -45,7 +45,7 @@ import qualified Text.JSON as J
 import System.INotify
 
 import Ganeti.Daemon
-import Ganeti.HTools.JSON
+import Ganeti.JSON
 import Ganeti.HTools.Types
 import Ganeti.HTools.Utils
 import Ganeti.Objects

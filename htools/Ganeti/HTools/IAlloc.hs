@@ -47,8 +47,8 @@ import qualified Ganeti.HTools.Instance as Instance
 import qualified Ganeti.Constants as C
 import Ganeti.HTools.CLI
 import Ganeti.HTools.Loader
-import Ganeti.HTools.JSON
 import Ganeti.HTools.Types
+import Ganeti.JSON
 
 {-# ANN module "HLint: ignore Eta reduce" #-}
 

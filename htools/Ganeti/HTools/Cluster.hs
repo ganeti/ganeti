@@ -87,7 +87,7 @@ import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Group as Group
 import Ganeti.HTools.Types
 import Ganeti.HTools.Utils
-import Ganeti.HTools.Compat
+import Ganeti.Compat
 import qualified Ganeti.OpCodes as OpCodes
 
 -- * Types

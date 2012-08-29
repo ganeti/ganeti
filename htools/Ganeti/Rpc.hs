@@ -65,8 +65,8 @@ import Network.Curl
 import qualified Ganeti.Constants as C
 import Ganeti.Objects
 import Ganeti.THH
-import Ganeti.HTools.Compat
-import Ganeti.HTools.JSON
+import Ganeti.Compat
+import Ganeti.JSON
 
 #ifndef NO_CURL
 -- | The curl options used for RPC.

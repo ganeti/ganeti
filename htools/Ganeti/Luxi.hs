@@ -67,7 +67,7 @@ import System.IO.Error (isEOFError)
 import System.Timeout
 import qualified Network.Socket as S
 
-import Ganeti.HTools.JSON
+import Ganeti.JSON
 import Ganeti.HTools.Types
 import Ganeti.HTools.Utils
 

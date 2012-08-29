@@ -79,7 +79,7 @@ import qualified Ganeti.HTools.ExtLoader
 import qualified Ganeti.HTools.Group as Group
 import qualified Ganeti.HTools.IAlloc as IAlloc
 import qualified Ganeti.HTools.Instance as Instance
-import qualified Ganeti.HTools.JSON as JSON
+import qualified Ganeti.JSON as JSON
 import qualified Ganeti.HTools.Loader as Loader
 import qualified Ganeti.HTools.Luxi as HTools.Luxi
 import qualified Ganeti.HTools.Node as Node

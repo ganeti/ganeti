@@ -9,7 +9,7 @@ library versions or transitions between versions.
 
 {-
 
-Copyright (C) 2011 Google Inc.
+Copyright (C) 2011, 2012 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -28,7 +28,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 -}
 
-module Ganeti.HTools.Compat
+module Ganeti.Compat
   ( rwhnf
   , Control.Parallel.Strategies.parMap
   ) where

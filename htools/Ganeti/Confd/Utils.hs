@@ -40,7 +40,7 @@ import Ganeti.BasicTypes
 import Ganeti.Confd
 import Ganeti.Hash
 import qualified Ganeti.Constants as C
-import Ganeti.HTools.JSON
+import Ganeti.JSON
 import Ganeti.HTools.Utils
 
 -- | Returns the HMAC key.

@@ -96,7 +96,7 @@ import Text.JSON (makeObj, showJSON, readJSON, JSON, JSValue(..))
 import qualified Text.JSON as J
 
 import qualified Ganeti.Constants as C
-import Ganeti.HTools.JSON
+import Ganeti.JSON
 
 import Ganeti.THH
 

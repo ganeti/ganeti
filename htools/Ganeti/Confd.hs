@@ -50,7 +50,7 @@ import Text.JSON
 
 import qualified Ganeti.Constants as C
 import Ganeti.THH
-import Ganeti.HTools.JSON
+import Ganeti.JSON
 
 {-
    Note that we re-export as is from Constants the following simple items:
