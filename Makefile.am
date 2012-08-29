@@ -380,7 +380,7 @@ HPCEXCL = --exclude Main \
 	--exclude Ganeti.Constants \
 	--exclude Ganeti.THH \
 	--exclude Ganeti.HTools.QC \
-	--exclude Ganeti.HTools.Version \
+	--exclude Ganeti.Version \
 	--exclude Test.Ganeti.TestCommon \
 	--exclude Test.Ganeti.TestHTools \
 	--exclude Test.Ganeti.TestHelper \
@@ -467,7 +467,7 @@ HS_LIBTEST_SRCS = $(HS_LIB_SRCS) $(HS_TEST_SRCS)
 HS_BUILT_SRCS = \
 	htest/Test/Ganeti/TestImports.hs \
 	htools/Ganeti/Constants.hs \
-	htools/Ganeti/HTools/Version.hs
+	htools/Ganeti/Version.hs
 HS_BUILT_SRCS_IN = $(patsubst %,%.in,$(HS_BUILT_SRCS))
 
 $(RUN_IN_TEMPDIR): | stamp-directories
@@ -1106,7 +1106,7 @@ regen-vcs-version:
 	  $(MAKE) $(AM_MAKEFLAGS) vcs-version; \
 	fi
 
-htools/Ganeti/HTools/Version.hs: htools/Ganeti/HTools/Version.hs.in \
+htools/Ganeti/Version.hs: htools/Ganeti/Version.hs.in \
 	vcs-version $(built_base_sources)
 	set -e; \
 	VCSVER=`cat $(abs_top_srcdir)/vcs-version`; \

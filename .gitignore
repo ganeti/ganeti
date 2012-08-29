@@ -121,6 +121,6 @@
 /.hpc/
 /*.tix
 
-/htools/Ganeti/HTools/Version.hs
 /htools/Ganeti/Constants.hs
+/htools/Ganeti/Version.hs
 /htest/Test/Ganeti/TestImports.hs

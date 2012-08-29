@@ -2,11 +2,11 @@
 {- | Auto-generated module holding version information.
 -}
 
-module Ganeti.HTools.Version
+module Ganeti.Version
     (
       version
     ) where
 
 -- | The version of the sources.
 version :: String
-version = "(ganeti-htools) version %ver%"
+version = "(ganeti) version %ver%"

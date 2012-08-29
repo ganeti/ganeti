@@ -94,7 +94,7 @@ import System.Info
 import System.Exit
 import Text.Printf (printf)
 
-import qualified Ganeti.HTools.Version as Version(version)
+import qualified Ganeti.Version as Version (version)
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.Constants as C
