@@ -123,3 +123,4 @@
 
 /htools/Ganeti/HTools/Version.hs
 /htools/Ganeti/Constants.hs
+/htest/Test/Ganeti/TestImports.hs

@@ -1,0 +1,7 @@
+-- Hey Emacs, this is a -*- haskell -*- file
+
+{-| Auto-generated file importing all production modules.
+
+-}
+
+module Test.Ganeti.TestImports () where

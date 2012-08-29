@@ -29,7 +29,7 @@ import Data.Monoid (mappend)
 import Test.Framework
 import System.Environment (getArgs)
 
-import Ganeti.HTools.QC ()
+import Test.Ganeti.TestImports ()
 import Test.Ganeti.Confd.Utils
 import Test.Ganeti.HTools.CLI
 import Test.Ganeti.HTools.Cluster
