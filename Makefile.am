@@ -60,7 +60,9 @@ HTOOLS_DIRS = \
 	htools/Ganeti/HTools \
 	htools/Ganeti/HTools/Program \
 	htools/Ganeti/Query \
-	htest
+	htest \
+	htest/Test \
+	htest/Test/Ganeti
 
 DIRS = \
 	autotools \
@@ -374,7 +376,8 @@ HPCEXCL = --exclude Main \
 	--exclude Ganeti.THH \
 	--exclude Ganeti.HTools.QC \
 	--exclude Ganeti.HTools.Version \
-	--exclude Test.Ganeti.TestHelper
+	--exclude Test.Ganeti.TestHelper \
+	$(patsubst htools.%,--exclude Test.%,$(subst /,.,$(patsubst %.hs,%, $(filter-out htest/%,$(HS_LIB_SRCS)))))
 
 HS_LIB_SRCS = \
 	htools/Ganeti/HTools/CLI.hs \
@@ -426,7 +429,8 @@ HS_LIB_SRCS = \
 	htools/Ganeti/Runtime.hs \
 	htools/Ganeti/Ssconf.hs \
 	htools/Ganeti/THH.hs \
-	htest/Test/Ganeti/TestHelper.hs
+	htest/Test/Ganeti/TestHelper.hs \
+	htest/Test/Ganeti/Objects.hs
 
 
 HS_BUILT_SRCS = htools/Ganeti/HTools/Version.hs htools/Ganeti/Constants.hs

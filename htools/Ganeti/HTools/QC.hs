@@ -51,7 +51,6 @@ module Ganeti.HTools.QC
   , testRpc
   , testQlang
   , testConfd
-  , testObjects
   ) where
 
 import qualified Test.HUnit as HUnit
@@ -2172,24 +2171,4 @@ prop_Confd_bad_key salt crq =
 testSuite "Confd"
   [ 'prop_Confd_req_sign
   , 'prop_Confd_bad_key
-  ]
-
--- * Objects tests
-
--- | Tests that fillDict behaves correctly
-prop_Objects_fillDict :: [(Int, Int)] -> [(Int, Int)] -> Property
-prop_Objects_fillDict defaults custom =
-  let d_map = Map.fromList defaults
-      d_keys = map fst defaults
-      c_map = Map.fromList custom
-      c_keys = map fst custom
-  in printTestCase "Empty custom filling"
-      (Objects.fillDict d_map Map.empty [] == d_map) .&&.
-     printTestCase "Empty defaults filling"
-      (Objects.fillDict Map.empty c_map [] == c_map) .&&.
-     printTestCase "Delete all keys"
-      (Objects.fillDict d_map c_map (d_keys++c_keys) == Map.empty)
-
-testSuite "Objects"
-  [ 'prop_Objects_fillDict
   ]

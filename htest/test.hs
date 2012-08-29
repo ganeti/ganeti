@@ -30,6 +30,7 @@ import Test.Framework
 import System.Environment (getArgs)
 
 import Ganeti.HTools.QC
+import Test.Ganeti.Objects
 
 -- | Our default test options, overring the built-in test-framework
 -- ones.
