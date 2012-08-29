@@ -1,6 +1,6 @@
 {-# LANGUAGE TemplateHaskell #-}
 
-{-| Unittest helpers for ganeti-htools
+{-| Unittest helpers for Haskell components
 
 -}
 
@@ -25,7 +25,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 -}
 
-module Ganeti.HTools.QCHelper
+module Test.Ganeti.TestHelper
   ( testSuite
   ) where
 

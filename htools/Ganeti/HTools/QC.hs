@@ -118,7 +118,7 @@ import qualified Ganeti.HTools.Program.Hbal
 import qualified Ganeti.HTools.Program.Hscan
 import qualified Ganeti.HTools.Program.Hspace
 
-import Ganeti.HTools.QCHelper (testSuite)
+import Test.Ganeti.TestHelper (testSuite)
 
 -- * Constants
 

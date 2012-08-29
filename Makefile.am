@@ -373,8 +373,8 @@ HPCEXCL = --exclude Main \
 	--exclude Ganeti.Constants \
 	--exclude Ganeti.THH \
 	--exclude Ganeti.HTools.QC \
-	--exclude Ganeti.HTools.QCHelper \
-	--exclude Ganeti.HTools.Version
+	--exclude Ganeti.HTools.Version \
+	--exclude Test.Ganeti.TestHelper
 
 HS_LIB_SRCS = \
 	htools/Ganeti/HTools/CLI.hs \
@@ -391,7 +391,6 @@ HS_LIB_SRCS = \
 	htools/Ganeti/HTools/Node.hs \
 	htools/Ganeti/HTools/PeerMap.hs \
 	htools/Ganeti/HTools/QC.hs \
-	htools/Ganeti/HTools/QCHelper.hs \
 	htools/Ganeti/HTools/Rapi.hs \
 	htools/Ganeti/HTools/Simu.hs \
 	htools/Ganeti/HTools/Text.hs \
@@ -426,7 +425,9 @@ HS_LIB_SRCS = \
 	htools/Ganeti/Rpc.hs \
 	htools/Ganeti/Runtime.hs \
 	htools/Ganeti/Ssconf.hs \
-	htools/Ganeti/THH.hs
+	htools/Ganeti/THH.hs \
+	htest/Test/Ganeti/TestHelper.hs
+
 
 HS_BUILT_SRCS = htools/Ganeti/HTools/Version.hs htools/Ganeti/Constants.hs
 HS_BUILT_SRCS_IN = $(patsubst %,%.in,$(HS_BUILT_SRCS))
