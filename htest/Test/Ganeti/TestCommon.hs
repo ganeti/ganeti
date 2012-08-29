@@ -108,3 +108,35 @@ getMaybe subgen = do
   if bool
     then Just <$> subgen
     else return Nothing
+
+-- | Defines a tag type.
+newtype TagChar = TagChar { tagGetChar :: Char }
+
+-- | All valid tag chars. This doesn't need to match _exactly_
+-- Ganeti's own tag regex, just enough for it to be close.
+tagChar :: [Char]
+tagChar = ['a'..'z'] ++ ['A'..'Z'] ++ ['0'..'9'] ++ ".+*/:@-"
+
+instance Arbitrary TagChar where
+  arbitrary = do
+    c <- elements tagChar
+    return (TagChar c)
+
+-- | Generates a tag
+genTag :: Gen [TagChar]
+genTag = do
+  -- the correct value would be C.maxTagLen, but that's way too
+  -- verbose in unittests, and at the moment I don't see any possible
+  -- bugs with longer tags and the way we use tags in htools
+  n <- choose (1, 10)
+  vector n
+
+-- | Generates a list of tags (correctly upper bounded).
+genTags :: Gen [String]
+genTags = do
+  -- the correct value would be C.maxTagsPerObj, but per the comment
+  -- in genTag, we don't use tags enough in htools to warrant testing
+  -- such big values
+  n <- choose (0, 10::Int)
+  tags <- mapM (const genTag) [1..n]
+  return $ map (map tagGetChar) tags

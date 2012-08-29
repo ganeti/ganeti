@@ -26,13 +26,33 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 -}
 
-module Test.Ganeti.Objects (testObjects) where
+module Test.Ganeti.Objects
+  ( testObjects
+  , Objects.Hypervisor(..)
+  , Objects.Node(..)
+  ) where
 
+import Control.Applicative
 import qualified Data.Map as Map
+import qualified Data.Set as Set
 import Test.QuickCheck
 
 import Test.Ganeti.TestHelper
+import Test.Ganeti.TestCommon
 import qualified Ganeti.Objects as Objects
+
+instance Arbitrary Objects.Hypervisor where
+  arbitrary = elements [minBound..maxBound]
+
+instance Arbitrary Objects.PartialNDParams where
+  arbitrary = Objects.PartialNDParams <$> arbitrary <*> arbitrary
+
+instance Arbitrary Objects.Node where
+  arbitrary = Objects.Node <$> getFQDN <*> getFQDN <*> getFQDN
+              <*> arbitrary <*> arbitrary <*> arbitrary <*> getFQDN
+              <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+              <*> arbitrary <*> arbitrary <*> getFQDN <*> arbitrary
+              <*> (Set.fromList <$> genTags)
 
 -- | Tests that fillDict behaves correctly
 prop_Objects_fillDict :: [(Int, Int)] -> [(Int, Int)] -> Property

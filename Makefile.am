@@ -433,8 +433,9 @@ HS_LIB_SRCS = \
 	htools/Ganeti/THH.hs \
 	htest/Test/Ganeti/TestHelper.hs \
 	htest/Test/Ganeti/TestCommon.hs \
+	htest/Test/Ganeti/Confd/Utils.hs \
 	htest/Test/Ganeti/Objects.hs \
-	htest/Test/Ganeti/Confd/Utils.hs
+	htest/Test/Ganeti/Rpc.hs
 
 
 HS_BUILT_SRCS = htools/Ganeti/HTools/Version.hs htools/Ganeti/Constants.hs

@@ -48,9 +48,7 @@ module Ganeti.HTools.QC
   , testJSON
   , testLuxi
   , testSsconf
-  , testRpc
   , testQlang
-  , testConfd
   ) where
 
 import qualified Test.HUnit as HUnit
@@ -87,7 +85,6 @@ import qualified Ganeti.Logging as Logging
 import qualified Ganeti.Luxi as Luxi
 import qualified Ganeti.Objects as Objects
 import qualified Ganeti.OpCodes as OpCodes
-import qualified Ganeti.Rpc as Rpc
 import qualified Ganeti.Query.Language as Qlang
 import qualified Ganeti.Runtime as Runtime
 import qualified Ganeti.Ssconf as Ssconf
@@ -281,38 +278,6 @@ getFields = do
   n <- choose (1, 32)
   vectorOf n getName
 
--- | Defines a tag type.
-newtype TagChar = TagChar { tagGetChar :: Char }
-
--- | All valid tag chars. This doesn't need to match _exactly_
--- Ganeti's own tag regex, just enough for it to be close.
-tagChar :: [Char]
-tagChar = ['a'..'z'] ++ ['A'..'Z'] ++ ['0'..'9'] ++ ".+*/:@-"
-
-instance Arbitrary TagChar where
-  arbitrary = do
-    c <- elements tagChar
-    return (TagChar c)
-
--- | Generates a tag
-genTag :: Gen [TagChar]
-genTag = do
-  -- the correct value would be C.maxTagLen, but that's way too
-  -- verbose in unittests, and at the moment I don't see any possible
-  -- bugs with longer tags and the way we use tags in htools
-  n <- choose (1, 10)
-  vector n
-
--- | Generates a list of tags (correctly upper bounded).
-genTags :: Gen [String]
-genTags = do
-  -- the correct value would be C.maxTagsPerObj, but per the comment
-  -- in genTag, we don't use tags enough in htools to warrant testing
-  -- such big values
-  n <- choose (0, 10::Int)
-  tags <- mapM (const genTag) [1..n]
-  return $ map (map tagGetChar) tags
-
 instance Arbitrary Types.InstanceStatus where
     arbitrary = elements [minBound..maxBound]
 
@@ -488,28 +453,6 @@ instance Arbitrary Types.IPolicy where
                          , Types.iPolicyVcpuRatio = vcpu_ratio
                          , Types.iPolicySpindleRatio = spindle_ratio
                          }
-
-instance Arbitrary Objects.Hypervisor where
-  arbitrary = elements [minBound..maxBound]
-
-instance Arbitrary Objects.PartialNDParams where
-  arbitrary = Objects.PartialNDParams <$> arbitrary <*> arbitrary
-
-instance Arbitrary Objects.Node where
-  arbitrary = Objects.Node <$> getFQDN <*> getFQDN <*> getFQDN
-              <*> arbitrary <*> arbitrary <*> arbitrary <*> getFQDN
-              <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
-              <*> arbitrary <*> arbitrary <*> getFQDN <*> arbitrary
-              <*> (Set.fromList <$> genTags)
-
-instance Arbitrary Rpc.RpcCallAllInstancesInfo where
-  arbitrary = Rpc.RpcCallAllInstancesInfo <$> arbitrary
-
-instance Arbitrary Rpc.RpcCallInstanceList where
-  arbitrary = Rpc.RpcCallInstanceList <$> arbitrary
-
-instance Arbitrary Rpc.RpcCallNodeInfo where
-  arbitrary = Rpc.RpcCallNodeInfo <$> arbitrary <*> arbitrary
 
 -- | Custom 'Qlang.Filter' generator (top-level), which enforces a
 -- (sane) limit on the depth of the generated filters.
@@ -1974,36 +1917,6 @@ prop_Ssconf_filename key =
 
 testSuite "Ssconf"
   [ 'prop_Ssconf_filename
-  ]
-
--- * Rpc tests
-
--- | Monadic check that, for an offline node and a call that does not
--- offline nodes, we get a OfflineNodeError response.
--- FIXME: We need a way of generalizing this, running it for
--- every call manually will soon get problematic
-prop_Rpc_noffl_request_allinstinfo :: Rpc.RpcCallAllInstancesInfo -> Property
-prop_Rpc_noffl_request_allinstinfo call =
-  forAll (arbitrary `suchThat` Objects.nodeOffline) $ \node -> monadicIO $ do
-      res <- run $ Rpc.executeRpcCall [node] call
-      stop $ res ==? [(node, Left (Rpc.OfflineNodeError node))]
-
-prop_Rpc_noffl_request_instlist :: Rpc.RpcCallInstanceList -> Property
-prop_Rpc_noffl_request_instlist call =
-  forAll (arbitrary `suchThat` Objects.nodeOffline) $ \node -> monadicIO $ do
-      res <- run $ Rpc.executeRpcCall [node] call
-      stop $ res ==? [(node, Left (Rpc.OfflineNodeError node))]
-
-prop_Rpc_noffl_request_nodeinfo :: Rpc.RpcCallNodeInfo -> Property
-prop_Rpc_noffl_request_nodeinfo call =
-  forAll (arbitrary `suchThat` Objects.nodeOffline) $ \node -> monadicIO $ do
-      res <- run $ Rpc.executeRpcCall [node] call
-      stop $ res ==? [(node, Left (Rpc.OfflineNodeError node))]
-
-testSuite "Rpc"
-  [ 'prop_Rpc_noffl_request_allinstinfo
-  , 'prop_Rpc_noffl_request_instlist
-  , 'prop_Rpc_noffl_request_nodeinfo
   ]
 
 -- * Qlang tests
