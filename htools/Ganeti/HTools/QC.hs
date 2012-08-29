@@ -39,16 +39,12 @@ module Ganeti.HTools.QC
   , testNode
   , testText
   , testSimu
-  , testOpCodes
   , testJobs
   , testCluster
   , testLoader
   , testTypes
   , testCLI
   , testJSON
-  , testLuxi
-  , testSsconf
-  , testQlang
   ) where
 
 import qualified Test.HUnit as HUnit
@@ -87,7 +83,6 @@ import qualified Ganeti.Objects as Objects
 import qualified Ganeti.OpCodes as OpCodes
 import qualified Ganeti.Query.Language as Qlang
 import qualified Ganeti.Runtime as Runtime
-import qualified Ganeti.Ssconf as Ssconf
 import qualified Ganeti.HTools.CLI as CLI
 import qualified Ganeti.HTools.Cluster as Cluster
 import qualified Ganeti.HTools.Container as Container
@@ -170,27 +165,6 @@ isFailure :: Types.OpResult a -> Bool
 isFailure (Types.OpFail _) = True
 isFailure _ = False
 
--- | Return the python binary to use. If the PYTHON environment
--- variable is defined, use its value, otherwise use just \"python\".
-pythonCmd :: IO String
-pythonCmd = catchJust (guard . isDoesNotExistError)
-            (getEnv "PYTHON") (const (return "python"))
-
--- | Run Python with an expression, returning the exit code, standard
--- output and error.
-runPython :: String -> String -> IO (ExitCode, String, String)
-runPython expr stdin = do
-  py_binary <- pythonCmd
-  readProcessWithExitCode py_binary ["-c", expr] stdin
-
--- | Check python exit code, and fail via HUnit assertions if
--- non-zero. Otherwise, return the standard output.
-checkPythonResult :: (ExitCode, String, String) -> IO String
-checkPythonResult (py_code, py_stdout, py_stderr) = do
-  HUnit.assertEqual ("python exited with error: " ++ py_stderr)
-       ExitSuccess py_code
-  return py_stdout
-
 -- | Update an instance to be smaller than a node.
 setInstanceSmallerThanNode :: Node.Node
                            -> Instance.Instance -> Instance.Instance
@@ -271,13 +245,6 @@ evacModeOptions Types.MirrorNone     = []
 evacModeOptions Types.MirrorInternal = [minBound..maxBound] -- DRBD can do all
 evacModeOptions Types.MirrorExternal = [Types.ChangePrimary, Types.ChangeAll]
 
--- | Generates a fields list. This uses the same character set as a
--- DNS name (just for simplicity).
-getFields :: Gen [String]
-getFields = do
-  n <- choose (1, 32)
-  vectorOf n getName
-
 instance Arbitrary Types.InstanceStatus where
     arbitrary = elements [minBound..maxBound]
 
@@ -348,31 +315,6 @@ genOnlineNode = do
 -- and a random node
 instance Arbitrary Node.Node where
   arbitrary = genNode Nothing Nothing
-
--- replace disks
-instance Arbitrary OpCodes.ReplaceDisksMode where
-  arbitrary = elements [minBound..maxBound]
-
-instance Arbitrary OpCodes.DiskIndex where
-  arbitrary = choose (0, C.maxDisks - 1) >>= OpCodes.mkDiskIndex
-
-instance Arbitrary OpCodes.OpCode where
-  arbitrary = do
-    op_id <- elements OpCodes.allOpIDs
-    case op_id of
-      "OP_TEST_DELAY" ->
-        OpCodes.OpTestDelay <$> arbitrary <*> arbitrary
-                 <*> resize maxNodes (listOf getFQDN)
-      "OP_INSTANCE_REPLACE_DISKS" ->
-        OpCodes.OpInstanceReplaceDisks <$> getFQDN <*> getMaybe getFQDN <*>
-          arbitrary <*> resize C.maxDisks arbitrary <*> getMaybe getName
-      "OP_INSTANCE_FAILOVER" ->
-        OpCodes.OpInstanceFailover <$> getFQDN <*> arbitrary <*>
-          getMaybe getFQDN
-      "OP_INSTANCE_MIGRATE" ->
-        OpCodes.OpInstanceMigrate <$> getFQDN <*> arbitrary <*>
-          arbitrary <*> arbitrary <*> getMaybe getFQDN
-      _ -> fail "Wrong opcode"
 
 instance Arbitrary Jobs.OpStatus where
   arbitrary = elements [minBound..maxBound]
@@ -453,44 +395,6 @@ instance Arbitrary Types.IPolicy where
                          , Types.iPolicyVcpuRatio = vcpu_ratio
                          , Types.iPolicySpindleRatio = spindle_ratio
                          }
-
--- | Custom 'Qlang.Filter' generator (top-level), which enforces a
--- (sane) limit on the depth of the generated filters.
-genFilter :: Gen (Qlang.Filter Qlang.FilterField)
-genFilter = choose (0, 10) >>= genFilter'
-
--- | Custom generator for filters that correctly halves the state of
--- the generators at each recursive step, per the QuickCheck
--- documentation, in order not to run out of memory.
-genFilter' :: Int -> Gen (Qlang.Filter Qlang.FilterField)
-genFilter' 0 =
-  oneof [ return Qlang.EmptyFilter
-        , Qlang.TrueFilter     <$> getName
-        , Qlang.EQFilter       <$> getName <*> value
-        , Qlang.LTFilter       <$> getName <*> value
-        , Qlang.GTFilter       <$> getName <*> value
-        , Qlang.LEFilter       <$> getName <*> value
-        , Qlang.GEFilter       <$> getName <*> value
-        , Qlang.RegexpFilter   <$> getName <*> arbitrary
-        , Qlang.ContainsFilter <$> getName <*> value
-        ]
-    where value = oneof [ Qlang.QuotedString <$> getName
-                        , Qlang.NumericValue <$> arbitrary
-                        ]
-genFilter' n = do
-  oneof [ Qlang.AndFilter  <$> vectorOf n'' (genFilter' n')
-        , Qlang.OrFilter   <$> vectorOf n'' (genFilter' n')
-        , Qlang.NotFilter  <$> genFilter' n'
-        ]
-  where n' = n `div` 2 -- sub-filter generator size
-        n'' = max n' 2 -- but we don't want empty or 1-element lists,
-                       -- so use this for and/or filter list length
-
-instance Arbitrary Qlang.ItemType where
-  arbitrary = elements [minBound..maxBound]
-
-instance Arbitrary Qlang.FilterRegex where
-  arbitrary = getName >>= Qlang.mkRegex -- a name should be a good regex
 
 -- * Actual tests
 
@@ -1484,84 +1388,6 @@ testSuite "Cluster"
             , 'prop_Cluster_AllocPolicy
             ]
 
--- ** OpCodes tests
-
--- | Check that opcode serialization is idempotent.
-prop_OpCodes_serialization :: OpCodes.OpCode -> Property
-prop_OpCodes_serialization op =
-  case J.readJSON (J.showJSON op) of
-    J.Error e -> failTest $ "Cannot deserialise: " ++ e
-    J.Ok op' -> op ==? op'
-
--- | Check that Python and Haskell defined the same opcode list.
-case_OpCodes_AllDefined :: HUnit.Assertion
-case_OpCodes_AllDefined = do
-  py_stdout <- runPython "from ganeti import opcodes\n\
-                         \print '\\n'.join(opcodes.OP_MAPPING.keys())" "" >>=
-               checkPythonResult
-  let py_ops = sort $ lines py_stdout
-      hs_ops = OpCodes.allOpIDs
-      -- extra_py = py_ops \\ hs_ops
-      extra_hs = hs_ops \\ py_ops
-  -- FIXME: uncomment when we have parity
-  -- HUnit.assertBool ("OpCodes missing from Haskell code:\n" ++
-  --                  unlines extra_py) (null extra_py)
-  HUnit.assertBool ("Extra OpCodes in the Haskell code code:\n" ++
-                    unlines extra_hs) (null extra_hs)
-
--- | Custom HUnit test case that forks a Python process and checks
--- correspondence between Haskell-generated OpCodes and their Python
--- decoded, validated and re-encoded version.
---
--- Note that we have a strange beast here: since launching Python is
--- expensive, we don't do this via a usual QuickProperty, since that's
--- slow (I've tested it, and it's indeed quite slow). Rather, we use a
--- single HUnit assertion, and in it we manually use QuickCheck to
--- generate 500 opcodes times the number of defined opcodes, which
--- then we pass in bulk to Python. The drawbacks to this method are
--- two fold: we cannot control the number of generated opcodes, since
--- HUnit assertions don't get access to the test options, and for the
--- same reason we can't run a repeatable seed. We should probably find
--- a better way to do this, for example by having a
--- separately-launched Python process (if not running the tests would
--- be skipped).
-case_OpCodes_py_compat :: HUnit.Assertion
-case_OpCodes_py_compat = do
-  let num_opcodes = length OpCodes.allOpIDs * 500
-  sample_opcodes <- sample' (vectorOf num_opcodes
-                             (arbitrary::Gen OpCodes.OpCode))
-  let opcodes = head sample_opcodes
-      serialized = J.encode opcodes
-  py_stdout <-
-     runPython "from ganeti import opcodes\n\
-               \import sys\n\
-               \from ganeti import serializer\n\
-               \op_data = serializer.Load(sys.stdin.read())\n\
-               \decoded = [opcodes.OpCode.LoadOpCode(o) for o in op_data]\n\
-               \for op in decoded:\n\
-               \  op.Validate(True)\n\
-               \encoded = [op.__getstate__() for op in decoded]\n\
-               \print serializer.Dump(encoded)" serialized
-     >>= checkPythonResult
-  let deserialised = (J.decode py_stdout::J.Result [OpCodes.OpCode])
-  decoded <- case deserialised of
-               J.Ok ops -> return ops
-               J.Error msg ->
-                 HUnit.assertFailure ("Unable to decode opcodes: " ++ msg)
-                 -- this already raised an expection, but we need it
-                 -- for proper types
-                 >> fail "Unable to decode opcodes"
-  HUnit.assertEqual "Mismatch in number of returned opcodes"
-    (length opcodes) (length decoded)
-  mapM_ (uncurry (HUnit.assertEqual "Different result after encoding/decoding")
-        ) $ zip opcodes decoded
-
-testSuite "OpCodes"
-            [ 'prop_OpCodes_serialization
-            , 'case_OpCodes_AllDefined
-            , 'case_OpCodes_py_compat
-            ]
-
 -- ** Jobs tests
 
 -- | Check that (queued) job\/opcode status serialization is idempotent.
@@ -1809,132 +1635,3 @@ testSuite "JSON"
           [ 'prop_JSON_toArray
           , 'prop_JSON_toArrayFail
           ]
-
--- * Luxi tests
-
-instance Arbitrary Luxi.TagObject where
-  arbitrary = elements [minBound..maxBound]
-
-instance Arbitrary Luxi.LuxiReq where
-  arbitrary = elements [minBound..maxBound]
-
-instance Arbitrary Luxi.LuxiOp where
-  arbitrary = do
-    lreq <- arbitrary
-    case lreq of
-      Luxi.ReqQuery -> Luxi.Query <$> arbitrary <*> getFields <*> genFilter
-      Luxi.ReqQueryFields -> Luxi.QueryFields <$> arbitrary <*> getFields
-      Luxi.ReqQueryNodes -> Luxi.QueryNodes <$> (listOf getFQDN) <*>
-                            getFields <*> arbitrary
-      Luxi.ReqQueryGroups -> Luxi.QueryGroups <$> arbitrary <*>
-                             arbitrary <*> arbitrary
-      Luxi.ReqQueryInstances -> Luxi.QueryInstances <$> (listOf getFQDN) <*>
-                                getFields <*> arbitrary
-      Luxi.ReqQueryJobs -> Luxi.QueryJobs <$> arbitrary <*> getFields
-      Luxi.ReqQueryExports -> Luxi.QueryExports <$>
-                              (listOf getFQDN) <*> arbitrary
-      Luxi.ReqQueryConfigValues -> Luxi.QueryConfigValues <$> getFields
-      Luxi.ReqQueryClusterInfo -> pure Luxi.QueryClusterInfo
-      Luxi.ReqQueryTags -> Luxi.QueryTags <$> arbitrary <*> getFQDN
-      Luxi.ReqSubmitJob -> Luxi.SubmitJob <$> (resize maxOpCodes arbitrary)
-      Luxi.ReqSubmitManyJobs -> Luxi.SubmitManyJobs <$>
-                                (resize maxOpCodes arbitrary)
-      Luxi.ReqWaitForJobChange -> Luxi.WaitForJobChange <$> arbitrary <*>
-                                  getFields <*> pure J.JSNull <*>
-                                  pure J.JSNull <*> arbitrary
-      Luxi.ReqArchiveJob -> Luxi.ArchiveJob <$> arbitrary
-      Luxi.ReqAutoArchiveJobs -> Luxi.AutoArchiveJobs <$> arbitrary <*>
-                                 arbitrary
-      Luxi.ReqCancelJob -> Luxi.CancelJob <$> arbitrary
-      Luxi.ReqSetDrainFlag -> Luxi.SetDrainFlag <$> arbitrary
-      Luxi.ReqSetWatcherPause -> Luxi.SetWatcherPause <$> arbitrary
-
--- | Simple check that encoding/decoding of LuxiOp works.
-prop_Luxi_CallEncoding :: Luxi.LuxiOp -> Property
-prop_Luxi_CallEncoding op =
-  (Luxi.validateCall (Luxi.buildCall op) >>= Luxi.decodeCall) ==? Types.Ok op
-
--- | Helper to a get a temporary file name.
-getTempFileName :: IO FilePath
-getTempFileName = do
-  tempdir <- getTemporaryDirectory
-  (fpath, handle) <- openTempFile tempdir "luxitest"
-  _ <- hClose handle
-  removeFile fpath
-  return fpath
-
--- | Server ping-pong helper.
-luxiServerPong :: Luxi.Client -> IO ()
-luxiServerPong c = do
-  msg <- Luxi.recvMsgExt c
-  case msg of
-    Luxi.RecvOk m -> Luxi.sendMsg c m >> luxiServerPong c
-    _ -> return ()
-
--- | Client ping-pong helper.
-luxiClientPong :: Luxi.Client -> [String] -> IO [String]
-luxiClientPong c =
-  mapM (\m -> Luxi.sendMsg c m >> Luxi.recvMsg c)
-
--- | Monadic check that, given a server socket, we can connect via a
--- client to it, and that we can send a list of arbitrary messages and
--- get back what we sent.
-prop_Luxi_ClientServer :: [[DNSChar]] -> Property
-prop_Luxi_ClientServer dnschars = monadicIO $ do
-  let msgs = map (map dnsGetChar) dnschars
-  fpath <- run $ getTempFileName
-  -- we need to create the server first, otherwise (if we do it in the
-  -- forked thread) the client could try to connect to it before it's
-  -- ready
-  server <- run $ Luxi.getServer fpath
-  -- fork the server responder
-  _ <- run . forkIO $
-    bracket
-      (Luxi.acceptClient server)
-      (\c -> Luxi.closeClient c >> Luxi.closeServer fpath server)
-      luxiServerPong
-  replies <- run $
-    bracket
-      (Luxi.getClient fpath)
-      Luxi.closeClient
-      (\c -> luxiClientPong c msgs)
-  assert $ replies == msgs
-
-testSuite "Luxi"
-          [ 'prop_Luxi_CallEncoding
-          , 'prop_Luxi_ClientServer
-          ]
-
--- * Ssconf tests
-
-instance Arbitrary Ssconf.SSKey where
-  arbitrary = elements [minBound..maxBound]
-
-prop_Ssconf_filename :: Ssconf.SSKey -> Property
-prop_Ssconf_filename key =
-  printTestCase "Key doesn't start with correct prefix" $
-    Ssconf.sSFilePrefix `isPrefixOf` Ssconf.keyToFilename (Just "") key
-
-testSuite "Ssconf"
-  [ 'prop_Ssconf_filename
-  ]
-
--- * Qlang tests
-
--- | Tests that serialisation/deserialisation of filters is
--- idempotent.
-prop_Qlang_Serialisation :: Property
-prop_Qlang_Serialisation =
-  forAll genFilter $ \flt ->
-  J.readJSON (J.showJSON flt) ==? J.Ok flt
-
-prop_Qlang_FilterRegex_instances :: Qlang.FilterRegex -> Property
-prop_Qlang_FilterRegex_instances rex =
-  printTestCase "failed JSON encoding"
-    (J.readJSON (J.showJSON rex) ==? J.Ok rex) .&&.
-  printTestCase "failed read/show instances" (read (show rex) ==? rex)
-
-testSuite "Qlang"
-  [ 'prop_Qlang_Serialisation
-  , 'prop_Qlang_FilterRegex_instances
-  ]

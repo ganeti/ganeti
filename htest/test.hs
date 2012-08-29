@@ -31,8 +31,12 @@ import System.Environment (getArgs)
 
 import Ganeti.HTools.QC
 import Test.Ganeti.Confd.Utils
+import Test.Ganeti.Luxi
 import Test.Ganeti.Objects
+import Test.Ganeti.OpCodes
+import Test.Ganeti.Query.Language
 import Test.Ganeti.Rpc
+import Test.Ganeti.Ssconf
 
 -- | Our default test options, overring the built-in test-framework
 -- ones.

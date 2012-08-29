@@ -26,8 +26,15 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 module Test.Ganeti.TestCommon where
 
 import Control.Applicative
+import Control.Exception (catchJust)
+import Control.Monad
 import Data.List
+import qualified Test.HUnit as HUnit
 import Test.QuickCheck
+import System.Environment (getEnv)
+import System.Exit (ExitCode(..))
+import System.IO.Error (isDoesNotExistError)
+import System.Process (readProcessWithExitCode)
 
 -- * Constants
 
@@ -73,6 +80,26 @@ infix 3 ==?
 failTest :: String -> Property
 failTest msg = printTestCase msg False
 
+-- | Return the python binary to use. If the PYTHON environment
+-- variable is defined, use its value, otherwise use just \"python\".
+pythonCmd :: IO String
+pythonCmd = catchJust (guard . isDoesNotExistError)
+            (getEnv "PYTHON") (const (return "python"))
+
+-- | Run Python with an expression, returning the exit code, standard
+-- output and error.
+runPython :: String -> String -> IO (ExitCode, String, String)
+runPython expr stdin = do
+  py_binary <- pythonCmd
+  readProcessWithExitCode py_binary ["-c", expr] stdin
+
+-- | Check python exit code, and fail via HUnit assertions if
+-- non-zero. Otherwise, return the standard output.
+checkPythonResult :: (ExitCode, String, String) -> IO String
+checkPythonResult (py_code, py_stdout, py_stderr) = do
+  HUnit.assertEqual ("python exited with error: " ++ py_stderr)
+       ExitSuccess py_code
+  return py_stdout
 
 -- * Arbitrary instances
 
@@ -140,3 +167,10 @@ genTags = do
   n <- choose (0, 10::Int)
   tags <- mapM (const genTag) [1..n]
   return $ map (map tagGetChar) tags
+
+-- | Generates a fields list. This uses the same character set as a
+-- DNS name (just for simplicity).
+getFields :: Gen [String]
+getFields = do
+  n <- choose (1, 32)
+  vectorOf n getName

@@ -63,7 +63,8 @@ HTOOLS_DIRS = \
 	htest \
 	htest/Test \
 	htest/Test/Ganeti \
-	htest/Test/Ganeti/Confd
+	htest/Test/Ganeti/Confd \
+	htest/Test/Ganeti/Query
 
 DIRS = \
 	autotools \
@@ -434,8 +435,12 @@ HS_LIB_SRCS = \
 	htest/Test/Ganeti/TestHelper.hs \
 	htest/Test/Ganeti/TestCommon.hs \
 	htest/Test/Ganeti/Confd/Utils.hs \
+	htest/Test/Ganeti/Luxi.hs \
 	htest/Test/Ganeti/Objects.hs \
-	htest/Test/Ganeti/Rpc.hs
+	htest/Test/Ganeti/OpCodes.hs \
+	htest/Test/Ganeti/Query/Language.hs \
+	htest/Test/Ganeti/Rpc.hs \
+	htest/Test/Ganeti/Ssconf.hs
 
 
 HS_BUILT_SRCS = htools/Ganeti/HTools/Version.hs htools/Ganeti/Constants.hs
