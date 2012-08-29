@@ -87,7 +87,7 @@ echo OK
 echo Running shelltest...
 
 shelltest $SHELLTESTARGS \
-  ${TOP_SRCDIR:-.}/test/htools-*.test \
+  ${TOP_SRCDIR:-.}/htest/shelltests/htools-*.test \
   -- --hide-successes
 
 echo All OK

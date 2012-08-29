@@ -773,18 +773,18 @@ TEST_FILES = \
 	test/import-export_unittest-helper \
 	test/gnt-cli.test \
 	test/ganeti-cli.test \
-	test/htools-balancing.test \
-	test/htools-basic.test \
-	test/htools-dynutil.test \
-	test/htools-excl.test \
-	test/htools-hail.test \
-	test/htools-hspace.test \
-	test/htools-invalid.test \
-	test/htools-multi-group.test \
-	test/htools-no-backend.test \
-	test/htools-rapi.test \
-	test/htools-single-group.test \
-	test/htools-text-backend.test \
+	htest/shelltests/htools-balancing.test \
+	htest/shelltests/htools-basic.test \
+	htest/shelltests/htools-dynutil.test \
+	htest/shelltests/htools-excl.test \
+	htest/shelltests/htools-hail.test \
+	htest/shelltests/htools-hspace.test \
+	htest/shelltests/htools-invalid.test \
+	htest/shelltests/htools-multi-group.test \
+	htest/shelltests/htools-no-backend.test \
+	htest/shelltests/htools-rapi.test \
+	htest/shelltests/htools-single-group.test \
+	htest/shelltests/htools-text-backend.test \
 	htest/data/hail-alloc-drbd.json \
 	htest/data/hail-change-group.json \
 	htest/data/hail-invalid-reloc.json \
