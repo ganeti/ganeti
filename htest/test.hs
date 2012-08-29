@@ -29,7 +29,7 @@ import Data.Monoid (mappend)
 import Test.Framework
 import System.Environment (getArgs)
 
-import Ganeti.HTools.QC
+import Ganeti.HTools.QC ()
 import Test.Ganeti.Confd.Utils
 import Test.Ganeti.HTools.CLI
 import Test.Ganeti.HTools.Cluster
@@ -42,6 +42,8 @@ import Test.Ganeti.HTools.Simu
 import Test.Ganeti.HTools.Text
 import Test.Ganeti.HTools.Types
 import Test.Ganeti.HTools.Utils
+import Test.Ganeti.Jobs
+import Test.Ganeti.JSON
 import Test.Ganeti.Luxi
 import Test.Ganeti.Objects
 import Test.Ganeti.OpCodes

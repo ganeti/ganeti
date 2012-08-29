@@ -446,6 +446,8 @@ HS_LIB_SRCS = \
 	htest/Test/Ganeti/HTools/Text.hs \
 	htest/Test/Ganeti/HTools/Types.hs \
 	htest/Test/Ganeti/HTools/Utils.hs \
+	htest/Test/Ganeti/JSON.hs \
+	htest/Test/Ganeti/Jobs.hs \
 	htest/Test/Ganeti/Luxi.hs \
 	htest/Test/Ganeti/Objects.hs \
 	htest/Test/Ganeti/OpCodes.hs \

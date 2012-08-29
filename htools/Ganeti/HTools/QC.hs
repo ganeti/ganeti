@@ -32,9 +32,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 
 module Ganeti.HTools.QC
-  ( testJobs
-  , testJSON
-  ) where
+  () where
 
 import qualified Test.HUnit as HUnit
 import Test.QuickCheck
@@ -100,57 +98,3 @@ import qualified Ganeti.HTools.Program.Hspace
 
 import Test.Ganeti.TestHelper (testSuite)
 import Test.Ganeti.TestCommon
-
--- * Helper functions
-
-
-instance Arbitrary Jobs.OpStatus where
-  arbitrary = elements [minBound..maxBound]
-
-instance Arbitrary Jobs.JobStatus where
-  arbitrary = elements [minBound..maxBound]
-
--- * Actual tests
-
-
--- ** Jobs tests
-
--- | Check that (queued) job\/opcode status serialization is idempotent.
-prop_Jobs_OpStatus_serialization :: Jobs.OpStatus -> Property
-prop_Jobs_OpStatus_serialization os =
-  case J.readJSON (J.showJSON os) of
-    J.Error e -> failTest $ "Cannot deserialise: " ++ e
-    J.Ok os' -> os ==? os'
-
-prop_Jobs_JobStatus_serialization :: Jobs.JobStatus -> Property
-prop_Jobs_JobStatus_serialization js =
-  case J.readJSON (J.showJSON js) of
-    J.Error e -> failTest $ "Cannot deserialise: " ++ e
-    J.Ok js' -> js ==? js'
-
-testSuite "Jobs"
-            [ 'prop_Jobs_OpStatus_serialization
-            , 'prop_Jobs_JobStatus_serialization
-            ]
-
--- * JSON tests
-
-prop_JSON_toArray :: [Int] -> Property
-prop_JSON_toArray intarr =
-  let arr = map J.showJSON intarr in
-  case JSON.toArray (J.JSArray arr) of
-    Types.Ok arr' -> arr ==? arr'
-    Types.Bad err -> failTest $ "Failed to parse array: " ++ err
-
-prop_JSON_toArrayFail :: Int -> String -> Bool -> Property
-prop_JSON_toArrayFail i s b =
-  -- poor man's instance Arbitrary JSValue
-  forAll (elements [J.showJSON i, J.showJSON s, J.showJSON b]) $ \item ->
-  case JSON.toArray item of
-    Types.Bad _ -> property True
-    Types.Ok result -> failTest $ "Unexpected parse, got " ++ show result
-
-testSuite "JSON"
-          [ 'prop_JSON_toArray
-          , 'prop_JSON_toArrayFail
-          ]
