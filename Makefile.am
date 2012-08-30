@@ -438,6 +438,7 @@ HS_LIB_SRCS = \
 	htools/Ganeti/THH.hs
 
 HS_TEST_SRCS = \
+	htest/Test/Ganeti/BasicTypes.hs \
 	htest/Test/Ganeti/Confd/Utils.hs \
 	htest/Test/Ganeti/HTools/CLI.hs \
 	htest/Test/Ganeti/HTools/Cluster.hs \

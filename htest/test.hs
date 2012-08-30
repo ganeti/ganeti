@@ -30,6 +30,7 @@ import Test.Framework
 import System.Environment (getArgs)
 
 import Test.Ganeti.TestImports ()
+import Test.Ganeti.BasicTypes
 import Test.Ganeti.Confd.Utils
 import Test.Ganeti.HTools.CLI
 import Test.Ganeti.HTools.Cluster
@@ -73,7 +74,8 @@ slow = fast
 -- | All our defined tests.
 allTests :: [(Bool, (String, [Test]))]
 allTests =
-  [ (True, testConfd_Utils)
+  [ (True, testBasicTypes)
+  , (True, testConfd_Utils)
   , (True, testHTools_CLI)
   , (True, testHTools_Container)
   , (True, testHTools_Instance)
