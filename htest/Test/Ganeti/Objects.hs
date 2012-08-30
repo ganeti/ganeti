@@ -28,31 +28,62 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Test.Ganeti.Objects
   ( testObjects
-  , Objects.Hypervisor(..)
-  , Objects.Node(..)
+  , Hypervisor(..)
+  , Node(..)
   ) where
+
+import Test.QuickCheck
 
 import Control.Applicative
 import qualified Data.Map as Map
 import qualified Data.Set as Set
-import Test.QuickCheck
+import qualified Text.JSON as J
 
 import Test.Ganeti.TestHelper
 import Test.Ganeti.TestCommon
-import qualified Ganeti.Objects as Objects
+import Ganeti.Objects as Objects
 
-instance Arbitrary Objects.Hypervisor where
+-- * Arbitrary instances
+
+instance Arbitrary Hypervisor where
   arbitrary = elements [minBound..maxBound]
 
-instance Arbitrary Objects.PartialNDParams where
-  arbitrary = Objects.PartialNDParams <$> arbitrary <*> arbitrary
+instance Arbitrary PartialNDParams where
+  arbitrary = PartialNDParams <$> arbitrary <*> arbitrary
 
-instance Arbitrary Objects.Node where
-  arbitrary = Objects.Node <$> getFQDN <*> getFQDN <*> getFQDN
+instance Arbitrary Node where
+  arbitrary = Node <$> getFQDN <*> getFQDN <*> getFQDN
               <*> arbitrary <*> arbitrary <*> arbitrary <*> getFQDN
               <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
               <*> arbitrary <*> arbitrary <*> getFQDN <*> arbitrary
               <*> (Set.fromList <$> genTags)
+
+instance Arbitrary FileDriver where
+  arbitrary = elements [minBound..maxBound]
+
+instance Arbitrary BlockDriver where
+  arbitrary = elements [minBound..maxBound]
+
+instance Arbitrary DiskMode where
+  arbitrary = elements [minBound..maxBound]
+
+instance Arbitrary DiskLogicalId where
+  arbitrary = oneof [ LIDPlain <$> arbitrary <*> arbitrary
+                    , LIDDrbd8 <$> getFQDN <*> getFQDN <*> arbitrary
+                               <*> arbitrary <*> arbitrary <*> arbitrary
+                    , LIDFile  <$> arbitrary <*> arbitrary
+                    , LIDBlockDev <$> arbitrary <*> arbitrary
+                    , LIDRados <$> arbitrary <*> arbitrary
+                    ]
+
+-- | 'Disk' 'arbitrary' instance. Since we don't test disk hierarchy
+-- properties, we only generate disks with no children (FIXME), as
+-- generating recursive datastructures is a bit more work.
+instance Arbitrary Disk where
+  arbitrary = Disk <$> arbitrary <*> (pure []) <*> arbitrary
+                   <*> arbitrary <*> arbitrary
+
+-- * Test properties
 
 -- | Tests that fillDict behaves correctly
 prop_fillDict :: [(Int, Int)] -> [(Int, Int)] -> Property
@@ -62,12 +93,29 @@ prop_fillDict defaults custom =
       c_map = Map.fromList custom
       c_keys = map fst custom
   in printTestCase "Empty custom filling"
-      (Objects.fillDict d_map Map.empty [] == d_map) .&&.
+      (fillDict d_map Map.empty [] == d_map) .&&.
      printTestCase "Empty defaults filling"
-      (Objects.fillDict Map.empty c_map [] == c_map) .&&.
+      (fillDict Map.empty c_map [] == c_map) .&&.
      printTestCase "Delete all keys"
-      (Objects.fillDict d_map c_map (d_keys++c_keys) == Map.empty)
+      (fillDict d_map c_map (d_keys++c_keys) == Map.empty)
+
+-- | Test that the serialisation of 'DiskLogicalId', which is
+-- implemented manually, is idempotent. Since we don't have a
+-- standalone JSON instance for DiskLogicalId (it's a data type that
+-- expands over two fields in a JSObject), we test this by actially
+-- testing entire Disk serialisations. So this tests two things at
+-- once, basically.
+prop_Disk_serialisation :: Disk -> Property
+prop_Disk_serialisation disk =
+  J.readJSON (J.showJSON disk) ==? J.Ok disk
+
+-- | Check that node serialisation is idempotent.
+prop_Node_serialisation :: Node -> Property
+prop_Node_serialisation node =
+  J.readJSON (J.showJSON node) ==? J.Ok node
 
 testSuite "Objects"
   [ 'prop_fillDict
+  , 'prop_Disk_serialisation
+  , 'prop_Node_serialisation
   ]

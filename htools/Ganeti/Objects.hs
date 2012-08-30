@@ -39,6 +39,8 @@ module Ganeti.Objects
   , fillNicParams
   , allNicParamFields
   , PartialNic(..)
+  , FileDriver(..)
+  , BlockDriver(..)
   , DiskMode(..)
   , DiskType(..)
   , DiskLogicalId(..)
