@@ -30,8 +30,6 @@ module Test.Ganeti.Jobs (testJobs) where
 
 import Test.QuickCheck
 
-import qualified Text.JSON as J
-
 import Test.Ganeti.TestHelper
 import Test.Ganeti.TestCommon
 
@@ -49,16 +47,10 @@ instance Arbitrary Jobs.JobStatus where
 
 -- | Check that (queued) job\/opcode status serialization is idempotent.
 prop_OpStatus_serialization :: Jobs.OpStatus -> Property
-prop_OpStatus_serialization os =
-  case J.readJSON (J.showJSON os) of
-    J.Error e -> failTest $ "Cannot deserialise: " ++ e
-    J.Ok os' -> os ==? os'
+prop_OpStatus_serialization = testSerialisation
 
 prop_JobStatus_serialization :: Jobs.JobStatus -> Property
-prop_JobStatus_serialization js =
-  case J.readJSON (J.showJSON js) of
-    J.Error e -> failTest $ "Cannot deserialise: " ++ e
-    J.Ok js' -> js ==? js'
+prop_JobStatus_serialization = testSerialisation
 
 testSuite "Jobs"
             [ 'prop_OpStatus_serialization

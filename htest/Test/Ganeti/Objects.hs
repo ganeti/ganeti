@@ -37,7 +37,6 @@ import Test.QuickCheck
 import Control.Applicative
 import qualified Data.Map as Map
 import qualified Data.Set as Set
-import qualified Text.JSON as J
 
 import Test.Ganeti.TestHelper
 import Test.Ganeti.TestCommon
@@ -106,13 +105,11 @@ prop_fillDict defaults custom =
 -- testing entire Disk serialisations. So this tests two things at
 -- once, basically.
 prop_Disk_serialisation :: Disk -> Property
-prop_Disk_serialisation disk =
-  J.readJSON (J.showJSON disk) ==? J.Ok disk
+prop_Disk_serialisation = testSerialisation
 
 -- | Check that node serialisation is idempotent.
 prop_Node_serialisation :: Node -> Property
-prop_Node_serialisation node =
-  J.readJSON (J.showJSON node) ==? J.Ok node
+prop_Node_serialisation = testSerialisation
 
 testSuite "Objects"
   [ 'prop_fillDict

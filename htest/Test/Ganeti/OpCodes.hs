@@ -74,10 +74,7 @@ instance Arbitrary OpCodes.OpCode where
 
 -- | Check that opcode serialization is idempotent.
 prop_serialization :: OpCodes.OpCode -> Property
-prop_serialization op =
-  case J.readJSON (J.showJSON op) of
-    J.Error e -> failTest $ "Cannot deserialise: " ++ e
-    J.Ok op' -> op ==? op'
+prop_serialization = testSerialisation
 
 -- | Check that Python and Haskell defined the same opcode list.
 case_AllDefined :: HUnit.Assertion

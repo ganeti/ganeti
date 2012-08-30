@@ -31,6 +31,7 @@ import Control.Monad
 import Data.List
 import qualified Test.HUnit as HUnit
 import Test.QuickCheck
+import qualified Text.JSON as J
 import System.Environment (getEnv)
 import System.Exit (ExitCode(..))
 import System.IO.Error (isDoesNotExistError)
@@ -187,3 +188,10 @@ instance Arbitrary SmallRatio where
   arbitrary = do
     v <- choose (0, 1)
     return $ SmallRatio v
+
+-- | Checks for serialisation idempotence.
+testSerialisation :: (Eq a, Show a, J.JSON a) => a -> Property
+testSerialisation a =
+  case J.readJSON (J.showJSON a) of
+    J.Error msg -> failTest $ "Failed to deserialise: " ++ msg
+    J.Ok a' -> a ==? a'

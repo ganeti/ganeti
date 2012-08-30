@@ -34,7 +34,6 @@ module Test.Ganeti.Query.Language
 import Test.QuickCheck
 
 import Control.Applicative
-import qualified Text.JSON as J
 
 import Test.Ganeti.TestHelper
 import Test.Ganeti.TestCommon
@@ -83,13 +82,11 @@ instance Arbitrary Qlang.FilterRegex where
 -- idempotent.
 prop_Serialisation :: Property
 prop_Serialisation =
-  forAll genFilter $ \flt ->
-  J.readJSON (J.showJSON flt) ==? J.Ok flt
+  forAll genFilter testSerialisation
 
 prop_FilterRegex_instances :: Qlang.FilterRegex -> Property
 prop_FilterRegex_instances rex =
-  printTestCase "failed JSON encoding"
-    (J.readJSON (J.showJSON rex) ==? J.Ok rex) .&&.
+  printTestCase "failed JSON encoding" (testSerialisation rex) .&&.
   printTestCase "failed read/show instances" (read (show rex) ==? rex)
 
 testSuite "Query/Language"

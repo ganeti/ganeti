@@ -41,7 +41,6 @@ module Test.Ganeti.HTools.Types
 import Test.QuickCheck
 
 import Control.Applicative
-import qualified Text.JSON as J
 
 import Test.Ganeti.TestHelper
 import Test.Ganeti.TestCommon
@@ -128,34 +127,19 @@ instance Arbitrary Types.IPolicy where
 -- * Test cases
 
 prop_AllocPolicy_serialisation :: Types.AllocPolicy -> Property
-prop_AllocPolicy_serialisation apol =
-  case J.readJSON (J.showJSON apol) of
-    J.Ok p -> p ==? apol
-    J.Error s -> failTest $ "Failed to deserialise: " ++ s
+prop_AllocPolicy_serialisation = testSerialisation
 
 prop_DiskTemplate_serialisation :: Types.DiskTemplate -> Property
-prop_DiskTemplate_serialisation dt =
-  case J.readJSON (J.showJSON dt) of
-    J.Ok p -> p ==? dt
-    J.Error s -> failTest $ "Failed to deserialise: " ++ s
+prop_DiskTemplate_serialisation = testSerialisation
 
 prop_ISpec_serialisation :: Types.ISpec -> Property
-prop_ISpec_serialisation ispec =
-  case J.readJSON (J.showJSON ispec) of
-    J.Ok p -> p ==? ispec
-    J.Error s -> failTest $ "Failed to deserialise: " ++ s
+prop_ISpec_serialisation = testSerialisation
 
 prop_IPolicy_serialisation :: Types.IPolicy -> Property
-prop_IPolicy_serialisation ipol =
-  case J.readJSON (J.showJSON ipol) of
-    J.Ok p -> p ==? ipol
-    J.Error s -> failTest $ "Failed to deserialise: " ++ s
+prop_IPolicy_serialisation = testSerialisation
 
 prop_EvacMode_serialisation :: Types.EvacMode -> Property
-prop_EvacMode_serialisation em =
-  case J.readJSON (J.showJSON em) of
-    J.Ok p -> p ==? em
-    J.Error s -> failTest $ "Failed to deserialise: " ++ s
+prop_EvacMode_serialisation = testSerialisation
 
 prop_opToResult :: Types.OpResult Int -> Bool
 prop_opToResult op =
