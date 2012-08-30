@@ -41,6 +41,7 @@ import qualified Data.Set as Set
 import Test.Ganeti.TestHelper
 import Test.Ganeti.TestCommon
 import Ganeti.Objects as Objects
+import Ganeti.JSON
 
 -- * Arbitrary instances
 
@@ -82,6 +83,46 @@ instance Arbitrary Disk where
   arbitrary = Disk <$> arbitrary <*> (pure []) <*> arbitrary
                    <*> arbitrary <*> arbitrary
 
+instance Arbitrary PartialBeParams where
+  -- FIXME: we should generate proper values, >=0, etc., but this is
+  -- hard for partial ones, where all must be wrapped in a 'Maybe'
+  arbitrary = PartialBeParams <$> arbitrary <*> arbitrary
+                              <*> arbitrary <*> arbitrary
+
+instance Arbitrary DiskTemplate where
+  arbitrary = elements [minBound..maxBound]
+
+instance Arbitrary AdminState where
+  arbitrary = elements [minBound..maxBound]
+
+instance Arbitrary NICMode where
+  arbitrary = elements [minBound..maxBound]
+
+instance Arbitrary PartialNicParams where
+  arbitrary = PartialNicParams <$> arbitrary <*> arbitrary
+
+instance Arbitrary PartialNic where
+  arbitrary = PartialNic <$> arbitrary <*> arbitrary <*> arbitrary
+
+instance Arbitrary Instance where
+  arbitrary =
+    Instance
+      <$> getFQDN <*> getFQDN <*> getFQDN -- OS name, but...
+      <*> arbitrary
+      -- FIXME: add non-empty hvparams when they're a proper type
+      <*> (pure $ Container Map.empty) <*> arbitrary
+      -- ... and for OSParams
+      <*> (pure $ Container Map.empty) <*> arbitrary <*> arbitrary
+      <*> arbitrary <*> arbitrary <*> arbitrary
+      -- ts
+      <*> arbitrary <*> arbitrary
+      -- uuid
+      <*> arbitrary
+      -- serial
+      <*> arbitrary
+      -- tags
+      <*> (Set.fromList <$> genTags)
+
 -- * Test properties
 
 -- | Tests that fillDict behaves correctly
@@ -111,8 +152,13 @@ prop_Disk_serialisation = testSerialisation
 prop_Node_serialisation :: Node -> Property
 prop_Node_serialisation = testSerialisation
 
+-- | Check that instance serialisation is idempotent.
+prop_Inst_serialisation :: Instance -> Property
+prop_Inst_serialisation = testSerialisation
+
 testSuite "Objects"
   [ 'prop_fillDict
   , 'prop_Disk_serialisation
+  , 'prop_Inst_serialisation
   , 'prop_Node_serialisation
   ]
