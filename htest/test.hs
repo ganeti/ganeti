@@ -95,6 +95,7 @@ allTests =
   , (True, testRpc)
   , (True, testSsconf)
   , (False, testHTools_Cluster)
+  , (False, testSlowObjects)
   ]
 
 -- | Slow a test's max tests, if provided as such.

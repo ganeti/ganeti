@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TemplateHaskell, TypeSynonymInstances, FlexibleInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 {-| Unittests for ganeti-htools.
@@ -28,8 +28,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Test.Ganeti.Objects
   ( testObjects
+  , testSlowObjects
   , Hypervisor(..)
   , Node(..)
+  , genEmptyCluster
   ) where
 
 import Test.QuickCheck
@@ -40,6 +42,8 @@ import qualified Data.Set as Set
 
 import Test.Ganeti.TestHelper
 import Test.Ganeti.TestCommon
+
+import qualified Ganeti.Constants as C
 import Ganeti.Objects as Objects
 import Ganeti.JSON
 
@@ -111,6 +115,78 @@ instance Arbitrary Instance where
       -- tags
       <*> (Set.fromList <$> genTags)
 
+-- | FIXME: This generates completely random data, without normal
+-- validation rules.
+$(genArbitrary ''PartialISpecParams)
+
+-- | FIXME: This generates completely random data, without normal
+-- validation rules.
+$(genArbitrary ''PartialIPolicy)
+
+-- | FIXME: This generates completely random data, without normal
+-- validation rules.
+instance Arbitrary NodeGroup where
+  arbitrary = NodeGroup <$> getFQDN <*> pure [] <*> arbitrary <*> arbitrary
+                        <*> arbitrary <*> (pure $ Container Map.empty)
+                        -- ts
+                        <*> arbitrary <*> arbitrary
+                        -- uuid
+                        <*> arbitrary
+                        -- serial
+                        <*> arbitrary
+                        -- tags
+                        <*> (Set.fromList <$> genTags)
+
+$(genArbitrary ''AllocPolicy)
+$(genArbitrary ''FilledISpecParams)
+$(genArbitrary ''FilledIPolicy)
+$(genArbitrary ''IpFamily)
+$(genArbitrary ''FilledNDParams)
+$(genArbitrary ''FilledNicParams)
+$(genArbitrary ''FilledBeParams)
+
+-- | No real arbitrary instance for 'ClusterHvParams' yet.
+instance Arbitrary ClusterHvParams where
+  arbitrary = return $ Container Map.empty
+
+-- | No real arbitrary instance for 'OsHvParams' yet.
+instance Arbitrary OsHvParams where
+  arbitrary = return $ Container Map.empty
+
+instance Arbitrary ClusterNicParams where
+  arbitrary = (Container . Map.singleton C.ppDefault) <$> arbitrary
+
+instance Arbitrary OsParams where
+  arbitrary = (Container . Map.fromList) <$> arbitrary
+
+instance Arbitrary ClusterOsParams where
+  arbitrary = (Container . Map.fromList) <$> arbitrary
+
+instance Arbitrary ClusterBeParams where
+  arbitrary = (Container . Map.fromList) <$> arbitrary
+
+instance Arbitrary TagSet where
+  arbitrary = Set.fromList <$> genTags
+
+$(genArbitrary ''Cluster)
+
+-- | Generator for config data with an empty cluster (no instances),
+-- with N defined nodes.
+genEmptyCluster :: Int -> Gen ConfigData
+genEmptyCluster ncount = do
+  nodes <- vector ncount
+  version <- arbitrary
+  let guuid = "00"
+      nodes' = map (\n -> n { nodeGroup = guuid }) nodes
+      contnodes = Container . Map.fromList $ map (\n -> (nodeName n, n)) nodes'
+      continsts = Container $ Map.empty
+  grp <- arbitrary
+  let contgroups = Container $ Map.singleton guuid grp
+  serial <- arbitrary
+  cluster <- arbitrary
+  let c = ConfigData version cluster contnodes contgroups continsts serial
+  return c
+
 -- * Test properties
 
 -- | Tests that fillDict behaves correctly
@@ -144,9 +220,18 @@ prop_Node_serialisation = testSerialisation
 prop_Inst_serialisation :: Instance -> Property
 prop_Inst_serialisation = testSerialisation
 
+-- | Check config serialisation.
+prop_Config_serialisation :: Property
+prop_Config_serialisation =
+  forAll (choose (0, maxNodes) >>= genEmptyCluster) testSerialisation
+
 testSuite "Objects"
   [ 'prop_fillDict
   , 'prop_Disk_serialisation
   , 'prop_Inst_serialisation
   , 'prop_Node_serialisation
+  ]
+
+testSuite "SlowObjects"
+  [ 'prop_Config_serialisation
   ]

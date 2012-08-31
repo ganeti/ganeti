@@ -48,6 +48,7 @@ module Ganeti.THH ( declareSADT
                   , uuidFields
                   , serialFields
                   , tagsFields
+                  , TagSet
                   , buildObject
                   , buildObjectSerialisation
                   , buildParam
@@ -171,10 +172,13 @@ serialFields =
 uuidFields :: [Field]
 uuidFields = [ simpleField "uuid" [t| String |] ]
 
+-- | Tag set type alias.
+type TagSet = Set.Set String
+
 -- | Tag field description.
 tagsFields :: [Field]
 tagsFields = [ defaultField [| Set.empty |] $
-               simpleField "tags" [t| Set.Set String |] ]
+               simpleField "tags" [t| TagSet |] ]
 
 -- * Helper functions
 

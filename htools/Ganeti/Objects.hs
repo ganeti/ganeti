@@ -88,6 +88,7 @@ module Ganeti.Objects
   , SerialNoObject(..)
   , TagsObject(..)
   , DictObject(..) -- re-exported from THH
+  , TagSet -- re-exported from THH
   ) where
 
 import Data.List (foldl')
