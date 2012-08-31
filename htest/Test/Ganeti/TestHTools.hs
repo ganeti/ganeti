@@ -28,10 +28,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Test.Ganeti.TestHTools where
 
-import Test.QuickCheck
-
 import qualified Data.Map as Map
 
+import Test.Ganeti.TestHelper
 import Test.Ganeti.TestCommon
 
 import qualified Ganeti.Constants as C
@@ -120,5 +119,4 @@ setInstanceSmallerThanNode node inst =
 
 -- * Arbitrary instances
 
-instance Arbitrary Types.InstanceStatus where
-    arbitrary = elements [minBound..maxBound]
+$(genArbitrary ''Types.InstanceStatus)

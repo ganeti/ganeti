@@ -72,8 +72,7 @@ genFilter' n = do
         n'' = max n' 2 -- but we don't want empty or 1-element lists,
                        -- so use this for and/or filter list length
 
-instance Arbitrary Qlang.ItemType where
-  arbitrary = elements [minBound..maxBound]
+$(genArbitrary ''Qlang.ItemType)
 
 instance Arbitrary Qlang.FilterRegex where
   arbitrary = getName >>= Qlang.mkRegex -- a name should be a good regex
@@ -81,8 +80,7 @@ instance Arbitrary Qlang.FilterRegex where
 -- | Tests that serialisation/deserialisation of filters is
 -- idempotent.
 prop_Serialisation :: Property
-prop_Serialisation =
-  forAll genFilter testSerialisation
+prop_Serialisation = forAll genFilter testSerialisation
 
 prop_FilterRegex_instances :: Qlang.FilterRegex -> Property
 prop_FilterRegex_instances rex =

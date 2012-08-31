@@ -45,11 +45,9 @@ import Ganeti.JSON
 
 -- * Arbitrary instances
 
-instance Arbitrary Hypervisor where
-  arbitrary = elements [minBound..maxBound]
+$(genArbitrary ''Hypervisor)
 
-instance Arbitrary PartialNDParams where
-  arbitrary = PartialNDParams <$> arbitrary <*> arbitrary
+$(genArbitrary ''PartialNDParams)
 
 instance Arbitrary Node where
   arbitrary = Node <$> getFQDN <*> getFQDN <*> getFQDN
@@ -58,14 +56,11 @@ instance Arbitrary Node where
               <*> arbitrary <*> arbitrary <*> getFQDN <*> arbitrary
               <*> (Set.fromList <$> genTags)
 
-instance Arbitrary FileDriver where
-  arbitrary = elements [minBound..maxBound]
+$(genArbitrary ''FileDriver)
 
-instance Arbitrary BlockDriver where
-  arbitrary = elements [minBound..maxBound]
+$(genArbitrary ''BlockDriver)
 
-instance Arbitrary DiskMode where
-  arbitrary = elements [minBound..maxBound]
+$(genArbitrary ''DiskMode)
 
 instance Arbitrary DiskLogicalId where
   arbitrary = oneof [ LIDPlain <$> arbitrary <*> arbitrary
@@ -83,26 +78,19 @@ instance Arbitrary Disk where
   arbitrary = Disk <$> arbitrary <*> (pure []) <*> arbitrary
                    <*> arbitrary <*> arbitrary
 
-instance Arbitrary PartialBeParams where
-  -- FIXME: we should generate proper values, >=0, etc., but this is
-  -- hard for partial ones, where all must be wrapped in a 'Maybe'
-  arbitrary = PartialBeParams <$> arbitrary <*> arbitrary
-                              <*> arbitrary <*> arbitrary
+-- FIXME: we should generate proper values, >=0, etc., but this is
+-- hard for partial ones, where all must be wrapped in a 'Maybe'
+$(genArbitrary ''PartialBeParams)
 
-instance Arbitrary DiskTemplate where
-  arbitrary = elements [minBound..maxBound]
+$(genArbitrary ''DiskTemplate)
 
-instance Arbitrary AdminState where
-  arbitrary = elements [minBound..maxBound]
+$(genArbitrary ''AdminState)
 
-instance Arbitrary NICMode where
-  arbitrary = elements [minBound..maxBound]
+$(genArbitrary ''NICMode)
 
-instance Arbitrary PartialNicParams where
-  arbitrary = PartialNicParams <$> arbitrary <*> arbitrary
+$(genArbitrary ''PartialNicParams)
 
-instance Arbitrary PartialNic where
-  arbitrary = PartialNic <$> arbitrary <*> arbitrary <*> arbitrary
+$(genArbitrary ''PartialNic)
 
 instance Arbitrary Instance where
   arbitrary =

@@ -48,11 +48,9 @@ import qualified Ganeti.Luxi as Luxi
 
 -- * Luxi tests
 
-instance Arbitrary Luxi.TagObject where
-  arbitrary = elements [minBound..maxBound]
+$(genArbitrary ''Luxi.TagObject)
 
-instance Arbitrary Luxi.LuxiReq where
-  arbitrary = elements [minBound..maxBound]
+$(genArbitrary ''Luxi.LuxiReq)
 
 instance Arbitrary Luxi.LuxiOp where
   arbitrary = do

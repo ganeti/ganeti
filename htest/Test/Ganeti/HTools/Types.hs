@@ -56,17 +56,13 @@ allDiskTemplates = [minBound..maxBound]
 
 -- * Arbitrary instance
 
-instance Arbitrary Types.AllocPolicy where
-  arbitrary = elements [minBound..maxBound]
+$(genArbitrary ''Types.AllocPolicy)
 
-instance Arbitrary Types.DiskTemplate where
-  arbitrary = elements [minBound..maxBound]
+$(genArbitrary ''Types.DiskTemplate)
 
-instance Arbitrary Types.FailMode where
-  arbitrary = elements [minBound..maxBound]
+$(genArbitrary ''Types.FailMode)
 
-instance Arbitrary Types.EvacMode where
-  arbitrary = elements [minBound..maxBound]
+$(genArbitrary ''Types.EvacMode)
 
 instance Arbitrary a => Arbitrary (Types.OpResult a) where
   arbitrary = arbitrary >>= \c ->

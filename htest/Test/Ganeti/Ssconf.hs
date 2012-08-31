@@ -38,8 +38,7 @@ import qualified Ganeti.Ssconf as Ssconf
 
 -- * Ssconf tests
 
-instance Arbitrary Ssconf.SSKey where
-  arbitrary = elements [minBound..maxBound]
+$(genArbitrary ''Ssconf.SSKey)
 
 prop_filename :: Ssconf.SSKey -> Property
 prop_filename key =

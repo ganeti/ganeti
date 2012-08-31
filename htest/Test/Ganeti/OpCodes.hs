@@ -46,8 +46,7 @@ import qualified Ganeti.OpCodes as OpCodes
 
 -- * Arbitrary instances
 
-instance Arbitrary OpCodes.ReplaceDisksMode where
-  arbitrary = elements [minBound..maxBound]
+$(genArbitrary ''OpCodes.ReplaceDisksMode)
 
 instance Arbitrary OpCodes.DiskIndex where
   arbitrary = choose (0, C.maxDisks - 1) >>= OpCodes.mkDiskIndex

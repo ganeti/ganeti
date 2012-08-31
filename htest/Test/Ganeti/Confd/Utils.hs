@@ -41,15 +41,11 @@ import qualified Ganeti.Confd.Utils as Confd.Utils
 import qualified Ganeti.Constants as C
 import qualified Ganeti.Hash as Hash
 
-instance Arbitrary Confd.ConfdRequestType where
-  arbitrary = elements [minBound..maxBound]
+$(genArbitrary ''Confd.ConfdRequestType)
 
-instance Arbitrary Confd.ConfdReqField where
-  arbitrary = elements [minBound..maxBound]
+$(genArbitrary ''Confd.ConfdReqField)
 
-instance Arbitrary Confd.ConfdReqQ where
-  arbitrary = Confd.ConfdReqQ <$> arbitrary <*> arbitrary <*>
-              arbitrary <*> arbitrary
+$(genArbitrary ''Confd.ConfdReqQ)
 
 instance Arbitrary Confd.ConfdQuery where
   arbitrary = oneof [ pure Confd.EmptyQuery
@@ -57,9 +53,7 @@ instance Arbitrary Confd.ConfdQuery where
                     , Confd.DictQuery <$> arbitrary
                     ]
 
-instance Arbitrary Confd.ConfdRequest where
-  arbitrary = Confd.ConfdRequest <$> arbitrary <*> arbitrary <*> arbitrary
-              <*> arbitrary
+$(genArbitrary ''Confd.ConfdRequest)
 
 -- | Test that signing messages and checking signatures is correct. It
 -- also tests, indirectly the serialisation of messages so we don't

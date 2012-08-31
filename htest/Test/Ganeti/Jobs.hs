@@ -37,11 +37,9 @@ import qualified Ganeti.Jobs as Jobs
 
 -- * Arbitrary instances
 
-instance Arbitrary Jobs.OpStatus where
-  arbitrary = elements [minBound..maxBound]
+$(genArbitrary ''Jobs.OpStatus)
 
-instance Arbitrary Jobs.JobStatus where
-  arbitrary = elements [minBound..maxBound]
+$(genArbitrary ''Jobs.JobStatus)
 
 -- * Test cases
 
