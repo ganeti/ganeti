@@ -48,6 +48,7 @@ import Test.Ganeti.JSON
 import Test.Ganeti.Luxi
 import Test.Ganeti.Objects
 import Test.Ganeti.OpCodes
+import Test.Ganeti.Query.Filter
 import Test.Ganeti.Query.Language
 import Test.Ganeti.Query.Query
 import Test.Ganeti.Rpc
@@ -92,6 +93,7 @@ allTests =
   , (True, testLuxi)
   , (True, testObjects)
   , (True, testOpCodes)
+  , (True, testQuery_Filter)
   , (True, testQuery_Language)
   , (True, testQuery_Query)
   , (True, testRpc)

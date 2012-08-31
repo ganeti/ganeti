@@ -456,6 +456,7 @@ HS_TEST_SRCS = \
 	htest/Test/Ganeti/Luxi.hs \
 	htest/Test/Ganeti/Objects.hs \
 	htest/Test/Ganeti/OpCodes.hs \
+	htest/Test/Ganeti/Query/Filter.hs \
 	htest/Test/Ganeti/Query/Language.hs \
 	htest/Test/Ganeti/Query/Query.hs \
 	htest/Test/Ganeti/Rpc.hs \
