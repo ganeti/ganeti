@@ -49,6 +49,7 @@ import Test.Ganeti.Luxi
 import Test.Ganeti.Objects
 import Test.Ganeti.OpCodes
 import Test.Ganeti.Query.Language
+import Test.Ganeti.Query.Query
 import Test.Ganeti.Rpc
 import Test.Ganeti.Ssconf
 
@@ -92,6 +93,7 @@ allTests =
   , (True, testObjects)
   , (True, testOpCodes)
   , (True, testQuery_Language)
+  , (True, testQuery_Query)
   , (True, testRpc)
   , (True, testSsconf)
   , (False, testHTools_Cluster)

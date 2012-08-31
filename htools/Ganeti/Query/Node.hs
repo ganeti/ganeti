@@ -128,11 +128,11 @@ nodeFields =
        "Number of instances with this node as secondary",
      FieldConfig (\cfg ->
                     rsNormal . length . snd . getNodeInstances cfg . nodeName))
-  , (FieldDefinition "pinst_list" "PriInstances" QFTNumber
+  , (FieldDefinition "pinst_list" "PriInstances" QFTOther
        "List of instances with this node as primary",
      FieldConfig (\cfg -> rsNormal . map instName . fst .
                           getNodeInstances cfg . nodeName))
-  , (FieldDefinition "sinst_list" "SecInstances" QFTNumber
+  , (FieldDefinition "sinst_list" "SecInstances" QFTOther
        "List of instances with this node as secondary",
      FieldConfig (\cfg -> rsNormal . map instName . snd .
                           getNodeInstances cfg . nodeName))

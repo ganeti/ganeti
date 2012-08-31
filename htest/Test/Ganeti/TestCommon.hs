@@ -31,11 +31,14 @@ import Control.Monad
 import Data.List
 import qualified Test.HUnit as HUnit
 import Test.QuickCheck
+import Test.QuickCheck.Monadic
 import qualified Text.JSON as J
 import System.Environment (getEnv)
 import System.Exit (ExitCode(..))
 import System.IO.Error (isDoesNotExistError)
 import System.Process (readProcessWithExitCode)
+
+import qualified Ganeti.BasicTypes as BasicTypes
 
 -- * Constants
 
@@ -199,3 +202,8 @@ testSerialisation a =
   case J.readJSON (J.showJSON a) of
     J.Error msg -> failTest $ "Failed to deserialise: " ++ msg
     J.Ok a' -> a ==? a'
+
+-- | Result to PropertyM IO.
+resultProp :: BasicTypes.Result a -> PropertyM IO a
+resultProp (BasicTypes.Bad msg) = stop $ failTest msg
+resultProp (BasicTypes.Ok  val) = return val

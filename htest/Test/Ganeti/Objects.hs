@@ -177,7 +177,9 @@ genEmptyCluster ncount = do
   nodes <- vector ncount
   version <- arbitrary
   let guuid = "00"
-      nodes' = map (\n -> n { nodeGroup = guuid }) nodes
+      nodes' = zipWith (\n idx -> n { nodeGroup = guuid,
+                                      nodeName = nodeName n ++ show idx })
+               nodes [(1::Int)..]
       contnodes = Container . Map.fromList $ map (\n -> (nodeName n, n)) nodes'
       continsts = Container $ Map.empty
   grp <- arbitrary

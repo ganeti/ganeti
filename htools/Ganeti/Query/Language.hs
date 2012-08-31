@@ -336,8 +336,10 @@ $(buildObject "FieldDefinition" "fdef"
   ])
 
 --- | Single field entry result.
-data ResultEntry = ResultEntry ResultStatus (Maybe ResultValue)
-                   deriving (Show, Read, Eq)
+data ResultEntry = ResultEntry
+  { rentryStatus :: ResultStatus      -- ^ The result status
+  , rentryValue  :: Maybe ResultValue -- ^ The (optional) result value
+  } deriving (Show, Read, Eq)
 
 instance JSON ResultEntry where
   showJSON (ResultEntry rs rv) =
