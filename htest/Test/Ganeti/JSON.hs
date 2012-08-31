@@ -50,7 +50,7 @@ prop_toArrayFail i s b =
   -- poor man's instance Arbitrary JSValue
   forAll (elements [J.showJSON i, J.showJSON s, J.showJSON b]) $ \item ->
   case JSON.toArray item of
-    BasicTypes.Bad _ -> property True
+    BasicTypes.Bad _ -> passTest
     BasicTypes.Ok result -> failTest $ "Unexpected parse, got " ++ show result
 
 testSuite "JSON"

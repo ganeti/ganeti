@@ -56,7 +56,7 @@ prop_parseISpecFail descr =
   let str = intercalate "," $ map show (values::[Int])
   in case CLI.parseISpecString descr str of
        Types.Ok v -> failTest $ "Expected failure, got " ++ show v
-       _ -> property True
+       _ -> passTest
 
 -- | Test parseYesNo.
 prop_parseYesNo :: Bool -> Bool -> [Char] -> Property
@@ -99,11 +99,10 @@ prop_StringArg argument =
 checkEarlyExit :: String -> [CLI.OptType] -> String -> Property
 checkEarlyExit name options param =
   case CLI.parseOptsInner [param] name options of
-    Left (code, _) -> if code == 0
-                          then property True
-                          else failTest $ "Program " ++ name ++
-                                 " returns invalid code " ++ show code ++
-                                 " for option " ++ param
+    Left (code, _) ->
+      printTestCase ("Program " ++ name ++
+                     " returns invalid code " ++ show code ++
+                     " for option " ++ param) (code == 0)
     _ -> failTest $ "Program " ++ name ++ " doesn't consider option " ++
          param ++ " as early exit one"
 

@@ -81,6 +81,10 @@ infix 3 ==?
 failTest :: String -> Property
 failTest msg = printTestCase msg False
 
+-- | A 'True' property.
+passTest :: Property
+passTest = property True
+
 -- | Return the python binary to use. If the PYTHON environment
 -- variable is defined, use its value, otherwise use just \"python\".
 pythonCmd :: IO String

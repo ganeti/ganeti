@@ -154,7 +154,7 @@ prop_addPriFC =
   let inst' = setInstanceSmallerThanNode node inst
       inst'' = inst' { Instance.vcpus = Node.availCpu node + extra }
   in case Node.addPri node inst'' of
-       Types.OpFail Types.FailCPU -> property True
+       Types.OpFail Types.FailCPU -> passTest
        v -> failTest $ "Expected OpFail FailCPU, but got " ++ show v
 
 -- | Check that an instance add with too high memory or disk will be
@@ -177,7 +177,7 @@ prop_addOfflinePri (NonNegative extra_mem) (NonNegative extra_cpu) =
                    , Instance.mem = Node.availMem node + extra_mem
                    , Instance.vcpus = Node.availCpu node + extra_cpu }
   in case Node.addPri node inst' of
-       Types.OpGood _ -> property True
+       Types.OpGood _ -> passTest
        v -> failTest $ "Expected OpGood, but got: " ++ show v
 
 -- | Check that an offline instance with reasonable disk size but
@@ -192,7 +192,7 @@ prop_addOfflineSec (NonNegative extra_mem) (NonNegative extra_cpu) pdx =
                    , Instance.vcpus = Node.availCpu node + extra_cpu
                    , Instance.diskTemplate = Types.DTDrbd8 }
   in case Node.addSec node inst' pdx of
-       Types.OpGood _ -> property True
+       Types.OpGood _ -> passTest
        v -> failTest $ "Expected OpGood/OpGood, but got: " ++ show v
 
 -- | Checks for memory reservation changes.

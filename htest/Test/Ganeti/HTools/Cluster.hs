@@ -206,7 +206,7 @@ prop_AllocRelocate =
              [(if Instance.diskTemplate inst' == Types.DTDrbd8
                  then Instance.sNode
                  else Instance.pNode) inst'] of
-        Types.Ok _ -> property True
+        Types.Ok _ -> passTest
         Types.Bad msg -> failTest $ "Failed to relocate: " ++ msg
 
 -- | Helper property checker for the result of a nodeEvac or
