@@ -348,7 +348,7 @@ instance JSON ResultEntry where
     (rs, rv) <- readJSON v
     rv' <- case rv of
              JSNull -> return Nothing
-             x -> readJSON x
+             x -> Just <$> readJSON x
     return $ ResultEntry rs rv'
 
 -- | The type of one result row.
