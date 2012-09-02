@@ -28,17 +28,18 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Test.Ganeti.HTools.CLI (testHTools_CLI) where
 
+import Test.HUnit
 import Test.QuickCheck
 
 import Control.Monad
 import Data.List
 import Text.Printf (printf)
-import qualified System.Console.GetOpt as GetOpt
 
 import Test.Ganeti.TestHelper
 import Test.Ganeti.TestCommon
+import Test.Ganeti.Common
 
-import qualified Ganeti.HTools.CLI as CLI
+import Ganeti.HTools.CLI as CLI
 import qualified Ganeti.HTools.Program as Program
 import qualified Ganeti.HTools.Types as Types
 
@@ -46,7 +47,7 @@ import qualified Ganeti.HTools.Types as Types
 prop_parseISpec :: String -> Int -> Int -> Int -> Property
 prop_parseISpec descr dsk mem cpu =
   let str = printf "%d,%d,%d" dsk mem cpu::String
-  in CLI.parseISpecString descr str ==? Types.Ok (Types.RSpec cpu mem dsk)
+  in parseISpecString descr str ==? Types.Ok (Types.RSpec cpu mem dsk)
 
 -- | Test parsing failure due to wrong section count.
 prop_parseISpecFail :: String -> Property
@@ -54,71 +55,76 @@ prop_parseISpecFail descr =
   forAll (choose (0,100) `suchThat` ((/=) 3)) $ \nelems ->
   forAll (replicateM nelems arbitrary) $ \values ->
   let str = intercalate "," $ map show (values::[Int])
-  in case CLI.parseISpecString descr str of
+  in case parseISpecString descr str of
        Types.Ok v -> failTest $ "Expected failure, got " ++ show v
        _ -> passTest
 
--- | Test parseYesNo.
-prop_parseYesNo :: Bool -> Bool -> [Char] -> Property
-prop_parseYesNo def testval val =
-  forAll (elements [val, "yes", "no"]) $ \actual_val ->
-  if testval
-    then CLI.parseYesNo def Nothing ==? Types.Ok def
-    else let result = CLI.parseYesNo def (Just actual_val)
-         in if actual_val `elem` ["yes", "no"]
-              then result ==? Types.Ok (actual_val == "yes")
-              else property $ Types.isBad result
-
--- | Helper to check for correct parsing of string arg.
-checkStringArg :: [Char]
-               -> (GetOpt.OptDescr (CLI.Options -> Types.Result CLI.Options),
-                   CLI.Options -> Maybe [Char])
-               -> Property
-checkStringArg val (opt, fn) =
-  let GetOpt.Option _ longs _ _ = opt
-  in case longs of
-       [] -> failTest "no long options?"
-       cmdarg:_ ->
-         case CLI.parseOptsInner ["--" ++ cmdarg ++ "=" ++ val] "prog" [opt] of
-           Left e -> failTest $ "Failed to parse option: " ++ show e
-           Right (options, _) -> fn options ==? Just val
-
 -- | Test a few string arguments.
-prop_StringArg :: [Char] -> Property
-prop_StringArg argument =
-  let args = [ (CLI.oDataFile,      CLI.optDataFile)
-             , (CLI.oDynuFile,      CLI.optDynuFile)
-             , (CLI.oSaveCluster,   CLI.optSaveCluster)
-             , (CLI.oReplay,        CLI.optReplay)
-             , (CLI.oPrintCommands, CLI.optShowCmds)
-             , (CLI.oLuxiSocket,    CLI.optLuxi)
+prop_string_arg :: String -> Property
+prop_string_arg argument =
+  let args = [ (oDataFile,      optDataFile)
+             , (oDynuFile,      optDynuFile)
+             , (oSaveCluster,   optSaveCluster)
+             , (oPrintCommands, optShowCmds)
+             , (oLuxiSocket,    optLuxi)
+             , (oIAllocSrc,     optIAllocSrc)
              ]
-  in conjoin $ map (checkStringArg argument) args
+  in conjoin $ map (\(o, opt) ->
+                      checkOpt Just defaultOptions
+                      failTest (const (==?)) Just (argument, o, opt)) args
 
--- | Helper to test that a given option is accepted OK with quick exit.
-checkEarlyExit :: String -> [CLI.OptType] -> String -> Property
-checkEarlyExit name options param =
-  case CLI.parseOptsInner [param] name options of
-    Left (code, _) ->
-      printTestCase ("Program " ++ name ++
-                     " returns invalid code " ++ show code ++
-                     " for option " ++ param) (code == 0)
-    _ -> failTest $ "Program " ++ name ++ " doesn't consider option " ++
-         param ++ " as early exit one"
+-- | Test a few positive arguments.
+prop_numeric_arg :: Positive Double -> Property
+prop_numeric_arg (Positive argument) =
+  let args = [ (oMaxCpu,     optMcpu)
+             , (oMinDisk,    Just . optMdsk)
+             , (oMinGain,    Just . optMinGain)
+             , (oMinGainLim, Just . optMinGainLim)
+             , (oMinScore,   Just . optMinScore)
+             ]
+  in conjoin $
+     map (\(x, y) -> checkOpt (Just . show) defaultOptions
+                     failTest (const (==?)) Just (argument, x, y)) args
 
--- | Test that all binaries support some common options. There is
--- nothing actually random about this test...
-prop_stdopts :: Property
-prop_stdopts =
-  let params = ["-h", "--help", "-V", "--version"]
-      opts = map (\(name, (_, o)) -> (name, o)) Program.personalities
-      -- apply checkEarlyExit across the cartesian product of params and opts
-  in conjoin [checkEarlyExit n o p | p <- params, (n, o) <- opts]
+-- | Test a few boolean arguments.
+case_bool_arg :: Assertion
+case_bool_arg =
+  mapM_ (checkOpt (const Nothing) defaultOptions assertFailure
+                  assertEqual id)
+        [ (False, oDiskMoves,    optDiskMoves)
+        , (False, oInstMoves,    optInstMoves)
+        , (True,  oEvacMode,     optEvacMode)
+        , (True,  oExecJobs,     optExecJobs)
+        , (True,  oNoHeaders,    optNoHeaders)
+        , (True,  oNoSimulation, optNoSimulation)
+        ]
+
+-- | Tests a few invalid arguments.
+case_wrong_arg :: Assertion
+case_wrong_arg = do
+  mapM_ (passFailOpt defaultOptions assertFailure (return ()))
+        [ (oSpindleUse,   "-1", "1")
+        , (oSpindleUse,   "a",  "1")
+        , (oMaxCpu,       "-1", "1")
+        , (oMinDisk,      "a",  "1")
+        , (oMinGainLim,   "a",  "1")
+        , (oMaxSolLength, "x",  "10")
+        , (oStdSpec,      "no-such-spec", "1,1,1")
+        , (oTieredSpec,   "no-such-spec", "1,1,1")
+        ]
+
+-- | Test that all binaries support some common options.
+case_stdopts :: Assertion
+case_stdopts =
+  mapM_ (\(name, (_, o)) -> checkEarlyExit defaultOptions name o)
+      Program.personalities
 
 testSuite "HTools/CLI"
           [ 'prop_parseISpec
           , 'prop_parseISpecFail
-          , 'prop_parseYesNo
-          , 'prop_StringArg
-          , 'prop_stdopts
+          , 'prop_string_arg
+          , 'prop_numeric_arg
+          , 'case_bool_arg
+          , 'case_wrong_arg
+          , 'case_stdopts
           ]

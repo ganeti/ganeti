@@ -32,6 +32,8 @@ import System.Environment (getArgs)
 import Test.Ganeti.TestImports ()
 import Test.Ganeti.BasicTypes
 import Test.Ganeti.Confd.Utils
+import Test.Ganeti.Common
+import Test.Ganeti.Daemon
 import Test.Ganeti.HTools.CLI
 import Test.Ganeti.HTools.Cluster
 import Test.Ganeti.HTools.Container
@@ -78,6 +80,8 @@ allTests :: [(Bool, (String, [Test]))]
 allTests =
   [ (True, testBasicTypes)
   , (True, testConfd_Utils)
+  , (True, testCommon)
+  , (True, testDaemon)
   , (True, testHTools_CLI)
   , (True, testHTools_Container)
   , (True, testHTools_Instance)

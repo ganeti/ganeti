@@ -45,7 +45,6 @@ module Ganeti.Daemon
 import Control.Exception
 import Control.Monad
 import Data.Maybe (fromMaybe)
-import qualified Data.Version
 import Data.Word
 import GHC.IO.Handle (hDuplicateTo)
 import qualified Network.Socket as Socket
@@ -53,7 +52,6 @@ import Prelude hiding (catch)
 import System.Console.GetOpt
 import System.Exit
 import System.Environment
-import System.Info
 import System.IO
 import System.IO.Error (isDoesNotExistError)
 import System.Posix.Directory
@@ -62,13 +60,12 @@ import System.Posix.IO
 import System.Posix.Process
 import System.Posix.Types
 import System.Posix.Signals
-import Text.Printf
 
+import Ganeti.Common as Common
 import Ganeti.Logging
 import Ganeti.Runtime
 import Ganeti.BasicTypes
 import Ganeti.HTools.Utils
-import qualified Ganeti.Version as Version (version)
 import qualified Ganeti.Constants as C
 import qualified Ganeti.Ssconf as Ssconf
 
@@ -105,31 +102,16 @@ defaultOptions  = DaemonOptions
   , optSyslogUsage  = Nothing
   }
 
--- | Abrreviation for the option type.
-type OptType = OptDescr (DaemonOptions -> Result DaemonOptions)
+instance StandardOptions DaemonOptions where
+  helpRequested = optShowHelp
+  verRequested  = optShowVer
+  requestHelp   = \opts -> opts { optShowHelp = True }
+  requestVer    = \opts -> opts { optShowVer  = True }
 
--- | Helper function for required arguments which need to be converted
--- as opposed to stored just as string.
-reqWithConversion :: (String -> Result a)
-                  -> (a -> DaemonOptions -> Result DaemonOptions)
-                  -> String
-                  -> ArgDescr (DaemonOptions -> Result DaemonOptions)
-reqWithConversion conversion_fn updater_fn metavar =
-  ReqArg (\string_opt opts -> do
-            parsed_value <- conversion_fn string_opt
-            updater_fn parsed_value opts) metavar
+-- | Abrreviation for the option type.
+type OptType = GenericOptType DaemonOptions
 
 -- * Command line options
-
-oShowHelp :: OptType
-oShowHelp = Option "h" ["help"]
-            (NoArg (\ opts -> Ok opts { optShowHelp = True}))
-            "Show the help message and exit"
-
-oShowVer :: OptType
-oShowVer = Option "V" ["version"]
-           (NoArg (\ opts -> Ok opts { optShowVer = True}))
-           "Show the version of the program and exit"
 
 oNoDaemonize :: OptType
 oNoDaemonize = Option "f" ["foreground"]
@@ -167,36 +149,11 @@ oSyslogUsage = Option "" ["syslog"]
                 \messages); one of 'no', 'yes' or 'only' [" ++ C.syslogUsage ++
                 "]")
 
--- | Usage info.
-usageHelp :: String -> [OptType] -> String
-usageHelp progname =
-  usageInfo (printf "%s %s\nUsage: %s [OPTION...]"
-             progname Version.version progname)
-
--- | Command line parser, using the 'Options' structure.
-parseOpts :: [String]               -- ^ The command line arguments
-          -> String                 -- ^ The program name
-          -> [OptType]              -- ^ The supported command line options
-          -> IO (DaemonOptions, [String]) -- ^ The resulting options
-                                          -- and leftover arguments
-parseOpts argv progname options =
-  case getOpt Permute options argv of
-    (opt_list, args, []) ->
-      do
-        parsed_opts <-
-          exitIfBad "Error while parsing command line arguments" $
-          foldM (flip id) defaultOptions opt_list
-        return (parsed_opts, args)
-    (_, _, errs) -> do
-      hPutStrLn stderr $ "Command line error: "  ++ concat errs
-      hPutStrLn stderr $ usageHelp progname options
-      exitWith $ ExitFailure 2
-
 -- | Small wrapper over getArgs and 'parseOpts'.
 parseArgs :: String -> [OptType] -> IO (DaemonOptions, [String])
 parseArgs cmd options = do
   cmd_args <- getArgs
-  parseOpts cmd_args cmd options
+  parseOpts defaultOptions cmd_args cmd options
 
 -- * Daemon-related functions
 -- | PID file mode.
@@ -320,16 +277,6 @@ genericMain :: GanetiDaemon -> [OptType] -> (DaemonOptions -> IO ()) -> IO ()
 genericMain daemon options main = do
   let progname = daemonName daemon
   (opts, args) <- parseArgs progname options
-
-  when (optShowHelp opts) $ do
-    putStr $ usageHelp progname options
-    exitSuccess
-  when (optShowVer opts) $ do
-    printf "%s %s\ncompiled with %s %s\nrunning on %s %s\n"
-           progname Version.version
-           compilerName (Data.Version.showVersion compilerVersion)
-           os arch :: IO ()
-    exitSuccess
 
   exitUnless (null args) "This program doesn't take any arguments"
 

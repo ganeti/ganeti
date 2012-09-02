@@ -30,7 +30,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 module Ganeti.HTools.CLI
   ( Options(..)
   , OptType
-  , parseOpts
+  , defaultOptions
+  , Ganeti.HTools.CLI.parseOpts
   , parseOptsInner
   , parseYesNo
   , parseISpecString
@@ -73,13 +74,11 @@ module Ganeti.HTools.CLI
   , oPrintNodes
   , oQuiet
   , oRapiMaster
-  , oReplay
   , oSaveCluster
   , oSelInst
   , oShowHelp
   , oShowVer
   , oStdSpec
-  , oTestCount
   , oTieredSpec
   , oVerbose
   ) where
@@ -87,20 +86,17 @@ module Ganeti.HTools.CLI
 import Control.Monad
 import Data.Char (toUpper)
 import Data.Maybe (fromMaybe)
-import qualified Data.Version
 import System.Console.GetOpt
 import System.IO
-import System.Info
-import System.Exit
 import Text.Printf (printf)
 
-import qualified Ganeti.Version as Version (version)
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.Constants as C
 import Ganeti.HTools.Types
 import Ganeti.HTools.Utils
 import Ganeti.BasicTypes
+import Ganeti.Common as Common
 
 -- * Constants
 
@@ -198,7 +194,13 @@ defaultOptions  = Options
   }
 
 -- | Abrreviation for the option type.
-type OptType = OptDescr (Options -> Result Options)
+type OptType = GenericOptType Options
+
+instance StandardOptions Options where
+  helpRequested = optShowHelp
+  verRequested  = optShowVer
+  requestHelp   = \opts -> opts { optShowHelp = True }
+  requestVer    = \opts -> opts { optShowVer  = True }
 
 -- * Helper functions
 
@@ -232,19 +234,18 @@ oDiskMoves = Option "" ["no-disk-moves"]
 
 oDiskTemplate :: OptType
 oDiskTemplate = Option "" ["disk-template"]
-                (ReqArg (\ t opts -> do
-                           dt <- diskTemplateFromRaw t
-                           return $ opts { optDiskTemplate = Just dt })
+                (reqWithConversion diskTemplateFromRaw
+                 (\dt opts -> Ok opts { optDiskTemplate = Just dt })
                  "TEMPLATE") "select the desired disk template"
 
 oSpindleUse :: OptType
 oSpindleUse = Option "" ["spindle-use"]
-              (ReqArg (\ n opts -> do
-                         su <- tryRead "parsing spindle-use" n
-                         when (su < 0) $
-                              fail "Invalid value of the spindle-use\
-                                   \ (expected >= 0)"
-                         return $ opts { optSpindleUse = Just su })
+              (reqWithConversion (tryRead "parsing spindle-use")
+               (\su opts -> do
+                  when (su < 0) $
+                       fail "Invalid value of the spindle-use\
+                            \ (expected >= 0)"
+                  return $ opts { optSpindleUse = Just su })
                "SPINDLES") "select how many virtual spindle instances use\
                            \ [default read from cluster]"
 
@@ -314,40 +315,45 @@ oMachineReadable = Option "" ["machine-readable"]
 
 oMaxCpu :: OptType
 oMaxCpu = Option "" ["max-cpu"]
-          (ReqArg (\ n opts -> do
-                     mcpu <- tryRead "parsing max-cpu" n
-                     when (mcpu <= 0) $
-                          fail "Invalid value of the max-cpu ratio,\
-                               \ expected >0"
-                     return $ opts { optMcpu = Just mcpu }) "RATIO")
+          (reqWithConversion (tryRead "parsing max-cpu")
+           (\mcpu opts -> do
+              when (mcpu <= 0) $
+                   fail "Invalid value of the max-cpu ratio,\
+                        \ expected >0"
+              return $ opts { optMcpu = Just mcpu }) "RATIO")
           "maximum virtual-to-physical cpu ratio for nodes (from 0\
           \ upwards) [default read from cluster]"
 
 oMaxSolLength :: OptType
 oMaxSolLength = Option "l" ["max-length"]
-                (ReqArg (\ i opts -> Ok opts { optMaxLength = read i }) "N")
+                (reqWithConversion (tryRead "max solution length")
+                 (\i opts -> Ok opts { optMaxLength = i }) "N")
                 "cap the solution at this many balancing or allocation \
                 \ rounds (useful for very unbalanced clusters or empty \
                 \ clusters)"
 
 oMinDisk :: OptType
 oMinDisk = Option "" ["min-disk"]
-           (ReqArg (\ n opts -> Ok opts { optMdsk = read n }) "RATIO")
+           (reqWithConversion (tryRead "min free disk space")
+            (\n opts -> Ok opts { optMdsk = n }) "RATIO")
            "minimum free disk space for nodes (between 0 and 1) [0]"
 
 oMinGain :: OptType
 oMinGain = Option "g" ["min-gain"]
-            (ReqArg (\ g opts -> Ok opts { optMinGain = read g }) "DELTA")
+           (reqWithConversion (tryRead "min gain")
+            (\g opts -> Ok opts { optMinGain = g }) "DELTA")
             "minimum gain to aim for in a balancing step before giving up"
 
 oMinGainLim :: OptType
 oMinGainLim = Option "" ["min-gain-limit"]
-            (ReqArg (\ g opts -> Ok opts { optMinGainLim = read g }) "SCORE")
+            (reqWithConversion (tryRead "min gain limit")
+             (\g opts -> Ok opts { optMinGainLim = g }) "SCORE")
             "minimum cluster score for which we start checking the min-gain"
 
 oMinScore :: OptType
 oMinScore = Option "e" ["min-score"]
-            (ReqArg (\ e opts -> Ok opts { optMinScore = read e }) "EPSILON")
+            (reqWithConversion (tryRead "min score")
+             (\e opts -> Ok opts { optMinScore = e }) "EPSILON")
             "mininum score to aim for"
 
 oNoHeaders :: OptType
@@ -416,16 +422,6 @@ oSaveCluster = Option "S" ["save"]
             (ReqArg (\ f opts -> Ok opts { optSaveCluster = Just f }) "FILE")
             "Save cluster state at the end of the processing to FILE"
 
-oShowHelp :: OptType
-oShowHelp = Option "h" ["help"]
-            (NoArg (\ opts -> Ok opts { optShowHelp = True}))
-            "show help"
-
-oShowVer :: OptType
-oShowVer = Option "V" ["version"]
-           (NoArg (\ opts -> Ok opts { optShowVer = True}))
-           "show the version of the program"
-
 oStdSpec :: OptType
 oStdSpec = Option "" ["standard-alloc"]
              (ReqArg (\ inp opts -> do
@@ -433,14 +429,6 @@ oStdSpec = Option "" ["standard-alloc"]
                         return $ opts { optStdSpec = Just tspec } )
               "STDSPEC")
              "enable standard specs allocation, given as 'disk,ram,cpu'"
-
-oTestCount :: OptType
-oTestCount = Option "" ["test-count"]
-             (ReqArg (\ inp opts -> do
-                        tcount <- tryRead "parsing test count" inp
-                        return $ opts { optTestCount = Just tcount } )
-              "COUNT")
-             "override the target test count"
 
 oTieredSpec :: OptType
 oTieredSpec = Option "" ["tiered-alloc"]
@@ -450,11 +438,6 @@ oTieredSpec = Option "" ["tiered-alloc"]
               "TSPEC")
              "enable tiered specs allocation, given as 'disk,ram,cpu'"
 
-oReplay :: OptType
-oReplay = Option "" ["replay"]
-          (ReqArg (\ stat opts -> Ok opts { optReplay = Just stat } ) "STATE")
-          "Pre-seed the random number generator with STATE"
-
 oVerbose :: OptType
 oVerbose = Option "v" ["verbose"]
            (NoArg (\ opts -> Ok opts { optVerbose = optVerbose opts + 1 }))
@@ -462,64 +445,14 @@ oVerbose = Option "v" ["verbose"]
 
 -- * Functions
 
--- | Helper for parsing a yes\/no command line flag.
-parseYesNo :: Bool         -- ^ Default value (when we get a @Nothing@)
-           -> Maybe String -- ^ Parameter value
-           -> Result Bool  -- ^ Resulting boolean value
-parseYesNo v Nothing      = return v
-parseYesNo _ (Just "yes") = return True
-parseYesNo _ (Just "no")  = return False
-parseYesNo _ (Just s)     = fail ("Invalid choice '" ++ s ++
-                                  "', pass one of 'yes' or 'no'")
-
--- | Usage info.
-usageHelp :: String -> [OptType] -> String
-usageHelp progname =
-  usageInfo (printf "%s %s\nUsage: %s [OPTION...]"
-             progname Version.version progname)
-
--- | Show the program version info.
-versionInfo :: String -> String
-versionInfo progname =
-  printf "%s %s\ncompiled with %s %s\nrunning on %s %s\n"
-         progname Version.version compilerName
-         (Data.Version.showVersion compilerVersion)
-         os arch
-
--- | Command line parser, using the 'Options' structure.
+-- | Wrapper over 'Common.parseOpts' with our custom options.
 parseOpts :: [String]               -- ^ The command line arguments
           -> String                 -- ^ The program name
           -> [OptType]              -- ^ The supported command line options
           -> IO (Options, [String]) -- ^ The resulting options and leftover
                                     -- arguments
-parseOpts argv progname options =
-  case parseOptsInner argv progname options of
-    Left (code, msg) -> do
-      hPutStr (if code == 0 then stdout else stderr) msg
-      exitWith (if code == 0 then ExitSuccess else ExitFailure code)
-    Right result ->
-      return result
+parseOpts = Common.parseOpts defaultOptions
 
--- | Inner parse options. The arguments are similar to 'parseOpts',
--- but it returns either a 'Left' composed of exit code and message,
--- or a 'Right' for the success case.
-parseOptsInner :: [String] -> String -> [OptType]
-               -> Either (Int, String) (Options, [String])
-parseOptsInner argv progname options =
-  case getOpt Permute options argv of
-    (o, n, []) ->
-      let (pr, args) = (foldM (flip id) defaultOptions o, n)
-      in case pr of
-           Bad msg -> Left (1, "Error while parsing command\
-                               \line arguments:\n" ++ msg ++ "\n")
-           Ok po ->
-             select (Right (po, args))
-                 [ (optShowHelp po, Left (0, usageHelp progname options))
-                 , (optShowVer po,  Left (0, versionInfo progname))
-                 ]
-    (_, _, errs) ->
-      Left (2, "Command line error: "  ++ concat errs ++ "\n" ++
-            usageHelp progname options)
 
 -- | A shell script template for autogenerated scripts.
 shTemplate :: String
@@ -546,7 +479,6 @@ maybePrintNodes (Just fields) msg fn = do
   hPutStrLn stderr (msg ++ " status:")
   hPutStrLn stderr $ fn fields
 
-
 -- | Optionally print the instance list.
 maybePrintInsts :: Bool   -- ^ Whether to print the instance list
                 -> String -- ^ Type of the instance map (e.g. initial)
@@ -571,13 +503,14 @@ maybeShowWarnings fix_msgs =
 printKeys :: String              -- ^ Prefix to printed variables
           -> [(String, String)]  -- ^ List of (key, value) pairs to be printed
           -> IO ()
-printKeys prefix = mapM_ (\(k, v) ->
-                       printf "%s_%s=%s\n" prefix (map toUpper k) (ensureQuoted v))
+printKeys prefix =
+  mapM_ (\(k, v) ->
+           printf "%s_%s=%s\n" prefix (map toUpper k) (ensureQuoted v))
 
 -- | Prints the final @OK@ marker in machine readable output.
 printFinal :: String    -- ^ Prefix to printed variable
-           -> Bool      -- ^ Whether output should be machine readable
-                        -- Note: if not, there is nothing to print
+           -> Bool      -- ^ Whether output should be machine readable;
+                        -- note: if not, there is nothing to print
            -> IO ()
 printFinal prefix True =
   -- this should be the final entry
