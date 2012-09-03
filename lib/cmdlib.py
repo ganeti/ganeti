@@ -7177,10 +7177,9 @@ class LUInstanceRecreateDisks(LogicalUnit):
     elif level == locking.LEVEL_NODE:
       # If an allocator is used, then we lock all the nodes in the current
       # instance group, as we don't know yet which ones will be selected;
-      # if we replace the nodes without using an allocator, we only need to
-      # lock the old primary for doing RPCs (FIXME: we don't lock nodes for
-      # RPC anymore), otherwise we need to lock all the instance nodes for
-      # disk re-creation
+      # if we replace the nodes without using an allocator, locks are
+      # already declared in ExpandNames; otherwise, we need to lock all the
+      # instance nodes for disk re-creation
       if self.op.iallocator:
         assert not self.op.nodes
         assert not self.needed_locks[locking.LEVEL_NODE]
@@ -7190,9 +7189,8 @@ class LUInstanceRecreateDisks(LogicalUnit):
         for group_uuid in self.owned_locks(locking.LEVEL_NODEGROUP):
           self.needed_locks[locking.LEVEL_NODE].extend(
             self.cfg.GetNodeGroup(group_uuid).members)
-      else:
-        primary_only = bool(self.op.nodes)
-        self._LockInstancesNodes(primary_only=primary_only)
+      elif not self.op.nodes:
+        self._LockInstancesNodes(primary_only=False)
     elif level == locking.LEVEL_NODE_RES:
       # Copy node locks
       self.needed_locks[locking.LEVEL_NODE_RES] = \
@@ -7252,9 +7250,7 @@ class LUInstanceRecreateDisks(LogicalUnit):
                                primary_only=True)
 
     # if we replace nodes *and* the old primary is offline, we don't
-    # check
-    assert instance.primary_node in self.owned_locks(locking.LEVEL_NODE)
-    assert instance.primary_node in self.owned_locks(locking.LEVEL_NODE_RES)
+    # check the instance state
     old_pnode = self.cfg.GetNodeInfo(instance.primary_node)
     if not ((self.op.iallocator or self.op.nodes) and old_pnode.offline):
       _CheckInstanceState(self, instance, INSTANCE_NOT_RUNNING,
