@@ -45,10 +45,11 @@ import qa_tags
 import qa_utils
 
 from ganeti import utils
-from ganeti import rapi
+from ganeti import rapi # pylint: disable=W0611
 from ganeti import constants
 
 import ganeti.rapi.client # pylint: disable=W0611
+from ganeti.rapi.client import UsesRapiClient
 
 
 def _FormatHeader(line, end=72):
@@ -574,7 +575,7 @@ def RunQa():
   RunTestIf("cluster-destroy", qa_cluster.TestClusterDestroy)
 
 
-@rapi.client.UsesRapiClient
+@UsesRapiClient
 def main():
   """Main program.
 

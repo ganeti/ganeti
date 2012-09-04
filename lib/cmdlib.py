@@ -960,9 +960,8 @@ def _RunPostHook(lu, node_name):
   hm = lu.proc.BuildHooksManager(lu)
   try:
     hm.RunPhase(constants.HOOKS_PHASE_POST, nodes=[node_name])
-  except:
-    # pylint: disable=W0702
-    lu.LogWarning("Errors occurred running hooks on %s" % node_name)
+  except Exception, err: # pylint: disable=W0703
+    lu.LogWarning("Errors occurred running hooks on %s: %s" % (node_name, err))
 
 
 def _CheckOutputFields(static, dynamic, selected):

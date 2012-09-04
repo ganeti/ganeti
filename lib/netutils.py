@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2010 Google Inc.
+# Copyright (C) 2010, 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -280,8 +280,8 @@ def TcpPing(target, port, timeout=10, live_port_needed=False, source=None):
   if source is not None:
     try:
       sock.bind((source, 0))
-    except socket.error, (errcode, _):
-      if errcode == errno.EADDRNOTAVAIL:
+    except socket.error, err:
+      if err[0] == errno.EADDRNOTAVAIL:
         success = False
 
   sock.settimeout(timeout)
@@ -292,8 +292,8 @@ def TcpPing(target, port, timeout=10, live_port_needed=False, source=None):
     success = True
   except socket.timeout:
     success = False
-  except socket.error, (errcode, _):
-    success = (not live_port_needed) and (errcode == errno.ECONNREFUSED)
+  except socket.error, err:
+    success = (not live_port_needed) and (err[0] == errno.ECONNREFUSED)
 
   return success
 
