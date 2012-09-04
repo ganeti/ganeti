@@ -362,6 +362,7 @@ docrst = \
 	doc/design-virtual-clusters.rst \
 	doc/design-bulk-create.rst \
 	doc/design-query-splitting.rst \
+	doc/design-partitioned.rst \
 	doc/devnotes.rst \
 	doc/glossary.rst \
 	doc/hooks.rst \

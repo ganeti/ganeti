@@ -16,6 +16,7 @@ Design document drafts
    design-virtual-clusters.rst
    design-query-splitting.rst
    design-autorepair.rst
+   design-partitioned.rst
 
 .. vim: set textwidth=72 :
 .. Local Variables:
