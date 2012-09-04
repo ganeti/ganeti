@@ -97,6 +97,7 @@ DIRS = \
 	test/data/ovfdata/other \
 	htest/data \
 	htest/data/rapi \
+	htest/shelltests \
 	tools
 
 BUILDTIME_DIR_AUTOCREATE = \
@@ -108,6 +109,7 @@ BUILDTIME_DIR_AUTOCREATE = \
 	$(APIDOC_HS_DIR)/Ganeti/Confd \
 	$(APIDOC_HS_DIR)/Ganeti/HTools \
 	$(APIDOC_HS_DIR)/Ganeti/HTools/Program \
+	$(APIDOC_HS_DIR)/Ganeti/Query \
 	$(COVERAGE_DIR) \
 	$(COVERAGE_PY_DIR) \
 	$(COVERAGE_HS_DIR) \
