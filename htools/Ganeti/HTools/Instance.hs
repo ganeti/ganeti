@@ -276,7 +276,7 @@ instMatchesPolicy :: Instance -> T.IPolicy -> T.OpResult ()
 instMatchesPolicy inst ipol = do
   instAboveISpec inst (T.iPolicyMinSpec ipol)
   instBelowISpec inst (T.iPolicyMaxSpec ipol)
-  if (diskTemplate inst `elem` T.iPolicyDiskTemplates ipol)
+  if diskTemplate inst `elem` T.iPolicyDiskTemplates ipol
     then T.OpGood ()
     else T.OpFail T.FailDisk
 

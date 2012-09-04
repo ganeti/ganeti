@@ -111,7 +111,7 @@ getNodeInstances cfg nname =
 -- | Computes the role of a node.
 getNodeRole :: ConfigData -> Node -> NodeRole
 getNodeRole cfg node
-  | nodeName node == (clusterMasterNode $ configCluster cfg) = NRMaster
+  | nodeName node == clusterMasterNode (configCluster cfg) = NRMaster
   | nodeMasterCandidate node = NRCandidate
   | nodeDrained node = NRDrained
   | nodeOffline node = NROffline
@@ -133,7 +133,7 @@ getInstancesIpByLink linkipmap link =
 getItem :: String -> String -> M.Map String a -> Result a
 getItem kind name allitems = do
   let lresult = lookupName (M.keys allitems) name
-      err = \details -> Bad $ kind ++ " name " ++ name ++ " " ++ details
+      err msg = Bad $ kind ++ " name " ++ name ++ " " ++ msg
   fullname <- case lrMatchPriority lresult of
                 PartialMatch -> Ok $ lrContent lresult
                 ExactMatch -> Ok $ lrContent lresult
@@ -160,7 +160,7 @@ getGroup cfg name =
        -- if not found by uuid, we need to look it up by name, slow
        Ok grp -> Ok grp
        Bad _ -> let by_name = M.mapKeys
-                              (\k -> groupName ((M.!) groups k )) groups
+                              (groupName . (M.!) groups) groups
                 in getItem "NodeGroup" name by_name
 
 -- | Computes a node group's node params.
@@ -232,7 +232,7 @@ buildLinkIpInstnameMap cfg =
                    link = nicpLink fparams
                in case nicIp nic of
                     Nothing -> accum
-                    Just ip -> let oldipmap = M.findWithDefault (M.empty)
+                    Just ip -> let oldipmap = M.findWithDefault M.empty
                                               link accum
                                    newipmap = M.insert ip iname oldipmap
                                in M.insert link newipmap accum

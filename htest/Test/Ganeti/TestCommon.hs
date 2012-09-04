@@ -149,7 +149,7 @@ newtype TagChar = TagChar { tagGetChar :: Char }
 
 -- | All valid tag chars. This doesn't need to match _exactly_
 -- Ganeti's own tag regex, just enough for it to be close.
-tagChar :: [Char]
+tagChar :: String
 tagChar = ['a'..'z'] ++ ['A'..'Z'] ++ ['0'..'9'] ++ ".+*/:@-"
 
 instance Arbitrary TagChar where

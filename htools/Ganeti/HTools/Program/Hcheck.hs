@@ -158,8 +158,8 @@ printBool False b = show b
 -- readable mode).
 printGroupsMappings :: Group.List -> IO ()
 printGroupsMappings gl = do
-    let extract_vals = \g -> (printf "GROUP_UUID_%d" $ Group.idx g :: String,
-                              Group.uuid g)
+    let extract_vals g = (printf "GROUP_UUID_%d" $ Group.idx g :: String,
+                          Group.uuid g)
         printpairs = map extract_vals (Container.elems gl)
     printKeysHTC printpairs
 

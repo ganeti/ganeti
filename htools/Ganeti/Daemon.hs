@@ -105,8 +105,8 @@ defaultOptions  = DaemonOptions
 instance StandardOptions DaemonOptions where
   helpRequested = optShowHelp
   verRequested  = optShowVer
-  requestHelp   = \opts -> opts { optShowHelp = True }
-  requestVer    = \opts -> opts { optShowVer  = True }
+  requestHelp o = o { optShowHelp = True }
+  requestVer  o = o { optShowVer  = True }
 
 -- | Abrreviation for the option type.
 type OptType = GenericOptType DaemonOptions
@@ -176,14 +176,14 @@ formatIOError msg err = msg ++ ": " ++  show err
 -- | Wrapper over '_writePidFile' that transforms IO exceptions into a
 -- 'Bad' value.
 writePidFile :: FilePath -> IO (Result Fd)
-writePidFile path = do
+writePidFile path =
   catch (fmap Ok $ _writePidFile path)
     (return . Bad . formatIOError "Failure during writing of the pid file")
 
 -- | Helper function to ensure a socket doesn't exist. Should only be
 -- called once we have locked the pid file successfully.
 cleanupSocket :: FilePath -> IO ()
-cleanupSocket socketPath = do
+cleanupSocket socketPath =
   catchJust (guard . isDoesNotExistError) (removeLink socketPath)
             (const $ return ())
 
@@ -217,11 +217,11 @@ defaultBindAddr :: Int                  -- ^ The port we want
                 -> Socket.Family        -- ^ The cluster IP family
                 -> Result (Socket.Family, Socket.SockAddr)
 defaultBindAddr port Socket.AF_INET =
-  Ok $ (Socket.AF_INET,
-        Socket.SockAddrInet (fromIntegral port) Socket.iNADDR_ANY)
+  Ok (Socket.AF_INET,
+      Socket.SockAddrInet (fromIntegral port) Socket.iNADDR_ANY)
 defaultBindAddr port Socket.AF_INET6 =
-  Ok $ (Socket.AF_INET6,
-        Socket.SockAddrInet6 (fromIntegral port) 0 Socket.iN6ADDR_ANY 0)
+  Ok (Socket.AF_INET6,
+      Socket.SockAddrInet6 (fromIntegral port) 0 Socket.iN6ADDR_ANY 0)
 defaultBindAddr _ fam = Bad $ "Unsupported address family: " ++ show fam
 
 -- | Default hints for the resolver
@@ -236,7 +236,7 @@ resolveAddr port str = do
   resolved <- Socket.getAddrInfo resolveAddrHints (Just str) (Just (show port))
   return $ case resolved of
              [] -> Bad "Invalid results from lookup?"
-             best:_ -> Ok $ (Socket.addrFamily best, Socket.addrAddress best)
+             best:_ -> Ok (Socket.addrFamily best, Socket.addrAddress best)
 
 -- | Based on the options, compute the socket address to use for the
 -- daemon.
@@ -246,11 +246,10 @@ parseAddress :: DaemonOptions      -- ^ Command line options
 parseAddress opts defport = do
   let port = maybe defport fromIntegral $ optPort opts
   def_family <- Ssconf.getPrimaryIPFamily Nothing
-  ainfo <- case optBindAddress opts of
-             Nothing -> return (def_family >>= defaultBindAddr port)
-             Just saddr -> catch (resolveAddr port saddr)
-                           (annotateIOError $ "Invalid address " ++ saddr)
-  return ainfo
+  case optBindAddress opts of
+    Nothing -> return (def_family >>= defaultBindAddr port)
+    Just saddr -> catch (resolveAddr port saddr)
+                  (annotateIOError $ "Invalid address " ++ saddr)
 
 -- | Run an I/O action as a daemon.
 --

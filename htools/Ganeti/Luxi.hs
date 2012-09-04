@@ -342,7 +342,7 @@ decodeCall (LuxiCall call args) =
     ReqQueryGroups -> do
               (names, fields, locking) <- fromJVal args
               return $ QueryGroups names fields locking
-    ReqQueryClusterInfo -> do
+    ReqQueryClusterInfo ->
               return QueryClusterInfo
     ReqQuery -> do
               (what, fields, qfilter) <- fromJVal args

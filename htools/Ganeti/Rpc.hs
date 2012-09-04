@@ -172,20 +172,19 @@ prepareUrl :: (RpcCall a) => Node -> a -> String
 prepareUrl node call =
   let node_ip = nodePrimaryIp node
       port = snd C.daemonsPortsGanetiNoded
-      path_prefix = "https://" ++ (node_ip) ++ ":" ++ (show port) in
-  path_prefix ++ "/" ++ rpcCallName call
+      path_prefix = "https://" ++ node_ip ++ ":" ++ show port
+  in path_prefix ++ "/" ++ rpcCallName call
 
 -- | Create HTTP request for a given node provided it is online,
 -- otherwise create empty response.
 prepareHttpRequest ::  (RpcCall a) => Node -> a
                    -> Either RpcError HttpClientRequest
 prepareHttpRequest node call
-  | rpcCallAcceptOffline call ||
-    (not $ nodeOffline node) =
-      Right $ HttpClientRequest { requestTimeout = rpcCallTimeout call
-                                , requestUrl = prepareUrl node call
-                                , requestPostData = rpcCallData node call
-                                }
+  | rpcCallAcceptOffline call || not (nodeOffline node) =
+      Right HttpClientRequest { requestTimeout = rpcCallTimeout call
+                              , requestUrl = prepareUrl node call
+                              , requestPostData = rpcCallData node call
+                              }
   | otherwise = Left $ OfflineNodeError node
 
 -- | Parse the response or propagate the error.
@@ -212,10 +211,10 @@ executeRpcCall nodes call =
 
 -- | AllInstancesInfo
 --   Returns information about all instances on the given nodes
-$(buildObject "RpcCallAllInstancesInfo" "rpcCallAllInstInfo" $
+$(buildObject "RpcCallAllInstancesInfo" "rpcCallAllInstInfo"
   [ simpleField "hypervisors" [t| [Hypervisor] |] ])
 
-$(buildObject "InstanceInfo" "instInfo" $
+$(buildObject "InstanceInfo" "instInfo"
   [ simpleField "name"   [t| String |]
   , simpleField "memory" [t| Int|]
   , simpleField "state"  [t| AdminState |]
@@ -223,7 +222,7 @@ $(buildObject "InstanceInfo" "instInfo" $
   , simpleField "time"   [t| Int |]
   ])
 
-$(buildObject "RpcResultAllInstancesInfo" "rpcResAllInstInfo" $
+$(buildObject "RpcResultAllInstancesInfo" "rpcResAllInstInfo"
   [ simpleField "instances" [t| [InstanceInfo] |] ])
 
 instance RpcCall RpcCallAllInstancesInfo where
@@ -237,10 +236,10 @@ instance Rpc RpcCallAllInstancesInfo RpcResultAllInstancesInfo
 
 -- | InstanceList
 -- Returns the list of running instances on the given nodes.
-$(buildObject "RpcCallInstanceList" "rpcCallInstList" $
+$(buildObject "RpcCallInstanceList" "rpcCallInstList"
   [ simpleField "hypervisors" [t| [Hypervisor] |] ])
 
-$(buildObject "RpcResultInstanceList" "rpcResInstList" $
+$(buildObject "RpcResultInstanceList" "rpcResInstList"
   [ simpleField "node"      [t| Node |]
   , simpleField "instances" [t| [String] |]
   ])
@@ -256,19 +255,19 @@ instance Rpc RpcCallInstanceList RpcResultInstanceList
 
 -- | NodeInfo
 -- Return node information.
-$(buildObject "RpcCallNodeInfo" "rpcCallNodeInfo" $
+$(buildObject "RpcCallNodeInfo" "rpcCallNodeInfo"
   [ simpleField "hypervisors" [t| [Hypervisor] |]
   , simpleField "volume_groups" [t| [String] |]
   ])
 
-$(buildObject "VgInfo" "vgInfo" $
+$(buildObject "VgInfo" "vgInfo"
   [ simpleField "name" [t| String |]
   , simpleField "free" [t| Int |]
   , simpleField "size" [t| Int |]
   ])
 
 -- | We only provide common fields as described in hv_base.py.
-$(buildObject "HvInfo" "hvInfo" $
+$(buildObject "HvInfo" "hvInfo"
   [ simpleField "memory_total" [t| Int |]
   , simpleField "memory_free" [t| Int |]
   , simpleField "memory_dom0" [t| Int |]
@@ -277,7 +276,7 @@ $(buildObject "HvInfo" "hvInfo" $
   , simpleField "cpu_sockets" [t| Int |]
   ])
 
-$(buildObject "RpcResultNodeInfo" "rpcResNodeInfo" $
+$(buildObject "RpcResultNodeInfo" "rpcResNodeInfo"
   [ simpleField "boot_id" [t| String |]
   , simpleField "vg_info" [t| [VgInfo] |]
   , simpleField "hv_info" [t| [HvInfo] |]

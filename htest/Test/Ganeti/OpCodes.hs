@@ -44,6 +44,8 @@ import Test.Ganeti.TestCommon
 import qualified Ganeti.Constants as C
 import qualified Ganeti.OpCodes as OpCodes
 
+{-# ANN module "HLint: ignore Use camelCase" #-}
+
 -- * Arbitrary instances
 
 $(genArbitrary ''OpCodes.ReplaceDisksMode)
@@ -125,7 +127,7 @@ case_py_compat = do
                \encoded = [op.__getstate__() for op in decoded]\n\
                \print serializer.Dump(encoded)" serialized
      >>= checkPythonResult
-  let deserialised = (J.decode py_stdout::J.Result [OpCodes.OpCode])
+  let deserialised = J.decode py_stdout::J.Result [OpCodes.OpCode]
   decoded <- case deserialised of
                J.Ok ops -> return ops
                J.Error msg ->

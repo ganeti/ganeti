@@ -69,16 +69,16 @@ handleCall cdata QueryClusterInfo =
       hypervisors = clusterEnabledHypervisors cluster
       bits = show (bitSize (0::Int)) ++ "bits"
       arch_tuple = [bits, arch]
-      obj = [ ("software_version", showJSON $ C.releaseVersion)
-            , ("protocol_version", showJSON $ C.protocolVersion)
-            , ("config_version", showJSON $ C.configVersion)
+      obj = [ ("software_version", showJSON C.releaseVersion)
+            , ("protocol_version", showJSON C.protocolVersion)
+            , ("config_version", showJSON C.configVersion)
             , ("os_api_version", showJSON $ maximum C.osApiVersions)
-            , ("export_version", showJSON $ C.exportVersion)
-            , ("architecture", showJSON $ arch_tuple)
+            , ("export_version", showJSON C.exportVersion)
+            , ("architecture", showJSON arch_tuple)
             , ("name", showJSON $ clusterClusterName cluster)
             , ("master", showJSON $ clusterMasterNode cluster)
             , ("default_hypervisor", showJSON $ head hypervisors)
-            , ("enabled_hypervisors", showJSON $ hypervisors)
+            , ("enabled_hypervisors", showJSON hypervisors)
             , ("hvparams", showJSON $ clusterHvparams cluster)
             , ("os_hvp", showJSON $ clusterOsHvp cluster)
             , ("beparams", showJSON $ clusterBeparams cluster)
@@ -93,7 +93,7 @@ handleCall cdata QueryClusterInfo =
             , ("master_netmask", showJSON $ clusterMasterNetmask cluster)
             , ("use_external_mip_script",
                showJSON $ clusterUseExternalMipScript cluster)
-            , ("volume_group_name", showJSON $clusterVolumeGroupName cluster)
+            , ("volume_group_name", showJSON $ clusterVolumeGroupName cluster)
             , ("drbd_usermode_helper",
                maybe JSNull showJSON (clusterDrbdUsermodeHelper cluster))
             , ("file_storage_dir", showJSON $ clusterFileStorageDir cluster)

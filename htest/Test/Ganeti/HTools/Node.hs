@@ -85,7 +85,7 @@ genNode min_multiplier max_multiplier = do
 
 -- | Helper function to generate a sane node.
 genOnlineNode :: Gen Node.Node
-genOnlineNode = do
+genOnlineNode =
   arbitrary `suchThat` (\n -> not (Node.offline n) &&
                               not (Node.failN1 n) &&
                               Node.availDisk n > 0 &&

@@ -38,6 +38,8 @@ import Test.Ganeti.Common
 import Ganeti.Common
 import Ganeti.Daemon as Daemon
 
+{-# ANN module "HLint: ignore Use camelCase" #-}
+
 -- | Test a few string arguments.
 prop_string_arg :: String -> Property
 prop_string_arg argument =
@@ -65,7 +67,7 @@ case_bool_arg =
 
 -- | Tests a few invalid arguments.
 case_wrong_arg :: Assertion
-case_wrong_arg = do
+case_wrong_arg =
   mapM_ (passFailOpt defaultOptions assertFailure (return ()))
         [ (oSyslogUsage, "foo", "yes")
         , (oPort 0,      "x",   "10")

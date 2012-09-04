@@ -53,7 +53,7 @@ import qualified Ganeti.HTools.Utils as Utils
 -- * Instance text loader tests
 
 prop_Load_Instance :: String -> Int -> Int -> Int -> Types.InstanceStatus
-                   -> NonEmptyList Char -> [Char]
+                   -> NonEmptyList Char -> String
                    -> NonNegative Int -> NonNegative Int -> Bool
                    -> Types.DiskTemplate -> Int -> Property
 prop_Load_Instance name mem dsk vcpus status

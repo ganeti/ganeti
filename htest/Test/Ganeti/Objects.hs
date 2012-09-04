@@ -47,6 +47,8 @@ import qualified Ganeti.Constants as C
 import Ganeti.Objects as Objects
 import Ganeti.JSON
 
+{-# ANN module "HLint: ignore Use camelCase" #-}
+
 -- * Arbitrary instances
 
 $(genArbitrary ''Hypervisor)
@@ -79,7 +81,7 @@ instance Arbitrary DiskLogicalId where
 -- properties, we only generate disks with no children (FIXME), as
 -- generating recursive datastructures is a bit more work.
 instance Arbitrary Disk where
-  arbitrary = Disk <$> arbitrary <*> (pure []) <*> arbitrary
+  arbitrary = Disk <$> arbitrary <*> pure [] <*> arbitrary
                    <*> arbitrary <*> arbitrary
 
 -- FIXME: we should generate proper values, >=0, etc., but this is
@@ -102,9 +104,9 @@ instance Arbitrary Instance where
       <$> getFQDN <*> getFQDN <*> getFQDN -- OS name, but...
       <*> arbitrary
       -- FIXME: add non-empty hvparams when they're a proper type
-      <*> (pure $ Container Map.empty) <*> arbitrary
+      <*> pure (Container Map.empty) <*> arbitrary
       -- ... and for OSParams
-      <*> (pure $ Container Map.empty) <*> arbitrary <*> arbitrary
+      <*> pure (Container Map.empty) <*> arbitrary <*> arbitrary
       <*> arbitrary <*> arbitrary <*> arbitrary
       -- ts
       <*> arbitrary <*> arbitrary
@@ -127,7 +129,7 @@ $(genArbitrary ''PartialIPolicy)
 -- validation rules.
 instance Arbitrary NodeGroup where
   arbitrary = NodeGroup <$> getFQDN <*> pure [] <*> arbitrary <*> arbitrary
-                        <*> arbitrary <*> (pure $ Container Map.empty)
+                        <*> arbitrary <*> pure (Container Map.empty)
                         -- ts
                         <*> arbitrary <*> arbitrary
                         -- uuid
@@ -181,7 +183,7 @@ genEmptyCluster ncount = do
                                       nodeName = nodeName n ++ show idx })
                nodes [(1::Int)..]
       contnodes = Container . Map.fromList $ map (\n -> (nodeName n, n)) nodes'
-      continsts = Container $ Map.empty
+      continsts = Container Map.empty
   grp <- arbitrary
   let contgroups = Container $ Map.singleton guuid grp
   serial <- arbitrary

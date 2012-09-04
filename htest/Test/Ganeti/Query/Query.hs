@@ -47,6 +47,8 @@ import Ganeti.Query.Language
 import Ganeti.Query.Node
 import Ganeti.Query.Query
 
+{-# ANN module "HLint: ignore Use camelCase" #-}
+
 -- * Helpers
 
 -- | Checks if a list of field definitions contains unknown fields.
@@ -77,7 +79,7 @@ prop_queryNode_noUnknown =
 prop_queryNode_Unknown :: Property
 prop_queryNode_Unknown =
   forAll (choose (0, maxNodes) >>= genEmptyCluster) $ \cluster ->
-  forAll (arbitrary `suchThat` (`notElem` (Map.keys nodeFieldsMap)))
+  forAll (arbitrary `suchThat` (`notElem` Map.keys nodeFieldsMap))
     $ \field -> monadicIO $ do
   QueryResult fdefs fdata <-
     run (query cluster (Query QRNode [field] EmptyFilter)) >>= resultProp

@@ -65,7 +65,7 @@ genFilter' 0 =
     where value = oneof [ QuotedString <$> getName
                         , NumericValue <$> arbitrary
                         ]
-genFilter' n = do
+genFilter' n =
   oneof [ AndFilter  <$> vectorOf n'' (genFilter' n')
         , OrFilter   <$> vectorOf n'' (genFilter' n')
         , NotFilter  <$> genFilter' n'
@@ -92,7 +92,7 @@ $(genArbitrary ''FieldDefinition)
 -- recursive ones, and not 'JSNull', which we can't use in a
 -- 'RSNormal' 'ResultEntry'.
 genJSValue :: Gen JSValue
-genJSValue = do
+genJSValue =
   oneof [ JSBool <$> arbitrary
         , JSRational <$> pure False <*> arbitrary
         , JSString <$> (toJSString <$> arbitrary)

@@ -73,8 +73,8 @@ prop_applicative_identity v =
 
 -- | Tests the applicative composition law (pure (.) <*> u <*> v <*> w
 -- = u <*> (v <*> w)).
-prop_applicative_composition :: (Result (Fun Int Int))
-                             -> (Result (Fun Int Int))
+prop_applicative_composition :: Result (Fun Int Int)
+                             -> Result (Fun Int Int)
                              -> Result Int
                              -> Property
 prop_applicative_composition u v w =
@@ -85,8 +85,7 @@ prop_applicative_composition u v w =
 -- | Tests the applicative homomorphism law (pure f <*> pure x = pure (f x)).
 prop_applicative_homomorphism :: Fun Int Int -> Int -> Property
 prop_applicative_homomorphism (Fun _ f) x =
-  ((pure f <*> pure x)::Result Int) ==?
-  (pure (f x))
+  ((pure f <*> pure x)::Result Int) ==? pure (f x)
 
 -- | Tests the applicative interchange law (u <*> pure y = pure ($ y) <*> u).
 prop_applicative_interchange :: Result (Fun Int Int)

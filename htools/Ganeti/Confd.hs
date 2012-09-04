@@ -146,7 +146,7 @@ $(declareIADT "ConfdErrorType"
   ])
 $(makeJSONInstance ''ConfdErrorType)
 
-$(buildObject "ConfdRequest" "confdRq" $
+$(buildObject "ConfdRequest" "confdRq"
   [ simpleField "protocol" [t| Int |]
   , simpleField "type"     [t| ConfdRequestType |]
   , defaultField [| EmptyQuery |] $ simpleField "query" [t| ConfdQuery |]

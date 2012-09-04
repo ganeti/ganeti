@@ -136,9 +136,9 @@ data Filter a
 showFilter :: (JSON a) => Filter a -> JSValue
 showFilter (EmptyFilter)          = JSNull
 showFilter (AndFilter exprs)      =
-  JSArray $ (showJSON C.qlangOpAnd):(map showJSON exprs)
+  JSArray $ showJSON C.qlangOpAnd : map showJSON exprs
 showFilter (OrFilter  exprs)      =
-  JSArray $ (showJSON C.qlangOpOr):(map showJSON exprs)
+  JSArray $ showJSON C.qlangOpOr : map showJSON exprs
 showFilter (NotFilter flt)        =
   JSArray [showJSON C.qlangOpNot, showJSON flt]
 showFilter (TrueFilter field)     =
@@ -223,9 +223,9 @@ instance (JSON a) => JSON (Filter a) where
 -- Traversable implementation for 'Filter'.
 traverseFlt :: (Applicative f) => (a -> f b) -> Filter a -> f (Filter b)
 traverseFlt _ EmptyFilter       = pure EmptyFilter
-traverseFlt f (AndFilter flts)  = AndFilter <$> (traverse (traverseFlt f) flts)
-traverseFlt f (OrFilter  flts)  = OrFilter  <$> (traverse (traverseFlt f) flts)
-traverseFlt f (NotFilter flt)   = NotFilter <$> (traverseFlt f flt)
+traverseFlt f (AndFilter flts)  = AndFilter <$> traverse (traverseFlt f) flts
+traverseFlt f (OrFilter  flts)  = OrFilter  <$> traverse (traverseFlt f) flts
+traverseFlt f (NotFilter flt)   = NotFilter <$> traverseFlt f flt
 traverseFlt f (TrueFilter a)    = TrueFilter <$> f a
 traverseFlt f (EQFilter a fval) = EQFilter <$> f a <*> pure fval
 traverseFlt f (LTFilter a fval) = LTFilter <$> f a <*> pure fval

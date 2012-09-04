@@ -47,6 +47,8 @@ import qualified Ganeti.HTools.Instance as Instance
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Types as Types
 
+{-# ANN module "HLint: ignore Use camelCase" #-}
+
 -- * Helpers
 
 -- | Make a small cluster, both nodes and instances.
@@ -148,7 +150,7 @@ prop_Alloc_sane inst =
 prop_CanTieredAlloc :: Instance.Instance -> Property
 prop_CanTieredAlloc inst =
   forAll (choose (2, 5)) $ \count ->
-  forAll (genOnlineNode `suchThat` (isNodeBig 4)) $ \node ->
+  forAll (genOnlineNode `suchThat` isNodeBig 4) $ \node ->
   let nl = makeSmallCluster node count
       il = Container.empty
       rqnodes = Instance.requiredNodes $ Instance.diskTemplate inst
@@ -196,7 +198,7 @@ genClusterAlloc count node inst =
 prop_AllocRelocate :: Property
 prop_AllocRelocate =
   forAll (choose (4, 8)) $ \count ->
-  forAll (genOnlineNode `suchThat` (isNodeBig 4)) $ \node ->
+  forAll (genOnlineNode `suchThat` isNodeBig 4) $ \node ->
   forAll (genInstanceSmallerThanNode node `suchThat` isMirrored) $ \inst ->
   case genClusterAlloc count node inst of
     Types.Bad msg -> failTest msg
@@ -230,7 +232,7 @@ check_EvacMode grp inst result =
                                          (gdx == Group.idx grp)
            v -> failmsg  ("invalid solution: " ++ show v) False
   where failmsg :: String -> Bool -> Property
-        failmsg = \msg -> printTestCase ("Failed to evacuate: " ++ msg)
+        failmsg msg = printTestCase ("Failed to evacuate: " ++ msg)
         idx = Instance.idx inst
 
 -- | Checks that on a 4-8 node cluster, once we allocate an instance,
@@ -238,7 +240,7 @@ check_EvacMode grp inst result =
 prop_AllocEvacuate :: Property
 prop_AllocEvacuate =
   forAll (choose (4, 8)) $ \count ->
-  forAll (genOnlineNode `suchThat` (isNodeBig 4)) $ \node ->
+  forAll (genOnlineNode `suchThat` isNodeBig 4) $ \node ->
   forAll (genInstanceSmallerThanNode node `suchThat` isMirrored) $ \inst ->
   case genClusterAlloc count node inst of
     Types.Bad msg -> failTest msg
@@ -255,7 +257,7 @@ prop_AllocEvacuate =
 prop_AllocChangeGroup :: Property
 prop_AllocChangeGroup =
   forAll (choose (4, 8)) $ \count ->
-  forAll (genOnlineNode `suchThat` (isNodeBig 4)) $ \node ->
+  forAll (genOnlineNode `suchThat` isNodeBig 4) $ \node ->
   forAll (genInstanceSmallerThanNode node `suchThat` isMirrored) $ \inst ->
   case genClusterAlloc count node inst of
     Types.Bad msg -> failTest msg
@@ -327,7 +329,7 @@ prop_SplitCluster node inst =
 canAllocOn :: Node.List -> Int -> Instance.Instance -> Bool
 canAllocOn nl reqnodes inst =
   case Cluster.genAllocNodes defGroupList nl reqnodes True >>=
-       Cluster.tryAlloc nl (Container.empty) inst of
+       Cluster.tryAlloc nl Container.empty inst of
        Types.Bad _ -> False
        Types.Ok as ->
          case Cluster.asSolution as of
@@ -344,7 +346,7 @@ prop_AllocPolicy node =
   -- rqn is the required nodes (1 or 2)
   forAll (choose (1, 2)) $ \rqn ->
   forAll (choose (5, 20)) $ \count ->
-  forAll (arbitrary `suchThat` (canAllocOn (makeSmallCluster node count) rqn))
+  forAll (arbitrary `suchThat` canAllocOn (makeSmallCluster node count) rqn)
          $ \inst ->
   forAll (arbitrary `suchThat` (isFailure .
                                 Instance.instMatchesPolicy inst)) $ \ipol ->

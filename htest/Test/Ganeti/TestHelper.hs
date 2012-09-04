@@ -95,7 +95,7 @@ mkConsArbitrary :: (Name, [a]) -> Exp
 mkConsArbitrary (name, types) =
   let infix_arb a = InfixE (Just a) (VarE '(<*>)) (Just (VarE 'arbitrary))
       constr = AppE (VarE 'pure) (ConE name)
-  in foldl (\a _ -> infix_arb a) (constr) types
+  in foldl (\a _ -> infix_arb a) constr types
 
 -- | Extracts the name and the types from a constructor.
 conInfo :: Con -> (Name, [Type])
@@ -108,7 +108,7 @@ conInfo (ForallC _ _ subcon) = conInfo subcon
 mkRegularArbitrary :: Name -> [Con] -> Q [Dec]
 mkRegularArbitrary name cons = do
   expr <- case cons of
-            [] -> fail $ "Can't make Arbitrary instance for an empty data type"
+            [] -> fail "Can't make Arbitrary instance for an empty data type"
             [x] -> return $ mkConsArbitrary (conInfo x)
             xs -> appE (varE 'oneof) $
                   listE (map (return . mkConsArbitrary . conInfo) xs)

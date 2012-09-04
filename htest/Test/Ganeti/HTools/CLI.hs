@@ -43,6 +43,8 @@ import Ganeti.HTools.CLI as CLI
 import qualified Ganeti.HTools.Program as Program
 import qualified Ganeti.HTools.Types as Types
 
+{-# ANN module "HLint: ignore Use camelCase" #-}
+
 -- | Test correct parsing.
 prop_parseISpec :: String -> Int -> Int -> Int -> Property
 prop_parseISpec descr dsk mem cpu =
@@ -52,7 +54,7 @@ prop_parseISpec descr dsk mem cpu =
 -- | Test parsing failure due to wrong section count.
 prop_parseISpecFail :: String -> Property
 prop_parseISpecFail descr =
-  forAll (choose (0,100) `suchThat` ((/=) 3)) $ \nelems ->
+  forAll (choose (0,100) `suchThat` (/= 3)) $ \nelems ->
   forAll (replicateM nelems arbitrary) $ \values ->
   let str = intercalate "," $ map show (values::[Int])
   in case parseISpecString descr str of
@@ -101,7 +103,7 @@ case_bool_arg =
 
 -- | Tests a few invalid arguments.
 case_wrong_arg :: Assertion
-case_wrong_arg = do
+case_wrong_arg =
   mapM_ (passFailOpt defaultOptions assertFailure (return ()))
         [ (oSpindleUse,   "-1", "1")
         , (oSpindleUse,   "a",  "1")

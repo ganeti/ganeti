@@ -199,8 +199,8 @@ type OptType = GenericOptType Options
 instance StandardOptions Options where
   helpRequested = optShowHelp
   verRequested  = optShowVer
-  requestHelp   = \opts -> opts { optShowHelp = True }
-  requestVer    = \opts -> opts { optShowVer  = True }
+  requestHelp o = o { optShowHelp = True }
+  requestVer  o = o { optShowVer  = True }
 
 -- * Helper functions
 
@@ -539,7 +539,7 @@ setNodeStatus opts fixed_nl = do
       m_cpu = optMcpu opts
       m_dsk = optMdsk opts
 
-  unless (null offline_wrong) $ do
+  unless (null offline_wrong) .
          exitErr $ printf "wrong node name(s) set as offline: %s\n"
                    (commaJoin (map lrContent offline_wrong))
   let setMCpuFn = case m_cpu of

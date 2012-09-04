@@ -99,10 +99,10 @@ reqWithConversion :: (String -> Result a)
                   -> (a -> b -> Result b)
                   -> String
                   -> ArgDescr (b -> Result b)
-reqWithConversion conversion_fn updater_fn metavar =
+reqWithConversion conversion_fn updater_fn =
   ReqArg (\string_opt opts -> do
             parsed_value <- conversion_fn string_opt
-            updater_fn parsed_value opts) metavar
+            updater_fn parsed_value opts)
 
 -- | Command line parser, using a generic 'Options' structure.
 parseOpts :: (StandardOptions a) =>

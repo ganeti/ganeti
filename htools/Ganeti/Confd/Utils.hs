@@ -63,7 +63,7 @@ parseMessage :: HashKey -> String -> Integer
 parseMessage hmac msg curtime = do
   (salt, origmsg, request) <- parseRequest hmac msg
   ts <- tryRead "Parsing timestamp" salt::Result Integer
-  if (abs (ts - curtime) > (fromIntegral C.confdMaxClockSkew))
+  if abs (ts - curtime) > fromIntegral C.confdMaxClockSkew
     then fail "Too old/too new timestamp or clock skew"
     else return (origmsg, request)
 

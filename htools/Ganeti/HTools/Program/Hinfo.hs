@@ -104,9 +104,9 @@ showGroupInfo verbose gl nl il = do
 splitInstancesInfo :: Int -> Node.List -> Instance.List -> IO ()
 splitInstancesInfo verbose nl il = do
   let split_insts = Cluster.findSplitInstances nl il
-  if (null split_insts)
+  if null split_insts
     then
-      when (verbose > 1) $ do
+      when (verbose > 1) $
         putStrLn "No split instances found"::IO ()
     else do
       putStrLn "Found instances belonging to multiple node groups:"
@@ -115,12 +115,12 @@ splitInstancesInfo verbose nl il = do
 -- | Print common (interesting) information.
 commonInfo :: Int -> Group.List -> Node.List -> Instance.List -> IO ()
 commonInfo verbose gl nl il = do
-  when (Container.null il && verbose > 1) $ do
-         printf "Cluster is empty.\n"::IO ()
+  when (Container.null il && verbose > 1) $
+    printf "Cluster is empty.\n"::IO ()
 
-  let nl_size = (Container.size nl)
-      il_size = (Container.size il)
-      gl_size = (Container.size gl)
+  let nl_size = Container.size nl
+      il_size = Container.size il
+      gl_size = Container.size gl
   printf "Loaded %d %s, %d %s, %d %s\n"
              nl_size (plural nl_size "node" "nodes")
              il_size (plural il_size "instance" "instances")
@@ -145,7 +145,7 @@ main opts args = do
 
   putStrLn $ "Loaded cluster tags: " ++ intercalate "," ctags
 
-  when (verbose > 2) $ do
+  when (verbose > 2) .
        putStrLn $ "Loaded cluster ipolicy: " ++ show ipol
 
   nlf <- setNodeStatus opts fixed_nl

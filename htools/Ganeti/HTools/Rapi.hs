@@ -212,7 +212,7 @@ readDataFile path = do
 -- | Loads data via either 'readDataFile' or 'readDataHttp'.
 readData :: String -- ^ URL to use as source
          -> IO (Result String, Result String, Result String, Result String)
-readData url = do
+readData url =
   if filePrefix `isPrefixOf` url
     then readDataFile (drop (length filePrefix) url)
     else readDataHttp url

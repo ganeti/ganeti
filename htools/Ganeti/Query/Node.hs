@@ -76,8 +76,8 @@ nodeLiveFieldBuilder (fname, ftitle, ftype, _, fdoc) =
 nodeRoleDoc :: String
 nodeRoleDoc =
   "Node role; " ++
-  (intercalate ", " $
-   map (\role ->
+  intercalate ", "
+   (map (\role ->
           "\"" ++ nodeRoleToRaw role ++ "\" for " ++ roleDescription role)
    (reverse [minBound..maxBound]))
 

@@ -276,35 +276,35 @@ decodeDLId obj lid = do
           mB' <- readJSON mB
           k'  <- readJSON k
           return $ LIDDrbd8 nA' nB' p' mA' mB' k'
-        _ -> fail $ "Can't read logical_id for DRBD8 type"
+        _ -> fail "Can't read logical_id for DRBD8 type"
     LD_LV ->
       case lid of
         JSArray [vg, lv] -> do
           vg' <- readJSON vg
           lv' <- readJSON lv
           return $ LIDPlain vg' lv'
-        _ -> fail $ "Can't read logical_id for plain type"
+        _ -> fail "Can't read logical_id for plain type"
     LD_FILE ->
       case lid of
         JSArray [driver, path] -> do
           driver' <- readJSON driver
           path'   <- readJSON path
           return $ LIDFile driver' path'
-        _ -> fail $ "Can't read logical_id for file type"
+        _ -> fail "Can't read logical_id for file type"
     LD_BLOCKDEV ->
       case lid of
         JSArray [driver, path] -> do
           driver' <- readJSON driver
           path'   <- readJSON path
           return $ LIDBlockDev driver' path'
-        _ -> fail $ "Can't read logical_id for blockdev type"
+        _ -> fail "Can't read logical_id for blockdev type"
     LD_RADOS ->
       case lid of
         JSArray [driver, path] -> do
           driver' <- readJSON driver
           path'   <- readJSON path
           return $ LIDRados driver' path'
-        _ -> fail $ "Can't read logical_id for rdb type"
+        _ -> fail "Can't read logical_id for rdb type"
 
 -- | Disk data structure.
 --
@@ -363,7 +363,7 @@ $(declareSADT "AdminState"
   ])
 $(makeJSONInstance ''AdminState)
 
-$(buildParam "Be" "bep" $
+$(buildParam "Be" "bep"
   [ simpleField "minmem"       [t| Int  |]
   , simpleField "maxmem"       [t| Int  |]
   , simpleField "vcpus"        [t| Int  |]
@@ -404,7 +404,7 @@ instance TagsObject Instance where
 
 -- * IPolicy definitions
 
-$(buildParam "ISpec" "ispec" $
+$(buildParam "ISpec" "ispec"
   [ simpleField C.ispecMemSize     [t| Int |]
   , simpleField C.ispecDiskSize    [t| Int |]
   , simpleField C.ispecDiskCount   [t| Int |]
@@ -414,7 +414,7 @@ $(buildParam "ISpec" "ispec" $
 
 -- | Custom partial ipolicy. This is not built via buildParam since it
 -- has a special 2-level inheritance mode.
-$(buildObject "PartialIPolicy" "ipolicy" $
+$(buildObject "PartialIPolicy" "ipolicy"
   [ renameField "MinSpecP" $ simpleField "min" [t| PartialISpecParams |]
   , renameField "MaxSpecP" $ simpleField "max" [t| PartialISpecParams |]
   , renameField "StdSpecP" $ simpleField "std" [t| PartialISpecParams |]
@@ -428,7 +428,7 @@ $(buildObject "PartialIPolicy" "ipolicy" $
 
 -- | Custom filled ipolicy. This is not built via buildParam since it
 -- has a special 2-level inheritance mode.
-$(buildObject "FilledIPolicy" "ipolicy" $
+$(buildObject "FilledIPolicy" "ipolicy"
   [ renameField "MinSpec" $ simpleField "min" [t| FilledISpecParams |]
   , renameField "MaxSpec" $ simpleField "max" [t| FilledISpecParams |]
   , renameField "StdSpec" $ simpleField "std" [t| FilledISpecParams |]
@@ -461,7 +461,7 @@ fillIPolicy (FilledIPolicy { ipolicyMinSpec       = fmin
                 }
 -- * Node definitions
 
-$(buildParam "ND" "ndp" $
+$(buildParam "ND" "ndp"
   [ simpleField "oob_program"   [t| String |]
   , simpleField "spindle_count" [t| Int    |]
   ])

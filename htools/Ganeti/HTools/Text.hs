@@ -146,7 +146,7 @@ serializeIPolicy owner ipol =
 serializeAllIPolicies :: IPolicy -> Group.List -> String
 serializeAllIPolicies cpol gl =
   let groups = Container.elems gl
-      allpolicies = [("", cpol)] ++
+      allpolicies = ("", cpol) :
                     map (\g -> (Group.name g, Group.iPolicy g)) groups
       strings = map (uncurry serializeIPolicy) allpolicies
   in unlines strings
@@ -259,8 +259,8 @@ loadIPolicy [owner, stdspec, minspec, maxspec, dtemplates,
   xdts <- mapM diskTemplateFromRaw $ commaSplit dtemplates
   xvcpu_ratio <- tryRead (owner ++ "/vcpu_ratio") vcpu_ratio
   xspindle_ratio <- tryRead (owner ++ "/spindle_ratio") spindle_ratio
-  return $ (owner, IPolicy xstdspec xminspec xmaxspec xdts
-            xvcpu_ratio xspindle_ratio)
+  return (owner,
+          IPolicy xstdspec xminspec xmaxspec xdts xvcpu_ratio xspindle_ratio)
 loadIPolicy s = fail $ "Invalid ipolicy data: '" ++ show s ++ "'"
 
 loadOnePolicy :: (IPolicy, Group.List) -> String

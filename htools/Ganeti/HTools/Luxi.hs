@@ -212,7 +212,7 @@ getClusterData (JSObject obj) = do
   cpol <- tryFromObj errmsg obj' "ipolicy"
   return (ctags, cpol)
 
-getClusterData _ = Bad $ "Cannot parse cluster info, not a JSON record"
+getClusterData _ = Bad "Cannot parse cluster info, not a JSON record"
 
 -- | Parses the cluster groups.
 getGroups :: JSValue -> Result [(String, Group.Group)]

@@ -286,7 +286,7 @@ updateConfig path r = do
 
 -- | Wrapper over 'updateConfig' that handles IO errors.
 safeUpdateConfig :: FilePath -> FStat -> CRef -> IO (FStat, ConfigReload)
-safeUpdateConfig path oldfstat cref = do
+safeUpdateConfig path oldfstat cref =
   catch (do
           nt <- needsReload oldfstat path
           case nt of
@@ -410,7 +410,7 @@ onReloadInner inotiaction path cref
 -- This tries to setup the watch descriptor; in case of any IO errors,
 -- it will return False.
 addNotifier :: INotify -> FilePath -> CRef -> MVar ServerState -> IO Bool
-addNotifier inotify path cref mstate = do
+addNotifier inotify path cref mstate =
   catch (addWatch inotify [CloseWrite] path
                     (onInotify inotify path cref mstate) >> return True)
         (\e -> const (return False) (e::IOError))
@@ -430,9 +430,9 @@ onInotify inotify path cref mstate Ignored = do
                   path cref mstate
         return state' { reloadModel = mode }
 
-onInotify inotify path cref mstate _ = do
+onInotify inotify path cref mstate _ =
   modifyMVar_ mstate $ \state ->
-    if (reloadModel state == ReloadNotify)
+    if reloadModel state == ReloadNotify
        then do
          ctime <- getCurrentTime
          (newfstat, _) <- safeUpdateConfig path (reloadFStat state) cref
@@ -481,7 +481,7 @@ listener :: S.Socket -> HashKey
 listener s hmac resp = do
   (msg, _, peer) <- S.recvFrom s 4096
   if confdMagicFourcc `isPrefixOf` msg
-    then (forkIO $ resp s hmac (drop 4 msg) peer) >> return ()
+    then forkIO (resp s hmac (drop 4 msg) peer) >> return ()
     else logDebug "Invalid magic code!" >> return ()
   return ()
 

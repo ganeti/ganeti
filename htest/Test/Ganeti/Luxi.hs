@@ -58,21 +58,21 @@ instance Arbitrary Luxi.LuxiOp where
     case lreq of
       Luxi.ReqQuery -> Luxi.Query <$> arbitrary <*> getFields <*> genFilter
       Luxi.ReqQueryFields -> Luxi.QueryFields <$> arbitrary <*> getFields
-      Luxi.ReqQueryNodes -> Luxi.QueryNodes <$> (listOf getFQDN) <*>
+      Luxi.ReqQueryNodes -> Luxi.QueryNodes <$> listOf getFQDN <*>
                             getFields <*> arbitrary
       Luxi.ReqQueryGroups -> Luxi.QueryGroups <$> arbitrary <*>
                              arbitrary <*> arbitrary
-      Luxi.ReqQueryInstances -> Luxi.QueryInstances <$> (listOf getFQDN) <*>
+      Luxi.ReqQueryInstances -> Luxi.QueryInstances <$> listOf getFQDN <*>
                                 getFields <*> arbitrary
       Luxi.ReqQueryJobs -> Luxi.QueryJobs <$> arbitrary <*> getFields
       Luxi.ReqQueryExports -> Luxi.QueryExports <$>
-                              (listOf getFQDN) <*> arbitrary
+                              listOf getFQDN <*> arbitrary
       Luxi.ReqQueryConfigValues -> Luxi.QueryConfigValues <$> getFields
       Luxi.ReqQueryClusterInfo -> pure Luxi.QueryClusterInfo
       Luxi.ReqQueryTags -> Luxi.QueryTags <$> arbitrary <*> getFQDN
-      Luxi.ReqSubmitJob -> Luxi.SubmitJob <$> (resize maxOpCodes arbitrary)
+      Luxi.ReqSubmitJob -> Luxi.SubmitJob <$> resize maxOpCodes arbitrary
       Luxi.ReqSubmitManyJobs -> Luxi.SubmitManyJobs <$>
-                                (resize maxOpCodes arbitrary)
+                                resize maxOpCodes arbitrary
       Luxi.ReqWaitForJobChange -> Luxi.WaitForJobChange <$> arbitrary <*>
                                   getFields <*> pure J.JSNull <*>
                                   pure J.JSNull <*> arbitrary
@@ -116,7 +116,7 @@ luxiClientPong c =
 prop_ClientServer :: [[DNSChar]] -> Property
 prop_ClientServer dnschars = monadicIO $ do
   let msgs = map (map dnsGetChar) dnschars
-  fpath <- run $ getTempFileName
+  fpath <- run getTempFileName
   -- we need to create the server first, otherwise (if we do it in the
   -- forked thread) the client could try to connect to it before it's
   -- ready
@@ -131,7 +131,7 @@ prop_ClientServer dnschars = monadicIO $ do
     bracket
       (Luxi.getClient fpath)
       Luxi.closeClient
-      (\c -> luxiClientPong c msgs)
+      (`luxiClientPong` msgs)
   stop $ replies ==? msgs
 
 testSuite "Luxi"

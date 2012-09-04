@@ -40,21 +40,21 @@ import qualified Ganeti.HTools.Types as Types
 import qualified Ganeti.HTools.Utils as Utils
 
 -- | Helper to generate a small string that doesn't contain commas.
-genNonCommaString :: Gen [Char]
+genNonCommaString :: Gen String
 genNonCommaString = do
   size <- choose (0, 20) -- arbitrary max size
-  vectorOf size (arbitrary `suchThat` ((/=) ','))
+  vectorOf size (arbitrary `suchThat` (/=) ',')
 
 -- | If the list is not just an empty element, and if the elements do
 -- not contain commas, then join+split should be idempotent.
 prop_commaJoinSplit :: Property
 prop_commaJoinSplit =
   forAll (choose (0, 20)) $ \llen ->
-  forAll (vectorOf llen genNonCommaString `suchThat` ((/=) [""])) $ \lst ->
+  forAll (vectorOf llen genNonCommaString `suchThat` (/=) [""]) $ \lst ->
   Utils.sepSplit ',' (Utils.commaJoin lst) ==? lst
 
 -- | Split and join should always be idempotent.
-prop_commaSplitJoin :: [Char] -> Property
+prop_commaSplitJoin :: String -> Property
 prop_commaSplitJoin s =
   Utils.commaJoin (Utils.sepSplit ',' s) ==? s
 
