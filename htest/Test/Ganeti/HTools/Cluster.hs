@@ -134,14 +134,17 @@ prop_Alloc_sane inst =
       reqnodes = Instance.requiredNodes $ Instance.diskTemplate inst
   in case Cluster.genAllocNodes defGroupList nl reqnodes True >>=
      Cluster.tryAlloc nl il inst' of
-       Types.Bad _ -> False
+       Types.Bad msg -> failTest msg
        Types.Ok as ->
          case Cluster.asSolution as of
-           Nothing -> False
+           Nothing -> failTest "Failed to allocate, empty solution"
            Just (xnl, xi, _, cv) ->
              let il' = Container.add (Instance.idx xi) xi il
                  tbl = Cluster.Table xnl il' cv []
-             in not (canBalance tbl True True False)
+             in printTestCase "Cluster can be balanced after allocation"
+                  (not (canBalance tbl True True False)) .&&.
+                printTestCase "Solution score differs from actual node list:"
+                  (Cluster.compCV xnl ==? cv)
 
 -- | Checks that on a 2-5 node cluster, we can allocate a random
 -- instance spec via tiered allocation (whatever the original instance
