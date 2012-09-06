@@ -81,10 +81,10 @@ testSuite :: String -> [Name] -> Q [Dec]
 testSuite tsname tdef = do
   let fullname = mkName $ "test" ++ mapSlashes tsname
   tests <- mapM run tdef
-  sigtype <- [t| (String, [Test]) |]
+  sigtype <- [t| Test |]
+  body <- [| testGroup $(litE $ stringL tsname) $(return $ ListE tests) |]
   return [ SigD fullname sigtype
-         , ValD (VarP fullname) (NormalB (TupE [LitE (StringL tsname),
-                                                ListE tests])) []
+         , ValD (VarP fullname) (NormalB body) []
          ]
 
 -- | Builds an arbitrary value for a given constructor. This doesn't

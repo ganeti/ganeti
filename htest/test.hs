@@ -69,7 +69,7 @@ defOpts = TestOptions
        }
 
 -- | All our defined tests.
-allTests :: [(String, [Test])]
+allTests :: [Test]
 allTests =
   [ testBasicTypes
   , testCommon
@@ -104,5 +104,4 @@ main :: IO ()
 main = do
   ropts <- getArgs >>= interpretArgsOrExit
   let opts = maybe defOpts (defOpts `mappend`) $ ropt_test_options ropts
-      tests = map (uncurry testGroup) allTests
-  defaultMainWithOpts tests (ropts { ropt_test_options = Just opts })
+  defaultMainWithOpts allTests (ropts { ropt_test_options = Just opts })
