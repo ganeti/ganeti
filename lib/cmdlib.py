@@ -14824,7 +14824,8 @@ class LUTestAllocator(NoHooksLU):
     This checks the opcode parameters depending on the director and mode test.
 
     """
-    if self.op.mode == constants.IALLOCATOR_MODE_ALLOC:
+    if self.op.mode in (constants.IALLOCATOR_MODE_ALLOC,
+                        constants.IALLOCATOR_MODE_MULTI_ALLOC):
       for attr in ["memory", "disks", "disk_template",
                    "os", "tags", "nics", "vcpus"]:
         if not hasattr(self.op, attr):
@@ -14896,6 +14897,20 @@ class LUTestAllocator(NoHooksLU):
     elif self.op.mode == constants.IALLOCATOR_MODE_NODE_EVAC:
       req = iallocator.IAReqNodeEvac(instances=self.op.instances,
                                      evac_mode=self.op.evac_mode)
+    elif self.op.mode == constants.IALLOCATOR_MODE_MULTI_ALLOC:
+      disk_template = self.op.disk_template
+      insts = [iallocator.IAReqInstanceAlloc(name="%s%s" % (self.op.name, idx),
+                                             memory=self.op.memory,
+                                             disks=self.op.disks,
+                                             disk_template=disk_template,
+                                             os=self.op.os,
+                                             tags=self.op.tags,
+                                             nics=self.op.nics,
+                                             vcpus=self.op.vcpus,
+                                             spindle_use=self.op.spindle_use,
+                                             hypervisor=self.op.hypervisor)
+               for idx in range(self.op.count)]
+      req = iallocator.IAReqMultiInstanceAlloc(instances=insts)
     else:
       raise errors.ProgrammerError("Uncatched mode %s in"
                                    " LUTestAllocator.Exec", self.op.mode)

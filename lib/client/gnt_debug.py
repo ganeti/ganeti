@@ -175,7 +175,8 @@ def TestAllocator(opts, args):
                                allocator=opts.iallocator,
                                evac_mode=opts.evac_mode,
                                target_groups=target_groups,
-                               spindle_use=opts.spindle_use)
+                               spindle_use=opts.spindle_use,
+                               count=opts.count)
   result = SubmitOpCode(op, opts=opts)
   ToStdout("%s" % result)
   return 0
@@ -676,6 +677,8 @@ commands = {
                 default=[], action="append"),
      cli_option("--spindle-use", help="How many spindles to use",
                 default=1, type="int"),
+     cli_option("--count", help="How many instances to allocate",
+                default=2, type="int"),
      DRY_RUN_OPT, PRIORITY_OPT,
      ],
     "{opts...} <instance>", "Executes a TestAllocator OpCode"),
