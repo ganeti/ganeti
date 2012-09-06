@@ -146,6 +146,41 @@ prop_Alloc_sane inst =
                 printTestCase "Solution score differs from actual node list:"
                   (Cluster.compCV xnl ==? cv)
 
+-- | Check that multiple instances can allocated correctly, without
+-- rebalances needed.
+prop_IterateAlloc_sane :: Instance.Instance -> Property
+prop_IterateAlloc_sane inst =
+  forAll (choose (5, 10)) $ \count ->
+  forAll genOnlineNode $ \node ->
+  forAll (choose (2, 5)) $ \limit ->
+  let (nl, il, inst') = makeSmallEmptyCluster node count inst
+      reqnodes = Instance.requiredNodes $ Instance.diskTemplate inst
+      allocnodes = Cluster.genAllocNodes defGroupList nl reqnodes True
+  in case allocnodes >>= \allocnodes' ->
+     Cluster.iterateAlloc nl il (Just limit) inst' allocnodes' [] [] of
+       Types.Bad msg -> failTest msg
+       Types.Ok (_, xnl, xil, _, _) ->
+         let old_score = Cluster.compCV xnl
+             tbl = Cluster.Table xnl xil old_score []
+         in case Cluster.tryBalance tbl True True False 0 1e-4 of
+              Nothing -> passTest
+              Just (Cluster.Table ynl _ new_score plcs) ->
+                -- note that with a "min_gain" of zero, sometime
+                -- rounding errors can trigger a rebalance that
+                -- improves the score by e.g. 2e-14; in order to
+                -- prevent such no-real-change moves from happening,
+                -- we check for a min-gain of 1e-9
+                -- FIXME: correct rebalancing to not do no-ops
+                printTestCase
+                  ("Cluster can be balanced after allocation\n" ++
+                   " old cluster (score " ++ show old_score ++
+                   "):\n" ++ Cluster.printNodes xnl [] ++
+                   " new cluster (score " ++ show new_score ++
+                   "):\n" ++ Cluster.printNodes ynl [] ++
+                   "placements:\n" ++ show plcs ++ "\nscore delta: " ++
+                   show (old_score - new_score))
+                  (old_score - new_score < 1e-9)
+
 -- | Checks that on a 2-5 node cluster, we can allocate a random
 -- instance spec via tiered allocation (whatever the original instance
 -- spec), on either one or two nodes. Furthermore, we test that
@@ -361,6 +396,7 @@ testSuite "HTools/Cluster"
             [ 'prop_Score_Zero
             , 'prop_CStats_sane
             , 'prop_Alloc_sane
+            , 'prop_IterateAlloc_sane
             , 'prop_CanTieredAlloc
             , 'prop_AllocRelocate
             , 'prop_AllocEvacuate
