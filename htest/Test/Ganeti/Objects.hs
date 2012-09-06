@@ -28,7 +28,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Test.Ganeti.Objects
   ( testObjects
-  , testSlowObjects
   , Hypervisor(..)
   , Node(..)
   , genEmptyCluster
@@ -234,8 +233,5 @@ testSuite "Objects"
   , 'prop_Disk_serialisation
   , 'prop_Inst_serialisation
   , 'prop_Node_serialisation
-  ]
-
-testSuite "SlowObjects"
-  [ 'prop_Config_serialisation
+  , 'prop_Config_serialisation
   ]
