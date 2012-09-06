@@ -367,34 +367,37 @@ prop_SplitCluster node inst =
                                  (Container.elems nl'')) gni
 
 -- | Helper function to check if we can allocate an instance on a
--- given node list.
-canAllocOn :: Node.List -> Int -> Instance.Instance -> Bool
+-- given node list. Successful allocation is denoted by 'Nothing',
+-- otherwise the 'Just' value will contain the error message.
+canAllocOn :: Node.List -> Int -> Instance.Instance -> Maybe String
 canAllocOn nl reqnodes inst =
   case Cluster.genAllocNodes defGroupList nl reqnodes True >>=
        Cluster.tryAlloc nl Container.empty inst of
-       Types.Bad _ -> False
+       Types.Bad msg -> Just $ "Can't allocate: " ++ msg
        Types.Ok as ->
          case Cluster.asSolution as of
-           Nothing -> False
-           Just _ -> True
+           Nothing -> Just $ "No allocation solution; failures: " ++
+                      show (Cluster.collapseFailures $ Cluster.asFailures as)
+           Just _ -> Nothing
 
 -- | Checks that allocation obeys minimum and maximum instance
 -- policies. The unittest generates a random node, duplicates it /count/
 -- times, and generates a random instance that can be allocated on
 -- this mini-cluster; it then checks that after applying a policy that
 -- the instance doesn't fits, the allocation fails.
-prop_AllocPolicy :: Node.Node -> Property
-prop_AllocPolicy node =
-  -- rqn is the required nodes (1 or 2)
-  forAll (choose (1, 2)) $ \rqn ->
+prop_AllocPolicy :: Property
+prop_AllocPolicy =
+  forAll genOnlineNode $ \node ->
   forAll (choose (5, 20)) $ \count ->
-  forAll (arbitrary `suchThat` canAllocOn (makeSmallCluster node count) rqn)
-         $ \inst ->
+  forAll (genInstanceSmallerThanNode node) $ \inst ->
   forAll (arbitrary `suchThat` (isFailure .
                                 Instance.instMatchesPolicy inst)) $ \ipol ->
-  let node' = Node.setPolicy ipol node
+  let rqn = Instance.requiredNodes $ Instance.diskTemplate inst
+      node' = Node.setPolicy ipol node
       nl = makeSmallCluster node' count
-  in not $ canAllocOn nl rqn inst
+  in printTestCase "Allocation check:"
+       (isNothing (canAllocOn (makeSmallCluster node count) rqn inst)) .&&.
+     printTestCase "Policy failure check:" (isJust $ canAllocOn nl rqn inst)
 
 testSuite "HTools/Cluster"
             [ 'prop_Score_Zero
