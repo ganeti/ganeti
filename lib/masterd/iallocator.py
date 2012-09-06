@@ -186,6 +186,29 @@ class IAReqInstanceAlloc(IARequestBase):
       }
 
 
+class IAReqMultiInstanceAlloc(IARequestBase):
+  """An multi instance allocation request.
+
+  """
+  MODE = constants.IALLOCATOR_MODE_MULTI_ALLOC
+  REQ_PARAMS = [
+    ("instances", ht.TListOf(ht.TInstanceOf(IAReqInstanceAlloc)))
+    ]
+  _MASUCCESS = \
+    ht.TListOf(ht.TAnd(ht.TIsLength(2),
+                       ht.TItems([ht.TNonEmptyString,
+                                  ht.TListOf(ht.TNonEmptyString),
+                                  ])))
+  _MAFAILED = ht.TListOf(ht.TNonEmptyString)
+  REQ_RESULT = ht.TListOf(ht.TAnd(ht.TIsLength(2),
+                                  ht.TItems([_MASUCCESS, _MAFAILED])))
+
+  def GetRequest(self, cfg):
+    return {
+      "instances": [iareq.GetRequest(cfg) for iareq in self.instances]
+      }
+
+
 class IAReqRelocate(IARequestBase):
   """A relocation request.
 

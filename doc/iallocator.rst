@@ -212,6 +212,11 @@ In all cases, it includes:
     off their node(s). These are described in a separate :ref:`design
     document <multi-reloc-detailed-design>`.
 
+    The ``multi-allocate`` request is used to allocate multiple
+    instances on the cluster. The request is beside of that very
+    similiar to the ``allocate`` one. For more details look at
+    :doc:`Ganeti bulk create <design-bulk-create>`.
+
 For both allocate and relocate mode, the following extra keys are needed
 in the ``request`` dictionary:
 
@@ -311,6 +316,11 @@ As for ``node-evacuate``, it needs the following request arguments:
     should be considered for relocating instances to; type
     *list of strings*
 
+``multi-allocate`` needs the following request arguments:
+
+  instances
+    a list of request dicts
+
 Response message
 ~~~~~~~~~~~~~~~~
 
@@ -337,6 +347,12 @@ result
   dictionary containing, among other information, a list of lists of
   serialized opcodes; see the :ref:`design document
   <multi-reloc-result>` for a detailed description
+
+  for the ``multi-allocate`` mode this is a tuple of 2 lists, the first
+  being element of the tuple is a list of succeeded allocation, with the
+  instance name as first element of each entry and the node placement in
+  the second. The second element of the tuple is the instance list of
+  failed allocations.
 
 .. note:: Current Ganeti version accepts either ``result`` or ``nodes``
    as a backwards-compatibility measure (older versions only supported

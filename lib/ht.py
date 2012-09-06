@@ -352,6 +352,14 @@ TNumber = TOr(TInt, TFloat)
 TRelativeJobId = WithDesc("RelativeJobId")(TStrictNegativeInt)
 
 
+def TInstanceOf(my_inst):
+  """Checks if a given value is an instance of my_inst.
+
+  """
+  desc = WithDesc("Instance of %s" % (Parens(my_inst), ))
+  return desc(lambda val: isinstance(val, my_inst))
+
+
 def TListOf(my_type):
   """Checks if a given value is a list with all elements of the same type.
 
