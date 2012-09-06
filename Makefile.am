@@ -283,6 +283,7 @@ confd_PYTHON = \
 
 masterd_PYTHON = \
 	lib/masterd/__init__.py \
+	lib/masterd/iallocator.py \
 	lib/masterd/instance.py
 
 impexpd_PYTHON = \

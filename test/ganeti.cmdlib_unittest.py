@@ -42,6 +42,7 @@ from ganeti import ht
 from ganeti import objects
 from ganeti import compat
 from ganeti import rpc
+from ganeti.masterd import iallocator
 from ganeti.hypervisor import hv_xen
 
 import testutils
@@ -409,7 +410,7 @@ class TestLoadNodeEvacResult(unittest.TestCase):
             ]
 
           alloc_result = (moved, [], jobs)
-          assert cmdlib.IAllocator._NEVAC_RESULT(alloc_result)
+          assert iallocator._NEVAC_RESULT(alloc_result)
 
           lu = _FakeLU()
           result = cmdlib._LoadNodeEvacResult(lu, alloc_result,
@@ -438,7 +439,7 @@ class TestLoadNodeEvacResult(unittest.TestCase):
     alloc_result = ([], [
       ("inst5191.example.com", "errormsg21178"),
       ], [])
-    assert cmdlib.IAllocator._NEVAC_RESULT(alloc_result)
+    assert iallocator._NEVAC_RESULT(alloc_result)
 
     lu = _FakeLU()
     self.assertRaises(errors.OpExecError, cmdlib._LoadNodeEvacResult,
