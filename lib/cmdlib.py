@@ -59,6 +59,7 @@ from ganeti import opcodes
 from ganeti import ht
 from ganeti import rpc
 from ganeti import runtime
+from ganeti.masterd import iallocator
 
 import ganeti.masterd.instance # pylint: disable=W0611
 
@@ -1618,12 +1619,12 @@ def _CheckIAllocatorOrNode(lu, iallocator_slot, node_slot):
 
   """
   node = getattr(lu.op, node_slot, None)
-  iallocator = getattr(lu.op, iallocator_slot, None)
+  ialloc = getattr(lu.op, iallocator_slot, None)
 
-  if node is not None and iallocator is not None:
+  if node is not None and ialloc is not None:
     raise errors.OpPrereqError("Do not specify both, iallocator and node",
                                errors.ECODE_INVAL)
-  elif node is None and iallocator is None:
+  elif node is None and ialloc is None:
     default_iallocator = lu.cfg.GetDefaultIAllocator()
     if default_iallocator:
       setattr(lu.op, iallocator_slot, default_iallocator)
@@ -1635,27 +1636,27 @@ def _CheckIAllocatorOrNode(lu, iallocator_slot, node_slot):
                                  " iallocator", errors.ECODE_INVAL)
 
 
-def _GetDefaultIAllocator(cfg, iallocator):
+def _GetDefaultIAllocator(cfg, ialloc):
   """Decides on which iallocator to use.
 
   @type cfg: L{config.ConfigWriter}
   @param cfg: Cluster configuration object
-  @type iallocator: string or None
-  @param iallocator: Iallocator specified in opcode
+  @type ialloc: string or None
+  @param ialloc: Iallocator specified in opcode
   @rtype: string
   @return: Iallocator name
 
   """
-  if not iallocator:
+  if not ialloc:
     # Use default iallocator
-    iallocator = cfg.GetDefaultIAllocator()
+    ialloc = cfg.GetDefaultIAllocator()
 
-  if not iallocator:
+  if not ialloc:
     raise errors.OpPrereqError("No iallocator was specified, neither in the"
                                " opcode nor as a cluster-wide default",
                                errors.ECODE_INVAL)
 
-  return iallocator
+  return ialloc
 
 
 class LUClusterPostInit(LogicalUnit):
@@ -7094,24 +7095,25 @@ class LUInstanceRecreateDisks(LogicalUnit):
     # they should be already be marked as drained or offline, and hence
     # skipped by the allocator. If instance disks have been lost for other
     # reasons, then recreating the disks on the same nodes should be fine.
-    ial = IAllocator(self.cfg, self.rpc,
-                     mode=constants.IALLOCATOR_MODE_ALLOC,
-                     name=self.op.instance_name,
-                     disk_template=self.instance.disk_template,
-                     tags=list(self.instance.GetTags()),
-                     os=self.instance.os,
-                     nics=[{}],
-                     vcpus=be_full[constants.BE_VCPUS],
-                     memory=be_full[constants.BE_MAXMEM],
-                     spindle_use=be_full[constants.BE_SPINDLE_USE],
-                     disks=[{constants.IDISK_SIZE: d.size,
-                             constants.IDISK_MODE: d.mode}
-                            for d in self.instance.disks],
-                     hypervisor=self.instance.hypervisor)
-
-    assert ial.required_nodes == len(self.instance.all_nodes)
+    disk_template = self.instance.disk_template
+    spindle_use = be_full[constants.BE_SPINDLE_USE]
+    req = iallocator.IAReqInstanceAlloc(name=self.op.instance_name,
+                                        disk_template=disk_template,
+                                        tags=list(self.instance.GetTags()),
+                                        os=self.instance.os,
+                                        nics=[{}],
+                                        vcpus=be_full[constants.BE_VCPUS],
+                                        memory=be_full[constants.BE_MAXMEM],
+                                        spindle_use=spindle_use,
+                                        disks=[{constants.IDISK_SIZE: d.size,
+                                                constants.IDISK_MODE: d.mode}
+                                                for d in self.instance.disks],
+                                        hypervisor=self.instance.hypervisor)
+    ial = iallocator.IAllocator(self.cfg, self.rpc, req)
 
     ial.Run(self.op.iallocator)
+
+    assert ial.required_nodes == len(self.instance.all_nodes)
 
     if not ial.success:
       raise errors.OpPrereqError("Can't compute nodes using iallocator '%s':"
@@ -8247,11 +8249,9 @@ class TLMigrateInstance(Tasklet):
 
     """
     # FIXME: add a self.ignore_ipolicy option
-    ial = IAllocator(self.cfg, self.rpc,
-                     mode=constants.IALLOCATOR_MODE_RELOC,
-                     name=self.instance_name,
-                     relocate_from=[self.instance.primary_node],
-                     )
+    req = iallocator.IAReqRelocate(name=self.instance_name,
+                                   relocate_from=[self.instance.primary_node])
+    ial = iallocator.IAllocator(self.cfg, self.rpc, req)
 
     ial.Run(self.lu.op.iallocator)
 
@@ -9505,19 +9505,19 @@ class LUInstanceCreate(LogicalUnit):
 
     """
     nics = [n.ToDict() for n in self.nics]
-    ial = IAllocator(self.cfg, self.rpc,
-                     mode=constants.IALLOCATOR_MODE_ALLOC,
-                     name=self.op.instance_name,
-                     disk_template=self.op.disk_template,
-                     tags=self.op.tags,
-                     os=self.op.os_type,
-                     vcpus=self.be_full[constants.BE_VCPUS],
-                     memory=self.be_full[constants.BE_MAXMEM],
-                     spindle_use=self.be_full[constants.BE_SPINDLE_USE],
-                     disks=self.disks,
-                     nics=nics,
-                     hypervisor=self.op.hypervisor,
-                     )
+    memory = self.be_full[constants.BE_MAXMEM]
+    spindle_use = self.be_full[constants.BE_SPINDLE_USE]
+    req = iallocator.IAReqInstanceAlloc(name=self.op.instance_name,
+                                        disk_template=self.op.disk_template,
+                                        tags=self.op.tags,
+                                        os=self.op.os_type,
+                                        vcpus=self.be_full[constants.BE_VCPUS],
+                                        memory=memory,
+                                        spindle_use=spindle_use,
+                                        disks=self.disks,
+                                        nics=nics,
+                                        hypervisor=self.op.hypervisor)
+    ial = iallocator.IAllocator(self.cfg, self.rpc, req)
 
     ial.Run(self.op.iallocator)
 
@@ -10605,22 +10605,22 @@ class TLReplaceDisks(Tasklet):
     self.node_secondary_ip = None
 
   @staticmethod
-  def CheckArguments(mode, remote_node, iallocator):
+  def CheckArguments(mode, remote_node, ialloc):
     """Helper function for users of this class.
 
     """
     # check for valid parameter combination
     if mode == constants.REPLACE_DISK_CHG:
-      if remote_node is None and iallocator is None:
+      if remote_node is None and ialloc is None:
         raise errors.OpPrereqError("When changing the secondary either an"
                                    " iallocator script must be used or the"
                                    " new node given", errors.ECODE_INVAL)
 
-      if remote_node is not None and iallocator is not None:
+      if remote_node is not None and ialloc is not None:
         raise errors.OpPrereqError("Give either the iallocator or the new"
                                    " secondary, not both", errors.ECODE_INVAL)
 
-    elif remote_node is not None or iallocator is not None:
+    elif remote_node is not None or ialloc is not None:
       # Not replacing the secondary
       raise errors.OpPrereqError("The iallocator and new node options can"
                                  " only be used when changing the"
@@ -10631,10 +10631,9 @@ class TLReplaceDisks(Tasklet):
     """Compute a new secondary node using an IAllocator.
 
     """
-    ial = IAllocator(lu.cfg, lu.rpc,
-                     mode=constants.IALLOCATOR_MODE_RELOC,
-                     name=instance_name,
-                     relocate_from=list(relocate_from))
+    req = iallocator.IAReqRelocate(name=instance_name,
+                                   relocate_from=list(relocate_from))
+    ial = iallocator.IAllocator(lu.cfg, lu.rpc, req)
 
     ial.Run(iallocator_name)
 
@@ -11582,9 +11581,10 @@ class LUNodeEvacuate(NoHooksLU):
 
     elif self.op.iallocator is not None:
       # TODO: Implement relocation to other group
-      ial = IAllocator(self.cfg, self.rpc, constants.IALLOCATOR_MODE_NODE_EVAC,
-                       evac_mode=self._MODE2IALLOCATOR[self.op.mode],
-                       instances=list(self.instance_names))
+      evac_mode = self._MODE2IALLOCATOR[self.op.mode]
+      req = iallocator.IAReqNodeEvac(evac_mode=evac_mode,
+                                     instances=list(self.instance_names))
+      ial = iallocator.IAllocator(self.cfg, self.rpc, req)
 
       ial.Run(self.op.iallocator)
 
@@ -13181,8 +13181,9 @@ class LUInstanceChangeGroup(LogicalUnit):
 
     assert instances == [self.op.instance_name], "Instance not locked"
 
-    ial = IAllocator(self.cfg, self.rpc, constants.IALLOCATOR_MODE_CHG_GROUP,
-                     instances=instances, target_groups=list(self.target_uuids))
+    req = iallocator.IAReqGroupChange(instances=instances,
+                                      target_groups=list(self.target_uuids))
+    ial = iallocator.IAllocator(self.cfg, self.rpc, req)
 
     ial.Run(self.op.iallocator)
 
@@ -14436,8 +14437,9 @@ class LUGroupEvacuate(LogicalUnit):
 
     assert self.group_uuid not in self.target_uuids
 
-    ial = IAllocator(self.cfg, self.rpc, constants.IALLOCATOR_MODE_CHG_GROUP,
-                     instances=instances, target_groups=self.target_uuids)
+    req = iallocator.IAReqGroupChange(instances=instances,
+                                      target_groups=self.target_uuids)
+    ial = iallocator.IAllocator(self.cfg, self.rpc, req)
 
     ial.Run(self.op.iallocator)
 
@@ -14875,39 +14877,30 @@ class LUTestAllocator(NoHooksLU):
 
     """
     if self.op.mode == constants.IALLOCATOR_MODE_ALLOC:
-      ial = IAllocator(self.cfg, self.rpc,
-                       mode=self.op.mode,
-                       name=self.op.name,
-                       memory=self.op.memory,
-                       disks=self.op.disks,
-                       disk_template=self.op.disk_template,
-                       os=self.op.os,
-                       tags=self.op.tags,
-                       nics=self.op.nics,
-                       vcpus=self.op.vcpus,
-                       hypervisor=self.op.hypervisor,
-                       spindle_use=self.op.spindle_use,
-                       )
+      req = iallocator.IAReqInstanceAlloc(name=self.op.name,
+                                          memory=self.op.memory,
+                                          disks=self.op.disks,
+                                          disk_template=self.op.disk_template,
+                                          os=self.op.os,
+                                          tags=self.op.tags,
+                                          nics=self.op.nics,
+                                          vcpus=self.op.vcpus,
+                                          spindle_use=self.op.spindle_use,
+                                          hypervisor=self.op.hypervisor)
     elif self.op.mode == constants.IALLOCATOR_MODE_RELOC:
-      ial = IAllocator(self.cfg, self.rpc,
-                       mode=self.op.mode,
-                       name=self.op.name,
-                       relocate_from=list(self.relocate_from),
-                       )
+      req = iallocator.IAReqRelocate(name=self.op.name,
+                                     relocate_from=list(self.relocate_from))
     elif self.op.mode == constants.IALLOCATOR_MODE_CHG_GROUP:
-      ial = IAllocator(self.cfg, self.rpc,
-                       mode=self.op.mode,
-                       instances=self.op.instances,
-                       target_groups=self.op.target_groups)
+      req = iallocator.IAReqGroupChange(instances=self.op.instances,
+                                        target_groups=self.op.target_groups)
     elif self.op.mode == constants.IALLOCATOR_MODE_NODE_EVAC:
-      ial = IAllocator(self.cfg, self.rpc,
-                       mode=self.op.mode,
-                       instances=self.op.instances,
-                       evac_mode=self.op.evac_mode)
+      req = iallocator.IAReqNodeEvac(instances=self.op.instances,
+                                     evac_mode=self.op.evac_mode)
     else:
       raise errors.ProgrammerError("Uncatched mode %s in"
                                    " LUTestAllocator.Exec", self.op.mode)
 
+    ial = iallocator.IAllocator(self.cfg, self.rpc, req)
     if self.op.direction == constants.IALLOCATOR_DIR_IN:
       result = ial.in_text
     else:
