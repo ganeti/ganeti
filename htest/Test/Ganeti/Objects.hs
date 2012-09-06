@@ -187,7 +187,7 @@ genEmptyCluster ncount = do
   grp <- arbitrary
   let contgroups = Container $ Map.singleton guuid grp
   serial <- arbitrary
-  cluster <- arbitrary
+  cluster <- resize 8 arbitrary
   let c = ConfigData version cluster contnodes contgroups continsts serial
   return c
 
@@ -227,7 +227,7 @@ prop_Inst_serialisation = testSerialisation
 -- | Check config serialisation.
 prop_Config_serialisation :: Property
 prop_Config_serialisation =
-  forAll (choose (0, maxNodes) >>= genEmptyCluster) testSerialisation
+  forAll (choose (0, maxNodes `div` 4) >>= genEmptyCluster) testSerialisation
 
 testSuite "Objects"
   [ 'prop_fillDict
