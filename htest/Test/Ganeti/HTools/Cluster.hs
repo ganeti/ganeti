@@ -36,7 +36,8 @@ import Data.Maybe
 import Test.Ganeti.TestHelper
 import Test.Ganeti.TestCommon
 import Test.Ganeti.TestHTools
-import Test.Ganeti.HTools.Instance (genInstanceSmallerThanNode)
+import Test.Ganeti.HTools.Instance ( genInstanceSmallerThanNode
+                                   , genInstanceSmallerThan )
 import Test.Ganeti.HTools.Node (genOnlineNode, genNode)
 
 import qualified Ganeti.HTools.Cluster as Cluster
@@ -185,34 +186,37 @@ prop_IterateAlloc_sane inst =
 -- instance spec via tiered allocation (whatever the original instance
 -- spec), on either one or two nodes. Furthermore, we test that
 -- computed allocation statistics are correct.
-prop_CanTieredAlloc :: Instance.Instance -> Property
-prop_CanTieredAlloc inst =
+prop_CanTieredAlloc :: Property
+prop_CanTieredAlloc =
   forAll (choose (2, 5)) $ \count ->
   forAll (genOnlineNode `suchThat` isNodeBig 4) $ \node ->
+  forAll (genInstanceSmallerThan
+            (Node.availMem  node + Types.unitMem * 2)
+            (Node.availDisk node + Types.unitDsk * 3)
+            (Node.availCpu  node + Types.unitCpu * 4)) $ \inst ->
   let nl = makeSmallCluster node count
       il = Container.empty
       rqnodes = Instance.requiredNodes $ Instance.diskTemplate inst
       allocnodes = Cluster.genAllocNodes defGroupList nl rqnodes True
   in case allocnodes >>= \allocnodes' ->
-    Cluster.tieredAlloc nl il (Just 1) inst allocnodes' [] [] of
+    Cluster.tieredAlloc nl il (Just 5) inst allocnodes' [] [] of
        Types.Bad msg -> failTest $ "Failed to tiered alloc: " ++ msg
        Types.Ok (_, nl', il', ixes, cstats) ->
          let (ai_alloc, ai_pool, ai_unav) =
                Cluster.computeAllocationDelta
                 (Cluster.totalResources nl)
                 (Cluster.totalResources nl')
-             all_nodes = Container.elems nl
-         in property (not (null ixes)) .&&.
-            IntMap.size il' ==? length ixes .&&.
-            length ixes ==? length cstats .&&.
-            sum (map Types.allocInfoVCpus [ai_alloc, ai_pool, ai_unav]) ==?
-              sum (map Node.hiCpu all_nodes) .&&.
-            sum (map Types.allocInfoNCpus [ai_alloc, ai_pool, ai_unav]) ==?
-              sum (map Node.tCpu all_nodes) .&&.
-            sum (map Types.allocInfoMem [ai_alloc, ai_pool, ai_unav]) ==?
-              truncate (sum (map Node.tMem all_nodes)) .&&.
-            sum (map Types.allocInfoDisk [ai_alloc, ai_pool, ai_unav]) ==?
-              truncate (sum (map Node.tDsk all_nodes))
+             all_nodes fn = sum $ map fn (Container.elems nl)
+             all_res fn = sum $ map fn [ai_alloc, ai_pool, ai_unav]
+         in conjoin
+            [ printTestCase "No instances allocated" $ not (null ixes)
+            , IntMap.size il' ==? length ixes
+            , length ixes     ==? length cstats
+            , all_res Types.allocInfoVCpus ==? all_nodes Node.hiCpu
+            , all_res Types.allocInfoNCpus ==? all_nodes Node.tCpu
+            , all_res Types.allocInfoMem   ==? truncate (all_nodes Node.tMem)
+            , all_res Types.allocInfoDisk  ==? truncate (all_nodes Node.tDsk)
+            ]
 
 -- | Helper function to create a cluster with the given range of nodes
 -- and allocate an instance on it.

@@ -29,6 +29,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 module Test.Ganeti.HTools.Instance
   ( testHTools_Instance
   , genInstanceSmallerThanNode
+  , genInstanceSmallerThan
   , Instance.Instance(..)
   ) where
 
