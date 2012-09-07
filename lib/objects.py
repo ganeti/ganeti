@@ -44,6 +44,7 @@ from cStringIO import StringIO
 from ganeti import errors
 from ganeti import constants
 from ganeti import netutils
+from ganeti import objectutils
 from ganeti import utils
 
 from socket import AF_INET
@@ -191,7 +192,7 @@ def MakeEmptyIPolicy():
     ])
 
 
-class ConfigObject(object):
+class ConfigObject(objectutils.ValidatedSlots):
   """A generic config object.
 
   It has the following properties:
@@ -206,34 +207,22 @@ class ConfigObject(object):
   """
   __slots__ = []
 
-  def __init__(self, **kwargs):
-    for k, v in kwargs.iteritems():
-      setattr(self, k, v)
-
   def __getattr__(self, name):
-    if name not in self._all_slots():
+    if name not in self.GetAllSlots():
       raise AttributeError("Invalid object attribute %s.%s" %
                            (type(self).__name__, name))
     return None
 
   def __setstate__(self, state):
-    slots = self._all_slots()
+    slots = self.GetAllSlots()
     for name in state:
       if name in slots:
         setattr(self, name, state[name])
 
-  @classmethod
-  def _all_slots(cls):
-    """Compute the list of all declared slots for a class.
+  def Validate(self):
+    """Validates the slots.
 
     """
-    slots = []
-    for parent in cls.__mro__:
-      slots.extend(getattr(parent, "__slots__", []))
-    return slots
-
-  #: Public getter for the defined slots
-  GetAllSlots = _all_slots
 
   def ToDict(self):
     """Convert to a dict holding only standard python types.
@@ -246,7 +235,7 @@ class ConfigObject(object):
 
     """
     result = {}
-    for name in self._all_slots():
+    for name in self.GetAllSlots():
       value = getattr(self, name, None)
       if value is not None:
         result[name] = value

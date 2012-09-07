@@ -40,6 +40,7 @@ from ganeti import constants
 from ganeti import errors
 from ganeti import ht
 from ganeti import objects
+from ganeti import objectutils
 
 
 # Common opcode attributes
@@ -342,7 +343,7 @@ _PStorageType = ("storage_type", ht.NoDefault, _CheckStorageType,
                  "Storage type")
 
 
-class _AutoOpParamSlots(type):
+class _AutoOpParamSlots(objectutils.AutoSlots):
   """Meta class for opcode definitions.
 
   """
@@ -356,27 +357,29 @@ class _AutoOpParamSlots(type):
     @param attrs: Class attributes
 
     """
-    assert "__slots__" not in attrs, \
-      "Class '%s' defines __slots__ when it should use OP_PARAMS" % name
     assert "OP_ID" not in attrs, "Class '%s' defining OP_ID" % name
+
+    slots = mcs._GetSlots(attrs)
+    assert "OP_DSC_FIELD" not in attrs or attrs["OP_DSC_FIELD"] in slots, \
+      "Class '%s' uses unknown field in OP_DSC_FIELD" % name
 
     attrs["OP_ID"] = _NameToId(name)
 
+    return objectutils.AutoSlots.__new__(mcs, name, bases, attrs)
+
+  @classmethod
+  def _GetSlots(mcs, attrs):
+    """Build the slots out of OP_PARAMS.
+
+    """
     # Always set OP_PARAMS to avoid duplicates in BaseOpCode.GetAllParams
     params = attrs.setdefault("OP_PARAMS", [])
 
     # Use parameter names as slots
-    slots = [pname for (pname, _, _, _) in params]
-
-    assert "OP_DSC_FIELD" not in attrs or attrs["OP_DSC_FIELD"] in slots, \
-      "Class '%s' uses unknown field in OP_DSC_FIELD" % name
-
-    attrs["__slots__"] = slots
-
-    return type.__new__(mcs, name, bases, attrs)
+    return [pname for (pname, _, _, _) in params]
 
 
-class BaseOpCode(object):
+class BaseOpCode(objectutils.ValidatedSlots):
   """A simple serializable object.
 
   This object serves as a parent class for OpCode without any custom
@@ -386,22 +389,6 @@ class BaseOpCode(object):
   # pylint: disable=E1101
   # as OP_ID is dynamically defined
   __metaclass__ = _AutoOpParamSlots
-
-  def __init__(self, **kwargs):
-    """Constructor for BaseOpCode.
-
-    The constructor takes only keyword arguments and will set
-    attributes on this object based on the passed arguments. As such,
-    it means that you should not pass arguments which are not in the
-    __slots__ attribute for this class.
-
-    """
-    slots = self._all_slots()
-    for key in kwargs:
-      if key not in slots:
-        raise TypeError("Object %s doesn't support the parameter '%s'" %
-                        (self.__class__.__name__, key))
-      setattr(self, key, kwargs[key])
 
   def __getstate__(self):
     """Generic serializer.
@@ -414,7 +401,7 @@ class BaseOpCode(object):
 
     """
     state = {}
-    for name in self._all_slots():
+    for name in self.GetAllSlots():
       if hasattr(self, name):
         state[name] = getattr(self, name)
     return state
@@ -433,22 +420,12 @@ class BaseOpCode(object):
       raise ValueError("Invalid data to __setstate__: expected dict, got %s" %
                        type(state))
 
-    for name in self._all_slots():
+    for name in self.GetAllSlots():
       if name not in state and hasattr(self, name):
         delattr(self, name)
 
     for name in state:
       setattr(self, name, state[name])
-
-  @classmethod
-  def _all_slots(cls):
-    """Compute the list of all declared slots for a class.
-
-    """
-    slots = []
-    for parent in cls.__mro__:
-      slots.extend(getattr(parent, "__slots__", []))
-    return slots
 
   @classmethod
   def GetAllParams(cls):
@@ -460,7 +437,7 @@ class BaseOpCode(object):
       slots.extend(getattr(parent, "OP_PARAMS", []))
     return slots
 
-  def Validate(self, set_defaults):
+  def Validate(self, set_defaults): # pylint: disable=W0221
     """Validate opcode parameters, optionally setting default values.
 
     @type set_defaults: bool

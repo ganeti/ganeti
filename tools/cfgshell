@@ -95,7 +95,7 @@ class ConfigShell(cmd.Cmd):
     if isinstance(obj, objects.ConfigObject):
       # pylint: disable=W0212
       # yes, we're using a protected member
-      for name in obj._all_slots():
+      for name in obj.GetAllSlots():
         child = getattr(obj, name, None)
         if isinstance(child, (list, dict, tuple, objects.ConfigObject)):
           dirs.append(name)

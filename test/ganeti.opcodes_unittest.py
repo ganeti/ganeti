@@ -77,7 +77,7 @@ class TestOpcodes(unittest.TestCase):
         {"dry_run": False, "debug_level": 0, },
 
         # All variables
-        dict([(name, False) for name in cls._all_slots()])
+        dict([(name, False) for name in cls.GetAllSlots()])
         ]
 
       for i in args:
@@ -95,7 +95,7 @@ class TestOpcodes(unittest.TestCase):
         self._checkSummary(restored)
 
         for name in ["x_y_z", "hello_world"]:
-          assert name not in cls._all_slots()
+          assert name not in cls.GetAllSlots()
           for value in [None, True, False, [], "Hello World"]:
             self.assertRaises(AttributeError, setattr, op, name, value)
 
@@ -158,7 +158,7 @@ class TestOpcodes(unittest.TestCase):
     self.assertTrue(opcodes.OpCode not in opcodes.OP_MAPPING.values())
 
     for cls in opcodes.OP_MAPPING.values() + [opcodes.OpCode]:
-      all_slots = cls._all_slots()
+      all_slots = cls.GetAllSlots()
 
       self.assertEqual(len(set(all_slots) & supported_by_all), 3,
                        msg=("Opcode %s doesn't support all base"
