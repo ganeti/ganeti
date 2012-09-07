@@ -15298,6 +15298,7 @@ class LUTestAllocator(NoHooksLU):
                        nics=self.op.nics,
                        vcpus=self.op.vcpus,
                        hypervisor=self.op.hypervisor,
+                       spindle_use=self.op.spindle_use,
                        )
     elif self.op.mode == constants.IALLOCATOR_MODE_RELOC:
       ial = IAllocator(self.cfg, self.rpc,

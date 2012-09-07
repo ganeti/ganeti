@@ -174,7 +174,8 @@ def TestAllocator(opts, args):
                                direction=opts.direction,
                                allocator=opts.iallocator,
                                evac_mode=opts.evac_mode,
-                               target_groups=target_groups)
+                               target_groups=target_groups,
+                               spindle_use=opts.spindle_use)
   result = SubmitOpCode(op, opts=opts)
   ToStdout("%s" % result)
   return 0
@@ -672,6 +673,8 @@ commands = {
                       utils.CommaJoin(constants.IALLOCATOR_NEVAC_MODES))),
      cli_option("--target-groups", help="Target groups for relocation",
                 default=[], action="append"),
+     cli_option("--spindle-use", help="How many spindles to use",
+                default=1, type="int"),
      DRY_RUN_OPT, PRIORITY_OPT,
      ],
     "{opts...} <instance>", "Executes a TestAllocator OpCode"),
