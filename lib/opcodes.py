@@ -1861,6 +1861,7 @@ class OpTestAllocator(OpCode):
     ("evac_mode", None,
      ht.TOr(ht.TNone, ht.TElemOf(constants.IALLOCATOR_NEVAC_MODES)), None),
     ("target_groups", None, ht.TMaybeListOf(ht.TNonEmptyString), None),
+    ("spindle_use", 1, ht.TPositiveInt, None),
     ]
 
 
