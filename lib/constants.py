@@ -477,6 +477,9 @@ LDS_BLOCK = frozenset([LD_LV, LD_DRBD8, LD_BLOCKDEV, LD_RBD])
 DRBD_HMAC_ALG = "md5"
 DRBD_NET_PROTOCOL = "C"
 
+#: Size of DRBD meta block device
+DRBD_META_SIZE = 128
+
 # drbd barrier types
 DRBD_B_NONE = "n"
 DRBD_B_DISK_BARRIERS = "b"

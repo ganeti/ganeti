@@ -1220,7 +1220,7 @@ class TestGenerateDiskTemplate(unittest.TestCase):
 
       self.assertEqual(len(disk.children), 2)
       self.assertEqual(disk.children[0].size, disk.size)
-      self.assertEqual(disk.children[1].size, cmdlib.DRBD_META_SIZE)
+      self.assertEqual(disk.children[1].size, constants.DRBD_META_SIZE)
 
     self._CheckIvNames(result, 0, len(disk_info))
     cmdlib._UpdateIvNames(0, result)

@@ -1605,3 +1605,34 @@ def ComputeRemoteImportDiskInfo(cds, salt, disk_index, host, port, magic):
   msg = _GetRieDiskInfoMessage(disk_index, host, port, magic)
   hmac_digest = utils.Sha1Hmac(cds, msg, salt=salt)
   return (host, port, magic, hmac_digest, salt)
+
+
+def CalculateGroupIPolicy(cluster, group):
+  """Calculate instance policy for group.
+
+  """
+  return cluster.SimpleFillIPolicy(group.ipolicy)
+
+
+def ComputeDiskSize(disk_template, disks):
+  """Compute disk size requirements according to disk template
+
+  """
+  # Required free disk space as a function of disk and swap space
+  req_size_dict = {
+    constants.DT_DISKLESS: None,
+    constants.DT_PLAIN: sum(d[constants.IDISK_SIZE] for d in disks),
+    # 128 MB are added for drbd metadata for each disk
+    constants.DT_DRBD8:
+      sum(d[constants.IDISK_SIZE] + constants.DRBD_META_SIZE for d in disks),
+    constants.DT_FILE: sum(d[constants.IDISK_SIZE] for d in disks),
+    constants.DT_SHARED_FILE: sum(d[constants.IDISK_SIZE] for d in disks),
+    constants.DT_BLOCK: 0,
+    constants.DT_RBD: sum(d[constants.IDISK_SIZE] for d in disks),
+  }
+
+  if disk_template not in req_size_dict:
+    raise errors.ProgrammerError("Disk template '%s' size requirement"
+                                 " is unknown" % disk_template)
+
+  return req_size_dict[disk_template]

@@ -33,6 +33,8 @@ from ganeti import query
 from ganeti import objects
 from ganeti import cmdlib
 
+import ganeti.masterd.instance as gmi
+
 import testutils
 
 
@@ -785,9 +787,9 @@ class TestInstanceQuery(unittest.TestCase):
     instbyname = dict((inst.name, inst) for inst in instances)
 
     disk_usage = dict((inst.name,
-                       cmdlib._ComputeDiskSize(inst.disk_template,
-                                               [{"size": disk.size}
-                                                for disk in inst.disks]))
+                       gmi.ComputeDiskSize(inst.disk_template,
+                                           [{"size": disk.size}
+                                           for disk in inst.disks]))
                       for inst in instances)
 
     inst_bridges = {

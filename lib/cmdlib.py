@@ -64,9 +64,6 @@ from ganeti import runtime
 import ganeti.masterd.instance # pylint: disable=W0611
 
 
-#: Size of DRBD meta block device
-DRBD_META_SIZE = 128
-
 # States of instance
 INSTANCE_DOWN = [constants.ADMINST_DOWN]
 INSTANCE_ONLINE = [constants.ADMINST_DOWN, constants.ADMINST_UP]
@@ -1503,13 +1500,6 @@ def _DecideSelfPromotion(lu, exceptions=None):
   return mc_now < mc_should
 
 
-def _CalculateGroupIPolicy(cluster, group):
-  """Calculate instance policy for group.
-
-  """
-  return cluster.SimpleFillIPolicy(group.ipolicy)
-
-
 def _ComputeViolatingInstances(ipolicy, instances):
   """Computes a set of instances who violates given ipolicy.
 
@@ -2427,7 +2417,9 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     node_vol_should = {}
     instanceconfig.MapLVsByNode(node_vol_should)
 
-    ipolicy = _CalculateGroupIPolicy(self.cfg.GetClusterInfo(), self.group_info)
+    cluster = self.cfg.GetClusterInfo()
+    ipolicy = ganeti.masterd.instance.CalculateGroupIPolicy(cluster,
+                                                            self.group_info)
     err = _ComputeIPolicyInstanceViolation(ipolicy, instanceconfig)
     _ErrorIf(err, constants.CV_EINSTANCEPOLICY, instance, utils.CommaJoin(err))
 
@@ -3997,8 +3989,8 @@ class LUClusterSetParams(LogicalUnit):
                                if compat.any(node in group.members
                                              for node in inst.all_nodes)])
         new_ipolicy = objects.FillIPolicy(self.new_ipolicy, group.ipolicy)
-        new = _ComputeNewInstanceViolations(_CalculateGroupIPolicy(cluster,
-                                                                   group),
+        ipol = ganeti.masterd.instance.CalculateGroupIPolicy(cluster, group)
+        new = _ComputeNewInstanceViolations(ipol,
                                             new_ipolicy, instances)
         if new:
           violations.update(new)
@@ -5377,10 +5369,11 @@ class _InstanceQuery(_QueryBase):
       live_data = {}
 
     if query.IQ_DISKUSAGE in self.requested_data:
+      gmi = ganeti.masterd.instance
       disk_usage = dict((inst.name,
-                         _ComputeDiskSize(inst.disk_template,
-                                          [{constants.IDISK_SIZE: disk.size}
-                                           for disk in inst.disks]))
+                         gmi.ComputeDiskSize(inst.disk_template,
+                                             [{constants.IDISK_SIZE: disk.size}
+                                              for disk in inst.disks]))
                         for inst in instance_list)
     else:
       disk_usage = None
@@ -7863,8 +7856,9 @@ class LUInstanceMove(LogicalUnit):
     _CheckNodeOnline(self, target_node)
     _CheckNodeNotDrained(self, target_node)
     _CheckNodeVmCapable(self, target_node)
-    ipolicy = _CalculateGroupIPolicy(self.cfg.GetClusterInfo(),
-                                     self.cfg.GetNodeGroup(node.group))
+    cluster = self.cfg.GetClusterInfo()
+    group_info = self.cfg.GetNodeGroup(node.group)
+    ipolicy = ganeti.masterd.instance.CalculateGroupIPolicy(cluster, group_info)
     _CheckTargetNodeIPolicy(self, ipolicy, instance, node,
                             ignore=self.op.ignore_ipolicy)
 
@@ -8140,7 +8134,8 @@ class TLMigrateInstance(Tasklet):
       # Check that the target node is correct in terms of instance policy
       nodeinfo = self.cfg.GetNodeInfo(self.target_node)
       group_info = self.cfg.GetNodeGroup(nodeinfo.group)
-      ipolicy = _CalculateGroupIPolicy(cluster, group_info)
+      ipolicy = ganeti.masterd.instance.CalculateGroupIPolicy(cluster,
+                                                              group_info)
       _CheckTargetNodeIPolicy(self.lu, ipolicy, instance, nodeinfo,
                               ignore=self.ignore_ipolicy)
 
@@ -8180,7 +8175,8 @@ class TLMigrateInstance(Tasklet):
                                    errors.ECODE_INVAL)
       nodeinfo = self.cfg.GetNodeInfo(target_node)
       group_info = self.cfg.GetNodeGroup(nodeinfo.group)
-      ipolicy = _CalculateGroupIPolicy(cluster, group_info)
+      ipolicy = ganeti.masterd.instance.CalculateGroupIPolicy(cluster,
+                                                              group_info)
       _CheckTargetNodeIPolicy(self.lu, ipolicy, instance, nodeinfo,
                               ignore=self.ignore_ipolicy)
 
@@ -8865,7 +8861,8 @@ def _GenerateDRBD8Branch(lu, primary, secondary, size, vgnames, names,
   dev_data = objects.Disk(dev_type=constants.LD_LV, size=size,
                           logical_id=(vgnames[0], names[0]),
                           params={})
-  dev_meta = objects.Disk(dev_type=constants.LD_LV, size=DRBD_META_SIZE,
+  dev_meta = objects.Disk(dev_type=constants.LD_LV,
+                          size=constants.DRBD_META_SIZE,
                           logical_id=(vgnames[1], names[1]),
                           params={})
   drbd_dev = objects.Disk(dev_type=constants.LD_DRBD8, size=size,
@@ -9211,33 +9208,9 @@ def _ComputeDiskSizePerVG(disk_template, disks):
     constants.DT_DISKLESS: {},
     constants.DT_PLAIN: _compute(disks, 0),
     # 128 MB are added for drbd metadata for each disk
-    constants.DT_DRBD8: _compute(disks, DRBD_META_SIZE),
+    constants.DT_DRBD8: _compute(disks, constants.DRBD_META_SIZE),
     constants.DT_FILE: {},
     constants.DT_SHARED_FILE: {},
-  }
-
-  if disk_template not in req_size_dict:
-    raise errors.ProgrammerError("Disk template '%s' size requirement"
-                                 " is unknown" % disk_template)
-
-  return req_size_dict[disk_template]
-
-
-def _ComputeDiskSize(disk_template, disks):
-  """Compute disk size requirements according to disk template
-
-  """
-  # Required free disk space as a function of disk and swap space
-  req_size_dict = {
-    constants.DT_DISKLESS: None,
-    constants.DT_PLAIN: sum(d[constants.IDISK_SIZE] for d in disks),
-    # 128 MB are added for drbd metadata for each disk
-    constants.DT_DRBD8:
-      sum(d[constants.IDISK_SIZE] + DRBD_META_SIZE for d in disks),
-    constants.DT_FILE: sum(d[constants.IDISK_SIZE] for d in disks),
-    constants.DT_SHARED_FILE: sum(d[constants.IDISK_SIZE] for d in disks),
-    constants.DT_BLOCK: 0,
-    constants.DT_RBD: sum(d[constants.IDISK_SIZE] for d in disks),
   }
 
   if disk_template not in req_size_dict:
@@ -10067,7 +10040,7 @@ class LUInstanceCreate(LogicalUnit):
       }
 
     group_info = self.cfg.GetNodeGroup(pnode.group)
-    ipolicy = _CalculateGroupIPolicy(cluster, group_info)
+    ipolicy = ganeti.masterd.instance.CalculateGroupIPolicy(cluster, group_info)
     res = _ComputeIPolicyInstanceSpecViolation(ipolicy, ispec)
     if not self.op.ignore_ipolicy and res:
       raise errors.OpPrereqError(("Instance allocation to group %s violates"
@@ -10864,8 +10837,9 @@ class TLReplaceDisks(Tasklet):
     if self.remote_node_info:
       # We change the node, lets verify it still meets instance policy
       new_group_info = self.cfg.GetNodeGroup(self.remote_node_info.group)
-      ipolicy = _CalculateGroupIPolicy(self.cfg.GetClusterInfo(),
-                                       new_group_info)
+      cluster = self.cfg.GetClusterInfo()
+      ipolicy = ganeti.masterd.instance.CalculateGroupIPolicy(cluster,
+                                                              new_group_info)
       _CheckTargetNodeIPolicy(self, ipolicy, instance, self.remote_node_info,
                               ignore=self.ignore_ipolicy)
 
@@ -11035,7 +11009,8 @@ class TLReplaceDisks(Tasklet):
                              logical_id=(vg_data, names[0]),
                              params=data_disk.params)
       vg_meta = meta_disk.logical_id[0]
-      lv_meta = objects.Disk(dev_type=constants.LD_LV, size=DRBD_META_SIZE,
+      lv_meta = objects.Disk(dev_type=constants.LD_LV,
+                             size=constants.DRBD_META_SIZE,
                              logical_id=(vg_meta, names[1]),
                              params=meta_disk.params)
 
@@ -12554,7 +12529,8 @@ class LUInstanceSetParams(LogicalUnit):
 
         snode_info = self.cfg.GetNodeInfo(self.op.remote_node)
         snode_group = self.cfg.GetNodeGroup(snode_info.group)
-        ipolicy = _CalculateGroupIPolicy(cluster, snode_group)
+        ipolicy = ganeti.masterd.instance.CalculateGroupIPolicy(cluster,
+                                                                snode_group)
         _CheckTargetNodeIPolicy(self, ipolicy, instance, snode_info,
                                 ignore=self.op.ignore_ipolicy)
         if pnode_info.group != snode_info.group:
@@ -14154,9 +14130,10 @@ class LUGroupSetParams(LogicalUnit):
       new_ipolicy = cluster.SimpleFillIPolicy(self.new_ipolicy)
       inst_filter = lambda inst: inst.name in owned_instances
       instances = self.cfg.GetInstancesInfoByFilter(inst_filter).values()
+      gmi = ganeti.masterd.instance
       violations = \
-          _ComputeNewInstanceViolations(_CalculateGroupIPolicy(cluster,
-                                                               self.group),
+          _ComputeNewInstanceViolations(gmi.CalculateGroupIPolicy(cluster,
+                                                                  self.group),
                                         new_ipolicy, instances)
 
       if violations:
