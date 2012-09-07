@@ -146,6 +146,7 @@ movableDiskTemplates =
   , T.DTBlock
   , T.DTSharedFile
   , T.DTRbd
+  , T.DTExt
   ]
 
 -- | A simple name for the int, instance association list.

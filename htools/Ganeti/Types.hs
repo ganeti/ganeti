@@ -175,6 +175,7 @@ $(THH.declareSADT "DiskTemplate"
        , ("DTBlock",      'C.dtBlock)
        , ("DTDrbd8",      'C.dtDrbd8)
        , ("DTRbd",        'C.dtRbd)
+       , ("DTExt",        'C.dtExt)
        ])
 $(THH.makeJSONInstance ''DiskTemplate)
 

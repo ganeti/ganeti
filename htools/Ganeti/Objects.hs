@@ -229,6 +229,7 @@ $(declareSADT "DiskType"
   , ("LD_FILE",     'C.ldFile)
   , ("LD_BLOCKDEV", 'C.ldBlockdev)
   , ("LD_RADOS",    'C.ldRbd)
+  , ("LD_EXT",      'C.ldExt)
   ])
 $(makeJSONInstance ''DiskType)
 
@@ -253,6 +254,7 @@ data DiskLogicalId
   | LIDFile FileDriver String -- ^ Driver, path
   | LIDBlockDev BlockDriver String -- ^ Driver, path (must be under /dev)
   | LIDRados String String -- ^ Unused, path
+  | LIDExt String String -- ^ ExtProvider, unique name
     deriving (Show, Eq)
 
 -- | Mapping from a logical id to a disk type.
@@ -262,6 +264,7 @@ lidDiskType (LIDDrbd8 {}) = LD_DRBD8
 lidDiskType (LIDFile  {}) = LD_FILE
 lidDiskType (LIDBlockDev {}) = LD_BLOCKDEV
 lidDiskType (LIDRados {}) = LD_RADOS
+lidDiskType (LIDExt {}) = LD_EXT
 
 -- | Builds the extra disk_type field for a given logical id.
 lidEncodeType :: DiskLogicalId -> [(String, JSValue)]
@@ -276,6 +279,7 @@ encodeDLId (LIDDrbd8 nodeA nodeB port minorA minorB key) =
 encodeDLId (LIDRados pool name) = JSArray [showJSON pool, showJSON name]
 encodeDLId (LIDFile driver name) = JSArray [showJSON driver, showJSON name]
 encodeDLId (LIDBlockDev driver name) = JSArray [showJSON driver, showJSON name]
+encodeDLId (LIDExt extprovider name) = JSArray [showJSON extprovider, showJSON name]
 
 -- | Custom encoder for DiskLogicalId, composing both the logical id
 -- and the extra disk_type field.
@@ -327,6 +331,13 @@ decodeDLId obj lid = do
           path'   <- readJSON path
           return $ LIDRados driver' path'
         _ -> fail "Can't read logical_id for rdb type"
+    LD_EXT ->
+      case lid of
+        JSArray [extprovider, name] -> do
+          extprovider' <- readJSON extprovider
+          name'   <- readJSON name
+          return $ LIDExt extprovider' name'
+        _ -> fail "Can't read logical_id for extstorage type"
 
 -- | Disk data structure.
 --
