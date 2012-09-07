@@ -582,20 +582,6 @@ def _ShareAll():
   return dict.fromkeys(locking.LEVELS, 1)
 
 
-def _MakeLegacyNodeInfo(data):
-  """Formats the data returned by L{rpc.RpcRunner.call_node_info}.
-
-  Converts the data into a single dictionary. This is fine for most use cases,
-  but some require information from more than one volume group or hypervisor.
-
-  """
-  (bootid, (vg_info, ), (hv_info, )) = data
-
-  return utils.JoinDisjointDicts(utils.JoinDisjointDicts(vg_info, hv_info), {
-    "bootid": bootid,
-    })
-
-
 def _AnnotateDiskParams(instance, devs, cfg):
   """Little helper wrapper to the rpc annotation method.
 
@@ -5061,7 +5047,7 @@ class _NodeQuery(_QueryBase):
 
       node_data = lu.rpc.call_node_info(toquery_nodes, [lu.cfg.GetVGName()],
                                         [lu.cfg.GetHypervisorType()])
-      live_data = dict((name, _MakeLegacyNodeInfo(nresult.payload))
+      live_data = dict((name, rpc.MakeLegacyNodeInfo(nresult.payload))
                        for (name, nresult) in node_data.items()
                        if not nresult.fail_msg and nresult.payload)
     else:

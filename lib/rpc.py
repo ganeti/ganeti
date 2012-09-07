@@ -564,6 +564,20 @@ def _EncodeBlockdevRename(value):
   return [(d.ToDict(), uid) for d, uid in value]
 
 
+def MakeLegacyNodeInfo(data):
+  """Formats the data returned by L{rpc.RpcRunner.call_node_info}.
+
+  Converts the data into a single dictionary. This is fine for most use cases,
+  but some require information from more than one volume group or hypervisor.
+
+  """
+  (bootid, (vg_info, ), (hv_info, )) = data
+
+  return utils.JoinDisjointDicts(utils.JoinDisjointDicts(vg_info, hv_info), {
+    "bootid": bootid,
+    })
+
+
 def _AnnotateDParamsDRBD(disk, (drbd_params, data_params, meta_params)):
   """Annotates just DRBD disks layouts.
 
