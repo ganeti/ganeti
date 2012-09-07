@@ -12865,7 +12865,10 @@ class LUInstanceSetParams(LogicalUnit):
     for (op, _, params) in mods:
       assert ht.TDict(params)
 
-      utils.ForceDictType(params, key_types)
+      # If 'key_types' is an empty dict, we assume we have an
+      # 'ext' template and thus do not ForceDictType
+      if key_types:
+        utils.ForceDictType(params, key_types)
 
       if op == constants.DDM_REMOVE:
         if params:
@@ -12901,9 +12904,18 @@ class LUInstanceSetParams(LogicalUnit):
 
       params[constants.IDISK_SIZE] = size
 
-    elif op == constants.DDM_MODIFY and constants.IDISK_SIZE in params:
-      raise errors.OpPrereqError("Disk size change not possible, use"
-                                 " grow-disk", errors.ECODE_INVAL)
+    elif op == constants.DDM_MODIFY:
+      if constants.IDISK_SIZE in params:
+        raise errors.OpPrereqError("Disk size change not possible, use"
+                                   " grow-disk", errors.ECODE_INVAL)
+      if constants.IDISK_MODE not in params:
+        raise errors.OpPrereqError("Disk 'mode' is the only kind of"
+                                   " modification supported, but missing",
+                                   errors.ECODE_NOENT)
+      if len(params) > 1:
+        raise errors.OpPrereqError("Disk modification doesn't support"
+                                   " additional arbitrary parameters",
+                                   errors.ECODE_INVAL)
 
   @staticmethod
   def _VerifyNicModification(op, params):
@@ -12966,10 +12978,6 @@ class LUInstanceSetParams(LogicalUnit):
       "disk", self.op.disks, opcodes.OpInstanceSetParams.TestDiskModifications)
     self.op.nics = self._UpgradeDiskNicMods(
       "NIC", self.op.nics, opcodes.OpInstanceSetParams.TestNicModifications)
-
-    # Check disk modifications
-    self._CheckMods("disk", self.op.disks, constants.IDISK_PARAMS_TYPES,
-                    self._VerifyDiskModification)
 
     if self.op.disks and self.op.disk_template is not None:
       raise errors.OpPrereqError("Disk template conversion and other disk"
@@ -13185,7 +13193,7 @@ class LUInstanceSetParams(LogicalUnit):
     private.params = new_params
     private.filled = new_filled_params
 
-  def CheckPrereq(self):
+  def CheckPrereq(self): # pylint: disable=R0914
     """Check prerequisites.
 
     This only checks the instance list against the existing names.
@@ -13211,9 +13219,45 @@ class LUInstanceSetParams(LogicalUnit):
     # dictionary with instance information after the modification
     ispec = {}
 
+    # Check disk modifications. This is done here and not in CheckArguments
+    # (as with NICs), because we need to know the instance's disk template
+    if instance.disk_template == constants.DT_EXT:
+      self._CheckMods("disk", self.op.disks, {},
+                      self._VerifyDiskModification)
+    else:
+      self._CheckMods("disk", self.op.disks, constants.IDISK_PARAMS_TYPES,
+                      self._VerifyDiskModification)
+
     # Prepare disk/NIC modifications
     self.diskmod = PrepareContainerMods(self.op.disks, None)
     self.nicmod = PrepareContainerMods(self.op.nics, _InstNicModPrivate)
+
+    # Check the validity of the `provider' parameter
+    if instance.disk_template in constants.DT_EXT:
+      for mod in self.diskmod:
+        ext_provider = mod[2].get(constants.IDISK_PROVIDER, None)
+        if mod[0] == constants.DDM_ADD:
+          if ext_provider is None:
+            raise errors.OpPrereqError("Instance template is '%s' and parameter"
+                                       " '%s' missing, during disk add" %
+                                       (constants.DT_EXT,
+                                        constants.IDISK_PROVIDER),
+                                       errors.ECODE_NOENT)
+        elif mod[0] == constants.DDM_MODIFY:
+          if ext_provider:
+            raise errors.OpPrereqError("Parameter '%s' is invalid during disk"
+                                       " modification" %
+                                       constants.IDISK_PROVIDER,
+                                       errors.ECODE_INVAL)
+    else:
+      for mod in self.diskmod:
+        ext_provider = mod[2].get(constants.IDISK_PROVIDER, None)
+        if ext_provider is not None:
+          raise errors.OpPrereqError("Parameter '%s' is only valid for"
+                                     " instances of type '%s'" %
+                                     (constants.IDISK_PROVIDER,
+                                      constants.DT_EXT),
+                                     errors.ECODE_INVAL)
 
     # OS change
     if self.op.os_name and not self.op.force:
