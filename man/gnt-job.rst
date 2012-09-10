@@ -59,8 +59,8 @@ information).
 LIST
 ~~~~
 
-**list** [\--no-headers] [\--separator=*SEPARATOR*]
-[-o *[+]FIELD,...*]
+| **list** [\--no-headers] [\--separator=*SEPARATOR*]
+| [-o *[+]FIELD,...*] [\--filter] [job-id...]
 
 Lists the jobs and their status. By default, the job id, job
 status, and a small job description is listed, but additional
@@ -80,6 +80,22 @@ If the value of the option starts with the character ``+``, the new
 fields will be added to the default list. This allows one to quickly
 see the default list plus a few other fields, instead of retyping
 the entire list of fields.
+
+The following options can be used to show only specific jobs:
+
+``--pending``
+  Show only jobs pending execution.
+``--running``
+  Show jobs currently running only.
+``--error``
+  Show failed jobs only.
+``--finished``
+  Show finished jobs only.
+
+If exactly one argument is given and it appears to be a query filter
+(see **ganeti(7)**), the query result is filtered accordingly. For
+ambiguous cases (e.g. a single field name as a filter) the ``--filter``
+(``-F``) option forces the argument to be treated as a filter.
 
 
 LIST-FIELDS
