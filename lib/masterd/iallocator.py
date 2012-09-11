@@ -141,6 +141,7 @@ class IAReqInstanceAlloc(IARequestBase):
   """An instance allocation request.
 
   """
+  # pylint: disable=E1101
   MODE = constants.IALLOCATOR_MODE_ALLOC
   REQ_PARAMS = [
     ("name", ht.TString),
@@ -190,6 +191,7 @@ class IAReqMultiInstanceAlloc(IARequestBase):
   """An multi instance allocation request.
 
   """
+  # pylint: disable=E1101
   MODE = constants.IALLOCATOR_MODE_MULTI_ALLOC
   REQ_PARAMS = [
     ("instances", ht.TListOf(ht.TInstanceOf(IAReqInstanceAlloc)))
@@ -213,6 +215,7 @@ class IAReqRelocate(IARequestBase):
   """A relocation request.
 
   """
+  # pylint: disable=E1101
   MODE = constants.IALLOCATOR_MODE_RELOC
   REQ_PARAMS = [
     ("name", ht.TString),
@@ -310,6 +313,7 @@ class IAReqNodeEvac(IARequestBase):
   """A node evacuation request.
 
   """
+  # pylint: disable=E1101
   MODE = constants.IALLOCATOR_MODE_NODE_EVAC
   REQ_PARAMS = [
     ("instances", _STRING_LIST),
@@ -331,6 +335,7 @@ class IAReqGroupChange(IARequestBase):
   """A group change request.
 
   """
+  # pylint: disable=E1101
   MODE = constants.IALLOCATOR_MODE_CHG_GROUP
   REQ_PARAMS = [
     ("instances", _STRING_LIST),
