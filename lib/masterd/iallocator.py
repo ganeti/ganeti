@@ -57,6 +57,8 @@ _NEVAC_FAILED = \
 _NEVAC_RESULT = ht.TAnd(ht.TIsLength(3),
                         ht.TItems([_NEVAC_MOVED, _NEVAC_FAILED, _JOB_LIST]))
 
+_INST_NAME = ("name", ht.TNonEmptyString)
+
 
 class _AutoReqParam(objectutils.AutoSlots):
   """Meta class for request definitions.
@@ -141,9 +143,9 @@ class IAReqInstanceAlloc(IARequestBase):
   # pylint: disable=E1101
   MODE = constants.IALLOCATOR_MODE_ALLOC
   REQ_PARAMS = [
-    ("name", ht.TString),
-    ("memory", ht.TInt),
-    ("spindle_use", ht.TInt),
+    _INST_NAME,
+    ("memory", ht.TPositiveInt),
+    ("spindle_use", ht.TPositiveInt),
     ("disks", ht.TListOf(ht.TDict)),
     ("disk_template", ht.TString),
     ("os", ht.TString),
@@ -230,7 +232,7 @@ class IAReqRelocate(IARequestBase):
   # pylint: disable=E1101
   MODE = constants.IALLOCATOR_MODE_RELOC
   REQ_PARAMS = [
-    ("name", ht.TString),
+    _INST_NAME,
     ("relocate_from", _STRING_LIST),
     ]
   REQ_RESULT = ht.TList
