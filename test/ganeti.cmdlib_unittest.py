@@ -42,6 +42,7 @@ from ganeti import ht
 from ganeti import objects
 from ganeti import compat
 from ganeti import rpc
+from ganeti import locking
 from ganeti.hypervisor import hv_xen
 
 import testutils
@@ -1234,6 +1235,18 @@ class TestGenerateDiskTemplate(unittest.TestCase):
       ("node1334.example.com", "node12272.example.com",
        constants.FIRST_DRBD_PORT + 2, 24, 25, "ec0-secret2"),
       ])
+
+
+class TestCopyLockList(unittest.TestCase):
+  def test(self):
+    self.assertEqual(cmdlib._CopyLockList([]), [])
+    self.assertEqual(cmdlib._CopyLockList(None), None)
+    self.assertEqual(cmdlib._CopyLockList(locking.ALL_SET), locking.ALL_SET)
+
+    names = ["foo", "bar"]
+    output = cmdlib._CopyLockList(names)
+    self.assertEqual(names, output)
+    self.assertNotEqual(id(names), id(output), msg="List was not copied")
 
 
 if __name__ == "__main__":
