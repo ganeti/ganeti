@@ -863,7 +863,7 @@ class Disk(ConfigObject):
     result = list()
     dt_params = disk_params[disk_template]
     if disk_template == constants.DT_DRBD8:
-      drbd_params = {
+      result.append(FillDict(constants.DISK_LD_DEFAULTS[constants.LD_DRBD8], {
         constants.LDP_RESYNC_RATE: dt_params[constants.DRBD_RESYNC_RATE],
         constants.LDP_BARRIERS: dt_params[constants.DRBD_DISK_BARRIERS],
         constants.LDP_NO_META_FLUSH: dt_params[constants.DRBD_META_BARRIERS],
@@ -876,56 +876,33 @@ class Disk(ConfigObject):
         constants.LDP_DELAY_TARGET: dt_params[constants.DRBD_DELAY_TARGET],
         constants.LDP_MAX_RATE: dt_params[constants.DRBD_MAX_RATE],
         constants.LDP_MIN_RATE: dt_params[constants.DRBD_MIN_RATE],
-        }
-
-      drbd_params = \
-        FillDict(constants.DISK_LD_DEFAULTS[constants.LD_DRBD8],
-                 drbd_params)
-
-      result.append(drbd_params)
+        }))
 
       # data LV
-      data_params = {
+      result.append(FillDict(constants.DISK_LD_DEFAULTS[constants.LD_LV], {
         constants.LDP_STRIPES: dt_params[constants.DRBD_DATA_STRIPES],
-        }
-      data_params = \
-        FillDict(constants.DISK_LD_DEFAULTS[constants.LD_LV],
-                 data_params)
-      result.append(data_params)
+        }))
 
       # metadata LV
-      meta_params = {
+      result.append(FillDict(constants.DISK_LD_DEFAULTS[constants.LD_LV], {
         constants.LDP_STRIPES: dt_params[constants.DRBD_META_STRIPES],
-        }
-      meta_params = \
-        FillDict(constants.DISK_LD_DEFAULTS[constants.LD_LV],
-                 meta_params)
-      result.append(meta_params)
+        }))
 
-    elif (disk_template == constants.DT_FILE or
-          disk_template == constants.DT_SHARED_FILE):
+    elif disk_template in (constants.DT_FILE, constants.DT_SHARED_FILE):
       result.append(constants.DISK_LD_DEFAULTS[constants.LD_FILE])
 
     elif disk_template == constants.DT_PLAIN:
-      params = {
+      result.append(FillDict(constants.DISK_LD_DEFAULTS[constants.LD_LV], {
         constants.LDP_STRIPES: dt_params[constants.LV_STRIPES],
-        }
-      params = \
-        FillDict(constants.DISK_LD_DEFAULTS[constants.LD_LV],
-                 params)
-      result.append(params)
+        }))
 
     elif disk_template == constants.DT_BLOCK:
       result.append(constants.DISK_LD_DEFAULTS[constants.LD_BLOCKDEV])
 
     elif disk_template == constants.DT_RBD:
-      params = {
+      result.append(FillDict(constants.DISK_LD_DEFAULTS[constants.LD_RBD], {
         constants.LDP_POOL: dt_params[constants.RBD_POOL]
-        }
-      params = \
-        FillDict(constants.DISK_LD_DEFAULTS[constants.LD_RBD],
-                 params)
-      result.append(params)
+        }))
 
     return result
 

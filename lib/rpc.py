@@ -621,11 +621,7 @@ def AnnotateDiskParams(template, disks, disk_params):
   else:
     annotation_fn = _AnnotateDParamsGeneric
 
-  new_disks = []
-  for disk in disks:
-    new_disks.append(annotation_fn(disk.Copy(), ld_params))
-
-  return new_disks
+  return [annotation_fn(disk.Copy(), ld_params) for disk in disks]
 
 
 #: Generic encoders
