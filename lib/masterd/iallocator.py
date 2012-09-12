@@ -253,8 +253,8 @@ class IAReqRelocate(IARequestBase):
       raise errors.OpPrereqError("Can't relocate non-mirrored instances",
                                  errors.ECODE_INVAL)
 
-    if instance.disk_template in constants.DTS_INT_MIRROR and \
-        len(instance.secondary_nodes) != 1:
+    if (instance.disk_template in constants.DTS_INT_MIRROR and
+        len(instance.secondary_nodes) != 1):
       raise errors.OpPrereqError("Instance has not exactly one secondary node",
                                  errors.ECODE_STATE)
 
