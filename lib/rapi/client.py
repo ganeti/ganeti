@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2010, 2011 Google Inc.
+# Copyright (C) 2010, 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -1746,7 +1746,7 @@ class GanetiRapiClient(object): # pylint: disable=R0904
     """Assigns nodes to a group.
 
     @type group: string
-    @param group: Node gropu name
+    @param group: Node group name
     @type nodes: list of strings
     @param nodes: List of nodes to assign to the group
 
