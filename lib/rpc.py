@@ -735,9 +735,7 @@ class RpcRunner(_RpcClientBase,
     """Wrapper for L{_InstDict}.
 
     """
-    updated_inst = self._InstDict(instance, osp=osparams)
-    updated_inst["disks"] = self._DisksDictDP((instance.disks, instance))
-    return updated_inst
+    return self._InstDict(instance, osp=osparams)
 
   def _DisksDictDP(self, (disks, instance)):
     """Wrapper for L{AnnotateDiskParams}.
