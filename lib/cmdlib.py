@@ -7113,18 +7113,12 @@ class LUInstanceRecreateDisks(LogicalUnit):
 
     ial.Run(self.op.iallocator)
 
-    assert ial.required_nodes == len(self.instance.all_nodes)
+    assert req.RequiredNodes() == len(self.instance.all_nodes)
 
     if not ial.success:
       raise errors.OpPrereqError("Can't compute nodes using iallocator '%s':"
                                  " %s" % (self.op.iallocator, ial.info),
                                  errors.ECODE_NORES)
-
-    if len(ial.result) != ial.required_nodes:
-      raise errors.OpPrereqError("iallocator '%s' returned invalid number"
-                                 " of nodes (%s), required %s" %
-                                 (self.op.iallocator, len(ial.result),
-                                  ial.required_nodes), errors.ECODE_FAULT)
 
     self.op.nodes = ial.result
     self.LogInfo("Selected nodes for instance %s via iallocator %s: %s",
@@ -8260,11 +8254,6 @@ class TLMigrateInstance(Tasklet):
                                  " iallocator '%s': %s" %
                                  (self.lu.op.iallocator, ial.info),
                                  errors.ECODE_NORES)
-    if len(ial.result) != ial.required_nodes:
-      raise errors.OpPrereqError("iallocator '%s' returned invalid number"
-                                 " of nodes (%s), required %s" %
-                                 (self.lu.op.iallocator, len(ial.result),
-                                  ial.required_nodes), errors.ECODE_FAULT)
     self.target_node = ial.result[0]
     self.lu.LogInfo("Selected nodes for instance %s via iallocator %s: %s",
                     self.instance_name, self.lu.op.iallocator,
@@ -9526,16 +9515,14 @@ class LUInstanceCreate(LogicalUnit):
                                  " iallocator '%s': %s" %
                                  (self.op.iallocator, ial.info),
                                  errors.ECODE_NORES)
-    if len(ial.result) != ial.required_nodes:
-      raise errors.OpPrereqError("iallocator '%s' returned invalid number"
-                                 " of nodes (%s), required %s" %
-                                 (self.op.iallocator, len(ial.result),
-                                  ial.required_nodes), errors.ECODE_FAULT)
     self.op.pnode = ial.result[0]
     self.LogInfo("Selected nodes for instance %s via iallocator %s: %s",
                  self.op.instance_name, self.op.iallocator,
                  utils.CommaJoin(ial.result))
-    if ial.required_nodes == 2:
+
+    assert req.RequiredNodes() in (1, 2), "Wrong node count from iallocator"
+
+    if req.RequiredNodes() == 2:
       self.op.snode = ial.result[1]
 
   def BuildHooksEnv(self):
@@ -10641,13 +10628,6 @@ class TLReplaceDisks(Tasklet):
       raise errors.OpPrereqError("Can't compute nodes using iallocator '%s':"
                                  " %s" % (iallocator_name, ial.info),
                                  errors.ECODE_NORES)
-
-    if len(ial.result) != ial.required_nodes:
-      raise errors.OpPrereqError("iallocator '%s' returned invalid number"
-                                 " of nodes (%s), required %s" %
-                                 (iallocator_name,
-                                  len(ial.result), ial.required_nodes),
-                                 errors.ECODE_FAULT)
 
     remote_node_name = ial.result[0]
 

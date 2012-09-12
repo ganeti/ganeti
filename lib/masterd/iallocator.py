@@ -78,9 +78,7 @@ class IARequestBase(objectutils.ValidatedSlots):
   __metaclass__ = _AutoReqParam
 
   MODE = NotImplemented
-  REQ_PARAMS = [
-    ("required_nodes", ht.TPositiveInt)
-    ]
+  REQ_PARAMS = []
   REQ_RESULT = NotImplemented
 
   def __init__(self, **kwargs):
@@ -92,7 +90,6 @@ class IARequestBase(objectutils.ValidatedSlots):
     REQ_PARAMS attribute for this class.
 
     """
-    self.required_nodes = 0
     objectutils.ValidatedSlots.__init__(self, **kwargs)
 
     self.Validate()
@@ -128,13 +125,13 @@ class IARequestBase(objectutils.ValidatedSlots):
 
     @param ia: The IAllocator instance
     @param result: The IAllocator run result
-    @returns: If it validates
+    @raises ResultValidationError: If validation fails
 
     """
     if not (ia.success and self.REQ_RESULT(result)):
-      raise errors.OpExecError("Iallocator returned invalid result,"
-                               " expected %s, got %s" %
-                               (self.REQ_RESULT, result))
+      raise errors.ResultValidationError("iallocator returned invalid result,"
+                                         " expected %s, got %s" %
+                                         (self.REQ_RESULT, result))
 
 
 class IAReqInstanceAlloc(IARequestBase):
@@ -157,6 +154,15 @@ class IAReqInstanceAlloc(IARequestBase):
     ]
   REQ_RESULT = ht.TList
 
+  def RequiredNodes(self):
+    """Calculates the required nodes based on the disk_template.
+
+    """
+    if self.disk_template in constants.DTS_INT_MIRROR:
+      return 2
+    else:
+      return 1
+
   def GetRequest(self, cfg):
     """Requests a new instance.
 
@@ -165,11 +171,6 @@ class IAReqInstanceAlloc(IARequestBase):
 
     """
     disk_space = gmi.ComputeDiskSize(self.disk_template, self.disks)
-
-    if self.disk_template in constants.DTS_INT_MIRROR:
-      self.required_nodes = 2
-    else:
-      self.required_nodes = 1
 
     return {
       "name": self.name,
@@ -182,9 +183,20 @@ class IAReqInstanceAlloc(IARequestBase):
       "disks": self.disks,
       "disk_space_total": disk_space,
       "nics": self.nics,
-      "required_nodes": self.required_nodes,
+      "required_nodes": self.RequiredNodes(),
       "hypervisor": self.hypervisor,
       }
+
+  def ValidateResult(self, ia, result):
+    """Validates an single instance allocation request.
+
+    """
+    IARequestBase.ValidateResult(self, ia, result)
+
+    if len(result) != self.RequiredNodes():
+      raise errors.ResultValidationError("iallocator returned invalid number"
+                                         " of nodes (%s), required %s" %
+                                         (len(result), self.RequiredNodes()))
 
 
 class IAReqMultiInstanceAlloc(IARequestBase):
@@ -244,14 +256,13 @@ class IAReqRelocate(IARequestBase):
       raise errors.OpPrereqError("Instance has not exactly one secondary node",
                                  errors.ECODE_STATE)
 
-    self.required_nodes = 1
     disk_sizes = [{constants.IDISK_SIZE: disk.size} for disk in instance.disks]
     disk_space = gmi.ComputeDiskSize(instance.disk_template, disk_sizes)
 
     return {
       "name": self.name,
       "disk_space_total": disk_space,
-      "required_nodes": self.required_nodes,
+      "required_nodes": 1,
       "relocate_from": self.relocate_from,
       }
 
@@ -259,6 +270,8 @@ class IAReqRelocate(IARequestBase):
     """Validates the result of an relocation request.
 
     """
+    IARequestBase.ValidateResult(self, ia, result)
+
     node2group = dict((name, ndata["group"])
                       for (name, ndata) in ia.in_data["nodes"].items())
 
@@ -270,10 +283,11 @@ class IAReqRelocate(IARequestBase):
     result_groups = fn(result + [instance.primary_node])
 
     if ia.success and not set(result_groups).issubset(request_groups):
-      raise errors.OpExecError("Groups of nodes returned by iallocator (%s)"
-                               " differ from original groups (%s)" %
-                               (utils.CommaJoin(result_groups),
-                                utils.CommaJoin(request_groups)))
+      raise errors.ResultValidationError("Groups of nodes returned by"
+                                         "iallocator (%s) differ from original"
+                                         " groups (%s)" %
+                                         (utils.CommaJoin(result_groups),
+                                          utils.CommaJoin(request_groups)))
 
   @staticmethod
   def _NodesToGroups(node2group, groups, nodes):
@@ -591,7 +605,6 @@ class IAllocator(object):
     result = call_fn(self.cfg.GetMasterNode(), name, self.in_text)
     result.Raise("Failure while running the iallocator script")
 
-    self.required_nodes = self.req.required_nodes
     self.out_text = result.payload
     if validate:
       self._ValidateResult()

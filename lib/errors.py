@@ -168,6 +168,12 @@ class ParameterError(GenericError):
   """
 
 
+class ResultValidationError(GenericError):
+  """The iallocation results fails validation.
+
+  """
+
+
 class OpPrereqError(GenericError):
   """Prerequisites for the OpCode are not fulfilled.
 
