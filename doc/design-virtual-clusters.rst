@@ -106,15 +106,17 @@ split in a few general categories:
 |networking     |                       |with an existing bridge at system   |
 |               |                       |level or use NIC-less instances     |
 +---------------+-----------------------+------------------------------------+
-|instance OS    |OS add, OS rename,     |Only used with non diskless         |
+|instance OS    |OS add, OS rename,     |Only used with non-diskless         |
 |operations     |export and import      |instances; could work with custom OS|
-|               |                       |scripts (that just ``dd`` without   |
+|               |                       |scripts that just ``dd`` without    |
 |               |                       |mounting filesystems                |
 +---------------+-----------------------+------------------------------------+
 |node networking|IP address management  |Not supported; Ganeti will need to  |
-|               |(master ip), IP query, |work without a master IP. For the IP|
-|               |etc.                   |query operations, the test machine  |
+|               |(master ip), IP query, |work without a master IP; for the IP|
+|               |etc.                   |query operations the test machine   |
 |               |                       |would need externally-configured IPs|
++---------------+-----------------------+------------------------------------+
+|node add       |-                      |SSH command must be adjusted        |
 +---------------+-----------------------+------------------------------------+
 |node setup     |ssh, /etc/hosts, so on |Can already be disabled from the    |
 |               |                       |cluster config                      |
@@ -171,12 +173,17 @@ for setting up the extra IPs and hostnames.
 
 An alternative option is to implement per-node IP/port support in Ganeti
 (especially in the RPC layer), which would eliminate the root rights. We
-expect that this will get implemented as a second step of this design.
+expect that this will get implemented as a second step of this design,
+but as the port is currently static will require changes in many places.
 
 The only remaining problem is with sharing the ``localstatedir``
 structure (lib, run, log) amongst the daemons, for which we propose to
-add a command line parameter which can override this path (via injection
-into ``_autoconf.py``). The rationale for this is two-fold:
+introduce an environment variable (``GANETI_ROOTDIR``) acting as a
+prefix for essentially all paths. An environment variable is easier to
+transport through several levels of programs (shell scripts, Python,
+etc.) than a command line parameter. In Python code this prefix will be
+applied to all paths in ``constants.py``. Every virtual node will get
+its own root directory. The rationale for this is two-fold:
 
 - having two or more node daemons writing to the same directory might
   introduce artificial scenarios not existent in real life; currently
@@ -187,6 +194,9 @@ into ``_autoconf.py``). The rationale for this is two-fold:
   daemon wrote a file successfully, the results from all others are
   “lost”
 
+In case the use of an environment variable turns out to be too difficult
+a compile-time prefix path could be used. This would then require one
+Ganeti installation per virtual node, but it might be good enough.
 
 ``rapi``
 --------
@@ -219,9 +229,10 @@ Cluster initialisation
 ----------------------
 
 It could be possible that the cluster initialisation procedure is a bit
-more involved (this was not tried yet). In any case, we can build a
-``config.data`` file manually, without having to actually run
-``gnt-cluster init``.
+more involved (this was not tried yet). A script will be used to set up
+all necessary IP addresses and hostnames, as well as creating the
+initial directory structure. Building ``config.data`` manually should
+not be necessary.
 
 Needed tools
 ============
@@ -230,10 +241,11 @@ With the above investigation results in mind, the only thing we need
 are:
 
 - a tool to setup per-virtual node tree structure of ``localstatedir``
-  and setup correctly the extra IP/hostnames
+  (with the help of ``ensure-dirs``) and setup correctly the extra
+  IP/hostnames
 - changes to the startup daemon tools to launch correctly the daemons
   per virtual node
-- changes to ``noded`` to override the ``localstatedir`` path
+- changes to ``constants.py`` to override the ``localstatedir`` path
 - documentation for running such a virtual cluster
 - and eventual small fixes to the node daemon backend functionality, to
   better separate privileged and non-privileged code
