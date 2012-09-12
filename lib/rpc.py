@@ -661,7 +661,7 @@ class RpcRunner(_RpcClientBase,
     encoders.update({
       # Encoders requiring configuration object
       rpc_defs.ED_INST_DICT: self._InstDict,
-      rpc_defs.ED_INST_DICT_HVP_BEP: self._InstDictHvpBep,
+      rpc_defs.ED_INST_DICT_HVP_BEP_DP: self._InstDictHvpBepDp,
       rpc_defs.ED_INST_DICT_OSP_DP: self._InstDictOspDp,
 
       # Encoders annotating disk parameters
@@ -722,9 +722,10 @@ class RpcRunner(_RpcClientBase,
       nic["nicparams"] = objects.FillDict(
         cluster.nicparams[constants.PP_DEFAULT],
         nic["nicparams"])
+    idict["disks"] = self._DisksDictDP((instance.disks, instance))
     return idict
 
-  def _InstDictHvpBep(self, (instance, hvp, bep)):
+  def _InstDictHvpBepDp(self, (instance, hvp, bep)):
     """Wrapper for L{_InstDict}.
 
     """

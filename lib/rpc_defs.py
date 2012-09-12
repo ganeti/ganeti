@@ -64,7 +64,7 @@ ACCEPT_OFFLINE_NODE = object()
 (ED_OBJECT_DICT,
  ED_OBJECT_DICT_LIST,
  ED_INST_DICT,
- ED_INST_DICT_HVP_BEP,
+ ED_INST_DICT_HVP_BEP_DP,
  ED_NODE_TO_DISK_DICT,
  ED_INST_DICT_OSP_DP,
  ED_IMPEXP_IO,
@@ -266,7 +266,7 @@ _INSTANCE_CALLS = [
     ("instance", ED_INST_DICT, "Instance object"),
     ], None, _MigrationStatusPostProc, "Report migration status"),
   ("instance_start", SINGLE, None, TMO_NORMAL, [
-    ("instance_hvp_bep", ED_INST_DICT_HVP_BEP, None),
+    ("instance_hvp_bep", ED_INST_DICT_HVP_BEP_DP, None),
     ("startup_paused", None, None),
     ], None, None, "Starts an instance"),
   ("instance_os_add", SINGLE, None, TMO_1DAY, [
