@@ -236,10 +236,9 @@ def TestInstanceMigrate(instance):
                   (constants.BE_ALWAYS_FAILOVER, constants.VALUE_TRUE)),
                  instance["name"]])
 
-  AssertCommand(cmd, fail=True)
+  AssertCommand(cmd)
   qa_utils.RunInstanceCheck(instance, True)
-  AssertCommand(["gnt-instance", "migrate", "--force", "--allow-failover",
-                 instance["name"]])
+  # TODO: Verify that a failover has been done instead of a migration
 
   # TODO: Verify whether the default value is restored here (not hardcoded)
   AssertCommand(["gnt-instance", "modify", "-B",
