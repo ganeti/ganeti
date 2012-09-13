@@ -77,7 +77,7 @@ class TestOpcodes(unittest.TestCase):
         {"dry_run": False, "debug_level": 0, },
 
         # All variables
-        dict([(name, False) for name in cls.GetAllSlots()])
+        dict([(name, []) for name in cls.GetAllSlots()])
         ]
 
       for i in args:
@@ -288,6 +288,20 @@ class TestOpcodes(unittest.TestCase):
     self.assertEqual(op.value1, "hello")
     self.assertEqual(op.value2, "world")
     self.assertEqual(op.debug_level, 123)
+
+
+  def testOpInstanceMultiAlloc(self):
+    inst = dict([(name, []) for name in opcodes.OpInstanceCreate.GetAllSlots()])
+    inst_op = opcodes.OpInstanceCreate(**inst)
+    inst_state = inst_op.__getstate__()
+
+    multialloc = opcodes.OpInstanceMultiAlloc(instances=[inst_op])
+    state = multialloc.__getstate__()
+    self.assertEquals(state["instances"], [inst_state])
+    loaded_multialloc = opcodes.OpCode.LoadOpCode(state)
+    (loaded_inst,) = loaded_multialloc.instances
+    self.assertNotEquals(loaded_inst, inst_op)
+    self.assertEquals(loaded_inst.__getstate__(), inst_state)
 
 
 class TestOpcodeDepends(unittest.TestCase):

@@ -1208,6 +1208,55 @@ class OpInstanceCreate(OpCode):
   OP_RESULT = ht.Comment("instance nodes")(ht.TListOf(ht.TNonEmptyString))
 
 
+class OpInstanceMultiAlloc(OpCode):
+  """Allocates multiple instances.
+
+  """
+  OP_PARAMS = [
+    ("iallocator", None, ht.TMaybeString,
+     "Iallocator used to allocate all the instances"),
+    ("instances", [], ht.TListOf(ht.TInstanceOf(OpInstanceCreate)),
+     "List of instance create opcodes describing the instances to allocate"),
+    ]
+  _JOB_LIST = ht.Comment("List of submitted jobs")(TJobIdList)
+  ALLOCATABLE_KEY = "allocatable"
+  FAILED_KEY = "allocatable"
+  OP_RESULT = ht.TStrictDict(True, True, {
+    constants.JOB_IDS_KEY: _JOB_LIST,
+    ALLOCATABLE_KEY: ht.TListOf(ht.TNonEmptyString),
+    FAILED_KEY: ht.TListOf(ht.TNonEmptyString)
+    })
+
+  def __getstate__(self):
+    """Generic serializer.
+
+    """
+    state = OpCode.__getstate__(self)
+    if hasattr(self, "instances"):
+      # pylint: disable=E1101
+      state["instances"] = [inst.__getstate__() for inst in self.instances]
+    return state
+
+  def __setstate__(self, state):
+    """Generic unserializer.
+
+    This method just restores from the serialized state the attributes
+    of the current instance.
+
+    @param state: the serialized opcode data
+    @type state: C{dict}
+
+    """
+    if not isinstance(state, dict):
+      raise ValueError("Invalid data to __setstate__: expected dict, got %s" %
+                       type(state))
+
+    if "instances" in state:
+      insts = [OpCode.LoadOpCode(inst) for inst in state["instances"]]
+      state["instances"] = insts
+    return OpCode.__setstate__(self, state)
+
+
 class OpInstanceReinstall(OpCode):
   """Reinstall an instance's OS."""
   OP_DSC_FIELD = "instance_name"
