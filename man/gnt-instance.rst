@@ -1573,6 +1573,9 @@ The ``--no-runtime-changes`` option forbids migrate to alter an
 instance's runtime before migrating it (eg. ballooning an instance
 down because the target node doesn't have enough available memory).
 
+If an instance has the backend parameter ``always\_failover`` set to
+true, then the migration is automatically converted into a failover.
+
 See **ganeti(7)** for a description of ``--submit`` and other common
 options.
 

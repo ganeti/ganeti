@@ -8174,14 +8174,9 @@ class TLMigrateInstance(Tasklet):
     # check if failover must be forced instead of migration
     if (not self.cleanup and not self.failover and
         i_be[constants.BE_ALWAYS_FAILOVER]):
-      if self.fallback:
-        self.lu.LogInfo("Instance configured to always failover; fallback"
-                        " to failover")
-        self.failover = True
-      else:
-        raise errors.OpPrereqError("This instance has been configured to"
-                                   " always failover, please allow failover",
-                                   errors.ECODE_STATE)
+      self.lu.LogInfo("Instance configured to always failover; fallback"
+                      " to failover")
+      self.failover = True
 
     # check bridge existance
     _CheckInstanceBridgesExist(self.lu, instance, node=target_node)
