@@ -121,6 +121,28 @@ def _DestroyInstanceVolumes(instance):
     AssertCommand(["lvremove", "-f"] + vols, node=node)
 
 
+def _GetBoolInstanceField(instance, field):
+  """Get the Boolean value of a field of an instance.
+
+  @type instance: string
+  @param instance: Instance name
+  @type field: string
+  @param field: Name of the field
+
+  """
+  master = qa_config.GetMasterNode()
+  infocmd = utils.ShellQuoteArgs(["gnt-instance", "list", "--no-headers",
+                                  "-o", field, instance])
+  info_out = qa_utils.GetCommandOutput(master["primary"], infocmd).strip()
+  if info_out == "Y":
+    return True
+  elif info_out == "N":
+    return False
+  else:
+    raise qa_error.Error("Field %s of instance %s has a non-Boolean value:"
+                         " %s" % (field, instance, info_out))
+
+
 @InstanceCheck(None, INST_UP, RETURN_VALUE)
 def TestInstanceAddWithPlainDisk(node):
   """gnt-instance add -t plain"""
@@ -249,16 +271,29 @@ def TestInstanceFailover(instance):
 
 
 @InstanceCheck(INST_UP, INST_UP, FIRST_ARG)
-def TestInstanceMigrate(instance):
+def TestInstanceMigrate(instance, toggle_always_failover=True):
   """gnt-instance migrate"""
   cmd = ["gnt-instance", "migrate", "--force", instance["name"]]
+  af_par = constants.BE_ALWAYS_FAILOVER
+  af_field = "be/" + constants.BE_ALWAYS_FAILOVER
+  af_init_val = _GetBoolInstanceField(instance["name"], af_field)
 
   # migrate ...
   AssertCommand(cmd)
+  # TODO: Verify the choice between failover and migration
   qa_utils.RunInstanceCheck(instance, True)
 
-  # ... and back
+  # ... and back (possibly with always_failover toggled)
+  if toggle_always_failover:
+    AssertCommand(["gnt-instance", "modify", "-B",
+                   ("%s=%s" % (af_par, not af_init_val)),
+                   instance["name"]])
   AssertCommand(cmd)
+  # TODO: Verify the choice between failover and migration
+  qa_utils.RunInstanceCheck(instance, True)
+  if toggle_always_failover:
+    AssertCommand(["gnt-instance", "modify", "-B",
+                   ("%s=%s" % (af_par, af_init_val)), instance["name"]])
 
   # TODO: Split into multiple tests
   AssertCommand(["gnt-instance", "shutdown", instance["name"]])
@@ -268,25 +303,7 @@ def TestInstanceMigrate(instance):
                  instance["name"]])
   AssertCommand(["gnt-instance", "start", instance["name"]])
   AssertCommand(cmd)
-  qa_utils.RunInstanceCheck(instance, True)
-
-  AssertCommand(["gnt-instance", "modify", "-B",
-                 ("%s=%s" %
-                  (constants.BE_ALWAYS_FAILOVER, constants.VALUE_TRUE)),
-                 instance["name"]])
-
-  AssertCommand(cmd)
-  qa_utils.RunInstanceCheck(instance, True)
-  # TODO: Verify that a failover has been done instead of a migration
-
-  # TODO: Verify whether the default value is restored here (not hardcoded)
-  AssertCommand(["gnt-instance", "modify", "-B",
-                 ("%s=%s" %
-                  (constants.BE_ALWAYS_FAILOVER, constants.VALUE_FALSE)),
-                 instance["name"]])
-
-  AssertCommand(cmd)
-  qa_utils.RunInstanceCheck(instance, True)
+  # @InstanceCheck enforces the check that the instance is running
 
 
 def TestInstanceInfo(instance):
