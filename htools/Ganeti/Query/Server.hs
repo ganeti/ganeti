@@ -1,6 +1,6 @@
 {-# LANGUAGE BangPatterns #-}
 
-{-| Implementation of the Ganeti confd types.
+{-| Implementation of the Ganeti Query2 server.
 
 -}
 
