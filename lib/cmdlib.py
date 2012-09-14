@@ -9261,6 +9261,163 @@ def _CheckOSParams(lu, required, nodenames, osname, osparams):
                  osname, node)
 
 
+def _CreateInstanceAllocRequest(op, disks, nics, beparams):
+  """Wrapper around IAReqInstanceAlloc.
+
+  @param op: The instance opcode
+  @param disks: The computed disks
+  @param nics: The computed nics
+  @param beparams: The full filled beparams
+
+  @returns: A filled L{iallocator.IAReqInstanceAlloc}
+
+  """
+  spindle_use = beparams[constants.BE_SPINDLE_USE]
+  return iallocator.IAReqInstanceAlloc(name=op.instance_name,
+                                       disk_template=op.disk_template,
+                                       tags=op.tags,
+                                       os=op.os_type,
+                                       vcpus=beparams[constants.BE_VCPUS],
+                                       memory=beparams[constants.BE_MAXMEM],
+                                       spindle_use=spindle_use,
+                                       disks=disks,
+                                       nics=[n.ToDict() for n in nics],
+                                       hypervisor=op.hypervisor)
+
+
+def _ComputeNics(op, cluster, default_ip, cfg, proc):
+  """Computes the nics.
+
+  @param op: The instance opcode
+  @param cluster: Cluster configuration object
+  @param default_ip: The default ip to assign
+  @param cfg: An instance of the configuration object
+  @param proc: The executer instance
+
+  @returns: The build up nics
+
+  """
+  nics = []
+  for idx, nic in enumerate(op.nics):
+    nic_mode_req = nic.get(constants.INIC_MODE, None)
+    nic_mode = nic_mode_req
+    if nic_mode is None or nic_mode == constants.VALUE_AUTO:
+      nic_mode = cluster.nicparams[constants.PP_DEFAULT][constants.NIC_MODE]
+
+    # in routed mode, for the first nic, the default ip is 'auto'
+    if nic_mode == constants.NIC_MODE_ROUTED and idx == 0:
+      default_ip_mode = constants.VALUE_AUTO
+    else:
+      default_ip_mode = constants.VALUE_NONE
+
+    # ip validity checks
+    ip = nic.get(constants.INIC_IP, default_ip_mode)
+    if ip is None or ip.lower() == constants.VALUE_NONE:
+      nic_ip = None
+    elif ip.lower() == constants.VALUE_AUTO:
+      if not op.name_check:
+        raise errors.OpPrereqError("IP address set to auto but name checks"
+                                   " have been skipped",
+                                   errors.ECODE_INVAL)
+      nic_ip = default_ip
+    else:
+      if not netutils.IPAddress.IsValid(ip):
+        raise errors.OpPrereqError("Invalid IP address '%s'" % ip,
+                                   errors.ECODE_INVAL)
+      nic_ip = ip
+
+    # TODO: check the ip address for uniqueness
+    if nic_mode == constants.NIC_MODE_ROUTED and not nic_ip:
+      raise errors.OpPrereqError("Routed nic mode requires an ip address",
+                                 errors.ECODE_INVAL)
+
+    # MAC address verification
+    mac = nic.get(constants.INIC_MAC, constants.VALUE_AUTO)
+    if mac not in (constants.VALUE_AUTO, constants.VALUE_GENERATE):
+      mac = utils.NormalizeAndValidateMac(mac)
+
+      try:
+        # TODO: We need to factor this out
+        cfg.ReserveMAC(mac, proc.GetECId())
+      except errors.ReservationError:
+        raise errors.OpPrereqError("MAC address %s already in use"
+                                   " in cluster" % mac,
+                                   errors.ECODE_NOTUNIQUE)
+
+    #  Build nic parameters
+    link = nic.get(constants.INIC_LINK, None)
+    if link == constants.VALUE_AUTO:
+      link = cluster.nicparams[constants.PP_DEFAULT][constants.NIC_LINK]
+    nicparams = {}
+    if nic_mode_req:
+      nicparams[constants.NIC_MODE] = nic_mode
+    if link:
+      nicparams[constants.NIC_LINK] = link
+
+    check_params = cluster.SimpleFillNIC(nicparams)
+    objects.NIC.CheckParameterSyntax(check_params)
+    nics.append(objects.NIC(mac=mac, ip=nic_ip, nicparams=nicparams))
+
+  return nics
+
+
+def _ComputeDisks(op, default_vg):
+  """Computes the instance disks.
+
+  @param op: The instance opcode
+  @param default_vg: The default_vg to assume
+
+  @return: The computer disks
+
+  """
+  disks = []
+  for disk in op.disks:
+    mode = disk.get(constants.IDISK_MODE, constants.DISK_RDWR)
+    if mode not in constants.DISK_ACCESS_SET:
+      raise errors.OpPrereqError("Invalid disk access mode '%s'" %
+                                 mode, errors.ECODE_INVAL)
+    size = disk.get(constants.IDISK_SIZE, None)
+    if size is None:
+      raise errors.OpPrereqError("Missing disk size", errors.ECODE_INVAL)
+    try:
+      size = int(size)
+    except (TypeError, ValueError):
+      raise errors.OpPrereqError("Invalid disk size '%s'" % size,
+                                 errors.ECODE_INVAL)
+
+    data_vg = disk.get(constants.IDISK_VG, default_vg)
+    new_disk = {
+      constants.IDISK_SIZE: size,
+      constants.IDISK_MODE: mode,
+      constants.IDISK_VG: data_vg,
+      }
+    if constants.IDISK_METAVG in disk:
+      new_disk[constants.IDISK_METAVG] = disk[constants.IDISK_METAVG]
+    if constants.IDISK_ADOPT in disk:
+      new_disk[constants.IDISK_ADOPT] = disk[constants.IDISK_ADOPT]
+    disks.append(new_disk)
+
+  return disks
+
+
+def _ComputeFullBeParams(op, cluster):
+  """Computes the full beparams.
+
+  @param op: The instance opcode
+  @param cluster: The cluster config object
+
+  @return: The fully filled beparams
+
+  """
+  default_beparams = cluster.beparams[constants.PP_DEFAULT]
+  for param, value in op.beparams.iteritems():
+    if value == constants.VALUE_AUTO:
+      op.beparams[param] = default_beparams[param]
+  objects.UpgradeBeParams(op.beparams)
+  utils.ForceDictType(op.beparams, constants.BES_PARAMETER_TYPES)
+  return cluster.SimpleFillBE(op.beparams)
+
+
 class LUInstanceCreate(LogicalUnit):
   """Create an instance.
 
@@ -9485,19 +9642,8 @@ class LUInstanceCreate(LogicalUnit):
     """Run the allocator based on input opcode.
 
     """
-    nics = [n.ToDict() for n in self.nics]
-    memory = self.be_full[constants.BE_MAXMEM]
-    spindle_use = self.be_full[constants.BE_SPINDLE_USE]
-    req = iallocator.IAReqInstanceAlloc(name=self.op.instance_name,
-                                        disk_template=self.op.disk_template,
-                                        tags=self.op.tags,
-                                        os=self.op.os_type,
-                                        vcpus=self.be_full[constants.BE_VCPUS],
-                                        memory=memory,
-                                        spindle_use=spindle_use,
-                                        disks=self.disks,
-                                        nics=nics,
-                                        hypervisor=self.op.hypervisor)
+    req = _CreateInstanceAllocRequest(self.op, self.disks,
+                                      self.nics, self.be_full)
     ial = iallocator.IAllocator(self.cfg, self.rpc, req)
 
     ial.Run(self.op.iallocator)
@@ -9795,13 +9941,7 @@ class LUInstanceCreate(LogicalUnit):
     _CheckGlobalHvParams(self.op.hvparams)
 
     # fill and remember the beparams dict
-    default_beparams = cluster.beparams[constants.PP_DEFAULT]
-    for param, value in self.op.beparams.iteritems():
-      if value == constants.VALUE_AUTO:
-        self.op.beparams[param] = default_beparams[param]
-    objects.UpgradeBeParams(self.op.beparams)
-    utils.ForceDictType(self.op.beparams, constants.BES_PARAMETER_TYPES)
-    self.be_full = cluster.SimpleFillBE(self.op.beparams)
+    self.be_full = _ComputeFullBeParams(self.op, cluster)
 
     # build os parameters
     self.os_full = cluster.SimpleFillOS(self.op.os_type, self.op.osparams)
@@ -9812,94 +9952,12 @@ class LUInstanceCreate(LogicalUnit):
       self._RevertToDefaults(cluster)
 
     # NIC buildup
-    self.nics = []
-    for idx, nic in enumerate(self.op.nics):
-      nic_mode_req = nic.get(constants.INIC_MODE, None)
-      nic_mode = nic_mode_req
-      if nic_mode is None or nic_mode == constants.VALUE_AUTO:
-        nic_mode = cluster.nicparams[constants.PP_DEFAULT][constants.NIC_MODE]
-
-      # in routed mode, for the first nic, the default ip is 'auto'
-      if nic_mode == constants.NIC_MODE_ROUTED and idx == 0:
-        default_ip_mode = constants.VALUE_AUTO
-      else:
-        default_ip_mode = constants.VALUE_NONE
-
-      # ip validity checks
-      ip = nic.get(constants.INIC_IP, default_ip_mode)
-      if ip is None or ip.lower() == constants.VALUE_NONE:
-        nic_ip = None
-      elif ip.lower() == constants.VALUE_AUTO:
-        if not self.op.name_check:
-          raise errors.OpPrereqError("IP address set to auto but name checks"
-                                     " have been skipped",
-                                     errors.ECODE_INVAL)
-        nic_ip = self.hostname1.ip
-      else:
-        if not netutils.IPAddress.IsValid(ip):
-          raise errors.OpPrereqError("Invalid IP address '%s'" % ip,
-                                     errors.ECODE_INVAL)
-        nic_ip = ip
-
-      # TODO: check the ip address for uniqueness
-      if nic_mode == constants.NIC_MODE_ROUTED and not nic_ip:
-        raise errors.OpPrereqError("Routed nic mode requires an ip address",
-                                   errors.ECODE_INVAL)
-
-      # MAC address verification
-      mac = nic.get(constants.INIC_MAC, constants.VALUE_AUTO)
-      if mac not in (constants.VALUE_AUTO, constants.VALUE_GENERATE):
-        mac = utils.NormalizeAndValidateMac(mac)
-
-        try:
-          self.cfg.ReserveMAC(mac, self.proc.GetECId())
-        except errors.ReservationError:
-          raise errors.OpPrereqError("MAC address %s already in use"
-                                     " in cluster" % mac,
-                                     errors.ECODE_NOTUNIQUE)
-
-      #  Build nic parameters
-      link = nic.get(constants.INIC_LINK, None)
-      if link == constants.VALUE_AUTO:
-        link = cluster.nicparams[constants.PP_DEFAULT][constants.NIC_LINK]
-      nicparams = {}
-      if nic_mode_req:
-        nicparams[constants.NIC_MODE] = nic_mode
-      if link:
-        nicparams[constants.NIC_LINK] = link
-
-      check_params = cluster.SimpleFillNIC(nicparams)
-      objects.NIC.CheckParameterSyntax(check_params)
-      self.nics.append(objects.NIC(mac=mac, ip=nic_ip, nicparams=nicparams))
+    self.nics = _ComputeNics(self.op, cluster, self.hostname1.ip, self.cfg,
+                             self.proc)
 
     # disk checks/pre-build
     default_vg = self.cfg.GetVGName()
-    self.disks = []
-    for disk in self.op.disks:
-      mode = disk.get(constants.IDISK_MODE, constants.DISK_RDWR)
-      if mode not in constants.DISK_ACCESS_SET:
-        raise errors.OpPrereqError("Invalid disk access mode '%s'" %
-                                   mode, errors.ECODE_INVAL)
-      size = disk.get(constants.IDISK_SIZE, None)
-      if size is None:
-        raise errors.OpPrereqError("Missing disk size", errors.ECODE_INVAL)
-      try:
-        size = int(size)
-      except (TypeError, ValueError):
-        raise errors.OpPrereqError("Invalid disk size '%s'" % size,
-                                   errors.ECODE_INVAL)
-
-      data_vg = disk.get(constants.IDISK_VG, default_vg)
-      new_disk = {
-        constants.IDISK_SIZE: size,
-        constants.IDISK_MODE: mode,
-        constants.IDISK_VG: data_vg,
-        }
-      if constants.IDISK_METAVG in disk:
-        new_disk[constants.IDISK_METAVG] = disk[constants.IDISK_METAVG]
-      if constants.IDISK_ADOPT in disk:
-        new_disk[constants.IDISK_ADOPT] = disk[constants.IDISK_ADOPT]
-      self.disks.append(new_disk)
+    self.disks = _ComputeDisks(self.op, default_vg)
 
     if self.op.mode == constants.INSTANCE_IMPORT:
       disk_images = []
