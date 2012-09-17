@@ -123,26 +123,26 @@ def GetPaths():
   confd_log = pathutils.GetLogFilename(constants.CONFD)
   rapi_log = pathutils.GetLogFilename(constants.RAPI)
 
-  rapi_dir = os.path.join(constants.DATA_DIR, "rapi")
+  rapi_dir = os.path.join(pathutils.DATA_DIR, "rapi")
 
   paths = [
-    (constants.DATA_DIR, DIR, 0755, getent.masterd_uid,
+    (pathutils.DATA_DIR, DIR, 0755, getent.masterd_uid,
      getent.masterd_gid),
-    (constants.CLUSTER_DOMAIN_SECRET_FILE, FILE, 0640,
+    (pathutils.CLUSTER_DOMAIN_SECRET_FILE, FILE, 0640,
      getent.masterd_uid, getent.masterd_gid, False),
-    (constants.CLUSTER_CONF_FILE, FILE, 0640, getent.masterd_uid,
+    (pathutils.CLUSTER_CONF_FILE, FILE, 0640, getent.masterd_uid,
      getent.confd_gid, False),
-    (constants.CONFD_HMAC_KEY, FILE, 0440, getent.confd_uid,
+    (pathutils.CONFD_HMAC_KEY, FILE, 0440, getent.confd_uid,
      getent.masterd_gid, False),
-    (constants.SSH_KNOWN_HOSTS_FILE, FILE, 0644, getent.masterd_uid,
+    (pathutils.SSH_KNOWN_HOSTS_FILE, FILE, 0644, getent.masterd_uid,
      getent.masterd_gid, False),
-    (constants.RAPI_CERT_FILE, FILE, 0440, getent.rapi_uid,
+    (pathutils.RAPI_CERT_FILE, FILE, 0440, getent.rapi_uid,
      getent.masterd_gid, False),
-    (constants.SPICE_CERT_FILE, FILE, 0440, getent.noded_uid,
+    (pathutils.SPICE_CERT_FILE, FILE, 0440, getent.noded_uid,
      getent.masterd_gid, False),
-    (constants.SPICE_CACERT_FILE, FILE, 0440, getent.noded_uid,
+    (pathutils.SPICE_CACERT_FILE, FILE, 0440, getent.noded_uid,
      getent.masterd_gid, False),
-    (constants.NODED_CERT_FILE, FILE, 0440, getent.masterd_uid,
+    (pathutils.NODED_CERT_FILE, FILE, 0440, getent.masterd_uid,
      getent.masterd_gid, False),
     ]
 
@@ -152,45 +152,45 @@ def GetPaths():
                   getent.noded_uid, 0, False))
 
   paths.extend([
-    (constants.QUEUE_DIR, DIR, 0700, getent.masterd_uid,
+    (pathutils.QUEUE_DIR, DIR, 0700, getent.masterd_uid,
      getent.masterd_gid),
-    (constants.QUEUE_DIR, QUEUE_DIR, 0600, getent.masterd_uid,
+    (pathutils.QUEUE_DIR, QUEUE_DIR, 0600, getent.masterd_uid,
      getent.masterd_gid),
-    (constants.JOB_QUEUE_LOCK_FILE, FILE, 0600,
+    (pathutils.JOB_QUEUE_LOCK_FILE, FILE, 0600,
      getent.masterd_uid, getent.masterd_gid, False),
-    (constants.JOB_QUEUE_SERIAL_FILE, FILE, 0600,
+    (pathutils.JOB_QUEUE_SERIAL_FILE, FILE, 0600,
      getent.masterd_uid, getent.masterd_gid, False),
-    (constants.JOB_QUEUE_VERSION_FILE, FILE, 0600,
+    (pathutils.JOB_QUEUE_VERSION_FILE, FILE, 0600,
      getent.masterd_uid, getent.masterd_gid, False),
-    (constants.JOB_QUEUE_ARCHIVE_DIR, DIR, 0700,
+    (pathutils.JOB_QUEUE_ARCHIVE_DIR, DIR, 0700,
      getent.masterd_uid, getent.masterd_gid),
     (rapi_dir, DIR, 0750, getent.rapi_uid, getent.masterd_gid),
-    (constants.RAPI_USERS_FILE, FILE, 0640, getent.rapi_uid,
+    (pathutils.RAPI_USERS_FILE, FILE, 0640, getent.rapi_uid,
      getent.masterd_gid, False),
-    (constants.RUN_DIR, DIR, 0775, getent.masterd_uid,
+    (pathutils.RUN_DIR, DIR, 0775, getent.masterd_uid,
      getent.daemons_gid),
-    (constants.SOCKET_DIR, DIR, 0750, getent.masterd_uid,
+    (pathutils.SOCKET_DIR, DIR, 0750, getent.masterd_uid,
      getent.daemons_gid),
-    (constants.MASTER_SOCKET, FILE, 0770, getent.masterd_uid,
+    (pathutils.MASTER_SOCKET, FILE, 0770, getent.masterd_uid,
      getent.daemons_gid, False),
-    (constants.BDEV_CACHE_DIR, DIR, 0755, getent.noded_uid,
+    (pathutils.BDEV_CACHE_DIR, DIR, 0755, getent.noded_uid,
      getent.masterd_gid),
-    (constants.UIDPOOL_LOCKDIR, DIR, 0750, getent.noded_uid,
+    (pathutils.UIDPOOL_LOCKDIR, DIR, 0750, getent.noded_uid,
      getent.masterd_gid),
-    (constants.DISK_LINKS_DIR, DIR, 0755, getent.noded_uid,
+    (pathutils.DISK_LINKS_DIR, DIR, 0755, getent.noded_uid,
      getent.masterd_gid),
-    (constants.CRYPTO_KEYS_DIR, DIR, 0700, getent.noded_uid,
+    (pathutils.CRYPTO_KEYS_DIR, DIR, 0700, getent.noded_uid,
      getent.masterd_gid),
-    (constants.IMPORT_EXPORT_DIR, DIR, 0755, getent.noded_uid,
+    (pathutils.IMPORT_EXPORT_DIR, DIR, 0755, getent.noded_uid,
      getent.masterd_gid),
-    (constants.LOG_DIR, DIR, 0770, getent.masterd_uid,
+    (pathutils.LOG_DIR, DIR, 0770, getent.masterd_uid,
      getent.daemons_gid),
     (masterd_log, FILE, 0600, getent.masterd_uid, getent.masterd_gid,
      False),
     (confd_log, FILE, 0600, getent.confd_uid, getent.masterd_gid, False),
     (noded_log, FILE, 0600, getent.noded_uid, getent.masterd_gid, False),
     (rapi_log, FILE, 0600, getent.rapi_uid, getent.masterd_gid, False),
-    (constants.LOG_OS_DIR, DIR, 0750, getent.masterd_uid,
+    (pathutils.LOG_OS_DIR, DIR, 0750, getent.masterd_uid,
      getent.daemons_gid),
     ])
 
@@ -254,7 +254,7 @@ def Main():
       ProcessPath(path)
 
     if opts.full_run:
-      RecursiveEnsure(constants.JOB_QUEUE_ARCHIVE_DIR, getent.masterd_uid,
+      RecursiveEnsure(pathutils.JOB_QUEUE_ARCHIVE_DIR, getent.masterd_uid,
                       getent.masterd_gid, 0700, 0600)
   except errors.GenericError, err:
     logging.error("An error occurred while setting permissions: %s", err)
