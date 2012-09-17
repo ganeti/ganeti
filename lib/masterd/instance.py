@@ -33,6 +33,7 @@ from ganeti import compat
 from ganeti import utils
 from ganeti import objects
 from ganeti import netutils
+from ganeti import pathutils
 
 
 class _ImportExportError(Exception):
@@ -1227,7 +1228,7 @@ class ExportInstanceHelper:
         transfers.append(None)
         continue
 
-      path = utils.PathJoin(constants.EXPORT_DIR, "%s.new" % instance.name,
+      path = utils.PathJoin(pathutils.EXPORT_DIR, "%s.new" % instance.name,
                             dev.physical_id[1])
 
       finished_fn = compat.partial(self._TransferFinished, idx)
