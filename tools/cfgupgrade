@@ -40,6 +40,7 @@ from ganeti import cli
 from ganeti import bootstrap
 from ganeti import config
 from ganeti import netutils
+from ganeti import pathutils
 
 
 options = None
@@ -114,8 +115,8 @@ def main():
                     action="store_true", default=False,
                     help="Don't abort if hostname doesn't match")
   parser.add_option("--path", help="Convert configuration in this"
-                    " directory instead of '%s'" % constants.DATA_DIR,
-                    default=constants.DATA_DIR, dest="data_dir")
+                    " directory instead of '%s'" % pathutils.DATA_DIR,
+                    default=pathutils.DATA_DIR, dest="data_dir")
   parser.add_option("--no-verify",
                     help="Do not verify configuration after upgrade",
                     action="store_true", dest="no_verify", default=False)

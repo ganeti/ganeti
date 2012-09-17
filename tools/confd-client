@@ -33,6 +33,7 @@ import time
 from ganeti import constants
 from ganeti import cli
 from ganeti import utils
+from ganeti import pathutils
 
 from ganeti.confd import client as confd_client
 
@@ -125,7 +126,7 @@ class TestClient(object):
       Usage()
 
     if options.hmac is None:
-      options.hmac = utils.ReadFile(constants.CONFD_HMAC_KEY)
+      options.hmac = utils.ReadFile(pathutils.CONFD_HMAC_KEY)
     self.hmac_key = options.hmac
 
     self.mc_list = [options.mc]

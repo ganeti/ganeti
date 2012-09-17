@@ -47,6 +47,7 @@ from ganeti import constants
 from ganeti import serializer
 from ganeti import utils
 from ganeti import cli
+from ganeti import pathutils
 
 
 options = None
@@ -195,7 +196,7 @@ def Cluster12To20(cluster):
 
   # file storage
   if "file_storage_dir" not in cluster:
-    cluster["file_storage_dir"] = constants.DEFAULT_FILE_STORAGE_DIR
+    cluster["file_storage_dir"] = pathutils.DEFAULT_FILE_STORAGE_DIR
 
   # candidate pool size
   if "candidate_pool_size" not in cluster:
@@ -296,8 +297,8 @@ def main():
   parser.add_option(cli.DEBUG_OPT)
   parser.add_option(cli.VERBOSE_OPT)
   parser.add_option("--path", help="Convert configuration in this"
-                    " directory instead of '%s'" % constants.DATA_DIR,
-                    default=constants.DATA_DIR, dest="data_dir")
+                    " directory instead of '%s'" % pathutils.DATA_DIR,
+                    default=pathutils.DATA_DIR, dest="data_dir")
   (options, args) = parser.parse_args()
 
   # We need to keep filenames locally because they might be renamed between

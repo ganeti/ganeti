@@ -38,6 +38,7 @@ from ganeti import errors
 from ganeti import utils
 from ganeti import hypervisor
 from ganeti import compat
+from ganeti import pathutils
 
 from ganeti.confd import client as confd_client
 
@@ -747,7 +748,7 @@ class Burner(object):
                                       shutdown=True)
       rem_op = opcodes.OpInstanceRemove(instance_name=instance,
                                         ignore_failures=True)
-      imp_dir = utils.PathJoin(constants.EXPORT_DIR, full_name)
+      imp_dir = utils.PathJoin(pathutils.EXPORT_DIR, full_name)
       imp_op = opcodes.OpInstanceCreate(instance_name=instance,
                                         disks=[{"size": size}
                                                for size in self.disk_size],
@@ -1120,7 +1121,7 @@ def main():
   """Main function.
 
   """
-  utils.SetupLogging(constants.LOG_BURNIN, sys.argv[0],
+  utils.SetupLogging(pathutils.LOG_BURNIN, sys.argv[0],
                      debug=False, stderr_logging=True)
 
   return Burner().BurninCluster()

@@ -33,6 +33,7 @@ import optparse
 from ganeti import constants
 from ganeti import serializer
 from ganeti import utils
+from ganeti import pathutils
 from ganeti import cli
 from ganeti.cli import cli_option
 
@@ -40,8 +41,8 @@ from ganeti.cli import cli_option
 OPTS = [
   cli.VERBOSE_OPT,
   cli_option("--path", help="Convert this configuration file"
-             " instead of '%s'" % constants.CLUSTER_CONF_FILE,
-             default=constants.CLUSTER_CONF_FILE, dest="CONFIG_DATA_PATH"),
+             " instead of '%s'" % pathutils.CLUSTER_CONF_FILE,
+             default=pathutils.CLUSTER_CONF_FILE, dest="CONFIG_DATA_PATH"),
   cli_option("--sanitize-names", default="yes", type="bool",
              help="Randomize the cluster, node and instance names [yes]"),
   cli_option("--sanitize-ips", default="yes", type="bool",

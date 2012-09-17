@@ -47,6 +47,7 @@ from ganeti import netutils
 from ganeti import ssconf
 from ganeti import ssh
 from ganeti import utils
+from ganeti import pathutils
 
 
 class RemoteCommandError(errors.GenericError):
@@ -89,7 +90,7 @@ def _CheckJoin(transport):
   ss_cluster_name_path = ss.KeyToFilename(constants.SS_CLUSTER_NAME)
 
   cluster_files = [
-    (constants.NODED_CERT_FILE, utils.ReadFile(constants.NODED_CERT_FILE)),
+    (pathutils.NODED_CERT_FILE, utils.ReadFile(pathutils.NODED_CERT_FILE)),
     (ss_cluster_name_path, utils.ReadFile(ss_cluster_name_path)),
     ]
 
@@ -141,7 +142,7 @@ def _InvokeDaemonUtil(transport, command):
   @param command: The daemon-util command to be run
 
   """
-  _RunRemoteCommand(transport, "%s %s" % (constants.DAEMON_UTIL, command))
+  _RunRemoteCommand(transport, "%s %s" % (pathutils.DAEMON_UTIL, command))
 
 
 def _ReadSftpFile(sftp, filename):
@@ -184,10 +185,10 @@ def SetupSSH(transport):
   """
   priv_key, pub_key, auth_keys = ssh.GetUserFiles(constants.GANETI_RUNAS)
   keyfiles = [
-    (constants.SSH_HOST_DSA_PRIV, 0600),
-    (constants.SSH_HOST_DSA_PUB, 0644),
-    (constants.SSH_HOST_RSA_PRIV, 0600),
-    (constants.SSH_HOST_RSA_PUB, 0644),
+    (pathutils.SSH_HOST_DSA_PRIV, 0600),
+    (pathutils.SSH_HOST_DSA_PUB, 0644),
+    (pathutils.SSH_HOST_RSA_PRIV, 0600),
+    (pathutils.SSH_HOST_RSA_PUB, 0644),
     (priv_key, 0600),
     (pub_key, 0644),
     ]
@@ -273,7 +274,7 @@ def SetupLogging(options):
 
   formatter = logging.Formatter(fmt)
 
-  file_handler = logging.FileHandler(constants.LOG_SETUP_SSH)
+  file_handler = logging.FileHandler(pathutils.LOG_SETUP_SSH)
   stderr_handler = logging.StreamHandler()
   stderr_handler.setFormatter(formatter)
   file_handler.setFormatter(formatter)
