@@ -59,6 +59,7 @@ from ganeti import opcodes
 from ganeti import ht
 from ganeti import rpc
 from ganeti import runtime
+from ganeti import pathutils
 from ganeti.masterd import iallocator
 
 import ganeti.masterd.instance # pylint: disable=W0611
@@ -1071,7 +1072,7 @@ def _GetClusterDomainSecret():
   """Reads the cluster domain secret.
 
   """
-  return utils.ReadOneLineFile(constants.CLUSTER_DOMAIN_SECRET_FILE,
+  return utils.ReadOneLineFile(pathutils.CLUSTER_DOMAIN_SECRET_FILE,
                                strict=True)
 
 
@@ -1964,7 +1965,7 @@ class LUClusterVerifyConfig(NoHooksLU, _VerifyErrors):
 
     feedback_fn("* Verifying cluster certificate files")
 
-    for cert_filename in constants.ALL_CERT_FILES:
+    for cert_filename in pathutils.ALL_CERT_FILES:
       (errcode, msg) = _VerifyCertificate(cert_filename)
       self._ErrorIf(errcode, constants.CV_ECLUSTERCERT, None, msg, code=errcode)
 
@@ -3068,7 +3069,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
     user_scripts = []
     if self.cfg.GetUseExternalMipScript():
-      user_scripts.append(constants.EXTERNAL_MASTER_SETUP_SCRIPT)
+      user_scripts.append(pathutils.EXTERNAL_MASTER_SETUP_SCRIPT)
 
     node_verify_param = {
       constants.NV_FILELIST:
@@ -3776,13 +3777,13 @@ class LUClusterRename(LogicalUnit):
       self.cfg.Update(cluster, feedback_fn)
 
       # update the known hosts file
-      ssh.WriteKnownHostsFile(self.cfg, constants.SSH_KNOWN_HOSTS_FILE)
+      ssh.WriteKnownHostsFile(self.cfg, pathutils.SSH_KNOWN_HOSTS_FILE)
       node_list = self.cfg.GetOnlineNodeList()
       try:
         node_list.remove(master_params.name)
       except ValueError:
         pass
-      _UploadHelper(self, node_list, constants.SSH_KNOWN_HOSTS_FILE)
+      _UploadHelper(self, node_list, pathutils.SSH_KNOWN_HOSTS_FILE)
     finally:
       master_params.ip = new_ip
       result = self.rpc.call_node_activate_master_ip(master_params.name,
@@ -4278,39 +4279,39 @@ def _ComputeAncillaryFiles(cluster, redist):
   """
   # Compute files for all nodes
   files_all = set([
-    constants.SSH_KNOWN_HOSTS_FILE,
-    constants.CONFD_HMAC_KEY,
-    constants.CLUSTER_DOMAIN_SECRET_FILE,
-    constants.SPICE_CERT_FILE,
-    constants.SPICE_CACERT_FILE,
-    constants.RAPI_USERS_FILE,
+    pathutils.SSH_KNOWN_HOSTS_FILE,
+    pathutils.CONFD_HMAC_KEY,
+    pathutils.CLUSTER_DOMAIN_SECRET_FILE,
+    pathutils.SPICE_CERT_FILE,
+    pathutils.SPICE_CACERT_FILE,
+    pathutils.RAPI_USERS_FILE,
     ])
 
   if not redist:
-    files_all.update(constants.ALL_CERT_FILES)
+    files_all.update(pathutils.ALL_CERT_FILES)
     files_all.update(ssconf.SimpleStore().GetFileList())
   else:
     # we need to ship at least the RAPI certificate
-    files_all.add(constants.RAPI_CERT_FILE)
+    files_all.add(pathutils.RAPI_CERT_FILE)
 
   if cluster.modify_etc_hosts:
     files_all.add(constants.ETC_HOSTS)
 
   if cluster.use_external_mip_script:
-    files_all.add(constants.EXTERNAL_MASTER_SETUP_SCRIPT)
+    files_all.add(pathutils.EXTERNAL_MASTER_SETUP_SCRIPT)
 
   # Files which are optional, these must:
   # - be present in one other category as well
   # - either exist or not exist on all nodes of that category (mc, vm all)
   files_opt = set([
-    constants.RAPI_USERS_FILE,
+    pathutils.RAPI_USERS_FILE,
     ])
 
   # Files which should only be on master candidates
   files_mc = set()
 
   if not redist:
-    files_mc.add(constants.CLUSTER_CONF_FILE)
+    files_mc.add(pathutils.CLUSTER_CONF_FILE)
 
   # Files which should only be on VM-capable nodes
   files_vm = set(
@@ -4372,8 +4373,8 @@ def _RedistributeAncillaryFiles(lu, additional_nodes=None, additional_vm=True):
     _ComputeAncillaryFiles(cluster, True)
 
   # Never re-distribute configuration file from here
-  assert not (constants.CLUSTER_CONF_FILE in files_all or
-              constants.CLUSTER_CONF_FILE in files_vm)
+  assert not (pathutils.CLUSTER_CONF_FILE in files_all or
+              pathutils.CLUSTER_CONF_FILE in files_vm)
   assert not files_mc, "Master candidates not handled in this function"
 
   filemap = [
@@ -6284,12 +6285,12 @@ class _ClusterQuery(_QueryBase):
       cluster = NotImplemented
 
     if query.CQ_QUEUE_DRAINED in self.requested_data:
-      drain_flag = os.path.exists(constants.JOB_QUEUE_DRAIN_FILE)
+      drain_flag = os.path.exists(pathutils.JOB_QUEUE_DRAIN_FILE)
     else:
       drain_flag = NotImplemented
 
     if query.CQ_WATCHER_PAUSE in self.requested_data:
-      watcher_pause = utils.ReadWatcherPauseFile(constants.WATCHER_PAUSEFILE)
+      watcher_pause = utils.ReadWatcherPauseFile(pathutils.WATCHER_PAUSEFILE)
     else:
       watcher_pause = NotImplemented
 
@@ -9478,7 +9479,7 @@ class LUInstanceCreate(LogicalUnit):
           self.needed_locks[locking.LEVEL_NODE].append(src_node)
         if not os.path.isabs(src_path):
           self.op.src_path = src_path = \
-            utils.PathJoin(constants.EXPORT_DIR, src_path)
+            utils.PathJoin(pathutils.EXPORT_DIR, src_path)
 
   def _RunAllocator(self):
     """Run the allocator based on input opcode.
@@ -9582,7 +9583,7 @@ class LUInstanceCreate(LogicalUnit):
         if src_path in exp_list[node].payload:
           found = True
           self.op.src_node = src_node = node
-          self.op.src_path = src_path = utils.PathJoin(constants.EXPORT_DIR,
+          self.op.src_path = src_path = utils.PathJoin(pathutils.EXPORT_DIR,
                                                        src_path)
           break
       if not found:
