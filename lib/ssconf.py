@@ -37,6 +37,7 @@ from ganeti import utils
 from ganeti import serializer
 from ganeti import objects
 from ganeti import netutils
+from ganeti import pathutils
 
 
 SSCONF_LOCK_TIMEOUT = 10
@@ -48,7 +49,7 @@ class SimpleConfigReader(object):
   """Simple class to read configuration file.
 
   """
-  def __init__(self, file_name=constants.CLUSTER_CONF_FILE):
+  def __init__(self, file_name=pathutils.CLUSTER_CONF_FILE):
     """Initializes this class.
 
     @type file_name: string
@@ -301,7 +302,7 @@ class SimpleStore(object):
 
   def __init__(self, cfg_location=None):
     if cfg_location is None:
-      self._cfg_dir = constants.DATA_DIR
+      self._cfg_dir = pathutils.DATA_DIR
     else:
       self._cfg_dir = cfg_location
 
@@ -341,7 +342,7 @@ class SimpleStore(object):
     @param values: Dictionary of (name, value)
 
     """
-    ssconf_lock = utils.FileLock.Open(constants.SSCONF_LOCK_FILE)
+    ssconf_lock = utils.FileLock.Open(pathutils.SSCONF_LOCK_FILE)
 
     # Get lock while writing files
     ssconf_lock.Exclusive(blocking=True, timeout=SSCONF_LOCK_TIMEOUT)
