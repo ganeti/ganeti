@@ -49,6 +49,7 @@ from ganeti import qlang
 from ganeti import objects
 from ganeti import ssconf
 from ganeti import ht
+from ganeti import pathutils
 
 import ganeti.rapi.client # pylint: disable=W0611
 from ganeti.rapi.client import UsesRapiClient
@@ -83,7 +84,7 @@ def ShouldPause():
   """Check whether we should pause.
 
   """
-  return bool(utils.ReadWatcherPauseFile(constants.WATCHER_PAUSEFILE))
+  return bool(utils.ReadWatcherPauseFile(pathutils.WATCHER_PAUSEFILE))
 
 
 def StartNodeDaemons():
@@ -101,7 +102,7 @@ def RunWatcherHooks():
   """Run the watcher hooks.
 
   """
-  hooks_dir = utils.PathJoin(constants.HOOKS_BASE_DIR,
+  hooks_dir = utils.PathJoin(pathutils.HOOKS_BASE_DIR,
                              constants.HOOKS_NAME_WATCHER)
   if not os.path.isdir(hooks_dir):
     return
@@ -710,8 +711,8 @@ def _GroupWatcher(opts):
 
   # Group UUID has been verified and should not contain any dangerous
   # characters
-  state_path = constants.WATCHER_GROUP_STATE_FILE % group_uuid
-  inst_status_path = constants.WATCHER_GROUP_INSTANCE_STATUS_FILE % group_uuid
+  state_path = pathutils.WATCHER_GROUP_STATE_FILE % group_uuid
+  inst_status_path = pathutils.WATCHER_GROUP_INSTANCE_STATUS_FILE % group_uuid
 
   logging.debug("Using state file %s", state_path)
 
@@ -732,8 +733,8 @@ def _GroupWatcher(opts):
     # Update per-group instance status file
     _UpdateInstanceStatus(inst_status_path, instances.values())
 
-    _MergeInstanceStatus(constants.INSTANCE_STATUS_FILE,
-                         constants.WATCHER_GROUP_INSTANCE_STATUS_FILE,
+    _MergeInstanceStatus(pathutils.INSTANCE_STATUS_FILE,
+                         pathutils.WATCHER_GROUP_INSTANCE_STATUS_FILE,
                          known_groups)
 
     started = _CheckInstances(client, notepad, instances)
@@ -755,7 +756,7 @@ def Main():
   """
   (options, _) = ParseOptions()
 
-  utils.SetupLogging(constants.LOG_WATCHER, sys.argv[0],
+  utils.SetupLogging(pathutils.LOG_WATCHER, sys.argv[0],
                      debug=options.debug, stderr_logging=options.debug)
 
   if ShouldPause() and not options.ignore_pause:
@@ -763,12 +764,12 @@ def Main():
     return constants.EXIT_SUCCESS
 
   # Try to acquire global watcher lock in shared mode
-  lock = utils.FileLock.Open(constants.WATCHER_LOCK_FILE)
+  lock = utils.FileLock.Open(pathutils.WATCHER_LOCK_FILE)
   try:
     lock.Shared(blocking=False)
   except (EnvironmentError, errors.LockError), err:
     logging.error("Can't acquire lock on %s: %s",
-                  constants.WATCHER_LOCK_FILE, err)
+                  pathutils.WATCHER_LOCK_FILE, err)
     return constants.EXIT_SUCCESS
 
   if options.nodegroup is None:
