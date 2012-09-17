@@ -59,6 +59,7 @@ from ganeti import compat
 from ganeti import ht
 from ganeti import query
 from ganeti import qlang
+from ganeti import pathutils
 
 
 JOBQUEUE_THREADS = 25
@@ -1680,7 +1681,7 @@ class JobQueue(object):
     files = [self._GetJobPath(job_id) for job_id in self._GetJobIDsUnlocked()]
 
     # Upload current serial file
-    files.append(constants.JOB_QUEUE_SERIAL_FILE)
+    files.append(pathutils.JOB_QUEUE_SERIAL_FILE)
 
     # Static address list
     addrs = [node.primary_ip]
@@ -1813,7 +1814,7 @@ class JobQueue(object):
     serial = self._last_serial + count
 
     # Write to file
-    self._UpdateJobQueueFile(constants.JOB_QUEUE_SERIAL_FILE,
+    self._UpdateJobQueueFile(pathutils.JOB_QUEUE_SERIAL_FILE,
                              "%s\n" % serial, True)
 
     result = [jstore.FormatJobID(v)
@@ -1836,7 +1837,7 @@ class JobQueue(object):
     @return: the path to the job file
 
     """
-    return utils.PathJoin(constants.QUEUE_DIR, "job-%s" % job_id)
+    return utils.PathJoin(pathutils.QUEUE_DIR, "job-%s" % job_id)
 
   @staticmethod
   def _GetArchivedJobPath(job_id):
@@ -1848,7 +1849,7 @@ class JobQueue(object):
     @return: the path to the archived job file
 
     """
-    return utils.PathJoin(constants.JOB_QUEUE_ARCHIVE_DIR,
+    return utils.PathJoin(pathutils.JOB_QUEUE_ARCHIVE_DIR,
                           jstore.GetArchiveDirectory(job_id),
                           "job-%s" % job_id)
 
@@ -1867,7 +1868,7 @@ class JobQueue(object):
 
     """
     jlist = []
-    for filename in utils.ListVisibleFiles(constants.QUEUE_DIR):
+    for filename in utils.ListVisibleFiles(pathutils.QUEUE_DIR):
       m = constants.JOB_FILE_RE.match(filename)
       if m:
         jlist.append(int(m.group(1)))

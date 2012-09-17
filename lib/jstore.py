@@ -28,6 +28,7 @@ from ganeti import constants
 from ganeti import errors
 from ganeti import runtime
 from ganeti import utils
+from ganeti import pathutils
 
 
 JOBS_PER_ARCHIVE_DIRECTORY = 10000
@@ -54,7 +55,7 @@ def ReadSerial():
   The queue should be locked while this function is called.
 
   """
-  return _ReadNumericFile(constants.JOB_QUEUE_SERIAL_FILE)
+  return _ReadNumericFile(pathutils.JOB_QUEUE_SERIAL_FILE)
 
 
 def ReadVersion():
@@ -63,7 +64,7 @@ def ReadVersion():
   The queue should be locked while this function is called.
 
   """
-  return _ReadNumericFile(constants.JOB_QUEUE_VERSION_FILE)
+  return _ReadNumericFile(pathutils.JOB_QUEUE_VERSION_FILE)
 
 
 def InitAndVerifyQueue(must_lock):
@@ -81,7 +82,7 @@ def InitAndVerifyQueue(must_lock):
   getents = runtime.GetEnts()
 
   # Lock queue
-  queue_lock = utils.FileLock.Open(constants.JOB_QUEUE_LOCK_FILE)
+  queue_lock = utils.FileLock.Open(pathutils.JOB_QUEUE_LOCK_FILE)
   try:
     # The queue needs to be locked in exclusive mode to write to the serial and
     # version files.
@@ -102,7 +103,7 @@ def InitAndVerifyQueue(must_lock):
       version = ReadVersion()
       if version is None:
         # Write new version file
-        utils.WriteFile(constants.JOB_QUEUE_VERSION_FILE,
+        utils.WriteFile(pathutils.JOB_QUEUE_VERSION_FILE,
                         uid=getents.masterd_uid, gid=getents.masterd_gid,
                         data="%s\n" % constants.JOB_QUEUE_VERSION)
 
@@ -116,7 +117,7 @@ def InitAndVerifyQueue(must_lock):
       serial = ReadSerial()
       if serial is None:
         # Write new serial file
-        utils.WriteFile(constants.JOB_QUEUE_SERIAL_FILE,
+        utils.WriteFile(pathutils.JOB_QUEUE_SERIAL_FILE,
                         uid=getents.masterd_uid, gid=getents.masterd_gid,
                         data="%s\n" % 0)
 
@@ -150,7 +151,7 @@ def CheckDrainFlag():
   @return: True if the job queue is marked drained
 
   """
-  return os.path.exists(constants.JOB_QUEUE_DRAIN_FILE)
+  return os.path.exists(pathutils.JOB_QUEUE_DRAIN_FILE)
 
 
 def SetDrainFlag(drain_flag):
@@ -165,10 +166,10 @@ def SetDrainFlag(drain_flag):
   getents = runtime.GetEnts()
 
   if drain_flag:
-    utils.WriteFile(constants.JOB_QUEUE_DRAIN_FILE, data="",
+    utils.WriteFile(pathutils.JOB_QUEUE_DRAIN_FILE, data="",
                     uid=getents.masterd_uid, gid=getents.masterd_gid)
   else:
-    utils.RemoveFile(constants.JOB_QUEUE_DRAIN_FILE)
+    utils.RemoveFile(pathutils.JOB_QUEUE_DRAIN_FILE)
 
   assert (not drain_flag) ^ CheckDrainFlag()
 
