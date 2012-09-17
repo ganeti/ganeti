@@ -29,6 +29,8 @@ from ganeti import compat
 from ganeti import constants
 from ganeti import luxi
 from ganeti import qlang
+from ganeti import _autoconf
+
 
 #: Constant name regex
 CONSTANT_RE = re.compile("^[A-Z][A-Z0-9_-]+$")
@@ -45,6 +47,7 @@ RE_TYPE = type(CONSTANT_RE)
 # declare the same value, and thus the list of valid hypervisors will
 # have strings instead of easily looked-up names.
 IGNORED_DECL_NAMES = ["DEFAULT_ENABLED_HYPERVISOR"]
+
 
 def NameRules(name):
   """Converts the upper-cased Python name to Haskell camelCase.
@@ -289,6 +292,7 @@ def main():
   print Convert(constants, "")
   print Convert(luxi, "luxi")
   print Convert(qlang, "qlang")
+  print Convert(_autoconf, "autoconf")
 
 
 if __name__ == "__main__":

@@ -42,6 +42,7 @@ import Text.JSON.Pretty (pp_value)
 import System.Info (arch)
 
 import qualified Ganeti.Constants as C
+import qualified Ganeti.Path as Path
 import Ganeti.Daemon
 import Ganeti.Objects
 import qualified Ganeti.Config as Config
@@ -197,7 +198,7 @@ mainLoop creader socket = do
 -- only one exposed from this module.
 runQueryD :: Maybe FilePath -> ConfigReader -> IO ()
 runQueryD fpath creader = do
-  let socket_path = fromMaybe C.querySocket fpath
+  let socket_path = fromMaybe Path.defaultQuerySocket fpath
   cleanupSocket socket_path
   bracket
     (getServer socket_path)

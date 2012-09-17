@@ -36,7 +36,6 @@ module Ganeti.HTools.CLI
   , parseYesNo
   , parseISpecString
   , shTemplate
-  , defaultLuxiSocket
   , maybePrintNodes
   , maybePrintInsts
   , maybeShowWarnings
@@ -92,19 +91,11 @@ import Text.Printf (printf)
 
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Node as Node
-import qualified Ganeti.Constants as C
+import qualified Ganeti.Path as Path
 import Ganeti.HTools.Types
 import Ganeti.HTools.Utils
 import Ganeti.BasicTypes
 import Ganeti.Common as Common
-
--- * Constants
-
--- | The default value for the luxi socket.
---
--- This is re-exported from the "Ganeti.Constants" module.
-defaultLuxiSocket :: FilePath
-defaultLuxiSocket = C.masterSocket
 
 -- * Data types
 
@@ -301,7 +292,7 @@ oIAllocSrc = Option "I" ["ialloc-src"]
 oLuxiSocket :: OptType
 oLuxiSocket = Option "L" ["luxi"]
               (OptArg ((\ f opts -> Ok opts { optLuxi = Just f }) .
-                       fromMaybe defaultLuxiSocket) "SOCKET")
+                       fromMaybe Path.defaultLuxiSocket) "SOCKET")
               "collect data via Luxi, optionally using the given SOCKET path"
 
 oMachineReadable :: OptType

@@ -39,6 +39,7 @@ import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
 import qualified Ganeti.HTools.Rapi as Rapi
 import qualified Ganeti.HTools.Luxi as Luxi
+import qualified Ganeti.Path as Path
 import Ganeti.HTools.Loader (checkData, mergeData, ClusterData(..))
 import Ganeti.HTools.Text (serializeCluster)
 
@@ -138,7 +139,7 @@ main opts clusters = do
                 "t_disk" "f_disk" "Score"
 
   when (null clusters) $ do
-         let lsock = fromMaybe defaultLuxiSocket (optLuxi opts)
+         let lsock = fromMaybe Path.defaultLuxiSocket (optLuxi opts)
          let name = local
          input_data <- Luxi.loadData lsock
          result <- writeData nlen name opts input_data

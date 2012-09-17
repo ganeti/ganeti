@@ -55,6 +55,7 @@ import Ganeti.Config
 import Ganeti.Hash
 import Ganeti.Logging
 import qualified Ganeti.Constants as C
+import qualified Ganeti.Path as Path
 import Ganeti.Query.Server (runQueryD)
 
 -- * Types and constants definitions
@@ -503,11 +504,11 @@ main opts = do
   hmac <- getClusterHmac
   -- Inotify setup
   inotify <- initINotify
-  let inotiaction = addNotifier inotify C.clusterConfFile cref statemvar
+  let inotiaction = addNotifier inotify Path.clusterConfFile cref statemvar
   -- fork the timeout timer
-  _ <- forkIO $ onTimeoutTimer inotiaction C.clusterConfFile cref statemvar
+  _ <- forkIO $ onTimeoutTimer inotiaction Path.clusterConfFile cref statemvar
   -- fork the polling timer
-  _ <- forkIO $ onReloadTimer inotiaction C.clusterConfFile cref statemvar
+  _ <- forkIO $ onReloadTimer inotiaction Path.clusterConfFile cref statemvar
   -- launch the queryd listener
   _ <- forkIO $ runQueryD Nothing (configReader cref)
   -- and finally enter the responder loop

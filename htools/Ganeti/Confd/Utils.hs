@@ -40,12 +40,13 @@ import Ganeti.BasicTypes
 import Ganeti.Confd
 import Ganeti.Hash
 import qualified Ganeti.Constants as C
+import qualified Ganeti.Path as Path
 import Ganeti.JSON
 import Ganeti.HTools.Utils
 
 -- | Returns the HMAC key.
 getClusterHmac :: IO HashKey
-getClusterHmac = fmap B.unpack $ B.readFile C.confdHmacKey
+getClusterHmac = fmap B.unpack $ B.readFile Path.confdHmacKey
 
 -- | Parses a signed request.
 parseRequest :: HashKey -> String -> Result (String, String, ConfdRequest)

@@ -49,6 +49,7 @@ import System.Posix.User
 import Text.Printf
 
 import qualified Ganeti.Constants as C
+import qualified Ganeti.Path as Path
 import Ganeti.BasicTypes
 
 data GanetiDaemon = GanetiMasterd
@@ -92,11 +93,11 @@ daemonGroup (ExtraGroup  AdminGroup)    = C.adminGroup
 
 -- | Returns the log file for a daemon.
 daemonLogFile :: GanetiDaemon -> FilePath
-daemonLogFile daemon = C.logDir </> daemonName daemon <.> "log"
+daemonLogFile daemon = Path.logDir </> daemonName daemon <.> "log"
 
 -- | Returns the pid file name for a daemon.
 daemonPidFile :: GanetiDaemon -> FilePath
-daemonPidFile daemon = C.runDir </> daemonName daemon <.> "pid"
+daemonPidFile daemon = Path.runDir </> daemonName daemon <.> "pid"
 
 -- | All groups list. A bit hacking, as we can't enforce it's complete
 -- at compile time.

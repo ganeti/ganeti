@@ -46,6 +46,7 @@ import System.FilePath ((</>))
 import System.IO.Error (isDoesNotExistError)
 
 import qualified Ganeti.Constants as C
+import qualified Ganeti.Path as Path
 import Ganeti.BasicTypes
 import Ganeti.HTools.Utils
 
@@ -86,7 +87,7 @@ $(declareSADT "SSKey"
 keyToFilename :: Maybe FilePath     -- ^ Optional config path override
               -> SSKey              -- ^ ssconf key
               -> FilePath
-keyToFilename optpath key = fromMaybe C.dataDir optpath </>
+keyToFilename optpath key = fromMaybe Path.dataDir optpath </>
                             sSFilePrefix ++ sSKeyToRaw key
 
 -- | Runs an IO action while transforming any error into 'Bad'
