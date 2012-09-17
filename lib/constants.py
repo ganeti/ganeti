@@ -45,7 +45,7 @@ RAPI_VERSION = 2
 #   |  + Minor version
 #   + Major version
 #
-# It stored as an integer. Make sure not to write an octal number.
+# It is stored as an integer. Make sure not to write an octal number.
 
 # BuildVersion and SplitVersion must be in here because we can't import other
 # modules. The cfgupgrade tool must be able to read and write version numbers
