@@ -36,6 +36,7 @@ from ganeti import constants
 from ganeti import cmdlib
 from ganeti import rpc
 from ganeti import compat
+from ganeti import pathutils
 from ganeti.constants import HKR_SUCCESS, HKR_FAIL, HKR_SKIP
 
 from mocks import FakeConfig, FakeProc, FakeContext
@@ -313,7 +314,7 @@ class TestHooksRunnerEnv(unittest.TestCase):
     self.assertEqual(env["GANETI_HOOKS_PATH"], hpath)
     self.assertEqual(env["GANETI_OP_CODE"], self.op.OP_ID)
     self.assertEqual(env["GANETI_HOOKS_VERSION"], str(constants.HOOKS_VERSION))
-    self.assertEqual(env["GANETI_DATA_DIR"], constants.DATA_DIR)
+    self.assertEqual(env["GANETI_DATA_DIR"], pathutils.DATA_DIR)
     if "GANETI_OBJECT_TYPE" in env:
       self.assertEqual(env["GANETI_OBJECT_TYPE"], constants.HTYPE_GROUP)
     else:

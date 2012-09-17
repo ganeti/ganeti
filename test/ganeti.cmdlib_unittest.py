@@ -42,6 +42,7 @@ from ganeti import ht
 from ganeti import objects
 from ganeti import compat
 from ganeti import rpc
+from ganeti import pathutils
 from ganeti.masterd import iallocator
 from ganeti.hypervisor import hv_xen
 
@@ -304,50 +305,50 @@ class TestClusterVerifyFiles(unittest.TestCase):
     cluster = objects.Cluster(modify_etc_hosts=True,
                               enabled_hypervisors=[constants.HT_XEN_HVM])
     files_all = set([
-      constants.CLUSTER_DOMAIN_SECRET_FILE,
-      constants.RAPI_CERT_FILE,
-      constants.RAPI_USERS_FILE,
+      pathutils.CLUSTER_DOMAIN_SECRET_FILE,
+      pathutils.RAPI_CERT_FILE,
+      pathutils.RAPI_USERS_FILE,
       ])
     files_opt = set([
-      constants.RAPI_USERS_FILE,
+      pathutils.RAPI_USERS_FILE,
       hv_xen.XL_CONFIG_FILE,
-      constants.VNC_PASSWORD_FILE,
+      pathutils.VNC_PASSWORD_FILE,
       ])
     files_mc = set([
-      constants.CLUSTER_CONF_FILE,
+      pathutils.CLUSTER_CONF_FILE,
       ])
     files_vm = set([
       hv_xen.XEND_CONFIG_FILE,
       hv_xen.XL_CONFIG_FILE,
-      constants.VNC_PASSWORD_FILE,
+      pathutils.VNC_PASSWORD_FILE,
       ])
     nvinfo = {
       master_name: rpc.RpcResult(data=(True, {
         constants.NV_FILELIST: {
-          constants.CLUSTER_CONF_FILE: "82314f897f38b35f9dab2f7c6b1593e0",
-          constants.RAPI_CERT_FILE: "babbce8f387bc082228e544a2146fee4",
-          constants.CLUSTER_DOMAIN_SECRET_FILE: "cds-47b5b3f19202936bb4",
+          pathutils.CLUSTER_CONF_FILE: "82314f897f38b35f9dab2f7c6b1593e0",
+          pathutils.RAPI_CERT_FILE: "babbce8f387bc082228e544a2146fee4",
+          pathutils.CLUSTER_DOMAIN_SECRET_FILE: "cds-47b5b3f19202936bb4",
           hv_xen.XEND_CONFIG_FILE: "b4a8a824ab3cac3d88839a9adeadf310",
           hv_xen.XL_CONFIG_FILE: "77935cee92afd26d162f9e525e3d49b9"
         }})),
       "node2.example.com": rpc.RpcResult(data=(True, {
         constants.NV_FILELIST: {
-          constants.RAPI_CERT_FILE: "97f0356500e866387f4b84233848cc4a",
+          pathutils.RAPI_CERT_FILE: "97f0356500e866387f4b84233848cc4a",
           hv_xen.XEND_CONFIG_FILE: "b4a8a824ab3cac3d88839a9adeadf310",
           }
         })),
       "node3.example.com": rpc.RpcResult(data=(True, {
         constants.NV_FILELIST: {
-          constants.RAPI_CERT_FILE: "97f0356500e866387f4b84233848cc4a",
-          constants.CLUSTER_DOMAIN_SECRET_FILE: "cds-47b5b3f19202936bb4",
+          pathutils.RAPI_CERT_FILE: "97f0356500e866387f4b84233848cc4a",
+          pathutils.CLUSTER_DOMAIN_SECRET_FILE: "cds-47b5b3f19202936bb4",
           }
         })),
       "node4.example.com": rpc.RpcResult(data=(True, {
         constants.NV_FILELIST: {
-          constants.RAPI_CERT_FILE: "97f0356500e866387f4b84233848cc4a",
-          constants.CLUSTER_CONF_FILE: "conf-a6d4b13e407867f7a7b4f0f232a8f527",
-          constants.CLUSTER_DOMAIN_SECRET_FILE: "cds-47b5b3f19202936bb4",
-          constants.RAPI_USERS_FILE: "rapiusers-ea3271e8d810ef3",
+          pathutils.RAPI_CERT_FILE: "97f0356500e866387f4b84233848cc4a",
+          pathutils.CLUSTER_CONF_FILE: "conf-a6d4b13e407867f7a7b4f0f232a8f527",
+          pathutils.CLUSTER_DOMAIN_SECRET_FILE: "cds-47b5b3f19202936bb4",
+          pathutils.RAPI_USERS_FILE: "rapiusers-ea3271e8d810ef3",
           hv_xen.XL_CONFIG_FILE: "77935cee92afd26d162f9e525e3d49b9"
           }
         })),
@@ -362,21 +363,21 @@ class TestClusterVerifyFiles(unittest.TestCase):
     self.assertEqual(sorted(errors), sorted([
       (None, ("File %s found with 2 different checksums (variant 1 on"
               " node2.example.com, node3.example.com, node4.example.com;"
-              " variant 2 on master.example.com)" % constants.RAPI_CERT_FILE)),
+              " variant 2 on master.example.com)" % pathutils.RAPI_CERT_FILE)),
       (None, ("File %s is missing from node(s) node2.example.com" %
-              constants.CLUSTER_DOMAIN_SECRET_FILE)),
+              pathutils.CLUSTER_DOMAIN_SECRET_FILE)),
       (None, ("File %s should not exist on node(s) node4.example.com" %
-              constants.CLUSTER_CONF_FILE)),
+              pathutils.CLUSTER_CONF_FILE)),
       (None, ("File %s is missing from node(s) node4.example.com" %
               hv_xen.XEND_CONFIG_FILE)),
       (None, ("File %s is missing from node(s) node3.example.com" %
-              constants.CLUSTER_CONF_FILE)),
+              pathutils.CLUSTER_CONF_FILE)),
       (None, ("File %s found with 2 different checksums (variant 1 on"
               " master.example.com; variant 2 on node4.example.com)" %
-              constants.CLUSTER_CONF_FILE)),
+              pathutils.CLUSTER_CONF_FILE)),
       (None, ("File %s is optional, but it must exist on all or no nodes (not"
               " found on master.example.com, node2.example.com,"
-              " node3.example.com)" % constants.RAPI_USERS_FILE)),
+              " node3.example.com)" % pathutils.RAPI_USERS_FILE)),
       (None, ("File %s is optional, but it must exist on all or no nodes (not"
               " found on node2.example.com)" % hv_xen.XL_CONFIG_FILE)),
       ("nodata.example.com", "Node did not return file checksum data"),

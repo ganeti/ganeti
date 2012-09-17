@@ -29,6 +29,7 @@ import unittest
 from ganeti import constants
 from ganeti import uidpool
 from ganeti import errors
+from ganeti import pathutils
 
 import testutils
 
@@ -41,14 +42,14 @@ class TestUidPool(testutils.GanetiTestCase):
     self.old_uid_max = constants.UIDPOOL_UID_MAX
     constants.UIDPOOL_UID_MIN = 1
     constants.UIDPOOL_UID_MAX = 10
-    constants.UIDPOOL_LOCKDIR = tempfile.mkdtemp()
+    pathutils.UIDPOOL_LOCKDIR = tempfile.mkdtemp()
 
   def tearDown(self):
     constants.UIDPOOL_UID_MIN = self.old_uid_min
     constants.UIDPOOL_UID_MAX = self.old_uid_max
-    for name in os.listdir(constants.UIDPOOL_LOCKDIR):
-      os.unlink(os.path.join(constants.UIDPOOL_LOCKDIR, name))
-    os.rmdir(constants.UIDPOOL_LOCKDIR)
+    for name in os.listdir(pathutils.UIDPOOL_LOCKDIR):
+      os.unlink(os.path.join(pathutils.UIDPOOL_LOCKDIR, name))
+    os.rmdir(pathutils.UIDPOOL_LOCKDIR)
 
   def testParseUidPool(self):
     self.assertEqualValues(

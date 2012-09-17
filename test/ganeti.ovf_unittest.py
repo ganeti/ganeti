@@ -41,6 +41,7 @@ from ganeti import constants
 from ganeti import errors
 from ganeti import ovf
 from ganeti import utils
+from ganeti import pathutils
 
 import testutils
 
@@ -394,14 +395,14 @@ class TestOVFImporter(BetterUnitTest):
   def testOVAUnpackingDirectories(self):
     self.importer = ovf.OVFImporter(self.ova_package, OPTS_EMPTY)
     self.assertTrue(self.importer.input_dir != None)
-    self.assertEquals(self.importer.output_dir , constants.EXPORT_DIR)
+    self.assertEquals(self.importer.output_dir , pathutils.EXPORT_DIR)
     self.assertTrue(self.importer.temp_dir != None)
 
   def testOVFUnpackingDirectories(self):
     self.importer = ovf.OVFImporter(self.virtualbox_ovf,
       OPTS_EMPTY)
     self.assertEquals(self.importer.input_dir , _GetFullFilename(""))
-    self.assertEquals(self.importer.output_dir , constants.EXPORT_DIR)
+    self.assertEquals(self.importer.output_dir , pathutils.EXPORT_DIR)
     self.assertEquals(self.importer.temp_dir , None)
 
   def testOVFSetOutputDirDirectories(self):

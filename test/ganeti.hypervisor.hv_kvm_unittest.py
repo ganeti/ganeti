@@ -33,6 +33,7 @@ from ganeti import compat
 from ganeti import objects
 from ganeti import errors
 from ganeti import utils
+from ganeti import pathutils
 
 from ganeti.hypervisor import hv_kvm
 
@@ -199,7 +200,7 @@ class TestConsole(unittest.TestCase):
     cons = self._Test(instance, hvparams)
     self.assertEqual(cons.kind, constants.CONS_SSH)
     self.assertEqual(cons.host, instance.primary_node)
-    self.assertEqual(cons.command[0], constants.KVM_CONSOLE_WRAPPER)
+    self.assertEqual(cons.command[0], pathutils.KVM_CONSOLE_WRAPPER)
     self.assertEqual(cons.command[1], constants.SOCAT_PATH)
 
   def testVnc(self):
