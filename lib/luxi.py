@@ -40,6 +40,7 @@ from ganeti import constants
 from ganeti import errors
 from ganeti import utils
 from ganeti import objects
+from ganeti import pathutils
 
 
 KEY_METHOD = "method"
@@ -412,7 +413,7 @@ class Client(object):
 
     """
     if address is None:
-      address = constants.MASTER_SOCKET
+      address = pathutils.MASTER_SOCKET
     self.address = address
     self.timeouts = timeouts
     self.transport_class = transport
