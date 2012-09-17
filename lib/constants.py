@@ -26,7 +26,7 @@ import socket
 
 from ganeti import _autoconf
 from ganeti import _vcsversion
-from ganeti.pathutils import * # pylint: disable=W0401,W0614
+from ganeti import pathutils
 
 
 # various versions
@@ -1702,7 +1702,7 @@ HVC_DEFAULTS = {
     HV_NIC_TYPE: HT_NIC_RTL8139,
     HV_DISK_TYPE: HT_DISK_PARAVIRTUAL,
     HV_VNC_BIND_ADDRESS: IP4_ADDRESS_ANY,
-    HV_VNC_PASSWORD_FILE: VNC_PASSWORD_FILE,
+    HV_VNC_PASSWORD_FILE: pathutils.VNC_PASSWORD_FILE,
     HV_ACPI: True,
     HV_PAE: True,
     HV_KERNEL_PATH: "/usr/lib/xen/boot/hvmloader",
@@ -2028,7 +2028,4 @@ FAKE_OP_MASTER_TURNUP = "OP_CLUSTER_IP_TURNUP"
 FAKE_OP_MASTER_TURNDOWN = "OP_CLUSTER_IP_TURNDOWN"
 
 # Do not re-export imported modules
-del re, _vcsversion, _autoconf, socket
-
-# Unintended imports from pathutils (temporary)
-del GetLogFilename
+del re, _vcsversion, _autoconf, socket, pathutils
