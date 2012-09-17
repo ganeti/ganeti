@@ -176,20 +176,39 @@ AC_ARG_WITH([lvm-stripecount],
   [lvm_stripecount="1"])
 AC_SUBST(LVM_STRIPECOUNT, $lvm_stripecount)
 
+# --with-default-user=...
+AC_ARG_WITH([default-user],
+  [AS_HELP_STRING([--with-default-user=USERNAME],
+    [default user for daemons]
+    [ (default is to run all daemons as root)]
+  )],
+  [user_default="$withval"],
+  [user_default=root])
+
+# --with-default-group=...
+AC_ARG_WITH([default-group],
+  [AS_HELP_STRING([--with-default-group=GROUPNAME],
+    [default group for daemons]
+    [ (default is to run all daemons under group root)]
+  )],
+  [group_default="$withval"],
+  [group_default=root])
+
 # --with-user-prefix=...
 AC_ARG_WITH([user-prefix],
   [AS_HELP_STRING([--with-user-prefix=PREFIX],
     [prefix for daemon users]
-    [ (default is to run all daemons as root)]
+    [ (default is to run all daemons as root; use --with-default-user]
+    [ to change the default)]
   )],
   [user_masterd="${withval}masterd";
    user_rapi="${withval}rapi";
    user_confd="${withval}confd";
-   user_noded="root"],
-  [user_masterd="root";
-   user_rapi="root";
-   user_confd="root";
-   user_noded="root"])
+   user_noded="$user_default"],
+  [user_masterd="$user_default";
+   user_rapi="$user_default";
+   user_confd="$user_default";
+   user_noded="$user_default"])
 AC_SUBST(MASTERD_USER, $user_masterd)
 AC_SUBST(RAPI_USER, $user_rapi)
 AC_SUBST(CONFD_USER, $user_confd)
@@ -199,20 +218,21 @@ AC_SUBST(NODED_USER, $user_noded)
 AC_ARG_WITH([group-prefix],
   [AS_HELP_STRING([--with-group-prefix=PREFIX],
     [prefix for daemon POSIX groups]
-    [ (default is to run all daemons under group root)]
+    [ (default is to run all daemons under group root; use]
+    [ --with-default-group to change the default)]
   )],
   [group_rapi="${withval}rapi";
    group_admin="${withval}admin";
    group_confd="${withval}confd";
    group_masterd="${withval}masterd";
-   group_noded="root";
+   group_noded="$group_default";
    group_daemons="${withval}daemons";],
-  [group_rapi="root";
-   group_admin="root";
-   group_confd="root";
-   group_masterd="root";
-   group_noded="root";
-   group_daemons="root"])
+  [group_rapi="$group_default";
+   group_admin="$group_default";
+   group_confd="$group_default";
+   group_masterd="$group_default";
+   group_noded="$group_default";
+   group_daemons="$group_default"])
 AC_SUBST(RAPI_GROUP, $group_rapi)
 AC_SUBST(ADMIN_GROUP, $group_admin)
 AC_SUBST(CONFD_GROUP, $group_confd)
