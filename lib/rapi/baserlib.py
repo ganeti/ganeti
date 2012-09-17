@@ -35,6 +35,7 @@ from ganeti import http
 from ganeti import errors
 from ganeti import compat
 from ganeti import constants
+from ganeti import pathutils
 
 
 # Dummy value to detect unchanged parameters
@@ -393,7 +394,7 @@ class ResourceBase(object):
 
     """
     if query and constants.ENABLE_SPLIT_QUERY:
-      address = constants.QUERY_SOCKET
+      address = pathutils.QUERY_SOCKET
     else:
       address = None
     # Could be a function, pylint: disable=R0201
