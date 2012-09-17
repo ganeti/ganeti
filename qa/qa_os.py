@@ -28,6 +28,7 @@ import os.path
 
 from ganeti import utils
 from ganeti import constants
+from ganeti import pathutils
 
 import qa_config
 import qa_utils
@@ -37,7 +38,7 @@ from qa_utils import AssertCommand, AssertIn, AssertNotIn
 
 
 _TEMP_OS_NAME = "TEMP-Ganeti-QA-OS"
-_TEMP_OS_PATH = os.path.join(constants.OS_SEARCH_PATH[0], _TEMP_OS_NAME)
+_TEMP_OS_PATH = os.path.join(pathutils.OS_SEARCH_PATH[0], _TEMP_OS_NAME)
 
 (_ALL_VALID,
  _ALL_INVALID,

@@ -26,7 +26,7 @@
 import time
 
 from ganeti import utils
-from ganeti import constants
+from ganeti import pathutils
 
 import qa_config
 import qa_utils
@@ -67,7 +67,7 @@ def _ResetWatcherDaemon():
   """
   AssertCommand([
     "bash", "-c",
-    "rm -vf %s" % (constants.WATCHER_GROUP_STATE_FILE % "*-*-*-*")
+    "rm -vf %s" % (pathutils.WATCHER_GROUP_STATE_FILE % "*-*-*-*")
     ])
 
 

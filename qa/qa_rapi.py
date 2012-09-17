@@ -37,6 +37,7 @@ from ganeti import objects
 from ganeti import query
 from ganeti import compat
 from ganeti import qlang
+from ganeti import pathutils
 
 import ganeti.rapi.client        # pylint: disable=W0611
 import ganeti.rapi.client_utils
@@ -72,7 +73,7 @@ def Setup(username, password):
   master = qa_config.GetMasterNode()
 
   # Load RAPI certificate from master node
-  cmd = ["cat", constants.RAPI_CERT_FILE]
+  cmd = ["cat", pathutils.RAPI_CERT_FILE]
 
   # Write to temporary file
   _rapi_ca = tempfile.NamedTemporaryFile()

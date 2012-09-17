@@ -29,6 +29,7 @@ import os.path
 from ganeti import constants
 from ganeti import compat
 from ganeti import utils
+from ganeti import pathutils
 
 import qa_config
 import qa_utils
@@ -76,7 +77,7 @@ def TestClusterInit(rapi_user, rapi_secret):
   """gnt-cluster init"""
   master = qa_config.GetMasterNode()
 
-  rapi_dir = os.path.dirname(constants.RAPI_USERS_FILE)
+  rapi_dir = os.path.dirname(pathutils.RAPI_USERS_FILE)
 
   # First create the RAPI credentials
   fh = tempfile.NamedTemporaryFile()
@@ -87,7 +88,7 @@ def TestClusterInit(rapi_user, rapi_secret):
     tmpru = qa_utils.UploadFile(master["primary"], fh.name)
     try:
       AssertCommand(["mkdir", "-p", rapi_dir])
-      AssertCommand(["mv", tmpru, constants.RAPI_USERS_FILE])
+      AssertCommand(["mv", tmpru, pathutils.RAPI_USERS_FILE])
     finally:
       AssertCommand(["rm", "-f", tmpru])
   finally:
@@ -361,7 +362,7 @@ def TestClusterRenewCrypto():
   AssertCommand(cmd, fail=True)
 
   rapi_cert_backup = qa_utils.BackupFile(master["primary"],
-                                         constants.RAPI_CERT_FILE)
+                                         pathutils.RAPI_CERT_FILE)
   try:
     # Custom RAPI certificate
     fh = tempfile.NamedTemporaryFile()
@@ -475,7 +476,7 @@ def TestClusterMasterFailover():
 
 def TestClusterMasterFailoverWithDrainedQueue():
   """gnt-cluster master-failover with drained queue"""
-  drain_check = ["test", "-f", constants.JOB_QUEUE_DRAIN_FILE]
+  drain_check = ["test", "-f", pathutils.JOB_QUEUE_DRAIN_FILE]
 
   master = qa_config.GetMasterNode()
   failovermaster = qa_config.AcquireNode(exclude=master)
@@ -485,7 +486,7 @@ def TestClusterMasterFailoverWithDrainedQueue():
     AssertCommand(drain_check, node=node, fail=True)
 
   # Drain queue on failover master
-  AssertCommand(["touch", constants.JOB_QUEUE_DRAIN_FILE], node=failovermaster)
+  AssertCommand(["touch", pathutils.JOB_QUEUE_DRAIN_FILE], node=failovermaster)
 
   cmd = ["gnt-cluster", "master-failover"]
   try:

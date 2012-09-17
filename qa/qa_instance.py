@@ -29,6 +29,7 @@ import time
 from ganeti import utils
 from ganeti import constants
 from ganeti import query
+from ganeti import pathutils
 
 import qa_config
 import qa_utils
@@ -208,7 +209,7 @@ def _ReadSsconfInstanceList():
   """
   master = qa_config.GetMasterNode()
 
-  cmd = ["cat", utils.PathJoin(constants.DATA_DIR,
+  cmd = ["cat", utils.PathJoin(pathutils.DATA_DIR,
                                "ssconf_%s" % constants.SS_INSTANCE_LIST)]
 
   return qa_utils.GetCommandOutput(master["primary"],
@@ -542,7 +543,7 @@ def TestInstanceImport(newinst, node, expnode, name):
           "--disk-template=plain",
           "--no-ip-check",
           "--src-node=%s" % expnode["primary"],
-          "--src-dir=%s/%s" % (constants.EXPORT_DIR, name),
+          "--src-dir=%s/%s" % (pathutils.EXPORT_DIR, name),
           "--node=%s" % node["primary"]] +
          _GetGenericAddParameters(newinst, force_mac=constants.VALUE_GENERATE))
   cmd.append(newinst["name"])
