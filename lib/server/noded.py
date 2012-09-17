@@ -48,6 +48,7 @@ from ganeti import utils
 from ganeti import storage
 from ganeti import serializer
 from ganeti import netutils
+from ganeti import pathutils
 
 import ganeti.http.server # pylint: disable=W0611
 
@@ -447,7 +448,7 @@ class NodeRequestHandler(http.server.HttpServerHandler):
 
     Note that as opposed to export_info, which may query data about an
     export in any path, this only queries the standard Ganeti path
-    (constants.EXPORT_DIR).
+    (pathutils.EXPORT_DIR).
 
     """
     return backend.ListExports()
@@ -1090,6 +1091,6 @@ def Main():
                     default=True, action="store_false")
 
   daemon.GenericMain(constants.NODED, parser, CheckNoded, PrepNoded, ExecNoded,
-                     default_ssl_cert=constants.NODED_CERT_FILE,
-                     default_ssl_key=constants.NODED_CERT_FILE,
+                     default_ssl_cert=pathutils.NODED_CERT_FILE,
+                     default_ssl_key=pathutils.NODED_CERT_FILE,
                      console_logging=True)

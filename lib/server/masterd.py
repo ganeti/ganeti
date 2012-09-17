@@ -58,6 +58,7 @@ from ganeti import netutils
 from ganeti import objects
 from ganeti import query
 from ganeti import runtime
+from ganeti import pathutils
 
 
 CLIENT_REQUEST_WORKERS = 16
@@ -527,9 +528,9 @@ def _SetWatcherPause(until):
 
   """
   if until is None:
-    utils.RemoveFile(constants.WATCHER_PAUSEFILE)
+    utils.RemoveFile(pathutils.WATCHER_PAUSEFILE)
   else:
-    utils.WriteFile(constants.WATCHER_PAUSEFILE,
+    utils.WriteFile(pathutils.WATCHER_PAUSEFILE,
                     data="%d\n" % (until, ))
 
   return until
@@ -689,10 +690,10 @@ def PrepMasterd(options, _):
   """
   # This is safe to do as the pid file guarantees against
   # concurrent execution.
-  utils.RemoveFile(constants.MASTER_SOCKET)
+  utils.RemoveFile(pathutils.MASTER_SOCKET)
 
   mainloop = daemon.Mainloop()
-  master = MasterServer(constants.MASTER_SOCKET, options.uid, options.gid)
+  master = MasterServer(pathutils.MASTER_SOCKET, options.uid, options.gid)
   return (mainloop, master)
 
 
@@ -712,7 +713,7 @@ def ExecMasterd(options, args, prep_data): # pylint: disable=W0613
     finally:
       rpc.Shutdown()
   finally:
-    utils.RemoveFile(constants.MASTER_SOCKET)
+    utils.RemoveFile(pathutils.MASTER_SOCKET)
 
   logging.info("Clean master daemon shutdown")
 

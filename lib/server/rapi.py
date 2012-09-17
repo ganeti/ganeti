@@ -47,6 +47,7 @@ from ganeti import luxi
 from ganeti import serializer
 from ganeti import compat
 from ganeti import utils
+from ganeti import pathutils
 from ganeti.rapi import connector
 
 import ganeti.http.auth   # pylint: disable=W0611
@@ -325,10 +326,10 @@ def PrepRapi(options, _):
   handler = RemoteApiHandler(users.Get)
 
   # Setup file watcher (it'll be driven by asyncore)
-  SetupFileWatcher(constants.RAPI_USERS_FILE,
-                   compat.partial(users.Load, constants.RAPI_USERS_FILE))
+  SetupFileWatcher(pathutils.RAPI_USERS_FILE,
+                   compat.partial(users.Load, pathutils.RAPI_USERS_FILE))
 
-  users.Load(constants.RAPI_USERS_FILE)
+  users.Load(pathutils.RAPI_USERS_FILE)
 
   server = \
     http.server.HttpServer(mainloop, options.bind_address, options.port,
@@ -360,5 +361,5 @@ def Main():
                                  constants.RELEASE_VERSION)
 
   daemon.GenericMain(constants.RAPI, parser, CheckRapi, PrepRapi, ExecRapi,
-                     default_ssl_cert=constants.RAPI_CERT_FILE,
-                     default_ssl_key=constants.RAPI_CERT_FILE)
+                     default_ssl_cert=pathutils.RAPI_CERT_FILE,
+                     default_ssl_key=pathutils.RAPI_CERT_FILE)

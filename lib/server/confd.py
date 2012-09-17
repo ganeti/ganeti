@@ -49,6 +49,7 @@ from ganeti import constants
 from ganeti import errors
 from ganeti import daemon
 from ganeti import netutils
+from ganeti import pathutils
 
 
 class ConfdAsyncUDPServer(daemon.AsyncUDPSocket):
@@ -114,7 +115,7 @@ class ConfdConfigurationReloader(object):
     self.last_notification = 0
 
     # Asyncronous inotify handler for config changes
-    cfg_file = constants.CLUSTER_CONF_FILE
+    cfg_file = pathutils.CLUSTER_CONF_FILE
     self.wm = pyinotify.WatchManager()
     self.inotify_handler = asyncnotifier.SingleFileEventHandler(self.wm,
                                                                 self.OnInotify,
@@ -249,8 +250,8 @@ def CheckConfd(_, args):
 
   # TODO: collapse HMAC daemons handling in daemons GenericMain, when we'll
   # have more than one.
-  if not os.path.isfile(constants.CONFD_HMAC_KEY):
-    print >> sys.stderr, "Need HMAC key %s to run" % constants.CONFD_HMAC_KEY
+  if not os.path.isfile(pathutils.CONFD_HMAC_KEY):
+    print >> sys.stderr, "Need HMAC key %s to run" % pathutils.CONFD_HMAC_KEY
     sys.exit(constants.EXIT_FAILURE)
 
   # TODO: once we have a cluster param specifying the address family
