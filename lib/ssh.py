@@ -32,6 +32,7 @@ from ganeti import utils
 from ganeti import errors
 from ganeti import constants
 from ganeti import netutils
+from ganeti import pathutils
 
 
 def FormatParamikoFingerprint(fingerprint):
@@ -112,7 +113,7 @@ class SshRunner:
     options = [
       "-oEscapeChar=none",
       "-oHashKnownHosts=no",
-      "-oGlobalKnownHostsFile=%s" % constants.SSH_KNOWN_HOSTS_FILE,
+      "-oGlobalKnownHostsFile=%s" % pathutils.SSH_KNOWN_HOSTS_FILE,
       "-oUserKnownHostsFile=/dev/null",
       "-oCheckHostIp=no",
       ]
