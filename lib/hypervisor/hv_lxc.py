@@ -65,7 +65,7 @@ class LXCHypervisor(hv_base.BaseHypervisor):
       notify_on_release and release_agent feature of cgroups
 
   """
-  _ROOT_DIR = constants.RUN_GANETI_DIR + "/lxc"
+  _ROOT_DIR = constants.RUN_DIR + "/lxc"
   _DEVS = [
     "c 1:3",   # /dev/null
     "c 1:5",   # /dev/zero

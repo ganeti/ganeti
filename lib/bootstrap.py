@@ -412,7 +412,7 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
                                (master_netdev,
                                 result.output.strip()), errors.ECODE_INVAL)
 
-  dirs = [(constants.RUN_GANETI_DIR, constants.RUN_DIRS_MODE)]
+  dirs = [(constants.RUN_DIR, constants.RUN_DIRS_MODE)]
   utils.EnsureDirs(dirs)
 
   objects.UpgradeBeParams(beparams)

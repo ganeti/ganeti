@@ -92,12 +92,11 @@ daemonGroup (ExtraGroup  AdminGroup)    = C.adminGroup
 
 -- | Returns the log file for a daemon.
 daemonLogFile :: GanetiDaemon -> FilePath
-daemonLogFile GanetiConfd = C.daemonsLogfilesGanetiConfd
-daemonLogFile _           = error "Unimplemented"
+daemonLogFile daemon = C.logDir </> daemonName daemon <.> "log"
 
 -- | Returns the pid file name for a daemon.
 daemonPidFile :: GanetiDaemon -> FilePath
-daemonPidFile daemon = C.runGanetiDir </> daemonName daemon <.> "pid"
+daemonPidFile daemon = C.runDir </> daemonName daemon <.> "pid"
 
 -- | All groups list. A bit hacking, as we can't enforce it's complete
 -- at compile time.

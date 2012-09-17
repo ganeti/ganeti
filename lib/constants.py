@@ -26,6 +26,8 @@ import socket
 
 from ganeti import _autoconf
 from ganeti import _vcsversion
+from ganeti.pathutils import * # pylint: disable=W0401,W0614
+
 
 # various versions
 RELEASE_VERSION = _autoconf.PACKAGE_VERSION
@@ -129,83 +131,16 @@ WIPE_BLOCK_SIZE = 1024 ** 2
 MAX_WIPE_CHUNK = 1024 # 1GB
 MIN_WIPE_CHUNK_PERCENT = 10
 
-
-# file paths
-DATA_DIR = _autoconf.LOCALSTATEDIR + "/lib/ganeti"
-RUN_DIR = _autoconf.LOCALSTATEDIR + "/run"
-RUN_GANETI_DIR = RUN_DIR + "/ganeti"
-BDEV_CACHE_DIR = RUN_GANETI_DIR + "/bdev-cache"
-DISK_LINKS_DIR = RUN_GANETI_DIR + "/instance-disks"
 RUN_DIRS_MODE = 0775
-SOCKET_DIR = RUN_GANETI_DIR + "/socket"
 SECURE_DIR_MODE = 0700
 SECURE_FILE_MODE = 0600
-CRYPTO_KEYS_DIR = RUN_GANETI_DIR + "/crypto"
-IMPORT_EXPORT_DIR = RUN_GANETI_DIR + "/import-export"
 ADOPTABLE_BLOCKDEV_ROOT = "/dev/disk/"
-LOCK_DIR = _autoconf.LOCALSTATEDIR + "/lock"
-SSCONF_LOCK_FILE = LOCK_DIR + "/ganeti-ssconf.lock"
-# User-id pool lock directory
-# The user-ids that are in use have a corresponding lock file in this directory
-UIDPOOL_LOCKDIR = RUN_GANETI_DIR + "/uid-pool"
-CLUSTER_CONF_FILE = DATA_DIR + "/config.data"
-NODED_CERT_FILE = DATA_DIR + "/server.pem"
-RAPI_CERT_FILE = DATA_DIR + "/rapi.pem"
-CONFD_HMAC_KEY = DATA_DIR + "/hmac.key"
-SPICE_CERT_FILE = DATA_DIR + "/spice.pem"
-SPICE_CACERT_FILE = DATA_DIR + "/spice-ca.pem"
-CLUSTER_DOMAIN_SECRET_FILE = DATA_DIR + "/cluster-domain-secret"
-INSTANCE_STATUS_FILE = RUN_GANETI_DIR + "/instance-status"
-SSH_KNOWN_HOSTS_FILE = DATA_DIR + "/known_hosts"
-RAPI_USERS_FILE = DATA_DIR + "/rapi/users"
-QUEUE_DIR = DATA_DIR + "/queue"
-DAEMON_UTIL = _autoconf.PKGLIBDIR + "/daemon-util"
-SETUP_SSH = _autoconf.TOOLSDIR + "/setup-ssh"
-KVM_IFUP = _autoconf.PKGLIBDIR + "/kvm-ifup"
-KVM_CONSOLE_WRAPPER = _autoconf.PKGLIBDIR + "/tools/kvm-console-wrapper"
-XM_CONSOLE_WRAPPER = _autoconf.PKGLIBDIR + "/tools/xm-console-wrapper"
 ETC_HOSTS = "/etc/hosts"
-DEFAULT_FILE_STORAGE_DIR = _autoconf.FILE_STORAGE_DIR
-DEFAULT_SHARED_FILE_STORAGE_DIR = _autoconf.SHARED_FILE_STORAGE_DIR
 ENABLE_FILE_STORAGE = _autoconf.ENABLE_FILE_STORAGE
 ENABLE_SHARED_FILE_STORAGE = _autoconf.ENABLE_SHARED_FILE_STORAGE
-SYSCONFDIR = _autoconf.SYSCONFDIR
-TOOLSDIR = _autoconf.TOOLSDIR
-CONF_DIR = SYSCONFDIR + "/ganeti"
-USER_SCRIPTS_DIR = CONF_DIR + "/scripts"
 ENABLE_CONFD = _autoconf.ENABLE_CONFD
 HS_CONFD = _autoconf.HS_CONFD
 ENABLE_SPLIT_QUERY = _autoconf.ENABLE_SPLIT_QUERY
-
-#: Lock file for watcher, locked in shared mode by watcher; lock in exclusive
-# mode to block watcher (see L{cli._RunWhileClusterStoppedHelper.Call}
-WATCHER_LOCK_FILE = LOCK_DIR + "/ganeti-watcher.lock"
-
-#: Status file for per-group watcher, locked in exclusive mode by watcher
-WATCHER_GROUP_STATE_FILE = DATA_DIR + "/watcher.%s.data"
-
-#: File for per-group instance status, merged into L{INSTANCE_STATUS_FILE} by
-#: per-group processes
-WATCHER_GROUP_INSTANCE_STATUS_FILE = DATA_DIR + "/watcher.%s.instance-status"
-
-#: File containing Unix timestamp until which watcher should be paused
-WATCHER_PAUSEFILE = DATA_DIR + "/watcher.pause"
-
-# Master IP address setup scripts paths (default and user-provided)
-DEFAULT_MASTER_SETUP_SCRIPT = TOOLSDIR + "/master-ip-setup"
-EXTERNAL_MASTER_SETUP_SCRIPT = USER_SCRIPTS_DIR + "/master-ip-setup"
-
-ALL_CERT_FILES = frozenset([
-  NODED_CERT_FILE,
-  RAPI_CERT_FILE,
-  SPICE_CERT_FILE,
-  SPICE_CACERT_FILE,
-  ])
-
-#: LUXI socket used for job execution
-MASTER_SOCKET = SOCKET_DIR + "/ganeti-master"
-#: LUXI socket used for queries only
-QUERY_SOCKET = SOCKET_DIR + "/ganeti-query"
 
 NODED = "ganeti-noded"
 CONFD = "ganeti-confd"
@@ -232,23 +167,6 @@ DEFAULT_NLD_PORT = DAEMONS_PORTS[NLD][1]
 FIRST_DRBD_PORT = 11000
 LAST_DRBD_PORT = 14999
 
-LOG_DIR = _autoconf.LOCALSTATEDIR + "/log/ganeti/"
-DAEMONS_LOGFILES = {
-  # "daemon-name": "logfile"
-  NODED: LOG_DIR + "node-daemon.log",
-  CONFD: LOG_DIR + "conf-daemon.log",
-  RAPI: LOG_DIR + "rapi-daemon.log",
-  MASTERD: LOG_DIR + "master-daemon.log",
-  # used in the ganeti-nbma project
-  NLD: LOG_DIR + "nl-daemon.log",
-  }
-
-LOG_OS_DIR = LOG_DIR + "os"
-LOG_WATCHER = LOG_DIR + "watcher.log"
-LOG_COMMANDS = LOG_DIR + "commands.log"
-LOG_BURNIN = LOG_DIR + "burnin.log"
-LOG_SETUP_SSH = LOG_DIR + "setup-ssh.log"
-
 DEV_CONSOLE = "/dev/console"
 
 PROC_MOUNTS = "/proc/mounts"
@@ -263,9 +181,6 @@ SYSLOG_NO = "no"
 SYSLOG_YES = "yes"
 SYSLOG_ONLY = "only"
 SYSLOG_SOCKET = "/dev/log"
-
-OS_SEARCH_PATH = _autoconf.OS_SEARCH_PATH
-EXPORT_DIR = _autoconf.EXPORT_DIR
 
 EXPORT_CONF_FILE = "config.ini"
 
@@ -323,8 +238,6 @@ X509_CERT_CN = "ganeti.example.com"
 
 X509_CERT_SIGNATURE_HEADER = "X-Ganeti-Signature"
 
-IMPORT_EXPORT_DAEMON = _autoconf.PKGLIBDIR + "/import-export"
-
 # Import/export daemon mode
 IEM_IMPORT = "import"
 IEM_EXPORT = "export"
@@ -360,7 +273,6 @@ VALUE_FALSE = "false"
 EXT_PLUGIN_MASK = re.compile("^[a-zA-Z0-9_-]+$")
 
 # hooks-related constants
-HOOKS_BASE_DIR = CONF_DIR + "/hooks"
 HOOKS_PHASE_PRE = "pre"
 HOOKS_PHASE_POST = "post"
 HOOKS_NAME_CFGUPDATE = "config-update"
@@ -693,11 +605,6 @@ OS_VALIDATE_PARAMETERS = "parameters"
 OS_VALIDATE_CALLS = frozenset([OS_VALIDATE_PARAMETERS])
 
 # ssh constants
-SSH_CONFIG_DIR = _autoconf.SSH_CONFIG_DIR
-SSH_HOST_DSA_PRIV = SSH_CONFIG_DIR + "/ssh_host_dsa_key"
-SSH_HOST_DSA_PUB = SSH_HOST_DSA_PRIV + ".pub"
-SSH_HOST_RSA_PRIV = SSH_CONFIG_DIR + "/ssh_host_rsa_key"
-SSH_HOST_RSA_PUB = SSH_HOST_RSA_PRIV + ".pub"
 SSH = "ssh"
 SCP = "scp"
 
@@ -1193,7 +1100,6 @@ HYPER_TYPES = frozenset([
 HTS_REQ_PORT = frozenset([HT_XEN_HVM, HT_KVM])
 
 VNC_BASE_PORT = 5900
-VNC_PASSWORD_FILE = CONF_DIR + "/vnc-cluster-password"
 VNC_DEFAULT_BIND_ADDRESS = IP4_ADDRESS_ANY
 
 # NIC types
@@ -1565,11 +1471,6 @@ NODE_EVAC_MODES = frozenset([
 
 # Job queue
 JOB_QUEUE_VERSION = 1
-JOB_QUEUE_LOCK_FILE = QUEUE_DIR + "/lock"
-JOB_QUEUE_VERSION_FILE = QUEUE_DIR + "/version"
-JOB_QUEUE_SERIAL_FILE = QUEUE_DIR + "/serial"
-JOB_QUEUE_ARCHIVE_DIR = QUEUE_DIR + "/archive"
-JOB_QUEUE_DRAIN_FILE = QUEUE_DIR + "/drain"
 JOB_QUEUE_SIZE_HARD_LIMIT = 5000
 
 JOB_ID_TEMPLATE = r"\d+"
@@ -2128,3 +2029,6 @@ FAKE_OP_MASTER_TURNDOWN = "OP_CLUSTER_IP_TURNDOWN"
 
 # Do not re-export imported modules
 del re, _vcsversion, _autoconf, socket
+
+# Unintended imports from pathutils (temporary)
+del GetLogFilename

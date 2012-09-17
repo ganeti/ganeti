@@ -404,7 +404,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   """
   CAN_MIGRATE = True
 
-  _ROOT_DIR = constants.RUN_GANETI_DIR + "/kvm-hypervisor"
+  _ROOT_DIR = constants.RUN_DIR + "/kvm-hypervisor"
   _PIDS_DIR = _ROOT_DIR + "/pid" # contains live instances pids
   _UIDS_DIR = _ROOT_DIR + "/uid" # contains instances reserved uids
   _CTRL_DIR = _ROOT_DIR + "/ctrl" # contains instances control sockets

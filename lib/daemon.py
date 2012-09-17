@@ -41,6 +41,7 @@ from ganeti import netutils
 from ganeti import ssconf
 from ganeti import runtime
 from ganeti import compat
+from ganeti import pathutils
 
 
 class SchedulerBreakout(Exception):
@@ -778,15 +779,16 @@ def GenericMain(daemon_name, optionparser,
   if check_fn is not None:
     check_fn(options, args)
 
+  log_filename = pathutils.GetLogFilename(daemon_name)
+
   if options.fork:
     utils.CloseFDs()
-    (wpipe, stdio_reopen_fn) = \
-      utils.Daemonize(logfile=constants.DAEMONS_LOGFILES[daemon_name])
+    (wpipe, stdio_reopen_fn) = utils.Daemonize(logfile=log_filename)
   else:
     (wpipe, stdio_reopen_fn) = (None, None)
 
   log_reopen_fn = \
-    utils.SetupLogging(constants.DAEMONS_LOGFILES[daemon_name], daemon_name,
+    utils.SetupLogging(log_filename, daemon_name,
                        debug=options.debug,
                        stderr_logging=not options.fork,
                        multithreaded=multithreaded,

@@ -903,7 +903,7 @@ def DaemonPidFileName(name):
       daemon name
 
   """
-  return PathJoin(constants.RUN_GANETI_DIR, "%s.pid" % name)
+  return PathJoin(constants.RUN_DIR, "%s.pid" % name)
 
 
 def WritePidFile(pidfile):

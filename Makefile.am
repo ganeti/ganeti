@@ -228,6 +228,7 @@ pkgpython_PYTHON = \
 	lib/objectutils.py \
 	lib/opcodes.py \
 	lib/ovf.py \
+	lib/pathutils.py \
 	lib/qlang.py \
 	lib/query.py \
 	lib/rpc.py \

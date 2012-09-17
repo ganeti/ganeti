@@ -2168,7 +2168,7 @@ def DiagnoseOS(top_dirs=None):
   @type top_dirs: list
   @param top_dirs: the list of directories in which to
       search (if not given defaults to
-      L{constants.OS_SEARCH_PATH})
+      L{pathutils.OS_SEARCH_PATH})
   @rtype: list of L{objects.OS}
   @return: a list of tuples (name, path, status, diagnose, variants,
       parameters, api_version) for all (potential) OSes under all
@@ -3538,7 +3538,7 @@ class HooksRunner(object):
 
     @type hooks_base_dir: str or None
     @param hooks_base_dir: if not None, this overrides the
-        L{constants.HOOKS_BASE_DIR} (useful for unittests)
+        L{pathutils.HOOKS_BASE_DIR} (useful for unittests)
 
     """
     if hooks_base_dir is None:

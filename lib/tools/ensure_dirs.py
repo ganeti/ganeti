@@ -34,6 +34,7 @@ from ganeti import runtime
 from ganeti import ssconf
 from ganeti import utils
 from ganeti import cli
+from ganeti import pathutils
 
 
 (DIR,
@@ -117,10 +118,10 @@ def GetPaths():
 
   """
   getent = runtime.GetEnts()
-  masterd_log = constants.DAEMONS_LOGFILES[constants.MASTERD]
-  noded_log = constants.DAEMONS_LOGFILES[constants.NODED]
-  confd_log = constants.DAEMONS_LOGFILES[constants.CONFD]
-  rapi_log = constants.DAEMONS_LOGFILES[constants.RAPI]
+  masterd_log = pathutils.GetLogFilename(constants.MASTERD)
+  noded_log = pathutils.GetLogFilename(constants.NODED)
+  confd_log = pathutils.GetLogFilename(constants.CONFD)
+  rapi_log = pathutils.GetLogFilename(constants.RAPI)
 
   rapi_dir = os.path.join(constants.DATA_DIR, "rapi")
 
@@ -166,7 +167,7 @@ def GetPaths():
     (rapi_dir, DIR, 0750, getent.rapi_uid, getent.masterd_gid),
     (constants.RAPI_USERS_FILE, FILE, 0640, getent.rapi_uid,
      getent.masterd_gid, False),
-    (constants.RUN_GANETI_DIR, DIR, 0775, getent.masterd_uid,
+    (constants.RUN_DIR, DIR, 0775, getent.masterd_uid,
      getent.daemons_gid),
     (constants.SOCKET_DIR, DIR, 0750, getent.masterd_uid,
      getent.daemons_gid),

@@ -43,7 +43,7 @@ class FakeHypervisor(hv_base.BaseHypervisor):
   """
   CAN_MIGRATE = True
 
-  _ROOT_DIR = constants.RUN_GANETI_DIR + "/fake-hypervisor"
+  _ROOT_DIR = constants.RUN_DIR + "/fake-hypervisor"
 
   def __init__(self):
     hv_base.BaseHypervisor.__init__(self)
