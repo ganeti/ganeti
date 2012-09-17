@@ -38,6 +38,7 @@ from ganeti import errors
 from ganeti import constants
 from ganeti import compat
 from ganeti import utils
+from ganeti import pathutils
 
 
 def ParseUidPool(value, separator=None):
@@ -269,14 +270,14 @@ def RequestUnusedUid(all_uids):
   """
   # Create the lock dir if it's not yet present
   try:
-    utils.EnsureDirs([(constants.UIDPOOL_LOCKDIR, 0755)])
+    utils.EnsureDirs([(pathutils.UIDPOOL_LOCKDIR, 0755)])
   except errors.GenericError, err:
     raise errors.LockError("Failed to create user-id pool lock dir: %s" % err)
 
   # Get list of currently used uids from the filesystem
   try:
     taken_uids = set()
-    for taken_uid in os.listdir(constants.UIDPOOL_LOCKDIR):
+    for taken_uid in os.listdir(pathutils.UIDPOOL_LOCKDIR):
       try:
         taken_uid = int(taken_uid)
       except ValueError, err:
@@ -306,7 +307,7 @@ def RequestUnusedUid(all_uids):
       # Create the lock file
       # Note: we don't care if it exists. Only the fact that we can
       # (or can't) lock it later is what matters.
-      uid_path = utils.PathJoin(constants.UIDPOOL_LOCKDIR, str(uid))
+      uid_path = utils.PathJoin(pathutils.UIDPOOL_LOCKDIR, str(uid))
       lock = utils.FileLock.Open(uid_path)
     except OSError, err:
       raise errors.LockError("Failed to create lockfile for user-id %s: %s"
@@ -349,7 +350,7 @@ def ReleaseUid(uid):
     uid_filename = str(uid)
 
   try:
-    uid_path = utils.PathJoin(constants.UIDPOOL_LOCKDIR, uid_filename)
+    uid_path = utils.PathJoin(pathutils.UIDPOOL_LOCKDIR, uid_filename)
     os.remove(uid_path)
   except OSError, err:
     raise errors.LockError("Failed to remove user-id lockfile"
