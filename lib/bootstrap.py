@@ -44,6 +44,7 @@ from ganeti import netutils
 from ganeti import backend
 from ganeti import luxi
 from ganeti import jstore
+from ganeti import pathutils
 
 
 # ec_id for InitConfig's temporary reservation manager
@@ -92,12 +93,12 @@ def GenerateClusterCrypto(new_cluster_cert, new_rapi_cert, new_spice_cert,
                           new_confd_hmac_key, new_cds,
                           rapi_cert_pem=None, spice_cert_pem=None,
                           spice_cacert_pem=None, cds=None,
-                          nodecert_file=constants.NODED_CERT_FILE,
-                          rapicert_file=constants.RAPI_CERT_FILE,
-                          spicecert_file=constants.SPICE_CERT_FILE,
-                          spicecacert_file=constants.SPICE_CACERT_FILE,
-                          hmackey_file=constants.CONFD_HMAC_KEY,
-                          cds_file=constants.CLUSTER_DOMAIN_SECRET_FILE):
+                          nodecert_file=pathutils.NODED_CERT_FILE,
+                          rapicert_file=pathutils.RAPI_CERT_FILE,
+                          spicecert_file=pathutils.SPICE_CERT_FILE,
+                          spicecacert_file=pathutils.SPICE_CACERT_FILE,
+                          hmackey_file=pathutils.CONFD_HMAC_KEY,
+                          cds_file=pathutils.CLUSTER_DOMAIN_SECRET_FILE):
   """Updates the cluster certificates, keys and secrets.
 
   @type new_cluster_cert: bool
@@ -208,7 +209,7 @@ def _InitGanetiServerSetup(master_name):
   # Generate cluster secrets
   GenerateClusterCrypto(True, False, False, False, False)
 
-  result = utils.RunCmd([constants.DAEMON_UTIL, "start", constants.NODED])
+  result = utils.RunCmd([pathutils.DAEMON_UTIL, "start", constants.NODED])
   if result.failed:
     raise errors.OpExecError("Could not start the node daemon, command %s"
                              " had exitcode %s and error %s" %
@@ -412,7 +413,7 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
                                (master_netdev,
                                 result.output.strip()), errors.ECODE_INVAL)
 
-  dirs = [(constants.RUN_DIR, constants.RUN_DIRS_MODE)]
+  dirs = [(pathutils.RUN_DIR, constants.RUN_DIRS_MODE)]
   utils.EnsureDirs(dirs)
 
   objects.UpgradeBeParams(beparams)
@@ -473,7 +474,7 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
                                errors.ECODE_INVAL)
 
   # set up ssh config and /etc/hosts
-  sshline = utils.ReadFile(constants.SSH_HOST_RSA_PUB)
+  sshline = utils.ReadFile(pathutils.SSH_HOST_RSA_PUB)
   sshkey = sshline.split(" ")[1]
 
   if modify_etc_hosts:
@@ -546,7 +547,7 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
                                     )
   InitConfig(constants.CONFIG_VERSION, cluster_config, master_node_config)
   cfg = config.ConfigWriter(offline=True)
-  ssh.WriteKnownHostsFile(cfg, constants.SSH_KNOWN_HOSTS_FILE)
+  ssh.WriteKnownHostsFile(cfg, pathutils.SSH_KNOWN_HOSTS_FILE)
   cfg.Update(cfg.GetClusterInfo(), logging.error)
   backend.WriteSsconfFiles(cfg.GetSsconfValues())
 
@@ -554,7 +555,7 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
   _InitGanetiServerSetup(hostname.name)
 
   logging.debug("Starting daemons")
-  result = utils.RunCmd([constants.DAEMON_UTIL, "start-all"])
+  result = utils.RunCmd([pathutils.DAEMON_UTIL, "start-all"])
   if result.failed:
     raise errors.OpExecError("Could not start daemons, command %s"
                              " had exitcode %s and error %s" %
@@ -564,7 +565,7 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
 
 
 def InitConfig(version, cluster_config, master_node_config,
-               cfg_file=constants.CLUSTER_CONF_FILE):
+               cfg_file=pathutils.CLUSTER_CONF_FILE):
   """Create the initial cluster configuration.
 
   It will contain the current node, which will also be the master
@@ -667,13 +668,13 @@ def SetupNodeDaemon(cluster_name, node, ssh_key_check):
   # and then connect with ssh to set password and start ganeti-noded
   # note that all the below variables are sanitized at this point,
   # either by being constants or by the checks above
-  sshrunner.CopyFileToNode(node, constants.NODED_CERT_FILE)
-  sshrunner.CopyFileToNode(node, constants.RAPI_CERT_FILE)
-  sshrunner.CopyFileToNode(node, constants.SPICE_CERT_FILE)
-  sshrunner.CopyFileToNode(node, constants.SPICE_CACERT_FILE)
-  sshrunner.CopyFileToNode(node, constants.CONFD_HMAC_KEY)
+  sshrunner.CopyFileToNode(node, pathutils.NODED_CERT_FILE)
+  sshrunner.CopyFileToNode(node, pathutils.RAPI_CERT_FILE)
+  sshrunner.CopyFileToNode(node, pathutils.SPICE_CERT_FILE)
+  sshrunner.CopyFileToNode(node, pathutils.SPICE_CACERT_FILE)
+  sshrunner.CopyFileToNode(node, pathutils.CONFD_HMAC_KEY)
   mycommand = ("%s stop-all; %s start %s -b %s" %
-               (constants.DAEMON_UTIL, constants.DAEMON_UTIL, constants.NODED,
+               (pathutils.DAEMON_UTIL, pathutils.DAEMON_UTIL, constants.NODED,
                 utils.ShellQuote(bind_address)))
 
   result = sshrunner.Run(node, "root", mycommand, batch=False,
