@@ -36,6 +36,7 @@ from ganeti import utils
 from ganeti import constants
 from ganeti import errors
 from ganeti import netutils
+from ganeti import pathutils
 from cStringIO import StringIO
 
 from ganeti import confd
@@ -143,7 +144,7 @@ def _RunSetupSSH(options, nodes):
 
   assert nodes, "Empty node list"
 
-  cmd = [constants.SETUP_SSH]
+  cmd = [pathutils.SETUP_SSH]
 
   # Pass --debug|--verbose to the external script if set on our invocation
   # --debug overrides --verbose
@@ -938,7 +939,7 @@ def ListDrbd(opts, args):
         status.failure = True
 
   node = args[0]
-  hmac = utils.ReadFile(constants.CONFD_HMAC_KEY)
+  hmac = utils.ReadFile(pathutils.CONFD_HMAC_KEY)
   filter_callback = confd_client.ConfdFilterCallback(ListDrbdConfdCallback)
   counting_callback = confd_client.ConfdCountingCallback(filter_callback)
   cf_client = confd_client.ConfdClient(hmac, [constants.IP4_ADDRESS_LOCALHOST],

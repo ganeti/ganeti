@@ -42,6 +42,7 @@ from ganeti import objects
 from ganeti import uidpool
 from ganeti import compat
 from ganeti import netutils
+from ganeti import pathutils
 
 
 ON_OPT = cli_option("--on", default=False,
@@ -452,7 +453,7 @@ def ShowClusterConfig(opts, args):
   ToStdout("  - default instance allocator: %s", result["default_iallocator"])
   ToStdout("  - primary ip version: %d", result["primary_ip_version"])
   ToStdout("  - preallocation wipe disks: %s", result["prealloc_wipe_disks"])
-  ToStdout("  - OS search path: %s", utils.CommaJoin(constants.OS_SEARCH_PATH))
+  ToStdout("  - OS search path: %s", utils.CommaJoin(pathutils.OS_SEARCH_PATH))
 
   ToStdout("Default node parameters:")
   _PrintGroupedParams(result["ndparams"], roman=opts.roman_integers)
@@ -879,20 +880,20 @@ def _RenewCrypto(new_cluster_cert, new_rapi_cert, # pylint: disable=R0911
     files_to_copy = []
 
     if new_cluster_cert:
-      files_to_copy.append(constants.NODED_CERT_FILE)
+      files_to_copy.append(pathutils.NODED_CERT_FILE)
 
     if new_rapi_cert or rapi_cert_pem:
-      files_to_copy.append(constants.RAPI_CERT_FILE)
+      files_to_copy.append(pathutils.RAPI_CERT_FILE)
 
     if new_spice_cert or spice_cert_pem:
-      files_to_copy.append(constants.SPICE_CERT_FILE)
-      files_to_copy.append(constants.SPICE_CACERT_FILE)
+      files_to_copy.append(pathutils.SPICE_CERT_FILE)
+      files_to_copy.append(pathutils.SPICE_CACERT_FILE)
 
     if new_confd_hmac_key:
-      files_to_copy.append(constants.CONFD_HMAC_KEY)
+      files_to_copy.append(pathutils.CONFD_HMAC_KEY)
 
     if new_cds or cds:
-      files_to_copy.append(constants.CLUSTER_DOMAIN_SECRET_FILE)
+      files_to_copy.append(pathutils.CLUSTER_DOMAIN_SECRET_FILE)
 
     if files_to_copy:
       for node_name in ctx.nonmaster_nodes:
