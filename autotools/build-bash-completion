@@ -35,6 +35,7 @@ from ganeti import constants
 from ganeti import cli
 from ganeti import utils
 from ganeti import build
+from ganeti import pathutils
 
 # _autoconf shouldn't be imported from anywhere except constants.py, but we're
 # making an exception here because this script is only used at build time.
@@ -79,7 +80,7 @@ def WritePreamble(sw):
   sw.Write("_ganeti_nodes() {")
   sw.IncIndent()
   try:
-    node_list_path = os.path.join(constants.DATA_DIR, "ssconf_node_list")
+    node_list_path = os.path.join(pathutils.DATA_DIR, "ssconf_node_list")
     sw.Write("cat %s 2>/dev/null || :", utils.ShellQuote(node_list_path))
   finally:
     sw.DecIndent()
@@ -88,7 +89,7 @@ def WritePreamble(sw):
   sw.Write("_ganeti_instances() {")
   sw.IncIndent()
   try:
-    instance_list_path = os.path.join(constants.DATA_DIR,
+    instance_list_path = os.path.join(pathutils.DATA_DIR,
                                       "ssconf_instance_list")
     sw.Write("cat %s 2>/dev/null || :", utils.ShellQuote(instance_list_path))
   finally:
@@ -101,14 +102,14 @@ def WritePreamble(sw):
     # FIXME: this is really going into the internals of the job queue
     sw.Write(("local jlist=$( shopt -s nullglob &&"
               " cd %s 2>/dev/null && echo job-* || : )"),
-             utils.ShellQuote(constants.QUEUE_DIR))
+             utils.ShellQuote(pathutils.QUEUE_DIR))
     sw.Write('echo "${jlist//job-/}"')
   finally:
     sw.DecIndent()
   sw.Write("}")
 
   for (fnname, paths) in [
-    ("os", constants.OS_SEARCH_PATH),
+    ("os", pathutils.OS_SEARCH_PATH),
     ("iallocator", constants.IALLOCATOR_SEARCH_PATH),
     ]:
     sw.Write("_ganeti_%s() {", fnname)
@@ -125,7 +126,7 @@ def WritePreamble(sw):
   sw.Write("_ganeti_nodegroup() {")
   sw.IncIndent()
   try:
-    nodegroups_path = os.path.join(constants.DATA_DIR, "ssconf_nodegroups")
+    nodegroups_path = os.path.join(pathutils.DATA_DIR, "ssconf_nodegroups")
     sw.Write("cat %s 2>/dev/null || :", utils.ShellQuote(nodegroups_path))
   finally:
     sw.DecIndent()
@@ -635,7 +636,7 @@ def main():
 
   # Burnin script
   burnin = build.LoadModule("tools/burnin")
-  WriteCompletion(sw, "%s/burnin" % constants.TOOLSDIR, "_ganeti_burnin",
+  WriteCompletion(sw, "%s/burnin" % pathutils.TOOLSDIR, "_ganeti_burnin",
                   opts=burnin.OPTIONS, args=burnin.ARGUMENTS)
 
   print buf.getvalue()
