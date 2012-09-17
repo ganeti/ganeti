@@ -32,6 +32,7 @@ from ganeti import constants
 from ganeti import errors # pylint: disable=W0611
 from ganeti import utils
 from ganeti import objects
+from ganeti import pathutils
 from ganeti.hypervisor import hv_base
 from ganeti.errors import HypervisorError
 
@@ -58,7 +59,7 @@ class ChrootManager(hv_base.BaseHypervisor):
     - instance alive check is based on whether any process is using the chroot
 
   """
-  _ROOT_DIR = constants.RUN_DIR + "/chroot-hypervisor"
+  _ROOT_DIR = pathutils.RUN_DIR + "/chroot-hypervisor"
 
   PARAMETERS = {
     constants.HV_INIT_SCRIPT: (True, utils.IsNormAbsPath,

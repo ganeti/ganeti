@@ -32,6 +32,7 @@ from ganeti import constants
 from ganeti import errors # pylint: disable=W0611
 from ganeti import utils
 from ganeti import objects
+from ganeti import pathutils
 from ganeti.hypervisor import hv_base
 from ganeti.errors import HypervisorError
 
@@ -65,7 +66,7 @@ class LXCHypervisor(hv_base.BaseHypervisor):
       notify_on_release and release_agent feature of cgroups
 
   """
-  _ROOT_DIR = constants.RUN_DIR + "/lxc"
+  _ROOT_DIR = pathutils.RUN_DIR + "/lxc"
   _DEVS = [
     "c 1:3",   # /dev/null
     "c 1:5",   # /dev/zero

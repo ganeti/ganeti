@@ -49,12 +49,13 @@ from ganeti import serializer
 from ganeti import objects
 from ganeti import uidpool
 from ganeti import ssconf
-from ganeti.hypervisor import hv_base
 from ganeti import netutils
+from ganeti import pathutils
+from ganeti.hypervisor import hv_base
 from ganeti.utils import wrapper as utils_wrapper
 
 
-_KVM_NETWORK_SCRIPT = constants.SYSCONFDIR + "/ganeti/kvm-vif-bridge"
+_KVM_NETWORK_SCRIPT = pathutils.SYSCONFDIR + "/ganeti/kvm-vif-bridge"
 _KVM_START_PAUSED_FLAG = "-S"
 
 # TUN/TAP driver constants, taken from <linux/if_tun.h>
@@ -404,7 +405,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   """
   CAN_MIGRATE = True
 
-  _ROOT_DIR = constants.RUN_DIR + "/kvm-hypervisor"
+  _ROOT_DIR = pathutils.RUN_DIR + "/kvm-hypervisor"
   _PIDS_DIR = _ROOT_DIR + "/pid" # contains live instances pids
   _UIDS_DIR = _ROOT_DIR + "/uid" # contains instances reserved uids
   _CTRL_DIR = _ROOT_DIR + "/ctrl" # contains instances control sockets
@@ -777,7 +778,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if nic.nicparams[constants.NIC_MODE] == constants.NIC_MODE_BRIDGED:
       env["BRIDGE"] = nic.nicparams[constants.NIC_LINK]
 
-    result = utils.RunCmd([constants.KVM_IFUP, tap], env=env)
+    result = utils.RunCmd([pathutils.KVM_IFUP, tap], env=env)
     if result.failed:
       raise errors.HypervisorError("Failed to configure interface %s: %s."
                                    " Network configuration script output: %s" %
@@ -1195,10 +1196,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       if hvp[constants.HV_KVM_SPICE_USE_TLS]:
         spice_arg = ("%s,tls-port=%s,x509-cacert-file=%s" %
                      (spice_arg, instance.network_port,
-                      constants.SPICE_CACERT_FILE))
+                      pathutils.SPICE_CACERT_FILE))
         spice_arg = ("%s,x509-key-file=%s,x509-cert-file=%s" %
-                     (spice_arg, constants.SPICE_CERT_FILE,
-                      constants.SPICE_CERT_FILE))
+                     (spice_arg, pathutils.SPICE_CERT_FILE,
+                      pathutils.SPICE_CERT_FILE))
         tls_ciphers = hvp[constants.HV_KVM_SPICE_TLS_CIPHERS]
         if tls_ciphers:
           spice_arg = "%s,tls-ciphers=%s" % (spice_arg, tls_ciphers)
@@ -1824,7 +1825,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     """
     if hvparams[constants.HV_SERIAL_CONSOLE]:
-      cmd = [constants.KVM_CONSOLE_WRAPPER,
+      cmd = [pathutils.KVM_CONSOLE_WRAPPER,
              constants.SOCAT_PATH, utils.ShellQuote(instance.name),
              utils.ShellQuote(cls._InstanceMonitor(instance.name)),
              "STDIO,%s" % cls._SocatUnixConsoleParams(),

@@ -31,6 +31,7 @@ from ganeti import utils
 from ganeti import constants
 from ganeti import errors
 from ganeti import objects
+from ganeti import pathutils
 from ganeti.hypervisor import hv_base
 
 
@@ -43,7 +44,7 @@ class FakeHypervisor(hv_base.BaseHypervisor):
   """
   CAN_MIGRATE = True
 
-  _ROOT_DIR = constants.RUN_DIR + "/fake-hypervisor"
+  _ROOT_DIR = pathutils.RUN_DIR + "/fake-hypervisor"
 
   def __init__(self):
     hv_base.BaseHypervisor.__init__(self)

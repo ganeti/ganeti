@@ -32,6 +32,7 @@ from ganeti import utils
 from ganeti.hypervisor import hv_base
 from ganeti import netutils
 from ganeti import objects
+from ganeti import pathutils
 
 
 XEND_CONFIG_FILE = "/etc/xen/xend-config.sxp"
@@ -420,7 +421,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
                                    kind=constants.CONS_SSH,
                                    host=instance.primary_node,
                                    user=constants.GANETI_RUNAS,
-                                   command=[constants.XM_CONSOLE_WRAPPER,
+                                   command=[pathutils.XM_CONSOLE_WRAPPER,
                                             instance.name])
 
   def Verify(self):
@@ -707,10 +708,10 @@ class XenHvmHypervisor(XenHypervisor):
   """Xen HVM hypervisor interface"""
 
   ANCILLARY_FILES = XenHypervisor.ANCILLARY_FILES + [
-    constants.VNC_PASSWORD_FILE,
+    pathutils.VNC_PASSWORD_FILE,
     ]
   ANCILLARY_FILES_OPT = XenHypervisor.ANCILLARY_FILES_OPT + [
-    constants.VNC_PASSWORD_FILE,
+    pathutils.VNC_PASSWORD_FILE,
     ]
 
   PARAMETERS = {
