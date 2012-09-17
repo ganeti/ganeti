@@ -53,6 +53,7 @@ except AttributeError:
 from ganeti import constants
 from ganeti import errors
 from ganeti import utils
+from ganeti import pathutils
 
 
 # Schemas used in OVF format
@@ -1080,13 +1081,13 @@ class OVFImporter(Converter):
 
     if self.options.output_dir:
       self.output_dir = os.path.abspath(self.options.output_dir)
-      if (os.path.commonprefix([constants.EXPORT_DIR, self.output_dir]) !=
-          constants.EXPORT_DIR):
+      if (os.path.commonprefix([pathutils.EXPORT_DIR, self.output_dir]) !=
+          pathutils.EXPORT_DIR):
         logging.warning("Export path is not under %s directory, import to"
                         " Ganeti using gnt-backup may fail",
-                        constants.EXPORT_DIR)
+                        pathutils.EXPORT_DIR)
     else:
-      self.output_dir = constants.EXPORT_DIR
+      self.output_dir = pathutils.EXPORT_DIR
 
     self.ovf_reader = OVFReader(self.input_path)
     self.ovf_reader.VerifyManifest()
