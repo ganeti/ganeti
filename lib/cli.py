@@ -44,6 +44,7 @@ from ganeti import compat
 from ganeti import netutils
 from ganeti import qlang
 from ganeti import objects
+from ganeti import pathutils
 
 from optparse import (OptionParser, TitledHelpFormatter,
                       Option, OptionValueError)
@@ -1160,17 +1161,17 @@ USE_EXTERNAL_MIP_SCRIPT = cli_option("--use-external-mip-script",
 GLOBAL_FILEDIR_OPT = cli_option("--file-storage-dir", dest="file_storage_dir",
                                 help="Specify the default directory (cluster-"
                                 "wide) for storing the file-based disks [%s]" %
-                                constants.DEFAULT_FILE_STORAGE_DIR,
+                                pathutils.DEFAULT_FILE_STORAGE_DIR,
                                 metavar="DIR",
-                                default=constants.DEFAULT_FILE_STORAGE_DIR)
+                                default=pathutils.DEFAULT_FILE_STORAGE_DIR)
 
 GLOBAL_SHARED_FILEDIR_OPT = cli_option(
   "--shared-file-storage-dir",
   dest="shared_file_storage_dir",
   help="Specify the default directory (cluster-wide) for storing the"
   " shared file-based disks [%s]" %
-  constants.DEFAULT_SHARED_FILE_STORAGE_DIR,
-  metavar="SHAREDDIR", default=constants.DEFAULT_SHARED_FILE_STORAGE_DIR)
+  pathutils.DEFAULT_SHARED_FILE_STORAGE_DIR,
+  metavar="SHAREDDIR", default=pathutils.DEFAULT_SHARED_FILE_STORAGE_DIR)
 
 NOMODIFY_ETCHOSTS_OPT = cli_option("--no-etc-hosts", dest="modify_etc_hosts",
                                    help="Don't modify /etc/hosts",
@@ -2093,7 +2094,7 @@ def GetClient(query=False):
 
   """
   if query and constants.ENABLE_SPLIT_QUERY:
-    address = constants.QUERY_SOCKET
+    address = pathutils.QUERY_SOCKET
   else:
     address = None
   # TODO: Cache object?
@@ -2254,7 +2255,7 @@ def GenericMain(commands, override=None, aliases=None,
     for key, val in override.iteritems():
       setattr(options, key, val)
 
-  utils.SetupLogging(constants.LOG_COMMANDS, logname, debug=options.debug,
+  utils.SetupLogging(pathutils.LOG_COMMANDS, logname, debug=options.debug,
                      stderr_logging=True)
 
   logging.info("Command line: %s", cmdline)
@@ -2506,7 +2507,7 @@ class _RunWhileClusterStoppedHelper:
     """
     # Pause watcher by acquiring an exclusive lock on watcher state file
     self.feedback_fn("Blocking watcher")
-    watcher_block = utils.FileLock.Open(constants.WATCHER_LOCK_FILE)
+    watcher_block = utils.FileLock.Open(pathutils.WATCHER_LOCK_FILE)
     try:
       # TODO: Currently, this just blocks. There's no timeout.
       # TODO: Should it be a shared lock?
@@ -2515,12 +2516,12 @@ class _RunWhileClusterStoppedHelper:
       # Stop master daemons, so that no new jobs can come in and all running
       # ones are finished
       self.feedback_fn("Stopping master daemons")
-      self._RunCmd(None, [constants.DAEMON_UTIL, "stop-master"])
+      self._RunCmd(None, [pathutils.DAEMON_UTIL, "stop-master"])
       try:
         # Stop daemons on all nodes
         for node_name in self.online_nodes:
           self.feedback_fn("Stopping daemons on %s" % node_name)
-          self._RunCmd(node_name, [constants.DAEMON_UTIL, "stop-all"])
+          self._RunCmd(node_name, [pathutils.DAEMON_UTIL, "stop-all"])
 
         # All daemons are shut down now
         try:
@@ -2534,7 +2535,7 @@ class _RunWhileClusterStoppedHelper:
         # Start cluster again, master node last
         for node_name in self.nonmaster_nodes + [self.master_node]:
           self.feedback_fn("Starting daemons on %s" % node_name)
-          self._RunCmd(node_name, [constants.DAEMON_UTIL, "start-all"])
+          self._RunCmd(node_name, [pathutils.DAEMON_UTIL, "start-all"])
     finally:
       # Resume watcher
       watcher_block.Close()
