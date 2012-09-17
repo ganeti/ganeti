@@ -50,6 +50,7 @@ from ganeti import serializer
 from ganeti import uidpool
 from ganeti import netutils
 from ganeti import runtime
+from ganeti import pathutils
 
 
 _config_lock = locking.SharedLock("ConfigWriter")
@@ -167,7 +168,7 @@ class ConfigWriter:
     self._config_data = None
     self._offline = offline
     if cfg_file is None:
-      self._cfg_file = constants.CLUSTER_CONF_FILE
+      self._cfg_file = pathutils.CLUSTER_CONF_FILE
     else:
       self._cfg_file = cfg_file
     self._getents = _getents
@@ -206,7 +207,7 @@ class ConfigWriter:
     """Check if the cluster is configured.
 
     """
-    return os.path.exists(constants.CLUSTER_CONF_FILE)
+    return os.path.exists(pathutils.CLUSTER_CONF_FILE)
 
   def _GenerateOneMAC(self):
     """Generate one mac address
