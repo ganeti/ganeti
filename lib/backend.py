@@ -62,14 +62,15 @@ from ganeti import netutils
 from ganeti import runtime
 from ganeti import mcpu
 from ganeti import compat
+from ganeti import pathutils
 
 
 _BOOT_ID_PATH = "/proc/sys/kernel/random/boot_id"
 _ALLOWED_CLEAN_DIRS = frozenset([
-  constants.DATA_DIR,
-  constants.JOB_QUEUE_ARCHIVE_DIR,
-  constants.QUEUE_DIR,
-  constants.CRYPTO_KEYS_DIR,
+  pathutils.DATA_DIR,
+  pathutils.JOB_QUEUE_ARCHIVE_DIR,
+  pathutils.QUEUE_DIR,
+  pathutils.CRYPTO_KEYS_DIR,
   ])
 _MAX_SSL_CERT_VALIDITY = 7 * 24 * 60 * 60
 _X509_KEY_FILE = "key"
@@ -197,16 +198,16 @@ def _BuildUploadFileList():
 
   """
   allowed_files = set([
-    constants.CLUSTER_CONF_FILE,
+    pathutils.CLUSTER_CONF_FILE,
     constants.ETC_HOSTS,
-    constants.SSH_KNOWN_HOSTS_FILE,
-    constants.VNC_PASSWORD_FILE,
-    constants.RAPI_CERT_FILE,
-    constants.SPICE_CERT_FILE,
-    constants.SPICE_CACERT_FILE,
-    constants.RAPI_USERS_FILE,
-    constants.CONFD_HMAC_KEY,
-    constants.CLUSTER_DOMAIN_SECRET_FILE,
+    pathutils.SSH_KNOWN_HOSTS_FILE,
+    pathutils.VNC_PASSWORD_FILE,
+    pathutils.RAPI_CERT_FILE,
+    pathutils.SPICE_CERT_FILE,
+    pathutils.SPICE_CACERT_FILE,
+    pathutils.RAPI_USERS_FILE,
+    pathutils.CONFD_HMAC_KEY,
+    pathutils.CLUSTER_DOMAIN_SECRET_FILE,
     ])
 
   for hv_name in constants.HYPER_TYPES:
@@ -226,8 +227,8 @@ def JobQueuePurge():
   @return: True, None
 
   """
-  _CleanDirectory(constants.QUEUE_DIR, exclude=[constants.JOB_QUEUE_LOCK_FILE])
-  _CleanDirectory(constants.JOB_QUEUE_ARCHIVE_DIR)
+  _CleanDirectory(pathutils.QUEUE_DIR, exclude=[pathutils.JOB_QUEUE_LOCK_FILE])
+  _CleanDirectory(pathutils.JOB_QUEUE_ARCHIVE_DIR)
 
 
 def GetMasterInfo():
@@ -332,9 +333,9 @@ def _RunMasterSetupScript(master_params, action, use_external_mip_script):
   env = _BuildMasterIpEnv(master_params)
 
   if use_external_mip_script:
-    setup_script = constants.EXTERNAL_MASTER_SETUP_SCRIPT
+    setup_script = pathutils.EXTERNAL_MASTER_SETUP_SCRIPT
   else:
-    setup_script = constants.DEFAULT_MASTER_SETUP_SCRIPT
+    setup_script = pathutils.DEFAULT_MASTER_SETUP_SCRIPT
 
   result = utils.RunCmd([setup_script, action], env=env, reset_env=True)
 
@@ -381,7 +382,7 @@ def StartMasterDaemons(no_voting):
     "EXTRA_MASTERD_ARGS": masterd_args,
     }
 
-  result = utils.RunCmd([constants.DAEMON_UTIL, "start-master"], env=env)
+  result = utils.RunCmd([pathutils.DAEMON_UTIL, "start-master"], env=env)
   if result.failed:
     msg = "Can't start Ganeti master: %s" % result.output
     logging.error(msg)
@@ -416,7 +417,7 @@ def StopMasterDaemons():
   # TODO: log and report back to the caller the error failures; we
   # need to decide in which case we fail the RPC for this
 
-  result = utils.RunCmd([constants.DAEMON_UTIL, "stop-master"])
+  result = utils.RunCmd([pathutils.DAEMON_UTIL, "stop-master"])
   if result.failed:
     logging.error("Could not stop Ganeti master, command %s had exitcode %s"
                   " and error %s",
@@ -489,8 +490,8 @@ def LeaveCluster(modify_ssh_setup):
   @param modify_ssh_setup: boolean
 
   """
-  _CleanDirectory(constants.DATA_DIR)
-  _CleanDirectory(constants.CRYPTO_KEYS_DIR)
+  _CleanDirectory(pathutils.DATA_DIR)
+  _CleanDirectory(pathutils.CRYPTO_KEYS_DIR)
   JobQueuePurge()
 
   if modify_ssh_setup:
@@ -505,15 +506,15 @@ def LeaveCluster(modify_ssh_setup):
       logging.exception("Error while processing ssh files")
 
   try:
-    utils.RemoveFile(constants.CONFD_HMAC_KEY)
-    utils.RemoveFile(constants.RAPI_CERT_FILE)
-    utils.RemoveFile(constants.SPICE_CERT_FILE)
-    utils.RemoveFile(constants.SPICE_CACERT_FILE)
-    utils.RemoveFile(constants.NODED_CERT_FILE)
+    utils.RemoveFile(pathutils.CONFD_HMAC_KEY)
+    utils.RemoveFile(pathutils.RAPI_CERT_FILE)
+    utils.RemoveFile(pathutils.SPICE_CERT_FILE)
+    utils.RemoveFile(pathutils.SPICE_CACERT_FILE)
+    utils.RemoveFile(pathutils.NODED_CERT_FILE)
   except: # pylint: disable=W0702
     logging.exception("Error while removing cluster secrets")
 
-  result = utils.RunCmd([constants.DAEMON_UTIL, "stop", constants.CONFD])
+  result = utils.RunCmd([pathutils.DAEMON_UTIL, "stop", constants.CONFD])
   if result.failed:
     logging.error("Command %s failed with exitcode %s and error %s",
                   result.cmd, result.exit_code, result.output)
@@ -1094,7 +1095,7 @@ def _InstanceLogName(kind, os_name, instance, component):
     c_msg = ""
   base = ("%s-%s-%s%s-%s.log" %
           (kind, os_name, instance, c_msg, utils.TimestampForFilename()))
-  return utils.PathJoin(constants.LOG_OS_DIR, base)
+  return utils.PathJoin(pathutils.LOG_OS_DIR, base)
 
 
 def InstanceOsAdd(instance, reinstall, debug):
@@ -1163,7 +1164,7 @@ def RunRenameInstance(instance, old_name, debug):
 
 
 def _GetBlockDevSymlinkPath(instance_name, idx):
-  return utils.PathJoin(constants.DISK_LINKS_DIR, "%s%s%d" %
+  return utils.PathJoin(pathutils.DISK_LINKS_DIR, "%s%s%d" %
                         (instance_name, constants.DISK_SEPARATOR, idx))
 
 
@@ -2183,7 +2184,7 @@ def DiagnoseOS(top_dirs=None):
 
   """
   if top_dirs is None:
-    top_dirs = constants.OS_SEARCH_PATH
+    top_dirs = pathutils.OS_SEARCH_PATH
 
   result = []
   for dir_name in top_dirs:
@@ -2225,7 +2226,7 @@ def _TryOSFromDisk(name, base_dir=None):
 
   """
   if base_dir is None:
-    os_dir = utils.FindFile(name, constants.OS_SEARCH_PATH, os.path.isdir)
+    os_dir = utils.FindFile(name, pathutils.OS_SEARCH_PATH, os.path.isdir)
   else:
     os_dir = utils.FindFile(name, [base_dir], os.path.isdir)
 
@@ -2517,8 +2518,8 @@ def FinalizeExport(instance, snap_disks):
   @rtype: None
 
   """
-  destdir = utils.PathJoin(constants.EXPORT_DIR, instance.name + ".new")
-  finaldestdir = utils.PathJoin(constants.EXPORT_DIR, instance.name)
+  destdir = utils.PathJoin(pathutils.EXPORT_DIR, instance.name + ".new")
+  finaldestdir = utils.PathJoin(pathutils.EXPORT_DIR, instance.name)
 
   config = objects.SerializableConfigParser()
 
@@ -2620,8 +2621,8 @@ def ListExports():
   @return: list of the exports
 
   """
-  if os.path.isdir(constants.EXPORT_DIR):
-    return sorted(utils.ListVisibleFiles(constants.EXPORT_DIR))
+  if os.path.isdir(pathutils.EXPORT_DIR):
+    return sorted(utils.ListVisibleFiles(pathutils.EXPORT_DIR))
   else:
     _Fail("No exports directory")
 
@@ -2634,7 +2635,7 @@ def RemoveExport(export):
   @rtype: None
 
   """
-  target = utils.PathJoin(constants.EXPORT_DIR, export)
+  target = utils.PathJoin(pathutils.EXPORT_DIR, export)
 
   try:
     shutil.rmtree(target)
@@ -2798,7 +2799,7 @@ def _EnsureJobQueueFile(file_name):
   @raises RPCFail: if the file is not valid
 
   """
-  queue_dir = os.path.normpath(constants.QUEUE_DIR)
+  queue_dir = os.path.normpath(pathutils.QUEUE_DIR)
   result = (os.path.commonprefix([queue_dir, file_name]) == queue_dir)
 
   if not result:
@@ -2977,18 +2978,18 @@ def DemoteFromMC():
   if master == myself:
     _Fail("ssconf status shows I'm the master node, will not demote")
 
-  result = utils.RunCmd([constants.DAEMON_UTIL, "check", constants.MASTERD])
+  result = utils.RunCmd([pathutils.DAEMON_UTIL, "check", constants.MASTERD])
   if not result.failed:
     _Fail("The master daemon is running, will not demote")
 
   try:
-    if os.path.isfile(constants.CLUSTER_CONF_FILE):
-      utils.CreateBackup(constants.CLUSTER_CONF_FILE)
+    if os.path.isfile(pathutils.CLUSTER_CONF_FILE):
+      utils.CreateBackup(pathutils.CLUSTER_CONF_FILE)
   except EnvironmentError, err:
     if err.errno != errno.ENOENT:
       _Fail("Error while backing up cluster file: %s", err, exc=True)
 
-  utils.RemoveFile(constants.CLUSTER_CONF_FILE)
+  utils.RemoveFile(pathutils.CLUSTER_CONF_FILE)
 
 
 def _GetX509Filenames(cryptodir, name):
@@ -3000,7 +3001,7 @@ def _GetX509Filenames(cryptodir, name):
           utils.PathJoin(cryptodir, name, _X509_CERT_FILE))
 
 
-def CreateX509Certificate(validity, cryptodir=constants.CRYPTO_KEYS_DIR):
+def CreateX509Certificate(validity, cryptodir=pathutils.CRYPTO_KEYS_DIR):
   """Creates a new X509 certificate for SSL/TLS.
 
   @type validity: int
@@ -3031,7 +3032,7 @@ def CreateX509Certificate(validity, cryptodir=constants.CRYPTO_KEYS_DIR):
     raise
 
 
-def RemoveX509Certificate(name, cryptodir=constants.CRYPTO_KEYS_DIR):
+def RemoveX509Certificate(name, cryptodir=pathutils.CRYPTO_KEYS_DIR):
   """Removes a X509 certificate.
 
   @type name: string
@@ -3076,9 +3077,9 @@ def _GetImportExportIoCommand(instance, mode, ieio, ieargs):
     real_filename = os.path.realpath(filename)
     directory = os.path.dirname(real_filename)
 
-    if not utils.IsBelowDir(constants.EXPORT_DIR, real_filename):
+    if not utils.IsBelowDir(pathutils.EXPORT_DIR, real_filename):
       _Fail("File '%s' is not under exports directory '%s': %s",
-            filename, constants.EXPORT_DIR, real_filename)
+            filename, pathutils.EXPORT_DIR, real_filename)
 
     # Create directory
     utils.Makedirs(directory, mode=0750)
@@ -3165,7 +3166,7 @@ def _CreateImportExportStatusDir(prefix):
   """Creates status directory for import/export.
 
   """
-  return tempfile.mkdtemp(dir=constants.IMPORT_EXPORT_DIR,
+  return tempfile.mkdtemp(dir=pathutils.IMPORT_EXPORT_DIR,
                           prefix=("%s-%s-" %
                                   (prefix, utils.TimestampForFilename())))
 
@@ -3213,11 +3214,11 @@ def StartImportExportDaemon(mode, opts, host, port, instance, component,
 
   if opts.key_name is None:
     # Use server.pem
-    key_path = constants.NODED_CERT_FILE
-    cert_path = constants.NODED_CERT_FILE
+    key_path = pathutils.NODED_CERT_FILE
+    cert_path = pathutils.NODED_CERT_FILE
     assert opts.ca_pem is None
   else:
-    (_, key_path, cert_path) = _GetX509Filenames(constants.CRYPTO_KEYS_DIR,
+    (_, key_path, cert_path) = _GetX509Filenames(pathutils.CRYPTO_KEYS_DIR,
                                                  opts.key_name)
     assert opts.ca_pem is not None
 
@@ -3233,7 +3234,7 @@ def StartImportExportDaemon(mode, opts, host, port, instance, component,
 
     if opts.ca_pem is None:
       # Use server.pem
-      ca = utils.ReadFile(constants.NODED_CERT_FILE)
+      ca = utils.ReadFile(pathutils.NODED_CERT_FILE)
     else:
       ca = opts.ca_pem
 
@@ -3241,7 +3242,7 @@ def StartImportExportDaemon(mode, opts, host, port, instance, component,
     utils.WriteFile(ca_file, data=ca, mode=0400)
 
     cmd = [
-      constants.IMPORT_EXPORT_DAEMON,
+      pathutils.IMPORT_EXPORT_DAEMON,
       status_file, mode,
       "--key=%s" % key_path,
       "--cert=%s" % cert_path,
@@ -3311,7 +3312,7 @@ def GetImportExportStatus(names):
   result = []
 
   for name in names:
-    status_file = utils.PathJoin(constants.IMPORT_EXPORT_DIR, name,
+    status_file = utils.PathJoin(pathutils.IMPORT_EXPORT_DIR, name,
                                  _IES_STATUS_FILE)
 
     try:
@@ -3336,7 +3337,7 @@ def AbortImportExport(name):
   """
   logging.info("Abort import/export %s", name)
 
-  status_dir = utils.PathJoin(constants.IMPORT_EXPORT_DIR, name)
+  status_dir = utils.PathJoin(pathutils.IMPORT_EXPORT_DIR, name)
   pid = utils.ReadLockedPidFile(utils.PathJoin(status_dir, _IES_PID_FILE))
 
   if pid:
@@ -3354,7 +3355,7 @@ def CleanupImportExport(name):
   """
   logging.info("Finalizing import/export %s", name)
 
-  status_dir = utils.PathJoin(constants.IMPORT_EXPORT_DIR, name)
+  status_dir = utils.PathJoin(pathutils.IMPORT_EXPORT_DIR, name)
 
   pid = utils.ReadLockedPidFile(utils.PathJoin(status_dir, _IES_PID_FILE))
 
@@ -3542,7 +3543,7 @@ class HooksRunner(object):
 
     """
     if hooks_base_dir is None:
-      hooks_base_dir = constants.HOOKS_BASE_DIR
+      hooks_base_dir = pathutils.HOOKS_BASE_DIR
     # yeah, _BASE_DIR is not valid for attributes, we use it like a
     # constant
     self._BASE_DIR = hooks_base_dir # pylint: disable=C0103
@@ -3666,7 +3667,7 @@ class DevCacheManager(object):
 
   """
   _DEV_PREFIX = "/dev/"
-  _ROOT_DIR = constants.BDEV_CACHE_DIR
+  _ROOT_DIR = pathutils.BDEV_CACHE_DIR
 
   @classmethod
   def _ConvertPath(cls, dev_path):
