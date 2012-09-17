@@ -10409,6 +10409,137 @@ class LUInstanceCreate(LogicalUnit):
     return list(iobj.all_nodes)
 
 
+class LUInstanceMultiAlloc(NoHooksLU):
+  """Allocates multiple instances at the same time.
+
+  """
+  REQ_BGL = False
+
+  def CheckArguments(self):
+    """Check arguments.
+
+    """
+    nodes = []
+    for inst in self.op.instances:
+      if inst.iallocator is not None:
+        raise errors.OpPrereqError("iallocator are not allowed to be set on"
+                                   " instance objects", errors.ECODE_INVAL)
+      nodes.append(bool(inst.pnode))
+      if inst.disk_template in constants.DTS_INT_MIRROR:
+        nodes.append(bool(inst.snode))
+
+    has_nodes = compat.any(nodes)
+    if compat.all(nodes) ^ has_nodes:
+      raise errors.OpPrereqError("There are instance objects providing"
+                                 " pnode/snode while others do not",
+                                 errors.ECODE_INVAL)
+
+    if self.op.iallocator is None:
+      default_iallocator = self.cfg.GetDefaultIAllocator()
+      if default_iallocator and has_nodes:
+        self.op.iallocator = default_iallocator
+      else:
+        raise errors.OpPrereqError("No iallocator or nodes on the instances"
+                                   " given and no cluster-wide default"
+                                   " iallocator found; please specify either"
+                                   " an iallocator or nodes on the instances"
+                                   " or set a cluster-wide default iallocator",
+                                   errors.ECODE_INVAL)
+
+    dups = utils.FindDuplicates([op.instance_name for op in self.op.instances])
+    if dups:
+      raise errors.OpPrereqError("There are duplicate instance names: %s" %
+                                 utils.CommaJoin(dups), errors.ECODE_INVAL)
+
+  def ExpandNames(self):
+    """Calculate the locks.
+
+    """
+    self.share_locks = _ShareAll()
+    self.needed_locks = {}
+
+    if self.op.iallocator:
+      self.needed_locks[locking.LEVEL_NODE] = locking.ALL_SET
+      self.needed_locks[locking.LEVEL_NODE_RES] = locking.ALL_SET
+    else:
+      nodeslist = []
+      for inst in self.op.instances:
+        inst.pnode = _ExpandNodeName(self.cfg, inst.pnode)
+        nodeslist.append(inst.pnode)
+        if inst.snode is not None:
+          inst.snode = _ExpandNodeName(self.cfg, inst.snode)
+          nodeslist.append(inst.snode)
+
+      self.needed_locks[locking.LEVEL_NODE] = nodeslist
+      # Lock resources of instance's primary and secondary nodes (copy to
+      # prevent accidential modification)
+      self.needed_locks[locking.LEVEL_NODE_RES] = list(nodeslist)
+
+  def CheckPrereq(self):
+    """Check prerequisite.
+
+    """
+    cluster = self.cfg.GetClusterInfo()
+    default_vg = self.cfg.GetVGName()
+    insts = [_CreateInstanceAllocRequest(op, _ComputeDisks(op, default_vg),
+                                         _ComputeNics(op, cluster, None,
+                                                      self.cfg, self.proc),
+                                         _ComputeFullBeParams(op, cluster))
+             for op in self.op.instances]
+    req = iallocator.IAReqMultiInstanceAlloc(instances=insts)
+    ial = iallocator.IAllocator(self.cfg, self.rpc, req)
+
+    ial.Run(self.op.iallocator)
+
+    if not ial.success:
+      raise errors.OpPrereqError("Can't compute nodes using"
+                                 " iallocator '%s': %s" %
+                                 (self.op.iallocator, ial.info),
+                                 errors.ECODE_NORES)
+
+    self.ia_result = ial.result
+
+    if self.op.dry_run:
+      self.dry_run_rsult = objects.FillDict(self._ConstructPartialResult(), {
+        constants.JOB_IDS_KEY: [],
+        })
+
+  def _ConstructPartialResult(self):
+    """Contructs the partial result.
+
+    """
+    (allocatable, failed) = self.ia_result
+    return {
+      opcodes.OpInstanceMultiAlloc.ALLOCATABLE_KEY:
+        map(compat.fst, allocatable),
+      opcodes.OpInstanceMultiAlloc.FAILED_KEY: failed,
+      }
+
+  def Exec(self, feedback_fn):
+    """Executes the opcode.
+
+    """
+    op2inst = dict((op.instance_name, op) for op in self.op.instances)
+    (allocatable, failed) = self.ia_result
+
+    jobs = []
+    for (name, nodes) in allocatable:
+      op = op2inst.pop(name)
+
+      if len(nodes) > 1:
+        (op.pnode, op.snode) = nodes
+      else:
+        (op.pnode,) = nodes
+
+      jobs.append([op])
+
+    missing = set(op2inst.keys()) - set(failed)
+    assert not missing, \
+      "Iallocator did return incomplete result: %s" % utils.CommaJoin(missing)
+
+    return ResultWithJobs(jobs, **self._ConstructPartialResult())
+
+
 def _CheckRADOSFreeSpace():
   """Compute disk size requirements inside the RADOS cluster.
 
