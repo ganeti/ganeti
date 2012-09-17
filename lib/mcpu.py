@@ -40,6 +40,7 @@ from ganeti import cmdlib
 from ganeti import locking
 from ganeti import utils
 from ganeti import compat
+from ganeti import pathutils
 
 
 _OP_PREFIX = "Op"
@@ -627,7 +628,7 @@ class HooksMaster(object):
       "PATH": constants.HOOKS_PATH,
       "GANETI_HOOKS_VERSION": constants.HOOKS_VERSION,
       "GANETI_OP_CODE": self.opcode,
-      "GANETI_DATA_DIR": constants.DATA_DIR,
+      "GANETI_DATA_DIR": pathutils.DATA_DIR,
       "GANETI_HOOKS_PHASE": phase,
       "GANETI_HOOKS_PATH": hpath,
       }
