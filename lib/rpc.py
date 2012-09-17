@@ -47,6 +47,7 @@ from ganeti import ssconf
 from ganeti import runtime
 from ganeti import compat
 from ganeti import rpc_defs
+from ganeti import pathutils
 
 # Special module generated at build time
 from ganeti import _generated_rpc
@@ -93,7 +94,7 @@ def Shutdown():
 
 
 def _ConfigRpcCurl(curl):
-  noded_cert = str(constants.NODED_CERT_FILE)
+  noded_cert = str(pathutils.NODED_CERT_FILE)
 
   curl.setopt(pycurl.FOLLOWLOCATION, False)
   curl.setopt(pycurl.CAINFO, noded_cert)
