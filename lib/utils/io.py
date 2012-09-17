@@ -32,6 +32,7 @@ import stat
 
 from ganeti import errors
 from ganeti import constants
+from ganeti import pathutils
 from ganeti.utils import filelock
 
 
@@ -903,7 +904,7 @@ def DaemonPidFileName(name):
       daemon name
 
   """
-  return PathJoin(constants.RUN_DIR, "%s.pid" % name)
+  return PathJoin(pathutils.RUN_DIR, "%s.pid" % name)
 
 
 def WritePidFile(pidfile):

@@ -41,6 +41,7 @@ import signal
 from ganeti import errors
 from ganeti import constants
 from ganeti import compat
+from ganeti import pathutils
 
 from ganeti.utils.algo import *
 from ganeti.utils.filelock import *
@@ -466,7 +467,7 @@ def EnsureDaemon(name):
   """Check for and start daemon if not alive.
 
   """
-  result = RunCmd([constants.DAEMON_UTIL, "check-and-start", name])
+  result = RunCmd([pathutils.DAEMON_UTIL, "check-and-start", name])
   if result.failed:
     logging.error("Can't start daemon '%s', failure %s, output: %s",
                   name, result.fail_reason, result.output)
@@ -479,7 +480,7 @@ def StopDaemon(name):
   """Stop daemon
 
   """
-  result = RunCmd([constants.DAEMON_UTIL, "stop", name])
+  result = RunCmd([pathutils.DAEMON_UTIL, "stop", name])
   if result.failed:
     logging.error("Can't stop daemon '%s', failure %s, output: %s",
                   name, result.fail_reason, result.output)
