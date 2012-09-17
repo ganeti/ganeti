@@ -63,6 +63,7 @@ from ganeti import confd
 from ganeti import ssconf
 from ganeti import compat
 from ganeti import netutils
+from ganeti import pathutils
 
 
 class ConfdAsyncUDPClient(daemon.AsyncUDPSocket):
@@ -689,5 +690,5 @@ def GetConfdClient(callback):
   ss = ssconf.SimpleStore()
   mc_file = ss.KeyToFilename(constants.SS_MASTER_CANDIDATES_IPS)
   mc_list = utils.ReadFile(mc_file).splitlines()
-  hmac_key = utils.ReadFile(constants.CONFD_HMAC_KEY)
+  hmac_key = utils.ReadFile(pathutils.CONFD_HMAC_KEY)
   return ConfdClient(hmac_key, mc_list, callback)

@@ -35,6 +35,7 @@ from ganeti import errors
 from ganeti import utils
 from ganeti import serializer
 from ganeti import ssconf
+from ganeti import pathutils
 
 from ganeti.confd import querylib
 
@@ -63,7 +64,7 @@ class ConfdProcessor(object):
 
     """
     self.disabled = True
-    self.hmac_key = utils.ReadFile(constants.CONFD_HMAC_KEY)
+    self.hmac_key = utils.ReadFile(pathutils.CONFD_HMAC_KEY)
     self.reader = None
     assert \
       not constants.CONFD_REQS.symmetric_difference(self.DISPATCH_TABLE), \
