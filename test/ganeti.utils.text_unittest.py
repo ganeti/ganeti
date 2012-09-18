@@ -315,26 +315,43 @@ class TestShellWriter(unittest.TestCase):
     sw = None
     self.assertEqual(buf.getvalue(), "")
 
+  def testEmptyNoIndent(self):
+    buf = StringIO()
+    sw = utils.ShellWriter(buf, indent=False)
+    sw = None
+    self.assertEqual(buf.getvalue(), "")
+
+  @classmethod
+  def _AddLevel(cls, sw, level):
+    if level == 6:
+      return
+
+    sw.IncIndent()
+    try:
+      # Add empty line, it should not be indented
+      sw.Write("")
+      sw.Write(str(level))
+      cls._AddLevel(sw, level + 1)
+    finally:
+      sw.DecIndent()
+
   def testEmptyLines(self):
     buf = StringIO()
     sw = utils.ShellWriter(buf)
 
-    def _AddLevel(level):
-      if level == 6:
-        return
-      sw.IncIndent()
-      try:
-        # Add empty line, it should not be indented
-        sw.Write("")
-        sw.Write(str(level))
-        _AddLevel(level + 1)
-      finally:
-        sw.DecIndent()
-
-    _AddLevel(1)
+    self._AddLevel(sw, 1)
 
     self.assertEqual(buf.getvalue(),
                      "".join("\n%s%s\n" % (i * "  ", i) for i in range(1, 6)))
+
+  def testEmptyLinesNoIndent(self):
+    buf = StringIO()
+    sw = utils.ShellWriter(buf, indent=False)
+
+    self._AddLevel(sw, 1)
+
+    self.assertEqual(buf.getvalue(),
+                     "".join("\n%s\n" % i for i in range(1, 6)))
 
 
 class TestNormalizeAndValidateMac(unittest.TestCase):

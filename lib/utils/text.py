@@ -245,11 +245,12 @@ class ShellWriter:
   """
   INDENT_STR = "  "
 
-  def __init__(self, fh):
+  def __init__(self, fh, indent=True):
     """Initializes this class.
 
     """
     self._fh = fh
+    self._indent_enabled = indent
     self._indent = 0
 
   def IncIndent(self):
@@ -276,7 +277,7 @@ class ShellWriter:
     else:
       line = txt
 
-    if line:
+    if line and self._indent_enabled:
       # Indent only if there's something on the line
       self._fh.write(self._indent * self.INDENT_STR)
 
