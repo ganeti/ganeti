@@ -216,8 +216,8 @@ class IAReqMultiInstanceAlloc(IARequestBase):
                                   ht.TListOf(ht.TNonEmptyString),
                                   ])))
   _MAFAILED = ht.TListOf(ht.TNonEmptyString)
-  REQ_RESULT = ht.TListOf(ht.TAnd(ht.TIsLength(2),
-                                  ht.TItems([_MASUCCESS, _MAFAILED])))
+  REQ_RESULT = ht.TAnd(ht.TList, ht.TIsLength(2),
+                       ht.TItems([_MASUCCESS, _MAFAILED]))
 
   def GetRequest(self, cfg):
     return {
