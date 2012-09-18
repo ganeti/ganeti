@@ -991,6 +991,7 @@ def GetInstanceInfo(instance, hname):
       - memory: memory size of instance (int)
       - state: xen state of instance (string)
       - time: cpu time of instance (float)
+      - vcpus: the number of vcpus (int)
 
   """
   output = {}
@@ -998,6 +999,7 @@ def GetInstanceInfo(instance, hname):
   iinfo = hypervisor.GetHypervisor(hname).GetInstanceInfo(instance)
   if iinfo is not None:
     output["memory"] = iinfo[2]
+    output["vcpus"] = iinfo[3]
     output["state"] = iinfo[4]
     output["time"] = iinfo[5]
 
