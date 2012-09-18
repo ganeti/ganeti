@@ -520,13 +520,12 @@ def WriteCompletion(sw, scriptname, funcname,
   @param commands: List of all subcommands in this program
 
   """
-  sw.Write("%s() {", funcname)
+  sw.Write("%s_inner() {", funcname)
   sw.IncIndent()
   try:
-    sw.Write("local "
+    sw.Write("local i first_arg_idx choices compgenargs arg_idx optcur"
              ' cur="${COMP_WORDS[COMP_CWORD]}"'
-             ' prev="${COMP_WORDS[COMP_CWORD-1]}"'
-             ' i first_arg_idx choices compgenargs arg_idx optcur')
+             ' prev="${COMP_WORDS[COMP_CWORD-1]}"')
 
     sw.Write("_gnt_log cur=\"$cur\" prev=\"$prev\"")
     sw.Write("[[ -n \"$GANETI_COMPL_LOG\" ]] &&"
@@ -571,6 +570,25 @@ def WriteCompletion(sw, scriptname, funcname,
           sw.DecIndent()
         sw.Write(";;")
       sw.Write("esac")
+  finally:
+    sw.DecIndent()
+  sw.Write("}")
+
+  # Wrapper function to always enable extglob (needed for advanced pattern
+  # matching)
+  sw.Write("%s() {", funcname)
+  sw.IncIndent()
+  try:
+    # Get current state of extglob
+    sw.Write("local -r eg=$(shopt -p extglob || :)")
+
+    # Enable extglob
+    sw.Write("shopt -s extglob")
+
+    sw.Write("%s_inner \"$@\"", funcname)
+
+    # Reset extglob to original value
+    sw.Write("[[ -n \"$eg\" ]] && $eg")
   finally:
     sw.DecIndent()
   sw.Write("}")
