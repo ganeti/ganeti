@@ -41,6 +41,9 @@ module Ganeti.Rpc
   , rpcResultFill
 
   , InstanceInfo(..)
+  , RpcCallInstanceInfo(..)
+  , RpcResultInstanceInfo(..)
+
   , RpcCallAllInstancesInfo(..)
   , RpcResultAllInstancesInfo(..)
 
@@ -233,10 +236,13 @@ sanitizeDictResults ((name, J.Ok val):xs) =
 
 -- * RPC calls and results
 
--- | AllInstancesInfo
---   Returns information about all running instances on the given nodes.
-$(buildObject "RpcCallAllInstancesInfo" "rpcCallAllInstInfo"
-  [ simpleField "hypervisors" [t| [Hypervisor] |] ])
+-- | InstanceInfo
+--   Returns information about a single instance.
+
+$(buildObject "RpcCallInstanceInfo" "rpcCallInstInfo"
+  [ simpleField "instance" [t| String |]
+  , simpleField "hname" [t| Hypervisor |]
+  ])
 
 $(buildObject "InstanceInfo" "instInfo"
   [ simpleField "memory" [t| Int|]
@@ -244,6 +250,38 @@ $(buildObject "InstanceInfo" "instInfo"
   , simpleField "vcpus"  [t| Int |]
   , simpleField "time"   [t| Int |]
   ])
+
+-- This is optional here because the result may be empty if instance is
+-- not on a node - and this is not considered an error.
+$(buildObject "RpcResultInstanceInfo" "rpcResInstInfo"
+  [ optionalField $ simpleField "inst_info" [t| InstanceInfo |]])
+
+instance RpcCall RpcCallInstanceInfo where
+  rpcCallName _ = "instance_info"
+  rpcCallTimeout _ = rpcTimeoutToRaw Urgent
+  rpcCallAcceptOffline _ = False
+  rpcCallData _ call = J.encode
+    ( rpcCallInstInfoInstance call
+    , rpcCallInstInfoHname call
+    )
+
+instance Rpc RpcCallInstanceInfo RpcResultInstanceInfo where
+  rpcResultFill _ res =
+    return $ case res of
+      J.JSObject res' ->
+        case J.fromJSObject res' of
+          [] -> Right $ RpcResultInstanceInfo Nothing
+          _ ->
+            case J.readJSON res of
+              J.Error err -> Left $ JsonDecodeError err
+              J.Ok val -> Right . RpcResultInstanceInfo $ Just val
+      _ -> Left $ JsonDecodeError
+           ("Expected JSObject, got " ++ show res)
+
+-- | AllInstancesInfo
+--   Returns information about all running instances on the given nodes
+$(buildObject "RpcCallAllInstancesInfo" "rpcCallAllInstInfo"
+  [ simpleField "hypervisors" [t| [Hypervisor] |] ])
 
 $(buildObject "RpcResultAllInstancesInfo" "rpcResAllInstInfo"
   [ simpleField "instances" [t| [(String, InstanceInfo)] |] ])
