@@ -29,6 +29,7 @@
 import os
 import re
 import itertools
+import optparse
 from cStringIO import StringIO
 
 from ganeti import constants
@@ -46,7 +47,7 @@ from ganeti import _autoconf
 _OPT_NAME_RE = re.compile(r"^-[a-zA-Z0-9]|--[a-z][-a-z0-9]+$")
 
 
-def WritePreamble(sw):
+def WritePreamble(sw, support_debug):
   """Writes the script preamble.
 
   Helper functions should be written here.
@@ -55,27 +56,28 @@ def WritePreamble(sw):
   sw.Write("# This script is automatically generated at build time.")
   sw.Write("# Do not modify manually.")
 
-  sw.Write("_gnt_log() {")
-  sw.IncIndent()
-  try:
-    sw.Write("if [[ -n \"$GANETI_COMPL_LOG\" ]]; then")
+  if support_debug:
+    sw.Write("_gnt_log() {")
     sw.IncIndent()
     try:
-      sw.Write("{")
+      sw.Write("if [[ -n \"$GANETI_COMPL_LOG\" ]]; then")
       sw.IncIndent()
       try:
-        sw.Write("echo ---")
-        sw.Write("echo \"$@\"")
-        sw.Write("echo")
+        sw.Write("{")
+        sw.IncIndent()
+        try:
+          sw.Write("echo ---")
+          sw.Write("echo \"$@\"")
+          sw.Write("echo")
+        finally:
+          sw.DecIndent()
+        sw.Write("} >> $GANETI_COMPL_LOG")
       finally:
         sw.DecIndent()
-      sw.Write("} >> $GANETI_COMPL_LOG")
+      sw.Write("fi")
     finally:
       sw.DecIndent()
-    sw.Write("fi")
-  finally:
-    sw.DecIndent()
-  sw.Write("}")
+    sw.Write("}")
 
   sw.Write("_ganeti_nodes() {")
   sw.IncIndent()
@@ -212,7 +214,8 @@ def WritePreamble(sw):
       sw.DecIndent()
     sw.Write("fi")
 
-    sw.Write("_gnt_log optcur=\"'$optcur'\"")
+    if support_debug:
+      sw.Write("_gnt_log optcur=\"'$optcur'\"")
 
     sw.Write("return 1")
   finally:
@@ -225,7 +228,8 @@ def WritePreamble(sw):
   sw.IncIndent()
   try:
     sw.Write("""COMPREPLY=( $(compgen "$@") )""")
-    sw.Write("_gnt_log COMPREPLY=\"${COMPREPLY[@]}\"")
+    if support_debug:
+      sw.Write("_gnt_log COMPREPLY=\"${COMPREPLY[@]}\"")
   finally:
     sw.DecIndent()
   sw.Write("}")
@@ -240,10 +244,11 @@ class CompletionWriter:
   """Command completion writer class.
 
   """
-  def __init__(self, arg_offset, opts, args):
+  def __init__(self, arg_offset, opts, args, support_debug):
     self.arg_offset = arg_offset
     self.opts = opts
     self.args = args
+    self.support_debug = support_debug
 
     for opt in opts:
       # While documented, these variables aren't seen as public attributes by
@@ -365,8 +370,9 @@ class CompletionWriter:
             sw.DecIndent()
           sw.Write("fi")
 
-          sw.Write("_gnt_log pfx=\"'$pfx'\" curvalue=\"'$curvalue'\""
-                   " node1=\"'$node1'\"")
+          if self.support_debug:
+            sw.Write("_gnt_log pfx=\"'$pfx'\" curvalue=\"'$curvalue'\""
+                     " node1=\"'$node1'\"")
 
           sw.Write("for i in $(_ganeti_nodes); do")
           sw.IncIndent()
@@ -505,7 +511,7 @@ class CompletionWriter:
     self._CompleteArguments(sw)
 
 
-def WriteCompletion(sw, scriptname, funcname,
+def WriteCompletion(sw, scriptname, funcname, support_debug,
                     commands=None,
                     opts=None, args=None):
   """Writes the completion code for one command.
@@ -527,15 +533,16 @@ def WriteCompletion(sw, scriptname, funcname,
              ' cur="${COMP_WORDS[COMP_CWORD]}"'
              ' prev="${COMP_WORDS[COMP_CWORD-1]}"')
 
-    sw.Write("_gnt_log cur=\"$cur\" prev=\"$prev\"")
-    sw.Write("[[ -n \"$GANETI_COMPL_LOG\" ]] &&"
-             " _gnt_log \"$(set | grep ^COMP_)\"")
+    if support_debug:
+      sw.Write("_gnt_log cur=\"$cur\" prev=\"$prev\"")
+      sw.Write("[[ -n \"$GANETI_COMPL_LOG\" ]] &&"
+               " _gnt_log \"$(set | grep ^COMP_)\"")
 
     sw.Write("COMPREPLY=()")
 
     if opts is not None and args is not None:
       assert not commands
-      CompletionWriter(0, opts, args).WriteTo(sw)
+      CompletionWriter(0, opts, args, support_debug).WriteTo(sw)
 
     else:
       sw.Write("""if [[ "$COMP_CWORD" == 1 ]]; then""")
@@ -565,7 +572,7 @@ def WriteCompletion(sw, scriptname, funcname,
         sw.Write("%s)", "|".join(map(utils.ShellQuote, sorted(cmds))))
         sw.IncIndent()
         try:
-          CompletionWriter(1, optdef, argdef).WriteTo(sw)
+          CompletionWriter(1, optdef, argdef, support_debug).WriteTo(sw)
         finally:
           sw.DecIndent()
         sw.Write(";;")
@@ -638,23 +645,33 @@ def GetCommands(filename, module):
 
 
 def main():
-  buf = StringIO()
-  sw = utils.ShellWriter(buf)
+  parser = optparse.OptionParser(usage="%prog [--compact]")
+  parser.add_option("--compact", action="store_true",
+                    help=("Don't indent output and don't include debugging"
+                          " facilities"))
 
-  WritePreamble(sw)
+  options, args = parser.parse_args()
+  if args:
+    parser.error("Wrong number of arguments")
+
+  buf = StringIO()
+  sw = utils.ShellWriter(buf, indent=not options.compact)
+
+  WritePreamble(sw, not options.compact)
 
   # gnt-* scripts
   for scriptname in _autoconf.GNT_SCRIPTS:
     filename = "scripts/%s" % scriptname
 
-    WriteCompletion(sw, scriptname,
-                    GetFunctionName(scriptname),
+    WriteCompletion(sw, scriptname, GetFunctionName(scriptname),
+                    not options.compact,
                     commands=GetCommands(filename,
                                          build.LoadModule(filename)))
 
   # Burnin script
   burnin = build.LoadModule("tools/burnin")
   WriteCompletion(sw, "%s/burnin" % pathutils.TOOLSDIR, "_ganeti_burnin",
+                  not options.compact,
                   opts=burnin.OPTIONS, args=burnin.ARGUMENTS)
 
   print buf.getvalue()

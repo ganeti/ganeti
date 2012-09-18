@@ -63,6 +63,7 @@
 
 # doc/examples
 /doc/examples/bash_completion
+/doc/examples/bash_completion-debug
 /doc/examples/ganeti.cron
 /doc/examples/ganeti.initd
 /doc/examples/ganeti-kvm-poweroff.initd

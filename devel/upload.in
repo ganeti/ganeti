@@ -91,8 +91,8 @@ install -D --mode=0755 doc/examples/ganeti.initd \
 install -D --mode=0644 doc/examples/ganeti.default-debug \
   "$TXD/$SYSCONFDIR/default/ganeti"
 
-[ -f doc/examples/bash_completion ] && \
-install -D --mode=0644 doc/examples/bash_completion \
+[ -f doc/examples/bash_completion-debug ] && \
+install -D --mode=0644 doc/examples/bash_completion-debug \
   "$TXD/$SYSCONFDIR/bash_completion.d/ganeti"
 
 if [ -f doc/examples/ganeti.cron -a -z "$NO_CRON" ]; then

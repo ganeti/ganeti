@@ -155,6 +155,7 @@ CLEANFILES = \
 	devel/upload \
 	$(BUILT_EXAMPLES) \
 	doc/examples/bash_completion \
+	doc/examples/bash_completion-debug \
 	lib/_generated_rpc.py \
 	$(man_MANS) \
 	$(manhtml) \
@@ -530,6 +531,7 @@ noinst_DATA = \
 	doc/html \
 	$(BUILT_EXAMPLES) \
 	doc/examples/bash_completion \
+	doc/examples/bash_completion-debug \
 	$(manhtml)
 
 gnt_scripts = \
@@ -1040,10 +1042,15 @@ daemons/%:: daemons/%.in $(REPLACE_VARS_SED)
 doc/examples/%:: doc/examples/%.in $(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@
 
-doc/examples/bash_completion: $(BUILD_BASH_COMPLETION) $(RUN_IN_TEMPDIR) \
+doc/examples/bash_completion: BC_ARGS = --compact
+doc/examples/bash_completion-debug: BC_ARGS =
+
+doc/examples/bash_completion doc/examples/bash_completion-debug: \
+	$(BUILD_BASH_COMPLETION) $(RUN_IN_TEMPDIR) \
 	lib/cli.py $(gnt_scripts) $(client_PYTHON) tools/burnin \
 	$(GENERATED_FILES)
-	PYTHONPATH=. $(RUN_IN_TEMPDIR) $(CURDIR)/$(BUILD_BASH_COMPLETION) > $@
+	PYTHONPATH=. $(RUN_IN_TEMPDIR) \
+	  $(CURDIR)/$(BUILD_BASH_COMPLETION) $(BC_ARGS) > $@
 
 doc/%.png: doc/%.dot
 	@test -n "$(DOT)" || { echo 'dot' not found during configure; exit 1; }
