@@ -130,7 +130,7 @@ class IARequestBase(objectutils.ValidatedSlots):
     @raises ResultValidationError: If validation fails
 
     """
-    if not (ia.success and self.REQ_RESULT(result)):
+    if ia.success and not self.REQ_RESULT(result):
       raise errors.ResultValidationError("iallocator returned invalid result,"
                                          " expected %s, got %s" %
                                          (self.REQ_RESULT, result))
