@@ -46,6 +46,7 @@ import testutils
 _KNOWN_UNUSED = set([
   rlib2.R_root,
   rlib2.R_2,
+  rlib2.R_2_instances_multi_alloc,
   ])
 
 # Global variable for collecting used handlers

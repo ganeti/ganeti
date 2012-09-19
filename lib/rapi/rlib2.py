@@ -812,6 +812,24 @@ class R_2_instances(baserlib.OpcodeResource):
       })
 
 
+class R_2_instances_multi_alloc(baserlib.OpcodeResource):
+  """/2/instances-multi-alloc resource.
+
+  """
+  POST_OPCODE = opcodes.OpInstanceMultiAlloc
+
+  def GetPostOpInput(self):
+    """Try to allocate multiple instances.
+
+    @return: A dict with submitted jobs, allocatable instances and failed
+             allocations
+
+    """
+    return (self.request_body, {
+      "dry_run": self.dryRun(),
+      })
+
+
 class R_2_instances_name(baserlib.OpcodeResource):
   """/2/instances/[instance_name] resource.
 

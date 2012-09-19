@@ -628,6 +628,25 @@ to URI like::
 It supports the ``dry-run`` argument.
 
 
+``/2/instances-multi-alloc``
+++++++++++++++++++++++++++++
+
+Tries to allocate multiple instances.
+
+It supports the following commands: ``POST``
+
+``POST``
+~~~~~~~~
+
+The parameters:
+
+.. opcode_params:: OP_INSTANCE_MULTI_ALLOC
+
+Job result:
+
+.. opcode_result:: OP_INSTANCE_MULTI_ALLOC
+
+
 ``/2/instances``
 ++++++++++++++++
 

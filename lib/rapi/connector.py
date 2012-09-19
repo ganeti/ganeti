@@ -185,6 +185,7 @@ def GetHandlers(node_name_pattern, instance_name_pattern,
     re.compile(r"^/2/jobs/(%s)/wait$" % job_id_pattern):
       rlib2.R_2_jobs_id_wait,
 
+    "/2/instances-multi-alloc": rlib2.R_2_instances_multi_alloc,
     "/2/tags": rlib2.R_2_tags,
     "/2/info": rlib2.R_2_info,
     "/2/os": rlib2.R_2_os,
