@@ -880,6 +880,7 @@ python_tests = \
 	test/ganeti.jstore_unittest.py \
 	test/ganeti.locking_unittest.py \
 	test/ganeti.luxi_unittest.py \
+	test/ganeti.masterd.iallocator_unittest.py \
 	test/ganeti.masterd.instance_unittest.py \
 	test/ganeti.mcpu_unittest.py \
 	test/ganeti.netutils_unittest.py \
