@@ -587,6 +587,18 @@ cpu\_mask
       # Turn off CPU pinning (default setting)
       gnt-instance modify -H cpu_mask=all my-inst
 
+cpu\_cap
+    Valid for the Xen hypervisor.
+
+    Set the maximum amount of cpu usage by the VM. The value is a percentage
+    between 0 and (100 * number of VCPUs). Default cap is 0: unlimited.
+
+cpu\_weight
+    Valid for the Xen hypervisor.
+
+    Set the cpu time ratio to be allocated to the VM. Valid values are
+    between 1 and 65535. Default weight is 256.
+
 usb\_mouse
     Valid for the KVM hypervisor.
 

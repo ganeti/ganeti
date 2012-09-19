@@ -630,6 +630,9 @@ class XenPvmHypervisor(XenHypervisor):
     constants.HV_REBOOT_BEHAVIOR:
       hv_base.ParamInSet(True, constants.REBOOT_BEHAVIORS),
     constants.HV_CPU_MASK: hv_base.OPT_MULTI_CPU_MASK_CHECK,
+    constants.HV_CPU_CAP: hv_base.NO_CHECK,
+    constants.HV_CPU_WEIGHT:
+      (False, lambda x: 0 < x < 65536, "invalid weight", None, None),
     }
 
   @classmethod
@@ -672,6 +675,12 @@ class XenPvmHypervisor(XenHypervisor):
     cpu_pinning = cls._CreateConfigCpus(hvp[constants.HV_CPU_MASK])
     if cpu_pinning:
       config.write("%s\n" % cpu_pinning)
+    cpu_cap = hvp[constants.HV_CPU_CAP]
+    if cpu_cap:
+      config.write("cpu_cap=%d\n" % cpu_cap)
+    cpu_weight = hvp[constants.HV_CPU_WEIGHT]
+    if cpu_weight:
+      config.write("cpu_weight=%d\n" % cpu_weight)
 
     config.write("name = '%s'\n" % instance.name)
 
@@ -743,6 +752,9 @@ class XenHvmHypervisor(XenHypervisor):
     constants.HV_REBOOT_BEHAVIOR:
       hv_base.ParamInSet(True, constants.REBOOT_BEHAVIORS),
     constants.HV_CPU_MASK: hv_base.OPT_MULTI_CPU_MASK_CHECK,
+    constants.HV_CPU_CAP: hv_base.NO_CHECK,
+    constants.HV_CPU_WEIGHT:
+      (False, lambda x: 0 < x < 65535, "invalid weight", None, None),
     }
 
   @classmethod
@@ -766,6 +778,12 @@ class XenHvmHypervisor(XenHypervisor):
     cpu_pinning = cls._CreateConfigCpus(hvp[constants.HV_CPU_MASK])
     if cpu_pinning:
       config.write("%s\n" % cpu_pinning)
+    cpu_cap = hvp[constants.HV_CPU_CAP]
+    if cpu_cap:
+      config.write("cpu_cap=%d\n" % cpu_cap)
+    cpu_weight = hvp[constants.HV_CPU_WEIGHT]
+    if cpu_weight:
+      config.write("cpu_weight=%d\n" % cpu_weight)
 
     config.write("name = '%s'\n" % instance.name)
     if hvp[constants.HV_PAE]:
