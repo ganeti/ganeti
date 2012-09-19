@@ -10649,8 +10649,24 @@ class LUInstanceReplaceDisks(LogicalUnit):
   REQ_BGL = False
 
   def CheckArguments(self):
-    TLReplaceDisks.CheckArguments(self.op.mode, self.op.remote_node,
-                                  self.op.iallocator)
+    """Check arguments.
+
+    """
+    remote_node = self.op.remote_node
+    ialloc = self.op.iallocator
+    if self.op.mode == constants.REPLACE_DISK_CHG:
+      if remote_node is None and ialloc is None:
+        raise errors.OpPrereqError("When changing the secondary either an"
+                                   " iallocator script must be used or the"
+                                   " new node given", errors.ECODE_INVAL)
+      else:
+        _CheckIAllocatorOrNode(self, "iallocator", "remote_node")
+
+    elif remote_node is not None or ialloc is not None:
+      # Not replacing the secondary
+      raise errors.OpPrereqError("The iallocator and new node options can"
+                                 " only be used when changing the"
+                                 " secondary node", errors.ECODE_INVAL)
 
   def ExpandNames(self):
     self._ExpandAndLockInstance()
@@ -10790,28 +10806,6 @@ class TLReplaceDisks(Tasklet):
     self.other_node = None
     self.remote_node_info = None
     self.node_secondary_ip = None
-
-  @staticmethod
-  def CheckArguments(mode, remote_node, ialloc):
-    """Helper function for users of this class.
-
-    """
-    # check for valid parameter combination
-    if mode == constants.REPLACE_DISK_CHG:
-      if remote_node is None and ialloc is None:
-        raise errors.OpPrereqError("When changing the secondary either an"
-                                   " iallocator script must be used or the"
-                                   " new node given", errors.ECODE_INVAL)
-
-      if remote_node is not None and ialloc is not None:
-        raise errors.OpPrereqError("Give either the iallocator or the new"
-                                   " secondary, not both", errors.ECODE_INVAL)
-
-    elif remote_node is not None or ialloc is not None:
-      # Not replacing the secondary
-      raise errors.OpPrereqError("The iallocator and new node options can"
-                                 " only be used when changing the"
-                                 " secondary node", errors.ECODE_INVAL)
 
   @staticmethod
   def _RunAllocator(lu, iallocator_name, instance_name, relocate_from):
