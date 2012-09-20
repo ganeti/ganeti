@@ -7337,6 +7337,9 @@ class LUInstanceRecreateDisks(LogicalUnit):
     if self.op.nodes:
       self.cfg.Update(instance, feedback_fn)
 
+    # All touched nodes must be locked
+    mylocks = self.owned_locks(locking.LEVEL_NODE)
+    assert mylocks.issuperset(frozenset(instance.all_nodes))
     _CreateDisks(self, instance, to_skip=to_skip)
 
 
