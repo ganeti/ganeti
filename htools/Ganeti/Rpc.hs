@@ -60,6 +60,7 @@ import Text.JSON (makeObj)
 
 #ifndef NO_CURL
 import Network.Curl
+import qualified Ganeti.Path as P
 #endif
 
 import qualified Ganeti.Constants as C
@@ -72,13 +73,13 @@ import Ganeti.JSON
 -- | The curl options used for RPC.
 curlOpts :: [CurlOption]
 curlOpts = [ CurlFollowLocation False
-           , CurlCAInfo C.nodedCertFile
+           , CurlCAInfo P.nodedCertFile
            , CurlSSLVerifyHost 0
            , CurlSSLVerifyPeer True
            , CurlSSLCertType "PEM"
-           , CurlSSLCert C.nodedCertFile
+           , CurlSSLCert P.nodedCertFile
            , CurlSSLKeyType "PEM"
-           , CurlSSLKey C.nodedCertFile
+           , CurlSSLKey P.nodedCertFile
            , CurlConnectTimeout (fromIntegral C.rpcConnectTimeout)
            ]
 #endif

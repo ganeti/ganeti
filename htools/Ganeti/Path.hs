@@ -31,6 +31,7 @@ module Ganeti.Path
   , runDir
   , confdHmacKey
   , clusterConfFile
+  , nodedCertFile
   ) where
 
 import qualified Ganeti.Constants as C
@@ -68,3 +69,7 @@ confdHmacKey = dataDir </> "hmac.key"
 -- | Path to cluster configuration file
 clusterConfFile :: FilePath
 clusterConfFile  = dataDir </> "config.data"
+
+-- | Path
+nodedCertFile  :: FilePath
+nodedCertFile = dataDir </> "server.pem"
