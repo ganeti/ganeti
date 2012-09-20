@@ -240,6 +240,7 @@ pkgpython_PYTHON = \
 	lib/ssh.py \
 	lib/storage.py \
 	lib/uidpool.py \
+	lib/vcluster.py \
 	lib/workerpool.py
 
 client_PYTHON = \
@@ -913,6 +914,7 @@ python_tests = \
 	test/ganeti.utils.wrapper_unittest.py \
 	test/ganeti.utils.x509_unittest.py \
 	test/ganeti.utils_unittest.py \
+	test/ganeti.vcluster_unittest.py \
 	test/ganeti.workerpool_unittest.py \
 	test/qa.qa_config_unittest.py \
 	test/cfgupgrade_unittest.py \
