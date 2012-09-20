@@ -160,6 +160,7 @@ CLEANFILES = \
 	$(man_MANS) \
 	$(manhtml) \
 	tools/kvm-ifup \
+	tools/vcluster-setup
 	stamp-directories \
 	stamp-srclinks \
 	$(nodist_pkgpython_PYTHON) \
@@ -675,6 +676,9 @@ dist_tools_SCRIPTS = \
 	tools/xm-console-wrapper \
 	tools/master-ip-setup
 
+nodist_tools_SCRIPTS = \
+	tools/vcluster-setup
+
 pkglib_python_scripts = \
 	daemons/import-export \
 	tools/check-cert-expired
@@ -716,6 +720,7 @@ EXTRA_DIST = \
 	$(pkglib_python_scripts) \
 	devel/upload.in \
 	tools/kvm-ifup.in \
+	tools/vcluster-setup.in \
 	$(docdot) \
 	$(docpng) \
 	$(docrst) \
@@ -1051,6 +1056,10 @@ tools/kvm-ifup: tools/kvm-ifup.in $(REPLACE_VARS_SED)
 devel/upload: devel/upload.in $(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@
 	chmod u+x $@
+
+tools/vcluster-setup: tools/vcluster-setup.in $(REPLACE_VARS_SED)
+	sed -f $(REPLACE_VARS_SED) < $< > $@
+	chmod +x $@
 
 daemons/%:: daemons/%.in $(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@

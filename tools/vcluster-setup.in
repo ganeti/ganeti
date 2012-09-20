@@ -1,0 +1,286 @@
+#!/bin/bash
+#
+
+# Copyright (C) 2012 Google Inc.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+# 02110-1301, USA.
+
+set -e -u -o pipefail
+shopt -s extglob
+
+readonly self=$(readlink -f $0)
+readonly ensure_dirs=@PKGLIBDIR@/ensure-dirs
+readonly action_shortcuts=( start stop restart status )
+readonly default_nodecount=5
+readonly default_instcount=10
+readonly default_netprefix=192.0.2
+readonly default_netdev=eth0
+readonly cluster_name=cluster
+
+# IP address space:
+# Cluster: .1
+# Nodes: .10-.99
+# Instances: .100-.254
+readonly first_node_ipaddr_octet=10
+readonly first_inst_ipaddr_octet=100
+
+readonly max_node_count=$((first_inst_ipaddr_octet - first_node_ipaddr_octet))
+readonly max_instance_count=$((255 - first_inst_ipaddr_octet))
+
+usage() {
+  echo "Usage: $0 [-c <number>] [-i <number>] [-p <prefix>] [-n <netdev>]"\
+       '<directory>'
+  echo
+  echo 'Options:'
+  echo "  -c  Number of virtual nodes (defaults to $default_nodecount)"
+  echo "  -i  Number of instances (defaults to $default_instcount)"
+  echo "  -p  IPv4 network prefix (defaults to $default_netprefix)"
+  echo '  -n  Network device for virtual IP addresses (defaults to'\
+       "$default_netdev)"
+}
+
+# Variables for options
+nodecount=$default_nodecount
+instcount=$default_instcount
+netprefix=$default_netprefix
+netdev=$default_netdev
+
+# Parse options
+while getopts :hc:p:n:i: opt; do
+  case "$opt" in
+    h)
+      usage
+      exit 0
+    ;;
+    c)
+      nodecount="$OPTARG"
+      if [[ "$nodecount" != +([0-9]) ]]; then
+        echo "Invalid node count number: $nodecount" >&2
+        exit 1
+      elif (( nodecount > max_node_count )); then
+        echo "Node count must be $max_node_count or lower" >&2
+        exit 1
+      fi
+    ;;
+    i)
+      instcount="$OPTARG"
+      if [[ "$instcount" != +([0-9]) ]]; then
+        echo "Invalid instance count number: $instcount" >&2
+        exit 1
+      elif (( instcount > max_instance_count )); then
+        echo "Instance count must be $max_instance_count or lower" >&2
+        exit 1
+      fi
+    ;;
+    p)
+      netprefix="$OPTARG"
+      if [[ "$netprefix" != +([0-9]).+([0-9]).+([0-9]) ]]; then
+        echo "Invalid network prefix: $netprefix" >&2
+        exit 1
+      fi
+    ;;
+    n)
+      netdev="$OPTARG"
+      if ! ip link show $netdev >/dev/null; then
+        echo "Invalid network device: $netdev" >&2
+        exit 1
+      fi
+    ;;
+    \?)
+      echo "Invalid option: -$OPTARG" >&2
+      usage >&2
+      exit 1
+      ;;
+    :)
+      echo "Option -$OPTARG requires an argument" >&2
+      usage >&2
+      exit 1
+      ;;
+  esac
+done
+
+shift $((OPTIND - 1))
+
+if [[ "$#" != 1 ]]; then
+  usage
+  exit 1
+fi
+
+readonly rootdir=$1; shift
+
+if [[ ! -d "$rootdir" ]]; then
+  echo "Directory '$rootdir' does not exist!" >&2
+  exit 1
+fi
+
+if (( $nodecount < 1 )); then
+  echo "Must create at least one node, currently requested $nodecount" >&2
+  exit 1
+fi
+
+node_hostname() {
+  local -r number="$1"
+
+  echo "node$((number + 1))"
+}
+
+instance_hostname() {
+  local -r number="$1"
+
+  echo "instance$((number + 1))"
+}
+
+node_ipaddr() {
+  local -r number="$1"
+
+  echo "$netprefix.$((first_node_ipaddr_octet + number))"
+}
+
+instance_ipaddr() {
+  local -r number="$1"
+
+  echo "$netprefix.$((first_inst_ipaddr_octet + number))"
+}
+
+setup_node() {
+  local -r number="$1"
+  local -r nodedir=$rootdir/$(node_hostname $number)
+
+  echo "Setting up node '$(node_hostname $number)' ..." >&2
+
+  if [[ ! -d $nodedir ]]; then
+    mkdir $nodedir
+  fi
+
+  mkdir -p \
+    $nodedir/etc/default \
+    $nodedir/var/lock\
+    $nodedir/var/{lib,log,run}/ganeti
+
+  GANETI_HOSTNAME=$(node_hostname $number) \
+  GANETI_ROOTDIR=$nodedir \
+  $ensure_dirs
+
+  local -r daemon_args="-b $(node_ipaddr $number)"
+
+  cat > $nodedir/etc/default/ganeti <<EOF
+# Default settings for virtual node $i
+NODED_ARGS='--no-mlock $daemon_args'
+MASTERD_ARGS=''
+RAPI_ARGS='$daemon_args'
+CONFD_ARGS='$daemon_args'
+
+export GANETI_ROOTDIR='$nodedir'
+export GANETI_HOSTNAME='$(node_hostname $number)'
+EOF
+
+  cat > $nodedir/cmd <<EOF
+#!/bin/bash
+
+export GANETI_ROOTDIR='$nodedir'
+export GANETI_HOSTNAME='$(node_hostname $number)'
+
+bash -c "\$*"
+EOF
+  chmod +x $nodedir/cmd
+}
+
+setup_all_nodes() {
+  for ((i=0; i < nodecount; ++i)); do
+    setup_node $i
+  done
+}
+
+setup_etc_hosts() {
+  echo 'Configuring /etc/hosts ...' >&2
+  (
+    set -e -u
+    local -r tmpfile=$(mktemp /etc/hosts.vcluster.XXXXX)
+    trap "rm -f $tmpfile" EXIT
+    {
+      egrep -v "^$netprefix.[[:digit:]]+[[:space:]]" /etc/hosts
+      echo "$netprefix.1 $cluster_name"
+      for ((i=0; i < nodecount; ++i)); do
+        echo "$(node_ipaddr $i) $(node_hostname $i)"
+      done
+      for ((i=0; i < instcount; ++i)); do
+        echo "$(instance_ipaddr $i) $(instance_hostname $i)"
+      done
+    } > $tmpfile && \
+    chmod 0644 $tmpfile && \
+    mv $tmpfile /etc/hosts && \
+    trap - EXIT
+  )
+}
+
+setup_network_interfaces() {
+  echo 'Configuring network ...' >&2
+  for ((i=0; i < nodecount; ++i)); do
+    local ipaddr="$(node_ipaddr $i)/32"
+    ip addr del "$ipaddr" dev "$netdev" || :
+    ip addr add "$ipaddr" dev "$netdev"
+  done
+}
+
+setup_scripts() {
+  echo 'Configuring helper scripts ...' >&2
+  for action in "${action_shortcuts[@]}"; do
+    {
+      echo '#!/bin/bash'
+      for ((i=0; i < nodecount; ++i)); do
+        local name=$(node_hostname $i)
+        echo "echo 'Action \"$action\" for virtual node \"$name\" ...'"
+        echo "$name/cmd /etc/init.d/ganeti $action"
+      done
+    } > $rootdir/$action-all
+    chmod +x $rootdir/$action-all
+  done
+}
+
+show_info() {
+  cat <<EOF
+Virtual cluster setup is complete.
+
+Root directory: $rootdir
+Cluster name: $cluster_name
+EOF
+
+  echo 'Nodes:' $(for ((i=0; i < nodecount; ++i)); do node_hostname $i; done)
+
+  cat <<EOF
+
+Initialize cluster:
+  cd $rootdir && node1/cmd gnt-cluster init --no-etc-hosts $cluster_name
+
+Change cluster settings:
+  cd $rootdir && node1/cmd gnt-cluster modify \\
+    --enabled-hypervisors=fake \\
+    --specs-disk-size=min=0 --specs-disk-count=min=0
+
+Add node:
+  cd $rootdir && node1/cmd gnt-node add --no-ssh-key-check node2
+EOF
+}
+
+setup_all_nodes
+setup_etc_hosts
+setup_network_interfaces
+setup_scripts
+show_info
+
+exit 0
+
+# vim: set sw=2 sts=2 et :

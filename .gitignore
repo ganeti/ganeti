@@ -93,6 +93,7 @@
 # tools
 /tools/kvm-ifup
 /tools/ensure-dirs
+/tools/vcluster-setup
 
 # scripts
 /scripts/gnt-backup
