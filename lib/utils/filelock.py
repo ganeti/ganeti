@@ -73,7 +73,7 @@ class FileLock(object):
     # Using "os.open" is necessary to allow both opening existing file
     # read/write and creating if not existing. Vanilla "open" will truncate an
     # existing file -or- allow creating if not existing.
-    return cls(os.fdopen(os.open(filename, os.O_RDWR | os.O_CREAT), "w+"),
+    return cls(os.fdopen(os.open(filename, os.O_RDWR | os.O_CREAT, 0664), "w+"),
                filename)
 
   def __del__(self):
