@@ -20,7 +20,8 @@
 
 set -e
 
-defaults_file=@SYSCONFDIR@/default/ganeti
+readonly defaults_file="${GANETI_ROOTDIR}@SYSCONFDIR@/default/ganeti"
+readonly localstatedir="${GANETI_ROOTDIR}@LOCALSTATEDIR@"
 
 # This is a list of all daemons and the order in which they're started. The
 # order is important as there are dependencies between them. On shutdown,
@@ -52,7 +53,7 @@ _ignore_error() {
 }
 
 _daemon_pidfile() {
-  echo "@LOCALSTATEDIR@/run/ganeti/$1.pid"
+  echo "$localstatedir/run/ganeti/$1.pid"
 }
 
 _daemon_executable() {
@@ -81,7 +82,7 @@ _daemon_usergroup() {
 
 # Checks whether the local machine is part of a cluster
 check_config() {
-  local server_pem=@LOCALSTATEDIR@/lib/ganeti/server.pem
+  local server_pem=$localstatedir/lib/ganeti/server.pem
   local fname
 
   for fname in $server_pem; do
