@@ -10007,10 +10007,9 @@ class LUInstanceCreate(LogicalUnit):
     ipolicy = ganeti.masterd.instance.CalculateGroupIPolicy(cluster, group_info)
     res = _ComputeIPolicyInstanceSpecViolation(ipolicy, ispec)
     if not self.op.ignore_ipolicy and res:
-      raise errors.OpPrereqError(("Instance allocation to group %s violates"
-                                  " policy: %s") % (pnode.group,
-                                                    utils.CommaJoin(res)),
-                                  errors.ECODE_INVAL)
+      msg = ("Instance allocation to group %s (%s) violates policy: %s" %
+             (pnode.group, group_info.name, utils.CommaJoin(res)))
+      raise errors.OpPrereqError(msg, errors.ECODE_INVAL)
 
     if not self.adopt_disks:
       if self.op.disk_template == constants.DT_RBD:
