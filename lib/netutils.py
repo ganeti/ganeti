@@ -38,6 +38,7 @@ import logging
 from ganeti import constants
 from ganeti import errors
 from ganeti import utils
+from ganeti import vcluster
 
 # Structure definition for getsockopt(SOL_SOCKET, SO_PEERCRED, ...):
 # struct ucred { pid_t pid; uid_t uid; gid_t gid; };
@@ -189,7 +190,11 @@ class Hostname:
 
     """
     if hostname is None:
-      return socket.getfqdn()
+      virtfqdn = vcluster.GetVirtualHostname()
+      if virtfqdn:
+        return virtfqdn
+      else:
+        return socket.getfqdn()
     else:
       return socket.getfqdn(hostname)
 
