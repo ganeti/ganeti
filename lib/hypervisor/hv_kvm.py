@@ -55,7 +55,7 @@ from ganeti.hypervisor import hv_base
 from ganeti.utils import wrapper as utils_wrapper
 
 
-_KVM_NETWORK_SCRIPT = pathutils.SYSCONFDIR + "/ganeti/kvm-vif-bridge"
+_KVM_NETWORK_SCRIPT = pathutils.CONF_DIR + "/kvm-vif-bridge"
 _KVM_START_PAUSED_FLAG = "-S"
 
 # TUN/TAP driver constants, taken from <linux/if_tun.h>
