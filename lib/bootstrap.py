@@ -656,13 +656,10 @@ def SetupNodeDaemon(cluster_name, node, ssh_key_check):
   @param ssh_key_check: whether to do a strict key check
 
   """
-  family = ssconf.SimpleStore().GetPrimaryIPFamily()
+  sstore = ssconf.SimpleStore()
+  family = sstore.GetPrimaryIPFamily()
   sshrunner = ssh.SshRunner(cluster_name,
                             ipv6=(family == netutils.IP6Address.family))
-
-  bind_address = constants.IP4_ADDRESS_ANY
-  if family == netutils.IP6Address.family:
-    bind_address = constants.IP6_ADDRESS_ANY
 
   # set up inter-node password and certificate and restarts the node daemon
   # and then connect with ssh to set password and start ganeti-noded
@@ -673,9 +670,10 @@ def SetupNodeDaemon(cluster_name, node, ssh_key_check):
   sshrunner.CopyFileToNode(node, pathutils.SPICE_CERT_FILE)
   sshrunner.CopyFileToNode(node, pathutils.SPICE_CACERT_FILE)
   sshrunner.CopyFileToNode(node, pathutils.CONFD_HMAC_KEY)
-  mycommand = ("%s stop-all; %s start %s -b %s" %
-               (pathutils.DAEMON_UTIL, pathutils.DAEMON_UTIL, constants.NODED,
-                utils.ShellQuote(bind_address)))
+  for filename in sstore.GetFileList():
+    sshrunner.CopyFileToNode(node, filename)
+  mycommand = ("%s stop-all; %s start %s" %
+               (pathutils.DAEMON_UTIL, pathutils.DAEMON_UTIL, constants.NODED))
 
   result = sshrunner.Run(node, "root", mycommand, batch=False,
                          ask_key=ssh_key_check,
