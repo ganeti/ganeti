@@ -61,6 +61,7 @@ import Ganeti.Query.Common
 import Ganeti.Query.Filter
 import Ganeti.Query.Types
 import Ganeti.Query.Node
+import Ganeti.Query.Group
 import Ganeti.Objects
 
 -- * Helper functions
@@ -109,16 +110,38 @@ query cfg (Query QRNode fields qfilter) = return $ do
               fnodes
   return QueryResult { qresFields = fdefs, qresData = fdata }
 
+query cfg (Query QRGroup fields qfilter) = return $ do
+  -- FIXME: want_diskparams is defaulted to false and not taken as parameter
+  -- This is because the type for DiskParams is right now too generic for merges
+  -- (or else I cannot see how to do this with curent implementation)
+  cfilter <- compileFilter groupFieldsMap qfilter
+  let selected = getSelectedFields groupFieldsMap fields
+      (fdefs, fgetters) = unzip selected
+      groups = Map.elems . fromContainer $ configNodegroups cfg
+  -- there is no live data for groups, so filtering is much simpler
+  fgroups <- filterM (\n -> evaluateFilter cfg Nothing n cfilter) groups
+  let fdata = map (\node ->
+                       map (execGetter cfg GroupRuntime node) fgetters) fgroups
+  return QueryResult {qresFields = fdefs, qresData = fdata }
+
 query _ (Query qkind _ _) =
   return . Bad $ "Query '" ++ show qkind ++ "' not supported"
 
 -- | Query fields call.
+-- FIXME: Looks generic enough to use a typeclass
 queryFields :: QueryFields -> Result QueryFieldsResult
 queryFields (QueryFields QRNode fields) =
   let selected = if null fields
                    then map snd $ Map.toAscList nodeFieldsMap
                    else getSelectedFields nodeFieldsMap fields
   in Ok $ QueryFieldsResult (map fst selected)
+
+queryFields (QueryFields QRGroup fields) =
+  let selected = if null fields
+                   then map snd $ Map.toAscList groupFieldsMap
+                   else getSelectedFields groupFieldsMap fields
+  in Ok $ QueryFieldsResult (map fst selected)
+
 
 queryFields (QueryFields qkind _) =
   Bad $ "QueryFields '" ++ show qkind ++ "' not supported"

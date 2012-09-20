@@ -443,6 +443,7 @@ HS_LIB_SRCS = \
 	htools/Ganeti/Path.hs \
 	htools/Ganeti/Query/Common.hs \
 	htools/Ganeti/Query/Filter.hs \
+	htools/Ganeti/Query/Group.hs \
 	htools/Ganeti/Query/Language.hs \
 	htools/Ganeti/Query/Node.hs \
 	htools/Ganeti/Query/Query.hs \
