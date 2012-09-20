@@ -43,6 +43,7 @@ import Test.Ganeti.TestCommon
 import Test.Ganeti.Objects (genEmptyCluster)
 
 import Ganeti.BasicTypes
+import Ganeti.Query.Group
 import Ganeti.Query.Language
 import Ganeti.Query.Node
 import Ganeti.Query.Query
@@ -147,9 +148,75 @@ case_queryNode_allfields = do
      (sortBy field_sort . map fst $ Map.elems nodeFieldsMap)
      (sortBy field_sort fdefs)
 
+-- * Same as above, but for group
+
+prop_queryGroup_noUnknown :: Property
+prop_queryGroup_noUnknown =
+  forAll (choose (0, maxNodes) >>= genEmptyCluster) $ \cluster ->
+   forAll (elements (Map.keys groupFieldsMap)) $ \field -> monadicIO $ do
+   QueryResult fdefs fdata <-
+     run (query cluster (Query QRGroup [field] EmptyFilter)) >>= resultProp
+   QueryFieldsResult fdefs' <-
+     resultProp $ queryFields (QueryFields QRGroup [field])
+   stop $ printTestCase ("Got unknown fields via query (" ++ show fdefs ++ ")")
+         (hasUnknownFields fdefs) .&&.
+          printTestCase ("Got unknown result status via query (" ++
+                         show fdata ++ ")")
+           (all (all ((/= RSUnknown) . rentryStatus)) fdata) .&&.
+          printTestCase ("Got unknown fields via query fields (" ++ show fdefs'
+                        ++ ")") (hasUnknownFields fdefs')
+
+prop_queryGroup_Unknown :: Property
+prop_queryGroup_Unknown =
+  forAll (choose (0, maxNodes) >>= genEmptyCluster) $ \cluster ->
+  forAll (arbitrary `suchThat` (`notElem` Map.keys groupFieldsMap))
+    $ \field -> monadicIO $ do
+  QueryResult fdefs fdata <-
+    run (query cluster (Query QRGroup [field] EmptyFilter)) >>= resultProp
+  QueryFieldsResult fdefs' <-
+    resultProp $ queryFields (QueryFields QRGroup [field])
+  stop $ printTestCase ("Got known fields via query (" ++ show fdefs ++ ")")
+         (not $ hasUnknownFields fdefs) .&&.
+         printTestCase ("Got /= ResultUnknown result status via query (" ++
+                        show fdata ++ ")")
+           (all (all ((== RSUnknown) . rentryStatus)) fdata) .&&.
+         printTestCase ("Got a Just in a result value (" ++
+                        show fdata ++ ")")
+           (all (all (isNothing . rentryValue)) fdata) .&&.
+         printTestCase ("Got known fields via query fields (" ++ show fdefs'
+                        ++ ")") (not $ hasUnknownFields fdefs')
+
+prop_queryGroup_types :: Property
+prop_queryGroup_types =
+  forAll (choose (0, maxNodes)) $ \numnodes ->
+  forAll (genEmptyCluster numnodes) $ \cfg ->
+  forAll (elements (Map.keys groupFieldsMap)) $ \field -> monadicIO $ do
+  QueryResult fdefs fdata <-
+    run (query cfg (Query QRGroup [field] EmptyFilter)) >>= resultProp
+  stop $ printTestCase ("Inconsistent result entries (" ++ show fdata ++ ")")
+         (conjoin $ map (conjoin . zipWith checkResultType fdefs) fdata) .&&.
+         printTestCase "Wrong field definitions length"
+           (length fdefs ==? 1) .&&.
+         printTestCase "Wrong field result rows length"
+           (all ((== 1) . length) fdata)
+
+case_queryGroup_allfields :: Assertion
+case_queryGroup_allfields = do
+   fdefs <- case queryFields (QueryFields QRGroup []) of
+              Bad msg -> fail $ "Error in query all fields: " ++ msg
+              Ok (QueryFieldsResult v) -> return v
+   let field_sort = compare `on` fdefName
+   assertEqual "Mismatch in all fields list"
+     (sortBy field_sort . map fst $ Map.elems groupFieldsMap)
+     (sortBy field_sort fdefs)
+
 testSuite "Query/Query"
   [ 'prop_queryNode_noUnknown
   , 'prop_queryNode_Unknown
   , 'prop_queryNode_types
   , 'case_queryNode_allfields
+  , 'prop_queryGroup_noUnknown
+  , 'prop_queryGroup_Unknown
+  , 'prop_queryGroup_types
+  , 'case_queryGroup_allfields
   ]
