@@ -36,6 +36,9 @@ module Ganeti.Config
     , getInstance
     , getGroup
     , getGroupNdParams
+    , getGroupIpolicy
+    , getGroupNodes
+    , getGroupInstances
     , getGroupOfNode
     , getInstPrimaryNode
     , getInstMinorsForNode
@@ -167,6 +170,24 @@ getGroup cfg name =
 getGroupNdParams :: ConfigData -> NodeGroup -> FilledNDParams
 getGroupNdParams cfg ng =
   fillNDParams (clusterNdparams $ configCluster cfg) (groupNdparams ng)
+
+-- | Computes a node group's ipolicy.
+getGroupIpolicy :: ConfigData -> NodeGroup -> FilledIPolicy
+getGroupIpolicy cfg ng =
+  fillIPolicy (clusterIpolicy $ configCluster cfg) (groupIpolicy ng)
+
+-- | Get nodes of a given node group.
+getGroupNodes :: ConfigData -> String -> [Node]
+getGroupNodes cfg gname =
+  let all_nodes = M.elems . fromContainer . configNodes $ cfg in
+  filter ((==gname) . nodeGroup) all_nodes
+
+-- | Get (primary, secondary) instances of a given node group.
+getGroupInstances :: ConfigData -> String -> ([Instance], [Instance])
+getGroupInstances cfg gname =
+  let gnodes = map nodeName (getGroupNodes cfg gname)
+      ginsts = map (getNodeInstances cfg) gnodes in
+  (concatMap fst ginsts, concatMap snd ginsts)
 
 -- | Looks up an instance's primary node.
 getInstPrimaryNode :: ConfigData -> String -> Result Node
