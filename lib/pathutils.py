@@ -24,15 +24,19 @@
 """
 
 from ganeti import _autoconf
+from ganeti import vcluster
+
 
 # Build-time constants
-DEFAULT_FILE_STORAGE_DIR = _autoconf.FILE_STORAGE_DIR
-DEFAULT_SHARED_FILE_STORAGE_DIR = _autoconf.SHARED_FILE_STORAGE_DIR
-EXPORT_DIR = _autoconf.EXPORT_DIR
+DEFAULT_FILE_STORAGE_DIR = vcluster.AddNodePrefix(_autoconf.FILE_STORAGE_DIR)
+DEFAULT_SHARED_FILE_STORAGE_DIR = \
+  vcluster.AddNodePrefix(_autoconf.SHARED_FILE_STORAGE_DIR)
+EXPORT_DIR = vcluster.AddNodePrefix(_autoconf.EXPORT_DIR)
 OS_SEARCH_PATH = _autoconf.OS_SEARCH_PATH
 SSH_CONFIG_DIR = _autoconf.SSH_CONFIG_DIR
-SYSCONFDIR = _autoconf.SYSCONFDIR
+SYSCONFDIR = vcluster.AddNodePrefix(_autoconf.SYSCONFDIR)
 TOOLSDIR = _autoconf.TOOLSDIR
+LOCALSTATEDIR = vcluster.AddNodePrefix(_autoconf.LOCALSTATEDIR)
 
 # Paths which don't change for a virtual cluster
 DAEMON_UTIL = _autoconf.PKGLIBDIR + "/daemon-util"
@@ -43,10 +47,10 @@ SETUP_SSH = _autoconf.TOOLSDIR + "/setup-ssh"
 XM_CONSOLE_WRAPPER = _autoconf.PKGLIBDIR + "/tools/xm-console-wrapper"
 
 # Top-level paths
-DATA_DIR = _autoconf.LOCALSTATEDIR + "/lib/ganeti"
-LOCK_DIR = _autoconf.LOCALSTATEDIR + "/lock"
-LOG_DIR = _autoconf.LOCALSTATEDIR + "/log/ganeti"
-RUN_DIR = _autoconf.LOCALSTATEDIR + "/run/ganeti"
+DATA_DIR = LOCALSTATEDIR + "/lib/ganeti"
+LOCK_DIR = LOCALSTATEDIR + "/lock"
+LOG_DIR = LOCALSTATEDIR + "/log/ganeti"
+RUN_DIR = LOCALSTATEDIR + "/run/ganeti"
 
 #: Script to configure master IP address
 DEFAULT_MASTER_SETUP_SCRIPT = TOOLSDIR + "/master-ip-setup"

@@ -60,6 +60,7 @@ from ganeti import ht
 from ganeti import query
 from ganeti import qlang
 from ganeti import pathutils
+from ganeti import vcluster
 
 
 JOBQUEUE_THREADS = 25
@@ -83,6 +84,14 @@ def TimeStampNow():
 
   """
   return utils.SplitTime(time.time())
+
+
+def _CallJqUpdate(runner, names, file_name, content):
+  """Updates job queue file after virtualizing filename.
+
+  """
+  virt_file_name = vcluster.MakeVirtualPath(file_name)
+  return runner.call_jobqueue_update(names, virt_file_name, content)
 
 
 class _SimpleJobQuery:
@@ -1690,8 +1699,8 @@ class JobQueue(object):
       # Read file content
       content = utils.ReadFile(file_name)
 
-      result = self._GetRpc(addrs).call_jobqueue_update([node_name], file_name,
-                                                        content)
+      result = _CallJqUpdate(self._GetRpc(addrs), [node_name],
+                             file_name, content)
       msg = result[node_name].fail_msg
       if msg:
         logging.error("Failed to upload file %s to node %s: %s",
@@ -1775,7 +1784,7 @@ class JobQueue(object):
 
     if replicate:
       names, addrs = self._GetNodeIp()
-      result = self._GetRpc(addrs).call_jobqueue_update(names, file_name, data)
+      result = _CallJqUpdate(self._GetRpc(addrs), names, file_name, data)
       self._CheckRpcResult(result, self._nodes, "Updating %s" % file_name)
 
   def _RenameFilesUnlocked(self, rename):

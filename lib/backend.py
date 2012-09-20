@@ -63,6 +63,7 @@ from ganeti import runtime
 from ganeti import mcpu
 from ganeti import compat
 from ganeti import pathutils
+from ganeti import vcluster
 
 
 _BOOT_ID_PATH = "/proc/sys/kernel/random/boot_id"
@@ -2072,6 +2073,8 @@ def UploadFile(file_name, data, mode, uid, gid, atime, mtime):
   @rtype: None
 
   """
+  file_name = vcluster.LocalizeVirtualPath(file_name)
+
   if not os.path.isabs(file_name):
     _Fail("Filename passed to UploadFile is not absolute: '%s'", file_name)
 
@@ -2821,6 +2824,8 @@ def JobQueueUpdate(file_name, content):
   @return: the success of the operation
 
   """
+  file_name = vcluster.LocalizeVirtualPath(file_name)
+
   _EnsureJobQueueFile(file_name)
   getents = runtime.GetEnts()
 
@@ -2842,6 +2847,9 @@ def JobQueueRename(old, new):
   @return: the success of the operation and payload
 
   """
+  old = vcluster.LocalizeVirtualPath(old)
+  new = vcluster.LocalizeVirtualPath(new)
+
   _EnsureJobQueueFile(old)
   _EnsureJobQueueFile(new)
 

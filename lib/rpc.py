@@ -48,6 +48,7 @@ from ganeti import runtime
 from ganeti import compat
 from ganeti import rpc_defs
 from ganeti import pathutils
+from ganeti import vcluster
 
 # Special module generated at build time
 from ganeti import _generated_rpc
@@ -524,7 +525,9 @@ def _PrepareFileUpload(getents_fn, filename):
 
   getents = getents_fn()
 
-  return [filename, data, st.st_mode, getents.LookupUid(st.st_uid),
+  virt_filename = vcluster.MakeVirtualPath(filename)
+
+  return [virt_filename, data, st.st_mode, getents.LookupUid(st.st_uid),
           getents.LookupGid(st.st_gid), st.st_atime, st.st_mtime]
 
 

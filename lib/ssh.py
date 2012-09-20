@@ -33,6 +33,7 @@ from ganeti import errors
 from ganeti import constants
 from ganeti import netutils
 from ganeti import pathutils
+from ganeti import vcluster
 
 
 def FormatParamikoFingerprint(fingerprint):
@@ -184,7 +185,17 @@ class SshRunner:
                                       quiet=quiet))
     if tty:
       argv.extend(["-t", "-t"])
-    argv.extend(["%s@%s" % (user, hostname), command])
+
+    argv.append("%s@%s" % (user, hostname))
+
+    # Insert variables for virtual nodes
+    argv.extend("export %s=%s;" %
+                (utils.ShellQuote(name), utils.ShellQuote(value))
+                for (name, value) in
+                  vcluster.EnvironmentForHost(hostname).items())
+
+    argv.append(command)
+
     return argv
 
   def Run(self, *args, **kwargs):
@@ -225,7 +236,7 @@ class SshRunner:
     if netutils.IP6Address.IsValid(node):
       node = netutils.FormatAddress((node, None))
 
-    command.append("%s:%s" % (node, filename))
+    command.append("%s:%s" % (node, vcluster.ExchangeNodeRoot(node, filename)))
 
     result = utils.RunCmd(command)
 
@@ -255,7 +266,12 @@ class SshRunner:
         - detail: string with details
 
     """
-    retval = self.Run(node, "root", "hostname --fqdn", quiet=False)
+    cmd = ("if test -z \"$GANETI_HOSTNAME\"; then"
+           "  hostname --fqdn;"
+           "else"
+           "  echo \"$GANETI_HOSTNAME\";"
+           "fi")
+    retval = self.Run(node, "root", cmd, quiet=False)
 
     if retval.failed:
       msg = "ssh problem"

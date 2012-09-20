@@ -33,11 +33,12 @@ from ganeti.hypervisor import hv_base
 from ganeti import netutils
 from ganeti import objects
 from ganeti import pathutils
+from ganeti import vcluster
 
 
-XEND_CONFIG_FILE = "/etc/xen/xend-config.sxp"
-XL_CONFIG_FILE = "/etc/xen/xl.conf"
-VIF_BRIDGE_SCRIPT = "/etc/xen/scripts/vif-bridge"
+XEND_CONFIG_FILE = vcluster.AddNodePrefix("/etc/xen/xend-config.sxp")
+XL_CONFIG_FILE = vcluster.AddNodePrefix("/etc/xen/xl.conf")
+VIF_BRIDGE_SCRIPT = vcluster.AddNodePrefix("/etc/xen/scripts/vif-bridge")
 _DOM0_NAME = "Domain-0"
 
 
