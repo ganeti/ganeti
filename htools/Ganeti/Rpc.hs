@@ -56,7 +56,9 @@ module Ganeti.Rpc
   , rpcTimeoutFromRaw -- FIXME: Not used anywhere
   ) where
 
+import Control.Arrow (second)
 import qualified Text.JSON as J
+import Text.JSON.Pretty (pp_value)
 import Text.JSON (makeObj)
 
 #ifndef NO_CURL
@@ -108,10 +110,6 @@ instance Show RpcError where
 
 type ERpcError = Either RpcError
 
-rpcErrorJsonReport :: (Monad m) => J.Result a -> m (ERpcError a)
-rpcErrorJsonReport (J.Error x) = return . Left $ JsonDecodeError x
-rpcErrorJsonReport (J.Ok x) = return $ Right x
-
 -- | Basic timeouts for RPC calls.
 $(declareIADT "RpcTimeout"
   [ ( "Urgent",    'C.rpcTmoUrgent )
@@ -133,14 +131,10 @@ class (J.JSON a) => RpcCall a where
   -- | Whether we accept offline nodes when making a call.
   rpcCallAcceptOffline :: a -> Bool
 
-  rpcCallData _ = J.encode
-
 -- | A generic class for RPC results with default implementation.
 class (J.JSON a) => RpcResult a where
   -- | Create a result based on the received HTTP response.
-  rpcResultFill :: (Monad m) => String -> m (ERpcError a)
-
-  rpcResultFill res = rpcErrorJsonReport $  J.decode res
+  rpcResultFill :: (Monad m) => J.JSValue -> m (ERpcError a)
 
 -- | Generic class that ensures matching RPC call with its respective
 -- result.
@@ -194,11 +188,22 @@ prepareHttpRequest node call
                               }
   | otherwise = Left $ OfflineNodeError node
 
+-- | Parse a result based on the received HTTP response.
+rpcResultParse :: (Monad m, RpcResult a) => String -> m (ERpcError a)
+rpcResultParse res = do
+  res' <- fromJResult "Reading JSON response" $ J.decode res
+  case res' of
+    (True, res'') ->
+       rpcResultFill res''
+    (False, jerr) -> case jerr of
+       J.JSString msg -> return . Left $ RpcResultError (J.fromJSString msg)
+       _ -> (return . Left) . JsonDecodeError $ show (pp_value jerr)
+
 -- | Parse the response or propagate the error.
 parseHttpResponse :: (Monad m, RpcResult a) => ERpcError String
                   -> m (ERpcError a)
 parseHttpResponse (Left err) = return $ Left err
-parseHttpResponse (Right response) = rpcResultFill response
+parseHttpResponse (Right response) = rpcResultParse response
 
 -- | Execute RPC call for a sigle node.
 executeSingleRpcCall :: (Rpc a b) => Node -> a -> IO (Node, ERpcError b)
@@ -214,30 +219,50 @@ executeRpcCall nodes call =
   sequence $ parMap rwhnf (uncurry executeSingleRpcCall)
                (zip nodes $ repeat call)
 
+-- | Helper function that is used to read dictionaries of values.
+sanitizeDictResults :: [(String, J.Result a)] -> ERpcError [(String, a)]
+sanitizeDictResults [] = Right []
+sanitizeDictResults ((_, J.Error err):_) = Left $ JsonDecodeError err
+sanitizeDictResults ((name, J.Ok val):xs) =
+  case sanitizeDictResults xs of
+    Left err -> Left err
+    Right res' -> Right $ (name, val):res'
+
 -- * RPC calls and results
 
 -- | AllInstancesInfo
---   Returns information about all instances on the given nodes
+--   Returns information about all running instances on the given nodes.
 $(buildObject "RpcCallAllInstancesInfo" "rpcCallAllInstInfo"
   [ simpleField "hypervisors" [t| [Hypervisor] |] ])
 
 $(buildObject "InstanceInfo" "instInfo"
-  [ simpleField "name"   [t| String |]
-  , simpleField "memory" [t| Int|]
-  , simpleField "state"  [t| AdminState |]
+  [ simpleField "memory" [t| Int|]
+  , simpleField "state"  [t| String |] -- It depends on hypervisor :(
   , simpleField "vcpus"  [t| Int |]
   , simpleField "time"   [t| Int |]
   ])
 
 $(buildObject "RpcResultAllInstancesInfo" "rpcResAllInstInfo"
-  [ simpleField "instances" [t| [InstanceInfo] |] ])
+  [ simpleField "instances" [t| [(String, InstanceInfo)] |] ])
 
 instance RpcCall RpcCallAllInstancesInfo where
   rpcCallName _ = "all_instances_info"
   rpcCallTimeout _ = rpcTimeoutToRaw Urgent
   rpcCallAcceptOffline _ = False
+  rpcCallData _ call = J.encode [rpcCallAllInstInfoHypervisors call]
 
-instance RpcResult RpcResultAllInstancesInfo
+instance RpcResult RpcResultAllInstancesInfo where
+  -- FIXME: Is there a simpler way to do it?
+  rpcResultFill res =
+    return $ case res of
+      J.JSObject res' -> do
+        let res'' = map (second J.readJSON) (J.fromJSObject res')
+                        :: [(String, J.Result InstanceInfo)]
+        case sanitizeDictResults res'' of
+          Left err -> Left err
+          Right insts -> Right $ RpcResultAllInstancesInfo insts
+      _ -> Left $ JsonDecodeError
+           ("Expected JSObject, got " ++ show res)
 
 instance Rpc RpcCallAllInstancesInfo RpcResultAllInstancesInfo
 
@@ -247,30 +272,33 @@ $(buildObject "RpcCallInstanceList" "rpcCallInstList"
   [ simpleField "hypervisors" [t| [Hypervisor] |] ])
 
 $(buildObject "RpcResultInstanceList" "rpcResInstList"
-  [ simpleField "node"      [t| Node |]
-  , simpleField "instances" [t| [String] |]
-  ])
+  [ simpleField "instances" [t| [String] |] ])
 
 instance RpcCall RpcCallInstanceList where
   rpcCallName _ = "instance_list"
   rpcCallTimeout _ = rpcTimeoutToRaw Urgent
   rpcCallAcceptOffline _ = False
+  rpcCallData _ call = J.encode [rpcCallInstListHypervisors call]
 
-instance RpcResult RpcResultInstanceList
+instance RpcResult RpcResultInstanceList where
+  rpcResultFill res =
+    return $ case J.readJSON res of
+      J.Error err -> Left $ JsonDecodeError err
+      J.Ok insts -> Right $ RpcResultInstanceList insts
 
 instance Rpc RpcCallInstanceList RpcResultInstanceList
 
 -- | NodeInfo
 -- Return node information.
 $(buildObject "RpcCallNodeInfo" "rpcCallNodeInfo"
-  [ simpleField "hypervisors" [t| [Hypervisor] |]
-  , simpleField "volume_groups" [t| [String] |]
+  [ simpleField "volume_groups" [t| [String] |]
+  , simpleField "hypervisors" [t| [Hypervisor] |]
   ])
 
 $(buildObject "VgInfo" "vgInfo"
   [ simpleField "name" [t| String |]
-  , simpleField "free" [t| Int |]
-  , simpleField "size" [t| Int |]
+  , optionalField $ simpleField "vg_free" [t| Int |]
+  , optionalField $ simpleField "vg_size" [t| Int |]
   ])
 
 -- | We only provide common fields as described in hv_base.py.
@@ -293,7 +321,15 @@ instance RpcCall RpcCallNodeInfo where
   rpcCallName _ = "node_info"
   rpcCallTimeout _ = rpcTimeoutToRaw Urgent
   rpcCallAcceptOffline _ = False
+  rpcCallData _ call = J.encode ( rpcCallNodeInfoVolumeGroups call
+                                , rpcCallNodeInfoHypervisors call
+                                )
 
-instance RpcResult RpcResultNodeInfo
+instance RpcResult RpcResultNodeInfo where
+  rpcResultFill res =
+    return $ case J.readJSON res of
+      J.Error err -> Left $ JsonDecodeError err
+      J.Ok (boot_id, vg_info, hv_info) ->
+          Right $ RpcResultNodeInfo boot_id vg_info hv_info
 
 instance Rpc RpcCallNodeInfo RpcResultNodeInfo
