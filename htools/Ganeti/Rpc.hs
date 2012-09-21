@@ -89,6 +89,7 @@ data RpcError
   = CurlDisabledError
   | CurlLayerError Node String
   | JsonDecodeError String
+  | RpcResultError String
   | OfflineNodeError Node
   deriving Eq
 
@@ -96,9 +97,11 @@ instance Show RpcError where
   show CurlDisabledError =
     "RPC/curl backend disabled at compile time"
   show (CurlLayerError node code) =
-    "Curl error for " ++ nodeName node ++ ", error " ++ code
+    "Curl error for " ++ nodeName node ++ ", " ++ code
   show (JsonDecodeError msg) =
-    "Error while decoding JSON from HTTP response " ++ msg
+    "Error while decoding JSON from HTTP response: " ++ msg
+  show (RpcResultError msg) =
+    "Error reponse received from RPC server: " ++ msg
   show (OfflineNodeError node) =
     "Node " ++ nodeName node ++ " is marked as offline"
 
