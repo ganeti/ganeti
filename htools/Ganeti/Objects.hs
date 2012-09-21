@@ -592,7 +592,7 @@ $(buildObject "Cluster" "cluster" $
   , simpleField "cluster_name"            [t| String           |]
   , simpleField "file_storage_dir"        [t| String           |]
   , simpleField "shared_file_storage_dir" [t| String           |]
-  , simpleField "enabled_hypervisors"     [t| [String]         |]
+  , simpleField "enabled_hypervisors"     [t| [Hypervisor]     |]
   , simpleField "hvparams"                [t| ClusterHvParams  |]
   , simpleField "os_hvp"                  [t| OsHvParams       |]
   , simpleField "beparams"                [t| ClusterBeParams  |]
