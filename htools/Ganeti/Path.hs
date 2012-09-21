@@ -23,32 +23,32 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 -}
 
-module Ganeti.Path
-  ( defaultLuxiSocket
-  , defaultQuerySocket
-  , dataDir
-  , logDir
-  , runDir
-  , confdHmacKey
-  , clusterConfFile
-  , nodedCertFile
-  ) where
+module Ganeti.Path where
 
 import qualified Ganeti.Constants as C
 import System.FilePath
+import System.Posix.Env (getEnvDefault)
+import System.IO.Unsafe
 
+{-# NOINLINE getRootDir #-}
+getRootDir :: FilePath
+getRootDir = unsafePerformIO $ getEnvDefault "GANETI_ROOTDIR" ""
+
+-- | Prefixes a path with the current root directory
+addNodePrefix :: FilePath -> FilePath
+addNodePrefix path = getRootDir ++ path
 
 -- | Directory for data
 dataDir :: FilePath
-dataDir = C.autoconfLocalstatedir </> "lib" </> "ganeti"
+dataDir = addNodePrefix $ C.autoconfLocalstatedir </> "lib" </> "ganeti"
 
 -- | Directory for runtime files
 runDir :: FilePath
-runDir = C.autoconfLocalstatedir </> "run" </> "ganeti"
+runDir = addNodePrefix $ C.autoconfLocalstatedir </> "run" </> "ganeti"
 
 -- | Directory for log files
 logDir :: FilePath
-logDir = C.autoconfLocalstatedir </> "log" </> "ganeti"
+logDir = addNodePrefix $ C.autoconfLocalstatedir </> "log" </> "ganeti"
 
 -- | Directory for Unix sockets
 socketDir :: FilePath
