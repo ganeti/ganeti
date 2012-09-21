@@ -21,6 +21,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Ganeti.BasicTypes
   ( Result(..)
+  , ResultT(..)
+  , resultT
   , isOk
   , isBad
   , eitherToResult
@@ -38,6 +40,7 @@ module Ganeti.BasicTypes
 
 import Control.Applicative
 import Control.Monad
+import Control.Monad.Trans
 import Data.Function
 import Data.List
 
@@ -74,6 +77,29 @@ instance Applicative Result where
   (Bad f) <*> _       = Bad f
   _       <*> (Bad x) = Bad x
   (Ok f)  <*> (Ok x)  = Ok $ f x
+
+-- | This is a monad transformation for Result. It's implementation is
+-- based on the implementations of MaybeT and ErrorT.
+newtype ResultT m a = ResultT {runResultT :: m (Result a)}
+
+instance (Monad m) => Monad (ResultT m) where
+  fail err = ResultT (return $ Bad err)
+  return = lift . return
+  x >>= f = ResultT $ do
+              a <- runResultT x
+              case a of
+                Ok val -> runResultT $ f val
+                Bad err -> return $ Bad err
+
+instance MonadTrans ResultT where
+  lift x = ResultT (liftM Ok x)
+
+instance (MonadIO m) => MonadIO (ResultT m) where
+  liftIO = lift . liftIO
+
+-- | Lift a `Result` value to a `ResultT`.
+resultT :: Monad m => Result a -> ResultT m a
+resultT = ResultT . return
 
 -- | Simple checker for whether a 'Result' is OK.
 isOk :: Result a -> Bool
