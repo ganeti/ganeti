@@ -53,6 +53,9 @@ module Ganeti.Rpc
   , RpcCallNodeInfo(..)
   , RpcResultNodeInfo(..)
 
+  , RpcCallVersion(..)
+  , RpcResultVersion(..)
+
   , rpcTimeoutFromRaw -- FIXME: Not used anywhere
   ) where
 
@@ -333,3 +336,32 @@ instance RpcResult RpcResultNodeInfo where
           Right $ RpcResultNodeInfo boot_id vg_info hv_info
 
 instance Rpc RpcCallNodeInfo RpcResultNodeInfo
+
+-- | Version
+-- Query node version.
+-- Note: We can't use THH as it does not know what to do with empty dict
+data RpcCallVersion = RpcCallVersion {}
+  deriving (Show, Read, Eq)
+
+instance J.JSON RpcCallVersion where
+  showJSON _ = J.JSNull
+  readJSON J.JSNull = return RpcCallVersion
+  readJSON _ = fail "Unable to read RpcCallVersion"
+
+$(buildObject "RpcResultVersion" "rpcResultVersion"
+  [ simpleField "version" [t| Int |]
+  ])
+
+instance RpcCall RpcCallVersion where
+  rpcCallName _ = "version"
+  rpcCallTimeout _ = rpcTimeoutToRaw Urgent
+  rpcCallAcceptOffline _ = True
+  rpcCallData call _ = J.encode [call]
+
+instance RpcResult RpcResultVersion where
+  rpcResultFill res =
+    return $ case J.readJSON res of
+      J.Error err -> Left $ JsonDecodeError err
+      J.Ok ver -> Right $ RpcResultVersion ver
+
+instance Rpc RpcCallVersion RpcResultVersion
