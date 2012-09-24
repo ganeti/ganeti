@@ -1,36 +1,36 @@
 # test the various gnt-commands for common options
-$SCRIPTS/ganeti-masterd --help
+$DAEMONS/ganeti-masterd --help
 >>>/Usage:/
 >>>2
 >>>= 0
-$SCRIPTS/ganeti-masterd --version
+$DAEMONS/ganeti-masterd --version
 >>>/^ganeti-/
 >>>2
 >>>= 0
 
-$SCRIPTS/ganeti-noded --help
+$DAEMONS/ganeti-noded --help
 >>>/Usage:/
 >>>2
 >>>= 0
-$SCRIPTS/ganeti-noded --version
+$DAEMONS/ganeti-noded --version
 >>>/^ganeti-/
 >>>2
 >>>= 0
 
-$SCRIPTS/ganeti-rapi --help
+$DAEMONS/ganeti-rapi --help
 >>>/Usage:/
 >>>2
 >>>= 0
-$SCRIPTS/ganeti-rapi --version
+$DAEMONS/ganeti-rapi --version
 >>>/^ganeti-/
 >>>2
 >>>= 0
 
-$SCRIPTS/ganeti-watcher --help
+$DAEMONS/ganeti-watcher --help
 >>>/Usage:/
 >>>2
 >>>= 0
-$SCRIPTS/ganeti-watcher --version
+$DAEMONS/ganeti-watcher --version
 >>>/^ganeti-/
 >>>2
 >>>= 0
