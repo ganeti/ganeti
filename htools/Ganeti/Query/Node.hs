@@ -31,9 +31,11 @@ module Ganeti.Query.Node
 import Control.Applicative
 import Data.List
 import qualified Data.Map as Map
+import qualified Text.JSON as J
 
 import Ganeti.Config
 import Ganeti.Objects
+import Ganeti.JSON
 import Ganeti.Rpc
 import Ganeti.Query.Language
 import Ganeti.Query.Common
@@ -42,7 +44,7 @@ import Ganeti.Query.Types
 -- | NodeRuntime is the resulting type for NodeInfo call.
 type NodeRuntime = Either RpcError RpcResultNodeInfo
 
--- | List of node live fields, all ignored for now (no RPC).
+-- | List of node live fields.
 nodeLiveFieldsDefs :: [(FieldName, FieldTitle, FieldType, String, FieldDoc)]
 nodeLiveFieldsDefs =
   [ ("bootid", "BootID", QFTText, "bootid",
@@ -66,11 +68,42 @@ nodeLiveFieldsDefs =
      "Total amount of memory of physical machine")
   ]
 
+-- | Map each name to a function that extracts that value from
+-- the RPC result.
+nodeLiveFieldExtract :: String -> RpcResultNodeInfo -> J.JSValue
+nodeLiveFieldExtract "bootid" res =
+    J.showJSON $ rpcResNodeInfoBootId res
+nodeLiveFieldExtract "cpu_nodes" res =
+    jsonHead (rpcResNodeInfoHvInfo res) hvInfoCpuNodes
+nodeLiveFieldExtract "cpu_sockets" res =
+    jsonHead (rpcResNodeInfoHvInfo res) hvInfoCpuSockets
+nodeLiveFieldExtract "cpu_total" res =
+    jsonHead (rpcResNodeInfoHvInfo res) hvInfoCpuTotal
+nodeLiveFieldExtract "vg_free" res =
+    jsonHead (rpcResNodeInfoVgInfo res) vgInfoVgFree
+nodeLiveFieldExtract "vg_size" res =
+    jsonHead (rpcResNodeInfoVgInfo res) vgInfoVgSize
+nodeLiveFieldExtract "memory_free" res =
+    jsonHead (rpcResNodeInfoHvInfo res) hvInfoMemoryFree
+nodeLiveFieldExtract "memory_dom0" res =
+    jsonHead (rpcResNodeInfoHvInfo res) hvInfoMemoryDom0
+nodeLiveFieldExtract "memory_total" res =
+    jsonHead (rpcResNodeInfoHvInfo res) hvInfoMemoryTotal
+nodeLiveFieldExtract _ _ = J.JSNull
+
+-- | Helper for extracting field from RPC result.
+nodeLiveRpcCall :: FieldName -> NodeRuntime -> Node -> ResultEntry
+nodeLiveRpcCall fname (Right res) _ =
+    rsNormal (nodeLiveFieldExtract fname res)
+nodeLiveRpcCall _ (Left err) _ =
+    ResultEntry (rpcErrorToStatus err) Nothing
+
 -- | Builder for node live fields.
 nodeLiveFieldBuilder :: (FieldName, FieldTitle, FieldType, String, FieldDoc)
                      -> FieldData Node NodeRuntime
 nodeLiveFieldBuilder (fname, ftitle, ftype, _, fdoc) =
-  (FieldDefinition fname ftitle ftype fdoc, missingRuntime)
+  ( FieldDefinition fname ftitle ftype fdoc
+  , FieldRuntime $ nodeLiveRpcCall fname)
 
 -- | The docstring for the node role. Note that we use 'reverse in
 -- order to keep the same order as Python.
