@@ -28,7 +28,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Ganeti.Rpc
   ( RpcCall
-  , RpcResult
   , Rpc
   , RpcError(..)
   , ERpcError
@@ -55,6 +54,11 @@ module Ganeti.Rpc
 
   , RpcCallVersion(..)
   , RpcResultVersion(..)
+
+  , StorageType(..)
+  , StorageField(..)
+  , RpcCallStorageList(..)
+  , RpcResultStorageList(..)
 
   , rpcTimeoutFromRaw -- FIXME: Not used anywhere
   ) where
@@ -134,14 +138,11 @@ class (J.JSON a) => RpcCall a where
   -- | Whether we accept offline nodes when making a call.
   rpcCallAcceptOffline :: a -> Bool
 
--- | A generic class for RPC results with default implementation.
-class (J.JSON a) => RpcResult a where
-  -- | Create a result based on the received HTTP response.
-  rpcResultFill :: (Monad m) => J.JSValue -> m (ERpcError a)
-
 -- | Generic class that ensures matching RPC call with its respective
 -- result.
-class (RpcCall a, RpcResult b) => Rpc a b | a -> b
+class (RpcCall a, J.JSON b) => Rpc a b  | a -> b, b -> a where
+  -- | Create a result based on the received HTTP response.
+  rpcResultFill :: (Monad m) => a -> J.JSValue -> m (ERpcError b)
 
 -- | Http Request definition.
 data HttpClientRequest = HttpClientRequest
@@ -192,28 +193,27 @@ prepareHttpRequest node call
   | otherwise = Left $ OfflineNodeError node
 
 -- | Parse a result based on the received HTTP response.
-rpcResultParse :: (Monad m, RpcResult a) => String -> m (ERpcError a)
-rpcResultParse res = do
+rpcResultParse :: (Monad m, Rpc a b) => a -> String -> m (ERpcError b)
+rpcResultParse call res = do
   res' <- fromJResult "Reading JSON response" $ J.decode res
   case res' of
     (True, res'') ->
-       rpcResultFill res''
+       rpcResultFill call res''
     (False, jerr) -> case jerr of
        J.JSString msg -> return . Left $ RpcResultError (J.fromJSString msg)
        _ -> (return . Left) . JsonDecodeError $ show (pp_value jerr)
 
 -- | Parse the response or propagate the error.
-parseHttpResponse :: (Monad m, RpcResult a) => ERpcError String
-                  -> m (ERpcError a)
-parseHttpResponse (Left err) = return $ Left err
-parseHttpResponse (Right response) = rpcResultParse response
+parseHttpResponse :: (Rpc a b) => a -> ERpcError String -> IO (ERpcError b)
+parseHttpResponse _ (Left err) = return $ Left err
+parseHttpResponse call (Right response) = rpcResultParse call response
 
 -- | Execute RPC call for a sigle node.
 executeSingleRpcCall :: (Rpc a b) => Node -> a -> IO (Node, ERpcError b)
 executeSingleRpcCall node call = do
   let request = prepareHttpRequest node call
   response <- executeHttpRequest node request
-  result <- parseHttpResponse response
+  result <- parseHttpResponse call response
   return (node, result)
 
 -- | Execute RPC call for many nodes in parallel.
@@ -254,9 +254,9 @@ instance RpcCall RpcCallAllInstancesInfo where
   rpcCallAcceptOffline _ = False
   rpcCallData _ call = J.encode [rpcCallAllInstInfoHypervisors call]
 
-instance RpcResult RpcResultAllInstancesInfo where
+instance Rpc RpcCallAllInstancesInfo RpcResultAllInstancesInfo where
   -- FIXME: Is there a simpler way to do it?
-  rpcResultFill res =
+  rpcResultFill _ res =
     return $ case res of
       J.JSObject res' -> do
         let res'' = map (second J.readJSON) (J.fromJSObject res')
@@ -266,8 +266,6 @@ instance RpcResult RpcResultAllInstancesInfo where
           Right insts -> Right $ RpcResultAllInstancesInfo insts
       _ -> Left $ JsonDecodeError
            ("Expected JSObject, got " ++ show res)
-
-instance Rpc RpcCallAllInstancesInfo RpcResultAllInstancesInfo
 
 -- | InstanceList
 -- Returns the list of running instances on the given nodes.
@@ -283,13 +281,12 @@ instance RpcCall RpcCallInstanceList where
   rpcCallAcceptOffline _ = False
   rpcCallData _ call = J.encode [rpcCallInstListHypervisors call]
 
-instance RpcResult RpcResultInstanceList where
-  rpcResultFill res =
+
+instance Rpc RpcCallInstanceList RpcResultInstanceList where
+  rpcResultFill _ res =
     return $ case J.readJSON res of
       J.Error err -> Left $ JsonDecodeError err
       J.Ok insts -> Right $ RpcResultInstanceList insts
-
-instance Rpc RpcCallInstanceList RpcResultInstanceList
 
 -- | NodeInfo
 -- Return node information.
@@ -328,14 +325,12 @@ instance RpcCall RpcCallNodeInfo where
                                 , rpcCallNodeInfoHypervisors call
                                 )
 
-instance RpcResult RpcResultNodeInfo where
-  rpcResultFill res =
+instance Rpc RpcCallNodeInfo RpcResultNodeInfo where
+  rpcResultFill _ res =
     return $ case J.readJSON res of
       J.Error err -> Left $ JsonDecodeError err
       J.Ok (boot_id, vg_info, hv_info) ->
           Right $ RpcResultNodeInfo boot_id vg_info hv_info
-
-instance Rpc RpcCallNodeInfo RpcResultNodeInfo
 
 -- | Version
 -- Query node version.
@@ -358,10 +353,59 @@ instance RpcCall RpcCallVersion where
   rpcCallAcceptOffline _ = True
   rpcCallData call _ = J.encode [call]
 
-instance RpcResult RpcResultVersion where
-  rpcResultFill res =
+instance Rpc RpcCallVersion RpcResultVersion where
+  rpcResultFill _ res =
     return $ case J.readJSON res of
       J.Error err -> Left $ JsonDecodeError err
       J.Ok ver -> Right $ RpcResultVersion ver
 
-instance Rpc RpcCallVersion RpcResultVersion
+-- | StorageList
+-- Get list of storage units.
+-- FIXME: This may be moved to Objects
+$(declareSADT "StorageType"
+  [ ( "STLvmPv", 'C.stLvmPv )
+  , ( "STFile",  'C.stFile )
+  , ( "STLvmVg", 'C.stLvmVg )
+  ])
+$(makeJSONInstance ''StorageType)
+
+-- FIXME: This may be moved to Objects
+$(declareSADT "StorageField"
+  [ ( "SFUsed",        'C.sfUsed)
+  , ( "SFName",        'C.sfName)
+  , ( "SFAllocatable", 'C.sfAllocatable)
+  , ( "SFFree",        'C.sfFree)
+  , ( "SFSize",        'C.sfSize)
+  ])
+$(makeJSONInstance ''StorageField)
+
+$(buildObject "RpcCallStorageList" "rpcCallStorageList"
+  [ simpleField "su_name" [t| StorageType |]
+  , simpleField "su_args" [t| [String] |]
+  , simpleField "name"    [t| String |]
+  , simpleField "fields"  [t| [StorageField] |]
+  ])
+
+-- FIXME: The resulting JSValues should have types appropriate for their
+-- StorageField value: Used -> Bool, Name -> String etc
+$(buildObject "RpcResultStorageList" "rpcResStorageList"
+  [ simpleField "storage" [t| [[(StorageField, J.JSValue)]] |] ])
+
+instance RpcCall RpcCallStorageList where
+  rpcCallName _ = "storage_list"
+  rpcCallTimeout _ = rpcTimeoutToRaw Normal
+  rpcCallAcceptOffline _ = False
+  rpcCallData _ call = J.encode
+    ( rpcCallStorageListSuName call
+    , rpcCallStorageListSuArgs call
+    , rpcCallStorageListName call
+    , rpcCallStorageListFields call
+    )
+
+instance Rpc RpcCallStorageList RpcResultStorageList where
+  rpcResultFill call res =
+    let sfields = rpcCallStorageListFields call in
+    return $ case J.readJSON res of
+      J.Error err -> Left $ JsonDecodeError err
+      J.Ok res_lst -> Right $ RpcResultStorageList (map (zip sfields) res_lst)
+
