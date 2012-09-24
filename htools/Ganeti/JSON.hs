@@ -31,6 +31,7 @@ module Ganeti.JSON
   , fromObjWithDefault
   , fromKeyValue
   , fromJVal
+  , jsonHead
   , asJSObject
   , asObjectList
   , tryFromObj
@@ -124,6 +125,11 @@ fromJVal v =
     J.Error s -> fail ("Cannot convert value '" ++ show (pp_value v) ++
                        "', error: " ++ s)
     J.Ok x -> return x
+
+-- | Helper function that returns Null or first element of the list.
+jsonHead :: (J.JSON b) => [a] -> (a -> b) -> J.JSValue
+jsonHead [] _ = J.JSNull
+jsonHead (x:_) f = J.showJSON $ f x
 
 -- | Converts a JSON value into a JSON object.
 asJSObject :: (Monad m) => J.JSValue -> m (J.JSObject J.JSValue)
