@@ -639,6 +639,11 @@ def main():
   buf = StringIO()
   sw = utils.ShellWriter(buf, indent=not options.compact)
 
+  # Remember original state of extglob and enable it (required for pattern
+  # matching; must be enabled while parsing script)
+  sw.Write("gnt_shopt_extglob=$(shopt -p extglob || :)")
+  sw.Write("shopt -s extglob")
+
   WritePreamble(sw, not options.compact)
 
   # gnt-* scripts
@@ -655,6 +660,10 @@ def main():
   WriteCompletion(sw, "%s/burnin" % pathutils.TOOLSDIR, "_ganeti_burnin",
                   not options.compact,
                   opts=burnin.OPTIONS, args=burnin.ARGUMENTS)
+
+  # Reset extglob to original value
+  sw.Write("[[ -n \"$gnt_shopt_extglob\" ]] && $gnt_shopt_extglob")
+  sw.Write("unset gnt_shopt_extglob")
 
   print buf.getvalue()
 
