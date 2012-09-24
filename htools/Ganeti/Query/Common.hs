@@ -29,6 +29,7 @@ module Ganeti.Query.Common
   , rsMaybe
   , rsUnknown
   , missingRuntime
+  , rpcErrorToStatus
   , timeStampFields
   , uuidFields
   , serialFields
@@ -45,6 +46,7 @@ import Text.JSON (JSON, showJSON)
 import qualified Ganeti.Constants as C
 import Ganeti.Config
 import Ganeti.Objects
+import Ganeti.Rpc
 import Ganeti.Query.Language
 import Ganeti.Query.Types
 
@@ -83,6 +85,13 @@ rsUnknown = ResultEntry RSUnknown Nothing
 -- | Helper for a missing runtime parameter.
 missingRuntime :: FieldGetter a b
 missingRuntime = FieldRuntime (\_ _ -> ResultEntry RSNoData Nothing)
+
+-- * Error conversion
+
+-- | Convert RpcError to ResultStatus
+rpcErrorToStatus :: RpcError -> ResultStatus
+rpcErrorToStatus (OfflineNodeError _) = RSOffline
+rpcErrorToStatus _ = RSNoData
 
 -- * Common fields
 
