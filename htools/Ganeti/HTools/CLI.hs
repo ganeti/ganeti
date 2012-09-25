@@ -77,6 +77,7 @@ module Ganeti.HTools.CLI
   , oSelInst
   , oShowHelp
   , oShowVer
+  , oShowComp
   , oStdSpec
   , oTieredSpec
   , oVerbose
@@ -132,6 +133,7 @@ data Options = Options
   , optSaveCluster :: Maybe FilePath -- ^ Save cluster state to this file
   , optShowCmds    :: Maybe FilePath -- ^ Whether to show the command list
   , optShowHelp    :: Bool           -- ^ Just show the help
+  , optShowComp    :: Bool           -- ^ Just show the completion info
   , optShowInsts   :: Bool           -- ^ Whether to show the instance map
   , optShowNodes   :: Maybe [String] -- ^ Whether to show node status
   , optShowVer     :: Bool           -- ^ Just show the program version
@@ -175,6 +177,7 @@ defaultOptions  = Options
   , optSaveCluster = Nothing
   , optShowCmds    = Nothing
   , optShowHelp    = False
+  , optShowComp    = False
   , optShowInsts   = False
   , optShowNodes   = Nothing
   , optShowVer     = False
@@ -191,8 +194,10 @@ type OptType = GenericOptType Options
 instance StandardOptions Options where
   helpRequested = optShowHelp
   verRequested  = optShowVer
+  compRequested = optShowComp
   requestHelp o = o { optShowHelp = True }
   requestVer  o = o { optShowVer  = True }
+  requestComp o = o { optShowComp = True }
 
 -- * Helper functions
 
@@ -512,6 +517,7 @@ oVerbose =
 genericOpts :: [GenericOptType Options]
 genericOpts =  [ oShowVer
                , oShowHelp
+               , oShowComp
                ]
 
 -- * Functions

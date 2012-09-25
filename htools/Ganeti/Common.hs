@@ -33,6 +33,7 @@ module Ganeti.Common
   , optComplYesNo
   , oShowHelp
   , oShowVer
+  , oShowComp
   , usageHelp
   , versionInfo
   , reqWithConversion
@@ -42,6 +43,9 @@ module Ganeti.Common
   ) where
 
 import Control.Monad (foldM)
+import Data.Char (toLower)
+import Data.List (intercalate, stripPrefix)
+import Data.Maybe (fromMaybe)
 import qualified Data.Version
 import System.Console.GetOpt
 import System.Exit
@@ -75,6 +79,14 @@ data OptCompletion = OptComplNone             -- ^ No parameter to this option
 optComplYesNo :: OptCompletion
 optComplYesNo = OptComplChoices ["yes", "no"]
 
+-- | Text serialisation for 'OptCompletion', used on the Python side.
+complToText :: OptCompletion -> String
+complToText (OptComplChoices choices) = "choices " ++ intercalate "," choices
+complToText compl =
+  let show_compl = show compl
+      stripped = stripPrefix "OptCompl" show_compl
+  in map toLower $ fromMaybe show_compl stripped
+
 -- | Abrreviation for the option type.
 type GenericOptType a = (OptDescr (a -> Result a), OptCompletion)
 
@@ -82,10 +94,12 @@ type GenericOptType a = (OptDescr (a -> Result a), OptCompletion)
 class StandardOptions a where
   helpRequested :: a -> Bool
   verRequested  :: a -> Bool
+  compRequested :: a -> Bool
   requestHelp   :: a -> a
   requestVer    :: a -> a
+  requestComp   :: a -> a
 
--- | Options to request help output.
+-- | Option to request help output.
 oShowHelp :: (StandardOptions a) => GenericOptType a
 oShowHelp = (Option "h" ["help"] (NoArg (Ok . requestHelp)) "show help",
              OptComplNone)
@@ -95,6 +109,12 @@ oShowVer :: (StandardOptions a) => GenericOptType a
 oShowVer = (Option "V" ["version"] (NoArg (Ok . requestVer))
             "show the version of the program",
             OptComplNone)
+
+-- | Option to request completion information
+oShowComp :: (StandardOptions a) => GenericOptType a
+oShowComp =
+  (Option "" ["help-completion"] (NoArg (Ok . requestComp) )
+   "show completion info", OptComplNone)
 
 -- | Usage info.
 usageHelp :: String -> [GenericOptType a] -> String
@@ -109,6 +129,15 @@ versionInfo progname =
          progname Version.version compilerName
          (Data.Version.showVersion compilerVersion)
          os arch
+
+-- | Show completion info.
+completionInfo :: String -> [GenericOptType a] -> String
+completionInfo _ =
+  unlines .
+  map (\(Option shorts longs _ _, compinfo) ->
+         let all_opts = map (\c -> ['-', c]) shorts ++ map ("--" ++) longs
+         in intercalate "," all_opts ++ " " ++ complToText compinfo
+      )
 
 -- | Helper for parsing a yes\/no command line flag.
 parseYesNo :: Bool         -- ^ Default value (when we get a @Nothing@)
@@ -169,6 +198,8 @@ parseOptsInner defaults argv progname options  =
                     Left (ExitSuccess, usageHelp progname options))
                  , (verRequested parsed,
                     Left (ExitSuccess, versionInfo progname))
+                 , (compRequested parsed,
+                    Left (ExitSuccess, completionInfo progname options))
                  ]
     (_, _, errs) ->
       Left (ExitFailure 2, "Command line error: "  ++ concat errs ++ "\n" ++

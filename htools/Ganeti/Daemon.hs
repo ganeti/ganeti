@@ -81,6 +81,7 @@ devNull = "/dev/null"
 data DaemonOptions = DaemonOptions
   { optShowHelp     :: Bool           -- ^ Just show the help
   , optShowVer      :: Bool           -- ^ Just show the program version
+  , optShowComp     :: Bool           -- ^ Just show the completion info
   , optDaemonize    :: Bool           -- ^ Whether to daemonize or not
   , optPort         :: Maybe Word16   -- ^ Override for the network port
   , optDebug        :: Bool           -- ^ Enable debug messages
@@ -94,6 +95,7 @@ defaultOptions :: DaemonOptions
 defaultOptions  = DaemonOptions
   { optShowHelp     = False
   , optShowVer      = False
+  , optShowComp     = False
   , optDaemonize    = True
   , optPort         = Nothing
   , optDebug        = False
@@ -105,8 +107,10 @@ defaultOptions  = DaemonOptions
 instance StandardOptions DaemonOptions where
   helpRequested = optShowHelp
   verRequested  = optShowVer
+  compRequested = optShowComp
   requestHelp o = o { optShowHelp = True }
   requestVer  o = o { optShowVer  = True }
+  requestComp o = o { optShowComp = True }
 
 -- | Abrreviation for the option type.
 type OptType = GenericOptType DaemonOptions
@@ -165,6 +169,7 @@ oSyslogUsage =
 genericOpts :: [OptType]
 genericOpts = [ oShowHelp
               , oShowVer
+              , oShowComp
               ]
 
 -- | Small wrapper over getArgs and 'parseOpts'.
