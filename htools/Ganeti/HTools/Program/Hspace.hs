@@ -67,8 +67,6 @@ options =
   , oStdSpec
   , oTieredSpec
   , oSaveCluster
-  , oShowVer
-  , oShowHelp
   ]
 
 -- | The allocation phase we're in (initial, after tiered allocs, or

@@ -149,11 +149,17 @@ oSyslogUsage = Option "" ["syslog"]
                 \messages); one of 'no', 'yes' or 'only' [" ++ C.syslogUsage ++
                 "]")
 
+-- | Generic options.
+genericOpts :: [OptType]
+genericOpts = [ oShowHelp
+              , oShowVer
+              ]
+
 -- | Small wrapper over getArgs and 'parseOpts'.
 parseArgs :: String -> [OptType] -> IO (DaemonOptions, [String])
 parseArgs cmd options = do
   cmd_args <- getArgs
-  parseOpts defaultOptions cmd_args cmd options
+  parseOpts defaultOptions cmd_args cmd $ options ++ genericOpts
 
 -- * Daemon-related functions
 -- | PID file mode.

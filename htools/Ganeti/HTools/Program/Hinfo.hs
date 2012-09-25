@@ -55,8 +55,6 @@ options =
   , oVerbose
   , oQuiet
   , oOfflineNode
-  , oShowVer
-  , oShowHelp
   ]
 
 -- | Group information data-type.

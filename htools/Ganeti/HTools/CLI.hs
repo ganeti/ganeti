@@ -80,6 +80,7 @@ module Ganeti.HTools.CLI
   , oStdSpec
   , oTieredSpec
   , oVerbose
+  , genericOpts
   ) where
 
 import Control.Monad
@@ -433,6 +434,12 @@ oVerbose :: OptType
 oVerbose = Option "v" ["verbose"]
            (NoArg (\ opts -> Ok opts { optVerbose = optVerbose opts + 1 }))
            "increase the verbosity level"
+
+-- | Generic options.
+genericOpts :: [GenericOptType Options]
+genericOpts =  [ oShowVer
+               , oShowHelp
+               ]
 
 -- * Functions
 

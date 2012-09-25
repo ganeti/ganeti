@@ -33,9 +33,7 @@ import qualified Ganeti.Constants as C
 -- | Options list and functions.
 options :: [OptType]
 options =
-  [ oShowHelp
-  , oShowVer
-  , oNoDaemonize
+  [ oNoDaemonize
   , oNoUserChecks
   , oDebug
   , oPort C.defaultConfdPort

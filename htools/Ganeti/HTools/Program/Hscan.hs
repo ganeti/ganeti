@@ -54,8 +54,6 @@ options =
   , oLuxiSocket
   , oVerbose
   , oNoHeaders
-  , oShowVer
-  , oShowHelp
   ]
 
 -- | Return a one-line summary of cluster state.

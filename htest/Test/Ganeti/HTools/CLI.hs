@@ -118,8 +118,8 @@ case_wrong_arg =
 -- | Test that all binaries support some common options.
 case_stdopts :: Assertion
 case_stdopts =
-  mapM_ (\(name, (_, o)) -> checkEarlyExit defaultOptions name o)
-      Program.personalities
+  mapM_ (\(name, (_, o)) -> checkEarlyExit defaultOptions name
+                            (o ++ genericOpts)) Program.personalities
 
 testSuite "HTools/CLI"
           [ 'prop_parseISpec

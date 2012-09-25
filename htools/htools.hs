@@ -35,7 +35,7 @@ import System.IO
 import System.IO.Error (isDoesNotExistError)
 
 import Ganeti.HTools.Utils
-import Ganeti.HTools.CLI (parseOpts)
+import Ganeti.HTools.CLI (parseOpts, genericOpts)
 import Ganeti.HTools.Program (personalities)
 
 -- | Display usage and exit.
@@ -59,5 +59,5 @@ main = do
     Nothing -> usage name
     Just (fn, options) -> do
          cmd_args <- getArgs
-         (opts, args) <- parseOpts cmd_args name options
+         (opts, args) <- parseOpts cmd_args name $ options ++ genericOpts
          fn opts args

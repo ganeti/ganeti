@@ -45,8 +45,6 @@ options =
   , oDataFile
   , oNodeSim
   , oVerbose
-  , oShowVer
-  , oShowHelp
   ]
 
 wrapReadRequest :: Options -> [String] -> IO Request

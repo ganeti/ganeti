@@ -86,8 +86,6 @@ options =
   , oExTags
   , oExInst
   , oSaveCluster
-  , oShowVer
-  , oShowHelp
   ]
 
 {- | Start computing the solution at the given depth and recurse until

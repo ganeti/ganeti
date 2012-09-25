@@ -68,8 +68,6 @@ options =
   , oQuiet
   , oRapiMaster
   , oSelInst
-  , oShowHelp
-  , oShowVer
   , oVerbose
   ]
 
