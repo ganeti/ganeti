@@ -29,6 +29,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 module Ganeti.Common
   ( GenericOptType
   , StandardOptions(..)
+  , OptCompletion(..)
+  , optComplYesNo
   , oShowHelp
   , oShowVer
   , usageHelp
@@ -49,6 +51,29 @@ import Text.Printf (printf)
 
 import Ganeti.BasicTypes
 import qualified Ganeti.Version as Version (version)
+
+-- | Parameter type.
+data OptCompletion = OptComplNone             -- ^ No parameter to this option
+                   | OptComplFile             -- ^ An existing file
+                   | OptComplDir              -- ^ An existing directory
+                   | OptComplHost             -- ^ Host name
+                   | OptComplInetAddr         -- ^ One ipv4\/ipv6 address
+                   | OptComplOneNode          -- ^ One node
+                   | OptComplManyNodes        -- ^ Many nodes, comma-sep
+                   | OptComplOneInstance      -- ^ One instance
+                   | OptComplManyInstances    -- ^ Many instances, comma-sep
+                   | OptComplOneOs            -- ^ One OS name
+                   | OptComplOneIallocator    -- ^ One iallocator
+                   | OptComplInstAddNodes     -- ^ Either one or two nodes
+                   | OptComplOneGroup         -- ^ One group
+                   | OptComplNumeric          -- ^ Float values
+                   | OptComplString           -- ^ Arbitrary string
+                   | OptComplChoices [String] -- ^ List of string choices
+                   deriving (Show, Read, Eq)
+
+-- | Yes\/no choices completion.
+optComplYesNo :: OptCompletion
+optComplYesNo = OptComplChoices ["yes", "no"]
 
 -- | Abrreviation for the option type.
 type GenericOptType a = OptDescr (a -> Result a)
