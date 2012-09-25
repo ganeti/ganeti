@@ -934,6 +934,7 @@ dist_TESTS = \
 	test/ganeti-cleaner_unittest.bash \
 	test/import-export_unittest.bash \
 	test/cli-test.bash \
+	test/bash_completion.bash \
 	$(python_tests)
 
 nodist_TESTS =
@@ -986,6 +987,7 @@ srclink_files = \
 	test/ganeti-cleaner_unittest.bash \
 	test/import-export_unittest.bash \
 	test/cli-test.bash \
+	test/bash_completion.bash \
 	htest/offline-test.sh \
 	htest/cli-tests-defs.sh \
 	$(all_python_code) \
@@ -1029,6 +1031,8 @@ pep8_python_code = \
 test/daemon-util_unittest.bash: daemons/daemon-util
 
 test/ganeti-cleaner_unittest.bash: daemons/ganeti-cleaner
+
+test/bash_completion.bash: doc/examples/bash_completion-debug
 
 tools/kvm-ifup: tools/kvm-ifup.in $(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@
