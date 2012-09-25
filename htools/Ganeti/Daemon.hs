@@ -114,40 +114,52 @@ type OptType = GenericOptType DaemonOptions
 -- * Command line options
 
 oNoDaemonize :: OptType
-oNoDaemonize = Option "f" ["foreground"]
-               (NoArg (\ opts -> Ok opts { optDaemonize = False}))
-               "Don't detach from the current terminal"
+oNoDaemonize =
+  (Option "f" ["foreground"]
+   (NoArg (\ opts -> Ok opts { optDaemonize = False}))
+   "Don't detach from the current terminal",
+   OptComplNone)
 
 oDebug :: OptType
-oDebug = Option "d" ["debug"]
-         (NoArg (\ opts -> Ok opts { optDebug = True }))
-         "Enable debug messages"
+oDebug =
+  (Option "d" ["debug"]
+   (NoArg (\ opts -> Ok opts { optDebug = True }))
+   "Enable debug messages",
+   OptComplNone)
 
 oNoUserChecks :: OptType
-oNoUserChecks = Option "" ["no-user-checks"]
-         (NoArg (\ opts -> Ok opts { optNoUserChecks = True }))
-         "Ignore user checks"
+oNoUserChecks =
+  (Option "" ["no-user-checks"]
+   (NoArg (\ opts -> Ok opts { optNoUserChecks = True }))
+   "Ignore user checks",
+   OptComplNone)
 
 oPort :: Int -> OptType
-oPort def = Option "p" ["port"]
-            (reqWithConversion (tryRead "reading port")
-             (\port opts -> Ok opts { optPort = Just port }) "PORT")
-            ("Network port (default: " ++ show def ++ ")")
+oPort def =
+  (Option "p" ["port"]
+   (reqWithConversion (tryRead "reading port")
+    (\port opts -> Ok opts { optPort = Just port }) "PORT")
+   ("Network port (default: " ++ show def ++ ")"),
+   OptComplNumeric)
 
 oBindAddress :: OptType
-oBindAddress = Option "b" ["bind"]
-               (ReqArg (\addr opts -> Ok opts { optBindAddress = Just addr })
-                "ADDR")
-               "Bind address (default depends on cluster configuration)"
+oBindAddress =
+  (Option "b" ["bind"]
+   (ReqArg (\addr opts -> Ok opts { optBindAddress = Just addr })
+    "ADDR")
+   "Bind address (default depends on cluster configuration)",
+   OptComplInetAddr)
 
 oSyslogUsage :: OptType
-oSyslogUsage = Option "" ["syslog"]
-               (reqWithConversion syslogUsageFromRaw
-                (\su opts -> Ok opts { optSyslogUsage = Just su })
-                "SYSLOG")
-               ("Enable logging to syslog (except debug \
-                \messages); one of 'no', 'yes' or 'only' [" ++ C.syslogUsage ++
-                "]")
+oSyslogUsage =
+  (Option "" ["syslog"]
+   (reqWithConversion syslogUsageFromRaw
+    (\su opts -> Ok opts { optSyslogUsage = Just su })
+    "SYSLOG")
+   ("Enable logging to syslog (except debug \
+    \messages); one of 'no', 'yes' or 'only' [" ++ C.syslogUsage ++
+    "]"),
+   OptComplChoices ["yes", "no", "only"])
 
 -- | Generic options.
 genericOpts :: [OptType]

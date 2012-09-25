@@ -76,7 +76,7 @@ optComplYesNo :: OptCompletion
 optComplYesNo = OptComplChoices ["yes", "no"]
 
 -- | Abrreviation for the option type.
-type GenericOptType a = OptDescr (a -> Result a)
+type GenericOptType a = (OptDescr (a -> Result a), OptCompletion)
 
 -- | Type class for options which support help and version.
 class StandardOptions a where
@@ -87,18 +87,20 @@ class StandardOptions a where
 
 -- | Options to request help output.
 oShowHelp :: (StandardOptions a) => GenericOptType a
-oShowHelp = Option "h" ["help"] (NoArg (Ok . requestHelp))
-            "show help"
+oShowHelp = (Option "h" ["help"] (NoArg (Ok . requestHelp)) "show help",
+             OptComplNone)
 
+-- | Option to request version information.
 oShowVer :: (StandardOptions a) => GenericOptType a
-oShowVer = Option "V" ["version"] (NoArg (Ok . requestVer))
-           "show the version of the program"
+oShowVer = (Option "V" ["version"] (NoArg (Ok . requestVer))
+            "show the version of the program",
+            OptComplNone)
 
 -- | Usage info.
 usageHelp :: String -> [GenericOptType a] -> String
 usageHelp progname =
   usageInfo (printf "%s %s\nUsage: %s [OPTION...]"
-             progname Version.version progname)
+             progname Version.version progname) . map fst
 
 -- | Show the program version info.
 versionInfo :: String -> String
@@ -155,7 +157,7 @@ parseOptsInner :: (StandardOptions a) =>
                -> [GenericOptType a]
                -> Either (ExitCode, String) (a, [String])
 parseOptsInner defaults argv progname options  =
-  case getOpt Permute options argv of
+  case getOpt Permute (map fst options) argv of
     (opts, args, []) ->
       case foldM (flip id) defaults opts of
            Bad msg -> Left (ExitFailure 1,

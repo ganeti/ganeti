@@ -211,229 +211,302 @@ parseISpecString descr inp = do
     [dsk, ram, cpu] -> return $ RSpec cpu ram dsk
     _ -> err
 
+-- | Disk template choices.
+optComplDiskTemplate :: OptCompletion
+optComplDiskTemplate = OptComplChoices $
+                       map diskTemplateToRaw [minBound..maxBound]
+
 -- * Command line options
 
 oDataFile :: OptType
-oDataFile = Option "t" ["text-data"]
-            (ReqArg (\ f o -> Ok o { optDataFile = Just f }) "FILE")
-            "the cluster data FILE"
+oDataFile =
+  (Option "t" ["text-data"]
+   (ReqArg (\ f o -> Ok o { optDataFile = Just f }) "FILE")
+   "the cluster data FILE",
+   OptComplFile)
 
 oDiskMoves :: OptType
-oDiskMoves = Option "" ["no-disk-moves"]
-             (NoArg (\ opts -> Ok opts { optDiskMoves = False}))
-             "disallow disk moves from the list of allowed instance changes,\
-             \ thus allowing only the 'cheap' failover/migrate operations"
+oDiskMoves =
+  (Option "" ["no-disk-moves"]
+   (NoArg (\ opts -> Ok opts { optDiskMoves = False}))
+   "disallow disk moves from the list of allowed instance changes,\
+   \ thus allowing only the 'cheap' failover/migrate operations",
+   OptComplNone)
 
 oDiskTemplate :: OptType
-oDiskTemplate = Option "" ["disk-template"]
-                (reqWithConversion diskTemplateFromRaw
-                 (\dt opts -> Ok opts { optDiskTemplate = Just dt })
-                 "TEMPLATE") "select the desired disk template"
+oDiskTemplate =
+  (Option "" ["disk-template"]
+   (reqWithConversion diskTemplateFromRaw
+    (\dt opts -> Ok opts { optDiskTemplate = Just dt })
+    "TEMPLATE") "select the desired disk template",
+   optComplDiskTemplate)
 
 oSpindleUse :: OptType
-oSpindleUse = Option "" ["spindle-use"]
-              (reqWithConversion (tryRead "parsing spindle-use")
-               (\su opts -> do
-                  when (su < 0) $
-                       fail "Invalid value of the spindle-use\
-                            \ (expected >= 0)"
-                  return $ opts { optSpindleUse = Just su })
-               "SPINDLES") "select how many virtual spindle instances use\
-                           \ [default read from cluster]"
+oSpindleUse =
+  (Option "" ["spindle-use"]
+   (reqWithConversion (tryRead "parsing spindle-use")
+    (\su opts -> do
+       when (su < 0) $
+            fail "Invalid value of the spindle-use (expected >= 0)"
+       return $ opts { optSpindleUse = Just su })
+    "SPINDLES") "select how many virtual spindle instances use\
+                \ [default read from cluster]",
+   OptComplNumeric)
 
 oSelInst :: OptType
-oSelInst = Option "" ["select-instances"]
-          (ReqArg (\ f opts -> Ok opts { optSelInst = sepSplit ',' f }) "INSTS")
-          "only select given instances for any moves"
+oSelInst =
+  (Option "" ["select-instances"]
+   (ReqArg (\ f opts -> Ok opts { optSelInst = sepSplit ',' f }) "INSTS")
+   "only select given instances for any moves",
+   OptComplManyInstances)
 
 oInstMoves :: OptType
-oInstMoves = Option "" ["no-instance-moves"]
-             (NoArg (\ opts -> Ok opts { optInstMoves = False}))
-             "disallow instance (primary node) moves from the list of allowed,\
-             \ instance changes, thus allowing only slower, but sometimes\
-             \ safer, drbd secondary changes"
+oInstMoves =
+  (Option "" ["no-instance-moves"]
+   (NoArg (\ opts -> Ok opts { optInstMoves = False}))
+   "disallow instance (primary node) moves from the list of allowed,\
+   \ instance changes, thus allowing only slower, but sometimes\
+   \ safer, drbd secondary changes",
+   OptComplNone)
 
 oDynuFile :: OptType
-oDynuFile = Option "U" ["dynu-file"]
-            (ReqArg (\ f opts -> Ok opts { optDynuFile = Just f }) "FILE")
-            "Import dynamic utilisation data from the given FILE"
+oDynuFile =
+  (Option "U" ["dynu-file"]
+   (ReqArg (\ f opts -> Ok opts { optDynuFile = Just f }) "FILE")
+   "Import dynamic utilisation data from the given FILE",
+   OptComplFile)
 
 oEvacMode :: OptType
-oEvacMode = Option "E" ["evac-mode"]
-            (NoArg (\opts -> Ok opts { optEvacMode = True }))
-            "enable evacuation mode, where the algorithm only moves \
-            \ instances away from offline and drained nodes"
+oEvacMode =
+  (Option "E" ["evac-mode"]
+   (NoArg (\opts -> Ok opts { optEvacMode = True }))
+   "enable evacuation mode, where the algorithm only moves \
+   \ instances away from offline and drained nodes",
+   OptComplNone)
 
 oExInst :: OptType
-oExInst = Option "" ["exclude-instances"]
-          (ReqArg (\ f opts -> Ok opts { optExInst = sepSplit ',' f }) "INSTS")
-          "exclude given instances from any moves"
+oExInst =
+  (Option "" ["exclude-instances"]
+   (ReqArg (\ f opts -> Ok opts { optExInst = sepSplit ',' f }) "INSTS")
+   "exclude given instances from any moves",
+   OptComplManyInstances)
 
 oExTags :: OptType
-oExTags = Option "" ["exclusion-tags"]
-            (ReqArg (\ f opts -> Ok opts { optExTags = Just $ sepSplit ',' f })
-             "TAG,...") "Enable instance exclusion based on given tag prefix"
+oExTags =
+  (Option "" ["exclusion-tags"]
+   (ReqArg (\ f opts -> Ok opts { optExTags = Just $ sepSplit ',' f })
+    "TAG,...") "Enable instance exclusion based on given tag prefix",
+   OptComplString)
 
 oExecJobs :: OptType
-oExecJobs = Option "X" ["exec"]
-             (NoArg (\ opts -> Ok opts { optExecJobs = True}))
-             "execute the suggested moves via Luxi (only available when using\
-             \ it for data gathering)"
+oExecJobs =
+  (Option "X" ["exec"]
+   (NoArg (\ opts -> Ok opts { optExecJobs = True}))
+   "execute the suggested moves via Luxi (only available when using\
+   \ it for data gathering)",
+   OptComplNone)
 
 oGroup :: OptType
-oGroup = Option "G" ["group"]
-            (ReqArg (\ f o -> Ok o { optGroup = Just f }) "ID")
-            "the ID of the group to balance"
+oGroup =
+  (Option "G" ["group"]
+   (ReqArg (\ f o -> Ok o { optGroup = Just f }) "ID")
+   "the ID of the group to balance",
+   OptComplOneGroup)
 
 oIAllocSrc :: OptType
-oIAllocSrc = Option "I" ["ialloc-src"]
-             (ReqArg (\ f opts -> Ok opts { optIAllocSrc = Just f }) "FILE")
-             "Specify an iallocator spec as the cluster data source"
+oIAllocSrc =
+  (Option "I" ["ialloc-src"]
+   (ReqArg (\ f opts -> Ok opts { optIAllocSrc = Just f }) "FILE")
+   "Specify an iallocator spec as the cluster data source",
+   OptComplFile)
 
 oLuxiSocket :: OptType
-oLuxiSocket = Option "L" ["luxi"]
-              (OptArg ((\ f opts -> Ok opts { optLuxi = Just f }) .
-                       fromMaybe Path.defaultLuxiSocket) "SOCKET")
-              "collect data via Luxi, optionally using the given SOCKET path"
+oLuxiSocket =
+  (Option "L" ["luxi"]
+   (OptArg ((\ f opts -> Ok opts { optLuxi = Just f }) .
+            fromMaybe Path.defaultLuxiSocket) "SOCKET")
+   "collect data via Luxi, optionally using the given SOCKET path",
+   OptComplFile)
 
 oMachineReadable :: OptType
-oMachineReadable = Option "" ["machine-readable"]
-                   (OptArg (\ f opts -> do
-                     flag <- parseYesNo True f
-                     return $ opts { optMachineReadable = flag }) "CHOICE")
-          "enable machine readable output (pass either 'yes' or 'no' to\
-          \ explicitly control the flag, or without an argument defaults to\
-          \ yes"
+oMachineReadable =
+  (Option "" ["machine-readable"]
+   (OptArg (\ f opts -> do
+              flag <- parseYesNo True f
+              return $ opts { optMachineReadable = flag }) "CHOICE")
+   "enable machine readable output (pass either 'yes' or 'no' to\
+   \ explicitly control the flag, or without an argument defaults to\
+   \ yes",
+   optComplYesNo)
 
 oMaxCpu :: OptType
-oMaxCpu = Option "" ["max-cpu"]
-          (reqWithConversion (tryRead "parsing max-cpu")
-           (\mcpu opts -> do
-              when (mcpu <= 0) $
-                   fail "Invalid value of the max-cpu ratio,\
-                        \ expected >0"
-              return $ opts { optMcpu = Just mcpu }) "RATIO")
-          "maximum virtual-to-physical cpu ratio for nodes (from 0\
-          \ upwards) [default read from cluster]"
+oMaxCpu =
+  (Option "" ["max-cpu"]
+   (reqWithConversion (tryRead "parsing max-cpu")
+    (\mcpu opts -> do
+       when (mcpu <= 0) $
+            fail "Invalid value of the max-cpu ratio, expected >0"
+       return $ opts { optMcpu = Just mcpu }) "RATIO")
+   "maximum virtual-to-physical cpu ratio for nodes (from 0\
+   \ upwards) [default read from cluster]",
+   OptComplNumeric)
 
 oMaxSolLength :: OptType
-oMaxSolLength = Option "l" ["max-length"]
-                (reqWithConversion (tryRead "max solution length")
-                 (\i opts -> Ok opts { optMaxLength = i }) "N")
-                "cap the solution at this many balancing or allocation \
-                \ rounds (useful for very unbalanced clusters or empty \
-                \ clusters)"
+oMaxSolLength =
+  (Option "l" ["max-length"]
+   (reqWithConversion (tryRead "max solution length")
+    (\i opts -> Ok opts { optMaxLength = i }) "N")
+   "cap the solution at this many balancing or allocation \
+   \ rounds (useful for very unbalanced clusters or empty \
+   \ clusters)",
+   OptComplNumeric)
 
 oMinDisk :: OptType
-oMinDisk = Option "" ["min-disk"]
-           (reqWithConversion (tryRead "min free disk space")
-            (\n opts -> Ok opts { optMdsk = n }) "RATIO")
-           "minimum free disk space for nodes (between 0 and 1) [0]"
+oMinDisk =
+  (Option "" ["min-disk"]
+   (reqWithConversion (tryRead "min free disk space")
+    (\n opts -> Ok opts { optMdsk = n }) "RATIO")
+   "minimum free disk space for nodes (between 0 and 1) [0]",
+   OptComplNumeric)
 
 oMinGain :: OptType
-oMinGain = Option "g" ["min-gain"]
-           (reqWithConversion (tryRead "min gain")
-            (\g opts -> Ok opts { optMinGain = g }) "DELTA")
-            "minimum gain to aim for in a balancing step before giving up"
+oMinGain =
+  (Option "g" ["min-gain"]
+   (reqWithConversion (tryRead "min gain")
+    (\g opts -> Ok opts { optMinGain = g }) "DELTA")
+   "minimum gain to aim for in a balancing step before giving up",
+   OptComplNumeric)
 
 oMinGainLim :: OptType
-oMinGainLim = Option "" ["min-gain-limit"]
-            (reqWithConversion (tryRead "min gain limit")
-             (\g opts -> Ok opts { optMinGainLim = g }) "SCORE")
-            "minimum cluster score for which we start checking the min-gain"
+oMinGainLim =
+  (Option "" ["min-gain-limit"]
+   (reqWithConversion (tryRead "min gain limit")
+    (\g opts -> Ok opts { optMinGainLim = g }) "SCORE")
+   "minimum cluster score for which we start checking the min-gain",
+   OptComplNumeric)
 
 oMinScore :: OptType
-oMinScore = Option "e" ["min-score"]
-            (reqWithConversion (tryRead "min score")
-             (\e opts -> Ok opts { optMinScore = e }) "EPSILON")
-            "mininum score to aim for"
+oMinScore =
+  (Option "e" ["min-score"]
+   (reqWithConversion (tryRead "min score")
+    (\e opts -> Ok opts { optMinScore = e }) "EPSILON")
+   "mininum score to aim for",
+   OptComplNumeric)
 
 oNoHeaders :: OptType
-oNoHeaders = Option "" ["no-headers"]
-             (NoArg (\ opts -> Ok opts { optNoHeaders = True }))
-             "do not show a header line"
+oNoHeaders =
+  (Option "" ["no-headers"]
+   (NoArg (\ opts -> Ok opts { optNoHeaders = True }))
+   "do not show a header line",
+   OptComplNone)
 
 oNoSimulation :: OptType
-oNoSimulation = Option "" ["no-simulation"]
-                (NoArg (\opts -> Ok opts {optNoSimulation = True}))
-                "do not perform rebalancing simulation"
+oNoSimulation =
+  (Option "" ["no-simulation"]
+   (NoArg (\opts -> Ok opts {optNoSimulation = True}))
+   "do not perform rebalancing simulation",
+   OptComplNone)
 
 oNodeSim :: OptType
-oNodeSim = Option "" ["simulate"]
-            (ReqArg (\ f o -> Ok o { optNodeSim = f:optNodeSim o }) "SPEC")
-            "simulate an empty cluster, given as\
-            \ 'alloc_policy,num_nodes,disk,ram,cpu'"
+oNodeSim =
+  (Option "" ["simulate"]
+   (ReqArg (\ f o -> Ok o { optNodeSim = f:optNodeSim o }) "SPEC")
+   "simulate an empty cluster, given as\
+   \ 'alloc_policy,num_nodes,disk,ram,cpu'",
+   OptComplString)
 
 oOfflineNode :: OptType
-oOfflineNode = Option "O" ["offline"]
-               (ReqArg (\ n o -> Ok o { optOffline = n:optOffline o }) "NODE")
-               "set node as offline"
+oOfflineNode =
+  (Option "O" ["offline"]
+   (ReqArg (\ n o -> Ok o { optOffline = n:optOffline o }) "NODE")
+   "set node as offline",
+   OptComplOneNode)
 
 oOutputDir :: OptType
-oOutputDir = Option "d" ["output-dir"]
-             (ReqArg (\ d opts -> Ok opts { optOutPath = d }) "PATH")
-             "directory in which to write output files"
+oOutputDir =
+  (Option "d" ["output-dir"]
+   (ReqArg (\ d opts -> Ok opts { optOutPath = d }) "PATH")
+   "directory in which to write output files",
+   OptComplDir)
 
 oPrintCommands :: OptType
-oPrintCommands = Option "C" ["print-commands"]
-                 (OptArg ((\ f opts -> Ok opts { optShowCmds = Just f }) .
-                          fromMaybe "-")
-                  "FILE")
-                 "print the ganeti command list for reaching the solution,\
-                 \ if an argument is passed then write the commands to a\
-                 \ file named as such"
+oPrintCommands =
+  (Option "C" ["print-commands"]
+   (OptArg ((\ f opts -> Ok opts { optShowCmds = Just f }) .
+            fromMaybe "-")
+    "FILE")
+   "print the ganeti command list for reaching the solution,\
+   \ if an argument is passed then write the commands to a\
+   \ file named as such",
+   OptComplNone)
 
 oPrintInsts :: OptType
-oPrintInsts = Option "" ["print-instances"]
-              (NoArg (\ opts -> Ok opts { optShowInsts = True }))
-              "print the final instance map"
+oPrintInsts =
+  (Option "" ["print-instances"]
+   (NoArg (\ opts -> Ok opts { optShowInsts = True }))
+   "print the final instance map",
+   OptComplNone)
 
 oPrintNodes :: OptType
-oPrintNodes = Option "p" ["print-nodes"]
-              (OptArg ((\ f opts ->
-                          let (prefix, realf) = case f of
-                                                  '+':rest -> (["+"], rest)
-                                                  _ -> ([], f)
-                              splitted = prefix ++ sepSplit ',' realf
-                          in Ok opts { optShowNodes = Just splitted }) .
-                       fromMaybe []) "FIELDS")
-              "print the final node list"
+oPrintNodes =
+  (Option "p" ["print-nodes"]
+   (OptArg ((\ f opts ->
+               let (prefix, realf) = case f of
+                                       '+':rest -> (["+"], rest)
+                                       _ -> ([], f)
+                   splitted = prefix ++ sepSplit ',' realf
+               in Ok opts { optShowNodes = Just splitted }) .
+            fromMaybe []) "FIELDS")
+   "print the final node list",
+   OptComplNone)
 
 oQuiet :: OptType
-oQuiet = Option "q" ["quiet"]
-         (NoArg (\ opts -> Ok opts { optVerbose = optVerbose opts - 1 }))
-         "decrease the verbosity level"
+oQuiet =
+  (Option "q" ["quiet"]
+   (NoArg (\ opts -> Ok opts { optVerbose = optVerbose opts - 1 }))
+   "decrease the verbosity level",
+   OptComplNone)
 
 oRapiMaster :: OptType
-oRapiMaster = Option "m" ["master"]
-              (ReqArg (\ m opts -> Ok opts { optMaster = m }) "ADDRESS")
-              "collect data via RAPI at the given ADDRESS"
+oRapiMaster =
+  (Option "m" ["master"]
+   (ReqArg (\ m opts -> Ok opts { optMaster = m }) "ADDRESS")
+   "collect data via RAPI at the given ADDRESS",
+   OptComplHost)
 
 oSaveCluster :: OptType
-oSaveCluster = Option "S" ["save"]
-            (ReqArg (\ f opts -> Ok opts { optSaveCluster = Just f }) "FILE")
-            "Save cluster state at the end of the processing to FILE"
+oSaveCluster =
+  (Option "S" ["save"]
+   (ReqArg (\ f opts -> Ok opts { optSaveCluster = Just f }) "FILE")
+   "Save cluster state at the end of the processing to FILE",
+   OptComplNone)
 
 oStdSpec :: OptType
-oStdSpec = Option "" ["standard-alloc"]
-             (ReqArg (\ inp opts -> do
-                        tspec <- parseISpecString "standard" inp
-                        return $ opts { optStdSpec = Just tspec } )
-              "STDSPEC")
-             "enable standard specs allocation, given as 'disk,ram,cpu'"
+oStdSpec =
+  (Option "" ["standard-alloc"]
+   (ReqArg (\ inp opts -> do
+              tspec <- parseISpecString "standard" inp
+              return $ opts { optStdSpec = Just tspec } )
+    "STDSPEC")
+   "enable standard specs allocation, given as 'disk,ram,cpu'",
+   OptComplString)
 
 oTieredSpec :: OptType
-oTieredSpec = Option "" ["tiered-alloc"]
-             (ReqArg (\ inp opts -> do
-                        tspec <- parseISpecString "tiered" inp
-                        return $ opts { optTieredSpec = Just tspec } )
-              "TSPEC")
-             "enable tiered specs allocation, given as 'disk,ram,cpu'"
+oTieredSpec =
+  (Option "" ["tiered-alloc"]
+   (ReqArg (\ inp opts -> do
+              tspec <- parseISpecString "tiered" inp
+              return $ opts { optTieredSpec = Just tspec } )
+    "TSPEC")
+   "enable tiered specs allocation, given as 'disk,ram,cpu'",
+   OptComplString)
 
 oVerbose :: OptType
-oVerbose = Option "v" ["verbose"]
-           (NoArg (\ opts -> Ok opts { optVerbose = optVerbose opts + 1 }))
-           "increase the verbosity level"
+oVerbose =
+  (Option "v" ["verbose"]
+   (NoArg (\ opts -> Ok opts { optVerbose = optVerbose opts + 1 }))
+   "increase the verbosity level",
+   OptComplNone)
 
 -- | Generic options.
 genericOpts :: [GenericOptType Options]

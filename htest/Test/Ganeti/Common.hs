@@ -58,7 +58,7 @@ checkOpt :: (StandardOptions b) =>
                                           -- from the options
          -> c
 checkOpt repr defaults failfn eqcheck valfn
-         (val, opt@(GetOpt.Option _ longs _ _), fn) =
+         (val, opt@(GetOpt.Option _ longs _ _, _), fn) =
   case longs of
     [] -> failfn "no long options?"
     cmdarg:_ ->
@@ -79,7 +79,7 @@ passFailOpt :: (StandardOptions b) =>
             -- ^ The list of enabled options, fail value and pass value
             -> c
 passFailOpt defaults failfn passfn
-              (opt@(GetOpt.Option _ longs _ _), bad, good) =
+              (opt@(GetOpt.Option _ longs _ _, _), bad, good) =
   let prefix = "--" ++ head longs ++ "="
       good_cmd = prefix ++ good
       bad_cmd = prefix ++ bad in
