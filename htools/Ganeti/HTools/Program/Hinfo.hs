@@ -66,6 +66,7 @@ data GroupInfo = GroupInfo { giName      :: String
                            , giBadNodes  :: Int
                            , giBadInsts  :: Int
                            , giN1Status  :: Bool
+                           , giScore     :: Double
                            }
 
 -- | Node group statistics.
@@ -80,7 +81,8 @@ calcGroupInfo g nl il =
       bn_size                    = length bad_nodes
       bi_size                    = length bad_instances
       n1h                        = bn_size == 0
-  in GroupInfo (Group.name g) nl_size il_size bn_size bi_size n1h
+      score                      = Cluster.compCV nl
+  in GroupInfo (Group.name g) nl_size il_size bn_size bi_size n1h score
 
 -- | Helper to format one group row result.
 groupRowFormatHelper :: GroupInfo -> [String]
@@ -91,6 +93,7 @@ groupRowFormatHelper gi =
   , printf "%d" $ giBadNodes gi
   , printf "%d" $ giBadInsts gi
   , show $ giN1Status gi
+  , printf "%.8f" $ giScore gi
   ]
 
 -- | Print node group information.
@@ -102,11 +105,12 @@ showGroupInfo verbose gl nl il = do
       cn1h   = all giN1Status cgrs
       grs    = map groupRowFormatHelper cgrs
       header = ["Group", "Nodes", "Instances", "Bad_Nodes", "Bad_Instances",
-                "N+1"]
+                "N+1", "Score"]
 
   when (verbose > 1) $
     printf "Node group information:\n%s"
-           (printTable "  " header grs [False, True, True, True, True, False])
+           (printTable "  " header grs [False, True, True, True, True,
+                                        False, True])
 
   printf "Cluster is N+1 %s\n" $ if cn1h then "happy" else "unhappy"
 
