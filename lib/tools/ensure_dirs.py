@@ -118,10 +118,10 @@ def GetPaths():
 
   """
   getent = runtime.GetEnts()
-  masterd_log = pathutils.GetLogFilename(constants.MASTERD)
-  noded_log = pathutils.GetLogFilename(constants.NODED)
-  confd_log = pathutils.GetLogFilename(constants.CONFD)
-  rapi_log = pathutils.GetLogFilename(constants.RAPI)
+  masterd_log = constants.DAEMONS_LOGFILES[constants.MASTERD]
+  noded_log = constants.DAEMONS_LOGFILES[constants.NODED]
+  confd_log = constants.DAEMONS_LOGFILES[constants.CONFD]
+  rapi_log = constants.DAEMONS_LOGFILES[constants.RAPI]
 
   rapi_dir = os.path.join(pathutils.DATA_DIR, "rapi")
 
