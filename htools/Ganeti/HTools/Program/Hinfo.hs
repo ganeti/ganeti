@@ -59,11 +59,20 @@ options =
   , oShowHelp
   ]
 
+-- | Group information data-type.
+data GroupInfo = GroupInfo { giName      :: String
+                           , giNodeCount :: Int
+                           , giInstCount :: Int
+                           , giBadNodes  :: Int
+                           , giBadInsts  :: Int
+                           , giN1Status  :: Bool
+                           }
+
 -- | Node group statistics.
 calcGroupInfo :: Group.Group
               -> Node.List
               -> Instance.List
-              -> (String, (Int, Int), (Int, Int), Bool)
+              -> GroupInfo
 calcGroupInfo g nl il =
   let nl_size                    = Container.size nl
       il_size                    = Container.size il
@@ -71,17 +80,18 @@ calcGroupInfo g nl il =
       bn_size                    = length bad_nodes
       bi_size                    = length bad_instances
       n1h                        = bn_size == 0
-  in (Group.name g, (nl_size, il_size), (bn_size, bi_size), n1h)
+  in GroupInfo (Group.name g) nl_size il_size bn_size bi_size n1h
 
 -- | Helper to format one group row result.
-groupRowFormatHelper :: (String, (Int, Int), (Int, Int), Bool) -> [String]
-groupRowFormatHelper (gname, (nl_size, il_size), (bn_size, bi_size), n1h) =
-  [ gname
-  , printf "%d" nl_size
-  , printf "%d" il_size
-  , printf "%d" bn_size
-  , printf "%d" bi_size
-  , show n1h ]
+groupRowFormatHelper :: GroupInfo -> [String]
+groupRowFormatHelper gi =
+  [ giName gi
+  , printf "%d" $ giNodeCount gi
+  , printf "%d" $ giInstCount gi
+  , printf "%d" $ giBadNodes gi
+  , printf "%d" $ giBadInsts gi
+  , show $ giN1Status gi
+  ]
 
 -- | Print node group information.
 showGroupInfo :: Int -> Group.List -> Node.List -> Instance.List -> IO ()
@@ -89,7 +99,7 @@ showGroupInfo verbose gl nl il = do
   let cgrs   = map (\(gdx, (gnl, gil)) ->
                  calcGroupInfo (Container.find gdx gl) gnl gil) $
                  Cluster.splitCluster nl il
-      cn1h   = all (\(_, _, _, n1h) -> n1h) cgrs
+      cn1h   = all giN1Status cgrs
       grs    = map groupRowFormatHelper cgrs
       header = ["Group", "Nodes", "Instances", "Bad_Nodes", "Bad_Instances",
                 "N+1"]
