@@ -173,6 +173,14 @@ GENERATED_FILES = \
 	$(BUILT_PYTHON_SOURCES) \
 	$(PYTHON_BOOTSTRAP)
 
+HTOOLS_GENERATED_FILES =
+if WANT_HTOOLS
+HTOOLS_GENERATED_FILES += $(HS_PROGS)
+if HS_CONFD
+HTOOLS_GENERATED_FILES += htools/hconfd
+endif
+endif
+
 built_base_sources = \
 	stamp-directories \
 	stamp-srclinks
@@ -370,6 +378,7 @@ docrst = \
 
 HS_PROGS = htools/htools
 HS_BIN_ROLES = hbal hscan hspace hinfo hcheck
+HS_HTOOLS_PROGS = $(HS_BIN_ROLES) hail
 
 HS_ALL_PROGS = $(HS_PROGS) htest/test htest/hpc-htools htools/hconfd
 HS_PROG_SRCS = $(patsubst %,%.hs,$(HS_ALL_PROGS))
@@ -1055,7 +1064,7 @@ doc/examples/bash_completion-debug: BC_ARGS =
 doc/examples/bash_completion doc/examples/bash_completion-debug: \
 	$(BUILD_BASH_COMPLETION) $(RUN_IN_TEMPDIR) \
 	lib/cli.py $(gnt_scripts) $(client_PYTHON) tools/burnin \
-	$(GENERATED_FILES)
+	$(GENERATED_FILES) $(HTOOLS_GENERATED_FILES)
 	PYTHONPATH=. $(RUN_IN_TEMPDIR) \
 	  $(CURDIR)/$(BUILD_BASH_COMPLETION) $(BC_ARGS) > $@
 
@@ -1199,6 +1208,7 @@ lib/_autoconf.py: Makefile | stamp-directories
 	  echo "LVM_STRIPECOUNT = $(LVM_STRIPECOUNT)"; \
 	  echo "TOOLSDIR = '$(toolsdir)'"; \
 	  echo "GNT_SCRIPTS = [$(foreach i,$(notdir $(gnt_scripts)),'$(i)',)]"; \
+	  echo "HTOOLS_PROGS = [$(foreach i,$(HS_HTOOLS_PROGS),'$(i)',)]"; \
 	  echo "PKGLIBDIR = '$(pkglibdir)'"; \
 	  echo "DRBD_BARRIERS = '$(DRBD_BARRIERS)'"; \
 	  echo "DRBD_NO_META_FLUSH = $(DRBD_NO_META_FLUSH)"; \
