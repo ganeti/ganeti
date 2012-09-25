@@ -31,6 +31,7 @@ module Ganeti.Rpc
   , RpcResult
   , Rpc
   , RpcError(..)
+  , ERpcError
   , executeRpcCall
 
   , rpcCallName
@@ -105,7 +106,9 @@ instance Show RpcError where
   show (OfflineNodeError node) =
     "Node " ++ nodeName node ++ " is marked as offline"
 
-rpcErrorJsonReport :: (Monad m) => J.Result a -> m (Either RpcError a)
+type ERpcError = Either RpcError
+
+rpcErrorJsonReport :: (Monad m) => J.Result a -> m (ERpcError a)
 rpcErrorJsonReport (J.Error x) = return . Left $ JsonDecodeError x
 rpcErrorJsonReport (J.Ok x) = return $ Right x
 
@@ -135,7 +138,7 @@ class (J.JSON a) => RpcCall a where
 -- | A generic class for RPC results with default implementation.
 class (J.JSON a) => RpcResult a where
   -- | Create a result based on the received HTTP response.
-  rpcResultFill :: (Monad m) => String -> m (Either RpcError a)
+  rpcResultFill :: (Monad m) => String -> m (ERpcError a)
 
   rpcResultFill res = rpcErrorJsonReport $  J.decode res
 
@@ -152,8 +155,8 @@ data HttpClientRequest = HttpClientRequest
 
 -- | Execute the request and return the result as a plain String. When
 -- curl reports an error, we propagate it.
-executeHttpRequest :: Node -> Either RpcError HttpClientRequest
-                   -> IO (Either RpcError String)
+executeHttpRequest :: Node -> ERpcError HttpClientRequest
+                   -> IO (ERpcError String)
 
 executeHttpRequest _ (Left rpc_err) = return $ Left rpc_err
 #ifdef NO_CURL
@@ -182,7 +185,7 @@ prepareUrl node call =
 -- | Create HTTP request for a given node provided it is online,
 -- otherwise create empty response.
 prepareHttpRequest ::  (RpcCall a) => Node -> a
-                   -> Either RpcError HttpClientRequest
+                   -> ERpcError HttpClientRequest
 prepareHttpRequest node call
   | rpcCallAcceptOffline call || not (nodeOffline node) =
       Right HttpClientRequest { requestTimeout = rpcCallTimeout call
@@ -192,13 +195,13 @@ prepareHttpRequest node call
   | otherwise = Left $ OfflineNodeError node
 
 -- | Parse the response or propagate the error.
-parseHttpResponse :: (Monad m, RpcResult a) => Either RpcError String
-                  -> m (Either RpcError a)
+parseHttpResponse :: (Monad m, RpcResult a) => ERpcError String
+                  -> m (ERpcError a)
 parseHttpResponse (Left err) = return $ Left err
 parseHttpResponse (Right response) = rpcResultFill response
 
 -- | Execute RPC call for a sigle node.
-executeSingleRpcCall :: (Rpc a b) => Node -> a -> IO (Node, Either RpcError b)
+executeSingleRpcCall :: (Rpc a b) => Node -> a -> IO (Node, ERpcError b)
 executeSingleRpcCall node call = do
   let request = prepareHttpRequest node call
   response <- executeHttpRequest node request
@@ -206,7 +209,7 @@ executeSingleRpcCall node call = do
   return (node, result)
 
 -- | Execute RPC call for many nodes in parallel.
-executeRpcCall :: (Rpc a b) => [Node] -> a -> IO [(Node, Either RpcError b)]
+executeRpcCall :: (Rpc a b) => [Node] -> a -> IO [(Node, ERpcError b)]
 executeRpcCall nodes call =
   sequence $ parMap rwhnf (uncurry executeSingleRpcCall)
                (zip nodes $ repeat call)
