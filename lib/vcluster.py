@@ -21,6 +21,9 @@
 
 """Module containing utilities for virtual clusters.
 
+Most functions manipulate file system paths and are no-ops when the environment
+variables C{GANETI_ROOTDIR} and C{GANETI_HOSTNAME} are not set. See the
+functions' docstrings for details.
 
 """
 
@@ -81,6 +84,11 @@ def _CheckHostname(hostname):
 def _PreparePaths(rootdir, hostname):
   """Checks if the root directory and hostname are acceptable.
 
+  The (node-specific) root directory must have the hostname as its last
+  component. The parent directory then becomes the cluster-wide root directory.
+  This is necessary as some components must be able to predict the root path on
+  a remote node (e.g. copying files via scp).
+
   @type rootdir: string
   @param rootdir: Root directory (from environment)
   @type hostname: string
@@ -139,7 +147,10 @@ def ExchangeNodeRoot(node_name, filename,
                      _basedir=_VIRT_BASEDIR, _noderoot=_VIRT_NODEROOT):
   """Replaces the node-specific root directory in a path.
 
-  Replaces it with the root directory for another node.
+  Replaces it with the root directory for another node. Assuming
+  C{/tmp/vcluster/node1} is the root directory for C{node1}, the result will be
+  C{/tmp/vcluster/node3} for C{node3} (as long as a root directory is specified
+  in the environment).
 
   """
   if _basedir:
@@ -168,7 +179,9 @@ def AddNodePrefix(path, _noderoot=_VIRT_NODEROOT):
   """Adds a node-specific prefix to a path in a virtual cluster.
 
   Returned path includes user-specified root directory if specified in
-  environment.
+  environment. As an example, the path C{/var/lib/ganeti} becomes
+  C{/tmp/vcluster/node1/var/lib/ganeti} if C{/tmp/vcluster/node1} is the root
+  directory specified in the environment.
 
   """
   assert os.path.isabs(path)
@@ -185,6 +198,9 @@ def AddNodePrefix(path, _noderoot=_VIRT_NODEROOT):
 
 def _RemoveNodePrefix(path, _noderoot=_VIRT_NODEROOT):
   """Removes the node-specific prefix from a path.
+
+  This is the opposite of L{AddNodePrefix} and removes a node-local prefix
+  path.
 
   """
   assert os.path.isabs(path)
@@ -215,7 +231,7 @@ def MakeVirtualPath(path, _noderoot=_VIRT_NODEROOT):
 
   A path is "virtualized" by stripping it of its node-specific directory and
   prepending a prefix (L{_VIRT_PATH_PREFIX}). Use L{LocalizeVirtualPath} to
-  undo the process.
+  undo the process. Virtual paths are meant to be transported via RPC.
 
   """
   assert os.path.isabs(path)
@@ -231,6 +247,7 @@ def LocalizeVirtualPath(path, _noderoot=_VIRT_NODEROOT):
 
   A "virtualized" path consists of a prefix (L{LocalizeVirtualPath}) and a
   local path. This function adds the node-specific directory to the local path.
+  Virtual paths are meant to be transported via RPC.
 
   """
   assert os.path.isabs(path)
