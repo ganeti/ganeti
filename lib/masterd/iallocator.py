@@ -195,7 +195,7 @@ class IAReqInstanceAlloc(IARequestBase):
     """
     IARequestBase.ValidateResult(self, ia, result)
 
-    if len(result) != self.RequiredNodes():
+    if ia.success and len(result) != self.RequiredNodes():
       raise errors.ResultValidationError("iallocator returned invalid number"
                                          " of nodes (%s), required %s" %
                                          (len(result), self.RequiredNodes()))
