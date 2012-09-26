@@ -51,11 +51,13 @@ module Ganeti.Query.Query
     ) where
 
 import Control.Monad (filterM)
+import Control.Monad.Trans (lift)
 import Data.Maybe (fromMaybe)
 import qualified Data.Map as Map
 
 import Ganeti.BasicTypes
 import Ganeti.JSON
+import Ganeti.Rpc
 import Ganeti.Query.Language
 import Ganeti.Query.Common
 import Ganeti.Query.Filter
@@ -90,25 +92,46 @@ getSelectedFields :: FieldMap a b  -- ^ Defined fields
 getSelectedFields defined =
   map (\name -> fromMaybe (mkUnknownFDef name) $ name `Map.lookup` defined)
 
+-- | Collect live data from RPC query if enabled.
+-- FIXME: Check which fields we actually need and possibly send empty
+-- hvs/vgs if no info from hypervisor/volume group respectively
+-- is required
+maybeCollectLiveData:: Bool -> ConfigData -> [Node] -> IO [(Node, NodeRuntime)]
+
+maybeCollectLiveData False _ nodes =
+  return $ zip nodes (repeat $ Left (RpcResultError "Live data disabled"))
+
+maybeCollectLiveData True cfg nodes = do
+  let vgs = [clusterVolumeGroupName $ configCluster cfg]
+      hvs = clusterEnabledHypervisors $ configCluster cfg
+  executeRpcCall nodes (RpcCallNodeInfo vgs hvs)
+
+-- | Check whether list of queried fields contains live fields.
+needsLiveData :: [FieldGetter a b] -> Bool
+needsLiveData = any (\getter -> case getter of
+                     FieldRuntime _ -> True
+                     _ -> False)
+
 -- | Main query execution function.
 query :: ConfigData   -- ^ The current configuration
       -> Bool         -- ^ Whether to collect live data
       -> Query        -- ^ The query (item, fields, filter)
       -> IO (Result QueryResult) -- ^ Result
 
-query cfg _ (Query QRNode fields qfilter) = return $ do
-  cfilter <- compileFilter nodeFieldsMap qfilter
+query cfg live (Query QRNode fields qfilter) =  runResultT $ do
+  cfilter <- resultT $ compileFilter nodeFieldsMap qfilter
   let selected = getSelectedFields nodeFieldsMap fields
       (fdefs, fgetters) = unzip selected
       nodes = Map.elems . fromContainer $ configNodes cfg
+      live' = live && needsLiveData fgetters
   -- runs first pass of the filter, without a runtime context; this
   -- will limit the nodes that we'll contact for runtime data
-  fnodes <- filterM (\n -> evaluateFilter cfg Nothing n cfilter)
-            nodes
+  fnodes <- resultT $ filterM (\n -> evaluateFilter cfg Nothing n cfilter) nodes
   -- here we would run the runtime data gathering, then filter again
   -- the nodes, based on existing runtime data
-  let fdata = map (\node -> map (execGetter cfg NodeRuntime node) fgetters)
-              fnodes
+  nruntimes <- lift $ maybeCollectLiveData live' cfg fnodes
+  let fdata = map (\(node, nrt) -> map (execGetter cfg nrt node) fgetters)
+              nruntimes
   return QueryResult { qresFields = fdefs, qresData = fdata }
 
 query cfg _ (Query QRGroup fields qfilter) = return $ do

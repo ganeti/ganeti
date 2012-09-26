@@ -24,7 +24,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 
 module Ganeti.Query.Node
-  ( NodeRuntime(..)
+  ( NodeRuntime
   , nodeFieldsMap
   ) where
 
@@ -34,12 +34,13 @@ import qualified Data.Map as Map
 
 import Ganeti.Config
 import Ganeti.Objects
+import Ganeti.Rpc
 import Ganeti.Query.Language
 import Ganeti.Query.Common
 import Ganeti.Query.Types
 
--- | Stub data type until we integrate the RPC.
-data NodeRuntime = NodeRuntime
+-- | NodeRuntime is the resulting type for NodeInfo call.
+type NodeRuntime = Either RpcError RpcResultNodeInfo
 
 -- | List of node live fields, all ignored for now (no RPC).
 nodeLiveFieldsDefs :: [(FieldName, FieldTitle, FieldType, String, FieldDoc)]
