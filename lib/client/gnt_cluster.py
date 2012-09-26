@@ -538,7 +538,7 @@ def RunClusterCommand(opts, args):
     nodes.append(master_node)
 
   for name in nodes:
-    result = srun.Run(name, "root", command)
+    result = srun.Run(name, constants.SSH_LOGIN_USER, command)
     ToStdout("------------------------------------------------")
     if opts.show_machine_names:
       for line in result.output.splitlines():

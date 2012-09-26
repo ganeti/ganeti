@@ -101,6 +101,8 @@ CONFD_USER = _autoconf.CONFD_USER
 CONFD_GROUP = _autoconf.CONFD_GROUP
 NODED_USER = _autoconf.NODED_USER
 NODED_GROUP = _autoconf.NODED_GROUP
+SSH_LOGIN_USER = _autoconf.SSH_LOGIN_USER
+SSH_CONSOLE_USER = _autoconf.SSH_CONSOLE_USER
 
 # cpu pinning separators and constants
 CPU_PINNING_SEP = ":"
@@ -551,7 +553,6 @@ IP4_FAMILY = socket.AF_INET
 IP6_FAMILY = socket.AF_INET6
 
 TCP_PING_TIMEOUT = 10
-GANETI_RUNAS = "root"
 DEFAULT_VG = "xenvg"
 DEFAULT_DRBD_HELPER = "/bin/true"
 MIN_VG_SIZE = 20480

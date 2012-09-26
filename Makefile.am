@@ -1201,6 +1201,8 @@ lib/_autoconf.py: Makefile | stamp-directories
 	  echo "LOCALSTATEDIR = '$(localstatedir)'"; \
 	  echo "SYSCONFDIR = '$(sysconfdir)'"; \
 	  echo "SSH_CONFIG_DIR = '$(SSH_CONFIG_DIR)'"; \
+	  echo "SSH_LOGIN_USER = '$(SSH_LOGIN_USER)'"; \
+	  echo "SSH_CONSOLE_USER = '$(SSH_CONSOLE_USER)'"; \
 	  echo "EXPORT_DIR = '$(EXPORT_DIR)'"; \
 	  echo "OS_SEARCH_PATH = [$(OS_SEARCH_PATH)]"; \
 	  echo "XEN_BOOTLOADER = '$(XEN_BOOTLOADER)'"; \

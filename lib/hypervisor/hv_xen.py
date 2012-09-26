@@ -421,7 +421,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
     return objects.InstanceConsole(instance=instance.name,
                                    kind=constants.CONS_SSH,
                                    host=instance.primary_node,
-                                   user=constants.GANETI_RUNAS,
+                                   user=constants.SSH_CONSOLE_USER,
                                    command=[pathutils.XM_CONSOLE_WRAPPER,
                                             instance.name])
 

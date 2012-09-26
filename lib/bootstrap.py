@@ -61,7 +61,7 @@ def _InitSSHSetup():
   permitted hosts and adds the hostkey to its own known hosts.
 
   """
-  priv_key, pub_key, auth_keys = ssh.GetUserFiles(constants.GANETI_RUNAS)
+  priv_key, pub_key, auth_keys = ssh.GetUserFiles(constants.SSH_LOGIN_USER)
 
   for name in priv_key, pub_key:
     if os.path.exists(name):
@@ -675,7 +675,7 @@ def SetupNodeDaemon(cluster_name, node, ssh_key_check):
   mycommand = ("%s stop-all; %s start %s" %
                (pathutils.DAEMON_UTIL, pathutils.DAEMON_UTIL, constants.NODED))
 
-  result = sshrunner.Run(node, "root", mycommand, batch=False,
+  result = sshrunner.Run(node, constants.SSH_LOGIN_USER, mycommand, batch=False,
                          ask_key=ssh_key_check,
                          use_cluster_key=True,
                          strict_host_check=ssh_key_check)

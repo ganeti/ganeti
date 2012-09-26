@@ -176,6 +176,24 @@ AC_ARG_WITH([lvm-stripecount],
   [lvm_stripecount="1"])
 AC_SUBST(LVM_STRIPECOUNT, $lvm_stripecount)
 
+# --with-ssh-login-user=...
+AC_ARG_WITH([ssh-login-user],
+  [AS_HELP_STRING([--with-ssh-login-user=USERNAME],
+    [user to use for SSH logins within the cluster (default is root)]
+  )],
+  [ssh_login_user="$withval"],
+  [ssh_login_user=root])
+AC_SUBST(SSH_LOGIN_USER, $ssh_login_user)
+
+# --with-ssh-console-user=...
+AC_ARG_WITH([ssh-console-user],
+  [AS_HELP_STRING([--with-ssh-console-user=USERNAME],
+    [user to use for SSH logins to access instance consoles (default is root)]
+  )],
+  [ssh_console_user="$withval"],
+  [ssh_console_user=root])
+AC_SUBST(SSH_CONSOLE_USER, $ssh_console_user)
+
 # --with-default-user=...
 AC_ARG_WITH([default-user],
   [AS_HELP_STRING([--with-default-user=USERNAME],

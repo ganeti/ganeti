@@ -395,7 +395,7 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     return objects.InstanceConsole(instance=instance.name,
                                    kind=constants.CONS_SSH,
                                    host=instance.primary_node,
-                                   user=constants.GANETI_RUNAS,
+                                   user=constants.SSH_CONSOLE_USER,
                                    command=["lxc-console", "-n", instance.name])
 
   def Verify(self):

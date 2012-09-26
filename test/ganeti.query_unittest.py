@@ -818,7 +818,7 @@ class TestInstanceQuery(unittest.TestCase):
     consinfo["inst7"] = \
       objects.InstanceConsole(instance="inst7", kind=constants.CONS_SSH,
                               host=instbyname["inst7"].primary_node,
-                              user=constants.GANETI_RUNAS,
+                              user="root",
                               command=["hostname"]).ToDict()
 
     iqd = query.InstanceQueryData(instances, cluster, disk_usage,

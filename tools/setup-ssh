@@ -183,7 +183,7 @@ def SetupSSH(transport):
   @param transport: The paramiko transport instance
 
   """
-  priv_key, pub_key, auth_keys = ssh.GetUserFiles(constants.GANETI_RUNAS)
+  priv_key, pub_key, auth_keys = ssh.GetUserFiles(constants.SSH_LOGIN_USER)
   keyfiles = [
     (pathutils.SSH_HOST_DSA_PRIV, 0600),
     (pathutils.SSH_HOST_DSA_PUB, 0644),
@@ -234,13 +234,13 @@ def ParseOptions():
 
   """
   program = os.path.basename(sys.argv[0])
+  (default_key, _, _) = ssh.GetUserFiles(constants.SSH_LOGIN_USER)
 
   parser = optparse.OptionParser(usage=("%prog [--debug|--verbose] [--force]"
                                         " <node> <node...>"), prog=program)
   parser.add_option(cli.DEBUG_OPT)
   parser.add_option(cli.VERBOSE_OPT)
   parser.add_option(cli.NOSSH_KEYCHECK_OPT)
-  default_key = ssh.GetUserFiles(constants.GANETI_RUNAS)[0]
   parser.add_option(optparse.Option("-f", dest="private_key",
                                     default=default_key,
                                     help="The private key to (try to) use for"
@@ -382,7 +382,7 @@ def LoadKnownHosts():
   @return: paramiko.util.load_host_keys dict
 
   """
-  homedir = utils.GetHomeDir(constants.GANETI_RUNAS)
+  homedir = utils.GetHomeDir(constants.SSH_LOGIN_USER)
   known_hosts = os.path.join(homedir, ".ssh", "known_hosts")
 
   try:
@@ -429,7 +429,7 @@ def main():
   all_keys = LoadPrivateKeys(options)
 
   passwd = None
-  username = constants.GANETI_RUNAS
+  username = constants.SSH_LOGIN_USER
   ssh_port = netutils.GetDaemonPort("ssh")
   host_keys = LoadKnownHosts()
 

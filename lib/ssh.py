@@ -271,7 +271,7 @@ class SshRunner:
            "else"
            "  echo \"$GANETI_HOSTNAME\";"
            "fi")
-    retval = self.Run(node, "root", cmd, quiet=False)
+    retval = self.Run(node, constants.SSH_LOGIN_USER, cmd, quiet=False)
 
     if retval.failed:
       msg = "ssh problem"

@@ -1833,7 +1833,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       return objects.InstanceConsole(instance=instance.name,
                                      kind=constants.CONS_SSH,
                                      host=instance.primary_node,
-                                     user=constants.GANETI_RUNAS,
+                                     user=constants.SSH_CONSOLE_USER,
                                      command=cmd)
 
     vnc_bind_address = hvparams[constants.HV_VNC_BIND_ADDRESS]

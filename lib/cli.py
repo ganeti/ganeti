@@ -2488,7 +2488,8 @@ class _RunWhileClusterStoppedHelper:
       # No need to use SSH
       result = utils.RunCmd(cmd)
     else:
-      result = self.ssh.Run(node_name, "root", utils.ShellQuoteArgs(cmd))
+      result = self.ssh.Run(node_name, constants.SSH_LOGIN_USER,
+                            utils.ShellQuoteArgs(cmd))
 
     if result.failed:
       errmsg = ["Failed to run command %s" % result.cmd]

@@ -497,7 +497,7 @@ def LeaveCluster(modify_ssh_setup):
 
   if modify_ssh_setup:
     try:
-      priv_key, pub_key, auth_keys = ssh.GetUserFiles(constants.GANETI_RUNAS)
+      priv_key, pub_key, auth_keys = ssh.GetUserFiles(constants.SSH_LOGIN_USER)
 
       utils.RemoveAuthorizedKey(auth_keys, utils.ReadFile(pub_key))
 
@@ -2039,7 +2039,7 @@ def BlockdevExport(disk, dest_node, dest_path, cluster_name):
                                 " oflag=dsync", dest_path)
 
   remotecmd = _GetSshRunner(cluster_name).BuildCmd(dest_node,
-                                                   constants.GANETI_RUNAS,
+                                                   constants.SSH_LOGIN_USER,
                                                    destcmd)
 
   # all commands have been checked, so we're safe to combine them
