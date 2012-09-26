@@ -92,10 +92,11 @@ getSelectedFields defined =
 
 -- | Main query execution function.
 query :: ConfigData   -- ^ The current configuration
+      -> Bool         -- ^ Whether to collect live data
       -> Query        -- ^ The query (item, fields, filter)
       -> IO (Result QueryResult) -- ^ Result
 
-query cfg (Query QRNode fields qfilter) = return $ do
+query cfg _ (Query QRNode fields qfilter) = return $ do
   cfilter <- compileFilter nodeFieldsMap qfilter
   let selected = getSelectedFields nodeFieldsMap fields
       (fdefs, fgetters) = unzip selected
@@ -110,7 +111,7 @@ query cfg (Query QRNode fields qfilter) = return $ do
               fnodes
   return QueryResult { qresFields = fdefs, qresData = fdata }
 
-query cfg (Query QRGroup fields qfilter) = return $ do
+query cfg _ (Query QRGroup fields qfilter) = return $ do
   -- FIXME: want_diskparams is defaulted to false and not taken as parameter
   -- This is because the type for DiskParams is right now too generic for merges
   -- (or else I cannot see how to do this with curent implementation)
@@ -124,7 +125,7 @@ query cfg (Query QRGroup fields qfilter) = return $ do
                        map (execGetter cfg GroupRuntime node) fgetters) fgroups
   return QueryResult {qresFields = fdefs, qresData = fdata }
 
-query _ (Query qkind _ _) =
+query _ _ (Query qkind _ _) =
   return . Bad $ "Query '" ++ show qkind ++ "' not supported"
 
 -- | Query fields call.

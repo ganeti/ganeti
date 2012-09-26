@@ -51,7 +51,7 @@ import Ganeti.Query.Query
 checkQueryResults :: ConfigData -> Query -> String
                   -> [[ResultEntry]] -> Property
 checkQueryResults cfg qr descr expected = monadicIO $ do
-  result <- run (query cfg qr) >>= resultProp
+  result <- run (query cfg False qr) >>= resultProp
   stop $ printTestCase ("Inconsistent results in " ++ descr)
          (qresData result ==? expected)
 
@@ -62,7 +62,7 @@ makeNodeQuery = Query QRNode ["name"]
 -- | Checks if a given operation failed.
 expectBadQuery :: ConfigData -> Query -> String -> Property
 expectBadQuery cfg qr descr = monadicIO $ do
-  result <- run (query cfg qr)
+  result <- run (query cfg False qr)
   case result of
     Bad _ -> return ()
     Ok a  -> stop . failTest $ "Expected failure in " ++ descr ++

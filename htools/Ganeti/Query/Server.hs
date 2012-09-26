@@ -129,7 +129,7 @@ handleCall cfg (QueryTags kind name) =
   in return (J.showJSON <$> tags)
 
 handleCall cfg (Query qkind qfields qfilter) = do
-  result <- query cfg (Qlang.Query qkind qfields qfilter)
+  result <- query cfg True (Qlang.Query qkind qfields qfilter)
   return $ J.showJSON <$> result
 
 handleCall _ (QueryFields qkind qfields) = do

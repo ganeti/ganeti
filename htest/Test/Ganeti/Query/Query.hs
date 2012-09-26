@@ -65,7 +65,7 @@ prop_queryNode_noUnknown =
   forAll (choose (0, maxNodes) >>= genEmptyCluster) $ \cluster ->
   forAll (elements (Map.keys nodeFieldsMap)) $ \field -> monadicIO $ do
   QueryResult fdefs fdata <-
-    run (query cluster (Query QRNode [field] EmptyFilter)) >>= resultProp
+    run (query cluster False (Query QRNode [field] EmptyFilter)) >>= resultProp
   QueryFieldsResult fdefs' <-
     resultProp $ queryFields (QueryFields QRNode [field])
   stop $ printTestCase ("Got unknown fields via query (" ++ show fdefs ++ ")")
@@ -83,7 +83,7 @@ prop_queryNode_Unknown =
   forAll (arbitrary `suchThat` (`notElem` Map.keys nodeFieldsMap))
     $ \field -> monadicIO $ do
   QueryResult fdefs fdata <-
-    run (query cluster (Query QRNode [field] EmptyFilter)) >>= resultProp
+    run (query cluster False (Query QRNode [field] EmptyFilter)) >>= resultProp
   QueryFieldsResult fdefs' <-
     resultProp $ queryFields (QueryFields QRNode [field])
   stop $ printTestCase ("Got known fields via query (" ++ show fdefs ++ ")")
@@ -127,7 +127,7 @@ prop_queryNode_types =
   forAll (genEmptyCluster numnodes) $ \cfg ->
   forAll (elements (Map.keys nodeFieldsMap)) $ \field -> monadicIO $ do
   QueryResult fdefs fdata <-
-    run (query cfg (Query QRNode [field] EmptyFilter)) >>= resultProp
+    run (query cfg False (Query QRNode [field] EmptyFilter)) >>= resultProp
   stop $ printTestCase ("Inconsistent result entries (" ++ show fdata ++ ")")
          (conjoin $ map (conjoin . zipWith checkResultType fdefs) fdata) .&&.
          printTestCase "Wrong field definitions length"
@@ -155,7 +155,7 @@ prop_queryGroup_noUnknown =
   forAll (choose (0, maxNodes) >>= genEmptyCluster) $ \cluster ->
    forAll (elements (Map.keys groupFieldsMap)) $ \field -> monadicIO $ do
    QueryResult fdefs fdata <-
-     run (query cluster (Query QRGroup [field] EmptyFilter)) >>= resultProp
+     run (query cluster False (Query QRGroup [field] EmptyFilter)) >>= resultProp
    QueryFieldsResult fdefs' <-
      resultProp $ queryFields (QueryFields QRGroup [field])
    stop $ printTestCase ("Got unknown fields via query (" ++ show fdefs ++ ")")
@@ -172,7 +172,7 @@ prop_queryGroup_Unknown =
   forAll (arbitrary `suchThat` (`notElem` Map.keys groupFieldsMap))
     $ \field -> monadicIO $ do
   QueryResult fdefs fdata <-
-    run (query cluster (Query QRGroup [field] EmptyFilter)) >>= resultProp
+    run (query cluster False (Query QRGroup [field] EmptyFilter)) >>= resultProp
   QueryFieldsResult fdefs' <-
     resultProp $ queryFields (QueryFields QRGroup [field])
   stop $ printTestCase ("Got known fields via query (" ++ show fdefs ++ ")")
@@ -192,7 +192,7 @@ prop_queryGroup_types =
   forAll (genEmptyCluster numnodes) $ \cfg ->
   forAll (elements (Map.keys groupFieldsMap)) $ \field -> monadicIO $ do
   QueryResult fdefs fdata <-
-    run (query cfg (Query QRGroup [field] EmptyFilter)) >>= resultProp
+    run (query cfg False (Query QRGroup [field] EmptyFilter)) >>= resultProp
   stop $ printTestCase ("Inconsistent result entries (" ++ show fdata ++ ")")
          (conjoin $ map (conjoin . zipWith checkResultType fdefs) fdata) .&&.
          printTestCase "Wrong field definitions length"
