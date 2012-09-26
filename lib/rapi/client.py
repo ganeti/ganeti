@@ -674,6 +674,78 @@ class GanetiRapiClient(object): # pylint: disable=R0904
                              ("/%s/instances/%s/info" %
                               (GANETI_RAPI_VERSION, instance)), query, None)
 
+  @staticmethod
+  def _UpdateWithKwargs(base, **kwargs):
+    """Updates the base with params from kwargs.
+
+    @param base: The base dict, filled with required fields
+
+    @note: This is an inplace update of base
+
+    """
+    conflicts = set(kwargs.iterkeys()) & set(base.iterkeys())
+    if conflicts:
+      raise GanetiApiError("Required fields can not be specified as"
+                           " keywords: %s" % ", ".join(conflicts))
+
+    base.update((key, value) for key, value in kwargs.iteritems()
+                if key != "dry_run")
+
+  def InstanceAllocation(self, mode, name, disk_template, disks, nics,
+                         **kwargs):
+    """Generates an instance allocation as used by multiallocate.
+
+    More details for parameters can be found in the RAPI documentation.
+    It is the same as used by CreateInstance.
+
+    @type mode: string
+    @param mode: Instance creation mode
+    @type name: string
+    @param name: Hostname of the instance to create
+    @type disk_template: string
+    @param disk_template: Disk template for instance (e.g. plain, diskless,
+                          file, or drbd)
+    @type disks: list of dicts
+    @param disks: List of disk definitions
+    @type nics: list of dicts
+    @param nics: List of NIC definitions
+
+    @return: A dict with the generated entry
+
+    """
+    # All required fields for request data version 1
+    alloc = {
+      "mode": mode,
+      "name": name,
+      "disk_template": disk_template,
+      "disks": disks,
+      "nics": nics,
+      }
+
+    self._UpdateWithKwargs(alloc, **kwargs)
+
+    return alloc
+
+  def InstancesMultiAlloc(self, instances, **kwargs):
+    """Tries to allocate multiple instances.
+
+    More details for parameters can be found in the RAPI documentation.
+
+    @param instances: A list of L{InstanceAllocation} results
+
+    """
+    query = []
+    body = {
+      "instances": instances,
+      }
+    self._UpdateWithKwargs(body, **kwargs)
+
+    _AppendDryRunIf(query, kwargs.get("dry_run"))
+
+    return self._SendRequest(HTTP_POST,
+                             "/%s/instances-multi-alloc" % GANETI_RAPI_VERSION,
+                             query, body)
+
   def CreateInstance(self, mode, name, disk_template, disks, nics,
                      **kwargs):
     """Creates a new instance.
@@ -703,23 +775,9 @@ class GanetiRapiClient(object): # pylint: disable=R0904
     _AppendDryRunIf(query, kwargs.get("dry_run"))
 
     if _INST_CREATE_REQV1 in self.GetFeatures():
-      # All required fields for request data version 1
-      body = {
-        _REQ_DATA_VERSION_FIELD: 1,
-        "mode": mode,
-        "name": name,
-        "disk_template": disk_template,
-        "disks": disks,
-        "nics": nics,
-        }
-
-      conflicts = set(kwargs.iterkeys()) & set(body.iterkeys())
-      if conflicts:
-        raise GanetiApiError("Required fields can not be specified as"
-                             " keywords: %s" % ", ".join(conflicts))
-
-      body.update((key, value) for key, value in kwargs.iteritems()
-                  if key != "dry_run")
+      body = self.InstanceAllocation(mode, name, disk_template, disks, nics,
+                                     **kwargs)
+      body[_REQ_DATA_VERSION_FIELD] = 1
     else:
       raise GanetiApiError("Server does not support new-style (version 1)"
                            " instance creation requests")

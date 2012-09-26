@@ -26,6 +26,7 @@ import unittest
 import warnings
 import pycurl
 
+from ganeti import opcodes
 from ganeti import constants
 from ganeti import http
 from ganeti import serializer
@@ -46,7 +47,6 @@ import testutils
 _KNOWN_UNUSED = set([
   rlib2.R_root,
   rlib2.R_2,
-  rlib2.R_2_instances_multi_alloc,
   ])
 
 # Global variable for collecting used handlers
@@ -480,6 +480,21 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
     self.assertHandler(rlib2.R_2_instances_name_info)
     self.assertItems(["inst32"])
     self.assertQuery("static", ["1"])
+
+  def testInstancesMultiAlloc(self):
+    response = {
+      constants.JOB_IDS_KEY: ["23423"],
+      opcodes.OpInstanceMultiAlloc.ALLOCATABLE_KEY: ["foobar"],
+      opcodes.OpInstanceMultiAlloc.FAILED_KEY: ["foobar2"],
+      }
+    self.rapi.AddResponse(serializer.DumpJson(response))
+    insts = [self.client.InstanceAllocation("create", "foobar",
+                                            "plain", [], []),
+             self.client.InstanceAllocation("create", "foobar2",
+                                            "drbd8", [{"size": 100}], [])]
+    resp = self.client.InstancesMultiAlloc(insts)
+    self.assertEqual(resp, response)
+    self.assertHandler(rlib2.R_2_instances_multi_alloc)
 
   def testCreateInstanceOldVersion(self):
     # The old request format, version 0, is no longer supported
