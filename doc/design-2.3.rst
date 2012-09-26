@@ -872,7 +872,8 @@ E   gntdaemons gntmasterd, gntrapi, gntconfd  Shared between the various
 Restricted commands
 ~~~~~~~~~~~~~~~~~~~
 
-The following commands needs still root to fulfill their functions:
+The following commands still require root permissions to fulfill their
+functions:
 
 ::
 
