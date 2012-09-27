@@ -40,6 +40,7 @@
 # daemons
 /daemons/daemon-util
 /daemons/ganeti-cleaner
+/daemons/ganeti-master-cleaner
 /daemons/ganeti-confd
 /daemons/ganeti-masterd
 /daemons/ganeti-noded

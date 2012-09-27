@@ -22,37 +22,22 @@ set -e -u
 
 @SHELL_ENV_INIT@
 
-# Overridden by unittest
-: ${CHECK_CERT_EXPIRED:=$PKGLIBDIR/check-cert-expired}
-
-readonly CLEANER_LOG_DIR=$LOG_DIR/cleaner
-readonly CRYPTO_DIR=$RUN_DIR/crypto
+readonly CLEANER_LOG_DIR=$LOG_DIR/master-cleaner
+readonly QUEUE_ARCHIVE_DIR=$DATA_DIR/queue/archive
 
 in_cluster() {
   [[ -e $DATA_DIR/ssconf_master_node ]]
 }
 
-cleanup_node() {
-  # Return if directory for crypto keys doesn't exist
-  [[ -d $CRYPTO_DIR ]] || return 0
-
-  find $CRYPTO_DIR -mindepth 1 -maxdepth 1 -type d | \
-  while read dir; do
-    if $CHECK_CERT_EXPIRED $dir/cert; then
-      rm -vf $dir/{cert,key}
-      rmdir -v --ignore-fail-on-non-empty $dir
-    fi
-  done
-}
-
-cleanup_watcher() {
+cleanup_master() {
   # Return if machine is not part of a cluster
   in_cluster || return 0
 
-  # Remove old watcher files
-  find $DATA_DIR -maxdepth 1 -type f -mtime +$REMOVE_AFTER \
-    \( -name 'watcher.*-*-*-*.data' -or \
-       -name 'watcher.*-*-*-*.instance-status' \) -print0 | \
+  # Return if queue archive directory doesn't exist
+  [[ -d $QUEUE_ARCHIVE_DIR ]] || return 0
+
+  # Remove old jobs
+  find $QUEUE_ARCHIVE_DIR -mindepth 2 -type f -mtime +$REMOVE_AFTER -print0 | \
   xargs -r0 rm -vf
 }
 
@@ -77,7 +62,6 @@ echo "Cleaner started at $(date)"
 find $CLEANER_LOG_DIR -maxdepth 1 -type f | sort | head -n -$KEEP_LOGS | \
 xargs -r rm -vf
 
-cleanup_node
-cleanup_watcher
+cleanup_master
 
 exit 0

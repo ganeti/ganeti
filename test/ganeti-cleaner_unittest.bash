@@ -24,6 +24,7 @@ set -o pipefail
 export PYTHON=${PYTHON:=python}
 
 GNTC=daemons/ganeti-cleaner
+GNTMC=daemons/ganeti-master-cleaner
 CCE=tools/check-cert-expired
 
 err() {
@@ -44,8 +45,13 @@ gencert() {
 }
 
 check_logfiles() {
-  local n=$1
-  [[ "$(find $tmpls/log/ganeti/cleaner -mindepth 1 | wc -l)" -le "$n" ]] || \
+  local n=$1 p=$2 path
+  if [[ "$p2" = master ]]; then
+    path=$tmpls/log/ganeti/mastercleaner
+  else
+    path=$tmpls/log/ganeti/cleaner
+  fi
+  [[ "$(find $path -mindepth 1 | wc -l)" -le "$n" ]] || \
     err "Found more than $n logfiles"
 }
 
@@ -77,7 +83,15 @@ count_and_check_certs() {
 }
 
 run_cleaner() {
-  CHECK_CERT_EXPIRED=$CCE LOCALSTATEDIR=$tmpls $GNTC
+  local cmd
+
+  if [[ "$1" = master ]]; then
+    cmd=$GNTMC
+  else
+    cmd=$GNTC
+  fi
+
+  CHECK_CERT_EXPIRED=$CCE LOCALSTATEDIR=$tmpls $cmd
 }
 
 create_archived_jobs() {
@@ -162,10 +176,25 @@ run_cleaner
 test -d $tmpls/log/ganeti/cleaner || err 'log/ganeti/cleaner should exist'
 check_logfiles 1
 
-upto 'Checking number of retained log files'
+test -d $tmpls/log/ganeti/master-cleaner && \
+  err 'log/ganeti/master-cleaner should not exist yet'
+run_cleaner master
+test -d $tmpls/log/ganeti/master-cleaner || \
+  err 'log/ganeti/master-cleaner should exist'
+check_logfiles 1 master
+
+upto 'Checking number of retained log files (master)'
+for (( i=0; i < (maxlog + 10); ++i )); do
+  run_cleaner master
+  check_logfiles 1
+  check_logfiles $(( (i + 2) > $maxlog?$maxlog:(i + 2) )) master
+done
+
+upto 'Checking number of retained log files (node)'
 for (( i=0; i < (maxlog + 10); ++i )); do
   run_cleaner
   check_logfiles $(( (i + 2) > $maxlog?$maxlog:(i + 2) ))
+  check_logfiles $maxlog master
 done
 
 upto 'Removal of archived jobs (non-master)'
@@ -175,12 +204,16 @@ test -f $tmpls/lib/ganeti/ssconf_master_node && \
   err 'ssconf_master_node should not exist'
 run_cleaner
 count_jobs 55
+run_cleaner master
+count_jobs 55
 
 upto 'Removal of archived jobs (master node)'
 create_archived_jobs
 count_jobs 55
 echo $HOSTNAME > $tmpls/lib/ganeti/ssconf_master_node
 run_cleaner
+count_jobs 55
+run_cleaner master
 count_jobs 31
 
 upto 'Certificate expiration'
@@ -191,14 +224,20 @@ create_certdirs $tmpdir/validcert foo{a,b,c}123 trvRMH4Wvt OfDlh6Pc2n
 create_certdirs $tmpdir/expcert bar{x,y,z}999 fx0ljoImWr em3RBC0U8c
 create_certdirs '' empty{1,2,3} gd2HCvRc iFG55Z0a PP28v5kg
 count_and_check_certs 10
+run_cleaner master
+count_and_check_certs 10
 run_cleaner
 count_and_check_certs 5
 
 check_logfiles $maxlog
+check_logfiles $maxlog master
 count_jobs 31
 
 upto 'Watcher status files'
 create_watcher_state
+count_watcher data 10
+count_watcher instance-status 10
+run_cleaner master
 count_watcher data 10
 count_watcher instance-status 10
 run_cleaner
