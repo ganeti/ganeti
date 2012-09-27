@@ -32,7 +32,11 @@ DAEMONS=(
   ganeti-rapi
   )
 
-if [[ "@CUSTOM_ENABLE_CONFD@" == True ]]; then
+_confd_enabled() {
+  [[ "@CUSTOM_ENABLE_CONFD@" == True ]]
+}
+
+if _confd_enabled; then
   DAEMONS+=( ganeti-confd )
 fi
 
@@ -211,8 +215,7 @@ start() {
   local usergroup=$(_daemon_usergroup $plain_name)
   local daemonexec=$(_daemon_executable $name)
 
-  if [[ "$name" == ganeti-confd &&
-        "@CUSTOM_ENABLE_CONFD@" == False ]]; then
+  if [[ "$name" == ganeti-confd ]] && ! _confd_enabled; then
     echo 'ganeti-confd disabled at build time' >&2
     return 1
   fi
