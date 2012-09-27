@@ -31,6 +31,7 @@ module Ganeti.Rpc
   , Rpc
   , RpcError(..)
   , ERpcError
+  , explainRpcError
   , executeRpcCall
 
   , rpcCallName
@@ -104,18 +105,19 @@ data RpcError
   | JsonDecodeError String
   | RpcResultError String
   | OfflineNodeError Node
-  deriving Eq
+  deriving (Show, Eq)
 
-instance Show RpcError where
-  show CurlDisabledError =
+-- | Provide explanation to RPC errors.
+explainRpcError :: RpcError -> String
+explainRpcError CurlDisabledError =
     "RPC/curl backend disabled at compile time"
-  show (CurlLayerError node code) =
+explainRpcError (CurlLayerError node code) =
     "Curl error for " ++ nodeName node ++ ", " ++ code
-  show (JsonDecodeError msg) =
+explainRpcError (JsonDecodeError msg) =
     "Error while decoding JSON from HTTP response: " ++ msg
-  show (RpcResultError msg) =
+explainRpcError (RpcResultError msg) =
     "Error reponse received from RPC server: " ++ msg
-  show (OfflineNodeError node) =
+explainRpcError (OfflineNodeError node) =
     "Node " ++ nodeName node ++ " is marked as offline"
 
 type ERpcError = Either RpcError
