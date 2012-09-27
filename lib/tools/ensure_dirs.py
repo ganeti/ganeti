@@ -194,7 +194,7 @@ def GetPaths():
      getent.daemons_gid),
     ])
 
-  return tuple(paths)
+  return paths
 
 
 def SetupLogging(opts):
