@@ -280,7 +280,7 @@ instance Rpc RpcCallInstanceInfo RpcResultInstanceInfo where
           [] -> Right $ RpcResultInstanceInfo Nothing
           _ -> fromJSValueToRes res (RpcResultInstanceInfo . Just)
       _ -> Left $ JsonDecodeError
-           ("Expected JSObject, got " ++ show res)
+           ("Expected JSObject, got " ++ show (pp_value res))
 
 -- | AllInstancesInfo
 --   Returns information about all running instances on the given nodes
@@ -307,7 +307,7 @@ instance Rpc RpcCallAllInstancesInfo RpcResultAllInstancesInfo where
           Left err -> Left err
           Right insts -> Right $ RpcResultAllInstancesInfo insts
       _ -> Left $ JsonDecodeError
-           ("Expected JSObject, got " ++ show res)
+           ("Expected JSObject, got " ++ show (pp_value res))
 
 -- | InstanceList
 -- Returns the list of running instances on the given nodes.
