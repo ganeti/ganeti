@@ -224,12 +224,12 @@ executeRpcCall nodes call =
 
 -- | Helper function that is used to read dictionaries of values.
 sanitizeDictResults :: [(String, J.Result a)] -> ERpcError [(String, a)]
-sanitizeDictResults [] = Right []
-sanitizeDictResults ((_, J.Error err):_) = Left $ JsonDecodeError err
-sanitizeDictResults ((name, J.Ok val):xs) =
-  case sanitizeDictResults xs of
-    Left err -> Left err
-    Right res' -> Right $ (name, val):res'
+sanitizeDictResults =
+  foldr sanitize1 (Right [])
+  where
+    sanitize1 _ (Left e) = Left e
+    sanitize1 (_, J.Error e) _ = Left $ JsonDecodeError e
+    sanitize1 (name, J.Ok v) (Right res) = Right $ (name, v) : res
 
 -- | Helper function to tranform JSON Result to Either RpcError b.
 -- Note: For now we really only use it for b s.t. Rpc c b for some c
