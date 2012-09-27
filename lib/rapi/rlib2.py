@@ -56,6 +56,7 @@ PUT should be prefered over POST.
 # C0103: Invalid name, since the R_* names are not conforming
 
 from ganeti import opcodes
+from ganeti import objects
 from ganeti import http
 from ganeti import constants
 from ganeti import cli
@@ -825,7 +826,19 @@ class R_2_instances_multi_alloc(baserlib.OpcodeResource):
              allocations
 
     """
-    return (self.request_body, {
+    if "instances" not in self.request_body:
+      raise http.HttpBadRequest("Request is missing required 'instances' field"
+                                " in body")
+
+    op_id = {
+      "OP_ID": self.POST_OPCODE.OP_ID, # pylint: disable=E1101
+      }
+    body = objects.FillDict(self.request_body, {
+      "instances": [objects.FillDict(inst, op_id)
+                    for inst in self.request_body["instances"]],
+      })
+
+    return (body, {
       "dry_run": self.dryRun(),
       })
 

@@ -1734,5 +1734,24 @@ class TestClusterInfo(unittest.TestCase):
     self.assertEqual(result, cl.cluster_info)
 
 
+class TestInstancesMultiAlloc(unittest.TestCase):
+  def testInstanceUpdate(self):
+    clfactory = _FakeClientFactory(_FakeClient)
+    data = {
+      "instances": [{
+        "instance_name": "bar",
+        "mode": "create",
+        }, {
+        "instance_name": "foo",
+        "mode": "create",
+        }],
+      }
+    handler = _CreateHandler(rlib2.R_2_instances_multi_alloc, [], {}, data,
+                             clfactory)
+    (body, _) = handler.GetPostOpInput()
+    self.assertTrue(compat.all([inst["OP_ID"] == handler.POST_OPCODE.OP_ID
+                                for inst in body["instances"]]))
+
+
 if __name__ == '__main__':
   testutils.GanetiTestProgram()
