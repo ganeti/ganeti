@@ -7277,10 +7277,9 @@ class LUInstanceRecreateDisks(LogicalUnit):
 
     if self.op.iallocator:
       self._RunAllocator()
-
-    # Release unneeded node and node resource locks
-    _ReleaseLocks(self, locking.LEVEL_NODE, keep=self.op.nodes)
-    _ReleaseLocks(self, locking.LEVEL_NODE_RES, keep=self.op.nodes)
+      # Release unneeded node and node resource locks
+      _ReleaseLocks(self, locking.LEVEL_NODE, keep=self.op.nodes)
+      _ReleaseLocks(self, locking.LEVEL_NODE_RES, keep=self.op.nodes)
 
   def Exec(self, feedback_fn):
     """Recreate the disks.
