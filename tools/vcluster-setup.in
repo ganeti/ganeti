@@ -41,8 +41,8 @@ readonly max_node_count=$((first_inst_ipaddr_octet - first_node_ipaddr_octet))
 readonly max_instance_count=$((255 - first_inst_ipaddr_octet))
 
 usage() {
-  echo "Usage: $0 [-c <number>] [-i <number>] [-p <prefix>] [-n <netdev>]"\
-       '<directory>'
+  echo "Usage: $0 [-E] [-N] [-c <number>] [-i <number>] [-p <prefix>]"\
+       '[-n <netdev>] <directory>'
   echo
   echo 'Options:'
   echo "  -c  Number of virtual nodes (defaults to $default_nodecount)"
@@ -50,6 +50,8 @@ usage() {
   echo "  -p  IPv4 network prefix (defaults to $default_netprefix)"
   echo '  -n  Network device for virtual IP addresses (defaults to'\
        "$default_netdev)"
+  echo '  -E  Do not modify /etc/hosts'
+  echo '  -N  Do not configure networking'
 }
 
 # Variables for options
@@ -57,9 +59,11 @@ nodecount=$default_nodecount
 instcount=$default_instcount
 netprefix=$default_netprefix
 netdev=$default_netdev
+etchosts=1
+networking=1
 
 # Parse options
-while getopts :hc:p:n:i: opt; do
+while getopts :hENc:p:n:i: opt; do
   case "$opt" in
     h)
       usage
@@ -99,6 +103,12 @@ while getopts :hc:p:n:i: opt; do
         exit 1
       fi
     ;;
+    E)
+      etchosts=
+      ;;
+    N)
+      networking=
+      ;;
     \?)
       echo "Invalid option: -$OPTARG" >&2
       usage >&2
@@ -166,9 +176,9 @@ setup_node() {
   fi
 
   mkdir -p \
-    $nodedir/etc/default \
-    $nodedir/var/lock\
-    $nodedir/var/{lib,log,run}/ganeti
+    $nodedir@SYSCONFDIR@/default \
+    $nodedir@LOCALSTATEDIR@/lock\
+    $nodedir@LOCALSTATEDIR@/{lib,log,run}/ganeti
 
   GANETI_HOSTNAME=$(node_hostname $number) \
   GANETI_ROOTDIR=$nodedir \
@@ -263,11 +273,12 @@ EOF
   cat <<EOF
 
 Initialize cluster:
-  cd $rootdir && node1/cmd gnt-cluster init --no-etc-hosts $cluster_name
+  cd $rootdir && node1/cmd gnt-cluster init --no-etc-hosts \\
+    --no-ssh-init --no-lvm-storage --no-drbd-storage $cluster_name
 
 Change cluster settings:
   cd $rootdir && node1/cmd gnt-cluster modify \\
-    --enabled-hypervisors=fake \\
+    --enabled-hypervisors=fake --specs-nic-count=min=0 \\
     --specs-disk-size=min=0 --specs-disk-count=min=0
 
 Add node:
@@ -276,8 +287,12 @@ EOF
 }
 
 setup_all_nodes
-setup_etc_hosts
-setup_network_interfaces
+if [[ -n "$etchosts" ]]; then
+  setup_etc_hosts
+fi
+if [[ -n "$networking" ]]; then
+  setup_network_interfaces
+fi
 setup_scripts
 show_info
 
