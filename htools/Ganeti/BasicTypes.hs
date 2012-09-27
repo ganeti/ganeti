@@ -84,12 +84,12 @@ newtype ResultT m a = ResultT {runResultT :: m (Result a)}
 
 instance (Monad m) => Monad (ResultT m) where
   fail err = ResultT (return $ Bad err)
-  return = lift . return
-  x >>= f = ResultT $ do
-              a <- runResultT x
-              case a of
-                Ok val -> runResultT $ f val
-                Bad err -> return $ Bad err
+  return   = lift . return
+  x >>= f  = ResultT $ do
+               a <- runResultT x
+               case a of
+                 Ok val -> runResultT $ f val
+                 Bad err -> return $ Bad err
 
 instance MonadTrans ResultT where
   lift x = ResultT (liftM Ok x)

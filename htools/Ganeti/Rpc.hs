@@ -259,10 +259,10 @@ $(buildObject "RpcResultInstanceInfo" "rpcResInstInfo"
   [ optionalField $ simpleField "inst_info" [t| InstanceInfo |]])
 
 instance RpcCall RpcCallInstanceInfo where
-  rpcCallName _ = "instance_info"
-  rpcCallTimeout _ = rpcTimeoutToRaw Urgent
+  rpcCallName _          = "instance_info"
+  rpcCallTimeout _       = rpcTimeoutToRaw Urgent
   rpcCallAcceptOffline _ = False
-  rpcCallData _ call = J.encode
+  rpcCallData _ call     = J.encode
     ( rpcCallInstInfoInstance call
     , rpcCallInstInfoHname call
     )
@@ -289,10 +289,10 @@ $(buildObject "RpcResultAllInstancesInfo" "rpcResAllInstInfo"
   [ simpleField "instances" [t| [(String, InstanceInfo)] |] ])
 
 instance RpcCall RpcCallAllInstancesInfo where
-  rpcCallName _ = "all_instances_info"
-  rpcCallTimeout _ = rpcTimeoutToRaw Urgent
+  rpcCallName _          = "all_instances_info"
+  rpcCallTimeout _       = rpcTimeoutToRaw Urgent
   rpcCallAcceptOffline _ = False
-  rpcCallData _ call = J.encode [rpcCallAllInstInfoHypervisors call]
+  rpcCallData _ call     = J.encode [rpcCallAllInstInfoHypervisors call]
 
 instance Rpc RpcCallAllInstancesInfo RpcResultAllInstancesInfo where
   -- FIXME: Is there a simpler way to do it?
@@ -316,10 +316,10 @@ $(buildObject "RpcResultInstanceList" "rpcResInstList"
   [ simpleField "instances" [t| [String] |] ])
 
 instance RpcCall RpcCallInstanceList where
-  rpcCallName _ = "instance_list"
-  rpcCallTimeout _ = rpcTimeoutToRaw Urgent
+  rpcCallName _          = "instance_list"
+  rpcCallTimeout _       = rpcTimeoutToRaw Urgent
   rpcCallAcceptOffline _ = False
-  rpcCallData _ call = J.encode [rpcCallInstListHypervisors call]
+  rpcCallData _ call     = J.encode [rpcCallInstListHypervisors call]
 
 
 instance Rpc RpcCallInstanceList RpcResultInstanceList where
@@ -358,12 +358,13 @@ $(buildObject "RpcResultNodeInfo" "rpcResNodeInfo"
   ])
 
 instance RpcCall RpcCallNodeInfo where
-  rpcCallName _ = "node_info"
-  rpcCallTimeout _ = rpcTimeoutToRaw Urgent
+  rpcCallName _          = "node_info"
+  rpcCallTimeout _       = rpcTimeoutToRaw Urgent
   rpcCallAcceptOffline _ = False
-  rpcCallData _ call = J.encode ( rpcCallNodeInfoVolumeGroups call
-                                , rpcCallNodeInfoHypervisors call
-                                )
+  rpcCallData _ call     = J.encode
+    ( rpcCallNodeInfoVolumeGroups call
+    , rpcCallNodeInfoHypervisors call
+    )
 
 instance Rpc RpcCallNodeInfo RpcResultNodeInfo where
   rpcResultFill _ res =
@@ -388,10 +389,10 @@ $(buildObject "RpcResultVersion" "rpcResultVersion"
   ])
 
 instance RpcCall RpcCallVersion where
-  rpcCallName _ = "version"
-  rpcCallTimeout _ = rpcTimeoutToRaw Urgent
+  rpcCallName _          = "version"
+  rpcCallTimeout _       = rpcTimeoutToRaw Urgent
   rpcCallAcceptOffline _ = True
-  rpcCallData call _ = J.encode [call]
+  rpcCallData call _     = J.encode [call]
 
 instance Rpc RpcCallVersion RpcResultVersion where
   rpcResultFill _ res =
@@ -432,10 +433,10 @@ $(buildObject "RpcResultStorageList" "rpcResStorageList"
   [ simpleField "storage" [t| [[(StorageField, J.JSValue)]] |] ])
 
 instance RpcCall RpcCallStorageList where
-  rpcCallName _ = "storage_list"
-  rpcCallTimeout _ = rpcTimeoutToRaw Normal
+  rpcCallName _          = "storage_list"
+  rpcCallTimeout _       = rpcTimeoutToRaw Normal
   rpcCallAcceptOffline _ = False
-  rpcCallData _ call = J.encode
+  rpcCallData _ call     = J.encode
     ( rpcCallStorageListSuName call
     , rpcCallStorageListSuArgs call
     , rpcCallStorageListName call
