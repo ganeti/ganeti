@@ -147,7 +147,7 @@ class (J.JSON a) => RpcCall a where
 -- result.
 class (RpcCall a, J.JSON b) => Rpc a b  | a -> b, b -> a where
   -- | Create a result based on the received HTTP response.
-  rpcResultFill :: (Monad m) => a -> J.JSValue -> m (ERpcError b)
+  rpcResultFill :: a -> J.JSValue -> ERpcError b
 
 -- | Http Request definition.
 data HttpClientRequest = HttpClientRequest
@@ -198,19 +198,18 @@ prepareHttpRequest node call
   | otherwise = Left $ OfflineNodeError node
 
 -- | Parse a result based on the received HTTP response.
-rpcResultParse :: (Monad m, Rpc a b) => a -> String -> m (ERpcError b)
-rpcResultParse call res = do
-  res' <- fromJResult "Reading JSON response" $ J.decode res
-  case res' of
-    (True, res'') ->
-       rpcResultFill call res''
-    (False, jerr) -> case jerr of
-       J.JSString msg -> return . Left $ RpcResultError (J.fromJSString msg)
-       _ -> (return . Left) . JsonDecodeError $ show (pp_value jerr)
+rpcResultParse :: (Rpc a b) => a -> String -> ERpcError b
+rpcResultParse call res =
+  case J.decode res of
+    J.Error val -> Left $ JsonDecodeError val
+    J.Ok (True, res'') -> rpcResultFill call res''
+    J.Ok (False, jerr) -> case jerr of
+       J.JSString msg -> Left $ RpcResultError (J.fromJSString msg)
+       _ -> Left . JsonDecodeError $ show (pp_value jerr)
 
 -- | Parse the response or propagate the error.
-parseHttpResponse :: (Rpc a b) => a -> ERpcError String -> IO (ERpcError b)
-parseHttpResponse _ (Left err) = return $ Left err
+parseHttpResponse :: (Rpc a b) => a -> ERpcError String -> ERpcError b
+parseHttpResponse _ (Left err) = Left err
 parseHttpResponse call (Right response) = rpcResultParse call response
 
 -- | Execute RPC call for a sigle node.
@@ -218,7 +217,7 @@ executeSingleRpcCall :: (Rpc a b) => Node -> a -> IO (Node, ERpcError b)
 executeSingleRpcCall node call = do
   let request = prepareHttpRequest node call
   response <- executeHttpRequest node request
-  result <- parseHttpResponse call response
+  let result = parseHttpResponse call response
   return (node, result)
 
 -- | Execute RPC call for many nodes in parallel.
@@ -269,7 +268,7 @@ instance RpcCall RpcCallInstanceInfo where
 
 instance Rpc RpcCallInstanceInfo RpcResultInstanceInfo where
   rpcResultFill _ res =
-    return $ case res of
+    case res of
       J.JSObject res' ->
         case J.fromJSObject res' of
           [] -> Right $ RpcResultInstanceInfo Nothing
@@ -297,10 +296,10 @@ instance RpcCall RpcCallAllInstancesInfo where
 instance Rpc RpcCallAllInstancesInfo RpcResultAllInstancesInfo where
   -- FIXME: Is there a simpler way to do it?
   rpcResultFill _ res =
-    return $ case res of
-      J.JSObject res' -> do
+    case res of
+      J.JSObject res' ->
         let res'' = map (second J.readJSON) (J.fromJSObject res')
-                        :: [(String, J.Result InstanceInfo)]
+                        :: [(String, J.Result InstanceInfo)] in
         case sanitizeDictResults res'' of
           Left err -> Left err
           Right insts -> Right $ RpcResultAllInstancesInfo insts
@@ -321,10 +320,9 @@ instance RpcCall RpcCallInstanceList where
   rpcCallAcceptOffline _ = False
   rpcCallData _ call     = J.encode [rpcCallInstListHypervisors call]
 
-
 instance Rpc RpcCallInstanceList RpcResultInstanceList where
   rpcResultFill _ res =
-    return $ case J.readJSON res of
+    case J.readJSON res of
       J.Error err -> Left $ JsonDecodeError err
       J.Ok insts -> Right $ RpcResultInstanceList insts
 
@@ -368,7 +366,7 @@ instance RpcCall RpcCallNodeInfo where
 
 instance Rpc RpcCallNodeInfo RpcResultNodeInfo where
   rpcResultFill _ res =
-    return $ case J.readJSON res of
+    case J.readJSON res of
       J.Error err -> Left $ JsonDecodeError err
       J.Ok (boot_id, vg_info, hv_info) ->
           Right $ RpcResultNodeInfo boot_id vg_info hv_info
@@ -396,7 +394,7 @@ instance RpcCall RpcCallVersion where
 
 instance Rpc RpcCallVersion RpcResultVersion where
   rpcResultFill _ res =
-    return $ case J.readJSON res of
+    case J.readJSON res of
       J.Error err -> Left $ JsonDecodeError err
       J.Ok ver -> Right $ RpcResultVersion ver
 
@@ -446,7 +444,7 @@ instance RpcCall RpcCallStorageList where
 instance Rpc RpcCallStorageList RpcResultStorageList where
   rpcResultFill call res =
     let sfields = rpcCallStorageListFields call in
-    return $ case J.readJSON res of
+    case J.readJSON res of
       J.Error err -> Left $ JsonDecodeError err
       J.Ok res_lst -> Right $ RpcResultStorageList (map (zip sfields) res_lst)
 
