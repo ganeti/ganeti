@@ -93,8 +93,6 @@ class ConfigShell(cmd.Cmd):
     dirs = []
     entries = []
     if isinstance(obj, objects.ConfigObject):
-      # pylint: disable=W0212
-      # yes, we're using a protected member
       for name in obj.GetAllSlots():
         child = getattr(obj, name, None)
         if isinstance(child, (list, dict, tuple, objects.ConfigObject)):
@@ -119,7 +117,7 @@ class ConfigShell(cmd.Cmd):
     configuration is loaded.
 
     """
-    if line.startswith("load") or line == 'EOF' or line == "quit":
+    if line.startswith("load") or line == "EOF" or line == "quit":
       return line
     if not self.parents or self.cfg is None:
       print "No config data loaded"
