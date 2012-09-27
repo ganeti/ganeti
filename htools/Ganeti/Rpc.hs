@@ -235,6 +235,16 @@ sanitizeDictResults ((name, J.Ok val):xs) =
     Left err -> Left err
     Right res' -> Right $ (name, val):res'
 
+-- | Helper function to tranform JSON Result to Either RpcError b.
+-- Note: For now we really only use it for b s.t. Rpc c b for some c
+fromJResultToRes :: J.Result a -> (a -> b) -> ERpcError b
+fromJResultToRes (J.Error v) _ = Left $ JsonDecodeError v
+fromJResultToRes (J.Ok v) f = Right $ f v
+
+-- | Helper function transforming JSValue to Rpc result type.
+fromJSValueToRes :: (J.JSON a) => J.JSValue -> (a -> b) -> ERpcError b
+fromJSValueToRes val = fromJResultToRes (J.readJSON val)
+
 -- * RPC calls and results
 
 -- | InstanceInfo
@@ -272,10 +282,7 @@ instance Rpc RpcCallInstanceInfo RpcResultInstanceInfo where
       J.JSObject res' ->
         case J.fromJSObject res' of
           [] -> Right $ RpcResultInstanceInfo Nothing
-          _ ->
-            case J.readJSON res of
-              J.Error err -> Left $ JsonDecodeError err
-              J.Ok val -> Right . RpcResultInstanceInfo $ Just val
+          _ -> fromJSValueToRes res (RpcResultInstanceInfo . Just)
       _ -> Left $ JsonDecodeError
            ("Expected JSObject, got " ++ show res)
 
@@ -321,10 +328,7 @@ instance RpcCall RpcCallInstanceList where
   rpcCallData _ call     = J.encode [rpcCallInstListHypervisors call]
 
 instance Rpc RpcCallInstanceList RpcResultInstanceList where
-  rpcResultFill _ res =
-    case J.readJSON res of
-      J.Error err -> Left $ JsonDecodeError err
-      J.Ok insts -> Right $ RpcResultInstanceList insts
+  rpcResultFill _ res = fromJSValueToRes res RpcResultInstanceList
 
 -- | NodeInfo
 -- Return node information.
@@ -366,10 +370,7 @@ instance RpcCall RpcCallNodeInfo where
 
 instance Rpc RpcCallNodeInfo RpcResultNodeInfo where
   rpcResultFill _ res =
-    case J.readJSON res of
-      J.Error err -> Left $ JsonDecodeError err
-      J.Ok (boot_id, vg_info, hv_info) ->
-          Right $ RpcResultNodeInfo boot_id vg_info hv_info
+    fromJSValueToRes res (\(b, vg, hv) -> RpcResultNodeInfo b vg hv)
 
 -- | Version
 -- Query node version.
@@ -393,10 +394,7 @@ instance RpcCall RpcCallVersion where
   rpcCallData call _     = J.encode [call]
 
 instance Rpc RpcCallVersion RpcResultVersion where
-  rpcResultFill _ res =
-    case J.readJSON res of
-      J.Error err -> Left $ JsonDecodeError err
-      J.Ok ver -> Right $ RpcResultVersion ver
+  rpcResultFill _ res = fromJSValueToRes res RpcResultVersion
 
 -- | StorageList
 -- Get list of storage units.
@@ -444,7 +442,4 @@ instance RpcCall RpcCallStorageList where
 instance Rpc RpcCallStorageList RpcResultStorageList where
   rpcResultFill call res =
     let sfields = rpcCallStorageListFields call in
-    case J.readJSON res of
-      J.Error err -> Left $ JsonDecodeError err
-      J.Ok res_lst -> Right $ RpcResultStorageList (map (zip sfields) res_lst)
-
+    fromJSValueToRes res (RpcResultStorageList . map (zip sfields))
