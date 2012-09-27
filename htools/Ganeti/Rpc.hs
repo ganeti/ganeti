@@ -198,19 +198,15 @@ prepareHttpRequest node call
   | otherwise = Left $ OfflineNodeError node
 
 -- | Parse a result based on the received HTTP response.
-rpcResultParse :: (Rpc a b) => a -> String -> ERpcError b
-rpcResultParse call res =
+parseHttpResponse :: (Rpc a b) => a -> ERpcError String -> ERpcError b
+parseHttpResponse _ (Left err) = Left err
+parseHttpResponse call (Right res) =
   case J.decode res of
     J.Error val -> Left $ JsonDecodeError val
     J.Ok (True, res'') -> rpcResultFill call res''
     J.Ok (False, jerr) -> case jerr of
        J.JSString msg -> Left $ RpcResultError (J.fromJSString msg)
        _ -> Left . JsonDecodeError $ show (pp_value jerr)
-
--- | Parse the response or propagate the error.
-parseHttpResponse :: (Rpc a b) => a -> ERpcError String -> ERpcError b
-parseHttpResponse _ (Left err) = Left err
-parseHttpResponse call (Right response) = rpcResultParse call response
 
 -- | Execute RPC call for a sigle node.
 executeSingleRpcCall :: (Rpc a b) => Node -> a -> IO (Node, ERpcError b)
