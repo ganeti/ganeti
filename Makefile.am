@@ -31,6 +31,7 @@ DOCPP = $(top_srcdir)/autotools/docpp
 REPLACE_VARS_SED = autotools/replace_vars.sed
 CONVERT_CONSTANTS = $(top_srcdir)/autotools/convert-constants
 BUILD_RPC = $(top_srcdir)/autotools/build-rpc
+SHELL_ENV_INIT = autotools/shell-env-init
 
 # Note: these are automake-specific variables, and must be named after
 # the directory + 'dir' suffix
@@ -150,6 +151,7 @@ CLEANFILES = \
 	$(PYTHON_BOOTSTRAP) \
 	epydoc.conf \
 	$(REPLACE_VARS_SED) \
+	$(SHELL_ENV_INIT) \
 	daemons/daemon-util \
 	daemons/ganeti-cleaner \
 	devel/upload \
@@ -1271,7 +1273,20 @@ lib/_vcsversion.py: Makefile vcs-version | stamp-directories
 lib/_generated_rpc.py: lib/rpc_defs.py $(BUILD_RPC)
 	PYTHONPATH=. $(RUN_IN_TEMPDIR) $(CURDIR)/$(BUILD_RPC) lib/rpc_defs.py > $@
 
-$(REPLACE_VARS_SED): Makefile stamp-directories
+$(SHELL_ENV_INIT): Makefile stamp-directories
+	set -e; \
+	{ echo '# Allow overriding for tests'; \
+	  echo 'readonly LOCALSTATEDIR=$${LOCALSTATEDIR:-$${GANETI_ROOTDIR:-}$(localstatedir)}'; \
+	  echo 'readonly SYSCONFDIR=$${SYSCONFDIR:-$${GANETI_ROOTDIR:-}$(sysconfdir)}'; \
+	  echo; \
+	  echo 'readonly PKGLIBDIR=$(pkglibdir)'; \
+	  echo 'readonly LOG_DIR="$$LOCALSTATEDIR/log/ganeti"'; \
+	  echo 'readonly RUN_DIR="$$LOCALSTATEDIR/run/ganeti"'; \
+	  echo 'readonly DATA_DIR="$$LOCALSTATEDIR/lib/ganeti"'; \
+	  echo 'readonly CONF_DIR="$$SYSCONFDIR/ganeti"'; \
+	} > $@
+
+$(REPLACE_VARS_SED): $(SHELL_ENV_INIT) Makefile stamp-directories
 	set -e; \
 	{ echo 's#@PREFIX@#$(prefix)#g'; \
 	  echo 's#@SYSCONFDIR@#$(sysconfdir)#g'; \
@@ -1299,6 +1314,11 @@ $(REPLACE_VARS_SED): Makefile stamp-directories
 	  echo 's#@CUSTOM_ENABLE_CONFD@#$(ENABLE_CONFD)#g'; \
 	  echo 's#@MODULES@#$(strip $(lint_python_code))#g'; \
 	  echo 's#@ENABLE_SPLIT_QUERY@#$(ENABLE_SPLIT_QUERY)#g'; \
+	  echo; \
+	  echo '/^@SHELL_ENV_INIT@$$/ {'; \
+	  echo '  r $(SHELL_ENV_INIT)'; \
+	  echo '  d'; \
+	  echo '}'; \
 	} > $@
 
 # Using deferred evaluation

@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 
-# Copyright (C) 2009, 2010, 2011 Google Inc.
+# Copyright (C) 2009, 2010, 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,7 +18,16 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 # 02110-1301, USA.
 
-set -e
+set -e -u
+
+@SHELL_ENV_INIT@
+
+# Overridden by unittest
+: ${CHECK_CERT_EXPIRED:=$PKGLIBDIR/check-cert-expired}
+
+readonly CLEANER_LOG_DIR=$LOG_DIR/cleaner
+readonly QUEUE_ARCHIVE_DIR=$DATA_DIR/queue/archive
+readonly CRYPTO_DIR=$RUN_DIR/crypto
 
 in_cluster() {
   [[ -e $DATA_DIR/ssconf_master_node ]]
@@ -59,15 +68,6 @@ cleanup_watcher() {
        -name 'watcher.*-*-*-*.instance-status' \) -print0 | \
   xargs -r0 rm -vf
 }
-
-# Overridden by unittest
-: ${LOCALSTATEDIR:=@LOCALSTATEDIR@}
-: ${CHECK_CERT_EXPIRED:=@PKGLIBDIR@/check-cert-expired}
-
-DATA_DIR=$LOCALSTATEDIR/lib/ganeti
-CLEANER_LOG_DIR=$LOCALSTATEDIR/log/ganeti/cleaner
-QUEUE_ARCHIVE_DIR=$DATA_DIR/queue/archive
-CRYPTO_DIR=$LOCALSTATEDIR/run/ganeti/crypto
 
 # Define how many days archived jobs should be left alone
 REMOVE_AFTER=21

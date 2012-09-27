@@ -18,6 +18,8 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 # 02110-1301, USA.
 
+@SHELL_ENV_INIT@
+
 if [ -z "$INTERFACE" ]; then
   echo "No network interface specified"
   exit 1
@@ -29,8 +31,8 @@ if [ -z "$MODE" ]; then
 fi
 
 # Execute the user-supplied network script, if applicable
-if [ -x "@SYSCONFDIR@/ganeti/kvm-vif-bridge" ]; then
-  exec @SYSCONFDIR@/ganeti/kvm-vif-bridge
+if [ -x "$CONF_DIR/kvm-vif-bridge" ]; then
+  exec $CONF_DIR/kvm-vif-bridge
 fi
 
 if [ "$MODE" = "bridged" ]; then

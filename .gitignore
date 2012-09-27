@@ -23,6 +23,7 @@
 /autotools/missing
 /autotools/py-compile
 /autotools/replace_vars.sed
+/autotools/shell-env-init
 /config.log
 /config.status
 /configure
