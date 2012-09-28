@@ -1256,6 +1256,17 @@ class OpInstanceMultiAlloc(OpCode):
       state["instances"] = insts
     return OpCode.__setstate__(self, state)
 
+  def Validate(self, set_defaults):
+    """Validates this opcode.
+
+    We do this recursively.
+
+    """
+    OpCode.Validate(self, set_defaults)
+
+    for inst in self.instances:
+      inst.Validate(set_defaults)
+
 
 class OpInstanceReinstall(OpCode):
   """Reinstall an instance's OS."""
