@@ -169,6 +169,7 @@ CLEANFILES = \
 	$(nodist_pkgpython_PYTHON) \
 	$(HS_ALL_PROGS) $(HS_BUILT_SRCS) \
 	$(HS_BUILT_TEST_HELPERS) \
+	htools/ganeti-confd \
 	.hpc/*.mix htools/*.tix htest/*.tix \
 	doc/hs-lint.html
 
@@ -292,9 +293,7 @@ http_PYTHON = \
 
 confd_PYTHON = \
 	lib/confd/__init__.py \
-	lib/confd/client.py \
-	lib/confd/querylib.py \
-	lib/confd/server.py
+	lib/confd/client.py
 
 masterd_PYTHON = \
 	lib/masterd/__init__.py \
@@ -311,7 +310,6 @@ watcher_PYTHON = \
 
 server_PYTHON = \
 	lib/server/__init__.py \
-	lib/server/confd.py \
 	lib/server/masterd.py \
 	lib/server/noded.py \
 	lib/server/rapi.py
@@ -600,9 +598,6 @@ install-exec-hook:
 		$(LN_S) -f htools \
 			   $(DESTDIR)$(bindir)/$$role ; \
 	done
-if ENABLE_CONFD
-	mv $(DESTDIR)$(sbindir)/hconfd $(DESTDIR)$(sbindir)/ganeti-confd
-endif
 endif
 
 $(HS_ALL_PROGS): %: %.hs $(HS_LIBTEST_SRCS) $(HS_BUILT_SRCS) Makefile
@@ -654,7 +649,10 @@ nodist_sbin_SCRIPTS = \
 	daemons/ganeti-master-cleaner
 
 if ENABLE_CONFD
-nodist_sbin_SCRIPTS += htools/hconfd
+htools/ganeti-confd: htools/hconfd
+	cp -f $< $@
+
+nodist_sbin_SCRIPTS += htools/ganeti-confd
 endif
 
 python_scripts = \
