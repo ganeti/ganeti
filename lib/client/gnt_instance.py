@@ -69,6 +69,8 @@ _LIST_DEF_FIELDS = [
 _MISSING = object()
 _ENV_OVERRIDE = frozenset(["list"])
 
+_INST_DATA_VAL = ht.TListOf(ht.TDict)
+
 
 def _ExpandMultiNames(mode, names, client=None):
   """Expand the given names using the passed mode.
@@ -255,23 +257,8 @@ def AddInstance(opts, args):
 def BatchCreate(opts, args):
   """Create instances using a definition file.
 
-  This function reads a json file with instances defined
-  in the form::
-
-    {"instance-name":{
-      "disk_size": [20480],
-      "template": "drbd",
-      "backend": {
-        "memory": 512,
-        "vcpus": 1 },
-      "os": "debootstrap",
-      "primary_node": "firstnode",
-      "secondary_node": "secondnode",
-      "iallocator": "dumb"}
-    }
-
-  Note that I{primary_node} and I{secondary_node} have precedence over
-  I{iallocator}.
+  This function reads a json file with L{opcodes.OpInstanceCreate}
+  serialisations.
 
   @param opts: the command line options selected by the user
   @type args: list
@@ -280,130 +267,53 @@ def BatchCreate(opts, args):
   @return: the desired exit code
 
   """
-  _DEFAULT_SPECS = {"disk_size": [20 * 1024],
-                    "backend": {},
-                    "iallocator": None,
-                    "primary_node": None,
-                    "secondary_node": None,
-                    "nics": None,
-                    "start": True,
-                    "ip_check": True,
-                    "name_check": True,
-                    "hypervisor": None,
-                    "hvparams": {},
-                    "file_storage_dir": None,
-                    "force_variant": False,
-                    "file_driver": "loop"}
+  (json_filename,) = args
+  cl = GetClient()
 
-  def _PopulateWithDefaults(spec):
-    """Returns a new hash combined with default values."""
-    mydict = _DEFAULT_SPECS.copy()
-    mydict.update(spec)
-    return mydict
-
-  def _Validate(spec):
-    """Validate the instance specs."""
-    # Validate fields required under any circumstances
-    for required_field in ("os", "template"):
-      if required_field not in spec:
-        raise errors.OpPrereqError('Required field "%s" is missing.' %
-                                   required_field, errors.ECODE_INVAL)
-    # Validate special fields
-    if spec["primary_node"] is not None:
-      if (spec["template"] in constants.DTS_INT_MIRROR and
-          spec["secondary_node"] is None):
-        raise errors.OpPrereqError("Template requires secondary node, but"
-                                   " there was no secondary provided.",
-                                   errors.ECODE_INVAL)
-    elif spec["iallocator"] is None:
-      raise errors.OpPrereqError("You have to provide at least a primary_node"
-                                 " or an iallocator.",
-                                 errors.ECODE_INVAL)
-
-    if (spec["hvparams"] and
-        not isinstance(spec["hvparams"], dict)):
-      raise errors.OpPrereqError("Hypervisor parameters must be a dict.",
-                                 errors.ECODE_INVAL)
-
-  json_filename = args[0]
   try:
     instance_data = simplejson.loads(utils.ReadFile(json_filename))
   except Exception, err: # pylint: disable=W0703
     ToStderr("Can't parse the instance definition file: %s" % str(err))
     return 1
 
-  if not isinstance(instance_data, dict):
-    ToStderr("The instance definition file is not in dict format.")
+  if not _INST_DATA_VAL(instance_data):
+    ToStderr("The instance definition file is not %s" % _INST_DATA_VAL)
     return 1
 
-  jex = JobExecutor(opts=opts)
+  instances = []
+  possible_params = set(opcodes.OpInstanceCreate.GetAllSlots())
+  for (idx, inst) in enumerate(instance_data):
+    unknown = set(inst.keys()) - possible_params
 
-  # Iterate over the instances and do:
-  #  * Populate the specs with default value
-  #  * Validate the instance specs
-  i_names = utils.NiceSort(instance_data.keys()) # pylint: disable=E1103
-  for name in i_names:
-    specs = instance_data[name]
-    specs = _PopulateWithDefaults(specs)
-    _Validate(specs)
+    if unknown:
+      # TODO: Suggest closest match for more user friendly experience
+      raise errors.OpPrereqError("Unknown fields: %s" %
+                                 utils.CommaJoin(unknown), errors.ECODE_INVAL)
 
-    hypervisor = specs["hypervisor"]
-    hvparams = specs["hvparams"]
+    op = opcodes.OpInstanceCreate(**inst)
+    op.Validate(False)
+    instances.append(op)
 
-    disks = []
-    for elem in specs["disk_size"]:
-      try:
-        size = utils.ParseUnit(elem)
-      except (TypeError, ValueError), err:
-        raise errors.OpPrereqError("Invalid disk size '%s' for"
-                                   " instance %s: %s" %
-                                   (elem, name, err), errors.ECODE_INVAL)
-      disks.append({"size": size})
+  op = opcodes.OpInstanceMultiAlloc(iallocator=opts.iallocator,
+                                    instances=instances)
+  result = SubmitOrSend(op, opts, cl=cl)
 
-    utils.ForceDictType(specs["backend"], constants.BES_PARAMETER_COMPAT)
-    utils.ForceDictType(hvparams, constants.HVS_PARAMETER_TYPES)
+  # Keep track of submitted jobs
+  jex = JobExecutor(cl=cl, opts=opts)
 
-    tmp_nics = []
-    for field in constants.INIC_PARAMS:
-      if field in specs:
-        if not tmp_nics:
-          tmp_nics.append({})
-        tmp_nics[0][field] = specs[field]
+  for (status, job_id) in result[constants.JOB_IDS_KEY]:
+    jex.AddJobId(None, status, job_id)
 
-    if specs["nics"] is not None and tmp_nics:
-      raise errors.OpPrereqError("'nics' list incompatible with using"
-                                 " individual nic fields as well",
-                                 errors.ECODE_INVAL)
-    elif specs["nics"] is not None:
-      tmp_nics = specs["nics"]
-    elif not tmp_nics:
-      tmp_nics = [{}]
+  results = jex.GetResults()
+  bad_cnt = len([row for row in results if not row[0]])
+  if bad_cnt == 0:
+    ToStdout("All instances created successfully.")
+    rcode = constants.EXIT_SUCCESS
+  else:
+    ToStdout("There were %s errors during the creation.", bad_cnt)
+    rcode = constants.EXIT_FAILURE
 
-    op = opcodes.OpInstanceCreate(instance_name=name,
-                                  disks=disks,
-                                  disk_template=specs["template"],
-                                  mode=constants.INSTANCE_CREATE,
-                                  os_type=specs["os"],
-                                  force_variant=specs["force_variant"],
-                                  pnode=specs["primary_node"],
-                                  snode=specs["secondary_node"],
-                                  nics=tmp_nics,
-                                  start=specs["start"],
-                                  ip_check=specs["ip_check"],
-                                  name_check=specs["name_check"],
-                                  wait_for_sync=True,
-                                  iallocator=specs["iallocator"],
-                                  hypervisor=hypervisor,
-                                  hvparams=hvparams,
-                                  beparams=specs["backend"],
-                                  file_storage_dir=specs["file_storage_dir"],
-                                  file_driver=specs["file_driver"])
-
-    jex.QueueJob(name, op)
-  # we never want to wait, just show the submitted job IDs
-  jex.WaitOrShow(False)
-
-  return 0
+  return rcode
 
 
 def ReinstallInstance(opts, args):
@@ -1530,7 +1440,8 @@ commands = {
     "[...] -t disk-type -n node[:secondary-node] -o os-type <name>",
     "Creates and adds a new instance to the cluster"),
   "batch-create": (
-    BatchCreate, [ArgFile(min=1, max=1)], [DRY_RUN_OPT, PRIORITY_OPT],
+    BatchCreate, [ArgFile(min=1, max=1)],
+    [DRY_RUN_OPT, PRIORITY_OPT, IALLOCATOR_OPT, SUBMIT_OPT],
     "<instances.json>",
     "Create a bunch of instances based on specs in the file."),
   "console": (

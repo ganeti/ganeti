@@ -2,6 +2,17 @@ News
 ====
 
 
+Version 2.7.0 beta0
+-------------------
+
+*(unreleased)*
+
+- ``gnt-instance batch-create`` has been changed to use the bulk create
+  opcode from Ganeti. This lead to incompatible changes in the format of
+  the JSON file. It's now not a custom dict anymore but a dict
+  compatible with the ``OpInstanceCreate`` opcode.
+
+
 Version 2.6.0
 -------------
 
