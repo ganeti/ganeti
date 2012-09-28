@@ -1265,7 +1265,7 @@ class OpInstanceMultiAlloc(OpCode):
     """
     OpCode.Validate(self, set_defaults)
 
-    for inst in self.instances:
+    for inst in self.instances: # pylint: disable=E1101
       inst.Validate(set_defaults)
 
 

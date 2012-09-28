@@ -287,10 +287,11 @@ def BatchCreate(opts, args):
 
     if unknown:
       # TODO: Suggest closest match for more user friendly experience
-      raise errors.OpPrereqError("Unknown fields: %s" %
-                                 utils.CommaJoin(unknown), errors.ECODE_INVAL)
+      raise errors.OpPrereqError("Unknown fields in definition %s: %s" %
+                                 (idx, utils.CommaJoin(unknown)),
+                                 errors.ECODE_INVAL)
 
-    op = opcodes.OpInstanceCreate(**inst)
+    op = opcodes.OpInstanceCreate(**inst) # pylint: disable=W0142
     op.Validate(False)
     instances.append(op)
 
