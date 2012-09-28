@@ -84,7 +84,7 @@ the resolver (e.g. in DNS or /etc/hosts, depending on your setup).
 Since the name check is used to compute the IP address, if you pass
 this option you must also pass the ``--no-ip-check`` option.
 
-If you don't wat the instance to automatically start after
+If you don't want the instance to automatically start after
 creation, this is possible via the ``--no-start`` option. This will
 leave the instance down until a subsequent **gnt-instance start**
 command.
@@ -258,7 +258,7 @@ cdrom\_disk\_type
 
     This parameter determines the way the cdroms disks are presented
     to the instance. The default behavior is to get the same value of
-    the eariler parameter (disk_type). The possible options are:
+    the earlier parameter (disk_type). The possible options are:
 
     - paravirtual
     - ide
@@ -509,7 +509,7 @@ mem\_path
 use\_chroot
     Valid for the KVM hypervisor.
 
-    This boolean option determines wether to run the KVM instance in a
+    This boolean option determines whether to run the KVM instance in a
     chroot directory.
 
     If it is set to ``true``, an empty directory is created before
@@ -715,7 +715,7 @@ hypervisor
 
 mac, ip, mode, link
     Specifications for the one NIC that will be created for the
-    instance. 'bridge' is also accepted as a backwards compatibile
+    instance. 'bridge' is also accepted as a backwards compatible
     key.
 
 nics
@@ -1253,10 +1253,10 @@ REPLACE-DISKS
 [\--disks *idx*] {*instance*}
 
 **replace-disks** [\--submit] [\--early-release] [\--ignore-ipolicy]
-{{-I\|\--iallocator} *name* \| \--node *node* } {*instance*}
+{{-I\|\--iallocator} *name* \| {{-n|\--new-secondary} *node* } {*instance*}
 
 **replace-disks** [\--submit] [\--early-release] [\--ignore-ipolicy]
-{\--auto} {*instance*}
+{-a\|\--auto} {*instance*}
 
 This command is a generalized form for replacing disks. It is
 currently only valid for the mirrored (DRBD) disk template.
@@ -1529,7 +1529,7 @@ viewed with the **gnt-cluster info** command).
 If the ``--cleanup`` option is passed, the operation changes from
 migration to attempting recovery from a failed previous migration.  In
 this mode, Ganeti checks if the instance runs on the correct node (and
-updates its configuration if not) and ensures the instances's disks
+updates its configuration if not) and ensures the instances' disks
 are configured correctly. In this mode, the ``--non-live`` option is
 ignored.
 

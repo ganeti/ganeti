@@ -106,7 +106,7 @@ INI_MEM_INST, FIN_MEM_INST
 
 INI_MEM_OVERHEAD, FIN_MEM_OVERHEAD
   The initial and final memory overhead, i.e. memory used for the node
-  itself and unacounted memory (e.g. due to hypervisor overhead).
+  itself and unaccounted memory (e.g. due to hypervisor overhead).
 
 INI_MEM_EFF, HTS_INI_MEM_EFF
   The initial and final memory efficiency, represented as instance
