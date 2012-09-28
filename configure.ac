@@ -330,22 +330,13 @@ AC_ARG_ENABLE([htools-rapi],
 ENABLE_CONFD=
 AC_ARG_ENABLE([confd],
   [AS_HELP_STRING([--enable-confd],
-  [enable the ganeti-confd daemon (default: python, options haskell/python/no)])],
+  [enable the ganeti-confd daemon (default: yes)])],
   [[case "$enableval" in
       no)
         enable_confd=False
-        py_confd=False
-        hs_confd=False
         ;;
-      yes|python)
+      yes|haskell)
         enable_confd=True
-        py_confd=True
-        hs_confd=False
-        ;;
-      haskell)
-        enable_confd=True
-        py_confd=False
-        hs_confd=True
         ;;
       *)
         echo "Invalid value for enable-confd '$enableval'"
@@ -353,20 +344,16 @@ AC_ARG_ENABLE([confd],
         ;;
     esac
   ]],
-  [enable_confd=True;py_confd=True;hs_confd=False])
+  [enable_confd=True])
 AC_SUBST(ENABLE_CONFD, $enable_confd)
-AC_SUBST(PY_CONFD, $py_confd)
-AC_SUBST(HS_CONFD, $hs_confd)
 
-AM_CONDITIONAL([WANT_CONFD], [test x$enable_confd = xTrue])
-AM_CONDITIONAL([PY_CONFD], [test x$py_confd = xTrue])
-AM_CONDITIONAL([HS_CONFD], [test x$hs_confd = xTrue])
+AM_CONDITIONAL([ENABLE_CONFD], [test x$enable_confd = xTrue])
 
 # --enable-split-query
 ENABLE_SPLIT_QUERY=
 AC_ARG_ENABLE([split-query],
   [AS_HELP_STRING([--enable-split-query],
-  [enable use of custom query daemon via Haskell confd])],
+  [enable use of custom query daemon via confd])],
   [[case "$enableval" in
       no)
         enable_split_query=False
@@ -383,8 +370,8 @@ AC_ARG_ENABLE([split-query],
   [enable_split_query=False])
 AC_SUBST(ENABLE_SPLIT_QUERY, $enable_split_query)
 
-if test x$enable_split_query = xTrue -a x$hs_confd != xTrue; then
-  AC_MSG_ERROR([Split queries require the Haskell confd])
+if test x$enable_split_query = xTrue -a x$enable_confd != xTrue; then
+  AC_MSG_ERROR([Split queries require the confd daemon])
 fi
 
 # --with-disk-separator=...
@@ -592,8 +579,8 @@ fi
 
 fi # end if enable_htools, define automake conditions
 
-if test "$HTOOLS" != "yes" && test "$HS_CONFD" = "True"; then
-   AC_MSG_ERROR(m4_normalize([cannot enable Haskell version of ganeti-confd if
+if test "$HTOOLS" != "yes" && test "$ENABLE_CONFD" = "True"; then
+   AC_MSG_ERROR(m4_normalize([cannot enable ganeti-confd if
                               htools support is not enabled]))
 fi
 

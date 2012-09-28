@@ -180,7 +180,7 @@ GENERATED_FILES = \
 HTOOLS_GENERATED_FILES =
 if WANT_HTOOLS
 HTOOLS_GENERATED_FILES += $(HS_PROGS)
-if HS_CONFD
+if ENABLE_CONFD
 HTOOLS_GENERATED_FILES += htools/hconfd
 endif
 endif
@@ -567,10 +567,6 @@ PYTHON_BOOTSTRAP_SBIN = \
 	daemons/ganeti-rapi \
 	$(gnt_scripts)
 
-if PY_CONFD
-PYTHON_BOOTSTRAP_SBIN += daemons/ganeti-confd
-endif
-
 PYTHON_BOOTSTRAP = \
 	$(PYTHON_BOOTSTRAP_SBIN) \
 	tools/ensure-dirs
@@ -604,7 +600,7 @@ install-exec-hook:
 		$(LN_S) -f htools \
 			   $(DESTDIR)$(bindir)/$$role ; \
 	done
-if HS_CONFD
+if ENABLE_CONFD
 	mv $(DESTDIR)$(sbindir)/hconfd $(DESTDIR)$(sbindir)/ganeti-confd
 endif
 endif
@@ -657,7 +653,7 @@ nodist_sbin_SCRIPTS = \
 	daemons/ganeti-cleaner \
 	daemons/ganeti-master-cleaner
 
-if HS_CONFD
+if ENABLE_CONFD
 nodist_sbin_SCRIPTS += htools/hconfd
 endif
 
@@ -1249,8 +1245,6 @@ lib/_autoconf.py: Makefile | stamp-directories
 	    echo "HTOOLS = False"; \
 	  fi; \
 	  echo "ENABLE_CONFD = $(ENABLE_CONFD)"; \
-	  echo "PY_CONFD = $(PY_CONFD)"; \
-	  echo "HS_CONFD = $(HS_CONFD)"; \
 	  echo "XEN_CMD = '$(XEN_CMD)'"; \
 	  echo "ENABLE_SPLIT_QUERY = $(ENABLE_SPLIT_QUERY)"; \
 	} > $@

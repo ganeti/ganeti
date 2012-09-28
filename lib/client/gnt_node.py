@@ -908,11 +908,6 @@ def ListDrbd(opts, args):
              " been enabled at build time.")
     return constants.EXIT_FAILURE
 
-  if not constants.HS_CONFD:
-    ToStderr("Error: this command requires the Haskell version of confd,"
-             " but it has not been enabled at build time.")
-    return constants.EXIT_FAILURE
-
   status = ReplyStatus()
 
   def ListDrbdConfdCallback(reply):
