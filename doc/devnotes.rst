@@ -102,9 +102,9 @@ documentation, the second one with profiling enabled.
 Packaging notes
 ===============
 
-Ganeti is mostly developped and tested on `Debian
+Ganeti is mostly developed and tested on `Debian
 <http://www.debian.org/>`_-based distributions, while still keeping
-adoptability to other Linux distributions in mind.
+adaptability to other Linux distributions in mind.
 
 The ``doc/examples/`` directory contains a number of potentially useful
 scripts and configuration files. Some of them might need adjustment
