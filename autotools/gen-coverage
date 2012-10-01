@@ -37,8 +37,8 @@ $COVERAGE erase
 for script; do
   if [[ "$script" == *-runasroot.py ]]; then
     if [[ -z "$FAKEROOT" ]]; then
-      echo "FAKEROOT variable not set and needed for $script" >&2
-      exit 1
+      echo "WARNING: FAKEROOT variable not set: skipping $script" >&2
+      continue
     fi
     cmdprefix="$FAKEROOT"
   else

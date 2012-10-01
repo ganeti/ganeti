@@ -927,6 +927,7 @@ python_tests = \
 	test/ganeti.utils.filelock_unittest.py \
 	test/ganeti.utils.hash_unittest.py \
 	test/ganeti.utils.io_unittest.py \
+	test/ganeti.utils.io_unittest-runasroot.py \
 	test/ganeti.utils.log_unittest.py \
 	test/ganeti.utils.mlock_unittest.py \
 	test/ganeti.utils.nodesetup_unittest.py \
@@ -943,9 +944,6 @@ python_tests = \
 	test/docs_unittest.py \
 	test/pycurl_reset_unittest.py \
 	test/tempfile_fork_unittest.py
-if HAS_FAKEROOT
-python_tests += test/ganeti.utils.io_unittest-runasroot.py
-endif
 
 haskell_tests = htest/test
 

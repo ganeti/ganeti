@@ -23,16 +23,18 @@ set -e
 filename=$1
 
 execasroot() {
+  local fname=$1
+  shift
   if [[ -z "$FAKEROOT" ]]; then
-    echo "FAKEROOT variable not set" >&2
-    exit 1
+    echo "WARNING: FAKEROOT variable not set, skipping $fname" >&2
+  else
+    exec "$FAKEROOT" "$@"
   fi
-  exec "$FAKEROOT" "$@"
 }
 
 case "$filename" in
-  *-runasroot.py) execasroot $PYTHON "$@" ;;
+  *-runasroot.py) execasroot $filename $PYTHON "$@" ;;
   *.py) exec $PYTHON "$@" ;;
-  *-runasroot) execasroot "$@" ;;
+  *-runasroot) execasroot $filename "$@" ;;
   *) exec "$@" ;;
 esac
