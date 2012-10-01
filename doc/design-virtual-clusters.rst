@@ -1,6 +1,6 @@
-==========================
- Virtual clusters support
-==========================
+===================================
+Design for virtual clusters support
+===================================
 
 
 Introduction

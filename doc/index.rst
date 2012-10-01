@@ -29,6 +29,7 @@ Contents:
    iallocator.rst
    rapi.rst
    move-instance.rst
+   virtual-cluster.rst
    ovfconverter.rst
    design-bulk-create.rst
    devnotes.rst
