@@ -23,11 +23,12 @@ shopt -s extglob
 
 readonly self=$(readlink -f $0)
 readonly ensure_dirs=@PKGLIBDIR@/ensure-dirs
-readonly action_shortcuts=( start stop restart status )
+readonly action_shortcuts=( start stop restart status watcher )
 readonly default_nodecount=5
 readonly default_instcount=10
 readonly default_netprefix=192.0.2
 readonly default_netdev=eth0
+readonly default_initscript=@SYSCONFDIR@/init.d/ganeti
 readonly cluster_name=cluster
 
 # IP address space:
@@ -42,7 +43,7 @@ readonly max_instance_count=$((255 - first_inst_ipaddr_octet))
 
 usage() {
   echo "Usage: $0 [-E] [-N] [-c <number>] [-i <number>] [-p <prefix>]"\
-       '[-n <netdev>] <directory>'
+       '[-n <netdev>] [-I <path>] <directory>'
   echo
   echo 'Options:'
   echo "  -c  Number of virtual nodes (defaults to $default_nodecount)"
@@ -50,6 +51,7 @@ usage() {
   echo "  -p  IPv4 network prefix (defaults to $default_netprefix)"
   echo '  -n  Network device for virtual IP addresses (defaults to'\
        "$default_netdev)"
+  echo "  -I  Path to init script (defaults to $default_initscript)"
   echo '  -E  Do not modify /etc/hosts'
   echo '  -N  Do not configure networking'
 }
@@ -59,11 +61,12 @@ nodecount=$default_nodecount
 instcount=$default_instcount
 netprefix=$default_netprefix
 netdev=$default_netdev
+initscript=$default_initscript
 etchosts=1
 networking=1
 
 # Parse options
-while getopts :hENc:p:n:i: opt; do
+while getopts :hENc:p:n:i:I: opt; do
   case "$opt" in
     h)
       usage
@@ -103,6 +106,13 @@ while getopts :hENc:p:n:i: opt; do
         exit 1
       fi
     ;;
+    I)
+      initscript="$OPTARG"
+      if [[ ! -x $initscript ]]; then
+        echo "Init script '$initscript' is not executable" >&2
+        exit 1
+      fi
+      ;;
     E)
       etchosts=
       ;;
@@ -252,8 +262,13 @@ setup_scripts() {
       echo '#!/bin/bash'
       for ((i=0; i < nodecount; ++i)); do
         local name=$(node_hostname $i)
-        echo "echo 'Action \"$action\" for virtual node \"$name\" ...'"
-        echo "$name/cmd /etc/init.d/ganeti $action"
+        if [[ $action = watcher ]]; then
+          echo "echo 'Running watcher for virtual node \"$name\" ..."
+          echo "$name/cmd ganeti-watcher \"\$@\""
+        else
+          echo "echo 'Action \"$action\" for virtual node \"$name\" ...'"
+          echo "$name/cmd $initscript $action \"\$@\""
+        fi
       done
     } > $rootdir/$action-all
     chmod +x $rootdir/$action-all
