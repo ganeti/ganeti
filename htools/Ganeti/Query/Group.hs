@@ -54,7 +54,8 @@ groupFields =
        "Custom node parameters",
      FieldSimple (rsNormal . groupNdparams))
   , (FieldDefinition "diskparams" "DiskParameters" QFTOther
-       "Disk parameters (merged)", FieldSimple (\_ -> rsNoData))
+       "Disk parameters (merged)",
+     FieldConfig (\cfg -> rsNormal . getGroupDiskParams cfg))
   , (FieldDefinition "ipolicy" "InstancePolicy" QFTOther
        "Instance policy limitations (merged)",
      FieldConfig (\cfg ng -> rsNormal (getGroupIpolicy cfg ng)))

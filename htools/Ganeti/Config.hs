@@ -38,6 +38,7 @@ module Ganeti.Config
     , getGroup
     , getGroupNdParams
     , getGroupIpolicy
+    , getGroupDiskParams
     , getGroupNodes
     , getGroupInstances
     , getGroupOfNode
@@ -186,6 +187,13 @@ getGroupNdParams cfg ng =
 getGroupIpolicy :: ConfigData -> NodeGroup -> FilledIPolicy
 getGroupIpolicy cfg ng =
   fillIPolicy (clusterIpolicy $ configCluster cfg) (groupIpolicy ng)
+
+-- | Computes a group\'s (merged) disk params.
+getGroupDiskParams :: ConfigData -> NodeGroup -> DiskParams
+getGroupDiskParams cfg ng =
+  Container $
+  fillDict (fromContainer . clusterDiskparams $ configCluster cfg)
+           (fromContainer $ groupDiskparams ng) []
 
 -- | Get nodes of a given node group.
 getGroupNodes :: ConfigData -> String -> [Node]

@@ -175,9 +175,6 @@ queryInner cfg live (Query QRNode fields qfilter) wanted = runResultT $ do
   return QueryResult { qresFields = fdefs, qresData = fdata }
 
 queryInner cfg _ (Query QRGroup fields qfilter) wanted = return $ do
-  -- FIXME: want_diskparams is defaulted to false and not taken as parameter
-  -- This is because the type for DiskParams is right now too generic for merges
-  -- (or else I cannot see how to do this with curent implementation)
   cfilter <- compileFilter groupFieldsMap qfilter
   let selected = getSelectedFields groupFieldsMap fields
       (fdefs, fgetters) = unzip selected
