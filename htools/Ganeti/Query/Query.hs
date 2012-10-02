@@ -67,6 +67,7 @@ import Ganeti.Query.Types
 import Ganeti.Query.Node
 import Ganeti.Query.Group
 import Ganeti.Objects
+import Ganeti.Utils
 
 -- * Helper functions
 
@@ -145,13 +146,23 @@ query :: ConfigData   -- ^ The current configuration
       -> Bool         -- ^ Whether to collect live data
       -> Query        -- ^ The query (item, fields, filter)
       -> IO (Result QueryResult) -- ^ Result
+query cfg live qry = queryInner cfg live qry $ getRequestedNames qry
 
-query cfg live (Query QRNode fields qfilter) =  runResultT $ do
+-- | Inner query execution function.
+queryInner :: ConfigData   -- ^ The current configuration
+           -> Bool         -- ^ Whether to collect live data
+           -> Query        -- ^ The query (item, fields, filter)
+           -> [String]     -- ^ Requested names
+           -> IO (Result QueryResult) -- ^ Result
+
+queryInner cfg live (Query QRNode fields qfilter) wanted = runResultT $ do
   cfilter <- resultT $ compileFilter nodeFieldsMap qfilter
   let selected = getSelectedFields nodeFieldsMap fields
       (fdefs, fgetters) = unzip selected
-      nodes = Map.elems . fromContainer $ configNodes cfg
       live' = live && needsLiveData fgetters
+  nodes <- resultT $ case wanted of
+             [] -> Ok . Map.elems . fromContainer $ configNodes cfg
+             _  -> mapM (getNode cfg) wanted
   -- runs first pass of the filter, without a runtime context; this
   -- will limit the nodes that we'll contact for runtime data
   fnodes <- resultT $ filterM (\n -> evaluateFilter cfg Nothing n cfilter) nodes
@@ -162,21 +173,23 @@ query cfg live (Query QRNode fields qfilter) =  runResultT $ do
               nruntimes
   return QueryResult { qresFields = fdefs, qresData = fdata }
 
-query cfg _ (Query QRGroup fields qfilter) = return $ do
+queryInner cfg _ (Query QRGroup fields qfilter) wanted = return $ do
   -- FIXME: want_diskparams is defaulted to false and not taken as parameter
   -- This is because the type for DiskParams is right now too generic for merges
   -- (or else I cannot see how to do this with curent implementation)
   cfilter <- compileFilter groupFieldsMap qfilter
   let selected = getSelectedFields groupFieldsMap fields
       (fdefs, fgetters) = unzip selected
-      groups = Map.elems . fromContainer $ configNodegroups cfg
+  groups <- case wanted of
+              [] -> Ok . Map.elems . fromContainer $ configNodegroups cfg
+              _  -> mapM (getGroup cfg) wanted
   -- there is no live data for groups, so filtering is much simpler
   fgroups <- filterM (\n -> evaluateFilter cfg Nothing n cfilter) groups
   let fdata = map (\node ->
                        map (execGetter cfg GroupRuntime node) fgetters) fgroups
   return QueryResult {qresFields = fdefs, qresData = fdata }
 
-query _ _ (Query qkind _ _) =
+queryInner _ _ (Query qkind _ _) _ =
   return . Bad $ "Query '" ++ show qkind ++ "' not supported"
 
 -- | Query fields call.
