@@ -1612,7 +1612,10 @@ hs-apidoc: $(HS_BUILT_SRCS)
 .PHONY: TAGS
 TAGS: $(GENERATED_FILES)
 	rm -f TAGS
-	$(GHC) -e ":etags" -v0 $(HFLAGS) $(HS_LIBTEST_SRCS)
+	$(GHC) -e ":etags" -v0 \
+	  $(filter-out -O -Werror,$(HFLAGS)) \
+	  $(HTOOLS_NOCURL) $(HTOOLS_PARALLEL3) \
+	  $(HS_LIBTEST_SRCS)
 	find . -path './lib/*.py' -o -path './scripts/gnt-*' -o \
 	  -path './daemons/ganeti-*' -o -path './tools/*' -o \
 	  -path './qa/*.py' | \
