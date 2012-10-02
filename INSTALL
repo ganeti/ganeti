@@ -150,12 +150,12 @@ The most recent Fedora doesn't provide ``ghc-curl``. So this needs to be
 installed using ``cabal`` or alternatively htools can be build without
 curl support.
 
-Note that more recent version have switched to GHC 7.x and the packages
+Note that more recent versions have switched to GHC 7.x and the packages
 were renamed::
 
   $ apt-get install ghc libghc-json-dev libghc-network-dev \
                     libghc-parallel-dev libghc-curl-dev \
-                    libghc-regex-pcre-dev
+                    libghc-regex-pcre-dev libghc-utf8-string-dev
 
 If using a distribution which does not provide them, first install
 the Haskell platform. You can also install ``cabal`` manualy::
@@ -165,7 +165,7 @@ the Haskell platform. You can also install ``cabal`` manualy::
 Then install the additional libraries via
 ``cabal``::
 
-  $ cabal install json network parallel curl regex-pcre
+  $ cabal install json network parallel curl regex-pcre utf8-string
 
 The compilation of the htools components is automatically enabled when
 the compiler and the requisite libraries are found. You can use the
