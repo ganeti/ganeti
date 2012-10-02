@@ -48,6 +48,7 @@ module Ganeti.Query.Query
 
     ( query
     , queryFields
+    , getRequestedNames
     ) where
 
 import Control.Monad (filterM)
@@ -112,6 +113,32 @@ needsLiveData :: [FieldGetter a b] -> Bool
 needsLiveData = any (\getter -> case getter of
                      FieldRuntime _ -> True
                      _ -> False)
+
+-- | Checks whether we have requested exactly some names. This is a
+-- simple wrapper over 'requestedNames' and 'nameField'.
+needsNames :: Query -> Maybe [FilterValue]
+needsNames (Query kind _ qfilter) = requestedNames (nameField kind) qfilter
+
+-- | Computes the name field for different query types.
+nameField :: ItemType -> FilterField
+nameField QRJob = "id"
+nameField _     = "name"
+
+-- | Extracts all quoted strings from a list, ignoring the
+-- 'NumericValue' entries.
+getAllQuotedStrings :: [FilterValue] -> [String]
+getAllQuotedStrings =
+  concatMap extractor
+    where extractor (NumericValue _)   = []
+          extractor (QuotedString val) = [val]
+
+-- | Checks that we have either requested a valid set of names, or we
+-- have a more complex filter.
+getRequestedNames :: Query -> [String]
+getRequestedNames qry =
+  case needsNames qry of
+    Just names -> getAllQuotedStrings names
+    Nothing    -> []
 
 -- | Main query execution function.
 query :: ConfigData   -- ^ The current configuration

@@ -47,9 +47,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 module Ganeti.Query.Filter
   ( compileFilter
   , evaluateFilter
+  , requestedNames
   ) where
 
 import Control.Applicative
+import Control.Monad (liftM)
 import qualified Data.Map as Map
 import Data.Traversable (traverse)
 import Text.JSON (JSValue(..), fromJSString)
@@ -171,3 +173,15 @@ tryGetter _  rt item (FieldRuntime getter) =
   maybe Nothing (\rt' -> Just $ getter rt' item) rt
 tryGetter _   _ _    FieldUnknown          = Just $
                                              ResultEntry RSUnknown Nothing
+
+-- | Computes the requested names, if only names were requested (and
+-- with equality). Otherwise returns 'Nothing'.
+requestedNames :: FilterField -> Filter FilterField -> Maybe [FilterValue]
+requestedNames _ EmptyFilter = Just []
+requestedNames namefield (OrFilter flts) =
+  liftM concat $ mapM (requestedNames namefield) flts
+requestedNames namefield (EQFilter fld val) =
+  if namefield == fld
+    then Just [val]
+    else Nothing
+requestedNames _ _ = Nothing

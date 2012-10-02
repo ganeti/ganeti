@@ -210,6 +210,24 @@ case_queryGroup_allfields = do
      (sortBy field_sort . map fst $ Map.elems groupFieldsMap)
      (sortBy field_sort fdefs)
 
+
+-- | Tests that requested names checking behaves as expected.
+prop_getRequestedNames :: Property
+prop_getRequestedNames =
+  forAll getName $ \node1 ->
+  let chk = getRequestedNames . Query QRNode []
+      q_node1 = QuotedString node1
+      eq_name = EQFilter "name"
+      eq_node1 = eq_name q_node1
+  in conjoin [ printTestCase "empty filter" $ chk EmptyFilter ==? []
+             , printTestCase "and filter" $ chk (AndFilter [eq_node1]) ==? []
+             , printTestCase "simple equality" $ chk eq_node1 ==? [node1]
+             , printTestCase "non-name field" $
+               chk (EQFilter "foo" q_node1) ==? []
+             , printTestCase "non-simple filter" $
+               chk (OrFilter [ eq_node1 , LTFilter "foo" q_node1]) ==? []
+             ]
+
 testSuite "Query/Query"
   [ 'prop_queryNode_noUnknown
   , 'prop_queryNode_Unknown
@@ -219,4 +237,5 @@ testSuite "Query/Query"
   , 'prop_queryGroup_Unknown
   , 'prop_queryGroup_types
   , 'case_queryGroup_allfields
+  , 'prop_getRequestedNames
   ]
