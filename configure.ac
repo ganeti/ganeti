@@ -324,7 +324,7 @@ AC_ARG_ENABLE([htools-rapi],
         [AS_HELP_STRING([--enable-htools-rapi],
         [enable use of RAPI in htools (needs curl, default: no)])],
         [],
-        [enable_htools_rapi=no])
+        [enable_htools_rapi=check])
 
 # --enable-confd
 ENABLE_CONFD=
@@ -348,31 +348,6 @@ AC_ARG_ENABLE([confd],
 AC_SUBST(ENABLE_CONFD, $enable_confd)
 
 AM_CONDITIONAL([ENABLE_CONFD], [test x$enable_confd = xTrue])
-
-# --enable-split-query
-ENABLE_SPLIT_QUERY=
-AC_ARG_ENABLE([split-query],
-  [AS_HELP_STRING([--enable-split-query],
-  [enable use of custom query daemon via confd])],
-  [[case "$enableval" in
-      no)
-        enable_split_query=False
-        ;;
-      yes)
-        enable_split_query=True
-        ;;
-      *)
-        echo "Invalid value for enable-confd '$enableval'"
-        exit 1
-        ;;
-    esac
-  ]],
-  [enable_split_query=False])
-AC_SUBST(ENABLE_SPLIT_QUERY, $enable_split_query)
-
-if test x$enable_split_query = xTrue -a x$enable_confd != xTrue; then
-  AC_MSG_ERROR([Split queries require the confd daemon])
-fi
 
 # --with-disk-separator=...
 AC_ARG_WITH([disk-separator],
@@ -547,6 +522,46 @@ if test "$enable_htools" != "no"; then
   fi
 fi
 AC_SUBST(HTOOLS)
+
+# --enable-split-query
+ENABLE_SPLIT_QUERY=
+AC_ARG_ENABLE([split-query],
+  [AS_HELP_STRING([--enable-split-query],
+  [enable use of custom query daemon via confd])],
+  [[case "$enableval" in
+      no)
+        enable_split_query=False
+        ;;
+      yes)
+        enable_split_query=True
+        ;;
+      *)
+        echo "Invalid value for enable-confd '$enableval'"
+        exit 1
+        ;;
+    esac
+  ]],
+  [[case "x${enable_confd}x${HTOOLS_NOCURL}x" in
+     xTruexx)
+       enable_split_query=True
+       ;;
+     *)
+       enable_split_query=False
+       ;;
+   esac]])
+AC_SUBST(ENABLE_SPLIT_QUERY, $enable_split_query)
+
+if test x$enable_split_query = xTrue -a x$enable_confd != xTrue; then
+  AC_MSG_ERROR([Split queries require the confd daemon])
+fi
+
+if test x$enable_split_query = xTrue -a x$HTOOLS_NOCURL != x; then
+  AC_MSG_ERROR([Split queries require the htools-rapi feature (curl library)])
+fi
+
+if test x$enable_split_query = xTrue; then
+  AC_MSG_NOTICE([Split query functionality enabled])
+fi
 
 # Check for HsColour
 HTOOLS_APIDOC=no
