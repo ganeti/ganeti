@@ -3126,9 +3126,9 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       node_verify_param[constants.NV_VGLIST] = None
       node_verify_param[constants.NV_LVLIST] = vg_name
       node_verify_param[constants.NV_PVLIST] = [vg_name]
-      node_verify_param[constants.NV_DRBDLIST] = None
 
     if drbd_helper:
+      node_verify_param[constants.NV_DRBDLIST] = None
       node_verify_param[constants.NV_DRBDHELPER] = drbd_helper
 
     # bridge checks
