@@ -922,5 +922,93 @@ class TestFormatTimestamp(unittest.TestCase):
       self.assertEqual(cli.FormatTimestamp(i), "?")
 
 
-if __name__ == '__main__':
+class TestFormatUsage(unittest.TestCase):
+  def test(self):
+    binary = "gnt-unittest"
+    commands = {
+      "cmdA":
+        (NotImplemented, NotImplemented, NotImplemented, NotImplemented,
+         "description of A"),
+      "bbb":
+        (NotImplemented, NotImplemented, NotImplemented, NotImplemented,
+         "Hello World," * 10),
+      "longname":
+        (NotImplemented, NotImplemented, NotImplemented, NotImplemented,
+         "Another description"),
+      }
+
+    self.assertEqual(list(cli._FormatUsage(binary, commands)), [
+      "Usage: gnt-unittest {command} [options...] [argument...]",
+      "gnt-unittest <command> --help to see details, or man gnt-unittest",
+      "",
+      "Commands:",
+      (" bbb      - Hello World,Hello World,Hello World,Hello World,Hello"
+       " World,Hello"),
+      "            World,Hello World,Hello World,Hello World,Hello World,",
+      " cmdA     - description of A",
+      " longname - Another description",
+      "",
+      ])
+
+
+class TestParseArgs(unittest.TestCase):
+  def testNoArguments(self):
+    for argv in [[], ["gnt-unittest"]]:
+      try:
+        cli._ParseArgs("gnt-unittest", argv, {}, {}, set())
+      except cli._ShowUsage, err:
+        self.assertTrue(err.exit_error)
+      else:
+        self.fail("Did not raise exception")
+
+  def testVersion(self):
+    for argv in [["test", "--version"], ["test", "--version", "somethingelse"]]:
+      try:
+        cli._ParseArgs("test", argv, {}, {}, set())
+      except cli._ShowVersion:
+        pass
+      else:
+        self.fail("Did not raise exception")
+
+  def testHelp(self):
+    for argv in [["test", "--help"], ["test", "--help", "somethingelse"]]:
+      try:
+        cli._ParseArgs("test", argv, {}, {}, set())
+      except cli._ShowUsage, err:
+        self.assertFalse(err.exit_error)
+      else:
+        self.fail("Did not raise exception")
+
+  def testUnknownCommandOrAlias(self):
+    for argv in [["test", "list"], ["test", "somethingelse", "--help"]]:
+      try:
+        cli._ParseArgs("test", argv, {}, {}, set())
+      except cli._ShowUsage, err:
+        self.assertTrue(err.exit_error)
+      else:
+        self.fail("Did not raise exception")
+
+  def testInvalidAliasList(self):
+    cmd = {
+      "list": NotImplemented,
+      "foo": NotImplemented,
+      }
+    aliases = {
+      "list": NotImplemented,
+      "foo": NotImplemented,
+      }
+    assert sorted(cmd.keys()) == sorted(aliases.keys())
+    self.assertRaises(AssertionError, cli._ParseArgs, "test",
+                      ["test", "list"], cmd, aliases, set())
+
+  def testAliasForNonExistantCommand(self):
+    cmd = {}
+    aliases = {
+      "list": NotImplemented,
+      }
+    self.assertRaises(errors.ProgrammerError, cli._ParseArgs, "test",
+                      ["test", "list"], cmd, aliases, set())
+
+
+if __name__ == "__main__":
   testutils.GanetiTestProgram()

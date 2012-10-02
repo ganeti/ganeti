@@ -2,6 +2,10 @@
 $SCRIPTS/gnt-node --help
 >>>/Usage:/
 >>>2
+>>>= 0
+$SCRIPTS/gnt-node UNKNOWN
+>>>/Usage:/
+>>>2
 >>>= 1
 $SCRIPTS/gnt-node --version
 >>>/^gnt-/
@@ -9,6 +13,10 @@ $SCRIPTS/gnt-node --version
 >>>= 0
 
 $SCRIPTS/gnt-instance --help
+>>>/Usage:/
+>>>2
+>>>= 0
+$SCRIPTS/gnt-instance UNKNOWN
 >>>/Usage:/
 >>>2
 >>>= 1
@@ -20,6 +28,10 @@ $SCRIPTS/gnt-instance --version
 $SCRIPTS/gnt-os --help
 >>>/Usage:/
 >>>2
+>>>= 0
+$SCRIPTS/gnt-os UNKNOWN
+>>>/Usage:/
+>>>2
 >>>= 1
 $SCRIPTS/gnt-os --version
 >>>/^gnt-/
@@ -27,6 +39,10 @@ $SCRIPTS/gnt-os --version
 >>>= 0
 
 $SCRIPTS/gnt-group --help
+>>>/Usage:/
+>>>2
+>>>= 0
+$SCRIPTS/gnt-group UNKNOWN
 >>>/Usage:/
 >>>2
 >>>= 1
@@ -38,6 +54,10 @@ $SCRIPTS/gnt-group --version
 $SCRIPTS/gnt-job --help
 >>>/Usage:/
 >>>2
+>>>= 0
+$SCRIPTS/gnt-job UNKNOWN
+>>>/Usage:/
+>>>2
 >>>= 1
 $SCRIPTS/gnt-job --version
 >>>/^gnt-/
@@ -45,6 +65,10 @@ $SCRIPTS/gnt-job --version
 >>>= 0
 
 $SCRIPTS/gnt-cluster --help
+>>>/Usage:/
+>>>2
+>>>= 0
+$SCRIPTS/gnt-cluster UNKNOWN
 >>>/Usage:/
 >>>2
 >>>= 1
@@ -56,6 +80,10 @@ $SCRIPTS/gnt-cluster --version
 $SCRIPTS/gnt-backup --help
 >>>/Usage:/
 >>>2
+>>>= 0
+$SCRIPTS/gnt-backup UNKNOWN
+>>>/Usage:/
+>>>2
 >>>= 1
 $SCRIPTS/gnt-backup --version
 >>>/^gnt-/
@@ -63,6 +91,10 @@ $SCRIPTS/gnt-backup --version
 >>>= 0
 
 $SCRIPTS/gnt-debug --help
+>>>/Usage:/
+>>>2
+>>>= 0
+$SCRIPTS/gnt-debug UNKNOWN
 >>>/Usage:/
 >>>2
 >>>= 1

@@ -1480,68 +1480,60 @@ INSTANCE_POLICY_OPTS = [
   ]
 
 
-def _ParseArgs(argv, commands, aliases, env_override):
+class _ShowUsage(Exception):
+  """Exception class for L{_ParseArgs}.
+
+  """
+  def __init__(self, exit_error):
+    """Initializes instances of this class.
+
+    @type exit_error: bool
+    @param exit_error: Whether to report failure on exit
+
+    """
+    Exception.__init__(self)
+    self.exit_error = exit_error
+
+
+class _ShowVersion(Exception):
+  """Exception class for L{_ParseArgs}.
+
+  """
+
+
+def _ParseArgs(binary, argv, commands, aliases, env_override):
   """Parser for the command line arguments.
 
   This function parses the arguments and returns the function which
   must be executed together with its (modified) arguments.
 
-  @param argv: the command line
-  @param commands: dictionary with special contents, see the design
-      doc for cmdline handling
-  @param aliases: dictionary with command aliases {'alias': 'target, ...}
+  @param binary: Script name
+  @param argv: Command line arguments
+  @param commands: Dictionary containing command definitions
+  @param aliases: dictionary with command aliases {"alias": "target", ...}
   @param env_override: list of env variables allowed for default args
+  @raise _ShowUsage: If usage description should be shown
+  @raise _ShowVersion: If version should be shown
 
   """
   assert not (env_override - set(commands))
+  assert not (set(aliases.keys()) & set(commands.keys()))
 
-  if len(argv) == 0:
-    binary = "<command>"
+  if len(argv) > 1:
+    cmd = argv[1]
   else:
-    binary = argv[0].split("/")[-1]
+    # No option or command given
+    raise _ShowUsage(exit_error=True)
 
-  if len(argv) > 1 and argv[1] == "--version":
-    ToStdout("%s (ganeti %s) %s", binary, constants.VCS_VERSION,
-             constants.RELEASE_VERSION)
-    # Quit right away. That way we don't have to care about this special
-    # argument. optparse.py does it the same.
-    sys.exit(0)
-
-  if len(argv) < 2 or not (argv[1] in commands or
-                           argv[1] in aliases):
-    # let's do a nice thing
-    sortedcmds = commands.keys()
-    sortedcmds.sort()
-
-    ToStdout("Usage: %s {command} [options...] [argument...]", binary)
-    ToStdout("%s <command> --help to see details, or man %s", binary, binary)
-    ToStdout("")
-
-    # compute the max line length for cmd + usage
-    mlen = max([len(" %s" % cmd) for cmd in commands])
-    mlen = min(60, mlen) # should not get here...
-
-    # and format a nice command list
-    ToStdout("Commands:")
-    for cmd in sortedcmds:
-      cmdstr = " %s" % (cmd,)
-      help_text = commands[cmd][4]
-      help_lines = textwrap.wrap(help_text, 79 - 3 - mlen)
-      ToStdout("%-*s - %s", mlen, cmdstr, help_lines.pop(0))
-      for line in help_lines:
-        ToStdout("%-*s   %s", mlen, "", line)
-
-    ToStdout("")
-
-    return None, None, None
+  if cmd == "--version":
+    raise _ShowVersion()
+  elif cmd == "--help":
+    raise _ShowUsage(exit_error=False)
+  elif not (cmd in commands or cmd in aliases):
+    raise _ShowUsage(exit_error=True)
 
   # get command, unalias it, and look it up in commands
-  cmd = argv.pop(1)
   if cmd in aliases:
-    if cmd in commands:
-      raise errors.ProgrammerError("Alias '%s' overrides an existing"
-                                   " command" % cmd)
-
     if aliases[cmd] not in commands:
       raise errors.ProgrammerError("Alias '%s' maps to non-existing"
                                    " command '%s'" % (cmd, aliases[cmd]))
@@ -1552,7 +1544,7 @@ def _ParseArgs(argv, commands, aliases, env_override):
     args_env_name = ("%s_%s" % (binary.replace("-", "_"), cmd)).upper()
     env_args = os.environ.get(args_env_name)
     if env_args:
-      argv = utils.InsertAtPos(argv, 1, shlex.split(env_args))
+      argv = utils.InsertAtPos(argv, 2, shlex.split(env_args))
 
   func, args_def, parser_opts, usage, description = commands[cmd]
   parser = OptionParser(option_list=parser_opts + COMMON_OPTS,
@@ -1560,12 +1552,37 @@ def _ParseArgs(argv, commands, aliases, env_override):
                         formatter=TitledHelpFormatter(),
                         usage="%%prog %s %s" % (cmd, usage))
   parser.disable_interspersed_args()
-  options, args = parser.parse_args(args=argv[1:])
+  options, args = parser.parse_args(args=argv[2:])
 
   if not _CheckArguments(cmd, args_def, args):
     return None, None, None
 
   return func, options, args
+
+
+def _FormatUsage(binary, commands):
+  """Generates a nice description of all commands.
+
+  @param binary: Script name
+  @param commands: Dictionary containing command definitions
+
+  """
+  # compute the max line length for cmd + usage
+  mlen = min(60, max(map(len, commands)))
+
+  yield "Usage: %s {command} [options...] [argument...]" % binary
+  yield "%s <command> --help to see details, or man %s" % (binary, binary)
+  yield ""
+  yield "Commands:"
+
+  # and format a nice command list
+  for (cmd, (_, _, _, _, help_text)) in sorted(commands.items()):
+    help_lines = textwrap.wrap(help_text, 79 - 3 - mlen)
+    yield " %-*s - %s" % (mlen, cmd, help_lines.pop(0))
+    for line in help_lines:
+      yield " %-*s   %s" % (mlen, "", line)
+
+  yield ""
 
 
 def _CheckArguments(cmd, args_def, args):
@@ -2242,7 +2259,20 @@ def GenericMain(commands, override=None, aliases=None,
     aliases = {}
 
   try:
-    func, options, args = _ParseArgs(sys.argv, commands, aliases, env_override)
+    (func, options, args) = _ParseArgs(binary, sys.argv, commands, aliases,
+                                       env_override)
+  except _ShowVersion:
+    ToStdout("%s (ganeti %s) %s", binary, constants.VCS_VERSION,
+             constants.RELEASE_VERSION)
+    return constants.EXIT_SUCCESS
+  except _ShowUsage, err:
+    for line in _FormatUsage(binary, commands):
+      ToStdout(line)
+
+    if err.exit_error:
+      return constants.EXIT_FAILURE
+    else:
+      return constants.EXIT_SUCCESS
   except errors.ParameterError, err:
     result, err_msg = FormatError(err)
     ToStderr(err_msg)
