@@ -8972,7 +8972,7 @@ def _CalcEta(time_taken, written, total_size):
   return (total_size - written) * avg_time
 
 
-def _WipeDisks(lu, instance):
+def _WipeDisks(lu, instance, disks=None):
   """Wipes instance disks.
 
   @type lu: L{LogicalUnit}
@@ -8984,13 +8984,18 @@ def _WipeDisks(lu, instance):
   """
   node = instance.primary_node
 
-  for device in instance.disks:
+  if disks is None:
+    disks = [(idx, disk, 0)
+             for (idx, disk) in enumerate(instance.disks)]
+
+  for (_, device, _) in disks:
     lu.cfg.SetDiskID(device, node)
 
   logging.info("Pausing synchronization of disks of instance '%s'",
                instance.name)
   result = lu.rpc.call_blockdev_pause_resume_sync(node,
-                                                  (instance.disks, instance),
+                                                  (map(compat.snd, disks),
+                                                   instance),
                                                   True)
   result.Raise("Failed to pause disk synchronization on node '%s'" % node)
 
@@ -9000,21 +9005,28 @@ def _WipeDisks(lu, instance):
                    " failed", idx, instance.name)
 
   try:
-    for idx, device in enumerate(instance.disks):
+    for (idx, device, offset) in disks:
       # The wipe size is MIN_WIPE_CHUNK_PERCENT % of the instance disk but
       # MAX_WIPE_CHUNK at max. Truncating to integer to avoid rounding errors.
       wipe_chunk_size = \
         int(min(constants.MAX_WIPE_CHUNK,
                 device.size / 100.0 * constants.MIN_WIPE_CHUNK_PERCENT))
 
-      lu.LogInfo("* Wiping disk %d", idx)
-      logging.info("Wiping disk %d for instance %s on node %s using"
-                   " chunk size %s", idx, instance.name, node, wipe_chunk_size)
-
-      offset = 0
       size = device.size
       last_output = 0
       start_time = time.time()
+
+      if offset == 0:
+        info_text = ""
+      else:
+        info_text = (" (from %s to %s)" %
+                     (utils.FormatUnit(offset, "h"),
+                      utils.FormatUnit(size, "h")))
+
+      lu.LogInfo("* Wiping disk %s%s", idx, info_text)
+
+      logging.info("Wiping disk %d for instance %s on node %s using"
+                   " chunk size %s", idx, instance.name, node, wipe_chunk_size)
 
       while offset < size:
         wipe_size = min(wipe_chunk_size, size - offset)
@@ -9039,7 +9051,8 @@ def _WipeDisks(lu, instance):
                  instance.name)
 
     result = lu.rpc.call_blockdev_pause_resume_sync(node,
-                                                    (instance.disks, instance),
+                                                    (map(compat.snd, disks),
+                                                     instance),
                                                     False)
 
     if result.fail_msg:
@@ -11832,6 +11845,23 @@ def _LoadNodeEvacResult(lu, alloc_result, early_release, use_nodes):
           for ops in jobs]
 
 
+def _DiskSizeInBytesToMebibytes(lu, size):
+  """Converts a disk size in bytes to mebibytes.
+
+  Warns and rounds up if the size isn't an even multiple of 1 MiB.
+
+  """
+  (mib, remainder) = divmod(size, 1024 * 1024)
+
+  if remainder != 0:
+    lu.LogWarning("Disk size is not an even multiple of 1 MiB; rounding up"
+                  " to not overwrite existing data (%s bytes will not be"
+                  " wiped)", (1024 * 1024) - remainder)
+    mib += 1
+
+  return mib
+
+
 class LUInstanceGrowDisk(LogicalUnit):
   """Grow a disk of an instance.
 
@@ -11933,6 +11963,8 @@ class LUInstanceGrowDisk(LogicalUnit):
     assert (self.owned_locks(locking.LEVEL_NODE) ==
             self.owned_locks(locking.LEVEL_NODE_RES))
 
+    wipe_disks = self.cfg.GetClusterInfo().prealloc_wipe_disks
+
     disks_ok, _ = _AssembleInstanceDisks(self, self.instance, disks=[disk])
     if not disks_ok:
       raise errors.OpExecError("Cannot activate block device to grow")
@@ -11947,7 +11979,27 @@ class LUInstanceGrowDisk(LogicalUnit):
       self.cfg.SetDiskID(disk, node)
       result = self.rpc.call_blockdev_grow(node, (disk, instance), self.delta,
                                            True, True)
-      result.Raise("Grow request failed to node %s" % node)
+      result.Raise("Dry-run grow request failed to node %s" % node)
+
+    if wipe_disks:
+      # Get disk size from primary node for wiping
+      result = self.rpc.call_blockdev_getsize(instance.primary_node, [disk])
+      result.Raise("Failed to retrieve disk size from node '%s'" %
+                   instance.primary_node)
+
+      (disk_size_in_bytes, ) = result.payload
+
+      if disk_size_in_bytes is None:
+        raise errors.OpExecError("Failed to retrieve disk size from primary"
+                                 " node '%s'" % instance.primary_node)
+
+      old_disk_size = _DiskSizeInBytesToMebibytes(self, disk_size_in_bytes)
+
+      assert old_disk_size >= disk.size, \
+        ("Retrieved disk size too small (got %s, should be at least %s)" %
+         (old_disk_size, disk.size))
+    else:
+      old_disk_size = None
 
     # We know that (as far as we can test) operations across different
     # nodes will succeed, time to run it for real on the backing storage
@@ -11972,6 +12024,15 @@ class LUInstanceGrowDisk(LogicalUnit):
 
     # Downgrade lock while waiting for sync
     self.glm.downgrade(locking.LEVEL_INSTANCE)
+
+    assert wipe_disks ^ (old_disk_size is None)
+
+    if wipe_disks:
+      assert instance.disks[self.op.disk] == disk
+
+      # Wipe newly added disk space
+      _WipeDisks(self, instance,
+                 disks=[(self.op.disk, disk, old_disk_size)])
 
     if self.op.wait_for_sync:
       disk_abort = not _WaitForSync(self, instance, disks=[disk])

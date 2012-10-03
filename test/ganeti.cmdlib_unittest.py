@@ -1265,7 +1265,7 @@ class _DiskPauseTracker:
     self.history = []
 
   def __call__(self, (disks, instance), pause):
-    assert instance.disks == disks
+    assert not (set(disks) - set(instance.disks))
 
     self.history.extend((i.logical_id, i.size, pause)
                         for i in disks)
@@ -1336,65 +1336,117 @@ class TestWipeDisks(unittest.TestCase):
       ])
 
   def testNormalWipe(self):
-    pt = _DiskPauseTracker()
+    for start_offset in [0, 280, 8895, 1563204]:
+      pt = _DiskPauseTracker()
 
-    progress = {}
+      progress = {}
 
-    def _WipeCb((disk, _), offset, size):
-      assert isinstance(offset, (long, int))
-      assert isinstance(size, (long, int))
+      def _WipeCb((disk, _), offset, size):
+        assert isinstance(offset, (long, int))
+        assert isinstance(size, (long, int))
 
-      max_chunk_size = (disk.size / 100.0 * constants.MIN_WIPE_CHUNK_PERCENT)
+        max_chunk_size = (disk.size / 100.0 * constants.MIN_WIPE_CHUNK_PERCENT)
 
-      self.assertTrue(offset >= 0)
-      self.assertTrue((offset + size) <= disk.size)
+        self.assertTrue(offset >= start_offset)
+        self.assertTrue((offset + size) <= disk.size)
 
-      self.assertTrue(size > 0)
-      self.assertTrue(size <= constants.MAX_WIPE_CHUNK)
-      self.assertTrue(size <= max_chunk_size)
+        self.assertTrue(size > 0)
+        self.assertTrue(size <= constants.MAX_WIPE_CHUNK)
+        self.assertTrue(size <= max_chunk_size)
 
-      self.assertTrue(offset == 0 or disk.logical_id in progress)
+        self.assertTrue(offset == start_offset or disk.logical_id in progress)
 
-      # Keep track of progress
-      cur_progress = progress.setdefault(disk.logical_id, 0)
-      self.assertEqual(cur_progress, offset)
+        # Keep track of progress
+        cur_progress = progress.setdefault(disk.logical_id, start_offset)
+        self.assertEqual(cur_progress, offset)
 
-      progress[disk.logical_id] += size
+        progress[disk.logical_id] += size
 
-      return (True, None)
+        return (True, None)
 
-    lu = _FakeLU(rpc=_RpcForDiskWipe(pt, _WipeCb),
-                 cfg=_ConfigForDiskWipe())
+      lu = _FakeLU(rpc=_RpcForDiskWipe(pt, _WipeCb),
+                   cfg=_ConfigForDiskWipe())
 
-    disks = [
-      objects.Disk(dev_type=constants.LD_LV, logical_id="disk0", size=1024),
-      objects.Disk(dev_type=constants.LD_LV, logical_id="disk1",
-                   size=500 * 1024),
-      objects.Disk(dev_type=constants.LD_LV, logical_id="disk2", size=128),
-      objects.Disk(dev_type=constants.LD_LV, logical_id="disk3",
-                   size=constants.MAX_WIPE_CHUNK),
-      ]
+      if start_offset > 0:
+        disks = [
+          objects.Disk(dev_type=constants.LD_LV, logical_id="disk0",
+                       size=128),
+          objects.Disk(dev_type=constants.LD_LV, logical_id="disk1",
+                       size=start_offset + (100 * 1024)),
+          ]
+      else:
+        disks = [
+          objects.Disk(dev_type=constants.LD_LV, logical_id="disk0", size=1024),
+          objects.Disk(dev_type=constants.LD_LV, logical_id="disk1",
+                       size=500 * 1024),
+          objects.Disk(dev_type=constants.LD_LV, logical_id="disk2", size=128),
+          objects.Disk(dev_type=constants.LD_LV, logical_id="disk3",
+                       size=constants.MAX_WIPE_CHUNK),
+          ]
 
-    instance = objects.Instance(name="inst3560",
-                                primary_node="node1.example.com",
-                                disk_template=constants.DT_PLAIN,
-                                disks=disks)
+      instance = objects.Instance(name="inst3560",
+                                  primary_node="node1.example.com",
+                                  disk_template=constants.DT_PLAIN,
+                                  disks=disks)
 
-    cmdlib._WipeDisks(lu, instance)
+      if start_offset > 0:
+        # Test start offset with only one disk
+        cmdlib._WipeDisks(lu, instance,
+                          disks=[(1, disks[1], start_offset)])
+        self.assertEqual(pt.history, [
+          ("disk1", start_offset + (100 * 1024), True),
+          ("disk1", start_offset + (100 * 1024), False),
+          ])
+        self.assertEqual(progress, {
+          "disk1": disks[1].size,
+          })
+      else:
+        cmdlib._WipeDisks(lu, instance)
 
-    self.assertEqual(pt.history, [
-      ("disk0", 1024, True),
-      ("disk1", 500 * 1024, True),
-      ("disk2", 128, True),
-      ("disk3", constants.MAX_WIPE_CHUNK, True),
-      ("disk0", 1024, False),
-      ("disk1", 500 * 1024, False),
-      ("disk2", 128, False),
-      ("disk3", constants.MAX_WIPE_CHUNK, False),
-      ])
+        self.assertEqual(pt.history, [
+          ("disk0", 1024, True),
+          ("disk1", 500 * 1024, True),
+          ("disk2", 128, True),
+          ("disk3", constants.MAX_WIPE_CHUNK, True),
+          ("disk0", 1024, False),
+          ("disk1", 500 * 1024, False),
+          ("disk2", 128, False),
+          ("disk3", constants.MAX_WIPE_CHUNK, False),
+          ])
 
-    # Ensure the complete disk has been wiped
-    self.assertEqual(progress, dict((i.logical_id, i.size) for i in disks))
+        # Ensure the complete disk has been wiped
+        self.assertEqual(progress, dict((i.logical_id, i.size) for i in disks))
+
+
+class TestDiskSizeInBytesToMebibytes(unittest.TestCase):
+  def testLessThanOneMebibyte(self):
+    for i in [1, 2, 7, 512, 1000, 1023]:
+      lu = _FakeLU()
+      result = cmdlib._DiskSizeInBytesToMebibytes(lu, i)
+      self.assertEqual(result, 1)
+      self.assertEqual(len(lu.warning_log), 1)
+      self.assertEqual(len(lu.warning_log[0]), 2)
+      (_, (warnsize, )) = lu.warning_log[0]
+      self.assertEqual(warnsize, (1024 * 1024) - i)
+
+  def testEven(self):
+    for i in [1, 2, 7, 512, 1000, 1023]:
+      lu = _FakeLU()
+      result = cmdlib._DiskSizeInBytesToMebibytes(lu, i * 1024 * 1024)
+      self.assertEqual(result, i)
+      self.assertFalse(lu.warning_log)
+
+  def testLargeNumber(self):
+    for i in [1, 2, 7, 512, 1000, 1023, 2724, 12420]:
+      for j in [1, 2, 486, 326, 986, 1023]:
+        lu = _FakeLU()
+        size = (1024 * 1024 * i) + j
+        result = cmdlib._DiskSizeInBytesToMebibytes(lu, size)
+        self.assertEqual(result, i + 1, msg="Amount was not rounded up")
+        self.assertEqual(len(lu.warning_log), 1)
+        self.assertEqual(len(lu.warning_log[0]), 2)
+        (_, (warnsize, )) = lu.warning_log[0]
+        self.assertEqual(warnsize, (1024 * 1024) - j)
 
 
 if __name__ == "__main__":

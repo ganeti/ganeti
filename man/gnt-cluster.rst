@@ -268,10 +268,10 @@ The ``--file-storage-dir`` option allows you set the directory to
 use for storing the instance disk files when using file storage as
 backend for instance disks.
 
-The ``--prealloc-wipe-disks`` sets a cluster wide configuration
-value for wiping disks prior to allocation. This increases security
-on instance level as the instance can't access untouched data from
-it's underlying storage.
+The ``--prealloc-wipe-disks`` sets a cluster wide configuration value
+for wiping disks prior to allocation and size changes (``gnt-instance
+grow-disk``). This increases security on instance level as the instance
+can't access untouched data from its underlying storage.
 
 The ``--enabled-hypervisors`` option allows you to set the list of
 hypervisors that will be enabled for this cluster. Instance
