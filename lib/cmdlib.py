@@ -15642,6 +15642,9 @@ class LUNetworkRemove(LogicalUnit):
   def ExpandNames(self):
     self.network_uuid = self.cfg.LookupNetwork(self.op.network_name)
 
+    if not self.network_uuid:
+      raise errors.OpPrereqError("Network %s not found" % self.op.network_name,
+                                 errors.ECODE_INVAL)
     self.needed_locks = {
       locking.LEVEL_NETWORK: [self.network_uuid],
       }
@@ -15655,9 +15658,6 @@ class LUNetworkRemove(LogicalUnit):
     cluster.
 
     """
-    if not self.network_uuid:
-      raise errors.OpPrereqError("Network %s not found" % self.op.network_name,
-                                 errors.ECODE_INVAL)
 
     # Verify that the network is not conncted.
     node_groups = [group.name
@@ -15716,15 +15716,13 @@ class LUNetworkSetParams(LogicalUnit):
   def ExpandNames(self):
     self.network_uuid = self.cfg.LookupNetwork(self.op.network_name)
     self.network = self.cfg.GetNetwork(self.network_uuid)
-    self.needed_locks = {
-      locking.LEVEL_NETWORK: [self.network_uuid],
-      }
-
-
     if self.network is None:
       raise errors.OpPrereqError("Could not retrieve network '%s' (UUID: %s)" %
                                  (self.op.network_name, self.network_uuid),
                                  errors.ECODE_INVAL)
+    self.needed_locks = {
+      locking.LEVEL_NETWORK: [self.network_uuid],
+      }
 
   def CheckPrereq(self):
     """Check prerequisites.
@@ -15987,8 +15985,15 @@ class LUNetworkConnect(LogicalUnit):
 
     self.network_uuid = self.cfg.LookupNetwork(self.network_name)
     self.network = self.cfg.GetNetwork(self.network_uuid)
+    if self.network is None:
+      raise errors.OpPrereqError("Network %s does not exist" %
+                                 self.network_name, errors.ECODE_INVAL)
+
     self.group_uuid = self.cfg.LookupNodeGroup(self.group_name)
     self.group = self.cfg.GetNodeGroup(self.group_uuid)
+    if self.group is None:
+      raise errors.OpPrereqError("Group %s does not exist" %
+                                 self.group_name, errors.ECODE_INVAL)
 
     self.needed_locks = {
       locking.LEVEL_INSTANCE: [],
@@ -16021,10 +16026,6 @@ class LUNetworkConnect(LogicalUnit):
   def CheckPrereq(self):
     l = lambda value: ", ".join("%s: %s/%s" % (i[0], i[1], i[2])
                                    for i in value)
-
-    if self.network is None:
-      raise errors.OpPrereqError("Network %s does not exist" %
-                                 self.network_name, errors.ECODE_INVAL)
 
     self.netparams = dict()
     self.netparams[constants.NIC_MODE] = self.network_mode
@@ -16081,8 +16082,15 @@ class LUNetworkDisconnect(LogicalUnit):
 
     self.network_uuid = self.cfg.LookupNetwork(self.network_name)
     self.network = self.cfg.GetNetwork(self.network_uuid)
+    if self.network is None:
+      raise errors.OpPrereqError("Network %s does not exist" %
+                                 self.network_name, errors.ECODE_INVAL)
+
     self.group_uuid = self.cfg.LookupNodeGroup(self.group_name)
     self.group = self.cfg.GetNodeGroup(self.group_uuid)
+    if self.group is None:
+      raise errors.OpPrereqError("Group %s does not exist" %
+                                 self.group_name, errors.ECODE_INVAL)
 
     self.needed_locks = {
       locking.LEVEL_INSTANCE: [],
