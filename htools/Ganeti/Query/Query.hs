@@ -191,21 +191,21 @@ queryInner cfg _ (Query QRGroup fields qfilter) wanted = return $ do
 queryInner _ _ (Query qkind _ _) _ =
   return . Bad $ "Query '" ++ show qkind ++ "' not supported"
 
+-- | Helper for 'queryFields'.
+fieldsExtractor :: FieldMap a b -> [FilterField] -> QueryFieldsResult
+fieldsExtractor fieldsMap fields =
+  let selected = if null fields
+                   then map snd $ Map.toAscList fieldsMap
+                   else getSelectedFields fieldsMap fields
+  in QueryFieldsResult (map fst selected)
+
 -- | Query fields call.
--- FIXME: Looks generic enough to use a typeclass
 queryFields :: QueryFields -> Result QueryFieldsResult
 queryFields (QueryFields QRNode fields) =
-  let selected = if null fields
-                   then map snd $ Map.toAscList nodeFieldsMap
-                   else getSelectedFields nodeFieldsMap fields
-  in Ok $ QueryFieldsResult (map fst selected)
+  Ok $ fieldsExtractor nodeFieldsMap fields
 
 queryFields (QueryFields QRGroup fields) =
-  let selected = if null fields
-                   then map snd $ Map.toAscList groupFieldsMap
-                   else getSelectedFields groupFieldsMap fields
-  in Ok $ QueryFieldsResult (map fst selected)
-
+  Ok $ fieldsExtractor groupFieldsMap fields
 
 queryFields (QueryFields qkind _) =
   Bad $ "QueryFields '" ++ show qkind ++ "' not supported"
