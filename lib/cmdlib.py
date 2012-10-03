@@ -9002,12 +9002,10 @@ def _WipeDisks(lu, instance):
   try:
     for idx, device in enumerate(instance.disks):
       # The wipe size is MIN_WIPE_CHUNK_PERCENT % of the instance disk but
-      # MAX_WIPE_CHUNK at max
-      wipe_chunk_size = min(constants.MAX_WIPE_CHUNK, device.size / 100.0 *
-                            constants.MIN_WIPE_CHUNK_PERCENT)
-      # we _must_ make this an int, otherwise rounding errors will
-      # occur
-      wipe_chunk_size = int(wipe_chunk_size)
+      # MAX_WIPE_CHUNK at max. Truncating to integer to avoid rounding errors.
+      wipe_chunk_size = \
+        int(min(constants.MAX_WIPE_CHUNK,
+                device.size / 100.0 * constants.MIN_WIPE_CHUNK_PERCENT))
 
       lu.LogInfo("* Wiping disk %d", idx)
       logging.info("Wiping disk %d for instance %s on node %s using"
@@ -9020,18 +9018,21 @@ def _WipeDisks(lu, instance):
 
       while offset < size:
         wipe_size = min(wipe_chunk_size, size - offset)
+
         logging.debug("Wiping disk %d, offset %s, chunk %s",
                       idx, offset, wipe_size)
+
         result = lu.rpc.call_blockdev_wipe(node, (device, instance), offset,
                                            wipe_size)
         result.Raise("Could not wipe disk %d at offset %d for size %d" %
                      (idx, offset, wipe_size))
+
         now = time.time()
         offset += wipe_size
         if now - last_output >= 60:
           eta = _CalcEta(now - start_time, offset, size)
-          lu.LogInfo(" - done: %.1f%% ETA: %s" %
-                     (offset / float(size) * 100, utils.FormatSeconds(eta)))
+          lu.LogInfo(" - done: %.1f%% ETA: %s",
+                     offset / float(size) * 100, utils.FormatSeconds(eta))
           last_output = now
   finally:
     logging.info("Resuming synchronization of disks for instance '%s'",
