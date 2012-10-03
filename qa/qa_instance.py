@@ -140,6 +140,12 @@ def TestInstanceReinstall(instance):
   """gnt-instance reinstall"""
   AssertCommand(["gnt-instance", "reinstall", "-f", instance["name"]])
 
+  # Test with non-existant OS definition
+  AssertCommand(["gnt-instance", "reinstall", "-f",
+                 "--os-type=NonExistantOsForQa",
+                 instance["name"]],
+                fail=True)
+
 
 def _ReadSsconfInstanceList():
   """Reads ssconf_instance_list from the master node.

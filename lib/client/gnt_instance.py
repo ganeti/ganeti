@@ -486,8 +486,12 @@ def ReinstallInstance(opts, args):
                                      osparams=opts.osparams)
     jex.QueueJob(instance_name, op)
 
-  jex.WaitOrShow(not opts.submit_only)
-  return 0
+  results = jex.WaitOrShow(not opts.submit_only)
+
+  if compat.all(map(compat.fst, results)):
+    return constants.EXIT_SUCCESS
+  else:
+    return constants.EXIT_FAILURE
 
 
 def RemoveInstance(opts, args):
