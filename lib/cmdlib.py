@@ -8987,16 +8987,17 @@ def _WipeDisks(lu, instance):
   for device in instance.disks:
     lu.cfg.SetDiskID(device, node)
 
-  logging.info("Pause sync of instance %s disks", instance.name)
+  logging.info("Pausing synchronization of disks of instance '%s'",
+               instance.name)
   result = lu.rpc.call_blockdev_pause_resume_sync(node,
                                                   (instance.disks, instance),
                                                   True)
-  result.Raise("Failed RPC to node %s for pausing the disk syncing" % node)
+  result.Raise("Failed to pause disk synchronization on node '%s'" % node)
 
   for idx, success in enumerate(result.payload):
     if not success:
-      logging.warn("pause-sync of instance %s for disks %d failed",
-                   instance.name, idx)
+      logging.warn("Pausing synchronization of disk %s of instance '%s'"
+                   " failed", idx, instance.name)
 
   try:
     for idx, device in enumerate(instance.disks):
@@ -9009,7 +9010,7 @@ def _WipeDisks(lu, instance):
       wipe_chunk_size = int(wipe_chunk_size)
 
       lu.LogInfo("* Wiping disk %d", idx)
-      logging.info("Wiping disk %d for instance %s, node %s using"
+      logging.info("Wiping disk %d for instance %s on node %s using"
                    " chunk size %s", idx, instance.name, node, wipe_chunk_size)
 
       offset = 0
@@ -9033,23 +9034,21 @@ def _WipeDisks(lu, instance):
                      (offset / float(size) * 100, utils.FormatSeconds(eta)))
           last_output = now
   finally:
-    logging.info("Resume sync of instance %s disks", instance.name)
+    logging.info("Resuming synchronization of disks for instance '%s'",
+                 instance.name)
 
     result = lu.rpc.call_blockdev_pause_resume_sync(node,
                                                     (instance.disks, instance),
                                                     False)
 
     if result.fail_msg:
-      lu.LogWarning("RPC call to %s for resuming disk syncing failed,"
-                    " please have a look at the status and troubleshoot"
-                    " the issue: %s", node, result.fail_msg)
+      lu.LogWarning("Failed to resume disk synchronization on node '%s': %s",
+                    node, result.fail_msg)
     else:
       for idx, success in enumerate(result.payload):
         if not success:
-          lu.LogWarning("Resume sync of disk %d failed, please have a"
-                        " look at the status and troubleshoot the issue", idx)
-          logging.warn("resume-sync of instance %s for disks %d failed",
-                       instance.name, idx)
+          lu.LogWarning("Resuming synchronization of disk %s of instance '%s'"
+                        " failed", idx, instance.name)
 
 
 def _CreateDisks(lu, instance, to_skip=None, target_node=None):
