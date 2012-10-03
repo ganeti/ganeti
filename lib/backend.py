@@ -1595,8 +1595,13 @@ def _WipeDevice(path, offset, size):
   @param size: The size in MiB to write
 
   """
+  # Internal sizes are always in Mebibytes; if the following "dd" command
+  # should use a different block size the offset and size given to this
+  # function must be adjusted accordingly before being passed to "dd".
+  block_size = 1024 * 1024
+
   cmd = [constants.DD_CMD, "if=/dev/zero", "seek=%d" % offset,
-         "bs=%d" % constants.WIPE_BLOCK_SIZE, "oflag=direct", "of=%s" % path,
+         "bs=%s" % block_size, "oflag=direct", "of=%s" % path,
          "count=%d" % size]
   result = utils.RunCmd(cmd)
 
@@ -1625,6 +1630,10 @@ def BlockdevWipe(disk, offset, size):
     _Fail("Cannot execute wipe for device %s: device not found", disk.iv_name)
 
   # Do cross verify some of the parameters
+  if offset < 0:
+    _Fail("Negative offset")
+  if size < 0:
+    _Fail("Negative size")
   if offset > rdev.size:
     _Fail("Offset is bigger than device size")
   if (offset + size) > rdev.size:
