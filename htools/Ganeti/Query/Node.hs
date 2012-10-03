@@ -117,6 +117,15 @@ nodeRoleDoc =
           "\"" ++ nodeRoleToRaw role ++ "\" for " ++ roleDescription role)
    (reverse [minBound..maxBound]))
 
+-- | Get node powered status.
+getNodePower :: ConfigData -> Node -> ResultEntry
+getNodePower cfg node =
+  case getNodeNdParams cfg node of
+    Nothing -> rsNoData
+    Just ndp -> if null (ndpOobProgram ndp)
+                  then rsUnavail
+                  else rsNormal (nodePowered node)
+
 -- | List of all node fields.
 nodeFields :: FieldList Node NodeRuntime
 nodeFields =
@@ -174,11 +183,9 @@ nodeFields =
                           getNodeInstances cfg . nodeName))
   , (FieldDefinition "role" "Role" QFTText nodeRoleDoc,
      FieldConfig ((rsNormal .) . getNodeRole))
-  -- FIXME: the powered state is special (has an different context,
-  -- not runtime) in Python
   , (FieldDefinition "powered" "Powered" QFTBool
        "Whether node is thought to be powered on",
-     missingRuntime)
+     FieldConfig getNodePower)
   -- FIXME: the two fields below are incomplete in Python, part of the
   -- non-implemented node resource model; they are declared just for
   -- parity, but are not functional

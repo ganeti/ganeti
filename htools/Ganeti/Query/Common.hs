@@ -25,6 +25,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Ganeti.Query.Common
   ( rsNoData
+  , rsUnavail
   , rsNormal
   , rsMaybe
   , rsUnknown
@@ -65,6 +66,10 @@ vTypeToQFT VTypeInt         = QFTNumber
 -- | Helper for a result with no data.
 rsNoData :: ResultEntry
 rsNoData = ResultEntry RSNoData Nothing
+
+-- | Helper for result for an entity which supports no such field.
+rsUnavail :: ResultEntry
+rsUnavail = ResultEntry RSUnavail Nothing
 
 -- | Helper to declare a normal result.
 rsNormal :: (JSON a) => a -> ResultEntry
