@@ -10780,11 +10780,15 @@ class TLReplaceDisks(Tasklet):
           "Should not own any node group lock at this point"
 
     if not self.disks:
-      feedback_fn("No disks need replacement")
+      feedback_fn("No disks need replacement for instance '%s'" %
+                  self.instance.name)
       return
 
-    feedback_fn("Replacing disk(s) %s for %s" %
+    feedback_fn("Replacing disk(s) %s for instance '%s'" %
                 (utils.CommaJoin(self.disks), self.instance.name))
+    feedback_fn("Current primary node: %s", self.instance.primary_node)
+    feedback_fn("Current seconary node: %s",
+                utils.CommaJoin(self.instance.secondary_nodes))
 
     activate_disks = (self.instance.admin_state != constants.ADMINST_UP)
 
