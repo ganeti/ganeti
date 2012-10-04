@@ -647,8 +647,11 @@ def VerifyNode(what, cluster_name):
         tmp.append((source, hv_name, str(err)))
 
   if constants.NV_FILELIST in what:
-    result[constants.NV_FILELIST] = utils.FingerprintFiles(
-      what[constants.NV_FILELIST])
+    fingerprints = utils.FingerprintFiles(map(vcluster.LocalizeVirtualPath,
+                                              what[constants.NV_FILELIST]))
+    result[constants.NV_FILELIST] = \
+      dict((vcluster.MakeVirtualPath(key), value)
+           for (key, value) in fingerprints.items())
 
   if constants.NV_NODELIST in what:
     (nodes, bynode) = what[constants.NV_NODELIST]

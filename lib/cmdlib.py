@@ -60,6 +60,7 @@ from ganeti import ht
 from ganeti import rpc
 from ganeti import runtime
 from ganeti import pathutils
+from ganeti import vcluster
 from ganeti.masterd import iallocator
 
 import ganeti.masterd.instance # pylint: disable=W0611
@@ -2565,7 +2566,10 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       if nresult.fail_msg or not nresult.payload:
         node_files = None
       else:
-        node_files = nresult.payload.get(constants.NV_FILELIST, None)
+        fingerprints = nresult.payload.get(constants.NV_FILELIST, None)
+        node_files = dict((vcluster.LocalizeVirtualPath(key), value)
+                          for (key, value) in fingerprints.items())
+        del fingerprints
 
       test = not (node_files and isinstance(node_files, dict))
       errorif(test, constants.CV_ENODEFILECHECK, node.name,
@@ -3089,9 +3093,10 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
     node_verify_param = {
       constants.NV_FILELIST:
-        utils.UniqueSequence(filename
-                             for files in filemap
-                             for filename in files),
+        map(vcluster.MakeVirtualPath,
+            utils.UniqueSequence(filename
+                                 for files in filemap
+                                 for filename in files)),
       constants.NV_NODELIST:
         self._SelectSshCheckNodes(node_data_list, self.group_uuid,
                                   self.all_node_info.values()),
