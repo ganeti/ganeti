@@ -51,10 +51,24 @@ import Ganeti.Logging
 import Ganeti.Luxi
 import qualified Ganeti.Query.Language as Qlang
 import Ganeti.Query.Query
+import Ganeti.Query.Filter (makeSimpleFilter)
 
 -- | A type for functions that can return the configuration when
 -- executed.
 type ConfigReader = IO (Result ConfigData)
+
+-- | Helper for classic queries.
+handleClassicQuery :: ConfigData      -- ^ Cluster config
+                   -> Qlang.ItemType  -- ^ Query type
+                   -> [String]        -- ^ Requested names (empty means all)
+                   -> [String]        -- ^ Requested fields
+                   -> Bool            -- ^ Whether to do sync queries or not
+                   -> IO (Result JSValue)
+handleClassicQuery _ _ _ _ True = return . Bad $ "Sync queries are not allowed"
+handleClassicQuery cfg qkind names fields _ = do
+  let flt = makeSimpleFilter (nameField qkind) names
+  qr <- query cfg True (Qlang.Query qkind fields flt)
+  return $ showJSON <$> (qr >>= queryCompat)
 
 -- | Minimal wrapper to handle the missing config case.
 handleCallWrapper :: Result ConfigData -> LuxiOp -> IO (Result JSValue)
@@ -135,6 +149,12 @@ handleCall cfg (Query qkind qfields qfilter) = do
 handleCall _ (QueryFields qkind qfields) = do
   let result = queryFields (Qlang.QueryFields qkind qfields)
   return $ J.showJSON <$> result
+
+handleCall cfg (QueryNodes names fields lock) =
+  handleClassicQuery cfg Qlang.QRNode names fields lock
+
+handleCall cfg (QueryGroups names fields lock) =
+  handleClassicQuery cfg Qlang.QRGroup names fields lock
 
 handleCall _ op =
   return . Bad $ "Luxi call '" ++ strOfOp op ++ "' not implemented"

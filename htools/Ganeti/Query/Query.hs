@@ -45,16 +45,19 @@ too.
 -}
 
 module Ganeti.Query.Query
-
     ( query
     , queryFields
+    , queryCompat
     , getRequestedNames
+    , nameField
     ) where
 
 import Control.Monad (filterM)
 import Control.Monad.Trans (lift)
+import Data.List (intercalate)
 import Data.Maybe (fromMaybe)
 import qualified Data.Map as Map
+import qualified Text.JSON as J
 
 import Ganeti.BasicTypes
 import Ganeti.Config
@@ -209,3 +212,12 @@ queryFields (QueryFields QRGroup fields) =
 
 queryFields (QueryFields qkind _) =
   Bad $ "QueryFields '" ++ show qkind ++ "' not supported"
+
+-- | Classic query converter. It gets a standard query result on input
+-- and computes the classic style results.
+queryCompat :: QueryResult -> Result [[J.JSValue]]
+queryCompat (QueryResult fields qrdata) =
+  case map fdefName $ filter ((== QFTUnknown) . fdefKind) fields of
+    [] -> Ok $ map (map (maybe J.JSNull J.showJSON . rentryValue)) qrdata
+    unknown -> Bad $ "Unknown output fields selected: " ++
+                     intercalate ", " unknown
