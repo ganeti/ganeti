@@ -49,6 +49,7 @@ from ganeti import storage
 from ganeti import serializer
 from ganeti import netutils
 from ganeti import pathutils
+from ganeti import ssconf
 
 import ganeti.http.server # pylint: disable=W0611
 
@@ -807,7 +808,7 @@ class NodeRequestHandler(http.server.HttpServerHandler):
 
     """
     (values,) = params
-    return backend.WriteSsconfFiles(values)
+    return ssconf.WriteSsconfFiles(values)
 
   # os -----------------------
 

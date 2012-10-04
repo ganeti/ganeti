@@ -2128,15 +2128,6 @@ def RunOob(oob_program, command, node, timeout):
   return result.stdout
 
 
-def WriteSsconfFiles(values):
-  """Update all ssconf files.
-
-  Wrapper around the SimpleStore.WriteFiles.
-
-  """
-  ssconf.SimpleStore().WriteFiles(values)
-
-
 def _OSOndiskAPIVersion(os_dir):
   """Compute and return the API version of a given OS.
 

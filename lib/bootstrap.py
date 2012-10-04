@@ -41,7 +41,6 @@ from ganeti import serializer
 from ganeti import hypervisor
 from ganeti import bdev
 from ganeti import netutils
-from ganeti import backend
 from ganeti import luxi
 from ganeti import jstore
 from ganeti import pathutils
@@ -549,7 +548,7 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
   cfg = config.ConfigWriter(offline=True)
   ssh.WriteKnownHostsFile(cfg, pathutils.SSH_KNOWN_HOSTS_FILE)
   cfg.Update(cfg.GetClusterInfo(), logging.error)
-  backend.WriteSsconfFiles(cfg.GetSsconfValues())
+  ssconf.WriteSsconfFiles(cfg.GetSsconfValues())
 
   # set up the inter-node password and certificate
   _InitGanetiServerSetup(hostname.name)

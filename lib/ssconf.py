@@ -511,6 +511,15 @@ class SimpleStore(object):
                                       " family: %s" % err)
 
 
+def WriteSsconfFiles(values):
+  """Update all ssconf files.
+
+  Wrapper around L{SimpleStore.WriteFiles}.
+
+  """
+  ssconf.SimpleStore().WriteFiles(values)
+
+
 def GetMasterAndMyself(ss=None):
   """Get the master node and my own hostname.
 
