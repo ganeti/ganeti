@@ -28,6 +28,7 @@ import unittest
 from ganeti import bdev
 from ganeti import errors
 from ganeti import constants
+from ganeti import utils
 
 import testutils
 
@@ -372,5 +373,53 @@ class TestRADOSBlockDevice(testutils.GanetiTestCase):
                       output_extra_matches, volume_name)
 
 
-if __name__ == '__main__':
+class TestCheckFileStoragePath(unittest.TestCase):
+  def testNonAbsolute(self):
+    for i in ["", "tmp", "foo/bar/baz"]:
+      self.assertRaises(errors.FileStoragePathError,
+                        bdev._CheckFileStoragePath, i, ["/tmp"])
+
+    self.assertRaises(errors.FileStoragePathError,
+                      bdev._CheckFileStoragePath, "/tmp", ["tmp", "xyz"])
+
+  def testNoAllowed(self):
+    self.assertRaises(errors.FileStoragePathError,
+                      bdev._CheckFileStoragePath, "/tmp", [])
+
+  def testNoAdditionalPathComponent(self):
+    self.assertRaises(errors.FileStoragePathError,
+                      bdev._CheckFileStoragePath, "/tmp/foo", ["/tmp/foo"])
+
+  def testAllowed(self):
+    bdev._CheckFileStoragePath("/tmp/foo/a", ["/tmp/foo"])
+    bdev._CheckFileStoragePath("/tmp/foo/a/x", ["/tmp/foo"])
+
+
+class TestLoadAllowedFileStoragePaths(testutils.GanetiTestCase):
+  def testDevNull(self):
+    self.assertEqual(bdev.LoadAllowedFileStoragePaths("/dev/null"), [])
+
+  def testNonExistantFile(self):
+    filename = "/tmp/this/file/does/not/exist"
+    assert not os.path.exists(filename)
+    self.assertEqual(bdev.LoadAllowedFileStoragePaths(filename), [])
+
+  def test(self):
+    tmpfile = self._CreateTempFile()
+
+    utils.WriteFile(tmpfile, data="""
+      # This is a test file
+      /tmp
+      /srv/storage
+      relative/path
+      """)
+
+    self.assertEqual(bdev.LoadAllowedFileStoragePaths(tmpfile), [
+      "/tmp",
+      "/srv/storage",
+      "relative/path",
+      ])
+
+
+if __name__ == "__main__":
   testutils.GanetiTestProgram()

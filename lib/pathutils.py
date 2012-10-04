@@ -86,6 +86,7 @@ CONF_DIR = SYSCONFDIR + "/ganeti"
 USER_SCRIPTS_DIR = CONF_DIR + "/scripts"
 VNC_PASSWORD_FILE = CONF_DIR + "/vnc-cluster-password"
 HOOKS_BASE_DIR = CONF_DIR + "/hooks"
+FILE_STORAGE_PATHS_FILE = CONF_DIR + "/file-storage-paths"
 
 #: Lock file for watcher, locked in shared mode by watcher; lock in exclusive
 # mode to block watcher (see L{cli._RunWhileClusterStoppedHelper.Call}

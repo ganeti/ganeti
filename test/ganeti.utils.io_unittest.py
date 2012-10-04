@@ -646,6 +646,12 @@ class TestIsNormAbsPath(unittest.TestCase):
 class TestIsBelowDir(unittest.TestCase):
   """Testing case for IsBelowDir"""
 
+  def testExactlyTheSame(self):
+    self.assertFalse(utils.IsBelowDir("/a/b", "/a/b"))
+    self.assertFalse(utils.IsBelowDir("/a/b", "/a/b/"))
+    self.assertFalse(utils.IsBelowDir("/a/b/", "/a/b"))
+    self.assertFalse(utils.IsBelowDir("/a/b/", "/a/b/"))
+
   def testSamePrefix(self):
     self.assertTrue(utils.IsBelowDir("/a/b", "/a/b/c"))
     self.assertTrue(utils.IsBelowDir("/a/b/", "/a/b/e"))

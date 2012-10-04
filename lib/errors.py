@@ -430,6 +430,12 @@ class RapiTestResult(GenericError):
   """
 
 
+class FileStoragePathError(GenericError):
+  """Error from file storage path validation.
+
+  """
+
+
 # errors should be added above
 
 

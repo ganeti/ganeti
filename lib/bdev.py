@@ -36,6 +36,7 @@ from ganeti import constants
 from ganeti import objects
 from ganeti import compat
 from ganeti import netutils
+from ganeti import pathutils
 
 
 # Size of reads in _CanReadDevice
@@ -86,6 +87,59 @@ def _CanReadDevice(path):
   except EnvironmentError:
     logging.warning("Can't read from device %s", path, exc_info=True)
     return False
+
+
+def _CheckFileStoragePath(path, allowed):
+  """Checks if a path is in a list of allowed paths for file storage.
+
+  @type path: string
+  @param path: Path to check
+  @type allowed: list
+  @param allowed: List of allowed paths
+  @raise errors.FileStoragePathError: If the path is not allowed
+
+  """
+  if not os.path.isabs(path):
+    raise errors.FileStoragePathError("File storage path must be absolute,"
+                                      " got '%s'" % path)
+
+  for i in allowed:
+    if not os.path.isabs(i):
+      logging.info("Ignoring relative path '%s' for file storage", i)
+      continue
+
+    if utils.IsBelowDir(i, path):
+      break
+  else:
+    raise errors.FileStoragePathError("Path '%s' is not acceptable for file"
+                                      " storage" % path)
+
+
+def LoadAllowedFileStoragePaths(filename):
+  """Loads file containing allowed file storage paths.
+
+  @rtype: list
+  @return: List of allowed paths (can be an empty list)
+
+  """
+  try:
+    contents = utils.ReadFile(filename)
+  except EnvironmentError:
+    return []
+  else:
+    return utils.FilterEmptyLinesAndComments(contents)
+
+
+def CheckFileStoragePath(path, _filename=pathutils.FILE_STORAGE_PATHS_FILE):
+  """Checks if a path is allowed for file storage.
+
+  @type path: string
+  @param path: Path to check
+  @raise errors.FileStoragePathError: If the path is not allowed
+
+  """
+  _CheckFileStoragePath(path, LoadAllowedFileStoragePaths(_filename))
+
 
 
 class BlockDev(object):
