@@ -409,6 +409,7 @@ $(buildParam "ISpec" "ispec"
   , simpleField C.ispecDiskSize    [t| Int |]
   , simpleField C.ispecDiskCount   [t| Int |]
   , simpleField C.ispecCpuCount    [t| Int |]
+  , simpleField C.ispecNicCount    [t| Int |]
   , simpleField C.ispecSpindleUse  [t| Int |]
   ])
 
