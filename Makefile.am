@@ -69,17 +69,20 @@ HTOOLS_DIRS = \
 	htest/Test/Ganeti/Query
 
 DIRS = \
+	$(HTOOLS_DIRS) \
 	autotools \
 	daemons \
 	devel \
 	doc \
 	doc/examples \
-	doc/examples/hooks \
 	doc/examples/gnt-debug \
-	$(HTOOLS_DIRS) \
+	doc/examples/hooks \
+	htest/data \
+	htest/data/rapi \
+	htest/shelltests \
 	lib \
-	lib/client \
 	lib/build \
+	lib/client \
 	lib/confd \
 	lib/http \
 	lib/hypervisor \
@@ -96,24 +99,21 @@ DIRS = \
 	test/data \
 	test/data/ovfdata \
 	test/data/ovfdata/other \
-	htest/data \
-	htest/data/rapi \
-	htest/shelltests \
 	tools
 
 BUILDTIME_DIR_AUTOCREATE = \
 	scripts \
 	$(APIDOC_DIR) \
-	$(APIDOC_PY_DIR) \
 	$(APIDOC_HS_DIR) \
 	$(APIDOC_HS_DIR)/Ganeti \
 	$(APIDOC_HS_DIR)/Ganeti/Confd \
 	$(APIDOC_HS_DIR)/Ganeti/HTools \
 	$(APIDOC_HS_DIR)/Ganeti/HTools/Program \
 	$(APIDOC_HS_DIR)/Ganeti/Query \
+	$(APIDOC_PY_DIR) \
 	$(COVERAGE_DIR) \
-	$(COVERAGE_PY_DIR) \
 	$(COVERAGE_HS_DIR) \
+	$(COVERAGE_PY_DIR) \
 	.hpc
 
 BUILDTIME_DIRS = \
@@ -215,8 +215,8 @@ nodist_pkgpython_PYTHON = \
 
 noinst_PYTHON = \
 	lib/build/__init__.py \
-	lib/build/sphinx_ext.py \
-	lib/build/shell_example_lexer.py
+	lib/build/shell_example_lexer.py \
+	lib/build/sphinx_ext.py
 
 pkgpython_PYTHON = \
 	lib/__init__.py \
@@ -335,34 +335,34 @@ utils_PYTHON = \
 
 docrst = \
 	doc/admin.rst \
+	doc/cluster-merge.rst \
 	doc/design-2.0.rst \
 	doc/design-2.1.rst \
 	doc/design-2.2.rst \
 	doc/design-2.3.rst \
-	doc/design-htools-2.3.rst \
 	doc/design-2.4.rst \
 	doc/design-2.5.rst \
-	doc/design-draft.rst \
-	doc/design-oob.rst \
+	doc/design-autorepair.rst \
+	doc/design-bulk-create.rst \
+	doc/design-chained-jobs.rst \
 	doc/design-cpu-pinning.rst \
-	doc/design-query2.rst \
-	doc/design-x509-ca.rst \
+	doc/design-draft.rst \
+	doc/design-htools-2.3.rst \
 	doc/design-http-server.rst \
 	doc/design-impexp2.rst \
 	doc/design-lu-generated-jobs.rst \
 	doc/design-multi-reloc.rst \
 	doc/design-network.rst \
-	doc/design-chained-jobs.rst \
-	doc/design-ovf-support.rst \
-	doc/design-autorepair.rst \
-	doc/design-resource-model.rst \
-	doc/cluster-merge.rst \
-	doc/design-shared-storage.rst \
 	doc/design-node-state-cache.rst \
-	doc/design-virtual-clusters.rst \
-	doc/design-bulk-create.rst \
-	doc/design-query-splitting.rst \
+	doc/design-oob.rst \
+	doc/design-ovf-support.rst \
 	doc/design-partitioned.rst \
+	doc/design-query-splitting.rst \
+	doc/design-query2.rst \
+	doc/design-resource-model.rst \
+	doc/design-shared-storage.rst \
+	doc/design-virtual-clusters.rst \
+	doc/design-x509-ca.rst \
 	doc/devnotes.rst \
 	doc/glossary.rst \
 	doc/hooks.rst \
@@ -396,8 +396,8 @@ HEXTRA_INT =
 # exclude options for coverage reports
 HPCEXCL = --exclude Main \
 	--exclude Ganeti.Constants \
-	--exclude Ganeti.THH \
 	--exclude Ganeti.HTools.QC \
+	--exclude Ganeti.THH \
 	--exclude Ganeti.Version \
 	--exclude Test.Ganeti.TestCommon \
 	--exclude Test.Ganeti.TestHTools \
@@ -406,6 +406,14 @@ HPCEXCL = --exclude Main \
 	$(patsubst htools.%,--exclude Test.%,$(subst /,.,$(patsubst %.hs,%, $(HS_LIB_SRCS))))
 
 HS_LIB_SRCS = \
+	htools/Ganeti/BasicTypes.hs \
+	htools/Ganeti/Common.hs \
+	htools/Ganeti/Compat.hs \
+	htools/Ganeti/Confd.hs \
+	htools/Ganeti/Confd/Server.hs \
+	htools/Ganeti/Confd/Utils.hs \
+	htools/Ganeti/Config.hs \
+	htools/Ganeti/Daemon.hs \
 	htools/Ganeti/HTools/CLI.hs \
 	htools/Ganeti/HTools/Cluster.hs \
 	htools/Ganeti/HTools/Container.hs \
@@ -417,10 +425,6 @@ HS_LIB_SRCS = \
 	htools/Ganeti/HTools/Luxi.hs \
 	htools/Ganeti/HTools/Node.hs \
 	htools/Ganeti/HTools/PeerMap.hs \
-	htools/Ganeti/HTools/Rapi.hs \
-	htools/Ganeti/HTools/Simu.hs \
-	htools/Ganeti/HTools/Text.hs \
-	htools/Ganeti/HTools/Types.hs \
 	htools/Ganeti/HTools/Program.hs \
 	htools/Ganeti/HTools/Program/Hail.hs \
 	htools/Ganeti/HTools/Program/Hbal.hs \
@@ -428,17 +432,13 @@ HS_LIB_SRCS = \
 	htools/Ganeti/HTools/Program/Hinfo.hs \
 	htools/Ganeti/HTools/Program/Hscan.hs \
 	htools/Ganeti/HTools/Program/Hspace.hs \
-	htools/Ganeti/BasicTypes.hs \
-	htools/Ganeti/Common.hs \
-	htools/Ganeti/Compat.hs \
-	htools/Ganeti/Confd.hs \
-	htools/Ganeti/Confd/Server.hs \
-	htools/Ganeti/Confd/Utils.hs \
-	htools/Ganeti/Config.hs \
-	htools/Ganeti/Daemon.hs \
+	htools/Ganeti/HTools/Rapi.hs \
+	htools/Ganeti/HTools/Simu.hs \
+	htools/Ganeti/HTools/Text.hs \
+	htools/Ganeti/HTools/Types.hs \
 	htools/Ganeti/Hash.hs \
-	htools/Ganeti/Jobs.hs \
 	htools/Ganeti/JSON.hs \
+	htools/Ganeti/Jobs.hs \
 	htools/Ganeti/Logging.hs \
 	htools/Ganeti/Luxi.hs \
 	htools/Ganeti/Objects.hs \
@@ -461,8 +461,8 @@ HS_LIB_SRCS = \
 HS_TEST_SRCS = \
 	htest/Test/Ganeti/BasicTypes.hs \
 	htest/Test/Ganeti/Common.hs \
-	htest/Test/Ganeti/Daemon.hs \
 	htest/Test/Ganeti/Confd/Utils.hs \
+	htest/Test/Ganeti/Daemon.hs \
 	htest/Test/Ganeti/HTools/CLI.hs \
 	htest/Test/Ganeti/HTools/Cluster.hs \
 	htest/Test/Ganeti/HTools/Container.hs \
@@ -562,8 +562,8 @@ gnt_scripts = \
 PYTHON_BOOTSTRAP_SBIN = \
 	daemons/ganeti-masterd \
 	daemons/ganeti-noded \
-	daemons/ganeti-watcher \
 	daemons/ganeti-rapi \
+	daemons/ganeti-watcher \
 	$(gnt_scripts)
 
 PYTHON_BOOTSTRAP = \
@@ -667,14 +667,14 @@ python_scripts = \
 	tools/lvmstrap \
 	tools/move-instance \
 	tools/ovfconverter \
-	tools/setup-ssh \
-	tools/sanitize-config
+	tools/sanitize-config \
+	tools/setup-ssh
 
 dist_tools_SCRIPTS = \
 	$(python_scripts) \
 	tools/kvm-console-wrapper \
-	tools/xm-console-wrapper \
-	tools/master-ip-setup
+	tools/master-ip-setup \
+	tools/xm-console-wrapper
 
 nodist_tools_SCRIPTS = \
 	tools/vcluster-setup
@@ -702,11 +702,11 @@ EXTRA_DIST = \
 	autotools/build-bash-completion \
 	autotools/build-rpc \
 	autotools/check-header \
-	autotools/check-python-code \
 	autotools/check-imports \
 	autotools/check-man-dashes \
 	autotools/check-man-warnings \
 	autotools/check-news \
+	autotools/check-python-code \
 	autotools/check-tar \
 	autotools/check-version \
 	autotools/convert-constants \
@@ -751,16 +751,16 @@ EXTRA_DIST = \
 	htest/offline-test.sh
 
 man_MANS = \
-	man/ganeti.7 \
 	man/ganeti-cleaner.8 \
-	man/ganeti-master-cleaner.8 \
 	man/ganeti-confd.8 \
 	man/ganeti-listrunner.8 \
+	man/ganeti-master-cleaner.8 \
 	man/ganeti-masterd.8 \
 	man/ganeti-noded.8 \
 	man/ganeti-os-interface.7 \
 	man/ganeti-rapi.8 \
 	man/ganeti-watcher.8 \
+	man/ganeti.7 \
 	man/gnt-backup.8 \
 	man/gnt-cluster.8 \
 	man/gnt-debug.8 \
@@ -786,6 +786,31 @@ maninput = \
 	man/footer.man man/footer.html $(mangen)
 
 TEST_FILES = \
+	htest/data/common-suffix.data \
+	htest/data/hail-alloc-drbd.json \
+	htest/data/hail-change-group.json \
+	htest/data/hail-invalid-reloc.json \
+	htest/data/hail-node-evac.json \
+	htest/data/hail-reloc-drbd.json \
+	htest/data/hbal-split-insts.data \
+	htest/data/invalid-node.data \
+	htest/data/missing-resources.data \
+	htest/data/rapi/groups.json \
+	htest/data/rapi/info.json \
+	htest/data/rapi/instances.json \
+	htest/data/rapi/nodes.json \
+	htest/shelltests/htools-balancing.test \
+	htest/shelltests/htools-basic.test \
+	htest/shelltests/htools-dynutil.test \
+	htest/shelltests/htools-excl.test \
+	htest/shelltests/htools-hail.test \
+	htest/shelltests/htools-hspace.test \
+	htest/shelltests/htools-invalid.test \
+	htest/shelltests/htools-multi-group.test \
+	htest/shelltests/htools-no-backend.test \
+	htest/shelltests/htools-rapi.test \
+	htest/shelltests/htools-single-group.test \
+	htest/shelltests/htools-text-backend.test \
 	test/data/bdev-drbd-8.0.txt \
 	test/data/bdev-drbd-8.3.txt \
 	test/data/bdev-drbd-disk.txt \
@@ -799,16 +824,10 @@ TEST_FILES = \
 	test/data/ip-addr-show-lo-oneline-ipv6.txt \
 	test/data/ip-addr-show-lo-oneline.txt \
 	test/data/ip-addr-show-lo.txt \
-	test/data/proc_drbd8.txt \
-	test/data/proc_drbd80-emptyline.txt \
-	test/data/proc_drbd83.txt \
-	test/data/proc_drbd83_sync.txt \
-	test/data/proc_drbd83_sync_krnl2.6.39.txt \
-	test/data/kvm_1.0_help.txt \
-	test/data/kvm_0.15.90_help.txt \
 	test/data/kvm_0.12.5_help.txt \
+	test/data/kvm_0.15.90_help.txt \
 	test/data/kvm_0.9.1_help.txt \
-	test/data/sys_drbd_usermode_helper.txt \
+	test/data/kvm_1.0_help.txt \
 	test/data/ovfdata/compr_disk.vmdk.gz \
 	test/data/ovfdata/config.ini \
 	test/data/ovfdata/corrupted_resources.ovf \
@@ -822,76 +841,59 @@ TEST_FILES = \
 	test/data/ovfdata/no_disk_in_ref.ovf \
 	test/data/ovfdata/no_os.ini \
 	test/data/ovfdata/no_ovf.ova \
+	test/data/ovfdata/other/rawdisk.raw \
 	test/data/ovfdata/ova.ova \
-	test/data/ovfdata/second_disk.vmdk \
 	test/data/ovfdata/rawdisk.raw \
+	test/data/ovfdata/second_disk.vmdk \
 	test/data/ovfdata/unsafe_path.ini \
 	test/data/ovfdata/virtualbox.ovf \
-	test/data/ovfdata/wrong_extension.ovd \
 	test/data/ovfdata/wrong_config.ini \
+	test/data/ovfdata/wrong_extension.ovd \
 	test/data/ovfdata/wrong_manifest.mf \
 	test/data/ovfdata/wrong_manifest.ovf \
 	test/data/ovfdata/wrong_ova.ova \
 	test/data/ovfdata/wrong_xml.ovf \
-	test/data/ovfdata/other/rawdisk.raw \
+	test/data/proc_drbd8.txt \
+	test/data/proc_drbd80-emptyline.txt \
+	test/data/proc_drbd83.txt \
+	test/data/proc_drbd83_sync.txt \
+	test/data/proc_drbd83_sync_krnl2.6.39.txt \
+	test/data/sys_drbd_usermode_helper.txt \
 	test/data/vgreduce-removemissing-2.02.02.txt \
 	test/data/vgreduce-removemissing-2.02.66-fail.txt \
 	test/data/vgreduce-removemissing-2.02.66-ok.txt \
 	test/data/vgs-missing-pvs-2.02.02.txt \
 	test/data/vgs-missing-pvs-2.02.66.txt \
-	test/import-export_unittest-helper \
-	test/gnt-cli.test \
 	test/ganeti-cli.test \
-	htest/shelltests/htools-balancing.test \
-	htest/shelltests/htools-basic.test \
-	htest/shelltests/htools-dynutil.test \
-	htest/shelltests/htools-excl.test \
-	htest/shelltests/htools-hail.test \
-	htest/shelltests/htools-hspace.test \
-	htest/shelltests/htools-invalid.test \
-	htest/shelltests/htools-multi-group.test \
-	htest/shelltests/htools-no-backend.test \
-	htest/shelltests/htools-rapi.test \
-	htest/shelltests/htools-single-group.test \
-	htest/shelltests/htools-text-backend.test \
-	htest/data/hail-alloc-drbd.json \
-	htest/data/hail-change-group.json \
-	htest/data/hail-invalid-reloc.json \
-	htest/data/hail-node-evac.json \
-	htest/data/hail-reloc-drbd.json \
-	htest/data/hbal-split-insts.data \
-	htest/data/common-suffix.data \
-	htest/data/invalid-node.data \
-	htest/data/missing-resources.data \
-	htest/data/rapi/groups.json \
-	htest/data/rapi/info.json \
-	htest/data/rapi/instances.json \
-	htest/data/rapi/nodes.json
+	test/gnt-cli.test \
+	test/import-export_unittest-helper
 
 python_tests = \
 	doc/examples/rapi_testutils.py \
+	test/cfgupgrade_unittest.py \
+	test/docs_unittest.py \
 	test/ganeti.asyncnotifier_unittest.py \
 	test/ganeti.backend_unittest.py \
 	test/ganeti.bdev_unittest.py \
 	test/ganeti.cli_unittest.py \
 	test/ganeti.client.gnt_cluster_unittest.py \
 	test/ganeti.client.gnt_instance_unittest.py \
-	test/ganeti.daemon_unittest.py \
 	test/ganeti.cmdlib_unittest.py \
 	test/ganeti.compat_unittest.py \
 	test/ganeti.confd.client_unittest.py \
 	test/ganeti.config_unittest.py \
 	test/ganeti.constants_unittest.py \
+	test/ganeti.daemon_unittest.py \
 	test/ganeti.errors_unittest.py \
 	test/ganeti.hooks_unittest.py \
 	test/ganeti.ht_unittest.py \
 	test/ganeti.http_unittest.py \
-	test/ganeti.hypervisor_unittest.py \
 	test/ganeti.hypervisor.hv_chroot_unittest.py \
 	test/ganeti.hypervisor.hv_fake_unittest.py \
 	test/ganeti.hypervisor.hv_kvm_unittest.py \
 	test/ganeti.hypervisor.hv_lxc_unittest.py \
 	test/ganeti.hypervisor.hv_xen_unittest.py \
+	test/ganeti.hypervisor_unittest.py \
 	test/ganeti.impexpd_unittest.py \
 	test/ganeti.jqueue_unittest.py \
 	test/ganeti.jstore_unittest.py \
@@ -922,8 +924,8 @@ python_tests = \
 	test/ganeti.utils.algo_unittest.py \
 	test/ganeti.utils.filelock_unittest.py \
 	test/ganeti.utils.hash_unittest.py \
-	test/ganeti.utils.io_unittest.py \
 	test/ganeti.utils.io_unittest-runasroot.py \
+	test/ganeti.utils.io_unittest.py \
 	test/ganeti.utils.log_unittest.py \
 	test/ganeti.utils.mlock_unittest.py \
 	test/ganeti.utils.nodesetup_unittest.py \
@@ -935,10 +937,8 @@ python_tests = \
 	test/ganeti.utils_unittest.py \
 	test/ganeti.vcluster_unittest.py \
 	test/ganeti.workerpool_unittest.py \
-	test/qa.qa_config_unittest.py \
-	test/cfgupgrade_unittest.py \
-	test/docs_unittest.py \
 	test/pycurl_reset_unittest.py \
+	test/qa.qa_config_unittest.py \
 	test/tempfile_fork_unittest.py
 
 haskell_tests = htest/test
@@ -1415,7 +1415,7 @@ check-local: check-dirs $(GENERATED_FILES)
 	$(CHECK_VERSION) $(VERSION) $(top_srcdir)/NEWS
 	$(CHECK_NEWS) < $(top_srcdir)/NEWS
 	PYTHONPATH=. $(RUN_IN_TEMPDIR) $(CURDIR)/$(CHECK_IMPORTS) . $(standalone_python_modules)
-	expver=$(VERSION_MAJOR).$(VERSION_MINOR); \
+	@expver=$(VERSION_MAJOR).$(VERSION_MINOR); \
 	if test "`head -n 1 $(top_srcdir)/README`" != "Ganeti $$expver"; then \
 		echo "Incorrect version in README, expected $$expver"; \
 		exit 1; \
