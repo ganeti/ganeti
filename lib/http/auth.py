@@ -29,6 +29,7 @@ import binascii
 
 from ganeti import compat
 from ganeti import http
+from ganeti import utils
 
 from cStringIO import StringIO
 
@@ -305,13 +306,7 @@ def ParsePasswordFile(contents):
   """
   users = {}
 
-  for line in contents.splitlines():
-    line = line.strip()
-
-    # Ignore empty lines and comments
-    if not line or line.startswith("#"):
-      continue
-
+  for line in utils.FilterEmptyLinesAndComments(contents):
     parts = line.split(None, 2)
     if len(parts) < 2:
       # Invalid line

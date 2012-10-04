@@ -589,3 +589,21 @@ def Truncate(text, length):
     return text
   else:
     return text[:length - len(_ASCII_ELLIPSIS)] + _ASCII_ELLIPSIS
+
+
+def FilterEmptyLinesAndComments(text):
+  """Filters empty lines and comments from a line-based string.
+
+  Whitespace is also removed from the beginning and end of all lines.
+
+  @type text: string
+  @param text: Input string
+  @rtype: generator
+
+  """
+  for line in text.splitlines():
+    line = line.strip()
+
+    # Ignore empty lines and comments
+    if line and not line.startswith("#"):
+      yield line
