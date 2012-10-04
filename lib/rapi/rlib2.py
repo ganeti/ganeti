@@ -388,7 +388,7 @@ class R_2_nodes(baserlib.OpcodeResource):
     """Returns a list of all nodes.
 
     """
-    client = self.GetClient()
+    client = self.GetClient(query=True)
 
     if self.useBulk():
       bulkdata = client.QueryNodes([], N_FIELDS, False)
@@ -411,7 +411,7 @@ class R_2_nodes_name(baserlib.OpcodeResource):
 
     """
     node_name = self.items[0]
-    client = self.GetClient()
+    client = self.GetClient(query=True)
 
     result = baserlib.HandleItemQueryErrors(client.QueryNodes,
                                             names=[node_name], fields=N_FIELDS,
@@ -449,7 +449,7 @@ class R_2_nodes_name_role(baserlib.OpcodeResource):
 
     """
     node_name = self.items[0]
-    client = self.GetClient()
+    client = self.GetClient(query=True)
     result = client.QueryNodes(names=[node_name], fields=["role"],
                                use_locking=self.useLocking())
 
@@ -666,7 +666,7 @@ class R_2_groups(baserlib.OpcodeResource):
     """Returns a list of all node groups.
 
     """
-    client = self.GetClient()
+    client = self.GetClient(query=True)
 
     if self.useBulk():
       bulkdata = client.QueryGroups([], G_FIELDS, False)
@@ -689,7 +689,7 @@ class R_2_groups_name(baserlib.OpcodeResource):
 
     """
     group_name = self.items[0]
-    client = self.GetClient()
+    client = self.GetClient(query=True)
 
     result = baserlib.HandleItemQueryErrors(client.QueryGroups,
                                             names=[group_name], fields=G_FIELDS,

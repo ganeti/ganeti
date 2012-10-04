@@ -124,10 +124,12 @@ def ListGroups(opts, args):
     "ndparams": (_FmtDict, False),
     }
 
+  cl = GetClient(query=True)
+
   return GenericList(constants.QR_GROUP, desired_fields, args, None,
                      opts.separator, not opts.no_headers,
                      format_override=fmtoverride, verbose=opts.verbose,
-                     force_filter=opts.force_filter)
+                     force_filter=opts.force_filter, cl=cl)
 
 
 def ListGroupFields(opts, args):
@@ -140,8 +142,10 @@ def ListGroupFields(opts, args):
   @return: the desired exit code
 
   """
+  cl = GetClient(query=True)
+
   return GenericListFields(constants.QR_GROUP, args, opts.separator,
-                           not opts.no_headers)
+                           not opts.no_headers, cl=cl)
 
 
 def SetGroupParams(opts, args):
@@ -295,7 +299,7 @@ def GroupInfo(_, args):
   """Shows info about node group.
 
   """
-  cl = GetClient()
+  cl = GetClient(query=True)
   selected_fields = ["name",
                      "ndparams", "custom_ndparams",
                      "diskparams", "custom_diskparams",

@@ -253,10 +253,12 @@ def ListNodes(opts, args):
   fmtoverride = dict.fromkeys(["pinst_list", "sinst_list", "tags"],
                               (",".join, False))
 
+  cl = GetClient(query=True)
+
   return GenericList(constants.QR_NODE, selected_fields, args, opts.units,
                      opts.separator, not opts.no_headers,
                      format_override=fmtoverride, verbose=opts.verbose,
-                     force_filter=opts.force_filter)
+                     force_filter=opts.force_filter, cl=cl)
 
 
 def ListNodeFields(opts, args):
@@ -269,8 +271,10 @@ def ListNodeFields(opts, args):
   @return: the desired exit code
 
   """
+  cl = GetClient(query=True)
+
   return GenericListFields(constants.QR_NODE, args, opts.separator,
-                           not opts.no_headers)
+                           not opts.no_headers, cl=cl)
 
 
 def EvacuateNode(opts, args):
@@ -310,7 +314,10 @@ def EvacuateNode(opts, args):
 
   cl = GetClient()
 
-  result = cl.QueryNodes(names=args, fields=fields, use_locking=False)
+  qcl = GetClient(query=True)
+  result = qcl.QueryNodes(names=args, fields=fields, use_locking=False)
+  qcl.Close()
+
   instances = set(itertools.chain(*itertools.chain(*itertools.chain(result))))
 
   if not instances:
@@ -366,8 +373,10 @@ def FailoverNode(opts, args):
 
   # these fields are static data anyway, so it doesn't matter, but
   # locking=True should be safer
+  qcl = GetClient(query=True)
   result = cl.QueryNodes(names=args, fields=selected_fields,
                          use_locking=False)
+  qcl.Close()
   node, pinst = result[0]
 
   if not pinst:
@@ -406,7 +415,9 @@ def MigrateNode(opts, args):
   force = opts.force
   selected_fields = ["name", "pinst_list"]
 
+  qcl = GetClient(query=True)
   result = cl.QueryNodes(names=args, fields=selected_fields, use_locking=False)
+  qcl.Close()
   ((node, pinst), ) = result
 
   if not pinst:
@@ -468,7 +479,7 @@ def ShowNodeConfig(opts, args):
   @return: the desired exit code
 
   """
-  cl = GetClient()
+  cl = GetClient(query=True)
   result = cl.QueryNodes(fields=["name", "pip", "sip",
                                  "pinst_list", "sinst_list",
                                  "master_candidate", "drained", "offline",
