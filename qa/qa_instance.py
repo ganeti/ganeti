@@ -83,11 +83,15 @@ def _DiskTest(node, disk_template):
     raise
 
 
-def _DestroyInstanceVolumes(instance):
-  """Remove all the LVM volumes of an instance.
+def _GetInstanceInfo(instance):
+  """Return information about the actual state of an instance.
 
-  This is used to simulate HW errors (dead nodes, broken disks...); the
-  configuration of the instance is not affected.
+  The pieces of information returned are:
+    - "nodes": instance nodes, a list of strings
+    - "volumes": instance volume IDs, a list of strings
+  @type instance: dictionary
+  @param instance: the instance
+  @return: dictionary
 
   """
   master = qa_config.GetMasterNode()
@@ -118,7 +122,21 @@ def _DestroyInstanceVolumes(instance):
       vols.append(m.group(1))
   assert vols
   assert nodes
-  for node in nodes:
+  return {"nodes": nodes, "volumes": vols}
+
+
+def _DestroyInstanceVolumes(instance):
+  """Remove all the LVM volumes of an instance.
+
+  This is used to simulate HW errors (dead nodes, broken disks...); the
+  configuration of the instance is not affected.
+  @type instance: dictionary
+  @param instance: the instance
+
+  """
+  info = _GetInstanceInfo(instance)
+  vols = info["volumes"]
+  for node in info["nodes"]:
     AssertCommand(["lvremove", "-f"] + vols, node=node)
 
 
@@ -446,10 +464,14 @@ def TestReplaceDisks(instance, pnode, snode, othernode):
     ["-p"],
     ["-s"],
     ["--new-secondary=%s" % othernode["primary"]],
-    # and restore
-    ["--new-secondary=%s" % snode["primary"]],
+    ["-I", constants.DEFAULT_IALLOCATOR_SHORTCUT],
     ]:
     AssertCommand(buildcmd(data))
+
+  # Restore the original secondary, if needed
+  currsec = _GetInstanceInfo(instance)["nodes"][1]
+  if currsec != snode["primary"]:
+    ["--new-secondary=%s" % snode["primary"]],
 
   AssertCommand(buildcmd(["-a"]))
   AssertCommand(["gnt-instance", "stop", instance["name"]])
@@ -508,6 +530,8 @@ def TestRecreateDisks(instance, pnode, snode, othernodes):
   _AssertRecreateDisks([], instance)
   # Move disks away
   _AssertRecreateDisks(["-I", "hail"], instance)
+  # Move disks somewhere else
+  _AssertRecreateDisks(["-I", constants.DEFAULT_IALLOCATOR_SHORTCUT], instance)
   # Move disks back
   _AssertRecreateDisks(["-n", orig_seq], instance, check=False)
   # This and InstanceCheck decoration check that the disks are working
