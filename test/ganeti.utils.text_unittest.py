@@ -593,5 +593,41 @@ class TestTruncate(unittest.TestCase):
       self.assertRaises(AssertionError, utils.Truncate, "", i)
 
 
+class TestFilterEmptyLinesAndComments(unittest.TestCase):
+  @staticmethod
+  def _Test(text):
+    return list(utils.FilterEmptyLinesAndComments(text))
+
+  def testEmpty(self):
+    self.assertEqual(self._Test(""), [])
+    self.assertEqual(self._Test("\n"), [])
+    self.assertEqual(self._Test("\n" * 100), [])
+    self.assertEqual(self._Test("\n  \n\t \n"), [])
+
+  def test(self):
+    text = """
+      This
+        is
+      # with comments
+          a
+            test
+            # in
+            #
+            saying
+      ...#...
+        # multiple places
+        Hello World!
+      """
+    self.assertEqual(self._Test(text), [
+      "This",
+      "is",
+      "a",
+      "test",
+      "saying",
+      "...#...",
+      "Hello World!",
+      ])
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
