@@ -34,7 +34,7 @@ import System.Exit
 import System.IO
 import System.IO.Error (isDoesNotExistError)
 
-import Ganeti.HTools.Utils
+import Ganeti.Utils
 import Ganeti.HTools.CLI (parseOpts, genericOpts)
 import Ganeti.HTools.Program (personalities)
 

@@ -48,7 +48,7 @@ import qualified Ganeti.HTools.Loader as Loader
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Text as Text
 import qualified Ganeti.HTools.Types as Types
-import qualified Ganeti.HTools.Utils as Utils
+import qualified Ganeti.Utils as Utils
 
 -- * Instance text loader tests
 

@@ -42,7 +42,7 @@ import Ganeti.Hash
 import qualified Ganeti.Constants as C
 import qualified Ganeti.Path as Path
 import Ganeti.JSON
-import Ganeti.HTools.Utils
+import Ganeti.Utils
 
 -- | Returns the HMAC key.
 getClusterHmac :: IO HashKey

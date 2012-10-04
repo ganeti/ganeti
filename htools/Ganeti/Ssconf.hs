@@ -48,7 +48,7 @@ import System.IO.Error (isDoesNotExistError)
 import qualified Ganeti.Constants as C
 import qualified Ganeti.Path as Path
 import Ganeti.BasicTypes
-import Ganeti.HTools.Utils
+import Ganeti.Utils
 
 -- | Maximum ssconf file size we support.
 maxFileSize :: Int

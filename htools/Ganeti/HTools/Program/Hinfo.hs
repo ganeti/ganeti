@@ -38,10 +38,10 @@ import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Group as Group
 import qualified Ganeti.HTools.Instance as Instance
 
-import Ganeti.HTools.Utils
 import Ganeti.HTools.CLI
 import Ganeti.HTools.ExtLoader
 import Ganeti.HTools.Loader
+import Ganeti.Utils
 
 -- | Options list and functions.
 options :: [OptType]

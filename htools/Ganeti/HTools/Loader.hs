@@ -52,7 +52,7 @@ import qualified Ganeti.HTools.Cluster as Cluster
 
 import Ganeti.BasicTypes
 import Ganeti.HTools.Types
-import Ganeti.HTools.Utils
+import Ganeti.Utils
 
 -- * Constants
 

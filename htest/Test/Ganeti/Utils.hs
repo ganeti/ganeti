@@ -26,7 +26,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 -}
 
-module Test.Ganeti.HTools.Utils (testHTools_Utils) where
+module Test.Ganeti.Utils (testUtils) where
 
 import Test.QuickCheck
 
@@ -37,7 +37,7 @@ import Test.Ganeti.TestCommon
 
 import qualified Ganeti.JSON as JSON
 import qualified Ganeti.HTools.Types as Types
-import qualified Ganeti.HTools.Utils as Utils
+import qualified Ganeti.Utils as Utils
 
 -- | Helper to generate a small string that doesn't contain commas.
 genNonCommaString :: Gen String
@@ -120,7 +120,7 @@ prop_parseUnit (NonNegative n) =
         n_tb = n_gb * 1000
 
 -- | Test list for the Utils module.
-testSuite "HTools/Utils"
+testSuite "Utils"
             [ 'prop_commaJoinSplit
             , 'prop_commaSplitJoin
             , 'prop_fromObjWithDefault

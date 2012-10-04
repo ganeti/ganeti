@@ -65,7 +65,7 @@ import Ganeti.Common as Common
 import Ganeti.Logging
 import Ganeti.Runtime
 import Ganeti.BasicTypes
-import Ganeti.HTools.Utils
+import Ganeti.Utils
 import qualified Ganeti.Constants as C
 import qualified Ganeti.Ssconf as Ssconf
 

@@ -1,7 +1,7 @@
 {-| Implementation of command-line functions.
 
 This module holds the common command-line related functions for the
-binaries, separated into this module since "Ganeti.HTools.Utils" is
+binaries, separated into this module since "Ganeti.Utils" is
 used in many other places and this is more IO oriented.
 
 -}
@@ -95,9 +95,9 @@ import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.Path as Path
 import Ganeti.HTools.Types
-import Ganeti.HTools.Utils
 import Ganeti.BasicTypes
 import Ganeti.Common as Common
+import Ganeti.Utils
 
 -- * Data types
 

@@ -44,7 +44,6 @@ import Test.Ganeti.HTools.PeerMap
 import Test.Ganeti.HTools.Simu
 import Test.Ganeti.HTools.Text
 import Test.Ganeti.HTools.Types
-import Test.Ganeti.HTools.Utils
 import Test.Ganeti.Jobs
 import Test.Ganeti.JSON
 import Test.Ganeti.Luxi
@@ -55,6 +54,7 @@ import Test.Ganeti.Query.Language
 import Test.Ganeti.Query.Query
 import Test.Ganeti.Rpc
 import Test.Ganeti.Ssconf
+import Test.Ganeti.Utils
 
 -- | Our default test options, overring the built-in test-framework
 -- ones (but not the supplied command line parameters).
@@ -85,7 +85,6 @@ allTests =
   , testHTools_Simu
   , testHTools_Text
   , testHTools_Types
-  , testHTools_Utils
   , testJSON
   , testJobs
   , testLuxi
@@ -96,6 +95,7 @@ allTests =
   , testQuery_Query
   , testRpc
   , testSsconf
+  , testUtils
   ]
 
 -- | Main function. Note we don't use defaultMain since we want to

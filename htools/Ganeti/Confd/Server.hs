@@ -47,13 +47,13 @@ import System.INotify
 import Ganeti.Daemon
 import Ganeti.JSON
 import Ganeti.HTools.Types
-import Ganeti.HTools.Utils
 import Ganeti.Objects
 import Ganeti.Confd
 import Ganeti.Confd.Utils
 import Ganeti.Config
 import Ganeti.Hash
 import Ganeti.Logging
+import Ganeti.Utils
 import qualified Ganeti.Constants as C
 import qualified Ganeti.Path as Path
 import Ganeti.Query.Server (runQueryD)

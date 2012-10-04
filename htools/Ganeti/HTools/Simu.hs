@@ -33,7 +33,7 @@ module Ganeti.HTools.Simu
 import Control.Monad (mplus, zipWithM)
 import Text.Printf (printf)
 
-import Ganeti.HTools.Utils
+import Ganeti.Utils
 import Ganeti.HTools.Types
 import Ganeti.HTools.Loader
 import qualified Ganeti.HTools.Container as Container

@@ -50,9 +50,9 @@ import qualified Ganeti.HTools.Instance as Instance
 
 import Ganeti.HTools.CLI
 import Ganeti.HTools.ExtLoader
-import Ganeti.HTools.Utils
 import Ganeti.HTools.Types
 import Ganeti.HTools.Loader
+import Ganeti.Utils
 
 import qualified Ganeti.Luxi as L
 import Ganeti.Jobs

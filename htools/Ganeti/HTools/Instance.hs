@@ -60,7 +60,7 @@ module Ganeti.HTools.Instance
 import qualified Ganeti.HTools.Types as T
 import qualified Ganeti.HTools.Container as Container
 
-import Ganeti.HTools.Utils
+import Ganeti.Utils
 
 -- * Type declarations
 

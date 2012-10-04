@@ -51,7 +51,7 @@ import Ganeti.HTools.Loader (mergeData, checkData, ClusterData(..)
 
 import Ganeti.HTools.Types
 import Ganeti.HTools.CLI
-import Ganeti.HTools.Utils (sepSplit, tryRead, exitIfBad, exitWhen)
+import Ganeti.Utils (sepSplit, tryRead, exitIfBad, exitWhen)
 
 -- | Error beautifier.
 wrapIO :: IO (Result a) -> IO (Result a)

@@ -421,7 +421,6 @@ HS_LIB_SRCS = \
 	htools/Ganeti/HTools/Simu.hs \
 	htools/Ganeti/HTools/Text.hs \
 	htools/Ganeti/HTools/Types.hs \
-	htools/Ganeti/HTools/Utils.hs \
 	htools/Ganeti/HTools/Program.hs \
 	htools/Ganeti/HTools/Program/Hail.hs \
 	htools/Ganeti/HTools/Program/Hbal.hs \
@@ -456,7 +455,8 @@ HS_LIB_SRCS = \
 	htools/Ganeti/Rpc.hs \
 	htools/Ganeti/Runtime.hs \
 	htools/Ganeti/Ssconf.hs \
-	htools/Ganeti/THH.hs
+	htools/Ganeti/THH.hs \
+	htools/Ganeti/Utils.hs
 
 HS_TEST_SRCS = \
 	htest/Test/Ganeti/BasicTypes.hs \
@@ -473,7 +473,6 @@ HS_TEST_SRCS = \
 	htest/Test/Ganeti/HTools/Simu.hs \
 	htest/Test/Ganeti/HTools/Text.hs \
 	htest/Test/Ganeti/HTools/Types.hs \
-	htest/Test/Ganeti/HTools/Utils.hs \
 	htest/Test/Ganeti/JSON.hs \
 	htest/Test/Ganeti/Jobs.hs \
 	htest/Test/Ganeti/Luxi.hs \
@@ -486,7 +485,8 @@ HS_TEST_SRCS = \
 	htest/Test/Ganeti/Ssconf.hs \
 	htest/Test/Ganeti/TestCommon.hs \
 	htest/Test/Ganeti/TestHTools.hs \
-	htest/Test/Ganeti/TestHelper.hs
+	htest/Test/Ganeti/TestHelper.hs \
+	htest/Test/Ganeti/Utils.hs
 
 HS_LIBTEST_SRCS = $(HS_LIB_SRCS) $(HS_TEST_SRCS)
 

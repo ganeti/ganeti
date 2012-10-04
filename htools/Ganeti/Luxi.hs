@@ -69,7 +69,7 @@ import qualified Network.Socket as S
 
 import Ganeti.JSON
 import Ganeti.HTools.Types
-import Ganeti.HTools.Utils
+import Ganeti.Utils
 
 import Ganeti.Constants
 import Ganeti.Jobs (JobStatus)
