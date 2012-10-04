@@ -70,31 +70,33 @@ nodeLiveFieldsDefs =
 
 -- | Map each name to a function that extracts that value from
 -- the RPC result.
-nodeLiveFieldExtract :: String -> RpcResultNodeInfo -> J.JSValue
+nodeLiveFieldExtract :: FieldName -> RpcResultNodeInfo -> J.JSValue
 nodeLiveFieldExtract "bootid" res =
-    J.showJSON $ rpcResNodeInfoBootId res
-nodeLiveFieldExtract "cpu_nodes" res =
-    jsonHead (rpcResNodeInfoHvInfo res) hvInfoCpuNodes
-nodeLiveFieldExtract "cpu_sockets" res =
-    jsonHead (rpcResNodeInfoHvInfo res) hvInfoCpuSockets
-nodeLiveFieldExtract "cpu_total" res =
-    jsonHead (rpcResNodeInfoHvInfo res) hvInfoCpuTotal
-nodeLiveFieldExtract "vg_free" res =
-    jsonHead (rpcResNodeInfoVgInfo res) vgInfoVgFree
-nodeLiveFieldExtract "vg_size" res =
-    jsonHead (rpcResNodeInfoVgInfo res) vgInfoVgSize
-nodeLiveFieldExtract "memory_free" res =
-    jsonHead (rpcResNodeInfoHvInfo res) hvInfoMemoryFree
-nodeLiveFieldExtract "memory_dom0" res =
-    jsonHead (rpcResNodeInfoHvInfo res) hvInfoMemoryDom0
-nodeLiveFieldExtract "memory_total" res =
-    jsonHead (rpcResNodeInfoHvInfo res) hvInfoMemoryTotal
+  J.showJSON $ rpcResNodeInfoBootId res
+nodeLiveFieldExtract "cnodes" res =
+  jsonHead (rpcResNodeInfoHvInfo res) hvInfoCpuNodes
+nodeLiveFieldExtract "csockets" res =
+  jsonHead (rpcResNodeInfoHvInfo res) hvInfoCpuSockets
+nodeLiveFieldExtract "ctotal" res =
+  jsonHead (rpcResNodeInfoHvInfo res) hvInfoCpuTotal
+nodeLiveFieldExtract "dfree" res =
+  jsonHead (rpcResNodeInfoVgInfo res) vgInfoVgFree
+nodeLiveFieldExtract "dtotal" res =
+  jsonHead (rpcResNodeInfoVgInfo res) vgInfoVgSize
+nodeLiveFieldExtract "mfree" res =
+  jsonHead (rpcResNodeInfoHvInfo res) hvInfoMemoryFree
+nodeLiveFieldExtract "mnode" res =
+  jsonHead (rpcResNodeInfoHvInfo res) hvInfoMemoryDom0
+nodeLiveFieldExtract "mtotal" res =
+  jsonHead (rpcResNodeInfoHvInfo res) hvInfoMemoryTotal
 nodeLiveFieldExtract _ _ = J.JSNull
 
 -- | Helper for extracting field from RPC result.
 nodeLiveRpcCall :: FieldName -> NodeRuntime -> Node -> ResultEntry
 nodeLiveRpcCall fname (Right res) _ =
-    rsNormal (nodeLiveFieldExtract fname res)
+  case nodeLiveFieldExtract fname res of
+    J.JSNull -> rsNoData
+    x -> rsNormal x
 nodeLiveRpcCall _ (Left err) _ =
     ResultEntry (rpcErrorToStatus err) Nothing
 
