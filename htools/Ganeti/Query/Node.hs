@@ -80,9 +80,9 @@ nodeLiveFieldExtract "csockets" res =
 nodeLiveFieldExtract "ctotal" res =
   jsonHead (rpcResNodeInfoHvInfo res) hvInfoCpuTotal
 nodeLiveFieldExtract "dfree" res =
-  jsonHead (rpcResNodeInfoVgInfo res) vgInfoVgFree
+  getMaybeJsonHead (rpcResNodeInfoVgInfo res) vgInfoVgFree
 nodeLiveFieldExtract "dtotal" res =
-  jsonHead (rpcResNodeInfoVgInfo res) vgInfoVgSize
+  getMaybeJsonHead (rpcResNodeInfoVgInfo res) vgInfoVgSize
 nodeLiveFieldExtract "mfree" res =
   jsonHead (rpcResNodeInfoHvInfo res) hvInfoMemoryFree
 nodeLiveFieldExtract "mnode" res =

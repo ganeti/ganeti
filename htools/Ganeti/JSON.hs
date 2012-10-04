@@ -32,6 +32,7 @@ module Ganeti.JSON
   , fromKeyValue
   , fromJVal
   , jsonHead
+  , getMaybeJsonHead
   , asJSObject
   , asObjectList
   , tryFromObj
@@ -130,6 +131,11 @@ fromJVal v =
 jsonHead :: (J.JSON b) => [a] -> (a -> b) -> J.JSValue
 jsonHead [] _ = J.JSNull
 jsonHead (x:_) f = J.showJSON $ f x
+
+-- | Helper for extracting Maybe values from a possibly empty list.
+getMaybeJsonHead :: (J.JSON b) => [a] -> (a -> Maybe b) -> J.JSValue
+getMaybeJsonHead [] _ = J.JSNull
+getMaybeJsonHead (x:_) f = maybe J.JSNull J.showJSON (f x)
 
 -- | Converts a JSON value into a JSON object.
 asJSObject :: (Monad m) => J.JSValue -> m (J.JSObject J.JSValue)
