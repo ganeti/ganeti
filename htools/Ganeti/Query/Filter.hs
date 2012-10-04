@@ -48,6 +48,7 @@ module Ganeti.Query.Filter
   ( compileFilter
   , evaluateFilter
   , requestedNames
+  , makeSimpleFilter
   ) where
 
 import Control.Applicative
@@ -185,3 +186,9 @@ requestedNames namefield (EQFilter fld val) =
     then Just [val]
     else Nothing
 requestedNames _ _ = Nothing
+
+-- | Builds a simple filter from a list of names.
+makeSimpleFilter :: String -> [String] -> Filter FilterField
+makeSimpleFilter _ [] = EmptyFilter
+makeSimpleFilter namefield vals =
+  OrFilter $ map (EQFilter namefield . QuotedString) vals

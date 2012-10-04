@@ -42,6 +42,7 @@ import Test.Ganeti.Objects (genEmptyCluster)
 import Ganeti.BasicTypes
 import Ganeti.JSON
 import Ganeti.Objects
+import Ganeti.Query.Filter
 import Ganeti.Query.Language
 import Ganeti.Query.Query
 import Ganeti.Utils (niceSort)
@@ -159,9 +160,22 @@ prop_node_bad_filter rndname rndint =
              "numeric value in non-list field"
            ]
 
+-- | Tests make simple filter.
+prop_makeSimpleFilter :: Property
+prop_makeSimpleFilter =
+  forAll (resize 10 $ listOf1 getName) $ \names ->
+  forAll getName $ \namefield ->
+  conjoin [ printTestCase "test expected names" $
+              makeSimpleFilter namefield names ==?
+              OrFilter (map (EQFilter namefield . QuotedString) names)
+          , printTestCase "test empty names" $
+              makeSimpleFilter namefield [] ==? EmptyFilter
+          ]
+
 testSuite "Query/Filter"
   [ 'prop_node_single_filter
   , 'prop_node_many_filter
   , 'prop_node_regex_filter
   , 'prop_node_bad_filter
+  , 'prop_makeSimpleFilter
   ]
