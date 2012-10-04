@@ -1241,22 +1241,26 @@ class TestGenerateDiskTemplate(unittest.TestCase):
 
 
 class _ConfigForDiskWipe:
+  def __init__(self, exp_node):
+    self._exp_node = exp_node
+
   def SetDiskID(self, device, node):
     assert isinstance(device, objects.Disk)
-    assert node == "node1.example.com"
+    assert node == self._exp_node
 
 
 class _RpcForDiskWipe:
-  def __init__(self, pause_cb, wipe_cb):
+  def __init__(self, exp_node, pause_cb, wipe_cb):
+    self._exp_node = exp_node
     self._pause_cb = pause_cb
     self._wipe_cb = wipe_cb
 
   def call_blockdev_pause_resume_sync(self, node, disks, pause):
-    assert node == "node1.example.com"
+    assert node == self._exp_node
     return rpc.RpcResult(data=self._pause_cb(disks, pause))
 
   def call_blockdev_wipe(self, node, bdev, offset, size):
-    assert node == "node1.example.com"
+    assert node == self._exp_node
     return rpc.RpcResult(data=self._wipe_cb(bdev, offset, size))
 
 
@@ -1273,15 +1277,50 @@ class _DiskPauseTracker:
     return (True, [True] * len(disks))
 
 
-class TestWipeDisks(unittest.TestCase):
-  def testPauseFailure(self):
-    def _FailPause((disks, _), pause):
-      self.assertEqual(len(disks), 3)
-      self.assertTrue(pause)
-      return (False, "error")
+class _DiskWipeProgressTracker:
+  def __init__(self, start_offset):
+    self._start_offset = start_offset
+    self.progress = {}
 
-    lu = _FakeLU(rpc=_RpcForDiskWipe(_FailPause, NotImplemented),
-                 cfg=_ConfigForDiskWipe())
+  def __call__(self, (disk, _), offset, size):
+    assert isinstance(offset, (long, int))
+    assert isinstance(size, (long, int))
+
+    max_chunk_size = (disk.size / 100.0 * constants.MIN_WIPE_CHUNK_PERCENT)
+
+    assert offset >= self._start_offset
+    assert (offset + size) <= disk.size
+
+    assert size > 0
+    assert size <= constants.MAX_WIPE_CHUNK
+    assert size <= max_chunk_size
+
+    assert offset == self._start_offset or disk.logical_id in self.progress
+
+    # Keep track of progress
+    cur_progress = self.progress.setdefault(disk.logical_id, self._start_offset)
+
+    assert cur_progress == offset
+
+    # Record progress
+    self.progress[disk.logical_id] += size
+
+    return (True, None)
+
+
+class TestWipeDisks(unittest.TestCase):
+  def _FailingPauseCb(self, (disks, _), pause):
+    self.assertEqual(len(disks), 3)
+    self.assertTrue(pause)
+    # Simulate an RPC error
+    return (False, "error")
+
+  def testPauseFailure(self):
+    node_name = "node1372.example.com"
+
+    lu = _FakeLU(rpc=_RpcForDiskWipe(node_name, self._FailingPauseCb,
+                                     NotImplemented),
+                 cfg=_ConfigForDiskWipe(node_name))
 
     disks = [
       objects.Disk(dev_type=constants.LD_LV),
@@ -1290,21 +1329,23 @@ class TestWipeDisks(unittest.TestCase):
       ]
 
     instance = objects.Instance(name="inst21201",
-                                primary_node="node1.example.com",
+                                primary_node=node_name,
                                 disk_template=constants.DT_PLAIN,
                                 disks=disks)
 
     self.assertRaises(errors.OpExecError, cmdlib._WipeDisks, lu, instance)
 
+  def _FailingWipeCb(self, (disk, _), offset, size):
+    # This should only ever be called for the first disk
+    self.assertEqual(disk.logical_id, "disk0")
+    return (False, None)
+
   def testFailingWipe(self):
+    node_name = "node13445.example.com"
     pt = _DiskPauseTracker()
 
-    def _WipeCb((disk, _), offset, size):
-      assert disk.logical_id == "disk0"
-      return (False, None)
-
-    lu = _FakeLU(rpc=_RpcForDiskWipe(pt, _WipeCb),
-                 cfg=_ConfigForDiskWipe())
+    lu = _FakeLU(rpc=_RpcForDiskWipe(node_name, pt, self._FailingWipeCb),
+                 cfg=_ConfigForDiskWipe(node_name))
 
     disks = [
       objects.Disk(dev_type=constants.LD_LV, logical_id="disk0",
@@ -1315,7 +1356,7 @@ class TestWipeDisks(unittest.TestCase):
       ]
 
     instance = objects.Instance(name="inst562",
-                                primary_node="node1.example.com",
+                                primary_node=node_name,
                                 disk_template=constants.DT_PLAIN,
                                 disks=disks)
 
@@ -1326,6 +1367,7 @@ class TestWipeDisks(unittest.TestCase):
     else:
       self.fail("Did not raise exception")
 
+    # Check if all disks were paused and resumed
     self.assertEqual(pt.history, [
       ("disk0", 100 * 1024, True),
       ("disk1", 500 * 1024, True),
@@ -1335,87 +1377,74 @@ class TestWipeDisks(unittest.TestCase):
       ("disk2", 256, False),
       ])
 
+  def _PrepareWipeTest(self, start_offset, disks):
+    node_name = "node-with-offset%s.example.com" % start_offset
+    pauset = _DiskPauseTracker()
+    progresst = _DiskWipeProgressTracker(start_offset)
+
+    lu = _FakeLU(rpc=_RpcForDiskWipe(node_name, pauset, progresst),
+                 cfg=_ConfigForDiskWipe(node_name))
+
+    instance = objects.Instance(name="inst3560",
+                                primary_node=node_name,
+                                disk_template=constants.DT_PLAIN,
+                                disks=disks)
+
+    return (lu, instance, pauset, progresst)
+
   def testNormalWipe(self):
+    disks = [
+      objects.Disk(dev_type=constants.LD_LV, logical_id="disk0", size=1024),
+      objects.Disk(dev_type=constants.LD_LV, logical_id="disk1",
+                   size=500 * 1024),
+      objects.Disk(dev_type=constants.LD_LV, logical_id="disk2", size=128),
+      objects.Disk(dev_type=constants.LD_LV, logical_id="disk3",
+                   size=constants.MAX_WIPE_CHUNK),
+      ]
+
+    (lu, instance, pauset, progresst) = self._PrepareWipeTest(0, disks)
+
+    cmdlib._WipeDisks(lu, instance)
+
+    self.assertEqual(pauset.history, [
+      ("disk0", 1024, True),
+      ("disk1", 500 * 1024, True),
+      ("disk2", 128, True),
+      ("disk3", constants.MAX_WIPE_CHUNK, True),
+      ("disk0", 1024, False),
+      ("disk1", 500 * 1024, False),
+      ("disk2", 128, False),
+      ("disk3", constants.MAX_WIPE_CHUNK, False),
+      ])
+
+    # Ensure the complete disk has been wiped
+    self.assertEqual(progresst.progress,
+                     dict((i.logical_id, i.size) for i in disks))
+
+  def testWipeWithStartOffset(self):
     for start_offset in [0, 280, 8895, 1563204]:
-      pt = _DiskPauseTracker()
+      disks = [
+        objects.Disk(dev_type=constants.LD_LV, logical_id="disk0",
+                     size=128),
+        objects.Disk(dev_type=constants.LD_LV, logical_id="disk1",
+                     size=start_offset + (100 * 1024)),
+        ]
 
-      progress = {}
+      (lu, instance, pauset, progresst) = \
+        self._PrepareWipeTest(start_offset, disks)
 
-      def _WipeCb((disk, _), offset, size):
-        assert isinstance(offset, (long, int))
-        assert isinstance(size, (long, int))
+      # Test start offset with only one disk
+      cmdlib._WipeDisks(lu, instance,
+                        disks=[(1, disks[1], start_offset)])
 
-        max_chunk_size = (disk.size / 100.0 * constants.MIN_WIPE_CHUNK_PERCENT)
-
-        self.assertTrue(offset >= start_offset)
-        self.assertTrue((offset + size) <= disk.size)
-
-        self.assertTrue(size > 0)
-        self.assertTrue(size <= constants.MAX_WIPE_CHUNK)
-        self.assertTrue(size <= max_chunk_size)
-
-        self.assertTrue(offset == start_offset or disk.logical_id in progress)
-
-        # Keep track of progress
-        cur_progress = progress.setdefault(disk.logical_id, start_offset)
-        self.assertEqual(cur_progress, offset)
-
-        progress[disk.logical_id] += size
-
-        return (True, None)
-
-      lu = _FakeLU(rpc=_RpcForDiskWipe(pt, _WipeCb),
-                   cfg=_ConfigForDiskWipe())
-
-      if start_offset > 0:
-        disks = [
-          objects.Disk(dev_type=constants.LD_LV, logical_id="disk0",
-                       size=128),
-          objects.Disk(dev_type=constants.LD_LV, logical_id="disk1",
-                       size=start_offset + (100 * 1024)),
-          ]
-      else:
-        disks = [
-          objects.Disk(dev_type=constants.LD_LV, logical_id="disk0", size=1024),
-          objects.Disk(dev_type=constants.LD_LV, logical_id="disk1",
-                       size=500 * 1024),
-          objects.Disk(dev_type=constants.LD_LV, logical_id="disk2", size=128),
-          objects.Disk(dev_type=constants.LD_LV, logical_id="disk3",
-                       size=constants.MAX_WIPE_CHUNK),
-          ]
-
-      instance = objects.Instance(name="inst3560",
-                                  primary_node="node1.example.com",
-                                  disk_template=constants.DT_PLAIN,
-                                  disks=disks)
-
-      if start_offset > 0:
-        # Test start offset with only one disk
-        cmdlib._WipeDisks(lu, instance,
-                          disks=[(1, disks[1], start_offset)])
-        self.assertEqual(pt.history, [
-          ("disk1", start_offset + (100 * 1024), True),
-          ("disk1", start_offset + (100 * 1024), False),
-          ])
-        self.assertEqual(progress, {
-          "disk1": disks[1].size,
-          })
-      else:
-        cmdlib._WipeDisks(lu, instance)
-
-        self.assertEqual(pt.history, [
-          ("disk0", 1024, True),
-          ("disk1", 500 * 1024, True),
-          ("disk2", 128, True),
-          ("disk3", constants.MAX_WIPE_CHUNK, True),
-          ("disk0", 1024, False),
-          ("disk1", 500 * 1024, False),
-          ("disk2", 128, False),
-          ("disk3", constants.MAX_WIPE_CHUNK, False),
-          ])
-
-        # Ensure the complete disk has been wiped
-        self.assertEqual(progress, dict((i.logical_id, i.size) for i in disks))
+      # Only the second disk may have been paused and wiped
+      self.assertEqual(pauset.history, [
+        ("disk1", start_offset + (100 * 1024), True),
+        ("disk1", start_offset + (100 * 1024), False),
+        ])
+      self.assertEqual(progresst.progress, {
+        "disk1": disks[1].size,
+        })
 
 
 class TestDiskSizeInBytesToMebibytes(unittest.TestCase):
