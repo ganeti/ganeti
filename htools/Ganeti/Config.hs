@@ -31,6 +31,7 @@ module Ganeti.Config
     , getNodeRole
     , getNodeNdParams
     , getDefaultNicLink
+    , getDefaultHypervisor
     , getInstancesIpByLink
     , getNode
     , getInstance
@@ -125,6 +126,16 @@ getDefaultNicLink :: ConfigData -> String
 getDefaultNicLink =
   nicpLink . (M.! C.ppDefault) . fromContainer .
   clusterNicparams . configCluster
+
+-- | Returns the default cluster hypervisor.
+getDefaultHypervisor :: ConfigData -> Hypervisor
+getDefaultHypervisor cfg =
+  case clusterEnabledHypervisors $ configCluster cfg of
+    -- FIXME: this case shouldn't happen (configuration broken), but
+    -- for now we handle it here because we're not authoritative for
+    -- the config
+    []  -> XenPvm
+    x:_ -> x
 
 -- | Returns instances of a given link.
 getInstancesIpByLink :: LinkIpMap -> String -> [String]

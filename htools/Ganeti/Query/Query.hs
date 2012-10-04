@@ -56,6 +56,7 @@ import Data.Maybe (fromMaybe)
 import qualified Data.Map as Map
 
 import Ganeti.BasicTypes
+import Ganeti.Config
 import Ganeti.JSON
 import Ganeti.Rpc
 import Ganeti.Query.Language
@@ -103,7 +104,7 @@ maybeCollectLiveData False _ nodes =
 
 maybeCollectLiveData True cfg nodes = do
   let vgs = [clusterVolumeGroupName $ configCluster cfg]
-      hvs = clusterEnabledHypervisors $ configCluster cfg
+      hvs = [getDefaultHypervisor cfg]
   executeRpcCall nodes (RpcCallNodeInfo vgs hvs)
 
 -- | Check whether list of queried fields contains live fields.
