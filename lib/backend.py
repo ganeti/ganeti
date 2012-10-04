@@ -215,6 +215,9 @@ def _BuildUploadFileList():
     hv_class = hypervisor.GetHypervisorClass(hv_name)
     allowed_files.update(hv_class.GetAncillaryFiles()[0])
 
+  assert pathutils.FILE_STORAGE_PATHS_FILE not in allowed_files, \
+    "Allowed file storage paths should never be uploaded via RPC"
+
   return frozenset(allowed_files)
 
 

@@ -4291,12 +4291,12 @@ def _ComputeAncillaryFiles(cluster, redist):
     pathutils.RAPI_USERS_FILE,
     ])
 
-  if not redist:
-    files_all.update(pathutils.ALL_CERT_FILES)
-    files_all.update(ssconf.SimpleStore().GetFileList())
-  else:
+  if redist:
     # we need to ship at least the RAPI certificate
     files_all.add(pathutils.RAPI_CERT_FILE)
+  else:
+    files_all.update(pathutils.ALL_CERT_FILES)
+    files_all.update(ssconf.SimpleStore().GetFileList())
 
   if cluster.modify_etc_hosts:
     files_all.add(constants.ETC_HOSTS)
@@ -4316,6 +4316,12 @@ def _ComputeAncillaryFiles(cluster, redist):
 
   if not redist:
     files_mc.add(pathutils.CLUSTER_CONF_FILE)
+
+  # File storage
+  if (not redist and
+      (constants.ENABLE_FILE_STORAGE or constants.ENABLE_SHARED_FILE_STORAGE)):
+    files_all.add(pathutils.FILE_STORAGE_PATHS_FILE)
+    files_opt.add(pathutils.FILE_STORAGE_PATHS_FILE)
 
   # Files which should only be on VM-capable nodes
   files_vm = set(
@@ -4337,6 +4343,10 @@ def _ComputeAncillaryFiles(cluster, redist):
   # Optional files must be present in one other category
   assert all_files_set.issuperset(files_opt), \
          "Optional file not in a different required list"
+
+  # This one file should never ever be re-distributed via RPC
+  assert not (redist and
+              pathutils.FILE_STORAGE_PATHS_FILE in all_files_set)
 
   return (files_all, files_opt, files_mc, files_vm)
 
