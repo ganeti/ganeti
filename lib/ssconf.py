@@ -517,7 +517,7 @@ def WriteSsconfFiles(values):
   Wrapper around L{SimpleStore.WriteFiles}.
 
   """
-  ssconf.SimpleStore().WriteFiles(values)
+  SimpleStore().WriteFiles(values)
 
 
 def GetMasterAndMyself(ss=None):
