@@ -114,9 +114,7 @@ maybeCollectLiveData True cfg nodes = do
 
 -- | Check whether list of queried fields contains live fields.
 needsLiveData :: [FieldGetter a b] -> Bool
-needsLiveData = any (\getter -> case getter of
-                     FieldRuntime _ -> True
-                     _ -> False)
+needsLiveData = any isRuntimeField
 
 -- | Checks whether we have requested exactly some names. This is a
 -- simple wrapper over 'requestedNames' and 'nameField'.

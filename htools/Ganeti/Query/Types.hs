@@ -26,7 +26,13 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 -}
 
-module Ganeti.Query.Types where
+module Ganeti.Query.Types
+  ( FieldGetter(..)
+  , FieldData
+  , FieldList
+  , FieldMap
+  , isRuntimeField
+  ) where
 
 import qualified Data.Map as Map
 
@@ -52,3 +58,8 @@ type FieldList a b = [FieldData a b]
 
 -- | Alias for field maps.
 type FieldMap a b = Map.Map String (FieldData a b)
+
+-- | Helper function to check if a getter is a runtime one.
+isRuntimeField :: FieldGetter a b -> Bool
+isRuntimeField (FieldRuntime _) = True
+isRuntimeField _                = False
