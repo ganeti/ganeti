@@ -37,7 +37,7 @@ import Test.Ganeti.TestCommon
 
 import qualified Ganeti.JSON as JSON
 import qualified Ganeti.HTools.Types as Types
-import qualified Ganeti.Utils as Utils
+import Ganeti.Utils
 
 -- | Helper to generate a small string that doesn't contain commas.
 genNonCommaString :: Gen String
@@ -51,12 +51,12 @@ prop_commaJoinSplit :: Property
 prop_commaJoinSplit =
   forAll (choose (0, 20)) $ \llen ->
   forAll (vectorOf llen genNonCommaString `suchThat` (/=) [""]) $ \lst ->
-  Utils.sepSplit ',' (Utils.commaJoin lst) ==? lst
+  sepSplit ',' (commaJoin lst) ==? lst
 
 -- | Split and join should always be idempotent.
 prop_commaSplitJoin :: String -> Property
 prop_commaSplitJoin s =
-  Utils.commaJoin (Utils.sepSplit ',' s) ==? s
+  commaJoin (sepSplit ',' s) ==? s
 
 -- | fromObjWithDefault, we test using the Maybe monad and an integer
 -- value.
@@ -71,7 +71,7 @@ prop_fromObjWithDefault def_value random_key =
 -- | Test that functional if' behaves like the syntactic sugar if.
 prop_if'if :: Bool -> Int -> Int -> Gen Prop
 prop_if'if cnd a b =
-  Utils.if' cnd a b ==? if cnd then a else b
+  if' cnd a b ==? if cnd then a else b
 
 -- | Test basic select functionality
 prop_select :: Int      -- ^ Default result
@@ -79,8 +79,8 @@ prop_select :: Int      -- ^ Default result
             -> [Int]    -- ^ List of True values
             -> Gen Prop -- ^ Test result
 prop_select def lst1 lst2 =
-  Utils.select def (flist ++ tlist) ==? expectedresult
-    where expectedresult = Utils.if' (null lst2) def (head lst2)
+  select def (flist ++ tlist) ==? expectedresult
+    where expectedresult = if' (null lst2) def (head lst2)
           flist = zip (repeat False) lst1
           tlist = zip (repeat True)  lst2
 
@@ -89,7 +89,7 @@ prop_select_undefd :: [Int]            -- ^ List of False values
                    -> NonEmptyList Int -- ^ List of True values
                    -> Gen Prop         -- ^ Test result
 prop_select_undefd lst1 (NonEmpty lst2) =
-  Utils.select undefined (flist ++ tlist) ==? head lst2
+  select undefined (flist ++ tlist) ==? head lst2
     where flist = zip (repeat False) lst1
           tlist = zip (repeat True)  lst2
 
@@ -98,23 +98,23 @@ prop_select_undefv :: [Int]            -- ^ List of False values
                    -> NonEmptyList Int -- ^ List of True values
                    -> Gen Prop         -- ^ Test result
 prop_select_undefv lst1 (NonEmpty lst2) =
-  Utils.select undefined cndlist ==? head lst2
+  select undefined cndlist ==? head lst2
     where flist = zip (repeat False) lst1
           tlist = zip (repeat True)  lst2
           cndlist = flist ++ tlist ++ [undefined]
 
 prop_parseUnit :: NonNegative Int -> Property
 prop_parseUnit (NonNegative n) =
-  Utils.parseUnit (show n) ==? Types.Ok n .&&.
-  Utils.parseUnit (show n ++ "m") ==? Types.Ok n .&&.
-  Utils.parseUnit (show n ++ "M") ==? Types.Ok (truncate n_mb::Int) .&&.
-  Utils.parseUnit (show n ++ "g") ==? Types.Ok (n*1024) .&&.
-  Utils.parseUnit (show n ++ "G") ==? Types.Ok (truncate n_gb::Int) .&&.
-  Utils.parseUnit (show n ++ "t") ==? Types.Ok (n*1048576) .&&.
-  Utils.parseUnit (show n ++ "T") ==? Types.Ok (truncate n_tb::Int) .&&.
+  parseUnit (show n) ==? Types.Ok n .&&.
+  parseUnit (show n ++ "m") ==? Types.Ok n .&&.
+  parseUnit (show n ++ "M") ==? Types.Ok (truncate n_mb::Int) .&&.
+  parseUnit (show n ++ "g") ==? Types.Ok (n*1024) .&&.
+  parseUnit (show n ++ "G") ==? Types.Ok (truncate n_gb::Int) .&&.
+  parseUnit (show n ++ "t") ==? Types.Ok (n*1048576) .&&.
+  parseUnit (show n ++ "T") ==? Types.Ok (truncate n_tb::Int) .&&.
   printTestCase "Internal error/overflow?"
     (n_mb >=0 && n_gb >= 0 && n_tb >= 0) .&&.
-  property (Types.isBad (Utils.parseUnit (show n ++ "x")::Types.Result Int))
+  property (Types.isBad (parseUnit (show n ++ "x")::Types.Result Int))
   where n_mb = (fromIntegral n::Rational) * 1000 * 1000 / 1024 / 1024
         n_gb = n_mb * 1000
         n_tb = n_gb * 1000
