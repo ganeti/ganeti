@@ -29,7 +29,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 module Test.Ganeti.Utils (testUtils) where
 
 import Test.QuickCheck
+import Test.HUnit
 
+import Data.List
 import qualified Text.JSON as J
 
 import Test.Ganeti.TestHelper
@@ -119,6 +121,85 @@ prop_parseUnit (NonNegative n) =
         n_gb = n_mb * 1000
         n_tb = n_gb * 1000
 
+{-# ANN case_niceSort_static "HLint: ignore Use camelCase" #-}
+
+case_niceSort_static :: Assertion
+case_niceSort_static = do
+  assertEqual "empty list" [] $ niceSort []
+  assertEqual "punctuation" [",", "."] $ niceSort [",", "."]
+  assertEqual "decimal numbers" ["0.1", "0.2"] $ niceSort ["0.1", "0.2"]
+  assertEqual "various numbers" ["0,099", "0.1", "0.2", "0;099"] $
+              niceSort ["0;099", "0,099", "0.1", "0.2"]
+
+  assertEqual "simple concat" ["0000", "a0", "a1", "a2", "a20", "a99",
+                               "b00", "b10", "b70"] $
+    niceSort ["a0", "a1", "a99", "a20", "a2", "b10", "b70", "b00", "0000"]
+
+  assertEqual "ranges" ["A", "Z", "a0-0", "a0-4", "a1-0", "a9-1", "a09-2",
+                      "a20-3", "a99-3", "a99-10", "b"] $
+    niceSort ["a0-0", "a1-0", "a99-10", "a20-3", "a0-4", "a99-3", "a09-2",
+              "Z", "a9-1", "A", "b"]
+
+  assertEqual "large"
+    ["3jTwJPtrXOY22bwL2YoW", "Eegah9ei", "KOt7vn1dWXi",
+     "KVQqLPDjcPjf8T3oyzjcOsfkb", "WvNJd91OoXvLzdEiEXa6",
+     "Z8Ljf1Pf5eBfNg171wJR", "a07h8feON165N67PIE", "bH4Q7aCu3PUPjK3JtH",
+     "cPRi0lM7HLnSuWA2G9", "guKJkXnkULealVC8CyF1xefym",
+     "pqF8dkU5B1cMnyZuREaSOADYx", "uHXAyYYftCSG1o7qcCqe",
+     "xij88brTulHYAv8IEOyU", "xpIUJeVT1Rp"] $
+    niceSort ["Eegah9ei", "xij88brTulHYAv8IEOyU", "3jTwJPtrXOY22bwL2YoW",
+             "Z8Ljf1Pf5eBfNg171wJR", "WvNJd91OoXvLzdEiEXa6",
+             "uHXAyYYftCSG1o7qcCqe", "xpIUJeVT1Rp", "KOt7vn1dWXi",
+             "a07h8feON165N67PIE", "bH4Q7aCu3PUPjK3JtH",
+             "cPRi0lM7HLnSuWA2G9", "KVQqLPDjcPjf8T3oyzjcOsfkb",
+             "guKJkXnkULealVC8CyF1xefym", "pqF8dkU5B1cMnyZuREaSOADYx"]
+
+-- | Tests single-string behaviour of 'niceSort'. Last test is special
+-- in the sense that /0/ is before any other non-empty string (except
+-- itself, etc.).
+prop_niceSort_single :: Property
+prop_niceSort_single =
+  forAll getName $ \name ->
+  conjoin
+  [ printTestCase "single string" $ [name] ==? niceSort [name]
+  , printTestCase "single plus empty" $ ["", name] ==? niceSort [name, ""]
+  , printTestCase "single plus 0-digit" $ ["0", name] ==? niceSort [name, "0"]
+  ]
+
+-- | Tests some generic 'niceSort' properties. Note that the last test
+-- must add a non-digit prefix; a digit one might change ordering.
+prop_niceSort_generic :: Property
+prop_niceSort_generic =
+  forAll (resize 20 arbitrary) $ \names ->
+  let n_sorted = niceSort names in
+  conjoin [ printTestCase "length" $ length names ==? length n_sorted
+          , printTestCase "same strings" $ sort names ==? sort n_sorted
+          , printTestCase "idempotence" $ n_sorted ==? niceSort n_sorted
+          , printTestCase "static prefix" $ n_sorted ==?
+              map tail (niceSort $ map (" "++) names)
+          ]
+
+-- | Tests that niceSorting numbers is identical to actual sorting
+-- them (in numeric form).
+prop_niceSort_numbers :: Property
+prop_niceSort_numbers =
+  forAll (listOf (arbitrary::Gen (NonNegative Int))) $ \numbers ->
+  map show (sort numbers) ==? niceSort (map show numbers)
+
+-- | Tests that 'niceSort' and 'niceSortKey' are equivalent.
+prop_niceSortKey_equiv :: Property
+prop_niceSortKey_equiv =
+  forAll (resize 20 arbitrary) $ \names ->
+  forAll (vectorOf (length names) (arbitrary::Gen Int)) $ \numbers ->
+  let n_sorted = niceSort names in
+  conjoin
+  [ printTestCase "key id" $ n_sorted ==? niceSortKey id names
+  , printTestCase "key rev" $ niceSort (map reverse names) ==?
+                              map reverse (niceSortKey reverse names)
+  , printTestCase "key snd" $ n_sorted ==? map snd (niceSortKey snd $
+                                                    zip numbers names)
+  ]
+
 -- | Test list for the Utils module.
 testSuite "Utils"
             [ 'prop_commaJoinSplit
@@ -129,4 +210,9 @@ testSuite "Utils"
             , 'prop_select_undefd
             , 'prop_select_undefv
             , 'prop_parseUnit
+            , 'case_niceSort_static
+            , 'prop_niceSort_single
+            , 'prop_niceSort_generic
+            , 'prop_niceSort_numbers
+            , 'prop_niceSortKey_equiv
             ]

@@ -37,13 +37,16 @@ module Ganeti.Utils
   , printTable
   , parseUnit
   , plural
+  , niceSort
+  , niceSortKey
   , exitIfBad
   , exitErr
   , exitWhen
   , exitUnless
   ) where
 
-import Data.Char (toUpper, isAlphaNum)
+import Data.Char (toUpper, isAlphaNum, isDigit)
+import Data.Function (on)
 import Data.List
 
 import Debug.Trace
@@ -230,3 +233,43 @@ exitWhen False _  = return ()
 -- if true, the opposite of 'exitWhen'.
 exitUnless :: Bool -> String -> IO ()
 exitUnless cond = exitWhen (not cond)
+
+-- | Helper for 'niceSort'. Computes the key element for a given string.
+extractKey :: [Either Integer String]  -- ^ Current (partial) key, reversed
+           -> String                   -- ^ Remaining string
+           -> ([Either Integer String], String)
+extractKey ek [] = (reverse ek, [])
+extractKey ek xs@(x:_) =
+  let (span_fn, conv_fn) = if isDigit x
+                             then (isDigit, Left . read)
+                             else (not . isDigit, Right)
+      (k, rest) = span span_fn xs
+  in extractKey (conv_fn k:ek) rest
+
+{-| Sort a list of strings based on digit and non-digit groupings.
+
+Given a list of names @['a1', 'a10', 'a11', 'a2']@ this function
+will sort the list in the logical order @['a1', 'a2', 'a10', 'a11']@.
+
+The sort algorithm breaks each name in groups of either only-digits or
+no-digits, and sorts based on each group.
+
+Internally, this is not implemented via regexes (like the Python
+version), but via actual splitting of the string in sequences of
+either digits or everything else, and converting the digit sequences
+in /Left Integer/ and the non-digit ones in /Right String/, at which
+point sorting becomes trivial due to the built-in 'Either' ordering;
+we only need one extra step of dropping the key at the end.
+
+-}
+niceSort :: [String] -> [String]
+niceSort = map snd . sort . map (\s -> (fst $ extractKey [] s, s))
+
+-- | Key-version of 'niceSort'. We use 'sortBy' and @compare `on` fst@
+-- since we don't want to add an ordering constraint on the /a/ type,
+-- hence the need to only compare the first element of the /(key, a)/
+-- tuple.
+niceSortKey :: (a -> String) -> [a] -> [a]
+niceSortKey keyfn =
+  map snd . sortBy (compare `on` fst) .
+  map (\s -> (fst . extractKey [] $ keyfn s, s))
