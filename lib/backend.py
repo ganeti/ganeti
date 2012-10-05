@@ -2743,16 +2743,10 @@ def _TransformFileStorageDir(fs_dir):
   if not (constants.ENABLE_FILE_STORAGE or
           constants.ENABLE_SHARED_FILE_STORAGE):
     _Fail("File storage disabled at configure time")
-  cfg = _GetConfig()
-  fs_dir = os.path.normpath(fs_dir)
-  base_fstore = cfg.GetFileStorageDir()
-  base_shared = cfg.GetSharedFileStorageDir()
-  if not (utils.IsBelowDir(base_fstore, fs_dir) or
-          utils.IsBelowDir(base_shared, fs_dir)):
-    _Fail("File storage directory '%s' is not under base file"
-          " storage directory '%s' or shared storage directory '%s'",
-          fs_dir, base_fstore, base_shared)
-  return fs_dir
+
+  bdev.CheckFileStoragePath(fs_dir)
+
+  return os.path.normpath(fs_dir)
 
 
 def CreateFileStorageDir(file_storage_dir):

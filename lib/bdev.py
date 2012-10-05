@@ -2245,6 +2245,9 @@ class FileStorage(BlockDev):
       raise ValueError("Invalid configuration data %s" % str(unique_id))
     self.driver = unique_id[0]
     self.dev_path = unique_id[1]
+
+    CheckFileStoragePath(self.dev_path)
+
     self.Attach()
 
   def Assemble(self):
@@ -2361,7 +2364,11 @@ class FileStorage(BlockDev):
     """
     if not isinstance(unique_id, (tuple, list)) or len(unique_id) != 2:
       raise ValueError("Invalid configuration data %s" % str(unique_id))
+
     dev_path = unique_id[1]
+
+    CheckFileStoragePath(dev_path)
+
     try:
       fd = os.open(dev_path, os.O_RDWR | os.O_CREAT | os.O_EXCL)
       f = os.fdopen(fd, "w")
