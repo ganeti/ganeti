@@ -334,6 +334,7 @@ def _CheckStorageType(storage_type):
     raise errors.OpPrereqError("Unknown storage type: %s" % storage_type,
                                errors.ECODE_INVAL)
   if storage_type == constants.ST_FILE:
+    # TODO: What about shared file storage?
     RequireFileStorage()
   return True
 
