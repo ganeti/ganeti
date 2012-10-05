@@ -22,6 +22,23 @@ program won't detach from the running terminal.
 
 Debug-level message can be activated by giving the ``-d`` option.
 
+Logging to syslog, rather than its own log file, can be enabled by
+passing in the ``--syslog`` option.
+
+The **ganeti-confd** daemon listens to port 1814 UDP, on all interfaces,
+by default. The port can be overridden by an entry the services database
+(usually ``/etc/services``) or by passing the ``-p`` option.  The ``-b``
+option can be used to specify the address to bind to (defaults to
+``0.0.0.0``). The daemon also listens on a Unix socket
+(``@LOCALSTATEDIR@/run/ganeti/socket/ganeti-query``) on which it exports
+a ``Luxi`` endpoint, serving query operations only. Commands and tools
+use this socket if the build-time option for split queries has been
+enabled.
+
+The daemon will refuse to start if the user and group do not match the
+one defined at build time; this behaviour can be overridden by the
+``--no-user-checks`` option.
+
 ROLE
 ~~~~
 
