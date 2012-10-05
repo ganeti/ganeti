@@ -67,8 +67,8 @@ import System.IO.Error (isEOFError)
 import System.Timeout
 import qualified Network.Socket as S
 
+import Ganeti.BasicTypes
 import Ganeti.JSON
-import Ganeti.HTools.Types
 import Ganeti.Utils
 
 import Ganeti.Constants
@@ -214,7 +214,7 @@ data Client = Client { socket :: Handle           -- ^ The socket of the client
 getClient :: String -> IO Client
 getClient path = do
   s <- S.socket S.AF_UNIX S.Stream S.defaultProtocol
-  withTimeout connTimeout "creating luxi connection" $
+  withTimeout luxiDefCtmo "creating luxi connection" $
               S.connect s (S.SockAddrUnix path)
   rf <- newIORef B.empty
   h <- S.socketToHandle s ReadWriteMode
@@ -250,7 +250,7 @@ closeClient = hClose . socket
 
 -- | Sends a message over a luxi transport.
 sendMsg :: Client -> String -> IO ()
-sendMsg s buf = withTimeout queryTimeout "sending luxi message" $ do
+sendMsg s buf = withTimeout luxiDefRwto "sending luxi message" $ do
   let encoded = UTF8.fromString buf
       handle = socket s
   B.hPut handle encoded
@@ -262,7 +262,7 @@ sendMsg s buf = withTimeout queryTimeout "sending luxi message" $ do
 -- message and the leftover buffer contents.
 recvUpdate :: Handle -> B.ByteString -> IO (B.ByteString, B.ByteString)
 recvUpdate handle obuf = do
-  nbuf <- withTimeout queryTimeout "reading luxi response" $ do
+  nbuf <- withTimeout luxiDefRwto "reading luxi response" $ do
             _ <- hWaitForInput handle (-1)
             B.hGetNonBlocking handle 4096
   let (msg, remaining) = B.break (eOM ==) nbuf

@@ -72,8 +72,6 @@ module Ganeti.HTools.Types
   , FailStats
   , OpResult(..)
   , opToResult
-  , connTimeout
-  , queryTimeout
   , EvacMode(..)
   , ISpec(..)
   , IPolicy(..)
@@ -318,14 +316,6 @@ unknownField = "<unknown field>"
 
 -- | A list of command elements.
 type JobSet = [MoveJob]
-
--- | Connection timeout (when using non-file methods).
-connTimeout :: Int
-connTimeout = 15
-
--- | The default timeout for queries (when using non-file methods).
-queryTimeout :: Int
-queryTimeout = 60
 
 -- | Default max disk usage ratio.
 defReservedDiskRatio :: Double

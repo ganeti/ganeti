@@ -44,9 +44,9 @@ import System.Time
 import qualified Text.JSON as J
 import System.INotify
 
+import Ganeti.BasicTypes
 import Ganeti.Daemon
 import Ganeti.JSON
-import Ganeti.HTools.Types
 import Ganeti.Objects
 import Ganeti.Confd
 import Ganeti.Confd.Utils

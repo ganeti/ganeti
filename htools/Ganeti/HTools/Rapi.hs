@@ -66,12 +66,20 @@ getUrl _ = return $ fail "RAPI/curl backend disabled at compile time"
 
 #else
 
+-- | Connection timeout (when using non-file methods).
+connTimeout :: Long
+connTimeout = 15
+
+-- | The default timeout for queries (when using non-file methods).
+queryTimeout :: Long
+queryTimeout = 60
+
 -- | The curl options we use.
 curlOpts :: [CurlOption]
 curlOpts = [ CurlSSLVerifyPeer False
            , CurlSSLVerifyHost 0
-           , CurlTimeout (fromIntegral queryTimeout)
-           , CurlConnectTimeout (fromIntegral connTimeout)
+           , CurlTimeout queryTimeout
+           , CurlConnectTimeout connTimeout
            ]
 
 getUrl url = do
