@@ -141,7 +141,6 @@ def CheckFileStoragePath(path, _filename=pathutils.FILE_STORAGE_PATHS_FILE):
   _CheckFileStoragePath(path, LoadAllowedFileStoragePaths(_filename))
 
 
-
 class BlockDev(object):
   """Block device abstract class.
 
