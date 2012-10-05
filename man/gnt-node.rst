@@ -112,8 +112,8 @@ The new location for the instances can be specified in two ways:
   option
 
 - or via the ``-I (--iallocator)`` option, giving a script name as
-  parameter, so each instance will be in turn placed on the (per the
-  script) optimal node
+  parameter (or ``.`` to use the default allocator), so each instance
+  will be in turn placed on the (per the script) optimal node
 
 The ``--early-release`` changes the code so that the old storage on
 node being evacuated is removed early (before the resync is

@@ -617,11 +617,11 @@ a hypothetical ``dhcp`` parameter to yes can be achieved by::
 
     gnt-instance add -O dhcp=yes ...
 
-The ``-I (--iallocator)`` option specifies the instance allocator
-plugin to use. If you pass in this option the allocator will select
-nodes for this instance automatically, so you don't need to pass them
-with the ``-n`` option. For more information please refer to the
-instance allocator documentation.
+The ``-I (--iallocator)`` option specifies the instance allocator plugin
+to use (``.`` means the default allocator). If you pass in this option
+the allocator will select nodes for this instance automatically, so you
+don't need to pass them with the ``-n`` option. For more information
+please refer to the instance allocator documentation.
 
 The ``-t (--disk-template)`` options specifies the disk layout type
 for the instance.  The available choices are:
@@ -1283,11 +1283,11 @@ of comma-delimited disk indices (zero-based), e.g. 0,2 to replace only
 the first and third disks.
 
 The third form (when passing either the ``--iallocator`` or the
-``--new-secondary`` option) is designed to change secondary node of
-the instance. Specifying ``--iallocator`` makes the new secondary be
-selected automatically by the specified allocator plugin, otherwise
-the new secondary node will be the one chosen manually via the
-``--new-secondary`` option.
+``--new-secondary`` option) is designed to change secondary node of the
+instance. Specifying ``--iallocator`` makes the new secondary be
+selected automatically by the specified allocator plugin (use ``.`` to
+indicate the default allocator), otherwise the new secondary node will
+be the one chosen manually via the ``--new-secondary`` option.
 
 Note that it is not possible to select an offline or drained node as a
 new secondary.
@@ -1458,10 +1458,10 @@ passed must equal the number of nodes that the instance currently
 has. Note that changing nodes is only allowed when all disks are
 replaced, e.g. when no ``--disk`` option is passed.
 
-Another method of chosing which nodes to place the instance on is by
+Another method of choosing which nodes to place the instance on is by
 using the specified iallocator, passing the ``--iallocator`` option.
 The primary and secondary nodes will be chosen by the specified
-iallocator plugin.
+iallocator plugin, or by the default allocator if ``.`` is specified.
 
 See **ganeti(7)** for a description of ``--submit`` and other common
 options.
@@ -1535,6 +1535,8 @@ explicitly specify the target node (which can be any node) using the
 ``-n`` or ``--target-node`` option, or specify an iallocator plugin
 using the ``-I`` or ``--iallocator`` option. If you omit both, the
 default iallocator will be used to specify the target node.
+Alternatively, the default iallocator can be requested by specifying
+``.`` as the name of the plugin.
 
 The migration command needs a perfectly healthy instance, as we rely
 on the dual-master capability of drbd8 and the disks of the instance
