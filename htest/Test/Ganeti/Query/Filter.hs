@@ -70,21 +70,30 @@ expectBadQuery cfg qr descr = monadicIO $ do
     Ok a  -> stop . failTest $ "Expected failure in " ++ descr ++
                                " but got " ++ show a
 
+-- | A helper to construct a list of results from an expected names list.
+namesToResult :: [String] -> [[ResultEntry]]
+namesToResult = map ((:[]) . ResultEntry RSNormal . Just . showJSON)
+
+-- | Generates a cluster and returns its node names too.
+genClusterNames :: Int -> Int -> Gen (ConfigData, [String])
+genClusterNames min_nodes max_nodes = do
+  numnodes <- choose (min_nodes, max_nodes)
+  cfg <- genEmptyCluster numnodes
+  return (cfg, niceSort . Map.keys . fromContainer $ configNodes cfg)
+
 -- * Test cases
 
 -- | Tests single node filtering: eq should return it, and (lt and gt)
 -- should fail.
 prop_node_single_filter :: Property
 prop_node_single_filter =
-  forAll (choose (1, maxNodes)) $ \numnodes ->
-  forAll (genEmptyCluster numnodes) $ \cfg ->
-  let allnodes = niceSort . Map.keys . fromContainer $ configNodes cfg in
+  forAll (genClusterNames 1 maxNodes) $ \(cfg, allnodes) ->
   forAll (elements allnodes) $ \nname ->
   let fvalue = QuotedString nname
       buildflt n = n "name" fvalue
-      expsingle = [[ResultEntry RSNormal (Just (showJSON nname))]]
+      expsingle = namesToResult [nname]
       othernodes = nname `delete` allnodes
-      expnot = map ((:[]) . ResultEntry RSNormal . Just . showJSON) othernodes
+      expnot = namesToResult othernodes
       test_query = checkQueryResults cfg . makeNodeQuery
   in conjoin
        [ test_query (buildflt EQFilter) "single-name 'EQ' filter" expsingle
@@ -102,11 +111,9 @@ prop_node_single_filter =
 -- the 'AndFilter' case breaks.
 prop_node_many_filter :: Property
 prop_node_many_filter =
-  forAll (choose (2, maxNodes)) $ \numnodes ->
-  forAll (genEmptyCluster numnodes) $ \cfg ->
-  let nnames = niceSort . Map.keys . fromContainer $ configNodes cfg
-      eqfilter = map (EQFilter "name" . QuotedString) nnames
-      alln = map ((:[]) . ResultEntry RSNormal . Just . showJSON) nnames
+  forAll (genClusterNames 2 maxNodes) $ \(cfg, nnames) ->
+  let eqfilter = map (EQFilter "name" . QuotedString) nnames
+      alln = namesToResult nnames
       test_query = checkQueryResults cfg . makeNodeQuery
       num_zero = NumericValue 0
   in conjoin
@@ -118,31 +125,41 @@ prop_node_many_filter =
      , test_query (GTFilter "sinst_cnt" num_zero) "sinst_cnt 'GT' 0" []
      ]
 
+-- | Tests name ordering consistency: requesting a 'simple filter'
+-- results in identical name ordering as the wanted names, requesting
+-- a more complex filter results in a niceSort-ed order.
+prop_node_name_ordering :: Property
+prop_node_name_ordering =
+  forAll (genClusterNames 2 6) $ \(cfg, nnames) ->
+  forAll (elements (subsequences nnames)) $ \sorted_nodes ->
+  forAll (elements (permutations sorted_nodes)) $ \chosen_nodes ->
+  let orfilter = OrFilter $ map (EQFilter "name" . QuotedString) chosen_nodes
+      alln = namesToResult chosen_nodes
+      all_sorted = namesToResult $ niceSort chosen_nodes
+      test_query = checkQueryResults cfg . makeNodeQuery
+  in conjoin
+     [ test_query orfilter "simple filter/requested" alln
+     , test_query (AndFilter [orfilter]) "complex filter/sorted" all_sorted
+     ]
+
 -- | Tests node regex filtering. This is a very basic test :(
 prop_node_regex_filter :: Property
 prop_node_regex_filter =
-  forAll (choose (0, maxNodes)) $ \numnodes ->
-  forAll (genEmptyCluster numnodes) $ \cfg ->
-  let nnames = niceSort . Map.keys . fromContainer $ configNodes cfg
-      expected = map ((:[]) . ResultEntry RSNormal . Just . showJSON) nnames
-      regex = mkRegex ".*"::Result FilterRegex
-  in case regex of
-       Bad msg -> failTest $ "Can't build regex?! Error: " ++ msg
-       Ok rx ->
-         checkQueryResults cfg (makeNodeQuery (RegexpFilter "name" rx))
-           "rows for all nodes regexp filter"
-           expected
+  forAll (genClusterNames 0 maxNodes) $ \(cfg, nnames) ->
+  case mkRegex ".*"::Result FilterRegex of
+    Bad msg -> failTest $ "Can't build regex?! Error: " ++ msg
+    Ok rx ->
+      checkQueryResults cfg (makeNodeQuery (RegexpFilter "name" rx))
+        "rows for all nodes regexp filter" $ namesToResult nnames
 
 -- | Tests node regex filtering. This is a very basic test :(
 prop_node_bad_filter :: String -> Int -> Property
 prop_node_bad_filter rndname rndint =
-  forAll (choose (1, maxNodes)) $ \numnodes ->
-  forAll (genEmptyCluster numnodes) $ \cfg ->
-  let regex = mkRegex ".*"::Result FilterRegex
-      test_query = expectBadQuery cfg . makeNodeQuery
+  forAll (genClusterNames 1 maxNodes) $ \(cfg, _) ->
+  let test_query = expectBadQuery cfg . makeNodeQuery
       string_value = QuotedString rndname
       numeric_value = NumericValue $ fromIntegral rndint
-  in case regex of
+  in case mkRegex ".*"::Result FilterRegex of
        Bad msg -> failTest $ "Can't build regex?! Error: " ++ msg
        Ok rx ->
          conjoin
@@ -175,6 +192,7 @@ prop_makeSimpleFilter =
 testSuite "Query/Filter"
   [ 'prop_node_single_filter
   , 'prop_node_many_filter
+  , 'prop_node_name_ordering
   , 'prop_node_regex_filter
   , 'prop_node_bad_filter
   , 'prop_makeSimpleFilter
