@@ -91,8 +91,8 @@ optComplYesNo = OptComplChoices ["yes", "no"]
 
 -- | Text serialisation for 'OptCompletion', used on the Python side.
 complToText :: OptCompletion -> String
-complToText (OptComplChoices choices) = "choices " ++ intercalate "," choices
-complToText (OptComplSuggest choices) = "suggest " ++ intercalate "," choices
+complToText (OptComplChoices choices) = "choices=" ++ intercalate "," choices
+complToText (OptComplSuggest choices) = "suggest=" ++ intercalate "," choices
 complToText compl =
   let show_compl = show compl
       stripped = stripPrefix "OptCompl" show_compl
