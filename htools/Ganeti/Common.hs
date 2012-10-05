@@ -71,7 +71,8 @@ data OptCompletion = OptComplNone             -- ^ No parameter to this option
                    | OptComplOneIallocator    -- ^ One iallocator
                    | OptComplInstAddNodes     -- ^ Either one or two nodes
                    | OptComplOneGroup         -- ^ One group
-                   | OptComplNumeric          -- ^ Float values
+                   | OptComplInteger          -- ^ Integer values
+                   | OptComplFloat            -- ^ Float values
                    | OptComplJobId            -- ^ Job Id
                    | OptComplCommand          -- ^ Command (executable)
                    | OptComplString           -- ^ Arbitrary string

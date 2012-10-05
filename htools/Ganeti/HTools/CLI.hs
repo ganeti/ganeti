@@ -256,7 +256,7 @@ oSpindleUse =
        return $ opts { optSpindleUse = Just su })
     "SPINDLES") "select how many virtual spindle instances use\
                 \ [default read from cluster]",
-   OptComplNumeric)
+   OptComplFloat)
 
 oSelInst :: OptType
 oSelInst =
@@ -354,7 +354,7 @@ oMaxCpu =
        return $ opts { optMcpu = Just mcpu }) "RATIO")
    "maximum virtual-to-physical cpu ratio for nodes (from 0\
    \ upwards) [default read from cluster]",
-   OptComplNumeric)
+   OptComplFloat)
 
 oMaxSolLength :: OptType
 oMaxSolLength =
@@ -364,7 +364,7 @@ oMaxSolLength =
    "cap the solution at this many balancing or allocation \
    \ rounds (useful for very unbalanced clusters or empty \
    \ clusters)",
-   OptComplNumeric)
+   OptComplInteger)
 
 oMinDisk :: OptType
 oMinDisk =
@@ -372,7 +372,7 @@ oMinDisk =
    (reqWithConversion (tryRead "min free disk space")
     (\n opts -> Ok opts { optMdsk = n }) "RATIO")
    "minimum free disk space for nodes (between 0 and 1) [0]",
-   OptComplNumeric)
+   OptComplFloat)
 
 oMinGain :: OptType
 oMinGain =
@@ -380,7 +380,7 @@ oMinGain =
    (reqWithConversion (tryRead "min gain")
     (\g opts -> Ok opts { optMinGain = g }) "DELTA")
    "minimum gain to aim for in a balancing step before giving up",
-   OptComplNumeric)
+   OptComplFloat)
 
 oMinGainLim :: OptType
 oMinGainLim =
@@ -388,7 +388,7 @@ oMinGainLim =
    (reqWithConversion (tryRead "min gain limit")
     (\g opts -> Ok opts { optMinGainLim = g }) "SCORE")
    "minimum cluster score for which we start checking the min-gain",
-   OptComplNumeric)
+   OptComplFloat)
 
 oMinScore :: OptType
 oMinScore =
@@ -396,7 +396,7 @@ oMinScore =
    (reqWithConversion (tryRead "min score")
     (\e opts -> Ok opts { optMinScore = e }) "EPSILON")
    "mininum score to aim for",
-   OptComplNumeric)
+   OptComplFloat)
 
 oNoHeaders :: OptType
 oNoHeaders =

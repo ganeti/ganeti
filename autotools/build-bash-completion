@@ -644,9 +644,10 @@ def HaskellOptToOptParse(opts, kind):
     return cli.cli_option(*opts, action="store_true")
   elif kind in ["file", "string", "host", "dir", "inetaddr"]:
     return cli.cli_option(*opts, type="string")
-  elif kind == "numeric":
-    # FIXME: float values here
-    return cli.cli_option(*opts, type="string")
+  elif kind == "integer":
+    return cli.cli_option(*opts, type="int")
+  elif kind == "float":
+    return cli.cli_option(*opts, type="float")
   elif kind == "onegroup":
     return cli.cli_option(*opts, type="string",
                            completion_suggest=cli.OPT_COMPL_ONE_NODEGROUP)

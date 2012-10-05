@@ -144,7 +144,7 @@ oPort def =
    (reqWithConversion (tryRead "reading port")
     (\port opts -> Ok opts { optPort = Just port }) "PORT")
    ("Network port (default: " ++ show def ++ ")"),
-   OptComplNumeric)
+   OptComplInteger)
 
 oBindAddress :: OptType
 oBindAddress =
