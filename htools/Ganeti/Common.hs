@@ -30,6 +30,7 @@ module Ganeti.Common
   ( GenericOptType
   , StandardOptions(..)
   , OptCompletion(..)
+  , ArgCompletion(..)
   , optComplYesNo
   , oShowHelp
   , oShowVer
@@ -71,9 +72,18 @@ data OptCompletion = OptComplNone             -- ^ No parameter to this option
                    | OptComplInstAddNodes     -- ^ Either one or two nodes
                    | OptComplOneGroup         -- ^ One group
                    | OptComplNumeric          -- ^ Float values
+                   | OptComplJobId            -- ^ Job Id
+                   | OptComplCommand          -- ^ Command (executable)
                    | OptComplString           -- ^ Arbitrary string
                    | OptComplChoices [String] -- ^ List of string choices
+                   | OptComplSuggest [String] -- ^ Suggested choices
                    deriving (Show, Read, Eq)
+
+-- | Argument type. This differs from (and wraps) an Option by the
+-- fact that it can (and usually does) support multiple repetitions of
+-- the same argument, via a min and max limit.
+data ArgCompletion = ArgCompletion OptCompletion Int (Maybe Int)
+                     deriving (Show, Read, Eq)
 
 -- | Yes\/no choices completion.
 optComplYesNo :: OptCompletion
@@ -82,10 +92,16 @@ optComplYesNo = OptComplChoices ["yes", "no"]
 -- | Text serialisation for 'OptCompletion', used on the Python side.
 complToText :: OptCompletion -> String
 complToText (OptComplChoices choices) = "choices " ++ intercalate "," choices
+complToText (OptComplSuggest choices) = "suggest " ++ intercalate "," choices
 complToText compl =
   let show_compl = show compl
       stripped = stripPrefix "OptCompl" show_compl
   in map toLower $ fromMaybe show_compl stripped
+
+-- | Tex serialisation for 'ArgCompletion'.
+argComplToText :: ArgCompletion -> String
+argComplToText (ArgCompletion optc min_cnt max_cnt) =
+  complToText optc ++ " " ++ show min_cnt ++ " " ++ maybe "none" show max_cnt
 
 -- | Abrreviation for the option type.
 type GenericOptType a = (OptDescr (a -> Result a), OptCompletion)
@@ -131,13 +147,14 @@ versionInfo progname =
          os arch
 
 -- | Show completion info.
-completionInfo :: String -> [GenericOptType a] -> String
-completionInfo _ =
-  unlines .
+completionInfo :: String -> [GenericOptType a] -> [ArgCompletion] -> String
+completionInfo _ opts args =
+  unlines $
   map (\(Option shorts longs _ _, compinfo) ->
          let all_opts = map (\c -> ['-', c]) shorts ++ map ("--" ++) longs
          in intercalate "," all_opts ++ " " ++ complToText compinfo
-      )
+      ) opts ++
+  map argComplToText args
 
 -- | Helper for parsing a yes\/no command line flag.
 parseYesNo :: Bool         -- ^ Default value (when we get a @Nothing@)
@@ -199,7 +216,7 @@ parseOptsInner defaults argv progname options  =
                  , (verRequested parsed,
                     Left (ExitSuccess, versionInfo progname))
                  , (compRequested parsed,
-                    Left (ExitSuccess, completionInfo progname options))
+                    Left (ExitSuccess, completionInfo progname options []))
                  ]
     (_, _, errs) ->
       Left (ExitFailure 2, "Command line error: "  ++ concat errs ++ "\n" ++
