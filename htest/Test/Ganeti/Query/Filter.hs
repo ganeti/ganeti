@@ -44,6 +44,7 @@ import Ganeti.JSON
 import Ganeti.Objects
 import Ganeti.Query.Language
 import Ganeti.Query.Query
+import Ganeti.Utils (niceSort)
 
 -- * Helpers
 
@@ -76,7 +77,7 @@ prop_node_single_filter :: Property
 prop_node_single_filter =
   forAll (choose (1, maxNodes)) $ \numnodes ->
   forAll (genEmptyCluster numnodes) $ \cfg ->
-  let allnodes = Map.keys . fromContainer $ configNodes cfg in
+  let allnodes = niceSort . Map.keys . fromContainer $ configNodes cfg in
   forAll (elements allnodes) $ \nname ->
   let fvalue = QuotedString nname
       buildflt n = n "name" fvalue
@@ -102,7 +103,7 @@ prop_node_many_filter :: Property
 prop_node_many_filter =
   forAll (choose (2, maxNodes)) $ \numnodes ->
   forAll (genEmptyCluster numnodes) $ \cfg ->
-  let nnames = Map.keys . fromContainer $ configNodes cfg
+  let nnames = niceSort . Map.keys . fromContainer $ configNodes cfg
       eqfilter = map (EQFilter "name" . QuotedString) nnames
       alln = map ((:[]) . ResultEntry RSNormal . Just . showJSON) nnames
       test_query = checkQueryResults cfg . makeNodeQuery
@@ -121,14 +122,14 @@ prop_node_regex_filter :: Property
 prop_node_regex_filter =
   forAll (choose (0, maxNodes)) $ \numnodes ->
   forAll (genEmptyCluster numnodes) $ \cfg ->
-  let nnames = Map.keys . fromContainer $ configNodes cfg
+  let nnames = niceSort . Map.keys . fromContainer $ configNodes cfg
       expected = map ((:[]) . ResultEntry RSNormal . Just . showJSON) nnames
       regex = mkRegex ".*"::Result FilterRegex
   in case regex of
        Bad msg -> failTest $ "Can't build regex?! Error: " ++ msg
        Ok rx ->
          checkQueryResults cfg (makeNodeQuery (RegexpFilter "name" rx))
-           "Inconsistent result rows for all nodes regexp filter"
+           "rows for all nodes regexp filter"
            expected
 
 -- | Tests node regex filtering. This is a very basic test :(

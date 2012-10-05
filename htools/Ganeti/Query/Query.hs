@@ -161,7 +161,8 @@ queryInner cfg live (Query QRNode fields qfilter) wanted = runResultT $ do
       (fdefs, fgetters) = unzip selected
       live' = live && needsLiveData fgetters
   nodes <- resultT $ case wanted of
-             [] -> Ok . Map.elems . fromContainer $ configNodes cfg
+             [] -> Ok . niceSortKey nodeName .
+                   Map.elems . fromContainer $ configNodes cfg
              _  -> mapM (getNode cfg) wanted
   -- runs first pass of the filter, without a runtime context; this
   -- will limit the nodes that we'll contact for runtime data
@@ -181,7 +182,8 @@ queryInner cfg _ (Query QRGroup fields qfilter) wanted = return $ do
   let selected = getSelectedFields groupFieldsMap fields
       (fdefs, fgetters) = unzip selected
   groups <- case wanted of
-              [] -> Ok . Map.elems . fromContainer $ configNodegroups cfg
+              [] -> Ok . niceSortKey groupName .
+                    Map.elems . fromContainer $ configNodegroups cfg
               _  -> mapM (getGroup cfg) wanted
   -- there is no live data for groups, so filtering is much simpler
   fgroups <- filterM (\n -> evaluateFilter cfg Nothing n cfilter) groups
