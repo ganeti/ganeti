@@ -27,6 +27,7 @@
 # [C0103] Invalid name build-bash-completion
 
 import os
+import os.path
 import re
 import itertools
 import optparse
@@ -641,7 +642,7 @@ def HaskellOptToOptParse(opts, kind):
   opts = opts.split(",")
   if kind == "none":
     return cli.cli_option(*opts, action="store_true")
-  elif kind in ["file", "string", "host", "dir"]:
+  elif kind in ["file", "string", "host", "dir", "inetaddr"]:
     return cli.cli_option(*opts, type="string")
   elif kind == "numeric":
     # FIXME: float values here
@@ -718,11 +719,10 @@ def WriteHaskellCompletion(sw, script, htools=True, debug=True):
     script_name = script
     func_name = "htools_%s" % script
   else:
-    # note: this is not yet used (daemons)
-    cmd = script
+    cmd = "./" + script
     env = {}
-    script_name = script
-    func_name = script
+    script_name = os.path.basename(script)
+    func_name = script_name
   output = utils.RunCmd([cmd, "--help-completion"], env=env, cwd=".").output
   cli_opts = []
   args = []
@@ -785,6 +785,11 @@ def main():
     for script in _autoconf.HTOOLS_PROGS:
       WriteHaskellCompletion(sw, script, htools=True,
                              debug=not options.compact)
+
+  # ganeti-confd, if enabled
+  if _autoconf.ENABLE_CONFD:
+    WriteHaskellCompletion(sw, "htools/ganeti-confd", htools=False,
+                           debug=not options.compact)
 
   # Reset extglob to original value
   sw.Write("[[ -n \"$gnt_shopt_extglob\" ]] && $gnt_shopt_extglob")

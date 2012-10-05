@@ -182,7 +182,7 @@ HTOOLS_GENERATED_FILES =
 if WANT_HTOOLS
 HTOOLS_GENERATED_FILES += $(HS_PROGS)
 if ENABLE_CONFD
-HTOOLS_GENERATED_FILES += htools/hconfd
+HTOOLS_GENERATED_FILES += htools/hconfd htools/ganeti-confd
 endif
 endif
 

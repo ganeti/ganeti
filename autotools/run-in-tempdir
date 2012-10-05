@@ -17,7 +17,7 @@ mv $tmpdir/lib $tmpdir/ganeti
 ln -T -s $tmpdir/ganeti $tmpdir/lib
 
 mkdir -p $tmpdir/htools $tmpdir/htest
-for hfile in htools; do
+for hfile in htools ganeti-confd; do
   if [ -e htools/$hfile ]; then
     cp -p htools/$hfile $tmpdir/htools/
   fi
