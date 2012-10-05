@@ -25,8 +25,36 @@ set -e -u
 # Overridden by unittest
 : ${CHECK_CERT_EXPIRED:=$PKGLIBDIR/check-cert-expired}
 
-readonly CLEANER_LOG_DIR=$LOG_DIR/cleaner
+usage() {
+    echo "Usage: $0 node|master" 2>&1
+    exit $1
+}
+
+if [[ "$#" -ne 1 ]]; then
+  usage 1
+fi
+
+case "$1" in
+  node)
+    readonly CLEANER_LOG_DIR=$LOG_DIR/cleaner
+    ;;
+  master)
+    readonly CLEANER_LOG_DIR=$LOG_DIR/master-cleaner
+    ;;
+  --help-completion)
+    echo "choices=node,master 1 1"
+    exit 0
+    ;;
+  --help)
+    usage 0
+    ;;
+  *)
+    usage 1
+    ;;
+esac
+
 readonly CRYPTO_DIR=$RUN_DIR/crypto
+readonly QUEUE_ARCHIVE_DIR=$DATA_DIR/queue/archive
 
 in_cluster() {
   [[ -e $DATA_DIR/ssconf_master_node ]]
@@ -56,6 +84,18 @@ cleanup_watcher() {
   xargs -r0 rm -vf
 }
 
+cleanup_master() {
+  # Return if machine is not part of a cluster
+  in_cluster || return 0
+
+  # Return if queue archive directory doesn't exist
+  [[ -d $QUEUE_ARCHIVE_DIR ]] || return 0
+
+  # Remove old jobs
+  find $QUEUE_ARCHIVE_DIR -mindepth 2 -type f -mtime +$REMOVE_AFTER -print0 | \
+  xargs -r0 rm -vf
+}
+
 # Define how many days archived jobs should be left alone
 REMOVE_AFTER=21
 
@@ -77,7 +117,14 @@ echo "Cleaner started at $(date)"
 find $CLEANER_LOG_DIR -maxdepth 1 -type f | sort | head -n -$KEEP_LOGS | \
 xargs -r rm -vf
 
-cleanup_node
-cleanup_watcher
+case "$1" in
+  node)
+    cleanup_node
+    cleanup_watcher
+    ;;
+  master)
+    cleanup_master
+    ;;
+esac
 
 exit 0

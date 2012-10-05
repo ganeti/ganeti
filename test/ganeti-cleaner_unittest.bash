@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 
-# Copyright (C) 2010 Google Inc.
+# Copyright (C) 2010, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,13 +18,12 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 # 02110-1301, USA.
 
-set -e
+set -e -u
 set -o pipefail
 
 export PYTHON=${PYTHON:=python}
 
 GNTC=daemons/ganeti-cleaner
-GNTMC=daemons/ganeti-master-cleaner
 CCE=tools/check-cert-expired
 
 err() {
@@ -46,11 +45,15 @@ gencert() {
 
 check_logfiles() {
   local n=$1 p=$2 path
-  if [[ "$p2" = master ]]; then
-    path=$tmpls/log/ganeti/mastercleaner
+  if [[ "$p" = master ]]; then
+    path=$tmpls/log/ganeti/master-cleaner
   else
     path=$tmpls/log/ganeti/cleaner
   fi
+
+  test -d $path || \
+    err "Log file directory '$path' not created"
+
   [[ "$(find $path -mindepth 1 | wc -l)" -le "$n" ]] || \
     err "Found more than $n logfiles"
 }
@@ -83,15 +86,7 @@ count_and_check_certs() {
 }
 
 run_cleaner() {
-  local cmd
-
-  if [[ "$1" = master ]]; then
-    cmd=$GNTMC
-  else
-    cmd=$GNTC
-  fi
-
-  CHECK_CERT_EXPIRED=$CCE LOCALSTATEDIR=$tmpls $cmd
+  CHECK_CERT_EXPIRED=$CCE LOCALSTATEDIR=$tmpls $GNTC $1
 }
 
 create_archived_jobs() {
@@ -172,28 +167,25 @@ upto 'Checking log directory creation'
 test -d $tmpls/log/ganeti || err 'log/ganeti does not exist'
 test -d $tmpls/log/ganeti/cleaner && \
   err 'log/ganeti/cleaner should not exist yet'
-run_cleaner
-test -d $tmpls/log/ganeti/cleaner || err 'log/ganeti/cleaner should exist'
-check_logfiles 1
+run_cleaner node
+check_logfiles 1 node
 
 test -d $tmpls/log/ganeti/master-cleaner && \
   err 'log/ganeti/master-cleaner should not exist yet'
 run_cleaner master
-test -d $tmpls/log/ganeti/master-cleaner || \
-  err 'log/ganeti/master-cleaner should exist'
 check_logfiles 1 master
 
 upto 'Checking number of retained log files (master)'
 for (( i=0; i < (maxlog + 10); ++i )); do
   run_cleaner master
-  check_logfiles 1
+  check_logfiles 1 node
   check_logfiles $(( (i + 2) > $maxlog?$maxlog:(i + 2) )) master
 done
 
 upto 'Checking number of retained log files (node)'
 for (( i=0; i < (maxlog + 10); ++i )); do
-  run_cleaner
-  check_logfiles $(( (i + 2) > $maxlog?$maxlog:(i + 2) ))
+  run_cleaner node
+  check_logfiles $(( (i + 2) > $maxlog?$maxlog:(i + 2) )) node
   check_logfiles $maxlog master
 done
 
@@ -202,7 +194,7 @@ create_archived_jobs
 count_jobs 55
 test -f $tmpls/lib/ganeti/ssconf_master_node && \
   err 'ssconf_master_node should not exist'
-run_cleaner
+run_cleaner node
 count_jobs 55
 run_cleaner master
 count_jobs 55
@@ -211,7 +203,7 @@ upto 'Removal of archived jobs (master node)'
 create_archived_jobs
 count_jobs 55
 echo $HOSTNAME > $tmpls/lib/ganeti/ssconf_master_node
-run_cleaner
+run_cleaner node
 count_jobs 55
 run_cleaner master
 count_jobs 31
@@ -226,10 +218,10 @@ create_certdirs '' empty{1,2,3} gd2HCvRc iFG55Z0a PP28v5kg
 count_and_check_certs 10
 run_cleaner master
 count_and_check_certs 10
-run_cleaner
+run_cleaner node
 count_and_check_certs 5
 
-check_logfiles $maxlog
+check_logfiles $maxlog node
 check_logfiles $maxlog master
 count_jobs 31
 
@@ -240,7 +232,7 @@ count_watcher instance-status 10
 run_cleaner master
 count_watcher data 10
 count_watcher instance-status 10
-run_cleaner
+run_cleaner node
 count_watcher data 5
 count_watcher instance-status 5
 

@@ -668,6 +668,7 @@ def HaskellOptToOptParse(opts, kind):
 
 #: serialised kind to arg type
 _ARG_MAP = {
+  "choices": cli.ArgChoice,
   "command": cli.ArgCommand,
   "file": cli.ArgFile,
   "host": cli.ArgHost,
@@ -677,6 +678,7 @@ _ARG_MAP = {
   "onenode": cli.ArgNode,
   "oneos": cli.ArgOs,
   "string": cli.ArgUnknown,
+  "suggests": cli.ArgSuggest,
   }
 
 
@@ -724,6 +726,7 @@ def WriteHaskellCompletion(sw, script, htools=True, debug=True):
     env = {}
     script_name = os.path.basename(script)
     func_name = script_name
+  func_name = func_name.replace("-", "_")
   output = utils.RunCmd([cmd, "--help-completion"], env=env, cwd=".").output
   cli_opts = []
   args = []
@@ -780,6 +783,10 @@ def main():
   WriteCompletion(sw, "%s/burnin" % pathutils.TOOLSDIR, "_ganeti_burnin",
                   not options.compact,
                   opts=burnin.OPTIONS, args=burnin.ARGUMENTS)
+
+  # ganeti-cleaner
+  WriteHaskellCompletion(sw, "daemons/ganeti-cleaner", htools=False,
+                         debug=not options.compact)
 
   # htools, if enabled
   if _autoconf.HTOOLS:

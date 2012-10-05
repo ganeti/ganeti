@@ -4,7 +4,7 @@ PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin
 */5 * * * * root [ -x @SBINDIR@/ganeti-watcher ] && @SBINDIR@/ganeti-watcher
 
 # Clean job archive (at 01:45 AM)
-45 1 * * * @GNTMASTERUSER@ [ -x @SBINDIR@/ganeti-master-cleaner ] && @SBINDIR@/ganeti-master-cleaner
+45 1 * * * @GNTMASTERUSER@ [ -x @SBINDIR@/ganeti-master-cleaner ] && @SBINDIR@/ganeti-cleaner master
 
 # Clean job archive (at 02:45 AM)
-45 2 * * * @GNTNODEDUSER@ [ -x @SBINDIR@/ganeti-cleaner ] && @SBINDIR@/ganeti-cleaner
+45 2 * * * @GNTNODEDUSER@ [ -x @SBINDIR@/ganeti-cleaner ] && @SBINDIR@/ganeti-cleaner node

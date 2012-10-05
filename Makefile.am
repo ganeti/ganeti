@@ -154,7 +154,6 @@ CLEANFILES = \
 	$(SHELL_ENV_INIT) \
 	daemons/daemon-util \
 	daemons/ganeti-cleaner \
-	daemons/ganeti-master-cleaner \
 	devel/upload \
 	$(BUILT_EXAMPLES) \
 	doc/examples/bash_completion \
@@ -646,8 +645,7 @@ dist_sbin_SCRIPTS = \
 
 nodist_sbin_SCRIPTS = \
 	$(PYTHON_BOOTSTRAP_SBIN) \
-	daemons/ganeti-cleaner \
-	daemons/ganeti-master-cleaner
+	daemons/ganeti-cleaner
 
 if ENABLE_CONFD
 htools/ganeti-confd: htools/hconfd
@@ -717,7 +715,6 @@ EXTRA_DIST = \
 	$(RUN_IN_TEMPDIR) \
 	daemons/daemon-util.in \
 	daemons/ganeti-cleaner.in \
-	daemons/ganeti-master-cleaner.in \
 	$(pkglib_python_scripts) \
 	devel/upload.in \
 	tools/kvm-ifup.in \
@@ -754,7 +751,6 @@ man_MANS = \
 	man/ganeti-cleaner.8 \
 	man/ganeti-confd.8 \
 	man/ganeti-listrunner.8 \
-	man/ganeti-master-cleaner.8 \
 	man/ganeti-masterd.8 \
 	man/ganeti-noded.8 \
 	man/ganeti-os-interface.7 \
@@ -1045,8 +1041,7 @@ pep8_python_code = \
 
 test/daemon-util_unittest.bash: daemons/daemon-util
 
-test/ganeti-cleaner_unittest.bash: daemons/ganeti-cleaner \
-  daemons/ganeti-master-cleaner
+test/ganeti-cleaner_unittest.bash: daemons/ganeti-cleaner
 
 test/bash_completion.bash: doc/examples/bash_completion-debug
 
@@ -1075,6 +1070,7 @@ doc/examples/bash_completion-debug: BC_ARGS =
 doc/examples/bash_completion doc/examples/bash_completion-debug: \
 	$(BUILD_BASH_COMPLETION) $(RUN_IN_TEMPDIR) \
 	lib/cli.py $(gnt_scripts) $(client_PYTHON) tools/burnin \
+	daemons/ganeti-cleaner \
 	$(GENERATED_FILES) $(HTOOLS_GENERATED_FILES)
 	PYTHONPATH=. $(RUN_IN_TEMPDIR) \
 	  $(CURDIR)/$(BUILD_BASH_COMPLETION) $(BC_ARGS) > $@
