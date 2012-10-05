@@ -1,6 +1,6 @@
 {-# LANGUAGE TemplateHaskell #-}
 
-{-| TemplateHaskell helper for HTools.
+{-| TemplateHaskell helper for Ganeti Haskell code.
 
 As TemplateHaskell require that splices be defined in a separate
 module, we combine all the TemplateHaskell functionality that HTools

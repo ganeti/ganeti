@@ -1596,7 +1596,7 @@ hs-apidoc: $(HS_BUILT_SRCS)
 		$(HSCOLOUR) -css -anchor $$file > ../$(APIDOC_HS_DIR)/$$hfile ; \
 	done ; \
 	$(HADDOCK) --odir ../$(APIDOC_HS_DIR) --html --ignore-all-exports -w \
-		-t ganeti-htools -p haddock-prologue \
+		-t ganeti -p haddock-prologue \
 		--source-module="%{MODULE/.//}.html" \
 		--source-entity="%{MODULE/.//}.html#%{NAME}" \
 		$$OPTGHC \
