@@ -11,6 +11,17 @@ Version 2.7.0 beta0
   opcode from Ganeti. This lead to incompatible changes in the format of
   the JSON file. It's now not a custom dict anymore but a dict
   compatible with the ``OpInstanceCreate`` opcode.
+- Parent directories for file storage need now to be listed in
+  ``$sysconfdir/ganeti/file-storage-paths``. ``cfgupgrade`` will write
+  the file automatically based on old configuration values, but it can
+  not distribute it across all nodes and the file contents should be
+  verified. Use ``gnt-cluster copyfile
+  $sysconfdir/ganeti/file-storage-paths`` once the cluster has been
+  upgraded. The reason for requiring this list of paths now is that
+  before it would have been possible to inject new paths via RPC,
+  allowing files to be created in arbitrary locations. The RPC protocol
+  is protected using SSL/X.509 certificates, but as a design principle
+  Ganeti does not permit arbitrary paths to be passed.
 
 
 Version 2.6.1
