@@ -1610,8 +1610,9 @@ def _CheckIAllocatorOrNode(lu, iallocator_slot, node_slot):
   cluster-wide iallocator if appropriate.
 
   Check that at most one of (iallocator, node) is specified. If none is
-  specified, then the LU's opcode's iallocator slot is filled with the
-  cluster-wide default iallocator.
+  specified, or the iallocator is L{constants.DEFAULT_IALLOCATOR_SHORTCUT},
+  then the LU's opcode's iallocator slot is filled with the cluster-wide
+  default iallocator.
 
   @type iallocator_slot: string
   @param iallocator_slot: the name of the opcode iallocator slot
@@ -1621,11 +1622,14 @@ def _CheckIAllocatorOrNode(lu, iallocator_slot, node_slot):
   """
   node = getattr(lu.op, node_slot, None)
   ialloc = getattr(lu.op, iallocator_slot, None)
+  if node == []:
+    node = None
 
   if node is not None and ialloc is not None:
     raise errors.OpPrereqError("Do not specify both, iallocator and node",
                                errors.ECODE_INVAL)
-  elif node is None and ialloc is None:
+  elif ((node is None and ialloc is None) or
+        ialloc == constants.DEFAULT_IALLOCATOR_SHORTCUT):
     default_iallocator = lu.cfg.GetDefaultIAllocator()
     if default_iallocator:
       setattr(lu.op, iallocator_slot, default_iallocator)
@@ -7137,9 +7141,10 @@ class LUInstanceRecreateDisks(LogicalUnit):
                                  " once: %s" % utils.CommaJoin(duplicates),
                                  errors.ECODE_INVAL)
 
-    if self.op.iallocator and self.op.nodes:
-      raise errors.OpPrereqError("Give either the iallocator or the new"
-                                 " nodes, not both", errors.ECODE_INVAL)
+    # We don't want _CheckIAllocatorOrNode selecting the default iallocator
+    # when neither iallocator nor nodes are specified
+    if self.op.iallocator or self.op.nodes:
+      _CheckIAllocatorOrNode(self, "iallocator", "nodes")
 
     for (idx, params) in self.op.disks:
       utils.ForceDictType(params, constants.IDISK_PARAMS_TYPES)

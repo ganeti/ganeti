@@ -108,23 +108,26 @@ class TestIAllocatorChecks(testutils.GanetiTestCase):
     c_i = lambda: cmdlib._CheckIAllocatorOrNode(lu, "iallocator", "node")
 
     # Neither node nor iallocator given
-    op.iallocator = None
-    op.node = None
-    c_i()
-    self.assertEqual(lu.op.iallocator, default_iallocator)
-    self.assertEqual(lu.op.node, None)
+    for n in (None, []):
+      op.iallocator = None
+      op.node = n
+      c_i()
+      self.assertEqual(lu.op.iallocator, default_iallocator)
+      self.assertEqual(lu.op.node, n)
 
     # Both, iallocator and node given
-    op.iallocator = "test"
-    op.node = "test"
-    self.assertRaises(errors.OpPrereqError, c_i)
+    for a in ("test", constants.DEFAULT_IALLOCATOR_SHORTCUT):
+      op.iallocator = a
+      op.node = "test"
+      self.assertRaises(errors.OpPrereqError, c_i)
 
     # Only iallocator given
-    op.iallocator = other_iallocator
-    op.node = None
-    c_i()
-    self.assertEqual(lu.op.iallocator, other_iallocator)
-    self.assertEqual(lu.op.node, None)
+    for n in (None, []):
+      op.iallocator = other_iallocator
+      op.node = n
+      c_i()
+      self.assertEqual(lu.op.iallocator, other_iallocator)
+      self.assertEqual(lu.op.node, n)
 
     # Only node given
     op.iallocator = None
@@ -132,6 +135,13 @@ class TestIAllocatorChecks(testutils.GanetiTestCase):
     c_i()
     self.assertEqual(lu.op.iallocator, None)
     self.assertEqual(lu.op.node, "node")
+
+    # Asked for default iallocator, no node given
+    op.iallocator = constants.DEFAULT_IALLOCATOR_SHORTCUT
+    op.node = None
+    c_i()
+    self.assertEqual(lu.op.iallocator, default_iallocator)
+    self.assertEqual(lu.op.node, None)
 
     # No node, iallocator or default iallocator
     op.iallocator = None
