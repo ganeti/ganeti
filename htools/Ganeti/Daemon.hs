@@ -176,7 +176,7 @@ genericOpts = [ oShowHelp
 parseArgs :: String -> [OptType] -> IO (DaemonOptions, [String])
 parseArgs cmd options = do
   cmd_args <- getArgs
-  parseOpts defaultOptions cmd_args cmd $ options ++ genericOpts
+  parseOpts defaultOptions cmd_args cmd (options ++ genericOpts) []
 
 -- * Daemon-related functions
 -- | PID file mode.

@@ -64,7 +64,7 @@ checkOpt repr defaults failfn eqcheck valfn
     cmdarg:_ ->
       case parseOptsInner defaults
              ["--" ++ cmdarg ++ maybe "" ("=" ++) (repr val)]
-             "prog" [opt] of
+             "prog" [opt] [] of
         Left e -> failfn $ "Failed to parse option '" ++ cmdarg ++ ": " ++
                   show e
         Right (options, _) -> eqcheck ("Wrong value in option " ++
@@ -83,8 +83,8 @@ passFailOpt defaults failfn passfn
   let prefix = "--" ++ head longs ++ "="
       good_cmd = prefix ++ good
       bad_cmd = prefix ++ bad in
-  case (parseOptsInner defaults [bad_cmd]  "prog" [opt],
-        parseOptsInner defaults [good_cmd] "prog" [opt]) of
+  case (parseOptsInner defaults [bad_cmd]  "prog" [opt] [],
+        parseOptsInner defaults [good_cmd] "prog" [opt] []) of
     (Left _,  Right _) -> passfn
     (Right _, Right _) -> failfn $ "Command line '" ++ bad_cmd ++
                           "' succeeded when it shouldn't"
@@ -97,10 +97,11 @@ passFailOpt defaults failfn passfn
 
 -- | Helper to test that a given option is accepted OK with quick exit.
 checkEarlyExit :: (StandardOptions a) =>
-                  a -> String -> [GenericOptType a] -> Assertion
-checkEarlyExit defaults name options =
+                  a -> String -> [GenericOptType a] -> [ArgCompletion]
+               -> Assertion
+checkEarlyExit defaults name options arguments =
   mapM_ (\param ->
-           case parseOptsInner defaults [param] name options of
+           case parseOptsInner defaults [param] name options arguments of
              Left (code, _) ->
                assertEqual ("Program " ++ name ++
                             " returns invalid code " ++ show code ++

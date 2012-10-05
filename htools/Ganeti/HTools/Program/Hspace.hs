@@ -23,7 +23,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 -}
 
-module Ganeti.HTools.Program.Hspace (main, options) where
+module Ganeti.HTools.Program.Hspace
+  (main
+  , options
+  , arguments
+  ) where
 
 import Control.Monad
 import Data.Char (toUpper, toLower)
@@ -40,6 +44,7 @@ import qualified Ganeti.HTools.Cluster as Cluster
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
 
+import Ganeti.Common
 import Ganeti.HTools.Types
 import Ganeti.HTools.CLI
 import Ganeti.HTools.ExtLoader
@@ -68,6 +73,10 @@ options =
   , oTieredSpec
   , oSaveCluster
   ]
+
+-- | The list of arguments supported by the program.
+arguments :: [ArgCompletion]
+arguments = []
 
 -- | The allocation phase we're in (initial, after tiered allocs, or
 -- after regular allocation).

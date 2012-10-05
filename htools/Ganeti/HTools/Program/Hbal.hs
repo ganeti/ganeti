@@ -24,10 +24,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 
 module Ganeti.HTools.Program.Hbal
-    ( main
-    , options
-    , iterateDepth
-    ) where
+  ( main
+  , options
+  , arguments
+  , iterateDepth
+  ) where
 
 import Control.Concurrent (threadDelay)
 import Control.Exception (bracket)
@@ -48,6 +49,7 @@ import qualified Ganeti.HTools.Group as Group
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
 
+import Ganeti.Common
 import Ganeti.HTools.CLI
 import Ganeti.HTools.ExtLoader
 import Ganeti.HTools.Types
@@ -87,6 +89,10 @@ options =
   , oExInst
   , oSaveCluster
   ]
+
+-- | The list of arguments supported by the program.
+arguments :: [ArgCompletion]
+arguments = []
 
 {- | Start computing the solution at the given depth and recurse until
 we find a valid solution or we exceed the maximum depth.

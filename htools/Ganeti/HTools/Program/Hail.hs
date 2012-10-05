@@ -23,7 +23,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 -}
 
-module Ganeti.HTools.Program.Hail (main, options) where
+module Ganeti.HTools.Program.Hail
+  ( main
+  , options
+  , arguments
+  ) where
 
 import Control.Monad
 import Data.Maybe (fromMaybe, isJust)
@@ -32,6 +36,7 @@ import System.Exit
 
 import qualified Ganeti.HTools.Cluster as Cluster
 
+import Ganeti.Common
 import Ganeti.HTools.CLI
 import Ganeti.HTools.IAlloc
 import Ganeti.HTools.Loader (Request(..), ClusterData(..))
@@ -46,6 +51,10 @@ options =
   , oNodeSim
   , oVerbose
   ]
+
+-- | The list of arguments supported by the program.
+arguments :: [ArgCompletion]
+arguments = [ArgCompletion OptComplFile 1 (Just 1)]
 
 wrapReadRequest :: Options -> [String] -> IO Request
 wrapReadRequest opts args = do

@@ -183,10 +183,11 @@ parseOpts :: (StandardOptions a) =>
           -> [String]               -- ^ The command line arguments
           -> String                 -- ^ The program name
           -> [GenericOptType a]     -- ^ The supported command line options
+          -> [ArgCompletion]        -- ^ The supported command line arguments
           -> IO (a, [String])       -- ^ The resulting options and
                                     -- leftover arguments
-parseOpts defaults argv progname options =
-  case parseOptsInner defaults argv progname options of
+parseOpts defaults argv progname options arguments =
+  case parseOptsInner defaults argv progname options arguments of
     Left (code, msg) -> do
       hPutStr (if code == ExitSuccess then stdout else stderr) msg
       exitWith code
@@ -201,8 +202,9 @@ parseOptsInner :: (StandardOptions a) =>
                -> [String]
                -> String
                -> [GenericOptType a]
+               -> [ArgCompletion]
                -> Either (ExitCode, String) (a, [String])
-parseOptsInner defaults argv progname options  =
+parseOptsInner defaults argv progname options arguments  =
   case getOpt Permute (map fst options) argv of
     (opts, args, []) ->
       case foldM (flip id) defaults opts of
@@ -216,7 +218,8 @@ parseOptsInner defaults argv progname options  =
                  , (verRequested parsed,
                     Left (ExitSuccess, versionInfo progname))
                  , (compRequested parsed,
-                    Left (ExitSuccess, completionInfo progname options []))
+                    Left (ExitSuccess, completionInfo progname options
+                                         arguments))
                  ]
     (_, _, errs) ->
       Left (ExitFailure 2, "Command line error: "  ++ concat errs ++ "\n" ++

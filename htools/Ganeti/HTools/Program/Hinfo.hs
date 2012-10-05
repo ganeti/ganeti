@@ -23,7 +23,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 -}
 
-module Ganeti.HTools.Program.Hinfo (main, options) where
+module Ganeti.HTools.Program.Hinfo
+  ( main
+  , options
+  , arguments
+  ) where
 
 import Control.Monad
 import Data.List
@@ -38,6 +42,7 @@ import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Group as Group
 import qualified Ganeti.HTools.Instance as Instance
 
+import Ganeti.Common
 import Ganeti.HTools.CLI
 import Ganeti.HTools.ExtLoader
 import Ganeti.HTools.Loader
@@ -56,6 +61,10 @@ options =
   , oQuiet
   , oOfflineNode
   ]
+
+-- | The list of arguments supported by the program.
+arguments :: [ArgCompletion]
+arguments = []
 
 -- | Group information data-type.
 data GroupInfo = GroupInfo { giName      :: String

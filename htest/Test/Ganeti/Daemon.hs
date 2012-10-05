@@ -76,7 +76,7 @@ case_wrong_arg =
 -- | Test that the option list supports some common options.
 case_stdopts :: Assertion
 case_stdopts =
-  checkEarlyExit defaultOptions "prog" [oShowHelp, oShowVer]
+  checkEarlyExit defaultOptions "prog" [oShowHelp, oShowVer] []
 
 testSuite "Daemon"
           [ 'prop_string_arg

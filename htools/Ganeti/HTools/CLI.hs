@@ -526,6 +526,7 @@ genericOpts =  [ oShowVer
 parseOpts :: [String]               -- ^ The command line arguments
           -> String                 -- ^ The program name
           -> [OptType]              -- ^ The supported command line options
+          -> [ArgCompletion]        -- ^ The supported command line arguments
           -> IO (Options, [String]) -- ^ The resulting options and leftover
                                     -- arguments
 parseOpts = Common.parseOpts defaultOptions

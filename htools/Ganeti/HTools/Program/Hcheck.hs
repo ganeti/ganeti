@@ -23,7 +23,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 -}
 
-module Ganeti.HTools.Program.Hcheck (main, options) where
+module Ganeti.HTools.Program.Hcheck
+  ( main
+  , options
+  , arguments
+  ) where
 
 import Control.Monad
 import Data.List (transpose)
@@ -39,6 +43,7 @@ import qualified Ganeti.HTools.Instance as Instance
 
 import qualified Ganeti.HTools.Program.Hbal as Hbal
 
+import Ganeti.Common
 import Ganeti.HTools.CLI
 import Ganeti.HTools.ExtLoader
 import Ganeti.HTools.Loader
@@ -70,6 +75,10 @@ options =
   , oSelInst
   , oVerbose
   ]
+
+-- | The list of arguments supported by the program.
+arguments :: [ArgCompletion]
+arguments = []
 
 -- | Check phase - are we before (initial) or after rebalance.
 data Phase = Initial

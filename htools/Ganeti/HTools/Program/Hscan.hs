@@ -23,7 +23,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 -}
 
-module Ganeti.HTools.Program.Hscan (main, options) where
+module Ganeti.HTools.Program.Hscan
+  ( main
+  , options
+  , arguments
+  ) where
 
 import Control.Monad
 import Data.Maybe (isJust, fromJust, fromMaybe)
@@ -43,6 +47,7 @@ import qualified Ganeti.Path as Path
 import Ganeti.HTools.Loader (checkData, mergeData, ClusterData(..))
 import Ganeti.HTools.Text (serializeCluster)
 
+import Ganeti.Common
 import Ganeti.HTools.CLI
 import Ganeti.HTools.Types
 
@@ -55,6 +60,10 @@ options =
   , oVerbose
   , oNoHeaders
   ]
+
+-- | The list of arguments supported by the program.
+arguments :: [ArgCompletion]
+arguments = [ArgCompletion OptComplHost 0 Nothing]
 
 -- | Return a one-line summary of cluster state.
 printCluster :: Node.List -> Instance.List

@@ -27,6 +27,7 @@ module Ganeti.HTools.Program
   ( personalities
   ) where
 
+import Ganeti.Common (ArgCompletion)
 import Ganeti.HTools.CLI (OptType, Options)
 
 import qualified Ganeti.HTools.Program.Hail as Hail
@@ -37,11 +38,12 @@ import qualified Ganeti.HTools.Program.Hspace as Hspace
 import qualified Ganeti.HTools.Program.Hinfo as Hinfo
 
 -- | Supported binaries.
-personalities :: [(String, (Options -> [String] -> IO (), [OptType]))]
-personalities = [ ("hail",   (Hail.main,   Hail.options))
-                , ("hbal",   (Hbal.main,   Hbal.options))
-                , ("hcheck", (Hcheck.main, Hcheck.options))
-                , ("hscan",  (Hscan.main,  Hscan.options))
-                , ("hspace", (Hspace.main, Hspace.options))
-                , ("hinfo",  (Hinfo.main,  Hinfo.options))
+personalities :: [(String,
+                   (Options -> [String] -> IO (), [OptType], [ArgCompletion]))]
+personalities = [ ("hail",   (Hail.main,   Hail.options,   Hail.arguments))
+                , ("hbal",   (Hbal.main,   Hbal.options,   Hbal.arguments))
+                , ("hcheck", (Hcheck.main, Hcheck.options, Hcheck.arguments))
+                , ("hscan",  (Hscan.main,  Hscan.options,  Hscan.arguments ))
+                , ("hspace", (Hspace.main, Hspace.options, Hspace.arguments))
+                , ("hinfo",  (Hinfo.main,  Hinfo.options,  Hinfo.arguments))
                 ]
