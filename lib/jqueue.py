@@ -2257,7 +2257,7 @@ class JobQueue(object):
         as such by the clients
 
     """
-    load_fn = compat.partial(self.SafeLoadJobFromDisk, job_id, False,
+    load_fn = compat.partial(self.SafeLoadJobFromDisk, job_id, True,
                              writable=False)
 
     helper = _WaitForJobChangesHelper()
