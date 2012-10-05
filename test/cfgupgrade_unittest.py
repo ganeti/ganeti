@@ -39,7 +39,7 @@ import testutils
 
 def _RunUpgrade(path, dry_run, no_verify, ignore_hostname=True):
   cmd = [sys.executable, "%s/tools/cfgupgrade" % testutils.GetSourceDir(),
-         "--debug", "--force", "--path=%s" % path]
+         "--debug", "--force", "--path=%s" % path, "--confdir=%s" % path]
 
   if ignore_hostname:
     cmd.append("--ignore-hostname")
@@ -67,6 +67,7 @@ class TestCfgupgrade(unittest.TestCase):
     self.confd_hmac_path = utils.PathJoin(self.tmpdir, "hmac.key")
     self.cds_path = utils.PathJoin(self.tmpdir, "cluster-domain-secret")
     self.ss_master_node_path = utils.PathJoin(self.tmpdir, "ssconf_master_node")
+    self.file_storage_paths = utils.PathJoin(self.tmpdir, "file-storage-paths")
 
   def tearDown(self):
     shutil.rmtree(self.tmpdir)
@@ -133,10 +134,19 @@ class TestCfgupgrade(unittest.TestCase):
     utils.WriteFile(self.config_path, data=serializer.DumpJson({}))
     self.assertRaises(Exception, _RunUpgrade, self.tmpdir, False, True)
 
-  def _TestSimpleUpgrade(self, from_version, dry_run):
+  def _TestSimpleUpgrade(self, from_version, dry_run,
+                         file_storage_dir=None,
+                         shared_file_storage_dir=None):
+    cluster = {}
+
+    if file_storage_dir:
+      cluster["file_storage_dir"] = file_storage_dir
+    if shared_file_storage_dir:
+      cluster["shared_file_storage_dir"] = shared_file_storage_dir
+
     cfg = {
       "version": from_version,
-      "cluster": {},
+      "cluster": cluster,
       "instances": {},
       }
     self._CreateValidConfigDir()
@@ -270,6 +280,44 @@ class TestCfgupgrade(unittest.TestCase):
                      self.rapi_users_path)
     for path in [self.rapi_users_path, self.rapi_users_path_pre24]:
       self.assertEqual(utils.ReadFile(path), "hello world\n")
+
+  def testFileStoragePathsDryRun(self):
+    self.assertFalse(os.path.exists(self.file_storage_paths))
+
+    self._TestSimpleUpgrade(constants.BuildVersion(2, 6, 0), True,
+                            file_storage_dir=self.tmpdir,
+                            shared_file_storage_dir="/tmp")
+
+    self.assertFalse(os.path.exists(self.file_storage_paths))
+
+  def testFileStoragePathsBoth(self):
+    self.assertFalse(os.path.exists(self.file_storage_paths))
+
+    self._TestSimpleUpgrade(constants.BuildVersion(2, 6, 0), False,
+                            file_storage_dir=self.tmpdir,
+                            shared_file_storage_dir="/tmp")
+
+    lines = utils.ReadFile(self.file_storage_paths).splitlines()
+    self.assertTrue(lines.pop(0).startswith("# "))
+    self.assertTrue(lines.pop(0).startswith("# cfgupgrade"))
+    self.assertEqual(lines.pop(0), self.tmpdir)
+    self.assertEqual(lines.pop(0), "/tmp")
+    self.assertFalse(lines)
+    self.assertEqual(os.stat(self.file_storage_paths).st_mode & 0777,
+                     0600, msg="Wrong permissions")
+
+  def testFileStoragePathsSharedOnly(self):
+    self.assertFalse(os.path.exists(self.file_storage_paths))
+
+    self._TestSimpleUpgrade(constants.BuildVersion(2, 5, 0), False,
+                            file_storage_dir=None,
+                            shared_file_storage_dir=self.tmpdir)
+
+    lines = utils.ReadFile(self.file_storage_paths).splitlines()
+    self.assertTrue(lines.pop(0).startswith("# "))
+    self.assertTrue(lines.pop(0).startswith("# cfgupgrade"))
+    self.assertEqual(lines.pop(0), self.tmpdir)
+    self.assertFalse(lines)
 
   def testUpgradeFrom_2_0(self):
     self._TestSimpleUpgrade(constants.BuildVersion(2, 0, 0), False)

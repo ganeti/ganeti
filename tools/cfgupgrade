@@ -32,6 +32,8 @@ import os.path
 import sys
 import optparse
 import logging
+import time
+from cStringIO import StringIO
 
 from ganeti import constants
 from ganeti import serializer
@@ -117,6 +119,10 @@ def main():
   parser.add_option("--path", help="Convert configuration in this"
                     " directory instead of '%s'" % pathutils.DATA_DIR,
                     default=pathutils.DATA_DIR, dest="data_dir")
+  parser.add_option("--confdir",
+                    help=("Use this directory instead of '%s'" %
+                          pathutils.CONF_DIR),
+                    default=pathutils.CONF_DIR, dest="conf_dir")
   parser.add_option("--no-verify",
                     help="Do not verify configuration after upgrade",
                     action="store_true", dest="no_verify", default=False)
@@ -137,6 +143,7 @@ def main():
   options.CDS_FILE = options.data_dir + "/cluster-domain-secret"
   options.SSCONF_MASTER_NODE = options.data_dir + "/ssconf_master_node"
   options.WATCHER_STATEFILE = options.data_dir + "/watcher.data"
+  options.FILE_STORAGE_PATHS_FILE = options.conf_dir + "/file-storage-paths"
 
   SetupLogging()
 
@@ -163,6 +170,9 @@ def main():
           os.path.isfile(options.KNOWN_HOSTS_PATH)):
     raise Error(("%s does not seem to be a Ganeti configuration"
                  " directory") % options.data_dir)
+
+  if not os.path.isdir(options.conf_dir):
+    raise Error("Not a directory: %s" % options.conf_dir)
 
   config_data = serializer.LoadJson(utils.ReadFile(options.CONFIG_DATA_PATH))
 
@@ -237,6 +247,37 @@ def main():
     logging.info("Removing watcher state file %s", options.WATCHER_STATEFILE)
     if not options.dry_run:
       utils.RemoveFile(options.WATCHER_STATEFILE)
+
+  # Write file storage paths
+  if not os.path.exists(options.FILE_STORAGE_PATHS_FILE):
+    cluster = config_data["cluster"]
+    file_storage_dir = cluster.get("file_storage_dir")
+    shared_file_storage_dir = cluster.get("shared_file_storage_dir")
+    del cluster
+
+    logging.info("Ganeti 2.7 and later only allow whitelisted directories"
+                 " for file storage; writing existing configuration values"
+                 " into '%s'",
+                 options.FILE_STORAGE_PATHS_FILE)
+
+    if file_storage_dir:
+      logging.info("File storage directory: %s", file_storage_dir)
+    if shared_file_storage_dir:
+      logging.info("Shared file storage directory: %s",
+                   shared_file_storage_dir)
+
+    buf = StringIO()
+    buf.write("# List automatically generated from configuration by\n")
+    buf.write("# cfgupgrade at %s\n" % time.asctime())
+    if file_storage_dir:
+      buf.write("%s\n" % file_storage_dir)
+    if shared_file_storage_dir:
+      buf.write("%s\n" % shared_file_storage_dir)
+    utils.WriteFile(file_name=options.FILE_STORAGE_PATHS_FILE,
+                    data=buf.getvalue(),
+                    mode=0600,
+                    dry_run=options.dry_run,
+                    backup=True)
 
   try:
     logging.info("Writing configuration file to %s", options.CONFIG_DATA_PATH)
