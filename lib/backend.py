@@ -801,6 +801,10 @@ def VerifyNode(what, cluster_name):
                                     for bridge in what[constants.NV_BRIDGES]
                                     if not utils.BridgeExists(bridge)]
 
+  if what.get(constants.NV_FILE_STORAGE_PATHS) == my_name:
+    result[constants.NV_FILE_STORAGE_PATHS] = \
+      bdev.ComputeWrongFileStoragePaths()
+
   return result
 
 

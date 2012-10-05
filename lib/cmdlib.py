@@ -2784,6 +2784,37 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
              "OSes present on reference node %s but missing on this node: %s",
              base.name, utils.CommaJoin(missing))
 
+  def _VerifyFileStoragePaths(self, ninfo, nresult, is_master):
+    """Verifies paths in L{pathutils.FILE_STORAGE_PATHS_FILE}.
+
+    @type ninfo: L{objects.Node}
+    @param ninfo: the node to check
+    @param nresult: the remote results for the node
+    @type is_master: bool
+    @param is_master: Whether node is the master node
+
+    """
+    node = ninfo.name
+
+    if (is_master and
+        (constants.ENABLE_FILE_STORAGE or
+         constants.ENABLE_SHARED_FILE_STORAGE)):
+      try:
+        fspaths = nresult[constants.NV_FILE_STORAGE_PATHS]
+      except KeyError:
+        # This should never happen
+        self._ErrorIf(True, constants.CV_ENODEFILESTORAGEPATHS, node,
+                      "Node did not return forbidden file storage paths")
+      else:
+        self._ErrorIf(fspaths, constants.CV_ENODEFILESTORAGEPATHS, node,
+                      "Found forbidden file storage paths: %s",
+                      utils.CommaJoin(fspaths))
+    else:
+      self._ErrorIf(constants.NV_FILE_STORAGE_PATHS in nresult,
+                    constants.CV_ENODEFILESTORAGEPATHS, node,
+                    "Node should not have returned forbidden file storage"
+                    " paths")
+
   def _VerifyOob(self, ninfo, nresult):
     """Verifies out of band functionality of a node.
 
@@ -3126,6 +3157,10 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       node_verify_param[constants.NV_DRBDLIST] = None
       node_verify_param[constants.NV_DRBDHELPER] = drbd_helper
 
+    if constants.ENABLE_FILE_STORAGE or constants.ENABLE_SHARED_FILE_STORAGE:
+      # Load file storage paths only from master node
+      node_verify_param[constants.NV_FILE_STORAGE_PATHS] = master_node
+
     # bridge checks
     # FIXME: this needs to be changed per node-group, not cluster-wide
     bridges = set()
@@ -3279,6 +3314,8 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       self._VerifyNodeNetwork(node_i, nresult)
       self._VerifyNodeUserScripts(node_i, nresult)
       self._VerifyOob(node_i, nresult)
+      self._VerifyFileStoragePaths(node_i, nresult,
+                                   node == master_node)
 
       if nimg.vm_capable:
         self._VerifyNodeLVM(node_i, nresult, vg_name)
