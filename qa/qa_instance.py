@@ -471,7 +471,7 @@ def TestReplaceDisks(instance, pnode, snode, othernode):
   # Restore the original secondary, if needed
   currsec = _GetInstanceInfo(instance)["nodes"][1]
   if currsec != snode["primary"]:
-    ["--new-secondary=%s" % snode["primary"]],
+    AssertCommand(buildcmd(["--new-secondary=%s" % snode["primary"]]))
 
   AssertCommand(buildcmd(["-a"]))
   AssertCommand(["gnt-instance", "stop", instance["name"]])
