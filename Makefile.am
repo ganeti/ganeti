@@ -426,6 +426,7 @@ HS_LIB_SRCS = \
 	htools/Ganeti/Confd/Utils.hs \
 	htools/Ganeti/Config.hs \
 	htools/Ganeti/Daemon.hs \
+	htools/Ganeti/Errors.hs \
 	htools/Ganeti/HTools/CLI.hs \
 	htools/Ganeti/HTools/Cluster.hs \
 	htools/Ganeti/HTools/Container.hs \
@@ -475,6 +476,7 @@ HS_TEST_SRCS = \
 	htest/Test/Ganeti/Common.hs \
 	htest/Test/Ganeti/Confd/Utils.hs \
 	htest/Test/Ganeti/Daemon.hs \
+	htest/Test/Ganeti/Errors.hs \
 	htest/Test/Ganeti/HTools/CLI.hs \
 	htest/Test/Ganeti/HTools/Cluster.hs \
 	htest/Test/Ganeti/HTools/Container.hs \

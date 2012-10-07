@@ -34,6 +34,7 @@ import Test.Ganeti.BasicTypes
 import Test.Ganeti.Confd.Utils
 import Test.Ganeti.Common
 import Test.Ganeti.Daemon
+import Test.Ganeti.Errors
 import Test.Ganeti.HTools.CLI
 import Test.Ganeti.HTools.Cluster
 import Test.Ganeti.HTools.Container
@@ -75,6 +76,7 @@ allTests =
   , testCommon
   , testConfd_Utils
   , testDaemon
+  , testErrors
   , testHTools_CLI
   , testHTools_Cluster
   , testHTools_Container

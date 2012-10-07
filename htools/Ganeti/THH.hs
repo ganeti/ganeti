@@ -53,6 +53,8 @@ module Ganeti.THH ( declareSADT
                   , buildObjectSerialisation
                   , buildParam
                   , DictObject(..)
+                  , genException
+                  , excErrMsg
                   ) where
 
 import Control.Monad (liftM)
@@ -63,6 +65,7 @@ import qualified Data.Set as Set
 import Language.Haskell.TH
 
 import qualified Text.JSON as JSON
+import Text.JSON.Pretty (pp_value)
 
 -- * Exported types
 
@@ -881,3 +884,108 @@ fillParam sname field_pfx fields = do
                 (NormalB $ LetE (le_full:le_part:le_new) obj_new) []
       fun = FunD fun_name [fclause]
   return [sig, fun]
+
+-- * Template code for exceptions
+
+-- | Exception simple error message field.
+excErrMsg :: (String, Q Type)
+excErrMsg = ("errMsg", [t| String |])
+
+-- | Builds an exception type definition.
+genException :: String                  -- ^ Name of new type
+             -> SimpleObject -- ^ Constructor name and parameters
+             -> Q [Dec]
+genException name cons = do
+  let tname = mkName name
+  declD <- buildSimpleCons tname cons
+  (savesig, savefn) <- genSaveSimpleObj tname ("save" ++ name) cons $
+                         uncurry saveExcCons
+  (loadsig, loadfn) <- genLoadExc tname ("load" ++ name) cons
+  return [declD, loadsig, loadfn, savesig, savefn]
+
+-- | Generates the \"save\" clause for an entire exception constructor.
+--
+-- This matches the exception with variables named the same as the
+-- constructor fields (just so that the spliced in code looks nicer),
+-- and calls showJSON on it.
+saveExcCons :: String        -- ^ The constructor name
+            -> [SimpleField] -- ^ The parameter definitions for this
+                             -- constructor
+            -> Q Clause      -- ^ Resulting clause
+saveExcCons sname fields = do
+  let cname = mkName sname
+  fnames <- mapM (newName . fst) fields
+  let pat = conP cname (map varP fnames)
+      felems = if null fnames
+                 then conE '() -- otherwise, empty list has no type
+                 else listE $ map (\f -> [| JSON.showJSON $(varE f) |]) fnames
+  let tup = tupE [ litE (stringL sname), felems ]
+  clause [pat] (normalB [| JSON.showJSON $tup |]) []
+
+-- | Generates load code for a single constructor of an exception.
+--
+-- Generates the code (if there's only one argument, we will use a
+-- list, not a tuple:
+--
+-- @
+-- do
+--  (x1, x2, ...) <- readJSON args
+--  return $ Cons x1 x2 ...
+-- @
+loadExcConstructor :: Name -> String -> [SimpleField] -> Q Exp
+loadExcConstructor inname sname fields = do
+  let name = mkName sname
+  f_names <- mapM (newName . fst) fields
+  let read_args = AppE (VarE 'JSON.readJSON) (VarE inname)
+  let binds = case f_names of
+                [x] -> BindS (ListP [VarP x])
+                _   -> BindS (TupP (map VarP f_names))
+      cval = foldl (\accu fn -> AppE accu (VarE fn)) (ConE name) f_names
+  return $ DoE [binds read_args, NoBindS (AppE (VarE 'return) cval)]
+
+{-| Generates the loadException function.
+
+This generates a quite complicated function, along the lines of:
+
+@
+loadFn (JSArray [JSString name, args]) = case name of
+   "A1" -> do
+     (x1, x2, ...) <- readJSON args
+     return $ A1 x1 x2 ...
+   "a2" -> ...
+   s -> fail $ "Unknown exception" ++ s
+loadFn v = fail $ "Expected array but got " ++ show v
+@
+-}
+genLoadExc :: Name -> String -> SimpleObject -> Q (Dec, Dec)
+genLoadExc tname sname opdefs = do
+  let fname = mkName sname
+  exc_name <- newName "name"
+  exc_args <- newName "args"
+  exc_else <- newName "s"
+  arg_else <- newName "v"
+  fails <- [| fail $ "Unknown exception '" ++ $(varE exc_else) ++ "'" |]
+  -- default match for unknown exception name
+  let defmatch = Match (VarP exc_else) (NormalB fails) []
+  -- the match results (per-constructor blocks)
+  str_matches <-
+    mapM (\(s, params) -> do
+            body_exp <- loadExcConstructor exc_args s params
+            return $ Match (LitP (StringL s)) (NormalB body_exp) [])
+    opdefs
+  -- the first function clause; we can't use [| |] due to TH
+  -- limitations, so we have to build the AST by hand
+  let clause1 = Clause [ConP 'JSON.JSArray
+                               [ListP [ConP 'JSON.JSString [VarP exc_name],
+                                            VarP exc_args]]]
+                (NormalB (CaseE (AppE (VarE 'JSON.fromJSString)
+                                        (VarE exc_name))
+                          (str_matches ++ [defmatch]))) []
+  -- the fail expression for the second function clause
+  fail_type <- [| fail $ "Invalid exception: expected '(string, [args])' " ++
+                  "      but got " ++ show (pp_value $(varE arg_else)) ++ "'"
+                |]
+  -- the second function clause
+  let clause2 = Clause [VarP arg_else] (NormalB fail_type) []
+  sigt <- [t| JSON.JSValue -> JSON.Result $(conT tname) |]
+  return $ (SigD fname sigt, FunD fname [clause1, clause2])
