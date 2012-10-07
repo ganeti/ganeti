@@ -47,6 +47,7 @@ import Data.List
 
 import Text.Printf (printf)
 
+import Ganeti.BasicTypes
 import Ganeti.Utils
 import Ganeti.HTools.Loader
 import Ganeti.HTools.Types

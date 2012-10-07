@@ -39,6 +39,7 @@ import Test.Ganeti.TestHelper
 import Test.Ganeti.TestCommon
 import Test.Ganeti.Common
 
+import Ganeti.BasicTypes
 import Ganeti.HTools.CLI as CLI
 import qualified Ganeti.HTools.Program as Program
 import qualified Ganeti.HTools.Types as Types
@@ -49,7 +50,7 @@ import qualified Ganeti.HTools.Types as Types
 prop_parseISpec :: String -> Int -> Int -> Int -> Property
 prop_parseISpec descr dsk mem cpu =
   let str = printf "%d,%d,%d" dsk mem cpu::String
-  in parseISpecString descr str ==? Types.Ok (Types.RSpec cpu mem dsk)
+  in parseISpecString descr str ==? Ok (Types.RSpec cpu mem dsk)
 
 -- | Test parsing failure due to wrong section count.
 prop_parseISpecFail :: String -> Property
@@ -58,7 +59,7 @@ prop_parseISpecFail descr =
   forAll (replicateM nelems arbitrary) $ \values ->
   let str = intercalate "," $ map show (values::[Int])
   in case parseISpecString descr str of
-       Types.Ok v -> failTest $ "Expected failure, got " ++ show v
+       Ok v -> failTest $ "Expected failure, got " ++ show v
        _ -> passTest
 
 -- | Test a few string arguments.

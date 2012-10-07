@@ -49,6 +49,7 @@ import qualified Ganeti.HTools.Group as Group
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
 
+import Ganeti.BasicTypes
 import Ganeti.Common
 import Ganeti.HTools.CLI
 import Ganeti.HTools.ExtLoader

@@ -49,6 +49,7 @@ import qualified Ganeti.HTools.IAlloc as IAlloc
 import Ganeti.HTools.Loader (mergeData, checkData, ClusterData(..)
                             , commonSuffix)
 
+import Ganeti.BasicTypes
 import Ganeti.HTools.Types
 import Ganeti.HTools.CLI
 import Ganeti.Utils (sepSplit, tryRead, exitIfBad, exitWhen)

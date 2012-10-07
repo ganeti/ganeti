@@ -38,7 +38,7 @@ module Test.Ganeti.HTools.Types
   , nullIPolicy
   ) where
 
-import Test.QuickCheck
+import Test.QuickCheck hiding (Result)
 
 import Control.Applicative
 
@@ -46,6 +46,7 @@ import Test.Ganeti.TestHelper
 import Test.Ganeti.TestCommon
 import Test.Ganeti.TestHTools
 
+import Ganeti.BasicTypes
 import qualified Ganeti.HTools.Types as Types
 
 -- * Helpers
@@ -140,20 +141,20 @@ prop_EvacMode_serialisation = testSerialisation
 prop_opToResult :: Types.OpResult Int -> Bool
 prop_opToResult op =
   case op of
-    Types.OpFail _ -> Types.isBad r
+    Types.OpFail _ -> isBad r
     Types.OpGood v -> case r of
-                        Types.Bad _ -> False
-                        Types.Ok v' -> v == v'
+                        Bad _ -> False
+                        Ok v' -> v == v'
   where r = Types.opToResult op
 
 prop_eitherToResult :: Either String Int -> Bool
 prop_eitherToResult ei =
   case ei of
-    Left _ -> Types.isBad r
+    Left _ -> isBad r
     Right v -> case r of
-                 Types.Bad _ -> False
-                 Types.Ok v' -> v == v'
-    where r = Types.eitherToResult ei
+                 Bad _ -> False
+                 Ok v' -> v == v'
+    where r = eitherToResult ei
 
 testSuite "HTools/Types"
             [ 'prop_AllocPolicy_serialisation

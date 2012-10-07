@@ -32,6 +32,7 @@ import qualified Control.Exception as E
 import Text.JSON.Types
 import qualified Text.JSON
 
+import Ganeti.BasicTypes
 import qualified Ganeti.Luxi as L
 import qualified Ganeti.Query.Language as Qlang
 import Ganeti.HTools.Loader

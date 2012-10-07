@@ -28,7 +28,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Test.Ganeti.HTools.Simu (testHTools_Simu) where
 
-import Test.QuickCheck
+import Test.QuickCheck hiding (Result)
 
 import Control.Monad
 import qualified Data.IntMap as IntMap
@@ -37,6 +37,7 @@ import Text.Printf (printf)
 import Test.Ganeti.TestHelper
 import Test.Ganeti.TestCommon
 
+import Ganeti.BasicTypes
 import qualified Ganeti.Constants as C
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Group as Group
@@ -75,8 +76,8 @@ prop_Load =
                                          fromIntegral m, fromIntegral d))
                specs :: [(Double, Double, Double, Int, Int)]
   in case Simu.parseData strspecs of
-       Types.Bad msg -> failTest $ "Failed to load specs: " ++ msg
-       Types.Ok (Loader.ClusterData gl nl il tags ipol) ->
+       Bad msg -> failTest $ "Failed to load specs: " ++ msg
+       Ok (Loader.ClusterData gl nl il tags ipol) ->
          let nodes = map snd $ IntMap.toAscList nl
              nidx = map Node.idx nodes
              mdc_out = map (\n -> (Node.tMem n, Node.tDsk n, Node.tCpu n,

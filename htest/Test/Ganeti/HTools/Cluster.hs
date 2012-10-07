@@ -28,7 +28,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Test.Ganeti.HTools.Cluster (testHTools_Cluster) where
 
-import Test.QuickCheck
+import Test.QuickCheck hiding (Result)
 
 import qualified Data.IntMap as IntMap
 import Data.Maybe
@@ -40,6 +40,7 @@ import Test.Ganeti.HTools.Instance ( genInstanceSmallerThanNode
                                    , genInstanceSmallerThan )
 import Test.Ganeti.HTools.Node (genOnlineNode, genNode)
 
+import Ganeti.BasicTypes
 import qualified Ganeti.HTools.Cluster as Cluster
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Group as Group
@@ -135,8 +136,8 @@ prop_Alloc_sane inst =
       reqnodes = Instance.requiredNodes $ Instance.diskTemplate inst
   in case Cluster.genAllocNodes defGroupList nl reqnodes True >>=
      Cluster.tryAlloc nl il inst' of
-       Types.Bad msg -> failTest msg
-       Types.Ok as ->
+       Bad msg -> failTest msg
+       Ok as ->
          case Cluster.asSolution as of
            Nothing -> failTest "Failed to allocate, empty solution"
            Just (xnl, xi, _, cv) ->
@@ -159,8 +160,8 @@ prop_IterateAlloc_sane inst =
       allocnodes = Cluster.genAllocNodes defGroupList nl reqnodes True
   in case allocnodes >>= \allocnodes' ->
      Cluster.iterateAlloc nl il (Just limit) inst' allocnodes' [] [] of
-       Types.Bad msg -> failTest msg
-       Types.Ok (_, xnl, xil, _, _) ->
+       Bad msg -> failTest msg
+       Ok (_, xnl, xil, _, _) ->
          let old_score = Cluster.compCV xnl
              tbl = Cluster.Table xnl xil old_score []
          in case Cluster.tryBalance tbl True True False 0 1e-4 of
@@ -200,8 +201,8 @@ prop_CanTieredAlloc =
       allocnodes = Cluster.genAllocNodes defGroupList nl rqnodes True
   in case allocnodes >>= \allocnodes' ->
     Cluster.tieredAlloc nl il (Just 5) inst allocnodes' [] [] of
-       Types.Bad msg -> failTest $ "Failed to tiered alloc: " ++ msg
-       Types.Ok (_, nl', il', ixes, cstats) ->
+       Bad msg -> failTest $ "Failed to tiered alloc: " ++ msg
+       Ok (_, nl', il', ixes, cstats) ->
          let (ai_alloc, ai_pool, ai_unav) =
                Cluster.computeAllocationDelta
                 (Cluster.totalResources nl)
@@ -221,19 +222,19 @@ prop_CanTieredAlloc =
 -- | Helper function to create a cluster with the given range of nodes
 -- and allocate an instance on it.
 genClusterAlloc :: Int -> Node.Node -> Instance.Instance
-                -> Types.Result (Node.List, Instance.List, Instance.Instance)
+                -> Result (Node.List, Instance.List, Instance.Instance)
 genClusterAlloc count node inst =
   let nl = makeSmallCluster node count
       reqnodes = Instance.requiredNodes $ Instance.diskTemplate inst
   in case Cluster.genAllocNodes defGroupList nl reqnodes True >>=
      Cluster.tryAlloc nl Container.empty inst of
-       Types.Bad _ -> Types.Bad "Can't allocate"
-       Types.Ok as ->
+       Bad msg -> Bad $ "Can't allocate: " ++ msg
+       Ok as ->
          case Cluster.asSolution as of
-           Nothing -> Types.Bad "Empty solution?"
+           Nothing -> Bad "Empty solution?"
            Just (xnl, xi, _, _) ->
              let xil = Container.add (Instance.idx xi) xi Container.empty
-             in Types.Ok (xnl, xil, xi)
+             in Ok (xnl, xil, xi)
 
 -- | Checks that on a 4-8 node cluster, once we allocate an instance,
 -- we can also relocate it.
@@ -243,25 +244,25 @@ prop_AllocRelocate =
   forAll (genOnlineNode `suchThat` isNodeBig 4) $ \node ->
   forAll (genInstanceSmallerThanNode node `suchThat` isMirrored) $ \inst ->
   case genClusterAlloc count node inst of
-    Types.Bad msg -> failTest msg
-    Types.Ok (nl, il, inst') ->
+    Bad msg -> failTest msg
+    Ok (nl, il, inst') ->
       case IAlloc.processRelocate defGroupList nl il
              (Instance.idx inst) 1
              [(if Instance.diskTemplate inst' == Types.DTDrbd8
                  then Instance.sNode
                  else Instance.pNode) inst'] of
-        Types.Ok _ -> passTest
-        Types.Bad msg -> failTest $ "Failed to relocate: " ++ msg
+        Ok _ -> passTest
+        Bad msg -> failTest $ "Failed to relocate: " ++ msg
 
 -- | Helper property checker for the result of a nodeEvac or
 -- changeGroup operation.
 check_EvacMode :: Group.Group -> Instance.Instance
-               -> Types.Result (Node.List, Instance.List, Cluster.EvacSolution)
+               -> Result (Node.List, Instance.List, Cluster.EvacSolution)
                -> Property
 check_EvacMode grp inst result =
   case result of
-    Types.Bad msg -> failTest $ "Couldn't evacuate/change group:" ++ msg
-    Types.Ok (_, _, es) ->
+    Bad msg -> failTest $ "Couldn't evacuate/change group:" ++ msg
+    Ok (_, _, es) ->
       let moved = Cluster.esMoved es
           failed = Cluster.esFailed es
           opcodes = not . null $ Cluster.esOpCodes es
@@ -285,8 +286,8 @@ prop_AllocEvacuate =
   forAll (genOnlineNode `suchThat` isNodeBig 4) $ \node ->
   forAll (genInstanceSmallerThanNode node `suchThat` isMirrored) $ \inst ->
   case genClusterAlloc count node inst of
-    Types.Bad msg -> failTest msg
-    Types.Ok (nl, il, inst') ->
+    Bad msg -> failTest msg
+    Ok (nl, il, inst') ->
       conjoin . map (\mode -> check_EvacMode defGroup inst' $
                               Cluster.tryNodeEvac defGroupList nl il mode
                                 [Instance.idx inst']) .
@@ -302,8 +303,8 @@ prop_AllocChangeGroup =
   forAll (genOnlineNode `suchThat` isNodeBig 4) $ \node ->
   forAll (genInstanceSmallerThanNode node `suchThat` isMirrored) $ \inst ->
   case genClusterAlloc count node inst of
-    Types.Bad msg -> failTest msg
-    Types.Ok (nl, il, inst') ->
+    Bad msg -> failTest msg
+    Ok (nl, il, inst') ->
       -- we need to add a second node group and nodes to the cluster
       let nl2 = Container.elems $ makeSmallCluster node count
           grp2 = Group.setIdx defGroup (Group.idx defGroup + 1)
@@ -330,9 +331,9 @@ prop_AllocBalance =
       i_templ = createInstance Types.unitMem Types.unitDsk Types.unitCpu
   in case allocnodes >>= \allocnodes' ->
     Cluster.iterateAlloc nl' il (Just 5) i_templ allocnodes' [] [] of
-       Types.Bad msg -> failTest $ "Failed to allocate: " ++ msg
-       Types.Ok (_, _, _, [], _) -> failTest "Failed to allocate: no instances"
-       Types.Ok (_, xnl, il', _, _) ->
+       Bad msg -> failTest $ "Failed to allocate: " ++ msg
+       Ok (_, _, _, [], _) -> failTest "Failed to allocate: no instances"
+       Ok (_, xnl, il', _, _) ->
          let ynl = Container.add (Node.idx hnode) hnode xnl
              cv = Cluster.compCV ynl
              tbl = Cluster.Table ynl il' cv []
@@ -373,8 +374,8 @@ canAllocOn :: Node.List -> Int -> Instance.Instance -> Maybe String
 canAllocOn nl reqnodes inst =
   case Cluster.genAllocNodes defGroupList nl reqnodes True >>=
        Cluster.tryAlloc nl Container.empty inst of
-       Types.Bad msg -> Just $ "Can't allocate: " ++ msg
-       Types.Ok as ->
+       Bad msg -> Just $ "Can't allocate: " ++ msg
+       Ok as ->
          case Cluster.asSolution as of
            Nothing -> Just $ "No allocation solution; failures: " ++
                       show (Cluster.collapseFailures $ Cluster.asFailures as)

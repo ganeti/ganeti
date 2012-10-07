@@ -28,7 +28,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Test.Ganeti.Utils (testUtils) where
 
-import Test.QuickCheck
+import Test.QuickCheck hiding (Result)
 import Test.HUnit
 
 import Data.List
@@ -37,8 +37,8 @@ import qualified Text.JSON as J
 import Test.Ganeti.TestHelper
 import Test.Ganeti.TestCommon
 
+import Ganeti.BasicTypes
 import qualified Ganeti.JSON as JSON
-import qualified Ganeti.HTools.Types as Types
 import Ganeti.Utils
 
 -- | Helper to generate a small string that doesn't contain commas.
@@ -107,16 +107,18 @@ prop_select_undefv lst1 (NonEmpty lst2) =
 
 prop_parseUnit :: NonNegative Int -> Property
 prop_parseUnit (NonNegative n) =
-  parseUnit (show n) ==? Types.Ok n .&&.
-  parseUnit (show n ++ "m") ==? Types.Ok n .&&.
-  parseUnit (show n ++ "M") ==? Types.Ok (truncate n_mb::Int) .&&.
-  parseUnit (show n ++ "g") ==? Types.Ok (n*1024) .&&.
-  parseUnit (show n ++ "G") ==? Types.Ok (truncate n_gb::Int) .&&.
-  parseUnit (show n ++ "t") ==? Types.Ok (n*1048576) .&&.
-  parseUnit (show n ++ "T") ==? Types.Ok (truncate n_tb::Int) .&&.
-  printTestCase "Internal error/overflow?"
-    (n_mb >=0 && n_gb >= 0 && n_tb >= 0) .&&.
-  property (Types.isBad (parseUnit (show n ++ "x")::Types.Result Int))
+  conjoin
+  [ parseUnit (show n) ==? (Ok n::Result Int)
+  , parseUnit (show n ++ "m") ==? (Ok n::Result Int)
+  , parseUnit (show n ++ "M") ==? (Ok (truncate n_mb)::Result Int)
+  , parseUnit (show n ++ "g") ==? (Ok (n*1024)::Result Int)
+  , parseUnit (show n ++ "G") ==? (Ok (truncate n_gb)::Result Int)
+  , parseUnit (show n ++ "t") ==? (Ok (n*1048576)::Result Int)
+  , parseUnit (show n ++ "T") ==? (Ok (truncate n_tb)::Result Int)
+  , printTestCase "Internal error/overflow?"
+    (n_mb >=0 && n_gb >= 0 && n_tb >= 0)
+  , property (isBad (parseUnit (show n ++ "x")::Result Int))
+  ]
   where n_mb = (fromIntegral n::Rational) * 1000 * 1000 / 1024 / 1024
         n_gb = n_mb * 1000
         n_tb = n_gb * 1000

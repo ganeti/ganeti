@@ -39,6 +39,7 @@ import Text.JSON (JSObject, JSValue(JSArray),
 import System.Exit
 import System.IO
 
+import Ganeti.BasicTypes
 import qualified Ganeti.HTools.Cluster as Cluster
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Group as Group

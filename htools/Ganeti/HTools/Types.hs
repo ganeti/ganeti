@@ -62,11 +62,6 @@ module Ganeti.HTools.Types
   , templateMirrorType
   , MoveJob
   , JobSet
-  , Result(..)
-  , isOk
-  , isBad
-  , eitherToResult
-  , annotateResult
   , Element(..)
   , FailMode(..)
   , FailStats

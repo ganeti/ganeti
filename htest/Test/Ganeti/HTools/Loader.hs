@@ -42,7 +42,6 @@ import qualified Ganeti.BasicTypes as BasicTypes
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Loader as Loader
 import qualified Ganeti.HTools.Node as Node
-import qualified Ganeti.HTools.Types as Types
 
 prop_lookupNode :: [(String, Int)] -> String -> String -> Property
 prop_lookupNode ktn inst node =
@@ -76,8 +75,8 @@ prop_mergeData ns =
   let na = Container.fromList $ map (\n -> (Node.idx n, n)) ns
   in case Loader.mergeData [] [] [] []
          (Loader.emptyCluster {Loader.cdNodes = na}) of
-    Types.Bad _ -> False
-    Types.Ok (Loader.ClusterData _ nl il _ _) ->
+    BasicTypes.Bad _ -> False
+    BasicTypes.Ok (Loader.ClusterData _ nl il _ _) ->
       let nodes = Container.elems nl
           instances = Container.elems il
       in (sum . map (length . Node.pList)) nodes == 0 &&

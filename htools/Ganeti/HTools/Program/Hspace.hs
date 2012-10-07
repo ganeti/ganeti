@@ -44,6 +44,7 @@ import qualified Ganeti.HTools.Cluster as Cluster
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
 
+import Ganeti.BasicTypes
 import Ganeti.Common
 import Ganeti.HTools.Types
 import Ganeti.HTools.CLI

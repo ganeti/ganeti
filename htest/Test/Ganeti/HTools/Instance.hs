@@ -33,12 +33,13 @@ module Test.Ganeti.HTools.Instance
   , Instance.Instance(..)
   ) where
 
-import Test.QuickCheck
+import Test.QuickCheck hiding (Result)
 
 import Test.Ganeti.TestHelper
 import Test.Ganeti.TestCommon
 import Test.Ganeti.HTools.Types ()
 
+import Ganeti.BasicTypes
 import qualified Ganeti.HTools.Instance as Instance
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Types as Types
@@ -110,42 +111,40 @@ prop_shrinkMG :: Instance.Instance -> Property
 prop_shrinkMG inst =
   Instance.mem inst >= 2 * Types.unitMem ==>
     case Instance.shrinkByType inst Types.FailMem of
-      Types.Ok inst' -> Instance.mem inst' == Instance.mem inst - Types.unitMem
-      _ -> False
+      Ok inst' -> Instance.mem inst' ==? Instance.mem inst - Types.unitMem
+      Bad msg -> failTest msg
 
 prop_shrinkMF :: Instance.Instance -> Property
 prop_shrinkMF inst =
   forAll (choose (0, 2 * Types.unitMem - 1)) $ \mem ->
     let inst' = inst { Instance.mem = mem}
-    in Types.isBad $ Instance.shrinkByType inst' Types.FailMem
+    in isBad $ Instance.shrinkByType inst' Types.FailMem
 
 prop_shrinkCG :: Instance.Instance -> Property
 prop_shrinkCG inst =
   Instance.vcpus inst >= 2 * Types.unitCpu ==>
     case Instance.shrinkByType inst Types.FailCPU of
-      Types.Ok inst' ->
-        Instance.vcpus inst' == Instance.vcpus inst - Types.unitCpu
-      _ -> False
+      Ok inst' -> Instance.vcpus inst' ==? Instance.vcpus inst - Types.unitCpu
+      Bad msg -> failTest msg
 
 prop_shrinkCF :: Instance.Instance -> Property
 prop_shrinkCF inst =
   forAll (choose (0, 2 * Types.unitCpu - 1)) $ \vcpus ->
     let inst' = inst { Instance.vcpus = vcpus }
-    in Types.isBad $ Instance.shrinkByType inst' Types.FailCPU
+    in isBad $ Instance.shrinkByType inst' Types.FailCPU
 
 prop_shrinkDG :: Instance.Instance -> Property
 prop_shrinkDG inst =
   Instance.dsk inst >= 2 * Types.unitDsk ==>
     case Instance.shrinkByType inst Types.FailDisk of
-      Types.Ok inst' ->
-        Instance.dsk inst' == Instance.dsk inst - Types.unitDsk
-      _ -> False
+      Ok inst' -> Instance.dsk inst' ==? Instance.dsk inst - Types.unitDsk
+      Bad msg -> failTest msg
 
 prop_shrinkDF :: Instance.Instance -> Property
 prop_shrinkDF inst =
   forAll (choose (0, 2 * Types.unitDsk - 1)) $ \dsk ->
     let inst' = inst { Instance.dsk = dsk }
-    in Types.isBad $ Instance.shrinkByType inst' Types.FailDisk
+    in isBad $ Instance.shrinkByType inst' Types.FailDisk
 
 prop_setMovable :: Instance.Instance -> Bool -> Property
 prop_setMovable inst m =

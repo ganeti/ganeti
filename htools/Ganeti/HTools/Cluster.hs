@@ -81,6 +81,7 @@ import Data.Maybe (fromJust, isNothing)
 import Data.Ord (comparing)
 import Text.Printf (printf)
 
+import Ganeti.BasicTypes
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Instance as Instance
 import qualified Ganeti.HTools.Node as Node

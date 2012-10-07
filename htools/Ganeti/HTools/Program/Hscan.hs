@@ -37,6 +37,7 @@ import System.FilePath
 
 import Text.Printf (printf)
 
+import Ganeti.BasicTypes
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Cluster as Cluster
 import qualified Ganeti.HTools.Node as Node
@@ -49,7 +50,6 @@ import Ganeti.HTools.Text (serializeCluster)
 
 import Ganeti.Common
 import Ganeti.HTools.CLI
-import Ganeti.HTools.Types
 
 -- | Options list and functions.
 options :: [OptType]

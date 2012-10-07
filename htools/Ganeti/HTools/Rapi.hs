@@ -44,6 +44,7 @@ import Text.JSON.Types (JSValue(..))
 import Text.Printf (printf)
 import System.FilePath
 
+import Ganeti.BasicTypes
 import Ganeti.HTools.Loader
 import Ganeti.HTools.Types
 import Ganeti.JSON

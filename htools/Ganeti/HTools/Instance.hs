@@ -57,6 +57,7 @@ module Ganeti.HTools.Instance
   , mirrorType
   ) where
 
+import Ganeti.BasicTypes
 import qualified Ganeti.HTools.Types as T
 import qualified Ganeti.HTools.Container as Container
 
@@ -233,20 +234,20 @@ setMovable t m = t { movable = m }
 
 -- | Try to shrink the instance based on the reason why we can't
 -- allocate it.
-shrinkByType :: Instance -> T.FailMode -> T.Result Instance
+shrinkByType :: Instance -> T.FailMode -> Result Instance
 shrinkByType inst T.FailMem = let v = mem inst - T.unitMem
                               in if v < T.unitMem
-                                 then T.Bad "out of memory"
-                                 else T.Ok inst { mem = v }
+                                 then Bad "out of memory"
+                                 else Ok inst { mem = v }
 shrinkByType inst T.FailDisk = let v = dsk inst - T.unitDsk
                                in if v < T.unitDsk
-                                  then T.Bad "out of disk"
-                                  else T.Ok inst { dsk = v }
+                                  then Bad "out of disk"
+                                  else Ok inst { dsk = v }
 shrinkByType inst T.FailCPU = let v = vcpus inst - T.unitCpu
                               in if v < T.unitCpu
-                                 then T.Bad "out of vcpus"
-                                 else T.Ok inst { vcpus = v }
-shrinkByType _ f = T.Bad $ "Unhandled failure mode " ++ show f
+                                 then Bad "out of vcpus"
+                                 else Ok inst { vcpus = v }
+shrinkByType _ f = Bad $ "Unhandled failure mode " ++ show f
 
 -- | Return the spec of an instance.
 specOf :: Instance -> T.RSpec

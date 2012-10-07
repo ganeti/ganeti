@@ -40,6 +40,7 @@ import Test.Ganeti.TestHTools
 import Test.Ganeti.HTools.Instance (genInstanceSmallerThanNode)
 import Test.Ganeti.HTools.Node (genNode, genOnlineNode)
 
+import Ganeti.BasicTypes
 import qualified Ganeti.HTools.Cluster as Cluster
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Group as Group
@@ -79,9 +80,9 @@ prop_Load_Instance name mem dsk vcpus status
               [name, mem_s, dsk_s, vcpus_s, status_s,
                sbal, pnode, pnode, tags]
   in case inst of
-       Types.Bad msg -> failTest $ "Failed to load instance: " ++ msg
-       Types.Ok (_, i) -> printTestCase "Mismatch in some field while\
-                                        \ loading the instance" $
+       Bad msg -> failTest $ "Failed to load instance: " ++ msg
+       Ok (_, i) -> printTestCase "Mismatch in some field while\
+                                  \ loading the instance" $
                Instance.name i == name &&
                Instance.vcpus i == vcpus &&
                Instance.mem i == mem &&
@@ -91,15 +92,15 @@ prop_Load_Instance name mem dsk vcpus status
                                       else sdx) &&
                Instance.autoBalance i == autobal &&
                Instance.spindleUse i == su &&
-               Types.isBad fail1
+               isBad fail1
 
 prop_Load_InstanceFail :: [(String, Int)] -> [String] -> Property
 prop_Load_InstanceFail ktn fields =
   length fields /= 10 && length fields /= 11 ==>
     case Text.loadInst nl fields of
-      Types.Ok _ -> failTest "Managed to load instance from invalid data"
-      Types.Bad msg -> printTestCase ("Unrecognised error message: " ++ msg) $
-                       "Invalid/incomplete instance data: '" `isPrefixOf` msg
+      Ok _ -> failTest "Managed to load instance from invalid data"
+      Bad msg -> printTestCase ("Unrecognised error message: " ++ msg) $
+                 "Invalid/incomplete instance data: '" `isPrefixOf` msg
     where nl = Map.fromList ktn
 
 prop_Load_Node :: String -> Int -> Int -> Int -> Int -> Int
@@ -153,15 +154,15 @@ prop_ISpecIdempotent :: Types.ISpec -> Property
 prop_ISpecIdempotent ispec =
   case Text.loadISpec "dummy" . Utils.sepSplit ',' .
        Text.serializeISpec $ ispec of
-    Types.Bad msg -> failTest $ "Failed to load ispec: " ++ msg
-    Types.Ok ispec' -> ispec ==? ispec'
+    Bad msg -> failTest $ "Failed to load ispec: " ++ msg
+    Ok ispec' -> ispec ==? ispec'
 
 prop_IPolicyIdempotent :: Types.IPolicy -> Property
 prop_IPolicyIdempotent ipol =
   case Text.loadIPolicy . Utils.sepSplit '|' $
        Text.serializeIPolicy owner ipol of
-    Types.Bad msg -> failTest $ "Failed to load ispec: " ++ msg
-    Types.Ok res -> (owner, ipol) ==? res
+    Bad msg -> failTest $ "Failed to load ispec: " ++ msg
+    Ok res -> (owner, ipol) ==? res
   where owner = "dummy"
 
 -- | This property, while being in the text tests, does more than just
@@ -183,16 +184,16 @@ prop_CreateSerialise =
   in case Cluster.genAllocNodes defGroupList nl reqnodes True >>= \allocn ->
      Cluster.iterateAlloc nl Container.empty (Just maxiter) inst allocn [] []
      of
-       Types.Bad msg -> failTest $ "Failed to allocate: " ++ msg
-       Types.Ok (_, _, _, [], _) -> printTestCase
-                                    "Failed to allocate: no allocations" False
-       Types.Ok (_, nl', il', _, _) ->
+       Bad msg -> failTest $ "Failed to allocate: " ++ msg
+       Ok (_, _, _, [], _) -> printTestCase
+                              "Failed to allocate: no allocations" False
+       Ok (_, nl', il', _, _) ->
          let cdata = Loader.ClusterData defGroupList nl' il' ctags
                      Types.defIPolicy
              saved = Text.serializeCluster cdata
          in case Text.parseData saved >>= Loader.mergeData [] [] [] [] of
-              Types.Bad msg -> failTest $ "Failed to load/merge: " ++ msg
-              Types.Ok (Loader.ClusterData gl2 nl2 il2 ctags2 cpol2) ->
+              Bad msg -> failTest $ "Failed to load/merge: " ++ msg
+              Ok (Loader.ClusterData gl2 nl2 il2 ctags2 cpol2) ->
                 ctags ==? ctags2 .&&.
                 Types.defIPolicy ==? cpol2 .&&.
                 il' ==? il2 .&&.
