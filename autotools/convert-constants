@@ -25,11 +25,12 @@
 import re
 import types
 
+from ganeti import _autoconf
 from ganeti import compat
 from ganeti import constants
+from ganeti import errors
 from ganeti import luxi
 from ganeti import qlang
-from ganeti import _autoconf
 
 
 #: Constant name regex
@@ -293,6 +294,7 @@ def main():
   print Convert(luxi, "luxi")
   print Convert(qlang, "qlang")
   print Convert(_autoconf, "autoconf")
+  print Convert(errors, "errors")
 
 
 if __name__ == "__main__":
