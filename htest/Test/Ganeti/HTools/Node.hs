@@ -45,6 +45,7 @@ import Test.Ganeti.TestCommon
 import Test.Ganeti.TestHTools
 import Test.Ganeti.HTools.Instance (genInstanceSmallerThanNode)
 
+import Ganeti.BasicTypes
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Instance as Instance
 import qualified Ganeti.HTools.Node as Node
@@ -126,7 +127,7 @@ prop_addPriFM node inst =
   Instance.mem inst >= Node.fMem node && not (Node.failN1 node) &&
   not (Instance.isOffline inst) ==>
   case Node.addPri node inst'' of
-    Types.OpFail Types.FailMem -> True
+    Bad Types.FailMem -> True
     _ -> False
   where inst' = setInstanceSmallerThanNode node inst
         inst'' = inst' { Instance.mem = Instance.mem inst }
@@ -141,7 +142,7 @@ prop_addPriFD node inst =
       inst'' = inst' { Instance.dsk = Instance.dsk inst
                      , Instance.diskTemplate = dt }
   in case Node.addPri node inst'' of
-       Types.OpFail Types.FailDisk -> True
+       Bad Types.FailDisk -> True
        _ -> False
 
 -- | Check that adding a primary instance with too many VCPUs fails
@@ -154,7 +155,7 @@ prop_addPriFC =
   let inst' = setInstanceSmallerThanNode node inst
       inst'' = inst' { Instance.vcpus = Node.availCpu node + extra }
   in case Node.addPri node inst'' of
-       Types.OpFail Types.FailCPU -> passTest
+       Bad Types.FailCPU -> passTest
        v -> failTest $ "Expected OpFail FailCPU, but got " ++ show v
 
 -- | Check that an instance add with too high memory or disk will be
@@ -165,7 +166,7 @@ prop_addSec node inst pdx =
     not (Instance.isOffline inst)) ||
    Instance.dsk inst >= Node.fDsk node) &&
   not (Node.failN1 node) ==>
-      isFailure (Node.addSec node inst pdx)
+      isBad (Node.addSec node inst pdx)
 
 -- | Check that an offline instance with reasonable disk size but
 -- extra mem/cpu can always be added.
@@ -177,7 +178,7 @@ prop_addOfflinePri (NonNegative extra_mem) (NonNegative extra_cpu) =
                    , Instance.mem = Node.availMem node + extra_mem
                    , Instance.vcpus = Node.availCpu node + extra_cpu }
   in case Node.addPri node inst' of
-       Types.OpGood _ -> passTest
+       Ok _ -> passTest
        v -> failTest $ "Expected OpGood, but got: " ++ show v
 
 -- | Check that an offline instance with reasonable disk size but
@@ -192,7 +193,7 @@ prop_addOfflineSec (NonNegative extra_mem) (NonNegative extra_cpu) pdx =
                    , Instance.vcpus = Node.availCpu node + extra_cpu
                    , Instance.diskTemplate = Types.DTDrbd8 }
   in case Node.addSec node inst' pdx of
-       Types.OpGood _ -> passTest
+       Ok _ -> passTest
        v -> failTest $ "Expected OpGood/OpGood, but got: " ++ show v
 
 -- | Checks for memory reservation changes.
@@ -215,8 +216,8 @@ prop_rMem inst =
       node_del_ab = liftM (`Node.removeSec` inst_ab) node_add_ab
       node_del_nb = liftM (`Node.removeSec` inst_nb) node_add_nb
   in case (node_add_ab, node_add_nb, node_del_ab, node_del_nb) of
-       (Types.OpGood a_ab, Types.OpGood a_nb,
-        Types.OpGood d_ab, Types.OpGood d_nb) ->
+       (Ok a_ab, Ok a_nb,
+        Ok d_ab, Ok d_nb) ->
          printTestCase "Consistency checks failed" $
            Node.rMem a_ab >  orig_rmem &&
            Node.rMem a_ab - orig_rmem == Instance.mem inst_ab &&
@@ -275,7 +276,7 @@ prop_addPri_idempotent =
   forAll genOnlineNode $ \node ->
   forAll (genInstanceSmallerThanNode node) $ \inst ->
   case Node.addPri node inst of
-    Types.OpGood node' -> Node.removePri node' inst ==? node
+    Ok node' -> Node.removePri node' inst ==? node
     _ -> failTest "Can't add instance"
 
 prop_addSec_idempotent :: Property
@@ -286,7 +287,7 @@ prop_addSec_idempotent =
       inst' = Instance.setPri inst pdx
       inst'' = inst' { Instance.diskTemplate = Types.DTDrbd8 }
   in case Node.addSec node inst'' pdx of
-       Types.OpGood node' -> Node.removeSec node' inst'' ==? node
+       Ok node' -> Node.removeSec node' inst'' ==? node
        _ -> failTest "Can't add instance"
 
 testSuite "HTools/Node"

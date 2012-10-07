@@ -65,7 +65,7 @@ module Ganeti.HTools.Types
   , Element(..)
   , FailMode(..)
   , FailStats
-  , OpResult(..)
+  , OpResult
   , opToResult
   , EvacMode(..)
   , ISpec(..)
@@ -344,21 +344,20 @@ type FailStats = [(FailMode, Int)]
 -- The failure values for this monad track the specific allocation
 -- failures, so this is not a general error-monad (compare with the
 -- 'Result' data type). One downside is that this type cannot encode a
--- generic failure mode, hence 'fail' for this monad is not defined
--- and will cause an exception.
-data OpResult a = OpFail FailMode -- ^ Failed operation
-                | OpGood a        -- ^ Success operation
-                  deriving (Show, Read)
+-- generic failure mode, hence our way to build a FailMode from string
+-- will instead raise an exception.
+type OpResult = GenericResult FailMode
 
-instance Monad OpResult where
-  (OpGood x) >>= fn = fn x
-  (OpFail y) >>= _ = OpFail y
-  return = OpGood
+-- | 'FromString' instance for 'FailMode' designed to catch unintended
+-- use as a general monad.
+instance FromString FailMode where
+  mkFromString v = error $ "Programming error: OpResult used as generic monad"
+                           ++ v
 
 -- | Conversion from 'OpResult' to 'Result'.
 opToResult :: OpResult a -> Result a
-opToResult (OpFail f) = Bad $ show f
-opToResult (OpGood v) = Ok v
+opToResult (Bad f) = Bad $ show f
+opToResult (Ok v) = Ok v
 
 -- | A generic class for items that have updateable names and indices.
 class Element a where

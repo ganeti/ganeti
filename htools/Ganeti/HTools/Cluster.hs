@@ -517,8 +517,8 @@ checkSingleStep ini_tbl target cur_tbl move =
   let Table ini_nl ini_il _ ini_plc = ini_tbl
       tmp_resu = applyMove ini_nl target move
   in case tmp_resu of
-       OpFail _ -> cur_tbl
-       OpGood (upd_nl, new_inst, pri_idx, sec_idx) ->
+       Bad _ -> cur_tbl
+       Ok (upd_nl, new_inst, pri_idx, sec_idx) ->
          let tgt_idx = Instance.idx target
              upd_cvar = compCV upd_nl
              upd_il = Container.add tgt_idx new_inst ini_il
@@ -665,9 +665,9 @@ bestAllocElement a@(Just (_, _, _, ascore)) b@(Just (_, _, _, bscore)) =
 -- | Update current Allocation solution and failure stats with new
 -- elements.
 concatAllocs :: AllocSolution -> OpResult Node.AllocElement -> AllocSolution
-concatAllocs as (OpFail reason) = as { asFailures = reason : asFailures as }
+concatAllocs as (Bad reason) = as { asFailures = reason : asFailures as }
 
-concatAllocs as (OpGood ns) =
+concatAllocs as (Ok ns) =
   let -- Choose the old or new solution, based on the cluster score
     cntok = asAllocs as
     osols = asSolution as
@@ -1039,10 +1039,10 @@ evacOneNodeInner :: Node.List         -- ^ Cluster node list
                  -> EvacInnerState    -- ^ New best solution
 evacOneNodeInner nl inst gdx op_fn accu ndx =
   case applyMove nl inst (op_fn ndx) of
-    OpFail fm -> let fail_msg = "Node " ++ Container.nameOf nl ndx ++
-                                " failed: " ++ show fm
-                 in either (const $ Left fail_msg) (const accu) accu
-    OpGood (nl', inst', _, _) ->
+    Bad fm -> let fail_msg = "Node " ++ Container.nameOf nl ndx ++
+                             " failed: " ++ show fm
+              in either (const $ Left fail_msg) (const accu) accu
+    Ok (nl', inst', _, _) ->
       let nodes = Container.elems nl'
           -- The fromJust below is ugly (it can fail nastily), but
           -- at this point we should have any internal mismatches,

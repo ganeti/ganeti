@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TemplateHaskell, FlexibleInstances, TypeSynonymInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 {-| Unittests for ganeti-htools.
@@ -32,7 +32,6 @@ module Test.Ganeti.HTools.Types
   , Types.DiskTemplate(..)
   , Types.FailMode(..)
   , Types.EvacMode(..)
-  , Types.OpResult(..)
   , Types.ISpec(..)
   , Types.IPolicy(..)
   , nullIPolicy
@@ -68,8 +67,8 @@ $(genArbitrary ''Types.EvacMode)
 instance Arbitrary a => Arbitrary (Types.OpResult a) where
   arbitrary = arbitrary >>= \c ->
               if c
-                then Types.OpGood <$> arbitrary
-                else Types.OpFail <$> arbitrary
+                then Ok  <$> arbitrary
+                else Bad <$> arbitrary
 
 instance Arbitrary Types.ISpec where
   arbitrary = do
@@ -138,13 +137,13 @@ prop_IPolicy_serialisation = testSerialisation
 prop_EvacMode_serialisation :: Types.EvacMode -> Property
 prop_EvacMode_serialisation = testSerialisation
 
-prop_opToResult :: Types.OpResult Int -> Bool
+prop_opToResult :: Types.OpResult Int -> Property
 prop_opToResult op =
   case op of
-    Types.OpFail _ -> isBad r
-    Types.OpGood v -> case r of
-                        Bad _ -> False
-                        Ok v' -> v == v'
+    Bad _ -> printTestCase ("expected bad but got " ++ show r) $ isBad r
+    Ok v  -> case r of
+               Bad msg -> failTest ("expected Ok but got Bad " ++ msg)
+               Ok v' -> v ==? v'
   where r = Types.opToResult op
 
 prop_eitherToResult :: Either String Int -> Bool

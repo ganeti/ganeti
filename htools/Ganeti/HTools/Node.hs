@@ -82,6 +82,7 @@ import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Instance as Instance
 import qualified Ganeti.HTools.PeerMap as P
 
+import Ganeti.BasicTypes
 import qualified Ganeti.HTools.Types as T
 
 -- * Type declarations
@@ -444,14 +445,14 @@ addPriEx force t inst =
       old_tags = pTags t
       strict = not force
   in case () of
-       _ | new_mem <= 0 -> T.OpFail T.FailMem
-         | uses_disk && new_dsk <= 0 -> T.OpFail T.FailDisk
-         | uses_disk && mDsk t > new_dp && strict -> T.OpFail T.FailDisk
+       _ | new_mem <= 0 -> Bad T.FailMem
+         | uses_disk && new_dsk <= 0 -> Bad T.FailDisk
+         | uses_disk && mDsk t > new_dp && strict -> Bad T.FailDisk
          | uses_disk && new_spindles > hiSpindles t
-             && strict -> T.OpFail T.FailDisk
-         | new_failn1 && not (failN1 t) && strict -> T.OpFail T.FailMem
-         | l_cpu >= 0 && l_cpu < new_pcpu && strict -> T.OpFail T.FailCPU
-         | rejectAddTags old_tags inst_tags -> T.OpFail T.FailTags
+             && strict -> Bad T.FailDisk
+         | new_failn1 && not (failN1 t) && strict -> Bad T.FailMem
+         | l_cpu >= 0 && l_cpu < new_pcpu && strict -> Bad T.FailCPU
+         | rejectAddTags old_tags inst_tags -> Bad T.FailTags
          | otherwise ->
            let new_plist = iname:pList t
                new_mp = fromIntegral new_mem / tMem t
@@ -462,7 +463,7 @@ addPriEx force t inst =
                      , pTags = addTags old_tags inst_tags
                      , instSpindles = new_spindles
                      }
-           in T.OpGood r
+           in Ok r
 
 -- | Adds a secondary instance (basic version).
 addSec :: Node -> Instance.Instance -> T.Ndx -> T.OpResult Node
@@ -490,12 +491,12 @@ addSecEx force t inst pdx =
                                           T.dskWeight (Instance.util inst) }
       strict = not force
   in case () of
-       _ | not (Instance.hasSecondary inst) -> T.OpFail T.FailDisk
-         | new_dsk <= 0 -> T.OpFail T.FailDisk
-         | mDsk t > new_dp && strict -> T.OpFail T.FailDisk
-         | new_spindles > hiSpindles t && strict -> T.OpFail T.FailDisk
-         | secondary_needed_mem >= old_mem && strict -> T.OpFail T.FailMem
-         | new_failn1 && not (failN1 t) && strict -> T.OpFail T.FailMem
+       _ | not (Instance.hasSecondary inst) -> Bad T.FailDisk
+         | new_dsk <= 0 -> Bad T.FailDisk
+         | mDsk t > new_dp && strict -> Bad T.FailDisk
+         | new_spindles > hiSpindles t && strict -> Bad T.FailDisk
+         | secondary_needed_mem >= old_mem && strict -> Bad T.FailMem
+         | new_failn1 && not (failN1 t) && strict -> Bad T.FailMem
          | otherwise ->
            let new_slist = iname:sList t
                r = t { sList = new_slist, fDsk = new_dsk
@@ -504,7 +505,7 @@ addSecEx force t inst pdx =
                      , pRem = new_prem, utilLoad = new_load
                      , instSpindles = new_spindles
                      }
-           in T.OpGood r
+           in Ok r
 
 -- * Stats functions
 

@@ -84,11 +84,6 @@ defGroupList = Container.fromList [(Group.idx defGroup, defGroup)]
 defGroupAssoc :: Map.Map String Types.Gdx
 defGroupAssoc = Map.singleton (Group.uuid defGroup) (Group.idx defGroup)
 
--- | Simple checker for whether OpResult is fail or pass.
-isFailure :: Types.OpResult a -> Bool
-isFailure (Types.OpFail _) = True
-isFailure _ = False
-
 -- | Create an instance given its spec.
 createInstance :: Int -> Int -> Int -> Instance.Instance
 createInstance mem dsk vcpus =

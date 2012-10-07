@@ -391,7 +391,7 @@ prop_AllocPolicy =
   forAll genOnlineNode $ \node ->
   forAll (choose (5, 20)) $ \count ->
   forAll (genInstanceSmallerThanNode node) $ \inst ->
-  forAll (arbitrary `suchThat` (isFailure .
+  forAll (arbitrary `suchThat` (isBad .
                                 Instance.instMatchesPolicy inst)) $ \ipol ->
   let rqn = Instance.requiredNodes $ Instance.diskTemplate inst
       node' = Node.setPolicy ipol node
