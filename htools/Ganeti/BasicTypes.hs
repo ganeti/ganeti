@@ -1,3 +1,5 @@
+{-# LANGUAGE FlexibleInstances #-}
+
 {-
 
 Copyright (C) 2009, 2010, 2011, 2012 Google Inc.
@@ -20,9 +22,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 
 module Ganeti.BasicTypes
-  ( Result(..)
+  ( GenericResult(..)
+  , Result
   , ResultT(..)
   , resultT
+  , FromString(..)
   , isOk
   , isBad
   , eitherToResult
@@ -44,27 +48,36 @@ import Control.Monad.Trans
 import Data.Function
 import Data.List
 
--- | This is similar to the JSON library Result type - /very/ similar,
--- but we want to use it in multiple places, so we abstract it into a
--- mini-library here.
---
--- The failure value for this monad is simply a string.
-data Result a
-    = Bad String
-    | Ok a
+-- | Generic monad for our error handling mechanisms.
+data GenericResult a b
+  = Bad a
+  | Ok b
     deriving (Show, Read, Eq)
 
-instance Monad Result where
+-- | Type alias for a string Result.
+type Result = GenericResult String
+
+-- | Type class for things that can be built from strings.
+class FromString a where
+  mkFromString :: String -> a
+
+-- | Trivial 'String' instance; requires FlexibleInstances extension
+-- though.
+instance FromString [Char] where
+  mkFromString = id
+
+-- | 'Monad' instance for 'GenericResult'.
+instance (FromString a) => Monad (GenericResult a) where
   (>>=) (Bad x) _ = Bad x
   (>>=) (Ok x) fn = fn x
   return = Ok
-  fail = Bad
+  fail   = Bad . mkFromString
 
-instance Functor Result where
+instance Functor (GenericResult a) where
   fmap _ (Bad msg) = Bad msg
   fmap fn (Ok val) = Ok (fn val)
 
-instance MonadPlus Result where
+instance MonadPlus (GenericResult String) where
   mzero = Bad "zero Result when used as MonadPlus"
   -- for mplus, when we 'add' two Bad values, we concatenate their
   -- error descriptions
@@ -72,7 +85,7 @@ instance MonadPlus Result where
   (Bad _) `mplus` x = x
   x@(Ok _) `mplus` _ = x
 
-instance Applicative Result where
+instance Applicative (GenericResult a) where
   pure = Ok
   (Bad f) <*> _       = Bad f
   _       <*> (Bad x) = Bad x
@@ -80,10 +93,10 @@ instance Applicative Result where
 
 -- | This is a monad transformation for Result. It's implementation is
 -- based on the implementations of MaybeT and ErrorT.
-newtype ResultT m a = ResultT {runResultT :: m (Result a)}
+newtype ResultT a m b = ResultT {runResultT :: m (GenericResult a b)}
 
-instance (Monad m) => Monad (ResultT m) where
-  fail err = ResultT (return $ Bad err)
+instance (Monad m, FromString a) => Monad (ResultT a m) where
+  fail err = ResultT (return . Bad $ mkFromString err)
   return   = lift . return
   x >>= f  = ResultT $ do
                a <- runResultT x
@@ -91,29 +104,29 @@ instance (Monad m) => Monad (ResultT m) where
                  Ok val -> runResultT $ f val
                  Bad err -> return $ Bad err
 
-instance MonadTrans ResultT where
+instance MonadTrans (ResultT a) where
   lift x = ResultT (liftM Ok x)
 
-instance (MonadIO m) => MonadIO (ResultT m) where
+instance (MonadIO m, FromString a) => MonadIO (ResultT a m) where
   liftIO = lift . liftIO
 
 -- | Lift a `Result` value to a `ResultT`.
-resultT :: Monad m => Result a -> ResultT m a
+resultT :: Monad m => GenericResult a b -> ResultT a m b
 resultT = ResultT . return
 
--- | Simple checker for whether a 'Result' is OK.
-isOk :: Result a -> Bool
+-- | Simple checker for whether a 'GenericResult' is OK.
+isOk :: GenericResult a b -> Bool
 isOk (Ok _) = True
-isOk _ = False
+isOk _      = False
 
--- | Simple checker for whether a 'Result' is a failure.
-isBad :: Result a  -> Bool
+-- | Simple checker for whether a 'GenericResult' is a failure.
+isBad :: GenericResult a b -> Bool
 isBad = not . isOk
 
--- | Converter from Either String to 'Result'.
-eitherToResult :: Either String a -> Result a
-eitherToResult (Left s) = Bad s
-eitherToResult (Right v) = Ok v
+-- | Converter from Either String to 'GeneicResult'.
+eitherToResult :: Either a b -> GenericResult a b
+eitherToResult (Left  s) = Bad s
+eitherToResult (Right v) = Ok  v
 
 -- | Annotate a Result with an ownership information.
 annotateResult :: String -> Result a -> Result a

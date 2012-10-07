@@ -204,6 +204,6 @@ testSerialisation a =
     J.Ok a' -> a ==? a'
 
 -- | Result to PropertyM IO.
-resultProp :: BasicTypes.Result a -> PropertyM IO a
-resultProp (BasicTypes.Bad msg) = stop $ failTest msg
+resultProp :: (Show a) => BasicTypes.GenericResult a b -> PropertyM IO b
+resultProp (BasicTypes.Bad err) = stop . failTest $ show err
 resultProp (BasicTypes.Ok  val) = return val
