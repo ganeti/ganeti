@@ -63,14 +63,6 @@ class GenericError(Exception):
   """
 
 
-class LVMError(GenericError):
-  """LVM-related exception.
-
-  This exception codifies problems with LVM setup.
-
-  """
-
-
 class LockError(GenericError):
   """Lock error exception.
 
@@ -272,12 +264,6 @@ class TypeEnforcementError(GenericError):
   """
 
 
-class SshKeyError(GenericError):
-  """Invalid SSH key.
-
-  """
-
-
 class X509CertError(GenericError):
   """Invalid X509 certificate.
 
@@ -353,15 +339,6 @@ class JobQueueFull(JobQueueError):
   """Job queue full error.
 
   Raised when job queue size reached its hard limit.
-
-  """
-
-
-class ConfdRequestError(GenericError):
-  """A request error in Ganeti confd.
-
-  Events that should make confd abort the current request and proceed serving
-  different ones.
 
   """
 
