@@ -46,7 +46,7 @@ order to achieve high availability for instances.
 Node can be added and removed (if they host no instances) at will from
 the cluster. In a HA cluster and only with HA instances, the loss of any
 single node will not cause disk data loss for any instance; of course,
-a node crash will cause the crash of the its primary instances.
+a node crash will cause the crash of its primary instances.
 
 A node belonging to a cluster can be in one of the following roles at a
 given time:
@@ -300,7 +300,7 @@ manually start one which is currently stopped you can run::
 
 Ganeti will start an instance with up to its maximum instance memory. If
 not enough memory is available Ganeti will use all the available memory
-down to the instance minumum memory. If not even that amount of memory
+down to the instance minimum memory. If not even that amount of memory
 is free Ganeti will refuse to start the instance.
 
 Note, that this will not work when an instance is in a permanently
@@ -529,7 +529,7 @@ Live migrating an instance
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 If an instance is built in highly available mode, it currently runs and
-both its nodes are running fine, you can at migrate it over to its
+both its nodes are running fine, you can migrate it over to its
 secondary node, without downtime. On the master node you need to run::
 
   $ gnt-instance migrate %INSTANCE_NAME%
