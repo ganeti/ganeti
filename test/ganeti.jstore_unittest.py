@@ -78,5 +78,24 @@ class TestParseJobId(testutils.GanetiTestCase):
     self.assertRaises(errors.ParameterError, jstore.ParseJobId, [])
 
 
+class TestReadNumericFile(testutils.GanetiTestCase):
+  def testNonExistingFile(self):
+    result = jstore._ReadNumericFile("/tmp/this/file/does/not/exist")
+    self.assertTrue(result is None)
+
+  def testValidFile(self):
+    tmpfile = self._CreateTempFile()
+
+    for (data, exp) in [("123", 123), ("0\n", 0)]:
+      utils.WriteFile(tmpfile, data=data)
+      result = jstore._ReadNumericFile(tmpfile)
+      self.assertEqual(result, exp)
+
+  def testInvalidContent(self):
+    tmpfile = self._CreateTempFile()
+    utils.WriteFile(tmpfile, data="{wrong content")
+    self.assertRaises(errors.JobQueueError, jstore._ReadNumericFile, tmpfile)
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()

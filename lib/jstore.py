@@ -42,11 +42,18 @@ def _ReadNumericFile(file_name):
 
   """
   try:
-    return int(utils.ReadFile(file_name))
+    contents = utils.ReadFile(file_name)
   except EnvironmentError, err:
     if err.errno in (errno.ENOENT, ):
       return None
     raise
+
+  try:
+    return int(contents)
+  except (ValueError, TypeError), err:
+    # Couldn't convert to int
+    raise errors.JobQueueError("Content of file '%s' is not numeric: %s" %
+                               (file_name, err))
 
 
 def ReadSerial():
