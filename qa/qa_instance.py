@@ -485,18 +485,22 @@ def TestReplaceDisks(instance, pnode, snode, othernode):
     cmd.append(instance["name"])
     return cmd
 
+  options = qa_config.get("options", {})
+  use_ialloc = options.get("use-iallocators", True)
   for data in [
     ["-p"],
     ["-s"],
-    ["--new-secondary=%s" % othernode["primary"]],
-    ["-I", constants.DEFAULT_IALLOCATOR_SHORTCUT],
+    # A placeholder; the actual command choice depends on use_ialloc
+    None,
+    # Restore the original secondary
+    ["--new-secondary=%s" % snode["primary"]],
     ]:
+    if data is None:
+      if use_ialloc:
+        data = ["-I", constants.DEFAULT_IALLOCATOR_SHORTCUT]
+      else:
+        data = ["--new-secondary=%s" % othernode["primary"]]
     AssertCommand(buildcmd(data))
-
-  # Restore the original secondary, if needed
-  currsec = _GetInstanceInfo(instance)["nodes"][1]
-  if currsec != snode["primary"]:
-    AssertCommand(buildcmd(["--new-secondary=%s" % snode["primary"]]))
 
   AssertCommand(buildcmd(["-a"]))
   AssertCommand(["gnt-instance", "stop", instance["name"]])
@@ -541,22 +545,31 @@ def TestRecreateDisks(instance, pnode, snode, othernodes):
   @param othernodes: list/tuple of nodes where to temporarily recreate disks
 
   """
+  options = qa_config.get("options", {})
+  use_ialloc = options.get("use-iallocators", True)
   other_seq = ":".join([n["primary"] for n in othernodes])
   orig_seq = pnode["primary"]
   if snode:
     orig_seq = orig_seq + ":" + snode["primary"]
   # These fail because the instance is running
   _AssertRecreateDisks(["-n", other_seq], instance, fail=True, destroy=False)
-  _AssertRecreateDisks(["-I", "hail"], instance, fail=True, destroy=False)
+  if use_ialloc:
+    _AssertRecreateDisks(["-I", "hail"], instance, fail=True, destroy=False)
+  else:
+    _AssertRecreateDisks(["-n", other_seq], instance, fail=True, destroy=False)
   AssertCommand(["gnt-instance", "stop", instance["name"]])
   # Disks exist: this should fail
   _AssertRecreateDisks([], instance, fail=True, destroy=False)
   # Recreate disks in place
   _AssertRecreateDisks([], instance)
   # Move disks away
-  _AssertRecreateDisks(["-I", "hail"], instance)
-  # Move disks somewhere else
-  _AssertRecreateDisks(["-I", constants.DEFAULT_IALLOCATOR_SHORTCUT], instance)
+  if use_ialloc:
+    _AssertRecreateDisks(["-I", "hail"], instance)
+    # Move disks somewhere else
+    _AssertRecreateDisks(["-I", constants.DEFAULT_IALLOCATOR_SHORTCUT],
+                         instance)
+  else:
+    _AssertRecreateDisks(["-n", other_seq], instance)
   # Move disks back
   _AssertRecreateDisks(["-n", orig_seq], instance, check=False)
   # This and InstanceCheck decoration check that the disks are working
