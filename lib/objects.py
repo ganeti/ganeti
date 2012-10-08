@@ -1023,7 +1023,7 @@ class Instance(TaggableObject):
     return tuple(all_nodes)
 
   secondary_nodes = property(_ComputeSecondaryNodes, None, None,
-                             "List of secondary nodes")
+                             "List of names of secondary nodes")
 
   def _ComputeAllNodes(self):
     """Compute the list of all nodes.
@@ -1051,7 +1051,7 @@ class Instance(TaggableObject):
     return tuple(all_nodes)
 
   all_nodes = property(_ComputeAllNodes, None, None,
-                       "List of all nodes of the instance")
+                       "List of names of all the nodes of the instance")
 
   def MapLVsByNode(self, lvmap=None, devs=None, node=None):
     """Provide a mapping of nodes to LVs this instance owns.

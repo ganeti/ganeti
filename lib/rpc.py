@@ -150,7 +150,7 @@ class RpcResult(object):
   """RPC Result class.
 
   This class holds an RPC result. It is needed since in multi-node
-  calls we can't raise an exception just because one one out of many
+  calls we can't raise an exception just because one out of many
   failed, and therefore we use this class to encapsulate the result.
 
   @ivar data: the data payload, for successful results, or None
@@ -405,6 +405,8 @@ class _RpcProcessor:
     @param body: dictionary with request bodies per host
     @type read_timeout: int or None
     @param read_timeout: Read timeout for request
+    @rtype: dictionary
+    @return: a dictionary mapping host names to rpc.RpcResult objects
 
     """
     assert read_timeout is not None, \

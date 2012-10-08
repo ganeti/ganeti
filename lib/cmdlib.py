@@ -6788,9 +6788,9 @@ def _ShutdownInstanceDisks(lu, instance, disks=None, ignore_primary=False):
 def _CheckNodeFreeMemory(lu, node, reason, requested, hypervisor_name):
   """Checks if a node has enough free memory.
 
-  This function check if a given node has the needed amount of free
+  This function checks if a given node has the needed amount of free
   memory. In case the node has less memory or we cannot get the
-  information from the node, this function raise an OpPrereqError
+  information from the node, this function raises an OpPrereqError
   exception.
 
   @type lu: C{LogicalUnit}
@@ -6828,11 +6828,11 @@ def _CheckNodeFreeMemory(lu, node, reason, requested, hypervisor_name):
 
 
 def _CheckNodesFreeDiskPerVG(lu, nodenames, req_sizes):
-  """Checks if nodes have enough free disk space in the all VGs.
+  """Checks if nodes have enough free disk space in all the VGs.
 
-  This function check if all given nodes have the needed amount of
+  This function checks if all given nodes have the needed amount of
   free disk. In case any node has less disk or we cannot get the
-  information from the node, this function raise an OpPrereqError
+  information from the node, this function raises an OpPrereqError
   exception.
 
   @type lu: C{LogicalUnit}
@@ -6853,9 +6853,9 @@ def _CheckNodesFreeDiskPerVG(lu, nodenames, req_sizes):
 def _CheckNodesFreeDiskOnVG(lu, nodenames, vg, requested):
   """Checks if nodes have enough free disk space in the specified VG.
 
-  This function check if all given nodes have the needed amount of
+  This function checks if all given nodes have the needed amount of
   free disk. In case any node has less disk or we cannot get the
-  information from the node, this function raise an OpPrereqError
+  information from the node, this function raises an OpPrereqError
   exception.
 
   @type lu: C{LogicalUnit}
@@ -9137,8 +9137,6 @@ def _GenerateDiskTemplate(
   """Generate the entire disk layout for a given template type.
 
   """
-  #TODO: compute space requirements
-
   vgname = lu.cfg.GetVGName()
   disk_count = len(disk_info)
   disks = []

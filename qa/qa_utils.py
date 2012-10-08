@@ -166,6 +166,8 @@ def AssertCommand(cmd, fail=False, node=None):
   @param node: if passed, it should be the node on which the command
       should be executed, instead of the master node (can be either a
       dict or a string)
+  @return: the return code of the command
+  @raise qa_error.Error: if the command fails when it shouldn't or vice versa
 
   """
   if node is None:
