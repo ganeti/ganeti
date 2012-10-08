@@ -2808,12 +2808,9 @@ def _EnsureJobQueueFile(file_name):
   @raises RPCFail: if the file is not valid
 
   """
-  queue_dir = os.path.normpath(pathutils.QUEUE_DIR)
-  result = (os.path.commonprefix([queue_dir, file_name]) == queue_dir)
-
-  if not result:
+  if not utils.IsBelowDir(pathutils.QUEUE_DIR, file_name):
     _Fail("Passed job queue file '%s' does not belong to"
-          " the queue directory '%s'", file_name, queue_dir)
+          " the queue directory '%s'", file_name, pathutils.QUEUE_DIR)
 
 
 def JobQueueUpdate(file_name, content):
