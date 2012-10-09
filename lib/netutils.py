@@ -229,7 +229,12 @@ class Hostname:
     try:
       return result[0][4][0]
     except IndexError, err:
-      raise errors.ResolverError("Unknown error in getaddrinfo(): %s" % err)
+      # we don't have here an actual error code, it's just that the
+      # data type returned by getaddrinfo is not what we expected;
+      # let's keep the same format in the exception arguments with a
+      # dummy error code
+      raise errors.ResolverError(hostname, 0,
+                                 "Unknown error in getaddrinfo(): %s" % err)
 
   @classmethod
   def GetNormalizedName(cls, hostname):
