@@ -475,6 +475,8 @@ def RunQa():
   RunGroupListTests()
   RunGroupRwTests()
 
+  # The master shouldn't be readded or put offline; "delay" needs a non-master
+  # node to test
   pnode = qa_config.AcquireNode(exclude=qa_config.GetMasterNode())
   try:
     RunTestIf("node-readd", qa_node.TestNodeReadd, pnode)
@@ -540,18 +542,29 @@ def RunQa():
         finally:
           qa_config.ReleaseNode(snode)
 
-    # Test removing instance with offline drbd secondary
-    if qa_config.TestEnabled("instance-remove-drbd-offline"):
-      snode = qa_config.AcquireNode(exclude=pnode)
-      instance = \
-        qa_instance.TestInstanceAddWithDrbdDisk(pnode, snode)
-      try:
-        qa_node.MakeNodeOffline(snode, "yes")
-        RunTest(qa_instance.TestInstanceRemove, instance)
-      finally:
-        qa_node.MakeNodeOffline(snode, "no")
-        qa_config.ReleaseNode(snode)
+  finally:
+    qa_config.ReleaseNode(pnode)
 
+  # Test removing instance with offline drbd secondary
+  if qa_config.TestEnabled("instance-remove-drbd-offline"):
+    # Make sure the master is not put offline
+    snode = qa_config.AcquireNode(exclude=qa_config.GetMasterNode())
+    try:
+      pnode = qa_config.AcquireNode(exclude=snode)
+      try:
+        instance = qa_instance.TestInstanceAddWithDrbdDisk(pnode, snode)
+        qa_node.MakeNodeOffline(snode, "yes")
+        try:
+          RunTest(qa_instance.TestInstanceRemove, instance)
+        finally:
+          qa_node.MakeNodeOffline(snode, "no")
+      finally:
+        qa_config.ReleaseNode(pnode)
+    finally:
+      qa_config.ReleaseNode(snode)
+
+  pnode = qa_config.AcquireNode()
+  try:
     if qa_config.TestEnabled(["instance-add-plain-disk", "instance-export"]):
       for shutdown in [False, True]:
         instance = RunTest(qa_instance.TestInstanceAddWithPlainDisk, pnode)
