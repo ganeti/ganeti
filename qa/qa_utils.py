@@ -39,6 +39,7 @@ from ganeti import utils
 from ganeti import compat
 from ganeti import constants
 from ganeti import ht
+from ganeti import pathutils
 
 import qa_config
 import qa_error
@@ -535,17 +536,20 @@ def AddToEtcHosts(hostnames):
   master = qa_config.GetMasterNode()
   tmp_hosts = UploadData(master["primary"], "", mode=0644)
 
-  quoted_tmp_hosts = utils.ShellQuote(tmp_hosts)
   data = []
   for localhost in ("::1", "127.0.0.1"):
     data.append("%s %s" % (localhost, " ".join(hostnames)))
 
   try:
-    AssertCommand(("cat /etc/hosts > %s && echo -e '%s' >> %s && mv %s"
-                   " /etc/hosts") % (quoted_tmp_hosts, "\\n".join(data),
-                                     quoted_tmp_hosts, quoted_tmp_hosts))
-  except qa_error.Error:
-    AssertCommand(["rm", tmp_hosts])
+    AssertCommand("{ cat %s && echo -e '%s'; } > %s && mv %s %s" %
+                  (utils.ShellQuote(pathutils.ETC_HOSTS),
+                   "\\n".join(data),
+                   utils.ShellQuote(tmp_hosts),
+                   utils.ShellQuote(tmp_hosts),
+                   utils.ShellQuote(pathutils.ETC_HOSTS)))
+  except Exception:
+    AssertCommand(["rm", "-f", tmp_hosts])
+    raise
 
 
 def RemoveFromEtcHosts(hostnames):
@@ -560,11 +564,14 @@ def RemoveFromEtcHosts(hostnames):
 
   sed_data = " ".join(hostnames)
   try:
-    AssertCommand(("sed -e '/^\(::1\|127\.0\.0\.1\)\s\+%s/d' /etc/hosts > %s"
-                   " && mv %s /etc/hosts") % (sed_data, quoted_tmp_hosts,
-                                              quoted_tmp_hosts))
-  except qa_error.Error:
-    AssertCommand(["rm", tmp_hosts])
+    AssertCommand(("sed -e '/^\(::1\|127\.0\.0\.1\)\s\+%s/d' %s > %s"
+                   " && mv %s %s") %
+                   (sed_data, utils.ShellQuote(pathutils.ETC_HOSTS),
+                    quoted_tmp_hosts, quoted_tmp_hosts,
+                    utils.ShellQuote(pathutils.ETC_HOSTS)))
+  except Exception:
+    AssertCommand(["rm", "-f", tmp_hosts])
+    raise
 
 
 def RunInstanceCheck(instance, running):
