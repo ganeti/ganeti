@@ -46,6 +46,7 @@ module Ganeti.Utils
   , rStripSpace
   , newUUID
   , clockTimeToString
+  , chompPrefix
   ) where
 
 import Data.Char (toUpper, isAlphaNum, isDigit, isSpace)
@@ -292,3 +293,28 @@ newUUID = do
 -- | Convert a ClockTime into a (seconds-only) timestamp.
 clockTimeToString :: ClockTime -> String
 clockTimeToString (TOD t _) = show t
+
+{-| Strip a prefix from a string, allowing the last character of the prefix
+(which is assumed to be a separator) to be absent from the string if the string
+terminates there.
+
+>>> chompPrefix "foo:bar:" "a:b:c"
+Nothing
+
+>>> chompPrefix "foo:bar:" "foo:bar:baz"
+Just "baz"
+
+>>> chompPrefix "foo:bar:" "foo:bar:"
+Just ""
+
+>>> chompPrefix "foo:bar:" "foo:bar"
+Just ""
+
+>>> chompPrefix "foo:bar:" "foo:barbaz"
+Nothing
+-}
+chompPrefix :: String -> String -> Maybe String
+chompPrefix pfx str =
+  if pfx `isPrefixOf` str || str == init pfx
+    then Just $ drop (length pfx) str
+    else Nothing

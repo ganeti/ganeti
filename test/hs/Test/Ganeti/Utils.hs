@@ -238,6 +238,42 @@ prop_clockTimeToString :: Integer -> Integer -> Property
 prop_clockTimeToString ts pico =
   clockTimeToString (TOD ts pico) ==? show ts
 
+-- | Test normal operation for 'chompPrefix'.
+--
+-- Any random prefix of a string must be stripped correctly, including the empty
+-- prefix, and the whole string.
+prop_chompPrefix_normal :: String -> Property
+prop_chompPrefix_normal str =
+  forAll (choose (0, length str)) $ \size ->
+  chompPrefix (take size str) str ==? (Just $ drop size str)
+
+-- | Test that 'chompPrefix' correctly allows the last char (the separator) to
+-- be absent if the string terminates there.
+prop_chompPrefix_last :: Property
+prop_chompPrefix_last =
+  forAll (choose (1, 20)) $ \len ->
+  forAll (vectorOf len arbitrary) $ \pfx ->
+  chompPrefix pfx pfx ==? Just "" .&&.
+  chompPrefix pfx (init pfx) ==? Just ""
+
+-- | Test that chompPrefix on the empty string always returns Nothing for
+-- prefixes of length 2 or more.
+prop_chompPrefix_empty_string :: Property
+prop_chompPrefix_empty_string =
+  forAll (choose (2, 20)) $ \len ->
+  forAll (vectorOf len arbitrary) $ \pfx ->
+  chompPrefix pfx "" ==? Nothing
+
+-- | Test 'chompPrefix' returns Nothing when the prefix doesn't match.
+prop_chompPrefix_nothing :: Property
+prop_chompPrefix_nothing =
+  forAll (choose (1, 20)) $ \len ->
+  forAll (vectorOf len arbitrary) $ \pfx ->
+  forAll (arbitrary `suchThat`
+          (\s -> not (pfx `isPrefixOf` s) && s /= init pfx)) $ \str ->
+  chompPrefix pfx str ==? Nothing
+
+
 -- | Test list for the Utils module.
 testSuite "Utils"
             [ 'prop_commaJoinSplit
@@ -258,4 +294,8 @@ testSuite "Utils"
             , 'case_new_uuid
 #endif
             , 'prop_clockTimeToString
+            , 'prop_chompPrefix_normal
+            , 'prop_chompPrefix_last
+            , 'prop_chompPrefix_empty_string
+            , 'prop_chompPrefix_nothing
             ]
