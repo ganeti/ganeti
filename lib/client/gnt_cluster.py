@@ -1427,13 +1427,12 @@ def Epo(opts, args):
                              fields=["name", "master", "pinst_list",
                                      "sinst_list", "powered", "offline"],
                              use_locking=False)
+
+  all_nodes = map(compat.fst, result)
   node_list = []
   inst_map = {}
   for (idx, (node, master, pinsts, sinsts, powered,
              offline)) in enumerate(result):
-    # Normalize the node_query_list as well
-    if not opts.show_all:
-      node_query_list[idx] = node
     if not offline:
       for inst in (pinsts + sinsts):
         if inst in inst_map:
@@ -1461,11 +1460,11 @@ def Epo(opts, args):
     elif not offline or (offline and powered):
       node_list.append(node)
 
-  if not opts.force and not ConfirmOperation(node_query_list, "nodes", "epo"):
+  if not opts.force and not ConfirmOperation(all_nodes, "nodes", "epo"):
     return constants.EXIT_FAILURE
 
   if opts.on:
-    return _EpoOn(opts, node_query_list, node_list, inst_map)
+    return _EpoOn(opts, all_nodes, node_list, inst_map)
   else:
     return _EpoOff(opts, node_list, inst_map)
 
