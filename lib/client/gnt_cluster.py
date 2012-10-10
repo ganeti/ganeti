@@ -1397,7 +1397,9 @@ def _EpoOff(opts, node_list, inst_map):
     return constants.EXIT_FAILURE
 
 
-def Epo(opts, args):
+def Epo(opts, args, cl=None, _on_fn=_EpoOn, _off_fn=_EpoOff,
+        _confirm_fn=ConfirmOperation,
+        _stdout_fn=ToStdout, _stderr_fn=ToStderr):
   """EPO operations.
 
   @param opts: the command line options selected by the user
@@ -1408,25 +1410,24 @@ def Epo(opts, args):
 
   """
   if opts.groups and opts.show_all:
-    ToStderr("Only one of --groups or --all are allowed")
+    _stderr_fn("Only one of --groups or --all are allowed")
     return constants.EXIT_FAILURE
   elif args and opts.show_all:
-    ToStderr("Arguments in combination with --all are not allowed")
+    _stderr_fn("Arguments in combination with --all are not allowed")
     return constants.EXIT_FAILURE
 
-  client = GetClient()
+  if cl is None:
+    cl = GetClient()
 
   if opts.groups:
-    node_query_list = itertools.chain(*client.QueryGroups(names=args,
-                                                          fields=["node_list"],
-                                                          use_locking=False))
+    node_query_list = \
+      itertools.chain(*cl.QueryGroups(args, ["node_list"], False))
   else:
     node_query_list = args
 
-  result = client.QueryNodes(names=node_query_list,
-                             fields=["name", "master", "pinst_list",
-                                     "sinst_list", "powered", "offline"],
-                             use_locking=False)
+  result = cl.QueryNodes(node_query_list, ["name", "master", "pinst_list",
+                                           "sinst_list", "powered", "offline"],
+                         False)
 
   all_nodes = map(compat.fst, result)
   node_list = []
@@ -1447,25 +1448,26 @@ def Epo(opts, args):
       # already operating on the master at this point :)
       continue
     elif master and not opts.show_all:
-      ToStderr("%s is the master node, please do a master-failover to another"
-               " node not affected by the EPO or use --all if you intend to"
-               " shutdown the whole cluster", node)
+      _stderr_fn("%s is the master node, please do a master-failover to another"
+                 " node not affected by the EPO or use --all if you intend to"
+                 " shutdown the whole cluster", node)
       return constants.EXIT_FAILURE
     elif powered is None:
-      ToStdout("Node %s does not support out-of-band handling, it can not be"
-               " handled in a fully automated manner", node)
+      _stdout_fn("Node %s does not support out-of-band handling, it can not be"
+                 " handled in a fully automated manner", node)
     elif powered == opts.on:
-      ToStdout("Node %s is already in desired power state, skipping", node)
+      _stdout_fn("Node %s is already in desired power state, skipping", node)
     elif not offline or (offline and powered):
       node_list.append(node)
 
-  if not opts.force and not ConfirmOperation(all_nodes, "nodes", "epo"):
+  if not (opts.force or _confirm_fn(all_nodes, "nodes", "epo")):
     return constants.EXIT_FAILURE
 
   if opts.on:
-    return _EpoOn(opts, all_nodes, node_list, inst_map)
+    return _on_fn(opts, all_nodes, node_list, inst_map)
   else:
-    return _EpoOff(opts, node_list, inst_map)
+    return _off_fn(opts, node_list, inst_map)
+
 
 commands = {
   "init": (
