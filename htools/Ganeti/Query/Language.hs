@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TemplateHaskell, CPP #-}
 
 {-| Implementation of the Ganeti Query2 language.
 
@@ -57,7 +57,9 @@ import Data.Ratio (numerator, denominator)
 import Text.JSON.Pretty (pp_value)
 import Text.JSON.Types
 import Text.JSON
+#ifndef NO_REGEX_PCRE
 import qualified Text.Regex.PCRE as PCRE
+#endif
 
 import qualified Ganeti.Constants as C
 import Ganeti.THH
@@ -110,6 +112,13 @@ $(declareSADT "ItemType"
 $(makeJSONInstance ''ItemType)
 
 -- * Sub data types for query2 queries and responses.
+
+-- | Internal type of a regex expression (not exported).
+#ifndef NO_REGEX_PCRE
+type RegexType = PCRE.Regex
+#else
+type RegexType = ()
+#endif
 
 -- | List of requested fields.
 type Fields = [ String ]
@@ -175,8 +184,8 @@ readFilterArg :: (JSON a) =>
               -> [JSValue]              -- ^ Single argument
               -> Result (Filter a)
 readFilterArg constr [flt] = constr <$> readJSON flt
-readFilterArg _ v = Error $ "Cannot deserialise field, expected [filter]\
-                            \ but got " ++ show (pp_value (showJSON v))
+readFilterArg _ v = Error $ "Cannot deserialise field, expected [filter]" ++
+                            " but got " ++ show (pp_value (showJSON v))
 
 -- | Helper to deserialise an array corresponding to a single field
 -- and return the built filter.
@@ -185,8 +194,9 @@ readFilterField :: (JSON a) =>
                 -> [JSValue]         -- ^ Single argument
                 -> Result (Filter a)
 readFilterField constr [field] = constr <$> readJSON field
-readFilterField _ v = Error $ "Cannot deserialise field, expected [fieldname]\
-                              \ but got " ++ show (pp_value (showJSON v))
+readFilterField _ v = Error $ "Cannot deserialise field, expected" ++
+                              " [fieldname] but got " ++
+                              show (pp_value (showJSON v))
 
 -- | Helper to deserialise an array corresponding to a field and
 -- value, returning the built filter.
@@ -197,8 +207,8 @@ readFilterFieldValue :: (JSON a, JSON b) =>
 readFilterFieldValue constr [field, value] =
   constr <$> readJSON field <*> readJSON value
 readFilterFieldValue _ v =
-  Error $ "Cannot deserialise field/value pair, expected [fieldname, value]\
-          \ but got " ++ show (pp_value (showJSON v))
+  Error $ "Cannot deserialise field/value pair, expected [fieldname, value]" ++
+          " but got " ++ show (pp_value (showJSON v))
 
 -- | Inner deserialiser for 'Filter'.
 readFilterArray :: (JSON a) => String -> [JSValue] -> Result (Filter a)
@@ -264,12 +274,12 @@ readFilterValue :: JSValue -> Result FilterValue
 readFilterValue (JSString a) = Ok . QuotedString $ fromJSString a
 readFilterValue (JSRational _ x) =
   if denominator x /= 1
-    then Error $ "Cannot deserialise numeric filter value,\
-                 \ expecting integral but\
-                 \ got a fractional value: " ++ show x
+    then Error $ "Cannot deserialise numeric filter value," ++
+                 " expecting integral but got a fractional value: " ++
+                 show x
     else Ok . NumericValue $ numerator x
-readFilterValue v = Error $ "Cannot deserialise filter value, expecting\
-                            \ string or integer, got " ++ show (pp_value v)
+readFilterValue v = Error $ "Cannot deserialise filter value, expecting" ++
+                            " string or integer, got " ++ show (pp_value v)
 
 instance JSON FilterValue where
   showJSON = showFilterValue
@@ -280,19 +290,25 @@ instance JSON FilterValue where
 -- we don't re-compile the regex at each match attempt.
 data FilterRegex = FilterRegex
   { stringRegex   :: String      -- ^ The string version of the regex
-  , compiledRegex :: PCRE.Regex  -- ^ The compiled regex
+  , compiledRegex :: RegexType   -- ^ The compiled regex
   }
 
 -- | Builder for 'FilterRegex'. We always attempt to compile the
 -- regular expression on the initialisation of the data structure;
 -- this might fail, if the RE is not well-formed.
 mkRegex :: (Monad m) => String -> m FilterRegex
+#ifndef NO_REGEX_PCRE
 mkRegex str = do
   compiled <- case PCRE.getVersion of
-                Nothing -> fail "regex-pcre library compiled without\
-                                \ libpcre, regex functionality not available"
+                Nothing -> fail $ "regex-pcre library compiled without" ++
+                                  " libpcre, regex functionality not available"
                 _ -> PCRE.makeRegexM str
   return $ FilterRegex str compiled
+#else
+mkRegex _ =
+  fail $ "regex-pcre not found at compile time," ++
+         " regex functionality not available"
+#endif
 
 -- | 'Show' instance: we show the constructor plus the string version
 -- of the regex.
