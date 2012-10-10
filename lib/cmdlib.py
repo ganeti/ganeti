@@ -4311,7 +4311,7 @@ def _ComputeAncillaryFiles(cluster, redist):
     files_all.update(ssconf.SimpleStore().GetFileList())
 
   if cluster.modify_etc_hosts:
-    files_all.add(constants.ETC_HOSTS)
+    files_all.add(pathutils.ETC_HOSTS)
 
   if cluster.use_external_mip_script:
     files_all.add(pathutils.EXTERNAL_MASTER_SETUP_SCRIPT)

@@ -45,6 +45,7 @@ KVM_CONSOLE_WRAPPER = _autoconf.PKGLIBDIR + "/tools/kvm-console-wrapper"
 KVM_IFUP = _autoconf.PKGLIBDIR + "/kvm-ifup"
 SETUP_SSH = _autoconf.TOOLSDIR + "/setup-ssh"
 XM_CONSOLE_WRAPPER = _autoconf.PKGLIBDIR + "/tools/xm-console-wrapper"
+ETC_HOSTS = "/etc/hosts"
 
 # Top-level paths
 DATA_DIR = LOCALSTATEDIR + "/lib/ganeti"

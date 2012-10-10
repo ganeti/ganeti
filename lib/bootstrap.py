@@ -329,7 +329,7 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
   if ipcls.IsLoopback(hostname.ip):
     raise errors.OpPrereqError("This host's IP (%s) resolves to a loopback"
                                " address. Please fix DNS or %s." %
-                               (hostname.ip, constants.ETC_HOSTS),
+                               (hostname.ip, pathutils.ETC_HOSTS),
                                errors.ECODE_ENVIRON)
 
   if not ipcls.Own(hostname.ip):

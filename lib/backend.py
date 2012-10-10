@@ -200,7 +200,7 @@ def _BuildUploadFileList():
   """
   allowed_files = set([
     pathutils.CLUSTER_CONF_FILE,
-    constants.ETC_HOSTS,
+    pathutils.ETC_HOSTS,
     pathutils.SSH_KNOWN_HOSTS_FILE,
     pathutils.VNC_PASSWORD_FILE,
     pathutils.RAPI_CERT_FILE,

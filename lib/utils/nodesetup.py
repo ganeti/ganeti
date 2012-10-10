@@ -24,7 +24,7 @@
 
 from cStringIO import StringIO
 
-from ganeti import constants
+from ganeti import pathutils
 
 from ganeti.utils import algo
 from ganeti.utils import io
@@ -71,12 +71,12 @@ def AddHostToEtcHosts(hostname, ip):
 
   @type hostname: str
   @param hostname: a hostname that will be resolved and added to
-      L{constants.ETC_HOSTS}
+      L{pathutils.ETC_HOSTS}
   @type ip: str
   @param ip: The ip address of the host
 
   """
-  SetEtcHostsEntry(constants.ETC_HOSTS, ip, hostname, [hostname.split(".")[0]])
+  SetEtcHostsEntry(pathutils.ETC_HOSTS, ip, hostname, [hostname.split(".")[0]])
 
 
 def RemoveEtcHostsEntry(file_name, hostname):
@@ -115,8 +115,8 @@ def RemoveHostFromEtcHosts(hostname):
   @type hostname: str
   @param hostname: hostname that will be resolved and its
       full and shot name will be removed from
-      L{constants.ETC_HOSTS}
+      L{pathutils.ETC_HOSTS}
 
   """
-  RemoveEtcHostsEntry(constants.ETC_HOSTS, hostname)
-  RemoveEtcHostsEntry(constants.ETC_HOSTS, hostname.split(".")[0])
+  RemoveEtcHostsEntry(pathutils.ETC_HOSTS, hostname)
+  RemoveEtcHostsEntry(pathutils.ETC_HOSTS, hostname.split(".")[0])
