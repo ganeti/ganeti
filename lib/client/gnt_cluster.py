@@ -1431,8 +1431,7 @@ def Epo(opts, args):
   all_nodes = map(compat.fst, result)
   node_list = []
   inst_map = {}
-  for (idx, (node, master, pinsts, sinsts, powered,
-             offline)) in enumerate(result):
+  for (node, master, pinsts, sinsts, powered, offline) in result:
     if not offline:
       for inst in (pinsts + sinsts):
         if inst in inst_map:
