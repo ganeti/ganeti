@@ -1174,7 +1174,7 @@ GLOBAL_SHARED_FILEDIR_OPT = cli_option(
   metavar="SHAREDDIR", default=pathutils.DEFAULT_SHARED_FILE_STORAGE_DIR)
 
 NOMODIFY_ETCHOSTS_OPT = cli_option("--no-etc-hosts", dest="modify_etc_hosts",
-                                   help="Don't modify /etc/hosts",
+                                   help="Don't modify %s" % pathutils.ETC_HOSTS,
                                    action="store_false", default=True)
 
 NOMODIFY_SSH_SETUP_OPT = cli_option("--no-ssh-init", dest="modify_ssh_setup",
