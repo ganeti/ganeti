@@ -107,7 +107,7 @@ serializeInstance nl inst =
        (Instance.vcpus inst) (instanceStatusToRaw (Instance.runSt inst))
        (if Instance.autoBalance inst then "Y" else "N")
        pnode snode (diskTemplateToRaw (Instance.diskTemplate inst))
-       (intercalate "," (Instance.tags inst)) (Instance.spindleUse inst)
+       (intercalate "," (Instance.allTags inst)) (Instance.spindleUse inst)
 
 -- | Generate instance file data from instance objects.
 serializeInstances :: Node.List -> Instance.List -> String

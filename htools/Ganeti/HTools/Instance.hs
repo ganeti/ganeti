@@ -78,9 +78,10 @@ data Instance = Instance
   , util         :: T.DynUtil -- ^ Dynamic resource usage
   , movable      :: Bool      -- ^ Can and should the instance be moved?
   , autoBalance  :: Bool      -- ^ Is the instance auto-balanced?
-  , tags         :: [String]  -- ^ List of instance tags
   , diskTemplate :: T.DiskTemplate -- ^ The disk template of the instance
   , spindleUse   :: Int       -- ^ The numbers of used spindles
+  , allTags      :: [String]  -- ^ List of all instance tags
+  , exclTags     :: [String]  -- ^ List of instance exclusion tags
   } deriving (Show, Read, Eq)
 
 instance T.Element Instance where
@@ -173,11 +174,12 @@ create name_init mem_init dsk_init vcpus_init run_init tags_init
            , sNode = sn
            , idx = -1
            , util = T.baseUtil
-           , tags = tags_init
            , movable = supportsMoves dt
            , autoBalance = auto_balance_init
            , diskTemplate = dt
            , spindleUse = su
+           , allTags = tags_init
+           , exclTags = []
            }
 
 -- | Changes the index.

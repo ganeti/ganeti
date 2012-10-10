@@ -151,12 +151,12 @@ setNodePolicy gl node =
       gpol = Group.iPolicy grp
   in Node.setPolicy gpol node
 
--- | Remove non-selected tags from the exclusion list.
-filterExTags :: [String] -> Instance.Instance -> Instance.Instance
-filterExTags tl inst =
-  let old_tags = Instance.tags inst
-      new_tags = filter (\tag -> any (`isPrefixOf` tag) tl) old_tags
-  in inst { Instance.tags = new_tags }
+-- | Update instance with exclusion tags list.
+updateExclTags :: [String] -> Instance.Instance -> Instance.Instance
+updateExclTags tl inst =
+  let allTags = Instance.allTags inst
+      exclTags = filter (\tag -> any (`isPrefixOf` tag) tl) allTags
+  in inst { Instance.exclTags = exclTags }
 
 -- | Update the movable attribute.
 updateMovable :: [String]           -- ^ Selected instances (if not empty)
@@ -226,7 +226,7 @@ mergeData um extags selinsts exinsts cdata@(ClusterData gl nl il2 tags _) =
       node_names = map Node.name (Container.elems nl)
       common_suffix = longestDomain (node_names ++ inst_names)
       il4 = Container.map (computeAlias common_suffix .
-                           filterExTags allextags .
+                           updateExclTags allextags .
                            updateMovable selinst_names exinst_names) il3
       nl2 = foldl' fixNodes nl (Container.elems il4)
       nl3 = Container.map (setNodePolicy gl .
