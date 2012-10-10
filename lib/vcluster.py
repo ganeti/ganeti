@@ -32,9 +32,16 @@ import os
 from ganeti import compat
 
 
+ETC_HOSTS = "/etc/hosts"
+
 _VIRT_PATH_PREFIX = "/###-VIRTUAL-PATH-###,"
 _ROOTDIR_ENVNAME = "GANETI_ROOTDIR"
 _HOSTNAME_ENVNAME = "GANETI_HOSTNAME"
+
+#: List of paths which shouldn't be virtualized
+_VPATH_WHITELIST = frozenset([
+  ETC_HOSTS,
+  ])
 
 
 def _GetRootDirectory(envname):
@@ -236,7 +243,7 @@ def MakeVirtualPath(path, _noderoot=_VIRT_NODEROOT):
   """
   assert os.path.isabs(path)
 
-  if _noderoot:
+  if _noderoot and path not in _VPATH_WHITELIST:
     return _VIRT_PATH_PREFIX + _RemoveNodePrefix(path, _noderoot=_noderoot)
   else:
     return path
@@ -252,7 +259,7 @@ def LocalizeVirtualPath(path, _noderoot=_VIRT_NODEROOT):
   """
   assert os.path.isabs(path)
 
-  if _noderoot:
+  if _noderoot and path not in _VPATH_WHITELIST:
     if path.startswith(_VIRT_PATH_PREFIX):
       return AddNodePrefix(path[len(_VIRT_PATH_PREFIX):], _noderoot=_noderoot)
     else:

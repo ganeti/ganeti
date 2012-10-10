@@ -27,6 +27,7 @@ import unittest
 from ganeti import utils
 from ganeti import compat
 from ganeti import vcluster
+from ganeti import pathutils
 
 import testutils
 
@@ -200,6 +201,13 @@ class TestMakeVirtualPath(unittest.TestCase):
     self.assertEqual(vcluster.MakeVirtualPath("/tmp/file", _noderoot=None),
                      "/tmp/file")
 
+  def testWhitelisted(self):
+    mvp = vcluster.MakeVirtualPath
+    for path in vcluster._VPATH_WHITELIST:
+      self.assertEqual(mvp(path), path)
+      self.assertEqual(mvp(path, _noderoot=None), path)
+      self.assertEqual(mvp(path, _noderoot="/tmp"), path)
+
 
 class TestLocalizeVirtualPath(unittest.TestCase):
   def testWrongPrefix(self):
@@ -224,6 +232,13 @@ class TestLocalizeVirtualPath(unittest.TestCase):
   def testNormal(self):
     self.assertEqual(vcluster.LocalizeVirtualPath("/tmp/file", _noderoot=None),
                      "/tmp/file")
+
+  def testWhitelisted(self):
+    lvp = vcluster.LocalizeVirtualPath
+    for path in vcluster._VPATH_WHITELIST:
+      self.assertEqual(lvp(path), path)
+      self.assertEqual(lvp(path, _noderoot=None), path)
+      self.assertEqual(lvp(path, _noderoot="/tmp"), path)
 
 
 class TestVirtualPathPrefix(unittest.TestCase):
