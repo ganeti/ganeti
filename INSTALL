@@ -113,11 +113,9 @@ dependencies.
 Haskell requirements
 ~~~~~~~~~~~~~~~~~~~~
 
-If you want to enable the `htools` component, which is recommended on
-bigger deployments (this give you automatic instance placement, cluster
-balancing, etc.), then you need to have a Haskell compiler installed on
-your build machine (but this is not required on the machines which are
-just going to run Ganeti). More specifically:
+Starting with Ganeti 2.7, the Haskell GHC compiler and a few base
+libraries are required in order to build Ganeti (but not to run and
+deploy Ganeti on production machines). More specifically:
 
 - `GHC <http://www.haskell.org/ghc/>`_ version 6.12 or higher
 - or even better, `The Haskell Platform
@@ -128,74 +126,81 @@ just going to run Ganeti). More specifically:
   network library
 - `parallel <http://hackage.haskell.org/package/parallel>`_, a parallel
   programming library (note: tested with up to version 3.x)
-- `curl <http://hackage.haskell.org/package/curl>`_, bindings for the
-  curl library, only needed if you want these tools to connect to remote
-  clusters (as opposed to the local one)
 - `bytestring <http://hackage.haskell.org/package/bytestring>`_ and
   `utf8-string <http://hackage.haskell.org/package/utf8-string>`_
   libraries; these usually come with the GHC compiler
-- `regex-pcre <http://hackage.haskell.org/package/regex-pcre>`_,
-  bindings for the ``pcre`` library
+- `deepseq <http://hackage.haskell.org/package/deepseq>`_
 
 Some of these are also available as package in Debian/Ubuntu::
 
   $ apt-get install ghc6 libghc6-json-dev libghc6-network-dev \
-                    libghc6-parallel-dev libghc6-curl-dev
+                    libghc6-parallel-dev libghc6-deepseq-dev
 
-Or in Fedora running::
-
-  $ yum install ghc ghc-json-devel ghc-network-devel ghc-parallel-devel
-
-The most recent Fedora doesn't provide ``ghc-curl``. So this needs to be
-installed using ``cabal`` or alternatively htools can be build without
-curl support.
-
-Note that more recent versions have switched to GHC 7.x and the packages
-were renamed::
+Or in newer versions of these distributions (using GHC 7.x)::
 
   $ apt-get install ghc libghc-json-dev libghc-network-dev \
-                    libghc-parallel-dev libghc-curl-dev \
-                    libghc-regex-pcre-dev libghc-utf8-string-dev
+                    libghc-parallel-dev  libghc-deepseq-dev \
+                    libghc-utf8-string-dev
+
+In Fedora, they are available via packages as well::
+
+  $ yum install ghc ghc-json-devel ghc-network-devel \
+                    ghc-parallel-devel ghc-deepseq-devel
 
 If using a distribution which does not provide them, first install
-the Haskell platform. You can also install ``cabal`` manualy::
+the Haskell platform. You can also install ``cabal`` manually::
 
   $ apt-get install cabal-install
 
 Then install the additional libraries via
 ``cabal``::
 
-  $ cabal install json network parallel curl regex-pcre utf8-string
+  $ cabal install json network parallel utf8-string
 
 The compilation of the htools components is automatically enabled when
 the compiler and the requisite libraries are found. You can use the
 ``--enable-htools`` configure flag to force the selection (at which
 point ``./configure`` will fail if it doesn't find the prerequisites).
 
-In Ganeti version 2.6, one of the daemons (``ganeti-confd``) is shipped
-in two versions: the Python default version (which has no extra
-dependencies), and an experimental Haskell version. This latter version
-can be enabled via the ``./configure`` flag ``--enable-confd=haskell``
-and a few has extra dependencies:
 
+Haskell optional features
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Optionally, more functionality can be enabled if your build machine has
+a few more Haskell libraries enabled: RAPI access to remote cluster from
+htools (``--enable-htools-rapi``) and enabling the ``ganeti-confd``
+daemon (``--enable-confd``). The list of extra dependencies for these
+is:
+
+- `curl <http://hackage.haskell.org/package/curl>`_, tested with
+  versions 1.3.4 and above
 - `hslogger <http://software.complete.org/hslogger>`_, version 1.1 and
   above (note that Debian Squeeze only has version 1.0.9)
 - `Crypto <http://hackage.haskell.org/package/Crypto>`_, tested with
   version 4.2.4
 - `text <http://hackage.haskell.org/package/text>`_
 - `hinotify <http://hackage.haskell.org/package/hinotify>`_
+- `regex-pcre <http://hackage.haskell.org/package/regex-pcre>`_,
+  bindings for the ``pcre`` library
 
-These libraries are available in Debian Wheezy (but not in Squeeze), so
-you can use either apt::
+These libraries are available in Debian Wheezy (but not in Squeeze, with
+the exception of curl), so you can use either apt::
 
   $ apt-get install libghc-hslogger-dev libghc-crypto-dev libghc-text-dev \
-                    libghc-hinotify-dev
+                    libghc-hinotify-dev libghc-regex-pcre-dev libghc-curl-dev
 
 or ``cabal``::
 
-  $ cabal install hslogger Crypto text hinotify
+  $ cabal install hslogger Crypto text hinotify regex-pcre curl
 
 to install them.
+
+The most recent Fedora doesn't provide ``curl``, ``crypto``,
+``inotify``. So these need to be installed using ``cabal``, if
+desired. The other packages can be installed via ``yum``::
+
+  $ yum install ghc-hslogger-devel ghc-text-devel \
+                ghc-regex-pcre-devel
 
 .. _cabal-note:
 .. note::

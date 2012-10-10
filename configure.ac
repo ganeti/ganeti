@@ -310,45 +310,6 @@ then
 fi
 AC_SUBST(SYSLOG_USAGE, $SYSLOG)
 
-# --enable-htools
-HTOOLS=
-AC_ARG_ENABLE([htools],
-        [AS_HELP_STRING([--enable-htools],
-        [enable use of htools (needs GHC and libraries, default: check)])],
-        [],
-        [enable_htools=check])
-
-# --enable-htools-rapi
-HTOOLS_RAPI=
-AC_ARG_ENABLE([htools-rapi],
-        [AS_HELP_STRING([--enable-htools-rapi],
-        [enable use of RAPI in htools (needs curl, default: no)])],
-        [],
-        [enable_htools_rapi=check])
-
-# --enable-confd
-ENABLE_CONFD=
-AC_ARG_ENABLE([confd],
-  [AS_HELP_STRING([--enable-confd],
-  [enable the ganeti-confd daemon (default: yes)])],
-  [[case "$enableval" in
-      no)
-        enable_confd=False
-        ;;
-      yes|haskell)
-        enable_confd=True
-        ;;
-      *)
-        echo "Invalid value for enable-confd '$enableval'"
-        exit 1
-        ;;
-    esac
-  ]],
-  [enable_confd=True])
-AC_SUBST(ENABLE_CONFD, $enable_confd)
-
-AM_CONDITIONAL([ENABLE_CONFD], [test x$enable_confd = xTrue])
-
 # --with-disk-separator=...
 AC_ARG_WITH([disk-separator],
   [AS_HELP_STRING([--with-disk-separator=STRING],
@@ -430,97 +391,113 @@ then
   AC_MSG_WARN([qemu-img not found, using ovfconverter will not be possible])
 fi
 
-if test "$enable_htools" != "no"; then
+# --enable-htools-rapi
+HTOOLS_RAPI=
+AC_ARG_ENABLE([htools-rapi],
+        [AS_HELP_STRING([--enable-htools-rapi],
+        [enable use of curl in the Haskell code (default: check)])],
+        [],
+        [enable_htools_rapi=check])
+
+# --enable-confd
+ENABLE_CONFD=
+AC_ARG_ENABLE([confd],
+  [AS_HELP_STRING([--enable-confd],
+  [enable the ganeti-confd daemon (default: check)])],
+  [],
+  [enable_confd=check])
 
 # Check for ghc
 AC_ARG_VAR(GHC, [ghc path])
 AC_PATH_PROG(GHC, [ghc], [])
 if test -z "$GHC"; then
-  if test "$enable_htools" != "check"; then
-    AC_MSG_FAILURE([ghc not found, htools compilation will not possible])
-  fi
+  AC_MSG_FAILURE([ghc not found, compilation will not possible])
 fi
 
 # Check for ghc-pkg
-HTOOLS_MODULES=
 AC_ARG_VAR(GHC_PKG, [ghc-pkg path])
 AC_PATH_PROG(GHC_PKG, [ghc-pkg], [])
 if test -z "$GHC_PKG"; then
-  if test "$enable_htools" != "check"; then
-    AC_MSG_FAILURE([ghc-pkg not found, htools compilation will not be possible])
-  fi
-else
-  # check for modules
-  AC_MSG_NOTICE([checking for required haskell modules])
-  HTOOLS_NOCURL=-DNO_CURL
-  if test "$enable_htools_rapi" != "no"; then
-    AC_MSG_CHECKING([curl])
-    GHC_PKG_CURL=$($GHC_PKG latest curl)
-    if test -z "$GHC_PKG_CURL"; then
-      if test "$enable_htools_rapi" = "check"; then
-        AC_MSG_WARN(m4_normalize([The curl library not found, htools will be
-                                  compiled without RAPI support]))
-      else
-        AC_MSG_FAILURE(m4_normalize([The curl library was not found, but it has
-                                     been requested]))
-      fi
-    else
-      HTOOLS_NOCURL=
-    fi
-    AC_MSG_RESULT($GHC_PKG_CURL)
-  fi
-  AC_SUBST(GHC_PKG_CURL)
-  AC_SUBST(HTOOLS_NOCURL)
-  AC_MSG_CHECKING([parallel])
-  GHC_PKG_PARALLEL=$($GHC_PKG --simple-output list 'parallel-3.*')
-  if test -n "$GHC_PKG_PARALLEL"
-  then
-    HTOOLS_PARALLEL3=-DPARALLEL3
-  else
-    GHC_PKG_PARALLEL=$($GHC_PKG --simple-output list 'parallel-2.*')
-  fi
-  if test -z "$GHC_PKG_PARALLEL"
-  then
-    GHC_PKG_PARALLEL=$($GHC_PKG --simple-output list 'parallel-1.*')
-  fi
-  AC_SUBST(GHC_PKG_PARALLEL)
-  AC_SUBST(HTOOLS_PARALLEL3)
-  AC_MSG_RESULT($GHC_PKG_PARALLEL)
-  AC_MSG_CHECKING([json])
-  GHC_PKG_JSON=$($GHC_PKG latest json)
-  AC_MSG_RESULT($GHC_PKG_JSON)
-  AC_MSG_CHECKING([network])
-  GHC_PKG_NETWORK=$($GHC_PKG latest network)
-  AC_MSG_RESULT($GHC_PKG_NETWORK)
-  AC_MSG_CHECKING([QuickCheck 2.x])
-  GHC_PKG_QUICKCHECK=$($GHC_PKG --simple-output list 'QuickCheck-2.*')
-  AC_MSG_RESULT($GHC_PKG_QUICKCHECK)
-  if test -z "$GHC_PKG_PARALLEL" || test -z "$GHC_PKG_JSON" || \
-     test -z "$GHC_PKG_NETWORK"; then
-    if test "$enable_htools" != "check"; then
-      AC_MSG_FAILURE(m4_normalize([Required Haskell modules not found, htools
-                                   compilation disabled]))
-    fi
-  else
-    # we leave the other modules to be auto-selected
-    HTOOLS_MODULES="-package $GHC_PKG_PARALLEL"
-  fi
-  if test -z "$GHC_PKG_QUICKCHECK"; then
-     AC_MSG_WARN(m4_normalize([The QuickCheck 2.x module was not found,
-                               you won't be able to run Haskell unittests]))
-  fi
+  AC_MSG_FAILURE([ghc-pkg not found, compilation will not be possible])
 fi
-AC_SUBST(HTOOLS_MODULES)
-AC_SUBST(GHC_PKG_QUICKCHECK)
 
-if test "$enable_htools" != "no"; then
-  if test -z "$GHC" || test -z "$HTOOLS_MODULES"; then
-    AC_MSG_WARN(m4_normalize([Haskell compiler/required libraries not found,
-                              htools compilation disabled]))
+# check for modules, first custom/special checks
+AC_MSG_NOTICE([checking for required haskell modules])
+HTOOLS_NOCURL=-DNO_CURL
+if test "$enable_htools_rapi" != "no"; then
+  AC_GHC_PKG_CHECK([curl], [HTOOLS_NOCURL=], [])
+  if test -n "$HTOOLS_NOCURL"; then
+    if test "$enable_htools_rapi" = "check"; then
+      AC_MSG_WARN(m4_normalize([The curl library was not found, Haskell
+                                code will be compiled without RAPI support]))
+    else
+      AC_MSG_FAILURE(m4_normalize([The curl library was not found, but it has
+                                   been requested]))
+    fi
   else
-    HTOOLS=yes
+    AC_MSG_NOTICE([Enabling curl/RAPI/RPC usage in Haskell code])
   fi
 fi
+AC_SUBST(HTOOLS_NOCURL)
+
+HTOOLS_PARALLEL3=
+AC_GHC_PKG_CHECK([parallel-3.*], [HTOOLS_PARALLEL3=-DPARALLEL3],
+                 [AC_GHC_PKG_REQUIRE(parallel)], t)
+AC_SUBST(HTOOLS_PARALLEL3)
+
+# and now standard modules
+AC_GHC_PKG_REQUIRE(json)
+AC_GHC_PKG_REQUIRE(network)
+AC_GHC_PKG_REQUIRE(mtl)
+AC_GHC_PKG_REQUIRE(bytestring)
+AC_GHC_PKG_REQUIRE(utf8-string)
+
+# extra modules for confd functionality
+HTOOLS_REGEX_PCRE=-DNO_REGEX_PCRE
+has_confd=False
+if test "$enable_confd" != "no"; then
+  CONFD_PKG=
+  AC_GHC_PKG_CHECK([regex-pcre], [HTOOLS_REGEX_PCRE=],
+                   [CONFD_PKG="$CONFD_PKG regex-pcre"])
+  AC_GHC_PKG_CHECK([hslogger], [], [CONFD_PKG="$CONFD_PKG hslogger"])
+  AC_GHC_PKG_CHECK([Crypto], [], [CONFD_PKG="$CONFD_PKG Crypto"])
+  AC_GHC_PKG_CHECK([text], [], [CONFD_PKG="$CONFD_PKG text"])
+  AC_GHC_PKG_CHECK([hinotify], [], [CONFD_PKG="$CONFD_PKG hinotify"])
+  if test -z "$CONFD_PKG"; then
+    has_confd=True
+  else
+    if test "$enable_confd" = "check"; then
+      AC_MSG_WARN(m4_normalize([The required extra libraries for confd were
+                                not found ($CONFD_PKG), confd disabled]))
+    else
+      AC_MSG_FAILURE(m4_normalize([The confd functionality was requested, but
+                                   required libraries were not found:
+                                   $CONFD_PKG]))
+    fi
+  fi
+fi
+AC_SUBST(HTOOLS_REGEX_PCRE)
+if test "$has_confd" = "True"; then
+  AC_MSG_NOTICE([Enabling confd usage])
+fi
+AC_SUBST(ENABLE_CONFD, $has_confd)
+AM_CONDITIONAL([ENABLE_CONFD], [test x$has_confd = xTrue])
+
+# development modules
+HTOOLS_NODEV=
+AC_GHC_PKG_CHECK([QuickCheck-2.*], [], [HTOOLS_NODEV=1], t)
+AC_GHC_PKG_CHECK([test-framework-0.6*], [], [HTOOLS_NODEV=1], t)
+AC_GHC_PKG_CHECK([test-framework-hunit], [], [HTOOLS_NODEV=1])
+AC_GHC_PKG_CHECK([test-framework-quickcheck2], [], [HTOOLS_NODEV=1])
+if test -n "$HTOOLS_NODEV"; then
+   AC_MSG_WARN(m4_normalize([Required development modules were not found,
+                             you won't be able to run Haskell unittests]))
+else
+   AC_MSG_NOTICE([Haskell development modules found, unittests enabled])
+fi
+AC_SUBST(HTOOLS_NODEV)
+
+HTOOLS=yes
 AC_SUBST(HTOOLS)
 
 # --enable-split-query
@@ -541,7 +518,7 @@ AC_ARG_ENABLE([split-query],
         ;;
     esac
   ]],
-  [[case "x${enable_confd}x${HTOOLS_NOCURL}x" in
+  [[case "x${has_confd}x${HTOOLS_NOCURL}x" in
      xTruexx)
        enable_split_query=True
        ;;
@@ -551,7 +528,7 @@ AC_ARG_ENABLE([split-query],
    esac]])
 AC_SUBST(ENABLE_SPLIT_QUERY, $enable_split_query)
 
-if test x$enable_split_query = xTrue -a x$enable_confd != xTrue; then
+if test x$enable_split_query = xTrue -a x$has_confd != xTrue; then
   AC_MSG_ERROR([Split queries require the confd daemon])
 fi
 
@@ -591,8 +568,6 @@ AC_PATH_PROG(HLINT, [hlint], [])
 if test -z "$HLINT"; then
   AC_MSG_WARN([hlint not found, checking code will not be possible])
 fi
-
-fi # end if enable_htools, define automake conditions
 
 if test "$HTOOLS" != "yes" && test "$ENABLE_CONFD" = "True"; then
    AC_MSG_ERROR(m4_normalize([cannot enable ganeti-confd if

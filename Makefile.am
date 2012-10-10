@@ -601,18 +601,15 @@ install-exec-hook:
 endif
 
 $(HS_ALL_PROGS): %: %.hs $(HS_LIBTEST_SRCS) $(HS_BUILT_SRCS) Makefile
-	@if [ -z "$(HTOOLS)" ]; then \
-	  echo "Error: htools compilation disabled at configure time" 1>&2 ;\
-	  exit 1; \
-	fi
-	@if [ "$(notdir $@)" = "test" ] && [ -z "$(GHC_PKG_QUICKCHECK)" ]; then \
-	  echo "Error: cannot run unittests without the QuickCheck library (see devnotes.rst)" 1>&2; \
+	@if [ "$(notdir $@)" = "test" ] && [ "$(HTOOLS_NODEV)" ]; then \
+	  echo "Error: cannot run unittests without the development" \
+	       " libraries (see devnotes.rst)" 1>&2; \
 	  exit 1; \
 	fi
 	@rm -f $(notdir $@).tix
 	$(GHC) --make \
 	  $(HFLAGS) \
-	  $(HTOOLS_NOCURL) $(HTOOLS_PARALLEL3) \
+	  $(HTOOLS_NOCURL) $(HTOOLS_PARALLEL3) $(HTOOLS_REGEX_PCRE) \
 	  -osuf $(notdir $@).o -hisuf $(notdir $@).hi \
 	  $(HEXTRA) $(HEXTRA_INT) $@
 	@touch "$@"
@@ -1234,11 +1231,7 @@ lib/_autoconf.py: Makefile | stamp-directories
 	  echo "NODED_GROUP = '$(NODED_GROUP)'"; \
 	  echo "DISK_SEPARATOR = '$(DISK_SEPARATOR)'"; \
 	  echo "QEMUIMG_PATH = '$(QEMUIMG_PATH)'"; \
-	  if [ "$(HTOOLS)" ]; then \
-	    echo "HTOOLS = True"; \
-	  else \
-	    echo "HTOOLS = False"; \
-	  fi; \
+	  echo "HTOOLS = True"; \
 	  echo "ENABLE_CONFD = $(ENABLE_CONFD)"; \
 	  echo "XEN_CMD = '$(XEN_CMD)'"; \
 	  echo "ENABLE_SPLIT_QUERY = $(ENABLE_SPLIT_QUERY)"; \
@@ -1593,6 +1586,9 @@ hs-apidoc: $(HS_BUILT_SRCS)
 	if [ "$(HTOOLS_PARALLEL3)" ]; \
 	then OPTGHC="$$OPTGHC --optghc=$(HTOOLS_PARALLEL3)"; \
 	fi; \
+	if [ "$(HTOOLS_REGEX_PCRE)" ]; \
+	then OPTGHC="$$OPTGHC --optghc=$(HTOOLS_REGEX_PCRE)"; \
+	fi; \
 	RELSRCS="$(HS_LIB_SRCS:htools/%=%) $(patsubst htools/%,%,$(filter htools/%,$(HS_BUILT_SRCS)))"; \
 	for file in $$RELSRCS; do \
 		hfile=`echo $$file|sed 's/\\.hs$$//'`.html; \
@@ -1610,7 +1606,7 @@ TAGS: $(GENERATED_FILES)
 	rm -f TAGS
 	$(GHC) -e ":etags" -v0 \
 	  $(filter-out -O -Werror,$(HFLAGS)) \
-	  $(HTOOLS_NOCURL) $(HTOOLS_PARALLEL3) \
+	  $(HTOOLS_NOCURL) $(HTOOLS_PARALLEL3) $(HTOOLS_REGEX_PCRE) \
 	  $(HS_LIBTEST_SRCS)
 	find . -path './lib/*.py' -o -path './scripts/gnt-*' -o \
 	  -path './daemons/ganeti-*' -o -path './tools/*' -o \

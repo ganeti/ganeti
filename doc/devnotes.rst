@@ -86,7 +86,9 @@ required ones from the quick install document) via::
 
 Or alternatively via ``cabal``::
 
-  $ cabal install quickcheck hscolour hlint shelltestrunner
+  $ cabal install QuickCheck HUnit \
+          test-framework test-framework-quickcheck2 test-framework-hunit \
+          hscolour hlint shelltestrunner
 
 
 Configuring for development
