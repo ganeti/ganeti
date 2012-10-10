@@ -166,7 +166,7 @@ prop_IPolicyIdempotent ipol =
 
 -- | This property, while being in the text tests, does more than just
 -- test end-to-end the serialisation and loading back workflow; it
--- also tests the Loader.mergeData and the actuall
+-- also tests the Loader.mergeData and the actual
 -- Cluster.iterateAlloc (for well-behaving w.r.t. instance
 -- allocations, not for the business logic). As such, it's a quite
 -- complex and slow test, and that's the reason we restrict it to
