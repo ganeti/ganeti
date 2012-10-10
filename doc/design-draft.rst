@@ -16,6 +16,7 @@ Design document drafts
    design-autorepair.rst
    design-partitioned.rst
    design-ssh-setup.rst
+   design-monitoring-agent.rst
    design-remote-commands.rst
 
 .. vim: set textwidth=72 :
