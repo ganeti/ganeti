@@ -30,6 +30,7 @@ readonly default_netprefix=192.0.2
 readonly default_netdev=eth0
 readonly default_initscript=@SYSCONFDIR@/init.d/ganeti
 readonly cluster_name=cluster
+readonly etc_hosts_filename=/etc/hosts
 
 # IP address space:
 # Cluster: .1
@@ -52,7 +53,7 @@ usage() {
   echo '  -n  Network device for virtual IP addresses (defaults to'\
        "$default_netdev)"
   echo "  -I  Path to init script (defaults to $default_initscript)"
-  echo '  -E  Do not modify /etc/hosts'
+  echo "  -E  Do not modify $etc_hosts_filename"
   echo '  -N  Do not configure networking'
 }
 
@@ -225,13 +226,13 @@ setup_all_nodes() {
 }
 
 setup_etc_hosts() {
-  echo 'Configuring /etc/hosts ...' >&2
+  echo "Configuring $etc_hosts_filename ..." >&2
   (
     set -e -u
-    local -r tmpfile=$(mktemp /etc/hosts.vcluster.XXXXX)
+    local -r tmpfile=$(mktemp $etc_hosts_filename.vcluster.XXXXX)
     trap "rm -f $tmpfile" EXIT
     {
-      egrep -v "^$netprefix.[[:digit:]]+[[:space:]]" /etc/hosts
+      egrep -v "^$netprefix.[[:digit:]]+[[:space:]]" $etc_hosts_filename
       echo "$netprefix.1 $cluster_name"
       for ((i=0; i < nodecount; ++i)); do
         echo "$(node_ipaddr $i) $(node_hostname $i)"
@@ -241,7 +242,7 @@ setup_etc_hosts() {
       done
     } > $tmpfile && \
     chmod 0644 $tmpfile && \
-    mv $tmpfile /etc/hosts && \
+    mv $tmpfile $etc_hosts_filename && \
     trap - EXIT
   )
 }
