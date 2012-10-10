@@ -130,7 +130,8 @@ parseGroup u a = do
   name <- extract "name"
   apol <- extract "alloc_policy"
   ipol <- extract "ipolicy"
-  return (u, Group.create name u apol ipol)
+  tags <- extract "tags"
+  return (u, Group.create name u apol ipol tags)
 
 -- | Top-level parser.
 --

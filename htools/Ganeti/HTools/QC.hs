@@ -157,7 +157,7 @@ nullIPolicy = Types.IPolicy
 defGroup :: Group.Group
 defGroup = flip Group.setIdx 0 $
              Group.create "default" Types.defaultGroupID Types.AllocPreferred
-                  nullIPolicy
+                  nullIPolicy []
 
 defGroupList :: Group.List
 defGroupList = Container.fromList [(Group.idx defGroup, defGroup)]
