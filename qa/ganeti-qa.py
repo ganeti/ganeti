@@ -527,9 +527,9 @@ def RunQa():
           RunTestIf("haskell-confd", qa_node.TestNodeListDrbd, snode)
           RunCommonInstanceTests(instance)
           RunGroupListTests()
-          RunTest(qa_group.TestAssignNodesIncludingSplit,
-                  constants.INITIAL_NODE_GROUP_NAME,
-                  pnode["primary"], snode["primary"])
+          RunTestIf("group-rwops", qa_group.TestAssignNodesIncludingSplit,
+                    constants.INITIAL_NODE_GROUP_NAME,
+                    pnode["primary"], snode["primary"])
           if qa_config.TestEnabled("instance-convert-disk"):
             RunTest(qa_instance.TestInstanceShutdown, instance)
             RunTest(qa_instance.TestInstanceConvertDisk, instance, snode)
