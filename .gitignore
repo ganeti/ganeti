@@ -112,6 +112,7 @@
 
 /htools/htools
 /htools/hconfd
+/htools/ganeti-confd
 /htest/hpc-htools
 /htest/test
 /htools/*.prof*
