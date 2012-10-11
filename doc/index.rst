@@ -22,6 +22,7 @@ Contents:
    design-htools-2.3.rst
    design-2.4.rst
    design-2.5.rst
+   design-2.6.rst
    design-draft.rst
    cluster-merge.rst
    locking.rst
@@ -45,6 +46,8 @@ Contents:
    design-chained-jobs.rst
    design-multi-reloc.rst
    design-shared-storage.rst
+   design-cpu-pinning.rst
+   design-ovf-support.rst
 
 Also see the :ref:`search`.
 

@@ -671,6 +671,8 @@ def VerifyDisks(opts, args):
       ToStdout("You need to replace or recreate disks for all the above"
                " instances if this message persists after fixing broken nodes.")
       retcode = constants.EXIT_FAILURE
+    elif not instances:
+      ToStdout("No disks need to be activated.")
 
   return retcode
 

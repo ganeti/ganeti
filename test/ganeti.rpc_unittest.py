@@ -800,8 +800,13 @@ class TestRpcRunner(unittest.TestCase):
           constants.NIC_MODE: "mymode",
           }),
         ],
-      disk_template=constants.DT_DISKLESS,
-      disks=[])
+      disk_template=constants.DT_PLAIN,
+      disks=[
+        objects.Disk(dev_type=constants.LD_LV, size=4096,
+                     logical_id=("vg", "disk6120")),
+        objects.Disk(dev_type=constants.LD_LV, size=1024,
+                     logical_id=("vg", "disk8508")),
+        ])
     inst.UpgradeConfig()
 
     cfg = _FakeConfigForRpcRunner(cluster=cluster)
@@ -854,7 +859,7 @@ class TestRpcRunner(unittest.TestCase):
       })
 
     # Instance with hypervisor and backend parameters
-    result = runner._encoder((rpc_defs.ED_INST_DICT_HVP_BEP, (inst, {
+    result = runner._encoder((rpc_defs.ED_INST_DICT_HVP_BEP_DP, (inst, {
       constants.HT_KVM: {
         constants.HV_BOOT_ORDER: "xyz",
         },
@@ -868,6 +873,20 @@ class TestRpcRunner(unittest.TestCase):
     self.assertEqual(result["hvparams"][constants.HT_KVM], {
       constants.HV_BOOT_ORDER: "xyz",
       })
+    self.assertEqual(result["disks"], [{
+      "dev_type": constants.LD_LV,
+      "size": 4096,
+      "logical_id": ("vg", "disk6120"),
+      "params": constants.DISK_DT_DEFAULTS[inst.disk_template],
+      }, {
+      "dev_type": constants.LD_LV,
+      "size": 1024,
+      "logical_id": ("vg", "disk8508"),
+      "params": constants.DISK_DT_DEFAULTS[inst.disk_template],
+      }])
+
+    self.assertTrue(compat.all(disk.params == {} for disk in inst.disks),
+                    msg="Configuration objects were modified")
 
 
 if __name__ == "__main__":

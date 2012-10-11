@@ -42,6 +42,7 @@ from ganeti import ht
 from ganeti import objects
 from ganeti import compat
 from ganeti import rpc
+from ganeti import locking
 from ganeti import pathutils
 from ganeti.masterd import iallocator
 from ganeti.hypervisor import hv_xen
@@ -1486,6 +1487,18 @@ class TestDiskSizeInBytesToMebibytes(unittest.TestCase):
         self.assertEqual(len(lu.warning_log[0]), 2)
         (_, (warnsize, )) = lu.warning_log[0]
         self.assertEqual(warnsize, (1024 * 1024) - j)
+
+
+class TestCopyLockList(unittest.TestCase):
+  def test(self):
+    self.assertEqual(cmdlib._CopyLockList([]), [])
+    self.assertEqual(cmdlib._CopyLockList(None), None)
+    self.assertEqual(cmdlib._CopyLockList(locking.ALL_SET), locking.ALL_SET)
+
+    names = ["foo", "bar"]
+    output = cmdlib._CopyLockList(names)
+    self.assertEqual(names, output)
+    self.assertNotEqual(id(names), id(output), msg="List was not copied")
 
 
 if __name__ == "__main__":

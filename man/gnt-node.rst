@@ -220,7 +220,7 @@ listing fast if only fields from this set are selected), whereas the
 other fields are "live" fields and require a query to the cluster nodes.
 
 Depending on the virtualization type and implementation details, the
-``mtotal``, ``mnode`` and ``mfree`` fields may have slighly varying
+``mtotal``, ``mnode`` and ``mfree`` fields may have slightly varying
 meanings. For example, some solutions share the node memory with the
 pool of memory used for instances (KVM), whereas others have separate
 memory for the node and for the instances (Xen).
@@ -295,8 +295,8 @@ As for the **gnt-instance migrate** command, the options
 ``--no-live``, ``--migration-mode`` and ``--no-runtime-changes``
 can be given to influence the migration type.
 
-If ``--ignore-ipolicy`` is given any instance policy violations occuring
-during this operation are ignored.
+If ``--ignore-ipolicy`` is given any instance policy violations
+occurring during this operation are ignored.
 
 See **ganeti(7)** for a description of ``--submit`` and other common
 options.
@@ -580,7 +580,7 @@ POWER
 
 This command calls out to out-of-band management to change the power
 state of given node. With ``status`` you get the power status as reported
-by the out-of-band managment script.
+by the out-of-band management script.
 
 Note that this command will only work if the out-of-band functionality
 is configured and enabled on the cluster. If this is not the case,

@@ -220,6 +220,12 @@ def TestInstanceReinstall(instance):
   """gnt-instance reinstall"""
   AssertCommand(["gnt-instance", "reinstall", "-f", instance["name"]])
 
+  # Test with non-existant OS definition
+  AssertCommand(["gnt-instance", "reinstall", "-f",
+                 "--os-type=NonExistantOsForQa",
+                 instance["name"]],
+                fail=True)
+
 
 def _ReadSsconfInstanceList():
   """Reads ssconf_instance_list from the master node.
@@ -323,6 +329,25 @@ def TestInstanceMigrate(instance, toggle_always_failover=True):
   AssertCommand(["gnt-instance", "start", instance["name"]])
   AssertCommand(cmd)
   # @InstanceCheck enforces the check that the instance is running
+  qa_utils.RunInstanceCheck(instance, True)
+
+  AssertCommand(["gnt-instance", "modify", "-B",
+                 ("%s=%s" %
+                  (constants.BE_ALWAYS_FAILOVER, constants.VALUE_TRUE)),
+                 instance["name"]])
+
+  AssertCommand(cmd)
+  qa_utils.RunInstanceCheck(instance, True)
+  # TODO: Verify that a failover has been done instead of a migration
+
+  # TODO: Verify whether the default value is restored here (not hardcoded)
+  AssertCommand(["gnt-instance", "modify", "-B",
+                 ("%s=%s" %
+                  (constants.BE_ALWAYS_FAILOVER, constants.VALUE_FALSE)),
+                 instance["name"]])
+
+  AssertCommand(cmd)
+  qa_utils.RunInstanceCheck(instance, True)
 
 
 def TestInstanceInfo(instance):

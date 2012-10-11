@@ -397,8 +397,12 @@ def ReinstallInstance(opts, args):
                                      osparams=opts.osparams)
     jex.QueueJob(instance_name, op)
 
-  jex.WaitOrShow(not opts.submit_only)
-  return 0
+  results = jex.WaitOrShow(not opts.submit_only)
+
+  if compat.all(map(compat.fst, results)):
+    return constants.EXIT_SUCCESS
+  else:
+    return constants.EXIT_FAILURE
 
 
 def RemoveInstance(opts, args):
@@ -1513,8 +1517,8 @@ commands = {
     [AUTO_REPLACE_OPT, DISKIDX_OPT, IALLOCATOR_OPT, EARLY_RELEASE_OPT,
      NEW_SECONDARY_OPT, ON_PRIMARY_OPT, ON_SECONDARY_OPT, SUBMIT_OPT,
      DRY_RUN_OPT, PRIORITY_OPT, IGNORE_IPOLICY_OPT],
-    "[-s|-p|-n NODE|-I NAME] <instance>",
-    "Replaces all disks for the instance"),
+    "[-s|-p|-a|-n NODE|-I NAME] <instance>",
+    "Replaces disks for the instance"),
   "modify": (
     SetInstanceParams, ARGS_ONE_INSTANCE,
     [BACKEND_OPT, DISK_OPT, FORCE_OPT, HVOPTS_OPT, NET_OPT, SUBMIT_OPT,

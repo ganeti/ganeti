@@ -690,6 +690,18 @@ def _SupportsOob(cfg, node):
   return cfg.GetNdParams(node)[constants.ND_OOB_PROGRAM]
 
 
+def _CopyLockList(names):
+  """Makes a copy of a list of lock names.
+
+  Handles L{locking.ALL_SET} correctly.
+
+  """
+  if names == locking.ALL_SET:
+    return locking.ALL_SET
+  else:
+    return names[:]
+
+
 def _GetWantedNodes(lu, nodes):
   """Returns list of checked and expanded node names.
 
@@ -7210,7 +7222,7 @@ class LUInstanceRecreateDisks(LogicalUnit):
     elif level == locking.LEVEL_NODE_RES:
       # Copy node locks
       self.needed_locks[locking.LEVEL_NODE_RES] = \
-        self.needed_locks[locking.LEVEL_NODE][:]
+        _CopyLockList(self.needed_locks[locking.LEVEL_NODE])
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -7498,7 +7510,7 @@ class LUInstanceRemove(LogicalUnit):
     elif level == locking.LEVEL_NODE_RES:
       # Copy node locks
       self.needed_locks[locking.LEVEL_NODE_RES] = \
-        self.needed_locks[locking.LEVEL_NODE][:]
+        _CopyLockList(self.needed_locks[locking.LEVEL_NODE])
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -7651,7 +7663,7 @@ class LUInstanceFailover(LogicalUnit):
     elif level == locking.LEVEL_NODE_RES:
       # Copy node locks
       self.needed_locks[locking.LEVEL_NODE_RES] = \
-        self.needed_locks[locking.LEVEL_NODE][:]
+        _CopyLockList(self.needed_locks[locking.LEVEL_NODE])
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -7735,7 +7747,7 @@ class LUInstanceMigrate(LogicalUnit):
     elif level == locking.LEVEL_NODE_RES:
       # Copy node locks
       self.needed_locks[locking.LEVEL_NODE_RES] = \
-        self.needed_locks[locking.LEVEL_NODE][:]
+        _CopyLockList(self.needed_locks[locking.LEVEL_NODE])
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -7794,7 +7806,7 @@ class LUInstanceMove(LogicalUnit):
     elif level == locking.LEVEL_NODE_RES:
       # Copy node locks
       self.needed_locks[locking.LEVEL_NODE_RES] = \
-        self.needed_locks[locking.LEVEL_NODE][:]
+        _CopyLockList(self.needed_locks[locking.LEVEL_NODE])
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -11061,11 +11073,15 @@ class TLReplaceDisks(Tasklet):
           "Should not own any node group lock at this point"
 
     if not self.disks:
-      feedback_fn("No disks need replacement")
+      feedback_fn("No disks need replacement for instance '%s'" %
+                  self.instance.name)
       return
 
-    feedback_fn("Replacing disk(s) %s for %s" %
+    feedback_fn("Replacing disk(s) %s for instance '%s'" %
                 (utils.CommaJoin(self.disks), self.instance.name))
+    feedback_fn("Current primary node: %s", self.instance.primary_node)
+    feedback_fn("Current seconary node: %s",
+                utils.CommaJoin(self.instance.secondary_nodes))
 
     activate_disks = (self.instance.admin_state != constants.ADMINST_UP)
 
@@ -11892,7 +11908,7 @@ class LUInstanceGrowDisk(LogicalUnit):
     elif level == locking.LEVEL_NODE_RES:
       # Copy node locks
       self.needed_locks[locking.LEVEL_NODE_RES] = \
-        self.needed_locks[locking.LEVEL_NODE][:]
+        _CopyLockList(self.needed_locks[locking.LEVEL_NODE])
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -12587,7 +12603,7 @@ class LUInstanceSetParams(LogicalUnit):
     elif level == locking.LEVEL_NODE_RES and self.op.disk_template:
       # Copy node locks
       self.needed_locks[locking.LEVEL_NODE_RES] = \
-        self.needed_locks[locking.LEVEL_NODE][:]
+        _CopyLockList(self.needed_locks[locking.LEVEL_NODE])
 
   def BuildHooksEnv(self):
     """Build hooks env.

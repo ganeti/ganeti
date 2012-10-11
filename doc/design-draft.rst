@@ -8,8 +8,6 @@ Design document drafts
    design-x509-ca.rst
    design-http-server.rst
    design-impexp2.rst
-   design-cpu-pinning.rst
-   design-ovf-support.rst
    design-network.rst
    design-node-state-cache.rst
    design-resource-model.rst

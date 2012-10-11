@@ -767,6 +767,11 @@ def main():
   sw.Write("gnt_shopt_extglob=$(shopt -p extglob || :)")
   sw.Write("shopt -s extglob")
 
+  # Remember original state of extglob and enable it (required for pattern
+  # matching; must be enabled while parsing script)
+  sw.Write("gnt_shopt_extglob=$(shopt -p extglob || :)")
+  sw.Write("shopt -s extglob")
+
   WritePreamble(sw, not options.compact)
 
   # gnt-* scripts
