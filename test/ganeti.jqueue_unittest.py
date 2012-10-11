@@ -309,10 +309,11 @@ class TestQueuedJob(unittest.TestCase):
                         ["unknown-field"])
       self.assertEqual(job.GetInfo(["summary"]),
                        [[op.input.Summary() for op in job.ops]])
+      self.assertFalse(job.archived)
 
     job1 = jqueue._QueuedJob(None, job_id, ops, True)
     _Check(job1)
-    job2 = jqueue._QueuedJob.Restore(None, job1.Serialize(), True)
+    job2 = jqueue._QueuedJob.Restore(None, job1.Serialize(), True, False)
     _Check(job2)
     self.assertEqual(job1.Serialize(), job2.Serialize())
 
@@ -322,6 +323,16 @@ class TestQueuedJob(unittest.TestCase):
 
     job = jqueue._QueuedJob(None, 1, [opcodes.OpTestDelay()], True)
     self.assertTrue(job.writable)
+
+  def testArchived(self):
+    job = jqueue._QueuedJob(None, 1, [opcodes.OpTestDelay()], False)
+    self.assertFalse(job.archived)
+
+    newjob = jqueue._QueuedJob.Restore(None, job.Serialize(), True, True)
+    self.assertTrue(newjob.archived)
+
+    newjob2 = jqueue._QueuedJob.Restore(None, newjob.Serialize(), True, False)
+    self.assertFalse(newjob2.archived)
 
   def testPriority(self):
     job_id = 4283
@@ -994,7 +1005,7 @@ class TestJobProcessor(unittest.TestCase, _JobProcessorTestUtils):
       self.assert_(job.ops_iter)
 
       # Serialize and restore (simulates program restart)
-      newjob = jqueue._QueuedJob.Restore(queue, job.Serialize(), True)
+      newjob = jqueue._QueuedJob.Restore(queue, job.Serialize(), True, False)
       self.assertFalse(newjob.ops_iter)
       self._TestPartial(newjob, successcount)
 
@@ -1039,7 +1050,7 @@ class TestJobProcessor(unittest.TestCase, _JobProcessorTestUtils):
     self.assertRaises(IndexError, queue.GetNextUpdate)
 
     # ... also after being restored
-    job2 = jqueue._QueuedJob.Restore(queue, job.Serialize(), True)
+    job2 = jqueue._QueuedJob.Restore(queue, job.Serialize(), True, False)
     # Calling the processor on a finished job should be a no-op
     self.assertEqual(jqueue._JobProcessor(queue, opexec, job2)(),
                      jqueue._JobProcessor.FINISHED)
@@ -1141,7 +1152,7 @@ class TestJobProcessor(unittest.TestCase, _JobProcessorTestUtils):
     self._CheckLogMessages(job, logmsgcount)
 
     # Serialize and restore (simulates program restart)
-    newjob = jqueue._QueuedJob.Restore(queue, job.Serialize(), True)
+    newjob = jqueue._QueuedJob.Restore(queue, job.Serialize(), True, False)
     self._CheckLogMessages(newjob, logmsgcount)
 
     # Check each message

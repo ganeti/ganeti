@@ -210,7 +210,7 @@ class _QueuedJob(object):
   # pylint: disable=W0212
   __slots__ = ["queue", "id", "ops", "log_serial", "ops_iter", "cur_opctx",
                "received_timestamp", "start_timestamp", "end_timestamp",
-               "__weakref__", "processor_lock", "writable"]
+               "__weakref__", "processor_lock", "writable", "archived"]
 
   def __init__(self, queue, job_id, ops, writable):
     """Constructor for the _QueuedJob.
@@ -236,8 +236,11 @@ class _QueuedJob(object):
     self.received_timestamp = TimeStampNow()
     self.start_timestamp = None
     self.end_timestamp = None
+    self.archived = False
 
     self._InitInMemory(self, writable)
+
+    assert not self.archived, "New jobs can not be marked as archived"
 
   @staticmethod
   def _InitInMemory(obj, writable):
@@ -262,7 +265,7 @@ class _QueuedJob(object):
     return "<%s at %#x>" % (" ".join(status), id(self))
 
   @classmethod
-  def Restore(cls, queue, state, writable):
+  def Restore(cls, queue, state, writable, archived):
     """Restore a _QueuedJob from serialized state:
 
     @type queue: L{JobQueue}
@@ -271,6 +274,8 @@ class _QueuedJob(object):
     @param state: the serialized state
     @type writable: bool
     @param writable: Whether job can be modified
+    @type archived: bool
+    @param archived: Whether job was already archived
     @rtype: _JobQueue
     @return: the restored _JobQueue instance
 
@@ -281,6 +286,7 @@ class _QueuedJob(object):
     obj.received_timestamp = state.get("received_timestamp", None)
     obj.start_timestamp = state.get("start_timestamp", None)
     obj.end_timestamp = state.get("end_timestamp", None)
+    obj.archived = archived
 
     obj.ops = []
     obj.log_serial = 0
@@ -1939,15 +1945,15 @@ class JobQueue(object):
     @return: either None or the job object
 
     """
-    path_functions = [(self._GetJobPath, True)]
+    path_functions = [(self._GetJobPath, False)]
 
     if try_archived:
-      path_functions.append((self._GetArchivedJobPath, False))
+      path_functions.append((self._GetArchivedJobPath, True))
 
     raw_data = None
-    writable_default = None
+    archived = None
 
-    for (fn, writable_default) in path_functions:
+    for (fn, archived) in path_functions:
       filepath = fn(job_id)
       logging.debug("Loading job from %s", filepath)
       try:
@@ -1962,11 +1968,11 @@ class JobQueue(object):
       return None
 
     if writable is None:
-      writable = writable_default
+      writable = not archived
 
     try:
       data = serializer.LoadJson(raw_data)
-      job = _QueuedJob.Restore(self, data, writable)
+      job = _QueuedJob.Restore(self, data, writable, archived)
     except Exception, err: # pylint: disable=W0703
       raise errors.JobFileCorrupted(err)
 
@@ -2229,6 +2235,7 @@ class JobQueue(object):
       finalized = job.CalcStatus() in constants.JOBS_FINALIZED
       assert (finalized ^ (job.end_timestamp is None))
       assert job.writable, "Can't update read-only job"
+      assert not job.archived, "Can't update archived job"
 
     filename = self._GetJobPath(job.id)
     data = serializer.DumpJson(job.Serialize())
@@ -2286,6 +2293,7 @@ class JobQueue(object):
       return (False, "Job %s not found" % job_id)
 
     assert job.writable, "Can't cancel read-only job"
+    assert not job.archived, "Can't cancel archived job"
 
     (success, msg) = job.Cancel()
 
@@ -2310,6 +2318,7 @@ class JobQueue(object):
     rename_files = []
     for job in jobs:
       assert job.writable, "Can't archive read-only job"
+      assert not job.archived, "Can't cancel archived job"
 
       if job.CalcStatus() not in constants.JOBS_FINALIZED:
         logging.debug("Job %s is not yet done", job.id)
