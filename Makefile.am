@@ -342,6 +342,7 @@ docrst = \
 	doc/design-2.4.rst \
 	doc/design-2.5.rst \
 	doc/design-2.6.rst \
+	doc/design-2.7.rst \
 	doc/design-autorepair.rst \
 	doc/design-bulk-create.rst \
 	doc/design-chained-jobs.rst \

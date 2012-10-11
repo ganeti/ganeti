@@ -23,6 +23,7 @@ Contents:
    design-2.4.rst
    design-2.5.rst
    design-2.6.rst
+   design-2.7.rst
    design-draft.rst
    cluster-merge.rst
    locking.rst
@@ -32,7 +33,6 @@ Contents:
    move-instance.rst
    virtual-cluster.rst
    ovfconverter.rst
-   design-bulk-create.rst
    devnotes.rst
    news.rst
    glossary.rst
@@ -40,14 +40,15 @@ Contents:
 .. toctree::
    :hidden:
 
-   design-oob.rst
-   design-query2.rst
-   design-lu-generated-jobs.rst
+   design-bulk-create.rst
    design-chained-jobs.rst
-   design-multi-reloc.rst
-   design-shared-storage.rst
    design-cpu-pinning.rst
+   design-lu-generated-jobs.rst
+   design-multi-reloc.rst
+   design-oob.rst
    design-ovf-support.rst
+   design-query2.rst
+   design-shared-storage.rst
 
 Also see the :ref:`search`.
 
