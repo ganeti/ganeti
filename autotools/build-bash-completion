@@ -622,6 +622,11 @@ def main():
   buf = StringIO()
   sw = utils.ShellWriter(buf)
 
+  # Remember original state of extglob and enable it (required for pattern
+  # matching; must be enabled while parsing script)
+  sw.Write("gnt_shopt_extglob=$(shopt -p extglob || :)")
+  sw.Write("shopt -s extglob")
+
   WritePreamble(sw)
 
   # gnt-* scripts
@@ -637,6 +642,10 @@ def main():
   burnin = build.LoadModule("tools/burnin")
   WriteCompletion(sw, "%s/burnin" % constants.TOOLSDIR, "_ganeti_burnin",
                   opts=burnin.OPTIONS, args=burnin.ARGUMENTS)
+
+  # Reset extglob to original value
+  sw.Write("[[ -n \"$gnt_shopt_extglob\" ]] && $gnt_shopt_extglob")
+  sw.Write("unset gnt_shopt_extglob")
 
   print buf.getvalue()
 
