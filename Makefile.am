@@ -1417,7 +1417,11 @@ check-local: check-dirs $(GENERATED_FILES)
 			echo "Incorrect version in $$file, expected $$expver"; \
 			exit 1; \
 		fi; \
-	done
+	done; \
+	if ! test -f doc/design-$$expver.rst; then \
+		echo "File doc/design-$$expver.rst not found"; \
+		exit 1; \
+	fi
 
 .PHONY: hs-check
 hs-check: htest/test htest/hpc-htools $(HS_BUILT_TEST_HELPERS)
