@@ -101,6 +101,8 @@ from ganeti.constants import (QFT_UNKNOWN, QFT_TEXT, QFT_BOOL, QFT_NUMBER,
  CQ_QUEUE_DRAINED,
  CQ_WATCHER_PAUSE) = range(300, 303)
 
+(JQ_ARCHIVED, ) = range(400, 401)
+
 # Query field flags
 QFF_HOSTNAME = 0x01
 QFF_IP_ADDRESS = 0x02
@@ -2258,6 +2260,8 @@ def _BuildJobFields():
                 ("Current job priority (%s to %s)" %
                  (constants.OP_PRIO_LOWEST, constants.OP_PRIO_HIGHEST))),
      None, 0, _JobUnavail(lambda job: job.CalcPriority())),
+    (_MakeField("archived", "Archived", QFT_BOOL, "Whether job is archived"),
+     JQ_ARCHIVED, 0, lambda _, (job_id, job): job.archived),
     (_MakeField("ops", "OpCodes", QFT_OTHER, "List of all opcodes"),
      None, 0, _PerJobOp(lambda op: op.input.__getstate__())),
     (_MakeField("opresult", "OpCode_result", QFT_OTHER,

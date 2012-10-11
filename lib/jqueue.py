@@ -1869,7 +1869,18 @@ class JobQueue(object):
                           "job-%s" % job_id)
 
   @staticmethod
-  def _GetJobIDsUnlocked(sort=True):
+  def _DetermineJobDirectories(archived):
+    result = [pathutils.QUEUE_DIR]
+
+    if archived:
+      archive_path = pathutils.JOB_QUEUE_ARCHIVE_DIR
+      result.extend(map(compat.partial(utils.PathJoin, archive_path),
+                        utils.ListVisibleFiles(archive_path)))
+
+    return result
+
+  @classmethod
+  def _GetJobIDsUnlocked(cls, sort=True, archived=False):
     """Return all known job IDs.
 
     The method only looks at disk because it's a requirement that all
@@ -1883,10 +1894,13 @@ class JobQueue(object):
 
     """
     jlist = []
-    for filename in utils.ListVisibleFiles(pathutils.QUEUE_DIR):
-      m = constants.JOB_FILE_RE.match(filename)
-      if m:
-        jlist.append(int(m.group(1)))
+
+    for path in cls._DetermineJobDirectories(archived):
+      for filename in utils.ListVisibleFiles(path):
+        m = constants.JOB_FILE_RE.match(filename)
+        if m:
+          jlist.append(int(m.group(1)))
+
     if sort:
       jlist.sort()
     return jlist
@@ -2425,6 +2439,11 @@ class JobQueue(object):
     qobj = query.Query(query.JOB_FIELDS, fields, qfilter=qfilter,
                        namefield="id")
 
+    # Archived jobs are only looked at if the "archived" field is referenced
+    # either as a requested field or in the filter. By default archived jobs
+    # are ignored.
+    include_archived = (query.JQ_ARCHIVED in qobj.RequestedData())
+
     job_ids = qobj.RequestedNames()
 
     list_all = (job_ids is None)
@@ -2432,7 +2451,7 @@ class JobQueue(object):
     if list_all:
       # Since files are added to/removed from the queue atomically, there's no
       # risk of getting the job ids in an inconsistent state.
-      job_ids = self._GetJobIDsUnlocked()
+      job_ids = self._GetJobIDsUnlocked(archived=include_archived)
 
     jobs = []
 
