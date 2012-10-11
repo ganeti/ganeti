@@ -1115,6 +1115,93 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
     self.assertDryRun()
     self.assertUseForce()
 
+  def testGetNetworksBulk(self):
+    networks = [{"name": "network1",
+               "uri": "/2/networks/network1",
+               "network": "192.168.0.0/24",
+               },
+              {"name": "network2",
+               "uri": "/2/networks/network2",
+               "network": "192.168.0.0/24",
+               },
+              ]
+    self.rapi.AddResponse(serializer.DumpJson(networks))
+
+    self.assertEqual(networks, self.client.GetNetworks(bulk=True))
+    self.assertHandler(rlib2.R_2_networks)
+    self.assertBulk()
+
+  def testGetNetwork(self):
+    network = {"ctime": None,
+               "name": "network1",
+               }
+    self.rapi.AddResponse(serializer.DumpJson(network))
+    self.assertEqual({"ctime": None, "name": "network1"},
+                     self.client.GetNetwork("network1"))
+    self.assertHandler(rlib2.R_2_networks_name)
+    self.assertItems(["network1"])
+
+  def testCreateNetwork(self):
+    self.rapi.AddResponse("12345")
+    job_id = self.client.CreateNetwork("newnetwork", network="192.168.0.0/24",
+                                       dry_run=True)
+    self.assertEqual(job_id, 12345)
+    self.assertHandler(rlib2.R_2_networks)
+    self.assertDryRun()
+
+  def testModifyNetwork(self):
+    self.rapi.AddResponse("12346")
+    job_id = self.client.ModifyNetwork("mynetwork", gateway="192.168.0.10",
+                                     dry_run=True)
+    self.assertEqual(job_id, 12346)
+    self.assertHandler(rlib2.R_2_networks_name_modify)
+
+  def testDeleteNetwork(self):
+    self.rapi.AddResponse("12347")
+    job_id = self.client.DeleteNetwork("newnetwork", dry_run=True)
+    self.assertEqual(job_id, 12347)
+    self.assertHandler(rlib2.R_2_networks_name)
+    self.assertDryRun()
+
+  def testConnectNetwork(self):
+    self.rapi.AddResponse("12348")
+    job_id = self.client.ConnectNetwork("mynetwork", "default",
+                                        "bridged", "br0", dry_run=True)
+    self.assertEqual(job_id, 12348)
+    self.assertHandler(rlib2.R_2_networks_name_connect)
+    self.assertDryRun()
+
+  def testDisconnectNetwork(self):
+    self.rapi.AddResponse("12349")
+    job_id = self.client.DisconnectNetwork("mynetwork", "default", dry_run=True)
+    self.assertEqual(job_id, 12349)
+    self.assertHandler(rlib2.R_2_networks_name_disconnect)
+    self.assertDryRun()
+
+  def testGetNetworkTags(self):
+    self.rapi.AddResponse("[]")
+    self.assertEqual([], self.client.GetNetworkTags("fooNetwork"))
+    self.assertHandler(rlib2.R_2_networks_name_tags)
+    self.assertItems(["fooNetwork"])
+
+  def testAddNetworkTags(self):
+    self.rapi.AddResponse("1234")
+    self.assertEqual(1234,
+        self.client.AddNetworkTags("fooNetwork", ["awesome"], dry_run=True))
+    self.assertHandler(rlib2.R_2_networks_name_tags)
+    self.assertItems(["fooNetwork"])
+    self.assertDryRun()
+    self.assertQuery("tag", ["awesome"])
+
+  def testDeleteNetworkTags(self):
+    self.rapi.AddResponse("25826")
+    self.assertEqual(25826, self.client.DeleteNetworkTags("foo", ["awesome"],
+                                                          dry_run=True))
+    self.assertHandler(rlib2.R_2_networks_name_tags)
+    self.assertItems(["foo"])
+    self.assertDryRun()
+    self.assertQuery("tag", ["awesome"])
+
   def testModifyInstance(self):
     self.rapi.AddResponse("23681")
     job_id = self.client.ModifyInstance("inst7210", os_name="linux")

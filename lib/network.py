@@ -115,7 +115,8 @@ class AddressPool(object):
     assert self.net.family == 4
     assert len(self.reservations) == self._GetSize()
     assert len(self.ext_reservations) == self._GetSize()
-    assert not (self.reservations & self.ext_reservations).any()
+    all_res = self.reservations & self.ext_reservations
+    assert not all_res.any()
 
     if self.gateway is not None:
       assert self.net.family == self.gateway.version

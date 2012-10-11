@@ -186,11 +186,13 @@ class TestRapiDocs(unittest.TestCase):
     node_name = re.escape("[node_name]")
     instance_name = re.escape("[instance_name]")
     group_name = re.escape("[group_name]")
+    network_name = re.escape("[network_name]")
     job_id = re.escape("[job_id]")
     disk_index = re.escape("[disk_index]")
     query_res = re.escape("[resource]")
 
-    resources = connector.GetHandlers(node_name, instance_name, group_name,
+    resources = connector.GetHandlers(node_name, instance_name,
+                                      group_name, network_name,
                                       job_id, disk_index, query_res)
 
     handler_dups = utils.FindDuplicates(resources.values())
@@ -202,6 +204,7 @@ class TestRapiDocs(unittest.TestCase):
       re.compile(node_name): "node1examplecom",
       re.compile(instance_name): "inst1examplecom",
       re.compile(group_name): "group4440",
+      re.compile(network_name): "network5550",
       re.compile(job_id): "9409",
       re.compile(disk_index): "123",
       re.compile(query_res): "lock",

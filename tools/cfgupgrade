@@ -104,7 +104,6 @@ def UpgradeNetworks(config_data):
 
 
 def UpgradeGroups(config_data):
-  nicparams = config_data["cluster"]["nicparams"]["default"]
   for group in config_data["nodegroups"].values():
     networks = group.get("networks", None)
     if not networks:

@@ -1762,8 +1762,9 @@ class TestGanetiLockManager(_ThreadedTestCase):
     self.nodes=['n1', 'n2']
     self.nodegroups=['g1', 'g2']
     self.instances=['i1', 'i2', 'i3']
+    self.networks=['net1', 'net2', 'net3']
     self.GL = locking.GanetiLockManager(self.nodes, self.nodegroups,
-                                        self.instances)
+                                        self.instances, self.networks)
 
   def tearDown(self):
     # Don't try this at home...
@@ -1778,7 +1779,7 @@ class TestGanetiLockManager(_ThreadedTestCase):
       self.assertEqual(i, locking.LEVELS[i])
 
   def testDoubleGLFails(self):
-    self.assertRaises(AssertionError, locking.GanetiLockManager, [], [], [])
+    self.assertRaises(AssertionError, locking.GanetiLockManager, [], [], [], [])
 
   def testLockNames(self):
     self.assertEqual(self.GL._names(locking.LEVEL_CLUSTER), set(['BGL']))
@@ -1787,30 +1788,43 @@ class TestGanetiLockManager(_ThreadedTestCase):
                      set(self.nodegroups))
     self.assertEqual(self.GL._names(locking.LEVEL_INSTANCE),
                      set(self.instances))
+    self.assertEqual(self.GL._names(locking.LEVEL_NETWORK),
+                     set(self.networks))
 
   def testInitAndResources(self):
     locking.GanetiLockManager._instance = None
-    self.GL = locking.GanetiLockManager([], [], [])
+    self.GL = locking.GanetiLockManager([], [], [], [])
     self.assertEqual(self.GL._names(locking.LEVEL_CLUSTER), set(['BGL']))
     self.assertEqual(self.GL._names(locking.LEVEL_NODE), set())
     self.assertEqual(self.GL._names(locking.LEVEL_NODEGROUP), set())
     self.assertEqual(self.GL._names(locking.LEVEL_INSTANCE), set())
+    self.assertEqual(self.GL._names(locking.LEVEL_NETWORK), set())
 
     locking.GanetiLockManager._instance = None
-    self.GL = locking.GanetiLockManager(self.nodes, self.nodegroups, [])
+    self.GL = locking.GanetiLockManager(self.nodes, self.nodegroups, [], [])
     self.assertEqual(self.GL._names(locking.LEVEL_CLUSTER), set(['BGL']))
     self.assertEqual(self.GL._names(locking.LEVEL_NODE), set(self.nodes))
     self.assertEqual(self.GL._names(locking.LEVEL_NODEGROUP),
                                     set(self.nodegroups))
     self.assertEqual(self.GL._names(locking.LEVEL_INSTANCE), set())
+    self.assertEqual(self.GL._names(locking.LEVEL_NETWORK), set())
 
     locking.GanetiLockManager._instance = None
-    self.GL = locking.GanetiLockManager([], [], self.instances)
+    self.GL = locking.GanetiLockManager([], [], self.instances, [])
     self.assertEqual(self.GL._names(locking.LEVEL_CLUSTER), set(['BGL']))
     self.assertEqual(self.GL._names(locking.LEVEL_NODE), set())
     self.assertEqual(self.GL._names(locking.LEVEL_NODEGROUP), set())
     self.assertEqual(self.GL._names(locking.LEVEL_INSTANCE),
                      set(self.instances))
+
+    locking.GanetiLockManager._instance = None
+    self.GL = locking.GanetiLockManager([], [], [], self.networks)
+    self.assertEqual(self.GL._names(locking.LEVEL_CLUSTER), set(['BGL']))
+    self.assertEqual(self.GL._names(locking.LEVEL_NODE), set())
+    self.assertEqual(self.GL._names(locking.LEVEL_NODEGROUP), set())
+    self.assertEqual(self.GL._names(locking.LEVEL_INSTANCE), set())
+    self.assertEqual(self.GL._names(locking.LEVEL_NETWORK),
+                     set(self.networks))
 
   def testAcquireRelease(self):
     self.GL.acquire(locking.LEVEL_CLUSTER, ['BGL'], shared=1)

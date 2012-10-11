@@ -760,7 +760,7 @@ class OVFWriter(object):
       SubElementText(nic, "gnt:MACAddress", network["mac"])
       SubElementText(nic, "gnt:IPAddress", network["ip"])
       SubElementText(nic, "gnt:Link", network["link"])
-      SubElementText(nic, "gnt:Network", network["network"])
+      SubElementText(nic, "gnt:Net", network["network"])
 
   def SaveVirtualSystemData(self, name, vcpus, memory):
     """Convert virtual system information to OVF sections.
@@ -1665,7 +1665,8 @@ class OVFExporter(Converter):
     counter = 0
     while True:
       data_link = \
-        self.config_parser.get(constants.INISECT_INS, "nic%s_network" % counter)
+        self.config_parser.get(constants.INISECT_INS,
+                               "nic%s_link" % counter)
       if data_link is None:
         break
       results.append({
@@ -1675,9 +1676,9 @@ class OVFExporter(Converter):
                                       "nic%s_mac" % counter),
         "ip": self.config_parser.get(constants.INISECT_INS,
                                      "nic%s_ip" % counter),
-        "link": self.config_parser.get(constants.INISECT_INS,
-                                       "nic%s_link" % counter),
-        "network": data_link,
+        "network": self.config_parser.get(constants.INISECT_INS,
+                                          "nic%s_network" % counter),
+        "link": data_link,
       })
       if results[counter]["mode"] not in constants.NIC_VALID_MODES:
         raise errors.OpPrereqError("Network mode %s not recognized"

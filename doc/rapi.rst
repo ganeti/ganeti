@@ -646,6 +646,207 @@ to URI like::
 It supports the ``dry-run`` argument.
 
 
+``/2/networks``
++++++++++++++++
+
+The networks resource.
+
+It supports the following commands: ``GET``, ``POST``.
+
+``GET``
+~~~~~~~
+
+Returns a list of all existing networks.
+
+Example::
+
+    [
+      {
+        "name": "network1",
+        "uri": "\/2\/networks\/network1"
+      },
+      {
+        "name": "network2",
+        "uri": "\/2\/networks\/network2"
+      }
+    ]
+
+If the optional bool *bulk* argument is provided and set to a true value
+(i.e ``?bulk=1``), the output contains detailed information about networks
+as a list.
+
+Returned fields: :pyeval:`utils.CommaJoin(sorted(rlib2.NET_FIELDS))`.
+
+Example::
+
+    [
+      {
+        'external_reservations': '10.0.0.0, 10.0.0.1, 10.0.0.15',
+        'free_count': 13,
+        'gateway': '10.0.0.1',
+        'gateway6': None,
+        'group_list': ['default(bridged, prv0)'],
+        'inst_list': [],
+        'mac_prefix': None,
+        'map': 'XX.............X',
+        'name': 'nat',
+        'network': '10.0.0.0/28',
+        'network6': None,
+        'network_type': 'private',
+        'reserved_count': 3,
+        'tags': ['nfdhcpd']
+      },
+    ]
+
+``POST``
+~~~~~~~~
+
+Creates a network.
+
+If the optional bool *dry-run* argument is provided, the job will not be
+actually executed, only the pre-execution checks will be done.
+
+Returns: a job ID that can be used later for polling.
+
+Body parameters:
+
+.. opcode_params:: OP_NETWORK_ADD
+
+Job result:
+
+.. opcode_result:: OP_NETWORK_ADD
+
+
+``/2/networks/[network_name]``
+++++++++++++++++++++++++++++++
+
+Returns information about a network.
+
+It supports the following commands: ``GET``, ``DELETE``.
+
+``GET``
+~~~~~~~
+
+Returns information about a network, similar to the bulk output from
+the network list.
+
+Returned fields: :pyeval:`utils.CommaJoin(sorted(rlib2.NET_FIELDS))`.
+
+``DELETE``
+~~~~~~~~~~
+
+Deletes a network.
+
+It supports the ``dry-run`` argument.
+
+Job result:
+
+.. opcode_result:: OP_NETWORK_REMOVE
+
+
+``/2/networks/[network_name]/modify``
++++++++++++++++++++++++++++++++++++++
+
+Modifies the parameters of a network.
+
+Supports the following commands: ``PUT``.
+
+``PUT``
+~~~~~~~
+
+Returns a job ID.
+
+Body parameters:
+
+.. opcode_params:: OP_NETWORK_SET_PARAMS
+
+Job result:
+
+.. opcode_result:: OP_NETWORK_SET_PARAMS
+
+
+``/2/networks/[network_name]/connect``
+++++++++++++++++++++++++++++++++++++++
+
+Connects a network to a nodegroup.
+
+Supports the following commands: ``PUT``.
+
+``PUT``
+~~~~~~~
+
+Returns a job ID. It supports the ``dry-run`` arguments.
+
+Body parameters:
+
+.. opcode_params:: OP_NETWORK_CONNECT
+
+Job result:
+
+.. opcode_result:: OP_NETWORK_CONNECT
+
+
+``/2/networks/[network_name]/disconnect``
++++++++++++++++++++++++++++++++++++++++++
+
+Disonnects a network from a nodegroup.
+
+Supports the following commands: ``PUT``.
+
+``PUT``
+~~~~~~~
+
+Returns a job ID. It supports the ``dry-run`` arguments.
+
+Body parameters:
+
+.. opcode_params:: OP_NETWORK_DISCONNECT
+
+Job result:
+
+.. opcode_result:: OP_NETWORK_DISCONNECT
+
+
+``/2/networks/[network_name]/tags``
++++++++++++++++++++++++++++++++++++
+
+Manages per-network tags.
+
+Supports the following commands: ``GET``, ``PUT``, ``DELETE``.
+
+``GET``
+~~~~~~~
+
+Returns a list of tags.
+
+Example::
+
+    ["tag1", "tag2", "tag3"]
+
+``PUT``
+~~~~~~~
+
+Add a set of tags.
+
+The request as a list of strings should be ``PUT`` to this URI. The
+result will be a job id.
+
+It supports the ``dry-run`` argument.
+
+
+``DELETE``
+~~~~~~~~~~
+
+Delete a tag.
+
+In order to delete a set of tags, the DELETE request should be addressed
+to URI like::
+
+    /tags?tag=[tag]&tag=[tag]
+
+It supports the ``dry-run`` argument.
+
+
 ``/2/instances-multi-alloc``
 ++++++++++++++++++++++++++++
 

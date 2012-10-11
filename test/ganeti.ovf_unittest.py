@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2011 Google Inc.
+# Copyright (C) 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -59,6 +59,7 @@ GANETI_NETWORKS = {
   "nic0_ip": "none",
   "nic0_mac": "aa:00:00:d8:2c:1e",
   "nic0_link": "xen-br0",
+  "nic0_network": "auto",
 }
 GANETI_HYPERVISOR = {
   "hypervisor_name": "xen-pvm",
@@ -91,6 +92,7 @@ VIRTUALBOX_NETWORKS = {
   "nic0_ip": "none",
   "nic0_link": "auto",
   "nic0_mac": "auto",
+  "nic0_network": "auto",
 }
 VIRTUALBOX_HYPERVISOR = {"hypervisor_name": "auto"}
 VIRTUALBOX_OS = {"os_name": None}
@@ -130,6 +132,7 @@ CMDARGS_NETWORKS = {
   "nic0_ip": "none",
   "nic0_mac": "auto",
   "nic_count": "1",
+  "nic0_network": "auto",
 }
 CMDARGS_HYPERVISOR = {
   "hypervisor_name": "xen-pvm"
@@ -207,7 +210,8 @@ EXP_DISKS_LIST = [
   },
 ]
 EXP_NETWORKS_LIST = [
-  {"mac": "aa:00:00:d8:2c:1e", "ip":"None", "link":"br0","mode":"routed"},
+  {"mac": "aa:00:00:d8:2c:1e", "ip":"None", "link":"br0",
+   "mode":"routed", "network": "test"},
 ]
 EXP_PARTIAL_GANETI_DICT = {
   "hypervisor": {"name": "xen-kvm"},
@@ -263,8 +267,8 @@ EXPORT_GANETI_INCOMPLETE = ("<gnt:GanetiSection><gnt:Version>0</gnt:Version>"
                             "Nic ovf:name=\"routed0\"><gnt:Mode>routed</gnt:"
                             "Mode><gnt:MACAddress>aa:00:00:d8:2c:1e</gnt:"
                             "MACAddress><gnt:IPAddress>None</gnt:IPAddress>"
-                            "<gnt:Link>br0</gnt:Link></gnt:Nic></gnt:Network>"
-                            "</gnt:GanetiSection>")
+                            "<gnt:Link>br0</gnt:Link><gnt:Net>test</gnt:Net>"
+                            "</gnt:Nic></gnt:Network></gnt:GanetiSection>")
 EXPORT_GANETI = ("<gnt:GanetiSection><gnt:Version>0</gnt:Version><gnt:"
                  "AutoBalance>False</gnt:AutoBalance><gnt:OperatingSystem>"
                  "<gnt:Name>lenny-image</gnt:Name><gnt:Parameters /></gnt:"
@@ -274,7 +278,8 @@ EXPORT_GANETI = ("<gnt:GanetiSection><gnt:Version>0</gnt:Version><gnt:"
                  "Hypervisor><gnt:Network><gnt:Nic ovf:name=\"routed0\"><gnt:"
                  "Mode>routed</gnt:Mode><gnt:MACAddress>aa:00:00:d8:2c:1e</gnt:"
                  "MACAddress><gnt:IPAddress>None</gnt:IPAddress><gnt:Link>br0"
-                 "</gnt:Link></gnt:Nic></gnt:Network></gnt:GanetiSection>")
+                 "</gnt:Link><gnt:Net>test</gnt:Net></gnt:Nic></gnt:Network>"
+                 "</gnt:GanetiSection>")
 EXPORT_SYSTEM = ("<References><File ovf:compression=\"gzip\" ovf:href=\"new_"
                  "disk.cow.gz\" ovf:id=\"file0\" ovf:size=\"203\" /><File ovf:"
                  "href=\"new_disk.cow\" ovf:id=\"file1\" ovf:size=\"15\" />"

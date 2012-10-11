@@ -2011,15 +2011,22 @@ class OpNetworkAdd(OpCode):
   OP_PARAMS = [
     _PNetworkName,
     _PNetworkType,
-    ("network", None, ht.TAnd(ht.TString ,_CheckCIDRNetNotation), None),
-    ("gateway", None, ht.TOr(ht.TNone, _CheckCIDRAddrNotation), None),
-    ("network6", None, ht.TOr(ht.TNone, _CheckCIDR6NetNotation), None),
-    ("gateway6", None, ht.TOr(ht.TNone, _CheckCIDR6AddrNotation), None),
-    ("mac_prefix", None, ht.TMaybeString, None),
+    ("network", None, ht.TAnd(ht.TString ,_CheckCIDRNetNotation),
+     "IPv4 Subnet"),
+    ("gateway", None, ht.TOr(ht.TNone, _CheckCIDRAddrNotation),
+     "IPv4 Gateway"),
+    ("network6", None, ht.TOr(ht.TNone, _CheckCIDR6NetNotation),
+     "IPv6 Subnet"),
+    ("gateway6", None, ht.TOr(ht.TNone, _CheckCIDR6AddrNotation),
+     "IPv6 Gateway"),
+    ("mac_prefix", None, ht.TMaybeString,
+     "Mac prefix that overrides cluster one"),
     ("add_reserved_ips", None,
-     ht.TOr(ht.TNone, ht.TListOf(_CheckCIDRAddrNotation)), None),
+     ht.TOr(ht.TNone, ht.TListOf(_CheckCIDRAddrNotation)),
+     "Which IPs to reserve"),
     ("tags", ht.EmptyList, ht.TListOf(ht.TNonEmptyString), "Network tags"),
     ]
+  OP_RESULT = ht.TNone
 
 class OpNetworkRemove(OpCode):
   """Remove an existing network from the cluster.
@@ -2031,6 +2038,7 @@ class OpNetworkRemove(OpCode):
     _PNetworkName,
     _PForce,
     ]
+  OP_RESULT = ht.TNone
 
 class OpNetworkSetParams(OpCode):
   """Modify Network's parameters except for IPv4 subnet"""
@@ -2038,15 +2046,22 @@ class OpNetworkSetParams(OpCode):
   OP_PARAMS = [
     _PNetworkName,
     _PNetworkType,
-    ("gateway", None, ht.TOr(ht.TNone, _CheckCIDRAddrNotation), None),
-    ("network6", None, ht.TOr(ht.TNone, _CheckCIDR6NetNotation), None),
-    ("gateway6", None, ht.TOr(ht.TNone, _CheckCIDR6AddrNotation), None),
-    ("mac_prefix", None, ht.TMaybeString, None),
+    ("gateway", None, ht.TOr(ht.TNone, _CheckCIDRAddrNotation),
+     "IPv4 Gateway"),
+    ("network6", None, ht.TOr(ht.TNone, _CheckCIDR6NetNotation),
+     "IPv6 Subnet"),
+    ("gateway6", None, ht.TOr(ht.TNone, _CheckCIDR6AddrNotation),
+     "IPv6 Gateway"),
+    ("mac_prefix", None, ht.TMaybeString,
+     "Mac prefix that overrides cluster one"),
     ("add_reserved_ips", None,
-     ht.TOr(ht.TNone, ht.TListOf(_CheckCIDRAddrNotation)), None),
+     ht.TOr(ht.TNone, ht.TListOf(_CheckCIDRAddrNotation)),
+     "Which external IPs to reserve"),
     ("remove_reserved_ips", None,
-     ht.TOr(ht.TNone, ht.TListOf(_CheckCIDRAddrNotation)), None),
+     ht.TOr(ht.TNone, ht.TListOf(_CheckCIDRAddrNotation)),
+     "Which external IPs to release"),
     ]
+  OP_RESULT = ht.TNone
 
 class OpNetworkConnect(OpCode):
   """Connect a Network to a specific Nodegroup with the defined netparams
@@ -2060,10 +2075,11 @@ class OpNetworkConnect(OpCode):
   OP_PARAMS = [
     _PGroupName,
     _PNetworkName,
-    ("network_mode", None, ht.TString, None),
-    ("network_link", None, ht.TString, None),
-    ("conflicts_check", True, ht.TBool, "Check for conflicting IPs"),
+    ("network_mode", None, ht.TString, "Connectivity mode"),
+    ("network_link", None, ht.TString, "Connectivity link"),
+    ("conflicts_check", True, ht.TBool, "Whether to check for conflicting IPs"),
     ]
+  OP_RESULT = ht.TNone
 
 class OpNetworkDisconnect(OpCode):
   """Disconnect a Network from a Nodegroup. Produce errors if NICs are
@@ -2074,8 +2090,9 @@ class OpNetworkDisconnect(OpCode):
   OP_PARAMS = [
     _PGroupName,
     _PNetworkName,
-    ("conflicts_check", True, ht.TBool, "Check for conflicting IPs"),
+    ("conflicts_check", True, ht.TBool, "Whether to check for conflicting IPs"),
     ]
+  OP_RESULT = ht.TNone
 
 class OpNetworkQuery(OpCode):
   """Compute the list of networks."""
@@ -2084,6 +2101,7 @@ class OpNetworkQuery(OpCode):
     ("names", ht.EmptyList, ht.TListOf(ht.TNonEmptyString),
      "Empty list to query all groups, group names otherwise"),
     ]
+  OP_RESULT = ht.TNone
 
 
 def _GetOpList():

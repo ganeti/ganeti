@@ -175,6 +175,10 @@ def GetHandlers(node_name_pattern, instance_name_pattern,
       rlib2.R_2_networks_name_connect,
     re.compile(r"^/2/networks/(%s)/disconnect$" % network_name_pattern):
       rlib2.R_2_networks_name_disconnect,
+    re.compile(r"^/2/networks/(%s)/modify$" % network_name_pattern):
+      rlib2.R_2_networks_name_modify,
+    re.compile(r"^/2/networks/(%s)/tags$" % network_name_pattern):
+      rlib2.R_2_networks_name_tags,
 
     "/2/groups": rlib2.R_2_groups,
     re.compile(r"^/2/groups/(%s)$" % group_name_pattern):

@@ -1761,7 +1761,7 @@ class GanetiRapiClient(object): # pylint: disable=R0904
     return self._SendRequest(HTTP_POST, "/%s/networks" % GANETI_RAPI_VERSION,
                              query, body)
 
-  def ConnectNetwork(self, network_name, group_name, mode, link):
+  def ConnectNetwork(self, network_name, group_name, mode, link, dry_run=False):
     """Connects a Network to a NodeGroup with the given netparams
 
     """
@@ -1771,21 +1771,43 @@ class GanetiRapiClient(object): # pylint: disable=R0904
       "network_link": link
       }
 
+    query = []
+    _AppendDryRunIf(query, dry_run)
+
     return self._SendRequest(HTTP_PUT,
                              ("/%s/networks/%s/connect" %
-                             (GANETI_RAPI_VERSION, network_name)), None, body)
+                             (GANETI_RAPI_VERSION, network_name)), query, body)
 
-  def DisconnectNetwork(self, network_name, group_name):
+  def DisconnectNetwork(self, network_name, group_name, dry_run=False):
     """Connects a Network to a NodeGroup with the given netparams
 
     """
     body = {
       "group_name": group_name
       }
+
+    query = []
+    _AppendDryRunIf(query, dry_run)
+
     return self._SendRequest(HTTP_PUT,
                              ("/%s/networks/%s/disconnect" %
-                             (GANETI_RAPI_VERSION, network_name)), None, body)
+                             (GANETI_RAPI_VERSION, network_name)), query, body)
 
+
+  def ModifyNetwork(self, network, **kwargs):
+    """Modifies a network.
+
+    More details for parameters can be found in the RAPI documentation.
+
+    @type network: string
+    @param network: Network name
+    @rtype: string
+    @return: job id
+
+    """
+    return self._SendRequest(HTTP_PUT,
+                             ("/%s/networks/%s/modify" %
+                              (GANETI_RAPI_VERSION, network)), None, kwargs)
 
   def DeleteNetwork(self, network, dry_run=False):
     """Deletes a network.
@@ -1805,6 +1827,62 @@ class GanetiRapiClient(object): # pylint: disable=R0904
     return self._SendRequest(HTTP_DELETE,
                              ("/%s/networks/%s" %
                               (GANETI_RAPI_VERSION, network)), query, None)
+
+  def GetNetworkTags(self, network):
+    """Gets tags for a network.
+
+    @type network: string
+    @param network: Node group whose tags to return
+
+    @rtype: list of strings
+    @return: tags for the network
+
+    """
+    return self._SendRequest(HTTP_GET,
+                             ("/%s/networks/%s/tags" %
+                              (GANETI_RAPI_VERSION, network)), None, None)
+
+  def AddNetworkTags(self, network, tags, dry_run=False):
+    """Adds tags to a network.
+
+    @type network: str
+    @param network: network to add tags to
+    @type tags: list of string
+    @param tags: tags to add to the network
+    @type dry_run: bool
+    @param dry_run: whether to perform a dry run
+
+    @rtype: string
+    @return: job id
+
+    """
+    query = [("tag", t) for t in tags]
+    _AppendDryRunIf(query, dry_run)
+
+    return self._SendRequest(HTTP_PUT,
+                             ("/%s/networks/%s/tags" %
+                              (GANETI_RAPI_VERSION, network)), query, None)
+
+  def DeleteNetworkTags(self, network, tags, dry_run=False):
+    """Deletes tags from a network.
+
+    @type network: str
+    @param network: network to delete tags from
+    @type tags: list of string
+    @param tags: tags to delete
+    @type dry_run: bool
+    @param dry_run: whether to perform a dry run
+    @rtype: string
+    @return: job id
+
+    """
+    query = [("tag", t) for t in tags]
+    _AppendDryRunIf(query, dry_run)
+
+    return self._SendRequest(HTTP_DELETE,
+                             ("/%s/networks/%s/tags" %
+                              (GANETI_RAPI_VERSION, network)), query, None)
+
 
   def GetGroups(self, bulk=False):
     """Gets all node groups in the cluster.
