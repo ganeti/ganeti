@@ -81,6 +81,9 @@ fields will be added to the default list. This allows one to quickly
 see the default list plus a few other fields, instead of retyping
 the entire list of fields.
 
+To include archived jobs in the list the ``--archived`` option can be
+used.
+
 The following options can be used to show only specific jobs:
 
 ``--pending``

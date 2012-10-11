@@ -87,6 +87,9 @@ def ListJobs(opts, args):
   """
   selected_fields = ParseFields(opts.output, _LIST_DEF_FIELDS)
 
+  if opts.archived and "archived" not in selected_fields:
+    selected_fields.append("archived")
+
   fmtoverride = {
     "status": (_FormatStatus, False),
     "summary": (lambda value: ",".join(str(item) for item in value), False),
@@ -387,12 +390,17 @@ _FINISHED_OPT = \
              const=constants.JOBS_FINALIZED,
              help="Show finished jobs only")
 
+_ARCHIVED_OPT = \
+  cli_option("--archived", default=False,
+             action="store_true", dest="archived",
+             help="Include archived jobs in list (slow and expensive)")
+
 
 commands = {
   "list": (
     ListJobs, [ArgJobId()],
     [NOHDR_OPT, SEP_OPT, FIELDS_OPT, VERBOSE_OPT, FORCE_FILTER_OPT,
-     _PENDING_OPT, _RUNNING_OPT, _ERROR_OPT, _FINISHED_OPT],
+     _PENDING_OPT, _RUNNING_OPT, _ERROR_OPT, _FINISHED_OPT, _ARCHIVED_OPT],
     "[job_id ...]",
     "Lists the jobs and their status. The available fields can be shown"
     " using the \"list-fields\" command (see the man page for details)."
