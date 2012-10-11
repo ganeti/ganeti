@@ -2107,8 +2107,10 @@ class JobQueue(object):
     @param resolve_fn: Function to resolve a relative job ID
     @type deps: list
     @param deps: Dependencies
-    @rtype: list
-    @return: Resolved dependencies
+    @rtype: tuple; (boolean, string or list)
+    @return: If successful (first tuple item), the returned list contains
+      resolved job IDs along with the requested status; if not successful,
+      the second element is an error message
 
     """
     result = []
