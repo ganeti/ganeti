@@ -1521,6 +1521,19 @@ class TestQueryFilter(unittest.TestCase):
     self.assertEqual(q.RequestedData(), set([DK_B]))
     self.assertEqual(q.Query(data), [[]])
 
+    # Data type in boolean operator
+    q = query.Query(fielddefs, [], namefield="name",
+                    qfilter=["?", "name"])
+    self.assertTrue(q.RequestedNames() is None)
+    self.assertEqual(q.RequestedData(), set([DK_A]))
+    self.assertEqual(q.Query(data), [[], [], []])
+
+    q = query.Query(fielddefs, [], namefield="name",
+                    qfilter=["!", ["?", "name"]])
+    self.assertTrue(q.RequestedNames() is None)
+    self.assertEqual(q.RequestedData(), set([DK_A]))
+    self.assertEqual(q.Query(data), [])
+
   def testFilterContains(self):
     fielddefs = query._PrepareFieldList([
       (query._MakeField("name", "Name", constants.QFT_TEXT, "Name"),

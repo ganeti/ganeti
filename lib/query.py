@@ -269,13 +269,16 @@ class _FilterHints:
     if op != qlang.OP_OR:
       self._NeedAllNames()
 
-  def NoteUnaryOp(self, op): # pylint: disable=W0613
+  def NoteUnaryOp(self, op, datakind): # pylint: disable=W0613
     """Called when handling an unary operation.
 
     @type op: string
     @param op: Operator
 
     """
+    if datakind is not None:
+      self._datakinds.add(datakind)
+
     self._NeedAllNames()
 
   def NoteBinaryOp(self, op, datakind, name, value):
@@ -557,19 +560,22 @@ class _FilterCompilerHelper:
     """
     assert op_fn is None
 
-    if hints_fn:
-      hints_fn(op)
-
     if len(operands) != 1:
       raise errors.ParameterError("Unary operator '%s' expects exactly one"
                                   " operand" % op)
 
     if op == qlang.OP_TRUE:
-      (_, _, _, retrieval_fn) = self._LookupField(operands[0])
+      (_, datakind, _, retrieval_fn) = self._LookupField(operands[0])
+
+      if hints_fn:
+        hints_fn(op, datakind)
 
       op_fn = operator.truth
       arg = retrieval_fn
     elif op == qlang.OP_NOT:
+      if hints_fn:
+        hints_fn(op, None)
+
       op_fn = operator.not_
       arg = self._Compile(operands[0], level + 1)
     else:
