@@ -162,6 +162,16 @@ def _CheckInstanceDiskIvNames(disks):
 
   return result
 
+def _GenerateMACSuffix():
+  """Generate one mac address
+
+  """
+  byte1 = random.randrange(0, 256)
+  byte2 = random.randrange(0, 256)
+  byte3 = random.randrange(0, 256)
+  suffix = "%02x:%02x:%02x" % (byte1, byte2, byte3)
+  return suffix
+
 
 class ConfigWriter:
   """The interface to the cluster configuration.
@@ -235,16 +245,6 @@ class ConfigWriter:
       return wraps(view_func)(_decorator)
     return _get_mac_prefix
 
-  def _GenerateMACSuffix(self):
-    """Generate one mac address
-
-    """
-    byte1 = random.randrange(0, 256)
-    byte2 = random.randrange(0, 256)
-    byte3 = random.randrange(0, 256)
-    suffix = "%02x:%02x:%02x" % (byte1, byte2, byte3)
-    return suffix
-
   @locking.ssynchronized(_config_lock, shared=1)
   def GetNdParams(self, node):
     """Get the node params populated with cluster defaults.
@@ -299,7 +299,7 @@ class ConfigWriter:
 
     """
     existing = self._AllMACs()
-    gen_mac = self._GenerateMACPrefix(net)(self._GenerateMACSuffix)
+    gen_mac = self._GenerateMACPrefix(net)(_GenerateMACSuffix)
     return self._temporary_ids.Generate(existing, gen_mac, ec_id)
 
   @locking.ssynchronized(_config_lock, shared=1)
@@ -343,18 +343,16 @@ class ConfigWriter:
     as reserved.
 
     """
-    nobj = self._UnlockedGetNetwork(net_uuid)
-    pool = network.AddressPool(nobj)
     self._temporary_ips.Reserve(ec_id, ('release', address, net_uuid))
 
   @locking.ssynchronized(_config_lock, shared=1)
-  def ReleaseIp(self, network, address, ec_id):
+  def ReleaseIp(self, net, address, ec_id):
     """Give a specified IP address back to an IP pool.
 
     This is just a wrapper around _UnlockedReleaseIp.
 
     """
-    net_uuid = self._UnlockedLookupNetwork(network)
+    net_uuid = self._UnlockedLookupNetwork(net)
     if net_uuid:
       self._UnlockedReleaseIp(net_uuid, address, ec_id)
 
@@ -375,7 +373,7 @@ class ConfigWriter:
         raise errors.ReservationError("Cannot generate IP. Network is full")
       return ("reserve", ip, net_uuid)
 
-    _ ,address, _ = self._temporary_ips.Generate([], gen_one, ec_id)
+    _, address, _ = self._temporary_ips.Generate([], gen_one, ec_id)
     return address
 
   def _UnlockedReserveIp(self, net_uuid, address, ec_id):
@@ -2409,8 +2407,8 @@ class ConfigWriter:
     """Get a list of network names
 
     """
-    names = [network.name
-             for network in self._config_data.networks.values()]
+    names = [net.name
+             for net in self._config_data.networks.values()]
     return names
 
   def _UnlockedGetNetwork(self, uuid):
@@ -2568,7 +2566,7 @@ class ConfigWriter:
     for net_uuid in nodegroup_info.networks.keys():
       net_info = self._UnlockedGetNetwork(net_uuid)
       pool = network.AddressPool(net_info)
-      if pool._Contains(ip):
+      if pool.Contains(ip):
         return (net_info.name, nodegroup_info.networks[net_uuid])
 
     return (None, None)

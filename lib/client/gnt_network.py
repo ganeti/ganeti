@@ -20,7 +20,7 @@
 
 """IP pool related commands"""
 
-# pylint: disable-msg=W0401,W0614
+# pylint: disable=W0401,W0614
 # W0401: Wildcard import ganeti.cli
 # W0614: Unused import %s from wildcard import (since we need cli)
 
@@ -68,7 +68,8 @@ def AddNetwork(opts, args):
                             network6=opts.network6,
                             mac_prefix=opts.mac_prefix,
                             network_type=opts.network_type,
-                            add_reserved_ips=_HandleReservedIPs(opts.add_reserved_ips),
+                            add_reserved_ips=\
+                              _HandleReservedIPs(opts.add_reserved_ips),
                             tags=tags)
   SubmitOpCode(op, opts=opts)
 
@@ -167,7 +168,7 @@ def ListNetworkFields(opts, args):
                            not opts.no_headers)
 
 
-def ShowNetworkConfig(opts, args):
+def ShowNetworkConfig(_, args):
   """Show network information.
 
   @param opts: the command line options selected by the user
@@ -190,7 +191,7 @@ def ShowNetworkConfig(opts, args):
 
   for (name, network, gateway, network6, gateway6,
        mac_prefix, network_type, free_count, reserved_count,
-       map, group_list, instances, ext_res) in result:
+       mapping, group_list, instances, ext_res) in result:
     size = free_count + reserved_count
     ToStdout("Network name: %s", name)
     ToStdout("  subnet: %s", network)
@@ -204,7 +205,7 @@ def ShowNetworkConfig(opts, args):
              100 * float(free_count)/float(size))
     ToStdout("  usage map:")
     idx = 0
-    for line in wrap(map, width=64):
+    for line in wrap(mapping, width=64):
       ToStdout("     %s %s %d", str(idx).rjust(3), line.ljust(64), idx + 63)
       idx += 64
     ToStdout("         (X) used    (.) free")
@@ -228,11 +229,11 @@ def ShowNetworkConfig(opts, args):
                                                 ["nic.ips", "nic.networks"],
                                                 use_locking=False)
 
-        l = lambda value: ", ".join(`idx`+":"+str(ip)
+        l = lambda value: ", ".join(str(idx)+":"+str(ip)
                                     for idx, (ip, net) in enumerate(value)
                                       if net == name)
 
-        ToStdout("    %s : %s", inst, l(zip(ips,networks)))
+        ToStdout("    %s : %s", inst, l(zip(ips, networks)))
     else:
       ToStdout("  not used by any instances")
 
@@ -264,9 +265,8 @@ def SetNetworkParams(opts, args):
     ToStderr("Please give at least one of the parameters.")
     return 1
 
-  op = opcodes.OpNetworkSetParams(network_name=args[0],
-                                  # pylint: disable-msg=W0142
-                                  **all_changes)
+  # pylint: disable=W0142
+  op = opcodes.OpNetworkSetParams(network_name=args[0], **all_changes)
 
   # TODO: add feedback to user, e.g. list the modifications
   SubmitOrSend(op, opts)

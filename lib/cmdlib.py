@@ -40,7 +40,6 @@ import tempfile
 import shutil
 import itertools
 import operator
-import ipaddr
 
 from ganeti import ssh
 from ganeti import utils
@@ -1315,13 +1314,36 @@ def _ExpandInstanceName(cfg, name):
   """Wrapper over L{_ExpandItemName} for instance."""
   return _ExpandItemName(cfg.ExpandInstanceName, name, "Instance")
 
-def _BuildNetworkHookEnv(name, network, gateway, network6, gateway6,
+
+def _BuildNetworkHookEnv(name, subnet, gateway, network6, gateway6,
                          network_type, mac_prefix, tags):
+  """Builds network related env variables for hooks
+
+  This builds the hook environment from individual variables.
+
+  @type name: string
+  @param name: the name of the network
+  @type network: string
+  @param network: the ipv4 subnet
+  @type gateway: string
+  @param gateway: the ipv4 gateway
+  @type network6: string
+  @param network6: the ipv6 subnet
+  @type gateway6: string
+  @param gateway6: the ipv6 gateway
+  @type network_type: string
+  @param network_type: the type of the network
+  @type mac_prefix: string
+  @param mac_prefix: the mac_prefix
+  @type tags: list
+  @param tags: the tags of the network
+
+  """
   env = dict()
   if name:
     env["NETWORK_NAME"] = name
-  if network:
-    env["NETWORK_SUBNET"] = network
+  if subnet:
+    env["NETWORK_SUBNET"] = subnet
   if gateway:
     env["NETWORK_GATEWAY"] = gateway
   if network6:
@@ -1338,18 +1360,27 @@ def _BuildNetworkHookEnv(name, network, gateway, network6, gateway6,
   return env
 
 
-def _BuildNetworkHookEnvByObject(lu, network):
+def _BuildNetworkHookEnvByObject(net):
+  """Builds network related env varliables for hooks
+
+  @type lu: L{objects.LogicalUnit}
+  @param lu: the corresponding LU
+  @type network: L{objects.Network}
+  @param network: the network object
+
+  """
   args = {
-    "name": network.name,
-    "network": network.network,
-    "gateway": network.gateway,
-    "network6": network.network6,
-    "gateway6": network.gateway6,
-    "network_type": network.network_type,
-    "mac_prefix": network.mac_prefix,
-    "tags" : network.tags,
+    "name": net.name,
+    "subnet": net.network,
+    "gateway": net.gateway,
+    "network6": net.network6,
+    "gateway6": net.gateway6,
+    "network_type": net.network_type,
+    "mac_prefix": net.mac_prefix,
+    "tags": net.tags,
   }
-  return _BuildNetworkHookEnv(**args)
+
+  return _BuildNetworkHookEnv(**args) # pylint: disable=W0142
 
 
 def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
@@ -1411,7 +1442,7 @@ def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
   }
   if nics:
     nic_count = len(nics)
-    for idx, (ip, mac, mode, link, network, netinfo) in enumerate(nics):
+    for idx, (ip, mac, mode, link, net, netinfo) in enumerate(nics):
       if ip is None:
         ip = ""
       env["INSTANCE_NIC%d_IP" % idx] = ip
@@ -1419,7 +1450,7 @@ def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
       env["INSTANCE_NIC%d_MODE" % idx] = mode
       env["INSTANCE_NIC%d_LINK" % idx] = link
       if network:
-        env["INSTANCE_NIC%d_NETWORK" % idx] = network
+        env["INSTANCE_NIC%d_NETWORK" % idx] = net
         if netinfo:
           nobj = objects.Network.FromDict(netinfo)
           if nobj.network:
@@ -1464,6 +1495,7 @@ def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
 
   return env
 
+
 def _NICToTuple(lu, nic):
   """Build a tupple of nic information.
 
@@ -1473,20 +1505,21 @@ def _NICToTuple(lu, nic):
   @param nic: nic to convert to hooks tuple
 
   """
-  cluster = lu.cfg.GetClusterInfo()
   ip = nic.ip
   mac = nic.mac
+  cluster = lu.cfg.GetClusterInfo()
   filled_params = cluster.SimpleFillNIC(nic.nicparams)
   mode = filled_params[constants.NIC_MODE]
   link = filled_params[constants.NIC_LINK]
-  network = nic.network
+  net = nic.network
   netinfo = None
-  if network:
-    net_uuid = lu.cfg.LookupNetwork(network)
+  if net:
+    net_uuid = lu.cfg.LookupNetwork(net)
     if net_uuid:
       nobj = lu.cfg.GetNetwork(net_uuid)
       netinfo = objects.Network.ToDict(nobj)
-  return (ip, mac, mode, link, network, netinfo)
+  return (ip, mac, mode, link, net, netinfo)
+
 
 def _NICListToTuple(lu, nics):
   """Build a list of nic information tuples.
@@ -1501,10 +1534,10 @@ def _NICListToTuple(lu, nics):
 
   """
   hooks_nics = []
-  cluster = lu.cfg.GetClusterInfo()
   for nic in nics:
     hooks_nics.append(_NICToTuple(lu, nic))
   return hooks_nics
+
 
 def _BuildInstanceHookEnvByObject(lu, instance, override=None):
   """Builds instance related env variables for hooks from an object.
@@ -9476,7 +9509,7 @@ def _ComputeNics(op, cluster, default_ip, cfg, proc):
 
   """
   nics = []
-  for idx, nic in enumerate(op.nics):
+  for nic in op.nics:
     nic_mode_req = nic.get(constants.INIC_MODE, None)
     nic_mode = nic_mode_req
     if nic_mode is None or nic_mode == constants.VALUE_AUTO:
@@ -10238,7 +10271,6 @@ class LUInstanceCreate(LogicalUnit):
                      (idx, netparams.values()))
         nic.nicparams = dict(netparams)
         if nic.ip is not None:
-          filled_params = cluster.SimpleFillNIC(nic.nicparams)
           if nic.ip.lower() == constants.NIC_IP_POOL:
             try:
               nic.ip = self.cfg.GenerateIp(net, self.proc.GetECId())
@@ -12962,7 +12994,7 @@ class LUInstanceSetParams(LogicalUnit):
                                          errors.ECODE_NOTUNIQUE)
         elif new_ip.lower() == constants.NIC_IP_POOL:
           raise errors.OpPrereqError("ip=pool, but no network found",
-                                     ECODEE_INVAL)
+                                     errors.ECODE_INVAL)
         else:
           # new net is None
           if self.op.conflicts_check:
@@ -13228,7 +13260,7 @@ class LUInstanceSetParams(LogicalUnit):
                                    nic.nicparams, cluster, pnode)
       return None
 
-    def _PrepareNicRemove(_, params, private):
+    def _PrepareNicRemove(_, params, __):
       ip = params.ip
       net = params.network
       if net is not None and ip is not None:
@@ -13454,16 +13486,16 @@ class LUInstanceSetParams(LogicalUnit):
     """
     mac = params[constants.INIC_MAC]
     ip = params.get(constants.INIC_IP, None)
-    network = params.get(constants.INIC_NETWORK, None)
+    net = params.get(constants.INIC_NETWORK, None)
     #TODO: not private.filled?? can a nic have no nicparams??
     nicparams = private.filled
 
-    return (objects.NIC(mac=mac, ip=ip, network=network, nicparams=nicparams), [
+    return (objects.NIC(mac=mac, ip=ip, network=net, nicparams=nicparams), [
       ("nic.%d" % idx,
        "add:mac=%s,ip=%s,mode=%s,link=%s,network=%s" %
        (mac, ip, private.filled[constants.NIC_MODE],
        private.filled[constants.NIC_LINK],
-       network)),
+       net)),
       ])
 
   @staticmethod
@@ -15571,7 +15603,7 @@ class LUNetworkAdd(LogicalUnit):
     """
     args = {
       "name": self.op.network_name,
-      "network": self.op.network,
+      "subnet": self.op.network,
       "gateway": self.op.gateway,
       "network6": self.op.network6,
       "gateway6": self.op.gateway6,
@@ -15579,7 +15611,7 @@ class LUNetworkAdd(LogicalUnit):
       "network_type": self.op.network_type,
       "tags": self.op.tags,
       }
-    return _BuildNetworkHookEnv(**args)
+    return _BuildNetworkHookEnv(**args) # pylint: disable=W0142
 
   def Exec(self, feedback_fn):
     """Add the ip pool to the cluster.
@@ -15662,8 +15694,8 @@ class LUNetworkRemove(LogicalUnit):
     # Verify that the network is not conncted.
     node_groups = [group.name
                    for group in self.cfg.GetAllNodeGroupsInfo().values()
-                   for network in group.networks.keys()
-                   if network == self.network_uuid]
+                   for net in group.networks.keys()
+                   if net == self.network_uuid]
 
     if node_groups:
       self.LogWarning("Nework '%s' is connected to the following"
@@ -15779,7 +15811,7 @@ class LUNetworkSetParams(LogicalUnit):
     """
     args = {
       "name": self.op.network_name,
-      "network": self.network.network,
+      "subnet": self.network.network,
       "gateway": self.gateway,
       "network6": self.network6,
       "gateway6": self.gateway6,
@@ -15787,7 +15819,7 @@ class LUNetworkSetParams(LogicalUnit):
       "network_type": self.network_type,
       "tags": self.tags,
       }
-    return _BuildNetworkHookEnv(**args)
+    return _BuildNetworkHookEnv(**args) # pylint: disable=W0142
 
   def BuildHooksNodes(self):
     """Build hooks nodes.
@@ -15892,7 +15924,6 @@ class _NetworkQuery(_QueryBase):
     do_instances = query.NETQ_INST in self.requested_data
     do_groups = do_instances or (query.NETQ_GROUP in self.requested_data)
     do_stats = query.NETQ_STATS in self.requested_data
-    cluster = lu.cfg.GetClusterInfo()
 
     network_to_groups = None
     network_to_instances = None
@@ -15902,7 +15933,6 @@ class _NetworkQuery(_QueryBase):
     if do_groups:
       all_groups = lu.cfg.GetAllNodeGroupsInfo()
       network_to_groups = dict((uuid, []) for uuid in self.wanted)
-      default_nicpp = cluster.nicparams[constants.PP_DEFAULT]
 
       if do_instances:
         all_instances = lu.cfg.GetAllInstancesInfo()
@@ -16015,7 +16045,7 @@ class LUNetworkConnect(LogicalUnit):
     ret["GROUP_NAME"] = self.group_name
     ret["GROUP_NETWORK_MODE"] = self.network_mode
     ret["GROUP_NETWORK_LINK"] = self.network_link
-    ret.update(_BuildNetworkHookEnvByObject(self, self.network))
+    ret.update(_BuildNetworkHookEnvByObject(self.network))
     return ret
 
   def BuildHooksNodes(self):
@@ -16049,7 +16079,7 @@ class LUNetworkConnect(LogicalUnit):
       instances = [(instance.name, idx, nic.ip)
                    for instance in groupinstances
                    for idx, nic in enumerate(instance.nics)
-                   if (not nic.network and pool._Contains(nic.ip))]
+                   if (not nic.network and pool.Contains(nic.ip))]
       if instances:
         self.LogWarning("Following occurences use IPs from network %s"
                         " that is about to connect to nodegroup %s: %s" %
@@ -16110,7 +16140,7 @@ class LUNetworkDisconnect(LogicalUnit):
   def BuildHooksEnv(self):
     ret = dict()
     ret["GROUP_NAME"] = self.group_name
-    ret.update(_BuildNetworkHookEnvByObject(self, self.network))
+    ret.update(_BuildNetworkHookEnvByObject(self.network))
     return ret
 
   def BuildHooksNodes(self):
@@ -16192,7 +16222,7 @@ def _CheckForConflictingIp(lu, ip, node):
   @param node: node name
 
   """
-  (conf_net, conf_netparams) = lu.cfg.CheckIPInNodeGroup(ip, node)
+  (conf_net, _) = lu.cfg.CheckIPInNodeGroup(ip, node)
   if conf_net is not None:
     raise errors.OpPrereqError("Conflicting IP found:"
                                " %s <> %s." % (ip, conf_net),

@@ -2494,13 +2494,14 @@ _NETWORK_SIMPLE_FIELDS = {
 
 _NETWORK_STATS_FIELDS = {
   "free_count": ("FreeCount", QFT_NUMBER, 0, "How many addresses are free"),
-  "reserved_count": ("ReservedCount", QFT_NUMBER, 0, "How many addresses are reserved"),
+  "reserved_count": ("ReservedCount", QFT_NUMBER, 0,
+                     "How many addresses are reserved"),
   "map": ("Map", QFT_TEXT, 0, "The actual mapping"),
-  "external_reservations": ("ExternalReservations", QFT_TEXT, 0, "The external reservations"),
+  "external_reservations": ("ExternalReservations", QFT_TEXT, 0,
+                            "The external reservations"),
   }
 
-
-def _GetNetworkStatsField(field, kind, ctx, net):
+def _GetNetworkStatsField(field, kind, ctx):
   """Gets the value of a "stats" field from L{NetworkQueryData}.
 
   @param field: Field name
@@ -2541,7 +2542,7 @@ def _BuildNetworkFields():
   fields.extend([
     (_MakeField(name, title, kind, doc),
      NETQ_CONFIG, 0, _GetItemAttr(name))
-     for (name, (title, kind, flags, doc)) in _NETWORK_SIMPLE_FIELDS.items()
+     for (name, (title, kind, _, doc)) in _NETWORK_SIMPLE_FIELDS.items()
     ])
 
   def _GetLength(getter):
@@ -2573,7 +2574,7 @@ def _BuildNetworkFields():
   fields.extend([
     (_MakeField(name, title, kind, doc), NETQ_STATS, 0,
     compat.partial(_GetNetworkStatsField, name, kind))
-    for (name, (title, kind, flags, doc)) in _NETWORK_STATS_FIELDS.items()
+    for (name, (title, kind, _, doc)) in _NETWORK_STATS_FIELDS.items()
     ])
 
   return _PrepareFieldList(fields, [])

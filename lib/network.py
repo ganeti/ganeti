@@ -63,18 +63,20 @@ class AddressPool(object):
       self.reservations = bitarray(self.net.reservations)
     else:
       self.reservations = bitarray(self.network.numhosts)
+      # pylint: disable=E1103
       self.reservations.setall(False)
 
     if self.net.ext_reservations:
       self.ext_reservations = bitarray(self.net.ext_reservations)
     else:
       self.ext_reservations = bitarray(self.network.numhosts)
+      # pylint: disable=E1103
       self.ext_reservations.setall(False)
 
     assert len(self.reservations) == self.network.numhosts
     assert len(self.ext_reservations) == self.network.numhosts
 
-  def _Contains(self, address):
+  def Contains(self, address):
     if address is None:
       return False
     addr = ipaddr.IPAddress(address)
@@ -90,8 +92,9 @@ class AddressPool(object):
 
     return int(addr) - int(self.network.network)
 
-  def _Update(self):
+  def Update(self):
     """Write address pools back to the network object"""
+    # pylint: disable=E1103
     self.net.ext_reservations = self.ext_reservations.to01()
     self.net.reservations = self.reservations.to01()
 
@@ -101,7 +104,7 @@ class AddressPool(object):
       self.ext_reservations[idx] = value
     else:
       self.reservations[idx] = value
-    self._Update()
+    self.Update()
 
   def _GetSize(self):
     return 2**(32 - self.network.prefixlen)
@@ -173,7 +176,7 @@ class AddressPool(object):
     def _iter_free():
       for idx in self.all_reservations.search("0", 64):
         yield str(self.network[idx])
-
+    # pylint: disable=E1101
     return _iter_free().next
 
   def GetExternalReservations(self):
@@ -189,7 +192,7 @@ class AddressPool(object):
 
     """
     obj = cls(net)
-    obj._Update()
+    obj.Update()
     for ip in [obj.network[0], obj.network[-1]]:
       obj.Reserve(ip, external=True)
     if obj.net.gateway is not None:
