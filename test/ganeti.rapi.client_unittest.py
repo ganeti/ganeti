@@ -114,6 +114,7 @@ class TestConstants(unittest.TestCase):
     self.assertEqual(client.JOB_STATUS_CANCELED, constants.JOB_STATUS_CANCELED)
     self.assertEqual(client.JOB_STATUS_SUCCESS, constants.JOB_STATUS_SUCCESS)
     self.assertEqual(client.JOB_STATUS_ERROR, constants.JOB_STATUS_ERROR)
+    self.assertEqual(client.JOB_STATUS_PENDING, constants.JOBS_PENDING)
     self.assertEqual(client.JOB_STATUS_FINALIZED, constants.JOBS_FINALIZED)
     self.assertEqual(client.JOB_STATUS_ALL, constants.JOB_STATUS_ALL)
 

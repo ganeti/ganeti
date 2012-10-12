@@ -85,6 +85,11 @@ class TestConstants(unittest.TestCase):
     self.failUnless(set(constants.DISK_DT_DEFAULTS.keys()) ==
                     constants.DISK_TEMPLATES)
 
+  def testJobStatus(self):
+    self.assertFalse(constants.JOBS_PENDING & constants.JOBS_FINALIZED)
+    self.assertFalse(constants.JOBS_PENDING - constants.JOB_STATUS_ALL)
+    self.assertFalse(constants.JOBS_FINALIZED - constants.JOB_STATUS_ALL)
+
 
 class TestExportedNames(unittest.TestCase):
   _VALID_NAME_RE = re.compile(r"^[A-Z][A-Z0-9_]+$")
