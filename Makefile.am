@@ -1418,8 +1418,8 @@ check-local: check-dirs $(GENERATED_FILES)
 			exit 1; \
 		fi; \
 	done; \
-	if ! test -f doc/design-$$expver.rst; then \
-		echo "File doc/design-$$expver.rst not found"; \
+	if ! test -f $(top_srcdir)/doc/design-$$expver.rst; then \
+		echo "File $(top_srcdir)/doc/design-$$expver.rst not found"; \
 		exit 1; \
 	fi
 
