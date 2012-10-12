@@ -170,7 +170,7 @@ def GetPaths():
      getent.daemons_gid),
     (constants.SOCKET_DIR, DIR, 0750, getent.masterd_uid,
      getent.daemons_gid),
-    (constants.MASTER_SOCKET, FILE, 0770, getent.masterd_uid,
+    (constants.MASTER_SOCKET, FILE, 0660, getent.masterd_uid,
      getent.daemons_gid, False),
     (constants.BDEV_CACHE_DIR, DIR, 0755, getent.noded_uid,
      getent.masterd_gid),
