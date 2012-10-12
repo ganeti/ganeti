@@ -1418,7 +1418,8 @@ check-local: check-dirs $(GENERATED_FILES)
 		echo "Incorrect version in README, expected $$expver"; \
 		exit 1; \
 	fi; \
-	for file in doc/iallocator.rst doc/hooks.rst doc/virtual-cluster.rst; do \
+	for file in doc/iallocator.rst doc/hooks.rst doc/virtual-cluster.rst \
+			doc/security.rst; do \
 		if test "`sed -ne '4 p' $(top_srcdir)/$$file`" != \
 			"Documents Ganeti version $$expver"; then \
 			echo "Incorrect version in $$file, expected $$expver"; \
