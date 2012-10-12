@@ -42,7 +42,7 @@ USAGE = ("\tconfd-client [--addr=host] [--hmac=key]")
 LOG_HEADERS = {
   0: "- ",
   1: "* ",
-  2: ""
+  2: "",
   }
 
 OPTIONS = [

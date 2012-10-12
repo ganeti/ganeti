@@ -494,7 +494,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     constants.HV_REBOOT_BEHAVIOR:
       hv_base.ParamInSet(True, constants.REBOOT_BEHAVIORS),
     constants.HV_CPU_MASK: hv_base.OPT_MULTI_CPU_MASK_CHECK,
-    constants.HV_CPU_TYPE: hv_base.NO_CHECK
+    constants.HV_CPU_TYPE: hv_base.NO_CHECK,
     }
 
   _MIGRATION_STATUS_RE = re.compile("Migration\s+status:\s+(\w+)",
@@ -795,7 +795,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         env["NETWORK_TAGS"] = " ".join(tags)
 
       return env
-
 
     if nic.network:
       n = objects.Network.FromDict(nic.netinfo)

@@ -353,6 +353,7 @@ _CheckNetworkType = ht.TElemOf(constants.NETWORK_VALID_TYPES)
 _PNetworkType = ("network_type", None, ht.TOr(ht.TNone, _CheckNetworkType),
                  "Network type")
 
+
 def _CheckCIDRNetNotation(value):
   """Ensure a given cidr notation type is valid.
 
@@ -362,6 +363,7 @@ def _CheckCIDRNetNotation(value):
   except ipaddr.AddressValueError:
     return False
   return True
+
 
 def _CheckCIDRAddrNotation(value):
   """Ensure a given cidr notation type is valid.
@@ -373,6 +375,7 @@ def _CheckCIDRAddrNotation(value):
     return False
   return True
 
+
 def _CheckCIDR6AddrNotation(value):
   """Ensure a given cidr notation type is valid.
 
@@ -383,6 +386,7 @@ def _CheckCIDR6AddrNotation(value):
     return False
   return True
 
+
 def _CheckCIDR6NetNotation(value):
   """Ensure a given cidr notation type is valid.
 
@@ -392,6 +396,7 @@ def _CheckCIDR6NetNotation(value):
   except ipaddr.AddressValueError:
     return False
   return True
+
 
 class _AutoOpParamSlots(objectutils.AutoSlots):
   """Meta class for opcode definitions.
@@ -719,7 +724,7 @@ class OpClusterVerify(OpCode):
     _PSkipChecks,
     _PIgnoreErrors,
     _PVerbose,
-    ("group_name", None, ht.TMaybeString, "Group to verify")
+    ("group_name", None, ht.TMaybeString, "Group to verify"),
     ]
   OP_RESULT = TJobIdListOnly
 
@@ -824,7 +829,7 @@ class OpClusterRepairDiskSizes(OpCode):
 class OpClusterConfigQuery(OpCode):
   """Query cluster configuration values."""
   OP_PARAMS = [
-    _POutputFields
+    _POutputFields,
     ]
   OP_RESULT = ht.TListOf(ht.TAny)
 
@@ -1298,7 +1303,7 @@ class OpInstanceMultiAlloc(OpCode):
   OP_RESULT = ht.TStrictDict(True, True, {
     constants.JOB_IDS_KEY: _JOB_LIST,
     ALLOCATABLE_KEY: ht.TListOf(ht.TNonEmptyString),
-    FAILED_KEY: ht.TListOf(ht.TNonEmptyString)
+    FAILED_KEY: ht.TListOf(ht.TNonEmptyString),
     })
 
   def __getstate__(self):
@@ -1506,7 +1511,7 @@ class OpInstanceConsole(OpCode):
   """Connect to an instance's console."""
   OP_DSC_FIELD = "instance_name"
   OP_PARAMS = [
-    _PInstanceName
+    _PInstanceName,
     ]
   OP_RESULT = ht.TDict
 
@@ -2011,7 +2016,7 @@ class OpNetworkAdd(OpCode):
   OP_PARAMS = [
     _PNetworkName,
     _PNetworkType,
-    ("network", None, ht.TAnd(ht.TString ,_CheckCIDRNetNotation),
+    ("network", None, ht.TAnd(ht.TString, _CheckCIDRNetNotation),
      "IPv4 Subnet"),
     ("gateway", None, ht.TOr(ht.TNone, _CheckCIDRAddrNotation),
      "IPv4 Gateway"),
@@ -2028,6 +2033,7 @@ class OpNetworkAdd(OpCode):
     ]
   OP_RESULT = ht.TNone
 
+
 class OpNetworkRemove(OpCode):
   """Remove an existing network from the cluster.
      Must not be connected to any nodegroup.
@@ -2039,6 +2045,7 @@ class OpNetworkRemove(OpCode):
     _PForce,
     ]
   OP_RESULT = ht.TNone
+
 
 class OpNetworkSetParams(OpCode):
   """Modify Network's parameters except for IPv4 subnet"""
@@ -2063,6 +2070,7 @@ class OpNetworkSetParams(OpCode):
     ]
   OP_RESULT = ht.TNone
 
+
 class OpNetworkConnect(OpCode):
   """Connect a Network to a specific Nodegroup with the defined netparams
      (mode, link). Nics in this Network will inherit those params.
@@ -2081,6 +2089,7 @@ class OpNetworkConnect(OpCode):
     ]
   OP_RESULT = ht.TNone
 
+
 class OpNetworkDisconnect(OpCode):
   """Disconnect a Network from a Nodegroup. Produce errors if NICs are
      present in the Network unless --no-conficts-check option is passed.
@@ -2093,6 +2102,7 @@ class OpNetworkDisconnect(OpCode):
     ("conflicts_check", True, ht.TBool, "Whether to check for conflicting IPs"),
     ]
   OP_RESULT = ht.TNone
+
 
 class OpNetworkQuery(OpCode):
   """Compute the list of networks."""

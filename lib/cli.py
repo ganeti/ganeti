@@ -373,6 +373,7 @@ class ArgNetwork(_Argument):
 
   """
 
+
 class ArgGroup(_Argument):
   """Node group argument.
 

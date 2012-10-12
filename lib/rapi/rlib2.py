@@ -98,7 +98,7 @@ NET_FIELDS = ["name", "network", "gateway",
               "free_count", "reserved_count",
               "map", "group_list", "inst_list",
               "external_reservations", "tags",
-             ] 
+              ]
 
 G_FIELDS = [
   "alloc_policy",
@@ -717,6 +717,7 @@ class R_2_networks_name(baserlib.OpcodeResource):
       "dry_run": self.dryRun(),
       })
 
+
 class R_2_networks_name_connect(baserlib.OpcodeResource):
   """/2/networks/[network_name]/connect resource.
 
@@ -733,6 +734,7 @@ class R_2_networks_name_connect(baserlib.OpcodeResource):
       "dry_run": self.dryRun(),
       })
 
+
 class R_2_networks_name_disconnect(baserlib.OpcodeResource):
   """/2/networks/[network_name]/disconnect resource.
 
@@ -748,6 +750,7 @@ class R_2_networks_name_disconnect(baserlib.OpcodeResource):
       "network_name": self.items[0],
       "dry_run": self.dryRun(),
       })
+
 
 class R_2_networks_name_modify(baserlib.OpcodeResource):
   """/2/networks/[network_name]/modify resource.
@@ -1563,6 +1566,7 @@ class R_2_groups_name_tags(_R_Tags):
 
   """
   TAG_LEVEL = constants.TAG_NODEGROUP
+
 
 class R_2_networks_name_tags(_R_Tags):
   """ /2/networks/[network_name]/tags resource.

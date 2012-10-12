@@ -40,7 +40,7 @@ _JOB_LIST = ht.TListOf(ht.TListOf(ht.TStrictDict(True, False, {
    # Class '...' has no 'OP_ID' member
    "OP_ID": ht.TElemOf([opcodes.OpInstanceFailover.OP_ID,
                         opcodes.OpInstanceMigrate.OP_ID,
-                        opcodes.OpInstanceReplaceDisks.OP_ID])
+                        opcodes.OpInstanceReplaceDisks.OP_ID]),
    })))
 
 _NEVAC_MOVED = \
@@ -208,7 +208,7 @@ class IAReqMultiInstanceAlloc(IARequestBase):
   # pylint: disable=E1101
   MODE = constants.IALLOCATOR_MODE_MULTI_ALLOC
   REQ_PARAMS = [
-    ("instances", ht.TListOf(ht.TInstanceOf(IAReqInstanceAlloc)))
+    ("instances", ht.TListOf(ht.TInstanceOf(IAReqInstanceAlloc))),
     ]
   _MASUCCESS = \
     ht.TListOf(ht.TAnd(ht.TIsLength(2),
@@ -221,7 +221,7 @@ class IAReqMultiInstanceAlloc(IARequestBase):
 
   def GetRequest(self, cfg):
     return {
-      "instances": [iareq.GetRequest(cfg) for iareq in self.instances]
+      "instances": [iareq.GetRequest(cfg) for iareq in self.instances],
       }
 
 

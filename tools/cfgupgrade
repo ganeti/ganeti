@@ -97,6 +97,7 @@ def CheckHostname(path):
                   " the master node", ssconf_master_node, hostname)
   return False
 
+
 def UpgradeNetworks(config_data):
   networks = config_data.get("networks", None)
   if not networks:

@@ -1343,15 +1343,13 @@ def _BuildNodeFields():
   # Add simple fields
   fields.extend([
     (_MakeField(name, title, kind, doc), NQ_CONFIG, flags, _GetItemAttr(name))
-    for (name, (title, kind, flags, doc)) in _NODE_SIMPLE_FIELDS.items()
-    ])
+    for (name, (title, kind, flags, doc)) in _NODE_SIMPLE_FIELDS.items()])
 
   # Add fields requiring live data
   fields.extend([
     (_MakeField(name, title, kind, doc), NQ_LIVE, 0,
      compat.partial(_GetLiveNodeField, nfield, kind))
-    for (name, (title, kind, nfield, doc)) in _NODE_LIVE_FIELDS.items()
-    ])
+    for (name, (title, kind, nfield, doc)) in _NODE_LIVE_FIELDS.items()])
 
   # Add timestamps
   fields.extend(_GetItemTimestampFields(NQ_CONFIG))
@@ -1772,8 +1770,7 @@ def _GetInstanceDiskFields():
     (_MakeField("disk.size/%s" % i, "Disk/%s" % i, QFT_UNIT,
                 "Disk size of %s disk" % utils.FormatOrdinal(i + 1)),
      IQ_CONFIG, 0, _GetInstDiskSize(i))
-    for i in range(constants.MAX_DISKS)
-    ])
+    for i in range(constants.MAX_DISKS)])
 
   return fields
 
@@ -1821,8 +1818,7 @@ def _GetInstanceParameterFields():
                 _VTToQFT[kind], "The \"%s\" hypervisor parameter" % name),
      IQ_CONFIG, 0, _GetInstHvParam(name))
     for name, kind in constants.HVS_PARAMETER_TYPES.items()
-    if name not in constants.HVC_GLOBALS
-    ])
+    if name not in constants.HVC_GLOBALS])
 
   # BE params
   def _GetInstBeParam(name):
@@ -1833,8 +1829,7 @@ def _GetInstanceParameterFields():
                 constants.BES_PARAMETER_TITLES.get(name, "be/%s" % name),
                 _VTToQFT[kind], "The \"%s\" backend parameter" % name),
      IQ_CONFIG, 0, _GetInstBeParam(name))
-    for name, kind in constants.BES_PARAMETER_TYPES.items()
-    ])
+    for name, kind in constants.BES_PARAMETER_TYPES.items()])
 
   return fields
 
@@ -1937,8 +1932,7 @@ def _BuildInstanceFields():
   # Add simple fields
   fields.extend([
     (_MakeField(name, title, kind, doc), IQ_CONFIG, flags, _GetItemAttr(name))
-    for (name, (title, kind, flags, doc)) in _INST_SIMPLE_FIELDS.items()
-    ])
+    for (name, (title, kind, flags, doc)) in _INST_SIMPLE_FIELDS.items()])
 
   # Fields requiring talking to the node
   fields.extend([
@@ -2431,20 +2425,18 @@ def _BuildClusterFields():
   fields.extend([
     (_MakeField(name, title, kind, doc), CQ_CONFIG, flags, _GetItemAttr(name))
     for (name, (title, kind, flags, doc)) in _CLUSTER_SIMPLE_FIELDS.items()
-    ])
+    ],)
 
   # Version fields
   fields.extend([
     (_MakeField(name, title, kind, doc), None, 0, _StaticValue(value))
-    for (name, (title, kind, value, doc)) in _CLUSTER_VERSION_FIELDS.items()
-    ])
+    for (name, (title, kind, value, doc)) in _CLUSTER_VERSION_FIELDS.items()])
 
   # Add timestamps
   fields.extend(_GetItemTimestampFields(CQ_CONFIG))
 
   return _PrepareFieldList(fields, [
-    ("name", "cluster_name"),
-    ])
+    ("name", "cluster_name")])
 
 
 class NetworkQueryData:
@@ -2501,6 +2493,7 @@ _NETWORK_STATS_FIELDS = {
                             "The external reservations"),
   }
 
+
 def _GetNetworkStatsField(field, kind, ctx):
   """Gets the value of a "stats" field from L{NetworkQueryData}.
 
@@ -2542,8 +2535,7 @@ def _BuildNetworkFields():
   fields.extend([
     (_MakeField(name, title, kind, doc),
      NETQ_CONFIG, 0, _GetItemAttr(name))
-     for (name, (title, kind, _, doc)) in _NETWORK_SIMPLE_FIELDS.items()
-    ])
+     for (name, (title, kind, _, doc)) in _NETWORK_SIMPLE_FIELDS.items()])
 
   def _GetLength(getter):
     return lambda ctx, network: len(getter(ctx)[network.uuid])
@@ -2558,7 +2550,7 @@ def _BuildNetworkFields():
   fields.extend([
     (_MakeField("group_cnt", "NodeGroups", QFT_NUMBER, "Number of nodegroups"),
      NETQ_GROUP, 0, _GetLength(network_to_groups)),
-	(_MakeField("group_list", "GroupList", QFT_OTHER, "List of nodegroups"),
+    (_MakeField("group_list", "GroupList", QFT_OTHER, "List of nodegroups"),
      NETQ_GROUP, 0, _GetSortedList(network_to_groups)),
     ])
 
@@ -2574,8 +2566,7 @@ def _BuildNetworkFields():
   fields.extend([
     (_MakeField(name, title, kind, doc), NETQ_STATS, 0,
     compat.partial(_GetNetworkStatsField, name, kind))
-    for (name, (title, kind, _, doc)) in _NETWORK_STATS_FIELDS.items()
-    ])
+    for (name, (title, kind, _, doc)) in _NETWORK_STATS_FIELDS.items()])
 
   return _PrepareFieldList(fields, [])
 

@@ -420,7 +420,7 @@ class MasterNetworkParameters(ConfigObject):
     "ip",
     "netmask",
     "netdev",
-    "ip_family"
+    "ip_family",
     ]
 
 
@@ -905,7 +905,7 @@ class Disk(ConfigObject):
 
     elif disk_template == constants.DT_RBD:
       result.append(FillDict(constants.DISK_LD_DEFAULTS[constants.LD_RBD], {
-        constants.LDP_POOL: dt_params[constants.RBD_POOL]
+        constants.LDP_POOL: dt_params[constants.RBD_POOL],
         }))
 
     return result

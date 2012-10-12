@@ -29,6 +29,7 @@ from bitarray import bitarray
 
 from ganeti import errors
 
+
 class AddressPool(object):
   """Address pool class, wrapping an objects.Network object
 
@@ -107,7 +108,7 @@ class AddressPool(object):
     self.Update()
 
   def _GetSize(self):
-    return 2**(32 - self.network.prefixlen)
+    return 2 ** (32 - self.network.prefixlen)
 
   @property
   def all_reservations(self):

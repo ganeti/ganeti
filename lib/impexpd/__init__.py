@@ -216,7 +216,7 @@ class CommandBuilder(object):
       # second address is only used for writing
       "-u",
 
-      ",".join(addr1), ",".join(addr2)
+      ",".join(addr1), ",".join(addr2),
       ]
 
   def _GetMagicCommand(self):

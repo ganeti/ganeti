@@ -137,6 +137,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
         # VM) to one physical CPU, using format 'cpu = "C"'
         return "cpu = \"%s\"" % ",".join(map(str, all_cpu_mapping))
     else:
+
       def _GetCPUMap(vcpu):
         if vcpu[0] == constants.CPU_PINNING_ALL_VAL:
           cpu_map = constants.CPU_PINNING_ALL_XEN

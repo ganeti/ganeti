@@ -495,7 +495,7 @@ def TestJobqueue(opts, _):
         opcodes.OpTestJqueue(notify_waitlock=True,
                              notify_exec=True,
                              log_messages=test_messages,
-                             fail=fail)
+                             fail=fail),
         ]
       expect_messages = [test_messages]
       expect_resultlen = 1

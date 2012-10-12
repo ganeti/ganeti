@@ -2037,7 +2037,7 @@ class LUClusterVerify(NoHooksLU):
 
       # Verify global configuration
       jobs.append([
-        opcodes.OpClusterVerifyConfig(ignore_errors=self.op.ignore_errors)
+        opcodes.OpClusterVerifyConfig(ignore_errors=self.op.ignore_errors),
         ])
 
       # Always depend on global verification
@@ -3189,7 +3189,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
     """
     env = {
-      "CLUSTER_TAGS": " ".join(self.cfg.GetClusterInfo().GetTags())
+      "CLUSTER_TAGS": " ".join(self.cfg.GetClusterInfo().GetTags()),
       }
 
     env.update(("NODE_TAGS_%s" % node.name, " ".join(node.GetTags()))
@@ -8200,8 +8200,7 @@ class LUNodeMigrate(LogicalUnit):
                                  target_node=self.op.target_node,
                                  allow_runtime_changes=allow_runtime_changes,
                                  ignore_ipolicy=self.op.ignore_ipolicy)]
-      for inst in _GetNodePrimaryInstances(self.cfg, self.op.node_name)
-      ]
+      for inst in _GetNodePrimaryInstances(self.cfg, self.op.node_name)]
 
     # TODO: Run iallocator in this opcode and pass correct placement options to
     # OpInstanceMigrate. Since other jobs can modify the cluster between
@@ -9115,9 +9114,11 @@ def _GenerateDiskTemplate(
                                         for i in range(disk_count)])
 
     if template_name == constants.DT_PLAIN:
+
       def logical_id_fn(idx, _, disk):
         vg = disk.get(constants.IDISK_VG, vgname)
         return (vg, names[idx])
+
     elif template_name in (constants.DT_FILE, constants.DT_SHARED_FILE):
       logical_id_fn = \
         lambda _, disk_index, disk: (file_driver,
@@ -10291,7 +10292,6 @@ class LUInstanceCreate(LogicalUnit):
         # net is None, ip None or given
         if self.op.conflicts_check:
           _CheckForConflictingIp(self, nic.ip, self.pnode.name)
-
 
     # mirror node verification
     if self.op.disk_template in constants.DTS_INT_MIRROR:
@@ -12045,8 +12045,7 @@ class LUNodeEvacuate(NoHooksLU):
                                         disks=[],
                                         mode=constants.REPLACE_DISK_CHG,
                                         early_release=self.op.early_release)]
-        for instance_name in self.instance_names
-        ]
+        for instance_name in self.instance_names]
 
     else:
       raise errors.ProgrammerError("No iallocator or remote node")
@@ -12957,6 +12956,7 @@ class LUInstanceSetParams(LogicalUnit):
                                      " in cluster" % mac,
                                      errors.ECODE_NOTUNIQUE)
     elif new_net != old_net:
+
       def get_net_prefix(net):
         if net:
           uuid = self.cfg.LookupNetwork(net)
@@ -12964,6 +12964,7 @@ class LUInstanceSetParams(LogicalUnit):
             nobj = self.cfg.GetNetwork(uuid)
             return nobj.mac_prefix
         return None
+
       new_prefix = get_net_prefix(new_net)
       old_prefix = get_net_prefix(old_net)
       if old_prefix != new_prefix:
@@ -15551,6 +15552,7 @@ class LUTestAllocator(NoHooksLU):
       result = ial.out_text
     return result
 
+
 # Network LUs
 class LUNetworkAdd(LogicalUnit):
   """Logical unit for creating networks.
@@ -15590,12 +15592,11 @@ class LUNetworkAdd(LogicalUnit):
                                  self.op.network, errors.ECODE_EXISTS)
 
     if self.op.mac_prefix:
-      utils.NormalizeAndValidateMac(self.op.mac_prefix+":00:00:00")
+      utils.NormalizeAndValidateMac(self.op.mac_prefix + ":00:00:00")
 
     # Check tag validity
     for tag in self.op.tags:
       objects.TaggableObject.ValidateTag(tag)
-
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -15681,7 +15682,6 @@ class LUNetworkRemove(LogicalUnit):
       locking.LEVEL_NETWORK: [self.network_uuid],
       }
 
-
   def CheckPrereq(self):
     """Check prerequisites.
 
@@ -15744,7 +15744,6 @@ class LUNetworkSetParams(LogicalUnit):
       raise errors.OpPrereqError("Cannot modify gateway and reserved ips"
                                  " at once", errors.ECODE_INVAL)
 
-
   def ExpandNames(self):
     self.network_uuid = self.cfg.LookupNetwork(self.op.network_name)
     self.network = self.cfg.GetNetwork(self.network_uuid)
@@ -15788,7 +15787,7 @@ class LUNetworkSetParams(LogicalUnit):
       if self.op.mac_prefix == constants.VALUE_NONE:
         self.mac_prefix = None
       else:
-        utils.NormalizeAndValidateMac(self.op.mac_prefix+":00:00:00")
+        utils.NormalizeAndValidateMac(self.op.mac_prefix + ":00:00:00")
         self.mac_prefix = self.op.mac_prefix
 
     if self.op.gateway6:
@@ -15802,8 +15801,6 @@ class LUNetworkSetParams(LogicalUnit):
         self.network6 = None
       else:
         self.network6 = self.op.network6
-
-
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -15939,7 +15936,6 @@ class _NetworkQuery(_QueryBase):
         all_nodes = lu.cfg.GetAllNodesInfo()
         network_to_instances = dict((uuid, []) for uuid in self.wanted)
 
-
       for group in all_groups.values():
         if do_instances:
           group_nodes = [node.name for node in all_nodes.values() if
@@ -15998,7 +15994,6 @@ class LUNetworkQuery(NoHooksLU):
     return self.nq.OldStyleQuery(self)
 
 
-
 class LUNetworkConnect(LogicalUnit):
   """Connect a network to a nodegroup
 
@@ -16051,7 +16046,6 @@ class LUNetworkConnect(LogicalUnit):
   def BuildHooksNodes(self):
     nodes = self.cfg.GetNodeGroup(self.group_uuid).members
     return (nodes, nodes)
-
 
   def CheckPrereq(self):
     l = lambda value: ", ".join("%s: %s/%s" % (i[0], i[1], i[2])
@@ -16147,7 +16141,6 @@ class LUNetworkDisconnect(LogicalUnit):
     nodes = self.cfg.GetNodeGroup(self.group_uuid).members
     return (nodes, nodes)
 
-
   def CheckPrereq(self):
     l = lambda value: ", ".join("%s: %s/%s" % (i[0], i[1], i[2])
                                    for i in value)
@@ -16212,6 +16205,7 @@ def _GetQueryImplementation(name):
   except KeyError:
     raise errors.OpPrereqError("Unknown query resource '%s'" % name,
                                errors.ECODE_INVAL)
+
 
 def _CheckForConflictingIp(lu, ip, node):
   """In case of conflicting ip raise error.

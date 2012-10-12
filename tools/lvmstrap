@@ -573,7 +573,7 @@ def ShowDiskInfo(opts):
     "used": "Used",
     "mount": "Mount",
     "lvm": "LVM?",
-    "info": "Info"
+    "info": "Info",
     }
   fields = ["name", "size", "used", "mount", "lvm", "info"]
 

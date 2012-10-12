@@ -541,6 +541,7 @@ def main():
                            [socat_stderr_write_fd, dd_stderr_write_fd,
                             dd_pid_write_fd, exp_size_write_fd])
       try:
+
         def _ForwardSignal(signum, _):
           """Forwards signals to child process.
 

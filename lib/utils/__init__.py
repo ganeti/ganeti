@@ -648,9 +648,11 @@ class SignalWakeupFd(object):
     _set_wakeup_fd_fn = signal.set_wakeup_fd
   except AttributeError:
     # Not supported
+
     def _SetWakeupFd(self, _): # pylint: disable=R0201
       return -1
   else:
+
     def _SetWakeupFd(self, fd):
       return self._set_wakeup_fd_fn(fd)
 

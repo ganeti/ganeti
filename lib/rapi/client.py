@@ -1703,7 +1703,7 @@ class GanetiRapiClient(object): # pylint: disable=R0904
     _AppendIf(query, bulk, ("bulk", 1))
 
     networks = self._SendRequest(HTTP_GET, "/%s/networks" % GANETI_RAPI_VERSION,
-                               query, None)
+                                 query, None)
     if bulk:
       return networks
     else:
@@ -1768,7 +1768,7 @@ class GanetiRapiClient(object): # pylint: disable=R0904
     body = {
       "group_name": group_name,
       "network_mode": mode,
-      "network_link": link
+      "network_link": link,
       }
 
     query = []
@@ -1783,7 +1783,7 @@ class GanetiRapiClient(object): # pylint: disable=R0904
 
     """
     body = {
-      "group_name": group_name
+      "group_name": group_name,
       }
 
     query = []
@@ -1792,7 +1792,6 @@ class GanetiRapiClient(object): # pylint: disable=R0904
     return self._SendRequest(HTTP_PUT,
                              ("/%s/networks/%s/disconnect" %
                              (GANETI_RAPI_VERSION, network_name)), query, body)
-
 
   def ModifyNetwork(self, network, **kwargs):
     """Modifies a network.
@@ -1883,7 +1882,6 @@ class GanetiRapiClient(object): # pylint: disable=R0904
                              ("/%s/networks/%s/tags" %
                               (GANETI_RAPI_VERSION, network)), query, None)
 
-
   def GetGroups(self, bulk=False):
     """Gets all node groups in the cluster.
 
@@ -1938,7 +1936,7 @@ class GanetiRapiClient(object): # pylint: disable=R0904
 
     body = {
       "name": name,
-      "alloc_policy": alloc_policy
+      "alloc_policy": alloc_policy,
       }
 
     return self._SendRequest(HTTP_POST, "/%s/groups" % GANETI_RAPI_VERSION,

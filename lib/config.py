@@ -115,7 +115,6 @@ class TemporaryReservationManager:
       ec_reserved.update(self._ec_reserved[ec_id])
     return ec_reserved
 
-
   def Generate(self, existing, generate_one_fn, ec_id):
     """Generate a new resource of this type
 
@@ -161,6 +160,7 @@ def _CheckInstanceDiskIvNames(disks):
       result.append((idx, exp_iv_name, disk.iv_name))
 
   return result
+
 
 def _GenerateMACSuffix():
   """Generate one mac address
@@ -241,7 +241,7 @@ class ConfigWriter:
             if nobj.mac_prefix:
               prefix = nobj.mac_prefix
         suffix = view_func(*args, **kwargs)
-        return prefix+':'+suffix
+        return prefix + ':' + suffix
       return wraps(view_func)(_decorator)
     return _get_mac_prefix
 
@@ -390,7 +390,6 @@ class ConfigWriter:
       raise errors.ReservationError("IP address already in use")
 
     return self._temporary_ips.Reserve(ec_id, ('reserve', address, net_uuid))
-
 
   @locking.ssynchronized(_config_lock, shared=1)
   def ReserveIp(self, net, address, ec_id):
@@ -1443,7 +1442,6 @@ class ConfigWriter:
         if net_uuid:
           # Return all IP addresses to the respective address pools
           self._UnlockedCommitIp('release', net_uuid, nic.ip)
-
 
     del self._config_data.instances[instance_name]
     self._config_data.cluster.serial_no += 1
@@ -2545,7 +2543,6 @@ class ConfigWriter:
 
     """
     return self._UnlockedGetGroupNetParams(net, node)
-
 
   @locking.ssynchronized(_config_lock, shared=1)
   def CheckIPInNodeGroup(self, ip, node):

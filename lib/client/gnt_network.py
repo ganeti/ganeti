@@ -44,6 +44,7 @@ def _HandleReservedIPs(ips):
       return utils.UnescapeAndSplit(ips, sep=",")
   return None
 
+
 def AddNetwork(opts, args):
   """Add a network to the cluster.
 
@@ -61,16 +62,16 @@ def AddNetwork(opts, args):
   else:
     tags = []
 
-  op = opcodes.OpNetworkAdd(network_name=network_name,
-                            gateway=opts.gateway,
-                            network=opts.network,
-                            gateway6=opts.gateway6,
-                            network6=opts.network6,
-                            mac_prefix=opts.mac_prefix,
-                            network_type=opts.network_type,
-                            add_reserved_ips=\
-                              _HandleReservedIPs(opts.add_reserved_ips),
-                            tags=tags)
+  op = opcodes.OpNetworkAdd(
+                    network_name=network_name,
+                    gateway=opts.gateway,
+                    network=opts.network,
+                    gateway6=opts.gateway6,
+                    network6=opts.network6,
+                    mac_prefix=opts.mac_prefix,
+                    network_type=opts.network_type,
+                    add_reserved_ips=_HandleReservedIPs(opts.add_reserved_ips),
+                    tags=tags)
   SubmitOpCode(op, opts=opts)
 
 
@@ -202,7 +203,7 @@ def ShowNetworkConfig(_, args):
     ToStdout("  type: %s", network_type)
     ToStdout("  size: %d", size)
     ToStdout("  free: %d (%.2f%%)", free_count,
-             100 * float(free_count)/float(size))
+             100 * float(free_count) / float(size))
     ToStdout("  usage map:")
     idx = 0
     for line in wrap(mapping, width=64):
@@ -229,7 +230,7 @@ def ShowNetworkConfig(_, args):
                                                 ["nic.ips", "nic.networks"],
                                                 use_locking=False)
 
-        l = lambda value: ", ".join(str(idx)+":"+str(ip)
+        l = lambda value: ", ".join(str(idx) + ":" + str(ip)
                                     for idx, (ip, net) in enumerate(value)
                                       if net == name)
 

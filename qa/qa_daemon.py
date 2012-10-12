@@ -67,7 +67,7 @@ def _ResetWatcherDaemon():
   """
   AssertCommand([
     "bash", "-c",
-    "rm -vf %s" % (pathutils.WATCHER_GROUP_STATE_FILE % "*-*-*-*")
+    "rm -vf %s" % (pathutils.WATCHER_GROUP_STATE_FILE % "*-*-*-*"),
     ])
 
 
