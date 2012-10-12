@@ -1712,8 +1712,8 @@ class GanetiRapiClient(object): # pylint: disable=R0904
   def GetNetwork(self, network):
     """Gets information about a network.
 
-    @type group: str
-    @param group: name of the network whose info to return
+    @type network: str
+    @param network: name of the network whose info to return
 
     @rtype: dict
     @return: info about the network
@@ -1728,8 +1728,8 @@ class GanetiRapiClient(object): # pylint: disable=R0904
                     add_reserved_ips=None, tags=None, dry_run=False):
     """Creates a new network.
 
-    @type name: str
-    @param name: the name of network to create
+    @type network_name: str
+    @param network_name: the name of network to create
     @type dry_run: bool
     @param dry_run: whether to peform a dry run
 
@@ -1811,8 +1811,8 @@ class GanetiRapiClient(object): # pylint: disable=R0904
   def DeleteNetwork(self, network, dry_run=False):
     """Deletes a network.
 
-    @type group: str
-    @param group: the network to delete
+    @type network: str
+    @param network: the network to delete
     @type dry_run: bool
     @param dry_run: whether to peform a dry run
 

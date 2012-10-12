@@ -1323,8 +1323,8 @@ def _BuildNetworkHookEnv(name, subnet, gateway, network6, gateway6,
 
   @type name: string
   @param name: the name of the network
-  @type network: string
-  @param network: the ipv4 subnet
+  @type subnet: string
+  @param subnet: the ipv4 subnet
   @type gateway: string
   @param gateway: the ipv4 gateway
   @type network6: string
@@ -1363,10 +1363,8 @@ def _BuildNetworkHookEnv(name, subnet, gateway, network6, gateway6,
 def _BuildNetworkHookEnvByObject(net):
   """Builds network related env varliables for hooks
 
-  @type lu: L{objects.LogicalUnit}
-  @param lu: the corresponding LU
-  @type network: L{objects.Network}
-  @param network: the network object
+  @type net: L{objects.Network}
+  @param net: the network object
 
   """
   args = {

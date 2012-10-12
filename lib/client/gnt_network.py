@@ -172,7 +172,6 @@ def ListNetworkFields(opts, args):
 def ShowNetworkConfig(_, args):
   """Show network information.
 
-  @param opts: the command line options selected by the user
   @type args: list
   @param args: should either be an empty list, in which case
       we show information about all nodes, or should contain
