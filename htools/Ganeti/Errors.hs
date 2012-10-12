@@ -34,9 +34,12 @@ module Ganeti.Errors
   , GanetiException(..)
   , ErrorResult
   , excName
+  , errorExitCode
+  , formatError
   ) where
 
 import Text.JSON hiding (Result, Ok)
+import System.Exit
 
 import Ganeti.THH
 import Ganeti.BasicTypes
@@ -115,3 +118,54 @@ instance FromString GanetiException where
 type ErrorResult = GenericResult GanetiException
 
 $(genStrOfOp ''GanetiException "excName")
+
+-- | Returns the exit code of a program that should be used if we got
+-- back an exception from masterd.
+errorExitCode :: GanetiException -> ExitCode
+errorExitCode (ConfigurationError {}) = ExitFailure 2
+errorExitCode _ = ExitFailure 1
+
+-- | Formats an exception.
+formatError :: GanetiException -> String
+formatError (ConfigurationError msg) =
+  "Corrup configuration file: " ++ msg ++ "\nAborting."
+formatError (HooksAbort errs) =
+  unlines $
+  "Failure: hooks execution failed:":
+  map (\(node, script, out) ->
+         "  node: " ++ node ++ ", script: " ++ script ++
+                    if null out
+                      then " (no output)"
+                      else ", output: " ++ out
+      ) errs
+formatError (HooksFailure msg) =
+  "Failure: hooks general failure: " ++ msg
+formatError (ResolverError host _ _) =
+  -- FIXME: in Python, this uses the system hostname to format the
+  -- error differently if we are failing to resolve our own hostname
+  "Failure: can't resolve hostname " ++ host
+formatError (OpPrereqError msg code) =
+  "Failure: prerequisites not met for this" ++
+  " operation:\nerror type: " ++ show code ++ ", error details:\n" ++ msg
+formatError (OpExecError msg) =
+  "Failure: command execution error:\n" ++ msg
+formatError (TagError msg) =
+  "Failure: invalid tag(s) given:\n" ++ msg
+formatError (JobQueueDrainError _)=
+  "Failure: the job queue is marked for drain and doesn't accept new requests"
+formatError JobQueueFull =
+  "Failure: the job queue is full and doesn't accept new" ++
+  " job submissions until old jobs are archived"
+formatError (TypeEnforcementError msg) =
+  "Parameter Error: " ++ msg
+formatError (ParameterError msg) =
+  "Failure: unknown/wrong parameter name '" ++ msg ++ "'"
+formatError (JobLost msg) =
+  "Error checking job status: " ++ msg
+formatError (QueryFilterParseError msg) =
+  -- FIXME: in Python, this has a more complex error message
+  "Error while parsing query filter: " ++ msg
+formatError (GenericError msg) =
+  "Unhandled Ganeti error: " ++ msg
+formatError err =
+  "Unhandled exception: " ++ show err
