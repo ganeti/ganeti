@@ -60,6 +60,7 @@ import Text.JSON.Pretty (pp_value)
 import qualified Text.Regex.PCRE as PCRE
 
 import Ganeti.BasicTypes
+import Ganeti.Errors
 import Ganeti.Objects
 import Ganeti.Query.Language
 import Ganeti.Query.Types
@@ -68,9 +69,11 @@ import Ganeti.JSON
 -- | Compiles a filter based on field names to one based on getters.
 compileFilter :: FieldMap a b
               -> Filter FilterField
-              -> Result (Filter (FieldGetter a b))
+              -> ErrorResult (Filter (FieldGetter a b))
 compileFilter fm =
-  traverse (\field -> maybe (Bad $ "Can't find field named '" ++ field ++ "'")
+  traverse (\field -> maybe
+                      (Bad . ParameterError $ "Can't find field named '" ++
+                           field ++ "'")
                       (Ok . snd) (field `Map.lookup` fm))
 
 -- | Wraps a getter, filter pair. If the getter is 'FieldRuntime' but
@@ -80,8 +83,8 @@ wrapGetter :: ConfigData
            -> Maybe b
            -> a
            -> FieldGetter a b
-           -> (JSValue -> Result Bool)
-           -> Result Bool
+           -> (JSValue -> ErrorResult Bool)
+           -> ErrorResult Bool
 wrapGetter cfg b a getter faction =
   case tryGetter cfg b a getter of
     Nothing -> Ok True -- runtime missing, accepting the value
@@ -89,14 +92,16 @@ wrapGetter cfg b a getter faction =
       case v of
         ResultEntry RSNormal (Just fval) -> faction fval
         ResultEntry RSNormal Nothing ->
-          Bad "Internal error: Getter returned RSNormal/Nothing"
+          Bad $ ProgrammerError
+                "Internal error: Getter returned RSNormal/Nothing"
         _ -> Ok True -- filter has no data to work, accepting it
 
 -- | Helper to evaluate a filter getter (and the value it generates) in
 -- a boolean context.
-trueFilter :: JSValue -> Result Bool
+trueFilter :: JSValue -> ErrorResult Bool
 trueFilter (JSBool x) = Ok x
-trueFilter v = Bad $ "Unexpected value '" ++ show (pp_value v) ++
+trueFilter v = Bad . ParameterError $
+               "Unexpected value '" ++ show (pp_value v) ++
                "' in boolean context"
 
 -- | A type synonim for a rank-2 comparator function. This is used so
@@ -108,25 +113,25 @@ type Comparator = (Eq a, Ord a) => a -> a -> Bool
 -- in a boolean context. Note the order of arguments is reversed from
 -- the filter definitions (due to the call chain), make sure to
 -- compare in the reverse order too!.
-binOpFilter :: Comparator -> FilterValue -> JSValue -> Result Bool
+binOpFilter :: Comparator -> FilterValue -> JSValue -> ErrorResult Bool
 binOpFilter comp (QuotedString y) (JSString x) =
   Ok $ fromJSString x `comp` y
 binOpFilter comp (NumericValue y) (JSRational _ x) =
   Ok $ x `comp` fromIntegral y
 binOpFilter _ expr actual =
-  Bad $ "Invalid types in comparison, trying to compare " ++
+  Bad . ParameterError $ "Invalid types in comparison, trying to compare " ++
       show (pp_value actual) ++ " with '" ++ show expr ++ "'"
 
 -- | Implements the 'RegexpFilter' matching.
-regexpFilter :: FilterRegex -> JSValue -> Result Bool
+regexpFilter :: FilterRegex -> JSValue -> ErrorResult Bool
 regexpFilter re (JSString val) =
   Ok $ PCRE.match (compiledRegex re) (fromJSString val)
 regexpFilter _ x =
-  Bad $ "Invalid field value used in regexp matching,\
+  Bad . ParameterError $ "Invalid field value used in regexp matching,\
         \ expecting string but got '" ++ show (pp_value x) ++ "'"
 
 -- | Implements the 'ContainsFilter' matching.
-containsFilter :: FilterValue -> JSValue -> Result Bool
+containsFilter :: FilterValue -> JSValue -> ErrorResult Bool
 -- note: the next two implementations are the same, but we have to
 -- repeat them due to the encapsulation done by FilterValue
 containsFilter (QuotedString val) lst = do
@@ -141,7 +146,7 @@ containsFilter (NumericValue val) lst = do
 -- this as passing the filter.
 evaluateFilter :: ConfigData -> Maybe b -> a
                -> Filter (FieldGetter a b)
-               -> Result Bool
+               -> ErrorResult Bool
 evaluateFilter _ _  _ EmptyFilter = Ok True
 evaluateFilter c mb a (AndFilter flts) =
   all id <$> mapM (evaluateFilter c mb a) flts

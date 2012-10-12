@@ -45,6 +45,7 @@ import qualified Text.JSON as J
 import System.INotify
 
 import Ganeti.BasicTypes
+import Ganeti.Errors
 import Ganeti.Daemon
 import Ganeti.JSON
 import Ganeti.Objects
@@ -130,6 +131,11 @@ getCurrentTime = do
   TOD ctime _ <- getClockTime
   return ctime
 
+-- | Converter from specific error to a string format.
+gntErrorToResult :: ErrorResult a -> Result a
+gntErrorToResult (Bad err) = Bad (show err)
+gntErrorToResult (Ok x) = Ok x
+
 -- * Confd base functionality
 
 -- | Computes the node role.
@@ -170,12 +176,12 @@ buildResponse cdata req@(ConfdRequest { confdRqType = ReqClusterMaster }) =
     EmptyQuery -> return (ReplyStatusOk, J.showJSON master_name)
     PlainQuery _ -> return queryArgumentError
     DictQuery reqq -> do
-      mnode <- getNode cfg master_name
-      let fvals =map (\field -> case field of
-                                  ReqFieldName -> master_name
-                                  ReqFieldIp -> clusterMasterIp cluster
-                                  ReqFieldMNodePip -> nodePrimaryIp mnode
-                     ) (confdReqQFields reqq)
+      mnode <- gntErrorToResult $ getNode cfg master_name
+      let fvals = map (\field -> case field of
+                                   ReqFieldName -> master_name
+                                   ReqFieldIp -> clusterMasterIp cluster
+                                   ReqFieldMNodePip -> nodePrimaryIp mnode
+                      ) (confdReqQFields reqq)
       return (ReplyStatusOk, J.showJSON fvals)
     where master_name = clusterMasterNode cluster
           cluster = configCluster cfg
@@ -231,7 +237,7 @@ buildResponse cdata req@(ConfdRequest { confdRqType = ReqNodeDrbd }) = do
   node_name <- case confdRqQuery req of
                  PlainQuery str -> return str
                  _ -> fail $ "Invalid query type " ++ show (confdRqQuery req)
-  node <- getNode cfg node_name
+  node <- gntErrorToResult $ getNode cfg node_name
   let minors = concatMap (getInstMinorsForNode (nodeName node)) .
                M.elems . fromContainer . configInstances $ cfg
       encoded = [J.JSArray [J.showJSON a, J.showJSON b, J.showJSON c,

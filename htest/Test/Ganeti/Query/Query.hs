@@ -43,6 +43,7 @@ import Test.Ganeti.TestCommon
 import Test.Ganeti.Objects (genEmptyCluster)
 
 import Ganeti.BasicTypes
+import Ganeti.Errors
 import Ganeti.Query.Group
 import Ganeti.Query.Language
 import Ganeti.Query.Node
@@ -147,7 +148,8 @@ prop_queryNode_types =
 case_queryNode_allfields :: Assertion
 case_queryNode_allfields = do
    fdefs <- case queryFields (QueryFields QRNode []) of
-              Bad msg -> fail $ "Error in query all fields: " ++ msg
+              Bad msg -> fail $ "Error in query all fields: " ++
+                         formatError msg
               Ok (QueryFieldsResult v) -> return v
    let field_sort = compare `on` fdefName
    assertEqual "Mismatch in all fields list"
@@ -215,7 +217,8 @@ prop_queryGroup_types =
 case_queryGroup_allfields :: Assertion
 case_queryGroup_allfields = do
    fdefs <- case queryFields (QueryFields QRGroup []) of
-              Bad msg -> fail $ "Error in query all fields: " ++ msg
+              Bad msg -> fail $ "Error in query all fields: " ++
+                         formatError msg
               Ok (QueryFieldsResult v) -> return v
    let field_sort = compare `on` fdefName
    assertEqual "Mismatch in all fields list"

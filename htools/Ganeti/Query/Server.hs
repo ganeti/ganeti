@@ -42,6 +42,7 @@ import Text.JSON.Pretty (pp_value)
 import System.Info (arch)
 
 import qualified Ganeti.Constants as C
+import Ganeti.Errors
 import qualified Ganeti.Path as Path
 import Ganeti.Daemon
 import Ganeti.Objects
@@ -63,22 +64,24 @@ handleClassicQuery :: ConfigData      -- ^ Cluster config
                    -> [String]        -- ^ Requested names (empty means all)
                    -> [String]        -- ^ Requested fields
                    -> Bool            -- ^ Whether to do sync queries or not
-                   -> IO (Result JSValue)
-handleClassicQuery _ _ _ _ True = return . Bad $ "Sync queries are not allowed"
+                   -> IO (GenericResult GanetiException JSValue)
+handleClassicQuery _ _ _ _ True =
+  return . Bad $ OpPrereqError "Sync queries are not allowed" ECodeInval
 handleClassicQuery cfg qkind names fields _ = do
   let flt = makeSimpleFilter (nameField qkind) names
   qr <- query cfg True (Qlang.Query qkind fields flt)
   return $ showJSON <$> (qr >>= queryCompat)
 
 -- | Minimal wrapper to handle the missing config case.
-handleCallWrapper :: Result ConfigData -> LuxiOp -> IO (Result JSValue)
+handleCallWrapper :: Result ConfigData -> LuxiOp -> IO (ErrorResult JSValue)
 handleCallWrapper (Bad msg) _ =
-  return . Bad $ "I do not have access to a valid configuration, cannot\
-                 \ process queries: " ++ msg
+  return . Bad . ConfigurationError $
+           "I do not have access to a valid configuration, cannot\
+           \ process queries: " ++ msg
 handleCallWrapper (Ok config) op = handleCall config op
 
 -- | Actual luxi operation handler.
-handleCall :: ConfigData -> LuxiOp -> IO (Result JSValue)
+handleCall :: ConfigData -> LuxiOp -> IO (ErrorResult JSValue)
 handleCall cdata QueryClusterInfo =
   let cluster = configCluster cdata
       hypervisors = clusterEnabledHypervisors cluster
@@ -157,7 +160,8 @@ handleCall cfg (QueryGroups names fields lock) =
   handleClassicQuery cfg Qlang.QRGroup names fields lock
 
 handleCall _ op =
-  return . Bad $ "Luxi call '" ++ strOfOp op ++ "' not implemented"
+  return . Bad $
+    GenericError ("Luxi call '" ++ strOfOp op ++ "' not implemented")
 
 
 -- | Given a decoded luxi request, executes it and sends the luxi
@@ -170,9 +174,8 @@ handleClientMsg client creader args = do
   (!status, !rval) <-
     case call_result of
       Bad err -> do
-        let errmsg = "Failed to execute request: " ++ err
-        logWarning errmsg
-        return (False, showJSON errmsg)
+        logWarning $ "Failed to execute request: " ++ show err
+        return (False, showJSON err)
       Ok result -> do
         logDebug $ "Result " ++ show (pp_value result)
         return (True, result)

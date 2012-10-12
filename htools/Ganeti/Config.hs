@@ -54,10 +54,10 @@ import qualified Data.Map as M
 import qualified Data.Set as S
 import qualified Text.JSON as J
 
-import Ganeti.JSON
 import Ganeti.BasicTypes
-
 import qualified Ganeti.Constants as C
+import Ganeti.Errors
+import Ganeti.JSON
 import Ganeti.Objects
 
 -- | Type alias for the link and ip map.
@@ -145,10 +145,11 @@ getInstancesIpByLink linkipmap link =
 
 -- | Generic lookup function that converts from a possible abbreviated
 -- name to a full name.
-getItem :: String -> String -> M.Map String a -> Result a
+getItem :: String -> String -> M.Map String a -> ErrorResult a
 getItem kind name allitems = do
   let lresult = lookupName (M.keys allitems) name
-      err msg = Bad $ kind ++ " name " ++ name ++ " " ++ msg
+      err msg = Bad $ OpPrereqError (kind ++ " name " ++ name ++ " " ++ msg)
+                        ECodeNoEnt
   fullname <- case lrMatchPriority lresult of
                 PartialMatch -> Ok $ lrContent lresult
                 ExactMatch -> Ok $ lrContent lresult
@@ -158,17 +159,17 @@ getItem kind name allitems = do
         M.lookup fullname allitems
 
 -- | Looks up a node.
-getNode :: ConfigData -> String -> Result Node
+getNode :: ConfigData -> String -> ErrorResult Node
 getNode cfg name = getItem "Node" name (fromContainer $ configNodes cfg)
 
 -- | Looks up an instance.
-getInstance :: ConfigData -> String -> Result Instance
+getInstance :: ConfigData -> String -> ErrorResult Instance
 getInstance cfg name =
   getItem "Instance" name (fromContainer $ configInstances cfg)
 
 -- | Looks up a node group. This is more tricky than for
 -- node/instances since the groups map is indexed by uuid, not name.
-getGroup :: ConfigData -> String -> Result NodeGroup
+getGroup :: ConfigData -> String -> ErrorResult NodeGroup
 getGroup cfg name =
   let groups = fromContainer (configNodegroups cfg)
   in case getItem "NodeGroup" name groups of
@@ -209,7 +210,7 @@ getGroupInstances cfg gname =
   (concatMap fst ginsts, concatMap snd ginsts)
 
 -- | Looks up an instance's primary node.
-getInstPrimaryNode :: ConfigData -> String -> Result Node
+getInstPrimaryNode :: ConfigData -> String -> ErrorResult Node
 getInstPrimaryNode cfg name =
   liftM instPrimaryNode (getInstance cfg name) >>= getNode cfg
 

@@ -60,6 +60,7 @@ import qualified Data.Map as Map
 import qualified Text.JSON as J
 
 import Ganeti.BasicTypes
+import Ganeti.Errors
 import Ganeti.Config
 import Ganeti.JSON
 import Ganeti.Rpc
@@ -146,7 +147,7 @@ getRequestedNames qry =
 query :: ConfigData   -- ^ The current configuration
       -> Bool         -- ^ Whether to collect live data
       -> Query        -- ^ The query (item, fields, filter)
-      -> IO (Result QueryResult) -- ^ Result
+      -> IO (ErrorResult QueryResult) -- ^ Result
 query cfg live qry = queryInner cfg live qry $ getRequestedNames qry
 
 -- | Inner query execution function.
@@ -154,7 +155,7 @@ queryInner :: ConfigData   -- ^ The current configuration
            -> Bool         -- ^ Whether to collect live data
            -> Query        -- ^ The query (item, fields, filter)
            -> [String]     -- ^ Requested names
-           -> IO (Result QueryResult) -- ^ Result
+           -> IO (ErrorResult QueryResult) -- ^ Result
 
 queryInner cfg live (Query QRNode fields qfilter) wanted = runResultT $ do
   cfilter <- resultT $ compileFilter nodeFieldsMap qfilter
@@ -167,7 +168,8 @@ queryInner cfg live (Query QRNode fields qfilter) wanted = runResultT $ do
              _  -> mapM (getNode cfg) wanted
   -- runs first pass of the filter, without a runtime context; this
   -- will limit the nodes that we'll contact for runtime data
-  fnodes <- resultT $ filterM (\n -> evaluateFilter cfg Nothing n cfilter) nodes
+  fnodes <- resultT $ filterM (\n -> evaluateFilter cfg Nothing n cfilter)
+                      nodes
   -- here we would run the runtime data gathering, then filter again
   -- the nodes, based on existing runtime data
   nruntimes <- lift $ maybeCollectLiveData live' cfg fnodes
@@ -190,7 +192,7 @@ queryInner cfg _ (Query QRGroup fields qfilter) wanted = return $ do
   return QueryResult {qresFields = fdefs, qresData = fdata }
 
 queryInner _ _ (Query qkind _ _) _ =
-  return . Bad $ "Query '" ++ show qkind ++ "' not supported"
+  return . Bad . GenericError $ "Query '" ++ show qkind ++ "' not supported"
 
 -- | Helper for 'queryFields'.
 fieldsExtractor :: FieldMap a b -> [FilterField] -> QueryFieldsResult
@@ -201,7 +203,7 @@ fieldsExtractor fieldsMap fields =
   in QueryFieldsResult (map fst selected)
 
 -- | Query fields call.
-queryFields :: QueryFields -> Result QueryFieldsResult
+queryFields :: QueryFields -> ErrorResult QueryFieldsResult
 queryFields (QueryFields QRNode fields) =
   Ok $ fieldsExtractor nodeFieldsMap fields
 
@@ -209,13 +211,13 @@ queryFields (QueryFields QRGroup fields) =
   Ok $ fieldsExtractor groupFieldsMap fields
 
 queryFields (QueryFields qkind _) =
-  Bad $ "QueryFields '" ++ show qkind ++ "' not supported"
+  Bad . GenericError $ "QueryFields '" ++ show qkind ++ "' not supported"
 
 -- | Classic query converter. It gets a standard query result on input
 -- and computes the classic style results.
-queryCompat :: QueryResult -> Result [[J.JSValue]]
+queryCompat :: QueryResult -> ErrorResult [[J.JSValue]]
 queryCompat (QueryResult fields qrdata) =
   case map fdefName $ filter ((== QFTUnknown) . fdefKind) fields of
     [] -> Ok $ map (map (maybe J.JSNull J.showJSON . rentryValue)) qrdata
-    unknown -> Bad $ "Unknown output fields selected: " ++
-                     intercalate ", " unknown
+    unknown -> Bad $ OpPrereqError ("Unknown output fields selected: " ++
+                                    intercalate ", " unknown) ECodeInval
