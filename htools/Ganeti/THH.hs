@@ -180,6 +180,17 @@ tagsFields :: [Field]
 tagsFields = [ defaultField [| Set.empty |] $
                simpleField "tags" [t| TagSet |] ]
 
+-- * Internal types
+
+-- | A simple field, in constrast to the customisable 'Field' type.
+type SimpleField = (String, Q Type)
+
+-- | A definition for a single constructor for a simple object.
+type SimpleConstructor = (String, [SimpleField])
+
+-- | A definition for ADTs with simple fields.
+type SimpleObject = [SimpleConstructor]
+
 -- * Helper functions
 
 -- | Ensure first letter is lowercase.
@@ -547,9 +558,6 @@ genStrOfOp = genConstrToStr id
 genStrOfKey :: Name -> String -> Q [Dec]
 genStrOfKey = genConstrToStr ensureLower
 
--- | LuxiOp parameter type.
-type LuxiParam = (String, Q Type)
-
 -- | Generates the LuxiOp data type.
 --
 -- This takes a Luxi operation definition and builds both the
@@ -563,7 +571,7 @@ type LuxiParam = (String, Q Type)
 --
 -- * type
 --
-genLuxiOp :: String -> [(String, [LuxiParam])] -> Q [Dec]
+genLuxiOp :: String -> SimpleObject -> Q [Dec]
 genLuxiOp name cons = do
   decl_d <- mapM (\(cname, fields) -> do
                     fields' <- mapM (\(_, qt) ->
@@ -579,12 +587,12 @@ genLuxiOp name cons = do
   return $ [declD, savesig, savefn] ++ req_defs
 
 -- | Generates the \"save\" expression for a single luxi parameter.
-saveLuxiField :: Name -> LuxiParam -> Q Exp
+saveLuxiField :: Name -> SimpleField -> Q Exp
 saveLuxiField fvar (_, qt) =
     [| JSON.showJSON $(varE fvar) |]
 
 -- | Generates the \"save\" clause for entire LuxiOp constructor.
-saveLuxiConstructor :: (String, [LuxiParam]) -> Q Clause
+saveLuxiConstructor :: SimpleConstructor -> Q Clause
 saveLuxiConstructor (sname, fields) = do
   let cname = mkName sname
       fnames = map (mkName . fst) fields
@@ -596,7 +604,7 @@ saveLuxiConstructor (sname, fields) = do
   clause [pat] (normalB finval) []
 
 -- | Generates the main save LuxiOp function.
-genSaveLuxiOp :: [(String, [LuxiParam])]-> Q (Dec, Dec)
+genSaveLuxiOp :: SimpleObject-> Q (Dec, Dec)
 genSaveLuxiOp opdefs = do
   sigt <- [t| $(conT (mkName "LuxiOp")) -> JSON.JSValue |]
   let fname = mkName "opToArgs"
