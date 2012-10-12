@@ -236,6 +236,32 @@ appFn :: Exp -> Exp -> Exp
 appFn f x | f == VarE 'id = x
           | otherwise = AppE f x
 
+-- | Builds a field for a normal constructor.
+buildConsField :: Q Type -> StrictTypeQ
+buildConsField ftype = do
+  ftype' <- ftype
+  return (NotStrict, ftype')
+
+-- | Builds a constructor based on a simple definition (not field-based).
+buildSimpleCons :: Name -> SimpleObject -> Q Dec
+buildSimpleCons tname cons = do
+  decl_d <- mapM (\(cname, fields) -> do
+                    fields' <- mapM (buildConsField . snd) fields
+                    return $ NormalC (mkName cname) fields') cons
+  return $ DataD [] tname [] decl_d [''Show, ''Read, ''Eq]
+
+-- | Generate the save function for a given type.
+genSaveSimpleObj :: Name                            -- ^ Object type
+                 -> String                          -- ^ Function name
+                 -> SimpleObject                    -- ^ Object definition
+                 -> (SimpleConstructor -> Q Clause) -- ^ Constructor save fn
+                 -> Q (Dec, Dec)
+genSaveSimpleObj tname sname opdefs fn = do
+  let sigt = AppT (AppT ArrowT (ConT tname)) (ConT ''JSON.JSValue)
+      fname = mkName sname
+  cclauses <- mapM fn opdefs
+  return $ (SigD fname sigt, FunD fname cclauses)
+
 -- * Template code for simple raw type-equivalent ADTs
 
 -- | Generates a data type declaration.
@@ -573,14 +599,10 @@ genStrOfKey = genConstrToStr ensureLower
 --
 genLuxiOp :: String -> SimpleObject -> Q [Dec]
 genLuxiOp name cons = do
-  decl_d <- mapM (\(cname, fields) -> do
-                    fields' <- mapM (\(_, qt) ->
-                                         qt >>= \t -> return (NotStrict, t))
-                               fields
-                    return $ NormalC (mkName cname) fields')
-            cons
-  let declD = DataD [] (mkName name) [] decl_d [''Show, ''Read, ''Eq]
-  (savesig, savefn) <- genSaveLuxiOp cons
+  let tname = mkName name
+  declD <- buildSimpleCons tname cons
+  (savesig, savefn) <- genSaveSimpleObj tname "opToArgs"
+                         cons saveLuxiConstructor
   req_defs <- declareSADT "LuxiReq" .
               map (\(str, _) -> ("Req" ++ str, mkName ("luxiReq" ++ str))) $
                   cons
@@ -602,14 +624,6 @@ saveLuxiConstructor (sname, fields) = do
                then [| JSON.showJSON ()    |]
                else [| JSON.showJSON $(listE flist) |]
   clause [pat] (normalB finval) []
-
--- | Generates the main save LuxiOp function.
-genSaveLuxiOp :: SimpleObject-> Q (Dec, Dec)
-genSaveLuxiOp opdefs = do
-  sigt <- [t| $(conT (mkName "LuxiOp")) -> JSON.JSValue |]
-  let fname = mkName "opToArgs"
-  cclauses <- mapM saveLuxiConstructor opdefs
-  return $ (SigD fname sigt, FunD fname cclauses)
 
 -- * "Objects" functionality
 
