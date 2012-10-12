@@ -41,11 +41,14 @@ if the string all is passed.
 CANCEL
 ~~~~~~
 
-**cancel** {*id*}
+| **cancel**
+| {[\--force] {\--pending | \--queued | \--waiting} | *job-id* ...}
 
-Cancel the job identified by the given *id*. Only jobs that have
+Cancel the job(s) identified by the given *job id*. Only jobs that have
 not yet started to run can be canceled; that is, jobs in either the
-*queued* or *waiting* state.
+*queued* or *waiting* state. To skip a confirmation, pass ``--force``.
+``--queued`` and ``waiting`` can be used to cancel all jobs in the
+respective state, ``--pending`` includes both.
 
 INFO
 ~~~~

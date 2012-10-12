@@ -881,6 +881,7 @@ python_tests = \
 	test/ganeti.cli_unittest.py \
 	test/ganeti.client.gnt_cluster_unittest.py \
 	test/ganeti.client.gnt_instance_unittest.py \
+	test/ganeti.client.gnt_job_unittest.py \
 	test/ganeti.cmdlib_unittest.py \
 	test/ganeti.compat_unittest.py \
 	test/ganeti.confd.client_unittest.py \

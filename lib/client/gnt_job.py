@@ -60,6 +60,16 @@ def _FormatStatus(value):
     raise errors.ProgrammerError("Unknown job status code '%s'" % value)
 
 
+_JOB_LIST_FORMAT = {
+  "status": (_FormatStatus, False),
+  "summary": (lambda value: ",".join(str(item) for item in value), False),
+  }
+_JOB_LIST_FORMAT.update(dict.fromkeys(["opstart", "opexec", "opend"],
+                                      (lambda value: map(FormatTimestamp,
+                                                         value),
+                                       None)))
+
+
 def _ParseJobIds(args):
   """Parses a list of string job IDs into integers.
 
@@ -90,19 +100,11 @@ def ListJobs(opts, args):
   if opts.archived and "archived" not in selected_fields:
     selected_fields.append("archived")
 
-  fmtoverride = {
-    "status": (_FormatStatus, False),
-    "summary": (lambda value: ",".join(str(item) for item in value), False),
-    }
-  fmtoverride.update(dict.fromkeys(["opstart", "opexec", "opend"],
-                                   (lambda value: map(FormatTimestamp, value),
-                                    None)))
-
   qfilter = qlang.MakeSimpleFilter("status", opts.status_filter)
 
   return GenericList(constants.QR_JOB, selected_fields, args, None,
                      opts.separator, not opts.no_headers,
-                     format_override=fmtoverride, verbose=opts.verbose,
+                     format_override=_JOB_LIST_FORMAT, verbose=opts.verbose,
                      force_filter=opts.force_filter, namefield="id",
                      qfilter=qfilter, isnumeric=True)
 
@@ -172,7 +174,7 @@ def AutoArchiveJobs(opts, args):
   return 0
 
 
-def CancelJobs(opts, args):
+def CancelJobs(opts, args, cl=None, _stdout_fn=ToStdout, _ask_fn=AskUser):
   """Cancel not-yet-started jobs.
 
   @param opts: the command line options selected by the user
@@ -182,16 +184,42 @@ def CancelJobs(opts, args):
   @return: the desired exit code
 
   """
-  client = GetClient()
+  if cl is None:
+    cl = GetClient()
+
   result = constants.EXIT_SUCCESS
 
-  for job_id in args:
-    (success, msg) = client.CancelJob(job_id)
+  if bool(args) ^ (opts.status_filter is None):
+    raise errors.OpPrereqError("Either a status filter or job ID(s) must be"
+                               " specified and never both", errors.ECODE_INVAL)
+
+  if opts.status_filter is not None:
+    response = cl.Query(constants.QR_JOB, ["id", "status", "summary"],
+                        qlang.MakeSimpleFilter("status", opts.status_filter))
+
+    jobs = [i for ((_, i), _, _) in response.data]
+    if not jobs:
+      raise errors.OpPrereqError("No jobs with the requested status have been"
+                                 " found", errors.ECODE_STATE)
+
+    if not opts.force:
+      (_, table) = FormatQueryResult(response, header=True,
+                                     format_override=_JOB_LIST_FORMAT)
+      for line in table:
+        _stdout_fn(line)
+
+      if not _ask_fn("Cancel job(s) listed above?"):
+        return constants.EXIT_CONFIRMATION
+  else:
+    jobs = args
+
+  for job_id in jobs:
+    (success, msg) = cl.CancelJob(job_id)
 
     if not success:
       result = constants.EXIT_FAILURE
 
-    ToStdout(msg)
+    _stdout_fn(msg)
 
   return result
 
@@ -362,11 +390,8 @@ def WatchJob(opts, args):
 _PENDING_OPT = \
   cli_option("--pending", default=None,
              action="store_const", dest="status_filter",
-             const=frozenset([
-               constants.JOB_STATUS_QUEUED,
-               constants.JOB_STATUS_WAITING,
-               ]),
-             help="Show only jobs pending execution")
+             const=constants.JOBS_PENDING,
+             help="Select jobs pending execution or being cancelled")
 
 _RUNNING_OPT = \
   cli_option("--running", default=None,
@@ -395,6 +420,22 @@ _ARCHIVED_OPT = \
              action="store_true", dest="archived",
              help="Include archived jobs in list (slow and expensive)")
 
+_QUEUED_OPT = \
+  cli_option("--queued", default=None,
+             action="store_const", dest="status_filter",
+             const=frozenset([
+               constants.JOB_STATUS_QUEUED,
+               ]),
+             help="Select queued jobs only")
+
+_WAITING_OPT = \
+  cli_option("--waiting", default=None,
+             action="store_const", dest="status_filter",
+             const=frozenset([
+               constants.JOB_STATUS_WAITING,
+               ]),
+             help="Select waiting jobs only")
+
 
 commands = {
   "list": (
@@ -420,8 +461,11 @@ commands = {
     [],
     "<age>", "Auto archive jobs older than the given age"),
   "cancel": (
-    CancelJobs, [ArgJobId(min=1)], [],
-    "<job-id> [<job-id> ...]", "Cancel specified jobs"),
+    CancelJobs, [ArgJobId()],
+    [FORCE_OPT, _PENDING_OPT, _QUEUED_OPT, _WAITING_OPT],
+    "{[--force] {--pending | --queued | --waiting} |"
+    " <job-id> [<job-id> ...]}",
+    "Cancel jobs"),
   "info": (
     ShowJobs, [ArgJobId(min=1)], [],
     "<job-id> [<job-id> ...]",
