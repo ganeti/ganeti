@@ -360,6 +360,7 @@ docrst = \
 	doc/design-partitioned.rst \
 	doc/design-query-splitting.rst \
 	doc/design-query2.rst \
+	doc/design-remote-commands.rst \
 	doc/design-resource-model.rst \
 	doc/design-shared-storage.rst \
 	doc/design-ssh-setup.rst \
