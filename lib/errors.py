@@ -303,7 +303,7 @@ class QuitGanetiException(Exception):
 
   This is not necessarily an error (and thus not a subclass of
   GenericError), but it's an exceptional circumstance and it is thus
-  treated. This instance should be instantiated with two values. The
+  treated. This exception should be instantiated with two values. The
   first one will specify the return code to the caller, and the second
   one will be the returned result (either as an error or as a normal
   result). Usually only the leave cluster rpc call should return
@@ -385,6 +385,11 @@ class LuxiError(GenericError):
 
 class QueryFilterParseError(ParseError):
   """Error while parsing query filter.
+
+  This exception must be instantiated with two values. The first one is a
+  string with an error description, the second one is an instance of a subclass
+  of C{pyparsing.ParseBaseException} (used to display the exact error
+  location).
 
   """
   def GetDetails(self):
