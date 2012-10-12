@@ -131,25 +131,17 @@ class TestConfdConstants(unittest.TestCase):
   """Test the confd constants"""
 
   def testFourCc(self):
-    self.failUnlessEqual(len(constants.CONFD_MAGIC_FOURCC), 4,
-                         "Invalid fourcc len, should be 4")
-
-  def _IsUniqueSequence(self, sequence):
-    seen = set()
-    for member in sequence:
-      if member in seen:
-        return False
-      seen.add(member)
-    return True
+    self.assertEqual(len(constants.CONFD_MAGIC_FOURCC), 4,
+                     msg="Invalid fourcc len, should be 4")
 
   def testReqs(self):
-    self.failUnless(self._IsUniqueSequence(constants.CONFD_REQS),
-                    "Duplicated confd request code")
+    self.assertFalse(utils.FindDuplicates(constants.CONFD_REQS),
+                     msg="Duplicated confd request code")
 
   def testReplStatuses(self):
-    self.failUnless(self._IsUniqueSequence(constants.CONFD_REPL_STATUSES),
-                    "Duplicated confd reply status code")
+    self.assertFalse(utils.FindDuplicates(constants.CONFD_REPL_STATUSES),
+                     msg="Duplicated confd reply status code")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
   testutils.GanetiTestProgram()
