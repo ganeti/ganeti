@@ -387,7 +387,7 @@ instance RpcCall RpcCallVersion where
   rpcCallName _          = "version"
   rpcCallTimeout _       = rpcTimeoutToRaw Urgent
   rpcCallAcceptOffline _ = True
-  rpcCallData call _     = J.encode [call]
+  rpcCallData _          = J.encode
 
 instance Rpc RpcCallVersion RpcResultVersion where
   rpcResultFill _ res = fromJSValueToRes res RpcResultVersion
