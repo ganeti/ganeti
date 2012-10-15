@@ -362,6 +362,7 @@ docrst = \
 	doc/design-query2.rst \
 	doc/design-resource-model.rst \
 	doc/design-shared-storage.rst \
+	doc/design-ssh-setup.rst \
 	doc/design-virtual-clusters.rst \
 	doc/design-x509-ca.rst \
 	doc/devnotes.rst \

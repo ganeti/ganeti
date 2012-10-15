@@ -15,6 +15,7 @@ Design document drafts
    design-query-splitting.rst
    design-autorepair.rst
    design-partitioned.rst
+   design-ssh-setup.rst
 
 .. vim: set textwidth=72 :
 .. Local Variables:
