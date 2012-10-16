@@ -320,11 +320,13 @@ parseData fdata = do
         [a, b, c, d] -> Ok (a, b, c, d, [])
         xs -> Bad $ printf "Invalid format of the input file: %d sections\
                            \ instead of 4 or 5" (length xs)
-  {- group file: name uuid -}
+  {- group file: name uuid alloc_policy -}
   (ktg, gl) <- loadTabular glines loadGroup
-  {- node file: name t_mem n_mem f_mem t_disk f_disk -}
+  {- node file: name t_mem n_mem f_mem t_disk f_disk t_cpu offline grp_uuid
+                spindles -}
   (ktn, nl) <- loadTabular nlines (loadNode ktg)
-  {- instance file: name mem disk status pnode snode -}
+  {- instance file: name mem disk vcpus status auto_bal pnode snode
+                    disk_template tags spindle_use -}
   (_, il) <- loadTabular ilines (loadInst ktn)
   {- the tags are simply line-based, no processing needed -}
   {- process policies -}
