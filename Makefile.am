@@ -1490,7 +1490,7 @@ hlint: $(HS_BUILT_SRCS) htools/lint-hints.hs
 	  --ignore "Use &&&" \
 	  --ignore "Use void" \
 	  --hint htools/lint-hints \
-	  $(filter-out htools/Ganeti/THH.hs,$(HS_LIBTEST_SRCS))
+	  $(filter-out htools/Ganeti/THH.hs,$(HS_LIBTEST_SRCS) $(HS_PROG_SRCS))
 
 # a dist hook rule for updating the vcs-version file; this is
 # hardcoded due to where it needs to build the file...
