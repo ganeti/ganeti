@@ -64,6 +64,9 @@ module Ganeti.Rpc
   , RpcCallStorageList(..)
   , RpcResultStorageList(..)
 
+  , RpcCallTestDelay(..)
+  , RpcResultTestDelay(..)
+
   , rpcTimeoutFromRaw -- FIXME: Not used anywhere
   ) where
 
@@ -82,6 +85,8 @@ import Ganeti.Objects
 import Ganeti.THH
 import Ganeti.Compat
 import Ganeti.JSON
+
+-- * Base RPC functionality and types
 
 #ifndef NO_CURL
 -- | The curl options used for RPC.
@@ -243,6 +248,8 @@ fromJSValueToRes val = fromJResultToRes (J.readJSON val)
 
 -- * RPC calls and results
 
+-- ** Instance info
+
 -- | InstanceInfo
 --   Returns information about a single instance.
 
@@ -282,6 +289,8 @@ instance Rpc RpcCallInstanceInfo RpcResultInstanceInfo where
       _ -> Left $ JsonDecodeError
            ("Expected JSObject, got " ++ show (pp_value res))
 
+-- ** AllInstancesInfo
+
 -- | AllInstancesInfo
 --   Returns information about all running instances on the given nodes
 $(buildObject "RpcCallAllInstancesInfo" "rpcCallAllInstInfo"
@@ -309,6 +318,8 @@ instance Rpc RpcCallAllInstancesInfo RpcResultAllInstancesInfo where
       _ -> Left $ JsonDecodeError
            ("Expected JSObject, got " ++ show (pp_value res))
 
+-- ** InstanceList
+
 -- | InstanceList
 -- Returns the list of running instances on the given nodes.
 $(buildObject "RpcCallInstanceList" "rpcCallInstList"
@@ -325,6 +336,8 @@ instance RpcCall RpcCallInstanceList where
 
 instance Rpc RpcCallInstanceList RpcResultInstanceList where
   rpcResultFill _ res = fromJSValueToRes res RpcResultInstanceList
+
+-- ** NodeInfo
 
 -- | NodeInfo
 -- Return node information.
@@ -368,6 +381,8 @@ instance Rpc RpcCallNodeInfo RpcResultNodeInfo where
   rpcResultFill _ res =
     fromJSValueToRes res (\(b, vg, hv) -> RpcResultNodeInfo b vg hv)
 
+-- ** Version
+
 -- | Version
 -- Query node version.
 -- Note: We can't use THH as it does not know what to do with empty dict
@@ -391,6 +406,8 @@ instance RpcCall RpcCallVersion where
 
 instance Rpc RpcCallVersion RpcResultVersion where
   rpcResultFill _ res = fromJSValueToRes res RpcResultVersion
+
+-- ** StorageList
 
 -- | StorageList
 -- Get list of storage units.
@@ -439,3 +456,30 @@ instance Rpc RpcCallStorageList RpcResultStorageList where
   rpcResultFill call res =
     let sfields = rpcCallStorageListFields call in
     fromJSValueToRes res (RpcResultStorageList . map (zip sfields))
+
+-- ** TestDelay
+
+
+-- | Call definition for test delay.
+$(buildObject "RpcCallTestDelay" "rpcCallTestDelay"
+  [ simpleField "duration" [t| Double |]
+  ])
+
+-- | Result definition for test delay.
+data RpcResultTestDelay = RpcResultTestDelay
+                          deriving Show
+
+-- | Custom JSON instance for null result.
+instance J.JSON RpcResultTestDelay where
+  showJSON _        = J.JSNull
+  readJSON J.JSNull = return RpcResultTestDelay
+  readJSON _        = fail "Unable to read RpcResultTestDelay"
+
+instance RpcCall RpcCallTestDelay where
+  rpcCallName _          = "test_delay"
+  rpcCallTimeout         = ceiling . (+ 5) . rpcCallTestDelayDuration
+  rpcCallAcceptOffline _ = False
+  rpcCallData _ call     = J.encode [rpcCallTestDelayDuration call]
+
+instance Rpc RpcCallTestDelay RpcResultTestDelay where
+  rpcResultFill _ res = fromJSValueToRes res id
