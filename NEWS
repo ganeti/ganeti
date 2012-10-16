@@ -7,36 +7,27 @@ Version 2.6.1
 
 *(Released Fri, 12 Oct 2012)*
 
-A small bugfix release.
+A small bugfix release. Among the bugs fixed:
 
-Fix double use of PRIORITY_OPT in gnt-node migrate, that would make the
-command unusable.
-
-Commands that issue many jobs don't fail anymore just because some jobs
-take so long that other jobs are archived.
-
-Failures during gnt-instance reinstall are reflected by the exit status.
-
-Issue 190 fixed. Check for DRBD in cluster verify is enabled only when
-DRBD is enabled.
-
-When always_failover is set, --allow-failover is not required in migrate
-commands anymore.
-
-bash_completion works even if extglob is disabled
-
-Fix bug with locks that made failover for RDB-based instances fail.
-
-Fix bug in non-mirrored instance allocation that would make Ganeti
-choose a random node instead of one based on the allocator metric.
-
-Support for newer versions of pylint and pep8.
-
-Hail doesn't fail anymore when trying to add an instance of type
-'file', 'sharedfile' or 'rbd'.
-
-Add new Makefile target to rebuild the whole dist, so that all files are
-included.
+- Fixed double use of ``PRIORITY_OPT`` in ``gnt-node migrate``, that
+  made the command unusable.
+- Commands that issue many jobs don't fail anymore just because some jobs
+  take so long that other jobs are archived.
+- Failures during ``gnt-instance reinstall`` are reflected by the exit
+  status.
+- Issue 190 fixed. Check for DRBD in cluster verify is enabled only when
+  DRBD is enabled.
+- When ``always_failover`` is set, ``--allow-failover`` is not required
+  in migrate commands anymore.
+- ``bash_completion`` works even if extglob is disabled.
+- Fixed bug with locks that made failover for RDB-based instances fail.
+- Fixed bug in non-mirrored instance allocation that made Ganeti choose
+  a random node instead of one based on the allocator metric.
+- Support for newer versions of pylint and pep8.
+- Hail doesn't fail anymore when trying to add an instance of type
+  ``file``, ``sharedfile`` or ``rbd``.
+- Added new Makefile target to rebuild the whole distribution, so that
+  all files are included.
 
 
 Version 2.6.0
