@@ -9577,7 +9577,8 @@ def _ComputeNics(op, cluster, default_ip, cfg, proc):
 
     check_params = cluster.SimpleFillNIC(nicparams)
     objects.NIC.CheckParameterSyntax(check_params)
-    nics.append(objects.NIC(mac=mac, ip=nic_ip, nicparams=nicparams))
+    nics.append(objects.NIC(mac=mac, ip=nic_ip,
+                            network=net, nicparams=nicparams))
 
   return nics
 
