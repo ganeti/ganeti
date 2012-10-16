@@ -49,7 +49,7 @@ def FormatParamikoFingerprint(fingerprint):
 
 
 def GetUserFiles(user, mkdir=False, kind=constants.SSHK_DSA,
-                 _homedir_fn=utils.GetHomeDir):
+                 _homedir_fn=None):
   """Return the paths of a user's SSH files.
 
   @type user: string
@@ -67,6 +67,9 @@ def GetUserFiles(user, mkdir=False, kind=constants.SSHK_DSA,
     exception is raised if C{~$user/.ssh} is not a directory
 
   """
+  if _homedir_fn is None:
+    _homedir_fn = utils.GetHomeDir
+
   user_dir = _homedir_fn(user)
   if not user_dir:
     raise errors.OpExecError("Cannot resolve home of user '%s'" % user)

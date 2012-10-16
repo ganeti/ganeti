@@ -315,7 +315,8 @@ server_PYTHON = \
 
 pytools_PYTHON = \
 	lib/tools/__init__.py \
-	lib/tools/ensure_dirs.py
+	lib/tools/ensure_dirs.py \
+	lib/tools/prepare_node_join.py
 
 utils_PYTHON = \
 	lib/utils/__init__.py \
@@ -578,7 +579,8 @@ PYTHON_BOOTSTRAP_SBIN = \
 
 PYTHON_BOOTSTRAP = \
 	$(PYTHON_BOOTSTRAP_SBIN) \
-	tools/ensure-dirs
+	tools/ensure-dirs \
+	tools/prepare-node-join
 
 qa_scripts = \
 	qa/__init__.py \
@@ -690,7 +692,8 @@ pkglib_python_scripts = \
 	tools/check-cert-expired
 
 nodist_pkglib_python_scripts = \
-	tools/ensure-dirs
+	tools/ensure-dirs \
+	tools/prepare-node-join
 
 myexeclib_SCRIPTS = \
 	daemons/daemon-util \
@@ -822,6 +825,7 @@ TEST_FILES = \
 	test/data/bdev-drbd-net-ip4.txt \
 	test/data/bdev-drbd-net-ip6.txt \
 	test/data/cert1.pem \
+	test/data/cert2.pem \
 	test/data/ip-addr-show-dummy0.txt \
 	test/data/ip-addr-show-lo-ipv4.txt \
 	test/data/ip-addr-show-lo-ipv6.txt \
@@ -926,6 +930,7 @@ python_tests = \
 	test/ganeti.ssh_unittest.py \
 	test/ganeti.storage_unittest.py \
 	test/ganeti.tools.ensure_dirs_unittest.py \
+	test/ganeti.tools.prepare_node_join_unittest.py \
 	test/ganeti.uidpool_unittest.py \
 	test/ganeti.utils.algo_unittest.py \
 	test/ganeti.utils.filelock_unittest.py \
@@ -1327,6 +1332,7 @@ daemons/ganeti-%: MODULE = ganeti.server.$(patsubst ganeti-%,%,$(notdir $@))
 daemons/ganeti-watcher: MODULE = ganeti.watcher
 scripts/%: MODULE = ganeti.client.$(subst -,_,$(notdir $@))
 tools/ensure-dirs: MODULE = ganeti.tools.ensure_dirs
+tools/prepare-node-join: MODULE = ganeti.tools.prepare_node_join
 $(HS_BUILT_TEST_HELPERS): TESTROLE = $(patsubst htest/%,%,$@)
 
 $(PYTHON_BOOTSTRAP): Makefile | stamp-directories

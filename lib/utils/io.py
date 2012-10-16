@@ -828,9 +828,6 @@ def ReadLockedPidFile(path):
   return None
 
 
-_SSH_KEYS_WITH_TWO_PARTS = frozenset(["ssh-dss", "ssh-rsa"])
-
-
 def _SplitSshKey(key):
   """Splits a line for SSH's C{authorized_keys} file.
 
@@ -845,7 +842,7 @@ def _SplitSshKey(key):
   """
   parts = key.split()
 
-  if parts and parts[0] in _SSH_KEYS_WITH_TWO_PARTS:
+  if parts and parts[0] in constants.SSHAK_ALL:
     # If the key has no options in front of it, we only want the significant
     # fields
     return (False, parts[:2])

@@ -2049,5 +2049,17 @@ SSHK_RSA = "rsa"
 SSHK_DSA = "dsa"
 SSHK_ALL = frozenset([SSHK_RSA, SSHK_DSA])
 
+# SSH authorized key types
+SSHAK_RSA = "ssh-rsa"
+SSHAK_DSS = "ssh-dss"
+SSHAK_ALL = frozenset([SSHAK_RSA, SSHAK_DSS])
+
+# SSH setup
+SSHS_CLUSTER_NAME = "cluster_name"
+SSHS_FORCE = "force"
+SSHS_SSH_HOST_KEY = "ssh_host_key"
+SSHS_SSH_ROOT_KEY = "ssh_root_key"
+SSHS_NODE_DAEMON_CERTIFICATE = "node_daemon_certificate"
+
 # Do not re-export imported modules
 del re, _vcsversion, _autoconf, socket, pathutils
