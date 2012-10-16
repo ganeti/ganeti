@@ -386,7 +386,13 @@ HS_PROGS = htools/htools
 HS_BIN_ROLES = hbal hscan hspace hinfo hcheck
 HS_HTOOLS_PROGS = $(HS_BIN_ROLES) hail
 
-HS_ALL_PROGS = $(HS_PROGS) htest/test htest/hpc-htools htools/hconfd
+HS_ALL_PROGS = \
+	$(HS_PROGS) \
+	htest/hpc-htools \
+	htest/test \
+	htools/hconfd \
+	htools/rpc-test
+
 HS_PROG_SRCS = $(patsubst %,%.hs,$(HS_ALL_PROGS))
 HS_BUILT_TEST_HELPERS = $(HS_BIN_ROLES:%=htest/%) htest/hail
 

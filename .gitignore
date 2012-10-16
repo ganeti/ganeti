@@ -113,6 +113,7 @@
 /htools/htools
 /htools/hconfd
 /htools/ganeti-confd
+/htools/rpc-test
 /htest/hpc-htools
 /htest/test
 /htools/*.prof*
