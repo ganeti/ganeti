@@ -23,7 +23,7 @@ Version 2.7.0 beta1
   is protected using SSL/X.509 certificates, but as a design principle
   Ganeti does not permit arbitrary paths to be passed.
 - The parsing of the variants file for OSes (see
-  :manpage:`ganeti-os-interfac7(8)` has been slightly changed: now empty
+  :manpage:`ganeti-os-interface(8)` has been slightly changed: now empty
   lines and comment lines are ignored for better readability.
 
 
