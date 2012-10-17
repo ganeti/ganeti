@@ -139,9 +139,8 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     """Handle a request.
 
     """
-    # FIXME: Remove HTTP_PUT in Ganeti 2.7
-    if req.request_method.upper() not in (http.HTTP_PUT, http.HTTP_POST):
-      raise http.HttpBadRequest("Only PUT and POST methods are supported")
+    if req.request_method.upper() != http.HTTP_POST:
+      raise http.HttpBadRequest("Only the POST method is supported")
 
     path = req.request_path
     if path.startswith("/"):
