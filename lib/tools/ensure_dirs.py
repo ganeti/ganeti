@@ -224,7 +224,7 @@ def ParseOptions():
   """
   program = os.path.basename(sys.argv[0])
 
-  parser = optparse.OptionParser(usage="%%prog [--full-run]",
+  parser = optparse.OptionParser(usage="%prog [--full-run]",
                                  prog=program)
   parser.add_option(cli.DEBUG_OPT)
   parser.add_option(cli.VERBOSE_OPT)
