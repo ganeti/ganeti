@@ -800,6 +800,7 @@ def VerifyNode(what, cluster_name):
     result[constants.NV_BRIDGES] = [bridge
                                     for bridge in what[constants.NV_BRIDGES]
                                     if not utils.BridgeExists(bridge)]
+
   return result
 
 

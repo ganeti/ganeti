@@ -29,6 +29,7 @@ import stat
 import pyparsing as pyp
 import os
 import logging
+import itertools
 
 from ganeti import utils
 from ganeti import errors
@@ -100,6 +101,58 @@ def _CanReadDevice(path):
     return False
 
 
+def _GetForbiddenFileStoragePaths():
+  """Builds a list of path prefixes which shouldn't be used for file storage.
+
+  @rtype: frozenset
+
+  """
+  paths = set([
+    "/boot",
+    "/dev",
+    "/etc",
+    "/home",
+    "/proc",
+    "/root",
+    "/sys",
+    ])
+
+  for prefix in ["", "/usr", "/usr/local"]:
+    paths.update(map(lambda s: "%s/%s" % (prefix, s),
+                     ["bin", "lib", "lib32", "lib64", "sbin"]))
+
+  return frozenset(map(os.path.normpath, paths))
+
+
+def _ComputeWrongFileStoragePaths(paths,
+                                  _forbidden=_GetForbiddenFileStoragePaths()):
+  """Cross-checks a list of paths for prefixes considered bad.
+
+  Some paths, e.g. "/bin", should not be used for file storage.
+
+  @type paths: list
+  @param paths: List of paths to be checked
+  @rtype: list
+  @return: Sorted list of paths for which the user should be warned
+
+  """
+  def _Check(path):
+    return (not os.path.isabs(path) or
+            path in _forbidden or
+            filter(lambda p: utils.IsBelowDir(p, path), _forbidden))
+
+  return utils.NiceSort(filter(_Check, map(os.path.normpath, paths)))
+
+
+def ComputeWrongFileStoragePaths(_filename=pathutils.FILE_STORAGE_PATHS_FILE):
+  """Returns a list of file storage paths whose prefix is considered bad.
+
+  See L{_ComputeWrongFileStoragePaths}.
+
+  """
+  return _ComputeWrongFileStoragePaths(_LoadAllowedFileStoragePaths(_filename))
+
+
 def _CheckFileStoragePath(path, allowed):
   """Checks if a path is in a list of allowed paths for file storage.
 
@@ -126,7 +179,7 @@ def _CheckFileStoragePath(path, allowed):
                                       " storage" % path)
 
 
-def LoadAllowedFileStoragePaths(filename):
+def _LoadAllowedFileStoragePaths(filename):
   """Loads file containing allowed file storage paths.
 
   @rtype: list
@@ -149,7 +202,13 @@ def CheckFileStoragePath(path, _filename=pathutils.FILE_STORAGE_PATHS_FILE):
   @raise errors.FileStoragePathError: If the path is not allowed
 
   """
-  _CheckFileStoragePath(path, LoadAllowedFileStoragePaths(_filename))
+  allowed = _LoadAllowedFileStoragePaths(_filename)
+
+  if _ComputeWrongFileStoragePaths([path]):
+    raise errors.FileStoragePathError("Path '%s' uses a forbidden prefix" %
+                                      path)
+
+  _CheckFileStoragePath(path, allowed)
 
 
 class BlockDev(object):
