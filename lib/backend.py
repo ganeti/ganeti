@@ -2291,7 +2291,8 @@ def _TryOSFromDisk(name, base_dir=None):
   if constants.OS_VARIANTS_FILE in os_files:
     variants_file = os_files[constants.OS_VARIANTS_FILE]
     try:
-      variants = utils.ReadFile(variants_file).splitlines()
+      variants = \
+        utils.FilterEmptyLinesAndComments(utils.ReadFile(variants_file))
     except EnvironmentError, err:
       # we accept missing files, but not other errors
       if err.errno != errno.ENOENT:

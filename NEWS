@@ -2,7 +2,7 @@ News
 ====
 
 
-Version 2.7.0 beta0
+Version 2.7.0 beta1
 -------------------
 
 *(unreleased)*
@@ -22,6 +22,9 @@ Version 2.7.0 beta0
   allowing files to be created in arbitrary locations. The RPC protocol
   is protected using SSL/X.509 certificates, but as a design principle
   Ganeti does not permit arbitrary paths to be passed.
+- The parsing of the variants file for OSes (see
+  :manpage:`ganeti-os-interfac7(8)` has been slightly changed: now empty
+  lines and comment lines are ignored for better readability.
 
 
 Version 2.6.1

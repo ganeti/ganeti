@@ -265,6 +265,8 @@ variants.list is a plain text file containing all the declared supported
 variants for this OS, one per line. If this file is missing or empty,
 then the OS won't be considered to support variants.
 
+Empty lines and lines starting with a hash (``#``) are ignored.
+
 parameters.list
 ~~~~~~~~~~~~~~~
 
