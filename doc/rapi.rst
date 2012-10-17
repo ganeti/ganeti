@@ -243,15 +243,15 @@ Ganeti includes a standalone RAPI client, ``lib/rapi/client.py``.
 Shell
 +++++
 
-.. highlight:: sh
+.. highlight:: shell-example
 
 Using wget::
 
-   wget -q -O - https://CLUSTERNAME:5080/2/info
+   $ wget -q -O - https://%CLUSTERNAME%:5080/2/info
 
 or curl::
 
-  curl https://CLUSTERNAME:5080/2/info
+  $ curl https://%CLUSTERNAME%:5080/2/info
 
 
 Python
