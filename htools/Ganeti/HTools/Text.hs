@@ -67,8 +67,9 @@ commaSplit = sepSplit ','
 -- | Serialize a single group.
 serializeGroup :: Group.Group -> String
 serializeGroup grp =
-  printf "%s|%s|%s" (Group.name grp) (Group.uuid grp)
+  printf "%s|%s|%s|%s" (Group.name grp) (Group.uuid grp)
            (allocPolicyToRaw (Group.allocPolicy grp))
+           (intercalate "," (Group.allTags grp))
 
 -- | Generate group file data from a group list.
 serializeGroups :: Group.List -> String
@@ -108,7 +109,7 @@ serializeInstance nl inst =
        (Instance.vcpus inst) (instanceStatusToRaw (Instance.runSt inst))
        (if Instance.autoBalance inst then "Y" else "N")
        pnode snode (diskTemplateToRaw (Instance.diskTemplate inst))
-       (intercalate "," (Instance.tags inst)) (Instance.spindleUse inst)
+       (intercalate "," (Instance.allTags inst)) (Instance.spindleUse inst)
 
 -- | Generate instance file data from instance objects.
 serializeInstances :: Node.List -> Instance.List -> String
@@ -168,9 +169,10 @@ serializeCluster (ClusterData gl nl il ctags cpol) =
 loadGroup :: (Monad m) => [String]
           -> m (String, Group.Group) -- ^ The result, a tuple of group
                                      -- UUID and group object
-loadGroup [name, gid, apol] = do
+loadGroup [name, gid, apol, tags] = do
   xapol <- allocPolicyFromRaw apol
-  return (gid, Group.create name gid xapol defIPolicy)
+  let xtags = commaSplit tags
+  return (gid, Group.create name gid xapol defIPolicy xtags)
 
 loadGroup s = fail $ "Invalid/incomplete group data: '" ++ show s ++ "'"
 

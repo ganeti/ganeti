@@ -126,7 +126,7 @@ data Node = Node
                           -- computations
   , utilPool :: T.DynUtil -- ^ Total utilisation capacity
   , utilLoad :: T.DynUtil -- ^ Sum of instance utilisation
-  , pTags    :: TagMap    -- ^ Map of primary instance tags and their count
+  , pTags    :: TagMap    -- ^ Primary instance exclusion tags and their count
   , group    :: T.Gdx     -- ^ The node's group (index)
   , iPolicy  :: T.IPolicy -- ^ The instance policy (of the node's group)
   } deriving (Show, Read, Eq)
@@ -327,7 +327,7 @@ setPri t inst = t { pList = Instance.idx inst:pList t
                   , uCpu = new_count
                   , pCpu = fromIntegral new_count / tCpu t
                   , utilLoad = utilLoad t `T.addUtil` Instance.util inst
-                  , pTags = addTags (pTags t) (Instance.tags inst)
+                  , pTags = addTags (pTags t) (Instance.exclTags inst)
                   , instSpindles = calcSpindleUse t inst
                   }
   where new_count = Instance.applyIfOnline inst (+ Instance.vcpus inst)
@@ -376,7 +376,7 @@ removePri t inst =
   in t { pList = new_plist, fMem = new_mem, fDsk = new_dsk
        , failN1 = new_failn1, pMem = new_mp, pDsk = new_dp
        , uCpu = new_ucpu, pCpu = new_rcpu, utilLoad = new_load
-       , pTags = delTags (pTags t) (Instance.tags inst)
+       , pTags = delTags (pTags t) (Instance.exclTags inst)
        , instSpindles = new_spindles
        }
 
@@ -440,7 +440,7 @@ addPriEx force t inst =
       new_dp = computePDsk new_dsk (tDsk t)
       l_cpu = T.iPolicyVcpuRatio $ iPolicy t
       new_load = utilLoad t `T.addUtil` Instance.util inst
-      inst_tags = Instance.tags inst
+      inst_tags = Instance.exclTags inst
       old_tags = pTags t
       strict = not force
   in case () of

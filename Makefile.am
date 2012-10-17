@@ -795,6 +795,7 @@ TEST_FILES = \
 	htest/data/hail-invalid-reloc.json \
 	htest/data/hail-node-evac.json \
 	htest/data/hail-reloc-drbd.json \
+	htest/data/hbal-excl-tags.data \
 	htest/data/hbal-split-insts.data \
 	htest/data/invalid-node.data \
 	htest/data/missing-resources.data \

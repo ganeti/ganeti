@@ -454,6 +454,7 @@ class IAllocator(object):
       "name": gdata.name,
       "alloc_policy": gdata.alloc_policy,
       "ipolicy": gmi.CalculateGroupIPolicy(cluster, gdata),
+      "tags": list(gdata.tags),
       })
       for guuid, gdata in cfg.GetAllNodeGroupsInfo().items())
 

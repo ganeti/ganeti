@@ -186,7 +186,8 @@ parseGroup a = do
   uuid <- extract "uuid"
   apol <- extract "alloc_policy"
   ipol <- extract "ipolicy"
-  return (uuid, Group.create name uuid apol ipol)
+  tags <- extract "tags"
+  return (uuid, Group.create name uuid apol ipol tags)
 
 -- | Parse cluster data from the info resource.
 parseCluster :: JSObject JSValue -> Result ([String], IPolicy)

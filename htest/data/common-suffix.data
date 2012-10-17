@@ -1,4 +1,4 @@
-default|fake-uuid-01|preferred
+default|fake-uuid-01|preferred|
 
 node1.example.com|1024|0|1024|95367|95367|4|N|fake-uuid-01|1
 node2.example.com|1024|0|896|95367|94343|4|N|fake-uuid-01|1

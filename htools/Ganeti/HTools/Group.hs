@@ -46,6 +46,7 @@ data Group = Group
   , idx         :: T.Gdx         -- ^ Internal index for book-keeping
   , allocPolicy :: T.AllocPolicy -- ^ The allocation policy for this group
   , iPolicy     :: T.IPolicy     -- ^ The instance policy for this group
+  , allTags     :: [String]      -- ^ The tags for this group
   } deriving (Show, Read, Eq)
 
 -- Note: we use the name as the alias, and the UUID as the official
@@ -66,12 +67,13 @@ type List = Container.Container Group
 -- * Initialization functions
 
 -- | Create a new group.
-create :: String -> T.GroupID -> T.AllocPolicy -> T.IPolicy -> Group
-create name_init id_init apol_init ipol_init =
+create :: String -> T.GroupID -> T.AllocPolicy -> T.IPolicy -> [String] -> Group
+create name_init id_init apol_init ipol_init tags_init =
   Group { name        = name_init
         , uuid        = id_init
         , allocPolicy = apol_init
         , iPolicy     = ipol_init
+        , allTags     = tags_init
         , idx         = -1
         }
 

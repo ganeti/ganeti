@@ -43,6 +43,7 @@
         "spindle-ratio": 32.0
       },
       "alloc_policy": "preferred",
+      "tags": [],
       "name": "default"
     },
     "uuid-group-2": {
@@ -84,6 +85,7 @@
         "spindle-ratio": 32.0
       },
       "alloc_policy": "preferred",
+      "tags": [],
       "name": "empty"
     }
   },

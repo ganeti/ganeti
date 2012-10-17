@@ -84,7 +84,7 @@ createGroup grpIndex spec = do
                            (fromIntegral cpu) False spindles grpIndex
                   ) [1..ncount]
       grp = Group.create (printf "group-%02d" grpIndex)
-            (printf "fake-uuid-%02d" grpIndex) apol defIPolicy
+            (printf "fake-uuid-%02d" grpIndex) apol defIPolicy []
   return (Group.setIdx grp grpIndex, nodes)
 
 -- | Builds the cluster data from node\/instance files.

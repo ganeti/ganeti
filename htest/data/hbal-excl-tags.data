@@ -1,0 +1,12 @@
+group-01|fake-uuid-01|preferred|
+
+node-01|16384|0|14336|409600|153600|16|N|fake-uuid-01|1
+node-02|16384|0|13312|409600|153600|16|N|fake-uuid-01|1
+
+dns1|1024|51200|1|running|Y|node-01|node-02|drbd|service-group:dns,foo|1
+dns2|1024|51200|1|running|Y|node-01|node-02|drbd|service-group:dns,foo|1
+ftp1|1024|51200|1|running|Y|node-02|node-01|drbd|test:ftp,bar|1
+ftp2|1024|51200|1|running|Y|node-02|node-01|drbd|test:ftp,bar|1
+admin|1024|51200|1|running|Y|node-02|node-01|drbd|foo|1
+
+htools:iextags:service-group
