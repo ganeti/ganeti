@@ -223,10 +223,10 @@ Currently (API version 20), only one parameter is supported:
 environment, and output diagnostic messages in case the validation
 fails.
 
-.. highlight:: sh
-
 For the ``dhcp`` parameter given as example above, a verification
-script could be::
+script could be:
+
+.. code-block:: Bash
 
     #!/bin/sh
 
@@ -340,7 +340,9 @@ Version 4 to 5
 
 The rename script has been added. If you don't want to do any
 changes on the instances after a rename, you can migrate the OS
-definition to version 5 by creating the rename script simply as::
+definition to version 5 by creating the rename script simply as:
+
+.. code-block:: Bash
 
     #!/bin/sh
 

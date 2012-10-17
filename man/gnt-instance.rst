@@ -566,7 +566,9 @@ cpu\_mask
     the colon-separated list _must_ equal the number of VCPUs of the
     instance.
 
-    Example::
+    Example:
+
+    .. code-block:: Bash
 
       # Map the entire instance to CPUs 0-2
       gnt-instance modify -H cpu_mask=0-2 my-inst

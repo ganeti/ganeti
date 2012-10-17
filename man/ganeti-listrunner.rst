@@ -86,11 +86,15 @@ The exist status of the command will be zero, unless it was aborted in some way
 EXAMPLE
 -------
 
-Run a command on a list of hosts::
+Run a command on a list of hosts:
+
+.. code-block:: Bash
 
   listrunner -l logdir -c "uname -a" -h host1,host2,host3
 
-Upload a script, some auxiliary files and run the script::
+Upload a script, some auxiliary files and run the script:
+
+.. code-block:: Bash
 
   listrunner -l logdir -x runme.sh \
     -a seed.dat -a golden.dat \
@@ -100,7 +104,7 @@ Upload a script, some auxiliary files and run the script::
 SEE ALSO
 --------
 
-dsh(1), cssh(1)
+**dsh**(1), **cssh**(1)
 
 .. vim: set textwidth=72 :
 .. Local Variables:
