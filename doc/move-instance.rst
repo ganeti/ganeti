@@ -31,18 +31,21 @@ can be easily moved between them. By checking the signatures, the
 destination cluster can be sure the third party (e.g. this tool) didn't
 modify the received crypto keys and connection information.
 
-.. highlight:: sh
+.. highlight:: shell-example
 
 To create a new, random cluster domain secret, run the following command
 on the master node::
 
-  gnt-cluster renew-crypto --new-cluster-domain-secret
+  $ gnt-cluster renew-crypto --new-cluster-domain-secret
 
 
-To set the cluster domain secret, run the following command on the
-master node::
+To read and set the cluster domain secret from the contents of a file,
+run the following command on the master node::
 
-  gnt-cluster renew-crypto --cluster-domain-secret=/.../ganeti.cds
+  $ gnt-cluster renew-crypto --cluster-domain-secret=%/.../ganeti.cds%
+
+More information about the ``renew-crypto`` command can be found in
+:manpage:`gnt-cluster(8)`.
 
 
 Moving instances
@@ -51,7 +54,7 @@ Moving instances
 As soon as the clusters share a cluster domain secret, instances can be
 moved. The tool usage is as follows::
 
-  move-instance [options] <source-cluster> <destination-cluster> <instance-name...>
+  $ move-instance %[options]% %source-cluster% %destination-cluster% %instance-name...%
 
 Multiple instances can be moved with one invocation of the instance move
 tool, though a few options are only available when moving a single
@@ -68,7 +71,7 @@ destination-related options default to the source value (e.g. setting
   PEM format. For self-signed certificates, this is the certificate
   itself. For certificates signed by a third party CA, the complete
   chain must be in the file (see documentation for
-  ``SSL_CTX_load_verify_locations(3)``).
+  :manpage:`SSL_CTX_load_verify_locations(3)`).
 ``--src-username``/``--dest-username``
   RAPI username, must have write access to cluster.
 ``--src-password-file``/``--dest-password-file``
