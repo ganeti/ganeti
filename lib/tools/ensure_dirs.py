@@ -239,9 +239,13 @@ def Main():
   """Main routine.
 
   """
-  (opts, _) = ParseOptions()
+  (opts, args) = ParseOptions()
 
   SetupLogging(opts)
+
+  if args:
+    logging.error("No arguments are expected")
+    return constants.EXIT_FAILURE
 
   if opts.full_run:
     logging.info("Running in full mode")
