@@ -91,6 +91,7 @@ primary for and will contain at least:
 - The instance name
 - The instance UUID (stable on name change)
 - The instance running status (up or down)
+- The uptime, as detected by the hypervisor
 - The timestamp of last known change
 - The timestamp of when the status was last checked (see caching, below)
 - The last known reason for change, if any
