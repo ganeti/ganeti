@@ -813,11 +813,27 @@ class LogicalVolume(BlockDev):
 
     return (self._vg_name, snap_name)
 
+  def _RemoveOldInfo(self):
+    """Try to remove old tags from the lv.
+
+    """
+    result = utils.RunCmd(["lvs", "-o", "tags", "--noheadings", "--nosuffix",
+                           self.dev_path])
+    _CheckResult(result)
+
+    raw_tags = result.stdout.strip()
+    if raw_tags:
+      for tag in raw_tags.split(","):
+        _CheckResult(utils.RunCmd(["lvchange", "--deltag",
+                                   tag.strip(), self.dev_path]))
+
   def SetInfo(self, text):
     """Update metadata with info text.
 
     """
     BlockDev.SetInfo(self, text)
+
+    self._RemoveOldInfo()
 
     # Replace invalid characters
     text = re.sub("^[^A-Za-z0-9_+.]", "_", text)
