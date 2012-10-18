@@ -734,7 +734,7 @@ SYNC_OPT = cli_option("--sync", dest="do_locking",
 DRY_RUN_OPT = cli_option("--dry-run", default=False,
                          action="store_true",
                          help=("Do not execute the operation, just run the"
-                               " check steps and verify it it could be"
+                               " check steps and verify if it could be"
                                " executed"))
 
 VERBOSE_OPT = cli_option("-v", "--verbose", default=False,

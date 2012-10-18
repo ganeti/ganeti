@@ -229,7 +229,7 @@ def ParseOptions():
   """
   program = os.path.basename(sys.argv[0])
 
-  parser = optparse.OptionParser(usage="%%prog [--full-run]",
+  parser = optparse.OptionParser(usage="%prog [--full-run]",
                                  prog=program)
   parser.add_option(cli.DEBUG_OPT)
   parser.add_option(cli.VERBOSE_OPT)
@@ -244,9 +244,13 @@ def Main():
   """Main routine.
 
   """
-  (opts, _) = ParseOptions()
+  (opts, args) = ParseOptions()
 
   SetupLogging(opts)
+
+  if args:
+    logging.error("No arguments are expected")
+    return constants.EXIT_FAILURE
 
   if opts.full_run:
     logging.info("Running in full mode")
