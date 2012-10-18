@@ -228,5 +228,5 @@ class TestIP6Client(unittest.TestCase, _BaseClientTest):
     _BaseClientTest.setUp(self)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
   testutils.GanetiTestProgram()

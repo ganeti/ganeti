@@ -407,5 +407,5 @@ class TestCheckInstanceDiskIvNames(unittest.TestCase):
     self.assertEqual(config._CheckInstanceDiskIvNames(disks), [])
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
   testutils.GanetiTestProgram()

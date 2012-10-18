@@ -348,5 +348,5 @@ class TestNode(unittest.TestCase):
     self.assertEqual(node2.disk_state[constants.LD_LV]["lv32352"].total, 128)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
   testutils.GanetiTestProgram()

@@ -1367,5 +1367,5 @@ class RapiTestRunner(unittest.TextTestRunner):
     return result
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
   client.UsesRapiClient(testutils.GanetiTestProgram)(testRunner=RapiTestRunner)

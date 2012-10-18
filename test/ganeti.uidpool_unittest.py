@@ -118,5 +118,5 @@ class TestUidPool(testutils.GanetiTestCase):
     self.assertEqualValues(uid.GetUid(), -1)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
   testutils.GanetiTestProgram()

@@ -369,5 +369,5 @@ class TestVerifyDictOptions(unittest.TestCase):
                       some_keys, self.defaults)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
   testutils.GanetiTestProgram()

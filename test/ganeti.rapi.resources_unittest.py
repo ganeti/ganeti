@@ -69,5 +69,5 @@ class MapperTests(unittest.TestCase):
     self._TestFailingUri("/instances/does/not/exist")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
   testutils.GanetiTestProgram()

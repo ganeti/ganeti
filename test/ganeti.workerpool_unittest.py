@@ -516,5 +516,5 @@ class TestWorkerpool(unittest.TestCase):
       self._CheckWorkerCount(wp, 0)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
   testutils.GanetiTestProgram()

@@ -495,5 +495,5 @@ class TestHooksRunnerEnv(unittest.TestCase):
     assert isinstance(self.lu, FakeNoHooksLU), "LU was replaced"
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
   testutils.GanetiTestProgram()

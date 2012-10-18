@@ -747,5 +747,5 @@ class TestProcessRequests(unittest.TestCase):
                       _curl_multi=NotImplemented, _curl_process=NotImplemented)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
   testutils.GanetiTestProgram()

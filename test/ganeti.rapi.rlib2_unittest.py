@@ -1753,5 +1753,5 @@ class TestInstancesMultiAlloc(unittest.TestCase):
                                 for inst in body["instances"]]))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
   testutils.GanetiTestProgram()
