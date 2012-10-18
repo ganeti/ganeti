@@ -32,7 +32,6 @@ module Ganeti.HTools.Program.Hail
 import Control.Monad
 import Data.Maybe (fromMaybe, isJust)
 import System.IO
-import System.Exit
 
 import qualified Ganeti.HTools.Cluster as Cluster
 
@@ -41,6 +40,7 @@ import Ganeti.HTools.CLI
 import Ganeti.HTools.IAlloc
 import Ganeti.HTools.Loader (Request(..), ClusterData(..))
 import Ganeti.HTools.ExtLoader (maybeSaveData, loadExternalData)
+import Ganeti.Utils
 
 -- | Options list and functions.
 options :: [OptType]
@@ -58,9 +58,7 @@ arguments = [ArgCompletion OptComplFile 1 (Just 1)]
 
 wrapReadRequest :: Options -> [String] -> IO Request
 wrapReadRequest opts args = do
-  when (null args) $ do
-    hPutStrLn stderr "Error: this program needs an input file."
-    exitWith $ ExitFailure 1
+  when (null args) $ exitErr "This program needs an input file."
 
   r1 <- readRequest (head args)
   if isJust (optDataFile opts) ||  (not . null . optNodeSim) opts

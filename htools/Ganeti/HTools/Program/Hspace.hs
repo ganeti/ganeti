@@ -387,7 +387,7 @@ instFromSpec spx =
 -- | Main function.
 main :: Options -> [String] -> IO ()
 main opts args = do
-  exitUnless (null args) "this program doesn't take any arguments"
+  exitUnless (null args) "This program doesn't take any arguments."
 
   let verbose = optVerbose opts
       machine_r = optMachineReadable opts

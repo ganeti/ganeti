@@ -36,8 +36,6 @@ import Data.List
 import Control.Monad
 import Text.JSON (JSObject, JSValue(JSArray),
                   makeObj, encodeStrict, decodeStrict, fromJSObject, showJSON)
-import System.Exit
-import System.IO
 
 import Ganeti.BasicTypes
 import qualified Ganeti.HTools.Cluster as Cluster
@@ -50,6 +48,7 @@ import Ganeti.HTools.CLI
 import Ganeti.HTools.Loader
 import Ganeti.HTools.Types
 import Ganeti.JSON
+import Ganeti.Utils
 
 {-# ANN module "HLint: ignore Eta reduce" #-}
 
@@ -385,9 +384,7 @@ readRequest fp = do
                   "-" -> getContents
                   _   -> readFile fp
   case parseData input_data of
-    Bad err -> do
-      hPutStrLn stderr $ "Error: " ++ err
-      exitWith $ ExitFailure 1
+    Bad err -> exitErr err
     Ok (fix_msgs, rq) -> maybeShowWarnings fix_msgs >> return rq
 
 -- | Main iallocator pipeline.

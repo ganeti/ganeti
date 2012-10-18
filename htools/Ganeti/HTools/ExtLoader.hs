@@ -95,7 +95,7 @@ loadExternalData opts = do
       exInsts = optExInst opts
 
   exitWhen (length allSet > 1) "Only one of the rapi, luxi, and data\
-                               \ files options should be given"
+                               \ files options should be given."
 
   util_contents <- maybe (return "") readFile (optDynuFile opts)
   util_data <- exitIfBad "can't parse utilisation data" .

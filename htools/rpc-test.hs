@@ -37,8 +37,7 @@ import Ganeti.Utils
 usage :: IO ()
 usage = do
   prog <- getProgName
-  hPutStrLn stderr $ "Usage: " ++ prog ++ " delay node..."
-  exitWith $ ExitFailure 1
+  exitErr "Usage: " ++ prog ++ " delay node..."
 
 main :: IO ()
 main = do

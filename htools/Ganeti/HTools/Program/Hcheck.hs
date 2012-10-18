@@ -32,7 +32,6 @@ module Ganeti.HTools.Program.Hcheck
 import Control.Monad
 import Data.List (transpose)
 import System.Exit
-import System.IO
 import Text.Printf (printf)
 
 import qualified Ganeti.HTools.Container as Container
@@ -48,6 +47,7 @@ import Ganeti.HTools.CLI
 import Ganeti.HTools.ExtLoader
 import Ganeti.HTools.Loader
 import Ganeti.HTools.Types
+import Ganeti.Utils
 
 -- | Options list and functions.
 options :: [OptType]
@@ -295,9 +295,7 @@ printFinalHTC = printFinal htcPrefix
 -- | Main function.
 main :: Options -> [String] -> IO ()
 main opts args = do
-  unless (null args) $ do
-         hPutStrLn stderr "Error: this program doesn't take any arguments."
-         exitWith $ ExitFailure 1
+  unless (null args) $ exitErr "This program doesn't take any arguments."
 
   let verbose = optVerbose opts
       machineread = optMachineReadable opts

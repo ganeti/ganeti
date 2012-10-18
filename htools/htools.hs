@@ -30,7 +30,6 @@ import Control.Monad (guard)
 import Data.Char (toLower)
 import Prelude hiding (catch)
 import System.Environment
-import System.Exit
 import System.IO
 import System.IO.Error (isDoesNotExistError)
 
@@ -45,9 +44,8 @@ usage name = do
   hPutStrLn stderr "This program must be installed under one of the following\
                    \ names:"
   mapM_ (hPutStrLn stderr . ("  - " ++) . fst) personalities
-  hPutStrLn stderr "Please either rename/symlink the program or set\n\
-                   \the environment variable HTOOLS to the desired role."
-  exitWith $ ExitFailure 1
+  exitErr "Please either rename/symlink the program or set\n\
+          \the environment variable HTOOLS to the desired role."
 
 main :: IO ()
 main = do

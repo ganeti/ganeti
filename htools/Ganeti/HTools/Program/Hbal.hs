@@ -273,8 +273,7 @@ selectGroup opts gl nlf ilf = do
     hPutStrLn stderr "Found multiple node groups:"
     mapM_ (hPutStrLn stderr . ("  " ++) . Group.name .
            flip Container.find gl . fst) ngroups
-    hPutStrLn stderr "Aborting."
-    exitWith $ ExitFailure 1
+    exitErr "Aborting."
 
   case optGroup opts of
     Nothing -> do
@@ -286,8 +285,7 @@ selectGroup opts gl nlf ilf = do
         hPutStrLn stderr $ "Node group " ++ g ++
           " not found. Node group list is:"
         mapM_ (hPutStrLn stderr . ("  " ++) . Group.name ) (Container.elems gl)
-        hPutStrLn stderr "Aborting."
-        exitWith $ ExitFailure 1
+        exitErr "Aborting."
       Just grp ->
           case lookup (Group.idx grp) ngroups of
             Nothing ->
@@ -350,9 +348,7 @@ checkNeedRebalance opts ini_cv = do
 -- | Main function.
 main :: Options -> [String] -> IO ()
 main opts args = do
-  unless (null args) $ do
-         hPutStrLn stderr "Error: this program doesn't take any arguments."
-         exitWith $ ExitFailure 1
+  unless (null args) $ exitErr "This program doesn't take any arguments."
 
   let verbose = optVerbose opts
       shownodes = optShowNodes opts

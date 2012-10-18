@@ -25,20 +25,20 @@
 # extra arguments
 ./htest/hspace unexpected-argument
 >>>2
-Error: this program doesn't take any arguments.
+Error: This program doesn't take any arguments.
 >>>=1
 
 ./htest/hbal unexpected-argument
 >>>2
-Error: this program doesn't take any arguments.
+Error: This program doesn't take any arguments.
 >>>=1
 
 ./htest/hinfo unexpected-argument
 >>>2
-Error: this program doesn't take any arguments.
+Error: This program doesn't take any arguments.
 >>>=1
 
 ./htest/hcheck unexpected-argument
 >>>2
-Error: this program doesn't take any arguments.
+Error: This program doesn't take any arguments.
 >>>=1

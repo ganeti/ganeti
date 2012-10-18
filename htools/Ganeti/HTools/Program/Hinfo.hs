@@ -31,7 +31,6 @@ module Ganeti.HTools.Program.Hinfo
 
 import Control.Monad
 import Data.List
-import System.Exit
 import System.IO
 
 import Text.Printf (printf)
@@ -154,9 +153,7 @@ commonInfo verbose gl nl il = do
 -- | Main function.
 main :: Options -> [String] -> IO ()
 main opts args = do
-  unless (null args) $ do
-         hPutStrLn stderr "Error: this program doesn't take any arguments."
-         exitWith $ ExitFailure 1
+  unless (null args) $ exitErr "This program doesn't take any arguments."
 
   let verbose = optVerbose opts
       shownodes = optShowNodes opts

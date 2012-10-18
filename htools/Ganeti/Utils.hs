@@ -213,15 +213,13 @@ parseUnit str =
 -- | Unwraps a 'Result', exiting the program if it is a 'Bad' value,
 -- otherwise returning the actual contained value.
 exitIfBad :: String -> Result a -> IO a
-exitIfBad msg (Bad s) = do
-  hPutStrLn stderr $ "Error: " ++ msg ++ ": " ++ s
-  exitWith (ExitFailure 1)
+exitIfBad msg (Bad s) = exitErr (msg ++ ": " ++ s)
 exitIfBad _ (Ok v) = return v
 
 -- | Exits immediately with an error message.
 exitErr :: String -> IO a
 exitErr errmsg = do
-  hPutStrLn stderr $ "Error: " ++ errmsg ++ "."
+  hPutStrLn stderr $ "Error: " ++ errmsg
   exitWith (ExitFailure 1)
 
 -- | Exits with an error message if the given boolean condition if true.
