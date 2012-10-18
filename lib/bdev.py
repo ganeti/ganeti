@@ -75,6 +75,17 @@ def _ThrowError(msg, *args):
   raise errors.BlockDeviceError(msg)
 
 
+def _CheckResult(result):
+  """Throws an error if the given result is a failed one.
+
+  @param result: result from RunCmd
+
+  """
+  if result.failed:
+    _ThrowError("Command: %s error: %s - %s", result.cmd, result.fail_reason,
+                result.output)
+
+
 def _CanReadDevice(path):
   """Check if we can read from the given device.
 
@@ -797,11 +808,8 @@ class LogicalVolume(BlockDev):
       _ThrowError("Not enough free space: required %s,"
                   " available %s", size, free_size)
 
-    result = utils.RunCmd(["lvcreate", "-L%dm" % size, "-s",
-                           "-n%s" % snap_name, self.dev_path])
-    if result.failed:
-      _ThrowError("command: %s error: %s - %s",
-                  result.cmd, result.fail_reason, result.output)
+    _CheckResult(utils.RunCmd(["lvcreate", "-L%dm" % size, "-s",
+                               "-n%s" % snap_name, self.dev_path]))
 
     return (self._vg_name, snap_name)
 
@@ -818,11 +826,7 @@ class LogicalVolume(BlockDev):
     # Only up to 128 characters are allowed
     text = text[:128]
 
-    result = utils.RunCmd(["lvchange", "--addtag", text,
-                           self.dev_path])
-    if result.failed:
-      _ThrowError("Command: %s error: %s - %s", result.cmd, result.fail_reason,
-                  result.output)
+    _CheckResult(utils.RunCmd(["lvchange", "--addtag", text, self.dev_path]))
 
   def Grow(self, amount, dryrun, backingstore):
     """Grow the logical volume.
