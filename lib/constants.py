@@ -2044,5 +2044,10 @@ IALLOC_HAIL = "hail"
 FAKE_OP_MASTER_TURNUP = "OP_CLUSTER_IP_TURNUP"
 FAKE_OP_MASTER_TURNDOWN = "OP_CLUSTER_IP_TURNDOWN"
 
+# SSH key types
+SSHK_RSA = "rsa"
+SSHK_DSA = "dsa"
+SSHK_ALL = frozenset([SSHK_RSA, SSHK_DSA])
+
 # Do not re-export imported modules
 del re, _vcsversion, _autoconf, socket, pathutils

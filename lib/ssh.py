@@ -48,25 +48,35 @@ def FormatParamikoFingerprint(fingerprint):
   return ":".join(re.findall(r"..", fingerprint.lower()))
 
 
-def GetUserFiles(user, mkdir=False):
-  """Return the paths of a user's ssh files.
+def GetUserFiles(user, mkdir=False, kind=constants.SSHK_DSA,
+                 _homedir_fn=utils.GetHomeDir):
+  """Return the paths of a user's SSH files.
 
-  The function will return a triplet (priv_key_path, pub_key_path,
-  auth_key_path) that are used for ssh authentication. Currently, the
-  keys used are DSA keys, so this function will return:
-  (~user/.ssh/id_dsa, ~user/.ssh/id_dsa.pub,
-  ~user/.ssh/authorized_keys).
-
-  If the optional parameter mkdir is True, the ssh directory will be
-  created if it doesn't exist.
-
-  Regardless of the mkdir parameters, the script will raise an error
-  if ~user/.ssh is not a directory.
+  @type user: string
+  @param user: Username
+  @type mkdir: bool
+  @param mkdir: Whether to create ".ssh" directory if it doesn't exist
+  @type kind: string
+  @param kind: One of L{constants.SSHK_ALL}
+  @rtype: tuple; (string, string, string)
+  @return: Tuple containing three file system paths; the private SSH key file,
+    the public SSH key file and the user's C{authorized_keys} file
+  @raise errors.OpExecError: When home directory of the user can not be
+    determined
+  @raise errors.OpExecError: Regardless of the C{mkdir} parameters, this
+    exception is raised if C{~$user/.ssh} is not a directory
 
   """
-  user_dir = utils.GetHomeDir(user)
+  user_dir = _homedir_fn(user)
   if not user_dir:
-    raise errors.OpExecError("Cannot resolve home of user %s" % user)
+    raise errors.OpExecError("Cannot resolve home of user '%s'" % user)
+
+  if kind == constants.SSHK_DSA:
+    suffix = "dsa"
+  elif kind == constants.SSHK_RSA:
+    suffix = "rsa"
+  else:
+    raise errors.ProgrammerError("Unknown SSH key kind '%s'" % kind)
 
   ssh_dir = utils.PathJoin(user_dir, ".ssh")
   if mkdir:
@@ -75,7 +85,8 @@ def GetUserFiles(user, mkdir=False):
     raise errors.OpExecError("Path %s is not a directory" % ssh_dir)
 
   return [utils.PathJoin(ssh_dir, base)
-          for base in ["id_dsa", "id_dsa.pub", "authorized_keys"]]
+          for base in ["id_%s" % suffix, "id_%s.pub" % suffix,
+                       "authorized_keys"]]
 
 
 class SshRunner:
