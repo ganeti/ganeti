@@ -367,6 +367,15 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     dest_node, dest_path, cluster_name = params[1:]
     return backend.BlockdevExport(disk, dest_node, dest_path, cluster_name)
 
+  @staticmethod
+  def perspective_blockdev_setinfo(params):
+    """Sets metadata information on the given block device.
+
+    """
+    (disk, info) = params
+    disk = objects.Disk.FromDict(disk)
+    return backend.BlockdevSetInfo(disk, info)
+
   # blockdev/drbd specific methods ----------
 
   @staticmethod

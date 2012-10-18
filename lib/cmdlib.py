@@ -7480,6 +7480,15 @@ class LUInstanceRename(LogicalUnit):
                     new_file_storage_dir))
 
     _StartInstanceDisks(self, inst, None)
+    # update info on disks
+    info = _GetInstanceInfoText(inst)
+    for (idx, disk) in enumerate(inst.disks):
+      for node in inst.all_nodes:
+        self.cfg.SetDiskID(disk, node)
+        result = self.rpc.call_blockdev_setinfo(node, disk, info)
+        if result.fail_msg:
+          self.LogWarning("Error setting info on node %s for disk %s: %s",
+                          node, idx, result.fail_msg)
     try:
       result = self.rpc.call_instance_run_rename(inst.primary_node, inst,
                                                  old_name, self.op.debug_level)

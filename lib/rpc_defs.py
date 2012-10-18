@@ -418,6 +418,10 @@ _BLOCKDEV_CALLS = [
     ], _BlockdevGetMirrorStatusMultiPreProc,
    _BlockdevGetMirrorStatusMultiPostProc,
     "Request status of (mirroring) devices from multiple nodes"),
+  ("blockdev_setinfo", SINGLE, None, constants.RPC_TMO_NORMAL, [
+    ("disk", ED_OBJECT_DICT, None),
+    ("info", None, None),
+    ], None, None, "Sets metadata information on a given block device"),
   ]
 
 _OS_CALLS = [

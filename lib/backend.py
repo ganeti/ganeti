@@ -2517,6 +2517,32 @@ def BlockdevSnapshot(disk):
           disk.unique_id, disk.dev_type)
 
 
+def BlockdevSetInfo(disk, info):
+  """Sets 'metadata' information on block devices.
+
+  This function sets 'info' metadata on block devices. Initial
+  information is set at device creation; this function should be used
+  for example after renames.
+
+  @type disk: L{objects.Disk}
+  @param disk: the disk to be grown
+  @type info: string
+  @param info: new 'info' metadata
+  @rtype: (status, result)
+  @return: a tuple with the status of the operation (True/False), and
+      the errors message if status is False
+
+  """
+  r_dev = _RecursiveFindBD(disk)
+  if r_dev is None:
+    _Fail("Cannot find block device %s", disk)
+
+  try:
+    r_dev.SetInfo(info)
+  except errors.BlockDeviceError, err:
+    _Fail("Failed to set information on block device: %s", err, exc=True)
+
+
 def FinalizeExport(instance, snap_disks):
   """Write out the export configuration information.
 
