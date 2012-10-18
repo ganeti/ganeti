@@ -828,6 +828,32 @@ def ReadLockedPidFile(path):
   return None
 
 
+_SSH_KEYS_WITH_TWO_PARTS = frozenset(["ssh-dss", "ssh-rsa"])
+
+
+def _SplitSshKey(key):
+  """Splits a line for SSH's C{authorized_keys} file.
+
+  If the line has no options (e.g. no C{command="..."}), only the significant
+  parts, the key type and its hash, are used. Otherwise the whole line is used
+  (split at whitespace).
+
+  @type key: string
+  @param key: Key line
+  @rtype: tuple
+
+  """
+  parts = key.split()
+
+  if parts and parts[0] in _SSH_KEYS_WITH_TWO_PARTS:
+    # If the key has no options in front of it, we only want the significant
+    # fields
+    return (False, parts[:2])
+  else:
+    # Can't properly split the line, so use everything
+    return (True, parts)
+
+
 def AddAuthorizedKey(file_obj, key):
   """Adds an SSH public key to an authorized_keys file.
 
@@ -837,7 +863,7 @@ def AddAuthorizedKey(file_obj, key):
   @param key: string containing key
 
   """
-  key_fields = key.split()
+  key_fields = _SplitSshKey(key)
 
   if isinstance(file_obj, basestring):
     f = open(file_obj, "a+")
@@ -848,7 +874,7 @@ def AddAuthorizedKey(file_obj, key):
     nl = True
     for line in f:
       # Ignore whitespace changes
-      if line.split() == key_fields:
+      if _SplitSshKey(line) == key_fields:
         break
       nl = line.endswith("\n")
     else:
@@ -870,7 +896,7 @@ def RemoveAuthorizedKey(file_name, key):
   @param key: string containing key
 
   """
-  key_fields = key.split()
+  key_fields = _SplitSshKey(key)
 
   fd, tmpname = tempfile.mkstemp(dir=os.path.dirname(file_name))
   try:
@@ -880,7 +906,7 @@ def RemoveAuthorizedKey(file_name, key):
       try:
         for line in f:
           # Ignore whitespace changes while comparing lines
-          if line.split() != key_fields:
+          if _SplitSshKey(line) != key_fields:
             out.write(line)
 
         out.flush()

@@ -842,20 +842,24 @@ class TestSshKeys(testutils.GanetiTestCase):
     utils.AddAuthorizedKey(self.tmpname,
         'ssh-dss AAAAB3NzaC1w5256closdj32mZaQU root@test')
 
-    self.assertFileContent(self.tmpname,
-      "ssh-dss AAAAB3NzaC1w5256closdj32mZaQU root@key-a\n"
-      'command="/usr/bin/fooserver -t --verbose",from="198.51.100.4"'
-      " ssh-dss AAAAB3NzaC1w520smc01ms0jfJs22 root@key-b\n"
-      "ssh-dss AAAAB3NzaC1w5256closdj32mZaQU root@test\n")
-
-  def testAddingExistingKeyWithSomeMoreSpaces(self):
-    utils.AddAuthorizedKey(self.tmpname,
-        'ssh-dss  AAAAB3NzaC1w5256closdj32mZaQU   root@key-a')
-
+    # Only significant fields are compared, therefore the key won't be
+    # updated/added
     self.assertFileContent(self.tmpname,
       "ssh-dss AAAAB3NzaC1w5256closdj32mZaQU root@key-a\n"
       'command="/usr/bin/fooserver -t --verbose",from="198.51.100.4"'
       " ssh-dss AAAAB3NzaC1w520smc01ms0jfJs22 root@key-b\n")
+
+  def testAddingExistingKeyWithSomeMoreSpaces(self):
+    utils.AddAuthorizedKey(self.tmpname,
+      "ssh-dss  AAAAB3NzaC1w5256closdj32mZaQU   root@key-a")
+    utils.AddAuthorizedKey(self.tmpname,
+      "ssh-dss AAAAB3NzaC1w520smc01ms0jfJs22")
+
+    self.assertFileContent(self.tmpname,
+      "ssh-dss AAAAB3NzaC1w5256closdj32mZaQU root@key-a\n"
+      'command="/usr/bin/fooserver -t --verbose",from="198.51.100.4"'
+      " ssh-dss AAAAB3NzaC1w520smc01ms0jfJs22 root@key-b\n"
+      "ssh-dss AAAAB3NzaC1w520smc01ms0jfJs22\n")
 
   def testRemovingExistingKeyWithSomeMoreSpaces(self):
     utils.RemoveAuthorizedKey(self.tmpname,
