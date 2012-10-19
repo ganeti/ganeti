@@ -274,7 +274,7 @@ Creation
 At this point, Ganeti and the hardware seems to be functioning
 correctly, so we'll follow up with creating the instances manually::
 
-  $ gnt-instance add -t drbd -o debootstrap -s %256m% -n %node1%:%node2% %instance3%
+  $ gnt-instance add -t drbd -o debootstrap -s %256m% %instance3%
   Mon Oct 26 04:06:52 2009  - INFO: Selected nodes for instance instance1 via iallocator hail: node2, node3
   Mon Oct 26 04:06:53 2009 * creating instance disks...
   Mon Oct 26 04:06:57 2009 adding instance instance1 to cluster config
@@ -418,7 +418,7 @@ to it anymore::
 
 And now we can failover the instance::
 
-  $ gnt-instance failover --ignore-consistency %instance4%
+  $ gnt-instance failover %instance4%
   Failover will happen to image instance4. This requires a shutdown of
   the instance. Continue?
   y/[n]/?: %y%
