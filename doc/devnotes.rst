@@ -141,6 +141,29 @@ for example, in bash via ``.bashrc``::
 or in emacs via ``completion-ignored-extensions`` (run ``M-x
 customize-var completion-ignored-extensions``).
 
+Running individual tests
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+When developing code, running the entire test suite can be
+slow. Running individual tests is possible easily for unit-tests, less
+so for shell-tests (but these are faster, so it shouldn't be needed).
+
+For Python tests::
+
+  $ export PYTHONPATH=$PWD
+  $ python ./test/ganeti.%mytest%
+
+For Haskell tests::
+
+  $ make htest/test && ./htest/test -t %pattern%
+
+Where ``pattern`` can be a simple test pattern (e.g. ``comma``,
+matching any test whose name contains ``comma``), a test pattern
+denoting a group (ending with a slash, e.g. ``Utils/``), or more
+complex glob pattern. For more details, see the documentation (on the
+`test-framework homepage
+<http://batterseapower.github.com/test-framework/>`_).
+
 Packaging notes
 ===============
 
