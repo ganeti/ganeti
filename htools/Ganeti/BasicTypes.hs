@@ -123,7 +123,7 @@ isOk _      = False
 isBad :: GenericResult a b -> Bool
 isBad = not . isOk
 
--- | Converter from Either String to 'GeneicResult'.
+-- | Converter from Either to 'GenericResult'.
 eitherToResult :: Either a b -> GenericResult a b
 eitherToResult (Left  s) = Bad s
 eitherToResult (Right v) = Ok  v
