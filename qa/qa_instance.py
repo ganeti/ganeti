@@ -86,16 +86,15 @@ def _DiskTest(node, disk_template):
 def _GetInstanceInfo(instance):
   """Return information about the actual state of an instance.
 
-  The pieces of information returned are:
-    - "nodes": instance nodes, a list of strings
-    - "volumes": instance volume IDs, a list of strings
-  @type instance: dictionary
-  @param instance: the instance
-  @return: dictionary
+  @type instance: string
+  @param instance: the instance name
+  @return: a dictionary with two keys:
+      - "nodes": instance nodes, a list of strings
+      - "volumes": instance volume IDs, a list of strings
 
   """
   master = qa_config.GetMasterNode()
-  infocmd = utils.ShellQuoteArgs(["gnt-instance", "info", instance["name"]])
+  infocmd = utils.ShellQuoteArgs(["gnt-instance", "info", instance])
   info_out = qa_utils.GetCommandOutput(master["primary"], infocmd)
   re_node = re.compile(r"^\s+-\s+(?:primary|secondaries):\s+(\S.+)$")
   node_elem = r"([^,()]+)(?:\s+\([^)]+\))?"
@@ -134,7 +133,7 @@ def _DestroyInstanceVolumes(instance):
   @param instance: the instance
 
   """
-  info = _GetInstanceInfo(instance)
+  info = _GetInstanceInfo(instance["name"])
   vols = info["volumes"]
   for node in info["nodes"]:
     AssertCommand(["lvremove", "-f"] + vols, node=node)
@@ -270,16 +269,34 @@ def TestInstanceRenameAndBack(rename_source, rename_target):
   finally:
     qa_utils.RemoveFromEtcHosts(["meeeeh-not-exists", rename_target])
 
+  # Check instance volume tags correctly updated
+  # FIXME: this is LVM specific!
+  info = _GetInstanceInfo(rename_source)
+  tags_cmd = ("lvs -o tags --noheadings %s | grep " %
+              (" ".join(info["volumes"]), ))
+
   # and now rename instance to rename_target...
   AssertCommand(["gnt-instance", "rename", rename_source, rename_target])
   _CheckSsconfInstanceList(rename_target)
   qa_utils.RunInstanceCheck(rename_source, False)
   qa_utils.RunInstanceCheck(rename_target, False)
 
+  # NOTE: tags might not be the exactly as the instance name, due to
+  # charset restrictions; hence the test might be flaky
+  if rename_source != rename_target:
+    for node in info["nodes"]:
+      AssertCommand(tags_cmd + rename_source, node=node, fail=True)
+      AssertCommand(tags_cmd + rename_target, node=node, fail=False)
+
   # and back
   AssertCommand(["gnt-instance", "rename", rename_target, rename_source])
   _CheckSsconfInstanceList(rename_source)
   qa_utils.RunInstanceCheck(rename_target, False)
+
+  if rename_source != rename_target:
+    for node in info["nodes"]:
+      AssertCommand(tags_cmd + rename_source, node=node, fail=False)
+      AssertCommand(tags_cmd + rename_target, node=node, fail=True)
 
 
 @InstanceCheck(INST_UP, INST_UP, FIRST_ARG)
