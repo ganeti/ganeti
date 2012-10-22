@@ -73,14 +73,17 @@ maxOpCodes = 16
 
 -- * Helper functions
 
--- | Checks for equality with proper annotation.
+-- | Checks for equality with proper annotation. The first argument is
+-- the computed value, the second one the expected value.
 (==?) :: (Show a, Eq a) => a -> a -> Property
 (==?) x y = printTestCase
-            ("Expected equality, but '" ++
-             show x ++ "' /= '" ++ show y ++ "'") (x == y)
+            ("Expected equality, but got mismatch\nexpected: " ++
+             show x ++ "\n but got: " ++ show y) (x == y)
 infix 3 ==?
 
--- | Checks for inequality with proper annotation.
+-- | Checks for inequality with proper annotation. The first argument
+-- is the computed value, the second one the expected (not equal)
+-- value.
 (/=?) :: (Show a, Eq a) => a -> a -> Property
 (/=?) x y = printTestCase
             ("Expected inequality, but got equality: '" ++

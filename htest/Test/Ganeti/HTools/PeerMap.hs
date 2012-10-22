@@ -39,14 +39,14 @@ import qualified Ganeti.HTools.PeerMap as PeerMap
 prop_addIdempotent :: PeerMap.PeerMap
                    -> PeerMap.Key -> PeerMap.Elem -> Property
 prop_addIdempotent pmap key em =
-  fn puniq ==? fn (fn puniq)
+  fn (fn puniq) ==? fn puniq
     where fn = PeerMap.add key em
           puniq = PeerMap.accumArray const pmap
 
 -- | Make sure remove is idempotent.
 prop_removeIdempotent :: PeerMap.PeerMap -> PeerMap.Key -> Property
 prop_removeIdempotent pmap key =
-  fn puniq ==? fn (fn puniq)
+  fn (fn puniq) ==? fn puniq
     where fn = PeerMap.remove key
           puniq = PeerMap.accumArray const pmap
 
