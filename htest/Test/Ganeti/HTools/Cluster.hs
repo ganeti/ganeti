@@ -266,14 +266,15 @@ check_EvacMode grp inst result =
       let moved = Cluster.esMoved es
           failed = Cluster.esFailed es
           opcodes = not . null $ Cluster.esOpCodes es
-      in failmsg ("'failed' not empty: " ++ show failed) (null failed) .&&.
-         failmsg "'opcodes' is null" opcodes .&&.
-         case moved of
-           [(idx', gdx, _)] -> failmsg "invalid instance moved" (idx == idx')
-                               .&&.
-                               failmsg "wrong target group"
-                                         (gdx == Group.idx grp)
-           v -> failmsg  ("invalid solution: " ++ show v) False
+      in conjoin
+           [ failmsg ("'failed' not empty: " ++ show failed) (null failed)
+           , failmsg "'opcodes' is null" opcodes
+           , case moved of
+               [(idx', gdx, _)] ->
+                 failmsg "invalid instance moved" (idx == idx') .&&.
+                 failmsg "wrong target group" (gdx == Group.idx grp)
+               v -> failmsg  ("invalid solution: " ++ show v) False
+           ]
   where failmsg :: String -> Bool -> Property
         failmsg msg = printTestCase ("Failed to evacuate: " ++ msg)
         idx = Instance.idx inst

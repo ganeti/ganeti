@@ -74,10 +74,12 @@ prop_findByName =
                $ zip names nodes
       nl' = Container.fromList nodes'
       target = snd (nodes' !! fidx)
-  in Container.findByName nl' (Node.name target) ==? Just target .&&.
-     Container.findByName nl' (Node.alias target) ==? Just target .&&.
-     printTestCase "Found non-existing name"
-       (isNothing (Container.findByName nl' othername))
+  in conjoin
+       [ Container.findByName nl' (Node.name target) ==? Just target
+       , Container.findByName nl' (Node.alias target) ==? Just target
+       , printTestCase "Found non-existing name"
+         (isNothing (Container.findByName nl' othername))
+       ]
 
 testSuite "HTools/Container"
             [ 'prop_addTwo

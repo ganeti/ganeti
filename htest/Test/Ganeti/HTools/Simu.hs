@@ -82,16 +82,16 @@ prop_Load =
              nidx = map Node.idx nodes
              mdc_out = map (\n -> (Node.tMem n, Node.tDsk n, Node.tCpu n,
                                    Node.fMem n, Node.fDsk n)) nodes
-         in
-         Container.size gl ==? ngroups .&&.
-         Container.size nl ==? totnodes .&&.
-         Container.size il ==? 0 .&&.
-         length tags ==? 0 .&&.
-         ipol ==? Types.defIPolicy .&&.
-         nidx ==? [1..totnodes] .&&.
-         mdc_in ==? mdc_out .&&.
-         map Group.iPolicy (Container.elems gl) ==?
-             replicate ngroups Types.defIPolicy
+         in conjoin [ Container.size gl ==? ngroups
+                    , Container.size nl ==? totnodes
+                    , Container.size il ==? 0
+                    , length tags ==? 0
+                    , ipol ==? Types.defIPolicy
+                    , nidx ==? [1..totnodes]
+                    , mdc_in ==? mdc_out
+                    , map Group.iPolicy (Container.elems gl) ==?
+                          replicate ngroups Types.defIPolicy
+                    ]
 
 testSuite "HTools/Simu"
             [ 'prop_Load

@@ -114,10 +114,12 @@ prop_monad_laws :: Int -> Result Int
                 -> Fun Int (Result Int)
                 -> Property
 prop_monad_laws a m (Fun _ k) (Fun _ h) =
-  printTestCase "return a >>= k == k a" ((return a >>= k) ==? k a) .&&.
-  printTestCase "m >>= return == m" ((m >>= return) ==? m) .&&.
-  printTestCase "m >>= (\\x -> k x >>= h) == (m >>= k) >>= h)"
+  conjoin
+  [ printTestCase "return a >>= k == k a" ((return a >>= k) ==? k a)
+  , printTestCase "m >>= return == m" ((m >>= return) ==? m)
+  , printTestCase "m >>= (\\x -> k x >>= h) == (m >>= k) >>= h)"
     ((m >>= (\x -> k x >>= h)) ==? ((m >>= k) >>= h))
+  ]
 
 -- | Tests the monad plus laws ( mzero >>= f = mzero, v >> mzero = mzero).
 prop_monadplus_mzero :: Result Int -> Fun Int (Result Int) -> Property

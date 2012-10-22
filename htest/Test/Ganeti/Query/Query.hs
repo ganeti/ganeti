@@ -68,13 +68,15 @@ prop_queryNode_noUnknown =
     run (query cluster False (Query QRNode [field] EmptyFilter)) >>= resultProp
   QueryFieldsResult fdefs' <-
     resultProp $ queryFields (QueryFields QRNode [field])
-  stop $ printTestCase ("Got unknown fields via query (" ++ show fdefs ++ ")")
-         (hasUnknownFields fdefs) .&&.
-         printTestCase ("Got unknown result status via query (" ++
-                        show fdata ++ ")")
-           (all (all ((/= RSUnknown) . rentryStatus)) fdata) .&&.
-         printTestCase ("Got unknown fields via query fields (" ++ show fdefs'
-                        ++ ")") (hasUnknownFields fdefs')
+  stop $ conjoin
+         [ printTestCase ("Got unknown fields via query (" ++
+                          show fdefs ++ ")") (hasUnknownFields fdefs)
+         , printTestCase ("Got unknown result status via query (" ++
+                          show fdata ++ ")")
+           (all (all ((/= RSUnknown) . rentryStatus)) fdata)
+         , printTestCase ("Got unknown fields via query fields (" ++
+                          show fdefs'++ ")") (hasUnknownFields fdefs')
+         ]
 
 -- | Tests that an unknown field is returned as such.
 prop_queryNode_Unknown :: Property
@@ -86,16 +88,18 @@ prop_queryNode_Unknown =
     run (query cluster False (Query QRNode [field] EmptyFilter)) >>= resultProp
   QueryFieldsResult fdefs' <-
     resultProp $ queryFields (QueryFields QRNode [field])
-  stop $ printTestCase ("Got known fields via query (" ++ show fdefs ++ ")")
-         (not $ hasUnknownFields fdefs) .&&.
-         printTestCase ("Got /= ResultUnknown result status via query (" ++
-                        show fdata ++ ")")
-           (all (all ((== RSUnknown) . rentryStatus)) fdata) .&&.
-         printTestCase ("Got a Just in a result value (" ++
-                        show fdata ++ ")")
-           (all (all (isNothing . rentryValue)) fdata) .&&.
-         printTestCase ("Got known fields via query fields (" ++ show fdefs'
-                        ++ ")") (not $ hasUnknownFields fdefs')
+  stop $ conjoin
+         [ printTestCase ("Got known fields via query (" ++ show fdefs ++ ")")
+           (not $ hasUnknownFields fdefs)
+         , printTestCase ("Got /= ResultUnknown result status via query (" ++
+                          show fdata ++ ")")
+           (all (all ((== RSUnknown) . rentryStatus)) fdata)
+         , printTestCase ("Got a Just in a result value (" ++
+                          show fdata ++ ")")
+           (all (all (isNothing . rentryValue)) fdata)
+         , printTestCase ("Got known fields via query fields (" ++ show fdefs'
+                          ++ ")") (not $ hasUnknownFields fdefs')
+         ]
 
 -- | Checks that a result type is conforming to a field definition.
 checkResultType :: FieldDefinition -> ResultEntry -> Property
@@ -128,14 +132,16 @@ prop_queryNode_types =
   forAll (elements (Map.keys nodeFieldsMap)) $ \field -> monadicIO $ do
   QueryResult fdefs fdata <-
     run (query cfg False (Query QRNode [field] EmptyFilter)) >>= resultProp
-  stop $ printTestCase ("Inconsistent result entries (" ++ show fdata ++ ")")
-         (conjoin $ map (conjoin . zipWith checkResultType fdefs) fdata) .&&.
-         printTestCase "Wrong field definitions length"
-           (length fdefs ==? 1) .&&.
-         printTestCase "Wrong field result rows length"
-           (all ((== 1) . length) fdata) .&&.
-         printTestCase "Wrong number of result rows"
+  stop $ conjoin
+         [ printTestCase ("Inconsistent result entries (" ++ show fdata ++ ")")
+           (conjoin $ map (conjoin . zipWith checkResultType fdefs) fdata)
+         , printTestCase "Wrong field definitions length"
+           (length fdefs ==? 1)
+         , printTestCase "Wrong field result rows length"
+           (all ((== 1) . length) fdata)
+         , printTestCase "Wrong number of result rows"
            (length fdata ==? numnodes)
+         ]
 
 -- | Test that queryFields with empty fields list returns all node fields.
 case_queryNode_allfields :: Assertion
@@ -155,16 +161,19 @@ prop_queryGroup_noUnknown =
   forAll (choose (0, maxNodes) >>= genEmptyCluster) $ \cluster ->
    forAll (elements (Map.keys groupFieldsMap)) $ \field -> monadicIO $ do
    QueryResult fdefs fdata <-
-     run (query cluster False (Query QRGroup [field] EmptyFilter)) >>= resultProp
+     run (query cluster False (Query QRGroup [field] EmptyFilter)) >>=
+         resultProp
    QueryFieldsResult fdefs' <-
      resultProp $ queryFields (QueryFields QRGroup [field])
-   stop $ printTestCase ("Got unknown fields via query (" ++ show fdefs ++ ")")
-         (hasUnknownFields fdefs) .&&.
-          printTestCase ("Got unknown result status via query (" ++
-                         show fdata ++ ")")
-           (all (all ((/= RSUnknown) . rentryStatus)) fdata) .&&.
-          printTestCase ("Got unknown fields via query fields (" ++ show fdefs'
-                        ++ ")") (hasUnknownFields fdefs')
+   stop $ conjoin
+    [ printTestCase ("Got unknown fields via query (" ++ show fdefs ++ ")")
+         (hasUnknownFields fdefs)
+    , printTestCase ("Got unknown result status via query (" ++
+                     show fdata ++ ")")
+      (all (all ((/= RSUnknown) . rentryStatus)) fdata)
+    , printTestCase ("Got unknown fields via query fields (" ++ show fdefs'
+                     ++ ")") (hasUnknownFields fdefs')
+    ]
 
 prop_queryGroup_Unknown :: Property
 prop_queryGroup_Unknown =
@@ -175,16 +184,18 @@ prop_queryGroup_Unknown =
     run (query cluster False (Query QRGroup [field] EmptyFilter)) >>= resultProp
   QueryFieldsResult fdefs' <-
     resultProp $ queryFields (QueryFields QRGroup [field])
-  stop $ printTestCase ("Got known fields via query (" ++ show fdefs ++ ")")
-         (not $ hasUnknownFields fdefs) .&&.
-         printTestCase ("Got /= ResultUnknown result status via query (" ++
-                        show fdata ++ ")")
-           (all (all ((== RSUnknown) . rentryStatus)) fdata) .&&.
-         printTestCase ("Got a Just in a result value (" ++
-                        show fdata ++ ")")
-           (all (all (isNothing . rentryValue)) fdata) .&&.
-         printTestCase ("Got known fields via query fields (" ++ show fdefs'
-                        ++ ")") (not $ hasUnknownFields fdefs')
+  stop $ conjoin
+         [ printTestCase ("Got known fields via query (" ++ show fdefs ++ ")")
+           (not $ hasUnknownFields fdefs)
+         , printTestCase ("Got /= ResultUnknown result status via query (" ++
+                          show fdata ++ ")")
+           (all (all ((== RSUnknown) . rentryStatus)) fdata)
+         , printTestCase ("Got a Just in a result value (" ++
+                          show fdata ++ ")")
+           (all (all (isNothing . rentryValue)) fdata)
+         , printTestCase ("Got known fields via query fields (" ++ show fdefs'
+                          ++ ")") (not $ hasUnknownFields fdefs')
+         ]
 
 prop_queryGroup_types :: Property
 prop_queryGroup_types =
@@ -193,12 +204,13 @@ prop_queryGroup_types =
   forAll (elements (Map.keys groupFieldsMap)) $ \field -> monadicIO $ do
   QueryResult fdefs fdata <-
     run (query cfg False (Query QRGroup [field] EmptyFilter)) >>= resultProp
-  stop $ printTestCase ("Inconsistent result entries (" ++ show fdata ++ ")")
-         (conjoin $ map (conjoin . zipWith checkResultType fdefs) fdata) .&&.
-         printTestCase "Wrong field definitions length"
-           (length fdefs ==? 1) .&&.
-         printTestCase "Wrong field result rows length"
+  stop $ conjoin
+         [ printTestCase ("Inconsistent result entries (" ++ show fdata ++ ")")
+           (conjoin $ map (conjoin . zipWith checkResultType fdefs) fdata)
+         , printTestCase "Wrong field definitions length" (length fdefs ==? 1)
+         , printTestCase "Wrong field result rows length"
            (all ((== 1) . length) fdata)
+         ]
 
 case_queryGroup_allfields :: Assertion
 case_queryGroup_allfields = do

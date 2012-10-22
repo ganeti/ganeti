@@ -199,12 +199,13 @@ prop_fillDict defaults custom =
       d_keys = map fst defaults
       c_map = Map.fromList custom
       c_keys = map fst custom
-  in printTestCase "Empty custom filling"
-      (fillDict d_map Map.empty [] == d_map) .&&.
-     printTestCase "Empty defaults filling"
-      (fillDict Map.empty c_map [] == c_map) .&&.
-     printTestCase "Delete all keys"
-      (fillDict d_map c_map (d_keys++c_keys) == Map.empty)
+  in conjoin [ printTestCase "Empty custom filling"
+               (fillDict d_map Map.empty [] == d_map)
+             , printTestCase "Empty defaults filling"
+               (fillDict Map.empty c_map [] == c_map)
+             , printTestCase "Delete all keys"
+               (fillDict d_map c_map (d_keys++c_keys) == Map.empty)
+             ]
 
 -- | Test that the serialisation of 'DiskLogicalId', which is
 -- implemented manually, is idempotent. Since we don't have a
