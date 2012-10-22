@@ -354,7 +354,7 @@ computePDsk used total = fromIntegral used / total
 -- | Sets the free memory.
 setFmem :: Node -> Int -> Node
 setFmem t new_mem =
-  let new_n1 = new_mem <= rMem t
+  let new_n1 = new_mem < rMem t
       new_mp = fromIntegral new_mem / tMem t
   in t { fMem = new_mem, failN1 = new_n1, pMem = new_mp }
 

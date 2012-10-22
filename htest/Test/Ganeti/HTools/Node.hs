@@ -120,6 +120,28 @@ prop_setMcpu node mc =
   Types.iPolicyVcpuRatio (Node.iPolicy newnode) ==? mc
     where newnode = Node.setMcpu node mc
 
+prop_setFmemGreater :: Node.Node -> Int -> Property
+prop_setFmemGreater node new_mem =
+  not (Node.failN1 node) && (Node.rMem node >= 0) &&
+  (new_mem > Node.rMem node) ==>
+  not (Node.failN1 (Node.setFmem node new_mem))
+
+prop_setFmemExact :: Node.Node -> Property
+prop_setFmemExact node =
+  not (Node.failN1 node) && (Node.rMem node >= 0) ==>
+  not (Node.failN1 (Node.setFmem node (Node.rMem node)))
+
+-- Check if adding an instance that consumes exactly all reserved
+-- memory does not raise an N+1 error
+prop_addPri_NoN1Fail :: Property
+prop_addPri_NoN1Fail =
+  forAll genOnlineNode $ \node ->
+  forAll (genInstanceSmallerThanNode node) $ \inst ->
+  let inst' = inst { Instance.mem = Node.fMem node - Node.rMem node }
+  in case Node.addPri node inst' of
+    Bad Types.FailN1 -> False
+    _ -> True
+
 -- | Check that an instance add with too high memory or disk will be
 -- rejected.
 prop_addPriFM :: Node.Node -> Instance.Instance -> Property
@@ -290,10 +312,13 @@ testSuite "HTools/Node"
             [ 'prop_setAlias
             , 'prop_setOffline
             , 'prop_setMcpu
+            , 'prop_setFmemGreater
+            , 'prop_setFmemExact
             , 'prop_setXmem
             , 'prop_addPriFM
             , 'prop_addPriFD
             , 'prop_addPriFC
+            , 'prop_addPri_NoN1Fail
             , 'prop_addSec
             , 'prop_addOfflinePri
             , 'prop_addOfflineSec
