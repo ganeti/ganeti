@@ -138,9 +138,7 @@ prop_addPri_NoN1Fail =
   forAll genOnlineNode $ \node ->
   forAll (genInstanceSmallerThanNode node) $ \inst ->
   let inst' = inst { Instance.mem = Node.fMem node - Node.rMem node }
-  in case Node.addPri node inst' of
-    Bad Types.FailN1 -> False
-    _ -> True
+  in (Node.addPri node inst' /=? Bad Types.FailN1)
 
 -- | Check that an instance add with too high memory or disk will be
 -- rejected.

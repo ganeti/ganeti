@@ -80,6 +80,13 @@ maxOpCodes = 16
              show x ++ "' /= '" ++ show y ++ "'") (x == y)
 infix 3 ==?
 
+-- | Checks for inequality with proper annotation.
+(/=?) :: (Show a, Eq a) => a -> a -> Property
+(/=?) x y = printTestCase
+            ("Expected inequality, but got equality: '" ++
+             show x ++ "'.") (x /= y)
+infix 3 /=?
+
 -- | Show a message and fail the test.
 failTest :: String -> Property
 failTest msg = printTestCase msg False
