@@ -21,10 +21,11 @@
 set -e
 set -u
 
-: ${COVERAGE:=coverage}
 : ${PYTHON:=python}
+: ${COVERAGE:?}
 : ${COVERAGE_FILE:?}
 : ${TEXT_COVERAGE:?}
+: ${HTML_COVERAGE:=}
 : ${GANETI_TEMP_DIR:?}
 
 reportargs=(
@@ -33,6 +34,16 @@ reportargs=(
   )
 
 $COVERAGE erase
+
+if [[ -n "$HTML_COVERAGE" ]]; then
+  if [[ ! -d "$HTML_COVERAGE" ]]; then
+    echo "Not a directory: $HTML_COVERAGE" >&2
+    exit 1
+  fi
+
+  # At least coverage 3.4 fails to overwrite files
+  find "$HTML_COVERAGE" \( -type f -o -type l \) -delete
+fi
 
 for script; do
   if [[ "$script" == *-runasroot.py ]]; then

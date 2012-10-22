@@ -1640,7 +1640,10 @@ endif
 
 .PHONY: py-coverage
 py-coverage: $(GENERATED_FILES) $(python_tests)
+	@test -n "$(PYCOVERAGE)" || \
+	    { echo 'python-coverage' not found during configure; exit 1; }
 	set -e; \
+	COVERAGE=$(PYCOVERAGE) \
 	COVERAGE_FILE=$(CURDIR)/$(COVERAGE_PY_DIR)/data \
 	TEXT_COVERAGE=$(CURDIR)/$(COVERAGE_PY_DIR)/report.txt \
 	HTML_COVERAGE=$(CURDIR)/$(COVERAGE_PY_DIR) \

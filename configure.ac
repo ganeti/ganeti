@@ -373,7 +373,16 @@ if test -z "$PEP8"
 then
   AC_MSG_WARN([pep8 not found, checking code will not be complete])
 fi
-AM_CONDITIONAL([HAS_PEP8], [test "$PEP8"])
+AM_CONDITIONAL([HAS_PEP8], [test -n "$PEP8"])
+
+# Check for python-coverage
+AC_ARG_VAR(PYCOVERAGE, [python-coverage path])
+AC_PATH_PROGS(PYCOVERAGE, [python-coverage coverage], [])
+if test -z "$PYCOVERAGE"
+then
+  AC_MSG_WARN(m4_normalize([python-coverage or coverage not found, evaluating
+                            Python test coverage will not be possible]))
+fi
 
 # Check for socat
 AC_ARG_VAR(SOCAT, [socat path])
