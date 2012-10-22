@@ -53,7 +53,7 @@ import qualified Ganeti.HTools.Types as Types
 
 -- * Arbitrary instances
 
--- | Generas an arbitrary node based on sizing information.
+-- | Generates an arbitrary node based on sizing information.
 genNode :: Maybe Int -- ^ Minimum node size in terms of units
         -> Maybe Int -- ^ Maximum node size (when Nothing, bounded
                      -- just by the max... constants)
@@ -126,9 +126,7 @@ prop_addPriFM :: Node.Node -> Instance.Instance -> Property
 prop_addPriFM node inst =
   Instance.mem inst >= Node.fMem node && not (Node.failN1 node) &&
   not (Instance.isOffline inst) ==>
-  case Node.addPri node inst'' of
-    Bad Types.FailMem -> True
-    _ -> False
+  (Node.addPri node inst'' ==? Bad Types.FailMem)
   where inst' = setInstanceSmallerThanNode node inst
         inst'' = inst' { Instance.mem = Instance.mem inst }
 
@@ -141,9 +139,7 @@ prop_addPriFD node inst =
   let inst' = setInstanceSmallerThanNode node inst
       inst'' = inst' { Instance.dsk = Instance.dsk inst
                      , Instance.diskTemplate = dt }
-  in case Node.addPri node inst'' of
-       Bad Types.FailDisk -> True
-       _ -> False
+  in (Node.addPri node inst'' ==? Bad Types.FailDisk)
 
 -- | Check that adding a primary instance with too many VCPUs fails
 -- with type FailCPU.

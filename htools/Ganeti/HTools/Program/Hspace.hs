@@ -122,7 +122,7 @@ cpuEff :: Cluster.CStats -> Double
 cpuEff = effFn Cluster.csIcpu (fromIntegral . Cluster.csVcpu)
 
 -- | Holds data for converting a 'Cluster.CStats' structure into
--- detailed statictics.
+-- detailed statistics.
 statsData :: [(String, Cluster.CStats -> String)]
 statsData = [ ("SCORE", printf "%.8f" . Cluster.csScore)
             , ("INST_CNT", printf "%d" . Cluster.csNinst)
