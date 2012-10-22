@@ -1684,6 +1684,11 @@ gitignore-check:
 	  exit 1; \
 	fi
 
+# Target that builds all binaries (including those that are not
+# rebuilt except when running the tests)
+.PHONY: really-all
+really-all: all $(check_SCRIPTS) $(haskell_tests)
+
 # we don't need the ancient implicit rules:
 %: %,v
 %: RCS/%,v
