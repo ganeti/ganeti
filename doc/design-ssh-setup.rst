@@ -66,16 +66,16 @@ Unless specified otherwise, all entries are optional.
   authorization. See below for definition.
 
 Lists of SSH keys use a tuple with three values. The first describes the
-key variant (``rsa`` or ``dsa``). The second and third are the public
-and private part of the key. Example:
+key variant (``rsa`` or ``dsa``). The second and third are the private
+and public part of the key. Example:
 
 .. highlight:: javascript
 
 ::
 
   [
-    ("rsa", "AAAA...", "-----BEGIN RSA PRIVATE KEY-----..."),
-    ("dsa", "AAAA...", "-----BEGIN DSA PRIVATE KEY-----..."),
+    ("rsa", "-----BEGIN RSA PRIVATE KEY-----...", "ssh-rss AAAA..."),
+    ("dsa", "-----BEGIN DSA PRIVATE KEY-----...", "ssh-dss AAAA..."),
   ]
 
 .. vim: set textwidth=72 :

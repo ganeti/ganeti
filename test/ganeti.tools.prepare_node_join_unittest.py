@@ -159,11 +159,11 @@ class TestUpdateSshDaemon(unittest.TestCase):
 
     self.keyfiles = {
       constants.SSHK_RSA:
-        (utils.PathJoin(self.tmpdir, "rsa.public"),
-         utils.PathJoin(self.tmpdir, "rsa.private")),
+        (utils.PathJoin(self.tmpdir, "rsa.private"),
+         utils.PathJoin(self.tmpdir, "rsa.public")),
       constants.SSHK_DSA:
-        (utils.PathJoin(self.tmpdir, "dsa.public"),
-         utils.PathJoin(self.tmpdir, "dsa.private")),
+        (utils.PathJoin(self.tmpdir, "dsa.private"),
+         utils.PathJoin(self.tmpdir, "dsa.public")),
       }
 
   def tearDown(self):
@@ -190,14 +190,14 @@ class TestUpdateSshDaemon(unittest.TestCase):
   def testDryRunRsa(self):
     self._TestDryRun({
       constants.SSHS_SSH_HOST_KEY: [
-        (constants.SSHK_RSA, "rsapub", "rsapriv"),
+        (constants.SSHK_RSA, "rsapriv", "rsapub"),
         ],
       })
 
   def testDryRunDsa(self):
     self._TestDryRun({
       constants.SSHS_SSH_HOST_KEY: [
-        (constants.SSHK_DSA, "dsapub", "dsapriv"),
+        (constants.SSHK_DSA, "dsapriv", "dsapub"),
         ],
       })
 
@@ -215,8 +215,8 @@ class TestUpdateSshDaemon(unittest.TestCase):
   def _TestUpdate(self, failcmd):
     data = {
       constants.SSHS_SSH_HOST_KEY: [
-        (constants.SSHK_DSA, "dsapub", "dsapriv"),
-        (constants.SSHK_RSA, "rsapub", "rsapriv"),
+        (constants.SSHK_DSA, "dsapriv", "dsapub"),
+        (constants.SSHK_RSA, "rsapriv", "rsapub"),
         ],
       }
     runcmd_fn = compat.partial(self._RunCmd, failcmd)
@@ -228,8 +228,8 @@ class TestUpdateSshDaemon(unittest.TestCase):
       prepare_node_join.UpdateSshDaemon(data, False, _runcmd_fn=runcmd_fn,
                                         _keyfiles=self.keyfiles)
     self.assertEqual(sorted(os.listdir(self.tmpdir)), sorted([
-      "rsa.private", "rsa.public",
-      "dsa.private", "dsa.public",
+      "rsa.public", "rsa.private",
+      "dsa.public", "dsa.private",
       ]))
     self.assertEqual(utils.ReadFile(utils.PathJoin(self.tmpdir, "rsa.public")),
                      "rsapub")
@@ -287,7 +287,7 @@ class TestUpdateSshRoot(unittest.TestCase):
   def testUpdate(self):
     data = {
       constants.SSHS_SSH_ROOT_KEY: [
-        (constants.SSHK_DSA, "ssh-dss pubdsa", "privatedsa"),
+        (constants.SSHK_DSA, "privatedsa", "ssh-dss pubdsa"),
         ]
       }
 

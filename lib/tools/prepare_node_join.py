@@ -60,9 +60,9 @@ _DATA_CHECK = ht.TStrictDict(False, True, {
 
 _SSH_DAEMON_KEYFILES = {
   constants.SSHK_RSA:
-    (pathutils.SSH_HOST_RSA_PUB, pathutils.SSH_HOST_RSA_PRIV),
+    (pathutils.SSH_HOST_RSA_PRIV, pathutils.SSH_HOST_RSA_PUB),
   constants.SSHK_DSA:
-    (pathutils.SSH_HOST_DSA_PUB, pathutils.SSH_HOST_DSA_PRIV),
+    (pathutils.SSH_HOST_DSA_PRIV, pathutils.SSH_HOST_DSA_PUB),
   }
 
 
@@ -229,15 +229,15 @@ def _UpdateKeyFiles(keys, dry_run, keyfiles):
   """
   assert set(keyfiles) == constants.SSHK_ALL
 
-  for (kind, public_key, private_key) in keys:
-    (public_file, private_file) = keyfiles[kind]
-
-    logging.debug("Writing %s ...", public_file)
-    utils.WriteFile(public_file, data=public_key, mode=0644,
-                    backup=True, dry_run=dry_run)
+  for (kind, private_key, public_key) in keys:
+    (private_file, public_file) = keyfiles[kind]
 
     logging.debug("Writing %s ...", private_file)
     utils.WriteFile(private_file, data=private_key, mode=0600,
+                    backup=True, dry_run=dry_run)
+
+    logging.debug("Writing %s ...", public_file)
+    utils.WriteFile(public_file, data=public_key, mode=0644,
                     backup=True, dry_run=dry_run)
 
 
@@ -297,8 +297,8 @@ def UpdateSshRoot(data, dry_run, _homedir_fn=None):
                      kind=constants.SSHK_RSA, _homedir_fn=_homedir_fn)
 
   _UpdateKeyFiles(keys, dry_run, {
-    constants.SSHK_RSA: (rsa_public_file, rsa_private_file),
-    constants.SSHK_DSA: (dsa_public_file, dsa_private_file),
+    constants.SSHK_RSA: (rsa_private_file, rsa_public_file),
+    constants.SSHK_DSA: (dsa_private_file, dsa_public_file),
     })
 
   if dry_run:
