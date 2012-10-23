@@ -41,13 +41,15 @@ from ganeti import ssh
 from ganeti import ssconf
 
 
-_SSH_KEY_LIST = \
-  ht.TListOf(ht.TAnd(ht.TIsLength(3),
-                     ht.TItems([
-                       ht.TElemOf(constants.SSHK_ALL),
-                       ht.Comment("public")(ht.TNonEmptyString),
-                       ht.Comment("private")(ht.TNonEmptyString),
-                       ])))
+_SSH_KEY_LIST_ITEM = \
+  ht.TAnd(ht.TIsLength(3),
+          ht.TItems([
+            ht.TElemOf(constants.SSHK_ALL),
+            ht.Comment("public")(ht.TNonEmptyString),
+            ht.Comment("private")(ht.TNonEmptyString),
+          ]))
+
+_SSH_KEY_LIST = ht.TListOf(_SSH_KEY_LIST_ITEM)
 
 _DATA_CHECK = ht.TStrictDict(False, True, {
   constants.SSHS_CLUSTER_NAME: ht.TNonEmptyString,
@@ -67,7 +69,7 @@ _SSH_DAEMON_KEYFILES = {
     (pathutils.SSH_HOST_RSA_PUB, pathutils.SSH_HOST_RSA_PRIV),
   constants.SSHK_DSA:
     (pathutils.SSH_HOST_DSA_PUB, pathutils.SSH_HOST_DSA_PRIV),
-    }
+  }
 
 assert frozenset(_SSHK_TO_SSHAK.keys()) == constants.SSHK_ALL
 assert frozenset(_SSHK_TO_SSHAK.values()) == constants.SSHAK_ALL
