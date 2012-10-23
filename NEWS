@@ -25,6 +25,10 @@ Version 2.7.0 beta1
 - The parsing of the variants file for OSes (see
   :manpage:`ganeti-os-interface(8)` has been slightly changed: now empty
   lines and comment lines are ignored for better readability.
+- The ``setup-ssh`` tool added in Ganeti 2.2 has been replaced.
+  ``gnt-node add`` now invokes a new tool on the destination node, named
+  ``prepare-node-join``, to configure the SSH daemon. Paramiko is no
+  longer necessary to configure nodes' SSH daemons via ``gnt-node add``.
 
 
 Version 2.6.1

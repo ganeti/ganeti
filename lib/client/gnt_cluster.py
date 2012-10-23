@@ -503,7 +503,7 @@ def ClusterCopyFile(opts, args):
                            secondary_ips=opts.use_replication_network,
                            nodegroup=opts.nodegroup)
 
-  srun = ssh.SshRunner(cluster_name=cluster_name)
+  srun = ssh.SshRunner(cluster_name)
   for node in results:
     if not srun.CopyFileToNode(node, filename):
       ToStderr("Copy of file %s to node %s failed", filename, node)

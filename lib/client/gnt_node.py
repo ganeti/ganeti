@@ -27,6 +27,8 @@
 # C0103: Invalid name gnt-node
 
 import itertools
+import errno
+import tempfile
 
 from ganeti.cli import *
 from ganeti import cli
@@ -37,6 +39,8 @@ from ganeti import constants
 from ganeti import errors
 from ganeti import netutils
 from ganeti import pathutils
+from ganeti import serializer
+from ganeti import ssh
 from cStringIO import StringIO
 
 from ganeti import confd
@@ -134,37 +138,111 @@ def ConvertStorageType(user_storage_type):
                                errors.ECODE_INVAL)
 
 
-def _RunSetupSSH(options, nodes):
-  """Wrapper around utils.RunCmd to call setup-ssh
+def _TryReadFile(path):
+  """Tries to read a file.
 
-  @param options: The command line options
-  @param nodes: The nodes to setup
+  If the file is not found, C{None} is returned.
+
+  @type path: string
+  @param path: Filename
+  @rtype: None or string
+  @todo: Consider adding a generic ENOENT wrapper
 
   """
+  try:
+    return utils.ReadFile(path)
+  except EnvironmentError, err:
+    if err.errno == errno.ENOENT:
+      return None
+    else:
+      raise
 
-  assert nodes, "Empty node list"
 
-  cmd = [pathutils.SETUP_SSH]
+def _ReadSshKeys(keyfiles, _tostderr_fn=ToStderr):
+  """Reads SSH keys according to C{keyfiles}.
 
-  # Pass --debug|--verbose to the external script if set on our invocation
-  # --debug overrides --verbose
+  @type keyfiles: dict
+  @param keyfiles: Dictionary with keys of L{constants.SSHK_ALL} and two-values
+    tuples (private and public key file)
+  @rtype: list
+  @return: List of three-values tuples (L{constants.SSHK_ALL}, private and
+    public key as strings)
+
+  """
+  result = []
+
+  for (kind, (private_file, public_file)) in keyfiles.items():
+    private_key = _TryReadFile(private_file)
+    public_key = _TryReadFile(public_file)
+
+    if public_key and private_key:
+      result.append((kind, private_key, public_key))
+    elif public_key or private_key:
+      _tostderr_fn("Couldn't find a complete set of keys for kind '%s'; files"
+                   " '%s' and '%s'", kind, private_file, public_file)
+
+  return result
+
+
+def _SetupSSH(options, cluster_name, node):
+  """Configures a destination node's SSH daemon.
+
+  @param options: Command line options
+  @type cluster_name
+  @param cluster_name: Cluster name
+  @type node: string
+  @param node: Destination node name
+
+  """
+  if options.force_join:
+    ToStderr("The \"--force-join\" option is no longer supported and will be"
+             " ignored.")
+
+  cmd = [pathutils.PREPARE_NODE_JOIN]
+
+  # Pass --debug/--verbose to the external script if set on our invocation
   if options.debug:
     cmd.append("--debug")
-  elif options.verbose:
+
+  if options.verbose:
     cmd.append("--verbose")
-  if not options.ssh_key_check:
-    cmd.append("--no-ssh-key-check")
-  if options.force_join:
-    cmd.append("--force-join")
 
-  cmd.extend(nodes)
+  host_keys = _ReadSshKeys(constants.SSH_DAEMON_KEYFILES)
 
-  result = utils.RunCmd(cmd, interactive=True)
+  (_, root_keyfiles) = \
+    ssh.GetAllUserFiles(constants.SSH_LOGIN_USER, mkdir=False, dircheck=False)
+
+  root_keys = _ReadSshKeys(root_keyfiles)
+
+  (_, cert_pem) = \
+    utils.ExtractX509Certificate(utils.ReadFile(pathutils.NODED_CERT_FILE))
+
+  data = {
+    constants.SSHS_CLUSTER_NAME: cluster_name,
+    constants.SSHS_NODE_DAEMON_CERTIFICATE: cert_pem,
+    constants.SSHS_SSH_HOST_KEY: host_keys,
+    constants.SSHS_SSH_ROOT_KEY: root_keys,
+    }
+
+  srun = ssh.SshRunner(cluster_name)
+  scmd = srun.BuildCmd(node, constants.SSH_LOGIN_USER,
+                       utils.ShellQuoteArgs(cmd),
+                       batch=False, ask_key=options.ssh_key_check,
+                       strict_host_check=options.ssh_key_check, quiet=False,
+                       use_cluster_key=False)
+
+  tempfh = tempfile.TemporaryFile()
+  try:
+    tempfh.write(serializer.DumpJson(data))
+    tempfh.seek(0)
+
+    result = utils.RunCmd(scmd, interactive=True, input_fd=tempfh)
+  finally:
+    tempfh.close()
 
   if result.failed:
-    errmsg = ("Command '%s' failed with exit code %s; output %r" %
-              (result.cmd, result.exit_code, result.output))
-    raise errors.OpExecError(errmsg)
+    raise errors.OpExecError("Command '%s' failed: %s" %
+                             (result.cmd, result.fail_reason))
 
 
 @UsesRPC
@@ -206,8 +284,7 @@ def AddNode(opts, args):
     sip = opts.secondary_ip
 
   # read the cluster name from the master
-  output = cl.QueryConfigValues(["cluster_name"])
-  cluster_name = output[0]
+  (cluster_name, ) = cl.QueryConfigValues(["cluster_name"])
 
   if not readd and opts.node_setup:
     ToStderr("-- WARNING -- \n"
@@ -218,7 +295,7 @@ def AddNode(opts, args):
              "and grant full intra-cluster ssh root access to/from it\n", node)
 
   if opts.node_setup:
-    _RunSetupSSH(opts, [node])
+    _SetupSSH(opts, cluster_name, node)
 
   bootstrap.SetupNodeDaemon(cluster_name, node, opts.ssh_key_check)
 

@@ -52,10 +52,6 @@ secondary IP again, it will reused from the cluster. Also, the
 drained and offline flags of the node will be cleared before
 re-adding it.
 
-The ``--force-join`` option is to proceed with adding a node even if it already
-appears to belong to another cluster. This is used during cluster merging, for
-example.
-
 The ``-g (--node-group)`` option is used to add the new node into a
 specific node group, specified by UUID or name. If only one node group
 exists you can skip this option, otherwise it's mandatory.

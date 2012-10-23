@@ -651,7 +651,7 @@ class Merger(object):
       for node in data.nodes:
         logging.info("Readding node %s", node)
         result = utils.RunCmd(["gnt-node", "add", "--readd",
-                               "--no-ssh-key-check", "--force-join", node])
+                               "--no-ssh-key-check", node])
         if result.failed:
           logging.error("%s failed to be readded. Reason: %s, output: %s",
                          node, result.fail_reason, result.output)
