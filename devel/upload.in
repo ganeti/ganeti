@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright (C) 2006, 2007, 2008, 2009, 2010 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -27,6 +27,11 @@
 
 set -e
 
+usage() {
+  echo "Usage: $0 [--no-restart] [--no-cron] [--no-debug] hosts..." >&2
+  exit $1
+}
+
 PREFIX='@PREFIX@'
 SYSCONFDIR='@SYSCONFDIR@'
 PKGLIBDIR='@PKGLIBDIR@'
@@ -48,12 +53,11 @@ while [ "$#" -gt 0 ]; do
       NO_DEBUG=1
       ;;
     -h|--help)
-      echo "Usage: $0 [--no-restart] hosts..."
-      exit 0
+      usage 0
       ;;
     -*)
       echo "Unknown option: $opt" >&2
-      exit 1
+      usage 1
       ;;
     *)
       hosts="$hosts $opt"
@@ -61,6 +65,10 @@ while [ "$#" -gt 0 ]; do
   esac
   shift
 done
+
+if [ -z "$hosts" ]; then
+  usage 1
+fi
 
 set ${hosts}
 
