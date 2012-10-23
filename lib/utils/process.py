@@ -142,7 +142,7 @@ def _BuildCmdEnvironment(env, reset):
 
 def RunCmd(cmd, env=None, output=None, cwd="/", reset_env=False,
            interactive=False, timeout=None, noclose_fds=None,
-           _postfork_fn=None):
+           input_fd=None, _postfork_fn=None):
   """Execute a (shell) command.
 
   The command should not read from its standard input, as it will be
@@ -170,6 +170,8 @@ def RunCmd(cmd, env=None, output=None, cwd="/", reset_env=False,
   @type noclose_fds: list
   @param noclose_fds: list of additional (fd >=3) file descriptors to leave
                       open for the child process
+  @type input_fd: C{file}-like object or numeric file descriptor
+  @param input_fd: File descriptor for process' standard input
   @param _postfork_fn: Callback run after fork but before timeout (unittest)
   @rtype: L{RunResult}
   @return: RunResult instance
@@ -182,6 +184,12 @@ def RunCmd(cmd, env=None, output=None, cwd="/", reset_env=False,
   if output and interactive:
     raise errors.ProgrammerError("Parameters 'output' and 'interactive' can"
                                  " not be provided at the same time")
+
+  if not (output is None or input_fd is None):
+    # The current logic in "_RunCmdFile", which is used when output is defined,
+    # does not support input files (not hard to implement, though)
+    raise errors.ProgrammerError("Parameters 'output' and 'input_fd' can"
+                                 " not be used at the same time")
 
   if isinstance(cmd, basestring):
     strcmd = cmd
@@ -202,11 +210,12 @@ def RunCmd(cmd, env=None, output=None, cwd="/", reset_env=False,
     if output is None:
       out, err, status, timeout_action = _RunCmdPipe(cmd, cmd_env, shell, cwd,
                                                      interactive, timeout,
-                                                     noclose_fds,
+                                                     noclose_fds, input_fd,
                                                      _postfork_fn=_postfork_fn)
     else:
       assert _postfork_fn is None, \
           "_postfork_fn not supported if output provided"
+      assert input_fd is None
       timeout_action = _TIMEOUT_NONE
       status = _RunCmdFile(cmd, cmd_env, shell, output, cwd, noclose_fds)
       out = err = ""
@@ -481,6 +490,7 @@ def _WaitForProcess(child, timeout):
 
 
 def _RunCmdPipe(cmd, env, via_shell, cwd, interactive, timeout, noclose_fds,
+                input_fd,
                 _linger_timeout=constants.CHILD_LINGER_TIMEOUT,
                 _postfork_fn=None):
   """Run a command and return its output.
@@ -500,6 +510,8 @@ def _RunCmdPipe(cmd, env, via_shell, cwd, interactive, timeout, noclose_fds,
   @type noclose_fds: list
   @param noclose_fds: list of additional (fd >=3) file descriptors to leave
                       open for the child process
+  @type input_fd: C{file}-like object or numeric file descriptor
+  @param input_fd: File descriptor for process' standard input
   @param _postfork_fn: Function run after fork but before timeout (unittest)
   @rtype: tuple
   @return: (out, err, status)
@@ -507,12 +519,19 @@ def _RunCmdPipe(cmd, env, via_shell, cwd, interactive, timeout, noclose_fds,
   """
   poller = select.poll()
 
-  stderr = subprocess.PIPE
-  stdout = subprocess.PIPE
-  stdin = subprocess.PIPE
-
   if interactive:
-    stderr = stdout = stdin = None
+    stderr = None
+    stdout = None
+  else:
+    stderr = subprocess.PIPE
+    stdout = subprocess.PIPE
+
+  if input_fd:
+    stdin = input_fd
+  elif interactive:
+    stdin = None
+  else:
+    stdin = subprocess.PIPE
 
   if noclose_fds:
     preexec_fn = lambda: CloseFDs(noclose_fds)
@@ -549,8 +568,14 @@ def _RunCmdPipe(cmd, env, via_shell, cwd, interactive, timeout, noclose_fds,
 
   timeout_action = _TIMEOUT_NONE
 
+  # subprocess: "If the stdin argument is PIPE, this attribute is a file object
+  # that provides input to the child process. Otherwise, it is None."
+  assert (stdin == subprocess.PIPE) ^ (child.stdin is None), \
+    "subprocess' stdin did not behave as documented"
+
   if not interactive:
-    child.stdin.close()
+    if child.stdin is not None:
+      child.stdin.close()
     poller.register(child.stdout, select.POLLIN)
     poller.register(child.stderr, select.POLLIN)
     fdmap = {

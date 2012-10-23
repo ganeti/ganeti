@@ -274,6 +274,7 @@ class TestRunCmd(testutils.GanetiTestCase):
     (out, err, status, ta) = \
       utils.process._RunCmdPipe(cmd, {}, False, "/", False,
                                 timeout, [self.proc_ready_helper.write_fd],
+                                None,
                                 _linger_timeout=0.2,
                                 _postfork_fn=self.proc_ready_helper.Ready)
     self.assert_(status < 0)
@@ -376,6 +377,63 @@ class TestRunCmd(testutils.GanetiTestCase):
       self.assertEqual(result.stdout.strip(), "test")
     finally:
       temp.close()
+
+  def testNoInputRead(self):
+    testfile = self._TestDataFilename("cert1.pem")
+
+    result = utils.RunCmd(["cat"], timeout=10.0)
+    self.assertFalse(result.failed)
+    self.assertEqual(result.stderr, "")
+    self.assertEqual(result.stdout, "")
+
+  def testInputFileHandle(self):
+    testfile = self._TestDataFilename("cert1.pem")
+
+    result = utils.RunCmd(["cat"], input_fd=open(testfile, "r"))
+    self.assertFalse(result.failed)
+    self.assertEqual(result.stdout, utils.ReadFile(testfile))
+    self.assertEqual(result.stderr, "")
+
+  def testInputNumericFileDescriptor(self):
+    testfile = self._TestDataFilename("cert2.pem")
+
+    fh = open(testfile, "r")
+    try:
+      result = utils.RunCmd(["cat"], input_fd=fh.fileno())
+    finally:
+      fh.close()
+
+    self.assertFalse(result.failed)
+    self.assertEqual(result.stdout, utils.ReadFile(testfile))
+    self.assertEqual(result.stderr, "")
+
+  def testInputWithCloseFds(self):
+    testfile = self._TestDataFilename("cert1.pem")
+
+    temp = open(self.fname, "r+")
+    try:
+      temp.write("test283523367")
+      temp.seek(0)
+
+      result = utils.RunCmd(["/bin/bash", "-c",
+                             ("cat && read -u %s; echo $REPLY" %
+                              temp.fileno())],
+                            input_fd=open(testfile, "r"),
+                            noclose_fds=[temp.fileno()])
+      self.assertFalse(result.failed)
+      self.assertEqual(result.stdout.strip(),
+                       utils.ReadFile(testfile) + "test283523367")
+      self.assertEqual(result.stderr, "")
+    finally:
+      temp.close()
+
+  def testOutputAndInteractive(self):
+    self.assertRaises(errors.ProgrammerError, utils.RunCmd,
+                      [], output=self.fname, interactive=True)
+
+  def testOutputAndInput(self):
+    self.assertRaises(errors.ProgrammerError, utils.RunCmd,
+                      [], output=self.fname, input_fd=open(self.fname))
 
 
 class TestRunParts(testutils.GanetiTestCase):
