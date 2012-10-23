@@ -2060,5 +2060,11 @@ SSHS_SSH_HOST_KEY = "ssh_host_key"
 SSHS_SSH_ROOT_KEY = "ssh_root_key"
 SSHS_NODE_DAEMON_CERTIFICATE = "node_daemon_certificate"
 
+#: Key files for SSH daemon
+SSH_DAEMON_KEYFILES = {
+  SSHK_RSA: (pathutils.SSH_HOST_RSA_PRIV, pathutils.SSH_HOST_RSA_PUB),
+  SSHK_DSA: (pathutils.SSH_HOST_DSA_PRIV, pathutils.SSH_HOST_DSA_PUB),
+  }
+
 # Do not re-export imported modules
 del re, _vcsversion, _autoconf, socket, pathutils

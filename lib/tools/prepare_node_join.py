@@ -58,13 +58,6 @@ _DATA_CHECK = ht.TStrictDict(False, True, {
   constants.SSHS_SSH_ROOT_KEY: _SSH_KEY_LIST,
   })
 
-_SSH_DAEMON_KEYFILES = {
-  constants.SSHK_RSA:
-    (pathutils.SSH_HOST_RSA_PRIV, pathutils.SSH_HOST_RSA_PUB),
-  constants.SSHK_DSA:
-    (pathutils.SSH_HOST_DSA_PRIV, pathutils.SSH_HOST_DSA_PUB),
-  }
-
 
 class JoinError(errors.GenericError):
   """Local class for reporting errors.
@@ -258,7 +251,7 @@ def UpdateSshDaemon(data, dry_run, _runcmd_fn=utils.RunCmd,
     return
 
   if _keyfiles is None:
-    _keyfiles = _SSH_DAEMON_KEYFILES
+    _keyfiles = constants.SSH_DAEMON_KEYFILES
 
   logging.info("Updating SSH daemon key files")
   _UpdateKeyFiles(keys, dry_run, _keyfiles)
