@@ -2056,7 +2056,6 @@ SSHAK_ALL = frozenset([SSHAK_RSA, SSHAK_DSS])
 
 # SSH setup
 SSHS_CLUSTER_NAME = "cluster_name"
-SSHS_FORCE = "force"
 SSHS_SSH_HOST_KEY = "ssh_host_key"
 SSHS_SSH_ROOT_KEY = "ssh_root_key"
 SSHS_NODE_DAEMON_CERTIFICATE = "node_daemon_certificate"

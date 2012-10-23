@@ -53,7 +53,6 @@ _SSH_KEY_LIST = ht.TListOf(_SSH_KEY_LIST_ITEM)
 
 _DATA_CHECK = ht.TStrictDict(False, True, {
   constants.SSHS_CLUSTER_NAME: ht.TNonEmptyString,
-  constants.SSHS_FORCE: ht.TBool,
   constants.SSHS_NODE_DAEMON_CERTIFICATE: ht.TNonEmptyString,
   constants.SSHS_SSH_HOST_KEY: _SSH_KEY_LIST,
   constants.SSHS_SSH_ROOT_KEY: _SSH_KEY_LIST,
