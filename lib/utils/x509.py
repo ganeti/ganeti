@@ -242,11 +242,8 @@ def LoadSignedX509Certificate(cert_pem, key):
   """
   (salt, signature) = _ExtractX509CertificateSignature(cert_pem)
 
-  # Load certificate
-  cert = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, cert_pem)
-
-  # Dump again to ensure it's in a sane format
-  sane_pem = OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM, cert)
+  # Load and dump certificate to ensure it's in a sane format
+  (cert, sane_pem) = ExtractX509Certificate(cert_pem)
 
   if not utils_hash.VerifySha1Hmac(key, sane_pem, signature, salt=salt):
     raise errors.GenericError("X509 certificate signature is invalid")
@@ -308,3 +305,17 @@ def GenerateSelfSignedSslCert(filename, common_name=constants.X509_CERT_CN,
 
   utils_io.WriteFile(filename, mode=0400, data=key_pem + cert_pem)
   return (key_pem, cert_pem)
+
+
+def ExtractX509Certificate(pem):
+  """Extracts the certificate from a PEM-formatted string.
+
+  @type pem: string
+  @rtype: tuple; (OpenSSL.X509 object, string)
+  @return: Certificate object and PEM-formatted certificate
+
+  """
+  cert = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, pem)
+
+  return (cert,
+          OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM, cert))
