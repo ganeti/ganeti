@@ -16,8 +16,8 @@ a step-by-step example to managing instances and the cluster.
 
 Our simulated, example cluster will have three machines, named
 ``node1``, ``node2``, ``node3``. Note that in real life machines will
-usually FQDNs but here we use short names for brevity. We will use a
-secondary network for replication data, ``192.0.2.0/24``, with nodes
+usually have FQDNs but here we use short names for brevity. We will use
+a secondary network for replication data, ``192.0.2.0/24``, with nodes
 having the last octet the same as their index. The cluster name will be
 ``example-cluster``. All nodes have the same simulated hardware
 configuration, two disks of 750GB, 32GB of memory and 4 CPUs.
