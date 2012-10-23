@@ -681,8 +681,7 @@ python_scripts = \
 	tools/lvmstrap \
 	tools/move-instance \
 	tools/ovfconverter \
-	tools/sanitize-config \
-	tools/setup-ssh
+	tools/sanitize-config
 
 dist_tools_SCRIPTS = \
 	$(python_scripts) \
