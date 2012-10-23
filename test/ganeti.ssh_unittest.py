@@ -124,6 +124,14 @@ class TestGetUserFiles(unittest.TestCase):
       self.assertEqual(os.listdir(self.tmpdir), [".ssh"])
       self.assertEqual(os.listdir(sshdir), [])
 
+  def testNoDirCheck(self):
+    self.assertEqual(os.listdir(self.tmpdir), [])
+
+    for kind in constants.SSHK_ALL:
+      ssh.GetUserFiles("example14528", mkdir=False, dircheck=False, kind=kind,
+                       _homedir_fn=self._GetTempHomedir)
+      self.assertEqual(os.listdir(self.tmpdir), [])
+
 
 if __name__ == "__main__":
   testutils.GanetiTestProgram()

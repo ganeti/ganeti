@@ -48,7 +48,7 @@ def FormatParamikoFingerprint(fingerprint):
   return ":".join(re.findall(r"..", fingerprint.lower()))
 
 
-def GetUserFiles(user, mkdir=False, kind=constants.SSHK_DSA,
+def GetUserFiles(user, mkdir=False, dircheck=True, kind=constants.SSHK_DSA,
                  _homedir_fn=None):
   """Return the paths of a user's SSH files.
 
@@ -56,6 +56,8 @@ def GetUserFiles(user, mkdir=False, kind=constants.SSHK_DSA,
   @param user: Username
   @type mkdir: bool
   @param mkdir: Whether to create ".ssh" directory if it doesn't exist
+  @type dircheck: bool
+  @param dircheck: Whether to check if ".ssh" directory exists
   @type kind: string
   @param kind: One of L{constants.SSHK_ALL}
   @rtype: tuple; (string, string, string)
@@ -64,7 +66,8 @@ def GetUserFiles(user, mkdir=False, kind=constants.SSHK_DSA,
   @raise errors.OpExecError: When home directory of the user can not be
     determined
   @raise errors.OpExecError: Regardless of the C{mkdir} parameters, this
-    exception is raised if C{~$user/.ssh} is not a directory
+    exception is raised if C{~$user/.ssh} is not a directory and C{dircheck}
+    is set to C{True}
 
   """
   if _homedir_fn is None:
@@ -84,7 +87,7 @@ def GetUserFiles(user, mkdir=False, kind=constants.SSHK_DSA,
   ssh_dir = utils.PathJoin(user_dir, ".ssh")
   if mkdir:
     utils.EnsureDirs([(ssh_dir, constants.SECURE_DIR_MODE)])
-  elif not os.path.isdir(ssh_dir):
+  elif dircheck and not os.path.isdir(ssh_dir):
     raise errors.OpExecError("Path %s is not a directory" % ssh_dir)
 
   return [utils.PathJoin(ssh_dir, base)
