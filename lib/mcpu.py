@@ -28,10 +28,12 @@ are two kinds of classes defined:
 
 """
 
+import sys
 import logging
 import random
 import time
 import itertools
+import traceback
 
 from ganeti import opcodes
 from ganeti import constants
@@ -354,7 +356,19 @@ class Processor(object):
       if self._cbs:
         self._cbs.NotifyStart()
 
-      result = self._ExecLU(lu)
+      try:
+        result = self._ExecLU(lu)
+      except AssertionError, err:
+        # this is a bit ugly, as we don't know from which phase
+        # (prereq, exec) this comes; but it's better than an exception
+        # with no information
+        (_, _, tb) = sys.exc_info()
+        err_info = traceback.format_tb(tb)
+        del tb
+        logging.exception("Detected AssertionError")
+        raise errors.OpExecError("Internal assertion error: please report"
+                                 " this as a bug.\nError message: '%s';"
+                                 " location:\n%s" % (str(err), err_info[-1]))
 
     elif adding_locks and acquiring_locks:
       # We could both acquire and add locks at the same level, but for now we
