@@ -287,7 +287,7 @@ class TestUpdateSshRoot(unittest.TestCase):
   def testUpdate(self):
     data = {
       constants.SSHS_SSH_ROOT_KEY: [
-        (constants.SSHK_DSA, "pubdsa", "privatedsa"),
+        (constants.SSHK_DSA, "ssh-dss pubdsa", "privatedsa"),
         ]
       }
 
@@ -299,7 +299,7 @@ class TestUpdateSshRoot(unittest.TestCase):
     self.assertEqual(utils.ReadFile(utils.PathJoin(self.sshdir, "id_dsa")),
                      "privatedsa")
     self.assertEqual(utils.ReadFile(utils.PathJoin(self.sshdir, "id_dsa.pub")),
-                     "pubdsa")
+                     "ssh-dss pubdsa")
     self.assertEqual(utils.ReadFile(utils.PathJoin(self.sshdir,
                                                    "authorized_keys")),
                      "ssh-dss pubdsa\n")

@@ -58,20 +58,12 @@ _DATA_CHECK = ht.TStrictDict(False, True, {
   constants.SSHS_SSH_ROOT_KEY: _SSH_KEY_LIST,
   })
 
-_SSHK_TO_SSHAK = {
-  constants.SSHK_RSA: constants.SSHAK_RSA,
-  constants.SSHK_DSA: constants.SSHAK_DSS,
-  }
-
 _SSH_DAEMON_KEYFILES = {
   constants.SSHK_RSA:
     (pathutils.SSH_HOST_RSA_PUB, pathutils.SSH_HOST_RSA_PRIV),
   constants.SSHK_DSA:
     (pathutils.SSH_HOST_DSA_PUB, pathutils.SSH_HOST_DSA_PRIV),
   }
-
-assert frozenset(_SSHK_TO_SSHAK.keys()) == constants.SSHK_ALL
-assert frozenset(_SSHK_TO_SSHAK.values()) == constants.SSHAK_ALL
 
 
 class JoinError(errors.GenericError):
@@ -312,9 +304,8 @@ def UpdateSshRoot(data, dry_run, _homedir_fn=None):
   if dry_run:
     logging.info("This is a dry run, not modifying %s", auth_keys_file)
   else:
-    for (kind, public_key, _) in keys:
-      line = "%s %s" % (_SSHK_TO_SSHAK[kind], public_key)
-      utils.AddAuthorizedKey(auth_keys_file, line)
+    for (_, _, public_key) in keys:
+      utils.AddAuthorizedKey(auth_keys_file, public_key)
 
 
 def LoadData(raw):
