@@ -282,17 +282,11 @@ def UpdateSshRoot(data, dry_run, _homedir_fn=None):
   if not keys:
     return
 
-  (dsa_private_file, dsa_public_file, auth_keys_file) = \
-    ssh.GetUserFiles(constants.SSH_LOGIN_USER, mkdir=True,
-                     kind=constants.SSHK_DSA, _homedir_fn=_homedir_fn)
-  (rsa_private_file, rsa_public_file, _) = \
-    ssh.GetUserFiles(constants.SSH_LOGIN_USER, mkdir=True,
-                     kind=constants.SSHK_RSA, _homedir_fn=_homedir_fn)
+  (auth_keys_file, keyfiles) = \
+    ssh.GetAllUserFiles(constants.SSH_LOGIN_USER, mkdir=True,
+                        _homedir_fn=_homedir_fn)
 
-  _UpdateKeyFiles(keys, dry_run, {
-    constants.SSHK_RSA: (rsa_private_file, rsa_public_file),
-    constants.SSHK_DSA: (dsa_private_file, dsa_public_file),
-    })
+  _UpdateKeyFiles(keys, dry_run, keyfiles)
 
   if dry_run:
     logging.info("This is a dry run, not modifying %s", auth_keys_file)
