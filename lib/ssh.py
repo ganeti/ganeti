@@ -34,6 +34,7 @@ from ganeti import constants
 from ganeti import netutils
 from ganeti import pathutils
 from ganeti import vcluster
+from ganeti import compat
 
 
 def FormatParamikoFingerprint(fingerprint):
@@ -93,6 +94,29 @@ def GetUserFiles(user, mkdir=False, dircheck=True, kind=constants.SSHK_DSA,
   return [utils.PathJoin(ssh_dir, base)
           for base in ["id_%s" % suffix, "id_%s.pub" % suffix,
                        "authorized_keys"]]
+
+
+def GetAllUserFiles(user, mkdir=False, dircheck=True, _homedir_fn=None):
+  """Wrapper over L{GetUserFiles} to retrieve files for all SSH key types.
+
+  See L{GetUserFiles} for details.
+
+  @rtype: tuple; (string, dict with string as key, tuple of (string, string) as
+    value)
+
+  """
+  helper = compat.partial(GetUserFiles, user, mkdir=mkdir, dircheck=dircheck,
+                          _homedir_fn=_homedir_fn)
+  result = [(kind, helper(kind=kind)) for kind in constants.SSHK_ALL]
+
+  authorized_keys = [i for (_, (_, _, i)) in result]
+
+  assert len(frozenset(authorized_keys)) == 1, \
+    "Different paths for authorized_keys were returned"
+
+  return (authorized_keys[0],
+          dict((kind, (privkey, pubkey))
+               for (kind, (privkey, pubkey, _)) in result))
 
 
 class SshRunner:

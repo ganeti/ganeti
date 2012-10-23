@@ -132,6 +132,26 @@ class TestGetUserFiles(unittest.TestCase):
                        _homedir_fn=self._GetTempHomedir)
       self.assertEqual(os.listdir(self.tmpdir), [])
 
+  def testGetAllUserFiles(self):
+    result = ssh.GetAllUserFiles("example7475", mkdir=False, dircheck=False,
+                                 _homedir_fn=self._GetTempHomedir)
+    self.assertEqual(result,
+      (os.path.join(self.tmpdir, ".ssh", "authorized_keys"), {
+        constants.SSHK_RSA:
+          (os.path.join(self.tmpdir, ".ssh", "id_rsa"),
+           os.path.join(self.tmpdir, ".ssh", "id_rsa.pub")),
+        constants.SSHK_DSA:
+          (os.path.join(self.tmpdir, ".ssh", "id_dsa"),
+           os.path.join(self.tmpdir, ".ssh", "id_dsa.pub")),
+      }))
+    self.assertEqual(os.listdir(self.tmpdir), [])
+
+  def testGetAllUserFilesNoDirectoryNoMkdir(self):
+    self.assertRaises(errors.OpExecError, ssh.GetAllUserFiles,
+                      "example17270", mkdir=False, dircheck=True,
+                      _homedir_fn=self._GetTempHomedir)
+    self.assertEqual(os.listdir(self.tmpdir), [])
+
 
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
