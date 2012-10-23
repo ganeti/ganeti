@@ -68,7 +68,7 @@ given time:
 
 Depending on the role, each node will run a set of daemons:
 
-- the :command:`ganeti-noded` daemon, which control the manipulation of
+- the :command:`ganeti-noded` daemon, which controls the manipulation of
   this node's hardware resources; it runs on all nodes which are in a
   cluster
 - the :command:`ganeti-confd` daemon (Ganeti 2.1+) which runs on all
@@ -582,10 +582,10 @@ Preparing for disk operations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 It is important to note that for Ganeti to be able to do any disk
-operation, the Linux machines on top of which Ganeti must be consistent;
-for LVM, this means that the LVM commands must not return failures; it
-is common that after a complete disk failure, any LVM command aborts
-with an error similar to::
+operation, the Linux machines on top of which Ganeti runs must be
+consistent; for LVM, this means that the LVM commands must not return
+failures; it is common that after a complete disk failure, any LVM
+command aborts with an error similar to::
 
   $ vgs
   /dev/sdb1: read failed after 0 of 4096 at 0: Input/output error
