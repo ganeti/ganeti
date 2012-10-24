@@ -18,6 +18,7 @@ Design document drafts
    design-ssh-setup.rst
    design-monitoring-agent.rst
    design-remote-commands.rst
+   design-linuxha.rst
 
 .. vim: set textwidth=72 :
 .. Local Variables:

@@ -353,6 +353,7 @@ docrst = \
 	doc/design-http-server.rst \
 	doc/design-impexp2.rst \
 	doc/design-lu-generated-jobs.rst \
+	doc/design-linuxha.rst \
 	doc/design-multi-reloc.rst \
 	doc/design-network.rst \
 	doc/design-node-state-cache.rst \
