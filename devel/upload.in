@@ -132,7 +132,7 @@ wait
 if test -z "${NO_RESTART}"; then
   for host; do
     echo Restarting ganeti-noded on ${host}...
-    ssh -oBatchMode=yes root@${host} /etc/init.d/ganeti restart &
+    ssh -oBatchMode=yes root@${host} $SYSCONFDIR/init.d/ganeti restart &
   done
   wait
 fi
