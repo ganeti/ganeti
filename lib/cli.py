@@ -1335,9 +1335,21 @@ PRIMARY_IP_VERSION_OPT = \
                                   constants.IP6_VERSION),
                help="Cluster-wide IP version for primary IP")
 
+
+def _PriorityOptionCb(option, _, value, parser):
+  """Callback for processing C{--priority} option.
+
+  """
+  value = _PRIONAME_TO_VALUE[value]
+
+  setattr(parser.values, option.dest, value)
+
+
 PRIORITY_OPT = cli_option("--priority", default=None, dest="priority",
                           metavar="|".join(name for name, _ in _PRIORITY_NAMES),
                           choices=_PRIONAME_TO_VALUE.keys(),
+                          action="callback", type="choice",
+                          callback=_PriorityOptionCb,
                           help="Priority for opcode processing")
 
 HID_OS_OPT = cli_option("--hidden", dest="hidden",
@@ -2097,7 +2109,7 @@ def SetGenericOpcodeOpts(opcode_list, options):
     if hasattr(options, "dry_run"):
       op.dry_run = options.dry_run
     if getattr(options, "priority", None) is not None:
-      op.priority = _PRIONAME_TO_VALUE[options.priority]
+      op.priority = options.priority
 
 
 def GetClient(query=False):
