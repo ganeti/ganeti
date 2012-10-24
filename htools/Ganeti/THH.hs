@@ -503,13 +503,6 @@ genOpCode name cons = do
   (loadsig, loadfn) <- genLoadOpCode cons
   return [declD, loadsig, loadfn, savesig, savefn]
 
--- | Checks whether a given parameter is options.
---
--- This requires that it's a 'Maybe'.
-isOptional :: Type -> Bool
-isOptional (AppT (ConT dt) _) | dt == ''Maybe = True
-isOptional _ = False
-
 -- | Generates the \"save\" clause for an entire opcode constructor.
 --
 -- This matches the opcode with variables named the same as the
