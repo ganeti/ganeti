@@ -50,6 +50,18 @@ not yet started to run can be canceled; that is, jobs in either the
 ``--queued`` and ``waiting`` can be used to cancel all jobs in the
 respective state, ``--pending`` includes both.
 
+CHANGE-PRIORITY
+~~~~~~~~~~~~~~~
+
+| **change-priority** --priority {low | normal | high}
+| {[\--force] {\--pending | \--queued | \--waiting} | *job-id* ...}
+
+Changes the priority of one or multiple pending jobs. Jobs currently
+running have only the priority of remaining opcodes changed.
+``--priority`` must be specified. ``--queued`` and ``waiting`` can be
+used to re-prioritize all jobs in the respective state, ``--pending``
+includes both. To skip a confirmation, pass ``--force``.
+
 INFO
 ~~~~
 

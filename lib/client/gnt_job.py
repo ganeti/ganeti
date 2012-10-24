@@ -245,6 +245,26 @@ def CancelJobs(opts, args, cl=None, _stdout_fn=ToStdout, _ask_fn=AskUser):
                          lambda cl, job_id: cl.CancelJob(job_id))
 
 
+def ChangePriority(opts, args):
+  """Change priority of jobs.
+
+  @param opts: Command line options
+  @type args: list
+  @param args: Job IDs
+  @rtype: int
+  @return: Exit code
+
+  """
+  if opts.priority is None:
+    ToStderr("--priority option must be given.")
+    return constants.EXIT_FAILURE
+
+  return _MultiJobAction(opts, args, None, None, None,
+                         "Change priority of job(s) listed above?",
+                         lambda cl, job_id:
+                           cl.ChangeJobPriority(job_id, opts.priority))
+
+
 def ShowJobs(opts, args):
   """Show detailed information about jobs.
 
@@ -494,6 +514,12 @@ commands = {
   "watch": (
     WatchJob, [ArgJobId(min=1, max=1)], [],
     "<job-id>", "Follows a job and prints its output as it arrives"),
+  "change-priority": (
+    ChangePriority, [ArgJobId()],
+    [PRIORITY_OPT, FORCE_OPT, _PENDING_OPT, _QUEUED_OPT, _WAITING_OPT],
+    "--priority <priority> {[--force] {--pending | --queued | --waiting} |"
+    " <job-id> [<job-id> ...]}",
+    "Change the priority of jobs"),
   }
 
 
