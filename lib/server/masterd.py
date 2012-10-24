@@ -303,6 +303,12 @@ class ClientOps:
       logging.info("Received job cancel request for %s", job_id)
       return queue.CancelJob(job_id)
 
+    elif method == luxi.REQ_CHANGE_JOB_PRIORITY:
+      (job_id, priority) = args
+      logging.info("Received request to change priority for job %s to %s",
+                   job_id, priority)
+      return queue.ChangeJobPriority(job_id, priority)
+
     elif method == luxi.REQ_ARCHIVE_JOB:
       (job_id, ) = args
       logging.info("Received job archive request for %s", job_id)

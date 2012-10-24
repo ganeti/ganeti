@@ -54,6 +54,7 @@ REQ_SUBMIT_MANY_JOBS = "SubmitManyJobs"
 REQ_WAIT_FOR_JOB_CHANGE = "WaitForJobChange"
 REQ_CANCEL_JOB = "CancelJob"
 REQ_ARCHIVE_JOB = "ArchiveJob"
+REQ_CHANGE_JOB_PRIORITY = "ChangeJobPriority"
 REQ_AUTO_ARCHIVE_JOBS = "AutoArchiveJobs"
 REQ_QUERY = "Query"
 REQ_QUERY_FIELDS = "QueryFields"
@@ -73,6 +74,7 @@ REQ_ALL = frozenset([
   REQ_ARCHIVE_JOB,
   REQ_AUTO_ARCHIVE_JOBS,
   REQ_CANCEL_JOB,
+  REQ_CHANGE_JOB_PRIORITY,
   REQ_QUERY,
   REQ_QUERY_CLUSTER_INFO,
   REQ_QUERY_CONFIG_VALUES,
@@ -487,6 +489,9 @@ class Client(object):
 
   def ArchiveJob(self, job_id):
     return self.CallMethod(REQ_ARCHIVE_JOB, (job_id, ))
+
+  def ChangeJobPriority(self, job_id, priority):
+    return self.CallMethod(REQ_CHANGE_JOB_PRIORITY, (job_id, priority))
 
   def AutoArchiveJobs(self, age):
     timeout = (DEF_RWTO - 1) / 2

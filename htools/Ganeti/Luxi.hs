@@ -163,6 +163,10 @@ $(genLuxiOp "LuxiOp"
   , (luxiReqCancelJob,
      [ simpleField "job" [t| Int |] ]
     )
+  , (luxiReqChangeJobPriority,
+     [ simpleField "job" [t| Int |]
+     , simpleField "priority" [t| Int |] ]
+    )
   , (luxiReqSetDrainFlag,
      [ simpleField "flag" [t| Bool |] ]
     )
@@ -392,6 +396,10 @@ decodeCall (LuxiCall call args) =
               [job] <- fromJVal args
               rid <- parseJobId job
               return $ CancelJob rid
+    ReqChangeJobPriority -> do
+              (job, priority) <- fromJVal args
+              rid <- parseJobId job
+              return $ ChangeJobPriority rid priority
     ReqSetDrainFlag -> do
               [flag] <- fromJVal args
               return $ SetDrainFlag flag

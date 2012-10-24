@@ -82,6 +82,8 @@ instance Arbitrary Luxi.LuxiOp where
       Luxi.ReqAutoArchiveJobs -> Luxi.AutoArchiveJobs <$> arbitrary <*>
                                  arbitrary
       Luxi.ReqCancelJob -> Luxi.CancelJob <$> arbitrary
+      Luxi.ReqChangeJobPriority -> Luxi.ChangeJobPriority <$> arbitrary <*>
+                                   arbitrary
       Luxi.ReqSetDrainFlag -> Luxi.SetDrainFlag <$> arbitrary
       Luxi.ReqSetWatcherPause -> Luxi.SetWatcherPause <$> arbitrary
 
