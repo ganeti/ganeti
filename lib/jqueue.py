@@ -564,8 +564,8 @@ class _OpExecCallbacks(mcpu.OpExecCbBase):
     timestamp = utils.SplitTime(time.time())
     self._AppendFeedback(timestamp, log_type, log_msg)
 
-  def CheckCancel(self):
-    """Check whether job has been cancelled.
+  def CurrentPriority(self):
+    """Returns current priority for opcode.
 
     """
     assert self._op.status in (constants.OP_STATUS_WAITING,
@@ -573,6 +573,8 @@ class _OpExecCallbacks(mcpu.OpExecCbBase):
 
     # Cancel here if we were asked to
     self._CheckCancel()
+
+    return self._op.priority
 
   def SubmitManyJobs(self, jobs):
     """Submits jobs for processing.
@@ -1043,7 +1045,7 @@ class _JobProcessor(object):
       # Make sure not to hold queue lock while calling ExecOpCode
       result = self.opexec_fn(op.input,
                               _OpExecCallbacks(self.queue, self.job, op),
-                              timeout=timeout, priority=op.priority)
+                              timeout=timeout)
     except mcpu.LockAcquireTimeout:
       assert timeout is not None, "Received timeout for blocking acquire"
       logging.debug("Couldn't acquire locks in %0.6fs", timeout)

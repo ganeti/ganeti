@@ -554,13 +554,13 @@ class _FakeExecOpCodeForProc:
     self._before_start = before_start
     self._after_start = after_start
 
-  def __call__(self, op, cbs, timeout=None, priority=None):
+  def __call__(self, op, cbs, timeout=None):
     assert isinstance(op, opcodes.OpTestDummy)
     assert not self._queue.IsAcquired(), \
            "Queue lock not released when executing opcode"
 
     if self._before_start:
-      self._before_start(timeout, priority)
+      self._before_start(timeout, cbs.CurrentPriority())
 
     cbs.NotifyStart()
 
