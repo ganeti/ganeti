@@ -2056,13 +2056,14 @@ class JobQueue(object):
 
     job = _QueuedJob(self, job_id, ops, True)
 
-    # Check priority
     for idx, op in enumerate(job.ops):
+      # Check priority
       if op.priority not in constants.OP_PRIO_SUBMIT_VALID:
         allowed = utils.CommaJoin(constants.OP_PRIO_SUBMIT_VALID)
         raise errors.GenericError("Opcode %s has invalid priority %s, allowed"
                                   " are %s" % (idx, op.priority, allowed))
 
+      # Check job dependencies
       dependencies = getattr(op.input, opcodes.DEPEND_ATTR, None)
       if not opcodes.TNoRelativeJobDependencies(dependencies):
         raise errors.GenericError("Opcode %s has invalid dependencies, must"
