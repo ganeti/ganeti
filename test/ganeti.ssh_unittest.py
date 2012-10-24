@@ -49,12 +49,6 @@ class TestKnownHosts(testutils.GanetiTestCase):
         "%s ssh-rsa %s\n" % (cfg.GetClusterName(),
                              mocks.FAKE_CLUSTER_KEY))
 
-  def testFormatParamikoFingerprintCorrect(self):
-    self.assertEqual(ssh.FormatParamikoFingerprint("C0Ffee"), "c0:ff:ee")
-
-  def testFormatParamikoFingerprintNotDividableByTwo(self):
-    self.assertRaises(AssertionError, ssh.FormatParamikoFingerprint, "C0Ffe")
-
 
 class TestGetUserFiles(unittest.TestCase):
   def setUp(self):

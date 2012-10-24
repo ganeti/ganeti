@@ -26,7 +26,6 @@
 
 import os
 import logging
-import re
 
 from ganeti import utils
 from ganeti import errors
@@ -35,18 +34,6 @@ from ganeti import netutils
 from ganeti import pathutils
 from ganeti import vcluster
 from ganeti import compat
-
-
-def FormatParamikoFingerprint(fingerprint):
-  """Format paramiko PKey fingerprint.
-
-  @type fingerprint: str
-  @param fingerprint: PKey fingerprint
-  @return: The string hex representation of the fingerprint
-
-  """
-  assert len(fingerprint) % 2 == 0
-  return ":".join(re.findall(r"..", fingerprint.lower()))
 
 
 def GetUserFiles(user, mkdir=False, dircheck=True, kind=constants.SSHK_DSA,

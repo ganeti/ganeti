@@ -64,7 +64,14 @@ import sys
 import time
 import traceback
 
-import paramiko
+try:
+  import paramiko
+except ImportError:
+  print >> sys.stderr, \
+    ("The \"paramiko\" module could not be imported. Install it from your"
+     " distribution's repository. The package is usually named"
+     " \"python-paramiko\".")
+  sys.exit(1)
 
 
 REMOTE_PATH_BASE = "/tmp/listrunner"

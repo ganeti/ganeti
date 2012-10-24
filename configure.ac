@@ -663,14 +663,7 @@ AC_PYTHON_MODULE(pyparsing, t)
 AC_PYTHON_MODULE(pyinotify, t)
 AC_PYTHON_MODULE(pycurl, t)
 AC_PYTHON_MODULE(affinity)
-
-# This is optional but then we've limited functionality
 AC_PYTHON_MODULE(paramiko)
-if test "$HAVE_PYMOD_PARAMIKO" = "no"; then
-  AC_MSG_WARN(m4_normalize([You do not have Paramiko installed. While this is
-                            optional you have to configure SSH and the node
-                            daemon on the joining nodes yourself.]))
-fi
 
 AC_CONFIG_FILES([ Makefile ])
 
