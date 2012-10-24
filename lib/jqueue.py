@@ -1870,6 +1870,13 @@ class JobQueue(object):
 
   @staticmethod
   def _DetermineJobDirectories(archived):
+    """Build list of directories containing job files.
+
+    @type archived: bool
+    @param archived: Whether to include directories for archived jobs
+    @rtype: list
+
+    """
     result = [pathutils.QUEUE_DIR]
 
     if archived:
