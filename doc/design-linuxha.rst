@@ -110,6 +110,7 @@ offline the node. Any other work to restore instance availability should
 then be done by the autorepair system.
 
 The following cluster tags are supported:
+
 - ``ocf:node-offline:use-powercycle``: Try to powercycle a node using
   ``gnt-node powercycle`` when offlining.
 - ``ocf:node-offline:use-poweroff``: Try to power off a node using
