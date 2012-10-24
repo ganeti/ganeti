@@ -2309,15 +2309,27 @@ class JobQueue(object):
     """
     logging.info("Cancelling job %s", job_id)
 
+    return self._ModifyJobUnlocked(job_id, lambda job: job.Cancel())
+
+  def _ModifyJobUnlocked(self, job_id, mod_fn):
+    """Modifies a job.
+
+    @type job_id: int
+    @param job_id: Job ID
+    @type mod_fn: callable
+    @param mod_fn: Modifying function, receiving job object as parameter,
+      returning tuple of (status boolean, message string)
+
+    """
     job = self._LoadJobUnlocked(job_id)
     if not job:
       logging.debug("Job %s not found", job_id)
       return (False, "Job %s not found" % job_id)
 
-    assert job.writable, "Can't cancel read-only job"
-    assert not job.archived, "Can't cancel archived job"
+    assert job.writable, "Can't modify read-only job"
+    assert not job.archived, "Can't modify archived job"
 
-    (success, msg) = job.Cancel()
+    (success, msg) = mod_fn(job)
 
     if success:
       # If the job was finalized (e.g. cancelled), this is the final write
