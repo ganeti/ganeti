@@ -174,18 +174,24 @@ def AutoArchiveJobs(opts, args):
   return 0
 
 
-def CancelJobs(opts, args, cl=None, _stdout_fn=ToStdout, _ask_fn=AskUser):
-  """Cancel not-yet-started jobs.
+def _MultiJobAction(opts, args, cl, stdout_fn, ask_fn, question, action_fn):
+  """Applies a function to multipe jobs.
 
-  @param opts: the command line options selected by the user
+  @param opts: Command line options
   @type args: list
-  @param args: should contain the job IDs to be cancelled
+  @param args: Job IDs
   @rtype: int
-  @return: the desired exit code
+  @return: Exit code
 
   """
   if cl is None:
     cl = GetClient()
+
+  if stdout_fn is None:
+    stdout_fn = ToStdout
+
+  if ask_fn is None:
+    ask_fn = AskUser
 
   result = constants.EXIT_SUCCESS
 
@@ -206,22 +212,37 @@ def CancelJobs(opts, args, cl=None, _stdout_fn=ToStdout, _ask_fn=AskUser):
       (_, table) = FormatQueryResult(response, header=True,
                                      format_override=_JOB_LIST_FORMAT)
       for line in table:
-        _stdout_fn(line)
+        stdout_fn(line)
 
-      if not _ask_fn("Cancel job(s) listed above?"):
+      if not ask_fn(question):
         return constants.EXIT_CONFIRMATION
   else:
     jobs = args
 
   for job_id in jobs:
-    (success, msg) = cl.CancelJob(job_id)
+    (success, msg) = action_fn(cl, job_id)
 
     if not success:
       result = constants.EXIT_FAILURE
 
-    _stdout_fn(msg)
+    stdout_fn(msg)
 
   return result
+
+
+def CancelJobs(opts, args, cl=None, _stdout_fn=ToStdout, _ask_fn=AskUser):
+  """Cancel not-yet-started jobs.
+
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: should contain the job IDs to be cancelled
+  @rtype: int
+  @return: the desired exit code
+
+  """
+  return _MultiJobAction(opts, args, cl, _stdout_fn, _ask_fn,
+                         "Cancel job(s) listed above?",
+                         lambda cl, job_id: cl.CancelJob(job_id))
 
 
 def ShowJobs(opts, args):
