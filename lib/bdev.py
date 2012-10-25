@@ -29,7 +29,6 @@ import stat
 import pyparsing as pyp
 import os
 import logging
-import itertools
 
 from ganeti import utils
 from ganeti import errors
