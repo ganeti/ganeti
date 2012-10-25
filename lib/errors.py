@@ -169,8 +169,7 @@ class ResultValidationError(GenericError):
 class OpPrereqError(GenericError):
   """Prerequisites for the OpCode are not fulfilled.
 
-  This exception will have either one or two arguments. For the
-  two-argument construction, the second argument should be one of the
+  This exception has two arguments: an error message, and one of the
   ECODE_* codes.
 
   """
