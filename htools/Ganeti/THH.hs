@@ -42,6 +42,7 @@ module Ganeti.THH ( declareSADT
                   , simpleField
                   , defaultField
                   , optionalField
+                  , optionalNullSerField
                   , renameField
                   , customField
                   , timeStampFields
@@ -74,6 +75,13 @@ import Text.JSON.Pretty (pp_value)
 class DictObject a where
   toDict :: a -> [(String, JSON.JSValue)]
 
+-- | Optional field information.
+data OptionalType
+  = NotOptional           -- ^ Field is not optional
+  | OptionalOmitNull      -- ^ Field is optional, null is not serialised
+  | OptionalSerializeNull -- ^ Field is optional, null is serialised
+  deriving (Show, Eq)
+
 -- | Serialised field data type.
 data Field = Field { fieldName        :: String
                    , fieldType        :: Q Type
@@ -81,7 +89,7 @@ data Field = Field { fieldName        :: String
                    , fieldShow        :: Maybe (Q Exp)
                    , fieldDefault     :: Maybe (Q Exp)
                    , fieldConstr      :: Maybe String
-                   , fieldIsOptional  :: Bool
+                   , fieldIsOptional  :: OptionalType
                    }
 
 -- | Generates a simple field.
@@ -93,7 +101,7 @@ simpleField fname ftype =
         , fieldShow        = Nothing
         , fieldDefault     = Nothing
         , fieldConstr      = Nothing
-        , fieldIsOptional  = False
+        , fieldIsOptional  = NotOptional
         }
 
 -- | Sets the renamed constructor field.
@@ -107,7 +115,12 @@ defaultField defval field = field { fieldDefault = Just defval }
 
 -- | Marks a field optional (turning its base type into a Maybe).
 optionalField :: Field -> Field
-optionalField field = field { fieldIsOptional = True }
+optionalField field = field { fieldIsOptional = OptionalOmitNull }
+
+-- | Marks a field optional (turning its base type into a Maybe), but
+-- with 'Nothing' serialised explicitly as /null/.
+optionalNullSerField :: Field -> Field
+optionalNullSerField field = field { fieldIsOptional = OptionalSerializeNull }
 
 -- | Sets custom functions on a field.
 customField :: Name    -- ^ The name of the read function
@@ -134,13 +147,21 @@ fieldVariable f =
     Just name -> ensureLower name
     _ -> map (\c -> if c == '-' then '_' else c) $ fieldName f
 
+-- | Compute the actual field type (taking into account possible
+-- optional status).
 actualFieldType :: Field -> Q Type
-actualFieldType f | fieldIsOptional f  = [t| Maybe $t     |]
+actualFieldType f | fieldIsOptional f /= NotOptional = [t| Maybe $t |]
                   | otherwise = t
                   where t = fieldType f
 
+-- | Checks that a given field is not optional (for object types or
+-- fields which should not allow this case).
 checkNonOptDef :: (Monad m) => Field -> m ()
-checkNonOptDef (Field { fieldIsOptional = True, fieldName = name }) =
+checkNonOptDef (Field { fieldIsOptional = OptionalOmitNull
+                      , fieldName = name }) =
+  fail $ "Optional field " ++ name ++ " used in parameter declaration"
+checkNonOptDef (Field { fieldIsOptional = OptionalSerializeNull
+                      , fieldName = name }) =
   fail $ "Optional field " ++ name ++ " used in parameter declaration"
 checkNonOptDef (Field { fieldDefault = (Just _), fieldName = name }) =
   fail $ "Default field " ++ name ++ " used in parameter declaration"
@@ -681,18 +702,23 @@ genSaveObject save_fn sname fields = do
 -- | Generates the code for saving an object's field, handling the
 -- various types of fields that we have.
 saveObjectField :: Name -> Field -> Q Exp
-saveObjectField fvar field
-  | fisOptional = [| case $(varE fvar) of
-                      Nothing -> []
-                      Just v -> [( $nameE, JSON.showJSON v)]
-                  |]
-  | otherwise = case fieldShow field of
-      Nothing -> [| [( $nameE, JSON.showJSON $fvarE)] |]
-      Just fn -> [| let (actual, extra) = $fn $fvarE
-                    in extra ++ [( $nameE, JSON.showJSON actual)]
-                  |]
-  where fisOptional  = fieldIsOptional field
-        nameE = stringE (fieldName field)
+saveObjectField fvar field =
+  case fieldIsOptional field of
+    OptionalOmitNull -> [| case $(varE fvar) of
+                             Nothing -> []
+                             Just v  -> [( $nameE, JSON.showJSON v )]
+                         |]
+    OptionalSerializeNull -> [| case $(varE fvar) of
+                                  Nothing -> [( $nameE, JSON.JSNull )]
+                                  Just v  -> [( $nameE, JSON.showJSON v )]
+                              |]
+    NotOptional ->
+      case fieldShow field of
+        Nothing -> [| [( $nameE, JSON.showJSON $fvarE)] |]
+        Just fn -> [| let (actual, extra) = $fn $fvarE
+                      in extra ++ [( $nameE, JSON.showJSON actual)]
+                    |]
+  where nameE = stringE (fieldName field)
         fvarE = varE fvar
 
 -- | Generates the showJSON clause for a given object name.
@@ -729,7 +755,10 @@ loadObjectField field = do
   let objvar = varNameE "o"
       objfield = stringE (fieldName field)
       loadexp =
-        if fieldIsOptional field
+        if fieldIsOptional field /= NotOptional
+          -- we treat both optional types the same, since
+          -- 'maybeFromObj' can deal with both missing and null values
+          -- appropriately (the same)
           then [| $(varNameE "maybeFromObj") $objvar $objfield |]
           else case fieldDefault field of
                  Just defv ->
