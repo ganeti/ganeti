@@ -9,7 +9,6 @@ Design document drafts
    design-http-server.rst
    design-impexp2.rst
    design-network.rst
-   design-node-state-cache.rst
    design-resource-model.rst
    design-virtual-clusters.rst
    design-query-splitting.rst

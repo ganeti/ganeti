@@ -356,7 +356,6 @@ docrst = \
 	doc/design-linuxha.rst \
 	doc/design-multi-reloc.rst \
 	doc/design-network.rst \
-	doc/design-node-state-cache.rst \
 	doc/design-oob.rst \
 	doc/design-ovf-support.rst \
 	doc/design-partitioned.rst \
