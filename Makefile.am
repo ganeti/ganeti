@@ -496,6 +496,7 @@ HS_TEST_SRCS = \
 	htest/Test/Ganeti/Query/Query.hs \
 	htest/Test/Ganeti/Rpc.hs \
 	htest/Test/Ganeti/Ssconf.hs \
+	htest/Test/Ganeti/THH.hs \
 	htest/Test/Ganeti/TestCommon.hs \
 	htest/Test/Ganeti/TestHTools.hs \
 	htest/Test/Ganeti/TestHelper.hs \

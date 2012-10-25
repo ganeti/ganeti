@@ -31,22 +31,22 @@ import System.Environment (getArgs)
 
 import Test.Ganeti.TestImports ()
 import Test.Ganeti.BasicTypes
-import Test.Ganeti.Confd.Utils
 import Test.Ganeti.Common
+import Test.Ganeti.Confd.Utils
 import Test.Ganeti.Daemon
 import Test.Ganeti.Errors
 import Test.Ganeti.HTools.CLI
 import Test.Ganeti.HTools.Cluster
 import Test.Ganeti.HTools.Container
-import Test.Ganeti.HTools.Loader
 import Test.Ganeti.HTools.Instance
+import Test.Ganeti.HTools.Loader
 import Test.Ganeti.HTools.Node
 import Test.Ganeti.HTools.PeerMap
 import Test.Ganeti.HTools.Simu
 import Test.Ganeti.HTools.Text
 import Test.Ganeti.HTools.Types
-import Test.Ganeti.Jobs
 import Test.Ganeti.JSON
+import Test.Ganeti.Jobs
 import Test.Ganeti.Luxi
 import Test.Ganeti.Objects
 import Test.Ganeti.OpCodes
@@ -55,6 +55,7 @@ import Test.Ganeti.Query.Language
 import Test.Ganeti.Query.Query
 import Test.Ganeti.Rpc
 import Test.Ganeti.Ssconf
+import Test.Ganeti.THH
 import Test.Ganeti.Utils
 
 -- | Our default test options, overring the built-in test-framework
@@ -97,6 +98,7 @@ allTests =
   , testQuery_Query
   , testRpc
   , testSsconf
+  , testTHH
   , testUtils
   ]
 
