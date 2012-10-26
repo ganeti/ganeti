@@ -51,6 +51,7 @@ import qualified Ganeti.HTools.Instance as Instance
 
 import Ganeti.BasicTypes
 import Ganeti.Common
+import Ganeti.Errors
 import Ganeti.HTools.CLI
 import Ganeti.HTools.ExtLoader
 import Ganeti.HTools.Types
@@ -169,7 +170,7 @@ waitForJobs :: L.Client -> [L.JobId] -> IO (Result [JobStatus])
 waitForJobs client jids = do
   sts <- L.queryJobsStatus client jids
   case sts of
-    Bad x -> return $ Bad x
+    Bad e -> return . Bad $ "Checking job status: " ++ formatError e
     Ok s -> if any (<= JOB_STATUS_RUNNING) s
             then do
               -- TODO: replace hardcoded value with a better thing
@@ -208,14 +209,14 @@ execJobSet master nl il cref (js:jss) = do
          (\client -> do
             jids <- L.submitManyJobs client jobs
             case jids of
-              Bad x -> return $ Bad x
+              Bad e -> return . Bad $ "Job submission error: " ++ formatError e
               Ok x -> do
                 putStrLn $ "Got job IDs " ++ commaJoin (map show x)
                 waitForJobs client x
          )
   case jrs of
     Bad x -> do
-      hPutStrLn stderr $ "Cannot compute job status, aborting: " ++ show x
+      hPutStrLn stderr x
       return False
     Ok x -> if checkJobsStatus x
               then execWrapper master nl il cref jss

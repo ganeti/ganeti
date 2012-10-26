@@ -33,8 +33,9 @@ module Ganeti.Errors
   ( ErrorCode(..)
   , GanetiException(..)
   , ErrorResult
-  , excName
+  , errToResult
   , errorExitCode
+  , excName
   , formatError
   ) where
 
@@ -170,3 +171,8 @@ formatError (GenericError msg) =
   "Unhandled Ganeti error: " ++ msg
 formatError err =
   "Unhandled exception: " ++ show err
+
+-- | Convert from an 'ErrorResult' to a standard 'Result'.
+errToResult :: ErrorResult a -> Result a
+errToResult (Ok a)  = Ok a
+errToResult (Bad e) = Bad $ formatError e

@@ -60,6 +60,7 @@ import Control.Monad
 import Prelude hiding (catch)
 import Text.JSON (encodeStrict, decodeStrict)
 import qualified Text.JSON as J
+import Text.JSON.Pretty (pp_value)
 import Text.JSON.Types
 import System.Directory (removeFile)
 import System.IO (hClose, hFlush, hWaitForInput, Handle, IOMode(..))
@@ -68,12 +69,12 @@ import System.Timeout
 import qualified Network.Socket as S
 
 import Ganeti.BasicTypes
-import Ganeti.JSON
-import Ganeti.Utils
-
 import Ganeti.Constants
+import Ganeti.Errors
+import Ganeti.JSON
 import Ganeti.Jobs (JobStatus)
 import Ganeti.OpCodes (OpCode)
+import Ganeti.Utils
 import qualified Ganeti.Query.Language as Qlang
 import Ganeti.THH
 
@@ -406,21 +407,29 @@ decodeCall (LuxiCall call args) =
 
 -- | Check that luxi responses contain the required keys and that the
 -- call was successful.
-validateResult :: String -> Result JSValue
+validateResult :: String -> ErrorResult JSValue
 validateResult s = do
   when (UTF8.replacement_char `elem` s) $
        fail "Failed to decode UTF-8, detected replacement char after decoding"
-  oarr <- fromJResult "Parsing LUXI response"
-          (decodeStrict s)::Result (JSObject JSValue)
+  oarr <- fromJResult "Parsing LUXI response" (decodeStrict s)
   let arr = J.fromJSObject oarr
-  status <- fromObj arr (strOfKey Success)::Result Bool
-  let rkey = strOfKey Result
+  status <- fromObj arr (strOfKey Success)
+  result <- fromObj arr (strOfKey Result)
   if status
-    then fromObj arr rkey
-    else fromObj arr rkey >>= fail
+    then return result
+    else decodeError result
+
+-- | Try to decode an error from the server response. This function
+-- will always fail, since it's called only on the error path (when
+-- status is False).
+decodeError :: JSValue -> ErrorResult JSValue
+decodeError val =
+  case fromJVal val of
+    Ok e -> Bad e
+    Bad msg -> Bad $ GenericError msg
 
 -- | Generic luxi method call.
-callMethod :: LuxiOp -> Client -> IO (Result JSValue)
+callMethod :: LuxiOp -> Client -> IO (ErrorResult JSValue)
 callMethod method s = do
   sendMsg s $ buildCall method
   result <- recvMsg s
@@ -438,31 +447,37 @@ parseJobId (JSRational _ x) =
 parseJobId x = Bad $ "Wrong type/value for job id: " ++ show x
 
 -- | Parse job submission result.
-parseSubmitJobResult :: JSValue -> Result JobId
-parseSubmitJobResult (JSArray [JSBool True, v]) = parseJobId v
+parseSubmitJobResult :: JSValue -> ErrorResult JobId
+parseSubmitJobResult (JSArray [JSBool True, v]) =
+  case parseJobId v of
+    Bad msg -> Bad $ LuxiError msg
+    Ok v' -> Ok v'
 parseSubmitJobResult (JSArray [JSBool False, JSString x]) =
-  Bad (fromJSString x)
-parseSubmitJobResult v = Bad $ "Unknown result from the master daemon" ++
-                         show v
+  Bad . LuxiError $ fromJSString x
+parseSubmitJobResult v =
+  Bad . LuxiError $ "Unknown result from the master daemon: " ++
+      show (pp_value v)
 
 -- | Specialized submitManyJobs call.
-submitManyJobs :: Client -> [[OpCode]] -> IO (Result [JobId])
+submitManyJobs :: Client -> [[OpCode]] -> IO (ErrorResult [JobId])
 submitManyJobs s jobs = do
   rval <- callMethod (SubmitManyJobs jobs) s
   -- map each result (status, payload) pair into a nice Result ADT
   return $ case rval of
              Bad x -> Bad x
              Ok (JSArray r) -> mapM parseSubmitJobResult r
-             x -> Bad ("Cannot parse response from Ganeti: " ++ show x)
+             x -> Bad . LuxiError $
+                  "Cannot parse response from Ganeti: " ++ show x
 
 -- | Custom queryJobs call.
-queryJobsStatus :: Client -> [JobId] -> IO (Result [JobStatus])
+queryJobsStatus :: Client -> [JobId] -> IO (ErrorResult [JobStatus])
 queryJobsStatus s jids = do
   rval <- callMethod (QueryJobs jids ["status"]) s
   return $ case rval of
              Bad x -> Bad x
              Ok y -> case J.readJSON y::(J.Result [[JobStatus]]) of
                        J.Ok vals -> if any null vals
-                                    then Bad "Missing job status field"
+                                    then Bad $
+                                         LuxiError "Missing job status field"
                                     else Ok (map head vals)
-                       J.Error x -> Bad x
+                       J.Error x -> Bad $ LuxiError x

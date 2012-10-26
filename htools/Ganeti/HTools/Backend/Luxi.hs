@@ -29,10 +29,12 @@ module Ganeti.HTools.Backend.Luxi
   ) where
 
 import qualified Control.Exception as E
+import Control.Monad (liftM)
 import Text.JSON.Types
 import qualified Text.JSON
 
 import Ganeti.BasicTypes
+import Ganeti.Errors
 import qualified Ganeti.Luxi as L
 import qualified Ganeti.Query.Language as Qlang
 import Ganeti.HTools.Loader
@@ -123,19 +125,19 @@ queryGroupsMsg =
 
 -- | Wraper over 'callMethod' doing node query.
 queryNodes :: L.Client -> IO (Result JSValue)
-queryNodes = L.callMethod queryNodesMsg
+queryNodes = liftM errToResult . L.callMethod queryNodesMsg
 
 -- | Wraper over 'callMethod' doing instance query.
 queryInstances :: L.Client -> IO (Result JSValue)
-queryInstances = L.callMethod queryInstancesMsg
+queryInstances = liftM errToResult . L.callMethod queryInstancesMsg
 
 -- | Wrapper over 'callMethod' doing cluster information query.
 queryClusterInfo :: L.Client -> IO (Result JSValue)
-queryClusterInfo = L.callMethod queryClusterInfoMsg
+queryClusterInfo = liftM errToResult . L.callMethod queryClusterInfoMsg
 
 -- | Wrapper over callMethod doing group query.
 queryGroups :: L.Client -> IO (Result JSValue)
-queryGroups = L.callMethod queryGroupsMsg
+queryGroups = liftM errToResult . L.callMethod queryGroupsMsg
 
 -- | Parse a instance list in JSON format.
 getInstances :: NameAssoc
