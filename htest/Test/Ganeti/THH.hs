@@ -46,7 +46,7 @@ import Test.Ganeti.TestCommon
 -- | Type used to test optional field implementation. Equivalent to
 -- @data TestObj = TestObj { tobjA :: Maybe Int, tobjB :: Maybe Int
 -- }@.
-$(buildObject "TestObj" "tobj" $
+$(buildObject "TestObj" "tobj"
   [ optionalField $ simpleField "a" [t| Int |]
   , optionalNullSerField $ simpleField "b" [t| Int |]
   ])
