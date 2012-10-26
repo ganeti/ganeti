@@ -35,6 +35,8 @@ import Test.Ganeti.Common
 import Test.Ganeti.Confd.Utils
 import Test.Ganeti.Daemon
 import Test.Ganeti.Errors
+import Test.Ganeti.HTools.Backend.Simu
+import Test.Ganeti.HTools.Backend.Text
 import Test.Ganeti.HTools.CLI
 import Test.Ganeti.HTools.Cluster
 import Test.Ganeti.HTools.Container
@@ -42,8 +44,6 @@ import Test.Ganeti.HTools.Instance
 import Test.Ganeti.HTools.Loader
 import Test.Ganeti.HTools.Node
 import Test.Ganeti.HTools.PeerMap
-import Test.Ganeti.HTools.Simu
-import Test.Ganeti.HTools.Text
 import Test.Ganeti.HTools.Types
 import Test.Ganeti.JSON
 import Test.Ganeti.Jobs
@@ -78,6 +78,8 @@ allTests =
   , testConfd_Utils
   , testDaemon
   , testErrors
+  , testHTools_Backend_Simu
+  , testHTools_Backend_Text
   , testHTools_CLI
   , testHTools_Cluster
   , testHTools_Container
@@ -85,8 +87,6 @@ allTests =
   , testHTools_Loader
   , testHTools_Node
   , testHTools_PeerMap
-  , testHTools_Simu
-  , testHTools_Text
   , testHTools_Types
   , testJSON
   , testJobs

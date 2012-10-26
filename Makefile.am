@@ -59,6 +59,7 @@ HTOOLS_DIRS = \
 	htools/Ganeti \
 	htools/Ganeti/Confd \
 	htools/Ganeti/HTools \
+	htools/Ganeti/HTools/Backend \
 	htools/Ganeti/HTools/Program \
 	htools/Ganeti/Query \
 	htest \
@@ -66,6 +67,7 @@ HTOOLS_DIRS = \
 	htest/Test/Ganeti \
 	htest/Test/Ganeti/Confd \
 	htest/Test/Ganeti/HTools \
+	htest/Test/Ganeti/HTools/Backend \
 	htest/Test/Ganeti/Query
 
 DIRS = \
@@ -108,6 +110,7 @@ BUILDTIME_DIR_AUTOCREATE = \
 	$(APIDOC_HS_DIR)/Ganeti \
 	$(APIDOC_HS_DIR)/Ganeti/Confd \
 	$(APIDOC_HS_DIR)/Ganeti/HTools \
+	$(APIDOC_HS_DIR)/Ganeti/HTools/Backend \
 	$(APIDOC_HS_DIR)/Ganeti/HTools/Program \
 	$(APIDOC_HS_DIR)/Ganeti/Query \
 	$(APIDOC_PY_DIR) \
@@ -426,15 +429,18 @@ HS_LIB_SRCS = \
 	htools/Ganeti/Config.hs \
 	htools/Ganeti/Daemon.hs \
 	htools/Ganeti/Errors.hs \
+	htools/Ganeti/HTools/Backend/IAlloc.hs \
+	htools/Ganeti/HTools/Backend/Luxi.hs \
+	htools/Ganeti/HTools/Backend/Rapi.hs \
+	htools/Ganeti/HTools/Backend/Simu.hs \
+	htools/Ganeti/HTools/Backend/Text.hs \
 	htools/Ganeti/HTools/CLI.hs \
 	htools/Ganeti/HTools/Cluster.hs \
 	htools/Ganeti/HTools/Container.hs \
 	htools/Ganeti/HTools/ExtLoader.hs \
 	htools/Ganeti/HTools/Group.hs \
-	htools/Ganeti/HTools/IAlloc.hs \
 	htools/Ganeti/HTools/Instance.hs \
 	htools/Ganeti/HTools/Loader.hs \
-	htools/Ganeti/HTools/Luxi.hs \
 	htools/Ganeti/HTools/Node.hs \
 	htools/Ganeti/HTools/PeerMap.hs \
 	htools/Ganeti/HTools/Program.hs \
@@ -444,9 +450,6 @@ HS_LIB_SRCS = \
 	htools/Ganeti/HTools/Program/Hinfo.hs \
 	htools/Ganeti/HTools/Program/Hscan.hs \
 	htools/Ganeti/HTools/Program/Hspace.hs \
-	htools/Ganeti/HTools/Rapi.hs \
-	htools/Ganeti/HTools/Simu.hs \
-	htools/Ganeti/HTools/Text.hs \
 	htools/Ganeti/HTools/Types.hs \
 	htools/Ganeti/Hash.hs \
 	htools/Ganeti/JSON.hs \
@@ -476,6 +479,8 @@ HS_TEST_SRCS = \
 	htest/Test/Ganeti/Confd/Utils.hs \
 	htest/Test/Ganeti/Daemon.hs \
 	htest/Test/Ganeti/Errors.hs \
+	htest/Test/Ganeti/HTools/Backend/Simu.hs \
+	htest/Test/Ganeti/HTools/Backend/Text.hs \
 	htest/Test/Ganeti/HTools/CLI.hs \
 	htest/Test/Ganeti/HTools/Cluster.hs \
 	htest/Test/Ganeti/HTools/Container.hs \
@@ -483,8 +488,6 @@ HS_TEST_SRCS = \
 	htest/Test/Ganeti/HTools/Loader.hs \
 	htest/Test/Ganeti/HTools/Node.hs \
 	htest/Test/Ganeti/HTools/PeerMap.hs \
-	htest/Test/Ganeti/HTools/Simu.hs \
-	htest/Test/Ganeti/HTools/Text.hs \
 	htest/Test/Ganeti/HTools/Types.hs \
 	htest/Test/Ganeti/JSON.hs \
 	htest/Test/Ganeti/Jobs.hs \
@@ -1600,6 +1603,7 @@ hs-apidoc: $(HS_BUILT_SRCS)
 	@test -n "$(HADDOCK)" || \
 	    { echo 'haddock' not found during configure; exit 1; }
 	rm -rf $(APIDOC_HS_DIR)/*
+	@mkdir_p@ $(APIDOC_HS_DIR)/Ganeti/HTools/Backend
 	@mkdir_p@ $(APIDOC_HS_DIR)/Ganeti/HTools/Program
 	@mkdir_p@ $(APIDOC_HS_DIR)/Ganeti/Confd
 	@mkdir_p@ $(APIDOC_HS_DIR)/Ganeti/Query

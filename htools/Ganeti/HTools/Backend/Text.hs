@@ -26,7 +26,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 -}
 
-module Ganeti.HTools.Text
+module Ganeti.HTools.Backend.Text
   ( loadData
   , parseData
   , loadInst

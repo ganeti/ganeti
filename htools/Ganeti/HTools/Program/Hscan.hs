@@ -42,11 +42,11 @@ import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Cluster as Cluster
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
-import qualified Ganeti.HTools.Rapi as Rapi
-import qualified Ganeti.HTools.Luxi as Luxi
+import qualified Ganeti.HTools.Backend.Rapi as Rapi
+import qualified Ganeti.HTools.Backend.Luxi as Luxi
 import qualified Ganeti.Path as Path
 import Ganeti.HTools.Loader (checkData, mergeData, ClusterData(..))
-import Ganeti.HTools.Text (serializeCluster)
+import Ganeti.HTools.Backend.Text (serializeCluster)
 
 import Ganeti.Common
 import Ganeti.HTools.CLI

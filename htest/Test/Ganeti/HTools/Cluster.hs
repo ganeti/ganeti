@@ -41,10 +41,10 @@ import Test.Ganeti.HTools.Instance ( genInstanceSmallerThanNode
 import Test.Ganeti.HTools.Node (genOnlineNode, genNode)
 
 import Ganeti.BasicTypes
+import qualified Ganeti.HTools.Backend.IAlloc as IAlloc
 import qualified Ganeti.HTools.Cluster as Cluster
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Group as Group
-import qualified Ganeti.HTools.IAlloc as IAlloc
 import qualified Ganeti.HTools.Instance as Instance
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Types as Types

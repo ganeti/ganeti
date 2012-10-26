@@ -25,7 +25,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 -}
 
-module Ganeti.HTools.Simu
+module Ganeti.HTools.Backend.Simu
   ( loadData
   , parseData
   ) where

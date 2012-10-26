@@ -37,7 +37,7 @@ import qualified Ganeti.HTools.Cluster as Cluster
 
 import Ganeti.Common
 import Ganeti.HTools.CLI
-import Ganeti.HTools.IAlloc
+import Ganeti.HTools.Backend.IAlloc
 import Ganeti.HTools.Loader (Request(..), ClusterData(..))
 import Ganeti.HTools.ExtLoader (maybeSaveData, loadExternalData)
 import Ganeti.Utils

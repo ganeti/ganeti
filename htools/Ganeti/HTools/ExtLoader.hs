@@ -41,11 +41,11 @@ import System.FilePath
 import System.IO
 import Text.Printf (hPrintf)
 
-import qualified Ganeti.HTools.Luxi as Luxi
-import qualified Ganeti.HTools.Rapi as Rapi
-import qualified Ganeti.HTools.Simu as Simu
-import qualified Ganeti.HTools.Text as Text
-import qualified Ganeti.HTools.IAlloc as IAlloc
+import qualified Ganeti.HTools.Backend.Luxi as Luxi
+import qualified Ganeti.HTools.Backend.Rapi as Rapi
+import qualified Ganeti.HTools.Backend.Simu as Simu
+import qualified Ganeti.HTools.Backend.Text as Text
+import qualified Ganeti.HTools.Backend.IAlloc as IAlloc
 import Ganeti.HTools.Loader (mergeData, checkData, ClusterData(..)
                             , commonSuffix)
 

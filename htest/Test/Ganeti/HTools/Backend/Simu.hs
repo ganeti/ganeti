@@ -26,7 +26,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 -}
 
-module Test.Ganeti.HTools.Simu (testHTools_Simu) where
+module Test.Ganeti.HTools.Backend.Simu (testHTools_Backend_Simu) where
 
 import Test.QuickCheck hiding (Result)
 
@@ -39,11 +39,11 @@ import Test.Ganeti.TestCommon
 
 import Ganeti.BasicTypes
 import qualified Ganeti.Constants as C
+import qualified Ganeti.HTools.Backend.Simu as Simu
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Group as Group
 import qualified Ganeti.HTools.Loader as Loader
 import qualified Ganeti.HTools.Node as Node
-import qualified Ganeti.HTools.Simu as Simu
 import qualified Ganeti.HTools.Types as Types
 
 -- | Generates a tuple of specs for simulation.
@@ -93,6 +93,6 @@ prop_Load =
                           replicate ngroups Types.defIPolicy
                     ]
 
-testSuite "HTools/Simu"
+testSuite "HTools/Backend/Simu"
             [ 'prop_Load
             ]

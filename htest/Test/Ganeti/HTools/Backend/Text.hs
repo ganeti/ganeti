@@ -26,7 +26,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 -}
 
-module Test.Ganeti.HTools.Text (testHTools_Text) where
+module Test.Ganeti.HTools.Backend.Text (testHTools_Backend_Text) where
 
 import Test.QuickCheck
 
@@ -41,13 +41,13 @@ import Test.Ganeti.HTools.Instance (genInstanceSmallerThanNode)
 import Test.Ganeti.HTools.Node (genNode, genOnlineNode)
 
 import Ganeti.BasicTypes
+import qualified Ganeti.HTools.Backend.Text as Text
 import qualified Ganeti.HTools.Cluster as Cluster
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Group as Group
 import qualified Ganeti.HTools.Instance as Instance
 import qualified Ganeti.HTools.Loader as Loader
 import qualified Ganeti.HTools.Node as Node
-import qualified Ganeti.HTools.Text as Text
 import qualified Ganeti.HTools.Types as Types
 import qualified Ganeti.Utils as Utils
 
@@ -201,7 +201,7 @@ prop_CreateSerialise =
                         , nl' ==? nl2
                         ]
 
-testSuite "HTools/Text"
+testSuite "HTools/Backend/Text"
             [ 'prop_Load_Instance
             , 'prop_Load_InstanceFail
             , 'prop_Load_Node

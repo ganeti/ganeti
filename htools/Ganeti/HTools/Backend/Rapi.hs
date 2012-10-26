@@ -25,7 +25,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 {-# LANGUAGE BangPatterns, CPP #-}
 
-module Ganeti.HTools.Rapi
+module Ganeti.HTools.Backend.Rapi
   ( loadData
   , parseData
   ) where
