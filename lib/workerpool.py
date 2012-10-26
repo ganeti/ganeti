@@ -26,6 +26,7 @@
 import logging
 import threading
 import heapq
+import itertools
 
 from ganeti import compat
 from ganeti import errors
@@ -252,7 +253,7 @@ class WorkerPool(object):
     self._termworkers = []
 
     # Queued tasks
-    self._counter = 0
+    self._counter = itertools.count()
     self._tasks = []
 
     # Start workers
@@ -279,12 +280,9 @@ class WorkerPool(object):
     assert isinstance(args, (tuple, list)), "Arguments must be a sequence"
     assert isinstance(priority, (int, long)), "Priority must be numeric"
 
-    # This counter is used to ensure elements are processed in their
-    # incoming order. For processing they're sorted by priority and then
-    # counter.
-    self._counter += 1
-
-    heapq.heappush(self._tasks, (priority, self._counter, args))
+    # A counter is used to ensure elements are processed in their incoming
+    # order. For processing they're sorted by priority and then counter.
+    heapq.heappush(self._tasks, (priority, self._counter.next(), args))
 
     # Notify a waiting worker
     self._pool_to_worker.notify()
