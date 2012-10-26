@@ -64,9 +64,7 @@ prop_assignIndices =
         Loader.assignIndices (map (\n -> (Node.name n, n)) nodes)
   in Map.size nassoc == length nodes &&
      Container.size kt == length nodes &&
-     if not (null nodes)
-       then maximum (IntMap.keys kt) == length nodes - 1
-       else True
+     (null nodes || maximum (IntMap.keys kt) == length nodes - 1)
 
 -- | Checks that the number of primary instances recorded on the nodes
 -- is zero.

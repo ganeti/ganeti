@@ -312,12 +312,12 @@ main opts args = do
       clusterstats = map sum . transpose . map snd $ groupsstats
       needrebalance = clusterNeedsRebalance clusterstats
 
-  unless (verbose == 0 || machineread) $
-    if nosimulation
-      then putStrLn "Running in no-simulation mode."
-      else if needrebalance
-             then putStrLn "Cluster needs rebalancing."
-             else putStrLn "No need to rebalance cluster, no problems found."
+  unless (verbose == 0 || machineread) .
+    putStrLn $ if nosimulation
+                 then "Running in no-simulation mode."
+                 else if needrebalance
+                        then "Cluster needs rebalancing."
+                        else "No need to rebalance cluster, no problems found."
 
   mapM_ (printGroupStats verbose machineread Initial) groupsstats
 

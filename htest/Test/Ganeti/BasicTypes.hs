@@ -45,6 +45,7 @@ import Ganeti.BasicTypes
 {-# ANN module "HLint: ignore Monad law, left identity" #-}
 {-# ANN module "HLint: ignore Monad law, right identity" #-}
 {-# ANN module "HLint: ignore Use >=>" #-}
+{-# ANN module "HLint: ignore Use ." #-}
 
 -- * Arbitrary instances
 

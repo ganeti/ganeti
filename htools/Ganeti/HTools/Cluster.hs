@@ -828,11 +828,11 @@ findBestAllocGroup mggl mgnl mgil allowed_gdxs inst cnt =
       goodSols = filterMGResults mggl sols
       sortedSols = sortMGResults mggl goodSols
   in if null sortedSols
-       then if null groups'
-              then Bad $ "no groups for evacuation: allowed groups was" ++
-                     show allowed_gdxs ++ ", all groups: " ++
-                     show (map fst groups)
-              else Bad $ intercalate ", " all_msgs
+       then Bad $ if null groups'
+                    then "no groups for evacuation: allowed groups was" ++
+                         show allowed_gdxs ++ ", all groups: " ++
+                         show (map fst groups)
+                    else intercalate ", " all_msgs
        else let (final_group, final_sol) = head sortedSols
             in return (final_group, final_sol, all_msgs)
 

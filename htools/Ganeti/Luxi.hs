@@ -287,9 +287,9 @@ recvMsg s = do
 recvMsgExt :: Client -> IO RecvResult
 recvMsgExt s =
   catch (liftM RecvOk (recvMsg s)) $ \e ->
-    if isEOFError e
-      then return RecvConnClosed
-      else return $ RecvError (show e)
+    return $ if isEOFError e
+               then RecvConnClosed
+               else RecvError (show e)
 
 -- | Serialize a request to String.
 buildCall :: LuxiOp  -- ^ The method
