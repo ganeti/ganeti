@@ -376,12 +376,11 @@ class ConfigWriter:
     net_uuid = self._UnlockedLookupNetwork(net)
     nobj = self._UnlockedGetNetwork(net_uuid)
     pool = network.AddressPool(nobj)
-    gen_free = pool.GenerateFree()
 
     def gen_one():
       try:
-        ip = gen_free()
-      except StopIteration:
+        ip = pool.GenerateFree()
+      except errors.AddressPoolError:
         raise errors.ReservationError("Cannot generate IP. Network is full")
       return (constants.RESERVE_ACTION, ip, net_uuid)
 
