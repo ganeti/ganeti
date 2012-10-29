@@ -109,6 +109,11 @@ class TemporaryReservationManager:
     return all_reserved
 
   def GetECReserved(self, ec_id):
+    """ Used when you want to retrieve all reservations for a specific
+        execution context. E.g when commiting reserved IPs for a specific
+        network.
+
+    """
     ec_reserved = set()
     if ec_id in self._ec_reserved:
       ec_reserved.update(self._ec_reserved[ec_id])
