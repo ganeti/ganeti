@@ -2391,7 +2391,7 @@ class ConfigWriter:
 
   @locking.ssynchronized(_config_lock, shared=1)
   def GetAllNetworksInfo(self):
-    """Get the configuration of all networks
+    """Get configuration info of all the networks.
 
     """
     return dict(self._config_data.networks)
@@ -2559,7 +2559,11 @@ class ConfigWriter:
 
   @locking.ssynchronized(_config_lock, shared=1)
   def CheckIPInNodeGroup(self, ip, node):
-    """Check for conflictig IP.
+    """Check IP uniqueness in nodegroup.
+
+    Check networks that are connected in the node's node group
+    if ip is contained in any of them. Used when creating/adding
+    a NIC to ensure uniqueness among nodegroups.
 
     @type ip: string
     @param ip: ip address
