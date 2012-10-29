@@ -171,7 +171,7 @@ def GetPaths():
      getent.masterd_gid, False),
     (pathutils.RUN_DIR, DIR, 0775, getent.masterd_uid,
      getent.daemons_gid),
-    (pathutils.SOCKET_DIR, DIR, 0750, getent.masterd_uid,
+    (pathutils.SOCKET_DIR, DIR, 0770, getent.masterd_uid,
      getent.daemons_gid),
     (pathutils.MASTER_SOCKET, FILE, 0660, getent.masterd_uid,
      getent.daemons_gid, False),
