@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2011 Google Inc.
+# Copyright (C) 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -37,6 +37,9 @@ class AddressPool(object):
   L{objects.Network} objects.
 
   """
+  FREE = bitarray('0')
+  RESERVED = bitarray('1')
+
   def __init__(self, network):
     """Initialize a new IPv4 address pool from an objects.Network object
 
@@ -179,12 +182,13 @@ class AddressPool(object):
     """
     if self.IsFull():
       raise errors.AddressPoolError("%s is full" % self.network)
-    idx = self.all_reservations.search("0", 1)
+    idx = self.all_reservations.search(self.FREE, 1)
     return str(self.network[idx])
 
   def GetExternalReservations(self):
     """Returns a list of all externally reserved addresses"""
-    idxs = self.ext_reservations.search("1")
+    # pylint: disable=E1103
+    idxs = self.ext_reservations.search(self.RESERVED)
     return [str(self.network[idx]) for idx in idxs]
 
   @classmethod
