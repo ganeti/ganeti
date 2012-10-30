@@ -30,6 +30,7 @@ import random
 
 from ganeti import workerpool
 from ganeti import errors
+from ganeti import utils
 
 import testutils
 
@@ -290,7 +291,8 @@ class TestWorkerpool(unittest.TestCase):
     wp._lock.acquire()
     try:
       # The task queue must be empty now
-      self.failUnless(not wp._tasks)
+      self.assertFalse(wp._tasks)
+      self.assertFalse(wp._taskdata)
     finally:
       wp._lock.release()
 
@@ -367,6 +369,8 @@ class TestWorkerpool(unittest.TestCase):
 
       self.assertRaises(errors.ProgrammerError, wp.AddManyTasks,
                         [("x", ), ("y", )], priority=[1] * 5)
+      self.assertRaises(errors.ProgrammerError, wp.AddManyTasks,
+                        [("x", ), ("y", )], task_id=[1] * 5)
 
       wp.Quiesce()
 
