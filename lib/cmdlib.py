@@ -9038,7 +9038,7 @@ def _RemoveDisks(lu, instance, target_node=None, ignore_failures=False):
     for port in ports_to_release:
       lu.cfg.AddTcpUdpPort(port)
 
-  if instance.disk_template == constants.DT_FILE:
+  if instance.disk_template in constants.DTS_FILEBASED:
     file_storage_dir = os.path.dirname(instance.disks[0].logical_id[1])
     if target_node:
       tgt = target_node
