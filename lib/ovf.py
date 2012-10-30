@@ -537,7 +537,7 @@ class OVFReader(object):
                                                          GANETI_SCHEMA)
         ganeti_data["link"] = network_ganeti_data.findtext("{%s}Link" %
                                                            GANETI_SCHEMA)
-        ganeti_data["network"] = network_ganeti_data.findtext("{%s}Network" %
+        ganeti_data["network"] = network_ganeti_data.findtext("{%s}Net" %
                                                               GANETI_SCHEMA)
       mac_data = None
       if network_data:
