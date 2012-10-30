@@ -2518,7 +2518,7 @@ def _GetNetworkStatsField(field, kind, ctx):
     return int(value)
   except (ValueError, TypeError):
     logging.exception("Failed to convert network field '%s' (value %r) to int",
-                      value, field)
+                      field, value)
     return _FS_UNAVAIL
 
 
