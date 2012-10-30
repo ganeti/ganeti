@@ -3339,11 +3339,8 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
                inst_config.primary_node)
 
       # If the instance is non-redundant we cannot survive losing its primary
-      # node, so we are not N+1 compliant. On the other hand we have no disk
-      # templates with more than one secondary so that situation is not well
-      # supported either.
-      # FIXME: does not support file-backed instances
-      if not inst_config.secondary_nodes:
+      # node, so we are not N+1 compliant.
+      if inst_config.disk_template not in constants.DTS_MIRRORED:
         i_non_redundant.append(instance)
 
       _ErrorIf(len(inst_config.secondary_nodes) > 1,
