@@ -12578,12 +12578,11 @@ class LUInstanceSetParams(LogicalUnit):
                                     self.be_proposed[constants.BE_MAXMEM]),
                                    errors.ECODE_INVAL)
 
-      if self.op.runtime_mem > current_memory:
+      delta = self.op.runtime_mem - current_memory
+      if delta > 0:
         _CheckNodeFreeMemory(self, instance.primary_node,
                              "ballooning memory for instance %s" %
-                             instance.name,
-                             self.op.memory - current_memory,
-                             instance.hypervisor)
+                             instance.name, delta, instance.hypervisor)
 
     if self.op.disks and instance.disk_template == constants.DT_DISKLESS:
       raise errors.OpPrereqError("Disk operations not supported for"
