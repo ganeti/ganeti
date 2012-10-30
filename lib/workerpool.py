@@ -370,32 +370,26 @@ class WorkerPool(object):
     @param worker: Worker thread
 
     """
-    if self._ShouldWorkerTerminateUnlocked(worker):
-      return _TERMINATE
+    while True:
+      if self._ShouldWorkerTerminateUnlocked(worker):
+        return _TERMINATE
 
-    # We only wait if there's no task for us.
-    if not (self._active and self._tasks):
+      # If there's a pending task, return it immediately
+      if self._active and self._tasks:
+        # Get task from queue and tell pool about it
+        try:
+          task = heapq.heappop(self._tasks)
+        finally:
+          self._worker_to_pool.notifyAll()
+
+        return task
+
       logging.debug("Waiting for tasks")
 
-      while True:
-        # wait() releases the lock and sleeps until notified
-        self._pool_to_worker.wait()
+      # wait() releases the lock and sleeps until notified
+      self._pool_to_worker.wait()
 
-        logging.debug("Notified while waiting")
-
-        # Were we woken up in order to terminate?
-        if self._ShouldWorkerTerminateUnlocked(worker):
-          return _TERMINATE
-
-        # Just loop if pool is not processing tasks at this time
-        if self._active and self._tasks:
-          break
-
-    # Get task from queue and tell pool about it
-    try:
-      return heapq.heappop(self._tasks)
-    finally:
-      self._worker_to_pool.notifyAll()
+      logging.debug("Notified while waiting")
 
   def _ShouldWorkerTerminateUnlocked(self, worker):
     """Returns whether a worker should terminate.
