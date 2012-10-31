@@ -428,46 +428,6 @@ class TestWorkerpool(unittest.TestCase):
       wp.TerminateWorkers()
       self._CheckWorkerCount(wp, 0)
 
-  def testPriorityListSingleTasks(self):
-    # Tests whether all tasks are run and, since we're only using a single
-    # thread, whether everything is started in order and respects the priority
-    wp = workerpool.WorkerPool("Test", 1, ListBuilderWorker)
-    try:
-      self._CheckWorkerCount(wp, 1)
-
-      ctx = ListBuilderContext()
-
-      # Use static seed for this test
-      rnd = random.Random(26279)
-
-      data = {}
-      for i in range(1, 333):
-        prio = int(rnd.random() * 30)
-        wp.AddTask((ctx, i), priority=prio)
-        data.setdefault(prio, []).append(i)
-
-        # Cause some distortion
-        if i % 11 == 0:
-          time.sleep(.001)
-        if i % 41 == 0:
-          wp.Quiesce()
-
-      wp.Quiesce()
-
-      self._CheckNoTasks(wp)
-
-      # Check result
-      ctx.lock.acquire()
-      try:
-        self.assertEqual(data, ctx.prioresult)
-      finally:
-        ctx.lock.release()
-
-      self._CheckWorkerCount(wp, 1)
-    finally:
-      wp.TerminateWorkers()
-      self._CheckWorkerCount(wp, 0)
-
   def testDeferTask(self):
     # Tests whether all tasks are run and, since we're only using a single
     # thread, whether everything is started in order and respects the priority
