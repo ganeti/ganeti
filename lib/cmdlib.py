@@ -1689,6 +1689,27 @@ def _GetDefaultIAllocator(cfg, iallocator):
   return iallocator
 
 
+def _CheckHostnameSane(lu, name):
+  """Ensures that a given hostname resolves to a 'sane' name.
+
+  The given name is required to be a prefix of the resolved hostname,
+  to prevent accidental mismatches.
+
+  @param lu: the logical unit on behalf of which we're checking
+  @param name: the name we should resolve and check
+  @return: the resolved hostname object
+
+  """
+  hostname = netutils.GetHostname(name=name)
+  if hostname.name != name:
+    lu.LogInfo("Resolved given name '%s' to '%s'", name, hostname.name)
+  if not utils.MatchNameComponent(name, [hostname.name]):
+    raise errors.OpPrereqError(("Resolved hostname '%s' does not look the"
+                                " same as given hostname '%s'") %
+                                (hostname.name, name), errors.ECODE_INVAL)
+  return hostname
+
+
 class LUClusterPostInit(LogicalUnit):
   """Logical unit for running hooks after cluster initialization.
 
@@ -7289,15 +7310,7 @@ class LUInstanceRename(LogicalUnit):
 
     new_name = self.op.new_name
     if self.op.name_check:
-      hostname = netutils.GetHostname(name=new_name)
-      if hostname.name != new_name:
-        self.LogInfo("Resolved given name '%s' to '%s'", new_name,
-                     hostname.name)
-      if not utils.MatchNameComponent(self.op.new_name, [hostname.name]):
-        raise errors.OpPrereqError(("Resolved hostname '%s' does not look the"
-                                    " same as given hostname '%s'") %
-                                    (hostname.name, self.op.new_name),
-                                    errors.ECODE_INVAL)
+      hostname = _CheckHostnameSane(self, new_name)
       new_name = self.op.new_name = hostname.name
       if (self.op.ip_check and
           netutils.TcpPing(hostname.ip, constants.DEFAULT_NODED_PORT)):
@@ -9248,7 +9261,7 @@ class LUInstanceCreate(LogicalUnit):
 
     # instance name verification
     if self.op.name_check:
-      self.hostname1 = netutils.GetHostname(name=self.op.instance_name)
+      self.hostname1 = _CheckHostnameSane(self, self.op.instance_name)
       self.op.instance_name = self.hostname1.name
       # used in CheckPrereq for ip ping check
       self.check_ip = self.hostname1.ip
