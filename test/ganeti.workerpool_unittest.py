@@ -31,6 +31,7 @@ import random
 from ganeti import workerpool
 from ganeti import errors
 from ganeti import utils
+from ganeti import compat
 
 import testutils
 
@@ -114,12 +115,16 @@ class DeferringTaskContext:
     self.lock = threading.Lock()
     self.prioresult = {}
     self.samepriodefer = {}
+    self.num2ordertaskid = {}
 
 
 class DeferringWorker(workerpool.BaseWorker):
   def RunTask(self, ctx, num, targetprio):
     ctx.lock.acquire()
     try:
+      otilst = ctx.num2ordertaskid.setdefault(num, [])
+      otilst.append(self._GetCurrentOrderAndTaskId())
+
       if num in ctx.samepriodefer:
         del ctx.samepriodefer[num]
         raise workerpool.DeferTask()
@@ -466,6 +471,7 @@ class TestWorkerpool(unittest.TestCase):
       rnd = random.Random(14921)
 
       data = {}
+      num2taskid = {}
       for i in range(1, 333):
         ctx.lock.acquire()
         try:
@@ -475,7 +481,9 @@ class TestWorkerpool(unittest.TestCase):
           ctx.lock.release()
 
         prio = int(rnd.random() * 30)
-        wp.AddTask((ctx, i, prio), priority=50)
+        num2taskid[i] = 1000 * i
+        wp.AddTask((ctx, i, prio), priority=50,
+                   task_id=num2taskid[i])
         data.setdefault(prio, set()).add(i)
 
         # Cause some distortion
@@ -492,6 +500,21 @@ class TestWorkerpool(unittest.TestCase):
       ctx.lock.acquire()
       try:
         self.assertEqual(data, ctx.prioresult)
+
+        all_order_ids = []
+
+        for (num, numordertaskid) in ctx.num2ordertaskid.items():
+          order_ids = map(compat.fst, numordertaskid)
+          self.assertFalse(utils.FindDuplicates(order_ids),
+                           msg="Order ID has been reused")
+          all_order_ids.extend(order_ids)
+
+          for task_id in map(compat.snd, numordertaskid):
+            self.assertEqual(task_id, num2taskid[num],
+                             msg=("Task %s used different task IDs" % num))
+
+        self.assertFalse(utils.FindDuplicates(all_order_ids),
+                         msg="Order ID has been reused")
       finally:
         ctx.lock.release()
 
