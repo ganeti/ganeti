@@ -65,7 +65,7 @@ def Delay(opts, args):
                            on_master=opts.on_master,
                            on_nodes=opts.on_nodes,
                            repeat=opts.repeat)
-  SubmitOpCode(op, opts=opts)
+  SubmitOrSend(op, opts)
 
   return 0
 
@@ -624,7 +624,7 @@ commands = {
                 action="append", help="Select nodes to sleep on"),
      cli_option("-r", "--repeat", type="int", default="0", dest="repeat",
                 help="Number of times to repeat the sleep"),
-     DRY_RUN_OPT, PRIORITY_OPT,
+     DRY_RUN_OPT, PRIORITY_OPT, SUBMIT_OPT,
      ],
     "[opts...] <duration>", "Executes a TestDelay OpCode"),
   "submit-job": (
