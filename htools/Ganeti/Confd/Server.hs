@@ -58,7 +58,7 @@ import Ganeti.Logging
 import Ganeti.Utils
 import qualified Ganeti.Constants as C
 import qualified Ganeti.Path as Path
-import Ganeti.Query.Server (runQueryD)
+import Ganeti.Query.Server (prepQueryD, runQueryD)
 
 -- * Types and constants definitions
 
@@ -526,7 +526,9 @@ main opts _ _ = do
   _ <- forkIO $ onTimeoutTimer inotiaction Path.clusterConfFile cref statemvar
   -- fork the polling timer
   _ <- forkIO $ onReloadTimer inotiaction Path.clusterConfFile cref statemvar
+  -- prepare the queryd listener
+  query_data <- prepQueryD Nothing
   -- launch the queryd listener
-  _ <- forkIO $ runQueryD Nothing (configReader cref)
+  _ <- forkIO $ runQueryD query_data (configReader cref)
   -- and finally enter the responder loop
   forever $ listener s hmac (responder cref)

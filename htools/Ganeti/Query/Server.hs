@@ -27,6 +27,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Ganeti.Query.Server
   ( ConfigReader
+  , prepQueryD
   , runQueryD
   ) where
 
@@ -218,13 +219,17 @@ mainLoop creader socket = do
   _ <- forkIO $ clientLoop client creader
   mainLoop creader socket
 
--- | Main function that runs the query endpoint. This should be the
--- only one exposed from this module.
-runQueryD :: Maybe FilePath -> ConfigReader -> IO ()
-runQueryD fpath creader = do
+-- | Function that prepares the server socket.
+prepQueryD :: Maybe FilePath -> IO (FilePath, S.Socket)
+prepQueryD fpath = do
   let socket_path = fromMaybe Path.defaultQuerySocket fpath
   cleanupSocket socket_path
-  bracket
-    (getServer socket_path)
-    (closeServer socket_path)
-    (mainLoop creader)
+  s <- getServer socket_path
+  return (socket_path, s)
+
+-- | Main function that runs the query endpoint.
+runQueryD :: (FilePath, S.Socket) -> ConfigReader -> IO ()
+runQueryD (socket_path, server) creader =
+  finally
+    (mainLoop creader server)
+    (closeServer socket_path server)
