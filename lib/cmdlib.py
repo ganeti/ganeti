@@ -10266,7 +10266,7 @@ class LUInstanceCreate(LogicalUnit):
       }
 
     group_info = self.cfg.GetNodeGroup(pnode.group)
-    ipolicy = _CalculateGroupIPolicy(cluster, group_info)
+    ipolicy = ganeti.masterd.instance.CalculateGroupIPolicy(cluster, group_info)
     res = _ComputeIPolicyInstanceSpecViolation(ipolicy, ispec)
     if not self.op.ignore_ipolicy and res:
       raise errors.OpPrereqError(("Instance allocation to group %s violates"
