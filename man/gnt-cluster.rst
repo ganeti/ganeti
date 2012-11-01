@@ -524,7 +524,7 @@ List the tags of the cluster.
 MASTER-FAILOVER
 ~~~~~~~~~~~~~~~
 
-**master-failover** [\--no-voting]
+**master-failover** [\--no-voting] [\--yes-do-it]
 
 Failover the master role to the current node.
 
@@ -537,6 +537,11 @@ won't the new master, if the master daemon ever needs a restart.
 You can pass ``--no-voting`` to **ganeti-masterd** on the new
 master to solve this problem, and run **gnt-cluster redist-conf**
 to make sure the cluster is consistent again.
+
+The option ``--yes-do-it`` is used together with ``--no-voting``, for
+skipping the interactive checks. This is even more dangerous, and should
+only be used in conjunction with other means (e.g. a HA suite) to
+confirm that the operation is indeed safe.
 
 MASTER-PING
 ~~~~~~~~~~~

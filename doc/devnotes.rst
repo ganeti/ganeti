@@ -66,6 +66,13 @@ different python version)::
   $ ./autogen.sh && \
     ./configure --prefix=/usr/local --sysconfdir=/etc --localstatedir=/var
 
+Note that doing development on a machine which already has Ganeti
+installed is problematic, as ``PYTHONPATH`` behaviour can be confusing
+(see Issue 170 for a bit of history/details; in general it works if
+the installed and developed versions are very similar, and/or if
+PYTHONPATH is customised correctly). As such, in general it's
+recommended to use a "clean" machine for ganeti development.
+
 Haskell development notes
 -------------------------
 
