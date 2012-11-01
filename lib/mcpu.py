@@ -400,10 +400,12 @@ class Processor(object):
           try:
             self.context.glm.add(level, add_locks, acquired=1, shared=share)
           except errors.LockError:
+            logging.exception("Detected lock error in level %s for locks"
+                              " %s, shared=%s", level, add_locks, share)
             raise errors.OpPrereqError(
-              "Couldn't add locks (%s), probably because of a race condition"
-              " with another job, who added them first" % add_locks,
-              errors.ECODE_FAULT)
+              "Couldn't add locks (%s), most likely because of another"
+              " job who added them first" % add_locks,
+              errors.ECODE_NOTUNIQUE)
 
         try:
           result = self._LockAndExecLU(lu, level + 1, calc_timeout, priority)

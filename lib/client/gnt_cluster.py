@@ -57,6 +57,10 @@ SHOW_MACHINE_OPT = cli_option("-M", "--show-machine-names", default=False,
                               action="store_true",
                               help="Show machine name for every line in output")
 
+FORCE_FAILOVER = cli_option("--yes-do-it", dest="yes_do_it",
+                            help="Override interactive check for --no-voting",
+                            default=False, action="store_true")
+
 _EPO_PING_INTERVAL = 30 # 30 seconds between pings
 _EPO_PING_TIMEOUT = 1 # 1 second
 _EPO_REACHABLE_TIMEOUT = 15 * 60 # 15 minutes
@@ -706,7 +710,7 @@ def MasterFailover(opts, args):
   @return: the desired exit code
 
   """
-  if opts.no_voting:
+  if opts.no_voting and not opts.yes_do_it:
     usertext = ("This will perform the failover even if most other nodes"
                 " are down, or if this node is outdated. This is dangerous"
                 " as it can lead to a non-consistent cluster. Check the"
@@ -1507,7 +1511,7 @@ commands = {
     RepairDiskSizes, ARGS_MANY_INSTANCES, [DRY_RUN_OPT, PRIORITY_OPT],
     "[instance...]", "Updates mismatches in recorded disk sizes"),
   "master-failover": (
-    MasterFailover, ARGS_NONE, [NOVOTING_OPT],
+    MasterFailover, ARGS_NONE, [NOVOTING_OPT, FORCE_FAILOVER],
     "", "Makes the current node the master"),
   "master-ping": (
     MasterPing, ARGS_NONE, [],

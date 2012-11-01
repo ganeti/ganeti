@@ -505,6 +505,7 @@ class _FakeQueueForProc:
     self._acquired = False
     self._updates = []
     self._submitted = []
+    self._accepting_jobs = True
 
     self._submit_count = itertools.count(1000)
 
@@ -539,6 +540,12 @@ class _FakeQueueForProc:
     job_ids = [self._submit_count.next() for _ in jobs]
     self._submitted.extend(zip(job_ids, jobs))
     return job_ids
+
+  def StopAcceptingJobs(self):
+    self._accepting_jobs = False
+
+  def AcceptingJobsUnlocked(self):
+    return self._accepting_jobs
 
 
 class _FakeExecOpCodeForProc:
@@ -884,7 +891,7 @@ class TestJobProcessor(unittest.TestCase, _JobProcessorTestUtils):
                      [[constants.OP_STATUS_CANCELED for _ in job.ops],
                       ["Job canceled by request" for _ in job.ops]])
 
-  def testCancelWhileWaitlockWithTimeout(self):
+  def _TestCancelWhileSomething(self, cb):
     queue = _FakeQueueForProc()
 
     ops = [opcodes.OpTestDummy(result="Res%s" % i, fail=False)
@@ -907,8 +914,7 @@ class TestJobProcessor(unittest.TestCase, _JobProcessorTestUtils):
       self.assert_(compat.all(op.status == constants.OP_STATUS_CANCELING
                               for op in job.ops))
 
-      # Fake an acquire attempt timing out
-      raise mcpu.LockAcquireTimeout()
+      cb(queue)
 
     def _AfterStart(op, cbs):
       self.fail("Should not reach this")
@@ -928,6 +934,19 @@ class TestJobProcessor(unittest.TestCase, _JobProcessorTestUtils):
     self.assertEqual(job.GetInfo(["opstatus", "opresult"]),
                      [[constants.OP_STATUS_CANCELED for _ in job.ops],
                       ["Job canceled by request" for _ in job.ops]])
+
+    return queue
+
+  def testCancelWhileWaitlockWithTimeout(self):
+    def fn(_):
+      # Fake an acquire attempt timing out
+      raise mcpu.LockAcquireTimeout()
+
+    self._TestCancelWhileSomething(fn)
+
+  def testCancelDuringQueueShutdown(self):
+    queue = self._TestCancelWhileSomething(lambda q: q.StopAcceptingJobs())
+    self.assertFalse(queue.AcceptingJobsUnlocked())
 
   def testCancelWhileRunning(self):
     # Tests canceling a job with finished opcodes and more, unprocessed ones
@@ -974,6 +993,185 @@ class TestJobProcessor(unittest.TestCase, _JobProcessorTestUtils):
                        constants.OP_STATUS_CANCELED],
                       ["Res0", "Job canceled by request",
                        "Job canceled by request"]])
+
+  def _TestQueueShutdown(self, queue, opexec, job, runcount):
+    self.assertTrue(queue.AcceptingJobsUnlocked())
+
+    # Simulate shutdown
+    queue.StopAcceptingJobs()
+
+    self.assertEqual(jqueue._JobProcessor(queue, opexec, job)(),
+                     jqueue._JobProcessor.DEFER)
+
+    # Check result
+    self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_QUEUED)
+    self.assertEqual(job.GetInfo(["status"]), [constants.JOB_STATUS_QUEUED])
+    self.assertFalse(job.cur_opctx)
+    self.assertTrue(job.start_timestamp)
+    self.assertFalse(job.end_timestamp)
+    self.assertEqual(job.start_timestamp, job.ops[0].start_timestamp)
+    self.assertTrue(compat.all(op.start_timestamp and op.end_timestamp
+                               for op in job.ops[:runcount]))
+    self.assertFalse(job.ops[runcount].end_timestamp)
+    self.assertFalse(compat.any(op.start_timestamp or op.end_timestamp
+                                for op in job.ops[(runcount + 1):]))
+    self.assertEqual(job.GetInfo(["opstatus", "opresult"]),
+                     [(([constants.OP_STATUS_SUCCESS] * runcount) +
+                       ([constants.OP_STATUS_QUEUED] *
+                        (len(job.ops) - runcount))),
+                      (["Res%s" % i for i in range(runcount)] +
+                       ([None] * (len(job.ops) - runcount)))])
+
+    # Must have been written and replicated
+    self.assertEqual(queue.GetNextUpdate(), (job, True))
+    self.assertRaises(IndexError, queue.GetNextUpdate)
+
+  def testQueueShutdownWhileRunning(self):
+    # Tests shutting down the queue while a job is running
+    queue = _FakeQueueForProc()
+
+    ops = [opcodes.OpTestDummy(result="Res%s" % i, fail=False)
+           for i in range(3)]
+
+    # Create job
+    job_id = 2718211587
+    job = self._CreateJob(queue, job_id, ops)
+
+    self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_QUEUED)
+
+    opexec = _FakeExecOpCodeForProc(queue, None, None)
+
+    self.assertRaises(IndexError, queue.GetNextUpdate)
+
+    # Run one opcode
+    self.assertEqual(jqueue._JobProcessor(queue, opexec, job)(),
+                     jqueue._JobProcessor.DEFER)
+
+    # Job goes back to queued
+    self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_QUEUED)
+    self.assertEqual(job.GetInfo(["opstatus", "opresult"]),
+                     [[constants.OP_STATUS_SUCCESS,
+                       constants.OP_STATUS_QUEUED,
+                       constants.OP_STATUS_QUEUED],
+                      ["Res0", None, None]])
+    self.assertFalse(job.cur_opctx)
+
+    # Writes for waiting, running and result
+    for _ in range(3):
+      self.assertEqual(queue.GetNextUpdate(), (job, True))
+
+    # Run second opcode
+    self.assertEqual(jqueue._JobProcessor(queue, opexec, job)(),
+                     jqueue._JobProcessor.DEFER)
+
+    # Job goes back to queued
+    self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_QUEUED)
+    self.assertEqual(job.GetInfo(["opstatus", "opresult"]),
+                     [[constants.OP_STATUS_SUCCESS,
+                       constants.OP_STATUS_SUCCESS,
+                       constants.OP_STATUS_QUEUED],
+                      ["Res0", "Res1", None]])
+    self.assertFalse(job.cur_opctx)
+
+    # Writes for waiting, running and result
+    for _ in range(3):
+      self.assertEqual(queue.GetNextUpdate(), (job, True))
+
+    self._TestQueueShutdown(queue, opexec, job, 2)
+
+  def testQueueShutdownWithLockTimeout(self):
+    # Tests shutting down while a lock acquire times out
+    queue = _FakeQueueForProc()
+
+    ops = [opcodes.OpTestDummy(result="Res%s" % i, fail=False)
+           for i in range(3)]
+
+    # Create job
+    job_id = 1304231178
+    job = self._CreateJob(queue, job_id, ops)
+
+    self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_QUEUED)
+
+    acquire_timeout = False
+
+    def _BeforeStart(timeout, priority):
+      self.assertFalse(queue.IsAcquired())
+      self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_WAITING)
+      if acquire_timeout:
+        raise mcpu.LockAcquireTimeout()
+
+    opexec = _FakeExecOpCodeForProc(queue, _BeforeStart, None)
+
+    self.assertRaises(IndexError, queue.GetNextUpdate)
+
+    # Run one opcode
+    self.assertEqual(jqueue._JobProcessor(queue, opexec, job)(),
+                     jqueue._JobProcessor.DEFER)
+
+    # Job goes back to queued
+    self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_QUEUED)
+    self.assertEqual(job.GetInfo(["opstatus", "opresult"]),
+                     [[constants.OP_STATUS_SUCCESS,
+                       constants.OP_STATUS_QUEUED,
+                       constants.OP_STATUS_QUEUED],
+                      ["Res0", None, None]])
+    self.assertFalse(job.cur_opctx)
+
+    # Writes for waiting, running and result
+    for _ in range(3):
+      self.assertEqual(queue.GetNextUpdate(), (job, True))
+
+    # The next opcode should have expiring lock acquires
+    acquire_timeout = True
+
+    self._TestQueueShutdown(queue, opexec, job, 1)
+
+  def testQueueShutdownWhileInQueue(self):
+    # This should never happen in reality (no new jobs are started by the
+    # workerpool once a shutdown has been initiated), but it's better to test
+    # the job processor for this scenario
+    queue = _FakeQueueForProc()
+
+    ops = [opcodes.OpTestDummy(result="Res%s" % i, fail=False)
+           for i in range(5)]
+
+    # Create job
+    job_id = 2031
+    job = self._CreateJob(queue, job_id, ops)
+
+    self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_QUEUED)
+    self.assertRaises(IndexError, queue.GetNextUpdate)
+
+    self.assertFalse(job.start_timestamp)
+    self.assertFalse(job.end_timestamp)
+    self.assertTrue(compat.all(op.status == constants.OP_STATUS_QUEUED
+                               for op in job.ops))
+
+    opexec = _FakeExecOpCodeForProc(queue, None, None)
+    self._TestQueueShutdown(queue, opexec, job, 0)
+
+  def testQueueShutdownWhileWaitlockInQueue(self):
+    queue = _FakeQueueForProc()
+
+    ops = [opcodes.OpTestDummy(result="Res%s" % i, fail=False)
+           for i in range(5)]
+
+    # Create job
+    job_id = 53125685
+    job = self._CreateJob(queue, job_id, ops)
+
+    self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_QUEUED)
+
+    job.ops[0].status = constants.OP_STATUS_WAITING
+
+    assert len(job.ops) == 5
+
+    self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_WAITING)
+
+    self.assertRaises(IndexError, queue.GetNextUpdate)
+
+    opexec = _FakeExecOpCodeForProc(queue, None, None)
+    self._TestQueueShutdown(queue, opexec, job, 0)
 
   def testPartiallyRun(self):
     # Tests calling the processor on a job that's been partially run before the
@@ -1957,6 +2155,28 @@ class TestJobDependencyManager(unittest.TestCase):
     self.assertFalse(self._queue)
     self.assertFalse(self.jdm.JobWaiting(job))
     self.assertFalse(self.jdm.GetLockInfo([query.LQ_PENDING]))
+
+  def testNotFinalizedThenQueued(self):
+    # This can happen on a queue shutdown
+    job = _IdOnlyFakeJob(1320)
+    job_id = str(22971)
+
+    for i in range(5):
+      if i > 2:
+        self._status.append((job_id, constants.JOB_STATUS_QUEUED))
+      else:
+        self._status.append((job_id, constants.JOB_STATUS_RUNNING))
+      (result, _) = self.jdm.CheckAndRegister(job, job_id, [])
+      self.assertEqual(result, self.jdm.WAIT)
+      self.assertFalse(self._status)
+      self.assertFalse(self._queue)
+      self.assertTrue(self.jdm.JobWaiting(job))
+      self.assertEqual(self.jdm._waiters, {
+        job_id: set([job]),
+        })
+      self.assertEqual(self.jdm.GetLockInfo([query.LQ_PENDING]), [
+        ("job/22971", None, None, [("job", [job.id])])
+        ])
 
   def testRequireCancel(self):
     job = _IdOnlyFakeJob(5278)

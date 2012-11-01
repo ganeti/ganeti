@@ -1115,7 +1115,7 @@ case the more than one instance will be affected.
 
 The ``--no-remember`` option will perform the startup but not change
 the state of the instance in the configuration file (if it was stopped
-before, Ganeti will still thinks it needs to be stopped). This can be
+before, Ganeti will still think it needs to be stopped). This can be
 used for testing, or for a one shot-start where you don't want the
 watcher to restart the instance if it crashes.
 
