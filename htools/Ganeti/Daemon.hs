@@ -26,6 +26,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 module Ganeti.Daemon
   ( DaemonOptions(..)
   , OptType
+  , CheckFn
+  , PrepFn
+  , MainFn
   , defaultOptions
   , oShowHelp
   , oShowVer
@@ -113,6 +116,15 @@ instance StandardOptions DaemonOptions where
 
 -- | Abrreviation for the option type.
 type OptType = GenericOptType DaemonOptions
+
+-- | Check function type.
+type CheckFn a = DaemonOptions -> IO (Either ExitCode a)
+
+-- | Prepare function type.
+type PrepFn a b = DaemonOptions -> a -> IO b
+
+-- | Main execution function type.
+type MainFn a b = DaemonOptions -> a -> b -> IO ()
 
 -- * Command line options
 
@@ -296,8 +308,13 @@ daemonize logfile action = do
   exitImmediately ExitSuccess
 
 -- | Generic daemon startup.
-genericMain :: GanetiDaemon -> [OptType] -> (DaemonOptions -> IO ()) -> IO ()
-genericMain daemon options main = do
+genericMain :: GanetiDaemon -- ^ The daemon we're running
+            -> [OptType]    -- ^ The available options
+            -> CheckFn a    -- ^ Check function
+            -> PrepFn  a b  -- ^ Prepare function
+            -> MainFn  a b  -- ^ Execution function
+            -> IO ()
+genericMain daemon options check_fn prep_fn exec_fn = do
   let progname = daemonName daemon
   (opts, args) <- parseArgs progname options
 
@@ -312,21 +329,35 @@ genericMain daemon options main = do
               Nothing -> exitIfBad "Invalid cluster syslog setting" $
                          syslogUsageFromRaw C.syslogUsage
               Just v -> return v
+
+  -- run the check function and optionally exit if it returns an exit code
+  check_result <- check_fn opts
+  check_result' <- case check_result of
+                     Left code -> exitWith code
+                     Right v -> return v
+
   let processFn = if optDaemonize opts
                     then daemonize (daemonLogFile daemon)
                     else id
-  processFn $ innerMain daemon opts syslog (main opts)
+  processFn $ innerMain daemon opts syslog check_result' prep_fn exec_fn
 
 -- | Inner daemon function.
 --
 -- This is executed after daemonization.
-innerMain :: GanetiDaemon -> DaemonOptions -> SyslogUsage -> IO () -> IO ()
-innerMain daemon opts syslog main = do
+innerMain :: GanetiDaemon  -- ^ The daemon we're running
+          -> DaemonOptions -- ^ The options structure, filled from the cmdline
+          -> SyslogUsage   -- ^ Syslog mode
+          -> a             -- ^ Check results
+          -> PrepFn a b    -- ^ Prepare function
+          -> MainFn a b    -- ^ Execution function
+          -> IO ()
+innerMain daemon opts syslog check_result prep_fn exec_fn = do
   let logfile = if optDaemonize opts
                   then Nothing
                   else Just $ daemonLogFile daemon
   setupLogging logfile (daemonName daemon) (optDebug opts) True False syslog
   pid_fd <- writePidFile (daemonPidFile daemon)
   _ <- exitIfBad "Cannot write PID file; already locked? Error" pid_fd
+  prep_result <- prep_fn opts check_result
   logNotice "starting"
-  main
+  exec_fn opts check_result prep_result

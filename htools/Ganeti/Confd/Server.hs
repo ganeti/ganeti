@@ -27,6 +27,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Ganeti.Confd.Server
   ( main
+  , checkMain
+  , prepMain
   ) where
 
 import Control.Concurrent
@@ -499,9 +501,17 @@ configReader cref = do
   cdata <- readIORef cref
   return $ liftM fst cdata
 
+-- | Check function for confd.
+checkMain :: CheckFn ()
+checkMain _ = return $ Right ()
+
+-- | Prepare function for confd.
+prepMain :: PrepFn () ()
+prepMain _ _ = return ()
+
 -- | Main function.
-main :: DaemonOptions -> IO ()
-main opts = do
+main :: MainFn () ()
+main opts _ _ = do
   parseresult <- parseAddress opts C.defaultConfdPort
   (af_family, bindaddr) <- exitIfBad "parsing bind address" parseresult
   s <- S.socket af_family S.Datagram S.defaultProtocol
