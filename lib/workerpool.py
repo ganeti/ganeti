@@ -336,8 +336,8 @@ class WorkerPool(object):
       assert compat.all(isinstance(prio, (int, long)) for prio in priority)
       assert len(tasks) == len(priority)
 
-      for args, priority in zip(tasks, priority):
-        self._AddTaskUnlocked(args, priority)
+      for args, prio in zip(tasks, priority):
+        self._AddTaskUnlocked(args, prio)
     finally:
       self._lock.release()
 
