@@ -77,6 +77,11 @@ import qualified Ganeti.Ssconf as Ssconf
 devNull :: FilePath
 devNull = "/dev/null"
 
+-- | Error message prefix, used in two separate paths (when forking
+-- and when not).
+daemonStartupErr :: String -> String
+daemonStartupErr = ("Error when starting the daemon process: " ++)
+
 -- * Data types
 
 -- | Command line options structure.
@@ -292,20 +297,29 @@ parseAddress opts defport = do
 -- WARNING: this only works in single-threaded mode (either using the
 -- single-threaded runtime, or using the multi-threaded one but with
 -- only one OS thread, i.e. -N1).
---
--- FIXME: this doesn't support error reporting and the prepfn
--- functionality.
-daemonize :: FilePath -> IO () -> IO ()
+daemonize :: FilePath -> (Maybe Fd -> IO ()) -> IO ()
 daemonize logfile action = do
+  (rpipe, wpipe) <- createPipe
   -- first fork
   _ <- forkProcess $ do
     -- in the child
+    closeFd rpipe
     setupDaemonEnv "/" (unionFileModes groupModes otherModes)
     setupDaemonFDs $ Just logfile
     _ <- installHandler lostConnection (Catch (handleSigHup logfile)) Nothing
-    _ <- forkProcess action
+    -- second fork, launches the actual child code; standard
+    -- double-fork technique
+    _ <- forkProcess (action (Just wpipe))
     exitImmediately ExitSuccess
-  exitImmediately ExitSuccess
+  closeFd wpipe
+  hndl <- fdToHandle rpipe
+  errors <- hGetContents hndl
+  ecode <- if null errors
+             then return ExitSuccess
+             else do
+               hPutStrLn stderr $ daemonStartupErr errors
+               return $ ExitFailure C.exitFailure
+  exitImmediately ecode
 
 -- | Generic daemon startup.
 genericMain :: GanetiDaemon -- ^ The daemon we're running
@@ -338,8 +352,29 @@ genericMain daemon options check_fn prep_fn exec_fn = do
 
   let processFn = if optDaemonize opts
                     then daemonize (daemonLogFile daemon)
-                    else id
+                    else \action -> action Nothing
   processFn $ innerMain daemon opts syslog check_result' prep_fn exec_fn
+
+-- | Full prepare function.
+--
+-- This is executed after daemonization, and sets up both the log
+-- files (a generic functionality) and the custom prepare function of
+-- the daemon.
+fullPrep :: GanetiDaemon  -- ^ The daemon we're running
+         -> DaemonOptions -- ^ The options structure, filled from the cmdline
+         -> SyslogUsage   -- ^ Syslog mode
+         -> a             -- ^ Check results
+         -> PrepFn a b    -- ^ Prepare function
+         -> IO b
+fullPrep daemon opts syslog check_result prep_fn = do
+  let logfile = if optDaemonize opts
+                  then Nothing
+                  else Just $ daemonLogFile daemon
+  setupLogging logfile (daemonName daemon) (optDebug opts) True False syslog
+  pid_fd <- writePidFile (daemonPidFile daemon)
+  _ <- exitIfBad "Cannot write PID file; already locked? Error" pid_fd
+  logNotice "starting"
+  prep_fn opts check_result
 
 -- | Inner daemon function.
 --
@@ -350,14 +385,27 @@ innerMain :: GanetiDaemon  -- ^ The daemon we're running
           -> a             -- ^ Check results
           -> PrepFn a b    -- ^ Prepare function
           -> MainFn a b    -- ^ Execution function
+          -> Maybe Fd      -- ^ Error reporting function
           -> IO ()
-innerMain daemon opts syslog check_result prep_fn exec_fn = do
-  let logfile = if optDaemonize opts
-                  then Nothing
-                  else Just $ daemonLogFile daemon
-  setupLogging logfile (daemonName daemon) (optDebug opts) True False syslog
-  pid_fd <- writePidFile (daemonPidFile daemon)
-  _ <- exitIfBad "Cannot write PID file; already locked? Error" pid_fd
-  prep_result <- prep_fn opts check_result
-  logNotice "starting"
+innerMain daemon opts syslog check_result prep_fn exec_fn fd = do
+  prep_result <- fullPrep daemon opts syslog check_result prep_fn
+                 `Control.Exception.catch` handlePrepErr fd
+  -- no error reported, we should now close the fd
+  maybeCloseFd fd
   exec_fn opts check_result prep_result
+
+-- | Daemon prepare error handling function.
+handlePrepErr :: Maybe Fd -> IOError -> IO a
+handlePrepErr fd err = do
+  let msg = show err
+  case fd of
+    -- explicitly writing to the fd directly, since when forking it's
+    -- better (safer) than trying to convert this into a full handle
+    Just fd' -> fdWrite fd' msg >> return ()
+    Nothing  -> hPutStrLn stderr (daemonStartupErr msg)
+  exitWith $ ExitFailure 1
+
+-- | Close a file descriptor.
+maybeCloseFd :: Maybe Fd -> IO ()
+maybeCloseFd Nothing   = return ()
+maybeCloseFd (Just fd) = closeFd fd
