@@ -39,6 +39,8 @@ import Data.List
 import qualified Data.Map as M
 import Data.Maybe (fromMaybe)
 import qualified Network.Socket as S
+import System.Exit
+import System.IO
 import System.Posix.Files
 import System.Posix.Types
 import System.Time
@@ -55,7 +57,6 @@ import Ganeti.Confd.Utils
 import Ganeti.Config
 import Ganeti.Hash
 import Ganeti.Logging
-import Ganeti.Utils
 import qualified Ganeti.Constants as C
 import qualified Ganeti.Path as Path
 import Ganeti.Query.Server (prepQueryD, runQueryD)
@@ -501,22 +502,33 @@ configReader cref = do
   cdata <- readIORef cref
   return $ liftM fst cdata
 
+-- | Type alias for prepMain results
+type PrepResult = (S.Socket, (FilePath, S.Socket),
+                   IORef (Result (ConfigData, LinkIpMap)))
+
 -- | Check function for confd.
-checkMain :: CheckFn ()
-checkMain _ = return $ Right ()
+checkMain :: CheckFn (S.Family, S.SockAddr)
+checkMain opts = do
+  parseresult <- parseAddress opts C.defaultConfdPort
+  case parseresult of
+    Bad msg -> do
+      hPutStrLn stderr $ "parsing bind address: " ++ msg
+      return . Left $ ExitFailure 1
+    Ok v -> return $ Right v
 
 -- | Prepare function for confd.
-prepMain :: PrepFn () ()
-prepMain _ _ = return ()
-
--- | Main function.
-main :: MainFn () ()
-main opts _ _ = do
-  parseresult <- parseAddress opts C.defaultConfdPort
-  (af_family, bindaddr) <- exitIfBad "parsing bind address" parseresult
+prepMain :: PrepFn (S.Family, S.SockAddr) PrepResult
+prepMain _ (af_family, bindaddr) = do
   s <- S.socket af_family S.Datagram S.defaultProtocol
   S.bindSocket s bindaddr
+  -- prepare the queryd listener
+  query_data <- prepQueryD Nothing
   cref <- newIORef (Bad "Configuration not yet loaded")
+  return (s, query_data, cref)
+
+-- | Main function.
+main :: MainFn (S.Family, S.SockAddr) PrepResult
+main _ _ (s, query_data, cref) = do
   statemvar <- newMVar initialState
   hmac <- getClusterHmac
   -- Inotify setup
@@ -526,8 +538,6 @@ main opts _ _ = do
   _ <- forkIO $ onTimeoutTimer inotiaction Path.clusterConfFile cref statemvar
   -- fork the polling timer
   _ <- forkIO $ onReloadTimer inotiaction Path.clusterConfFile cref statemvar
-  -- prepare the queryd listener
-  query_data <- prepQueryD Nothing
   -- launch the queryd listener
   _ <- forkIO $ runQueryD query_data (configReader cref)
   -- and finally enter the responder loop
