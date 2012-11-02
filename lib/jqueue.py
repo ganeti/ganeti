@@ -35,6 +35,7 @@ import time
 import weakref
 import threading
 import itertools
+import operator
 
 try:
   # pylint: disable=E0611
@@ -68,6 +69,9 @@ JOBQUEUE_THREADS = 25
 # member lock names to be passed to @ssynchronized decorator
 _LOCK = "_lock"
 _QUEUE = "_queue"
+
+#: Retrieves "id" attribute
+_GetIdAttr = operator.attrgetter("id")
 
 
 class CancelJob(Exception):
@@ -2257,7 +2261,8 @@ class JobQueue(object):
     """
     assert self._lock.is_owned(shared=0), "Must own lock in exclusive mode"
     self._wpool.AddManyTasks([(job, ) for job in jobs],
-                             priority=[job.CalcPriority() for job in jobs])
+                             priority=[job.CalcPriority() for job in jobs],
+                             task_id=map(_GetIdAttr, jobs))
 
   def _GetJobStatusForDependencies(self, job_id):
     """Gets the status of a job for dependencies.
