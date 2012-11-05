@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2006, 2007, 2010 Google Inc.
+# Copyright (C) 2006, 2007, 2010, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -29,6 +29,7 @@ from ganeti import bdev
 from ganeti import errors
 from ganeti import constants
 from ganeti import utils
+from ganeti import pathutils
 
 import testutils
 
@@ -390,6 +391,10 @@ class TestComputeWrongFileStoragePathsInternal(unittest.TestCase):
     self.assertEqual(vfsp(["/bin"]), ["/bin"])
     self.assertEqual(vfsp(["/usr/sbin/vim", "/srv/file-storage"]),
                      ["/usr/sbin/vim"])
+
+    self.assertTrue(vfsp([pathutils.REMOTE_COMMANDS_DIR]),
+                    msg=("Remote commands directory should never be valid"
+                         "for file storage"))
 
 
 class TestComputeWrongFileStoragePaths(testutils.GanetiTestCase):
