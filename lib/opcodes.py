@@ -1815,7 +1815,7 @@ class OpTagsSet(OpCode):
   OP_PARAMS = [
     _PTagKind,
     _PTags,
-    # Name is only meaningful for nodes and instances
+    # Name is only meaningful for groups, nodes and instances
     ("name", ht.NoDefault, ht.TMaybeString,
      "Name of object where tag(s) should be added"),
     ]
@@ -1827,7 +1827,7 @@ class OpTagsDel(OpCode):
   OP_PARAMS = [
     _PTagKind,
     _PTags,
-    # Name is only meaningful for nodes and instances
+    # Name is only meaningful for groups, nodes and instances
     ("name", ht.NoDefault, ht.TMaybeString,
      "Name of object where tag(s) should be deleted"),
     ]

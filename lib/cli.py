@@ -412,7 +412,7 @@ def _ExtractTagsObject(opts, args):
     raise errors.ProgrammerError("tag_type not passed to _ExtractTagsObject")
   kind = opts.tag_type
   if kind == constants.TAG_CLUSTER:
-    retval = kind, kind
+    retval = kind, None
   elif kind in (constants.TAG_NODEGROUP,
                 constants.TAG_NODE,
                 constants.TAG_INSTANCE):
