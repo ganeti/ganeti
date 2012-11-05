@@ -630,10 +630,10 @@ class TestIsNormAbsPath(unittest.TestCase):
   def _pathTestHelper(self, path, result):
     if result:
       self.assert_(utils.IsNormAbsPath(path),
-          "Path %s should result absolute and normalized" % path)
+          msg="Path %s should result absolute and normalized" % path)
     else:
       self.assertFalse(utils.IsNormAbsPath(path),
-          "Path %s should not result absolute and normalized" % path)
+          msg="Path %s should not result absolute and normalized" % path)
 
   def testBase(self):
     self._pathTestHelper("/etc", True)
@@ -641,6 +641,17 @@ class TestIsNormAbsPath(unittest.TestCase):
     self._pathTestHelper("etc", False)
     self._pathTestHelper("/etc/../root", False)
     self._pathTestHelper("/etc/", False)
+
+  def testSlashes(self):
+    # Root directory
+    self._pathTestHelper("/", True)
+
+    # POSIX' "implementation-defined" double slashes
+    self._pathTestHelper("//", True)
+
+    # Three and more slashes count as one, so the path is not normalized
+    for i in range(3, 10):
+      self._pathTestHelper("/" * i, False)
 
 
 class TestIsBelowDir(unittest.TestCase):
@@ -673,6 +684,25 @@ class TestIsBelowDir(unittest.TestCase):
     self.assertRaises(ValueError, utils.IsBelowDir, "/a/b/c", "d")
     self.assertRaises(ValueError, utils.IsBelowDir, "a/b/c", "/d")
     self.assertRaises(ValueError, utils.IsBelowDir, "a/b/c", "d")
+    self.assertRaises(ValueError, utils.IsBelowDir, "", "/")
+    self.assertRaises(ValueError, utils.IsBelowDir, "/", "")
+
+  def testRoot(self):
+    self.assertFalse(utils.IsBelowDir("/", "/"))
+
+    for i in ["/a", "/tmp", "/tmp/foo/bar", "/tmp/"]:
+      self.assertTrue(utils.IsBelowDir("/", i))
+
+  def testSlashes(self):
+    # In POSIX a double slash is "implementation-defined".
+    self.assertFalse(utils.IsBelowDir("//", "//"))
+    self.assertFalse(utils.IsBelowDir("//", "/tmp"))
+    self.assertTrue(utils.IsBelowDir("//tmp", "//tmp/x"))
+
+    # Three (or more) slashes count as one
+    self.assertFalse(utils.IsBelowDir("/", "///"))
+    self.assertTrue(utils.IsBelowDir("/", "///tmp"))
+    self.assertTrue(utils.IsBelowDir("/tmp", "///tmp/a/b"))
 
 
 class TestPathJoin(unittest.TestCase):

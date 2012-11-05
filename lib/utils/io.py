@@ -647,15 +647,28 @@ def IsNormAbsPath(path):
 def IsBelowDir(root, other_path):
   """Check whether a path is below a root dir.
 
-  This works around the nasty byte-byte comparisation of commonprefix.
+  This works around the nasty byte-byte comparison of commonprefix.
 
   """
   if not (os.path.isabs(root) and os.path.isabs(other_path)):
     raise ValueError("Provided paths '%s' and '%s' are not absolute" %
                      (root, other_path))
-  prepared_root = "%s%s" % (os.path.normpath(root), os.sep)
-  return os.path.commonprefix([prepared_root,
-                               os.path.normpath(other_path)]) == prepared_root
+
+  norm_other = os.path.normpath(other_path)
+
+  if norm_other == os.sep:
+    # The root directory can never be below another path
+    return False
+
+  norm_root = os.path.normpath(root)
+
+  if norm_root == os.sep:
+    # This is the root directory, no need to add another slash
+    prepared_root = norm_root
+  else:
+    prepared_root = "%s%s" % (norm_root, os.sep)
+
+  return os.path.commonprefix([prepared_root, norm_other]) == prepared_root
 
 
 def PathJoin(*args):
