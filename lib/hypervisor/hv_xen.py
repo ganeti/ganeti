@@ -532,7 +532,8 @@ class XenHypervisor(hv_base.BaseHypervisor):
 
     port = instance.hvparams[constants.HV_MIGRATION_PORT]
 
-    if not netutils.TcpPing(target, port, live_port_needed=True):
+    if (constants.XEN_CMD == constants.XEN_CMD_XM and
+        not netutils.TcpPing(target, port, live_port_needed=True)):
       raise errors.HypervisorError("Remote host %s not listening on port"
                                    " %s, cannot migrate" % (target, port))
 
