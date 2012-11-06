@@ -202,10 +202,11 @@ XEN_CMD = _autoconf.XEN_CMD
 # the command xl runs some extra info so that it can use Ganeti's key
 # verification and not fail. Note that this string is incomplete: it must be
 # filled with the cluster name before being used.
-XL_SSH_CMD = ("ssh -l root -oGlobalKnownHostsFile=%s"
+XL_SSH_CMD = ("ssh -l %s -oGlobalKnownHostsFile=%s"
               " -oUserKnownHostsFile=/dev/null"
               " -oCheckHostIp=no -oStrictHostKeyChecking=yes"
-              " -oHostKeyAlias=%%s") % pathutils.SSH_KNOWN_HOSTS_FILE
+              " -oHostKeyAlias=%%s") % (SSH_LOGIN_USER,
+                                        pathutils.SSH_KNOWN_HOSTS_FILE)
 
 KVM_PATH = _autoconf.KVM_PATH
 KVM_KERNEL = _autoconf.KVM_KERNEL
