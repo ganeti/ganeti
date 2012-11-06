@@ -309,12 +309,14 @@ daemonize logfile action = do
   _ <- forkProcess $ do
     -- in the child
     closeFd rpipe
+    let wpipe' = Just wpipe
     setupDaemonEnv "/" (unionFileModes groupModes otherModes)
-    setupDaemonFDs $ Just logfile
+    setupDaemonFDs (Just logfile) `Control.Exception.catch`
+      handlePrepErr False wpipe'
     _ <- installHandler lostConnection (Catch (handleSigHup logfile)) Nothing
     -- second fork, launches the actual child code; standard
     -- double-fork technique
-    _ <- forkProcess (action (Just wpipe))
+    _ <- forkProcess (action wpipe')
     exitImmediately ExitSuccess
   closeFd wpipe
   hndl <- fdToHandle rpipe
@@ -397,21 +399,21 @@ innerMain :: GanetiDaemon  -- ^ The daemon we're running
           -> IO ()
 innerMain daemon opts syslog check_result prep_fn exec_fn fd = do
   prep_result <- fullPrep daemon opts syslog check_result prep_fn
-                 `Control.Exception.catch` handlePrepErr fd
+                 `Control.Exception.catch` handlePrepErr True fd
   -- no error reported, we should now close the fd
   maybeCloseFd fd
   exec_fn opts check_result prep_result
 
 -- | Daemon prepare error handling function.
-handlePrepErr :: Maybe Fd -> IOError -> IO a
-handlePrepErr fd err = do
+handlePrepErr :: Bool -> Maybe Fd -> IOError -> IO a
+handlePrepErr logging_setup fd err = do
   let msg = show err
   case fd of
     -- explicitly writing to the fd directly, since when forking it's
     -- better (safer) than trying to convert this into a full handle
     Just fd' -> fdWrite fd' msg >> return ()
     Nothing  -> hPutStrLn stderr (daemonStartupErr msg)
-  logError msg
+  when logging_setup $ logError msg
   exitWith $ ExitFailure 1
 
 -- | Close a file descriptor.
