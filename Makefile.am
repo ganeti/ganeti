@@ -606,7 +606,7 @@ python_scripts = \
 dist_tools_SCRIPTS = \
 	$(python_scripts) \
 	tools/kvm-console-wrapper \
-	tools/xm-console-wrapper \
+	tools/xen-console-wrapper \
 	tools/master-ip-setup
 
 pkglib_python_scripts = \
