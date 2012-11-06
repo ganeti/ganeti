@@ -718,8 +718,8 @@ def RunParts(dir_name, env=None, reset_env=False):
 
   for relname in sorted(dir_contents):
     fname = utils_io.PathJoin(dir_name, relname)
-    if not (os.path.isfile(fname) and os.access(fname, os.X_OK) and
-            constants.EXT_PLUGIN_MASK.match(relname) is not None):
+    if not (constants.EXT_PLUGIN_MASK.match(relname) is not None and
+            utils_wrapper.IsExecutable(fname)):
       rr.append((relname, constants.RUNPARTS_SKIP, None))
     else:
       try:

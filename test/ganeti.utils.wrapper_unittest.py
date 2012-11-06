@@ -27,6 +27,7 @@ import os
 import socket
 import tempfile
 import unittest
+import shutil
 
 from ganeti import constants
 from ganeti import utils
@@ -120,6 +121,51 @@ class TestIgnoreSignals(unittest.TestCase):
 
     self.assertEquals(utils.IgnoreSignals(self._Return, True), True)
     self.assertEquals(utils.IgnoreSignals(self._Return, 33), 33)
+
+
+class TestIsExecutable(unittest.TestCase):
+  def setUp(self):
+    self.tmpdir = tempfile.mkdtemp()
+
+  def tearDown(self):
+    shutil.rmtree(self.tmpdir)
+
+  def testNonExisting(self):
+    fname = utils.PathJoin(self.tmpdir, "file")
+    assert not os.path.exists(fname)
+    self.assertFalse(utils.IsExecutable(fname))
+
+  def testNoFile(self):
+    path = utils.PathJoin(self.tmpdir, "something")
+    os.mkdir(path)
+    assert os.path.isdir(path)
+    self.assertFalse(utils.IsExecutable(path))
+
+  def testExecutable(self):
+    fname = utils.PathJoin(self.tmpdir, "file")
+    utils.WriteFile(fname, data="#!/bin/bash", mode=0700)
+    assert os.path.exists(fname)
+    self.assertTrue(utils.IsExecutable(fname))
+
+    self.assertTrue(self._TestSymlink(fname))
+
+  def testFileNotExecutable(self):
+    fname = utils.PathJoin(self.tmpdir, "file")
+    utils.WriteFile(fname, data="#!/bin/bash", mode=0600)
+    assert os.path.exists(fname)
+    self.assertFalse(utils.IsExecutable(fname))
+
+    self.assertFalse(self._TestSymlink(fname))
+
+  def _TestSymlink(self, fname):
+    assert os.path.exists(fname)
+
+    linkname = utils.PathJoin(self.tmpdir, "cmd")
+    os.symlink(fname, linkname)
+
+    assert os.path.islink(linkname)
+
+    return utils.IsExecutable(linkname)
 
 
 if __name__ == "__main__":

@@ -172,6 +172,17 @@ def GetClosedTempfile(*args, **kwargs):
   return path
 
 
+def IsExecutable(filename):
+  """Checks whether a file exists and is executable.
+
+  @type filename: string
+  @param filename: Filename
+  @rtype: bool
+
+  """
+  return os.path.isfile(filename) and os.access(filename, os.X_OK)
+
+
 def ResetTempfileModule(_time=time.time):
   """Resets the random name generator of the tempfile module.
 

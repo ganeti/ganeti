@@ -711,7 +711,7 @@ def VerifyNode(what, cluster_name):
   if constants.NV_USERSCRIPTS in what:
     result[constants.NV_USERSCRIPTS] = \
       [script for script in what[constants.NV_USERSCRIPTS]
-       if not (os.path.exists(script) and os.access(script, os.X_OK))]
+       if not utils.IsExecutable(script)]
 
   if constants.NV_OOB_PATHS in what:
     result[constants.NV_OOB_PATHS] = tmp = []
