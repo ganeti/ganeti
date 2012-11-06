@@ -31,7 +31,6 @@ module Ganeti.BasicTypes
   , isBad
   , eitherToResult
   , annotateResult
-  , annotateIOError
   , select
   , LookupResult(..)
   , MatchPriority(..)
@@ -132,12 +131,6 @@ eitherToResult (Right v) = Ok  v
 annotateResult :: String -> Result a -> Result a
 annotateResult owner (Bad s) = Bad $ owner ++ ": " ++ s
 annotateResult _ v = v
-
--- | Annotates and transforms IOErrors into a Result type. This can be
--- used in the error handler argument to 'catch', for example.
-annotateIOError :: String -> IOError -> IO (Result a)
-annotateIOError description exc =
-  return . Bad $ description ++ ": " ++ show exc
 
 -- * Misc functionality
 

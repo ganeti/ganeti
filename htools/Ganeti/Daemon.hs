@@ -188,6 +188,12 @@ genericOpts = [ oShowHelp
               , oShowComp
               ]
 
+-- | Annotates and transforms IOErrors into a Result type. This can be
+-- used in the error handler argument to 'catch', for example.
+ioErrorToResult :: String -> IOError -> IO (Result a)
+ioErrorToResult description exc =
+  return . Bad $ description ++ ": " ++ show exc
+
 -- | Small wrapper over getArgs and 'parseOpts'.
 parseArgs :: String -> [OptType] -> IO (DaemonOptions, [String])
 parseArgs cmd options = do
@@ -290,7 +296,7 @@ parseAddress opts defport = do
     Nothing -> return (def_family >>= defaultBindAddr port)
     Just saddr -> Control.Exception.catch
                     (resolveAddr port saddr)
-                    (annotateIOError $ "Invalid address " ++ saddr)
+                    (ioErrorToResult $ "Invalid address " ++ saddr)
 
 -- | Run an I/O action as a daemon.
 --
