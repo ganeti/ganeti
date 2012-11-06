@@ -224,7 +224,8 @@ prepQueryD :: Maybe FilePath -> IO (FilePath, S.Socket)
 prepQueryD fpath = do
   let socket_path = fromMaybe Path.defaultQuerySocket fpath
   cleanupSocket socket_path
-  s <- getServer socket_path
+  s <- describeError "binding to the Luxi socket"
+         Nothing (Just socket_path) $ getServer socket_path
   return (socket_path, s)
 
 -- | Main function that runs the query endpoint.
