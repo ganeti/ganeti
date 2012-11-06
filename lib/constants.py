@@ -205,7 +205,7 @@ XEN_CMD = _autoconf.XEN_CMD
 XL_SSH_CMD = ("ssh -l root -oGlobalKnownHostsFile=%s"
               " -oUserKnownHostsFile=/dev/null"
               " -oCheckHostIp=no -oStrictHostKeyChecking=yes"
-              " -oHostKeyAlias=%%s") % SSH_KNOWN_HOSTS_FILE
+              " -oHostKeyAlias=%%s") % pathutils.SSH_KNOWN_HOSTS_FILE
 
 KVM_PATH = _autoconf.KVM_PATH
 KVM_KERNEL = _autoconf.KVM_KERNEL
