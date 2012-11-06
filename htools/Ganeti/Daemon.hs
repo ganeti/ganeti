@@ -48,7 +48,6 @@ import qualified Data.Version
 import Data.Word
 import GHC.IO.Handle (hDuplicateTo)
 import qualified Network.Socket as Socket
-import Prelude hiding (catch)
 import System.Console.GetOpt
 import System.Exit
 import System.Environment
@@ -218,7 +217,8 @@ formatIOError msg err = msg ++ ": " ++  show err
 -- 'Bad' value.
 writePidFile :: FilePath -> IO (Result Fd)
 writePidFile path = do
-  catch (fmap Ok $ _writePidFile path)
+  Control.Exception.catch
+    (fmap Ok $ _writePidFile path)
     (return . Bad . formatIOError "Failure during writing of the pid file")
 
 -- | Sets up a daemon's environment.
@@ -282,8 +282,9 @@ parseAddress opts defport = do
   def_family <- Ssconf.getPrimaryIPFamily Nothing
   ainfo <- case optBindAddress opts of
              Nothing -> return (def_family >>= defaultBindAddr port)
-             Just saddr -> catch (resolveAddr port saddr)
-                           (annotateIOError $ "Invalid address " ++ saddr)
+             Just saddr -> Control.Exception.catch
+                             (resolveAddr port saddr)
+                             (annotateIOError $ "Invalid address " ++ saddr)
   return ainfo
 
 -- | Run an I/O action as a daemon.

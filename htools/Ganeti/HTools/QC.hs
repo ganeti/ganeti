@@ -1363,7 +1363,8 @@ prop_ClusterAllocBalance =
   forAll (choose (3, 5)) $ \count ->
   not (Node.offline node) && not (Node.failN1 node) ==>
   let nl = makeSmallCluster node count
-      (hnode, nl') = IntMap.deleteFindMax nl
+      hnode = snd $ IntMap.findMax nl
+      nl' = IntMap.deleteMax nl
       il = Container.empty
       allocnodes = Cluster.genAllocNodes defGroupList nl' 2 True
       i_templ = createInstance Types.unitMem Types.unitDsk Types.unitCpu

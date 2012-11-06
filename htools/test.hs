@@ -102,9 +102,8 @@ runTests name opts tests max_count = do
                    printf "Test %s failed (seed was %s, test size %d): %s\n"
                           desc (show u) size o
                GaveUp { numTests = passed } ->
-                   printf "Test %s incomplete: gave up with only %d\
-                          \ passes after discarding %d tests\n"
-                          desc passed (maxDiscard opts)
+                   printf "Test %s incomplete: gave up with only %d passes\n"
+                          desc passed
                _ -> return ()
         ) results
   return results
@@ -149,7 +148,6 @@ transformTestOpts args opts = do
   return args { chatty = optVerbose opts > 1
               , replay = r
               , maxSuccess = fromMaybe (maxSuccess args) (optTestCount opts)
-              , maxDiscard = fromMaybe (maxDiscard args) (optTestCount opts)
               }
 
 main :: IO ()
