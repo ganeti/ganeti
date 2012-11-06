@@ -419,7 +419,8 @@ class HttpServerRequestExecutor(object):
           responder(compat.partial(self._ReadRequest, sock, self.READ_TIMEOUT))
         if response_msg:
           # HttpMessage.start_line can be of different types
-          # pylint: disable=E1103
+          # Instance of 'HttpClientToServerStartLine' has no 'code' member
+          # pylint: disable=E1103,E1101
           logging.info("%s:%s %s %s", client_addr[0], client_addr[1],
                        request_msg.start_line, response_msg.start_line.code)
           self._SendResponse(sock, request_msg, response_msg,
