@@ -28,9 +28,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Test.Ganeti.Luxi (testLuxi) where
 
+import Test.HUnit
 import Test.QuickCheck
 import Test.QuickCheck.Monadic (monadicIO, run, stop)
 
+import Data.List
 import Control.Applicative
 import Control.Concurrent (forkIO)
 import Control.Exception (bracket)
@@ -134,7 +136,24 @@ prop_ClientServer dnschars = monadicIO $ do
       (`luxiClientPong` msgs)
   stop $ replies ==? msgs
 
+-- | Check that Python and Haskell define the same Luxi requests list.
+case_AllDefined :: Assertion
+case_AllDefined = do
+  py_stdout <- runPython "from ganeti import luxi\n\
+                         \print '\\n'.join(luxi.REQ_ALL)" "" >>=
+               checkPythonResult
+  let py_ops = sort $ lines py_stdout
+      hs_ops = Luxi.allLuxiCalls
+      extra_py = py_ops \\ hs_ops
+      extra_hs = hs_ops \\ py_ops
+  assertBool ("Luxi calls missing from Haskell code:\n" ++
+              unlines extra_py) (null extra_py)
+  assertBool ("Extra Luxi calls in the Haskell code code:\n" ++
+              unlines extra_hs) (null extra_hs)
+
+
 testSuite "Luxi"
           [ 'prop_CallEncoding
           , 'prop_ClientServer
+          , 'case_AllDefined
           ]

@@ -48,6 +48,7 @@ module Ganeti.Luxi
   , recvMsg
   , recvMsgExt
   , sendMsg
+  , allLuxiCalls
   ) where
 
 import Control.Exception (catch)
@@ -182,6 +183,9 @@ $(genLuxiOp "LuxiOp"
   ])
 
 $(makeJSONInstance ''LuxiReq)
+
+-- | List of all defined Luxi calls.
+$(genAllConstr (drop 3) ''LuxiReq "allLuxiCalls")
 
 -- | The serialisation of LuxiOps into strings in messages.
 $(genStrOfOp ''LuxiOp "strOfOp")

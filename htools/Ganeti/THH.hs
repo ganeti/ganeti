@@ -33,6 +33,7 @@ module Ganeti.THH ( declareSADT
                   , declareIADT
                   , makeJSONInstance
                   , genOpID
+                  , genAllConstr
                   , genAllOpIDs
                   , genOpCode
                   , genStrOfOp
