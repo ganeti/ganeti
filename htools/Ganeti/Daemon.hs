@@ -41,7 +41,7 @@ module Ganeti.Daemon
   , parseArgs
   , parseAddress
   , cleanupSocket
-  , writePidFile
+  , describeError
   , genericMain
   ) where
 
@@ -55,7 +55,7 @@ import System.Console.GetOpt
 import System.Exit
 import System.Environment
 import System.IO
-import System.IO.Error (isDoesNotExistError)
+import System.IO.Error (isDoesNotExistError, modifyIOError, annotateIOError)
 import System.Posix.Directory
 import System.Posix.Files
 import System.Posix.IO
@@ -206,25 +206,13 @@ pidFileMode :: FileMode
 pidFileMode = unionFileModes ownerReadMode ownerWriteMode
 
 -- | Writes a PID file and locks it.
-_writePidFile :: FilePath -> IO Fd
-_writePidFile path = do
+writePidFile :: FilePath -> IO Fd
+writePidFile path = do
   fd <- createFile path pidFileMode
   setLock fd (WriteLock, AbsoluteSeek, 0, 0)
   my_pid <- getProcessID
   _ <- fdWrite fd (show my_pid ++ "\n")
   return fd
-
--- | Helper to format an IOError.
-formatIOError :: String -> IOError -> String
-formatIOError msg err = msg ++ ": " ++  show err
-
--- | Wrapper over '_writePidFile' that transforms IO exceptions into a
--- 'Bad' value.
-writePidFile :: FilePath -> IO (Result Fd)
-writePidFile path =
-  Control.Exception.catch
-    (fmap Ok $ _writePidFile path)
-    (return . Bad . formatIOError "Failure during writing of the pid file")
 
 -- | Helper function to ensure a socket doesn't exist. Should only be
 -- called once we have locked the pid file successfully.
@@ -298,7 +286,13 @@ parseAddress opts defport = do
                     (resolveAddr port saddr)
                     (ioErrorToResult $ "Invalid address " ++ saddr)
 
--- | Run an I/O action as a daemon.
+-- | Run an I\/O action that might throw an I\/O error, under a
+-- handler that will simply annotate and re-throw the exception.
+describeError :: String -> Maybe Handle -> Maybe FilePath -> IO a -> IO a
+describeError descr hndl fpath =
+  modifyIOError (\e -> annotateIOError e descr hndl fpath)
+
+-- | Run an I\/O action as a daemon.
 --
 -- WARNING: this only works in single-threaded mode (either using the
 -- single-threaded runtime, or using the multi-threaded one but with
@@ -376,9 +370,10 @@ fullPrep daemon opts syslog check_result prep_fn = do
   let logfile = if optDaemonize opts
                   then Nothing
                   else Just $ daemonLogFile daemon
+      pidfile = daemonPidFile daemon
   setupLogging logfile (daemonName daemon) (optDebug opts) True False syslog
-  pid_fd <- writePidFile (daemonPidFile daemon)
-  _ <- exitIfBad "Cannot write PID file; already locked? Error" pid_fd
+  _ <- describeError "writing PID file; already locked?"
+         Nothing (Just pidfile) $ writePidFile pidfile
   logNotice "starting"
   prep_fn opts check_result
 
