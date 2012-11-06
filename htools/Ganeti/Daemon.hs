@@ -371,10 +371,11 @@ fullPrep daemon opts syslog check_result prep_fn = do
                   then Nothing
                   else Just $ daemonLogFile daemon
       pidfile = daemonPidFile daemon
-  setupLogging logfile (daemonName daemon) (optDebug opts) True False syslog
+      dname = daemonName daemon
+  setupLogging logfile dname (optDebug opts) True False syslog
   _ <- describeError "writing PID file; already locked?"
          Nothing (Just pidfile) $ writePidFile pidfile
-  logNotice "starting"
+  logNotice $ dname ++ " daemon startup"
   prep_fn opts check_result
 
 -- | Inner daemon function.
@@ -404,6 +405,7 @@ handlePrepErr fd err = do
     -- better (safer) than trying to convert this into a full handle
     Just fd' -> fdWrite fd' msg >> return ()
     Nothing  -> hPutStrLn stderr (daemonStartupErr msg)
+  logError msg
   exitWith $ ExitFailure 1
 
 -- | Close a file descriptor.
