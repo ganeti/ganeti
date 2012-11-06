@@ -32,6 +32,7 @@ from ganeti import utils
 from ganeti.hypervisor import hv_base
 from ganeti import netutils
 from ganeti import objects
+from ganeti import ssconf
 
 
 XEND_CONFIG_FILE = "/etc/xen/xend-config.sxp"
@@ -532,7 +533,8 @@ class XenHypervisor(hv_base.BaseHypervisor):
 
     port = instance.hvparams[constants.HV_MIGRATION_PORT]
 
-    if not netutils.TcpPing(target, port, live_port_needed=True):
+    if (constants.XEN_CMD == constants.XEN_CMD_XM and
+        not netutils.TcpPing(target, port, live_port_needed=True)):
       raise errors.HypervisorError("Remote host %s not listening on port"
                                    " %s, cannot migrate" % (target, port))
 
@@ -545,6 +547,8 @@ class XenHypervisor(hv_base.BaseHypervisor):
       if live:
         args.append("-l")
     elif constants.XEN_CMD == constants.XEN_CMD_XL:
+      cluster_name = ssconf.SimpleStore().GetClusterName()
+      args.extend(["-s", constants.XL_SSH_CMD % cluster_name])
       args.extend(["-C", self._ConfigFileName(instance.name)])
     else:
       raise errors.HypervisorError("Unsupported xen command: %s" %
