@@ -18,7 +18,8 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 # 02110-1301, USA.
 
-INSTANCE="$1"
+XEN_CMD="$1"
+INSTANCE="$2"
 
 unpause() {
   ispaused=$(xm list -l "$INSTANCE" 2>/dev/null |
@@ -35,4 +36,4 @@ unpause() {
 }
 
 unpause &
-exec xm console "$INSTANCE"
+exec $XEN_CMD console "$INSTANCE"

@@ -40,7 +40,6 @@ import Control.Exception
 import Control.Monad (liftM)
 import Data.Char (isSpace)
 import Data.Maybe (fromMaybe)
-import Prelude hiding (catch)
 import qualified Network.Socket as Socket
 import System.FilePath ((</>))
 import System.IO.Error (isDoesNotExistError)
@@ -96,7 +95,8 @@ catchIOErrors :: Maybe a         -- ^ Optional default
               -> IO a            -- ^ Action to run
               -> IO (Result a)
 catchIOErrors def action =
-  catch (do
+  Control.Exception.catch
+        (do
           result <- action
           return (Ok result)
         ) (\err -> let bad_result = Bad (show err)
