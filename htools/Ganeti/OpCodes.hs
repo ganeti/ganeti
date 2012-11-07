@@ -27,6 +27,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Ganeti.OpCodes
   ( OpCode(..)
+  , TagObject(..)
   , ReplaceDisksMode(..)
   , DiskIndex
   , mkDiskIndex
@@ -41,6 +42,15 @@ import qualified Ganeti.Constants as C
 import Ganeti.THH
 
 import Ganeti.JSON
+
+-- | Data type representing what items do the tag operations apply to.
+$(declareSADT "TagObject"
+  [ ("TagInstance", 'C.tagInstance)
+  , ("TagNode",     'C.tagNode)
+  , ("TagGroup",    'C.tagNodegroup)
+  , ("TagCluster",  'C.tagCluster)
+  ])
+$(makeJSONInstance ''TagObject)
 
 -- | Replace disks type.
 $(declareSADT "ReplaceDisksMode"

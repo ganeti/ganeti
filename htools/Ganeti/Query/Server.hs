@@ -50,6 +50,7 @@ import qualified Ganeti.Config as Config
 import Ganeti.BasicTypes
 import Ganeti.Logging
 import Ganeti.Luxi
+import Ganeti.OpCodes (TagObject(..))
 import qualified Ganeti.Query.Language as Qlang
 import Ganeti.Query.Query
 import Ganeti.Query.Filter (makeSimpleFilter)

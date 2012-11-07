@@ -50,8 +50,6 @@ import qualified Ganeti.Luxi as Luxi
 
 -- * Luxi tests
 
-$(genArbitrary ''Luxi.TagObject)
-
 $(genArbitrary ''Luxi.LuxiReq)
 
 instance Arbitrary Luxi.LuxiOp where

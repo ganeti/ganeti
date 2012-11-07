@@ -31,7 +31,6 @@ module Ganeti.Luxi
   , Client
   , JobId
   , RecvResult(..)
-  , TagObject(..)
   , strOfOp
   , getClient
   , getServer
@@ -73,7 +72,7 @@ import Ganeti.Constants
 import Ganeti.Errors
 import Ganeti.JSON
 import Ganeti.Jobs (JobStatus)
-import Ganeti.OpCodes (OpCode)
+import Ganeti.OpCodes
 import Ganeti.Utils
 import qualified Ganeti.Query.Language as Qlang
 import Ganeti.THH
@@ -98,15 +97,6 @@ data RecvResult = RecvConnClosed    -- ^ Connection closed
 
 -- | The Ganeti job type.
 type JobId = Int
-
--- | Data type representing what items do the tag operations apply to.
-$(declareSADT "TagObject"
-  [ ("TagInstance", 'tagInstance)
-  , ("TagNode",     'tagNode)
-  , ("TagGroup",    'tagNodegroup)
-  , ("TagCluster",  'tagCluster)
-  ])
-$(makeJSONInstance ''TagObject)
 
 -- | Currently supported Luxi operations and JSON serialization.
 $(genLuxiOp "LuxiOp"

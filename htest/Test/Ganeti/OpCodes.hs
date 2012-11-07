@@ -48,6 +48,8 @@ import qualified Ganeti.OpCodes as OpCodes
 
 -- * Arbitrary instances
 
+$(genArbitrary ''OpCodes.TagObject)
+
 $(genArbitrary ''OpCodes.ReplaceDisksMode)
 
 instance Arbitrary OpCodes.DiskIndex where
