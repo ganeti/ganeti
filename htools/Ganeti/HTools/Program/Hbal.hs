@@ -41,7 +41,7 @@ import System.IO
 import System.Posix.Process
 import System.Posix.Signals
 
-import Text.Printf (printf, hPrintf)
+import Text.Printf (printf)
 
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Cluster as Cluster
@@ -194,21 +194,19 @@ checkJobsStatus = all (== JOB_STATUS_SUCCESS)
 
 -- | Wrapper over execJobSet checking for early termination via an IORef.
 execCancelWrapper :: String -> Node.List
-                  -> Instance.List -> IORef Int -> [JobSet] -> IO Bool
-execCancelWrapper _      _  _  _    [] = return True
+                  -> Instance.List -> IORef Int -> [JobSet] -> IO (Result ())
+execCancelWrapper _      _  _  _    [] = return $ Ok ()
 execCancelWrapper master nl il cref alljss = do
   cancel <- readIORef cref
   if cancel > 0
-    then do
-      hPrintf stderr "Exiting early due to user request, %d\
-                     \ jobset(s) remaining." (length alljss)::IO ()
-      return True
+    then return . Bad $ "Exiting early due to user request, " ++
+                        show (length alljss) ++ " jobset(s) remaining."
     else execJobSet master nl il cref alljss
 
 -- | Execute an entire jobset.
 execJobSet :: String -> Node.List
-           -> Instance.List -> IORef Int -> [JobSet] -> IO Bool
-execJobSet _      _  _  _    [] = return True
+           -> Instance.List -> IORef Int -> [JobSet] -> IO (Result ())
+execJobSet _      _  _  _    [] = return $ Ok ()
 execJobSet master nl il cref (js:jss) = do
   -- map from jobset (htools list of positions) to [[opcodes]]
   let jobs = map (\(_, idx, move, _) ->
@@ -227,16 +225,12 @@ execJobSet master nl il cref (js:jss) = do
                 waitForJobs client x
          )
   case jrs of
-    Bad x -> do
-      hPutStrLn stderr x
-      return False
+    Bad x -> return $ Bad x
     Ok x -> if checkJobsStatus x
               then execCancelWrapper master nl il cref jss
-              else do
-                hPutStrLn stderr $ "Not all jobs completed successfully: " ++
-                          show x
-                hPutStrLn stderr "Aborting."
-                return False
+              else return . Bad . unlines $ [
+                "Not all jobs completed successfully: " ++ show x,
+                "Aborting."]
 
 -- | Executes the jobs, if possible and desired.
 maybeExecJobs :: Options
@@ -244,15 +238,14 @@ maybeExecJobs :: Options
               -> Node.List
               -> Instance.List
               -> [JobSet]
-              -> IO Bool
+              -> IO (Result ())
 maybeExecJobs opts ord_plc fin_nl il cmd_jobs =
   if optExecJobs opts && not (null ord_plc)
     then (case optLuxi opts of
-            Nothing -> do
-              hPutStrLn stderr "Execution of commands possible only on LUXI"
-              return False
+            Nothing -> return $
+                       Bad "Execution of commands possible only on LUXI"
             Just master -> execWithCancel master fin_nl il cmd_jobs)
-    else return True
+    else return $ Ok ()
 
 -- | Signal handler for graceful termination.
 handleSigInt :: IORef Int -> IO ()
@@ -271,7 +264,8 @@ handleSigTerm cref = do
 
 -- | Prepares to run a set of jobsets with handling of signals and early
 -- termination.
-execWithCancel :: String -> Node.List -> Instance.List -> [JobSet] -> IO Bool
+execWithCancel :: String -> Node.List -> Instance.List -> [JobSet]
+               -> IO (Result ())
 execWithCancel master fin_nl il cmd_jobs = do
   cref <- newIORef 0
   mapM_ (\(hnd, sig) -> installHandler sig (Catch (hnd cref)) Nothing)
@@ -438,5 +432,4 @@ main opts args = do
 
   when (verbose > 3) $ printStats nl fin_nl
 
-  eval <- maybeExecJobs opts ord_plc fin_nl il cmd_jobs
-  unless eval (exitWith (ExitFailure 1))
+  exitIfBad "hbal" =<< maybeExecJobs opts ord_plc fin_nl il cmd_jobs
