@@ -134,6 +134,17 @@ def _GetPathFromUri(uri):
     return None
 
 
+def _FormatHeaders(headers):
+  """Formats HTTP headers.
+
+  @type headers: sequence of strings
+  @rtype: string
+
+  """
+  assert compat.all(": " in header for header in headers)
+  return "\n".join(headers)
+
+
 class FakeCurl:
   """Fake cURL object.
 
@@ -167,7 +178,7 @@ class FakeCurl:
     writefn = self._opts[pycurl.WRITEFUNCTION]
 
     if pycurl.HTTPHEADER in self._opts:
-      baseheaders = "\n".join(self._opts[pycurl.HTTPHEADER])
+      baseheaders = _FormatHeaders(self._opts[pycurl.HTTPHEADER])
     else:
       baseheaders = ""
 
