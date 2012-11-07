@@ -685,7 +685,7 @@ dist_tools_SCRIPTS = \
 	$(python_scripts) \
 	tools/kvm-console-wrapper \
 	tools/master-ip-setup \
-	tools/xm-console-wrapper
+	tools/xen-console-wrapper
 
 nodist_tools_SCRIPTS = \
 	tools/vcluster-setup

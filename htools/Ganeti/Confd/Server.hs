@@ -37,7 +37,6 @@ import Data.List
 import qualified Data.Map as M
 import Data.Maybe (fromMaybe)
 import qualified Network.Socket as S
-import Prelude hiding (catch)
 import System.Posix.Files
 import System.Posix.Types
 import System.Time
@@ -294,7 +293,8 @@ updateConfig path r = do
 -- | Wrapper over 'updateConfig' that handles IO errors.
 safeUpdateConfig :: FilePath -> FStat -> CRef -> IO (FStat, ConfigReload)
 safeUpdateConfig path oldfstat cref =
-  catch (do
+  Control.Exception.catch
+        (do
           nt <- needsReload oldfstat path
           case nt of
             Nothing -> return (oldfstat, ConfigToDate)
@@ -418,7 +418,8 @@ onReloadInner inotiaction path cref
 -- it will return False.
 addNotifier :: INotify -> FilePath -> CRef -> MVar ServerState -> IO Bool
 addNotifier inotify path cref mstate =
-  catch (addWatch inotify [CloseWrite] path
+  Control.Exception.catch
+        (addWatch inotify [CloseWrite] path
                     (onInotify inotify path cref mstate) >> return True)
         (\e -> const (return False) (e::IOError))
 

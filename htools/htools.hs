@@ -28,7 +28,6 @@ module Main (main) where
 import Control.Exception
 import Control.Monad (guard)
 import Data.Char (toLower)
-import Prelude hiding (catch)
 import System.Environment
 import System.IO
 import System.IO.Error (isDoesNotExistError)

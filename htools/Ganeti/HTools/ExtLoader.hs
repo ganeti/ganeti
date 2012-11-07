@@ -36,7 +36,6 @@ module Ganeti.HTools.ExtLoader
 import Control.Monad
 import Control.Exception
 import Data.Maybe (isJust, fromJust)
-import Prelude hiding (catch)
 import System.FilePath
 import System.IO
 import Text.Printf (hPrintf)
