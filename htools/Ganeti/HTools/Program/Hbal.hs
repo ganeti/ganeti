@@ -255,15 +255,15 @@ maybeExecJobs opts ord_plc fin_nl il cmd_jobs =
     else return True
 
 -- | Signal handler for graceful termination.
-hangleSigInt :: IORef Int -> IO ()
-hangleSigInt cref = do
+handleSigInt :: IORef Int -> IO ()
+handleSigInt cref = do
   writeIORef cref 1
   putStrLn ("Cancel request registered, will exit at" ++
             " the end of the current job set...")
 
 -- | Signal handler for immediate termination.
-hangleSigTerm :: IORef Int -> IO ()
-hangleSigTerm cref = do
+handleSigTerm :: IORef Int -> IO ()
+handleSigTerm cref = do
   -- update the cref to 2, just for consistency
   writeIORef cref 2
   putStrLn "Double cancel request, exiting now..."
@@ -274,7 +274,7 @@ runJobSet :: String -> Node.List -> Instance.List -> [JobSet] -> IO Bool
 runJobSet master fin_nl il cmd_jobs = do
   cref <- newIORef 0
   mapM_ (\(hnd, sig) -> installHandler sig (Catch (hnd cref)) Nothing)
-    [(hangleSigTerm, softwareTermination), (hangleSigInt, keyboardSignal)]
+    [(handleSigTerm, softwareTermination), (handleSigInt, keyboardSignal)]
   execWrapper master fin_nl il cref cmd_jobs
 
 -- | Select the target node group.
