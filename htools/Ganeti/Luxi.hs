@@ -58,7 +58,6 @@ import qualified Data.ByteString as B
 import qualified Data.ByteString.UTF8 as UTF8
 import Data.Word (Word8)
 import Control.Monad
-import Prelude hiding (catch)
 import Text.JSON (encodeStrict, decodeStrict)
 import qualified Text.JSON as J
 import Text.JSON.Pretty (pp_value)
@@ -291,7 +290,7 @@ recvMsg s = do
 -- | Extended wrapper over recvMsg.
 recvMsgExt :: Client -> IO RecvResult
 recvMsgExt s =
-  catch (liftM RecvOk (recvMsg s)) $ \e ->
+  Control.Exception.catch (liftM RecvOk (recvMsg s)) $ \e ->
     return $ if isEOFError e
                then RecvConnClosed
                else RecvError (show e)
