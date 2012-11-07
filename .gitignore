@@ -47,7 +47,6 @@
 
 # devel
 /devel/clean-cluster
-/devel/upload
 
 # doc
 /doc/api/

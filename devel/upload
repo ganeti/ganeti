@@ -32,9 +32,7 @@ usage() {
   exit $1
 }
 
-PREFIX='@PREFIX@'
-SYSCONFDIR='@SYSCONFDIR@'
-PKGLIBDIR='@PKGLIBDIR@'
+declare -r SED="sed -f autotools/replace_vars.sed"
 
 NO_RESTART=
 NO_CRON=
@@ -89,6 +87,12 @@ umask 0022
 
 # install ganeti as a real tree
 make $make_args install DESTDIR="$TXD"
+
+# at this point, make has been finished, so the configuration is
+# fixed; we can read the prefix vars/etc.
+PREFIX="$(echo @PREFIX@ | $SED)"
+SYSCONFDIR="$(echo @SYSCONFDIR@ | $SED)"
+PKGLIBDIR="$(echo @PKGLIBDIR@ | $SED)"
 
 # copy additional needed files
 [ -f doc/examples/ganeti.initd ] && \

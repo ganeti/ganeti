@@ -157,7 +157,6 @@ CLEANFILES = \
 	$(SHELL_ENV_INIT) \
 	daemons/daemon-util \
 	daemons/ganeti-cleaner \
-	devel/upload \
 	$(BUILT_EXAMPLES) \
 	doc/examples/bash_completion \
 	doc/examples/bash_completion-debug \
@@ -559,7 +558,6 @@ docpng = $(patsubst %.dot,%.png,$(docdot))
 # Things to build but not to install (add it to EXTRA_DIST if it should be
 # distributed)
 noinst_DATA = \
-	devel/upload \
 	doc/html \
 	$(BUILT_EXAMPLES) \
 	doc/examples/bash_completion \
@@ -732,7 +730,7 @@ EXTRA_DIST = \
 	daemons/daemon-util.in \
 	daemons/ganeti-cleaner.in \
 	$(pkglib_python_scripts) \
-	devel/upload.in \
+	devel/upload \
 	tools/kvm-ifup.in \
 	tools/vcluster-setup.in \
 	$(docdot) \
@@ -1069,10 +1067,6 @@ test/bash_completion.bash: doc/examples/bash_completion-debug
 tools/kvm-ifup: tools/kvm-ifup.in $(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@
 	chmod +x $@
-
-devel/upload: devel/upload.in $(REPLACE_VARS_SED)
-	sed -f $(REPLACE_VARS_SED) < $< > $@
-	chmod u+x $@
 
 tools/vcluster-setup: tools/vcluster-setup.in $(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@
