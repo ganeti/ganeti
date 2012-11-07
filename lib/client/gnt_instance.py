@@ -1323,12 +1323,11 @@ def _ConvertNicDiskModifications(mods):
         else:
           action = constants.DDM_MODIFY
 
+      elif add is _MISSING and remove is _MISSING:
+        action = constants.DDM_MODIFY
       else:
-        if add is _MISSING and remove is _MISSING:
-          action = constants.DDM_MODIFY
-        else:
-          raise errors.OpPrereqError("Cannot modify and add/remove at the"
-                                     " same time", errors.ECODE_INVAL)
+        raise errors.OpPrereqError("Cannot modify and add/remove at the"
+                                   " same time", errors.ECODE_INVAL)
 
       assert not (constants.DDMS_VALUES_WITH_MODIFY & set(params.keys()))
 
