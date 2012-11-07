@@ -187,7 +187,7 @@ class FakeCurl:
         "%s %s" % (http.auth.HTTP_BASIC_AUTH, base64.b64encode(userpwd))
 
     path = _GetPathFromUri(url)
-    (code, resp_body) = \
+    (code, _, resp_body) = \
       self._handler.FetchResponse(path, method, headers, request_body)
 
     self._info[pycurl.RESPONSE_CODE] = code
@@ -223,7 +223,7 @@ class _RapiMock:
     @param request_body: Request body
     @type headers: mimetools.Message
     @param headers: Request headers
-    @return: Tuple containing status code and response body
+    @return: Tuple containing status code, response headers and response body
 
     """
     req_msg = http.HttpMessage()
@@ -235,7 +235,7 @@ class _RapiMock:
     (_, _, _, resp_msg) = \
       http.server.HttpResponder(self.handler)(lambda: (req_msg, None))
 
-    return (resp_msg.start_line.code, resp_msg.body)
+    return (resp_msg.start_line.code, resp_msg.headers, resp_msg.body)
 
 
 class _TestLuxiTransport:
