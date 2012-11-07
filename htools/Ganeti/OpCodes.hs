@@ -79,8 +79,8 @@ instance JSON DiskIndex where
 
 -- | OpCode representation.
 --
--- We only implement a subset of Ganeti opcodes, but only what we
--- actually use in the htools codebase.
+-- We only implement a subset of Ganeti opcodes: those which are actually used
+-- in the htools codebase.
 $(genOpCode "OpCode"
   [ ("OpTestDelay",
      [ simpleField "duration"  [t| Double   |]
@@ -105,6 +105,16 @@ $(genOpCode "OpCode"
      , simpleField "cleanup"        [t| Bool   |]
      , defaultField [| False |] $ simpleField "allow_failover" [t| Bool |]
      , optionalField $ simpleField "target_node" [t| String |]
+     ])
+  , ("OpTagsSet",
+     [ simpleField "kind" [t| TagObject |]
+     , simpleField "tags" [t| [String]  |]
+     , optionalNullSerField $ simpleField "name" [t| String |]
+     ])
+  , ("OpTagsDel",
+     [ simpleField "kind" [t| TagObject |]
+     , simpleField "tags" [t| [String]  |]
+     , optionalNullSerField $ simpleField "name" [t| String |]
      ])
   ])
 

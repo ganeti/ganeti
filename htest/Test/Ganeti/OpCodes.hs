@@ -71,6 +71,10 @@ instance Arbitrary OpCodes.OpCode where
       "OP_INSTANCE_MIGRATE" ->
         OpCodes.OpInstanceMigrate <$> getFQDN <*> arbitrary <*>
           arbitrary <*> arbitrary <*> getMaybe getFQDN
+      "OP_TAGS_SET" ->
+        OpCodes.OpTagsSet <$> arbitrary <*> genTags <*> getMaybe getFQDN
+      "OP_TAGS_DEL" ->
+        OpCodes.OpTagsSet <$> arbitrary <*> genTags <*> getMaybe getFQDN
       _ -> fail "Wrong opcode"
 
 -- * Test cases
