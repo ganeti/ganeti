@@ -25,7 +25,6 @@
 
 import logging
 import re
-import mimetools
 import base64
 import pycurl
 from cStringIO import StringIO
@@ -172,7 +171,7 @@ class FakeCurl:
     else:
       baseheaders = ""
 
-    headers = mimetools.Message(StringIO(baseheaders), 0)
+    headers = http.ParseHeaders(StringIO(baseheaders))
 
     if request_body:
       headers[http.HTTP_CONTENT_LENGTH] = str(len(request_body))
