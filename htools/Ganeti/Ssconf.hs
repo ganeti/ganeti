@@ -83,11 +83,11 @@ $(declareSADT "SSKey"
   ])
 
 -- | Convert a ssconf key into a (full) file path.
-keyToFilename :: Maybe FilePath     -- ^ Optional config path override
-              -> SSKey              -- ^ ssconf key
-              -> FilePath
-keyToFilename optpath key = fromMaybe Path.dataDir optpath </>
-                            sSFilePrefix ++ sSKeyToRaw key
+keyToFilename :: FilePath     -- ^ Config path root
+              -> SSKey        -- ^ Ssconf key
+              -> FilePath     -- ^ Full file name
+keyToFilename cfgpath key = do
+  cfgpath </> sSFilePrefix ++ sSKeyToRaw key
 
 -- | Runs an IO action while transforming any error into 'Bad'
 -- values. It also accepts an optional value to use in case the error
@@ -111,7 +111,8 @@ readSSConfFile :: Maybe FilePath            -- ^ Optional config path override
                -> SSKey                     -- ^ Desired ssconf key
                -> IO (Result String)
 readSSConfFile optpath def key = do
-  result <- catchIOErrors def . readFile . keyToFilename optpath $ key
+  result <- catchIOErrors def . readFile .
+            keyToFilename (fromMaybe Path.dataDir optpath) $ key
   return (liftM (take maxFileSize) result)
 
 -- | Strip space characthers (including newline). As this is

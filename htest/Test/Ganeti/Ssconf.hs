@@ -43,7 +43,7 @@ $(genArbitrary ''Ssconf.SSKey)
 prop_filename :: Ssconf.SSKey -> Property
 prop_filename key =
   printTestCase "Key doesn't start with correct prefix" $
-    Ssconf.sSFilePrefix `isPrefixOf` Ssconf.keyToFilename (Just "") key
+    Ssconf.sSFilePrefix `isPrefixOf` Ssconf.keyToFilename "" key
 
 testSuite "Ssconf"
   [ 'prop_filename
