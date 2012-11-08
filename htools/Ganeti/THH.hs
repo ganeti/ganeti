@@ -513,15 +513,17 @@ genOpCode :: String                -- ^ Type name to use
           -> [(String, [Field])]   -- ^ Constructor name and parameters
           -> Q [Dec]
 genOpCode name cons = do
+  let tname = mkName name
   decl_d <- mapM (\(cname, fields) -> do
                     -- we only need the type of the field, without Q
                     fields' <- mapM actualFieldType fields
                     let fields'' = zip (repeat NotStrict) fields'
                     return $ NormalC (mkName cname) fields'')
             cons
-  let declD = DataD [] (mkName name) [] decl_d [''Show, ''Read, ''Eq]
+  let declD = DataD [] tname [] decl_d [''Show, ''Read, ''Eq]
 
-  (savesig, savefn) <- genSaveOpCode cons
+  (savesig, savefn) <- genSaveOpCode tname "saveOpCode" cons
+                         (uncurry saveConstructor)
   (loadsig, loadfn) <- genLoadOpCode cons
   return [declD, loadsig, loadfn, savesig, savefn]
 
@@ -551,11 +553,15 @@ saveConstructor sname fields = do
 --
 -- This builds a per-constructor match clause that contains the
 -- respective constructor-serialisation code.
-genSaveOpCode :: [(String, [Field])] -> Q (Dec, Dec)
-genSaveOpCode opdefs = do
-  cclauses <- mapM (uncurry saveConstructor) opdefs
-  let fname = mkName "saveOpCode"
-  sigt <- [t| $(conT (mkName "OpCode")) -> JSON.JSValue |]
+genSaveOpCode :: Name                            -- ^ Object ype
+              -> String                          -- ^ Function name
+              -> [(String, [Field])]             -- ^ Object definition
+              -> ((String, [Field]) -> Q Clause) -- ^ Constructor save fn
+              -> Q (Dec, Dec)
+genSaveOpCode tname sname opdefs fn = do
+  cclauses <- mapM fn opdefs
+  let fname = mkName sname
+      sigt = AppT  (AppT ArrowT (ConT tname)) (ConT ''JSON.JSValue)
   return $ (SigD fname sigt, FunD fname cclauses)
 
 -- | Generates load code for a single constructor of the opcode data type.
