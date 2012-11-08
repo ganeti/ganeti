@@ -1007,7 +1007,7 @@ class HttpMessageReader(object):
     """
     # Parse headers
     self.header_buffer.seek(0, 0)
-    self.msg.headers = ParseHeaders(self.header_buffer, 0)
+    self.msg.headers = ParseHeaders(self.header_buffer)
 
     self.peer_will_close = self._WillPeerCloseConnection()
 
