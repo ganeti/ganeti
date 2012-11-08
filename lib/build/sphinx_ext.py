@@ -62,7 +62,7 @@ COMMON_PARAM_NAMES = _GetCommonParamNames()
 
 #: Namespace for evaluating expressions
 EVAL_NS = dict(compat=compat, constants=constants, utils=utils, errors=errors,
-               rlib2=rapi.rlib2, luxi=luxi)
+               rlib2=rapi.rlib2, luxi=luxi, rapi=rapi)
 
 # Constants documentation for man pages
 CV_ECODES_DOC = "ecodes"
