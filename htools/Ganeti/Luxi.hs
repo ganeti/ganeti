@@ -101,73 +101,73 @@ type JobId = Int
 -- | Currently supported Luxi operations and JSON serialization.
 $(genLuxiOp "LuxiOp"
   [ (luxiReqQuery,
-    [ ("what",    [t| Qlang.ItemType |])
-    , ("fields",  [t| [String]  |])
-    , ("qfilter", [t| Qlang.Filter Qlang.FilterField |])
+    [ simpleField "what"    [t| Qlang.ItemType |]
+    , simpleField "fields"  [t| [String]  |]
+    , simpleField "qfilter" [t| Qlang.Filter Qlang.FilterField |]
     ])
   , (luxiReqQueryFields,
-    [ ("what",    [t| Qlang.ItemType |])
-    , ("fields",  [t| [String]  |])
+    [ simpleField "what"    [t| Qlang.ItemType |]
+    , simpleField "fields"  [t| [String]  |]
     ])
   , (luxiReqQueryNodes,
-     [ ("names",  [t| [String] |])
-     , ("fields", [t| [String] |])
-     , ("lock",   [t| Bool     |])
+     [ simpleField "names"  [t| [String] |]
+     , simpleField "fields" [t| [String] |]
+     , simpleField "lock"   [t| Bool     |]
      ])
   , (luxiReqQueryGroups,
-     [ ("names",  [t| [String] |])
-     , ("fields", [t| [String] |])
-     , ("lock",   [t| Bool     |])
+     [ simpleField "names"  [t| [String] |]
+     , simpleField "fields" [t| [String] |]
+     , simpleField "lock"   [t| Bool     |]
      ])
   , (luxiReqQueryInstances,
-     [ ("names",  [t| [String] |])
-     , ("fields", [t| [String] |])
-     , ("lock",   [t| Bool     |])
+     [ simpleField "names"  [t| [String] |]
+     , simpleField "fields" [t| [String] |]
+     , simpleField "lock"   [t| Bool     |]
      ])
   , (luxiReqQueryJobs,
-     [ ("ids",    [t| [Int]    |])
-     , ("fields", [t| [String] |])
+     [ simpleField "ids"    [t| [Int]    |]
+     , simpleField "fields" [t| [String] |]
      ])
   , (luxiReqQueryExports,
-     [ ("nodes", [t| [String] |])
-     , ("lock",  [t| Bool     |])
+     [ simpleField "nodes" [t| [String] |]
+     , simpleField "lock"  [t| Bool     |]
      ])
   , (luxiReqQueryConfigValues,
-     [ ("fields", [t| [String] |]) ]
+     [ simpleField "fields" [t| [String] |] ]
     )
   , (luxiReqQueryClusterInfo, [])
   , (luxiReqQueryTags,
-     [ ("kind", [t| TagObject |])
-     , ("name", [t| String |])
+     [ simpleField "kind" [t| TagObject |]
+     , simpleField "name" [t| String |]
      ])
   , (luxiReqSubmitJob,
-     [ ("job", [t| [OpCode] |]) ]
+     [ simpleField "job" [t| [OpCode] |] ]
     )
   , (luxiReqSubmitManyJobs,
-     [ ("ops", [t| [[OpCode]] |]) ]
+     [ simpleField "ops" [t| [[OpCode]] |] ]
     )
   , (luxiReqWaitForJobChange,
-     [ ("job",      [t| Int     |])
-     , ("fields",   [t| [String]|])
-     , ("prev_job", [t| JSValue |])
-     , ("prev_log", [t| JSValue |])
-     , ("tmout",    [t| Int     |])
+     [ simpleField "job"      [t| Int     |]
+     , simpleField "fields"   [t| [String]|]
+     , simpleField "prev_job" [t| JSValue |]
+     , simpleField "prev_log" [t| JSValue |]
+     , simpleField "tmout"    [t| Int     |]
      ])
   , (luxiReqArchiveJob,
-     [ ("job", [t| Int |]) ]
+     [ simpleField "job" [t| Int |] ]
     )
   , (luxiReqAutoArchiveJobs,
-     [ ("age",   [t| Int |])
-     , ("tmout", [t| Int |])
+     [ simpleField "age"   [t| Int |]
+     , simpleField "tmout" [t| Int |]
      ])
   , (luxiReqCancelJob,
-     [ ("job", [t| Int |]) ]
+     [ simpleField "job" [t| Int |] ]
     )
   , (luxiReqSetDrainFlag,
-     [ ("flag", [t| Bool |]) ]
+     [ simpleField "flag" [t| Bool |] ]
     )
   , (luxiReqSetWatcherPause,
-     [ ("duration", [t| Double |]) ]
+     [ simpleField "duration" [t| Double |] ]
     )
   ])
 

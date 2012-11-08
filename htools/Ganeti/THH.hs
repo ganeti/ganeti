@@ -621,11 +621,17 @@ genStrOfKey = genConstrToStr ensureLower
 --
 -- * type
 --
-genLuxiOp :: String -> SimpleObject -> Q [Dec]
+genLuxiOp :: String -> [(String, [Field])] -> Q [Dec]
 genLuxiOp name cons = do
   let tname = mkName name
-  declD <- buildSimpleCons tname cons
-  (savesig, savefn) <- genSaveSimpleObj tname "opToArgs"
+  decl_d <- mapM (\(cname, fields) -> do
+                    -- we only need the type of the field, without Q
+                    fields' <- mapM actualFieldType fields
+                    let fields'' = zip (repeat NotStrict) fields'
+                    return $ NormalC (mkName cname) fields'')
+            cons
+  let declD = DataD [] (mkName name) [] decl_d [''Show, ''Read, ''Eq]
+  (savesig, savefn) <- genSaveOpCode tname "opToArgs"
                          cons saveLuxiConstructor
   req_defs <- declareSADT "LuxiReq" .
               map (\(str, _) -> ("Req" ++ str, mkName ("luxiReq" ++ str))) $
@@ -638,16 +644,16 @@ saveLuxiField fvar (_, qt) =
     [| JSON.showJSON $(varE fvar) |]
 
 -- | Generates the \"save\" clause for entire LuxiOp constructor.
-saveLuxiConstructor :: SimpleConstructor -> Q Clause
+saveLuxiConstructor :: (String, [Field]) -> Q Clause
 saveLuxiConstructor (sname, fields) = do
   let cname = mkName sname
-      fnames = map (mkName . fst) fields
-      pat = conP cname (map varP fnames)
-      flist = map (uncurry saveLuxiField) (zip fnames fields)
-      finval = if null flist
-               then [| JSON.showJSON ()    |]
-               else [| JSON.showJSON $(listE flist) |]
-  clause [pat] (normalB finval) []
+  fnames <- mapM (newName . fieldVariable) fields
+  let pat = conP cname (map varP fnames)
+  let felems = map (uncurry saveObjectField) (zip fnames fields)
+      flist = if null felems
+                then [| JSON.showJSON () |]
+                else [| JSON.showJSON (map snd $ concat $(listE felems)) |]
+  clause [pat] (normalB flist) []
 
 -- * "Objects" functionality
 
@@ -721,9 +727,12 @@ saveObjectField fvar field =
                               |]
     NotOptional ->
       case fieldShow field of
+        -- Note: the order of actual:extra is important, since for
+        -- some serialisation types (e.g. Luxi), we use tuples
+        -- (positional info) rather than object (name info)
         Nothing -> [| [( $nameE, JSON.showJSON $fvarE)] |]
         Just fn -> [| let (actual, extra) = $fn $fvarE
-                      in extra ++ [( $nameE, JSON.showJSON actual)]
+                      in ($nameE, JSON.showJSON actual):extra
                     |]
   where nameE = stringE (fieldName field)
         fvarE = varE fvar
