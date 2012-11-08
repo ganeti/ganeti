@@ -25,7 +25,6 @@
 
 import logging
 import re
-import mimetools
 import base64
 import pycurl
 from cStringIO import StringIO
@@ -135,6 +134,17 @@ def _GetPathFromUri(uri):
     return None
 
 
+def _FormatHeaders(headers):
+  """Formats HTTP headers.
+
+  @type headers: sequence of strings
+  @rtype: string
+
+  """
+  assert compat.all(": " in header for header in headers)
+  return "\n".join(headers)
+
+
 class FakeCurl:
   """Fake cURL object.
 
@@ -168,11 +178,11 @@ class FakeCurl:
     writefn = self._opts[pycurl.WRITEFUNCTION]
 
     if pycurl.HTTPHEADER in self._opts:
-      baseheaders = "\n".join(self._opts[pycurl.HTTPHEADER])
+      baseheaders = _FormatHeaders(self._opts[pycurl.HTTPHEADER])
     else:
       baseheaders = ""
 
-    headers = mimetools.Message(StringIO(baseheaders), 0)
+    headers = http.ParseHeaders(StringIO(baseheaders))
 
     if request_body:
       headers[http.HTTP_CONTENT_LENGTH] = str(len(request_body))
@@ -188,7 +198,7 @@ class FakeCurl:
         "%s %s" % (http.auth.HTTP_BASIC_AUTH, base64.b64encode(userpwd))
 
     path = _GetPathFromUri(url)
-    (code, resp_body) = \
+    (code, _, resp_body) = \
       self._handler.FetchResponse(path, method, headers, request_body)
 
     self._info[pycurl.RESPONSE_CODE] = code
@@ -224,7 +234,7 @@ class _RapiMock:
     @param request_body: Request body
     @type headers: mimetools.Message
     @param headers: Request headers
-    @return: Tuple containing status code and response body
+    @return: Tuple containing status code, response headers and response body
 
     """
     req_msg = http.HttpMessage()
@@ -236,7 +246,7 @@ class _RapiMock:
     (_, _, _, resp_msg) = \
       http.server.HttpResponder(self.handler)(lambda: (req_msg, None))
 
-    return (resp_msg.start_line.code, resp_msg.body)
+    return (resp_msg.start_line.code, resp_msg.headers, resp_msg.body)
 
 
 class _TestLuxiTransport:
