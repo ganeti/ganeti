@@ -52,14 +52,15 @@ import Ganeti.Common
 import Ganeti.HTools.CLI
 
 -- | Options list and functions.
-options :: [OptType]
+options :: IO [OptType]
 options =
-  [ oPrintNodes
-  , oOutputDir
-  , oLuxiSocket
-  , oVerbose
-  , oNoHeaders
-  ]
+  return
+    [ oPrintNodes
+    , oOutputDir
+    , oLuxiSocket
+    , oVerbose
+    , oNoHeaders
+    ]
 
 -- | The list of arguments supported by the program.
 arguments :: [ArgCompletion]

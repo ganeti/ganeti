@@ -43,14 +43,15 @@ import Ganeti.HTools.ExtLoader (maybeSaveData, loadExternalData)
 import Ganeti.Utils
 
 -- | Options list and functions.
-options :: [OptType]
+options :: IO [OptType]
 options =
-  [ oPrintNodes
-  , oSaveCluster
-  , oDataFile
-  , oNodeSim
-  , oVerbose
-  ]
+  return
+    [ oPrintNodes
+    , oSaveCluster
+    , oDataFile
+    , oNodeSim
+    , oVerbose
+    ]
 
 -- | The list of arguments supported by the program.
 arguments :: [ArgCompletion]

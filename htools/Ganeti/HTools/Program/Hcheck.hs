@@ -50,31 +50,32 @@ import Ganeti.HTools.Types
 import Ganeti.Utils
 
 -- | Options list and functions.
-options :: [OptType]
+options :: IO [OptType]
 options =
-  [ oDataFile
-  , oDiskMoves
-  , oDynuFile
-  , oEvacMode
-  , oExInst
-  , oExTags
-  , oIAllocSrc
-  , oInstMoves
-  , oLuxiSocket
-  , oMachineReadable
-  , oMaxCpu
-  , oMaxSolLength
-  , oMinDisk
-  , oMinGain
-  , oMinGainLim
-  , oMinScore
-  , oNoSimulation
-  , oOfflineNode
-  , oQuiet
-  , oRapiMaster
-  , oSelInst
-  , oVerbose
-  ]
+  return
+    [ oDataFile
+    , oDiskMoves
+    , oDynuFile
+    , oEvacMode
+    , oExInst
+    , oExTags
+    , oIAllocSrc
+    , oInstMoves
+    , oLuxiSocket
+    , oMachineReadable
+    , oMaxCpu
+    , oMaxSolLength
+    , oMinDisk
+    , oMinGain
+    , oMinGainLim
+    , oMinScore
+    , oNoSimulation
+    , oOfflineNode
+    , oQuiet
+    , oRapiMaster
+    , oSelInst
+    , oVerbose
+    ]
 
 -- | The list of arguments supported by the program.
 arguments :: [ArgCompletion]

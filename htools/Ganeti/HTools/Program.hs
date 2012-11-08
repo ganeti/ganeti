@@ -39,7 +39,8 @@ import qualified Ganeti.HTools.Program.Hinfo as Hinfo
 
 -- | Supported binaries.
 personalities :: [(String,
-                   (Options -> [String] -> IO (), [OptType], [ArgCompletion]))]
+                   (Options -> [String] -> IO (), IO [OptType],
+                    [ArgCompletion]))]
 personalities = [ ("hail",   (Hail.main,   Hail.options,   Hail.arguments))
                 , ("hbal",   (Hbal.main,   Hbal.options,   Hbal.arguments))
                 , ("hcheck", (Hcheck.main, Hcheck.options, Hcheck.arguments))

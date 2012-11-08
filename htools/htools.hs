@@ -56,6 +56,7 @@ main = do
     Nothing -> usage name
     Just (fn, options, arguments) -> do
          cmd_args <- getArgs
-         (opts, args) <- parseOpts cmd_args name (options ++ genericOpts)
+         real_options <- options
+         (opts, args) <- parseOpts cmd_args name (real_options ++ genericOpts)
                            arguments
          fn opts args

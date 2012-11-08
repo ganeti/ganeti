@@ -62,35 +62,36 @@ import qualified Ganeti.Luxi as L
 import Ganeti.Jobs
 
 -- | Options list and functions.
-options :: [OptType]
+options :: IO [OptType]
 options =
-  [ oPrintNodes
-  , oPrintInsts
-  , oPrintCommands
-  , oDataFile
-  , oEvacMode
-  , oRapiMaster
-  , oLuxiSocket
-  , oIAllocSrc
-  , oExecJobs
-  , oGroup
-  , oMaxSolLength
-  , oVerbose
-  , oQuiet
-  , oOfflineNode
-  , oMinScore
-  , oMaxCpu
-  , oMinDisk
-  , oMinGain
-  , oMinGainLim
-  , oDiskMoves
-  , oSelInst
-  , oInstMoves
-  , oDynuFile
-  , oExTags
-  , oExInst
-  , oSaveCluster
-  ]
+  return
+    [ oPrintNodes
+    , oPrintInsts
+    , oPrintCommands
+    , oDataFile
+    , oEvacMode
+    , oRapiMaster
+    , oLuxiSocket
+    , oIAllocSrc
+    , oExecJobs
+    , oGroup
+    , oMaxSolLength
+    , oVerbose
+    , oQuiet
+    , oOfflineNode
+    , oMinScore
+    , oMaxCpu
+    , oMinDisk
+    , oMinGain
+    , oMinGainLim
+    , oDiskMoves
+    , oSelInst
+    , oInstMoves
+    , oDynuFile
+    , oExTags
+    , oExInst
+    , oSaveCluster
+    ]
 
 -- | The list of arguments supported by the program.
 arguments :: [ArgCompletion]

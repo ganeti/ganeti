@@ -53,27 +53,28 @@ import Ganeti.HTools.Loader
 import Ganeti.Utils
 
 -- | Options list and functions.
-options :: [OptType]
+options :: IO [OptType]
 options =
-  [ oPrintNodes
-  , oDataFile
-  , oDiskTemplate
-  , oSpindleUse
-  , oNodeSim
-  , oRapiMaster
-  , oLuxiSocket
-  , oIAllocSrc
-  , oVerbose
-  , oQuiet
-  , oOfflineNode
-  , oMachineReadable
-  , oMaxCpu
-  , oMaxSolLength
-  , oMinDisk
-  , oStdSpec
-  , oTieredSpec
-  , oSaveCluster
-  ]
+  return
+    [ oPrintNodes
+    , oDataFile
+    , oDiskTemplate
+    , oSpindleUse
+    , oNodeSim
+    , oRapiMaster
+    , oLuxiSocket
+    , oIAllocSrc
+    , oVerbose
+    , oQuiet
+    , oOfflineNode
+    , oMachineReadable
+    , oMaxCpu
+    , oMaxSolLength
+    , oMinDisk
+    , oStdSpec
+    , oTieredSpec
+    , oSaveCluster
+    ]
 
 -- | The list of arguments supported by the program.
 arguments :: [ArgCompletion]

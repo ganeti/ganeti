@@ -48,18 +48,19 @@ import Ganeti.HTools.Loader
 import Ganeti.Utils
 
 -- | Options list and functions.
-options :: [OptType]
+options :: IO [OptType]
 options =
-  [ oPrintNodes
-  , oPrintInsts
-  , oDataFile
-  , oRapiMaster
-  , oLuxiSocket
-  , oIAllocSrc
-  , oVerbose
-  , oQuiet
-  , oOfflineNode
-  ]
+  return
+    [ oPrintNodes
+    , oPrintInsts
+    , oDataFile
+    , oRapiMaster
+    , oLuxiSocket
+    , oIAllocSrc
+    , oVerbose
+    , oQuiet
+    , oOfflineNode
+    ]
 
 -- | The list of arguments supported by the program.
 arguments :: [ArgCompletion]
