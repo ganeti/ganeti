@@ -323,6 +323,15 @@ class HttpVersionNotSupported(HttpException):
   code = 505
 
 
+def ParseHeaders(buf):
+  """Parses HTTP headers.
+
+  @note: This is just a trivial wrapper around C{mimetools.Message}
+
+  """
+  return mimetools.Message(buf, 0)
+
+
 def SocketOperation(sock, op, arg1, timeout):
   """Wrapper around socket functions.
 
@@ -998,7 +1007,7 @@ class HttpMessageReader(object):
     """
     # Parse headers
     self.header_buffer.seek(0, 0)
-    self.msg.headers = mimetools.Message(self.header_buffer, 0)
+    self.msg.headers = ParseHeaders(self.header_buffer)
 
     self.peer_will_close = self._WillPeerCloseConnection()
 

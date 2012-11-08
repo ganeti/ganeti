@@ -149,6 +149,12 @@ class TestConvertNicDiskModifications(unittest.TestCase):
         ]), [
         (action, -1, {}),
         ])
+      self.assertRaises(errors.OpPrereqError, fn, [
+        (0, {
+          action: True,
+          constants.DDM_MODIFY: True,
+          }),
+        ])
 
     self.assertEqual(fn([
       (constants.DDM_ADD, {
@@ -188,6 +194,17 @@ class TestConvertNicDiskModifications(unittest.TestCase):
         }),
       ]), [
       (constants.DDM_REMOVE, -1, {}),
+      ])
+
+    self.assertEqual(fn([
+      (-1, {
+        constants.DDM_MODIFY: True,
+        constants.IDISK_SIZE: 1024,
+        }),
+      ]), [
+      (constants.DDM_MODIFY, -1, {
+        constants.IDISK_SIZE: 1024,
+        }),
       ])
 
 

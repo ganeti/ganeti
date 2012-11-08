@@ -96,7 +96,7 @@ class RapiMock(object):
 
       (code, response) = self._responses.pop()
 
-    return code, response
+    return (code, NotImplemented, response)
 
 
 class TestConstants(unittest.TestCase):
@@ -136,14 +136,20 @@ class TestConstants(unittest.TestCase):
 
 
 class RapiMockTest(unittest.TestCase):
-  def test(self):
+  def test404(self):
+    (code, _, body) = RapiMock().FetchResponse("/foo", "GET", None, None)
+    self.assertEqual(code, 404)
+    self.assertTrue(body is None)
+
+  def test501(self):
+    (code, _, body) = RapiMock().FetchResponse("/version", "POST", None, None)
+    self.assertEqual(code, 501)
+    self.assertEqual(body, "Method not implemented")
+
+  def test200(self):
     rapi = RapiMock()
-    path = "/version"
-    self.assertEqual((404, None), rapi.FetchResponse("/foo", "GET", None, None))
-    self.assertEqual((501, "Method not implemented"),
-                     rapi.FetchResponse("/version", "POST", None, None))
     rapi.AddResponse("2")
-    code, response = rapi.FetchResponse("/version", "GET", None, None)
+    (code, _, response) = rapi.FetchResponse("/version", "GET", None, None)
     self.assertEqual(200, code)
     self.assertEqual("2", response)
     self.failUnless(isinstance(rapi.GetLastHandler(), rlib2.R_version))
