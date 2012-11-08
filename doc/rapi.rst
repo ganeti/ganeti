@@ -24,12 +24,24 @@ Users and passwords
 ``/var/lib/ganeti/rapi/users``) on startup. Changes to the file will be
 read automatically.
 
-Each line consists of two or three fields separated by whitespace. The
-first two fields are for username and password. The third field is
-optional and can be used to specify per-user options. Currently,
-``write`` is the only option supported and enables the user to execute
-operations modifying the cluster. Lines starting with the hash sign
-(``#``) are treated as comments.
+Lines starting with the hash sign (``#``) are treated as comments. Each
+line consists of two or three fields separated by whitespace. The first
+two fields are for username and password. The third field is optional
+and can be used to specify per-user options (separated by comma without
+spaces). Available options:
+
+.. pyassert::
+
+  rapi.RAPI_ACCESS_ALL == set([
+    rapi.RAPI_ACCESS_WRITE,
+    rapi.RAPI_ACCESS_READ,
+    ])
+
+:pyeval:`rapi.RAPI_ACCESS_WRITE`
+  Enables the user to execute operations modifying the cluster. Implies
+  :pyeval:`rapi.RAPI_ACCESS_READ` access.
+:pyeval:`rapi.RAPI_ACCESS_READ`
+  Allow access to operations querying for information.
 
 Passwords can either be written in clear text or as a hash. Clear text
 passwords may not start with an opening brace (``{``) or they must be
@@ -50,6 +62,12 @@ Example::
 
   # Hashed password for Jessica
   jessica {HA1}7046452df2cbb530877058712cf17bd4 write
+
+  # Monitoring can query for values
+  monitoring {HA1}ec018ffe72b8e75bb4d508ed5b6d079c query
+
+  # A user who can query and write
+  superuser {HA1}ec018ffe72b8e75bb4d508ed5b6d079c query,write
 
 
 .. [#pwhash] Using the MD5 hash of username, realm and password is
@@ -1121,7 +1139,15 @@ Job result:
 
 Request information for connecting to instance's console.
 
-Supports the following commands: ``GET``.
+.. pyassert::
+
+  not (hasattr(rlib2.R_2_instances_name_console, "PUT") or
+       hasattr(rlib2.R_2_instances_name_console, "POST") or
+       hasattr(rlib2.R_2_instances_name_console, "DELETE"))
+
+Supports the following commands: ``GET``. Requires authentication with
+one of the following options:
+:pyeval:`utils.CommaJoin(rlib2.R_2_instances_name_console.GET_ACCESS)`.
 
 ``GET``
 ~~~~~~~
@@ -1640,7 +1666,15 @@ pages and using ``/2/query/[resource]/fields``. The resource is one of
 :pyeval:`utils.CommaJoin(constants.QR_VIA_RAPI)`. See the :doc:`query2
 design document <design-query2>` for more details.
 
-Supports the following commands: ``GET``, ``PUT``.
+.. pyassert::
+
+  (rlib2.R_2_query.GET_ACCESS == rlib2.R_2_query.PUT_ACCESS and
+   not (hasattr(rlib2.R_2_query, "POST") or
+        hasattr(rlib2.R_2_query, "DELETE")))
+
+Supports the following commands: ``GET``, ``PUT``. Requires
+authentication with one of the following options:
+:pyeval:`utils.CommaJoin(rlib2.R_2_query.GET_ACCESS)`.
 
 ``GET``
 ~~~~~~~

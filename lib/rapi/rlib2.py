@@ -1226,7 +1226,7 @@ class R_2_instances_name_console(baserlib.ResourceBase):
   """/2/instances/[instance_name]/console resource.
 
   """
-  GET_ACCESS = [rapi.RAPI_ACCESS_WRITE]
+  GET_ACCESS = [rapi.RAPI_ACCESS_WRITE, rapi.RAPI_ACCESS_READ]
   GET_OPCODE = opcodes.OpInstanceConsole
 
   def GET(self):
@@ -1278,7 +1278,8 @@ class R_2_query(baserlib.ResourceBase):
 
   """
   # Results might contain sensitive information
-  GET_ACCESS = [rapi.RAPI_ACCESS_WRITE]
+  GET_ACCESS = [rapi.RAPI_ACCESS_WRITE, rapi.RAPI_ACCESS_READ]
+  PUT_ACCESS = GET_ACCESS
   GET_OPCODE = opcodes.OpQuery
   PUT_OPCODE = opcodes.OpQuery
 

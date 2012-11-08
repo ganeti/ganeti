@@ -168,67 +168,80 @@ class TestRemoteApiHandler(unittest.TestCase):
       else:
         return None
 
-    def _LookupUserWithWrite(name):
-      if name == username:
-        return http.auth.PasswordFileUser(name, password, [
-          rapi.RAPI_ACCESS_WRITE,
-          ])
-      else:
-        return None
-
-    for qr in constants.QR_VIA_RAPI:
-      # The /2/query resource has somewhat special rules for authentication as
-      # it can be used to retrieve critical information
-      path = "/2/query/%s" % qr
-
-      for method in rapi.baserlib._SUPPORTED_METHODS:
-        # No authorization
-        (code, _, _) = self._Test(method, path, "", "")
-
-        if method in (http.HTTP_DELETE, http.HTTP_POST):
-          self.assertEqual(code, http.HttpNotImplemented.code)
-          continue
-
-        self.assertEqual(code, http.HttpUnauthorized.code)
-
-        # Incorrect user
-        (code, _, _) = self._Test(method, path, header_fn(True), "",
-                                  user_fn=self._LookupWrongUser)
-        self.assertEqual(code, http.HttpUnauthorized.code)
-
-        # User has no write access, but the password is correct
-        (code, _, _) = self._Test(method, path, header_fn(True), "",
-                                  user_fn=_LookupUserNoWrite)
-        self.assertEqual(code, http.HttpForbidden.code)
-
-        # Wrong password and no write access
-        (code, _, _) = self._Test(method, path, header_fn(False), "",
-                                  user_fn=_LookupUserNoWrite)
-        self.assertEqual(code, http.HttpUnauthorized.code)
-
-        # Wrong password with write access
-        (code, _, _) = self._Test(method, path, header_fn(False), "",
-                                  user_fn=_LookupUserWithWrite)
-        self.assertEqual(code, http.HttpUnauthorized.code)
-
-        # Prepare request information
-        if method == http.HTTP_PUT:
-          reqpath = path
-          body = serializer.DumpJson({
-            "fields": ["name"],
-            })
-        elif method == http.HTTP_GET:
-          reqpath = "%s?fields=name" % path
-          body = ""
+    for access in [rapi.RAPI_ACCESS_WRITE, rapi.RAPI_ACCESS_READ]:
+      def _LookupUserWithWrite(name):
+        if name == username:
+          return http.auth.PasswordFileUser(name, password, [
+            access,
+            ])
         else:
-          self.fail("Unknown method '%s'" % method)
+          return None
 
-        # User has write access, password is correct
-        (code, _, data) = self._Test(method, reqpath, header_fn(True), body,
-                                     user_fn=_LookupUserWithWrite,
-                                     luxi_client=_FakeLuxiClientForQuery)
-        self.assertEqual(code, http.HTTP_OK)
-        self.assertTrue(objects.QueryResponse.FromDict(data))
+      for qr in constants.QR_VIA_RAPI:
+        # The /2/query resource has somewhat special rules for authentication as
+        # it can be used to retrieve critical information
+        path = "/2/query/%s" % qr
+
+        for method in rapi.baserlib._SUPPORTED_METHODS:
+          # No authorization
+          (code, _, _) = self._Test(method, path, "", "")
+
+          if method in (http.HTTP_DELETE, http.HTTP_POST):
+            self.assertEqual(code, http.HttpNotImplemented.code)
+            continue
+
+          self.assertEqual(code, http.HttpUnauthorized.code)
+
+          # Incorrect user
+          (code, _, _) = self._Test(method, path, header_fn(True), "",
+                                    user_fn=self._LookupWrongUser)
+          self.assertEqual(code, http.HttpUnauthorized.code)
+
+          # User has no write access, but the password is correct
+          (code, _, _) = self._Test(method, path, header_fn(True), "",
+                                    user_fn=_LookupUserNoWrite)
+          self.assertEqual(code, http.HttpForbidden.code)
+
+          # Wrong password and no write access
+          (code, _, _) = self._Test(method, path, header_fn(False), "",
+                                    user_fn=_LookupUserNoWrite)
+          self.assertEqual(code, http.HttpUnauthorized.code)
+
+          # Wrong password with write access
+          (code, _, _) = self._Test(method, path, header_fn(False), "",
+                                    user_fn=_LookupUserWithWrite)
+          self.assertEqual(code, http.HttpUnauthorized.code)
+
+          # Prepare request information
+          if method == http.HTTP_PUT:
+            reqpath = path
+            body = serializer.DumpJson({
+              "fields": ["name"],
+              })
+          elif method == http.HTTP_GET:
+            reqpath = "%s?fields=name" % path
+            body = ""
+          else:
+            self.fail("Unknown method '%s'" % method)
+
+          # User has write access, password is correct
+          (code, _, data) = self._Test(method, reqpath, header_fn(True), body,
+                                       user_fn=_LookupUserWithWrite,
+                                       luxi_client=_FakeLuxiClientForQuery)
+          self.assertEqual(code, http.HTTP_OK)
+          self.assertTrue(objects.QueryResponse.FromDict(data))
+
+  def testConsole(self):
+    path = "/2/instances/inst1.example.com/console"
+
+    for method in rapi.baserlib._SUPPORTED_METHODS:
+      # No authorization
+      (code, _, _) = self._Test(method, path, "", "")
+
+      if method == http.HTTP_GET:
+        self.assertEqual(code, http.HttpUnauthorized.code)
+      else:
+        self.assertEqual(code, http.HttpNotImplemented.code)
 
 
 class _FakeLuxiClientForQuery:

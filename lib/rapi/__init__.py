@@ -21,3 +21,9 @@
 """Ganeti RAPI module"""
 
 RAPI_ACCESS_WRITE = "write"
+RAPI_ACCESS_READ = "read"
+
+RAPI_ACCESS_ALL = frozenset([
+  RAPI_ACCESS_WRITE,
+  RAPI_ACCESS_READ,
+  ])

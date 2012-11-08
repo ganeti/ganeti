@@ -29,6 +29,10 @@ Version 2.7.0 beta1
   ``gnt-node add`` now invokes a new tool on the destination node, named
   ``prepare-node-join``, to configure the SSH daemon. Paramiko is no
   longer necessary to configure nodes' SSH daemons via ``gnt-node add``.
+- A new user option, :pyeval:`rapi.RAPI_ACCESS_READ`, has been added
+  for RAPI users. It allows granting permissions to query for
+  information to a specific user without giving
+  :pyeval:`rapi.RAPI_ACCESS_WRITE` permissions.
 
 
 Version 2.6.1
