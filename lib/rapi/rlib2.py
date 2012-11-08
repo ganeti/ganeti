@@ -1248,7 +1248,11 @@ class R_2_instances_name_console(baserlib.ResourceBase):
 
 
 def _GetQueryFields(args):
-  """
+  """Tries to extract C{fields} query parameter.
+
+  @type args: dictionary
+  @rtype: list of string
+  @raise http.HttpBadRequest: When parameter can't be found
 
   """
   try:
@@ -1260,7 +1264,10 @@ def _GetQueryFields(args):
 
 
 def _SplitQueryFields(fields):
-  """
+  """Splits fields as given for a query request.
+
+  @type fields: string
+  @rtype: list of string
 
   """
   return [i.strip() for i in fields.split(",")]
