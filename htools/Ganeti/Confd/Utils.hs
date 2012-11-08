@@ -37,7 +37,7 @@ import qualified Data.ByteString as B
 import qualified Text.JSON as J
 
 import Ganeti.BasicTypes
-import Ganeti.Confd
+import Ganeti.Confd.Types
 import Ganeti.Hash
 import qualified Ganeti.Constants as C
 import qualified Ganeti.Path as Path

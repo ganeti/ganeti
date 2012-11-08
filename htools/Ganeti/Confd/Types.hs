@@ -25,7 +25,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 -}
 
-module Ganeti.Confd
+module Ganeti.Confd.Types
   ( C.confdProtocolVersion
   , C.confdMaxClockSkew
   , C.confdConfigReloadTimeout

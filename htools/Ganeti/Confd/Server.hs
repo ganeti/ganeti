@@ -50,7 +50,7 @@ import Ganeti.Errors
 import Ganeti.Daemon
 import Ganeti.JSON
 import Ganeti.Objects
-import Ganeti.Confd
+import Ganeti.Confd.Types
 import Ganeti.Confd.Utils
 import Ganeti.Config
 import Ganeti.Hash

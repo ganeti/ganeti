@@ -36,7 +36,7 @@ import Test.Ganeti.TestHelper
 import Test.Ganeti.TestCommon
 
 import qualified Ganeti.BasicTypes as BasicTypes
-import qualified Ganeti.Confd as Confd
+import qualified Ganeti.Confd.Types as Confd
 import qualified Ganeti.Confd.Utils as Confd.Utils
 import qualified Ganeti.Constants as C
 import qualified Ganeti.Hash as Hash
