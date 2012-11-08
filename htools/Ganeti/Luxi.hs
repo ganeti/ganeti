@@ -137,8 +137,8 @@ $(genLuxiOp "LuxiOp"
     )
   , (luxiReqQueryClusterInfo, [])
   , (luxiReqQueryTags,
-     [ simpleField "kind" [t| TagObject |]
-     , simpleField "name" [t| String |]
+     [ customField 'decodeTagObject 'encodeTagObject $
+       simpleField "kind" [t| TagObject |]
      ])
   , (luxiReqSubmitJob,
      [ simpleField "job" [t| [OpCode] |] ]
@@ -386,7 +386,8 @@ decodeCall (LuxiCall call args) =
               return $ QueryConfigValues fields
     ReqQueryTags -> do
               (kind, name) <- fromJVal args
-              return $ QueryTags kind name
+              item <- tagObjectFrom kind name
+              return $ QueryTags item
     ReqCancelJob -> do
               [job] <- fromJVal args
               rid <- parseJobId job

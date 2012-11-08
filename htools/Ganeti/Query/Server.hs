@@ -138,12 +138,12 @@ handleCall cdata QueryClusterInfo =
 
   in return . Ok . J.makeObj $ obj
 
-handleCall cfg (QueryTags kind name) =
+handleCall cfg (QueryTags kind) =
   let tags = case kind of
-               TagCluster -> Ok . clusterTags $ configCluster cfg
-               TagGroup -> groupTags <$> Config.getGroup cfg name
-               TagNode -> nodeTags <$> Config.getNode cfg name
-               TagInstance -> instTags <$> Config.getInstance cfg name
+               TagCluster       -> Ok . clusterTags $ configCluster cfg
+               TagGroup    name -> groupTags <$> Config.getGroup    cfg name
+               TagNode     name -> nodeTags  <$> Config.getNode     cfg name
+               TagInstance name -> instTags  <$> Config.getInstance cfg name
   in return (J.showJSON <$> tags)
 
 handleCall cfg (Query qkind qfields qfilter) = do

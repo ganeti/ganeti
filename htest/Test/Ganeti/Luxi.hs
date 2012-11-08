@@ -69,7 +69,7 @@ instance Arbitrary Luxi.LuxiOp where
                               listOf getFQDN <*> arbitrary
       Luxi.ReqQueryConfigValues -> Luxi.QueryConfigValues <$> getFields
       Luxi.ReqQueryClusterInfo -> pure Luxi.QueryClusterInfo
-      Luxi.ReqQueryTags -> Luxi.QueryTags <$> arbitrary <*> getFQDN
+      Luxi.ReqQueryTags -> Luxi.QueryTags <$> arbitrary
       Luxi.ReqSubmitJob -> Luxi.SubmitJob <$> resize maxOpCodes arbitrary
       Luxi.ReqSubmitManyJobs -> Luxi.SubmitManyJobs <$>
                                 resize maxOpCodes arbitrary

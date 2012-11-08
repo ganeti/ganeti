@@ -48,7 +48,12 @@ import qualified Ganeti.OpCodes as OpCodes
 
 -- * Arbitrary instances
 
-$(genArbitrary ''OpCodes.TagObject)
+instance Arbitrary OpCodes.TagObject where
+  arbitrary = oneof [ OpCodes.TagInstance <$> getFQDN
+                    , OpCodes.TagNode     <$> getFQDN
+                    , OpCodes.TagGroup    <$> getFQDN
+                    , pure OpCodes.TagCluster
+                    ]
 
 $(genArbitrary ''OpCodes.ReplaceDisksMode)
 
@@ -72,9 +77,9 @@ instance Arbitrary OpCodes.OpCode where
         OpCodes.OpInstanceMigrate <$> getFQDN <*> arbitrary <*>
           arbitrary <*> arbitrary <*> getMaybe getFQDN
       "OP_TAGS_SET" ->
-        OpCodes.OpTagsSet <$> arbitrary <*> genTags <*> getMaybe getFQDN
+        OpCodes.OpTagsSet <$> arbitrary <*> genTags
       "OP_TAGS_DEL" ->
-        OpCodes.OpTagsSet <$> arbitrary <*> genTags <*> getMaybe getFQDN
+        OpCodes.OpTagsSet <$> arbitrary <*> genTags
       _ -> fail "Wrong opcode"
 
 -- * Test cases

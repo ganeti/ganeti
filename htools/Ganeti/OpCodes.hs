@@ -28,6 +28,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 module Ganeti.OpCodes
   ( OpCode(..)
   , TagObject(..)
+  , tagObjectFrom
+  , encodeTagObject
+  , decodeTagObject
   , ReplaceDisksMode(..)
   , DiskIndex
   , mkDiskIndex
@@ -36,7 +39,8 @@ module Ganeti.OpCodes
   , allOpIDs
   ) where
 
-import Text.JSON (readJSON, showJSON, makeObj, JSON)
+import Text.JSON (readJSON, showJSON, makeObj, JSON, JSValue(..), fromJSString)
+import Text.JSON.Pretty (pp_value)
 
 import qualified Ganeti.Constants as C
 import Ganeti.THH
@@ -44,13 +48,61 @@ import Ganeti.THH
 import Ganeti.JSON
 
 -- | Data type representing what items do the tag operations apply to.
-$(declareSADT "TagObject"
-  [ ("TagInstance", 'C.tagInstance)
-  , ("TagNode",     'C.tagNode)
-  , ("TagGroup",    'C.tagNodegroup)
-  , ("TagCluster",  'C.tagCluster)
+$(declareSADT "TagType"
+  [ ("TagTypeInstance", 'C.tagInstance)
+  , ("TagTypeNode",     'C.tagNode)
+  , ("TagTypeGroup",    'C.tagNodegroup)
+  , ("TagTypeCluster",  'C.tagCluster)
   ])
-$(makeJSONInstance ''TagObject)
+$(makeJSONInstance ''TagType)
+
+-- | Data type holding a tag object (type and object name).
+data TagObject = TagInstance String
+               | TagNode     String
+               | TagGroup    String
+               | TagCluster
+               deriving (Show, Read, Eq)
+
+-- | Tag type for a given tag object.
+tagTypeOf :: TagObject -> TagType
+tagTypeOf (TagInstance {}) = TagTypeInstance
+tagTypeOf (TagNode     {}) = TagTypeNode
+tagTypeOf (TagGroup    {}) = TagTypeGroup
+tagTypeOf (TagCluster  {}) = TagTypeCluster
+
+-- | Gets the potential tag object name.
+tagNameOf :: TagObject -> Maybe String
+tagNameOf (TagInstance s) = Just s
+tagNameOf (TagNode     s) = Just s
+tagNameOf (TagGroup    s) = Just s
+tagNameOf  TagCluster     = Nothing
+
+-- | Builds a 'TagObject' from a tag type and name.
+tagObjectFrom :: (Monad m) => TagType -> JSValue -> m TagObject
+tagObjectFrom TagTypeInstance (JSString s) =
+  return . TagInstance $ fromJSString s
+tagObjectFrom TagTypeNode     (JSString s) = return . TagNode $ fromJSString s
+tagObjectFrom TagTypeGroup    (JSString s) = return . TagGroup $ fromJSString s
+tagObjectFrom TagTypeCluster   JSNull      = return TagCluster
+tagObjectFrom t v =
+  fail $ "Invalid tag type/name combination: " ++ show t ++ "/" ++
+         show (pp_value v)
+
+-- | Name of the tag \"name\" field.
+tagNameField :: String
+tagNameField = "name"
+
+-- | Custom encoder for 'TagObject' as represented in an opcode.
+encodeTagObject :: TagObject -> (JSValue, [(String, JSValue)])
+encodeTagObject t = ( showJSON (tagTypeOf t)
+                    , [(tagNameField, maybe JSNull showJSON (tagNameOf t))] )
+
+-- | Custom decoder for 'TagObject' as represented in an opcode.
+decodeTagObject :: (Monad m) => [(String, JSValue)] -> JSValue -> m TagObject
+decodeTagObject obj kind = do
+  ttype <- fromJVal kind
+  tname <- fromObj obj tagNameField
+  tagObjectFrom ttype tname
 
 -- | Replace disks type.
 $(declareSADT "ReplaceDisksMode"
@@ -107,14 +159,14 @@ $(genOpCode "OpCode"
      , optionalField $ simpleField "target_node" [t| String |]
      ])
   , ("OpTagsSet",
-     [ simpleField "kind" [t| TagObject |]
+     [ customField 'decodeTagObject 'encodeTagObject $
+       simpleField "kind" [t| TagObject |]
      , simpleField "tags" [t| [String]  |]
-     , optionalNullSerField $ simpleField "name" [t| String |]
      ])
   , ("OpTagsDel",
-     [ simpleField "kind" [t| TagObject |]
+     [ customField 'decodeTagObject 'encodeTagObject $
+       simpleField "kind" [t| TagObject |]
      , simpleField "tags" [t| [String]  |]
-     , optionalNullSerField $ simpleField "name" [t| String |]
      ])
   ])
 
