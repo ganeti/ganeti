@@ -46,7 +46,7 @@ import Ganeti.Utils
 
 -- | Returns the HMAC key.
 getClusterHmac :: IO HashKey
-getClusterHmac = fmap B.unpack $ B.readFile Path.confdHmacKey
+getClusterHmac = Path.confdHmacKey >>= fmap B.unpack . B.readFile
 
 -- | Parses a signed request.
 parseRequest :: HashKey -> String -> Result (String, String, ConfdRequest)

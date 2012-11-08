@@ -55,6 +55,7 @@ module Ganeti.HTools.CLI
   , oGroup
   , oIAllocSrc
   , oInstMoves
+  , genOLuxiSocket
   , oLuxiSocket
   , oMachineReadable
   , oMaxCpu
@@ -325,13 +326,17 @@ oIAllocSrc =
    "Specify an iallocator spec as the cluster data source",
    OptComplFile)
 
-oLuxiSocket :: OptType
-oLuxiSocket =
+genOLuxiSocket :: String -> OptType
+genOLuxiSocket defSocket =
   (Option "L" ["luxi"]
    (OptArg ((\ f opts -> Ok opts { optLuxi = Just f }) .
-            fromMaybe Path.defaultLuxiSocket) "SOCKET")
-   "collect data via Luxi, optionally using the given SOCKET path",
+            fromMaybe defSocket) "SOCKET")
+   ("collect data via Luxi, optionally using the given SOCKET path [" ++
+    defSocket ++ "]"),
    OptComplFile)
+
+oLuxiSocket :: IO OptType
+oLuxiSocket = Path.defaultLuxiSocket >>= (return . genOLuxiSocket)
 
 oMachineReadable :: OptType
 oMachineReadable =

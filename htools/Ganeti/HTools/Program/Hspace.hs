@@ -54,7 +54,8 @@ import Ganeti.Utils
 
 -- | Options list and functions.
 options :: IO [OptType]
-options =
+options = do
+  luxi <- oLuxiSocket
   return
     [ oPrintNodes
     , oDataFile
@@ -62,7 +63,7 @@ options =
     , oSpindleUse
     , oNodeSim
     , oRapiMaster
-    , oLuxiSocket
+    , luxi
     , oIAllocSrc
     , oVerbose
     , oQuiet

@@ -51,7 +51,8 @@ import Ganeti.Utils
 
 -- | Options list and functions.
 options :: IO [OptType]
-options =
+options = do
+  luxi <- oLuxiSocket
   return
     [ oDataFile
     , oDiskMoves
@@ -61,7 +62,7 @@ options =
     , oExTags
     , oIAllocSrc
     , oInstMoves
-    , oLuxiSocket
+    , luxi
     , oMachineReadable
     , oMaxCpu
     , oMaxSolLength

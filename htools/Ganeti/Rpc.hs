@@ -92,13 +92,10 @@ import Ganeti.JSON
 -- | The curl options used for RPC.
 curlOpts :: [CurlOption]
 curlOpts = [ CurlFollowLocation False
-           , CurlCAInfo P.nodedCertFile
            , CurlSSLVerifyHost 0
            , CurlSSLVerifyPeer True
            , CurlSSLCertType "PEM"
-           , CurlSSLCert P.nodedCertFile
            , CurlSSLKeyType "PEM"
-           , CurlSSLKey P.nodedCertFile
            , CurlConnectTimeout (fromIntegral C.rpcConnectTimeout)
            ]
 #endif
@@ -171,8 +168,12 @@ executeHttpRequest _ (Left rpc_err) = return $ Left rpc_err
 executeHttpRequest _ _ = return $ Left CurlDisabledError
 #else
 executeHttpRequest node (Right request) = do
+  cert_file <- P.nodedCertFile
   let reqOpts = [ CurlTimeout (fromIntegral $ requestTimeout request)
                 , CurlPostFields [requestPostData request]
+                , CurlSSLCert cert_file
+                , CurlSSLKey cert_file
+                , CurlCAInfo cert_file
                 ]
       url = requestUrl request
   -- FIXME: This is very similar to getUrl in Htools/Rapi.hs

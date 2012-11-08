@@ -533,11 +533,12 @@ main _ _ (s, query_data, cref) = do
   hmac <- getClusterHmac
   -- Inotify setup
   inotify <- initINotify
-  let inotiaction = addNotifier inotify Path.clusterConfFile cref statemvar
+  conf_file <- Path.clusterConfFile
+  let inotiaction = addNotifier inotify conf_file cref statemvar
   -- fork the timeout timer
-  _ <- forkIO $ onTimeoutTimer inotiaction Path.clusterConfFile cref statemvar
+  _ <- forkIO $ onTimeoutTimer inotiaction conf_file cref statemvar
   -- fork the polling timer
-  _ <- forkIO $ onReloadTimer inotiaction Path.clusterConfFile cref statemvar
+  _ <- forkIO $ onReloadTimer inotiaction conf_file cref statemvar
   -- launch the queryd listener
   _ <- forkIO $ runQueryD query_data (configReader cref)
   -- and finally enter the responder loop

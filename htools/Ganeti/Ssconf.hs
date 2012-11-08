@@ -111,8 +111,9 @@ readSSConfFile :: Maybe FilePath            -- ^ Optional config path override
                -> SSKey                     -- ^ Desired ssconf key
                -> IO (Result String)
 readSSConfFile optpath def key = do
+  dpath <- Path.dataDir
   result <- catchIOErrors def . readFile .
-            keyToFilename (fromMaybe Path.dataDir optpath) $ key
+            keyToFilename (fromMaybe dpath optpath) $ key
   return (liftM (take maxFileSize) result)
 
 -- | Strip space characthers (including newline). As this is

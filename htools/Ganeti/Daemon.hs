@@ -344,6 +344,7 @@ genericMain daemon options check_fn prep_fn exec_fn = do
                          syslogUsageFromRaw C.syslogUsage
               Just v -> return v
 
+  log_file <- daemonLogFile daemon
   -- run the check function and optionally exit if it returns an exit code
   check_result <- check_fn opts
   check_result' <- case check_result of
@@ -351,7 +352,7 @@ genericMain daemon options check_fn prep_fn exec_fn = do
                      Right v -> return v
 
   let processFn = if optDaemonize opts
-                    then daemonize (daemonLogFile daemon)
+                    then daemonize log_file
                     else \action -> action Nothing
   processFn $ innerMain daemon opts syslog check_result' prep_fn exec_fn
 
@@ -367,11 +368,11 @@ fullPrep :: GanetiDaemon  -- ^ The daemon we're running
          -> PrepFn a b    -- ^ Prepare function
          -> IO b
 fullPrep daemon opts syslog check_result prep_fn = do
-  let logfile = if optDaemonize opts
-                  then Nothing
-                  else Just $ daemonLogFile daemon
-      pidfile = daemonPidFile daemon
-      dname = daemonName daemon
+  logfile <- if optDaemonize opts
+               then return Nothing
+               else liftM Just $ daemonLogFile daemon
+  pidfile <- daemonPidFile daemon
+  let dname = daemonName daemon
   setupLogging logfile dname (optDebug opts) True False syslog
   _ <- describeError "writing PID file; already locked?"
          Nothing (Just pidfile) $ writePidFile pidfile

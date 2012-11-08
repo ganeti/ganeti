@@ -92,12 +92,16 @@ daemonGroup (ExtraGroup  DaemonsGroup)  = C.daemonsGroup
 daemonGroup (ExtraGroup  AdminGroup)    = C.adminGroup
 
 -- | Returns the log file for a daemon.
-daemonLogFile :: GanetiDaemon -> FilePath
-daemonLogFile daemon = Path.logDir </> daemonName daemon <.> "log"
+daemonLogFile :: GanetiDaemon -> IO FilePath
+daemonLogFile daemon = do
+  logDir <- Path.logDir
+  return $ logDir </> daemonName daemon <.> "log"
 
 -- | Returns the pid file name for a daemon.
-daemonPidFile :: GanetiDaemon -> FilePath
-daemonPidFile daemon = Path.runDir </> daemonName daemon <.> "pid"
+daemonPidFile :: GanetiDaemon -> IO FilePath
+daemonPidFile daemon = do
+  runDir <- Path.runDir
+  return $ runDir </> daemonName daemon <.> "pid"
 
 -- | All groups list. A bit hacking, as we can't enforce it's complete
 -- at compile time.

@@ -23,53 +23,72 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 -}
 
-module Ganeti.Path where
+module Ganeti.Path
+  ( dataDir
+  , runDir
+  , logDir
+  , socketDir
+  , defaultLuxiSocket
+  , defaultQuerySocket
+  , confdHmacKey
+  , clusterConfFile
+  , nodedCertFile
+  ) where
 
-import qualified Ganeti.Constants as C
 import System.FilePath
 import System.Posix.Env (getEnvDefault)
-import System.IO.Unsafe
 
-{-# NOINLINE getRootDir #-}
-getRootDir :: FilePath
-getRootDir = unsafePerformIO $ getEnvDefault "GANETI_ROOTDIR" ""
+import qualified Ganeti.Constants as C
 
--- | Prefixes a path with the current root directory
-addNodePrefix :: FilePath -> FilePath
-addNodePrefix path = getRootDir ++ path
+-- | Simple helper to concat two paths.
+pjoin :: IO String -> String -> IO String
+pjoin a b = do
+  a' <- a
+  return $ a' </> b
 
--- | Directory for data
-dataDir :: FilePath
+-- | Returns the root directory, which can be either the real root or
+-- the virtual root.
+getRootDir :: IO FilePath
+getRootDir = getEnvDefault "GANETI_ROOTDIR" ""
+
+-- | Prefixes a path with the current root directory.
+addNodePrefix :: FilePath -> IO FilePath
+addNodePrefix path = do
+  root <- getRootDir
+  return $ root ++ path
+
+-- | Directory for data.
+dataDir :: IO FilePath
 dataDir = addNodePrefix $ C.autoconfLocalstatedir </> "lib" </> "ganeti"
 
--- | Directory for runtime files
-runDir :: FilePath
+-- | Directory for runtime files.
+runDir :: IO FilePath
 runDir = addNodePrefix $ C.autoconfLocalstatedir </> "run" </> "ganeti"
 
--- | Directory for log files
-logDir :: FilePath
+-- | Directory for log files.
+logDir :: IO FilePath
 logDir = addNodePrefix $ C.autoconfLocalstatedir </> "log" </> "ganeti"
 
--- | Directory for Unix sockets
-socketDir :: FilePath
-socketDir = runDir </> "socket"
+-- | Directory for Unix sockets.
+socketDir :: IO FilePath
+socketDir = runDir `pjoin` "socket"
 
 -- | The default LUXI socket path.
-defaultLuxiSocket :: FilePath
-defaultLuxiSocket = socketDir </> "ganeti-master"
+defaultLuxiSocket :: IO FilePath
+defaultLuxiSocket = socketDir `pjoin` "ganeti-master"
 
 -- | The default LUXI socket for queries.
-defaultQuerySocket :: FilePath
-defaultQuerySocket = socketDir </> "ganeti-query"
+defaultQuerySocket :: IO FilePath
+defaultQuerySocket = socketDir `pjoin` "ganeti-query"
 
--- | Path to file containing confd's HMAC key
-confdHmacKey :: FilePath
-confdHmacKey = dataDir </> "hmac.key"
+-- | Path to file containing confd's HMAC key.
+confdHmacKey :: IO FilePath
+confdHmacKey = dataDir `pjoin` "hmac.key"
 
--- | Path to cluster configuration file
-clusterConfFile :: FilePath
-clusterConfFile  = dataDir </> "config.data"
+-- | Path to cluster configuration file.
+clusterConfFile :: IO FilePath
+clusterConfFile  = dataDir `pjoin` "config.data"
 
--- | Path
-nodedCertFile  :: FilePath
-nodedCertFile = dataDir </> "server.pem"
+-- | Path to the noded certificate.
+nodedCertFile  :: IO FilePath
+nodedCertFile = dataDir `pjoin` "server.pem"

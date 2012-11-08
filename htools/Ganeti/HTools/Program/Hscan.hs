@@ -53,11 +53,12 @@ import Ganeti.HTools.CLI
 
 -- | Options list and functions.
 options :: IO [OptType]
-options =
+options = do
+  luxi <- oLuxiSocket
   return
     [ oPrintNodes
     , oOutputDir
-    , oLuxiSocket
+    , luxi
     , oVerbose
     , oNoHeaders
     ]
@@ -147,7 +148,8 @@ main opts clusters = do
                 "t_disk" "f_disk" "Score"
 
   when (null clusters) $ do
-         let lsock = fromMaybe Path.defaultLuxiSocket (optLuxi opts)
+         def_socket <- Path.defaultLuxiSocket
+         let lsock = fromMaybe def_socket (optLuxi opts)
          let name = local
          input_data <- Luxi.loadData lsock
          result <- writeData nlen name opts input_data

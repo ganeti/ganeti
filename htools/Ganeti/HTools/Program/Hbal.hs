@@ -63,7 +63,8 @@ import Ganeti.Jobs
 
 -- | Options list and functions.
 options :: IO [OptType]
-options =
+options = do
+  luxi <- oLuxiSocket
   return
     [ oPrintNodes
     , oPrintInsts
@@ -71,7 +72,7 @@ options =
     , oDataFile
     , oEvacMode
     , oRapiMaster
-    , oLuxiSocket
+    , luxi
     , oIAllocSrc
     , oExecJobs
     , oGroup

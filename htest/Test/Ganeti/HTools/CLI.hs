@@ -69,7 +69,7 @@ prop_string_arg argument =
              , (oDynuFile,      optDynuFile)
              , (oSaveCluster,   optSaveCluster)
              , (oPrintCommands, optShowCmds)
-             , (oLuxiSocket,    optLuxi)
+             , (genOLuxiSocket "", optLuxi)
              , (oIAllocSrc,     optIAllocSrc)
              ]
   in conjoin $ map (\(o, opt) ->
