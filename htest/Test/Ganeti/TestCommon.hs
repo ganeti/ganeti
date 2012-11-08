@@ -78,7 +78,7 @@ maxOpCodes = 16
 (==?) :: (Show a, Eq a) => a -> a -> Property
 (==?) x y = printTestCase
             ("Expected equality, but got mismatch\nexpected: " ++
-             show x ++ "\n but got: " ++ show y) (x == y)
+             show y ++ "\n but got: " ++ show x) (x == y)
 infix 3 ==?
 
 -- | Checks for inequality with proper annotation. The first argument
