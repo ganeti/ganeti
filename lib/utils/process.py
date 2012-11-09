@@ -142,7 +142,7 @@ def _BuildCmdEnvironment(env, reset):
 
 def RunCmd(cmd, env=None, output=None, cwd="/", reset_env=False,
            interactive=False, timeout=None, noclose_fds=None,
-           input_fd=None, _postfork_fn=None):
+           input_fd=None, postfork_fn=None):
   """Execute a (shell) command.
 
   The command should not read from its standard input, as it will be
@@ -172,7 +172,8 @@ def RunCmd(cmd, env=None, output=None, cwd="/", reset_env=False,
                       open for the child process
   @type input_fd: C{file}-like object or numeric file descriptor
   @param input_fd: File descriptor for process' standard input
-  @param _postfork_fn: Callback run after fork but before timeout (unittest)
+  @type postfork_fn: Callable receiving PID as parameter
+  @param postfork_fn: Callback run after fork but before timeout
   @rtype: L{RunResult}
   @return: RunResult instance
   @raise errors.ProgrammerError: if we call this when forks are disabled
@@ -211,10 +212,11 @@ def RunCmd(cmd, env=None, output=None, cwd="/", reset_env=False,
       out, err, status, timeout_action = _RunCmdPipe(cmd, cmd_env, shell, cwd,
                                                      interactive, timeout,
                                                      noclose_fds, input_fd,
-                                                     _postfork_fn=_postfork_fn)
+                                                     postfork_fn=postfork_fn)
     else:
-      assert _postfork_fn is None, \
-          "_postfork_fn not supported if output provided"
+      if postfork_fn:
+        raise errors.ProgrammerError("postfork_fn is not supported if output"
+                                     " should be captured")
       assert input_fd is None
       timeout_action = _TIMEOUT_NONE
       status = _RunCmdFile(cmd, cmd_env, shell, output, cwd, noclose_fds)
@@ -490,9 +492,8 @@ def _WaitForProcess(child, timeout):
 
 
 def _RunCmdPipe(cmd, env, via_shell, cwd, interactive, timeout, noclose_fds,
-                input_fd,
-                _linger_timeout=constants.CHILD_LINGER_TIMEOUT,
-                _postfork_fn=None):
+                input_fd, postfork_fn=None,
+                _linger_timeout=constants.CHILD_LINGER_TIMEOUT):
   """Run a command and return its output.
 
   @type  cmd: string or list
@@ -512,7 +513,8 @@ def _RunCmdPipe(cmd, env, via_shell, cwd, interactive, timeout, noclose_fds,
                       open for the child process
   @type input_fd: C{file}-like object or numeric file descriptor
   @param input_fd: File descriptor for process' standard input
-  @param _postfork_fn: Function run after fork but before timeout (unittest)
+  @type postfork_fn: Callable receiving PID as parameter
+  @param postfork_fn: Function run after fork but before timeout
   @rtype: tuple
   @return: (out, err, status)
 
@@ -548,8 +550,8 @@ def _RunCmdPipe(cmd, env, via_shell, cwd, interactive, timeout, noclose_fds,
                            cwd=cwd,
                            preexec_fn=preexec_fn)
 
-  if _postfork_fn:
-    _postfork_fn(child.pid)
+  if postfork_fn:
+    postfork_fn(child.pid)
 
   out = StringIO()
   err = StringIO()

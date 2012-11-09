@@ -155,7 +155,7 @@ class TestIsProcessHandlingSignal(unittest.TestCase):
 
 
 class _PostforkProcessReadyHelper:
-  """A helper to use with _postfork_fn in RunCmd.
+  """A helper to use with C{postfork_fn} in RunCmd.
 
   It makes sure a process has reached a certain state by reading from a fifo.
 
@@ -264,7 +264,7 @@ class TestRunCmd(testutils.GanetiTestCase):
            (self.proc_ready_helper.write_fd, self.fifo_file))
     result = utils.RunCmd(["/bin/sh", "-c", cmd], timeout=0.2,
                           noclose_fds=[self.proc_ready_helper.write_fd],
-                          _postfork_fn=self.proc_ready_helper.Ready)
+                          postfork_fn=self.proc_ready_helper.Ready)
     self.assertEqual(result.exit_code, 0)
 
   def testTimeoutKill(self):
@@ -276,7 +276,7 @@ class TestRunCmd(testutils.GanetiTestCase):
                                 timeout, [self.proc_ready_helper.write_fd],
                                 None,
                                 _linger_timeout=0.2,
-                                _postfork_fn=self.proc_ready_helper.Ready)
+                                postfork_fn=self.proc_ready_helper.Ready)
     self.assert_(status < 0)
     self.assertEqual(-status, signal.SIGKILL)
 
@@ -285,7 +285,7 @@ class TestRunCmd(testutils.GanetiTestCase):
            (self.proc_ready_helper.write_fd, self.fifo_file))
     result = utils.RunCmd(["/bin/sh", "-c", cmd], timeout=0.2,
                           noclose_fds=[self.proc_ready_helper.write_fd],
-                          _postfork_fn=self.proc_ready_helper.Ready)
+                          postfork_fn=self.proc_ready_helper.Ready)
     self.assert_(result.failed)
     self.assertEqual(result.stdout, "sigtermed\n")
 
