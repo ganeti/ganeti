@@ -1464,6 +1464,8 @@ LEVEL_CLUSTER = 0
 LEVEL_INSTANCE = 1
 LEVEL_NODEGROUP = 2
 LEVEL_NODE = 3
+#: Level for node resources, used for operations with possibly high impact on
+#: the node's disks.
 LEVEL_NODE_RES = 4
 
 LEVELS = [
