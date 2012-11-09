@@ -168,9 +168,9 @@ Haskell optional features
 
 Optionally, more functionality can be enabled if your build machine has
 a few more Haskell libraries enabled: RAPI access to remote cluster from
-htools (``--enable-htools-rapi``) and enabling the ``ganeti-confd``
-daemon (``--enable-confd``). The list of extra dependencies for these
-is:
+htools (``--enable-htools-rapi``), the ``ganeti-confd``
+daemon (``--enable-confd``) and the monitoring agent
+(``--enable-monitoring``). The list of extra dependencies for these is:
 
 - `curl <http://hackage.haskell.org/package/curl>`_, tested with
   versions 1.3.4 and above
@@ -182,16 +182,19 @@ is:
 - `hinotify <http://hackage.haskell.org/package/hinotify>`_
 - `regex-pcre <http://hackage.haskell.org/package/regex-pcre>`_,
   bindings for the ``pcre`` library
+- `attoparsec <http://hackage.haskell.org/package/attoparsec>`_
 
 These libraries are available in Debian Wheezy (but not in Squeeze, with
 the exception of curl), so you can use either apt::
 
   $ apt-get install libghc-hslogger-dev libghc-crypto-dev libghc-text-dev \
-                    libghc-hinotify-dev libghc-regex-pcre-dev libghc-curl-dev
+                    libghc-hinotify-dev libghc-regex-pcre-dev libghc-curl-dev \
+                    libghc-attoparsec-dev
 
 or ``cabal``::
 
-  $ cabal install hslogger Crypto text hinotify regex-pcre curl
+  $ cabal install hslogger Crypto text hinotify regex-pcre curl \
+                  attoparsec
 
 to install them.
 

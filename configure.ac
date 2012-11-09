@@ -416,6 +416,13 @@ AC_ARG_ENABLE([confd],
   [],
   [enable_confd=check])
 
+ENABLE_MONITORING=
+AC_ARG_ENABLE([monitoring],
+  [AS_HELP_STRING([--enable-monitoring],
+  [enable the ganeti monitoring agent (default: check)])],
+  [],
+  [enable_monitoring=check])
+
 # Check for ghc
 AC_ARG_VAR(GHC, [ghc path])
 AC_PATH_PROG(GHC, [ghc], [])
@@ -492,12 +499,41 @@ fi
 AC_SUBST(ENABLE_CONFD, $has_confd)
 AM_CONDITIONAL([ENABLE_CONFD], [test x$has_confd = xTrue])
 
+#extra modules for monitoring agent functionality
+has_monitoring=False
+if test "$enable_monitoring" != "no"; then
+  MONITORING_PKG=
+  AC_GHC_PKG_CHECK([attoparsec], [], [MONITORING_PKG="$MONITORING_PKG attoparsec"])
+  if test -z "$MONITORING_PKG"; then
+    has_monitoring=True
+  else
+    if test "$enable_monitoring" = "check"; then
+      AC_MSG_WARN(m4_normalize([The required extra libraries for the monitoring
+                                agent were not found ($MONITORING_PKG),
+                                monitoring disabled]))
+    else
+      AC_MSG_FAILURE(m4_normalize([The monitoring functionality was requested, but
+                                   required libraries were not found:
+                                   $MONITORING_PKG]))
+    fi
+  fi
+fi
+if test "$has_monitoring" = "True"; then
+  AC_MSG_NOTICE([Enabling the monitoring agent usage])
+fi
+AC_SUBST(ENABLE_MONITORING, $has_monitoring)
+AM_CONDITIONAL([ENABLE_MONITORING], [test x$has_monitoring = xTrue])
+
 # development modules
 HTOOLS_NODEV=
 AC_GHC_PKG_CHECK([QuickCheck-2.*], [], [HTOOLS_NODEV=1], t)
 AC_GHC_PKG_CHECK([test-framework-0.6*], [], [HTOOLS_NODEV=1], t)
 AC_GHC_PKG_CHECK([test-framework-hunit], [], [HTOOLS_NODEV=1])
 AC_GHC_PKG_CHECK([test-framework-quickcheck2], [], [HTOOLS_NODEV=1])
+# FIXME: unify checks for non-test libraries (attoparsec, hinotify, ...)
+#        that are needed to execute the tests, avoiding the duplication
+#        of the checks.
+AC_GHC_PKG_CHECK([attoparsec], [], [HTOOLS_NODEV=1])
 if test -n "$HTOOLS_NODEV"; then
    AC_MSG_WARN(m4_normalize([Required development modules were not found,
                              you won't be able to run Haskell unittests]))
