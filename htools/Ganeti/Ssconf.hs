@@ -86,7 +86,7 @@ $(declareSADT "SSKey"
 keyToFilename :: FilePath     -- ^ Config path root
               -> SSKey        -- ^ Ssconf key
               -> FilePath     -- ^ Full file name
-keyToFilename cfgpath key = do
+keyToFilename cfgpath key =
   cfgpath </> sSFilePrefix ++ sSKeyToRaw key
 
 -- | Runs an IO action while transforming any error into 'Bad'

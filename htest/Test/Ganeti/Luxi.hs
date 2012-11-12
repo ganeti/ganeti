@@ -48,6 +48,8 @@ import Test.Ganeti.OpCodes ()
 import Ganeti.BasicTypes
 import qualified Ganeti.Luxi as Luxi
 
+{-# ANN module "HLint: ignore Use camelCase" #-}
+
 -- * Luxi tests
 
 $(genArbitrary ''Luxi.LuxiReq)
