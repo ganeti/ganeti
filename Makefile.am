@@ -1155,11 +1155,14 @@ clean-vcs-version:
 
 .PHONY: regen-vcs-version
 regen-vcs-version:
-	set -e; \
+	@set -e; \
 	cd $(srcdir); \
 	if test -d .git; then \
-	  $(MAKE) $(AM_MAKEFLAGS) clean-vcs-version; \
-	  $(MAKE) $(AM_MAKEFLAGS) vcs-version; \
+	  T=`mktemp` ; trap 'rm -f $$T' EXIT; \
+	  git describe > $$T; \
+	  if ! cmp --quiet $$T vcs-version; then \
+	    mv $$T vcs-version; \
+	  fi; \
 	fi
 
 htools/Ganeti/Version.hs: htools/Ganeti/Version.hs.in \
