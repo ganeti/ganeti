@@ -8458,6 +8458,8 @@ class TLMigrateInstance(Tasklet):
         self.feedback_fn("Migration failed, aborting")
         self._AbortMigration()
         self._RevertDiskStatus()
+        if not msg:
+          msg = "hypervisor returned failure"
         raise errors.OpExecError("Could not migrate instance %s: %s" %
                                  (instance.name, msg))
 

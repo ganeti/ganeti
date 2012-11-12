@@ -1780,8 +1780,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
       time.sleep(self._MIGRATION_INFO_RETRY_DELAY)
 
-    return objects.MigrationStatus(status=constants.HV_MIGRATION_FAILED,
-                                  info="Too many 'info migrate' broken answers")
+    return objects.MigrationStatus(status=constants.HV_MIGRATION_FAILED)
 
   def BalloonInstanceMemory(self, instance, mem):
     """Balloon an instance memory to a certain value.
