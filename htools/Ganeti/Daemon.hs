@@ -196,14 +196,19 @@ parseArgs cmd options = do
   parseOpts cmd_args cmd options
 
 -- * Daemon-related functions
+
 -- | PID file mode.
 pidFileMode :: FileMode
 pidFileMode = unionFileModes ownerReadMode ownerWriteMode
 
+-- | PID file open flags.
+pidFileFlags :: OpenFileFlags
+pidFileFlags = defaultFileFlags { noctty = True, trunc = False }
+
 -- | Writes a PID file and locks it.
 _writePidFile :: FilePath -> IO Fd
 _writePidFile path = do
-  fd <- createFile path pidFileMode
+  fd <- openFd path ReadWrite (Just pidFileMode) pidFileFlags
   setLock fd (WriteLock, AbsoluteSeek, 0, 0)
   my_pid <- getProcessID
   _ <- fdWrite fd (show my_pid ++ "\n")
