@@ -87,6 +87,19 @@ _LVSLINE_REGEX = re.compile("^ *([^|]+)\|([^|]+)\|([0-9.]+)\|([^|]{6,})\|?$")
 _MASTER_START = "start"
 _MASTER_STOP = "stop"
 
+#: Maximum file permissions for remote command directory and executables
+_RCMD_MAX_MODE = (stat.S_IRWXU |
+                  stat.S_IRGRP | stat.S_IXGRP |
+                  stat.S_IROTH | stat.S_IXOTH)
+
+#: Delay before returning an error for remote commands
+_RCMD_INVALID_DELAY = 10
+
+#: How long to wait to acquire lock for remote commands (shorter than
+#: L{_RCMD_INVALID_DELAY}) to reduce blockage of noded forks when many
+#: command requests arrive
+_RCMD_LOCK_TIMEOUT = _RCMD_INVALID_DELAY * 0.8
+
 
 class RPCFail(Exception):
   """Class denoting RPC failure.
@@ -3565,6 +3578,190 @@ def PowercycleNode(hypervisor_type):
     pass
   time.sleep(5)
   hyper.PowercycleNode()
+
+
+def _VerifyRemoteCommandName(cmd):
+  """Verifies a remote command name.
+
+  @type cmd: string
+  @param cmd: Command name
+  @rtype: tuple; (boolean, string or None)
+  @return: The tuple's first element is the status; if C{False}, the second
+    element is an error message string, otherwise it's C{None}
+
+  """
+  if not cmd.strip():
+    return (False, "Missing command name")
+
+  if os.path.basename(cmd) != cmd:
+    return (False, "Invalid command name")
+
+  if not constants.EXT_PLUGIN_MASK.match(cmd):
+    return (False, "Command name contains forbidden characters")
+
+  return (True, None)
+
+
+def _CommonRemoteCommandCheck(path, owner):
+  """Common checks for remote command file system directories and files.
+
+  @type path: string
+  @param path: Path to check
+  @param owner: C{None} or tuple containing UID and GID
+  @rtype: tuple; (boolean, string or C{os.stat} result)
+  @return: The tuple's first element is the status; if C{False}, the second
+    element is an error message string, otherwise it's the result of C{os.stat}
+
+  """
+  if owner is None:
+    # Default to root as owner
+    owner = (0, 0)
+
+  try:
+    st = os.stat(path)
+  except EnvironmentError, err:
+    return (False, "Can't stat(2) '%s': %s" % (path, err))
+
+  if stat.S_IMODE(st.st_mode) & (~_RCMD_MAX_MODE):
+    return (False, "Permissions on '%s' are too permissive" % path)
+
+  if (st.st_uid, st.st_gid) != owner:
+    (owner_uid, owner_gid) = owner
+    return (False, "'%s' is not owned by %s:%s" % (path, owner_uid, owner_gid))
+
+  return (True, st)
+
+
+def _VerifyRemoteCommandDirectory(path, _owner=None):
+  """Verifies remote command directory.
+
+  @type path: string
+  @param path: Path to check
+  @rtype: tuple; (boolean, string or None)
+  @return: The tuple's first element is the status; if C{False}, the second
+    element is an error message string, otherwise it's C{None}
+
+  """
+  (status, value) = _CommonRemoteCommandCheck(path, _owner)
+
+  if not status:
+    return (False, value)
+
+  if not stat.S_ISDIR(value.st_mode):
+    return (False, "Path '%s' is not a directory" % path)
+
+  return (True, None)
+
+
+def _VerifyRemoteCommand(path, cmd, _owner=None):
+  """Verifies a whole remote command and returns its executable filename.
+
+  @type path: string
+  @param path: Directory containing remote commands
+  @type cmd: string
+  @param cmd: Command name
+  @rtype: tuple; (boolean, string)
+  @return: The tuple's first element is the status; if C{False}, the second
+    element is an error message string, otherwise the second element is the
+    absolute path to the executable
+
+  """
+  executable = utils.PathJoin(path, cmd)
+
+  (status, msg) = _CommonRemoteCommandCheck(executable, _owner)
+
+  if not status:
+    return (False, msg)
+
+  if not utils.IsExecutable(executable):
+    return (False, "access(2) thinks '%s' can't be executed" % executable)
+
+  return (True, executable)
+
+
+def _PrepareRemoteCommand(path, cmd,
+                          _verify_dir=_VerifyRemoteCommandDirectory,
+                          _verify_name=_VerifyRemoteCommandName,
+                          _verify_cmd=_VerifyRemoteCommand):
+  """Performs a number of tests on a remote command.
+
+  @type path: string
+  @param path: Directory containing remote commands
+  @type cmd: string
+  @param cmd: Command name
+  @return: Same as L{_VerifyRemoteCommand}
+
+  """
+  # Verify the directory first
+  (status, msg) = _verify_dir(path)
+  if status:
+    # Check command if everything was alright
+    (status, msg) = _verify_name(cmd)
+
+  if not status:
+    return (False, msg)
+
+  # Check actual executable
+  return _verify_cmd(path, cmd)
+
+
+def RunRemoteCommand(cmd,
+                     _lock_timeout=_RCMD_LOCK_TIMEOUT,
+                     _lock_file=pathutils.REMOTE_COMMANDS_LOCK_FILE,
+                     _path=pathutils.REMOTE_COMMANDS_DIR,
+                     _sleep_fn=time.sleep,
+                     _prepare_fn=_PrepareRemoteCommand,
+                     _runcmd_fn=utils.RunCmd,
+                     _enabled=constants.ENABLE_REMOTE_COMMANDS):
+  """Executes a remote command after performing strict tests.
+
+  @type cmd: string
+  @param cmd: Command name
+  @rtype: string
+  @return: Command output
+  @raise RPCFail: In case of an error
+
+  """
+  logging.info("Preparing to run remote command '%s'", cmd)
+
+  if not _enabled:
+    _Fail("Remote commands disabled at configure time")
+
+  lock = None
+  try:
+    cmdresult = None
+    try:
+      lock = utils.FileLock.Open(_lock_file)
+      lock.Exclusive(blocking=True, timeout=_lock_timeout)
+
+      (status, value) = _prepare_fn(_path, cmd)
+
+      if status:
+        cmdresult = _runcmd_fn([value], env={}, reset_env=True,
+                               postfork_fn=lambda _: lock.Unlock())
+      else:
+        logging.error(value)
+    except Exception: # pylint: disable=W0703
+      # Keep original error in log
+      logging.exception("Caught exception")
+
+    if cmdresult is None:
+      logging.info("Sleeping for %0.1f seconds before returning",
+                   _RCMD_INVALID_DELAY)
+      _sleep_fn(_RCMD_INVALID_DELAY)
+
+      # Do not include original error message in returned error
+      _Fail("Executing command '%s' failed" % cmd)
+    elif cmdresult.failed or cmdresult.fail_reason:
+      _Fail("Remote command '%s' failed: %s; output: %s",
+            cmd, cmdresult.fail_reason, cmdresult.output)
+    else:
+      return cmdresult.output
+  finally:
+    if lock is not None:
+      # Release lock at last
+      lock.Close()
+      lock = None
 
 
 class HooksRunner(object):

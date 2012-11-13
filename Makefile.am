@@ -894,6 +894,7 @@ python_tests = \
 	test/cfgupgrade_unittest.py \
 	test/docs_unittest.py \
 	test/ganeti.asyncnotifier_unittest.py \
+	test/ganeti.backend_unittest-runasroot.py \
 	test/ganeti.backend_unittest.py \
 	test/ganeti.bdev_unittest.py \
 	test/ganeti.cli_unittest.py \
