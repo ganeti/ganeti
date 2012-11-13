@@ -464,6 +464,7 @@ HS_LIB_SRCS = \
 	htools/Ganeti/Luxi.hs \
 	htools/Ganeti/Objects.hs \
 	htools/Ganeti/OpCodes.hs \
+	htools/Ganeti/OpParams.hs \
 	htools/Ganeti/Path.hs \
 	htools/Ganeti/Query/Common.hs \
 	htools/Ganeti/Query/Filter.hs \
