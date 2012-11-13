@@ -106,6 +106,7 @@ class FakeGetentResolver:
     self.rapi_uid = uid
     self.rapi_gid = gid
     self.noded_uid = uid
+    self.noded_gid = gid
 
     self.daemons_gid = gid
     self.admin_gid = gid
