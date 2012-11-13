@@ -430,6 +430,17 @@ if test -z "$GHC"; then
   AC_MSG_FAILURE([ghc not found, compilation will not possible])
 fi
 
+AC_MSG_CHECKING([checking for extra GHC flags])
+GHC_BYVERSION_FLAGS=""
+# check for GHC supported flags that vary accross versions
+for flag in -fwarn-incomplete-uni-patterns; do
+  if $GHC -e "0" $flag >/dev/null 2>/dev/null; then
+   GHC_BYVERSION_FLAGS="$GHC_BYVERSION_FLAGS $flag"
+  fi
+done
+AC_MSG_RESULT($GHC_BYVERSION_FLAGS)
+AC_SUBST(GHC_BYVERSION_FLAGS)
+
 # Check for ghc-pkg
 AC_ARG_VAR(GHC_PKG, [ghc-pkg path])
 AC_PATH_PROG(GHC_PKG, [ghc-pkg], [])

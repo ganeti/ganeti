@@ -401,7 +401,12 @@ HS_ALL_PROGS = \
 HS_PROG_SRCS = $(patsubst %,%.hs,$(HS_ALL_PROGS))
 HS_BUILT_TEST_HELPERS = $(HS_BIN_ROLES:%=htest/%) htest/hail
 
-HFLAGS = -O -Wall -Werror -fwarn-monomorphism-restriction -fwarn-tabs -ihtools
+HFLAGS = \
+	-O -Wall -Werror -ihtools \
+	-fwarn-monomorphism-restriction \
+	-fwarn-tabs \
+	$(GHC_BYVERSION_FLAGS)
+
 # extra flags that can be overriden on the command line (e.g. -Wwarn, etc.)
 HEXTRA =
 # internal extra flags (used for htest/test mainly)

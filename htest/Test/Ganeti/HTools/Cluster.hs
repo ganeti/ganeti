@@ -346,7 +346,11 @@ prop_AllocBalance =
 prop_CheckConsistency :: Node.Node -> Instance.Instance -> Bool
 prop_CheckConsistency node inst =
   let nl = makeSmallCluster node 3
-      [node1, node2, node3] = Container.elems nl
+      (node1, node2, node3) =
+        case Container.elems nl of
+          [a, b, c] -> (a, b, c)
+          l -> error $ "Invalid node list out of makeSmallCluster/3: " ++
+               show l
       node3' = node3 { Node.group = 1 }
       nl' = Container.add (Node.idx node3') node3' nl
       inst1 = Instance.setBoth inst (Node.idx node1) (Node.idx node2)
