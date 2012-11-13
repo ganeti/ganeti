@@ -223,3 +223,32 @@ def UnifyValueType(data):
                  for (key, value) in data.iteritems()])
 
   return data
+
+
+class CallCounter(object):
+  """Utility class to count number of calls to a function/method.
+
+  """
+  def __init__(self, fn):
+    """Initializes this class.
+
+    @type fn: Callable
+
+    """
+    self._fn = fn
+    self._count = 0
+
+  def __call__(self, *args, **kwargs):
+    """Calls wrapped function with given parameters.
+
+    """
+    self._count += 1
+    return self._fn(*args, **kwargs)
+
+  def Count(self):
+    """Returns number of calls.
+
+    @rtype: number
+
+    """
+    return self._count
