@@ -25,10 +25,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Test.Ganeti.Attoparsec (testAttoparsec) where
 
-import Test.QuickCheck
+import Test.HUnit
 
 import Test.Ganeti.TestHelper
-import Test.Ganeti.TestCommon
 
 import qualified Data.Attoparsec.Text as A
 import Data.Attoparsec.Text (Parser)
@@ -55,12 +54,15 @@ simpleParser = do
 
 -- | Tests whether a Unicode string is still Unicode after being
 -- parsed.
-prop_parserSupportsUnicode :: Property
-prop_parserSupportsUnicode = case A.parseOnly simpleParser text of
-    Right (name, value) -> (name ==? part1) .&&. (value ==? part2)
-    Left msg -> failTest $ "Failed to parse: " ++ msg
+case_unicodeParsing :: Assertion
+case_unicodeParsing =
+  case A.parseOnly simpleParser text of
+    Right (name, value) -> do
+      assertEqual "name part" part1 name
+      assertEqual "value part" part2 value
+    Left msg -> assertFailure $ "Failed to parse: " ++ msg
   where text = Data.Text.pack $ part1 ++ "  = \t" ++ part2
 
 testSuite "Attoparsec"
-          [ 'prop_parserSupportsUnicode
+          [ 'case_unicodeParsing
           ]
