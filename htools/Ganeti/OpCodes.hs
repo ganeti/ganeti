@@ -39,7 +39,7 @@ module Ganeti.OpCodes
   , allOpIDs
   ) where
 
-import Text.JSON (readJSON, showJSON, makeObj, JSON, JSValue(..), fromJSString)
+import Text.JSON (readJSON, showJSON, JSON, JSValue(..), fromJSString)
 import Text.JSON.Pretty (pp_value)
 
 import qualified Ganeti.Constants as C

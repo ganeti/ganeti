@@ -95,7 +95,7 @@ import Data.List (foldl')
 import Data.Maybe
 import qualified Data.Map as Map
 import qualified Data.Set as Set
-import Text.JSON (makeObj, showJSON, readJSON, JSON, JSValue(..))
+import Text.JSON (showJSON, readJSON, JSON, JSValue(..))
 import qualified Text.JSON as J
 
 import qualified Ganeti.Constants as C

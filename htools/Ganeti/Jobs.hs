@@ -30,8 +30,6 @@ module Ganeti.Jobs
   , JobStatus(..)
   ) where
 
-import Text.JSON (readJSON, showJSON, JSON)
-
 import qualified Ganeti.Constants as C
 import qualified Ganeti.THH as THH
 

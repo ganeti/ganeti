@@ -73,7 +73,6 @@ module Ganeti.Rpc
 import Control.Arrow (second)
 import qualified Text.JSON as J
 import Text.JSON.Pretty (pp_value)
-import Text.JSON (makeObj)
 
 #ifndef NO_CURL
 import Network.Curl
@@ -84,7 +83,6 @@ import qualified Ganeti.Constants as C
 import Ganeti.Objects
 import Ganeti.THH
 import Ganeti.Compat
-import Ganeti.JSON
 
 -- * Base RPC functionality and types
 

@@ -50,6 +50,10 @@ import Text.Printf (printf)
 import qualified Text.JSON as J
 import Text.JSON.Pretty (pp_value)
 
+-- Note: this module should not import any Ganeti-specific modules
+-- beside BasicTypes, since it's used in THH which is used itself to
+-- build many other modules.
+
 import Ganeti.BasicTypes
 
 -- * JSON-related functions

@@ -69,6 +69,8 @@ import Language.Haskell.TH
 import qualified Text.JSON as JSON
 import Text.JSON.Pretty (pp_value)
 
+import Ganeti.JSON
+
 -- * Exported types
 
 -- | Class of objects that can be converted to 'JSObject'
@@ -239,7 +241,15 @@ varNameE = varE . mkName
 
 -- | showJSON as an expression, for reuse.
 showJSONE :: Q Exp
-showJSONE = varNameE "showJSON"
+showJSONE = varE 'JSON.showJSON
+
+-- | makeObj as an expression, for reuse.
+makeObjE :: Q Exp
+makeObjE = varE 'JSON.makeObj
+
+-- | fromObj (Ganeti specific) as an expression, for reuse.
+fromObjE :: Q Exp
+fromObjE = varE 'fromObj
 
 -- | ToRaw function name.
 toRawName :: String -> Name
@@ -394,7 +404,7 @@ declareSADT = declareADT ''String
 genShowJSON :: String -> Q Dec
 genShowJSON name = do
   body <- [| JSON.showJSON . $(varE (toRawName name)) |]
-  return $ FunD (mkName "showJSON") [Clause [] (NormalB body) []]
+  return $ FunD 'JSON.showJSON [Clause [] (NormalB body) []]
 
 -- | Creates the readJSON member of a JSON instance declaration.
 --
@@ -417,7 +427,7 @@ genReadJSON name = do
                            $(stringE name) ++ ": " ++ e ++ " from " ++
                            show $(varE s)
            |]
-  return $ FunD (mkName "readJSON") [Clause [VarP s] (NormalB body) []]
+  return $ FunD 'JSON.readJSON [Clause [VarP s] (NormalB body) []]
 
 -- | Generates a JSON instance for a given type.
 --
@@ -546,7 +556,7 @@ saveConstructor sname fields = do
                    JSON.showJSON $(stringE . deCamelCase $ sname) )] |]
       flist = listE (opid:felems)
       -- and finally convert all this to a json object
-      flist' = [| $(varNameE "makeObj") (concat $flist) |]
+      flist' = [| $makeObjE (concat $flist) |]
   clause [pat] (normalB flist') []
 
 -- | Generates the main save opcode function.
@@ -583,8 +593,7 @@ genLoadOpCode opdefs = do
       opid = mkName "op_id"
   st1 <- bindS (varP objname) [| liftM JSON.fromJSObject
                                  (JSON.readJSON $(varE arg1)) |]
-  st2 <- bindS (varP opid) [| $(varNameE "fromObj")
-                              $(varE objname) $(stringE "OP_ID") |]
+  st2 <- bindS (varP opid) [| $fromObjE $(varE objname) $(stringE "OP_ID") |]
   -- the match results (per-constructor blocks)
   mexps <- mapM (uncurry loadConstructor) opdefs
   fails <- [| fail $ "Unknown opcode " ++ $(varE opid) |]
@@ -706,7 +715,7 @@ genSaveObject save_fn sname fields = do
       tdlist = [| concat $flist |]
       iname = mkName "i"
   tclause <- clause [pat] (normalB tdlist) []
-  cclause <- [| $(varNameE "makeObj") . $(varE tdname) |]
+  cclause <- [| $makeObjE . $(varE tdname) |]
   let fname = mkName ("save" ++ sname)
   sigt <- [t| $(conT name) -> JSON.JSValue |]
   return [SigD tdname tdsigt, FunD tdname [tclause],
@@ -741,7 +750,7 @@ saveObjectField fvar field =
 objectShowJSON :: String -> Q Dec
 objectShowJSON name = do
   body <- [| JSON.showJSON . $(varE . mkName $ "save" ++ name) |]
-  return $ FunD (mkName "showJSON") [Clause [] (NormalB body) []]
+  return $ FunD 'JSON.showJSON [Clause [] (NormalB body) []]
 
 -- | Generates the load object functionality.
 genLoadObject :: (Field -> Q (Name, Stmt))
@@ -775,12 +784,12 @@ loadObjectField field = do
           -- we treat both optional types the same, since
           -- 'maybeFromObj' can deal with both missing and null values
           -- appropriately (the same)
-          then [| $(varNameE "maybeFromObj") $objvar $objfield |]
+          then [| $(varE 'maybeFromObj) $objvar $objfield |]
           else case fieldDefault field of
                  Just defv ->
-                   [| $(varNameE "fromObjWithDefault") $objvar
+                   [| $(varE 'fromObjWithDefault) $objvar
                       $objfield $defv |]
-                 Nothing -> [| $(varNameE "fromObj") $objvar $objfield |]
+                 Nothing -> [| $fromObjE $objvar $objfield |]
   bexp <- loadFn field loadexp objvar
 
   return (fvar, BindS (VarP fvar) bexp)
@@ -795,7 +804,7 @@ objectReadJSON name = do
                  JSON.Error $ "Can't parse value for type " ++
                        $(stringE name) ++ ": " ++ e
            |]
-  return $ FunD (mkName "readJSON") [Clause [VarP s] (NormalB body) []]
+  return $ FunD 'JSON.readJSON [Clause [VarP s] (NormalB body) []]
 
 -- * Inheritable parameter tables implementation
 
@@ -886,7 +895,7 @@ loadPParamField field = do
   -- these are used in all patterns below
   let objvar = varNameE "o"
       objfield = stringE name
-      loadexp = [| $(varNameE "maybeFromObj") $objvar $objfield |]
+      loadexp = [| $(varE 'maybeFromObj) $objvar $objfield |]
   bexp <- loadFn field loadexp objvar
   return (fvar, BindS (VarP fvar) bexp)
 
@@ -894,7 +903,7 @@ loadPParamField field = do
 buildFromMaybe :: String -> Q Dec
 buildFromMaybe fname =
   valD (varP (mkName $ "n_" ++ fname))
-         (normalB [| $(varNameE "fromMaybe")
+         (normalB [| $(varE 'fromMaybe)
                         $(varNameE $ "f_" ++ fname)
                         $(varNameE $ "p_" ++ fname) |]) []
 

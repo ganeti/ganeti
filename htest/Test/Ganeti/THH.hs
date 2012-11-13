@@ -34,7 +34,6 @@ import Test.QuickCheck
 import Text.JSON
 
 import Ganeti.THH
-import Ganeti.JSON
 
 import Test.Ganeti.TestHelper
 import Test.Ganeti.TestCommon
