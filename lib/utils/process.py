@@ -110,6 +110,8 @@ class RunResult(object):
 
     if fail_msgs and self.failed:
       self.fail_reason = utils_text.CommaJoin(fail_msgs)
+    else:
+      self.fail_reason = None
 
     if self.failed:
       logging.debug("Command '%s' failed (%s); output: %s",
