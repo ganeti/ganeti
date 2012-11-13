@@ -30,6 +30,7 @@ import Test.Framework
 import System.Environment (getArgs)
 
 import Test.Ganeti.TestImports ()
+import Test.Ganeti.Attoparsec
 import Test.Ganeti.BasicTypes
 import Test.Ganeti.Common
 import Test.Ganeti.Confd.Utils
@@ -74,6 +75,7 @@ defOpts = TestOptions
 allTests :: [Test]
 allTests =
   [ testBasicTypes
+  , testAttoparsec
   , testCommon
   , testConfd_Utils
   , testDaemon

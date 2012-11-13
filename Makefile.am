@@ -473,6 +473,7 @@ HS_LIB_SRCS = \
 	htools/Ganeti/Utils.hs
 
 HS_TEST_SRCS = \
+	htest/Test/Ganeti/Attoparsec.hs \
 	htest/Test/Ganeti/BasicTypes.hs \
 	htest/Test/Ganeti/Common.hs \
 	htest/Test/Ganeti/Confd/Utils.hs \
