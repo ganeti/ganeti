@@ -479,6 +479,9 @@ _MISC_CALLS = [
     ], None, None, "Modify hosts file with name"),
   ("drbd_helper", MULTI, None, constants.RPC_TMO_URGENT, [],
    None, None, "Gets DRBD helper"),
+  ("restricted_command", MULTI, None, constants.RPC_TMO_SLOW, [
+    ("cmd", None, "Command name"),
+    ], None, None, "Runs restricted command"),
   ("run_oob", SINGLE, None, constants.RPC_TMO_NORMAL, [
     ("oob_program", None, None),
     ("command", None, None),

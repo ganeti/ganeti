@@ -811,6 +811,15 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     return result
 
   @staticmethod
+  def perspective_restricted_command(params):
+    """Runs a restricted command.
+
+    """
+    (cmd, ) = params
+
+    return backend.RunRemoteCommand(cmd)
+
+  @staticmethod
   def perspective_write_ssconf_files(params):
     """Write ssconf files.
 
