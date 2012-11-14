@@ -104,7 +104,7 @@ AC_ARG_WITH([xen-cmd],
     [Sets the xen cli interface command (default is xm)]
   )],
   [xen_cmd="$withval"],
-  [xen_cmd="xm"])
+  [xen_cmd=xm])
 AC_SUBST(XEN_CMD, $xen_cmd)
 
 if ! test "$XEN_CMD" = xl -o "$XEN_CMD" = xm; then
@@ -134,7 +134,7 @@ AC_ARG_WITH([file-storage-dir],
     fi
   ]],
   [[file_storage_dir="/srv/ganeti/file-storage";
-    enable_file_storage="True"]])
+    enable_file_storage=True]])
 AC_SUBST(FILE_STORAGE_DIR, $file_storage_dir)
 AC_SUBST(ENABLE_FILE_STORAGE, $enable_file_storage)
 
@@ -152,7 +152,7 @@ AC_ARG_WITH([shared-file-storage-dir],
     fi
   ]],
   [[shared_file_storage_dir="/srv/ganeti/shared-file-storage";
-    enable_shared_file_storage="True"]])
+    enable_shared_file_storage=True]])
 AC_SUBST(SHARED_FILE_STORAGE_DIR, $shared_file_storage_dir)
 AC_SUBST(ENABLE_SHARED_FILE_STORAGE, $enable_shared_file_storage)
 
@@ -173,7 +173,7 @@ AC_ARG_WITH([lvm-stripecount],
     [ (default is 1)]
   )],
   [lvm_stripecount="$withval"],
-  [lvm_stripecount="1"])
+  [lvm_stripecount=1])
 AC_SUBST(LVM_STRIPECOUNT, $lvm_stripecount)
 
 # --with-ssh-login-user=...
@@ -268,7 +268,8 @@ AC_MSG_NOTICE([Group for clients is $group_admin])
 # --enable-drbd-barriers
 AC_ARG_ENABLE([drbd-barriers],
   [AS_HELP_STRING([--enable-drbd-barriers],
-    [enable by default the DRBD barriers functionality (>= 8.0.12) (default: enabled)])],
+                  m4_normalize([enable the DRBD barriers functionality by
+                                default (>= 8.0.12) (default: enabled)]))],
   [[if test "$enableval" != no; then
       DRBD_BARRIERS=n
       DRBD_NO_META_FLUSH=False
@@ -444,10 +445,10 @@ if test -z "$GHC"; then
 fi
 
 AC_MSG_CHECKING([checking for extra GHC flags])
-GHC_BYVERSION_FLAGS=""
+GHC_BYVERSION_FLAGS=
 # check for GHC supported flags that vary accross versions
 for flag in -fwarn-incomplete-uni-patterns; do
-  if $GHC -e "0" $flag >/dev/null 2>/dev/null; then
+  if $GHC -e '0' $flag >/dev/null 2>/dev/null; then
    GHC_BYVERSION_FLAGS="$GHC_BYVERSION_FLAGS $flag"
   fi
 done
@@ -464,10 +465,10 @@ fi
 # check for modules, first custom/special checks
 AC_MSG_NOTICE([checking for required haskell modules])
 HTOOLS_NOCURL=-DNO_CURL
-if test "$enable_htools_rapi" != "no"; then
+if test "$enable_htools_rapi" != no; then
   AC_GHC_PKG_CHECK([curl], [HTOOLS_NOCURL=], [])
   if test -n "$HTOOLS_NOCURL"; then
-    if test "$enable_htools_rapi" = "check"; then
+    if test "$enable_htools_rapi" = check; then
       AC_MSG_WARN(m4_normalize([The curl library was not found, Haskell
                                 code will be compiled without RAPI support]))
     else
@@ -495,7 +496,7 @@ AC_GHC_PKG_REQUIRE(utf8-string)
 # extra modules for confd functionality
 HTOOLS_REGEX_PCRE=-DNO_REGEX_PCRE
 has_confd=False
-if test "$enable_confd" != "no"; then
+if test "$enable_confd" != no; then
   CONFD_PKG=
   AC_GHC_PKG_CHECK([regex-pcre], [HTOOLS_REGEX_PCRE=],
                    [CONFD_PKG="$CONFD_PKG regex-pcre"])
@@ -505,19 +506,17 @@ if test "$enable_confd" != "no"; then
   AC_GHC_PKG_CHECK([hinotify], [], [CONFD_PKG="$CONFD_PKG hinotify"])
   if test -z "$CONFD_PKG"; then
     has_confd=True
+  elif test "$enable_confd" = check; then
+    AC_MSG_WARN(m4_normalize([The required extra libraries for confd were
+                              not found ($CONFD_PKG), confd disabled]))
   else
-    if test "$enable_confd" = "check"; then
-      AC_MSG_WARN(m4_normalize([The required extra libraries for confd were
-                                not found ($CONFD_PKG), confd disabled]))
-    else
-      AC_MSG_FAILURE(m4_normalize([The confd functionality was requested, but
-                                   required libraries were not found:
-                                   $CONFD_PKG]))
-    fi
+    AC_MSG_FAILURE(m4_normalize([The confd functionality was requested, but
+                                 required libraries were not found:
+                                 $CONFD_PKG]))
   fi
 fi
 AC_SUBST(HTOOLS_REGEX_PCRE)
-if test "$has_confd" = "True"; then
+if test "$has_confd" = True; then
   AC_MSG_NOTICE([Enabling confd usage])
 fi
 AC_SUBST(ENABLE_CONFD, $has_confd)
@@ -525,28 +524,27 @@ AM_CONDITIONAL([ENABLE_CONFD], [test x$has_confd = xTrue])
 
 #extra modules for monitoring agent functionality
 has_monitoring=False
-if test "$enable_monitoring" != "no"; then
+if test "$enable_monitoring" != no; then
   MONITORING_PKG=
-  AC_GHC_PKG_CHECK([attoparsec], [], [MONITORING_PKG="$MONITORING_PKG attoparsec"])
+  AC_GHC_PKG_CHECK([attoparsec], [],
+                   [MONITORING_PKG="$MONITORING_PKG attoparsec"])
   if test -z "$MONITORING_PKG"; then
     has_monitoring=True
+  elif test "$enable_monitoring" = check; then
+    AC_MSG_WARN(m4_normalize([The required extra libraries for the monitoring
+                              agent were not found ($MONITORING_PKG),
+                              monitoring disabled]))
   else
-    if test "$enable_monitoring" = "check"; then
-      AC_MSG_WARN(m4_normalize([The required extra libraries for the monitoring
-                                agent were not found ($MONITORING_PKG),
-                                monitoring disabled]))
-    else
-      AC_MSG_FAILURE(m4_normalize([The monitoring functionality was requested, but
-                                   required libraries were not found:
-                                   $MONITORING_PKG]))
-    fi
+    AC_MSG_FAILURE(m4_normalize([The monitoring functionality was requested, but
+                                 required libraries were not found:
+                                 $MONITORING_PKG]))
   fi
 fi
-if test "$has_monitoring" = "True"; then
+if test "$has_monitoring" = True; then
   AC_MSG_NOTICE([Enabling the monitoring agent usage])
 fi
 AC_SUBST(ENABLE_MONITORING, $has_monitoring)
-AM_CONDITIONAL([ENABLE_MONITORING], [test x$has_monitoring = xTrue])
+AM_CONDITIONAL([ENABLE_MONITORING], [test "$has_monitoring" = True])
 
 # development modules
 HTOOLS_NODEV=
@@ -625,7 +623,7 @@ if test -z "$HADDOCK"; then
   AC_MSG_WARN(m4_normalize([haddock not found, htools API documentation will
                             not be generated]))
 fi
-if test "$HADDOCK" && test "$HSCOLOUR"; then
+if test -n "$HADDOCK" && test -n "$HSCOLOUR"; then
   HTOOLS_APIDOC=yes
 fi
 AC_SUBST(HTOOLS_APIDOC)
@@ -638,14 +636,14 @@ if test -z "$HLINT"; then
   AC_MSG_WARN([hlint not found, checking code will not be possible])
 fi
 
-if test "$HTOOLS" != "yes" && test "$ENABLE_CONFD" = "True"; then
-   AC_MSG_ERROR(m4_normalize([cannot enable ganeti-confd if
-                              htools support is not enabled]))
+if test "$HTOOLS" != yes && test "$ENABLE_CONFD" = True; then
+  AC_MSG_ERROR(m4_normalize([cannot enable ganeti-confd if
+                             htools support is not enabled]))
 fi
 
-AM_CONDITIONAL([WANT_HTOOLS], [test x$HTOOLS = xyes])
+AM_CONDITIONAL([WANT_HTOOLS], [test "$HTOOLS" = yes])
 AM_CONDITIONAL([WANT_HTOOLSTESTS], [test "x$HTOOLS_NODEV" = x])
-AM_CONDITIONAL([WANT_HTOOLSAPIDOC], [test x$HTOOLS_APIDOC = xyes])
+AM_CONDITIONAL([WANT_HTOOLSAPIDOC], [test "$HTOOLS_APIDOC" = yes])
 AM_CONDITIONAL([HAS_HLINT], [test "$HLINT"])
 
 # Check for fakeroot

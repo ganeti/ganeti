@@ -1454,6 +1454,9 @@ check-local: check-dirs $(GENERATED_FILES)
 	if ! test -f $(top_srcdir)/doc/design-$$expver.rst; then \
 		echo "File $(top_srcdir)/doc/design-$$expver.rst not found"; \
 		exit 1; \
+	fi; \
+	if test $$(wc --max-line-length < $(top_srcdir)/configure.ac) -gt 80; then \
+		echo 'Longest line in configure.ac is longer than 80 characters' >&2; \
 	fi
 
 .PHONY: hs-check
