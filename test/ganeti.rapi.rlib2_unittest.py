@@ -35,8 +35,11 @@ from ganeti import http
 from ganeti import query
 from ganeti import luxi
 from ganeti import errors
+from ganeti import rapi
 
 from ganeti.rapi import rlib2
+from ganeti.rapi import baserlib
+from ganeti.rapi import connector
 
 import testutils
 
@@ -1751,6 +1754,27 @@ class TestInstancesMultiAlloc(unittest.TestCase):
     (body, _) = handler.GetPostOpInput()
     self.assertTrue(compat.all([inst["OP_ID"] == handler.POST_OPCODE.OP_ID
                                 for inst in body["instances"]]))
+
+
+class TestPermissions(unittest.TestCase):
+  def testEquality(self):
+    self.assertEqual(rlib2.R_2_query.GET_ACCESS, rlib2.R_2_query.PUT_ACCESS)
+    self.assertEqual(rlib2.R_2_query.GET_ACCESS,
+                     rlib2.R_2_instances_name_console.GET_ACCESS)
+
+  def testMethodAccess(self):
+    for handler in connector.CONNECTOR.values():
+      for method in baserlib._SUPPORTED_METHODS:
+        access = getattr(handler, "%s_ACCESS" % method)
+        self.assertFalse(set(access) - rapi.RAPI_ACCESS_ALL,
+                         msg=("Handler '%s' uses unknown access options for"
+                              " method %s" % (handler, method)))
+        self.assertTrue(rapi.RAPI_ACCESS_READ not in access or
+                        rapi.RAPI_ACCESS_WRITE in access,
+                        msg=("Handler '%s' gives query, but not write access"
+                             " for method %s (the latter includes query and"
+                             " should therefore be given as well)" %
+                             (handler, method)))
 
 
 if __name__ == "__main__":
