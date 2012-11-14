@@ -392,10 +392,6 @@ class TestComputeWrongFileStoragePathsInternal(unittest.TestCase):
     self.assertEqual(vfsp(["/usr/sbin/vim", "/srv/file-storage"]),
                      ["/usr/sbin/vim"])
 
-    self.assertTrue(vfsp([pathutils.REMOTE_COMMANDS_DIR]),
-                    msg=("Remote commands directory should never be valid"
-                         "for file storage"))
-
 
 class TestComputeWrongFileStoragePaths(testutils.GanetiTestCase):
   def test(self):
