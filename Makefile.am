@@ -1265,6 +1265,7 @@ lib/_autoconf.py: Makefile | stamp-directories
 	  echo "ENABLE_CONFD = $(ENABLE_CONFD)"; \
 	  echo "XEN_CMD = '$(XEN_CMD)'"; \
 	  echo "ENABLE_SPLIT_QUERY = $(ENABLE_SPLIT_QUERY)"; \
+	  echo "ENABLE_REMOTE_COMMANDS = $(ENABLE_REMOTE_COMMANDS)"; \
 	} > $@
 
 lib/_vcsversion.py: Makefile vcs-version | stamp-directories

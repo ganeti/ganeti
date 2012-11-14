@@ -310,6 +310,19 @@ then
 fi
 AC_SUBST(SYSLOG_USAGE, $SYSLOG)
 
+AC_ARG_ENABLE([remote-commands],
+  [AS_HELP_STRING([--enable-remote-commands],
+                  m4_normalize([enable remote commands in the node daemon
+                                (default: disabled)]))],
+  [[if test "$enableval" = no; then
+      enable_remote_commands=False
+    else
+      enable_remote_commands=True
+    fi
+  ]],
+  [enable_remote_commands=False])
+AC_SUBST(ENABLE_REMOTE_COMMANDS, $enable_remote_commands)
+
 # --with-disk-separator=...
 AC_ARG_WITH([disk-separator],
   [AS_HELP_STRING([--with-disk-separator=STRING],
