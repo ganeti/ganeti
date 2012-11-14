@@ -55,6 +55,18 @@ skip this process. The option requires interactive confirmation, as
 having two masters on the same cluster is a very dangerous
 situation and will most likely lead to data loss.
 
+SHUTDOWN
+~~~~~~~~
+
+When the master daemon receives a ``SIGINT`` (Ctrl-C) or ``SIGTERM``
+signal, it stops accepting new jobs and prepares to shut down shortly
+after jobs running at the time finish. Meanwhile it still responds to
+LUXI requests. Pending jobs are re-queued after the daemon is started
+again. When a second signal is received, the master daemon terminates
+without waiting (it might still need to wait for some threads to
+finish). Note that the latter, as well as sending ``SIGKILL``, may leave
+the cluster in an inconsistent state.
+
 JOB QUEUE
 ~~~~~~~~~
 
