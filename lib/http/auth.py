@@ -310,6 +310,8 @@ def ParsePasswordFile(contents):
     parts = line.split(None, 2)
     if len(parts) < 2:
       # Invalid line
+      # TODO: Return line number from FilterEmptyLinesAndComments
+      logging.warning("Ignoring non-comment line with less than two fields")
       continue
 
     name = parts[0]
@@ -320,6 +322,8 @@ def ParsePasswordFile(contents):
     if len(parts) >= 3:
       for part in parts[2].split(","):
         options.append(part.strip())
+    else:
+      logging.warning("Ignoring values for user '%s': %s", name, parts[3:])
 
     users[name] = PasswordFileUser(name, password, options)
 
