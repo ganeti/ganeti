@@ -968,6 +968,47 @@ def SetNodeParams(opts, args):
   return 0
 
 
+def RestrictedCommand(opts, args):
+  """Runs a remote command on node(s).
+
+  @param opts: Command line options selected by user
+  @type args: list
+  @param args: Command line arguments
+  @rtype: int
+  @return: Exit code
+
+  """
+  cl = GetClient()
+
+  if len(args) > 1 or opts.nodegroup:
+    # Expand node names
+    nodes = GetOnlineNodes(nodes=args[1:], cl=cl, nodegroup=opts.nodegroup)
+  else:
+    raise errors.OpPrereqError("Node group or node names must be given",
+                               errors.ECODE_INVAL)
+
+  op = opcodes.OpRestrictedCommand(command=args[0], nodes=nodes,
+                                   use_locking=opts.do_locking)
+  result = SubmitOrSend(op, opts, cl=cl)
+
+  exit_code = constants.EXIT_SUCCESS
+
+  for (node, (status, text)) in zip(nodes, result):
+    ToStdout("------------------------------------------------")
+    if status:
+      if opts.show_machine_names:
+        for line in text.splitlines():
+          ToStdout("%s: %s", node, line)
+      else:
+        ToStdout("Node: %s", node)
+        ToStdout(text)
+    else:
+      exit_code = constants.EXIT_FAILURE
+      ToStdout(text)
+
+  return exit_code
+
+
 class ReplyStatus(object):
   """Class holding a reply status for synchronous confd clients.
 
@@ -1057,6 +1098,7 @@ def ListDrbd(opts, args):
     ToStdout(line)
 
   return constants.EXIT_SUCCESS
+
 
 commands = {
   "add": (
@@ -1173,6 +1215,11 @@ commands = {
     ListDrbd, ARGS_ONE_NODE,
     [NOHDR_OPT, SEP_OPT],
     "[<node_name>]", "Query the list of used DRBD minors on the given node"),
+  "restricted-command": (
+    RestrictedCommand, [ArgUnknown(min=1, max=1)] + ARGS_MANY_NODES,
+    [SYNC_OPT, PRIORITY_OPT, SUBMIT_OPT, SHOW_MACHINE_OPT, NODEGROUP_OPT],
+    "<command> <node_name> [<node_name>...]",
+    "Executes a restricted command on node(s)"),
   }
 
 #: dictionary with aliases for commands

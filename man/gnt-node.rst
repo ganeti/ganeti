@@ -612,6 +612,35 @@ specific and ``status`` can be one of ``OK``, ``WARNING``, ``CRITICAL`` or
 ``UNKNOWN``. Items with status ``WARNING`` or ``CRITICAL`` are logged and
 annotated in the command line output.
 
+
+RESTRICTED-COMMAND
+~~~~~~~~~~~~~~~~~~
+
+| **restricted-command** [-M] [--sync]
+| { -g *group* *command* | *command* *nodes*... }
+
+Executes a restricted command on the specified nodes. Restricted commands are
+not arbitrary, but must reside in
+``@SYSCONFDIR@/ganeti/remote-commands`` on a node, either as a regular
+file or as a symlink. The directory must be owned by root and not be
+world- or group-writable. If a command fails verification or otherwise
+fails to start, the node daemon log must be consulted for more detailed
+information.
+
+Example for running a command on two nodes::
+
+    # gnt-node restricted-command mycommand \
+      node1.example.com node2.example.com
+
+The ``-g`` option can be used to run a command only on a specific node
+group, e.g.::
+
+    # gnt-node restricted-command -g default mycommand
+
+The ``-M`` option can be used to prepend the node name to all command
+output lines. ``--sync`` forces the opcode to acquire the node lock(s)
+in exclusive mode.
+
 .. vim: set textwidth=72 :
 .. Local Variables:
 .. mode: rst
