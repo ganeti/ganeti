@@ -66,6 +66,9 @@ RAPI_OPCODE_EXCLUDE = frozenset([
   opcodes.OpNodeAdd,
   opcodes.OpNodeRemove,
 
+  # Very sensitive in nature
+  opcodes.OpRestrictedCommand,
+
   # Helper opcodes (e.g. submitted by LUs)
   opcodes.OpClusterVerifyConfig,
   opcodes.OpClusterVerifyGroup,

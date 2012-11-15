@@ -15007,6 +15007,53 @@ class LUTestDelay(NoHooksLU):
         self._TestDelay()
 
 
+class LURestrictedCommand(NoHooksLU):
+  """Logical unit for executing restricted commands.
+
+  """
+  REQ_BGL = False
+
+  def ExpandNames(self):
+    if self.op.nodes:
+      self.op.nodes = _GetWantedNodes(self, self.op.nodes)
+
+    self.needed_locks = {
+      locking.LEVEL_NODE: self.op.nodes,
+      }
+    self.share_locks = {
+      locking.LEVEL_NODE: not self.op.use_locking,
+      }
+
+  def CheckPrereq(self):
+    """Check prerequisites.
+
+    """
+
+  def Exec(self, feedback_fn):
+    """Execute restricted command and return output.
+
+    """
+    owned_nodes = frozenset(self.owned_locks(locking.LEVEL_NODE))
+
+    # Check if correct locks are held
+    assert set(self.op.nodes).issubset(owned_nodes)
+
+    rpcres = self.rpc.call_restricted_command(self.op.nodes, self.op.command)
+
+    result = []
+
+    for node_name in self.op.nodes:
+      nres = rpcres[node_name]
+      if nres.fail_msg:
+        msg = ("Command '%s' on node '%s' failed: %s" %
+               (self.op.command, node_name, nres.fail_msg))
+        result.append((False, msg))
+      else:
+        result.append((True, nres.payload))
+
+    return result
+
+
 class LUTestJqueue(NoHooksLU):
   """Utility LU to test some aspects of the job queue.
 

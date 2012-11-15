@@ -947,6 +947,28 @@ class OpOobCommand(OpCode):
   OP_RESULT = _TQueryResult
 
 
+class OpRestrictedCommand(OpCode):
+  """Runs a restricted command on node(s).
+
+  """
+  OP_PARAMS = [
+    _PUseLocking,
+    ("nodes", ht.NoDefault, ht.TListOf(ht.TNonEmptyString),
+     "Nodes on which the command should be run (at least one)"),
+    ("command", ht.NoDefault, ht.TNonEmptyString,
+     "Command name (no parameters)"),
+    ]
+
+  _RESULT_ITEMS = [
+    ht.Comment("success")(ht.TBool),
+    ht.Comment("output or error message")(ht.TString),
+    ]
+
+  OP_RESULT = \
+    ht.TListOf(ht.TAnd(ht.TIsLength(len(_RESULT_ITEMS)),
+                       ht.TItems(_RESULT_ITEMS)))
+
+
 # node opcodes
 
 class OpNodeRemove(OpCode):
