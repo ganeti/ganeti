@@ -44,6 +44,7 @@ import Control.Applicative
 import Test.Ganeti.TestHelper
 import Test.Ganeti.TestCommon
 import Test.Ganeti.TestHTools
+import Test.Ganeti.Types ()
 
 import Ganeti.BasicTypes
 import qualified Ganeti.HTools.Types as Types
@@ -55,10 +56,6 @@ allDiskTemplates :: [Types.DiskTemplate]
 allDiskTemplates = [minBound..maxBound]
 
 -- * Arbitrary instance
-
-$(genArbitrary ''Types.AllocPolicy)
-
-$(genArbitrary ''Types.DiskTemplate)
 
 $(genArbitrary ''Types.FailMode)
 
@@ -122,12 +119,6 @@ instance Arbitrary Types.IPolicy where
 
 -- * Test cases
 
-prop_AllocPolicy_serialisation :: Types.AllocPolicy -> Property
-prop_AllocPolicy_serialisation = testSerialisation
-
-prop_DiskTemplate_serialisation :: Types.DiskTemplate -> Property
-prop_DiskTemplate_serialisation = testSerialisation
-
 prop_ISpec_serialisation :: Types.ISpec -> Property
 prop_ISpec_serialisation = testSerialisation
 
@@ -156,9 +147,7 @@ prop_eitherToResult ei =
     where r = eitherToResult ei
 
 testSuite "HTools/Types"
-            [ 'prop_AllocPolicy_serialisation
-            , 'prop_DiskTemplate_serialisation
-            , 'prop_ISpec_serialisation
+            [ 'prop_ISpec_serialisation
             , 'prop_IPolicy_serialisation
             , 'prop_EvacMode_serialisation
             , 'prop_opToResult

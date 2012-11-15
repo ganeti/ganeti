@@ -100,8 +100,8 @@ isRunning _                              = False
 
 -- | Check if instance is offline.
 isOffline :: Instance -> Bool
-isOffline (Instance {runSt = T.AdminOffline}) = True
-isOffline _                                   = False
+isOffline (Instance {runSt = T.StatusOffline}) = True
+isOffline _                                    = False
 
 
 -- | Helper to check if the instance is not offline.

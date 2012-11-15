@@ -79,6 +79,7 @@ import qualified Data.Map as M
 import qualified Ganeti.Constants as C
 import qualified Ganeti.THH as THH
 import Ganeti.BasicTypes
+import Ganeti.Types
 
 -- | The instance index type.
 type Idx = Int
@@ -105,18 +106,6 @@ type GroupID = String
 defaultGroupID :: GroupID
 defaultGroupID = "00000000-0000-0000-0000-000000000000"
 
--- | Instance disk template type.
-$(THH.declareSADT "DiskTemplate"
-       [ ("DTDiskless",   'C.dtDiskless)
-       , ("DTFile",       'C.dtFile)
-       , ("DTSharedFile", 'C.dtSharedFile)
-       , ("DTPlain",      'C.dtPlain)
-       , ("DTBlock",      'C.dtBlock)
-       , ("DTDrbd8",      'C.dtDrbd8)
-       , ("DTRbd",        'C.dtRbd)
-       ])
-$(THH.makeJSONInstance ''DiskTemplate)
-
 -- | Mirroring type.
 data MirrorType = MirrorNone     -- ^ No mirroring/movability
                 | MirrorInternal -- ^ DRBD-type mirroring
@@ -132,32 +121,6 @@ templateMirrorType DTPlain      = MirrorNone
 templateMirrorType DTBlock      = MirrorExternal
 templateMirrorType DTDrbd8      = MirrorInternal
 templateMirrorType DTRbd        = MirrorExternal
-
--- | The Group allocation policy type.
---
--- Note that the order of constructors is important as the automatic
--- Ord instance will order them in the order they are defined, so when
--- changing this data type be careful about the interaction with the
--- desired sorting order.
-$(THH.declareSADT "AllocPolicy"
-       [ ("AllocPreferred",   'C.allocPolicyPreferred)
-       , ("AllocLastResort",  'C.allocPolicyLastResort)
-       , ("AllocUnallocable", 'C.allocPolicyUnallocable)
-       ])
-$(THH.makeJSONInstance ''AllocPolicy)
-
--- | The Instance real state type.
-$(THH.declareSADT "InstanceStatus"
-       [ ("AdminDown", 'C.inststAdmindown)
-       , ("AdminOffline", 'C.inststAdminoffline)
-       , ("ErrorDown", 'C.inststErrordown)
-       , ("ErrorUp", 'C.inststErrorup)
-       , ("NodeDown", 'C.inststNodedown)
-       , ("NodeOffline", 'C.inststNodeoffline)
-       , ("Running", 'C.inststRunning)
-       , ("WrongNode", 'C.inststWrongnode)
-       ])
-$(THH.makeJSONInstance ''InstanceStatus)
 
 -- | The resource spec type.
 data RSpec = RSpec

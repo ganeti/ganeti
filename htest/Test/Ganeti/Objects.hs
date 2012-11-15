@@ -41,6 +41,7 @@ import qualified Data.Set as Set
 
 import Test.Ganeti.TestHelper
 import Test.Ganeti.TestCommon
+import Test.Ganeti.Types ()
 
 import qualified Ganeti.Constants as C
 import Ganeti.Objects as Objects
@@ -86,8 +87,6 @@ instance Arbitrary Disk where
 -- FIXME: we should generate proper values, >=0, etc., but this is
 -- hard for partial ones, where all must be wrapped in a 'Maybe'
 $(genArbitrary ''PartialBeParams)
-
-$(genArbitrary ''DiskTemplate)
 
 $(genArbitrary ''AdminState)
 
@@ -138,7 +137,6 @@ instance Arbitrary NodeGroup where
                         -- tags
                         <*> (Set.fromList <$> genTags)
 
-$(genArbitrary ''AllocPolicy)
 $(genArbitrary ''FilledISpecParams)
 $(genArbitrary ''FilledIPolicy)
 $(genArbitrary ''IpFamily)

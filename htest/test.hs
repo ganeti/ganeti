@@ -57,6 +57,7 @@ import Test.Ganeti.Query.Query
 import Test.Ganeti.Rpc
 import Test.Ganeti.Ssconf
 import Test.Ganeti.THH
+import Test.Ganeti.Types
 import Test.Ganeti.Utils
 
 -- | Our default test options, overring the built-in test-framework
@@ -101,6 +102,7 @@ allTests =
   , testRpc
   , testSsconf
   , testTHH
+  , testTypes
   , testUtils
   ]
 

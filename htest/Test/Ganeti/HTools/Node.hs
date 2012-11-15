@@ -190,7 +190,7 @@ prop_addOfflinePri :: NonNegative Int -> NonNegative Int -> Property
 prop_addOfflinePri (NonNegative extra_mem) (NonNegative extra_cpu) =
   forAll genOnlineNode $ \node ->
   forAll (genInstanceSmallerThanNode node) $ \inst ->
-  let inst' = inst { Instance.runSt = Types.AdminOffline
+  let inst' = inst { Instance.runSt = Types.StatusOffline
                    , Instance.mem = Node.availMem node + extra_mem
                    , Instance.vcpus = Node.availCpu node + extra_cpu }
   in case Node.addPri node inst' of
@@ -204,7 +204,7 @@ prop_addOfflineSec :: NonNegative Int -> NonNegative Int
 prop_addOfflineSec (NonNegative extra_mem) (NonNegative extra_cpu) pdx =
   forAll genOnlineNode $ \node ->
   forAll (genInstanceSmallerThanNode node) $ \inst ->
-  let inst' = inst { Instance.runSt = Types.AdminOffline
+  let inst' = inst { Instance.runSt = Types.StatusOffline
                    , Instance.mem = Node.availMem node + extra_mem
                    , Instance.vcpus = Node.availCpu node + extra_cpu
                    , Instance.diskTemplate = Types.DTDrbd8 }

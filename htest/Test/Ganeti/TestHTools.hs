@@ -1,4 +1,3 @@
-{-# LANGUAGE TemplateHaskell #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 {-| Common functionality for htools-related unittests.
@@ -30,7 +29,6 @@ module Test.Ganeti.TestHTools where
 
 import qualified Data.Map as Map
 
-import Test.Ganeti.TestHelper
 import Test.Ganeti.TestCommon
 
 import qualified Ganeti.Constants as C
@@ -111,7 +109,3 @@ setInstanceSmallerThanNode node inst =
        , Instance.dsk = Node.availDisk node `div` 2
        , Instance.vcpus = Node.availCpu node `div` 2
        }
-
--- * Arbitrary instances
-
-$(genArbitrary ''Types.InstanceStatus)

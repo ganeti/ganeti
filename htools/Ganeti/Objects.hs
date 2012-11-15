@@ -100,7 +100,7 @@ import qualified Text.JSON as J
 
 import qualified Ganeti.Constants as C
 import Ganeti.JSON
-
+import Ganeti.Types
 import Ganeti.THH
 
 -- * Generic definitions
@@ -344,18 +344,6 @@ $(makeJSONInstance ''Hypervisor)
 
 -- * Instance definitions
 
--- | Instance disk template type. **Copied from HTools/Types.hs**
-$(declareSADT "DiskTemplate"
-  [ ("DTDiskless",   'C.dtDiskless)
-  , ("DTFile",       'C.dtFile)
-  , ("DTSharedFile", 'C.dtSharedFile)
-  , ("DTPlain",      'C.dtPlain)
-  , ("DTBlock",      'C.dtBlock)
-  , ("DTDrbd8",      'C.dtDrbd8)
-  , ("DTRados",      'C.dtRbd)
-  ])
-$(makeJSONInstance ''DiskTemplate)
-
 $(declareSADT "AdminState"
   [ ("AdminOffline", 'C.adminstOffline)
   , ("AdminDown",    'C.adminstDown)
@@ -499,21 +487,6 @@ instance TagsObject Node where
   tagsOf = nodeTags
 
 -- * NodeGroup definitions
-
--- | The Group allocation policy type.
---
--- Note that the order of constructors is important as the automatic
--- Ord instance will order them in the order they are defined, so when
--- changing this data type be careful about the interaction with the
--- desired sorting order.
---
--- FIXME: COPIED from Types.hs; we need to eliminate this duplication later
-$(declareSADT "AllocPolicy"
-  [ ("AllocPreferred",   'C.allocPolicyPreferred)
-  , ("AllocLastResort",  'C.allocPolicyLastResort)
-  , ("AllocUnallocable", 'C.allocPolicyUnallocable)
-  ])
-$(makeJSONInstance ''AllocPolicy)
 
 -- | The disk parameters type.
 type DiskParams = Container (Container JSValue)

@@ -477,6 +477,7 @@ HS_LIB_SRCS = \
 	htools/Ganeti/Runtime.hs \
 	htools/Ganeti/Ssconf.hs \
 	htools/Ganeti/THH.hs \
+	htools/Ganeti/Types.hs \
 	htools/Ganeti/Utils.hs
 
 HS_TEST_SRCS = \
@@ -510,6 +511,7 @@ HS_TEST_SRCS = \
 	htest/Test/Ganeti/TestCommon.hs \
 	htest/Test/Ganeti/TestHTools.hs \
 	htest/Test/Ganeti/TestHelper.hs \
+	htest/Test/Ganeti/Types.hs \
 	htest/Test/Ganeti/Utils.hs
 
 HS_LIBTEST_SRCS = $(HS_LIB_SRCS) $(HS_TEST_SRCS)
