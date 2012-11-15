@@ -53,10 +53,6 @@ GROUPS_OPT = cli_option("--groups", default=False,
                         action="store_true", dest="groups",
                         help="Arguments are node groups instead of nodes")
 
-SHOW_MACHINE_OPT = cli_option("-M", "--show-machine-names", default=False,
-                              action="store_true",
-                              help="Show machine name for every line in output")
-
 FORCE_FAILOVER = cli_option("--yes-do-it", dest="yes_do_it",
                             help="Override interactive check for --no-voting",
                             default=False, action="store_true")

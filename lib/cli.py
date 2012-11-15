@@ -169,6 +169,7 @@ __all__ = [
   "SELECT_OS_OPT",
   "SEP_OPT",
   "SHOWCMD_OPT",
+  "SHOW_MACHINE_OPT",
   "SHUTDOWN_TIMEOUT_OPT",
   "SINGLE_NODE_OPT",
   "SPECS_CPU_COUNT_OPT",
@@ -1334,6 +1335,10 @@ PRIMARY_IP_VERSION_OPT = \
                metavar="%d|%d" % (constants.IP4_VERSION,
                                   constants.IP6_VERSION),
                help="Cluster-wide IP version for primary IP")
+
+SHOW_MACHINE_OPT = cli_option("-M", "--show-machine-names", default=False,
+                              action="store_true",
+                              help="Show machine name for every line in output")
 
 
 def _PriorityOptionCb(option, _, value, parser):
