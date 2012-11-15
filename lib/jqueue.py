@@ -1913,7 +1913,7 @@ class JobQueue(object):
     @return: a list of job identifiers.
 
     """
-    assert ht.TPositiveInt(count)
+    assert ht.TNonNegativeInt(count)
 
     # New number
     serial = self._last_serial + count

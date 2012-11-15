@@ -51,7 +51,7 @@ _POutputFields = ("output_fields", ht.NoDefault, ht.TListOf(ht.TNonEmptyString),
 
 #: the shutdown timeout
 _PShutdownTimeout = \
-  ("shutdown_timeout", constants.DEFAULT_SHUTDOWN_TIMEOUT, ht.TPositiveInt,
+  ("shutdown_timeout", constants.DEFAULT_SHUTDOWN_TIMEOUT, ht.TNonNegativeInt,
    "How long to wait for instance to shut down")
 
 #: the force parameter
@@ -541,7 +541,7 @@ class OpCode(BaseOpCode):
   WITH_LU = True
   OP_PARAMS = [
     ("dry_run", None, ht.TMaybeBool, "Run checks only, don't execute"),
-    ("debug_level", None, ht.TOr(ht.TNone, ht.TPositiveInt), "Debug level"),
+    ("debug_level", None, ht.TOr(ht.TNone, ht.TNonNegativeInt), "Debug level"),
     ("priority", constants.OP_PRIO_DEFAULT,
      ht.TElemOf(constants.OP_PRIO_SUBMIT_VALID), "Opcode priority"),
     (DEPEND_ATTR, None, _BuildJobDepCheck(True),
@@ -768,8 +768,8 @@ class OpClusterRepairDiskSizes(OpCode):
     ]
   OP_RESULT = ht.TListOf(ht.TAnd(ht.TIsLength(3),
                                  ht.TItems([ht.TNonEmptyString,
-                                            ht.TPositiveInt,
-                                            ht.TPositiveInt])))
+                                            ht.TNonNegativeInt,
+                                            ht.TNonNegativeInt])))
 
 
 class OpClusterConfigQuery(OpCode):
@@ -823,7 +823,7 @@ class OpClusterSetParams(OpCode):
                               ht.TNone),
      "Cluster-wide OS parameter defaults"),
     _PDiskParams,
-    ("candidate_pool_size", None, ht.TOr(ht.TStrictPositiveInt, ht.TNone),
+    ("candidate_pool_size", None, ht.TOr(ht.TPositiveInt, ht.TNone),
      "Master candidate pool size"),
     ("uid_pool", None, ht.NoType,
      "Set UID pool, must be list of lists describing UID ranges (two items,"
@@ -940,7 +940,7 @@ class OpOobCommand(OpCode):
      "Timeout before the OOB helper will be terminated"),
     ("ignore_status", False, ht.TBool,
      "Ignores the node offline status for power off"),
-    ("power_delay", constants.OOB_POWER_DELAY, ht.TPositiveFloat,
+    ("power_delay", constants.OOB_POWER_DELAY, ht.TNonNegativeFloat,
      "Time in seconds to wait between powering on nodes"),
     ]
   # Fixme: Make it more specific with all the special cases in LUOobCommand
@@ -1220,7 +1220,7 @@ class OpInstanceCreate(OpCode):
     ("source_instance_name", None, ht.TMaybeString,
      "Source instance name (remote import only)"),
     ("source_shutdown_timeout", constants.DEFAULT_SHUTDOWN_TIMEOUT,
-     ht.TPositiveInt,
+     ht.TNonNegativeInt,
      "How long source instance was given to shut down (remote import only)"),
     ("source_x509_ca", None, ht.TMaybeString,
      "Source X509 CA in PEM format (remote import only)"),
@@ -1349,7 +1349,7 @@ class OpInstanceShutdown(OpCode):
   OP_PARAMS = [
     _PInstanceName,
     _PIgnoreOfflineNodes,
-    ("timeout", constants.DEFAULT_SHUTDOWN_TIMEOUT, ht.TPositiveInt,
+    ("timeout", constants.DEFAULT_SHUTDOWN_TIMEOUT, ht.TNonNegativeInt,
      "How long to wait for instance to shut down"),
     _PNoRemember,
     ]
@@ -1379,7 +1379,7 @@ class OpInstanceReplaceDisks(OpCode):
     _PIgnoreIpolicy,
     ("mode", ht.NoDefault, ht.TElemOf(constants.REPLACE_MODES),
      "Replacement mode"),
-    ("disks", ht.EmptyList, ht.TListOf(ht.TPositiveInt),
+    ("disks", ht.EmptyList, ht.TListOf(ht.TNonNegativeInt),
      "Disk indexes"),
     ("remote_node", None, ht.TMaybeString, "New secondary node"),
     ("iallocator", None, ht.TMaybeString,
@@ -1489,14 +1489,14 @@ class OpInstanceRecreateDisks(OpCode):
   """Recreate an instance's disks."""
   _TDiskChanges = \
     ht.TAnd(ht.TIsLength(2),
-            ht.TItems([ht.Comment("Disk index")(ht.TPositiveInt),
+            ht.TItems([ht.Comment("Disk index")(ht.TNonNegativeInt),
                        ht.Comment("Parameters")(_TDiskParams)]))
 
   OP_DSC_FIELD = "instance_name"
   OP_PARAMS = [
     _PInstanceName,
     ("disks", ht.EmptyList,
-     ht.TOr(ht.TListOf(ht.TPositiveInt), ht.TListOf(_TDiskChanges)),
+     ht.TOr(ht.TListOf(ht.TNonNegativeInt), ht.TListOf(_TDiskChanges)),
      "List of disk indexes (deprecated) or a list of tuples containing a disk"
      " index and a possibly empty dictionary with disk parameter changes"),
     ("nodes", ht.EmptyList, ht.TListOf(ht.TNonEmptyString),
@@ -1539,7 +1539,7 @@ def _TestInstSetParamsModList(fn):
   # TODO: Remove in version 2.8 including support in LUInstanceSetParams
   old_mod_item_fn = \
     ht.TAnd(ht.TIsLength(2), ht.TItems([
-      ht.TOr(ht.TElemOf(constants.DDMS_VALUES), ht.TPositiveInt),
+      ht.TOr(ht.TElemOf(constants.DDMS_VALUES), ht.TNonNegativeInt),
       fn,
       ]))
 
@@ -1581,7 +1581,7 @@ class OpInstanceSetParams(OpCode):
     ("disks", ht.EmptyList, TestDiskModifications,
      "List of disk changes; see ``nics``"),
     ("beparams", ht.EmptyDict, ht.TDict, "Per-instance backend parameters"),
-    ("runtime_mem", None, ht.TMaybeStrictPositiveInt, "New runtime memory"),
+    ("runtime_mem", None, ht.TMaybePositiveInt, "New runtime memory"),
     ("hvparams", ht.EmptyDict, ht.TDict,
      "Per-instance hypervisor parameters, hypervisor-dependent"),
     ("disk_template", None, ht.TOr(ht.TNone, _BuildDiskTemplateCheck(False)),
@@ -1605,7 +1605,7 @@ class OpInstanceGrowDisk(OpCode):
     _PInstanceName,
     _PWaitForSync,
     ("disk", ht.NoDefault, ht.TInt, "Disk index"),
-    ("amount", ht.NoDefault, ht.TPositiveInt,
+    ("amount", ht.NoDefault, ht.TNonNegativeInt,
      "Amount of disk space to add (megabytes)"),
     ("absolute", False, ht.TBool,
      "Whether the amount parameter is an absolute target or a relative one"),
@@ -1883,7 +1883,7 @@ class OpTestDelay(OpCode):
     ("duration", ht.NoDefault, ht.TNumber, None),
     ("on_master", True, ht.TBool, None),
     ("on_nodes", ht.EmptyList, ht.TListOf(ht.TNonEmptyString), None),
-    ("repeat", 0, ht.TPositiveInt, None),
+    ("repeat", 0, ht.TNonNegativeInt, None),
     ]
 
 
@@ -1914,16 +1914,16 @@ class OpTestAllocator(OpCode):
     ("hypervisor", None, ht.TMaybeString, None),
     ("allocator", None, ht.TMaybeString, None),
     ("tags", ht.EmptyList, ht.TListOf(ht.TNonEmptyString), None),
-    ("memory", None, ht.TOr(ht.TNone, ht.TPositiveInt), None),
-    ("vcpus", None, ht.TOr(ht.TNone, ht.TPositiveInt), None),
+    ("memory", None, ht.TOr(ht.TNone, ht.TNonNegativeInt), None),
+    ("vcpus", None, ht.TOr(ht.TNone, ht.TNonNegativeInt), None),
     ("os", None, ht.TMaybeString, None),
     ("disk_template", None, ht.TMaybeString, None),
     ("instances", None, ht.TMaybeListOf(ht.TNonEmptyString), None),
     ("evac_mode", None,
      ht.TOr(ht.TNone, ht.TElemOf(constants.IALLOCATOR_NEVAC_MODES)), None),
     ("target_groups", None, ht.TMaybeListOf(ht.TNonEmptyString), None),
-    ("spindle_use", 1, ht.TPositiveInt, None),
-    ("count", 1, ht.TPositiveInt, None),
+    ("spindle_use", 1, ht.TNonNegativeInt, None),
+    ("count", 1, ht.TNonNegativeInt, None),
     ]
 
 

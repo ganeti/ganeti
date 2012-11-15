@@ -144,8 +144,8 @@ class IAReqInstanceAlloc(IARequestBase):
   MODE = constants.IALLOCATOR_MODE_ALLOC
   REQ_PARAMS = [
     _INST_NAME,
-    ("memory", ht.TPositiveInt),
-    ("spindle_use", ht.TPositiveInt),
+    ("memory", ht.TNonNegativeInt),
+    ("spindle_use", ht.TNonNegativeInt),
     ("disks", ht.TListOf(ht.TDict)),
     ("disk_template", ht.TString),
     ("os", ht.TString),

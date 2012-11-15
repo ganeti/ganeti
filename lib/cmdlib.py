@@ -7213,7 +7213,7 @@ class LUInstanceRecreateDisks(LogicalUnit):
                  utils.CommaJoin(ial.result))
 
   def CheckArguments(self):
-    if self.op.disks and ht.TPositiveInt(self.op.disks[0]):
+    if self.op.disks and ht.TNonNegativeInt(self.op.disks[0]):
       # Normalize and convert deprecated list of disk indices
       self.op.disks = [(idx, {}) for idx in sorted(frozenset(self.op.disks))]
 

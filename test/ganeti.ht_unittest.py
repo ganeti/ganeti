@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2011 Google Inc.
+# Copyright (C) 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -59,20 +59,20 @@ class TestTypeChecks(unittest.TestCase):
       self.assertFalse(ht.TInt(val))
 
     for val in range(0, 100, 4):
-      self.assertTrue(ht.TPositiveInt(val))
+      self.assertTrue(ht.TNonNegativeInt(val))
       neg = -(val + 1)
+      self.assertFalse(ht.TNonNegativeInt(neg))
       self.assertFalse(ht.TPositiveInt(neg))
-      self.assertFalse(ht.TStrictPositiveInt(neg))
 
+      self.assertFalse(ht.TNonNegativeInt(0.1 + val))
       self.assertFalse(ht.TPositiveInt(0.1 + val))
-      self.assertFalse(ht.TStrictPositiveInt(0.1 + val))
 
     for val in [0, 0.1, 0.9, -0.3]:
-      self.assertFalse(ht.TStrictPositiveInt(val))
+      self.assertFalse(ht.TPositiveInt(val))
 
     for val in range(1, 100, 4):
-      self.assertTrue(ht.TStrictPositiveInt(val))
-      self.assertFalse(ht.TStrictPositiveInt(0.1 + val))
+      self.assertTrue(ht.TPositiveInt(val))
+      self.assertFalse(ht.TPositiveInt(0.1 + val))
 
   def testFloat(self):
     for val in [-100.21, -3.0, 0.0, 16.12, 128.3433, 923874.928]:

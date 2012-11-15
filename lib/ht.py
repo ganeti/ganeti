@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2010, 2011 Google Inc.
+# Copyright (C) 2010, 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -318,30 +318,27 @@ TMaybeBool = TOr(TBool, TNone)
 #: Maybe a dictionary (dict or None)
 TMaybeDict = TOr(TDict, TNone)
 
-#: a positive integer
+#: a non-negative integer (value >= 0)
+TNonNegativeInt = \
+  TAnd(TInt, WithDesc("EqualOrGreaterThanZero")(lambda v: v >= 0))
+
+#: a positive integer (value > 0)
 TPositiveInt = \
-  TAnd(TInt, WithDesc("EqualGreaterZero")(lambda v: v >= 0))
+  TAnd(TInt, WithDesc("GreaterThanZero")(lambda v: v > 0))
 
 #: a maybe positive integer (positive integer or None)
 TMaybePositiveInt = TOr(TPositiveInt, TNone)
 
-#: a strictly positive integer
-TStrictPositiveInt = \
-  TAnd(TInt, WithDesc("GreaterThanZero")(lambda v: v > 0))
-
-#: a maybe strictly positive integer (strictly positive integer or None)
-TMaybeStrictPositiveInt = TOr(TStrictPositiveInt, TNone)
-
-#: a strictly negative integer (0 > value)
-TStrictNegativeInt = \
+#: a negative integer (value < 0)
+TNegativeInt = \
   TAnd(TInt, WithDesc("LessThanZero")(compat.partial(operator.gt, 0)))
 
 #: a positive float
-TPositiveFloat = \
-  TAnd(TFloat, WithDesc("EqualGreaterZero")(lambda v: v >= 0.0))
+TNonNegativeFloat = \
+  TAnd(TFloat, WithDesc("EqualOrGreaterThanZero")(lambda v: v >= 0.0))
 
 #: Job ID
-TJobId = WithDesc("JobId")(TOr(TPositiveInt,
+TJobId = WithDesc("JobId")(TOr(TNonNegativeInt,
                                TRegex(re.compile("^%s$" %
                                                  constants.JOB_ID_TEMPLATE))))
 
@@ -349,7 +346,7 @@ TJobId = WithDesc("JobId")(TOr(TPositiveInt,
 TNumber = TOr(TInt, TFloat)
 
 #: Relative job ID
-TRelativeJobId = WithDesc("RelativeJobId")(TStrictNegativeInt)
+TRelativeJobId = WithDesc("RelativeJobId")(TNegativeInt)
 
 
 def TInstanceOf(my_inst):
