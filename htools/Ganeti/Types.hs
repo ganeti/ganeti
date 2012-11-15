@@ -40,10 +40,66 @@ module Ganeti.Types
   , DiskTemplate(..)
   , diskTemplateToRaw
   , diskTemplateFromRaw
+  , NonNegative
+  , fromNonNegative
+  , mkNonNegative
+  , Positive
+  , fromPositive
+  , mkPositive
+  , NonEmpty
+  , fromNonEmpty
+  , mkNonEmpty
   ) where
+
+import qualified Text.JSON as JSON
 
 import qualified Ganeti.Constants as C
 import qualified Ganeti.THH as THH
+
+-- * Generic types
+
+-- | Type that holds a non-negative value.
+newtype NonNegative a = NonNegative { fromNonNegative :: a }
+  deriving (Show, Read, Eq)
+
+-- | Smart constructor for 'NonNegative'.
+mkNonNegative :: (Monad m, Num a, Ord a, Show a) => a -> m (NonNegative a)
+mkNonNegative i | i >= 0 = return (NonNegative i)
+                | otherwise = fail $ "Invalid value for non-negative type '" ++
+                              show i ++ "'"
+
+instance (JSON.JSON a, Num a, Ord a, Show a) => JSON.JSON (NonNegative a) where
+  showJSON = JSON.showJSON . fromNonNegative
+  readJSON v = JSON.readJSON v >>= mkNonNegative
+
+-- | Type that holds a positive value.
+newtype Positive a = Positive { fromPositive :: a }
+  deriving (Show, Read, Eq)
+
+-- | Smart constructor for 'Positive'.
+mkPositive :: (Monad m, Num a, Ord a, Show a) => a -> m (Positive a)
+mkPositive i | i > 0 = return (Positive i)
+             | otherwise = fail $ "Invalid value for positive type '" ++
+                           show i ++ "'"
+
+instance (JSON.JSON a, Num a, Ord a, Show a) => JSON.JSON (Positive a) where
+  showJSON = JSON.showJSON . fromPositive
+  readJSON v = JSON.readJSON v >>= mkPositive
+
+-- | Type that holds a non-null list.
+newtype NonEmpty a = NonEmpty { fromNonEmpty :: [a] }
+  deriving (Show, Read, Eq)
+
+-- | Smart constructor for 'NonEmpty'.
+mkNonEmpty :: (Monad m) => [a] -> m (NonEmpty a)
+mkNonEmpty [] = fail "Received empty value for non-empty list"
+mkNonEmpty xs = return (NonEmpty xs)
+
+instance (JSON.JSON a) => JSON.JSON (NonEmpty a) where
+  showJSON = JSON.showJSON . fromNonEmpty
+  readJSON v = JSON.readJSON v >>= mkNonEmpty
+
+-- * Ganeti types
 
 -- | Instance disk template type.
 $(THH.declareSADT "DiskTemplate"
