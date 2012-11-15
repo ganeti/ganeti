@@ -62,7 +62,7 @@ list, but is available for installation. The 'blacklisted' state means
 that the OS is not listed and is also not allowed for new instance
 creations (but can be used for reinstalling old instances).
 
-Note: The given operating system doesn't have to exists. This allows
+Note: The given operating system doesn't have to exist. This allows
 preseeding the settings for operating systems not yet known to
 **gnt-os**.
 
