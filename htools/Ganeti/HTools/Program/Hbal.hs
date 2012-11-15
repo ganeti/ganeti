@@ -192,11 +192,11 @@ waitForJobs client jids = do
 checkJobsStatus :: [JobStatus] -> Bool
 checkJobsStatus = all (== JOB_STATUS_SUCCESS)
 
--- | Wrapper over execJobSet checking for early termination.
-execWrapper :: String -> Node.List
-            -> Instance.List -> IORef Int -> [JobSet] -> IO Bool
-execWrapper _      _  _  _    [] = return True
-execWrapper master nl il cref alljss = do
+-- | Wrapper over execJobSet checking for early termination via an IORef.
+execCancelWrapper :: String -> Node.List
+                  -> Instance.List -> IORef Int -> [JobSet] -> IO Bool
+execCancelWrapper _      _  _  _    [] = return True
+execCancelWrapper master nl il cref alljss = do
   cancel <- readIORef cref
   if cancel > 0
     then do
@@ -231,7 +231,7 @@ execJobSet master nl il cref (js:jss) = do
       hPutStrLn stderr x
       return False
     Ok x -> if checkJobsStatus x
-              then execWrapper master nl il cref jss
+              then execCancelWrapper master nl il cref jss
               else do
                 hPutStrLn stderr $ "Not all jobs completed successfully: " ++
                           show x
@@ -251,7 +251,7 @@ maybeExecJobs opts ord_plc fin_nl il cmd_jobs =
             Nothing -> do
               hPutStrLn stderr "Execution of commands possible only on LUXI"
               return False
-            Just master -> runJobSet master fin_nl il cmd_jobs)
+            Just master -> execWithCancel master fin_nl il cmd_jobs)
     else return True
 
 -- | Signal handler for graceful termination.
@@ -269,13 +269,14 @@ handleSigTerm cref = do
   putStrLn "Double cancel request, exiting now..."
   exitImmediately $ ExitFailure 2
 
--- | Runs a job set with handling of signals.
-runJobSet :: String -> Node.List -> Instance.List -> [JobSet] -> IO Bool
-runJobSet master fin_nl il cmd_jobs = do
+-- | Prepares to run a set of jobsets with handling of signals and early
+-- termination.
+execWithCancel :: String -> Node.List -> Instance.List -> [JobSet] -> IO Bool
+execWithCancel master fin_nl il cmd_jobs = do
   cref <- newIORef 0
   mapM_ (\(hnd, sig) -> installHandler sig (Catch (hnd cref)) Nothing)
     [(handleSigTerm, softwareTermination), (handleSigInt, keyboardSignal)]
-  execWrapper master fin_nl il cref cmd_jobs
+  execCancelWrapper master fin_nl il cref cmd_jobs
 
 -- | Select the target node group.
 selectGroup :: Options -> Group.List -> Node.List -> Instance.List
