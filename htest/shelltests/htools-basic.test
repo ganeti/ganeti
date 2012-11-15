@@ -23,3 +23,7 @@
 >>>= 0
 ./htest/hcheck --help
 >>>= 0
+./htest/hroller --version
+>>>= 0
+./htest/hroller --help
+>>>= 0

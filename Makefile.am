@@ -407,7 +407,7 @@ docrst = \
 	doc/walkthrough.rst
 
 HS_PROGS = htools/htools htools/mon-collector
-HS_BIN_ROLES = hbal hscan hspace hinfo hcheck
+HS_BIN_ROLES = hbal hscan hspace hinfo hcheck hroller
 HS_HTOOLS_PROGS = $(HS_BIN_ROLES) hail
 
 HS_ALL_PROGS = \
@@ -481,6 +481,7 @@ HS_LIB_SRCS = \
 	htools/Ganeti/HTools/Program/Hinfo.hs \
 	htools/Ganeti/HTools/Program/Hscan.hs \
 	htools/Ganeti/HTools/Program/Hspace.hs \
+	htools/Ganeti/HTools/Program/Hroller.hs \
 	htools/Ganeti/HTools/Types.hs \
 	htools/Ganeti/Hash.hs \
 	htools/Ganeti/JQueue.hs \
@@ -851,6 +852,7 @@ man_MANS = \
 	man/hinfo.1 \
 	man/hscan.1 \
 	man/hspace.1 \
+	man/hroller.1 \
 	man/htools.1 \
 	man/mon-collector.7
 

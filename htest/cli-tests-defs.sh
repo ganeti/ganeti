@@ -48,4 +48,8 @@ hcheck() {
   HTOOLS=hinfo $HBINARY "$@"
 }
 
-ALL_ROLES="hbal hscan hail hspace hinfo hcheck"
+hroller() {
+  HTOOLS=hroller $HBINARY "$@"
+}
+
+ALL_ROLES="hbal hscan hail hspace hinfo hcheck hroller"

@@ -27,10 +27,11 @@ SYNOPSIS
 **hinfo**
   cluster information printer
 
+**hroller**
+  cluster rolling maintenance scheduler
 
 DESCRIPTION
 -----------
-
 
 ``htools`` is a suite of tools designed to help with allocation/movement
 of instances and balancing of Ganeti clusters. ``htools`` is also the
@@ -56,6 +57,9 @@ saves it to files which can later be reused by the other roles.
 
 Installed as ``hinfo``, it prints information about the current cluster
 state.
+
+Installed as ``hroller``, it helps scheduling maintenances that require
+node reboots on a cluster.
 
 COMMON OPTIONS
 --------------

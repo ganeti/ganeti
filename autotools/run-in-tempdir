@@ -24,7 +24,7 @@ for hfile in htools ganeti-confd mon-collector; do
 done
 
 for hfile in hpc-htools test offline-test.sh cli-tests-defs.sh \
-  hbal hscan hspace hinfo hcheck hail hpc-mon-collector; do
+  hbal hscan hspace hinfo hcheck hail hroller hpc-mon-collector; do
   if [ -e htest/$hfile ]; then
     cp -p htest/$hfile $tmpdir/htest/
   fi
