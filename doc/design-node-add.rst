@@ -1,4 +1,4 @@
-Design for setting up SSH
+Design for adding a node to a cluster
 =====================================
 
 .. contents:: :depth: 3

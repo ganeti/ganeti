@@ -360,6 +360,7 @@ docrst = \
 	doc/design-linuxha.rst \
 	doc/design-multi-reloc.rst \
 	doc/design-network.rst \
+	doc/design-node-add.rst \
 	doc/design-oob.rst \
 	doc/design-ovf-support.rst \
 	doc/design-partitioned.rst \
@@ -368,7 +369,6 @@ docrst = \
 	doc/design-remote-commands.rst \
 	doc/design-resource-model.rst \
 	doc/design-shared-storage.rst \
-	doc/design-ssh-setup.rst \
 	doc/design-monitoring-agent.rst \
 	doc/design-virtual-clusters.rst \
 	doc/design-x509-ca.rst \

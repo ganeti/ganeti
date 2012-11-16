@@ -14,7 +14,7 @@ Design document drafts
    design-query-splitting.rst
    design-autorepair.rst
    design-partitioned.rst
-   design-ssh-setup.rst
+   design-node-add.rst
    design-monitoring-agent.rst
    design-remote-commands.rst
    design-linuxha.rst
