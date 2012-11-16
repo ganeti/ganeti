@@ -231,6 +231,13 @@ def ConvertVariable(prefix, name, value, all_items):
                                      value[k], all_items))
   elif isinstance(value, tuple):
     tvs = [HaskellTypeVal(elem) for elem in value]
+    # Custom rule for special cluster verify error tuples
+    if name.startswith("CV_E") and len(value) == 3 and tvs[1][0] is not None:
+      cv_ename = hs_name + "Code"
+      lines.append("-- | Special cluster verify code %s" % name)
+      lines.append("%s :: %s" % (cv_ename, tvs[1][0]))
+      lines.append("%s = %s" % (cv_ename, tvs[1][1]))
+      lines.append("")
     if compat.all(e is not None for e in tvs):
       ttypes = ", ".join(e[0] for e in tvs)
       tvals = FormatListElems(all_items, pfx_name, value, [e[1] for e in tvs])
