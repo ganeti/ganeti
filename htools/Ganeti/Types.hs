@@ -49,6 +49,11 @@ module Ganeti.Types
   , NonEmpty
   , fromNonEmpty
   , mkNonEmpty
+  , MigrationMode(..)
+  , VerifyOptionalChecks(..)
+  , DdmSimple(..)
+  , CVErrorCode(..)
+  , cVErrorCodeToRaw
   ) where
 
 import qualified Text.JSON as JSON
@@ -139,3 +144,60 @@ $(THH.declareSADT "InstanceStatus"
        , ("WrongNode",     'C.inststWrongnode)
        ])
 $(THH.makeJSONInstance ''InstanceStatus)
+
+-- | Migration mode.
+$(THH.declareSADT "MigrationMode"
+     [ ("MigrationLive",    'C.htMigrationLive)
+     , ("MigrationNonLive", 'C.htMigrationNonlive)
+     ])
+$(THH.makeJSONInstance ''MigrationMode)
+
+-- | Verify optional checks.
+$(THH.declareSADT "VerifyOptionalChecks"
+     [ ("VerifyNPlusOneMem", 'C.verifyNplusoneMem)
+     ])
+$(THH.makeJSONInstance ''VerifyOptionalChecks)
+
+-- | Cluster verify error codes.
+$(THH.declareSADT "CVErrorCode"
+  [ ("CvECLUSTERCFG",           'C.cvEclustercfgCode)
+  , ("CvECLUSTERCERT",          'C.cvEclustercertCode)
+  , ("CvECLUSTERFILECHECK",     'C.cvEclusterfilecheckCode)
+  , ("CvECLUSTERDANGLINGNODES", 'C.cvEclusterdanglingnodesCode)
+  , ("CvECLUSTERDANGLINGINST",  'C.cvEclusterdanglinginstCode)
+  , ("CvEINSTANCEBADNODE",      'C.cvEinstancebadnodeCode)
+  , ("CvEINSTANCEDOWN",         'C.cvEinstancedownCode)
+  , ("CvEINSTANCELAYOUT",       'C.cvEinstancelayoutCode)
+  , ("CvEINSTANCEMISSINGDISK",  'C.cvEinstancemissingdiskCode)
+  , ("CvEINSTANCEFAULTYDISK",   'C.cvEinstancefaultydiskCode)
+  , ("CvEINSTANCEWRONGNODE",    'C.cvEinstancewrongnodeCode)
+  , ("CvEINSTANCESPLITGROUPS",  'C.cvEinstancesplitgroupsCode)
+  , ("CvEINSTANCEPOLICY",       'C.cvEinstancepolicyCode)
+  , ("CvENODEDRBD",             'C.cvEnodedrbdCode)
+  , ("CvENODEDRBDHELPER",       'C.cvEnodedrbdhelperCode)
+  , ("CvENODEFILECHECK",        'C.cvEnodefilecheckCode)
+  , ("CvENODEHOOKS",            'C.cvEnodehooksCode)
+  , ("CvENODEHV",               'C.cvEnodehvCode)
+  , ("CvENODELVM",              'C.cvEnodelvmCode)
+  , ("CvENODEN1",               'C.cvEnoden1Code)
+  , ("CvENODENET",              'C.cvEnodenetCode)
+  , ("CvENODEOS",               'C.cvEnodeosCode)
+  , ("CvENODEORPHANINSTANCE",   'C.cvEnodeorphaninstanceCode)
+  , ("CvENODEORPHANLV",         'C.cvEnodeorphanlvCode)
+  , ("CvENODERPC",              'C.cvEnoderpcCode)
+  , ("CvENODESSH",              'C.cvEnodesshCode)
+  , ("CvENODEVERSION",          'C.cvEnodeversionCode)
+  , ("CvENODESETUP",            'C.cvEnodesetupCode)
+  , ("CvENODETIME",             'C.cvEnodetimeCode)
+  , ("CvENODEOOBPATH",          'C.cvEnodeoobpathCode)
+  , ("CvENODEUSERSCRIPTS",      'C.cvEnodeuserscriptsCode)
+  , ("CvENODEFILESTORAGEPATHS", 'C.cvEnodefilestoragepathsCode)
+  ])
+$(THH.makeJSONInstance ''CVErrorCode)
+
+-- | Dynamic device modification, just add\/remove version.
+$(THH.declareSADT "DdmSimple"
+     [ ("DdmSimpleAdd",    'C.ddmAdd)
+     , ("DdmSimpleRemove", 'C.ddmRemove)
+     ])
+$(THH.makeJSONInstance ''DdmSimple)

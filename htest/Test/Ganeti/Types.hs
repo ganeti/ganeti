@@ -34,6 +34,7 @@ module Test.Ganeti.Types
   , NonEmpty(..)
   ) where
 
+import Data.List (sort)
 import Test.QuickCheck as QuickCheck hiding (Result)
 import Test.HUnit
 
@@ -41,6 +42,7 @@ import Test.Ganeti.TestHelper
 import Test.Ganeti.TestCommon
 
 import Ganeti.BasicTypes
+import qualified Ganeti.Constants as C
 import Ganeti.Types as Types
 
 {-# ANN module "HLint: ignore Use camelCase" #-}
@@ -59,10 +61,20 @@ $(genArbitrary ''DiskTemplate)
 
 $(genArbitrary ''InstanceStatus)
 
+$(genArbitrary ''MigrationMode)
+
+$(genArbitrary ''VerifyOptionalChecks)
+
+$(genArbitrary ''DdmSimple)
+
+$(genArbitrary ''CVErrorCode)
+
 instance (Arbitrary a) => Arbitrary (Types.NonEmpty a) where
   arbitrary = do
     QuickCheck.NonEmpty lst <- arbitrary
     Types.mkNonEmpty lst
+
+-- * Properties
 
 prop_AllocPolicy_serialisation :: AllocPolicy -> Property
 prop_AllocPolicy_serialisation = testSerialisation
@@ -116,6 +128,29 @@ case_NonEmpty_fail =
   assertEqual "building non-empty list from an empty list"
     (Bad "Received empty value for non-empty list") (mkNonEmpty ([]::[Int]))
 
+-- | Tests migration mode serialisation.
+prop_MigrationMode_serialisation :: MigrationMode -> Property
+prop_MigrationMode_serialisation = testSerialisation
+
+-- | Tests verify optional checks serialisation.
+prop_VerifyOptionalChecks_serialisation :: VerifyOptionalChecks -> Property
+prop_VerifyOptionalChecks_serialisation = testSerialisation
+
+-- | Tests 'DdmSimple' serialisation.
+prop_DdmSimple_serialisation :: DdmSimple -> Property
+prop_DdmSimple_serialisation = testSerialisation
+
+-- | Tests 'CVErrorCode' serialisation.
+prop_CVErrorCode_serialisation :: CVErrorCode -> Property
+prop_CVErrorCode_serialisation = testSerialisation
+
+-- | Tests equivalence with Python, based on Constants.hs code.
+case_CVErrorCode_pyequiv :: Assertion
+case_CVErrorCode_pyequiv = do
+  let all_py_codes = sort C.cvAllEcodesStrings
+      all_hs_codes = sort $ map Types.cVErrorCodeToRaw [minBound..maxBound]
+  assertEqual "for CVErrorCode equivalence" all_py_codes all_hs_codes
+
 testSuite "Types"
   [ 'prop_AllocPolicy_serialisation
   , 'prop_DiskTemplate_serialisation
@@ -126,4 +161,9 @@ testSuite "Types"
   , 'prop_Positive_fail
   , 'prop_NonEmpty_pass
   , 'case_NonEmpty_fail
+  , 'prop_MigrationMode_serialisation
+  , 'prop_VerifyOptionalChecks_serialisation
+  , 'prop_DdmSimple_serialisation
+  , 'prop_CVErrorCode_serialisation
+  , 'case_CVErrorCode_pyequiv
   ]
