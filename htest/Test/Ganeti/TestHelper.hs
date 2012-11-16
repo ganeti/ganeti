@@ -1,6 +1,6 @@
 {-# LANGUAGE TemplateHaskell #-}
 
-{-| Unittest helpers for Haskell components
+{-| Unittest helpers for TemplateHaskell components.
 
 -}
 
