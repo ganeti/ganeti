@@ -72,6 +72,12 @@ module Ganeti.HTools.Types
   , IPolicy(..)
   , defIPolicy
   , rspecFromISpec
+  , AutoRepairType(..)
+  , autoRepairTypeToRaw
+  , autoRepairTypeFromRaw
+  , AutoRepairResult(..)
+  , autoRepairResultToRaw
+  , autoRepairResultFromRaw
   ) where
 
 import qualified Data.Map as M
@@ -347,3 +353,19 @@ $(THH.declareSADT "EvacMode"
        , ("ChangeAll",       'C.iallocatorNevacAll)
        ])
 $(THH.makeJSONInstance ''EvacMode)
+
+-- | The repair modes for the auto-repair tool.
+$(THH.declareSADT "AutoRepairType"
+       -- Order is important here: from least destructive to most.
+       [ ("ArFixStorage", 'C.autoRepairFixStorage)
+       , ("ArMigrate",    'C.autoRepairMigrate)
+       , ("ArFailover",   'C.autoRepairFailover)
+       , ("ArReinstall",  'C.autoRepairReinstall)
+       ])
+
+-- | The possible auto-repair results.
+$(THH.declareSADT "AutoRepairResult"
+       [ ("ArSuccess", 'C.autoRepairSuccess)
+       , ("ArFailure", 'C.autoRepairFailure)
+       , ("ArEnoperm", 'C.autoRepairEnoperm)
+       ])

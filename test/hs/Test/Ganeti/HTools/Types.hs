@@ -38,8 +38,10 @@ module Test.Ganeti.HTools.Types
   ) where
 
 import Test.QuickCheck hiding (Result)
+import Test.HUnit
 
 import Control.Applicative
+import Data.List (sort)
 
 import Test.Ganeti.TestHelper
 import Test.Ganeti.TestCommon
@@ -47,6 +49,7 @@ import Test.Ganeti.TestHTools
 import Test.Ganeti.Types ()
 
 import Ganeti.BasicTypes
+import qualified Ganeti.Constants as C
 import qualified Ganeti.HTools.Types as Types
 
 -- * Helpers
@@ -146,10 +149,33 @@ prop_eitherToResult ei =
                  Ok v' -> v == v'
     where r = eitherToResult ei
 
+-- | Test 'AutoRepairType' ordering is as expected and consistent with Python
+-- codebase.
+case_AutoRepairType_sort :: Assertion
+case_AutoRepairType_sort = do
+  let expected = [ Types.ArFixStorage
+                 , Types.ArMigrate
+                 , Types.ArFailover
+                 , Types.ArReinstall
+                 ]
+      all_hs_raw = map Types.autoRepairTypeToRaw [minBound..maxBound]
+  assertEqual "Haskell order" expected [minBound..maxBound]
+  assertEqual "consistent with Python" C.autoRepairAllTypes all_hs_raw
+
+-- | Test 'AutoRepairResult' type is equivalent with Python codebase.
+case_AutoRepairResult_pyequiv :: Assertion
+case_AutoRepairResult_pyequiv = do
+  let all_py_results = sort C.autoRepairAllResults
+      all_hs_results = sort $
+                       map Types.autoRepairResultToRaw [minBound..maxBound]
+  assertEqual "for AutoRepairResult equivalence" all_py_results all_hs_results
+
 testSuite "HTools/Types"
             [ 'prop_ISpec_serialisation
             , 'prop_IPolicy_serialisation
             , 'prop_EvacMode_serialisation
             , 'prop_opToResult
             , 'prop_eitherToResult
+            , 'case_AutoRepairType_sort
+            , 'case_AutoRepairResult_pyequiv
             ]

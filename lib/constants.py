@@ -2280,5 +2280,34 @@ RANDOM_UUID_FILE = "/proc/sys/kernel/random/uuid"
 # Regex string for verifying a UUID
 UUID_REGEX = "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"
 
+# Auto-repair tag prefixes
+AUTO_REPAIR_TAG_PREFIX = "ganeti:watcher:autorepair:"
+AUTO_REPAIR_TAG_ENABLED = AUTO_REPAIR_TAG_PREFIX
+AUTO_REPAIR_TAG_SUSPENDED = AUTO_REPAIR_TAG_ENABLED + "suspend:"
+AUTO_REPAIR_TAG_PENDING = AUTO_REPAIR_TAG_PREFIX + "pending:"
+AUTO_REPAIR_TAG_RESULT = AUTO_REPAIR_TAG_PREFIX + "result:"
+
+# Auto-repair levels
+AUTO_REPAIR_FIX_STORAGE = "fix-storage"
+AUTO_REPAIR_MIGRATE = "migrate"
+AUTO_REPAIR_FAILOVER = "failover"
+AUTO_REPAIR_REINSTALL = "reinstall"
+AUTO_REPAIR_ALL_TYPES = [
+  AUTO_REPAIR_FIX_STORAGE,
+  AUTO_REPAIR_MIGRATE,
+  AUTO_REPAIR_FAILOVER,
+  AUTO_REPAIR_REINSTALL,
+]
+
+# Auto-repair results
+AUTO_REPAIR_SUCCESS = "success"
+AUTO_REPAIR_FAILURE = "failure"
+AUTO_REPAIR_ENOPERM = "enoperm"
+AUTO_REPAIR_ALL_RESULTS = frozenset([
+    AUTO_REPAIR_SUCCESS,
+    AUTO_REPAIR_FAILURE,
+    AUTO_REPAIR_ENOPERM,
+])
+
 # Do not re-export imported modules
 del re, _vcsversion, _autoconf, socket, pathutils, compat
