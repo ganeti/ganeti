@@ -47,6 +47,10 @@ _DELETED_TEXT = "deleted"
 
 _DEFAULT_PRIORITY = 0
 
+#: Minimum timeout required to consider scheduling a pending acquisition
+#: (seconds)
+_LOCK_ACQUIRE_MIN_TIMEOUT = (1.0 / 1000)
+
 
 def ssynchronized(mylock, shared=0):
   """Shared Synchronization decorator.
@@ -661,6 +665,12 @@ class SharedLock(object):
       # Apparently not, can acquire lock directly.
       self.__do_acquire(shared)
       return True
+
+    # The lock couldn't be acquired right away, so if a timeout is given and is
+    # considered too short, return right away as scheduling a pending
+    # acquisition is quite expensive
+    if timeout is not None and timeout < _LOCK_ACQUIRE_MIN_TIMEOUT:
+      return False
 
     prioqueue = self.__pending_by_prio.get(priority, None)
 
