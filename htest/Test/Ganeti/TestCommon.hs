@@ -217,3 +217,27 @@ testSerialisation a =
 resultProp :: (Show a) => BasicTypes.GenericResult a b -> PropertyM IO b
 resultProp (BasicTypes.Bad err) = stop . failTest $ show err
 resultProp (BasicTypes.Ok  val) = return val
+
+-- | Return the source directory of Ganeti.
+getSourceDir :: IO FilePath
+getSourceDir = catchJust (guard . isDoesNotExistError)
+            (getEnv "TOP_SRCDIR")
+            (const (return "."))
+
+-- | Returns the path of a file in the test data directory, given its name.
+testDataFilename :: String -> String -> IO FilePath
+testDataFilename datadir name = do
+        src <- getSourceDir
+        return $ src ++ datadir ++ name
+
+-- | Returns the content of the specified python test data file.
+readPythonTestData :: String -> IO String
+readPythonTestData filename = do
+    name <- testDataFilename "/test/data/" filename
+    readFile name
+
+-- | Returns the content of the specified haskell test data file.
+readTestData :: String -> IO String
+readTestData filename = do
+    name <- testDataFilename "/htest/data/" filename
+    readFile name
