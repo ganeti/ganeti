@@ -3714,7 +3714,7 @@ def RunRemoteCommand(cmd,
                      _sleep_fn=time.sleep,
                      _prepare_fn=_PrepareRemoteCommand,
                      _runcmd_fn=utils.RunCmd,
-                     _enabled=constants.ENABLE_REMOTE_COMMANDS):
+                     _enabled=constants.ENABLE_RESTRICTED_COMMANDS):
   """Executes a remote command after performing strict tests.
 
   @type cmd: string
