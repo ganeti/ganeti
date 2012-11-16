@@ -192,7 +192,7 @@ getGroupIpolicy cfg ng =
 -- | Computes a group\'s (merged) disk params.
 getGroupDiskParams :: ConfigData -> NodeGroup -> DiskParams
 getGroupDiskParams cfg ng =
-  Container $
+  GenericContainer $
   fillDict (fromContainer . clusterDiskparams $ configCluster cfg)
            (fromContainer $ groupDiskparams ng) []
 

@@ -1,3 +1,4 @@
+{-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
 {-| JSON utility functions. -}
 
 {-
@@ -37,11 +38,12 @@ module Ganeti.JSON
   , asObjectList
   , tryFromObj
   , toArray
-  , Container(..)
+  , HasStringRepr(..)
+  , GenericContainer(..)
+  , Container
   )
   where
 
-import Control.Arrow (second)
 import Control.Monad (liftM)
 import Data.Maybe (fromMaybe)
 import qualified Data.Map as Map
@@ -167,24 +169,48 @@ toArray o =
 
 -- * Container type (special type for JSON serialisation)
 
+-- | Class of types that can be converted from Strings. This is
+-- similar to the 'Read' class, but it's using a different
+-- serialisation format, so we have to define a separate class. Mostly
+-- useful for custom key types in JSON dictionaries, which have to be
+-- backed by strings.
+class HasStringRepr a where
+  fromStringRepr :: (Monad m) => String -> m a
+  toStringRepr :: a -> String
+
+-- | Trivial instance 'HasStringRepr' for 'String'.
+instance HasStringRepr String where
+  fromStringRepr = return
+  toStringRepr = id
+
 -- | The container type, a wrapper over Data.Map
-newtype Container a = Container { fromContainer :: Map.Map String a }
+newtype GenericContainer a b =
+  GenericContainer { fromContainer :: Map.Map a b }
   deriving (Show, Read, Eq)
 
+-- | Type alias for string keys.
+type Container = GenericContainer String
+
 -- | Container loader.
-readContainer :: (Monad m, J.JSON a) =>
-                 J.JSObject J.JSValue -> m (Container a)
+readContainer :: (Monad m, HasStringRepr a, Ord a, J.JSON b) =>
+                 J.JSObject J.JSValue -> m (GenericContainer a b)
 readContainer obj = do
   let kjvlist = J.fromJSObject obj
-  kalist <- mapM (\(k, v) -> fromKeyValue k v >>= \a -> return (k, a)) kjvlist
-  return $ Container (Map.fromList kalist)
+  kalist <- mapM (\(k, v) -> do
+                    k' <- fromStringRepr k
+                    v' <- fromKeyValue k v
+                    return (k', v')) kjvlist
+  return $ GenericContainer (Map.fromList kalist)
 
 -- | Container dumper.
-showContainer :: (J.JSON a) => Container a -> J.JSValue
+showContainer :: (HasStringRepr a, J.JSON b) =>
+                 GenericContainer a b -> J.JSValue
 showContainer =
-  J.makeObj . map (second J.showJSON) . Map.toList . fromContainer
+  J.makeObj . map (\(k, v) -> (toStringRepr k, J.showJSON v)) .
+  Map.toList . fromContainer
 
-instance (J.JSON a) => J.JSON (Container a) where
+instance (HasStringRepr a, Ord a, J.JSON b) =>
+         J.JSON (GenericContainer a b) where
   showJSON = showContainer
   readJSON (J.JSObject o) = readContainer o
   readJSON v = fail $ "Failed to load container, expected object but got "

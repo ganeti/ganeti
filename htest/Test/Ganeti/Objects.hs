@@ -102,9 +102,9 @@ instance Arbitrary Instance where
       <$> getFQDN <*> getFQDN <*> getFQDN -- OS name, but...
       <*> arbitrary
       -- FIXME: add non-empty hvparams when they're a proper type
-      <*> pure (Container Map.empty) <*> arbitrary
+      <*> pure (GenericContainer Map.empty) <*> arbitrary
       -- ... and for OSParams
-      <*> pure (Container Map.empty) <*> arbitrary <*> arbitrary
+      <*> pure (GenericContainer Map.empty) <*> arbitrary <*> arbitrary
       <*> arbitrary <*> arbitrary <*> arbitrary
       -- ts
       <*> arbitrary <*> arbitrary
@@ -127,7 +127,7 @@ $(genArbitrary ''PartialIPolicy)
 -- validation rules.
 instance Arbitrary NodeGroup where
   arbitrary = NodeGroup <$> getFQDN <*> pure [] <*> arbitrary <*> arbitrary
-                        <*> arbitrary <*> pure (Container Map.empty)
+                        <*> arbitrary <*> pure (GenericContainer Map.empty)
                         -- ts
                         <*> arbitrary <*> arbitrary
                         -- uuid
@@ -146,23 +146,23 @@ $(genArbitrary ''FilledBeParams)
 
 -- | No real arbitrary instance for 'ClusterHvParams' yet.
 instance Arbitrary ClusterHvParams where
-  arbitrary = return $ Container Map.empty
+  arbitrary = return $ GenericContainer Map.empty
 
 -- | No real arbitrary instance for 'OsHvParams' yet.
 instance Arbitrary OsHvParams where
-  arbitrary = return $ Container Map.empty
+  arbitrary = return $ GenericContainer Map.empty
 
 instance Arbitrary ClusterNicParams where
-  arbitrary = (Container . Map.singleton C.ppDefault) <$> arbitrary
+  arbitrary = (GenericContainer . Map.singleton C.ppDefault) <$> arbitrary
 
 instance Arbitrary OsParams where
-  arbitrary = (Container . Map.fromList) <$> arbitrary
+  arbitrary = (GenericContainer . Map.fromList) <$> arbitrary
 
 instance Arbitrary ClusterOsParams where
-  arbitrary = (Container . Map.fromList) <$> arbitrary
+  arbitrary = (GenericContainer . Map.fromList) <$> arbitrary
 
 instance Arbitrary ClusterBeParams where
-  arbitrary = (Container . Map.fromList) <$> arbitrary
+  arbitrary = (GenericContainer . Map.fromList) <$> arbitrary
 
 instance Arbitrary TagSet where
   arbitrary = Set.fromList <$> genTags
@@ -179,10 +179,11 @@ genEmptyCluster ncount = do
       nodes' = zipWith (\n idx -> n { nodeGroup = guuid,
                                       nodeName = nodeName n ++ show idx })
                nodes [(1::Int)..]
-      contnodes = Container . Map.fromList $ map (\n -> (nodeName n, n)) nodes'
-      continsts = Container Map.empty
+      contnodes = GenericContainer . Map.fromList $
+                  map (\n -> (nodeName n, n)) nodes'
+      continsts = GenericContainer Map.empty
   grp <- arbitrary
-  let contgroups = Container $ Map.singleton guuid grp
+  let contgroups = GenericContainer $ Map.singleton guuid grp
   serial <- arbitrary
   cluster <- resize 8 arbitrary
   let c = ConfigData version cluster contnodes contgroups continsts serial

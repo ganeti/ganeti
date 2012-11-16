@@ -60,6 +60,7 @@ import qualified Text.JSON as JSON
 
 import qualified Ganeti.Constants as C
 import qualified Ganeti.THH as THH
+import Ganeti.JSON
 
 -- * Generic types
 
@@ -117,6 +118,10 @@ $(THH.declareSADT "DiskTemplate"
        , ("DTRbd",        'C.dtRbd)
        ])
 $(THH.makeJSONInstance ''DiskTemplate)
+
+instance HasStringRepr DiskTemplate where
+  fromStringRepr = diskTemplateFromRaw
+  toStringRepr = diskTemplateToRaw
 
 -- | The Group allocation policy type.
 --
