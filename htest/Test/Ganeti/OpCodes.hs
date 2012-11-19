@@ -40,9 +40,12 @@ import qualified Text.JSON as J
 
 import Test.Ganeti.TestHelper
 import Test.Ganeti.TestCommon
+import Test.Ganeti.Types ()
 
 import qualified Ganeti.Constants as C
 import qualified Ganeti.OpCodes as OpCodes
+import Ganeti.Types
+import Ganeti.OpParams
 
 {-# ANN module "HLint: ignore Use camelCase" #-}
 
@@ -66,21 +69,37 @@ instance Arbitrary OpCodes.OpCode where
     case op_id of
       "OP_TEST_DELAY" ->
         OpCodes.OpTestDelay <$> arbitrary <*> arbitrary
-                 <*> resize maxNodes (listOf getFQDN)
+                 <*> genNodeNames
       "OP_INSTANCE_REPLACE_DISKS" ->
-        OpCodes.OpInstanceReplaceDisks <$> getFQDN <*> getMaybe getFQDN <*>
-          arbitrary <*> resize C.maxDisks arbitrary <*> getMaybe getName
+        OpCodes.OpInstanceReplaceDisks <$> getFQDN <*>
+          getMaybe genNodeNameNE <*> arbitrary <*> genDiskIndices <*> arbitrary
       "OP_INSTANCE_FAILOVER" ->
         OpCodes.OpInstanceFailover <$> getFQDN <*> arbitrary <*>
-          getMaybe getFQDN
+          getMaybe genNodeNameNE
       "OP_INSTANCE_MIGRATE" ->
         OpCodes.OpInstanceMigrate <$> getFQDN <*> arbitrary <*>
-          arbitrary <*> arbitrary <*> getMaybe getFQDN
+          arbitrary <*> arbitrary <*> getMaybe genNodeNameNE
       "OP_TAGS_SET" ->
         OpCodes.OpTagsSet <$> arbitrary <*> genTags
       "OP_TAGS_DEL" ->
         OpCodes.OpTagsSet <$> arbitrary <*> genTags
       _ -> fail "Wrong opcode"
+
+-- * Helper functions
+
+-- | Generates list of disk indices.
+genDiskIndices :: Gen [DiskIndex]
+genDiskIndices = do
+  cnt <- choose (0, C.maxDisks)
+  genUniquesList cnt
+
+-- | Generates a list of node names.
+genNodeNames :: Gen [String]
+genNodeNames = resize maxNodes (listOf getFQDN)
+
+-- | Gets a node name in non-empty type.
+genNodeNameNE :: Gen NonEmptyString
+genNodeNameNE = getFQDN >>= mkNonEmpty
 
 -- * Test cases
 

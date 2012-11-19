@@ -57,22 +57,22 @@ $(genOpCode "OpCode"
      ])
   , ("OpInstanceReplaceDisks",
      [ pInstanceName
-     , optionalField $ simpleField "remote_node" [t| String |]
+     , pRemoteNode
      , simpleField "mode"  [t| ReplaceDisksMode |]
      , simpleField "disks" [t| [DiskIndex] |]
-     , optionalField $ simpleField "iallocator" [t| String |]
+     , pIallocator
      ])
   , ("OpInstanceFailover",
      [ pInstanceName
      , simpleField "ignore_consistency" [t| Bool   |]
-     , optionalField $ simpleField "target_node" [t| String |]
+     , pMigrationTargetNode
      ])
   , ("OpInstanceMigrate",
      [ pInstanceName
      , simpleField "live"           [t| Bool   |]
      , simpleField "cleanup"        [t| Bool   |]
      , defaultField [| False |] $ simpleField "allow_failover" [t| Bool |]
-     , optionalField $ simpleField "target_node" [t| String |]
+     , pMigrationTargetNode
      ])
   , ("OpTagsSet",
      [ pTagsObject

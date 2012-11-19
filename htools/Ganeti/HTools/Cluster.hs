@@ -90,6 +90,7 @@ import Ganeti.HTools.Types
 import Ganeti.Compat
 import qualified Ganeti.OpCodes as OpCodes
 import Ganeti.Utils
+import Ganeti.Types (mkNonEmpty)
 
 -- * Types
 
@@ -1447,7 +1448,11 @@ iMoveToJob :: Node.List        -- ^ The node list; only used for node
 iMoveToJob nl il idx move =
   let inst = Container.find idx il
       iname = Instance.name inst
-      lookNode  = Just . Container.nameOf nl
+      lookNode  n = case mkNonEmpty (Container.nameOf nl n) of
+                      -- FIXME: convert htools codebase to non-empty strings
+                      Bad msg -> error $ "Empty node name for idx " ++
+                                 show n ++ ": " ++ msg ++ "??"
+                      Ok ne -> Just ne
       opF = OpCodes.OpInstanceMigrate iname True False True Nothing
       opFA n = OpCodes.OpInstanceMigrate iname True False True (lookNode n)
       opR n = OpCodes.OpInstanceReplaceDisks iname (lookNode n)
