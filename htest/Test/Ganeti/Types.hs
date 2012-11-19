@@ -72,7 +72,11 @@ $(genArbitrary ''CVErrorCode)
 
 $(genArbitrary ''Hypervisor)
 
+$(genArbitrary ''OobCommand)
+
 $(genArbitrary ''StorageType)
+
+$(genArbitrary ''NodeEvacMode)
 
 instance (Arbitrary a) => Arbitrary (Types.NonEmpty a) where
   arbitrary = do
@@ -160,9 +164,17 @@ case_CVErrorCode_pyequiv = do
 prop_Hypervisor_serialisation :: Hypervisor -> Property
 prop_Hypervisor_serialisation = testSerialisation
 
+-- | Test 'OobCommand' serialisation.
+prop_OobCommand_serialisation :: OobCommand -> Property
+prop_OobCommand_serialisation = testSerialisation
+
 -- | Test 'StorageType' serialisation.
 prop_StorageType_serialisation :: StorageType -> Property
 prop_StorageType_serialisation = testSerialisation
+
+-- | Test 'NodeEvacMode' serialisation.
+prop_NodeEvacMode_serialisation :: NodeEvacMode -> Property
+prop_NodeEvacMode_serialisation = testSerialisation
 
 testSuite "Types"
   [ 'prop_AllocPolicy_serialisation
@@ -180,5 +192,7 @@ testSuite "Types"
   , 'prop_CVErrorCode_serialisation
   , 'case_CVErrorCode_pyequiv
   , 'prop_Hypervisor_serialisation
+  , 'prop_OobCommand_serialisation
   , 'prop_StorageType_serialisation
+  , 'prop_NodeEvacMode_serialisation
   ]

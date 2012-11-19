@@ -49,13 +49,16 @@ module Ganeti.Types
   , NonEmpty
   , fromNonEmpty
   , mkNonEmpty
+  , NonEmptyString
   , MigrationMode(..)
   , VerifyOptionalChecks(..)
   , DdmSimple(..)
   , CVErrorCode(..)
   , cVErrorCodeToRaw
   , Hypervisor(..)
+  , OobCommand(..)
   , StorageType(..)
+  , NodeEvacMode(..)
   ) where
 
 import qualified Text.JSON as JSON
@@ -106,6 +109,9 @@ mkNonEmpty xs = return (NonEmpty xs)
 instance (JSON.JSON a) => JSON.JSON (NonEmpty a) where
   showJSON = JSON.showJSON . fromNonEmpty
   readJSON v = JSON.readJSON v >>= mkNonEmpty
+
+-- | A simple type alias for non-empty strings.
+type NonEmptyString = NonEmpty Char
 
 -- * Ganeti types
 
@@ -220,6 +226,16 @@ $(THH.declareSADT "Hypervisor"
   ])
 $(THH.makeJSONInstance ''Hypervisor)
 
+-- | Oob command type.
+$(THH.declareSADT "OobCommand"
+  [ ("OobHealth",      'C.oobHealth)
+  , ("OobPowerCycle",  'C.oobPowerCycle)
+  , ("OobPowerOff",    'C.oobPowerOff)
+  , ("OobPowerOn",     'C.oobPowerOn)
+  , ("OobPowerStatus", 'C.oobPowerStatus)
+  ])
+$(THH.makeJSONInstance ''OobCommand)
+
 -- | Storage type.
 $(THH.declareSADT "StorageType"
   [ ("StorageFile", 'C.stFile)
@@ -227,3 +243,11 @@ $(THH.declareSADT "StorageType"
   , ("StorageLvmVg", 'C.stLvmVg)
   ])
 $(THH.makeJSONInstance ''StorageType)
+
+-- | Node evac modes.
+$(THH.declareSADT "NodeEvacMode"
+  [ ("NEvacPrimary",   'C.iallocatorNevacPri)
+  , ("NEvacSecondary", 'C.iallocatorNevacSec)
+  , ("NEvacAll",       'C.iallocatorNevacAll)
+  ])
+$(THH.makeJSONInstance ''NodeEvacMode)
