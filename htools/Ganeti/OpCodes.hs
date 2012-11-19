@@ -82,6 +82,165 @@ $(genOpCode "OpCode"
      [ pTagsObject
      , pTagsList
      ])
+  , ("OpClusterPostInit", [])
+  , ("OpClusterDestroy", [])
+  , ("OpClusterQuery", [])
+  , ("OpClusterVerify",
+     [ pDebugSimulateErrors
+     , pErrorCodes
+     , pSkipChecks
+     , pIgnoreErrors
+     , pVerbose
+     , pOptGroupName
+     ])
+  , ("OpClusterVerifyConfig",
+     [ pDebugSimulateErrors
+     , pErrorCodes
+     , pIgnoreErrors
+     , pVerbose
+     ])
+  , ("OpClusterVerifyGroup",
+     [ pGroupName
+     , pDebugSimulateErrors
+     , pErrorCodes
+     , pSkipChecks
+     , pIgnoreErrors
+     , pVerbose
+     ])
+  , ("OpClusterVerifyDisks", [])
+  , ("OpGroupVerifyDisks",
+     [ pGroupName
+     ])
+  , ("OpClusterRepairDiskSizes",
+     [ pInstances
+     ])
+  , ("OpClusterConfigQuery",
+     [ pOutputFields
+     ])
+  , ("OpClusterRename",
+     [ pName
+     ])
+  , ("OpClusterSetParams",
+     [ pHvState
+     , pDiskState
+     , pVgName
+     , pEnabledHypervisors
+     , pClusterHvParams
+     , pClusterBeParams
+     , pOsHvp
+     , pOsParams
+     , pDiskParams
+     , pCandidatePoolSize
+     , pUidPool
+     , pAddUids
+     , pRemoveUids
+     , pMaintainNodeHealth
+     , pPreallocWipeDisks
+     , pNicParams
+     , pNdParams
+     , pIpolicy
+     , pDrbdHelper
+     , pDefaultIAllocator
+     , pMasterNetdev
+     , pReservedLvs
+     , pHiddenOs
+     , pBlacklistedOs
+     , pUseExternalMipScript
+     ])
+  , ("OpClusterRedistConf", [])
+  , ("OpClusterActivateMasterIp", [])
+  , ("OpClusterDeactivateMasterIp", [])
+  , ("OpQuery",
+     [ pQueryWhat
+     , pUseLocking
+     , pQueryFields
+     , pQueryFilter
+     ])
+  , ("OpQueryFields",
+     [ pQueryWhat
+     , pQueryFields
+     ])
+  , ("OpOobCommand",
+     [ pNodeNames
+     , pOobCommand
+     , pOobTimeout
+     , pIgnoreStatus
+     , pPowerDelay
+     ])
+  , ("OpNodeRemove", [ pNodeName ])
+  , ("OpNodeAdd",
+     [ pNodeName
+     , pHvState
+     , pDiskState
+     , pPrimaryIp
+     , pSecondaryIp
+     , pReadd
+     , pNodeGroup
+     , pMasterCapable
+     , pVmCapable
+     , pNdParams
+    ])
+  , ("OpNodeQuery",
+     [ pOutputFields
+     , pUseLocking
+     , pNames
+     ])
+  , ("OpNodeQueryvols",
+     [ pOutputFields
+     , pNodes
+     ])
+  , ("OpNodeQueryStorage",
+     [ pOutputFields
+     , pStorageType
+     , pNodes
+     , pStorageName
+     ])
+  , ("OpNodeModifyStorage",
+     [ pNodeName
+     , pStorageType
+     , pStorageName
+     , pStorageChanges
+     ])
+  , ("OpRepairNodeStorage",
+     [ pNodeName
+     , pStorageType
+     , pStorageName
+     , pIgnoreConsistency
+     ])
+  , ("OpNodeSetParams",
+     [ pNodeName
+     , pForce
+     , pHvState
+     , pDiskState
+     , pMasterCandidate
+     , pOffline
+     , pDrained
+     , pAutoPromote
+     , pMasterCapable
+     , pVmCapable
+     , pSecondaryIp
+     , pNdParams
+     ])
+  , ("OpNodePowercycle",
+     [ pNodeName
+     , pForce
+     ])
+  , ("OpNodeMigrate",
+     [ pNodeName
+     , pMigrationMode
+     , pMigrationLive
+     , pMigrationTargetNode
+     , pAllowRuntimeChgs
+     , pIgnoreIpolicy
+     , pIallocator
+     ])
+  , ("OpNodeEvacuate",
+     [ pEarlyRelease
+     , pNodeName
+     , pRemoteNode
+     , pIallocator
+     , pEvacMode
+     ])
   ])
 
 -- | Returns the OP_ID for a given opcode value.

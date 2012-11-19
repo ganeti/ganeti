@@ -36,16 +36,19 @@ import Test.QuickCheck
 
 import Control.Applicative
 import Data.List
+import qualified Data.Map as Map
 import qualified Text.JSON as J
 
 import Test.Ganeti.TestHelper
 import Test.Ganeti.TestCommon
 import Test.Ganeti.Types ()
+import Test.Ganeti.Query.Language
 
 import qualified Ganeti.Constants as C
 import qualified Ganeti.OpCodes as OpCodes
 import Ganeti.Types
 import Ganeti.OpParams
+import Ganeti.JSON
 
 {-# ANN module "HLint: ignore Use camelCase" #-}
 
@@ -62,6 +65,8 @@ $(genArbitrary ''OpCodes.ReplaceDisksMode)
 
 instance Arbitrary OpCodes.DiskIndex where
   arbitrary = choose (0, C.maxDisks - 1) >>= OpCodes.mkDiskIndex
+
+$(genArbitrary ''INicParams)
 
 instance Arbitrary OpCodes.OpCode where
   arbitrary = do
@@ -83,9 +88,99 @@ instance Arbitrary OpCodes.OpCode where
         OpCodes.OpTagsSet <$> arbitrary <*> genTags
       "OP_TAGS_DEL" ->
         OpCodes.OpTagsSet <$> arbitrary <*> genTags
-      _ -> fail "Wrong opcode"
+      "OP_CLUSTER_POST_INIT" -> pure OpCodes.OpClusterPostInit
+      "OP_CLUSTER_DESTROY" -> pure OpCodes.OpClusterDestroy
+      "OP_CLUSTER_QUERY" -> pure OpCodes.OpClusterQuery
+      "OP_CLUSTER_VERIFY" ->
+        OpCodes.OpClusterVerify <$> arbitrary <*> arbitrary <*>
+          genSet Nothing <*> genSet Nothing <*> arbitrary <*> arbitrary
+      "OP_CLUSTER_VERIFY_CONFIG" ->
+        OpCodes.OpClusterVerifyConfig <$> arbitrary <*> arbitrary <*>
+          genSet Nothing <*> arbitrary
+      "OP_CLUSTER_VERIFY_GROUP" ->
+        OpCodes.OpClusterVerifyGroup <$> arbitrary <*> arbitrary <*>
+          arbitrary <*> genSet Nothing <*> genSet Nothing <*> arbitrary
+      "OP_CLUSTER_VERIFY_DISKS" -> pure OpCodes.OpClusterVerifyDisks
+      "OP_GROUP_VERIFY_DISKS" ->
+        OpCodes.OpGroupVerifyDisks <$> arbitrary
+      "OP_CLUSTER_REPAIR_DISK_SIZES" ->
+        OpCodes.OpClusterRepairDiskSizes <$>
+          resize maxNodes (listOf (getFQDN >>= mkNonEmpty))
+      "OP_CLUSTER_CONFIG_QUERY" ->
+        OpCodes.OpClusterConfigQuery <$> resize maxNodes arbitrary
+      "OP_CLUSTER_RENAME" ->
+        OpCodes.OpClusterRename <$> (getName >>= mkNonEmpty)
+      "OP_CLUSTER_SET_PARAMS" ->
+        OpCodes.OpClusterSetParams <$> emptyMUD <*> emptyMUD <*>
+          arbitrary <*> getMaybe (listOf1 arbitrary >>= mkNonEmpty) <*>
+          getMaybe genEmptyContainer <*> emptyMUD <*>
+          getMaybe genEmptyContainer <*> getMaybe genEmptyContainer <*>
+          getMaybe genEmptyContainer <*> getMaybe arbitrary <*>
+          arbitrary <*> arbitrary <*> arbitrary <*>
+          arbitrary <*> arbitrary <*> arbitrary <*>
+          emptyMUD <*> emptyMUD <*> arbitrary <*>
+          arbitrary <*> arbitrary <*> arbitrary <*>
+          arbitrary <*> arbitrary <*> arbitrary
+      "OP_CLUSTER_REDIST_CONF" -> pure OpCodes.OpClusterRedistConf
+      "OP_CLUSTER_ACTIVATE_MASTER_IP" ->
+        pure OpCodes.OpClusterActivateMasterIp
+      "OP_CLUSTER_DEACTIVATE_MASTER_IP" ->
+        pure OpCodes.OpClusterDeactivateMasterIp
+      "OP_QUERY" ->
+        OpCodes.OpQuery <$> arbitrary <*> arbitrary <*> arbitrary <*> genFilter
+      "OP_QUERY_FIELDS" ->
+        OpCodes.OpQueryFields <$> arbitrary <*> arbitrary
+      "OP_OOB_COMMAND" ->
+        OpCodes.OpOobCommand <$> genNodeNamesNE <*> arbitrary <*>
+          arbitrary <*> arbitrary <*> (arbitrary `suchThat` (>0))
+      "OP_NODE_REMOVE" -> OpCodes.OpNodeRemove <$> (getFQDN >>= mkNonEmpty)
+      "OP_NODE_ADD" ->
+        OpCodes.OpNodeAdd <$> (getFQDN >>= mkNonEmpty) <*>
+          emptyMUD <*> emptyMUD <*>
+          arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*>
+          arbitrary <*> arbitrary <*> emptyMUD
+      "OP_NODE_QUERY" ->
+        OpCodes.OpNodeQuery <$> arbitrary <*> arbitrary <*> arbitrary
+      "OP_NODE_QUERYVOLS" ->
+        OpCodes.OpNodeQueryvols <$> arbitrary <*> genNodeNamesNE
+      "OP_NODE_QUERY_STORAGE" ->
+        OpCodes.OpNodeQueryStorage <$> arbitrary <*> arbitrary <*>
+          genNodeNamesNE <*> arbitrary
+      "OP_NODE_MODIFY_STORAGE" ->
+        OpCodes.OpNodeModifyStorage <$> genNodeNameNE <*> arbitrary <*>
+          arbitrary <*> pure emptyJSObject
+      "OP_REPAIR_NODE_STORAGE" ->
+        OpCodes.OpRepairNodeStorage <$> genNodeNameNE <*> arbitrary <*>
+          arbitrary <*> arbitrary
+      "OP_NODE_SET_PARAMS" ->
+        OpCodes.OpNodeSetParams <$> genNodeNameNE <*> arbitrary <*>
+          emptyMUD <*> emptyMUD <*> arbitrary <*> arbitrary <*> arbitrary <*>
+          arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*>
+          emptyMUD
+      "OP_NODE_POWERCYCLE" ->
+        OpCodes.OpNodePowercycle <$> genNodeNameNE <*> arbitrary
+      "OP_NODE_MIGRATE" ->
+        OpCodes.OpNodeMigrate <$> genNodeNameNE <*> arbitrary <*>
+          arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*>
+          arbitrary
+      "OP_NODE_EVACUATE" ->
+        OpCodes.OpNodeEvacuate <$> arbitrary <*> genNodeNameNE <*>
+          getMaybe genNodeNameNE <*> arbitrary <*> arbitrary
+      _ -> fail $ "Undefined arbitrary for opcode " ++ op_id
 
 -- * Helper functions
+
+-- | Empty JSObject.
+emptyJSObject :: J.JSObject J.JSValue
+emptyJSObject = J.toJSObject []
+
+-- | Empty maybe unchecked dictionary.
+emptyMUD :: Gen (Maybe (J.JSObject J.JSValue))
+emptyMUD = getMaybe $ pure emptyJSObject
+
+-- | Generates an empty container.
+genEmptyContainer :: (Ord a) => Gen (GenericContainer a b)
+genEmptyContainer = pure . GenericContainer $ Map.fromList []
 
 -- | Generates list of disk indices.
 genDiskIndices :: Gen [DiskIndex]
@@ -96,6 +191,10 @@ genDiskIndices = do
 -- | Generates a list of node names.
 genNodeNames :: Gen [String]
 genNodeNames = resize maxNodes (listOf getFQDN)
+
+-- | Generates a list of node names in non-empty string type.
+genNodeNamesNE :: Gen [NonEmptyString]
+genNodeNamesNE = genNodeNames >>= mapM (mkNonEmpty)
 
 -- | Gets a node name in non-empty type.
 genNodeNameNE :: Gen NonEmptyString
