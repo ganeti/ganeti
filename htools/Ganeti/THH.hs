@@ -526,9 +526,8 @@ genOpCode name cons = do
   let tname = mkName name
   decl_d <- mapM (\(cname, fields) -> do
                     -- we only need the type of the field, without Q
-                    fields' <- mapM actualFieldType fields
-                    let fields'' = zip (repeat NotStrict) fields'
-                    return $ NormalC (mkName cname) fields'')
+                    fields' <- mapM (fieldTypeInfo "op") fields
+                    return $ RecC (mkName cname) fields')
             cons
   let declD = DataD [] tname [] decl_d [''Show, ''Read, ''Eq]
 
