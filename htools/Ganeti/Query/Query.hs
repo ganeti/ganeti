@@ -124,8 +124,8 @@ needsNames (Query kind _ qfilter) = requestedNames (nameField kind) qfilter
 
 -- | Computes the name field for different query types.
 nameField :: ItemType -> FilterField
-nameField QRJob = "id"
-nameField _     = "name"
+nameField (ItemTypeLuxi QRJob) = "id"
+nameField _ = "name"
 
 -- | Extracts all quoted strings from a list, ignoring the
 -- 'NumericValue' entries.
@@ -157,7 +157,8 @@ queryInner :: ConfigData   -- ^ The current configuration
            -> [String]     -- ^ Requested names
            -> IO (ErrorResult QueryResult) -- ^ Result
 
-queryInner cfg live (Query QRNode fields qfilter) wanted = runResultT $ do
+queryInner cfg live (Query (ItemTypeOpCode QRNode) fields qfilter) wanted =
+  runResultT $ do
   cfilter <- resultT $ compileFilter nodeFieldsMap qfilter
   let selected = getSelectedFields nodeFieldsMap fields
       (fdefs, fgetters) = unzip selected
@@ -177,7 +178,8 @@ queryInner cfg live (Query QRNode fields qfilter) wanted = runResultT $ do
               nruntimes
   return QueryResult { qresFields = fdefs, qresData = fdata }
 
-queryInner cfg _ (Query QRGroup fields qfilter) wanted = return $ do
+queryInner cfg _ (Query (ItemTypeOpCode QRGroup) fields qfilter) wanted =
+  return $ do
   cfilter <- compileFilter groupFieldsMap qfilter
   let selected = getSelectedFields groupFieldsMap fields
       (fdefs, fgetters) = unzip selected
@@ -204,10 +206,10 @@ fieldsExtractor fieldsMap fields =
 
 -- | Query fields call.
 queryFields :: QueryFields -> ErrorResult QueryFieldsResult
-queryFields (QueryFields QRNode fields) =
+queryFields (QueryFields (ItemTypeOpCode QRNode) fields) =
   Ok $ fieldsExtractor nodeFieldsMap fields
 
-queryFields (QueryFields QRGroup fields) =
+queryFields (QueryFields (ItemTypeOpCode QRGroup) fields) =
   Ok $ fieldsExtractor groupFieldsMap fields
 
 queryFields (QueryFields qkind _) =

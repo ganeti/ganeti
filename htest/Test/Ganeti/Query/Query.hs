@@ -66,9 +66,10 @@ prop_queryNode_noUnknown =
   forAll (choose (0, maxNodes) >>= genEmptyCluster) $ \cluster ->
   forAll (elements (Map.keys nodeFieldsMap)) $ \field -> monadicIO $ do
   QueryResult fdefs fdata <-
-    run (query cluster False (Query QRNode [field] EmptyFilter)) >>= resultProp
+    run (query cluster False (Query (ItemTypeOpCode QRNode)
+                              [field] EmptyFilter)) >>= resultProp
   QueryFieldsResult fdefs' <-
-    resultProp $ queryFields (QueryFields QRNode [field])
+    resultProp $ queryFields (QueryFields (ItemTypeOpCode QRNode) [field])
   stop $ conjoin
          [ printTestCase ("Got unknown fields via query (" ++
                           show fdefs ++ ")") (hasUnknownFields fdefs)
@@ -86,9 +87,10 @@ prop_queryNode_Unknown =
   forAll (arbitrary `suchThat` (`notElem` Map.keys nodeFieldsMap))
     $ \field -> monadicIO $ do
   QueryResult fdefs fdata <-
-    run (query cluster False (Query QRNode [field] EmptyFilter)) >>= resultProp
+    run (query cluster False (Query (ItemTypeOpCode QRNode)
+                              [field] EmptyFilter)) >>= resultProp
   QueryFieldsResult fdefs' <-
-    resultProp $ queryFields (QueryFields QRNode [field])
+    resultProp $ queryFields (QueryFields (ItemTypeOpCode QRNode) [field])
   stop $ conjoin
          [ printTestCase ("Got known fields via query (" ++ show fdefs ++ ")")
            (not $ hasUnknownFields fdefs)
@@ -132,7 +134,8 @@ prop_queryNode_types =
   forAll (genEmptyCluster numnodes) $ \cfg ->
   forAll (elements (Map.keys nodeFieldsMap)) $ \field -> monadicIO $ do
   QueryResult fdefs fdata <-
-    run (query cfg False (Query QRNode [field] EmptyFilter)) >>= resultProp
+    run (query cfg False (Query (ItemTypeOpCode QRNode)
+                          [field] EmptyFilter)) >>= resultProp
   stop $ conjoin
          [ printTestCase ("Inconsistent result entries (" ++ show fdata ++ ")")
            (conjoin $ map (conjoin . zipWith checkResultType fdefs) fdata)
@@ -147,7 +150,7 @@ prop_queryNode_types =
 -- | Test that queryFields with empty fields list returns all node fields.
 case_queryNode_allfields :: Assertion
 case_queryNode_allfields = do
-   fdefs <- case queryFields (QueryFields QRNode []) of
+   fdefs <- case queryFields (QueryFields (ItemTypeOpCode QRNode) []) of
               Bad msg -> fail $ "Error in query all fields: " ++
                          formatError msg
               Ok (QueryFieldsResult v) -> return v
@@ -163,10 +166,11 @@ prop_queryGroup_noUnknown =
   forAll (choose (0, maxNodes) >>= genEmptyCluster) $ \cluster ->
    forAll (elements (Map.keys groupFieldsMap)) $ \field -> monadicIO $ do
    QueryResult fdefs fdata <-
-     run (query cluster False (Query QRGroup [field] EmptyFilter)) >>=
+     run (query cluster False (Query (ItemTypeOpCode QRGroup)
+                               [field] EmptyFilter)) >>=
          resultProp
    QueryFieldsResult fdefs' <-
-     resultProp $ queryFields (QueryFields QRGroup [field])
+     resultProp $ queryFields (QueryFields (ItemTypeOpCode QRGroup) [field])
    stop $ conjoin
     [ printTestCase ("Got unknown fields via query (" ++ show fdefs ++ ")")
          (hasUnknownFields fdefs)
@@ -183,9 +187,10 @@ prop_queryGroup_Unknown =
   forAll (arbitrary `suchThat` (`notElem` Map.keys groupFieldsMap))
     $ \field -> monadicIO $ do
   QueryResult fdefs fdata <-
-    run (query cluster False (Query QRGroup [field] EmptyFilter)) >>= resultProp
+    run (query cluster False (Query (ItemTypeOpCode QRGroup)
+                              [field] EmptyFilter)) >>= resultProp
   QueryFieldsResult fdefs' <-
-    resultProp $ queryFields (QueryFields QRGroup [field])
+    resultProp $ queryFields (QueryFields (ItemTypeOpCode QRGroup) [field])
   stop $ conjoin
          [ printTestCase ("Got known fields via query (" ++ show fdefs ++ ")")
            (not $ hasUnknownFields fdefs)
@@ -205,7 +210,8 @@ prop_queryGroup_types =
   forAll (genEmptyCluster numnodes) $ \cfg ->
   forAll (elements (Map.keys groupFieldsMap)) $ \field -> monadicIO $ do
   QueryResult fdefs fdata <-
-    run (query cfg False (Query QRGroup [field] EmptyFilter)) >>= resultProp
+    run (query cfg False (Query (ItemTypeOpCode QRGroup)
+                          [field] EmptyFilter)) >>= resultProp
   stop $ conjoin
          [ printTestCase ("Inconsistent result entries (" ++ show fdata ++ ")")
            (conjoin $ map (conjoin . zipWith checkResultType fdefs) fdata)
@@ -216,7 +222,7 @@ prop_queryGroup_types =
 
 case_queryGroup_allfields :: Assertion
 case_queryGroup_allfields = do
-   fdefs <- case queryFields (QueryFields QRGroup []) of
+   fdefs <- case queryFields (QueryFields (ItemTypeOpCode QRGroup) []) of
               Bad msg -> fail $ "Error in query all fields: " ++
                          formatError msg
               Ok (QueryFieldsResult v) -> return v
@@ -230,7 +236,7 @@ case_queryGroup_allfields = do
 prop_getRequestedNames :: Property
 prop_getRequestedNames =
   forAll getName $ \node1 ->
-  let chk = getRequestedNames . Query QRNode []
+  let chk = getRequestedNames . Query (ItemTypeOpCode QRNode) []
       q_node1 = QuotedString node1
       eq_name = EQFilter "name"
       eq_node1 = eq_name q_node1

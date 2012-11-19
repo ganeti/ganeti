@@ -59,7 +59,7 @@ checkQueryResults cfg qr descr expected = monadicIO $ do
 
 -- | Makes a node name query, given a filter.
 makeNodeQuery :: Filter FilterField -> Query
-makeNodeQuery = Query QRNode ["name"]
+makeNodeQuery = Query (ItemTypeOpCode QRNode) ["name"]
 
 -- | Checks if a given operation failed.
 expectBadQuery :: ConfigData -> Query -> String -> Property

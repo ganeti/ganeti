@@ -74,6 +74,10 @@ genFilter' n =
         n'' = max n' 2 -- but we don't want empty or 1-element lists,
                        -- so use this for and/or filter list length
 
+$(genArbitrary ''QueryTypeOp)
+
+$(genArbitrary ''QueryTypeLuxi)
+
 $(genArbitrary ''ItemType)
 
 instance Arbitrary FilterRegex where
@@ -148,6 +152,10 @@ prop_fieldsresult_serialisation :: Property
 prop_fieldsresult_serialisation =
   forAll (resize 20 arbitrary::Gen QueryFieldsResult) testSerialisation
 
+-- | Tests 'ItemType' serialisation.
+prop_itemtype_serialisation :: ItemType -> Property
+prop_itemtype_serialisation = testSerialisation
+
 testSuite "Query/Language"
   [ 'prop_filter_serialisation
   , 'prop_filterregex_instances
@@ -156,4 +164,5 @@ testSuite "Query/Language"
   , 'prop_fielddef_serialisation
   , 'prop_resultentry_serialisation
   , 'prop_fieldsresult_serialisation
+  , 'prop_itemtype_serialisation
   ]

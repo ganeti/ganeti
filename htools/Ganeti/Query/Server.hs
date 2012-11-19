@@ -156,10 +156,10 @@ handleCall _ (QueryFields qkind qfields) = do
   return $ J.showJSON <$> result
 
 handleCall cfg (QueryNodes names fields lock) =
-  handleClassicQuery cfg Qlang.QRNode names fields lock
+  handleClassicQuery cfg (Qlang.ItemTypeOpCode Qlang.QRNode) names fields lock
 
 handleCall cfg (QueryGroups names fields lock) =
-  handleClassicQuery cfg Qlang.QRGroup names fields lock
+  handleClassicQuery cfg (Qlang.ItemTypeOpCode Qlang.QRGroup) names fields lock
 
 handleCall _ op =
   return . Bad $

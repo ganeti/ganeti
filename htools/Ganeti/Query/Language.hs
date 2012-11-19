@@ -47,6 +47,8 @@ module Ganeti.Query.Language
     , ResultStatus(..)
     , ResultValue
     , ItemType(..)
+    , QueryTypeOp(..)
+    , QueryTypeLuxi(..)
     , checkRS
     ) where
 
@@ -98,17 +100,49 @@ $(declareSADT "FieldType"
 $(makeJSONInstance ''FieldType)
 
 -- | Supported items on which Qlang works.
-$(declareSADT "ItemType"
+$(declareSADT "QueryTypeOp"
   [ ("QRCluster",  'C.qrCluster )
   , ("QRInstance", 'C.qrInstance )
   , ("QRNode",     'C.qrNode )
-  , ("QRLock",     'C.qrLock )
   , ("QRGroup",    'C.qrGroup )
   , ("QROs",       'C.qrOs )
-  , ("QRJob",      'C.qrJob )
   , ("QRExport",   'C.qrExport )
   ])
-$(makeJSONInstance ''ItemType)
+$(makeJSONInstance ''QueryTypeOp)
+
+-- | Supported items on which Qlang works.
+$(declareSADT "QueryTypeLuxi"
+  [ ("QRLock",     'C.qrLock )
+  , ("QRJob",      'C.qrJob )
+  ])
+$(makeJSONInstance ''QueryTypeLuxi)
+
+-- | Overall query type.
+data ItemType = ItemTypeLuxi QueryTypeLuxi
+              | ItemTypeOpCode QueryTypeOp
+                deriving (Show, Read, Eq)
+
+-- | Custom JSON decoder for 'ItemType'.
+decodeItemType :: (Monad m) => JSValue -> m ItemType
+decodeItemType (JSString s) =
+  case queryTypeOpFromRaw s' of
+    Just v -> return $ ItemTypeOpCode v
+    Nothing ->
+      case queryTypeLuxiFromRaw s' of
+        Just v -> return $ ItemTypeLuxi v
+        Nothing ->
+          fail $ "Can't parse value '" ++ s' ++ "' as neither"
+                 ++ "QueryTypeLuxi nor QueryTypeOp"
+  where s' = fromJSString s
+decodeItemType v = fail $ "Invalid value '" ++ show (pp_value v) ++
+                   "for query type"
+
+-- | Custom JSON instance for 'ItemType' since its encoding is not
+-- consistent with the data type itself.
+instance JSON ItemType where
+  showJSON (ItemTypeLuxi x)  = showJSON x
+  showJSON (ItemTypeOpCode y) = showJSON y
+  readJSON = decodeItemType
 
 -- * Sub data types for query2 queries and responses.
 
