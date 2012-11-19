@@ -55,6 +55,7 @@ module Ganeti.Types
   , CVErrorCode(..)
   , cVErrorCodeToRaw
   , Hypervisor(..)
+  , StorageType(..)
   ) where
 
 import qualified Text.JSON as JSON
@@ -218,3 +219,11 @@ $(THH.declareSADT "Hypervisor"
   , ( "Fake",   'C.htFake )
   ])
 $(THH.makeJSONInstance ''Hypervisor)
+
+-- | Storage type.
+$(THH.declareSADT "StorageType"
+  [ ("StorageFile", 'C.stFile)
+  , ("StorageLvmPv", 'C.stLvmPv)
+  , ("StorageLvmVg", 'C.stLvmVg)
+  ])
+$(THH.makeJSONInstance ''StorageType)

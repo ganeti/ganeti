@@ -59,7 +59,6 @@ module Ganeti.Rpc
   , RpcCallVersion(..)
   , RpcResultVersion(..)
 
-  , StorageType(..)
   , StorageField(..)
   , RpcCallStorageList(..)
   , RpcResultStorageList(..)
@@ -410,14 +409,6 @@ instance Rpc RpcCallVersion RpcResultVersion where
 -- ** StorageList
 
 -- | StorageList
--- Get list of storage units.
--- FIXME: This may be moved to Objects
-$(declareSADT "StorageType"
-  [ ( "STLvmPv", 'C.stLvmPv )
-  , ( "STFile",  'C.stFile )
-  , ( "STLvmVg", 'C.stLvmVg )
-  ])
-$(makeJSONInstance ''StorageType)
 
 -- FIXME: This may be moved to Objects
 $(declareSADT "StorageField"

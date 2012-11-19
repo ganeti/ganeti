@@ -72,6 +72,8 @@ $(genArbitrary ''CVErrorCode)
 
 $(genArbitrary ''Hypervisor)
 
+$(genArbitrary ''StorageType)
+
 instance (Arbitrary a) => Arbitrary (Types.NonEmpty a) where
   arbitrary = do
     QuickCheck.NonEmpty lst <- arbitrary
@@ -158,6 +160,10 @@ case_CVErrorCode_pyequiv = do
 prop_Hypervisor_serialisation :: Hypervisor -> Property
 prop_Hypervisor_serialisation = testSerialisation
 
+-- | Test 'StorageType' serialisation.
+prop_StorageType_serialisation :: StorageType -> Property
+prop_StorageType_serialisation = testSerialisation
+
 testSuite "Types"
   [ 'prop_AllocPolicy_serialisation
   , 'prop_DiskTemplate_serialisation
@@ -174,4 +180,5 @@ testSuite "Types"
   , 'prop_CVErrorCode_serialisation
   , 'case_CVErrorCode_pyequiv
   , 'prop_Hypervisor_serialisation
+  , 'prop_StorageType_serialisation
   ]
