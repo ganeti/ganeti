@@ -127,17 +127,17 @@ type Fields = [ String ]
 -- getters, etc.
 data Filter a
     = EmptyFilter                   -- ^ No filter at all
-    | AndFilter      [ Filter a ]   -- ^ & [<expression>, ...]
-    | OrFilter       [ Filter a ]   -- ^ | [<expression>, ...]
-    | NotFilter      (Filter a)     -- ^ ! <expression>
-    | TrueFilter     a              -- ^ ? <field>
-    | EQFilter       a FilterValue  -- ^ (=|!=) <field> <value>
-    | LTFilter       a FilterValue  -- ^ < <field> <value>
-    | GTFilter       a FilterValue  -- ^ > <field> <value>
-    | LEFilter       a FilterValue  -- ^ <= <field> <value>
-    | GEFilter       a FilterValue  -- ^ >= <field> <value>
-    | RegexpFilter   a FilterRegex  -- ^ =~ <field> <regexp>
-    | ContainsFilter a FilterValue  -- ^ =[] <list-field> <value>
+    | AndFilter      [ Filter a ]   -- ^ @&@ [/expression/, ...]
+    | OrFilter       [ Filter a ]   -- ^ @|@ [/expression/, ...]
+    | NotFilter      (Filter a)     -- ^ @!@ /expression/
+    | TrueFilter     a              -- ^ @?@ /field/
+    | EQFilter       a FilterValue  -- ^ @(=|!=)@ /field/ /value/
+    | LTFilter       a FilterValue  -- ^ @<@ /field/ /value/
+    | GTFilter       a FilterValue  -- ^ @>@ /field/ /value/
+    | LEFilter       a FilterValue  -- ^ @<=@ /field/ /value/
+    | GEFilter       a FilterValue  -- ^ @>=@ /field/ /value/
+    | RegexpFilter   a FilterRegex  -- ^ @=~@ /field/ /regexp/
+    | ContainsFilter a FilterValue  -- ^ @=[]@ /list-field/ /value/
       deriving (Show, Read, Eq)
 
 -- | Serialiser for the 'Filter' data type.
