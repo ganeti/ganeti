@@ -1,0 +1,9 @@
+version: 8.3.11 (api:88/proto:86-96)
+srcversion: 2D876214BAAD53B31ADC1D6
+ 0: cs:SyncTarget ro:Secondary/Primary ds:Inconsistent/UpToDate C r-----
+    ns:0 nr:460288 dw:460160 dr:0 al:0 bm:28 lo:2 pe:4 ua:1 ap:0 ep:1 wo:f oos:588416 
+        [=======>............] sync'ed: 44.4% (588416/1048576)K
+        finish: 0:00:08 speed: 65,736 (65,736) want: 61,440 K/sec
+ 1: cs:Unconfigured
+ 2: cs:Unconfigured
+ 3: cs:Unconfigured

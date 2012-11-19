@@ -67,6 +67,8 @@ HTOOLS_DIRS = \
 	htest \
 	htest/Test \
 	htest/Test/Ganeti \
+	htest/Test/Ganeti/Block \
+	htest/Test/Ganeti/Block/Drbd \
 	htest/Test/Ganeti/Confd \
 	htest/Test/Ganeti/HTools \
 	htest/Test/Ganeti/HTools/Backend \
@@ -490,6 +492,7 @@ HS_LIB_SRCS = \
 HS_TEST_SRCS = \
 	htest/Test/Ganeti/Attoparsec.hs \
 	htest/Test/Ganeti/BasicTypes.hs \
+	htest/Test/Ganeti/Block/Drbd/Parser.hs \
 	htest/Test/Ganeti/Common.hs \
 	htest/Test/Ganeti/Confd/Utils.hs \
 	htest/Test/Ganeti/Daemon.hs \
@@ -887,6 +890,7 @@ TEST_FILES = \
 	test/data/proc_drbd80-emptyline.txt \
 	test/data/proc_drbd83.txt \
 	test/data/proc_drbd83_sync.txt \
+	test/data/proc_drbd83_sync_want.txt \
 	test/data/proc_drbd83_sync_krnl2.6.39.txt \
 	test/data/sys_drbd_usermode_helper.txt \
 	test/data/vgreduce-removemissing-2.02.02.txt \

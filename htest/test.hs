@@ -32,6 +32,7 @@ import System.Environment (getArgs)
 import Test.Ganeti.TestImports ()
 import Test.Ganeti.Attoparsec
 import Test.Ganeti.BasicTypes
+import Test.Ganeti.Block.Drbd.Parser
 import Test.Ganeti.Common
 import Test.Ganeti.Confd.Utils
 import Test.Ganeti.Daemon
@@ -80,6 +81,7 @@ allTests =
   , testCommon
   , testConfd_Utils
   , testDaemon
+  , testBlock_DRBDParser
   , testErrors
   , testHTools_Backend_Simu
   , testHTools_Backend_Text
