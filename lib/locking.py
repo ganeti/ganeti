@@ -1050,8 +1050,8 @@ class LockSet:
       self.__owners[threading.currentThread()].remove(name)
 
     # Only remove the key if we don't hold the set-lock as well
-    if (not self.__lock.is_owned() and
-        not self.__owners[threading.currentThread()]):
+    if not (self.__lock.is_owned() or
+            self.__owners[threading.currentThread()]):
       del self.__owners[threading.currentThread()]
 
   def list_owned(self):
