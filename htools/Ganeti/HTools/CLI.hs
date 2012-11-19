@@ -316,7 +316,7 @@ oGroup :: OptType
 oGroup =
   (Option "G" ["group"]
    (ReqArg (\ f o -> Ok o { optGroup = Just f }) "ID")
-   "the ID of the group to balance",
+   "the target node group (name or UUID)",
    OptComplOneGroup)
 
 oIAllocSrc :: OptType
