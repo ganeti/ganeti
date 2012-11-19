@@ -57,6 +57,8 @@ myexeclibdir = $(pkglibdir)
 HTOOLS_DIRS = \
 	htools \
 	htools/Ganeti \
+	htools/Ganeti/Block \
+	htools/Ganeti/Block/Drbd \
 	htools/Ganeti/Confd \
 	htools/Ganeti/HTools \
 	htools/Ganeti/HTools/Backend \
@@ -108,6 +110,8 @@ BUILDTIME_DIR_AUTOCREATE = \
 	$(APIDOC_DIR) \
 	$(APIDOC_HS_DIR) \
 	$(APIDOC_HS_DIR)/Ganeti \
+	$(APIDOC_HS_DIR)/Ganeti/Block \
+	$(APIDOC_HS_DIR)/Ganeti/Block/Drbd \
 	$(APIDOC_HS_DIR)/Ganeti/Confd \
 	$(APIDOC_HS_DIR)/Ganeti/HTools \
 	$(APIDOC_HS_DIR)/Ganeti/HTools/Backend \
@@ -426,6 +430,8 @@ HPCEXCL = --exclude Main \
 	$(patsubst htools.%,--exclude Test.%,$(subst /,.,$(patsubst %.hs,%, $(HS_LIB_SRCS))))
 
 HS_LIB_SRCS = \
+	htools/Ganeti/Block/Drbd/Types.hs \
+	htools/Ganeti/Block/Drbd/Parser.hs \
 	htools/Ganeti/BasicTypes.hs \
 	htools/Ganeti/Common.hs \
 	htools/Ganeti/Compat.hs \
@@ -1618,6 +1624,8 @@ hs-apidoc: $(HS_BUILT_SRCS)
 	rm -rf $(APIDOC_HS_DIR)/*
 	@mkdir_p@ $(APIDOC_HS_DIR)/Ganeti/HTools/Backend
 	@mkdir_p@ $(APIDOC_HS_DIR)/Ganeti/HTools/Program
+	@mkdir_p@ $(APIDOC_HS_DIR)/Ganeti/Block
+	@mkdir_p@ $(APIDOC_HS_DIR)/Ganeti/Block/Drbd
 	@mkdir_p@ $(APIDOC_HS_DIR)/Ganeti/Confd
 	@mkdir_p@ $(APIDOC_HS_DIR)/Ganeti/Query
 	$(HSCOLOUR) -print-css > $(APIDOC_HS_DIR)/Ganeti/hscolour.css
