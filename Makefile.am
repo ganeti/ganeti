@@ -1514,7 +1514,7 @@ pep8: $(GENERATED_FILES)
 hlint: $(HS_BUILT_SRCS) htools/lint-hints.hs
 	@test -n "$(HLINT)" || { echo 'hlint' not found during configure; exit 1; }
 	if tty -s; then C="-c"; else C=""; fi; \
-	$(HLINT) --report=doc/hs-lint.html --cross $$C \
+	$(HLINT) --utf8 --report=doc/hs-lint.html --cross $$C \
 	  --ignore "Use first" \
 	  --ignore "Use comparing" \
 	  --ignore "Use on" \
