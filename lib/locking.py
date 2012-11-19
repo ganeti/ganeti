@@ -1191,7 +1191,7 @@ class LockSet:
     # they will still be there after, but this makes it a lot faster should
     # just one of them be the already wrong. Using a sorted sequence to prevent
     # deadlocks.
-    for lname in sorted(utils.UniqueSequence(names)):
+    for lname in sorted(frozenset(names)):
       try:
         lock = self.__lockdict[lname] # raises KeyError if lock is not there
       except KeyError:
