@@ -82,6 +82,7 @@ import qualified Ganeti.Path as P
 import qualified Ganeti.Constants as C
 import Ganeti.Objects
 import Ganeti.THH
+import Ganeti.Types
 import Ganeti.Compat
 
 -- * Base RPC functionality and types

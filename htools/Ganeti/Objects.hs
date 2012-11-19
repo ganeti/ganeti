@@ -50,7 +50,6 @@ module Ganeti.Objects
   , FilledBeParams(..)
   , fillBeParams
   , allBeParamFields
-  , Hypervisor(..)
   , AdminState(..)
   , adminStateFromRaw
   , Instance(..)
@@ -328,19 +327,6 @@ $(buildObjectSerialisation "Disk"
   , simpleField "size" [t| Int |]
   , defaultField [| DiskRdWr |] $ simpleField "mode" [t| DiskMode |]
   ])
-
--- * Hypervisor definitions
-
--- | This may be due to change when we add hypervisor parameters.
-$(declareSADT "Hypervisor"
-  [ ( "Kvm",    'C.htKvm )
-  , ( "XenPvm", 'C.htXenPvm )
-  , ( "Chroot", 'C.htChroot )
-  , ( "XenHvm", 'C.htXenHvm )
-  , ( "Lxc",    'C.htLxc )
-  , ( "Fake",   'C.htFake )
-  ])
-$(makeJSONInstance ''Hypervisor)
 
 -- * Instance definitions
 

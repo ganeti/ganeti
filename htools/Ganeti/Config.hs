@@ -59,6 +59,7 @@ import qualified Ganeti.Constants as C
 import Ganeti.Errors
 import Ganeti.JSON
 import Ganeti.Objects
+import Ganeti.Types
 
 -- | Type alias for the link and ip map.
 type LinkIpMap = M.Map String (M.Map String String)

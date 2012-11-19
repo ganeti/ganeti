@@ -32,6 +32,7 @@ module Test.Ganeti.Types
   , DiskTemplate(..)
   , InstanceStatus(..)
   , NonEmpty(..)
+  , Hypervisor(..)
   ) where
 
 import Data.List (sort)
@@ -68,6 +69,8 @@ $(genArbitrary ''VerifyOptionalChecks)
 $(genArbitrary ''DdmSimple)
 
 $(genArbitrary ''CVErrorCode)
+
+$(genArbitrary ''Hypervisor)
 
 instance (Arbitrary a) => Arbitrary (Types.NonEmpty a) where
   arbitrary = do
@@ -151,6 +154,10 @@ case_CVErrorCode_pyequiv = do
       all_hs_codes = sort $ map Types.cVErrorCodeToRaw [minBound..maxBound]
   assertEqual "for CVErrorCode equivalence" all_py_codes all_hs_codes
 
+-- | Test 'Hypervisor' serialisation.
+prop_Hypervisor_serialisation :: Hypervisor -> Property
+prop_Hypervisor_serialisation = testSerialisation
+
 testSuite "Types"
   [ 'prop_AllocPolicy_serialisation
   , 'prop_DiskTemplate_serialisation
@@ -166,4 +173,5 @@ testSuite "Types"
   , 'prop_DdmSimple_serialisation
   , 'prop_CVErrorCode_serialisation
   , 'case_CVErrorCode_pyequiv
+  , 'prop_Hypervisor_serialisation
   ]

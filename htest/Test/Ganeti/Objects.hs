@@ -28,7 +28,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Test.Ganeti.Objects
   ( testObjects
-  , Hypervisor(..)
   , Node(..)
   , genEmptyCluster
   ) where
@@ -50,8 +49,6 @@ import Ganeti.JSON
 {-# ANN module "HLint: ignore Use camelCase" #-}
 
 -- * Arbitrary instances
-
-$(genArbitrary ''Hypervisor)
 
 $(genArbitrary ''PartialNDParams)
 

@@ -54,6 +54,7 @@ module Ganeti.Types
   , DdmSimple(..)
   , CVErrorCode(..)
   , cVErrorCodeToRaw
+  , Hypervisor(..)
   ) where
 
 import qualified Text.JSON as JSON
@@ -206,3 +207,14 @@ $(THH.declareSADT "DdmSimple"
      , ("DdmSimpleRemove", 'C.ddmRemove)
      ])
 $(THH.makeJSONInstance ''DdmSimple)
+
+-- | Hypervisor type definitions.
+$(THH.declareSADT "Hypervisor"
+  [ ( "Kvm",    'C.htKvm )
+  , ( "XenPvm", 'C.htXenPvm )
+  , ( "Chroot", 'C.htChroot )
+  , ( "XenHvm", 'C.htXenHvm )
+  , ( "Lxc",    'C.htLxc )
+  , ( "Fake",   'C.htFake )
+  ])
+$(THH.makeJSONInstance ''Hypervisor)
