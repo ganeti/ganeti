@@ -469,8 +469,8 @@ class BaseOpCode(objectutils.ValidatedSlots):
       if set_defaults or hasattr(self, attr_name):
         attr_val = getattr(self, attr_name)
         if not test(attr_val):
-          logging.error("OpCode %s, parameter %s, has invalid type %s/value %s"
-                        " expecting type %s",
+          logging.error("OpCode %s, parameter %s, has invalid type %s/value"
+                        " '%s' expecting type %s",
                         self.OP_ID, attr_name, type(attr_val), attr_val, test)
           raise errors.OpPrereqError("Parameter '%s.%s' fails validation" %
                                      (self.OP_ID, attr_name),
