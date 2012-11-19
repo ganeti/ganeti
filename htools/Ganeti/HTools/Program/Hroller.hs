@@ -29,8 +29,21 @@ module Ganeti.HTools.Program.Hroller
   , arguments
   ) where
 
+import Control.Monad
+import Data.List
+import Data.Ord
+
+import qualified Data.IntMap as IntMap
+
+import qualified Ganeti.HTools.Container as Container
+import qualified Ganeti.HTools.Node as Node
+
 import Ganeti.Common
 import Ganeti.HTools.CLI
+import Ganeti.HTools.ExtLoader
+import Ganeti.HTools.Graph
+import Ganeti.HTools.Loader
+import Ganeti.Utils
 
 -- | Options list and functions.
 options :: IO [OptType]
@@ -52,6 +65,62 @@ options = do
 arguments :: [ArgCompletion]
 arguments = []
 
+-- | Gather statistics for the coloring algorithms.
+-- Returns a string with a summary on how each algorithm has performed,
+-- in order of non-decreasing effectiveness, and whether it tied or lost
+-- with the previous one.
+getStats :: [(String, ColorVertMap)] -> String
+getStats colorings = snd . foldr helper (0,"") $ algBySize colorings
+    where algostat (algo, cmap) = algo ++ ": " ++ size cmap ++ grpsizes cmap
+          size cmap = show (IntMap.size cmap) ++ " "
+          grpsizes cmap =
+            "(" ++ commaJoin (map (show.length) (IntMap.elems cmap)) ++ ")"
+          algBySize = sortBy (flip (comparing (IntMap.size.snd)))
+          helper :: (String, ColorVertMap) -> (Int, String) -> (Int, String)
+          helper el (0, _) = ((IntMap.size.snd) el, algostat el)
+          helper el (old, str)
+            | old == elsize = (elsize, str ++ " TIE " ++ algostat el)
+            | otherwise = (elsize, str ++ " LOOSE " ++ algostat el)
+              where elsize = (IntMap.size.snd) el
+
 -- | Main function.
 main :: Options -> [String] -> IO ()
-main _ _ = return ()
+main opts args = do
+  unless (null args) $ exitErr "This program doesn't take any arguments."
+
+  let verbose = optVerbose opts
+
+  -- Load cluster data. The last two arguments, cluster tags and ipolicy, are
+  -- currently not used by this tool.
+  ini_cdata@(ClusterData _ fixed_nl ilf _ _) <- loadExternalData opts
+
+  nlf <- setNodeStatus opts fixed_nl
+
+  maybeSaveData (optSaveCluster opts) "original" "before hroller run" ini_cdata
+
+  -- TODO: only online nodes!
+  -- TODO: filter by node group
+  -- TODO: fail if instances are running (with option to warn only)
+  -- TODO: identify master node, and put it last
+
+  nodeGraph <- case Node.mkNodeGraph nlf ilf of
+                     Nothing -> exitErr "Cannot create node graph"
+                     Just g -> return g
+
+  when (verbose > 2) . putStrLn $ "Node Graph: " ++ show nodeGraph
+
+  let colorAlgorithms = [ ("LF", colorLF)
+                        , ("Dsatur", colorDsatur)
+                        , ("Dcolor", colorDcolor)
+                        ]
+      colorings = map (\(v,a) -> (v,(colorVertMap.a) nodeGraph)) colorAlgorithms
+      smallestColoring =
+        (snd . minimumBy (comparing (IntMap.size . snd))) colorings
+      idToName = Node.name  . (`Container.find` nlf)
+      nodesbycoloring = map (map idToName) $ IntMap.elems smallestColoring
+
+  when (verbose > 1) . putStrLn $ getStats colorings
+
+  unless (optNoHeaders opts) $
+         putStrLn "'Node Reboot Groups'"
+  mapM_ (putStrLn . commaJoin) nodesbycoloring
