@@ -125,9 +125,7 @@ checkPythonResult (py_code, py_stdout, py_stderr) = do
 newtype DNSChar = DNSChar { dnsGetChar::Char }
 
 instance Arbitrary DNSChar where
-  arbitrary = do
-    x <- elements (['a'..'z'] ++ ['0'..'9'] ++ "_-")
-    return (DNSChar x)
+  arbitrary = liftM DNSChar $ elements (['a'..'z'] ++ ['0'..'9'] ++ "_-")
 
 instance Show DNSChar where
   show = show . dnsGetChar
@@ -148,11 +146,7 @@ getFQDN = do
 
 -- | Combinator that generates a 'Maybe' using a sub-combinator.
 getMaybe :: Gen a -> Gen (Maybe a)
-getMaybe subgen = do
-  bool <- arbitrary
-  if bool
-    then Just <$> subgen
-    else return Nothing
+getMaybe subgen = oneof [ pure Nothing, liftM Just subgen ]
 
 -- | Defines a tag type.
 newtype TagChar = TagChar { tagGetChar :: Char }
@@ -163,9 +157,7 @@ tagChar :: String
 tagChar = ['a'..'z'] ++ ['A'..'Z'] ++ ['0'..'9'] ++ ".+*/:@-"
 
 instance Arbitrary TagChar where
-  arbitrary = do
-    c <- elements tagChar
-    return (TagChar c)
+  arbitrary = liftM TagChar $ elements tagChar
 
 -- | Generates a tag
 genTag :: Gen [TagChar]
@@ -202,9 +194,7 @@ genUniquesList cnt =
 
 newtype SmallRatio = SmallRatio Double deriving Show
 instance Arbitrary SmallRatio where
-  arbitrary = do
-    v <- choose (0, 1)
-    return $ SmallRatio v
+  arbitrary = liftM SmallRatio $ choose (0, 1)
 
 -- | Checks for serialisation idempotence.
 testSerialisation :: (Eq a, Show a, J.JSON a) => a -> Property
