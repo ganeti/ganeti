@@ -51,6 +51,10 @@ _DEFAULT_PRIORITY = 0
 #: (seconds)
 _LOCK_ACQUIRE_MIN_TIMEOUT = (1.0 / 1000)
 
+# Internal lock acquisition modes for L{LockSet}
+(_LS_ACQUIRE_EXACT,
+ _LS_ACQUIRE_ALL) = range(1, 3)
+
 
 def ssynchronized(mylock, shared=0):
   """Shared Synchronization decorator.
@@ -1140,7 +1144,7 @@ class LockSet:
         if isinstance(names, basestring):
           names = [names]
 
-        return self.__acquire_inner(names, False, shared, priority,
+        return self.__acquire_inner(names, _LS_ACQUIRE_EXACT, shared, priority,
                                     running_timeout.Remaining, test_notify)
 
       else:
@@ -1160,8 +1164,9 @@ class LockSet:
           # note we own the set-lock
           self._add_owned()
 
-          return self.__acquire_inner(self.__names(), True, shared, priority,
-                                      running_timeout.Remaining, test_notify)
+          return self.__acquire_inner(self.__names(), _LS_ACQUIRE_ALL, shared,
+                                      priority, running_timeout.Remaining,
+                                      test_notify)
         except:
           # We shouldn't have problems adding the lock to the owners list, but
           # if we did we'll try to release this lock and re-raise exception.
@@ -1173,18 +1178,20 @@ class LockSet:
     except _AcquireTimeout:
       return None
 
-  def __acquire_inner(self, names, want_all, shared, priority,
+  def __acquire_inner(self, names, mode, shared, priority,
                       timeout_fn, test_notify):
     """Inner logic for acquiring a number of locks.
 
     @param names: Names of the locks to be acquired
-    @param want_all: Whether all locks in the set should be acquired
+    @param mode: Lock acquisition mode
     @param shared: Whether to acquire in shared mode
     @param timeout_fn: Function returning remaining timeout
     @param priority: Priority for acquiring locks
     @param test_notify: Special callback function for unittesting
 
     """
+    assert mode in (_LS_ACQUIRE_EXACT, _LS_ACQUIRE_ALL)
+
     acquire_list = []
 
     # First we look the locks up on __lockdict. We have no way of being sure
@@ -1195,15 +1202,14 @@ class LockSet:
       try:
         lock = self.__lockdict[lname] # raises KeyError if lock is not there
       except KeyError:
-        if want_all:
-          # We are acquiring all the set, it doesn't matter if this particular
-          # element is not there anymore.
-          continue
-
-        raise errors.LockError("Non-existing lock %s in set %s (it may have"
-                               " been removed)" % (lname, self.name))
-
-      acquire_list.append((lname, lock))
+        # We are acquiring the whole set, it doesn't matter if this particular
+        # element is not there anymore. If, however, only certain names should
+        # be acquired, not finding a lock is an error.
+        if mode == _LS_ACQUIRE_EXACT:
+          raise errors.LockError("Lock '%s' not found in set '%s' (it may have"
+                                 " been removed)" % (lname, self.name))
+      else:
+        acquire_list.append((lname, lock))
 
     # This will hold the locknames we effectively acquired.
     acquired = set()
@@ -1228,13 +1234,13 @@ class LockSet:
                                      priority=priority,
                                      test_notify=test_notify_fn)
         except errors.LockError:
-          if want_all:
-            # We are acquiring all the set, it doesn't matter if this
+          if mode == _LS_ACQUIRE_ALL:
+            # We are acquiring the whole set, it doesn't matter if this
             # particular element is not there anymore.
             continue
 
-          raise errors.LockError("Non-existing lock %s in set %s (it may"
-                                 " have been removed)" % (lname, self.name))
+          raise errors.LockError("Lock '%s' not found in set '%s' (it may have"
+                                 " been removed)" % (lname, self.name))
 
         if not acq_success:
           # Couldn't get lock or timeout occurred
