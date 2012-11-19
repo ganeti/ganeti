@@ -29,14 +29,15 @@ import Control.Applicative
 import Control.Exception (catchJust)
 import Control.Monad
 import Data.List
-import qualified Test.HUnit as HUnit
-import Test.QuickCheck
-import Test.QuickCheck.Monadic
-import qualified Text.JSON as J
+import qualified Data.Set as Set
 import System.Environment (getEnv)
 import System.Exit (ExitCode(..))
 import System.IO.Error (isDoesNotExistError)
 import System.Process (readProcessWithExitCode)
+import qualified Test.HUnit as HUnit
+import Test.QuickCheck
+import Test.QuickCheck.Monadic
+import qualified Text.JSON as J
 
 import qualified Ganeti.BasicTypes as BasicTypes
 
@@ -195,6 +196,25 @@ genUniquesList cnt =
 newtype SmallRatio = SmallRatio Double deriving Show
 instance Arbitrary SmallRatio where
   arbitrary = liftM SmallRatio $ choose (0, 1)
+
+-- | Helper for 'genSet', declared separately due to type constraints.
+genSetHelper :: (Ord a) => [a] -> Maybe Int -> Gen (Set.Set a)
+genSetHelper candidates size = do
+  size' <- case size of
+             Nothing -> choose (0, length candidates)
+             Just s | s > length candidates ->
+                        error $ "Invalid size " ++ show s ++ ", maximum is " ++
+                                show (length candidates)
+                    | otherwise -> return s
+  foldM (\set _ -> do
+           newelem <- elements candidates `suchThat` (`Set.notMember` set)
+           return (Set.insert newelem set)) Set.empty [1..size']
+
+-- | Generates a set of arbitrary elements.
+genSet :: (Ord a, Bounded a, Enum a) => Maybe Int -> Gen (Set.Set a)
+genSet = genSetHelper [minBound..maxBound]
+
+-- * Helper functions
 
 -- | Checks for serialisation idempotence.
 testSerialisation :: (Eq a, Show a, J.JSON a) => a -> Property
