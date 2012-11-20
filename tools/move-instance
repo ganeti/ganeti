@@ -496,7 +496,8 @@ class MoveDestExecutor(object):
       constants.INIC_MAC: mac,
       constants.INIC_MODE: mode,
       constants.INIC_LINK: link,
-      } for ip, mac, mode, link in instance["nics"]]
+      constants.INIC_NETWORK: network
+      } for ip, mac, mode, link, network, _ in instance["nics"]]
 
     if len(override_nics) > len(nics):
       raise Error("Can not create new NICs")
