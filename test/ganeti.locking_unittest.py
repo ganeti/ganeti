@@ -1703,6 +1703,21 @@ class TestLockSet(_ThreadedTestCase):
 
     self.ls.release()
 
+  def testDowngradeEverything(self):
+    self.assertEqual(self.ls.acquire(locking.ALL_SET, shared=0),
+                     set(["one", "two", "three"]))
+
+    # Ensure all locks are now owned in exclusive mode
+    for name in self.ls._names():
+      self.assertTrue(self.ls.check_owned(name, shared=0))
+
+    # Downgrade everything
+    self.assertTrue(self.ls.downgrade())
+
+    # Ensure all locks are now owned in shared mode
+    for name in self.ls._names():
+      self.assertTrue(self.ls.check_owned(name, shared=1))
+
   def testPriority(self):
     def _Acquire(prev, next, name, priority, success_fn):
       prev.wait()
