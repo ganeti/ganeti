@@ -43,6 +43,8 @@ import Test.Ganeti.TestCommon
 import Ganeti.BasicTypes
 import Ganeti.Types as Types
 
+{-# ANN module "HLint: ignore Use camelCase" #-}
+
 -- * Arbitrary instance
 
 instance (Arbitrary a, Ord a, Num a, Show a) =>
@@ -102,7 +104,7 @@ prop_Positive_fail (QuickCheck.NonNegative i) =
              "' from negative or zero value " ++ show i
 
 -- | Tests building non-empty lists.
-prop_NonEmpty_pass :: QuickCheck.NonEmptyList [Char] -> Property
+prop_NonEmpty_pass :: QuickCheck.NonEmptyList String -> Property
 prop_NonEmpty_pass (QuickCheck.NonEmpty xs) =
   case mkNonEmpty xs of
     Bad msg -> failTest $ "Fail to build non-empty list: " ++ msg
@@ -110,7 +112,7 @@ prop_NonEmpty_pass (QuickCheck.NonEmpty xs) =
 
 -- | Tests building positive numbers.
 case_NonEmpty_fail :: Assertion
-case_NonEmpty_fail = do
+case_NonEmpty_fail =
   assertEqual "building non-empty list from an empty list"
     (Bad "Received empty value for non-empty list") (mkNonEmpty ([]::[Int]))
 

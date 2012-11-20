@@ -36,6 +36,8 @@ import Data.Text (pack)
 import Ganeti.Block.Drbd.Parser (drbdStatusParser, commaIntParser)
 import Ganeti.Block.Drbd.Types
 
+{-# ANN module "HLint: ignore Use camelCase" #-}
+
 -- | Function for testing whether a file is parsed correctly.
 testFile :: String -> DRBDStatus -> Assertion
 testFile fileName expectedContent = do
