@@ -1,6 +1,3 @@
-{-# LANGUAGE TemplateHaskell #-}
-{-# OPTIONS_GHC -fno-warn-orphans #-}
-
 {-| Unittests for ganeti-htools.
 
 -}
@@ -28,29 +25,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Test.Ganeti.Jobs (testJobs) where
 
-import Test.QuickCheck
-
 import Test.Ganeti.TestHelper
-import Test.Ganeti.TestCommon
-
-import qualified Ganeti.Jobs as Jobs
-
--- * Arbitrary instances
-
-$(genArbitrary ''Jobs.OpStatus)
-
-$(genArbitrary ''Jobs.JobStatus)
-
--- * Test cases
-
--- | Check that (queued) job\/opcode status serialization is idempotent.
-prop_OpStatus_serialization :: Jobs.OpStatus -> Property
-prop_OpStatus_serialization = testSerialisation
-
-prop_JobStatus_serialization :: Jobs.JobStatus -> Property
-prop_JobStatus_serialization = testSerialisation
 
 testSuite "Jobs"
-            [ 'prop_OpStatus_serialization
-            , 'prop_JobStatus_serialization
+            [
             ]

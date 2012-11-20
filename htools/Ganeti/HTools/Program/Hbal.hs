@@ -57,11 +57,10 @@ import Ganeti.HTools.ExtLoader
 import Ganeti.HTools.Types
 import Ganeti.HTools.Loader
 import Ganeti.OpCodes (wrapOpCode, setOpComment, OpCode, MetaOpCode)
-import Ganeti.Types (fromJobId)
+import Ganeti.Types
 import Ganeti.Utils
 
 import qualified Ganeti.Luxi as L
-import Ganeti.Jobs
 import Ganeti.Version (version)
 
 -- | Options list and functions.

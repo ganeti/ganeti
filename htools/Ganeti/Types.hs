@@ -74,6 +74,9 @@ module Ganeti.Types
   , networkTypeToRaw
   , NICMode(..)
   , nICModeToRaw
+  , JobStatus(..)
+  , jobStatusToRaw
+  , jobStatusFromRaw
   , FinalizedJobStatus(..)
   , finalizedJobStatusToRaw
   , JobId
@@ -83,6 +86,9 @@ module Ganeti.Types
   , JobIdDep(..)
   , JobDependency(..)
   , OpSubmitPriority(..)
+  , OpStatus(..)
+  , opStatusToRaw
+  , opStatusFromRaw
   ) where
 
 import Control.Monad (liftM)
@@ -363,6 +369,20 @@ $(THH.declareSADT "NICMode"
   ])
 $(THH.makeJSONInstance ''NICMode)
 
+-- | The JobStatus data type. Note that this is ordered especially
+-- such that greater\/lesser comparison on values of this type makes
+-- sense.
+$(THH.declareSADT "JobStatus"
+       [ ("JOB_STATUS_QUEUED",    'C.jobStatusQueued)
+       , ("JOB_STATUS_WAITING",   'C.jobStatusWaiting)
+       , ("JOB_STATUS_CANCELING", 'C.jobStatusCanceling)
+       , ("JOB_STATUS_RUNNING",   'C.jobStatusRunning)
+       , ("JOB_STATUS_CANCELED",  'C.jobStatusCanceled)
+       , ("JOB_STATUS_SUCCESS",   'C.jobStatusSuccess)
+       , ("JOB_STATUS_ERROR",     'C.jobStatusError)
+       ])
+$(THH.makeJSONInstance ''JobStatus)
+
 -- | Finalized job status.
 $(THH.declareSADT "FinalizedJobStatus"
   [ ("JobStatusCanceled",   'C.jobStatusCanceled)
@@ -429,3 +449,15 @@ $(THH.declareIADT "OpSubmitPriority"
   , ("OpPrioHigh",   'C.opPrioHigh)
   ])
 $(THH.makeJSONInstance ''OpSubmitPriority)
+
+-- | Our ADT for the OpCode status at runtime (while in a job).
+$(THH.declareSADT "OpStatus"
+       [ ("OP_STATUS_QUEUED",    'C.opStatusQueued)
+       , ("OP_STATUS_WAITING",   'C.opStatusWaiting)
+       , ("OP_STATUS_CANCELING", 'C.opStatusCanceling)
+       , ("OP_STATUS_RUNNING",   'C.opStatusRunning)
+       , ("OP_STATUS_CANCELED",  'C.opStatusCanceled)
+       , ("OP_STATUS_SUCCESS",   'C.opStatusSuccess)
+       , ("OP_STATUS_ERROR",     'C.opStatusError)
+       ])
+$(THH.makeJSONInstance ''OpStatus)

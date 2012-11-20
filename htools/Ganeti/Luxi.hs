@@ -72,7 +72,6 @@ import Ganeti.BasicTypes
 import Ganeti.Constants
 import Ganeti.Errors
 import Ganeti.JSON
-import Ganeti.Jobs (JobStatus)
 import Ganeti.OpParams (pTagsObject)
 import Ganeti.OpCodes
 import qualified Ganeti.Query.Language as Qlang

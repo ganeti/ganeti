@@ -115,6 +115,8 @@ $(genArbitrary ''NetworkType)
 
 $(genArbitrary ''NICMode)
 
+$(genArbitrary ''JobStatus)
+
 $(genArbitrary ''FinalizedJobStatus)
 
 instance Arbitrary JobId where
@@ -127,6 +129,8 @@ $(genArbitrary ''JobIdDep)
 $(genArbitrary ''JobDependency)
 
 $(genArbitrary ''OpSubmitPriority)
+
+$(genArbitrary ''OpStatus)
 
 -- * Properties
 
@@ -287,6 +291,14 @@ case_NetworkType_pyequiv = do
 prop_NICMode_serialisation :: NICMode -> Property
 prop_NICMode_serialisation = testSerialisation
 
+-- | Test 'OpStatus' serialisation.
+prop_OpStatus_serialization :: OpStatus -> Property
+prop_OpStatus_serialization = testSerialisation
+
+-- | Test 'JobStatus' serialisation.
+prop_JobStatus_serialization :: JobStatus -> Property
+prop_JobStatus_serialization = testSerialisation
+
 -- | Tests equivalence with Python, based on Constants.hs code.
 case_NICMode_pyequiv :: Assertion
 case_NICMode_pyequiv = do
@@ -352,6 +364,8 @@ testSuite "Types"
   , 'prop_NetworkType_serialisation
   , 'case_NetworkType_pyequiv
   , 'prop_NICMode_serialisation
+  , 'prop_OpStatus_serialization
+  , 'prop_JobStatus_serialization
   , 'case_NICMode_pyequiv
   , 'prop_FinalizedJobStatus_serialisation
   , 'case_FinalizedJobStatus_pyequiv
