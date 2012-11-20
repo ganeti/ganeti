@@ -3582,7 +3582,7 @@ def PowercycleNode(hypervisor_type):
   hyper.PowercycleNode()
 
 
-def _VerifyRemoteCommandName(cmd):
+def _VerifyRestrictedCmdName(cmd):
   """Verifies a remote command name.
 
   @type cmd: string
@@ -3604,7 +3604,7 @@ def _VerifyRemoteCommandName(cmd):
   return (True, None)
 
 
-def _CommonRemoteCommandCheck(path, owner):
+def _CommonRestrictedCmdCheck(path, owner):
   """Common checks for remote command file system directories and files.
 
   @type path: string
@@ -3634,7 +3634,7 @@ def _CommonRemoteCommandCheck(path, owner):
   return (True, st)
 
 
-def _VerifyRemoteCommandDirectory(path, _owner=None):
+def _VerifyRestrictedCmdDirectory(path, _owner=None):
   """Verifies remote command directory.
 
   @type path: string
@@ -3644,7 +3644,7 @@ def _VerifyRemoteCommandDirectory(path, _owner=None):
     element is an error message string, otherwise it's C{None}
 
   """
-  (status, value) = _CommonRemoteCommandCheck(path, _owner)
+  (status, value) = _CommonRestrictedCmdCheck(path, _owner)
 
   if not status:
     return (False, value)
@@ -3655,7 +3655,7 @@ def _VerifyRemoteCommandDirectory(path, _owner=None):
   return (True, None)
 
 
-def _VerifyRemoteCommand(path, cmd, _owner=None):
+def _VerifyRestrictedCmd(path, cmd, _owner=None):
   """Verifies a whole remote command and returns its executable filename.
 
   @type path: string
@@ -3670,7 +3670,7 @@ def _VerifyRemoteCommand(path, cmd, _owner=None):
   """
   executable = utils.PathJoin(path, cmd)
 
-  (status, msg) = _CommonRemoteCommandCheck(executable, _owner)
+  (status, msg) = _CommonRestrictedCmdCheck(executable, _owner)
 
   if not status:
     return (False, msg)
@@ -3681,17 +3681,17 @@ def _VerifyRemoteCommand(path, cmd, _owner=None):
   return (True, executable)
 
 
-def _PrepareRemoteCommand(path, cmd,
-                          _verify_dir=_VerifyRemoteCommandDirectory,
-                          _verify_name=_VerifyRemoteCommandName,
-                          _verify_cmd=_VerifyRemoteCommand):
+def _PrepareRestrictedCmd(path, cmd,
+                          _verify_dir=_VerifyRestrictedCmdDirectory,
+                          _verify_name=_VerifyRestrictedCmdName,
+                          _verify_cmd=_VerifyRestrictedCmd):
   """Performs a number of tests on a remote command.
 
   @type path: string
   @param path: Directory containing remote commands
   @type cmd: string
   @param cmd: Command name
-  @return: Same as L{_VerifyRemoteCommand}
+  @return: Same as L{_VerifyRestrictedCmd}
 
   """
   # Verify the directory first
@@ -3712,7 +3712,7 @@ def RunRestrictedCmd(cmd,
                      _lock_file=pathutils.RESTRICTED_COMMANDS_LOCK_FILE,
                      _path=pathutils.RESTRICTED_COMMANDS_DIR,
                      _sleep_fn=time.sleep,
-                     _prepare_fn=_PrepareRemoteCommand,
+                     _prepare_fn=_PrepareRestrictedCmd,
                      _runcmd_fn=utils.RunCmd,
                      _enabled=constants.ENABLE_RESTRICTED_COMMANDS):
   """Executes a remote command after performing strict tests.

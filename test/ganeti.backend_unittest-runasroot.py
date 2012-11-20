@@ -51,7 +51,7 @@ class TestWriteFile(testutils.GanetiTestCase):
     tmpname = self._PrepareTest()
 
     os.chown(tmpname, 0, 0)
-    (status, value) = backend._CommonRemoteCommandCheck(tmpname, None)
+    (status, value) = backend._CommonRestrictedCmdCheck(tmpname, None)
     self.assertTrue(status)
     self.assertTrue(value)
 
@@ -68,7 +68,7 @@ class TestWriteFile(testutils.GanetiTestCase):
       self.assertFalse(uid == os.getuid() and gid == os.getgid())
       os.chown(tmpname, uid, gid)
 
-      (status, errmsg) = backend._CommonRemoteCommandCheck(tmpname, None)
+      (status, errmsg) = backend._CommonRestrictedCmdCheck(tmpname, None)
       self.assertFalse(status)
       self.assertTrue("foobar' is not owned by " in errmsg)
 

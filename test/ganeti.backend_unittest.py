@@ -96,38 +96,38 @@ class TestNodeVerify(testutils.GanetiTestCase):
                 "Result from netutils.TcpPing corrupted")
 
 
-def _DefRemoteCommandOwner():
+def _DefRestrictedCmdOwner():
   return (os.getuid(), os.getgid())
 
 
-class TestVerifyRemoteCommandName(unittest.TestCase):
+class TestVerifyRestrictedCmdName(unittest.TestCase):
   def testAcceptableName(self):
     for i in ["foo", "bar", "z1", "000first", "hello-world"]:
       for fn in [lambda s: s, lambda s: s.upper(), lambda s: s.title()]:
-        (status, msg) = backend._VerifyRemoteCommandName(fn(i))
+        (status, msg) = backend._VerifyRestrictedCmdName(fn(i))
         self.assertTrue(status)
         self.assertTrue(msg is None)
 
   def testEmptyAndSpace(self):
     for i in ["", " ", "\t", "\n"]:
-      (status, msg) = backend._VerifyRemoteCommandName(i)
+      (status, msg) = backend._VerifyRestrictedCmdName(i)
       self.assertFalse(status)
       self.assertEqual(msg, "Missing command name")
 
   def testNameWithSlashes(self):
     for i in ["/", "./foo", "../moo", "some/name"]:
-      (status, msg) = backend._VerifyRemoteCommandName(i)
+      (status, msg) = backend._VerifyRestrictedCmdName(i)
       self.assertFalse(status)
       self.assertEqual(msg, "Invalid command name")
 
   def testForbiddenCharacters(self):
     for i in ["#", ".", "..", "bash -c ls", "'"]:
-      (status, msg) = backend._VerifyRemoteCommandName(i)
+      (status, msg) = backend._VerifyRestrictedCmdName(i)
       self.assertFalse(status)
       self.assertEqual(msg, "Command name contains forbidden characters")
 
 
-class TestVerifyRemoteCommandDirectory(unittest.TestCase):
+class TestVerifyRestrictedCmdDirectory(unittest.TestCase):
   def setUp(self):
     self.tmpdir = tempfile.mkdtemp()
 
@@ -138,7 +138,7 @@ class TestVerifyRemoteCommandDirectory(unittest.TestCase):
     tmpname = utils.PathJoin(self.tmpdir, "foobar")
     self.assertFalse(os.path.exists(tmpname))
     (status, msg) = \
-      backend._VerifyRemoteCommandDirectory(tmpname, _owner=NotImplemented)
+      backend._VerifyRestrictedCmdDirectory(tmpname, _owner=NotImplemented)
     self.assertFalse(status)
     self.assertTrue(msg.startswith("Can't stat(2) '"))
 
@@ -150,7 +150,7 @@ class TestVerifyRemoteCommandDirectory(unittest.TestCase):
       os.chmod(tmpname, mode)
       self.assertTrue(os.path.isdir(tmpname))
       (status, msg) = \
-        backend._VerifyRemoteCommandDirectory(tmpname, _owner=NotImplemented)
+        backend._VerifyRestrictedCmdDirectory(tmpname, _owner=NotImplemented)
       self.assertFalse(status)
       self.assertTrue(msg.startswith("Permissions on '"))
 
@@ -159,8 +159,8 @@ class TestVerifyRemoteCommandDirectory(unittest.TestCase):
     utils.WriteFile(tmpname, data="empty\n")
     self.assertTrue(os.path.isfile(tmpname))
     (status, msg) = \
-      backend._VerifyRemoteCommandDirectory(tmpname,
-                                            _owner=_DefRemoteCommandOwner())
+      backend._VerifyRestrictedCmdDirectory(tmpname,
+                                            _owner=_DefRestrictedCmdOwner())
     self.assertFalse(status)
     self.assertTrue(msg.endswith("is not a directory"))
 
@@ -169,13 +169,13 @@ class TestVerifyRemoteCommandDirectory(unittest.TestCase):
     os.mkdir(tmpname)
     self.assertTrue(os.path.isdir(tmpname))
     (status, msg) = \
-      backend._VerifyRemoteCommandDirectory(tmpname,
-                                            _owner=_DefRemoteCommandOwner())
+      backend._VerifyRestrictedCmdDirectory(tmpname,
+                                            _owner=_DefRestrictedCmdOwner())
     self.assertTrue(status)
     self.assertTrue(msg is None)
 
 
-class TestVerifyRemoteCommand(unittest.TestCase):
+class TestVerifyRestrictedCmd(unittest.TestCase):
   def setUp(self):
     self.tmpdir = tempfile.mkdtemp()
 
@@ -186,7 +186,7 @@ class TestVerifyRemoteCommand(unittest.TestCase):
     tmpname = utils.PathJoin(self.tmpdir, "helloworld")
     self.assertFalse(os.path.exists(tmpname))
     (status, msg) = \
-      backend._VerifyRemoteCommand(self.tmpdir, "helloworld",
+      backend._VerifyRestrictedCmd(self.tmpdir, "helloworld",
                                    _owner=NotImplemented)
     self.assertFalse(status)
     self.assertTrue(msg.startswith("Can't stat(2) '"))
@@ -195,8 +195,8 @@ class TestVerifyRemoteCommand(unittest.TestCase):
     tmpname = utils.PathJoin(self.tmpdir, "cmdname")
     utils.WriteFile(tmpname, data="empty\n")
     (status, msg) = \
-      backend._VerifyRemoteCommand(self.tmpdir, "cmdname",
-                                   _owner=_DefRemoteCommandOwner())
+      backend._VerifyRestrictedCmd(self.tmpdir, "cmdname",
+                                   _owner=_DefRestrictedCmdOwner())
     self.assertFalse(status)
     self.assertTrue(msg.startswith("access(2) thinks '"))
 
@@ -204,13 +204,13 @@ class TestVerifyRemoteCommand(unittest.TestCase):
     tmpname = utils.PathJoin(self.tmpdir, "cmdname")
     utils.WriteFile(tmpname, data="empty\n", mode=0700)
     (status, executable) = \
-      backend._VerifyRemoteCommand(self.tmpdir, "cmdname",
-                                   _owner=_DefRemoteCommandOwner())
+      backend._VerifyRestrictedCmd(self.tmpdir, "cmdname",
+                                   _owner=_DefRestrictedCmdOwner())
     self.assertTrue(status)
     self.assertEqual(executable, tmpname)
 
 
-class TestPrepareRemoteCommand(unittest.TestCase):
+class TestPrepareRestrictedCmd(unittest.TestCase):
   _TEST_PATH = "/tmp/some/test/path"
 
   def testDirFails(self):
@@ -219,7 +219,7 @@ class TestPrepareRemoteCommand(unittest.TestCase):
       return (False, "test error 31420")
 
     (status, msg) = \
-      backend._PrepareRemoteCommand(self._TEST_PATH, "cmd21152",
+      backend._PrepareRestrictedCmd(self._TEST_PATH, "cmd21152",
                                     _verify_dir=fn,
                                     _verify_name=NotImplemented,
                                     _verify_cmd=NotImplemented)
@@ -232,7 +232,7 @@ class TestPrepareRemoteCommand(unittest.TestCase):
       return (False, "test error 591")
 
     (status, msg) = \
-      backend._PrepareRemoteCommand(self._TEST_PATH, "cmd4617",
+      backend._PrepareRestrictedCmd(self._TEST_PATH, "cmd4617",
                                     _verify_dir=lambda _: (True, None),
                                     _verify_name=fn,
                                     _verify_cmd=NotImplemented)
@@ -246,7 +246,7 @@ class TestPrepareRemoteCommand(unittest.TestCase):
       return (False, "test error 25524")
 
     (status, msg) = \
-      backend._PrepareRemoteCommand(self._TEST_PATH, "cmd17577",
+      backend._PrepareRestrictedCmd(self._TEST_PATH, "cmd17577",
                                     _verify_dir=lambda _: (True, None),
                                     _verify_name=lambda _: (True, None),
                                     _verify_cmd=fn)
@@ -258,7 +258,7 @@ class TestPrepareRemoteCommand(unittest.TestCase):
       return (True, utils.PathJoin(path, cmd))
 
     (status, executable) = \
-      backend._PrepareRemoteCommand(self._TEST_PATH, "cmd22633",
+      backend._PrepareRestrictedCmd(self._TEST_PATH, "cmd22633",
                                     _verify_dir=lambda _: (True, None),
                                     _verify_name=lambda _: (True, None),
                                     _verify_cmd=fn)
@@ -266,11 +266,11 @@ class TestPrepareRemoteCommand(unittest.TestCase):
     self.assertEqual(executable, utils.PathJoin(self._TEST_PATH, "cmd22633"))
 
 
-def _SleepForRemoteCommand(duration):
+def _SleepForRestrictedCmd(duration):
   assert duration > 5
 
 
-def _GenericRemoteCommandError(cmd):
+def _GenericRestrictedCmdError(cmd):
   return "Executing command '%s' failed" % cmd
 
 
@@ -283,7 +283,7 @@ class TestRunRestrictedCmd(unittest.TestCase):
 
   def testNonExistantLockDirectory(self):
     lockfile = utils.PathJoin(self.tmpdir, "does", "not", "exist")
-    sleep_fn = testutils.CallCounter(_SleepForRemoteCommand)
+    sleep_fn = testutils.CallCounter(_SleepForRestrictedCmd)
     self.assertFalse(os.path.exists(lockfile))
     self.assertRaises(backend.RPCFail,
                       backend.RunRestrictedCmd, "test",
@@ -298,7 +298,7 @@ class TestRunRestrictedCmd(unittest.TestCase):
 
   @staticmethod
   def _TryLock(lockfile):
-    sleep_fn = testutils.CallCounter(_SleepForRemoteCommand)
+    sleep_fn = testutils.CallCounter(_SleepForRestrictedCmd)
 
     result = False
     try:
@@ -311,7 +311,7 @@ class TestRunRestrictedCmd(unittest.TestCase):
                                _runcmd_fn=NotImplemented,
                                _enabled=True)
     except backend.RPCFail, err:
-      assert str(err) == _GenericRemoteCommandError("test22717"), \
+      assert str(err) == _GenericRestrictedCmdError("test22717"), \
              "Did not fail with generic error message"
       result = True
 
@@ -337,7 +337,7 @@ class TestRunRestrictedCmd(unittest.TestCase):
   def testPrepareRaisesException(self):
     lockfile = utils.PathJoin(self.tmpdir, "lock")
 
-    sleep_fn = testutils.CallCounter(_SleepForRemoteCommand)
+    sleep_fn = testutils.CallCounter(_SleepForRestrictedCmd)
     prepare_fn = testutils.CallCounter(self._PrepareRaisingException)
 
     try:
@@ -347,7 +347,7 @@ class TestRunRestrictedCmd(unittest.TestCase):
                                _sleep_fn=sleep_fn, _prepare_fn=prepare_fn,
                                _enabled=True)
     except backend.RPCFail, err:
-      self.assertEqual(str(err), _GenericRemoteCommandError("test23122"))
+      self.assertEqual(str(err), _GenericRestrictedCmdError("test23122"))
     else:
       self.fail("Didn't fail")
 
@@ -362,7 +362,7 @@ class TestRunRestrictedCmd(unittest.TestCase):
   def testPrepareFails(self):
     lockfile = utils.PathJoin(self.tmpdir, "lock")
 
-    sleep_fn = testutils.CallCounter(_SleepForRemoteCommand)
+    sleep_fn = testutils.CallCounter(_SleepForRestrictedCmd)
     prepare_fn = testutils.CallCounter(self._PrepareFails)
 
     try:
@@ -372,7 +372,7 @@ class TestRunRestrictedCmd(unittest.TestCase):
                                _sleep_fn=sleep_fn, _prepare_fn=prepare_fn,
                                _enabled=True)
     except backend.RPCFail, err:
-      self.assertEqual(str(err), _GenericRemoteCommandError("test29327"))
+      self.assertEqual(str(err), _GenericRestrictedCmdError("test29327"))
     else:
       self.fail("Didn't fail")
 
@@ -412,7 +412,7 @@ class TestRunRestrictedCmd(unittest.TestCase):
                              utils.ShellQuoteArgs(args),
                              NotImplemented, NotImplemented)
 
-    sleep_fn = testutils.CallCounter(_SleepForRemoteCommand)
+    sleep_fn = testutils.CallCounter(_SleepForRestrictedCmd)
     prepare_fn = testutils.CallCounter(self._SuccessfulPrepare)
     runcmd_fn = testutils.CallCounter(fn)
 
@@ -450,7 +450,7 @@ class TestRunRestrictedCmd(unittest.TestCase):
                              utils.ShellQuoteArgs(args),
                              NotImplemented, NotImplemented)
 
-    sleep_fn = testutils.CallCounter(_SleepForRemoteCommand)
+    sleep_fn = testutils.CallCounter(_SleepForRestrictedCmd)
     prepare_fn = testutils.CallCounter(self._SuccessfulPrepare)
     runcmd_fn = testutils.CallCounter(fn)
 
