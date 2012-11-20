@@ -274,7 +274,7 @@ def _GenericRemoteCommandError(cmd):
   return "Executing command '%s' failed" % cmd
 
 
-class TestRunRemoteCommand(unittest.TestCase):
+class TestRunRestrictedCmd(unittest.TestCase):
   def setUp(self):
     self.tmpdir = tempfile.mkdtemp()
 
@@ -286,7 +286,7 @@ class TestRunRemoteCommand(unittest.TestCase):
     sleep_fn = testutils.CallCounter(_SleepForRemoteCommand)
     self.assertFalse(os.path.exists(lockfile))
     self.assertRaises(backend.RPCFail,
-                      backend.RunRemoteCommand, "test",
+                      backend.RunRestrictedCmd, "test",
                       _lock_timeout=NotImplemented,
                       _lock_file=lockfile,
                       _path=NotImplemented,
@@ -302,7 +302,7 @@ class TestRunRemoteCommand(unittest.TestCase):
 
     result = False
     try:
-      backend.RunRemoteCommand("test22717",
+      backend.RunRestrictedCmd("test22717",
                                _lock_timeout=0.1,
                                _lock_file=lockfile,
                                _path=NotImplemented,
@@ -341,7 +341,7 @@ class TestRunRemoteCommand(unittest.TestCase):
     prepare_fn = testutils.CallCounter(self._PrepareRaisingException)
 
     try:
-      backend.RunRemoteCommand("test23122",
+      backend.RunRestrictedCmd("test23122",
                                _lock_timeout=1.0, _lock_file=lockfile,
                                _path=NotImplemented, _runcmd_fn=NotImplemented,
                                _sleep_fn=sleep_fn, _prepare_fn=prepare_fn,
@@ -366,7 +366,7 @@ class TestRunRemoteCommand(unittest.TestCase):
     prepare_fn = testutils.CallCounter(self._PrepareFails)
 
     try:
-      backend.RunRemoteCommand("test29327",
+      backend.RunRestrictedCmd("test29327",
                                _lock_timeout=1.0, _lock_file=lockfile,
                                _path=NotImplemented, _runcmd_fn=NotImplemented,
                                _sleep_fn=sleep_fn, _prepare_fn=prepare_fn,
@@ -417,7 +417,7 @@ class TestRunRemoteCommand(unittest.TestCase):
     runcmd_fn = testutils.CallCounter(fn)
 
     try:
-      backend.RunRemoteCommand("test3079",
+      backend.RunRestrictedCmd("test3079",
                                _lock_timeout=1.0, _lock_file=lockfile,
                                _path=self.tmpdir, _runcmd_fn=runcmd_fn,
                                _sleep_fn=sleep_fn, _prepare_fn=prepare_fn,
@@ -454,7 +454,7 @@ class TestRunRemoteCommand(unittest.TestCase):
     prepare_fn = testutils.CallCounter(self._SuccessfulPrepare)
     runcmd_fn = testutils.CallCounter(fn)
 
-    result = backend.RunRemoteCommand("test5667",
+    result = backend.RunRestrictedCmd("test5667",
                                       _lock_timeout=1.0, _lock_file=lockfile,
                                       _path=self.tmpdir, _runcmd_fn=runcmd_fn,
                                       _sleep_fn=sleep_fn,
@@ -468,7 +468,7 @@ class TestRunRemoteCommand(unittest.TestCase):
 
   def testCommandsDisabled(self):
     try:
-      backend.RunRemoteCommand("test",
+      backend.RunRestrictedCmd("test",
                                _lock_timeout=NotImplemented,
                                _lock_file=NotImplemented,
                                _path=NotImplemented,

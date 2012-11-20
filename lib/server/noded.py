@@ -817,7 +817,7 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     """
     (cmd, ) = params
 
-    return backend.RunRemoteCommand(cmd)
+    return backend.RunRestrictedCmd(cmd)
 
   @staticmethod
   def perspective_write_ssconf_files(params):

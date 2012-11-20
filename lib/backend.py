@@ -3707,7 +3707,7 @@ def _PrepareRemoteCommand(path, cmd,
   return _verify_cmd(path, cmd)
 
 
-def RunRemoteCommand(cmd,
+def RunRestrictedCmd(cmd,
                      _lock_timeout=_RCMD_LOCK_TIMEOUT,
                      _lock_file=pathutils.RESTRICTED_COMMANDS_LOCK_FILE,
                      _path=pathutils.RESTRICTED_COMMANDS_DIR,
