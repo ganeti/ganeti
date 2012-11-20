@@ -30,7 +30,6 @@ module Ganeti.HTools.Program.Hbal
   , iterateDepth
   ) where
 
-import Control.Concurrent (threadDelay)
 import Control.Exception (bracket)
 import Control.Monad
 import Data.List
@@ -51,12 +50,12 @@ import qualified Ganeti.HTools.Instance as Instance
 
 import Ganeti.BasicTypes
 import Ganeti.Common
-import Ganeti.Errors
 import Ganeti.HTools.CLI
 import Ganeti.HTools.ExtLoader
 import Ganeti.HTools.Types
 import Ganeti.HTools.Loader
 import Ganeti.OpCodes (wrapOpCode, setOpComment, OpCode, MetaOpCode)
+import Ganeti.Jobs as Jobs
 import Ganeti.Types
 import Ganeti.Utils
 
@@ -174,24 +173,6 @@ saveBalanceCommands opts cmd_data = do
       writeFile out_path (shTemplate ++ cmd_data)
       printf "The commands have been written to file '%s'\n" out_path
 
--- | Polls a set of jobs at a fixed interval until all are finished
--- one way or another.
-waitForJobs :: L.Client -> [L.JobId] -> IO (Result [JobStatus])
-waitForJobs client jids = do
-  sts <- L.queryJobsStatus client jids
-  case sts of
-    Bad e -> return . Bad $ "Checking job status: " ++ formatError e
-    Ok s -> if any (<= JOB_STATUS_RUNNING) s
-            then do
-              -- TODO: replace hardcoded value with a better thing
-              threadDelay (1000000 * 15)
-              waitForJobs client jids
-            else return $ Ok s
-
--- | Check that a set of job statuses is all success.
-checkJobsStatus :: [JobStatus] -> Bool
-checkJobsStatus = all (== JOB_STATUS_SUCCESS)
-
 -- | Wrapper over execJobSet checking for early termination via an IORef.
 execCancelWrapper :: String -> Node.List
                   -> Instance.List -> IORef Int -> [JobSet] -> IO (Result ())
@@ -212,25 +193,20 @@ execJobSet master nl il cref (js:jss) = do
   let jobs = map (\(_, idx, move, _) ->
                       map annotateOpCode $
                       Cluster.iMoveToJob nl il idx move) js
-  let descr = map (\(_, idx, _, _) -> Container.nameOf il idx) js
+      descr = map (\(_, idx, _, _) -> Container.nameOf il idx) js
+      logfn = putStrLn . ("Got job IDs" ++) . commaJoin . map (show . fromJobId)
   putStrLn $ "Executing jobset for instances " ++ commaJoin descr
   jrs <- bracket (L.getClient master) L.closeClient
-         (\client -> do
-            jids <- L.submitManyJobs client jobs
-            case jids of
-              Bad e -> return . Bad $ "Job submission error: " ++ formatError e
-              Ok x -> do
-                putStrLn $ "Got job IDs " ++
-                           commaJoin (map (show . fromJobId) x)
-                waitForJobs client x
-         )
+         (\client -> Jobs.execJobsWait client jobs logfn)
   case jrs of
     Bad x -> return $ Bad x
-    Ok x -> if checkJobsStatus x
+    Ok x -> if null failures
               then execCancelWrapper master nl il cref jss
               else return . Bad . unlines $ [
-                "Not all jobs completed successfully: " ++ show x,
+                "Not all jobs completed successfully: " ++ show failures,
                 "Aborting."]
+      where
+        failures = filter ((/= JOB_STATUS_SUCCESS) . snd) x
 
 -- | Executes the jobs, if possible and desired.
 maybeExecJobs :: Options

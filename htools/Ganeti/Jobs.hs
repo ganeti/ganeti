@@ -1,4 +1,4 @@
-{-| Implementation of the job information.
+{-| Generic code to work with jobs, e.g. submit jobs and check their status.
 
 -}
 
@@ -24,5 +24,42 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 
 module Ganeti.Jobs
-  (
+  ( execJobsWait
+  , waitForJobs
   ) where
+
+import Control.Concurrent (threadDelay)
+
+import Ganeti.BasicTypes
+import Ganeti.Errors
+import qualified Ganeti.Luxi as L
+import Ganeti.OpCodes
+import Ganeti.Types
+
+-- | Executes a set of jobs and waits for their completion, returning their
+-- status.
+execJobsWait :: L.Client              -- ^ The Luxi client
+             -> [[MetaOpCode]]        -- ^ The list of jobs
+             -> ([L.JobId] -> IO ())  -- ^ Post-submission callback
+             -> IO (Result [(L.JobId, JobStatus)])
+execJobsWait client opcodes callback = do
+  jids <- L.submitManyJobs client opcodes
+  case jids of
+    Bad e -> return . Bad $ "Job submission error: " ++ formatError e
+    Ok jids' -> do
+      callback jids'
+      waitForJobs client jids'
+
+-- | Polls a set of jobs at a fixed interval until all are finished
+-- one way or another.
+waitForJobs :: L.Client -> [L.JobId] -> IO (Result [(L.JobId, JobStatus)])
+waitForJobs client jids = do
+  sts <- L.queryJobsStatus client jids
+  case sts of
+    Bad e -> return . Bad $ "Checking job status: " ++ formatError e
+    Ok sts' -> if any (<= JOB_STATUS_RUNNING) sts'
+            then do
+              -- TODO: replace hardcoded value with a better thing
+              threadDelay (1000000 * 15)
+              waitForJobs client jids
+            else return . Ok $ zip jids sts'
