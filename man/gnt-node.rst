@@ -621,7 +621,7 @@ RESTRICTED-COMMAND
 
 Executes a restricted command on the specified nodes. Restricted commands are
 not arbitrary, but must reside in
-``@SYSCONFDIR@/ganeti/remote-commands`` on a node, either as a regular
+``@SYSCONFDIR@/ganeti/restricted-commands`` on a node, either as a regular
 file or as a symlink. The directory must be owned by root and not be
 world- or group-writable. If a command fails verification or otherwise
 fails to start, the node daemon log must be consulted for more detailed

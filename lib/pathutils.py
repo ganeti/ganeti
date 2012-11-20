@@ -88,10 +88,10 @@ USER_SCRIPTS_DIR = CONF_DIR + "/scripts"
 VNC_PASSWORD_FILE = CONF_DIR + "/vnc-cluster-password"
 HOOKS_BASE_DIR = CONF_DIR + "/hooks"
 FILE_STORAGE_PATHS_FILE = CONF_DIR + "/file-storage-paths"
-REMOTE_COMMANDS_DIR = CONF_DIR + "/remote-commands"
+RESTRICTED_COMMANDS_DIR = CONF_DIR + "/restricted-commands"
 
 #: Locked in exclusive mode while noded verifies a remote command
-REMOTE_COMMANDS_LOCK_FILE = LOCK_DIR + "/ganeti-remote-commands.lock"
+RESTRICTED_COMMANDS_LOCK_FILE = LOCK_DIR + "/ganeti-restricted-commands.lock"
 
 #: Lock file for watcher, locked in shared mode by watcher; lock in exclusive
 # mode to block watcher (see L{cli._RunWhileClusterStoppedHelper.Call}
