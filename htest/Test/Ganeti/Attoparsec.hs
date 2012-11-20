@@ -52,6 +52,7 @@ simpleParser = do
   v <- A.takeTill A.isEndOfLine
   return (unpack n, unpack v)
 
+{-# ANN case_unicodeParsing "HLint: ignore Use camelCase" #-}
 -- | Tests whether a Unicode string is still Unicode after being
 -- parsed.
 case_unicodeParsing :: Assertion
