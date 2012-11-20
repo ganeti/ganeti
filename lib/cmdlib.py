@@ -12834,15 +12834,23 @@ class LUInstanceSetParams(LogicalUnit):
 
   def ExpandNames(self):
     self._ExpandAndLockInstance()
+    self.needed_locks[locking.LEVEL_NODEGROUP] = []
     # Can't even acquire node locks in shared mode as upcoming changes in
     # Ganeti 2.6 will start to modify the node object on disk conversion
     self.needed_locks[locking.LEVEL_NODE] = []
     self.needed_locks[locking.LEVEL_NODE_RES] = []
     self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_REPLACE
+    # Look node group to look up the ipolicy
+    self.share_locks[locking.LEVEL_NODEGROUP] = 1
 
   def DeclareLocks(self, level):
-    # TODO: Acquire group lock in shared mode (disk parameters)
-    if level == locking.LEVEL_NODE:
+    if level == locking.LEVEL_NODEGROUP:
+      assert not self.needed_locks[locking.LEVEL_NODEGROUP]
+      # Acquire locks for the instance's nodegroups optimistically. Needs
+      # to be verified in CheckPrereq
+      self.needed_locks[locking.LEVEL_NODEGROUP] = \
+        self.cfg.GetInstanceNodeGroups(self.op.instance_name)
+    elif level == locking.LEVEL_NODE:
       self._LockInstancesNodes()
       if self.op.disk_template and self.op.remote_node:
         self.op.remote_node = _ExpandNodeName(self.cfg, self.op.remote_node)
@@ -13024,16 +13032,25 @@ class LUInstanceSetParams(LogicalUnit):
     This only checks the instance list against the existing names.
 
     """
-    # checking the new params on the primary/secondary nodes
-
+    assert self.op.instance_name in self.owned_locks(locking.LEVEL_INSTANCE)
     instance = self.instance = self.cfg.GetInstanceInfo(self.op.instance_name)
+
     cluster = self.cluster = self.cfg.GetClusterInfo()
     assert self.instance is not None, \
       "Cannot retrieve locked instance %s" % self.op.instance_name
+
     pnode = instance.primary_node
+    assert pnode in self.owned_locks(locking.LEVEL_NODE)
     nodelist = list(instance.all_nodes)
     pnode_info = self.cfg.GetNodeInfo(pnode)
     self.diskparams = self.cfg.GetInstanceDiskParams(instance)
+
+    #_CheckInstanceNodeGroups(self.cfg, self.op.instance_name, owned_groups)
+    assert pnode_info.group in self.owned_locks(locking.LEVEL_NODEGROUP)
+    group_info = self.cfg.GetNodeGroup(pnode_info.group)
+
+    # dictionary with instance information after the modification
+    ispec = {}
 
     # Prepare disk/NIC modifications
     self.diskmod = PrepareContainerMods(self.op.disks, None)
@@ -13282,6 +13299,11 @@ class LUInstanceSetParams(LogicalUnit):
       raise errors.OpPrereqError("Instance has too many disks (%d), cannot add"
                                  " more" % constants.MAX_DISKS,
                                  errors.ECODE_STATE)
+    disk_sizes = [disk.size for disk in instance.disks]
+    disk_sizes.extend(params["size"] for (op, idx, params, private) in
+                      self.diskmod)
+    ispec[constants.ISPEC_DISK_COUNT] = len(disk_sizes)
+    ispec[constants.ISPEC_DISK_SIZE] = disk_sizes
 
     if self.op.offline is not None:
       if self.op.offline:
@@ -13298,8 +13320,38 @@ class LUInstanceSetParams(LogicalUnit):
       ApplyContainerMods("NIC", nics, self._nic_chgdesc, self.nicmod,
                          self._CreateNewNic, self._ApplyNicMods, None)
       self._new_nics = nics
+      ispec[constants.ISPEC_NIC_COUNT] = len(self._new_nics)
     else:
       self._new_nics = None
+      ispec[constants.ISPEC_NIC_COUNT] = len(instance.nics)
+
+    if not self.op.ignore_ipolicy:
+      ipolicy = ganeti.masterd.instance.CalculateGroupIPolicy(cluster,
+                                                              group_info)
+
+      # Fill ispec with backend parameters
+      ispec[constants.ISPEC_SPINDLE_USE] = \
+        self.be_new.get(constants.BE_SPINDLE_USE, None)
+      ispec[constants.ISPEC_CPU_COUNT] = self.be_new.get(constants.BE_VCPUS,
+                                                         None)
+
+      # Copy ispec to verify parameters with min/max values separately
+      ispec_max = ispec.copy()
+      ispec_max[constants.ISPEC_MEM_SIZE] = \
+        self.be_new.get(constants.BE_MAXMEM, None)
+      res_max = _ComputeIPolicyInstanceSpecViolation(ipolicy, ispec_max)
+      ispec_min = ispec.copy()
+      ispec_min[constants.ISPEC_MEM_SIZE] = \
+        self.be_new.get(constants.BE_MINMEM, None)
+      res_min = _ComputeIPolicyInstanceSpecViolation(ipolicy, ispec_min)
+
+      if (res_max or res_min):
+        res = set(res_max + res_min)
+        # FIXME: Improve error message by including information about whether
+        # the upper or lower limit of the parameter fails the ipolicy.
+        msg = ("Instance allocation to group %s (%s) violates policy: %s" %
+               (group_info, group_info.name, utils.CommaJoin(res)))
+        raise errors.OpPrereqError(msg, errors.ECODE_INVAL)
 
   def _ConvertPlainToDrbd(self, feedback_fn):
     """Converts an instance from plain to drbd.
