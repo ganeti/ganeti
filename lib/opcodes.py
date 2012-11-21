@@ -988,7 +988,7 @@ class OpOobCommand(OpCode):
   OP_PARAMS = [
     ("node_names", ht.EmptyList, ht.TListOf(ht.TNonEmptyString),
      "List of nodes to run the OOB command against"),
-    ("command", None, ht.TElemOf(constants.OOB_COMMANDS),
+    ("command", ht.NoDefault, ht.TElemOf(constants.OOB_COMMANDS),
      "OOB command to be run"),
     ("timeout", constants.OOB_TIMEOUT, ht.TInt,
      "Timeout before the OOB helper will be terminated"),

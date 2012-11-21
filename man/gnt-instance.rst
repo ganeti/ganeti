@@ -923,8 +923,8 @@ MODIFY
 | [{-H|\--hypervisor-parameters} *HYPERVISOR\_PARAMETERS*]
 | [{-B|\--backend-parameters} *BACKEND\_PARAMETERS*]
 | [{-m|\--runtime-memory} *SIZE*]
-| [\--net add*[:options]* \| \--net remove \| \--net *N:options*]
-| [\--disk add:size=*SIZE*[,vg=*VG*][,metavg=*VG*] \| \--disk remove \|
+| [\--net add*[:options]* \| \--net [*N*:]remove \| \--net *N:options*]
+| [\--disk add:size=*SIZE*[,vg=*VG*][,metavg=*VG*] \| \--disk [*N*:]remove \|
 |  \--disk *N*:mode=*MODE*]
 | [{-t|\--disk-template} plain | {-t|\--disk-template} drbd -n *new_secondary*] [\--no-wait-for-sync]
 | [\--os-type=*OS* [\--force-variant]]
