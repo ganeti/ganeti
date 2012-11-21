@@ -19,7 +19,7 @@
 # 02110-1301, USA.
 
 
-"""Ip address pool management functions.
+"""IP address pool management functions.
 
 """
 
@@ -31,17 +31,17 @@ from ganeti import errors
 
 
 class AddressPool(object):
-  """Address pool class, wrapping an objects.Network object
+  """Address pool class, wrapping an C{objects.Network} object.
 
   This class provides methods to manipulate address pools, backed by
   L{objects.Network} objects.
 
   """
-  FREE = bitarray('0')
-  RESERVED = bitarray('1')
+  FREE = bitarray("0")
+  RESERVED = bitarray("1")
 
   def __init__(self, network):
-    """Initialize a new IPv4 address pool from an objects.Network object
+    """Initialize a new IPv4 address pool from an L{objects.Network} object.
 
     @type network: L{objects.Network}
     @param network: the network object from which the pool will be generated
@@ -97,7 +97,9 @@ class AddressPool(object):
     return int(addr) - int(self.network.network)
 
   def Update(self):
-    """Write address pools back to the network object"""
+    """Write address pools back to the network object.
+
+    """
     # pylint: disable=E1103
     self.net.ext_reservations = self.ext_reservations.to01()
     self.net.reservations = self.reservations.to01()
@@ -115,7 +117,9 @@ class AddressPool(object):
 
   @property
   def all_reservations(self):
-    """Return a combined map of internal + external reservations."""
+    """Return a combined map of internal and external reservations.
+
+    """
     return (self.reservations | self.ext_reservations)
 
   def Validate(self):
@@ -135,38 +139,54 @@ class AddressPool(object):
     return True
 
   def IsFull(self):
-    """Check whether the network is full"""
+    """Check whether the network is full.
+
+    """
     return self.all_reservations.all()
 
   def GetReservedCount(self):
-    """Get the count of reserved addresses"""
+    """Get the count of reserved addresses.
+
+    """
     return self.all_reservations.count(True)
 
   def GetFreeCount(self):
-    """Get the count of unused addresses"""
+    """Get the count of unused addresses.
+
+    """
     return self.all_reservations.count(False)
 
   def GetMap(self):
-    """Return a textual representation of the network's occupation status."""
+    """Return a textual representation of the network's occupation status.
+
+    """
     return self.all_reservations.to01().replace("1", "X").replace("0", ".")
 
   def IsReserved(self, address):
-    """Checks if the given IP is reserved"""
+    """Checks if the given IP is reserved.
+
+    """
     idx = self._GetAddrIndex(address)
     return self.all_reservations[idx]
 
   def Reserve(self, address, external=False):
-    """Mark an address as used."""
+    """Mark an address as used.
+
+    """
     if self.IsReserved(address):
       raise errors.AddressPoolError("%s is already reserved" % address)
     self._Mark(address, external=external)
 
   def Release(self, address, external=False):
-    """Release a given address reservation."""
+    """Release a given address reservation.
+
+    """
     self._Mark(address, value=False, external=external)
 
   def GetFreeAddress(self):
-    """Returns the first available address."""
+    """Returns the first available address.
+
+    """
     if self.IsFull():
       raise errors.AddressPoolError("%s is full" % self.network)
 
@@ -176,8 +196,9 @@ class AddressPool(object):
     return address
 
   def GenerateFree(self):
-    """Returns the first free address of the network if any or
-       raises an error if it is full.
+    """Returns the first free address of the network.
+
+    @raise errors.AddressPoolError: Pool is full
 
     """
     if self.IsFull():
@@ -186,16 +207,18 @@ class AddressPool(object):
     return str(self.network[idx])
 
   def GetExternalReservations(self):
-    """Returns a list of all externally reserved addresses"""
+    """Returns a list of all externally reserved addresses.
+
+    """
     # pylint: disable=E1103
     idxs = self.ext_reservations.search(self.RESERVED)
     return [str(self.network[idx]) for idx in idxs]
 
   @classmethod
   def InitializeNetwork(cls, net):
-    """Initialize an L{objects.Network} object
+    """Initialize an L{objects.Network} object.
 
-    Reserve the network, broadcast and gateway IPs
+    Reserve the network, broadcast and gateway IP addresses.
 
     """
     obj = cls(net)
