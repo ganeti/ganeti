@@ -15973,7 +15973,7 @@ class _NetworkQuery(_QueryBase):
             netparams = group.networks[net_uuid]
             mode = netparams[constants.NIC_MODE]
             link = netparams[constants.NIC_LINK]
-            info = group.name + '(' + mode + ', ' + link + ')'
+            info = group.name + "(" + mode + ", " + link + ")"
             network_to_groups[net_uuid].append(info)
 
             if do_instances:

@@ -1072,8 +1072,8 @@ NIC_IP_POOL = "pool"
 
 NIC_VALID_MODES = frozenset([NIC_MODE_BRIDGED, NIC_MODE_ROUTED])
 
-RESERVE_ACTION = 'reserve'
-RELEASE_ACTION = 'release'
+RESERVE_ACTION = "reserve"
+RELEASE_ACTION = "release"
 
 # An extra description of the network.
 # Can be used by hooks/kvm-vif-bridge to apply different rules

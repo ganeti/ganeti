@@ -1741,10 +1741,10 @@ class GanetiRapiClient(object): # pylint: disable=R0904
     _AppendDryRunIf(query, dry_run)
 
     if add_reserved_ips:
-      add_reserved_ips = add_reserved_ips.split(',')
+      add_reserved_ips = add_reserved_ips.split(",")
 
     if tags:
-      tags = tags.split(',')
+      tags = tags.split(",")
 
     body = {
       "network_name": network_name,

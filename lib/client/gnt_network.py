@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2011 Google Inc.
+# Copyright (C) 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -90,10 +90,10 @@ def MapNetwork(opts, args):
   mode = args[2]
   link = args[3]
 
-  #TODO: allow comma separated group names
-  if groups == 'all':
+  # TODO: allow comma separated group names
+  if groups == "all":
     cl = GetClient()
-    (groups, ) = cl.QueryGroups([], ['name'], False)
+    (groups, ) = cl.QueryGroups([], ["name"], False)
   else:
     groups = [groups]
 
@@ -120,9 +120,9 @@ def UnmapNetwork(opts, args):
   groups = args[1]
 
   #TODO: allow comma separated group names
-  if groups == 'all':
+  if groups == "all":
     cl = GetClient()
-    (groups, ) = cl.QueryGroups([], ['name'], False)
+    (groups, ) = cl.QueryGroups([], ["name"], False)
   else:
     groups = [groups]
 
