@@ -191,8 +191,16 @@ class TestOpcodes(unittest.TestCase):
         self.assertTrue(doc is None or isinstance(doc, basestring))
 
         if callable(aval):
-          self.assertFalse(callable(aval()),
+          default_value = aval()
+          self.assertFalse(callable(default_value),
                            msg="Default value returned by function is callable")
+        else:
+          default_value = aval
+
+        if aval is not ht.NoDefault and test is not ht.NoType:
+          self.assertTrue(test(default_value),
+                          msg=("Default value of '%s.%s' does not verify" %
+                               (cls.OP_ID, attr_name)))
 
       # If any parameter has documentation, all others need to have it as well
       has_doc = [doc is not None for (_, _, _, doc) in cls.OP_PARAMS]
