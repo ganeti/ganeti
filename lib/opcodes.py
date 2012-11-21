@@ -397,8 +397,11 @@ def _CheckCIDR6NetNotation(value):
   return True
 
 
-_TIpAddress = ht.TOr(ht.TNone, ht.TAnd(ht.TString, _CheckCIDRNetNotation))
-_TIpAddress6 = ht.TOr(ht.TNone, ht.TAnd(ht.TString, _CheckCIDR6NetNotation))
+_TIpAddress4 = ht.TAnd(ht.TString, _CheckCIDRAddrNotation)
+_TIpAddress6 = ht.TAnd(ht.TString, _CheckCIDR6AddrNotation)
+_TIpNetwork4 = ht.TAnd(ht.TString, _CheckCIDRNetNotation)
+_TIpNetwork6 = ht.TAnd(ht.TString, _CheckCIDR6NetNotation)
+_TMaybeAddr4List = ht.TMaybe(ht.TListOf(_TIpAddress4))
 
 
 class _AutoOpParamSlots(objectutils.AutoSlots):
@@ -2018,14 +2021,13 @@ class OpNetworkAdd(OpCode):
   OP_PARAMS = [
     _PNetworkName,
     _PNetworkType,
-    ("network", None, _TIpAddress, "IPv4 subnet"),
-    ("gateway", None, _TIpAddress, "IPv4 gateway"),
-    ("network6", None, _TIpAddress6, "IPv6 subnet"),
-    ("gateway6", None, _TIpAddress6, "IPv6 gateway"),
+    ("network", ht.NoDefault, _TIpNetwork4, "IPv4 subnet"),
+    ("gateway", None, ht.TMaybe(_TIpAddress4), "IPv4 gateway"),
+    ("network6", None, ht.TMaybe(_TIpNetwork6), "IPv6 subnet"),
+    ("gateway6", None, ht.TMaybe(_TIpAddress6), "IPv6 gateway"),
     ("mac_prefix", None, ht.TMaybeString,
      "MAC address prefix that overrides cluster one"),
-    ("add_reserved_ips", None,
-     ht.TMaybe(ht.TListOf(_CheckCIDRAddrNotation)),
+    ("add_reserved_ips", None, _TMaybeAddr4List,
      "Which IP addresses to reserve"),
     ("tags", ht.EmptyList, ht.TListOf(ht.TNonEmptyString), "Network tags"),
     ]
@@ -2051,16 +2053,14 @@ class OpNetworkSetParams(OpCode):
   OP_PARAMS = [
     _PNetworkName,
     _PNetworkType,
-    ("gateway", None, _TIpAddress, "IPv4 gateway"),
-    ("network6", None, _TIpAddress6, "IPv6 subnet"),
-    ("gateway6", None, _TIpAddress6, "IPv6 gateway"),
+    ("gateway", None, ht.TMaybe(_TIpAddress4), "IPv4 gateway"),
+    ("network6", None, ht.TMaybe(_TIpNetwork6), "IPv6 subnet"),
+    ("gateway6", None, ht.TMaybe(_TIpAddress6), "IPv6 gateway"),
     ("mac_prefix", None, ht.TMaybeString,
      "MAC address prefix that overrides cluster one"),
-    ("add_reserved_ips", None,
-     ht.TMaybe(ht.TListOf(_CheckCIDRAddrNotation)),
+    ("add_reserved_ips", None, _TMaybeAddr4List,
      "Which external IP addresses to reserve"),
-    ("remove_reserved_ips", None,
-     ht.TMaybe(ht.TListOf(_CheckCIDRAddrNotation)),
+    ("remove_reserved_ips", None, _TMaybeAddr4List,
      "Which external IP addresses to release"),
     ]
   OP_RESULT = ht.TNone
@@ -2078,8 +2078,8 @@ class OpNetworkConnect(OpCode):
   OP_PARAMS = [
     _PGroupName,
     _PNetworkName,
-    ("network_mode", None, ht.TMaybeString, "Connectivity mode"),
-    ("network_link", None, ht.TMaybeString, "Connectivity link"),
+    ("network_mode", ht.NoDefault, ht.TString, "Connectivity mode"),
+    ("network_link", ht.NoDefault, ht.TString, "Connectivity link"),
     ("conflicts_check", True, ht.TBool, "Whether to check for conflicting IPs"),
     ]
   OP_RESULT = ht.TNone
