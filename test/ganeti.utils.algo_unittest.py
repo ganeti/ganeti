@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2011 Google Inc.
+# Copyright (C) 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -286,7 +286,7 @@ class TestRunningTimeout(unittest.TestCase):
 class TestJoinDisjointDicts(unittest.TestCase):
   def setUp(self):
     self.non_empty_dict = {"a": 1, "b": 2}
-    self.empty_dict = dict()
+    self.empty_dict = {}
 
   def testWithEmptyDicts(self):
     self.assertEqual(self.empty_dict, algo.JoinDisjointDicts(self.empty_dict,

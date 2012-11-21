@@ -1339,7 +1339,7 @@ def _BuildNetworkHookEnv(name, subnet, gateway, network6, gateway6,
   @param tags: the tags of the network
 
   """
-  env = dict()
+  env = {}
   if name:
     env["NETWORK_NAME"] = name
   if subnet:
@@ -12841,7 +12841,7 @@ class LUInstanceSetParams(LogicalUnit):
     This runs on the master, primary and secondaries.
 
     """
-    args = dict()
+    args = {}
     if constants.BE_MINMEM in self.be_new:
       args["minmem"] = self.be_new[constants.BE_MINMEM]
     if constants.BE_MAXMEM in self.be_new:
@@ -16062,7 +16062,7 @@ class LUNetworkConnect(LogicalUnit):
           self.cfg.GetNodeGroupInstances(self.group_uuid)
 
   def BuildHooksEnv(self):
-    ret = dict()
+    ret = {}
     ret["GROUP_NAME"] = self.group_name
     ret["GROUP_NETWORK_MODE"] = self.network_mode
     ret["GROUP_NETWORK_LINK"] = self.network_link
@@ -16077,7 +16077,7 @@ class LUNetworkConnect(LogicalUnit):
     l = lambda value: ", ".join("%s: %s/%s" % (i[0], i[1], i[2])
                                    for i in value)
 
-    self.netparams = dict()
+    self.netparams = {}
     self.netparams[constants.NIC_MODE] = self.network_mode
     self.netparams[constants.NIC_LINK] = self.network_link
     objects.NIC.CheckParameterSyntax(self.netparams)
@@ -16158,7 +16158,7 @@ class LUNetworkDisconnect(LogicalUnit):
           self.cfg.GetNodeGroupInstances(self.group_uuid)
 
   def BuildHooksEnv(self):
-    ret = dict()
+    ret = {}
     ret["GROUP_NAME"] = self.group_name
     ret.update(_BuildNetworkHookEnvByObject(self.network))
     return ret
