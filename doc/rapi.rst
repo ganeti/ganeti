@@ -368,8 +368,9 @@ Example::
         "vcpus": 1,
         "memory": 128
        }
-      }
-    }
+      },
+    …
+  }
 
 
 ``/2/redistribute-config``
@@ -479,7 +480,8 @@ Example::
           "node1.example.com",
           "node2.example.com"
         ],
-        "uuid": "0d7d407c-262e-49af-881a-6a430034bf43"
+        "uuid": "0d7d407c-262e-49af-881a-6a430034bf43",
+        …
       },
       {
         "name": "group2",
@@ -487,8 +489,10 @@ Example::
         "node_list": [
           "node3.example.com"
         ],
-        "uuid": "f5a277e7-68f9-44d3-a378-4b25ecb5df5c"
-      }
+        "uuid": "f5a277e7-68f9-44d3-a378-4b25ecb5df5c",
+        …
+      },
+      …
     ]
 
 ``POST``
@@ -694,8 +698,10 @@ Example::
         'network6': None,
         'network_type': 'private',
         'reserved_count': 3,
-        'tags': ['nfdhcpd']
+        'tags': ['nfdhcpd'],
+        …
       },
+      …
     ]
 
 ``POST``
@@ -901,29 +907,30 @@ Example::
 
     [
       {
-         "status": "running",
-         "disk_usage": 20480,
-         "nic.bridges": [
-           "xen-br0"
-          ],
-         "name": "web.example.com",
-         "tags": ["tag1", "tag2"],
-         "beparams": {
-           "vcpus": 2,
-           "memory": 512
-         },
-         "disk.sizes": [
-             20480
-         ],
-         "pnode": "node1.example.com",
-         "nic.macs": ["01:23:45:67:89:01"],
-         "snodes": ["node2.example.com"],
-         "disk_template": "drbd",
-         "admin_state": true,
-         "os": "debian-etch",
-         "oper_state": true
+        "status": "running",
+        "disk_usage": 20480,
+        "nic.bridges": [
+          "xen-br0"
+        ],
+        "name": "web.example.com",
+        "tags": ["tag1", "tag2"],
+        "beparams": {
+          "vcpus": 2,
+          "memory": 512
+        },
+        "disk.sizes": [
+          20480
+        ],
+        "pnode": "node1.example.com",
+        "nic.macs": ["01:23:45:67:89:01"],
+        "snodes": ["node2.example.com"],
+        "disk_template": "drbd",
+        "admin_state": true,
+        "os": "debian-etch",
+        "oper_state": true,
+        …
       },
-      ...
+      …
     ]
 
 
@@ -1612,9 +1619,10 @@ Example::
         "dtotal": 5246208,
         "sinst_cnt": 2,
         "dfree": 5171712,
-        "offline": false
+        "offline": false,
+        …
       },
-      ...
+      …
     ]
 
 ``/2/nodes/[node_name]``
