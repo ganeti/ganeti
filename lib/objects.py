@@ -2059,3 +2059,38 @@ class SerializableConfigParser(ConfigParser.SafeConfigParser):
     cfp = cls()
     cfp.readfp(buf)
     return cfp
+
+
+class LvmPvInfo(ConfigObject):
+  """Information about an LVM physical volume (PV).
+
+  @type name: string
+  @ivar name: name of the PV
+  @type vg_name: string
+  @ivar vg_name: name of the volume group containing the PV
+  @type size: float
+  @ivar size: size of the PV in MiB
+  @type free: float
+  @ivar free: free space in the PV, in MiB
+  @type attributes: string
+  @ivar attributes: PV attributes
+  """
+  __slots__ = [
+    "name",
+    "vg_name",
+    "size",
+    "free",
+    "attributes",
+    ]
+
+  def IsEmpty(self):
+    """Is this PV empty?
+
+    """
+    return self.size <= (self.free + 1)
+
+  def IsAllocatable(self):
+    """Is this PV allocatable?
+
+    """
+    return ("a" in self.attributes)

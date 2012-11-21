@@ -345,6 +345,7 @@ utils_PYTHON = \
 	lib/utils/hash.py \
 	lib/utils/io.py \
 	lib/utils/log.py \
+	lib/utils/lvm.py \
 	lib/utils/mlock.py \
 	lib/utils/nodesetup.py \
 	lib/utils/process.py \

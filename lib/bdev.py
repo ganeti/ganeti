@@ -537,15 +537,14 @@ class LogicalVolume(BlockDev):
     pvs_info = cls.GetPVInfo([vg_name])
     if not pvs_info:
       _ThrowError("Can't compute PV info for vg %s", vg_name)
-    pvs_info.sort()
-    pvs_info.reverse()
+    pvs_info.sort(key=(lambda pv: pv.free), reverse=True)
 
-    pvlist = [pv[1] for pv in pvs_info]
+    pvlist = [pv.name for pv in pvs_info]
     if compat.any(":" in v for v in pvlist):
       _ThrowError("Some of your PVs have the invalid character ':' in their"
                   " name, this is not supported - please filter them out"
                   " in lvm.conf using either 'filter' or 'preferred_names'")
-    free_size = sum([pv[0] for pv in pvs_info])
+    free_size = sum([pv.free for pv in pvs_info])
     current_pvs = len(pvlist)
     desired_stripes = params[constants.LDP_STRIPES]
     stripes = min(current_pvs, desired_stripes)
@@ -613,25 +612,28 @@ class LogicalVolume(BlockDev):
     @param filter_allocatable: whether to skip over unallocatable PVs
 
     @rtype: list
-    @return: list of tuples (free_space, name) with free_space in mebibytes
+    @return: list of objects.LvmPvInfo objects
 
     """
     try:
       info = cls._GetVolumeInfo("pvs", ["pv_name", "vg_name", "pv_free",
-                                        "pv_attr"])
+                                        "pv_attr", "pv_size"])
     except errors.GenericError, err:
       logging.error("Can't get PV information: %s", err)
       return None
 
     data = []
-    for pv_name, vg_name, pv_free, pv_attr in info:
+    for (pv_name, vg_name, pv_free, pv_attr, pv_size) in info:
       # (possibly) skip over pvs which are not allocatable
       if filter_allocatable and pv_attr[0] != "a":
         continue
       # (possibly) skip over pvs which are not in the right volume group(s)
       if vg_names and vg_name not in vg_names:
         continue
-      data.append((float(pv_free), pv_name, vg_name))
+      pvi = objects.LvmPvInfo(name=pv_name, vg_name=vg_name,
+                              size=float(pv_size), free=float(pv_free),
+                              attributes=pv_attr)
+      data.append(pvi)
 
     return data
 

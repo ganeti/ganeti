@@ -2424,19 +2424,20 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
                                             constants.MIN_VG_SIZE)
       _ErrorIf(vgstatus, constants.CV_ENODELVM, node, vgstatus)
 
-    # check pv names
-    pvlist = nresult.get(constants.NV_PVLIST, None)
-    test = pvlist is None
+    # check pv names (and possibly sizes)
+    pvlist_dict = nresult.get(constants.NV_PVLIST, None)
+    test = pvlist_dict is None
     _ErrorIf(test, constants.CV_ENODELVM, node, "Can't get PV list from node")
     if not test:
+      pvlist = map(objects.LvmPvInfo.FromDict, pvlist_dict)
       # check that ':' is not present in PV names, since it's a
       # special character for lvcreate (denotes the range of PEs to
       # use on the PV)
-      for _, pvname, owner_vg in pvlist:
-        test = ":" in pvname
+      for pv in pvlist:
+        test = ":" in pv.name
         _ErrorIf(test, constants.CV_ENODELVM, node,
                  "Invalid character ':' in PV '%s' of VG '%s'",
-                 pvname, owner_vg)
+                 pv.name, pv.vg_name)
 
   def _VerifyNodeBridges(self, ninfo, nresult, bridges):
     """Check the node bridges.

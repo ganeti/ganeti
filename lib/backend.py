@@ -762,9 +762,9 @@ def VerifyNode(what, cluster_name):
     result[constants.NV_VGLIST] = utils.ListVolumeGroups()
 
   if constants.NV_PVLIST in what and vm_capable:
-    result[constants.NV_PVLIST] = \
-      bdev.LogicalVolume.GetPVInfo(what[constants.NV_PVLIST],
-                                   filter_allocatable=False)
+    val = bdev.LogicalVolume.GetPVInfo(what[constants.NV_PVLIST],
+                                       filter_allocatable=False)
+    result[constants.NV_PVLIST] = map(objects.LvmPvInfo.ToDict, val)
 
   if constants.NV_VERSION in what:
     result[constants.NV_VERSION] = (constants.PROTOCOL_VERSION,

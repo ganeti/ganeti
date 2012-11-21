@@ -48,6 +48,7 @@ from ganeti.utils.filelock import *
 from ganeti.utils.hash import *
 from ganeti.utils.io import *
 from ganeti.utils.log import *
+from ganeti.utils.lvm import *
 from ganeti.utils.mlock import *
 from ganeti.utils.nodesetup import *
 from ganeti.utils.process import *
@@ -486,31 +487,6 @@ def StopDaemon(name):
     return False
 
   return True
-
-
-def CheckVolumeGroupSize(vglist, vgname, minsize):
-  """Checks if the volume group list is valid.
-
-  The function will check if a given volume group is in the list of
-  volume groups and has a minimum size.
-
-  @type vglist: dict
-  @param vglist: dictionary of volume group names and their size
-  @type vgname: str
-  @param vgname: the volume group we should check
-  @type minsize: int
-  @param minsize: the minimum size we accept
-  @rtype: None or str
-  @return: None for success, otherwise the error message
-
-  """
-  vgsize = vglist.get(vgname, None)
-  if vgsize is None:
-    return "volume group '%s' missing" % vgname
-  elif vgsize < minsize:
-    return ("volume group '%s' too small (%s MiB required, %d MiB found)" %
-            (vgname, minsize, vgsize))
-  return None
 
 
 def SplitTime(value):
