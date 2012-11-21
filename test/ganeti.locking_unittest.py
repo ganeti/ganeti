@@ -187,6 +187,10 @@ class TestPipeCondition(_ConditionTestCase):
     self.cond.acquire()
     self.assertEqual(len(self.cond._waiters), 3)
     self.assertEqual(self.cond._waiters, set(threads))
+
+    self.assertTrue(repr(self.cond).startswith("<"))
+    self.assertTrue("waiters=" in repr(self.cond))
+
     # This new thread can't acquire the lock, and thus call wait, before we
     # release it
     self._addThread(target=fn)
@@ -267,6 +271,9 @@ class TestSharedLock(_ThreadedTestCase):
   def setUp(self):
     _ThreadedTestCase.setUp(self)
     self.sl = locking.SharedLock("TestSharedLock")
+
+    self.assertTrue(repr(self.sl).startswith("<"))
+    self.assertTrue("name=TestSharedLock" in repr(self.sl))
 
   def testSequenceAndOwnership(self):
     self.assertFalse(self.sl.is_owned())
