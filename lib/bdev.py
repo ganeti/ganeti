@@ -29,6 +29,7 @@ import stat
 import pyparsing as pyp
 import os
 import logging
+import math
 
 from ganeti import utils
 from ganeti import errors
@@ -523,6 +524,43 @@ class LogicalVolume(BlockDev):
     self.major = self.minor = self.pe_size = self.stripe_count = None
     self.Attach()
 
+  @staticmethod
+  def _GetStdPvSize(pvs_info):
+    """Return the the standard PV size (used with exclusive storage).
+
+    @param pvs_info: list of objects.LvmPvInfo, cannot be empty
+    @rtype: float
+    @return: size in MiB
+
+    """
+    assert len(pvs_info) > 0
+    smallest = min([pv.size for pv in pvs_info])
+    return smallest / (1 + constants.PART_MARGIN + constants.PART_RESERVED)
+
+  @staticmethod
+  def _ComputeNumPvs(size, pvs_info):
+    """Compute the number of PVs needed for an LV (with exclusive storage).
+
+    @type size: float
+    @param size: LV size
+    @param pvs_info: list of objects.LvmPvInfo, cannot be empty
+    @rtype: integer
+    @return: number of PVs needed
+    """
+    assert len(pvs_info) > 0
+    pv_size = float(LogicalVolume._GetStdPvSize(pvs_info))
+    return int(math.ceil(float(size) / pv_size))
+
+  @staticmethod
+  def _GetEmptyPvNames(pvs_info, max_pvs=None):
+    """Return a list of empty PVs, by name.
+
+    """
+    empty_pvs = filter(objects.LvmPvInfo.IsEmpty, pvs_info)
+    if max_pvs is not None:
+      empty_pvs = empty_pvs[:max_pvs]
+    return map((lambda pv: pv.name), empty_pvs)
+
   @classmethod
   def Create(cls, unique_id, children, size, params, excl_stor):
     """Create a new logical volume.
@@ -536,7 +574,11 @@ class LogicalVolume(BlockDev):
     cls._ValidateName(lv_name)
     pvs_info = cls.GetPVInfo([vg_name])
     if not pvs_info:
-      _ThrowError("Can't compute PV info for vg %s", vg_name)
+      if excl_stor:
+        msg = "No (empty) PVs found"
+      else:
+        msg = "Can't compute PV info for vg %s" % vg_name
+      _ThrowError(msg)
     pvs_info.sort(key=(lambda pv: pv.free), reverse=True)
 
     pvlist = [pv.name for pv in pvs_info]
@@ -544,24 +586,43 @@ class LogicalVolume(BlockDev):
       _ThrowError("Some of your PVs have the invalid character ':' in their"
                   " name, this is not supported - please filter them out"
                   " in lvm.conf using either 'filter' or 'preferred_names'")
-    free_size = sum([pv.free for pv in pvs_info])
+
     current_pvs = len(pvlist)
     desired_stripes = params[constants.LDP_STRIPES]
     stripes = min(current_pvs, desired_stripes)
-    if stripes < desired_stripes:
-      logging.warning("Could not use %d stripes for VG %s, as only %d PVs are"
-                      " available.", desired_stripes, vg_name, current_pvs)
 
-    # The size constraint should have been checked from the master before
-    # calling the create function.
-    if free_size < size:
-      _ThrowError("Not enough free space: required %s,"
-                  " available %s", size, free_size)
-    cmd = ["lvcreate", "-L%dm" % size, "-n%s" % lv_name]
+    if excl_stor:
+      err_msgs = utils.LvmExclusiveCheckNodePvs(pvs_info)
+      if err_msgs:
+        for m in err_msgs:
+          logging.warning(m)
+      req_pvs = cls._ComputeNumPvs(size, pvs_info)
+      pvlist = cls._GetEmptyPvNames(pvs_info, req_pvs)
+      current_pvs = len(pvlist)
+      if current_pvs < req_pvs:
+        _ThrowError("Not enough empty PVs to create a disk of %d MB:"
+                    " %d available, %d needed", size, current_pvs, req_pvs)
+      assert current_pvs == len(pvlist)
+      if stripes > current_pvs:
+        # No warning issued for this, as it's no surprise
+        stripes = current_pvs
+
+    else:
+      if stripes < desired_stripes:
+        logging.warning("Could not use %d stripes for VG %s, as only %d PVs are"
+                        " available.", desired_stripes, vg_name, current_pvs)
+      free_size = sum([pv.free for pv in pvs_info])
+      # The size constraint should have been checked from the master before
+      # calling the create function.
+      if free_size < size:
+        _ThrowError("Not enough free space: required %s,"
+                    " available %s", size, free_size)
+
     # If the free space is not well distributed, we won't be able to
     # create an optimally-striped volume; in that case, we want to try
     # with N, N-1, ..., 2, and finally 1 (non-stripped) number of
     # stripes
+    cmd = ["lvcreate", "-L%dm" % size, "-n%s" % lv_name]
     for stripes_arg in range(stripes, 0, -1):
       result = utils.RunCmd(cmd + ["-i%d" % stripes_arg] + [vg_name] + pvlist)
       if not result.failed:

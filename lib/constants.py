@@ -2053,6 +2053,12 @@ IPOLICY_DEFAULTS = {
 
 MASTER_POOL_SIZE_DEFAULT = 10
 
+# Exclusive storage:
+# Error margin used to compare physical disks
+PART_MARGIN = .01
+# Space reserved when creating instance disks
+PART_RESERVED = .02
+
 CONFD_PROTOCOL_VERSION = 1
 
 CONFD_REQ_PING = 0
