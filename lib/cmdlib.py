@@ -13346,11 +13346,11 @@ class LUInstanceSetParams(LogicalUnit):
       res_min = _ComputeIPolicyInstanceSpecViolation(ipolicy, ispec_min)
 
       if (res_max or res_min):
-        res = set(res_max + res_min)
         # FIXME: Improve error message by including information about whether
         # the upper or lower limit of the parameter fails the ipolicy.
         msg = ("Instance allocation to group %s (%s) violates policy: %s" %
-               (group_info, group_info.name, utils.CommaJoin(res)))
+               (group_info, group_info.name,
+                utils.CommaJoin(set(res_max + res_min))))
         raise errors.OpPrereqError(msg, errors.ECODE_INVAL)
 
   def _ConvertPlainToDrbd(self, feedback_fn):
