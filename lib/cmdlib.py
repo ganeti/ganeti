@@ -2550,7 +2550,8 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     ipolicy = ganeti.masterd.instance.CalculateGroupIPolicy(cluster,
                                                             self.group_info)
     err = _ComputeIPolicyInstanceViolation(ipolicy, instanceconfig)
-    _ErrorIf(err, constants.CV_EINSTANCEPOLICY, instance, utils.CommaJoin(err))
+    _ErrorIf(err, constants.CV_EINSTANCEPOLICY, instance, utils.CommaJoin(err),
+             code=self.ETYPE_WARNING)
 
     for node in node_vol_should:
       n_img = node_image[node]
