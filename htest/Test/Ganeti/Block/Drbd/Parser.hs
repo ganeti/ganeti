@@ -25,12 +25,14 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Test.Ganeti.Block.Drbd.Parser (testBlock_DRBDParser) where
 
+import Test.QuickCheck as QuickCheck hiding (Result)
 import Test.HUnit
 
 import Test.Ganeti.TestHelper
-import Test.Ganeti.TestCommon (readPythonTestData)
+import Test.Ganeti.TestCommon
 
 import qualified Data.Attoparsec.Text as A
+import Data.List (intercalate)
 import Data.Text (pack)
 
 import Ganeti.Block.Drbd.Parser (drbdStatusParser, commaIntParser)
@@ -288,28 +290,63 @@ case_drbd8 = testFile "proc_drbd8.txt" $
         (Just $ AdditionalInfo 0 257 0 0 0 0 0)
     ]
 
--- | Function for testing whether a comma-separated integer is parsed correctly.
+-- | Function for splitting a list in chunks of a given size.
+-- FIXME: an equivalent function exists in Data.List.Split, but it seems
+-- pointless to add this package as a dependence just for this single
+-- use. In case it is ever added, just remove this function definition
+-- and use the one from the package.
+splitEvery :: Int -> [e] -> [[e]]
+splitEvery i l = map (take i) (splitter l (:) []) where
+  splitter [] _ n = n
+  splitter li c n  = li `c` splitter (drop i li) c n
+
+-- | Function for testing whether a single comma-separated integer is
+-- parsed correctly.
 testCommaInt :: String -> Int -> Assertion
 testCommaInt numString expectedResult =
   case A.parseOnly commaIntParser $ pack numString of
     Left msg -> assertFailure $ "Parsing failed: " ++ msg
     Right obtained -> assertEqual numString expectedResult obtained
 
--- | Test if 1 digit integers are recognized correctly.
-case_commaInt_1digit :: Assertion
-case_commaInt_1digit = testCommaInt "1" 1
+-- | Generate a property test for CommaInt numbers in a given range.
+gen_prop_CommaInt :: Int -> Int -> Property
+gen_prop_CommaInt minVal maxVal =
+  forAll (choose (minVal, maxVal)) $ \i ->
+    case A.parseOnly commaIntParser $ pack (generateCommaInt i) of
+      Left msg -> failTest $ "Parsing failed: " ++ msg
+      Right obtained -> i ==? obtained
+  where generateCommaInt x =
+          ((reverse . intercalate ",") . splitEvery 3) . reverse $ show x
 
--- | Test if 3 digits integers are recognized correctly.
-case_commaInt_3digits :: Assertion
-case_commaInt_3digits = testCommaInt "123" 123
+-- | Test if <4 digit integers are recognized correctly.
+prop_commaInt_noCommas :: Property
+prop_commaInt_noCommas = gen_prop_CommaInt 0 999
 
 -- | Test if integers with 1 comma are recognized correctly.
-case_commaInt_1comma :: Assertion
-case_commaInt_1comma = testCommaInt "61,736" 61736
+prop_commaInt_1Comma :: Property
+prop_commaInt_1Comma = gen_prop_CommaInt 1000 999999
 
--- | Test if integers with 2 commas are recognized correctly.
-case_commaInt_2commas :: Assertion
-case_commaInt_2commas = testCommaInt "61,736,123" 61736123
+-- | Test if integers with multiple commas are recognized correctly.
+prop_commaInt_multipleCommas :: Property
+prop_commaInt_multipleCommas = gen_prop_CommaInt 1000000 (maxBound ::
+  Int)
+
+-- | Test whether the parser is actually able to behave as intended with
+-- numbers without commas. That is, if a number with more than 3 digits
+-- is parsed, only up to the first 3 digits are considered (because they
+-- are a valid commaInt), and the rest is ignored.
+-- e.g.: parse "1234" = 123
+prop_commaInt_max3WithoutComma :: Property
+prop_commaInt_max3WithoutComma =
+  forAll (choose (0, maxBound :: Int)) $ \i ->
+    case A.parseOnly commaIntParser $ pack (show i) of
+      Left msg -> failTest $ "Parsing failed: " ++ msg
+      Right obtained ->
+        obtained < 1000 .&&.
+        getFirst3Digits i ==? obtained
+  where getFirst3Digits x = if x > 1000
+          then getFirst3Digits $ x `div` 10
+          else x
 
 -- | Test if non-triplets are handled correctly (they are assumed NOT being part
 -- of the number).
@@ -324,9 +361,9 @@ testSuite "Block_DRBDParser"
             'case_drbd83_sync_want,
             'case_drbd83,
             'case_drbd8,
-            'case_commaInt_1digit,
-            'case_commaInt_3digits,
-            'case_commaInt_1comma,
-            'case_commaInt_2commas,
-            'case_commaInt_non_triplet
+            'case_commaInt_non_triplet,
+            'prop_commaInt_noCommas,
+            'prop_commaInt_1Comma,
+            'prop_commaInt_multipleCommas,
+            'prop_commaInt_max3WithoutComma
           ]
