@@ -121,6 +121,12 @@ def CombinationDesc(op, args, fn):
   @param fn: Wrapped function
 
   """
+  # Some type descriptions are rather long. If "None" is listed at the
+  # end or somewhere in between it is easily missed. Therefore it should
+  # be at the beginning, e.g. "None or (long description)".
+  if __debug__ and TNone in args and args.index(TNone) > 0:
+    raise Exception("TNone must be listed first")
+
   if len(args) == 1:
     descr = str(args[0])
   else:
@@ -310,13 +316,13 @@ def TRegex(pobj):
 TNonEmptyString = WithDesc("NonEmptyString")(TAnd(TString, TTrue))
 
 #: a maybe non-empty string
-TMaybeString = TOr(TNonEmptyString, TNone)
+TMaybeString = TOr(TNone, TNonEmptyString)
 
 #: a maybe boolean (bool or none)
-TMaybeBool = TOr(TBool, TNone)
+TMaybeBool = TOr(TNone, TBool)
 
 #: Maybe a dictionary (dict or None)
-TMaybeDict = TOr(TDict, TNone)
+TMaybeDict = TOr(TNone, TDict)
 
 #: a non-negative integer (value >= 0)
 TNonNegativeInt = \
@@ -327,7 +333,7 @@ TPositiveInt = \
   TAnd(TInt, WithDesc("GreaterThanZero")(lambda v: v > 0))
 
 #: a maybe positive integer (positive integer or None)
-TMaybePositiveInt = TOr(TPositiveInt, TNone)
+TMaybePositiveInt = TOr(TNone, TPositiveInt)
 
 #: a negative integer (value < 0)
 TNegativeInt = \

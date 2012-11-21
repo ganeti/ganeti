@@ -150,11 +150,11 @@ _PIgnoreErrors = ("ignore_errors", ht.EmptyList,
                   "List of error codes that should be treated as warnings")
 
 # Disk parameters
-_PDiskParams = ("diskparams", None,
-                ht.TOr(
-                  ht.TDictOf(ht.TElemOf(constants.DISK_TEMPLATES), ht.TDict),
-                  ht.TNone),
-                "Disk templates' parameter defaults")
+_PDiskParams = \
+  ("diskparams", None,
+   ht.TOr(ht.TNone,
+          ht.TDictOf(ht.TElemOf(constants.DISK_TEMPLATES), ht.TDict)),
+   "Disk templates' parameter defaults")
 
 # Parameters for node resource model
 _PHvState = ("hv_state", None, ht.TMaybeDict, "Set hypervisor states")
@@ -325,7 +325,7 @@ def _BuildDiskTemplateCheck(accept_none):
   template_check = ht.TElemOf(constants.DISK_TEMPLATES)
 
   if accept_none:
-    template_check = ht.TOr(template_check, ht.TNone)
+    template_check = ht.TOr(ht.TNone, template_check)
 
   return ht.TAnd(template_check, _CheckFileStorage)
 
@@ -864,24 +864,23 @@ class OpClusterSetParams(OpCode):
   OP_PARAMS = [
     _PHvState,
     _PDiskState,
-    ("vg_name", None, ht.TOr(ht.TString, ht.TNone), "Volume group name"),
+    ("vg_name", None, ht.TOr(ht.TNone, ht.TString), "Volume group name"),
     ("enabled_hypervisors", None,
-     ht.TOr(ht.TAnd(ht.TListOf(ht.TElemOf(constants.HYPER_TYPES)), ht.TTrue),
-            ht.TNone),
+     ht.TOr(ht.TNone,
+            ht.TAnd(ht.TListOf(ht.TElemOf(constants.HYPER_TYPES)), ht.TTrue)),
      "List of enabled hypervisors"),
-    ("hvparams", None, ht.TOr(ht.TDictOf(ht.TNonEmptyString, ht.TDict),
-                              ht.TNone),
+    ("hvparams", None,
+     ht.TOr(ht.TNone, ht.TDictOf(ht.TNonEmptyString, ht.TDict)),
      "Cluster-wide hypervisor parameter defaults, hypervisor-dependent"),
-    ("beparams", None, ht.TOr(ht.TDict, ht.TNone),
+    ("beparams", None, ht.TOr(ht.TNone, ht.TDict),
      "Cluster-wide backend parameter defaults"),
-    ("os_hvp", None, ht.TOr(ht.TDictOf(ht.TNonEmptyString, ht.TDict),
-                            ht.TNone),
+    ("os_hvp", None, ht.TOr(ht.TNone, ht.TDictOf(ht.TNonEmptyString, ht.TDict)),
      "Cluster-wide per-OS hypervisor parameter defaults"),
-    ("osparams", None, ht.TOr(ht.TDictOf(ht.TNonEmptyString, ht.TDict),
-                              ht.TNone),
+    ("osparams", None,
+     ht.TOr(ht.TNone, ht.TDictOf(ht.TNonEmptyString, ht.TDict)),
      "Cluster-wide OS parameter defaults"),
     _PDiskParams,
-    ("candidate_pool_size", None, ht.TOr(ht.TPositiveInt, ht.TNone),
+    ("candidate_pool_size", None, ht.TOr(ht.TNone, ht.TPositiveInt),
      "Master candidate pool size"),
     ("uid_pool", None, ht.NoType,
      "Set UID pool, must be list of lists describing UID ranges (two items,"
@@ -900,12 +899,12 @@ class OpClusterSetParams(OpCode):
     ("ndparams", None, ht.TMaybeDict, "Cluster-wide node parameter defaults"),
     ("ipolicy", None, ht.TMaybeDict,
      "Cluster-wide :ref:`instance policy <rapi-ipolicy>` specs"),
-    ("drbd_helper", None, ht.TOr(ht.TString, ht.TNone), "DRBD helper program"),
-    ("default_iallocator", None, ht.TOr(ht.TString, ht.TNone),
+    ("drbd_helper", None, ht.TOr(ht.TNone, ht.TString), "DRBD helper program"),
+    ("default_iallocator", None, ht.TOr(ht.TNone, ht.TString),
      "Default iallocator for cluster"),
-    ("master_netdev", None, ht.TOr(ht.TString, ht.TNone),
+    ("master_netdev", None, ht.TOr(ht.TNone, ht.TString),
      "Master network device"),
-    ("master_netmask", None, ht.TOr(ht.TInt, ht.TNone),
+    ("master_netmask", None, ht.TOr(ht.TNone, ht.TInt),
      "Netmask of the master IP"),
     ("reserved_lvs", None, ht.TMaybeListOf(ht.TNonEmptyString),
      "List of reserved LVs"),
@@ -1274,7 +1273,7 @@ class OpInstanceCreate(OpCode):
     ("os_type", None, ht.TMaybeString, "Operating system"),
     ("pnode", None, ht.TMaybeString, "Primary node"),
     ("snode", None, ht.TMaybeString, "Secondary node"),
-    ("source_handshake", None, ht.TOr(ht.TList, ht.TNone),
+    ("source_handshake", None, ht.TOr(ht.TNone, ht.TList),
      "Signed handshake from source (remote import only)"),
     ("source_instance_name", None, ht.TMaybeString,
      "Source instance name (remote import only)"),
@@ -1843,7 +1842,7 @@ class OpBackupExport(OpCode):
      "Whether to ignore failures while removing instances"),
     ("mode", constants.EXPORT_MODE_LOCAL, ht.TElemOf(constants.EXPORT_MODES),
      "Export mode"),
-    ("x509_key_name", None, ht.TOr(ht.TList, ht.TNone),
+    ("x509_key_name", None, ht.TOr(ht.TNone, ht.TList),
      "Name of X509 key (remote export only)"),
     ("destination_x509_ca", None, ht.TMaybeString,
      "Destination X509 CA (remote export only)"),
