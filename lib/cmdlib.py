@@ -7776,6 +7776,46 @@ class LUInstanceQuery(NoHooksLU):
     return self.iq.OldStyleQuery(self)
 
 
+def _ExpandNamesForMigration(lu):
+  """Expands names for use with L{TLMigrateInstance}.
+
+  @type lu: L{LogicalUnit}
+
+  """
+  if lu.op.target_node is not None:
+    lu.op.target_node = _ExpandNodeName(lu.cfg, lu.op.target_node)
+
+  lu.needed_locks[locking.LEVEL_NODE] = []
+  lu.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_REPLACE
+
+  lu.needed_locks[locking.LEVEL_NODE_RES] = []
+  lu.recalculate_locks[locking.LEVEL_NODE_RES] = constants.LOCKS_REPLACE
+
+
+def _DeclareLocksForMigration(lu, level):
+  """Declares locks for L{TLMigrateInstance}.
+
+  @type lu: L{LogicalUnit}
+  @param level: Lock level
+
+  """
+  if level == locking.LEVEL_NODE:
+    instance = lu.cfg.GetInstanceInfo(lu.op.instance_name)
+    if instance.disk_template in constants.DTS_EXT_MIRROR:
+      if lu.op.target_node is None:
+        lu.needed_locks[locking.LEVEL_NODE] = locking.ALL_SET
+      else:
+        lu.needed_locks[locking.LEVEL_NODE] = [instance.primary_node,
+                                               lu.op.target_node]
+      del lu.recalculate_locks[locking.LEVEL_NODE]
+    else:
+      lu._LockInstancesNodes() # pylint: disable=W0212
+  elif level == locking.LEVEL_NODE_RES:
+    # Copy node locks
+    lu.needed_locks[locking.LEVEL_NODE_RES] = \
+      _CopyLockList(lu.needed_locks[locking.LEVEL_NODE])
+
+
 class LUInstanceFailover(LogicalUnit):
   """Failover an instance.
 
@@ -7793,42 +7833,17 @@ class LUInstanceFailover(LogicalUnit):
 
   def ExpandNames(self):
     self._ExpandAndLockInstance()
+    _ExpandNamesForMigration(self)
 
-    if self.op.target_node is not None:
-      self.op.target_node = _ExpandNodeName(self.cfg, self.op.target_node)
+    self._migrater = \
+      TLMigrateInstance(self, self.op.instance_name, False, True, False,
+                        self.op.ignore_consistency, True,
+                        self.op.shutdown_timeout, self.op.ignore_ipolicy)
 
-    self.needed_locks[locking.LEVEL_NODE] = []
-    self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_REPLACE
-
-    self.needed_locks[locking.LEVEL_NODE_RES] = []
-    self.recalculate_locks[locking.LEVEL_NODE_RES] = constants.LOCKS_REPLACE
-
-    ignore_consistency = self.op.ignore_consistency
-    shutdown_timeout = self.op.shutdown_timeout
-    self._migrater = TLMigrateInstance(self, self.op.instance_name,
-                                       cleanup=False,
-                                       failover=True,
-                                       ignore_consistency=ignore_consistency,
-                                       shutdown_timeout=shutdown_timeout,
-                                       ignore_ipolicy=self.op.ignore_ipolicy)
     self.tasklets = [self._migrater]
 
   def DeclareLocks(self, level):
-    if level == locking.LEVEL_NODE:
-      instance = self.context.cfg.GetInstanceInfo(self.op.instance_name)
-      if instance.disk_template in constants.DTS_EXT_MIRROR:
-        if self.op.target_node is None:
-          self.needed_locks[locking.LEVEL_NODE] = locking.ALL_SET
-        else:
-          self.needed_locks[locking.LEVEL_NODE] = [instance.primary_node,
-                                                   self.op.target_node]
-        del self.recalculate_locks[locking.LEVEL_NODE]
-      else:
-        self._LockInstancesNodes()
-    elif level == locking.LEVEL_NODE_RES:
-      # Copy node locks
-      self.needed_locks[locking.LEVEL_NODE_RES] = \
-        _CopyLockList(self.needed_locks[locking.LEVEL_NODE])
+    _DeclareLocksForMigration(self, level)
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -7878,41 +7893,19 @@ class LUInstanceMigrate(LogicalUnit):
 
   def ExpandNames(self):
     self._ExpandAndLockInstance()
-
-    if self.op.target_node is not None:
-      self.op.target_node = _ExpandNodeName(self.cfg, self.op.target_node)
-
-    self.needed_locks[locking.LEVEL_NODE] = []
-    self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_REPLACE
-
-    self.needed_locks[locking.LEVEL_NODE] = []
-    self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_REPLACE
+    _ExpandNamesForMigration(self)
 
     self._migrater = \
-      TLMigrateInstance(self, self.op.instance_name,
-                        cleanup=self.op.cleanup,
-                        failover=False,
-                        fallback=self.op.allow_failover,
-                        allow_runtime_changes=self.op.allow_runtime_changes,
-                        ignore_ipolicy=self.op.ignore_ipolicy)
+      TLMigrateInstance(self, self.op.instance_name, self.op.cleanup,
+                        False, self.op.allow_failover, False,
+                        self.op.allow_runtime_changes,
+                        constants.DEFAULT_SHUTDOWN_TIMEOUT,
+                        self.op.ignore_ipolicy)
+
     self.tasklets = [self._migrater]
 
   def DeclareLocks(self, level):
-    if level == locking.LEVEL_NODE:
-      instance = self.context.cfg.GetInstanceInfo(self.op.instance_name)
-      if instance.disk_template in constants.DTS_EXT_MIRROR:
-        if self.op.target_node is None:
-          self.needed_locks[locking.LEVEL_NODE] = locking.ALL_SET
-        else:
-          self.needed_locks[locking.LEVEL_NODE] = [instance.primary_node,
-                                                   self.op.target_node]
-        del self.recalculate_locks[locking.LEVEL_NODE]
-      else:
-        self._LockInstancesNodes()
-    elif level == locking.LEVEL_NODE_RES:
-      # Copy node locks
-      self.needed_locks[locking.LEVEL_NODE_RES] = \
-        _CopyLockList(self.needed_locks[locking.LEVEL_NODE])
+    _DeclareLocksForMigration(self, level)
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -8242,12 +8235,9 @@ class TLMigrateInstance(Tasklet):
   _MIGRATION_POLL_INTERVAL = 1      # seconds
   _MIGRATION_FEEDBACK_INTERVAL = 10 # seconds
 
-  def __init__(self, lu, instance_name, cleanup=False,
-               failover=False, fallback=False,
-               ignore_consistency=False,
-               allow_runtime_changes=True,
-               shutdown_timeout=constants.DEFAULT_SHUTDOWN_TIMEOUT,
-               ignore_ipolicy=False):
+  def __init__(self, lu, instance_name, cleanup, failover, fallback,
+               ignore_consistency, allow_runtime_changes, shutdown_timeout,
+               ignore_ipolicy):
     """Initializes this class.
 
     """
