@@ -345,14 +345,14 @@ pGroupName = simpleField "group_name" [t| NonEmptyString |]
 -- | Migration type (live\/non-live).
 pMigrationMode :: Field
 pMigrationMode =
-  renameField "MigrationMode" $
+  renameField "MigrationMode" .
   optionalField $
   simpleField "mode" [t| MigrationMode |]
 
 -- | Obsolete \'live\' migration mode (boolean).
 pMigrationLive :: Field
 pMigrationLive =
-  renameField "OldLiveMode" $ optionalField $ booleanField "live"
+  renameField "OldLiveMode" . optionalField $ booleanField "live"
 
 -- | Whether to force an unknown OS variant.
 pForceVariant :: Field
@@ -440,7 +440,7 @@ pIgnoreErrors = defaultField [| Set.empty |] $
 
 -- | Optional group name.
 pOptGroupName :: Field
-pOptGroupName = renameField "OptGroupName" $
+pOptGroupName = renameField "OptGroupName" .
                 optionalField $ simpleField "group_name" [t| NonEmptyString |]
 
 -- | Disk templates' parameter defaults.

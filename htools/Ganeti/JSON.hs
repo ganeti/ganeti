@@ -202,6 +202,7 @@ readContainer obj = do
                     return (k', v')) kjvlist
   return $ GenericContainer (Map.fromList kalist)
 
+{-# ANN showContainer "HLint: ignore Use ***" #-}
 -- | Container dumper.
 showContainer :: (HasStringRepr a, J.JSON b) =>
                  GenericContainer a b -> J.JSValue

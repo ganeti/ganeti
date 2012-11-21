@@ -197,7 +197,7 @@ genNodeNames = resize maxNodes (listOf getFQDN)
 
 -- | Generates a list of node names in non-empty string type.
 genNodeNamesNE :: Gen [NonEmptyString]
-genNodeNamesNE = genNodeNames >>= mapM (mkNonEmpty)
+genNodeNamesNE = genNodeNames >>= mapM mkNonEmpty
 
 -- | Gets a node name in non-empty type.
 genNodeNameNE :: Gen NonEmptyString
