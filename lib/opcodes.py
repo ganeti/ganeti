@@ -74,7 +74,7 @@ _PGroupName = ("group_name", ht.NoDefault, ht.TNonEmptyString, "Group name")
 
 #: Migration type (live/non-live)
 _PMigrationMode = ("mode", None,
-                   ht.TOr(ht.TNone, ht.TElemOf(constants.HT_MIGRATION_MODES)),
+                   ht.TMaybe(ht.TElemOf(constants.HT_MIGRATION_MODES)),
                    "Migration mode")
 
 #: Obsolete 'live' migration mode (boolean)
@@ -111,7 +111,7 @@ _PNameCheck = ("name_check", True, ht.TBool, "Whether to check name")
 
 _PNodeGroupAllocPolicy = \
   ("alloc_policy", None,
-   ht.TOr(ht.TNone, ht.TElemOf(constants.VALID_ALLOC_POLICIES)),
+   ht.TMaybe(ht.TElemOf(constants.VALID_ALLOC_POLICIES)),
    "Instance allocation policy")
 
 _PGroupNodeParams = ("ndparams", None, ht.TMaybeDict,
@@ -152,8 +152,7 @@ _PIgnoreErrors = ("ignore_errors", ht.EmptyList,
 # Disk parameters
 _PDiskParams = \
   ("diskparams", None,
-   ht.TOr(ht.TNone,
-          ht.TDictOf(ht.TElemOf(constants.DISK_TEMPLATES), ht.TDict)),
+   ht.TMaybe(ht.TDictOf(ht.TElemOf(constants.DISK_TEMPLATES), ht.TDict)),
    "Disk templates' parameter defaults")
 
 # Parameters for node resource model
@@ -188,7 +187,7 @@ _TestClusterOsList = ht.TMaybeListOf(_TestClusterOsListItem)
 #: Utility function for testing NIC definitions
 _TestNicDef = \
   ht.Comment("NIC parameters")(ht.TDictOf(ht.TElemOf(constants.INIC_PARAMS),
-                                          ht.TOr(ht.TNone, ht.TNonEmptyString)))
+                                          ht.TMaybeString))
 
 _TSetParamsResultItemItems = [
   ht.Comment("name of changed parameter")(ht.TNonEmptyString),
@@ -325,7 +324,7 @@ def _BuildDiskTemplateCheck(accept_none):
   template_check = ht.TElemOf(constants.DISK_TEMPLATES)
 
   if accept_none:
-    template_check = ht.TOr(ht.TNone, template_check)
+    template_check = ht.TMaybe(template_check)
 
   return ht.TAnd(template_check, _CheckFileStorage)
 
@@ -350,7 +349,7 @@ _PStorageType = ("storage_type", ht.NoDefault, _CheckStorageType,
 _CheckNetworkType = ht.TElemOf(constants.NETWORK_VALID_TYPES)
 
 #: Network type parameter
-_PNetworkType = ("network_type", None, ht.TOr(ht.TNone, _CheckNetworkType),
+_PNetworkType = ("network_type", None, ht.TMaybe(_CheckNetworkType),
                  "Network type")
 
 
@@ -599,7 +598,7 @@ class OpCode(BaseOpCode):
   WITH_LU = True
   OP_PARAMS = [
     ("dry_run", None, ht.TMaybeBool, "Run checks only, don't execute"),
-    ("debug_level", None, ht.TOr(ht.TNone, ht.TNonNegativeInt), "Debug level"),
+    ("debug_level", None, ht.TMaybe(ht.TNonNegativeInt), "Debug level"),
     ("priority", constants.OP_PRIO_DEFAULT,
      ht.TElemOf(constants.OP_PRIO_SUBMIT_VALID), "Opcode priority"),
     (DEPEND_ATTR, None, _BuildJobDepCheck(True),
@@ -864,23 +863,23 @@ class OpClusterSetParams(OpCode):
   OP_PARAMS = [
     _PHvState,
     _PDiskState,
-    ("vg_name", None, ht.TOr(ht.TNone, ht.TString), "Volume group name"),
+    ("vg_name", None, ht.TMaybe(ht.TString), "Volume group name"),
     ("enabled_hypervisors", None,
-     ht.TOr(ht.TNone,
-            ht.TAnd(ht.TListOf(ht.TElemOf(constants.HYPER_TYPES)), ht.TTrue)),
+     ht.TMaybe(ht.TAnd(ht.TListOf(ht.TElemOf(constants.HYPER_TYPES)),
+                       ht.TTrue)),
      "List of enabled hypervisors"),
     ("hvparams", None,
-     ht.TOr(ht.TNone, ht.TDictOf(ht.TNonEmptyString, ht.TDict)),
+     ht.TMaybe(ht.TDictOf(ht.TNonEmptyString, ht.TDict)),
      "Cluster-wide hypervisor parameter defaults, hypervisor-dependent"),
-    ("beparams", None, ht.TOr(ht.TNone, ht.TDict),
+    ("beparams", None, ht.TMaybeDict,
      "Cluster-wide backend parameter defaults"),
-    ("os_hvp", None, ht.TOr(ht.TNone, ht.TDictOf(ht.TNonEmptyString, ht.TDict)),
+    ("os_hvp", None, ht.TMaybe(ht.TDictOf(ht.TNonEmptyString, ht.TDict)),
      "Cluster-wide per-OS hypervisor parameter defaults"),
     ("osparams", None,
-     ht.TOr(ht.TNone, ht.TDictOf(ht.TNonEmptyString, ht.TDict)),
+     ht.TMaybe(ht.TDictOf(ht.TNonEmptyString, ht.TDict)),
      "Cluster-wide OS parameter defaults"),
     _PDiskParams,
-    ("candidate_pool_size", None, ht.TOr(ht.TNone, ht.TPositiveInt),
+    ("candidate_pool_size", None, ht.TMaybe(ht.TPositiveInt),
      "Master candidate pool size"),
     ("uid_pool", None, ht.NoType,
      "Set UID pool, must be list of lists describing UID ranges (two items,"
@@ -899,12 +898,12 @@ class OpClusterSetParams(OpCode):
     ("ndparams", None, ht.TMaybeDict, "Cluster-wide node parameter defaults"),
     ("ipolicy", None, ht.TMaybeDict,
      "Cluster-wide :ref:`instance policy <rapi-ipolicy>` specs"),
-    ("drbd_helper", None, ht.TOr(ht.TNone, ht.TString), "DRBD helper program"),
-    ("default_iallocator", None, ht.TOr(ht.TNone, ht.TString),
+    ("drbd_helper", None, ht.TMaybe(ht.TString), "DRBD helper program"),
+    ("default_iallocator", None, ht.TMaybe(ht.TString),
      "Default iallocator for cluster"),
-    ("master_netdev", None, ht.TOr(ht.TNone, ht.TString),
+    ("master_netdev", None, ht.TMaybe(ht.TString),
      "Master network device"),
-    ("master_netmask", None, ht.TOr(ht.TNone, ht.TInt),
+    ("master_netmask", None, ht.TMaybe(ht.TNonNegativeInt),
      "Netmask of the master IP"),
     ("reserved_lvs", None, ht.TMaybeListOf(ht.TNonEmptyString),
      "List of reserved LVs"),
@@ -957,7 +956,7 @@ class OpQuery(OpCode):
     _PUseLocking,
     ("fields", ht.NoDefault, ht.TListOf(ht.TNonEmptyString),
      "Requested fields"),
-    ("qfilter", None, ht.TOr(ht.TNone, ht.TList),
+    ("qfilter", None, ht.TMaybe(ht.TList),
      "Query filter"),
     ]
   OP_RESULT = \
@@ -1246,7 +1245,7 @@ class OpInstanceCreate(OpCode):
       " or ".join("``%s``" % i for i in sorted(constants.DISK_ACCESS_SET)))),
     ("disk_template", ht.NoDefault, _BuildDiskTemplateCheck(True),
      "Disk template"),
-    ("file_driver", None, ht.TOr(ht.TNone, ht.TElemOf(constants.FILE_DRIVER)),
+    ("file_driver", None, ht.TMaybe(ht.TElemOf(constants.FILE_DRIVER)),
      "Driver for file-backed disks"),
     ("file_storage_dir", None, ht.TMaybeString,
      "Directory for storing file-backed disks"),
@@ -1273,7 +1272,7 @@ class OpInstanceCreate(OpCode):
     ("os_type", None, ht.TMaybeString, "Operating system"),
     ("pnode", None, ht.TMaybeString, "Primary node"),
     ("snode", None, ht.TMaybeString, "Secondary node"),
-    ("source_handshake", None, ht.TOr(ht.TNone, ht.TList),
+    ("source_handshake", None, ht.TMaybe(ht.TList),
      "Signed handshake from source (remote import only)"),
     ("source_instance_name", None, ht.TMaybeString,
      "Source instance name (remote import only)"),
@@ -1642,7 +1641,7 @@ class OpInstanceSetParams(OpCode):
     ("runtime_mem", None, ht.TMaybePositiveInt, "New runtime memory"),
     ("hvparams", ht.EmptyDict, ht.TDict,
      "Per-instance hypervisor parameters, hypervisor-dependent"),
-    ("disk_template", None, ht.TOr(ht.TNone, _BuildDiskTemplateCheck(False)),
+    ("disk_template", None, ht.TMaybe(_BuildDiskTemplateCheck(False)),
      "Disk template for instance"),
     ("remote_node", None, ht.TMaybeString,
      "Secondary node (used when changing disk template)"),
@@ -1808,7 +1807,7 @@ class OpBackupPrepare(OpCode):
     ("mode", ht.NoDefault, ht.TElemOf(constants.EXPORT_MODES),
      "Export mode"),
     ]
-  OP_RESULT = ht.TOr(ht.TNone, ht.TDict)
+  OP_RESULT = ht.TMaybeDict
 
 
 class OpBackupExport(OpCode):
@@ -1842,7 +1841,7 @@ class OpBackupExport(OpCode):
      "Whether to ignore failures while removing instances"),
     ("mode", constants.EXPORT_MODE_LOCAL, ht.TElemOf(constants.EXPORT_MODES),
      "Export mode"),
-    ("x509_key_name", None, ht.TOr(ht.TNone, ht.TList),
+    ("x509_key_name", None, ht.TMaybe(ht.TList),
      "Name of X509 key (remote export only)"),
     ("destination_x509_ca", None, ht.TMaybeString,
      "Destination X509 CA (remote export only)"),
@@ -1967,19 +1966,19 @@ class OpTestAllocator(OpCode):
      ht.TMaybeListOf(ht.TDictOf(ht.TElemOf([constants.INIC_MAC,
                                             constants.INIC_IP,
                                             "bridge"]),
-                                ht.TOr(ht.TNone, ht.TNonEmptyString))),
+                                ht.TMaybeString)),
      None),
-    ("disks", ht.NoDefault, ht.TOr(ht.TNone, ht.TList), None),
+    ("disks", ht.NoDefault, ht.TMaybe(ht.TList), None),
     ("hypervisor", None, ht.TMaybeString, None),
     ("allocator", None, ht.TMaybeString, None),
     ("tags", ht.EmptyList, ht.TListOf(ht.TNonEmptyString), None),
-    ("memory", None, ht.TOr(ht.TNone, ht.TNonNegativeInt), None),
-    ("vcpus", None, ht.TOr(ht.TNone, ht.TNonNegativeInt), None),
+    ("memory", None, ht.TMaybe(ht.TNonNegativeInt), None),
+    ("vcpus", None, ht.TMaybe(ht.TNonNegativeInt), None),
     ("os", None, ht.TMaybeString, None),
     ("disk_template", None, ht.TMaybeString, None),
     ("instances", None, ht.TMaybeListOf(ht.TNonEmptyString), None),
     ("evac_mode", None,
-     ht.TOr(ht.TNone, ht.TElemOf(constants.IALLOCATOR_NEVAC_MODES)), None),
+     ht.TMaybe(ht.TElemOf(constants.IALLOCATOR_NEVAC_MODES)), None),
     ("target_groups", None, ht.TMaybeListOf(ht.TNonEmptyString), None),
     ("spindle_use", 1, ht.TNonNegativeInt, None),
     ("count", 1, ht.TNonNegativeInt, None),
@@ -2026,7 +2025,7 @@ class OpNetworkAdd(OpCode):
     ("mac_prefix", None, ht.TMaybeString,
      "MAC address prefix that overrides cluster one"),
     ("add_reserved_ips", None,
-     ht.TOr(ht.TNone, ht.TListOf(_CheckCIDRAddrNotation)),
+     ht.TMaybe(ht.TListOf(_CheckCIDRAddrNotation)),
      "Which IP addresses to reserve"),
     ("tags", ht.EmptyList, ht.TListOf(ht.TNonEmptyString), "Network tags"),
     ]
@@ -2058,10 +2057,10 @@ class OpNetworkSetParams(OpCode):
     ("mac_prefix", None, ht.TMaybeString,
      "MAC address prefix that overrides cluster one"),
     ("add_reserved_ips", None,
-     ht.TOr(ht.TNone, ht.TListOf(_CheckCIDRAddrNotation)),
+     ht.TMaybe(ht.TListOf(_CheckCIDRAddrNotation)),
      "Which external IP addresses to reserve"),
     ("remove_reserved_ips", None,
-     ht.TOr(ht.TNone, ht.TListOf(_CheckCIDRAddrNotation)),
+     ht.TMaybe(ht.TListOf(_CheckCIDRAddrNotation)),
      "Which external IP addresses to release"),
     ]
   OP_RESULT = ht.TNone

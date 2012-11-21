@@ -143,7 +143,7 @@ class TestTypeChecks(unittest.TestCase):
     self.assertFalse(fn(None))
 
   def testOr(self):
-    fn = ht.TOr(ht.TNone, ht.TAnd(ht.TString, ht.TIsLength(5)))
+    fn = ht.TMaybe(ht.TAnd(ht.TString, ht.TIsLength(5)))
     self.assertTrue(fn("12345"))
     self.assertTrue(fn(None))
     self.assertFalse(fn(1))

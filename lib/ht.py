@@ -310,19 +310,28 @@ def TRegex(pobj):
   return desc(TAnd(TString, pobj.match))
 
 
+def TMaybe(test):
+  """Wrap a test in a TOr(TNone, test).
+
+  This makes it easier to define TMaybe* types.
+
+  """
+  return TOr(TNone, test)
+
+
 # Type aliases
 
 #: a non-empty string
 TNonEmptyString = WithDesc("NonEmptyString")(TAnd(TString, TTrue))
 
 #: a maybe non-empty string
-TMaybeString = TOr(TNone, TNonEmptyString)
+TMaybeString = TMaybe(TNonEmptyString)
 
 #: a maybe boolean (bool or none)
-TMaybeBool = TOr(TNone, TBool)
+TMaybeBool = TMaybe(TBool)
 
 #: Maybe a dictionary (dict or None)
-TMaybeDict = TOr(TNone, TDict)
+TMaybeDict = TMaybe(TDict)
 
 #: a non-negative integer (value >= 0)
 TNonNegativeInt = \
@@ -333,7 +342,7 @@ TPositiveInt = \
   TAnd(TInt, WithDesc("GreaterThanZero")(lambda v: v > 0))
 
 #: a maybe positive integer (positive integer or None)
-TMaybePositiveInt = TOr(TNone, TPositiveInt)
+TMaybePositiveInt = TMaybe(TPositiveInt)
 
 #: a negative integer (value < 0)
 TNegativeInt = \
@@ -371,7 +380,7 @@ def TListOf(my_type):
   return desc(TAnd(TList, lambda lst: compat.all(my_type(v) for v in lst)))
 
 
-TMaybeListOf = lambda item_type: TOr(TNone, TListOf(item_type))
+TMaybeListOf = lambda item_type: TMaybe(TListOf(item_type))
 
 
 def TDictOf(key_type, val_type):
