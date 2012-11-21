@@ -10951,7 +10951,7 @@ class LUInstanceReplaceDisks(LogicalUnit):
 
     self.replacer = TLReplaceDisks(self, self.op.instance_name, self.op.mode,
                                    self.op.iallocator, self.op.remote_node,
-                                   self.op.disks, False, self.op.early_release,
+                                   self.op.disks, self.op.early_release,
                                    self.op.ignore_ipolicy)
 
     self.tasklets = [self.replacer]
@@ -11035,7 +11035,7 @@ class TLReplaceDisks(Tasklet):
 
   """
   def __init__(self, lu, instance_name, mode, iallocator_name, remote_node,
-               disks, delay_iallocator, early_release, ignore_ipolicy):
+               disks, early_release, ignore_ipolicy):
     """Initializes this class.
 
     """
@@ -11047,7 +11047,6 @@ class TLReplaceDisks(Tasklet):
     self.iallocator_name = iallocator_name
     self.remote_node = remote_node
     self.disks = disks
-    self.delay_iallocator = delay_iallocator
     self.early_release = early_release
     self.ignore_ipolicy = ignore_ipolicy
 
@@ -11132,18 +11131,6 @@ class TLReplaceDisks(Tasklet):
                                  len(instance.secondary_nodes),
                                  errors.ECODE_FAULT)
 
-    if not self.delay_iallocator:
-      self._CheckPrereq2()
-
-  def _CheckPrereq2(self):
-    """Check prerequisites, second part.
-
-    This function should always be part of CheckPrereq. It was separated and is
-    now called from Exec because during node evacuation iallocator was only
-    called with an unmodified cluster model, not taking planned changes into
-    account.
-
-    """
     instance = self.instance
     secondary_node = instance.secondary_nodes[0]
 
@@ -11283,9 +11270,6 @@ class TLReplaceDisks(Tasklet):
     This dispatches the disk replacement to the appropriate handler.
 
     """
-    if self.delay_iallocator:
-      self._CheckPrereq2()
-
     if __debug__:
       # Verify owned locks before starting operation
       owned_nodes = self.lu.owned_locks(locking.LEVEL_NODE)
