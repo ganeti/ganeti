@@ -304,12 +304,16 @@ timeUnitParser :: Parser TimeUnit
 timeUnitParser = second
   where second = A.string "sec" *> pure Second
 
--- | Haskell does not recognises ',' as the separator every 3 digits
--- but DRBD uses it, so we need an ah-hoc parser.
+-- | Haskell does not recognise ',' as the thousands separator every 3
+-- digits but DRBD uses it, so we need an ah-hoc parser.
+-- If a number beginning with more than 3 digits without a comma is
+-- parsed, only the first 3 digits are considered to be valid, the rest
+-- is not consumed, and left for further parsing.
 commaIntParser :: Parser Int
 commaIntParser = do
-  first <- A.decimal
-  allDigits <- commaIntHelper first
+  first <-
+    AC.count 3 A.digit <|> AC.count 2 A.digit <|> AC.count 1 A.digit
+  allDigits <- commaIntHelper (read first)
   pure allDigits
 
 -- | Helper (triplet parser) for the commaIntParser
