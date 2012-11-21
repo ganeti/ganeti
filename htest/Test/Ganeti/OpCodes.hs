@@ -66,7 +66,9 @@ $(genArbitrary ''OpCodes.ReplaceDisksMode)
 instance Arbitrary OpCodes.DiskIndex where
   arbitrary = choose (0, C.maxDisks - 1) >>= OpCodes.mkDiskIndex
 
-$(genArbitrary ''INicParams)
+instance Arbitrary INicParams where
+  arbitrary = INicParams <$> getMaybe genNameNE <*> getMaybe getName <*>
+              getMaybe genNameNE <*> getMaybe genNameNE
 
 instance Arbitrary OpCodes.OpCode where
   arbitrary = do
@@ -77,7 +79,8 @@ instance Arbitrary OpCodes.OpCode where
                  <*> genNodeNames
       "OP_INSTANCE_REPLACE_DISKS" ->
         OpCodes.OpInstanceReplaceDisks <$> getFQDN <*>
-          getMaybe genNodeNameNE <*> arbitrary <*> genDiskIndices <*> arbitrary
+          getMaybe genNodeNameNE <*> arbitrary <*> genDiskIndices <*>
+          getMaybe genNameNE
       "OP_INSTANCE_FAILOVER" ->
         OpCodes.OpInstanceFailover <$> getFQDN <*> arbitrary <*>
           getMaybe genNodeNameNE
@@ -93,21 +96,22 @@ instance Arbitrary OpCodes.OpCode where
       "OP_CLUSTER_QUERY" -> pure OpCodes.OpClusterQuery
       "OP_CLUSTER_VERIFY" ->
         OpCodes.OpClusterVerify <$> arbitrary <*> arbitrary <*>
-          genSet Nothing <*> genSet Nothing <*> arbitrary <*> arbitrary
+          genSet Nothing <*> genSet Nothing <*> arbitrary <*>
+          getMaybe genNameNE
       "OP_CLUSTER_VERIFY_CONFIG" ->
         OpCodes.OpClusterVerifyConfig <$> arbitrary <*> arbitrary <*>
           genSet Nothing <*> arbitrary
       "OP_CLUSTER_VERIFY_GROUP" ->
-        OpCodes.OpClusterVerifyGroup <$> arbitrary <*> arbitrary <*>
+        OpCodes.OpClusterVerifyGroup <$> genNameNE <*> arbitrary <*>
           arbitrary <*> genSet Nothing <*> genSet Nothing <*> arbitrary
       "OP_CLUSTER_VERIFY_DISKS" -> pure OpCodes.OpClusterVerifyDisks
       "OP_GROUP_VERIFY_DISKS" ->
-        OpCodes.OpGroupVerifyDisks <$> arbitrary
+        OpCodes.OpGroupVerifyDisks <$> genNameNE
       "OP_CLUSTER_REPAIR_DISK_SIZES" ->
         OpCodes.OpClusterRepairDiskSizes <$>
           resize maxNodes (listOf (getFQDN >>= mkNonEmpty))
       "OP_CLUSTER_CONFIG_QUERY" ->
-        OpCodes.OpClusterConfigQuery <$> resize maxNodes arbitrary
+        OpCodes.OpClusterConfigQuery <$> genFieldsNE
       "OP_CLUSTER_RENAME" ->
         OpCodes.OpClusterRename <$> (getName >>= mkNonEmpty)
       "OP_CLUSTER_SET_PARAMS" ->
@@ -135,37 +139,36 @@ instance Arbitrary OpCodes.OpCode where
           arbitrary <*> arbitrary <*> (arbitrary `suchThat` (>0))
       "OP_NODE_REMOVE" -> OpCodes.OpNodeRemove <$> (getFQDN >>= mkNonEmpty)
       "OP_NODE_ADD" ->
-        OpCodes.OpNodeAdd <$> (getFQDN >>= mkNonEmpty) <*>
-          emptyMUD <*> emptyMUD <*>
-          arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*>
-          arbitrary <*> arbitrary <*> emptyMUD
+        OpCodes.OpNodeAdd <$> genNodeNameNE <*> emptyMUD <*> emptyMUD <*>
+          getMaybe getName <*> getMaybe genNameNE <*> arbitrary <*>
+          getMaybe genNameNE <*> arbitrary <*> arbitrary <*> emptyMUD
       "OP_NODE_QUERY" ->
         OpCodes.OpNodeQuery <$> arbitrary <*> arbitrary <*> arbitrary
       "OP_NODE_QUERYVOLS" ->
         OpCodes.OpNodeQueryvols <$> arbitrary <*> genNodeNamesNE
       "OP_NODE_QUERY_STORAGE" ->
         OpCodes.OpNodeQueryStorage <$> arbitrary <*> arbitrary <*>
-          genNodeNamesNE <*> arbitrary
+          genNodeNamesNE <*> genNameNE
       "OP_NODE_MODIFY_STORAGE" ->
         OpCodes.OpNodeModifyStorage <$> genNodeNameNE <*> arbitrary <*>
-          arbitrary <*> pure emptyJSObject
+          genNameNE <*> pure emptyJSObject
       "OP_REPAIR_NODE_STORAGE" ->
         OpCodes.OpRepairNodeStorage <$> genNodeNameNE <*> arbitrary <*>
-          arbitrary <*> arbitrary
+          genNameNE <*> arbitrary
       "OP_NODE_SET_PARAMS" ->
         OpCodes.OpNodeSetParams <$> genNodeNameNE <*> arbitrary <*>
           emptyMUD <*> emptyMUD <*> arbitrary <*> arbitrary <*> arbitrary <*>
-          arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*>
+          arbitrary <*> arbitrary <*> arbitrary <*> getMaybe genNameNE <*>
           emptyMUD
       "OP_NODE_POWERCYCLE" ->
         OpCodes.OpNodePowercycle <$> genNodeNameNE <*> arbitrary
       "OP_NODE_MIGRATE" ->
         OpCodes.OpNodeMigrate <$> genNodeNameNE <*> arbitrary <*>
-          arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*>
-          arbitrary
+          arbitrary <*> getMaybe genNodeNameNE <*> arbitrary <*>
+          arbitrary <*> getMaybe genNameNE
       "OP_NODE_EVACUATE" ->
         OpCodes.OpNodeEvacuate <$> arbitrary <*> genNodeNameNE <*>
-          getMaybe genNodeNameNE <*> arbitrary <*> arbitrary
+          getMaybe genNodeNameNE <*> getMaybe genNameNE <*> arbitrary
       _ -> fail $ "Undefined arbitrary for opcode " ++ op_id
 
 -- * Helper functions
@@ -199,6 +202,14 @@ genNodeNamesNE = genNodeNames >>= mapM (mkNonEmpty)
 -- | Gets a node name in non-empty type.
 genNodeNameNE :: Gen NonEmptyString
 genNodeNameNE = getFQDN >>= mkNonEmpty
+
+-- | Gets a name (non-fqdn) in non-empty type.
+genNameNE :: Gen NonEmptyString
+genNameNE = getName >>= mkNonEmpty
+
+-- | Returns a list of non-empty fields.
+genFieldsNE :: Gen [NonEmptyString]
+genFieldsNE = getFields >>= mapM mkNonEmpty
 
 -- * Test cases
 
