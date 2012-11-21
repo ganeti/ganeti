@@ -206,7 +206,7 @@ def FakeHooksRpcSuccess(node_list, hpath, phase, env):
   """
   rr = rpc.RpcResult
   return dict([(node, rr((True, [("utest", constants.HKR_SUCCESS, "ok")]),
-                         node=node, call='FakeScriptOk'))
+                         node=node, call="FakeScriptOk"))
                for node in node_list])
 
 
@@ -225,8 +225,8 @@ class TestHooksMaster(unittest.TestCase):
     @return: rpc failure from all nodes
 
     """
-    return dict([(node, rpc.RpcResult('error', failed=True,
-                  node=node, call='FakeError')) for node in node_list])
+    return dict([(node, rpc.RpcResult("error", failed=True,
+                  node=node, call="FakeError")) for node in node_list])
 
   @staticmethod
   def _call_script_fail(node_list, hpath, phase, env):
@@ -238,7 +238,7 @@ class TestHooksMaster(unittest.TestCase):
     """
     rr = rpc.RpcResult
     return dict([(node, rr((True, [("utest", constants.HKR_FAIL, "err")]),
-                           node=node, call='FakeScriptFail'))
+                           node=node, call="FakeScriptFail"))
                   for node in node_list])
 
   def setUp(self):

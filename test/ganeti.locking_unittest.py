@@ -317,25 +317,25 @@ class TestSharedLock(_ThreadedTestCase):
   def _doItSharer(self):
     try:
       self.sl.acquire(shared=1)
-      self.done.put('SHR')
+      self.done.put("SHR")
       self.sl.release()
     except errors.LockError:
-      self.done.put('ERR')
+      self.done.put("ERR")
 
   def _doItExclusive(self):
     try:
       self.sl.acquire()
-      self.done.put('EXC')
+      self.done.put("EXC")
       self.sl.release()
     except errors.LockError:
-      self.done.put('ERR')
+      self.done.put("ERR")
 
   def _doItDelete(self):
     try:
       self.sl.delete()
-      self.done.put('DEL')
+      self.done.put("DEL")
     except errors.LockError:
-      self.done.put('ERR')
+      self.done.put("ERR")
 
   def testSharersCanCoexist(self):
     self.sl.acquire(shared=1)
@@ -350,7 +350,7 @@ class TestSharedLock(_ThreadedTestCase):
     self.assertRaises(Queue.Empty, self.done.get_nowait)
     self.sl.release()
     self._waitThreads()
-    self.failUnlessEqual(self.done.get_nowait(), 'EXC')
+    self.failUnlessEqual(self.done.get_nowait(), "EXC")
 
   @_Repeat
   def testExclusiveBlocksDelete(self):
@@ -359,7 +359,7 @@ class TestSharedLock(_ThreadedTestCase):
     self.assertRaises(Queue.Empty, self.done.get_nowait)
     self.sl.release()
     self._waitThreads()
-    self.failUnlessEqual(self.done.get_nowait(), 'DEL')
+    self.failUnlessEqual(self.done.get_nowait(), "DEL")
     self.sl = locking.SharedLock(self.sl.name)
 
   @_Repeat
@@ -369,7 +369,7 @@ class TestSharedLock(_ThreadedTestCase):
     self.assertRaises(Queue.Empty, self.done.get_nowait)
     self.sl.release()
     self._waitThreads()
-    self.failUnlessEqual(self.done.get_nowait(), 'SHR')
+    self.failUnlessEqual(self.done.get_nowait(), "SHR")
 
   @_Repeat
   def testSharerBlocksExclusive(self):
@@ -378,7 +378,7 @@ class TestSharedLock(_ThreadedTestCase):
     self.assertRaises(Queue.Empty, self.done.get_nowait)
     self.sl.release()
     self._waitThreads()
-    self.failUnlessEqual(self.done.get_nowait(), 'EXC')
+    self.failUnlessEqual(self.done.get_nowait(), "EXC")
 
   @_Repeat
   def testSharerBlocksDelete(self):
@@ -387,7 +387,7 @@ class TestSharedLock(_ThreadedTestCase):
     self.assertRaises(Queue.Empty, self.done.get_nowait)
     self.sl.release()
     self._waitThreads()
-    self.failUnlessEqual(self.done.get_nowait(), 'DEL')
+    self.failUnlessEqual(self.done.get_nowait(), "DEL")
     self.sl = locking.SharedLock(self.sl.name)
 
   @_Repeat
@@ -405,8 +405,8 @@ class TestSharedLock(_ThreadedTestCase):
     self.sl.release()
     self._waitThreads()
     # The exclusive passed before
-    self.failUnlessEqual(self.done.get_nowait(), 'EXC')
-    self.failUnlessEqual(self.done.get_nowait(), 'SHR')
+    self.failUnlessEqual(self.done.get_nowait(), "EXC")
+    self.failUnlessEqual(self.done.get_nowait(), "SHR")
 
   @_Repeat
   def testWaitingSharerBlocksExclusive(self):
@@ -423,8 +423,8 @@ class TestSharedLock(_ThreadedTestCase):
     self.sl.release()
     self._waitThreads()
     # The sharer passed before
-    self.assertEqual(self.done.get_nowait(), 'SHR')
-    self.assertEqual(self.done.get_nowait(), 'EXC')
+    self.assertEqual(self.done.get_nowait(), "SHR")
+    self.assertEqual(self.done.get_nowait(), "EXC")
 
   def testDelete(self):
     self.sl.delete()
@@ -474,7 +474,7 @@ class TestSharedLock(_ThreadedTestCase):
     self._waitThreads()
     # The threads who were pending return ERR
     for _ in range(4):
-      self.assertEqual(self.done.get_nowait(), 'ERR')
+      self.assertEqual(self.done.get_nowait(), "ERR")
     self.sl = locking.SharedLock(self.sl.name)
 
   @_Repeat
@@ -487,10 +487,10 @@ class TestSharedLock(_ThreadedTestCase):
     self.sl.delete()
     self._waitThreads()
     # The two threads who were pending return both ERR
-    self.assertEqual(self.done.get_nowait(), 'ERR')
-    self.assertEqual(self.done.get_nowait(), 'ERR')
-    self.assertEqual(self.done.get_nowait(), 'ERR')
-    self.assertEqual(self.done.get_nowait(), 'ERR')
+    self.assertEqual(self.done.get_nowait(), "ERR")
+    self.assertEqual(self.done.get_nowait(), "ERR")
+    self.assertEqual(self.done.get_nowait(), "ERR")
+    self.assertEqual(self.done.get_nowait(), "ERR")
     self.sl = locking.SharedLock(self.sl.name)
 
   @_Repeat
@@ -1072,12 +1072,12 @@ class TestSSynchronizedDecorator(_ThreadedTestCase):
   @locking.ssynchronized(_decoratorlock)
   def _doItExclusive(self):
     self.assert_(_decoratorlock.is_owned())
-    self.done.put('EXC')
+    self.done.put("EXC")
 
   @locking.ssynchronized(_decoratorlock, shared=1)
   def _doItSharer(self):
     self.assert_(_decoratorlock.is_owned(shared=1))
-    self.done.put('SHR')
+    self.done.put("SHR")
 
   def testDecoratedFunctions(self):
     self._doItExclusive()
@@ -1099,7 +1099,7 @@ class TestSSynchronizedDecorator(_ThreadedTestCase):
     self.assertRaises(Queue.Empty, self.done.get_nowait)
     _decoratorlock.release()
     self._waitThreads()
-    self.failUnlessEqual(self.done.get_nowait(), 'EXC')
+    self.failUnlessEqual(self.done.get_nowait(), "EXC")
 
   @_Repeat
   def testExclusiveBlocksSharer(self):
@@ -1108,7 +1108,7 @@ class TestSSynchronizedDecorator(_ThreadedTestCase):
     self.assertRaises(Queue.Empty, self.done.get_nowait)
     _decoratorlock.release()
     self._waitThreads()
-    self.failUnlessEqual(self.done.get_nowait(), 'SHR')
+    self.failUnlessEqual(self.done.get_nowait(), "SHR")
 
   @_Repeat
   def testSharerBlocksExclusive(self):
@@ -1117,7 +1117,7 @@ class TestSSynchronizedDecorator(_ThreadedTestCase):
     self.assertRaises(Queue.Empty, self.done.get_nowait)
     _decoratorlock.release()
     self._waitThreads()
-    self.failUnlessEqual(self.done.get_nowait(), 'EXC')
+    self.failUnlessEqual(self.done.get_nowait(), "EXC")
 
 
 class TestLockSet(_ThreadedTestCase):
@@ -1129,7 +1129,7 @@ class TestLockSet(_ThreadedTestCase):
 
   def _setUpLS(self):
     """Helper to (re)initialize the lock set"""
-    self.resources = ['one', 'two', 'three']
+    self.resources = ["one", "two", "three"]
     self.ls = locking.LockSet(self.resources, "TestLockSet")
 
   def testResources(self):
@@ -1159,140 +1159,140 @@ class TestLockSet(_ThreadedTestCase):
 
   def testAcquireRelease(self):
     self.assertFalse(self.ls.check_owned(self.ls._names()))
-    self.assert_(self.ls.acquire('one'))
-    self.assertEquals(self.ls.list_owned(), set(['one']))
+    self.assert_(self.ls.acquire("one"))
+    self.assertEquals(self.ls.list_owned(), set(["one"]))
     self.assertTrue(self.ls.check_owned("one"))
     self.assertTrue(self.ls.check_owned("one", shared=0))
     self.assertFalse(self.ls.check_owned("one", shared=1))
     self.ls.release()
     self.assertEquals(self.ls.list_owned(), set())
     self.assertFalse(self.ls.check_owned(self.ls._names()))
-    self.assertEquals(self.ls.acquire(['one']), set(['one']))
-    self.assertEquals(self.ls.list_owned(), set(['one']))
+    self.assertEquals(self.ls.acquire(["one"]), set(["one"]))
+    self.assertEquals(self.ls.list_owned(), set(["one"]))
     self.ls.release()
     self.assertEquals(self.ls.list_owned(), set())
-    self.ls.acquire(['one', 'two', 'three'])
-    self.assertEquals(self.ls.list_owned(), set(['one', 'two', 'three']))
+    self.ls.acquire(["one", "two", "three"])
+    self.assertEquals(self.ls.list_owned(), set(["one", "two", "three"]))
     self.assertTrue(self.ls.check_owned(self.ls._names()))
     self.assertTrue(self.ls.check_owned(self.ls._names(), shared=0))
     self.assertFalse(self.ls.check_owned(self.ls._names(), shared=1))
-    self.ls.release('one')
+    self.ls.release("one")
     self.assertFalse(self.ls.check_owned(["one"]))
     self.assertTrue(self.ls.check_owned(["two", "three"]))
     self.assertTrue(self.ls.check_owned(["two", "three"], shared=0))
     self.assertFalse(self.ls.check_owned(["two", "three"], shared=1))
-    self.assertEquals(self.ls.list_owned(), set(['two', 'three']))
-    self.ls.release(['three'])
-    self.assertEquals(self.ls.list_owned(), set(['two']))
+    self.assertEquals(self.ls.list_owned(), set(["two", "three"]))
+    self.ls.release(["three"])
+    self.assertEquals(self.ls.list_owned(), set(["two"]))
     self.ls.release()
     self.assertEquals(self.ls.list_owned(), set())
-    self.assertEquals(self.ls.acquire(['one', 'three']), set(['one', 'three']))
-    self.assertEquals(self.ls.list_owned(), set(['one', 'three']))
+    self.assertEquals(self.ls.acquire(["one", "three"]), set(["one", "three"]))
+    self.assertEquals(self.ls.list_owned(), set(["one", "three"]))
     self.ls.release()
     self.assertEquals(self.ls.list_owned(), set())
     for name in self.ls._names():
       self.assertFalse(self.ls.check_owned(name))
 
   def testNoDoubleAcquire(self):
-    self.ls.acquire('one')
-    self.assertRaises(AssertionError, self.ls.acquire, 'one')
-    self.assertRaises(AssertionError, self.ls.acquire, ['two'])
-    self.assertRaises(AssertionError, self.ls.acquire, ['two', 'three'])
+    self.ls.acquire("one")
+    self.assertRaises(AssertionError, self.ls.acquire, "one")
+    self.assertRaises(AssertionError, self.ls.acquire, ["two"])
+    self.assertRaises(AssertionError, self.ls.acquire, ["two", "three"])
     self.ls.release()
-    self.ls.acquire(['one', 'three'])
-    self.ls.release('one')
-    self.assertRaises(AssertionError, self.ls.acquire, ['two'])
-    self.ls.release('three')
+    self.ls.acquire(["one", "three"])
+    self.ls.release("one")
+    self.assertRaises(AssertionError, self.ls.acquire, ["two"])
+    self.ls.release("three")
 
   def testNoWrongRelease(self):
     self.assertRaises(AssertionError, self.ls.release)
-    self.ls.acquire('one')
-    self.assertRaises(AssertionError, self.ls.release, 'two')
+    self.ls.acquire("one")
+    self.assertRaises(AssertionError, self.ls.release, "two")
 
   def testAddRemove(self):
-    self.ls.add('four')
+    self.ls.add("four")
     self.assertEquals(self.ls.list_owned(), set())
-    self.assert_('four' in self.ls._names())
-    self.ls.add(['five', 'six', 'seven'], acquired=1)
-    self.assert_('five' in self.ls._names())
-    self.assert_('six' in self.ls._names())
-    self.assert_('seven' in self.ls._names())
-    self.assertEquals(self.ls.list_owned(), set(['five', 'six', 'seven']))
-    self.assertEquals(self.ls.remove(['five', 'six']), ['five', 'six'])
-    self.assert_('five' not in self.ls._names())
-    self.assert_('six' not in self.ls._names())
-    self.assertEquals(self.ls.list_owned(), set(['seven']))
-    self.assertRaises(AssertionError, self.ls.add, 'eight', acquired=1)
-    self.ls.remove('seven')
-    self.assert_('seven' not in self.ls._names())
+    self.assert_("four" in self.ls._names())
+    self.ls.add(["five", "six", "seven"], acquired=1)
+    self.assert_("five" in self.ls._names())
+    self.assert_("six" in self.ls._names())
+    self.assert_("seven" in self.ls._names())
+    self.assertEquals(self.ls.list_owned(), set(["five", "six", "seven"]))
+    self.assertEquals(self.ls.remove(["five", "six"]), ["five", "six"])
+    self.assert_("five" not in self.ls._names())
+    self.assert_("six" not in self.ls._names())
+    self.assertEquals(self.ls.list_owned(), set(["seven"]))
+    self.assertRaises(AssertionError, self.ls.add, "eight", acquired=1)
+    self.ls.remove("seven")
+    self.assert_("seven" not in self.ls._names())
     self.assertEquals(self.ls.list_owned(), set([]))
     self.ls.acquire(None, shared=1)
-    self.assertRaises(AssertionError, self.ls.add, 'eight')
+    self.assertRaises(AssertionError, self.ls.add, "eight")
     self.ls.release()
     self.ls.acquire(None)
-    self.ls.add('eight', acquired=1)
-    self.assert_('eight' in self.ls._names())
-    self.assert_('eight' in self.ls.list_owned())
-    self.ls.add('nine')
-    self.assert_('nine' in self.ls._names())
-    self.assert_('nine' not in self.ls.list_owned())
+    self.ls.add("eight", acquired=1)
+    self.assert_("eight" in self.ls._names())
+    self.assert_("eight" in self.ls.list_owned())
+    self.ls.add("nine")
+    self.assert_("nine" in self.ls._names())
+    self.assert_("nine" not in self.ls.list_owned())
     self.ls.release()
-    self.ls.remove(['two'])
-    self.assert_('two' not in self.ls._names())
-    self.ls.acquire('three')
-    self.assertEquals(self.ls.remove(['three']), ['three'])
-    self.assert_('three' not in self.ls._names())
-    self.assertEquals(self.ls.remove('three'), [])
-    self.assertEquals(self.ls.remove(['one', 'three', 'six']), ['one'])
-    self.assert_('one' not in self.ls._names())
+    self.ls.remove(["two"])
+    self.assert_("two" not in self.ls._names())
+    self.ls.acquire("three")
+    self.assertEquals(self.ls.remove(["three"]), ["three"])
+    self.assert_("three" not in self.ls._names())
+    self.assertEquals(self.ls.remove("three"), [])
+    self.assertEquals(self.ls.remove(["one", "three", "six"]), ["one"])
+    self.assert_("one" not in self.ls._names())
 
   def testRemoveNonBlocking(self):
-    self.ls.acquire('one')
-    self.assertEquals(self.ls.remove('one'), ['one'])
-    self.ls.acquire(['two', 'three'])
-    self.assertEquals(self.ls.remove(['two', 'three']),
-                      ['two', 'three'])
+    self.ls.acquire("one")
+    self.assertEquals(self.ls.remove("one"), ["one"])
+    self.ls.acquire(["two", "three"])
+    self.assertEquals(self.ls.remove(["two", "three"]),
+                      ["two", "three"])
 
   def testNoDoubleAdd(self):
-    self.assertRaises(errors.LockError, self.ls.add, 'two')
-    self.ls.add('four')
-    self.assertRaises(errors.LockError, self.ls.add, 'four')
+    self.assertRaises(errors.LockError, self.ls.add, "two")
+    self.ls.add("four")
+    self.assertRaises(errors.LockError, self.ls.add, "four")
 
   def testNoWrongRemoves(self):
-    self.ls.acquire(['one', 'three'], shared=1)
-    # Cannot remove 'two' while holding something which is not a superset
-    self.assertRaises(AssertionError, self.ls.remove, 'two')
-    # Cannot remove 'three' as we are sharing it
-    self.assertRaises(AssertionError, self.ls.remove, 'three')
+    self.ls.acquire(["one", "three"], shared=1)
+    # Cannot remove "two" while holding something which is not a superset
+    self.assertRaises(AssertionError, self.ls.remove, "two")
+    # Cannot remove "three" as we are sharing it
+    self.assertRaises(AssertionError, self.ls.remove, "three")
 
   def testAcquireSetLock(self):
     # acquire the set-lock exclusively
-    self.assertEquals(self.ls.acquire(None), set(['one', 'two', 'three']))
-    self.assertEquals(self.ls.list_owned(), set(['one', 'two', 'three']))
+    self.assertEquals(self.ls.acquire(None), set(["one", "two", "three"]))
+    self.assertEquals(self.ls.list_owned(), set(["one", "two", "three"]))
     self.assertEquals(self.ls.is_owned(), True)
-    self.assertEquals(self.ls._names(), set(['one', 'two', 'three']))
+    self.assertEquals(self.ls._names(), set(["one", "two", "three"]))
     # I can still add/remove elements...
-    self.assertEquals(self.ls.remove(['two', 'three']), ['two', 'three'])
-    self.assert_(self.ls.add('six'))
+    self.assertEquals(self.ls.remove(["two", "three"]), ["two", "three"])
+    self.assert_(self.ls.add("six"))
     self.ls.release()
     # share the set-lock
-    self.assertEquals(self.ls.acquire(None, shared=1), set(['one', 'six']))
+    self.assertEquals(self.ls.acquire(None, shared=1), set(["one", "six"]))
     # adding new elements is not possible
-    self.assertRaises(AssertionError, self.ls.add, 'five')
+    self.assertRaises(AssertionError, self.ls.add, "five")
     self.ls.release()
 
   def testAcquireWithRepetitions(self):
-    self.assertEquals(self.ls.acquire(['two', 'two', 'three'], shared=1),
-                      set(['two', 'two', 'three']))
-    self.ls.release(['two', 'two'])
-    self.assertEquals(self.ls.list_owned(), set(['three']))
+    self.assertEquals(self.ls.acquire(["two", "two", "three"], shared=1),
+                      set(["two", "two", "three"]))
+    self.ls.release(["two", "two"])
+    self.assertEquals(self.ls.list_owned(), set(["three"]))
 
   def testEmptyAcquire(self):
     # Acquire an empty list of locks...
     self.assertEquals(self.ls.acquire([]), set())
     self.assertEquals(self.ls.list_owned(), set())
     # New locks can still be addded
-    self.assert_(self.ls.add('six'))
+    self.assert_(self.ls.add("six"))
     # "re-acquiring" is not an issue, since we had really acquired nothing
     self.assertEquals(self.ls.acquire([], shared=1), set())
     self.assertEquals(self.ls.list_owned(), set())
@@ -1302,63 +1302,63 @@ class TestLockSet(_ThreadedTestCase):
   def _doLockSet(self, names, shared):
     try:
       self.ls.acquire(names, shared=shared)
-      self.done.put('DONE')
+      self.done.put("DONE")
       self.ls.release()
     except errors.LockError:
-      self.done.put('ERR')
+      self.done.put("ERR")
 
   def _doAddSet(self, names):
     try:
       self.ls.add(names, acquired=1)
-      self.done.put('DONE')
+      self.done.put("DONE")
       self.ls.release()
     except errors.LockError:
-      self.done.put('ERR')
+      self.done.put("ERR")
 
   def _doRemoveSet(self, names):
     self.done.put(self.ls.remove(names))
 
   @_Repeat
   def testConcurrentSharedAcquire(self):
-    self.ls.acquire(['one', 'two'], shared=1)
-    self._addThread(target=self._doLockSet, args=(['one', 'two'], 1))
+    self.ls.acquire(["one", "two"], shared=1)
+    self._addThread(target=self._doLockSet, args=(["one", "two"], 1))
     self._waitThreads()
-    self.assertEqual(self.done.get_nowait(), 'DONE')
-    self._addThread(target=self._doLockSet, args=(['one', 'two', 'three'], 1))
+    self.assertEqual(self.done.get_nowait(), "DONE")
+    self._addThread(target=self._doLockSet, args=(["one", "two", "three"], 1))
     self._waitThreads()
-    self.assertEqual(self.done.get_nowait(), 'DONE')
-    self._addThread(target=self._doLockSet, args=('three', 1))
+    self.assertEqual(self.done.get_nowait(), "DONE")
+    self._addThread(target=self._doLockSet, args=("three", 1))
     self._waitThreads()
-    self.assertEqual(self.done.get_nowait(), 'DONE')
-    self._addThread(target=self._doLockSet, args=(['one', 'two'], 0))
-    self._addThread(target=self._doLockSet, args=(['two', 'three'], 0))
+    self.assertEqual(self.done.get_nowait(), "DONE")
+    self._addThread(target=self._doLockSet, args=(["one", "two"], 0))
+    self._addThread(target=self._doLockSet, args=(["two", "three"], 0))
     self.assertRaises(Queue.Empty, self.done.get_nowait)
     self.ls.release()
     self._waitThreads()
-    self.assertEqual(self.done.get_nowait(), 'DONE')
-    self.assertEqual(self.done.get_nowait(), 'DONE')
+    self.assertEqual(self.done.get_nowait(), "DONE")
+    self.assertEqual(self.done.get_nowait(), "DONE")
 
   @_Repeat
   def testConcurrentExclusiveAcquire(self):
-    self.ls.acquire(['one', 'two'])
-    self._addThread(target=self._doLockSet, args=('three', 1))
+    self.ls.acquire(["one", "two"])
+    self._addThread(target=self._doLockSet, args=("three", 1))
     self._waitThreads()
-    self.assertEqual(self.done.get_nowait(), 'DONE')
-    self._addThread(target=self._doLockSet, args=('three', 0))
+    self.assertEqual(self.done.get_nowait(), "DONE")
+    self._addThread(target=self._doLockSet, args=("three", 0))
     self._waitThreads()
-    self.assertEqual(self.done.get_nowait(), 'DONE')
+    self.assertEqual(self.done.get_nowait(), "DONE")
     self.assertRaises(Queue.Empty, self.done.get_nowait)
-    self._addThread(target=self._doLockSet, args=(['one', 'two'], 0))
-    self._addThread(target=self._doLockSet, args=(['one', 'two'], 1))
-    self._addThread(target=self._doLockSet, args=('one', 0))
-    self._addThread(target=self._doLockSet, args=('one', 1))
-    self._addThread(target=self._doLockSet, args=(['two', 'three'], 0))
-    self._addThread(target=self._doLockSet, args=(['two', 'three'], 1))
+    self._addThread(target=self._doLockSet, args=(["one", "two"], 0))
+    self._addThread(target=self._doLockSet, args=(["one", "two"], 1))
+    self._addThread(target=self._doLockSet, args=("one", 0))
+    self._addThread(target=self._doLockSet, args=("one", 1))
+    self._addThread(target=self._doLockSet, args=(["two", "three"], 0))
+    self._addThread(target=self._doLockSet, args=(["two", "three"], 1))
     self.assertRaises(Queue.Empty, self.done.get_nowait)
     self.ls.release()
     self._waitThreads()
     for _ in range(6):
-      self.failUnlessEqual(self.done.get_nowait(), 'DONE')
+      self.failUnlessEqual(self.done.get_nowait(), "DONE")
 
   @_Repeat
   def testSimpleAcquireTimeoutExpiring(self):
@@ -1412,7 +1412,7 @@ class TestLockSet(_ThreadedTestCase):
   @_Repeat
   def testDelayedAndExpiringLockAcquire(self):
     self._setUpLS()
-    self.ls.add(['five', 'six', 'seven', 'eight', 'nine'])
+    self.ls.add(["five", "six", "seven", "eight", "nine"])
 
     for expire in (False, True):
       names = sorted(self.ls._names())
@@ -1483,37 +1483,37 @@ class TestLockSet(_ThreadedTestCase):
 
   @_Repeat
   def testConcurrentRemove(self):
-    self.ls.add('four')
-    self.ls.acquire(['one', 'two', 'four'])
-    self._addThread(target=self._doLockSet, args=(['one', 'four'], 0))
-    self._addThread(target=self._doLockSet, args=(['one', 'four'], 1))
-    self._addThread(target=self._doLockSet, args=(['one', 'two'], 0))
-    self._addThread(target=self._doLockSet, args=(['one', 'two'], 1))
+    self.ls.add("four")
+    self.ls.acquire(["one", "two", "four"])
+    self._addThread(target=self._doLockSet, args=(["one", "four"], 0))
+    self._addThread(target=self._doLockSet, args=(["one", "four"], 1))
+    self._addThread(target=self._doLockSet, args=(["one", "two"], 0))
+    self._addThread(target=self._doLockSet, args=(["one", "two"], 1))
     self.assertRaises(Queue.Empty, self.done.get_nowait)
-    self.ls.remove('one')
+    self.ls.remove("one")
     self.ls.release()
     self._waitThreads()
     for i in range(4):
-      self.failUnlessEqual(self.done.get_nowait(), 'ERR')
-    self.ls.add(['five', 'six'], acquired=1)
-    self._addThread(target=self._doLockSet, args=(['three', 'six'], 1))
-    self._addThread(target=self._doLockSet, args=(['three', 'six'], 0))
-    self._addThread(target=self._doLockSet, args=(['four', 'six'], 1))
-    self._addThread(target=self._doLockSet, args=(['four', 'six'], 0))
-    self.ls.remove('five')
+      self.failUnlessEqual(self.done.get_nowait(), "ERR")
+    self.ls.add(["five", "six"], acquired=1)
+    self._addThread(target=self._doLockSet, args=(["three", "six"], 1))
+    self._addThread(target=self._doLockSet, args=(["three", "six"], 0))
+    self._addThread(target=self._doLockSet, args=(["four", "six"], 1))
+    self._addThread(target=self._doLockSet, args=(["four", "six"], 0))
+    self.ls.remove("five")
     self.ls.release()
     self._waitThreads()
     for i in range(4):
-      self.failUnlessEqual(self.done.get_nowait(), 'DONE')
-    self.ls.acquire(['three', 'four'])
-    self._addThread(target=self._doRemoveSet, args=(['four', 'six'], ))
+      self.failUnlessEqual(self.done.get_nowait(), "DONE")
+    self.ls.acquire(["three", "four"])
+    self._addThread(target=self._doRemoveSet, args=(["four", "six"], ))
     self.assertRaises(Queue.Empty, self.done.get_nowait)
-    self.ls.remove('four')
+    self.ls.remove("four")
     self._waitThreads()
-    self.assertEqual(self.done.get_nowait(), ['six'])
-    self._addThread(target=self._doRemoveSet, args=(['two']))
+    self.assertEqual(self.done.get_nowait(), ["six"])
+    self._addThread(target=self._doRemoveSet, args=(["two"]))
     self._waitThreads()
-    self.assertEqual(self.done.get_nowait(), ['two'])
+    self.assertEqual(self.done.get_nowait(), ["two"])
     self.ls.release()
     # reset lockset
     self._setUpLS()
@@ -1525,23 +1525,23 @@ class TestLockSet(_ThreadedTestCase):
     # ...another thread can share it too
     self._addThread(target=self._doLockSet, args=(None, 1))
     self._waitThreads()
-    self.assertEqual(self.done.get_nowait(), 'DONE')
+    self.assertEqual(self.done.get_nowait(), "DONE")
     # ...or just share some elements
-    self._addThread(target=self._doLockSet, args=(['one', 'three'], 1))
+    self._addThread(target=self._doLockSet, args=(["one", "three"], 1))
     self._waitThreads()
-    self.assertEqual(self.done.get_nowait(), 'DONE')
+    self.assertEqual(self.done.get_nowait(), "DONE")
     # ...but not add new ones or remove any
-    t = self._addThread(target=self._doAddSet, args=(['nine']))
-    self._addThread(target=self._doRemoveSet, args=(['two'], ))
+    t = self._addThread(target=self._doAddSet, args=(["nine"]))
+    self._addThread(target=self._doRemoveSet, args=(["two"], ))
     self.assertRaises(Queue.Empty, self.done.get_nowait)
     # this just releases the set-lock
     self.ls.release([])
     t.join(60)
-    self.assertEqual(self.done.get_nowait(), 'DONE')
+    self.assertEqual(self.done.get_nowait(), "DONE")
     # release the lock on the actual elements so remove() can proceed too
     self.ls.release()
     self._waitThreads()
-    self.failUnlessEqual(self.done.get_nowait(), ['two'])
+    self.failUnlessEqual(self.done.get_nowait(), ["two"])
     # reset lockset
     self._setUpLS()
 
@@ -1552,75 +1552,75 @@ class TestLockSet(_ThreadedTestCase):
     # ...no one can do anything else
     self._addThread(target=self._doLockSet, args=(None, 1))
     self._addThread(target=self._doLockSet, args=(None, 0))
-    self._addThread(target=self._doLockSet, args=(['three'], 0))
-    self._addThread(target=self._doLockSet, args=(['two'], 1))
-    self._addThread(target=self._doAddSet, args=(['nine']))
+    self._addThread(target=self._doLockSet, args=(["three"], 0))
+    self._addThread(target=self._doLockSet, args=(["two"], 1))
+    self._addThread(target=self._doAddSet, args=(["nine"]))
     self.assertRaises(Queue.Empty, self.done.get_nowait)
     self.ls.release()
     self._waitThreads()
     for _ in range(5):
-      self.assertEqual(self.done.get(True, 1), 'DONE')
+      self.assertEqual(self.done.get(True, 1), "DONE")
     # cleanup
     self._setUpLS()
 
   @_Repeat
   def testConcurrentSetLockAdd(self):
-    self.ls.acquire('one')
+    self.ls.acquire("one")
     # Another thread wants the whole SetLock
     self._addThread(target=self._doLockSet, args=(None, 0))
     self._addThread(target=self._doLockSet, args=(None, 1))
     self.assertRaises(Queue.Empty, self.done.get_nowait)
-    self.assertRaises(AssertionError, self.ls.add, 'four')
+    self.assertRaises(AssertionError, self.ls.add, "four")
     self.ls.release()
     self._waitThreads()
-    self.assertEqual(self.done.get_nowait(), 'DONE')
-    self.assertEqual(self.done.get_nowait(), 'DONE')
+    self.assertEqual(self.done.get_nowait(), "DONE")
+    self.assertEqual(self.done.get_nowait(), "DONE")
     self.ls.acquire(None)
     self._addThread(target=self._doLockSet, args=(None, 0))
     self._addThread(target=self._doLockSet, args=(None, 1))
     self.assertRaises(Queue.Empty, self.done.get_nowait)
-    self.ls.add('four')
-    self.ls.add('five', acquired=1)
-    self.ls.add('six', acquired=1, shared=1)
+    self.ls.add("four")
+    self.ls.add("five", acquired=1)
+    self.ls.add("six", acquired=1, shared=1)
     self.assertEquals(self.ls.list_owned(),
-      set(['one', 'two', 'three', 'five', 'six']))
+      set(["one", "two", "three", "five", "six"]))
     self.assertEquals(self.ls.is_owned(), True)
     self.assertEquals(self.ls._names(),
-      set(['one', 'two', 'three', 'four', 'five', 'six']))
+      set(["one", "two", "three", "four", "five", "six"]))
     self.ls.release()
     self._waitThreads()
-    self.assertEqual(self.done.get_nowait(), 'DONE')
-    self.assertEqual(self.done.get_nowait(), 'DONE')
+    self.assertEqual(self.done.get_nowait(), "DONE")
+    self.assertEqual(self.done.get_nowait(), "DONE")
     self._setUpLS()
 
   @_Repeat
   def testEmptyLockSet(self):
     # get the set-lock
-    self.assertEqual(self.ls.acquire(None), set(['one', 'two', 'three']))
+    self.assertEqual(self.ls.acquire(None), set(["one", "two", "three"]))
     # now empty it...
-    self.ls.remove(['one', 'two', 'three'])
+    self.ls.remove(["one", "two", "three"])
     # and adds/locks by another thread still wait
-    self._addThread(target=self._doAddSet, args=(['nine']))
+    self._addThread(target=self._doAddSet, args=(["nine"]))
     self._addThread(target=self._doLockSet, args=(None, 1))
     self._addThread(target=self._doLockSet, args=(None, 0))
     self.assertRaises(Queue.Empty, self.done.get_nowait)
     self.ls.release()
     self._waitThreads()
     for _ in range(3):
-      self.assertEqual(self.done.get_nowait(), 'DONE')
+      self.assertEqual(self.done.get_nowait(), "DONE")
     # empty it again...
-    self.assertEqual(self.ls.remove(['nine']), ['nine'])
+    self.assertEqual(self.ls.remove(["nine"]), ["nine"])
     # now share it...
     self.assertEqual(self.ls.acquire(None, shared=1), set())
     # other sharers can go, adds still wait
     self._addThread(target=self._doLockSet, args=(None, 1))
     self._waitThreads()
-    self.assertEqual(self.done.get_nowait(), 'DONE')
-    self._addThread(target=self._doAddSet, args=(['nine']))
+    self.assertEqual(self.done.get_nowait(), "DONE")
+    self._addThread(target=self._doAddSet, args=(["nine"]))
     self.assertRaises(Queue.Empty, self.done.get_nowait)
     self.ls.release()
     self._waitThreads()
-    self.assertEqual(self.done.get_nowait(), 'DONE')
+    self.assertEqual(self.done.get_nowait(), "DONE")
     self._setUpLS()
 
   def testAcquireWithNamesDowngrade(self):
@@ -1771,13 +1771,12 @@ class TestLockSet(_ThreadedTestCase):
 
 
 class TestGanetiLockManager(_ThreadedTestCase):
-
   def setUp(self):
     _ThreadedTestCase.setUp(self)
-    self.nodes=['n1', 'n2']
-    self.nodegroups=['g1', 'g2']
-    self.instances=['i1', 'i2', 'i3']
-    self.networks=['net1', 'net2', 'net3']
+    self.nodes = ["n1", "n2"]
+    self.nodegroups = ["g1", "g2"]
+    self.instances = ["i1", "i2", "i3"]
+    self.networks = ["net1", "net2", "net3"]
     self.GL = locking.GanetiLockManager(self.nodes, self.nodegroups,
                                         self.instances, self.networks)
 
@@ -1797,7 +1796,7 @@ class TestGanetiLockManager(_ThreadedTestCase):
     self.assertRaises(AssertionError, locking.GanetiLockManager, [], [], [], [])
 
   def testLockNames(self):
-    self.assertEqual(self.GL._names(locking.LEVEL_CLUSTER), set(['BGL']))
+    self.assertEqual(self.GL._names(locking.LEVEL_CLUSTER), set(["BGL"]))
     self.assertEqual(self.GL._names(locking.LEVEL_NODE), set(self.nodes))
     self.assertEqual(self.GL._names(locking.LEVEL_NODEGROUP),
                      set(self.nodegroups))
@@ -1809,7 +1808,7 @@ class TestGanetiLockManager(_ThreadedTestCase):
   def testInitAndResources(self):
     locking.GanetiLockManager._instance = None
     self.GL = locking.GanetiLockManager([], [], [], [])
-    self.assertEqual(self.GL._names(locking.LEVEL_CLUSTER), set(['BGL']))
+    self.assertEqual(self.GL._names(locking.LEVEL_CLUSTER), set(["BGL"]))
     self.assertEqual(self.GL._names(locking.LEVEL_NODE), set())
     self.assertEqual(self.GL._names(locking.LEVEL_NODEGROUP), set())
     self.assertEqual(self.GL._names(locking.LEVEL_INSTANCE), set())
@@ -1817,7 +1816,7 @@ class TestGanetiLockManager(_ThreadedTestCase):
 
     locking.GanetiLockManager._instance = None
     self.GL = locking.GanetiLockManager(self.nodes, self.nodegroups, [], [])
-    self.assertEqual(self.GL._names(locking.LEVEL_CLUSTER), set(['BGL']))
+    self.assertEqual(self.GL._names(locking.LEVEL_CLUSTER), set(["BGL"]))
     self.assertEqual(self.GL._names(locking.LEVEL_NODE), set(self.nodes))
     self.assertEqual(self.GL._names(locking.LEVEL_NODEGROUP),
                                     set(self.nodegroups))
@@ -1826,7 +1825,7 @@ class TestGanetiLockManager(_ThreadedTestCase):
 
     locking.GanetiLockManager._instance = None
     self.GL = locking.GanetiLockManager([], [], self.instances, [])
-    self.assertEqual(self.GL._names(locking.LEVEL_CLUSTER), set(['BGL']))
+    self.assertEqual(self.GL._names(locking.LEVEL_CLUSTER), set(["BGL"]))
     self.assertEqual(self.GL._names(locking.LEVEL_NODE), set())
     self.assertEqual(self.GL._names(locking.LEVEL_NODEGROUP), set())
     self.assertEqual(self.GL._names(locking.LEVEL_INSTANCE),
@@ -1834,7 +1833,7 @@ class TestGanetiLockManager(_ThreadedTestCase):
 
     locking.GanetiLockManager._instance = None
     self.GL = locking.GanetiLockManager([], [], [], self.networks)
-    self.assertEqual(self.GL._names(locking.LEVEL_CLUSTER), set(['BGL']))
+    self.assertEqual(self.GL._names(locking.LEVEL_CLUSTER), set(["BGL"]))
     self.assertEqual(self.GL._names(locking.LEVEL_NODE), set())
     self.assertEqual(self.GL._names(locking.LEVEL_NODEGROUP), set())
     self.assertEqual(self.GL._names(locking.LEVEL_INSTANCE), set())
@@ -1842,31 +1841,31 @@ class TestGanetiLockManager(_ThreadedTestCase):
                      set(self.networks))
 
   def testAcquireRelease(self):
-    self.GL.acquire(locking.LEVEL_CLUSTER, ['BGL'], shared=1)
-    self.assertEquals(self.GL.list_owned(locking.LEVEL_CLUSTER), set(['BGL']))
-    self.GL.acquire(locking.LEVEL_INSTANCE, ['i1'])
-    self.GL.acquire(locking.LEVEL_NODEGROUP, ['g2'])
-    self.GL.acquire(locking.LEVEL_NODE, ['n1', 'n2'], shared=1)
+    self.GL.acquire(locking.LEVEL_CLUSTER, ["BGL"], shared=1)
+    self.assertEquals(self.GL.list_owned(locking.LEVEL_CLUSTER), set(["BGL"]))
+    self.GL.acquire(locking.LEVEL_INSTANCE, ["i1"])
+    self.GL.acquire(locking.LEVEL_NODEGROUP, ["g2"])
+    self.GL.acquire(locking.LEVEL_NODE, ["n1", "n2"], shared=1)
     self.assertTrue(self.GL.check_owned(locking.LEVEL_NODE, ["n1", "n2"],
                                         shared=1))
     self.assertFalse(self.GL.check_owned(locking.LEVEL_INSTANCE, ["i1", "i3"]))
-    self.GL.release(locking.LEVEL_NODE, ['n2'])
-    self.assertEquals(self.GL.list_owned(locking.LEVEL_NODE), set(['n1']))
-    self.assertEquals(self.GL.list_owned(locking.LEVEL_NODEGROUP), set(['g2']))
-    self.assertEquals(self.GL.list_owned(locking.LEVEL_INSTANCE), set(['i1']))
+    self.GL.release(locking.LEVEL_NODE, ["n2"])
+    self.assertEquals(self.GL.list_owned(locking.LEVEL_NODE), set(["n1"]))
+    self.assertEquals(self.GL.list_owned(locking.LEVEL_NODEGROUP), set(["g2"]))
+    self.assertEquals(self.GL.list_owned(locking.LEVEL_INSTANCE), set(["i1"]))
     self.GL.release(locking.LEVEL_NODE)
     self.assertEquals(self.GL.list_owned(locking.LEVEL_NODE), set())
-    self.assertEquals(self.GL.list_owned(locking.LEVEL_NODEGROUP), set(['g2']))
-    self.assertEquals(self.GL.list_owned(locking.LEVEL_INSTANCE), set(['i1']))
+    self.assertEquals(self.GL.list_owned(locking.LEVEL_NODEGROUP), set(["g2"]))
+    self.assertEquals(self.GL.list_owned(locking.LEVEL_INSTANCE), set(["i1"]))
     self.GL.release(locking.LEVEL_NODEGROUP)
     self.GL.release(locking.LEVEL_INSTANCE)
     self.assertRaises(errors.LockError, self.GL.acquire,
-                      locking.LEVEL_INSTANCE, ['i5'])
-    self.GL.acquire(locking.LEVEL_INSTANCE, ['i3'], shared=1)
-    self.assertEquals(self.GL.list_owned(locking.LEVEL_INSTANCE), set(['i3']))
+                      locking.LEVEL_INSTANCE, ["i5"])
+    self.GL.acquire(locking.LEVEL_INSTANCE, ["i3"], shared=1)
+    self.assertEquals(self.GL.list_owned(locking.LEVEL_INSTANCE), set(["i3"]))
 
   def testAcquireWholeSets(self):
-    self.GL.acquire(locking.LEVEL_CLUSTER, ['BGL'], shared=1)
+    self.GL.acquire(locking.LEVEL_CLUSTER, ["BGL"], shared=1)
     self.assertEquals(self.GL.acquire(locking.LEVEL_INSTANCE, None),
                       set(self.instances))
     self.assertEquals(self.GL.list_owned(locking.LEVEL_INSTANCE),
@@ -1885,118 +1884,118 @@ class TestGanetiLockManager(_ThreadedTestCase):
     self.GL.release(locking.LEVEL_CLUSTER)
 
   def testAcquireWholeAndPartial(self):
-    self.GL.acquire(locking.LEVEL_CLUSTER, ['BGL'], shared=1)
+    self.GL.acquire(locking.LEVEL_CLUSTER, ["BGL"], shared=1)
     self.assertEquals(self.GL.acquire(locking.LEVEL_INSTANCE, None),
                       set(self.instances))
     self.assertEquals(self.GL.list_owned(locking.LEVEL_INSTANCE),
                       set(self.instances))
-    self.assertEquals(self.GL.acquire(locking.LEVEL_NODE, ['n2'], shared=1),
-                      set(['n2']))
+    self.assertEquals(self.GL.acquire(locking.LEVEL_NODE, ["n2"], shared=1),
+                      set(["n2"]))
     self.assertEquals(self.GL.list_owned(locking.LEVEL_NODE),
-                      set(['n2']))
+                      set(["n2"]))
     self.GL.release(locking.LEVEL_NODE)
     self.GL.release(locking.LEVEL_INSTANCE)
     self.GL.release(locking.LEVEL_CLUSTER)
 
   def testBGLDependency(self):
     self.assertRaises(AssertionError, self.GL.acquire,
-                      locking.LEVEL_NODE, ['n1', 'n2'])
+                      locking.LEVEL_NODE, ["n1", "n2"])
     self.assertRaises(AssertionError, self.GL.acquire,
-                      locking.LEVEL_INSTANCE, ['i3'])
+                      locking.LEVEL_INSTANCE, ["i3"])
     self.assertRaises(AssertionError, self.GL.acquire,
-                      locking.LEVEL_NODEGROUP, ['g1'])
-    self.GL.acquire(locking.LEVEL_CLUSTER, ['BGL'], shared=1)
-    self.GL.acquire(locking.LEVEL_NODE, ['n1'])
+                      locking.LEVEL_NODEGROUP, ["g1"])
+    self.GL.acquire(locking.LEVEL_CLUSTER, ["BGL"], shared=1)
+    self.GL.acquire(locking.LEVEL_NODE, ["n1"])
     self.assertRaises(AssertionError, self.GL.release,
-                      locking.LEVEL_CLUSTER, ['BGL'])
+                      locking.LEVEL_CLUSTER, ["BGL"])
     self.assertRaises(AssertionError, self.GL.release,
                       locking.LEVEL_CLUSTER)
     self.GL.release(locking.LEVEL_NODE)
-    self.GL.acquire(locking.LEVEL_INSTANCE, ['i1', 'i2'])
+    self.GL.acquire(locking.LEVEL_INSTANCE, ["i1", "i2"])
     self.assertRaises(AssertionError, self.GL.release,
-                      locking.LEVEL_CLUSTER, ['BGL'])
+                      locking.LEVEL_CLUSTER, ["BGL"])
     self.assertRaises(AssertionError, self.GL.release,
                       locking.LEVEL_CLUSTER)
     self.GL.release(locking.LEVEL_INSTANCE)
     self.GL.acquire(locking.LEVEL_NODEGROUP, None)
-    self.GL.release(locking.LEVEL_NODEGROUP, ['g1'])
+    self.GL.release(locking.LEVEL_NODEGROUP, ["g1"])
     self.assertRaises(AssertionError, self.GL.release,
-                      locking.LEVEL_CLUSTER, ['BGL'])
+                      locking.LEVEL_CLUSTER, ["BGL"])
     self.assertRaises(AssertionError, self.GL.release,
                       locking.LEVEL_CLUSTER)
     self.GL.release(locking.LEVEL_NODEGROUP)
     self.GL.release(locking.LEVEL_CLUSTER)
 
   def testWrongOrder(self):
-    self.GL.acquire(locking.LEVEL_CLUSTER, ['BGL'], shared=1)
-    self.GL.acquire(locking.LEVEL_NODE, ['n2'])
+    self.GL.acquire(locking.LEVEL_CLUSTER, ["BGL"], shared=1)
+    self.GL.acquire(locking.LEVEL_NODE, ["n2"])
     self.assertRaises(AssertionError, self.GL.acquire,
-                      locking.LEVEL_NODE, ['n1'])
+                      locking.LEVEL_NODE, ["n1"])
     self.assertRaises(AssertionError, self.GL.acquire,
-                      locking.LEVEL_NODEGROUP, ['g1'])
+                      locking.LEVEL_NODEGROUP, ["g1"])
     self.assertRaises(AssertionError, self.GL.acquire,
-                      locking.LEVEL_INSTANCE, ['i2'])
+                      locking.LEVEL_INSTANCE, ["i2"])
 
   def testModifiableLevels(self):
     self.assertRaises(AssertionError, self.GL.add, locking.LEVEL_CLUSTER,
-                      ['BGL2'])
-    self.GL.acquire(locking.LEVEL_CLUSTER, ['BGL'])
-    self.GL.add(locking.LEVEL_INSTANCE, ['i4'])
-    self.GL.remove(locking.LEVEL_INSTANCE, ['i3'])
-    self.GL.remove(locking.LEVEL_INSTANCE, ['i1'])
-    self.assertEqual(self.GL._names(locking.LEVEL_INSTANCE), set(['i2', 'i4']))
-    self.GL.add(locking.LEVEL_NODE, ['n3'])
-    self.GL.remove(locking.LEVEL_NODE, ['n1'])
-    self.assertEqual(self.GL._names(locking.LEVEL_NODE), set(['n2', 'n3']))
-    self.GL.add(locking.LEVEL_NODEGROUP, ['g3'])
-    self.GL.remove(locking.LEVEL_NODEGROUP, ['g2'])
-    self.GL.remove(locking.LEVEL_NODEGROUP, ['g1'])
-    self.assertEqual(self.GL._names(locking.LEVEL_NODEGROUP), set(['g3']))
+                      ["BGL2"])
+    self.GL.acquire(locking.LEVEL_CLUSTER, ["BGL"])
+    self.GL.add(locking.LEVEL_INSTANCE, ["i4"])
+    self.GL.remove(locking.LEVEL_INSTANCE, ["i3"])
+    self.GL.remove(locking.LEVEL_INSTANCE, ["i1"])
+    self.assertEqual(self.GL._names(locking.LEVEL_INSTANCE), set(["i2", "i4"]))
+    self.GL.add(locking.LEVEL_NODE, ["n3"])
+    self.GL.remove(locking.LEVEL_NODE, ["n1"])
+    self.assertEqual(self.GL._names(locking.LEVEL_NODE), set(["n2", "n3"]))
+    self.GL.add(locking.LEVEL_NODEGROUP, ["g3"])
+    self.GL.remove(locking.LEVEL_NODEGROUP, ["g2"])
+    self.GL.remove(locking.LEVEL_NODEGROUP, ["g1"])
+    self.assertEqual(self.GL._names(locking.LEVEL_NODEGROUP), set(["g3"]))
     self.assertRaises(AssertionError, self.GL.remove, locking.LEVEL_CLUSTER,
-                      ['BGL2'])
+                      ["BGL2"])
 
   # Helper function to run as a thread that shared the BGL and then acquires
   # some locks at another level.
   def _doLock(self, level, names, shared):
     try:
-      self.GL.acquire(locking.LEVEL_CLUSTER, ['BGL'], shared=1)
+      self.GL.acquire(locking.LEVEL_CLUSTER, ["BGL"], shared=1)
       self.GL.acquire(level, names, shared=shared)
-      self.done.put('DONE')
+      self.done.put("DONE")
       self.GL.release(level)
       self.GL.release(locking.LEVEL_CLUSTER)
     except errors.LockError:
-      self.done.put('ERR')
+      self.done.put("ERR")
 
   @_Repeat
   def testConcurrency(self):
-    self.GL.acquire(locking.LEVEL_CLUSTER, ['BGL'], shared=1)
+    self.GL.acquire(locking.LEVEL_CLUSTER, ["BGL"], shared=1)
     self._addThread(target=self._doLock,
-                    args=(locking.LEVEL_INSTANCE, 'i1', 1))
+                    args=(locking.LEVEL_INSTANCE, "i1", 1))
     self._waitThreads()
-    self.assertEqual(self.done.get_nowait(), 'DONE')
-    self.GL.acquire(locking.LEVEL_INSTANCE, ['i3'])
+    self.assertEqual(self.done.get_nowait(), "DONE")
+    self.GL.acquire(locking.LEVEL_INSTANCE, ["i3"])
     self._addThread(target=self._doLock,
-                    args=(locking.LEVEL_INSTANCE, 'i1', 1))
+                    args=(locking.LEVEL_INSTANCE, "i1", 1))
     self._waitThreads()
-    self.assertEqual(self.done.get_nowait(), 'DONE')
+    self.assertEqual(self.done.get_nowait(), "DONE")
     self._addThread(target=self._doLock,
-                    args=(locking.LEVEL_INSTANCE, 'i3', 1))
+                    args=(locking.LEVEL_INSTANCE, "i3", 1))
     self.assertRaises(Queue.Empty, self.done.get_nowait)
     self.GL.release(locking.LEVEL_INSTANCE)
     self._waitThreads()
-    self.assertEqual(self.done.get_nowait(), 'DONE')
-    self.GL.acquire(locking.LEVEL_INSTANCE, ['i2'], shared=1)
+    self.assertEqual(self.done.get_nowait(), "DONE")
+    self.GL.acquire(locking.LEVEL_INSTANCE, ["i2"], shared=1)
     self._addThread(target=self._doLock,
-                    args=(locking.LEVEL_INSTANCE, 'i2', 1))
+                    args=(locking.LEVEL_INSTANCE, "i2", 1))
     self._waitThreads()
-    self.assertEqual(self.done.get_nowait(), 'DONE')
+    self.assertEqual(self.done.get_nowait(), "DONE")
     self._addThread(target=self._doLock,
-                    args=(locking.LEVEL_INSTANCE, 'i2', 0))
+                    args=(locking.LEVEL_INSTANCE, "i2", 0))
     self.assertRaises(Queue.Empty, self.done.get_nowait)
     self.GL.release(locking.LEVEL_INSTANCE)
     self._waitThreads()
-    self.assertEqual(self.done.get(True, 1), 'DONE')
-    self.GL.release(locking.LEVEL_CLUSTER, ['BGL'])
+    self.assertEqual(self.done.get(True, 1), "DONE")
+    self.GL.release(locking.LEVEL_CLUSTER, ["BGL"])
 
 
 class TestLockMonitor(_ThreadedTestCase):

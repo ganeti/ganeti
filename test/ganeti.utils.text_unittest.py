@@ -261,14 +261,14 @@ class TestShellQuoting(unittest.TestCase):
   """Test case for shell quoting functions"""
 
   def testShellQuote(self):
-    self.assertEqual(utils.ShellQuote('abc'), "abc")
+    self.assertEqual(utils.ShellQuote("abc"), "abc")
     self.assertEqual(utils.ShellQuote('ab"c'), "'ab\"c'")
     self.assertEqual(utils.ShellQuote("a'bc"), "'a'\\''bc'")
     self.assertEqual(utils.ShellQuote("a b c"), "'a b c'")
     self.assertEqual(utils.ShellQuote("a b\\ c"), "'a b\\ c'")
 
   def testShellQuoteArgs(self):
-    self.assertEqual(utils.ShellQuoteArgs(['a', 'b', 'c']), "a b c")
+    self.assertEqual(utils.ShellQuoteArgs(["a", "b", "c"]), "a b c")
     self.assertEqual(utils.ShellQuoteArgs(['a', 'b"', 'c']), "a 'b\"' c")
     self.assertEqual(utils.ShellQuoteArgs(['a', 'b\'', 'c']), "a 'b'\\\''' c")
 

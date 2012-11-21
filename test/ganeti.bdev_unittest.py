@@ -312,7 +312,7 @@ class TestDRBD8Status(testutils.GanetiTestCase):
       stats = bdev.DRBD8Status(data[4])
       self.failUnless(stats.is_in_use)
       self.failUnless(stats.is_wfconn and stats.is_primary and
-                      stats.rrole == 'Unknown' and
+                      stats.rrole == "Unknown" and
                       stats.is_disk_uptodate)
 
   def testMinor6(self):
@@ -329,7 +329,7 @@ class TestDRBD8Status(testutils.GanetiTestCase):
       stats = bdev.DRBD8Status(data[8])
       self.failUnless(stats.is_in_use)
       self.failUnless(stats.is_standalone and
-                      stats.rrole == 'Unknown' and
+                      stats.rrole == "Unknown" and
                       stats.is_disk_uptodate)
 
   def testDRBD83SyncFine(self):

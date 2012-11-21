@@ -32,22 +32,22 @@ import testutils
 
 
 class SimpleObject(objects.ConfigObject):
-  __slots__ = ['a', 'b']
+  __slots__ = ["a", "b"]
 
 
 class TestDictState(unittest.TestCase):
   """Simple dict tansformation tests"""
 
   def testSimpleObjectToDict(self):
-    o1 = SimpleObject(a='1')
-    self.assertEquals(o1.ToDict(), {'a': '1'})
-    self.assertEquals(o1.__getstate__(), {'a': '1'})
+    o1 = SimpleObject(a="1")
+    self.assertEquals(o1.ToDict(), {"a": "1"})
+    self.assertEquals(o1.__getstate__(), {"a": "1"})
     self.assertEquals(o1.__getstate__(), o1.ToDict())
     o1.a = 2
     o1.b = 5
-    self.assertEquals(o1.ToDict(), {'a': 2, 'b': 5})
+    self.assertEquals(o1.ToDict(), {"a": 2, "b": 5})
     o2 = SimpleObject.FromDict(o1.ToDict())
-    self.assertEquals(o1.ToDict(), {'a': 2, 'b': 5})
+    self.assertEquals(o1.ToDict(), {"a": 2, "b": 5})
 
 
 class TestClusterObject(unittest.TestCase):

@@ -43,14 +43,14 @@ class TestParseTimespec(unittest.TestCase):
   def testValidTimes(self):
     """Test valid timespecs"""
     test_data = [
-      ('1s', 1),
-      ('1', 1),
-      ('1m', 60),
-      ('1h', 60 * 60),
-      ('1d', 60 * 60 * 24),
-      ('1w', 60 * 60 * 24 * 7),
-      ('4h', 4 * 60 * 60),
-      ('61m', 61 * 60),
+      ("1s", 1),
+      ("1", 1),
+      ("1m", 60),
+      ("1h", 60 * 60),
+      ("1d", 60 * 60 * 24),
+      ("1w", 60 * 60 * 24 * 7),
+      ("4h", 4 * 60 * 60),
+      ("61m", 61 * 60),
       ]
     for value, expected_result in test_data:
       self.failUnlessEqual(cli.ParseTimespec(value), expected_result)
@@ -58,10 +58,10 @@ class TestParseTimespec(unittest.TestCase):
   def testInvalidTime(self):
     """Test invalid timespecs"""
     test_data = [
-      '1y',
-      '',
-      'aaa',
-      's',
+      "1y",
+      "",
+      "aaa",
+      "s",
       ]
     for value in test_data:
       self.failUnlessRaises(OpPrereqError, cli.ParseTimespec, value)
@@ -128,7 +128,7 @@ class TestToStream(unittest.TestCase):
                  ]:
       buf = StringIO()
       cli._ToStream(buf, data)
-      self.failUnlessEqual(buf.getvalue(), data+'\n')
+      self.failUnlessEqual(buf.getvalue(), data + "\n")
 
   def testParams(self):
       buf = StringIO()

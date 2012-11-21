@@ -220,16 +220,16 @@ EXP_PARTIAL_GANETI_DICT = {
   "version": "0",
 }
 EXP_GANETI_DICT = {
-  'tags': None,
-  'auto_balance': 'False',
-  'hypervisor': {
-     'root-path': '/dev/sda',
-     'name': 'xen-pvm',
-     'kernel_args': 'ro'
+  "tags": None,
+  "auto_balance": "False",
+  "hypervisor": {
+     "root-path": "/dev/sda",
+     "name": "xen-pvm",
+     "kernel_args": "ro"
    },
-  'version': '0',
-  'disk_template': None,
-  'os': {'name': 'lenny-image'}
+  "version": "0",
+  "disk_template": None,
+  "os": {"name": "lenny-image"}
 }
 EXP_NAME ="xen-dev-i1"
 EXP_VCPUS = 1

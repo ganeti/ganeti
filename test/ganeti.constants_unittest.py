@@ -115,9 +115,9 @@ class TestParameterNames(unittest.TestCase):
   VALID_NAME = re.compile("^[a-zA-Z_][a-zA-Z0-9_]*$")
 
   def testNoDashes(self):
-    for kind, source in [('hypervisor', constants.HVS_PARAMETER_TYPES),
-                         ('backend', constants.BES_PARAMETER_TYPES),
-                         ('nic', constants.NICS_PARAMETER_TYPES),
+    for kind, source in [("hypervisor", constants.HVS_PARAMETER_TYPES),
+                         ("backend", constants.BES_PARAMETER_TYPES),
+                         ("nic", constants.NICS_PARAMETER_TYPES),
                          ("instdisk", constants.IDISK_PARAMS_TYPES),
                          ("instnic", constants.INIC_PARAMS_TYPES),
                         ]:

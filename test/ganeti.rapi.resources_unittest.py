@@ -53,16 +53,16 @@ class MapperTests(unittest.TestCase):
     self._TestFailingUri("/instances")
     self._TestUri("/version", (rlib2.R_version, [], {}))
 
-    self._TestUri('/2/instances/www.test.com',
+    self._TestUri("/2/instances/www.test.com",
                   (rlib2.R_2_instances_name,
-                   ['www.test.com'],
+                   ["www.test.com"],
                    {}))
 
-    self._TestUri('/2/instances/www.test.com/tags?f=5&f=6&alt=html',
+    self._TestUri("/2/instances/www.test.com/tags?f=5&f=6&alt=html",
                   (rlib2.R_2_instances_name_tags,
-                   ['www.test.com'],
-                   {'alt': ['html'],
-                    'f': ['5', '6'],
+                   ["www.test.com"],
+                   {"alt": ["html"],
+                    "f": ["5", "6"],
                    }))
 
     self._TestFailingUri("/tag")

@@ -71,7 +71,7 @@ class TestSerializer(testutils.GanetiTestCase):
   def _TestSigned(self, dump_fn, load_fn):
     for data in self._TESTDATA:
       self.assertEqualValues(load_fn(dump_fn(data, "mykey"), "mykey"),
-                             (data, ''))
+                             (data, ""))
       self.assertEqualValues(load_fn(dump_fn(data, "myprivatekey",
                                              salt="mysalt"),
                                      "myprivatekey"),

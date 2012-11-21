@@ -183,14 +183,14 @@ class TestConfigRunner(unittest.TestCase):
     CheckSyntax = objects.NIC.CheckParameterSyntax
 
     CheckSyntax(constants.NICC_DEFAULTS)
-    CheckSyntax({mode: m_bridged, link: 'br1'})
-    CheckSyntax({mode: m_routed, link: 'default'})
+    CheckSyntax({mode: m_bridged, link: "br1"})
+    CheckSyntax({mode: m_routed, link: "default"})
     self.assertRaises(errors.ConfigurationError,
-                      CheckSyntax, {mode: '000invalid', link: 'any'})
+                      CheckSyntax, {mode: "000invalid", link: "any"})
     self.assertRaises(errors.ConfigurationError,
                       CheckSyntax, {mode: m_bridged, link: None})
     self.assertRaises(errors.ConfigurationError,
-                      CheckSyntax, {mode: m_bridged, link: ''})
+                      CheckSyntax, {mode: m_bridged, link: ""})
 
   def testGetNdParamsDefault(self):
     cfg = self._get_object()
