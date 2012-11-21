@@ -398,6 +398,10 @@ def _CheckCIDR6NetNotation(value):
   return True
 
 
+_TIpAddress = ht.TOr(ht.TNone, ht.TAnd(ht.TString, _CheckCIDRNetNotation))
+_TIpAddress6 = ht.TOr(ht.TNone, ht.TAnd(ht.TString, _CheckCIDR6NetNotation))
+
+
 class _AutoOpParamSlots(objectutils.AutoSlots):
   """Meta class for opcode definitions.
 
@@ -2016,19 +2020,15 @@ class OpNetworkAdd(OpCode):
   OP_PARAMS = [
     _PNetworkName,
     _PNetworkType,
-    ("network", None, ht.TAnd(ht.TString, _CheckCIDRNetNotation),
-     "IPv4 Subnet"),
-    ("gateway", None, ht.TOr(ht.TNone, _CheckCIDRAddrNotation),
-     "IPv4 Gateway"),
-    ("network6", None, ht.TOr(ht.TNone, _CheckCIDR6NetNotation),
-     "IPv6 Subnet"),
-    ("gateway6", None, ht.TOr(ht.TNone, _CheckCIDR6AddrNotation),
-     "IPv6 Gateway"),
+    ("network", None, _TIpAddress, "IPv4 subnet"),
+    ("gateway", None, _TIpAddress, "IPv4 gateway"),
+    ("network6", None, _TIpAddress6, "IPv6 subnet"),
+    ("gateway6", None, _TIpAddress6, "IPv6 gateway"),
     ("mac_prefix", None, ht.TMaybeString,
-     "Mac prefix that overrides cluster one"),
+     "MAC address prefix that overrides cluster one"),
     ("add_reserved_ips", None,
      ht.TOr(ht.TNone, ht.TListOf(_CheckCIDRAddrNotation)),
-     "Which IPs to reserve"),
+     "Which IP addresses to reserve"),
     ("tags", ht.EmptyList, ht.TListOf(ht.TNonEmptyString), "Network tags"),
     ]
   OP_RESULT = ht.TNone
@@ -2053,20 +2053,17 @@ class OpNetworkSetParams(OpCode):
   OP_PARAMS = [
     _PNetworkName,
     _PNetworkType,
-    ("gateway", None, ht.TOr(ht.TNone, _CheckCIDRAddrNotation),
-     "IPv4 Gateway"),
-    ("network6", None, ht.TOr(ht.TNone, _CheckCIDR6NetNotation),
-     "IPv6 Subnet"),
-    ("gateway6", None, ht.TOr(ht.TNone, _CheckCIDR6AddrNotation),
-     "IPv6 Gateway"),
+    ("gateway", None, _TIpAddress, "IPv4 gateway"),
+    ("network6", None, _TIpAddress6, "IPv6 subnet"),
+    ("gateway6", None, _TIpAddress6, "IPv6 gateway"),
     ("mac_prefix", None, ht.TMaybeString,
-     "Mac prefix that overrides cluster one"),
+     "MAC address prefix that overrides cluster one"),
     ("add_reserved_ips", None,
      ht.TOr(ht.TNone, ht.TListOf(_CheckCIDRAddrNotation)),
-     "Which external IPs to reserve"),
+     "Which external IP addresses to reserve"),
     ("remove_reserved_ips", None,
      ht.TOr(ht.TNone, ht.TListOf(_CheckCIDRAddrNotation)),
-     "Which external IPs to release"),
+     "Which external IP addresses to release"),
     ]
   OP_RESULT = ht.TNone
 
@@ -2083,8 +2080,8 @@ class OpNetworkConnect(OpCode):
   OP_PARAMS = [
     _PGroupName,
     _PNetworkName,
-    ("network_mode", None, ht.TString, "Connectivity mode"),
-    ("network_link", None, ht.TString, "Connectivity link"),
+    ("network_mode", None, ht.TMaybeString, "Connectivity mode"),
+    ("network_link", None, ht.TMaybeString, "Connectivity link"),
     ("conflicts_check", True, ht.TBool, "Whether to check for conflicting IPs"),
     ]
   OP_RESULT = ht.TNone
