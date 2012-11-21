@@ -720,6 +720,8 @@ AC_PYTHON_MODULE(simplejson, t)
 AC_PYTHON_MODULE(pyparsing, t)
 AC_PYTHON_MODULE(pyinotify, t)
 AC_PYTHON_MODULE(pycurl, t)
+AC_PYTHON_MODULE(bitarray, t)
+AC_PYTHON_MODULE(ipaddr, t)
 AC_PYTHON_MODULE(affinity)
 AC_PYTHON_MODULE(paramiko)
 
