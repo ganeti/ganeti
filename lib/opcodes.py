@@ -1299,7 +1299,7 @@ class OpInstanceMultiAlloc(OpCode):
   OP_PARAMS = [
     ("iallocator", None, ht.TMaybeString,
      "Iallocator used to allocate all the instances"),
-    ("instances", [], ht.TListOf(ht.TInstanceOf(OpInstanceCreate)),
+    ("instances", ht.EmptyList, ht.TListOf(ht.TInstanceOf(OpInstanceCreate)),
      "List of instance create opcodes describing the instances to allocate"),
     ]
   _JOB_LIST = ht.Comment("List of submitted jobs")(TJobIdList)
