@@ -13710,9 +13710,11 @@ class LUInstanceChangeGroup(LogicalUnit):
 
   def ExpandNames(self):
     self.share_locks = _ShareAll()
+
     self.needed_locks = {
       locking.LEVEL_NODEGROUP: [],
       locking.LEVEL_NODE: [],
+      locking.LEVEL_NODE_ALLOC: locking.ALL_SET,
       }
 
     self._ExpandAndLockInstance()
