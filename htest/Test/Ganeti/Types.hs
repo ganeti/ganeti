@@ -56,6 +56,11 @@ instance (Arbitrary a, Ord a, Num a, Show a) =>
     (QuickCheck.Positive i) <- arbitrary
     Types.mkPositive i
 
+instance (Arbitrary a) => Arbitrary (Types.NonEmpty a) where
+  arbitrary = do
+    QuickCheck.NonEmpty lst <- arbitrary
+    Types.mkNonEmpty lst
+
 $(genArbitrary ''AllocPolicy)
 
 $(genArbitrary ''DiskTemplate)
@@ -78,10 +83,7 @@ $(genArbitrary ''StorageType)
 
 $(genArbitrary ''NodeEvacMode)
 
-instance (Arbitrary a) => Arbitrary (Types.NonEmpty a) where
-  arbitrary = do
-    QuickCheck.NonEmpty lst <- arbitrary
-    Types.mkNonEmpty lst
+$(genArbitrary ''FileDriver)
 
 -- * Properties
 
@@ -176,6 +178,10 @@ prop_StorageType_serialisation = testSerialisation
 prop_NodeEvacMode_serialisation :: NodeEvacMode -> Property
 prop_NodeEvacMode_serialisation = testSerialisation
 
+-- | Test 'FileDriver' serialisation.
+prop_FileDriver_serialisation :: FileDriver -> Property
+prop_FileDriver_serialisation = testSerialisation
+
 testSuite "Types"
   [ 'prop_AllocPolicy_serialisation
   , 'prop_DiskTemplate_serialisation
@@ -195,4 +201,5 @@ testSuite "Types"
   , 'prop_OobCommand_serialisation
   , 'prop_StorageType_serialisation
   , 'prop_NodeEvacMode_serialisation
+  , 'prop_FileDriver_serialisation
   ]

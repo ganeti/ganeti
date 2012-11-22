@@ -202,13 +202,6 @@ $(declareSADT "DiskType"
   ])
 $(makeJSONInstance ''DiskType)
 
--- | The file driver type.
-$(declareSADT "FileDriver"
-  [ ("FileLoop",   'C.fdLoop)
-  , ("FileBlktap", 'C.fdBlktap)
-  ])
-$(makeJSONInstance ''FileDriver)
-
 -- | The persistent block driver type. Currently only one type is allowed.
 $(declareSADT "BlockDriver"
   [ ("BlockDrvManual", 'C.blockdevDriverManual)

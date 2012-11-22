@@ -59,6 +59,7 @@ module Ganeti.Types
   , OobCommand(..)
   , StorageType(..)
   , NodeEvacMode(..)
+  , FileDriver(..)
   ) where
 
 import qualified Text.JSON as JSON
@@ -251,3 +252,10 @@ $(THH.declareSADT "NodeEvacMode"
   , ("NEvacAll",       'C.iallocatorNevacAll)
   ])
 $(THH.makeJSONInstance ''NodeEvacMode)
+
+-- | The file driver type.
+$(THH.declareSADT "FileDriver"
+  [ ("FileLoop",   'C.fdLoop)
+  , ("FileBlktap", 'C.fdBlktap)
+  ])
+$(THH.makeJSONInstance ''FileDriver)

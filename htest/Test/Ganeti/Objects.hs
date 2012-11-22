@@ -59,8 +59,6 @@ instance Arbitrary Node where
               <*> arbitrary <*> arbitrary <*> getFQDN <*> arbitrary
               <*> (Set.fromList <$> genTags)
 
-$(genArbitrary ''FileDriver)
-
 $(genArbitrary ''BlockDriver)
 
 $(genArbitrary ''DiskMode)
