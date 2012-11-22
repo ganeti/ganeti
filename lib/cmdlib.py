@@ -9850,7 +9850,9 @@ class LUInstanceCreate(LogicalUnit):
       # specifying a group on instance creation and then selecting nodes from
       # that group
       self.needed_locks[locking.LEVEL_NODE] = locking.ALL_SET
-      self.needed_locks[locking.LEVEL_NODE_RES] = locking.ALL_SET
+      self.needed_locks[locking.LEVEL_NODE_RES] = \
+        _CopyLockList(self.needed_locks[locking.LEVEL_NODE])
+      self.needed_locks[locking.LEVEL_NODE_ALLOC] = locking.ALL_SET
     else:
       self.op.pnode = _ExpandNodeName(self.cfg, self.op.pnode)
       nodelist = [self.op.pnode]
@@ -9872,6 +9874,7 @@ class LUInstanceCreate(LogicalUnit):
 
       if src_node is None:
         self.needed_locks[locking.LEVEL_NODE] = locking.ALL_SET
+        self.needed_locks[locking.LEVEL_NODE_ALLOC] = locking.ALL_SET
         self.op.src_node = None
         if os.path.isabs(src_path):
           raise errors.OpPrereqError("Importing an instance from a path"
@@ -10255,12 +10258,14 @@ class LUInstanceCreate(LogicalUnit):
       self._RunAllocator()
 
     # Release all unneeded node locks
-    _ReleaseLocks(self, locking.LEVEL_NODE,
-                  keep=filter(None, [self.op.pnode, self.op.snode,
-                                     self.op.src_node]))
-    _ReleaseLocks(self, locking.LEVEL_NODE_RES,
-                  keep=filter(None, [self.op.pnode, self.op.snode,
-                                     self.op.src_node]))
+    keep_locks = filter(None, [self.op.pnode, self.op.snode, self.op.src_node])
+    _ReleaseLocks(self, locking.LEVEL_NODE, keep=keep_locks)
+    _ReleaseLocks(self, locking.LEVEL_NODE_RES, keep=keep_locks)
+    _ReleaseLocks(self, locking.LEVEL_NODE_ALLOC)
+
+    assert (self.owned_locks(locking.LEVEL_NODE) ==
+            self.owned_locks(locking.LEVEL_NODE_RES)), \
+      "Node locks differ from node resource locks"
 
     #### node related checks
 
@@ -10485,6 +10490,7 @@ class LUInstanceCreate(LogicalUnit):
     assert not (self.owned_locks(locking.LEVEL_NODE_RES) -
                 self.owned_locks(locking.LEVEL_NODE)), \
       "Node locks differ from node resource locks"
+    assert not self.glm.is_owned(locking.LEVEL_NODE_ALLOC)
 
     ht_kind = self.op.hypervisor
     if ht_kind in constants.HTS_REQ_PORT:
