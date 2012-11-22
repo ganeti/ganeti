@@ -1467,26 +1467,33 @@ class LockSet:
     return removed
 
 
-# Locking levels, must be acquired in increasing order.
-# Current rules are:
-#   - at level LEVEL_CLUSTER resides the Big Ganeti Lock (BGL) which must be
-#   acquired before performing any operation, either in shared or in exclusive
-#   mode. acquiring the BGL in exclusive mode is discouraged and should be
-#   avoided.
-#   - at levels LEVEL_NODE and LEVEL_INSTANCE reside node and instance locks.
-#   If you need more than one node, or more than one instance, acquire them at
-#   the same time.
-LEVEL_CLUSTER = 0
-LEVEL_INSTANCE = 1
-LEVEL_NODEGROUP = 2
-LEVEL_NODE = 3
-#: Level for node resources, used for operations with possibly high impact on
-#: the node's disks.
-LEVEL_NODE_RES = 4
-LEVEL_NETWORK = 5
+# Locking levels, must be acquired in increasing order. Current rules are:
+# - At level LEVEL_CLUSTER resides the Big Ganeti Lock (BGL) which must be
+#   acquired before performing any operation, either in shared or exclusive
+#   mode. Acquiring the BGL in exclusive mode is discouraged and should be
+#   avoided..
+# - At levels LEVEL_NODE and LEVEL_INSTANCE reside node and instance locks. If
+#   you need more than one node, or more than one instance, acquire them at the
+#   same time.
+# - LEVEL_NODE_RES is for node resources and should be used by operations with
+#   possibly high impact on the node's disks.
+# - LEVEL_NODE_ALLOC blocks instance allocations for the whole cluster
+#   ("NAL" is the only lock at this level). It should be acquired in shared
+#   mode when an opcode blocks all or a significant amount of a cluster's
+#   locks. Opcodes doing instance allocations should acquire in exclusive mode.
+#   Once the set of acquired locks for an opcode has been reduced to the working
+#   set, the NAL should be released as well to allow allocations to proceed.
+(LEVEL_CLUSTER,
+ LEVEL_NODE_ALLOC,
+ LEVEL_INSTANCE,
+ LEVEL_NODEGROUP,
+ LEVEL_NODE,
+ LEVEL_NODE_RES,
+ LEVEL_NETWORK) = range(0, 7)
 
 LEVELS = [
   LEVEL_CLUSTER,
+  LEVEL_NODE_ALLOC,
   LEVEL_INSTANCE,
   LEVEL_NODEGROUP,
   LEVEL_NODE,
@@ -1511,10 +1518,14 @@ LEVEL_NAMES = {
   LEVEL_NODE: "node",
   LEVEL_NODE_RES: "node-res",
   LEVEL_NETWORK: "network",
+  LEVEL_NODE_ALLOC: "node-alloc",
   }
 
 # Constant for the big ganeti lock
 BGL = "BGL"
+
+#: Node allocation lock
+NAL = "NAL"
 
 
 class GanetiLockManager:
@@ -1555,10 +1566,12 @@ class GanetiLockManager:
       LEVEL_NODEGROUP: LockSet(nodegroups, "nodegroup", monitor=self._monitor),
       LEVEL_INSTANCE: LockSet(instances, "instance", monitor=self._monitor),
       LEVEL_NETWORK: LockSet(networks, "network", monitor=self._monitor),
+      LEVEL_NODE_ALLOC: LockSet([NAL], "node-alloc", monitor=self._monitor),
       }
 
     assert compat.all(ls.name == LEVEL_NAMES[level]
-                      for (level, ls) in self.__keyring.items())
+                      for (level, ls) in self.__keyring.items()), \
+      "Keyring name mismatch"
 
   def AddToLockMonitor(self, provider):
     """Registers a new lock with the monitor.
