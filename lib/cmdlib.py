@@ -5227,6 +5227,7 @@ class _NodeQuery(_QueryBase):
     if self.do_locking:
       # If any non-static field is requested we need to lock the nodes
       lu.needed_locks[locking.LEVEL_NODE] = self.wanted
+      lu.needed_locks[locking.LEVEL_NODE_ALLOC] = locking.ALL_SET
 
   def DeclareLocks(self, lu, level):
     pass
