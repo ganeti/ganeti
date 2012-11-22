@@ -275,7 +275,7 @@ class Processor(object):
     if not self._enable_locks:
       raise errors.ProgrammerError("Attempted to use disabled locks")
 
-  def _AcquireLocks(self, level, names, shared, timeout):
+  def _AcquireLocks(self, level, names, shared, opportunistic, timeout):
     """Acquires locks via the Ganeti lock manager.
 
     @type level: int
@@ -284,6 +284,8 @@ class Processor(object):
     @param names: Lock names
     @type shared: bool
     @param shared: Whether the locks should be acquired in shared mode
+    @type opportunistic: bool
+    @param opportunistic: Whether to acquire opportunistically
     @type timeout: None or float
     @param timeout: Timeout for acquiring the locks
     @raise LockAcquireTimeout: In case locks couldn't be acquired in specified
@@ -298,7 +300,8 @@ class Processor(object):
       priority = None
 
     acquired = self.context.glm.acquire(level, names, shared=shared,
-                                        timeout=timeout, priority=priority)
+                                        timeout=timeout, priority=priority,
+                                        opportunistic=opportunistic)
 
     if acquired is None:
       raise LockAcquireTimeout()
@@ -384,6 +387,7 @@ class Processor(object):
 
       lu.DeclareLocks(level)
       share = lu.share_locks[level]
+      opportunistic = lu.opportunistic_locks[level]
 
       try:
         assert adding_locks ^ acquiring_locks, \
@@ -393,7 +397,7 @@ class Processor(object):
           # Acquiring locks
           needed_locks = lu.needed_locks[level]
 
-          self._AcquireLocks(level, needed_locks, share,
+          self._AcquireLocks(level, needed_locks, share, opportunistic,
                              calc_timeout())
         else:
           # Adding locks
@@ -457,7 +461,7 @@ class Processor(object):
         # and in a shared fashion otherwise (to prevent concurrent run with
         # an exclusive LU.
         self._AcquireLocks(locking.LEVEL_CLUSTER, locking.BGL,
-                            not lu_class.REQ_BGL, calc_timeout())
+                            not lu_class.REQ_BGL, False, calc_timeout())
       elif lu_class.REQ_BGL:
         raise errors.ProgrammerError("Opcode '%s' requires BGL, but locks are"
                                      " disabled" % op.OP_ID)

@@ -138,13 +138,18 @@ class LogicalUnit(object):
     self.owned_locks = context.glm.list_owned
     self.context = context
     self.rpc = rpc_runner
-    # Dicts used to declare locking needs to mcpu
+
+    # Dictionaries used to declare locking needs to mcpu
     self.needed_locks = None
     self.share_locks = dict.fromkeys(locking.LEVELS, 0)
+    self.opportunistic_locks = dict.fromkeys(locking.LEVELS, False)
+
     self.add_locks = {}
     self.remove_locks = {}
+
     # Used to force good behavior when calling helper functions
     self.recalculate_locks = {}
+
     # logging
     self.Log = processor.Log # pylint: disable=C0103
     self.LogWarning = processor.LogWarning # pylint: disable=C0103
