@@ -128,7 +128,7 @@ $(genOpCode "OpCode"
      , pClusterHvParams
      , pClusterBeParams
      , pOsHvp
-     , pOsParams
+     , pClusterOsParams
      , pDiskParams
      , pCandidatePoolSize
      , pUidPool
@@ -240,6 +240,39 @@ $(genOpCode "OpCode"
      , pRemoteNode
      , pIallocator
      , pEvacMode
+     ])
+  , ("OpInstanceCreate",
+     [ pInstanceName
+     , pForceVariant
+     , pWaitForSync
+     , pNameCheck
+     , pIgnoreIpolicy
+     , pInstBeParams
+     , pInstDisks
+     , pDiskTemplate
+     , pFileDriver
+     , pFileStorageDir
+     , pInstHvParams
+     , pHypervisor
+     , pIallocator
+     , pResetDefaults
+     , pIpCheck
+     , pIpConflictsCheck
+     , pInstCreateMode
+     , pInstNics
+     , pNoInstall
+     , pInstOsParams
+     , pInstOs
+     , pPrimaryNode
+     , pSecondaryNode
+     , pSourceHandshake
+     , pSourceInstance
+     , pSourceShutdownTimeout
+     , pSourceX509Ca
+     , pSrcNode
+     , pSrcPath
+     , pStartInstance
+     , pInstTags
      ])
   ])
 

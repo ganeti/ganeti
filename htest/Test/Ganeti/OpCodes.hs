@@ -63,12 +63,19 @@ instance Arbitrary OpCodes.TagObject where
 
 $(genArbitrary ''OpCodes.ReplaceDisksMode)
 
+$(genArbitrary ''DiskAccess)
+
 instance Arbitrary OpCodes.DiskIndex where
   arbitrary = choose (0, C.maxDisks - 1) >>= OpCodes.mkDiskIndex
 
 instance Arbitrary INicParams where
   arbitrary = INicParams <$> getMaybe genNameNE <*> getMaybe getName <*>
               getMaybe genNameNE <*> getMaybe genNameNE
+
+instance Arbitrary IDiskParams where
+  arbitrary = IDiskParams <$> arbitrary <*> arbitrary <*>
+              getMaybe genNameNE <*> getMaybe genNameNE <*>
+              getMaybe genNameNE
 
 instance Arbitrary OpCodes.OpCode where
   arbitrary = do
@@ -169,6 +176,19 @@ instance Arbitrary OpCodes.OpCode where
       "OP_NODE_EVACUATE" ->
         OpCodes.OpNodeEvacuate <$> arbitrary <*> genNodeNameNE <*>
           getMaybe genNodeNameNE <*> getMaybe genNameNE <*> arbitrary
+      "OP_INSTANCE_CREATE" ->
+        OpCodes.OpInstanceCreate <$> getFQDN <*> arbitrary <*>
+          arbitrary <*> arbitrary <*> arbitrary <*> pure emptyJSObject <*>
+          arbitrary <*> arbitrary <*> arbitrary <*> getMaybe genNameNE <*>
+          pure emptyJSObject <*> arbitrary <*> getMaybe genNameNE <*>
+          arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*>
+          arbitrary <*> arbitrary <*> pure emptyJSObject <*>
+          getMaybe genNameNE <*>
+          getMaybe genNodeNameNE <*> getMaybe genNodeNameNE <*>
+          getMaybe (pure []) <*> getMaybe genNodeNameNE <*>
+          arbitrary <*> getMaybe genNodeNameNE <*>
+          getMaybe genNodeNameNE <*> getMaybe genNameNE <*>
+          arbitrary <*> (genTags >>= mapM mkNonEmpty)
       _ -> fail $ "Undefined arbitrary for opcode " ++ op_id
 
 -- * Helper functions

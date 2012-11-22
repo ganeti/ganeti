@@ -41,6 +41,7 @@ module Ganeti.OpParams
   , DiskIndex
   , mkDiskIndex
   , unDiskIndex
+  , DiskAccess(..)
   , INicParams(..)
   , IDiskParams(..)
   , pInstanceName
@@ -68,6 +69,8 @@ module Ganeti.OpParams
   , pGroupNodeParams
   , pQueryWhat
   , pEarlyRelease
+  , pIpCheck
+  , pIpConflictsCheck
   , pNoRemember
   , pMigrationTargetNode
   , pStartupPaused
@@ -82,12 +85,21 @@ module Ganeti.OpParams
   , pDiskState
   , pIgnoreIpolicy
   , pAllowRuntimeChgs
+  , pInstDisks
+  , pDiskTemplate
+  , pFileDriver
+  , pFileStorageDir
   , pVgName
   , pEnabledHypervisors
+  , pHypervisor
   , pClusterHvParams
+  , pInstHvParams
   , pClusterBeParams
+  , pInstBeParams
+  , pResetDefaults
   , pOsHvp
-  , pOsParams
+  , pClusterOsParams
+  , pInstOsParams
   , pCandidatePoolSize
   , pUidPool
   , pAddUids
@@ -95,6 +107,7 @@ module Ganeti.OpParams
   , pMaintainNodeHealth
   , pPreallocWipeDisks
   , pNicParams
+  , pInstNics
   , pNdParams
   , pIpolicy
   , pDrbdHelper
@@ -129,13 +142,27 @@ module Ganeti.OpParams
   , pIallocator
   , pRemoteNode
   , pEvacMode
+  , pInstCreateMode
+  , pNoInstall
+  , pInstOs
+  , pPrimaryNode
+  , pSecondaryNode
+  , pSourceHandshake
+  , pSourceInstance
+  , pSourceShutdownTimeout
+  , pSourceX509Ca
+  , pSrcNode
+  , pSrcPath
+  , pStartInstance
+  , pInstTags
   ) where
 
 import qualified Data.Set as Set
 import Text.JSON (readJSON, showJSON, JSON, JSValue(..), fromJSString,
-                  JSObject)
+                  JSObject, toJSObject)
 import Text.JSON.Pretty (pp_value)
 
+import Ganeti.BasicTypes
 import qualified Ganeti.Constants as C
 import Ganeti.THH
 import Ganeti.JSON
@@ -175,6 +202,18 @@ optionalNEStringField = optionalField . flip simpleField [t| NonEmptyString |]
 
 -- | Unchecked dict, should be replaced by a better definition.
 type UncheckedDict = JSObject JSValue
+
+-- | Unchecked list, shoild be replaced by a better definition.
+type UncheckedList = [JSValue]
+
+-- | Function to force a non-negative value, without returning via a
+-- monad. This is needed for, and should be used /only/ in the case of
+-- forcing constants. In case the constant is wrong (< 0), this will
+-- become a runtime error.
+forceNonNeg :: (Num a, Ord a, Show a) => a -> NonNegative a
+forceNonNeg i = case mkNonNegative i of
+                  Ok n -> n
+                  Bad msg -> error msg
 
 -- ** Tags
 
@@ -279,13 +318,13 @@ $(buildObject "INicParams" "inic"
   , optionalField $ simpleField C.inicLink [t| NonEmptyString |]
   ])
 
--- | Disk modification definition.
+-- | Disk modification definition. FIXME: disksize should be VTYPE_UNIT.
 $(buildObject "IDiskParams" "idisk"
-  [ simpleField C.idiskSize   [t| Int            |] -- FIXME: VTYPE_UNIT
-  , simpleField C.idiskMode   [t| DiskAccess     |]
-  , simpleField C.idiskAdopt  [t| NonEmptyString |]
-  , simpleField C.idiskVg     [t| NonEmptyString |]
-  , simpleField C.idiskMetavg [t| NonEmptyString |]
+  [ optionalField $ simpleField C.idiskSize   [t| Int            |]
+  , optionalField $ simpleField C.idiskMode   [t| DiskAccess     |]
+  , optionalField $ simpleField C.idiskAdopt  [t| NonEmptyString |]
+  , optionalField $ simpleField C.idiskVg     [t| NonEmptyString |]
+  , optionalField $ simpleField C.idiskMetavg [t| NonEmptyString |]
   ])
 
 -- * Parameters
@@ -400,7 +439,13 @@ pQueryWhat = simpleField "what" [t| Qlang.QueryTypeOp |]
 pEarlyRelease :: Field
 pEarlyRelease = defaultFalse "early_release"
 
--- _PIpCheckDoc = "Whether to ensure instance's IP address is inactive"
+-- | Whether to ensure instance's IP address is inactive.
+pIpCheck :: Field
+pIpCheck = defaultTrue "ip_check"
+
+-- | Check for conflicting IPs.
+pIpConflictsCheck :: Field
+pIpConflictsCheck = defaultTrue "conflicts_check"
 
 -- | Do not remember instance state changes.
 pNoRemember :: Field
@@ -475,7 +520,22 @@ type TestClusterOsList = [TestClusterOsListItem]
 
 -- Utility type for NIC definitions.
 --type TestNicDef = INicParams
---type TDiskParams = IDiskParams
+
+-- | List of instance disks.
+pInstDisks :: Field
+pInstDisks = renameField "instDisks" $ simpleField "disks" [t| [IDiskParams] |]
+
+-- | Instance disk template.
+pDiskTemplate :: Field
+pDiskTemplate = simpleField "disk_template" [t| DiskTemplate |]
+
+-- | File driver.
+pFileDriver :: Field
+pFileDriver = optionalField $ simpleField "file_driver" [t| FileDriver |]
+
+-- | Directory for storing file-backed disks.
+pFileStorageDir :: Field
+pFileStorageDir = optionalNEStringField "file_storage_dir"
 
 -- | Volume group name.
 pVgName :: Field
@@ -487,24 +547,58 @@ pEnabledHypervisors =
   optionalField $
   simpleField "enabled_hypervisors" [t| NonEmpty Hypervisor |]
 
+-- | Selected hypervisor for an instance.
+pHypervisor :: Field
+pHypervisor =
+  optionalField $
+  simpleField "hypervisor" [t| Hypervisor |]
+
 -- | Cluster-wide hypervisor parameters, hypervisor-dependent.
 pClusterHvParams :: Field
 pClusterHvParams =
+  renameField "ClusterHvParams" .
   optionalField $
   simpleField "hvparams" [t| Container UncheckedDict |]
 
+-- | Instance hypervisor parameters.
+pInstHvParams :: Field
+pInstHvParams =
+  renameField "InstHvParams" .
+  defaultField [| toJSObject [] |] $
+  simpleField "hvparams" [t| UncheckedDict |]
+
 -- | Cluster-wide beparams.
 pClusterBeParams :: Field
-pClusterBeParams = optionalField $ simpleField "beparams" [t| UncheckedDict |]
+pClusterBeParams =
+  renameField "ClusterBeParams" .
+  optionalField $ simpleField "beparams" [t| UncheckedDict |]
+
+-- | Instance beparams.
+pInstBeParams :: Field
+pInstBeParams =
+  renameField "InstBeParams" .
+  defaultField [| toJSObject [] |] $
+  simpleField "beparams" [t| UncheckedDict |]
+
+-- | Reset instance parameters to default if equal.
+pResetDefaults :: Field
+pResetDefaults = defaultFalse "identify_defaults"
 
 -- | Cluster-wide per-OS hypervisor parameter defaults.
 pOsHvp :: Field
 pOsHvp = optionalField $ simpleField "os_hvp" [t| Container UncheckedDict |]
 
 -- | Cluster-wide OS parameter defaults.
-pOsParams :: Field
-pOsParams =
+pClusterOsParams :: Field
+pClusterOsParams =
+  renameField "clusterOsParams" .
   optionalField $ simpleField "osparams" [t| Container UncheckedDict |]
+
+-- | Instance OS parameters.
+pInstOsParams :: Field
+pInstOsParams =
+  renameField "instOsParams" . defaultField [| toJSObject [] |] $
+  simpleField "osparams" [t| UncheckedDict |]
 
 -- | Candidate pool size.
 pCandidatePoolSize :: Field
@@ -537,6 +631,10 @@ pPreallocWipeDisks = optionalField $ booleanField "prealloc_wipe_disks"
 -- | Cluster-wide NIC parameter defaults.
 pNicParams :: Field
 pNicParams = optionalField $ simpleField "nicparams" [t| INicParams |]
+
+-- | Instance NIC definitions.
+pInstNics :: Field
+pInstNics = simpleField "nics" [t| [INicParams] |]
 
 -- | Cluster-wide node parameter defaults.
 pNdParams :: Field
@@ -685,3 +783,64 @@ pRemoteNode = optionalNEStringField "remote_node"
 -- | Node evacuation mode.
 pEvacMode :: Field
 pEvacMode = renameField "EvacMode" $ simpleField "mode" [t| NodeEvacMode |]
+
+-- | Instance creation mode.
+pInstCreateMode :: Field
+pInstCreateMode =
+  renameField "InstCreateMode" $ simpleField "mode" [t| InstCreateMode |]
+
+-- | Do not install the OS (will disable automatic start).
+pNoInstall :: Field
+pNoInstall = optionalField $ booleanField "no_install"
+
+-- | OS type for instance installation.
+pInstOs :: Field
+pInstOs = optionalNEStringField "os_type"
+
+-- | Primary node for an instance.
+pPrimaryNode :: Field
+pPrimaryNode = optionalNEStringField "pnode"
+
+-- | Secondary node for an instance.
+pSecondaryNode :: Field
+pSecondaryNode = optionalNEStringField "snode"
+
+-- | Signed handshake from source (remote import only).
+pSourceHandshake :: Field
+pSourceHandshake =
+  optionalField $ simpleField "source_handshake" [t| UncheckedList |]
+
+-- | Source instance name (remote import only).
+pSourceInstance :: Field
+pSourceInstance = optionalNEStringField "source_instance_name"
+
+-- | How long source instance was given to shut down (remote import only).
+-- FIXME: non-negative int, whereas the constant is a plain int.
+pSourceShutdownTimeout :: Field
+pSourceShutdownTimeout =
+  defaultField [| forceNonNeg C.defaultShutdownTimeout |] $
+  simpleField "source_shutdown_timeout" [t| NonNegative Int |]
+
+-- | Source X509 CA in PEM format (remote import only).
+pSourceX509Ca :: Field
+pSourceX509Ca = optionalNEStringField "source_x509_ca"
+
+-- | Source node for import.
+pSrcNode :: Field
+pSrcNode = optionalNEStringField "src_node"
+
+-- | Source directory for import.
+pSrcPath :: Field
+pSrcPath = optionalNEStringField "src_path"
+
+-- | Whether to start instance after creation.
+pStartInstance :: Field
+pStartInstance = defaultTrue "start"
+
+-- | Instance tags. FIXME: unify/simplify with pTags, once that
+-- migrates to NonEmpty String.
+pInstTags :: Field
+pInstTags =
+  renameField "InstTags" .
+  defaultField [| [] |] $
+  simpleField "tags" [t| [NonEmptyString] |]

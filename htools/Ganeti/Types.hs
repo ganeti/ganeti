@@ -60,6 +60,7 @@ module Ganeti.Types
   , StorageType(..)
   , NodeEvacMode(..)
   , FileDriver(..)
+  , InstCreateMode(..)
   ) where
 
 import qualified Text.JSON as JSON
@@ -259,3 +260,11 @@ $(THH.declareSADT "FileDriver"
   , ("FileBlktap", 'C.fdBlktap)
   ])
 $(THH.makeJSONInstance ''FileDriver)
+
+-- | The instance create mode.
+$(THH.declareSADT "InstCreateMode"
+  [ ("InstCreate",       'C.instanceCreate)
+  , ("InstImport",       'C.instanceImport)
+  , ("InstRemoteImport", 'C.instanceRemoteImport)
+  ])
+$(THH.makeJSONInstance ''InstCreateMode)
