@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2010, 2011 Google Inc.
+# Copyright (C) 2010, 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -193,13 +193,18 @@ class TestOpcodes(unittest.TestCase):
         if callable(aval):
           default_value = aval()
           self.assertFalse(callable(default_value),
-                           msg="Default value returned by function is callable")
+                           msg=("Default value of %s.%s returned by function"
+                                " is callable" % (cls.OP_ID, attr_name)))
         else:
+          self.assertFalse(isinstance(aval, (list, dict, set)),
+                           msg=("Default value of %s.%s is mutable (%s)" %
+                                (cls.OP_ID, attr_name, repr(aval))))
+
           default_value = aval
 
         if aval is not ht.NoDefault and test is not ht.NoType:
           self.assertTrue(test(default_value),
-                          msg=("Default value of '%s.%s' does not verify" %
+                          msg=("Default value of %s.%s does not verify" %
                                (cls.OP_ID, attr_name)))
 
       # If any parameter has documentation, all others need to have it as well
