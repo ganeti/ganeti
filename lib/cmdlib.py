@@ -7394,6 +7394,7 @@ class LUInstanceRecreateDisks(LogicalUnit):
   def ExpandNames(self):
     self._ExpandAndLockInstance()
     self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_APPEND
+
     if self.op.nodes:
       self.op.nodes = [_ExpandNodeName(self.cfg, n) for n in self.op.nodes]
       self.needed_locks[locking.LEVEL_NODE] = list(self.op.nodes)
@@ -7402,6 +7403,8 @@ class LUInstanceRecreateDisks(LogicalUnit):
       if self.op.iallocator:
         # iallocator will select a new node in the same group
         self.needed_locks[locking.LEVEL_NODEGROUP] = []
+        self.needed_locks[locking.LEVEL_NODE_ALLOC] = locking.ALL_SET
+
     self.needed_locks[locking.LEVEL_NODE_RES] = []
 
   def DeclareLocks(self, level):
@@ -7431,6 +7434,8 @@ class LUInstanceRecreateDisks(LogicalUnit):
         for group_uuid in self.owned_locks(locking.LEVEL_NODEGROUP):
           self.needed_locks[locking.LEVEL_NODE].extend(
             self.cfg.GetNodeGroup(group_uuid).members)
+
+        assert locking.NAL in self.owned_locks(locking.LEVEL_NODE_ALLOC)
       elif not self.op.nodes:
         self._LockInstancesNodes(primary_only=False)
     elif level == locking.LEVEL_NODE_RES:
@@ -7521,6 +7526,9 @@ class LUInstanceRecreateDisks(LogicalUnit):
       # Release unneeded node and node resource locks
       _ReleaseLocks(self, locking.LEVEL_NODE, keep=self.op.nodes)
       _ReleaseLocks(self, locking.LEVEL_NODE_RES, keep=self.op.nodes)
+      _ReleaseLocks(self, locking.LEVEL_NODE_ALLOC)
+
+    assert not self.glm.is_owned(locking.LEVEL_NODE_ALLOC)
 
   def Exec(self, feedback_fn):
     """Recreate the disks.
