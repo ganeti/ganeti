@@ -23,7 +23,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 -}
 
-module Test.Ganeti.Block.Drbd.Parser (testBlock_DRBDParser) where
+module Test.Ganeti.Block.Drbd.Parser (testBlock_Drbd_Parser) where
 
 import Test.QuickCheck as QuickCheck hiding (Result)
 import Test.HUnit
@@ -344,9 +344,10 @@ prop_commaInt_max3WithoutComma =
       Right obtained ->
         obtained < 1000 .&&.
         getFirst3Digits i ==? obtained
-  where getFirst3Digits x = if x >= 1000
-          then getFirst3Digits $ x `div` 10
-          else x
+  where getFirst3Digits x =
+          if x >= 1000
+            then getFirst3Digits $ x `div` 10
+            else x
 
 -- | Test if non-triplets are handled correctly (they are assumed NOT being part
 -- of the number).
@@ -354,7 +355,7 @@ case_commaInt_non_triplet :: Assertion
 case_commaInt_non_triplet = testCommaInt "61,736,12" 61736
 
 
-testSuite "Block_DRBDParser"
+testSuite "Block/Drbd/Parser"
           [ 'case_drbd80_emptyline,
             'case_drbd83_sync_krnl2_6_39,
             'case_drbd83_sync,

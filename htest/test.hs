@@ -81,7 +81,7 @@ allTests =
   , testCommon
   , testConfd_Utils
   , testDaemon
-  , testBlock_DRBDParser
+  , testBlock_Drbd_Parser
   , testErrors
   , testHTools_Backend_Simu
   , testHTools_Backend_Text

@@ -64,6 +64,7 @@ drbdStatusParser :: Parser DRBDStatus
 drbdStatusParser =
   DRBDStatus <$> versionInfoParser
              <*> deviceParser `AC.manyTill` A.endOfInput
+             <* A.endOfInput
 
 -- | The parser for the version information lines.
 versionInfoParser :: Parser VersionInfo
