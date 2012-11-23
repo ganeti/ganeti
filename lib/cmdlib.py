@@ -14334,11 +14334,19 @@ class LUBackupRemove(NoHooksLU):
   REQ_BGL = False
 
   def ExpandNames(self):
-    self.needed_locks = {}
-    # We need all nodes to be locked in order for RemoveExport to work, but we
-    # don't need to lock the instance itself, as nothing will happen to it (and
-    # we can remove exports also for a removed instance)
-    self.needed_locks[locking.LEVEL_NODE] = locking.ALL_SET
+    self.needed_locks = {
+      # We need all nodes to be locked in order for RemoveExport to work, but
+      # we don't need to lock the instance itself, as nothing will happen to it
+      # (and we can remove exports also for a removed instance)
+      locking.LEVEL_NODE: locking.ALL_SET,
+
+      # Removing backups is quick, so blocking allocations is justified
+      locking.LEVEL_NODE_ALLOC: locking.ALL_SET,
+      }
+
+    # Allocations should be stopped while this LU runs with node locks, but it
+    # doesn't have to be exclusive
+    self.share_locks[locking.LEVEL_NODE_ALLOC] = 1
 
   def Exec(self, feedback_fn):
     """Remove any export.
