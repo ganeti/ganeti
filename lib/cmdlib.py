@@ -10988,6 +10988,7 @@ class LUInstanceReplaceDisks(LogicalUnit):
       if self.op.iallocator is not None:
         # iallocator will select a new node in the same group
         self.needed_locks[locking.LEVEL_NODEGROUP] = []
+        self.needed_locks[locking.LEVEL_NODE_ALLOC] = locking.ALL_SET
 
     self.needed_locks[locking.LEVEL_NODE_RES] = []
 
@@ -11014,6 +11015,7 @@ class LUInstanceReplaceDisks(LogicalUnit):
       if self.op.iallocator is not None:
         assert self.op.remote_node is None
         assert not self.needed_locks[locking.LEVEL_NODE]
+        assert locking.NAL in self.owned_locks(locking.LEVEL_NODE_ALLOC)
 
         # Lock member nodes of all locked groups
         self.needed_locks[locking.LEVEL_NODE] = \
@@ -11021,7 +11023,10 @@ class LUInstanceReplaceDisks(LogicalUnit):
              for group_uuid in self.owned_locks(locking.LEVEL_NODEGROUP)
              for node_name in self.cfg.GetNodeGroup(group_uuid).members]
       else:
+        assert not self.glm.is_owned(locking.LEVEL_NODE_ALLOC)
+
         self._LockInstancesNodes()
+
     elif level == locking.LEVEL_NODE_RES:
       # Reuse node locks
       self.needed_locks[locking.LEVEL_NODE_RES] = \
@@ -11293,10 +11298,10 @@ class TLReplaceDisks(Tasklet):
     # Release unneeded node and node resource locks
     _ReleaseLocks(self.lu, locking.LEVEL_NODE, keep=touched_nodes)
     _ReleaseLocks(self.lu, locking.LEVEL_NODE_RES, keep=touched_nodes)
+    _ReleaseLocks(self.lu, locking.LEVEL_NODE_ALLOC)
 
     # Release any owned node group
-    if self.lu.glm.is_owned(locking.LEVEL_NODEGROUP):
-      _ReleaseLocks(self.lu, locking.LEVEL_NODEGROUP)
+    _ReleaseLocks(self.lu, locking.LEVEL_NODEGROUP)
 
     # Check whether disks are valid
     for disk_idx in self.disks:
@@ -11320,6 +11325,7 @@ class TLReplaceDisks(Tasklet):
            (owned_nodes, self.node_secondary_ip.keys()))
       assert (self.lu.owned_locks(locking.LEVEL_NODE) ==
               self.lu.owned_locks(locking.LEVEL_NODE_RES))
+      assert not self.lu.glm.is_owned(locking.LEVEL_NODE_ALLOC)
 
       owned_instances = self.lu.owned_locks(locking.LEVEL_INSTANCE)
       assert list(owned_instances) == [self.instance_name], \
