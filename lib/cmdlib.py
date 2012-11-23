@@ -4041,16 +4041,15 @@ class LUClusterSetParams(LogicalUnit):
   def ExpandNames(self):
     # FIXME: in the future maybe other cluster params won't require checking on
     # all nodes to be modified.
+    # FIXME: This opcode changes cluster-wide settings. Is acquiring all
+    # resource locks the right thing, shouldn't it be the BGL instead?
     self.needed_locks = {
       locking.LEVEL_NODE: locking.ALL_SET,
       locking.LEVEL_INSTANCE: locking.ALL_SET,
       locking.LEVEL_NODEGROUP: locking.ALL_SET,
+      locking.LEVEL_NODE_ALLOC: locking.ALL_SET,
     }
-    self.share_locks = {
-        locking.LEVEL_NODE: 1,
-        locking.LEVEL_INSTANCE: 1,
-        locking.LEVEL_NODEGROUP: 1,
-    }
+    self.share_locks = _ShareAll()
 
   def BuildHooksEnv(self):
     """Build hooks env.
