@@ -2107,7 +2107,7 @@ class OpNetworkQuery(OpCode):
     ("names", ht.EmptyList, ht.TListOf(ht.TNonEmptyString),
      "Empty list to query all groups, group names otherwise"),
     ]
-  OP_RESULT = ht.TNone
+  OP_RESULT = _TOldQueryResult
 
 
 def _GetOpList():
