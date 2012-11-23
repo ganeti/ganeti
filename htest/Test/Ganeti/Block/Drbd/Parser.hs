@@ -136,8 +136,8 @@ case_drbd83_sync = testFile "proc_drbd83_sync.txt" $
         (LocalRemote Inconsistent UpToDate) 'C' "r----"
         (PerformanceIndicators 0 178176 178176 0 104 42 0 0 0 0 (Just 1)
           (Just 'b') (Just 346112))
-        (Just $ SyncStatus 34.9 346112 524288 MegaByte (Time 0 0 5) 59392 Nothing
-          KiloByte Second)
+        (Just $ SyncStatus 34.9 346112 524288 MegaByte (Time 0 0 5) 59392
+          Nothing KiloByte Second)
         Nothing
         Nothing,
       DeviceInfo 4 WFConnection (LocalRemote Primary Unknown)
@@ -344,7 +344,7 @@ prop_commaInt_max3WithoutComma =
       Right obtained ->
         obtained < 1000 .&&.
         getFirst3Digits i ==? obtained
-  where getFirst3Digits x = if x > 1000
+  where getFirst3Digits x = if x >= 1000
           then getFirst3Digits $ x `div` 10
           else x
 
