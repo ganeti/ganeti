@@ -201,10 +201,11 @@ class AddressPool(object):
     @raise errors.AddressPoolError: Pool is full
 
     """
-    if self.IsFull():
-      raise errors.AddressPoolError("%s is full" % self.network)
     idx = self.all_reservations.search(self.FREE, 1)
-    return str(self.network[idx])
+    if idx:
+      return str(self.network[idx[0]])
+    else:
+      raise errors.AddressPoolError("%s is full" % self.network)
 
   def GetExternalReservations(self):
     """Returns a list of all externally reserved addresses.
