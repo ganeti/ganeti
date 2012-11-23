@@ -54,6 +54,7 @@ $(genOpCode "OpCode"
      [ simpleField "duration"  [t| Double   |]
      , simpleField "on_master" [t| Bool     |]
      , simpleField "on_nodes"  [t| [String] |]
+     , pDelayRepeat
      ])
   , ("OpInstanceReplaceDisks",
      [ pInstanceName
@@ -74,6 +75,12 @@ $(genOpCode "OpCode"
      , defaultField [| False |] $ simpleField "allow_failover" [t| Bool |]
      , pMigrationTargetNode
      ])
+  , ("OpTagsGet",
+     [ pTagsObject
+     , pUseLocking
+     ])
+  , ("OpTagsSearch",
+     [ pTagSearchPattern ])
   , ("OpTagsSet",
      [ pTagsObject
      , pTagsList

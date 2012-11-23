@@ -105,7 +105,7 @@ instance Arbitrary OpCodes.OpCode where
     case op_id of
       "OP_TEST_DELAY" ->
         OpCodes.OpTestDelay <$> arbitrary <*> arbitrary
-                 <*> genNodeNames
+                 <*> genNodeNames <*> arbitrary
       "OP_INSTANCE_REPLACE_DISKS" ->
         OpCodes.OpInstanceReplaceDisks <$> getFQDN <*>
           getMaybe genNodeNameNE <*> arbitrary <*> genDiskIndices <*>
@@ -116,6 +116,10 @@ instance Arbitrary OpCodes.OpCode where
       "OP_INSTANCE_MIGRATE" ->
         OpCodes.OpInstanceMigrate <$> getFQDN <*> arbitrary <*>
           arbitrary <*> arbitrary <*> getMaybe genNodeNameNE
+      "OP_TAGS_GET" ->
+        OpCodes.OpTagsGet <$> arbitrary <*> arbitrary
+      "OP_TAGS_SEARCH" ->
+        OpCodes.OpTagsSearch <$> genNameNE
       "OP_TAGS_SET" ->
         OpCodes.OpTagsSet <$> arbitrary <*> genTags
       "OP_TAGS_DEL" ->

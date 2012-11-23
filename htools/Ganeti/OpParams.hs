@@ -187,6 +187,8 @@ module Ganeti.OpParams
   , pIgnoreRemoveFailures
   , pX509KeyName
   , pX509DestCA
+  , pTagSearchPattern
+  , pDelayRepeat
   ) where
 
 import Control.Monad (liftM)
@@ -1112,3 +1114,16 @@ pX509KeyName = optionalField $ simpleField "x509_key_name" [t| UncheckedList |]
 -- | Destination X509 CA (remote export only).
 pX509DestCA :: Field
 pX509DestCA = optionalNEStringField "destination_x509_ca"
+
+-- | Search pattern (regular expression). FIXME: this should be
+-- compiled at load time?
+pTagSearchPattern :: Field
+pTagSearchPattern =
+  renameField "TagSearchPattern" $ simpleField "pattern" [t| NonEmptyString |]
+
+-- | Repeat parameter for OpTestDelay.
+pDelayRepeat :: Field
+pDelayRepeat =
+  renameField "DelayRepeat" .
+  defaultField [| forceNonNeg (0::Int) |] $
+  simpleField "repeat" [t| NonNegative Int |]
