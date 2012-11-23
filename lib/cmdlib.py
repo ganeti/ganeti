@@ -4814,6 +4814,11 @@ class LUOobCommand(NoHooksLU):
       locking.LEVEL_NODE: lock_names,
       }
 
+    if not self.op.node_names:
+      # Acquire node allocation lock only if all nodes are affected
+      self.needed_locks[locking.LEVEL_NODE_ALLOC] = locking.ALL_SET
+      self.share_locks[locking.LEVEL_NODE_ALLOC] = 1
+
   def CheckPrereq(self):
     """Check prerequisites.
 
