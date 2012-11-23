@@ -376,6 +376,68 @@ $(genOpCode "OpCode"
      , pIallocator
      , pTargetGroups
      ])
+  , ("OpGroupAdd",
+     [ pGroupName
+     , pNodeGroupAllocPolicy
+     , pGroupNodeParams
+     , pDiskParams
+     , pHvState
+     , pDiskState
+     , pIpolicy
+     ])
+  , ("OpGroupAssignNodes",
+     [ pGroupName
+     , pForce
+     , pRequiredNodes
+     ])
+  , ("OpGroupQuery",
+     [ pOutputFields
+     , pNames
+     ])
+  , ("OpGroupSetParams",
+     [ pGroupName
+     , pNodeGroupAllocPolicy
+     , pGroupNodeParams
+     , pDiskParams
+     , pHvState
+     , pDiskState
+     , pIpolicy
+     ])
+  , ("OpGroupRemove",
+     [ pGroupName ])
+  , ("OpGroupRename",
+     [ pGroupName
+     , pNewName
+     ])
+  , ("OpGroupEvacuate",
+     [ pGroupName
+     , pEarlyRelease
+     , pIallocator
+     , pTargetGroups
+     ])
+  , ("OpOsDiagnose",
+     [ pOutputFields
+     , pNames ])
+  , ("OpBackupQuery",
+     [ pUseLocking
+     , pNodes
+     ])
+  , ("OpBackupPrepare",
+     [ pInstanceName
+     , pExportMode
+     ])
+  , ("OpBackupExport",
+     [ pInstanceName
+     , pShutdownTimeout
+     , pExportTargetNode
+     , pRemoveInstance
+     , pIgnoreRemoveFailures
+     , pExportMode
+     , pX509KeyName
+     , pX509DestCA
+     ])
+  , ("OpBackupRemove",
+     [ pInstanceName ])
   ])
 
 -- | Returns the OP_ID for a given opcode value.

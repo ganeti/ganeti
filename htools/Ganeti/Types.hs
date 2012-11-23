@@ -63,6 +63,7 @@ module Ganeti.Types
   , FileDriver(..)
   , InstCreateMode(..)
   , RebootType(..)
+  , ExportMode(..)
   ) where
 
 import qualified Text.JSON as JSON
@@ -286,3 +287,10 @@ $(THH.declareSADT "RebootType"
   , ("RebootFull", 'C.instanceRebootFull)
   ])
 $(THH.makeJSONInstance ''RebootType)
+
+-- | Export modes.
+$(THH.declareSADT "ExportMode"
+  [ ("ExportModeLocal",  'C.exportModeLocal)
+  , ("ExportModeRemove", 'C.exportModeRemote)
+  ])
+$(THH.makeJSONInstance ''ExportMode)

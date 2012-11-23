@@ -94,6 +94,11 @@ instance (Arbitrary a) => Arbitrary (SetParamsMods a) where
                     , SetParamsNew        <$> arbitrary
                     ]
 
+instance Arbitrary ExportTarget where
+  arbitrary = oneof [ ExportTargetLocal <$> genNodeNameNE
+                    , ExportTargetRemote <$> pure []
+                    ]
+
 instance Arbitrary OpCodes.OpCode where
   arbitrary = do
     op_id <- elements OpCodes.allOpIDs
@@ -253,6 +258,38 @@ instance Arbitrary OpCodes.OpCode where
       "OP_INSTANCE_CHANGE_GROUP" ->
         OpCodes.OpInstanceChangeGroup <$> getFQDN <*> arbitrary <*>
           getMaybe genNameNE <*> getMaybe (resize maxNodes (listOf genNameNE))
+      "OP_GROUP_ADD" ->
+        OpCodes.OpGroupAdd <$> genNameNE <*> arbitrary <*>
+          emptyMUD <*> getMaybe genEmptyContainer <*>
+          emptyMUD <*> emptyMUD <*> emptyMUD
+      "OP_GROUP_ASSIGN_NODES" ->
+        OpCodes.OpGroupAssignNodes <$> genNameNE <*> arbitrary <*>
+          genNodeNamesNE
+      "OP_GROUP_QUERY" ->
+        OpCodes.OpGroupQuery <$> genFieldsNE <*> genNamesNE
+      "OP_GROUP_SET_PARAMS" ->
+        OpCodes.OpGroupSetParams <$> genNameNE <*> arbitrary <*>
+          emptyMUD <*> getMaybe genEmptyContainer <*>
+          emptyMUD <*> emptyMUD <*> emptyMUD
+      "OP_GROUP_REMOVE" ->
+        OpCodes.OpGroupRemove <$> genNameNE
+      "OP_GROUP_RENAME" ->
+        OpCodes.OpGroupRename <$> genNameNE <*> genNameNE
+      "OP_GROUP_EVACUATE" ->
+        OpCodes.OpGroupEvacuate <$> genNameNE <*> arbitrary <*>
+          getMaybe genNameNE <*> getMaybe genNamesNE
+      "OP_OS_DIAGNOSE" ->
+        OpCodes.OpOsDiagnose <$> genFieldsNE <*> genNamesNE
+      "OP_BACKUP_QUERY" ->
+        OpCodes.OpBackupQuery <$> arbitrary <*> genNodeNamesNE
+      "OP_BACKUP_PREPARE" ->
+        OpCodes.OpBackupPrepare <$> getFQDN <*> arbitrary
+      "OP_BACKUP_EXPORT" ->
+        OpCodes.OpBackupExport <$> getFQDN <*> arbitrary <*>
+          arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*>
+          getMaybe (pure []) <*> getMaybe genNameNE
+      "OP_BACKUP_REMOVE" ->
+        OpCodes.OpBackupRemove <$> getFQDN
       _ -> fail $ "Undefined arbitrary for opcode " ++ op_id
 
 -- * Helper functions
@@ -290,6 +327,10 @@ genNodeNameNE = getFQDN >>= mkNonEmpty
 -- | Gets a name (non-fqdn) in non-empty type.
 genNameNE :: Gen NonEmptyString
 genNameNE = getName >>= mkNonEmpty
+
+-- | Gets a list of names (non-fqdn) in non-empty type.
+genNamesNE :: Gen [NonEmptyString]
+genNamesNE = resize maxNodes (listOf genNameNE)
 
 -- | Returns a list of non-empty fields.
 genFieldsNE :: Gen [NonEmptyString]

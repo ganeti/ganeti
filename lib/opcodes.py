@@ -1816,11 +1816,12 @@ class OpBackupPrepare(OpCode):
 class OpBackupExport(OpCode):
   """Export an instance.
 
-  For local exports, the export destination is the node name. For remote
-  exports, the export destination is a list of tuples, each consisting of
-  hostname/IP address, port, HMAC and HMAC salt. The HMAC is calculated using
-  the cluster domain secret over the value "${index}:${hostname}:${port}". The
-  destination X509 CA must be a signed certificate.
+  For local exports, the export destination is the node name. For
+  remote exports, the export destination is a list of tuples, each
+  consisting of hostname/IP address, port, magic, HMAC and HMAC
+  salt. The HMAC is calculated using the cluster domain secret over
+  the value "${index}:${hostname}:${port}". The destination X509 CA
+  must be a signed certificate.
 
   @ivar mode: Export mode (one of L{constants.EXPORT_MODES})
   @ivar target_node: Export destination

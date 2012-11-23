@@ -97,6 +97,8 @@ $(genArbitrary ''InstCreateMode)
 
 $(genArbitrary ''RebootType)
 
+$(genArbitrary ''ExportMode)
+
 -- * Properties
 
 prop_AllocPolicy_serialisation :: AllocPolicy -> Property
@@ -206,6 +208,10 @@ prop_InstCreateMode_serialisation = testSerialisation
 prop_RebootType_serialisation :: RebootType -> Property
 prop_RebootType_serialisation = testSerialisation
 
+-- | Test 'ExportMode' serialisation.
+prop_ExportMode_serialisation :: ExportMode -> Property
+prop_ExportMode_serialisation = testSerialisation
+
 testSuite "Types"
   [ 'prop_AllocPolicy_serialisation
   , 'prop_DiskTemplate_serialisation
@@ -229,4 +235,5 @@ testSuite "Types"
   , 'prop_FileDriver_serialisation
   , 'prop_InstCreateMode_serialisation
   , 'prop_RebootType_serialisation
+  , 'prop_ExportMode_serialisation
   ]

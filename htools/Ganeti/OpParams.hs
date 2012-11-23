@@ -47,6 +47,7 @@ module Ganeti.OpParams
   , RecreateDisksInfo(..)
   , DdmOldChanges(..)
   , SetParamsMods(..)
+  , ExportTarget(..)
   , pInstanceName
   , pInstances
   , pName
@@ -137,6 +138,7 @@ module Ganeti.OpParams
   , pVmCapable
   , pNames
   , pNodes
+  , pRequiredNodes
   , pStorageType
   , pStorageChanges
   , pMasterCandidate
@@ -179,6 +181,12 @@ module Ganeti.OpParams
   , pDiskChgAmount
   , pDiskChgAbsolute
   , pTargetGroups
+  , pExportMode
+  , pExportTargetNode
+  , pRemoveInstance
+  , pIgnoreRemoveFailures
+  , pX509KeyName
+  , pX509DestCA
   ) where
 
 import Control.Monad (liftM)
@@ -420,6 +428,27 @@ instance (JSON a) => JSON (SetParamsMods a) where
   showJSON (SetParamsDeprecated v) = showJSON v
   showJSON (SetParamsNew v) = showJSON v
   readJSON = readSetParams
+
+-- | Custom type for target_node parameter of OpBackupExport, which
+-- varies depending on mode. FIXME: this uses an UncheckedList since
+-- we don't care about individual rows (just like the Python code
+-- tests). But the proper type could be parsed if we wanted.
+data ExportTarget = ExportTargetLocal NonEmptyString
+                  | ExportTargetRemote UncheckedList
+                    deriving (Eq, Read, Show)
+
+-- | Custom reader for 'ExportTarget'.
+readExportTarget :: JSValue -> Text.JSON.Result ExportTarget
+readExportTarget (JSString s) = liftM ExportTargetLocal $
+                                mkNonEmpty (fromJSString s)
+readExportTarget (JSArray arr) = return $ ExportTargetRemote arr
+readExportTarget v = fail $ "Invalid value received for 'target_node': " ++
+                     show (pp_value v)
+
+instance JSON ExportTarget where
+  showJSON (ExportTargetLocal s)  = showJSON s
+  showJSON (ExportTargetRemote l) = showJSON l
+  readJSON = readExportTarget
 
 -- * Parameters
 
@@ -769,7 +798,7 @@ pInstNics = simpleField "nics" [t| [INicParams] |]
 pNdParams :: Field
 pNdParams = optionalField $ simpleField "ndparams" [t| UncheckedDict |]
 
--- | Cluster-wipe ipolict specs.
+-- | Cluster-wide ipolicy specs.
 pIpolicy :: Field
 pIpolicy = optionalField $ simpleField "ipolicy" [t| UncheckedDict |]
 
@@ -871,6 +900,11 @@ pNames = defaultField [| [] |] $ simpleField "names" [t| [NonEmptyString] |]
 -- | List of node names.
 pNodes :: Field
 pNodes = defaultField [| [] |] $ simpleField "nodes" [t| [NonEmptyString] |]
+
+-- | Required list of node names.
+pRequiredNodes :: Field
+pRequiredNodes =
+  renameField "ReqNodes " $ simpleField "nodes" [t| [NonEmptyString] |]
 
 -- | Storage type.
 pStorageType :: Field
@@ -1051,3 +1085,30 @@ pDiskChgAbsolute = renameField "DiskChkAbsolute" $ defaultFalse "absolute"
 pTargetGroups :: Field
 pTargetGroups =
   optionalField $ simpleField "target_groups" [t| [NonEmptyString] |]
+
+-- | Export mode field.
+pExportMode :: Field
+pExportMode =
+  renameField "ExportMode" $ simpleField "mode" [t| ExportMode |]
+
+-- | Export target_node field, depends on mode.
+pExportTargetNode :: Field
+pExportTargetNode =
+  renameField "ExportTarget" $
+  simpleField "target_node" [t| ExportTarget |]
+
+-- | Whether to remove instance after export.
+pRemoveInstance :: Field
+pRemoveInstance = defaultFalse "remove_instance"
+
+-- | Whether to ignore failures while removing instances.
+pIgnoreRemoveFailures :: Field
+pIgnoreRemoveFailures = defaultFalse "ignore_remove_failures"
+
+-- | Name of X509 key (remote export only).
+pX509KeyName :: Field
+pX509KeyName = optionalField $ simpleField "x509_key_name" [t| UncheckedList |]
+
+-- | Destination X509 CA (remote export only).
+pX509DestCA :: Field
+pX509DestCA = optionalNEStringField "destination_x509_ca"
