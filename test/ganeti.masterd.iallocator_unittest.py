@@ -26,6 +26,7 @@ import unittest
 from ganeti import compat
 from ganeti import constants
 from ganeti import errors
+from ganeti import objects
 from ganeti import ht
 from ganeti.masterd import iallocator
 
@@ -86,6 +87,95 @@ class TestIARequestBase(unittest.TestCase):
     stub.ValidateResult(_StubIAllocator(False), True)
     # We don't validate the result if the iallocation request was not successful
     stub.ValidateResult(_StubIAllocator(False), "foo")
+
+
+class _FakeConfigWithNdParams:
+  def GetNdParams(self, _):
+    return None
+
+
+class TestComputeBasicNodeData(unittest.TestCase):
+  def setUp(self):
+    self.fn = compat.partial(iallocator.IAllocator._ComputeBasicNodeData,
+                             _FakeConfigWithNdParams())
+
+  def testEmpty(self):
+    self.assertEqual(self.fn({}, None), {})
+
+  def testSimple(self):
+    node1 = objects.Node(name="node1",
+                         primary_ip="192.0.2.1",
+                         secondary_ip="192.0.2.2",
+                         offline=False,
+                         drained=False,
+                         master_candidate=True,
+                         master_capable=True,
+                         group="11112222",
+                         vm_capable=False)
+
+    node2 = objects.Node(name="node2",
+                         primary_ip="192.0.2.3",
+                         secondary_ip="192.0.2.4",
+                         offline=True,
+                         drained=False,
+                         master_candidate=False,
+                         master_capable=False,
+                         group="11112222",
+                         vm_capable=True)
+
+    assert node1 != node2
+
+    ninfo = {
+      "#unused-1#": node1,
+      "#unused-2#": node2,
+      }
+
+    self.assertEqual(self.fn(ninfo, None), {
+      "node1": {
+        "tags": [],
+        "primary_ip": "192.0.2.1",
+        "secondary_ip": "192.0.2.2",
+        "offline": False,
+        "drained": False,
+        "master_candidate": True,
+        "group": "11112222",
+        "master_capable": True,
+        "vm_capable": False,
+        "ndparams": None,
+        },
+      "node2": {
+        "tags": [],
+        "primary_ip": "192.0.2.3",
+        "secondary_ip": "192.0.2.4",
+        "offline": True,
+        "drained": False,
+        "master_candidate": False,
+        "group": "11112222",
+        "master_capable": False,
+        "vm_capable": True,
+        "ndparams": None,
+        },
+      })
+
+  def testOfflineNode(self):
+    for whitelist in [None, [], set(), ["node1"], ["node2"]]:
+      result = self.fn({
+        "node1": objects.Node(name="node1", offline=True)
+        }, whitelist)
+      self.assertEqual(len(result), 1)
+      self.assertTrue(result["node1"]["offline"])
+
+  def testWhitelist(self):
+    for whitelist in [None, [], set(), ["node1"], ["node2"]]:
+      result = self.fn({
+        "node1": objects.Node(name="node1", offline=False)
+        }, whitelist)
+      self.assertEqual(len(result), 1)
+
+      if whitelist is None or "node1" in whitelist:
+        self.assertFalse(result["node1"]["offline"])
+      else:
+        self.assertTrue(result["node1"]["offline"])
 
 
 if __name__ == "__main__":

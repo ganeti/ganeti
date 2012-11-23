@@ -153,6 +153,7 @@ class IAReqInstanceAlloc(IARequestBase):
     ("nics", ht.TListOf(ht.TDict)),
     ("vcpus", ht.TInt),
     ("hypervisor", ht.TString),
+    ("node_whitelist", ht.TMaybeListOf(ht.TNonEmptyString)),
     ]
   REQ_RESULT = ht.TList
 
@@ -421,10 +422,13 @@ class IAllocator(object):
 
     if isinstance(self.req, IAReqInstanceAlloc):
       hypervisor_name = self.req.hypervisor
+      node_whitelist = self.req.node_whitelist
     elif isinstance(self.req, IAReqRelocate):
       hypervisor_name = cfg.GetInstanceInfo(self.req.name).hypervisor
+      node_whitelist = None
     else:
       hypervisor_name = cluster_info.primary_hypervisor
+      node_whitelist = None
 
     node_data = self.rpc.call_node_info(node_list, [cfg.GetVGName()],
                                         [hypervisor_name])
@@ -434,7 +438,7 @@ class IAllocator(object):
 
     data["nodegroups"] = self._ComputeNodeGroupData(cfg)
 
-    config_ndata = self._ComputeBasicNodeData(cfg, ninfo)
+    config_ndata = self._ComputeBasicNodeData(cfg, ninfo, node_whitelist)
     data["nodes"] = self._ComputeDynamicNodeData(ninfo, node_data, node_iinfo,
                                                  i_list, config_ndata)
     assert len(data["nodes"]) == len(ninfo), \
@@ -461,7 +465,7 @@ class IAllocator(object):
     return ng
 
   @staticmethod
-  def _ComputeBasicNodeData(cfg, node_cfg):
+  def _ComputeBasicNodeData(cfg, node_cfg, node_whitelist):
     """Compute global node data.
 
     @rtype: dict
@@ -473,7 +477,9 @@ class IAllocator(object):
       "tags": list(ninfo.GetTags()),
       "primary_ip": ninfo.primary_ip,
       "secondary_ip": ninfo.secondary_ip,
-      "offline": ninfo.offline,
+      "offline": (ninfo.offline or
+                  not (node_whitelist is None or
+                       ninfo.name in node_whitelist)),
       "drained": ninfo.drained,
       "master_candidate": ninfo.master_candidate,
       "group": ninfo.group,
