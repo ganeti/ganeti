@@ -4614,8 +4614,9 @@ class LUClusterRedistConf(NoHooksLU):
   def ExpandNames(self):
     self.needed_locks = {
       locking.LEVEL_NODE: locking.ALL_SET,
+      locking.LEVEL_NODE_ALLOC: locking.ALL_SET,
     }
-    self.share_locks[locking.LEVEL_NODE] = 1
+    self.share_locks = _ShareAll()
 
   def Exec(self, feedback_fn):
     """Redistribute the configuration.
