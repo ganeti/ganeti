@@ -3685,6 +3685,12 @@ class LUGroupVerifyDisks(NoHooksLU):
       locking.LEVEL_INSTANCE: [],
       locking.LEVEL_NODEGROUP: [],
       locking.LEVEL_NODE: [],
+
+      # This opcode is acquires all node locks in a group. LUClusterVerifyDisks
+      # starts one instance of this opcode for every group, which means all
+      # nodes will be locked for a short amount of time, so it's better to
+      # acquire the node allocation lock as well.
+      locking.LEVEL_NODE_ALLOC: locking.ALL_SET,
       }
 
   def DeclareLocks(self, level):
