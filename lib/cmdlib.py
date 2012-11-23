@@ -10811,7 +10811,11 @@ class LUInstanceMultiAlloc(NoHooksLU):
 
     """
     self.share_locks = _ShareAll()
-    self.needed_locks = {}
+    self.needed_locks = {
+      # iallocator will select nodes and even if no iallocator is used,
+      # collisions with LUInstanceCreate should be avoided
+      locking.LEVEL_NODE_ALLOC: locking.ALL_SET,
+      }
 
     if self.op.iallocator:
       self.needed_locks[locking.LEVEL_NODE] = locking.ALL_SET
