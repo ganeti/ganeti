@@ -77,6 +77,23 @@ instance Arbitrary IDiskParams where
               getMaybe genNameNE <*> getMaybe genNameNE <*>
               getMaybe genNameNE
 
+instance Arbitrary RecreateDisksInfo where
+  arbitrary = oneof [ pure RecreateDisksAll
+                    , RecreateDisksIndices <$> arbitrary
+                    , RecreateDisksParams <$> arbitrary
+                    ]
+
+instance Arbitrary DdmOldChanges where
+  arbitrary = oneof [ DdmOldIndex <$> arbitrary
+                    , DdmOldMod   <$> arbitrary
+                    ]
+
+instance (Arbitrary a) => Arbitrary (SetParamsMods a) where
+  arbitrary = oneof [ pure SetParamsEmpty
+                    , SetParamsDeprecated <$> arbitrary
+                    , SetParamsNew        <$> arbitrary
+                    ]
+
 instance Arbitrary OpCodes.OpCode where
   arbitrary = do
     op_id <- elements OpCodes.allOpIDs
@@ -189,6 +206,53 @@ instance Arbitrary OpCodes.OpCode where
           arbitrary <*> getMaybe genNodeNameNE <*>
           getMaybe genNodeNameNE <*> getMaybe genNameNE <*>
           arbitrary <*> (genTags >>= mapM mkNonEmpty)
+      "OP_INSTANCE_MULTI_ALLOC" ->
+        OpCodes.OpInstanceMultiAlloc <$> getMaybe genNameNE <*> pure []
+      "OP_INSTANCE_REINSTALL" ->
+        OpCodes.OpInstanceReinstall <$> getFQDN <*> arbitrary <*>
+          getMaybe genNameNE <*> getMaybe (pure emptyJSObject)
+      "OP_INSTANCE_REMOVE" ->
+        OpCodes.OpInstanceRemove <$> getFQDN <*> arbitrary <*> arbitrary
+      "OP_INSTANCE_RENAME" ->
+        OpCodes.OpInstanceRename <$> getFQDN <*> genNodeNameNE <*>
+          arbitrary <*> arbitrary
+      "OP_INSTANCE_STARTUP" ->
+        OpCodes.OpInstanceStartup <$> getFQDN <*> arbitrary <*> arbitrary <*>
+          pure emptyJSObject <*> pure emptyJSObject <*>
+          arbitrary <*> arbitrary
+      "OP_INSTANCE_SHUTDOWN" ->
+        OpCodes.OpInstanceShutdown <$> getFQDN <*> arbitrary <*>
+          arbitrary <*> arbitrary
+      "OP_INSTANCE_REBOOT" ->
+        OpCodes.OpInstanceReboot <$> getFQDN <*> arbitrary <*>
+          arbitrary <*> arbitrary
+      "OP_INSTANCE_MOVE" ->
+        OpCodes.OpInstanceMove <$> getFQDN <*> arbitrary <*> arbitrary <*>
+          genNodeNameNE <*> arbitrary
+      "OP_INSTANCE_CONSOLE" -> OpCodes.OpInstanceConsole <$> getFQDN
+      "OP_INSTANCE_ACTIVATE_DISKS" ->
+        OpCodes.OpInstanceActivateDisks <$> getFQDN <*>
+          arbitrary <*> arbitrary
+      "OP_INSTANCE_DEACTIVATE_DISKS" ->
+        OpCodes.OpInstanceDeactivateDisks <$> getFQDN <*> arbitrary
+      "OP_INSTANCE_RECREATE_DISKS" ->
+        OpCodes.OpInstanceRecreateDisks <$> getFQDN <*> arbitrary <*>
+          genNodeNamesNE <*> getMaybe genNameNE
+      "OP_INSTANCE_QUERY_DATA" ->
+        OpCodes.OpInstanceQueryData <$> arbitrary <*>
+          genNodeNamesNE <*> arbitrary
+      "OP_INSTANCE_SET_PARAMS" ->
+        OpCodes.OpInstanceSetParams <$> getFQDN <*> arbitrary <*>
+          arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*>
+          pure emptyJSObject <*> arbitrary <*> pure emptyJSObject <*>
+          arbitrary <*> getMaybe genNodeNameNE <*> getMaybe genNameNE <*>
+          pure emptyJSObject <*> arbitrary <*> arbitrary <*> arbitrary
+      "OP_INSTANCE_GROW_DISK" ->
+        OpCodes.OpInstanceGrowDisk <$> getFQDN <*> arbitrary <*>
+          arbitrary <*> arbitrary <*> arbitrary
+      "OP_INSTANCE_CHANGE_GROUP" ->
+        OpCodes.OpInstanceChangeGroup <$> getFQDN <*> arbitrary <*>
+          getMaybe genNameNE <*> getMaybe (resize maxNodes (listOf genNameNE))
       _ -> fail $ "Undefined arbitrary for opcode " ++ op_id
 
 -- * Helper functions

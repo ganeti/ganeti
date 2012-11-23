@@ -53,6 +53,7 @@ module Ganeti.Types
   , MigrationMode(..)
   , VerifyOptionalChecks(..)
   , DdmSimple(..)
+  , DdmFull(..)
   , CVErrorCode(..)
   , cVErrorCodeToRaw
   , Hypervisor(..)
@@ -61,6 +62,7 @@ module Ganeti.Types
   , NodeEvacMode(..)
   , FileDriver(..)
   , InstCreateMode(..)
+  , RebootType(..)
   ) where
 
 import qualified Text.JSON as JSON
@@ -217,6 +219,14 @@ $(THH.declareSADT "DdmSimple"
      ])
 $(THH.makeJSONInstance ''DdmSimple)
 
+-- | Dynamic device modification, all operations version.
+$(THH.declareSADT "DdmFull"
+     [ ("DdmFullAdd",    'C.ddmAdd)
+     , ("DdmFullRemove", 'C.ddmRemove)
+     , ("DdmFullModify", 'C.ddmModify)
+     ])
+$(THH.makeJSONInstance ''DdmFull)
+
 -- | Hypervisor type definitions.
 $(THH.declareSADT "Hypervisor"
   [ ( "Kvm",    'C.htKvm )
@@ -268,3 +278,11 @@ $(THH.declareSADT "InstCreateMode"
   , ("InstRemoteImport", 'C.instanceRemoteImport)
   ])
 $(THH.makeJSONInstance ''InstCreateMode)
+
+-- | Reboot type.
+$(THH.declareSADT "RebootType"
+  [ ("RebootSoft", 'C.instanceRebootSoft)
+  , ("RebootHard", 'C.instanceRebootHard)
+  , ("RebootFull", 'C.instanceRebootFull)
+  ])
+$(THH.makeJSONInstance ''RebootType)

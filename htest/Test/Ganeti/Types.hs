@@ -79,6 +79,8 @@ $(genArbitrary ''VerifyOptionalChecks)
 
 $(genArbitrary ''DdmSimple)
 
+$(genArbitrary ''DdmFull)
+
 $(genArbitrary ''CVErrorCode)
 
 $(genArbitrary ''Hypervisor)
@@ -92,6 +94,8 @@ $(genArbitrary ''NodeEvacMode)
 $(genArbitrary ''FileDriver)
 
 $(genArbitrary ''InstCreateMode)
+
+$(genArbitrary ''RebootType)
 
 -- * Properties
 
@@ -159,6 +163,10 @@ prop_VerifyOptionalChecks_serialisation = testSerialisation
 prop_DdmSimple_serialisation :: DdmSimple -> Property
 prop_DdmSimple_serialisation = testSerialisation
 
+-- | Tests 'DdmFull' serialisation.
+prop_DdmFull_serialisation :: DdmFull -> Property
+prop_DdmFull_serialisation = testSerialisation
+
 -- | Tests 'CVErrorCode' serialisation.
 prop_CVErrorCode_serialisation :: CVErrorCode -> Property
 prop_CVErrorCode_serialisation = testSerialisation
@@ -194,6 +202,10 @@ prop_FileDriver_serialisation = testSerialisation
 prop_InstCreateMode_serialisation :: InstCreateMode -> Property
 prop_InstCreateMode_serialisation = testSerialisation
 
+-- | Test 'RebootType' serialisation.
+prop_RebootType_serialisation :: RebootType -> Property
+prop_RebootType_serialisation = testSerialisation
+
 testSuite "Types"
   [ 'prop_AllocPolicy_serialisation
   , 'prop_DiskTemplate_serialisation
@@ -207,6 +219,7 @@ testSuite "Types"
   , 'prop_MigrationMode_serialisation
   , 'prop_VerifyOptionalChecks_serialisation
   , 'prop_DdmSimple_serialisation
+  , 'prop_DdmFull_serialisation
   , 'prop_CVErrorCode_serialisation
   , 'case_CVErrorCode_pyequiv
   , 'prop_Hypervisor_serialisation
@@ -215,4 +228,5 @@ testSuite "Types"
   , 'prop_NodeEvacMode_serialisation
   , 'prop_FileDriver_serialisation
   , 'prop_InstCreateMode_serialisation
+  , 'prop_RebootType_serialisation
   ]

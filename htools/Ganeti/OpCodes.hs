@@ -274,6 +274,108 @@ $(genOpCode "OpCode"
      , pStartInstance
      , pInstTags
      ])
+  , ("OpInstanceMultiAlloc",
+     [ pIallocator
+     , pMultiAllocInstances
+     ])
+  , ("OpInstanceReinstall",
+     [ pInstanceName
+     , pForceVariant
+     , pInstOs
+     , pTempOsParams
+     ])
+  , ("OpInstanceRemove",
+     [ pInstanceName
+     , pShutdownTimeout
+     , pIgnoreFailures
+     ])
+  , ("OpInstanceRename",
+     [ pInstanceName
+     , pNewName
+     , pNameCheck
+     , pIpCheck
+     ])
+  , ("OpInstanceStartup",
+     [ pInstanceName
+     , pForce
+     , pIgnoreOfflineNodes
+     , pTempHvParams
+     , pTempBeParams
+     , pNoRemember
+     , pStartupPaused
+     ])
+  , ("OpInstanceShutdown",
+     [ pInstanceName
+     , pIgnoreOfflineNodes
+     , pShutdownTimeout'
+     , pNoRemember
+     ])
+  , ("OpInstanceReboot",
+     [ pInstanceName
+     , pShutdownTimeout
+     , pIgnoreSecondaries
+     , pRebootType
+     ])
+  , ("OpInstanceMove",
+     [ pInstanceName
+     , pShutdownTimeout
+     , pIgnoreIpolicy
+     , pMoveTargetNode
+     , pIgnoreConsistency
+     ])
+  , ("OpInstanceConsole",
+     [ pInstanceName ])
+  , ("OpInstanceActivateDisks",
+     [ pInstanceName
+     , pIgnoreDiskSize
+     , pWaitForSyncFalse
+     ])
+  , ("OpInstanceDeactivateDisks",
+     [ pInstanceName
+     , pForce
+     ])
+  , ("OpInstanceRecreateDisks",
+     [ pInstanceName
+     , pRecreateDisksInfo
+     , pNodes
+     , pIallocator
+     ])
+  , ("OpInstanceQueryData",
+     [ pUseLocking
+     , pInstances
+     , pStatic
+     ])
+  , ("OpInstanceSetParams",
+     [ pInstanceName
+     , pForce
+     , pForceVariant
+     , pIgnoreIpolicy
+     , pInstParamsNicChanges
+     , pInstParamsDiskChanges
+     , pInstBeParams
+     , pRuntimeMem
+     , pInstHvParams
+     , pDiskTemplate
+     , pRemoteNode
+     , pOsNameChange
+     , pInstOsParams
+     , pWaitForSync
+     , pOffline
+     , pIpConflictsCheck
+     ])
+  , ("OpInstanceGrowDisk",
+     [ pInstanceName
+     , pWaitForSync
+     , pDiskIndex
+     , pDiskChgAmount
+     , pDiskChgAbsolute
+     ])
+  , ("OpInstanceChangeGroup",
+     [ pInstanceName
+     , pEarlyRelease
+     , pIallocator
+     , pTargetGroups
+     ])
   ])
 
 -- | Returns the OP_ID for a given opcode value.

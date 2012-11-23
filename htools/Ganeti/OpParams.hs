@@ -44,6 +44,9 @@ module Ganeti.OpParams
   , DiskAccess(..)
   , INicParams(..)
   , IDiskParams(..)
+  , RecreateDisksInfo(..)
+  , DdmOldChanges(..)
+  , SetParamsMods(..)
   , pInstanceName
   , pInstances
   , pName
@@ -51,6 +54,7 @@ module Ganeti.OpParams
   , pTagsObject
   , pOutputFields
   , pShutdownTimeout
+  , pShutdownTimeout'
   , pForce
   , pIgnoreOfflineNodes
   , pNodeName
@@ -73,6 +77,7 @@ module Ganeti.OpParams
   , pIpConflictsCheck
   , pNoRemember
   , pMigrationTargetNode
+  , pMoveTargetNode
   , pStartupPaused
   , pVerbose
   , pDebugSimulateErrors
@@ -155,11 +160,32 @@ module Ganeti.OpParams
   , pSrcPath
   , pStartInstance
   , pInstTags
+  , pMultiAllocInstances
+  , pTempOsParams
+  , pTempHvParams
+  , pTempBeParams
+  , pIgnoreFailures
+  , pNewName
+  , pIgnoreSecondaries
+  , pRebootType
+  , pIgnoreDiskSize
+  , pRecreateDisksInfo
+  , pStatic
+  , pInstParamsNicChanges
+  , pInstParamsDiskChanges
+  , pRuntimeMem
+  , pOsNameChange
+  , pDiskIndex
+  , pDiskChgAmount
+  , pDiskChgAbsolute
+  , pTargetGroups
   ) where
 
+import Control.Monad (liftM)
 import qualified Data.Set as Set
 import Text.JSON (readJSON, showJSON, JSON, JSValue(..), fromJSString,
                   JSObject, toJSObject)
+import qualified Text.JSON
 import Text.JSON.Pretty (pp_value)
 
 import Ganeti.BasicTypes
@@ -327,6 +353,74 @@ $(buildObject "IDiskParams" "idisk"
   , optionalField $ simpleField C.idiskMetavg [t| NonEmptyString |]
   ])
 
+-- | Disk changes type for OpInstanceRecreateDisks. This is a bit
+-- strange, because the type in Python is something like Either
+-- [DiskIndex] [DiskChanges], but we can't represent the type of an
+-- empty list in JSON, so we have to add a custom case for the empty
+-- list.
+data RecreateDisksInfo
+  = RecreateDisksAll
+  | RecreateDisksIndices (NonEmpty DiskIndex)
+  | RecreateDisksParams (NonEmpty (DiskIndex, IDiskParams))
+    deriving (Eq, Read, Show)
+
+readRecreateDisks :: JSValue -> Text.JSON.Result RecreateDisksInfo
+readRecreateDisks (JSArray []) = return RecreateDisksAll
+readRecreateDisks v =
+  case readJSON v::Text.JSON.Result [DiskIndex] of
+    Text.JSON.Ok indices -> liftM RecreateDisksIndices (mkNonEmpty indices)
+    _ -> case readJSON v::Text.JSON.Result [(DiskIndex, IDiskParams)] of
+           Text.JSON.Ok params -> liftM RecreateDisksParams (mkNonEmpty params)
+           _ -> fail $ "Can't parse disk information as either list of disk"
+                ++ " indices or list of disk parameters; value recevied:"
+                ++ show (pp_value v)
+
+instance JSON RecreateDisksInfo where
+  readJSON = readRecreateDisks
+  showJSON  RecreateDisksAll            = showJSON ()
+  showJSON (RecreateDisksIndices idx)   = showJSON idx
+  showJSON (RecreateDisksParams params) = showJSON params
+
+-- | Simple type for old-style ddm changes.
+data DdmOldChanges = DdmOldIndex (NonNegative Int)
+                   | DdmOldMod DdmSimple
+                     deriving (Eq, Read, Show)
+
+readDdmOldChanges :: JSValue -> Text.JSON.Result DdmOldChanges
+readDdmOldChanges v =
+  case readJSON v::Text.JSON.Result (NonNegative Int) of
+    Text.JSON.Ok nn -> return $ DdmOldIndex nn
+    _ -> case readJSON v::Text.JSON.Result DdmSimple of
+           Text.JSON.Ok ddms -> return $ DdmOldMod ddms
+           _ -> fail $ "Can't parse value '" ++ show (pp_value v) ++ "' as"
+                ++ " either index or modification"
+
+instance JSON DdmOldChanges where
+  showJSON (DdmOldIndex i) = showJSON i
+  showJSON (DdmOldMod m)   = showJSON m
+  readJSON = readDdmOldChanges
+
+-- | Instance disk or nic modifications.
+data SetParamsMods a
+  = SetParamsEmpty
+  | SetParamsDeprecated (NonEmpty (DdmOldChanges, a))
+  | SetParamsNew (NonEmpty (DdmFull, Int, a))
+    deriving (Eq, Read, Show)
+
+-- | Custom deserialiser for 'SetParamsMods'.
+readSetParams :: (JSON a) => JSValue -> Text.JSON.Result (SetParamsMods a)
+readSetParams (JSArray []) = return SetParamsEmpty
+readSetParams v =
+  case readJSON v::Text.JSON.Result [(DdmOldChanges, JSValue)] of
+    Text.JSON.Ok _ -> liftM SetParamsDeprecated $ readJSON v
+    _ -> liftM SetParamsNew $ readJSON v
+
+instance (JSON a) => JSON (SetParamsMods a) where
+  showJSON SetParamsEmpty = showJSON ()
+  showJSON (SetParamsDeprecated v) = showJSON v
+  showJSON (SetParamsNew v) = showJSON v
+  readJSON = readSetParams
+
 -- * Parameters
 
 -- | A required instance name (for single-instance LUs).
@@ -357,8 +451,16 @@ pOutputFields = simpleField "output_fields" [t| [NonEmptyString] |]
 
 -- | How long to wait for instance to shut down.
 pShutdownTimeout :: Field
-pShutdownTimeout = defaultField [| C.defaultShutdownTimeout |] $
+pShutdownTimeout = defaultField [| forceNonNeg C.defaultShutdownTimeout |] $
                    simpleField "shutdown_timeout" [t| NonNegative Int |]
+
+-- | Another name for the shutdown timeout, because we like to be
+-- inconsistent.
+pShutdownTimeout' :: Field
+pShutdownTimeout' =
+  renameField "InstShutdownTimeout" .
+  defaultField [| forceNonNeg C.defaultShutdownTimeout |] $
+  simpleField "timeout" [t| NonNegative Int |]
 
 -- | Whether to force the operation.
 pForce :: Field
@@ -454,6 +556,12 @@ pNoRemember = defaultFalse "no_remember"
 -- | Target node for instance migration/failover.
 pMigrationTargetNode :: Field
 pMigrationTargetNode = optionalNEStringField "target_node"
+
+-- | Target node for instance move (required).
+pMoveTargetNode :: Field
+pMoveTargetNode =
+  renameField "MoveTargetNode" $
+  simpleField "target_node" [t| NonEmptyString |]
 
 -- | Pause instance at startup.
 pStartupPaused :: Field
@@ -591,14 +699,35 @@ pOsHvp = optionalField $ simpleField "os_hvp" [t| Container UncheckedDict |]
 -- | Cluster-wide OS parameter defaults.
 pClusterOsParams :: Field
 pClusterOsParams =
-  renameField "clusterOsParams" .
+  renameField "ClusterOsParams" .
   optionalField $ simpleField "osparams" [t| Container UncheckedDict |]
 
 -- | Instance OS parameters.
 pInstOsParams :: Field
 pInstOsParams =
-  renameField "instOsParams" . defaultField [| toJSObject [] |] $
+  renameField "InstOsParams" . defaultField [| toJSObject [] |] $
   simpleField "osparams" [t| UncheckedDict |]
+
+-- | Temporary OS parameters (currently only in reinstall, might be
+-- added to install as well).
+pTempOsParams :: Field
+pTempOsParams =
+  renameField "TempOsParams" .
+  optionalField $ simpleField "osparams" [t| UncheckedDict |]
+
+-- | Temporary hypervisor parameters, hypervisor-dependent.
+pTempHvParams :: Field
+pTempHvParams =
+  renameField "TempHvParams" .
+  defaultField [| toJSObject [] |] $
+  simpleField "hvparams" [t| UncheckedDict |]
+
+-- | Temporary backend parameters.
+pTempBeParams :: Field
+pTempBeParams =
+  renameField "TempBeParams" .
+  defaultField [| toJSObject [] |] $
+  simpleField "beparams" [t| UncheckedDict |]
 
 -- | Candidate pool size.
 pCandidatePoolSize :: Field
@@ -844,3 +973,81 @@ pInstTags =
   renameField "InstTags" .
   defaultField [| [] |] $
   simpleField "tags" [t| [NonEmptyString] |]
+
+-- | Unchecked list of OpInstanceCreate, used in OpInstanceMultiAlloc.
+pMultiAllocInstances :: Field
+pMultiAllocInstances =
+  renameField "InstMultiAlloc" .
+  defaultField [| [] |] $
+  simpleField "instances"[t| UncheckedList |]
+
+-- | Ignore failures parameter.
+pIgnoreFailures :: Field
+pIgnoreFailures = defaultFalse "ignore_failures"
+
+-- | New instance or cluster name.
+pNewName :: Field
+pNewName = simpleField "new_name" [t| NonEmptyString |]
+
+-- | Whether to start the instance even if secondary disks are failing.
+pIgnoreSecondaries :: Field
+pIgnoreSecondaries = defaultFalse "ignore_secondaries"
+
+-- | How to reboot the instance.
+pRebootType :: Field
+pRebootType = simpleField "reboot_type" [t| RebootType |]
+
+-- | Whether to ignore recorded disk size.
+pIgnoreDiskSize :: Field
+pIgnoreDiskSize = defaultFalse "ignore_size"
+
+-- | Disk list for recreate disks.
+pRecreateDisksInfo :: Field
+pRecreateDisksInfo =
+  renameField "RecreateDisksInfo" .
+  defaultField [| RecreateDisksAll |] $
+  simpleField "disks" [t| RecreateDisksInfo |]
+
+-- | Whether to only return configuration data without querying nodes.
+pStatic :: Field
+pStatic = defaultFalse "static"
+
+-- | InstanceSetParams NIC changes.
+pInstParamsNicChanges :: Field
+pInstParamsNicChanges =
+  renameField "InstNicChanges" .
+  defaultField [| SetParamsEmpty |] $
+  simpleField "nics" [t| SetParamsMods INicParams |]
+
+-- | InstanceSetParams Disk changes.
+pInstParamsDiskChanges :: Field
+pInstParamsDiskChanges =
+  renameField "InstDiskChanges" .
+  defaultField [| SetParamsEmpty |] $
+  simpleField "disks" [t| SetParamsMods IDiskParams |]
+
+-- | New runtime memory.
+pRuntimeMem :: Field
+pRuntimeMem = optionalField $ simpleField "runtime_mem" [t| Positive Int |]
+
+-- | Change the instance's OS without reinstalling the instance
+pOsNameChange :: Field
+pOsNameChange = optionalNEStringField "os_name"
+
+-- | Disk index for e.g. grow disk.
+pDiskIndex :: Field
+pDiskIndex = renameField "DiskIndex " $ simpleField "disk" [t| DiskIndex |]
+
+-- | Disk amount to add or grow to.
+pDiskChgAmount :: Field
+pDiskChgAmount =
+  renameField "DiskChgAmount" $ simpleField "amount" [t| NonNegative Int |]
+
+-- | Whether the amount parameter is an absolute target or a relative one.
+pDiskChgAbsolute :: Field
+pDiskChgAbsolute = renameField "DiskChkAbsolute" $ defaultFalse "absolute"
+
+-- | Destination group names or UUIDs (defaults to \"all but current group\".
+pTargetGroups :: Field
+pTargetGroups =
+  optionalField $ simpleField "target_groups" [t| [NonEmptyString] |]
