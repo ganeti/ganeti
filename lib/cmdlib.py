@@ -3797,6 +3797,8 @@ class LUClusterRepairDiskSizes(NoHooksLU):
   def ExpandNames(self):
     if self.op.instances:
       self.wanted_names = _GetWantedInstances(self, self.op.instances)
+      # Not getting the node allocation lock as only a specific set of
+      # instances (and their nodes) is going to be acquired
       self.needed_locks = {
         locking.LEVEL_NODE_RES: [],
         locking.LEVEL_INSTANCE: self.wanted_names,
@@ -3807,10 +3809,15 @@ class LUClusterRepairDiskSizes(NoHooksLU):
       self.needed_locks = {
         locking.LEVEL_NODE_RES: locking.ALL_SET,
         locking.LEVEL_INSTANCE: locking.ALL_SET,
+
+        # This opcode is acquires the node locks for all instances
+        locking.LEVEL_NODE_ALLOC: locking.ALL_SET,
         }
+
     self.share_locks = {
       locking.LEVEL_NODE_RES: 1,
       locking.LEVEL_INSTANCE: 0,
+      locking.LEVEL_NODE_ALLOC: 1,
       }
 
   def DeclareLocks(self, level):
