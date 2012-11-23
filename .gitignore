@@ -106,6 +106,7 @@
 /scripts/gnt-job
 /scripts/gnt-node
 /scripts/gnt-os
+/scripts/gnt-network
 
 # htools-specific rules
 /htools/apidoc
