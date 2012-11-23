@@ -7806,6 +7806,10 @@ def _ExpandNamesForMigration(lu):
   lu.needed_locks[locking.LEVEL_NODE_RES] = []
   lu.recalculate_locks[locking.LEVEL_NODE_RES] = constants.LOCKS_REPLACE
 
+  # The node allocation lock is actually only needed for replicated instances
+  # (e.g. DRBD8) and if an iallocator is used.
+  lu.needed_locks[locking.LEVEL_NODE_ALLOC] = []
+
 
 def _DeclareLocksForMigration(lu, level):
   """Declares locks for L{TLMigrateInstance}.
@@ -7814,17 +7818,26 @@ def _DeclareLocksForMigration(lu, level):
   @param level: Lock level
 
   """
-  if level == locking.LEVEL_NODE:
+  if level == locking.LEVEL_NODE_ALLOC:
+    assert lu.op.instance_name in lu.owned_locks(locking.LEVEL_INSTANCE)
+
     instance = lu.cfg.GetInstanceInfo(lu.op.instance_name)
+
     if instance.disk_template in constants.DTS_EXT_MIRROR:
       if lu.op.target_node is None:
         lu.needed_locks[locking.LEVEL_NODE] = locking.ALL_SET
+        lu.needed_locks[locking.LEVEL_NODE_ALLOC] = locking.ALL_SET
       else:
         lu.needed_locks[locking.LEVEL_NODE] = [instance.primary_node,
                                                lu.op.target_node]
       del lu.recalculate_locks[locking.LEVEL_NODE]
     else:
       lu._LockInstancesNodes() # pylint: disable=W0212
+
+  elif level == locking.LEVEL_NODE:
+    # Node locks are declared together with the node allocation lock
+    assert lu.needed_locks[locking.LEVEL_NODE]
+
   elif level == locking.LEVEL_NODE_RES:
     # Copy node locks
     lu.needed_locks[locking.LEVEL_NODE_RES] = \
@@ -8298,6 +8311,8 @@ class TLMigrateInstance(Tasklet):
                                  errors.ECODE_STATE)
 
     if instance.disk_template in constants.DTS_EXT_MIRROR:
+      assert locking.NAL in self.lu.owned_locks(locking.LEVEL_NODE_ALLOC)
+
       _CheckIAllocatorOrNode(self.lu, "iallocator", "target_node")
 
       if self.lu.op.iallocator:
@@ -8329,8 +8344,11 @@ class TLMigrateInstance(Tasklet):
         # in the LU
         _ReleaseLocks(self.lu, locking.LEVEL_NODE,
                       keep=[instance.primary_node, self.target_node])
+        _ReleaseLocks(self.lu, locking.LEVEL_NODE_ALLOC)
 
     else:
+      assert not self.lu.glm.is_owned(locking.LEVEL_NODE_ALLOC)
+
       secondary_nodes = instance.secondary_nodes
       if not secondary_nodes:
         raise errors.ConfigurationError("No secondary node but using"
@@ -8432,6 +8450,8 @@ class TLMigrateInstance(Tasklet):
     """Run the allocator based on input opcode.
 
     """
+    assert locking.NAL in self.lu.owned_locks(locking.LEVEL_NODE_ALLOC)
+
     # FIXME: add a self.ignore_ipolicy option
     req = iallocator.IAReqRelocate(name=self.instance_name,
                                    relocate_from=[self.instance.primary_node])
