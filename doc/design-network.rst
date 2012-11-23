@@ -247,7 +247,7 @@ Network addition/deletion
 
  gnt-network add --network=192.168.100.0/28 --gateway=192.168.100.1 \
                  --network6=2001:db8:2ffc::/64 --gateway6=2001:db8:2ffc::1 \
-                 --reserved-ips=192.168.100.10,192.168.100.11 net100
+                 --add-reserved-ips=192.168.100.10,192.168.100.11 net100
   (Checks for already exising name and valid IP values)
  gnt-network remove network_name
   (Checks if not connected to any nodegroup)
@@ -259,8 +259,10 @@ Network modification
 
  gnt-network modify --gateway=192.168.100.5 net100
   (Changes the gateway only if ip is available)
- gnt-network modify --reserved-ips=192.168.100.11 net100
-  (Toggles externally reserved ip)
+ gnt-network modify --add-reserved-ips=192.168.100.11 net100
+  (Adds externally reserved ip)
+ gnt-network modify --remove-reserved-ips=192.168.100.11 net100
+  (Removes externally reserved ip)
 
 
 Assignment to node groups
