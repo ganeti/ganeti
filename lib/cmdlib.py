@@ -6053,19 +6053,28 @@ class LUNodeSetParams(LogicalUnit):
 
   def ExpandNames(self):
     if self.lock_all:
-      self.needed_locks = {locking.LEVEL_NODE: locking.ALL_SET}
+      self.needed_locks = {
+        locking.LEVEL_NODE: locking.ALL_SET,
+
+        # Block allocations when all nodes are locked
+        locking.LEVEL_NODE_ALLOC: locking.ALL_SET,
+        }
     else:
-      self.needed_locks = {locking.LEVEL_NODE: self.op.node_name}
+      self.needed_locks = {
+        locking.LEVEL_NODE: self.op.node_name,
+        }
 
     # Since modifying a node can have severe effects on currently running
     # operations the resource lock is at least acquired in shared mode
     self.needed_locks[locking.LEVEL_NODE_RES] = \
       self.needed_locks[locking.LEVEL_NODE]
 
-    # Get node resource and instance locks in shared mode; they are not used
-    # for anything but read-only access
-    self.share_locks[locking.LEVEL_NODE_RES] = 1
-    self.share_locks[locking.LEVEL_INSTANCE] = 1
+    # Get all locks except nodes in shared mode; they are not used for anything
+    # but read-only access
+    self.share_locks = _ShareAll()
+    self.share_locks[locking.LEVEL_NODE] = 0
+    self.share_locks[locking.LEVEL_NODE_RES] = 0
+    self.share_locks[locking.LEVEL_NODE_ALLOC] = 0
 
     if self.lock_instances:
       self.needed_locks[locking.LEVEL_INSTANCE] = \
