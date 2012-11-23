@@ -2233,6 +2233,11 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       locking.LEVEL_INSTANCE: inst_names,
       locking.LEVEL_NODEGROUP: [self.group_uuid],
       locking.LEVEL_NODE: [],
+
+      # This opcode is run by watcher every five minutes and acquires all nodes
+      # for a group. It doesn't run for a long time, so it's better to acquire
+      # the node allocation lock as well.
+      locking.LEVEL_NODE_ALLOC: locking.ALL_SET,
       }
 
     self.share_locks = _ShareAll()
