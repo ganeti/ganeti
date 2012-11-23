@@ -5386,13 +5386,16 @@ class LUNodeQueryStorage(NoHooksLU):
 
   def ExpandNames(self):
     self.share_locks = _ShareAll()
-    self.needed_locks = {}
 
     if self.op.nodes:
-      self.needed_locks[locking.LEVEL_NODE] = \
-        _GetWantedNodes(self, self.op.nodes)
+      self.needed_locks = {
+        locking.LEVEL_NODE: _GetWantedNodes(self, self.op.nodes),
+        }
     else:
-      self.needed_locks[locking.LEVEL_NODE] = locking.ALL_SET
+      self.needed_locks = {
+        locking.LEVEL_NODE: locking.ALL_SET,
+        locking.LEVEL_NODE_ALLOC: locking.ALL_SET,
+        }
 
   def Exec(self, feedback_fn):
     """Computes the list of nodes and their attributes.
