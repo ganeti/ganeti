@@ -172,7 +172,7 @@ def TestAllocator(opts, args):
                                vcpus=opts.vcpus,
                                tags=opts.tags,
                                direction=opts.direction,
-                               allocator=opts.iallocator,
+                               iallocator=opts.iallocator,
                                evac_mode=opts.evac_mode,
                                target_groups=target_groups,
                                spindle_use=opts.spindle_use,

@@ -15533,7 +15533,7 @@ class LUTestAllocator(NoHooksLU):
                                  self.op.mode, errors.ECODE_INVAL)
 
     if self.op.direction == constants.IALLOCATOR_DIR_OUT:
-      if self.op.allocator is None:
+      if self.op.iallocator is None:
         raise errors.OpPrereqError("Missing allocator name",
                                    errors.ECODE_INVAL)
     elif self.op.direction != constants.IALLOCATOR_DIR_IN:
@@ -15586,7 +15586,7 @@ class LUTestAllocator(NoHooksLU):
     if self.op.direction == constants.IALLOCATOR_DIR_IN:
       result = ial.in_text
     else:
-      ial.Run(self.op.allocator, validate=False)
+      ial.Run(self.op.iallocator, validate=False)
       result = ial.out_text
     return result
 

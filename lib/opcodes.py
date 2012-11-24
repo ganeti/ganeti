@@ -1959,7 +1959,7 @@ class OpTestAllocator(OpCode):
       return the allocator output (direction 'out')
 
   """
-  OP_DSC_FIELD = "allocator"
+  OP_DSC_FIELD = "iallocator"
   OP_PARAMS = [
     ("direction", ht.NoDefault,
      ht.TElemOf(constants.VALID_IALLOCATOR_DIRECTIONS), None),
@@ -1973,7 +1973,7 @@ class OpTestAllocator(OpCode):
      None),
     ("disks", ht.NoDefault, ht.TMaybe(ht.TList), None),
     ("hypervisor", None, ht.TMaybeString, None),
-    ("allocator", None, ht.TMaybeString, None),
+    _PIAllocFromDesc(None),
     ("tags", ht.EmptyList, ht.TListOf(ht.TNonEmptyString), None),
     ("memory", None, ht.TMaybe(ht.TNonNegativeInt), None),
     ("vcpus", None, ht.TMaybe(ht.TNonNegativeInt), None),
