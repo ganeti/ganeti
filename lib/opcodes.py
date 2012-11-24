@@ -167,6 +167,9 @@ _PIgnoreIpolicy = ("ignore_ipolicy", False, ht.TBool,
 _PAllowRuntimeChgs = ("allow_runtime_changes", True, ht.TBool,
                       "Allow runtime changes (eg. memory ballooning)")
 
+#: IAllocator field builder
+_PIAllocFromDesc = lambda desc: ("iallocator", None, ht.TMaybeString, desc)
+
 #: a required network name
 _PNetworkName = ("network_name", ht.NoDefault, ht.TNonEmptyString,
                  "Set network name")
@@ -1196,8 +1199,8 @@ class OpNodeMigrate(OpCode):
     _PMigrationTargetNode,
     _PAllowRuntimeChgs,
     _PIgnoreIpolicy,
-    ("iallocator", None, ht.TMaybeString,
-     "Iallocator for deciding the target node for shared-storage instances"),
+    _PIAllocFromDesc("Iallocator for deciding the target node"
+                     " for shared-storage instances"),
     ]
   OP_RESULT = TJobIdListOnly
 
@@ -1209,7 +1212,7 @@ class OpNodeEvacuate(OpCode):
     _PEarlyRelease,
     _PNodeName,
     ("remote_node", None, ht.TMaybeString, "New secondary node"),
-    ("iallocator", None, ht.TMaybeString, "Iallocator for computing solution"),
+    _PIAllocFromDesc("Iallocator for computing solution"),
     ("mode", ht.NoDefault, ht.TElemOf(constants.NODE_EVAC_MODES),
      "Node evacuation mode"),
     ]
@@ -1255,8 +1258,7 @@ class OpInstanceCreate(OpCode):
     ("hvparams", ht.EmptyDict, ht.TDict,
      "Hypervisor parameters for instance, hypervisor-dependent"),
     ("hypervisor", None, ht.TMaybeString, "Hypervisor"),
-    ("iallocator", None, ht.TMaybeString,
-     "Iallocator for deciding which node(s) to use"),
+    _PIAllocFromDesc("Iallocator for deciding which node(s) to use"),
     ("identify_defaults", False, ht.TBool,
      "Reset instance parameters to default if equal"),
     ("ip_check", True, ht.TBool, _PIpCheckDoc),
@@ -1297,8 +1299,7 @@ class OpInstanceMultiAlloc(OpCode):
 
   """
   OP_PARAMS = [
-    ("iallocator", None, ht.TMaybeString,
-     "Iallocator used to allocate all the instances"),
+    _PIAllocFromDesc("Iallocator used to allocate all the instances"),
     ("instances", ht.EmptyList, ht.TListOf(ht.TInstanceOf(OpInstanceCreate)),
      "List of instance create opcodes describing the instances to allocate"),
     ]
@@ -1442,8 +1443,7 @@ class OpInstanceReplaceDisks(OpCode):
     ("disks", ht.EmptyList, ht.TListOf(ht.TNonNegativeInt),
      "Disk indexes"),
     ("remote_node", None, ht.TMaybeString, "New secondary node"),
-    ("iallocator", None, ht.TMaybeString,
-     "Iallocator for deciding new secondary node"),
+    _PIAllocFromDesc("Iallocator for deciding new secondary node"),
     ]
   OP_RESULT = ht.TNone
 
@@ -1457,8 +1457,8 @@ class OpInstanceFailover(OpCode):
     _PIgnoreConsistency,
     _PMigrationTargetNode,
     _PIgnoreIpolicy,
-    ("iallocator", None, ht.TMaybeString,
-     "Iallocator for deciding the target node for shared-storage instances"),
+    _PIAllocFromDesc("Iallocator for deciding the target node for"
+                     " shared-storage instances"),
     ]
   OP_RESULT = ht.TNone
 
@@ -1483,8 +1483,8 @@ class OpInstanceMigrate(OpCode):
     _PIgnoreIpolicy,
     ("cleanup", False, ht.TBool,
      "Whether a previously failed migration should be cleaned up"),
-    ("iallocator", None, ht.TMaybeString,
-     "Iallocator for deciding the target node for shared-storage instances"),
+    _PIAllocFromDesc("Iallocator for deciding the target node for"
+                     " shared-storage instances"),
     ("allow_failover", False, ht.TBool,
      "Whether we can fallback to failover if migration is not possible"),
     ]
@@ -1561,8 +1561,7 @@ class OpInstanceRecreateDisks(OpCode):
      " index and a possibly empty dictionary with disk parameter changes"),
     ("nodes", ht.EmptyList, ht.TListOf(ht.TNonEmptyString),
      "New instance nodes, if relocation is desired"),
-    ("iallocator", None, ht.TMaybeString,
-     "Iallocator for deciding new nodes"),
+    _PIAllocFromDesc("Iallocator for deciding new nodes"),
     ]
   OP_RESULT = ht.TNone
 
@@ -1680,7 +1679,7 @@ class OpInstanceChangeGroup(OpCode):
   OP_PARAMS = [
     _PInstanceName,
     _PEarlyRelease,
-    ("iallocator", None, ht.TMaybeString, "Iallocator for computing solution"),
+    _PIAllocFromDesc("Iallocator for computing solution"),
     ("target_groups", None, ht.TMaybeListOf(ht.TNonEmptyString),
      "Destination group names or UUIDs (defaults to \"all but current group\""),
     ]
@@ -1766,7 +1765,7 @@ class OpGroupEvacuate(OpCode):
   OP_PARAMS = [
     _PGroupName,
     _PEarlyRelease,
-    ("iallocator", None, ht.TMaybeString, "Iallocator for computing solution"),
+    _PIAllocFromDesc("Iallocator for computing solution"),
     ("target_groups", None, ht.TMaybeListOf(ht.TNonEmptyString),
      "Destination group names or UUIDs"),
     ]
