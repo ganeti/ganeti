@@ -460,6 +460,7 @@ HS_LIB_SRCS = \
 	htools/Ganeti/HTools/Cluster.hs \
 	htools/Ganeti/HTools/Container.hs \
 	htools/Ganeti/HTools/ExtLoader.hs \
+	htools/Ganeti/HTools/Graph.hs \
 	htools/Ganeti/HTools/Group.hs \
 	htools/Ganeti/HTools/Instance.hs \
 	htools/Ganeti/HTools/Loader.hs \
@@ -511,6 +512,7 @@ HS_TEST_SRCS = \
 	htest/Test/Ganeti/HTools/CLI.hs \
 	htest/Test/Ganeti/HTools/Cluster.hs \
 	htest/Test/Ganeti/HTools/Container.hs \
+	htest/Test/Ganeti/HTools/Graph.hs \
 	htest/Test/Ganeti/HTools/Instance.hs \
 	htest/Test/Ganeti/HTools/Loader.hs \
 	htest/Test/Ganeti/HTools/Node.hs \

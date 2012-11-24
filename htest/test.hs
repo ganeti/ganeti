@@ -43,6 +43,7 @@ import Test.Ganeti.HTools.Backend.Text
 import Test.Ganeti.HTools.CLI
 import Test.Ganeti.HTools.Cluster
 import Test.Ganeti.HTools.Container
+import Test.Ganeti.HTools.Graph
 import Test.Ganeti.HTools.Instance
 import Test.Ganeti.HTools.Loader
 import Test.Ganeti.HTools.Node
@@ -90,6 +91,7 @@ allTests =
   , testHTools_CLI
   , testHTools_Cluster
   , testHTools_Container
+  , testHTools_Graph
   , testHTools_Instance
   , testHTools_Loader
   , testHTools_Node
