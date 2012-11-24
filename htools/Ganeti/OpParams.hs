@@ -189,6 +189,26 @@ module Ganeti.OpParams
   , pX509DestCA
   , pTagSearchPattern
   , pDelayRepeat
+  , pIAllocatorDirection
+  , pIAllocatorMode
+  , pIAllocatorReqName
+  , pIAllocatorNics
+  , pIAllocatorDisks
+  , pIAllocatorMemory
+  , pIAllocatorVCpus
+  , pIAllocatorOs
+  , pIAllocatorInstances
+  , pIAllocatorEvacMode
+  , pIAllocatorSpindleUse
+  , pIAllocatorCount
+  , pJQueueNotifyWaitLock
+  , pJQueueNotifyExec
+  , pJQueueLogMessages
+  , pJQueueFail
+  , pTestDummyResult
+  , pTestDummyMessages
+  , pTestDummyFail
+  , pTestDummySubmitJobs
   ) where
 
 import Control.Monad (liftM)
@@ -233,8 +253,8 @@ optionalStringField = optionalField . stringField
 optionalNEStringField :: String -> Field
 optionalNEStringField = optionalField . flip simpleField [t| NonEmptyString |]
 
---- | Unchecked value, should be replaced by a better definition.
---- type UncheckedValue = JSValue
+-- | Unchecked value, should be replaced by a better definition.
+type UncheckedValue = JSValue
 
 -- | Unchecked dict, should be replaced by a better definition.
 type UncheckedDict = JSObject JSValue
@@ -1121,9 +1141,124 @@ pTagSearchPattern :: Field
 pTagSearchPattern =
   renameField "TagSearchPattern" $ simpleField "pattern" [t| NonEmptyString |]
 
+-- * Test opcode parameters
+
 -- | Repeat parameter for OpTestDelay.
 pDelayRepeat :: Field
 pDelayRepeat =
   renameField "DelayRepeat" .
   defaultField [| forceNonNeg (0::Int) |] $
   simpleField "repeat" [t| NonNegative Int |]
+
+-- | IAllocator test direction.
+pIAllocatorDirection :: Field
+pIAllocatorDirection =
+  renameField "IAllocatorDirection" $
+  simpleField "direction" [t| IAllocatorTestDir |]
+
+-- | IAllocator test mode.
+pIAllocatorMode :: Field
+pIAllocatorMode =
+  renameField "IAllocatorMode" $
+  simpleField "mode" [t| IAllocatorMode |]
+
+-- | IAllocator target name (new instance, node to evac, etc.).
+pIAllocatorReqName :: Field
+pIAllocatorReqName =
+  renameField "IAllocatorReqName" $ simpleField "name" [t| NonEmptyString |]
+
+-- | Custom OpTestIAllocator nics.
+pIAllocatorNics :: Field
+pIAllocatorNics =
+  renameField "IAllocatorNics" $ simpleField "nics" [t| [UncheckedDict] |]
+
+-- | Custom OpTestAllocator disks.
+pIAllocatorDisks :: Field
+pIAllocatorDisks =
+  renameField "IAllocatorDisks" $ simpleField "disks" [t| UncheckedList |]
+
+-- | IAllocator memory field.
+pIAllocatorMemory :: Field
+pIAllocatorMemory =
+  renameField "IAllocatorMem" .
+  optionalField $
+  simpleField "memory" [t| NonNegative Int |]
+
+-- | IAllocator vcpus field.
+pIAllocatorVCpus :: Field
+pIAllocatorVCpus =
+  renameField "IAllocatorVCpus" .
+  optionalField $
+  simpleField "vcpus" [t| NonNegative Int |]
+
+-- | IAllocator os field.
+pIAllocatorOs :: Field
+pIAllocatorOs = renameField "IAllocatorOs" $ optionalNEStringField "os"
+
+-- | IAllocator instances field.
+pIAllocatorInstances :: Field
+pIAllocatorInstances =
+  renameField "IAllocatorInstances " .
+  optionalField $
+  simpleField "instances" [t| [NonEmptyString] |]
+
+-- | IAllocator evac mode.
+pIAllocatorEvacMode :: Field
+pIAllocatorEvacMode =
+  renameField "IAllocatorEvacMode" .
+  optionalField $
+  simpleField "evac_mode" [t| NodeEvacMode |]
+
+-- | IAllocator spindle use.
+pIAllocatorSpindleUse :: Field
+pIAllocatorSpindleUse =
+  renameField "IAllocatorSpindleUse" .
+  defaultField [| forceNonNeg (1::Int) |] $
+  simpleField "spindle_use" [t| NonNegative Int |]
+
+-- | IAllocator count field.
+pIAllocatorCount :: Field
+pIAllocatorCount =
+  renameField "IAllocatorCount" .
+  defaultField [| forceNonNeg (1::Int) |] $
+  simpleField "count" [t| NonNegative Int |]
+
+-- | 'OpTestJqueue' notify_waitlock.
+pJQueueNotifyWaitLock :: Field
+pJQueueNotifyWaitLock = defaultFalse "notify_waitlock"
+
+-- | 'OpTestJQueue' notify_exec.
+pJQueueNotifyExec :: Field
+pJQueueNotifyExec = defaultFalse "notify_exec"
+
+-- | 'OpTestJQueue' log_messages.
+pJQueueLogMessages :: Field
+pJQueueLogMessages =
+  defaultField [| [] |] $ simpleField "log_messages" [t| [String] |]
+
+-- | 'OpTestJQueue' fail attribute.
+pJQueueFail :: Field
+pJQueueFail =
+  renameField "JQueueFail" $ defaultFalse "fail"
+
+-- | 'OpTestDummy' result field.
+pTestDummyResult :: Field
+pTestDummyResult =
+  renameField "TestDummyResult" $ simpleField "result" [t| UncheckedValue |]
+
+-- | 'OpTestDummy' messages field.
+pTestDummyMessages :: Field
+pTestDummyMessages =
+  renameField "TestDummyMessages" $
+  simpleField "messages" [t| UncheckedValue |]
+
+-- | 'OpTestDummy' fail field.
+pTestDummyFail :: Field
+pTestDummyFail =
+  renameField "TestDummyFail" $ simpleField "fail" [t| UncheckedValue |]
+
+-- | 'OpTestDummy' submit_jobs field.
+pTestDummySubmitJobs :: Field
+pTestDummySubmitJobs =
+  renameField "TestDummySubmitJobs" $
+  simpleField "submit_jobs" [t| UncheckedValue |]

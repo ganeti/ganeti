@@ -64,6 +64,9 @@ module Ganeti.Types
   , InstCreateMode(..)
   , RebootType(..)
   , ExportMode(..)
+  , IAllocatorTestDir(..)
+  , IAllocatorMode(..)
+  , iAllocatorModeToRaw
   ) where
 
 import qualified Text.JSON as JSON
@@ -294,3 +297,20 @@ $(THH.declareSADT "ExportMode"
   , ("ExportModeRemove", 'C.exportModeRemote)
   ])
 $(THH.makeJSONInstance ''ExportMode)
+
+-- | IAllocator run types (OpTestIAllocator).
+$(THH.declareSADT "IAllocatorTestDir"
+  [ ("IAllocatorDirIn",  'C.iallocatorDirIn)
+  , ("IAllocatorDirOut", 'C.iallocatorDirOut)
+  ])
+$(THH.makeJSONInstance ''IAllocatorTestDir)
+
+-- | IAllocator mode. FIXME: use this in "HTools.Backend.IAlloc".
+$(THH.declareSADT "IAllocatorMode"
+  [ ("IAllocatorAlloc",       'C.iallocatorModeAlloc)
+  , ("IAllocatorMultiAlloc",  'C.iallocatorModeMultiAlloc)
+  , ("IAllocatorReloc",       'C.iallocatorModeReloc)
+  , ("IAllocatorNodeEvac",    'C.iallocatorModeNodeEvac)
+  , ("IAllocatorChangeGroup", 'C.iallocatorModeChgGroup)
+  ])
+$(THH.makeJSONInstance ''IAllocatorMode)

@@ -445,6 +445,37 @@ $(genOpCode "OpCode"
      ])
   , ("OpBackupRemove",
      [ pInstanceName ])
+  , ("OpTestAllocator",
+     [ pIAllocatorDirection
+     , pIAllocatorMode
+     , pIAllocatorReqName
+     , pIAllocatorNics
+     , pIAllocatorDisks
+     , pHypervisor
+     , pIallocator
+     , pInstTags
+     , pIAllocatorMemory
+     , pIAllocatorVCpus
+     , pIAllocatorOs
+     , pDiskTemplate
+     , pIAllocatorInstances
+     , pIAllocatorEvacMode
+     , pTargetGroups
+     , pIAllocatorSpindleUse
+     , pIAllocatorCount
+     ])
+  , ("OpTestJqueue",
+     [ pJQueueNotifyWaitLock
+     , pJQueueNotifyExec
+     , pJQueueLogMessages
+     , pJQueueFail
+     ])
+  , ("OpTestDummy",
+     [ pTestDummyResult
+     , pTestDummyMessages
+     , pTestDummyFail
+     , pTestDummySubmitJobs
+     ])
   ])
 
 -- | Returns the OP_ID for a given opcode value.

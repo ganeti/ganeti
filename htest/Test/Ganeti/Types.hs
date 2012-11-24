@@ -99,6 +99,10 @@ $(genArbitrary ''RebootType)
 
 $(genArbitrary ''ExportMode)
 
+$(genArbitrary ''IAllocatorTestDir)
+
+$(genArbitrary ''IAllocatorMode)
+
 -- * Properties
 
 prop_AllocPolicy_serialisation :: AllocPolicy -> Property
@@ -212,6 +216,21 @@ prop_RebootType_serialisation = testSerialisation
 prop_ExportMode_serialisation :: ExportMode -> Property
 prop_ExportMode_serialisation = testSerialisation
 
+-- | Test 'IAllocatorTestDir' serialisation.
+prop_IAllocatorTestDir_serialisation :: IAllocatorTestDir -> Property
+prop_IAllocatorTestDir_serialisation = testSerialisation
+
+-- | Test 'IAllocatorMode' serialisation.
+prop_IAllocatorMode_serialisation :: IAllocatorMode -> Property
+prop_IAllocatorMode_serialisation = testSerialisation
+
+-- | Tests equivalence with Python, based on Constants.hs code.
+case_IAllocatorMode_pyequiv :: Assertion
+case_IAllocatorMode_pyequiv = do
+  let all_py_codes = sort C.validIallocatorModes
+      all_hs_codes = sort $ map Types.iAllocatorModeToRaw [minBound..maxBound]
+  assertEqual "for IAllocatorMode equivalence" all_py_codes all_hs_codes
+
 testSuite "Types"
   [ 'prop_AllocPolicy_serialisation
   , 'prop_DiskTemplate_serialisation
@@ -236,4 +255,7 @@ testSuite "Types"
   , 'prop_InstCreateMode_serialisation
   , 'prop_RebootType_serialisation
   , 'prop_ExportMode_serialisation
+  , 'prop_IAllocatorTestDir_serialisation
+  , 'prop_IAllocatorMode_serialisation
+  , 'case_IAllocatorMode_pyequiv
   ]

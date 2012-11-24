@@ -294,6 +294,20 @@ instance Arbitrary OpCodes.OpCode where
           getMaybe (pure []) <*> getMaybe genNameNE
       "OP_BACKUP_REMOVE" ->
         OpCodes.OpBackupRemove <$> getFQDN
+      "OP_TEST_ALLOCATOR" ->
+        OpCodes.OpTestAllocator <$> arbitrary <*> arbitrary <*>
+          genNameNE <*> pure [] <*> pure [] <*>
+          arbitrary <*> getMaybe genNameNE <*>
+          (genTags >>= mapM mkNonEmpty) <*>
+          arbitrary <*> arbitrary <*> getMaybe genNameNE <*>
+          arbitrary <*> getMaybe genNodeNamesNE <*> arbitrary <*>
+          getMaybe genNamesNE <*> arbitrary <*> arbitrary
+      "OP_TEST_JQUEUE" ->
+        OpCodes.OpTestJqueue <$> arbitrary <*> arbitrary <*>
+          resize 20 (listOf getFQDN) <*> arbitrary
+      "OP_TEST_DUMMY" ->
+        OpCodes.OpTestDummy <$> pure J.JSNull <*> pure J.JSNull <*>
+          pure J.JSNull <*> pure J.JSNull
       _ -> fail $ "Undefined arbitrary for opcode " ++ op_id
 
 -- * Helper functions
