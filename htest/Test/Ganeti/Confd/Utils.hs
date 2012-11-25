@@ -49,7 +49,7 @@ $(genArbitrary ''Confd.ConfdReqQ)
 
 instance Arbitrary Confd.ConfdQuery where
   arbitrary = oneof [ pure Confd.EmptyQuery
-                    , Confd.PlainQuery <$> getName
+                    , Confd.PlainQuery <$> genName
                     , Confd.DictQuery <$> arbitrary
                     ]
 

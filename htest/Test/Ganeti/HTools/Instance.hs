@@ -49,7 +49,7 @@ import qualified Ganeti.HTools.Types as Types
 -- | Generates a random instance with maximum disk/mem/cpu values.
 genInstanceSmallerThan :: Int -> Int -> Int -> Gen Instance.Instance
 genInstanceSmallerThan lim_mem lim_dsk lim_cpu = do
-  name <- getFQDN
+  name <- genFQDN
   mem <- choose (0, lim_mem)
   dsk <- choose (0, lim_dsk)
   run_st <- arbitrary

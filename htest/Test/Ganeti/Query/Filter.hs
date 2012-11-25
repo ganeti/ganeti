@@ -180,8 +180,8 @@ prop_node_bad_filter rndname rndint =
 -- | Tests make simple filter.
 prop_makeSimpleFilter :: Property
 prop_makeSimpleFilter =
-  forAll (resize 10 $ listOf1 getName) $ \names ->
-  forAll getName $ \namefield ->
+  forAll (resize 10 $ listOf1 genName) $ \names ->
+  forAll genName $ \namefield ->
   conjoin [ printTestCase "test expected names" $
               makeSimpleFilter namefield names ==?
               OrFilter (map (EQFilter namefield . QuotedString) names)

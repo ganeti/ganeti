@@ -53,10 +53,10 @@ import Ganeti.JSON
 $(genArbitrary ''PartialNDParams)
 
 instance Arbitrary Node where
-  arbitrary = Node <$> getFQDN <*> getFQDN <*> getFQDN
-              <*> arbitrary <*> arbitrary <*> arbitrary <*> getFQDN
+  arbitrary = Node <$> genFQDN <*> genFQDN <*> genFQDN
+              <*> arbitrary <*> arbitrary <*> arbitrary <*> genFQDN
               <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
-              <*> arbitrary <*> arbitrary <*> getFQDN <*> arbitrary
+              <*> arbitrary <*> arbitrary <*> genFQDN <*> arbitrary
               <*> (Set.fromList <$> genTags)
 
 $(genArbitrary ''BlockDriver)
@@ -65,7 +65,7 @@ $(genArbitrary ''DiskMode)
 
 instance Arbitrary DiskLogicalId where
   arbitrary = oneof [ LIDPlain <$> arbitrary <*> arbitrary
-                    , LIDDrbd8 <$> getFQDN <*> getFQDN <*> arbitrary
+                    , LIDDrbd8 <$> genFQDN <*> genFQDN <*> arbitrary
                                <*> arbitrary <*> arbitrary <*> arbitrary
                     , LIDFile  <$> arbitrary <*> arbitrary
                     , LIDBlockDev <$> arbitrary <*> arbitrary
@@ -92,7 +92,7 @@ $(genArbitrary ''PartialNic)
 instance Arbitrary Instance where
   arbitrary =
     Instance
-      <$> getFQDN <*> getFQDN <*> getFQDN -- OS name, but...
+      <$> genFQDN <*> genFQDN <*> genFQDN -- OS name, but...
       <*> arbitrary
       -- FIXME: add non-empty hvparams when they're a proper type
       <*> pure (GenericContainer Map.empty) <*> arbitrary
@@ -119,7 +119,7 @@ $(genArbitrary ''PartialIPolicy)
 -- | FIXME: This generates completely random data, without normal
 -- validation rules.
 instance Arbitrary NodeGroup where
-  arbitrary = NodeGroup <$> getFQDN <*> pure [] <*> arbitrary <*> arbitrary
+  arbitrary = NodeGroup <$> genFQDN <*> pure [] <*> arbitrary <*> arbitrary
                         <*> arbitrary <*> pure (GenericContainer Map.empty)
                         -- ts
                         <*> arbitrary <*> arbitrary

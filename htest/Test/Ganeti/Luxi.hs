@@ -58,25 +58,25 @@ instance Arbitrary Luxi.LuxiOp where
   arbitrary = do
     lreq <- arbitrary
     case lreq of
-      Luxi.ReqQuery -> Luxi.Query <$> arbitrary <*> getFields <*> genFilter
-      Luxi.ReqQueryFields -> Luxi.QueryFields <$> arbitrary <*> getFields
-      Luxi.ReqQueryNodes -> Luxi.QueryNodes <$> listOf getFQDN <*>
-                            getFields <*> arbitrary
+      Luxi.ReqQuery -> Luxi.Query <$> arbitrary <*> genFields <*> genFilter
+      Luxi.ReqQueryFields -> Luxi.QueryFields <$> arbitrary <*> genFields
+      Luxi.ReqQueryNodes -> Luxi.QueryNodes <$> listOf genFQDN <*>
+                            genFields <*> arbitrary
       Luxi.ReqQueryGroups -> Luxi.QueryGroups <$> arbitrary <*>
                              arbitrary <*> arbitrary
-      Luxi.ReqQueryInstances -> Luxi.QueryInstances <$> listOf getFQDN <*>
-                                getFields <*> arbitrary
-      Luxi.ReqQueryJobs -> Luxi.QueryJobs <$> arbitrary <*> getFields
+      Luxi.ReqQueryInstances -> Luxi.QueryInstances <$> listOf genFQDN <*>
+                                genFields <*> arbitrary
+      Luxi.ReqQueryJobs -> Luxi.QueryJobs <$> arbitrary <*> genFields
       Luxi.ReqQueryExports -> Luxi.QueryExports <$>
-                              listOf getFQDN <*> arbitrary
-      Luxi.ReqQueryConfigValues -> Luxi.QueryConfigValues <$> getFields
+                              listOf genFQDN <*> arbitrary
+      Luxi.ReqQueryConfigValues -> Luxi.QueryConfigValues <$> genFields
       Luxi.ReqQueryClusterInfo -> pure Luxi.QueryClusterInfo
       Luxi.ReqQueryTags -> Luxi.QueryTags <$> arbitrary
       Luxi.ReqSubmitJob -> Luxi.SubmitJob <$> resize maxOpCodes arbitrary
       Luxi.ReqSubmitManyJobs -> Luxi.SubmitManyJobs <$>
                                 resize maxOpCodes arbitrary
       Luxi.ReqWaitForJobChange -> Luxi.WaitForJobChange <$> arbitrary <*>
-                                  getFields <*> pure J.JSNull <*>
+                                  genFields <*> pure J.JSNull <*>
                                   pure J.JSNull <*> arbitrary
       Luxi.ReqArchiveJob -> Luxi.ArchiveJob <$> arbitrary
       Luxi.ReqAutoArchiveJobs -> Luxi.AutoArchiveJobs <$> arbitrary <*>

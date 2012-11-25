@@ -71,7 +71,7 @@ genNode min_multiplier max_multiplier = do
                       mm * Types.unitDsk,
                       mm * Types.unitCpu)
           Nothing -> (maxMem, maxDsk, maxCpu)
-  name  <- getFQDN
+  name  <- genFQDN
   mem_t <- choose (base_mem, top_mem)
   mem_f <- choose (base_mem, mem_t)
   mem_n <- choose (0, mem_t - mem_f)

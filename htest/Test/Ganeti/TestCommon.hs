@@ -132,22 +132,22 @@ instance Show DNSChar where
   show = show . dnsGetChar
 
 -- | Generates a single name component.
-getName :: Gen String
-getName = do
+genName :: Gen String
+genName = do
   n <- choose (1, 64)
   dn <- vector n
   return (map dnsGetChar dn)
 
 -- | Generates an entire FQDN.
-getFQDN :: Gen String
-getFQDN = do
+genFQDN :: Gen String
+genFQDN = do
   ncomps <- choose (1, 4)
-  names <- vectorOf ncomps getName
+  names <- vectorOf ncomps genName
   return $ intercalate "." names
 
 -- | Combinator that generates a 'Maybe' using a sub-combinator.
-getMaybe :: Gen a -> Gen (Maybe a)
-getMaybe subgen = oneof [ pure Nothing, liftM Just subgen ]
+genMaybe :: Gen a -> Gen (Maybe a)
+genMaybe subgen = oneof [ pure Nothing, liftM Just subgen ]
 
 -- | Defines a tag type.
 newtype TagChar = TagChar { tagGetChar :: Char }
@@ -181,10 +181,10 @@ genTags = do
 
 -- | Generates a fields list. This uses the same character set as a
 -- DNS name (just for simplicity).
-getFields :: Gen [String]
-getFields = do
+genFields :: Gen [String]
+genFields = do
   n <- choose (1, 32)
-  vectorOf n getName
+  vectorOf n genName
 
 -- | Generates a list of a given size with non-duplicate elements.
 genUniquesList :: (Eq a, Arbitrary a) => Int -> Gen [a]

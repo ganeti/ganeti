@@ -235,7 +235,7 @@ case_queryGroup_allfields = do
 -- | Tests that requested names checking behaves as expected.
 prop_getRequestedNames :: Property
 prop_getRequestedNames =
-  forAll getName $ \node1 ->
+  forAll genName $ \node1 ->
   let chk = getRequestedNames . Query (ItemTypeOpCode QRNode) []
       q_node1 = QuotedString node1
       eq_name = EQFilter "name"

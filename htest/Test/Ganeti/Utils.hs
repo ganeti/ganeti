@@ -161,7 +161,7 @@ case_niceSort_static = do
 -- itself, etc.).
 prop_niceSort_single :: Property
 prop_niceSort_single =
-  forAll getName $ \name ->
+  forAll genName $ \name ->
   conjoin
   [ printTestCase "single string" $ [name] ==? niceSort [name]
   , printTestCase "single plus empty" $ ["", name] ==? niceSort [name, ""]

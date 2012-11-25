@@ -53,16 +53,16 @@ genFilter = choose (0, 10) >>= genFilter'
 genFilter' :: Int -> Gen (Filter FilterField)
 genFilter' 0 =
   oneof [ pure EmptyFilter
-        , TrueFilter     <$> getName
-        , EQFilter       <$> getName <*> value
-        , LTFilter       <$> getName <*> value
-        , GTFilter       <$> getName <*> value
-        , LEFilter       <$> getName <*> value
-        , GEFilter       <$> getName <*> value
-        , RegexpFilter   <$> getName <*> arbitrary
-        , ContainsFilter <$> getName <*> value
+        , TrueFilter     <$> genName
+        , EQFilter       <$> genName <*> value
+        , LTFilter       <$> genName <*> value
+        , GTFilter       <$> genName <*> value
+        , LEFilter       <$> genName <*> value
+        , GEFilter       <$> genName <*> value
+        , RegexpFilter   <$> genName <*> arbitrary
+        , ContainsFilter <$> genName <*> value
         ]
-    where value = oneof [ QuotedString <$> getName
+    where value = oneof [ QuotedString <$> genName
                         , NumericValue <$> arbitrary
                         ]
 genFilter' n =
@@ -81,7 +81,7 @@ $(genArbitrary ''QueryTypeLuxi)
 $(genArbitrary ''ItemType)
 
 instance Arbitrary FilterRegex where
-  arbitrary = getName >>= mkRegex -- a name should be a good regex
+  arbitrary = genName >>= mkRegex -- a name should be a good regex
 
 $(genArbitrary ''ResultStatus)
 
