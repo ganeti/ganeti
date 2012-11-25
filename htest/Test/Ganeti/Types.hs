@@ -103,6 +103,8 @@ $(genArbitrary ''IAllocatorTestDir)
 
 $(genArbitrary ''IAllocatorMode)
 
+$(genArbitrary ''NICMode)
+
 -- * Properties
 
 prop_AllocPolicy_serialisation :: AllocPolicy -> Property
@@ -231,6 +233,17 @@ case_IAllocatorMode_pyequiv = do
       all_hs_codes = sort $ map Types.iAllocatorModeToRaw [minBound..maxBound]
   assertEqual "for IAllocatorMode equivalence" all_py_codes all_hs_codes
 
+-- | Test 'NICMode' serialisation.
+prop_NICMode_serialisation :: NICMode -> Property
+prop_NICMode_serialisation = testSerialisation
+
+-- | Tests equivalence with Python, based on Constants.hs code.
+case_NICMode_pyequiv :: Assertion
+case_NICMode_pyequiv = do
+  let all_py_codes = sort C.nicValidModes
+      all_hs_codes = sort $ map Types.nICModeToRaw [minBound..maxBound]
+  assertEqual "for NICMode equivalence" all_py_codes all_hs_codes
+
 testSuite "Types"
   [ 'prop_AllocPolicy_serialisation
   , 'prop_DiskTemplate_serialisation
@@ -258,4 +271,6 @@ testSuite "Types"
   , 'prop_IAllocatorTestDir_serialisation
   , 'prop_IAllocatorMode_serialisation
   , 'case_IAllocatorMode_pyequiv
+  , 'prop_NICMode_serialisation
+  , 'case_NICMode_pyequiv
   ]

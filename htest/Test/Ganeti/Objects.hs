@@ -85,8 +85,6 @@ $(genArbitrary ''PartialBeParams)
 
 $(genArbitrary ''AdminState)
 
-$(genArbitrary ''NICMode)
-
 $(genArbitrary ''PartialNicParams)
 
 $(genArbitrary ''PartialNic)

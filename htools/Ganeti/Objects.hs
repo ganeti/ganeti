@@ -33,7 +33,6 @@ module Ganeti.Objects
   , vTypeFromRaw
   , HvParams
   , OsParams
-  , NICMode(..)
   , PartialNicParams(..)
   , FilledNicParams(..)
   , fillNicParams
@@ -167,12 +166,6 @@ roleDescription NRCandidate = "master candidate"
 roleDescription NRMaster    = "master"
 
 -- * NIC definitions
-
-$(declareSADT "NICMode"
-  [ ("NMBridged", 'C.nicModeBridged)
-  , ("NMRouted",  'C.nicModeRouted)
-  ])
-$(makeJSONInstance ''NICMode)
 
 $(buildParam "Nic" "nicp"
   [ simpleField "mode" [t| NICMode |]

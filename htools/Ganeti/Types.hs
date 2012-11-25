@@ -67,6 +67,8 @@ module Ganeti.Types
   , IAllocatorTestDir(..)
   , IAllocatorMode(..)
   , iAllocatorModeToRaw
+  , NICMode(..)
+  , nICModeToRaw
   ) where
 
 import qualified Text.JSON as JSON
@@ -314,3 +316,10 @@ $(THH.declareSADT "IAllocatorMode"
   , ("IAllocatorChangeGroup", 'C.iallocatorModeChgGroup)
   ])
 $(THH.makeJSONInstance ''IAllocatorMode)
+
+-- | Netork mode.
+$(THH.declareSADT "NICMode"
+  [ ("NMBridged", 'C.nicModeBridged)
+  , ("NMRouted",  'C.nicModeRouted)
+  ])
+$(THH.makeJSONInstance ''NICMode)
