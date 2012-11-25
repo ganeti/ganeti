@@ -410,16 +410,12 @@ prop_serialization = testSerialisation
 -- | Check that Python and Haskell defined the same opcode list.
 case_AllDefined :: HUnit.Assertion
 case_AllDefined = do
-  py_stdout <- runPython "from ganeti import opcodes\n\
-                         \print '\\n'.join(opcodes.OP_MAPPING.keys())" "" >>=
-               checkPythonResult
-  let py_ops = sort $ lines py_stdout
-      hs_ops = OpCodes.allOpIDs
-      -- extra_py = py_ops \\ hs_ops
+  let py_ops = sort C.opcodesOpIds
+      hs_ops = sort OpCodes.allOpIDs
+      extra_py = py_ops \\ hs_ops
       extra_hs = hs_ops \\ py_ops
-  -- FIXME: uncomment when we have parity
-  -- HUnit.assertBool ("OpCodes missing from Haskell code:\n" ++
-  --                  unlines extra_py) (null extra_py)
+  HUnit.assertBool ("Missing OpCodes from the Haskell code:\n" ++
+                    unlines extra_py) (null extra_py)
   HUnit.assertBool ("Extra OpCodes in the Haskell code code:\n" ++
                     unlines extra_hs) (null extra_hs)
 

@@ -30,6 +30,7 @@ from ganeti import compat
 from ganeti import constants
 from ganeti import errors
 from ganeti import luxi
+from ganeti import opcodes
 from ganeti import qlang
 
 
@@ -296,12 +297,23 @@ def Convert(module, prefix):
   return "\n".join(lines)
 
 
+def ConvertMisc():
+  """Convert some extra computed-values to Haskell.
+
+  """
+  lines = [""]
+  lines.extend(ConvertVariable("opcodes", "OP_IDS",
+                               opcodes.OP_MAPPING.keys(), {}))
+  return "\n".join(lines)
+
+
 def main():
   print Convert(constants, "")
   print Convert(luxi, "luxi")
   print Convert(qlang, "qlang")
   print Convert(_autoconf, "autoconf")
   print Convert(errors, "errors")
+  print ConvertMisc()
 
 
 if __name__ == "__main__":
