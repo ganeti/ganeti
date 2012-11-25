@@ -51,28 +51,28 @@ import Ganeti.OpParams
 -- in the htools codebase.
 $(genOpCode "OpCode"
   [ ("OpTestDelay",
-     [ simpleField "duration"  [t| Double   |]
-     , simpleField "on_master" [t| Bool     |]
-     , simpleField "on_nodes"  [t| [String] |]
+     [ pDelayDuration
+     , pDelayOnMaster
+     , pDelayOnNodes
      , pDelayRepeat
      ])
   , ("OpInstanceReplaceDisks",
      [ pInstanceName
      , pRemoteNode
-     , simpleField "mode"  [t| ReplaceDisksMode |]
-     , simpleField "disks" [t| [DiskIndex] |]
+     , pReplaceDisksMode
+     , pReplaceDisksList
      , pIallocator
      ])
   , ("OpInstanceFailover",
      [ pInstanceName
-     , simpleField "ignore_consistency" [t| Bool   |]
+     , pIgnoreConsistency
      , pMigrationTargetNode
      ])
   , ("OpInstanceMigrate",
      [ pInstanceName
      , simpleField "live"           [t| Bool   |]
-     , simpleField "cleanup"        [t| Bool   |]
-     , defaultField [| False |] $ simpleField "allow_failover" [t| Bool |]
+     , pMigrationCleanup
+     , pAllowFailover
      , pMigrationTargetNode
      ])
   , ("OpTagsGet",

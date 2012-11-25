@@ -63,6 +63,7 @@ module Ganeti.OpParams
   , pGroupName
   , pMigrationMode
   , pMigrationLive
+  , pMigrationCleanup
   , pForceVariant
   , pWaitForSync
   , pWaitForSyncFalse
@@ -189,6 +190,12 @@ module Ganeti.OpParams
   , pX509DestCA
   , pTagSearchPattern
   , pRestrictedCommand
+  , pReplaceDisksMode
+  , pReplaceDisksList
+  , pAllowFailover
+  , pDelayDuration
+  , pDelayOnMaster
+  , pDelayOnNodes
   , pDelayRepeat
   , pIAllocatorDirection
   , pIAllocatorMode
@@ -559,6 +566,10 @@ pMigrationMode =
 pMigrationLive :: Field
 pMigrationLive =
   renameField "OldLiveMode" . optionalField $ booleanField "live"
+
+-- | Migration cleanup parameter.
+pMigrationCleanup :: Field
+pMigrationCleanup = renameField "MigrationCleanup" $ defaultFalse "cleanup"
 
 -- | Whether to force an unknown OS variant.
 pForceVariant :: Field
@@ -1161,7 +1172,37 @@ pRestrictedCommand =
   renameField "RestrictedCommand" $
   simpleField "command" [t| NonEmptyString |]
 
+-- | Replace disks mode.
+pReplaceDisksMode :: Field
+pReplaceDisksMode =
+  renameField "ReplaceDisksMode" $ simpleField "mode" [t| ReplaceDisksMode |]
+
+-- | List of disk indices.
+pReplaceDisksList :: Field
+pReplaceDisksList =
+  renameField "ReplaceDisksList" $ simpleField "disks" [t| [DiskIndex] |]
+
+-- | Whether do allow failover in migrations.
+pAllowFailover :: Field
+pAllowFailover = defaultFalse "allow_failover"
+
 -- * Test opcode parameters
+
+-- | Duration parameter for 'OpTestDelay'.
+pDelayDuration :: Field
+pDelayDuration =
+  renameField "DelayDuration "$ simpleField "duration" [t| Double |]
+
+-- | on_master field for 'OpTestDelay'.
+pDelayOnMaster :: Field
+pDelayOnMaster = renameField "DelayOnMaster" $ defaultTrue "on_master"
+
+-- | on_nodes field for 'OpTestDelay'.
+pDelayOnNodes :: Field
+pDelayOnNodes =
+  renameField "DelayOnNodes" .
+  defaultField [| [] |] $
+  simpleField "on_nodes" [t| [NonEmptyString] |]
 
 -- | Repeat parameter for OpTestDelay.
 pDelayRepeat :: Field

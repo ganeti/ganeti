@@ -105,8 +105,8 @@ instance Arbitrary OpCodes.OpCode where
     op_id <- elements OpCodes.allOpIDs
     case op_id of
       "OP_TEST_DELAY" ->
-        OpCodes.OpTestDelay <$> arbitrary <*> arbitrary
-                 <*> genNodeNames <*> arbitrary
+        OpCodes.OpTestDelay <$> arbitrary <*> arbitrary <*>
+          genNodeNamesNE <*> arbitrary
       "OP_INSTANCE_REPLACE_DISKS" ->
         OpCodes.OpInstanceReplaceDisks <$> genFQDN <*>
           genMaybe genNodeNameNE <*> arbitrary <*> genDiskIndices <*>
