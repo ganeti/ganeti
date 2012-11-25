@@ -177,7 +177,7 @@ instance Arbitrary OpCodes.OpCode where
           getMaybe getName <*> getMaybe genNameNE <*> arbitrary <*>
           getMaybe genNameNE <*> arbitrary <*> arbitrary <*> emptyMUD
       "OP_NODE_QUERY" ->
-        OpCodes.OpNodeQuery <$> arbitrary <*> arbitrary <*> arbitrary
+        OpCodes.OpNodeQuery <$> genFieldsNE <*> arbitrary <*> genNamesNE
       "OP_NODE_QUERYVOLS" ->
         OpCodes.OpNodeQueryvols <$> arbitrary <*> genNodeNamesNE
       "OP_NODE_QUERY_STORAGE" ->
@@ -248,6 +248,8 @@ instance Arbitrary OpCodes.OpCode where
       "OP_INSTANCE_RECREATE_DISKS" ->
         OpCodes.OpInstanceRecreateDisks <$> getFQDN <*> arbitrary <*>
           genNodeNamesNE <*> getMaybe genNameNE
+      "OP_INSTANCE_QUERY" ->
+        OpCodes.OpInstanceQuery <$> genFieldsNE <*> genNamesNE <*> arbitrary
       "OP_INSTANCE_QUERY_DATA" ->
         OpCodes.OpInstanceQueryData <$> arbitrary <*>
           genNodeNamesNE <*> arbitrary
@@ -328,6 +330,9 @@ instance Arbitrary OpCodes.OpCode where
         OpCodes.OpNetworkDisconnect <$> genNameNE <*> genNameNE <*> arbitrary
       "OP_NETWORK_QUERY" ->
         OpCodes.OpNetworkQuery <$> genFieldsNE <*> genNamesNE
+      "OP_RESTRICTED_COMMAND" ->
+        OpCodes.OpRestrictedCommand <$> arbitrary <*> genNodeNamesNE <*>
+          genNameNE
       _ -> fail $ "Undefined arbitrary for opcode " ++ op_id
 
 -- * Helper functions

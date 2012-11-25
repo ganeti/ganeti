@@ -188,6 +188,7 @@ module Ganeti.OpParams
   , pX509KeyName
   , pX509DestCA
   , pTagSearchPattern
+  , pRestrictedCommand
   , pDelayRepeat
   , pIAllocatorDirection
   , pIAllocatorMode
@@ -1151,6 +1152,12 @@ pX509DestCA = optionalNEStringField "destination_x509_ca"
 pTagSearchPattern :: Field
 pTagSearchPattern =
   renameField "TagSearchPattern" $ simpleField "pattern" [t| NonEmptyString |]
+
+-- | Restricted command name.
+pRestrictedCommand :: Field
+pRestrictedCommand =
+  renameField "RestrictedCommand" $
+  simpleField "command" [t| NonEmptyString |]
 
 -- * Test opcode parameters
 

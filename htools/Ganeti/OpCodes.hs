@@ -347,6 +347,11 @@ $(genOpCode "OpCode"
      , pNodes
      , pIallocator
      ])
+  , ("OpInstanceQuery",
+     [ pOutputFields
+     , pNames
+     , pUseLocking
+     ])
   , ("OpInstanceQueryData",
      [ pUseLocking
      , pInstances
@@ -516,6 +521,11 @@ $(genOpCode "OpCode"
   , ("OpNetworkQuery",
      [ pOutputFields
      , pNames
+     ])
+  , ("OpRestrictedCommand",
+     [ pUseLocking
+     , pRequiredNodes
+     , pRestrictedCommand
      ])
   ])
 
