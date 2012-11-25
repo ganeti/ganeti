@@ -176,7 +176,7 @@ instance Arbitrary OpCodes.OpCode where
           genMaybe genName <*> genMaybe genNameNE <*> arbitrary <*>
           genMaybe genNameNE <*> arbitrary <*> arbitrary <*> emptyMUD
       "OP_NODE_QUERY" ->
-        OpCodes.OpNodeQuery <$> genFieldsNE <*> arbitrary <*> genNamesNE
+        OpCodes.OpNodeQuery <$> genFieldsNE <*> genNamesNE <*> arbitrary
       "OP_NODE_QUERYVOLS" ->
         OpCodes.OpNodeQueryvols <$> arbitrary <*> genNodeNamesNE
       "OP_NODE_QUERY_STORAGE" ->

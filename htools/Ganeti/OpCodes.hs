@@ -187,11 +187,7 @@ $(genOpCode "OpCode"
      , pVmCapable
      , pNdParams
     ])
-  , ("OpNodeQuery",
-     [ pOutputFields
-     , pUseLocking
-     , pNames
-     ])
+  , ("OpNodeQuery", dOldQuery)
   , ("OpNodeQueryvols",
      [ pOutputFields
      , pNodes
@@ -347,11 +343,7 @@ $(genOpCode "OpCode"
      , pNodes
      , pIallocator
      ])
-  , ("OpInstanceQuery",
-     [ pOutputFields
-     , pNames
-     , pUseLocking
-     ])
+  , ("OpInstanceQuery", dOldQuery)
   , ("OpInstanceQueryData",
      [ pUseLocking
      , pInstances
@@ -402,10 +394,7 @@ $(genOpCode "OpCode"
      , pForce
      , pRequiredNodes
      ])
-  , ("OpGroupQuery",
-     [ pOutputFields
-     , pNames
-     ])
+  , ("OpGroupQuery", dOldQueryNoLocking)
   , ("OpGroupSetParams",
      [ pGroupName
      , pNodeGroupAllocPolicy
@@ -518,10 +507,7 @@ $(genOpCode "OpCode"
      , pNetworkName
      , pIpConflictsCheck
      ])
-  , ("OpNetworkQuery",
-     [ pOutputFields
-     , pNames
-     ])
+  , ("OpNetworkQuery", dOldQueryNoLocking)
   , ("OpRestrictedCommand",
      [ pUseLocking
      , pRequiredNodes

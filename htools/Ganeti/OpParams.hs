@@ -221,6 +221,8 @@ module Ganeti.OpParams
   , pNetworkRemoveRsvdIps
   , pNetworkMode
   , pNetworkLink
+  , dOldQuery
+  , dOldQueryNoLocking
   ) where
 
 import Control.Monad (liftM)
@@ -1342,3 +1344,20 @@ pNetworkMode = simpleField "network_mode" [t| NICMode |]
 -- | Network link when connecting to a group.
 pNetworkLink :: Field
 pNetworkLink = simpleField "network_link" [t| NonEmptyString |]
+
+-- * Entire opcode parameter list
+
+-- | Old-style query opcode, with locking.
+dOldQuery :: [Field]
+dOldQuery =
+  [ pOutputFields
+  , pNames
+  , pUseLocking
+  ]
+
+-- | Old-style query opcode, without locking.
+dOldQueryNoLocking :: [Field]
+dOldQueryNoLocking =
+  [ pOutputFields
+  , pNames
+  ]
