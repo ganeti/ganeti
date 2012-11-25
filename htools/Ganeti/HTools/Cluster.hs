@@ -1453,8 +1453,9 @@ iMoveToJob nl il idx move =
                       Bad msg -> error $ "Empty node name for idx " ++
                                  show n ++ ": " ++ msg ++ "??"
                       Ok ne -> Just ne
-      opF = OpCodes.OpInstanceMigrate iname True False True Nothing
-      opFA n = OpCodes.OpInstanceMigrate iname True False True (lookNode n)
+      live = Just True
+      opF = OpCodes.OpInstanceMigrate iname live False True Nothing
+      opFA n = OpCodes.OpInstanceMigrate iname live False True (lookNode n)
       opR n = OpCodes.OpInstanceReplaceDisks iname (lookNode n)
               OpCodes.ReplaceNewSecondary [] Nothing
   in case move of

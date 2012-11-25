@@ -70,7 +70,7 @@ $(genOpCode "OpCode"
      ])
   , ("OpInstanceMigrate",
      [ pInstanceName
-     , simpleField "live"           [t| Bool   |]
+     , pMigrationLive
      , pMigrationCleanup
      , pAllowFailover
      , pMigrationTargetNode
