@@ -103,6 +103,8 @@ $(genArbitrary ''IAllocatorTestDir)
 
 $(genArbitrary ''IAllocatorMode)
 
+$(genArbitrary ''NetworkType)
+
 $(genArbitrary ''NICMode)
 
 -- * Properties
@@ -233,6 +235,17 @@ case_IAllocatorMode_pyequiv = do
       all_hs_codes = sort $ map Types.iAllocatorModeToRaw [minBound..maxBound]
   assertEqual "for IAllocatorMode equivalence" all_py_codes all_hs_codes
 
+-- | Test 'NetworkType' serialisation.
+prop_NetworkType_serialisation :: NetworkType -> Property
+prop_NetworkType_serialisation = testSerialisation
+
+-- | Tests equivalence with Python, based on Constants.hs code.
+case_NetworkType_pyequiv :: Assertion
+case_NetworkType_pyequiv = do
+  let all_py_codes = sort C.networkValidTypes
+      all_hs_codes = sort $ map Types.networkTypeToRaw [minBound..maxBound]
+  assertEqual "for NetworkType equivalence" all_py_codes all_hs_codes
+
 -- | Test 'NICMode' serialisation.
 prop_NICMode_serialisation :: NICMode -> Property
 prop_NICMode_serialisation = testSerialisation
@@ -271,6 +284,8 @@ testSuite "Types"
   , 'prop_IAllocatorTestDir_serialisation
   , 'prop_IAllocatorMode_serialisation
   , 'case_IAllocatorMode_pyequiv
+  , 'prop_NetworkType_serialisation
+  , 'case_NetworkType_pyequiv
   , 'prop_NICMode_serialisation
   , 'case_NICMode_pyequiv
   ]

@@ -38,6 +38,7 @@ import Control.Applicative
 import Data.List
 import qualified Data.Map as Map
 import qualified Text.JSON as J
+import Text.Printf (printf)
 
 import Test.Ganeti.TestHelper
 import Test.Ganeti.TestCommon
@@ -308,6 +309,25 @@ instance Arbitrary OpCodes.OpCode where
       "OP_TEST_DUMMY" ->
         OpCodes.OpTestDummy <$> pure J.JSNull <*> pure J.JSNull <*>
           pure J.JSNull <*> pure J.JSNull
+      "OP_NETWORK_ADD" ->
+        OpCodes.OpNetworkAdd <$> genNameNE <*> arbitrary <*> genIp4Net <*>
+          getMaybe genIp4Addr <*> pure Nothing <*> pure Nothing <*>
+          getMaybe genMacPrefix <*> getMaybe (listOf genIp4Addr) <*>
+          (genTags >>= mapM mkNonEmpty)
+      "OP_NETWORK_REMOVE" ->
+        OpCodes.OpNetworkRemove <$> genNameNE <*> arbitrary
+      "OP_NETWORK_SET_PARAMS" ->
+        OpCodes.OpNetworkSetParams <$> genNameNE <*> arbitrary <*>
+          getMaybe genIp4Addr <*> pure Nothing <*> pure Nothing <*>
+          getMaybe genMacPrefix <*> getMaybe (listOf genIp4Addr) <*>
+          getMaybe (listOf genIp4Addr)
+      "OP_NETWORK_CONNECT" ->
+        OpCodes.OpNetworkConnect <$> genNameNE <*> genNameNE <*>
+          arbitrary <*> genNameNE <*> arbitrary
+      "OP_NETWORK_DISCONNECT" ->
+        OpCodes.OpNetworkDisconnect <$> genNameNE <*> genNameNE <*> arbitrary
+      "OP_NETWORK_QUERY" ->
+        OpCodes.OpNetworkQuery <$> genFieldsNE <*> genNamesNE
       _ -> fail $ "Undefined arbitrary for opcode " ++ op_id
 
 -- * Helper functions
@@ -353,6 +373,28 @@ genNamesNE = resize maxNodes (listOf genNameNE)
 -- | Returns a list of non-empty fields.
 genFieldsNE :: Gen [NonEmptyString]
 genFieldsNE = getFields >>= mapM mkNonEmpty
+
+-- | Generate an arbitrary IPv4 address in textual form.
+genIp4Addr :: Gen NonEmptyString
+genIp4Addr = do
+  a <- choose (1::Int, 255)
+  b <- choose (0::Int, 255)
+  c <- choose (0::Int, 255)
+  d <- choose (0::Int, 255)
+  mkNonEmpty $ intercalate "." (map show [a, b, c, d])
+
+-- | Generate an arbitrary IPv4 network address in textual form.
+genIp4Net :: Gen NonEmptyString
+genIp4Net = do
+  netmask <- choose (8::Int, 30)
+  ip <- genIp4Addr
+  mkNonEmpty $ fromNonEmpty ip ++ "/" ++ show netmask
+
+-- | Generate a 3-byte MAC prefix.
+genMacPrefix :: Gen NonEmptyString
+genMacPrefix = do
+  octets <- vectorOf 3 $ choose (0::Int, 255)
+  mkNonEmpty . intercalate ":" $ map (printf "%02x") octets
 
 -- * Test cases
 

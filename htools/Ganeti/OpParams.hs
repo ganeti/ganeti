@@ -209,6 +209,17 @@ module Ganeti.OpParams
   , pTestDummyMessages
   , pTestDummyFail
   , pTestDummySubmitJobs
+  , pNetworkName
+  , pNetworkType
+  , pNetworkAddress4
+  , pNetworkGateway4
+  , pNetworkAddress6
+  , pNetworkGateway6
+  , pNetworkMacPrefix
+  , pNetworkAddRsvdIps
+  , pNetworkRemoveRsvdIps
+  , pNetworkMode
+  , pNetworkLink
   ) where
 
 import Control.Monad (liftM)
@@ -1262,3 +1273,65 @@ pTestDummySubmitJobs :: Field
 pTestDummySubmitJobs =
   renameField "TestDummySubmitJobs" $
   simpleField "submit_jobs" [t| UncheckedValue |]
+
+-- * Network parameters
+
+-- | Network name.
+pNetworkName :: Field
+pNetworkName = simpleField "network_name" [t| NonEmptyString |]
+
+-- | Network type field.
+pNetworkType :: Field
+pNetworkType = optionalField $ simpleField "network_type" [t| NetworkType |]
+
+-- | Network address (IPv4 subnet). FIXME: no real type for this.
+pNetworkAddress4 :: Field
+pNetworkAddress4 =
+  renameField "NetworkAddress4" $
+  simpleField "network" [t| NonEmptyString |]
+
+-- | Network gateway (IPv4 address). FIXME: no real type for this.
+pNetworkGateway4 :: Field
+pNetworkGateway4 =
+  renameField "NetworkGateway4" $
+  optionalNEStringField "gateway"
+
+-- | Network address (IPv6 subnet). FIXME: no real type for this.
+pNetworkAddress6 :: Field
+pNetworkAddress6 =
+  renameField "NetworkAddress6" $
+  optionalNEStringField "network6"
+
+-- | Network gateway (IPv6 address). FIXME: no real type for this.
+pNetworkGateway6 :: Field
+pNetworkGateway6 =
+  renameField "NetworkGateway6" $
+  optionalNEStringField "gateway6"
+
+-- | Network specific mac prefix (that overrides the cluster one).
+pNetworkMacPrefix :: Field
+pNetworkMacPrefix =
+  renameField "NetMacPrefix" $
+  optionalNEStringField "mac_prefix"
+
+-- | Network add reserved IPs.
+pNetworkAddRsvdIps :: Field
+pNetworkAddRsvdIps =
+  renameField "NetworkAddRsvdIps" .
+  optionalField $
+  simpleField "add_reserved_ips" [t| [NonEmptyString] |]
+
+-- | Network remove reserved IPs.
+pNetworkRemoveRsvdIps :: Field
+pNetworkRemoveRsvdIps =
+  renameField "NetworkRemoveRsvdIps" .
+  optionalField $
+  simpleField "remove_reserved_ips" [t| [NonEmptyString] |]
+
+-- | Network mode when connecting to a group.
+pNetworkMode :: Field
+pNetworkMode = simpleField "network_mode" [t| NICMode |]
+
+-- | Network link when connecting to a group.
+pNetworkLink :: Field
+pNetworkLink = simpleField "network_link" [t| NonEmptyString |]

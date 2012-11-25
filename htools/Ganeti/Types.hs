@@ -67,6 +67,8 @@ module Ganeti.Types
   , IAllocatorTestDir(..)
   , IAllocatorMode(..)
   , iAllocatorModeToRaw
+  , NetworkType(..)
+  , networkTypeToRaw
   , NICMode(..)
   , nICModeToRaw
   ) where
@@ -316,6 +318,13 @@ $(THH.declareSADT "IAllocatorMode"
   , ("IAllocatorChangeGroup", 'C.iallocatorModeChgGroup)
   ])
 $(THH.makeJSONInstance ''IAllocatorMode)
+
+-- | Network type.
+$(THH.declareSADT "NetworkType"
+  [ ("PrivateNetwork", 'C.networkTypePrivate)
+  , ("PublicNetwork",  'C.networkTypePublic)
+  ])
+$(THH.makeJSONInstance ''NetworkType)
 
 -- | Netork mode.
 $(THH.declareSADT "NICMode"

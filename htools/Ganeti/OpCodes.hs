@@ -476,6 +476,47 @@ $(genOpCode "OpCode"
      , pTestDummyFail
      , pTestDummySubmitJobs
      ])
+  , ("OpNetworkAdd",
+     [ pNetworkName
+     , pNetworkType
+     , pNetworkAddress4
+     , pNetworkGateway4
+     , pNetworkAddress6
+     , pNetworkGateway6
+     , pNetworkMacPrefix
+     , pNetworkAddRsvdIps
+     , pInstTags
+     ])
+  , ("OpNetworkRemove",
+     [ pNetworkName
+     , pForce
+     ])
+  , ("OpNetworkSetParams",
+     [ pNetworkName
+     , pNetworkType
+     , pNetworkGateway4
+     , pNetworkAddress6
+     , pNetworkGateway6
+     , pNetworkMacPrefix
+     , pNetworkAddRsvdIps
+     , pNetworkRemoveRsvdIps
+     ])
+  , ("OpNetworkConnect",
+     [ pGroupName
+     , pNetworkName
+     , pNetworkMode
+     , pNetworkLink
+     , pIpConflictsCheck
+     ])
+  , ("OpNetworkDisconnect",
+     [ pGroupName
+     , pNetworkName
+     , pIpConflictsCheck
+     ])
+  , ("OpNetworkQuery",
+     [ pOutputFields
+     , pNames
+     ])
   ])
 
 -- | Returns the OP_ID for a given opcode value.
