@@ -56,6 +56,7 @@ module Ganeti.OpParams
   , pOutputFields
   , pShutdownTimeout
   , pShutdownTimeout'
+  , pShutdownInstance
   , pForce
   , pIgnoreOfflineNodes
   , pNodeName
@@ -535,6 +536,10 @@ pShutdownTimeout' =
   defaultField [| forceNonNeg C.defaultShutdownTimeout |] $
   simpleField "timeout" [t| NonNegative Int |]
 
+-- | Whether to shutdown the instance in backup-export.
+pShutdownInstance :: Field
+pShutdownInstance = defaultTrue "shutdown"
+
 -- | Whether to force the operation.
 pForce :: Field
 pForce = defaultFalse "force"
@@ -864,7 +869,8 @@ pMasterNetdev = optionalStringField "master_netdev"
 
 -- | Netmask of the master IP.
 pMasterNetmask :: Field
-pMasterNetmask = optionalField $ simpleField "master_netmask" [t| Int |]
+pMasterNetmask =
+  optionalField $ simpleField "master_netmask" [t| NonNegative Int |]
 
 -- | List of reserved LVs.
 pReservedLvs :: Field

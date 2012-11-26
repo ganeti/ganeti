@@ -159,7 +159,7 @@ instance Arbitrary OpCodes.OpCode where
           arbitrary <*> arbitrary <*> arbitrary <*>
           arbitrary <*> arbitrary <*> arbitrary <*>
           emptyMUD <*> emptyMUD <*> arbitrary <*>
-          arbitrary <*> arbitrary <*> arbitrary <*>
+          arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*>
           arbitrary <*> arbitrary <*> arbitrary
       "OP_CLUSTER_REDIST_CONF" -> pure OpCodes.OpClusterRedistConf
       "OP_CLUSTER_ACTIVATE_MASTER_IP" ->
@@ -195,7 +195,7 @@ instance Arbitrary OpCodes.OpCode where
         OpCodes.OpNodeSetParams <$> genNodeNameNE <*> arbitrary <*>
           emptyMUD <*> emptyMUD <*> arbitrary <*> arbitrary <*> arbitrary <*>
           arbitrary <*> arbitrary <*> arbitrary <*> genMaybe genNameNE <*>
-          emptyMUD
+          emptyMUD <*> arbitrary
       "OP_NODE_POWERCYCLE" ->
         OpCodes.OpNodePowercycle <$> genNodeNameNE <*> arbitrary
       "OP_NODE_MIGRATE" ->
@@ -296,7 +296,7 @@ instance Arbitrary OpCodes.OpCode where
       "OP_BACKUP_EXPORT" ->
         OpCodes.OpBackupExport <$> genFQDN <*> arbitrary <*>
           arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*>
-          genMaybe (pure []) <*> genMaybe genNameNE
+          arbitrary <*> genMaybe (pure []) <*> genMaybe genNameNE
       "OP_BACKUP_REMOVE" ->
         OpCodes.OpBackupRemove <$> genFQDN
       "OP_TEST_ALLOCATOR" ->

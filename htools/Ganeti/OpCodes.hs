@@ -159,6 +159,7 @@ $(genOpCode "OpCode"
      , pDrbdHelper
      , pDefaultIAllocator
      , pMasterNetdev
+     , pMasterNetmask
      , pReservedLvs
      , pHiddenOs
      , pBlacklistedOs
@@ -233,6 +234,7 @@ $(genOpCode "OpCode"
      , pVmCapable
      , pSecondaryIp
      , pNdParams
+     , pPowered
      ])
   , ("OpNodePowercycle",
      [ pNodeName
@@ -441,6 +443,7 @@ $(genOpCode "OpCode"
      [ pInstanceName
      , pShutdownTimeout
      , pExportTargetNode
+     , pShutdownInstance
      , pRemoveInstance
      , pIgnoreRemoveFailures
      , pExportMode
