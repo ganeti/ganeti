@@ -110,15 +110,16 @@ instance Arbitrary OpCodes.OpCode where
         OpCodes.OpTestDelay <$> arbitrary <*> arbitrary <*>
           genNodeNamesNE <*> arbitrary
       "OP_INSTANCE_REPLACE_DISKS" ->
-        OpCodes.OpInstanceReplaceDisks <$> genFQDN <*>
-          genMaybe genNodeNameNE <*> arbitrary <*> genDiskIndices <*>
-          genMaybe genNameNE
+        OpCodes.OpInstanceReplaceDisks <$> genFQDN <*> arbitrary <*>
+          arbitrary <*> arbitrary <*> genDiskIndices <*>
+          genMaybe genNodeNameNE <*> genMaybe genNameNE
       "OP_INSTANCE_FAILOVER" ->
-        OpCodes.OpInstanceFailover <$> genFQDN <*> arbitrary <*>
-          genMaybe genNodeNameNE
+        OpCodes.OpInstanceFailover <$> genFQDN <*> arbitrary <*> arbitrary <*>
+          genMaybe genNodeNameNE <*> arbitrary <*> genMaybe genNameNE
       "OP_INSTANCE_MIGRATE" ->
-        OpCodes.OpInstanceMigrate <$> genFQDN <*> arbitrary <*>
-          arbitrary <*> arbitrary <*> genMaybe genNodeNameNE
+        OpCodes.OpInstanceMigrate <$> genFQDN <*> arbitrary <*> arbitrary <*>
+          genMaybe genNodeNameNE <*> arbitrary <*>
+          arbitrary <*> arbitrary <*> genMaybe genNameNE <*> arbitrary
       "OP_TAGS_GET" ->
         OpCodes.OpTagsGet <$> arbitrary <*> arbitrary
       "OP_TAGS_SEARCH" ->

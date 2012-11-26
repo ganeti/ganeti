@@ -1453,11 +1453,26 @@ iMoveToJob nl il idx move =
                       Bad msg -> error $ "Empty node name for idx " ++
                                  show n ++ ": " ++ msg ++ "??"
                       Ok ne -> Just ne
-      live = Just True
-      opF = OpCodes.OpInstanceMigrate iname live False True Nothing
-      opFA n = OpCodes.OpInstanceMigrate iname live False True (lookNode n)
-      opR n = OpCodes.OpInstanceReplaceDisks iname (lookNode n)
-              OpCodes.ReplaceNewSecondary [] Nothing
+      opF = OpCodes.OpInstanceMigrate
+              { OpCodes.opInstanceName        = iname
+              , OpCodes.opMigrationMode       = Nothing -- default
+              , OpCodes.opOldLiveMode         = Nothing -- default as well
+              , OpCodes.opTargetNode          = Nothing -- this is drbd
+              , OpCodes.opAllowRuntimeChanges = False
+              , OpCodes.opIgnoreIpolicy       = False
+              , OpCodes.opMigrationCleanup    = False
+              , OpCodes.opIallocator          = Nothing
+              , OpCodes.opAllowFailover       = True }
+      opFA n = opF { OpCodes.opTargetNode = lookNode n } -- not drbd
+      opR n = OpCodes.OpInstanceReplaceDisks
+                { OpCodes.opInstanceName     = iname
+                , OpCodes.opEarlyRelease     = False
+                , OpCodes.opIgnoreIpolicy    = False
+                , OpCodes.opReplaceDisksMode = OpCodes.ReplaceNewSecondary
+                , OpCodes.opReplaceDisksList = []
+                , OpCodes.opRemoteNode       = lookNode n
+                , OpCodes.opIallocator       = Nothing
+                }
   in case move of
        Failover -> [ opF ]
        FailoverToAny np -> [ opFA np ]

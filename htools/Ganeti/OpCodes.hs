@@ -59,22 +59,31 @@ $(genOpCode "OpCode"
      ])
   , ("OpInstanceReplaceDisks",
      [ pInstanceName
-     , pRemoteNode
+     , pEarlyRelease
+     , pIgnoreIpolicy
      , pReplaceDisksMode
      , pReplaceDisksList
+     , pRemoteNode
      , pIallocator
      ])
   , ("OpInstanceFailover",
      [ pInstanceName
+     , pShutdownTimeout
      , pIgnoreConsistency
      , pMigrationTargetNode
+     , pIgnoreIpolicy
+     , pIallocator
      ])
   , ("OpInstanceMigrate",
      [ pInstanceName
+     , pMigrationMode
      , pMigrationLive
-     , pMigrationCleanup
-     , pAllowFailover
      , pMigrationTargetNode
+     , pAllowRuntimeChgs
+     , pIgnoreIpolicy
+     , pMigrationCleanup
+     , pIallocator
+     , pAllowFailover
      ])
   , ("OpTagsGet",
      [ pTagsObject
