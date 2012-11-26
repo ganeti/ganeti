@@ -1606,6 +1606,7 @@ class TestLockSet(_ThreadedTestCase):
     self.assertEqual(self.ls.acquire(None), set(["one", "two", "three"]))
     # now empty it...
     self.ls.remove(["one", "two", "three"])
+    self.assertFalse(self.ls._names())
     # and adds/locks by another thread still wait
     self._addThread(target=self._doAddSet, args=(["nine"]))
     self._addThread(target=self._doLockSet, args=(None, 1))
@@ -1713,6 +1714,7 @@ class TestLockSet(_ThreadedTestCase):
   def testDowngradeEverything(self):
     self.assertEqual(self.ls.acquire(locking.ALL_SET, shared=0),
                      set(["one", "two", "three"]))
+    self.assertTrue(self.ls.owning_all())
 
     # Ensure all locks are now owned in exclusive mode
     for name in self.ls._names():
@@ -1724,6 +1726,8 @@ class TestLockSet(_ThreadedTestCase):
     # Ensure all locks are now owned in shared mode
     for name in self.ls._names():
       self.assertTrue(self.ls.check_owned(name, shared=1))
+
+    self.assertTrue(self.ls.owning_all())
 
   def testPriority(self):
     def _Acquire(prev, next, name, priority, success_fn):
@@ -1890,12 +1894,16 @@ class TestGanetiLockManager(_ThreadedTestCase):
                       set(self.nodes))
     self.assertEquals(self.GL.list_owned(locking.LEVEL_NODE),
                       set(self.nodes))
+    self.assertTrue(self.GL.owning_all(locking.LEVEL_INSTANCE))
+    self.assertTrue(self.GL.owning_all(locking.LEVEL_NODEGROUP))
+    self.assertTrue(self.GL.owning_all(locking.LEVEL_NODE))
     self.GL.release(locking.LEVEL_NODE)
     self.GL.release(locking.LEVEL_NODEGROUP)
     self.GL.release(locking.LEVEL_INSTANCE)
     self.GL.release(locking.LEVEL_CLUSTER)
 
   def testAcquireWholeAndPartial(self):
+    self.assertFalse(self.GL.owning_all(locking.LEVEL_INSTANCE))
     self.GL.acquire(locking.LEVEL_CLUSTER, ["BGL"], shared=1)
     self.assertEquals(self.GL.acquire(locking.LEVEL_INSTANCE, None),
                       set(self.instances))
@@ -1905,6 +1913,8 @@ class TestGanetiLockManager(_ThreadedTestCase):
                       set(["n2"]))
     self.assertEquals(self.GL.list_owned(locking.LEVEL_NODE),
                       set(["n2"]))
+    self.assertTrue(self.GL.owning_all(locking.LEVEL_INSTANCE))
+    self.assertFalse(self.GL.owning_all(locking.LEVEL_NODE))
     self.GL.release(locking.LEVEL_NODE)
     self.GL.release(locking.LEVEL_INSTANCE)
     self.GL.release(locking.LEVEL_CLUSTER)

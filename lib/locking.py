@@ -1033,6 +1033,18 @@ class LockSet:
     else:
       return False
 
+  def owning_all(self):
+    """Checks whether current thread owns internal lock.
+
+    Holding the internal lock is equivalent with holding all locks in the set
+    (the opposite does not necessarily hold as it can not be easily
+    determined). L{add} and L{remove} require the internal lock.
+
+    @rtype: boolean
+
+    """
+    return self.__lock.is_owned()
+
   def _add_owned(self, name=None):
     """Note the current thread owns the given lock"""
     if name is None:
@@ -1619,6 +1631,14 @@ class GanetiLockManager:
 
     """
     return self.__keyring[level].check_owned(names, shared=shared)
+
+  def owning_all(self, level):
+    """Checks whether current thread owns all locks at a certain level.
+
+    @see: L{LockSet.owning_all}
+
+    """
+    return self.__keyring[level].owning_all()
 
   def _upper_owned(self, level):
     """Check that we don't own any lock at a level greater than the given one.
