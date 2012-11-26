@@ -90,6 +90,7 @@ data Field = Field { fieldName        :: String
                    , fieldType        :: Q Type
                    , fieldRead        :: Maybe (Q Exp)
                    , fieldShow        :: Maybe (Q Exp)
+                   , fieldExtraKeys   :: [String]
                    , fieldDefault     :: Maybe (Q Exp)
                    , fieldConstr      :: Maybe String
                    , fieldIsOptional  :: OptionalType
@@ -102,6 +103,7 @@ simpleField fname ftype =
         , fieldType        = ftype
         , fieldRead        = Nothing
         , fieldShow        = Nothing
+        , fieldExtraKeys   = []
         , fieldDefault     = Nothing
         , fieldConstr      = Nothing
         , fieldIsOptional  = NotOptional
@@ -126,12 +128,14 @@ optionalNullSerField :: Field -> Field
 optionalNullSerField field = field { fieldIsOptional = OptionalSerializeNull }
 
 -- | Sets custom functions on a field.
-customField :: Name    -- ^ The name of the read function
-            -> Name    -- ^ The name of the show function
-            -> Field   -- ^ The original field
-            -> Field   -- ^ Updated field
-customField readfn showfn field =
-  field { fieldRead = Just (varE readfn), fieldShow = Just (varE showfn) }
+customField :: Name      -- ^ The name of the read function
+            -> Name      -- ^ The name of the show function
+            -> [String]  -- ^ The name of extra field keys
+            -> Field     -- ^ The original field
+            -> Field     -- ^ Updated field
+customField readfn showfn extra field =
+  field { fieldRead = Just (varE readfn), fieldShow = Just (varE showfn)
+        , fieldExtraKeys = extra }
 
 -- | Computes the record name for a given field, based on either the
 -- string value in the JSON serialisation or the custom named if any

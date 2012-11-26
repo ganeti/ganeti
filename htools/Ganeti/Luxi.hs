@@ -72,6 +72,7 @@ import Ganeti.Constants
 import Ganeti.Errors
 import Ganeti.JSON
 import Ganeti.Jobs (JobStatus)
+import Ganeti.OpParams (pTagsObject)
 import Ganeti.OpCodes
 import Ganeti.Utils
 import qualified Ganeti.Query.Language as Qlang
@@ -137,9 +138,7 @@ $(genLuxiOp "LuxiOp"
     )
   , (luxiReqQueryClusterInfo, [])
   , (luxiReqQueryTags,
-     [ customField 'decodeTagObject 'encodeTagObject $
-       simpleField "kind" [t| TagObject |]
-     ])
+     [ pTagsObject ])
   , (luxiReqSubmitJob,
      [ simpleField "job" [t| [OpCode] |] ]
     )

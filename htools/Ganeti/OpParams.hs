@@ -514,8 +514,9 @@ pTagsList = simpleField "tags" [t| [String] |]
 
 -- | Tags object.
 pTagsObject :: Field
-pTagsObject = customField 'decodeTagObject 'encodeTagObject $
-              simpleField "kind" [t| TagObject |]
+pTagsObject =
+  customField 'decodeTagObject 'encodeTagObject [tagNameField] $
+  simpleField "kind" [t| TagObject |]
 
 -- | Selected output fields.
 pOutputFields :: Field

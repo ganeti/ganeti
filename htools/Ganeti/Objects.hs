@@ -305,7 +305,7 @@ data Disk = Disk
   } deriving (Show, Eq)
 
 $(buildObjectSerialisation "Disk"
-  [ customField 'decodeDLId 'encodeFullDLId $
+  [ customField 'decodeDLId 'encodeFullDLId ["dev_type"] $
       simpleField "logical_id"    [t| DiskLogicalId   |]
 --  , simpleField "physical_id" [t| String   |]
   , defaultField  [| [] |] $ simpleField "children" [t| [Disk] |]
