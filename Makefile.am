@@ -496,6 +496,7 @@ HS_TEST_SRCS = \
 	htest/Test/Ganeti/Attoparsec.hs \
 	htest/Test/Ganeti/BasicTypes.hs \
 	htest/Test/Ganeti/Block/Drbd/Parser.hs \
+	htest/Test/Ganeti/Block/Drbd/Types.hs \
 	htest/Test/Ganeti/Common.hs \
 	htest/Test/Ganeti/Confd/Utils.hs \
 	htest/Test/Ganeti/Daemon.hs \

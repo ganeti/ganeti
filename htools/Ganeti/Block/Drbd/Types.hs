@@ -247,8 +247,8 @@ instance JSON PerfIndicators where
 data SyncStatus =
   SyncStatus
   { percentage      :: Double    -- ^ Percentage of syncronized data
-  , partialSyncSize :: Integer   -- ^ Numerator of the fraction of synced data
-  , totalSyncSize   :: Integer   -- ^ Denominator of the fraction of
+  , partialSyncSize :: Int       -- ^ Numerator of the fraction of synced data
+  , totalSyncSize   :: Int       -- ^ Denominator of the fraction of
                                  -- synced data
   , syncUnit        :: SizeUnit  -- ^ Measurement unit of the previous
                                  -- fraction
