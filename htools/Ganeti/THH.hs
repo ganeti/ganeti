@@ -535,10 +535,31 @@ genOpCode name cons = do
             cons
   let declD = DataD [] tname [] decl_d [''Show, ''Eq]
 
+  let (allfsig, allffn) = genAllOpFields "allOpFields" cons
   (savesig, savefn) <- genSaveOpCode tname "saveOpCode" cons
                          (uncurry saveConstructor)
   (loadsig, loadfn) <- genLoadOpCode cons
-  return [declD, loadsig, loadfn, savesig, savefn]
+  return [declD, allfsig, allffn, loadsig, loadfn, savesig, savefn]
+
+-- | Generates the function pattern returning the list of fields for a
+-- given constructor.
+genOpConsFields :: (String, [Field]) -> Clause
+genOpConsFields (cname, fields) =
+  let op_id = deCamelCase cname
+      fvals = map (LitE . StringL) . sort . nub $
+              concatMap (\f -> fieldName f:fieldExtraKeys f) fields
+  in Clause [LitP (StringL op_id)] (NormalB $ ListE fvals) []
+
+-- | Generates a list of all fields of an opcode constructor.
+genAllOpFields  :: String                          -- ^ Function name
+                -> [(String, [Field])]             -- ^ Object definition
+                -> (Dec, Dec)
+genAllOpFields sname opdefs =
+  let cclauses = map genOpConsFields opdefs
+      other = Clause [WildP] (NormalB (ListE [])) []
+      fname = mkName sname
+      sigt = AppT  (AppT ArrowT (ConT ''String)) (AppT ListT (ConT ''String))
+  in (SigD fname sigt, FunD fname (cclauses++[other]))
 
 -- | Generates the \"save\" clause for an entire opcode constructor.
 --

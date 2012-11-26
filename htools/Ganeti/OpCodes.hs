@@ -37,6 +37,7 @@ module Ganeti.OpCodes
   , unDiskIndex
   , opID
   , allOpIDs
+  , allOpFields
   ) where
 
 import Text.JSON (readJSON, showJSON, JSON())
