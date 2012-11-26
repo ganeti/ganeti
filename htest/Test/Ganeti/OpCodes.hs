@@ -35,6 +35,8 @@ import qualified Test.HUnit as HUnit
 import Test.QuickCheck
 
 import Control.Applicative
+import Control.Monad
+import Data.Char
 import Data.List
 import qualified Data.Map as Map
 import qualified Text.JSON as J
@@ -441,6 +443,11 @@ case_py_compat = do
                              (arbitrary::Gen OpCodes.OpCode))
   let opcodes = head sample_opcodes
       serialized = J.encode opcodes
+  -- check for non-ASCII fields, usually due to 'arbitrary :: String'
+  mapM_ (\op -> when (any (not . isAscii) (J.encode op)) .
+                HUnit.assertFailure $
+                  "OpCode has non-ASCII fields: " ++ show op
+        ) opcodes
   py_stdout <-
      runPython "from ganeti import opcodes\n\
                \import sys\n\
