@@ -14068,6 +14068,11 @@ class LUBackupExport(LogicalUnit):
       #  - removing the removal operation altogether
       self.needed_locks[locking.LEVEL_NODE] = locking.ALL_SET
 
+      # Allocations should be stopped while this LU runs with node locks, but
+      # it doesn't have to be exclusive
+      self.share_locks[locking.LEVEL_NODE_ALLOC] = 1
+      self.needed_locks[locking.LEVEL_NODE_ALLOC] = locking.ALL_SET
+
   def DeclareLocks(self, level):
     """Last minute lock declaration."""
     # All nodes are locked anyway, so nothing to do here.
