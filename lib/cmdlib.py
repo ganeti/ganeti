@@ -13951,6 +13951,9 @@ class _ExportQuery(_QueryBase):
         locking.LEVEL_NODE: self.wanted,
         }
 
+      if not self.names:
+        lu.needed_locks[locking.LEVEL_NODE_ALLOC] = locking.ALL_SET
+
   def DeclareLocks(self, lu, level):
     pass
 
