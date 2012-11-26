@@ -437,8 +437,8 @@ case_AllDefined = do
 -- a better way to do this, for example by having a
 -- separately-launched Python process (if not running the tests would
 -- be skipped).
-case_py_compat :: HUnit.Assertion
-case_py_compat = do
+case_py_compat_types :: HUnit.Assertion
+case_py_compat_types = do
   let num_opcodes = length OpCodes.allOpIDs * 100
   sample_opcodes <- sample' (vectorOf num_opcodes
                              (arbitrary::Gen OpCodes.OpCode))
@@ -473,8 +473,42 @@ case_py_compat = do
   mapM_ (uncurry (HUnit.assertEqual "Different result after encoding/decoding")
         ) $ zip opcodes decoded
 
+-- | Custom HUnit test case that forks a Python process and checks
+-- correspondence between Haskell OpCodes fields and their Python
+-- equivalent.
+case_py_compat_fields :: HUnit.Assertion
+case_py_compat_fields = do
+  let hs_fields = sort $ map (\op_id -> (op_id, OpCodes.allOpFields op_id))
+                         OpCodes.allOpIDs
+  py_stdout <-
+     runPython "from ganeti import opcodes\n\
+               \import sys\n\
+               \from ganeti import serializer\n\
+               \fields = [(k, sorted([p[0] for p in v.OP_PARAMS]))\n\
+               \           for k, v in opcodes.OP_MAPPING.items()]\n\
+               \print serializer.Dump(fields)" ""
+     >>= checkPythonResult
+  let deserialised = J.decode py_stdout::J.Result [(String, [String])]
+  py_fields <- case deserialised of
+                 J.Ok v -> return $ sort v
+                 J.Error msg ->
+                   HUnit.assertFailure ("Unable to decode op fields: " ++ msg)
+                   -- this already raised an expection, but we need it
+                   -- for proper types
+                   >> fail "Unable to decode op fields"
+  HUnit.assertEqual "Mismatch in number of returned opcodes"
+    (length hs_fields) (length py_fields)
+  HUnit.assertEqual "Mismatch in defined OP_IDs"
+    (map fst hs_fields) (map fst py_fields)
+  mapM_ (\((py_id, py_flds), (hs_id, hs_flds)) -> do
+           HUnit.assertEqual "Mismatch in OP_ID" py_id hs_id
+           HUnit.assertEqual ("Mismatch in fields for " ++ hs_id)
+             py_flds hs_flds
+        ) $ zip py_fields hs_fields
+
 testSuite "OpCodes"
             [ 'prop_serialization
             , 'case_AllDefined
-            , 'case_py_compat
+            , 'case_py_compat_types
+            , 'case_py_compat_fields
             ]
