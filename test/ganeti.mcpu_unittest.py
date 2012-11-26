@@ -28,6 +28,7 @@ import itertools
 from ganeti import mcpu
 from ganeti import opcodes
 from ganeti import cmdlib
+from ganeti import locking
 from ganeti import constants
 from ganeti.constants import \
     LOCK_ATTEMPTS_TIMEOUT, \
@@ -164,6 +165,129 @@ class TestProcessResult(unittest.TestCase):
     self.assertEqual(op2.priority, constants.OP_PRIO_HIGH)
     self.assertEqual(op2.comment, "foobar")
     self.assertEqual(op2.debug_level, 3)
+
+
+class _FakeLuWithLocks:
+  def __init__(self, needed_locks, share_locks):
+    self.needed_locks = needed_locks
+    self.share_locks = share_locks
+
+
+class _FakeGlm:
+  def __init__(self, owning_nal):
+    self._owning_nal = owning_nal
+
+  def check_owned(self, level, names):
+    assert level == locking.LEVEL_NODE_ALLOC
+    assert names == locking.NAL
+    return self._owning_nal
+
+  def owning_all(self, level):
+    return False
+
+
+class TestVerifyLocks(unittest.TestCase):
+  def testNoLocks(self):
+    lu = _FakeLuWithLocks({}, {})
+    glm = _FakeGlm(False)
+    mcpu._VerifyLocks(lu, glm,
+                      _mode_whitelist=NotImplemented,
+                      _nal_whitelist=NotImplemented)
+
+  def testNotAllSameMode(self):
+    for level in [locking.LEVEL_NODE, locking.LEVEL_NODE_RES]:
+      lu = _FakeLuWithLocks({
+        level: ["foo"],
+        }, {
+        level: 0,
+        locking.LEVEL_NODE_ALLOC: 0,
+        })
+      glm = _FakeGlm(False)
+      mcpu._VerifyLocks(lu, glm, _mode_whitelist=[], _nal_whitelist=[])
+
+  def testDifferentMode(self):
+    for level in [locking.LEVEL_NODE, locking.LEVEL_NODE_RES]:
+      lu = _FakeLuWithLocks({
+        level: ["foo"],
+        }, {
+        level: 0,
+        locking.LEVEL_NODE_ALLOC: 1,
+        })
+      glm = _FakeGlm(False)
+      try:
+        mcpu._VerifyLocks(lu, glm, _mode_whitelist=[], _nal_whitelist=[])
+      except AssertionError, err:
+        self.assertTrue("using the same mode as nodes" in str(err))
+      else:
+        self.fail("Exception not raised")
+
+      # Once more with the whitelist
+      mcpu._VerifyLocks(lu, glm, _mode_whitelist=[_FakeLuWithLocks],
+                        _nal_whitelist=[])
+
+  def testSameMode(self):
+    for level in [locking.LEVEL_NODE, locking.LEVEL_NODE_RES]:
+      lu = _FakeLuWithLocks({
+        level: ["foo"],
+        locking.LEVEL_NODE_ALLOC: locking.ALL_SET,
+        }, {
+        level: 1,
+        locking.LEVEL_NODE_ALLOC: 1,
+        })
+      glm = _FakeGlm(True)
+
+      try:
+        mcpu._VerifyLocks(lu, glm, _mode_whitelist=[_FakeLuWithLocks],
+                          _nal_whitelist=[])
+      except AssertionError, err:
+        self.assertTrue("whitelisted to use different modes" in str(err))
+      else:
+        self.fail("Exception not raised")
+
+      # Once more without the whitelist
+      mcpu._VerifyLocks(lu, glm, _mode_whitelist=[], _nal_whitelist=[])
+
+  def testAllWithoutAllocLock(self):
+    for level in [locking.LEVEL_NODE, locking.LEVEL_NODE_RES]:
+      lu = _FakeLuWithLocks({
+        level: locking.ALL_SET,
+        }, {
+        level: 0,
+        locking.LEVEL_NODE_ALLOC: 0,
+        })
+      glm = _FakeGlm(False)
+      try:
+        mcpu._VerifyLocks(lu, glm, _mode_whitelist=[], _nal_whitelist=[])
+      except AssertionError, err:
+        self.assertTrue("allocation lock must be used if" in str(err))
+      else:
+        self.fail("Exception not raised")
+
+      # Once more with the whitelist
+      mcpu._VerifyLocks(lu, glm, _mode_whitelist=[],
+                        _nal_whitelist=[_FakeLuWithLocks])
+
+  def testAllWithAllocLock(self):
+    for level in [locking.LEVEL_NODE, locking.LEVEL_NODE_RES]:
+      lu = _FakeLuWithLocks({
+        level: locking.ALL_SET,
+        locking.LEVEL_NODE_ALLOC: locking.ALL_SET,
+        }, {
+        level: 0,
+        locking.LEVEL_NODE_ALLOC: 0,
+        })
+      glm = _FakeGlm(True)
+
+      try:
+        mcpu._VerifyLocks(lu, glm, _mode_whitelist=[],
+                          _nal_whitelist=[_FakeLuWithLocks])
+      except AssertionError, err:
+        self.assertTrue("whitelisted for not acquiring" in str(err))
+      else:
+        self.fail("Exception not raised")
+
+      # Once more without the whitelist
+      mcpu._VerifyLocks(lu, glm, _mode_whitelist=[], _nal_whitelist=[])
 
 
 if __name__ == "__main__":
