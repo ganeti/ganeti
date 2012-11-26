@@ -74,11 +74,11 @@ data RqType
   | NodeEvacuate [Idx] EvacMode              -- ^ node-evacuate mode
   | ChangeGroup [Gdx] [Idx]                  -- ^ Multi-relocate mode
   | MultiAllocate [(Instance.Instance, Int)] -- ^ Multi-allocate mode
-    deriving (Show, Read)
+    deriving (Show)
 
 -- | A complete request, as received from Ganeti.
 data Request = Request RqType ClusterData
-               deriving (Show, Read)
+               deriving (Show)
 
 -- | The cluster state.
 data ClusterData = ClusterData
@@ -87,7 +87,7 @@ data ClusterData = ClusterData
   , cdInstances :: Instance.List -- ^ The instance list
   , cdTags      :: [String]      -- ^ The cluster tags
   , cdIPolicy   :: IPolicy       -- ^ The cluster instance policy
-  } deriving (Show, Read, Eq)
+  } deriving (Show, Eq)
 
 -- | An empty cluster.
 emptyCluster :: ClusterData

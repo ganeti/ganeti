@@ -4,7 +4,7 @@
 
 {-
 
-Copyright (C) 2010, 2011 Google Inc.
+Copyright (C) 2010, 2011, 2012 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -47,7 +47,7 @@ data Group = Group
   , allocPolicy :: T.AllocPolicy -- ^ The allocation policy for this group
   , iPolicy     :: T.IPolicy     -- ^ The instance policy for this group
   , allTags     :: [String]      -- ^ The tags for this group
-  } deriving (Show, Read, Eq)
+  } deriving (Show, Eq)
 
 -- Note: we use the name as the alias, and the UUID as the official
 -- name

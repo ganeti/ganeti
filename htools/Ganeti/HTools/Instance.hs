@@ -83,7 +83,7 @@ data Instance = Instance
   , spindleUse   :: Int       -- ^ The numbers of used spindles
   , allTags      :: [String]  -- ^ List of all instance tags
   , exclTags     :: [String]  -- ^ List of instance exclusion tags
-  } deriving (Show, Read, Eq)
+  } deriving (Show, Eq)
 
 instance T.Element Instance where
   nameOf   = name

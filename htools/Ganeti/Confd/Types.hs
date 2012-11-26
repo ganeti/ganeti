@@ -104,7 +104,7 @@ $(buildObject "ConfdReqQ" "confdReqQ"
 data ConfdQuery = EmptyQuery
                 | PlainQuery String
                 | DictQuery  ConfdReqQ
-                  deriving (Show, Read, Eq)
+                  deriving (Show, Eq)
 
 instance JSON ConfdQuery where
   readJSON o = case o of

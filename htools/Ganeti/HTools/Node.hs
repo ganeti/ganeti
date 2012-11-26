@@ -130,7 +130,7 @@ data Node = Node
   , pTags    :: TagMap    -- ^ Primary instance exclusion tags and their count
   , group    :: T.Gdx     -- ^ The node's group (index)
   , iPolicy  :: T.IPolicy -- ^ The instance policy (of the node's group)
-  } deriving (Show, Read, Eq)
+  } deriving (Show, Eq)
 
 instance T.Element Node where
   nameOf = name

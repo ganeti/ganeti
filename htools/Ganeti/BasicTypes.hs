@@ -51,7 +51,7 @@ import Data.List
 data GenericResult a b
   = Bad a
   | Ok b
-    deriving (Show, Read, Eq)
+    deriving (Show, Eq)
 
 -- | Type alias for a string Result.
 type Result = GenericResult String
@@ -147,14 +147,14 @@ data MatchPriority = ExactMatch
                    | MultipleMatch
                    | PartialMatch
                    | FailMatch
-                   deriving (Show, Read, Enum, Eq, Ord)
+                   deriving (Show, Enum, Eq, Ord)
 
 -- | The result of a name lookup in a list.
 data LookupResult = LookupResult
   { lrMatchPriority :: MatchPriority -- ^ The result type
   -- | Matching value (for ExactMatch, PartialMatch), Lookup string otherwise
   , lrContent :: String
-  } deriving (Show, Read)
+  } deriving (Show)
 
 -- | Lookup results have an absolute preference ordering.
 instance Eq LookupResult where

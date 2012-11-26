@@ -110,7 +110,7 @@ defaultGroupID = "00000000-0000-0000-0000-000000000000"
 data MirrorType = MirrorNone     -- ^ No mirroring/movability
                 | MirrorInternal -- ^ DRBD-type mirroring
                 | MirrorExternal -- ^ Shared-storage type mirroring
-                  deriving (Eq, Show, Read)
+                  deriving (Eq, Show)
 
 -- | Correspondence between disk template and mirror type.
 templateMirrorType :: DiskTemplate -> MirrorType
@@ -127,7 +127,7 @@ data RSpec = RSpec
   { rspecCpu  :: Int  -- ^ Requested VCPUs
   , rspecMem  :: Int  -- ^ Requested memory
   , rspecDsk  :: Int  -- ^ Requested disk
-  } deriving (Show, Read, Eq)
+  } deriving (Show, Eq)
 
 -- | Allocation stats type. This is used instead of 'RSpec' (which was
 -- used at first), because we need to track more stats. The actual
@@ -139,7 +139,7 @@ data AllocInfo = AllocInfo
   , allocInfoNCpus :: Double -- ^ Normalised CPUs
   , allocInfoMem   :: Int    -- ^ Memory
   , allocInfoDisk  :: Int    -- ^ Disk
-  } deriving (Show, Read, Eq)
+  } deriving (Show, Eq)
 
 -- | Currently used, possibly to allocate, unallocable.
 type AllocStats = (AllocInfo, AllocInfo, AllocInfo)
@@ -224,7 +224,7 @@ data DynUtil = DynUtil
   , memWeight :: Weight -- ^ Standardised memory load
   , dskWeight :: Weight -- ^ Standardised disk I\/O usage
   , netWeight :: Weight -- ^ Standardised network usage
-  } deriving (Show, Read, Eq)
+  } deriving (Show, Eq)
 
 -- | Initial empty utilisation.
 zeroUtil :: DynUtil
@@ -260,7 +260,7 @@ data IMove = Failover                -- ^ Failover the instance (f)
            | ReplaceSecondary Ndx    -- ^ Replace secondary (r:ns)
            | ReplaceAndFailover Ndx  -- ^ Replace secondary, failover (r:np, f)
            | FailoverAndReplace Ndx  -- ^ Failover, replace secondary (f, r:ns)
-             deriving (Show, Read)
+             deriving (Show)
 
 -- | Formatted solution output for one move (involved nodes and
 -- commands.
@@ -295,7 +295,7 @@ data FailMode = FailMem  -- ^ Failed due to not enough RAM
               | FailCPU  -- ^ Failed due to not enough CPU capacity
               | FailN1   -- ^ Failed due to not passing N1 checks
               | FailTags -- ^ Failed due to tag exclusion
-                deriving (Eq, Enum, Bounded, Show, Read)
+                deriving (Eq, Enum, Bounded, Show)
 
 -- | List with failure statistics.
 type FailStats = [(FailMode, Int)]

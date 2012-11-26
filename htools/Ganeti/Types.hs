@@ -83,7 +83,7 @@ import Ganeti.JSON
 
 -- | Type that holds a non-negative value.
 newtype NonNegative a = NonNegative { fromNonNegative :: a }
-  deriving (Show, Read, Eq)
+  deriving (Show, Eq)
 
 -- | Smart constructor for 'NonNegative'.
 mkNonNegative :: (Monad m, Num a, Ord a, Show a) => a -> m (NonNegative a)
@@ -97,7 +97,7 @@ instance (JSON.JSON a, Num a, Ord a, Show a) => JSON.JSON (NonNegative a) where
 
 -- | Type that holds a positive value.
 newtype Positive a = Positive { fromPositive :: a }
-  deriving (Show, Read, Eq)
+  deriving (Show, Eq)
 
 -- | Smart constructor for 'Positive'.
 mkPositive :: (Monad m, Num a, Ord a, Show a) => a -> m (Positive a)
@@ -111,7 +111,7 @@ instance (JSON.JSON a, Num a, Ord a, Show a) => JSON.JSON (Positive a) where
 
 -- | Type that holds a non-null list.
 newtype NonEmpty a = NonEmpty { fromNonEmpty :: [a] }
-  deriving (Show, Read, Eq)
+  deriving (Show, Eq)
 
 -- | Smart constructor for 'NonEmpty'.
 mkNonEmpty :: (Monad m) => [a] -> m (NonEmpty a)

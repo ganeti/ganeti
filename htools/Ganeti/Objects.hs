@@ -216,7 +216,7 @@ data DiskLogicalId
   | LIDFile FileDriver String -- ^ Driver, path
   | LIDBlockDev BlockDriver String -- ^ Driver, path (must be under /dev)
   | LIDRados String String -- ^ Unused, path
-    deriving (Read, Show, Eq)
+    deriving (Show, Eq)
 
 -- | Mapping from a logical id to a disk type.
 lidDiskType :: DiskLogicalId -> DiskType
@@ -302,7 +302,7 @@ data Disk = Disk
   , diskIvName     :: String
   , diskSize       :: Int
   , diskMode       :: DiskMode
-  } deriving (Read, Show, Eq)
+  } deriving (Show, Eq)
 
 $(buildObjectSerialisation "Disk"
   [ customField 'decodeDLId 'encodeFullDLId $

@@ -93,7 +93,7 @@ withTimeout secs descr action = do
 data RecvResult = RecvConnClosed    -- ^ Connection closed
                 | RecvError String  -- ^ Any other error
                 | RecvOk String     -- ^ Successfull receive
-                  deriving (Show, Read, Eq)
+                  deriving (Show, Eq)
 
 -- | The Ganeti job type.
 type JobId = Int

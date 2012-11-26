@@ -308,7 +308,7 @@ data TagObject = TagInstance String
                | TagNode     String
                | TagGroup    String
                | TagCluster
-               deriving (Show, Read, Eq)
+               deriving (Show, Eq)
 
 -- | Tag type for a given tag object.
 tagTypeOf :: TagObject -> TagType
@@ -365,7 +365,7 @@ $(makeJSONInstance ''ReplaceDisksMode)
 -- | Disk index type (embedding constraints on the index value via a
 -- smart constructor).
 newtype DiskIndex = DiskIndex { unDiskIndex :: Int }
-  deriving (Show, Read, Eq, Ord)
+  deriving (Show, Eq, Ord)
 
 -- | Smart constructor for 'DiskIndex'.
 mkDiskIndex :: (Monad m) => Int -> m DiskIndex
@@ -413,7 +413,7 @@ data RecreateDisksInfo
   = RecreateDisksAll
   | RecreateDisksIndices (NonEmpty DiskIndex)
   | RecreateDisksParams (NonEmpty (DiskIndex, IDiskParams))
-    deriving (Eq, Read, Show)
+    deriving (Eq, Show)
 
 readRecreateDisks :: JSValue -> Text.JSON.Result RecreateDisksInfo
 readRecreateDisks (JSArray []) = return RecreateDisksAll
@@ -435,7 +435,7 @@ instance JSON RecreateDisksInfo where
 -- | Simple type for old-style ddm changes.
 data DdmOldChanges = DdmOldIndex (NonNegative Int)
                    | DdmOldMod DdmSimple
-                     deriving (Eq, Read, Show)
+                     deriving (Eq, Show)
 
 readDdmOldChanges :: JSValue -> Text.JSON.Result DdmOldChanges
 readDdmOldChanges v =
@@ -456,7 +456,7 @@ data SetParamsMods a
   = SetParamsEmpty
   | SetParamsDeprecated (NonEmpty (DdmOldChanges, a))
   | SetParamsNew (NonEmpty (DdmFull, Int, a))
-    deriving (Eq, Read, Show)
+    deriving (Eq, Show)
 
 -- | Custom deserialiser for 'SetParamsMods'.
 readSetParams :: (JSON a) => JSValue -> Text.JSON.Result (SetParamsMods a)
@@ -478,7 +478,7 @@ instance (JSON a) => JSON (SetParamsMods a) where
 -- tests). But the proper type could be parsed if we wanted.
 data ExportTarget = ExportTargetLocal NonEmptyString
                   | ExportTargetRemote UncheckedList
-                    deriving (Eq, Read, Show)
+                    deriving (Eq, Show)
 
 -- | Custom reader for 'ExportTarget'.
 readExportTarget :: JSValue -> Text.JSON.Result ExportTarget

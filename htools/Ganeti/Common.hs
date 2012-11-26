@@ -78,13 +78,13 @@ data OptCompletion = OptComplNone             -- ^ No parameter to this option
                    | OptComplString           -- ^ Arbitrary string
                    | OptComplChoices [String] -- ^ List of string choices
                    | OptComplSuggest [String] -- ^ Suggested choices
-                   deriving (Show, Read, Eq)
+                   deriving (Show, Eq)
 
 -- | Argument type. This differs from (and wraps) an Option by the
 -- fact that it can (and usually does) support multiple repetitions of
 -- the same argument, via a min and max limit.
 data ArgCompletion = ArgCompletion OptCompletion Int (Maybe Int)
-                     deriving (Show, Read, Eq)
+                     deriving (Show, Eq)
 
 -- | Yes\/no choices completion.
 optComplYesNo :: OptCompletion

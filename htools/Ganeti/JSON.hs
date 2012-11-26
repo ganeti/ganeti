@@ -186,7 +186,7 @@ instance HasStringRepr String where
 -- | The container type, a wrapper over Data.Map
 newtype GenericContainer a b =
   GenericContainer { fromContainer :: Map.Map a b }
-  deriving (Show, Read, Eq)
+  deriving (Show, Eq)
 
 -- | Type alias for string keys.
 type Container = GenericContainer String

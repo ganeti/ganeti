@@ -283,7 +283,7 @@ buildSimpleCons tname cons = do
   decl_d <- mapM (\(cname, fields) -> do
                     fields' <- mapM (buildConsField . snd) fields
                     return $ NormalC (mkName cname) fields') cons
-  return $ DataD [] tname [] decl_d [''Show, ''Read, ''Eq]
+  return $ DataD [] tname [] decl_d [''Show, ''Eq]
 
 -- | Generate the save function for a given type.
 genSaveSimpleObj :: Name                            -- ^ Object type
@@ -306,7 +306,7 @@ strADTDecl :: Name -> [String] -> Dec
 strADTDecl name constructors =
   DataD [] name []
           (map (flip NormalC [] . mkName) constructors)
-          [''Show, ''Read, ''Eq, ''Enum, ''Bounded, ''Ord]
+          [''Show, ''Eq, ''Enum, ''Bounded, ''Ord]
 
 -- | Generates a toRaw function.
 --
@@ -529,7 +529,7 @@ genOpCode name cons = do
                     fields' <- mapM (fieldTypeInfo "op") fields
                     return $ RecC (mkName cname) fields')
             cons
-  let declD = DataD [] tname [] decl_d [''Show, ''Read, ''Eq]
+  let declD = DataD [] tname [] decl_d [''Show, ''Eq]
 
   (savesig, savefn) <- genSaveOpCode tname "saveOpCode" cons
                          (uncurry saveConstructor)
@@ -638,7 +638,7 @@ genLuxiOp name cons = do
                     let fields'' = zip (repeat NotStrict) fields'
                     return $ NormalC (mkName cname) fields'')
             cons
-  let declD = DataD [] (mkName name) [] decl_d [''Show, ''Read, ''Eq]
+  let declD = DataD [] (mkName name) [] decl_d [''Show, ''Eq]
   (savesig, savefn) <- genSaveOpCode tname "opToArgs"
                          cons saveLuxiConstructor
   req_defs <- declareSADT "LuxiReq" .
@@ -678,7 +678,7 @@ buildObject sname field_pfx fields = do
   let name = mkName sname
   fields_d <- mapM (fieldTypeInfo field_pfx) fields
   let decl_d = RecC name fields_d
-  let declD = DataD [] name [] [decl_d] [''Show, ''Read, ''Eq]
+  let declD = DataD [] name [] [decl_d] [''Show, ''Eq]
   ser_decls <- buildObjectSerialisation sname fields
   return $ declD:ser_decls
 
@@ -836,8 +836,8 @@ buildParam sname field_pfx fields = do
   fields_p <- mapM (paramFieldTypeInfo field_pfx) fields
   let decl_f = RecC name_f fields_f
       decl_p = RecC name_p fields_p
-  let declF = DataD [] name_f [] [decl_f] [''Show, ''Read, ''Eq]
-      declP = DataD [] name_p [] [decl_p] [''Show, ''Read, ''Eq]
+  let declF = DataD [] name_f [] [decl_f] [''Show, ''Eq]
+      declP = DataD [] name_p [] [decl_p] [''Show, ''Eq]
   ser_decls_f <- buildObjectSerialisation sname_f fields
   ser_decls_p <- buildPParamSerialisation sname_p fields
   fill_decls <- fillParam sname field_pfx fields

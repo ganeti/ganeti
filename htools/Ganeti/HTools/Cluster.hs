@@ -142,7 +142,7 @@ emptyEvacSolution = EvacSolution { esMoved = []
 
 -- | The complete state for the balancing solution.
 data Table = Table Node.List Instance.List Score [Placement]
-             deriving (Show, Read)
+             deriving (Show)
 
 -- | Cluster statistics data type.
 data CStats = CStats
@@ -167,7 +167,7 @@ data CStats = CStats
   , csNmem :: Integer -- ^ Node own memory
   , csScore :: Score  -- ^ The cluster score
   , csNinst :: Int    -- ^ The total number of instances
-  } deriving (Show, Read)
+  } deriving (Show)
 
 -- | A simple type for allocation functions.
 type AllocMethod =  Node.List           -- ^ Node list

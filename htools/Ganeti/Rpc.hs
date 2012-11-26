@@ -386,7 +386,7 @@ instance Rpc RpcCallNodeInfo RpcResultNodeInfo where
 -- Query node version.
 -- Note: We can't use THH as it does not know what to do with empty dict
 data RpcCallVersion = RpcCallVersion {}
-  deriving (Show, Read, Eq)
+  deriving (Show, Eq)
 
 instance J.JSON RpcCallVersion where
   showJSON _ = J.JSNull

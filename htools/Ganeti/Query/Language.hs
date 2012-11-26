@@ -120,7 +120,7 @@ $(makeJSONInstance ''QueryTypeLuxi)
 -- | Overall query type.
 data ItemType = ItemTypeLuxi QueryTypeLuxi
               | ItemTypeOpCode QueryTypeOp
-                deriving (Show, Read, Eq)
+                deriving (Show, Eq)
 
 -- | Custom JSON decoder for 'ItemType'.
 decodeItemType :: (Monad m) => JSValue -> m ItemType
@@ -172,7 +172,7 @@ data Filter a
     | GEFilter       a FilterValue  -- ^ @>=@ /field/ /value/
     | RegexpFilter   a FilterRegex  -- ^ @=~@ /field/ /regexp/
     | ContainsFilter a FilterValue  -- ^ @=[]@ /list-field/ /value/
-      deriving (Show, Read, Eq)
+      deriving (Show, Eq)
 
 -- | Serialiser for the 'Filter' data type.
 showFilter :: (JSON a) => Filter a -> JSValue
@@ -293,7 +293,7 @@ type FilterField = String
 -- | Value to compare the field value to, for filtering purposes.
 data FilterValue = QuotedString String
                  | NumericValue Integer
-                   deriving (Read, Show, Eq)
+                   deriving (Show, Eq)
 
 -- | Serialiser for 'FilterValue'. The Python code just sends this to
 -- JSON as-is, so we'll do the same.
@@ -348,15 +348,6 @@ mkRegex _ =
 instance Show FilterRegex where
   show (FilterRegex re _) = "mkRegex " ++ show re
 
--- | 'Read' instance: we manually read \"mkRegex\" followed by a
--- string, and build the 'FilterRegex' using that.
-instance Read FilterRegex where
-  readsPrec _ str = do
-    ("mkRegex", s') <- lex str
-    (re, s'') <- reads s'
-    filterre <- mkRegex re
-    return (filterre, s'')
-
 -- | 'Eq' instance: we only compare the string versions of the regexes.
 instance Eq FilterRegex where
   (FilterRegex re1 _) == (FilterRegex re2 _) = re1 == re2
@@ -388,7 +379,7 @@ $(buildObject "FieldDefinition" "fdef"
 data ResultEntry = ResultEntry
   { rentryStatus :: ResultStatus      -- ^ The result status
   , rentryValue  :: Maybe ResultValue -- ^ The (optional) result value
-  } deriving (Show, Read, Eq)
+  } deriving (Show, Eq)
 
 instance JSON ResultEntry where
   showJSON (ResultEntry rs rv) =
