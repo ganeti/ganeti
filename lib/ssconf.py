@@ -328,10 +328,10 @@ class SimpleStore(object):
     except EnvironmentError, err:
       if err.errno == errno.ENOENT and default is not None:
         return default
-      raise errors.ConfigurationError("Can't read from the ssconf file:"
-                                      " '%s'" % str(err))
-    data = data.rstrip("\n")
-    return data
+      raise errors.ConfigurationError("Can't read ssconf file %s: %s" %
+                                      (filename, str(err)))
+
+    return data.rstrip("\n")
 
   def WriteFiles(self, values):
     """Writes ssconf files used by external scripts.
@@ -513,7 +513,7 @@ class SimpleStore(object):
       return int(self._ReadFile(constants.SS_PRIMARY_IP_FAMILY,
                                 default=netutils.IP4Address.family))
     except (ValueError, TypeError), err:
-      raise errors.ConfigurationError("Error while trying to parse primary ip"
+      raise errors.ConfigurationError("Error while trying to parse primary IP"
                                       " family: %s" % err)
 
 
