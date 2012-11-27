@@ -33,11 +33,13 @@ module Test.Ganeti.Types
   , InstanceStatus(..)
   , NonEmpty(..)
   , Hypervisor(..)
+  , JobId(..)
   ) where
 
 import Data.List (sort)
 import Test.QuickCheck as QuickCheck hiding (Result)
 import Test.HUnit
+import qualified Text.JSON as J
 
 import Test.Ganeti.TestHelper
 import Test.Ganeti.TestCommon
@@ -45,6 +47,7 @@ import Test.Ganeti.TestCommon
 import Ganeti.BasicTypes
 import qualified Ganeti.Constants as C
 import Ganeti.Types as Types
+import Ganeti.Luxi as Luxi
 
 {-# ANN module "HLint: ignore Use camelCase" #-}
 
@@ -108,6 +111,11 @@ $(genArbitrary ''NetworkType)
 $(genArbitrary ''NICMode)
 
 $(genArbitrary ''FinalizedJobStatus)
+
+instance Arbitrary Luxi.JobId where
+  arbitrary = do
+    (Positive i) <- arbitrary
+    Luxi.makeJobId i
 
 -- * Properties
 
@@ -271,6 +279,12 @@ case_FinalizedJobStatus_pyequiv = do
                             [minBound..maxBound]
   assertEqual "for FinalizedJobStatus equivalence" all_py_codes all_hs_codes
 
+-- | Tests JobId serialisation (both from string and ints).
+prop_JobId_serialisation :: JobId -> Property
+prop_JobId_serialisation jid =
+  testSerialisation jid .&&.
+  (J.readJSON . J.showJSON . show $ fromJobId jid) ==? J.Ok jid
+
 testSuite "Types"
   [ 'prop_AllocPolicy_serialisation
   , 'prop_DiskTemplate_serialisation
@@ -304,4 +318,5 @@ testSuite "Types"
   , 'case_NICMode_pyequiv
   , 'prop_FinalizedJobStatus_serialisation
   , 'case_FinalizedJobStatus_pyequiv
+  , 'prop_JobId_serialisation
   ]

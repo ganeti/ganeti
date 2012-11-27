@@ -30,6 +30,8 @@ module Ganeti.Luxi
   , LuxiReq(..)
   , Client
   , JobId
+  , fromJobId
+  , makeJobId
   , RecvResult(..)
   , strOfOp
   , getClient
@@ -52,7 +54,6 @@ module Ganeti.Luxi
 
 import Control.Exception (catch)
 import Data.IORef
-import Data.Ratio (numerator, denominator)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.UTF8 as UTF8
 import Data.Word (Word8)
@@ -74,9 +75,9 @@ import Ganeti.JSON
 import Ganeti.Jobs (JobStatus)
 import Ganeti.OpParams (pTagsObject)
 import Ganeti.OpCodes
-import Ganeti.Utils
 import qualified Ganeti.Query.Language as Qlang
 import Ganeti.THH
+import Ganeti.Types
 
 -- * Utility functions
 
@@ -95,9 +96,6 @@ data RecvResult = RecvConnClosed    -- ^ Connection closed
                 | RecvError String  -- ^ Any other error
                 | RecvOk String     -- ^ Successfull receive
                   deriving (Show, Eq)
-
--- | The Ganeti job type.
-type JobId = Int
 
 -- | Currently supported Luxi operations and JSON serialization.
 $(genLuxiOp "LuxiOp"
@@ -126,7 +124,7 @@ $(genLuxiOp "LuxiOp"
      , simpleField "lock"   [t| Bool     |]
      ])
   , (luxiReqQueryJobs,
-     [ simpleField "ids"    [t| [Int]    |]
+     [ simpleField "ids"    [t| [JobId]  |]
      , simpleField "fields" [t| [String] |]
      ])
   , (luxiReqQueryExports,
@@ -146,24 +144,24 @@ $(genLuxiOp "LuxiOp"
      [ simpleField "ops" [t| [[OpCode]] |] ]
     )
   , (luxiReqWaitForJobChange,
-     [ simpleField "job"      [t| Int     |]
+     [ simpleField "job"      [t| JobId   |]
      , simpleField "fields"   [t| [String]|]
      , simpleField "prev_job" [t| JSValue |]
      , simpleField "prev_log" [t| JSValue |]
      , simpleField "tmout"    [t| Int     |]
      ])
   , (luxiReqArchiveJob,
-     [ simpleField "job" [t| Int |] ]
+     [ simpleField "job" [t| JobId |] ]
     )
   , (luxiReqAutoArchiveJobs,
      [ simpleField "age"   [t| Int |]
      , simpleField "tmout" [t| Int |]
      ])
   , (luxiReqCancelJob,
-     [ simpleField "job" [t| Int |] ]
+     [ simpleField "job" [t| JobId |] ]
     )
   , (luxiReqChangeJobPriority,
-     [ simpleField "job" [t| Int |]
+     [ simpleField "job"      [t| JobId |]
      , simpleField "priority" [t| Int |] ]
     )
   , (luxiReqSetDrainFlag,
@@ -326,10 +324,9 @@ decodeCall :: LuxiCall -> Result LuxiOp
 decodeCall (LuxiCall call args) =
   case call of
     ReqQueryJobs -> do
-              (jid, jargs) <- fromJVal args
-              rid <- mapM parseJobId jid
+              (jids, jargs) <- fromJVal args
               let rargs = map fromJSString jargs
-              return $ QueryJobs rid rargs
+              return $ QueryJobs jids rargs
     ReqQueryInstances -> do
               (names, fields, locking) <- fromJVal args
               return $ QueryInstances names fields locking
@@ -372,12 +369,10 @@ decodeCall (LuxiCall call args) =
                     J.readJSON d `ap`
                     J.readJSON e
                   _ -> J.Error "Not enough values"
-              rid <- parseJobId jid
-              return $ WaitForJobChange rid fields pinfo pidx wtmout
+              return $ WaitForJobChange jid fields pinfo pidx wtmout
     ReqArchiveJob -> do
               [jid] <- fromJVal args
-              rid <- parseJobId jid
-              return $ ArchiveJob rid
+              return $ ArchiveJob jid
     ReqAutoArchiveJobs -> do
               (age, tmout) <- fromJVal args
               return $ AutoArchiveJobs age tmout
@@ -392,13 +387,11 @@ decodeCall (LuxiCall call args) =
               item <- tagObjectFrom kind name
               return $ QueryTags item
     ReqCancelJob -> do
-              [job] <- fromJVal args
-              rid <- parseJobId job
-              return $ CancelJob rid
+              [jid] <- fromJVal args
+              return $ CancelJob jid
     ReqChangeJobPriority -> do
-              (job, priority) <- fromJVal args
-              rid <- parseJobId job
-              return $ ChangeJobPriority rid priority
+              (jid, priority) <- fromJVal args
+              return $ ChangeJobPriority jid priority
     ReqSetDrainFlag -> do
               [flag] <- fromJVal args
               return $ SetDrainFlag flag
@@ -437,22 +430,12 @@ callMethod method s = do
   let rval = validateResult result
   return rval
 
--- | Parses a job ID.
-parseJobId :: JSValue -> Result JobId
-parseJobId (JSString x) = tryRead "parsing job id" . fromJSString $ x
-parseJobId (JSRational _ x) =
-  if denominator x /= 1
-    then Bad $ "Got fractional job ID from master daemon?! Value:" ++ show x
-    -- FIXME: potential integer overflow here on 32-bit platforms
-    else Ok . fromIntegral . numerator $ x
-parseJobId x = Bad $ "Wrong type/value for job id: " ++ show x
-
 -- | Parse job submission result.
 parseSubmitJobResult :: JSValue -> ErrorResult JobId
 parseSubmitJobResult (JSArray [JSBool True, v]) =
-  case parseJobId v of
-    Bad msg -> Bad $ LuxiError msg
-    Ok v' -> Ok v'
+  case J.readJSON v of
+    J.Error msg -> Bad $ LuxiError msg
+    J.Ok v' -> Ok v'
 parseSubmitJobResult (JSArray [JSBool False, JSString x]) =
   Bad . LuxiError $ fromJSString x
 parseSubmitJobResult v =

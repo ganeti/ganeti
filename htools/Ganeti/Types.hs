@@ -73,13 +73,18 @@ module Ganeti.Types
   , nICModeToRaw
   , FinalizedJobStatus(..)
   , finalizedJobStatusToRaw
+  , JobId
+  , fromJobId
+  , makeJobId
   ) where
 
 import qualified Text.JSON as JSON
+import Data.Ratio (numerator, denominator)
 
 import qualified Ganeti.Constants as C
 import qualified Ganeti.THH as THH
 import Ganeti.JSON
+import Ganeti.Utils
 
 -- * Generic types
 
@@ -342,3 +347,27 @@ $(THH.declareSADT "FinalizedJobStatus"
   , ("JobStatusFailed",     'C.jobStatusError)
   ])
 $(THH.makeJSONInstance ''FinalizedJobStatus)
+
+-- | The Ganeti job type.
+newtype JobId = JobId { fromJobId :: Int }
+  deriving (Show, Eq)
+
+-- | Builds a job ID.
+makeJobId :: (Monad m) => Int -> m JobId
+makeJobId i | i >= 0 = return $ JobId i
+            | otherwise = fail $ "Invalid value for job ID ' " ++ show i ++ "'"
+
+-- | Parses a job ID.
+parseJobId :: (Monad m) => JSON.JSValue -> m JobId
+parseJobId (JSON.JSString x) =
+  tryRead "parsing job id" (JSON.fromJSString x) >>= makeJobId
+parseJobId (JSON.JSRational _ x) =
+  if denominator x /= 1
+    then fail $ "Got fractional job ID from master daemon?! Value:" ++ show x
+    -- FIXME: potential integer overflow here on 32-bit platforms
+    else makeJobId . fromIntegral . numerator $ x
+parseJobId x = fail $ "Wrong type/value for job id: " ++ show x
+
+instance JSON.JSON JobId where
+  showJSON = JSON.showJSON . fromJobId
+  readJSON = parseJobId
