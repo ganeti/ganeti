@@ -115,6 +115,7 @@
 /htools/.hpc
 /htools/coverage
 
+/htools/mon-collector
 /htools/htools
 /htools/hconfd
 /htools/ganeti-confd

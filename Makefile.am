@@ -60,6 +60,7 @@ HTOOLS_DIRS = \
 	htools/Ganeti/Block \
 	htools/Ganeti/Block/Drbd \
 	htools/Ganeti/Confd \
+	htools/Ganeti/DataCollectors \
 	htools/Ganeti/HTools \
 	htools/Ganeti/HTools/Backend \
 	htools/Ganeti/HTools/Program \
@@ -113,6 +114,7 @@ ALL_APIDOC_HS_DIRS = \
 	$(APIDOC_HS_DIR)/Ganeti/Block \
 	$(APIDOC_HS_DIR)/Ganeti/Block/Drbd \
 	$(APIDOC_HS_DIR)/Ganeti/Confd \
+	$(APIDOC_HS_DIR)/Ganeti/DataCollectors \
 	$(APIDOC_HS_DIR)/Ganeti/HTools \
 	$(APIDOC_HS_DIR)/Ganeti/HTools/Backend \
 	$(APIDOC_HS_DIR)/Ganeti/HTools/Program \
@@ -404,7 +406,7 @@ docrst = \
 	doc/virtual-cluster.rst \
 	doc/walkthrough.rst
 
-HS_PROGS = htools/htools
+HS_PROGS = htools/htools htools/mon-collector
 HS_BIN_ROLES = hbal hscan hspace hinfo hcheck
 HS_HTOOLS_PROGS = $(HS_BIN_ROLES) hail
 
@@ -452,6 +454,8 @@ HS_LIB_SRCS = \
 	htools/Ganeti/Confd/Utils.hs \
 	htools/Ganeti/Config.hs \
 	htools/Ganeti/Daemon.hs \
+	htools/Ganeti/DataCollectors/Drbd.hs \
+	htools/Ganeti/DataCollectors/Program.hs \
 	htools/Ganeti/Errors.hs \
 	htools/Ganeti/HTools/Backend/IAlloc.hs \
 	htools/Ganeti/HTools/Backend/Luxi.hs \
@@ -743,7 +747,8 @@ nodist_pkglib_python_scripts = \
 myexeclib_SCRIPTS = \
 	daemons/daemon-util \
 	tools/kvm-ifup \
-	$(pkglib_python_scripts)
+	$(pkglib_python_scripts) \
+	htools/mon-collector
 
 nodist_myexeclib_SCRIPTS = \
 	$(nodist_pkglib_python_scripts)
@@ -829,7 +834,8 @@ man_MANS = \
 	man/hinfo.1 \
 	man/hscan.1 \
 	man/hspace.1 \
-	man/htools.1
+	man/htools.1 \
+	man/mon-collector.7
 
 manrst = $(patsubst %.1,%.rst,$(patsubst %.7,%.rst,$(patsubst %.8,%.rst,$(man_MANS))))
 manhtml = $(patsubst %.rst,%.html,$(manrst))

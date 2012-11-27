@@ -26,7 +26,8 @@ daemon), **ganeti-masterd**(8) (master daemon), **ganeti-rapi**(8)
 Ganeti htools: **htools**(1) (generic binary), **hbal**(1) (cluster
 balancer), **hspace**(1) (capacity calculation), **hail**(1) (IAllocator
 plugin), **hscan**(1) (data gatherer from remote clusters), **hinfo**(1)
-(cluster information printer).
+(cluster information printer), **mon-collector**(7) (data collectors
+interface).
 
 COPYRIGHT
 ---------
