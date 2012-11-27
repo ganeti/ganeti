@@ -959,7 +959,8 @@ def _RunPostHook(lu, node_name):
   try:
     hm.RunPhase(constants.HOOKS_PHASE_POST, nodes=[node_name])
   except Exception, err: # pylint: disable=W0703
-    lu.LogWarning("Errors occurred running hooks on %s: %s" % (node_name, err))
+    lu.LogWarning("Errors occurred running hooks on %s: %s",
+                  node_name, err)
 
 
 def _CheckOutputFields(static, dynamic, selected):
@@ -4449,7 +4450,7 @@ def _UploadHelper(lu, nodes, fname):
       if msg:
         msg = ("Copy of file %s to node %s failed: %s" %
                (fname, to_node, msg))
-        lu.proc.LogWarning(msg)
+        lu.LogWarning(msg)
 
 
 def _ComputeAncillaryFiles(cluster, redist):
@@ -4642,7 +4643,7 @@ def _WaitForSync(lu, instance, disks=None, oneshot=False):
   disks = _ExpandCheckDisks(instance, disks)
 
   if not oneshot:
-    lu.proc.LogInfo("Waiting for instance %s to sync disks." % instance.name)
+    lu.LogInfo("Waiting for instance %s to sync disks", instance.name)
 
   node = instance.primary_node
 
@@ -4685,8 +4686,8 @@ def _WaitForSync(lu, instance, disks=None, oneshot=False):
           max_time = mstat.estimated_time
         else:
           rem_time = "no time estimate"
-        lu.proc.LogInfo("- device %s: %5.2f%% done, %s" %
-                        (disks[i].iv_name, mstat.sync_percent, rem_time))
+        lu.LogInfo("- device %s: %5.2f%% done, %s",
+                   disks[i].iv_name, mstat.sync_percent, rem_time)
 
     # if we're done but degraded, let's do a few small retries, to
     # make sure we see a stable and not transient situation; therefore
@@ -4703,7 +4704,8 @@ def _WaitForSync(lu, instance, disks=None, oneshot=False):
     time.sleep(min(60, max_time))
 
   if done:
-    lu.proc.LogInfo("Instance %s's disks are in sync." % instance.name)
+    lu.LogInfo("Instance %s's disks are in sync", instance.name)
+
   return not cumul_degraded
 
 
@@ -6195,7 +6197,8 @@ class LUNodeSetParams(LogicalUnit):
       if master_singlehomed and self.op.secondary_ip != node.primary_ip:
         if self.op.force and node.name == master.name:
           self.LogWarning("Transitioning from single-homed to multi-homed"
-                          " cluster. All nodes will require a secondary ip.")
+                          " cluster; all nodes will require a secondary IP"
+                          " address")
         else:
           raise errors.OpPrereqError("Changing the secondary ip on a"
                                      " single-homed cluster requires the"
@@ -6205,7 +6208,8 @@ class LUNodeSetParams(LogicalUnit):
       elif not master_singlehomed and self.op.secondary_ip == node.primary_ip:
         if self.op.force and node.name == master.name:
           self.LogWarning("Transitioning from multi-homed to single-homed"
-                          " cluster. Secondary IPs will have to be removed.")
+                          " cluster; secondary IP addresses will have to be"
+                          " removed")
         else:
           raise errors.OpPrereqError("Cannot set the secondary IP to be the"
                                      " same as the primary IP on a multi-homed"
@@ -6583,9 +6587,9 @@ def _AssembleInstanceDisks(lu, instance, disks=None, ignore_secondaries=False,
       if msg:
         is_offline_secondary = (node in instance.secondary_nodes and
                                 result.offline)
-        lu.proc.LogWarning("Could not prepare block device %s on node %s"
-                           " (is_primary=False, pass=1): %s",
-                           inst_disk.iv_name, node, msg)
+        lu.LogWarning("Could not prepare block device %s on node %s"
+                      " (is_primary=False, pass=1): %s",
+                      inst_disk.iv_name, node, msg)
         if not (ignore_secondaries or is_offline_secondary):
           disks_ok = False
 
@@ -6606,9 +6610,9 @@ def _AssembleInstanceDisks(lu, instance, disks=None, ignore_secondaries=False,
                                              True, idx)
       msg = result.fail_msg
       if msg:
-        lu.proc.LogWarning("Could not prepare block device %s on node %s"
-                           " (is_primary=True, pass=2): %s",
-                           inst_disk.iv_name, node, msg)
+        lu.LogWarning("Could not prepare block device %s on node %s"
+                      " (is_primary=True, pass=2): %s",
+                      inst_disk.iv_name, node, msg)
         disks_ok = False
       else:
         dev_path = result.payload
@@ -6633,9 +6637,9 @@ def _StartInstanceDisks(lu, instance, force):
   if not disks_ok:
     _ShutdownInstanceDisks(lu, instance)
     if force is not None and not force:
-      lu.proc.LogWarning("", hint="If the message above refers to a"
-                         " secondary node,"
-                         " you can retry the operation using '--force'.")
+      lu.LogWarning("",
+                    hint=("If the message above refers to a secondary node,"
+                          " you can retry the operation using '--force'"))
     raise errors.OpExecError("Disk consistency error")
 
 
@@ -6938,10 +6942,10 @@ class LUInstanceStartup(LogicalUnit):
     self.primary_offline = self.cfg.GetNodeInfo(instance.primary_node).offline
 
     if self.primary_offline and self.op.ignore_offline_nodes:
-      self.proc.LogWarning("Ignoring offline primary node")
+      self.LogWarning("Ignoring offline primary node")
 
       if self.op.hvparams or self.op.beparams:
-        self.proc.LogWarning("Overridden parameters are ignored")
+        self.LogWarning("Overridden parameters are ignored")
     else:
       _CheckNodeOnline(self, instance.primary_node)
 
@@ -6973,7 +6977,7 @@ class LUInstanceStartup(LogicalUnit):
 
     if self.primary_offline:
       assert self.op.ignore_offline_nodes
-      self.proc.LogInfo("Primary node offline, marked instance as started")
+      self.LogInfo("Primary node offline, marked instance as started")
     else:
       node_current = instance.primary_node
 
@@ -7128,7 +7132,7 @@ class LUInstanceShutdown(LogicalUnit):
       self.cfg.GetNodeInfo(self.instance.primary_node).offline
 
     if self.primary_offline and self.op.ignore_offline_nodes:
-      self.proc.LogWarning("Ignoring offline primary node")
+      self.LogWarning("Ignoring offline primary node")
     else:
       _CheckNodeOnline(self, self.instance.primary_node)
 
@@ -7145,12 +7149,12 @@ class LUInstanceShutdown(LogicalUnit):
 
     if self.primary_offline:
       assert self.op.ignore_offline_nodes
-      self.proc.LogInfo("Primary node offline, marked instance as stopped")
+      self.LogInfo("Primary node offline, marked instance as stopped")
     else:
       result = self.rpc.call_instance_shutdown(node_current, instance, timeout)
       msg = result.fail_msg
       if msg:
-        self.proc.LogWarning("Could not shutdown instance: %s" % msg)
+        self.LogWarning("Could not shutdown instance: %s", msg)
 
       _ShutdownInstanceDisks(self, instance)
 
@@ -7650,7 +7654,7 @@ class LUInstanceRename(LogicalUnit):
         msg = ("Could not run OS rename script for instance %s on node %s"
                " (but the instance has been renamed in Ganeti): %s" %
                (inst.name, inst.primary_node, msg))
-        self.proc.LogWarning(msg)
+        self.LogWarning(msg)
     finally:
       _ShutdownInstanceDisks(self, inst)
 
@@ -8064,10 +8068,10 @@ class LUInstanceMove(LogicalUnit):
     msg = result.fail_msg
     if msg:
       if self.op.ignore_consistency:
-        self.proc.LogWarning("Could not shutdown instance %s on node %s."
-                             " Proceeding anyway. Please make sure node"
-                             " %s is down. Error details: %s",
-                             instance.name, source_node, source_node, msg)
+        self.LogWarning("Could not shutdown instance %s on node %s."
+                        " Proceeding anyway. Please make sure node"
+                        " %s is down. Error details: %s",
+                        instance.name, source_node, source_node, msg)
       else:
         raise errors.OpExecError("Could not shutdown instance %s on"
                                  " node %s: %s" %
@@ -11356,7 +11360,7 @@ class TLReplaceDisks(Tasklet):
         continue
 
       for node in nodes:
-        self.lu.LogInfo("Checking disk/%d on %s" % (idx, node))
+        self.lu.LogInfo("Checking disk/%d on %s", idx, node)
         self.cfg.SetDiskID(dev, node)
 
         result = _BlockdevFind(self, node, dev, self.instance)
@@ -11396,7 +11400,7 @@ class TLReplaceDisks(Tasklet):
       if idx not in self.disks:
         continue
 
-      self.lu.LogInfo("Adding storage on %s for disk/%d" % (node_name, idx))
+      self.lu.LogInfo("Adding storage on %s for disk/%d", node_name, idx)
 
       self.cfg.SetDiskID(dev, node_name)
 
@@ -11443,14 +11447,14 @@ class TLReplaceDisks(Tasklet):
 
   def _RemoveOldStorage(self, node_name, iv_names):
     for name, (_, old_lvs, _) in iv_names.iteritems():
-      self.lu.LogInfo("Remove logical volumes for %s" % name)
+      self.lu.LogInfo("Remove logical volumes for %s", name)
 
       for lv in old_lvs:
         self.cfg.SetDiskID(lv, node_name)
 
         msg = self.rpc.call_blockdev_remove(node_name, lv).fail_msg
         if msg:
-          self.lu.LogWarning("Can't remove old LV: %s" % msg,
+          self.lu.LogWarning("Can't remove old LV: %s", msg,
                              hint="remove unused LVs manually")
 
   def _ExecDrbd8DiskOnly(self, feedback_fn): # pylint: disable=W0613
@@ -11495,7 +11499,7 @@ class TLReplaceDisks(Tasklet):
     # Step: for each lv, detach+rename*2+attach
     self.lu.LogStep(4, steps_total, "Changing drbd configuration")
     for dev, old_lvs, new_lvs in iv_names.itervalues():
-      self.lu.LogInfo("Detaching %s drbd from local storage" % dev.iv_name)
+      self.lu.LogInfo("Detaching %s drbd from local storage", dev.iv_name)
 
       result = self.rpc.call_blockdev_removechildren(self.target_node, dev,
                                                      old_lvs)
@@ -11549,7 +11553,7 @@ class TLReplaceDisks(Tasklet):
         self.cfg.SetDiskID(disk, self.target_node)
 
       # Now that the new lvs have the old name, we can add them to the device
-      self.lu.LogInfo("Adding new mirror component on %s" % self.target_node)
+      self.lu.LogInfo("Adding new mirror component on %s", self.target_node)
       result = self.rpc.call_blockdev_addchildren(self.target_node,
                                                   (dev, self.instance), new_lvs)
       msg = result.fail_msg
@@ -11687,7 +11691,7 @@ class TLReplaceDisks(Tasklet):
 
     # We have new devices, shutdown the drbd on the old secondary
     for idx, dev in enumerate(self.instance.disks):
-      self.lu.LogInfo("Shutting down drbd for disk/%d on old node" % idx)
+      self.lu.LogInfo("Shutting down drbd for disk/%d on old node", idx)
       self.cfg.SetDiskID(dev, self.target_node)
       msg = self.rpc.call_blockdev_shutdown(self.target_node,
                                             (dev, self.instance)).fail_msg
@@ -11799,7 +11803,7 @@ class LURepairNodeStorage(NoHooksLU):
                                    errors.ECODE_STATE)
     except errors.OpPrereqError, err:
       if self.op.ignore_consistency:
-        self.proc.LogWarning(str(err.args[0]))
+        self.LogWarning(str(err.args[0]))
       else:
         raise
 
@@ -12277,14 +12281,14 @@ class LUInstanceGrowDisk(LogicalUnit):
     if self.op.wait_for_sync:
       disk_abort = not _WaitForSync(self, instance, disks=[disk])
       if disk_abort:
-        self.proc.LogWarning("Disk sync-ing has not returned a good"
-                             " status; please check the instance")
+        self.LogWarning("Disk syncing has not returned a good status; check"
+                        " the instance")
       if instance.admin_state != constants.ADMINST_UP:
         _SafeShutdownInstanceDisks(self, instance, disks=[disk])
     elif instance.admin_state != constants.ADMINST_UP:
-      self.proc.LogWarning("Not shutting down the disk even if the instance is"
-                           " not supposed to be running because no wait for"
-                           " sync mode was requested")
+      self.LogWarning("Not shutting down the disk even if the instance is"
+                      " not supposed to be running because no wait for"
+                      " sync mode was requested")
 
     assert self.owned_locks(locking.LEVEL_NODE_RES)
     assert set([instance.name]) == self.owned_locks(locking.LEVEL_INSTANCE)
@@ -12893,7 +12897,7 @@ class LUInstanceSetParams(LogicalUnit):
       netparams = self.cfg.GetGroupNetParams(new_net, pnode)
       if netparams is None:
         raise errors.OpPrereqError("No netparams found for the network"
-                                   " %s, propably not connected." % new_net,
+                                   " %s, probably not connected" % new_net,
                                    errors.ECODE_INVAL)
       new_params = dict(netparams)
     else:
@@ -12996,7 +13000,7 @@ class LUInstanceSetParams(LogicalUnit):
     elif (old_net is not None and
           (req_link is not None or req_mode is not None)):
       raise errors.OpPrereqError("Not allowed to change link or mode of"
-                                 " a NIC that is connected to a network.",
+                                 " a NIC that is connected to a network",
                                  errors.ECODE_INVAL)
 
     private.params = new_params
@@ -15281,7 +15285,7 @@ class LUTestDelay(NoHooksLU):
     else:
       top_value = self.op.repeat - 1
       for i in range(self.op.repeat):
-        self.LogInfo("Test delay iteration %d/%d" % (i, top_value))
+        self.LogInfo("Test delay iteration %d/%d", i, top_value)
         self._TestDelay()
 
 
@@ -15860,7 +15864,7 @@ class LUNetworkSetParams(LogicalUnit):
     #      extend cfg.ReserveIp/ReleaseIp with the external flag
     if self.op.gateway:
       if self.gateway == self.network.gateway:
-        self.LogWarning("Gateway is already %s" % self.gateway)
+        self.LogWarning("Gateway is already %s", self.gateway)
       else:
         if self.gateway:
           self.pool.Reserve(self.gateway, external=True)
@@ -15872,11 +15876,11 @@ class LUNetworkSetParams(LogicalUnit):
       for ip in self.op.add_reserved_ips:
         try:
           if self.pool.IsReserved(ip):
-            self.LogWarning("IP %s is already reserved" % ip)
+            self.LogWarning("IP address %s is already reserved", ip)
           else:
             self.pool.Reserve(ip, external=True)
-        except errors.AddressPoolError, e:
-          self.LogWarning("Cannot reserve ip %s. %s" % (ip, e))
+        except errors.AddressPoolError, err:
+          self.LogWarning("Cannot reserve IP address %s: %s", ip, err)
 
     if self.op.remove_reserved_ips:
       for ip in self.op.remove_reserved_ips:
@@ -15885,11 +15889,11 @@ class LUNetworkSetParams(LogicalUnit):
           continue
         try:
           if not self.pool.IsReserved(ip):
-            self.LogWarning("IP %s is already unreserved" % ip)
+            self.LogWarning("IP address %s is already unreserved", ip)
           else:
             self.pool.Release(ip, external=True)
-        except errors.AddressPoolError, e:
-          self.LogWarning("Cannot release ip %s. %s" % (ip, e))
+        except errors.AddressPoolError, err:
+          self.LogWarning("Cannot release IP address %s: %s", ip, err)
 
     if self.op.mac_prefix:
       self.network.mac_prefix = self.mac_prefix
@@ -16178,9 +16182,8 @@ class LUNetworkDisconnect(LogicalUnit):
 
     self.connected = True
     if self.network_uuid not in self.group.networks:
-      self.LogWarning("Network '%s' is"
-                         " not mapped to group '%s'" %
-                         (self.network_name, self.group.name))
+      self.LogWarning("Network '%s' is not mapped to group '%s'",
+                      self.network_name, self.group.name)
       self.connected = False
       return
 
