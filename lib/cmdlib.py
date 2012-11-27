@@ -9540,13 +9540,15 @@ def _CheckOSParams(lu, required, nodenames, osname, osparams):
                  osname, node)
 
 
-def _CreateInstanceAllocRequest(op, disks, nics, beparams):
+def _CreateInstanceAllocRequest(op, disks, nics, beparams, node_whitelist):
   """Wrapper around IAReqInstanceAlloc.
 
   @param op: The instance opcode
   @param disks: The computed disks
   @param nics: The computed nics
   @param beparams: The full filled beparams
+  @param node_whitelist: List of nodes which should appear as online to the
+    allocator (unless the node is already marked offline)
 
   @returns: A filled L{iallocator.IAReqInstanceAlloc}
 
@@ -9561,7 +9563,8 @@ def _CreateInstanceAllocRequest(op, disks, nics, beparams):
                                        spindle_use=spindle_use,
                                        disks=disks,
                                        nics=[n.ToDict() for n in nics],
-                                       hypervisor=op.hypervisor)
+                                       hypervisor=op.hypervisor,
+                                       node_whitelist=node_whitelist)
 
 
 def _ComputeNics(op, cluster, default_ip, cfg, ec_id):
@@ -9937,7 +9940,8 @@ class LUInstanceCreate(LogicalUnit):
     #TODO Export network to iallocator so that it chooses a pnode
     #     in a nodegroup that has the desired network connected to
     req = _CreateInstanceAllocRequest(self.op, self.disks,
-                                      self.nics, self.be_full)
+                                      self.nics, self.be_full,
+                                      None)
     ial = iallocator.IAllocator(self.cfg, self.rpc, req)
 
     ial.Run(self.op.iallocator)
@@ -10845,7 +10849,8 @@ class LUInstanceMultiAlloc(NoHooksLU):
     insts = [_CreateInstanceAllocRequest(op, _ComputeDisks(op, default_vg),
                                          _ComputeNics(op, cluster, None,
                                                       self.cfg, ec_id),
-                                         _ComputeFullBeParams(op, cluster))
+                                         _ComputeFullBeParams(op, cluster),
+                                         None)
              for op in self.op.instances]
 
     req = iallocator.IAReqMultiInstanceAlloc(instances=insts)
