@@ -2496,7 +2496,7 @@ _NETWORK_STATS_FIELDS = {
   }
 
 
-def _GetNetworkStatsField(field, kind, ctx):
+def _GetNetworkStatsField(field, kind, ctx, _):
   """Gets the value of a "stats" field from L{NetworkQueryData}.
 
   @param field: Field name
