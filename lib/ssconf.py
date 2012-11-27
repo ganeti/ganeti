@@ -27,7 +27,6 @@ configuration data, which is mostly static and available to all nodes.
 """
 
 import sys
-import re
 import os
 import errno
 
@@ -41,8 +40,6 @@ from ganeti import pathutils
 
 
 SSCONF_LOCK_TIMEOUT = 10
-
-RE_VALID_SSCONF_NAME = re.compile(r"^[-_a-z0-9]+$")
 
 
 class SimpleConfigReader(object):
