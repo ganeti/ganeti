@@ -9492,14 +9492,14 @@ def _CreateInstanceAllocRequest(op, disks, nics, beparams):
                                        hypervisor=op.hypervisor)
 
 
-def _ComputeNics(op, cluster, default_ip, cfg, proc):
+def _ComputeNics(op, cluster, default_ip, cfg, ec_id):
   """Computes the nics.
 
   @param op: The instance opcode
   @param cluster: Cluster configuration object
   @param default_ip: The default ip to assign
   @param cfg: An instance of the configuration object
-  @param proc: The executer instance
+  @param ec_id: Execution context ID
 
   @returns: The build up nics
 
@@ -9559,7 +9559,7 @@ def _ComputeNics(op, cluster, default_ip, cfg, proc):
 
       try:
         # TODO: We need to factor this out
-        cfg.ReserveMAC(mac, proc.GetECId())
+        cfg.ReserveMAC(mac, ec_id)
       except errors.ReservationError:
         raise errors.OpPrereqError("MAC address %s already in use"
                                    " in cluster" % mac,
@@ -10174,7 +10174,7 @@ class LUInstanceCreate(LogicalUnit):
 
     # NIC buildup
     self.nics = _ComputeNics(self.op, cluster, self.hostname1.ip, self.cfg,
-                             self.proc)
+                             self.proc.GetECId())
 
     # disk checks/pre-build
     default_vg = self.cfg.GetVGName()
@@ -10760,11 +10760,14 @@ class LUInstanceMultiAlloc(NoHooksLU):
     """
     cluster = self.cfg.GetClusterInfo()
     default_vg = self.cfg.GetVGName()
+    ec_id = self.proc.GetECId()
+
     insts = [_CreateInstanceAllocRequest(op, _ComputeDisks(op, default_vg),
                                          _ComputeNics(op, cluster, None,
-                                                      self.cfg, self.proc),
+                                                      self.cfg, ec_id),
                                          _ComputeFullBeParams(op, cluster))
              for op in self.op.instances]
+
     req = iallocator.IAReqMultiInstanceAlloc(instances=insts)
     ial = iallocator.IAllocator(self.cfg, self.rpc, req)
 
