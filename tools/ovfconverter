@@ -31,6 +31,7 @@ from ganeti import cli
 from ganeti import constants
 from ganeti import errors
 from ganeti import ovf
+from ganeti import utils
 
 
 IMPORT_MODE = "import"
@@ -161,35 +162,14 @@ def ParseOptions():
   return (mode, input_path, options)
 
 
-def SetupLogging(options):
-  """Setting up logging infrastructure.
-
-  @type options: optparse.Values
-  @param options: parsed command line options
-
-  """
-  formatter = logging.Formatter("%(asctime)s: %(levelname)s %(message)s")
-
-  stderr_handler = logging.StreamHandler()
-  stderr_handler.setFormatter(formatter)
-  if options.debug:
-    stderr_handler.setLevel(logging.NOTSET)
-  elif options.verbose:
-    stderr_handler.setLevel(logging.INFO)
-  else:
-    stderr_handler.setLevel(logging.WARNING)
-
-  root_logger = logging.getLogger("")
-  root_logger.setLevel(logging.NOTSET)
-  root_logger.addHandler(stderr_handler)
-
-
 def main():
   """Main routine.
 
   """
   (mode, input_path, options) = ParseOptions()
-  SetupLogging(options)
+
+  utils.SetupToolLogging(options.debug, options.verbose)
+
   logging.info("Chosen %s mode, reading the %s file", mode, input_path)
   assert mode in (IMPORT_MODE, EXPORT_MODE)
   converter = None

@@ -25,6 +25,7 @@
 import os.path
 import logging
 import logging.handlers
+from cStringIO import StringIO
 
 from ganeti import constants
 from ganeti import compat
@@ -269,3 +270,48 @@ def SetupLogging(logfile, program, debug=0, stderr_logging=False,
         raise
 
   return compat.partial(_ReopenLogFiles, reopen_handlers)
+
+
+def SetupToolLogging(debug, verbose, threadname=False,
+                     _root_logger=None, _stream=None):
+  """Configures the logging module for tools.
+
+  All log messages are sent to stderr.
+
+  @type debug: boolean
+  @param debug: Disable log message filtering
+  @type verbose: boolean
+  @param verbose: Enable verbose log messages
+  @type threadname: boolean
+  @param threadname: Whether to include thread name in output
+
+  """
+  if _root_logger is None:
+    root_logger = logging.getLogger("")
+  else:
+    root_logger = _root_logger
+
+  fmt = StringIO()
+  fmt.write("%(asctime)s:")
+
+  if threadname:
+    fmt.write(" %(threadName)s")
+
+  if debug or verbose:
+    fmt.write(" %(levelname)s")
+
+  fmt.write(" %(message)s")
+
+  formatter = logging.Formatter(fmt.getvalue())
+
+  stderr_handler = logging.StreamHandler(_stream)
+  stderr_handler.setFormatter(formatter)
+  if debug:
+    stderr_handler.setLevel(logging.NOTSET)
+  elif verbose:
+    stderr_handler.setLevel(logging.INFO)
+  else:
+    stderr_handler.setLevel(logging.WARNING)
+
+  root_logger.setLevel(logging.NOTSET)
+  root_logger.addHandler(stderr_handler)

@@ -781,28 +781,6 @@ class Merger(object):
     shutil.rmtree(self.work_dir)
 
 
-def SetupLogging(options):
-  """Setting up logging infrastructure.
-
-  @param options: Parsed command line options
-
-  """
-  formatter = logging.Formatter("%(asctime)s: %(levelname)s %(message)s")
-
-  stderr_handler = logging.StreamHandler()
-  stderr_handler.setFormatter(formatter)
-  if options.debug:
-    stderr_handler.setLevel(logging.NOTSET)
-  elif options.verbose:
-    stderr_handler.setLevel(logging.INFO)
-  else:
-    stderr_handler.setLevel(logging.WARNING)
-
-  root_logger = logging.getLogger("")
-  root_logger.setLevel(logging.NOTSET)
-  root_logger.addHandler(stderr_handler)
-
-
 def main():
   """Main routine.
 
@@ -821,7 +799,7 @@ def main():
 
   (options, args) = parser.parse_args()
 
-  SetupLogging(options)
+  utils.SetupToolLogging(options.debug, options.verbose)
 
   if not args:
     parser.error("No clusters specified")

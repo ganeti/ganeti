@@ -201,26 +201,6 @@ def GetPaths():
   return paths
 
 
-def SetupLogging(opts):
-  """Configures the logging module.
-
-  """
-  formatter = logging.Formatter("%(asctime)s: %(message)s")
-
-  stderr_handler = logging.StreamHandler()
-  stderr_handler.setFormatter(formatter)
-  if opts.debug:
-    stderr_handler.setLevel(logging.NOTSET)
-  elif opts.verbose:
-    stderr_handler.setLevel(logging.INFO)
-  else:
-    stderr_handler.setLevel(logging.WARNING)
-
-  root_logger = logging.getLogger("")
-  root_logger.setLevel(logging.NOTSET)
-  root_logger.addHandler(stderr_handler)
-
-
 def ParseOptions():
   """Parses the options passed to the program.
 
@@ -246,7 +226,7 @@ def Main():
   """
   (opts, args) = ParseOptions()
 
-  SetupLogging(opts)
+  utils.SetupToolLogging(opts.debug, opts.verbose)
 
   if args:
     logging.error("No arguments are expected")

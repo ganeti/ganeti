@@ -26,9 +26,12 @@ import unittest
 import logging
 import tempfile
 import shutil
+import threading
+from cStringIO import StringIO
 
 from ganeti import constants
 from ganeti import errors
+from ganeti import compat
 from ganeti import utils
 
 import testutils
@@ -190,6 +193,71 @@ class TestSetupLogging(unittest.TestCase):
 
     self.assertTrue(utils.ReadFile(logfile).endswith("First message\n"))
     self.assertTrue(utils.ReadFile(logfile2).endswith("This is a test\n"))
+
+
+class TestSetupToolLogging(unittest.TestCase):
+  def test(self):
+    error_name = logging.getLevelName(logging.ERROR)
+    warn_name = logging.getLevelName(logging.WARNING)
+    info_name = logging.getLevelName(logging.INFO)
+    debug_name = logging.getLevelName(logging.DEBUG)
+
+    for debug in [False, True]:
+      for verbose in [False, True]:
+        logger = logging.Logger("TestLogger")
+        buf = StringIO()
+
+        utils.SetupToolLogging(debug, verbose, _root_logger=logger, _stream=buf)
+
+        logger.error("level=error")
+        logger.warning("level=warning")
+        logger.info("level=info")
+        logger.debug("level=debug")
+
+        lines = buf.getvalue().splitlines()
+
+        self.assertTrue(compat.all(line.count(":") == 3 for line in lines))
+
+        messages = [line.split(":", 3)[-1].strip() for line in lines]
+
+        if debug:
+          self.assertEqual(messages, [
+            "%s level=error" % error_name,
+            "%s level=warning" % warn_name,
+            "%s level=info" % info_name,
+            "%s level=debug" % debug_name,
+            ])
+        elif verbose:
+          self.assertEqual(messages, [
+            "%s level=error" % error_name,
+            "%s level=warning" % warn_name,
+            "%s level=info" % info_name,
+            ])
+        else:
+          self.assertEqual(messages, [
+            "level=error",
+            "level=warning",
+            ])
+
+  def testThreadName(self):
+    thread_name = threading.currentThread().getName()
+
+    for enable_threadname in [False, True]:
+      logger = logging.Logger("TestLogger")
+      buf = StringIO()
+
+      utils.SetupToolLogging(True, True, threadname=enable_threadname,
+                             _root_logger=logger, _stream=buf)
+
+      logger.debug("test134042376")
+
+      lines = buf.getvalue().splitlines()
+      self.assertEqual(len(lines), 1)
+
+      if enable_threadname:
+        self.assertTrue((" %s " % thread_name) in lines[0])
+      else:
+        self.assertTrue(thread_name not in lines[0])
 
 
 if __name__ == "__main__":

@@ -719,33 +719,6 @@ def CheckRapiSetup(rapi_factory):
   logging.info("Destination cluster RAPI version: %s", dest_client.GetVersion())
 
 
-def SetupLogging(options):
-  """Setting up logging infrastructure.
-
-  @param options: Parsed command line options
-
-  """
-  fmt = "%(asctime)s: %(threadName)s "
-  if options.debug or options.verbose:
-    fmt += "%(levelname)s "
-  fmt += "%(message)s"
-
-  formatter = logging.Formatter(fmt)
-
-  stderr_handler = logging.StreamHandler()
-  stderr_handler.setFormatter(formatter)
-  if options.debug:
-    stderr_handler.setLevel(logging.NOTSET)
-  elif options.verbose:
-    stderr_handler.setLevel(logging.INFO)
-  else:
-    stderr_handler.setLevel(logging.ERROR)
-
-  root_logger = logging.getLogger("")
-  root_logger.setLevel(logging.NOTSET)
-  root_logger.addHandler(stderr_handler)
-
-
 def ParseOptions():
   """Parses options passed to program.
 
@@ -845,7 +818,7 @@ def main():
   """
   (parser, options, args) = ParseOptions()
 
-  SetupLogging(options)
+  utils.SetupToolLogging(options.debug, options.verbose, threadname=True)
 
   (src_cluster_name, dest_cluster_name, instance_names) = \
     CheckOptions(parser, options, args)

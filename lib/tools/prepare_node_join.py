@@ -94,26 +94,6 @@ def VerifyOptions(parser, opts, args):
   return opts
 
 
-def SetupLogging(opts):
-  """Configures the logging module.
-
-  """
-  formatter = logging.Formatter("%(asctime)s: %(message)s")
-
-  stderr_handler = logging.StreamHandler()
-  stderr_handler.setFormatter(formatter)
-  if opts.debug:
-    stderr_handler.setLevel(logging.NOTSET)
-  elif opts.verbose:
-    stderr_handler.setLevel(logging.INFO)
-  else:
-    stderr_handler.setLevel(logging.WARNING)
-
-  root_logger = logging.getLogger("")
-  root_logger.setLevel(logging.NOTSET)
-  root_logger.addHandler(stderr_handler)
-
-
 def _VerifyCertificate(cert, _noded_cert_file=pathutils.NODED_CERT_FILE):
   """Verifies a certificate against the local node daemon certificate.
 
@@ -319,7 +299,7 @@ def Main():
   """
   opts = ParseOptions()
 
-  SetupLogging(opts)
+  utils.SetupToolLogging(opts.debug, opts.verbose)
 
   try:
     data = LoadData(sys.stdin.read())
