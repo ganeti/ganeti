@@ -2100,5 +2100,11 @@ SSH_DAEMON_KEYFILES = {
   SSHK_DSA: (pathutils.SSH_HOST_DSA_PRIV, pathutils.SSH_HOST_DSA_PUB),
   }
 
+# Node daemon setup
+NDS_CLUSTER_NAME = "cluster_name"
+NDS_NODE_DAEMON_CERTIFICATE = "node_daemon_certificate"
+NDS_SSCONF = "ssconf"
+NDS_START_NODE_DAEMON = "start_node_daemon"
+
 # Do not re-export imported modules
 del re, _vcsversion, _autoconf, socket, pathutils

@@ -332,6 +332,7 @@ server_PYTHON = \
 pytools_PYTHON = \
 	lib/tools/__init__.py \
 	lib/tools/ensure_dirs.py \
+	lib/tools/node_daemon_setup.py \
 	lib/tools/prepare_node_join.py
 
 utils_PYTHON = \
@@ -616,6 +617,7 @@ PYTHON_BOOTSTRAP_SBIN = \
 PYTHON_BOOTSTRAP = \
 	$(PYTHON_BOOTSTRAP_SBIN) \
 	tools/ensure-dirs \
+	tools/node-daemon-setup \
 	tools/prepare-node-join
 
 qa_scripts = \
@@ -727,6 +729,7 @@ pkglib_python_scripts = \
 
 nodist_pkglib_python_scripts = \
 	tools/ensure-dirs \
+	tools/node-daemon-setup \
 	tools/prepare-node-join
 
 myexeclib_SCRIPTS = \
@@ -970,6 +973,7 @@ python_tests = \
 	test/ganeti.ssh_unittest.py \
 	test/ganeti.storage_unittest.py \
 	test/ganeti.tools.ensure_dirs_unittest.py \
+	test/ganeti.tools.node_daemon_setup_unittest.py \
 	test/ganeti.tools.prepare_node_join_unittest.py \
 	test/ganeti.uidpool_unittest.py \
 	test/ganeti.utils.algo_unittest.py \
@@ -1373,6 +1377,7 @@ daemons/ganeti-%: MODULE = ganeti.server.$(patsubst ganeti-%,%,$(notdir $@))
 daemons/ganeti-watcher: MODULE = ganeti.watcher
 scripts/%: MODULE = ganeti.client.$(subst -,_,$(notdir $@))
 tools/ensure-dirs: MODULE = ganeti.tools.ensure_dirs
+tools/node-daemon-setup: MODULE = ganeti.tools.node_daemon_setup
 tools/prepare-node-join: MODULE = ganeti.tools.prepare_node_join
 $(HS_BUILT_TEST_HELPERS): TESTROLE = $(patsubst htest/%,%,$@)
 
