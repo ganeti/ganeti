@@ -26,6 +26,7 @@ import unittest
 
 from ganeti import serializer
 from ganeti import errors
+from ganeti import ht
 
 import testutils
 
@@ -104,6 +105,30 @@ class TestSerializer(testutils.GanetiTestCase):
     tdata = { "msg": "Foo", }
     self.assertRaises(errors.SignatureError, load_fn,
                       serializer.DumpJson(tdata), "mykey")
+
+
+class TestLoadAndVerifyJson(unittest.TestCase):
+  def testNoJson(self):
+    self.assertRaises(errors.ParseError, serializer.LoadAndVerifyJson,
+                      "", NotImplemented)
+    self.assertRaises(errors.ParseError, serializer.LoadAndVerifyJson,
+                      "}", NotImplemented)
+
+  def testVerificationFails(self):
+    self.assertRaises(errors.ParseError, serializer.LoadAndVerifyJson,
+                      "{}", lambda _: False)
+
+    verify_fn = ht.TListOf(ht.TNonEmptyString)
+    try:
+      serializer.LoadAndVerifyJson("{}", verify_fn)
+    except errors.ParseError, err:
+      self.assertTrue(str(err).endswith(str(verify_fn)))
+    else:
+      self.fail("Exception not raised")
+
+  def testSuccess(self):
+    self.assertEqual(serializer.LoadAndVerifyJson("{}", ht.TAny), {})
+    self.assertEqual(serializer.LoadAndVerifyJson("\"Foo\"", ht.TAny), "Foo")
 
 
 if __name__ == "__main__":

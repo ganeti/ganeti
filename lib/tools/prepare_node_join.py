@@ -281,16 +281,7 @@ def LoadData(raw):
   @rtype: dict
 
   """
-  try:
-    data = serializer.LoadJson(raw)
-  except Exception, err:
-    raise errors.ParseError("Can't parse input data: %s" % err)
-
-  if not _DATA_CHECK(data):
-    raise errors.ParseError("Input data does not match expected format: %s" %
-                            _DATA_CHECK)
-
-  return data
+  return serializer.LoadAndVerifyJson(raw, _DATA_CHECK)
 
 
 def Main():

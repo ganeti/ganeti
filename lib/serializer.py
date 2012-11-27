@@ -140,6 +140,28 @@ def LoadSignedJson(txt, key):
   return LoadJson(msg), salt
 
 
+def LoadAndVerifyJson(raw, verify_fn):
+  """Parses and verifies JSON data.
+
+  @type raw: string
+  @param raw: Input data in JSON format
+  @type verify_fn: callable
+  @param verify_fn: Verification function, usually from L{ht}
+  @return: De-serialized data
+
+  """
+  try:
+    data = LoadJson(raw)
+  except Exception, err:
+    raise errors.ParseError("Can't parse input data: %s" % err)
+
+  if not verify_fn(data):
+    raise errors.ParseError("Data does not match expected format: %s" %
+                            verify_fn)
+
+  return data
+
+
 Dump = DumpJson
 Load = LoadJson
 DumpSigned = DumpSignedJson
