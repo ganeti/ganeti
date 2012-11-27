@@ -16062,10 +16062,11 @@ class LUNetworkConnect(LogicalUnit):
           self.cfg.GetNodeGroupInstances(self.group_uuid)
 
   def BuildHooksEnv(self):
-    ret = {}
-    ret["GROUP_NAME"] = self.group_name
-    ret["GROUP_NETWORK_MODE"] = self.network_mode
-    ret["GROUP_NETWORK_LINK"] = self.network_link
+    ret = {
+      "GROUP_NAME": self.group_name,
+      "GROUP_NETWORK_MODE": self.network_mode,
+      "GROUP_NETWORK_LINK": self.network_link,
+      }
     ret.update(_BuildNetworkHookEnvByObject(self.network))
     return ret
 
@@ -16077,9 +16078,10 @@ class LUNetworkConnect(LogicalUnit):
     l = lambda value: ", ".join("%s: %s/%s" % (i[0], i[1], i[2])
                                    for i in value)
 
-    self.netparams = {}
-    self.netparams[constants.NIC_MODE] = self.network_mode
-    self.netparams[constants.NIC_LINK] = self.network_link
+    self.netparams = {
+      constants.NIC_MODE: self.network_mode,
+      constants.NIC_LINK: self.network_link,
+      }
     objects.NIC.CheckParameterSyntax(self.netparams)
 
     #if self.network_mode == constants.NIC_MODE_BRIDGED:
@@ -16158,8 +16160,9 @@ class LUNetworkDisconnect(LogicalUnit):
           self.cfg.GetNodeGroupInstances(self.group_uuid)
 
   def BuildHooksEnv(self):
-    ret = {}
-    ret["GROUP_NAME"] = self.group_name
+    ret = {
+      "GROUP_NAME": self.group_name,
+      }
     ret.update(_BuildNetworkHookEnvByObject(self.network))
     return ret
 
