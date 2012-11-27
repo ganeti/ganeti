@@ -71,6 +71,8 @@ module Ganeti.Types
   , networkTypeToRaw
   , NICMode(..)
   , nICModeToRaw
+  , FinalizedJobStatus(..)
+  , finalizedJobStatusToRaw
   ) where
 
 import qualified Text.JSON as JSON
@@ -332,3 +334,11 @@ $(THH.declareSADT "NICMode"
   , ("NMRouted",  'C.nicModeRouted)
   ])
 $(THH.makeJSONInstance ''NICMode)
+
+-- | Finalized job status.
+$(THH.declareSADT "FinalizedJobStatus"
+  [ ("JobStatusCanceled",   'C.jobStatusCanceled)
+  , ("JobStatusSuccessful", 'C.jobStatusSuccess)
+  , ("JobStatusFailed",     'C.jobStatusError)
+  ])
+$(THH.makeJSONInstance ''FinalizedJobStatus)

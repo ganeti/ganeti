@@ -107,6 +107,8 @@ $(genArbitrary ''NetworkType)
 
 $(genArbitrary ''NICMode)
 
+$(genArbitrary ''FinalizedJobStatus)
+
 -- * Properties
 
 prop_AllocPolicy_serialisation :: AllocPolicy -> Property
@@ -257,6 +259,18 @@ case_NICMode_pyequiv = do
       all_hs_codes = sort $ map Types.nICModeToRaw [minBound..maxBound]
   assertEqual "for NICMode equivalence" all_py_codes all_hs_codes
 
+-- | Test 'FinalizedJobStatus' serialisation.
+prop_FinalizedJobStatus_serialisation :: FinalizedJobStatus -> Property
+prop_FinalizedJobStatus_serialisation = testSerialisation
+
+-- | Tests equivalence with Python, based on Constants.hs code.
+case_FinalizedJobStatus_pyequiv :: Assertion
+case_FinalizedJobStatus_pyequiv = do
+  let all_py_codes = sort C.jobsFinalized
+      all_hs_codes = sort $ map Types.finalizedJobStatusToRaw
+                            [minBound..maxBound]
+  assertEqual "for FinalizedJobStatus equivalence" all_py_codes all_hs_codes
+
 testSuite "Types"
   [ 'prop_AllocPolicy_serialisation
   , 'prop_DiskTemplate_serialisation
@@ -288,4 +302,6 @@ testSuite "Types"
   , 'case_NetworkType_pyequiv
   , 'prop_NICMode_serialisation
   , 'case_NICMode_pyequiv
+  , 'prop_FinalizedJobStatus_serialisation
+  , 'case_FinalizedJobStatus_pyequiv
   ]
