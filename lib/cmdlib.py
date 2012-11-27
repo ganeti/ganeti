@@ -7620,6 +7620,7 @@ class LUInstanceRename(LogicalUnit):
     # Change the instance lock. This is definitely safe while we hold the BGL.
     # Otherwise the new lock would have to be added in acquired mode.
     assert self.REQ_BGL
+    assert self.glm.is_owned(locking.BGL)
     self.glm.remove(locking.LEVEL_INSTANCE, old_name)
     self.glm.add(locking.LEVEL_INSTANCE, self.op.new_name)
 
