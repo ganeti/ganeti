@@ -38,6 +38,36 @@ from ganeti import pathutils
 
 SSCONF_LOCK_TIMEOUT = 10
 
+#: Valid ssconf keys
+_VALID_KEYS = frozenset([
+  constants.SS_CLUSTER_NAME,
+  constants.SS_CLUSTER_TAGS,
+  constants.SS_FILE_STORAGE_DIR,
+  constants.SS_SHARED_FILE_STORAGE_DIR,
+  constants.SS_MASTER_CANDIDATES,
+  constants.SS_MASTER_CANDIDATES_IPS,
+  constants.SS_MASTER_IP,
+  constants.SS_MASTER_NETDEV,
+  constants.SS_MASTER_NETMASK,
+  constants.SS_MASTER_NODE,
+  constants.SS_NODE_LIST,
+  constants.SS_NODE_PRIMARY_IPS,
+  constants.SS_NODE_SECONDARY_IPS,
+  constants.SS_OFFLINE_NODES,
+  constants.SS_ONLINE_NODES,
+  constants.SS_PRIMARY_IP_FAMILY,
+  constants.SS_INSTANCE_LIST,
+  constants.SS_RELEASE_VERSION,
+  constants.SS_HYPERVISOR_LIST,
+  constants.SS_MAINTAIN_NODE_HEALTH,
+  constants.SS_UID_POOL,
+  constants.SS_NODEGROUPS,
+  constants.SS_NETWORKS,
+  ])
+
+#: Maximum size for ssconf files
+_MAX_SIZE = 128 * 1024
+
 
 class SimpleStore(object):
   """Interface to static cluster data.
@@ -50,33 +80,6 @@ class SimpleStore(object):
     - keys are restricted to predefined values
 
   """
-  _VALID_KEYS = (
-    constants.SS_CLUSTER_NAME,
-    constants.SS_CLUSTER_TAGS,
-    constants.SS_FILE_STORAGE_DIR,
-    constants.SS_SHARED_FILE_STORAGE_DIR,
-    constants.SS_MASTER_CANDIDATES,
-    constants.SS_MASTER_CANDIDATES_IPS,
-    constants.SS_MASTER_IP,
-    constants.SS_MASTER_NETDEV,
-    constants.SS_MASTER_NETMASK,
-    constants.SS_MASTER_NODE,
-    constants.SS_NODE_LIST,
-    constants.SS_NODE_PRIMARY_IPS,
-    constants.SS_NODE_SECONDARY_IPS,
-    constants.SS_OFFLINE_NODES,
-    constants.SS_ONLINE_NODES,
-    constants.SS_PRIMARY_IP_FAMILY,
-    constants.SS_INSTANCE_LIST,
-    constants.SS_RELEASE_VERSION,
-    constants.SS_HYPERVISOR_LIST,
-    constants.SS_MAINTAIN_NODE_HEALTH,
-    constants.SS_UID_POOL,
-    constants.SS_NODEGROUPS,
-    constants.SS_NETWORKS,
-    )
-  _MAX_SIZE = 131072
-
   def __init__(self, cfg_location=None):
     if cfg_location is None:
       self._cfg_dir = pathutils.DATA_DIR
@@ -87,7 +90,7 @@ class SimpleStore(object):
     """Convert a given key into filename.
 
     """
-    if key not in self._VALID_KEYS:
+    if key not in _VALID_KEYS:
       raise errors.ProgrammerError("Invalid key requested from SSConf: '%s'"
                                    % str(key))
 
@@ -103,7 +106,7 @@ class SimpleStore(object):
     """
     filename = self.KeyToFilename(key)
     try:
-      data = utils.ReadFile(filename, size=self._MAX_SIZE)
+      data = utils.ReadFile(filename, size=_MAX_SIZE)
     except EnvironmentError, err:
       if err.errno == errno.ENOENT and default is not None:
         return default
@@ -127,7 +130,7 @@ class SimpleStore(object):
       for name, value in values.iteritems():
         if value and not value.endswith("\n"):
           value += "\n"
-        if len(value) > self._MAX_SIZE:
+        if len(value) > _MAX_SIZE:
           raise errors.ConfigurationError("ssconf file %s above maximum size" %
                                           name)
         utils.WriteFile(self.KeyToFilename(name), data=value,
@@ -141,7 +144,7 @@ class SimpleStore(object):
     This is used for computing node replication data.
 
     """
-    return [self.KeyToFilename(key) for key in self._VALID_KEYS]
+    return [self.KeyToFilename(key) for key in _VALID_KEYS]
 
   def GetClusterName(self):
     """Get the cluster name.
