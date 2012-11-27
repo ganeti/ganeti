@@ -1100,7 +1100,8 @@ def _CheckInstanceState(lu, instance, req_states, msg=None):
 
   """
   if msg is None:
-    msg = "can't use instance from outside %s states" % ", ".join(req_states)
+    msg = ("can't use instance from outside %s states" %
+           utils.CommaJoin(req_states))
   if instance.admin_state not in req_states:
     raise errors.OpPrereqError("Instance '%s' is marked to be %s, %s" %
                                (instance.name, instance.admin_state, msg),
@@ -10384,7 +10385,7 @@ class LUInstanceCreate(LogicalUnit):
       if baddisks:
         raise errors.OpPrereqError("Device node(s) %s lie outside %s and"
                                    " cannot be adopted" %
-                                   (", ".join(baddisks),
+                                   (utils.CommaJoin(baddisks),
                                     constants.ADOPTABLE_BLOCKDEV_ROOT),
                                    errors.ECODE_INVAL)
 
@@ -15993,7 +15994,8 @@ class _NetworkQuery(_QueryBase):
             "free_count": pool.GetFreeCount(),
             "reserved_count": pool.GetReservedCount(),
             "map": pool.GetMap(),
-            "external_reservations": ", ".join(pool.GetExternalReservations()),
+            "external_reservations":
+              utils.CommaJoin(pool.GetExternalReservations()),
             }
 
     return query.NetworkQueryData([self._all_networks[uuid]
@@ -16075,8 +16077,8 @@ class LUNetworkConnect(LogicalUnit):
     return (nodes, nodes)
 
   def CheckPrereq(self):
-    l = lambda value: ", ".join("%s: %s/%s" % (i[0], i[1], i[2])
-                                   for i in value)
+    l = lambda value: utils.CommaJoin("%s: %s/%s" % (i[0], i[1], i[2])
+                                      for i in value)
 
     self.netparams = {
       constants.NIC_MODE: self.network_mode,
@@ -16171,8 +16173,8 @@ class LUNetworkDisconnect(LogicalUnit):
     return (nodes, nodes)
 
   def CheckPrereq(self):
-    l = lambda value: ", ".join("%s: %s/%s" % (i[0], i[1], i[2])
-                                   for i in value)
+    l = lambda value: utils.CommaJoin("%s: %s/%s" % (i[0], i[1], i[2])
+                                      for i in value)
 
     self.connected = True
     if self.network_uuid not in self.group.networks:
