@@ -46,6 +46,9 @@ module Ganeti.Types
   , Positive
   , fromPositive
   , mkPositive
+  , Negative
+  , fromNegative
+  , mkNegative
   , NonEmpty
   , fromNonEmpty
   , mkNonEmpty
@@ -115,6 +118,20 @@ mkPositive i | i > 0 = return (Positive i)
 instance (JSON.JSON a, Num a, Ord a, Show a) => JSON.JSON (Positive a) where
   showJSON = JSON.showJSON . fromPositive
   readJSON v = JSON.readJSON v >>= mkPositive
+
+-- | Type that holds a negative value.
+newtype Negative a = Negative { fromNegative :: a }
+  deriving (Show, Eq)
+
+-- | Smart constructor for 'Negative'.
+mkNegative :: (Monad m, Num a, Ord a, Show a) => a -> m (Negative a)
+mkNegative i | i < 0 = return (Negative i)
+             | otherwise = fail $ "Invalid value for negative type '" ++
+                           show i ++ "'"
+
+instance (JSON.JSON a, Num a, Ord a, Show a) => JSON.JSON (Negative a) where
+  showJSON = JSON.showJSON . fromNegative
+  readJSON v = JSON.readJSON v >>= mkNegative
 
 -- | Type that holds a non-null list.
 newtype NonEmpty a = NonEmpty { fromNonEmpty :: [a] }

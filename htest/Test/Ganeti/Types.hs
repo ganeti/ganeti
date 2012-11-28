@@ -65,6 +65,12 @@ instance (Arbitrary a, Ord a, Num a, Show a) =>
     (QuickCheck.NonNegative i) <- arbitrary
     Types.mkNonNegative i
 
+instance (Arbitrary a, Ord a, Num a, Show a) =>
+  Arbitrary (Types.Negative a) where
+  arbitrary = do
+    (QuickCheck.Positive i) <- arbitrary
+    Types.mkNegative $ negate i
+
 instance (Arbitrary a) => Arbitrary (Types.NonEmpty a) where
   arbitrary = do
     QuickCheck.NonEmpty lst <- arbitrary
@@ -157,6 +163,22 @@ prop_Positive_fail (QuickCheck.NonNegative i) =
     Bad _ -> passTest
     Ok nn -> failTest $ "Built positive number '" ++ show nn ++
              "' from negative or zero value " ++ show i
+
+-- | Tests building negative numbers.
+prop_Neg_pass :: QuickCheck.Positive Int -> Property
+prop_Neg_pass (QuickCheck.Positive i) =
+  case mkNegative i' of
+    Bad msg -> failTest $ "Fail to build negative: " ++ msg
+    Ok nn -> fromNegative nn ==? i'
+  where i' = negate i
+
+-- | Tests building negative numbers.
+prop_Neg_fail :: QuickCheck.NonNegative Int -> Property
+prop_Neg_fail (QuickCheck.NonNegative i) =
+  case mkNegative i::Result (Types.Negative Int) of
+    Bad _ -> passTest
+    Ok nn -> failTest $ "Built negative number '" ++ show nn ++
+             "' from non-negative value " ++ show i
 
 -- | Tests building non-empty lists.
 prop_NonEmpty_pass :: QuickCheck.NonEmptyList String -> Property
@@ -293,6 +315,8 @@ testSuite "Types"
   , 'prop_NonNeg_fail
   , 'prop_Positive_pass
   , 'prop_Positive_fail
+  , 'prop_Neg_pass
+  , 'prop_Neg_fail
   , 'prop_NonEmpty_pass
   , 'case_NonEmpty_fail
   , 'prop_MigrationMode_serialisation
