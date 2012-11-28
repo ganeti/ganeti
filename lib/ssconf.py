@@ -69,6 +69,28 @@ _VALID_KEYS = frozenset([
 _MAX_SIZE = 128 * 1024
 
 
+def ReadSsconfFile(filename):
+  """Reads an ssconf file and verifies its size.
+
+  @type filename: string
+  @param filename: Path to file
+  @rtype: string
+  @return: File contents without newlines at the end
+  @raise RuntimeError: When the file size exceeds L{_MAX_SIZE}
+
+  """
+  statcb = utils.FileStatHelper()
+
+  data = utils.ReadFile(filename, size=_MAX_SIZE, preread=statcb)
+
+  if statcb.st.st_size > _MAX_SIZE:
+    msg = ("File '%s' has a size of %s bytes (up to %s allowed)" %
+           (filename, statcb.st.st_size, _MAX_SIZE))
+    raise RuntimeError(msg)
+
+  return data.rstrip("\n")
+
+
 class SimpleStore(object):
   """Interface to static cluster data.
 
@@ -106,14 +128,12 @@ class SimpleStore(object):
     """
     filename = self.KeyToFilename(key)
     try:
-      data = utils.ReadFile(filename, size=_MAX_SIZE)
+      return ReadSsconfFile(filename)
     except EnvironmentError, err:
       if err.errno == errno.ENOENT and default is not None:
         return default
       raise errors.ConfigurationError("Can't read ssconf file %s: %s" %
                                       (filename, str(err)))
-
-    return data.rstrip("\n")
 
   def WriteFiles(self, values):
     """Writes ssconf files used by external scripts.

@@ -958,6 +958,7 @@ python_tests = \
 	test/ganeti.runtime_unittest.py \
 	test/ganeti.serializer_unittest.py \
 	test/ganeti.server.rapi_unittest.py \
+	test/ganeti.ssconf_unittest.py \
 	test/ganeti.ssh_unittest.py \
 	test/ganeti.storage_unittest.py \
 	test/ganeti.tools.ensure_dirs_unittest.py \
