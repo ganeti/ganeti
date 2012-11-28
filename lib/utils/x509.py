@@ -319,3 +319,22 @@ def ExtractX509Certificate(pem):
 
   return (cert,
           OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM, cert))
+
+
+def PrepareX509CertKeyCheck(cert, key):
+  """Get function for verifying certificate with a certain private key.
+
+  @type key: OpenSSL.crypto.PKey
+  @param key: Private key object
+  @type cert: OpenSSL.crypto.X509
+  @param cert: X509 certificate object
+  @rtype: callable
+  @return: Callable doing the actual check; will raise C{OpenSSL.SSL.Error} if
+    certificate is not signed by given private key
+
+  """
+  ctx = OpenSSL.SSL.Context(OpenSSL.SSL.TLSv1_METHOD)
+  ctx.use_certificate(cert)
+  ctx.use_privatekey(key)
+
+  return ctx.check_privatekey

@@ -130,11 +130,9 @@ def _VerifyCertificate(cert, _noded_cert_file=pathutils.NODED_CERT_FILE):
     raise errors.X509CertError(_noded_cert_file,
                                "Unable to load private key: %s" % err)
 
-  ctx = OpenSSL.SSL.Context(OpenSSL.SSL.TLSv1_METHOD)
-  ctx.use_privatekey(key)
-  ctx.use_certificate(cert)
+  check_fn = utils.PrepareX509CertKeyCheck(cert, key)
   try:
-    ctx.check_privatekey()
+    check_fn()
   except OpenSSL.SSL.Error:
     raise JoinError("Given cluster certificate does not match local key")
 
