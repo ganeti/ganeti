@@ -699,6 +699,22 @@ class LogicalVolume(BlockDev):
     return data
 
   @classmethod
+  def _GetExclusiveStorageVgFree(cls, vg_name):
+    """Return the free disk space in the given VG, in exclusive storage mode.
+
+    @type vg_name: string
+    @param vg_name: VG name
+    @rtype: float
+    @return: free space in MiB
+    """
+    pvs_info = cls.GetPVInfo([vg_name])
+    if not pvs_info:
+      return 0.0
+    pv_size = cls._GetStdPvSize(pvs_info)
+    num_pvs = len(cls._GetEmptyPvNames(pvs_info))
+    return pv_size * num_pvs
+
+  @classmethod
   def GetVGInfo(cls, vg_names, excl_stor, filter_readonly=True):
     """Get the free space info for specific VGs.
 
@@ -726,6 +742,11 @@ class LogicalVolume(BlockDev):
       # (possibly) skip over vgs which are not in the right volume group(s)
       if vg_names and vg_name not in vg_names:
         continue
+      # Exclusive storage needs a different concept of free space
+      if excl_stor:
+        es_free = cls._GetExclusiveStorageVgFree(vg_name)
+        assert es_free <= vg_free
+        vg_free = es_free
       data.append((float(vg_free), float(vg_size), vg_name))
 
     return data
