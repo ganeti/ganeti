@@ -89,6 +89,14 @@ case_emptyVertColorMapEmpty :: Assertion
 case_emptyVertColorMapEmpty =
   assertEqual "" 0 $ IntMap.size emptyVertColorMap
 
+-- | Check that our generated graphs are colorable
+prop_isColorableTestableGraph :: TestableGraph -> Property
+prop_isColorableTestableGraph (TestableGraph g) = isColorable g ==? True
+
+-- | Check that our generated graphs are colorable
+prop_isColorableTestableClique :: TestableClique -> Property
+prop_isColorableTestableClique (TestableClique g) = isColorable g ==? True
+
 -- | Check that the given algorithm colors a clique with the same number of
 -- colors as the vertices number.
 prop_colorClique :: (Graph.Graph -> ColorVertMap) -> TestableClique -> Property
@@ -128,4 +136,6 @@ testSuite "HTools/Graph"
             , 'prop_colorDsaturClique
             , 'prop_colorLFAllNodes
             , 'prop_colorDsaturAllNodes
+            , 'prop_isColorableTestableGraph
+            , 'prop_isColorableTestableClique
             ]

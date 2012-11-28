@@ -58,11 +58,15 @@ module Ganeti.HTools.Graph
   , colorInOrder
   , colorLF
   , colorDsatur
+  , isColorable
     -- * Color map transformations
   , colorVertMap
-    -- * Vertex sorting
+    -- * Vertex characteristics
   , verticesByDegreeDesc
   , verticesByDegreeAsc
+  , neighbors
+  , hasLoop
+  , isUndirected
   ) where
 
 import Data.Maybe
@@ -106,11 +110,26 @@ verticesByDegreeAsc g = map fst . sortBy (comparing snd) $ verticesDegree g
 neighbors :: Graph.Graph -> Graph.Vertex -> [Graph.Vertex]
 neighbors g v = g Array.! v
 
+-- | Check whether a graph has no loops.
+-- (vertices connected to themselves)
+hasLoop :: Graph.Graph -> Bool
+hasLoop g = any vLoops $ Graph.vertices g
+    where vLoops v = v `elem` neighbors g v
+
+-- | Check whether a graph is undirected
+isUndirected :: Graph.Graph -> Bool
+isUndirected g =
+  (sort . Graph.edges) g == (sort . Graph.edges . Graph.transposeG) g
+
 -- * Coloring
 
 -- | Empty color map.
 emptyVertColorMap :: VertColorMap
 emptyVertColorMap = IntMap.empty
+
+-- | Check whether a graph is colorable.
+isColorable :: Graph.Graph -> Bool
+isColorable g = isUndirected g && not (hasLoop g)
 
 -- | Get the colors of a list of vertices.
 -- Any uncolored vertices are ignored.
