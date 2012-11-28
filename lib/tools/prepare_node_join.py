@@ -150,31 +150,7 @@ def VerifyCertificate(data, _verify_fn=_VerifyCertificate):
     _verify_fn(cert)
 
 
-def _VerifyClusterName(name, _ss_cluster_name_file=None):
-  """Verifies cluster name against a local cluster name.
-
-  @type name: string
-  @param name: Cluster name
-
-  """
-  if _ss_cluster_name_file is None:
-    _ss_cluster_name_file = \
-      ssconf.SimpleStore().KeyToFilename(constants.SS_CLUSTER_NAME)
-
-  try:
-    local_name = utils.ReadOneLineFile(_ss_cluster_name_file)
-  except EnvironmentError, err:
-    if err.errno != errno.ENOENT:
-      raise
-
-    logging.debug("Local cluster name was not found (file %s)",
-                  _ss_cluster_name_file)
-  else:
-    if name != local_name:
-      raise JoinError("Current cluster name is '%s'" % local_name)
-
-
-def VerifyClusterName(data, _verify_fn=_VerifyClusterName):
+def VerifyClusterName(data, _verify_fn=ssconf.VerifyClusterName):
   """Verifies cluster name.
 
   @type data: dict

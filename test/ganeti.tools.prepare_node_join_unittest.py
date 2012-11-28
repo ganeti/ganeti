@@ -130,26 +130,18 @@ class TestVerifyClusterName(unittest.TestCase):
     self.assertRaises(_JoinError, prepare_node_join.VerifyClusterName,
                       {}, _verify_fn=NotImplemented)
 
-  def testMissingFile(self):
-    tmpfile = utils.PathJoin(self.tmpdir, "does-not-exist")
-    prepare_node_join._VerifyClusterName(NotImplemented,
-                                         _ss_cluster_name_file=tmpfile)
+  @staticmethod
+  def _FailingVerify(name):
+    assert name == "cluster.example.com"
+    raise errors.GenericError()
 
-  def testMatchingName(self):
-    tmpfile = utils.PathJoin(self.tmpdir, "cluster_name")
+  def testFailingVerification(self):
+    data = {
+      constants.SSHS_CLUSTER_NAME: "cluster.example.com",
+      }
 
-    for content in ["cluster.example.com", "cluster.example.com\n\n"]:
-      utils.WriteFile(tmpfile, data=content)
-      prepare_node_join._VerifyClusterName("cluster.example.com",
-                                           _ss_cluster_name_file=tmpfile)
-
-  def testNameMismatch(self):
-    tmpfile = utils.PathJoin(self.tmpdir, "cluster_name")
-
-    for content in ["something.example.com", "foobar\n\ncluster.example.com"]:
-      utils.WriteFile(tmpfile, data=content)
-      self.assertRaises(_JoinError, prepare_node_join._VerifyClusterName,
-                        "cluster.example.com", _ss_cluster_name_file=tmpfile)
+    self.assertRaises(errors.GenericError, prepare_node_join.VerifyClusterName,
+                      data, _verify_fn=self._FailingVerify)
 
 
 class TestUpdateSshDaemon(unittest.TestCase):

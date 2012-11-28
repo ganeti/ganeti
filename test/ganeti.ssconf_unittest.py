@@ -141,5 +141,33 @@ class TestSimpleStore(unittest.TestCase):
                      "cluster.example.com")
 
 
+class TestVerifyClusterName(unittest.TestCase):
+  def setUp(self):
+    self.tmpdir = tempfile.mkdtemp()
+
+  def tearDown(self):
+    shutil.rmtree(self.tmpdir)
+
+  def testMissingFile(self):
+    tmploc = utils.PathJoin(self.tmpdir, "does-not-exist")
+    ssconf.VerifyClusterName(NotImplemented, _cfg_location=tmploc)
+
+  def testMatchingName(self):
+    tmpfile = utils.PathJoin(self.tmpdir, "ssconf_cluster_name")
+
+    for content in ["cluster.example.com", "cluster.example.com\n\n"]:
+      utils.WriteFile(tmpfile, data=content)
+      ssconf.VerifyClusterName("cluster.example.com",
+                               _cfg_location=self.tmpdir)
+
+  def testNameMismatch(self):
+    tmpfile = utils.PathJoin(self.tmpdir, "ssconf_cluster_name")
+
+    for content in ["something.example.com", "foobar\n\ncluster.example.com"]:
+      utils.WriteFile(tmpfile, data=content)
+      self.assertRaises(errors.GenericError, ssconf.VerifyClusterName,
+                        "cluster.example.com", _cfg_location=self.tmpdir)
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()

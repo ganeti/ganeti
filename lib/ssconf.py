@@ -28,6 +28,7 @@ configuration data, which is mostly static and available to all nodes.
 
 import sys
 import errno
+import logging
 
 from ganeti import errors
 from ganeti import constants
@@ -368,3 +369,21 @@ def CheckMaster(debug, ss=None):
     if debug:
       sys.stderr.write("Not master, exiting.\n")
     sys.exit(constants.EXIT_NOTMASTER)
+
+
+def VerifyClusterName(name, _cfg_location=None):
+  """Verifies cluster name against a local cluster name.
+
+  @type name: string
+  @param name: Cluster name
+
+  """
+  sstore = SimpleStore(cfg_location=_cfg_location)
+
+  try:
+    local_name = sstore.GetClusterName()
+  except errors.ConfigurationError, err:
+    logging.debug("Can't get local cluster name: %s", err)
+  else:
+    if name != local_name:
+      raise errors.GenericError("Current cluster name is '%s'" % local_name)
