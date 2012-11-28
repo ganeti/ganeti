@@ -387,3 +387,17 @@ def VerifyClusterName(name, _cfg_location=None):
   else:
     if name != local_name:
       raise errors.GenericError("Current cluster name is '%s'" % local_name)
+
+
+def VerifyKeys(keys):
+  """Raises an exception if unknown ssconf keys are given.
+
+  @type keys: sequence
+  @param keys: Key names to verify
+  @raise errors.GenericError: When invalid keys were found
+
+  """
+  invalid = frozenset(keys) - _VALID_KEYS
+  if invalid:
+    raise errors.GenericError("Invalid ssconf keys: %s" %
+                              utils.CommaJoin(sorted(invalid)))

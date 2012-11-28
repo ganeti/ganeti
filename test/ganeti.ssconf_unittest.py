@@ -169,5 +169,20 @@ class TestVerifyClusterName(unittest.TestCase):
                         "cluster.example.com", _cfg_location=self.tmpdir)
 
 
+class TestVerifyKeys(unittest.TestCase):
+  def testNoKeys(self):
+    ssconf.VerifyKeys({})
+
+  def testValidKeys(self):
+    ssconf.VerifyKeys(ssconf._VALID_KEYS)
+
+    for key in ssconf._VALID_KEYS:
+      ssconf.VerifyKeys([key])
+
+  def testInvalidKeys(self):
+    for key in ["", ".", " ", "foo", "bar", "HelloWorld"]:
+      self.assertRaises(errors.GenericError, ssconf.VerifyKeys, [key])
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
