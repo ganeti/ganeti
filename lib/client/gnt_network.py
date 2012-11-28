@@ -205,7 +205,7 @@ def ShowNetworkConfig(_, args):
     ToStdout("  Type: %s", network_type)
     ToStdout("  Size: %d", size)
     ToStdout("  Free: %d (%.2f%%)", free_count,
-             100 * float(free_count)/float(size))
+             100 * float(free_count) / float(size))
     ToStdout("  Usage map:")
     idx = 0
     for line in wrap(mapping, width=64):
