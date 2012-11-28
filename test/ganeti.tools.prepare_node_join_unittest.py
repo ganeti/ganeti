@@ -72,49 +72,27 @@ class TestVerifyCertificate(testutils.GanetiTestCase):
   def testNoCert(self):
     prepare_node_join.VerifyCertificate({}, _verify_fn=NotImplemented)
 
-  def testMismatchingKey(self):
-    other_cert = self._TestDataFilename("cert1.pem")
-    node_cert = self._TestDataFilename("cert2.pem")
-
-    self.assertRaises(_JoinError, prepare_node_join._VerifyCertificate,
-                      utils.ReadFile(other_cert), _noded_cert_file=node_cert)
-
   def testGivenPrivateKey(self):
     cert_filename = self._TestDataFilename("cert2.pem")
     cert_pem = utils.ReadFile(cert_filename)
 
     self.assertRaises(_JoinError, prepare_node_join._VerifyCertificate,
-                      cert_pem, _noded_cert_file=cert_filename)
-
-  def testMatchingKey(self):
-    cert_filename = self._TestDataFilename("cert2.pem")
-
-    # Extract certificate
-    cert = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM,
-                                           utils.ReadFile(cert_filename))
-    cert_pem = OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM,
-                                               cert)
-
-    prepare_node_join._VerifyCertificate(cert_pem,
-                                         _noded_cert_file=cert_filename)
-
-  def testMissingFile(self):
-    cert = self._TestDataFilename("cert1.pem")
-    nodecert = utils.PathJoin(self.tmpdir, "does-not-exist")
-    prepare_node_join._VerifyCertificate(utils.ReadFile(cert),
-                                         _noded_cert_file=nodecert)
+                      cert_pem, _check_fn=NotImplemented)
 
   def testInvalidCertificate(self):
     self.assertRaises(errors.X509CertError,
                       prepare_node_join._VerifyCertificate,
                       "Something that's not a certificate",
-                      _noded_cert_file=NotImplemented)
+                      _check_fn=NotImplemented)
 
-  def testNoPrivateKey(self):
-    cert = self._TestDataFilename("cert1.pem")
-    self.assertRaises(errors.X509CertError,
-                      prepare_node_join._VerifyCertificate,
-                      utils.ReadFile(cert), _noded_cert_file=cert)
+  @staticmethod
+  def _Check(cert):
+    assert cert.get_subject()
+
+  def testSuccessfulCheck(self):
+    cert_filename = self._TestDataFilename("cert1.pem")
+    cert_pem = utils.ReadFile(cert_filename)
+    prepare_node_join._VerifyCertificate(cert_pem, _check_fn=self._Check)
 
 
 class TestVerifyClusterName(unittest.TestCase):

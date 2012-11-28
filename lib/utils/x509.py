@@ -27,9 +27,12 @@ import OpenSSL
 import re
 import datetime
 import calendar
+import errno
+import logging
 
 from ganeti import errors
 from ganeti import constants
+from ganeti import pathutils
 
 from ganeti.utils import text as utils_text
 from ganeti.utils import io as utils_io
@@ -338,3 +341,58 @@ def PrepareX509CertKeyCheck(cert, key):
   ctx.use_certificate(cert)
 
   return ctx.check_privatekey
+
+
+def CheckNodeCertificate(cert, _noded_cert_file=pathutils.NODED_CERT_FILE):
+  """Checks the local node daemon certificate against given certificate.
+
+  Both certificates must be signed with the same key (as stored in the local
+  L{pathutils.NODED_CERT_FILE} file). No error is raised if no local
+  certificate can be found.
+
+  @type cert: OpenSSL.crypto.X509
+  @param cert: X509 certificate object
+  @raise errors.X509CertError: When an error related to X509 occurred
+  @raise errors.GenericError: When the verification failed
+
+  """
+  try:
+    noded_pem = utils_io.ReadFile(_noded_cert_file)
+  except EnvironmentError, err:
+    if err.errno != errno.ENOENT:
+      raise
+
+    logging.debug("Node certificate file '%s' was not found", _noded_cert_file)
+    return
+
+  try:
+    noded_cert = \
+      OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, noded_pem)
+  except Exception, err:
+    raise errors.X509CertError(_noded_cert_file,
+                               "Unable to load certificate: %s" % err)
+
+  try:
+    noded_key = \
+      OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM, noded_pem)
+  except Exception, err:
+    raise errors.X509CertError(_noded_cert_file,
+                               "Unable to load private key: %s" % err)
+
+  # Check consistency of server.pem file
+  check_fn = PrepareX509CertKeyCheck(noded_cert, noded_key)
+  try:
+    check_fn()
+  except OpenSSL.SSL.Error:
+    # This should never happen as it would mean the certificate in server.pem
+    # is out of sync with the private key stored in the same file
+    raise errors.X509CertError(_noded_cert_file,
+                               "Certificate does not match with private key")
+
+  # Check with supplied certificate with local key
+  check_fn = PrepareX509CertKeyCheck(cert, noded_key)
+  try:
+    check_fn()
+  except OpenSSL.SSL.Error:
+    raise errors.GenericError("Given cluster certificate does not match"
+                              " local key")

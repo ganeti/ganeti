@@ -27,7 +27,6 @@ import os.path
 import optparse
 import sys
 import logging
-import errno
 import OpenSSL
 
 from ganeti import cli
@@ -94,47 +93,28 @@ def VerifyOptions(parser, opts, args):
   return opts
 
 
-def _VerifyCertificate(cert, _noded_cert_file=pathutils.NODED_CERT_FILE):
+def _VerifyCertificate(cert_pem, _check_fn=utils.CheckNodeCertificate):
   """Verifies a certificate against the local node daemon certificate.
 
-  @type cert: string
-  @param cert: Certificate in PEM format (no key)
+  @type cert_pem: string
+  @param cert_pem: Certificate in PEM format (no key)
 
   """
   try:
-    OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM, cert)
+    OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM, cert_pem)
   except OpenSSL.crypto.Error, err:
     pass
   else:
     raise JoinError("No private key may be given")
 
   try:
-    cert = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, cert)
+    cert = \
+      OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, cert_pem)
   except Exception, err:
     raise errors.X509CertError("(stdin)",
                                "Unable to load certificate: %s" % err)
 
-  try:
-    noded_pem = utils.ReadFile(_noded_cert_file)
-  except EnvironmentError, err:
-    if err.errno != errno.ENOENT:
-      raise
-
-    logging.debug("Local node certificate was not found (file %s)",
-                  _noded_cert_file)
-    return
-
-  try:
-    key = OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM, noded_pem)
-  except Exception, err:
-    raise errors.X509CertError(_noded_cert_file,
-                               "Unable to load private key: %s" % err)
-
-  check_fn = utils.PrepareX509CertKeyCheck(cert, key)
-  try:
-    check_fn()
-  except OpenSSL.SSL.Error:
-    raise JoinError("Given cluster certificate does not match local key")
+  _check_fn(cert)
 
 
 def VerifyCertificate(data, _verify_fn=_VerifyCertificate):
