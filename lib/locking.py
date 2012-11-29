@@ -1496,8 +1496,8 @@ class LockSet:
 #   Once the set of acquired locks for an opcode has been reduced to the working
 #   set, the NAL should be released as well to allow allocations to proceed.
 (LEVEL_CLUSTER,
- LEVEL_NODE_ALLOC,
  LEVEL_INSTANCE,
+ LEVEL_NODE_ALLOC,
  LEVEL_NODEGROUP,
  LEVEL_NODE,
  LEVEL_NODE_RES,
@@ -1505,8 +1505,8 @@ class LockSet:
 
 LEVELS = [
   LEVEL_CLUSTER,
-  LEVEL_NODE_ALLOC,
   LEVEL_INSTANCE,
+  LEVEL_NODE_ALLOC,
   LEVEL_NODEGROUP,
   LEVEL_NODE,
   LEVEL_NODE_RES,
@@ -1526,11 +1526,11 @@ LEVELS_MOD = frozenset([
 LEVEL_NAMES = {
   LEVEL_CLUSTER: "cluster",
   LEVEL_INSTANCE: "instance",
+  LEVEL_NODE_ALLOC: "node-alloc",
   LEVEL_NODEGROUP: "nodegroup",
   LEVEL_NODE: "node",
   LEVEL_NODE_RES: "node-res",
   LEVEL_NETWORK: "network",
-  LEVEL_NODE_ALLOC: "node-alloc",
   }
 
 # Constant for the big ganeti lock
