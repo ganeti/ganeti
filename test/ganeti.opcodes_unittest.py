@@ -297,7 +297,6 @@ class TestOpcodes(unittest.TestCase):
     self.assertEqual(op.value2, "world")
     self.assertEqual(op.debug_level, 123)
 
-
   def testOpInstanceMultiAlloc(self):
     inst = dict([(name, []) for name in opcodes.OpInstanceCreate.GetAllSlots()])
     inst_op = opcodes.OpInstanceCreate(**inst)

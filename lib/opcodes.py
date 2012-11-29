@@ -1340,8 +1340,8 @@ class OpInstanceMultiAlloc(OpCode):
                        type(state))
 
     if "instances" in state:
-      insts = [OpCode.LoadOpCode(inst) for inst in state["instances"]]
-      state["instances"] = insts
+      state["instances"] = map(OpCode.LoadOpCode, state["instances"])
+
     return OpCode.__setstate__(self, state)
 
   def Validate(self, set_defaults):
