@@ -99,7 +99,7 @@ wrapGetter cfg b a getter faction =
 -- | Helper to evaluate a filter getter (and the value it generates) in
 -- a boolean context.
 trueFilter :: JSValue -> ErrorResult Bool
-trueFilter (JSBool x) = Ok x
+trueFilter (JSBool x) = Ok $! x
 trueFilter v = Bad . ParameterError $
                "Unexpected value '" ++ show (pp_value v) ++
                "' in boolean context"
@@ -115,9 +115,9 @@ type Comparator = (Eq a, Ord a) => a -> a -> Bool
 -- compare in the reverse order too!.
 binOpFilter :: Comparator -> FilterValue -> JSValue -> ErrorResult Bool
 binOpFilter comp (QuotedString y) (JSString x) =
-  Ok $ fromJSString x `comp` y
+  Ok $! fromJSString x `comp` y
 binOpFilter comp (NumericValue y) (JSRational _ x) =
-  Ok $ x `comp` fromIntegral y
+  Ok $! x `comp` fromIntegral y
 binOpFilter _ expr actual =
   Bad . ParameterError $ "Invalid types in comparison, trying to compare " ++
       show (pp_value actual) ++ " with '" ++ show expr ++ "'"
@@ -125,7 +125,7 @@ binOpFilter _ expr actual =
 -- | Implements the 'RegexpFilter' matching.
 regexpFilter :: FilterRegex -> JSValue -> ErrorResult Bool
 regexpFilter re (JSString val) =
-  Ok $ PCRE.match (compiledRegex re) (fromJSString val)
+  Ok $! PCRE.match (compiledRegex re) (fromJSString val)
 regexpFilter _ x =
   Bad . ParameterError $ "Invalid field value used in regexp matching,\
         \ expecting string but got '" ++ show (pp_value x) ++ "'"
@@ -136,10 +136,10 @@ containsFilter :: FilterValue -> JSValue -> ErrorResult Bool
 -- repeat them due to the encapsulation done by FilterValue
 containsFilter (QuotedString val) lst = do
   lst' <- fromJVal lst
-  return $ val `elem` lst'
+  return $! val `elem` lst'
 containsFilter (NumericValue val) lst = do
   lst' <- fromJVal lst
-  return $ val `elem` lst'
+  return $! val `elem` lst'
 
 -- | Verifies if a given item passes a filter. The runtime context
 -- might be missing, in which case most of the filters will consider
