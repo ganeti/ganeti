@@ -89,6 +89,27 @@ case_emptyVertColorMapEmpty :: Assertion
 case_emptyVertColorMapEmpty =
   assertEqual "" 0 $ IntMap.size emptyVertColorMap
 
+-- | Check if each two consecutive elements on a list
+-- respect a given condition.
+anyTwo :: (a -> a -> Bool) -> [a] -> Bool
+anyTwo _ [] = True
+anyTwo _ [_] = True
+anyTwo op (x:y:xs) = (x `op` y) && anyTwo op (y:xs)
+
+-- | Check order of vertices returned by verticesByDegreeAsc.
+prop_verticesByDegreeAscAsc :: TestableGraph -> Property
+prop_verticesByDegreeAscAsc (TestableGraph g) =
+    anyTwo (<=) (degrees asc) ==? True
+    where degrees = map (length . neighbors g)
+          asc = verticesByDegreeAsc g
+
+-- | Check order of vertices returned by verticesByDegreeDesc.
+prop_verticesByDegreeDescDesc :: TestableGraph -> Property
+prop_verticesByDegreeDescDesc (TestableGraph g) =
+    anyTwo (>=) (degrees desc) ==? True
+    where degrees = map (length . neighbors g)
+          desc = verticesByDegreeDesc g
+
 -- | Check that our generated graphs are colorable
 prop_isColorableTestableGraph :: TestableGraph -> Property
 prop_isColorableTestableGraph (TestableGraph g) = isColorable g ==? True
@@ -132,6 +153,8 @@ prop_colorDsaturAllNodes = prop_colorAllNodes colorDsatur
 testSuite "HTools/Graph"
             [ 'case_emptyVertColorMapNull
             , 'case_emptyVertColorMapEmpty
+            , 'prop_verticesByDegreeAscAsc
+            , 'prop_verticesByDegreeDescDesc
             , 'prop_colorLFClique
             , 'prop_colorDsaturClique
             , 'prop_colorLFAllNodes
