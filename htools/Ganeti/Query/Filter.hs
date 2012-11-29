@@ -144,14 +144,28 @@ containsFilter (NumericValue val) lst = do
 -- | Verifies if a given item passes a filter. The runtime context
 -- might be missing, in which case most of the filters will consider
 -- this as passing the filter.
+--
+-- Note: we use explicit recursion to reduce unneeded memory use;
+-- 'any' and 'all' do not play nice with monadic values, resulting in
+-- either too much memory use or in too many thunks being created.
 evaluateFilter :: ConfigData -> Maybe b -> a
                -> Filter (FieldGetter a b)
                -> ErrorResult Bool
 evaluateFilter _ _  _ EmptyFilter = Ok True
-evaluateFilter c mb a (AndFilter flts) =
-  all id <$> mapM (evaluateFilter c mb a) flts
-evaluateFilter c mb a (OrFilter flts)  =
-  any id <$> mapM (evaluateFilter c mb a) flts
+evaluateFilter c mb a (AndFilter flts) = helper flts
+  where helper [] = Ok True
+        helper (f:fs) = do
+          v <- evaluateFilter c mb a f
+          if v
+            then helper fs
+            else Ok False
+evaluateFilter c mb a (OrFilter flts) = helper flts
+  where helper [] = Ok False
+        helper (f:fs) = do
+          v <- evaluateFilter c mb a f
+          if v
+            then Ok True
+            else helper fs
 evaluateFilter c mb a (NotFilter flt)  =
   not <$> evaluateFilter c mb a flt
 evaluateFilter c mb a (TrueFilter getter)  =
