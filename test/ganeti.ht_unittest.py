@@ -275,6 +275,13 @@ class TestTypeChecks(unittest.TestCase):
     self.assertTrue(fn([{}, -938210858947, None]))
     self.assertFalse(fn(["Hello", []]))
 
+  def testInstanceOf(self):
+    fn = ht.TInstanceOf(self.__class__)
+    self.assertTrue(fn(self))
+    self.assertTrue(str(fn).startswith("Instance of "))
+
+    self.assertFalse(fn(None))
+
 
 if __name__ == "__main__":
   testutils.GanetiTestProgram()

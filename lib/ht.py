@@ -364,12 +364,18 @@ TNumber = TOr(TInt, TFloat)
 TRelativeJobId = WithDesc("RelativeJobId")(TNegativeInt)
 
 
-def TInstanceOf(my_inst):
-  """Checks if a given value is an instance of my_inst.
+def TInstanceOf(cls):
+  """Checks if a given value is an instance of C{cls}.
+
+  @type cls: class
+  @param cls: Class object
 
   """
-  desc = WithDesc("Instance of %s" % (Parens(my_inst), ))
-  return desc(lambda val: isinstance(val, my_inst))
+  name = "%s.%s" % (cls.__module__, cls.__name__)
+
+  desc = WithDesc("Instance of %s" % (Parens(name), ))
+
+  return desc(lambda val: isinstance(val, cls))
 
 
 def TListOf(my_type):

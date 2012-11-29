@@ -353,8 +353,9 @@ _PNetworkType = ("network_type", None, ht.TMaybe(_CheckNetworkType),
                  "Network type")
 
 
+@ht.WithDesc("IPv4 network")
 def _CheckCIDRNetNotation(value):
-  """Ensure a given cidr notation type is valid.
+  """Ensure a given CIDR notation type is valid.
 
   """
   try:
@@ -364,8 +365,9 @@ def _CheckCIDRNetNotation(value):
   return True
 
 
+@ht.WithDesc("IPv4 address")
 def _CheckCIDRAddrNotation(value):
-  """Ensure a given cidr notation type is valid.
+  """Ensure a given CIDR notation type is valid.
 
   """
   try:
@@ -375,8 +377,9 @@ def _CheckCIDRAddrNotation(value):
   return True
 
 
+@ht.WithDesc("IPv6 address")
 def _CheckCIDR6AddrNotation(value):
-  """Ensure a given cidr notation type is valid.
+  """Ensure a given CIDR notation type is valid.
 
   """
   try:
@@ -386,8 +389,9 @@ def _CheckCIDR6AddrNotation(value):
   return True
 
 
+@ht.WithDesc("IPv6 network")
 def _CheckCIDR6NetNotation(value):
-  """Ensure a given cidr notation type is valid.
+  """Ensure a given CIDR notation type is valid.
 
   """
   try:
