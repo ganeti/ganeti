@@ -103,11 +103,13 @@ class SimpleStore(object):
     - keys are restricted to predefined values
 
   """
-  def __init__(self, cfg_location=None):
+  def __init__(self, cfg_location=None, _lockfile=pathutils.SSCONF_LOCK_FILE):
     if cfg_location is None:
       self._cfg_dir = pathutils.DATA_DIR
     else:
       self._cfg_dir = cfg_location
+
+    self._lockfile = _lockfile
 
   def KeyToFilename(self, key):
     """Convert a given key into filename.
@@ -136,14 +138,16 @@ class SimpleStore(object):
       raise errors.ConfigurationError("Can't read ssconf file %s: %s" %
                                       (filename, str(err)))
 
-  def WriteFiles(self, values):
+  def WriteFiles(self, values, dry_run=False):
     """Writes ssconf files used by external scripts.
 
     @type values: dict
     @param values: Dictionary of (name, value)
+    @type dry_run boolean
+    @param dry_run: Whether to perform a dry run
 
     """
-    ssconf_lock = utils.FileLock.Open(pathutils.SSCONF_LOCK_FILE)
+    ssconf_lock = utils.FileLock.Open(self._lockfile)
 
     # Get lock while writing files
     ssconf_lock.Exclusive(blocking=True, timeout=SSCONF_LOCK_TIMEOUT)
@@ -151,11 +155,15 @@ class SimpleStore(object):
       for name, value in values.iteritems():
         if value and not value.endswith("\n"):
           value += "\n"
+
         if len(value) > _MAX_SIZE:
-          raise errors.ConfigurationError("ssconf file %s above maximum size" %
-                                          name)
+          msg = ("Value '%s' has a length of %s bytes, but only up to %s are"
+                 " allowed" % (name, len(value), _MAX_SIZE))
+          raise errors.ConfigurationError(msg)
+
         utils.WriteFile(self.KeyToFilename(name), data=value,
-                        mode=constants.SS_FILE_PERMS)
+                        mode=constants.SS_FILE_PERMS,
+                        dry_run=dry_run)
     finally:
       ssconf_lock.Unlock()
 
@@ -320,13 +328,13 @@ class SimpleStore(object):
                                       " family: %s" % err)
 
 
-def WriteSsconfFiles(values):
+def WriteSsconfFiles(values, dry_run=False):
   """Update all ssconf files.
 
   Wrapper around L{SimpleStore.WriteFiles}.
 
   """
-  SimpleStore().WriteFiles(values)
+  SimpleStore().WriteFiles(values, dry_run=dry_run)
 
 
 def GetMasterAndMyself(ss=None):

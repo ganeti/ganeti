@@ -95,11 +95,20 @@ class TestReadSsconfFile(unittest.TestCase):
 
 class TestSimpleStore(unittest.TestCase):
   def setUp(self):
-    self.tmpdir = tempfile.mkdtemp()
-    self.sstore = ssconf.SimpleStore(cfg_location=self.tmpdir)
+    self._tmpdir = tempfile.mkdtemp()
+    self.ssdir = utils.PathJoin(self._tmpdir, "files")
+    lockfile = utils.PathJoin(self._tmpdir, "lock")
+
+    os.mkdir(self.ssdir)
+
+    self.sstore = ssconf.SimpleStore(cfg_location=self.ssdir,
+                                     _lockfile=lockfile)
 
   def tearDown(self):
-    shutil.rmtree(self.tmpdir)
+    shutil.rmtree(self._tmpdir)
+
+  def _ReadSsFile(self, filename):
+    return utils.ReadFile(utils.PathJoin(self.ssdir, "ssconf_%s" % filename))
 
   def testInvalidKey(self):
     self.assertRaises(errors.ProgrammerError, self.sstore.KeyToFilename,
@@ -110,7 +119,7 @@ class TestSimpleStore(unittest.TestCase):
   def testKeyToFilename(self):
     for key in ssconf._VALID_KEYS:
       result = self.sstore.KeyToFilename(key)
-      self.assertTrue(utils.IsBelowDir(self.tmpdir, result))
+      self.assertTrue(utils.IsBelowDir(self.ssdir, result))
       self.assertTrue(os.path.basename(result).startswith("ssconf_"))
 
   def testReadFileNonExistingFile(self):
@@ -139,6 +148,67 @@ class TestSimpleStore(unittest.TestCase):
     self.assertEqual(self.sstore._ReadFile(constants.SS_CLUSTER_NAME,
                                            default="something.example.com"),
                      "cluster.example.com")
+
+  def testWriteFiles(self):
+    values = {
+      constants.SS_CLUSTER_NAME: "cluster.example.com",
+      constants.SS_CLUSTER_TAGS: "value\nwith\nnewlines\n",
+      constants.SS_INSTANCE_LIST: "",
+      }
+
+    self.sstore.WriteFiles(values)
+
+    self.assertEqual(sorted(os.listdir(self.ssdir)), sorted([
+      "ssconf_cluster_name",
+      "ssconf_cluster_tags",
+      "ssconf_instance_list",
+      ]))
+
+    self.assertEqual(self._ReadSsFile(constants.SS_CLUSTER_NAME),
+                     "cluster.example.com\n")
+    self.assertEqual(self._ReadSsFile(constants.SS_CLUSTER_TAGS),
+                     "value\nwith\nnewlines\n")
+    self.assertEqual(self._ReadSsFile(constants.SS_INSTANCE_LIST), "")
+
+  def testWriteFilesUnknownKey(self):
+    values = {
+      "unknown key": "value",
+      }
+
+    self.assertRaises(errors.ProgrammerError, self.sstore.WriteFiles,
+                      values, dry_run=True)
+
+    self.assertEqual(os.listdir(self.ssdir), [])
+
+  def testWriteFilesDryRun(self):
+    values = {
+      constants.SS_CLUSTER_NAME: "cluster.example.com",
+      }
+
+    self.sstore.WriteFiles(values, dry_run=True)
+
+    self.assertEqual(os.listdir(self.ssdir), [])
+
+  def testWriteFilesNoValues(self):
+    for dry_run in [False, True]:
+      self.sstore.WriteFiles({}, dry_run=dry_run)
+
+      self.assertEqual(os.listdir(self.ssdir), [])
+
+  def testWriteFilesTooLong(self):
+    values = {
+      constants.SS_INSTANCE_LIST: "A" * ssconf._MAX_SIZE,
+      }
+
+    for dry_run in [False, True]:
+      try:
+        self.sstore.WriteFiles(values, dry_run=dry_run)
+      except errors.ConfigurationError, err:
+        self.assertTrue(str(err).startswith("Value 'instance_list' has"))
+      else:
+        self.fail("Exception was not raised")
+
+      self.assertEqual(os.listdir(self.ssdir), [])
 
 
 class TestVerifyClusterName(unittest.TestCase):
