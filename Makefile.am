@@ -427,6 +427,7 @@ HPCEXCL = --exclude Main \
 	--exclude Ganeti.HTools.QC \
 	--exclude Ganeti.THH \
 	--exclude Ganeti.Version \
+	--exclude Test.Ganeti.Attoparsec \
 	--exclude Test.Ganeti.TestCommon \
 	--exclude Test.Ganeti.TestHTools \
 	--exclude Test.Ganeti.TestHelper \
