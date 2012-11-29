@@ -348,10 +348,6 @@ _PStorageType = ("storage_type", ht.NoDefault, _CheckStorageType,
 
 _CheckNetworkType = ht.TElemOf(constants.NETWORK_VALID_TYPES)
 
-#: Network type parameter
-_PNetworkType = ("network_type", None, ht.TMaybe(_CheckNetworkType),
-                 "Network type")
-
 
 @ht.WithDesc("IPv4 network")
 def _CheckCIDRNetNotation(value):
@@ -2024,7 +2020,7 @@ class OpNetworkAdd(OpCode):
   OP_DSC_FIELD = "network_name"
   OP_PARAMS = [
     _PNetworkName,
-    _PNetworkType,
+    ("network_type", None, ht.TMaybe(_CheckNetworkType), "Network type"),
     ("network", ht.NoDefault, _TIpNetwork4, "IPv4 subnet"),
     ("gateway", None, ht.TMaybe(_TIpAddress4), "IPv4 gateway"),
     ("network6", None, ht.TMaybe(_TIpNetwork6), "IPv6 subnet"),
@@ -2056,11 +2052,12 @@ class OpNetworkSetParams(OpCode):
   OP_DSC_FIELD = "network_name"
   OP_PARAMS = [
     _PNetworkName,
-    _PNetworkType,
-    ("gateway", None, ht.TMaybe(_TIpAddress4), "IPv4 gateway"),
-    ("network6", None, ht.TMaybe(_TIpNetwork6), "IPv6 subnet"),
-    ("gateway6", None, ht.TMaybe(_TIpAddress6), "IPv6 gateway"),
-    ("mac_prefix", None, ht.TMaybeString,
+    ("network_type", None, ht.TMaybeValueNone(_CheckNetworkType),
+     "Network type"),
+    ("gateway", None, ht.TMaybeValueNone(_TIpAddress4), "IPv4 gateway"),
+    ("network6", None, ht.TMaybeValueNone(_TIpNetwork6), "IPv6 subnet"),
+    ("gateway6", None, ht.TMaybeValueNone(_TIpAddress6), "IPv6 gateway"),
+    ("mac_prefix", None, ht.TMaybeValueNone(ht.TString),
      "MAC address prefix that overrides cluster one"),
     ("add_reserved_ips", None, _TMaybeAddr4List,
      "Which external IP addresses to reserve"),

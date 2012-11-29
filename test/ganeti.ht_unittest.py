@@ -23,6 +23,7 @@
 
 import unittest
 
+from ganeti import constants
 from ganeti import ht
 
 import testutils
@@ -281,6 +282,17 @@ class TestTypeChecks(unittest.TestCase):
     self.assertTrue(str(fn).startswith("Instance of "))
 
     self.assertFalse(fn(None))
+
+  def testMaybeValueNone(self):
+    fn = ht.TMaybeValueNone(ht.TInt)
+
+    self.assertTrue(fn(None))
+    self.assertTrue(fn(0))
+    self.assertTrue(fn(constants.VALUE_NONE))
+
+    self.assertFalse(fn(""))
+    self.assertFalse(fn([]))
+    self.assertFalse(fn(constants.VALUE_DEFAULT))
 
 
 if __name__ == "__main__":

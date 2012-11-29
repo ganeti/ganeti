@@ -187,6 +187,14 @@ def TNone(val):
   return val is None
 
 
+@WithDesc("ValueNone")
+def TValueNone(val):
+  """Checks if the given value is L{constants.VALUE_NONE}.
+
+  """
+  return val == constants.VALUE_NONE
+
+
 @WithDesc("Boolean")
 def TBool(val):
   """Checks if the given value is a boolean.
@@ -317,6 +325,13 @@ def TMaybe(test):
 
   """
   return TOr(TNone, test)
+
+
+def TMaybeValueNone(test):
+  """Used for unsetting values.
+
+  """
+  return TMaybe(TOr(TValueNone, test))
 
 
 # Type aliases
