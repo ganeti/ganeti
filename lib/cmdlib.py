@@ -10495,6 +10495,16 @@ class LUInstanceCreate(LogicalUnit):
                         " from the first disk's node group will be"
                         " used")
 
+    if not self.op.disk_template in constants.DTS_EXCL_STORAGE:
+      nodes = [pnode]
+      if self.op.disk_template in constants.DTS_INT_MIRROR:
+        nodes.append(snode)
+      has_es = lambda n: _IsExclusiveStorageEnabledNode(self.cfg, n)
+      if compat.any(map(has_es, nodes)):
+        raise errors.OpPrereqError("Disk template %s not supported with"
+                                   " exclusive storage" % self.op.disk_template,
+                                   errors.ECODE_STATE)
+
     nodenames = [pnode.name] + self.secondaries
 
     # Verify instance specs
@@ -12416,14 +12426,22 @@ class LUInstanceGrowDisk(LogicalUnit):
                                    utils.FormatUnit(self.delta, "h"),
                                    errors.ECODE_INVAL)
 
-    if instance.disk_template not in (constants.DT_FILE,
-                                      constants.DT_SHARED_FILE,
-                                      constants.DT_RBD,
-                                      constants.DT_EXT):
+    self._CheckDiskSpace(nodenames, self.disk.ComputeGrowth(self.delta))
+
+  def _CheckDiskSpace(self, nodenames, req_vgspace):
+    template = self.instance.disk_template
+    if template not in (constants.DTS_NO_FREE_SPACE_CHECK):
       # TODO: check the free disk space for file, when that feature will be
       # supported
-      _CheckNodesFreeDiskPerVG(self, nodenames,
-                               self.disk.ComputeGrowth(self.delta))
+      nodes = map(self.cfg.GetNodeInfo, nodenames)
+      es_nodes = filter(lambda n: _IsExclusiveStorageEnabledNode(self.cfg, n),
+                        nodes)
+      if es_nodes:
+        # With exclusive storage we need to something smarter than just looking
+        # at free space; for now, let's simply abort the operation.
+        raise errors.OpPrereqError("Cannot grow disks when exclusive_storage"
+                                   " is enabled", errors.ECODE_STATE)
+      _CheckNodesFreeDiskPerVG(self, nodenames, req_vgspace)
 
   def Exec(self, feedback_fn):
     """Execute disk grow.
@@ -13291,6 +13309,19 @@ class LUInstanceSetParams(LogicalUnit):
                         " different node groups; the disk parameters"
                         " from the first disk's node group will be"
                         " used")
+
+    if not self.op.disk_template in constants.DTS_EXCL_STORAGE:
+      # Make sure none of the nodes require exclusive storage
+      nodes = [pnode_info]
+      if self.op.disk_template in constants.DTS_INT_MIRROR:
+        assert snode_info
+        nodes.append(snode_info)
+      has_es = lambda n: _IsExclusiveStorageEnabledNode(self.cfg, n)
+      if compat.any(map(has_es, nodes)):
+        errmsg = ("Cannot convert disk template from %s to %s when exclusive"
+                  " storage is enabled" % (instance.disk_template,
+                                           self.op.disk_template))
+        raise errors.OpPrereqError(errmsg, errors.ECODE_STATE)
 
   def CheckPrereq(self):
     """Check prerequisites.
