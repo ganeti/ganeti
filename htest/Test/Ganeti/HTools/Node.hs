@@ -32,6 +32,7 @@ module Test.Ganeti.HTools.Node
   , setInstanceSmallerThanNode
   , genNode
   , genOnlineNode
+  , genNodeList
   ) where
 
 import Test.QuickCheck
@@ -46,6 +47,7 @@ import Test.Ganeti.TestHTools
 import Test.Ganeti.HTools.Instance (genInstanceSmallerThanNode)
 
 import Ganeti.BasicTypes
+import qualified Ganeti.HTools.Loader as Loader
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Instance as Instance
 import qualified Ganeti.HTools.Node as Node
@@ -96,6 +98,14 @@ genOnlineNode =
 -- and a random node
 instance Arbitrary Node.Node where
   arbitrary = genNode Nothing Nothing
+
+-- | Node list generator.
+-- Given a node generator, create a random length node list.  Note that "real"
+-- clusters always have at least one node, so we don't generate empty node
+-- lists here.
+genNodeList :: Gen Node.Node -> Gen Node.List
+genNodeList ngen = fmap (snd . Loader.assignIndices) names_nodes
+    where names_nodes = (fmap . map) (\n -> (Node.name n, n)) $ listOf1 ngen
 
 -- * Test cases
 
