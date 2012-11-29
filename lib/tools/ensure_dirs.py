@@ -144,8 +144,8 @@ def GetPaths():
      getent.masterd_gid, False),
     (pathutils.SPICE_CACERT_FILE, FILE, 0440, getent.noded_uid,
      getent.masterd_gid, False),
-    (pathutils.NODED_CERT_FILE, FILE, 0440, getent.masterd_uid,
-     getent.masterd_gid, False),
+    (pathutils.NODED_CERT_FILE, FILE, pathutils.NODED_CERT_MODE,
+     getent.masterd_uid, getent.masterd_gid, False),
     ]
 
   ss = ssconf.SimpleStore()

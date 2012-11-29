@@ -74,7 +74,6 @@ UIDPOOL_LOCKDIR = RUN_DIR + "/uid-pool"
 SSCONF_LOCK_FILE = LOCK_DIR + "/ganeti-ssconf.lock"
 
 CLUSTER_CONF_FILE = DATA_DIR + "/config.data"
-NODED_CERT_FILE = DATA_DIR + "/server.pem"
 RAPI_CERT_FILE = DATA_DIR + "/rapi.pem"
 CONFD_HMAC_KEY = DATA_DIR + "/hmac.key"
 SPICE_CERT_FILE = DATA_DIR + "/spice.pem"
@@ -89,6 +88,12 @@ VNC_PASSWORD_FILE = CONF_DIR + "/vnc-cluster-password"
 HOOKS_BASE_DIR = CONF_DIR + "/hooks"
 FILE_STORAGE_PATHS_FILE = CONF_DIR + "/file-storage-paths"
 RESTRICTED_COMMANDS_DIR = CONF_DIR + "/restricted-commands"
+
+#: Node daemon certificate path
+NODED_CERT_FILE = DATA_DIR + "/server.pem"
+
+#: Node daemon certificate file permissions
+NODED_CERT_MODE = 0440
 
 #: Locked in exclusive mode while noded verifies a remote command
 RESTRICTED_COMMANDS_LOCK_FILE = LOCK_DIR + "/ganeti-restricted-commands.lock"
