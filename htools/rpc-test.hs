@@ -24,9 +24,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 
 import System.Environment
-import System.Exit
-import System.IO
 
+import Ganeti.Errors
 import Ganeti.Config
 import Ganeti.Objects
 import qualified Ganeti.Path as P
@@ -37,7 +36,7 @@ import Ganeti.Utils
 usage :: IO ()
 usage = do
   prog <- getProgName
-  exitErr "Usage: " ++ prog ++ " delay node..."
+  exitErr $ "Usage: " ++ prog ++ " delay node..."
 
 main :: IO ()
 main = do
@@ -46,10 +45,11 @@ main = do
                       [] -> usage >> return ("", []) -- workaround types...
                       _:[] -> usage >> return ("", [])
                       x:xs -> return (x, xs)
-  cfg <- loadConfig P.clusterConfFile >>=
-         exitIfBad "Can't load configuration"
+  cfg_file <- P.clusterConfFile
+  cfg <- loadConfig  cfg_file>>= exitIfBad "Can't load configuration"
   let call = RpcCallTestDelay (read delay)
-  nodes' <- exitIfBad "Can't find node" $ mapM (getNode cfg) nodes
+  nodes' <- exitIfBad "Can't find node" . errToResult $
+            mapM (getNode cfg) nodes
   results <- executeRpcCall nodes' call
   putStr $ printTable "" ["Node", "Result"]
            (map (\(n, r) -> [nodeName n, show r]) results) [False, False]
