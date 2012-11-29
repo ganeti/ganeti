@@ -13288,7 +13288,7 @@ class LUInstanceSetParams(LogicalUnit):
                                  errors.ECODE_STATE)
     disk_sizes = [disk.size for disk in instance.disks]
     disk_sizes.extend(params["size"] for (op, idx, params, private) in
-                      self.diskmod)
+                      self.diskmod if op == constants.DDM_ADD)
     ispec[constants.ISPEC_DISK_COUNT] = len(disk_sizes)
     ispec[constants.ISPEC_DISK_SIZE] = disk_sizes
 
