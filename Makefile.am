@@ -671,12 +671,12 @@ htest/offline-tests.sh: htest/hpc-htools
 .PHONY: hs-prof hs-prof-quick
 hs-prof:
 	$(MAKE) $(AM_MAKEFLAGS) clean
-	$(MAKE) $(AM_MAKEFLAGS) $(HS_ALL_PROGS) HEXTRA="-osuf .o"
+	$(MAKE) $(AM_MAKEFLAGS) $(HS_ALL_PROGS) HEXTRA="-osuf o"
 	rm -f $(HS_ALL_PROGS)
 	$(MAKE) $(AM_MAKEFLAGS) hs-prof-quick
 
 hs-prof-quick:
-	$(MAKE) $(AM_MAKEFLAGS) $(HS_ALL_PROGS) HEXTRA="-osuf .prof_o -prof -auto-all"
+	$(MAKE) $(AM_MAKEFLAGS) $(HS_ALL_PROGS) HEXTRA="-osuf prof_o -prof -auto-all"
 
 dist_sbin_SCRIPTS = \
 	tools/ganeti-listrunner
