@@ -31,6 +31,7 @@ module Test.Ganeti.HTools.Instance
   , genInstanceSmallerThanNode
   , genInstanceMaybeBiggerThanNode
   , genInstanceSmallerThan
+  , genInstanceOnNodeList
   , genInstanceList
   , Instance.Instance(..)
   ) where
@@ -44,6 +45,7 @@ import Test.Ganeti.HTools.Types ()
 import Ganeti.BasicTypes
 import qualified Ganeti.HTools.Instance as Instance
 import qualified Ganeti.HTools.Node as Node
+import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Loader as Loader
 import qualified Ganeti.HTools.Types as Types
 
@@ -75,6 +77,23 @@ genInstanceMaybeBiggerThanNode node =
   genInstanceSmallerThan (Node.availMem  node + Types.unitMem * 2)
                          (Node.availDisk node + Types.unitDsk * 3)
                          (Node.availCpu  node + Types.unitCpu * 4)
+
+-- | Generates an instance with nodes on a node list.
+-- The following rules are respected:
+-- 1. The instance is never bigger than its primary node
+-- 2. If possible the instance has different pnode and snode
+-- 3. Else disk templates which require secondary nodes are disabled
+genInstanceOnNodeList :: Node.List -> Gen Instance.Instance
+genInstanceOnNodeList nl = do
+  let nsize = Container.size nl
+  pnode <- choose (0, nsize-1)
+  let (snodefilter, dtfilter) =
+        if nsize >= 2
+          then ((/= pnode), const True)
+          else (const True, not . Instance.hasSecondary)
+  snode <- choose (0, nsize-1) `suchThat` snodefilter
+  i <- genInstanceSmallerThanNode (Container.find pnode nl) `suchThat` dtfilter
+  return $ i { Instance.pNode = pnode, Instance.sNode = snode }
 
 -- | Generates an instance list given an instance generator.
 genInstanceList :: Gen Instance.Instance -> Gen Instance.List
