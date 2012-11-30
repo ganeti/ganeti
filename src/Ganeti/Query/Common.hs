@@ -4,7 +4,7 @@
 
 {-
 
-Copyright (C) 2012 Google Inc.
+Copyright (C) 2012, 2013 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -104,7 +104,7 @@ missingRuntime = FieldRuntime (\_ _ -> ResultEntry RSNoData Nothing)
 
 -- | Convert RpcError to ResultStatus
 rpcErrorToStatus :: RpcError -> ResultStatus
-rpcErrorToStatus (OfflineNodeError _) = RSOffline
+rpcErrorToStatus OfflineNodeError = RSOffline
 rpcErrorToStatus _ = RSNoData
 
 -- * Common fields

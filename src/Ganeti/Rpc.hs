@@ -98,22 +98,22 @@ curlOpts = [ CurlFollowLocation False
 
 -- | Data type for RPC error reporting.
 data RpcError
-  = CurlLayerError Node String
+  = CurlLayerError String
   | JsonDecodeError String
   | RpcResultError String
-  | OfflineNodeError Node
+  | OfflineNodeError
   deriving (Show, Eq)
 
 -- | Provide explanation to RPC errors.
 explainRpcError :: RpcError -> String
-explainRpcError (CurlLayerError node code) =
-    "Curl error for " ++ nodeName node ++ ", " ++ code
+explainRpcError (CurlLayerError code) =
+    "Curl error:" ++ code
 explainRpcError (JsonDecodeError msg) =
     "Error while decoding JSON from HTTP response: " ++ msg
 explainRpcError (RpcResultError msg) =
     "Error reponse received from RPC server: " ++ msg
-explainRpcError (OfflineNodeError node) =
-    "Node " ++ nodeName node ++ " is marked as offline"
+explainRpcError OfflineNodeError =
+    "Node is marked offline"
 
 type ERpcError = Either RpcError
 
@@ -153,17 +153,16 @@ data HttpClientRequest = HttpClientRequest
 
 -- | Execute the request and return the result as a plain String. When
 -- curl reports an error, we propagate it.
-executeHttpRequest :: Node -> ERpcError HttpClientRequest
-                   -> IO (ERpcError String)
-executeHttpRequest _ (Left rpc_err) = return $ Left rpc_err
-executeHttpRequest node (Right request) = do
+executeHttpRequest :: ERpcError HttpClientRequest -> IO (ERpcError String)
+executeHttpRequest (Left rpc_err) = return $ Left rpc_err
+executeHttpRequest (Right request) = do
   let reqOpts = CurlPostFields [requestData request]:requestOpts request
       url = requestUrl request
   -- FIXME: This is very similar to getUrl in Htools/Rapi.hs
   (code, !body) <- curlGetString url $ curlOpts ++ reqOpts
   return $ case code of
              CurlOK -> Right body
-             _ -> Left $ CurlLayerError node (show code)
+             _ -> Left $ CurlLayerError (show code)
 
 -- | Prepare url for the HTTP request.
 prepareUrl :: (RpcCall a) => Node -> a -> String
@@ -183,7 +182,7 @@ prepareHttpRequest opts node call
                               , requestData = rpcCallData node call
                               , requestOpts = opts ++ curlOpts
                               }
-  | otherwise = Left $ OfflineNodeError node
+  | otherwise = Left OfflineNodeError
 
 -- | Parse a result based on the received HTTP response.
 parseHttpResponse :: (Rpc a b) => a -> ERpcError String -> ERpcError b
@@ -201,7 +200,7 @@ executeSingleRpcCall :: (Rpc a b) =>
                         [CurlOption] -> Node -> a -> IO (Node, ERpcError b)
 executeSingleRpcCall opts node call = do
   let request = prepareHttpRequest opts node call
-  response <- executeHttpRequest node request
+  response <- executeHttpRequest request
   let result = parseHttpResponse call response
   return (node, result)
 

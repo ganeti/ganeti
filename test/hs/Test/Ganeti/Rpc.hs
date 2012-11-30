@@ -7,7 +7,7 @@
 
 {-
 
-Copyright (C) 2009, 2010, 2011, 2012 Google Inc.
+Copyright (C) 2009, 2010, 2011, 2012, 2013 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -59,19 +59,19 @@ prop_noffl_request_allinstinfo :: Rpc.RpcCallAllInstancesInfo -> Property
 prop_noffl_request_allinstinfo call =
   forAll (arbitrary `suchThat` Objects.nodeOffline) $ \node -> monadicIO $ do
       res <- run $ Rpc.executeRpcCall [node] call
-      stop $ res ==? [(node, Left (Rpc.OfflineNodeError node))]
+      stop $ res ==? [(node, Left Rpc.OfflineNodeError)]
 
 prop_noffl_request_instlist :: Rpc.RpcCallInstanceList -> Property
 prop_noffl_request_instlist call =
   forAll (arbitrary `suchThat` Objects.nodeOffline) $ \node -> monadicIO $ do
       res <- run $ Rpc.executeRpcCall [node] call
-      stop $ res ==? [(node, Left (Rpc.OfflineNodeError node))]
+      stop $ res ==? [(node, Left Rpc.OfflineNodeError)]
 
 prop_noffl_request_nodeinfo :: Rpc.RpcCallNodeInfo -> Property
 prop_noffl_request_nodeinfo call =
   forAll (arbitrary `suchThat` Objects.nodeOffline) $ \node -> monadicIO $ do
       res <- run $ Rpc.executeRpcCall [node] call
-      stop $ res ==? [(node, Left (Rpc.OfflineNodeError node))]
+      stop $ res ==? [(node, Left Rpc.OfflineNodeError)]
 
 testSuite "Rpc"
   [ 'prop_noffl_request_allinstinfo
