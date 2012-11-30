@@ -29,6 +29,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 module Test.Ganeti.HTools.Instance
   ( testHTools_Instance
   , genInstanceSmallerThanNode
+  , genInstanceMaybeBiggerThanNode
   , genInstanceSmallerThan
   , Instance.Instance(..)
   ) where
@@ -65,6 +66,13 @@ genInstanceSmallerThanNode node =
   genInstanceSmallerThan (Node.availMem node `div` 2)
                          (Node.availDisk node `div` 2)
                          (Node.availCpu node `div` 2)
+
+-- | Generates an instance possibly bigger than a node.
+genInstanceMaybeBiggerThanNode :: Node.Node -> Gen Instance.Instance
+genInstanceMaybeBiggerThanNode node =
+  genInstanceSmallerThan (Node.availMem  node + Types.unitMem * 2)
+                         (Node.availDisk node + Types.unitDsk * 3)
+                         (Node.availCpu  node + Types.unitCpu * 4)
 
 -- let's generate a random instance
 instance Arbitrary Instance.Instance where

@@ -37,7 +37,7 @@ import Test.Ganeti.TestHelper
 import Test.Ganeti.TestCommon
 import Test.Ganeti.TestHTools
 import Test.Ganeti.HTools.Instance ( genInstanceSmallerThanNode
-                                   , genInstanceSmallerThan )
+                                   , genInstanceMaybeBiggerThanNode )
 import Test.Ganeti.HTools.Node (genOnlineNode, genNode)
 
 import Ganeti.BasicTypes
@@ -191,10 +191,7 @@ prop_CanTieredAlloc :: Property
 prop_CanTieredAlloc =
   forAll (choose (2, 5)) $ \count ->
   forAll (genOnlineNode `suchThat` isNodeBig 4) $ \node ->
-  forAll (genInstanceSmallerThan
-            (Node.availMem  node + Types.unitMem * 2)
-            (Node.availDisk node + Types.unitDsk * 3)
-            (Node.availCpu  node + Types.unitCpu * 4)) $ \inst ->
+  forAll (genInstanceMaybeBiggerThanNode node) $ \inst ->
   let nl = makeSmallCluster node count
       il = Container.empty
       rqnodes = Instance.requiredNodes $ Instance.diskTemplate inst
