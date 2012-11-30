@@ -146,25 +146,18 @@ class (RpcCall a, J.JSON b) => Rpc a b  | a -> b, b -> a where
 
 -- | Http Request definition.
 data HttpClientRequest = HttpClientRequest
-  { requestTimeout :: Int
-  , requestUrl :: String
-  , requestPostData :: String
+  { requestUrl  :: String       -- ^ The actual URL for the node endpoint
+  , requestData :: String       -- ^ The arguments for the call
+  , requestOpts :: [CurlOption] -- ^ The various curl options
   }
 
 -- | Execute the request and return the result as a plain String. When
 -- curl reports an error, we propagate it.
 executeHttpRequest :: Node -> ERpcError HttpClientRequest
                    -> IO (ERpcError String)
-
 executeHttpRequest _ (Left rpc_err) = return $ Left rpc_err
 executeHttpRequest node (Right request) = do
-  cert_file <- P.nodedCertFile
-  let reqOpts = [ CurlTimeout (fromIntegral $ requestTimeout request)
-                , CurlPostFields [requestPostData request]
-                , CurlSSLCert cert_file
-                , CurlSSLKey cert_file
-                , CurlCAInfo cert_file
-                ]
+  let reqOpts = CurlPostFields [requestData request]:requestOpts request
       url = requestUrl request
   -- FIXME: This is very similar to getUrl in Htools/Rapi.hs
   (code, !body) <- curlGetString url $ curlOpts ++ reqOpts
@@ -182,13 +175,13 @@ prepareUrl node call =
 
 -- | Create HTTP request for a given node provided it is online,
 -- otherwise create empty response.
-prepareHttpRequest ::  (RpcCall a) => Node -> a
+prepareHttpRequest :: (RpcCall a) => [CurlOption] -> Node -> a
                    -> ERpcError HttpClientRequest
-prepareHttpRequest node call
+prepareHttpRequest opts node call
   | rpcCallAcceptOffline call || not (nodeOffline node) =
-      Right HttpClientRequest { requestTimeout = rpcCallTimeout call
-                              , requestUrl = prepareUrl node call
-                              , requestPostData = rpcCallData node call
+      Right HttpClientRequest { requestUrl  = prepareUrl node call
+                              , requestData = rpcCallData node call
+                              , requestOpts = opts ++ curlOpts
                               }
   | otherwise = Left $ OfflineNodeError node
 
@@ -204,18 +197,24 @@ parseHttpResponse call (Right res) =
        _ -> Left . JsonDecodeError $ show (pp_value jerr)
 
 -- | Execute RPC call for a sigle node.
-executeSingleRpcCall :: (Rpc a b) => Node -> a -> IO (Node, ERpcError b)
-executeSingleRpcCall node call = do
-  let request = prepareHttpRequest node call
+executeSingleRpcCall :: (Rpc a b) =>
+                        [CurlOption] -> Node -> a -> IO (Node, ERpcError b)
+executeSingleRpcCall opts node call = do
+  let request = prepareHttpRequest opts node call
   response <- executeHttpRequest node request
   let result = parseHttpResponse call response
   return (node, result)
 
 -- | Execute RPC call for many nodes in parallel.
 executeRpcCall :: (Rpc a b) => [Node] -> a -> IO [(Node, ERpcError b)]
-executeRpcCall nodes call =
-  sequence $ parMap rwhnf (uncurry executeSingleRpcCall)
-               (zip nodes $ repeat call)
+executeRpcCall nodes call = do
+  cert_file <- P.nodedCertFile
+  let opts = [ CurlTimeout (fromIntegral $ rpcCallTimeout call)
+             , CurlSSLCert cert_file
+             , CurlSSLKey cert_file
+             , CurlCAInfo cert_file
+             ]
+  sequence $ parMap rwhnf (\n -> executeSingleRpcCall opts n call) nodes
 
 -- | Helper function that is used to read dictionaries of values.
 sanitizeDictResults :: [(String, J.Result a)] -> ERpcError [(String, a)]
