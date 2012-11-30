@@ -13,6 +13,17 @@ of a graph and its application to timetabling problems", The Computer Journal
 10 (1): 85-86, doi:10.1093/comjnl/10.1.85
 <http://comjnl.oxfordjournals.org/content/10/1/85>
 
+DSatur is described in:
+Brelaz, D. (1979), "New methods to color the vertices of a graph",
+Communications of the ACM 22 (4): 251-256, doi:10.1145/359094.359101
+<http://dx.doi.org/10.1145%2F359094.359101>
+
+Also interesting:
+Klotz, W. (2002). Graph coloring algorithms. Mathematics Report, Technical
+University Clausthal, 1-9.
+<http://www.math.tu-clausthal.de/Arbeitsgruppen/Diskrete-Optimierung
+/publications/2002/gca.pdf>
+
 -}
 
 {-
@@ -46,6 +57,7 @@ module Ganeti.HTools.Graph
     -- * Coloring
   , colorInOrder
   , colorLF
+  , colorDsatur
     -- * Color map transformations
   , colorVertMap
     -- * Vertex sorting
@@ -66,13 +78,16 @@ import qualified Data.Array as Array
 -- | Node colors.
 type Color = Int
 
+-- | Saturation: number of colored neighbors.
+type Satur = Int
+
 -- | Vertex to Color association.
 type VertColorMap = IntMap.IntMap Color
 
 -- | Color to Vertex association.
 type ColorVertMap = IntMap.IntMap [Int]
 
--- * Sorting of vertices
+-- * Vertices characteristics
 
 -- | (vertex, degree) tuples on a graph.
 verticesDegree :: Graph.Graph -> [(Graph.Vertex, Int)]
@@ -87,16 +102,24 @@ verticesByDegreeDesc g =
 verticesByDegreeAsc :: Graph.Graph -> [Graph.Vertex]
 verticesByDegreeAsc g = map fst . sortBy (comparing snd) $ verticesDegree g
 
+-- | Get the neighbors of a vertex.
+neighbors :: Graph.Graph -> Graph.Vertex -> [Graph.Vertex]
+neighbors g v = g Array.! v
+
 -- * Coloring
 
 -- | Empty color map.
 emptyVertColorMap :: VertColorMap
 emptyVertColorMap = IntMap.empty
 
+-- | Get the colors of a list of vertices.
+-- Any uncolored vertices are ignored.
+listColors :: VertColorMap -> [Graph.Vertex] -> [Color]
+listColors cMap = mapMaybe (`IntMap.lookup` cMap)
+
 -- | Get the colors of the neighbors of a vertex.
 neighColors :: Graph.Graph -> VertColorMap -> Graph.Vertex -> [Color]
-neighColors g cMap v = mapMaybe (`IntMap.lookup` cMap) neighbors
-    where neighbors = g Array.! v
+neighColors g cMap v = listColors cMap $ neighbors g v
 
 -- | Color one node.
 colorNode :: Graph.Graph -> VertColorMap -> Graph.Vertex -> Color
@@ -116,6 +139,34 @@ colorInOrder g = foldr (colorNodeInMap g) emptyVertColorMap
 -- | Color greedily all nodes, larger first.
 colorLF :: Graph.Graph -> ColorVertMap
 colorLF g = colorVertMap . colorInOrder g $ verticesByDegreeAsc g
+
+-- | (vertex, (saturation, degree)) for a vertex.
+vertexSaturation :: Graph.Graph
+                 -> VertColorMap
+                 -> Graph.Vertex
+                 -> (Graph.Vertex, (Satur, Int))
+vertexSaturation g cMap v = (v, (length (listColors cMap neigh), length neigh))
+    where neigh = neighbors g v
+
+-- | Auxiliary recursive function to calculate dsatur.
+-- We have a list of vertices still uncolored, and at each round we
+-- choose&delete the maximum saturation vertex among the remaining ones.
+-- To do so we need explicit recursion.
+colorDsatur' :: Graph.Graph -> VertColorMap -> [Graph.Vertex] -> VertColorMap
+colorDsatur' _ cMap [] = cMap
+colorDsatur' g cMap l = colorDsatur' g newmap newlist
+    where newmap = colorNodeInMap g choosen cMap
+          choosen = fst . maximumBy (comparing snd) $ satlist
+          satlist = map (vertexSaturation g cMap) l
+          newlist = delete choosen l
+
+-- | Color greedily all nodes, highest saturation, then highest degree.
+-- This is slower than "colorLF" as we must dynamically recalculate
+-- which node to color next among all remaining ones but produces better
+-- results.
+colorDsatur :: Graph.Graph -> ColorVertMap
+colorDsatur g =
+  colorVertMap . colorDsatur' g emptyVertColorMap $ Graph.vertices g
 
 -- | ColorVertMap from VertColorMap.
 colorVertMap :: VertColorMap -> ColorVertMap

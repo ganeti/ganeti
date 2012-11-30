@@ -100,6 +100,10 @@ prop_colorClique alg (TestableClique g) = numvertices ==? numcolors
 prop_colorLFClique :: TestableClique -> Property
 prop_colorLFClique = prop_colorClique colorLF
 
+-- | Specific check for the Dsatur algorithm.
+prop_colorDsaturClique :: TestableClique -> Property
+prop_colorDsaturClique = prop_colorClique colorDsatur
+
 -- Check that all nodes are colored.
 prop_colorAllNodes :: (Graph.Graph -> ColorVertMap)
                    -> TestableGraph
@@ -112,10 +116,16 @@ prop_colorAllNodes alg (TestableGraph g) = numvertices ==? numcolored
 prop_colorLFAllNodes :: TestableGraph -> Property
 prop_colorLFAllNodes = prop_colorAllNodes colorLF
 
+-- | Specific check for the Dsatur algorithm.
+prop_colorDsaturAllNodes :: TestableGraph -> Property
+prop_colorDsaturAllNodes = prop_colorAllNodes colorDsatur
+
 -- | List of tests for the Graph module.
 testSuite "HTools/Graph"
             [ 'case_emptyVertColorMapNull
             , 'case_emptyVertColorMapEmpty
             , 'prop_colorLFClique
+            , 'prop_colorDsaturClique
             , 'prop_colorLFAllNodes
+            , 'prop_colorDsaturAllNodes
             ]
