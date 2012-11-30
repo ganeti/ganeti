@@ -18,6 +18,7 @@ Design document drafts
    design-monitoring-agent.rst
    design-remote-commands.rst
    design-linuxha.rst
+   design-opportunistic-locking.rst
 
 .. vim: set textwidth=72 :
 .. Local Variables:
