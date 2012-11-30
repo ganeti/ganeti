@@ -288,7 +288,9 @@ def RunNodeSetupCmd(cluster_name, node, basecmd, debug, verbose,
   if verbose:
     cmd.append("--verbose")
 
-  srun = ssh.SshRunner(cluster_name)
+  family = ssconf.SimpleStore().GetPrimaryIPFamily()
+  srun = ssh.SshRunner(cluster_name,
+                       ipv6=(family == netutils.IP6Address.family))
   scmd = srun.BuildCmd(node, constants.SSH_LOGIN_USER,
                        utils.ShellQuoteArgs(cmd),
                        batch=False, ask_key=ask_key, quiet=False,
