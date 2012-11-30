@@ -2029,6 +2029,8 @@ class OpNetworkAdd(OpCode):
      "MAC address prefix that overrides cluster one"),
     ("add_reserved_ips", None, _TMaybeAddr4List,
      "Which IP addresses to reserve"),
+    ("conflicts_check", True, ht.TBool,
+     "Whether to check for conflicting IP addresses"),
     ("tags", ht.EmptyList, ht.TListOf(ht.TNonEmptyString), "Network tags"),
     ]
   OP_RESULT = ht.TNone
