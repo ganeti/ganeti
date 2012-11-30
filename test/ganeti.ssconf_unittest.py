@@ -149,6 +149,16 @@ class TestSimpleStore(unittest.TestCase):
                                            default="something.example.com"),
                      "cluster.example.com")
 
+  def testReadAllNoFiles(self):
+    self.assertEqual(self.sstore.ReadAll(), {})
+
+  def testReadAllSingleFile(self):
+    utils.WriteFile(self.sstore.KeyToFilename(constants.SS_CLUSTER_NAME),
+                    data="cluster.example.com")
+    self.assertEqual(self.sstore.ReadAll(), {
+      constants.SS_CLUSTER_NAME: "cluster.example.com",
+      })
+
   def testWriteFiles(self):
     values = {
       constants.SS_CLUSTER_NAME: "cluster.example.com",

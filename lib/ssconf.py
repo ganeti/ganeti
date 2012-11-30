@@ -138,6 +138,26 @@ class SimpleStore(object):
       raise errors.ConfigurationError("Can't read ssconf file %s: %s" %
                                       (filename, str(err)))
 
+  def ReadAll(self):
+    """Reads all keys and returns their values.
+
+    @rtype: dict
+    @return: Dictionary, ssconf key as key, value as value
+
+    """
+    result = []
+
+    for key in _VALID_KEYS:
+      try:
+        value = self._ReadFile(key)
+      except errors.ConfigurationError:
+        # Ignore non-existing files
+        pass
+      else:
+        result.append((key, value))
+
+    return dict(result)
+
   def WriteFiles(self, values, dry_run=False):
     """Writes ssconf files used by external scripts.
 
