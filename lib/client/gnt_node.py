@@ -28,7 +28,6 @@
 
 import itertools
 import errno
-import tempfile
 
 from ganeti.cli import *
 from ganeti import cli
@@ -39,7 +38,6 @@ from ganeti import constants
 from ganeti import errors
 from ganeti import netutils
 from ganeti import pathutils
-from ganeti import serializer
 from ganeti import ssh
 from cStringIO import StringIO
 
@@ -198,15 +196,6 @@ def _SetupSSH(options, cluster_name, node):
     ToStderr("The \"--force-join\" option is no longer supported and will be"
              " ignored.")
 
-  cmd = [pathutils.PREPARE_NODE_JOIN]
-
-  # Pass --debug/--verbose to the external script if set on our invocation
-  if options.debug:
-    cmd.append("--debug")
-
-  if options.verbose:
-    cmd.append("--verbose")
-
   host_keys = _ReadSshKeys(constants.SSH_DAEMON_KEYFILES)
 
   (_, root_keyfiles) = \
@@ -224,25 +213,9 @@ def _SetupSSH(options, cluster_name, node):
     constants.SSHS_SSH_ROOT_KEY: root_keys,
     }
 
-  srun = ssh.SshRunner(cluster_name)
-  scmd = srun.BuildCmd(node, constants.SSH_LOGIN_USER,
-                       utils.ShellQuoteArgs(cmd),
-                       batch=False, ask_key=options.ssh_key_check,
-                       strict_host_check=options.ssh_key_check, quiet=False,
-                       use_cluster_key=False)
-
-  tempfh = tempfile.TemporaryFile()
-  try:
-    tempfh.write(serializer.DumpJson(data))
-    tempfh.seek(0)
-
-    result = utils.RunCmd(scmd, interactive=True, input_fd=tempfh)
-  finally:
-    tempfh.close()
-
-  if result.failed:
-    raise errors.OpExecError("Command '%s' failed: %s" %
-                             (result.cmd, result.fail_reason))
+  bootstrap.RunNodeSetupCmd(cluster_name, node, pathutils.PREPARE_NODE_JOIN,
+                            options.debug, options.verbose, False,
+                            options.ssh_key_check, options.ssh_key_check, data)
 
 
 @UsesRPC

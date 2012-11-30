@@ -28,6 +28,7 @@ import os.path
 import re
 import logging
 import time
+import tempfile
 
 from ganeti import rpc
 from ganeti import ssh
@@ -253,6 +254,59 @@ def _WaitForMasterDaemon():
   except utils.RetryTimeout:
     raise errors.OpExecError("Master daemon didn't answer queries within"
                              " %s seconds" % _DAEMON_READY_TIMEOUT)
+
+
+def RunNodeSetupCmd(cluster_name, node, basecmd, debug, verbose,
+                    use_cluster_key, ask_key, strict_host_check, data):
+  """Runs a command to configure something on a remote machine.
+
+  @type cluster_name: string
+  @param cluster_name: Cluster name
+  @type node: string
+  @param node: Node name
+  @type basecmd: string
+  @param basecmd: Base command (path on the remote machine)
+  @type debug: bool
+  @param debug: Enable debug output
+  @type verbose: bool
+  @param verbose: Enable verbose output
+  @type use_cluster_key: bool
+  @param use_cluster_key: See L{ssh.SshRunner.BuildCmd}
+  @type ask_key: bool
+  @param ask_key: See L{ssh.SshRunner.BuildCmd}
+  @type strict_host_check: bool
+  @param strict_host_check: See L{ssh.SshRunner.BuildCmd}
+  @param data: JSON-serializable input data for script (passed to stdin)
+
+  """
+  cmd = [basecmd]
+
+  # Pass --debug/--verbose to the external script if set on our invocation
+  if debug:
+    cmd.append("--debug")
+
+  if verbose:
+    cmd.append("--verbose")
+
+  srun = ssh.SshRunner(cluster_name)
+  scmd = srun.BuildCmd(node, constants.SSH_LOGIN_USER,
+                       utils.ShellQuoteArgs(cmd),
+                       batch=False, ask_key=ask_key, quiet=False,
+                       strict_host_check=strict_host_check,
+                       use_cluster_key=use_cluster_key)
+
+  tempfh = tempfile.TemporaryFile()
+  try:
+    tempfh.write(serializer.DumpJson(data))
+    tempfh.seek(0)
+
+    result = utils.RunCmd(scmd, interactive=True, input_fd=tempfh)
+  finally:
+    tempfh.close()
+
+  if result.failed:
+    raise errors.OpExecError("Command '%s' failed: %s" %
+                             (result.cmd, result.fail_reason))
 
 
 def _InitFileStorage(file_storage_dir):
