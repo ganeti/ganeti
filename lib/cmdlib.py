@@ -16110,6 +16110,14 @@ class LUNetworkConnect(LogicalUnit):
     return (nodes, nodes)
 
   def CheckPrereq(self):
+    owned_instances = frozenset(self.owned_locks(locking.LEVEL_INSTANCE))
+    owned_groups = frozenset(self.owned_locks(locking.LEVEL_NODEGROUP))
+
+    assert self.group_uuid in owned_groups
+
+    # Check if locked instances are still correct
+    _CheckNodeGroupInstances(self.cfg, self.group_uuid, owned_instances)
+
     l = lambda value: utils.CommaJoin("%s: %s/%s" % (i[0], i[1], i[2])
                                       for i in value)
 
@@ -16128,20 +16136,20 @@ class LUNetworkConnect(LogicalUnit):
       self.connected = True
       return
 
-    pool = network.AddressPool(self.network)
     if self.op.conflicts_check:
-      groupinstances = []
-      for n in self.cfg.GetNodeGroupInstances(self.group_uuid):
-        groupinstances.append(self.cfg.GetInstanceInfo(n))
-      instances = [(instance.name, idx, nic.ip)
-                   for instance in groupinstances
-                   for idx, nic in enumerate(instance.nics)
-                   if (not nic.network and pool.Contains(nic.ip))]
-      if instances:
+      pool = network.AddressPool(self.network)
+      conflicting_instances = []
+
+      for (_, instance) in self.cfg.GetMultiInstanceInfo(owned_instances):
+        for idx, nic in enumerate(instance.nics):
+          if pool.Contains(nic.ip):
+            conflicting_instances.append((instance.name, idx, nic.ip))
+
+      if conflicting_instances:
         self.LogWarning("Following occurences use IPs from network %s"
                         " that is about to connect to nodegroup %s: %s" %
                         (self.network_name, self.group.name,
-                        l(instances)))
+                        l(conflicting_instances)))
         raise errors.OpPrereqError("Conflicting IPs found."
                                    " Please remove/modify"
                                    " corresponding NICs",
@@ -16192,7 +16200,7 @@ class LUNetworkDisconnect(LogicalUnit):
       # been acquired
       if self.op.conflicts_check:
         self.needed_locks[locking.LEVEL_INSTANCE] = \
-            self.cfg.GetNodeGroupInstances(self.group_uuid)
+          self.cfg.GetNodeGroupInstances(self.group_uuid)
 
   def BuildHooksEnv(self):
     ret = {
@@ -16206,6 +16214,14 @@ class LUNetworkDisconnect(LogicalUnit):
     return (nodes, nodes)
 
   def CheckPrereq(self):
+    owned_instances = frozenset(self.owned_locks(locking.LEVEL_INSTANCE))
+    owned_groups = frozenset(self.owned_locks(locking.LEVEL_NODEGROUP))
+
+    assert self.group_uuid in owned_groups
+
+    # Check if locked instances are still correct
+    _CheckNodeGroupInstances(self.cfg, self.group_uuid, owned_instances)
+
     l = lambda value: utils.CommaJoin("%s: %s/%s" % (i[0], i[1], i[2])
                                       for i in value)
 
@@ -16217,19 +16233,19 @@ class LUNetworkDisconnect(LogicalUnit):
       return
 
     if self.op.conflicts_check:
-      groupinstances = []
-      for n in self.cfg.GetNodeGroupInstances(self.group_uuid):
-        groupinstances.append(self.cfg.GetInstanceInfo(n))
-      instances = [(instance.name, idx, nic.ip)
-                   for instance in groupinstances
-                   for idx, nic in enumerate(instance.nics)
-                   if nic.network == self.network_name]
-      if instances:
+      conflicting_instances = []
+
+      for (_, instance) in self.cfg.GetMultiInstanceInfo(owned_instances):
+        for idx, nic in enumerate(instance.nics):
+          if nic.network == self.network_name:
+            conflicting_instances.append((instance.name, idx, nic.ip))
+
+      if conflicting_instances:
         self.LogWarning("Following occurences use IPs from network %s"
                            " that is about to disconnected from the nodegroup"
                            " %s: %s" %
                            (self.network_name, self.group.name,
-                            l(instances)))
+                            l(conflicting_instances)))
         raise errors.OpPrereqError("Conflicting IPs."
                                    " Please remove/modify"
                                    " corresponding NICS",
