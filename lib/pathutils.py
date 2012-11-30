@@ -44,6 +44,7 @@ IMPORT_EXPORT_DAEMON = _autoconf.PKGLIBDIR + "/import-export"
 KVM_CONSOLE_WRAPPER = _autoconf.PKGLIBDIR + "/tools/kvm-console-wrapper"
 KVM_IFUP = _autoconf.PKGLIBDIR + "/kvm-ifup"
 PREPARE_NODE_JOIN = _autoconf.PKGLIBDIR + "/prepare-node-join"
+NODE_DAEMON_SETUP = _autoconf.PKGLIBDIR + "/node-daemon-setup"
 XEN_CONSOLE_WRAPPER = _autoconf.PKGLIBDIR + "/tools/xen-console-wrapper"
 ETC_HOSTS = vcluster.ETC_HOSTS
 

@@ -700,7 +700,7 @@ def FinalizeClusterDestroy(master):
                     " the node: %s", msg)
 
 
-def SetupNodeDaemon(cluster_name, node, ssh_key_check):
+def SetupNodeDaemon(opts, cluster_name, node):
   """Add a node to the cluster.
 
   This function must be called before the actual opcode, and will ssh
@@ -709,36 +709,19 @@ def SetupNodeDaemon(cluster_name, node, ssh_key_check):
 
   @param cluster_name: the cluster name
   @param node: the name of the new node
-  @param ssh_key_check: whether to do a strict key check
 
   """
-  sstore = ssconf.SimpleStore()
-  family = sstore.GetPrimaryIPFamily()
-  sshrunner = ssh.SshRunner(cluster_name,
-                            ipv6=(family == netutils.IP6Address.family))
+  data = {
+    constants.NDS_CLUSTER_NAME: cluster_name,
+    constants.NDS_NODE_DAEMON_CERTIFICATE:
+      utils.ReadFile(pathutils.NODED_CERT_FILE),
+    constants.NDS_SSCONF: ssconf.SimpleStore().ReadAll(),
+    constants.NDS_START_NODE_DAEMON: True,
+    }
 
-  # set up inter-node password and certificate and restarts the node daemon
-  # and then connect with ssh to set password and start ganeti-noded
-  # note that all the below variables are sanitized at this point,
-  # either by being constants or by the checks above
-  sshrunner.CopyFileToNode(node, pathutils.NODED_CERT_FILE)
-  sshrunner.CopyFileToNode(node, pathutils.RAPI_CERT_FILE)
-  sshrunner.CopyFileToNode(node, pathutils.SPICE_CERT_FILE)
-  sshrunner.CopyFileToNode(node, pathutils.SPICE_CACERT_FILE)
-  sshrunner.CopyFileToNode(node, pathutils.CONFD_HMAC_KEY)
-  for filename in sstore.GetFileList():
-    sshrunner.CopyFileToNode(node, filename)
-  mycommand = ("%s stop-all; %s start %s" %
-               (pathutils.DAEMON_UTIL, pathutils.DAEMON_UTIL, constants.NODED))
-
-  result = sshrunner.Run(node, constants.SSH_LOGIN_USER, mycommand, batch=False,
-                         ask_key=ssh_key_check,
-                         use_cluster_key=True,
-                         strict_host_check=ssh_key_check)
-  if result.failed:
-    raise errors.OpExecError("Remote command on node %s, error: %s,"
-                             " output: %s" %
-                             (node, result.fail_reason, result.output))
+  RunNodeSetupCmd(cluster_name, node, pathutils.NODE_DAEMON_SETUP,
+                  opts.debug, opts.verbose,
+                  True, opts.ssh_key_check, opts.ssh_key_check, data)
 
   _WaitForNodeDaemon(node)
 

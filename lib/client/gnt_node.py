@@ -270,7 +270,7 @@ def AddNode(opts, args):
   if opts.node_setup:
     _SetupSSH(opts, cluster_name, node)
 
-  bootstrap.SetupNodeDaemon(cluster_name, node, opts.ssh_key_check)
+  bootstrap.SetupNodeDaemon(opts, cluster_name, node)
 
   if opts.disk_state:
     disk_state = utils.FlatToDict(opts.disk_state)
