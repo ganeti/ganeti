@@ -31,6 +31,7 @@ module Test.Ganeti.HTools.Instance
   , genInstanceSmallerThanNode
   , genInstanceMaybeBiggerThanNode
   , genInstanceSmallerThan
+  , genInstanceList
   , Instance.Instance(..)
   ) where
 
@@ -43,6 +44,7 @@ import Test.Ganeti.HTools.Types ()
 import Ganeti.BasicTypes
 import qualified Ganeti.HTools.Instance as Instance
 import qualified Ganeti.HTools.Node as Node
+import qualified Ganeti.HTools.Loader as Loader
 import qualified Ganeti.HTools.Types as Types
 
 -- * Arbitrary instances
@@ -73,6 +75,12 @@ genInstanceMaybeBiggerThanNode node =
   genInstanceSmallerThan (Node.availMem  node + Types.unitMem * 2)
                          (Node.availDisk node + Types.unitDsk * 3)
                          (Node.availCpu  node + Types.unitCpu * 4)
+
+-- | Generates an instance list given an instance generator.
+genInstanceList :: Gen Instance.Instance -> Gen Instance.List
+genInstanceList igen = fmap (snd . Loader.assignIndices) names_instances
+    where names_instances =
+            (fmap . map) (\n -> (Instance.name n, n)) $ listOf igen
 
 -- let's generate a random instance
 instance Arbitrary Instance.Instance where
