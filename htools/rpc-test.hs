@@ -52,4 +52,6 @@ main = do
             mapM (getNode cfg) nodes
   results <- executeRpcCall nodes' call
   putStr $ printTable "" ["Node", "Result"]
-           (map (\(n, r) -> [nodeName n, show r]) results) [False, False]
+           (map (\(n, r) -> [nodeName n, either explainRpcError show r])
+                results)
+           [False, False]
