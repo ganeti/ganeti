@@ -334,7 +334,7 @@ def PrepareX509CertKeyCheck(cert, key):
 
   """
   ctx = OpenSSL.SSL.Context(OpenSSL.SSL.TLSv1_METHOD)
-  ctx.use_certificate(cert)
   ctx.use_privatekey(key)
+  ctx.use_certificate(cert)
 
   return ctx.check_privatekey
