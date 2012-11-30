@@ -15685,18 +15685,22 @@ class LUNetworkAdd(LogicalUnit):
       for node in self.cfg.GetAllNodesInfo().values():
         for ip in [node.primary_ip, node.secondary_ip]:
           try:
-            pool.Reserve(ip)
-            self.LogInfo("Reserved node %s's IP (%s)", node.name, ip)
-
+            if pool.Contains(ip):
+              pool.Reserve(ip)
+              self.LogInfo("Reserved IP address of node '%s' (%s)",
+                           node.name, ip)
           except errors.AddressPoolError:
-            pass
+            self.LogWarning("Cannot reserve IP address of node '%s' (%s)",
+                            node.name, ip)
 
       master_ip = self.cfg.GetClusterInfo().master_ip
       try:
-        pool.Reserve(master_ip)
-        self.LogInfo("Reserved cluster master IP (%s)", master_ip)
+        if pool.Contains(master_ip):
+          pool.Reserve(master_ip)
+          self.LogInfo("Reserved cluster master IP address (%s)", master_ip)
       except errors.AddressPoolError:
-        pass
+        self.LogWarning("Cannot reserve cluster master IP address (%s)",
+                        master_ip)
 
     if self.op.add_reserved_ips:
       for ip in self.op.add_reserved_ips:
