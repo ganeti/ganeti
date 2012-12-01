@@ -36,15 +36,19 @@ module Test.Ganeti.HTools.Node
   ) where
 
 import Test.QuickCheck
+import Test.HUnit
 
 import Control.Monad
 import qualified Data.Map as Map
+import qualified Data.Graph as Graph
 import Data.List
 
 import Test.Ganeti.TestHelper
 import Test.Ganeti.TestCommon
 import Test.Ganeti.TestHTools
-import Test.Ganeti.HTools.Instance (genInstanceSmallerThanNode)
+import Test.Ganeti.HTools.Instance ( genInstanceSmallerThanNode
+                                   , genInstanceList
+                                   , genInstanceOnNodeList)
 
 import Ganeti.BasicTypes
 import qualified Ganeti.HTools.Loader as Loader
@@ -52,6 +56,9 @@ import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Instance as Instance
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Types as Types
+import qualified Ganeti.HTools.Graph as HGraph
+
+{-# ANN module "HLint: ignore Use camelCase" #-}
 
 -- * Arbitrary instances
 
@@ -106,6 +113,14 @@ instance Arbitrary Node.Node where
 genNodeList :: Gen Node.Node -> Gen Node.List
 genNodeList ngen = fmap (snd . Loader.assignIndices) names_nodes
     where names_nodes = (fmap . map) (\n -> (Node.name n, n)) $ listOf1 ngen
+
+-- | Generate a node list, an instance list, and a node graph.
+-- We choose instances with nodes contained in the node list.
+genNodeGraph :: Gen (Maybe Graph.Graph, Node.List, Instance.List)
+genNodeGraph = do
+  nl <- genNodeList genOnlineNode `suchThat` ((2<=).Container.size)
+  il <- genInstanceList (genInstanceOnNodeList nl)
+  return (Node.mkNodeGraph nl il, nl, il)
 
 -- * Test cases
 
@@ -316,6 +331,56 @@ prop_addSec_idempotent =
        Ok node' -> Node.removeSec node' inst'' ==? node
        _ -> failTest "Can't add instance"
 
+-- | Check that no graph is created on an empty node list.
+case_emptyNodeList :: Assertion
+case_emptyNodeList =
+  assertEqual "" Nothing $ Node.mkNodeGraph emptynodes emptyinstances
+    where emptynodes = Container.empty :: Node.List
+          emptyinstances = Container.empty :: Instance.List
+
+-- | Check that the number of vertices of a nodegraph is equal to the number of
+-- nodes in the original node list.
+prop_numVertices :: Property
+prop_numVertices =
+  forAll genNodeGraph $ \(graph, nl, _) ->
+    (fmap numvertices graph ==? Just (Container.size nl))
+    where numvertices = length . Graph.vertices
+
+-- | Check that the number of edges of a nodegraph is equal to twice the number
+-- of instances with secondary nodes in the original instance list.
+prop_numEdges :: Property
+prop_numEdges =
+  forAll genNodeGraph $ \(graph, _, il) ->
+    (fmap numedges graph ==? Just (numwithsec il * 2))
+    where numedges = length . Graph.edges
+          numwithsec = length . filter Instance.hasSecondary . Container.elems
+
+-- | Check that a node graph is colorable.
+prop_nodeGraphIsColorable :: Property
+prop_nodeGraphIsColorable =
+  forAll genNodeGraph $ \(graph, _, _) ->
+    fmap HGraph.isColorable graph ==? Just True
+
+-- | Check that each edge in a nodegraph is an instance.
+prop_instanceIsEdge :: Property
+prop_instanceIsEdge =
+  forAll genNodeGraph $ \(graph, _, il) ->
+    fmap (\g -> all (`isEdgeOn` g) (iwithsec il)) graph ==? Just True
+    where i `isEdgeOn` g = iEdges i `intersect` Graph.edges g == iEdges i
+          iEdges i = [ (Instance.pNode i, Instance.sNode i)
+                     , (Instance.sNode i, Instance.pNode i)]
+          iwithsec = filter Instance.hasSecondary . Container.elems
+
+-- | Check that each instance in an edge in the resulting nodegraph.
+prop_edgeIsInstance :: Property
+prop_edgeIsInstance =
+  forAll genNodeGraph $ \(graph, _, il) ->
+    fmap (all (`isInstanceIn` il).Graph.edges) graph ==? Just True
+      where e `isInstanceIn` il = any (`hasNodes` e) (Container.elems il)
+            i `hasNodes` (v1,v2) =
+              Instance.allNodes i `elem` permutations [v1,v2]
+
+-- | List of tests for the Node module.
 testSuite "HTools/Node"
             [ 'prop_setAlias
             , 'prop_setOffline
@@ -338,4 +403,10 @@ testSuite "HTools/Node"
             , 'prop_computeGroups
             , 'prop_addPri_idempotent
             , 'prop_addSec_idempotent
+            , 'case_emptyNodeList
+            , 'prop_numVertices
+            , 'prop_numEdges
+            , 'prop_nodeGraphIsColorable
+            , 'prop_edgeIsInstance
+            , 'prop_instanceIsEdge
             ]

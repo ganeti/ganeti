@@ -70,13 +70,17 @@ module Ganeti.HTools.Node
   , AllocElement
   , noSecondary
   , computeGroups
+  , mkNodeGraph
   ) where
 
 import Data.List hiding (group)
 import qualified Data.Map as Map
 import qualified Data.Foldable as Foldable
+import qualified Data.IntMap as IntMap
+import qualified Data.Graph as Graph
 import Data.Ord (comparing)
 import Text.Printf (printf)
+import Control.Monad (liftM, liftM2)
 
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Instance as Instance
@@ -543,6 +547,38 @@ availCpu t =
 -- | The memory used by instances on a given node.
 iMem :: Node -> Int
 iMem t = truncate (tMem t) - nMem t - xMem t - fMem t
+
+-- * Node graph functions
+-- These functions do the transformations needed so that nodes can be
+-- represented as a graph connected by the instances that are replicated
+-- on them.
+
+-- * Making of a Graph from a node/instance list
+
+-- | Transform an instance into a list of edges on the node graph
+instanceToEdges :: Instance.Instance -> [Graph.Edge]
+instanceToEdges i
+  | Instance.hasSecondary i = [(pnode,snode), (snode,pnode)]
+  | otherwise = []
+    where pnode = Instance.pNode i
+          snode = Instance.sNode i
+
+-- | Transform the list of instances into list of destination edges
+instancesToEdges :: Instance.List -> [Graph.Edge]
+instancesToEdges = concatMap instanceToEdges . Container.elems
+
+-- | Transform the list of nodes into vertices bounds.
+-- Returns Nothing is the list is empty.
+nodesToBounds :: List -> Maybe Graph.Bounds
+nodesToBounds nl = liftM2 (,) nmin nmax
+    where nmin = fmap (fst . fst) (IntMap.minViewWithKey nl)
+          nmax = fmap (fst . fst) (IntMap.maxViewWithKey nl)
+
+-- | Transform a Node + Instance list into a NodeGraph type.
+-- Returns Nothing if the node list is empty.
+mkNodeGraph :: List -> Instance.List -> Maybe Graph.Graph
+mkNodeGraph nl il =
+  liftM (`Graph.buildG` instancesToEdges il) (nodesToBounds nl)
 
 -- * Display functions
 
