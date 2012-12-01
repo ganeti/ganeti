@@ -39,7 +39,7 @@ Reporting options:
 **[ -C[ *file* ] ]**
 **[ -p[ *fields* ] ]**
 **[ \--print-instances ]**
-**[ -o ]**
+**[ -S *file* ]**
 **[ -v... | -q ]**
 
 
