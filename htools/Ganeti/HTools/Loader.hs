@@ -117,11 +117,11 @@ lookupGroup ktg nname gname =
 assignIndices :: (Element a) =>
                  [(String, a)]
               -> (NameAssoc, Container.Container a)
-assignIndices nodes =
-  let (na, idx_node) =
+assignIndices name_element =
+  let (name_idx, idx_element) =
           unzip . map (\ (idx, (k, v)) -> ((k, idx), (idx, setIdx v idx)))
-          . zip [0..] $ nodes
-  in (M.fromList na, Container.fromList idx_node)
+          . zip [0..] $ name_element
+  in (M.fromList name_idx, Container.fromList idx_element)
 
 -- | For each instance, add its index to its primary and secondary nodes.
 fixNodes :: Node.List
