@@ -229,6 +229,11 @@ module Ganeti.OpParams
   , pNetworkRemoveRsvdIps
   , pNetworkMode
   , pNetworkLink
+  , pDryRun
+  , pDebugLevel
+  , pOpPriority
+  , pDependencies
+  , pComment
   , dOldQuery
   , dOldQueryNoLocking
   ) where
@@ -1392,6 +1397,31 @@ pNetworkMode = simpleField "network_mode" [t| NICMode |]
 -- | Network link when connecting to a group.
 pNetworkLink :: Field
 pNetworkLink = simpleField "network_link" [t| NonEmptyString |]
+
+-- * Common opcode parameters
+
+-- | Run checks only, don't execute.
+pDryRun :: Field
+pDryRun = optionalField $ booleanField "dry_run"
+
+-- | Debug level.
+pDebugLevel :: Field
+pDebugLevel = optionalField $ simpleField "debug_level" [t| NonNegative Int |]
+
+-- | Opcode priority. Note: python uses a separate constant, we're
+-- using the actual value we know it's the default.
+pOpPriority :: Field
+pOpPriority =
+  defaultField [| OpPrioNormal |] $
+  simpleField "priority" [t| OpSubmitPriority |]
+
+-- | Job dependencies.
+pDependencies :: Field
+pDependencies = optionalField $ simpleField "depends" [t| [JobDependency] |]
+
+-- | Comment field.
+pComment :: Field
+pComment = optionalField $ stringField "comment"
 
 -- * Entire opcode parameter list
 

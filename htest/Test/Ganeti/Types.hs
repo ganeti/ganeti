@@ -47,7 +47,6 @@ import Test.Ganeti.TestCommon
 import Ganeti.BasicTypes
 import qualified Ganeti.Constants as C
 import Ganeti.Types as Types
-import Ganeti.Luxi as Luxi
 
 {-# ANN module "HLint: ignore Use camelCase" #-}
 
@@ -118,10 +117,16 @@ $(genArbitrary ''NICMode)
 
 $(genArbitrary ''FinalizedJobStatus)
 
-instance Arbitrary Luxi.JobId where
+instance Arbitrary JobId where
   arbitrary = do
     (Positive i) <- arbitrary
-    Luxi.makeJobId i
+    makeJobId i
+
+$(genArbitrary ''JobIdDep)
+
+$(genArbitrary ''JobDependency)
+
+$(genArbitrary ''OpSubmitPriority)
 
 -- * Properties
 
@@ -307,6 +312,14 @@ prop_JobId_serialisation jid =
   testSerialisation jid .&&.
   (J.readJSON . J.showJSON . show $ fromJobId jid) ==? J.Ok jid
 
+-- | Test 'JobDependency' serialisation.
+prop_JobDependency_serialisation :: JobDependency -> Property
+prop_JobDependency_serialisation = testSerialisation
+
+-- | Test 'OpSubmitPriority' serialisation.
+prop_OpSubmitPriority_serialisation :: OpSubmitPriority -> Property
+prop_OpSubmitPriority_serialisation = testSerialisation
+
 testSuite "Types"
   [ 'prop_AllocPolicy_serialisation
   , 'prop_DiskTemplate_serialisation
@@ -343,4 +356,6 @@ testSuite "Types"
   , 'prop_FinalizedJobStatus_serialisation
   , 'case_FinalizedJobStatus_pyequiv
   , 'prop_JobId_serialisation
+  , 'prop_JobDependency_serialisation
+  , 'prop_OpSubmitPriority_serialisation
   ]

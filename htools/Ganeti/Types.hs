@@ -79,9 +79,15 @@ module Ganeti.Types
   , JobId
   , fromJobId
   , makeJobId
+  , RelativeJobId
+  , JobIdDep(..)
+  , JobDependency(..)
+  , OpSubmitPriority(..)
   ) where
 
+import Control.Monad (liftM)
 import qualified Text.JSON as JSON
+import Text.JSON (JSON, readJSON, showJSON)
 import Data.Ratio (numerator, denominator)
 
 import qualified Ganeti.Constants as C
@@ -388,3 +394,38 @@ parseJobId x = fail $ "Wrong type/value for job id: " ++ show x
 instance JSON.JSON JobId where
   showJSON = JSON.showJSON . fromJobId
   readJSON = parseJobId
+
+-- | Relative job ID type alias.
+type RelativeJobId = Negative Int
+
+-- | Job ID dependency.
+data JobIdDep = JobDepRelative RelativeJobId
+              | JobDepAbsolute JobId
+                deriving (Show, Eq)
+
+instance JSON.JSON JobIdDep where
+  showJSON (JobDepRelative i) = showJSON i
+  showJSON (JobDepAbsolute i) = showJSON i
+  readJSON v =
+    case JSON.readJSON v::JSON.Result (Negative Int) of
+      -- first try relative dependency, usually most common
+      JSON.Ok r -> return $ JobDepRelative r
+      JSON.Error _ -> liftM JobDepAbsolute
+                      (fromJResult "parsing absolute job id" (readJSON v) >>=
+                       makeJobId)
+
+-- | Job Dependency type.
+data JobDependency = JobDependency JobIdDep [FinalizedJobStatus]
+                     deriving (Show, Eq)
+
+instance JSON JobDependency where
+  showJSON (JobDependency dep status) = showJSON (dep, status)
+  readJSON = liftM (uncurry JobDependency) . readJSON
+
+-- | Valid opcode priorities for submit.
+$(THH.declareIADT "OpSubmitPriority"
+  [ ("OpPrioLow",    'C.opPrioLow)
+  , ("OpPrioNormal", 'C.opPrioNormal)
+  , ("OpPrioHigh",   'C.opPrioHigh)
+  ])
+$(THH.makeJSONInstance ''OpSubmitPriority)
