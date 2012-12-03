@@ -169,11 +169,17 @@ genEmptyCluster ncount = do
   nodes <- vector ncount
   version <- arbitrary
   let guuid = "00"
-      nodes' = zipWith (\n idx -> n { nodeGroup = guuid,
-                                      nodeName = nodeName n ++ show idx })
+      nodes' = zipWith (\n idx ->
+                          let newname = nodeName n ++ "-" ++ show idx
+                          in (newname, n { nodeGroup = guuid,
+                                           nodeName = newname}))
                nodes [(1::Int)..]
-      contnodes = GenericContainer . Map.fromList $
-                  map (\n -> (nodeName n, n)) nodes'
+      nodemap = Map.fromList nodes'
+      contnodes = if Map.size nodemap /= ncount
+                    then error ("Inconsistent node map, duplicates in" ++
+                                " node name list? Names: " ++
+                                show (map fst nodes'))
+                    else GenericContainer nodemap
       continsts = GenericContainer Map.empty
   grp <- arbitrary
   let contgroups = GenericContainer $ Map.singleton guuid grp
