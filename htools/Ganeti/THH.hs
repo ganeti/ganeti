@@ -687,11 +687,6 @@ genLuxiOp name cons = do
                   cons
   return $ declD:save_decs ++ req_defs
 
--- | Generates the \"save\" expression for a single luxi parameter.
-saveLuxiField :: Name -> SimpleField -> Q Exp
-saveLuxiField fvar (_, qt) =
-    [| JSON.showJSON $(varE fvar) |]
-
 -- | Generates the \"save\" clause for entire LuxiOp constructor.
 saveLuxiConstructor :: Constructor -> Q Clause
 saveLuxiConstructor (sname, fields) = do
