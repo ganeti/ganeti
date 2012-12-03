@@ -222,6 +222,9 @@ type SimpleConstructor = (String, [SimpleField])
 -- | A definition for ADTs with simple fields.
 type SimpleObject = [SimpleConstructor]
 
+-- | A type alias for a constructor of a regular object.
+type Constructor = (String, [Field])
+
 -- * Helper functions
 
 -- | Ensure first letter is lowercase.
@@ -523,8 +526,8 @@ type OpParam = (String, Q Type, Q Exp)
 -- datatype and the JSON serialisation out of it. We can't use a
 -- generic serialisation since we need to be compatible with Ganeti's
 -- own, so we have a few quirks to work around.
-genOpCode :: String                -- ^ Type name to use
-          -> [(String, [Field])]   -- ^ Constructor name and parameters
+genOpCode :: String        -- ^ Type name to use
+          -> [Constructor] -- ^ Constructor name and parameters
           -> Q [Dec]
 genOpCode name cons = do
   let tname = mkName name
@@ -543,7 +546,7 @@ genOpCode name cons = do
 
 -- | Generates the function pattern returning the list of fields for a
 -- given constructor.
-genOpConsFields :: (String, [Field]) -> Clause
+genOpConsFields :: Constructor -> Clause
 genOpConsFields (cname, fields) =
   let op_id = deCamelCase cname
       fvals = map (LitE . StringL) . sort . nub $
@@ -551,8 +554,8 @@ genOpConsFields (cname, fields) =
   in Clause [LitP (StringL op_id)] (NormalB $ ListE fvals) []
 
 -- | Generates a list of all fields of an opcode constructor.
-genAllOpFields  :: String                          -- ^ Function name
-                -> [(String, [Field])]             -- ^ Object definition
+genAllOpFields  :: String        -- ^ Function name
+                -> [Constructor] -- ^ Object definition
                 -> (Dec, Dec)
 genAllOpFields sname opdefs =
   let cclauses = map genOpConsFields opdefs
@@ -587,10 +590,10 @@ saveConstructor sname fields = do
 --
 -- This builds a per-constructor match clause that contains the
 -- respective constructor-serialisation code.
-genSaveOpCode :: Name                            -- ^ Object ype
-              -> String                          -- ^ Function name
-              -> [(String, [Field])]             -- ^ Object definition
-              -> ((String, [Field]) -> Q Clause) -- ^ Constructor save fn
+genSaveOpCode :: Name                      -- ^ Object ype
+              -> String                    -- ^ Function name
+              -> [Constructor]             -- ^ Object definition
+              -> (Constructor -> Q Clause) -- ^ Constructor save fn
               -> Q (Dec, Dec)
 genSaveOpCode tname sname opdefs fn = do
   cclauses <- mapM fn opdefs
@@ -609,7 +612,7 @@ loadConstructor sname fields = do
   return $ DoE fstmts'
 
 -- | Generates the loadOpCode function.
-genLoadOpCode :: [(String, [Field])] -> Q (Dec, Dec)
+genLoadOpCode :: [Constructor] -> Q (Dec, Dec)
 genLoadOpCode opdefs = do
   let fname = mkName "loadOpCode"
       arg1 = mkName "v"
@@ -654,7 +657,7 @@ genStrOfKey = genConstrToStr ensureLower
 --
 -- * type
 --
-genLuxiOp :: String -> [(String, [Field])] -> Q [Dec]
+genLuxiOp :: String -> [Constructor] -> Q [Dec]
 genLuxiOp name cons = do
   let tname = mkName name
   decl_d <- mapM (\(cname, fields) -> do
@@ -677,7 +680,7 @@ saveLuxiField fvar (_, qt) =
     [| JSON.showJSON $(varE fvar) |]
 
 -- | Generates the \"save\" clause for entire LuxiOp constructor.
-saveLuxiConstructor :: (String, [Field]) -> Q Clause
+saveLuxiConstructor :: Constructor -> Q Clause
 saveLuxiConstructor (sname, fields) = do
   let cname = mkName sname
   fnames <- mapM (newName . fieldVariable) fields
