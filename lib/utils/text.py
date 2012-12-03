@@ -37,14 +37,14 @@ _PARSEUNIT_REGEX = re.compile(r"^([.\d]+)\s*([a-zA-Z]+)?$")
 #: Characters which don't need to be quoted for shell commands
 _SHELL_UNQUOTED_RE = re.compile("^[-.,=:/_+@A-Za-z0-9]+$")
 
-#: MAC checker regexp
-_MAC_CHECK_RE = re.compile("^([0-9a-f]{2}:){5}[0-9a-f]{2}$", re.I)
-
 #: Shell param checker regexp
 _SHELLPARAM_REGEX = re.compile(r"^[-a-zA-Z0-9._+/:%@]+$")
 
 #: ASCII equivalent of unicode character 'HORIZONTAL ELLIPSIS' (U+2026)
 _ASCII_ELLIPSIS = "..."
+
+#: MAC address octet
+_MAC_ADDR_OCTET_RE = r"[0-9a-f]{2}"
 
 
 def MatchNameComponent(key, name_list, case_sensitive=True):
@@ -301,25 +301,75 @@ def GenerateSecret(numbytes=20):
   return os.urandom(numbytes).encode("hex")
 
 
-def NormalizeAndValidateMac(mac):
-  """Normalizes and check if a MAC address is valid.
+def _MakeMacAddrRegexp(octets):
+  """Builds a regular expression for verifying MAC addresses.
 
-  Checks whether the supplied MAC address is formally correct, only
-  accepts colon separated format. Normalize it to all lower.
-
-  @type mac: str
-  @param mac: the MAC to be validated
-  @rtype: str
-  @return: returns the normalized and validated MAC.
-
-  @raise errors.OpPrereqError: If the MAC isn't valid
+  @type octets: integer
+  @param octets: How many octets to expect (1-6)
+  @return: Compiled regular expression
 
   """
-  if not _MAC_CHECK_RE.match(mac):
-    raise errors.OpPrereqError("Invalid MAC address '%s'" % mac,
-                               errors.ECODE_INVAL)
+  assert octets > 0
+  assert octets <= 6
 
-  return mac.lower()
+  return re.compile("^%s$" % ":".join([_MAC_ADDR_OCTET_RE] * octets),
+                    re.I)
+
+
+#: Regular expression for full MAC address
+_MAC_CHECK_RE = _MakeMacAddrRegexp(6)
+
+#: Regular expression for half a MAC address
+_MAC_PREFIX_CHECK_RE = _MakeMacAddrRegexp(3)
+
+
+def _MacAddressCheck(check_re, mac, msg):
+  """Checks a MAC address using a regular expression.
+
+  @param check_re: Compiled regular expression as returned by C{re.compile}
+  @type mac: string
+  @param mac: MAC address to be validated
+  @type msg: string
+  @param msg: Error message (%s will be replaced with MAC address)
+
+  """
+  if check_re.match(mac):
+    return mac.lower()
+
+  raise errors.OpPrereqError(msg % mac, errors.ECODE_INVAL)
+
+
+def NormalizeAndValidateMac(mac):
+  """Normalizes and check if a MAC address is valid and contains six octets.
+
+  Checks whether the supplied MAC address is formally correct. Accepts
+  colon-separated format only. Normalize it to all lower case.
+
+  @type mac: string
+  @param mac: MAC address to be validated
+  @rtype: string
+  @return: Normalized and validated MAC address
+  @raise errors.OpPrereqError: If the MAC address isn't valid
+
+  """
+  return _MacAddressCheck(_MAC_CHECK_RE, mac, "Invalid MAC address '%s'")
+
+
+def NormalizeAndValidateThreeOctetMacPrefix(mac):
+  """Normalizes a potential MAC address prefix (three octets).
+
+  Checks whether the supplied string is a valid MAC address prefix consisting
+  of three colon-separated octets. The result is normalized to all lower case.
+
+  @type mac: string
+  @param mac: Prefix to be validated
+  @rtype: string
+  @return: Normalized and validated prefix
+  @raise errors.OpPrereqError: If the MAC address prefix isn't valid
+
+  """
+  return _MacAddressCheck(_MAC_PREFIX_CHECK_RE, mac,
+                          "Invalid MAC address prefix '%s'")
 
 
 def SafeEncode(text):

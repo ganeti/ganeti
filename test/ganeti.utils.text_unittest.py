@@ -356,12 +356,26 @@ class TestShellWriter(unittest.TestCase):
 
 class TestNormalizeAndValidateMac(unittest.TestCase):
   def testInvalid(self):
-    self.assertRaises(errors.OpPrereqError,
-                      utils.NormalizeAndValidateMac, "xxx")
+    for i in ["xxx", "00:11:22:33:44:55:66", "zz:zz:zz:zz:zz:zz"]:
+      self.assertRaises(errors.OpPrereqError, utils.NormalizeAndValidateMac, i)
 
   def testNormalization(self):
     for mac in ["aa:bb:cc:dd:ee:ff", "00:AA:11:bB:22:cc"]:
       self.assertEqual(utils.NormalizeAndValidateMac(mac), mac.lower())
+
+
+class TestNormalizeAndValidateThreeOctetMacPrefix(unittest.TestCase):
+  def testInvalid(self):
+    for i in ["xxx", "00:11:22:33:44:55:66", "zz:zz:zz:zz:zz:zz",
+              "aa:bb:cc:dd:ee:ff", "00:AA:11:bB:22:cc",
+              "00:11:"]:
+      self.assertRaises(errors.OpPrereqError,
+                        utils.NormalizeAndValidateThreeOctetMacPrefix, i)
+
+  def testNormalization(self):
+    for mac in ["aa:bb:cc", "00:AA:11"]:
+      self.assertEqual(utils.NormalizeAndValidateThreeOctetMacPrefix(mac),
+                       mac.lower())
 
 
 class TestSafeEncode(unittest.TestCase):
