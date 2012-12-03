@@ -58,7 +58,7 @@ case_drbd80_emptyline = testFile "proc_drbd80-emptyline.txt" $
     )
     [ DeviceInfo 0 Connected (LocalRemote Primary Secondary)
         (LocalRemote UpToDate UpToDate) 'C' "r---"
-        (PerformanceIndicators 78728316 0 77675644 1277039 254 270 0 0 0 0
+        (PerfIndicators 78728316 0 77675644 1277039 254 270 0 0 0 0
           Nothing Nothing Nothing)
         Nothing
         (Just $ AdditionalInfo 0 61 65657 135 0 0 135)
@@ -79,14 +79,14 @@ case_drbd83_sync_krnl2_6_39 = testFile "proc_drbd83_sync_krnl2.6.39.txt" $
     )
     [ DeviceInfo 0 Connected (LocalRemote Primary Secondary)
         (LocalRemote UpToDate UpToDate) 'C' "r----"
-        (PerformanceIndicators 140978 0 9906 131533 27 8 0 0 0 0 (Just 1)
+        (PerfIndicators 140978 0 9906 131533 27 8 0 0 0 0 (Just 1)
           (Just 'b') (Just 0))
         Nothing
         Nothing
         Nothing,
       DeviceInfo 1 Connected (LocalRemote Secondary Primary)
         (LocalRemote UpToDate UpToDate) 'C' "r---"
-        (PerformanceIndicators 0 140980 140980 0 0 8 0 0 0 0 (Just 1) (Just 'f')
+        (PerfIndicators 0 140980 140980 0 0 8 0 0 0 0 (Just 1) (Just 'f')
           (Just 0))
         Nothing
         Nothing
@@ -94,7 +94,7 @@ case_drbd83_sync_krnl2_6_39 = testFile "proc_drbd83_sync_krnl2.6.39.txt" $
       UnconfiguredDevice 2,
       DeviceInfo 3 SyncSource (LocalRemote Primary Secondary)
         (LocalRemote UpToDate Inconsistent) 'A' "r-----"
-        (PerformanceIndicators 373888 0 0 374088 0 22 7 27 7 0 (Just 1)
+        (PerfIndicators 373888 0 0 374088 0 22 7 27 7 0 (Just 1)
           (Just 'f') (Just 15358208))
         (Just $ SyncStatus 2.4 14996 15360 MegaByte (Time 0 4 8) 61736 Nothing
           KiloByte Second)
@@ -102,7 +102,7 @@ case_drbd83_sync_krnl2_6_39 = testFile "proc_drbd83_sync_krnl2.6.39.txt" $
         Nothing,
       DeviceInfo 4 WFConnection (LocalRemote Primary Unknown)
         (LocalRemote UpToDate DUnknown) 'C' "r----"
-        (PerformanceIndicators 140978 0 9906 131534 27 8 0 0 0 0 (Just 1)
+        (PerfIndicators 140978 0 9906 131534 27 8 0 0 0 0 (Just 1)
           (Just 'b') (Just 0))
         Nothing
         Nothing
@@ -119,14 +119,14 @@ case_drbd83_sync = testFile "proc_drbd83_sync.txt" $
     )
     [ DeviceInfo 0 Connected (LocalRemote Primary Secondary)
         (LocalRemote UpToDate UpToDate) 'C' "r----"
-        (PerformanceIndicators 140978 0 9906 131533 27 8 0 0 0 0 (Just 1)
+        (PerfIndicators 140978 0 9906 131533 27 8 0 0 0 0 (Just 1)
           (Just 'b') (Just 0))
         Nothing
         Nothing
         Nothing,
       DeviceInfo 1 Connected (LocalRemote Secondary Primary)
         (LocalRemote UpToDate UpToDate) 'C' "r---"
-        (PerformanceIndicators 0 140980 140980 0 0 8 0 0 0 0 (Just 1) (Just 'f')
+        (PerfIndicators 0 140980 140980 0 0 8 0 0 0 0 (Just 1) (Just 'f')
           (Just 0))
         Nothing
         Nothing
@@ -134,7 +134,7 @@ case_drbd83_sync = testFile "proc_drbd83_sync.txt" $
       UnconfiguredDevice 2,
       DeviceInfo 3 SyncTarget (LocalRemote Primary Secondary)
         (LocalRemote Inconsistent UpToDate) 'C' "r----"
-        (PerformanceIndicators 0 178176 178176 0 104 42 0 0 0 0 (Just 1)
+        (PerfIndicators 0 178176 178176 0 104 42 0 0 0 0 (Just 1)
           (Just 'b') (Just 346112))
         (Just $ SyncStatus 34.9 346112 524288 MegaByte (Time 0 0 5) 59392
           Nothing KiloByte Second)
@@ -142,7 +142,7 @@ case_drbd83_sync = testFile "proc_drbd83_sync.txt" $
         Nothing,
       DeviceInfo 4 WFConnection (LocalRemote Primary Unknown)
         (LocalRemote UpToDate DUnknown) 'C' "r----"
-        (PerformanceIndicators 140978 0 9906 131534 27 8 0 0 0 0 (Just 1)
+        (PerfIndicators 140978 0 9906 131534 27 8 0 0 0 0 (Just 1)
           (Just 'b') (Just 0))
         Nothing
         Nothing
@@ -160,7 +160,7 @@ case_drbd83_sync_want = testFile "proc_drbd83_sync_want.txt" $
     )
     [ DeviceInfo 0 SyncTarget (LocalRemote Secondary Primary)
         (LocalRemote Inconsistent UpToDate) 'C' "r-----"
-        (PerformanceIndicators 0 460288 460160 0 0 28 2 4 1 0 (Just 1)
+        (PerfIndicators 0 460288 460160 0 0 28 2 4 1 0 (Just 1)
           (Just 'f') (Just 588416))
         (Just $ SyncStatus 44.4 588416 1048576 KiloByte (Time 0 0 8) 65736
           (Just 61440) KiloByte Second)
@@ -182,14 +182,14 @@ case_drbd83 = testFile "proc_drbd83.txt" $
     )
     [ DeviceInfo 0 Connected (LocalRemote Primary Secondary)
         (LocalRemote UpToDate UpToDate) 'C' "r----"
-        (PerformanceIndicators 140978 0 9906 131533 27 8 0 0 0 0 (Just 1)
+        (PerfIndicators 140978 0 9906 131533 27 8 0 0 0 0 (Just 1)
           (Just 'b') (Just 0))
         Nothing
         Nothing
         Nothing,
       DeviceInfo 1 Connected (LocalRemote Secondary Primary)
         (LocalRemote UpToDate UpToDate) 'C' "r---"
-        (PerformanceIndicators 0 140980 140980 0 0 8 0 0 0 0 (Just 1) (Just 'f')
+        (PerfIndicators 0 140980 140980 0 0 8 0 0 0 0 (Just 1) (Just 'f')
           (Just 0))
         Nothing
         Nothing
@@ -197,35 +197,35 @@ case_drbd83 = testFile "proc_drbd83.txt" $
       UnconfiguredDevice 2,
       DeviceInfo 4 WFConnection (LocalRemote Primary Unknown)
         (LocalRemote UpToDate DUnknown) 'C' "r----"
-        (PerformanceIndicators 140978 0 9906 131534 27 8 0 0 0 0 (Just 1)
+        (PerfIndicators 140978 0 9906 131534 27 8 0 0 0 0 (Just 1)
           (Just 'b') (Just 0))
         Nothing
         Nothing
         Nothing,
       DeviceInfo 5 Connected (LocalRemote Primary Secondary)
         (LocalRemote UpToDate Diskless) 'C' "r----"
-        (PerformanceIndicators 140978 0 9906 131533 19 8 0 0 0 0 (Just 1)
+        (PerfIndicators 140978 0 9906 131533 19 8 0 0 0 0 (Just 1)
           (Just 'b') (Just 0))
         Nothing
         Nothing
         Nothing,
       DeviceInfo 6 Connected (LocalRemote Secondary Primary)
         (LocalRemote Diskless UpToDate) 'C' "r---"
-        (PerformanceIndicators 0 140978 140978 0 0 8 0 0 0 0 (Just 1) (Just 'f')
+        (PerfIndicators 0 140978 140978 0 0 8 0 0 0 0 (Just 1) (Just 'f')
           (Just 0))
         Nothing
         Nothing
         Nothing,
       DeviceInfo 7 WFConnection (LocalRemote Secondary Unknown)
         (LocalRemote UpToDate DUnknown) 'C' "r---"
-        (PerformanceIndicators 0 140978 140978 0 0 8 0 0 0 0 (Just 1) (Just 'f')
+        (PerfIndicators 0 140978 140978 0 0 8 0 0 0 0 (Just 1) (Just 'f')
           (Just 0))
         Nothing
         Nothing
         Nothing,
       DeviceInfo 8 StandAlone (LocalRemote Secondary Unknown)
         (LocalRemote UpToDate DUnknown) ' ' "r---"
-        (PerformanceIndicators 0 140978 140978 0 0 8 0 0 0 0 (Just 1)
+        (PerfIndicators 0 140978 140978 0 0 8 0 0 0 0 (Just 1)
           (Just 'f') (Just 0))
         Nothing
         Nothing
@@ -242,14 +242,14 @@ case_drbd8 = testFile "proc_drbd8.txt" $
     )
     [ DeviceInfo 0 Connected (LocalRemote Primary Secondary)
         (LocalRemote UpToDate UpToDate) 'C' "r---"
-        (PerformanceIndicators 4375577 0 4446279 674 1067 69 0 0 0 0 Nothing
+        (PerfIndicators 4375577 0 4446279 674 1067 69 0 0 0 0 Nothing
           Nothing Nothing)
         Nothing
         (Just $ AdditionalInfo 0 61 0 0 0 0 0)
         (Just $ AdditionalInfo 0 257 793749 1067 0 0 1067),
       DeviceInfo 1 Connected (LocalRemote Secondary Primary)
         (LocalRemote UpToDate UpToDate) 'C' "r---"
-        (PerformanceIndicators 738320 0 738320 554400 67 0 0 0 0 0 Nothing
+        (PerfIndicators 738320 0 738320 554400 67 0 0 0 0 0 Nothing
           Nothing Nothing)
         Nothing
         (Just $ AdditionalInfo 0 61 0 0 0 0 0)
@@ -257,34 +257,34 @@ case_drbd8 = testFile "proc_drbd8.txt" $
       UnconfiguredDevice 2,
       DeviceInfo 4 WFConnection (LocalRemote Primary Unknown)
         (LocalRemote UpToDate DUnknown) 'C' "r---"
-        (PerformanceIndicators 738320 0 738320 554400 67 0 0 0 0 0 Nothing
+        (PerfIndicators 738320 0 738320 554400 67 0 0 0 0 0 Nothing
           Nothing Nothing)
         Nothing
         (Just $ AdditionalInfo 0 61 0 0 0 0 0)
         (Just $ AdditionalInfo 0 257 92464 67 0 0 67),
       DeviceInfo 5 Connected (LocalRemote Primary Secondary)
         (LocalRemote UpToDate Diskless) 'C' "r---"
-        (PerformanceIndicators 4375581 0 4446283 674 1069 69 0 0 0 0 Nothing
+        (PerfIndicators 4375581 0 4446283 674 1069 69 0 0 0 0 Nothing
           Nothing Nothing)
         Nothing
         (Just $ AdditionalInfo 0 61 0 0 0 0 0)
         (Just $ AdditionalInfo 0 257 793750 1069 0 0 1069),
       DeviceInfo 6 Connected (LocalRemote Secondary Primary)
         (LocalRemote Diskless UpToDate) 'C'  "r---"
-        (PerformanceIndicators 0 4375581 5186925 327 75 214 0 0 0 0 Nothing
+        (PerfIndicators 0 4375581 5186925 327 75 214 0 0 0 0 Nothing
           Nothing Nothing)
         Nothing
         Nothing
         Nothing,
       DeviceInfo 7 WFConnection (LocalRemote Secondary Unknown)
         (LocalRemote UpToDate DUnknown) 'C' "r---"
-        (PerformanceIndicators 0 0 0 0 0 0 0 0 0 0 Nothing Nothing Nothing)
+        (PerfIndicators 0 0 0 0 0 0 0 0 0 0 Nothing Nothing Nothing)
         Nothing
         (Just $ AdditionalInfo 0 61 0 0 0 0 0)
         (Just $ AdditionalInfo 0 257 0 0 0 0 0),
       DeviceInfo 8 StandAlone (LocalRemote Secondary Unknown)
         (LocalRemote UpToDate DUnknown) ' ' "r---"
-        (PerformanceIndicators 0 0 0 0 0 0 0 0 0 0 Nothing Nothing Nothing)
+        (PerfIndicators 0 0 0 0 0 0 0 0 0 0 Nothing Nothing Nothing)
         Nothing
         (Just $ AdditionalInfo 0 61 0 0 0 0 0)
         (Just $ AdditionalInfo 0 257 0 0 0 0 0)

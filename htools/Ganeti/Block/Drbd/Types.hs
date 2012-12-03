@@ -28,17 +28,22 @@ module Ganeti.Block.Drbd.Types
   ( DRBDStatus(..)
   , VersionInfo(..)
   , DeviceInfo(..)
-  , ConnectionState(..)
+  , ConnState(..)
   , LocalRemote(..)
   , Role(..)
   , DiskState(..)
-  , PerformanceIndicators(..)
+  , PerfIndicators(..)
   , SyncStatus(..)
   , SizeUnit(..)
   , Time(..)
   , TimeUnit(..)
   , AdditionalInfo(..)
   ) where
+
+import Text.JSON
+import Text.Printf
+
+import Ganeti.JSON
 
 --TODO: consider turning deviceInfos into an IntMap
 -- | Data type contaning all the data about the status of DRBD.
@@ -47,6 +52,15 @@ data DRBDStatus =
   { versionInfo :: VersionInfo  -- ^ Version information about DRBD
   , deviceInfos :: [DeviceInfo] -- ^ Per-minor information
   } deriving (Eq, Show)
+
+-- | The DRBDStatus instance of JSON.
+instance JSON DRBDStatus where
+  showJSON d = makeObj
+    [ ("versionInfo", showJSON $ versionInfo d)
+    , ("deviceInfos", showJSONs $ deviceInfos d)
+    ]
+
+  readJSON = error "JSON read instance not implemented for type DRBDStatus"
 
 -- | Data type describing the DRBD version.
 data VersionInfo =
@@ -60,26 +74,65 @@ data VersionInfo =
                                -- optionally, when)
   } deriving (Eq, Show)
 
+-- | The VersionInfo instance of JSON.
+instance JSON VersionInfo where
+  showJSON (VersionInfo versionF apiF protoF srcversionF gitHashF buildByF) =
+    optFieldsToObj
+      [ optionalJSField "version" versionF
+      , optionalJSField "api" apiF
+      , optionalJSField "proto" protoF
+      , optionalJSField "srcversion" srcversionF
+      , optionalJSField "gitHash" gitHashF
+      , optionalJSField "buildBy" buildByF
+      ]
+
+  readJSON = error "JSON read instance not implemented for type VersionInfo"
+
 -- | Data type describing a device.
 data DeviceInfo =
   UnconfiguredDevice Int -- ^ An DRBD minor marked as unconfigured
   | -- | A configured DRBD minor
     DeviceInfo
       { minorNumber :: Int -- ^ The minor index of the device
-      , connectionState :: ConnectionState -- ^ State of the connection
+      , connectionState :: ConnState -- ^ State of the connection
       , resourceRoles :: LocalRemote Role -- ^ Roles of the resources
       , diskStates :: LocalRemote DiskState -- ^ Status of the disks
       , replicationProtocol :: Char -- ^ The replication protocol being used
       , ioFlags :: String -- ^ The input/output flags
-      , performanceIndicators :: PerformanceIndicators -- ^ Performance indicators
+      , perfIndicators
+          :: PerfIndicators -- ^ Performance indicators
       , syncStatus :: Maybe SyncStatus -- ^ The status of the syncronization of
-                                     -- the disk (only if it is happening)
+                                       -- the disk (only if it is happening)
       , resync :: Maybe AdditionalInfo -- ^ Additional info by DRBD 8.0
       , actLog :: Maybe AdditionalInfo -- ^ Additional info by DRBD 8.0
       } deriving (Eq, Show)
 
+-- | The DeviceInfo instance of JSON.
+instance JSON DeviceInfo where
+  showJSON (UnconfiguredDevice num) = makeObj
+    [ ("minor", showJSON num)
+    , ("connectionState", showJSON Unconfigured)
+    ]
+  showJSON (DeviceInfo minorNumberF connectionStateF (LocalRemote
+    localRole remoteRole) (LocalRemote localState remoteState)
+    replicProtocolF ioFlagsF perfIndicatorsF syncStatusF _ _) =
+    optFieldsToObj
+    [ Just ("minor", showJSON minorNumberF)
+    , Just ("connectionState", showJSON connectionStateF)
+    , Just ("localRole", showJSON localRole)
+    , Just ("remoteRole", showJSON remoteRole)
+    , Just ("localState", showJSON localState)
+    , Just ("remoteState", showJSON remoteState)
+    , Just ("replicationProtocol", showJSON replicProtocolF)
+    , Just ("ioFlags", showJSON ioFlagsF)
+    , Just ("perfIndicators", showJSON perfIndicatorsF)
+    , optionalJSField "syncStatus" syncStatusF
+    ]
+
+  readJSON = error "JSON read instance not implemented for type DeviceInfo"
+
 -- | Data type describing the state of the connection.
-data ConnectionState
+data ConnState
   = StandAlone     -- ^  No network configuration available
   | Disconnecting  -- ^ Temporary state during disconnection
   | Unconnected    -- ^ Prior to a connection attempt
@@ -105,6 +158,12 @@ data ConnectionState
   | Unconfigured   -- ^ The device is not configured
     deriving (Show, Eq)
 
+-- | The ConnState instance of JSON.
+instance JSON ConnState where
+  showJSON = showJSON . show
+
+  readJSON = error "JSON read instance not implemented for type ConnState"
+
 -- | Algebraic data type describing something that has a local and a remote
 -- value.
 data LocalRemote a =
@@ -119,6 +178,12 @@ data Role = Primary   -- ^ The device role is primary
           | Unknown   -- ^ The device role is unknown
             deriving (Eq, Show)
 
+-- | The Role instance of JSON.
+instance JSON Role where
+  showJSON = showJSON . show
+
+  readJSON = error "JSON read instance not implemented for type Role"
+
 -- | Data type describing disk states.
 data DiskState
   = Diskless     -- ^ No local block device assigned to the DRBD driver
@@ -132,8 +197,14 @@ data DiskState
   | UpToDate     -- ^ Consistent, up-to-date. This is the normal state
     deriving (Eq, Show)
 
+-- | The DiskState instance of JSON.
+instance JSON DiskState where
+  showJSON = showJSON . show
+
+  readJSON = error "JSON read instance not implemented for type DiskState"
+
 -- | Data type containing data about performance indicators.
-data PerformanceIndicators = PerformanceIndicators
+data PerfIndicators = PerfIndicators
   { networkSend :: Int -- ^ KiB of data sent on the network
   , networkReceive :: Int -- ^ KiB of data received from the network
   , diskWrite :: Int -- ^ KiB of data written on local disk
@@ -152,12 +223,32 @@ data PerformanceIndicators = PerformanceIndicators
   , outOfSync :: Maybe Int -- ^ KiB of storage currently out of sync
   } deriving (Eq, Show)
 
+-- | The PerfIndicators instance of JSON.
+instance JSON PerfIndicators where
+  showJSON p = optFieldsToObj
+    [ Just ("networkSend", showJSON $ networkSend p)
+    , Just ("networkReceive", showJSON $ networkReceive p)
+    , Just ("diskWrite", showJSON $ diskWrite p)
+    , Just ("diskRead", showJSON $ diskRead p)
+    , Just ("activityLog", showJSON $ activityLog p)
+    , Just ("bitMap", showJSON $ bitMap p)
+    , Just ("localCount", showJSON $ localCount p)
+    , Just ("pending", showJSON $ pending p)
+    , Just ("unacknowledged", showJSON $ unacknowledged p)
+    , Just ("applicationPending", showJSON $ applicationPending p)
+    , optionalJSField "epochs" $ epochs p
+    , optionalJSField "writeOrder" $ writeOrder p
+    , optionalJSField "outOfSync" $ outOfSync p
+    ]
+
+  readJSON = error "JSON read instance not implemented for type PerfIndicators"
+
 -- | Data type containing data about the synchronization status of a device.
 data SyncStatus =
   SyncStatus
   { percentage      :: Double    -- ^ Percentage of syncronized data
-  , partialSyncSize :: Int       -- ^ Numerator of the fraction of synced data
-  , totalSyncSize   :: Int       -- ^ Denominator of the fraction of
+  , partialSyncSize :: Integer   -- ^ Numerator of the fraction of synced data
+  , totalSyncSize   :: Integer   -- ^ Denominator of the fraction of
                                  -- synced data
   , syncUnit        :: SizeUnit  -- ^ Measurement unit of the previous
                                  -- fraction
@@ -169,18 +260,52 @@ data SyncStatus =
   , speedTimeUnit   :: TimeUnit  -- ^ Time unit of the speed
   } deriving (Eq, Show)
 
+-- | The SyncStatus instance of JSON.
+instance JSON SyncStatus where
+  showJSON s = optFieldsToObj
+    [ Just ("percentage", showJSON $ percentage s)
+    , Just ("progress", showJSON $ show (partialSyncSize s) ++ "/" ++
+        show (totalSyncSize s))
+    , Just ("progressUnit", showJSON $ syncUnit s)
+    , Just ("timeToFinish", showJSON $ timeToFinish s)
+    , Just ("speed", showJSON $ speed s)
+    , optionalJSField "want" $ want s
+    , Just ("speedUnit", showJSON $ show (speedSizeUnit s) ++ "/" ++
+        show (speedTimeUnit s))
+    ]
+
+  readJSON = error "JSON read instance not implemented for type SyncStatus"
+
 -- | Data type describing a size unit for memory.
 data SizeUnit = KiloByte | MegaByte deriving (Eq, Show)
 
+-- | The SizeUnit instance of JSON.
+instance JSON SizeUnit where
+  showJSON = showJSON . show
+
+  readJSON = error "JSON read instance not implemented for type SizeUnit"
+
 -- | Data type describing a time (hh:mm:ss).
 data Time = Time
-  { hour :: Integer
-  , min  :: Integer
-  , sec  :: Integer
+  { hour :: Int
+  , min  :: Int
+  , sec  :: Int
   } deriving (Eq, Show)
+
+-- | The Time instance of JSON.
+instance JSON Time where
+  showJSON (Time h m s) = showJSON (printf "%02d:%02d:%02d" h m s :: String)
+
+  readJSON = error "JSON read instance not implemented for type Time"
 
 -- | Data type describing a time unit.
 data TimeUnit = Second deriving (Eq, Show)
+
+-- | The TimeUnit instance of JSON.
+instance JSON TimeUnit where
+  showJSON Second = showJSON "Second"
+
+  readJSON = error "JSON read instance not implemented for type TimeUnit"
 
 -- | Additional device-specific cache-like information produced by
 -- drbd <= 8.0.

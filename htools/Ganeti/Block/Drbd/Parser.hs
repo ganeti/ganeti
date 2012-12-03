@@ -105,7 +105,7 @@ versionInfoParser =
 deviceParser :: Parser DeviceInfo
 deviceParser = do
   deviceNum <- skipSpaces *> A.decimal <* A.char ':'
-  cs <- skipSpacesAndString "cs:" connectionStateParser
+  cs <- skipSpacesAndString "cs:" connStateParser
   if cs == Unconfigured
     then do
       _ <- additionalEOL
@@ -115,12 +115,12 @@ deviceParser = do
       ds <- skipSpacesAndString "ds:" $ localRemoteParser diskStateParser
       replicProtocol <- A.space *> A.anyChar
       io <- skipSpaces *> ioFlagsParser <* A.skipWhile isBadEndOfLine
-      perfIndicators <- performanceIndicatorsParser
+      pIndicators <- perfIndicatorsParser
       syncS <- conditionalSyncStatusParser cs
       reS <- optional resyncParser
       act <- optional actLogParser
       _ <- additionalEOL
-      return $ DeviceInfo deviceNum cs ro ds replicProtocol io perfIndicators
+      return $ DeviceInfo deviceNum cs ro ds replicProtocol io pIndicators
                           syncS reS act
 
     where conditionalSyncStatusParser SyncSource = Just <$> syncStatusParser
@@ -132,8 +132,8 @@ deviceParser = do
           additionalEOL = A.skipWhile A.isEndOfLine
 
 -- | The parser for the connection state.
-connectionStateParser :: Parser ConnectionState
-connectionStateParser =
+connStateParser :: Parser ConnState
+connStateParser =
   standAlone
   <|> disconnecting
   <|> unconnected
@@ -224,9 +224,9 @@ ioFlagsParser :: Parser String
 ioFlagsParser = fmap unpack . A.takeWhile $ not . isBadEndOfLine
 
 -- | The parser for performance indicators.
-performanceIndicatorsParser :: Parser PerformanceIndicators
-performanceIndicatorsParser =
-  PerformanceIndicators
+perfIndicatorsParser :: Parser PerfIndicators
+perfIndicatorsParser =
+  PerfIndicators
     <$> skipSpacesAndString "ns:" A.decimal
     <*> skipSpacesAndString "nr:" A.decimal
     <*> skipSpacesAndString "dw:" A.decimal
@@ -295,9 +295,9 @@ sizeUnitParser =
 -- | The parser for recognizing time (hh:mm:ss).
 timeParser :: Parser Time
 timeParser = Time <$> h <*> m <*> s
-  where h = A.decimal :: Parser Integer
-        m = A.char ':' *> A.decimal :: Parser Integer
-        s = A.char ':' *> A.decimal :: Parser Integer
+  where h = A.decimal :: Parser Int
+        m = A.char ':' *> A.decimal :: Parser Int
+        s = A.char ':' *> A.decimal :: Parser Int
 
 -- | The parser for recognizing time units (only the ones actually
 -- found in DRBD files are implemented).
