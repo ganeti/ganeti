@@ -1539,6 +1539,7 @@ pep8: $(GENERATED_FILES)
 	  --repeat $(pep8_python_code)
 
 # FIXME: remove ignore "Use void" when GHC 6.x is deprecated
+HLINT_EXCLUDES = htools/Ganeti/THH.hs htest/hpc-htools.hs
 .PHONY: hlint
 hlint: $(HS_BUILT_SRCS) htools/lint-hints.hs
 	@test -n "$(HLINT)" || { echo 'hlint' not found during configure; exit 1; }
@@ -1551,7 +1552,7 @@ hlint: $(HS_BUILT_SRCS) htools/lint-hints.hs
 	  --ignore "Use &&&" \
 	  --ignore "Use void" \
 	  --hint htools/lint-hints \
-	  $(filter-out htools/Ganeti/THH.hs,$(HS_LIBTEST_SRCS) $(HS_PROG_SRCS))
+	  $(filter-out $(HLINT_EXCLUDES),$(HS_LIBTEST_SRCS) $(HS_PROG_SRCS))
 
 # a dist hook rule for updating the vcs-version file; this is
 # hardcoded due to where it needs to build the file...
@@ -1740,7 +1741,7 @@ gitignore-check:
 # Target that builds all binaries (including those that are not
 # rebuilt except when running the tests)
 .PHONY: really-all
-really-all: all $(check_SCRIPTS) $(haskell_tests)
+really-all: all $(check_SCRIPTS) $(haskell_tests) $(HS_ALL_PROGS)
 
 # we don't need the ancient implicit rules:
 %: %,v
