@@ -138,10 +138,10 @@ $(genLuxiOp "LuxiOp"
   , (luxiReqQueryTags,
      [ pTagsObject ])
   , (luxiReqSubmitJob,
-     [ simpleField "job" [t| [OpCode] |] ]
+     [ simpleField "job" [t| [MetaOpCode] |] ]
     )
   , (luxiReqSubmitManyJobs,
-     [ simpleField "ops" [t| [[OpCode]] |] ]
+     [ simpleField "ops" [t| [[MetaOpCode]] |] ]
     )
   , (luxiReqWaitForJobChange,
      [ simpleField "job"      [t| JobId   |]
@@ -443,7 +443,7 @@ parseSubmitJobResult v =
       show (pp_value v)
 
 -- | Specialized submitManyJobs call.
-submitManyJobs :: Client -> [[OpCode]] -> IO (ErrorResult [JobId])
+submitManyJobs :: Client -> [[MetaOpCode]] -> IO (ErrorResult [JobId])
 submitManyJobs s jobs = do
   rval <- callMethod (SubmitManyJobs jobs) s
   -- map each result (status, payload) pair into a nice Result ADT

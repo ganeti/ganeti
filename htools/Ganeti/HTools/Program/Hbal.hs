@@ -56,11 +56,13 @@ import Ganeti.HTools.CLI
 import Ganeti.HTools.ExtLoader
 import Ganeti.HTools.Types
 import Ganeti.HTools.Loader
+import Ganeti.OpCodes (wrapOpCode, setOpComment, OpCode, MetaOpCode)
 import Ganeti.Types (fromJobId)
 import Ganeti.Utils
 
 import qualified Ganeti.Luxi as L
 import Ganeti.Jobs
+import Ganeti.Version (version)
 
 -- | Options list and functions.
 options :: IO [OptType]
@@ -98,6 +100,12 @@ options = do
 -- | The list of arguments supported by the program.
 arguments :: [ArgCompletion]
 arguments = []
+
+-- | Wraps an 'OpCode' in a 'MetaOpCode' while also adding a comment
+-- about what generated the opcode.
+annotateOpCode :: OpCode -> MetaOpCode
+annotateOpCode =
+  setOpComment ("rebalancing via hbal " ++ version) . wrapOpCode
 
 {- | Start computing the solution at the given depth and recurse until
 we find a valid solution or we exceed the maximum depth.
@@ -205,6 +213,7 @@ execJobSet _      _  _  _    [] = return True
 execJobSet master nl il cref (js:jss) = do
   -- map from jobset (htools list of positions) to [[opcodes]]
   let jobs = map (\(_, idx, move, _) ->
+                      map annotateOpCode $
                       Cluster.iMoveToJob nl il idx move) js
   let descr = map (\(_, idx, _, _) -> Container.nameOf il idx) js
   putStrLn $ "Executing jobset for instances " ++ commaJoin descr
