@@ -120,9 +120,9 @@ prop_isColorableTestableClique (TestableClique g) = isColorable g ==? True
 
 -- | Check that the given algorithm colors a clique with the same number of
 -- colors as the vertices number.
-prop_colorClique :: (Graph.Graph -> ColorVertMap) -> TestableClique -> Property
+prop_colorClique :: (Graph.Graph -> VertColorMap) -> TestableClique -> Property
 prop_colorClique alg (TestableClique g) = numvertices ==? numcolors
-    where numcolors = IntMap.size (alg g)
+    where numcolors = (IntMap.size . colorVertMap) $ alg g
           numvertices = length (Graph.vertices g)
 
 -- | Specific check for the LF algorithm.
@@ -138,11 +138,12 @@ prop_colorDcolorClique :: TestableClique -> Property
 prop_colorDcolorClique = prop_colorClique colorDcolor
 
 -- Check that all nodes are colored.
-prop_colorAllNodes :: (Graph.Graph -> ColorVertMap)
+prop_colorAllNodes :: (Graph.Graph -> VertColorMap)
                    -> TestableGraph
                    -> Property
 prop_colorAllNodes alg (TestableGraph g) = numvertices ==? numcolored
-    where numcolored = IntMap.fold (\v l -> length v + l) 0 $ alg g
+    where numcolored = IntMap.fold ((+) . length) 0 vcMap
+          vcMap = colorVertMap $ alg g
           numvertices = length (Graph.vertices g)
 
 -- | Specific check for the LF algorithm.
@@ -157,6 +158,26 @@ prop_colorDsaturAllNodes = prop_colorAllNodes colorDsatur
 prop_colorDcolorAllNodes :: TestableGraph -> Property
 prop_colorDcolorAllNodes = prop_colorAllNodes colorDcolor
 
+-- | Check that no two vertices sharing the same edge have the same color.
+prop_colorProper :: (Graph.Graph -> VertColorMap) -> TestableGraph -> Bool
+prop_colorProper alg (TestableGraph g) = all isEdgeOk $ Graph.edges g
+    where isEdgeOk :: Graph.Edge -> Bool
+          isEdgeOk (v1, v2) = color v1 /= color v2
+          color v = cMap IntMap.! v
+          cMap = alg g
+
+-- | Specific check for the LF algorithm.
+prop_colorLFProper :: TestableGraph -> Bool
+prop_colorLFProper = prop_colorProper colorLF
+
+-- | Specific check for the Dsatur algorithm.
+prop_colorDsaturProper :: TestableGraph -> Bool
+prop_colorDsaturProper = prop_colorProper colorDsatur
+
+-- | Specific check for the Dcolor algorithm.
+prop_colorDcolorProper :: TestableGraph -> Bool
+prop_colorDcolorProper = prop_colorProper colorDcolor
+
 -- | List of tests for the Graph module.
 testSuite "HTools/Graph"
             [ 'case_emptyVertColorMapNull
@@ -169,6 +190,9 @@ testSuite "HTools/Graph"
             , 'prop_colorLFAllNodes
             , 'prop_colorDsaturAllNodes
             , 'prop_colorDcolorAllNodes
+            , 'prop_colorLFProper
+            , 'prop_colorDsaturProper
+            , 'prop_colorDcolorProper
             , 'prop_isColorableTestableGraph
             , 'prop_isColorableTestableClique
             ]

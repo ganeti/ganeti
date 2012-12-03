@@ -163,8 +163,8 @@ colorInOrder :: Graph.Graph -> [Graph.Vertex] -> VertColorMap
 colorInOrder g = foldr (colorNodeInMap g) emptyVertColorMap
 
 -- | Color greedily all nodes, larger first.
-colorLF :: Graph.Graph -> ColorVertMap
-colorLF g = colorVertMap . colorInOrder g $ verticesByDegreeAsc g
+colorLF :: Graph.Graph -> VertColorMap
+colorLF g = colorInOrder g $ verticesByDegreeAsc g
 
 -- | (vertex, (saturation, degree)) for a vertex.
 vertexSaturation :: Graph.Graph
@@ -208,19 +208,17 @@ colorDynamicOrder ordind g cMap l = colorDynamicOrder ordind g newmap newlist
 -- highest degree. This is slower than "colorLF" as we must dynamically
 -- recalculate which node to color next among all remaining ones but
 -- produces better results.
-colorDcolor :: Graph.Graph -> ColorVertMap
+colorDcolor :: Graph.Graph -> VertColorMap
 colorDcolor g =
-  colorVertMap . colorDynamicOrder vertexColorDegree g emptyVertColorMap $ vert
-    where vert = Graph.vertices g
+  colorDynamicOrder vertexColorDegree g emptyVertColorMap $ Graph.vertices g
 
 -- | Color greedily all nodes, highest saturation, then highest degree.
 -- This is slower than "colorLF" as we must dynamically recalculate
 -- which node to color next among all remaining ones but produces better
 -- results.
-colorDsatur :: Graph.Graph -> ColorVertMap
+colorDsatur :: Graph.Graph -> VertColorMap
 colorDsatur g =
-  colorVertMap . colorDynamicOrder vertexSaturation g emptyVertColorMap $ vert
-    where vert = Graph.vertices g
+  colorDynamicOrder vertexSaturation g emptyVertColorMap $ Graph.vertices g
 
 -- | ColorVertMap from VertColorMap.
 colorVertMap :: VertColorMap -> ColorVertMap
