@@ -38,6 +38,8 @@ module Ganeti.JSON
   , asObjectList
   , tryFromObj
   , toArray
+  , optionalJSField
+  , optFieldsToObj
   , HasStringRepr(..)
   , GenericContainer(..)
   , Container
@@ -45,7 +47,7 @@ module Ganeti.JSON
   where
 
 import Control.Monad (liftM)
-import Data.Maybe (fromMaybe)
+import Data.Maybe (fromMaybe, catMaybes)
 import qualified Data.Map as Map
 import Text.Printf (printf)
 
@@ -60,8 +62,11 @@ import Ganeti.BasicTypes
 
 -- * JSON-related functions
 
+-- | A type alias for a field of a JSRecord.
+type JSField = (String, J.JSValue)
+
 -- | A type alias for the list-based representation of J.JSObject.
-type JSRecord = [(String, J.JSValue)]
+type JSRecord = [JSField]
 
 -- | Converts a JSON Result into a monadic value.
 fromJResult :: Monad m => String -> J.Result a -> m a
@@ -166,6 +171,16 @@ toArray :: (Monad m) => J.JSValue -> m [J.JSValue]
 toArray (J.JSArray arr) = return arr
 toArray o =
   fail $ "Invalid input, expected array but got " ++ show (pp_value o)
+
+-- | Creates a Maybe JSField. If the value string is Nothing, the JSField
+-- will be Nothing as well.
+optionalJSField :: (J.JSON a) => String -> Maybe a -> Maybe JSField
+optionalJSField name (Just value) = Just (name, J.showJSON value)
+optionalJSField _ Nothing = Nothing
+
+-- | Creates an object with all the non-Nothing fields of the given list.
+optFieldsToObj :: [Maybe JSField] -> J.JSValue
+optFieldsToObj = J.makeObj . catMaybes
 
 -- * Container type (special type for JSON serialisation)
 
