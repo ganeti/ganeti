@@ -317,7 +317,7 @@ instance Arbitrary OpCodes.OpCode where
         OpCodes.OpNetworkAdd <$> genNameNE <*> arbitrary <*> genIp4Net <*>
           genMaybe genIp4Addr <*> pure Nothing <*> pure Nothing <*>
           genMaybe genMacPrefix <*> genMaybe (listOf genIp4Addr) <*>
-          (genTags >>= mapM mkNonEmpty)
+          arbitrary <*> (genTags >>= mapM mkNonEmpty)
       "OP_NETWORK_REMOVE" ->
         OpCodes.OpNetworkRemove <$> genNameNE <*> arbitrary
       "OP_NETWORK_SET_PARAMS" ->

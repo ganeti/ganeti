@@ -492,6 +492,7 @@ $(genOpCode "OpCode"
      , pNetworkGateway6
      , pNetworkMacPrefix
      , pNetworkAddRsvdIps
+     , pIpConflictsCheck
      , pInstTags
      ])
   , ("OpNetworkRemove",
