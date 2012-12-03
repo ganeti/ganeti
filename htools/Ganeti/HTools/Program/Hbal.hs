@@ -56,6 +56,7 @@ import Ganeti.HTools.CLI
 import Ganeti.HTools.ExtLoader
 import Ganeti.HTools.Types
 import Ganeti.HTools.Loader
+import Ganeti.Types (fromJobId)
 import Ganeti.Utils
 
 import qualified Ganeti.Luxi as L
@@ -213,7 +214,8 @@ execJobSet master nl il cref (js:jss) = do
             case jids of
               Bad e -> return . Bad $ "Job submission error: " ++ formatError e
               Ok x -> do
-                putStrLn $ "Got job IDs " ++ commaJoin (map show x)
+                putStrLn $ "Got job IDs " ++
+                           commaJoin (map (show . fromJobId) x)
                 waitForJobs client x
          )
   case jrs of
