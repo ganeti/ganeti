@@ -38,13 +38,20 @@ module Ganeti.OpCodes
   , opID
   , allOpIDs
   , allOpFields
+  , CommonOpParams(..)
+  , defOpParams
+  , MetaOpCode(..)
+  , wrapOpCode
+  , setOpComment
   ) where
 
-import Text.JSON (readJSON, showJSON, JSON())
+import Text.JSON (readJSON, showJSON, JSON, JSValue, makeObj)
+import qualified Text.JSON
 
 import Ganeti.THH
 
 import Ganeti.OpParams
+import Ganeti.Types (OpSubmitPriority(..))
 
 -- | OpCode representation.
 --
@@ -538,3 +545,54 @@ $(genAllOpIDs ''OpCode "allOpIDs")
 instance JSON OpCode where
   readJSON = loadOpCode
   showJSON = saveOpCode
+
+-- | Generic\/common opcode parameters.
+$(buildObject "CommonOpParams" "op"
+  [ pDryRun
+  , pDebugLevel
+  , pOpPriority
+  , pDependencies
+  , pComment
+  ])
+
+-- | Default common parameter values.
+defOpParams :: CommonOpParams
+defOpParams =
+  CommonOpParams { opDryRun     = Nothing
+                 , opDebugLevel = Nothing
+                 , opPriority   = OpPrioNormal
+                 , opDepends    = Nothing
+                 , opComment    = Nothing
+                 }
+
+-- | The top-level opcode type.
+data MetaOpCode = MetaOpCode CommonOpParams OpCode
+                  deriving (Show, Eq)
+
+-- | JSON serialisation for 'MetaOpCode'.
+showMeta :: MetaOpCode -> JSValue
+showMeta (MetaOpCode params op) =
+  let objparams = toDictCommonOpParams params
+      objop = toDictOpCode op
+  in makeObj (objparams ++ objop)
+
+-- | JSON deserialisation for 'MetaOpCode'
+readMeta :: JSValue -> Text.JSON.Result MetaOpCode
+readMeta v = do
+  meta <- readJSON v
+  op <- readJSON v
+  return $ MetaOpCode meta op
+
+instance JSON MetaOpCode where
+  showJSON = showMeta
+  readJSON = readMeta
+
+-- | Wraps an 'OpCode' with the default parameters to build a
+-- 'MetaOpCode'.
+wrapOpCode :: OpCode -> MetaOpCode
+wrapOpCode = MetaOpCode defOpParams
+
+-- | Sets the comment on a meta opcode.
+setOpComment :: String -> MetaOpCode -> MetaOpCode
+setOpComment comment (MetaOpCode common op) =
+  MetaOpCode (common { opComment = Just comment}) op

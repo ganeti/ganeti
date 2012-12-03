@@ -337,6 +337,10 @@ instance Arbitrary OpCodes.OpCode where
           genNameNE
       _ -> fail $ "Undefined arbitrary for opcode " ++ op_id
 
+instance Arbitrary OpCodes.CommonOpParams where
+  arbitrary = OpCodes.CommonOpParams <$> arbitrary <*> arbitrary <*>
+                arbitrary <*> resize 5 arbitrary <*> genMaybe genName
+
 -- * Helper functions
 
 -- | Empty JSObject.
@@ -403,6 +407,9 @@ genMacPrefix = do
   octets <- vectorOf 3 $ choose (0::Int, 255)
   mkNonEmpty . intercalate ":" $ map (printf "%02x") octets
 
+-- | Arbitrary instance for MetaOpCode, defined here due to TH ordering.
+$(genArbitrary ''OpCodes.MetaOpCode)
+
 -- * Test cases
 
 -- | Check that opcode serialization is idempotent.
@@ -441,7 +448,7 @@ case_py_compat_types :: HUnit.Assertion
 case_py_compat_types = do
   let num_opcodes = length OpCodes.allOpIDs * 100
   sample_opcodes <- sample' (vectorOf num_opcodes
-                             (arbitrary::Gen OpCodes.OpCode))
+                             (arbitrary::Gen OpCodes.MetaOpCode))
   let opcodes = head sample_opcodes
       serialized = J.encode opcodes
   -- check for non-ASCII fields, usually due to 'arbitrary :: String'
@@ -460,7 +467,7 @@ case_py_compat_types = do
                \encoded = [op.__getstate__() for op in decoded]\n\
                \print serializer.Dump(encoded)" serialized
      >>= checkPythonResult
-  let deserialised = J.decode py_stdout::J.Result [OpCodes.OpCode]
+  let deserialised = J.decode py_stdout::J.Result [OpCodes.MetaOpCode]
   decoded <- case deserialised of
                J.Ok ops -> return ops
                J.Error msg ->
@@ -506,9 +513,16 @@ case_py_compat_fields = do
              py_flds hs_flds
         ) $ zip py_fields hs_fields
 
+-- | Checks that setOpComment works correctly.
+prop_setOpComment :: OpCodes.MetaOpCode -> String -> Property
+prop_setOpComment op comment =
+  let (OpCodes.MetaOpCode common _) = OpCodes.setOpComment comment op
+  in OpCodes.opComment common ==? Just comment
+
 testSuite "OpCodes"
             [ 'prop_serialization
             , 'case_AllDefined
             , 'case_py_compat_types
             , 'case_py_compat_fields
+            , 'prop_setOpComment
             ]
