@@ -146,12 +146,12 @@ type AllocStats = (AllocInfo, AllocInfo, AllocInfo)
 
 -- | Instance specification type.
 $(THH.buildObject "ISpec" "iSpec"
-  [ THH.renameField "MemorySize"   $ THH.simpleField C.ispecMemSize      [t| Int |]
-  , THH.renameField "CpuCount"     $ THH.simpleField C.ispecCpuCount     [t| Int |]
-  , THH.renameField "DiskSize"     $ THH.simpleField C.ispecDiskSize     [t| Int |]
-  , THH.renameField "DiskCount"    $ THH.simpleField C.ispecDiskCount    [t| Int |]
-  , THH.renameField "NicCount"     $ THH.simpleField C.ispecNicCount     [t| Int |]
-  , THH.renameField "SpindleUse"   $ THH.simpleField C.ispecSpindleUse   [t| Int |]
+  [ THH.renameField "MemorySize" $ THH.simpleField C.ispecMemSize    [t| Int |]
+  , THH.renameField "CpuCount"   $ THH.simpleField C.ispecCpuCount   [t| Int |]
+  , THH.renameField "DiskSize"   $ THH.simpleField C.ispecDiskSize   [t| Int |]
+  , THH.renameField "DiskCount"  $ THH.simpleField C.ispecDiskCount  [t| Int |]
+  , THH.renameField "NicCount"   $ THH.simpleField C.ispecNicCount   [t| Int |]
+  , THH.renameField "SpindleUse" $ THH.simpleField C.ispecSpindleUse [t| Int |]
   ])
 
 -- | The default minimum ispec.

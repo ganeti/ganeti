@@ -1476,9 +1476,14 @@ check-local: check-dirs $(GENERATED_FILES)
 	  echo "File $(top_srcdir)/doc/design-$$expver.rst not found"; \
 	  exit 1; \
 	fi; \
-	if test $$(wc --max-line-length < $(top_srcdir)/configure.ac) -gt 80; then \
-	  echo 'Longest line in configure.ac is longer than 80 characters' >&2; \
-	fi
+	error= ; \
+	for file in configure.ac $(HS_LIBTEST_SRCS) $(HS_PROG_SRCS); do \
+	  if test $$(wc --max-line-length < $(top_srcdir)/$$file) -gt 80; then \
+	    echo "Longest line in $$file is longer than 80 characters" >&2; \
+	    error=1; \
+	  fi; \
+	done; \
+	test -z "$$error"
 
 .PHONY: hs-check
 hs-check: htest/test htest/hpc-htools $(HS_BUILT_TEST_HELPERS)
