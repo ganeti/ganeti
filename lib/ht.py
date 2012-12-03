@@ -259,6 +259,14 @@ def TList(val):
   return isinstance(val, list)
 
 
+@WithDesc("Tuple")
+def TTuple(val):
+  """Checks if the given value is a tuple.
+
+  """
+  return isinstance(val, tuple)
+
+
 @WithDesc("Dictionary")
 def TDict(val):
   """Checks if the given value is a dictionary.

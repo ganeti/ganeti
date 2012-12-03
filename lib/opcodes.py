@@ -554,7 +554,8 @@ def _BuildJobDepCheck(relative):
     job_id = ht.TJobId
 
   job_dep = \
-    ht.TAnd(ht.TIsLength(2),
+    ht.TAnd(ht.TOr(ht.TList, ht.TTuple),
+            ht.TIsLength(2),
             ht.TItems([job_id,
                        ht.TListOf(ht.TElemOf(constants.JOBS_FINALIZED))]))
 
