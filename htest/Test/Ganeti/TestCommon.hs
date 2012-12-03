@@ -134,7 +134,7 @@ instance Show DNSChar where
 -- | Generates a single name component.
 genName :: Gen String
 genName = do
-  n <- choose (1, 64)
+  n <- choose (1, 16)
   dn <- vector n
   return (map dnsGetChar dn)
 

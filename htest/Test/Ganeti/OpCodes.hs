@@ -438,7 +438,7 @@ case_AllDefined = do
 -- be skipped).
 case_py_compat :: HUnit.Assertion
 case_py_compat = do
-  let num_opcodes = length OpCodes.allOpIDs * 500
+  let num_opcodes = length OpCodes.allOpIDs * 100
   sample_opcodes <- sample' (vectorOf num_opcodes
                              (arbitrary::Gen OpCodes.OpCode))
   let opcodes = head sample_opcodes
