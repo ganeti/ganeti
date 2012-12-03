@@ -116,7 +116,7 @@ ALL_APIDOC_HS_DIRS = \
 	$(APIDOC_HS_DIR)/Ganeti/HTools \
 	$(APIDOC_HS_DIR)/Ganeti/HTools/Backend \
 	$(APIDOC_HS_DIR)/Ganeti/HTools/Program \
-	$(APIDOC_HS_DIR)/Ganeti/Query 
+	$(APIDOC_HS_DIR)/Ganeti/Query
 
 BUILDTIME_DIR_AUTOCREATE = \
 	scripts \
@@ -135,7 +135,8 @@ BUILDTIME_DIRS = \
 DIRCHECK_EXCLUDE = \
 	$(BUILDTIME_DIRS) \
 	ganeti-[0-9]*.[0-9]*.[0-9]* \
-	doc/html/_*
+	doc/html/_* \
+	autom4te.cache
 
 # some helper vars
 COVERAGE_DIR = doc/coverage
@@ -639,10 +640,9 @@ install-exec-hook:
 	@mkdir_p@ $(DESTDIR)$(iallocatorsdir)
 # FIXME: this is a hardcoded logic, instead of auto-resolving
 	$(LN_S) -f ../../../bin/htools \
-		   $(DESTDIR)$(iallocatorsdir)/hail
+	  $(DESTDIR)$(iallocatorsdir)/hail
 	for role in $(HS_BIN_ROLES); do \
-		$(LN_S) -f htools \
-			   $(DESTDIR)$(bindir)/$$role ; \
+	  $(LN_S) -f htools $(DESTDIR)$(bindir)/$$role ; \
 	done
 endif
 
@@ -1422,9 +1422,9 @@ stamp-directories: Makefile
 stamp-srclinks: Makefile | stamp-directories
 	set -e; \
 	for i in $(srclink_files); do \
-		if test ! -f $$i -a -f $(abs_top_srcdir)/$$i; then \
-			$(LN_S) $(abs_top_srcdir)/$$i $$i; \
-		fi; \
+	  if test ! -f $$i -a -f $(abs_top_srcdir)/$$i; then \
+	    $(LN_S) $(abs_top_srcdir)/$$i $$i; \
+	  fi; \
 	done
 	touch $@
 
@@ -1435,24 +1435,21 @@ ganeti:
 .PHONY: check-dirs
 check-dirs: $(GENERATED_FILES)
 	@set -e; \
-	find . -type d \( \( -name . \) -o \( \
-		-name .git -o \
-		-name autom4te.cache \
-		\) -prune -o -print \) | { \
-		error=; \
-		while read dir; do \
-			case "$$dir" in \
-				$(strip $(patsubst %,(./%) ;;,$(DIRCHECK_EXCLUDE) $(DIRS))) \
-				*) error=1; echo "Directory $$dir not listed in Makefile" >&2 ;; \
-			esac; \
-		done; \
-		for dir in $(DIRS); do \
-			if ! test -d "$$dir"; then \
-				echo "Directory $$dir listed in DIRS does not exist" >&2; \
-				error=1; \
-			fi \
-		done; \
-		if test -n "$$error"; then exit 1; else exit 0; fi; \
+	find . -type d \( -name . -o -name .git -prune -o -print \) | { \
+	  error=; \
+	  while read dir; do \
+	    case "$$dir" in \
+	      $(strip $(patsubst %,(./%) ;;,$(DIRCHECK_EXCLUDE) $(DIRS))) \
+	      *) error=1; echo "Directory $$dir not listed in Makefile" >&2 ;; \
+	    esac; \
+	  done; \
+	  for dir in $(DIRS); do \
+	    if ! test -d "$$dir"; then \
+	      echo "Directory $$dir listed in DIRS does not exist" >&2; \
+	      error=1; \
+	    fi \
+	  done; \
+	  test -z "$$error"; \
 	}
 
 .PHONY: check-local
@@ -1464,23 +1461,23 @@ check-local: check-dirs $(GENERATED_FILES)
 	PYTHONPATH=. $(RUN_IN_TEMPDIR) $(CURDIR)/$(CHECK_IMPORTS) . $(standalone_python_modules)
 	@expver=$(VERSION_MAJOR).$(VERSION_MINOR); \
 	if test "`head -n 1 $(top_srcdir)/README`" != "Ganeti $$expver"; then \
-		echo "Incorrect version in README, expected $$expver"; \
-		exit 1; \
+	  echo "Incorrect version in README, expected $$expver"; \
+	  exit 1; \
 	fi; \
 	for file in doc/iallocator.rst doc/hooks.rst doc/virtual-cluster.rst \
-			doc/security.rst; do \
-		if test "`sed -ne '4 p' $(top_srcdir)/$$file`" != \
-			"Documents Ganeti version $$expver"; then \
-			echo "Incorrect version in $$file, expected $$expver"; \
-			exit 1; \
-		fi; \
+	    doc/security.rst; do \
+	  if test "`sed -ne '4 p' $(top_srcdir)/$$file`" != \
+	    "Documents Ganeti version $$expver"; then \
+	    echo "Incorrect version in $$file, expected $$expver"; \
+	    exit 1; \
+	  fi; \
 	done; \
 	if ! test -f $(top_srcdir)/doc/design-$$expver.rst; then \
-		echo "File $(top_srcdir)/doc/design-$$expver.rst not found"; \
-		exit 1; \
+	  echo "File $(top_srcdir)/doc/design-$$expver.rst not found"; \
+	  exit 1; \
 	fi; \
 	if test $$(wc --max-line-length < $(top_srcdir)/configure.ac) -gt 80; then \
-		echo 'Longest line in configure.ac is longer than 80 characters' >&2; \
+	  echo 'Longest line in configure.ac is longer than 80 characters' >&2; \
 	fi
 
 .PHONY: hs-check
@@ -1534,7 +1531,7 @@ pylint-qa: $(GENERATED_FILES)
 pep8: $(GENERATED_FILES)
 	@test -n "$(PEP8)" || { echo 'pep8' not found during configure; exit 1; }
 	$(PEP8) --ignore='$(PEP8_IGNORE)' --exclude='$(PEP8_EXCLUDE)' \
-		--repeat $(pep8_python_code)
+	  --repeat $(pep8_python_code)
 
 # FIXME: remove ignore "Use void" when GHC 6.x is deprecated
 .PHONY: hlint
@@ -1561,30 +1558,30 @@ dist-hook:
 # a distcheck hook rule for catching revision control directories
 distcheck-hook:
 	if find $(top_distdir) -name .svn -or -name .git | grep .; then \
-		echo "Found revision control files in final archive." 1>&2; \
-		exit 1; \
+	  echo "Found revision control files in final archive." 1>&2; \
+	  exit 1; \
 	fi
 	if find $(top_distdir) -name '*.py[co]' | grep .; then \
-		echo "Found Python byte code in final archive." 1>&2; \
-		exit 1; \
+	  echo "Found Python byte code in final archive." 1>&2; \
+	  exit 1; \
 	fi
 	if find $(top_distdir) -name '*~' | grep .; then \
-		echo "Found backup files in final archive." 1>&2; \
-		exit 1; \
+	  echo "Found backup files in final archive." 1>&2; \
+	  exit 1; \
 	fi
 # Empty files or directories should not be distributed. They can cause
 # unnecessary warnings for packagers. Directories used by automake during
 # distcheck must be excluded.
 	if find $(top_distdir) -empty -and -not \( \
-			-path $(top_distdir)/_build -or \
-			-path $(top_distdir)/_inst \) | grep .; then \
-		echo "Found empty files or directories in final archive." 1>&2; \
-		exit 1; \
+	    -path $(top_distdir)/_build -or \
+	    -path $(top_distdir)/_inst \) | grep .; then \
+	  echo "Found empty files or directories in final archive." 1>&2; \
+	  exit 1; \
 	fi
 	if test -n "$(BUILD_RELEASE)" && \
 	   grep -n -H -E '^\*.*unreleased' $(top_distdir)/NEWS; then \
-		echo "Found unreleased version in NEWS." >&2; \
-		exit 1; \
+	   echo "Found unreleased version in NEWS." >&2; \
+	   exit 1; \
 	fi
 
 # When building a release, stricter checks should be used
@@ -1607,9 +1604,9 @@ distrebuildcheck: dist
 dist-release: dist
 	set -e; \
 	for i in $(DIST_ARCHIVES); do \
-		echo -n "Checking $$i ... "; \
-		autotools/check-tar < $$i; \
-		echo OK; \
+	  echo -n "Checking $$i ... "; \
+	  autotools/check-tar < $$i; \
+	  echo OK; \
 	done
 
 install-exec-local:
@@ -1627,8 +1624,8 @@ endif
 .PHONY: py-apidoc
 py-apidoc: epydoc.conf $(RUN_IN_TEMPDIR) $(GENERATED_FILES)
 	$(RUN_IN_TEMPDIR) epydoc -v \
-		--conf $(CURDIR)/epydoc.conf \
-		--output $(CURDIR)/$(APIDOC_PY_DIR)
+	  --conf $(CURDIR)/epydoc.conf \
+	  --output $(CURDIR)/$(APIDOC_PY_DIR)
 
 .PHONY: hs-apidoc
 hs-apidoc: $(HS_BUILT_SRCS)
@@ -1638,7 +1635,7 @@ hs-apidoc: $(HS_BUILT_SRCS)
 	    { echo 'haddock' not found during configure; exit 1; }
 	rm -rf $(APIDOC_HS_DIR)/*
 	for i in $(ALL_APIDOC_HS_DIRS); do \
-		@mkdir_p@ $$i; \
+	  @mkdir_p@ $$i; \
 	done
 	$(HSCOLOUR) -print-css > $(APIDOC_HS_DIR)/Ganeti/hscolour.css
 	$(LN_S) ../hscolour.css $(APIDOC_HS_DIR)/Ganeti/HTools/hscolour.css
@@ -1657,15 +1654,15 @@ hs-apidoc: $(HS_BUILT_SRCS)
 	fi; \
 	RELSRCS="$(HS_LIB_SRCS:htools/%=%) $(patsubst htools/%,%,$(filter htools/%,$(HS_BUILT_SRCS)))"; \
 	for file in $$RELSRCS; do \
-		hfile=`echo $$file|sed 's/\\.hs$$//'`.html; \
-		$(HSCOLOUR) -css -anchor $$file > ../$(APIDOC_HS_DIR)/$$hfile ; \
+	  hfile=`echo $$file|sed 's/\\.hs$$//'`.html; \
+	  $(HSCOLOUR) -css -anchor $$file > ../$(APIDOC_HS_DIR)/$$hfile ; \
 	done ; \
 	$(HADDOCK) --odir ../$(APIDOC_HS_DIR) --html --ignore-all-exports -w \
-		-t ganeti -p haddock-prologue \
-		--source-module="%{MODULE/.//}.html" \
-		--source-entity="%{MODULE/.//}.html#%{NAME}" \
-		$$OPTGHC \
-		$(filter-out Ganeti/HTools/ExtLoader.hs,$(HS_LIB_SRCS:htools/%=%))
+	  -t ganeti -p haddock-prologue \
+	  --source-module="%{MODULE/.//}.html" \
+	  --source-entity="%{MODULE/.//}.html#%{NAME}" \
+	  $$OPTGHC \
+	  $(filter-out Ganeti/HTools/ExtLoader.hs,$(HS_LIB_SRCS:htools/%=%))
 
 .PHONY: TAGS
 TAGS: $(GENERATED_FILES)
@@ -1722,7 +1719,7 @@ live-test: all
 	  --output=live-test.tix ; \
 	@mkdir_p@ ../$(COVERAGE_HS_DIR) ; \
 	hpc markup --destdir=../$(COVERAGE_HS_DIR) live-test \
-		--srcdir=.. $(HPCEXCL) ; \
+	  --srcdir=.. $(HPCEXCL) ; \
 	hpc report --srcdir=.. live-test $(HPCEXCL)
 
 commit-check: distcheck lint apidoc
