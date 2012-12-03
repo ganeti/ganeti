@@ -58,6 +58,7 @@ module Ganeti.HTools.Graph
   , colorInOrder
   , colorLF
   , colorDsatur
+  , colorDcolor
   , isColorable
     -- * Color map transformations
   , colorVertMap
@@ -74,6 +75,7 @@ import Data.Ord
 import Data.List
 
 import qualified Data.IntMap as IntMap
+import qualified Data.IntSet as IntSet
 import qualified Data.Graph as Graph
 import qualified Data.Array as Array
 
@@ -133,12 +135,17 @@ isColorable g = isUndirected g && not (hasLoop g)
 
 -- | Get the colors of a list of vertices.
 -- Any uncolored vertices are ignored.
-listColors :: VertColorMap -> [Graph.Vertex] -> [Color]
-listColors cMap = mapMaybe (`IntMap.lookup` cMap)
+verticesColors :: VertColorMap -> [Graph.Vertex] -> [Color]
+verticesColors cMap = mapMaybe (`IntMap.lookup` cMap)
+
+-- | Get the colors of a list of vertices.
+-- Any uncolored vertices are ignored.
+verticesColorSet :: VertColorMap -> [Graph.Vertex] -> IntSet.IntSet
+verticesColorSet cMap = IntSet.fromList . mapMaybe (`IntMap.lookup` cMap)
 
 -- | Get the colors of the neighbors of a vertex.
 neighColors :: Graph.Graph -> VertColorMap -> Graph.Vertex -> [Color]
-neighColors g cMap v = listColors cMap $ neighbors g v
+neighColors g cMap v = verticesColors cMap $ neighbors g v
 
 -- | Color one node.
 colorNode :: Graph.Graph -> VertColorMap -> Graph.Vertex -> Color
@@ -164,20 +171,47 @@ vertexSaturation :: Graph.Graph
                  -> VertColorMap
                  -> Graph.Vertex
                  -> (Graph.Vertex, (Satur, Int))
-vertexSaturation g cMap v = (v, (length (listColors cMap neigh), length neigh))
+vertexSaturation g cMap v =
+  (v, (IntSet.size (verticesColorSet cMap neigh), length neigh))
     where neigh = neighbors g v
 
--- | Auxiliary recursive function to calculate dsatur.
+-- | (vertex, (colordegree, degree)) for a vertex.
+vertexColorDegree :: Graph.Graph
+                  -> VertColorMap
+                  -> Graph.Vertex
+                  -> (Graph.Vertex, (Int, Int))
+vertexColorDegree g cMap v =
+  (v, (length (verticesColors cMap neigh), length neigh))
+    where neigh = neighbors g v
+
+-- | Color all nodes in a dynamic order.
 -- We have a list of vertices still uncolored, and at each round we
--- choose&delete the maximum saturation vertex among the remaining ones.
--- To do so we need explicit recursion.
-colorDsatur' :: Graph.Graph -> VertColorMap -> [Graph.Vertex] -> VertColorMap
-colorDsatur' _ cMap [] = cMap
-colorDsatur' g cMap l = colorDsatur' g newmap newlist
+-- choose&delete one vertex among the remaining ones. A helper function
+-- is used to induce an order so that the next vertex can be chosen.
+colorDynamicOrder :: Ord a
+                  =>  (Graph.Graph
+                      -> VertColorMap
+                      -> Graph.Vertex
+                      -> (Graph.Vertex, a)) -- ^ Helper to induce the choice
+                  -> Graph.Graph -- ^ Target graph
+                  -> VertColorMap -- ^ Accumulating vertex color map
+                  -> [Graph.Vertex] -- ^ List of remaining vertices
+                  -> VertColorMap -- ^ Output vertex color map
+colorDynamicOrder _ _ cMap [] = cMap
+colorDynamicOrder ordind g cMap l = colorDynamicOrder ordind g newmap newlist
     where newmap = colorNodeInMap g choosen cMap
-          choosen = fst . maximumBy (comparing snd) $ satlist
-          satlist = map (vertexSaturation g cMap) l
+          choosen = fst . maximumBy (comparing snd) $ ordlist
+          ordlist = map (ordind g cMap) l
           newlist = delete choosen l
+
+-- | Color greedily all nodes, highest number of colored neighbors, then
+-- highest degree. This is slower than "colorLF" as we must dynamically
+-- recalculate which node to color next among all remaining ones but
+-- produces better results.
+colorDcolor :: Graph.Graph -> ColorVertMap
+colorDcolor g =
+  colorVertMap . colorDynamicOrder vertexColorDegree g emptyVertColorMap $ vert
+    where vert = Graph.vertices g
 
 -- | Color greedily all nodes, highest saturation, then highest degree.
 -- This is slower than "colorLF" as we must dynamically recalculate
@@ -185,7 +219,8 @@ colorDsatur' g cMap l = colorDsatur' g newmap newlist
 -- results.
 colorDsatur :: Graph.Graph -> ColorVertMap
 colorDsatur g =
-  colorVertMap . colorDsatur' g emptyVertColorMap $ Graph.vertices g
+  colorVertMap . colorDynamicOrder vertexSaturation g emptyVertColorMap $ vert
+    where vert = Graph.vertices g
 
 -- | ColorVertMap from VertColorMap.
 colorVertMap :: VertColorMap -> ColorVertMap

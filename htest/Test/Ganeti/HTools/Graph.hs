@@ -133,6 +133,10 @@ prop_colorLFClique = prop_colorClique colorLF
 prop_colorDsaturClique :: TestableClique -> Property
 prop_colorDsaturClique = prop_colorClique colorDsatur
 
+-- | Specific check for the Dcolor algorithm.
+prop_colorDcolorClique :: TestableClique -> Property
+prop_colorDcolorClique = prop_colorClique colorDcolor
+
 -- Check that all nodes are colored.
 prop_colorAllNodes :: (Graph.Graph -> ColorVertMap)
                    -> TestableGraph
@@ -149,6 +153,10 @@ prop_colorLFAllNodes = prop_colorAllNodes colorLF
 prop_colorDsaturAllNodes :: TestableGraph -> Property
 prop_colorDsaturAllNodes = prop_colorAllNodes colorDsatur
 
+-- | Specific check for the Dcolor algorithm.
+prop_colorDcolorAllNodes :: TestableGraph -> Property
+prop_colorDcolorAllNodes = prop_colorAllNodes colorDcolor
+
 -- | List of tests for the Graph module.
 testSuite "HTools/Graph"
             [ 'case_emptyVertColorMapNull
@@ -157,8 +165,10 @@ testSuite "HTools/Graph"
             , 'prop_verticesByDegreeDescDesc
             , 'prop_colorLFClique
             , 'prop_colorDsaturClique
+            , 'prop_colorDcolorClique
             , 'prop_colorLFAllNodes
             , 'prop_colorDsaturAllNodes
+            , 'prop_colorDcolorAllNodes
             , 'prop_isColorableTestableGraph
             , 'prop_isColorableTestableClique
             ]
