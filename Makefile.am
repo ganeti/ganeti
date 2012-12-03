@@ -107,9 +107,7 @@ DIRS = \
 	test/data/ovfdata/other \
 	tools
 
-BUILDTIME_DIR_AUTOCREATE = \
-	scripts \
-	$(APIDOC_DIR) \
+ALL_APIDOC_HS_DIRS = \
 	$(APIDOC_HS_DIR) \
 	$(APIDOC_HS_DIR)/Ganeti \
 	$(APIDOC_HS_DIR)/Ganeti/Block \
@@ -118,7 +116,12 @@ BUILDTIME_DIR_AUTOCREATE = \
 	$(APIDOC_HS_DIR)/Ganeti/HTools \
 	$(APIDOC_HS_DIR)/Ganeti/HTools/Backend \
 	$(APIDOC_HS_DIR)/Ganeti/HTools/Program \
-	$(APIDOC_HS_DIR)/Ganeti/Query \
+	$(APIDOC_HS_DIR)/Ganeti/Query 
+
+BUILDTIME_DIR_AUTOCREATE = \
+	scripts \
+	$(APIDOC_DIR) \
+	$(ALL_APIDOC_HS_DIRS) \
 	$(APIDOC_PY_DIR) \
 	$(COVERAGE_DIR) \
 	$(COVERAGE_HS_DIR) \
@@ -1634,12 +1637,9 @@ hs-apidoc: $(HS_BUILT_SRCS)
 	@test -n "$(HADDOCK)" || \
 	    { echo 'haddock' not found during configure; exit 1; }
 	rm -rf $(APIDOC_HS_DIR)/*
-	@mkdir_p@ $(APIDOC_HS_DIR)/Ganeti/HTools/Backend
-	@mkdir_p@ $(APIDOC_HS_DIR)/Ganeti/HTools/Program
-	@mkdir_p@ $(APIDOC_HS_DIR)/Ganeti/Block
-	@mkdir_p@ $(APIDOC_HS_DIR)/Ganeti/Block/Drbd
-	@mkdir_p@ $(APIDOC_HS_DIR)/Ganeti/Confd
-	@mkdir_p@ $(APIDOC_HS_DIR)/Ganeti/Query
+	for i in $(ALL_APIDOC_HS_DIRS); do \
+		@mkdir_p@ $$i; \
+	done
 	$(HSCOLOUR) -print-css > $(APIDOC_HS_DIR)/Ganeti/hscolour.css
 	$(LN_S) ../hscolour.css $(APIDOC_HS_DIR)/Ganeti/HTools/hscolour.css
 	$(LN_S) ../hscolour.css $(APIDOC_HS_DIR)/Ganeti/Confd/hscolour.css
