@@ -9898,6 +9898,10 @@ class LUInstanceCreate(LogicalUnit):
       # that group
       self.needed_locks[locking.LEVEL_NODE] = locking.ALL_SET
       self.needed_locks[locking.LEVEL_NODE_ALLOC] = locking.ALL_SET
+
+      if self.op.opportunistic_locking:
+        self.opportunistic_locks[locking.LEVEL_NODE] = True
+        self.opportunistic_locks[locking.LEVEL_NODE_RES] = True
     else:
       self.op.pnode = _ExpandNodeName(self.cfg, self.op.pnode)
       nodelist = [self.op.pnode]
@@ -9937,11 +9941,17 @@ class LUInstanceCreate(LogicalUnit):
     """Run the allocator based on input opcode.
 
     """
+    if self.op.opportunistic_locking:
+      # Only consider nodes for which a lock is held
+      node_whitelist = self.owned_locks(locking.LEVEL_NODE)
+    else:
+      node_whitelist = None
+
     #TODO Export network to iallocator so that it chooses a pnode
     #     in a nodegroup that has the desired network connected to
     req = _CreateInstanceAllocRequest(self.op, self.disks,
                                       self.nics, self.be_full,
-                                      None)
+                                      node_whitelist)
     ial = iallocator.IAllocator(self.cfg, self.rpc, req)
 
     ial.Run(self.op.iallocator)
@@ -10824,6 +10834,10 @@ class LUInstanceMultiAlloc(NoHooksLU):
     if self.op.iallocator:
       self.needed_locks[locking.LEVEL_NODE] = locking.ALL_SET
       self.needed_locks[locking.LEVEL_NODE_RES] = locking.ALL_SET
+
+      if self.op.opportunistic_locking:
+        self.opportunistic_locks[locking.LEVEL_NODE] = True
+        self.opportunistic_locks[locking.LEVEL_NODE_RES] = True
     else:
       nodeslist = []
       for inst in self.op.instances:
@@ -10846,11 +10860,17 @@ class LUInstanceMultiAlloc(NoHooksLU):
     default_vg = self.cfg.GetVGName()
     ec_id = self.proc.GetECId()
 
+    if self.op.opportunistic_locking:
+      # Only consider nodes for which a lock is held
+      node_whitelist = self.owned_locks(locking.LEVEL_NODE)
+    else:
+      node_whitelist = None
+
     insts = [_CreateInstanceAllocRequest(op, _ComputeDisks(op, default_vg),
                                          _ComputeNics(op, cluster, None,
                                                       self.cfg, ec_id),
                                          _ComputeFullBeParams(op, cluster),
-                                         None)
+                                         node_whitelist)
              for op in self.op.instances]
 
     req = iallocator.IAReqMultiInstanceAlloc(instances=insts)
