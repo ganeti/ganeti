@@ -30,6 +30,9 @@ ECODE_RESOLVER = "resolver_error"
 #: Not enough resources (iallocator failure, disk space, memory, etc.)
 ECODE_NORES = "insufficient_resources"
 
+#: Temporarily out of resources; operation can be tried again
+ECODE_TEMP_NORES = "insufficient_resources"
+
 #: Wrong arguments (at syntax level)
 ECODE_INVAL = "wrong_input"
 
@@ -55,6 +58,7 @@ ECODE_ENVIRON = "environment_error"
 ECODE_ALL = frozenset([
   ECODE_RESOLVER,
   ECODE_NORES,
+  ECODE_TEMP_NORES,
   ECODE_INVAL,
   ECODE_STATE,
   ECODE_NOENT,

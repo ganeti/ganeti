@@ -9957,10 +9957,17 @@ class LUInstanceCreate(LogicalUnit):
     ial.Run(self.op.iallocator)
 
     if not ial.success:
+      # When opportunistic locks are used only a temporary failure is generated
+      if self.op.opportunistic_locking:
+        ecode = errors.ECODE_TEMP_NORES
+      else:
+        ecode = errors.ECODE_NORES
+
       raise errors.OpPrereqError("Can't compute nodes using"
                                  " iallocator '%s': %s" %
                                  (self.op.iallocator, ial.info),
-                                 errors.ECODE_NORES)
+                                 ecode)
+
     self.op.pnode = ial.result[0]
     self.LogInfo("Selected nodes for instance %s via iallocator %s: %s",
                  self.op.instance_name, self.op.iallocator,
