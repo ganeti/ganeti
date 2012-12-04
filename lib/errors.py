@@ -24,23 +24,31 @@
 
 # OpPrereqError failure types
 
-# resolver errors
+#: Resolver errors
 ECODE_RESOLVER = "resolver_error"
-# not enough resources (iallocator failure, disk space, memory, etc.)
+
+#: Not enough resources (iallocator failure, disk space, memory, etc.)
 ECODE_NORES = "insufficient_resources"
-# wrong arguments (at syntax level)
+
+#: Wrong arguments (at syntax level)
 ECODE_INVAL = "wrong_input"
-# wrong entity state
+
+#: Wrong entity state
 ECODE_STATE = "wrong_state"
-# entity not found
+
+#: Entity not found
 ECODE_NOENT = "unknown_entity"
-# entity already exists
+
+#: Entity already exists
 ECODE_EXISTS = "already_exists"
-# resource not unique (e.g. MAC or IP duplication)
+
+#: Resource not unique (e.g. MAC or IP duplication)
 ECODE_NOTUNIQUE = "resource_not_unique"
-# internal cluster error
+
+#: Internal cluster error
 ECODE_FAULT = "internal_error"
-# environment error (e.g. node disk error)
+
+#: Environment error (e.g. node disk error)
 ECODE_ENVIRON = "environment_error"
 
 #: List of all failure types
