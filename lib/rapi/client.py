@@ -114,6 +114,50 @@ _INST_REINSTALL_REQV1 = INST_REINSTALL_REQV1
 _NODE_MIGRATE_REQV1 = NODE_MIGRATE_REQV1
 _NODE_EVAC_RES1 = NODE_EVAC_RES1
 
+#: Resolver errors
+ECODE_RESOLVER = "resolver_error"
+
+#: Not enough resources (iallocator failure, disk space, memory, etc.)
+ECODE_NORES = "insufficient_resources"
+
+#: Temporarily out of resources; operation can be tried again
+ECODE_TEMP_NORES = "insufficient_resources"
+
+#: Wrong arguments (at syntax level)
+ECODE_INVAL = "wrong_input"
+
+#: Wrong entity state
+ECODE_STATE = "wrong_state"
+
+#: Entity not found
+ECODE_NOENT = "unknown_entity"
+
+#: Entity already exists
+ECODE_EXISTS = "already_exists"
+
+#: Resource not unique (e.g. MAC or IP duplication)
+ECODE_NOTUNIQUE = "resource_not_unique"
+
+#: Internal cluster error
+ECODE_FAULT = "internal_error"
+
+#: Environment error (e.g. node disk error)
+ECODE_ENVIRON = "environment_error"
+
+#: List of all failure types
+ECODE_ALL = frozenset([
+  ECODE_RESOLVER,
+  ECODE_NORES,
+  ECODE_TEMP_NORES,
+  ECODE_INVAL,
+  ECODE_STATE,
+  ECODE_NOENT,
+  ECODE_EXISTS,
+  ECODE_NOTUNIQUE,
+  ECODE_FAULT,
+  ECODE_ENVIRON,
+  ])
+
 # Older pycURL versions don't have all error constants
 try:
   _CURLE_SSL_CACERT = pycurl.E_SSL_CACERT

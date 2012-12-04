@@ -34,6 +34,7 @@ from ganeti import utils
 from ganeti import query
 from ganeti import objects
 from ganeti import rapi
+from ganeti import errors
 
 import ganeti.rapi.testutils
 from ganeti.rapi import connector
@@ -135,6 +136,17 @@ class TestConstants(unittest.TestCase):
     self.assertEqual(client.NODE_MIGRATE_REQV1, rlib2._NODE_MIGRATE_REQV1)
     self.assertEqual(client._NODE_EVAC_RES1, rlib2._NODE_EVAC_RES1)
     self.assertEqual(client.NODE_EVAC_RES1, rlib2._NODE_EVAC_RES1)
+
+  def testErrors(self):
+    self.assertEqual(client.ECODE_ALL, errors.ECODE_ALL)
+
+    # Make sure all error codes are in both RAPI client and errors module
+    for name in filter(lambda s: (s.startswith("ECODE_") and s != "ECODE_ALL"),
+                       dir(client)):
+      value = getattr(client, name)
+      self.assertEqual(value, getattr(errors, name))
+      self.assertTrue(value in client.ECODE_ALL)
+      self.assertTrue(value in errors.ECODE_ALL)
 
 
 class RapiMockTest(unittest.TestCase):
