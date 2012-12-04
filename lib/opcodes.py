@@ -207,10 +207,12 @@ _TSetParamsResult = \
   ht.TListOf(ht.TAnd(ht.TIsLength(len(_TSetParamsResultItemItems)),
                      ht.TItems(_TSetParamsResultItemItems)))
 
-# TODO: Generate check from constants.IDISK_PARAMS_TYPES (however, not all users
-# of this check support all parameters)
+# In the disks option we can provide arbitrary parameters too, which
+# we may not be able to validate at this level, so we just check the
+# format of the dict here and the checks concerning IDISK_PARAMS will
+# happen at the LU level
 _TDiskParams = \
-  ht.Comment("Disk parameters")(ht.TDictOf(ht.TElemOf(constants.IDISK_PARAMS),
+  ht.Comment("Disk parameters")(ht.TDictOf(ht.TNonEmptyString,
                                            ht.TOr(ht.TNonEmptyString, ht.TInt)))
 
 _TQueryRow = \

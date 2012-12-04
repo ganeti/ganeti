@@ -1003,7 +1003,7 @@ class TestInstanceCreation(testutils.GanetiTestCase):
     # Invalid disks and nics
     for field in ["disks", "nics"]:
       invalid_values = [None, 1, "", {}, [1, 2, 3], ["hda1", "hda2"],
-                        [{"_unknown_": 999, }]]
+                        [{"_unknown_": False, }]]
 
       for invvalue in invalid_values:
         data = reqfields.copy()
