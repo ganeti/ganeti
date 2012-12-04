@@ -539,10 +539,10 @@ genOpCode name cons = do
   let declD = DataD [] tname [] decl_d [''Show, ''Eq]
 
   let (allfsig, allffn) = genAllOpFields "allOpFields" cons
-  (savesig, savefn) <- genSaveOpCode tname "saveOpCode" cons
-                         (uncurry saveConstructor)
+  save_decs <- genSaveOpCode tname "saveOpCode" "toDictOpCode"
+               cons (uncurry saveConstructor) True
   (loadsig, loadfn) <- genLoadOpCode cons
-  return [declD, allfsig, allffn, loadsig, loadfn, savesig, savefn]
+  return $ [declD, allfsig, allffn, loadsig, loadfn] ++ save_decs
 
 -- | Generates the function pattern returning the list of fields for a
 -- given constructor.
@@ -583,7 +583,7 @@ saveConstructor sname fields = do
                    JSON.showJSON $(stringE . deCamelCase $ sname) )] |]
       flist = listE (opid:felems)
       -- and finally convert all this to a json object
-      flist' = [| $makeObjE (concat $flist) |]
+      flist' = [| concat $flist |]
   clause [pat] (normalB flist') []
 
 -- | Generates the main save opcode function.
@@ -591,15 +591,28 @@ saveConstructor sname fields = do
 -- This builds a per-constructor match clause that contains the
 -- respective constructor-serialisation code.
 genSaveOpCode :: Name                      -- ^ Object ype
-              -> String                    -- ^ Function name
+              -> String                    -- ^ To 'JSValue' function name
+              -> String                    -- ^ To 'JSObject' function name
               -> [Constructor]             -- ^ Object definition
               -> (Constructor -> Q Clause) -- ^ Constructor save fn
-              -> Q (Dec, Dec)
-genSaveOpCode tname sname opdefs fn = do
-  cclauses <- mapM fn opdefs
-  let fname = mkName sname
-      sigt = AppT  (AppT ArrowT (ConT tname)) (ConT ''JSON.JSValue)
-  return $ (SigD fname sigt, FunD fname cclauses)
+              -> Bool                      -- ^ Whether to generate
+                                           -- obj or just a
+                                           -- list\/tuple of values
+              -> Q [Dec]
+genSaveOpCode tname jvalstr tdstr opdefs fn gen_object = do
+  tdclauses <- mapM fn opdefs
+  let typecon = ConT tname
+      jvalname = mkName jvalstr
+      jvalsig = AppT  (AppT ArrowT typecon) (ConT ''JSON.JSValue)
+      tdname = mkName tdstr
+  tdsig <- [t| $(return typecon) -> [(String, JSON.JSValue)] |]
+  jvalclause <- if gen_object
+                  then [| $makeObjE . $(varE tdname) |]
+                  else [| JSON.showJSON . map snd . $(varE tdname) |]
+  return [ SigD tdname tdsig
+         , FunD tdname tdclauses
+         , SigD jvalname jvalsig
+         , ValD (VarP jvalname) (NormalB jvalclause) []]
 
 -- | Generates load code for a single constructor of the opcode data type.
 loadConstructor :: String -> [Field] -> Q Exp
@@ -667,12 +680,12 @@ genLuxiOp name cons = do
                     return $ NormalC (mkName cname) fields'')
             cons
   let declD = DataD [] (mkName name) [] decl_d [''Show, ''Eq]
-  (savesig, savefn) <- genSaveOpCode tname "opToArgs"
-                         cons saveLuxiConstructor
+  save_decs <- genSaveOpCode tname "opToArgs" "opToDict"
+               cons saveLuxiConstructor False
   req_defs <- declareSADT "LuxiReq" .
               map (\(str, _) -> ("Req" ++ str, mkName ("luxiReq" ++ str))) $
                   cons
-  return $ [declD, savesig, savefn] ++ req_defs
+  return $ declD:save_decs ++ req_defs
 
 -- | Generates the \"save\" expression for a single luxi parameter.
 saveLuxiField :: Name -> SimpleField -> Q Exp
@@ -686,9 +699,7 @@ saveLuxiConstructor (sname, fields) = do
   fnames <- mapM (newName . fieldVariable) fields
   let pat = conP cname (map varP fnames)
   let felems = map (uncurry saveObjectField) (zip fnames fields)
-      flist = if null felems
-                then [| JSON.showJSON () |]
-                else [| JSON.showJSON (map snd $ concat $(listE felems)) |]
+      flist = [| concat $(listE felems) |]
   clause [pat] (normalB flist) []
 
 -- * "Objects" functionality
