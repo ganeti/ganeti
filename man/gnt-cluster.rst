@@ -59,7 +59,8 @@ group, e.g.::
     # gnt-cluster command -g default date
 
 The ``-M`` option can be used to prepend the node name to all output
-lines.
+lines. The ``--failure-only`` option hides successful commands, making
+it easier to see failures.
 
 The command is executed serially on the selected nodes. If the
 master node is present in the list, the command will be executed

@@ -82,6 +82,7 @@ __all__ = [
   "EARLY_RELEASE_OPT",
   "ENABLED_HV_OPT",
   "ERROR_CODES_OPT",
+  "FAILURE_ONLY_OPT",
   "FIELDS_OPT",
   "FILESTORE_DIR_OPT",
   "FILESTORE_DRIVER_OPT",
@@ -1362,6 +1363,11 @@ PRIMARY_IP_VERSION_OPT = \
 SHOW_MACHINE_OPT = cli_option("-M", "--show-machine-names", default=False,
                               action="store_true",
                               help="Show machine name for every line in output")
+
+FAILURE_ONLY_OPT = cli_option("--failure-only", default=False,
+                              action="store_true",
+                              help=("Hide successful results and show failures"
+                                    " only (determined by the exit code)"))
 
 
 def _PriorityOptionCb(option, _, value, parser):

@@ -539,6 +539,11 @@ def RunClusterCommand(opts, args):
 
   for name in nodes:
     result = srun.Run(name, constants.SSH_LOGIN_USER, command)
+
+    if opts.failure_only and result.exit_code == constants.EXIT_SUCCESS:
+      # Do not output anything for successful commands
+      continue
+
     ToStdout("------------------------------------------------")
     if opts.show_machine_names:
       for line in result.output.splitlines():
@@ -1524,7 +1529,7 @@ commands = {
     "[-n node...] <filename>", "Copies a file to all (or only some) nodes"),
   "command": (
     RunClusterCommand, [ArgCommand(min=1)],
-    [NODE_LIST_OPT, NODEGROUP_OPT, SHOW_MACHINE_OPT],
+    [NODE_LIST_OPT, NODEGROUP_OPT, SHOW_MACHINE_OPT, FAILURE_ONLY_OPT],
     "[-n node...] <command>", "Runs a command on all (or only some) nodes"),
   "info": (
     ShowClusterConfig, ARGS_NONE, [ROMAN_OPT],
