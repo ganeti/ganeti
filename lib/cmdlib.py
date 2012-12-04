@@ -9849,8 +9849,6 @@ class LUInstanceCreate(LogicalUnit):
       # specifying a group on instance creation and then selecting nodes from
       # that group
       self.needed_locks[locking.LEVEL_NODE] = locking.ALL_SET
-      self.needed_locks[locking.LEVEL_NODE_RES] = \
-        _CopyLockList(self.needed_locks[locking.LEVEL_NODE])
       self.needed_locks[locking.LEVEL_NODE_ALLOC] = locking.ALL_SET
     else:
       self.op.pnode = _ExpandNodeName(self.cfg, self.op.pnode)
@@ -9859,9 +9857,6 @@ class LUInstanceCreate(LogicalUnit):
         self.op.snode = _ExpandNodeName(self.cfg, self.op.snode)
         nodelist.append(self.op.snode)
       self.needed_locks[locking.LEVEL_NODE] = nodelist
-      # Lock resources of instance's primary and secondary nodes (copy to
-      # prevent accidential modification)
-      self.needed_locks[locking.LEVEL_NODE_RES] = list(nodelist)
 
     # in case of import lock the source node too
     if self.op.mode == constants.INSTANCE_IMPORT:
@@ -9886,6 +9881,9 @@ class LUInstanceCreate(LogicalUnit):
         if not os.path.isabs(src_path):
           self.op.src_path = src_path = \
             utils.PathJoin(pathutils.EXPORT_DIR, src_path)
+
+    self.needed_locks[locking.LEVEL_NODE_RES] = \
+      _CopyLockList(self.needed_locks[locking.LEVEL_NODE])
 
   def _RunAllocator(self):
     """Run the allocator based on input opcode.
