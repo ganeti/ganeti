@@ -413,6 +413,7 @@ HS_HTOOLS_PROGS = $(HS_BIN_ROLES) hail
 HS_ALL_PROGS = \
 	$(HS_PROGS) \
 	htest/hpc-htools \
+	htest/hpc-mon-collector \
 	htest/test \
 	htools/hconfd \
 	htools/rpc-test
@@ -678,8 +679,11 @@ htest/test: HEXTRA_INT=-fhpc -ihtest
 # we compile the hpc-htools binary with the program coverage
 htest/hpc-htools: HEXTRA_INT=-fhpc
 
+# we compile the hpc-mon-collector binary with the program coverage
+htest/hpc-mon-collector: HEXTRA_INT=-fhpc
+
 # test dependency
-htest/offline-tests.sh: htest/hpc-htools
+htest/offline-tests.sh: htest/hpc-htools htest/hpc-mon-collector
 
 # rules for building profiling-enabled versions of the haskell
 # programs: hs-prof does the full two-step build, whereas
@@ -872,6 +876,7 @@ TEST_FILES = \
 	htest/shelltests/htools-rapi.test \
 	htest/shelltests/htools-single-group.test \
 	htest/shelltests/htools-text-backend.test \
+	htest/shelltests/htools-mon-collector.test \
 	test/data/bdev-drbd-8.0.txt \
 	test/data/bdev-drbd-8.3.txt \
 	test/data/bdev-drbd-disk.txt \
@@ -1027,7 +1032,10 @@ check_SCRIPTS =
 if WANT_HTOOLSTESTS
 nodist_TESTS += $(haskell_tests)
 dist_TESTS += htest/offline-test.sh
-check_SCRIPTS += htest/hpc-htools $(HS_BUILT_TEST_HELPERS)
+check_SCRIPTS += \
+	htest/hpc-htools \
+	htest/hpc-mon-collector \
+	$(HS_BUILT_TEST_HELPERS)
 endif
 
 TESTS = $(dist_TESTS) $(nodist_TESTS)
@@ -1509,7 +1517,7 @@ check-local: check-dirs $(GENERATED_FILES)
 	test -z "$$error"
 
 .PHONY: hs-check
-hs-check: htest/test htest/hpc-htools $(HS_BUILT_TEST_HELPERS)
+hs-check: htest/test htest/hpc-htools htest/hpc-mon-collector $(HS_BUILT_TEST_HELPERS)
 	@rm -f test.tix
 	./htest/test
 	HBINARY="./htest/hpc-htools" ./htest/offline-test.sh
@@ -1726,12 +1734,12 @@ py-coverage: $(GENERATED_FILES) $(python_tests)
 	$(python_tests)
 
 .PHONY: hs-coverage
-hs-coverage: $(haskell_tests) htest/hpc-htools
+hs-coverage: $(haskell_tests) htest/hpc-htools htest/hpc-mon-collector
 	rm -f *.tix
 	$(MAKE) $(AM_MAKEFLAGS) hs-check
 	@mkdir_p@ $(COVERAGE_HS_DIR)
 	hpc combine --union $(HPCEXCL) \
-	  test.tix hpc-htools.tix > coverage-htools.tix
+	  test.tix hpc-htools.tix hpc-mon-collector.tix > coverage-htools.tix
 	hpc markup --destdir=$(COVERAGE_HS_DIR) coverage-htools.tix
 	hpc report coverage-htools.tix
 	$(LN_S) -f hpc_index.html $(COVERAGE_HS_DIR)/index.html

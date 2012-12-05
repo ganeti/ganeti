@@ -31,6 +31,7 @@ import Control.Applicative ((<*>), (*>), (<*), (<$>), (<|>), pure)
 import qualified Data.Attoparsec.Text as A
 import qualified Data.Attoparsec.Combinator as AC
 import Data.Attoparsec.Text (Parser)
+import Data.Maybe
 import Data.Text (Text, unpack)
 
 import Ganeti.Block.Drbd.Types
@@ -68,14 +69,22 @@ drbdStatusParser =
 
 -- | The parser for the version information lines.
 versionInfoParser :: Parser VersionInfo
-versionInfoParser =
-  VersionInfo
-    <$> optional versionP
-    <*> optional apiP
-    <*> optional protoP
-    <*> optional srcVersion
-    <*> (fmap unpack <$> optional gh)
-    <*> (fmap unpack <$> optional builder)
+versionInfoParser = do
+  versionF <- optional versionP
+  apiF <- optional apiP
+  protoF <- optional protoP
+  srcVersionF <- optional srcVersion
+  ghF <- fmap unpack <$> optional gh
+  builderF <- fmap unpack <$> optional builder
+  if   isNothing versionF
+    && isNothing apiF
+    && isNothing protoF
+    && isNothing srcVersionF
+    && isNothing ghF
+    && isNothing builderF
+    then fail "versionInfo"
+    else pure $ VersionInfo versionF apiF protoF srcVersionF ghF builderF
+
     where versionP =
             A.string "version:"
             *> skipSpaces

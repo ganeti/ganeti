@@ -17,14 +17,14 @@ mv $tmpdir/lib $tmpdir/ganeti
 ln -T -s $tmpdir/ganeti $tmpdir/lib
 
 mkdir -p $tmpdir/htools $tmpdir/htest
-for hfile in htools ganeti-confd; do
+for hfile in htools ganeti-confd mon-collector; do
   if [ -e htools/$hfile ]; then
     cp -p htools/$hfile $tmpdir/htools/
   fi
 done
 
 for hfile in hpc-htools test offline-test.sh cli-tests-defs.sh \
-  hbal hscan hspace hinfo hcheck hail; do
+  hbal hscan hspace hinfo hcheck hail hpc-mon-collector; do
   if [ -e htest/$hfile ]; then
     cp -p htest/$hfile $tmpdir/htest/
   fi
