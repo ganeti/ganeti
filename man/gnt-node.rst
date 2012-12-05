@@ -67,6 +67,10 @@ command fails at a later stage, it doesn't undo such changes.  This
 should not be a problem, as a successful run of ``gnt-node add`` will
 bring everything back in sync.
 
+If the node was previously part of another cluster and still has daemons
+running, the ``node-cleanup`` tool can be run on the machine to be added
+to clean remains of the previous cluster from the node.
+
 Example::
 
     # gnt-node add node5.example.com

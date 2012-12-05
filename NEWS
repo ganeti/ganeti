@@ -33,6 +33,10 @@ Version 2.7.0 beta1
   for RAPI users. It allows granting permissions to query for
   information to a specific user without giving
   :pyeval:`rapi.RAPI_ACCESS_WRITE` permissions.
+- A new tool named ``node-cleanup`` has been added. It cleans remains of
+  a cluster from a machine by stopping all daemons, removing
+  certificates and ssconf files. Unless the ``--no-backup`` option is
+  given, copies of the certificates are made.
 
 
 Version 2.6.1

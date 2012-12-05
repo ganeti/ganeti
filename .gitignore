@@ -95,6 +95,7 @@
 /tools/kvm-ifup
 /tools/ensure-dirs
 /tools/vcluster-setup
+/tools/node-cleanup
 /tools/node-daemon-setup
 /tools/prepare-node-join
 

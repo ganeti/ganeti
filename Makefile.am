@@ -332,6 +332,7 @@ server_PYTHON = \
 pytools_PYTHON = \
 	lib/tools/__init__.py \
 	lib/tools/ensure_dirs.py \
+	lib/tools/node_cleanup.py \
 	lib/tools/node_daemon_setup.py \
 	lib/tools/prepare_node_join.py
 
@@ -617,6 +618,7 @@ PYTHON_BOOTSTRAP_SBIN = \
 PYTHON_BOOTSTRAP = \
 	$(PYTHON_BOOTSTRAP_SBIN) \
 	tools/ensure-dirs \
+	tools/node-cleanup \
 	tools/node-daemon-setup \
 	tools/prepare-node-join
 
@@ -720,7 +722,11 @@ dist_tools_SCRIPTS = \
 	tools/master-ip-setup \
 	tools/xen-console-wrapper
 
+nodist_tools_python_scripts = \
+	tools/node-cleanup
+
 nodist_tools_SCRIPTS = \
+	$(nodist_tools_python_scripts) \
 	tools/vcluster-setup
 
 pkglib_python_scripts = \
@@ -1034,6 +1040,7 @@ all_python_code = \
 	$(python_scripts) \
 	$(pkglib_python_scripts) \
 	$(nodist_pkglib_python_scripts) \
+	$(nodist_tools_python_scripts) \
 	$(python_tests) \
 	$(pkgpython_PYTHON) \
 	$(client_PYTHON) \
@@ -1379,6 +1386,7 @@ scripts/%: MODULE = ganeti.client.$(subst -,_,$(notdir $@))
 tools/ensure-dirs: MODULE = ganeti.tools.ensure_dirs
 tools/node-daemon-setup: MODULE = ganeti.tools.node_daemon_setup
 tools/prepare-node-join: MODULE = ganeti.tools.prepare_node_join
+tools/node-cleanup: MODULE = ganeti.tools.node_cleanup
 $(HS_BUILT_TEST_HELPERS): TESTROLE = $(patsubst htest/%,%,$@)
 
 $(PYTHON_BOOTSTRAP): Makefile | stamp-directories
