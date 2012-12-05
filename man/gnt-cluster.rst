@@ -46,10 +46,13 @@ COMMAND
 
 **command** [-n *node*] [-g *group*] [-M] {*command*}
 
-Executes a command on all nodes. If the option ``-n`` is not given,
-the command will be executed on all nodes, otherwise it will be
-executed only on the node(s) specified. Use the option multiple
-times for running it on multiple nodes, like::
+Executes a command on all nodes. This command is designed for simple
+usage. For more complex use cases the commands **dsh(1)** or **cssh(1)**
+should be used instead.
+
+If the option ``-n`` is not given, the command will be executed on all
+nodes, otherwise it will be executed only on the node(s) specified. Use
+the option multiple times for running it on multiple nodes, like::
 
     # gnt-cluster command -n node1.example.com -n node2.example.com date
 
