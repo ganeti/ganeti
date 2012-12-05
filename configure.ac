@@ -629,7 +629,6 @@ fi
 AC_SUBST(HTOOLS_APIDOC)
 
 # Check for hlint
-HLINT=no
 AC_ARG_VAR(HLINT, [hlint path])
 AC_PATH_PROG(HLINT, [hlint], [])
 if test -z "$HLINT"; then
