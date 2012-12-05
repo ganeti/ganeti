@@ -15662,6 +15662,11 @@ class LUNetworkAdd(LogicalUnit):
     mn = self.cfg.GetMasterNode()
     return ([mn], [mn])
 
+  def CheckArguments(self):
+    if self.op.mac_prefix:
+      self.op.mac_prefix = \
+        utils.NormalizeAndValidateThreeOctetMacPrefix(self.op.mac_prefix)
+
   def ExpandNames(self):
     self.network_uuid = self.cfg.GenerateUniqueID(self.proc.GetECId())
 
@@ -15676,12 +15681,6 @@ class LUNetworkAdd(LogicalUnit):
     self.add_locks[locking.LEVEL_NETWORK] = self.network_uuid
 
   def CheckPrereq(self):
-    """Check prerequisites.
-
-    This checks that the given group name is not an existing node group
-    already.
-
-    """
     if self.op.network is None:
       raise errors.OpPrereqError("Network must be given",
                                  errors.ECODE_INVAL)
@@ -15691,9 +15690,6 @@ class LUNetworkAdd(LogicalUnit):
     if uuid:
       raise errors.OpPrereqError("Network '%s' already defined" %
                                  self.op.network, errors.ECODE_EXISTS)
-
-    if self.op.mac_prefix:
-      utils.NormalizeAndValidateMac(self.op.mac_prefix + ":00:00:00")
 
     # Check tag validity
     for tag in self.op.tags:
@@ -15896,8 +15892,8 @@ class LUNetworkSetParams(LogicalUnit):
       if self.op.mac_prefix == constants.VALUE_NONE:
         self.mac_prefix = None
       else:
-        utils.NormalizeAndValidateMac(self.op.mac_prefix + ":00:00:00")
-        self.mac_prefix = self.op.mac_prefix
+        self.mac_prefix = \
+          utils.NormalizeAndValidateThreeOctetMacPrefix(self.op.mac_prefix)
 
     if self.op.gateway6:
       if self.op.gateway6 == constants.VALUE_NONE:
