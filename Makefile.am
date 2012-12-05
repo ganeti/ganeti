@@ -1631,6 +1631,7 @@ endif
 
 .PHONY: py-apidoc
 py-apidoc: epydoc.conf $(RUN_IN_TEMPDIR) $(GENERATED_FILES)
+	env - PATH="$$PATH" PYTHONPATH="$$PYTHONPATH" \
 	$(RUN_IN_TEMPDIR) epydoc -v \
 	  --conf $(CURDIR)/epydoc.conf \
 	  --output $(CURDIR)/$(APIDOC_PY_DIR)
