@@ -517,9 +517,7 @@ class _QueuedJob(object):
 
         changed = True
 
-        # Note: this also changes the on-disk priority ("op.priority" is only in
-        # memory)
-        op.input.priority = priority
+        # Set new priority (doesn't modify opcode input)
         op.priority = priority
 
       if changed:
