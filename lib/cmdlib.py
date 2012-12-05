@@ -15778,7 +15778,8 @@ class LUNetworkRemove(LogicalUnit):
     self.network_uuid = self.cfg.LookupNetwork(self.op.network_name)
 
     if not self.network_uuid:
-      raise errors.OpPrereqError("Network %s not found" % self.op.network_name,
+      raise errors.OpPrereqError(("Network '%s' not found" %
+                                  self.op.network_name),
                                  errors.ECODE_INVAL)
 
     self.share_locks[locking.LEVEL_NODEGROUP] = 1
@@ -15795,19 +15796,17 @@ class LUNetworkRemove(LogicalUnit):
     cluster.
 
     """
-
     # Verify that the network is not conncted.
     node_groups = [group.name
                    for group in self.cfg.GetAllNodeGroupsInfo().values()
-                   for net in group.networks.keys()
-                   if net == self.network_uuid]
+                   if self.network_uuid in group.networks]
 
     if node_groups:
-      self.LogWarning("Nework '%s' is connected to the following"
-                      " node groups: %s" % (self.op.network_name,
-                      utils.CommaJoin(utils.NiceSort(node_groups))))
-      raise errors.OpPrereqError("Network still connected",
-                                 errors.ECODE_STATE)
+      self.LogWarning("Network '%s' is connected to the following"
+                      " node groups: %s" %
+                      (self.op.network_name,
+                       utils.CommaJoin(utils.NiceSort(node_groups))))
+      raise errors.OpPrereqError("Network still connected", errors.ECODE_STATE)
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -15851,11 +15850,11 @@ class LUNetworkSetParams(LogicalUnit):
 
   def ExpandNames(self):
     self.network_uuid = self.cfg.LookupNetwork(self.op.network_name)
-    self.network = self.cfg.GetNetwork(self.network_uuid)
-    if self.network is None:
-      raise errors.OpPrereqError("Could not retrieve network '%s' (UUID: %s)" %
-                                 (self.op.network_name, self.network_uuid),
+    if self.network_uuid is None:
+      raise errors.OpPrereqError(("Network '%s' not found" %
+                                  self.op.network_name),
                                  errors.ECODE_INVAL)
+
     self.needed_locks = {
       locking.LEVEL_NETWORK: [self.network_uuid],
       }
@@ -15864,6 +15863,7 @@ class LUNetworkSetParams(LogicalUnit):
     """Check prerequisites.
 
     """
+    self.network = self.cfg.GetNetwork(self.network_uuid)
     self.gateway = self.network.gateway
     self.network_type = self.network.network_type
     self.mac_prefix = self.network.mac_prefix
@@ -16115,22 +16115,24 @@ class LUNetworkConnect(LogicalUnit):
     self.network_link = self.op.network_link
 
     self.network_uuid = self.cfg.LookupNetwork(self.network_name)
-    self.network = self.cfg.GetNetwork(self.network_uuid)
-    if self.network is None:
+    if self.network_uuid is None:
       raise errors.OpPrereqError("Network %s does not exist" %
                                  self.network_name, errors.ECODE_INVAL)
 
     self.group_uuid = self.cfg.LookupNodeGroup(self.group_name)
-    self.group = self.cfg.GetNodeGroup(self.group_uuid)
-    if self.group is None:
+    if self.group_uuid is None:
       raise errors.OpPrereqError("Group %s does not exist" %
                                  self.group_name, errors.ECODE_INVAL)
 
-    self.share_locks[locking.LEVEL_INSTANCE] = 1
     self.needed_locks = {
       locking.LEVEL_INSTANCE: [],
       locking.LEVEL_NODEGROUP: [self.group_uuid],
       }
+    self.share_locks[locking.LEVEL_INSTANCE] = 1
+
+    if self.op.conflicts_check:
+      self.needed_locks[locking.LEVEL_NETWORK] = [self.network_uuid]
+      self.share_locks[locking.LEVEL_NETWORK] = 1
 
   def DeclareLocks(self, level):
     if level == locking.LEVEL_INSTANCE:
@@ -16141,7 +16143,6 @@ class LUNetworkConnect(LogicalUnit):
       if self.op.conflicts_check:
         self.needed_locks[locking.LEVEL_INSTANCE] = \
             self.cfg.GetNodeGroupInstances(self.group_uuid)
-        self.needed_locks[locking.LEVEL_NETWORK] = [self.network_uuid]
 
   def BuildHooksEnv(self):
     ret = {
@@ -16149,7 +16150,6 @@ class LUNetworkConnect(LogicalUnit):
       "GROUP_NETWORK_MODE": self.network_mode,
       "GROUP_NETWORK_LINK": self.network_link,
       }
-    ret.update(_BuildNetworkHookEnvByObject(self.network))
     return ret
 
   def BuildHooksNodes(self):
@@ -16157,13 +16157,9 @@ class LUNetworkConnect(LogicalUnit):
     return (nodes, nodes)
 
   def CheckPrereq(self):
-    owned_instances = frozenset(self.owned_locks(locking.LEVEL_INSTANCE))
     owned_groups = frozenset(self.owned_locks(locking.LEVEL_NODEGROUP))
 
     assert self.group_uuid in owned_groups
-
-    # Check if locked instances are still correct
-    _CheckNodeGroupInstances(self.cfg, self.group_uuid, owned_instances)
 
     l = lambda value: utils.CommaJoin("%s: %s/%s" % (i[0], i[1], i[2])
                                       for i in value)
@@ -16174,6 +16170,7 @@ class LUNetworkConnect(LogicalUnit):
       }
     objects.NIC.CheckParameterSyntax(self.netparams)
 
+    self.group = self.cfg.GetNodeGroup(self.group_uuid)
     #if self.network_mode == constants.NIC_MODE_BRIDGED:
     #  _CheckNodeGroupBridgesExist(self, self.network_link, self.group_uuid)
     self.connected = False
@@ -16184,7 +16181,12 @@ class LUNetworkConnect(LogicalUnit):
       return
 
     if self.op.conflicts_check:
-      pool = network.AddressPool(self.network)
+      # Check if locked instances are still correct
+      owned_instances = frozenset(self.owned_locks(locking.LEVEL_INSTANCE))
+      _CheckNodeGroupInstances(self.cfg, self.group_uuid, owned_instances)
+
+      nobj = self.cfg.GetNetwork(self.network_uuid)
+      pool = network.AddressPool(nobj)
       conflicting_instances = []
 
       for (_, instance) in self.cfg.GetMultiInstanceInfo(owned_instances):
@@ -16223,18 +16225,17 @@ class LUNetworkDisconnect(LogicalUnit):
     self.group_name = self.op.group_name
 
     self.network_uuid = self.cfg.LookupNetwork(self.network_name)
-    self.network = self.cfg.GetNetwork(self.network_uuid)
-    if self.network is None:
+    if self.network_uuid is None:
       raise errors.OpPrereqError("Network %s does not exist" %
                                  self.network_name, errors.ECODE_INVAL)
 
     self.group_uuid = self.cfg.LookupNodeGroup(self.group_name)
-    self.group = self.cfg.GetNodeGroup(self.group_uuid)
-    if self.group is None:
+    if self.group_uuid is None:
       raise errors.OpPrereqError("Group %s does not exist" %
                                  self.group_name, errors.ECODE_INVAL)
 
     self.needed_locks = {
+      locking.LEVEL_INSTANCE: [],
       locking.LEVEL_NODEGROUP: [self.group_uuid],
       }
     self.share_locks[locking.LEVEL_INSTANCE] = 1
@@ -16253,7 +16254,6 @@ class LUNetworkDisconnect(LogicalUnit):
     ret = {
       "GROUP_NAME": self.group_name,
       }
-    ret.update(_BuildNetworkHookEnvByObject(self.network))
     return ret
 
   def BuildHooksNodes(self):
@@ -16261,17 +16261,14 @@ class LUNetworkDisconnect(LogicalUnit):
     return (nodes, nodes)
 
   def CheckPrereq(self):
-    owned_instances = frozenset(self.owned_locks(locking.LEVEL_INSTANCE))
     owned_groups = frozenset(self.owned_locks(locking.LEVEL_NODEGROUP))
 
     assert self.group_uuid in owned_groups
 
-    # Check if locked instances are still correct
-    _CheckNodeGroupInstances(self.cfg, self.group_uuid, owned_instances)
-
     l = lambda value: utils.CommaJoin("%s: %s/%s" % (i[0], i[1], i[2])
                                       for i in value)
 
+    self.group = self.cfg.GetNodeGroup(self.group_uuid)
     self.connected = True
     if self.network_uuid not in self.group.networks:
       self.LogWarning("Network '%s' is not mapped to group '%s'",
@@ -16280,6 +16277,10 @@ class LUNetworkDisconnect(LogicalUnit):
       return
 
     if self.op.conflicts_check:
+      # Check if locked instances are still correct
+      owned_instances = frozenset(self.owned_locks(locking.LEVEL_INSTANCE))
+      _CheckNodeGroupInstances(self.cfg, self.group_uuid, owned_instances)
+
       conflicting_instances = []
 
       for (_, instance) in self.cfg.GetMultiInstanceInfo(owned_instances):
