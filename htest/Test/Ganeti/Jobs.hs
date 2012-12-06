@@ -1,3 +1,5 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 {-| Unittests for ganeti-htools.
 
 -}
@@ -26,6 +28,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 module Test.Ganeti.Jobs (testJobs) where
 
 import Test.Ganeti.TestHelper
+
+{-# ANN module "HLint: ignore Unused LANGUAGE pragma" #-}
 
 testSuite "Jobs"
             [
