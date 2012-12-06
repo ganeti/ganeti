@@ -2213,6 +2213,10 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     @ivar oslist: list of OSes as diagnosed by DiagnoseOS
     @type vm_capable: boolean
     @ivar vm_capable: whether the node can host instances
+    @type pv_min: float
+    @ivar pv_min: size in MiB of the smallest PVs
+    @type pv_max: float
+    @ivar pv_max: size in MiB of the biggest PVs
 
     """
     def __init__(self, offline=False, name=None, vm_capable=True):
@@ -2232,6 +2236,8 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       self.ghost = False
       self.os_fail = False
       self.oslist = {}
+      self.pv_min = None
+      self.pv_max = None
 
   def ExpandNames(self):
     # This raises errors.OpPrereqError on its own:
@@ -2433,13 +2439,15 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
              "Node time diverges by at least %s from master node time",
              ntime_diff)
 
-  def _VerifyNodeLVM(self, ninfo, nresult, vg_name):
-    """Check the node LVM results.
+  def _UpdateVerifyNodeLVM(self, ninfo, nresult, vg_name, nimg):
+    """Check the node LVM results and update info for cross-node checks.
 
     @type ninfo: L{objects.Node}
     @param ninfo: the node to check
     @param nresult: the remote results for the node
     @param vg_name: the configured VG name
+    @type nimg: L{NodeImage}
+    @param nimg: node image
 
     """
     if vg_name is None:
@@ -2471,6 +2479,42 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
         _ErrorIf(test, constants.CV_ENODELVM, node,
                  "Invalid character ':' in PV '%s' of VG '%s'",
                  pv.name, pv.vg_name)
+      if self._exclusive_storage:
+        (errmsgs, (pvmin, pvmax)) = utils.LvmExclusiveCheckNodePvs(pvlist)
+        for msg in errmsgs:
+          self._Error(constants.CV_ENODELVM, node, msg)
+        nimg.pv_min = pvmin
+        nimg.pv_max = pvmax
+
+  def _VerifyGroupLVM(self, node_image, vg_name):
+    """Check cross-node consistency in LVM.
+
+    @type node_image: dict
+    @param node_image: info about nodes, mapping from node to names to
+      L{NodeImage} objects
+    @param vg_name: the configured VG name
+
+    """
+    if vg_name is None:
+      return
+
+    # Only exlcusive storage needs this kind of checks
+    if not self._exclusive_storage:
+      return
+
+    # exclusive_storage wants all PVs to have the same size (approximately),
+    # if the smallest and the biggest ones are okay, everything is fine.
+    # pv_min is None iff pv_max is None
+    vals = filter((lambda ni: ni.pv_min is not None), node_image.values())
+    if not vals:
+      return
+    (pvmin, minnode) = min((ni.pv_min, ni.name) for ni in vals)
+    (pvmax, maxnode) = max((ni.pv_max, ni.name) for ni in vals)
+    bad = utils.LvmExclusiveTestBadPvSizes(pvmin, pvmax)
+    self._ErrorIf(bad, constants.CV_EGROUPDIFFERENTPVSIZE, self.group_info.name,
+                  "PV sizes differ too much in the group; smallest (%s MB) is"
+                  " on %s, biggest (%s MB) is on %s",
+                  pvmin, minnode, pvmax, maxnode)
 
   def _VerifyNodeBridges(self, ninfo, nresult, bridges):
     """Check the node bridges.
@@ -3373,8 +3417,10 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
     es_flags = rpc.GetExclusiveStorageForNodeNames(self.cfg, self.my_node_names)
     es_unset_nodes = []
-    # The value of exclusive_storage should be the same across the group
-    if compat.any(es_flags.values()):
+    # The value of exclusive_storage should be the same across the group, so if
+    # it's True for at least a node, we act as if it were set for all the nodes
+    self._exclusive_storage = compat.any(es_flags.values())
+    if self._exclusive_storage:
       es_unset_nodes = [n for (n, es) in es_flags.items()
                         if not es]
 
@@ -3489,7 +3535,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
                                    node == master_node)
 
       if nimg.vm_capable:
-        self._VerifyNodeLVM(node_i, nresult, vg_name)
+        self._UpdateVerifyNodeLVM(node_i, nresult, vg_name, nimg)
         self._VerifyNodeDrbd(node_i, nresult, self.all_inst_info, drbd_helper,
                              all_drbd_map)
 
@@ -3515,6 +3561,8 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
                    "instance should not run on node %s", node_i.name)
           _ErrorIf(not test, constants.CV_ENODEORPHANINSTANCE, node_i.name,
                    "node is running unknown instance %s", inst)
+
+    self._VerifyGroupLVM(node_image, vg_name)
 
     for node, result in extra_lv_nvinfo.items():
       self._UpdateNodeVolumes(self.all_node_info[node], result.payload,
