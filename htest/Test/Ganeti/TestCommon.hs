@@ -147,7 +147,7 @@ genFQDN = do
 
 -- | Combinator that generates a 'Maybe' using a sub-combinator.
 genMaybe :: Gen a -> Gen (Maybe a)
-genMaybe subgen = oneof [ pure Nothing, liftM Just subgen ]
+genMaybe subgen = frequency [ (1, pure Nothing), (3, Just <$> subgen) ]
 
 -- | Defines a tag type.
 newtype TagChar = TagChar { tagGetChar :: Char }
