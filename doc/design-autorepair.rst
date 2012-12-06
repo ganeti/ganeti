@@ -102,8 +102,8 @@ It might also be useful to easily have an operation that tags all
 instances matching a  filter on some charateristic. But again, this
 wouldn't be specific to this tag.
 
-ganeti:watcher:repair:pending:<type>:<id>:<timestamp>:<jobs>
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ganeti:watcher:autorepair:pending:<type>:<id>:<timestamp>:<jobs>
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 (instance)
 If this tag is present a repair of type ``type`` is pending on the
@@ -125,8 +125,8 @@ request a repair as a "once off".
 If multiple instances of this tag are present they will be handled in
 order of timestamp.
 
-ganeti:watcher:repair:result:<type>:<id>:<timestamp>:<result>:<jobs>
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ganeti:watcher:autorepair:result:<type>:<id>:<timestamp>:<result>:<jobs>
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 (instance)
 If this tag is present a repair of type ``type`` has been performed on
