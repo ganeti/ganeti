@@ -137,6 +137,14 @@ $(genArbitrary ''OpStatus)
 prop_AllocPolicy_serialisation :: AllocPolicy -> Property
 prop_AllocPolicy_serialisation = testSerialisation
 
+-- | Test 'AllocPolicy' ordering is as expected.
+case_AllocPolicy_order :: Assertion
+case_AllocPolicy_order =
+  assertEqual "sort order" [ Types.AllocPreferred
+                           , Types.AllocLastResort
+                           , Types.AllocUnallocable
+                           ] [minBound..maxBound]
+
 prop_DiskTemplate_serialisation :: DiskTemplate -> Property
 prop_DiskTemplate_serialisation = testSerialisation
 
@@ -299,6 +307,18 @@ prop_OpStatus_serialization = testSerialisation
 prop_JobStatus_serialization :: JobStatus -> Property
 prop_JobStatus_serialization = testSerialisation
 
+-- | Test 'JobStatus' ordering is as expected.
+case_JobStatus_order :: Assertion
+case_JobStatus_order =
+  assertEqual "sort order" [ Types.JOB_STATUS_QUEUED
+                           , Types.JOB_STATUS_WAITING
+                           , Types.JOB_STATUS_CANCELING
+                           , Types.JOB_STATUS_RUNNING
+                           , Types.JOB_STATUS_CANCELED
+                           , Types.JOB_STATUS_SUCCESS
+                           , Types.JOB_STATUS_ERROR
+                           ] [minBound..maxBound]
+
 -- | Tests equivalence with Python, based on Constants.hs code.
 case_NICMode_pyequiv :: Assertion
 case_NICMode_pyequiv = do
@@ -334,6 +354,7 @@ prop_OpSubmitPriority_serialisation = testSerialisation
 
 testSuite "Types"
   [ 'prop_AllocPolicy_serialisation
+  , 'case_AllocPolicy_order
   , 'prop_DiskTemplate_serialisation
   , 'prop_InstanceStatus_serialisation
   , 'prop_NonNeg_pass
@@ -366,6 +387,7 @@ testSuite "Types"
   , 'prop_NICMode_serialisation
   , 'prop_OpStatus_serialization
   , 'prop_JobStatus_serialization
+  , 'case_JobStatus_order
   , 'case_NICMode_pyequiv
   , 'prop_FinalizedJobStatus_serialisation
   , 'case_FinalizedJobStatus_pyequiv
