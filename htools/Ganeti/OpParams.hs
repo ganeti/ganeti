@@ -1210,7 +1210,7 @@ pAllowFailover = defaultFalse "allow_failover"
 -- | Duration parameter for 'OpTestDelay'.
 pDelayDuration :: Field
 pDelayDuration =
-  renameField "DelayDuration "$ simpleField "duration" [t| Double |]
+  renameField "DelayDuration" $ simpleField "duration" [t| Double |]
 
 -- | on_master field for 'OpTestDelay'.
 pDelayOnMaster :: Field
