@@ -57,7 +57,7 @@ parseRequest key str = do
            else Bad "HMAC verification failed"
   return (salt, msg, req)
 
--- | Mesage parsing. This can either result in a good, valid message,
+-- | Message parsing. This can either result in a good, valid message,
 -- or fail in the Result monad.
 parseMessage :: HashKey -> String -> Integer
              -> Result (String, ConfdRequest)
