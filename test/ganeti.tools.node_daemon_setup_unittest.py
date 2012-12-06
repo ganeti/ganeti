@@ -101,8 +101,12 @@ class TestVerifyCertificate(testutils.GanetiTestCase):
     cert_pem = utils.ReadFile(cert_filename)
     result = \
       node_daemon_setup._VerifyCertificate(cert_pem, _check_fn=self._Check)
-    self.assertTrue("-----BEGIN PRIVATE KEY-----" in result)
-    self.assertTrue("-----BEGIN CERTIFICATE-----" in result)
+
+    cert = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, result)
+    self.assertTrue(cert)
+
+    key = OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM, result)
+    self.assertTrue(key)
 
   def testMismatchingKey(self):
     cert1_path = self._TestDataFilename("cert1.pem")
