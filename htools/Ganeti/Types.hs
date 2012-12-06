@@ -89,6 +89,7 @@ module Ganeti.Types
   , OpStatus(..)
   , opStatusToRaw
   , opStatusFromRaw
+  , ELogType(..)
   ) where
 
 import Control.Monad (liftM)
@@ -453,12 +454,20 @@ $(THH.makeJSONInstance ''OpSubmitPriority)
 
 -- | Our ADT for the OpCode status at runtime (while in a job).
 $(THH.declareSADT "OpStatus"
-       [ ("OP_STATUS_QUEUED",    'C.opStatusQueued)
-       , ("OP_STATUS_WAITING",   'C.opStatusWaiting)
-       , ("OP_STATUS_CANCELING", 'C.opStatusCanceling)
-       , ("OP_STATUS_RUNNING",   'C.opStatusRunning)
-       , ("OP_STATUS_CANCELED",  'C.opStatusCanceled)
-       , ("OP_STATUS_SUCCESS",   'C.opStatusSuccess)
-       , ("OP_STATUS_ERROR",     'C.opStatusError)
-       ])
+  [ ("OP_STATUS_QUEUED",    'C.opStatusQueued)
+  , ("OP_STATUS_WAITING",   'C.opStatusWaiting)
+  , ("OP_STATUS_CANCELING", 'C.opStatusCanceling)
+  , ("OP_STATUS_RUNNING",   'C.opStatusRunning)
+  , ("OP_STATUS_CANCELED",  'C.opStatusCanceled)
+  , ("OP_STATUS_SUCCESS",   'C.opStatusSuccess)
+  , ("OP_STATUS_ERROR",     'C.opStatusError)
+  ])
 $(THH.makeJSONInstance ''OpStatus)
+
+-- | Type for the job message type.
+$(THH.declareSADT "ELogType"
+  [ ("ELogMessage",      'C.elogMessage)
+  , ("ELogRemoteImport", 'C.elogRemoteImport)
+  , ("ELogJqueueTest",   'C.elogJqueueTest)
+  ])
+$(THH.makeJSONInstance ''ELogType)

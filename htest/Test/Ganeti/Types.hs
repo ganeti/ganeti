@@ -132,6 +132,8 @@ $(genArbitrary ''OpSubmitPriority)
 
 $(genArbitrary ''OpStatus)
 
+$(genArbitrary ''ELogType)
+
 -- * Properties
 
 prop_AllocPolicy_serialisation :: AllocPolicy -> Property
@@ -352,6 +354,10 @@ prop_JobDependency_serialisation = testSerialisation
 prop_OpSubmitPriority_serialisation :: OpSubmitPriority -> Property
 prop_OpSubmitPriority_serialisation = testSerialisation
 
+-- | Test 'ELogType' serialisation.
+prop_ELogType_serialisation :: ELogType -> Property
+prop_ELogType_serialisation = testSerialisation
+
 testSuite "Types"
   [ 'prop_AllocPolicy_serialisation
   , 'case_AllocPolicy_order
@@ -394,4 +400,5 @@ testSuite "Types"
   , 'prop_JobId_serialisation
   , 'prop_JobDependency_serialisation
   , 'prop_OpSubmitPriority_serialisation
+  , 'prop_ELogType_serialisation
   ]
