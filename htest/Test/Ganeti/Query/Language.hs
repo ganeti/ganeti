@@ -29,7 +29,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 module Test.Ganeti.Query.Language
   ( testQuery_Language
   , genFilter
-  , genJSValue
   ) where
 
 import Test.QuickCheck

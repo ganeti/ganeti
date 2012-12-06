@@ -481,7 +481,6 @@ HS_LIB_SRCS = \
 	htools/Ganeti/Jobs.hs \
 	htools/Ganeti/Logging.hs \
 	htools/Ganeti/Luxi.hs \
-	htools/Ganeti/Network.hs \
 	htools/Ganeti/Objects.hs \
 	htools/Ganeti/OpCodes.hs \
 	htools/Ganeti/OpParams.hs \
@@ -524,7 +523,6 @@ HS_TEST_SRCS = \
 	htest/Test/Ganeti/JSON.hs \
 	htest/Test/Ganeti/Jobs.hs \
 	htest/Test/Ganeti/Luxi.hs \
-	htest/Test/Ganeti/Network.hs \
 	htest/Test/Ganeti/Objects.hs \
 	htest/Test/Ganeti/OpCodes.hs \
 	htest/Test/Ganeti/Query/Filter.hs \

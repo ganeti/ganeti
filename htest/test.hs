@@ -52,7 +52,6 @@ import Test.Ganeti.HTools.Types
 import Test.Ganeti.JSON
 import Test.Ganeti.Jobs
 import Test.Ganeti.Luxi
-import Test.Ganeti.Network
 import Test.Ganeti.Objects
 import Test.Ganeti.OpCodes
 import Test.Ganeti.Query.Filter
@@ -101,7 +100,6 @@ allTests =
   , testJSON
   , testJobs
   , testLuxi
-  , testNetwork
   , testObjects
   , testOpCodes
   , testQuery_Filter

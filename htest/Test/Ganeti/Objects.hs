@@ -38,7 +38,6 @@ import Control.Applicative
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 
-import Test.Ganeti.Query.Language (genJSValue)
 import Test.Ganeti.TestHelper
 import Test.Ganeti.TestCommon
 import Test.Ganeti.Types ()
@@ -163,35 +162,6 @@ instance Arbitrary TagSet where
 
 $(genArbitrary ''Cluster)
 
-instance Arbitrary Network where
-  arbitrary = Network <$>
-                        -- name
-                        arbitrary
-                        -- network_type
-                        <*> arbitrary
-                        -- mac_prefix
-                        <*> arbitrary
-                        -- family
-                        <*> arbitrary
-                        -- network
-                        <*> arbitrary
-                        -- network6
-                        <*> arbitrary
-                        -- gateway
-                        <*> arbitrary
-                        -- gateway6
-                        <*> arbitrary
-                        -- size
-                        <*> genMaybe genJSValue
-                        -- reservations
-                        <*> arbitrary
-                        -- external reservations
-                        <*> arbitrary
-                        -- serial
-                        <*> arbitrary
-                        -- tags
-                        <*> (Set.fromList <$> genTags)
-
 -- | Generator for config data with an empty cluster (no instances),
 -- with N defined nodes.
 genEmptyCluster :: Int -> Gen ConfigData
@@ -252,10 +222,6 @@ prop_Node_serialisation = testSerialisation
 prop_Inst_serialisation :: Instance -> Property
 prop_Inst_serialisation = testSerialisation
 
--- | Check that network serialisation is idempotent.
-prop_Network_serialisation :: Network -> Property
-prop_Network_serialisation = testSerialisation
-
 -- | Check config serialisation.
 prop_Config_serialisation :: Property
 prop_Config_serialisation =
@@ -265,7 +231,6 @@ testSuite "Objects"
   [ 'prop_fillDict
   , 'prop_Disk_serialisation
   , 'prop_Inst_serialisation
-  , 'prop_Network_serialisation
   , 'prop_Node_serialisation
   , 'prop_Config_serialisation
   ]
