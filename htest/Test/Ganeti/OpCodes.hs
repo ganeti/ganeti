@@ -219,7 +219,8 @@ instance Arbitrary OpCodes.OpCode where
           genMaybe genNodeNameNE <*> genMaybe genNameNE <*>
           arbitrary <*> arbitrary <*> (genTags >>= mapM mkNonEmpty)
       "OP_INSTANCE_MULTI_ALLOC" ->
-        OpCodes.OpInstanceMultiAlloc <$> genMaybe genNameNE <*> pure []
+        OpCodes.OpInstanceMultiAlloc <$> genMaybe genNameNE <*> pure [] <*>
+          arbitrary
       "OP_INSTANCE_REINSTALL" ->
         OpCodes.OpInstanceReinstall <$> genFQDN <*> arbitrary <*>
           genMaybe genNameNE <*> genMaybe (pure emptyJSObject)

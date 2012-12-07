@@ -300,6 +300,7 @@ $(genOpCode "OpCode"
   , ("OpInstanceMultiAlloc",
      [ pIallocator
      , pMultiAllocInstances
+     , pOpportunisticLocking
      ])
   , ("OpInstanceReinstall",
      [ pInstanceName
