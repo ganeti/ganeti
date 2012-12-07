@@ -83,6 +83,7 @@ data Instance = Instance
   , spindleUse   :: Int       -- ^ The numbers of used spindles
   , allTags      :: [String]  -- ^ List of all instance tags
   , exclTags     :: [String]  -- ^ List of instance exclusion tags
+  , arPolicy     :: T.AutoRepairPolicy -- ^ Instance's auto-repair policy
   } deriving (Show, Eq)
 
 instance T.Element Instance where
@@ -182,6 +183,7 @@ create name_init mem_init dsk_init vcpus_init run_init tags_init
            , spindleUse = su
            , allTags = tags_init
            , exclTags = []
+           , arPolicy = T.ArNotEnabled
            }
 
 -- | Changes the index.
