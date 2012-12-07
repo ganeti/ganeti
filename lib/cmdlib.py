@@ -1121,6 +1121,29 @@ def _CheckNodeHasSecondaryIP(lu, node, secondary_ip, prereq):
       raise errors.OpExecError(msg)
 
 
+def _CheckNodePVs(nresult, exclusive_storage):
+  """Check node PVs.
+
+  """
+  pvlist_dict = nresult.get(constants.NV_PVLIST, None)
+  if pvlist_dict is None:
+    return (["Can't get PV list from node"], None)
+  pvlist = map(objects.LvmPvInfo.FromDict, pvlist_dict)
+  errlist = []
+  # check that ':' is not present in PV names, since it's a
+  # special character for lvcreate (denotes the range of PEs to
+  # use on the PV)
+  for pv in pvlist:
+    if ":" in pv.name:
+      errlist.append("Invalid character ':' in PV '%s' of VG '%s'" %
+                     (pv.name, pv.vg_name))
+  es_pvinfo = None
+  if exclusive_storage:
+    (errmsgs, es_pvinfo) = utils.LvmExclusiveCheckNodePvs(pvlist)
+    errlist.extend(errmsgs)
+  return (errlist, es_pvinfo)
+
+
 def _GetClusterDomainSecret():
   """Reads the cluster domain secret.
 
@@ -2465,26 +2488,12 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
                                             constants.MIN_VG_SIZE)
       _ErrorIf(vgstatus, constants.CV_ENODELVM, node, vgstatus)
 
-    # check pv names (and possibly sizes)
-    pvlist_dict = nresult.get(constants.NV_PVLIST, None)
-    test = pvlist_dict is None
-    _ErrorIf(test, constants.CV_ENODELVM, node, "Can't get PV list from node")
-    if not test:
-      pvlist = map(objects.LvmPvInfo.FromDict, pvlist_dict)
-      # check that ':' is not present in PV names, since it's a
-      # special character for lvcreate (denotes the range of PEs to
-      # use on the PV)
-      for pv in pvlist:
-        test = ":" in pv.name
-        _ErrorIf(test, constants.CV_ENODELVM, node,
-                 "Invalid character ':' in PV '%s' of VG '%s'",
-                 pv.name, pv.vg_name)
-      if self._exclusive_storage:
-        (errmsgs, (pvmin, pvmax)) = utils.LvmExclusiveCheckNodePvs(pvlist)
-        for msg in errmsgs:
-          self._Error(constants.CV_ENODELVM, node, msg)
-        nimg.pv_min = pvmin
-        nimg.pv_max = pvmax
+    # Check PVs
+    (errmsgs, pvminmax) = _CheckNodePVs(nresult, self._exclusive_storage)
+    for em in errmsgs:
+      self._Error(constants.CV_ENODELVM, node, em)
+    if pvminmax is not None:
+      (nimg.pv_min, nimg.pv_max) = pvminmax
 
   def _VerifyGroupLVM(self, node_image, vg_name):
     """Check cross-node consistency in LVM.
@@ -6117,7 +6126,7 @@ class LUNodeAdd(LogicalUnit):
                                    secondary_ip=secondary_ip,
                                    master_candidate=self.master_candidate,
                                    offline=False, drained=False,
-                                   group=node_group)
+                                   group=node_group, ndparams={})
 
     if self.op.ndparams:
       utils.ForceDictType(self.op.ndparams, constants.NDS_PARAMETER_TYPES)
@@ -6130,7 +6139,8 @@ class LUNodeAdd(LogicalUnit):
 
     # TODO: If we need to have multiple DnsOnlyRunner we probably should make
     #       it a property on the base class.
-    result = rpc.DnsOnlyRunner().call_version([node])[node]
+    rpcrunner = rpc.DnsOnlyRunner()
+    result = rpcrunner.call_version([node])[node]
     result.Raise("Can't get version information from node %s" % node)
     if constants.PROTOCOL_VERSION == result.payload:
       logging.info("Communication to node %s fine, sw version %s match",
@@ -6140,6 +6150,20 @@ class LUNodeAdd(LogicalUnit):
                                  " node version %s" %
                                  (constants.PROTOCOL_VERSION, result.payload),
                                  errors.ECODE_ENVIRON)
+
+    vg_name = cfg.GetVGName()
+    if vg_name is not None:
+      vparams = {constants.NV_PVLIST: [vg_name]}
+      excl_stor = _IsExclusiveStorageEnabledNode(cfg, self.new_node)
+      if self.op.ndparams:
+        excl_stor = self.op.ndparams.get(constants.ND_EXCLUSIVE_STORAGE,
+                                         excl_stor)
+      cname = self.cfg.GetClusterName()
+      result = rpcrunner.call_node_verify_light([node], vparams, cname)[node]
+      (errmsgs, _) = _CheckNodePVs(result.payload, excl_stor)
+      if errmsgs:
+        raise errors.OpPrereqError("Checks on node PVs failed: %s" %
+                                   "; ".join(errmsgs), errors.ECODE_ENVIRON)
 
   def Exec(self, feedback_fn):
     """Adds the new node to the cluster.
