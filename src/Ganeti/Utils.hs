@@ -45,6 +45,7 @@ module Ganeti.Utils
   , exitUnless
   , rStripSpace
   , newUUID
+  , clockTimeToString
   ) where
 
 import Data.Char (toUpper, isAlphaNum, isDigit, isSpace)
@@ -57,6 +58,7 @@ import Ganeti.BasicTypes
 import qualified Ganeti.Constants as C
 import System.IO
 import System.Exit
+import System.Time
 
 -- * Debug functions
 
@@ -286,3 +288,7 @@ newUUID :: IO String
 newUUID = do
   contents <- readFile C.randomUuidFile
   return $! rStripSpace $ take 128 contents
+
+-- | Convert a ClockTime into a (seconds-only) timestamp.
+clockTimeToString :: ClockTime -> String
+clockTimeToString (TOD t _) = show t

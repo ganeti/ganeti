@@ -33,6 +33,7 @@ import Test.HUnit
 
 import Data.Char (isSpace)
 import Data.List
+import System.Time
 import qualified Text.JSON as J
 #ifndef NO_REGEX_PCRE
 import Text.Regex.PCRE
@@ -233,6 +234,10 @@ case_new_uuid = do
   assertBool "newUUID" $ uuid =~ C.uuidRegex
 #endif
 
+prop_clockTimeToString :: Integer -> Integer -> Property
+prop_clockTimeToString ts pico =
+  clockTimeToString (TOD ts pico) ==? show ts
+
 -- | Test list for the Utils module.
 testSuite "Utils"
             [ 'prop_commaJoinSplit
@@ -252,4 +257,5 @@ testSuite "Utils"
 #ifndef NO_REGEX_PCRE
             , 'case_new_uuid
 #endif
+            , 'prop_clockTimeToString
             ]
