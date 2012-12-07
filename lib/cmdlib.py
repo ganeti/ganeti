@@ -13247,7 +13247,52 @@ class LUInstanceSetParams(LogicalUnit):
     private.params = new_params
     private.filled = new_filled_params
 
-  def CheckPrereq(self): # pylint: disable=R0914
+  def _PreCheckDiskTemplate(self, pnode_info):
+    """CheckPrereq checks related to a new disk template."""
+    # Arguments are passed to avoid configuration lookups
+    instance = self.instance
+    pnode = instance.primary_node
+    cluster = self.cluster
+    if instance.disk_template == self.op.disk_template:
+      raise errors.OpPrereqError("Instance already has disk template %s" %
+                                 instance.disk_template, errors.ECODE_INVAL)
+
+    if (instance.disk_template,
+        self.op.disk_template) not in self._DISK_CONVERSIONS:
+      raise errors.OpPrereqError("Unsupported disk template conversion from"
+                                 " %s to %s" % (instance.disk_template,
+                                                self.op.disk_template),
+                                 errors.ECODE_INVAL)
+    _CheckInstanceState(self, instance, INSTANCE_DOWN,
+                        msg="cannot change disk template")
+    if self.op.disk_template in constants.DTS_INT_MIRROR:
+      if self.op.remote_node == pnode:
+        raise errors.OpPrereqError("Given new secondary node %s is the same"
+                                   " as the primary node of the instance" %
+                                   self.op.remote_node, errors.ECODE_STATE)
+      _CheckNodeOnline(self, self.op.remote_node)
+      _CheckNodeNotDrained(self, self.op.remote_node)
+      # FIXME: here we assume that the old instance type is DT_PLAIN
+      assert instance.disk_template == constants.DT_PLAIN
+      disks = [{constants.IDISK_SIZE: d.size,
+                constants.IDISK_VG: d.logical_id[0]}
+               for d in instance.disks]
+      required = _ComputeDiskSizePerVG(self.op.disk_template, disks)
+      _CheckNodesFreeDiskPerVG(self, [self.op.remote_node], required)
+
+      snode_info = self.cfg.GetNodeInfo(self.op.remote_node)
+      snode_group = self.cfg.GetNodeGroup(snode_info.group)
+      ipolicy = ganeti.masterd.instance.CalculateGroupIPolicy(cluster,
+                                                              snode_group)
+      _CheckTargetNodeIPolicy(self, ipolicy, instance, snode_info,
+                              ignore=self.op.ignore_ipolicy)
+      if pnode_info.group != snode_info.group:
+        self.LogWarning("The primary and secondary nodes are in two"
+                        " different node groups; the disk parameters"
+                        " from the first disk's node group will be"
+                        " used")
+
+  def CheckPrereq(self):
     """Check prerequisites.
 
     This only checks the instance list against the existing names.
@@ -13325,44 +13370,7 @@ class LUInstanceSetParams(LogicalUnit):
       "Can't modify disk template and apply disk changes at the same time"
 
     if self.op.disk_template:
-      if instance.disk_template == self.op.disk_template:
-        raise errors.OpPrereqError("Instance already has disk template %s" %
-                                   instance.disk_template, errors.ECODE_INVAL)
-
-      if (instance.disk_template,
-          self.op.disk_template) not in self._DISK_CONVERSIONS:
-        raise errors.OpPrereqError("Unsupported disk template conversion from"
-                                   " %s to %s" % (instance.disk_template,
-                                                  self.op.disk_template),
-                                   errors.ECODE_INVAL)
-      _CheckInstanceState(self, instance, INSTANCE_DOWN,
-                          msg="cannot change disk template")
-      if self.op.disk_template in constants.DTS_INT_MIRROR:
-        if self.op.remote_node == pnode:
-          raise errors.OpPrereqError("Given new secondary node %s is the same"
-                                     " as the primary node of the instance" %
-                                     self.op.remote_node, errors.ECODE_STATE)
-        _CheckNodeOnline(self, self.op.remote_node)
-        _CheckNodeNotDrained(self, self.op.remote_node)
-        # FIXME: here we assume that the old instance type is DT_PLAIN
-        assert instance.disk_template == constants.DT_PLAIN
-        disks = [{constants.IDISK_SIZE: d.size,
-                  constants.IDISK_VG: d.logical_id[0]}
-                 for d in instance.disks]
-        required = _ComputeDiskSizePerVG(self.op.disk_template, disks)
-        _CheckNodesFreeDiskPerVG(self, [self.op.remote_node], required)
-
-        snode_info = self.cfg.GetNodeInfo(self.op.remote_node)
-        snode_group = self.cfg.GetNodeGroup(snode_info.group)
-        ipolicy = ganeti.masterd.instance.CalculateGroupIPolicy(cluster,
-                                                                snode_group)
-        _CheckTargetNodeIPolicy(self, ipolicy, instance, snode_info,
-                                ignore=self.op.ignore_ipolicy)
-        if pnode_info.group != snode_info.group:
-          self.LogWarning("The primary and secondary nodes are in two"
-                          " different node groups; the disk parameters"
-                          " from the first disk's node group will be"
-                          " used")
+      self._PreCheckDiskTemplate(pnode_info)
 
     # hvparams processing
     if self.op.hvparams:
