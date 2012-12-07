@@ -294,6 +294,7 @@ $(genOpCode "OpCode"
      , pSrcNode
      , pSrcPath
      , pStartInstance
+     , pOpportunisticLocking
      , pInstTags
      ])
   , ("OpInstanceMultiAlloc",

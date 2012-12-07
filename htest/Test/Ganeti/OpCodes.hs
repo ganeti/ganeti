@@ -217,7 +217,7 @@ instance Arbitrary OpCodes.OpCode where
           genMaybe (pure []) <*> genMaybe genNodeNameNE <*>
           arbitrary <*> genMaybe genNodeNameNE <*>
           genMaybe genNodeNameNE <*> genMaybe genNameNE <*>
-          arbitrary <*> (genTags >>= mapM mkNonEmpty)
+          arbitrary <*> arbitrary <*> (genTags >>= mapM mkNonEmpty)
       "OP_INSTANCE_MULTI_ALLOC" ->
         OpCodes.OpInstanceMultiAlloc <$> genMaybe genNameNE <*> pure []
       "OP_INSTANCE_REINSTALL" ->

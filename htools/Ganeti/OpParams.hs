@@ -71,6 +71,7 @@ module Ganeti.OpParams
   , pIgnoreConsistency
   , pStorageName
   , pUseLocking
+  , pOpportunisticLocking
   , pNameCheck
   , pNodeGroupAllocPolicy
   , pGroupNodeParams
@@ -606,6 +607,12 @@ pStorageName =
 -- | Whether to use synchronization.
 pUseLocking :: Field
 pUseLocking = defaultFalse "use_locking"
+
+-- | Whether to employ opportunistic locking for nodes, meaning nodes already
+-- locked by another opcode won't be considered for instance allocation (only
+-- when an iallocator is used).
+pOpportunisticLocking :: Field
+pOpportunisticLocking = defaultFalse "opportunistic_locking"
 
 -- | Whether to check name.
 pNameCheck :: Field

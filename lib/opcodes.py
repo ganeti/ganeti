@@ -159,6 +159,12 @@ _PDiskParams = \
 _PHvState = ("hv_state", None, ht.TMaybeDict, "Set hypervisor states")
 _PDiskState = ("disk_state", None, ht.TMaybeDict, "Set disk states")
 
+#: Opportunistic locking
+_POpportunisticLocking = \
+  ("opportunistic_locking", False, ht.TBool,
+   ("Whether to employ opportunistic locking for nodes, meaning nodes"
+    " already locked by another opcode won't be considered for instance"
+    " allocation (only when an iallocator is used)"))
 
 _PIgnoreIpolicy = ("ignore_ipolicy", False, ht.TBool,
                    "Whether to ignore ipolicy violations")
@@ -1241,6 +1247,7 @@ class OpInstanceCreate(OpCode):
     _PWaitForSync,
     _PNameCheck,
     _PIgnoreIpolicy,
+    _POpportunisticLocking,
     ("beparams", ht.EmptyDict, ht.TDict, "Backend parameters for instance"),
     ("disks", ht.NoDefault, ht.TListOf(_TDiskParams),
      "Disk descriptions, for example ``[{\"%s\": 100}, {\"%s\": 5}]``;"
@@ -1300,6 +1307,7 @@ class OpInstanceMultiAlloc(OpCode):
 
   """
   OP_PARAMS = [
+    _POpportunisticLocking,
     _PIAllocFromDesc("Iallocator used to allocate all the instances"),
     ("instances", ht.EmptyList, ht.TListOf(ht.TInstanceOf(OpInstanceCreate)),
      "List of instance create opcodes describing the instances to allocate"),
