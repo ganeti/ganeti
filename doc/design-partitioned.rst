@@ -27,12 +27,13 @@ all possible sources of it.
 Exclusive use of disks
 ----------------------
 
-``exclusive_storage`` is a configuration flag at node-group and cluster
-level. When it's enabled, Ganeti will allocate entire disks to
-instances. Though it's possible to think of ways of doing something
-similar for other storage back-ends, this design targets only ``plain``
-and ``drbd``. The name is generic enough in case the feature will be
-extended to other back-ends.
+``exclusive_storage`` is a new node parameter. When it's enabled, Ganeti
+will allocate entire disks to instances. Though it's possible to think
+of ways of doing something similar for other storage back-ends, this
+design targets only ``plain`` and ``drbd``. The name is generic enough
+in case the feature will be extended to other back-ends. The flag value
+should be homogeneous within a node-group; ``cluster-verify`` will report
+any violation of this condition.
 
 Ganeti will consider each physical volume in the destination volume
 group as a host disk (for proper isolation, an administrator should
@@ -45,12 +46,13 @@ and as part of ``cluster-verify``.
 
 When creating a new disk for an instance, Ganeti will allocate the
 minimum number of PVs to hold the disk, and those PVs will be excluded
-from the pool of available PVs by marking them as unallocatable; in this
-way, PVs won't be shared between instance disks, and any remaining space
-won't be used by mistake for anything else. The underlying LV will be
-striped, when striping is allowed by the current configuration. Ganeti
-will continue to track only the LVs, and query the LVM layer to figure
-out which PVs are available and how much space is free.
+from the pool of available PVs for further disk creations. The
+underlying LV will be striped, when striping is allowed by the current
+configuration. Ganeti will continue to track only the LVs, and query the
+LVM layer to figure out which PVs are available and how much space is
+free. Yet, creation, disk growing, and free-space reporting will ignore
+any partially allocated PVs, so that PVs won't be shared between
+instance disks.
 
 For compatibility with the DRBD template and to take into account disk
 variability, Ganeti will always subtract 2% (this will be a parameter)
