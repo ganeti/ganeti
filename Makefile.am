@@ -1219,7 +1219,7 @@ htools/Ganeti/Version.hs: htools/Ganeti/Version.hs.in \
 	sed -e "s/%ver%/$$VCSVER/" < $< > $@
 
 htools/Ganeti/Constants.hs: htools/Ganeti/Constants.hs.in \
-	lib/constants.py lib/_autoconf.py lib/luxi.py \
+	lib/constants.py lib/_autoconf.py lib/luxi.py lib/errors.py \
 	$(CONVERT_CONSTANTS) $(built_base_sources) \
 	| lib/_vcsversion.py
 	set -e; \
