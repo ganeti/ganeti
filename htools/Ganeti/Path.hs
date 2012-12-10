@@ -33,6 +33,9 @@ module Ganeti.Path
   , confdHmacKey
   , clusterConfFile
   , nodedCertFile
+  , queueDir
+  , jobQueueSerialFile
+  , jobQueueArchiveSubDir
   ) where
 
 import System.FilePath
@@ -61,6 +64,10 @@ addNodePrefix path = do
 dataDir :: IO FilePath
 dataDir = addNodePrefix $ C.autoconfLocalstatedir </> "lib" </> "ganeti"
 
+-- | Helper for building on top of dataDir (internal).
+dataDirP :: FilePath -> IO FilePath
+dataDirP = (dataDir `pjoin`)
+
 -- | Directory for runtime files.
 runDir :: IO FilePath
 runDir = addNodePrefix $ C.autoconfLocalstatedir </> "run" </> "ganeti"
@@ -83,12 +90,24 @@ defaultQuerySocket = socketDir `pjoin` "ganeti-query"
 
 -- | Path to file containing confd's HMAC key.
 confdHmacKey :: IO FilePath
-confdHmacKey = dataDir `pjoin` "hmac.key"
+confdHmacKey = dataDirP "hmac.key"
 
 -- | Path to cluster configuration file.
 clusterConfFile :: IO FilePath
-clusterConfFile  = dataDir `pjoin` "config.data"
+clusterConfFile  = dataDirP "config.data"
 
 -- | Path to the noded certificate.
-nodedCertFile  :: IO FilePath
-nodedCertFile = dataDir `pjoin` "server.pem"
+nodedCertFile :: IO FilePath
+nodedCertFile = dataDirP "server.pem"
+
+-- | Job queue directory.
+queueDir :: IO FilePath
+queueDir = dataDirP "queue"
+
+-- | Job queue serial file.
+jobQueueSerialFile :: IO FilePath
+jobQueueSerialFile = dataDirP "serial"
+
+-- | Job queue archive directory.
+jobQueueArchiveSubDir :: FilePath
+jobQueueArchiveSubDir = "archive"
