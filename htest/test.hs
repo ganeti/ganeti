@@ -28,6 +28,7 @@ module Main(main) where
 import Data.Monoid (mappend)
 import Test.Framework
 import System.Environment (getArgs)
+import System.Log.Logger
 
 import Test.Ganeti.TestImports ()
 import Test.Ganeti.Attoparsec
@@ -120,4 +121,8 @@ main :: IO ()
 main = do
   ropts <- getArgs >>= interpretArgsOrExit
   let opts = maybe defOpts (defOpts `mappend`) $ ropt_test_options ropts
+  -- silence the logging system, so that tests can execute I/O actions
+  -- which create logs without polluting stderr
+  -- FIXME: improve this by allowing tests to use logging if needed
+  updateGlobalLogger rootLoggerName (setLevel EMERGENCY)
   defaultMainWithOpts allTests (ropts { ropt_test_options = Just opts })
