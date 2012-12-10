@@ -50,6 +50,7 @@ import qualified Ganeti.Constants as C
 $(declareSADT "ErrorCode"
   [ ("ECodeResolver",  'C.errorsEcodeResolver)
   , ("ECodeNoRes",     'C.errorsEcodeNores)
+  , ("ECodeTempNoRes", 'C.errorsEcodeTempNores)
   , ("ECodeInval",     'C.errorsEcodeInval)
   , ("ECodeState",     'C.errorsEcodeState)
   , ("ECodeNoEnt",     'C.errorsEcodeNoent)
