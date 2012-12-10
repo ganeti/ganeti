@@ -1501,7 +1501,7 @@ classification:
    errors.ECODE_ALL == set([errors.ECODE_RESOLVER, errors.ECODE_NORES,
      errors.ECODE_INVAL, errors.ECODE_STATE, errors.ECODE_NOENT,
      errors.ECODE_EXISTS, errors.ECODE_NOTUNIQUE, errors.ECODE_FAULT,
-     errors.ECODE_ENVIRON])
+     errors.ECODE_ENVIRON, errors.ECODE_TEMP_NORES])
 
 :pyeval:`errors.ECODE_RESOLVER`
   Resolver errors. This usually means that a name doesn't exist in DNS,
@@ -1512,6 +1512,10 @@ classification:
   Not enough resources (iallocator failure, disk space, memory,
   etc.). If the resources on the cluster increase, the operation might
   succeed.
+
+:pyeval:`errors.ECODE_TEMP_NORES`
+  Simliar to :pyeval:`errors.ECODE_NORES`, but indicating the operation
+  should be attempted again after some time.
 
 :pyeval:`errors.ECODE_INVAL`
   Wrong arguments (at syntax level). The operation will not ever be
