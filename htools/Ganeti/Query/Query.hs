@@ -65,7 +65,6 @@ import Ganeti.Config
 import Ganeti.Errors
 import Ganeti.JQueue
 import Ganeti.JSON
-import Ganeti.Rpc
 import Ganeti.Objects
 import Ganeti.Query.Common
 import Ganeti.Query.Filter
@@ -104,20 +103,6 @@ getSelectedFields :: FieldMap a b  -- ^ Defined fields
                   -> FieldList a b -- ^ Selected fields
 getSelectedFields defined =
   map (\name -> fromMaybe (mkUnknownFDef name) $ name `Map.lookup` defined)
-
--- | Collect live data from RPC query if enabled.
--- FIXME: Check which fields we actually need and possibly send empty
--- hvs/vgs if no info from hypervisor/volume group respectively
--- is required
-maybeCollectLiveData:: Bool -> ConfigData -> [Node] -> IO [(Node, NodeRuntime)]
-
-maybeCollectLiveData False _ nodes =
-  return $ zip nodes (repeat $ Left (RpcResultError "Live data disabled"))
-
-maybeCollectLiveData True cfg nodes = do
-  let vgs = [clusterVolumeGroupName $ configCluster cfg]
-      hvs = [getDefaultHypervisor cfg]
-  executeRpcCall nodes (RpcCallNodeInfo vgs hvs)
 
 -- | Check whether list of queried fields contains live fields.
 needsLiveData :: [FieldGetter a b] -> Bool

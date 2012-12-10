@@ -26,6 +26,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 module Ganeti.Query.Node
   ( NodeRuntime
   , nodeFieldsMap
+  , maybeCollectLiveData
   ) where
 
 import Control.Applicative
@@ -210,3 +211,16 @@ nodeFields =
 nodeFieldsMap :: FieldMap Node NodeRuntime
 nodeFieldsMap =
   Map.fromList $ map (\v@(f, _, _) -> (fdefName f, v)) nodeFields
+
+-- | Collect live data from RPC query if enabled.
+--
+-- FIXME: Check which fields we actually need and possibly send empty
+-- hvs/vgs if no info from hypervisor/volume group respectively is
+-- required
+maybeCollectLiveData:: Bool -> ConfigData -> [Node] -> IO [(Node, NodeRuntime)]
+maybeCollectLiveData False _ nodes =
+  return $ zip nodes (repeat $ Left (RpcResultError "Live data disabled"))
+maybeCollectLiveData True cfg nodes = do
+  let vgs = [clusterVolumeGroupName $ configCluster cfg]
+      hvs = [getDefaultHypervisor cfg]
+  executeRpcCall nodes (RpcCallNodeInfo vgs hvs)
