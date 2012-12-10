@@ -109,7 +109,9 @@ class FileEventHandlerBase(pyinotify.ProcessEvent):
 
     ret = result.get(filename, -1)
     if ret <= 0:
-      raise errors.InotifyError("Could not add inotify watcher (%s)" % ret)
+      raise errors.InotifyError("Could not add inotify watcher (error code %s);"
+                                " increasing fs.inotify.max_user_watches sysctl"
+                                " might be necessary" % ret)
 
     return result[filename]
 
