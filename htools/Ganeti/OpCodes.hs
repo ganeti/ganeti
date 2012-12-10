@@ -38,6 +38,7 @@ module Ganeti.OpCodes
   , opID
   , allOpIDs
   , allOpFields
+  , opSummary
   , CommonOpParams(..)
   , defOpParams
   , MetaOpCode(..)
@@ -45,13 +46,15 @@ module Ganeti.OpCodes
   , setOpComment
   ) where
 
+import Data.Maybe (fromMaybe)
 import Text.JSON (readJSON, showJSON, JSON, JSValue, makeObj)
 import qualified Text.JSON
 
 import Ganeti.THH
 
 import Ganeti.OpParams
-import Ganeti.Types (OpSubmitPriority(..))
+import Ganeti.Types (OpSubmitPriority(..), fromNonEmpty)
+import Ganeti.Query.Language (queryTypeOpToRaw)
 
 -- | OpCode representation.
 --
@@ -548,6 +551,70 @@ instance JSON OpCode where
   readJSON = loadOpCode
   showJSON = saveOpCode
 
+-- | Generates the summary value for an opcode.
+opSummaryVal :: OpCode -> Maybe String
+opSummaryVal OpClusterVerifyGroup { opGroupName = s } = Just (fromNonEmpty s)
+opSummaryVal OpGroupVerifyDisks { opGroupName = s } = Just (fromNonEmpty s)
+opSummaryVal OpClusterRename { opName = s } = Just (fromNonEmpty s)
+opSummaryVal OpQuery { opWhat = s } = Just (queryTypeOpToRaw s)
+opSummaryVal OpQueryFields { opWhat = s } = Just (queryTypeOpToRaw s)
+opSummaryVal OpNodeRemove { opNodeName = s } = Just (fromNonEmpty s)
+opSummaryVal OpNodeAdd { opNodeName = s } = Just (fromNonEmpty s)
+opSummaryVal OpNodeModifyStorage { opNodeName = s } = Just (fromNonEmpty s)
+opSummaryVal OpRepairNodeStorage  { opNodeName = s } = Just (fromNonEmpty s)
+opSummaryVal OpNodeSetParams { opNodeName = s } = Just (fromNonEmpty s)
+opSummaryVal OpNodePowercycle { opNodeName = s } = Just (fromNonEmpty s)
+opSummaryVal OpNodeMigrate { opNodeName = s } = Just (fromNonEmpty s)
+opSummaryVal OpNodeEvacuate { opNodeName = s } = Just (fromNonEmpty s)
+opSummaryVal OpInstanceCreate { opInstanceName = s } = Just s
+opSummaryVal OpInstanceReinstall { opInstanceName = s } = Just s
+opSummaryVal OpInstanceRemove { opInstanceName = s } = Just s
+-- FIXME: instance rename should show both names; currently it shows none
+-- opSummaryVal OpInstanceRename { opInstanceName = s } = Just s
+opSummaryVal OpInstanceStartup { opInstanceName = s } = Just s
+opSummaryVal OpInstanceShutdown { opInstanceName = s } = Just s
+opSummaryVal OpInstanceReboot { opInstanceName = s } = Just s
+opSummaryVal OpInstanceReplaceDisks { opInstanceName = s } = Just s
+opSummaryVal OpInstanceFailover { opInstanceName = s } = Just s
+opSummaryVal OpInstanceMigrate { opInstanceName = s } = Just s
+opSummaryVal OpInstanceMove { opInstanceName = s } = Just s
+opSummaryVal OpInstanceConsole { opInstanceName = s } = Just s
+opSummaryVal OpInstanceActivateDisks { opInstanceName = s } = Just s
+opSummaryVal OpInstanceDeactivateDisks { opInstanceName = s } = Just s
+opSummaryVal OpInstanceRecreateDisks { opInstanceName = s } = Just s
+opSummaryVal OpInstanceSetParams { opInstanceName = s } = Just s
+opSummaryVal OpInstanceGrowDisk { opInstanceName = s } = Just s
+opSummaryVal OpInstanceChangeGroup { opInstanceName = s } = Just s
+opSummaryVal OpGroupAdd { opGroupName = s } = Just (fromNonEmpty s)
+opSummaryVal OpGroupAssignNodes { opGroupName = s } = Just (fromNonEmpty s)
+opSummaryVal OpGroupSetParams { opGroupName = s } = Just (fromNonEmpty s)
+opSummaryVal OpGroupRemove { opGroupName = s } = Just (fromNonEmpty s)
+opSummaryVal OpGroupEvacuate { opGroupName = s } = Just (fromNonEmpty s)
+opSummaryVal OpBackupPrepare { opInstanceName = s } = Just s
+opSummaryVal OpBackupExport { opInstanceName = s } = Just s
+opSummaryVal OpBackupRemove { opInstanceName = s } = Just s
+opSummaryVal OpTagsGet { opKind = k } =
+  Just . fromMaybe "None" $ tagNameOf k
+opSummaryVal OpTagsSearch { opTagSearchPattern = s } = Just (fromNonEmpty s)
+opSummaryVal OpTestDelay { opDelayDuration = d } = Just (show d)
+opSummaryVal OpTestAllocator { opIallocator = s } =
+  -- FIXME: Python doesn't handle None fields well, so we have behave the same
+  Just $ maybe "None" fromNonEmpty s
+opSummaryVal OpNetworkAdd { opNetworkName = s} = Just (fromNonEmpty s)
+opSummaryVal OpNetworkRemove { opNetworkName = s} = Just (fromNonEmpty s)
+opSummaryVal OpNetworkSetParams { opNetworkName = s} = Just (fromNonEmpty s)
+opSummaryVal OpNetworkConnect { opNetworkName = s} = Just (fromNonEmpty s)
+opSummaryVal OpNetworkDisconnect { opNetworkName = s} = Just (fromNonEmpty s)
+opSummaryVal _ = Nothing
+
+-- | Computes the summary of the opcode.
+opSummary :: OpCode -> String
+opSummary op =
+  case opSummaryVal op of
+    Nothing -> op_suffix
+    Just s -> op_suffix ++ "(" ++ s ++ ")"
+  where op_suffix = drop 3 $ opID op
+
 -- | Generic\/common opcode parameters.
 $(buildObject "CommonOpParams" "op"
   [ pDryRun
@@ -568,8 +635,9 @@ defOpParams =
                  }
 
 -- | The top-level opcode type.
-data MetaOpCode = MetaOpCode CommonOpParams OpCode
-                  deriving (Show, Eq)
+data MetaOpCode = MetaOpCode { metaParams :: CommonOpParams
+                             , metaOpCode :: OpCode
+                             } deriving (Show, Eq)
 
 -- | JSON serialisation for 'MetaOpCode'.
 showMeta :: MetaOpCode -> JSValue

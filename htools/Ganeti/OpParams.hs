@@ -35,6 +35,7 @@ module Ganeti.OpParams
   ( TagType(..)
   , TagObject(..)
   , tagObjectFrom
+  , tagNameOf
   , decodeTagObject
   , encodeTagObject
   , ReplaceDisksMode(..)

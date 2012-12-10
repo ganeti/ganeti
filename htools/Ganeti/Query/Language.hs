@@ -48,6 +48,7 @@ module Ganeti.Query.Language
     , ResultValue
     , ItemType(..)
     , QueryTypeOp(..)
+    , queryTypeOpToRaw
     , QueryTypeLuxi(..)
     , checkRS
     ) where

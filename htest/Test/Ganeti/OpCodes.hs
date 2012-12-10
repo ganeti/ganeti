@@ -451,6 +451,8 @@ case_py_compat_types = do
   sample_opcodes <- sample' (vectorOf num_opcodes
                              (arbitrary::Gen OpCodes.MetaOpCode))
   let opcodes = head sample_opcodes
+      with_sum = map (\o -> (OpCodes.opSummary $
+                             OpCodes.metaOpCode o, o)) opcodes
       serialized = J.encode opcodes
   -- check for non-ASCII fields, usually due to 'arbitrary :: String'
   mapM_ (\op -> when (any (not . isAscii) (J.encode op)) .
@@ -465,10 +467,12 @@ case_py_compat_types = do
                \decoded = [opcodes.OpCode.LoadOpCode(o) for o in op_data]\n\
                \for op in decoded:\n\
                \  op.Validate(True)\n\
-               \encoded = [op.__getstate__() for op in decoded]\n\
+               \encoded = [(op.Summary(), op.__getstate__())\n\
+               \           for op in decoded]\n\
                \print serializer.Dump(encoded)" serialized
      >>= checkPythonResult
-  let deserialised = J.decode py_stdout::J.Result [OpCodes.MetaOpCode]
+  let deserialised =
+        J.decode py_stdout::J.Result [(String, OpCodes.MetaOpCode)]
   decoded <- case deserialised of
                J.Ok ops -> return ops
                J.Error msg ->
@@ -477,9 +481,9 @@ case_py_compat_types = do
                  -- for proper types
                  >> fail "Unable to decode opcodes"
   HUnit.assertEqual "Mismatch in number of returned opcodes"
-    (length opcodes) (length decoded)
+    (length decoded) (length with_sum)
   mapM_ (uncurry (HUnit.assertEqual "Different result after encoding/decoding")
-        ) $ zip opcodes decoded
+        ) $ zip decoded with_sum
 
 -- | Custom HUnit test case that forks a Python process and checks
 -- correspondence between Haskell OpCodes fields and their Python
