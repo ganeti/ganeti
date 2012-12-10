@@ -121,7 +121,7 @@ ECODE_RESOLVER = "resolver_error"
 ECODE_NORES = "insufficient_resources"
 
 #: Temporarily out of resources; operation can be tried again
-ECODE_TEMP_NORES = "insufficient_resources"
+ECODE_TEMP_NORES = "temp_insufficient_resources"
 
 #: Wrong arguments (at syntax level)
 ECODE_INVAL = "wrong_input"
