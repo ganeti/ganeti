@@ -71,12 +71,13 @@ def _LogNewJob(status, info, ops):
   """Log information about a recently submitted job.
 
   """
+  op_summary = utils.CommaJoin(op.Summary() for op in ops)
+
   if status:
-    logging.info("New job with id %s, summary: %s",
-                 info, utils.CommaJoin(op.Summary() for op in ops))
+    logging.info("New job with id %s, summary: %s", info, op_summary)
   else:
     logging.info("Failed to submit job, reason: '%s', summary: %s",
-                 info, utils.CommaJoin(op.Summary() for op in ops))
+                 info, op_summary)
 
 
 class ClientRequestWorker(workerpool.BaseWorker):
