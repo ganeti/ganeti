@@ -131,6 +131,17 @@ def _BlockdevGetMirrorStatusMultiPostProc(result):
   return result
 
 
+def _NodeInfoPreProc(node, args):
+  """Prepare the exclusive_storage argument for node_info calls."""
+  assert len(args) == 3
+  # The third argument is either a dictionary with one value for each node, or
+  # a fixed value to be used for all the nodes
+  if type(args[2]) is dict:
+    return [args[0], args[1], args[2][node]]
+  else:
+    return args
+
+
 def _OsGetPostProc(result):
   """Post-processor for L{rpc.RpcRunner.call_os_get}.
 
@@ -449,7 +460,9 @@ _NODE_CALLS = [
      "Names of the volume groups to ask for disk space information"),
     ("hv_names", None,
      "Names of the hypervisors to ask for node information"),
-    ], None, None, "Return node information"),
+    ("exclusive_storage", None,
+     "Whether exclusive storage is enabled"),
+    ], _NodeInfoPreProc, None, "Return node information"),
   ("node_verify", MULTI, None, constants.RPC_TMO_NORMAL, [
     ("checkdict", None, None),
     ("cluster_name", None, None),

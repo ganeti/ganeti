@@ -374,6 +374,7 @@ instance RpcCall RpcCallNodeInfo where
   rpcCallData _ call     = J.encode
     ( rpcCallNodeInfoVolumeGroups call
     , rpcCallNodeInfoHypervisors call
+    , False
     )
 
 instance Rpc RpcCallNodeInfo RpcResultNodeInfo where

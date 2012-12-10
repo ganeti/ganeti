@@ -431,7 +431,7 @@ class IAllocator(object):
       node_whitelist = None
 
     node_data = self.rpc.call_node_info(node_list, [cfg.GetVGName()],
-                                        [hypervisor_name])
+                                        [hypervisor_name], False)
     node_iinfo = \
       self.rpc.call_all_instances_info(node_list,
                                        cluster_info.enabled_hypervisors)

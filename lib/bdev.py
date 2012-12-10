@@ -699,10 +699,11 @@ class LogicalVolume(BlockDev):
     return data
 
   @classmethod
-  def GetVGInfo(cls, vg_names, filter_readonly=True):
+  def GetVGInfo(cls, vg_names, excl_stor, filter_readonly=True):
     """Get the free space info for specific VGs.
 
     @param vg_names: list of volume group names, if empty all will be returned
+    @param excl_stor: whether exclusive_storage is enabled
     @param filter_readonly: whether to skip over readonly VGs
 
     @rtype: list
@@ -921,7 +922,7 @@ class LogicalVolume(BlockDev):
     snap = LogicalVolume((self._vg_name, snap_name), None, size, self.params)
     _IgnoreError(snap.Remove)
 
-    vg_info = self.GetVGInfo([self._vg_name])
+    vg_info = self.GetVGInfo([self._vg_name], False)
     if not vg_info:
       _ThrowError("Can't compute VG info for vg %s", self._vg_name)
     free_size, _, _ = vg_info[0]

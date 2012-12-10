@@ -541,12 +541,12 @@ def LeaveCluster(modify_ssh_setup):
   raise errors.QuitGanetiException(True, "Shutdown scheduled")
 
 
-def _GetVgInfo(name):
+def _GetVgInfo(name, excl_stor):
   """Retrieves information about a LVM volume group.
 
   """
   # TODO: GetVGInfo supports returning information for multiple VGs at once
-  vginfo = bdev.LogicalVolume.GetVGInfo([name])
+  vginfo = bdev.LogicalVolume.GetVGInfo([name], excl_stor)
   if vginfo:
     vg_free = int(round(vginfo[0][0], 0))
     vg_size = int(round(vginfo[0][1], 0))
@@ -589,20 +589,22 @@ def _GetNamedNodeInfo(names, fn):
     return map(fn, names)
 
 
-def GetNodeInfo(vg_names, hv_names):
+def GetNodeInfo(vg_names, hv_names, excl_stor):
   """Gives back a hash with different information about the node.
 
   @type vg_names: list of string
   @param vg_names: Names of the volume groups to ask for disk space information
   @type hv_names: list of string
   @param hv_names: Names of the hypervisors to ask for node information
+  @type excl_stor: boolean
+  @param excl_stor: Whether exclusive_storage is active
   @rtype: tuple; (string, None/dict, None/dict)
   @return: Tuple containing boot ID, volume group information and hypervisor
     information
 
   """
   bootid = utils.ReadFile(_BOOT_ID_PATH, size=128).rstrip("\n")
-  vg_info = _GetNamedNodeInfo(vg_names, _GetVgInfo)
+  vg_info = _GetNamedNodeInfo(vg_names, (lambda vg: _GetVgInfo(vg, excl_stor)))
   hv_info = _GetNamedNodeInfo(hv_names, _GetHvInfo)
 
   return (bootid, vg_info, hv_info)

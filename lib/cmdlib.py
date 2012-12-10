@@ -5289,7 +5289,7 @@ class _NodeQuery(_QueryBase):
       toquery_nodes = [name for name in nodenames if all_info[name].vm_capable]
 
       node_data = lu.rpc.call_node_info(toquery_nodes, [lu.cfg.GetVGName()],
-                                        [lu.cfg.GetHypervisorType()])
+                                        [lu.cfg.GetHypervisorType()], False)
       live_data = dict((name, rpc.MakeLegacyNodeInfo(nresult.payload))
                        for (name, nresult) in node_data.items()
                        if not nresult.fail_msg and nresult.payload)
@@ -6827,7 +6827,7 @@ def _CheckNodeFreeMemory(lu, node, reason, requested, hypervisor_name):
       we cannot check the node
 
   """
-  nodeinfo = lu.rpc.call_node_info([node], None, [hypervisor_name])
+  nodeinfo = lu.rpc.call_node_info([node], None, [hypervisor_name], False)
   nodeinfo[node].Raise("Can't get data from node %s" % node,
                        prereq=True, ecode=errors.ECODE_ENVIRON)
   (_, _, (hv_info, )) = nodeinfo[node].payload
@@ -6888,7 +6888,7 @@ def _CheckNodesFreeDiskOnVG(lu, nodenames, vg, requested):
       or we cannot check the node
 
   """
-  nodeinfo = lu.rpc.call_node_info(nodenames, [vg], None)
+  nodeinfo = lu.rpc.call_node_info(nodenames, [vg], None, False)
   for node in nodenames:
     info = nodeinfo[node]
     info.Raise("Cannot get current information from node %s" % node,
@@ -6924,7 +6924,7 @@ def _CheckNodesPhysicalCPUs(lu, nodenames, requested, hypervisor_name):
       or we cannot check the node
 
   """
-  nodeinfo = lu.rpc.call_node_info(nodenames, None, [hypervisor_name])
+  nodeinfo = lu.rpc.call_node_info(nodenames, None, [hypervisor_name], None)
   for node in nodenames:
     info = nodeinfo[node]
     info.Raise("Cannot get current information from node %s" % node,
@@ -8740,7 +8740,7 @@ class TLMigrateInstance(Tasklet):
 
     # Check for hypervisor version mismatch and warn the user.
     nodeinfo = self.rpc.call_node_info([source_node, target_node],
-                                       None, [self.instance.hypervisor])
+                                       None, [self.instance.hypervisor], False)
     for ninfo in nodeinfo.values():
       ninfo.Raise("Unable to retrieve node information from node '%s'" %
                   ninfo.node)
@@ -13440,7 +13440,7 @@ class LUInstanceSetParams(LogicalUnit):
       instance_info = self.rpc.call_instance_info(pnode, instance.name,
                                                   instance.hypervisor)
       nodeinfo = self.rpc.call_node_info(mem_check_list, None,
-                                         [instance.hypervisor])
+                                         [instance.hypervisor], False)
       pninfo = nodeinfo[pnode]
       msg = pninfo.fail_msg
       if msg:
