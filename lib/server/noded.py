@@ -706,6 +706,14 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     """
     return backend.VerifyNode(params[0], params[1])
 
+  @classmethod
+  def perspective_node_verify_light(cls, params):
+    """Run a light verify sequence on this node.
+
+    """
+    # So far it's the same as the normal node_verify
+    return cls.perspective_node_verify(params)
+
   @staticmethod
   def perspective_node_start_master_daemons(params):
     """Start the master daemons on this node.

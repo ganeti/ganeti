@@ -584,6 +584,10 @@ CALLS = {
   "RpcClientDnsOnly": _Prepare([
     ("version", MULTI, ACCEPT_OFFLINE_NODE, constants.RPC_TMO_URGENT, [], None,
      None, "Query node version"),
+    ("node_verify_light", MULTI, None, constants.RPC_TMO_NORMAL, [
+      ("checkdict", None, None),
+      ("cluster_name", None, None),
+      ], None, None, "Request verification of given parameters"),
     ]),
   "RpcClientConfig": _Prepare([
     ("upload_file", MULTI, None, constants.RPC_TMO_NORMAL, [
