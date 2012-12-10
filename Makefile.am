@@ -483,6 +483,7 @@ HS_LIB_SRCS = \
 	htools/Ganeti/HTools/Program/Hspace.hs \
 	htools/Ganeti/HTools/Types.hs \
 	htools/Ganeti/Hash.hs \
+	htools/Ganeti/JQueue.hs \
 	htools/Ganeti/JSON.hs \
 	htools/Ganeti/Jobs.hs \
 	htools/Ganeti/Logging.hs \
@@ -530,6 +531,7 @@ HS_TEST_SRCS = \
 	htest/Test/Ganeti/HTools/Types.hs \
 	htest/Test/Ganeti/JSON.hs \
 	htest/Test/Ganeti/Jobs.hs \
+	htest/Test/Ganeti/JQueue.hs \
 	htest/Test/Ganeti/Luxi.hs \
 	htest/Test/Ganeti/Network.hs \
 	htest/Test/Ganeti/Objects.hs \

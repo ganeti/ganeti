@@ -53,6 +53,7 @@ import Test.Ganeti.HTools.PeerMap
 import Test.Ganeti.HTools.Types
 import Test.Ganeti.JSON
 import Test.Ganeti.Jobs
+import Test.Ganeti.JQueue
 import Test.Ganeti.Luxi
 import Test.Ganeti.Network
 import Test.Ganeti.Objects
@@ -103,6 +104,7 @@ allTests =
   , testHTools_Types
   , testJSON
   , testJobs
+  , testJQueue
   , testLuxi
   , testNetwork
   , testObjects
