@@ -332,6 +332,7 @@ _BLOCKDEV_CALLS = [
     ("owner", None, None),
     ("on_primary", None, None),
     ("info", None, None),
+    ("exclusive_storage", None, None),
     ], None, None, "Request creation of a given block device"),
   ("blockdev_wipe", SINGLE, None, constants.RPC_TMO_SLOW, [
     ("bdev", ED_SINGLE_DISK_DICT_DP, None),

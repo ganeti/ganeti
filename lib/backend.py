@@ -1549,7 +1549,7 @@ def GetMigrationStatus(instance):
     _Fail("Failed to get migration status: %s", err, exc=True)
 
 
-def BlockdevCreate(disk, size, owner, on_primary, info):
+def BlockdevCreate(disk, size, owner, on_primary, info, excl_stor):
   """Creates a block device for an instance.
 
   @type disk: L{objects.Disk}
@@ -1564,6 +1564,8 @@ def BlockdevCreate(disk, size, owner, on_primary, info):
   @type info: string
   @param info: string that will be sent to the physical device
       creation, used for example to set (LVM) tags on LVs
+  @type excl_stor: boolean
+  @param excl_stor: Whether exclusive_storage is active
 
   @return: the new unique_id of the device (this can sometime be
       computed only after creation), or None. On secondary nodes,
@@ -1590,7 +1592,7 @@ def BlockdevCreate(disk, size, owner, on_primary, info):
       clist.append(crdev)
 
   try:
-    device = bdev.Create(disk, clist)
+    device = bdev.Create(disk, clist, excl_stor)
   except errors.BlockDeviceError, err:
     _Fail("Can't create block device: %s", err)
 

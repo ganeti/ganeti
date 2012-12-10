@@ -179,11 +179,12 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     """Create a block device.
 
     """
-    bdev_s, size, owner, on_primary, info = params
+    (bdev_s, size, owner, on_primary, info, excl_stor) = params
     bdev = objects.Disk.FromDict(bdev_s)
     if bdev is None:
       raise ValueError("can't unserialize data!")
-    return backend.BlockdevCreate(bdev, size, owner, on_primary, info)
+    return backend.BlockdevCreate(bdev, size, owner, on_primary, info,
+                                  excl_stor)
 
   @staticmethod
   def perspective_blockdev_pause_resume_sync(params):

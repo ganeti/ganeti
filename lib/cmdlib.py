@@ -9055,7 +9055,8 @@ def _CreateSingleBlockDev(lu, node, instance, device, info, force_open):
   """
   lu.cfg.SetDiskID(device, node)
   result = lu.rpc.call_blockdev_create(node, device, device.size,
-                                       instance.name, force_open, info)
+                                       instance.name, force_open, info,
+                                       False)
   result.Raise("Can't create block device %s on"
                " node %s for instance %s" % (device, node, instance.name))
   if device.physical_id is None:

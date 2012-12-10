@@ -290,7 +290,7 @@ class BlockDev(object):
     raise NotImplementedError
 
   @classmethod
-  def Create(cls, unique_id, children, size, params):
+  def Create(cls, unique_id, children, size, params, excl_stor):
     """Create the device.
 
     If the device cannot be created, it will return None
@@ -524,7 +524,7 @@ class LogicalVolume(BlockDev):
     self.Attach()
 
   @classmethod
-  def Create(cls, unique_id, children, size, params):
+  def Create(cls, unique_id, children, size, params, excl_stor):
     """Create a new logical volume.
 
     """
@@ -2181,7 +2181,7 @@ class DRBD8(BaseDRBD):
     self.Shutdown()
 
   @classmethod
-  def Create(cls, unique_id, children, size, params):
+  def Create(cls, unique_id, children, size, params, excl_stor):
     """Create a new DRBD8 device.
 
     Since DRBD devices are not created per se, just assembled, this
@@ -2190,6 +2190,9 @@ class DRBD8(BaseDRBD):
     """
     if len(children) != 2:
       raise errors.ProgrammerError("Invalid setup for the drbd device")
+    if excl_stor:
+      raise errors.ProgrammerError("DRBD device requested with"
+                                   " exclusive_storage")
     # check that the minor is unused
     aminor = unique_id[4]
     proc_info = cls._MassageProcData(cls._GetProcData())
@@ -2355,7 +2358,7 @@ class FileStorage(BlockDev):
       _ThrowError("Can't stat %s: %s", self.dev_path, err)
 
   @classmethod
-  def Create(cls, unique_id, children, size, params):
+  def Create(cls, unique_id, children, size, params, excl_stor):
     """Create a new file.
 
     @param size: the size of file in MiB
@@ -2364,6 +2367,9 @@ class FileStorage(BlockDev):
     @return: an instance of FileStorage
 
     """
+    if excl_stor:
+      raise errors.ProgrammerError("FileStorage device requested with"
+                                   " exclusive_storage")
     if not isinstance(unique_id, (tuple, list)) or len(unique_id) != 2:
       raise ValueError("Invalid configuration data %s" % str(unique_id))
 
@@ -2420,12 +2426,15 @@ class PersistentBlockDevice(BlockDev):
     self.Attach()
 
   @classmethod
-  def Create(cls, unique_id, children, size, params):
+  def Create(cls, unique_id, children, size, params, excl_stor):
     """Create a new device
 
     This is a noop, we only return a PersistentBlockDevice instance
 
     """
+    if excl_stor:
+      raise errors.ProgrammerError("Persistent block device requested with"
+                                   " exclusive_storage")
     return PersistentBlockDevice(unique_id, children, 0, params)
 
   def Remove(self):
@@ -2517,7 +2526,7 @@ class RADOSBlockDevice(BlockDev):
     self.Attach()
 
   @classmethod
-  def Create(cls, unique_id, children, size, params):
+  def Create(cls, unique_id, children, size, params, excl_stor):
     """Create a new rbd device.
 
     Provision a new rbd volume inside a RADOS pool.
@@ -2526,6 +2535,9 @@ class RADOSBlockDevice(BlockDev):
     if not isinstance(unique_id, (tuple, list)) or len(unique_id) != 2:
       raise errors.ProgrammerError("Invalid configuration data %s" %
                                    str(unique_id))
+    if excl_stor:
+      raise errors.ProgrammerError("RBD device requested with"
+                                   " exclusive_storage")
     rbd_pool = params[constants.LDP_POOL]
     rbd_name = unique_id[1]
 
@@ -2810,7 +2822,7 @@ class ExtStorageDevice(BlockDev):
     self.Attach()
 
   @classmethod
-  def Create(cls, unique_id, children, size, params):
+  def Create(cls, unique_id, children, size, params, excl_stor):
     """Create a new extstorage device.
 
     Provision a new volume using an extstorage provider, which will
@@ -2820,6 +2832,9 @@ class ExtStorageDevice(BlockDev):
     if not isinstance(unique_id, (tuple, list)) or len(unique_id) != 2:
       raise errors.ProgrammerError("Invalid configuration data %s" %
                                    str(unique_id))
+    if excl_stor:
+      raise errors.ProgrammerError("extstorage device requested with"
+                                   " exclusive_storage")
 
     # Call the External Storage's create script,
     # to provision a new Volume inside the External Storage
@@ -3235,7 +3250,7 @@ def Assemble(disk, children):
   return device
 
 
-def Create(disk, children):
+def Create(disk, children, excl_stor):
   """Create a device.
 
   @type disk: L{objects.Disk}
@@ -3243,10 +3258,12 @@ def Create(disk, children):
   @type children: list of L{bdev.BlockDev}
   @param children: the list of block devices that are children of the device
                   represented by the disk parameter
+  @type excl_stor: boolean
+  @param excl_stor: Whether exclusive_storage is active
 
   """
   _VerifyDiskType(disk.dev_type)
   _VerifyDiskParams(disk)
   device = DEV_MAP[disk.dev_type].Create(disk.physical_id, children, disk.size,
-                                         disk.params)
+                                         disk.params, excl_stor)
   return device
