@@ -360,7 +360,7 @@ genEmptyContainer = pure . GenericContainer $ Map.fromList []
 genDiskIndices :: Gen [DiskIndex]
 genDiskIndices = do
   cnt <- choose (0, C.maxDisks)
-  genUniquesList cnt
+  genUniquesList cnt arbitrary
 
 -- | Generates a list of node names.
 genNodeNames :: Gen [String]

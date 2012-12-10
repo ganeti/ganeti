@@ -63,7 +63,7 @@ prop_findByName =
   forAll (genNode (Just 1) Nothing) $ \node ->
   forAll (choose (1, 20)) $ \ cnt ->
   forAll (choose (0, cnt - 1)) $ \ fidx ->
-  forAll (genUniquesList (cnt * 2)) $ \ allnames ->
+  forAll (genUniquesList (cnt * 2) arbitrary) $ \ allnames ->
   forAll (arbitrary `suchThat` (`notElem` allnames)) $ \ othername ->
   let names = zip (take cnt allnames) (drop cnt allnames)
       nl = makeSmallCluster node cnt

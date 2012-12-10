@@ -187,11 +187,12 @@ genFields = do
   vectorOf n genName
 
 -- | Generates a list of a given size with non-duplicate elements.
-genUniquesList :: (Eq a, Arbitrary a) => Int -> Gen [a]
-genUniquesList cnt =
-  foldM (\lst _ -> do
-           newelem <- arbitrary `suchThat` (`notElem` lst)
-           return (newelem:lst)) [] [1..cnt]
+genUniquesList :: (Eq a, Arbitrary a, Ord a) => Int -> Gen a -> Gen [a]
+genUniquesList cnt generator = do
+  set <- foldM (\set _ -> do
+                  newelem <- generator `suchThat` (`Set.notMember` set)
+                  return (Set.insert newelem set)) Set.empty [1..cnt]
+  return $ Set.toList set
 
 newtype SmallRatio = SmallRatio Double deriving Show
 instance Arbitrary SmallRatio where

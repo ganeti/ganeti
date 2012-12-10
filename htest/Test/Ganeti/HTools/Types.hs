@@ -106,7 +106,7 @@ instance Arbitrary Types.IPolicy where
     istd <- genBiggerISpec imin
     imax <- genBiggerISpec istd
     num_tmpl <- choose (0, length allDiskTemplates)
-    dts  <- genUniquesList num_tmpl
+    dts  <- genUniquesList num_tmpl arbitrary
     vcpu_ratio <- choose (1.0, maxVcpuRatio)
     spindle_ratio <- choose (1.0, maxSpindleRatio)
     return Types.IPolicy { Types.iPolicyMinSpec = imin
