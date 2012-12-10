@@ -82,10 +82,12 @@ module Ganeti.Types
   , JobId
   , fromJobId
   , makeJobId
+  , makeJobIdS
   , RelativeJobId
   , JobIdDep(..)
   , JobDependency(..)
   , OpSubmitPriority(..)
+  , opSubmitPriorityToRaw
   , OpStatus(..)
   , opStatusToRaw
   , opStatusFromRaw
@@ -402,10 +404,13 @@ makeJobId :: (Monad m) => Int -> m JobId
 makeJobId i | i >= 0 = return $ JobId i
             | otherwise = fail $ "Invalid value for job ID ' " ++ show i ++ "'"
 
+-- | Builds a job ID from a string.
+makeJobIdS :: (Monad m) => String -> m JobId
+makeJobIdS s = tryRead "parsing job id" s >>= makeJobId
+
 -- | Parses a job ID.
 parseJobId :: (Monad m) => JSON.JSValue -> m JobId
-parseJobId (JSON.JSString x) =
-  tryRead "parsing job id" (JSON.fromJSString x) >>= makeJobId
+parseJobId (JSON.JSString x) = makeJobIdS $ JSON.fromJSString x
 parseJobId (JSON.JSRational _ x) =
   if denominator x /= 1
     then fail $ "Got fractional job ID from master daemon?! Value:" ++ show x
