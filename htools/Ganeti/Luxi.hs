@@ -324,8 +324,10 @@ decodeCall (LuxiCall call args) =
   case call of
     ReqQueryJobs -> do
               (jids, jargs) <- fromJVal args
-              let rargs = map fromJSString jargs
-              return $ QueryJobs jids rargs
+              jids' <- case jids of
+                         JSNull -> return []
+                         _ -> fromJVal jids
+              return $ QueryJobs jids' jargs
     ReqQueryInstances -> do
               (names, fields, locking) <- fromJVal args
               return $ QueryInstances names fields locking
