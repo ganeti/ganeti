@@ -31,6 +31,12 @@ import itertools
 import random
 import operator
 
+try:
+  # pylint: disable=E0611
+  from pyinotify import pyinotify
+except ImportError:
+  import pyinotify
+
 from ganeti import constants
 from ganeti import utils
 from ganeti import errors
@@ -195,6 +201,19 @@ class TestJobChangesWaiter(unittest.TestCase):
     self._EnsureNotifierClosed(waiter._filewaiter._notifier)
 
 
+class _FailingWatchManager(pyinotify.WatchManager):
+  """Subclass of L{pyinotify.WatchManager} which always fails to register.
+
+  """
+  def add_watch(self, filename, mask):
+    assert mask == (pyinotify.EventsCodes.ALL_FLAGS["IN_MODIFY"] |
+                    pyinotify.EventsCodes.ALL_FLAGS["IN_IGNORED"])
+
+    return {
+      filename: -1,
+      }
+
+
 class TestWaitForJobChangesHelper(unittest.TestCase):
   def setUp(self):
     self.tmpdir = tempfile.mkdtemp()
@@ -227,6 +246,34 @@ class TestWaitForJobChangesHelper(unittest.TestCase):
     wfjc = jqueue._WaitForJobChangesHelper()
     self.assert_(wfjc(self.filename, self._LoadLostJob,
                       ["status"], None, None, 1.0) is None)
+
+  def testNonExistentFile(self):
+    wfjc = jqueue._WaitForJobChangesHelper()
+
+    filename = utils.PathJoin(self.tmpdir, "does-not-exist")
+    self.assertFalse(os.path.exists(filename))
+
+    result = wfjc(filename, self._LoadLostJob, ["status"], None, None, 1.0,
+                  _waiter_cls=compat.partial(jqueue._JobChangesWaiter,
+                                             _waiter_cls=NotImplemented))
+    self.assertTrue(result is None)
+
+  def testInotifyError(self):
+    jobfile_waiter_cls = \
+      compat.partial(jqueue._JobFileChangesWaiter,
+                     _inotify_wm_cls=_FailingWatchManager)
+
+    jobchange_waiter_cls = \
+      compat.partial(jqueue._JobChangesWaiter, _waiter_cls=jobfile_waiter_cls)
+
+    wfjc = jqueue._WaitForJobChangesHelper()
+
+    # Test if failing to watch a job file (e.g. due to
+    # fs.inotify.max_user_watches being too low) raises errors.InotifyError
+    self.assertRaises(errors.InotifyError, wfjc,
+                      self.filename, self._LoadWaitingJob,
+                      ["status"], [constants.JOB_STATUS_WAITING], None, 1.0,
+                      _waiter_cls=jobchange_waiter_cls)
 
 
 class TestEncodeOpError(unittest.TestCase):
