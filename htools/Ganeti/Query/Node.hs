@@ -105,7 +105,8 @@ nodeLiveFieldBuilder :: (FieldName, FieldTitle, FieldType, String, FieldDoc)
                      -> FieldData Node NodeRuntime
 nodeLiveFieldBuilder (fname, ftitle, ftype, _, fdoc) =
   ( FieldDefinition fname ftitle ftype fdoc
-  , FieldRuntime $ nodeLiveRpcCall fname)
+  , FieldRuntime $ nodeLiveRpcCall fname
+  , QffNormal)
 
 -- | The docstring for the node role. Note that we use 'reverse in
 -- order to keep the same order as Python.
@@ -130,69 +131,73 @@ getNodePower cfg node =
 nodeFields :: FieldList Node NodeRuntime
 nodeFields =
   [ (FieldDefinition "drained" "Drained" QFTBool "Whether node is drained",
-     FieldSimple (rsNormal . nodeDrained))
+     FieldSimple (rsNormal . nodeDrained), QffNormal)
   , (FieldDefinition "master_candidate" "MasterC" QFTBool
        "Whether node is a master candidate",
-     FieldSimple (rsNormal . nodeMasterCandidate))
+     FieldSimple (rsNormal . nodeMasterCandidate), QffNormal)
   , (FieldDefinition "master_capable" "MasterCapable" QFTBool
        "Whether node can become a master candidate",
-     FieldSimple (rsNormal . nodeMasterCapable))
+     FieldSimple (rsNormal . nodeMasterCapable), QffNormal)
   , (FieldDefinition "name" "Node" QFTText "Node name",
-     FieldSimple (rsNormal . nodeName))
+     FieldSimple (rsNormal . nodeName), QffNormal)
   , (FieldDefinition "offline" "Offline" QFTBool
        "Whether node is marked offline",
-     FieldSimple (rsNormal . nodeOffline))
+     FieldSimple (rsNormal . nodeOffline), QffNormal)
   , (FieldDefinition "vm_capable" "VMCapable" QFTBool
        "Whether node can host instances",
-     FieldSimple (rsNormal . nodeVmCapable))
+     FieldSimple (rsNormal . nodeVmCapable), QffNormal)
   , (FieldDefinition "pip" "PrimaryIP" QFTText "Primary IP address",
-     FieldSimple (rsNormal . nodePrimaryIp))
+     FieldSimple (rsNormal . nodePrimaryIp), QffNormal)
   , (FieldDefinition "sip" "SecondaryIP" QFTText "Secondary IP address",
-     FieldSimple (rsNormal . nodeSecondaryIp))
+     FieldSimple (rsNormal . nodeSecondaryIp), QffNormal)
   , (FieldDefinition "master" "IsMaster" QFTBool "Whether node is master",
      FieldConfig (\cfg node ->
                     rsNormal (nodeName node ==
-                              clusterMasterNode (configCluster cfg))))
+                              clusterMasterNode (configCluster cfg))),
+     QffNormal)
   , (FieldDefinition "group" "Group" QFTText "Node group",
      FieldConfig (\cfg node ->
-                    rsMaybe (groupName <$> getGroupOfNode cfg node)))
+                    rsMaybe (groupName <$> getGroupOfNode cfg node)),
+     QffNormal)
   , (FieldDefinition "group.uuid" "GroupUUID" QFTText "UUID of node group",
-     FieldSimple (rsNormal . nodeGroup))
+     FieldSimple (rsNormal . nodeGroup), QffNormal)
   ,  (FieldDefinition "ndparams" "NodeParameters" QFTOther
         "Merged node parameters",
-      FieldConfig ((rsMaybe .) . getNodeNdParams))
+      FieldConfig ((rsMaybe .) . getNodeNdParams), QffNormal)
   , (FieldDefinition "custom_ndparams" "CustomNodeParameters" QFTOther
                        "Custom node parameters",
-     FieldSimple (rsNormal . nodeNdparams))
+     FieldSimple (rsNormal . nodeNdparams), QffNormal)
   -- FIXME: the below could be generalised a bit, like in Python
   , (FieldDefinition "pinst_cnt" "Pinst" QFTNumber
        "Number of instances with this node as primary",
      FieldConfig (\cfg ->
-                    rsNormal . length . fst . getNodeInstances cfg . nodeName))
+                    rsNormal . length . fst . getNodeInstances cfg . nodeName),
+     QffNormal)
   , (FieldDefinition "sinst_cnt" "Sinst" QFTNumber
        "Number of instances with this node as secondary",
      FieldConfig (\cfg ->
-                    rsNormal . length . snd . getNodeInstances cfg . nodeName))
+                    rsNormal . length . snd . getNodeInstances cfg . nodeName),
+     QffNormal)
   , (FieldDefinition "pinst_list" "PriInstances" QFTOther
        "List of instances with this node as primary",
      FieldConfig (\cfg -> rsNormal . map instName . fst .
-                          getNodeInstances cfg . nodeName))
+                          getNodeInstances cfg . nodeName), QffNormal)
   , (FieldDefinition "sinst_list" "SecInstances" QFTOther
        "List of instances with this node as secondary",
      FieldConfig (\cfg -> rsNormal . map instName . snd .
-                          getNodeInstances cfg . nodeName))
+                          getNodeInstances cfg . nodeName), QffNormal)
   , (FieldDefinition "role" "Role" QFTText nodeRoleDoc,
-     FieldConfig ((rsNormal .) . getNodeRole))
+     FieldConfig ((rsNormal .) . getNodeRole), QffNormal)
   , (FieldDefinition "powered" "Powered" QFTBool
        "Whether node is thought to be powered on",
-     FieldConfig getNodePower)
+     FieldConfig getNodePower, QffNormal)
   -- FIXME: the two fields below are incomplete in Python, part of the
   -- non-implemented node resource model; they are declared just for
   -- parity, but are not functional
   , (FieldDefinition "hv_state" "HypervisorState" QFTOther "Hypervisor state",
-     missingRuntime)
+     missingRuntime, QffNormal)
   , (FieldDefinition "disk_state" "DiskState" QFTOther "Disk state",
-     missingRuntime)
+     missingRuntime, QffNormal)
   ] ++
   map nodeLiveFieldBuilder nodeLiveFieldsDefs ++
   map buildNdParamField allNDParamFields ++
@@ -203,4 +208,5 @@ nodeFields =
 
 -- | The node fields map.
 nodeFieldsMap :: FieldMap Node NodeRuntime
-nodeFieldsMap = Map.fromList $ map (\v -> (fdefName (fst v), v)) nodeFields
+nodeFieldsMap =
+  Map.fromList $ map (\v@(f, _, _) -> (fdefName f, v)) nodeFields

@@ -79,7 +79,8 @@ import Ganeti.Utils
 mkUnknownFDef :: String -> FieldData a b
 mkUnknownFDef name =
   ( FieldDefinition name name QFTUnknown ("Unknown field '" ++ name ++ "'")
-  , FieldUnknown )
+  , FieldUnknown
+  , QffNormal )
 
 -- | Runs a field getter on the existing contexts.
 execGetter :: ConfigData -> b -> a -> FieldGetter a b -> ResultEntry
@@ -161,7 +162,7 @@ queryInner cfg live (Query (ItemTypeOpCode QRNode) fields qfilter) wanted =
   runResultT $ do
   cfilter <- resultT $ compileFilter nodeFieldsMap qfilter
   let selected = getSelectedFields nodeFieldsMap fields
-      (fdefs, fgetters) = unzip selected
+      (fdefs, fgetters, _) = unzip3 selected
       live' = live && needsLiveData fgetters
   nodes <- resultT $ case wanted of
              [] -> Ok . niceSortKey nodeName .
@@ -182,7 +183,7 @@ queryInner cfg _ (Query (ItemTypeOpCode QRGroup) fields qfilter) wanted =
   return $ do
   cfilter <- compileFilter groupFieldsMap qfilter
   let selected = getSelectedFields groupFieldsMap fields
-      (fdefs, fgetters) = unzip selected
+      (fdefs, fgetters, _) = unzip3 selected
   groups <- case wanted of
               [] -> Ok . niceSortKey groupName .
                     Map.elems . fromContainer $ configNodegroups cfg
@@ -202,7 +203,7 @@ fieldsExtractor fieldsMap fields =
   let selected = if null fields
                    then map snd $ Map.toAscList fieldsMap
                    else getSelectedFields fieldsMap fields
-  in QueryFieldsResult (map fst selected)
+  in QueryFieldsResult (map (\(defs, _, _) -> defs) selected)
 
 -- | Query fields call.
 queryFields :: QueryFields -> ErrorResult QueryFieldsResult

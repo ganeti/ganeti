@@ -28,6 +28,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Ganeti.Query.Types
   ( FieldGetter(..)
+  , QffMode(..)
   , FieldData
   , FieldList
   , FieldMap
@@ -50,8 +51,16 @@ data FieldGetter a b = FieldSimple  (a -> ResultEntry)
                      | FieldConfig  (ConfigData -> a -> ResultEntry)
                      | FieldUnknown
 
+-- | Type defining how the value of a field is used in filtering. This
+-- implements the equivalent to Python's QFF_ flags, except that we
+-- don't use OR-able values.
+data QffMode = QffNormal     -- ^ Value is used as-is in filters
+             | QffTimestamp  -- ^ Value is a timestamp tuple, convert to float
+               deriving (Show, Eq)
+
+
 -- | Alias for a field data (definition and getter).
-type FieldData a b = (FieldDefinition, FieldGetter a b)
+type FieldData a b = (FieldDefinition, FieldGetter a b, QffMode)
 
 -- | Alias for a field data list.
 type FieldList a b = [FieldData a b]

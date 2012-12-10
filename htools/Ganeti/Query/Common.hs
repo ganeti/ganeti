@@ -104,29 +104,29 @@ rpcErrorToStatus _ = RSNoData
 timeStampFields :: (TimeStampObject a) => FieldList a b
 timeStampFields =
   [ (FieldDefinition "ctime" "CTime" QFTTimestamp "Creation timestamp",
-     FieldSimple (rsNormal . cTimeOf))
+     FieldSimple (rsNormal . cTimeOf), QffNormal)
   , (FieldDefinition "mtime" "MTime" QFTTimestamp "Modification timestamp",
-     FieldSimple (rsNormal . mTimeOf))
+     FieldSimple (rsNormal . mTimeOf), QffNormal)
   ]
 
 -- | The list of UUID fields.
 uuidFields :: (UuidObject a) => String -> FieldList a b
 uuidFields name =
   [ (FieldDefinition "uuid" "UUID" QFTText  (name ++ " UUID"),
-     FieldSimple (rsNormal . uuidOf)) ]
+     FieldSimple (rsNormal . uuidOf), QffNormal) ]
 
 -- | The list of serial number fields.
 serialFields :: (SerialNoObject a) => String -> FieldList a b
 serialFields name =
   [ (FieldDefinition "serial_no" "SerialNo" QFTNumber
      (name ++ " object serial number, incremented on each modification"),
-     FieldSimple (rsNormal . serialOf)) ]
+     FieldSimple (rsNormal . serialOf), QffNormal) ]
 
 -- | The list of tag fields.
 tagsFields :: (TagsObject a) => FieldList a b
 tagsFields =
   [ (FieldDefinition "tags" "Tags" QFTOther "Tags",
-     FieldSimple (rsNormal . tagsOf)) ]
+     FieldSimple (rsNormal . tagsOf), QffNormal) ]
 
 -- * Generic parameter functions
 
@@ -169,4 +169,4 @@ buildNdParamField field =
       qft = fromMaybe QFTOther $ field `Map.lookup` ndParamTypes
       desc = "The \"" ++ field ++ "\" node parameter"
   in (FieldDefinition full_name title qft desc,
-      FieldConfig (ndParamGetter field))
+      FieldConfig (ndParamGetter field), QffNormal)

@@ -69,12 +69,21 @@ import Ganeti.JSON
 -- | Compiles a filter based on field names to one based on getters.
 compileFilter :: FieldMap a b
               -> Filter FilterField
-              -> ErrorResult (Filter (FieldGetter a b))
+              -> ErrorResult (Filter (FieldGetter a b, QffMode))
 compileFilter fm =
   traverse (\field -> maybe
                       (Bad . ParameterError $ "Can't find field named '" ++
                            field ++ "'")
-                      (Ok . snd) (field `Map.lookup` fm))
+                      (\(_, g, q) -> Ok (g, q)) (field `Map.lookup` fm))
+
+-- | Processes a field value given a QffMode.
+qffField :: QffMode -> JSValue -> ErrorResult JSValue
+qffField QffNormal    v = Ok v
+qffField QffTimestamp v =
+  case v of
+    JSArray [secs@(JSRational _ _), JSRational _ _] -> return secs
+    _ -> Bad $ ProgrammerError
+         "Internal error: Getter returned non-timestamp for QffTimestamp"
 
 -- | Wraps a getter, filter pair. If the getter is 'FieldRuntime' but
 -- we don't have a runtime context, we skip the filtering, returning
@@ -82,15 +91,15 @@ compileFilter fm =
 wrapGetter :: ConfigData
            -> Maybe b
            -> a
-           -> FieldGetter a b
+           -> (FieldGetter a b, QffMode)
            -> (JSValue -> ErrorResult Bool)
            -> ErrorResult Bool
-wrapGetter cfg b a getter faction =
+wrapGetter cfg b a (getter, qff) faction =
   case tryGetter cfg b a getter of
     Nothing -> Ok True -- runtime missing, accepting the value
     Just v ->
       case v of
-        ResultEntry RSNormal (Just fval) -> faction fval
+        ResultEntry RSNormal (Just fval) -> qffField qff fval >>= faction
         ResultEntry RSNormal Nothing ->
           Bad $ ProgrammerError
                 "Internal error: Getter returned RSNormal/Nothing"
@@ -149,7 +158,7 @@ containsFilter (NumericValue val) lst = do
 -- 'any' and 'all' do not play nice with monadic values, resulting in
 -- either too much memory use or in too many thunks being created.
 evaluateFilter :: ConfigData -> Maybe b -> a
-               -> Filter (FieldGetter a b)
+               -> Filter (FieldGetter a b, QffMode)
                -> ErrorResult Bool
 evaluateFilter _ _  _ EmptyFilter = Ok True
 evaluateFilter c mb a (AndFilter flts) = helper flts

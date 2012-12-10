@@ -43,39 +43,41 @@ groupFields :: FieldList NodeGroup GroupRuntime
 groupFields =
   [ (FieldDefinition "alloc_policy" "AllocPolicy" QFTText
        "Allocation policy for group",
-     FieldSimple (rsNormal . groupAllocPolicy))
+     FieldSimple (rsNormal . groupAllocPolicy), QffNormal)
   , (FieldDefinition "custom_diskparams" "CustomDiskParameters" QFTOther
        "Custom disk parameters",
-     FieldSimple (rsNormal . groupDiskparams))
+     FieldSimple (rsNormal . groupDiskparams), QffNormal)
   , (FieldDefinition "custom_ipolicy" "CustomInstancePolicy" QFTOther
        "Custom instance policy limitations",
-     FieldSimple (rsNormal . groupIpolicy))
+     FieldSimple (rsNormal . groupIpolicy), QffNormal)
   , (FieldDefinition "custom_ndparams" "CustomNDParams" QFTOther
        "Custom node parameters",
-     FieldSimple (rsNormal . groupNdparams))
+     FieldSimple (rsNormal . groupNdparams), QffNormal)
   , (FieldDefinition "diskparams" "DiskParameters" QFTOther
        "Disk parameters (merged)",
-     FieldConfig (\cfg -> rsNormal . getGroupDiskParams cfg))
+     FieldConfig (\cfg -> rsNormal . getGroupDiskParams cfg), QffNormal)
   , (FieldDefinition "ipolicy" "InstancePolicy" QFTOther
        "Instance policy limitations (merged)",
-     FieldConfig (\cfg ng -> rsNormal (getGroupIpolicy cfg ng)))
+     FieldConfig (\cfg ng -> rsNormal (getGroupIpolicy cfg ng)), QffNormal)
   , (FieldDefinition "name" "Group" QFTText "Group name",
-     FieldSimple (rsNormal . groupName))
+     FieldSimple (rsNormal . groupName), QffNormal)
   , (FieldDefinition "ndparams" "NDParams" QFTOther "Node parameters",
-     FieldConfig (\cfg ng -> rsNormal (getGroupNdParams cfg ng)))
+     FieldConfig (\cfg ng -> rsNormal (getGroupNdParams cfg ng)), QffNormal)
   , (FieldDefinition "node_cnt" "Nodes" QFTNumber "Number of nodes",
-     FieldConfig (\cfg -> rsNormal . length . getGroupNodes cfg . groupName))
+     FieldConfig (\cfg -> rsNormal . length . getGroupNodes cfg . groupName),
+     QffNormal)
   , (FieldDefinition "node_list" "NodeList" QFTOther "List of nodes",
      FieldConfig (\cfg -> rsNormal . map nodeName .
-                          getGroupNodes cfg . groupName))
+                          getGroupNodes cfg . groupName), QffNormal)
   , (FieldDefinition "pinst_cnt" "Instances" QFTNumber
        "Number of primary instances",
      FieldConfig
-       (\cfg -> rsNormal . length . fst . getGroupInstances cfg . groupName))
+       (\cfg -> rsNormal . length . fst . getGroupInstances cfg . groupName),
+     QffNormal)
   , (FieldDefinition "pinst_list" "InstanceList" QFTOther
        "List of primary instances",
      FieldConfig (\cfg -> rsNormal . map instName . fst .
-                          getGroupInstances cfg . groupName))
+                          getGroupInstances cfg . groupName), QffNormal)
   ] ++
   map buildNdParamField allNDParamFields ++
   timeStampFields ++
@@ -85,4 +87,5 @@ groupFields =
 
 -- | The group fields map.
 groupFieldsMap :: FieldMap NodeGroup GroupRuntime
-groupFieldsMap = Map.fromList $ map (\v -> (fdefName (fst v), v)) groupFields
+groupFieldsMap =
+  Map.fromList $ map (\v@(f, _, _) -> (fdefName f, v)) groupFields

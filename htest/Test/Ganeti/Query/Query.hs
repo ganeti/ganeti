@@ -156,7 +156,7 @@ case_queryNode_allfields = do
               Ok (QueryFieldsResult v) -> return v
    let field_sort = compare `on` fdefName
    assertEqual "Mismatch in all fields list"
-     (sortBy field_sort . map fst $ Map.elems nodeFieldsMap)
+     (sortBy field_sort . map (\(f, _, _) -> f) $ Map.elems nodeFieldsMap)
      (sortBy field_sort fdefs)
 
 -- * Same as above, but for group
@@ -228,7 +228,7 @@ case_queryGroup_allfields = do
               Ok (QueryFieldsResult v) -> return v
    let field_sort = compare `on` fdefName
    assertEqual "Mismatch in all fields list"
-     (sortBy field_sort . map fst $ Map.elems groupFieldsMap)
+     (sortBy field_sort . map (\(f, _, _) -> f) $ Map.elems groupFieldsMap)
      (sortBy field_sort fdefs)
 
 
