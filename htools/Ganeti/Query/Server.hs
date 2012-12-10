@@ -62,7 +62,8 @@ type ConfigReader = IO (Result ConfigData)
 -- | Helper for classic queries.
 handleClassicQuery :: ConfigData      -- ^ Cluster config
                    -> Qlang.ItemType  -- ^ Query type
-                   -> [String]        -- ^ Requested names (empty means all)
+                   -> [Either String Integer] -- ^ Requested names
+                                              -- (empty means all)
                    -> [String]        -- ^ Requested fields
                    -> Bool            -- ^ Whether to do sync queries or not
                    -> IO (GenericResult GanetiException JSValue)
@@ -155,10 +156,12 @@ handleCall _ (QueryFields qkind qfields) = do
   return $ J.showJSON <$> result
 
 handleCall cfg (QueryNodes names fields lock) =
-  handleClassicQuery cfg (Qlang.ItemTypeOpCode Qlang.QRNode) names fields lock
+  handleClassicQuery cfg (Qlang.ItemTypeOpCode Qlang.QRNode)
+    (map Left names) fields lock
 
 handleCall cfg (QueryGroups names fields lock) =
-  handleClassicQuery cfg (Qlang.ItemTypeOpCode Qlang.QRGroup) names fields lock
+  handleClassicQuery cfg (Qlang.ItemTypeOpCode Qlang.QRGroup)
+    (map Left names) fields lock
 
 handleCall _ op =
   return . Bad $

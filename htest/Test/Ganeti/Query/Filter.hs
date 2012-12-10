@@ -181,10 +181,14 @@ prop_node_bad_filter rndname rndint =
 prop_makeSimpleFilter :: Property
 prop_makeSimpleFilter =
   forAll (resize 10 $ listOf1 genName) $ \names ->
+  forAll (resize 10 $ listOf1 arbitrary) $ \ids ->
   forAll genName $ \namefield ->
   conjoin [ printTestCase "test expected names" $
-              makeSimpleFilter namefield names ==?
+              makeSimpleFilter namefield (map Left names) ==?
               OrFilter (map (EQFilter namefield . QuotedString) names)
+          , printTestCase "test expected IDs" $
+              makeSimpleFilter namefield (map Right ids) ==?
+              OrFilter (map (EQFilter namefield . NumericValue) ids)
           , printTestCase "test empty names" $
               makeSimpleFilter namefield [] ==? EmptyFilter
           ]

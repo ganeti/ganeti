@@ -216,7 +216,7 @@ requestedNames namefield (EQFilter fld val) =
 requestedNames _ _ = Nothing
 
 -- | Builds a simple filter from a list of names.
-makeSimpleFilter :: String -> [String] -> Filter FilterField
+makeSimpleFilter :: String -> [Either String Integer] -> Filter FilterField
 makeSimpleFilter _ [] = EmptyFilter
 makeSimpleFilter namefield vals =
-  OrFilter $ map (EQFilter namefield . QuotedString) vals
+  OrFilter $ map (EQFilter namefield . either QuotedString NumericValue) vals
