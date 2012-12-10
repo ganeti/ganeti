@@ -1236,6 +1236,7 @@ htools/Ganeti/Version.hs: htools/Ganeti/Version.hs.in \
 
 htools/Ganeti/Constants.hs: htools/Ganeti/Constants.hs.in \
 	lib/constants.py lib/_autoconf.py lib/luxi.py lib/errors.py \
+	lib/jstore.py \
 	$(CONVERT_CONSTANTS) $(built_base_sources) \
 	| lib/_vcsversion.py
 	set -e; \

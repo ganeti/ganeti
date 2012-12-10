@@ -32,6 +32,7 @@ from ganeti import errors
 from ganeti import luxi
 from ganeti import opcodes
 from ganeti import qlang
+from ganeti import jstore
 
 
 #: Constant name regex
@@ -313,6 +314,7 @@ def main():
   print Convert(qlang, "qlang")
   print Convert(_autoconf, "autoconf")
   print Convert(errors, "errors")
+  print Convert(jstore, "jstore")
   print ConvertMisc()
 
 
