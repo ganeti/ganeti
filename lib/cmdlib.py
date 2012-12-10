@@ -697,6 +697,39 @@ def _SupportsOob(cfg, node):
   return cfg.GetNdParams(node)[constants.ND_OOB_PROGRAM]
 
 
+def _IsExclusiveStorageEnabledNode(cfg, node):
+  """Whether exclusive_storage is in effect for the given node.
+
+  @type cfg: L{config.ConfigWriter}
+  @param cfg: The cluster configuration
+  @type node: L{objects.Node}
+  @param node: The node
+  @rtype: bool
+  @return: The effective value of exclusive_storage
+
+  """
+  return cfg.GetNdParams(node)[constants.ND_EXCLUSIVE_STORAGE]
+
+
+def _IsExclusiveStorageEnabledNodeName(cfg, nodename):
+  """Whether exclusive_storage is in effect for the given node.
+
+  @type cfg: L{config.ConfigWriter}
+  @param cfg: The cluster configuration
+  @type nodename: string
+  @param nodename: The node
+  @rtype: bool
+  @return: The effective value of exclusive_storage
+  @raise errors.OpPrereqError: if no node exists with the given name
+
+  """
+  ni = cfg.GetNodeInfo(nodename)
+  if ni is None:
+    raise errors.OpPrereqError("Invalid node name %s" % nodename,
+                               errors.ECODE_NOENT)
+  return _IsExclusiveStorageEnabledNode(cfg, ni)
+
+
 def _CopyLockList(names):
   """Makes a copy of a list of lock names.
 
@@ -8984,12 +9017,13 @@ def _CreateBlockDev(lu, node, instance, device, force_create, info,
 
   """
   (disk,) = _AnnotateDiskParams(instance, [device], lu.cfg)
+  excl_stor = _IsExclusiveStorageEnabledNodeName(lu.cfg, node)
   return _CreateBlockDevInner(lu, node, instance, disk, force_create, info,
-                              force_open)
+                              force_open, excl_stor)
 
 
 def _CreateBlockDevInner(lu, node, instance, device, force_create,
-                         info, force_open):
+                         info, force_open, excl_stor):
   """Create a tree of block devices on a given node.
 
   If this device type has to be created on secondaries, create it and
@@ -9016,6 +9050,8 @@ def _CreateBlockDevInner(lu, node, instance, device, force_create,
       L{backend.BlockdevCreate} function where it specifies
       whether we run on primary or not, and it affects both
       the child assembly and the device own Open() execution
+  @type excl_stor: boolean
+  @param excl_stor: Whether exclusive_storage is active for the node
 
   """
   if device.CreateOnSecondary():
@@ -9024,15 +9060,17 @@ def _CreateBlockDevInner(lu, node, instance, device, force_create,
   if device.children:
     for child in device.children:
       _CreateBlockDevInner(lu, node, instance, child, force_create,
-                           info, force_open)
+                           info, force_open, excl_stor)
 
   if not force_create:
     return
 
-  _CreateSingleBlockDev(lu, node, instance, device, info, force_open)
+  _CreateSingleBlockDev(lu, node, instance, device, info, force_open,
+                        excl_stor)
 
 
-def _CreateSingleBlockDev(lu, node, instance, device, info, force_open):
+def _CreateSingleBlockDev(lu, node, instance, device, info, force_open,
+                          excl_stor):
   """Create a single block device on a given node.
 
   This will not recurse over children of the device, so they must be
@@ -9051,12 +9089,14 @@ def _CreateSingleBlockDev(lu, node, instance, device, info, force_open):
       L{backend.BlockdevCreate} function where it specifies
       whether we run on primary or not, and it affects both
       the child assembly and the device own Open() execution
+  @type excl_stor: boolean
+  @param excl_stor: Whether exclusive_storage is active for the node
 
   """
   lu.cfg.SetDiskID(device, node)
   result = lu.rpc.call_blockdev_create(node, device, device.size,
                                        instance.name, force_open, info,
-                                       False)
+                                       excl_stor)
   result.Raise("Can't create block device %s on"
                " node %s for instance %s" % (device, node, instance.name))
   if device.physical_id is None:
@@ -11597,11 +11637,13 @@ class TLReplaceDisks(Tasklet):
       new_lvs = [lv_data, lv_meta]
       old_lvs = [child.Copy() for child in dev.children]
       iv_names[dev.iv_name] = (dev, old_lvs, new_lvs)
+      excl_stor = _IsExclusiveStorageEnabledNodeName(self.lu.cfg, node_name)
 
       # we pass force_create=True to force the LVM creation
       for new_lv in new_lvs:
         _CreateBlockDevInner(self.lu, node_name, self.instance, new_lv, True,
-                             _GetInstanceInfoText(self.instance), False)
+                             _GetInstanceInfoText(self.instance), False,
+                             excl_stor)
 
     return iv_names
 
@@ -11810,13 +11852,15 @@ class TLReplaceDisks(Tasklet):
     # Step: create new storage
     self.lu.LogStep(3, steps_total, "Allocate new storage")
     disks = _AnnotateDiskParams(self.instance, self.instance.disks, self.cfg)
+    excl_stor = _IsExclusiveStorageEnabledNodeName(self.lu.cfg, self.new_node)
     for idx, dev in enumerate(disks):
       self.lu.LogInfo("Adding new local storage on %s for disk/%d" %
                       (self.new_node, idx))
       # we pass force_create=True to force LVM creation
       for new_lv in dev.children:
         _CreateBlockDevInner(self.lu, self.new_node, self.instance, new_lv,
-                             True, _GetInstanceInfoText(self.instance), False)
+                             True, _GetInstanceInfoText(self.instance), False,
+                             excl_stor)
 
     # Step 4: dbrd minors and drbd setups changes
     # after this, we must manually remove the drbd minors on both the
@@ -11860,7 +11904,8 @@ class TLReplaceDisks(Tasklet):
       try:
         _CreateSingleBlockDev(self.lu, self.new_node, self.instance,
                               anno_new_drbd,
-                              _GetInstanceInfoText(self.instance), False)
+                              _GetInstanceInfoText(self.instance), False,
+                              excl_stor)
       except errors.GenericError:
         self.cfg.ReleaseDRBDMinors(self.instance.name)
         raise
@@ -13576,15 +13621,18 @@ class LUInstanceSetParams(LogicalUnit):
                                       self.diskparams)
     anno_disks = rpc.AnnotateDiskParams(constants.DT_DRBD8, new_disks,
                                         self.diskparams)
+    p_excl_stor = _IsExclusiveStorageEnabledNodeName(self.cfg, pnode)
+    s_excl_stor = _IsExclusiveStorageEnabledNodeName(self.cfg, snode)
     info = _GetInstanceInfoText(instance)
     feedback_fn("Creating additional volumes...")
     # first, create the missing data and meta devices
     for disk in anno_disks:
       # unfortunately this is... not too nice
       _CreateSingleBlockDev(self, pnode, instance, disk.children[1],
-                            info, True)
+                            info, True, p_excl_stor)
       for child in disk.children:
-        _CreateSingleBlockDev(self, snode, instance, child, info, True)
+        _CreateSingleBlockDev(self, snode, instance, child, info, True,
+                              s_excl_stor)
     # at this stage, all new LVs have been created, we can rename the
     # old ones
     feedback_fn("Renaming original volumes...")
@@ -13596,9 +13644,10 @@ class LUInstanceSetParams(LogicalUnit):
     feedback_fn("Initializing DRBD devices...")
     # all child devices are in place, we can now create the DRBD devices
     for disk in anno_disks:
-      for node in [pnode, snode]:
+      for (node, excl_stor) in [(pnode, p_excl_stor), (snode, s_excl_stor)]:
         f_create = node == pnode
-        _CreateSingleBlockDev(self, node, instance, disk, info, f_create)
+        _CreateSingleBlockDev(self, node, instance, disk, info, f_create,
+                              excl_stor)
 
     # at this point, the instance has been modified
     instance.disk_template = constants.DT_DRBD8
