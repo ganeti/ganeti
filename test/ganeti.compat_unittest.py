@@ -99,5 +99,24 @@ class TestTryToRoman(testutils.GanetiTestCase):
     self.assertEquals(compat.TryToRoman("19", convert=False), "19")
 
 
+class TestUniqueFrozenset(unittest.TestCase):
+  def testDuplicates(self):
+    for values in [["", ""], ["Hello", "World", "Hello"]]:
+      self.assertRaises(ValueError, compat.UniqueFrozenset, values)
+
+  def testEmpty(self):
+    self.assertEqual(compat.UniqueFrozenset([]), frozenset([]))
+
+  def testUnique(self):
+    self.assertEqual(compat.UniqueFrozenset([1, 2, 3]), frozenset([1, 2, 3]))
+
+  def testGenerator(self):
+    seq = ("Foo%s" % i for i in range(10))
+    self.assertTrue(callable(seq.next))
+    self.assertFalse(isinstance(seq, (list, tuple)))
+    self.assertEqual(compat.UniqueFrozenset(seq),
+                     frozenset(["Foo%s" % i for i in range(10)]))
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()

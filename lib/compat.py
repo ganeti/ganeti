@@ -146,6 +146,26 @@ def TryToRoman(val, convert=True):
   else:
     return val
 
+
+def UniqueFrozenset(seq):
+  """Makes C{frozenset} from sequence after checking for duplicate elements.
+
+  @raise ValueError: When there are duplicate elements
+
+  """
+  if isinstance(seq, (list, tuple)):
+    items = seq
+  else:
+    items = list(seq)
+
+  result = frozenset(items)
+
+  if len(items) != len(result):
+    raise ValueError("Duplicate values found")
+
+  return result
+
+
 #: returns the first element of a list-like value
 fst = operator.itemgetter(0)
 
