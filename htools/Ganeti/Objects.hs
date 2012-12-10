@@ -87,6 +87,7 @@ module Ganeti.Objects
   , TagsObject(..)
   , DictObject(..) -- re-exported from THH
   , TagSet -- re-exported from THH
+  , Network(..)
   ) where
 
 import Data.List (foldl')
@@ -590,3 +591,39 @@ $(buildObject "ConfigData" "config" $
 
 instance SerialNoObject ConfigData where
   serialOf = configSerial
+
+-- * Network definitions
+
+-- FIXME: Not all types might be correct here, since they
+-- haven't been exhaustively deduced from the python code yet.
+$(buildObject "Network" "network" $
+  [ simpleField "name"             [t| NonEmptyString |]
+  , optionalField $
+    simpleField "network_type"     [t| NetworkType |]
+  , optionalField $
+    simpleField "mac_prefix"       [t| String |]
+  , optionalField $
+    simpleField "family"           [t| Int |]
+  , simpleField "network"          [t| NonEmptyString |]
+  , optionalField $
+    simpleField "network6"         [t| String |]
+  , optionalField $
+    simpleField "gateway"          [t| String |]
+  , optionalField $
+    simpleField "gateway6"         [t| String |]
+  , optionalField $
+    simpleField "size"             [t| J.JSValue |]
+  , optionalField $
+    simpleField "reservations"     [t| String |]
+  , optionalField $
+    simpleField "ext_reservations" [t| String |]
+  ]
+  ++ serialFields
+  ++ tagsFields)
+
+instance SerialNoObject Network where
+  serialOf = networkSerial
+
+instance TagsObject Network where
+  tagsOf = networkTags
+
