@@ -44,10 +44,12 @@ import Test.Ganeti.Objects (genEmptyCluster)
 
 import Ganeti.BasicTypes
 import Ganeti.Errors
+import Ganeti.Query.Filter
 import Ganeti.Query.Group
 import Ganeti.Query.Language
 import Ganeti.Query.Node
 import Ganeti.Query.Query
+import qualified Ganeti.Query.Job as Job
 
 {-# ANN module "HLint: ignore Use camelCase" #-}
 
@@ -58,6 +60,8 @@ hasUnknownFields :: [FieldDefinition] -> Bool
 hasUnknownFields = (QFTUnknown `notElem`) . map fdefKind
 
 -- * Test cases
+
+-- ** Node queries
 
 -- | Tests that querying any existing fields, via either query or
 -- queryFields, will not return unknown fields.
@@ -159,7 +163,7 @@ case_queryNode_allfields = do
      (sortBy field_sort . map (\(f, _, _) -> f) $ Map.elems nodeFieldsMap)
      (sortBy field_sort fdefs)
 
--- * Same as above, but for group
+-- ** Group queries
 
 prop_queryGroup_noUnknown :: Property
 prop_queryGroup_noUnknown =
@@ -231,6 +235,61 @@ case_queryGroup_allfields = do
      (sortBy field_sort . map (\(f, _, _) -> f) $ Map.elems groupFieldsMap)
      (sortBy field_sort fdefs)
 
+-- ** Job queries
+
+-- | Tests that querying any existing fields, via either query or
+-- queryFields, will not return unknown fields. This uses 'undefined'
+-- for config, as job queries shouldn't use the configuration, and an
+-- explicit filter as otherwise non-live queries wouldn't return any
+-- result rows.
+prop_queryJob_noUnknown :: Property
+prop_queryJob_noUnknown =
+  forAll (listOf (arbitrary::Gen (Positive Integer))) $ \ids ->
+  forAll (elements (Map.keys Job.fieldsMap)) $ \field -> monadicIO $ do
+  let qtype = ItemTypeLuxi QRJob
+      flt = makeSimpleFilter (nameField qtype) $
+            map (\(Positive i) -> Right i) ids
+  QueryResult fdefs fdata <-
+    run (query undefined False (Query qtype [field] flt)) >>= resultProp
+  QueryFieldsResult fdefs' <-
+    resultProp $ queryFields (QueryFields qtype [field])
+  stop $ conjoin
+         [ printTestCase ("Got unknown fields via query (" ++
+                          show fdefs ++ ")") (hasUnknownFields fdefs)
+         , printTestCase ("Got unknown result status via query (" ++
+                          show fdata ++ ")")
+           (all (all ((/= RSUnknown) . rentryStatus)) fdata)
+         , printTestCase ("Got unknown fields via query fields (" ++
+                          show fdefs'++ ")") (hasUnknownFields fdefs')
+         ]
+
+-- | Tests that an unknown field is returned as such.
+prop_queryJob_Unknown :: Property
+prop_queryJob_Unknown =
+  forAll (listOf (arbitrary::Gen (Positive Integer))) $ \ids ->
+  forAll (arbitrary `suchThat` (`notElem` Map.keys Job.fieldsMap))
+    $ \field -> monadicIO $ do
+  let qtype = ItemTypeLuxi QRJob
+      flt = makeSimpleFilter (nameField qtype) $
+            map (\(Positive i) -> Right i) ids
+  QueryResult fdefs fdata <-
+    run (query undefined False (Query qtype [field] flt)) >>= resultProp
+  QueryFieldsResult fdefs' <-
+    resultProp $ queryFields (QueryFields qtype [field])
+  stop $ conjoin
+         [ printTestCase ("Got known fields via query (" ++ show fdefs ++ ")")
+           (not $ hasUnknownFields fdefs)
+         , printTestCase ("Got /= ResultUnknown result status via query (" ++
+                          show fdata ++ ")")
+           (all (all ((== RSUnknown) . rentryStatus)) fdata)
+         , printTestCase ("Got a Just in a result value (" ++
+                          show fdata ++ ")")
+           (all (all (isNothing . rentryValue)) fdata)
+         , printTestCase ("Got known fields via query fields (" ++ show fdefs'
+                          ++ ")") (not $ hasUnknownFields fdefs')
+         ]
+
+-- ** Misc other tests
 
 -- | Tests that requested names checking behaves as expected.
 prop_getRequestedNames :: Property
@@ -258,5 +317,7 @@ testSuite "Query/Query"
   , 'prop_queryGroup_Unknown
   , 'prop_queryGroup_types
   , 'case_queryGroup_allfields
+  , 'prop_queryJob_noUnknown
+  , 'prop_queryJob_Unknown
   , 'prop_getRequestedNames
   ]

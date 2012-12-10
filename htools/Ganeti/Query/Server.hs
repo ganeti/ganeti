@@ -163,6 +163,10 @@ handleCall cfg (QueryGroups names fields lock) =
   handleClassicQuery cfg (Qlang.ItemTypeOpCode Qlang.QRGroup)
     (map Left names) fields lock
 
+handleCall cfg (QueryJobs names fields) =
+  handleClassicQuery cfg (Qlang.ItemTypeLuxi Qlang.QRJob)
+    (map (Right . fromIntegral . fromJobId) names)  fields False
+
 handleCall _ op =
   return . Bad $
     GenericError ("Luxi call '" ++ strOfOp op ++ "' not implemented")

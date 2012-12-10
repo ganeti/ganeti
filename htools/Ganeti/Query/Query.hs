@@ -52,7 +52,8 @@ module Ganeti.Query.Query
     , nameField
     ) where
 
-import Control.Monad (filterM)
+import Control.DeepSeq
+import Control.Monad (filterM, liftM, foldM)
 import Control.Monad.Trans (lift)
 import Data.List (intercalate)
 import Data.Maybe (fromMaybe)
@@ -60,17 +61,21 @@ import qualified Data.Map as Map
 import qualified Text.JSON as J
 
 import Ganeti.BasicTypes
-import Ganeti.Errors
 import Ganeti.Config
+import Ganeti.Errors
+import Ganeti.JQueue
 import Ganeti.JSON
 import Ganeti.Rpc
-import Ganeti.Query.Language
+import Ganeti.Objects
 import Ganeti.Query.Common
 import Ganeti.Query.Filter
-import Ganeti.Query.Types
-import Ganeti.Query.Node
+import qualified Ganeti.Query.Job as Query.Job
 import Ganeti.Query.Group
-import Ganeti.Objects
+import Ganeti.Query.Language
+import Ganeti.Query.Node
+import Ganeti.Query.Types
+import Ganeti.Path
+import Ganeti.Types
 import Ganeti.Utils
 
 -- * Helper functions
@@ -144,11 +149,26 @@ getRequestedNames qry =
     Just names -> getAllQuotedStrings names
     Nothing    -> []
 
+-- | Compute the requested job IDs. This is custom since we need to
+-- handle both strings and integers.
+getRequestedJobIDs :: Filter FilterField -> Result [JobId]
+getRequestedJobIDs qfilter =
+  case requestedNames (nameField (ItemTypeLuxi QRJob)) qfilter of
+    Nothing -> Ok []
+    Just [] -> Ok []
+    Just vals ->
+      mapM (\e -> case e of
+                    QuotedString s -> makeJobIdS s
+                    NumericValue i -> makeJobId $ fromIntegral i
+           ) vals
+
 -- | Main query execution function.
 query :: ConfigData   -- ^ The current configuration
       -> Bool         -- ^ Whether to collect live data
       -> Query        -- ^ The query (item, fields, filter)
       -> IO (ErrorResult QueryResult) -- ^ Result
+query cfg live (Query (ItemTypeLuxi QRJob) fields qfilter) =
+  queryJobs cfg live fields qfilter
 query cfg live qry = queryInner cfg live qry $ getRequestedNames qry
 
 -- | Inner query execution function.
@@ -197,6 +217,58 @@ queryInner cfg _ (Query (ItemTypeOpCode QRGroup) fields qfilter) wanted =
 queryInner _ _ (Query qkind _ _) _ =
   return . Bad . GenericError $ "Query '" ++ show qkind ++ "' not supported"
 
+-- | Query jobs specific query function, needed as we need to accept
+-- both 'QuotedString' and 'NumericValue' as wanted names.
+queryJobs :: ConfigData                   -- ^ The current configuration
+          -> Bool                         -- ^ Whether to collect live data
+          -> [FilterField]                -- ^ Item
+          -> Filter FilterField           -- ^ Filter
+          -> IO (ErrorResult QueryResult) -- ^ Result
+queryJobs cfg live fields qfilter =
+  runResultT $ do
+  rootdir <- lift queueDir
+  let wanted_names = getRequestedJobIDs qfilter
+      want_arch = Query.Job.wantArchived fields
+  rjids <- case wanted_names of
+             Bad msg -> resultT . Bad $ GenericError msg
+             Ok [] -> if live
+                        -- we can check the filesystem for actual jobs
+                        then lift $ liftM sortJobIDs
+                             (determineJobDirectories rootdir want_arch >>=
+                              getJobIDs)
+                        -- else we shouldn't look at the filesystem...
+                        else return []
+             Ok v -> resultT $ Ok v
+  cfilter <- resultT $ compileFilter Query.Job.fieldsMap qfilter
+  let selected = getSelectedFields Query.Job.fieldsMap fields
+      (fdefs, fgetters, _) = unzip3 selected
+      live' = live && needsLiveData fgetters
+      disabled_data = Bad "live data disabled"
+  -- runs first pass of the filter, without a runtime context; this
+  -- will limit the jobs that we'll load from disk
+  jids <- resultT $
+          filterM (\jid -> evaluateFilter cfg Nothing jid cfilter) rjids
+  -- here we run the runtime data gathering, filtering and evaluation,
+  -- all in the same step, so that we don't keep jobs in memory longer
+  -- than we need; we can't be fully lazy due to the multiple monad
+  -- wrapping across different steps
+  qdir <- lift queueDir
+  fdata <- foldM
+           -- big lambda, but we use many variables from outside it...
+           (\lst jid -> do
+              job <- lift $ if live'
+                              then loadJobFromDisk qdir want_arch jid
+                              else return disabled_data
+              pass <- resultT $ evaluateFilter cfg (Just job) jid cfilter
+              let nlst = if pass
+                           then let row = map (execGetter cfg job jid) fgetters
+                                in rnf row `seq` row:lst
+                           else lst
+              -- evaluate nlst (to WHNF), otherwise we're too lazy
+              return $! nlst
+           ) [] jids
+  return QueryResult { qresFields = fdefs, qresData = reverse fdata }
+
 -- | Helper for 'queryFields'.
 fieldsExtractor :: FieldMap a b -> [FilterField] -> QueryFieldsResult
 fieldsExtractor fieldsMap fields =
@@ -212,6 +284,9 @@ queryFields (QueryFields (ItemTypeOpCode QRNode) fields) =
 
 queryFields (QueryFields (ItemTypeOpCode QRGroup) fields) =
   Ok $ fieldsExtractor groupFieldsMap fields
+
+queryFields (QueryFields (ItemTypeLuxi QRJob) fields) =
+  Ok $ fieldsExtractor Query.Job.fieldsMap fields
 
 queryFields (QueryFields qkind _) =
   Bad . GenericError $ "QueryFields '" ++ show qkind ++ "' not supported"
