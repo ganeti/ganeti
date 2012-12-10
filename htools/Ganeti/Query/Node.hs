@@ -223,4 +223,14 @@ maybeCollectLiveData False _ nodes =
 maybeCollectLiveData True cfg nodes = do
   let vgs = [clusterVolumeGroupName $ configCluster cfg]
       hvs = [getDefaultHypervisor cfg]
-  executeRpcCall nodes (RpcCallNodeInfo vgs hvs)
+      step n (bn, gn, em) =
+        let ndp' = getNodeNdParams cfg n
+        in case ndp' of
+             Just ndp -> (bn, n : gn,
+                          (nodeName n, ndpExclusiveStorage ndp) : em)
+             Nothing -> (n : bn, gn, em)
+      (bnodes, gnodes, emap) = foldr step ([], [], []) nodes
+  rpcres <- executeRpcCall gnodes (RpcCallNodeInfo vgs hvs (Map.fromList emap))
+  -- FIXME: The order of nodes in the result could be different from the input
+  return $ zip bnodes (repeat $ Left (RpcResultError "Broken configuration"))
+           ++ rpcres

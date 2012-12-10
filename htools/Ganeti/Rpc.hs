@@ -70,6 +70,8 @@ module Ganeti.Rpc
   ) where
 
 import Control.Arrow (second)
+import qualified Data.Map as Map
+import Data.Maybe (fromMaybe)
 import qualified Text.JSON as J
 import Text.JSON.Pretty (pp_value)
 
@@ -343,6 +345,7 @@ instance Rpc RpcCallInstanceList RpcResultInstanceList where
 $(buildObject "RpcCallNodeInfo" "rpcCallNodeInfo"
   [ simpleField "volume_groups" [t| [String] |]
   , simpleField "hypervisors" [t| [Hypervisor] |]
+  , simpleField "exclusive_storage" [t| Map.Map String Bool |]
   ])
 
 $(buildObject "VgInfo" "vgInfo"
@@ -371,10 +374,12 @@ instance RpcCall RpcCallNodeInfo where
   rpcCallName _          = "node_info"
   rpcCallTimeout _       = rpcTimeoutToRaw Urgent
   rpcCallAcceptOffline _ = False
-  rpcCallData _ call     = J.encode
+  rpcCallData n call     = J.encode
     ( rpcCallNodeInfoVolumeGroups call
     , rpcCallNodeInfoHypervisors call
-    , False
+    , fromMaybe (error $ "Programmer error: missing parameter for node named "
+                         ++ nodeName n)
+                $ Map.lookup (nodeName n) (rpcCallNodeInfoExclusiveStorage call)
     )
 
 instance Rpc RpcCallNodeInfo RpcResultNodeInfo where

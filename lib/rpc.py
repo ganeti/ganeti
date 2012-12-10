@@ -631,6 +631,31 @@ def AnnotateDiskParams(template, disks, disk_params):
   return [annotation_fn(disk.Copy(), ld_params) for disk in disks]
 
 
+def _GetESFlag(cfg, nodename):
+  ni = cfg.GetNodeInfo(nodename)
+  if ni is None:
+    raise errors.OpPrereqError("Invalid node name %s" % nodename,
+                               errors.ECODE_NOENT)
+  return cfg.GetNdParams(ni)[constants.ND_EXCLUSIVE_STORAGE]
+
+
+def GetExclusiveStorageForNodeNames(cfg, nodelist):
+  """Return the exclusive storage flag for all the given nodes.
+
+  @type cfg: L{config.ConfigWriter}
+  @param cfg: cluster configuration
+  @type nodelist: list or tuple
+  @param nodelist: node names for which to read the flag
+  @rtype: dict
+  @return: mapping from node names to exclusive storage flags
+  @raise errors.OpPrereqError: if any given node name has no corresponding node
+
+  """
+  getflag = lambda n: _GetESFlag(cfg, n)
+  flags = map(getflag, nodelist)
+  return dict(zip(nodelist, flags))
+
+
 #: Generic encoders
 _ENCODERS = {
   rpc_defs.ED_OBJECT_DICT: _ObjectToDict,

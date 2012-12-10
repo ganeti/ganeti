@@ -5288,8 +5288,9 @@ class _NodeQuery(_QueryBase):
       # filter out non-vm_capable nodes
       toquery_nodes = [name for name in nodenames if all_info[name].vm_capable]
 
+      es_flags = rpc.GetExclusiveStorageForNodeNames(lu.cfg, toquery_nodes)
       node_data = lu.rpc.call_node_info(toquery_nodes, [lu.cfg.GetVGName()],
-                                        [lu.cfg.GetHypervisorType()], False)
+                                        [lu.cfg.GetHypervisorType()], es_flags)
       live_data = dict((name, rpc.MakeLegacyNodeInfo(nresult.payload))
                        for (name, nresult) in node_data.items()
                        if not nresult.fail_msg and nresult.payload)
@@ -6888,7 +6889,8 @@ def _CheckNodesFreeDiskOnVG(lu, nodenames, vg, requested):
       or we cannot check the node
 
   """
-  nodeinfo = lu.rpc.call_node_info(nodenames, [vg], None, False)
+  es_flags = rpc.GetExclusiveStorageForNodeNames(lu.cfg, nodenames)
+  nodeinfo = lu.rpc.call_node_info(nodenames, [vg], None, es_flags)
   for node in nodenames:
     info = nodeinfo[node]
     info.Raise("Cannot get current information from node %s" % node,
