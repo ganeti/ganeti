@@ -121,6 +121,16 @@ class TestOpcodes(unittest.TestCase):
     self.assertEqual(OpTest(data="node1.example.com").Summary(),
                      "TEST(node1.example.com)")
 
+  def testSummaryFormatter(self):
+    class OpTest(opcodes.OpCode):
+      OP_DSC_FIELD = "data"
+      OP_DSC_FORMATTER = lambda _, v: "a"
+      OP_PARAMS = [
+        ("data", ht.NoDefault, ht.TString, None),
+        ]
+    self.assertEqual(OpTest(data="").Summary(), "TEST(a)")
+    self.assertEqual(OpTest(data="b").Summary(), "TEST(a)")
+
   def testTinySummary(self):
     self.assertFalse(utils.FindDuplicates(opcodes._SUMMARY_PREFIX.values()))
     self.assertTrue(compat.all(prefix.endswith("_") and supplement.endswith("_")

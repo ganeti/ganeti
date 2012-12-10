@@ -434,6 +434,10 @@ class _AutoOpParamSlots(objectutils.AutoSlots):
     slots = mcs._GetSlots(attrs)
     assert "OP_DSC_FIELD" not in attrs or attrs["OP_DSC_FIELD"] in slots, \
       "Class '%s' uses unknown field in OP_DSC_FIELD" % name
+    assert ("OP_DSC_FORMATTER" not in attrs or
+            callable(attrs["OP_DSC_FORMATTER"])), \
+      ("Class '%s' uses non-callable in OP_DSC_FORMATTER (%s)" %
+       (name, type(attrs["OP_DSC_FORMATTER"])))
 
     attrs["OP_ID"] = _NameToId(name)
 
@@ -598,6 +602,9 @@ class OpCode(BaseOpCode):
   @cvar OP_DSC_FIELD: The name of a field whose value will be included in the
                       string returned by Summary(); see the docstring of that
                       method for details).
+  @cvar OP_DSC_FORMATTER: A callable that should format the OP_DSC_FIELD; if
+                          not present, then the field will be simply converted
+                          to string
   @cvar OP_PARAMS: List of opcode attributes, the default values they should
                    get if not already defined, and types they must match.
   @cvar OP_RESULT: Callable to verify opcode result
@@ -685,7 +692,10 @@ class OpCode(BaseOpCode):
     field_name = getattr(self, "OP_DSC_FIELD", None)
     if field_name:
       field_value = getattr(self, field_name, None)
-      if isinstance(field_value, (list, tuple)):
+      field_formatter = getattr(self, "OP_DSC_FORMATTER", None)
+      if callable(field_formatter):
+        field_value = field_formatter(field_value)
+      elif isinstance(field_value, (list, tuple)):
         field_value = ",".join(str(i) for i in field_value)
       txt = "%s(%s)" % (txt, field_value)
     return txt
@@ -1957,6 +1967,16 @@ class OpTestDelay(OpCode):
     ("on_nodes", ht.EmptyList, ht.TListOf(ht.TNonEmptyString), None),
     ("repeat", 0, ht.TNonNegativeInt, None),
     ]
+
+  def OP_DSC_FORMATTER(self, value): # pylint: disable=C0103,R0201
+    """Custom formatter for duration.
+
+    """
+    try:
+      v = float(value)
+    except TypeError:
+      v = value
+    return str(v)
 
 
 class OpTestAllocator(OpCode):
