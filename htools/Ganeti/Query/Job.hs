@@ -36,7 +36,6 @@ import qualified Text.JSON as J
 import Ganeti.BasicTypes
 import qualified Ganeti.Constants as C
 import Ganeti.JQueue
-import Ganeti.OpCodes (opSummary, metaOpCode)
 import Ganeti.Path
 import Ganeti.Query.Common
 import Ganeti.Query.Language
@@ -61,6 +60,14 @@ maybeJob :: (J.JSON a) =>
 maybeJob _ (Bad _) _      = rsUnavail
 maybeJob f (Ok (v, _))  _ = rsNormal $ f v
 
+-- | Wrapper for optional fields that should become unavailable.
+maybeJobOpt :: (J.JSON a) =>
+            (QueuedJob -> Maybe a) -> RuntimeData -> JobId -> ResultEntry
+maybeJobOpt _ (Bad _) _      = rsUnavail
+maybeJobOpt f (Ok (v, _))  _ = case f v of
+                                 Nothing -> rsUnavail
+                                 Just w -> rsNormal w
+
 -- | Simple helper for a job getter.
 jobGetter :: (J.JSON a) => (QueuedJob -> a) -> FieldGetter JobId RuntimeData
 jobGetter = FieldRuntime . maybeJob
@@ -68,6 +75,14 @@ jobGetter = FieldRuntime . maybeJob
 -- | Simple helper for a per-opcode getter.
 opsGetter :: (J.JSON a) => (QueuedOpCode -> a) -> FieldGetter JobId RuntimeData
 opsGetter f = FieldRuntime $ maybeJob (map f . qjOps)
+
+-- | Simple helper for a per-opcode optional field getter.
+opsOptGetter :: (J.JSON a) =>
+                (QueuedOpCode -> Maybe a) -> FieldGetter JobId RuntimeData
+opsOptGetter f =
+  FieldRuntime $ maybeJob (map (\qo -> case f qo of
+                                         Nothing -> J.JSNull
+                                         Just a -> J.showJSON a) . qjOps)
 
 -- | Archived field name.
 archivedField :: String
@@ -101,27 +116,27 @@ jobFields =
        "List of opcode output logs", opsGetter qoLog, QffNormal)
   , (FieldDefinition "opstart" "OpCode_start" QFTOther
        "List of opcode start timestamps (before acquiring locks)",
-     opsGetter qoStartTimestamp, QffNormal)
+     opsOptGetter qoStartTimestamp, QffNormal)
   , (FieldDefinition "opexec" "OpCode_exec" QFTOther
        "List of opcode execution start timestamps (after acquiring locks)",
-     opsGetter qoExecTimestamp, QffNormal)
+     opsOptGetter qoExecTimestamp, QffNormal)
   , (FieldDefinition "opend" "OpCode_end" QFTOther
        "List of opcode execution end timestamps",
-     opsGetter qoEndTimestamp, QffNormal)
+     opsOptGetter qoEndTimestamp, QffNormal)
   , (FieldDefinition "oppriority" "OpCode_prio" QFTOther
        "List of opcode priorities", opsGetter qoPriority, QffNormal)
   , (FieldDefinition "summary" "Summary" QFTOther
        "List of per-opcode summaries",
-     opsGetter (opSummary . metaOpCode . qoInput), QffNormal)
+     opsGetter (extractOpSummary . qoInput), QffNormal)
   , (FieldDefinition "received_ts" "Received" QFTOther
        (tsDoc "Timestamp of when job was received"),
-     jobGetter qjReceivedTimestamp, QffTimestamp)
+     FieldRuntime (maybeJobOpt qjReceivedTimestamp), QffTimestamp)
   , (FieldDefinition "start_ts" "Start" QFTOther
        (tsDoc "Timestamp of job start"),
-     jobGetter qjStartTimestamp, QffTimestamp)
+     FieldRuntime (maybeJobOpt qjStartTimestamp), QffTimestamp)
   , (FieldDefinition "end_ts" "End" QFTOther
        (tsDoc "Timestamp of job end"),
-     jobGetter qjEndTimestamp, QffTimestamp)
+     FieldRuntime (maybeJobOpt qjEndTimestamp), QffTimestamp)
   ]
 
 -- | The node fields map.

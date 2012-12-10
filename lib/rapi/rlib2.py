@@ -295,7 +295,7 @@ class R_2_jobs(baserlib.ResourceBase):
     @return: a dictionary with jobs id and uri.
 
     """
-    client = self.GetClient()
+    client = self.GetClient(query=True)
 
     if self.useBulk():
       bulkdata = client.QueryJobs(None, J_FIELDS_BULK)
@@ -324,7 +324,7 @@ class R_2_jobs_id(baserlib.ResourceBase):
 
     """
     job_id = self.items[0]
-    result = self.GetClient().QueryJobs([job_id, ], J_FIELDS)[0]
+    result = self.GetClient(query=True).QueryJobs([job_id, ], J_FIELDS)[0]
     if result is None:
       raise http.HttpNotFound()
     return baserlib.MapFields(J_FIELDS, result)

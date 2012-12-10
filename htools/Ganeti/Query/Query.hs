@@ -242,7 +242,7 @@ queryJobs cfg live fields qfilter =
            -- big lambda, but we use many variables from outside it...
            (\lst jid -> do
               job <- lift $ if live'
-                              then loadJobFromDisk qdir want_arch jid
+                              then loadJobFromDisk qdir True jid
                               else return disabled_data
               pass <- resultT $ evaluateFilter cfg (Just job) jid cfilter
               let nlst = if pass

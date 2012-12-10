@@ -102,11 +102,13 @@ def ListJobs(opts, args):
 
   qfilter = qlang.MakeSimpleFilter("status", opts.status_filter)
 
+  cl = GetClient(query=True)
+
   return GenericList(constants.QR_JOB, selected_fields, args, None,
                      opts.separator, not opts.no_headers,
                      format_override=_JOB_LIST_FORMAT, verbose=opts.verbose,
                      force_filter=opts.force_filter, namefield="id",
-                     qfilter=qfilter, isnumeric=True)
+                     qfilter=qfilter, isnumeric=True, cl=cl)
 
 
 def ListJobFields(opts, args):
@@ -119,8 +121,10 @@ def ListJobFields(opts, args):
   @return: the desired exit code
 
   """
+  cl = GetClient(query=True)
+
   return GenericListFields(constants.QR_JOB, args, opts.separator,
-                           not opts.no_headers)
+                           not opts.no_headers, cl=cl)
 
 
 def ArchiveJobs(opts, args):
@@ -292,7 +296,8 @@ def ShowJobs(opts, args):
     ]
 
   qfilter = qlang.MakeSimpleFilter("id", _ParseJobIds(args))
-  result = GetClient().Query(constants.QR_JOB, selected_fields, qfilter).data
+  cl = GetClient(query=True)
+  result = cl.Query(constants.QR_JOB, selected_fields, qfilter).data
 
   first = True
 
