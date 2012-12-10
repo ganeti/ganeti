@@ -357,9 +357,7 @@ instance Eq FilterRegex where
 -- with the string component.
 instance JSON FilterRegex where
   showJSON (FilterRegex re _) = showJSON re
-  readJSON s = do
-    re <- readJSON s
-    mkRegex re
+  readJSON s = readJSON s >>= mkRegex
 
 -- | Name of a field.
 type FieldName = String
