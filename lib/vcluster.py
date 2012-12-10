@@ -39,7 +39,7 @@ _ROOTDIR_ENVNAME = "GANETI_ROOTDIR"
 _HOSTNAME_ENVNAME = "GANETI_HOSTNAME"
 
 #: List of paths which shouldn't be virtualized
-_VPATH_WHITELIST = frozenset([
+_VPATH_WHITELIST = compat.UniqueFrozenset([
   ETC_HOSTS,
   ])
 

@@ -42,7 +42,7 @@ from ganeti import pathutils
 _DEFAULT = object()
 
 #: Supported HTTP methods
-_SUPPORTED_METHODS = frozenset([
+_SUPPORTED_METHODS = compat.UniqueFrozenset([
   http.HTTP_DELETE,
   http.HTTP_GET,
   http.HTTP_POST,

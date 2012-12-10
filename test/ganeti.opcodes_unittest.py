@@ -37,7 +37,7 @@ import testutils
 
 #: Unless an opcode is included in the following list it must have a result
 #: check of some sort
-MISSING_RESULT_CHECK = frozenset([
+MISSING_RESULT_CHECK = compat.UniqueFrozenset([
   opcodes.OpTestAllocator,
   opcodes.OpTestDelay,
   opcodes.OpTestDummy,

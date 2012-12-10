@@ -37,7 +37,7 @@ import ganeti.rapi.client
 import testutils
 
 
-KNOWN_UNUSED_LUXI = frozenset([
+KNOWN_UNUSED_LUXI = compat.UniqueFrozenset([
   luxi.REQ_SUBMIT_MANY_JOBS,
   luxi.REQ_ARCHIVE_JOB,
   luxi.REQ_AUTO_ARCHIVE_JOBS,

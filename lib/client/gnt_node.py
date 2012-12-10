@@ -39,6 +39,7 @@ from ganeti import errors
 from ganeti import netutils
 from ganeti import pathutils
 from ganeti import ssh
+from ganeti import compat
 from cStringIO import StringIO
 
 from ganeti import confd
@@ -106,13 +107,12 @@ _REPAIRABLE_STORAGE_TYPES = \
 
 _MODIFIABLE_STORAGE_TYPES = constants.MODIFIABLE_STORAGE_FIELDS.keys()
 
+_OOB_COMMAND_ASK = compat.UniqueFrozenset([
+  constants.OOB_POWER_OFF,
+  constants.OOB_POWER_CYCLE,
+  ])
 
-_OOB_COMMAND_ASK = frozenset([constants.OOB_POWER_OFF,
-                              constants.OOB_POWER_CYCLE])
-
-
-_ENV_OVERRIDE = frozenset(["list"])
-
+_ENV_OVERRIDE = compat.UniqueFrozenset(["list"])
 
 NONODE_SETUP_OPT = cli_option("--no-node-setup", default=True,
                               action="store_false", dest="node_setup",

@@ -53,21 +53,19 @@ _EXPAND_NODES_SEC_BY_TAGS = "nodes-sec-by-tags"
 _EXPAND_INSTANCES = "instances"
 _EXPAND_INSTANCES_BY_TAGS = "instances-by-tags"
 
-_EXPAND_NODES_TAGS_MODES = frozenset([
+_EXPAND_NODES_TAGS_MODES = compat.UniqueFrozenset([
   _EXPAND_NODES_BOTH_BY_TAGS,
   _EXPAND_NODES_PRI_BY_TAGS,
   _EXPAND_NODES_SEC_BY_TAGS,
   ])
-
 
 #: default list of options for L{ListInstances}
 _LIST_DEF_FIELDS = [
   "name", "hypervisor", "os", "pnode", "status", "oper_ram",
   ]
 
-
 _MISSING = object()
-_ENV_OVERRIDE = frozenset(["list"])
+_ENV_OVERRIDE = compat.UniqueFrozenset(["list"])
 
 _INST_DATA_VAL = ht.TListOf(ht.TDict)
 

@@ -68,7 +68,7 @@ from ganeti import ht
 
 
 _BOOT_ID_PATH = "/proc/sys/kernel/random/boot_id"
-_ALLOWED_CLEAN_DIRS = frozenset([
+_ALLOWED_CLEAN_DIRS = compat.UniqueFrozenset([
   pathutils.DATA_DIR,
   pathutils.JOB_QUEUE_ARCHIVE_DIR,
   pathutils.QUEUE_DIR,

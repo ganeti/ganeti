@@ -35,6 +35,7 @@ import time
 import errno
 import logging
 
+from ganeti import compat
 from ganeti import serializer
 from ganeti import constants
 from ganeti import errors
@@ -71,7 +72,7 @@ REQ_SET_DRAIN_FLAG = "SetDrainFlag"
 REQ_SET_WATCHER_PAUSE = "SetWatcherPause"
 
 #: List of all LUXI requests
-REQ_ALL = frozenset([
+REQ_ALL = compat.UniqueFrozenset([
   REQ_ARCHIVE_JOB,
   REQ_AUTO_ARCHIVE_JOBS,
   REQ_CANCEL_JOB,

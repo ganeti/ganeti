@@ -432,7 +432,12 @@ def TestJobqueue(opts, _):
    TM_MULTISUCCESS,
    TM_FAIL,
    TM_PARTFAIL) = range(4)
-  TM_ALL = frozenset([TM_SUCCESS, TM_MULTISUCCESS, TM_FAIL, TM_PARTFAIL])
+  TM_ALL = compat.UniqueFrozenset([
+    TM_SUCCESS,
+    TM_MULTISUCCESS,
+    TM_FAIL,
+    TM_PARTFAIL,
+    ])
 
   for mode in TM_ALL:
     test_messages = [

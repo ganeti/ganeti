@@ -35,13 +35,14 @@ from ganeti import ssconf
 from ganeti import utils
 from ganeti import cli
 from ganeti import pathutils
+from ganeti import compat
 
 
 (DIR,
  FILE,
  QUEUE_DIR) = range(1, 4)
 
-ALL_TYPES = frozenset([
+ALL_TYPES = compat.UniqueFrozenset([
   DIR,
   FILE,
   QUEUE_DIR,

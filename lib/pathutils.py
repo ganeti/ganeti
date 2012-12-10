@@ -24,6 +24,7 @@
 """
 
 from ganeti import _autoconf
+from ganeti import compat
 from ganeti import vcluster
 
 
@@ -130,7 +131,7 @@ JOB_QUEUE_SERIAL_FILE = QUEUE_DIR + "/serial"
 JOB_QUEUE_ARCHIVE_DIR = QUEUE_DIR + "/archive"
 JOB_QUEUE_DRAIN_FILE = QUEUE_DIR + "/drain"
 
-ALL_CERT_FILES = frozenset([
+ALL_CERT_FILES = compat.UniqueFrozenset([
   NODED_CERT_FILE,
   RAPI_CERT_FILE,
   SPICE_CERT_FILE,

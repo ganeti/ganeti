@@ -666,7 +666,7 @@ def check_maybefloat(option, opt, value): # pylint: disable=W0613
  OPT_COMPL_INST_ADD_NODES,
  OPT_COMPL_ONE_NODEGROUP) = range(100, 108)
 
-OPT_COMPL_ALL = frozenset([
+OPT_COMPL_ALL = compat.UniqueFrozenset([
   OPT_COMPL_MANY_NODES,
   OPT_COMPL_ONE_NODE,
   OPT_COMPL_ONE_INSTANCE,

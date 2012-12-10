@@ -7288,7 +7288,7 @@ class LUInstanceRecreateDisks(LogicalUnit):
   HTYPE = constants.HTYPE_INSTANCE
   REQ_BGL = False
 
-  _MODIFYABLE = frozenset([
+  _MODIFYABLE = compat.UniqueFrozenset([
     constants.IDISK_SIZE,
     constants.IDISK_MODE,
     ])

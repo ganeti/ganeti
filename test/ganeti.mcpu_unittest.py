@@ -25,6 +25,7 @@
 import unittest
 import itertools
 
+from ganeti import compat
 from ganeti import mcpu
 from ganeti import opcodes
 from ganeti import cmdlib
@@ -38,7 +39,7 @@ from ganeti.constants import \
 import testutils
 
 
-REQ_BGL_WHITELIST = frozenset([
+REQ_BGL_WHITELIST = compat.UniqueFrozenset([
   opcodes.OpClusterActivateMasterIp,
   opcodes.OpClusterDeactivateMasterIp,
   opcodes.OpClusterDestroy,

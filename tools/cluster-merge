@@ -41,6 +41,7 @@ from ganeti import errors
 from ganeti import ssh
 from ganeti import utils
 from ganeti import pathutils
+from ganeti import compat
 
 
 _GROUPS_MERGE = "merge"
@@ -134,7 +135,7 @@ class Merger(object):
   """Handling the merge.
 
   """
-  RUNNING_STATUSES = frozenset([
+  RUNNING_STATUSES = compat.UniqueFrozenset([
     constants.INSTST_RUNNING,
     constants.INSTST_ERRORUP,
     ])

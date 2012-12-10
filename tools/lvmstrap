@@ -68,7 +68,7 @@ SUPPORTED_TYPES = [
   ]
 
 #: Excluded filesystem types
-EXCLUDED_FS = frozenset([
+EXCLUDED_FS = compat.UniqueFrozenset([
   "nfs",
   "nfs4",
   "autofs",

@@ -120,7 +120,7 @@ def _GetForbiddenFileStoragePaths():
     paths.update(map(lambda s: "%s/%s" % (prefix, s),
                      ["bin", "lib", "lib32", "lib64", "sbin"]))
 
-  return frozenset(map(os.path.normpath, paths))
+  return compat.UniqueFrozenset(map(os.path.normpath, paths))
 
 
 def _ComputeWrongFileStoragePaths(paths,
@@ -503,8 +503,8 @@ class LogicalVolume(BlockDev):
 
   """
   _VALID_NAME_RE = re.compile("^[a-zA-Z0-9+_.-]*$")
-  _INVALID_NAMES = frozenset([".", "..", "snapshot", "pvmove"])
-  _INVALID_SUBSTRINGS = frozenset(["_mlog", "_mimage"])
+  _INVALID_NAMES = compat.UniqueFrozenset([".", "..", "snapshot", "pvmove"])
+  _INVALID_SUBSTRINGS = compat.UniqueFrozenset(["_mlog", "_mimage"])
 
   def __init__(self, unique_id, children, size, params):
     """Attaches to a LV device.
@@ -958,7 +958,7 @@ class DRBD8Status(object):
   CS_SYNCTARGET = "SyncTarget"
   CS_PAUSEDSYNCS = "PausedSyncS"
   CS_PAUSEDSYNCT = "PausedSyncT"
-  CSET_SYNC = frozenset([
+  CSET_SYNC = compat.UniqueFrozenset([
     CS_WFREPORTPARAMS,
     CS_STARTINGSYNCS,
     CS_STARTINGSYNCT,

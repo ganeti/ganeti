@@ -59,10 +59,10 @@ from ganeti.watcher import state
 
 
 MAXTRIES = 5
-BAD_STATES = frozenset([
+BAD_STATES = compat.UniqueFrozenset([
   constants.INSTST_ERRORDOWN,
   ])
-HELPLESS_STATES = frozenset([
+HELPLESS_STATES = compat.UniqueFrozenset([
   constants.INSTST_NODEDOWN,
   constants.INSTST_NODEOFFLINE,
   ])

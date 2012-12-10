@@ -26,6 +26,7 @@ import socket
 
 from ganeti import _autoconf
 from ganeti import _vcsversion
+from ganeti import compat
 from ganeti import pathutils
 
 
@@ -34,7 +35,11 @@ RELEASE_VERSION = _autoconf.PACKAGE_VERSION
 OS_API_V10 = 10
 OS_API_V15 = 15
 OS_API_V20 = 20
-OS_API_VERSIONS = frozenset([OS_API_V10, OS_API_V15, OS_API_V20])
+OS_API_VERSIONS = compat.UniqueFrozenset([
+  OS_API_V10,
+  OS_API_V15,
+  OS_API_V20,
+  ])
 VCS_VERSION = _vcsversion.VCS_VERSION
 EXPORT_VERSION = 0
 RAPI_VERSION = 2
@@ -223,7 +228,12 @@ CONS_SPICE = "spice"
 CONS_MESSAGE = "msg"
 
 #: All console types
-CONS_ALL = frozenset([CONS_SSH, CONS_VNC, CONS_SPICE, CONS_MESSAGE])
+CONS_ALL = compat.UniqueFrozenset([
+  CONS_SSH,
+  CONS_VNC,
+  CONS_SPICE,
+  CONS_MESSAGE,
+  ])
 
 # For RSA keys more bits are better, but they also make operations more
 # expensive. NIST SP 800-131 recommends a minimum of 2048 bits from the year
@@ -256,7 +266,7 @@ IEM_EXPORT = "export"
 # Import/export transport compression
 IEC_NONE = "none"
 IEC_GZIP = "gzip"
-IEC_ALL = frozenset([
+IEC_ALL = compat.UniqueFrozenset([
   IEC_NONE,
   IEC_GZIP,
   ])
@@ -322,7 +332,7 @@ SF_ALLOCATABLE = "allocatable"
 SO_FIX_CONSISTENCY = "fix-consistency"
 
 # Available fields per storage type
-VALID_STORAGE_FIELDS = frozenset([
+VALID_STORAGE_FIELDS = compat.UniqueFrozenset([
   SF_NAME,
   SF_TYPE,
   SF_SIZE,
@@ -331,7 +341,11 @@ VALID_STORAGE_FIELDS = frozenset([
   SF_ALLOCATABLE,
   ])
 
-VALID_STORAGE_TYPES = frozenset([ST_FILE, ST_LVM_PV, ST_LVM_VG])
+VALID_STORAGE_TYPES = compat.UniqueFrozenset([
+  ST_FILE,
+  ST_LVM_PV,
+  ST_LVM_VG,
+  ])
 
 MODIFIABLE_STORAGE_FIELDS = {
   ST_LVM_PV: frozenset([SF_ALLOCATABLE]),
@@ -357,29 +371,50 @@ DT_BLOCK = "blockdev"
 DT_RBD = "rbd"
 
 # the set of network-mirrored disk templates
-DTS_INT_MIRROR = frozenset([DT_DRBD8])
+DTS_INT_MIRROR = compat.UniqueFrozenset([DT_DRBD8])
 
 # the set of externally-mirrored disk templates (e.g. SAN, NAS)
-DTS_EXT_MIRROR = frozenset([DT_SHARED_FILE, DT_BLOCK, DT_RBD])
+DTS_EXT_MIRROR = compat.UniqueFrozenset([
+  DT_SHARED_FILE,
+  DT_BLOCK,
+  DT_RBD,
+  ])
 
 # the set of non-lvm-based disk templates
-DTS_NOT_LVM = frozenset([DT_DISKLESS, DT_FILE, DT_SHARED_FILE,
-                         DT_BLOCK, DT_RBD])
+DTS_NOT_LVM = compat.UniqueFrozenset([
+  DT_DISKLESS,
+  DT_FILE,
+  DT_SHARED_FILE,
+  DT_BLOCK,
+  DT_RBD,
+  ])
 
 # the set of disk templates which can be grown
-DTS_GROWABLE = frozenset([DT_PLAIN, DT_DRBD8, DT_FILE, DT_SHARED_FILE, DT_RBD])
+DTS_GROWABLE = compat.UniqueFrozenset([
+  DT_PLAIN,
+  DT_DRBD8,
+  DT_FILE,
+  DT_SHARED_FILE,
+  DT_RBD,
+  ])
 
 # the set of disk templates that allow adoption
-DTS_MAY_ADOPT = frozenset([DT_PLAIN, DT_BLOCK])
+DTS_MAY_ADOPT = compat.UniqueFrozenset([
+  DT_PLAIN,
+  DT_BLOCK,
+  ])
 
 # the set of disk templates that *must* use adoption
-DTS_MUST_ADOPT = frozenset([DT_BLOCK])
+DTS_MUST_ADOPT = compat.UniqueFrozenset([DT_BLOCK])
 
 # the set of disk templates that allow migrations
 DTS_MIRRORED = frozenset.union(DTS_INT_MIRROR, DTS_EXT_MIRROR)
 
 # the set of file based disk templates
-DTS_FILEBASED = frozenset([DT_FILE, DT_SHARED_FILE])
+DTS_FILEBASED = compat.UniqueFrozenset([
+  DT_FILE,
+  DT_SHARED_FILE,
+  ])
 
 # logical disk types
 LD_LV = "lvm"
@@ -387,7 +422,7 @@ LD_DRBD8 = "drbd8"
 LD_FILE = "file"
 LD_BLOCKDEV = "blockdev"
 LD_RBD = "rbd"
-LOGICAL_DISK_TYPES = frozenset([
+LOGICAL_DISK_TYPES = compat.UniqueFrozenset([
   LD_LV,
   LD_DRBD8,
   LD_FILE,
@@ -395,7 +430,12 @@ LOGICAL_DISK_TYPES = frozenset([
   LD_RBD,
   ])
 
-LDS_BLOCK = frozenset([LD_LV, LD_DRBD8, LD_BLOCKDEV, LD_RBD])
+LDS_BLOCK = compat.UniqueFrozenset([
+  LD_LV,
+  LD_DRBD8,
+  LD_BLOCKDEV,
+  LD_RBD,
+  ])
 
 # drbd constants
 DRBD_HMAC_ALG = "md5"
@@ -412,7 +452,7 @@ DRBD_B_DISK_DRAIN = "d"
 DRBD_B_DISK_FLUSH = "f"
 
 # Valid barrier combinations: "n" or any non-null subset of "bfd"
-DRBD_VALID_BARRIER_OPT = frozenset([
+DRBD_VALID_BARRIER_OPT = compat.UniqueFrozenset([
   frozenset([DRBD_B_NONE]),
   frozenset([DRBD_B_DISK_BARRIERS]),
   frozenset([DRBD_B_DISK_DRAIN]),
@@ -431,19 +471,19 @@ FD_LOOP = "loop"
 FD_BLKTAP = "blktap"
 
 # the set of drbd-like disk types
-LDS_DRBD = frozenset([LD_DRBD8])
+LDS_DRBD = compat.UniqueFrozenset([LD_DRBD8])
 
 # disk access mode
 DISK_RDONLY = "ro"
 DISK_RDWR = "rw"
-DISK_ACCESS_SET = frozenset([DISK_RDONLY, DISK_RDWR])
+DISK_ACCESS_SET = compat.UniqueFrozenset([DISK_RDONLY, DISK_RDWR])
 
 # disk replacement mode
 REPLACE_DISK_PRI = "replace_on_primary"    # replace disks on primary
 REPLACE_DISK_SEC = "replace_on_secondary"  # replace disks on secondary
 REPLACE_DISK_CHG = "replace_new_secondary" # change secondary node
 REPLACE_DISK_AUTO = "replace_auto"
-REPLACE_MODES = frozenset([
+REPLACE_MODES = compat.UniqueFrozenset([
   REPLACE_DISK_PRI,
   REPLACE_DISK_SEC,
   REPLACE_DISK_CHG,
@@ -453,7 +493,7 @@ REPLACE_MODES = frozenset([
 # Instance export mode
 EXPORT_MODE_LOCAL = "local"
 EXPORT_MODE_REMOTE = "remote"
-EXPORT_MODES = frozenset([
+EXPORT_MODES = compat.UniqueFrozenset([
   EXPORT_MODE_LOCAL,
   EXPORT_MODE_REMOTE,
   ])
@@ -462,7 +502,7 @@ EXPORT_MODES = frozenset([
 INSTANCE_CREATE = "create"
 INSTANCE_IMPORT = "import"
 INSTANCE_REMOTE_IMPORT = "remote-import"
-INSTANCE_CREATE_MODES = frozenset([
+INSTANCE_CREATE_MODES = compat.UniqueFrozenset([
   INSTANCE_CREATE,
   INSTANCE_IMPORT,
   INSTANCE_REMOTE_IMPORT,
@@ -487,7 +527,7 @@ RIE_CONNECT_RETRIES = 10
 #: Give child process up to 5 seconds to exit after sending a signal
 CHILD_LINGER_TIMEOUT = 5.0
 
-DISK_TEMPLATES = frozenset([
+DISK_TEMPLATES = compat.UniqueFrozenset([
   DT_DISKLESS,
   DT_PLAIN,
   DT_DRBD8,
@@ -497,7 +537,7 @@ DISK_TEMPLATES = frozenset([
   DT_RBD,
   ])
 
-FILE_DRIVER = frozenset([FD_LOOP, FD_BLKTAP])
+FILE_DRIVER = compat.UniqueFrozenset([FD_LOOP, FD_BLKTAP])
 
 # import/export config options
 INISECT_EXP = "export"
@@ -510,7 +550,7 @@ INISECT_OSP = "os"
 DDM_ADD = "add"
 DDM_MODIFY = "modify"
 DDM_REMOVE = "remove"
-DDMS_VALUES = frozenset([DDM_ADD, DDM_REMOVE])
+DDMS_VALUES = compat.UniqueFrozenset([DDM_ADD, DDM_REMOVE])
 DDMS_VALUES_WITH_MODIFY = (DDMS_VALUES | frozenset([
   DDM_MODIFY,
   ]))
@@ -533,7 +573,7 @@ TAG_NODEGROUP = "nodegroup"
 TAG_NODE = "node"
 TAG_INSTANCE = "instance"
 TAG_NETWORK = "network"
-VALID_TAG_TYPES = frozenset([
+VALID_TAG_TYPES = compat.UniqueFrozenset([
   TAG_CLUSTER,
   TAG_NODEGROUP,
   TAG_NODE,
@@ -552,7 +592,7 @@ IP6_ADDRESS_LOCALHOST = "::1"
 IP6_ADDRESS_ANY = "::"
 IP4_VERSION = 4
 IP6_VERSION = 6
-VALID_IP_VERSIONS = frozenset([IP4_VERSION, IP6_VERSION])
+VALID_IP_VERSIONS = compat.UniqueFrozenset([IP4_VERSION, IP6_VERSION])
 # for export to htools
 IP4_FAMILY = socket.AF_INET
 IP6_FAMILY = socket.AF_INET6
@@ -579,7 +619,11 @@ JOB_IDS_KEY = "jobs"
  RUNPARTS_RUN,
  RUNPARTS_ERR) = range(3)
 
-RUNPARTS_STATUS = frozenset([RUNPARTS_SKIP, RUNPARTS_RUN, RUNPARTS_ERR])
+RUNPARTS_STATUS = compat.UniqueFrozenset([
+  RUNPARTS_SKIP,
+  RUNPARTS_RUN,
+  RUNPARTS_ERR,
+  ])
 
 # RPC constants
 (RPC_ENCODING_NONE,
@@ -602,7 +646,7 @@ OS_SCRIPT_IMPORT = "import"
 OS_SCRIPT_EXPORT = "export"
 OS_SCRIPT_RENAME = "rename"
 OS_SCRIPT_VERIFY = "verify"
-OS_SCRIPTS = frozenset([
+OS_SCRIPTS = compat.UniqueFrozenset([
   OS_SCRIPT_CREATE,
   OS_SCRIPT_IMPORT,
   OS_SCRIPT_EXPORT,
@@ -615,7 +659,7 @@ OS_VARIANTS_FILE = "variants.list"
 OS_PARAMETERS_FILE = "parameters.list"
 
 OS_VALIDATE_PARAMETERS = "parameters"
-OS_VALIDATE_CALLS = frozenset([OS_VALIDATE_PARAMETERS])
+OS_VALIDATE_CALLS = compat.UniqueFrozenset([OS_VALIDATE_PARAMETERS])
 
 # ssh constants
 SSH = "ssh"
@@ -626,7 +670,7 @@ INSTANCE_REBOOT_SOFT = "soft"
 INSTANCE_REBOOT_HARD = "hard"
 INSTANCE_REBOOT_FULL = "full"
 
-REBOOT_TYPES = frozenset([
+REBOOT_TYPES = compat.UniqueFrozenset([
   INSTANCE_REBOOT_SOFT,
   INSTANCE_REBOOT_HARD,
   INSTANCE_REBOOT_FULL,
@@ -636,7 +680,7 @@ REBOOT_TYPES = frozenset([
 INSTANCE_REBOOT_ALLOWED = "reboot"
 INSTANCE_REBOOT_EXIT = "exit"
 
-REBOOT_BEHAVIORS = frozenset([
+REBOOT_BEHAVIORS = compat.UniqueFrozenset([
   INSTANCE_REBOOT_ALLOWED,
   INSTANCE_REBOOT_EXIT,
   ])
@@ -646,7 +690,7 @@ VTYPE_MAYBE_STRING = "maybe-string"
 VTYPE_BOOL = "bool"
 VTYPE_SIZE = "size" # size, in MiBs
 VTYPE_INT = "int"
-ENFORCEABLE_TYPES = frozenset([
+ENFORCEABLE_TYPES = compat.UniqueFrozenset([
   VTYPE_STRING,
   VTYPE_MAYBE_STRING,
   VTYPE_BOOL,
@@ -797,14 +841,14 @@ HV_MIGRATION_ACTIVE = "active"
 HV_MIGRATION_FAILED = "failed"
 HV_MIGRATION_CANCELLED = "cancelled"
 
-HV_MIGRATION_VALID_STATUSES = frozenset([
+HV_MIGRATION_VALID_STATUSES = compat.UniqueFrozenset([
   HV_MIGRATION_COMPLETED,
   HV_MIGRATION_ACTIVE,
   HV_MIGRATION_FAILED,
   HV_MIGRATION_CANCELLED,
   ])
 
-HV_MIGRATION_FAILED_STATUSES = frozenset([
+HV_MIGRATION_FAILED_STATUSES = compat.UniqueFrozenset([
   HV_MIGRATION_FAILED,
   HV_MIGRATION_CANCELLED,
   ])
@@ -858,7 +902,7 @@ DSS_PARAMETER_TYPES = {
   }
 
 DSS_PARAMETERS = frozenset(DSS_PARAMETER_TYPES.keys())
-DS_VALID_TYPES = frozenset([LD_LV])
+DS_VALID_TYPES = compat.UniqueFrozenset([LD_LV])
 
 # Backend parameter names
 BE_MEMORY = "memory" # deprecated and replaced by max and min mem
@@ -918,13 +962,13 @@ IPOLICY_DTS = "disk-templates"
 IPOLICY_VCPU_RATIO = "vcpu-ratio"
 IPOLICY_SPINDLE_RATIO = "spindle-ratio"
 
-IPOLICY_ISPECS = frozenset([
+IPOLICY_ISPECS = compat.UniqueFrozenset([
   ISPECS_MIN,
   ISPECS_MAX,
   ISPECS_STD,
   ])
 
-IPOLICY_PARAMETERS = frozenset([
+IPOLICY_PARAMETERS = compat.UniqueFrozenset([
   IPOLICY_VCPU_RATIO,
   IPOLICY_SPINDLE_RATIO,
   ])
@@ -1031,7 +1075,7 @@ OOB_POWER_CYCLE = "power-cycle"
 OOB_POWER_STATUS = "power-status"
 OOB_HEALTH = "health"
 
-OOB_COMMANDS = frozenset([
+OOB_COMMANDS = compat.UniqueFrozenset([
   OOB_POWER_ON,
   OOB_POWER_OFF,
   OOB_POWER_CYCLE,
@@ -1049,7 +1093,7 @@ OOB_STATUS_WARNING = "WARNING"
 OOB_STATUS_CRITICAL = "CRITICAL"
 OOB_STATUS_UNKNOWN = "UNKNOWN"
 
-OOB_STATUSES = frozenset([
+OOB_STATUSES = compat.UniqueFrozenset([
   OOB_STATUS_OK,
   OOB_STATUS_WARNING,
   OOB_STATUS_CRITICAL,
@@ -1068,7 +1112,11 @@ NIC_MODE_ROUTED = "routed"
 NIC_MODE_OVS = "openvswitch"
 NIC_IP_POOL = "pool"
 
-NIC_VALID_MODES = frozenset([NIC_MODE_BRIDGED, NIC_MODE_ROUTED, NIC_MODE_OVS])
+NIC_VALID_MODES = compat.UniqueFrozenset([
+  NIC_MODE_BRIDGED,
+  NIC_MODE_ROUTED,
+  NIC_MODE_OVS,
+  ])
 
 RESERVE_ACTION = "reserve"
 RELEASE_ACTION = "release"
@@ -1078,7 +1126,10 @@ RELEASE_ACTION = "release"
 NETWORK_TYPE_PRIVATE = "private"
 NETWORK_TYPE_PUBLIC = "public"
 
-NETWORK_VALID_TYPES = frozenset([NETWORK_TYPE_PRIVATE, NETWORK_TYPE_PUBLIC])
+NETWORK_VALID_TYPES = compat.UniqueFrozenset([
+  NETWORK_TYPE_PRIVATE,
+  NETWORK_TYPE_PUBLIC,
+  ])
 
 NICS_PARAMETER_TYPES = {
   NIC_MODE: VTYPE_STRING,
@@ -1124,7 +1175,7 @@ HT_XEN_HVM = "xen-hvm"
 HT_KVM = "kvm"
 HT_CHROOT = "chroot"
 HT_LXC = "lxc"
-HYPER_TYPES = frozenset([
+HYPER_TYPES = compat.UniqueFrozenset([
   HT_XEN_PVM,
   HT_FAKE,
   HT_XEN_HVM,
@@ -1132,7 +1183,7 @@ HYPER_TYPES = frozenset([
   HT_CHROOT,
   HT_LXC,
   ])
-HTS_REQ_PORT = frozenset([HT_XEN_HVM, HT_KVM])
+HTS_REQ_PORT = compat.UniqueFrozenset([HT_XEN_HVM, HT_KVM])
 
 VNC_BASE_PORT = 5900
 VNC_DEFAULT_BIND_ADDRESS = IP4_ADDRESS_ANY
@@ -1148,14 +1199,14 @@ HT_NIC_PCNET = "pcnet"
 HT_NIC_E1000 = "e1000"
 HT_NIC_PARAVIRTUAL = HT_DISK_PARAVIRTUAL = "paravirtual"
 
-HT_HVM_VALID_NIC_TYPES = frozenset([
+HT_HVM_VALID_NIC_TYPES = compat.UniqueFrozenset([
   HT_NIC_RTL8139,
   HT_NIC_NE2K_PCI,
   HT_NIC_E1000,
   HT_NIC_NE2K_ISA,
   HT_NIC_PARAVIRTUAL,
   ])
-HT_KVM_VALID_NIC_TYPES = frozenset([
+HT_KVM_VALID_NIC_TYPES = compat.UniqueFrozenset([
   HT_NIC_RTL8139,
   HT_NIC_NE2K_PCI,
   HT_NIC_NE2K_ISA,
@@ -1179,15 +1230,18 @@ HT_CACHE_DEFAULT = "default"
 HT_CACHE_NONE = "none"
 HT_CACHE_WTHROUGH = "writethrough"
 HT_CACHE_WBACK = "writeback"
-HT_VALID_CACHE_TYPES = frozenset([
+HT_VALID_CACHE_TYPES = compat.UniqueFrozenset([
   HT_CACHE_DEFAULT,
   HT_CACHE_NONE,
   HT_CACHE_WTHROUGH,
   HT_CACHE_WBACK,
   ])
 
-HT_HVM_VALID_DISK_TYPES = frozenset([HT_DISK_PARAVIRTUAL, HT_DISK_IOEMU])
-HT_KVM_VALID_DISK_TYPES = frozenset([
+HT_HVM_VALID_DISK_TYPES = compat.UniqueFrozenset([
+  HT_DISK_PARAVIRTUAL,
+  HT_DISK_IOEMU,
+  ])
+HT_KVM_VALID_DISK_TYPES = compat.UniqueFrozenset([
   HT_DISK_PARAVIRTUAL,
   HT_DISK_IDE,
   HT_DISK_SCSI,
@@ -1200,7 +1254,10 @@ HT_KVM_VALID_DISK_TYPES = frozenset([
 HT_MOUSE_MOUSE = "mouse"
 HT_MOUSE_TABLET = "tablet"
 
-HT_KVM_VALID_MOUSE_TYPES = frozenset([HT_MOUSE_MOUSE, HT_MOUSE_TABLET])
+HT_KVM_VALID_MOUSE_TYPES = compat.UniqueFrozenset([
+  HT_MOUSE_MOUSE,
+  HT_MOUSE_TABLET,
+  ])
 
 # Boot order
 HT_BO_FLOPPY = "floppy"
@@ -1208,7 +1265,7 @@ HT_BO_CDROM = "cdrom"
 HT_BO_DISK = "disk"
 HT_BO_NETWORK = "network"
 
-HT_KVM_VALID_BO_TYPES = frozenset([
+HT_KVM_VALID_BO_TYPES = compat.UniqueFrozenset([
   HT_BO_FLOPPY,
   HT_BO_CDROM,
   HT_BO_DISK,
@@ -1223,7 +1280,7 @@ HT_KVM_SPICE_LOSSLESS_IMG_COMPR_GLZ = "glz"
 HT_KVM_SPICE_LOSSLESS_IMG_COMPR_LZ = "lz"
 HT_KVM_SPICE_LOSSLESS_IMG_COMPR_OFF = "off"
 
-HT_KVM_SPICE_VALID_LOSSLESS_IMG_COMPR_OPTIONS = frozenset([
+HT_KVM_SPICE_VALID_LOSSLESS_IMG_COMPR_OPTIONS = compat.UniqueFrozenset([
   HT_KVM_SPICE_LOSSLESS_IMG_COMPR_AUTO_GLZ,
   HT_KVM_SPICE_LOSSLESS_IMG_COMPR_AUTO_LZ,
   HT_KVM_SPICE_LOSSLESS_IMG_COMPR_QUIC,
@@ -1237,7 +1294,7 @@ HT_KVM_SPICE_LOSSY_IMG_COMPR_AUTO = "auto"
 HT_KVM_SPICE_LOSSY_IMG_COMPR_NEVER = "never"
 HT_KVM_SPICE_LOSSY_IMG_COMPR_ALWAYS = "always"
 
-HT_KVM_SPICE_VALID_LOSSY_IMG_COMPR_OPTIONS = frozenset([
+HT_KVM_SPICE_VALID_LOSSY_IMG_COMPR_OPTIONS = compat.UniqueFrozenset([
   HT_KVM_SPICE_LOSSY_IMG_COMPR_AUTO,
   HT_KVM_SPICE_LOSSY_IMG_COMPR_NEVER,
   HT_KVM_SPICE_LOSSY_IMG_COMPR_ALWAYS,
@@ -1248,7 +1305,7 @@ HT_KVM_SPICE_VIDEO_STREAM_DETECTION_OFF = "off"
 HT_KVM_SPICE_VIDEO_STREAM_DETECTION_ALL = "all"
 HT_KVM_SPICE_VIDEO_STREAM_DETECTION_FILTER = "filter"
 
-HT_KVM_SPICE_VALID_VIDEO_STREAM_DETECTION_OPTIONS = frozenset([
+HT_KVM_SPICE_VALID_VIDEO_STREAM_DETECTION_OPTIONS = compat.UniqueFrozenset([
   HT_KVM_SPICE_VIDEO_STREAM_DETECTION_OFF,
   HT_KVM_SPICE_VIDEO_STREAM_DETECTION_ALL,
   HT_KVM_SPICE_VIDEO_STREAM_DETECTION_FILTER,
@@ -1259,22 +1316,29 @@ HT_SM_NONE = "none"
 HT_SM_USER = "user"
 HT_SM_POOL = "pool"
 
-HT_KVM_VALID_SM_TYPES = frozenset([HT_SM_NONE, HT_SM_USER, HT_SM_POOL])
+HT_KVM_VALID_SM_TYPES = compat.UniqueFrozenset([
+  HT_SM_NONE,
+  HT_SM_USER,
+  HT_SM_POOL,
+  ])
 
 # Kvm flag values
 HT_KVM_ENABLED = "enabled"
 HT_KVM_DISABLED = "disabled"
 
-HT_KVM_FLAG_VALUES = frozenset([HT_KVM_ENABLED, HT_KVM_DISABLED])
+HT_KVM_FLAG_VALUES = compat.UniqueFrozenset([HT_KVM_ENABLED, HT_KVM_DISABLED])
 
 # Migration type
 HT_MIGRATION_LIVE = "live"
 HT_MIGRATION_NONLIVE = "non-live"
-HT_MIGRATION_MODES = frozenset([HT_MIGRATION_LIVE, HT_MIGRATION_NONLIVE])
+HT_MIGRATION_MODES = compat.UniqueFrozenset([
+  HT_MIGRATION_LIVE,
+  HT_MIGRATION_NONLIVE,
+  ])
 
 # Cluster Verify steps
 VERIFY_NPLUSONE_MEM = "nplusone_mem"
-VERIFY_OPTIONAL_CHECKS = frozenset([VERIFY_NPLUSONE_MEM])
+VERIFY_OPTIONAL_CHECKS = compat.UniqueFrozenset([VERIFY_NPLUSONE_MEM])
 
 # Cluster Verify error classes
 CV_TCLUSTER = "cluster"
@@ -1358,7 +1422,7 @@ CV_ENODEUSERSCRIPTS = \
 CV_ENODEFILESTORAGEPATHS = \
   (CV_TNODE, "ENODEFILESTORAGEPATHS", "Detected bad file storage paths")
 
-CV_ALL_ECODES = frozenset([
+CV_ALL_ECODES = compat.UniqueFrozenset([
   CV_ECLUSTERCFG,
   CV_ECLUSTERCERT,
   CV_ECLUSTERFILECHECK,
@@ -1393,7 +1457,8 @@ CV_ALL_ECODES = frozenset([
   CV_ENODEFILESTORAGEPATHS,
   ])
 
-CV_ALL_ECODES_STRINGS = frozenset(estr for (_, estr, _) in CV_ALL_ECODES)
+CV_ALL_ECODES_STRINGS = \
+  compat.UniqueFrozenset(estr for (_, estr, _) in CV_ALL_ECODES)
 
 # Node verify constants
 NV_DRBDHELPER = "drbd-helper"
@@ -1428,7 +1493,7 @@ INSTST_NODEDOWN = "ERROR_nodedown"
 INSTST_WRONGNODE = "ERROR_wrongnode"
 INSTST_ERRORUP = "ERROR_up"
 INSTST_ERRORDOWN = "ERROR_down"
-INSTST_ALL = frozenset([
+INSTST_ALL = compat.UniqueFrozenset([
   INSTST_RUNNING,
   INSTST_ADMINDOWN,
   INSTST_ADMINOFFLINE,
@@ -1443,7 +1508,7 @@ INSTST_ALL = frozenset([
 ADMINST_UP = "up"
 ADMINST_DOWN = "down"
 ADMINST_OFFLINE = "offline"
-ADMINST_ALL = frozenset([
+ADMINST_ALL = compat.UniqueFrozenset([
   ADMINST_UP,
   ADMINST_DOWN,
   ADMINST_OFFLINE,
@@ -1455,7 +1520,7 @@ NR_MASTER = "M"
 NR_MCANDIDATE = "C"
 NR_DRAINED = "D"
 NR_OFFLINE = "O"
-NR_ALL = frozenset([
+NR_ALL = compat.UniqueFrozenset([
   NR_REGULAR,
   NR_MASTER,
   NR_MCANDIDATE,
@@ -1471,7 +1536,7 @@ SSL_CERT_EXPIRATION_ERROR = 7
 IALLOCATOR_VERSION = 2
 IALLOCATOR_DIR_IN = "in"
 IALLOCATOR_DIR_OUT = "out"
-VALID_IALLOCATOR_DIRECTIONS = frozenset([
+VALID_IALLOCATOR_DIRECTIONS = compat.UniqueFrozenset([
   IALLOCATOR_DIR_IN,
   IALLOCATOR_DIR_OUT,
   ])
@@ -1480,7 +1545,7 @@ IALLOCATOR_MODE_RELOC = "relocate"
 IALLOCATOR_MODE_CHG_GROUP = "change-group"
 IALLOCATOR_MODE_NODE_EVAC = "node-evacuate"
 IALLOCATOR_MODE_MULTI_ALLOC = "multi-allocate"
-VALID_IALLOCATOR_MODES = frozenset([
+VALID_IALLOCATOR_MODES = compat.UniqueFrozenset([
   IALLOCATOR_MODE_ALLOC,
   IALLOCATOR_MODE_RELOC,
   IALLOCATOR_MODE_CHG_GROUP,
@@ -1493,7 +1558,7 @@ DEFAULT_IALLOCATOR_SHORTCUT = "."
 IALLOCATOR_NEVAC_PRI = "primary-only"
 IALLOCATOR_NEVAC_SEC = "secondary-only"
 IALLOCATOR_NEVAC_ALL = "all"
-IALLOCATOR_NEVAC_MODES = frozenset([
+IALLOCATOR_NEVAC_MODES = compat.UniqueFrozenset([
   IALLOCATOR_NEVAC_PRI,
   IALLOCATOR_NEVAC_SEC,
   IALLOCATOR_NEVAC_ALL,
@@ -1503,7 +1568,7 @@ IALLOCATOR_NEVAC_MODES = frozenset([
 NODE_EVAC_PRI = "primary-only"
 NODE_EVAC_SEC = "secondary-only"
 NODE_EVAC_ALL = "all"
-NODE_EVAC_MODES = frozenset([
+NODE_EVAC_MODES = compat.UniqueFrozenset([
   NODE_EVAC_PRI,
   NODE_EVAC_SEC,
   NODE_EVAC_ALL,
@@ -1527,17 +1592,17 @@ JOB_STATUS_RUNNING = "running"
 JOB_STATUS_CANCELED = "canceled"
 JOB_STATUS_SUCCESS = "success"
 JOB_STATUS_ERROR = "error"
-JOBS_PENDING = frozenset([
+JOBS_PENDING = compat.UniqueFrozenset([
   JOB_STATUS_QUEUED,
   JOB_STATUS_WAITING,
   JOB_STATUS_CANCELING,
   ])
-JOBS_FINALIZED = frozenset([
+JOBS_FINALIZED = compat.UniqueFrozenset([
   JOB_STATUS_CANCELED,
   JOB_STATUS_SUCCESS,
   JOB_STATUS_ERROR,
   ])
-JOB_STATUS_ALL = frozenset([
+JOB_STATUS_ALL = compat.UniqueFrozenset([
   JOB_STATUS_RUNNING,
   ]) | JOBS_PENDING | JOBS_FINALIZED
 
@@ -1551,7 +1616,7 @@ OP_STATUS_RUNNING = "running"
 OP_STATUS_CANCELED = "canceled"
 OP_STATUS_SUCCESS = "success"
 OP_STATUS_ERROR = "error"
-OPS_FINALIZED = frozenset([
+OPS_FINALIZED = compat.UniqueFrozenset([
   OP_STATUS_CANCELED,
   OP_STATUS_SUCCESS,
   OP_STATUS_ERROR,
@@ -1565,7 +1630,7 @@ OP_PRIO_LOW = +10
 OP_PRIO_NORMAL = 0
 OP_PRIO_HIGH = -10
 
-OP_PRIO_SUBMIT_VALID = frozenset([
+OP_PRIO_SUBMIT_VALID = compat.UniqueFrozenset([
   OP_PRIO_LOW,
   OP_PRIO_NORMAL,
   OP_PRIO_HIGH,
@@ -1601,7 +1666,7 @@ JQT_EXPANDNAMES = "expandnames"
 JQT_EXEC = "exec"
 JQT_LOGMSG = "logmsg"
 JQT_STARTMSG = "startmsg"
-JQT_ALL = frozenset([
+JQT_ALL = compat.UniqueFrozenset([
   JQT_EXPANDNAMES,
   JQT_EXEC,
   JQT_LOGMSG,
@@ -1620,7 +1685,7 @@ QR_EXPORT = "export"
 QR_NETWORK = "network"
 
 #: List of resources which can be queried using L{opcodes.OpQuery}
-QR_VIA_OP = frozenset([
+QR_VIA_OP = compat.UniqueFrozenset([
   QR_CLUSTER,
   QR_INSTANCE,
   QR_NODE,
@@ -1649,7 +1714,7 @@ QFT_TIMESTAMP = "timestamp"
 QFT_OTHER = "other"
 
 #: All query field types
-QFT_ALL = frozenset([
+QFT_ALL = compat.UniqueFrozenset([
   QFT_UNKNOWN,
   QFT_TEXT,
   QFT_BOOL,
@@ -1674,7 +1739,7 @@ RS_UNAVAIL = 3
 #: Resource marked offline
 RS_OFFLINE = 4
 
-RS_ALL = frozenset([
+RS_ALL = compat.UniqueFrozenset([
   RS_NORMAL,
   RS_UNKNOWN,
   RS_NODATA,
@@ -1821,7 +1886,7 @@ HVC_DEFAULTS = {
     },
   }
 
-HVC_GLOBALS = frozenset([
+HVC_GLOBALS = compat.UniqueFrozenset([
   HV_MIGRATION_PORT,
   HV_MIGRATION_BANDWIDTH,
   HV_MIGRATION_MODE,
@@ -1971,7 +2036,7 @@ CONFD_REQFIELD_NAME = "0"
 CONFD_REQFIELD_IP = "1"
 CONFD_REQFIELD_MNODE_PIP = "2"
 
-CONFD_REQS = frozenset([
+CONFD_REQS = compat.UniqueFrozenset([
   CONFD_REQ_PING,
   CONFD_REQ_NODE_ROLE_BYNAME,
   CONFD_REQ_NODE_PIP_BY_INSTANCE_IP,
@@ -1986,7 +2051,7 @@ CONFD_REPL_STATUS_OK = 0
 CONFD_REPL_STATUS_ERROR = 1
 CONFD_REPL_STATUS_NOTIMPLEMENTED = 2
 
-CONFD_REPL_STATUSES = frozenset([
+CONFD_REPL_STATUSES = compat.UniqueFrozenset([
   CONFD_REPL_STATUS_OK,
   CONFD_REPL_STATUS_ERROR,
   CONFD_REPL_STATUS_NOTIMPLEMENTED,
@@ -2080,12 +2145,12 @@ FAKE_OP_MASTER_TURNDOWN = "OP_CLUSTER_IP_TURNDOWN"
 # SSH key types
 SSHK_RSA = "rsa"
 SSHK_DSA = "dsa"
-SSHK_ALL = frozenset([SSHK_RSA, SSHK_DSA])
+SSHK_ALL = compat.UniqueFrozenset([SSHK_RSA, SSHK_DSA])
 
 # SSH authorized key types
 SSHAK_RSA = "ssh-rsa"
 SSHAK_DSS = "ssh-dss"
-SSHAK_ALL = frozenset([SSHAK_RSA, SSHAK_DSS])
+SSHAK_ALL = compat.UniqueFrozenset([SSHAK_RSA, SSHAK_DSS])
 
 # SSH setup
 SSHS_CLUSTER_NAME = "cluster_name"
@@ -2106,4 +2171,4 @@ NDS_SSCONF = "ssconf"
 NDS_START_NODE_DAEMON = "start_node_daemon"
 
 # Do not re-export imported modules
-del re, _vcsversion, _autoconf, socket, pathutils
+del re, _vcsversion, _autoconf, socket, pathutils, compat

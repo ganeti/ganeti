@@ -36,6 +36,7 @@ from ganeti import constants
 from ganeti import errors
 from ganeti import utils
 from ganeti import netutils
+from ganeti import compat
 
 
 #: Used to recognize point at which socat(1) starts to listen on its socket.
@@ -56,7 +57,7 @@ SOCAT_LOG_WARNING = "W"
 SOCAT_LOG_ERROR = "E"
 SOCAT_LOG_FATAL = "F"
 
-SOCAT_LOG_IGNORE = frozenset([
+SOCAT_LOG_IGNORE = compat.UniqueFrozenset([
   SOCAT_LOG_DEBUG,
   SOCAT_LOG_INFO,
   SOCAT_LOG_NOTICE,
@@ -93,7 +94,8 @@ SOCAT_OPTION_MAXLEN = 400
  PROG_DD,
  PROG_DD_PID,
  PROG_EXP_SIZE) = range(1, 6)
-PROG_ALL = frozenset([
+
+PROG_ALL = compat.UniqueFrozenset([
   PROG_OTHER,
   PROG_SOCAT,
   PROG_DD,

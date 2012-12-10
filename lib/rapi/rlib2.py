@@ -155,7 +155,7 @@ _NODE_MIGRATE_REQV1 = "node-migrate-reqv1"
 # Feature string for node evacuation with LU-generated jobs
 _NODE_EVAC_RES1 = "node-evac-res1"
 
-ALL_FEATURES = frozenset([
+ALL_FEATURES = compat.UniqueFrozenset([
   _INST_CREATE_REQV1,
   _INST_REINSTALL_REQV1,
   _NODE_MIGRATE_REQV1,

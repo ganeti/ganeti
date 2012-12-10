@@ -104,13 +104,13 @@ NODE_FIELDS = ("name", "dtotal", "dfree",
                "mtotal", "mnode", "mfree",
                "pinst_cnt", "sinst_cnt", "tags")
 
-GROUP_FIELDS = frozenset([
+GROUP_FIELDS = compat.UniqueFrozenset([
   "name", "uuid",
   "alloc_policy",
   "node_cnt", "node_list",
   ])
 
-JOB_FIELDS = frozenset([
+JOB_FIELDS = compat.UniqueFrozenset([
   "id", "ops", "status", "summary",
   "opstatus", "opresult", "oplog",
   "received_ts", "start_ts", "end_ts",

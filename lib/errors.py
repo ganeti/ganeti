@@ -19,7 +19,11 @@
 # 02110-1301, USA.
 
 
-"""Ganeti exception handling"""
+"""Ganeti exception handling.
+
+"""
+
+from ganeti import compat
 
 
 # OpPrereqError failure types
@@ -55,7 +59,7 @@ ECODE_FAULT = "internal_error"
 ECODE_ENVIRON = "environment_error"
 
 #: List of all failure types
-ECODE_ALL = frozenset([
+ECODE_ALL = compat.UniqueFrozenset([
   ECODE_RESOLVER,
   ECODE_NORES,
   ECODE_TEMP_NORES,

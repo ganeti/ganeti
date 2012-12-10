@@ -137,7 +137,12 @@ _FS_UNAVAIL = object()
 _FS_OFFLINE = object()
 
 #: List of all special status
-_FS_ALL = frozenset([_FS_UNKNOWN, _FS_NODATA, _FS_UNAVAIL, _FS_OFFLINE])
+_FS_ALL = compat.UniqueFrozenset([
+  _FS_UNKNOWN,
+  _FS_NODATA,
+  _FS_UNAVAIL,
+  _FS_OFFLINE,
+  ])
 
 #: VType to QFT mapping
 _VTToQFT = {

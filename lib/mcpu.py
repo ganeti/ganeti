@@ -50,12 +50,12 @@ _LU_PREFIX = "LU"
 
 #: LU classes which don't need to acquire the node allocation lock
 #: (L{locking.NAL}) when they acquire all node or node resource locks
-_NODE_ALLOC_WHITELIST = frozenset()
+_NODE_ALLOC_WHITELIST = frozenset([])
 
 #: LU classes which don't need to acquire the node allocation lock
 #: (L{locking.NAL}) in the same mode (shared/exclusive) as the node
 #: or node resource locks
-_NODE_ALLOC_MODE_WHITELIST = frozenset([
+_NODE_ALLOC_MODE_WHITELIST = compat.UniqueFrozenset([
   cmdlib.LUBackupExport,
   cmdlib.LUBackupRemove,
   cmdlib.LUOobCommand,

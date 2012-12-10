@@ -406,7 +406,7 @@ UPCALL_REPLY = 1
 # UPCALL_EXPIRE: internal library request expire
 # has only salt, type, orig_request and extra_args
 UPCALL_EXPIRE = 2
-CONFD_UPCALL_TYPES = frozenset([
+CONFD_UPCALL_TYPES = compat.UniqueFrozenset([
   UPCALL_REPLY,
   UPCALL_EXPIRE,
   ])

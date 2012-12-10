@@ -43,7 +43,7 @@ import testutils
 
 VALID_URI_RE = re.compile(r"^[-/a-z0-9]*$")
 
-RAPI_OPCODE_EXCLUDE = frozenset([
+RAPI_OPCODE_EXCLUDE = compat.UniqueFrozenset([
   # Not yet implemented
   opcodes.OpBackupQuery,
   opcodes.OpBackupRemove,
@@ -89,7 +89,7 @@ def _ReadDocFile(filename):
 
 
 class TestHooksDocs(unittest.TestCase):
-  HOOK_PATH_OK = frozenset([
+  HOOK_PATH_OK = compat.UniqueFrozenset([
     "master-ip-turnup",
     "master-ip-turndown",
     ])
@@ -223,7 +223,7 @@ class TestRapiDocs(unittest.TestCase):
 
       prevline = line
 
-    prefix_exception = frozenset(["/", "/version", "/2"])
+    prefix_exception = compat.UniqueFrozenset(["/", "/version", "/2"])
 
     undocumented = []
     used_uris = []

@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2007, 2008 Google Inc.
+# Copyright (C) 2007, 2008, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,10 +20,13 @@
 
 """Ganeti RAPI module"""
 
+from ganeti import compat
+
+
 RAPI_ACCESS_WRITE = "write"
 RAPI_ACCESS_READ = "read"
 
-RAPI_ACCESS_ALL = frozenset([
+RAPI_ACCESS_ALL = compat.UniqueFrozenset([
   RAPI_ACCESS_WRITE,
   RAPI_ACCESS_READ,
   ])

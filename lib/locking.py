@@ -56,7 +56,7 @@ _LOCK_ACQUIRE_MIN_TIMEOUT = (1.0 / 1000)
  _LS_ACQUIRE_ALL,
  _LS_ACQUIRE_OPPORTUNISTIC) = range(1, 4)
 
-_LS_ACQUIRE_MODES = frozenset([
+_LS_ACQUIRE_MODES = compat.UniqueFrozenset([
   _LS_ACQUIRE_EXACT,
   _LS_ACQUIRE_ALL,
   _LS_ACQUIRE_OPPORTUNISTIC,
@@ -1599,7 +1599,7 @@ LEVELS = [
   ]
 
 # Lock levels which are modifiable
-LEVELS_MOD = frozenset([
+LEVELS_MOD = compat.UniqueFrozenset([
   LEVEL_NODE_RES,
   LEVEL_NODE,
   LEVEL_NODEGROUP,

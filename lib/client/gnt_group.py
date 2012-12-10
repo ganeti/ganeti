@@ -28,14 +28,14 @@ from ganeti.cli import *
 from ganeti import constants
 from ganeti import opcodes
 from ganeti import utils
+from ganeti import compat
 from cStringIO import StringIO
 
 
 #: default list of fields for L{ListGroups}
 _LIST_DEF_FIELDS = ["name", "node_cnt", "pinst_cnt", "alloc_policy", "ndparams"]
 
-
-_ENV_OVERRIDE = frozenset(["list"])
+_ENV_OVERRIDE = compat.UniqueFrozenset(["list"])
 
 
 def AddGroup(opts, args):

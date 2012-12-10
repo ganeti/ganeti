@@ -30,6 +30,7 @@ import sys
 import errno
 import logging
 
+from ganeti import compat
 from ganeti import errors
 from ganeti import constants
 from ganeti import utils
@@ -40,7 +41,7 @@ from ganeti import pathutils
 SSCONF_LOCK_TIMEOUT = 10
 
 #: Valid ssconf keys
-_VALID_KEYS = frozenset([
+_VALID_KEYS = compat.UniqueFrozenset([
   constants.SS_CLUSTER_NAME,
   constants.SS_CLUSTER_TAGS,
   constants.SS_FILE_STORAGE_DIR,
