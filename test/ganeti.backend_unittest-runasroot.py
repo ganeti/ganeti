@@ -34,7 +34,7 @@ from ganeti import backend
 import testutils
 
 
-class TestWriteFile(testutils.GanetiTestCase):
+class TestCommonRestrictedCmdCheck(testutils.GanetiTestCase):
   def setUp(self):
     self.tmpdir = tempfile.mkdtemp()
 
