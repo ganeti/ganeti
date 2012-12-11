@@ -43,7 +43,6 @@ import System.Exit
 import System.IO
 import System.Posix.Files
 import System.Posix.Types
-import System.Time
 import qualified Text.JSON as J
 import System.INotify
 
@@ -131,12 +130,6 @@ queryInternalError = (ReplyStatusError, J.showJSON ConfdErrorInternal)
 -- | Argument error standard response.
 queryArgumentError :: StatusAnswer
 queryArgumentError = (ReplyStatusError, J.showJSON ConfdErrorArgument)
-
--- | Returns the current time.
-getCurrentTime :: IO Integer
-getCurrentTime = do
-  TOD ctime _ <- getClockTime
-  return ctime
 
 -- | Converter from specific error to a string format.
 gntErrorToResult :: ErrorResult a -> Result a

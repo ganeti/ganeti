@@ -31,10 +31,12 @@ module Ganeti.Confd.Utils
   , parseRequest
   , parseMessage
   , signMessage
+  , getCurrentTime
   ) where
 
 import qualified Data.ByteString as B
 import qualified Text.JSON as J
+import System.Time
 
 import Ganeti.BasicTypes
 import Ganeti.Confd.Types
@@ -80,3 +82,9 @@ signMessage key salt msg =
                 , signedMsgHmac = hmac
                 }
     where hmac = computeMac key (Just salt) msg
+
+-- | Returns the current time.
+getCurrentTime :: IO Integer
+getCurrentTime = do
+  TOD ctime _ <- getClockTime
+  return ctime
