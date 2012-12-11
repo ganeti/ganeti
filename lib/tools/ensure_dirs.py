@@ -145,6 +145,8 @@ def GetPaths():
      getent.noded_uid, getent.masterd_gid, False),
     (pathutils.NODED_CERT_FILE, FILE, pathutils.NODED_CERT_MODE,
      getent.masterd_uid, getent.masterd_gid, False),
+    (pathutils.WATCHER_PAUSEFILE, FILE, 0644,
+     getent.masterd_uid, getent.masterd_gid, False),
     ]
 
   ss = ssconf.SimpleStore()
@@ -156,6 +158,8 @@ def GetPaths():
     (pathutils.QUEUE_DIR, DIR, 0700, getent.masterd_uid, getent.masterd_gid),
     (pathutils.QUEUE_DIR, QUEUE_DIR, 0600,
      getent.masterd_uid, getent.masterd_gid),
+    (pathutils.JOB_QUEUE_DRAIN_FILE, FILE, 0644,
+     getent.masterd_uid, getent.masterd_gid, False),
     (pathutils.JOB_QUEUE_LOCK_FILE, FILE, 0600,
      getent.masterd_uid, getent.masterd_gid, False),
     (pathutils.JOB_QUEUE_SERIAL_FILE, FILE, 0600,
@@ -164,10 +168,6 @@ def GetPaths():
      getent.masterd_uid, getent.masterd_gid, False),
     (pathutils.JOB_QUEUE_ARCHIVE_DIR, DIR, 0700,
      getent.masterd_uid, getent.masterd_gid),
-    (pathutils.WATCHER_PAUSEFILE, FILE, 0644,
-     getent.masterd_uid, getent.masterd_gid, False),
-    (pathutils.JOB_QUEUE_DRAIN_FILE, FILE, 0644,
-     getent.masterd_uid, getent.masterd_gid, False),
     (rapi_dir, DIR, 0750, getent.rapi_uid, getent.masterd_gid),
     (pathutils.RAPI_USERS_FILE, FILE, 0640,
      getent.rapi_uid, getent.masterd_gid, False),
