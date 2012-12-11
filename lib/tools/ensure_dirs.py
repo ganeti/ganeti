@@ -102,7 +102,7 @@ def ProcessPath(path):
 
   if pathtype in (DIR, QUEUE_DIR):
     # No additional parameters
-    assert len(path[5:]) == 0
+    assert len(path) == 5
     if pathtype == DIR:
       utils.MakeDirWithPerm(pathname, mode, uid, gid)
     elif pathtype == QUEUE_DIR:
@@ -127,6 +127,9 @@ def GetPaths():
   cleaner_log_dir = os.path.join(pathutils.LOG_DIR, "cleaner")
   master_cleaner_log_dir = os.path.join(pathutils.LOG_DIR, "master-cleaner")
 
+  # A note on the ordering: The parent directory (type C{DIR}) must always be
+  # listed before files (type C{FILE}) in that directory. Once the directory is
+  # set, only files directly in that directory can be listed.
   paths = [
     (pathutils.DATA_DIR, DIR, 0755, getent.masterd_uid, getent.masterd_gid),
     (pathutils.CLUSTER_DOMAIN_SECRET_FILE, FILE, 0640,
