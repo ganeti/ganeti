@@ -74,6 +74,8 @@ document, plus:
   it
 - `shelltestrunner <http://joyful.com/shelltestrunner>`_, used for
   running shell-based unit-tests
+- `temporary <https://github.com/batterseapower/temporary/>`_ library,
+  tested with version 1.1.2.3
 
 Under Debian Wheezy or later, these can be installed (on top of the
 required ones from the quick install document) via::
@@ -82,13 +84,14 @@ required ones from the quick install document) via::
         libghc-test-framework-dev \
         libghc-test-framework-quickcheck2-dev \
         libghc-test-framework-hunit-dev \
+        libghc-temporary-dev \
         hscolour hlint
 
 Or alternatively via ``cabal``::
 
   $ cabal install QuickCheck HUnit \
           test-framework test-framework-quickcheck2 test-framework-hunit \
-          hscolour hlint shelltestrunner
+          temporary hscolour hlint shelltestrunner
 
 
 Configuring for development

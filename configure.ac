@@ -553,6 +553,7 @@ AC_GHC_PKG_CHECK([QuickCheck-2.*], [], [HTOOLS_NODEV=1], t)
 AC_GHC_PKG_CHECK([test-framework-0.6*], [], [HTOOLS_NODEV=1], t)
 AC_GHC_PKG_CHECK([test-framework-hunit], [], [HTOOLS_NODEV=1])
 AC_GHC_PKG_CHECK([test-framework-quickcheck2], [], [HTOOLS_NODEV=1])
+AC_GHC_PKG_CHECK([temporary], [], [HTOOLS_NODEV=1])
 # FIXME: unify checks for non-test libraries (attoparsec, hinotify, ...)
 #        that are needed to execute the tests, avoiding the duplication
 #        of the checks.
