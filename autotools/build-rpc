@@ -151,7 +151,7 @@ def _WriteBaseClass(sw, clsname, calls):
         buf.write("return ")
 
         # In case line gets too long and is wrapped in a bad spot
-        buf.write("( ")
+        buf.write("(")
 
         buf.write("self._Call(_def, ")
         if kind == _SINGLE:
