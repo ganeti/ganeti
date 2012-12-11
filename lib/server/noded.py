@@ -828,6 +828,13 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     return ssconf.WriteSsconfFiles(values)
 
   @staticmethod
+  def perspective_get_watcher_pause(params):
+    """Get watcher pause end.
+
+    """
+    return utils.ReadWatcherPauseFile(pathutils.WATCHER_PAUSEFILE)
+
+  @staticmethod
   def perspective_set_watcher_pause(params):
     """Set watcher pause.
 

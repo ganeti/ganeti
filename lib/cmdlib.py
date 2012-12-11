@@ -6530,7 +6530,13 @@ class _ClusterQuery(_QueryBase):
       drain_flag = NotImplemented
 
     if query.CQ_WATCHER_PAUSE in self.requested_data:
-      watcher_pause = utils.ReadWatcherPauseFile(pathutils.WATCHER_PAUSEFILE)
+      master_name = lu.cfg.GetMasterNode()
+
+      result = lu.rpc.call_get_watcher_pause(master_name)
+      result.Raise("Can't retrieve watcher pause from master node '%s'" %
+                   master_name)
+
+      watcher_pause = result.payload
     else:
       watcher_pause = NotImplemented
 
