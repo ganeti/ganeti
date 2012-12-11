@@ -505,6 +505,9 @@ _MISC_CALLS = [
     ("hvname", None, "Hypervisor name"),
     ("hvfull", None, "Parameters to be validated"),
     ], None, None, "Validate hypervisor params"),
+  ("set_watcher_pause", MULTI, None, constants.RPC_TMO_URGENT, [
+    ("until", None, None),
+    ], None, None, "Set watcher pause end"),
   ]
 
 CALLS = {

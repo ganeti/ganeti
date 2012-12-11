@@ -64,6 +64,7 @@ from ganeti import mcpu
 from ganeti import compat
 from ganeti import pathutils
 from ganeti import vcluster
+from ganeti import ht
 
 
 _BOOT_ID_PATH = "/proc/sys/kernel/random/boot_id"
@@ -3766,6 +3767,25 @@ def RunRestrictedCmd(cmd,
       # Release lock at last
       lock.Close()
       lock = None
+
+
+def SetWatcherPause(until, _filename=pathutils.WATCHER_PAUSEFILE):
+  """Creates or removes the watcher pause file.
+
+  @type until: None or number
+  @param until: Unix timestamp saying until when the watcher shouldn't run
+
+  """
+  if until is None:
+    logging.info("Received request to no longer pause watcher")
+    utils.RemoveFile(_filename)
+  else:
+    logging.info("Received request to pause watcher until %s", until)
+
+    if not ht.TNumber(until):
+      _Fail("Duration must be numeric")
+
+    utils.WriteFile(_filename, data="%d\n" % (until, ), mode=0644)
 
 
 class HooksRunner(object):

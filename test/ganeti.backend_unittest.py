@@ -482,5 +482,40 @@ class TestRunRestrictedCmd(unittest.TestCase):
       self.fail("Did not raise exception")
 
 
+class TestSetWatcherPause(unittest.TestCase):
+  def setUp(self):
+    self.tmpdir = tempfile.mkdtemp()
+    self.filename = utils.PathJoin(self.tmpdir, "pause")
+
+  def tearDown(self):
+    shutil.rmtree(self.tmpdir)
+
+  def testUnsetNonExisting(self):
+    self.assertFalse(os.path.exists(self.filename))
+    backend.SetWatcherPause(None, _filename=self.filename)
+    self.assertFalse(os.path.exists(self.filename))
+
+  def testSetNonNumeric(self):
+    for i in ["", [], {}, "Hello World", "0", "1.0"]:
+      self.assertFalse(os.path.exists(self.filename))
+
+      try:
+        backend.SetWatcherPause(i, _filename=self.filename)
+      except backend.RPCFail, err:
+        self.assertEqual(str(err), "Duration must be numeric")
+      else:
+        self.fail("Did not raise exception")
+
+      self.assertFalse(os.path.exists(self.filename))
+
+  def testSet(self):
+    self.assertFalse(os.path.exists(self.filename))
+
+    for i in range(10):
+      backend.SetWatcherPause(i, _filename=self.filename)
+      self.assertEqual(utils.ReadFile(self.filename), "%s\n" % i)
+      self.assertEqual(os.stat(self.filename).st_mode & 0777, 0644)
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
