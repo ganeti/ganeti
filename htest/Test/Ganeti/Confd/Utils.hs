@@ -28,32 +28,18 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Test.Ganeti.Confd.Utils (testConfd_Utils) where
 
-import Control.Applicative
 import Test.QuickCheck
 import qualified Text.JSON as J
 
 import Test.Ganeti.TestHelper
 import Test.Ganeti.TestCommon
+import Test.Ganeti.Confd.Types ()
 
 import qualified Ganeti.BasicTypes as BasicTypes
 import qualified Ganeti.Confd.Types as Confd
 import qualified Ganeti.Confd.Utils as Confd.Utils
 import qualified Ganeti.Constants as C
 import qualified Ganeti.Hash as Hash
-
-$(genArbitrary ''Confd.ConfdRequestType)
-
-$(genArbitrary ''Confd.ConfdReqField)
-
-$(genArbitrary ''Confd.ConfdReqQ)
-
-instance Arbitrary Confd.ConfdQuery where
-  arbitrary = oneof [ pure Confd.EmptyQuery
-                    , Confd.PlainQuery <$> genName
-                    , Confd.DictQuery <$> arbitrary
-                    ]
-
-$(genArbitrary ''Confd.ConfdRequest)
 
 -- | Test that signing messages and checking signatures is correct. It
 -- also tests, indirectly the serialisation of messages so we don't

@@ -37,6 +37,7 @@ import Test.Ganeti.Block.Drbd.Parser
 import Test.Ganeti.Block.Drbd.Types
 import Test.Ganeti.Common
 import Test.Ganeti.Confd.Utils
+import Test.Ganeti.Confd.Types
 import Test.Ganeti.Daemon
 import Test.Ganeti.Errors
 import Test.Ganeti.HTools.Backend.Simu
@@ -83,6 +84,7 @@ allTests =
   [ testBasicTypes
   , testAttoparsec
   , testCommon
+  , testConfd_Types
   , testConfd_Utils
   , testDaemon
   , testBlock_Drbd_Parser
