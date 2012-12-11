@@ -47,6 +47,7 @@ import Test.Ganeti.TestCommon
 import Ganeti.BasicTypes
 import qualified Ganeti.Constants as C
 import Ganeti.Types as Types
+import Ganeti.JSON
 
 {-# ANN module "HLint: ignore Use camelCase" #-}
 
@@ -343,8 +344,36 @@ case_FinalizedJobStatus_pyequiv = do
 -- | Tests JobId serialisation (both from string and ints).
 prop_JobId_serialisation :: JobId -> Property
 prop_JobId_serialisation jid =
-  testSerialisation jid .&&.
-  (J.readJSON . J.showJSON . show $ fromJobId jid) ==? J.Ok jid
+  conjoin [ testSerialisation jid
+          , (J.readJSON . J.showJSON . show $ fromJobId jid) ==? J.Ok jid
+          , case (fromJVal . J.showJSON . negate $
+                  fromJobId jid)::Result JobId of
+              Bad _ -> passTest
+              Ok jid' -> failTest $ "Parsed negative job id as id " ++
+                         show (fromJobId jid')
+          ]
+
+-- | Tests that fractional job IDs are not accepted.
+prop_JobId_fractional :: Property
+prop_JobId_fractional =
+  forAll (arbitrary `suchThat`
+          (\d -> fromIntegral (truncate d::Int) /= d)) $ \d ->
+  case J.readJSON (J.showJSON (d::Double)) of
+    J.Error _ -> passTest
+    J.Ok jid -> failTest $ "Parsed fractional value " ++ show d ++
+                " as job id " ++ show (fromJobId jid)
+
+-- | Tests that a job ID is not parseable from \"bad\" JSON values.
+case_JobId_BadTypes :: Assertion
+case_JobId_BadTypes = do
+  let helper jsval = case J.readJSON jsval of
+                       J.Error _ -> return ()
+                       J.Ok jid -> assertFailure $ "Parsed " ++ show jsval
+                                   ++ " as job id " ++ show (fromJobId jid)
+  helper J.JSNull
+  helper (J.JSBool True)
+  helper (J.JSBool False)
+  helper (J.JSArray [])
 
 -- | Test 'JobDependency' serialisation.
 prop_JobDependency_serialisation :: JobDependency -> Property
@@ -398,6 +427,8 @@ testSuite "Types"
   , 'prop_FinalizedJobStatus_serialisation
   , 'case_FinalizedJobStatus_pyequiv
   , 'prop_JobId_serialisation
+  , 'prop_JobId_fractional
+  , 'case_JobId_BadTypes
   , 'prop_JobDependency_serialisation
   , 'prop_OpSubmitPriority_serialisation
   , 'prop_ELogType_serialisation
