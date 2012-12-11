@@ -944,6 +944,16 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     # TODO: What if a file fails to rename?
     return [backend.JobQueueRename(old, new) for old, new in params[0]]
 
+  @staticmethod
+  @_RequireJobQueueLock
+  def perspective_jobqueue_set_drain_flag(params):
+    """Set job queue's drain flag.
+
+    """
+    (flag, ) = params
+
+    return jstore.SetDrainFlag(flag)
+
   # hypervisor ---------------
 
   @staticmethod

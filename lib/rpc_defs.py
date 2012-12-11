@@ -522,6 +522,9 @@ CALLS = {
     ("jobqueue_rename", MULTI, None, constants.RPC_TMO_URGENT, [
       ("rename", None, None),
       ], None, None, "Rename job queue file"),
+    ("jobqueue_set_drain_flag", MULTI, None, constants.RPC_TMO_URGENT, [
+      ("flag", None, None),
+      ], None, None, "Set job queue drain flag"),
     ]),
   "RpcClientBootstrap": _Prepare([
     ("node_start_master_daemons", SINGLE, None, constants.RPC_TMO_FAST, [

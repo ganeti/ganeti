@@ -37,6 +37,9 @@ Version 2.7.0 beta1
   a cluster from a machine by stopping all daemons, removing
   certificates and ssconf files. Unless the ``--no-backup`` option is
   given, copies of the certificates are made.
+- Draining (``gnt-cluster queue drain``) and un-draining the job queue
+  (``gnt-cluster queue undrain``) now affects all nodes in a cluster and
+  the flag is not reset after a master failover.
 
 
 Version 2.6.1
