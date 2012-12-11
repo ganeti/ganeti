@@ -186,18 +186,19 @@ daemon (``--enable-confd``) and the monitoring agent
 - `regex-pcre <http://hackage.haskell.org/package/regex-pcre>`_,
   bindings for the ``pcre`` library
 - `attoparsec <http://hackage.haskell.org/package/attoparsec>`_
+- `vector <http://hackage.haskell.org/package/vector>`_
 
 These libraries are available in Debian Wheezy (but not in Squeeze, with
 the exception of curl), so you can use either apt::
 
   $ apt-get install libghc-hslogger-dev libghc-crypto-dev libghc-text-dev \
                     libghc-hinotify-dev libghc-regex-pcre-dev libghc-curl-dev \
-                    libghc-attoparsec-dev
+                    libghc-attoparsec-dev libghc-vector-dev
 
 or ``cabal``::
 
   $ cabal install hslogger Crypto text hinotify regex-pcre curl \
-                  attoparsec
+                  attoparsec vector
 
 to install them.
 
