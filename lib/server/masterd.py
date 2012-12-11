@@ -59,6 +59,7 @@ from ganeti import objects
 from ganeti import query
 from ganeti import runtime
 from ganeti import pathutils
+from ganeti import ht
 
 
 CLIENT_REQUEST_WORKERS = 16
@@ -442,18 +443,7 @@ class ClientOps:
     elif method == luxi.REQ_SET_WATCHER_PAUSE:
       (until, ) = args
 
-      if until is None:
-        logging.info("Received request to no longer pause the watcher")
-      else:
-        if not isinstance(until, (int, float)):
-          raise TypeError("Duration must be an integer or float")
-
-        if until < time.time():
-          raise errors.GenericError("Unable to set pause end time in the past")
-
-        logging.info("Received request to pause the watcher until %s", until)
-
-      return _SetWatcherPause(until)
+      return _SetWatcherPause(context, until)
 
     else:
       logging.info("Received invalid request '%s'", method)
@@ -554,18 +544,36 @@ class GanetiContext(object):
     self.glm.remove(locking.LEVEL_NODE_RES, name)
 
 
-def _SetWatcherPause(until):
+def _SetWatcherPause(context, until):
   """Creates or removes the watcher pause file.
 
+  @type context: L{GanetiContext}
+  @param context: Global Ganeti context
   @type until: None or int
   @param until: Unix timestamp saying until when the watcher shouldn't run
 
   """
+  node_names = context.cfg.GetNodeList()
+
   if until is None:
-    utils.RemoveFile(pathutils.WATCHER_PAUSEFILE)
+    logging.info("Received request to no longer pause watcher")
   else:
-    utils.WriteFile(pathutils.WATCHER_PAUSEFILE,
-                    data="%d\n" % (until, ))
+    if not ht.TNumber(until):
+      raise TypeError("Duration must be numeric")
+
+    if until < time.time():
+      raise errors.GenericError("Unable to set pause end time in the past")
+
+    logging.info("Received request to pause watcher until %s", until)
+
+  result = context.rpc.call_set_watcher_pause(node_names, until)
+
+  errmsg = utils.CommaJoin("%s (%s)" % (node_name, nres.fail_msg)
+                           for (node_name, nres) in result.items()
+                           if nres.fail_msg and not nres.offline)
+  if errmsg:
+    raise errors.OpExecError("Watcher pause was set where possible, but failed"
+                             " on the following node(s): %s" % errmsg)
 
   return until
 
