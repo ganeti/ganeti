@@ -45,7 +45,7 @@ genValidNetwork maxLenBitStr = do
   name <- genName >>= mkNonEmpty
   network_type <- genMaybe genNetworkType
   mac_prefix <- genMaybe genName
-  family <- arbitrary
+  fam <- arbitrary
   net <- genName >>= mkNonEmpty
   net6 <- genMaybe genName
   gateway <- genMaybe genName
@@ -53,7 +53,7 @@ genValidNetwork maxLenBitStr = do
   size <- genMaybe genJSValue
   res <- liftM Just (genBitString lenBitStr)
   ext_res <- liftM Just (genBitString lenBitStr)
-  let n = Network name network_type mac_prefix family net net6 gateway
+  let n = Network name network_type mac_prefix fam net net6 gateway
           gateway6 size res ext_res 0 S.empty
   return n
 
