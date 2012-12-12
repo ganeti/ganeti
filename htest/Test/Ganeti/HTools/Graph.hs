@@ -97,26 +97,24 @@ anyTwo _ [_] = True
 anyTwo op (x:y:xs) = (x `op` y) && anyTwo op (y:xs)
 
 -- | Check order of vertices returned by verticesByDegreeAsc.
-prop_verticesByDegreeAscAsc :: TestableGraph -> Property
-prop_verticesByDegreeAscAsc (TestableGraph g) =
-    anyTwo (<=) (degrees asc) ==? True
+prop_verticesByDegreeAscAsc :: TestableGraph -> Bool
+prop_verticesByDegreeAscAsc (TestableGraph g) = anyTwo (<=) (degrees asc)
     where degrees = map (length . neighbors g)
           asc = verticesByDegreeAsc g
 
 -- | Check order of vertices returned by verticesByDegreeDesc.
-prop_verticesByDegreeDescDesc :: TestableGraph -> Property
-prop_verticesByDegreeDescDesc (TestableGraph g) =
-    anyTwo (>=) (degrees desc) ==? True
+prop_verticesByDegreeDescDesc :: TestableGraph -> Bool
+prop_verticesByDegreeDescDesc (TestableGraph g) = anyTwo (>=) (degrees desc)
     where degrees = map (length . neighbors g)
           desc = verticesByDegreeDesc g
 
 -- | Check that our generated graphs are colorable
-prop_isColorableTestableGraph :: TestableGraph -> Property
-prop_isColorableTestableGraph (TestableGraph g) = isColorable g ==? True
+prop_isColorableTestableGraph :: TestableGraph -> Bool
+prop_isColorableTestableGraph (TestableGraph g) = isColorable g
 
 -- | Check that our generated graphs are colorable
-prop_isColorableTestableClique :: TestableClique -> Property
-prop_isColorableTestableClique (TestableClique g) = isColorable g ==? True
+prop_isColorableTestableClique :: TestableClique -> Bool
+prop_isColorableTestableClique (TestableClique g) = isColorable g
 
 -- | Check that the given algorithm colors a clique with the same number of
 -- colors as the vertices number.
