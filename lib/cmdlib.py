@@ -4085,7 +4085,10 @@ class LUClusterSetParams(LogicalUnit):
           self.new_os_hvp[os_name] = hvs
         else:
           for hv_name, hv_dict in hvs.items():
-            if hv_name not in self.new_os_hvp[os_name]:
+            if hv_dict is None:
+              # Delete if it exists
+              self.new_os_hvp[os_name].pop(hv_name, None)
+            elif hv_name not in self.new_os_hvp[os_name]:
               self.new_os_hvp[os_name][hv_name] = hv_dict
             else:
               self.new_os_hvp[os_name][hv_name].update(hv_dict)
