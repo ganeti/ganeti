@@ -437,9 +437,7 @@ instance JSON.JSON JobIdDep where
     case JSON.readJSON v::JSON.Result (Negative Int) of
       -- first try relative dependency, usually most common
       JSON.Ok r -> return $ JobDepRelative r
-      JSON.Error _ -> liftM JobDepAbsolute
-                      (fromJResult "parsing absolute job id" (readJSON v) >>=
-                       makeJobId)
+      JSON.Error _ -> liftM JobDepAbsolute (parseJobId v)
 
 -- | Job Dependency type.
 data JobDependency = JobDependency JobIdDep [FinalizedJobStatus]
