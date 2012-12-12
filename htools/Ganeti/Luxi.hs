@@ -55,7 +55,9 @@ module Ganeti.Luxi
 import Control.Exception (catch)
 import Data.IORef
 import qualified Data.ByteString as B
+import qualified Data.ByteString.Lazy as BL
 import qualified Data.ByteString.UTF8 as UTF8
+import qualified Data.ByteString.Lazy.UTF8 as UTF8L
 import Data.Word (Word8)
 import Control.Monad
 import Text.JSON (encodeStrict, decodeStrict)
@@ -245,9 +247,9 @@ closeClient = hClose . socket
 -- | Sends a message over a luxi transport.
 sendMsg :: Client -> String -> IO ()
 sendMsg s buf = withTimeout luxiDefRwto "sending luxi message" $ do
-  let encoded = UTF8.fromString buf
+  let encoded = UTF8L.fromString buf
       handle = socket s
-  B.hPut handle encoded
+  BL.hPut handle encoded
   B.hPut handle bEOM
   hFlush handle
 
