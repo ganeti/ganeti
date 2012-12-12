@@ -1738,7 +1738,7 @@ hs-coverage: $(haskell_tests) htest/hpc-htools htest/hpc-mon-collector
 	rm -f *.tix
 	$(MAKE) $(AM_MAKEFLAGS) hs-check
 	@mkdir_p@ $(COVERAGE_HS_DIR)
-	hpc combine --union $(HPCEXCL) \
+	hpc sum --union $(HPCEXCL) \
 	  test.tix hpc-htools.tix hpc-mon-collector.tix > coverage-htools.tix
 	hpc markup --destdir=$(COVERAGE_HS_DIR) coverage-htools.tix
 	hpc report coverage-htools.tix
