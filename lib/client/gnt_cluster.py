@@ -447,9 +447,7 @@ def ShowClusterConfig(opts, args):
            result["shared_file_storage_dir"])
   ToStdout("  - maintenance of node health: %s",
            result["maintain_node_health"])
-  ToStdout("  - uid pool: %s",
-            uidpool.FormatUidPool(result["uid_pool"],
-                                  roman=opts.roman_integers))
+  ToStdout("  - uid pool: %s", uidpool.FormatUidPool(result["uid_pool"]))
   ToStdout("  - default instance allocator: %s", result["default_iallocator"])
   ToStdout("  - primary ip version: %d", result["primary_ip_version"])
   ToStdout("  - preallocation wipe disks: %s", result["prealloc_wipe_disks"])
