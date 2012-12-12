@@ -78,9 +78,14 @@ module Ganeti.HTools.Types
   , AutoRepairResult(..)
   , autoRepairResultToRaw
   , autoRepairResultFromRaw
+  , AutoRepairPolicy(..)
+  , AutoRepairSuspendTime(..)
+  , AutoRepairData(..)
+  , AutoRepairStatus(..)
   ) where
 
 import qualified Data.Map as M
+import System.Time (ClockTime)
 
 import qualified Ganeti.Constants as C
 import qualified Ganeti.THH as THH
@@ -369,3 +374,30 @@ $(THH.declareSADT "AutoRepairResult"
        , ("ArFailure", 'C.autoRepairFailure)
        , ("ArEnoperm", 'C.autoRepairEnoperm)
        ])
+
+-- | The possible auto-repair policy for a given instance.
+data AutoRepairPolicy
+  = ArEnabled AutoRepairType          -- ^ Auto-repair explicitly enabled
+  | ArSuspended AutoRepairSuspendTime -- ^ Suspended temporarily, or forever
+  | ArNotEnabled                      -- ^ Auto-repair not explicitly enabled
+  deriving (Eq, Show)
+
+-- | The suspend timeout for 'ArSuspended'.
+data AutoRepairSuspendTime = Forever         -- ^ Permanently suspended
+                           | Until ClockTime -- ^ Suspended up to a certain time
+                           deriving (Eq, Show)
+
+-- | The possible auto-repair states for any given instance.
+data AutoRepairStatus
+  = ArHealthy                      -- ^ No problems detected with the instance
+  | ArNeedsRepair AutoRepairData   -- ^ Instance has problems, no action taken
+  | ArPendingRepair AutoRepairData -- ^ Repair jobs ongoing for the instance
+  | ArFailedRepair AutoRepairData  -- ^ Some repair jobs for the instance failed
+
+-- | The data accompanying a repair operation (future, pending, or failed).
+data AutoRepairData = AutoRepairData { arType :: AutoRepairType
+                                     , arUuid :: String
+                                     , arTime :: ClockTime
+                                     , arJobs :: [JobId]
+                                     , arResult :: Maybe AutoRepairResult
+                                     }
