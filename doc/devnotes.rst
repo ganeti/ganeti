@@ -127,6 +127,13 @@ what the splices are converted to. This can be done via::
 
   $ make HEXTRA="-ddump-splices"
 
+To build profiling code you must install the ``ghc-prof`` (or
+``gch6-prof``) package, and all the relevant libraries with their
+``-prof`` counterparts. If installing libraries through cabal the config
+file should include ``library-profiling: True`` or the ``-p`` flag
+should be used. Any library already installed can be updated by passing
+``--reinstall`` as well.
+
 Due to the way TemplateHaskell works, it's not straightforward to
 build profiling code. The recommended way is to run ``make hs-prof``,
 or alternatively the manual sequence is::
