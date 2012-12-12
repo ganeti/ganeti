@@ -54,6 +54,7 @@ module Ganeti.Query.Language
     ) where
 
 import Control.Applicative
+import Control.DeepSeq
 import Data.Foldable
 import Data.Traversable (Traversable, traverse, fmapDefault, foldMapDefault)
 import Data.Ratio (numerator, denominator)
@@ -78,6 +79,10 @@ $(declareIADT "ResultStatus"
   , ("RSOffline", 'C.rsOffline )
   ])
 $(makeJSONInstance ''ResultStatus)
+
+-- | No-op 'NFData' instance for 'ResultStatus', since it's a single
+-- constructor data-type.
+instance NFData ResultStatus
 
 -- | Check that ResultStatus is success or fail with descriptive
 -- message.
@@ -379,6 +384,9 @@ data ResultEntry = ResultEntry
   { rentryStatus :: ResultStatus      -- ^ The result status
   , rentryValue  :: Maybe ResultValue -- ^ The (optional) result value
   } deriving (Show, Eq)
+
+instance NFData ResultEntry where
+  rnf (ResultEntry rs rv) = rnf rs `seq` rnf rv
 
 instance JSON ResultEntry where
   showJSON (ResultEntry rs rv) =
