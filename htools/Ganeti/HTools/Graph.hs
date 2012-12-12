@@ -138,10 +138,10 @@ isColorable g = isUndirected g && not (hasLoop g)
 verticesColors :: VertColorMap -> [Graph.Vertex] -> [Color]
 verticesColors cMap = mapMaybe (`IntMap.lookup` cMap)
 
--- | Get the colors of a list of vertices.
+-- | Get the set of colors of a list of vertices.
 -- Any uncolored vertices are ignored.
 verticesColorSet :: VertColorMap -> [Graph.Vertex] -> IntSet.IntSet
-verticesColorSet cMap = IntSet.fromList . mapMaybe (`IntMap.lookup` cMap)
+verticesColorSet cMap = IntSet.fromList . verticesColors cMap
 
 -- | Get the colors of the neighbors of a vertex.
 neighColors :: Graph.Graph -> VertColorMap -> Graph.Vertex -> [Color]
