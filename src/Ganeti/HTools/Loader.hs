@@ -42,6 +42,7 @@ module Ganeti.HTools.Loader
 
 import Data.List
 import qualified Data.Map as M
+import Data.Maybe
 import Text.Printf (printf)
 
 import qualified Ganeti.HTools.Container as Container
@@ -185,9 +186,7 @@ longestDomain (x:xs) =
 
 -- | Extracts the exclusion tags from the cluster configuration.
 extractExTags :: [String] -> [String]
-extractExTags =
-  map (drop (length exTagsPrefix)) .
-  filter (isPrefixOf exTagsPrefix)
+extractExTags = filter (not . null) . mapMaybe (chompPrefix exTagsPrefix)
 
 -- | Extracts the common suffix from node\/instance names.
 commonSuffix :: Node.List -> Instance.List -> String
