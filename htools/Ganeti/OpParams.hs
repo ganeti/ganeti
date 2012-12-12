@@ -1433,11 +1433,12 @@ pOpPriority =
 
 -- | Job dependencies.
 pDependencies :: Field
-pDependencies = optionalField $ simpleField "depends" [t| [JobDependency] |]
+pDependencies =
+  optionalNullSerField $ simpleField "depends" [t| [JobDependency] |]
 
 -- | Comment field.
 pComment :: Field
-pComment = optionalField $ stringField "comment"
+pComment = optionalNullSerField $ stringField "comment"
 
 -- * Entire opcode parameter list
 
