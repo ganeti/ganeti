@@ -1,4 +1,6 @@
 {-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
+
 {-| JSON utility functions. -}
 
 {-
@@ -46,6 +48,7 @@ module Ganeti.JSON
   )
   where
 
+import Control.DeepSeq
 import Control.Monad (liftM)
 import Data.Maybe (fromMaybe, catMaybes)
 import qualified Data.Map as Map
@@ -61,6 +64,17 @@ import Text.JSON.Pretty (pp_value)
 import Ganeti.BasicTypes
 
 -- * JSON-related functions
+
+instance NFData J.JSValue where
+  rnf J.JSNull           = ()
+  rnf (J.JSBool b)       = rnf b
+  rnf (J.JSRational b r) = rnf b `seq` rnf r
+  rnf (J.JSString s)     = rnf $ J.fromJSString s
+  rnf (J.JSArray a)      = rnf a
+  rnf (J.JSObject o)     = rnf o
+
+instance (NFData a) => NFData (J.JSObject a) where
+  rnf = rnf . J.fromJSObject
 
 -- | A type alias for a field of a JSRecord.
 type JSField = (String, J.JSValue)
@@ -202,6 +216,9 @@ instance HasStringRepr String where
 newtype GenericContainer a b =
   GenericContainer { fromContainer :: Map.Map a b }
   deriving (Show, Eq)
+
+instance (NFData a, NFData b) => NFData (GenericContainer a b) where
+  rnf = rnf . Map.toList . fromContainer
 
 -- | Type alias for string keys.
 type Container = GenericContainer String
