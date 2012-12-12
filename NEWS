@@ -2,6 +2,35 @@ News
 ====
 
 
+Version 2.6.2
+-------------
+
+*(unreleased)*
+
+- Disk adoption interaction with ipolicy checks has been fixed.
+- Tap device's MAC prefix is now forcibly set to "fe" (issue 217).
+- Option to force master-failover without voting added (issue 282).
+- Removal of storage directory on shared file storage was fixed (issue
+  262).
+- Validation of LVM volume group name in OpClusterSetParams
+  (``gnt-cluster modify``) was corrected (issue 285).
+- Clarified error message on lock conflict (issue 287).
+- Logging of newly submitted jobs has been improved (issue 290).
+- Hostname checks have been made uniform between instance rename and
+  create (issue 291).
+- The ``--submit`` option is now supported by ``gnt-debug delay``.
+- Shutting down the master daemon by sending SIGTERM now stops it from
+  processing jobs waiting for locks; instead, those jobs will be started
+  once again after the master daemon is started the next time (issue
+  296).
+- Support for Xen's ``xl`` program has been improved.
+- A type error when doing live migrations with KVM has been fixed (issue
+  297) and error messages for failing migrations have been improved.
+- Another type error when unsetting OS parameters has been fixed (issue
+  311).
+- Several man page updates and typo fixes.
+
+
 Version 2.6.1
 -------------
 
