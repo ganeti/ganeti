@@ -504,6 +504,7 @@ if test "$enable_confd" != no; then
   AC_GHC_PKG_CHECK([Crypto], [], [CONFD_PKG="$CONFD_PKG Crypto"])
   AC_GHC_PKG_CHECK([text], [], [CONFD_PKG="$CONFD_PKG text"])
   AC_GHC_PKG_CHECK([hinotify], [], [CONFD_PKG="$CONFD_PKG hinotify"])
+  AC_GHC_PKG_CHECK([vector], [], [CONFD_PKG="$CONFD_PKG vector"])
   if test -z "$CONFD_PKG"; then
     has_confd=True
   elif test "$enable_confd" = check; then
@@ -556,6 +557,7 @@ AC_GHC_PKG_CHECK([test-framework-quickcheck2], [], [HTOOLS_NODEV=1])
 #        that are needed to execute the tests, avoiding the duplication
 #        of the checks.
 AC_GHC_PKG_CHECK([attoparsec], [], [HTOOLS_NODEV=1])
+AC_GHC_PKG_CHECK([vector], [], [HTOOLS_NODEV=1])
 if test -n "$HTOOLS_NODEV"; then
    AC_MSG_WARN(m4_normalize([Required development modules were not found,
                              you won't be able to run Haskell unittests]))
