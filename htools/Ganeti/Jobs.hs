@@ -38,22 +38,22 @@ import Ganeti.Types
 
 -- | Executes a set of jobs and waits for their completion, returning their
 -- status.
-execJobsWait :: L.Client              -- ^ The Luxi client
-             -> [[MetaOpCode]]        -- ^ The list of jobs
+execJobsWait :: [[MetaOpCode]]        -- ^ The list of jobs
              -> ([L.JobId] -> IO ())  -- ^ Post-submission callback
+             -> L.Client              -- ^ The Luxi client
              -> IO (Result [(L.JobId, JobStatus)])
-execJobsWait client opcodes callback = do
+execJobsWait opcodes callback client = do
   jids <- L.submitManyJobs client opcodes
   case jids of
     Bad e -> return . Bad $ "Job submission error: " ++ formatError e
     Ok jids' -> do
       callback jids'
-      waitForJobs client jids'
+      waitForJobs jids' client
 
 -- | Polls a set of jobs at a fixed interval until all are finished
 -- one way or another.
-waitForJobs :: L.Client -> [L.JobId] -> IO (Result [(L.JobId, JobStatus)])
-waitForJobs client jids = do
+waitForJobs :: [L.JobId] -> L.Client -> IO (Result [(L.JobId, JobStatus)])
+waitForJobs jids client = do
   sts <- L.queryJobsStatus client jids
   case sts of
     Bad e -> return . Bad $ "Checking job status: " ++ formatError e
@@ -61,5 +61,5 @@ waitForJobs client jids = do
             then do
               -- TODO: replace hardcoded value with a better thing
               threadDelay (1000000 * 15)
-              waitForJobs client jids
+              waitForJobs jids client
             else return . Ok $ zip jids sts'

@@ -196,8 +196,8 @@ execJobSet master nl il cref (js:jss) = do
       descr = map (\(_, idx, _, _) -> Container.nameOf il idx) js
       logfn = putStrLn . ("Got job IDs" ++) . commaJoin . map (show . fromJobId)
   putStrLn $ "Executing jobset for instances " ++ commaJoin descr
-  jrs <- bracket (L.getClient master) L.closeClient
-         (\client -> Jobs.execJobsWait client jobs logfn)
+  jrs <- bracket (L.getClient master) L.closeClient $
+         Jobs.execJobsWait jobs logfn
   case jrs of
     Bad x -> return $ Bad x
     Ok x -> if null failures
