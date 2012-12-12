@@ -40,10 +40,12 @@ module Ganeti.HTools.Loader
   , emptyCluster
   ) where
 
+import Control.Monad
 import Data.List
 import qualified Data.Map as M
 import Data.Maybe
 import Text.Printf (printf)
+import System.Time (ClockTime(..))
 
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Instance as Instance
@@ -52,6 +54,7 @@ import qualified Ganeti.HTools.Group as Group
 import qualified Ganeti.HTools.Cluster as Cluster
 
 import Ganeti.BasicTypes
+import qualified Ganeti.Constants as C
 import Ganeti.HTools.Types
 import Ganeti.Utils
 
@@ -174,6 +177,46 @@ disableSplitMoves nl inst =
     then Instance.setMovable inst False
     else inst
 
+-- | Set the auto-repair policy for an instance.
+setArPolicy :: [String]       -- ^ Cluster tags
+            -> Group.List     -- ^ List of node groups
+            -> Node.List      -- ^ List of nodes
+            -> Instance.List  -- ^ List of instances
+            -> Instance.List  -- ^ Updated list of instances
+setArPolicy ctags gl nl il =
+  let cpol = fromMaybe ArNotEnabled $ getArPolicy ctags
+      gpols = Container.map (fromMaybe cpol . getArPolicy . Group.allTags) gl
+      ipolfn = getArPolicy . Instance.allTags
+      nlookup = flip Container.find nl . Instance.pNode
+      glookup = flip Container.find gpols . Node.group . nlookup
+      updateInstance inst = inst {
+        Instance.arPolicy = fromMaybe (glookup inst) $ ipolfn inst }
+  in
+   Container.map updateInstance il
+
+-- | Get the auto-repair policy from a list of tags.
+--
+-- This examines the ganeti:watcher:autorepair and
+-- ganeti:watcher:autorepair:suspend tags to determine the policy. If none of
+-- these tags are present, Nothing (and not ArNotEnabled) is returned.
+getArPolicy :: [String] -> Maybe AutoRepairPolicy
+getArPolicy tags =
+  let enabled = mapMaybe (autoRepairTypeFromRaw <=<
+                          chompPrefix C.autoRepairTagEnabled) tags
+      suspended = mapMaybe (chompPrefix C.autoRepairTagSuspended) tags
+      suspTime = if "" `elem` suspended
+                   then Forever
+                   else Until . flip TOD 0 . maximum $
+                        mapMaybe (tryRead "auto-repair suspend time") suspended
+  in
+   case () of
+     -- Note how we must return ArSuspended even if "enabled" is empty, so that
+     -- node groups or instances can suspend repairs that were enabled at an
+     -- upper scope (cluster or node group).
+     _ | not $ null suspended -> Just $ ArSuspended suspTime
+       | not $ null enabled   -> Just $ ArEnabled (minimum enabled)
+       | otherwise            -> Nothing
+
 -- | Compute the longest common suffix of a list of strings that
 -- starts with a dot.
 longestDomain :: [String] -> String
@@ -203,8 +246,8 @@ mergeData :: [(String, DynUtil)]  -- ^ Instance utilisation data
           -> [String]             -- ^ Excluded instances
           -> ClusterData          -- ^ Data from backends
           -> Result ClusterData   -- ^ Fixed cluster data
-mergeData um extags selinsts exinsts cdata@(ClusterData gl nl il2 tags _) =
-  let il = Container.elems il2
+mergeData um extags selinsts exinsts cdata@(ClusterData gl nl il ctags _) =
+  let il2 = setArPolicy ctags gl nl il
       il3 = foldl' (\im (name, n_util) ->
                         case Container.findByName im name of
                           Nothing -> im -- skipping unknown instance
@@ -212,8 +255,8 @@ mergeData um extags selinsts exinsts cdata@(ClusterData gl nl il2 tags _) =
                               let new_i = inst { Instance.util = n_util }
                               in Container.add (Instance.idx inst) new_i im
                    ) il2 um
-      allextags = extags ++ extractExTags tags
-      inst_names = map Instance.name il
+      allextags = extags ++ extractExTags ctags
+      inst_names = map Instance.name $ Container.elems il3
       selinst_lkp = map (lookupName inst_names) selinsts
       exinst_lkp = map (lookupName inst_names) exinsts
       lkp_unknown = filter (not . goodLookupResult) (selinst_lkp ++ exinst_lkp)
