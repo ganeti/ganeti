@@ -406,6 +406,7 @@ LDS_BLOCK = frozenset([LD_LV, LD_DRBD8, LD_BLOCKDEV, LD_RBD])
 # drbd constants
 DRBD_HMAC_ALG = "md5"
 DRBD_NET_PROTOCOL = "C"
+DRBD_STATUS_FILE = "/proc/drbd"
 
 #: Size of DRBD meta block device
 DRBD_META_SIZE = 128

@@ -1054,7 +1054,7 @@ class BaseDRBD(BlockDev): # pylint: disable=W0223
   _ST_WFCONNECTION = "WFConnection"
   _ST_CONNECTED = "Connected"
 
-  _STATUS_FILE = "/proc/drbd"
+  _STATUS_FILE = constants.DRBD_STATUS_FILE
   _USERMODE_HELPER_FILE = "/sys/module/drbd/parameters/usermode_helper"
 
   @staticmethod
