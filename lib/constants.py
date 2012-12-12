@@ -942,10 +942,12 @@ IPOLICY_ALL_KEYS = (IPOLICY_ISPECS |
 # Node parameter names
 ND_OOB_PROGRAM = "oob_program"
 ND_SPINDLE_COUNT = "spindle_count"
+ND_EXCLUSIVE_STORAGE = "exclusive_storage"
 
 NDS_PARAMETER_TYPES = {
   ND_OOB_PROGRAM: VTYPE_STRING,
   ND_SPINDLE_COUNT: VTYPE_INT,
+  ND_EXCLUSIVE_STORAGE: VTYPE_BOOL,
   }
 
 NDS_PARAMETERS = frozenset(NDS_PARAMETER_TYPES.keys())
@@ -953,6 +955,7 @@ NDS_PARAMETERS = frozenset(NDS_PARAMETER_TYPES.keys())
 NDS_PARAMETER_TITLES = {
   ND_OOB_PROGRAM: "OutOfBandProgram",
   ND_SPINDLE_COUNT: "SpindleCount",
+  ND_EXCLUSIVE_STORAGE: "ExclusiveStorage",
   }
 
 # Logical Disks parameters
@@ -1842,6 +1845,7 @@ BEC_DEFAULTS = {
 NDC_DEFAULTS = {
   ND_OOB_PROGRAM: "",
   ND_SPINDLE_COUNT: 1,
+  ND_EXCLUSIVE_STORAGE: False,
   }
 
 DISK_LD_DEFAULTS = {

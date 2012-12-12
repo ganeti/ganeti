@@ -201,6 +201,7 @@ class TestConfigRunner(unittest.TestCase):
     my_ndparams = {
         constants.ND_OOB_PROGRAM: "/bin/node-oob",
         constants.ND_SPINDLE_COUNT: 1,
+        constants.ND_EXCLUSIVE_STORAGE: False,
         }
 
     cfg = self._get_object()
@@ -208,6 +209,28 @@ class TestConfigRunner(unittest.TestCase):
     node.ndparams = my_ndparams
     cfg.Update(node, None)
     self.assertEqual(cfg.GetNdParams(node), my_ndparams)
+
+  def testGetNdParamsInheritance(self):
+    node_ndparams = {
+      constants.ND_OOB_PROGRAM: "/bin/node-oob",
+      }
+    group_ndparams = {
+      constants.ND_SPINDLE_COUNT: 10,
+      }
+    expected_ndparams = {
+      constants.ND_OOB_PROGRAM: "/bin/node-oob",
+      constants.ND_SPINDLE_COUNT: 10,
+      constants.ND_EXCLUSIVE_STORAGE:
+        constants.NDC_DEFAULTS[constants.ND_EXCLUSIVE_STORAGE],
+      }
+    cfg = self._get_object()
+    node = cfg.GetNodeInfo(cfg.GetNodeList()[0])
+    node.ndparams = node_ndparams
+    cfg.Update(node, None)
+    group = cfg.GetNodeGroup(node.group)
+    group.ndparams = group_ndparams
+    cfg.Update(group, None)
+    self.assertEqual(cfg.GetNdParams(node), expected_ndparams)
 
   def testAddGroupFillsFieldsIfMissing(self):
     cfg = self._get_object()

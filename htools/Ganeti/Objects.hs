@@ -426,6 +426,7 @@ fillIPolicy (FilledIPolicy { ipolicyMinSpec       = fmin
 $(buildParam "ND" "ndp"
   [ simpleField "oob_program"   [t| String |]
   , simpleField "spindle_count" [t| Int    |]
+  , simpleField "exclusive_storage" [t| Bool |]
   ])
 
 $(buildObject "Node" "node" $

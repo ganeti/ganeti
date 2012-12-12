@@ -79,7 +79,8 @@ class TestClusterObject(unittest.TestCase):
       }
     ndparams = {
         constants.ND_OOB_PROGRAM: "/bin/cluster-oob",
-        constants.ND_SPINDLE_COUNT: 1
+        constants.ND_SPINDLE_COUNT: 1,
+        constants.ND_EXCLUSIVE_STORAGE: False,
         }
 
     self.fake_cl = objects.Cluster(hvparams=hvparams, os_hvp=os_hvp,
@@ -164,6 +165,7 @@ class TestClusterObject(unittest.TestCase):
     group_ndparams = {
         constants.ND_OOB_PROGRAM: "/bin/group-oob",
         constants.ND_SPINDLE_COUNT: 10,
+        constants.ND_EXCLUSIVE_STORAGE: True,
         }
     fake_group = objects.NodeGroup(name="testgroup",
                                    ndparams=group_ndparams)
@@ -174,6 +176,7 @@ class TestClusterObject(unittest.TestCase):
     node_ndparams = {
         constants.ND_OOB_PROGRAM: "/bin/node-oob",
         constants.ND_SPINDLE_COUNT: 2,
+        constants.ND_EXCLUSIVE_STORAGE: True,
         }
     fake_node = objects.Node(name="test",
                              ndparams=node_ndparams,
@@ -187,6 +190,7 @@ class TestClusterObject(unittest.TestCase):
     node_ndparams = {
         constants.ND_OOB_PROGRAM: "/bin/node-oob",
         constants.ND_SPINDLE_COUNT: 5,
+        constants.ND_EXCLUSIVE_STORAGE: True,
         }
     fake_node = objects.Node(name="test",
                              ndparams=node_ndparams,

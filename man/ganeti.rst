@@ -116,6 +116,12 @@ spindle_count
     hard-drives, its meaning is site-local and just the relative values
     matter.
 
+exclusive_storage
+    When this Boolean flag is enabled, physical disks on the node are
+    assigned to instance disks in an exclusive manner, so as to lower I/O
+    interference between instances. See the `Partitioned Ganeti
+    <design-partitioned.rst>`_ design document for more details.
+
 
 Hypervisor State Parameters
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
