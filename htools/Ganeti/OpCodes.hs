@@ -383,7 +383,7 @@ $(genOpCode "OpCode"
      , pInstBeParams
      , pRuntimeMem
      , pInstHvParams
-     , pDiskTemplate
+     , pOptDiskTemplate
      , pRemoteNode
      , pOsNameChange
      , pInstOsParams

@@ -97,6 +97,7 @@ module Ganeti.OpParams
   , pAllowRuntimeChgs
   , pInstDisks
   , pDiskTemplate
+  , pOptDiskTemplate
   , pFileDriver
   , pFileStorageDir
   , pVgName
@@ -731,6 +732,13 @@ pInstDisks = renameField "instDisks" $ simpleField "disks" [t| [IDiskParams] |]
 -- | Instance disk template.
 pDiskTemplate :: Field
 pDiskTemplate = simpleField "disk_template" [t| DiskTemplate |]
+
+-- | Instance disk template.
+pOptDiskTemplate :: Field
+pOptDiskTemplate =
+  optionalField .
+  renameField "OptDiskTemplate" $
+  simpleField "disk_template" [t| DiskTemplate |]
 
 -- | File driver.
 pFileDriver :: Field
