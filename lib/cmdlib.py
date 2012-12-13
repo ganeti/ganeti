@@ -10900,7 +10900,7 @@ class LUInstanceMultiAlloc(NoHooksLU):
     self.ia_result = ial.result
 
     if self.op.dry_run:
-      self.dry_run_rsult = objects.FillDict(self._ConstructPartialResult(), {
+      self.dry_run_result = objects.FillDict(self._ConstructPartialResult(), {
         constants.JOB_IDS_KEY: [],
         })
 
