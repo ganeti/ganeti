@@ -1491,23 +1491,23 @@ check-local: check-dirs $(GENERATED_FILES)
 	$(CHECK_NEWS) < $(top_srcdir)/NEWS
 	PYTHONPATH=. $(RUN_IN_TEMPDIR) $(CURDIR)/$(CHECK_IMPORTS) . $(standalone_python_modules)
 	@expver=$(VERSION_MAJOR).$(VERSION_MINOR); \
+	error= ; \
 	if test "`head -n 1 $(top_srcdir)/README`" != "Ganeti $$expver"; then \
-	  echo "Incorrect version in README, expected $$expver"; \
-	  exit 1; \
+	  echo "Incorrect version in README, expected $$expver" >&2; \
+	  error=1; \
 	fi; \
 	for file in doc/iallocator.rst doc/hooks.rst doc/virtual-cluster.rst \
 	    doc/security.rst; do \
 	  if test "`sed -ne '4 p' $(top_srcdir)/$$file`" != \
 	    "Documents Ganeti version $$expver"; then \
-	    echo "Incorrect version in $$file, expected $$expver"; \
-	    exit 1; \
+	    echo "Incorrect version in $$file, expected $$expver" >&2; \
+	    error=1; \
 	  fi; \
 	done; \
 	if ! test -f $(top_srcdir)/doc/design-$$expver.rst; then \
-	  echo "File $(top_srcdir)/doc/design-$$expver.rst not found"; \
-	  exit 1; \
+	  echo "File $(top_srcdir)/doc/design-$$expver.rst not found" >&2; \
+	  error=1; \
 	fi; \
-	error= ; \
 	for file in configure.ac $(HS_LIBTEST_SRCS) $(HS_PROG_SRCS); do \
 	  if test $$(wc --max-line-length < $(top_srcdir)/$$file) -gt 80; then \
 	    echo "Longest line in $$file is longer than 80 characters" >&2; \
