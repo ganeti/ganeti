@@ -121,6 +121,7 @@
 /htools/ganeti-confd
 /htools/rpc-test
 /htest/hpc-htools
+/htest/hpc-mon-collector
 /htest/test
 /htools/*.prof*
 /htools/*.stat
