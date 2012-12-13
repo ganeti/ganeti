@@ -16,6 +16,7 @@ it runs on TCP port 5080, but this can be changed either in
 which is used by default, can also be disabled by passing command line
 parameters.
 
+.. _rapi-users:
 
 Users and passwords
 -------------------
@@ -64,10 +65,11 @@ Example::
   jessica {HA1}7046452df2cbb530877058712cf17bd4 write
 
   # Monitoring can query for values
-  monitoring {HA1}ec018ffe72b8e75bb4d508ed5b6d079c query
+  monitoring {HA1}ec018ffe72b8e75bb4d508ed5b6d079c read
 
-  # A user who can query and write
-  superuser {HA1}ec018ffe72b8e75bb4d508ed5b6d079c query,write
+  # A user who can read and write (the former is implied by granting
+  # write access)
+  superuser {HA1}ec018ffe72b8e75bb4d508ed5b6d079c read,write
 
 
 .. [#pwhash] Using the MD5 hash of username, realm and password is

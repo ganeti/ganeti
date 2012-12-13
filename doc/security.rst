@@ -98,7 +98,9 @@ Remote API
 ----------
 
 Starting with Ganeti 2.0, Remote API traffic is encrypted using SSL/TLS
-by default. It supports Basic authentication as per :rfc:`2617`.
+by default. It supports Basic authentication as per :rfc:`2617`. Users
+can be granted different capabilities. Details can be found in the
+:ref:`RAPI documentation <rapi-users>`.
 
 Paths for certificate, private key and CA files required for SSL/TLS
 will be set at source configure time. Symlinks or command line
