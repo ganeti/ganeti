@@ -39,7 +39,6 @@ import Data.Maybe
 import qualified Network.Socket as S
 import qualified Text.JSON as J
 import Text.JSON (showJSON, JSValue(..))
-import Text.JSON.Pretty (pp_value)
 import System.Info (arch)
 
 import qualified Ganeti.Constants as C
@@ -179,7 +178,8 @@ handleClientMsg client creader args = do
         logWarning $ "Failed to execute request: " ++ show err
         return (False, showJSON err)
       Ok result -> do
-        logDebug $ "Result " ++ show (pp_value result)
+        -- only log the first 2,000 chars of the result
+        logDebug $ "Result (truncated): " ++ take 2000 (J.encode result)
         return (True, result)
   sendMsg client $ buildResponse status rval
   return True
