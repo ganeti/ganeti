@@ -81,6 +81,14 @@ error condition that requires a more risky or drastic solution, but
 never vice versa (if a worse solution is allowed then so is a better
 one).
 
+If there are multiple ``ganeti:watcher:autorepair:<type>`` tags in an
+object (cluster, node group or instance), the least destructive tag
+takes precedence. When multiplicity happens across objects, the nearest
+tag wins. For example, if in a cluster with two instances, *I1* and
+*I2*, *I1* has ``failover``, and the cluster itself has both
+``fix-storage`` and ``reinstall``, *I1* will end up with ``failover``
+and *I2* with ``fix-storage``.
+
 ganeti:watcher:autorepair:suspend[:<timestamp>]
 +++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -101,6 +109,17 @@ conditions in the first version.
 It might also be useful to easily have an operation that tags all
 instances matching a  filter on some charateristic. But again, this
 wouldn't be specific to this tag.
+
+If there are multiple
+``ganeti:watcher:autorepair:suspend[:<timestamp>]`` tags in an object,
+the form without timestamp takes precedence (permanent suspension); or,
+if all object tags have a timestamp, the one with the highest timestamp.
+When multiplicity happens across objects, the nearest tag wins, as
+above. This makes it possible to suspend cluster-enabled repairs with a
+single tag in the cluster object; or to suspend them only for a certain
+node group or instance. At the same time, it is possible to re-enable
+cluster-suspended repairs in a particular instance or group by applying
+an enable tag to them.
 
 ganeti:watcher:autorepair:pending:<type>:<id>:<timestamp>:<jobs>
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
