@@ -386,22 +386,6 @@ genNamesNE = resize maxNodes (listOf genNameNE)
 genFieldsNE :: Gen [NonEmptyString]
 genFieldsNE = genFields >>= mapM mkNonEmpty
 
--- | Generate an arbitrary IPv4 address in textual form.
-genIp4Addr :: Gen NonEmptyString
-genIp4Addr = do
-  a <- choose (1::Int, 255)
-  b <- choose (0::Int, 255)
-  c <- choose (0::Int, 255)
-  d <- choose (0::Int, 255)
-  mkNonEmpty $ intercalate "." (map show [a, b, c, d])
-
--- | Generate an arbitrary IPv4 network address in textual form.
-genIp4Net :: Gen NonEmptyString
-genIp4Net = do
-  netmask <- choose (8::Int, 30)
-  ip <- genIp4Addr
-  mkNonEmpty $ fromNonEmpty ip ++ "/" ++ show netmask
-
 -- | Generate a 3-byte MAC prefix.
 genMacPrefix :: Gen NonEmptyString
 genMacPrefix = do

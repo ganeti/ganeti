@@ -30,13 +30,20 @@ module Test.Ganeti.Objects
   ( testObjects
   , Node(..)
   , genEmptyCluster
+  , genValidNetwork
+  , genNetworkType
+  , genBitStringMaxLen
   ) where
 
 import Test.QuickCheck
+import qualified Test.HUnit as HUnit
 
 import Control.Applicative
+import Control.Monad
+import Data.Char
 import qualified Data.Map as Map
 import qualified Data.Set as Set
+import qualified Text.JSON as J
 
 import Test.Ganeti.Query.Language (genJSValue)
 import Test.Ganeti.TestHelper
@@ -44,8 +51,10 @@ import Test.Ganeti.TestCommon
 import Test.Ganeti.Types ()
 
 import qualified Ganeti.Constants as C
+import Ganeti.Network
 import Ganeti.Objects as Objects
 import Ganeti.JSON
+import Ganeti.Types
 
 {-# ANN module "HLint: ignore Use camelCase" #-}
 
@@ -164,33 +173,42 @@ instance Arbitrary TagSet where
 $(genArbitrary ''Cluster)
 
 instance Arbitrary Network where
-  arbitrary = Network <$>
-                        -- name
-                        arbitrary
-                        -- network_type
-                        <*> arbitrary
-                        -- mac_prefix
-                        <*> arbitrary
-                        -- family
-                        <*> arbitrary
-                        -- network
-                        <*> arbitrary
-                        -- network6
-                        <*> arbitrary
-                        -- gateway
-                        <*> arbitrary
-                        -- gateway6
-                        <*> arbitrary
-                        -- size
-                        <*> genMaybe genJSValue
-                        -- reservations
-                        <*> arbitrary
-                        -- external reservations
-                        <*> arbitrary
-                        -- serial
-                        <*> arbitrary
-                        -- tags
-                        <*> (Set.fromList <$> genTags)
+  arbitrary = genValidNetwork
+
+-- | Generates a network instance with minimum netmasks of /24. Generating
+-- bigger networks slows down the tests, because long bit strings are generated
+-- for the reservations.
+genValidNetwork :: Gen Objects.Network
+genValidNetwork = do
+  -- generate netmask for the IPv4 network
+  netmask <- choose (24::Int, 30)
+  name <- genName >>= mkNonEmpty
+  network_type <- genMaybe genNetworkType
+  mac_prefix <- genMaybe genName
+  fam <- arbitrary
+  net <- genIp4NetWithNetmask netmask
+  net6 <- genMaybe genIp6Net
+  gateway <- genMaybe genIp4AddrStr
+  gateway6 <- genMaybe genIp6Addr
+  size <- genMaybe genJSValue
+  res <- liftM Just (genBitString $ netmask2NumHosts netmask)
+  ext_res <- liftM Just (genBitString $ netmask2NumHosts netmask)
+  let n = Network name network_type mac_prefix fam net net6 gateway
+          gateway6 size res ext_res 0 Set.empty
+  return n
+
+-- | Generates an arbitrary network type.
+genNetworkType :: Gen NetworkType
+genNetworkType = elements [ PrivateNetwork, PublicNetwork ]
+
+-- | Generate an arbitrary string consisting of '0' and '1' of the given length.
+genBitString :: Int -> Gen String
+genBitString len = vectorOf len (elements "01")
+
+-- | Generate an arbitrary string consisting of '0' and '1' of the maximum given
+-- length.
+genBitStringMaxLen :: Int -> Gen String
+genBitStringMaxLen maxLen = choose (0, maxLen) >>= genBitString
 
 -- | Generator for config data with an empty cluster (no instances),
 -- with N defined nodes.
@@ -261,6 +279,58 @@ prop_Config_serialisation :: Property
 prop_Config_serialisation =
   forAll (choose (0, maxNodes `div` 4) >>= genEmptyCluster) testSerialisation
 
+-- | Custom HUnit test to check the correspondence between Haskell-generated
+-- networks and their Python decoded, validated and re-encoded version.
+-- For the technical background of this unit test, check the documentation
+-- of "case_py_compat_types" of htest/Test/Ganeti/Opcodes.hs
+case_py_compat_networks :: HUnit.Assertion
+case_py_compat_networks = do
+  let num_networks = 500::Int
+  sample_networks <- sample' (vectorOf num_networks genValidNetwork)
+  let networks = head sample_networks
+      networks_with_properties = map getNetworkProperties networks
+      serialized = J.encode networks
+  -- check for non-ASCII fields, usually due to 'arbitrary :: String'
+  mapM_ (\net -> when (any (not . isAscii) (J.encode net)) .
+                 HUnit.assertFailure $
+                 "Network has non-ASCII fields: " ++ show net
+        ) networks
+  py_stdout <-
+    runPython "from ganeti import network\n\
+              \from ganeti import objects\n\
+              \from ganeti import serializer\n\
+              \import sys\n\
+              \net_data = serializer.Load(sys.stdin.read())\n\
+              \decoded = [objects.Network.FromDict(n) for n in net_data]\n\
+              \encoded = []\n\
+              \for net in decoded:\n\
+              \  a = network.AddressPool(net)\n\
+              \  encoded.append((a.GetFreeCount(), a.GetReservedCount(), \\\n\
+              \    net.ToDict()))\n\
+              \print serializer.Dump(encoded)" serialized
+    >>= checkPythonResult
+  let deserialised = J.decode py_stdout::J.Result [(Int, Int, Network)]
+  decoded <- case deserialised of
+               J.Ok ops -> return ops
+               J.Error msg ->
+                 HUnit.assertFailure ("Unable to decode networks: " ++ msg)
+                 -- this already raised an expection, but we need it
+                 -- for proper types
+                 >> fail "Unable to decode networks"
+  HUnit.assertEqual "Mismatch in number of returned networks"
+    (length decoded) (length networks_with_properties)
+  mapM_ (uncurry (HUnit.assertEqual "Different result after encoding/decoding")
+        ) $ zip decoded networks_with_properties
+
+-- | Creates a tuple of the given network combined with some of its properties
+-- to be compared against the same properties generated by the python code.
+getNetworkProperties :: Network -> (Int, Int, Network)
+getNetworkProperties net =
+  let maybePool = createAddressPool net
+  in  case maybePool of
+           (Just pool) -> (getFreeCount pool, getReservedCount pool, net)
+           Nothing -> (-1, -1, net)
+
 testSuite "Objects"
   [ 'prop_fillDict
   , 'prop_Disk_serialisation
@@ -268,4 +338,5 @@ testSuite "Objects"
   , 'prop_Network_serialisation
   , 'prop_Node_serialisation
   , 'prop_Config_serialisation
+  , 'case_py_compat_networks
   ]

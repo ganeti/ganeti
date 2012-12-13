@@ -3,81 +3,46 @@
 
 module Test.Ganeti.Network
   ( testNetwork
+  , genBitStringMaxLen
+  , genNetworkType
   ) where
 
 import Test.QuickCheck
 
-import Control.Monad
-
 import Ganeti.Network as Network
 import Ganeti.Objects as Objects
-import Ganeti.Types
 
-import Test.Ganeti.Query.Language (genJSValue)
+import Test.Ganeti.Objects
+  ( genBitStringMaxLen
+  , genNetworkType
+  , genValidNetwork )
 import Test.Ganeti.TestHelper
 import Test.Ganeti.TestCommon
 
 import qualified Data.Vector.Unboxed as V
-import qualified Data.Set as S
 
 -- * Generators and arbitrary instances
-
--- | Generate an arbitrary string consisting of '0' and '1' of the given length.
-genBitString :: Int -> Gen String
-genBitString len = vectorOf len (elements "01")
-
--- | Generate an arbitrary string consisting of '0' and '1' of the maximum given
--- length.
-genBitStringMaxLen :: Int -> Gen String
-genBitStringMaxLen maxLen = choose (0, maxLen) >>= genBitString
-
--- | Generates an arbitrary bit vector of the given length.
-genBitVector :: Int -> Gen (V.Vector Bool)
-genBitVector len = do
-  boolList <- vector len::Gen [Bool]
-  return $ V.fromList boolList
-
--- | Generates a network instance with bit vectors of the given lengths for
--- reservations and external reservations.
-genValidNetwork :: Int -> Gen Objects.Network
-genValidNetwork maxLenBitStr = do
-  lenBitStr <- choose (0, maxLenBitStr)
-  name <- genName >>= mkNonEmpty
-  network_type <- genMaybe genNetworkType
-  mac_prefix <- genMaybe genName
-  fam <- arbitrary
-  net <- genName >>= mkNonEmpty
-  net6 <- genMaybe genName
-  gateway <- genMaybe genName
-  gateway6 <- genMaybe genName
-  size <- genMaybe genJSValue
-  res <- liftM Just (genBitString lenBitStr)
-  ext_res <- liftM Just (genBitString lenBitStr)
-  let n = Network name network_type mac_prefix fam net net6 gateway
-          gateway6 size res ext_res 0 S.empty
-  return n
-
--- | Generates an arbitrary network type.
-genNetworkType :: Gen NetworkType
-genNetworkType = elements [ PrivateNetwork, PublicNetwork ]
-
--- | Network instances are generated arbitrarily only with short bit strings to
--- not slow down the test execution too much.
-instance Arbitrary Objects.Network where
-  arbitrary = genValidNetwork 256
 
 -- | Generates address pools. The size of the network is intentionally
 -- decoupled from the size of the bit vectors, to avoid slowing down
 -- the tests by generating unnecessary bit strings.
 genAddressPool :: Int -> Gen AddressPool
 genAddressPool maxLenBitVec = do
-  net <- arbitrary
+  -- Generating networks with netmask of minimum /24 to avoid too long
+  -- bit strings being generated.
+  net <- genValidNetwork
   lenBitVec <- choose (0, maxLenBitVec)
   res <- genBitVector lenBitVec
   ext_res <- genBitVector lenBitVec
   return AddressPool { network = net
                      , reservations = res
                      , extReservations = ext_res }
+
+-- | Generates an arbitrary bit vector of the given length.
+genBitVector :: Int -> Gen (V.Vector Bool)
+genBitVector len = do
+  boolList <- vector len::Gen [Bool]
+  return $ V.fromList boolList
 
 instance Arbitrary AddressPool where
   arbitrary = genAddressPool ((2::Int)^(8::Int))

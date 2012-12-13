@@ -38,8 +38,10 @@ import qualified Test.HUnit as HUnit
 import Test.QuickCheck
 import Test.QuickCheck.Monadic
 import qualified Text.JSON as J
+import Numeric
 
 import qualified Ganeti.BasicTypes as BasicTypes
+import Ganeti.Types
 
 -- * Constants
 
@@ -214,6 +216,52 @@ genSetHelper candidates size = do
 -- | Generates a set of arbitrary elements.
 genSet :: (Ord a, Bounded a, Enum a) => Maybe Int -> Gen (Set.Set a)
 genSet = genSetHelper [minBound..maxBound]
+
+-- | Generate an arbitrary IPv4 address in textual form (non empty).
+genIp4Addr :: Gen NonEmptyString
+genIp4Addr = genIp4AddrStr >>= mkNonEmpty
+
+-- | Generate an arbitrary IPv4 address in textual form.
+genIp4AddrStr :: Gen String
+genIp4AddrStr = do
+  a <- choose (1::Int, 255)
+  b <- choose (0::Int, 255)
+  c <- choose (0::Int, 255)
+  d <- choose (0::Int, 255)
+  return $ intercalate "." (map show [a, b, c, d])
+
+-- | Generates an arbitrary IPv4 address with a given netmask in textual form.
+genIp4NetWithNetmask :: Int -> Gen NonEmptyString
+genIp4NetWithNetmask netmask = do
+  ip <- genIp4AddrStr
+  mkNonEmpty $ ip ++ "/" ++ show netmask
+
+-- | Generate an arbitrary IPv4 network in textual form.
+genIp4Net :: Gen NonEmptyString
+genIp4Net = do
+  netmask <- choose (8::Int, 30)
+  genIp4NetWithNetmask netmask
+
+-- | Helper function to compute the number of hosts in a network
+-- given the netmask. (For IPv4 only.)
+netmask2NumHosts :: Int -> Int
+netmask2NumHosts n = (2::Int)^((32::Int)-n)
+
+-- | Generates an arbitrary IPv6 network address in textual form.
+-- The generated address is not simpflified, e. g. an address like
+-- "2607:f0d0:1002:0051:0000:0000:0000:0004" does not become
+-- "2607:f0d0:1002:51::4"
+genIp6Addr :: Gen String
+genIp6Addr = do
+  rawIp <- vectorOf 8 $ choose (0::Integer, 65535)
+  return $ intercalate ":" (map (`showHex` "") rawIp)
+
+-- | Generates an arbitrary IPv6 network in textual form.
+genIp6Net :: Gen String
+genIp6Net = do
+  netmask <- choose (8::Int, 126)
+  ip <- genIp6Addr
+  return $ ip ++ "/" ++ show netmask
 
 -- * Helper functions
 
