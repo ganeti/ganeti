@@ -10273,7 +10273,7 @@ class LUInstanceCreate(LogicalUnit):
       self._RevertToDefaults(cluster)
 
     # NIC buildup
-    self.nics = _ComputeNics(self.op, cluster, self.hostname1.ip, self.cfg,
+    self.nics = _ComputeNics(self.op, cluster, self.check_ip, self.cfg,
                              self.proc.GetECId())
 
     # disk checks/pre-build
