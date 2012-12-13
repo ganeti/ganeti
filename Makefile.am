@@ -1508,6 +1508,11 @@ check-local: check-dirs $(GENERATED_FILES)
 	  echo "File $(top_srcdir)/doc/design-$$expver.rst not found" >&2; \
 	  error=1; \
 	fi; \
+	if test "`sed -ne '5 p' $(top_srcdir)/doc/design-draft.rst`" != \
+	  ".. Last updated for Ganeti $$expver"; then \
+	  echo "doc/design-draft.rst was not updated for version $$expver" >&2; \
+	  error=1; \
+	fi; \
 	for file in configure.ac $(HS_LIBTEST_SRCS) $(HS_PROG_SRCS); do \
 	  if test $$(wc --max-line-length < $(top_srcdir)/$$file) -gt 80; then \
 	    echo "Longest line in $$file is longer than 80 characters" >&2; \
