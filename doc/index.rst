@@ -45,10 +45,14 @@ Contents:
    design-cpu-pinning.rst
    design-lu-generated-jobs.rst
    design-multi-reloc.rst
+   design-node-add.rst
    design-oob.rst
+   design-opportunistic-locking.rst
    design-ovf-support.rst
    design-query2.rst
+   design-remote-commands.rst
    design-shared-storage.rst
+   design-virtual-clusters.rst
 
 Also see the :ref:`search`.
 

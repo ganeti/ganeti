@@ -10,15 +10,11 @@ Design document drafts
    design-impexp2.rst
    design-network.rst
    design-resource-model.rst
-   design-virtual-clusters.rst
    design-query-splitting.rst
    design-autorepair.rst
    design-partitioned.rst
-   design-node-add.rst
    design-monitoring-agent.rst
-   design-remote-commands.rst
    design-linuxha.rst
-   design-opportunistic-locking.rst
 
 .. vim: set textwidth=72 :
 .. Local Variables:
