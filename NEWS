@@ -7,6 +7,13 @@ Version 2.6.2
 
 *(unreleased)*
 
+Behaviour change: hbal won't rebalance anymore instances which have the
+'auto_balance' attribute set to false. This was the intention all along,
+but until now it only skipped those from the N+1 memory reservation
+(DRBD-specific).
+
+Besides that, a number of bugfixes:
+
 - Disk adoption interaction with ipolicy checks has been fixed.
 - Tap device's MAC prefix is now forcibly set to "fe" (issue 217).
 - Option to force master-failover without voting added (issue 282).
