@@ -100,6 +100,10 @@ configReloadTimeout = C.confdConfigReloadTimeout * 1000000
 configReloadRatelimit :: Int
 configReloadRatelimit = C.confdConfigReloadRatelimit * 1000000
 
+-- | Ratelimit timeout in seconds, as an 'Integer'.
+reloadRatelimitSec :: Integer
+reloadRatelimitSec = fromIntegral C.confdConfigReloadRatelimit
+
 -- | Initial poll round.
 initialPoll :: ReloadModel
 initialPoll = ReloadPoll 0
@@ -448,8 +452,7 @@ onInotify inotify path cref mstate _ =
          ctime <- getCurrentTime
          (newfstat, _) <- safeUpdateConfig path (reloadFStat state) cref
          let state' = state { reloadFStat = newfstat, reloadTime = ctime }
-         if abs (reloadTime state - ctime) <
-            fromIntegral C.confdConfigReloadRatelimit
+         if abs (reloadTime state - ctime) < reloadRatelimitSec
            then do
              mode <- moveToPolling "too many reloads" inotify path cref mstate
              return state' { reloadModel = mode }

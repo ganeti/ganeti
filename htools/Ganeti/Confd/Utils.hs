@@ -44,6 +44,10 @@ import qualified Ganeti.Path as Path
 import Ganeti.JSON
 import Ganeti.Utils
 
+-- | Type-adjusted max clock skew constant.
+maxClockSkew :: Integer
+maxClockSkew = fromIntegral C.confdMaxClockSkew
+
 -- | Returns the HMAC key.
 getClusterHmac :: IO HashKey
 getClusterHmac = Path.confdHmacKey >>= fmap B.unpack . B.readFile
@@ -64,7 +68,7 @@ parseMessage :: HashKey -> String -> Integer
 parseMessage hmac msg curtime = do
   (salt, origmsg, request) <- parseRequest hmac msg
   ts <- tryRead "Parsing timestamp" salt::Result Integer
-  if abs (ts - curtime) > fromIntegral C.confdMaxClockSkew
+  if abs (ts - curtime) > maxClockSkew
     then fail "Too old/too new timestamp or clock skew"
     else return (origmsg, request)
 
