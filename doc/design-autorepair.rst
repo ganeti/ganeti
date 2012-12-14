@@ -252,6 +252,65 @@ and safe to turn back to the normal autorepair system.
 temporarily) to mark the instance as "not touch" when we think a human
 needs to look at it. To be decided).
 
+A graph with the possible transitions follows; note that in the graph,
+following the implementation, the two ``Needs repair`` states have been
+coalesced into one; and the ``Suspended`` state disapears, for it
+becames an attribute of the instance object (its auto-repair policy).
+
+.. digraph:: "auto-repair-states"
+
+  node     [shape=circle, style=filled, fillcolor="#BEDEF1",
+            width=2, fixedsize=true];
+  healthy  [label="Healthy"];
+  needsrep [label="Needs repair"];
+  pendrep  [label="Pending repair"];
+  failed   [label="Failed repair"];
+  disabled [label="(no state)", width=1.25];
+
+  {rank=same; needsrep}
+  {rank=same; healthy}
+  {rank=same; pendrep}
+  {rank=same; failed}
+  {rank=same; disabled}
+
+  // These nodes are needed to be the "origin" of the "initial state" arrows.
+  node [width=.5, label="", style=invis];
+  inih;
+  inin;
+  inip;
+  inif;
+  inix;
+
+  edge [fontsize=10, fontname="Arial Bold", fontcolor=blue]
+
+  inih -> healthy  [label="No tags or\nresult:success"];
+  inip -> pendrep  [label="Tag:\nautorepair:pending"];
+  inif -> failed   [label="Tag:\nresult:failure"];
+  inix -> disabled [fontcolor=black, label="ArNotEnabled"];
+
+  edge [fontcolor="orange"];
+
+  healthy -> healthy [label="No problems\ndetected"];
+
+  healthy -> needsrep [
+             label="Brokeness\ndetected in\nfirst half of\nthe tool run"];
+
+  pendrep -> healthy [
+             label="All jobs\ncompleted\nsuccessfully /\ninstance healthy"];
+
+  pendrep -> failed [label="Some job(s)\nfailed"];
+
+  edge [fontcolor="red"];
+
+  needsrep -> pendrep [
+              label="Repair\nallowed and\ninitial job(s)\nsubmitted"];
+
+  needsrep -> needsrep [
+              label="Repairs suspended\n(no-op) or enabled\nbut not powerful enough\n(result: enoperm)"];
+
+  pendrep -> pendrep [label="More jobs\nsubmitted"];
+
+
 Repair operation
 ----------------
 
