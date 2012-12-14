@@ -455,6 +455,7 @@ HS_LIB_SRCS = \
 	htools/Ganeti/Confd/Utils.hs \
 	htools/Ganeti/Config.hs \
 	htools/Ganeti/Daemon.hs \
+	htools/Ganeti/DataCollectors/CLI.hs \
 	htools/Ganeti/DataCollectors/Drbd.hs \
 	htools/Ganeti/DataCollectors/Program.hs \
 	htools/Ganeti/Errors.hs \

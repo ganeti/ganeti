@@ -39,7 +39,7 @@ import qualified Ganeti.BasicTypes as BT
 import qualified Ganeti.Constants as C
 import Ganeti.Block.Drbd.Parser(drbdStatusParser)
 import Ganeti.Common
-import Ganeti.HTools.CLI
+import Ganeti.DataCollectors.CLI
 import Ganeti.Utils
 
 

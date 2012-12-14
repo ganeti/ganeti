@@ -29,8 +29,9 @@ import Data.Char (toLower)
 import System.Environment
 import System.IO
 
+import Ganeti.Common
 import Ganeti.Utils
-import Ganeti.HTools.CLI (parseOpts, genericOpts)
+import Ganeti.DataCollectors.CLI (genericOptions, defaultOptions)
 import Ganeti.DataCollectors.Program (personalities)
 
 -- | Display usage and exit.
@@ -56,6 +57,6 @@ main = do
     Just (fn, options, arguments) -> do
          let actual_args = tail cmd_args
          real_options <- options
-         (opts, args) <- parseOpts actual_args name (real_options ++
-                           genericOpts) arguments
+         (opts, args) <- parseOpts defaultOptions actual_args name
+                           (real_options ++ genericOptions) arguments
          fn opts args

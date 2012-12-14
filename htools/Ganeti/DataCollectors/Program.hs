@@ -26,7 +26,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 module Ganeti.DataCollectors.Program (personalities) where
 
 import Ganeti.Common (ArgCompletion)
-import Ganeti.HTools.CLI (OptType, Options)
+import Ganeti.DataCollectors.CLI (OptType, Options)
 
 import qualified Ganeti.DataCollectors.Drbd as Drbd
 

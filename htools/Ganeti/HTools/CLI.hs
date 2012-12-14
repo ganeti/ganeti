@@ -189,7 +189,7 @@ defaultOptions  = Options
   , optVerbose     = 1
   }
 
--- | Abrreviation for the option type.
+-- | Abbreviation for the option type.
 type OptType = GenericOptType Options
 
 instance StandardOptions Options where
