@@ -31,6 +31,7 @@ module Ganeti.Common
   , StandardOptions(..)
   , OptCompletion(..)
   , ArgCompletion(..)
+  , PersonalityList
   , optComplYesNo
   , oShowHelp
   , oShowVer
@@ -85,6 +86,16 @@ data OptCompletion = OptComplNone             -- ^ No parameter to this option
 -- the same argument, via a min and max limit.
 data ArgCompletion = ArgCompletion OptCompletion Int (Maybe Int)
                      deriving (Show, Eq)
+
+-- | A personality definition.
+type Personality a = ( a -> [String] -> IO () -- The main function
+                     , IO [GenericOptType a]  -- The options
+                     , [ArgCompletion]        -- The description of args
+                     )
+
+-- | Personality lists type, common across all binaries that expose
+-- multiple personalities.
+type PersonalityList  a = [(String, Personality a)]
 
 -- | Yes\/no choices completion.
 optComplYesNo :: OptCompletion

@@ -25,14 +25,12 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Ganeti.DataCollectors.Program (personalities) where
 
-import Ganeti.Common (ArgCompletion)
-import Ganeti.DataCollectors.CLI (OptType, Options)
+import Ganeti.Common (PersonalityList)
+import Ganeti.DataCollectors.CLI (Options)
 
 import qualified Ganeti.DataCollectors.Drbd as Drbd
 
 -- | Supported binaries.
-personalities :: [(String,
-                   (Options -> [String] -> IO (), IO [OptType],
-                    [ArgCompletion]))]
+personalities :: PersonalityList Options
 personalities = [ ("drbd",   (Drbd.main, Drbd.options, Drbd.arguments))
                 ]
