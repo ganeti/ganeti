@@ -542,7 +542,7 @@ class LogicalVolume(BlockDev):
     """Compute the number of PVs needed for an LV (with exclusive storage).
 
     @type size: float
-    @param size: LV size
+    @param size: LV size in MiB
     @param pvs_info: list of objects.LvmPvInfo, cannot be empty
     @rtype: integer
     @return: number of PVs needed
