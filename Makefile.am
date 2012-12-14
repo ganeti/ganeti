@@ -450,6 +450,7 @@ HS_LIB_SRCS = \
 	htools/Ganeti/BasicTypes.hs \
 	htools/Ganeti/Common.hs \
 	htools/Ganeti/Compat.hs \
+	htools/Ganeti/Confd/Client.hs \
 	htools/Ganeti/Confd/Server.hs \
 	htools/Ganeti/Confd/Types.hs \
 	htools/Ganeti/Confd/Utils.hs \

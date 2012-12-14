@@ -34,6 +34,7 @@ module Ganeti.Confd.Types
   , C.confdDefaultReqCoverage
   , C.confdClientExpireTimeout
   , C.maxUdpDataSize
+  , ConfdClient(..)
   , ConfdRequestType(..)
   , ConfdReqQ(..)
   , ConfdReqField(..)
@@ -41,15 +42,19 @@ module Ganeti.Confd.Types
   , ConfdNodeRole(..)
   , ConfdErrorType(..)
   , ConfdRequest(..)
+  , newConfdRequest
   , ConfdReply(..)
   , ConfdQuery(..)
   , SignedMessage(..)
   ) where
 
 import Text.JSON
+import qualified Network.Socket as S
 
 import qualified Ganeti.Constants as C
+import Ganeti.Hash
 import Ganeti.THH
+import Ganeti.Utils (newUUID)
 
 {-
    Note that we re-export as is from Constants the following simple items:
@@ -152,6 +157,13 @@ $(buildObject "ConfdRequest" "confdRq"
   , simpleField "rsalt"    [t| String |]
   ])
 
+-- | Client side helper function for creating requests. It automatically fills
+-- in some default values.
+newConfdRequest :: ConfdRequestType -> ConfdQuery -> IO ConfdRequest
+newConfdRequest reqType query = do
+  rsalt <- newUUID
+  return $ ConfdRequest C.confdProtocolVersion reqType query rsalt
+
 $(buildObject "ConfdReply" "confdReply"
   [ simpleField "protocol" [t| Int              |]
   , simpleField "status"   [t| ConfdReplyStatus |]
@@ -164,3 +176,10 @@ $(buildObject "SignedMessage" "signedMsg"
   , simpleField "msg"  [t| String |]
   , simpleField "salt" [t| String |]
   ])
+
+-- | Data type containing information used by the Confd client.
+data ConfdClient = ConfdClient
+  { hmacKey :: HashKey         -- ^ The hmac used for authentication
+  , peers :: [String]          -- ^ The list of nodes to query
+  , serverPort :: S.PortNumber -- ^ The port where confd server is listening
+  }
