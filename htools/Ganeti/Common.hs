@@ -228,6 +228,19 @@ showCmdUsage prog personalities success = do
     then exitSuccess
     else exitWith $ ExitFailure C.exitFailure
 
+-- | Generates completion information for a multi-command binary.
+multiCmdCompletion :: (StandardOptions a) => PersonalityList a -> String
+multiCmdCompletion personalities =
+  unlines .
+  map argComplToText $
+  map (\(cmd, _) -> ArgCompletion (OptComplChoices [cmd]) 1 (Just 1))
+    personalities
+
+-- | Displays completion information for a multi-command binary and exits.
+showCmdCompletion :: (StandardOptions a) => PersonalityList a -> IO b
+showCmdCompletion personalities =
+  putStr (multiCmdCompletion personalities) >> exitSuccess
+
 -- | Command line parser, using a generic 'Options' structure.
 parseOpts :: (StandardOptions a) =>
              a                      -- ^ The default options
@@ -260,6 +273,7 @@ parseOptsCmds defaults argv progname personalities genopts = do
                   -- hardcoded option strings here!
                   "--version" -> putStrLn (versionInfo progname) >> exitSuccess
                   "--help"    -> usage True
+                  "--help-completion" -> showCmdCompletion personalities
                   _           -> return c
   (cmd, cmd_args) <- case argv of
                        cmd:cmd_args -> do
