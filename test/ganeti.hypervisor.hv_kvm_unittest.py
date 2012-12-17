@@ -258,5 +258,20 @@ class TestVersionChecking(testutils.GanetiTestCase):
     self.assertEqual(parse(help_091), ("0.9.1", 0, 9, 1))
 
 
+class TestSpiceParameterList(unittest.TestCase):
+  def test(self):
+    params = \
+      compat.UniqueFrozenset(getattr(constants, name)
+                             for name in dir(constants)
+                             if name.startswith("HV_KVM_SPICE_"))
+
+    # Exclude some parameters
+    params -= frozenset([
+      constants.HV_KVM_SPICE_BIND,
+      ])
+
+    self.assertEqual(hv_kvm._SPICE_ADDITIONAL_PARAMS, params)
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
