@@ -722,27 +722,12 @@ def HaskellArgToCliArg(kind, min_cnt, max_cnt):
     return _ARG_MAP[kind](**kwargs)
 
 
-def WriteHaskellCompletion(sw, script, htools=True, debug=True):
-  """Generates completion information for a Haskell program.
-
-  This Converts completion info from a Haskell program into 'fake'
-  cli_opts and then builds completion for them.
+def ParseHaskellOptsArgs(script, output):
+  """Computes list of options/arguments from help-completion output.
 
   """
-  if htools:
-    cmd = "./htools/htools"
-    env = {"HTOOLS": script}
-    script_name = script
-    func_name = "htools_%s" % script
-  else:
-    cmd = "./" + script
-    env = {}
-    script_name = os.path.basename(script)
-    func_name = script_name
-  func_name = func_name.replace("-", "_")
-  output = utils.RunCmd([cmd, "--help-completion"], env=env, cwd=".").output
   cli_opts = []
-  args = []
+  cli_args = []
   for line in output.splitlines():
     v = line.split(None)
     exc = lambda msg: Exception("Invalid %s output from %s: %s" %
@@ -758,8 +743,63 @@ def WriteHaskellCompletion(sw, script, htools=True, debug=True):
       if len(v) != 3:
         raise exc("argument format")
       (kind, min_cnt, max_cnt) = v
-      args.append(HaskellArgToCliArg(kind, min_cnt, max_cnt))
-  WriteCompletion(sw, script_name, func_name, debug, opts=cli_opts, args=args)
+      cli_args.append(HaskellArgToCliArg(kind, min_cnt, max_cnt))
+  return (cli_opts, cli_args)
+
+
+def WriteHaskellCompletion(sw, script, htools=True, debug=True):
+  """Generates completion information for a Haskell program.
+
+  This converts completion info from a Haskell program into 'fake'
+  cli_opts and then builds completion for them.
+
+  """
+  if htools:
+    cmd = "./htools/htools"
+    env = {"HTOOLS": script}
+    script_name = script
+    func_name = "htools_%s" % script
+  else:
+    cmd = "./" + script
+    env = {}
+    script_name = os.path.basename(script)
+    func_name = script_name
+  func_name = GetFunctionName(func_name)
+  output = utils.RunCmd([cmd, "--help-completion"], env=env, cwd=".").output
+  (opts, args) = ParseHaskellOptsArgs(script_name, output)
+  WriteCompletion(sw, script_name, func_name, debug, opts=opts, args=args)
+
+
+def WriteHaskellCmdCompletion(sw, script, debug=True):
+  """Generates completion information for a Haskell multi-command program.
+
+  This gathers the list of commands from a Haskell program and
+  computes the list of commands available, then builds the sub-command
+  list of options/arguments for each command, using that for building
+  a unified help output.
+
+  """
+  cmd = "./" + script
+  script_name = os.path.basename(script)
+  func_name = script_name
+  func_name = GetFunctionName(func_name)
+  output = utils.RunCmd([cmd, "--help-completion"], cwd=".").output
+  commands = {}
+  lines = output.splitlines()
+  if len(lines) != 1:
+    raise Exception("Invalid lines in multi-command mode: %s" % str(lines))
+  v = lines[0].split(None)
+  exc = lambda msg: Exception("Invalid %s output from %s: %s" %
+                              (msg, script, v))
+  if len(v) != 3:
+    raise exc("help completion in multi-command mode")
+  if not v[0].startswith("choices="):
+    raise exc("invalid format in multi-command mode '%s'" % v[0])
+  for subcmd in v[0][len("choices="):].split(","):
+    output = utils.RunCmd([cmd, subcmd, "--help-completion"], cwd=".").output
+    (opts, args) = ParseHaskellOptsArgs(script, output)
+    commands[subcmd] = (None, args, opts, None, None)
+  WriteCompletion(sw, script_name, func_name, debug, commands=commands)
 
 
 def main():
@@ -772,29 +812,31 @@ def main():
   if args:
     parser.error("Wrong number of arguments")
 
+  # Whether to build debug version of completion script
+  debug = not options.compact
+
   buf = StringIO()
-  sw = utils.ShellWriter(buf, indent=not options.compact)
+  sw = utils.ShellWriter(buf, indent=debug)
 
   # Remember original state of extglob and enable it (required for pattern
   # matching; must be enabled while parsing script)
   sw.Write("gnt_shopt_extglob=$(shopt -p extglob || :)")
   sw.Write("shopt -s extglob")
 
-  WritePreamble(sw, not options.compact)
+  WritePreamble(sw, debug)
 
   # gnt-* scripts
   for scriptname in _autoconf.GNT_SCRIPTS:
     filename = "scripts/%s" % scriptname
 
-    WriteCompletion(sw, scriptname, GetFunctionName(scriptname),
-                    not options.compact,
+    WriteCompletion(sw, scriptname, GetFunctionName(scriptname), debug,
                     commands=GetCommands(filename,
                                          build.LoadModule(filename)))
 
   # Burnin script
   burnin = build.LoadModule("tools/burnin")
   WriteCompletion(sw, "%s/burnin" % pathutils.TOOLSDIR, "_ganeti_burnin",
-                  not options.compact,
+                  debug,
                   opts=burnin.OPTIONS, args=burnin.ARGUMENTS)
 
   # ganeti-cleaner
@@ -804,13 +846,12 @@ def main():
   # htools, if enabled
   if _autoconf.HTOOLS:
     for script in _autoconf.HTOOLS_PROGS:
-      WriteHaskellCompletion(sw, script, htools=True,
-                             debug=not options.compact)
+      WriteHaskellCompletion(sw, script, htools=True, debug=debug)
 
   # ganeti-confd, if enabled
   if _autoconf.ENABLE_CONFD:
     WriteHaskellCompletion(sw, "htools/ganeti-confd", htools=False,
-                           debug=not options.compact)
+                           debug=debug)
 
   # Reset extglob to original value
   sw.Write("[[ -n \"$gnt_shopt_extglob\" ]] && $gnt_shopt_extglob")
