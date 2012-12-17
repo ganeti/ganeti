@@ -54,7 +54,7 @@ main = do
       boolnames = map (\(x, y) -> (x == name, Just y)) personalities
   case select Nothing boolnames of
     Nothing -> usage name
-    Just (fn, options, arguments) -> do
+    Just (fn, options, arguments, _) -> do
          cmd_args <- getArgs
          real_options <- options
          (opts, args) <- parseOpts cmd_args name (real_options ++ genericOpts)

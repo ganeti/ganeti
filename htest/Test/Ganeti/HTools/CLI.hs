@@ -119,7 +119,7 @@ case_wrong_arg =
 -- | Test that all binaries support some common options.
 case_stdopts :: Assertion
 case_stdopts =
-  mapM_ (\(name, (_, o, a)) -> do
+  mapM_ (\(name, (_, o, a, _)) -> do
            o' <- o
            checkEarlyExit defaultOptions name
              (o' ++ genericOpts) a) Program.personalities

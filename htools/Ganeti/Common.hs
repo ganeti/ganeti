@@ -96,6 +96,7 @@ data ArgCompletion = ArgCompletion OptCompletion Int (Maybe Int)
 type Personality a = ( a -> [String] -> IO () -- The main function
                      , IO [GenericOptType a]  -- The options
                      , [ArgCompletion]        -- The description of args
+                     , String                 -- Description
                      )
 
 -- | Personality lists type, common across all binaries that expose
@@ -209,8 +210,9 @@ formatCmdUsage prog personalities =
                , ""
                , "Commands:"
                ]
-      rows = map (\(cmd, _) ->
-                    printf " %-*s" mlen cmd::String) sorted
+      rows = map (\(cmd, (_, _, _, desc)) ->
+                    -- FIXME: not wrapped here
+                    printf " %-*s - %s" mlen cmd desc::String) sorted
   in unlines $ header ++ rows
 
 -- | Displays usage for a program and exits.
@@ -266,7 +268,7 @@ parseOptsCmds defaults argv progname personalities genopts = do
                        [] -> usage False
   case cmd `lookup` personalities of
     Nothing -> usage False
-    Just (mainfn, optdefs, argdefs) -> do
+    Just (mainfn, optdefs, argdefs, _) -> do
       optdefs' <- optdefs
       (opts, args) <- parseOpts defaults cmd_args progname
                       (optdefs' ++ genopts) argdefs

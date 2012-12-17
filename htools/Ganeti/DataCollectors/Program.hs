@@ -32,5 +32,7 @@ import qualified Ganeti.DataCollectors.Drbd as Drbd
 
 -- | Supported binaries.
 personalities :: PersonalityList Options
-personalities = [ ("drbd",   (Drbd.main, Drbd.options, Drbd.arguments))
+personalities = [ ("drbd",   (Drbd.main, Drbd.options, Drbd.arguments,
+                             "gathers and displays DRBD statistics in JSON\
+                             \ format"))
                 ]
