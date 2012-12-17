@@ -7874,6 +7874,8 @@ def _DeclareLocksForMigration(lu, level):
 
     instance = lu.cfg.GetInstanceInfo(lu.op.instance_name)
 
+    # Node locks are already declared here rather than at LEVEL_NODE as we need
+    # the instance object anyway to declare the node allocation lock.
     if instance.disk_template in constants.DTS_EXT_MIRROR:
       if lu.op.target_node is None:
         lu.needed_locks[locking.LEVEL_NODE] = locking.ALL_SET
@@ -7887,7 +7889,8 @@ def _DeclareLocksForMigration(lu, level):
 
   elif level == locking.LEVEL_NODE:
     # Node locks are declared together with the node allocation lock
-    assert lu.needed_locks[locking.LEVEL_NODE]
+    assert (lu.needed_locks[locking.LEVEL_NODE] or
+            lu.needed_locks[locking.LEVEL_NODE] is locking.ALL_SET)
 
   elif level == locking.LEVEL_NODE_RES:
     # Copy node locks
