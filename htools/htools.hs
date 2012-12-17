@@ -51,8 +51,7 @@ main = do
   binary <- catchJust (guard . isDoesNotExistError)
             (getEnv "HTOOLS") (const getProgName)
   let name = map toLower binary
-      boolnames = map (\(x, y) -> (x == name, Just y)) personalities
-  case select Nothing boolnames of
+  case name `lookup` personalities of
     Nothing -> usage name
     Just (fn, options, arguments, _) -> do
          cmd_args <- getArgs
