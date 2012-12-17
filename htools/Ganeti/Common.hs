@@ -42,20 +42,25 @@ module Ganeti.Common
   , parseYesNo
   , parseOpts
   , parseOptsInner
+  , parseOptsCmds
+  , genericMainCmds
   ) where
 
 import Control.Monad (foldM)
 import Data.Char (toLower)
-import Data.List (intercalate, stripPrefix)
+import Data.List (intercalate, stripPrefix, sortBy)
 import Data.Maybe (fromMaybe)
+import Data.Ord (comparing)
 import qualified Data.Version
 import System.Console.GetOpt
+import System.Environment
 import System.Exit
 import System.Info
 import System.IO
 import Text.Printf (printf)
 
 import Ganeti.BasicTypes
+import qualified Ganeti.Constants as C
 import qualified Ganeti.Version as Version (version)
 
 -- | Parameter type.
@@ -189,6 +194,38 @@ reqWithConversion conversion_fn updater_fn =
             parsed_value <- conversion_fn string_opt
             updater_fn parsed_value opts)
 
+-- | Max command length when formatting command list output.
+maxCmdLen :: Int
+maxCmdLen = 60
+
+-- | Formats usage for a multi-personality program.
+formatCmdUsage :: (StandardOptions a) => String -> PersonalityList a -> String
+formatCmdUsage prog personalities =
+  let mlen = min maxCmdLen . maximum $ map (length . fst) personalities
+      sorted = sortBy (comparing fst) personalities
+      header = [ printf "Usage: %s {command} [options...] [argument...]" prog
+               , printf "%s <command> --help to see details, or man %s"
+                   prog prog
+               , ""
+               , "Commands:"
+               ]
+      rows = map (\(cmd, _) ->
+                    printf " %-*s" mlen cmd::String) sorted
+  in unlines $ header ++ rows
+
+-- | Displays usage for a program and exits.
+showCmdUsage :: (StandardOptions a) =>
+                String            -- ^ Program name
+             -> PersonalityList a -- ^ Personality list
+             -> Bool              -- ^ Whether the exit code is success or not
+             -> IO b
+showCmdUsage prog personalities success = do
+  let usage = formatCmdUsage prog personalities
+  putStr usage
+  if success
+    then exitSuccess
+    else exitWith $ ExitFailure C.exitFailure
+
 -- | Command line parser, using a generic 'Options' structure.
 parseOpts :: (StandardOptions a) =>
              a                      -- ^ The default options
@@ -205,6 +242,35 @@ parseOpts defaults argv progname options arguments =
       exitWith code
     Right result ->
       return result
+
+-- | Command line parser, for programs with sub-commands.
+parseOptsCmds :: (StandardOptions a) =>
+                 a                      -- ^ The default options
+              -> [String]               -- ^ The command line arguments
+              -> String                 -- ^ The program name
+              -> PersonalityList a      -- ^ The supported commands
+              -> [GenericOptType a]     -- ^ Generic options
+              -> IO (a, [String], a -> [String] -> IO ())
+                     -- ^ The resulting options and leftover arguments
+parseOptsCmds defaults argv progname personalities genopts = do
+  let usage = showCmdUsage progname personalities
+      check c = case c of
+                  -- hardcoded option strings here!
+                  "--version" -> putStrLn (versionInfo progname) >> exitSuccess
+                  "--help"    -> usage True
+                  _           -> return c
+  (cmd, cmd_args) <- case argv of
+                       cmd:cmd_args -> do
+                         cmd' <- check cmd
+                         return (cmd', cmd_args)
+                       [] -> usage False
+  case cmd `lookup` personalities of
+    Nothing -> usage False
+    Just (mainfn, optdefs, argdefs) -> do
+      optdefs' <- optdefs
+      (opts, args) <- parseOpts defaults cmd_args progname
+                      (optdefs' ++ genopts) argdefs
+      return (opts, args, mainfn)
 
 -- | Inner parse options. The arguments are similar to 'parseOpts',
 -- but it returns either a 'Left' composed of exit code and message,
@@ -236,3 +302,17 @@ parseOptsInner defaults argv progname options arguments  =
     (_, _, errs) ->
       Left (ExitFailure 2, "Command line error: "  ++ concat errs ++ "\n" ++
             usageHelp progname options)
+
+-- | Parse command line options and execute the main function of a
+-- multi-personality binary.
+genericMainCmds :: (StandardOptions a) =>
+                   a
+                -> PersonalityList a
+                -> [GenericOptType a]
+                -> IO ()
+genericMainCmds defaults personalities genopts = do
+  cmd_args <- getArgs
+  prog <- getProgName
+  (opts, args, fn) <-
+    parseOptsCmds defaults cmd_args prog personalities genopts
+  fn opts args
