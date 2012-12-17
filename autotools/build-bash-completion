@@ -853,6 +853,10 @@ def main():
     WriteHaskellCompletion(sw, "htools/ganeti-confd", htools=False,
                            debug=debug)
 
+  # mon-collector, if monitoring is enabled
+  if _autoconf.ENABLE_MONITORING:
+    WriteHaskellCmdCompletion(sw, "htools/mon-collector", debug=debug)
+
   # Reset extglob to original value
   sw.Write("[[ -n \"$gnt_shopt_extglob\" ]] && $gnt_shopt_extglob")
   sw.Write("unset gnt_shopt_extglob")
