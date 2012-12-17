@@ -68,6 +68,17 @@ IFF_TAP = 0x0002
 IFF_NO_PI = 0x1000
 IFF_VNET_HDR = 0x4000
 
+#: SPICE parameters which depend on L{constants.HV_KVM_SPICE_BIND}
+_SPICE_ADDITIONAL_PARAMS = frozenset([
+  constants.HV_KVM_SPICE_IP_VERSION,
+  constants.HV_KVM_SPICE_PASSWORD_FILE,
+  constants.HV_KVM_SPICE_LOSSLESS_IMG_COMPR,
+  constants.HV_KVM_SPICE_JPEG_IMG_COMPR,
+  constants.HV_KVM_SPICE_ZLIB_GLZ_IMG_COMPR,
+  constants.HV_KVM_SPICE_STREAMING_VIDEO_DETECTION,
+  constants.HV_KVM_SPICE_USE_TLS,
+  ])
+
 
 def _ProbeTapVnetHdr(fd):
   """Check whether to enable the IFF_VNET_HDR flag.
@@ -1957,16 +1968,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     else:
       # All the other SPICE parameters depend on spice_bind being set. Raise an
       # error if any of them is set without it.
-      spice_additional_params = frozenset([
-        constants.HV_KVM_SPICE_IP_VERSION,
-        constants.HV_KVM_SPICE_PASSWORD_FILE,
-        constants.HV_KVM_SPICE_LOSSLESS_IMG_COMPR,
-        constants.HV_KVM_SPICE_JPEG_IMG_COMPR,
-        constants.HV_KVM_SPICE_ZLIB_GLZ_IMG_COMPR,
-        constants.HV_KVM_SPICE_STREAMING_VIDEO_DETECTION,
-        constants.HV_KVM_SPICE_USE_TLS,
-        ])
-      for param in spice_additional_params:
+      for param in _SPICE_ADDITIONAL_PARAMS:
         if hvparams[param]:
           raise errors.HypervisorError("spice: %s requires %s to be set" %
                                        (param, constants.HV_KVM_SPICE_BIND))
