@@ -82,7 +82,8 @@ prop_bad_key salt crq =
   let signed = Confd.Utils.signMessage key_sign salt (J.encode crq)
       encoded = J.encode signed
   in printTestCase ("Accepted message signed with different key" ++ encoded) $
-     Confd.Utils.parseRequest key_verify encoded ==?
+     (Confd.Utils.parseSignedMessage key_verify encoded
+      :: BasicTypes.Result (String, String, Confd.ConfdRequest)) ==?
        BasicTypes.Bad "HMAC verification failed"
 
 testSuite "Confd/Utils"

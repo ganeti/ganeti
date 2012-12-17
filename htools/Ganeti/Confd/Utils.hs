@@ -28,7 +28,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Ganeti.Confd.Utils
   ( getClusterHmac
-  , parseRequest
+  , parseSignedMessage
   , parseMessage
   , signMessage
   , getCurrentTime
@@ -54,21 +54,23 @@ maxClockSkew = fromIntegral C.confdMaxClockSkew
 getClusterHmac :: IO HashKey
 getClusterHmac = Path.confdHmacKey >>= fmap B.unpack . B.readFile
 
--- | Parses a signed request.
-parseRequest :: HashKey -> String -> Result (String, String, ConfdRequest)
-parseRequest key str = do
-  (SignedMessage hmac msg salt) <- fromJResult "parsing request" $ J.decode str
-  req <- if verifyMac key (Just salt) msg hmac
+-- | Parses a signed message.
+parseSignedMessage :: (J.JSON a) => HashKey -> String
+                   -> Result (String, String, a)
+parseSignedMessage key str = do
+  (SignedMessage hmac msg salt) <- fromJResult "parsing signed message"
+    $ J.decode str
+  parsedMsg <- if verifyMac key (Just salt) msg hmac
            then fromJResult "parsing message" $ J.decode msg
            else Bad "HMAC verification failed"
-  return (salt, msg, req)
+  return (salt, msg, parsedMsg)
 
 -- | Message parsing. This can either result in a good, valid message,
 -- or fail in the Result monad.
 parseMessage :: HashKey -> String -> Integer
              -> Result (String, ConfdRequest)
 parseMessage hmac msg curtime = do
-  (salt, origmsg, request) <- parseRequest hmac msg
+  (salt, origmsg, request) <- parseSignedMessage hmac msg
   ts <- tryRead "Parsing timestamp" salt::Result Integer
   if abs (ts - curtime) > maxClockSkew
     then fail "Too old/too new timestamp or clock skew"
