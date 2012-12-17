@@ -67,6 +67,21 @@ prop_req_sign key (NonNegative timestamp) (Positive bad_delta)
                     \ timestamp, got " ++ show ts_bad)
        (ts_bad ==? BasicTypes.Bad "Too old/too new timestamp or clock skew")
 
+-- | Tests that a ConfdReply can be properly encoded, signed and parsed using
+-- the proper salt, but fails parsing with the wrong salt.
+prop_rep_salt :: Hash.HashKey     -- ^ The hash key
+              -> Confd.ConfdReply -- ^ A Confd reply
+              -> Property
+prop_rep_salt hmac reply =
+  forAll arbitrary $ \salt1 ->
+  forAll (arbitrary `suchThat` (/= salt1)) $ \salt2 ->
+  let innerMsg = J.encode reply
+      msg = J.encode $ Confd.Utils.signMessage hmac salt1 innerMsg
+  in
+    Confd.Utils.parseReply hmac msg salt1 ==? BasicTypes.Ok (innerMsg, reply)
+      .&&. Confd.Utils.parseReply hmac msg salt2 ==?
+           BasicTypes.Bad "The received salt differs from the expected salt"
+
 -- | Tests that signing with a different key fails detects failure
 -- correctly.
 prop_bad_key :: String             -- ^ Salt
@@ -88,5 +103,6 @@ prop_bad_key salt crq =
 
 testSuite "Confd/Utils"
   [ 'prop_req_sign
+  , 'prop_rep_salt
   , 'prop_bad_key
   ]

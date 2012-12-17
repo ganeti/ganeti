@@ -30,6 +30,7 @@ module Ganeti.Confd.Utils
   ( getClusterHmac
   , parseSignedMessage
   , parseRequest
+  , parseReply
   , signMessage
   , getCurrentTime
   ) where
@@ -65,8 +66,8 @@ parseSignedMessage key str = do
            else Bad "HMAC verification failed"
   return (salt, msg, parsedMsg)
 
--- | Message parsing. This can either result in a good, valid message,
--- or fail in the Result monad.
+-- | Message parsing. This can either result in a good, valid request
+-- message, or fail in the Result monad.
 parseRequest :: HashKey -> String -> Integer
              -> Result (String, ConfdRequest)
 parseRequest hmac msg curtime = do
@@ -75,6 +76,17 @@ parseRequest hmac msg curtime = do
   if abs (ts - curtime) > maxClockSkew
     then fail "Too old/too new timestamp or clock skew"
     else return (origmsg, request)
+
+-- | Message parsing. This can either result in a good, valid reply
+-- message, or fail in the Result monad.
+-- It also checks that the salt in the message corresponds to the one
+-- that is expected
+parseReply :: HashKey -> String -> String -> Result (String, ConfdReply)
+parseReply hmac msg expSalt = do
+  (salt, origmsg, reply) <- parseSignedMessage hmac msg
+  if salt /= expSalt
+    then fail "The received salt differs from the expected salt"
+    else return (origmsg, reply)
 
 -- | Signs a message with a given key and salt.
 signMessage :: HashKey -> String -> String -> SignedMessage
