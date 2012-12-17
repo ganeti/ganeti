@@ -59,8 +59,8 @@ prop_req_sign key (NonNegative timestamp) (Positive bad_delta)
       good_timestamp = timestamp + if pm then good_delta else (-good_delta)
       bad_delta' = fromIntegral C.confdMaxClockSkew + bad_delta
       bad_timestamp = timestamp + if pm then bad_delta' else (-bad_delta')
-      ts_ok = Confd.Utils.parseMessage key signed good_timestamp
-      ts_bad = Confd.Utils.parseMessage key signed bad_timestamp
+      ts_ok = Confd.Utils.parseRequest key signed good_timestamp
+      ts_bad = Confd.Utils.parseRequest key signed bad_timestamp
   in printTestCase "Failed to parse good message"
        (ts_ok ==? BasicTypes.Ok (encoded, crq)) .&&.
      printTestCase ("Managed to deserialise message with bad\

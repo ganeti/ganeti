@@ -29,7 +29,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 module Ganeti.Confd.Utils
   ( getClusterHmac
   , parseSignedMessage
-  , parseMessage
+  , parseRequest
   , signMessage
   , getCurrentTime
   ) where
@@ -67,9 +67,9 @@ parseSignedMessage key str = do
 
 -- | Message parsing. This can either result in a good, valid message,
 -- or fail in the Result monad.
-parseMessage :: HashKey -> String -> Integer
+parseRequest :: HashKey -> String -> Integer
              -> Result (String, ConfdRequest)
-parseMessage hmac msg curtime = do
+parseRequest hmac msg curtime = do
   (salt, origmsg, request) <- parseSignedMessage hmac msg
   ts <- tryRead "Parsing timestamp" salt::Result Integer
   if abs (ts - curtime) > maxClockSkew

@@ -459,7 +459,7 @@ onInotify inotify path cref mstate _ =
 responder :: CRef -> S.Socket -> HashKey -> String -> S.SockAddr -> IO ()
 responder cfgref socket hmac msg peer = do
   ctime <- getCurrentTime
-  case parseMessage hmac msg ctime of
+  case parseRequest hmac msg ctime of
     Ok (origmsg, rq) -> do
               logDebug $ "Processing request: " ++ rStripSpace origmsg
               mcfg <- readIORef cfgref
