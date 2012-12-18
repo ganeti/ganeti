@@ -1501,5 +1501,37 @@ class TestCopyLockList(unittest.TestCase):
     self.assertNotEqual(id(names), id(output), msg="List was not copied")
 
 
+class TestCheckOpportunisticLocking(unittest.TestCase):
+  class OpTest(opcodes.OpCode):
+    OP_PARAMS = [
+      opcodes._POpportunisticLocking,
+      opcodes._PIAllocFromDesc(""),
+      ]
+
+  @classmethod
+  def _MakeOp(cls, **kwargs):
+    op = cls.OpTest(**kwargs)
+    op.Validate(True)
+    return op
+
+  def testMissingAttributes(self):
+    self.assertRaises(AttributeError, cmdlib._CheckOpportunisticLocking,
+                      object())
+
+  def testDefaults(self):
+    op = self._MakeOp()
+    cmdlib._CheckOpportunisticLocking(op)
+
+  def test(self):
+    for iallocator in [None, "something", "other"]:
+      for opplock in [False, True]:
+        op = self._MakeOp(iallocator=iallocator, opportunistic_locking=opplock)
+        if opplock and not iallocator:
+          self.assertRaises(errors.OpPrereqError,
+                            cmdlib._CheckOpportunisticLocking, op)
+        else:
+          cmdlib._CheckOpportunisticLocking(op)
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()

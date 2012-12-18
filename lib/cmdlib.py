@@ -9704,6 +9704,16 @@ def _ComputeFullBeParams(op, cluster):
   return cluster.SimpleFillBE(op.beparams)
 
 
+def _CheckOpportunisticLocking(op):
+  """Generate error if opportunistic locking is not possible.
+
+  """
+  if op.opportunistic_locking and not op.iallocator:
+    raise errors.OpPrereqError("Opportunistic locking is only available in"
+                               " combination with an instance allocator",
+                               errors.ECODE_INVAL)
+
+
 class LUInstanceCreate(LogicalUnit):
   """Create an instance.
 
@@ -9798,6 +9808,8 @@ class LUInstanceCreate(LogicalUnit):
         self.LogWarning("Secondary node will be ignored on non-mirrored disk"
                         " template")
         self.op.snode = None
+
+    _CheckOpportunisticLocking(self.op)
 
     self._cds = _GetClusterDomainSecret()
 
@@ -10813,6 +10825,8 @@ class LUInstanceMultiAlloc(NoHooksLU):
                                    " an iallocator or nodes on the instances"
                                    " or set a cluster-wide default iallocator",
                                    errors.ECODE_INVAL)
+
+    _CheckOpportunisticLocking(self.op)
 
     dups = utils.FindDuplicates([op.instance_name for op in self.op.instances])
     if dups:
