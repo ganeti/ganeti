@@ -79,7 +79,8 @@ LIST
 | **list** [--no-headers] [--separator=*SEPARATOR*] [-v]
 | [-o *[+]FIELD,...*] [network...]
 
-Lists all existing networks in the cluster.
+Lists all existing networks in the cluster. If no group names are given, then
+all groups are included. Otherwise, only the named groups will be listed.
 
 The ``--no-headers`` option will skip the initial header line. The
 ``--separator`` option takes an argument which denotes what will be
@@ -97,52 +98,7 @@ the entire list of fields.
 
 The available fields and their meaning are:
 
-name
-    the group name
-
-group_count
-    the number of nodegroups connected to the network
-
-group_list
-    the list of nodegroups connected to the network
-
-inst_cnt
-    the number of instances use the network
-
-inst_list
-    the list of instances that at least one of their NICs is assigned
-    to the network
-
-external_reservations
-    the IPs that cannot be assigned to an instance
-
-free_count
-    how many IPs have left in the pool
-
-gateway
-    the networks gateway
-
-map
-    a nice text depiction of the available/reserved IPs in the network
-
-reserved_count
-    how many IPs have been reserved so far in the network
-
-network6
-    the ipv6 prefix of the network
-
-gateway6
-    the ipv6 gateway of the network
-
-mac_prefix
-    the mac_prefix of the network (if a NIC is assigned to the network it
-    it gets the mac_prefix of the network)
-
-network_type
-    the type of the network (public, private)
-
-If no group names are given, then all groups are included. Otherwise,
-only the named groups will be listed.
+@QUERY_FIELDS_NETWORK@
 
 LIST-FIELDS
 ~~~~~~~~~~~
