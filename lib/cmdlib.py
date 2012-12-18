@@ -16095,11 +16095,9 @@ class _NetworkQuery(_QueryBase):
     """
     do_instances = query.NETQ_INST in self.requested_data
     do_groups = do_instances or (query.NETQ_GROUP in self.requested_data)
-    do_stats = query.NETQ_STATS in self.requested_data
 
     network_to_groups = None
     network_to_instances = None
-    stats = None
 
     # For NETQ_GROUP, we need to map network->[groups]
     if do_groups:
@@ -16133,24 +16131,32 @@ class _NetworkQuery(_QueryBase):
                     network_to_instances[net_uuid].append(instance.name)
                     break
 
-    if do_stats:
-      stats = {}
-      for uuid, net in self._all_networks.items():
-        if uuid in self.wanted:
-          pool = network.AddressPool(net)
-          stats[uuid] = {
-            "free_count": pool.GetFreeCount(),
-            "reserved_count": pool.GetReservedCount(),
-            "map": pool.GetMap(),
-            "external_reservations":
-              utils.CommaJoin(pool.GetExternalReservations()),
-            }
+    if query.NETQ_STATS in self.requested_data:
+      stats = \
+        dict((uuid,
+              self._GetStats(network.AddressPool(self._all_networks[uuid])))
+             for uuid in self.wanted)
+    else:
+      stats = None
 
     return query.NetworkQueryData([self._all_networks[uuid]
                                    for uuid in self.wanted],
                                    network_to_groups,
                                    network_to_instances,
                                    stats)
+
+  @staticmethod
+  def _GetStats(pool):
+    """Returns statistics for a network address pool.
+
+    """
+    return {
+      "free_count": pool.GetFreeCount(),
+      "reserved_count": pool.GetReservedCount(),
+      "map": pool.GetMap(),
+      "external_reservations":
+        utils.CommaJoin(pool.GetExternalReservations()),
+      }
 
 
 class LUNetworkQuery(NoHooksLU):
