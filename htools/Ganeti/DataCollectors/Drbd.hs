@@ -62,15 +62,19 @@ options = return []
 arguments :: [ArgCompletion]
 arguments = [ArgCompletion OptComplFile 0 (Just 1)]
 
-
 -- * Command line options
 
 -- | Main function.
 main :: Options -> [String] -> IO ()
 main _ args = do
+  proc_drbd <- case args of
+                 [ ] -> return defaultFile
+                 [x] -> return x
+                 _   -> exitErr $ "This program takes only one argument," ++
+                                  " got '" ++ unwords args ++ "'"
   contents <-
-    ((E.try . readFile $ getInputPath args) :: IO (Either IOError String)) >>=
-      exitIfBad "Error reading from file" . either (BT.Bad . show) BT.Ok
+    ((E.try $ readFile proc_drbd) :: IO (Either IOError String)) >>=
+      exitIfBad "reading from file" . either (BT.Bad . show) BT.Ok
   output <-
     case A.parse drbdStatusParser $ pack contents of
       A.Fail unparsedText contexts errorMessage -> exitErr $
@@ -78,7 +82,3 @@ main _ args = do
           ++ show contexts ++ "\n" ++ errorMessage
       A.Done _ drbdStatus -> return $ encode drbdStatus
   putStrLn output
-  where getInputPath a =
-          if null a
-            then defaultFile
-            else head a
