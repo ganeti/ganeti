@@ -130,6 +130,14 @@ what the splices are converted to. This can be done via::
 
   $ make HEXTRA="-ddump-splices"
 
+Or, more interactively::
+
+  $ ghci
+  λ> :set -ddump-splices
+  λ> :l htools/Ganeti/Objects.hs
+
+And you will get the spliced code as the module is loaded.
+
 To build profiling code you must install the ``ghc-prof`` (or
 ``gch6-prof``) package, and all the relevant libraries with their
 ``-prof`` counterparts. If installing libraries through cabal the config
