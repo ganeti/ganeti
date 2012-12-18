@@ -45,7 +45,7 @@ network.
 The ``--network-type`` can be none, private or public.
 
 IPv6 semantics can be assigned to the network via the ``--network6`` and
-``--gateway6`` options. IP pool is meaningless for ipv6 so those two values
+``--gateway6`` options. IP pool is meaningless for IPV6 so those two values
 can be used for EUI64 generation from a NIC's mac value.
 
 MODIFY
