@@ -16231,9 +16231,6 @@ class LUNetworkConnect(LogicalUnit):
 
     assert self.group_uuid in owned_groups
 
-    l = lambda value: utils.CommaJoin("%s: %s/%s" % (i[0], i[1], i[2])
-                                      for i in value)
-
     self.netparams = {
       constants.NIC_MODE: self.network_mode,
       constants.NIC_LINK: self.network_link,
@@ -16251,28 +16248,10 @@ class LUNetworkConnect(LogicalUnit):
       return
 
     if self.op.conflicts_check:
-      # Check if locked instances are still correct
-      owned_instances = frozenset(self.owned_locks(locking.LEVEL_INSTANCE))
-      _CheckNodeGroupInstances(self.cfg, self.group_uuid, owned_instances)
+      pool = network.AddressPool(self.cfg.GetNetwork(self.network_uuid))
 
-      nobj = self.cfg.GetNetwork(self.network_uuid)
-      pool = network.AddressPool(nobj)
-      conflicting_instances = []
-
-      for (_, instance) in self.cfg.GetMultiInstanceInfo(owned_instances):
-        for idx, nic in enumerate(instance.nics):
-          if pool.Contains(nic.ip):
-            conflicting_instances.append((instance.name, idx, nic.ip))
-
-      if conflicting_instances:
-        self.LogWarning("Following occurences use IPs from network %s"
-                        " that is about to connect to nodegroup %s: %s" %
-                        (self.network_name, self.group.name,
-                        l(conflicting_instances)))
-        raise errors.OpPrereqError("Conflicting IPs found."
-                                   " Please remove/modify"
-                                   " corresponding NICs",
-                                   errors.ECODE_INVAL)
+      _NetworkConflictCheck(self, lambda nic: pool.Contains(nic.ip),
+                            "connect to")
 
   def Exec(self, feedback_fn):
     if self.connected:
@@ -16280,6 +16259,53 @@ class LUNetworkConnect(LogicalUnit):
 
     self.group.networks[self.network_uuid] = self.netparams
     self.cfg.Update(self.group, feedback_fn)
+
+
+def _NetworkConflictCheck(lu, check_fn, action):
+  """Checks for network interface conflicts with a network.
+
+  @type lu: L{LogicalUnit}
+  @type check_fn: callable receiving one parameter (L{objects.NIC}) and
+    returning boolean
+  @param check_fn: Function checking for conflict
+  @type action: string
+  @param action: Part of error message (see code)
+  @raise errors.OpPrereqError: If conflicting IP addresses are found.
+
+  """
+  # Check if locked instances are still correct
+  owned_instances = frozenset(lu.owned_locks(locking.LEVEL_INSTANCE))
+  _CheckNodeGroupInstances(lu.cfg, lu.group_uuid, owned_instances)
+
+  conflicts = []
+
+  for (_, instance) in lu.cfg.GetMultiInstanceInfo(owned_instances):
+    instconflicts = [(idx, nic.ip)
+                     for (idx, nic) in enumerate(instance.nics)
+                     if check_fn(nic)]
+
+    if instconflicts:
+      conflicts.append((instance.name, instconflicts))
+
+  if conflicts:
+    lu.LogWarning("IP addresses from network '%s', which is about to %s"
+                  " node group '%s', are in use: %s" %
+                  (lu.network_name, action, lu.group.name,
+                   utils.CommaJoin(("%s: %s" %
+                                    (name, _FmtNetworkConflict(details)))
+                                   for (name, details) in conflicts)))
+
+    raise errors.OpPrereqError("Conflicting IP addresses found; "
+                               " remove/modify the corresponding network"
+                               " interfaces", errors.ECODE_INVAL)
+
+
+def _FmtNetworkConflict(details):
+  """Utility for L{_NetworkConflictCheck}.
+
+  """
+  return utils.CommaJoin("nic%s/%s" % (idx, ipaddr)
+                         for (idx, ipaddr) in details)
 
 
 class LUNetworkDisconnect(LogicalUnit):
@@ -16335,9 +16361,6 @@ class LUNetworkDisconnect(LogicalUnit):
 
     assert self.group_uuid in owned_groups
 
-    l = lambda value: utils.CommaJoin("%s: %s/%s" % (i[0], i[1], i[2])
-                                      for i in value)
-
     self.group = self.cfg.GetNodeGroup(self.group_uuid)
     self.connected = True
     if self.network_uuid not in self.group.networks:
@@ -16347,27 +16370,8 @@ class LUNetworkDisconnect(LogicalUnit):
       return
 
     if self.op.conflicts_check:
-      # Check if locked instances are still correct
-      owned_instances = frozenset(self.owned_locks(locking.LEVEL_INSTANCE))
-      _CheckNodeGroupInstances(self.cfg, self.group_uuid, owned_instances)
-
-      conflicting_instances = []
-
-      for (_, instance) in self.cfg.GetMultiInstanceInfo(owned_instances):
-        for idx, nic in enumerate(instance.nics):
-          if nic.network == self.network_name:
-            conflicting_instances.append((instance.name, idx, nic.ip))
-
-      if conflicting_instances:
-        self.LogWarning("Following occurences use IPs from network %s"
-                           " that is about to disconnected from the nodegroup"
-                           " %s: %s" %
-                           (self.network_name, self.group.name,
-                            l(conflicting_instances)))
-        raise errors.OpPrereqError("Conflicting IPs."
-                                   " Please remove/modify"
-                                   " corresponding NICS",
-                                   errors.ECODE_INVAL)
+      _NetworkConflictCheck(self, lambda nic: nic.network == self.network_name,
+                            "disconnect from")
 
   def Exec(self, feedback_fn):
     if not self.connected:
