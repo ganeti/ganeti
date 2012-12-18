@@ -31,8 +31,8 @@ module Test.Ganeti.OpCodes
   , OpCodes.OpCode(..)
   ) where
 
-import qualified Test.HUnit as HUnit
-import Test.QuickCheck
+import Test.HUnit as HUnit
+import Test.QuickCheck as QuickCheck
 
 import Control.Applicative
 import Control.Monad
@@ -47,6 +47,7 @@ import Test.Ganeti.TestCommon
 import Test.Ganeti.Types ()
 import Test.Ganeti.Query.Language
 
+import Ganeti.BasicTypes
 import qualified Ganeti.Constants as C
 import qualified Ganeti.OpCodes as OpCodes
 import Ganeti.Types
@@ -395,6 +396,11 @@ genMacPrefix = do
 -- | Arbitrary instance for MetaOpCode, defined here due to TH ordering.
 $(genArbitrary ''OpCodes.MetaOpCode)
 
+-- | Small helper to check for a failed JSON deserialisation
+isJsonError :: J.Result a -> Bool
+isJsonError (J.Error _) = True
+isJsonError _           = False
+
 -- * Test cases
 
 -- | Check that opcode serialization is idempotent.
@@ -508,10 +514,60 @@ prop_setOpComment op comment =
   let (OpCodes.MetaOpCode common _) = OpCodes.setOpComment comment op
   in OpCodes.opComment common ==? Just comment
 
+-- | Tests wrong tag object building (cluster takes only jsnull, the
+-- other take a string, so we test the opposites).
+case_TagObject_fail :: Assertion
+case_TagObject_fail =
+  mapM_ (\(t, j) -> assertEqual (show t ++ "/" ++ J.encode j) Nothing $
+                    tagObjectFrom t j)
+    [ (TagTypeCluster,  J.showJSON "abc")
+    , (TagTypeInstance, J.JSNull)
+    , (TagTypeNode,     J.JSNull)
+    , (TagTypeGroup,    J.JSNull)
+    ]
+
+-- | Tests wrong (negative) disk index.
+prop_mkDiskIndex_fail :: QuickCheck.Positive Int -> Property
+prop_mkDiskIndex_fail (Positive i) =
+  case mkDiskIndex (negate i) of
+    Bad msg -> printTestCase "error message " $
+               "Invalid value" `isPrefixOf` msg
+    Ok v -> failTest $ "Succeeded to build disk index '" ++ show v ++
+                       "' from negative value " ++ show (negate i)
+
+-- | Tests a few invalid 'readRecreateDisks' cases.
+case_readRecreateDisks_fail :: Assertion
+case_readRecreateDisks_fail = do
+  assertBool "null" $
+    isJsonError (J.readJSON J.JSNull::J.Result RecreateDisksInfo)
+  assertBool "string" $
+    isJsonError (J.readJSON (J.showJSON "abc")::J.Result RecreateDisksInfo)
+
+-- | Tests a few invalid 'readDdmOldChanges' cases.
+case_readDdmOldChanges_fail :: Assertion
+case_readDdmOldChanges_fail = do
+  assertBool "null" $
+    isJsonError (J.readJSON J.JSNull::J.Result DdmOldChanges)
+  assertBool "string" $
+    isJsonError (J.readJSON (J.showJSON "abc")::J.Result DdmOldChanges)
+
+-- | Tests a few invalid 'readExportTarget' cases.
+case_readExportTarget_fail :: Assertion
+case_readExportTarget_fail = do
+  assertBool "null" $
+    isJsonError (J.readJSON J.JSNull::J.Result ExportTarget)
+  assertBool "int" $
+    isJsonError (J.readJSON (J.showJSON (5::Int))::J.Result ExportTarget)
+
 testSuite "OpCodes"
             [ 'prop_serialization
             , 'case_AllDefined
             , 'case_py_compat_types
             , 'case_py_compat_fields
             , 'prop_setOpComment
+            , 'case_TagObject_fail
+            , 'prop_mkDiskIndex_fail
+            , 'case_readRecreateDisks_fail
+            , 'case_readDdmOldChanges_fail
+            , 'case_readExportTarget_fail
             ]

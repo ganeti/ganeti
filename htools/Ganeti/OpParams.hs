@@ -432,7 +432,7 @@ readRecreateDisks v =
     _ -> case readJSON v::Text.JSON.Result [(DiskIndex, IDiskParams)] of
            Text.JSON.Ok params -> liftM RecreateDisksParams (mkNonEmpty params)
            _ -> fail $ "Can't parse disk information as either list of disk"
-                ++ " indices or list of disk parameters; value recevied:"
+                ++ " indices or list of disk parameters; value received:"
                 ++ show (pp_value v)
 
 instance JSON RecreateDisksInfo where
