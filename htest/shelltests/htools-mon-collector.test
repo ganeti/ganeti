@@ -2,7 +2,27 @@
 ./htest/hpc-mon-collector
 >>>= !0
 
-# 2. Test that the drbd collector fails parsing /dev/null
+# 2. Test that standard options are accepted, both at top level
+# and subcommands level
+./htest/hpc-mon-collector --help
+>>>= 0
+
+./htest/hpc-mon-collector --help-completion
+>>>= 0
+
+./htest/hpc-mon-collector --version
+>>>= 0
+
+./htest/hpc-mon-collector drbd --help
+>>>= 0
+
+./htest/hpc-mon-collector drbd --help-completion
+>>>= 0
+
+./htest/hpc-mon-collector drbd --version
+>>>= 0
+
+# 3. Test that the drbd collector fails parsing /dev/null
 ./htest/hpc-mon-collector drbd /dev/null
 >>>2
 Error: ""
@@ -10,7 +30,21 @@ Error: ""
 Failed reading: versionInfo
 >>>= !0
 
-# 3. Test that the drbd collector fails parsing /dev/zero, but is not
+# 4. Test that a non-existent file is correctly reported
+./htest/hpc-mon-collector drbd /dev/no-such-file
+>>>2/Error: reading from file: .* does not exist/
+>>>= !0
+
+# 5. Test that multiple files are rejected
+./htest/hpc-mon-collector drbd /dev/null /dev/null
+>>>2/takes only one argument/
+>>>= !0
+
+# 6. Test that a standard test file is parsed correctly
+./htest/hpc-mon-collector drbd $PYTESTDATA_DIR/proc_drbd83.txt
+>>>=0
+
+# 7. Test that the drbd collector fails parsing /dev/zero, but is not
 # stuck forever printing \NUL chars
 ./htest/hpc-mon-collector drbd /dev/zero
 >>>2

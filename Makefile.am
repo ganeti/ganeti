@@ -1535,7 +1535,7 @@ check-local: check-dirs $(GENERATED_FILES)
 
 .PHONY: hs-check
 hs-check: htest/test htest/hpc-htools htest/hpc-mon-collector $(HS_BUILT_TEST_HELPERS)
-	@rm -f test.tix
+	@rm -f *.tix
 	./htest/test
 	HBINARY="./htest/hpc-htools" ./htest/offline-test.sh
 
