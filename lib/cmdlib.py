@@ -15798,7 +15798,7 @@ class LUNetworkAdd(LogicalUnit):
     try:
       pool = network.AddressPool.InitializeNetwork(nobj)
     except errors.AddressPoolError, e:
-      raise errors.OpExecError("Cannot create IP pool for this network. %s" % e)
+      raise errors.OpExecError("Cannot create IP pool for this network: %s" % e)
 
     # Check if we need to reserve the nodes and the cluster master IP
     # These may not be allocated to any instances in routed mode, as
