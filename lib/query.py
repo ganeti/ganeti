@@ -1234,8 +1234,24 @@ def _GetLiveNodeField(field, kind, ctx, node):
   if not ctx.curlive_data:
     return _FS_NODATA
 
+  return _GetStatsField(field, kind, ctx.curlive_data)
+
+
+def _GetStatsField(field, kind, data):
+  """Gets a value from live statistics.
+
+  If the value is not found, L{_FS_UNAVAIL} is returned. If the field kind is
+  numeric a conversion to integer is attempted. If that fails, L{_FS_UNAVAIL}
+  is returned.
+
+  @param field: Live field name
+  @param kind: Data kind, one of L{constants.QFT_ALL}
+  @type data: dict
+  @param data: Statistics
+
+  """
   try:
-    value = ctx.curlive_data[field]
+    value = data[field]
   except KeyError:
     return _FS_UNAVAIL
 
@@ -1249,7 +1265,7 @@ def _GetLiveNodeField(field, kind, ctx, node):
     return int(value)
   except (ValueError, TypeError):
     logging.exception("Failed to convert node field '%s' (value %r) to int",
-                      value, field)
+                      field, value)
     return _FS_UNAVAIL
 
 
@@ -2509,24 +2525,7 @@ def _GetNetworkStatsField(field, kind, ctx, _):
   @type ctx: L{NetworkQueryData}
 
   """
-
-  try:
-    value = ctx.curstats[field]
-  except KeyError:
-    return _FS_UNAVAIL
-
-  if kind == QFT_TEXT:
-    return value
-
-  assert kind in (QFT_NUMBER, QFT_UNIT)
-
-  # Try to convert into number
-  try:
-    return int(value)
-  except (ValueError, TypeError):
-    logging.exception("Failed to convert network field '%s' (value %r) to int",
-                      field, value)
-    return _FS_UNAVAIL
+  return _GetStatsField(field, kind, ctx.curstats)
 
 
 def _BuildNetworkFields():
