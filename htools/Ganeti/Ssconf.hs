@@ -30,6 +30,7 @@ module Ganeti.Ssconf
   , sSKeyToRaw
   , sSKeyFromRaw
   , getPrimaryIPFamily
+  , getMasterCandidatesIps
   , keyToFilename
   , sSFilePrefix
   ) where
@@ -127,3 +128,9 @@ getPrimaryIPFamily optpath = do
   result <- readSSConfFile optpath (Just (show C.ip4Family)) SSPrimaryIpFamily
   return (liftM rStripSpace result >>=
           tryRead "Parsing af_family" >>= parseIPFamily)
+
+-- | Read the list of IP addresses of the master candidates of the cluster.
+getMasterCandidatesIps :: Maybe FilePath -> IO (Result [String])
+getMasterCandidatesIps optPath = do
+  result <- readSSConfFile optPath Nothing SSMasterCandidatesIps
+  return $ liftM lines result
