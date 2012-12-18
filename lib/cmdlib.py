@@ -15763,8 +15763,10 @@ class LUNetworkAdd(LogicalUnit):
 
     if self.op.conflicts_check:
       self.share_locks[locking.LEVEL_NODE] = 1
+      self.share_locks[locking.LEVEL_NODE_ALLOC] = 1
       self.needed_locks = {
         locking.LEVEL_NODE: locking.ALL_SET,
+        locking.LEVEL_NODE_ALLOC: locking.ALL_SET,
         }
     else:
       self.needed_locks = {}
