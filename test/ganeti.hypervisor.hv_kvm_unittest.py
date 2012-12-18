@@ -260,13 +260,29 @@ class TestVersionChecking(testutils.GanetiTestCase):
 
 class TestSpiceParameterList(unittest.TestCase):
   def test(self):
+    defaults = constants.HVC_DEFAULTS[constants.HT_KVM]
+
     params = \
       compat.UniqueFrozenset(getattr(constants, name)
                              for name in dir(constants)
                              if name.startswith("HV_KVM_SPICE_"))
 
+    # Parameters whose default value evaluates to True and don't need to be set
+    defaults_true = frozenset(filter(defaults.__getitem__, params))
+
+    self.assertEqual(defaults_true, frozenset([
+      constants.HV_KVM_SPICE_AUDIO_COMPR,
+      constants.HV_KVM_SPICE_USE_VDAGENT,
+      constants.HV_KVM_SPICE_TLS_CIPHERS,
+      ]))
+
+    # HV_KVM_SPICE_BIND decides whether the other parameters must be set if
+    # their default evaluates to False
+    assert constants.HV_KVM_SPICE_BIND in params
+    assert constants.HV_KVM_SPICE_BIND not in defaults_true
+
     # Exclude some parameters
-    params -= frozenset([
+    params -= defaults_true | frozenset([
       constants.HV_KVM_SPICE_BIND,
       ])
 
