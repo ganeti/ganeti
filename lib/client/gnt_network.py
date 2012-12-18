@@ -28,6 +28,7 @@ from ganeti.cli import *
 from ganeti import constants
 from ganeti import opcodes
 from ganeti import utils
+from ganeti import errors
 from textwrap import wrap
 
 
@@ -37,12 +38,12 @@ _LIST_DEF_FIELDS = ["name", "network", "gateway",
 
 
 def _HandleReservedIPs(ips):
-  if ips is not None:
-    if ips == "":
-      return []
-    else:
-      return utils.UnescapeAndSplit(ips, sep=",")
-  return None
+  if ips is None:
+    return None
+  elif not ips:
+    return []
+  else:
+    return utils.UnescapeAndSplit(ips, sep=",")
 
 
 def AddNetwork(opts, args):
@@ -57,22 +58,27 @@ def AddNetwork(opts, args):
   """
   (network_name, ) = args
 
+  if opts.network is None:
+    raise errors.OpPrereqError("The --network option must be given",
+                               errors.ECODE_INVAL)
+
   if opts.tags is not None:
     tags = opts.tags.split(",")
   else:
     tags = []
 
-  op = opcodes.OpNetworkAdd(
-                    network_name=network_name,
-                    gateway=opts.gateway,
-                    network=opts.network,
-                    gateway6=opts.gateway6,
-                    network6=opts.network6,
-                    mac_prefix=opts.mac_prefix,
-                    network_type=opts.network_type,
-                    add_reserved_ips=_HandleReservedIPs(opts.add_reserved_ips),
-                    conflicts_check=opts.conflicts_check,
-                    tags=tags)
+  reserved_ips = _HandleReservedIPs(opts.add_reserved_ips)
+
+  op = opcodes.OpNetworkAdd(network_name=network_name,
+                            gateway=opts.gateway,
+                            network=opts.network,
+                            gateway6=opts.gateway6,
+                            network6=opts.network6,
+                            mac_prefix=opts.mac_prefix,
+                            network_type=opts.network_type,
+                            add_reserved_ips=reserved_ips,
+                            conflicts_check=opts.conflicts_check,
+                            tags=tags)
   SubmitOpCode(op, opts=opts)
 
 
