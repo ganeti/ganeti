@@ -24,12 +24,13 @@
 # W0401: Wildcard import ganeti.cli
 # W0614: Unused import %s from wildcard import (since we need cli)
 
+import textwrap
+
 from ganeti.cli import *
 from ganeti import constants
 from ganeti import opcodes
 from ganeti import utils
 from ganeti import errors
-from textwrap import wrap
 
 
 #: default list of fields for L{ListNetworks}
@@ -215,14 +216,14 @@ def ShowNetworkConfig(_, args):
              100 * float(free_count) / float(size))
     ToStdout("  Usage map:")
     idx = 0
-    for line in wrap(mapping, width=64):
+    for line in textwrap.wrap(mapping, width=64):
       ToStdout("     %s %s %d", str(idx).rjust(3), line.ljust(64), idx + 63)
       idx += 64
     ToStdout("         (X) used    (.) free")
 
     if ext_res:
       ToStdout("  externally reserved IPs:")
-      for line in wrap(ext_res, width=64):
+      for line in textwrap.wrap(ext_res, width=64):
         ToStdout("    %s" % line)
 
     if group_list:
