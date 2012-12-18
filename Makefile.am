@@ -1594,11 +1594,9 @@ hlint: $(HS_BUILT_SRCS) htools/lint-hints.hs
 	if tty -s; then C="-c"; else C=""; fi; \
 	$(HLINT) --utf8 --report=doc/hs-lint.html --cross $$C \
 	  --ignore "Use first" \
-	  --ignore "Use comparing" \
-	  --ignore "Use on" \
-	  --ignore "Reduce duplication" \
 	  --ignore "Use &&&" \
 	  --ignore "Use void" \
+	  --ignore "Reduce duplication" \
 	  --hint htools/lint-hints \
 	  $(filter-out $(HLINT_EXCLUDES),$(HS_LIBTEST_SRCS) $(HS_PROG_SRCS))
 

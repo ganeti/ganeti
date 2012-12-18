@@ -73,14 +73,15 @@ module Ganeti.HTools.Node
   , mkNodeGraph
   ) where
 
+import Control.Monad (liftM, liftM2)
+import qualified Data.Foldable as Foldable
+import Data.Function (on)
+import qualified Data.Graph as Graph
+import qualified Data.IntMap as IntMap
 import Data.List hiding (group)
 import qualified Data.Map as Map
-import qualified Data.Foldable as Foldable
-import qualified Data.IntMap as IntMap
-import qualified Data.Graph as Graph
 import Data.Ord (comparing)
 import Text.Printf (printf)
-import Control.Monad (liftM, liftM2)
 
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Instance as Instance
@@ -683,5 +684,5 @@ defaultFields =
 computeGroups :: [Node] -> [(T.Gdx, [Node])]
 computeGroups nodes =
   let nodes' = sortBy (comparing group) nodes
-      nodes'' = groupBy (\a b -> group a == group b) nodes'
+      nodes'' = groupBy ((==) `on` group) nodes'
   in map (\nl -> (group (head nl), nl)) nodes''
