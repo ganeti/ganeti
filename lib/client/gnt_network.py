@@ -319,7 +319,8 @@ commands = {
   "connect": (
     MapNetwork,
     [ArgNetwork(min=1, max=1), ArgGroup(min=1, max=1),
-     ArgUnknown(min=1, max=1), ArgUnknown(min=1, max=1)],
+     ArgChoice(min=1, max=1, choices=constants.NIC_VALID_MODES),
+     ArgUnknown(min=1, max=1)],
     [NOCONFLICTSCHECK_OPT],
     "<network_name> <node_group> <mode> <link>",
     "Map a given network to the specified node group"
