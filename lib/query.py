@@ -2479,25 +2479,25 @@ class NetworkQueryData:
 
 
 _NETWORK_SIMPLE_FIELDS = {
-  "name": ("Network", QFT_TEXT, 0, "The network"),
-  "network": ("Subnet", QFT_TEXT, 0, "The subnet"),
-  "gateway": ("Gateway", QFT_OTHER, 0, "The gateway"),
-  "network6": ("IPv6Subnet", QFT_OTHER, 0, "The ipv6 subnet"),
-  "gateway6": ("IPv6Gateway", QFT_OTHER, 0, "The ipv6 gateway"),
-  "mac_prefix": ("MacPrefix", QFT_OTHER, 0, "The mac prefix"),
-  "network_type": ("NetworkType", QFT_OTHER, 0, "The network type"),
+  "name": ("Network", QFT_TEXT, 0, "Name"),
+  "network": ("Subnet", QFT_TEXT, 0, "IPv4 subnet"),
+  "gateway": ("Gateway", QFT_OTHER, 0, "IPv4 gateway"),
+  "network6": ("IPv6Subnet", QFT_OTHER, 0, "IPv6 subnet"),
+  "gateway6": ("IPv6Gateway", QFT_OTHER, 0, "IPv6 gateway"),
+  "mac_prefix": ("MacPrefix", QFT_OTHER, 0, "MAC address prefix"),
+  "network_type": ("NetworkType", QFT_OTHER, 0, "Network type"),
   "serial_no": ("SerialNo", QFT_NUMBER, 0, _SERIAL_NO_DOC % "Network"),
   "uuid": ("UUID", QFT_TEXT, 0, "Network UUID"),
   }
 
 
 _NETWORK_STATS_FIELDS = {
-  "free_count": ("FreeCount", QFT_NUMBER, 0, "How many addresses are free"),
-  "reserved_count": ("ReservedCount", QFT_NUMBER, 0,
-                     "How many addresses are reserved"),
-  "map": ("Map", QFT_TEXT, 0, "The actual mapping"),
-  "external_reservations": ("ExternalReservations", QFT_TEXT, 0,
-                            "The external reservations"),
+  "free_count": ("FreeCount", QFT_NUMBER, 0, "Number of available addresses"),
+  "reserved_count":
+    ("ReservedCount", QFT_NUMBER, 0, "Number of reserved addresses"),
+  "map": ("Map", QFT_TEXT, 0, "Actual mapping"),
+  "external_reservations":
+    ("ExternalReservations", QFT_TEXT, 0, "External reservations"),
   }
 
 
