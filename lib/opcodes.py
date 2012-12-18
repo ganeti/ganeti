@@ -2113,7 +2113,8 @@ class OpNetworkConnect(OpCode):
   OP_PARAMS = [
     _PGroupName,
     _PNetworkName,
-    ("network_mode", ht.NoDefault, ht.TString, "Connectivity mode"),
+    ("network_mode", ht.NoDefault, ht.TElemOf(constants.NIC_VALID_MODES),
+     "Connectivity mode"),
     ("network_link", ht.NoDefault, ht.TString, "Connectivity link"),
     ("conflicts_check", True, ht.TBool, "Whether to check for conflicting IPs"),
     ]
