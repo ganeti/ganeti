@@ -11,10 +11,10 @@ Version 2.7.0 beta1
   opcode from Ganeti. This lead to incompatible changes in the format of
   the JSON file. It's now not a custom dict anymore but a dict
   compatible with the ``OpInstanceCreate`` opcode.
-- Parent directories for file storage need now to be listed in
-  ``$sysconfdir/ganeti/file-storage-paths``. ``cfgupgrade`` will write
-  the file automatically based on old configuration values, but it can
-  not distribute it across all nodes and the file contents should be
+- Parent directories for file storage need to be listed in
+  ``$sysconfdir/ganeti/file-storage-paths`` now. ``cfgupgrade`` will
+  write the file automatically based on old configuration values, but it
+  can not distribute it across all nodes and the file contents should be
   verified. Use ``gnt-cluster copyfile
   $sysconfdir/ganeti/file-storage-paths`` once the cluster has been
   upgraded. The reason for requiring this list of paths now is that
@@ -24,11 +24,13 @@ Version 2.7.0 beta1
   Ganeti does not permit arbitrary paths to be passed.
 - The parsing of the variants file for OSes (see
   :manpage:`ganeti-os-interface(8)` has been slightly changed: now empty
-  lines and comment lines are ignored for better readability.
-- The ``setup-ssh`` tool added in Ganeti 2.2 has been replaced.
-  ``gnt-node add`` now invokes a new tool on the destination node, named
-  ``prepare-node-join``, to configure the SSH daemon. Paramiko is no
-  longer necessary to configure nodes' SSH daemons via ``gnt-node add``.
+  lines and comment lines (starting with ``#``) are ignored for better
+  readability.
+- The ``setup-ssh`` tool added in Ganeti 2.2 has been replaced and is no
+  longer available. ``gnt-node add`` now invokes a new tool on the
+  destination node, named ``prepare-node-join``, to configure the SSH
+  daemon. Paramiko is no longer necessary to configure nodes' SSH
+  daemons via ``gnt-node add``.
 - A new user option, :pyeval:`rapi.RAPI_ACCESS_READ`, has been added
   for RAPI users. It allows granting permissions to query for
   information to a specific user without giving
@@ -40,6 +42,16 @@ Version 2.7.0 beta1
 - Draining (``gnt-cluster queue drain``) and un-draining the job queue
   (``gnt-cluster queue undrain``) now affects all nodes in a cluster and
   the flag is not reset after a master failover.
+- Instance creations now support the use of opportunistic locking,
+  potentially speeding up the (parallel) creation of multiple instances.
+  This feature is currently only available via the :doc:`RAPI
+  <rapi>` interface and when an instance allocator is used. If the
+  ``opportunistic_locking`` parameter is set the opcode will try to
+  acquire as many locks as possible, but will not wait for any locks
+  held by other opcodes. If the not enough resources can be found to
+  allocate the instance, the temporary error code
+  :pyeval:`errors.ECODE_TEMP_NORES` is returned. The operation can be
+  retried thereafter, with or without opportunistic locking.
 
 
 Version 2.6.1
