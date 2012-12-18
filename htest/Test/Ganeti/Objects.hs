@@ -126,21 +126,6 @@ $(genArbitrary ''PartialISpecParams)
 -- validation rules.
 $(genArbitrary ''PartialIPolicy)
 
--- | FIXME: This generates completely random data, without normal
--- validation rules.
-instance Arbitrary NodeGroup where
-  arbitrary = NodeGroup <$> genFQDN <*> pure [] <*> arbitrary <*> arbitrary
-                        <*> arbitrary <*> pure (GenericContainer Map.empty)
-                        <*> arbitrary
-                        -- ts
-                        <*> arbitrary <*> arbitrary
-                        -- uuid
-                        <*> arbitrary
-                        -- serial
-                        <*> arbitrary
-                        -- tags
-                        <*> (Set.fromList <$> genTags)
-
 $(genArbitrary ''FilledISpecParams)
 $(genArbitrary ''FilledIPolicy)
 $(genArbitrary ''IpFamily)
@@ -332,6 +317,67 @@ getNetworkProperties net =
            (Just pool) -> (getFreeCount pool, getReservedCount pool, net)
            Nothing -> (-1, -1, net)
 
+-- | Tests the compatibility between Haskell-serialized node groups and their
+-- python-decoded and encoded version.
+case_py_compat_nodegroups :: HUnit.Assertion
+case_py_compat_nodegroups = do
+  let num_groups = 500::Int
+  sample_groups <- sample' (vectorOf num_groups genNodeGroup)
+  let groups = head sample_groups
+      serialized = J.encode groups
+  -- check for non-ASCII fields, usually due to 'arbitrary :: String'
+  mapM_ (\group -> when (any (not . isAscii) (J.encode group)) .
+                 HUnit.assertFailure $
+                 "Node group has non-ASCII fields: " ++ show group
+        ) groups
+  py_stdout <-
+    runPython "from ganeti import objects\n\
+              \from ganeti import serializer\n\
+              \import sys\n\
+              \group_data = serializer.Load(sys.stdin.read())\n\
+              \decoded = [objects.NodeGroup.FromDict(g) for g in group_data]\n\
+              \encoded = [g.ToDict() for g in decoded]\n\
+              \print serializer.Dump(encoded)" serialized
+    >>= checkPythonResult
+  let deserialised = J.decode py_stdout::J.Result [NodeGroup]
+  decoded <- case deserialised of
+               J.Ok ops -> return ops
+               J.Error msg ->
+                 HUnit.assertFailure ("Unable to decode node groups: " ++ msg)
+                 -- this already raised an expection, but we need it
+                 -- for proper types
+                 >> fail "Unable to decode node groups"
+  HUnit.assertEqual "Mismatch in number of returned node groups"
+    (length decoded) (length groups)
+  mapM_ (uncurry (HUnit.assertEqual "Different result after encoding/decoding")
+        ) $ zip decoded groups
+
+-- | Generates a node group with up to 3 networks.
+-- | FIXME: This generates still somewhat completely random data, without normal
+-- validation rules.
+genNodeGroup :: Gen NodeGroup
+genNodeGroup = do
+  name <- genFQDN
+  members <- pure []
+  ndparams <- arbitrary
+  alloc_policy <- arbitrary
+  ipolicy <- arbitrary
+  diskparams <- pure (GenericContainer Map.empty)
+  num_networks <- choose (0, 3)
+  networks <- vectorOf num_networks genValidNetwork
+  -- timestamp fields
+  ctime <- arbitrary
+  mtime <- arbitrary
+  uuid <- arbitrary
+  serial <- arbitrary
+  tags <- Set.fromList <$> genTags
+  let group = NodeGroup name members ndparams alloc_policy ipolicy diskparams
+              networks ctime mtime uuid serial tags
+  return group
+
+instance Arbitrary NodeGroup where
+  arbitrary = genNodeGroup
+
 testSuite "Objects"
   [ 'prop_fillDict
   , 'prop_Disk_serialisation
@@ -340,4 +386,5 @@ testSuite "Objects"
   , 'prop_Node_serialisation
   , 'prop_Config_serialisation
   , 'case_py_compat_networks
+  , 'case_py_compat_nodegroups
   ]
