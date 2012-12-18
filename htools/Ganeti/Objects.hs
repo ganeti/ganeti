@@ -212,6 +212,7 @@ $(buildObject "PartialNic" "nic"
   [ simpleField "mac" [t| String |]
   , optionalField $ simpleField "ip" [t| String |]
   , simpleField "nicparams" [t| PartialNicParams |]
+  , optionalField $ simpleField "network" [t| Network |]
   ])
 
 -- * Disk definitions
@@ -502,11 +503,12 @@ type DiskParams = Container (Container JSValue)
 
 $(buildObject "NodeGroup" "group" $
   [ simpleField "name"         [t| String |]
-  , defaultField  [| [] |] $ simpleField "members" [t| [String] |]
+  , defaultField [| [] |] $ simpleField "members" [t| [String] |]
   , simpleField "ndparams"     [t| PartialNDParams |]
   , simpleField "alloc_policy" [t| AllocPolicy     |]
   , simpleField "ipolicy"      [t| PartialIPolicy  |]
   , simpleField "diskparams"   [t| DiskParams      |]
+  , defaultField [| [] |] $ simpleField "networks" [t| [Network] |]
   ]
   ++ timeStampFields
   ++ uuidFields

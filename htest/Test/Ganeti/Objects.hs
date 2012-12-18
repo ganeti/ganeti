@@ -131,6 +131,7 @@ $(genArbitrary ''PartialIPolicy)
 instance Arbitrary NodeGroup where
   arbitrary = NodeGroup <$> genFQDN <*> pure [] <*> arbitrary <*> arbitrary
                         <*> arbitrary <*> pure (GenericContainer Map.empty)
+                        <*> arbitrary
                         -- ts
                         <*> arbitrary <*> arbitrary
                         -- uuid
