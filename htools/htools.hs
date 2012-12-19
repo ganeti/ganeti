@@ -32,9 +32,10 @@ import System.Environment
 import System.IO
 import System.IO.Error (isDoesNotExistError)
 
-import Ganeti.Utils
+import Ganeti.Common (formatCommands)
 import Ganeti.HTools.CLI (parseOpts, genericOpts)
 import Ganeti.HTools.Program (personalities)
+import Ganeti.Utils
 
 -- | Display usage and exit.
 usage :: String -> IO ()
@@ -42,7 +43,7 @@ usage name = do
   hPutStrLn stderr $ "Unrecognised personality '" ++ name ++ "'."
   hPutStrLn stderr "This program must be installed under one of the following\
                    \ names:"
-  mapM_ (hPutStrLn stderr . ("  - " ++) . fst) personalities
+  hPutStrLn stderr . unlines $ formatCommands personalities
   exitErr "Please either rename/symlink the program or set\n\
           \the environment variable HTOOLS to the desired role."
 

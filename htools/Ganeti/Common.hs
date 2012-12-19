@@ -38,6 +38,7 @@ module Ganeti.Common
   , oShowComp
   , usageHelp
   , versionInfo
+  , formatCommands
   , reqWithConversion
   , parseYesNo
   , parseOpts
@@ -199,20 +200,24 @@ reqWithConversion conversion_fn updater_fn =
 maxCmdLen :: Int
 maxCmdLen = 60
 
+-- | Formats the description of various commands.
+formatCommands :: (StandardOptions a) => PersonalityList a -> [String]
+formatCommands personalities =
+  -- FIXME: add wrapping of descriptions
+  map (\(cmd, (_, _, _, desc)) -> printf " %-*s - %s" mlen cmd desc::String) $
+  sortBy (comparing fst) personalities
+    where mlen = min maxCmdLen . maximum $ map (length . fst) personalities
+
 -- | Formats usage for a multi-personality program.
 formatCmdUsage :: (StandardOptions a) => String -> PersonalityList a -> String
 formatCmdUsage prog personalities =
-  let mlen = min maxCmdLen . maximum $ map (length . fst) personalities
-      sorted = sortBy (comparing fst) personalities
-      header = [ printf "Usage: %s {command} [options...] [argument...]" prog
+  let header = [ printf "Usage: %s {command} [options...] [argument...]" prog
                , printf "%s <command> --help to see details, or man %s"
                    prog prog
                , ""
                , "Commands:"
                ]
-      rows = map (\(cmd, (_, _, _, desc)) ->
-                    -- FIXME: not wrapped here
-                    printf " %-*s - %s" mlen cmd desc::String) sorted
+      rows = formatCommands personalities
   in unlines $ header ++ rows
 
 -- | Displays usage for a program and exits.
