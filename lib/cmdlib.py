@@ -13419,12 +13419,9 @@ class LUInstanceSetParams(LogicalUnit):
     ispec[constants.ISPEC_DISK_COUNT] = len(disk_sizes)
     ispec[constants.ISPEC_DISK_SIZE] = disk_sizes
 
-    if self.op.offline is not None:
-      if self.op.offline:
-        msg = "can't change to offline"
-      else:
-        msg = "can't change to online"
-      _CheckInstanceState(self, instance, CAN_CHANGE_INSTANCE_OFFLINE, msg=msg)
+    if self.op.offline is not None and self.op.offline:
+      _CheckInstanceState(self, instance, CAN_CHANGE_INSTANCE_OFFLINE,
+                          msg="can't change to offline")
 
     # Pre-compute NIC changes (necessary to use result in hooks)
     self._nic_chgdesc = []
