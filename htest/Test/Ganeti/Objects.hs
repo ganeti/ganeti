@@ -171,7 +171,7 @@ genValidNetwork = do
   name <- genName >>= mkNonEmpty
   network_type <- genMaybe genNetworkType
   mac_prefix <- genMaybe genName
-  fam <- arbitrary
+  net_family <- arbitrary
   net <- genIp4NetWithNetmask netmask
   net6 <- genMaybe genIp6Net
   gateway <- genMaybe genIp4AddrStr
@@ -179,7 +179,7 @@ genValidNetwork = do
   size <- genMaybe genJSValue
   res <- liftM Just (genBitString $ netmask2NumHosts netmask)
   ext_res <- liftM Just (genBitString $ netmask2NumHosts netmask)
-  let n = Network name network_type mac_prefix fam net net6 gateway
+  let n = Network name network_type mac_prefix net_family net net6 gateway
           gateway6 size res ext_res 0 Set.empty
   return n
 
