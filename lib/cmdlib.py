@@ -15849,8 +15849,7 @@ class LUNetworkRemove(LogicalUnit):
 
     if not self.network_uuid:
       raise errors.OpPrereqError(("Network '%s' not found" %
-                                  self.op.network_name),
-                                 errors.ECODE_INVAL)
+                                  self.op.network_name), errors.ECODE_NOENT)
 
     self.share_locks[locking.LEVEL_NODEGROUP] = 1
     self.needed_locks = {
@@ -15922,8 +15921,7 @@ class LUNetworkSetParams(LogicalUnit):
     self.network_uuid = self.cfg.LookupNetwork(self.op.network_name)
     if self.network_uuid is None:
       raise errors.OpPrereqError(("Network '%s' not found" %
-                                  self.op.network_name),
-                                 errors.ECODE_INVAL)
+                                  self.op.network_name), errors.ECODE_NOENT)
 
     self.needed_locks = {
       locking.LEVEL_NETWORK: [self.network_uuid],
@@ -15950,7 +15948,7 @@ class LUNetworkSetParams(LogicalUnit):
         self.gateway = self.op.gateway
         if self.pool.IsReserved(self.gateway):
           raise errors.OpPrereqError("%s is already reserved" %
-                                     self.gateway, errors.ECODE_INVAL)
+                                     self.gateway, errors.ECODE_STATE)
 
     if self.op.network_type:
       if self.op.network_type == constants.VALUE_NONE:
@@ -16193,12 +16191,12 @@ class LUNetworkConnect(LogicalUnit):
     self.network_uuid = self.cfg.LookupNetwork(self.network_name)
     if self.network_uuid is None:
       raise errors.OpPrereqError("Network %s does not exist" %
-                                 self.network_name, errors.ECODE_INVAL)
+                                 self.network_name, errors.ECODE_NOENT)
 
     self.group_uuid = self.cfg.LookupNodeGroup(self.group_name)
     if self.group_uuid is None:
       raise errors.OpPrereqError("Group %s does not exist" %
-                                 self.group_name, errors.ECODE_INVAL)
+                                 self.group_name, errors.ECODE_NOENT)
 
     self.needed_locks = {
       locking.LEVEL_INSTANCE: [],
@@ -16303,7 +16301,7 @@ def _NetworkConflictCheck(lu, check_fn, action):
 
     raise errors.OpPrereqError("Conflicting IP addresses found; "
                                " remove/modify the corresponding network"
-                               " interfaces", errors.ECODE_INVAL)
+                               " interfaces", errors.ECODE_STATE)
 
 
 def _FmtNetworkConflict(details):
@@ -16329,12 +16327,12 @@ class LUNetworkDisconnect(LogicalUnit):
     self.network_uuid = self.cfg.LookupNetwork(self.network_name)
     if self.network_uuid is None:
       raise errors.OpPrereqError("Network %s does not exist" %
-                                 self.network_name, errors.ECODE_INVAL)
+                                 self.network_name, errors.ECODE_NOENT)
 
     self.group_uuid = self.cfg.LookupNodeGroup(self.group_name)
     if self.group_uuid is None:
       raise errors.OpPrereqError("Group %s does not exist" %
-                                 self.group_name, errors.ECODE_INVAL)
+                                 self.group_name, errors.ECODE_NOENT)
 
     self.needed_locks = {
       locking.LEVEL_INSTANCE: [],
@@ -16427,6 +16425,6 @@ def _CheckForConflictingIp(lu, ip, node):
   if conf_net is not None:
     raise errors.OpPrereqError("Conflicting IP found:"
                                " %s <> %s." % (ip, conf_net),
-                               errors.ECODE_INVAL)
+                               errors.ECODE_STATE)
 
   return (None, None)
