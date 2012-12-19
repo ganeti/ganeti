@@ -146,8 +146,6 @@ NODED = "ganeti-noded"
 CONFD = "ganeti-confd"
 RAPI = "ganeti-rapi"
 MASTERD = "ganeti-masterd"
-# used in the ganeti-nbma project
-NLD = "ganeti-nld"
 
 DAEMONS_PORTS = {
   # daemon-name: ("proto", "default-port")
@@ -155,14 +153,10 @@ DAEMONS_PORTS = {
   CONFD: ("udp", 1814),
   RAPI: ("tcp", 5080),
   "ssh": ("tcp", 22),
-  # used in the ganeti-nbma project
-  NLD: ("udp", 1816),
 }
 DEFAULT_NODED_PORT = DAEMONS_PORTS[NODED][1]
 DEFAULT_CONFD_PORT = DAEMONS_PORTS[CONFD][1]
 DEFAULT_RAPI_PORT = DAEMONS_PORTS[RAPI][1]
-# used in the ganeti-nbma project
-DEFAULT_NLD_PORT = DAEMONS_PORTS[NLD][1]
 
 FIRST_DRBD_PORT = 11000
 LAST_DRBD_PORT = 14999

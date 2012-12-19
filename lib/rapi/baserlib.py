@@ -85,16 +85,6 @@ def BuildUriList(ids, uri_format, uri_fields=("name", "uri")):
   return map(_MapId, ids)
 
 
-def ExtractField(sequence, index):
-  """Creates a list containing one column out of a list of lists.
-
-  @param sequence: sequence of lists
-  @param index: index of field
-
-  """
-  return map(lambda item: item[index], sequence)
-
-
 def MapFields(names, data):
   """Maps two lists into one dictionary.
 
@@ -125,33 +115,6 @@ def MapBulkFields(itemslist, fields):
     mapped = MapFields(fields, item)
     items_details.append(mapped)
   return items_details
-
-
-def MakeParamsDict(opts, params):
-  """Makes params dictionary out of a option set.
-
-  This function returns a dictionary needed for hv or be parameters. But only
-  those fields which provided in the option set. Takes parameters frozensets
-  from constants.
-
-  @type opts: dict
-  @param opts: selected options
-  @type params: frozenset
-  @param params: subset of options
-  @rtype: dict
-  @return: dictionary of options, filtered by given subset.
-
-  """
-  result = {}
-
-  for p in params:
-    try:
-      value = opts[p]
-    except KeyError:
-      continue
-    result[p] = value
-
-  return result
 
 
 def FillOpcode(opcls, body, static, rename=None):

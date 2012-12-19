@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2007, 2008, 2010 Google Inc.
+# Copyright (C) 2007, 2008, 2010, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -528,19 +528,6 @@ def Handshake(sock, write_timeout):
     raise HttpError("Timeout during SSL handshake")
   except socket.error, err:
     raise HttpError("Error in SSL handshake: %s" % err)
-
-
-def InitSsl():
-  """Initializes the SSL infrastructure.
-
-  This function is idempotent.
-
-  """
-  if not OpenSSL.rand.status():
-    raise EnvironmentError("OpenSSL could not collect enough entropy"
-                           " for the PRNG")
-
-  # TODO: Maybe add some additional seeding for OpenSSL's PRNG
 
 
 class HttpSslParams(object):

@@ -38,7 +38,6 @@ import logging
 import pyparsing as pyp
 
 from ganeti import errors
-from ganeti import netutils
 from ganeti import utils
 from ganeti import compat
 
@@ -256,20 +255,6 @@ def ParseFilter(text, parser=None):
   except pyp.ParseBaseException, err:
     raise errors.QueryFilterParseError("Failed to parse query filter"
                                        " '%s': %s" % (text, err), err)
-
-
-def _IsHostname(text):
-  """Checks if a string could be a hostname.
-
-  @rtype: bool
-
-  """
-  try:
-    netutils.Hostname.GetNormalizedName(text)
-  except errors.OpPrereqError:
-    return False
-  else:
-    return True
 
 
 def _CheckFilter(text):

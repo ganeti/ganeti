@@ -118,14 +118,6 @@ def AssertEqual(first, second):
     raise qa_error.Error("%r == %r" % (first, second))
 
 
-def AssertNotEqual(first, second):
-  """Raises an error when values are equal.
-
-  """
-  if not first != second:
-    raise qa_error.Error("%r != %r" % (first, second))
-
-
 def AssertMatch(string, pattern):
   """Raises an error when string doesn't match regexp pattern.
 

@@ -1367,27 +1367,6 @@ def _BuildNetworkHookEnv(name, subnet, gateway, network6, gateway6,
   return env
 
 
-def _BuildNetworkHookEnvByObject(net):
-  """Builds network related env varliables for hooks
-
-  @type net: L{objects.Network}
-  @param net: the network object
-
-  """
-  args = {
-    "name": net.name,
-    "subnet": net.network,
-    "gateway": net.gateway,
-    "network6": net.network6,
-    "gateway6": net.gateway6,
-    "network_type": net.network_type,
-    "mac_prefix": net.mac_prefix,
-    "tags": net.tags,
-  }
-
-  return _BuildNetworkHookEnv(**args) # pylint: disable=W0142
-
-
 def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
                           minmem, maxmem, vcpus, nics, disk_template, disks,
                           bep, hvp, hypervisor_name, tags):
