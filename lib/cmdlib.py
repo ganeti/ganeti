@@ -10384,10 +10384,10 @@ class LUInstanceCreate(LogicalUnit):
                                          " or does not belong to network %s" %
                                          (nic.ip, net),
                                          errors.ECODE_NOTUNIQUE)
-      else:
-        # net is None, ip None or given
-        if self.op.conflicts_check:
-          _CheckForConflictingIp(self, nic.ip, self.pnode.name)
+
+      # net is None, ip None or given
+      elif self.op.conflicts_check:
+        _CheckForConflictingIp(self, nic.ip, self.pnode.name)
 
     # mirror node verification
     if self.op.disk_template in constants.DTS_INT_MIRROR:
@@ -13115,10 +13115,10 @@ class LUInstanceSetParams(LogicalUnit):
         elif new_ip.lower() == constants.NIC_IP_POOL:
           raise errors.OpPrereqError("ip=pool, but no network found",
                                      errors.ECODE_INVAL)
-        else:
-          # new net is None
-          if self.op.conflicts_check:
-            _CheckForConflictingIp(self, new_ip, pnode)
+
+        # new net is None
+        elif self.op.conflicts_check:
+          _CheckForConflictingIp(self, new_ip, pnode)
 
       if old_ip:
         if old_net:
@@ -15963,8 +15963,9 @@ class LUNetworkSetParams(LogicalUnit):
       else:
         self.gateway = self.op.gateway
         if self.pool.IsReserved(self.gateway):
-          raise errors.OpPrereqError("%s is already reserved" %
-                                     self.gateway, errors.ECODE_STATE)
+          raise errors.OpPrereqError("Gateway IP address '%s' is already"
+                                     " reserved" % self.gateway,
+                                     errors.ECODE_STATE)
 
     if self.op.network_type:
       if self.op.network_type == constants.VALUE_NONE:
@@ -16206,12 +16207,12 @@ class LUNetworkConnect(LogicalUnit):
 
     self.network_uuid = self.cfg.LookupNetwork(self.network_name)
     if self.network_uuid is None:
-      raise errors.OpPrereqError("Network %s does not exist" %
+      raise errors.OpPrereqError("Network '%s' does not exist" %
                                  self.network_name, errors.ECODE_NOENT)
 
     self.group_uuid = self.cfg.LookupNodeGroup(self.group_name)
     if self.group_uuid is None:
-      raise errors.OpPrereqError("Group %s does not exist" %
+      raise errors.OpPrereqError("Group '%s' does not exist" %
                                  self.group_name, errors.ECODE_NOENT)
 
     self.needed_locks = {
@@ -16342,12 +16343,12 @@ class LUNetworkDisconnect(LogicalUnit):
 
     self.network_uuid = self.cfg.LookupNetwork(self.network_name)
     if self.network_uuid is None:
-      raise errors.OpPrereqError("Network %s does not exist" %
+      raise errors.OpPrereqError("Network '%s' does not exist" %
                                  self.network_name, errors.ECODE_NOENT)
 
     self.group_uuid = self.cfg.LookupNodeGroup(self.group_name)
     if self.group_uuid is None:
-      raise errors.OpPrereqError("Group %s does not exist" %
+      raise errors.OpPrereqError("Group '%s' does not exist" %
                                  self.group_name, errors.ECODE_NOENT)
 
     self.needed_locks = {
@@ -16429,18 +16430,18 @@ def _GetQueryImplementation(name):
 
 
 def _CheckForConflictingIp(lu, ip, node):
-  """In case of conflicting ip raise error.
+  """In case of conflicting IP address raise error.
 
   @type ip: string
-  @param ip: ip address
+  @param ip: IP address
   @type node: string
   @param node: node name
 
   """
   (conf_net, _) = lu.cfg.CheckIPInNodeGroup(ip, node)
   if conf_net is not None:
-    raise errors.OpPrereqError("Conflicting IP found:"
-                               " %s <> %s." % (ip, conf_net),
+    raise errors.OpPrereqError(("Conflicting IP address found: '%s' != '%s'" %
+                                (ip, conf_net)),
                                errors.ECODE_STATE)
 
   return (None, None)
