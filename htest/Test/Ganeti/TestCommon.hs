@@ -245,7 +245,7 @@ genIp4Net = do
 -- | Helper function to compute the number of hosts in a network
 -- given the netmask. (For IPv4 only.)
 netmask2NumHosts :: Int -> Int
-netmask2NumHosts n = (2::Int)^((32::Int)-n)
+netmask2NumHosts n = 2^(32-n)
 
 -- | Generates an arbitrary IPv6 network address in textual form.
 -- The generated address is not simpflified, e. g. an address like
