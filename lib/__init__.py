@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007 Google Inc.
+# Copyright (C) 2006, 2007, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -22,3 +22,13 @@
 # empty file for package definition
 
 """Ganeti python modules"""
+
+try:
+  from ganeti import ganeti
+except ImportError:
+  pass
+else:
+  raise Exception("A module named \"ganeti.ganeti\" was successfully imported"
+                  " and should be removed as it can lead to importing the"
+                  " wrong module(s) in other parts of the code, consequently"
+                  " leading to failures which are difficult to debug")
