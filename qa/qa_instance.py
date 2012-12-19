@@ -422,9 +422,12 @@ def TestInstanceModify(instance):
   # check no-modify
   AssertCommand(["gnt-instance", "modify", instance["name"]], fail=True)
 
-  # Marking offline/online while instance is running must fail
-  for arg in ["--online", "--offline"]:
-    AssertCommand(["gnt-instance", "modify", arg, instance["name"]], fail=True)
+  # Marking offline while instance is running must fail...
+  AssertCommand(["gnt-instance", "modify", "--offline", instance["name"]],
+                 fail=True)
+
+  # ...while making it online is ok, and should work
+  AssertCommand(["gnt-instance", "modify", "--online", instance["name"]])
 
 
 @InstanceCheck(INST_DOWN, INST_DOWN, FIRST_ARG)
@@ -436,6 +439,16 @@ def TestInstanceStoppedModify(instance):
   AssertCommand(["gnt-instance", "modify", "--online", name])
 
   # Mark instance as offline
+  AssertCommand(["gnt-instance", "modify", "--offline", name])
+
+  # When the instance is offline shutdown should only work with --force,
+  # while start should never work
+  AssertCommand(["gnt-instance", "shutdown", name], fail=True)
+  AssertCommand(["gnt-instance", "shutdown", "--force", name])
+  AssertCommand(["gnt-instance", "start", name], fail=True)
+  AssertCommand(["gnt-instance", "start", "--force", name], fail=True)
+
+  # Also do offline to offline
   AssertCommand(["gnt-instance", "modify", "--offline", name])
 
   # And online again
