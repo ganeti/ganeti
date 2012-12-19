@@ -7177,7 +7177,10 @@ class LUInstanceShutdown(LogicalUnit):
     assert self.instance is not None, \
       "Cannot retrieve locked instance %s" % self.op.instance_name
 
-    _CheckInstanceState(self, self.instance, INSTANCE_ONLINE)
+    if not self.op.force:
+      _CheckInstanceState(self, self.instance, INSTANCE_ONLINE)
+    else:
+      self.LogWarning("Ignoring offline instance check")
 
     self.primary_offline = \
       self.cfg.GetNodeInfo(self.instance.primary_node).offline

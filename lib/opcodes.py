@@ -1430,6 +1430,7 @@ class OpInstanceShutdown(OpCode):
   OP_DSC_FIELD = "instance_name"
   OP_PARAMS = [
     _PInstanceName,
+    _PForce,
     _PIgnoreOfflineNodes,
     ("timeout", constants.DEFAULT_SHUTDOWN_TIMEOUT, ht.TNonNegativeInt,
      "How long to wait for instance to shut down"),

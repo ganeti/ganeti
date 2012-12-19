@@ -648,6 +648,7 @@ def _ShutdownInstance(name, opts):
 
   """
   return opcodes.OpInstanceShutdown(instance_name=name,
+                                    force=opts.force,
                                     timeout=opts.timeout,
                                     ignore_offline_nodes=opts.ignore_offline,
                                     no_remember=opts.no_remember)
@@ -1533,7 +1534,7 @@ commands = {
     "<instance>", "Alters the parameters of an instance"),
   "shutdown": (
     GenericManyOps("shutdown", _ShutdownInstance), [ArgInstance()],
-    [m_node_opt, m_pri_node_opt, m_sec_node_opt, m_clust_opt,
+    [FORCE_OPT, m_node_opt, m_pri_node_opt, m_sec_node_opt, m_clust_opt,
      m_node_tags_opt, m_pri_node_tags_opt, m_sec_node_tags_opt,
      m_inst_tags_opt, m_inst_opt, m_force_multi, TIMEOUT_OPT, SUBMIT_OPT,
      DRY_RUN_OPT, PRIORITY_OPT, IGNORE_OFFLINE_OPT, NO_REMEMBER_OPT],

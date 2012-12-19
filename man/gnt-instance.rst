@@ -1163,7 +1163,7 @@ SHUTDOWN
 
 | **shutdown**
 | [\--timeout=*N*]
-| [\--force-multiple] [\--ignore-offline] [\--no-remember]
+| [\--force] [\--force-multiple] [\--ignore-offline] [\--no-remember]
 | [\--instance \| \--node \| \--primary \| \--secondary \| \--all \|
 | \--tags \| \--node-tags \| \--pri-node-tags \| \--sec-node-tags]
 | [\--submit]
@@ -1187,6 +1187,10 @@ and they influence the actual instances being shutdown.
 ``--ignore-offline`` can be used to ignore offline primary nodes and
 force the instance to be marked as stopped. This option should be used
 with care as it can lead to an inconsistent cluster state.
+
+Use ``--force`` to be able to shutdown an instance even when it's marked
+as offline. This is useful is an offline instance ends up in the
+``ERROR_up`` state, for example.
 
 The ``--no-remember`` option will perform the shutdown but not change
 the state of the instance in the configuration file (if it was running

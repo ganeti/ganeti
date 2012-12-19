@@ -234,7 +234,7 @@ instance Arbitrary OpCodes.OpCode where
           pure emptyJSObject <*> pure emptyJSObject <*>
           arbitrary <*> arbitrary
       "OP_INSTANCE_SHUTDOWN" ->
-        OpCodes.OpInstanceShutdown <$> genFQDN <*> arbitrary <*>
+        OpCodes.OpInstanceShutdown <$> genFQDN <*> arbitrary <*> arbitrary <*>
           arbitrary <*> arbitrary
       "OP_INSTANCE_REBOOT" ->
         OpCodes.OpInstanceReboot <$> genFQDN <*> arbitrary <*>

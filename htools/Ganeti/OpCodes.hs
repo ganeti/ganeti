@@ -333,6 +333,7 @@ $(genOpCode "OpCode"
      ])
   , ("OpInstanceShutdown",
      [ pInstanceName
+     , pForce
      , pIgnoreOfflineNodes
      , pShutdownTimeout'
      , pNoRemember
