@@ -364,7 +364,10 @@ genNodeGroup = do
   ipolicy <- arbitrary
   diskparams <- pure (GenericContainer Map.empty)
   num_networks <- choose (0, 3)
-  networks <- vectorOf num_networks genValidNetwork
+  net_uuid_list <- vectorOf num_networks (arbitrary::Gen String)
+  nic_param_list <- vectorOf num_networks (arbitrary::Gen PartialNic)
+  net_map <- pure (GenericContainer . Map.fromList $
+    zip net_uuid_list nic_param_list)
   -- timestamp fields
   ctime <- arbitrary
   mtime <- arbitrary
@@ -372,7 +375,7 @@ genNodeGroup = do
   serial <- arbitrary
   tags <- Set.fromList <$> genTags
   let group = NodeGroup name members ndparams alloc_policy ipolicy diskparams
-              networks ctime mtime uuid serial tags
+              net_map ctime mtime uuid serial tags
   return group
 
 instance Arbitrary NodeGroup where

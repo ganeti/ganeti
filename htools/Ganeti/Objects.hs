@@ -501,6 +501,9 @@ instance TagsObject Node where
 -- | The disk parameters type.
 type DiskParams = Container (Container JSValue)
 
+-- | A mapping from network UUIDs to nic params of the networks.
+type Networks = Container PartialNic
+
 $(buildObject "NodeGroup" "group" $
   [ simpleField "name"         [t| String |]
   , defaultField [| [] |] $ simpleField "members" [t| [String] |]
@@ -508,7 +511,7 @@ $(buildObject "NodeGroup" "group" $
   , simpleField "alloc_policy" [t| AllocPolicy     |]
   , simpleField "ipolicy"      [t| PartialIPolicy  |]
   , simpleField "diskparams"   [t| DiskParams      |]
-  , defaultField [| [] |] $ simpleField "networks" [t| [Network] |]
+  , simpleField "networks"     [t| Networks        |]
   ]
   ++ timeStampFields
   ++ uuidFields
