@@ -7177,7 +7177,9 @@ class LUInstanceShutdown(LogicalUnit):
     node_current = instance.primary_node
     timeout = self.op.timeout
 
-    if not self.op.no_remember:
+    # If the instance is offline we shouldn't mark it as down, as that
+    # resets the offline flag.
+    if not self.op.no_remember and instance.admin_state in INSTANCE_ONLINE:
       self.cfg.MarkInstanceDown(instance.name)
 
     if self.primary_offline:
