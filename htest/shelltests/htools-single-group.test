@@ -27,3 +27,11 @@
 ./htest/hcheck -t$T/simu-onegroup.tiered --machine-readable
 >>> /HCHECK_INIT_CLUSTER_NEED_REBALANCE=0/
 >>>= 0
+
+# hroller should be able to print the solution
+./htest/hroller -t$T/simu-onegroup.tiered
+>>>= 0
+
+# hroller should be able to print the solution, in verbose mode as well
+./htest/hroller -t$T/simu-onegroup.tiered -v -v
+>>>= 0

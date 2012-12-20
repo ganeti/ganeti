@@ -1,0 +1,7 @@
+group-01|fake-uuid-01|preferred|
+
+
+
+
+|128,1,1024,1,1,1|128,1,1024,1,1,1|32768,8,1048576,16,8,12|diskless,file,sharedfile,plain,blockdev,drbd,rbd,ext|4.0|32.0
+group-01|128,1,1024,1,1,1|128,1,1024,1,1,1|32768,8,1048576,16,8,12|diskless,file,sharedfile,plain,blockdev,drbd,rbd,ext|4.0|32.0

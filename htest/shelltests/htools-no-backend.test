@@ -14,6 +14,10 @@
 ./htest/hinfo
 >>>= 1
 
+# hroller no backend
+./htest/hroller
+>>>= 1
+
 # hbal multiple backends
 ./htest/hbal -t /dev/null -m localhost
 >>>2

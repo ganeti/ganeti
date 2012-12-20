@@ -22,6 +22,10 @@
 ./htest/hcheck --no-such-option
 >>>= 2
 
+# invalid option test
+./htest/hroller --no-such-option
+>>>= 2
+
 # extra arguments
 ./htest/hspace unexpected-argument
 >>>2
@@ -41,4 +45,15 @@ Error: This program doesn't take any arguments.
 ./htest/hcheck unexpected-argument
 >>>2
 Error: This program doesn't take any arguments.
+>>>=1
+
+./htest/hroller unexpected-argument
+>>>2
+Error: This program doesn't take any arguments.
+>>>=1
+
+# hroller fails to build a graph for an empty cluster
+./htest/hroller -t$TESTDATA_DIR/empty-cluster.data
+>>>2
+Error: Cannot create node graph
 >>>=1
