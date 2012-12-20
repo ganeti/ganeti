@@ -279,7 +279,8 @@ encodeDLId (LIDDrbd8 nodeA nodeB port minorA minorB key) =
 encodeDLId (LIDRados pool name) = JSArray [showJSON pool, showJSON name]
 encodeDLId (LIDFile driver name) = JSArray [showJSON driver, showJSON name]
 encodeDLId (LIDBlockDev driver name) = JSArray [showJSON driver, showJSON name]
-encodeDLId (LIDExt extprovider name) = JSArray [showJSON extprovider, showJSON name]
+encodeDLId (LIDExt extprovider name) =
+  JSArray [showJSON extprovider, showJSON name]
 
 -- | Custom encoder for DiskLogicalId, composing both the logical id
 -- and the extra disk_type field.
