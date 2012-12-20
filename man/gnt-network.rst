@@ -119,6 +119,31 @@ LIST-FIELDS
 
 List available fields for networks.
 
+INFO
+~~~~
+
+| **info** [network...]
+
+Displays information about a given network.
+
+CONNECT
+~~~~~~~
+
+| **connect** {*network*} {*mode*} {*link*} [*groups*...]
+
+Connect a network to given node groups (all if not specified) with the
+network parameters *mode* and *link*. Every network interface will
+inherit those parameters if assigned in a network.
+
+DISCONNECT
+~~~~~~~~~~
+
+| **disconnect** {*network*} [*groups*...]
+
+Disconnect a network from given node groups (all if not specified). This
+is possible only if no instance is using the network.
+
+
 TAGS
 ~~~
 
@@ -156,31 +181,6 @@ be extended with the contents of that file (each line becomes a tag). In
 this case, there is not need to pass tags on the command line (if you
 do, tags from both sources will be removed). A file name of ``-`` will
 be interpreted as stdin.
-
-
-INFO
-~~~~
-
-| **info** [network...]
-
-Displays information about a given network.
-
-CONNECT
-~~~~~~~
-
-| **connect** {*network*} {*mode*} {*link*} [*groups*...]
-
-Connect a network to given node groups (all if not specified) with the
-network parameters *mode* and *link*. Every network interface will
-inherit those parameters if assigned in a network.
-
-DISCONNECT
-~~~~~~~~~~
-
-| **disconnect** {*network*} [*groups*...]
-
-Disconnect a network from given node groups (all if not specified). This
-is possible only if no instance is using the network.
 
 .. vim: set textwidth=72 :
 .. Local Variables:
