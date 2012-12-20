@@ -16202,7 +16202,6 @@ class _NetworkQuery(_QueryBase):
     do_instances = query.NETQ_INST in self.requested_data
     do_groups = do_instances or (query.NETQ_GROUP in self.requested_data)
 
-    network_to_groups = None
     network_to_instances = None
 
     # For NETQ_GROUP, we need to map network->[groups]
@@ -16222,21 +16221,22 @@ class _NetworkQuery(_QueryBase):
           group_instances = [instance for instance in all_instances.values()
                              if instance.primary_node in group_nodes]
 
-        for net_uuid in group.networks.keys():
-          if net_uuid in network_to_groups:
-            netparams = group.networks[net_uuid]
-
+        for net_uuid in self.wanted:
+          netparams = group.networks.get(net_uuid, None)
+          if netparams:
             info = (group.name, netparams[constants.NIC_MODE],
                     netparams[constants.NIC_LINK])
 
             network_to_groups[net_uuid].append(info)
 
-            if do_instances:
-              for instance in group_instances:
-                for nic in instance.nics:
-                  if nic.network == self._all_networks[net_uuid].name:
-                    network_to_instances[net_uuid].append(instance.name)
-                    break
+          if do_instances:
+            for instance in group_instances:
+              for nic in instance.nics:
+                if nic.network == self._all_networks[net_uuid].name:
+                  network_to_instances[net_uuid].append(instance.name)
+                  break
+    else:
+      network_to_groups = None
 
     if query.NETQ_STATS in self.requested_data:
       stats = \
