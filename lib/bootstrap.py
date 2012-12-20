@@ -448,6 +448,13 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
                                                              curr_helper),
                                  errors.ECODE_INVAL)
 
+  logging.debug("Stopping daemons (if any are running)")
+  result = utils.RunCmd([pathutils.DAEMON_UTIL, "stop-all"])
+  if result.failed:
+    raise errors.OpExecError("Could not stop daemons, command %s"
+                             " had exitcode %s and error '%s'" %
+                             (result.cmd, result.exit_code, result.output))
+
   if constants.ENABLE_FILE_STORAGE:
     file_storage_dir = _InitFileStorage(file_storage_dir)
   else:
