@@ -44,6 +44,7 @@ module Ganeti.Utils
   , exitWhen
   , exitUnless
   , rStripSpace
+  , newUUID
   ) where
 
 import Data.Char (toUpper, isAlphaNum, isDigit, isSpace)
@@ -53,6 +54,7 @@ import Data.List
 import Debug.Trace
 
 import Ganeti.BasicTypes
+import qualified Ganeti.Constants as C
 import System.IO
 import System.Exit
 
@@ -277,3 +279,11 @@ niceSortKey keyfn =
 -- expensive, should only be run on small strings.
 rStripSpace :: String -> String
 rStripSpace = reverse . dropWhile isSpace . reverse
+
+-- | Returns a random UUID.
+-- This is a Linux-specific method as it uses the /proc filesystem.
+newUUID :: IO String
+newUUID = do
+  contents <- readFile C.randomUuidFile
+  let stripNewlines = reverse . dropWhile (=='\n') . reverse
+  return $! stripNewlines $ take 128 contents

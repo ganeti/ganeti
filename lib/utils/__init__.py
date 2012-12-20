@@ -59,8 +59,7 @@ from ganeti.utils.x509 import *
 
 _VALID_SERVICE_NAME_RE = re.compile("^[-_.a-zA-Z0-9]{1,128}$")
 
-UUID_RE = re.compile("^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-"
-                     "[a-f0-9]{4}-[a-f0-9]{12}$")
+UUID_RE = re.compile(constants.UUID_REGEX)
 
 
 def ForceDictType(target, key_types, allowed_values=None):

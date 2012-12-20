@@ -35,10 +35,6 @@ from ganeti import constants
 from ganeti import pathutils
 from ganeti.utils import filelock
 
-
-#: Path generating random UUID
-_RANDOM_UUID_FILE = "/proc/sys/kernel/random/uuid"
-
 #: Directory used by fsck(8) to store recovered data, usually at a file
 #: system's root directory
 _LOST_AND_FOUND = "lost+found"
@@ -1029,7 +1025,7 @@ def NewUUID():
   @rtype: str
 
   """
-  return ReadFile(_RANDOM_UUID_FILE, size=128).rstrip("\n")
+  return ReadFile(constants.RANDOM_UUID_FILE, size=128).rstrip("\n")
 
 
 class TemporaryFileManager(object):

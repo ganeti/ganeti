@@ -2210,5 +2210,11 @@ NDS_NODE_DAEMON_CERTIFICATE = "node_daemon_certificate"
 NDS_SSCONF = "ssconf"
 NDS_START_NODE_DAEMON = "start_node_daemon"
 
+# Path generating random UUID
+RANDOM_UUID_FILE = "/proc/sys/kernel/random/uuid"
+
+# Regex string for verifying a UUID
+UUID_REGEX = "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"
+
 # Do not re-export imported modules
 del re, _vcsversion, _autoconf, socket, pathutils, compat

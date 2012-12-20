@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TemplateHaskell, CPP #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 {-| Unittests for ganeti-htools.
@@ -34,11 +34,15 @@ import Test.HUnit
 import Data.Char (isSpace)
 import Data.List
 import qualified Text.JSON as J
+#ifndef NO_REGEX_PCRE
+import Text.Regex.PCRE
+#endif
 
 import Test.Ganeti.TestHelper
 import Test.Ganeti.TestCommon
 
 import Ganeti.BasicTypes
+import qualified Ganeti.Constants as C
 import qualified Ganeti.JSON as JSON
 import Ganeti.Utils
 
@@ -219,6 +223,14 @@ prop_rStripSpace (NonEmpty str) =
               rStripSpace "" ==? ""
           ]
 
+#ifndef NO_REGEX_PCRE
+-- | Tests that the newUUID function produces valid UUIDs.
+case_new_uuid :: Assertion
+case_new_uuid = do
+  uuid <- newUUID
+  assertBool "newUUID" $ uuid =~ C.uuidRegex
+#endif
+
 -- | Test list for the Utils module.
 testSuite "Utils"
             [ 'prop_commaJoinSplit
@@ -235,4 +247,7 @@ testSuite "Utils"
             , 'prop_niceSort_numbers
             , 'prop_niceSortKey_equiv
             , 'prop_rStripSpace
+#ifndef NO_REGEX_PCRE
+            , 'case_new_uuid
+#endif
             ]
