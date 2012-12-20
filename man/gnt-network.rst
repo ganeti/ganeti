@@ -31,6 +31,7 @@ ADD
 | [--gateway6=*GATEWAY6*]
 | [--mac-prefix=*MACPREFIX*]
 | [--network-type=*NETWORKTYPE*]
+| [--submit]
 | {*network*}
 
 Creates a new network with the given name. The network will be unused
@@ -46,7 +47,9 @@ The ``--network-type`` can be none, private or public.
 
 IPv6 semantics can be assigned to the network via the ``--network6`` and
 ``--gateway6`` options. IP pool is meaningless for IPV6 so those two values
-can be used for EUI64 generation from a NIC's mac value.
+can be used for EUI64 generation from a NIC's MAC address.
+
+See **ganeti(7)** for a description of ``--submit`` and other common options.
 
 MODIFY
 ~~~~~~
@@ -59,19 +62,24 @@ MODIFY
 | [--gateway6=*GATEWAY6*]
 | [--mac-prefix=*MACPREFIX*]
 | [--network-type=*NETWORKTYPE*]
+| [--submit]
 | {*network*}
 
 Modifies parameters from the network.
 
-Unable to modify network (ip range). Create a new network if you want to do
-so. All other options are documented in the **add** command above.
+Unable to modify network (IP address range). Create a new network if you want
+to do so. All other options are documented in the **add** command above.
+
+See **ganeti(7)** for a description of ``--submit`` and other common options.
 
 REMOVE
 ~~~~~~
 
-| **remove** {*network*}
+| **remove** [--submit] {*network*}
 
 Deletes the indicated network, which must be not connected to any node group.
+
+See **ganeti(7)** for a description of ``--submit`` and other common options.
 
 LIST
 ~~~~

@@ -80,7 +80,7 @@ def AddNetwork(opts, args):
                             add_reserved_ips=reserved_ips,
                             conflicts_check=opts.conflicts_check,
                             tags=tags)
-  SubmitOpCode(op, opts=opts)
+  SubmitOrSend(op, opts)
 
 
 def MapNetwork(opts, args):
@@ -93,25 +93,24 @@ def MapNetwork(opts, args):
   @return: the desired exit code
 
   """
-  network = args[0]
-  groups = args[1]
-  mode = args[2]
-  link = args[3]
+  (network, groups, mode, link) = args
 
-  # TODO: allow comma separated group names
+  cl = GetClient()
+
+  # FIXME: This doesn't work with a group named "all"
   if groups == "all":
-    cl = GetClient()
     (groups, ) = cl.QueryGroups([], ["name"], False)
   else:
     groups = [groups]
 
+  # TODO: Change logic to support "--submit"
   for group in groups:
     op = opcodes.OpNetworkConnect(group_name=group,
                                   network_name=network,
                                   network_mode=mode,
                                   network_link=link,
                                   conflicts_check=opts.conflicts_check)
-    SubmitOpCode(op, opts=opts)
+    SubmitOpCode(op, opts=opts, cl=cl)
 
 
 def UnmapNetwork(opts, args):
@@ -119,26 +118,27 @@ def UnmapNetwork(opts, args):
 
   @param opts: the command line options selected by the user
   @type args: list
-  @param args: a list of length 3 with network, nodegorup
+  @param args: a list of length 3 with network, nodegroup
   @rtype: int
   @return: the desired exit code
 
   """
-  network = args[0]
-  groups = args[1]
+  (network, groups) = args
 
-  #TODO: allow comma separated group names
+  cl = GetClient()
+
+  # FIXME: This doesn't work with a group named "all"
   if groups == "all":
-    cl = GetClient()
     (groups, ) = cl.QueryGroups([], ["name"], False)
   else:
     groups = [groups]
 
+  # TODO: Change logic to support "--submit"
   for group in groups:
     op = opcodes.OpNetworkDisconnect(group_name=group,
                                      network_name=network,
                                      conflicts_check=opts.conflicts_check)
-    SubmitOpCode(op, opts=opts)
+    SubmitOpCode(op, opts=opts, cl=cl)
 
 
 def ListNetworks(opts, args):
@@ -263,7 +263,6 @@ def SetNetworkParams(opts, args):
   @return: the desired exit code
 
   """
-
   # TODO: add "network": opts.network,
   all_changes = {
     "gateway": opts.gateway,
@@ -298,7 +297,7 @@ def RemoveNetwork(opts, args):
   """
   (network_name,) = args
   op = opcodes.OpNetworkRemove(network_name=network_name, force=opts.force)
-  SubmitOpCode(op, opts=opts)
+  SubmitOrSend(op, opts)
 
 
 commands = {
@@ -306,7 +305,7 @@ commands = {
     AddNetwork, ARGS_ONE_NETWORK,
     [DRY_RUN_OPT, NETWORK_OPT, GATEWAY_OPT, ADD_RESERVED_IPS_OPT,
      MAC_PREFIX_OPT, NETWORK_TYPE_OPT, NETWORK6_OPT, GATEWAY6_OPT,
-     NOCONFLICTSCHECK_OPT, TAG_ADD_OPT],
+     NOCONFLICTSCHECK_OPT, TAG_ADD_OPT, PRIORITY_OPT, SUBMIT_OPT],
     "<network_name>", "Add a new IP network to the cluster"),
   "list": (
     ListNetworks, ARGS_MANY_NETWORKS,
@@ -324,25 +323,27 @@ commands = {
   "modify": (
     SetNetworkParams, ARGS_ONE_NETWORK,
     [DRY_RUN_OPT, SUBMIT_OPT, ADD_RESERVED_IPS_OPT, REMOVE_RESERVED_IPS_OPT,
-     GATEWAY_OPT, MAC_PREFIX_OPT, NETWORK_TYPE_OPT, NETWORK6_OPT, GATEWAY6_OPT],
+     GATEWAY_OPT, MAC_PREFIX_OPT, NETWORK_TYPE_OPT, NETWORK6_OPT, GATEWAY6_OPT,
+     PRIORITY_OPT],
     "<network_name>", "Alters the parameters of a network"),
   "connect": (
     MapNetwork,
     [ArgNetwork(min=1, max=1), ArgGroup(min=1, max=1),
      ArgChoice(min=1, max=1, choices=constants.NIC_VALID_MODES),
      ArgUnknown(min=1, max=1)],
-    [NOCONFLICTSCHECK_OPT],
+    [NOCONFLICTSCHECK_OPT, PRIORITY_OPT],
     "<network_name> <node_group> <mode> <link>",
     "Map a given network to the specified node group"
     " with given mode and link (netparams)"),
   "disconnect": (
     UnmapNetwork,
     [ArgNetwork(min=1, max=1), ArgGroup(min=1, max=1)],
-    [NOCONFLICTSCHECK_OPT],
+    [NOCONFLICTSCHECK_OPT, PRIORITY_OPT],
     "<network_name> <node_group>",
     "Unmap a given network from a specified node group"),
   "remove": (
-    RemoveNetwork, ARGS_ONE_NETWORK, [FORCE_OPT, DRY_RUN_OPT],
+    RemoveNetwork, ARGS_ONE_NETWORK,
+    [FORCE_OPT, DRY_RUN_OPT, SUBMIT_OPT, PRIORITY_OPT],
     "[--dry-run] <network_id>",
     "Remove an (empty) network from the cluster"),
   "list-tags": (
