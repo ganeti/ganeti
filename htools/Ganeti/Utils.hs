@@ -285,5 +285,4 @@ rStripSpace = reverse . dropWhile isSpace . reverse
 newUUID :: IO String
 newUUID = do
   contents <- readFile C.randomUuidFile
-  let stripNewlines = reverse . dropWhile (=='\n') . reverse
-  return $! stripNewlines $ take 128 contents
+  return $! rStripSpace $ take 128 contents
