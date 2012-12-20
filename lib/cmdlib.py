@@ -16225,9 +16225,10 @@ class _NetworkQuery(_QueryBase):
         for net_uuid in group.networks.keys():
           if net_uuid in network_to_groups:
             netparams = group.networks[net_uuid]
-            mode = netparams[constants.NIC_MODE]
-            link = netparams[constants.NIC_LINK]
-            info = group.name + "(" + mode + ", " + link + ")"
+
+            info = (group.name, netparams[constants.NIC_MODE],
+                    netparams[constants.NIC_LINK])
+
             network_to_groups[net_uuid].append(info)
 
             if do_instances:

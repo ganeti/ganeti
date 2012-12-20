@@ -153,10 +153,13 @@ def ListNetworks(opts, args):
   """
   desired_fields = ParseFields(opts.output, _LIST_DEF_FIELDS)
   fmtoverride = {
-    "group_list": (",".join, False),
+    "group_list":
+      (lambda data: utils.CommaJoin("%s (%s, %s)" % (name, mode, link)
+                                    for (name, mode, link) in data),
+       False),
     "inst_list": (",".join, False),
     "tags": (",".join, False),
-  }
+    }
 
   return GenericList(constants.QR_NETWORK, desired_fields, args, None,
                      opts.separator, not opts.no_headers,

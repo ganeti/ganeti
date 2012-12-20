@@ -2556,8 +2556,9 @@ def _BuildNetworkFields():
   fields.extend([
     (_MakeField("group_cnt", "NodeGroups", QFT_NUMBER, "Number of nodegroups"),
      NETQ_GROUP, 0, _GetLength(network_to_groups)),
-    (_MakeField("group_list", "GroupList", QFT_OTHER, "List of nodegroups"),
-     NETQ_GROUP, 0, _GetSortedList(network_to_groups)),
+    (_MakeField("group_list", "GroupList", QFT_OTHER,
+     "List of nodegroups (group name, NIC mode, NIC link)"),
+     NETQ_GROUP, 0, lambda ctx, network: network_to_groups(ctx)[network.uuid]),
     ])
 
   # Add fields for instances
