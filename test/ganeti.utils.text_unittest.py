@@ -639,5 +639,16 @@ class TestFilterEmptyLinesAndComments(unittest.TestCase):
       ])
 
 
+class TestFormatKeyValue(unittest.TestCase):
+  def test(self):
+    self.assertEqual(utils.FormatKeyValue({}), [])
+    self.assertEqual(utils.FormatKeyValue({1: 2}), ["1=2"])
+    self.assertEqual(utils.FormatKeyValue({
+      "zzz": "0",
+      "aaa": "1",
+      }),
+      ["aaa=1", "zzz=0"])
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()

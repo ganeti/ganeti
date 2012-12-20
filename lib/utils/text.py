@@ -654,3 +654,15 @@ def FilterEmptyLinesAndComments(text):
   return [line for line in map(lambda s: s.strip(), text.splitlines())
           # Ignore empty lines and comments
           if line and not line.startswith("#")]
+
+
+def FormatKeyValue(data):
+  """Formats a dictionary as "key=value" parameters.
+
+  The keys are sorted to have a stable order.
+
+  @type data: dict
+  @rtype: list of string
+
+  """
+  return ["%s=%s" % (key, value) for (key, value) in sorted(data.items())]
