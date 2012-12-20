@@ -113,7 +113,6 @@ def TestClusterInit(rapi_user, rapi_secret):
 
   bridge = qa_config.get("bridge", None)
   if bridge:
-    cmd.append("--bridge=%s" % bridge)
     cmd.append("--master-netdev=%s" % bridge)
 
   cmd.append(qa_config.get("name"))
