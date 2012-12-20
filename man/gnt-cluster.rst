@@ -358,21 +358,23 @@ always\_failover
     not set, ``False`` is used.
 
 
-The ``-N (--nic-parameters)`` option allows you to set the default nic
-parameters for the cluster. The parameter format is a comma-separated
-list of key=value pairs with the following supported keys:
+The ``-N (--nic-parameters)`` option allows you to set the default
+network interface parameters for the cluster. The parameter format is a
+comma-separated list of key=value pairs with the following supported
+keys:
 
 mode
-    The default nic mode, 'routed', 'bridged' or 'openvswitch'.
+    The default NIC mode, one of ``routed``, ``bridged`` or
+    ``openvswitch``.
 
 link
-    In bridged or openvswitch mode the default interface where to attach
-    NICs. In routed mode it represents an hypervisor-vif-script
-    dependent value to allow different instance groups. For example
-    under the KVM default network script it is interpreted as a routing
-    table number or name. Openvswitch support is also hypervisor
-    dependent and currently works for the default KVM network script.
-    Under Xen a custom network script must be provided.
+    In ``bridged`` or ``openvswitch`` mode the default interface where
+    to attach NICs. In ``routed`` mode it represents an
+    hypervisor-vif-script dependent value to allow different instance
+    groups. For example under the KVM default network script it is
+    interpreted as a routing table number or name. Openvswitch support
+    is also hypervisor dependent and currently works for the default KVM
+    network script. Under Xen a custom network script must be provided.
 
 The ``-D (--disk-parameters)`` option allows you to set the default disk
 template parameters at cluster level. The format used for this option is
