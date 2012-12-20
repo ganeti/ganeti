@@ -105,16 +105,21 @@ def TestClusterInit(rapi_user, rapi_secret):
                     "nic-count"):
     for spec_val in ("min", "max", "std"):
       spec = qa_config.get("ispec_%s_%s" %
-                           (spec_type.replace('-', '_'), spec_val), None)
+                           (spec_type.replace("-", "_"), spec_val), None)
       if spec:
         cmd.append("--specs-%s=%s=%d" % (spec_type, spec_val, spec))
 
   if master.get("secondary", None):
     cmd.append("--secondary-ip=%s" % master["secondary"])
 
-  bridge = qa_config.get("bridge", None)
-  if bridge:
-    cmd.append("--master-netdev=%s" % bridge)
+  master_netdev = qa_config.get("master-netdev", None)
+  if master_netdev:
+    cmd.append("--master-netdev=%s" % master_netdev)
+
+  nicparams = qa_config.get("default-nicparams", None)
+  if nicparams:
+    cmd.append("--nic-parameters=%s" %
+               ",".join(utils.FormatKeyValue(nicparams)))
 
   cmd.append(qa_config.get("name"))
   AssertCommand(cmd)
