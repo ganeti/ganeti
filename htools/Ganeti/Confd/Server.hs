@@ -60,6 +60,7 @@ import Ganeti.Logging
 import qualified Ganeti.Constants as C
 import qualified Ganeti.Path as Path
 import Ganeti.Query.Server (prepQueryD, runQueryD)
+import Ganeti.Utils
 
 -- * Types and constants definitions
 
@@ -467,7 +468,7 @@ responder cfgref socket hmac msg peer = do
   ctime <- getCurrentTime
   case parseMessage hmac msg ctime of
     Ok (origmsg, rq) -> do
-              logDebug $ "Processing request: " ++ origmsg
+              logDebug $ "Processing request: " ++ rStripSpace origmsg
               mcfg <- readIORef cfgref
               let response = respondInner mcfg hmac rq
               _ <- S.sendTo socket response peer
