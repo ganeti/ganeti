@@ -15865,8 +15865,8 @@ class LUNetworkAdd(LogicalUnit):
     uuid = self.cfg.LookupNetwork(self.op.network_name)
 
     if uuid:
-      raise errors.OpPrereqError("Network '%s' already defined" %
-                                 self.op.network, errors.ECODE_EXISTS)
+      raise errors.OpPrereqError(("Network with name '%s' already exists" %
+                                  self.op.network_name), errors.ECODE_EXISTS)
 
     # Check tag validity
     for tag in self.op.tags:
