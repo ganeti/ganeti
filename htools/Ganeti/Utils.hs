@@ -43,9 +43,10 @@ module Ganeti.Utils
   , exitErr
   , exitWhen
   , exitUnless
+  , rStripSpace
   ) where
 
-import Data.Char (toUpper, isAlphaNum, isDigit)
+import Data.Char (toUpper, isAlphaNum, isDigit, isSpace)
 import Data.Function (on)
 import Data.List
 
@@ -271,3 +272,8 @@ niceSortKey :: (a -> String) -> [a] -> [a]
 niceSortKey keyfn =
   map snd . sortBy (compare `on` fst) .
   map (\s -> (fst . extractKey [] $ keyfn s, s))
+
+-- | Strip space characthers (including newline). As this is
+-- expensive, should only be run on small strings.
+rStripSpace :: String -> String
+rStripSpace = reverse . dropWhile isSpace . reverse

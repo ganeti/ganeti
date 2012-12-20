@@ -31,6 +31,7 @@ module Test.Ganeti.Utils (testUtils) where
 import Test.QuickCheck hiding (Result)
 import Test.HUnit
 
+import Data.Char (isSpace)
 import Data.List
 import qualified Text.JSON as J
 
@@ -202,6 +203,22 @@ prop_niceSortKey_equiv =
                                                     zip numbers names)
   ]
 
+-- | Tests 'rstripSpace'.
+prop_rStripSpace :: NonEmptyList Char -> Property
+prop_rStripSpace (NonEmpty str) =
+  forAll (resize 50 $ listOf1 (arbitrary `suchThat` isSpace)) $ \whitespace ->
+  conjoin [ printTestCase "arb. string last char is not space" $
+              case rStripSpace str of
+                [] -> True
+                xs -> not . isSpace $ last xs
+          , printTestCase "whitespace suffix is stripped" $
+              rStripSpace str ==? rStripSpace (str ++ whitespace)
+          , printTestCase "whitespace reduced to null" $
+              rStripSpace whitespace ==? ""
+          , printTestCase "idempotent on empty strings" $
+              rStripSpace "" ==? ""
+          ]
+
 -- | Test list for the Utils module.
 testSuite "Utils"
             [ 'prop_commaJoinSplit
@@ -217,4 +234,5 @@ testSuite "Utils"
             , 'prop_niceSort_generic
             , 'prop_niceSort_numbers
             , 'prop_niceSortKey_equiv
+            , 'prop_rStripSpace
             ]

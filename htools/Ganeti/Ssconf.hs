@@ -38,7 +38,6 @@ import Ganeti.THH
 
 import Control.Exception
 import Control.Monad (liftM)
-import Data.Char (isSpace)
 import Data.Maybe (fromMaybe)
 import qualified Network.Socket as Socket
 import System.FilePath ((</>))
@@ -116,11 +115,6 @@ readSSConfFile optpath def key = do
             keyToFilename (fromMaybe dpath optpath) $ key
   return (liftM (take maxFileSize) result)
 
--- | Strip space characthers (including newline). As this is
--- expensive, should only be run on small strings.
-rstripSpace :: String -> String
-rstripSpace = reverse . dropWhile isSpace . reverse
-
 -- | Parses a string containing an IP family
 parseIPFamily :: Int -> Result Socket.Family
 parseIPFamily fam | fam == C.ip4Family = Ok Socket.AF_INET
@@ -131,5 +125,5 @@ parseIPFamily fam | fam == C.ip4Family = Ok Socket.AF_INET
 getPrimaryIPFamily :: Maybe FilePath -> IO (Result Socket.Family)
 getPrimaryIPFamily optpath = do
   result <- readSSConfFile optpath (Just (show C.ip4Family)) SSPrimaryIpFamily
-  return (liftM rstripSpace result >>=
+  return (liftM rStripSpace result >>=
           tryRead "Parsing af_family" >>= parseIPFamily)
