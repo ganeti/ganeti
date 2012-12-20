@@ -514,15 +514,14 @@ class NIC(ConfigObject):
     @raise errors.ConfigurationError: when a parameter is not valid
 
     """
-    if (nicparams[constants.NIC_MODE] not in constants.NIC_VALID_MODES and
-        nicparams[constants.NIC_MODE] != constants.VALUE_AUTO):
-      err = "Invalid nic mode: %s" % nicparams[constants.NIC_MODE]
-      raise errors.ConfigurationError(err)
+    mode = nicparams[constants.NIC_MODE]
+    if (mode not in constants.NIC_VALID_MODES and
+        mode != constants.VALUE_AUTO):
+      raise errors.ConfigurationError("Invalid NIC mode '%s'" % mode)
 
-    if (nicparams[constants.NIC_MODE] == constants.NIC_MODE_BRIDGED and
+    if (mode == constants.NIC_MODE_BRIDGED and
         not nicparams[constants.NIC_LINK]):
-      err = "Missing bridged nic link"
-      raise errors.ConfigurationError(err)
+      raise errors.ConfigurationError("Missing bridged NIC link")
 
 
 class Disk(ConfigObject):
