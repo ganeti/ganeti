@@ -115,13 +115,6 @@ LIST-FIELDS
 
 List available fields for networks.
 
-RENAME
-~~~~~~
-
-| **rename** {*oldname*} {*newname*}
-
-Renames a given network from *oldname* to *newname*. NOT implemeted yet
-
 TAGS
 ~~~
 
