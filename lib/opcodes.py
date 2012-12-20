@@ -180,6 +180,10 @@ _PIAllocFromDesc = lambda desc: ("iallocator", None, ht.TMaybeString, desc)
 _PNetworkName = ("network_name", ht.NoDefault, ht.TNonEmptyString,
                  "Set network name")
 
+_PTargetGroups = \
+  ("target_groups", None, ht.TMaybeListOf(ht.TNonEmptyString),
+   "Destination group names or UUIDs (defaults to \"all but current group\")")
+
 #: OP_ID conversion regular expression
 _OPID_RE = re.compile("([a-z])([A-Z])")
 
@@ -1702,8 +1706,7 @@ class OpInstanceChangeGroup(OpCode):
     _PInstanceName,
     _PEarlyRelease,
     _PIAllocFromDesc("Iallocator for computing solution"),
-    ("target_groups", None, ht.TMaybeListOf(ht.TNonEmptyString),
-     "Destination group names or UUIDs (defaults to \"all but current group\""),
+    _PTargetGroups,
     ]
   OP_RESULT = TJobIdListOnly
 
@@ -1788,8 +1791,7 @@ class OpGroupEvacuate(OpCode):
     _PGroupName,
     _PEarlyRelease,
     _PIAllocFromDesc("Iallocator for computing solution"),
-    ("target_groups", None, ht.TMaybeListOf(ht.TNonEmptyString),
-     "Destination group names or UUIDs"),
+    _PTargetGroups,
     ]
   OP_RESULT = TJobIdListOnly
 
