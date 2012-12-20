@@ -83,25 +83,23 @@ def AddNetwork(opts, args):
   SubmitOrSend(op, opts)
 
 
-def MapNetwork(opts, args):
+def ConnectNetwork(opts, args):
   """Map a network to a node group.
 
   @param opts: the command line options selected by the user
   @type args: list
-  @param args: a list of length 3 with network, nodegroup, mode, physlink
+  @param args: Network, mode, physlink and node groups
   @rtype: int
   @return: the desired exit code
 
   """
-  (network, groups, mode, link) = args
+  (network, mode, link) = args[:3]
+  groups = args[3:]
 
   cl = GetClient()
 
-  # FIXME: This doesn't work with a group named "all"
-  if groups == "all":
-    (groups, ) = cl.QueryGroups([], ["name"], False)
-  else:
-    groups = [groups]
+  if not groups:
+    (groups, ) = cl.QueryGroups([], ["uuid"], False)
 
   # TODO: Change logic to support "--submit"
   for group in groups:
@@ -113,25 +111,23 @@ def MapNetwork(opts, args):
     SubmitOpCode(op, opts=opts, cl=cl)
 
 
-def UnmapNetwork(opts, args):
+def DisconnectNetwork(opts, args):
   """Unmap a network from a node group.
 
   @param opts: the command line options selected by the user
   @type args: list
-  @param args: a list of length 3 with network, nodegroup
+  @param args: Network and node groups
   @rtype: int
   @return: the desired exit code
 
   """
-  (network, groups) = args
+  (network, ) = args[:1]
+  groups = args[1:]
 
   cl = GetClient()
 
-  # FIXME: This doesn't work with a group named "all"
-  if groups == "all":
-    (groups, ) = cl.QueryGroups([], ["name"], False)
-  else:
-    groups = [groups]
+  if not groups:
+    (groups, ) = cl.QueryGroups([], ["uuid"], False)
 
   # TODO: Change logic to support "--submit"
   for group in groups:
@@ -327,19 +323,20 @@ commands = {
      PRIORITY_OPT],
     "<network_name>", "Alters the parameters of a network"),
   "connect": (
-    MapNetwork,
-    [ArgNetwork(min=1, max=1), ArgGroup(min=1, max=1),
+    ConnectNetwork,
+    [ArgNetwork(min=1, max=1),
      ArgChoice(min=1, max=1, choices=constants.NIC_VALID_MODES),
-     ArgUnknown(min=1, max=1)],
+     ArgUnknown(min=1, max=1),
+     ArgGroup()],
     [NOCONFLICTSCHECK_OPT, PRIORITY_OPT],
-    "<network_name> <node_group> <mode> <link>",
+    "<network_name> <mode> <link> [<node_group>...]",
     "Map a given network to the specified node group"
     " with given mode and link (netparams)"),
   "disconnect": (
-    UnmapNetwork,
-    [ArgNetwork(min=1, max=1), ArgGroup(min=1, max=1)],
+    DisconnectNetwork,
+    [ArgNetwork(min=1, max=1), ArgGroup()],
     [NOCONFLICTSCHECK_OPT, PRIORITY_OPT],
-    "<network_name> <node_group>",
+    "<network_name> [<node_group>...]",
     "Unmap a given network from a specified node group"),
   "remove": (
     RemoveNetwork, ARGS_ONE_NETWORK,

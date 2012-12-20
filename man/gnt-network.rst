@@ -163,15 +163,17 @@ Displays information about a given network.
 
 CONNECT
 ~~~~~~~
-| **connect** {*network*} {*group*} {*mode*} {*link*}
 
-Connect a network to a given nodegroup with the netparams (*mode*, *link*).
-Every nic will inherit those netparams if assigned in a network.
-*group* can be ``all`` if you want to connect to all existing nodegroups
+| **connect** {*network*} {*mode*} {*link*} [*groups*...]
+
+Connect a network to given node groups (all if not specified) with the network
+parameters *mode* and *link*. Every network interface will inherit those
+parameters if assigned in a network.
 
 DISCONNECT
 ~~~~~~~~~~
-| **disconnect** {*network*} {*group*}
 
-Disconnect a network to a nodegroup. This is possible only if no instance
-is using the network.
+| **disconnect** {*network*} [*groups*...]
+
+Disconnect a network from given node groups (all if not specified). This is
+possible only if no instance is using the network.
