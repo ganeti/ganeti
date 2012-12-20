@@ -167,7 +167,7 @@ class Hostname:
     @param name: hostname or None
 
     """
-    self.name = self.GetNormalizedName(self.GetFqdn(name))
+    self.name = self.GetFqdn(name)
     self.ip = self.GetIP(self.name, family=family)
 
   @classmethod
@@ -177,8 +177,8 @@ class Hostname:
     """
     return cls.GetFqdn()
 
-  @staticmethod
-  def GetFqdn(hostname=None):
+  @classmethod
+  def GetFqdn(cls, hostname=None):
     """Return fqdn.
 
     If hostname is None the system's fqdn is returned.
@@ -192,11 +192,13 @@ class Hostname:
     if hostname is None:
       virtfqdn = vcluster.GetVirtualHostname()
       if virtfqdn:
-        return virtfqdn
+        result = virtfqdn
       else:
-        return socket.getfqdn()
+        result = socket.getfqdn()
     else:
-      return socket.getfqdn(hostname)
+      result = socket.getfqdn(hostname)
+
+    return cls.GetNormalizedName(result)
 
   @staticmethod
   def GetIP(hostname, family=None):
