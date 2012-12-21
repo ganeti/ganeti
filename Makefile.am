@@ -867,6 +867,7 @@ maninput = \
 	man/footer.man man/footer.html $(mangen)
 
 TEST_FILES = \
+	htest/data/clean-nonzero-score.data \
 	htest/data/common-suffix.data \
 	htest/data/empty-cluster.data \
 	htest/data/hail-alloc-drbd.json \

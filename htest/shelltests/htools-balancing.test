@@ -97,6 +97,26 @@ diff -u $T/simu-rebal-merged.tiered $T/simu-rebal.tiered.original
 >>>2
 >>>=0
 
+# and hcheck should report this as needs rebalancing
+./htest/hcheck -t$TESTDATA_DIR/n1-failure.data
+>>>/Cluster needs rebalancing./
+>>>= 1
+
+# ... unless we request no-simulation mode
+./htest/hcheck -t$TESTDATA_DIR/n1-failure.data --no-simulation
+>>>/Running in no-simulation mode./
+>>>= 0
+
+# and a clean cluster should be reported as such
+./htest/hcheck $BACKEND_BAL_STD
+>>>/No need to rebalance cluster, no problems found./
+>>>= 0
+
+# ... and even one with non-zero score
+./htest/hcheck -t $TESTDATA_DIR/clean-nonzero-score.data
+>>>/No need to rebalance cluster, no problems found./
+>>>= 0
+
 # hbal should work on empty groups as well
 ./htest/hbal -t$TESTDATA_DIR/n1-failure.data -G group-02
 >>>/Group size 0 nodes, 0 instances/
