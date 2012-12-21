@@ -197,7 +197,7 @@ INIT
 | [\--specs-disk-size *spec-param*=*value* [,*spec-param*=*value*...]]
 | [\--specs-mem-size *spec-param*=*value* [,*spec-param*=*value*...]]
 | [\--specs-nic-count *spec-param*=*value* [,*spec-param*=*value*...]]
-| [\--ipol-disk-templates *template* [,*template*...]]
+| [\--ipolicy-disk-templates *template* [,*template*...]]
 | [\--disk-state *diskstate*]
 | [\--hypervisor-state *hvstate*]
 | {*clustername*}
@@ -502,13 +502,13 @@ The ``-C (--candidate-pool-size)`` option specifies the
 that the master will try to keep as master\_candidates. For more
 details about this role and other node roles, see the ganeti(7).
 
-The ``--specs-...`` and ``--ipol-disk-templates`` options specify
+The ``--specs-...`` and ``--ipolicy-disk-templates`` options specify
 instance policy on the cluster. For the ``--specs-...`` options, each
 option can have three values: ``min``, ``max`` and ``std``, which can
 also be modified on group level (except for ``std``, which is defined
 once for the entire cluster). Please note, that ``std`` values are not
 the same as defaults set by ``--beparams``, but they are used for the
-capacity calculations. The ``--ipol-disk-templates`` option takes a
+capacity calculations. The ``--ipolicy-disk-templates`` option takes a
 comma-separated list of disk templates.
 
 - ``--specs-cpu-count`` limits the number of VCPUs that can be used by an
@@ -517,7 +517,7 @@ comma-separated list of disk templates.
 - ``--specs-disk-size`` limits the disk size for every disk used
 - ``--specs-mem-size`` limits the amount of memory available
 - ``--specs-nic-count`` sets limits on the number of NICs used
-- ``--ipol-disk-templates`` limits the allowed disk templates
+- ``--ipolicy-disk-templates`` limits the allowed disk templates
 
 For details about how to use ``--hypervisor-state`` and ``--disk-state``
 have a look at **ganeti**(7).
@@ -594,12 +594,12 @@ MODIFY
 | [\--specs-disk-size *spec-param*=*value* [,*spec-param*=*value*...]]
 | [\--specs-mem-size *spec-param*=*value* [,*spec-param*=*value*...]]
 | [\--specs-nic-count *spec-param*=*value* [,*spec-param*=*value*...]]
-| [\--ipol-disk-templates *template* [,*template*...]]
+| [\--ipolicy-disk-templates *template* [,*template*...]]
 
 
 Modify the options for the cluster.
 
-The ``--vg-name``, ``--no-lvm-storarge``, ``--enabled-hypervisors``,
+The ``--vg-name``, ``--no-lvm-storage``, ``--enabled-hypervisors``,
 ``-H (--hypervisor-parameters)``, ``-B (--backend-parameters)``,
 ``-D (--disk-parameters)``, ``--nic-parameters``, ``-C
 (--candidate-pool-size)``, ``--maintain-node-health``,
@@ -631,8 +631,8 @@ The ``-I (--default-iallocator)`` is described in the **init**
 command. To clear the default iallocator, just pass an empty string
 ('').
 
-The ``--specs-...`` and ``--ipol-disk-templates`` options are described
-in the **init** command.
+The ``--specs-...`` and ``--ipolicy-disk-templates`` options are
+described in the **init** command.
 
 See **ganeti(7)** for a description of ``--submit`` and other common
 options.

@@ -1405,7 +1405,7 @@ GROW-DISK
 | {*instance*} {*disk*} {*amount*}
 
 Grows an instance's disk. This is only possible for instances having a
-plain, drbd or rbd disk template.
+plain, drbd, file, sharedfile or rbd disk template.
 
 Note that this command only change the block device size; it will not
 grow the actual filesystems, partitions, etc. that live on that
@@ -1651,7 +1651,7 @@ instance to stop.
 
 The ``--ignore-consistency`` option will make Ganeti ignore any errors
 in trying to shutdown the instance on its node; useful if the
-hypervisor is broken and you want to recuperate the data.
+hypervisor is broken and you want to recover the data.
 
 If ``--ignore-ipolicy`` is given any instance policy violations occuring
 during this operation are ignored.

@@ -103,10 +103,10 @@ def WritePreamble(sw, support_debug):
   sw.IncIndent()
   try:
     # FIXME: this is really going into the internals of the job queue
-    sw.Write(("local jlist=$( shopt -s nullglob &&"
-              " cd %s 2>/dev/null && echo job-* || : )"),
+    sw.Write(("local jlist=($( shopt -s nullglob &&"
+              " cd %s 2>/dev/null && echo job-* || : ))"),
              utils.ShellQuote(pathutils.QUEUE_DIR))
-    sw.Write('echo "${jlist//job-/}"')
+    sw.Write('echo "${jlist[@]/job-/}"')
   finally:
     sw.DecIndent()
   sw.Write("}")

@@ -427,7 +427,7 @@ addNotifier inotify path cref mstate =
 -- | Inotify event handler.
 onInotify :: INotify -> String -> CRef -> MVar ServerState -> Event -> IO ()
 onInotify inotify path cref mstate Ignored = do
-  logInfo "File lost, trying to re-establish notifier"
+  logDebug "File lost, trying to re-establish notifier"
   modifyMVar_ mstate $ \state -> do
     result <- addNotifier inotify path cref mstate
     (newfstat, _) <- safeUpdateConfig path (reloadFStat state) cref
