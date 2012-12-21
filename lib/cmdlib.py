@@ -3167,7 +3167,12 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
                                  len(s) == 2 for s in statuses)
                       for inst, nnames in instdisk.items()
                       for nname, statuses in nnames.items())
-    assert set(instdisk) == set(instanceinfo), "instdisk consistency failure"
+    if __debug__:
+      instdisk_keys = set(instdisk)
+      instanceinfo_keys = set(instanceinfo)
+      assert instdisk_keys == instanceinfo_keys, \
+        ("instdisk keys (%s) do not match instanceinfo keys (%s)" %
+         (instdisk_keys, instanceinfo_keys))
 
     return instdisk
 
