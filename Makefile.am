@@ -868,6 +868,7 @@ maninput = \
 
 TEST_FILES = \
 	htest/data/common-suffix.data \
+	htest/data/empty-cluster.data \
 	htest/data/hail-alloc-drbd.json \
 	htest/data/hail-change-group.json \
 	htest/data/hail-invalid-reloc.json \
