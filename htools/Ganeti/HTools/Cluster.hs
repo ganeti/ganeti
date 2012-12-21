@@ -630,7 +630,8 @@ tryBalance ini_tbl disk_moves inst_moves evac_mode mg_limit min_gain =
                            in filter (any (`elem` bad_nodes) .
                                           Instance.allNodes) all_inst
                       else all_inst
-        reloc_inst = filter Instance.movable all_inst'
+        reloc_inst = filter (\i -> Instance.movable i &&
+                                   Instance.autoBalance i) all_inst'
         node_idx = map Node.idx online_nodes
         fin_tbl = checkMove node_idx disk_moves inst_moves ini_tbl reloc_inst
         (Table _ _ fin_cv _) = fin_tbl

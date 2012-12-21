@@ -1984,7 +1984,7 @@ class LUClusterVerifyConfig(NoHooksLU, _VerifyErrors):
       msg = ("hypervisor %s parameters syntax check (source %s): %%s" %
              (item, hv_name))
       try:
-        hv_class = hypervisor.GetHypervisor(hv_name)
+        hv_class = hypervisor.GetHypervisorClass(hv_name)
         utils.ForceDictType(hv_params, constants.HVS_PARAMETER_TYPES)
         hv_class.CheckParameterSyntax(hv_params)
       except errors.GenericError, err:
@@ -4088,7 +4088,10 @@ class LUClusterSetParams(LogicalUnit):
           self.new_os_hvp[os_name] = hvs
         else:
           for hv_name, hv_dict in hvs.items():
-            if hv_name not in self.new_os_hvp[os_name]:
+            if hv_dict is None:
+              # Delete if it exists
+              self.new_os_hvp[os_name].pop(hv_name, None)
+            elif hv_name not in self.new_os_hvp[os_name]:
               self.new_os_hvp[os_name][hv_name] = hv_dict
             else:
               self.new_os_hvp[os_name][hv_name].update(hv_dict)
@@ -4134,7 +4137,7 @@ class LUClusterSetParams(LogicalUnit):
             (self.op.enabled_hypervisors and
              hv_name in self.op.enabled_hypervisors)):
           # either this is a new hypervisor, or its parameters have changed
-          hv_class = hypervisor.GetHypervisor(hv_name)
+          hv_class = hypervisor.GetHypervisorClass(hv_name)
           utils.ForceDictType(hv_params, constants.HVS_PARAMETER_TYPES)
           hv_class.CheckParameterSyntax(hv_params)
           _CheckHVParams(self, node_list, hv_name, hv_params)
@@ -4148,7 +4151,7 @@ class LUClusterSetParams(LogicalUnit):
           # we need to fill in the new os_hvp on top of the actual hv_p
           cluster_defaults = self.new_hvparams.get(hv_name, {})
           new_osp = objects.FillDict(cluster_defaults, hv_params)
-          hv_class = hypervisor.GetHypervisor(hv_name)
+          hv_class = hypervisor.GetHypervisorClass(hv_name)
           hv_class.CheckParameterSyntax(new_osp)
           _CheckHVParams(self, node_list, hv_name, new_osp)
 
@@ -4363,11 +4366,13 @@ def _ComputeAncillaryFiles(cluster, redist):
   # Files which should only be on VM-capable nodes
   files_vm = set(filename
     for hv_name in cluster.enabled_hypervisors
-    for filename in hypervisor.GetHypervisor(hv_name).GetAncillaryFiles()[0])
+    for filename in
+      hypervisor.GetHypervisorClass(hv_name).GetAncillaryFiles()[0])
 
   files_opt |= set(filename
     for hv_name in cluster.enabled_hypervisors
-    for filename in hypervisor.GetHypervisor(hv_name).GetAncillaryFiles()[1])
+    for filename in
+      hypervisor.GetHypervisorClass(hv_name).GetAncillaryFiles()[1])
 
   # Filenames in each category must be unique
   all_files_set = files_all | files_mc | files_vm
@@ -6756,7 +6761,7 @@ class LUInstanceStartup(LogicalUnit):
       utils.ForceDictType(self.op.hvparams, constants.HVS_PARAMETER_TYPES)
       filled_hvp = cluster.FillHV(instance)
       filled_hvp.update(self.op.hvparams)
-      hv_type = hypervisor.GetHypervisor(instance.hypervisor)
+      hv_type = hypervisor.GetHypervisorClass(instance.hypervisor)
       hv_type.CheckParameterSyntax(filled_hvp)
       _CheckHVParams(self, instance.all_nodes, instance.hypervisor, filled_hvp)
 
@@ -9728,7 +9733,7 @@ class LUInstanceCreate(LogicalUnit):
     utils.ForceDictType(self.op.hvparams, constants.HVS_PARAMETER_TYPES)
     filled_hvp = cluster.SimpleFillHV(self.op.hypervisor, self.op.os_type,
                                       self.op.hvparams)
-    hv_type = hypervisor.GetHypervisor(self.op.hypervisor)
+    hv_type = hypervisor.GetHypervisorClass(self.op.hypervisor)
     hv_type.CheckParameterSyntax(filled_hvp)
     self.hv_full = filled_hvp
     # check that we don't specify global parameters on an instance
@@ -10360,7 +10365,7 @@ def _GetInstanceConsole(cluster, instance):
   @rtype: dict
 
   """
-  hyper = hypervisor.GetHypervisor(instance.hypervisor)
+  hyper = hypervisor.GetHypervisorClass(instance.hypervisor)
   # beparams and hvparams are passed separately, to avoid editing the
   # instance and then saving the defaults in the instance itself.
   hvparams = cluster.FillHV(instance)
@@ -12454,7 +12459,7 @@ class LUInstanceSetParams(LogicalUnit):
       hv_new = cluster.SimpleFillHV(hv_type, instance.os, i_hvdict)
 
       # local check
-      hypervisor.GetHypervisor(hv_type).CheckParameterSyntax(hv_new)
+      hypervisor.GetHypervisorClass(hv_type).CheckParameterSyntax(hv_new)
       _CheckHVParams(self, nodelist, instance.hypervisor, hv_new)
       self.hv_proposed = self.hv_new = hv_new # the new actual values
       self.hv_inst = i_hvdict # the new dict (without defaults)
