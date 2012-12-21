@@ -424,12 +424,12 @@ DTS_FILEBASED = compat.UniqueFrozenset([
 DTS_EXCL_STORAGE = frozenset([DT_PLAIN])
 
 # templates for which we don't perform checks on free space
-DTS_NO_FREE_SPACE_CHECK = frozenset([
-    DT_FILE,
-    DT_SHARED_FILE,
-    DT_RBD,
-    DT_EXT,
-    ])
+DTS_NO_FREE_SPACE_CHECK = compat.UniqueFrozenset([
+  DT_FILE,
+  DT_SHARED_FILE,
+  DT_RBD,
+  DT_EXT,
+  ])
 
 # logical disk types
 LD_LV = "lvm"

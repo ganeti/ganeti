@@ -32,6 +32,7 @@ import Test.QuickCheck
 import Test.QuickCheck.Monadic (monadicIO, run, stop)
 
 import Control.Applicative
+import qualified Data.Map as Map
 
 import Test.Ganeti.TestHelper
 import Test.Ganeti.TestCommon
@@ -47,7 +48,8 @@ instance Arbitrary Rpc.RpcCallInstanceList where
   arbitrary = Rpc.RpcCallInstanceList <$> arbitrary
 
 instance Arbitrary Rpc.RpcCallNodeInfo where
-  arbitrary = Rpc.RpcCallNodeInfo <$> arbitrary <*> arbitrary
+  arbitrary = Rpc.RpcCallNodeInfo <$> arbitrary <*> arbitrary <*>
+                pure Map.empty
 
 -- | Monadic check that, for an offline node and a call that does not
 -- offline nodes, we get a OfflineNodeError response.
