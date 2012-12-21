@@ -224,6 +224,8 @@ prop_rStripSpace (NonEmpty str) =
           ]
 
 #ifndef NO_REGEX_PCRE
+{-# ANN case_new_uuid "HLint: ignore Use camelCase" #-}
+
 -- | Tests that the newUUID function produces valid UUIDs.
 case_new_uuid :: Assertion
 case_new_uuid = do
