@@ -315,6 +315,17 @@ TISPECS_CLUSTER_TYPES = {
   constants.ISPECS_STD: constants.VTYPE_INT,
   }
 
+#: User-friendly names for query2 field types
+_QFT_NAMES = {
+  constants.QFT_UNKNOWN: "Unknown",
+  constants.QFT_TEXT: "Text",
+  constants.QFT_BOOL: "Boolean",
+  constants.QFT_NUMBER: "Number",
+  constants.QFT_UNIT: "Storage size",
+  constants.QFT_TIMESTAMP: "Timestamp",
+  constants.QFT_OTHER: "Custom",
+  }
+
 
 class _Argument:
   def __init__(self, min=0, max=None): # pylint: disable=W0622
@@ -3064,6 +3075,21 @@ def GenericList(resource, fields, names, unit, separator, header, cl=None,
   return constants.EXIT_SUCCESS
 
 
+def _FieldDescValues(fdef):
+  """Helper function for L{GenericListFields} to get query field description.
+
+  @type fdef: L{objects.QueryFieldDefinition}
+  @rtype: list
+
+  """
+  return [
+    fdef.name,
+    _QFT_NAMES.get(fdef.kind, fdef.kind),
+    fdef.title,
+    fdef.doc,
+    ]
+
+
 def GenericListFields(resource, fields, separator, header, cl=None):
   """Generic implementation for listing fields for a resource.
 
@@ -3088,11 +3114,12 @@ def GenericListFields(resource, fields, separator, header, cl=None):
 
   columns = [
     TableColumn("Name", str, False),
+    TableColumn("Type", str, False),
     TableColumn("Title", str, False),
     TableColumn("Description", str, False),
     ]
 
-  rows = [[fdef.name, fdef.title, fdef.doc] for fdef in response.fields]
+  rows = map(_FieldDescValues, response.fields)
 
   for line in FormatTable(rows, columns, header, separator):
     ToStdout(line)

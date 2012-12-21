@@ -1010,5 +1010,39 @@ class TestParseArgs(unittest.TestCase):
                       ["test", "list"], cmd, aliases, set())
 
 
+class TestQftNames(unittest.TestCase):
+  def testComplete(self):
+    self.assertEqual(frozenset(cli._QFT_NAMES), constants.QFT_ALL)
+
+  def testUnique(self):
+    lcnames = map(lambda s: s.lower(), cli._QFT_NAMES.values())
+    self.assertFalse(utils.FindDuplicates(lcnames))
+
+  def testUppercase(self):
+    for name in cli._QFT_NAMES.values():
+      self.assertEqual(name[0], name[0].upper())
+
+
+class TestFieldDescValues(unittest.TestCase):
+  def testKnownKind(self):
+    fdef = objects.QueryFieldDefinition(name="aname",
+                                        title="Atitle",
+                                        kind=constants.QFT_TEXT,
+                                        doc="aaa doc aaa")
+    self.assertEqual(cli._FieldDescValues(fdef),
+                     ["aname", "Text", "Atitle", "aaa doc aaa"])
+
+  def testUnknownKind(self):
+    kind = "#foo#"
+
+    self.assertFalse(kind in constants.QFT_ALL)
+    self.assertFalse(kind in cli._QFT_NAMES)
+
+    fdef = objects.QueryFieldDefinition(name="zname", title="Ztitle",
+                                        kind=kind, doc="zzz doc zzz")
+    self.assertEqual(cli._FieldDescValues(fdef),
+                     ["zname", kind, "Ztitle", "zzz doc zzz"])
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
