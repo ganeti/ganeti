@@ -878,6 +878,7 @@ TEST_FILES = \
 	htest/data/hbal-split-insts.data \
 	htest/data/invalid-node.data \
 	htest/data/missing-resources.data \
+	htest/data/n1-failure.data \
 	htest/data/rapi/groups.json \
 	htest/data/rapi/info.json \
 	htest/data/rapi/instances.json \

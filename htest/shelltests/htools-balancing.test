@@ -13,6 +13,18 @@
 >>> /gnt-instance (failover|migrate|replace-disks)/
 >>>= 0
 
+# test that hbal won't execute rebalances when using the text backend
+./htest/hbal $BACKEND_BAL_STD -G group-01 -X
+>>>2
+Error: hbal: Execution of commands possible only on LUXI
+>>>= !0
+
+# test that hbal won't execute any moves if we request an absurdly-high
+# minimum-improvement
+./htest/hbal $BACKEND_BAL_STD -G group-01 -C --min-gain 10000 --min-gain-limit 10000
+>>>/No solution found/
+>>>= 0
+
 # test saving commands
 ./htest/hbal $BACKEND_BAL_STD -G group-01 -C$T/rebal-cmds.standard
 >>>= 0
@@ -69,4 +81,23 @@ diff -u $T/simu-rebal-merged.tiered $T/simu-rebal.tiered.original
 # no double rebalance; depends on previous test
 ./htest/hbal -t $T/simu-rebal.tiered.balanced -G group-01
 >>> /(Nothing to do, exiting|No solution found)/
+>>>= 0
+
+### now some other custom tests
+
+# n+1 bad instances are reported as such
+./htest/hbal -t$TESTDATA_DIR/n1-failure.data -G group-01
+>>>/Initial check done: 4 bad nodes, 8 bad instances./
+>>>=0
+
+# same test again, different message check (shelltest can't test multiple
+# messages via regexp
+./htest/hbal -t$TESTDATA_DIR/n1-failure.data -G group-01
+>>>/Cluster is not N\+1 happy, continuing but no guarantee that the cluster will end N\+1 happy./
+>>>2
+>>>=0
+
+# hbal should work on empty groups as well
+./htest/hbal -t$TESTDATA_DIR/n1-failure.data -G group-02
+>>>/Group size 0 nodes, 0 instances/
 >>>= 0
