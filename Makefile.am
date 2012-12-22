@@ -1260,11 +1260,13 @@ htools/Ganeti/Version.hs: htools/Ganeti/Version.hs.in \
 
 htools/Ganeti/Constants.hs: htools/Ganeti/Constants.hs.in \
 	lib/constants.py lib/_autoconf.py lib/luxi.py lib/errors.py \
-	lib/jstore.py \
+	lib/jstore.py $(RUN_IN_TEMPDIR)\
 	$(CONVERT_CONSTANTS) $(built_base_sources) \
 	| lib/_vcsversion.py
 	set -e; \
-	{ cat $< ; PYTHONPATH=. $(CONVERT_CONSTANTS); } > $@
+	{ cat $< ; \
+	  PYTHONPATH=. $(RUN_IN_TEMPDIR) $(CURDIR)/$(CONVERT_CONSTANTS); \
+	} > $@
 
 htest/Test/Ganeti/TestImports.hs: htest/Test/Ganeti/TestImports.hs.in \
 	$(built_base_sources)
