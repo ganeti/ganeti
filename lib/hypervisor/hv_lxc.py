@@ -43,8 +43,6 @@ class LXCHypervisor(hv_base.BaseHypervisor):
   TODO:
     - move hardcoded parameters into hypervisor parameters, once we
       have the container-parameter support
-    - implement memory limits, but only optionally, depending on host
-      kernel support
 
   Problems/issues:
     - LXC is very temperamental; in daemon mode, it succeeds or fails
@@ -143,6 +141,22 @@ class LXCHypervisor(hv_base.BaseHypervisor):
 
     return utils.ParseCpuMask(cpus)
 
+  @classmethod
+  def _GetCgroupMemoryLimit(cls, instance_name):
+    """Return the memory limit for an instance
+
+    """
+    cgroup = cls._GetCgroupMountPoint()
+    try:
+      memory = int(utils.ReadFile(utils.PathJoin(cgroup, 'lxc',
+                                           instance_name,
+                                           "memory.limit_in_bytes")))
+    except EnvironmentError:
+      # memory resource controller may be disabled, ignore
+      memory = 0
+
+    return memory
+
   def ListInstances(self):
     """Get the list of running instances.
 
@@ -154,7 +168,7 @@ class LXCHypervisor(hv_base.BaseHypervisor):
 
     @type instance_name: string
     @param instance_name: the instance name
-
+    @rtype: tuple of strings
     @return: (name, id, memory, vcpus, stat, times)
 
     """
@@ -172,7 +186,8 @@ class LXCHypervisor(hv_base.BaseHypervisor):
       return None
 
     cpu_list = self._GetCgroupCpuList(instance_name)
-    return (instance_name, 0, 0, len(cpu_list), 0, 0)
+    memory = self._GetCgroupMemoryLimit(instance_name) / (1024 ** 2)
+    return (instance_name, 0, memory, len(cpu_list), 0, 0)
 
   def GetAllInstancesInfo(self):
     """Get properties of all instances.
@@ -229,6 +244,17 @@ class LXCHypervisor(hv_base.BaseHypervisor):
                                       cpus_in_mask))
       out.append("lxc.cgroup.cpuset.cpus = %s" %
                  instance.hvparams[constants.HV_CPU_MASK])
+
+    # Memory
+    # Conditionally enable, memory resource controller might be disabled
+    cgroup = self._GetCgroupMountPoint()
+    if os.path.exists(utils.PathJoin(cgroup, 'memory.limit_in_bytes')):
+        out.append("lxc.cgroup.memory.limit_in_bytes = %dM" %
+                    instance.beparams[constants.BE_MAXMEM])
+
+    if os.path.exists(utils.PathJoin(cgroup, 'memory.memsw.limit_in_bytes')):
+        out.append("lxc.cgroup.memory.memsw.limit_in_bytes = %dM" %
+                    instance.beparams[constants.BE_MAXMEM])
 
     # Device control
     # deny direct device access
