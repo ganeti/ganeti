@@ -40,14 +40,6 @@ from ganeti.errors import HypervisorError
 class LXCHypervisor(hv_base.BaseHypervisor):
   """LXC-based virtualization.
 
-  Since current (Spring 2010) distributions are not yet ready for
-  running under a container, the following changes must be done
-  manually:
-    - remove udev
-    - disable the kernel log component of sysklogd/rsyslog/etc.,
-      otherwise they will fail to read the log, and at least rsyslog
-      will fill the filesystem with error messages
-
   TODO:
     - move hardcoded parameters into hypervisor parameters, once we
       have the container-parameter support
@@ -60,10 +52,6 @@ class LXCHypervisor(hv_base.BaseHypervisor):
       indication, and when failing it can leave network interfaces
       around, and future successful startups will list the instance
       twice
-    - shutdown sequence of containers leaves the init 'dead', and the
-      container effectively stopped, but LXC still believes the
-      container to be running; need to investigate using the
-      notify_on_release and release_agent feature of cgroups
 
   """
   _ROOT_DIR = pathutils.RUN_DIR + "/lxc"
@@ -146,7 +134,7 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     """
     cgroup = cls._GetCgroupMountPoint()
     try:
-      cpus = utils.ReadFile(utils.PathJoin(cgroup,
+      cpus = utils.ReadFile(utils.PathJoin(cgroup, 'lxc',
                                            instance_name,
                                            "cpuset.cpus"))
     except EnvironmentError, err:
@@ -159,10 +147,7 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     """Get the list of running instances.
 
     """
-    result = utils.RunCmd(["lxc-ls"])
-    if result.failed:
-      raise errors.HypervisorError("Running lxc-ls failed: %s" % result.output)
-    return result.stdout.splitlines()
+    return [ iinfo[0] for iinfo in self.GetAllInstancesInfo() ]
 
   def GetInstanceInfo(self, instance_name):
     """Get instance properties.
@@ -175,13 +160,13 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     """
     # TODO: read container info from the cgroup mountpoint
 
-    result = utils.RunCmd(["lxc-info", "-n", instance_name])
+    result = utils.RunCmd(["lxc-info", "-s", "-n", instance_name])
     if result.failed:
       raise errors.HypervisorError("Running lxc-info failed: %s" %
                                    result.output)
     # lxc-info output examples:
-    # 'ganeti-lxc-test1' is STOPPED
-    # 'ganeti-lxc-test1' is RUNNING
+    # 'state: STOPPED
+    # 'state: RUNNING
     _, state = result.stdout.rsplit(None, 1)
     if state != "RUNNING":
       return None
@@ -196,8 +181,13 @@ class LXCHypervisor(hv_base.BaseHypervisor):
 
     """
     data = []
-    for name in self.ListInstances():
-      data.append(self.GetInstanceInfo(name))
+    for name in os.listdir(self._ROOT_DIR):
+      try:
+        info = self.GetInstanceInfo(name)
+      except errors.HypervisorError:
+        continue
+      if info:
+        data.append(info)
     return data
 
   def _CreateConfigFile(self, instance, root_dir):
@@ -270,7 +260,7 @@ class LXCHypervisor(hv_base.BaseHypervisor):
   def StartInstance(self, instance, block_devices, startup_paused):
     """Start an instance.
 
-    For LCX, we try to mount the block device and execute 'lxc-start'.
+    For LXC, we try to mount the block device and execute 'lxc-start'.
     We use volatile containers.
 
     """
@@ -337,6 +327,9 @@ class LXCHypervisor(hv_base.BaseHypervisor):
       if result.failed:
         logging.warning("Error while doing lxc-stop for %s: %s", name,
                         result.output)
+
+    if not os.path.ismount(root_dir):
+        return
 
     for mpath in self._GetMountSubdirs(root_dir):
       result = utils.RunCmd(["umount", mpath])
