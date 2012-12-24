@@ -7540,7 +7540,8 @@ class LUInstanceRecreateDisks(LogicalUnit):
                                         disks=[{constants.IDISK_SIZE: d.size,
                                                 constants.IDISK_MODE: d.mode}
                                                 for d in self.instance.disks],
-                                        hypervisor=self.instance.hypervisor)
+                                        hypervisor=self.instance.hypervisor,
+                                        node_whitelist=None)
     ial = iallocator.IAllocator(self.cfg, self.rpc, req)
 
     ial.Run(self.op.iallocator)
