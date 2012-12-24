@@ -134,7 +134,7 @@ Or, more interactively::
 
   $ ghci
   λ> :set -ddump-splices
-  λ> :l htools/Ganeti/Objects.hs
+  λ> :l src/Ganeti/Objects.hs
 
 And you will get the spliced code as the module is loaded.
 
@@ -150,9 +150,9 @@ build profiling code. The recommended way is to run ``make hs-prof``,
 or alternatively the manual sequence is::
 
   $ make clean
-  $ make htools/htools HEXTRA="-osuf .o"
-  $ rm htools/htools
-  $ make htools/htools HEXTRA="-osuf .prof_o -prof -auto-all"
+  $ make src/htools HEXTRA="-osuf .o"
+  $ rm src/htools
+  $ make src/htools HEXTRA="-osuf .prof_o -prof -auto-all"
 
 This will build the binary twice, per the TemplateHaskell
 documentation, the second one with profiling enabled.

@@ -1,1 +1,1 @@
-../htools/mon-collector.hs
+../src/mon-collector.hs

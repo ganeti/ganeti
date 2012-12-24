@@ -55,16 +55,16 @@ myexeclibdir = $(pkglibdir)
 .DELETE_ON_ERROR:
 
 HTOOLS_DIRS = \
-	htools \
-	htools/Ganeti \
-	htools/Ganeti/Block \
-	htools/Ganeti/Block/Drbd \
-	htools/Ganeti/Confd \
-	htools/Ganeti/DataCollectors \
-	htools/Ganeti/HTools \
-	htools/Ganeti/HTools/Backend \
-	htools/Ganeti/HTools/Program \
-	htools/Ganeti/Query \
+	src \
+	src/Ganeti \
+	src/Ganeti/Block \
+	src/Ganeti/Block/Drbd \
+	src/Ganeti/Confd \
+	src/Ganeti/DataCollectors \
+	src/Ganeti/HTools \
+	src/Ganeti/HTools/Backend \
+	src/Ganeti/HTools/Program \
+	src/Ganeti/Query \
 	htest \
 	htest/Test \
 	htest/Test/Ganeti \
@@ -182,8 +182,8 @@ CLEANFILES = \
 	$(nodist_pkgpython_PYTHON) \
 	$(HS_ALL_PROGS) $(HS_BUILT_SRCS) \
 	$(HS_BUILT_TEST_HELPERS) \
-	htools/ganeti-confd \
-	.hpc/*.mix htools/*.tix htest/*.tix \
+	src/ganeti-confd \
+	.hpc/*.mix src/*.tix htest/*.tix \
 	doc/hs-lint.html
 
 GENERATED_FILES = \
@@ -195,7 +195,7 @@ HTOOLS_GENERATED_FILES =
 if WANT_HTOOLS
 HTOOLS_GENERATED_FILES += $(HS_PROGS)
 if ENABLE_CONFD
-HTOOLS_GENERATED_FILES += htools/hconfd htools/ganeti-confd
+HTOOLS_GENERATED_FILES += src/hconfd src/ganeti-confd
 endif
 endif
 
@@ -408,7 +408,7 @@ docrst = \
 	doc/virtual-cluster.rst \
 	doc/walkthrough.rst
 
-HS_PROGS = htools/htools htools/mon-collector
+HS_PROGS = src/htools src/mon-collector
 HS_BIN_ROLES = hbal hscan hspace hinfo hcheck hroller
 HS_HTOOLS_PROGS = $(HS_BIN_ROLES) hail
 
@@ -417,14 +417,14 @@ HS_ALL_PROGS = \
 	htest/hpc-htools \
 	htest/hpc-mon-collector \
 	htest/test \
-	htools/hconfd \
-	htools/rpc-test
+	src/hconfd \
+	src/rpc-test
 
 HS_PROG_SRCS = $(patsubst %,%.hs,$(HS_ALL_PROGS))
 HS_BUILT_TEST_HELPERS = $(HS_BIN_ROLES:%=htest/%) htest/hail
 
 HFLAGS = \
-	-O -Wall -Werror -ihtools \
+	-O -Wall -Werror -isrc \
 	-fwarn-monomorphism-restriction \
 	-fwarn-tabs \
 	$(GHC_BYVERSION_FLAGS)
@@ -444,74 +444,74 @@ HPCEXCL = --exclude Main \
 	--exclude Test.Ganeti.TestHTools \
 	--exclude Test.Ganeti.TestHelper \
 	--exclude Test.Ganeti.TestImports \
-	$(patsubst htools.%,--exclude Test.%,$(subst /,.,$(patsubst %.hs,%, $(HS_LIB_SRCS))))
+	$(patsubst src.%,--exclude Test.%,$(subst /,.,$(patsubst %.hs,%, $(HS_LIB_SRCS))))
 
 HS_LIB_SRCS = \
-	htools/Ganeti/Block/Drbd/Types.hs \
-	htools/Ganeti/Block/Drbd/Parser.hs \
-	htools/Ganeti/BasicTypes.hs \
-	htools/Ganeti/Common.hs \
-	htools/Ganeti/Compat.hs \
-	htools/Ganeti/Confd/Client.hs \
-	htools/Ganeti/Confd/Server.hs \
-	htools/Ganeti/Confd/Types.hs \
-	htools/Ganeti/Confd/Utils.hs \
-	htools/Ganeti/Config.hs \
-	htools/Ganeti/Daemon.hs \
-	htools/Ganeti/DataCollectors/CLI.hs \
-	htools/Ganeti/DataCollectors/Drbd.hs \
-	htools/Ganeti/DataCollectors/Program.hs \
-	htools/Ganeti/Errors.hs \
-	htools/Ganeti/HTools/Backend/IAlloc.hs \
-	htools/Ganeti/HTools/Backend/Luxi.hs \
-	htools/Ganeti/HTools/Backend/Rapi.hs \
-	htools/Ganeti/HTools/Backend/Simu.hs \
-	htools/Ganeti/HTools/Backend/Text.hs \
-	htools/Ganeti/HTools/CLI.hs \
-	htools/Ganeti/HTools/Cluster.hs \
-	htools/Ganeti/HTools/Container.hs \
-	htools/Ganeti/HTools/ExtLoader.hs \
-	htools/Ganeti/HTools/Graph.hs \
-	htools/Ganeti/HTools/Group.hs \
-	htools/Ganeti/HTools/Instance.hs \
-	htools/Ganeti/HTools/Loader.hs \
-	htools/Ganeti/HTools/Node.hs \
-	htools/Ganeti/HTools/PeerMap.hs \
-	htools/Ganeti/HTools/Program.hs \
-	htools/Ganeti/HTools/Program/Hail.hs \
-	htools/Ganeti/HTools/Program/Hbal.hs \
-	htools/Ganeti/HTools/Program/Hcheck.hs \
-	htools/Ganeti/HTools/Program/Hinfo.hs \
-	htools/Ganeti/HTools/Program/Hscan.hs \
-	htools/Ganeti/HTools/Program/Hspace.hs \
-	htools/Ganeti/HTools/Program/Hroller.hs \
-	htools/Ganeti/HTools/Types.hs \
-	htools/Ganeti/Hash.hs \
-	htools/Ganeti/JQueue.hs \
-	htools/Ganeti/JSON.hs \
-	htools/Ganeti/Jobs.hs \
-	htools/Ganeti/Logging.hs \
-	htools/Ganeti/Luxi.hs \
-	htools/Ganeti/Network.hs \
-	htools/Ganeti/Objects.hs \
-	htools/Ganeti/OpCodes.hs \
-	htools/Ganeti/OpParams.hs \
-	htools/Ganeti/Path.hs \
-	htools/Ganeti/Query/Common.hs \
-	htools/Ganeti/Query/Filter.hs \
-	htools/Ganeti/Query/Group.hs \
-	htools/Ganeti/Query/Job.hs \
-	htools/Ganeti/Query/Language.hs \
-	htools/Ganeti/Query/Node.hs \
-	htools/Ganeti/Query/Query.hs \
-	htools/Ganeti/Query/Server.hs \
-	htools/Ganeti/Query/Types.hs \
-	htools/Ganeti/Rpc.hs \
-	htools/Ganeti/Runtime.hs \
-	htools/Ganeti/Ssconf.hs \
-	htools/Ganeti/THH.hs \
-	htools/Ganeti/Types.hs \
-	htools/Ganeti/Utils.hs
+	src/Ganeti/Block/Drbd/Types.hs \
+	src/Ganeti/Block/Drbd/Parser.hs \
+	src/Ganeti/BasicTypes.hs \
+	src/Ganeti/Common.hs \
+	src/Ganeti/Compat.hs \
+	src/Ganeti/Confd/Client.hs \
+	src/Ganeti/Confd/Server.hs \
+	src/Ganeti/Confd/Types.hs \
+	src/Ganeti/Confd/Utils.hs \
+	src/Ganeti/Config.hs \
+	src/Ganeti/Daemon.hs \
+	src/Ganeti/DataCollectors/CLI.hs \
+	src/Ganeti/DataCollectors/Drbd.hs \
+	src/Ganeti/DataCollectors/Program.hs \
+	src/Ganeti/Errors.hs \
+	src/Ganeti/HTools/Backend/IAlloc.hs \
+	src/Ganeti/HTools/Backend/Luxi.hs \
+	src/Ganeti/HTools/Backend/Rapi.hs \
+	src/Ganeti/HTools/Backend/Simu.hs \
+	src/Ganeti/HTools/Backend/Text.hs \
+	src/Ganeti/HTools/CLI.hs \
+	src/Ganeti/HTools/Cluster.hs \
+	src/Ganeti/HTools/Container.hs \
+	src/Ganeti/HTools/ExtLoader.hs \
+	src/Ganeti/HTools/Graph.hs \
+	src/Ganeti/HTools/Group.hs \
+	src/Ganeti/HTools/Instance.hs \
+	src/Ganeti/HTools/Loader.hs \
+	src/Ganeti/HTools/Node.hs \
+	src/Ganeti/HTools/PeerMap.hs \
+	src/Ganeti/HTools/Program.hs \
+	src/Ganeti/HTools/Program/Hail.hs \
+	src/Ganeti/HTools/Program/Hbal.hs \
+	src/Ganeti/HTools/Program/Hcheck.hs \
+	src/Ganeti/HTools/Program/Hinfo.hs \
+	src/Ganeti/HTools/Program/Hscan.hs \
+	src/Ganeti/HTools/Program/Hspace.hs \
+	src/Ganeti/HTools/Program/Hroller.hs \
+	src/Ganeti/HTools/Types.hs \
+	src/Ganeti/Hash.hs \
+	src/Ganeti/JQueue.hs \
+	src/Ganeti/JSON.hs \
+	src/Ganeti/Jobs.hs \
+	src/Ganeti/Logging.hs \
+	src/Ganeti/Luxi.hs \
+	src/Ganeti/Network.hs \
+	src/Ganeti/Objects.hs \
+	src/Ganeti/OpCodes.hs \
+	src/Ganeti/OpParams.hs \
+	src/Ganeti/Path.hs \
+	src/Ganeti/Query/Common.hs \
+	src/Ganeti/Query/Filter.hs \
+	src/Ganeti/Query/Group.hs \
+	src/Ganeti/Query/Job.hs \
+	src/Ganeti/Query/Language.hs \
+	src/Ganeti/Query/Node.hs \
+	src/Ganeti/Query/Query.hs \
+	src/Ganeti/Query/Server.hs \
+	src/Ganeti/Query/Types.hs \
+	src/Ganeti/Rpc.hs \
+	src/Ganeti/Runtime.hs \
+	src/Ganeti/Ssconf.hs \
+	src/Ganeti/THH.hs \
+	src/Ganeti/Types.hs \
+	src/Ganeti/Utils.hs
 
 HS_TEST_SRCS = \
 	htest/Test/Ganeti/Attoparsec.hs \
@@ -557,8 +557,8 @@ HS_LIBTEST_SRCS = $(HS_LIB_SRCS) $(HS_TEST_SRCS)
 
 HS_BUILT_SRCS = \
 	htest/Test/Ganeti/TestImports.hs \
-	htools/Ganeti/Constants.hs \
-	htools/Ganeti/Version.hs
+	src/Ganeti/Constants.hs \
+	src/Ganeti/Version.hs
 HS_BUILT_SRCS_IN = $(patsubst %,%.in,$(HS_BUILT_SRCS))
 
 $(RUN_IN_TEMPDIR): | stamp-directories
@@ -658,7 +658,7 @@ qa_scripts = \
 
 bin_SCRIPTS =
 if WANT_HTOOLS
-bin_SCRIPTS += $(filter-out htools/hail,$(HS_PROGS))
+bin_SCRIPTS += $(filter-out src/hail,$(HS_PROGS))
 install-exec-hook:
 	@mkdir_p@ $(DESTDIR)$(iallocatorsdir)
 # FIXME: this is a hardcoded logic, instead of auto-resolving
@@ -725,10 +725,10 @@ nodist_sbin_SCRIPTS = \
 	daemons/ganeti-cleaner
 
 if ENABLE_CONFD
-htools/ganeti-confd: htools/hconfd
+src/ganeti-confd: src/hconfd
 	cp -f $< $@
 
-nodist_sbin_SCRIPTS += htools/ganeti-confd
+nodist_sbin_SCRIPTS += src/ganeti-confd
 endif
 
 python_scripts = \
@@ -770,7 +770,7 @@ myexeclib_SCRIPTS = \
 	daemons/daemon-util \
 	tools/kvm-ifup \
 	$(pkglib_python_scripts) \
-	htools/mon-collector
+	src/mon-collector
 
 nodist_myexeclib_SCRIPTS = \
 	$(nodist_pkglib_python_scripts)
@@ -826,7 +826,7 @@ EXTRA_DIST = \
 	$(qa_scripts) \
 	$(HS_LIBTEST_SRCS) $(HS_BUILT_SRCS_IN) \
 	$(HS_PROG_SRCS) \
-	htools/lint-hints.hs \
+	src/lint-hints.hs \
 	htest/cli-tests-defs.sh \
 	htest/offline-test.sh \
 	.ghci
@@ -1252,13 +1252,13 @@ regen-vcs-version:
 	  fi; \
 	fi
 
-htools/Ganeti/Version.hs: htools/Ganeti/Version.hs.in \
+src/Ganeti/Version.hs: src/Ganeti/Version.hs.in \
 	vcs-version $(built_base_sources)
 	set -e; \
 	VCSVER=`cat $(abs_top_srcdir)/vcs-version`; \
 	sed -e "s/%ver%/$$VCSVER/" < $< > $@
 
-htools/Ganeti/Constants.hs: htools/Ganeti/Constants.hs.in \
+src/Ganeti/Constants.hs: src/Ganeti/Constants.hs.in \
 	lib/constants.py lib/_autoconf.py lib/luxi.py lib/errors.py \
 	lib/jstore.py $(RUN_IN_TEMPDIR)\
 	$(CONVERT_CONSTANTS) $(built_base_sources) \
@@ -1273,7 +1273,7 @@ htest/Test/Ganeti/TestImports.hs: htest/Test/Ganeti/TestImports.hs.in \
 	set -e; \
 	{ cat $< ; \
 	  echo ; \
-	  for name in $(filter-out Ganeti.THH,$(subst /,.,$(patsubst %.hs,%,$(patsubst htools/%,%,$(HS_LIB_SRCS))))) ; do \
+	  for name in $(filter-out Ganeti.THH,$(subst /,.,$(patsubst %.hs,%,$(patsubst src/%,%,$(HS_LIB_SRCS))))) ; do \
 	    echo "import $$name ()" ; \
 	  done ; \
 	} > $@
@@ -1604,9 +1604,9 @@ pep8: $(GENERATED_FILES)
 	  --repeat $(pep8_python_code)
 
 # FIXME: remove ignore "Use void" when GHC 6.x is deprecated
-HLINT_EXCLUDES = htools/Ganeti/THH.hs htest/hpc-htools.hs
+HLINT_EXCLUDES = src/Ganeti/THH.hs htest/hpc-htools.hs
 .PHONY: hlint
-hlint: $(HS_BUILT_SRCS) htools/lint-hints.hs
+hlint: $(HS_BUILT_SRCS) src/lint-hints.hs
 	@test -n "$(HLINT)" || { echo 'hlint' not found during configure; exit 1; }
 	if tty -s; then C="-c"; else C=""; fi; \
 	$(HLINT) --utf8 --report=doc/hs-lint.html --cross $$C \
@@ -1614,7 +1614,7 @@ hlint: $(HS_BUILT_SRCS) htools/lint-hints.hs
 	  --ignore "Use &&&" \
 	  --ignore "Use void" \
 	  --ignore "Reduce duplication" \
-	  --hint htools/lint-hints \
+	  --hint src/lint-hints \
 	  $(filter-out $(HLINT_EXCLUDES),$(HS_LIBTEST_SRCS) $(HS_PROG_SRCS))
 
 # a dist hook rule for updating the vcs-version file; this is
@@ -1711,7 +1711,7 @@ hs-apidoc: $(HS_BUILT_SRCS)
 	$(LN_S) ../hscolour.css $(APIDOC_HS_DIR)/Ganeti/HTools/hscolour.css
 	$(LN_S) ../hscolour.css $(APIDOC_HS_DIR)/Ganeti/Confd/hscolour.css
 	set -e ; \
-	cd htools; \
+	cd src; \
 	if [ "$(HTOOLS_NOCURL)" ]; \
 	then OPTGHC="--optghc=$(HTOOLS_NOCURL)"; \
 	else OPTGHC=""; \
@@ -1722,7 +1722,7 @@ hs-apidoc: $(HS_BUILT_SRCS)
 	if [ "$(HTOOLS_REGEX_PCRE)" ]; \
 	then OPTGHC="$$OPTGHC --optghc=$(HTOOLS_REGEX_PCRE)"; \
 	fi; \
-	RELSRCS="$(HS_LIB_SRCS:htools/%=%) $(patsubst htools/%,%,$(filter htools/%,$(HS_BUILT_SRCS)))"; \
+	RELSRCS="$(HS_LIB_SRCS:src/%=%) $(patsubst src/%,%,$(filter src/%,$(HS_BUILT_SRCS)))"; \
 	for file in $$RELSRCS; do \
 	  hfile=`echo $$file|sed 's/\\.hs$$//'`.html; \
 	  $(HSCOLOUR) -css -anchor $$file > ../$(APIDOC_HS_DIR)/$$hfile ; \
@@ -1732,7 +1732,7 @@ hs-apidoc: $(HS_BUILT_SRCS)
 	  --source-module="%{MODULE/.//}.html" \
 	  --source-entity="%{MODULE/.//}.html#%{NAME}" \
 	  $$OPTGHC \
-	  $(filter-out Ganeti/HTools/ExtLoader.hs,$(HS_LIB_SRCS:htools/%=%))
+	  $(filter-out Ganeti/HTools/ExtLoader.hs,$(HS_LIB_SRCS:src/%=%))
 
 .PHONY: TAGS
 TAGS: $(GENERATED_FILES)
@@ -1781,11 +1781,11 @@ hs-coverage: $(haskell_tests) htest/hpc-htools htest/hpc-mon-collector
 .PHONY: live-test
 live-test: all
 	set -e ; \
-	cd htools; \
+	cd src; \
 	rm -f .hpc; $(LN_S) ../.hpc .hpc; \
 	rm -f *.tix *.mix; \
 	./live-test.sh; \
-	hpc sum --union $(HPCEXCL) $(addsuffix .tix,$(HS_PROGS:htools/%=%)) \
+	hpc sum --union $(HPCEXCL) $(addsuffix .tix,$(HS_PROGS:src/%=%)) \
 	  --output=live-test.tix ; \
 	@mkdir_p@ ../$(COVERAGE_HS_DIR) ; \
 	hpc markup --destdir=../$(COVERAGE_HS_DIR) live-test \

@@ -759,7 +759,7 @@ def WriteHaskellCompletion(sw, script, htools=True, debug=True):
 
   """
   if htools:
-    cmd = "./htools/htools"
+    cmd = "./src/htools"
     env = {"HTOOLS": script}
     script_name = script
     func_name = "htools_%s" % script
@@ -854,12 +854,12 @@ def main():
 
   # ganeti-confd, if enabled
   if _autoconf.ENABLE_CONFD:
-    WriteHaskellCompletion(sw, "htools/ganeti-confd", htools=False,
+    WriteHaskellCompletion(sw, "src/ganeti-confd", htools=False,
                            debug=debug)
 
   # mon-collector, if monitoring is enabled
   if _autoconf.ENABLE_MONITORING:
-    WriteHaskellCmdCompletion(sw, "htools/mon-collector", debug=debug)
+    WriteHaskellCmdCompletion(sw, "src/mon-collector", debug=debug)
 
   # Reset extglob to original value
   sw.Write("[[ -n \"$gnt_shopt_extglob\" ]] && $gnt_shopt_extglob")

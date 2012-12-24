@@ -16,10 +16,10 @@ ln -s $PWD/doc/examples $tmpdir/doc
 mv $tmpdir/lib $tmpdir/ganeti
 ln -T -s $tmpdir/ganeti $tmpdir/lib
 
-mkdir -p $tmpdir/htools $tmpdir/htest
+mkdir -p $tmpdir/src $tmpdir/htest
 for hfile in htools ganeti-confd mon-collector; do
-  if [ -e htools/$hfile ]; then
-    ln -s $PWD/htools/$hfile $tmpdir/htools/
+  if [ -e src/$hfile ]; then
+    ln -s $PWD/src/$hfile $tmpdir/src/
   fi
 done
 

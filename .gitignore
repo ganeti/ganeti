@@ -11,6 +11,10 @@
 *.o
 *.hi
 *.hp
+*.tix
+*.prof
+*.stat
+.hpc/
 
 # /
 /Makefile
@@ -91,6 +95,9 @@
 /htest/hroller
 /htest/hscan
 /htest/hspace
+/htest/hpc-htools
+/htest/hpc-mon-collector
+/htest/test
 
 # tools
 /tools/kvm-ifup
@@ -112,28 +119,14 @@
 /scripts/gnt-network
 /scripts/gnt-storage
 
-# htools-specific rules
-/htools/apidoc
-/htools/.hpc
-/htools/coverage
+# haskell-specific rules
+/src/mon-collector
+/src/htools
+/src/hconfd
+/src/ganeti-confd
+/src/rpc-test
 
-/htools/mon-collector
-/htools/htools
-/htools/hconfd
-/htools/ganeti-confd
-/htools/rpc-test
-/htest/hpc-htools
-/htest/hpc-mon-collector
-/htest/test
-/htools/*.prof*
-/htools/*.stat
-/htools/*.tix
-/htest/*.prof*
-/htest/*.stat
-/htest/*.tix
-/.hpc/
-/*.tix
-
-/htools/Ganeti/Constants.hs
-/htools/Ganeti/Version.hs
+# automatically-built Haskell files
+/src/Ganeti/Constants.hs
+/src/Ganeti/Version.hs
 /htest/Test/Ganeti/TestImports.hs

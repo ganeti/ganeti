@@ -1,1 +1,1 @@
-../htools/htools.hs
+../src/htools.hs
