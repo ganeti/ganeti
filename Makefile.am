@@ -1551,7 +1551,8 @@ check-local: check-dirs $(GENERATED_FILES)
 	test -z "$$error"
 
 .PHONY: hs-check
-hs-check: htest/test htest/hpc-htools htest/hpc-mon-collector $(HS_BUILT_TEST_HELPERS)
+hs-check: htest/test htest/hpc-htools htest/hpc-mon-collector $(HS_BUILT_TEST_HELPERS) \
+	| $(BUILT_PYTHON_SOURCES)
 	@rm -f *.tix
 	./htest/test
 	HBINARY="./htest/hpc-htools" ./htest/offline-test.sh
