@@ -176,7 +176,7 @@ so for shell-tests (but these are faster, so it shouldn't be needed).
 For Python tests::
 
   $ export PYTHONPATH=$PWD
-  $ python ./test/ganeti.%mytest%
+  $ python ./test/py/ganeti.%mytest%
 
 For Haskell tests::
 

@@ -4,5 +4,5 @@ export SCRIPTS=${TOP_BUILDDIR:-.}/scripts
 export DAEMONS=${TOP_BUILDDIR:-.}/daemons
 
 shelltest $SHELLTESTARGS \
-  ${TOP_SRCDIR:-.}/test/{gnt,ganeti}-*.test \
+  ${TOP_SRCDIR:-.}/test/py/{gnt,ganeti}-*.test \
   -- --hide-successes

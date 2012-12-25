@@ -39,7 +39,7 @@ upto() {
 gencert() {
   local path=$1 validity=$2
   VALIDITY=$validity $PYTHON \
-    ${TOP_SRCDIR:-.}/test/import-export_unittest-helper \
+    ${TOP_SRCDIR:-.}/test/py/import-export_unittest-helper \
     $path gencert
 }
 

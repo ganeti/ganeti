@@ -106,6 +106,7 @@ DIRS = \
 	test/data \
 	test/data/ovfdata \
 	test/data/ovfdata/other \
+	test/py \
 	tools
 
 ALL_APIDOC_HS_DIRS = \
@@ -814,9 +815,9 @@ EXTRA_DIST = \
 	doc/examples/gnt-debug/README \
 	doc/examples/gnt-debug/delay0.json \
 	doc/examples/gnt-debug/delay50.json \
-	test/lockperf.py \
-	test/testutils.py \
-	test/mocks.py \
+	test/py/lockperf.py \
+	test/py/testutils.py \
+	test/py/mocks.py \
 	$(dist_TESTS) \
 	$(TEST_FILES) \
 	man/footer.rst \
@@ -956,98 +957,98 @@ TEST_FILES = \
 	test/data/vgreduce-removemissing-2.02.66-ok.txt \
 	test/data/vgs-missing-pvs-2.02.02.txt \
 	test/data/vgs-missing-pvs-2.02.66.txt \
-	test/ganeti-cli.test \
-	test/gnt-cli.test \
-	test/import-export_unittest-helper
+	test/py/ganeti-cli.test \
+	test/py/gnt-cli.test \
+	test/py/import-export_unittest-helper
 
 python_tests = \
 	doc/examples/rapi_testutils.py \
-	test/cfgupgrade_unittest.py \
-	test/docs_unittest.py \
-	test/ganeti.asyncnotifier_unittest.py \
-	test/ganeti.backend_unittest-runasroot.py \
-	test/ganeti.backend_unittest.py \
-	test/ganeti.bdev_unittest.py \
-	test/ganeti.cli_unittest.py \
-	test/ganeti.client.gnt_cluster_unittest.py \
-	test/ganeti.client.gnt_instance_unittest.py \
-	test/ganeti.client.gnt_job_unittest.py \
-	test/ganeti.cmdlib_unittest.py \
-	test/ganeti.compat_unittest.py \
-	test/ganeti.confd.client_unittest.py \
-	test/ganeti.config_unittest.py \
-	test/ganeti.constants_unittest.py \
-	test/ganeti.daemon_unittest.py \
-	test/ganeti.errors_unittest.py \
-	test/ganeti.hooks_unittest.py \
-	test/ganeti.ht_unittest.py \
-	test/ganeti.http_unittest.py \
-	test/ganeti.hypervisor.hv_chroot_unittest.py \
-	test/ganeti.hypervisor.hv_fake_unittest.py \
-	test/ganeti.hypervisor.hv_kvm_unittest.py \
-	test/ganeti.hypervisor.hv_lxc_unittest.py \
-	test/ganeti.hypervisor.hv_xen_unittest.py \
-	test/ganeti.hypervisor_unittest.py \
-	test/ganeti.impexpd_unittest.py \
-	test/ganeti.jqueue_unittest.py \
-	test/ganeti.jstore_unittest.py \
-	test/ganeti.locking_unittest.py \
-	test/ganeti.luxi_unittest.py \
-	test/ganeti.masterd.iallocator_unittest.py \
-	test/ganeti.masterd.instance_unittest.py \
-	test/ganeti.mcpu_unittest.py \
-	test/ganeti.netutils_unittest.py \
-	test/ganeti.objects_unittest.py \
-	test/ganeti.objectutils_unittest.py \
-	test/ganeti.opcodes_unittest.py \
-	test/ganeti.ovf_unittest.py \
-	test/ganeti.qlang_unittest.py \
-	test/ganeti.query_unittest.py \
-	test/ganeti.rapi.baserlib_unittest.py \
-	test/ganeti.rapi.client_unittest.py \
-	test/ganeti.rapi.resources_unittest.py \
-	test/ganeti.rapi.rlib2_unittest.py \
-	test/ganeti.rapi.testutils_unittest.py \
-	test/ganeti.rpc_unittest.py \
-	test/ganeti.runtime_unittest.py \
-	test/ganeti.serializer_unittest.py \
-	test/ganeti.server.rapi_unittest.py \
-	test/ganeti.ssconf_unittest.py \
-	test/ganeti.ssh_unittest.py \
-	test/ganeti.storage_unittest.py \
-	test/ganeti.tools.ensure_dirs_unittest.py \
-	test/ganeti.tools.node_daemon_setup_unittest.py \
-	test/ganeti.tools.prepare_node_join_unittest.py \
-	test/ganeti.uidpool_unittest.py \
-	test/ganeti.utils.algo_unittest.py \
-	test/ganeti.utils.filelock_unittest.py \
-	test/ganeti.utils.hash_unittest.py \
-	test/ganeti.utils.io_unittest-runasroot.py \
-	test/ganeti.utils.io_unittest.py \
-	test/ganeti.utils.log_unittest.py \
-	test/ganeti.utils.mlock_unittest.py \
-	test/ganeti.utils.nodesetup_unittest.py \
-	test/ganeti.utils.process_unittest.py \
-	test/ganeti.utils.retry_unittest.py \
-	test/ganeti.utils.text_unittest.py \
-	test/ganeti.utils.wrapper_unittest.py \
-	test/ganeti.utils.x509_unittest.py \
-	test/ganeti.utils_unittest.py \
-	test/ganeti.vcluster_unittest.py \
-	test/ganeti.workerpool_unittest.py \
-	test/pycurl_reset_unittest.py \
-	test/qa.qa_config_unittest.py \
-	test/tempfile_fork_unittest.py
+	test/py/cfgupgrade_unittest.py \
+	test/py/docs_unittest.py \
+	test/py/ganeti.asyncnotifier_unittest.py \
+	test/py/ganeti.backend_unittest-runasroot.py \
+	test/py/ganeti.backend_unittest.py \
+	test/py/ganeti.bdev_unittest.py \
+	test/py/ganeti.cli_unittest.py \
+	test/py/ganeti.client.gnt_cluster_unittest.py \
+	test/py/ganeti.client.gnt_instance_unittest.py \
+	test/py/ganeti.client.gnt_job_unittest.py \
+	test/py/ganeti.cmdlib_unittest.py \
+	test/py/ganeti.compat_unittest.py \
+	test/py/ganeti.confd.client_unittest.py \
+	test/py/ganeti.config_unittest.py \
+	test/py/ganeti.constants_unittest.py \
+	test/py/ganeti.daemon_unittest.py \
+	test/py/ganeti.errors_unittest.py \
+	test/py/ganeti.hooks_unittest.py \
+	test/py/ganeti.ht_unittest.py \
+	test/py/ganeti.http_unittest.py \
+	test/py/ganeti.hypervisor.hv_chroot_unittest.py \
+	test/py/ganeti.hypervisor.hv_fake_unittest.py \
+	test/py/ganeti.hypervisor.hv_kvm_unittest.py \
+	test/py/ganeti.hypervisor.hv_lxc_unittest.py \
+	test/py/ganeti.hypervisor.hv_xen_unittest.py \
+	test/py/ganeti.hypervisor_unittest.py \
+	test/py/ganeti.impexpd_unittest.py \
+	test/py/ganeti.jqueue_unittest.py \
+	test/py/ganeti.jstore_unittest.py \
+	test/py/ganeti.locking_unittest.py \
+	test/py/ganeti.luxi_unittest.py \
+	test/py/ganeti.masterd.iallocator_unittest.py \
+	test/py/ganeti.masterd.instance_unittest.py \
+	test/py/ganeti.mcpu_unittest.py \
+	test/py/ganeti.netutils_unittest.py \
+	test/py/ganeti.objects_unittest.py \
+	test/py/ganeti.objectutils_unittest.py \
+	test/py/ganeti.opcodes_unittest.py \
+	test/py/ganeti.ovf_unittest.py \
+	test/py/ganeti.qlang_unittest.py \
+	test/py/ganeti.query_unittest.py \
+	test/py/ganeti.rapi.baserlib_unittest.py \
+	test/py/ganeti.rapi.client_unittest.py \
+	test/py/ganeti.rapi.resources_unittest.py \
+	test/py/ganeti.rapi.rlib2_unittest.py \
+	test/py/ganeti.rapi.testutils_unittest.py \
+	test/py/ganeti.rpc_unittest.py \
+	test/py/ganeti.runtime_unittest.py \
+	test/py/ganeti.serializer_unittest.py \
+	test/py/ganeti.server.rapi_unittest.py \
+	test/py/ganeti.ssconf_unittest.py \
+	test/py/ganeti.ssh_unittest.py \
+	test/py/ganeti.storage_unittest.py \
+	test/py/ganeti.tools.ensure_dirs_unittest.py \
+	test/py/ganeti.tools.node_daemon_setup_unittest.py \
+	test/py/ganeti.tools.prepare_node_join_unittest.py \
+	test/py/ganeti.uidpool_unittest.py \
+	test/py/ganeti.utils.algo_unittest.py \
+	test/py/ganeti.utils.filelock_unittest.py \
+	test/py/ganeti.utils.hash_unittest.py \
+	test/py/ganeti.utils.io_unittest-runasroot.py \
+	test/py/ganeti.utils.io_unittest.py \
+	test/py/ganeti.utils.log_unittest.py \
+	test/py/ganeti.utils.mlock_unittest.py \
+	test/py/ganeti.utils.nodesetup_unittest.py \
+	test/py/ganeti.utils.process_unittest.py \
+	test/py/ganeti.utils.retry_unittest.py \
+	test/py/ganeti.utils.text_unittest.py \
+	test/py/ganeti.utils.wrapper_unittest.py \
+	test/py/ganeti.utils.x509_unittest.py \
+	test/py/ganeti.utils_unittest.py \
+	test/py/ganeti.vcluster_unittest.py \
+	test/py/ganeti.workerpool_unittest.py \
+	test/py/pycurl_reset_unittest.py \
+	test/py/qa.qa_config_unittest.py \
+	test/py/tempfile_fork_unittest.py
 
 haskell_tests = htest/test
 
 dist_TESTS = \
-	test/check-cert-expired_unittest.bash \
-	test/daemon-util_unittest.bash \
-	test/ganeti-cleaner_unittest.bash \
-	test/import-export_unittest.bash \
-	test/cli-test.bash \
-	test/bash_completion.bash \
+	test/py/check-cert-expired_unittest.bash \
+	test/py/daemon-util_unittest.bash \
+	test/py/ganeti-cleaner_unittest.bash \
+	test/py/import-export_unittest.bash \
+	test/py/cli-test.bash \
+	test/py/bash_completion.bash \
 	$(python_tests)
 
 nodist_TESTS =
@@ -1099,12 +1100,12 @@ all_python_code = \
 
 srclink_files = \
 	man/footer.rst \
-	test/check-cert-expired_unittest.bash \
-	test/daemon-util_unittest.bash \
-	test/ganeti-cleaner_unittest.bash \
-	test/import-export_unittest.bash \
-	test/cli-test.bash \
-	test/bash_completion.bash \
+	test/py/check-cert-expired_unittest.bash \
+	test/py/daemon-util_unittest.bash \
+	test/py/ganeti-cleaner_unittest.bash \
+	test/py/import-export_unittest.bash \
+	test/py/cli-test.bash \
+	test/py/bash_completion.bash \
 	htest/offline-test.sh \
 	htest/cli-tests-defs.sh \
 	$(all_python_code) \
@@ -1145,11 +1146,11 @@ pep8_python_code = \
 	$(PYTHON_BOOTSTRAP) \
 	qa
 
-test/daemon-util_unittest.bash: daemons/daemon-util
+test/py/daemon-util_unittest.bash: daemons/daemon-util
 
-test/ganeti-cleaner_unittest.bash: daemons/ganeti-cleaner
+test/py/ganeti-cleaner_unittest.bash: daemons/ganeti-cleaner
 
-test/bash_completion.bash: doc/examples/bash_completion-debug
+test/py/bash_completion.bash: doc/examples/bash_completion-debug
 
 tools/kvm-ifup: tools/kvm-ifup.in $(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@

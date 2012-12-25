@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 
-# Copyright (C) 2010 Google Inc.
+# Copyright (C) 2010, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -144,7 +144,7 @@ cat $(get_testfile proc_drbd8.txt) $(get_testfile cert1.pem) > $testdata
 } > $largetestdata
 
 impexpd_helper() {
-  $PYTHON $(get_testpath)/import-export_unittest-helper "$@"
+  $PYTHON $(get_testpath)/py/import-export_unittest-helper "$@"
 }
 
 start_test() {
