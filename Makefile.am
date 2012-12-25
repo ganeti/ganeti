@@ -54,7 +54,7 @@ myexeclibdir = $(pkglibdir)
 # Delete output file if an error occurred while building it
 .DELETE_ON_ERROR:
 
-HTOOLS_DIRS = \
+HS_DIRS = \
 	src \
 	src/Ganeti \
 	src/Ganeti/Block \
@@ -76,7 +76,7 @@ HTOOLS_DIRS = \
 	htest/Test/Ganeti/Query
 
 DIRS = \
-	$(HTOOLS_DIRS) \
+	$(HS_DIRS) \
 	autotools \
 	daemons \
 	devel \
@@ -161,8 +161,8 @@ maintainer-clean-local:
 
 CLEANFILES = \
 	$(addsuffix /*.py[co],$(DIRS)) \
-	$(addsuffix /*.hi,$(HTOOLS_DIRS)) \
-	$(addsuffix /*.o,$(HTOOLS_DIRS)) \
+	$(addsuffix /*.hi,$(HS_DIRS)) \
+	$(addsuffix /*.o,$(HS_DIRS)) \
 	$(PYTHON_BOOTSTRAP) \
 	epydoc.conf \
 	$(REPLACE_VARS_SED) \
@@ -191,11 +191,11 @@ GENERATED_FILES = \
 	$(BUILT_PYTHON_SOURCES) \
 	$(PYTHON_BOOTSTRAP)
 
-HTOOLS_GENERATED_FILES =
+HS_GENERATED_FILES =
 if WANT_HTOOLS
-HTOOLS_GENERATED_FILES += $(HS_PROGS)
+HS_GENERATED_FILES += $(HS_PROGS)
 if ENABLE_CONFD
-HTOOLS_GENERATED_FILES += src/hconfd src/ganeti-confd
+HS_GENERATED_FILES += src/hconfd src/ganeti-confd
 endif
 endif
 
@@ -670,7 +670,7 @@ install-exec-hook:
 endif
 
 $(HS_ALL_PROGS): %: %.hs $(HS_LIBTEST_SRCS) $(HS_BUILT_SRCS) Makefile
-	@if [ "$(notdir $@)" = "test" ] && [ "$(HTOOLS_NODEV)" ]; then \
+	@if [ "$(notdir $@)" = "test" ] && [ "$(HS_NODEV)" ]; then \
 	  echo "Error: cannot run unittests without the development" \
 	       " libraries (see devnotes.rst)" 1>&2; \
 	  exit 1; \
@@ -678,7 +678,7 @@ $(HS_ALL_PROGS): %: %.hs $(HS_LIBTEST_SRCS) $(HS_BUILT_SRCS) Makefile
 	@rm -f $(notdir $@).tix
 	$(GHC) --make \
 	  $(HFLAGS) \
-	  $(HTOOLS_NOCURL) $(HTOOLS_PARALLEL3) $(HTOOLS_REGEX_PCRE) \
+	  $(HS_NOCURL) $(HS_PARALLEL3) $(HS_REGEX_PCRE) \
 	  -osuf $(notdir $@).o -hisuf $(notdir $@).hi \
 	  $(HEXTRA) $(HEXTRA_INT) $@
 	@touch "$@"
@@ -1053,7 +1053,7 @@ dist_TESTS = \
 nodist_TESTS =
 check_SCRIPTS =
 
-if WANT_HTOOLSTESTS
+if WANT_HSTESTS
 nodist_TESTS += $(haskell_tests)
 dist_TESTS += htest/offline-test.sh
 check_SCRIPTS += \
@@ -1173,7 +1173,7 @@ doc/examples/bash_completion doc/examples/bash_completion-debug: \
 	$(BUILD_BASH_COMPLETION) $(RUN_IN_TEMPDIR) \
 	lib/cli.py $(gnt_scripts) $(client_PYTHON) tools/burnin \
 	daemons/ganeti-cleaner \
-	$(GENERATED_FILES) $(HTOOLS_GENERATED_FILES)
+	$(GENERATED_FILES) $(HS_GENERATED_FILES)
 	PYTHONPATH=. $(RUN_IN_TEMPDIR) \
 	  $(CURDIR)/$(BUILD_BASH_COMPLETION) $(BC_ARGS) > $@
 
@@ -1685,7 +1685,7 @@ install-exec-local:
 	  "$(DESTDIR)${localstatedir}/run/ganeti"
 
 .PHONY: apidoc
-if WANT_HTOOLSAPIDOC
+if WANT_HSAPIDOC
 apidoc: py-apidoc hs-apidoc
 else
 apidoc: py-apidoc
@@ -1713,15 +1713,15 @@ hs-apidoc: $(HS_BUILT_SRCS)
 	$(LN_S) ../hscolour.css $(APIDOC_HS_DIR)/Ganeti/Confd/hscolour.css
 	set -e ; \
 	cd src; \
-	if [ "$(HTOOLS_NOCURL)" ]; \
-	then OPTGHC="--optghc=$(HTOOLS_NOCURL)"; \
+	if [ "$(HS_NOCURL)" ]; \
+	then OPTGHC="--optghc=$(HS_NOCURL)"; \
 	else OPTGHC=""; \
 	fi; \
-	if [ "$(HTOOLS_PARALLEL3)" ]; \
-	then OPTGHC="$$OPTGHC --optghc=$(HTOOLS_PARALLEL3)"; \
+	if [ "$(HS_PARALLEL3)" ]; \
+	then OPTGHC="$$OPTGHC --optghc=$(HS_PARALLEL3)"; \
 	fi; \
-	if [ "$(HTOOLS_REGEX_PCRE)" ]; \
-	then OPTGHC="$$OPTGHC --optghc=$(HTOOLS_REGEX_PCRE)"; \
+	if [ "$(HS_REGEX_PCRE)" ]; \
+	then OPTGHC="$$OPTGHC --optghc=$(HS_REGEX_PCRE)"; \
 	fi; \
 	RELSRCS="$(HS_LIB_SRCS:src/%=%) $(patsubst src/%,%,$(filter src/%,$(HS_BUILT_SRCS)))"; \
 	for file in $$RELSRCS; do \
@@ -1740,7 +1740,7 @@ TAGS: $(GENERATED_FILES)
 	rm -f TAGS
 	$(GHC) -e ":etags" -v0 \
 	  $(filter-out -O -Werror,$(HFLAGS)) \
-	  $(HTOOLS_NOCURL) $(HTOOLS_PARALLEL3) $(HTOOLS_REGEX_PCRE) \
+	  $(HS_NOCURL) $(HS_PARALLEL3) $(HS_REGEX_PCRE) \
 	  $(HS_LIBTEST_SRCS)
 	find . -path './lib/*.py' -o -path './scripts/gnt-*' -o \
 	  -path './daemons/ganeti-*' -o -path './tools/*' -o \

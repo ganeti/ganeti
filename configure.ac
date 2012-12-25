@@ -476,10 +476,10 @@ fi
 
 # check for modules, first custom/special checks
 AC_MSG_NOTICE([checking for required haskell modules])
-HTOOLS_NOCURL=-DNO_CURL
+HS_NOCURL=-DNO_CURL
 if test "$enable_htools_rapi" != no; then
-  AC_GHC_PKG_CHECK([curl], [HTOOLS_NOCURL=], [])
-  if test -n "$HTOOLS_NOCURL"; then
+  AC_GHC_PKG_CHECK([curl], [HS_NOCURL=], [])
+  if test -n "$HS_NOCURL"; then
     if test "$enable_htools_rapi" = check; then
       AC_MSG_WARN(m4_normalize([The curl library was not found, Haskell
                                 code will be compiled without RAPI support]))
@@ -491,12 +491,12 @@ if test "$enable_htools_rapi" != no; then
     AC_MSG_NOTICE([Enabling curl/RAPI/RPC usage in Haskell code])
   fi
 fi
-AC_SUBST(HTOOLS_NOCURL)
+AC_SUBST(HS_NOCURL)
 
-HTOOLS_PARALLEL3=
-AC_GHC_PKG_CHECK([parallel-3.*], [HTOOLS_PARALLEL3=-DPARALLEL3],
+HS_PARALLEL3=
+AC_GHC_PKG_CHECK([parallel-3.*], [HS_PARALLEL3=-DPARALLEL3],
                  [AC_GHC_PKG_REQUIRE(parallel)], t)
-AC_SUBST(HTOOLS_PARALLEL3)
+AC_SUBST(HS_PARALLEL3)
 
 # and now standard modules
 AC_GHC_PKG_REQUIRE(json)
@@ -506,11 +506,11 @@ AC_GHC_PKG_REQUIRE(bytestring)
 AC_GHC_PKG_REQUIRE(utf8-string)
 
 # extra modules for confd functionality
-HTOOLS_REGEX_PCRE=-DNO_REGEX_PCRE
+HS_REGEX_PCRE=-DNO_REGEX_PCRE
 has_confd=False
 if test "$enable_confd" != no; then
   CONFD_PKG=
-  AC_GHC_PKG_CHECK([regex-pcre], [HTOOLS_REGEX_PCRE=],
+  AC_GHC_PKG_CHECK([regex-pcre], [HS_REGEX_PCRE=],
                    [CONFD_PKG="$CONFD_PKG regex-pcre"])
   AC_GHC_PKG_CHECK([hslogger], [], [CONFD_PKG="$CONFD_PKG hslogger"])
   AC_GHC_PKG_CHECK([Crypto], [], [CONFD_PKG="$CONFD_PKG Crypto"])
@@ -528,7 +528,7 @@ if test "$enable_confd" != no; then
                                  $CONFD_PKG]))
   fi
 fi
-AC_SUBST(HTOOLS_REGEX_PCRE)
+AC_SUBST(HS_REGEX_PCRE)
 if test "$has_confd" = True; then
   AC_MSG_NOTICE([Enabling confd usage])
 fi
@@ -560,24 +560,24 @@ AC_SUBST(ENABLE_MONITORING, $has_monitoring)
 AM_CONDITIONAL([ENABLE_MONITORING], [test "$has_monitoring" = True])
 
 # development modules
-HTOOLS_NODEV=
-AC_GHC_PKG_CHECK([QuickCheck-2.*], [], [HTOOLS_NODEV=1], t)
-AC_GHC_PKG_CHECK([test-framework-0.6*], [], [HTOOLS_NODEV=1], t)
-AC_GHC_PKG_CHECK([test-framework-hunit], [], [HTOOLS_NODEV=1])
-AC_GHC_PKG_CHECK([test-framework-quickcheck2], [], [HTOOLS_NODEV=1])
-AC_GHC_PKG_CHECK([temporary], [], [HTOOLS_NODEV=1])
+HS_NODEV=
+AC_GHC_PKG_CHECK([QuickCheck-2.*], [], [HS_NODEV=1], t)
+AC_GHC_PKG_CHECK([test-framework-0.6*], [], [HS_NODEV=1], t)
+AC_GHC_PKG_CHECK([test-framework-hunit], [], [HS_NODEV=1])
+AC_GHC_PKG_CHECK([test-framework-quickcheck2], [], [HS_NODEV=1])
+AC_GHC_PKG_CHECK([temporary], [], [HS_NODEV=1])
 # FIXME: unify checks for non-test libraries (attoparsec, hinotify, ...)
 #        that are needed to execute the tests, avoiding the duplication
 #        of the checks.
-AC_GHC_PKG_CHECK([attoparsec], [], [HTOOLS_NODEV=1])
-AC_GHC_PKG_CHECK([vector], [], [HTOOLS_NODEV=1])
-if test -n "$HTOOLS_NODEV"; then
+AC_GHC_PKG_CHECK([attoparsec], [], [HS_NODEV=1])
+AC_GHC_PKG_CHECK([vector], [], [HS_NODEV=1])
+if test -n "$HS_NODEV"; then
    AC_MSG_WARN(m4_normalize([Required development modules were not found,
                              you won't be able to run Haskell unittests]))
 else
    AC_MSG_NOTICE([Haskell development modules found, unittests enabled])
 fi
-AC_SUBST(HTOOLS_NODEV)
+AC_SUBST(HS_NODEV)
 
 HTOOLS=yes
 AC_SUBST(HTOOLS)
@@ -600,7 +600,7 @@ AC_ARG_ENABLE([split-query],
         ;;
     esac
   ]],
-  [[case "x${has_confd}x${HTOOLS_NOCURL}x" in
+  [[case "x${has_confd}x${HS_NOCURL}x" in
      xTruexx)
        enable_split_query=True
        ;;
@@ -614,7 +614,7 @@ if test x$enable_split_query = xTrue -a x$has_confd != xTrue; then
   AC_MSG_ERROR([Split queries require the confd daemon])
 fi
 
-if test x$enable_split_query = xTrue -a x$HTOOLS_NOCURL != x; then
+if test x$enable_split_query = xTrue -a x$HS_NOCURL != x; then
   AC_MSG_ERROR([Split queries require the htools-rapi feature (curl library)])
 fi
 
@@ -623,7 +623,7 @@ if test x$enable_split_query = xTrue; then
 fi
 
 # Check for HsColour
-HTOOLS_APIDOC=no
+HS_APIDOC=no
 AC_ARG_VAR(HSCOLOUR, [HsColour path])
 AC_PATH_PROG(HSCOLOUR, [HsColour], [])
 if test -z "$HSCOLOUR"; then
@@ -639,9 +639,9 @@ if test -z "$HADDOCK"; then
                             not be generated]))
 fi
 if test -n "$HADDOCK" && test -n "$HSCOLOUR"; then
-  HTOOLS_APIDOC=yes
+  HS_APIDOC=yes
 fi
-AC_SUBST(HTOOLS_APIDOC)
+AC_SUBST(HS_APIDOC)
 
 # Check for hlint
 AC_ARG_VAR(HLINT, [hlint path])
@@ -656,8 +656,8 @@ if test "$HTOOLS" != yes && test "$ENABLE_CONFD" = True; then
 fi
 
 AM_CONDITIONAL([WANT_HTOOLS], [test "$HTOOLS" = yes])
-AM_CONDITIONAL([WANT_HTOOLSTESTS], [test "x$HTOOLS_NODEV" = x])
-AM_CONDITIONAL([WANT_HTOOLSAPIDOC], [test "$HTOOLS_APIDOC" = yes])
+AM_CONDITIONAL([WANT_HSTESTS], [test "x$HS_NODEV" = x])
+AM_CONDITIONAL([WANT_HSAPIDOC], [test "$HS_APIDOC" = yes])
 AM_CONDITIONAL([HAS_HLINT], [test "$HLINT"])
 
 # Check for fakeroot
