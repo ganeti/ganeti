@@ -97,7 +97,7 @@
 /test/hs/hspace
 /test/hs/hpc-htools
 /test/hs/hpc-mon-collector
-/test/hs/test
+/test/hs/htest
 
 # tools
 /tools/kvm-ifup

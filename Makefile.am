@@ -417,7 +417,7 @@ HS_ALL_PROGS = \
 	$(HS_PROGS) \
 	test/hs/hpc-htools \
 	test/hs/hpc-mon-collector \
-	test/hs/test \
+	test/hs/htest \
 	src/hconfd \
 	src/rpc-test
 
@@ -432,7 +432,7 @@ HFLAGS = \
 
 # extra flags that can be overriden on the command line (e.g. -Wwarn, etc.)
 HEXTRA =
-# internal extra flags (used for test/hs/test mainly)
+# internal extra flags (used for test/hs/htest mainly)
 HEXTRA_INT =
 # exclude options for coverage reports
 HPCEXCL = --exclude Main \
@@ -684,8 +684,8 @@ $(HS_ALL_PROGS): %: %.hs $(HS_LIBTEST_SRCS) $(HS_BUILT_SRCS) Makefile
 	  $(HEXTRA) $(HEXTRA_INT) $@
 	@touch "$@"
 
-# for the test/hs/test binary, we need to enable profiling/coverage
-test/hs/test: HEXTRA_INT=-fhpc -itest/hs
+# for the test/hs/htest binary, we need to enable profiling/coverage
+test/hs/htest: HEXTRA_INT=-fhpc -itest/hs
 
 # we compile the hpc-htools binary with the program coverage
 test/hs/hpc-htools: HEXTRA_INT=-fhpc
@@ -1040,7 +1040,7 @@ python_tests = \
 	test/py/qa.qa_config_unittest.py \
 	test/py/tempfile_fork_unittest.py
 
-haskell_tests = test/hs/test
+haskell_tests = test/hs/htest
 
 dist_TESTS = \
 	test/py/check-cert-expired_unittest.bash \
@@ -1552,10 +1552,10 @@ check-local: check-dirs $(GENERATED_FILES)
 	test -z "$$error"
 
 .PHONY: hs-check
-hs-check: test/hs/test test/hs/hpc-htools test/hs/hpc-mon-collector $(HS_BUILT_TEST_HELPERS) \
+hs-check: test/hs/htest test/hs/hpc-htools test/hs/hpc-mon-collector $(HS_BUILT_TEST_HELPERS) \
 	| $(BUILT_PYTHON_SOURCES)
 	@rm -f *.tix
-	./test/hs/test
+	./test/hs/htest
 	HBINARY="./test/hs/hpc-htools" ./test/hs/offline-test.sh
 
 # E111: indentation is not a multiple of four
@@ -1773,7 +1773,7 @@ hs-coverage: $(haskell_tests) test/hs/hpc-htools test/hs/hpc-mon-collector
 	$(MAKE) $(AM_MAKEFLAGS) hs-check
 	@mkdir_p@ $(COVERAGE_HS_DIR)
 	hpc sum --union $(HPCEXCL) \
-	  test.tix hpc-htools.tix hpc-mon-collector.tix > coverage-htools.tix
+	  htest.tix hpc-htools.tix hpc-mon-collector.tix > coverage-htools.tix
 	hpc markup --destdir=$(COVERAGE_HS_DIR) coverage-htools.tix
 	hpc report coverage-htools.tix
 	$(LN_S) -f hpc_index.html $(COVERAGE_HS_DIR)/index.html
