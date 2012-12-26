@@ -1,0 +1,15 @@
+./test/hs/hbal $BACKEND_EXCL --exclude-instances no-such-instance
+>>>2 /Unknown instance/
+>>>= !0
+
+./test/hs/hbal $BACKEND_EXCL --select-instances no-such-instances
+>>>2 /Unknown instance/
+>>>= !0
+
+./test/hs/hbal $BACKEND_EXCL --exclude-instances new-0 --select-instances new-1
+>>>= 0
+
+# Test exclusion tags too (both from the command line and cluster tags).
+./test/hs/hbal -t $TESTDATA_DIR/hbal-excl-tags.data --exclusion-tags test
+>>> /Cluster score improved/
+>>>= 0

@@ -87,17 +87,17 @@
 /man/*.gen
 /man/footer.man
 
-# htest
-/htest/hail
-/htest/hbal
-/htest/hcheck
-/htest/hinfo
-/htest/hroller
-/htest/hscan
-/htest/hspace
-/htest/hpc-htools
-/htest/hpc-mon-collector
-/htest/test
+# test/hs
+/test/hs/hail
+/test/hs/hbal
+/test/hs/hcheck
+/test/hs/hinfo
+/test/hs/hroller
+/test/hs/hscan
+/test/hs/hspace
+/test/hs/hpc-htools
+/test/hs/hpc-mon-collector
+/test/hs/test
 
 # tools
 /tools/kvm-ifup
@@ -129,4 +129,4 @@
 # automatically-built Haskell files
 /src/Ganeti/Constants.hs
 /src/Ganeti/Version.hs
-/htest/Test/Ganeti/TestImports.hs
+/test/hs/Test/Ganeti/TestImports.hs

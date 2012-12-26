@@ -1,0 +1,19 @@
+echo a > $T/dynu; ./test/hs/hbal -U $T/dynu $BACKEND_DYNU
+>>>2 /Cannot parse line/
+>>>= !0
+
+echo a b c d e f g h > $T/dynu; ./test/hs/hbal -U $T/dynu $BACKEND_DYNU
+>>>2 /Cannot parse line/
+>>>= !0
+
+echo inst cpu mem dsk net >$T/dynu; ./test/hs/hbal -U $T/dynu $BACKEND_DYNU
+>>>2 /cannot parse string '(cpu|mem|dsk|net)'/
+>>>= !0
+
+# unknown instances are currently just ignored
+echo no-such-inst 2 2 2 2 > $T/dynu; ./test/hs/hbal -U $T/dynu $BACKEND_DYNU
+>>>= 0
+
+# new-0 is the name of the first instance allocated by hspace
+echo new-0 2 2 2 2 > $T/dynu; ./test/hs/hbal -U $T/dynu $BACKEND_DYNU
+>>>= 0

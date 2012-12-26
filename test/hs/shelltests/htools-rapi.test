@@ -1,8 +1,8 @@
 # test loading data via RAPI
-./htest/hinfo -v -v -p --print-instances -m $RAPI_URL
+./test/hs/hinfo -v -v -p --print-instances -m $RAPI_URL
 >>>= 0
 
-./htest/hbal -v -v -p --print-instances -m $RAPI_URL
+./test/hs/hbal -v -v -p --print-instances -m $RAPI_URL
 >>>= 0
 
 # this compares generated files from hscan

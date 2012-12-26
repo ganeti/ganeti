@@ -298,5 +298,5 @@ readPythonTestData filename = do
 -- | Returns the content of the specified haskell test data file.
 readTestData :: String -> IO String
 readTestData filename = do
-    name <- testDataFilename "/htest/data/" filename
+    name <- testDataFilename "/test/data/htools/" filename
     readFile name

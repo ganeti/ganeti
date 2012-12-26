@@ -19,9 +19,9 @@
 
 # This is an shell testing configuration fragment.
 
-HBINARY=${HBINARY:-./htest/hpc-htools}
+HBINARY=${HBINARY:-./test/hs/hpc-htools}
 
-export TESTDATA_DIR=${TOP_SRCDIR:-.}/htest/data
+export TESTDATA_DIR=${TOP_SRCDIR:-.}/test/data/htools
 export PYTESTDATA_DIR=${TOP_SRCDIR:-.}/test/data
 
 hbal() {

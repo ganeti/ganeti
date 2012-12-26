@@ -1,47 +1,47 @@
 # standard multi-group tests
-./htest/hinfo -v -v -p --print-instances -t$T/simu-twogroups.standard
+./test/hs/hinfo -v -v -p --print-instances -t$T/simu-twogroups.standard
 >>>= 0
-./htest/hbal -t$T/simu-twogroups.standard
+./test/hs/hbal -t$T/simu-twogroups.standard
 >>>= !0
 
 # hbal should not be able to balance
-./htest/hbal -t$T/simu-twogroups.standard
+./test/hs/hbal -t$T/simu-twogroups.standard
 >>>2 /Found multiple node groups/
 >>>= !0
 
 # but hbal should be able to balance one node group
-./htest/hbal -t$T/simu-twogroups.standard -G group-01
+./test/hs/hbal -t$T/simu-twogroups.standard -G group-01
 >>>= 0
 # and it should not find an invalid group
-./htest/hbal -t$T/simu-twogroups.standard -G no-such-group
+./test/hs/hbal -t$T/simu-twogroups.standard -G no-such-group
 >>>= !0
 
 # tiered allocs multi-group tests
-./htest/hinfo -v -v -p --print-instances -t$T/simu-twogroups.tiered
+./test/hs/hinfo -v -v -p --print-instances -t$T/simu-twogroups.tiered
 >>>= 0
-./htest/hbal -t$T/simu-twogroups.tiered
+./test/hs/hbal -t$T/simu-twogroups.tiered
 >>>= !0
 
 # hbal should not be able to balance
-./htest/hbal -t$T/simu-twogroups.tiered
+./test/hs/hbal -t$T/simu-twogroups.tiered
 >>>2 /Found multiple node groups/
 >>>= !0
 
 # but hbal should be able to balance one node group
-./htest/hbal -t$T/simu-twogroups.tiered -G group-01
+./test/hs/hbal -t$T/simu-twogroups.tiered -G group-01
 >>>= 0
 # and it should not find an invalid group
-./htest/hbal -t$T/simu-twogroups.tiered -G no-such-group
+./test/hs/hbal -t$T/simu-twogroups.tiered -G no-such-group
 >>>= !0
 
 # hcheck should be able to run with multiple groups
-./htest/hcheck -t$T/simu-twogroups.tiered --machine-readable
+./test/hs/hcheck -t$T/simu-twogroups.tiered --machine-readable
 >>> /HCHECK_OK=1/
 >>>= 0
 
 # hcheck should be able to improve a group with split instances, and also
 # warn us about them
-./htest/hbal -t $TESTDATA_DIR/hbal-split-insts.data -G group-01 -O node-01-001 -v
+./test/hs/hbal -t $TESTDATA_DIR/hbal-split-insts.data -G group-01 -O node-01-001 -v
 >>> /Cluster score improved from .* to .*/
 >>>2/Found instances belonging to multiple node groups:/
 >>>= 0

@@ -1,32 +1,32 @@
 ### std tests
 
 # test basic parsing
-./htest/hinfo -v -v -p --print-instances $BACKEND_BAL_STD
+./test/hs/hinfo -v -v -p --print-instances $BACKEND_BAL_STD
 >>>= 0
-./htest/hbal -v -v -v -p --print-instances $BACKEND_BAL_STD -G group-01
+./test/hs/hbal -v -v -v -p --print-instances $BACKEND_BAL_STD -G group-01
 >>> !/(Nothing to do, exiting|No solution found)/
 >>>2 !/(Nothing to do, exiting|No solution found)/
 >>>= 0
 
 # test command output
-./htest/hbal $BACKEND_BAL_STD -G group-01 -C -S $T/simu-rebal.standard
+./test/hs/hbal $BACKEND_BAL_STD -G group-01 -C -S $T/simu-rebal.standard
 >>> /gnt-instance (failover|migrate|replace-disks)/
 >>>= 0
 
 # test that hbal won't execute rebalances when using the text backend
-./htest/hbal $BACKEND_BAL_STD -G group-01 -X
+./test/hs/hbal $BACKEND_BAL_STD -G group-01 -X
 >>>2
 Error: hbal: Execution of commands possible only on LUXI
 >>>= !0
 
 # test that hbal won't execute any moves if we request an absurdly-high
 # minimum-improvement
-./htest/hbal $BACKEND_BAL_STD -G group-01 -C --min-gain 10000 --min-gain-limit 10000
+./test/hs/hbal $BACKEND_BAL_STD -G group-01 -C --min-gain 10000 --min-gain-limit 10000
 >>>/No solution found/
 >>>= 0
 
 # test saving commands
-./htest/hbal $BACKEND_BAL_STD -G group-01 -C$T/rebal-cmds.standard
+./test/hs/hbal $BACKEND_BAL_STD -G group-01 -C$T/rebal-cmds.standard
 >>>= 0
 # and now check the file (depends on previous test)
 cat $T/rebal-cmds.standard
@@ -40,32 +40,32 @@ diff -u $T/simu-rebal-merged.standard $T/simu-rebal.standard.original
 >>>= 0
 
 # no double rebalance; depends on previous test
-./htest/hbal -t $T/simu-rebal.standard.balanced -G group-01
+./test/hs/hbal -t $T/simu-rebal.standard.balanced -G group-01
 >>> /(Nothing to do, exiting|No solution found)/
 >>>= 0
 
 # hcheck sees no reason to rebalance after rebalancing was already done
-./htest/hcheck -t$T/simu-rebal.standard.balanced --machine-readable
+./test/hs/hcheck -t$T/simu-rebal.standard.balanced --machine-readable
 >>> /HCHECK_INIT_CLUSTER_NEED_REBALANCE=0/
 >>>= 0
 
 ### now tiered tests
 
 # test basic parsing
-./htest/hinfo -v -v -p --print-instances $BACKEND_BAL_TIER
+./test/hs/hinfo -v -v -p --print-instances $BACKEND_BAL_TIER
 >>>= 0
-./htest/hbal -v -v -v -p --print-instances $BACKEND_BAL_TIER -G group-01
+./test/hs/hbal -v -v -v -p --print-instances $BACKEND_BAL_TIER -G group-01
 >>> !/(Nothing to do, exiting|No solution found)/
 >>>2 !/(Nothing to do, exiting|No solution found)/
 >>>= 0
 
 # test command output
-./htest/hbal $BACKEND_BAL_TIER -G group-01 -C -S $T/simu-rebal.tiered
+./test/hs/hbal $BACKEND_BAL_TIER -G group-01 -C -S $T/simu-rebal.tiered
 >>> /gnt-instance (failover|migrate|replace-disks)/
 >>>= 0
 
 # test saving commands
-./htest/hbal $BACKEND_BAL_TIER -G group-01 -C$T/rebal-cmds.tiered
+./test/hs/hbal $BACKEND_BAL_TIER -G group-01 -C$T/rebal-cmds.tiered
 >>>= 0
 # and now check the file (depends on previous test)
 cat $T/rebal-cmds.tiered
@@ -79,45 +79,45 @@ diff -u $T/simu-rebal-merged.tiered $T/simu-rebal.tiered.original
 >>>= 0
 
 # no double rebalance; depends on previous test
-./htest/hbal -t $T/simu-rebal.tiered.balanced -G group-01
+./test/hs/hbal -t $T/simu-rebal.tiered.balanced -G group-01
 >>> /(Nothing to do, exiting|No solution found)/
 >>>= 0
 
 ### now some other custom tests
 
 # n+1 bad instances are reported as such
-./htest/hbal -t$TESTDATA_DIR/n1-failure.data -G group-01
+./test/hs/hbal -t$TESTDATA_DIR/n1-failure.data -G group-01
 >>>/Initial check done: 4 bad nodes, 8 bad instances./
 >>>=0
 
 # same test again, different message check (shelltest can't test multiple
 # messages via regexp
-./htest/hbal -t$TESTDATA_DIR/n1-failure.data -G group-01
+./test/hs/hbal -t$TESTDATA_DIR/n1-failure.data -G group-01
 >>>/Cluster is not N\+1 happy, continuing but no guarantee that the cluster will end N\+1 happy./
 >>>2
 >>>=0
 
 # and hcheck should report this as needs rebalancing
-./htest/hcheck -t$TESTDATA_DIR/n1-failure.data
+./test/hs/hcheck -t$TESTDATA_DIR/n1-failure.data
 >>>/Cluster needs rebalancing./
 >>>= 1
 
 # ... unless we request no-simulation mode
-./htest/hcheck -t$TESTDATA_DIR/n1-failure.data --no-simulation
+./test/hs/hcheck -t$TESTDATA_DIR/n1-failure.data --no-simulation
 >>>/Running in no-simulation mode./
 >>>= 0
 
 # and a clean cluster should be reported as such
-./htest/hcheck $BACKEND_BAL_STD
+./test/hs/hcheck $BACKEND_BAL_STD
 >>>/No need to rebalance cluster, no problems found./
 >>>= 0
 
 # ... and even one with non-zero score
-./htest/hcheck -t $TESTDATA_DIR/clean-nonzero-score.data
+./test/hs/hcheck -t $TESTDATA_DIR/clean-nonzero-score.data
 >>>/No need to rebalance cluster, no problems found./
 >>>= 0
 
 # hbal should work on empty groups as well
-./htest/hbal -t$TESTDATA_DIR/n1-failure.data -G group-02
+./test/hs/hbal -t$TESTDATA_DIR/n1-failure.data -G group-02
 >>>/Group size 0 nodes, 0 instances/
 >>>= 0

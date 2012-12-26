@@ -34,12 +34,12 @@ echo Using $T as temporary dir
 
 echo -n Generating hspace simulation data for hinfo and hbal...
 # this cluster spec should be fine
-./htest/hspace --simu p,4,8T,64g,16 -S $T/simu-onegroup \
+./test/hs/hspace --simu p,4,8T,64g,16 -S $T/simu-onegroup \
   --disk-template drbd -l 8 -v -v -v >/dev/null 2>&1
 echo OK
 
 echo -n Generating hinfo and hbal test files for multi-group...
-./htest/hspace --simu p,4,8T,64g,16 --simu p,4,8T,64g,16 \
+./test/hs/hspace --simu p,4,8T,64g,16 --simu p,4,8T,64g,16 \
   -S $T/simu-twogroups --disk-template drbd -l 8 >/dev/null 2>&1
 echo OK
 
@@ -48,7 +48,7 @@ echo -n Generating test files for rebalancing...
 # policy, then we change all nodes from this group to the allocable
 # one, and we check for rebalancing
 FROOT="$T/simu-rebal-orig"
-./htest/hspace --simu u,4,8T,64g,16 --simu p,4,8T,64g,16 \
+./test/hs/hspace --simu u,4,8T,64g,16 --simu p,4,8T,64g,16 \
   -S $FROOT --disk-template drbd -l 8 >/dev/null 2>&1
 for suffix in standard tiered; do
   RELOC="$T/simu-rebal-merged.$suffix"
@@ -75,19 +75,19 @@ echo OK
 echo -n Checking file-based RAPI...
 mkdir -p $T/hscan
 export RAPI_URL="file://$TESTDATA_DIR/rapi"
-./htest/hscan -d $T/hscan/ -p -v -v $RAPI_URL >/dev/null 2>&1
+./test/hs/hscan -d $T/hscan/ -p -v -v $RAPI_URL >/dev/null 2>&1
 # check that we file parsing is correct, i.e. hscan saves correct text
 # files, and is idempotent (rapi+text == rapi); more is tested in
 # shelltest later
 RAPI_TXT="$(ls $T/hscan/*.data|head -n1)"
-./htest/hinfo -p --print-instances -m $RAPI_URL > $T/hscan/direct.hinfo 2>&1
-./htest/hinfo -p --print-instances -t $RAPI_TXT > $T/hscan/fromtext.hinfo 2>&1
+./test/hs/hinfo -p --print-instances -m $RAPI_URL > $T/hscan/direct.hinfo 2>&1
+./test/hs/hinfo -p --print-instances -t $RAPI_TXT > $T/hscan/fromtext.hinfo 2>&1
 echo OK
 
 echo Running shelltest...
 
 shelltest $SHELLTESTARGS \
-  ${TOP_SRCDIR:-.}/htest/shelltests/htools-*.test \
+  ${TOP_SRCDIR:-.}/test/hs/shelltests/htools-*.test \
   -- --hide-successes
 
 echo All OK

@@ -65,15 +65,15 @@ HS_DIRS = \
 	src/Ganeti/HTools/Backend \
 	src/Ganeti/HTools/Program \
 	src/Ganeti/Query \
-	htest \
-	htest/Test \
-	htest/Test/Ganeti \
-	htest/Test/Ganeti/Block \
-	htest/Test/Ganeti/Block/Drbd \
-	htest/Test/Ganeti/Confd \
-	htest/Test/Ganeti/HTools \
-	htest/Test/Ganeti/HTools/Backend \
-	htest/Test/Ganeti/Query
+	test/hs \
+	test/hs/Test \
+	test/hs/Test/Ganeti \
+	test/hs/Test/Ganeti/Block \
+	test/hs/Test/Ganeti/Block/Drbd \
+	test/hs/Test/Ganeti/Confd \
+	test/hs/Test/Ganeti/HTools \
+	test/hs/Test/Ganeti/HTools/Backend \
+	test/hs/Test/Ganeti/Query
 
 DIRS = \
 	$(HS_DIRS) \
@@ -84,9 +84,9 @@ DIRS = \
 	doc/examples \
 	doc/examples/gnt-debug \
 	doc/examples/hooks \
-	htest/data \
-	htest/data/rapi \
-	htest/shelltests \
+	test/data/htools \
+	test/data/htools/rapi \
+	test/hs/shelltests \
 	lib \
 	lib/build \
 	lib/client \
@@ -184,7 +184,7 @@ CLEANFILES = \
 	$(HS_ALL_PROGS) $(HS_BUILT_SRCS) \
 	$(HS_BUILT_TEST_HELPERS) \
 	src/ganeti-confd \
-	.hpc/*.mix src/*.tix htest/*.tix \
+	.hpc/*.mix src/*.tix test/hs/*.tix \
 	doc/hs-lint.html
 
 GENERATED_FILES = \
@@ -415,14 +415,14 @@ HS_HTOOLS_PROGS = $(HS_BIN_ROLES) hail
 
 HS_ALL_PROGS = \
 	$(HS_PROGS) \
-	htest/hpc-htools \
-	htest/hpc-mon-collector \
-	htest/test \
+	test/hs/hpc-htools \
+	test/hs/hpc-mon-collector \
+	test/hs/test \
 	src/hconfd \
 	src/rpc-test
 
 HS_PROG_SRCS = $(patsubst %,%.hs,$(HS_ALL_PROGS))
-HS_BUILT_TEST_HELPERS = $(HS_BIN_ROLES:%=htest/%) htest/hail
+HS_BUILT_TEST_HELPERS = $(HS_BIN_ROLES:%=test/hs/%) test/hs/hail
 
 HFLAGS = \
 	-O -Wall -Werror -isrc \
@@ -432,7 +432,7 @@ HFLAGS = \
 
 # extra flags that can be overriden on the command line (e.g. -Wwarn, etc.)
 HEXTRA =
-# internal extra flags (used for htest/test mainly)
+# internal extra flags (used for test/hs/test mainly)
 HEXTRA_INT =
 # exclude options for coverage reports
 HPCEXCL = --exclude Main \
@@ -515,49 +515,49 @@ HS_LIB_SRCS = \
 	src/Ganeti/Utils.hs
 
 HS_TEST_SRCS = \
-	htest/Test/Ganeti/Attoparsec.hs \
-	htest/Test/Ganeti/BasicTypes.hs \
-	htest/Test/Ganeti/Block/Drbd/Parser.hs \
-	htest/Test/Ganeti/Block/Drbd/Types.hs \
-	htest/Test/Ganeti/Common.hs \
-	htest/Test/Ganeti/Confd/Types.hs \
-	htest/Test/Ganeti/Confd/Utils.hs \
-	htest/Test/Ganeti/Daemon.hs \
-	htest/Test/Ganeti/Errors.hs \
-	htest/Test/Ganeti/HTools/Backend/Simu.hs \
-	htest/Test/Ganeti/HTools/Backend/Text.hs \
-	htest/Test/Ganeti/HTools/CLI.hs \
-	htest/Test/Ganeti/HTools/Cluster.hs \
-	htest/Test/Ganeti/HTools/Container.hs \
-	htest/Test/Ganeti/HTools/Graph.hs \
-	htest/Test/Ganeti/HTools/Instance.hs \
-	htest/Test/Ganeti/HTools/Loader.hs \
-	htest/Test/Ganeti/HTools/Node.hs \
-	htest/Test/Ganeti/HTools/PeerMap.hs \
-	htest/Test/Ganeti/HTools/Types.hs \
-	htest/Test/Ganeti/JSON.hs \
-	htest/Test/Ganeti/Jobs.hs \
-	htest/Test/Ganeti/JQueue.hs \
-	htest/Test/Ganeti/Luxi.hs \
-	htest/Test/Ganeti/Network.hs \
-	htest/Test/Ganeti/Objects.hs \
-	htest/Test/Ganeti/OpCodes.hs \
-	htest/Test/Ganeti/Query/Filter.hs \
-	htest/Test/Ganeti/Query/Language.hs \
-	htest/Test/Ganeti/Query/Query.hs \
-	htest/Test/Ganeti/Rpc.hs \
-	htest/Test/Ganeti/Ssconf.hs \
-	htest/Test/Ganeti/THH.hs \
-	htest/Test/Ganeti/TestCommon.hs \
-	htest/Test/Ganeti/TestHTools.hs \
-	htest/Test/Ganeti/TestHelper.hs \
-	htest/Test/Ganeti/Types.hs \
-	htest/Test/Ganeti/Utils.hs
+	test/hs/Test/Ganeti/Attoparsec.hs \
+	test/hs/Test/Ganeti/BasicTypes.hs \
+	test/hs/Test/Ganeti/Block/Drbd/Parser.hs \
+	test/hs/Test/Ganeti/Block/Drbd/Types.hs \
+	test/hs/Test/Ganeti/Common.hs \
+	test/hs/Test/Ganeti/Confd/Types.hs \
+	test/hs/Test/Ganeti/Confd/Utils.hs \
+	test/hs/Test/Ganeti/Daemon.hs \
+	test/hs/Test/Ganeti/Errors.hs \
+	test/hs/Test/Ganeti/HTools/Backend/Simu.hs \
+	test/hs/Test/Ganeti/HTools/Backend/Text.hs \
+	test/hs/Test/Ganeti/HTools/CLI.hs \
+	test/hs/Test/Ganeti/HTools/Cluster.hs \
+	test/hs/Test/Ganeti/HTools/Container.hs \
+	test/hs/Test/Ganeti/HTools/Graph.hs \
+	test/hs/Test/Ganeti/HTools/Instance.hs \
+	test/hs/Test/Ganeti/HTools/Loader.hs \
+	test/hs/Test/Ganeti/HTools/Node.hs \
+	test/hs/Test/Ganeti/HTools/PeerMap.hs \
+	test/hs/Test/Ganeti/HTools/Types.hs \
+	test/hs/Test/Ganeti/JSON.hs \
+	test/hs/Test/Ganeti/Jobs.hs \
+	test/hs/Test/Ganeti/JQueue.hs \
+	test/hs/Test/Ganeti/Luxi.hs \
+	test/hs/Test/Ganeti/Network.hs \
+	test/hs/Test/Ganeti/Objects.hs \
+	test/hs/Test/Ganeti/OpCodes.hs \
+	test/hs/Test/Ganeti/Query/Filter.hs \
+	test/hs/Test/Ganeti/Query/Language.hs \
+	test/hs/Test/Ganeti/Query/Query.hs \
+	test/hs/Test/Ganeti/Rpc.hs \
+	test/hs/Test/Ganeti/Ssconf.hs \
+	test/hs/Test/Ganeti/THH.hs \
+	test/hs/Test/Ganeti/TestCommon.hs \
+	test/hs/Test/Ganeti/TestHTools.hs \
+	test/hs/Test/Ganeti/TestHelper.hs \
+	test/hs/Test/Ganeti/Types.hs \
+	test/hs/Test/Ganeti/Utils.hs
 
 HS_LIBTEST_SRCS = $(HS_LIB_SRCS) $(HS_TEST_SRCS)
 
 HS_BUILT_SRCS = \
-	htest/Test/Ganeti/TestImports.hs \
+	test/hs/Test/Ganeti/TestImports.hs \
 	src/Ganeti/Constants.hs \
 	src/Ganeti/Version.hs
 HS_BUILT_SRCS_IN = $(patsubst %,%.in,$(HS_BUILT_SRCS))
@@ -684,17 +684,17 @@ $(HS_ALL_PROGS): %: %.hs $(HS_LIBTEST_SRCS) $(HS_BUILT_SRCS) Makefile
 	  $(HEXTRA) $(HEXTRA_INT) $@
 	@touch "$@"
 
-# for the htest/test binary, we need to enable profiling/coverage
-htest/test: HEXTRA_INT=-fhpc -ihtest
+# for the test/hs/test binary, we need to enable profiling/coverage
+test/hs/test: HEXTRA_INT=-fhpc -itest/hs
 
 # we compile the hpc-htools binary with the program coverage
-htest/hpc-htools: HEXTRA_INT=-fhpc
+test/hs/hpc-htools: HEXTRA_INT=-fhpc
 
 # we compile the hpc-mon-collector binary with the program coverage
-htest/hpc-mon-collector: HEXTRA_INT=-fhpc
+test/hs/hpc-mon-collector: HEXTRA_INT=-fhpc
 
 # test dependency
-htest/offline-tests.sh: htest/hpc-htools htest/hpc-mon-collector
+test/hs/offline-tests.sh: test/hs/hpc-htools test/hs/hpc-mon-collector
 
 # rules for building profiling-enabled versions of the haskell
 # programs: hs-prof does the full two-step build, whereas
@@ -828,8 +828,8 @@ EXTRA_DIST = \
 	$(HS_LIBTEST_SRCS) $(HS_BUILT_SRCS_IN) \
 	$(HS_PROG_SRCS) \
 	src/lint-hints.hs \
-	htest/cli-tests-defs.sh \
-	htest/offline-test.sh \
+	test/hs/cli-tests-defs.sh \
+	test/hs/offline-test.sh \
 	.ghci
 
 man_MANS = \
@@ -872,36 +872,36 @@ maninput = \
 	man/footer.man man/footer.html $(mangen)
 
 TEST_FILES = \
-	htest/data/clean-nonzero-score.data \
-	htest/data/common-suffix.data \
-	htest/data/empty-cluster.data \
-	htest/data/hail-alloc-drbd.json \
-	htest/data/hail-change-group.json \
-	htest/data/hail-invalid-reloc.json \
-	htest/data/hail-node-evac.json \
-	htest/data/hail-reloc-drbd.json \
-	htest/data/hbal-excl-tags.data \
-	htest/data/hbal-split-insts.data \
-	htest/data/invalid-node.data \
-	htest/data/missing-resources.data \
-	htest/data/n1-failure.data \
-	htest/data/rapi/groups.json \
-	htest/data/rapi/info.json \
-	htest/data/rapi/instances.json \
-	htest/data/rapi/nodes.json \
-	htest/shelltests/htools-balancing.test \
-	htest/shelltests/htools-basic.test \
-	htest/shelltests/htools-dynutil.test \
-	htest/shelltests/htools-excl.test \
-	htest/shelltests/htools-hail.test \
-	htest/shelltests/htools-hspace.test \
-	htest/shelltests/htools-invalid.test \
-	htest/shelltests/htools-multi-group.test \
-	htest/shelltests/htools-no-backend.test \
-	htest/shelltests/htools-rapi.test \
-	htest/shelltests/htools-single-group.test \
-	htest/shelltests/htools-text-backend.test \
-	htest/shelltests/htools-mon-collector.test \
+	test/data/htools/clean-nonzero-score.data \
+	test/data/htools/common-suffix.data \
+	test/data/htools/empty-cluster.data \
+	test/data/htools/hail-alloc-drbd.json \
+	test/data/htools/hail-change-group.json \
+	test/data/htools/hail-invalid-reloc.json \
+	test/data/htools/hail-node-evac.json \
+	test/data/htools/hail-reloc-drbd.json \
+	test/data/htools/hbal-excl-tags.data \
+	test/data/htools/hbal-split-insts.data \
+	test/data/htools/invalid-node.data \
+	test/data/htools/missing-resources.data \
+	test/data/htools/n1-failure.data \
+	test/data/htools/rapi/groups.json \
+	test/data/htools/rapi/info.json \
+	test/data/htools/rapi/instances.json \
+	test/data/htools/rapi/nodes.json \
+	test/hs/shelltests/htools-balancing.test \
+	test/hs/shelltests/htools-basic.test \
+	test/hs/shelltests/htools-dynutil.test \
+	test/hs/shelltests/htools-excl.test \
+	test/hs/shelltests/htools-hail.test \
+	test/hs/shelltests/htools-hspace.test \
+	test/hs/shelltests/htools-invalid.test \
+	test/hs/shelltests/htools-multi-group.test \
+	test/hs/shelltests/htools-no-backend.test \
+	test/hs/shelltests/htools-rapi.test \
+	test/hs/shelltests/htools-single-group.test \
+	test/hs/shelltests/htools-text-backend.test \
+	test/hs/shelltests/htools-mon-collector.test \
 	test/data/bdev-drbd-8.0.txt \
 	test/data/bdev-drbd-8.3.txt \
 	test/data/bdev-drbd-disk.txt \
@@ -1040,7 +1040,7 @@ python_tests = \
 	test/py/qa.qa_config_unittest.py \
 	test/py/tempfile_fork_unittest.py
 
-haskell_tests = htest/test
+haskell_tests = test/hs/test
 
 dist_TESTS = \
 	test/py/check-cert-expired_unittest.bash \
@@ -1056,10 +1056,10 @@ check_SCRIPTS =
 
 if WANT_HSTESTS
 nodist_TESTS += $(haskell_tests)
-dist_TESTS += htest/offline-test.sh
+dist_TESTS += test/hs/offline-test.sh
 check_SCRIPTS += \
-	htest/hpc-htools \
-	htest/hpc-mon-collector \
+	test/hs/hpc-htools \
+	test/hs/hpc-mon-collector \
 	$(HS_BUILT_TEST_HELPERS)
 endif
 
@@ -1106,8 +1106,8 @@ srclink_files = \
 	test/py/import-export_unittest.bash \
 	test/py/cli-test.bash \
 	test/py/bash_completion.bash \
-	htest/offline-test.sh \
-	htest/cli-tests-defs.sh \
+	test/hs/offline-test.sh \
+	test/hs/cli-tests-defs.sh \
 	$(all_python_code) \
 	$(HS_LIBTEST_SRCS) $(HS_PROG_SRCS)
 
@@ -1269,7 +1269,7 @@ src/Ganeti/Constants.hs: src/Ganeti/Constants.hs.in \
 	  PYTHONPATH=. $(RUN_IN_TEMPDIR) $(CURDIR)/$(CONVERT_CONSTANTS); \
 	} > $@
 
-htest/Test/Ganeti/TestImports.hs: htest/Test/Ganeti/TestImports.hs.in \
+test/hs/Test/Ganeti/TestImports.hs: test/hs/Test/Ganeti/TestImports.hs.in \
 	$(built_base_sources)
 	set -e; \
 	{ cat $< ; \
@@ -1433,7 +1433,7 @@ tools/ensure-dirs: MODULE = ganeti.tools.ensure_dirs
 tools/node-daemon-setup: MODULE = ganeti.tools.node_daemon_setup
 tools/prepare-node-join: MODULE = ganeti.tools.prepare_node_join
 tools/node-cleanup: MODULE = ganeti.tools.node_cleanup
-$(HS_BUILT_TEST_HELPERS): TESTROLE = $(patsubst htest/%,%,$@)
+$(HS_BUILT_TEST_HELPERS): TESTROLE = $(patsubst test/hs/%,%,$@)
 
 $(PYTHON_BOOTSTRAP): Makefile | stamp-directories
 	test -n "$(MODULE)" || { echo Missing module; exit 1; }
@@ -1469,7 +1469,7 @@ $(HS_BUILT_TEST_HELPERS): Makefile
 	  echo '# This file is automatically generated, do not edit!'; \
 	  echo "# Edit Makefile.am instead."; \
 	  echo; \
-	  echo "HTOOLS=$(TESTROLE) exec ./htest/hpc-htools \"\$$@\""; \
+	  echo "HTOOLS=$(TESTROLE) exec ./test/hs/hpc-htools \"\$$@\""; \
 	} > $@
 	chmod u+x $@
 
@@ -1552,11 +1552,11 @@ check-local: check-dirs $(GENERATED_FILES)
 	test -z "$$error"
 
 .PHONY: hs-check
-hs-check: htest/test htest/hpc-htools htest/hpc-mon-collector $(HS_BUILT_TEST_HELPERS) \
+hs-check: test/hs/test test/hs/hpc-htools test/hs/hpc-mon-collector $(HS_BUILT_TEST_HELPERS) \
 	| $(BUILT_PYTHON_SOURCES)
 	@rm -f *.tix
-	./htest/test
-	HBINARY="./htest/hpc-htools" ./htest/offline-test.sh
+	./test/hs/test
+	HBINARY="./test/hs/hpc-htools" ./test/hs/offline-test.sh
 
 # E111: indentation is not a multiple of four
 # E121: continuation line indentation is not a multiple of four
@@ -1606,7 +1606,7 @@ pep8: $(GENERATED_FILES)
 	  --repeat $(pep8_python_code)
 
 # FIXME: remove ignore "Use void" when GHC 6.x is deprecated
-HLINT_EXCLUDES = src/Ganeti/THH.hs htest/hpc-htools.hs
+HLINT_EXCLUDES = src/Ganeti/THH.hs test/hs/hpc-htools.hs
 .PHONY: hlint
 hlint: $(HS_BUILT_SRCS) src/lint-hints.hs
 	@test -n "$(HLINT)" || { echo 'hlint' not found during configure; exit 1; }
@@ -1768,7 +1768,7 @@ py-coverage: $(GENERATED_FILES) $(python_tests)
 	$(python_tests)
 
 .PHONY: hs-coverage
-hs-coverage: $(haskell_tests) htest/hpc-htools htest/hpc-mon-collector
+hs-coverage: $(haskell_tests) test/hs/hpc-htools test/hs/hpc-mon-collector
 	rm -f *.tix
 	$(MAKE) $(AM_MAKEFLAGS) hs-check
 	@mkdir_p@ $(COVERAGE_HS_DIR)

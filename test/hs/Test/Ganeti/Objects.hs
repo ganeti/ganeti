@@ -268,7 +268,7 @@ prop_Config_serialisation =
 -- | Custom HUnit test to check the correspondence between Haskell-generated
 -- networks and their Python decoded, validated and re-encoded version.
 -- For the technical background of this unit test, check the documentation
--- of "case_py_compat_types" of htest/Test/Ganeti/Opcodes.hs
+-- of "case_py_compat_types" of test/hs/Test/Ganeti/Opcodes.hs
 case_py_compat_networks :: HUnit.Assertion
 case_py_compat_networks = do
   let num_networks = 500::Int
