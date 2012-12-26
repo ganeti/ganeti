@@ -358,8 +358,8 @@ def _RunMasterSetupScript(master_params, action, use_external_mip_script):
   result = utils.RunCmd([setup_script, action], env=env, reset_env=True)
 
   if result.failed:
-    _Fail("Failed to %s the master IP. Script return value: %s" %
-          (action, result.exit_code), log=True)
+    _Fail("Failed to %s the master IP. Script return value: %s, output: '%s'" %
+          (action, result.exit_code, result.output), log=True)
 
 
 @RunLocalHooks(constants.FAKE_OP_MASTER_TURNUP, "master-ip-turnup",
