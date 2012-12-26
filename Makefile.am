@@ -1551,12 +1551,18 @@ check-local: check-dirs $(GENERATED_FILES)
 	done; \
 	test -z "$$error"
 
-.PHONY: hs-check
-hs-check: test/hs/htest test/hs/hpc-htools test/hs/hpc-mon-collector $(HS_BUILT_TEST_HELPERS) \
-	| $(BUILT_PYTHON_SOURCES)
-	@rm -f *.tix
+.PHONY: hs-tests
+hs-tests: test/hs/htest | $(BUILT_PYTHON_SOURCES)
+	@rm -f htest.tix
 	./test/hs/htest
+
+.PHONY: hs-shell
+hs-shell: test/hs/hpc-htools test/hs/hpc-mon-collector $(HS_BUILT_TEST_HELPERS)
+	@rm -f hpc-htools.tix hpc-mon-collector.tix
 	HBINARY="./test/hs/hpc-htools" ./test/hs/offline-test.sh
+
+.PHONY: hs-check
+hs-check: hs-tests hs-shell
 
 # E111: indentation is not a multiple of four
 # E121: continuation line indentation is not a multiple of four
