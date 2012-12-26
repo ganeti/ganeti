@@ -289,14 +289,8 @@ testDataFilename datadir name = do
         src <- getSourceDir
         return $ src ++ datadir ++ name
 
--- | Returns the content of the specified python test data file.
-readPythonTestData :: String -> IO String
-readPythonTestData filename = do
-    name <- testDataFilename "/test/data/" filename
-    readFile name
-
 -- | Returns the content of the specified haskell test data file.
 readTestData :: String -> IO String
 readTestData filename = do
-    name <- testDataFilename "/test/data/htools/" filename
+    name <- testDataFilename "/test/data/" filename
     readFile name

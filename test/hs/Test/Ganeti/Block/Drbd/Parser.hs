@@ -43,7 +43,7 @@ import Ganeti.Block.Drbd.Types
 -- | Function for testing whether a file is parsed correctly.
 testFile :: String -> DRBDStatus -> Assertion
 testFile fileName expectedContent = do
-    fileContent <- readPythonTestData fileName
+    fileContent <- readTestData fileName
     case A.parseOnly drbdStatusParser $ pack fileContent of
         Left msg -> assertFailure $ "Parsing failed: " ++ msg
         Right obtained -> assertEqual fileName expectedContent obtained
