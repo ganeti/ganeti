@@ -793,7 +793,7 @@ EXTRA_DIST = \
 	autotools/check-version \
 	autotools/convert-constants \
 	autotools/docpp \
-	autotools/gen-coverage \
+	autotools/gen-py-coverage \
 	autotools/testrunner \
 	autotools/wrong-hardcoded-paths \
 	$(RUN_IN_TEMPDIR) \
@@ -1770,7 +1770,8 @@ py-coverage: $(GENERATED_FILES) $(python_tests)
 	COVERAGE_FILE=$(CURDIR)/$(COVERAGE_PY_DIR)/data \
 	TEXT_COVERAGE=$(CURDIR)/$(COVERAGE_PY_DIR)/report.txt \
 	HTML_COVERAGE=$(CURDIR)/$(COVERAGE_PY_DIR) \
-	$(PLAIN_TESTS_ENVIRONMENT) $(abs_top_srcdir)/autotools/gen-coverage \
+	$(PLAIN_TESTS_ENVIRONMENT) \
+	$(abs_top_srcdir)/autotools/gen-py-coverage \
 	$(python_tests)
 
 .PHONY: hs-coverage
@@ -1779,9 +1780,9 @@ hs-coverage: $(haskell_tests) test/hs/hpc-htools test/hs/hpc-mon-collector
 	$(MAKE) $(AM_MAKEFLAGS) hs-check
 	@mkdir_p@ $(COVERAGE_HS_DIR)
 	hpc sum --union $(HPCEXCL) \
-	  htest.tix hpc-htools.tix hpc-mon-collector.tix > coverage-htools.tix
-	hpc markup --destdir=$(COVERAGE_HS_DIR) coverage-htools.tix
-	hpc report coverage-htools.tix
+	  htest.tix hpc-htools.tix hpc-mon-collector.tix > coverage-hs.tix
+	hpc markup --destdir=$(COVERAGE_HS_DIR) coverage-hs.tix
+	hpc report coverage-hs.tix
 	$(LN_S) -f hpc_index.html $(COVERAGE_HS_DIR)/index.html
 
 # Special "kind-of-QA" target for htools, needs special setup (all
