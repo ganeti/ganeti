@@ -23,13 +23,20 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 -}
 
-module Ganeti.HTools.Program
+module Ganeti.HTools.Program.Main
   ( personalities
+  , main
   ) where
 
-import Ganeti.Common (PersonalityList)
-import Ganeti.HTools.CLI (Options)
+import Control.Exception
+import Control.Monad (guard)
+import Data.Char (toLower)
+import System.Environment
+import System.IO
+import System.IO.Error (isDoesNotExistError)
 
+import Ganeti.Common (formatCommands, PersonalityList)
+import Ganeti.HTools.CLI (Options, parseOpts, genericOpts)
 import qualified Ganeti.HTools.Program.Hail as Hail
 import qualified Ganeti.HTools.Program.Hbal as Hbal
 import qualified Ganeti.HTools.Program.Hcheck as Hcheck
@@ -37,6 +44,7 @@ import qualified Ganeti.HTools.Program.Hscan as Hscan
 import qualified Ganeti.HTools.Program.Hspace as Hspace
 import qualified Ganeti.HTools.Program.Hinfo as Hinfo
 import qualified Ganeti.HTools.Program.Hroller as Hroller
+import Ganeti.Utils
 
 -- | Supported binaries.
 personalities :: PersonalityList Options
@@ -68,3 +76,27 @@ personalities =
                 \ node reboots in a manner that doesn't conflict with the\
                 \ instances' topology"))
   ]
+
+-- | Display usage and exit.
+usage :: String -> IO ()
+usage name = do
+  hPutStrLn stderr $ "Unrecognised personality '" ++ name ++ "'."
+  hPutStrLn stderr "This program must be installed under one of the following\
+                   \ names:"
+  hPutStrLn stderr . unlines $ formatCommands personalities
+  exitErr "Please either rename/symlink the program or set\n\
+          \the environment variable HTOOLS to the desired role."
+
+main :: IO ()
+main = do
+  binary <- catchJust (guard . isDoesNotExistError)
+            (getEnv "HTOOLS") (const getProgName)
+  let name = map toLower binary
+  case name `lookup` personalities of
+    Nothing -> usage name
+    Just (fn, options, arguments, _) -> do
+         cmd_args <- getArgs
+         real_options <- options
+         (opts, args) <- parseOpts cmd_args name (real_options ++ genericOpts)
+                           arguments
+         fn opts args

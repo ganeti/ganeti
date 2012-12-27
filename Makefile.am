@@ -478,7 +478,6 @@ HS_LIB_SRCS = \
 	src/Ganeti/HTools/Loader.hs \
 	src/Ganeti/HTools/Node.hs \
 	src/Ganeti/HTools/PeerMap.hs \
-	src/Ganeti/HTools/Program.hs \
 	src/Ganeti/HTools/Program/Hail.hs \
 	src/Ganeti/HTools/Program/Hbal.hs \
 	src/Ganeti/HTools/Program/Hcheck.hs \
@@ -486,6 +485,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/HTools/Program/Hscan.hs \
 	src/Ganeti/HTools/Program/Hspace.hs \
 	src/Ganeti/HTools/Program/Hroller.hs \
+	src/Ganeti/HTools/Program/Main.hs \
 	src/Ganeti/HTools/Types.hs \
 	src/Ganeti/Hash.hs \
 	src/Ganeti/JQueue.hs \

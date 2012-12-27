@@ -25,38 +25,4 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Main (main) where
 
-import Control.Exception
-import Control.Monad (guard)
-import Data.Char (toLower)
-import System.Environment
-import System.IO
-import System.IO.Error (isDoesNotExistError)
-
-import Ganeti.Common (formatCommands)
-import Ganeti.HTools.CLI (parseOpts, genericOpts)
-import Ganeti.HTools.Program (personalities)
-import Ganeti.Utils
-
--- | Display usage and exit.
-usage :: String -> IO ()
-usage name = do
-  hPutStrLn stderr $ "Unrecognised personality '" ++ name ++ "'."
-  hPutStrLn stderr "This program must be installed under one of the following\
-                   \ names:"
-  hPutStrLn stderr . unlines $ formatCommands personalities
-  exitErr "Please either rename/symlink the program or set\n\
-          \the environment variable HTOOLS to the desired role."
-
-main :: IO ()
-main = do
-  binary <- catchJust (guard . isDoesNotExistError)
-            (getEnv "HTOOLS") (const getProgName)
-  let name = map toLower binary
-  case name `lookup` personalities of
-    Nothing -> usage name
-    Just (fn, options, arguments, _) -> do
-         cmd_args <- getArgs
-         real_options <- options
-         (opts, args) <- parseOpts cmd_args name (real_options ++ genericOpts)
-                           arguments
-         fn opts args
+import Ganeti.HTools.Program.Main (main)

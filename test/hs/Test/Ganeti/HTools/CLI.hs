@@ -41,7 +41,7 @@ import Test.Ganeti.Common
 
 import Ganeti.BasicTypes
 import Ganeti.HTools.CLI as CLI
-import qualified Ganeti.HTools.Program as Program
+import qualified Ganeti.HTools.Program.Main as Program
 import qualified Ganeti.HTools.Types as Types
 
 {-# ANN module "HLint: ignore Use camelCase" #-}
