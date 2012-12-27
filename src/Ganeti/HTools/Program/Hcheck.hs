@@ -87,8 +87,8 @@ data Phase = Initial
            | Rebalanced
 
 -- | Level of presented statistics.
-data Level = GroupLvl
-           | ClusterLvl
+data Level = GroupLvl String -- ^ Group level, with name
+           | ClusterLvl      -- ^ Cluster level
 
 -- | A type alias for a group index and node\/instance lists.
 type GroupInfo = (Gdx, (Node.List, Instance.List))
@@ -124,13 +124,13 @@ phasePrefix Rebalanced = "FINAL"
 
 -- | Level-specific prefix for machine readable version.
 levelPrefix :: Level -> String
-levelPrefix GroupLvl = "GROUP"
-levelPrefix ClusterLvl = "CLUSTER"
+levelPrefix GroupLvl {} = "GROUP"
+levelPrefix ClusterLvl  = "CLUSTER"
 
 -- | Machine-readable keys to show depending on given level.
 keysData :: Level -> [String]
-keysData GroupLvl = map fst groupData
-keysData ClusterLvl = map fst clusterData
+keysData GroupLvl {} = map fst groupData
+keysData ClusterLvl  = map fst clusterData
 
 -- | Description of phases for human readable version.
 phaseDescr :: Phase -> String
@@ -139,16 +139,14 @@ phaseDescr Rebalanced = "after rebalancing"
 
 -- | Description to show depending on given level.
 descrData :: Level -> [String]
-descrData GroupLvl = map snd groupData
-descrData ClusterLvl = map snd clusterData
+descrData GroupLvl {} = map snd groupData
+descrData ClusterLvl  = map snd clusterData
 
 -- | Human readable prefix for statistics.
-phaseLevelDescr :: Phase -> Level -> Maybe String -> String
-phaseLevelDescr phase GroupLvl (Just name) =
+phaseLevelDescr :: Phase -> Level -> String
+phaseLevelDescr phase (GroupLvl name) =
     printf "Statistics for group %s %s\n" name $ phaseDescr phase
-phaseLevelDescr phase GroupLvl Nothing =
-    printf "Statistics for group %s\n" $ phaseDescr phase
-phaseLevelDescr phase ClusterLvl _ =
+phaseLevelDescr phase ClusterLvl =
     printf "Cluster statistics %s\n" $ phaseDescr phase
 
 -- | Format a list of key, value as a shell fragment.
@@ -173,10 +171,10 @@ printGroupsMappings gl = do
     printKeysHTC printpairs
 
 -- | Prepare a single key given a certain level and phase of simulation.
-prepareKey :: Level -> Phase -> Maybe String -> String -> String
-prepareKey level phase Nothing suffix =
+prepareKey :: Level -> Phase -> String -> String
+prepareKey level@ClusterLvl phase suffix =
   printf "%s_%s_%s" (phasePrefix phase) (levelPrefix level) suffix
-prepareKey level phase (Just idx) suffix =
+prepareKey level@(GroupLvl idx) phase suffix =
   printf "%s_%s_%s_%s" (phasePrefix phase) (levelPrefix level) idx suffix
 
 -- | Print all the statistics for given level and phase.
@@ -185,14 +183,13 @@ printStats :: Int            -- ^ Verbosity level
            -> Level          -- ^ Level on which we are printing
            -> Phase          -- ^ Current phase of simulation
            -> [String]       -- ^ Values to print
-           -> Maybe String   -- ^ Additional data for groups
            -> IO ()
-printStats _ True level phase values gidx = do
-  let keys = map (prepareKey level phase gidx) (keysData level)
+printStats _ True level phase values = do
+  let keys = map (prepareKey level phase) (keysData level)
   printKeysHTC $ zip keys values
 
-printStats verbose False level phase values name = do
-  let prefix = phaseLevelDescr phase level name
+printStats verbose False level phase values = do
+  let prefix = phaseLevelDescr phase level
       descr = descrData level
   unless (verbose == 0) $ do
     putStrLn ""
@@ -219,13 +216,13 @@ printGroupStats :: Int -> Bool -> Phase -> GroupStats -> IO ()
 printGroupStats verbose machineread phase ((grp, score), stats) = do
   let values = prepareGroupValues stats score
       extradata = extractGroupData machineread grp
-  printStats verbose machineread GroupLvl phase values (Just extradata)
+  printStats verbose machineread (GroupLvl extradata) phase values
 
 -- | Print all the statistics on a cluster (global) level.
 printClusterStats :: Int -> Bool -> Phase -> [Int] -> Bool -> IO ()
 printClusterStats verbose machineread phase stats needhbal = do
   let values = prepareClusterValues machineread stats [needhbal]
-  printStats verbose machineread ClusterLvl phase values Nothing
+  printStats verbose machineread ClusterLvl phase values
 
 -- | Check if any of cluster metrics is non-zero.
 clusterNeedsRebalance :: [Int] -> Bool
