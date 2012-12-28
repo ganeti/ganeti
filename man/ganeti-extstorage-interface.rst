@@ -21,8 +21,9 @@ also be accessible by all nodes of this nodegroup too.
 REFERENCE
 ---------
 
-There are seven required files: *create*, *attach*, *detach*, *remove*,
-*grow*, *verify* (executables) and *parameters.list* (text file).
+There are eight required files: *create*, *attach*, *detach*, *remove*,
+*grow*, *setinfo*, *verify* (executables) and *parameters.list*
+(text file).
 
 Common environment
 ~~~~~~~~~~~~~~~~~~
@@ -56,6 +57,11 @@ EXTP_*name*
     Each ExtStorage parameter (see below) will be exported in its own
     variable, prefixed with ``EXTP_``, and upper-cased. For example, a
     ``fromsnap`` parameter will be exported as ``EXTP_FROMSNAP``.
+
+VOL_METADATA
+    Available only to the **setinfo** script. A string containing
+    metadata to be associated with the volume. Currently, Ganeti sets
+    this value to ``originstname+X`` where ``X`` is the instance's name.
 
 EXECUTABLE SCRIPTS
 ------------------
@@ -159,6 +165,23 @@ details on when the running instance becomes aware of its grown disk.
 
 The script returns ``0`` on success.
 
+setinfo
+~~~~~~~
+
+This script is used to add metadata to an existing volume. It is helpful
+when we need to keep an external, Ganeti-independent mapping between
+instances and volumes; primarily for recovery reasons. This is provider
+specific and the author of the provider chooses whether/how to implement
+this. You can just exit with ``0``, if you do not want to implement this
+feature, without harming the overall functionality of the provider.
+
+The ``VOL_METADATA`` variable contains the metadata of the volume.
+
+Currently, Ganeti sets this value to ``originstname+X`` where ``X`` is
+the instance's name.
+
+The script returns ``0`` on success.
+
 verify
 ~~~~~~
 
@@ -196,8 +219,8 @@ NOTES
 Backwards compatibility
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-The ExtStorage Interface was introduced in Ganeti 2.6.
-Ganeti 2.6 and up is compatible with the ExtStorage Interface.
+The ExtStorage Interface was introduced in Ganeti 2.7.
+Ganeti 2.7 and up is compatible with the ExtStorage Interface.
 
 Common behaviour
 ~~~~~~~~~~~~~~~~

@@ -22,6 +22,7 @@ This includes two distinct disk templates:
 
 Background
 ==========
+
 DRBD is currently the only shared storage backend supported by Ganeti.
 DRBD offers the advantages of high availability while running on
 commodity hardware at the cost of high network I/O for block-level
@@ -45,6 +46,7 @@ need to take care about the mirroring process from one host to another.
 
 Use cases
 =========
+
 We consider the following use cases:
 
 - A virtualization cluster with FibreChannel shared storage, mapping at
@@ -63,9 +65,9 @@ The design addresses the following procedures:
   storage.
 - Introduction of a shared file storage disk template for use with networked
   filesystems.
-- Introduction of shared block device disk template with device
+- Introduction of a shared block device disk template with device
   adoption.
-- Introduction of an External Storage Interface.
+- Introduction of the External Storage Interface.
 
 Additionally, mid- to long-term goals include:
 
@@ -156,8 +158,9 @@ The shared block device template will make the following assumptions:
 - The device will be available with the same path under all nodes in the
   node group.
 
-Introduction of an External Storage Interface
+Introduction of the External Storage Interface
 ==============================================
+
 Overview
 --------
 
@@ -180,6 +183,7 @@ An “ExtStorage provider” will have to provide the following methods:
 - Grow a disk
 - Attach a disk to a given node
 - Detach a disk from a given node
+- SetInfo to a disk (add metadata)
 - Verify its supported parameters
 
 The proposed ExtStorage interface borrows heavily from the OS
@@ -191,6 +195,7 @@ provider is expected to provide the following scripts:
 - ``grow``
 - ``attach``
 - ``detach``
+- ``setinfo``
 - ``verify``
 
 All scripts will be called with no arguments and get their input via
@@ -208,6 +213,9 @@ all commands, and some of them might have extra ones.
 ``EXTP_name``
   ExtStorage parameter, where `name` is the parameter in
   upper-case (same as OS interface's ``OSP_*`` parameters).
+``VOL_METADATA``
+  A string containing metadata to be set for the volume.
+  This is exported only to the ``setinfo`` script.
 
 All scripts except `attach` should return 0 on success and non-zero on
 error, accompanied by an appropriate error message on stderr. The
@@ -221,9 +229,9 @@ Implementation
 To support the ExtStorage interface, we will introduce a new disk
 template called `ext`. This template will implement the existing Ganeti
 disk interface in `lib/bdev.py` (create, remove, attach, assemble,
-shutdown, grow), and will simultaneously pass control to the external
-scripts to actually handle the above actions. The `ext` disk template
-will act as a translation layer between the current Ganeti disk
+shutdown, grow, setinfo), and will simultaneously pass control to the
+external scripts to actually handle the above actions. The `ext` disk
+template will act as a translation layer between the current Ganeti disk
 interface and the ExtStorage providers.
 
 We will also introduce a new IDISK_PARAM called `IDISK_PROVIDER =
