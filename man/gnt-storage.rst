@@ -21,8 +21,10 @@ the Ganeti cluster. At the moment, it manages only external storage
 COMMANDS
 --------
 
+DIAGNOSE
+~~~~~~~~
 
-**diagnose**
+| **diagnose**
 
 This command provides detailed information about the state of all
 ExtStorage providers available in the Ganeti cluster. The state of each
@@ -34,7 +36,11 @@ missing from a node, or is only partially installed. This command will
 show the details of all ExtStorage providers and the reasons they are or
 aren't valid for every nodegroup in the cluster.
 
-**info**
+INFO
+~~~~
+
+| **info**
+| [*provider*]
 
 This command will list detailed information about each ExtStorage
 provider found in the cluster, including its nodegroup validity, the
@@ -54,7 +60,7 @@ storage (such as lvm, drbd, etc) and also provide diagnostics for them
 too.
 
 It can also be extended to handle internal and external storage pools,
-if/when this kind of abstraction is implemented to Ganeti.
+if/when this kind of abstraction is implemented inside Ganeti.
 
 .. vim: set textwidth=72 :
 .. Local Variables:
