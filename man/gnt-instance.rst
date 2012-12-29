@@ -892,7 +892,7 @@ The default output field list is: ``name``, ``os``, ``pnode``,
 
 
 LIST-FIELDS
-~~~~~~~~~~~
+^^^^^^^^^^^
 
 **list-fields** [field...]
 
@@ -1491,8 +1491,8 @@ iallocator plugin, or by the default allocator if ``.`` is specified.
 See **ganeti(7)** for a description of ``--submit`` and other common
 options.
 
-Recovery
-~~~~~~~~
+Recovery/moving
+~~~~~~~~~~~~~~~
 
 FAILOVER
 ^^^^^^^^
@@ -1665,7 +1665,7 @@ Example::
 
 
 CHANGE-GROUP
-~~~~~~~~~~~~
+^^^^^^^^^^^^
 
 | **change-group** [\--submit]
 | [\--iallocator *NAME*] [\--to *GROUP*...] {*instance*}
