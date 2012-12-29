@@ -20,13 +20,19 @@ system flavours for the instances in the Ganeti cluster.
 COMMANDS
 --------
 
-**list**
+LIST
+~~~~
+
+**list** [\--no-headers]
 
 Gives the list of available/supported OS to use in the instances.
 When creating the instance you can give the OS-name as an option.
 
 Note that hidden or blacklisted OSes are not displayed by this
 command, use **diagnose** for showing those.
+
+DIAGNOSE
+~~~~~~~~
 
 **diagnose**
 
@@ -37,12 +43,18 @@ missing from a node, or is only partially installed, and this
 command will show the details of all the OSes and the reasons they
 are or are not valid.
 
+INFO
+~~~~
+
 **info**
 
 This command will list detailed information about each OS available
 in the cluster, including its validity status, the supported API
 versions, the supported parameters (if any) and their
 documentations, etc.
+
+MODIFY
+~~~~~~
 
 | **modify** [\--submit] [-H *HYPERVISOR*:option=*value*[,...]]
 | [\--hidden=*yes|no*] [\--blacklisted=*yes|no*]
