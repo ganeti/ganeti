@@ -1685,7 +1685,7 @@ Example::
     # gnt-instance change-group -I hail --to rack2 inst1.example.com
 
 
-TAGS
+Tags
 ~~~~
 
 ADD-TAGS

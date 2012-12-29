@@ -144,8 +144,8 @@ Disconnect a network from given node groups (all if not specified). This
 is possible only if no instance is using the network.
 
 
-TAGS
-~~~
+Tags
+~~~~
 
 ADD-TAGS
 ^^^^^^^^

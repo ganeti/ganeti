@@ -210,7 +210,7 @@ Example::
     # gnt-group evacuate -I hail --to rack4 rack1
 
 
-TAGS
+Tags
 ~~~~
 
 ADD-TAGS
