@@ -62,7 +62,6 @@
 /doc/upgrade.rst
 /doc/hs-lint.html
 /doc/*.in
-/doc/*.png
 
 # doc/examples
 /doc/examples/bash_completion

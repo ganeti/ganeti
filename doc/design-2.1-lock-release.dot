@@ -10,7 +10,7 @@ digraph "design-2.1-lock-release" {
   success[label="Success"]
 
   /* Conditions */
-  have_pending[label="Any pending acquires?", shape=diamond]
+  have_pending[label="Any pending\nacquires?", shape=diamond]
   was_active_queue[
     label="Was active condition\nfor shared acquires?",
     shape=diamond,

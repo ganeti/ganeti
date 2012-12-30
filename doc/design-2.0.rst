@@ -102,7 +102,7 @@ these operations are scheduled internally will change radically.
 
 The new design will change the cluster architecture to:
 
-.. image:: arch-2.0.png
+.. graphviz:: arch-2.0.dot
 
 This differs from the 1.2 architecture by the addition of the master
 daemon, which will be the only entity to talk to the node daemons.

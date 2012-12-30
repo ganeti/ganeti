@@ -11,10 +11,10 @@ digraph "design-2.1-lock-acquire" {
   remove_from_queue[label="Remove from queue"]
 
   /* Conditions */
-  alone[label="Empty queue and can acquire?", shape=diamond]
-  have_timeout[label="Do I have timeout?", shape=diamond]
+  alone[label="Empty queue\nand can acquire?", shape=diamond]
+  have_timeout[label="Do I have\ntimeout?", shape=diamond]
   top_of_queue_and_can_acquire[
-    label="On top of queue and can acquire lock?",
+    label="On top of queue and\ncan acquire lock?",
     shape=diamond,
     ]
 

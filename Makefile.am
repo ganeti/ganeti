@@ -150,7 +150,6 @@ APIDOC_PY_DIR = $(APIDOC_DIR)/py
 APIDOC_HS_DIR = $(APIDOC_DIR)/hs
 
 MAINTAINERCLEANFILES = \
-	$(docpng) \
 	$(maninput) \
 	doc/install-quick.rst \
 	doc/news.rst \
@@ -582,7 +581,7 @@ $(RUN_IN_TEMPDIR): | stamp-directories
 # has to exist in order for the sphinx module to be loaded
 # successfully, but we certainly don't want the docs to be rebuilt if
 # it changes
-doc/html/index.html: $(docrst) $(docpng) doc/conf.py configure.ac \
+doc/html/index.html: $(docrst) $(docdot) doc/conf.py configure.ac \
 	$(RUN_IN_TEMPDIR) lib/build/sphinx_ext.py \
 	lib/build/shell_example_lexer.py lib/opcodes.py lib/ht.py \
 	| $(BUILT_PYTHON_SOURCES)
@@ -593,6 +592,7 @@ doc/html/index.html: $(docrst) $(docpng) doc/conf.py configure.ac \
 	    -d . \
 	    -D version="$(VERSION_MAJOR).$(VERSION_MINOR)" \
 	    -D release="$(PACKAGE_VERSION)" \
+	    -D graphviz_dot="$(DOT)" \
 	    $(abs_top_srcdir)/doc $(CURDIR)/doc/html
 	rm -f doc/html/.buildinfo doc/html/objects.inv
 	touch $@
@@ -615,8 +615,6 @@ docdot = \
 	doc/arch-2.0.dot \
 	doc/design-2.1-lock-acquire.dot \
 	doc/design-2.1-lock-release.dot
-
-docpng = $(patsubst %.dot,%.png,$(docdot))
 
 # Things to build but not to install (add it to EXTRA_DIST if it should be
 # distributed)
@@ -818,7 +816,6 @@ EXTRA_DIST = \
 	tools/kvm-ifup.in \
 	tools/vcluster-setup.in \
 	$(docdot) \
-	$(docpng) \
 	$(docrst) \
 	doc/conf.py \
 	doc/html \
@@ -1191,10 +1188,6 @@ doc/examples/bash_completion doc/examples/bash_completion-debug: \
 	$(GENERATED_FILES) $(HS_GENERATED_FILES)
 	PYTHONPATH=. $(RUN_IN_TEMPDIR) \
 	  $(CURDIR)/$(BUILD_BASH_COMPLETION) $(BC_ARGS) > $@
-
-doc/%.png: doc/%.dot
-	@test -n "$(DOT)" || { echo 'dot' not found during configure; exit 1; }
-	$(DOT) -Tpng -o $@ $<
 
 man/%.gen: man/%.rst lib/query.py lib/build/sphinx_ext.py \
 	lib/build/shell_example_lexer.py \

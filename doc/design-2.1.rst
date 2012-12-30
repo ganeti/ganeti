@@ -229,7 +229,7 @@ Optimization: There's no need to touch the queue if there are no pending
 acquires and no current holders. The caller can have the lock
 immediately.
 
-.. image:: design-2.1-lock-acquire.png
+.. graphviz:: design-2.1-lock-acquire.dot
 
 
 Release
@@ -244,7 +244,7 @@ inactive condition will be made active. This ensures fairness with
 exclusive locks by forcing consecutive shared acquires to wait in the
 queue.
 
-.. image:: design-2.1-lock-release.png
+.. graphviz:: design-2.1-lock-release.dot
 
 
 Delete
