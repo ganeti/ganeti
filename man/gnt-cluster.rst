@@ -27,20 +27,6 @@ ACTIVATE-MASTER-IP
 
 Activates the master IP on the master node.
 
-ADD-TAGS
-~~~~~~~~
-
-**add-tags** [\--from *file*] {*tag*...}
-
-Add tags to the cluster. If any of the tags contains invalid
-characters, the entire operation will abort.
-
-If the ``--from`` option is given, the list of tags will be
-extended with the contents of that file (each line becomes a tag).
-In this case, there is not need to pass tags on the command line
-(if you do, both sources will be used). A file name of - will be
-interpreted as stdin.
-
 COMMAND
 ~~~~~~~
 
@@ -522,13 +508,6 @@ comma-separated list of disk templates.
 For details about how to use ``--hypervisor-state`` and ``--disk-state``
 have a look at **ganeti**(7).
 
-LIST-TAGS
-~~~~~~~~~
-
-**list-tags**
-
-List the tags of the cluster.
-
 MASTER-FAILOVER
 ~~~~~~~~~~~~~~~
 
@@ -680,20 +659,6 @@ configuration mismatches.
 See **ganeti(7)** for a description of ``--submit`` and other common
 options.
 
-REMOVE-TAGS
-~~~~~~~~~~~
-
-**remove-tags** [\--from *file*] {*tag*...}
-
-Remove tags from the cluster. If any of the tags are not existing
-on the cluster, the entire operation will abort.
-
-If the ``--from`` option is given, the list of tags to be removed will
-be extended with the contents of that file (each line becomes a tag).
-In this case, there is not need to pass tags on the command line (if
-you do, tags from both sources will be removed). A file name of - will
-be interpreted as stdin.
-
 RENAME
 ~~~~~~
 
@@ -759,30 +724,6 @@ activation without regard to the current size.
 When the all disk sizes are consistent, the command will return no
 output. Otherwise it will log details about the inconsistencies in
 the configuration.
-
-SEARCH-TAGS
-~~~~~~~~~~~
-
-**search-tags** {*pattern*}
-
-Searches the tags on all objects in the cluster (the cluster
-itself, the nodes and the instances) for a given pattern. The
-pattern is interpreted as a regular expression and a search will be
-done on it (i.e. the given pattern is not anchored to the beggining
-of the string; if you want that, prefix the pattern with ^).
-
-If no tags are matching the pattern, the exit code of the command
-will be one. If there is at least one match, the exit code will be
-zero. Each match is listed on one line, the object and the tag
-separated by a space. The cluster will be listed as /cluster, a
-node will be listed as /nodes/*name*, and an instance as
-/instances/*name*. Example:
-
-::
-
-    # gnt-cluster search-tags time
-    /cluster ctime:2007-09-01
-    /nodes/node1.example.com mtime:2007-10-04
 
 VERIFY
 ~~~~~~
@@ -856,6 +797,68 @@ VERSION
 **version**
 
 Show the cluster version.
+
+Tags
+~~~~
+
+ADD-TAGS
+^^^^^^^^
+
+**add-tags** [\--from *file*] {*tag*...}
+
+Add tags to the cluster. If any of the tags contains invalid
+characters, the entire operation will abort.
+
+If the ``--from`` option is given, the list of tags will be
+extended with the contents of that file (each line becomes a tag).
+In this case, there is not need to pass tags on the command line
+(if you do, both sources will be used). A file name of - will be
+interpreted as stdin.
+
+LIST-TAGS
+^^^^^^^^^
+
+**list-tags**
+
+List the tags of the cluster.
+
+REMOVE-TAGS
+^^^^^^^^^^^
+
+**remove-tags** [\--from *file*] {*tag*...}
+
+Remove tags from the cluster. If any of the tags are not existing
+on the cluster, the entire operation will abort.
+
+If the ``--from`` option is given, the list of tags to be removed will
+be extended with the contents of that file (each line becomes a tag).
+In this case, there is not need to pass tags on the command line (if
+you do, tags from both sources will be removed). A file name of - will
+be interpreted as stdin.
+
+SEARCH-TAGS
+^^^^^^^^^^^
+
+**search-tags** {*pattern*}
+
+Searches the tags on all objects in the cluster (the cluster
+itself, the nodes and the instances) for a given pattern. The
+pattern is interpreted as a regular expression and a search will be
+done on it (i.e. the given pattern is not anchored to the beggining
+of the string; if you want that, prefix the pattern with ^).
+
+If no tags are matching the pattern, the exit code of the command
+will be one. If there is at least one match, the exit code will be
+zero. Each match is listed on one line, the object and the tag
+separated by a space. The cluster will be listed as /cluster, a
+node will be listed as /nodes/*name*, and an instance as
+/instances/*name*. Example:
+
+::
+
+    # gnt-cluster search-tags time
+    /cluster ctime:2007-09-01
+    /nodes/node1.example.com mtime:2007-10-04
 
 .. vim: set textwidth=72 :
 .. Local Variables:

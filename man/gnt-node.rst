@@ -78,20 +78,6 @@ Example::
     # gnt-node add -g group2 -s 192.0.2.9 node9.group2.example.com
 
 
-ADD-TAGS
-~~~~~~~~
-
-**add-tags** [\--from *file*] {*nodename*} {*tag*...}
-
-Add tags to the given node. If any of the tags contains invalid
-characters, the entire operation will abort.
-
-If the ``--from`` option is given, the list of tags will be
-extended with the contents of that file (each line becomes a tag).
-In this case, there is not need to pass tags on the command line
-(if you do, both sources will be used). A file name of - will be
-interpreted as stdin.
-
 EVACUATE
 ~~~~~~~~
 
@@ -274,13 +260,6 @@ LIST-FIELDS
 Lists available fields for nodes.
 
 
-LIST-TAGS
-~~~~~~~~~
-
-**list-tags** {*nodename*}
-
-List the tags of the given node.
-
 MIGRATE
 ~~~~~~~
 
@@ -371,20 +350,6 @@ Example::
 
     # gnt-node remove node5.example.com
 
-
-REMOVE-TAGS
-~~~~~~~~~~~
-
-**remove-tags** [\--from *file*] {*nodename*} {*tag*...}
-
-Remove tags from the given node. If any of the tags are not
-existing on the node, the entire operation will abort.
-
-If the ``--from`` option is given, the list of tags to be removed will
-be extended with the contents of that file (each line becomes a tag).
-In this case, there is not need to pass tags on the command line (if
-you do, tags from both sources will be removed). A file name of - will
-be interpreted as stdin.
 
 VOLUMES
 ~~~~~~~
@@ -644,6 +609,44 @@ group, e.g.::
 The ``-M`` option can be used to prepend the node name to all command
 output lines. ``--sync`` forces the opcode to acquire the node lock(s)
 in exclusive mode.
+
+Tags
+~~~~
+
+ADD-TAGS
+^^^^^^^^
+
+**add-tags** [\--from *file*] {*nodename*} {*tag*...}
+
+Add tags to the given node. If any of the tags contains invalid
+characters, the entire operation will abort.
+
+If the ``--from`` option is given, the list of tags will be
+extended with the contents of that file (each line becomes a tag).
+In this case, there is not need to pass tags on the command line
+(if you do, both sources will be used). A file name of - will be
+interpreted as stdin.
+
+LIST-TAGS
+^^^^^^^^^
+
+**list-tags** {*nodename*}
+
+List the tags of the given node.
+
+REMOVE-TAGS
+^^^^^^^^^^^
+
+**remove-tags** [\--from *file*] {*nodename*} {*tag*...}
+
+Remove tags from the given node. If any of the tags are not
+existing on the node, the entire operation will abort.
+
+If the ``--from`` option is given, the list of tags to be removed will
+be extended with the contents of that file (each line becomes a tag).
+In this case, there is not need to pass tags on the command line (if
+you do, tags from both sources will be removed). A file name of - will
+be interpreted as stdin.
 
 .. vim: set textwidth=72 :
 .. Local Variables:
