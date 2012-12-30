@@ -182,7 +182,8 @@ daemon (``--enable-confd``) and the monitoring agent
 - `Crypto <http://hackage.haskell.org/package/Crypto>`_, tested with
   version 4.2.4
 - `text <http://hackage.haskell.org/package/text>`_
-- `hinotify <http://hackage.haskell.org/package/hinotify>`_
+- `hinotify <http://hackage.haskell.org/package/hinotify>`_, tested with
+  version 0.3.2
 - `regex-pcre <http://hackage.haskell.org/package/regex-pcre>`_,
   bindings for the ``pcre`` library
 - `attoparsec <http://hackage.haskell.org/package/attoparsec>`_

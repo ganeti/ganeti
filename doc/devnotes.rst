@@ -69,7 +69,7 @@ document, plus:
 - the `test-framework
   <http://batterseapower.github.com/test-framework/>`_ libraries,
   tested versions: ``test-framework``: 0.6, ``test-framework-hunit``:
-  0.2.7, ``test-framework-quickcheck2``: 0.2.12
+  0.2.7, ``test-framework-quickcheck2``: 0.2.12.1
 - ``hpc``, which comes with the compiler, so you should already have
   it
 - `shelltestrunner <http://joyful.com/shelltestrunner>`_, used for
