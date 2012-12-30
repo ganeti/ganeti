@@ -1220,12 +1220,11 @@ man/%.7.in man/%.8.in man/%.1.in: man/%.gen
 	$(CHECK_MAN_DASHES) $@; \
 	trap - EXIT
 
-
 man/%.html.in: man/%.gen
 	@test -n "$(PANDOC)" || \
 	  { echo 'pandoc' not found during configure; exit 1; }
 	set -o pipefail ; \
-	$(PANDOC) -s -f rst -t html $< man/footer.rst | \
+	$(PANDOC) --toc -s -f rst -t html $< man/footer.rst | \
 	  sed -e 's/\\@/@/g' > $@
 
 man/%: man/%.in  $(REPLACE_VARS_SED)
