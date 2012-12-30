@@ -180,7 +180,7 @@ For Python tests::
 
 For Haskell tests::
 
-  $ make test/hs/test && ./test/hs/test -t %pattern%
+  $ make test/hs/htest && ./test/hs/htest -t %pattern%
 
 Where ``pattern`` can be a simple test pattern (e.g. ``comma``,
 matching any test whose name contains ``comma``), a test pattern
