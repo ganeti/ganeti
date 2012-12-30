@@ -883,7 +883,7 @@ mangen = $(patsubst %.rst,%.gen,$(manrst))
 maninput = \
 	$(patsubst %.1,%.1.in,$(patsubst %.7,%.7.in,$(patsubst %.8,%.8.in,$(man_MANS)))) \
 	$(patsubst %.html,%.html.in,$(manhtml)) \
-	man/footer.man man/footer.html $(mangen)
+	$(mangen)
 
 TEST_FILES = \
 	test/data/htools/clean-nonzero-score.data \
@@ -1196,16 +1196,6 @@ doc/%.png: doc/%.dot
 	@test -n "$(DOT)" || { echo 'dot' not found during configure; exit 1; }
 	$(DOT) -Tpng -o $@ $<
 
-man/footer.man: man/footer.rst
-	@test -n "$(PANDOC)" || \
-	  { echo 'pandoc' not found during configure; exit 1; }
-	$(PANDOC) -f rst -t man -o $@ $<
-
-man/footer.html: man/footer.rst
-	@test -n "$(PANDOC)" || \
-	  { echo 'pandoc' not found during configure; exit 1; }
-	$(PANDOC) -f rst -t html -o $@ $<
-
 man/%.gen: man/%.rst lib/query.py lib/build/sphinx_ext.py \
 	lib/build/shell_example_lexer.py \
 	| $(RUN_IN_TEMPDIR) $(BUILT_PYTHON_SOURCES)
@@ -1219,23 +1209,23 @@ man/%.gen: man/%.rst lib/query.py lib/build/sphinx_ext.py \
 	PYTHONPATH=. $(RUN_IN_TEMPDIR) $(CURDIR)/$(DOCPP) < $< > $@ ;\
 	trap - EXIT
 
-man/%.7.in man/%.8.in man/%.1.in: man/%.gen man/footer.man
+man/%.7.in man/%.8.in man/%.1.in: man/%.gen
 	@test -n "$(PANDOC)" || \
 	  { echo 'pandoc' not found during configure; exit 1; }
 	set -o pipefail ; \
 	trap 'echo auto-removing $@; rm $@' EXIT; \
-	$(PANDOC) -s -f rst -t man -A man/footer.man $< | \
+	$(PANDOC) -s -f rst -t man $< man/footer.rst | \
 	  sed -e 's/\\@/@/g' > $@; \
 	if test -n "$(MAN_HAS_WARNINGS)"; then $(CHECK_MAN_WARNINGS) $@; fi; \
 	$(CHECK_MAN_DASHES) $@; \
 	trap - EXIT
 
 
-man/%.html.in: man/%.gen man/footer.html
+man/%.html.in: man/%.gen
 	@test -n "$(PANDOC)" || \
 	  { echo 'pandoc' not found during configure; exit 1; }
 	set -o pipefail ; \
-	$(PANDOC) -s -f rst -t html -A man/footer.html $< | \
+	$(PANDOC) -s -f rst -t html $< man/footer.rst | \
 	  sed -e 's/\\@/@/g' > $@
 
 man/%: man/%.in  $(REPLACE_VARS_SED)
@@ -1824,6 +1814,10 @@ gitignore-check:
 	  git status --short; \
 	  exit 1; \
 	fi
+
+# target to rebuild all man pages (both groff and html output)
+.PHONY: man
+man: $(man_MANS) $(manhtml)
 
 # Target that builds all binaries (including those that are not
 # rebuilt except when running the tests)
