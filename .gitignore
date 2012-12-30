@@ -49,19 +49,14 @@
 /daemons/ganeti-rapi
 /daemons/ganeti-watcher
 
-# devel
-/devel/clean-cluster
-
 # doc
 /doc/api/
-/doc/build
 /doc/coverage/
-/doc/html
+/doc/html/
 /doc/install-quick.rst
 /doc/news.rst
 /doc/upgrade.rst
 /doc/hs-lint.html
-/doc/*.in
 
 # doc/examples
 /doc/examples/bash_completion
