@@ -229,8 +229,40 @@ Optimization: There's no need to touch the queue if there are no pending
 acquires and no current holders. The caller can have the lock
 immediately.
 
-.. graphviz:: design-2.1-lock-acquire.dot
+.. digraph:: "design-2.1-lock-acquire"
 
+  graph[fontsize=8, fontname="Helvetica"]
+  node[fontsize=8, fontname="Helvetica", width="0", height="0"]
+  edge[fontsize=8, fontname="Helvetica"]
+
+  /* Actions */
+  abort[label="Abort\n(couldn't acquire)"]
+  acquire[label="Acquire lock"]
+  add_to_queue[label="Add condition to queue"]
+  wait[label="Wait for notification"]
+  remove_from_queue[label="Remove from queue"]
+
+  /* Conditions */
+  alone[label="Empty queue\nand can acquire?", shape=diamond]
+  have_timeout[label="Do I have\ntimeout?", shape=diamond]
+  top_of_queue_and_can_acquire[
+    label="On top of queue and\ncan acquire lock?",
+    shape=diamond,
+    ]
+
+  /* Lines */
+  alone->acquire[label="Yes"]
+  alone->add_to_queue[label="No"]
+
+  have_timeout->abort[label="Yes"]
+  have_timeout->wait[label="No"]
+
+  top_of_queue_and_can_acquire->acquire[label="Yes"]
+  top_of_queue_and_can_acquire->have_timeout[label="No"]
+
+  add_to_queue->wait
+  wait->top_of_queue_and_can_acquire
+  acquire->remove_from_queue
 
 Release
 *******
@@ -244,7 +276,37 @@ inactive condition will be made active. This ensures fairness with
 exclusive locks by forcing consecutive shared acquires to wait in the
 queue.
 
-.. graphviz:: design-2.1-lock-release.dot
+.. digraph:: "design-2.1-lock-release"
+
+  graph[fontsize=8, fontname="Helvetica"]
+  node[fontsize=8, fontname="Helvetica", width="0", height="0"]
+  edge[fontsize=8, fontname="Helvetica"]
+
+  /* Actions */
+  remove_from_owners[label="Remove from owner list"]
+  notify[label="Notify topmost"]
+  swap_shared[label="Swap shared conditions"]
+  success[label="Success"]
+
+  /* Conditions */
+  have_pending[label="Any pending\nacquires?", shape=diamond]
+  was_active_queue[
+    label="Was active condition\nfor shared acquires?",
+    shape=diamond,
+    ]
+
+  /* Lines */
+  remove_from_owners->have_pending
+
+  have_pending->notify[label="Yes"]
+  have_pending->success[label="No"]
+
+  notify->was_active_queue
+
+  was_active_queue->swap_shared[label="Yes"]
+  was_active_queue->success[label="No"]
+
+  swap_shared->success
 
 
 Delete

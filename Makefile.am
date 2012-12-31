@@ -581,7 +581,7 @@ $(RUN_IN_TEMPDIR): | stamp-directories
 # has to exist in order for the sphinx module to be loaded
 # successfully, but we certainly don't want the docs to be rebuilt if
 # it changes
-doc/html/index.html: $(docrst) $(docdot) doc/conf.py configure.ac \
+doc/html/index.html: $(docrst) doc/conf.py configure.ac \
 	$(RUN_IN_TEMPDIR) lib/build/sphinx_ext.py \
 	lib/build/shell_example_lexer.py lib/opcodes.py lib/ht.py \
 	| $(BUILT_PYTHON_SOURCES)
@@ -610,11 +610,6 @@ doc/install-quick.rst doc/news.rst doc/upgrade.rst:
 	  echo; \
 	  cat $<; \
 	} > $@
-
-docdot = \
-	doc/arch-2.0.dot \
-	doc/design-2.1-lock-acquire.dot \
-	doc/design-2.1-lock-release.dot
 
 # Things to build but not to install (add it to EXTRA_DIST if it should be
 # distributed)
@@ -815,7 +810,6 @@ EXTRA_DIST = \
 	devel/webserver \
 	tools/kvm-ifup.in \
 	tools/vcluster-setup.in \
-	$(docdot) \
 	$(docrst) \
 	doc/conf.py \
 	doc/html \
