@@ -44,7 +44,7 @@ import Ganeti.Block.Drbd.Types
 testFile :: String -> DRBDStatus -> Assertion
 testFile fileName expectedContent = do
     fileContent <- readTestData fileName
-    case A.parseOnly drbdStatusParser $ pack fileContent of
+    case A.parseOnly (drbdStatusParser []) $ pack fileContent of
         Left msg -> assertFailure $ "Parsing failed: " ++ msg
         Right obtained -> assertEqual fileName expectedContent obtained
 
@@ -62,7 +62,8 @@ case_drbd80_emptyline = testFile "proc_drbd80-emptyline.txt" $
           Nothing Nothing Nothing)
         Nothing
         (Just $ AdditionalInfo 0 61 65657 135 0 0 135)
-        (Just $ AdditionalInfo 0 257 11378843 254 0 0 254),
+        (Just $ AdditionalInfo 0 257 11378843 254 0 0 254)
+        Nothing,
       UnconfiguredDevice 1,
       UnconfiguredDevice 2,
       UnconfiguredDevice 5,
@@ -83,11 +84,13 @@ case_drbd83_sync_krnl2_6_39 = testFile "proc_drbd83_sync_krnl2.6.39.txt" $
           (Just 'b') (Just 0))
         Nothing
         Nothing
+        Nothing
         Nothing,
       DeviceInfo 1 Connected (LocalRemote Secondary Primary)
         (LocalRemote UpToDate UpToDate) 'C' "r---"
         (PerfIndicators 0 140980 140980 0 0 8 0 0 0 0 (Just 1) (Just 'f')
           (Just 0))
+        Nothing
         Nothing
         Nothing
         Nothing,
@@ -99,11 +102,13 @@ case_drbd83_sync_krnl2_6_39 = testFile "proc_drbd83_sync_krnl2.6.39.txt" $
         (Just $ SyncStatus 2.4 14996 15360 MegaByte (Time 0 4 8) 61736 Nothing
           KiloByte Second)
         Nothing
+        Nothing
         Nothing,
       DeviceInfo 4 WFConnection (LocalRemote Primary Unknown)
         (LocalRemote UpToDate DUnknown) 'C' "r----"
         (PerfIndicators 140978 0 9906 131534 27 8 0 0 0 0 (Just 1)
           (Just 'b') (Just 0))
+        Nothing
         Nothing
         Nothing
         Nothing
@@ -123,11 +128,13 @@ case_drbd83_sync = testFile "proc_drbd83_sync.txt" $
           (Just 'b') (Just 0))
         Nothing
         Nothing
+        Nothing
         Nothing,
       DeviceInfo 1 Connected (LocalRemote Secondary Primary)
         (LocalRemote UpToDate UpToDate) 'C' "r---"
         (PerfIndicators 0 140980 140980 0 0 8 0 0 0 0 (Just 1) (Just 'f')
           (Just 0))
+        Nothing
         Nothing
         Nothing
         Nothing,
@@ -139,11 +146,13 @@ case_drbd83_sync = testFile "proc_drbd83_sync.txt" $
         (Just $ SyncStatus 34.9 346112 524288 MegaByte (Time 0 0 5) 59392
           Nothing KiloByte Second)
         Nothing
+        Nothing
         Nothing,
       DeviceInfo 4 WFConnection (LocalRemote Primary Unknown)
         (LocalRemote UpToDate DUnknown) 'C' "r----"
         (PerfIndicators 140978 0 9906 131534 27 8 0 0 0 0 (Just 1)
           (Just 'b') (Just 0))
+        Nothing
         Nothing
         Nothing
         Nothing
@@ -164,6 +173,7 @@ case_drbd83_sync_want = testFile "proc_drbd83_sync_want.txt" $
           (Just 'f') (Just 588416))
         (Just $ SyncStatus 44.4 588416 1048576 KiloByte (Time 0 0 8) 65736
           (Just 61440) KiloByte Second)
+        Nothing
         Nothing
         Nothing,
       UnconfiguredDevice 1,
@@ -186,11 +196,13 @@ case_drbd83 = testFile "proc_drbd83.txt" $
           (Just 'b') (Just 0))
         Nothing
         Nothing
+        Nothing
         Nothing,
       DeviceInfo 1 Connected (LocalRemote Secondary Primary)
         (LocalRemote UpToDate UpToDate) 'C' "r---"
         (PerfIndicators 0 140980 140980 0 0 8 0 0 0 0 (Just 1) (Just 'f')
           (Just 0))
+        Nothing
         Nothing
         Nothing
         Nothing,
@@ -201,11 +213,13 @@ case_drbd83 = testFile "proc_drbd83.txt" $
           (Just 'b') (Just 0))
         Nothing
         Nothing
+        Nothing
         Nothing,
       DeviceInfo 5 Connected (LocalRemote Primary Secondary)
         (LocalRemote UpToDate Diskless) 'C' "r----"
         (PerfIndicators 140978 0 9906 131533 19 8 0 0 0 0 (Just 1)
           (Just 'b') (Just 0))
+        Nothing
         Nothing
         Nothing
         Nothing,
@@ -215,6 +229,7 @@ case_drbd83 = testFile "proc_drbd83.txt" $
           (Just 0))
         Nothing
         Nothing
+        Nothing
         Nothing,
       DeviceInfo 7 WFConnection (LocalRemote Secondary Unknown)
         (LocalRemote UpToDate DUnknown) 'C' "r---"
@@ -222,11 +237,13 @@ case_drbd83 = testFile "proc_drbd83.txt" $
           (Just 0))
         Nothing
         Nothing
+        Nothing
         Nothing,
       DeviceInfo 8 StandAlone (LocalRemote Secondary Unknown)
         (LocalRemote UpToDate DUnknown) ' ' "r---"
         (PerfIndicators 0 140978 140978 0 0 8 0 0 0 0 (Just 1)
           (Just 'f') (Just 0))
+        Nothing
         Nothing
         Nothing
         Nothing
@@ -246,14 +263,16 @@ case_drbd8 = testFile "proc_drbd8.txt" $
           Nothing Nothing)
         Nothing
         (Just $ AdditionalInfo 0 61 0 0 0 0 0)
-        (Just $ AdditionalInfo 0 257 793749 1067 0 0 1067),
+        (Just $ AdditionalInfo 0 257 793749 1067 0 0 1067)
+        Nothing,
       DeviceInfo 1 Connected (LocalRemote Secondary Primary)
         (LocalRemote UpToDate UpToDate) 'C' "r---"
         (PerfIndicators 738320 0 738320 554400 67 0 0 0 0 0 Nothing
           Nothing Nothing)
         Nothing
         (Just $ AdditionalInfo 0 61 0 0 0 0 0)
-        (Just $ AdditionalInfo 0 257 92464 67 0 0 67),
+        (Just $ AdditionalInfo 0 257 92464 67 0 0 67)
+        Nothing,
       UnconfiguredDevice 2,
       DeviceInfo 4 WFConnection (LocalRemote Primary Unknown)
         (LocalRemote UpToDate DUnknown) 'C' "r---"
@@ -261,18 +280,21 @@ case_drbd8 = testFile "proc_drbd8.txt" $
           Nothing Nothing)
         Nothing
         (Just $ AdditionalInfo 0 61 0 0 0 0 0)
-        (Just $ AdditionalInfo 0 257 92464 67 0 0 67),
+        (Just $ AdditionalInfo 0 257 92464 67 0 0 67)
+        Nothing,
       DeviceInfo 5 Connected (LocalRemote Primary Secondary)
         (LocalRemote UpToDate Diskless) 'C' "r---"
         (PerfIndicators 4375581 0 4446283 674 1069 69 0 0 0 0 Nothing
           Nothing Nothing)
         Nothing
         (Just $ AdditionalInfo 0 61 0 0 0 0 0)
-        (Just $ AdditionalInfo 0 257 793750 1069 0 0 1069),
+        (Just $ AdditionalInfo 0 257 793750 1069 0 0 1069)
+        Nothing,
       DeviceInfo 6 Connected (LocalRemote Secondary Primary)
         (LocalRemote Diskless UpToDate) 'C'  "r---"
         (PerfIndicators 0 4375581 5186925 327 75 214 0 0 0 0 Nothing
           Nothing Nothing)
+        Nothing
         Nothing
         Nothing
         Nothing,
@@ -281,13 +303,15 @@ case_drbd8 = testFile "proc_drbd8.txt" $
         (PerfIndicators 0 0 0 0 0 0 0 0 0 0 Nothing Nothing Nothing)
         Nothing
         (Just $ AdditionalInfo 0 61 0 0 0 0 0)
-        (Just $ AdditionalInfo 0 257 0 0 0 0 0),
+        (Just $ AdditionalInfo 0 257 0 0 0 0 0)
+        Nothing,
       DeviceInfo 8 StandAlone (LocalRemote Secondary Unknown)
         (LocalRemote UpToDate DUnknown) ' ' "r---"
         (PerfIndicators 0 0 0 0 0 0 0 0 0 0 Nothing Nothing Nothing)
         Nothing
         (Just $ AdditionalInfo 0 61 0 0 0 0 0)
         (Just $ AdditionalInfo 0 257 0 0 0 0 0)
+        Nothing
     ]
 
 -- | Function for splitting a list in chunks of a given size.

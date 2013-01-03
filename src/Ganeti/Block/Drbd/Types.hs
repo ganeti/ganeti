@@ -38,8 +38,10 @@ module Ganeti.Block.Drbd.Types
   , Time(..)
   , TimeUnit(..)
   , AdditionalInfo(..)
+  , DrbdInstMinor(..)
   ) where
 
+import Control.Monad
 import Text.JSON
 import Text.Printf
 
@@ -93,18 +95,21 @@ data DeviceInfo =
   UnconfiguredDevice Int -- ^ An DRBD minor marked as unconfigured
   | -- | A configured DRBD minor
     DeviceInfo
-      { minorNumber :: Int -- ^ The minor index of the device
-      , connectionState :: ConnState -- ^ State of the connection
-      , resourceRoles :: LocalRemote Role -- ^ Roles of the resources
+      { minorNumber :: Int                  -- ^ The minor index of the device
+      , connectionState :: ConnState        -- ^ State of the connection
+      , resourceRoles :: LocalRemote Role   -- ^ Roles of the resources
       , diskStates :: LocalRemote DiskState -- ^ Status of the disks
-      , replicationProtocol :: Char -- ^ The replication protocol being used
-      , ioFlags :: String -- ^ The input/output flags
-      , perfIndicators
-          :: PerfIndicators -- ^ Performance indicators
-      , syncStatus :: Maybe SyncStatus -- ^ The status of the syncronization of
-                                       -- the disk (only if it is happening)
-      , resync :: Maybe AdditionalInfo -- ^ Additional info by DRBD 8.0
-      , actLog :: Maybe AdditionalInfo -- ^ Additional info by DRBD 8.0
+      , replicationProtocol :: Char         -- ^ The replication protocol
+                                            -- being used
+      , ioFlags :: String                   -- ^ The input/output flags
+      , perfIndicators :: PerfIndicators    -- ^ Performance indicators
+      , syncStatus :: Maybe SyncStatus      -- ^ The status of the
+                                            -- syncronization of the disk
+                                            -- (only if it is happening)
+      , resync :: Maybe AdditionalInfo      -- ^ Additional info by DRBD 8.0
+      , actLog :: Maybe AdditionalInfo      -- ^ Additional info by DRBD 8.0
+      , instName :: Maybe String            -- ^ The name of the associated
+                                            -- instance
       } deriving (Eq, Show)
 
 -- | The DeviceInfo instance of JSON.
@@ -115,7 +120,7 @@ instance JSON DeviceInfo where
     ]
   showJSON (DeviceInfo minorNumberF connectionStateF (LocalRemote
     localRole remoteRole) (LocalRemote localState remoteState)
-    replicProtocolF ioFlagsF perfIndicatorsF syncStatusF _ _) =
+    replicProtocolF ioFlagsF perfIndicatorsF syncStatusF _ _ instNameF) =
     optFieldsToObj
     [ Just ("minor", showJSON minorNumberF)
     , Just ("connectionState", showJSON connectionStateF)
@@ -127,6 +132,7 @@ instance JSON DeviceInfo where
     , Just ("ioFlags", showJSON ioFlagsF)
     , Just ("perfIndicators", showJSON perfIndicatorsF)
     , optionalJSField "syncStatus" syncStatusF
+    , Just ("instance", maybe JSNull showJSON instNameF)
     ]
 
   readJSON = error "JSON read instance not implemented for type DeviceInfo"
@@ -321,3 +327,34 @@ data AdditionalInfo = AdditionalInfo
   , dirty       :: Int
   , changed     :: Int
   } deriving (Eq, Show)
+
+-- | Data type representing the pairing of a DRBD minor with an instance.
+data DrbdInstMinor = DrbdInstMinor
+  { dimNode :: String
+  , dimMinor :: Int
+  , dimInstName :: String
+  , dimDiskIdx :: String
+  , dimRole :: String
+  , dimPeer :: String
+  } deriving (Show)
+
+-- | The DrbdInstMinor instance of JSON.
+instance JSON DrbdInstMinor where
+  showJSON (DrbdInstMinor a b c d e f) =
+    JSArray
+      [ showJSON a
+      , showJSON b
+      , showJSON c
+      , showJSON d
+      , showJSON e
+      , showJSON f
+      ]
+  readJSON (JSArray [a, b, c, d, e, f]) =
+    DrbdInstMinor
+      `fmap` readJSON a
+      `ap` readJSON b
+      `ap` readJSON c
+      `ap` readJSON d
+      `ap` readJSON e
+      `ap` readJSON f
+  readJSON _ = fail "Unable to read a DrbdInstMinor"

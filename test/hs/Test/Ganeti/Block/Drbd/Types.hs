@@ -84,6 +84,7 @@ prop_DeviceInfo = do
   ep <- genMaybe natural
   wo <- genMaybe wOrderFlag
   oos <- genMaybe natural
+  inst <- genMaybe arbitrary
   let obtained =
           showJSON $
             DeviceInfo minor state (LocalRemote locRole remRole)
@@ -91,6 +92,7 @@ prop_DeviceInfo = do
               Nothing
               Nothing
               Nothing
+              inst
       perfInd =
         PerfIndicators ns nr dw dr al bm lc pe ua ap ep wo oos
       expected =
@@ -104,6 +106,7 @@ prop_DeviceInfo = do
           , ("replicationProtocol", showJSON alg)
           , ("ioFlags", showJSON "r----")
           , ("perfIndicators", showJSON perfInd)
+          , ("instance", maybe JSNull showJSON inst)
           ]
   obtained ==? expected
 

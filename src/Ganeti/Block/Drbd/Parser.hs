@@ -31,6 +31,7 @@ import Control.Applicative ((<*>), (*>), (<*), (<$>), (<|>), pure)
 import qualified Data.Attoparsec.Text as A
 import qualified Data.Attoparsec.Combinator as AC
 import Data.Attoparsec.Text (Parser)
+import Data.List
 import Data.Maybe
 import Data.Text (Text, unpack)
 
@@ -61,10 +62,10 @@ optional :: Parser a -> Parser (Maybe a)
 optional parser = (Just <$> parser) <|> pure Nothing
 
 -- | The parser for a whole DRBD status file.
-drbdStatusParser :: Parser DRBDStatus
-drbdStatusParser =
+drbdStatusParser :: [DrbdInstMinor] -> Parser DRBDStatus
+drbdStatusParser instMinor =
   DRBDStatus <$> versionInfoParser
-             <*> deviceParser `AC.manyTill` A.endOfInput
+             <*> deviceParser instMinor `AC.manyTill` A.endOfInput
              <* A.endOfInput
 
 -- | The parser for the version information lines.
@@ -111,8 +112,8 @@ versionInfoParser = do
               <* A.endOfLine
 
 -- | The parser for a (multi-line) string representing a device.
-deviceParser :: Parser DeviceInfo
-deviceParser = do
+deviceParser :: [DrbdInstMinor] -> Parser DeviceInfo
+deviceParser instMinor = do
   deviceNum <- skipSpaces *> A.decimal <* A.char ':'
   cs <- skipSpacesAndString "cs:" connStateParser
   if cs == Unconfigured
@@ -129,8 +130,10 @@ deviceParser = do
       reS <- optional resyncParser
       act <- optional actLogParser
       _ <- additionalEOL
+      let inst = find ((deviceNum ==) . dimMinor) instMinor
+          iName = fmap dimInstName inst
       return $ DeviceInfo deviceNum cs ro ds replicProtocol io pIndicators
-                          syncS reS act
+                          syncS reS act iName
 
     where conditionalSyncStatusParser SyncSource = Just <$> syncStatusParser
           conditionalSyncStatusParser SyncTarget = Just <$> syncStatusParser

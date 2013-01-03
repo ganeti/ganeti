@@ -76,7 +76,7 @@ main _ args = do
     ((E.try $ readFile proc_drbd) :: IO (Either IOError String)) >>=
       exitIfBad "reading from file" . either (BT.Bad . show) BT.Ok
   output <-
-    case A.parse drbdStatusParser $ pack contents of
+    case A.parse (drbdStatusParser []) $ pack contents of
       A.Fail unparsedText contexts errorMessage -> exitErr $
         show (Prelude.take defaultCharNum $ unpack unparsedText) ++ "\n"
           ++ show contexts ++ "\n" ++ errorMessage
