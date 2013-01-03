@@ -86,7 +86,8 @@ updateConfdReply :: ConfdReply -> Maybe ConfdReply -> Maybe ConfdReply
 updateConfdReply newValue Nothing = Just newValue
 updateConfdReply newValue (Just currentValue) = Just $
   if confdReplyStatus newValue == ReplyStatusOk
-      && confdReplySerial newValue > confdReplySerial currentValue
+      && (confdReplyStatus currentValue /= ReplyStatusOk
+          || confdReplySerial newValue > confdReplySerial currentValue)
     then newValue
     else currentValue
 
