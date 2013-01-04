@@ -409,7 +409,21 @@ docrst = \
 	doc/virtual-cluster.rst \
 	doc/walkthrough.rst
 
-HS_PROGS = src/htools src/mon-collector
+# Haskell programs to be installed in $PREFIX/bin
+HS_BIN_PROGS=src/htools
+
+# Haskell programs to be installed in the MYEXECLIB dir
+HS_MYEXECLIB_PROGS=src/mon-collector
+
+# Haskell programs to compiled but not installed automatically
+# Usually they have their own specific installation rules
+HS_COMPILE_PROGS= \
+	src/hconfd \
+	src/rpc-test
+
+# All Haskell non-test programs to be compiled but not automatically installed
+HS_PROGS = $(HS_BIN_PROGS) $(HS_MYEXECLIB_PROGS)
+
 HS_BIN_ROLES = hbal hscan hspace hinfo hcheck hroller
 HS_HTOOLS_PROGS = $(HS_BIN_ROLES) hail
 
@@ -418,8 +432,7 @@ HS_ALL_PROGS = \
 	test/hs/hpc-htools \
 	test/hs/hpc-mon-collector \
 	test/hs/htest \
-	src/hconfd \
-	src/rpc-test
+	$(HS_COMPILE_PROGS)
 
 HS_PROG_SRCS = $(patsubst %,%.hs,$(HS_ALL_PROGS))
 HS_BUILT_TEST_HELPERS = $(HS_BIN_ROLES:%=test/hs/%) test/hs/hail
@@ -659,7 +672,7 @@ qa_scripts = \
 
 bin_SCRIPTS =
 if WANT_HTOOLS
-bin_SCRIPTS += $(filter-out src/hail,$(HS_PROGS))
+bin_SCRIPTS += $(HS_BIN_PROGS)
 install-exec-hook:
 	@mkdir_p@ $(DESTDIR)$(iallocatorsdir)
 # FIXME: this is a hardcoded logic, instead of auto-resolving
@@ -771,7 +784,7 @@ myexeclib_SCRIPTS = \
 	daemons/daemon-util \
 	tools/kvm-ifup \
 	$(pkglib_python_scripts) \
-	src/mon-collector
+	$(HS_MYEXECLIB_PROGS)
 
 nodist_myexeclib_SCRIPTS = \
 	$(nodist_pkglib_python_scripts)
