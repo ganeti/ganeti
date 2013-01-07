@@ -1274,7 +1274,7 @@ src/Ganeti/Version.hs: src/Ganeti/Version.hs.in \
 
 src/Ganeti/Constants.hs: src/Ganeti/Constants.hs.in \
 	lib/constants.py lib/_autoconf.py lib/luxi.py lib/errors.py \
-	lib/jstore.py $(RUN_IN_TEMPDIR)\
+	lib/jstore.py $(RUN_IN_TEMPDIR) \
 	$(CONVERT_CONSTANTS) $(built_base_sources) \
 	| lib/_vcsversion.py
 	set -e; \
