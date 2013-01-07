@@ -421,7 +421,7 @@ DTS_FILEBASED = compat.UniqueFrozenset([
   ])
 
 # the set of disk templates that are supported by exclusive_storage
-DTS_EXCL_STORAGE = frozenset([DT_PLAIN])
+DTS_EXCL_STORAGE = compat.UniqueFrozenset([DT_PLAIN])
 
 # templates for which we don't perform checks on free space
 DTS_NO_FREE_SPACE_CHECK = compat.UniqueFrozenset([
@@ -1551,28 +1551,28 @@ CV_ALL_ECODES_STRINGS = \
   compat.UniqueFrozenset(estr for (_, estr, _) in CV_ALL_ECODES)
 
 # Node verify constants
+NV_BRIDGES = "bridges"
 NV_DRBDHELPER = "drbd-helper"
 NV_DRBDLIST = "drbd-list"
 NV_FILELIST = "filelist"
+NV_FILE_STORAGE_PATHS = "file-storage-paths"
 NV_HVINFO = "hvinfo"
-NV_HYPERVISOR = "hypervisor"
 NV_HVPARAMS = "hvparms"
+NV_HYPERVISOR = "hypervisor"
 NV_INSTANCELIST = "instancelist"
 NV_LVLIST = "lvlist"
 NV_MASTERIP = "master-ip"
 NV_NODELIST = "nodelist"
 NV_NODENETTEST = "node-net-test"
 NV_NODESETUP = "nodesetup"
+NV_OOB_PATHS = "oob-paths"
 NV_OSLIST = "oslist"
 NV_PVLIST = "pvlist"
 NV_TIME = "time"
+NV_USERSCRIPTS = "user-scripts"
 NV_VERSION = "version"
 NV_VGLIST = "vglist"
 NV_VMNODES = "vmnodes"
-NV_OOB_PATHS = "oob-paths"
-NV_BRIDGES = "bridges"
-NV_USERSCRIPTS = "user-scripts"
-NV_FILE_STORAGE_PATHS = "file-storage-paths"
 
 # Instance status
 INSTST_RUNNING = "running"
