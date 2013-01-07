@@ -236,7 +236,7 @@ The options that can be passed to the program are as follows:
 -p, \--print-nodes
   Prints the before and after node status, in a format designed to allow
   the user to understand the node's most important parameters. See the
-  man page **htools**(1) for more details about this option.
+  man page **htools**\(1) for more details about this option.
 
 -O *name*
   This option (which can be given multiple times) will mark nodes as
@@ -264,22 +264,22 @@ The options that can be passed to the program are as follows:
   Backend specification: the name of the file holding node and instance
   information (if not collecting via RAPI or LUXI). This or one of the
   other backends must be selected. The option is described in the man
-  page **htools**(1).
+  page **htools**\(1).
 
 -m *cluster*
   Backend specification: collect data directly from the *cluster* given
   as an argument via RAPI. The option is described in the man page
-  **htools**(1).
+  **htools**\(1).
 
 -L [*path*]
   Backend specification: collect data directly from the master daemon,
   which is to be contacted via LUXI (an internal Ganeti protocol). The
-  option is described in the man page **htools**(1).
+  option is described in the man page **htools**\(1).
 
 \--simulate *description*
   Backend specification: similar to the **-t** option, this allows
   overriding the cluster data with a simulated cluster. For details
-  about the description, see the man page **htools**(1).
+  about the description, see the man page **htools**\(1).
 
 \--standard-alloc *disk,ram,cpu*
   This option overrides the instance size read from the cluster for the
@@ -340,7 +340,7 @@ upper-case letters of *M*, *G* and *T* (or their longer equivalents of
 *MB*, *GB*, *TB*, for which case doesn't matter).
 
 More details about the difference between the SI and binary systems can
-be read in the *units(7)* man page.
+be read in the **units**\(7) man page.
 
 EXIT STATUS
 -----------

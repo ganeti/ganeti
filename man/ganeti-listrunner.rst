@@ -104,7 +104,7 @@ Upload a script, some auxiliary files and run the script:
 SEE ALSO
 --------
 
-**dsh**(1), **cssh**(1)
+**dsh**\(1), **cssh**\(1)
 
 .. vim: set textwidth=72 :
 .. Local Variables:

@@ -17,13 +17,13 @@ DESCRIPTION
 -----------
 
 hscan is a tool for scanning clusters via RAPI and saving their data
-in the input format used by **hbal**(1) and **hspace**(1). It will
+in the input format used by **hbal**\(1) and **hspace**\(1). It will
 also show a one-line score for each cluster scanned or, if desired,
 the cluster state as show by the **-p** option to the other tools.
 
 For each cluster, one file named *cluster***.data** will be generated
 holding the node and instance data. This file can then be used in
-**hbal**(1) or **hspace**(1) via the *-t* option. In case the
+**hbal**\(1) or **hspace**\(1) via the *-t* option. In case the
 cluster name contains slashes (as it can happen when the cluster is a
 fully-specified URL), these will be replaced with underscores.
 
@@ -57,7 +57,7 @@ f_disk
   Free disk space in the cluster
 
 Score
-  The score of the cluster, as would be reported by **hbal**(1) if run
+  The score of the cluster, as would be reported by **hbal**\(1) if run
   on the generated data files.
 
 In case of errors while collecting data, all fields after the name of
@@ -75,7 +75,7 @@ The options that can be passed to the program are as follows:
   Prints the node status for each cluster after the cluster's one-line
   status display, in a format designed to allow the user to understand
   the node's most important parameters. For details, see the man page
-  for **htools**(1).
+  for **htools**\(1).
 
 -d *path*
   Save the node and instance data for each cluster under *path*,

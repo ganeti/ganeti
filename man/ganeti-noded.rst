@@ -19,7 +19,7 @@ node functions in the Ganeti system.
 
 By default, in order to be able to support features such as node
 powercycling even on systems with a very damaged root disk,
-**ganeti-noded** locks itself in RAM using **mlockall**(2). You can
+**ganeti-noded** locks itself in RAM using **mlockall**\(2). You can
 disable this feature by passing in the ``--no-mlock`` to the daemon.
 
 For testing purposes, you can give the ``-f`` option and the

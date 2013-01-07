@@ -54,7 +54,7 @@ execution (and will be stored in the job log). It is recommended
 that for any non-zero exit code, the backup is considered invalid,
 and retried.
 
-See **ganeti(7)** for a description of ``--submit`` and other common
+See **ganeti**\(7) for a description of ``--submit`` and other common
 options.
 
 Example::
@@ -128,7 +128,7 @@ link
     in bridged and openvswitch mode specifies the interface to attach
     this NIC to, in routed mode it's intended to differentiate between
     different routing tables/instance groups (but the meaning is
-    dependent on the network script in use, see **gnt-cluster**(8) for
+    dependent on the network script in use, see **gnt-cluster**\(8) for
     more details)
 
 Of these ``mode`` and ``link`` are nic parameters, and inherit their
@@ -210,7 +210,7 @@ value matches the current cluster default and mark it as such
 affect the hypervisor, backend and NIC parameters, both read from
 the export file and passed in via the command line.
 
-See **ganeti(7)** for a description of ``--submit`` and other common
+See **ganeti**\(7) for a description of ``--submit`` and other common
 options.
 
 Example for identical instance import::

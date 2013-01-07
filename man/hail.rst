@@ -17,7 +17,7 @@ DESCRIPTION
 -----------
 
 hail is a Ganeti IAllocator plugin that implements the instance
-placement and movement using the same algorithm as **hbal**(1).
+placement and movement using the same algorithm as **hbal**\(1).
 
 The program takes input via a JSON-file containing current cluster
 state and the request details, and output (on stdout) a JSON-formatted
@@ -68,17 +68,17 @@ The options that can be passed to the program are as follows:
 -p, \--print-nodes
   Prints the before and after node status, in a format designed to allow
   the user to understand the node's most important parameters. See the
-  man page **htools**(1) for more details about this option.
+  man page **htools**\(1) for more details about this option.
 
 -t *datafile*, \--text-data=*datafile*
   The name of the file holding cluster information, to override the data
   in the JSON request itself. This is mostly used for debugging. The
-  format of the file is described in the man page **htools**(1).
+  format of the file is described in the man page **htools**\(1).
 
 \--simulate *description*
   Backend specification: similar to the **-t** option, this allows
   overriding the cluster data with a simulated cluster. For details
-  about the description, see the man page **htools**(1).
+  about the description, see the man page **htools**\(1).
 
 -S *filename*, \--save-cluster=*filename*
   If given, the state of the cluster before and the iallocator run is

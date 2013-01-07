@@ -50,7 +50,7 @@ IPv6 semantics can be assigned to the network via the ``--network6`` and
 ``--gateway6`` options. IP pool is meaningless for IPV6 so those two
 values can be used for EUI64 generation from a NIC's MAC address.
 
-See **ganeti(7)** for a description of ``--submit`` and other common
+See **ganeti**\(7) for a description of ``--submit`` and other common
 options.
 
 MODIFY
@@ -73,7 +73,7 @@ Unable to modify network (IP address range). Create a new network if you
 want to do so. All other options are documented in the **add** command
 above.
 
-See **ganeti(7)** for a description of ``--submit`` and other common
+See **ganeti**\(7) for a description of ``--submit`` and other common
 options.
 
 REMOVE
@@ -83,7 +83,7 @@ REMOVE
 
 Deletes the indicated network, which must be not connected to any node group.
 
-See **ganeti(7)** for a description of ``--submit`` and other common options.
+See **ganeti**\(7) for a description of ``--submit`` and other common options.
 
 LIST
 ~~~~
@@ -100,7 +100,7 @@ The ``--no-headers`` option will skip the initial header line. The
 between the output fields. Both these options are to help scripting.
 
 The ``-v`` option activates verbose mode, which changes the display of
-special field states (see **ganeti(7)**).
+special field states (see **ganeti**\(7)).
 
 The ``-o`` option takes a comma-separated list of output fields. If the
 value of the option starts with the character ``+``, the new fields will

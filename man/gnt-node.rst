@@ -44,7 +44,7 @@ to its current status (it could be already in a cluster, etc.)
 
 The ``-s (--secondary-ip)`` is used in dual-home clusters and
 specifies the new node's IP in the secondary network. See the
-discussion in **gnt-cluster**(8) for more information.
+discussion in **gnt-cluster**\(8) for more information.
 
 In case you're readding a node after hardware failure, you can use
 the ``--readd`` parameter. In this case, you don't need to pass the
@@ -57,7 +57,7 @@ specific node group, specified by UUID or name. If only one node group
 exists you can skip this option, otherwise it's mandatory.
 
 The ``vm_capable``, ``master_capable``, ``ndparams``, ``diskstate`` and
-``hvstate`` options are described in **ganeti**(7), and are used to set
+``hvstate`` options are described in **ganeti**\(7), and are used to set
 the properties of the new node.
 
 The command performs some operations that change the state of the master
@@ -124,7 +124,7 @@ each affected instance individually:
   in the secondary node change mode (only valid for DRBD instances)
 - when neither of the above is done a combination of the two cases is run
 
-See **ganeti(7)** for a description of ``--submit`` and other common
+See **ganeti**\(7) for a description of ``--submit`` and other common
 options.
 
 Example::
@@ -187,7 +187,7 @@ Queries of nodes will be done in parallel with any running jobs. This might
 give inconsistent results for the free disk/memory.
 
 The ``-v`` option activates verbose mode, which changes the display of
-special field states (see **ganeti(7)**).
+special field states (see **ganeti**\(7)).
 
 The ``-o (--output)`` option takes a comma-separated list of output
 fields. The available fields and their meaning are:
@@ -212,7 +212,7 @@ pool of memory used for instances (KVM), whereas others have separate
 memory for the node and for the instances (Xen).
 
 If exactly one argument is given and it appears to be a query filter
-(see **ganeti(7)**), the query result is filtered accordingly. For
+(see **ganeti**\(7)), the query result is filtered accordingly. For
 ambiguous cases (e.g. a single field name as a filter) the ``--filter``
 (``-F``) option forces the argument to be treated as a filter (e.g.
 ``gnt-node list -F master_candidate``).
@@ -247,7 +247,7 @@ list of fields (it doesn't accept the ``--output`` option), as follows:
 This command can be used as a reverse lookup (from node and minor) to a
 given instance, which can be useful when debugging DRBD issues.
 
-Note that this command queries Ganeti via :manpage:`ganeti-confd(8)`, so
+Note that this command queries Ganeti via **ganeti-confd**\(8), so
 it won't be available if support for ``confd`` has not been enabled at
 build time; furthermore, in Ganeti 2.6 this is only available via the
 Haskell version of confd (again selected at build time).
@@ -277,7 +277,7 @@ can be given to influence the migration type.
 If ``--ignore-ipolicy`` is given any instance policy violations
 occurring during this operation are ignored.
 
-See **ganeti(7)** for a description of ``--submit`` and other common
+See **ganeti**\(7) for a description of ``--submit`` and other common
 options.
 
 Example::
@@ -302,7 +302,7 @@ MODIFY
 This command changes the role of the node. Each options takes
 either a literal yes or no, and only one option should be given as
 yes. The meaning of the roles and flags are described in the
-manpage **ganeti(7)**.
+manpage **ganeti**\(7).
 
 The option ``--node-powered`` can be used to modify state-of-record if
 it doesn't reflect the reality anymore.
@@ -330,7 +330,7 @@ convert a cluster from single homed to multi-homed or vice versa
 ``--force`` is needed as well, and the target node for the first change
 must be the master.
 
-See **ganeti(7)** for a description of ``--submit`` and other common
+See **ganeti**\(7) for a description of ``--submit`` and other common
 options.
 
 Example (setting the node back to online and master candidate)::
@@ -534,7 +534,7 @@ The ``--yes`` option can be used to skip confirmation, while the
 ``--force`` option is needed if the target node is the master
 node.
 
-See **ganeti(7)** for a description of ``--submit`` and other common
+See **ganeti**\(7) for a description of ``--submit`` and other common
 options.
 
 POWER

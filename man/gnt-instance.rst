@@ -110,7 +110,7 @@ link
     in bridged or openvswitch mode specifies the interface to attach
     this NIC to, in routed mode it's intended to differentiate between
     different routing tables/instance groups (but the meaning is
-    dependent on the network script, see gnt-cluster(8) for more
+    dependent on the network script, see **gnt-cluster**\(8) for more
     details). Note that openvswitch support is also hypervisor
     dependent.
 
@@ -383,7 +383,7 @@ spice\_tls\_ciphers
     Valid for the KVM hypervisor.
 
     Specifies a list of comma-separated ciphers that SPICE should use
-    for TLS connections. For the format, see man cipher(1).
+    for TLS connections. For the format, see man **cipher**\(1).
 
 spice\_use\_vdagent
     Valid for the KVM hypervisor.
@@ -699,7 +699,7 @@ blktap
 If ``--ignore-ipolicy`` is given any instance policy violations occuring
 during this operation are ignored.
 
-See **ganeti(7)** for a description of ``--submit`` and other common
+See **ganeti**\(7) for a description of ``--submit`` and other common
 options.
 
 Example::
@@ -829,7 +829,7 @@ instance to stop.
 
 The ``--force`` option is used to skip the interactive confirmation.
 
-See **ganeti(7)** for a description of ``--submit`` and other common
+See **ganeti**\(7) for a description of ``--submit`` and other common
 options.
 
 Example::
@@ -860,7 +860,7 @@ scripts. In both cases, the ``--units`` option can be used to enforce
 a given output unit.
 
 The ``-v`` option activates verbose mode, which changes the display of
-special field states (see **ganeti(7)**).
+special field states (see **ganeti**\(7)).
 
 The ``-o (--output)`` option takes a comma-separated list of output
 fields. The available fields and their meaning are:
@@ -882,7 +882,7 @@ you only want some data and it makes sense to specify a reduced set of
 output fields.
 
 If exactly one argument is given and it appears to be a query filter
-(see **ganeti(7)**), the query result is filtered accordingly. For
+(see **ganeti**\(7)), the query result is filtered accordingly. For
 ambiguous cases (e.g. a single field name as a filter) the ``--filter``
 (``-F``) option forces the argument to be treated as a filter (e.g.
 ``gnt-instance list -F admin_state``).
@@ -995,7 +995,7 @@ immediately.
 If ``--ignore-ipolicy`` is given any instance policy violations occuring
 during this operation are ignored.
 
-See **ganeti(7)** for a description of ``--submit`` and other common
+See **ganeti**\(7) for a description of ``--submit`` and other common
 options.
 
 Most of the changes take effect at the next restart. If the instance is
@@ -1026,7 +1026,7 @@ arguments or by using the ``--node``, ``--primary``, ``--secondary``
 or ``--all`` options), the user must pass the ``--force-multiple``
 options to skip the interactive confirmation.
 
-See **ganeti(7)** for a description of ``--submit`` and other common
+See **ganeti**\(7) for a description of ``--submit`` and other common
 options.
 
 RENAME
@@ -1052,7 +1052,7 @@ that the resolved name matches the provided name. Since the name check
 is used to compute the IP address, if you pass this option you must also
 pass the ``--no-ip-check`` option.
 
-See **ganeti(7)** for a description of ``--submit`` and other common
+See **ganeti**\(7) for a description of ``--submit`` and other common
 options.
 
 Starting/stopping/connecting to console
@@ -1148,7 +1148,7 @@ pauses the instance at the start of bootup, awaiting ``gnt-instance
 console`` to unpause it, allowing the entire boot process to be
 monitored for debugging.
 
-See **ganeti(7)** for a description of ``--submit`` and other common
+See **ganeti**\(7) for a description of ``--submit`` and other common
 options.
 
 Example::
@@ -1201,7 +1201,7 @@ you just need to disable the watcher, shutdown all instances with
 ``--no-remember``, and when the watcher is activated again it will
 restore the correct runtime state for all instances.
 
-See **ganeti(7)** for a description of ``--submit`` and other common
+See **ganeti**\(7) for a description of ``--submit`` and other common
 options.
 
 Example::
@@ -1246,7 +1246,7 @@ to stop.
 The ``--force-multiple`` will skip the interactive confirmation in the
 case the more than one instance will be affected.
 
-See **ganeti(7)** for a description of ``--submit`` and other common
+See **ganeti**\(7) for a description of ``--submit`` and other common
 options.
 
 Example::
@@ -1336,7 +1336,7 @@ The ``--ignore-ipolicy`` let the command ignore instance policy
 violations if replace-disks changes groups and the instance would
 violate the new groups instance policy.
 
-See **ganeti(7)** for a description of ``--submit`` and other common
+See **ganeti**\(7) for a description of ``--submit`` and other common
 options.
 
 ACTIVATE-DISKS
@@ -1374,7 +1374,7 @@ parse the disk information.
 Note that it is safe to run this command while the instance is already
 running.
 
-See **ganeti(7)** for a description of ``--submit`` and other common
+See **ganeti**\(7) for a description of ``--submit`` and other common
 options.
 
 DEACTIVATE-DISKS
@@ -1395,7 +1395,7 @@ option passed it will skip this check and directly try to deactivate
 the disks. This can still fail due to the instance actually running or
 other issues.
 
-See **ganeti(7)** for a description of ``--submit`` and other common
+See **ganeti**\(7) for a description of ``--submit`` and other common
 options.
 
 GROW-DISK
@@ -1415,9 +1415,9 @@ disk. Usually, you will need to:
 
 #. reboot the instance (later, at a convenient time)
 
-#. use a filesystem resizer, such as ext2online(8) or
-   xfs\_growfs(8) to resize the filesystem, or use fdisk(8) to change
-   the partition table on the disk
+#. use a filesystem resizer, such as **ext2online**\(8) or
+   **xfs\_growfs**\(8) to resize the filesystem, or use **fdisk**\(8) to
+   change the partition table on the disk
 
 The *disk* argument is the index of the instance disk to grow. The
 *amount* argument is given as a number which can have a suffix (like the
@@ -1438,7 +1438,7 @@ create problems (except for unused space).
 If you do not want gnt-instance to wait for the new disk region to be
 synced, use the ``--no-wait-for-sync`` option.
 
-See **ganeti(7)** for a description of ``--submit`` and other common
+See **ganeti**\(7) for a description of ``--submit`` and other common
 options.
 
 Example (increase the first disk for instance1 by 16GiB)::
@@ -1488,7 +1488,7 @@ using the specified iallocator, passing the ``--iallocator`` option.
 The primary and secondary nodes will be chosen by the specified
 iallocator plugin, or by the default allocator if ``.`` is specified.
 
-See **ganeti(7)** for a description of ``--submit`` and other common
+See **ganeti**\(7) for a description of ``--submit`` and other common
 options.
 
 Recovery/moving
@@ -1532,7 +1532,7 @@ to stop.
 If ``--ignore-ipolicy`` is given any instance policy violations occuring
 during this operation are ignored.
 
-See **ganeti(7)** for a description of ``--submit`` and other common
+See **ganeti**\(7) for a description of ``--submit`` and other common
 options.
 
 Example::
@@ -1603,7 +1603,7 @@ down because the target node doesn't have enough available memory).
 If an instance has the backend parameter ``always_failover`` set to
 true, then the migration is automatically converted into a failover.
 
-See **ganeti(7)** for a description of ``--submit`` and other common
+See **ganeti**\(7) for a description of ``--submit`` and other common
 options.
 
 Example (and expected output)::
@@ -1656,7 +1656,7 @@ hypervisor is broken and you want to recover the data.
 If ``--ignore-ipolicy`` is given any instance policy violations occuring
 during this operation are ignored.
 
-See **ganeti(7)** for a description of ``--submit`` and other common
+See **ganeti**\(7) for a description of ``--submit`` and other common
 options.
 
 Example::
@@ -1677,7 +1677,7 @@ cluster default.
 If no specific destination groups are specified using ``--to``, all
 groups except the one containing the instance are considered.
 
-See **ganeti(7)** for a description of ``--submit`` and other common
+See **ganeti**\(7) for a description of ``--submit`` and other common
 options.
 
 Example::

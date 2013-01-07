@@ -40,7 +40,7 @@ Cluster architecture
 
 In Ganeti 2.0, the architecture of the cluster is a little more
 complicated than in 1.2. The cluster is coordinated by a master daemon
-(**ganeti-masterd**(8)), running on the master node. Each node runs
+(**ganeti-masterd**\(8)), running on the master node. Each node runs
 (as before) a node daemon, and the master has the RAPI daemon running
 too.
 
@@ -408,7 +408,7 @@ Operators:
 *!~*
   Logically negated from *=~*
 *=\**
-  Globbing, see **glob**(7), though only * and ? are supported
+  Globbing, see **glob**\(7), though only * and ? are supported
 *!\**
   Logically negated from *=\**
 *in*, *not in*
@@ -419,7 +419,7 @@ Common daemon functionality
 ---------------------------
 
 All Ganeti daemons re-open the log file(s) when sent a SIGHUP signal.
-**logrotate**(8) can be used to rotate Ganeti's log files.
+**logrotate**\(8) can be used to rotate Ganeti's log files.
 
 .. vim: set textwidth=72 :
 .. Local Variables:

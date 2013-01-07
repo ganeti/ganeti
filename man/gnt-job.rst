@@ -111,7 +111,7 @@ The following options can be used to show only specific jobs:
   Show finished jobs only.
 
 If exactly one argument is given and it appears to be a query filter
-(see **ganeti(7)**), the query result is filtered accordingly. For
+(see **ganeti**\(7)), the query result is filtered accordingly. For
 ambiguous cases (e.g. a single field name as a filter) the ``--filter``
 (``-F``) option forces the argument to be treated as a filter.
 

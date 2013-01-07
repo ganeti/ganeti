@@ -49,7 +49,7 @@ OPTIONS
 -------
 
 Currently only standard htools options are supported. For a description of them
-check **htools(7)** and **hbal(1)**.
+check **htools**\(7) and **hbal**\(1).
 
 BUGS
 ----

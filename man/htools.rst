@@ -151,7 +151,7 @@ support all options. Some common options are:
   Backend specification: the name of the file holding node and instance
   information (if not collecting via RAPI or LUXI). This or one of the
   other backends must be selected. The option is described in the man
-  page **htools**(1).
+  page **htools**\(1).
 
   The file should contain text data, line-based, with two empty lines
   separating sections. The lines themselves are column-based, with the
@@ -272,7 +272,7 @@ their longer equivalents of *MB*, *GB*, *TB*, for which case doesn't
 matter).
 
 More details about the difference between the SI and binary systems can
-be read in the *units(7)* man page.
+be read in the **units**\(7) man page.
 
 ENVIRONMENT
 -----------

@@ -107,7 +107,7 @@ used between the output fields. Both these options are to help
 scripting.
 
 The ``-v`` option activates verbose mode, which changes the display of
-special field states (see **ganeti(7)**).
+special field states (see **ganeti**\(7)).
 
 The ``-o`` option takes a comma-separated list of output fields.
 The available fields and their meaning are:

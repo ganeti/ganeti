@@ -78,7 +78,7 @@ Note: The given operating system doesn't have to exist. This allows
 preseeding the settings for operating systems not yet known to
 **gnt-os**.
 
-See **ganeti(7)** for a description of ``--submit`` and other common
+See **ganeti**\(7) for a description of ``--submit`` and other common
 options.
 
 .. vim: set textwidth=72 :

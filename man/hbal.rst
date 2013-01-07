@@ -220,7 +220,7 @@ The options that can be passed to the program are as follows:
 -p, \--print-nodes
   Prints the before and after node status, in a format designed to allow
   the user to understand the node's most important parameters. See the
-  man page **htools**(1) for more details about this option.
+  man page **htools**\(1) for more details about this option.
 
 \--print-instances
   Prints the before and after instance map. This is less useful as the
@@ -326,17 +326,17 @@ The options that can be passed to the program are as follows:
   Backend specification: the name of the file holding node and instance
   information (if not collecting via RAPI or LUXI). This or one of the
   other backends must be selected. The option is described in the man
-  page **htools**(1).
+  page **htools**\(1).
 
 -m *cluster*
   Backend specification: collect data directly from the *cluster* given
   as an argument via RAPI. The option is described in the man page
-  **htools**(1).
+  **htools**\(1).
 
 -L [*path*]
   Backend specification: collect data directly from the master daemon,
   which is to be contacted via LUXI (an internal Ganeti protocol). The
-  option is described in the man page **htools**(1).
+  option is described in the man page **htools**\(1).
 
 -X
   When using the Luxi backend, hbal can also execute the given

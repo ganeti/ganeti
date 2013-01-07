@@ -33,7 +33,7 @@ COMMAND
 **command** [-n *node*] [-g *group*] [-M] {*command*}
 
 Executes a command on all nodes. This command is designed for simple
-usage. For more complex use cases the commands **dsh(1)** or **cssh(1)**
+usage. For more complex use cases the commands **dsh**\(1) or **cssh**\(1)
 should be used instead.
 
 If the option ``-n`` is not given, the command will be executed on all
@@ -293,7 +293,7 @@ The ``-H (--hypervisor-parameters)`` option allows you to set default
 hypervisor specific parameters for the cluster. The format of this
 option is the name of the hypervisor, followed by a colon and a
 comma-separated list of key=value pairs. The keys available for each
-hypervisors are detailed in the gnt-instance(8) man page, in the
+hypervisors are detailed in the **gnt-instance**\(8) man page, in the
 **add** command plus the following parameters which are only
 configurable globally (at cluster level):
 
@@ -369,7 +369,7 @@ must be specified first, followed by a colon and by a comma-separated
 list of key-value pairs. These parameters can only be specified at
 cluster and node group level; the cluster-level parameter are inherited
 by the node group at the moment of its creation, and can be further
-modified at node group level using the **gnt-group**(8) command.
+modified at node group level using the **gnt-group**\(8) command.
 
 The following is the list of disk parameters available for the **drbd**
 template, with measurement units specified in square brackets at the end
@@ -470,7 +470,7 @@ htools was not enabled at build time, the default instance allocator
 will be blank, which means that relevant operations will require the
 administrator to manually specify either an instance allocator, or a
 set of nodes. If the option is not specified but htools was enabled,
-the default iallocator will be **hail**(1) (assuming it can be found
+the default iallocator will be **hail**\(1) (assuming it can be found
 on disk). The default iallocator can be changed later using the
 **modify** command.
 
@@ -480,13 +480,13 @@ IPv6, respectively. This option is used when resolving node names
 and the cluster name.
 
 The ``--node-parameters`` option allows you to set default node
-parameters for the cluster. Please see **ganeti**(7) for more
+parameters for the cluster. Please see **ganeti**\(7) for more
 information about supported key=value pairs.
 
 The ``-C (--candidate-pool-size)`` option specifies the
 ``candidate_pool_size`` cluster parameter. This is the number of nodes
 that the master will try to keep as master\_candidates. For more
-details about this role and other node roles, see the ganeti(7).
+details about this role and other node roles, see the **ganeti**\(7).
 
 The ``--specs-...`` and ``--ipolicy-disk-templates`` options specify
 instance policy on the cluster. For the ``--specs-...`` options, each
@@ -506,7 +506,7 @@ comma-separated list of disk templates.
 - ``--ipolicy-disk-templates`` limits the allowed disk templates
 
 For details about how to use ``--hypervisor-state`` and ``--disk-state``
-have a look at **ganeti**(7).
+have a look at **ganeti**\(7).
 
 MASTER-FAILOVER
 ~~~~~~~~~~~~~~~
@@ -588,7 +588,7 @@ The ``--vg-name``, ``--no-lvm-storage``, ``--enabled-hypervisors``,
 command.
 
 The ``--hypervisor-state`` and ``--disk-state`` options are described in
-detail in **ganeti(7)**.
+detail in **ganeti**\(7).
 
 The ``--add-uids`` and ``--remove-uids`` options can be used to
 modify the user-id pool by adding/removing a list of user-ids or
@@ -613,7 +613,7 @@ command. To clear the default iallocator, just pass an empty string
 The ``--specs-...`` and ``--ipolicy-disk-templates`` options are
 described in the **init** command.
 
-See **ganeti(7)** for a description of ``--submit`` and other common
+See **ganeti**\(7) for a description of ``--submit`` and other common
 options.
 
 QUEUE
@@ -656,7 +656,7 @@ master node to the other nodes in the cluster. This is normally not
 needed, but can be run if the **verify** complains about
 configuration mismatches.
 
-See **ganeti(7)** for a description of ``--submit`` and other common
+See **ganeti**\(7) for a description of ``--submit`` and other common
 options.
 
 RENAME
@@ -687,10 +687,10 @@ This command will stop all Ganeti daemons in the cluster and start
 them again once the new certificates and keys are replicated. The
 options ``--new-cluster-certificate`` and ``--new-confd-hmac-key``
 can be used to regenerate the cluster-internal SSL certificate
-respective the HMAC key used by ganeti-confd(8).
+respective the HMAC key used by **ganeti-confd**\(8).
 
 To generate a new self-signed RAPI certificate (used by
-ganeti-rapi(8)) specify ``--new-rapi-certificate``. If you want to
+**ganeti-rapi**\(8)) specify ``--new-rapi-certificate``. If you want to
 use your own certificate, e.g. one signed by a certificate
 authority (CA), pass its filename to ``--rapi-certificate``.
 

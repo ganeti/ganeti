@@ -41,7 +41,7 @@ Creates a new group with the given name. The node group will be
 initially empty; to add nodes to it, use ``gnt-group assign-nodes``.
 
 The ``--node-parameters`` option allows you to set default node
-parameters for nodes in the group. Please see **ganeti**(7) for more
+parameters for nodes in the group. Please see **ganeti**\(7) for more
 information about supported key=value pairs and their corresponding
 options.
 
@@ -64,14 +64,14 @@ preferred
 
 The ``-D (--disk-parameters)`` option allows you to set the disk
 parameters for the node group; please see the section about
-**gnt-cluster add** in **gnt-cluster**(8) for more information about
+**gnt-cluster add** in **gnt-cluster**\(8) for more information about
 disk parameters
 
 The ``--specs-...`` and ``--ipol-disk-templates`` options specify
 instance policies on the node group, and are documented in the
-**gnt-cluster**(8) man page.
+**gnt-cluster**\(8) man page.
 
-See **ganeti(7)** for a description of ``--submit`` and other common
+See **ganeti**\(7) for a description of ``--submit`` and other common
 options.
 
 ASSIGN-NODES
@@ -90,7 +90,7 @@ instance is an instance with a mirrored disk template, e.g. DRBD, that
 has the primary and secondary nodes in different node groups). You can
 force the operation with ``--force``.
 
-See **ganeti(7)** for a description of ``--submit`` and other common
+See **ganeti**\(7) for a description of ``--submit`` and other common
 options.
 
 MODIFY
@@ -114,7 +114,7 @@ Modifies some parameters from the node group.
 
 The ``--node-parameters`` and ``--alloc-policy`` options are documented
 in the **add** command above. ``--hypervisor-state`` as well as
-``--disk-state`` are documented in detail in **ganeti**(7).
+``--disk-state`` are documented in detail in **ganeti**\(7).
 
 The ``--node-parameters``, ``--alloc-policy``, ``-D
 (--disk-parameters)`` options are documented in the **add** command
@@ -122,9 +122,9 @@ above.
 
 The ``--specs-...`` and ``--ipol-disk-templates`` options specify
 instance policies on the node group, and are documented in the
-**gnt-cluster**(8) man page.
+**gnt-cluster**\(8) man page.
 
-See **ganeti(7)** for a description of ``--submit`` and other common
+See **ganeti**\(7) for a description of ``--submit`` and other common
 options.
 
 REMOVE
@@ -135,7 +135,7 @@ REMOVE
 Deletes the indicated node group, which must be empty. There must always be at
 least one group, so the last group cannot be removed.
 
-See **ganeti(7)** for a description of ``--submit`` and other common
+See **ganeti**\(7) for a description of ``--submit`` and other common
 options.
 
 LIST
@@ -152,7 +152,7 @@ used between the output fields. Both these options are to help
 scripting.
 
 The ``-v`` option activates verbose mode, which changes the display of
-special field states (see **ganeti(7)**).
+special field states (see **ganeti**\(7)).
 
 The ``-o`` option takes a comma-separated list of output fields.
 If the value of the option starts with the character ``+``, the new
@@ -165,7 +165,7 @@ The available fields and their meaning are:
 @QUERY_FIELDS_GROUP@
 
 If exactly one argument is given and it appears to be a query filter
-(see **ganeti(7)**), the query result is filtered accordingly. For
+(see **ganeti**\(7)), the query result is filtered accordingly. For
 ambiguous cases (e.g. a single field name as a filter) the ``--filter``
 (``-F``) option forces the argument to be treated as a filter.
 
@@ -186,7 +186,7 @@ RENAME
 
 Renames a given group from *oldname* to *newname*.
 
-See **ganeti(7)** for a description of ``--submit`` and other common
+See **ganeti**\(7) for a description of ``--submit`` and other common
 options.
 
 
@@ -202,7 +202,7 @@ the command line or as a cluster default.
 If no specific destination groups are specified using ``--to``, all
 groups except the evacuated group are considered.
 
-See **ganeti(7)** for a description of ``--submit`` and other common
+See **ganeti**\(7) for a description of ``--submit`` and other common
 options.
 
 Example::

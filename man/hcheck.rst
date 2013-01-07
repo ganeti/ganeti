@@ -55,7 +55,7 @@ machine-readable way.
 Note that it does not take any action, only performs a rebalance
 simulation if necessary.
 
-For more information about the algorithm details check **hbal(1)**.
+For more information about the algorithm details check **hbal**\(1).
 
 OPTIONS
 -------
@@ -65,7 +65,7 @@ OPTIONS
   to simulate rebalancing.
 
 For a detailed description about the options listed above have a look at
-**htools(7)**, **hspace(1)** and **hbal(1)**.
+**htools**\(7), **hspace**\(1) and **hbal**\(1).
 
 .. vim: set textwidth=72 :
 .. Local Variables:
