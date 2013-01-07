@@ -16530,7 +16530,7 @@ class LUNetworkQuery(NoHooksLU):
 
   def CheckArguments(self):
     self.nq = _NetworkQuery(qlang.MakeSimpleFilter("name", self.op.names),
-                            self.op.output_fields, False)
+                            self.op.output_fields, self.op.use_locking)
 
   def ExpandNames(self):
     self.nq.ExpandNames(self)

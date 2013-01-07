@@ -2152,6 +2152,7 @@ class OpNetworkQuery(OpCode):
   """Compute the list of networks."""
   OP_PARAMS = [
     _POutputFields,
+    _PUseLocking,
     ("names", ht.EmptyList, ht.TListOf(ht.TNonEmptyString),
      "Empty list to query all groups, group names otherwise"),
     ]

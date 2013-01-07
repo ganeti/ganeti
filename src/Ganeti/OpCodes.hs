@@ -537,7 +537,7 @@ $(genOpCode "OpCode"
      , pNetworkName
      , pIpConflictsCheck
      ])
-  , ("OpNetworkQuery", dOldQueryNoLocking)
+  , ("OpNetworkQuery", dOldQuery)
   , ("OpRestrictedCommand",
      [ pUseLocking
      , pRequiredNodes
