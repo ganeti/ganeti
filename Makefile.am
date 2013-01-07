@@ -23,6 +23,7 @@ RUN_IN_TEMPDIR = $(top_srcdir)/autotools/run-in-tempdir
 CHECK_PYTHON_CODE = $(top_srcdir)/autotools/check-python-code
 CHECK_HEADER = $(top_srcdir)/autotools/check-header
 CHECK_MAN_DASHES = $(top_srcdir)/autotools/check-man-dashes
+CHECK_MAN_REFERENCES = $(top_srcdir)/autotools/check-man-references
 CHECK_MAN_WARNINGS = $(top_srcdir)/autotools/check-man-warnings
 CHECK_VERSION = $(top_srcdir)/autotools/check-version
 CHECK_NEWS = $(top_srcdir)/autotools/check-news
@@ -794,6 +795,7 @@ EXTRA_DIST = \
 	autotools/check-header \
 	autotools/check-imports \
 	autotools/check-man-dashes \
+	autotools/check-man-references \
 	autotools/check-man-warnings \
 	autotools/check-news \
 	autotools/check-python-code \
@@ -1193,12 +1195,13 @@ man/%.gen: man/%.rst lib/query.py lib/build/sphinx_ext.py \
 	| $(RUN_IN_TEMPDIR) $(BUILT_PYTHON_SOURCES)
 	@echo "Checking $< for hardcoded paths..."
 	@if grep -nEf autotools/wrong-hardcoded-paths $<; then \
-	  echo "Man page $< has harcoded paths (see above)!" 1>&2 ; \
+	  echo "Man page $< has hardcoded paths (see above)!" 1>&2 ; \
 	  exit 1; \
 	fi
 	set -e ; \
 	trap 'echo auto-removing $@; rm $@' EXIT; \
 	PYTHONPATH=. $(RUN_IN_TEMPDIR) $(CURDIR)/$(DOCPP) < $< > $@ ;\
+	$(CHECK_MAN_REFERENCES) $@; \
 	trap - EXIT
 
 man/%.7.in man/%.8.in man/%.1.in: man/%.gen man/footer.rst
