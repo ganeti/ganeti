@@ -814,6 +814,7 @@ EXTRA_DIST = \
 	daemons/ganeti-cleaner.in \
 	$(pkglib_python_scripts) \
 	devel/upload \
+	devel/webserver \
 	tools/kvm-ifup.in \
 	tools/vcluster-setup.in \
 	$(docdot) \
