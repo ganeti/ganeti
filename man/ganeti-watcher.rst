@@ -81,7 +81,7 @@ In some cases, it's even desirable to reset the watcher state, for
 example after maintenance actions, or when you want to simulate the
 reboot of all nodes, so in this case, you can remove all state files:
 
-.. code-block:: Bash
+.. code-block:: bash
 
     rm -f @LOCALSTATEDIR@/lib/ganeti/watcher.*.data
     rm -f @LOCALSTATEDIR@/lib/ganeti/watcher.*.instance-status

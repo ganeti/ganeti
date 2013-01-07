@@ -571,7 +571,7 @@ cpu\_mask
 
     Example:
 
-    .. code-block:: Bash
+    .. code-block:: bash
 
       # Map the entire instance to CPUs 0-2
       gnt-instance modify -H cpu_mask=0-2 my-inst

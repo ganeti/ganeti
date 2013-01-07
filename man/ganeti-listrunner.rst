@@ -88,13 +88,13 @@ EXAMPLE
 
 Run a command on a list of hosts:
 
-.. code-block:: Bash
+.. code-block:: bash
 
   listrunner -l logdir -c "uname -a" -h host1,host2,host3
 
 Upload a script, some auxiliary files and run the script:
 
-.. code-block:: Bash
+.. code-block:: bash
 
   listrunner -l logdir -x runme.sh \
     -a seed.dat -a golden.dat \

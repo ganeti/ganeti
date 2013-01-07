@@ -226,7 +226,7 @@ fails.
 For the ``dhcp`` parameter given as example above, a verification
 script could be:
 
-.. code-block:: Bash
+.. code-block:: bash
 
     #!/bin/sh
 
@@ -342,7 +342,7 @@ The rename script has been added. If you don't want to do any
 changes on the instances after a rename, you can migrate the OS
 definition to version 5 by creating the rename script simply as:
 
-.. code-block:: Bash
+.. code-block:: bash
 
     #!/bin/sh
 
