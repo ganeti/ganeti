@@ -929,7 +929,10 @@ man_MANS = \
 	man/htools.1 \
 	man/mon-collector.7
 
-manrst = $(patsubst %.1,%.rst,$(patsubst %.7,%.rst,$(patsubst %.8,%.rst,$(man_MANS))))
+# Remove extensions from all filenames in man_MANS
+mannoext = $(patsubst %.1,%,$(patsubst %.7,%,$(patsubst %.8,%,$(man_MANS))))
+
+manrst = $(patsubst %,%.rst,$(mannoext))
 manhtml = $(patsubst %.rst,%.html,$(manrst))
 mangen = $(patsubst %.rst,%.gen,$(manrst))
 maninput = \
@@ -1407,6 +1410,13 @@ lib/_autoconf.py: Makefile | stamp-directories
 	  echo "ENABLE_SPLIT_QUERY = $(ENABLE_SPLIT_QUERY)"; \
 	  echo "ENABLE_RESTRICTED_COMMANDS = $(ENABLE_RESTRICTED_COMMANDS)"; \
 	  echo "ENABLE_MONITORING = $(ENABLE_MONITORING)"; \
+## Write dictionary with man page name as the key and the section number as the
+## value
+	  echo "MAN_PAGES = {"; \
+	  for i in $(notdir $(man_MANS)); do \
+	    echo "$$i" | sed -re 's/^(.*)\.([0-9]+)$$/  "\1": \2,/g'; \
+	  done; \
+	  echo "}"; \
 	} > $@
 
 lib/_vcsversion.py: Makefile vcs-version | stamp-directories

@@ -23,16 +23,28 @@
 
 """
 
+import re
 from cStringIO import StringIO
 
 import docutils.statemachine
 import docutils.nodes
 import docutils.utils
+import docutils.parsers.rst
 
 import sphinx.errors
 import sphinx.util.compat
+import sphinx.roles
+import sphinx.addnodes
 
 s_compat = sphinx.util.compat
+
+try:
+  # Access to a protected member of a client class
+  # pylint: disable=W0212
+  orig_manpage_role = docutils.parsers.rst.roles._roles["manpage"]
+except (AttributeError, ValueError, KeyError), err:
+  # Normally the "manpage" role is registered by sphinx/roles.py
+  raise Exception("Can't find reST role named 'manpage': %s" % err)
 
 from ganeti import constants
 from ganeti import compat
@@ -42,8 +54,19 @@ from ganeti import opcodes
 from ganeti import ht
 from ganeti import rapi
 from ganeti import luxi
+from ganeti import _autoconf
 
 import ganeti.rapi.rlib2 # pylint: disable=W0611
+
+
+#: Regular expression for man page names
+_MAN_RE = re.compile(r"^(?P<name>[-\w_]+)\((?P<section>\d+)\)$")
+
+
+class ReSTError(Exception):
+  """Custom class for generating errors in Sphinx.
+
+  """
 
 
 def _GetCommonParamNames():
@@ -310,14 +333,106 @@ def BuildValuesDoc(values):
     yield "  %s" % doc
 
 
-# TODO: Implement Sphinx directive for query fields
+def _ManPageNodeClass(*args, **kwargs):
+  """Generates a pending XRef like a ":doc:`...`" reference.
+
+  """
+  # Type for sphinx/environment.py:BuildEnvironment.resolve_references
+  kwargs["reftype"] = "doc"
+
+  # Force custom title
+  kwargs["refexplicit"] = True
+
+  return sphinx.addnodes.pending_xref(*args, **kwargs)
+
+
+class _ManPageXRefRole(sphinx.roles.XRefRole):
+  def __init__(self):
+    """Initializes this class.
+
+    """
+    sphinx.roles.XRefRole.__init__(self, nodeclass=_ManPageNodeClass,
+                                   warn_dangling=True)
+
+    assert not hasattr(self, "converted"), \
+      "Sphinx base class gained an attribute named 'converted'"
+
+    self.converted = None
+
+  def process_link(self, env, refnode, has_explicit_title, title, target):
+    """Specialization for man page links.
+
+    """
+    if has_explicit_title:
+      raise ReSTError("Setting explicit title is not allowed for man pages")
+
+    # Check format and extract name and section
+    m = _MAN_RE.match(title)
+    if not m:
+      raise ReSTError("Man page reference '%s' does not match regular"
+                      " expression '%s'" % (title, _MAN_RE.pattern))
+
+    name = m.group("name")
+    section = int(m.group("section"))
+
+    wanted_section = _autoconf.MAN_PAGES.get(name, None)
+
+    if not (wanted_section is None or wanted_section == section):
+      raise ReSTError("Referenced man page '%s' has section number %s, but the"
+                      " reference uses section %s" %
+                      (name, wanted_section, section))
+
+    self.converted = bool(wanted_section is not None and
+                          env.app.config.enable_manpages)
+
+    if self.converted:
+      # Create link to known man page
+      return (title, "man-%s" % name)
+    else:
+      # No changes
+      return (title, target)
+
+
+def _ManPageRole(typ, rawtext, text, lineno, inliner, # pylint: disable=W0102
+                 options={}, content=[]):
+  """Custom role for man page references.
+
+  Converts man pages to links if enabled during the build.
+
+  """
+  xref = _ManPageXRefRole()
+
+  assert ht.TNone(xref.converted)
+
+  # Check if it's a known man page
+  try:
+    result = xref(typ, rawtext, text, lineno, inliner,
+                  options=options, content=content)
+  except ReSTError, err:
+    msg = inliner.reporter.error(str(err), line=lineno)
+    return ([inliner.problematic(rawtext, rawtext, msg)], [msg])
+
+  assert ht.TBool(xref.converted)
+
+  # Return if the conversion was successful (i.e. the man page was known and
+  # conversion was enabled)
+  if xref.converted:
+    return result
+
+  # Fallback if man page links are disabled or an unknown page is referenced
+  return orig_manpage_role(typ, rawtext, text, lineno, inliner,
+                           options=options, content=content)
 
 
 def setup(app):
   """Sphinx extension callback.
 
   """
+  # TODO: Implement Sphinx directive for query fields
   app.add_directive("opcode_params", OpcodeParams)
   app.add_directive("opcode_result", OpcodeResult)
   app.add_directive("pyassert", PythonAssert)
   app.add_role("pyeval", PythonEvalRole)
+
+  app.add_config_value("enable_manpages", False, True)
+  app.add_role("manpage", _ManPageRole)
