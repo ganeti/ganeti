@@ -1196,7 +1196,7 @@ man/%.gen: man/%.rst lib/query.py lib/build/sphinx_ext.py \
 	PYTHONPATH=. $(RUN_IN_TEMPDIR) $(CURDIR)/$(DOCPP) < $< > $@ ;\
 	trap - EXIT
 
-man/%.7.in man/%.8.in man/%.1.in: man/%.gen
+man/%.7.in man/%.8.in man/%.1.in: man/%.gen man/footer.rst
 	@test -n "$(PANDOC)" || \
 	  { echo 'pandoc' not found during configure; exit 1; }
 	set -o pipefail ; \
@@ -1207,7 +1207,7 @@ man/%.7.in man/%.8.in man/%.1.in: man/%.gen
 	$(CHECK_MAN_DASHES) $@; \
 	trap - EXIT
 
-man/%.html.in: man/%.gen
+man/%.html.in: man/%.gen man/footer.rst
 	@test -n "$(PANDOC)" || \
 	  { echo 'pandoc' not found during configure; exit 1; }
 	set -o pipefail ; \
