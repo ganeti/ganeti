@@ -46,6 +46,7 @@ import Ganeti.Common
 import Ganeti.Confd.Client
 import Ganeti.Confd.Types
 import Ganeti.DataCollectors.CLI
+import Ganeti.DataCollectors.Types
 import Ganeti.Utils
 
 
@@ -60,6 +61,14 @@ defaultFile = C.drbdStatusFile
 -- TODO: add the possibility to set this with a command line parameter.
 defaultCharNum :: Int
 defaultCharNum = 80*20
+
+-- | The name of this data collector.
+dcName :: String
+dcName = "drbd"
+
+-- | The version number for the data format of this data collector.
+dcFormatVersion :: Int
+dcFormatVersion = 1
 
 options :: IO [OptType]
 options =
@@ -95,22 +104,28 @@ getPairingInfo (Just filename) = do
       J.Ok instMinor -> BT.Ok instMinor
       J.Error msg -> BT.Bad msg
 
--- | Main function.
-main :: Options -> [String] -> IO ()
-main opts args = do
-  let proc_drbd = fromMaybe defaultFile $ optDrbdStatus opts
-      instMinor = optDrbdPairing opts
-  unless (null args) . exitErr $ "This program takes exactly zero" ++
-                                  " arguments, got '" ++ unwords args ++ "'"
+-- | This function builds a report with the DRBD status.
+buildDRBDReport :: FilePath -> Maybe FilePath -> IO DCReport
+buildDRBDReport statusFile pairingFile = do
   contents <-
-    ((E.try $ readFile proc_drbd) :: IO (Either IOError String)) >>=
+    ((E.try $ readFile statusFile) :: IO (Either IOError String)) >>=
       exitIfBad "reading from file" . either (BT.Bad . show) BT.Ok
-  pairingResult <- getPairingInfo instMinor
+  pairingResult <- getPairingInfo pairingFile
   pairing <- exitIfBad "Can't get pairing info" pairingResult
-  output <-
+  jsonData <-
     case A.parse (drbdStatusParser pairing) $ pack contents of
       A.Fail unparsedText contexts errorMessage -> exitErr $
         show (Prelude.take defaultCharNum $ unpack unparsedText) ++ "\n"
           ++ show contexts ++ "\n" ++ errorMessage
-      A.Done _ drbdStatus -> return $ J.encode drbdStatus
-  putStrLn output
+      A.Done _ drbdStatus -> return $ J.showJSON drbdStatus
+  buildReport dcName Nothing dcFormatVersion jsonData
+
+-- | Main function.
+main :: Options -> [String] -> IO ()
+main opts args = do
+  let statusFile = fromMaybe defaultFile $ optDrbdStatus opts
+      pairingFile = optDrbdPairing opts
+  unless (null args) . exitErr $ "This program takes exactly zero" ++
+                                  " arguments, got '" ++ unwords args ++ "'"
+  report <- buildDRBDReport statusFile pairingFile
+  putStrLn $ J.encode report
