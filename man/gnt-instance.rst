@@ -672,7 +672,7 @@ useful for having different subdirectories for different
 instances. The full path of the directory where the disk files are
 stored will consist of cluster-wide file storage directory + optional
 subdirectory + instance name. Example:
-``@RPL_FILE_STORAGE_DIR@``*/mysubdir/instance1.example.com*. This
+``@RPL_FILE_STORAGE_DIR@/mysubdir/instance1.example.com``. This
 option is only relevant for instances using the file storage backend.
 
 The ``--file-driver`` specifies the driver to use for file-based
@@ -1600,7 +1600,7 @@ The ``--no-runtime-changes`` option forbids migrate to alter an
 instance's runtime before migrating it (eg. ballooning an instance
 down because the target node doesn't have enough available memory).
 
-If an instance has the backend parameter ``always\_failover`` set to
+If an instance has the backend parameter ``always_failover`` set to
 true, then the migration is automatically converted into a failover.
 
 See **ganeti(7)** for a description of ``--submit`` and other common

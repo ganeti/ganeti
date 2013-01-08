@@ -1621,7 +1621,7 @@ DEBUG_LEVEL
 
 These are only the basic variables we are thinking of now, but more
 may come during the implementation and they will be documented in the
-:manpage:`ganeti-os-api` man page. All these variables will be
+:manpage:`ganeti-os-interface(7)` man page. All these variables will be
 available to all scripts.
 
 Some scripts will need a few more information to work. These will have

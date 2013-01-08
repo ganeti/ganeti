@@ -322,7 +322,7 @@ after shutting down an instance, execute the following::
 .. warning:: Do not use the Xen or KVM commands directly to stop
    instances. If you run for example ``xm shutdown`` or ``xm destroy``
    on an instance Ganeti will automatically restart it (via
-   the :command:`ganeti-watcher` command which is launched via cron).
+   the :command:`ganeti-watcher(8)` command which is launched via cron).
 
 Querying instances
 ~~~~~~~~~~~~~~~~~~
@@ -1217,7 +1217,7 @@ upgrade the Ganeti software, or simply restart the software on any node:
 Watcher control
 +++++++++++++++
 
-The :manpage:`ganeti-watcher` is a program, usually scheduled via
+The :manpage:`ganeti-watcher(8)` is a program, usually scheduled via
 ``cron``, that takes care of cluster maintenance operations (restarting
 downed instances, activating down DRBD disks, etc.). However, during
 maintenance and troubleshooting, this can get in your way; disabling it

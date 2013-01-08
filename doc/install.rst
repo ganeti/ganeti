@@ -655,7 +655,7 @@ installed.
    can be added, of course, if needed.
 
 Alternatively, you can create your own OS definitions. See the manpage
-:manpage:`ganeti-os-interface`.
+:manpage:`ganeti-os-interface(7)`.
 
 Initializing the cluster
 ++++++++++++++++++++++++

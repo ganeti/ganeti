@@ -703,7 +703,7 @@ New features
 - Instance migration can fall back to failover if instance is not
   running.
 - Filters can be used when listing nodes, instances, groups and locks;
-  see *ganeti(7)* manpage.
+  see :manpage:`ganeti(7)` manpage.
 - Added post-execution status as variables to :doc:`hooks <hooks>`
   environment.
 - Instance tags are exported/imported together with the instance.

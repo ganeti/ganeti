@@ -191,8 +191,9 @@ OK
   that the computation failed and any values present should not be
   relied upon.
 
-Many of the INI_/FIN_ metrics will be also displayed with a TRL_ prefix,
-and denote the cluster status at the end of the tiered allocation run.
+Many of the ``INI_``/``FIN_`` metrics will be also displayed with a
+``TRL_`` prefix, and denote the cluster status at the end of the tiered
+allocation run.
 
 The human output format should be self-explanatory, so it is not
 described further.

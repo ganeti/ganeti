@@ -340,7 +340,7 @@ auto\_balance
     will be set to true if not specified.
 
 always\_failover
-    Default value for the ``always\_failover`` flag for instances; if
+    Default value for the ``always_failover`` flag for instances; if
     not set, ``False`` is used.
 
 

@@ -30,7 +30,7 @@ EXPORT
 
 Exports an instance to the target node. All the instance data and
 its configuration will be exported under the
-``@CUSTOM_EXPORT_DIR@/``*instance* directory on the target node.
+``@CUSTOM_EXPORT_DIR@/$instance`` directory on the target node.
 
 The ``--shutdown-timeout`` is used to specify how much time to wait
 before forcing the shutdown (xm destroy in xen, killing the kvm
