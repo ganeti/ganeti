@@ -16423,23 +16423,19 @@ class _NetworkQuery(_QueryBase):
 
   def ExpandNames(self, lu):
     lu.needed_locks = {}
+    lu.share_locks = _ShareAll()
 
-    self._all_networks = lu.cfg.GetAllNetworksInfo()
-    name_to_uuid = dict((n.name, n.uuid) for n in self._all_networks.values())
+    self.do_locking = self.use_locking
 
-    if not self.names:
-      self.wanted = [name_to_uuid[name]
-                     for name in utils.NiceSort(name_to_uuid.keys())]
-    else:
-      # Accept names to be either names or UUIDs.
+    all_networks = lu.cfg.GetAllNetworksInfo()
+    name_to_uuid = dict((n.name, n.uuid) for n in all_networks.values())
+
+    if self.names:
       missing = []
       self.wanted = []
-      all_uuid = frozenset(self._all_networks.keys())
 
       for name in self.names:
-        if name in all_uuid:
-          self.wanted.append(name)
-        elif name in name_to_uuid:
+        if name in name_to_uuid:
           self.wanted.append(name_to_uuid[name])
         else:
           missing.append(name)
@@ -16447,6 +16443,15 @@ class _NetworkQuery(_QueryBase):
       if missing:
         raise errors.OpPrereqError("Some networks do not exist: %s" % missing,
                                    errors.ECODE_NOENT)
+    else:
+      self.wanted = locking.ALL_SET
+
+    if self.do_locking:
+      lu.needed_locks[locking.LEVEL_NETWORK] = self.wanted
+      if query.NETQ_INST in self.requested_data:
+        lu.needed_locks[locking.LEVEL_INSTANCE] = locking.ALL_SET
+      if query.NETQ_GROUP in self.requested_data:
+        lu.needed_locks[locking.LEVEL_NODEGROUP] = locking.ALL_SET
 
   def DeclareLocks(self, lu, level):
     pass
@@ -16455,29 +16460,25 @@ class _NetworkQuery(_QueryBase):
     """Computes the list of networks and their attributes.
 
     """
+    all_networks = lu.cfg.GetAllNetworksInfo()
+
+    network_uuids = self._GetNames(lu, all_networks.keys(),
+                                   locking.LEVEL_NETWORK)
+
+    name_to_uuid = dict((n.name, n.uuid) for n in all_networks.values())
+
     do_instances = query.NETQ_INST in self.requested_data
-    do_groups = do_instances or (query.NETQ_GROUP in self.requested_data)
+    do_groups = query.NETQ_GROUP in self.requested_data
 
     network_to_instances = None
+    network_to_groups = None
 
     # For NETQ_GROUP, we need to map network->[groups]
     if do_groups:
       all_groups = lu.cfg.GetAllNodeGroupsInfo()
-      network_to_groups = dict((uuid, []) for uuid in self.wanted)
-
-      if do_instances:
-        all_instances = lu.cfg.GetAllInstancesInfo()
-        all_nodes = lu.cfg.GetAllNodesInfo()
-        network_to_instances = dict((uuid, []) for uuid in self.wanted)
-
-      for group in all_groups.values():
-        if do_instances:
-          group_nodes = [node.name for node in all_nodes.values() if
-                         node.group == group.uuid]
-          group_instances = [instance for instance in all_instances.values()
-                             if instance.primary_node in group_nodes]
-
-        for net_uuid in self.wanted:
+      network_to_groups = dict((uuid, []) for uuid in network_uuids)
+      for _, group in all_groups.iteritems():
+        for net_uuid in network_uuids:
           netparams = group.networks.get(net_uuid, None)
           if netparams:
             info = (group.name, netparams[constants.NIC_MODE],
@@ -16485,25 +16486,27 @@ class _NetworkQuery(_QueryBase):
 
             network_to_groups[net_uuid].append(info)
 
-          if do_instances:
-            for instance in group_instances:
-              for nic in instance.nics:
-                if nic.network == self._all_networks[net_uuid].name:
-                  network_to_instances[net_uuid].append(instance.name)
-                  break
-    else:
-      network_to_groups = None
+    if do_instances:
+      all_instances = lu.cfg.GetAllInstancesInfo()
+      network_to_instances = dict((uuid, []) for uuid in network_uuids)
+      for instance in all_instances.values():
+        for nic in instance.nics:
+          if nic.network:
+            net_uuid = name_to_uuid[nic.network]
+            if net_uuid in network_uuids:
+              network_to_instances[net_uuid].append(instance.name)
+            break
 
     if query.NETQ_STATS in self.requested_data:
       stats = \
         dict((uuid,
-              self._GetStats(network.AddressPool(self._all_networks[uuid])))
-             for uuid in self.wanted)
+              self._GetStats(network.AddressPool(all_networks[uuid])))
+             for uuid in network_uuids)
     else:
       stats = None
 
-    return query.NetworkQueryData([self._all_networks[uuid]
-                                   for uuid in self.wanted],
+    return query.NetworkQueryData([all_networks[uuid]
+                                   for uuid in network_uuids],
                                    network_to_groups,
                                    network_to_instances,
                                    stats)
