@@ -1,0 +1,2 @@
+[["machine1.example.com",0,"instance1.example.com","disk/0","secondary",
+"machine2.example.com"]]

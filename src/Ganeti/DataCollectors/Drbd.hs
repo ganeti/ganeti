@@ -31,14 +31,20 @@ module Ganeti.DataCollectors.Drbd
 
 
 import qualified Control.Exception as E
+import Control.Monad
 import Data.Attoparsec.Text.Lazy as A
+import Data.Maybe
 import Data.Text.Lazy (pack, unpack)
-import Text.JSON
+import Network.BSD (getHostName)
+import qualified Text.JSON as J
 
 import qualified Ganeti.BasicTypes as BT
 import qualified Ganeti.Constants as C
 import Ganeti.Block.Drbd.Parser(drbdStatusParser)
+import Ganeti.Block.Drbd.Types(DrbdInstMinor)
 import Ganeti.Common
+import Ganeti.Confd.Client
+import Ganeti.Confd.Types
 import Ganeti.DataCollectors.CLI
 import Ganeti.Utils
 
@@ -56,29 +62,55 @@ defaultCharNum :: Int
 defaultCharNum = 80*20
 
 options :: IO [OptType]
-options = return []
+options =
+  return
+    [ oDrbdStatus
+    , oDrbdPairing
+    ]
 
 -- | The list of arguments supported by the program.
 arguments :: [ArgCompletion]
-arguments = [ArgCompletion OptComplFile 0 (Just 1)]
+arguments = [ArgCompletion OptComplFile 0 (Just 0)]
 
 -- * Command line options
 
+-- | Get information about the pairing of DRBD minors and Ganeti instances
+-- on the current node. The information is taken from the Confd client
+-- or, if a filename is specified, from a JSON encoded file (for testing
+-- purposes).
+getPairingInfo :: Maybe String -> IO (BT.Result [DrbdInstMinor])
+getPairingInfo Nothing = do
+  curNode <- getHostName
+  client <- getConfdClient
+  reply <- query client ReqNodeDrbd $ PlainQuery curNode
+  return $
+    case fmap (J.readJSONs . confdReplyAnswer) reply of
+      Just (J.Ok instMinor) -> BT.Ok instMinor
+      Just (J.Error msg) -> BT.Bad msg
+      Nothing -> BT.Bad "No answer from the Confd server"
+getPairingInfo (Just filename) = do
+  content <- readFile filename
+  return $
+    case J.decode content of
+      J.Ok instMinor -> BT.Ok instMinor
+      J.Error msg -> BT.Bad msg
+
 -- | Main function.
 main :: Options -> [String] -> IO ()
-main _ args = do
-  proc_drbd <- case args of
-                 [ ] -> return defaultFile
-                 [x] -> return x
-                 _   -> exitErr $ "This program takes only one argument," ++
-                                  " got '" ++ unwords args ++ "'"
+main opts args = do
+  let proc_drbd = fromMaybe defaultFile $ optDrbdStatus opts
+      instMinor = optDrbdPairing opts
+  unless (null args) . exitErr $ "This program takes exactly zero" ++
+                                  " arguments, got '" ++ unwords args ++ "'"
   contents <-
     ((E.try $ readFile proc_drbd) :: IO (Either IOError String)) >>=
       exitIfBad "reading from file" . either (BT.Bad . show) BT.Ok
+  pairingResult <- getPairingInfo instMinor
+  pairing <- exitIfBad "Can't get pairing info" pairingResult
   output <-
-    case A.parse (drbdStatusParser []) $ pack contents of
+    case A.parse (drbdStatusParser pairing) $ pack contents of
       A.Fail unparsedText contexts errorMessage -> exitErr $
         show (Prelude.take defaultCharNum $ unpack unparsedText) ++ "\n"
           ++ show contexts ++ "\n" ++ errorMessage
-      A.Done _ drbdStatus -> return $ encode drbdStatus
+      A.Done _ drbdStatus -> return $ J.encode drbdStatus
   putStrLn output

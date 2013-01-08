@@ -914,6 +914,7 @@ TEST_FILES = \
 	test/data/bdev-drbd-net-ip6.txt \
 	test/data/cert1.pem \
 	test/data/cert2.pem \
+	test/data/instance-minor-pairing.txt \
 	test/data/ip-addr-show-dummy0.txt \
 	test/data/ip-addr-show-lo-ipv4.txt \
 	test/data/ip-addr-show-lo-ipv6.txt \

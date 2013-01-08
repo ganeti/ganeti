@@ -34,9 +34,14 @@ module Ganeti.DataCollectors.CLI
   , oShowHelp
   , oShowVer
   , oShowComp
+  , oDrbdPairing
+  , oDrbdStatus
   , genericOptions
   ) where
 
+import System.Console.GetOpt
+
+import Ganeti.BasicTypes
 import Ganeti.Common as Common
 
 -- * Data types
@@ -46,6 +51,10 @@ data Options = Options
   { optShowHelp    :: Bool           -- ^ Just show the help
   , optShowComp    :: Bool           -- ^ Just show the completion info
   , optShowVer     :: Bool           -- ^ Just show the program version
+  , optDrbdStatus  :: Maybe FilePath -- ^ Path to the file containing DRBD
+                                     -- status information
+  , optDrbdPairing :: Maybe FilePath -- ^ Path to the file containing pairings
+                                     -- between instances and DRBD minors
   } deriving Show
 
 -- | Default values for the command line options.
@@ -54,6 +63,8 @@ defaultOptions  = Options
   { optShowHelp    = False
   , optShowComp    = False
   , optShowVer     = False
+  , optDrbdStatus  = Nothing
+  , optDrbdPairing = Nothing
   }
 
 -- | Abbreviation for the option type.
@@ -68,6 +79,19 @@ instance StandardOptions Options where
   requestComp o = o { optShowComp = True }
 
 -- * Command line options
+oDrbdPairing :: OptType
+oDrbdPairing =
+  ( Option "p" ["drbd-pairing"]
+      (ReqArg (\ f o -> Ok o { optDrbdPairing = Just f}) "FILE")
+      "the FILE containing pairings between instances and DRBD minors",
+    OptComplFile)
+
+oDrbdStatus :: OptType
+oDrbdStatus =
+  ( Option "s" ["drbd-status"]
+      (ReqArg (\ f o -> Ok o { optDrbdStatus = Just f }) "FILE")
+      "the DRBD status FILE",
+    OptComplFile)
 
 -- | Generic options.
 genericOptions :: [GenericOptType Options]

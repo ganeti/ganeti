@@ -33,10 +33,21 @@ COLLECTORS
 DRBD
 ~~~~
 
-| drbd [*status-file*]
+| drbd [ [ **-s** | **\--drbd-status** ] = *status-file* ] [ [ **-p** | **\--drbd-pairing**] = *pairing-file* ]
 
 Collects the information about the version and status of the DRBD kernel
 module, and of the disks it is managing.
 
-If *status-file* is specified, the status will be read from that file.
-Otherwise, the collector will read it from /proc/drbd.
+If *status-file* and *pairing-file* are specified, the status and the
+instance-minor paring information will be read from those files.
+Otherwise, the collector will read them, respectively, from /proc/drbd
+and from the Confd server.
+
+The options that can be passed to the DRBD collector are as follows:
+
+-s *status-file*, \--drbd-status=*status-file*
+  Read the DRBD status from the specified file instead of /proc/drbd.
+
+-p *pairing-file*, \--drbd-pairing=*pairing-file*
+  Read the information about the pairing between instances and DRBD minors
+  from the specified file instead of asking the Confd servers for them.
