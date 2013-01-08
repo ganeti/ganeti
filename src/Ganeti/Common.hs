@@ -117,7 +117,7 @@ complToText compl =
       stripped = stripPrefix "OptCompl" show_compl
   in map toLower $ fromMaybe show_compl stripped
 
--- | Tex serialisation for 'ArgCompletion'.
+-- | Text serialisation for 'ArgCompletion'.
 argComplToText :: ArgCompletion -> String
 argComplToText (ArgCompletion optc min_cnt max_cnt) =
   complToText optc ++ " " ++ show min_cnt ++ " " ++ maybe "none" show max_cnt
@@ -236,15 +236,14 @@ showCmdUsage prog personalities success = do
 -- | Generates completion information for a multi-command binary.
 multiCmdCompletion :: (StandardOptions a) => PersonalityList a -> String
 multiCmdCompletion personalities =
-  unlines .
-  map argComplToText $
-  map (\(cmd, _) -> ArgCompletion (OptComplChoices [cmd]) 1 (Just 1))
-    personalities
+  argComplToText $
+    ArgCompletion (OptComplChoices (map fst personalities))
+      1 (Just 1)
 
 -- | Displays completion information for a multi-command binary and exits.
 showCmdCompletion :: (StandardOptions a) => PersonalityList a -> IO b
 showCmdCompletion personalities =
-  putStr (multiCmdCompletion personalities) >> exitSuccess
+  putStrLn (multiCmdCompletion personalities) >> exitSuccess
 
 -- | Command line parser, using a generic 'Options' structure.
 parseOpts :: (StandardOptions a) =>
