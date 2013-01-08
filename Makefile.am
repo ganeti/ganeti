@@ -487,6 +487,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/DataCollectors/CLI.hs \
 	src/Ganeti/DataCollectors/Drbd.hs \
 	src/Ganeti/DataCollectors/Program.hs \
+	src/Ganeti/DataCollectors/Types.hs \
 	src/Ganeti/Errors.hs \
 	src/Ganeti/HTools/Backend/IAlloc.hs \
 	src/Ganeti/HTools/Backend/Luxi.hs \

@@ -2315,5 +2315,8 @@ AUTO_REPAIR_ALL_RESULTS = frozenset([
     AUTO_REPAIR_ENOPERM,
 ])
 
+# The version identifier for builtin data collectors
+BUILTIN_DATA_COLLECTOR_VERSION = "B"
+
 # Do not re-export imported modules
 del re, _vcsversion, _autoconf, socket, pathutils, compat
