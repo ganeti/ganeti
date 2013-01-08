@@ -82,6 +82,7 @@ DIRS = \
 	devel \
 	doc \
 	doc/examples \
+	doc/examples/css \
 	doc/examples/gnt-debug \
 	doc/examples/hooks \
 	test/data/htools \
@@ -584,6 +585,7 @@ $(RUN_IN_TEMPDIR): | stamp-directories
 doc/html/index.html: $(docrst) doc/conf.py configure.ac \
 	$(RUN_IN_TEMPDIR) lib/build/sphinx_ext.py \
 	lib/build/shell_example_lexer.py lib/opcodes.py lib/ht.py \
+	doc/css/style.css \
 	| $(BUILT_PYTHON_SOURCES)
 	@test -n "$(SPHINX)" || \
 	    { echo 'sphinx-build' not found during configure; exit 1; }
@@ -812,6 +814,7 @@ EXTRA_DIST = \
 	tools/vcluster-setup.in \
 	$(docrst) \
 	doc/conf.py \
+	doc/css/style.css \
 	doc/html \
 	$(BUILT_EXAMPLES:%=%.in) \
 	doc/examples/ganeti.default \

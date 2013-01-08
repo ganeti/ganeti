@@ -1,0 +1,7 @@
+@import url(default.css);
+
+a.external {
+  /* Based on MediaWiki's monobook skin (licenced as GPL) */
+  background: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs%2B9AAAAVklEQVR4Xn3PgQkAMQhDUXfqTu7kTtkpd5RA8AInfArtQ2iRXFWT2QedAfttj2FsPIOE1eCOlEuoWWjgzYaB%2FIkeGOrxXhqB%2BuA9Bfcm0lAZuh%2BYIeAD%2BcAqSz4kCMUAAAAASUVORK5CYII%3D") no-repeat scroll right center transparent;
+  padding-right: 13px;
+}
