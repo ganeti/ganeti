@@ -592,7 +592,7 @@ class LogicalVolume(BlockDev):
     stripes = min(current_pvs, desired_stripes)
 
     if excl_stor:
-      err_msgs = utils.LvmExclusiveCheckNodePvs(pvs_info)
+      (err_msgs, _) = utils.LvmExclusiveCheckNodePvs(pvs_info)
       if err_msgs:
         for m in err_msgs:
           logging.warning(m)

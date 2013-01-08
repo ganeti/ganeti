@@ -55,9 +55,11 @@ def LvmExclusiveCheckNodePvs(pvs_info):
 
   @type pvs_info: list
   @param pvs_info: list of L{LvmPvInfo} objects
-  @rtype: list
-  @return: A list of error strings described the violation found, or an empty
-      list if everything is ok
+  @rtype: tuple
+  @return: A pair composed of: 1. a list of error strings describing the
+    violations found, or an empty list if everything is ok; 2. a pair
+    containing the sizes of the smallest and biggest PVs, in MiB.
+
   """
   errmsgs = []
   sizes = [pv.size for pv in pvs_info]
@@ -67,7 +69,7 @@ def LvmExclusiveCheckNodePvs(pvs_info):
   if LvmExclusiveTestBadPvSizes(small, big):
     m = ("Sizes of PVs are too different: min=%d max=%d" % (small, big))
     errmsgs.append(m)
-  return errmsgs
+  return (errmsgs, (small, big))
 
 
 def LvmExclusiveTestBadPvSizes(small, big):

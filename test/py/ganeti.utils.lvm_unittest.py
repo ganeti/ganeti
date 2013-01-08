@@ -43,40 +43,66 @@ class TestLvmExclusiveCheckNodePvs(unittest.TestCase):
   _EPS = 1e-4
 
   def testOnePv(self):
-    errmsgs = utils.LvmExclusiveCheckNodePvs([self._MED_PV])
+    (errmsgs, (small, big)) = utils.LvmExclusiveCheckNodePvs([self._MED_PV])
     self.assertFalse(errmsgs)
+    self.assertEqual(small, self._MED_PV.size)
+    self.assertEqual(big, self._MED_PV.size)
 
   def testEqualPvs(self):
-    errmsgs = utils.LvmExclusiveCheckNodePvs([self._MED_PV] * 2)
+    (errmsgs, (small, big)) = utils.LvmExclusiveCheckNodePvs(
+      [self._MED_PV] * 2)
     self.assertFalse(errmsgs)
-    errmsgs = utils.LvmExclusiveCheckNodePvs([self._SMALL_PV] * 3)
+    self.assertEqual(small, self._MED_PV.size)
+    self.assertEqual(big, self._MED_PV.size)
+    (errmsgs, (small, big)) = utils.LvmExclusiveCheckNodePvs(
+      [self._SMALL_PV] * 3)
     self.assertFalse(errmsgs)
+    self.assertEqual(small, self._SMALL_PV.size)
+    self.assertEqual(big, self._SMALL_PV.size)
 
   def testTooDifferentPvs(self):
-    errmsgs = utils.LvmExclusiveCheckNodePvs([self._MED_PV, self._BIG_PV])
+    (errmsgs, (small, big)) = utils.LvmExclusiveCheckNodePvs(
+      [self._MED_PV, self._BIG_PV])
     self.assertEqual(len(errmsgs), 1)
-    errmsgs = utils.LvmExclusiveCheckNodePvs([self._MED_PV, self._SMALL_PV])
+    self.assertEqual(small, self._MED_PV.size)
+    self.assertEqual(big, self._BIG_PV.size)
+    (errmsgs, (small, big)) = utils.LvmExclusiveCheckNodePvs(
+      [self._MED_PV, self._SMALL_PV])
     self.assertEqual(len(errmsgs), 1)
+    self.assertEqual(small, self._SMALL_PV.size)
+    self.assertEqual(big, self._MED_PV.size)
 
   def testBoundarySizeCases(self):
     medpv1 = self._MED_PV.Copy()
     medpv2 = self._MED_PV.Copy()
-    errmsgs = utils.LvmExclusiveCheckNodePvs([medpv1, medpv2, self._MED_PV])
+    (errmsgs, (small, big)) = utils.LvmExclusiveCheckNodePvs(
+      [medpv1, medpv2, self._MED_PV])
     self.assertFalse(errmsgs)
+    self.assertEqual(small, self._MED_PV.size)
+    self.assertEqual(big, self._MED_PV.size)
     # Just within the margins
     medpv1.size = self._MED_PV.size * (1 - constants.PART_MARGIN + self._EPS)
     medpv2.size = self._MED_PV.size * (1 + constants.PART_MARGIN - self._EPS)
-    errmsgs = utils.LvmExclusiveCheckNodePvs([medpv1, medpv2, self._MED_PV])
+    (errmsgs, (small, big)) = utils.LvmExclusiveCheckNodePvs(
+      [medpv1, medpv2, self._MED_PV])
     self.assertFalse(errmsgs)
+    self.assertEqual(small, medpv1.size)
+    self.assertEqual(big, medpv2.size)
     # Just outside the margins
     medpv1.size = self._MED_PV.size * (1 - constants.PART_MARGIN - self._EPS)
     medpv2.size = self._MED_PV.size * (1 + constants.PART_MARGIN)
-    errmsgs = utils.LvmExclusiveCheckNodePvs([medpv1, medpv2, self._MED_PV])
+    (errmsgs, (small, big)) = utils.LvmExclusiveCheckNodePvs(
+      [medpv1, medpv2, self._MED_PV])
     self.assertTrue(errmsgs)
+    self.assertEqual(small, medpv1.size)
+    self.assertEqual(big, medpv2.size)
     medpv1.size = self._MED_PV.size * (1 - constants.PART_MARGIN)
     medpv2.size = self._MED_PV.size * (1 + constants.PART_MARGIN + self._EPS)
-    errmsgs = utils.LvmExclusiveCheckNodePvs([medpv1, medpv2, self._MED_PV])
+    (errmsgs, (small, big)) = utils.LvmExclusiveCheckNodePvs(
+      [medpv1, medpv2, self._MED_PV])
     self.assertTrue(errmsgs)
+    self.assertEqual(small, medpv1.size)
+    self.assertEqual(big, medpv2.size)
 
 
 if __name__ == "__main__":
