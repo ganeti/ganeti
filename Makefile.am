@@ -81,8 +81,8 @@ DIRS = \
 	daemons \
 	devel \
 	doc \
+	doc/css \
 	doc/examples \
-	doc/examples/css \
 	doc/examples/gnt-debug \
 	doc/examples/hooks \
 	test/data/htools \
