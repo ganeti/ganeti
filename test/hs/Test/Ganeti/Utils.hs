@@ -207,7 +207,7 @@ prop_niceSortKey_equiv =
                                                     zip numbers names)
   ]
 
--- | Tests 'rstripSpace'.
+-- | Tests 'rStripSpace'.
 prop_rStripSpace :: NonEmptyList Char -> Property
 prop_rStripSpace (NonEmpty str) =
   forAll (resize 50 $ listOf1 (arbitrary `suchThat` isSpace)) $ \whitespace ->
