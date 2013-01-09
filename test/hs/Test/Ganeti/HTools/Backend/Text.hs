@@ -33,6 +33,7 @@ import Test.QuickCheck
 import qualified Data.Map as Map
 import Data.List
 import Data.Maybe
+import System.Time (ClockTime(..))
 
 import Test.Ganeti.TestHelper
 import Test.Ganeti.TestCommon
@@ -191,7 +192,8 @@ prop_CreateSerialise =
          let cdata = Loader.ClusterData defGroupList nl' il' ctags
                      Types.defIPolicy
              saved = Text.serializeCluster cdata
-         in case Text.parseData saved >>= Loader.mergeData [] [] [] [] of
+         in case Text.parseData saved >>= Loader.mergeData [] [] [] [] (TOD 0 0)
+            of
               Bad msg -> failTest $ "Failed to load/merge: " ++ msg
               Ok (Loader.ClusterData gl2 nl2 il2 ctags2 cpol2) ->
                 conjoin [ ctags ==? ctags2

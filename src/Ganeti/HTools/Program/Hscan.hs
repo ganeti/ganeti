@@ -34,6 +34,7 @@ import Data.Maybe (isJust, fromJust, fromMaybe)
 import System.Exit
 import System.IO
 import System.FilePath
+import System.Time
 
 import Text.Printf (printf)
 
@@ -89,9 +90,9 @@ fixSlash :: String -> String
 fixSlash = map (\x -> if x == '/' then '_' else x)
 
 -- | Generates serialized data from loader input.
-processData :: ClusterData -> Result ClusterData
-processData input_data = do
-  cdata@(ClusterData _ nl il _ _) <- mergeData [] [] [] [] input_data
+processData :: ClockTime -> ClusterData -> Result ClusterData
+processData now input_data = do
+  cdata@(ClusterData _ nl il _ _) <- mergeData [] [] [] [] now input_data
   let (_, fix_nl) = checkData nl il
   return cdata { cdNodes = fix_nl }
 
@@ -106,7 +107,8 @@ writeData _ name _ (Bad err) =
   return False
 
 writeData nlen name opts (Ok cdata) = do
-  let fixdata = processData cdata
+  now <- getClockTime
+  let fixdata = processData now cdata
   case fixdata of
     Bad err -> printf "\nError for %s: failed to process data. Details:\n%s\n"
                name err >> return False

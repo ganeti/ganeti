@@ -182,11 +182,13 @@ setArPolicy :: [String]       -- ^ Cluster tags
             -> Group.List     -- ^ List of node groups
             -> Node.List      -- ^ List of nodes
             -> Instance.List  -- ^ List of instances
+            -> ClockTime      -- ^ Current timestamp, to evaluate ArSuspended
             -> Instance.List  -- ^ Updated list of instances
-setArPolicy ctags gl nl il =
-  let cpol = fromMaybe ArNotEnabled $ getArPolicy ctags
-      gpols = Container.map (fromMaybe cpol . getArPolicy . Group.allTags) gl
-      ipolfn = getArPolicy . Instance.allTags
+setArPolicy ctags gl nl il time =
+  let getArPolicy' = flip getArPolicy time
+      cpol = fromMaybe ArNotEnabled $ getArPolicy' ctags
+      gpols = Container.map (fromMaybe cpol . getArPolicy' . Group.allTags) gl
+      ipolfn = getArPolicy' . Instance.allTags
       nlookup = flip Container.find nl . Instance.pNode
       glookup = flip Container.find gpols . Node.group . nlookup
       updateInstance inst = inst {
@@ -199,23 +201,22 @@ setArPolicy ctags gl nl il =
 -- This examines the ganeti:watcher:autorepair and
 -- ganeti:watcher:autorepair:suspend tags to determine the policy. If none of
 -- these tags are present, Nothing (and not ArNotEnabled) is returned.
-getArPolicy :: [String] -> Maybe AutoRepairPolicy
-getArPolicy tags =
+getArPolicy :: [String] -> ClockTime -> Maybe AutoRepairPolicy
+getArPolicy tags time =
   let enabled = mapMaybe (autoRepairTypeFromRaw <=<
                           chompPrefix C.autoRepairTagEnabled) tags
       suspended = mapMaybe (chompPrefix C.autoRepairTagSuspended) tags
-      suspTime = if "" `elem` suspended
-                   then Forever
-                   else Until . flip TOD 0 . maximum $
-                        mapMaybe (tryRead "auto-repair suspend time") suspended
+      futureTs = filter (> time) . map (flip TOD 0) $
+                   mapMaybe (tryRead "auto-repair suspend time") suspended
   in
    case () of
      -- Note how we must return ArSuspended even if "enabled" is empty, so that
      -- node groups or instances can suspend repairs that were enabled at an
      -- upper scope (cluster or node group).
-     _ | not $ null suspended -> Just $ ArSuspended suspTime
-       | not $ null enabled   -> Just $ ArEnabled (minimum enabled)
-       | otherwise            -> Nothing
+     _ | "" `elem` suspended -> Just $ ArSuspended Forever
+       | not $ null futureTs -> Just . ArSuspended . Until . maximum $ futureTs
+       | not $ null enabled  -> Just $ ArEnabled (minimum enabled)
+       | otherwise           -> Nothing
 
 -- | Compute the longest common suffix of a list of strings that
 -- starts with a dot.
@@ -244,10 +245,11 @@ mergeData :: [(String, DynUtil)]  -- ^ Instance utilisation data
           -> [String]             -- ^ Exclusion tags
           -> [String]             -- ^ Selected instances (if not empty)
           -> [String]             -- ^ Excluded instances
+          -> ClockTime            -- ^ The current timestamp
           -> ClusterData          -- ^ Data from backends
           -> Result ClusterData   -- ^ Fixed cluster data
-mergeData um extags selinsts exinsts cdata@(ClusterData gl nl il ctags _) =
-  let il2 = setArPolicy ctags gl nl il
+mergeData um extags selinsts exinsts time cdata@(ClusterData gl nl il ctags _) =
+  let il2 = setArPolicy ctags gl nl il time
       il3 = foldl' (\im (name, n_util) ->
                         case Container.findByName im name of
                           Nothing -> im -- skipping unknown instance

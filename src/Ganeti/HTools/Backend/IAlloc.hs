@@ -34,6 +34,7 @@ import Data.Either ()
 import Data.Maybe (fromMaybe, isJust, fromJust)
 import Data.List
 import Control.Monad
+import System.Time
 import Text.JSON (JSObject, JSValue(JSArray),
                   makeObj, encodeStrict, decodeStrict, fromJSObject, showJSON)
 
@@ -138,9 +139,10 @@ parseGroup u a = do
 -- The result is a tuple of eventual warning messages and the parsed
 -- request; if parsing the input data fails, we'll return a 'Bad'
 -- value.
-parseData :: String -- ^ The JSON message as received from Ganeti
+parseData :: ClockTime -- ^ The current time
+          -> String -- ^ The JSON message as received from Ganeti
           -> Result ([String], Request) -- ^ Result tuple
-parseData body = do
+parseData now body = do
   decoded <- fromJResult "Parsing input IAllocator message" (decodeStrict body)
   let obj = fromJSObject decoded
       extrObj x = tryFromObj "invalid iallocator message" obj x
@@ -165,7 +167,7 @@ parseData body = do
   let (kti, il) = assignIndices iobj
   -- cluster tags
   ctags <- extrObj "cluster_tags"
-  cdata1 <- mergeData [] [] [] [] (ClusterData gl nl il ctags defIPolicy)
+  cdata1 <- mergeData [] [] [] [] now (ClusterData gl nl il ctags defIPolicy)
   let (msgs, fix_nl) = checkData (cdNodes cdata1) (cdInstances cdata1)
       cdata = cdata1 { cdNodes = fix_nl }
       map_n = cdNodes cdata
@@ -380,10 +382,11 @@ processRequest request =
 -- | Reads the request from the data file(s).
 readRequest :: FilePath -> IO Request
 readRequest fp = do
+  now <- getClockTime
   input_data <- case fp of
                   "-" -> getContents
                   _   -> readFile fp
-  case parseData input_data of
+  case parseData now input_data of
     Bad err -> exitErr err
     Ok (fix_msgs, rq) -> maybeShowWarnings fix_msgs >> return rq
 

@@ -38,6 +38,7 @@ import Control.Exception
 import Data.Maybe (isJust, fromJust)
 import System.FilePath
 import System.IO
+import System.Time (getClockTime)
 import Text.Printf (hPrintf)
 
 import qualified Ganeti.HTools.Backend.Luxi as Luxi
@@ -107,8 +108,9 @@ loadExternalData opts = do
         | setFile -> wrapIO . Text.loadData $ fromJust tfile
         | setIAllocSrc -> wrapIO . IAlloc.loadData $ fromJust iallocsrc
         | otherwise -> return $ Bad "No backend selected! Exiting."
+  now <- getClockTime
 
-  let ldresult = input_data >>= mergeData util_data exTags selInsts exInsts
+  let ldresult = input_data >>= mergeData util_data exTags selInsts exInsts now
   cdata <- exitIfBad "failed to load data, aborting" ldresult
   let (fix_msgs, nl) = checkData (cdNodes cdata) (cdInstances cdata)
 

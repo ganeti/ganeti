@@ -33,6 +33,7 @@ import Test.QuickCheck
 import qualified Data.IntMap as IntMap
 import qualified Data.Map as Map
 import Data.List
+import System.Time (ClockTime(..))
 
 import Test.Ganeti.TestHelper
 import Test.Ganeti.TestCommon
@@ -71,7 +72,7 @@ prop_assignIndices =
 prop_mergeData :: [Node.Node] -> Bool
 prop_mergeData ns =
   let na = Container.fromList $ map (\n -> (Node.idx n, n)) ns
-  in case Loader.mergeData [] [] [] []
+  in case Loader.mergeData [] [] [] [] (TOD 0 0)
          (Loader.emptyCluster {Loader.cdNodes = na}) of
     BasicTypes.Bad _ -> False
     BasicTypes.Ok (Loader.ClusterData _ nl il _ _) ->
