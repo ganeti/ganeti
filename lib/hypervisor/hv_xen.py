@@ -538,9 +538,6 @@ class XenHypervisor(hv_base.BaseHypervisor):
       raise errors.HypervisorError("Remote host %s not listening on port"
                                    " %s, cannot migrate" % (target, port))
 
-    # FIXME: migrate must be upgraded for transitioning to "xl" (xen 4.1).
-    #        This should be reworked in Ganeti 2.7
-    #  ssh must recognize the key of the target host for the migration
     args = [constants.XEN_CMD, "migrate"]
     if constants.XEN_CMD == constants.XEN_CMD_XM:
       args.extend(["-p", "%d" % port])
