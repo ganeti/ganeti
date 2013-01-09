@@ -357,7 +357,9 @@ utils_PYTHON = \
 	lib/utils/wrapper.py \
 	lib/utils/x509.py
 
-docrst = \
+docinput = \
+	doc/conf.py \
+	doc/css/style.css \
 	doc/admin.rst \
 	doc/cluster-merge.rst \
 	doc/design-2.0.rst \
@@ -583,7 +585,7 @@ $(RUN_IN_TEMPDIR): | stamp-directories
 # has to exist in order for the sphinx module to be loaded
 # successfully, but we certainly don't want the docs to be rebuilt if
 # it changes
-doc/html/index.html: $(docrst) doc/conf.py configure.ac \
+doc/html/index.html: $(docinput) doc/conf.py configure.ac \
 	$(RUN_IN_TEMPDIR) lib/build/sphinx_ext.py \
 	lib/build/shell_example_lexer.py lib/opcodes.py lib/ht.py \
 	doc/css/style.css \
@@ -596,7 +598,7 @@ doc/html/index.html: $(docrst) doc/conf.py configure.ac \
 	    -D version="$(VERSION_MAJOR).$(VERSION_MINOR)" \
 	    -D release="$(PACKAGE_VERSION)" \
 	    -D graphviz_dot="$(DOT)" \
-	    $(abs_top_srcdir)/doc $(CURDIR)/doc/html
+	    $(abs_top_builddir)/doc $(CURDIR)/doc/html
 	rm -f doc/html/.buildinfo doc/html/objects.inv
 	touch $@
 
@@ -814,9 +816,7 @@ EXTRA_DIST = \
 	devel/webserver \
 	tools/kvm-ifup.in \
 	tools/vcluster-setup.in \
-	$(docrst) \
-	doc/conf.py \
-	doc/css/style.css \
+	$(docinput) \
 	doc/html \
 	$(BUILT_EXAMPLES:%=%.in) \
 	doc/examples/ganeti.default \
@@ -1121,7 +1121,8 @@ srclink_files = \
 	test/hs/offline-test.sh \
 	test/hs/cli-tests-defs.sh \
 	$(all_python_code) \
-	$(HS_LIBTEST_SRCS) $(HS_PROG_SRCS)
+	$(HS_LIBTEST_SRCS) $(HS_PROG_SRCS) \
+	$(docinput)
 
 check_python_code = \
 	$(BUILD_BASH_COMPLETION) \
