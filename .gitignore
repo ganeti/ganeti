@@ -53,10 +53,13 @@
 /doc/api/
 /doc/coverage/
 /doc/html/
+/doc/man-html/
 /doc/install-quick.rst
 /doc/news.rst
 /doc/upgrade.rst
 /doc/hs-lint.html
+/doc/manpages-enabled.rst
+/doc/man-*.rst
 
 # doc/examples
 /doc/examples/bash_completion

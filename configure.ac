@@ -375,6 +375,26 @@ then
                             not be possible]))
 fi
 
+AC_ARG_ENABLE([manpages-in-doc],
+  [AS_HELP_STRING([--enable-manpages-in-doc],
+                  m4_normalize([include man pages in HTML documentation
+                                (requires sphinx; default disabled)]))],
+  [case "$enableval" in
+      yes) manpages_in_doc=yes ;;
+      no) manpages_in_doc= ;;
+      *)
+        AC_MSG_ERROR([Bad value $enableval for --enable-manpages-in-doc])
+        ;;
+    esac
+  ],
+  [manpages_in_doc=])
+AM_CONDITIONAL([MANPAGES_IN_DOC], [test -n "$manpages_in_doc"])
+AC_SUBST(MANPAGES_IN_DOC, $manpages_in_doc)
+
+if test -z "$SPHINX" -a -n "$manpages_in_doc"; then
+  AC_MSG_ERROR([Including man pages in HTML documentation requires sphinx])
+fi
+
 # Check for graphviz (dot)
 AC_ARG_VAR(DOT, [dot path])
 AC_PATH_PROG(DOT, [dot], [])

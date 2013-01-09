@@ -35,6 +35,7 @@ Contents:
    ovfconverter.rst
    devnotes.rst
    news.rst
+   manpages.rst
    glossary.rst
 
 .. toctree::

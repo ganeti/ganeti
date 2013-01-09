@@ -52,6 +52,10 @@ Version 2.7.0 beta1
   allocate the instance, the temporary error code
   :pyeval:`errors.ECODE_TEMP_NORES` is returned. The operation can be
   retried thereafter, with or without opportunistic locking.
+- Man pages can now be included when the documentation is built, in
+  which case the output is in ``doc/man-html``. The configure-time
+  option is ``--enable-manpages-in-doc``. Sphinx 1.0 or higher is
+  required.
 
 
 Version 2.6.2

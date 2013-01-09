@@ -1,0 +1,38 @@
+#!/bin/bash
+#
+
+# Copyright (C) 2013 Google Inc.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+# 02110-1301, USA.
+
+set -e -u -o pipefail
+
+if [[ -e doc/manpages.rst ]]; then
+  echo 'doc/manpages.rst should not exist' >&2
+  exit 1
+fi
+
+if [[ -n "$ENABLE_MANPAGES" ]]; then
+  mv doc/manpages-enabled.rst doc/manpages.rst
+  rm doc/manpages-disabled.rst
+else
+  mv doc/manpages-disabled.rst doc/manpages.rst
+  if [[ -e doc/manpages-enabled.rst ]]; then
+    rm doc/manpages-enabled.rst
+  fi
+fi
+
+exec "$@"
