@@ -588,3 +588,15 @@ def Truncate(text, length):
     return text
   else:
     return text[:length - len(_ASCII_ELLIPSIS)] + _ASCII_ELLIPSIS
+
+
+def FormatKeyValue(data):
+  """Formats a dictionary as "key=value" parameters.
+
+  The keys are sorted to have a stable order.
+
+  @type data: dict
+  @rtype: list of string
+
+  """
+  return ["%s=%s" % (key, value) for (key, value) in sorted(data.items())]
