@@ -217,7 +217,7 @@ data PerfIndicators = PerfIndicators
   , diskRead :: Int -- ^ KiB of data read from local disk
   , activityLog :: Int -- ^ Number of updates of the activity log
   , bitMap :: Int -- ^ Number of updates to the bitmap area of the metadata
-  , localCount :: Int -- ^ Number of open requests to te local I/O subsystem
+  , localCount :: Int -- ^ Number of open requests to the local I/O subsystem
   , pending :: Int -- ^ Num of requests sent to the partner but not yet answered
   , unacknowledged :: Int -- ^ Num of requests received by the partner but still
                         -- to be answered
