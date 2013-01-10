@@ -514,7 +514,7 @@ instance TagsObject Node where
 type DiskParams = Container (Container JSValue)
 
 -- | A mapping from network UUIDs to nic params of the networks.
-type Networks = Container PartialNic
+type Networks = Container PartialNicParams
 
 $(buildObject "NodeGroup" "group" $
   [ simpleField "name"         [t| String |]

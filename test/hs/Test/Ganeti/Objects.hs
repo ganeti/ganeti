@@ -365,7 +365,7 @@ genNodeGroup = do
   diskparams <- pure (GenericContainer Map.empty)
   num_networks <- choose (0, 3)
   net_uuid_list <- vectorOf num_networks (arbitrary::Gen String)
-  nic_param_list <- vectorOf num_networks (arbitrary::Gen PartialNic)
+  nic_param_list <- vectorOf num_networks (arbitrary::Gen PartialNicParams)
   net_map <- pure (GenericContainer . Map.fromList $
     zip net_uuid_list nic_param_list)
   -- timestamp fields
