@@ -242,6 +242,14 @@ buildResponse cdata req@(ConfdRequest { confdRqType = ReqNodeDrbd }) = do
                  (a, b, c, d, e, f) <- minors]
   return (ReplyStatusOk, J.showJSON encoded)
 
+buildResponse cdata req@(ConfdRequest { confdRqType = ReqNodeInstances }) = do
+  let cfg = fst cdata
+  node_name <- case confdRqQuery req of
+                PlainQuery str -> return str
+                _ -> fail $ "Invalid query type " ++ show (confdRqQuery req)
+  let instances = getNodeInstances cfg node_name
+  return (ReplyStatusOk, J.showJSON instances)
+
 -- | Creates a ConfdReply from a given answer.
 serializeResponse :: Result StatusAnswer -> ConfdReply
 serializeResponse r =

@@ -78,6 +78,7 @@ $(declareIADT "ConfdRequestType"
   , ("ReqMcPipList",        'C.confdReqMcPipList )
   , ("ReqInstIpsList",      'C.confdReqInstancesIpsList )
   , ("ReqNodeDrbd",         'C.confdReqNodeDrbd )
+  , ("ReqNodeInstances",    'C.confdReqNodeInstances)
   ])
 $(makeJSONInstance ''ConfdRequestType)
 

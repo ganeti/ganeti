@@ -2144,6 +2144,7 @@ CONFD_REQ_NODE_PIP_LIST = 4
 CONFD_REQ_MC_PIP_LIST = 5
 CONFD_REQ_INSTANCES_IPS_LIST = 6
 CONFD_REQ_NODE_DRBD = 7
+CONFD_REQ_NODE_INSTANCES = 8
 
 # Confd request query fields. These are used to narrow down queries.
 # These must be strings rather than integers, because json-encoding
