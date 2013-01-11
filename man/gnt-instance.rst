@@ -473,6 +473,14 @@ serial\_console
     This boolean option specifies whether to emulate a serial console
     for the instance.
 
+serial\_speed
+    Valid for the KVM hypervisor.
+
+    This integer option specifies the speed of the serial console.
+    Common values are 9600, 19200, 38400, 57600 and 115200: choose the
+    one which works on your system. (The default is 38400 for historical
+    reasons, but newer versions of kvm/qemu work with 115200)
+
 disk\_cache
     Valid for the KVM hypervisor.
 

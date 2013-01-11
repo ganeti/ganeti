@@ -748,6 +748,27 @@ ENFORCEABLE_TYPES = compat.UniqueFrozenset([
 # Constant representing that the user does not specify any IP version
 IFACE_NO_IP_VERSION_SPECIFIED = 0
 
+VALID_SERIAL_SPEEDS = compat.UniqueFrozenset([
+  75,
+  110,
+  300,
+  600,
+  1200,
+  1800,
+  2400,
+  4800,
+  9600,
+  14400,
+  19200,
+  28800,
+  38400,
+  57600,
+  115200,
+  230400,
+  345600,
+  460800,
+  ])
+
 # HV parameter names (global namespace)
 HV_BOOT_ORDER = "boot_order"
 HV_CDROM_IMAGE_PATH = "cdrom_image_path"
@@ -782,6 +803,7 @@ HV_KERNEL_PATH = "kernel_path"
 HV_INITRD_PATH = "initrd_path"
 HV_ROOT_PATH = "root_path"
 HV_SERIAL_CONSOLE = "serial_console"
+HV_SERIAL_SPEED = "serial_speed"
 HV_USB_MOUSE = "usb_mouse"
 HV_KEYMAP = "keymap"
 HV_DEVICE_MODEL = "device_model"
@@ -841,6 +863,7 @@ HVS_PARAMETER_TYPES = {
   HV_INITRD_PATH: VTYPE_STRING,
   HV_ROOT_PATH: VTYPE_MAYBE_STRING,
   HV_SERIAL_CONSOLE: VTYPE_BOOL,
+  HV_SERIAL_SPEED: VTYPE_INT,
   HV_USB_MOUSE: VTYPE_STRING,
   HV_KEYMAP: VTYPE_STRING,
   HV_DEVICE_MODEL: VTYPE_STRING,
@@ -1887,6 +1910,7 @@ HVC_DEFAULTS = {
     HV_ROOT_PATH: "/dev/vda1",
     HV_ACPI: True,
     HV_SERIAL_CONSOLE: True,
+    HV_SERIAL_SPEED: 38400,
     HV_VNC_BIND_ADDRESS: "",
     HV_VNC_TLS: False,
     HV_VNC_X509: "",

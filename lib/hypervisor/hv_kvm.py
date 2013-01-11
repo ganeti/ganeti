@@ -466,6 +466,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     constants.HV_KERNEL_ARGS: hv_base.NO_CHECK,
     constants.HV_ACPI: hv_base.NO_CHECK,
     constants.HV_SERIAL_CONSOLE: hv_base.NO_CHECK,
+    constants.HV_SERIAL_SPEED: hv_base.NO_CHECK,
     constants.HV_VNC_BIND_ADDRESS:
       (False, lambda x: (netutils.IP4Address.IsValid(x) or
                          utils.IsNormAbsPath(x)),
@@ -1135,7 +1136,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       root_append = ["root=%s" % hvp[constants.HV_ROOT_PATH],
                      hvp[constants.HV_KERNEL_ARGS]]
       if hvp[constants.HV_SERIAL_CONSOLE]:
-        root_append.append("console=ttyS0,38400")
+        serial_speed = hvp[constants.HV_SERIAL_SPEED]
+        root_append.append("console=ttyS0,%s" % serial_speed)
       kvm_cmd.extend(["-append", " ".join(root_append)])
 
     mem_path = hvp[constants.HV_MEM_PATH]
@@ -1948,6 +1950,14 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       raise errors.HypervisorError("%s must be defined, if %s is" %
                                    (constants.HV_VNC_X509,
                                     constants.HV_VNC_X509_VERIFY))
+
+    if hvparams[constants.HV_SERIAL_CONSOLE]:
+      serial_speed = hvparams[constants.HV_SERIAL_SPEED]
+      valid_speeds = constants.VALID_SERIAL_SPEEDS
+      if not serial_speed or serial_speed not in valid_speeds:
+        raise errors.HypervisorError("Invalid serial console speed, must be"
+                                     " one of: %s" %
+                                     utils.CommaJoin(valid_speeds))
 
     boot_order = hvparams[constants.HV_BOOT_ORDER]
     if (boot_order == constants.HT_BO_CDROM and
