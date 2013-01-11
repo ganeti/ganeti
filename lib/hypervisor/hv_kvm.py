@@ -553,7 +553,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   _CPU_INFO_CMD = "info cpus"
   _CONT_CMD = "cont"
 
-  _DEFAULT_MACHINE_VERSION_RE = re.compile(r"(\S+).*\(default\)")
+  _DEFAULT_MACHINE_VERSION_RE = re.compile(r"^(\S+).*\(default\)", re.M)
 
   _QMP_RE = re.compile(r"^-qmp\s", re.M)
   _SPICE_RE = re.compile(r"^-spice\s", re.M)
@@ -1705,12 +1705,11 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     result = utils.RunCmd([constants.KVM_PATH, "-M", "?"])
     if result.failed:
       raise errors.HypervisorError("Unable to get default hardware revision")
-    for line in result.output.splitlines():
-      match = cls._DEFAULT_MACHINE_VERSION_RE.match(line)
-      if match:
-        return match.group(1)
-
-    return "pc"
+    match = cls._DEFAULT_MACHINE_VERSION_RE.search(result.output)
+    if match:
+      return match.group(1)
+    else:
+      return "pc"
 
   def CleanupInstance(self, instance_name):
     """Cleanup after a stopped instance
