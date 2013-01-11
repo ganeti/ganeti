@@ -647,3 +647,23 @@ def InstanceCheck(before, after, instarg):
       return result
     return wrapper
   return decorator
+
+
+def GetNonexistentGroups(count):
+  """Gets group names which shouldn't exist on the cluster.
+
+  @param count: Number of groups to get
+  @rtype: list
+
+  """
+  groups = qa_config.get("groups", {})
+
+  default = ["group1", "group2", "group3"]
+  assert count <= len(default)
+
+  candidates = groups.get("inexistent-groups", default)[:count]
+
+  if len(candidates) < count:
+    raise Exception("At least %s non-existent groups are needed" % count)
+
+  return candidates

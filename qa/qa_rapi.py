@@ -492,9 +492,7 @@ def TestRapiNodeGroups():
   """Test several node group operations using RAPI.
 
   """
-  groups = qa_config.get("groups", {})
-  group1, group2, group3 = groups.get("inexistent-groups",
-                                      ["group1", "group2", "group3"])[:3]
+  (group1, group2, group3) = qa_utils.GetNonexistentGroups(3)
 
   # Create a group with no attributes
   body = {

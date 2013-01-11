@@ -43,12 +43,9 @@ def GetDefaultGroup():
 
 def TestGroupAddRemoveRename():
   """gnt-group add/remove/rename"""
-  groups = qa_config.get("groups", {})
-
   existing_group_with_nodes = GetDefaultGroup()
 
-  group1, group2, group3 = groups.get("inexistent-groups",
-                                      ["group1", "group2", "group3"])[:3]
+  (group1, group2, group3) = qa_utils.GetNonexistentGroups(3)
 
   AssertCommand(["gnt-group", "add", group1])
   AssertCommand(["gnt-group", "add", group2])
@@ -71,8 +68,7 @@ def TestGroupAddRemoveRename():
 
 def TestGroupAddWithOptions():
   """gnt-group add with options"""
-  groups = qa_config.get("groups", {})
-  group1 = groups.get("inexistent-groups", ["group1"])[0]
+  (group1, ) = qa_utils.GetNonexistentGroups(1)
 
   AssertCommand(["gnt-group", "add", "--alloc-policy", "notvalid", group1],
                 fail=True)
@@ -85,8 +81,7 @@ def TestGroupAddWithOptions():
 
 def TestGroupModify():
   """gnt-group modify"""
-  groups = qa_config.get("groups", {})
-  group1 = groups.get("inexistent-groups", ["group1"])[0]
+  (group1, ) = qa_utils.GetNonexistentGroups(1)
 
   AssertCommand(["gnt-group", "add", group1])
 
@@ -130,8 +125,8 @@ def TestAssignNodesIncludingSplit(orig_group, node1, node2):
 
   """
   assert node1 != node2
-  groups = qa_config.get("groups", {})
-  other_group = groups.get("inexistent-groups", ["group1"])[0]
+
+  (other_group, ) = qa_utils.GetNonexistentGroups(1)
 
   master_node = qa_config.GetMasterNode()["primary"]
 
