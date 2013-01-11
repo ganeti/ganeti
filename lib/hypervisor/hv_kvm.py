@@ -537,6 +537,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     constants.HV_CPU_SOCKETS: hv_base.OPT_NONNEGATIVE_INT_CHECK,
     constants.HV_SOUNDHW: hv_base.NO_CHECK,
     constants.HV_USB_DEVICES: hv_base.NO_CHECK,
+    constants.HV_KVM_EXTRA: hv_base.NO_CHECK,
     }
 
   _MIGRATION_STATUS_RE = re.compile("Migration\s+status:\s+(\w+)",
@@ -1344,6 +1345,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if hvp[constants.HV_USB_DEVICES]:
       for dev in hvp[constants.HV_USB_DEVICES].split(","):
         kvm_cmd.extend(["-usbdevice", dev])
+
+    if hvp[constants.HV_KVM_EXTRA]:
+      kvm_cmd.extend([hvp[constants.HV_KVM_EXTRA]])
 
     # Save the current instance nics, but defer their expansion as parameters,
     # as we'll need to generate executable temp files for them.

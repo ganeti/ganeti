@@ -663,6 +663,12 @@ usb\_devices
     ``-usbdevice`` option. See the **qemu**\(1) manpage for the syntax
     of the possible components.
 
+kvm\_extra
+    Valid for the KVM hypervisor.
+
+    Any other option to the KVM hypervisor, useful tweaking anything
+    that Ganeti doesn't support.
+
 
 The ``-O (--os-parameters)`` option allows customisation of the OS
 parameters. The actual parameter names and values depends on the OS
