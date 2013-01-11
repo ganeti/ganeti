@@ -830,6 +830,7 @@ HV_CPU_WEIGHT = "cpu_weight"
 HV_CPU_CORES = "cpu_cores"
 HV_CPU_THREADS = "cpu_threads"
 HV_CPU_SOCKETS = "cpu_sockets"
+HV_SOUNDHW = "soundhw"
 
 
 HVS_PARAMETER_TYPES = {
@@ -893,6 +894,7 @@ HVS_PARAMETER_TYPES = {
   HV_CPU_CORES: VTYPE_INT,
   HV_CPU_THREADS: VTYPE_INT,
   HV_CPU_SOCKETS: VTYPE_INT,
+  HV_SOUNDHW: VTYPE_STRING,
   }
 
 HVS_PARAMETERS = frozenset(HVS_PARAMETER_TYPES.keys())
@@ -1960,6 +1962,7 @@ HVC_DEFAULTS = {
     HV_CPU_CORES: 0,
     HV_CPU_THREADS: 0,
     HV_CPU_SOCKETS: 0,
+    HV_SOUNDHW: "",
     },
   HT_FAKE: {},
   HT_CHROOT: {

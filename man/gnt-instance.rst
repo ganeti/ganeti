@@ -649,6 +649,12 @@ cpu\_sockets
 
     Number of emulated CPU sockets.
 
+soundhw
+    Valid for the KVM hypervisor.
+
+    Comma separated list of emulated sounds cards, or "all" to enable
+    all the available ones.
+
 
 The ``-O (--os-parameters)`` option allows customisation of the OS
 parameters. The actual parameter names and values depends on the OS
