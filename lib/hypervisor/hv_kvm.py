@@ -537,6 +537,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     constants.HV_CPU_SOCKETS: hv_base.OPT_NONNEGATIVE_INT_CHECK,
     constants.HV_SOUNDHW: hv_base.NO_CHECK,
     constants.HV_USB_DEVICES: hv_base.NO_CHECK,
+    constants.HV_VGA: hv_base.NO_CHECK,
     constants.HV_KVM_EXTRA: hv_base.NO_CHECK,
     }
 
@@ -1321,9 +1322,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       logging.info("KVM: SPICE will listen on port %s", instance.network_port)
       kvm_cmd.extend(["-spice", spice_arg])
 
-      # Tell kvm to use the paravirtualized graphic card, optimized for SPICE
-      kvm_cmd.extend(["-vga", "qxl"])
-
     else:
       kvm_cmd.extend(["-nographic"])
 
@@ -1340,6 +1338,13 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     # As requested by music lovers
     if hvp[constants.HV_SOUNDHW]:
       kvm_cmd.extend(["-soundhw", hvp[constants.HV_SOUNDHW]])
+
+    # Pass a -vga option if requested, or if spice is used, for backwards
+    # compatibility.
+    if hvp[constants.HV_VGA]:
+      kvm_cmd.extend(["-vga", hvp[constants.HV_VGA]])
+    elif spice_bind:
+      kvm_cmd.extend(["-vga", "qxl"])
 
     # Various types of usb devices, comma separated
     if hvp[constants.HV_USB_DEVICES]:

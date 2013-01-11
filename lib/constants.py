@@ -832,6 +832,7 @@ HV_CPU_THREADS = "cpu_threads"
 HV_CPU_SOCKETS = "cpu_sockets"
 HV_SOUNDHW = "soundhw"
 HV_USB_DEVICES = "usb_devices"
+HV_VGA = "vga"
 HV_KVM_EXTRA = "kvm_extra"
 
 
@@ -898,6 +899,7 @@ HVS_PARAMETER_TYPES = {
   HV_CPU_SOCKETS: VTYPE_INT,
   HV_SOUNDHW: VTYPE_STRING,
   HV_USB_DEVICES: VTYPE_STRING,
+  HV_VGA: VTYPE_STRING,
   HV_KVM_EXTRA: VTYPE_STRING,
   }
 
@@ -1968,6 +1970,7 @@ HVC_DEFAULTS = {
     HV_CPU_SOCKETS: 0,
     HV_SOUNDHW: "",
     HV_USB_DEVICES: "",
+    HV_VGA: "",
     HV_KVM_EXTRA: "",
     },
   HT_FAKE: {},

@@ -663,6 +663,11 @@ usb\_devices
     ``-usbdevice`` option. See the **qemu**\(1) manpage for the syntax
     of the possible components.
 
+vga
+    Valid for the KVM hypervisor.
+
+    Emulated vga mode, passed the the kvm -vga option.
+
 kvm\_extra
     Valid for the KVM hypervisor.
 
