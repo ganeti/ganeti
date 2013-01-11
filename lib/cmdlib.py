@@ -2610,24 +2610,27 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
           msg = "cannot reach the master IP"
         _ErrorIf(True, constants.CV_ENODENET, node, msg)
 
-  def _VerifyInstance(self, instance, instanceconfig, node_image,
+  def _VerifyInstance(self, instance, inst_config, node_image,
                       diskstatus):
     """Verify an instance.
 
     This function checks to see if the required block devices are
-    available on the instance's node.
+    available on the instance's node, and that the nodes are in the correct
+    state.
 
     """
     _ErrorIf = self._ErrorIf # pylint: disable=C0103
-    node_current = instanceconfig.primary_node
+    pnode = inst_config.primary_node
+    pnode_img = node_image[pnode]
+    groupinfo = self.cfg.GetAllNodeGroupsInfo()
 
     node_vol_should = {}
-    instanceconfig.MapLVsByNode(node_vol_should)
+    inst_config.MapLVsByNode(node_vol_should)
 
     cluster = self.cfg.GetClusterInfo()
     ipolicy = ganeti.masterd.instance.CalculateGroupIPolicy(cluster,
                                                             self.group_info)
-    err = _ComputeIPolicyInstanceViolation(ipolicy, instanceconfig)
+    err = _ComputeIPolicyInstanceViolation(ipolicy, inst_config)
     _ErrorIf(err, constants.CV_EINSTANCEPOLICY, instance, utils.CommaJoin(err),
              code=self.ETYPE_WARNING)
 
@@ -2641,12 +2644,14 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
         _ErrorIf(test, constants.CV_EINSTANCEMISSINGDISK, instance,
                  "volume %s missing on node %s", volume, node)
 
-    if instanceconfig.admin_state == constants.ADMINST_UP:
-      pri_img = node_image[node_current]
-      test = instance not in pri_img.instances and not pri_img.offline
+    if inst_config.admin_state == constants.ADMINST_UP:
+      test = instance not in pnode_img.instances and not pnode_img.offline
       _ErrorIf(test, constants.CV_EINSTANCEDOWN, instance,
                "instance not running on its primary node %s",
-               node_current)
+               pnode)
+      _ErrorIf(pnode_img.offline, constants.CV_EINSTANCEBADNODE, instance,
+               "instance is marked as running and lives on offline node %s",
+               pnode)
 
     diskdata = [(nname, success, status, idx)
                 for (nname, disks) in diskstatus.items()
@@ -2657,15 +2662,67 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       # node here
       snode = node_image[nname]
       bad_snode = snode.ghost or snode.offline
-      _ErrorIf(instanceconfig.admin_state == constants.ADMINST_UP and
+      _ErrorIf(inst_config.admin_state == constants.ADMINST_UP and
                not success and not bad_snode,
                constants.CV_EINSTANCEFAULTYDISK, instance,
                "couldn't retrieve status for disk/%s on %s: %s",
                idx, nname, bdev_status)
-      _ErrorIf((instanceconfig.admin_state == constants.ADMINST_UP and
+      _ErrorIf((inst_config.admin_state == constants.ADMINST_UP and
                 success and bdev_status.ldisk_status == constants.LDS_FAULTY),
                constants.CV_EINSTANCEFAULTYDISK, instance,
                "disk/%s on %s is faulty", idx, nname)
+
+    _ErrorIf(pnode_img.rpc_fail and not pnode_img.offline,
+             constants.CV_ENODERPC, pnode, "instance %s, connection to"
+             " primary node failed", instance)
+
+    _ErrorIf(len(inst_config.secondary_nodes) > 1,
+             constants.CV_EINSTANCELAYOUT,
+             instance, "instance has multiple secondary nodes: %s",
+             utils.CommaJoin(inst_config.secondary_nodes),
+             code=self.ETYPE_WARNING)
+
+    if inst_config.disk_template in constants.DTS_INT_MIRROR:
+      instance_nodes = utils.NiceSort(inst_config.all_nodes)
+      instance_groups = {}
+
+      for node in instance_nodes:
+        instance_groups.setdefault(self.all_node_info[node].group,
+                                   []).append(node)
+
+      pretty_list = [
+        "%s (group %s)" % (utils.CommaJoin(nodes), groupinfo[group].name)
+        # Sort so that we always list the primary node first.
+        for group, nodes in sorted(instance_groups.items(),
+                                   key=lambda (_, nodes): pnode in nodes,
+                                   reverse=True)]
+
+      self._ErrorIf(len(instance_groups) > 1,
+                    constants.CV_EINSTANCESPLITGROUPS,
+                    instance, "instance has primary and secondary nodes in"
+                    " different groups: %s", utils.CommaJoin(pretty_list),
+                    code=self.ETYPE_WARNING)
+
+    inst_nodes_offline = []
+    for snode in inst_config.secondary_nodes:
+      s_img = node_image[snode]
+      _ErrorIf(s_img.rpc_fail and not s_img.offline, constants.CV_ENODERPC,
+               snode, "instance %s, connection to secondary node failed",
+               instance)
+
+      if s_img.offline:
+        inst_nodes_offline.append(snode)
+
+    # warn that the instance lives on offline nodes
+    _ErrorIf(inst_nodes_offline, constants.CV_EINSTANCEBADNODE, instance,
+             "instance has offline secondary node(s) %s",
+             utils.CommaJoin(inst_nodes_offline))
+    # ... or ghost/non-vm_capable nodes
+    for node in inst_config.all_nodes:
+      _ErrorIf(node_image[node].ghost, constants.CV_EINSTANCEBADNODE,
+               instance, "instance lives on ghost node %s", node)
+      _ErrorIf(not node_image[node].vm_capable, constants.CV_EINSTANCEBADNODE,
+               instance, "instance lives on non-vm_capable node %s", node)
 
   def _VerifyOrphanVolumes(self, node_vol_should, node_image, reserved):
     """Verify if there are any unknown volumes in the cluster.
@@ -3305,7 +3362,6 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     vg_name = self.cfg.GetVGName()
     drbd_helper = self.cfg.GetDRBDHelper()
     cluster = self.cfg.GetClusterInfo()
-    groupinfo = self.cfg.GetAllNodeGroupsInfo()
     hypervisors = cluster.enabled_hypervisors
     node_data_list = [self.my_node_info[name] for name in self.my_node_names]
 
@@ -3584,75 +3640,14 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       inst_config = self.my_inst_info[instance]
       self._VerifyInstance(instance, inst_config, node_image,
                            instdisk[instance])
-      inst_nodes_offline = []
-
-      pnode = inst_config.primary_node
-      pnode_img = node_image[pnode]
-      _ErrorIf(pnode_img.rpc_fail and not pnode_img.offline,
-               constants.CV_ENODERPC, pnode, "instance %s, connection to"
-               " primary node failed", instance)
-
-      _ErrorIf(inst_config.admin_state == constants.ADMINST_UP and
-               pnode_img.offline,
-               constants.CV_EINSTANCEBADNODE, instance,
-               "instance is marked as running and lives on offline node %s",
-               inst_config.primary_node)
 
       # If the instance is non-redundant we cannot survive losing its primary
       # node, so we are not N+1 compliant.
       if inst_config.disk_template not in constants.DTS_MIRRORED:
         i_non_redundant.append(instance)
 
-      _ErrorIf(len(inst_config.secondary_nodes) > 1,
-               constants.CV_EINSTANCELAYOUT,
-               instance, "instance has multiple secondary nodes: %s",
-               utils.CommaJoin(inst_config.secondary_nodes),
-               code=self.ETYPE_WARNING)
-
-      if inst_config.disk_template in constants.DTS_INT_MIRROR:
-        pnode = inst_config.primary_node
-        instance_nodes = utils.NiceSort(inst_config.all_nodes)
-        instance_groups = {}
-
-        for node in instance_nodes:
-          instance_groups.setdefault(self.all_node_info[node].group,
-                                     []).append(node)
-
-        pretty_list = [
-          "%s (group %s)" % (utils.CommaJoin(nodes), groupinfo[group].name)
-          # Sort so that we always list the primary node first.
-          for group, nodes in sorted(instance_groups.items(),
-                                     key=lambda (_, nodes): pnode in nodes,
-                                     reverse=True)]
-
-        self._ErrorIf(len(instance_groups) > 1,
-                      constants.CV_EINSTANCESPLITGROUPS,
-                      instance, "instance has primary and secondary nodes in"
-                      " different groups: %s", utils.CommaJoin(pretty_list),
-                      code=self.ETYPE_WARNING)
-
       if not cluster.FillBE(inst_config)[constants.BE_AUTO_BALANCE]:
         i_non_a_balanced.append(instance)
-
-      for snode in inst_config.secondary_nodes:
-        s_img = node_image[snode]
-        _ErrorIf(s_img.rpc_fail and not s_img.offline, constants.CV_ENODERPC,
-                 snode, "instance %s, connection to secondary node failed",
-                 instance)
-
-        if s_img.offline:
-          inst_nodes_offline.append(snode)
-
-      # warn that the instance lives on offline nodes
-      _ErrorIf(inst_nodes_offline, constants.CV_EINSTANCEBADNODE, instance,
-               "instance has offline secondary node(s) %s",
-               utils.CommaJoin(inst_nodes_offline))
-      # ... or ghost/non-vm_capable nodes
-      for node in inst_config.all_nodes:
-        _ErrorIf(node_image[node].ghost, constants.CV_EINSTANCEBADNODE,
-                 instance, "instance lives on ghost node %s", node)
-        _ErrorIf(not node_image[node].vm_capable, constants.CV_EINSTANCEBADNODE,
-                 instance, "instance lives on non-vm_capable node %s", node)
 
     feedback_fn("* Verifying orphan volumes")
     reserved = utils.FieldSet(*cluster.reserved_lvs)
