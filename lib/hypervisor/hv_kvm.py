@@ -1643,6 +1643,19 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     return (v_all, v_maj, v_min, v_rev)
 
   @classmethod
+  def _GetKVMHelpOutput(cls):
+    """Return the KVM help output.
+
+    @return: output of kvm --help
+    @raise errors.HypervisorError: when the KVM help output cannot be retrieved
+
+    """
+    result = utils.RunCmd([constants.KVM_PATH, "--help"])
+    if result.failed:
+      raise errors.HypervisorError("Unable to get KVM help output")
+    return result.output
+
+  @classmethod
   def _GetKVMVersion(cls):
     """Return the installed KVM version.
 
@@ -1650,10 +1663,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     @raise errors.HypervisorError: when the KVM version cannot be retrieved
 
     """
-    result = utils.RunCmd([constants.KVM_PATH, "--help"])
-    if result.failed:
-      raise errors.HypervisorError("Unable to get KVM version")
-    return cls._ParseKVMVersion(result.output)
+    return cls._ParseKVMVersion(cls._GetKVMHelpOutput())
 
   def StopInstance(self, instance, force=False, retry=False, name=None):
     """Stop an instance.
