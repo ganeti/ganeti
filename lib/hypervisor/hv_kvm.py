@@ -536,6 +536,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     constants.HV_CPU_THREADS: hv_base.OPT_NONNEGATIVE_INT_CHECK,
     constants.HV_CPU_SOCKETS: hv_base.OPT_NONNEGATIVE_INT_CHECK,
     constants.HV_SOUNDHW: hv_base.NO_CHECK,
+    constants.HV_USB_DEVICES: hv_base.NO_CHECK,
     }
 
   _MIGRATION_STATUS_RE = re.compile("Migration\s+status:\s+(\w+)",
@@ -1338,6 +1339,11 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     # As requested by music lovers
     if hvp[constants.HV_SOUNDHW]:
       kvm_cmd.extend(["-soundhw", hvp[constants.HV_SOUNDHW]])
+
+    # Various types of usb devices, comma separated
+    if hvp[constants.HV_USB_DEVICES]:
+      for dev in hvp[constants.HV_USB_DEVICES].split(","):
+        kvm_cmd.extend(["-usbdevice", dev])
 
     # Save the current instance nics, but defer their expansion as parameters,
     # as we'll need to generate executable temp files for them.

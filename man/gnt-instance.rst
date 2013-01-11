@@ -655,6 +655,14 @@ soundhw
     Comma separated list of emulated sounds cards, or "all" to enable
     all the available ones.
 
+usb\_devices
+    Valid for the KVM hypervisor.
+
+    Comma separated list of usb devices. These can be emulated devices
+    or passthrough ones, and each one gets passed to kvm with its own
+    ``-usbdevice`` option. See the **qemu**\(1) manpage for the syntax
+    of the possible components.
+
 
 The ``-O (--os-parameters)`` option allows customisation of the OS
 parameters. The actual parameter names and values depends on the OS
