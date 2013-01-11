@@ -532,6 +532,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       hv_base.ParamInSet(True, constants.REBOOT_BEHAVIORS),
     constants.HV_CPU_MASK: hv_base.OPT_MULTI_CPU_MASK_CHECK,
     constants.HV_CPU_TYPE: hv_base.NO_CHECK,
+    constants.HV_CPU_CORES: hv_base.NO_CHECK,
+    constants.HV_CPU_THREADS: hv_base.NO_CHECK,
+    constants.HV_CPU_SOCKETS: hv_base.NO_CHECK,
     }
 
   _MIGRATION_STATUS_RE = re.compile("Migration\s+status:\s+(\w+)",
@@ -617,7 +620,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       elif arg == "-m":
         memory = int(arg_list.pop(0))
       elif arg == "-smp":
-        vcpus = int(arg_list.pop(0))
+        vcpus = int(arg_list.pop(0).split(",")[0])
 
     if instance is None:
       raise errors.HypervisorError("Pid %s doesn't contain a ganeti kvm"
@@ -1000,8 +1003,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         done in L{_ExecuteKVMRuntime}
 
     """
-    # pylint: disable=R0914,R0915
+    # pylint: disable=R0912,R0914,R0915
     _, v_major, v_min, _ = self._GetKVMVersion()
+    hvp = instance.hvparams
 
     pidfile = self._InstancePidFile(instance.name)
     kvm = constants.KVM_PATH
@@ -1010,7 +1014,17 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     # used just by the vnc server, if enabled
     kvm_cmd.extend(["-name", instance.name])
     kvm_cmd.extend(["-m", instance.beparams[constants.BE_MAXMEM]])
-    kvm_cmd.extend(["-smp", instance.beparams[constants.BE_VCPUS]])
+
+    smp_list = ["%s" % instance.beparams[constants.BE_VCPUS]]
+    if hvp[constants.HV_CPU_CORES]:
+      smp_list.append("cores=%s" % hvp[constants.HV_CPU_CORES])
+    if hvp[constants.HV_CPU_THREADS]:
+      smp_list.append("threads=%s" % hvp[constants.HV_CPU_THREADS])
+    if hvp[constants.HV_CPU_SOCKETS]:
+      smp_list.append("sockets=%s" % hvp[constants.HV_CPU_SOCKETS])
+
+    kvm_cmd.extend(["-smp", ",".join(smp_list)])
+
     kvm_cmd.extend(["-pidfile", pidfile])
     kvm_cmd.extend(["-balloon", "virtio"])
     kvm_cmd.extend(["-daemonize"])
@@ -1020,7 +1034,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         constants.INSTANCE_REBOOT_EXIT:
       kvm_cmd.extend(["-no-reboot"])
 
-    hvp = instance.hvparams
     kernel_path = hvp[constants.HV_KERNEL_PATH]
     if kernel_path:
       boot_disk = boot_cdrom = boot_floppy = boot_network = False

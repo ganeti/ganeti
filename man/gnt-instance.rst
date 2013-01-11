@@ -634,6 +634,21 @@ reboot\_behavior
 
     It is set to ``reboot`` by default.
 
+cpu\_cores
+    Valid for the KVM hypervisor.
+
+    Number of emulated CPU cores.
+
+cpu\_threads
+    Valid for the KVM hypervisor.
+
+    Number of emulated CPU threads.
+
+cpu\_sockets
+    Valid for the KVM hypervisor.
+
+    Number of emulated CPU sockets.
+
 
 The ``-O (--os-parameters)`` option allows customisation of the OS
 parameters. The actual parameter names and values depends on the OS
