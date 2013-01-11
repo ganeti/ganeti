@@ -5,7 +5,10 @@
   "# sign (#).": null,
 
   "name": "xen-test",
+
+  "# Name used for renaming cluster": null,
   "rename": "xen-test-rename",
+
   "enabled-hypervisors": "xen-pvm",
   "# Dict of hypervisor name and parameters (like on the cmd line)": null,
   "hypervisor-parameters": {},
