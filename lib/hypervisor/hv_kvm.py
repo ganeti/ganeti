@@ -1172,8 +1172,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     spice_bind = hvp[constants.HV_KVM_SPICE_BIND]
     spice_ip_version = None
 
+    kvm_cmd.extend(["-usb"])
+
     if mouse_type:
-      kvm_cmd.extend(["-usb"])
       kvm_cmd.extend(["-usbdevice", mouse_type])
     elif vnc_bind_address:
       kvm_cmd.extend(["-usbdevice", constants.HT_MOUSE_TABLET])
