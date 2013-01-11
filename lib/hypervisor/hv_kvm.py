@@ -555,6 +555,17 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
   _DEFAULT_MACHINE_VERSION_RE = re.compile(r"(\S+).*\(default\)")
 
+  _QMP_RE = re.compile(r"^-qmp\s", re.M)
+  _SPICE_RE = re.compile(r"^-spice\s", re.M)
+  _VHOST_RE = re.compile(r"^-net\s.*,vhost=on|off", re.M)
+  _ENABLE_KVM_RE = re.compile(r"^-enable-kvm\s", re.M)
+  _DISABLE_KVM_RE = re.compile(r"^-disable-kvm\s", re.M)
+  _NETDEV_RE = re.compile(r"^-netdev\s", re.M)
+  # match  -drive.*boot=on|off on different lines, but in between accept only
+  # dashes not preceeded by a new line (which would mean another option
+  # different than -drive is starting)
+  _BOOT_RE = re.compile(r"^-drive\s([^-]|(?<!^)-)*,boot=on\|off", re.M | re.S)
+
   ANCILLARY_FILES = [
     _KVM_NETWORK_SCRIPT,
     ]
@@ -1004,7 +1015,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     """
     # pylint: disable=R0912,R0914,R0915
-    _, v_major, v_min, _ = self._GetKVMVersion()
+    kvmhelp = self._GetKVMHelpOutput()
     hvp = instance.hvparams
 
     pidfile = self._InstancePidFile(instance.name)
@@ -1048,9 +1059,11 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if startup_paused:
       kvm_cmd.extend([_KVM_START_PAUSED_FLAG])
 
-    if hvp[constants.HV_KVM_FLAG] == constants.HT_KVM_ENABLED:
+    if (hvp[constants.HV_KVM_FLAG] == constants.HT_KVM_ENABLED and
+        self._ENABLE_KVM_RE.search(kvmhelp)):
       kvm_cmd.extend(["-enable-kvm"])
-    elif hvp[constants.HV_KVM_FLAG] == constants.HT_KVM_DISABLED:
+    elif (hvp[constants.HV_KVM_FLAG] == constants.HT_KVM_DISABLED and
+          self._DISABLE_KVM_RE.search(kvmhelp)):
       kvm_cmd.extend(["-disable-kvm"])
 
     if boot_network:
@@ -1058,7 +1071,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     # whether this is an older KVM version that uses the boot=on flag
     # on devices
-    needs_boot_flag = (v_major, v_min) < (0, 14)
+    needs_boot_flag = self._BOOT_RE.search(kvmhelp)
 
     disk_type = hvp[constants.HV_DISK_TYPE]
     if disk_type == constants.HT_DISK_PARAVIRTUAL:
@@ -1415,7 +1428,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     kvm_cmd, kvm_nics, up_hvp = kvm_runtime
     up_hvp = objects.FillDict(conf_hvp, up_hvp)
 
-    _, v_major, v_min, _ = self._GetKVMVersion()
+    kvmhelp = self._GetKVMHelpOutput()
+    _, v_major, v_min, _ = self._ParseKVMVersion(kvmhelp)
 
     # We know it's safe to run as a different user upon migration, so we'll use
     # the latest conf, from conf_hvp.
@@ -1454,7 +1468,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
         if up_hvp[constants.HV_VHOST_NET]:
           # vhost_net is only available from version 0.13.0 or newer
-          if (v_major, v_min) >= (0, 13):
+          if self._VHOST_RE.search(kvmhelp):
             tap_extra = ",vhost=on"
           else:
             raise errors.HypervisorError("vhost_net is configured"
@@ -1466,7 +1480,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         tapname, tapfd = _OpenTap(vnet_hdr)
         tapfds.append(tapfd)
         taps.append(tapname)
-        if (v_major, v_min) >= (0, 12):
+        if self._NETDEV_RE.search(kvmhelp):
           nic_val = "%s,mac=%s,netdev=netdev%s" % (nic_model, nic.mac, nic_seq)
           tap_val = "type=tap,id=netdev%s,fd=%d%s" % (nic_seq, tapfd, tap_extra)
           kvm_cmd.extend(["-netdev", tap_val, "-device", nic_val])
@@ -1497,7 +1511,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
                          constants.SECURE_DIR_MODE)])
 
     # Automatically enable QMP if version is >= 0.14
-    if (v_major, v_min) >= (0, 14):
+    if self._QMP_RE.search(kvmhelp):
       logging.debug("Enabling QMP")
       kvm_cmd.extend(["-qmp", "unix:%s,server,nowait" %
                       self._InstanceQmpMonitor(instance.name)])
@@ -2054,10 +2068,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
                                      " given time.")
 
       # KVM version should be >= 0.14.0
-      _, v_major, v_min, _ = cls._GetKVMVersion()
-      if (v_major, v_min) < (0, 14):
+      kvmhelp = cls._GetKVMHelpOutput()
+      if not cls._SPICE_RE.search(kvmhelp):
         raise errors.HypervisorError("spice is configured, but it is not"
-                                     " available in versions of KVM < 0.14")
+                                     " supported according to kvm --help")
 
       # if spice_bind is not an IP address, it must be a valid interface
       bound_to_addr = (netutils.IP4Address.IsValid(spice_bind)

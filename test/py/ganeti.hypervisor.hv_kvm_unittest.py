@@ -289,5 +289,25 @@ class TestSpiceParameterList(unittest.TestCase):
     self.assertEqual(hv_kvm._SPICE_ADDITIONAL_PARAMS, params)
 
 
+class TestHelpRegexps(testutils.GanetiTestCase):
+  def testBootRe(self):
+    """Check _BOOT_RE
+
+    It has too match -drive.*boot=on|off except if there is another dash-option
+    at the beginning of the line.
+
+    """
+    boot_re = hv_kvm.KVMHypervisor._BOOT_RE
+    help_10 = utils.ReadFile(self._TestDataFilename("kvm_1.0_help.txt"))
+    help_01590 = utils.ReadFile(self._TestDataFilename("kvm_0.15.90_help.txt"))
+    help_0125 = utils.ReadFile(self._TestDataFilename("kvm_0.12.5_help.txt"))
+    help_091 = utils.ReadFile(self._TestDataFilename("kvm_0.9.1_help.txt"))
+
+    self.assertTrue(boot_re.search(help_091))
+    self.assertTrue(boot_re.search(help_0125))
+    self.assertFalse(boot_re.search(help_10))
+    self.assertFalse(boot_re.search(help_01590))
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
