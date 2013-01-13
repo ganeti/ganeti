@@ -1141,6 +1141,12 @@ def _CheckNodePVs(nresult, exclusive_storage):
   if exclusive_storage:
     (errmsgs, es_pvinfo) = utils.LvmExclusiveCheckNodePvs(pvlist)
     errlist.extend(errmsgs)
+    shared_pvs = nresult.get(constants.NV_EXCLUSIVEPVS, None)
+    if shared_pvs:
+      for (pvname, lvlist) in shared_pvs:
+        # TODO: Check that LVs are really unrelated (snapshots, DRBD meta...)
+        errlist.append("PV %s is shared among unrelated LVs (%s)" %
+                       (pvname, utils.CommaJoin(lvlist)))
   return (errlist, es_pvinfo)
 
 
@@ -3486,6 +3492,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     # it's True for at least a node, we act as if it were set for all the nodes
     self._exclusive_storage = compat.any(es_flags.values())
     if self._exclusive_storage:
+      node_verify_param[constants.NV_EXCLUSIVEPVS] = True
       es_unset_nodes = [n for (n, es) in es_flags.items()
                         if not es]
 

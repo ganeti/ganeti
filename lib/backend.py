@@ -610,6 +610,23 @@ def GetNodeInfo(vg_names, hv_names, excl_stor):
   return (bootid, vg_info, hv_info)
 
 
+def _CheckExclusivePvs(pvi_list):
+  """Check that PVs are not shared among LVs
+
+  @type pvi_list: list of L{objects.LvmPvInfo} objects
+  @param pvi_list: information about the PVs
+
+  @rtype: list of tuples (string, list of strings)
+  @return: offending volumes, as tuples: (pv_name, [lv1_name, lv2_name...])
+
+  """
+  res = []
+  for pvi in pvi_list:
+    if len(pvi.lv_list) > 1:
+      res.append((pvi.name, pvi.lv_list))
+  return res
+
+
 def VerifyNode(what, cluster_name):
   """Verify the status of the local node.
 
@@ -764,8 +781,15 @@ def VerifyNode(what, cluster_name):
     result[constants.NV_VGLIST] = utils.ListVolumeGroups()
 
   if constants.NV_PVLIST in what and vm_capable:
+    check_exclusive_pvs = constants.NV_EXCLUSIVEPVS in what
     val = bdev.LogicalVolume.GetPVInfo(what[constants.NV_PVLIST],
-                                       filter_allocatable=False)
+                                       filter_allocatable=False,
+                                       include_lvs=check_exclusive_pvs)
+    if check_exclusive_pvs:
+      result[constants.NV_EXCLUSIVEPVS] = _CheckExclusivePvs(val)
+      for pvi in val:
+        # Avoid sending useless data on the wire
+        pvi.lv_list = []
     result[constants.NV_PVLIST] = map(objects.LvmPvInfo.ToDict, val)
 
   if constants.NV_VERSION in what:

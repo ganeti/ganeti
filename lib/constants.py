@@ -1560,6 +1560,7 @@ CV_ALL_ECODES_STRINGS = \
 NV_BRIDGES = "bridges"
 NV_DRBDHELPER = "drbd-helper"
 NV_DRBDLIST = "drbd-list"
+NV_EXCLUSIVEPVS = "exclusive-pvs"
 NV_FILELIST = "filelist"
 NV_FILE_STORAGE_PATHS = "file-storage-paths"
 NV_HVINFO = "hvinfo"
