@@ -666,35 +666,59 @@ class LogicalVolume(BlockDev):
     return data
 
   @classmethod
-  def GetPVInfo(cls, vg_names, filter_allocatable=True):
+  def GetPVInfo(cls, vg_names, filter_allocatable=True, include_lvs=False):
     """Get the free space info for PVs in a volume group.
 
     @param vg_names: list of volume group names, if empty all will be returned
     @param filter_allocatable: whether to skip over unallocatable PVs
+    @param include_lvs: whether to include a list of LVs hosted on each PV
 
     @rtype: list
     @return: list of objects.LvmPvInfo objects
 
     """
+    # We request "lv_name" field only if we care about LVs, so we don't get
+    # a long list of entries with many duplicates unless we really have to.
+    # The duplicate "pv_name" field will be ignored.
+    if include_lvs:
+      lvfield = "lv_name"
+    else:
+      lvfield = "pv_name"
     try:
       info = cls._GetVolumeInfo("pvs", ["pv_name", "vg_name", "pv_free",
-                                        "pv_attr", "pv_size"])
+                                        "pv_attr", "pv_size", lvfield])
     except errors.GenericError, err:
       logging.error("Can't get PV information: %s", err)
       return None
 
+    # When asked for LVs, "pvs" may return multiple entries for the same PV-LV
+    # pair. We sort entries by PV name and then LV name, so it's easy to weed
+    # out duplicates.
+    if include_lvs:
+      info.sort(key=(lambda i: (i[0], i[5])))
     data = []
-    for (pv_name, vg_name, pv_free, pv_attr, pv_size) in info:
+    lastpvi = None
+    for (pv_name, vg_name, pv_free, pv_attr, pv_size, lv_name) in info:
       # (possibly) skip over pvs which are not allocatable
       if filter_allocatable and pv_attr[0] != "a":
         continue
       # (possibly) skip over pvs which are not in the right volume group(s)
       if vg_names and vg_name not in vg_names:
         continue
-      pvi = objects.LvmPvInfo(name=pv_name, vg_name=vg_name,
-                              size=float(pv_size), free=float(pv_free),
-                              attributes=pv_attr)
-      data.append(pvi)
+      # Beware of duplicates (check before inserting)
+      if lastpvi and lastpvi.name == pv_name:
+        if include_lvs and lv_name:
+          if not lastpvi.lv_list or lastpvi.lv_list[-1] != lv_name:
+            lastpvi.lv_list.append(lv_name)
+      else:
+        if include_lvs and lv_name:
+          lvl = [lv_name]
+        else:
+          lvl = []
+        lastpvi = objects.LvmPvInfo(name=pv_name, vg_name=vg_name,
+                                    size=float(pv_size), free=float(pv_free),
+                                    attributes=pv_attr, lv_list=lvl)
+        data.append(lastpvi)
 
     return data
 

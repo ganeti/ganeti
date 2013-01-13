@@ -2074,6 +2074,8 @@ class LvmPvInfo(ConfigObject):
   @ivar free: free space in the PV, in MiB
   @type attributes: string
   @ivar attributes: PV attributes
+  @type lv_list: list of strings
+  @ivar lv_list: names of the LVs hosted on the PV
   """
   __slots__ = [
     "name",
@@ -2081,6 +2083,7 @@ class LvmPvInfo(ConfigObject):
     "size",
     "free",
     "attributes",
+    "lv_list"
     ]
 
   def IsEmpty(self):
