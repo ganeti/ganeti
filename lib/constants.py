@@ -1432,6 +1432,7 @@ VERIFY_OPTIONAL_CHECKS = compat.UniqueFrozenset([VERIFY_NPLUSONE_MEM])
 
 # Cluster Verify error classes
 CV_TCLUSTER = "cluster"
+CV_TGROUP = "group"
 CV_TNODE = "node"
 CV_TINSTANCE = "instance"
 
@@ -1450,6 +1451,9 @@ CV_ECLUSTERDANGLINGNODES = \
 CV_ECLUSTERDANGLINGINST = \
   (CV_TNODE, "ECLUSTERDANGLINGINST",
    "Some instances have a non-existing primary node")
+CV_EGROUPMIXEDESFLAG = \
+  (CV_TGROUP, "EGROUPMIXEDESFLAG",
+   "exclusive_storage flag is not uniform within the group")
 CV_EINSTANCEBADNODE = \
   (CV_TINSTANCE, "EINSTANCEBADNODE",
    "Instance marked as running lives on an offline node")
