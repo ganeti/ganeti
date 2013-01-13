@@ -1476,6 +1476,9 @@ CV_EINSTANCESPLITGROUPS = \
 CV_EINSTANCEPOLICY = \
   (CV_TINSTANCE, "EINSTANCEPOLICY",
    "Instance does not meet policy")
+CV_EINSTANCEUNSUITABLENODE = \
+  (CV_TINSTANCE, "EINSTANCEUNSUITABLENODE",
+   "Instance running on nodes that are not suitable for it")
 CV_ENODEDRBD = \
   (CV_TNODE, "ENODEDRBD", "Error parsing the DRBD status file")
 CV_ENODEDRBDHELPER = \
