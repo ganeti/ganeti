@@ -62,19 +62,22 @@ execJobsWait opcodes callback client = do
       callback jids'
       waitForJobs jids' client
 
--- | Polls a set of jobs at a fixed interval until all are finished
--- one way or another.
+-- | Polls a set of jobs at an increasing interval until all are finished one
+-- way or another.
 waitForJobs :: [L.JobId] -> L.Client -> IO (Result [(L.JobId, JobStatus)])
-waitForJobs jids client = do
-  sts <- L.queryJobsStatus client jids
-  case sts of
-    Bad e -> return . Bad $ "Checking job status: " ++ formatError e
-    Ok sts' -> if any (<= JOB_STATUS_RUNNING) sts'
-            then do
-              -- TODO: replace hardcoded value with a better thing
-              threadDelay (1000000 * 15)
-              waitForJobs jids client
-            else return . Ok $ zip jids sts'
+waitForJobs jids client = waitForJobs' 500000 15000000
+  where
+    waitForJobs' delay maxdelay = do
+      -- TODO: this should use WaitForJobChange once it's available in Haskell
+      -- land, instead of a fixed schedule of sleeping intervals.
+      threadDelay $ min delay maxdelay
+      sts <- L.queryJobsStatus client jids
+      case sts of
+        Bad e -> return . Bad $ "Checking job status: " ++ formatError e
+        Ok sts' -> if any (<= JOB_STATUS_RUNNING) sts' then
+                     waitForJobs' (delay * 2) maxdelay
+                   else
+                     return . Ok $ zip jids sts'
 
 -- | Execute jobs and return @Ok@ only if all of them succeeded.
 execJobsWaitOk :: [[MetaOpCode]] -> L.Client -> IO (Result ())
