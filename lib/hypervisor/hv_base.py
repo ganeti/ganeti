@@ -102,6 +102,9 @@ _MULTI_CPU_MASK_CHECK = (_IsMultiCpuMaskWellFormed,
 _NET_PORT_CHECK = (lambda x: 0 < x < 65535, "invalid port number",
                    None, None)
 
+# Check that an integer is non negative
+_NONNEGATIVE_INT_CHECK = (lambda x: x >= 0, "cannot be negative", None, None)
+
 # nice wrappers for users
 REQ_FILE_CHECK = (True, ) + _FILE_CHECK
 OPT_FILE_CHECK = (False, ) + _FILE_CHECK
@@ -113,6 +116,8 @@ REQ_CPU_MASK_CHECK = (True, ) + _CPU_MASK_CHECK
 OPT_CPU_MASK_CHECK = (False, ) + _CPU_MASK_CHECK
 REQ_MULTI_CPU_MASK_CHECK = (True, ) + _MULTI_CPU_MASK_CHECK
 OPT_MULTI_CPU_MASK_CHECK = (False, ) + _MULTI_CPU_MASK_CHECK
+REQ_NONNEGATIVE_INT_CHECK = (True, ) + _NONNEGATIVE_INT_CHECK
+OPT_NONNEGATIVE_INT_CHECK = (False, ) + _NONNEGATIVE_INT_CHECK
 
 # no checks at all
 NO_CHECK = (False, None, None, None, None)

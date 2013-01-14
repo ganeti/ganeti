@@ -514,8 +514,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       hv_base.ParamInSet(False, constants.HT_KVM_VALID_MOUSE_TYPES),
     constants.HV_KEYMAP: hv_base.NO_CHECK,
     constants.HV_MIGRATION_PORT: hv_base.REQ_NET_PORT_CHECK,
-    constants.HV_MIGRATION_BANDWIDTH: hv_base.NO_CHECK,
-    constants.HV_MIGRATION_DOWNTIME: hv_base.NO_CHECK,
+    constants.HV_MIGRATION_BANDWIDTH: hv_base.REQ_NONNEGATIVE_INT_CHECK,
+    constants.HV_MIGRATION_DOWNTIME: hv_base.REQ_NONNEGATIVE_INT_CHECK,
     constants.HV_MIGRATION_MODE: hv_base.MIGRATION_MODE_CHECK,
     constants.HV_USE_LOCALTIME: hv_base.NO_CHECK,
     constants.HV_DISK_CACHE:
@@ -532,9 +532,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       hv_base.ParamInSet(True, constants.REBOOT_BEHAVIORS),
     constants.HV_CPU_MASK: hv_base.OPT_MULTI_CPU_MASK_CHECK,
     constants.HV_CPU_TYPE: hv_base.NO_CHECK,
-    constants.HV_CPU_CORES: hv_base.NO_CHECK,
-    constants.HV_CPU_THREADS: hv_base.NO_CHECK,
-    constants.HV_CPU_SOCKETS: hv_base.NO_CHECK,
+    constants.HV_CPU_CORES: hv_base.OPT_NONNEGATIVE_INT_CHECK,
+    constants.HV_CPU_THREADS: hv_base.OPT_NONNEGATIVE_INT_CHECK,
+    constants.HV_CPU_SOCKETS: hv_base.OPT_NONNEGATIVE_INT_CHECK,
     }
 
   _MIGRATION_STATUS_RE = re.compile("Migration\s+status:\s+(\w+)",

@@ -632,7 +632,7 @@ class XenPvmHypervisor(XenHypervisor):
     constants.HV_REBOOT_BEHAVIOR:
       hv_base.ParamInSet(True, constants.REBOOT_BEHAVIORS),
     constants.HV_CPU_MASK: hv_base.OPT_MULTI_CPU_MASK_CHECK,
-    constants.HV_CPU_CAP: hv_base.NO_CHECK,
+    constants.HV_CPU_CAP: hv_base.OPT_NONNEGATIVE_INT_CHECK,
     constants.HV_CPU_WEIGHT:
       (False, lambda x: 0 < x < 65536, "invalid weight", None, None),
     }
