@@ -269,19 +269,23 @@ def RunCommonInstanceTests(instance):
             qa_rapi.TestRapiInstanceReinstall, instance)
 
   if qa_config.TestEnabled("instance-rename"):
-    rename_source = instance["name"]
-    rename_target = qa_config.get("rename", None)
-    # perform instance rename to the same name
-    RunTest(qa_instance.TestInstanceRenameAndBack,
-            rename_source, rename_source)
-    RunTestIf("rapi", qa_rapi.TestRapiInstanceRenameAndBack,
-              rename_source, rename_source)
-    if rename_target is not None:
-      # perform instance rename to a different name, if we have one configured
+    tgt_instance = qa_config.AcquireInstance()
+    try:
+      rename_source = instance["name"]
+      rename_target = tgt_instance["name"]
+      # perform instance rename to the same name
       RunTest(qa_instance.TestInstanceRenameAndBack,
-              rename_source, rename_target)
+              rename_source, rename_source)
       RunTestIf("rapi", qa_rapi.TestRapiInstanceRenameAndBack,
+                rename_source, rename_source)
+      if rename_target is not None:
+        # perform instance rename to a different name, if we have one configured
+        RunTest(qa_instance.TestInstanceRenameAndBack,
                 rename_source, rename_target)
+        RunTestIf("rapi", qa_rapi.TestRapiInstanceRenameAndBack,
+                  rename_source, rename_target)
+    finally:
+      qa_config.ReleaseInstance(tgt_instance)
 
   RunTestIf(["instance-grow-disk"], qa_instance.TestInstanceGrowDisk, instance)
 
