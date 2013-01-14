@@ -1008,9 +1008,12 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         data.append(info)
     return data
 
-  def _GenerateKVMRuntime(self, instance, block_devices, startup_paused):
+  def _GenerateKVMRuntime(self, instance, block_devices, startup_paused,
+                          kvmhelp):
     """Generate KVM information to start an instance.
 
+    @type kvmhelp: string
+    @param kvmhelp: output of kvm --help
     @attention: this function must not have any side-effects; for
         example, it must not write to the filesystem, or read values
         from the current system the are expected to differ between
@@ -1021,7 +1024,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     """
     # pylint: disable=R0912,R0914,R0915
     hvp = instance.hvparams
-    kvmhelp = self._GetKVMHelpOutput(constants.KVM_PATH)
 
     pidfile = self._InstancePidFile(instance.name)
     kvm = constants.KVM_PATH
@@ -1429,11 +1431,13 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if not self._InstancePidAlive(name)[2]:
       raise errors.HypervisorError("Failed to start instance %s" % name)
 
-  def _ExecuteKVMRuntime(self, instance, kvm_runtime, incoming=None):
+  def _ExecuteKVMRuntime(self, instance, kvm_runtime, kvmhelp, incoming=None):
     """Execute a KVM cmd, after completing it with some last minute data.
 
     @type incoming: tuple of strings
     @param incoming: (target_host_ip, port)
+    @type kvmhelp: string
+    @param kvmhelp: output of kvm --help
 
     """
     # Small _ExecuteKVMRuntime hv parameters programming howto:
@@ -1453,7 +1457,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     kvm_cmd, kvm_nics, up_hvp = kvm_runtime
     up_hvp = objects.FillDict(conf_hvp, up_hvp)
 
-    kvmhelp = self._GetKVMHelpOutput(constants.KVM_PATH)
     _, v_major, v_min, _ = self._ParseKVMVersion(kvmhelp)
 
     # We know it's safe to run as a different user upon migration, so we'll use
@@ -1635,10 +1638,11 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     """
     self._CheckDown(instance.name)
+    kvmhelp = self._GetKVMHelpOutput(constants.KVM_PATH)
     kvm_runtime = self._GenerateKVMRuntime(instance, block_devices,
-                                           startup_paused)
+                                           startup_paused, kvmhelp)
     self._SaveKVMRuntime(instance, kvm_runtime)
-    self._ExecuteKVMRuntime(instance, kvm_runtime)
+    self._ExecuteKVMRuntime(instance, kvm_runtime, kvmhelp)
 
   def _CallMonitorCommand(self, instance_name, command):
     """Invoke a command on the instance monitor.
@@ -1764,7 +1768,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       self.StopInstance(instance, force=True)
     # ...and finally we can save it again, and execute it...
     self._SaveKVMRuntime(instance, kvm_runtime)
-    self._ExecuteKVMRuntime(instance, kvm_runtime)
+    kvmhelp = self._GetKVMHelpOutput(constants.KVM_PATH)
+    self._ExecuteKVMRuntime(instance, kvm_runtime, kvmhelp)
 
   def MigrationInfo(self, instance):
     """Get instance information to perform a migration.
@@ -1790,7 +1795,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     """
     kvm_runtime = self._LoadKVMRuntime(instance, serialized_runtime=info)
     incoming_address = (target, instance.hvparams[constants.HV_MIGRATION_PORT])
-    self._ExecuteKVMRuntime(instance, kvm_runtime, incoming=incoming_address)
+    kvmhelp = self._GetKVMHelpOutput(constants.KVM_PATH)
+    self._ExecuteKVMRuntime(instance, kvm_runtime, kvmhelp,
+                            incoming=incoming_address)
 
   def FinalizeMigrationDst(self, instance, info, success):
     """Finalize the instance migration on the target node.
