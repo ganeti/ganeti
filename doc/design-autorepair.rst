@@ -134,8 +134,8 @@ to this instance for this ``id`` (we will "update" the tag by adding a
 the timestamp will never change for the same repair)
 
 ``jobs`` is the list of jobs already run or being run to repair the
-instance. If the instance has just been put in pending state but no job
-has run yet, this list is empty.
+instance (separated by a plus sign, *+*). If the instance has just
+been put in pending state but no job has run yet, this list is empty.
 
 This tag will be set by ganeti if an equivalent autorepair tag is
 present and a a repair is needed, or can be set by an external tool to
@@ -150,8 +150,8 @@ ganeti:watcher:autorepair:result:<type>:<id>:<timestamp>:<result>:<jobs>
 (instance)
 If this tag is present a repair of type ``type`` has been performed on
 the instance and has been completed by ``timestamp``. The result is
-either ``success``, ``failure`` or ``enoperm``, and jobs is a comma
-separated list of jobs that were executed for this repair.
+either ``success``, ``failure`` or ``enoperm``, and jobs is a
+*+*-separated list of jobs that were executed for this repair.
 
 An ``enoperm`` result is returned when the repair was brought on until
 possible, but the repair type doesn't consent to proceed further.
