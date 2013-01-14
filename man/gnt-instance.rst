@@ -681,6 +681,11 @@ machine\_version
     machine version (due to e.g. outdated drivers). In case it's not set
     the default version supported by your version of kvm is used.
 
+kvm\_path
+    Valid for the KVM hypervisor.
+
+    Path to the userspace KVM (or qemu) program.
+
 The ``-O (--os-parameters)`` option allows customisation of the OS
 parameters. The actual parameter names and values depends on the OS
 being used, but the syntax is the same key=value. For example, setting

@@ -460,6 +460,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
            _CHROOT_DIR, _CHROOT_QUARANTINE_DIR, _KEYMAP_DIR]
 
   PARAMETERS = {
+    constants.HV_KVM_PATH: hv_base.REQ_FILE_CHECK,
     constants.HV_KERNEL_PATH: hv_base.OPT_FILE_CHECK,
     constants.HV_INITRD_PATH: hv_base.OPT_FILE_CHECK,
     constants.HV_ROOT_PATH: hv_base.NO_CHECK,
@@ -1026,7 +1027,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     hvp = instance.hvparams
 
     pidfile = self._InstancePidFile(instance.name)
-    kvm = constants.KVM_PATH
+    kvm = hvp[constants.HV_KVM_PATH]
     kvm_cmd = [kvm]
     # used just by the vnc server, if enabled
     kvm_cmd.extend(["-name", instance.name])
@@ -1053,7 +1054,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     mversion = hvp[constants.HV_KVM_MACHINE_VERSION]
     if not mversion:
-      mversion = self._GetDefaultMachineVersion(constants.KVM_PATH)
+      mversion = self._GetDefaultMachineVersion(kvm)
     kvm_cmd.extend(["-M", mversion])
 
     kernel_path = hvp[constants.HV_KERNEL_PATH]
@@ -1638,7 +1639,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     """
     self._CheckDown(instance.name)
-    kvmhelp = self._GetKVMHelpOutput(constants.KVM_PATH)
+    kvmpath = instance.hvparams[constants.HV_KVM_PATH]
+    kvmhelp = self._GetKVMHelpOutput(kvmpath)
     kvm_runtime = self._GenerateKVMRuntime(instance, block_devices,
                                            startup_paused, kvmhelp)
     self._SaveKVMRuntime(instance, kvm_runtime)
@@ -1768,7 +1770,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       self.StopInstance(instance, force=True)
     # ...and finally we can save it again, and execute it...
     self._SaveKVMRuntime(instance, kvm_runtime)
-    kvmhelp = self._GetKVMHelpOutput(constants.KVM_PATH)
+    kvmpath = instance.hvparams[constants.HV_KVM_PATH]
+    kvmhelp = self._GetKVMHelpOutput(kvmpath)
     self._ExecuteKVMRuntime(instance, kvm_runtime, kvmhelp)
 
   def MigrationInfo(self, instance):
@@ -1795,7 +1798,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     """
     kvm_runtime = self._LoadKVMRuntime(instance, serialized_runtime=info)
     incoming_address = (target, instance.hvparams[constants.HV_MIGRATION_PORT])
-    kvmhelp = self._GetKVMHelpOutput(constants.KVM_PATH)
+    kvmpath = instance.hvparams[constants.HV_KVM_PATH]
+    kvmhelp = self._GetKVMHelpOutput(kvmpath)
     self._ExecuteKVMRuntime(instance, kvm_runtime, kvmhelp,
                             incoming=incoming_address)
 
@@ -1944,6 +1948,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     """
     result = self.GetLinuxNodeInfo()
+    # FIXME: this is the global kvm version, but the actual version can be
+    # customized as an hv parameter. we should use the nodegroup's default kvm
+    # path parameter here.
     _, v_major, v_min, v_rev = self._GetKVMVersion(constants.KVM_PATH)
     result[constants.HV_NODEINFO_KEY_VERSION] = (v_major, v_min, v_rev)
     return result
@@ -1992,6 +1999,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     Check that the binary exists.
 
     """
+    # FIXME: this is the global kvm version, but the actual version can be
+    # customized as an hv parameter. we should use the nodegroup's default kvm
+    # path parameter here.
     if not os.path.exists(constants.KVM_PATH):
       return "The kvm binary ('%s') does not exist." % constants.KVM_PATH
     if not os.path.exists(constants.SOCAT_PATH):
@@ -2099,7 +2109,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
                                      " given time.")
 
       # check that KVM supports SPICE
-      kvmhelp = cls._GetKVMHelpOutput(constants.KVM_PATH)
+      kvmhelp = cls._GetKVMHelpOutput(hvparams[constants.HV_KVM_PATH])
       if not cls._SPICE_RE.search(kvmhelp):
         raise errors.HypervisorError("spice is configured, but it is not"
                                      " supported according to kvm --help")
