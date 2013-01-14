@@ -2,7 +2,7 @@
 
 {-
 
-Copyright (C) 2009, 2010, 2011, 2012 Google Inc.
+Copyright (C) 2009, 2010, 2011, 2012, 2013 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -267,7 +267,7 @@ we only need one extra step of dropping the key at the end.
 
 -}
 niceSort :: [String] -> [String]
-niceSort = map snd . sort . map (\s -> (fst $ extractKey [] s, s))
+niceSort = niceSortKey id
 
 -- | Key-version of 'niceSort'. We use 'sortBy' and @compare `on` fst@
 -- since we don't want to add an ordering constraint on the /a/ type,
