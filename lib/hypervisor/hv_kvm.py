@@ -1020,8 +1020,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     """
     # pylint: disable=R0912,R0914,R0915
-    kvmhelp = self._GetKVMHelpOutput()
     hvp = instance.hvparams
+    kvmhelp = self._GetKVMHelpOutput(constants.KVM_PATH)
 
     pidfile = self._InstancePidFile(instance.name)
     kvm = constants.KVM_PATH
@@ -1051,7 +1051,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     mversion = hvp[constants.HV_KVM_MACHINE_VERSION]
     if not mversion:
-      mversion = self._GetDefaultMachineVersion()
+      mversion = self._GetDefaultMachineVersion(constants.KVM_PATH)
     kvm_cmd.extend(["-M", mversion])
 
     kernel_path = hvp[constants.HV_KERNEL_PATH]
@@ -1453,7 +1453,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     kvm_cmd, kvm_nics, up_hvp = kvm_runtime
     up_hvp = objects.FillDict(conf_hvp, up_hvp)
 
-    kvmhelp = self._GetKVMHelpOutput()
+    kvmhelp = self._GetKVMHelpOutput(constants.KVM_PATH)
     _, v_major, v_min, _ = self._ParseKVMVersion(kvmhelp)
 
     # We know it's safe to run as a different user upon migration, so we'll use
@@ -1492,7 +1492,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
           nic_model = "virtio"
 
         if up_hvp[constants.HV_VHOST_NET]:
-          # vhost_net is only available from version 0.13.0 or newer
+          # check for vhost_net support
           if self._VHOST_RE.search(kvmhelp):
             tap_extra = ",vhost=on"
           else:
@@ -1682,27 +1682,27 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     return (v_all, v_maj, v_min, v_rev)
 
   @classmethod
-  def _GetKVMHelpOutput(cls):
+  def _GetKVMHelpOutput(cls, kvm_path):
     """Return the KVM help output.
 
     @return: output of kvm --help
     @raise errors.HypervisorError: when the KVM help output cannot be retrieved
 
     """
-    result = utils.RunCmd([constants.KVM_PATH, "--help"])
+    result = utils.RunCmd([kvm_path, "--help"])
     if result.failed:
       raise errors.HypervisorError("Unable to get KVM help output")
     return result.output
 
   @classmethod
-  def _GetKVMVersion(cls):
+  def _GetKVMVersion(cls, kvm_path):
     """Return the installed KVM version.
 
     @return: (version, v_maj, v_min, v_rev)
     @raise errors.HypervisorError: when the KVM version cannot be retrieved
 
     """
-    return cls._ParseKVMVersion(cls._GetKVMHelpOutput())
+    return cls._ParseKVMVersion(cls._GetKVMHelpOutput(kvm_path))
 
   def StopInstance(self, instance, force=False, retry=False, name=None):
     """Stop an instance.
@@ -1723,11 +1723,11 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         self._CallMonitorCommand(name, "system_powerdown")
 
   @classmethod
-  def _GetDefaultMachineVersion(cls):
+  def _GetDefaultMachineVersion(cls, kvm_path):
     """Return the default hardware revision (e.g. pc-1.1)
 
     """
-    result = utils.RunCmd([constants.KVM_PATH, "-M", "?"])
+    result = utils.RunCmd([kvm_path, "-M", "?"])
     if result.failed:
       raise errors.HypervisorError("Unable to get default hardware revision")
     match = cls._DEFAULT_MACHINE_VERSION_RE.search(result.output)
@@ -1937,7 +1937,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     """
     result = self.GetLinuxNodeInfo()
-    _, v_major, v_min, v_rev = self._GetKVMVersion()
+    _, v_major, v_min, v_rev = self._GetKVMVersion(constants.KVM_PATH)
     result[constants.HV_NODEINFO_KEY_VERSION] = (v_major, v_min, v_rev)
     return result
 
@@ -2091,8 +2091,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
                                      " only one of them can be used at a"
                                      " given time.")
 
-      # KVM version should be >= 0.14.0
-      kvmhelp = cls._GetKVMHelpOutput()
+      # check that KVM supports SPICE
+      kvmhelp = cls._GetKVMHelpOutput(constants.KVM_PATH)
       if not cls._SPICE_RE.search(kvmhelp):
         raise errors.HypervisorError("spice is configured, but it is not"
                                      " supported according to kvm --help")
