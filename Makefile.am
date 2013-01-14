@@ -930,7 +930,9 @@ TEST_FILES = \
 	test/data/kvm_0.12.5_help.txt \
 	test/data/kvm_0.15.90_help.txt \
 	test/data/kvm_0.9.1_help.txt \
+	test/data/kvm_0.9.1_help_boot_test.txt \
 	test/data/kvm_1.0_help.txt \
+	test/data/kvm_1.1.2_help.txt \
 	test/data/ovfdata/compr_disk.vmdk.gz \
 	test/data/ovfdata/config.ini \
 	test/data/ovfdata/corrupted_resources.ovf \

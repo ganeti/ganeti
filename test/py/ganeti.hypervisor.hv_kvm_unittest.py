@@ -248,10 +248,12 @@ class TestConsole(unittest.TestCase):
 class TestVersionChecking(testutils.GanetiTestCase):
   def testParseVersion(self):
     parse = hv_kvm.KVMHypervisor._ParseKVMVersion
+    help_112 = utils.ReadFile(self._TestDataFilename("kvm_1.1.2_help.txt"))
     help_10 = utils.ReadFile(self._TestDataFilename("kvm_1.0_help.txt"))
     help_01590 = utils.ReadFile(self._TestDataFilename("kvm_0.15.90_help.txt"))
     help_0125 = utils.ReadFile(self._TestDataFilename("kvm_0.12.5_help.txt"))
     help_091 = utils.ReadFile(self._TestDataFilename("kvm_0.9.1_help.txt"))
+    self.assertEqual(parse(help_112), ("1.1.2", 1, 1, 2))
     self.assertEqual(parse(help_10), ("1.0", 1, 0, 0))
     self.assertEqual(parse(help_01590), ("0.15.90", 0, 15, 90))
     self.assertEqual(parse(help_0125), ("0.12.5", 0, 12, 5))
@@ -298,13 +300,18 @@ class TestHelpRegexps(testutils.GanetiTestCase):
 
     """
     boot_re = hv_kvm.KVMHypervisor._BOOT_RE
+    help_112 = utils.ReadFile(self._TestDataFilename("kvm_1.1.2_help.txt"))
     help_10 = utils.ReadFile(self._TestDataFilename("kvm_1.0_help.txt"))
     help_01590 = utils.ReadFile(self._TestDataFilename("kvm_0.15.90_help.txt"))
     help_0125 = utils.ReadFile(self._TestDataFilename("kvm_0.12.5_help.txt"))
     help_091 = utils.ReadFile(self._TestDataFilename("kvm_0.9.1_help.txt"))
+    help_091_fake = utils.ReadFile(
+      self._TestDataFilename("kvm_0.9.1_help_boot_test.txt"))
 
     self.assertTrue(boot_re.search(help_091))
     self.assertTrue(boot_re.search(help_0125))
+    self.assertFalse(boot_re.search(help_091_fake))
+    self.assertFalse(boot_re.search(help_112))
     self.assertFalse(boot_re.search(help_10))
     self.assertFalse(boot_re.search(help_01590))
 
