@@ -373,6 +373,18 @@ if test -z "$SPHINX"
 then
   AC_MSG_WARN(m4_normalize([sphinx-build not found, documentation rebuild will
                             not be possible]))
+else
+  # Sphinx exits with code 1 when it prints its usage
+  sphinxver=`{ $SPHINX --version 2>&1 || :; } | head -n 3`
+
+  if ! echo "$sphinxver" | grep -q -w -e '^Sphinx' -e '^Usage:'; then
+    AC_MSG_ERROR([Unable to determine Sphinx version])
+
+  # Note: Character classes ([...]) need to be double quoted due to autoconf
+  # using m4
+  elif ! echo "$sphinxver" | grep -q -E '^Sphinx[[[:space:]]]+v[[1-9]]\>'; then
+    AC_MSG_ERROR([Sphinx 1.0 or higher is required])
+  fi
 fi
 
 AC_ARG_ENABLE([manpages-in-doc],
