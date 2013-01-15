@@ -58,6 +58,8 @@ _SINGLE_NODE_DISK_TEMPLATES = compat.UniqueFrozenset([
   constants.DT_PLAIN,
   constants.DT_FILE,
   constants.DT_SHARED_FILE,
+  constants.DT_EXT,
+  constants.DT_RBD,
   ])
 
 _SUPPORTED_DISK_TEMPLATES = compat.UniqueFrozenset([
