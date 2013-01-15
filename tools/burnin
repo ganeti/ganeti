@@ -52,6 +52,31 @@ LOG_HEADERS = {
   2: "",
   }
 
+#: Disk templates supporting a single node
+_SINGLE_NODE_DISK_TEMPLATES = compat.UniqueFrozenset([
+  constants.DT_DISKLESS,
+  constants.DT_PLAIN,
+  constants.DT_FILE,
+  constants.DT_SHARED_FILE,
+  ])
+
+_SUPPORTED_DISK_TEMPLATES = compat.UniqueFrozenset([
+  constants.DT_DISKLESS,
+  constants.DT_DRBD8,
+  constants.DT_EXT,
+  constants.DT_FILE,
+  constants.DT_PLAIN,
+  constants.DT_RBD,
+  constants.DT_SHARED_FILE,
+  ])
+
+#: Disk templates for which import/export is tested
+_IMPEXP_DISK_TEMPLATES = (_SUPPORTED_DISK_TEMPLATES - frozenset([
+  constants.DT_DISKLESS,
+  constants.DT_FILE,
+  constants.DT_SHARED_FILE,
+  ]))
+
 
 class InstanceDown(Exception):
   """The checked instance was not up"""
@@ -460,15 +485,7 @@ class Burner(object):
     elif options.minmem_size > options.maxmem_size:
       Err("Maximum memory lower than minimum memory")
 
-    supported_disk_templates = (constants.DT_DISKLESS,
-                                constants.DT_FILE,
-                                constants.DT_SHARED_FILE,
-                                constants.DT_PLAIN,
-                                constants.DT_DRBD8,
-                                constants.DT_RBD,
-                                constants.DT_EXT,
-                                )
-    if options.disk_template not in supported_disk_templates:
+    if options.disk_template not in _SUPPORTED_DISK_TEMPLATES:
       Err("Unknown disk template '%s'" % options.disk_template)
 
     if options.disk_template == constants.DT_DISKLESS:
@@ -1036,11 +1053,9 @@ class Burner(object):
     Log("Testing global parameters")
 
     if (len(self.nodes) == 1 and
-        opts.disk_template not in (constants.DT_DISKLESS, constants.DT_PLAIN,
-                                   constants.DT_FILE,
-                                   constants.DT_SHARED_FILE)):
+        opts.disk_template not in _SINGLE_NODE_DISK_TEMPLATES):
       Err("When one node is available/selected the disk template must"
-          " be 'diskless', 'file' or 'plain'")
+          " be one of %s" % utils.CommaJoin(_SINGLE_NODE_DISK_TEMPLATES))
 
     if opts.do_confd_tests and not constants.ENABLE_CONFD:
       Err("You selected confd tests but confd was disabled at configure time")
@@ -1080,9 +1095,7 @@ class Burner(object):
         self.BurnMove()
 
       if (opts.do_importexport and
-          opts.disk_template not in (constants.DT_DISKLESS,
-                                     constants.DT_SHARED_FILE,
-                                     constants.DT_FILE)):
+          opts.disk_template in _IMPEXP_DISK_TEMPLATES):
         self.BurnImportExport()
 
       if opts.do_reinstall:
