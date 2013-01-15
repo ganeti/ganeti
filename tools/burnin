@@ -221,10 +221,11 @@ OPTIONS = [
                        " to start the renaming sequence"),
                  metavar="<instance_name>"),
   cli.cli_option("-t", "--disk-template", dest="disk_template",
-                 choices=list(constants.DISK_TEMPLATES),
+                 choices=list(_SUPPORTED_DISK_TEMPLATES),
                  default=constants.DT_DRBD8,
-                 help="Disk template (diskless, file, plain, sharedfile"
-                 " or drbd) [drbd]"),
+                 help=("Disk template (default %s, otherwise one of %s)" %
+                       (constants.DT_DRBD8,
+                        utils.CommaJoin(_SUPPORTED_DISK_TEMPLATES)))),
   cli.cli_option("-n", "--nodes", dest="nodes", default="",
                  help=("Comma separated list of nodes to perform"
                        " the burnin on (defaults to all nodes)"),
@@ -486,7 +487,7 @@ class Burner(object):
       Err("Maximum memory lower than minimum memory")
 
     if options.disk_template not in _SUPPORTED_DISK_TEMPLATES:
-      Err("Unknown disk template '%s'" % options.disk_template)
+      Err("Unknown or unsupported disk template '%s'" % options.disk_template)
 
     if options.disk_template == constants.DT_DISKLESS:
       disk_size = disk_growth = []
