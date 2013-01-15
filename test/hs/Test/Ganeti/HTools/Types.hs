@@ -52,6 +52,8 @@ import Ganeti.BasicTypes
 import qualified Ganeti.Constants as C
 import qualified Ganeti.HTools.Types as Types
 
+{-# ANN module "HLint: ignore Use camelCase" #-}
+
 -- * Helpers
 
 -- | All disk templates (used later)
