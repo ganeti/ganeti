@@ -1090,6 +1090,7 @@ python_tests = \
 	test/py/ganeti.ssconf_unittest.py \
 	test/py/ganeti.ssh_unittest.py \
 	test/py/ganeti.storage_unittest.py \
+	test/py/ganeti.tools.burnin_unittest.py \
 	test/py/ganeti.tools.ensure_dirs_unittest.py \
 	test/py/ganeti.tools.node_daemon_setup_unittest.py \
 	test/py/ganeti.tools.prepare_node_join_unittest.py \
