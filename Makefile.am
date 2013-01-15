@@ -340,6 +340,7 @@ server_PYTHON = \
 
 pytools_PYTHON = \
 	lib/tools/__init__.py \
+	lib/tools/burnin.py \
 	lib/tools/ensure_dirs.py \
 	lib/tools/node_cleanup.py \
 	lib/tools/node_daemon_setup.py \
@@ -701,6 +702,7 @@ PYTHON_BOOTSTRAP_SBIN = \
 
 PYTHON_BOOTSTRAP = \
 	$(PYTHON_BOOTSTRAP_SBIN) \
+	tools/burnin \
 	tools/ensure-dirs \
 	tools/node-cleanup \
 	tools/node-daemon-setup \
@@ -799,7 +801,6 @@ nodist_sbin_SCRIPTS += src/ganeti-confd
 endif
 
 python_scripts = \
-	tools/burnin \
 	tools/cfgshell \
 	tools/cfgupgrade \
 	tools/cfgupgrade12 \
@@ -829,6 +830,7 @@ pkglib_python_scripts = \
 	tools/check-cert-expired
 
 nodist_pkglib_python_scripts = \
+	tools/burnin \
 	tools/ensure-dirs \
 	tools/node-daemon-setup \
 	tools/prepare-node-join
@@ -1496,6 +1498,7 @@ $(REPLACE_VARS_SED): $(SHELL_ENV_INIT) Makefile stamp-directories
 daemons/ganeti-%: MODULE = ganeti.server.$(patsubst ganeti-%,%,$(notdir $@))
 daemons/ganeti-watcher: MODULE = ganeti.watcher
 scripts/%: MODULE = ganeti.client.$(subst -,_,$(notdir $@))
+tools/burnin: MODULE = ganeti.tools.burnin
 tools/ensure-dirs: MODULE = ganeti.tools.ensure_dirs
 tools/node-daemon-setup: MODULE = ganeti.tools.node_daemon_setup
 tools/prepare-node-join: MODULE = ganeti.tools.prepare_node_join

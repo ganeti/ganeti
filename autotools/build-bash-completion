@@ -39,6 +39,8 @@ from ganeti import utils
 from ganeti import build
 from ganeti import pathutils
 
+from ganeti.tools import burnin
+
 # _autoconf shouldn't be imported from anywhere except constants.py, but we're
 # making an exception here because this script is only used at build time.
 from ganeti import _autoconf
@@ -838,7 +840,6 @@ def main():
                                          build.LoadModule(filename)))
 
   # Burnin script
-  burnin = build.LoadModule("tools/burnin")
   WriteCompletion(sw, "%s/burnin" % pathutils.TOOLSDIR, "_ganeti_burnin",
                   debug,
                   opts=burnin.OPTIONS, args=burnin.ARGUMENTS)

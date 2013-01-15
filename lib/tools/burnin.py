@@ -1153,7 +1153,7 @@ class Burner(object):
     return constants.EXIT_SUCCESS
 
 
-def main():
+def Main():
   """Main function.
 
   """
@@ -1161,7 +1161,3 @@ def main():
                      debug=False, stderr_logging=True)
 
   return Burner().BurninCluster()
-
-
-if __name__ == "__main__":
-  main()

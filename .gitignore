@@ -97,6 +97,7 @@
 
 # tools
 /tools/kvm-ifup
+/tools/burnin
 /tools/ensure-dirs
 /tools/vcluster-setup
 /tools/node-cleanup
