@@ -653,17 +653,40 @@ def GetNonexistentGroups(count):
   """Gets group names which shouldn't exist on the cluster.
 
   @param count: Number of groups to get
-  @rtype: list
+  @rtype: integer
 
   """
-  groups = qa_config.get("groups", {})
+  return GetNonexistentEntityNames(count, "groups", "group")
 
-  default = ["group1", "group2", "group3"]
+
+def GetNonexistentEntityNames(count, name_config, name_prefix):
+  """Gets entity names which shouldn't exist on the cluster.
+
+  The actualy names can refer to arbitrary entities (for example
+  groups, networks).
+
+  @param count: Number of names to get
+  @rtype: integer
+  @param name_config: name of the leaf in the config containing
+    this entity's configuration, including a 'inexistent-'
+    element
+  @rtype: string
+  @param name_prefix: prefix of the entity's names, used to compose
+    the default values; for example for groups, the prefix is
+    'group' and the generated names are then group1, group2, ...
+  @rtype: string
+
+  """
+  entities = qa_config.get(name_config, {})
+
+  default = [name_prefix + str(i) for i in range(count)]
   assert count <= len(default)
 
-  candidates = groups.get("inexistent-groups", default)[:count]
+  name_config_inexistent = "inexistent-" + name_config
+  candidates = entities.get(name_config_inexistent, default)[:count]
 
   if len(candidates) < count:
-    raise Exception("At least %s non-existent groups are needed" % count)
+    raise Exception("At least %s non-existent %s are needed" %
+                    (count, name_config))
 
   return candidates

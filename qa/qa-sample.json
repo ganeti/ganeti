@@ -84,6 +84,14 @@
     ]
   },
 
+  "networks": {
+    "inexistent-networks": [
+      "network1",
+      "network2",
+      "network3"
+    ]
+  },
+
   "tests": {
     "# Whether tests are enabled or disabled by default": null,
     "default": true,
@@ -117,6 +125,8 @@
 
     "group-list": true,
     "group-rwops": true,
+
+    "network": false,
 
     "node-list": true,
     "node-info": true,

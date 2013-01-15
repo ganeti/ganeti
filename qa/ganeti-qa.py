@@ -37,6 +37,7 @@ import qa_env
 import qa_error
 import qa_group
 import qa_instance
+import qa_network
 import qa_node
 import qa_os
 import qa_job
@@ -324,6 +325,14 @@ def RunGroupListTests():
   RunTestIf("group-list", qa_group.TestGroupListFields)
 
 
+def RunNetworkTests():
+  """Run tests for network management.
+
+  """
+  RunTestIf("network", qa_network.TestNetworkAddRemove)
+  RunTestIf("network", qa_network.TestNetworkConnect)
+
+
 def RunGroupRwTests():
   """Run tests for adding/removing/renaming groups.
 
@@ -478,6 +487,7 @@ def RunQa():
   RunCommonNodeTests()
   RunGroupListTests()
   RunGroupRwTests()
+  RunNetworkTests()
 
   # The master shouldn't be readded or put offline; "delay" needs a non-master
   # node to test
