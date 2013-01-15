@@ -7,7 +7,7 @@
 
 {-
 
-Copyright (C) 2009, 2010, 2011, 2012 Google Inc.
+Copyright (C) 2009, 2010, 2011, 2012, 2013 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -162,16 +162,13 @@ case_niceSort_static = do
              "cPRi0lM7HLnSuWA2G9", "KVQqLPDjcPjf8T3oyzjcOsfkb",
              "guKJkXnkULealVC8CyF1xefym", "pqF8dkU5B1cMnyZuREaSOADYx"]
 
--- | Tests single-string behaviour of 'niceSort'. Last test is special
--- in the sense that /0/ is before any other non-empty string (except
--- itself, etc.).
+-- | Tests single-string behaviour of 'niceSort'.
 prop_niceSort_single :: Property
 prop_niceSort_single =
   forAll genName $ \name ->
   conjoin
   [ printTestCase "single string" $ [name] ==? niceSort [name]
   , printTestCase "single plus empty" $ ["", name] ==? niceSort [name, ""]
-  , printTestCase "single plus 0-digit" $ ["0", name] ==? niceSort [name, "0"]
   ]
 
 -- | Tests some generic 'niceSort' properties. Note that the last test
