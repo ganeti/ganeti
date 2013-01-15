@@ -674,6 +674,12 @@ kvm\_extra
     Any other option to the KVM hypervisor, useful tweaking anything
     that Ganeti doesn't support.
 
+machine\_version
+    Valid for the KVM hypervisor.
+
+    Use in case an instance must be booted with an exact type of
+    machine version (due to e.g. outdated drivers). In case it's not set
+    the default version supported by your version of kvm is used.
 
 The ``-O (--os-parameters)`` option allows customisation of the OS
 parameters. The actual parameter names and values depends on the OS
