@@ -28,6 +28,7 @@ module Ganeti.HTools.Program.Harep
   , arguments
   , options) where
 
+import Control.Exception (bracket)
 import Control.Monad
 import Data.Function
 import Data.List
@@ -37,9 +38,13 @@ import System.Time
 
 import Ganeti.BasicTypes
 import Ganeti.Common
+import Ganeti.Errors
+import Ganeti.Jobs
+import Ganeti.OpCodes
 import Ganeti.Types
 import Ganeti.Utils
 import qualified Ganeti.Constants as C
+import qualified Ganeti.Luxi as L
 import qualified Ganeti.Path as Path
 
 import Ganeti.HTools.CLI
@@ -111,6 +116,18 @@ getArData status =
     ArNeedsRepair   d  -> Just d
     _                  -> Nothing
 
+-- | Return a short name for each auto-repair status.
+--
+-- This is a more concise representation of the status, because the default
+-- "Show" formatting includes all the accompanying auto-repair data.
+arStateName :: AutoRepairStatus -> String
+arStateName status =
+  case status of
+    ArHealthy _       -> "Healthy"
+    ArFailedRepair _  -> "Failure"
+    ArPendingRepair _ -> "Pending repair"
+    ArNeedsRepair _   -> "Needs repair"
+
 -- | Return a new list of tags to remove that includes @arTag@ if present.
 delCurTag :: InstanceData -> [String]
 delCurTag instData =
@@ -177,6 +194,83 @@ arStatusCmp instData arData =
      ArNeedsRepair _ -> Bad
        "programming error: ArNeedsRepair found as an initial state"
 
+-- | Query jobs of a pending repair, returning the new instance data.
+processPending :: L.Client -> InstanceData -> IO InstanceData
+processPending client instData =
+  case arState instData of
+    (ArPendingRepair arData) -> do
+      sts <- L.queryJobsStatus client $ arJobs arData
+      time <- getClockTime
+      case sts of
+        Bad e -> exitErr $ "could not check job status: " ++ formatError e
+        Ok sts' ->
+          if any (<= JOB_STATUS_RUNNING) sts' then
+            return instData -- (no change)
+          else do
+            let iname = Instance.name $ arInstance instData
+                srcSt = arStateName $ arState instData
+                destSt = arStateName arState'
+            putStrLn ("Moving " ++ iname ++ " from " ++ show srcSt ++ " to " ++
+                      show destSt)
+            commitChange client instData'
+          where
+            instData' =
+              instData { arState = arState'
+                       , tagsToRemove = delCurTag instData
+                       }
+            arState' =
+              if all (== JOB_STATUS_SUCCESS) sts' then
+                ArHealthy $ Just (updateTag $ arData { arResult = Just ArSuccess
+                                                     , arTime = time })
+              else
+                ArFailedRepair (updateTag $ arData { arResult = Just ArFailure
+                                                   , arTime = time })
+
+    _ -> return instData
+
+-- | Update the tag of an 'AutoRepairData' record to match all the other fields.
+updateTag :: AutoRepairData -> AutoRepairData
+updateTag arData =
+  let ini = [autoRepairTypeToRaw $ arType arData,
+             arUuid arData,
+             clockTimeToString $ arTime arData]
+      end = [intercalate "+" . map (show . fromJobId) $ arJobs arData]
+      (pfx, middle) =
+         case arResult arData of
+          Nothing -> (C.autoRepairTagPending, [])
+          Just rs -> (C.autoRepairTagResult, [autoRepairResultToRaw rs])
+  in
+   arData { arTag = pfx ++ intercalate ":" (ini ++ middle ++ end) }
+
+-- | Apply and remove tags from an instance as indicated by 'InstanceData'.
+--
+-- If the /arState/ of the /InstanceData/ record has an associated
+-- 'AutoRepairData', add its tag to the instance object. Additionally, if
+-- /tagsToRemove/ is not empty, remove those tags from the instance object. The
+-- returned /InstanceData/ object always has an empty /tagsToRemove/.
+commitChange :: L.Client -> InstanceData -> IO InstanceData
+commitChange client instData = do
+  let iname = Instance.name $ arInstance instData
+      arData = getArData $ arState instData
+      rmTags = tagsToRemove instData
+      execJobsWaitOk' opcodes = do
+        res <- execJobsWaitOk [map wrapOpCode opcodes] client
+        case res of
+          Ok _ -> return ()
+          Bad e -> exitErr e
+
+  when (isJust arData) $ do
+    let tag = arTag $ fromJust arData
+    putStrLn (">>> Adding the following tag to " ++ iname ++ ":\n" ++ show tag)
+    execJobsWaitOk' [OpTagsSet (TagInstance iname) [tag]]
+
+  unless (null rmTags) $ do
+    putStr (">>> Removing the following tags from " ++ iname ++ ":\n" ++
+            unlines (map show rmTags))
+    execJobsWaitOk' [OpTagsDel (TagInstance iname) rmTags]
+
+  return instData { tagsToRemove = [] }
+
 -- | Main function.
 main :: Options -> [String] -> IO ()
 main opts args = do
@@ -190,6 +284,10 @@ main opts args = do
   (ClusterData _ _ il _ _) <- loadExternalData opts'
 
   let iniDataRes = mapM setInitialState $ Container.elems il
-  _unused_iniData <- exitIfBad "when parsing auto-repair tags" iniDataRes
+  iniData <- exitIfBad "when parsing auto-repair tags" iniDataRes
+
+  -- First step: check all pending repairs, see if they are completed.
+  _unused_iniData' <- bracket (L.getClient master) L.closeClient $
+                      forM iniData . processPending
 
   return ()
