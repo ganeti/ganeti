@@ -370,9 +370,11 @@ $(THH.declareSADT "AutoRepairType"
 
 -- | The possible auto-repair results.
 $(THH.declareSADT "AutoRepairResult"
-       [ ("ArSuccess", 'C.autoRepairSuccess)
+       -- Order is important here: higher results take precedence when an object
+       -- has several result annotations attached.
+       [ ("ArEnoperm", 'C.autoRepairEnoperm)
+       , ("ArSuccess", 'C.autoRepairSuccess)
        , ("ArFailure", 'C.autoRepairFailure)
-       , ("ArEnoperm", 'C.autoRepairEnoperm)
        ])
 
 -- | The possible auto-repair policy for a given instance.
@@ -389,10 +391,11 @@ data AutoRepairSuspendTime = Forever         -- ^ Permanently suspended
 
 -- | The possible auto-repair states for any given instance.
 data AutoRepairStatus
-  = ArHealthy                      -- ^ No problems detected with the instance
+  = ArHealthy (Maybe AutoRepairData) -- ^ No problems detected with the instance
   | ArNeedsRepair AutoRepairData   -- ^ Instance has problems, no action taken
   | ArPendingRepair AutoRepairData -- ^ Repair jobs ongoing for the instance
   | ArFailedRepair AutoRepairData  -- ^ Some repair jobs for the instance failed
+  deriving (Eq, Show)
 
 -- | The data accompanying a repair operation (future, pending, or failed).
 data AutoRepairData = AutoRepairData { arType :: AutoRepairType
@@ -400,4 +403,6 @@ data AutoRepairData = AutoRepairData { arType :: AutoRepairType
                                      , arTime :: ClockTime
                                      , arJobs :: [JobId]
                                      , arResult :: Maybe AutoRepairResult
+                                     , arTag :: String
                                      }
+                    deriving (Eq, Show)
