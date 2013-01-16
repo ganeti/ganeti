@@ -560,6 +560,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   _CONT_CMD = "cont"
 
   _DEFAULT_MACHINE_VERSION_RE = re.compile(r"^(\S+).*\(default\)", re.M)
+  _CHECK_MACHINE_VERSION_RE = \
+    staticmethod(lambda x: re.compile(r"^(%s)[ ]+.*PC" % x, re.M))
 
   _QMP_RE = re.compile(r"^-qmp\s", re.M)
   _SPICE_RE = re.compile(r"^-spice\s", re.M)
@@ -1710,6 +1712,31 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     """
     return cls._ParseKVMVersion(cls._GetKVMHelpOutput(kvm_path))
 
+  @classmethod
+  def _GetKVMSupportedMachinesOutput(cls, kvm_path):
+    """Return the output regarding supported machine versions.
+
+    @return: output of kvm -M ?
+    @raise errors.HypervisorError: when the KVM help output cannot be retrieved
+
+    """
+    result = utils.RunCmd([kvm_path, "-M", "?"])
+    if result.failed:
+      raise errors.HypervisorError("Unable to get kvm -M ? output")
+    return result.output
+
+  @classmethod
+  def _GetDefaultMachineVersion(cls, kvm_path):
+    """Return the default hardware revision (e.g. pc-1.1)
+
+    """
+    output = cls._GetKVMSupportedMachinesOutput(kvm_path)
+    match = cls._DEFAULT_MACHINE_VERSION_RE.search(output)
+    if match:
+      return match.group(1)
+    else:
+      return "pc"
+
   def StopInstance(self, instance, force=False, retry=False, name=None):
     """Stop an instance.
 
@@ -1727,20 +1754,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         utils.KillProcess(pid)
       else:
         self._CallMonitorCommand(name, "system_powerdown")
-
-  @classmethod
-  def _GetDefaultMachineVersion(cls, kvm_path):
-    """Return the default hardware revision (e.g. pc-1.1)
-
-    """
-    result = utils.RunCmd([kvm_path, "-M", "?"])
-    if result.failed:
-      raise errors.HypervisorError("Unable to get default hardware revision")
-    match = cls._DEFAULT_MACHINE_VERSION_RE.search(result.output)
-    if match:
-      return match.group(1)
-    else:
-      return "pc"
 
   def CleanupInstance(self, instance_name):
     """Cleanup after a stopped instance
@@ -2091,6 +2104,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     """
     super(KVMHypervisor, cls).ValidateParameters(hvparams)
 
+    kvm_path = hvparams[constants.HV_KVM_PATH]
+
     security_model = hvparams[constants.HV_SECURITY_MODEL]
     if security_model == constants.HT_SM_USER:
       username = hvparams[constants.HV_SECURITY_DOMAIN]
@@ -2109,7 +2124,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
                                      " given time.")
 
       # check that KVM supports SPICE
-      kvmhelp = cls._GetKVMHelpOutput(hvparams[constants.HV_KVM_PATH])
+      kvmhelp = cls._GetKVMHelpOutput(kvm_path)
       if not cls._SPICE_RE.search(kvmhelp):
         raise errors.HypervisorError("spice is configured, but it is not"
                                      " supported according to kvm --help")
@@ -2121,6 +2136,13 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         raise errors.HypervisorError("spice: the %s parameter must be either"
                                      " a valid IP address or interface name" %
                                      constants.HV_KVM_SPICE_BIND)
+
+    machine_version = hvparams[constants.HV_KVM_MACHINE_VERSION]
+    if machine_version:
+      output = cls._GetKVMSupportedMachinesOutput(kvm_path)
+      if not cls._CHECK_MACHINE_VERSION_RE(machine_version).search(output):
+        raise errors.HypervisorError("Unsupported machine version: %s" %
+                                     machine_version)
 
   @classmethod
   def PowercycleNode(cls):
