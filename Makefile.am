@@ -436,7 +436,7 @@ HS_COMPILE_PROGS= \
 # All Haskell non-test programs to be compiled but not automatically installed
 HS_PROGS = $(HS_BIN_PROGS) $(HS_MYEXECLIB_PROGS)
 
-HS_BIN_ROLES = hbal hscan hspace hinfo hcheck hroller
+HS_BIN_ROLES = harep hbal hscan hspace hinfo hcheck hroller
 HS_HTOOLS_PROGS = $(HS_BIN_ROLES) hail
 
 HS_ALL_PROGS = \
@@ -505,6 +505,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/HTools/Node.hs \
 	src/Ganeti/HTools/PeerMap.hs \
 	src/Ganeti/HTools/Program/Hail.hs \
+	src/Ganeti/HTools/Program/Harep.hs \
 	src/Ganeti/HTools/Program/Hbal.hs \
 	src/Ganeti/HTools/Program/Hcheck.hs \
 	src/Ganeti/HTools/Program/Hinfo.hs \

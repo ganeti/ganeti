@@ -38,6 +38,7 @@ import System.IO.Error (isDoesNotExistError)
 import Ganeti.Common (formatCommands, PersonalityList)
 import Ganeti.HTools.CLI (Options, parseOpts, genericOpts)
 import qualified Ganeti.HTools.Program.Hail as Hail
+import qualified Ganeti.HTools.Program.Harep as Harep
 import qualified Ganeti.HTools.Program.Hbal as Hbal
 import qualified Ganeti.HTools.Program.Hcheck as Hcheck
 import qualified Ganeti.HTools.Program.Hscan as Hscan
@@ -53,6 +54,9 @@ personalities =
                  "Ganeti IAllocator plugin that implements the instance\
                  \ placement and movement using the same algorithm as\
                  \ hbal(1)"))
+  , ("harep",   (Harep.main,   Harep.options,   Harep.arguments,
+                 "auto-repair tool that detects certain kind of problems\
+                 \ with instances and applies the allowed set of solutions"))
   , ("hbal",    (Hbal.main,    Hbal.options,    Hbal.arguments,
                  "cluster balancer that looks at the current state of\
                  \ the cluster and computes a series of steps designed\

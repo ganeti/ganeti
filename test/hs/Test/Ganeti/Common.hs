@@ -135,6 +135,9 @@ case_formatCommands =
           [ " hail    - Ganeti IAllocator plugin that implements the instance\
             \ placement and"
           , "           movement using the same algorithm as hbal(1)"
+          , " harep   - auto-repair tool that detects certain kind of problems\
+            \ with instances"
+          , "           and applies the allowed set of solutions"
           , " hbal    - cluster balancer that looks at the current state of\
             \ the cluster and"
           , "           computes a series of steps designed to bring the\
