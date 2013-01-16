@@ -33,7 +33,7 @@ module Ganeti.Confd.Server
 
 import Control.Concurrent
 import Control.Exception
-import Control.Monad (forever, liftM, when)
+import Control.Monad (forever, liftM, when, unless)
 import Data.IORef
 import Data.List
 import qualified Data.Map as M
@@ -112,6 +112,7 @@ initialPoll = ReloadPoll 0
 data ConfigReload = ConfigToDate    -- ^ No need to reload
                   | ConfigReloaded  -- ^ Configuration reloaded
                   | ConfigIOError   -- ^ Error during configuration reload
+                    deriving (Eq)
 
 -- | Unknown entry standard response.
 queryUnknownEntry :: StatusAnswer
@@ -522,19 +523,31 @@ prepMain _ (af_family, bindaddr) = do
 -- | Main function.
 main :: MainFn (S.Family, S.SockAddr) PrepResult
 main _ _ (s, query_data, cref) = do
-  -- try to load the configuration, if possible
-  conf_file <- Path.clusterConfFile
-  (fstat, _) <- safeUpdateConfig conf_file nullFStat cref
-  ctime <- getCurrentTime
-  statemvar <- newMVar $ ServerState initialPoll ctime fstat
-  hmac <- getClusterHmac
   -- Inotify setup
   inotify <- initINotify
+  -- try to load the configuration, if possible
+  conf_file <- Path.clusterConfFile
+  (fstat, reloaded) <- safeUpdateConfig conf_file nullFStat cref
+  ctime <- getCurrentTime
+  statemvar <- newMVar $ ServerState ReloadNotify ctime fstat
   let inotiaction = addNotifier inotify conf_file cref statemvar
+  has_inotify <- if reloaded == ConfigReloaded
+                   then inotiaction
+                   else return False
+  if has_inotify
+    then logInfo "Starting up in inotify mode"
+    else do
+      -- inotify was not enabled, we need to update the reload model
+      logInfo "Starting up in polling mode"
+      modifyMVar_ statemvar
+        (\state -> return state { reloadModel = initialPoll })
+  hmac <- getClusterHmac
   -- fork the timeout timer
   _ <- forkIO $ onTimeoutTimer inotiaction conf_file cref statemvar
   -- fork the polling timer
-  _ <- forkIO $ onReloadTimer inotiaction conf_file cref statemvar
+  unless has_inotify $ do
+    _ <- forkIO $ onReloadTimer inotiaction conf_file cref statemvar
+    return ()
   -- launch the queryd listener
   _ <- forkIO $ runQueryD query_data (configReader cref)
   -- and finally enter the responder loop
