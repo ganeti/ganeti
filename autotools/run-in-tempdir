@@ -8,27 +8,19 @@ set -e
 tmpdir=$(mktemp -d -t gntbuild.XXXXXXXX)
 trap "rm -rf $tmpdir" EXIT
 
-linkcopy() {
-  cp -L -s -r "$@"
-}
-
-dirs=( autotools daemons scripts lib tools qa )
+# fully copy items
+cp -r autotools daemons scripts lib tools qa $tmpdir
 
 if [[ -z "$COPY_DOC" ]]; then
   mkdir $tmpdir/doc
   ln -s $PWD/doc/examples $tmpdir/doc
 else
   # Building documentation requires all files
-  dirs+=( doc )
+  cp -r doc $tmpdir
 fi
 
-# Create symlinks
-for i in ${dirs[@]}; do
-  linkcopy $PWD/$i $tmpdir
-done
-
 mkdir $tmpdir/test/
-linkcopy $PWD/test/py $tmpdir/test/py
+cp -r test/py $tmpdir/test/py
 ln -s $PWD/test/data $tmpdir/test
 ln -s $PWD/test/hs $tmpdir/test
 
