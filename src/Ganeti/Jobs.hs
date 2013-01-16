@@ -26,10 +26,12 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 module Ganeti.Jobs
   ( submitJobs
   , execJobsWait
+  , execJobsWaitOk
   , waitForJobs
   ) where
 
 import Control.Concurrent (threadDelay)
+import Data.List
 
 import Ganeti.BasicTypes
 import Ganeti.Errors
@@ -73,3 +75,18 @@ waitForJobs jids client = do
               threadDelay (1000000 * 15)
               waitForJobs jids client
             else return . Ok $ zip jids sts'
+
+-- | Execute jobs and return @Ok@ only if all of them succeeded.
+execJobsWaitOk :: [[MetaOpCode]] -> L.Client -> IO (Result ())
+execJobsWaitOk opcodes client = do
+  let nullog = const (return () :: IO ())
+      failed = filter ((/=) JOB_STATUS_SUCCESS . snd)
+      fmtfail (i, s) = show (fromJobId i) ++ "=>" ++ jobStatusToRaw s
+  sts <- execJobsWait opcodes nullog client
+  case sts of
+    Bad e -> return $ Bad e
+    Ok sts' -> return (if null $ failed sts' then
+                         Ok ()
+                       else
+                         Bad ("The following jobs failed: " ++
+                              (intercalate ", " . map fmtfail $ failed sts')))
