@@ -48,6 +48,8 @@ module Ganeti.Utils
   , getCurrentTime
   , clockTimeToString
   , chompPrefix
+  , wrap
+  , trim
   ) where
 
 import Data.Char (toUpper, isAlphaNum, isDigit, isSpace)
@@ -326,3 +328,34 @@ chompPrefix pfx str =
   if pfx `isPrefixOf` str || str == init pfx
     then Just $ drop (length pfx) str
     else Nothing
+
+-- | Breaks a string in lines with length \<= maxWidth.
+--
+-- NOTE: The split is OK if:
+--
+-- * It doesn't break a word, i.e. the next line begins with space
+--   (@isSpace . head $ rest@) or the current line ends with space
+--   (@null revExtra@);
+--
+-- * It breaks a very big word that doesn't fit anyway (@null revLine@).
+wrap :: Int      -- ^ maxWidth
+     -> String   -- ^ string that needs wrapping
+     -> [String] -- ^ string \"broken\" in lines
+wrap maxWidth = filter (not . null) . map trim . wrap0
+  where wrap0 :: String -> [String]
+        wrap0 text
+          | length text <= maxWidth = [text]
+          | isSplitOK               = line : wrap0 rest
+          | otherwise               = line' : wrap0 rest'
+          where (line, rest) = splitAt maxWidth text
+                (revExtra, revLine) = break isSpace . reverse $ line
+                (line', rest') = (reverse revLine, reverse revExtra ++ rest)
+                isSplitOK =
+                  null revLine || null revExtra || startsWithSpace rest
+                startsWithSpace (x:_) = isSpace x
+                startsWithSpace _     = False
+
+-- | Removes surrounding whitespace. Should only be used in small
+-- strings.
+trim :: String -> String
+trim = reverse . dropWhile isSpace . reverse . dropWhile isSpace

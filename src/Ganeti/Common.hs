@@ -7,7 +7,7 @@ HTools and any other programs.
 
 {-
 
-Copyright (C) 2009, 2010, 2011, 2012 Google Inc.
+Copyright (C) 2009, 2010, 2011, 2012, 2013 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -62,6 +62,7 @@ import Text.Printf (printf)
 
 import Ganeti.BasicTypes
 import qualified Ganeti.Constants as C
+import Ganeti.Utils (wrap)
 import qualified Ganeti.Version as Version (version)
 
 -- | Parameter type.
@@ -203,10 +204,14 @@ maxCmdLen = 60
 -- | Formats the description of various commands.
 formatCommands :: (StandardOptions a) => PersonalityList a -> [String]
 formatCommands personalities =
-  -- FIXME: add wrapping of descriptions
-  map (\(cmd, (_, _, _, desc)) -> printf " %-*s - %s" mlen cmd desc::String) $
+  concatMap (\(cmd, (_, _, _, desc)) ->
+              fmtDesc cmd (wrap maxWidth desc) "-" []) $
   sortBy (comparing fst) personalities
     where mlen = min maxCmdLen . maximum $ map (length . fst) personalities
+          maxWidth = 79 - 3 - mlen
+          fmtDesc _ [] _ acc = reverse acc
+          fmtDesc cmd (d : ds) sep acc =
+            fmtDesc "" ds " " (printf " %-*s %s %s" mlen cmd sep d : acc)
 
 -- | Formats usage for a multi-personality program.
 formatCmdUsage :: (StandardOptions a) => String -> PersonalityList a -> String

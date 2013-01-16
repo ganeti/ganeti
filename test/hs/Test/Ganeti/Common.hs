@@ -7,7 +7,7 @@
 
 {-
 
-Copyright (C) 2009, 2010, 2011, 2012 Google Inc.
+Copyright (C) 2009, 2010, 2011, 2012, 2013 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -44,6 +44,9 @@ import Test.Ganeti.TestCommon
 
 import Ganeti.BasicTypes
 import Ganeti.Common
+import Ganeti.HTools.Program.Main (personalities)
+
+{-# ANN module "HLint: ignore Use camelCase" #-}
 
 -- | Helper to check for correct parsing of an option.
 checkOpt :: (StandardOptions b) =>
@@ -122,7 +125,40 @@ prop_parse_yes_no def testval val =
               then result ==? Ok (actual_val == "yes")
               else property $ isBad result
 
+-- | Check that formatCmdUsage works similar to Python _FormatUsage.
+case_formatCommands :: Assertion
+case_formatCommands =
+  assertEqual "proper wrap for HTools Main"
+    resCmdTest (formatCommands personalities)
+  where resCmdTest :: [String]
+        resCmdTest =
+          [ " hail    - Ganeti IAllocator plugin that implements the instance\
+            \ placement and"
+          , "           movement using the same algorithm as hbal(1)"
+          , " hbal    - cluster balancer that looks at the current state of\
+            \ the cluster and"
+          , "           computes a series of steps designed to bring the\
+            \ cluster into a"
+          , "           better state"
+          , " hcheck  - cluster checker; prints information about cluster's\
+            \ health and checks"
+          , "           whether a rebalance done using hbal would help"
+          , " hinfo   - cluster information printer; it prints information\
+            \ about the current"
+          , "           cluster state and its residing nodes/instances"
+          , " hroller - cluster rolling maintenance helper; it helps\
+            \ scheduling node reboots"
+          , "           in a manner that doesn't conflict with the instances'\
+            \ topology"
+          , " hscan   - tool for scanning clusters via RAPI and saving their\
+            \ data in the"
+          , "           input format used by hbal(1) and hspace(1)"
+          , " hspace  - computes how many additional instances can be fit on a\
+            \ cluster, while"
+          , "           maintaining N+1 status."
+          ]
 
 testSuite "Common"
           [ 'prop_parse_yes_no
+          , 'case_formatCommands
           ]

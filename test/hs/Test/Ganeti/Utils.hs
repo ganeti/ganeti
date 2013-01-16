@@ -270,6 +270,23 @@ prop_chompPrefix_nothing =
           (\s -> not (pfx `isPrefixOf` s) && s /= init pfx)) $ \str ->
   chompPrefix pfx str ==? Nothing
 
+-- | Tests 'trim'.
+prop_trim :: NonEmptyList Char -> Property
+prop_trim (NonEmpty str) =
+  forAll (listOf1 $ elements " \t\n\r\f") $ \whitespace ->
+  forAll (choose (0, length whitespace)) $ \n ->
+  let (preWS, postWS) = splitAt n whitespace in
+  conjoin [ printTestCase "arb. string first and last char are not space" $
+              case trim str of
+                [] -> True
+                xs -> (not . isSpace . head) xs && (not . isSpace . last) xs
+          , printTestCase "whitespace is striped" $
+              trim str ==? trim (preWS ++ str ++ postWS)
+          , printTestCase "whitespace reduced to null" $
+              trim whitespace ==? ""
+          , printTestCase "idempotent on empty strings" $
+              trim "" ==? ""
+          ]
 
 -- | Test list for the Utils module.
 testSuite "Utils"
@@ -287,6 +304,7 @@ testSuite "Utils"
             , 'prop_niceSort_numbers
             , 'prop_niceSortKey_equiv
             , 'prop_rStripSpace
+            , 'prop_trim
 #ifndef NO_REGEX_PCRE
             , 'case_new_uuid
 #endif
