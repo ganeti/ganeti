@@ -612,10 +612,16 @@ if !MANPAGES_IN_DOC
 	  exit 1; \
 	fi
 endif
+## Sphinx provides little control over what content should be included. Some
+## mechanisms exist, but they all have drawbacks or actual issues. Since we
+## build two different versions of the documentation--once without man pages and
+## once, if enabled, with them--some control is necessary. xmpp-wrapper provides
+## us with this, but requires running in a temporary directory. It moves the
+## correct files into place depending on environment variables.
 	dir=$(dir $@) && \
 	@mkdir_p@ $$dir && \
-	PYTHONPATH=. ENABLE_MANPAGES=$(ENABLE_MANPAGES) \
-	$(RUN_IN_TEMPDIR) bash autotools/sphinx-wrapper $(SPHINX) -q -W -b html \
+	PYTHONPATH=. ENABLE_MANPAGES=$(ENABLE_MANPAGES) COPY_DOC=1 \
+	$(RUN_IN_TEMPDIR) autotools/sphinx-wrapper $(SPHINX) -q -W -b html \
 	    -d . \
 	    -D version="$(VERSION_MAJOR).$(VERSION_MINOR)" \
 	    -D release="$(PACKAGE_VERSION)" \

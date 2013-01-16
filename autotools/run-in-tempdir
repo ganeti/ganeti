@@ -9,10 +9,15 @@ tmpdir=$(mktemp -d -t gntbuild.XXXXXXXX)
 trap "rm -rf $tmpdir" EXIT
 
 # fully copy items
-cp -r doc autotools daemons scripts lib tools qa $tmpdir
+cp -r autotools daemons scripts lib tools qa $tmpdir
 
-#mkdir $tmpdir/doc
-#ln -s $PWD/doc/examples $tmpdir/doc
+if [[ -z "$COPY_DOC" ]]; then
+  mkdir $tmpdir/doc
+  ln -s $PWD/doc/examples $tmpdir/doc
+else
+  # Building documentation requires all files
+  cp -r doc $tmpdir
+fi
 
 mkdir $tmpdir/test/
 cp -r test/py $tmpdir/test/py
