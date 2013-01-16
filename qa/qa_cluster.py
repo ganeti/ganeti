@@ -626,3 +626,22 @@ def TestClusterDestroy():
 def TestClusterRepairDiskSizes():
   """gnt-cluster repair-disk-sizes"""
   AssertCommand(["gnt-cluster", "repair-disk-sizes"])
+
+
+def TestSetExclStorCluster(newvalue):
+  """Set the exclusive_storage node parameter at the cluster level.
+
+  @type newvalue: bool
+  @param newvalue: New value of exclusive_storage
+  @rtype: bool
+  @return: The old value of exclusive_storage
+
+  """
+  oldvalue = _GetBoolClusterField("exclusive_storage")
+  AssertCommand(["gnt-cluster", "modify", "--node-parameters",
+                 "exclusive_storage=%s" % newvalue])
+  effvalue = _GetBoolClusterField("exclusive_storage")
+  if effvalue != newvalue:
+    raise qa_error.Error("exclusive_storage has the wrong value: %s instead"
+                         " of %s" % (effvalue, newvalue))
+  return oldvalue

@@ -111,6 +111,7 @@
     "cluster-epo": true,
     "cluster-redist-conf": true,
     "cluster-repair-disk-sizes": true,
+    "cluster-exclusive-storage": true,
 
     "haskell-confd": true,
     "htools": true,

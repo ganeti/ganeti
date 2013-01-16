@@ -1,7 +1,7 @@
 #!/usr/bin/python -u
 #
 
-# Copyright (C) 2007, 2008, 2009, 2010, 2011, 2012 Google Inc.
+# Copyright (C) 2007, 2008, 2009, 2010, 2011, 2012, 2013 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -457,6 +457,28 @@ def RunHardwareFailureTests(instance, pnode, snode):
             pnode, snode)
 
 
+def RunExclusiveStorageTests():
+  """Test exclusive storage."""
+  if not qa_config.TestEnabled("cluster-exclusive-storage"):
+    return
+
+  node = qa_config.AcquireNode()
+  try:
+    old_es = qa_cluster.TestSetExclStorCluster(True)
+    if qa_config.TestEnabled("instance-add-plain-disk"):
+      # Make sure that the cluster doesn't have any pre-existing problem
+      qa_cluster.AssertClusterVerify()
+      instance1 = qa_instance.TestInstanceAddWithPlainDisk(node)
+      instance2 = qa_instance.TestInstanceAddWithPlainDisk(node)
+      # cluster-verify checks that disks are allocated correctly
+      qa_cluster.AssertClusterVerify()
+      qa_instance.TestInstanceRemove(instance1)
+      qa_instance.TestInstanceRemove(instance2)
+    qa_cluster.TestSetExclStorCluster(old_es)
+  finally:
+    qa_config.ReleaseNode(node)
+
+
 def RunQa():
   """Main QA body.
 
@@ -586,6 +608,8 @@ def RunQa():
 
   finally:
     qa_config.ReleaseNode(pnode)
+
+  RunExclusiveStorageTests()
 
   RunTestIf("create-cluster", qa_node.TestNodeRemoveAll)
 
