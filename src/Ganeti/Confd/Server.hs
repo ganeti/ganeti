@@ -6,7 +6,7 @@
 
 {-
 
-Copyright (C) 2011, 2012 Google Inc.
+Copyright (C) 2011, 2012, 2013 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -107,10 +107,6 @@ reloadRatelimitSec = fromIntegral C.confdConfigReloadRatelimit
 -- | Initial poll round.
 initialPoll :: ReloadModel
 initialPoll = ReloadPoll 0
-
--- | Initial server state.
-initialState :: ServerState
-initialState = ServerState initialPoll 0 nullFStat
 
 -- | Reload status data type.
 data ConfigReload = ConfigToDate    -- ^ No need to reload
@@ -526,11 +522,14 @@ prepMain _ (af_family, bindaddr) = do
 -- | Main function.
 main :: MainFn (S.Family, S.SockAddr) PrepResult
 main _ _ (s, query_data, cref) = do
-  statemvar <- newMVar initialState
+  -- try to load the configuration, if possible
+  conf_file <- Path.clusterConfFile
+  (fstat, _) <- safeUpdateConfig conf_file nullFStat cref
+  ctime <- getCurrentTime
+  statemvar <- newMVar $ ServerState initialPoll ctime fstat
   hmac <- getClusterHmac
   -- Inotify setup
   inotify <- initINotify
-  conf_file <- Path.clusterConfFile
   let inotiaction = addNotifier inotify conf_file cref statemvar
   -- fork the timeout timer
   _ <- forkIO $ onTimeoutTimer inotiaction conf_file cref statemvar
