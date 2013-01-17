@@ -33,7 +33,7 @@ module Ganeti.Confd.Server
 
 import Control.Concurrent
 import Control.Exception
-import Control.Monad (forever, liftM, when, unless)
+import Control.Monad (forever, liftM, unless)
 import Data.IORef
 import Data.List
 import qualified Data.Map as M
@@ -90,7 +90,7 @@ data ServerState = ServerState
 
 -- | Maximum no-reload poll rounds before reverting to inotify.
 maxIdlePollRounds :: Int
-maxIdlePollRounds = 2
+maxIdlePollRounds = 3
 
 -- | Reload timeout in microseconds.
 configReloadTimeout :: Int
@@ -373,12 +373,12 @@ onTimeoutInner path cref state  = do
 -- notification.
 onReloadTimer :: IO Bool -> FilePath -> CRef -> MVar ServerState -> IO ()
 onReloadTimer inotiaction path cref state = do
+  threadDelay configReloadRatelimit
   logDebug "Reload timer fired"
   continue <- modifyMVar state (onReloadInner inotiaction path cref)
-  when continue $
-    do threadDelay configReloadRatelimit
-       onReloadTimer inotiaction path cref state
-  -- the inotify watch has been re-established, we can exit
+  if continue
+    then onReloadTimer inotiaction path cref state
+    else logDebug "Inotify watch active, polling thread exiting"
 
 -- | Inner onReload handler.
 --
