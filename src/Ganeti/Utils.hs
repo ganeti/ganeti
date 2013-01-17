@@ -46,6 +46,7 @@ module Ganeti.Utils
   , rStripSpace
   , newUUID
   , getCurrentTime
+  , getCurrentTimeUSec
   , clockTimeToString
   , chompPrefix
   , wrap
@@ -293,12 +294,21 @@ newUUID = do
   contents <- readFile C.randomUuidFile
   return $! rStripSpace $ take 128 contents
 
--- | Returns the current time as an Integer representing the number of
--- seconds from the Unix epoch.
+-- | Returns the current time as an 'Integer' representing the number
+-- of seconds from the Unix epoch.
 getCurrentTime :: IO Integer
 getCurrentTime = do
   TOD ctime _ <- getClockTime
   return ctime
+
+-- | Returns the current time as an 'Integer' representing the number
+-- of microseconds from the Unix epoch (hence the need for 'Integer').
+getCurrentTimeUSec :: IO Integer
+getCurrentTimeUSec = do
+  TOD ctime pico <- getClockTime
+  -- pico: 10^-12, micro: 10^-6, so we have to shift seconds left and
+  -- picoseconds right
+  return $ ctime * 1000000 + pico `div` 1000000
 
 -- | Convert a ClockTime into a (seconds-only) timestamp.
 clockTimeToString :: ClockTime -> String
