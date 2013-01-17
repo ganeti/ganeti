@@ -12,7 +12,7 @@ Note that this requires the hslogger library version 1.1 and above.
 
 {-
 
-Copyright (C) 2011, 2012 Google Inc.
+Copyright (C) 2011, 2012, 2013 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -77,7 +77,7 @@ logFormatter prog mt syslog =
                   else ""
               , " $prio $msg"
               ]
-  in simpleLogFormatter $ concat parts
+  in tfLogFormatter "%F %X,%q %Z" $ concat parts
 
 -- | Helper to open and set the formatter on a log if enabled by a
 -- given condition, otherwise returning an empty list.
