@@ -1709,11 +1709,6 @@ dist-hook:
 	$(MAKE) $(AM_MAKEFLAGS) regen-vcs-version
 	rm -f $(top_distdir)/vcs-version
 	cp -p $(srcdir)/vcs-version $(top_distdir)
-if MANPAGES_IN_DOC
-	echo 'Building distribution with man pages included in documentation is' \
-	     'not allowed as they can contain fixed paths' >&2; \
-	exit 1
-endif
 
 # a distcheck hook rule for catching revision control directories
 distcheck-hook:
@@ -1742,6 +1737,10 @@ distcheck-hook:
 	   grep -n -H -E '^\*.*unreleased' $(top_distdir)/NEWS; then \
 	   echo "Found unreleased version in NEWS." >&2; \
 	   exit 1; \
+	fi
+	if test -e $(top_distdir)/doc/man-html; then \
+	  echo "Found documentation including man pages in final archive" >&2; \
+	  exit 1; \
 	fi
 
 # When building a release, stricter checks should be used
