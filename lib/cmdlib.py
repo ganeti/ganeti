@@ -8306,8 +8306,9 @@ class LUInstanceMigrate(LogicalUnit):
 
     """
     instance = self._migrater.instance
-    nl = [self.cfg.GetMasterNode()] + list(instance.secondary_nodes)
-    return (nl, nl + [instance.primary_node])
+    snodes = list(instance.secondary_nodes)
+    nl = [self.cfg.GetMasterNode(), instance.primary_node] + snodes
+    return (nl, nl)
 
 
 class LUInstanceMove(LogicalUnit):
