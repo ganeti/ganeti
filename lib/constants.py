@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -2194,14 +2194,16 @@ CONFD_ERROR_ARGUMENT = 3
 # TODO: make this a default and allow the value to be more configurable
 CONFD_MAX_CLOCK_SKEW = 2 * NODE_MAX_CLOCK_SKEW
 
-# When we haven't reloaded the config for more than this amount of seconds, we
-# force a test to see if inotify is betraying us.
-CONFD_CONFIG_RELOAD_TIMEOUT = 60
+# When we haven't reloaded the config for more than this amount of
+# seconds, we force a test to see if inotify is betraying us. Using a
+# prime number to ensure we get less chance of 'same wakeup' with
+# other processes.
+CONFD_CONFIG_RELOAD_TIMEOUT = 17
 
-# If we receive more than one update in this amount of seconds, we move to
-# polling every RATELIMIT seconds, rather than relying on inotify, to be able
-# to serve more requests.
-CONFD_CONFIG_RELOAD_RATELIMIT = 2
+# If we receive more than one update in this amount of microseconds,
+# we move to polling every RATELIMIT seconds, rather than relying on
+# inotify, to be able to serve more requests.
+CONFD_CONFIG_RELOAD_RATELIMIT = 250000
 
 # Magic number prepended to all confd queries.
 # This allows us to distinguish different types of confd protocols and handle

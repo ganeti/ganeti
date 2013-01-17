@@ -84,7 +84,7 @@ data ReloadModel = ReloadNotify      -- ^ We are using notifications
 -- | Server state data type.
 data ServerState = ServerState
   { reloadModel  :: ReloadModel
-  , reloadTime   :: Integer
+  , reloadTime   :: Integer      -- ^ Reload time (epoch) in microseconds
   , reloadFStat  :: FStat
   }
 
@@ -98,11 +98,11 @@ configReloadTimeout = C.confdConfigReloadTimeout * 1000000
 
 -- | Ratelimit timeout in microseconds.
 configReloadRatelimit :: Int
-configReloadRatelimit = C.confdConfigReloadRatelimit * 1000000
+configReloadRatelimit = C.confdConfigReloadRatelimit
 
--- | Ratelimit timeout in seconds, as an 'Integer'.
-reloadRatelimitSec :: Integer
-reloadRatelimitSec = fromIntegral C.confdConfigReloadRatelimit
+-- | Ratelimit timeout in microseconds, as an 'Integer'.
+reloadRatelimit :: Integer
+reloadRatelimit = fromIntegral C.confdConfigReloadRatelimit
 
 -- | Initial poll round.
 initialPoll :: ReloadModel
@@ -351,6 +351,7 @@ needsReload oldstat path = do
 onTimeoutTimer :: IO Bool -> FilePath -> CRef -> MVar ServerState -> IO ()
 onTimeoutTimer inotiaction path cref state = do
   threadDelay configReloadTimeout
+  logDebug "Watcher timer fired"
   modifyMVar_ state (onTimeoutInner path cref)
   _ <- inotiaction
   onTimeoutTimer inotiaction path cref state
@@ -372,6 +373,7 @@ onTimeoutInner path cref state  = do
 -- notification.
 onReloadTimer :: IO Bool -> FilePath -> CRef -> MVar ServerState -> IO ()
 onReloadTimer inotiaction path cref state = do
+  logDebug "Reload timer fired"
   continue <- modifyMVar state (onReloadInner inotiaction path cref)
   when continue $
     do threadDelay configReloadRatelimit
@@ -440,10 +442,10 @@ onInotify inotify path cref mstate _ =
   modifyMVar_ mstate $ \state ->
     if reloadModel state == ReloadNotify
        then do
-         ctime <- getCurrentTime
+         ctime <- getCurrentTimeUSec
          (newfstat, _) <- safeUpdateConfig path (reloadFStat state) cref
          let state' = state { reloadFStat = newfstat, reloadTime = ctime }
-         if abs (reloadTime state - ctime) < reloadRatelimitSec
+         if abs (reloadTime state - ctime) < reloadRatelimit
            then do
              mode <- moveToPolling "too many reloads" inotify path cref mstate
              return state' { reloadModel = mode }
