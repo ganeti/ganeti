@@ -36,6 +36,7 @@ EXPORT_DIR = vcluster.AddNodePrefix(_autoconf.EXPORT_DIR)
 OS_SEARCH_PATH = _autoconf.OS_SEARCH_PATH
 ES_SEARCH_PATH = _autoconf.ES_SEARCH_PATH
 SSH_CONFIG_DIR = _autoconf.SSH_CONFIG_DIR
+XEN_CONFIG_DIR = vcluster.AddNodePrefix(_autoconf.XEN_CONFIG_DIR)
 SYSCONFDIR = vcluster.AddNodePrefix(_autoconf.SYSCONFDIR)
 TOOLSDIR = _autoconf.TOOLSDIR
 LOCALSTATEDIR = vcluster.AddNodePrefix(_autoconf.LOCALSTATEDIR)

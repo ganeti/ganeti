@@ -33,13 +33,13 @@ from ganeti.hypervisor import hv_base
 from ganeti import netutils
 from ganeti import objects
 from ganeti import pathutils
-from ganeti import vcluster
 from ganeti import ssconf
 
 
-XEND_CONFIG_FILE = vcluster.AddNodePrefix("/etc/xen/xend-config.sxp")
-XL_CONFIG_FILE = vcluster.AddNodePrefix("/etc/xen/xl.conf")
-VIF_BRIDGE_SCRIPT = vcluster.AddNodePrefix("/etc/xen/scripts/vif-bridge")
+XEND_CONFIG_FILE = utils.PathJoin(pathutils.XEN_CONFIG_DIR, "xend-config.sxp")
+XL_CONFIG_FILE = utils.PathJoin(pathutils.XEN_CONFIG_DIR, "xen/xl.conf")
+VIF_BRIDGE_SCRIPT = utils.PathJoin(pathutils.XEN_CONFIG_DIR,
+                                   "scripts/vif-bridge")
 _DOM0_NAME = "Domain-0"
 
 
@@ -73,7 +73,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
     @rtype: str
 
     """
-    return "/etc/xen/%s" % instance_name
+    return utils.PathJoin(pathutils.XEN_CONFIG_DIR, instance_name)
 
   @classmethod
   def _WriteConfigFile(cls, instance, startup_memory, block_devices):
@@ -90,7 +90,9 @@ class XenHypervisor(hv_base.BaseHypervisor):
 
     """
     # just in case it exists
-    utils.RemoveFile("/etc/xen/auto/%s" % instance_name)
+    utils.RemoveFile(utils.PathJoin(pathutils.XEN_CONFIG_DIR, "auto",
+                                    instance_name))
+
     cfg_file = XenHypervisor._ConfigFileName(instance_name)
     try:
       utils.WriteFile(cfg_file, data=data)

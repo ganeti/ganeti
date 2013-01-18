@@ -302,7 +302,7 @@ migration\_port
 
     This options specifies the TCP port to use for live-migration. For
     Xen, the same port should be configured on all nodes in the
-    ``/etc/xen/xend-config.sxp`` file, under the key
+    ``@XEN_CONFIG_DIR@/xend-config.sxp`` file, under the key
     "xend-relocation-port".
 
 migration\_bandwidth

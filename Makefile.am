@@ -1381,6 +1381,7 @@ lib/_autoconf.py: Makefile | stamp-directories
 	  echo "OS_SEARCH_PATH = [$(OS_SEARCH_PATH)]"; \
 	  echo "ES_SEARCH_PATH = [$(ES_SEARCH_PATH)]"; \
 	  echo "XEN_BOOTLOADER = '$(XEN_BOOTLOADER)'"; \
+	  echo "XEN_CONFIG_DIR = '$(XEN_CONFIG_DIR)'"; \
 	  echo "XEN_KERNEL = '$(XEN_KERNEL)'"; \
 	  echo "XEN_INITRD = '$(XEN_INITRD)'"; \
 	  echo "KVM_KERNEL = '$(KVM_KERNEL)'"; \
@@ -1497,6 +1498,7 @@ $(REPLACE_VARS_SED): $(SHELL_ENV_INIT) Makefile stamp-directories
 	  echo 's#@''GNTDAEMONSGROUP@#$(DAEMONS_GROUP)#g'; \
 	  echo 's#@''CUSTOM_ENABLE_CONFD@#$(ENABLE_CONFD)#g'; \
 	  echo 's#@''MODULES@#$(strip $(lint_python_code))#g'; \
+	  echo 's#@''XEN_CONFIG_DIR@#$(XEN_CONFIG_DIR)#g'; \
 	  echo; \
 	  echo '/^@SHELL_ENV_INIT@$$/ {'; \
 	  echo '  r $(SHELL_ENV_INIT)'; \

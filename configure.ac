@@ -49,6 +49,15 @@ AC_ARG_WITH([ssh-config-dir],
   [ssh_config_dir="/etc/ssh"])
 AC_SUBST(SSH_CONFIG_DIR, $ssh_config_dir)
 
+# --with-xen-config-dir=...
+AC_ARG_WITH([xen-config-dir],
+  [AS_HELP_STRING([--with-xen-config-dir=DIR],
+                  m4_normalize([Xen configuration directory
+                                (default: /etc/xen)]))],
+  [xen_config_dir="$withval"],
+  [xen_config_dir=/etc/xen])
+AC_SUBST(XEN_CONFIG_DIR, $xen_config_dir)
+
 # --with-os-search-path=...
 # do a bit of black sed magic to for quoting of the strings in the list
 AC_ARG_WITH([os-search-path],
