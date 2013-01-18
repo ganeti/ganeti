@@ -1466,35 +1466,37 @@ $(SHELL_ENV_INIT): Makefile stamp-directories
 	  echo 'readonly CONF_DIR="$$SYSCONFDIR/ganeti"'; \
 	} > $@
 
+## Writes sed script to replace placeholders with build-time values. The
+## additional quotes after the first @ sign are necessary to stop configure
+## from replacing those values as well.
 $(REPLACE_VARS_SED): $(SHELL_ENV_INIT) Makefile stamp-directories
 	set -e; \
-	{ echo 's#@PREFIX@#$(prefix)#g'; \
-	  echo 's#@SYSCONFDIR@#$(sysconfdir)#g'; \
-	  echo 's#@LOCALSTATEDIR@#$(localstatedir)#g'; \
-	  echo 's#@BINDIR@#$(bindir)#g'; \
-	  echo 's#@SBINDIR@#$(sbindir)#g'; \
-	  echo 's#@LIBDIR@#$(libdir)#g'; \
-	  echo 's#@GANETI_VERSION@#$(PACKAGE_VERSION)#g'; \
-	  echo 's#@CUSTOM_XEN_BOOTLOADER@#$(XEN_BOOTLOADER)#g'; \
-	  echo 's#@CUSTOM_XEN_KERNEL@#$(XEN_KERNEL)#g'; \
-	  echo 's#@CUSTOM_XEN_INITRD@#$(XEN_INITRD)#g'; \
-	  echo 's#@CUSTOM_IALLOCATOR_SEARCH_PATH@#$(IALLOCATOR_SEARCH_PATH)#g'; \
-	  echo 's#@CUSTOM_EXPORT_DIR@#$(EXPORT_DIR)#g'; \
-	  echo 's#@RPL_FILE_STORAGE_DIR@#$(FILE_STORAGE_DIR)#g'; \
-	  echo 's#@RPL_SSH_INITD_SCRIPT@#$(SSH_INITD_SCRIPT)#g'; \
-	  echo 's#@PKGLIBDIR@#$(pkglibdir)#g'; \
-	  echo 's#@GNTMASTERUSER@#$(MASTERD_USER)#g'; \
-	  echo 's#@GNTRAPIUSER@#$(RAPI_USER)#g'; \
-	  echo 's#@GNTCONFDUSER@#$(CONFD_USER)#g'; \
-	  echo 's#@GNTNODEDUSER@#$(NODED_USER)#g'; \
-	  echo 's#@GNTRAPIGROUP@#$(RAPI_GROUP)#g'; \
-	  echo 's#@GNTADMINGROUP@#$(ADMIN_GROUP)#g'; \
-	  echo 's#@GNTCONFDGROUP@#$(CONFD_GROUP)#g'; \
-	  echo 's#@GNTMASTERDGROUP@#$(MASTERD_GROUP)#g'; \
-	  echo 's#@GNTDAEMONSGROUP@#$(DAEMONS_GROUP)#g'; \
-	  echo 's#@CUSTOM_ENABLE_CONFD@#$(ENABLE_CONFD)#g'; \
-	  echo 's#@MODULES@#$(strip $(lint_python_code))#g'; \
-	  echo 's#@ENABLE_SPLIT_QUERY@#$(ENABLE_SPLIT_QUERY)#g'; \
+	{ echo 's#@''PREFIX@#$(prefix)#g'; \
+	  echo 's#@''SYSCONFDIR@#$(sysconfdir)#g'; \
+	  echo 's#@''LOCALSTATEDIR@#$(localstatedir)#g'; \
+	  echo 's#@''BINDIR@#$(bindir)#g'; \
+	  echo 's#@''SBINDIR@#$(sbindir)#g'; \
+	  echo 's#@''LIBDIR@#$(libdir)#g'; \
+	  echo 's#@''GANETI_VERSION@#$(PACKAGE_VERSION)#g'; \
+	  echo 's#@''CUSTOM_XEN_BOOTLOADER@#$(XEN_BOOTLOADER)#g'; \
+	  echo 's#@''CUSTOM_XEN_KERNEL@#$(XEN_KERNEL)#g'; \
+	  echo 's#@''CUSTOM_XEN_INITRD@#$(XEN_INITRD)#g'; \
+	  echo 's#@''CUSTOM_IALLOCATOR_SEARCH_PATH@#$(IALLOCATOR_SEARCH_PATH)#g'; \
+	  echo 's#@''CUSTOM_EXPORT_DIR@#$(EXPORT_DIR)#g'; \
+	  echo 's#@''RPL_FILE_STORAGE_DIR@#$(FILE_STORAGE_DIR)#g'; \
+	  echo 's#@''RPL_SSH_INITD_SCRIPT@#$(SSH_INITD_SCRIPT)#g'; \
+	  echo 's#@''PKGLIBDIR@#$(pkglibdir)#g'; \
+	  echo 's#@''GNTMASTERUSER@#$(MASTERD_USER)#g'; \
+	  echo 's#@''GNTRAPIUSER@#$(RAPI_USER)#g'; \
+	  echo 's#@''GNTCONFDUSER@#$(CONFD_USER)#g'; \
+	  echo 's#@''GNTNODEDUSER@#$(NODED_USER)#g'; \
+	  echo 's#@''GNTRAPIGROUP@#$(RAPI_GROUP)#g'; \
+	  echo 's#@''GNTADMINGROUP@#$(ADMIN_GROUP)#g'; \
+	  echo 's#@''GNTCONFDGROUP@#$(CONFD_GROUP)#g'; \
+	  echo 's#@''GNTMASTERDGROUP@#$(MASTERD_GROUP)#g'; \
+	  echo 's#@''GNTDAEMONSGROUP@#$(DAEMONS_GROUP)#g'; \
+	  echo 's#@''CUSTOM_ENABLE_CONFD@#$(ENABLE_CONFD)#g'; \
+	  echo 's#@''MODULES@#$(strip $(lint_python_code))#g'; \
 	  echo; \
 	  echo '/^@SHELL_ENV_INIT@$$/ {'; \
 	  echo '  r $(SHELL_ENV_INIT)'; \
