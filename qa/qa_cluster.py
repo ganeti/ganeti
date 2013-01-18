@@ -60,6 +60,38 @@ def _CheckFileOnAllNodes(filename, content):
     AssertEqual(qa_utils.GetCommandOutput(node["primary"], cmd), content)
 
 
+# "gnt-cluster info" fields
+_CIFIELD_RE = re.compile(r"^[-\s]*(?P<field>[^\s:]+):\s*(?P<value>\S.*)$")
+
+
+def _GetBoolClusterField(field):
+  """Get the Boolean value of a cluster field.
+
+  This function currently assumes that the field name is unique in the cluster
+  configuration. An assertion checks this assumption.
+
+  @type field: string
+  @param field: Name of the field
+  @rtype: bool
+  @return: The effective value of the field
+
+  """
+  master = qa_config.GetMasterNode()
+  infocmd = "gnt-cluster info"
+  info_out = qa_utils.GetCommandOutput(master["primary"], infocmd)
+  ret = None
+  for l in info_out.splitlines():
+    m = _CIFIELD_RE.match(l)
+    # FIXME: There should be a way to specify a field through a hierarchy
+    if m and m.group("field") == field:
+      # Make sure that ignoring the hierarchy doesn't cause a double match
+      assert ret is None
+      ret = (m.group("value").lower() == "true")
+  if ret is not None:
+    return ret
+  raise qa_error.Error("Field not found in cluster configuration: %s" % field)
+
+
 # Cluster-verify errors (date, "ERROR", then error code)
 _CVERROR_RE = re.compile(r"^[\w\s:]+\s+- ERROR:([A-Z0-9_-]+):")
 
