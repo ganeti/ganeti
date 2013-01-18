@@ -579,7 +579,8 @@ class Burner(object):
     self.cluster_default_nicparams = default_nic_params
     if self.hypervisor is None:
       self.hypervisor = self.cluster_info["default_hypervisor"]
-    self.hv_class = hypervisor.GetHypervisorClass(self.hypervisor)
+    self.hv_can_migrate = \
+      hypervisor.GetHypervisorClass(self.hypervisor).CAN_MIGRATE
 
   @_DoCheckInstances
   @_DoBatch(False)
@@ -1087,7 +1088,7 @@ class Burner(object):
         if opts.disk_template not in constants.DTS_MIRRORED:
           Log("Skipping migration (disk template %s does not support it)",
               opts.disk_template)
-        elif not self.hv_class.CAN_MIGRATE:
+        elif not self.hv_can_migrate:
           Log("Skipping migration (hypervisor %s does not support it)",
               self.hypervisor)
         else:
