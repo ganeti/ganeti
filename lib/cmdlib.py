@@ -10297,7 +10297,7 @@ class LUInstanceCreate(LogicalUnit):
     """
     if self.op.opportunistic_locking:
       # Only consider nodes for which a lock is held
-      node_whitelist = self.owned_locks(locking.LEVEL_NODE)
+      node_whitelist = list(self.owned_locks(locking.LEVEL_NODE))
     else:
       node_whitelist = None
 
@@ -11241,7 +11241,7 @@ class LUInstanceMultiAlloc(NoHooksLU):
 
     if self.op.opportunistic_locking:
       # Only consider nodes for which a lock is held
-      node_whitelist = self.owned_locks(locking.LEVEL_NODE)
+      node_whitelist = list(self.owned_locks(locking.LEVEL_NODE))
     else:
       node_whitelist = None
 
