@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2007, 2010, 2011, 2012 Google Inc.
+# Copyright (C) 2007, 2010, 2011, 2012, 2013 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -23,6 +23,7 @@
 
 """
 
+import re
 import tempfile
 import os.path
 
@@ -57,6 +58,46 @@ def _CheckFileOnAllNodes(filename, content):
   cmd = utils.ShellQuoteArgs(["cat", filename])
   for node in qa_config.get("nodes"):
     AssertEqual(qa_utils.GetCommandOutput(node["primary"], cmd), content)
+
+
+# Cluster-verify errors (date, "ERROR", then error code)
+_CVERROR_RE = re.compile(r"^[\w\s:]+\s+- ERROR:([A-Z0-9_-]+):")
+
+
+def _GetCVErrorCodes(cvout):
+  ret = set()
+  for l in cvout.splitlines():
+    m = _CVERROR_RE.match(l)
+    if m:
+      ecode = m.group(1)
+      ret.add(ecode)
+  return ret
+
+
+def AssertClusterVerify(fail=False, errors=None):
+  """Run cluster-verify and check the result
+
+  @type fail: bool
+  @param fail: if cluster-verify is expected to fail instead of succeeding
+  @type errors: list of tuples
+  @param errors: List of CV_XXX errors that are expected; if specified, all the
+      errors listed must appear in cluster-verify output. A non-empty value
+      implies C{fail=True}.
+
+  """
+  cvcmd = "gnt-cluster verify"
+  mnode = qa_config.GetMasterNode()
+  if errors:
+    cvout = GetCommandOutput(mnode["primary"], cvcmd + " --error-codes",
+                             fail=True)
+    actual = _GetCVErrorCodes(cvout)
+    expected = compat.UniqueFrozenset(e for (_, e, _) in errors)
+    if not actual.issuperset(expected):
+      missing = expected.difference(actual)
+      raise qa_error.Error("Cluster-verify didn't return these expected"
+                           " errors: %s" % utils.CommaJoin(missing))
+  else:
+    AssertCommand(cvcmd, fail=fail, node=mnode)
 
 
 # data for testing failures due to bad keys/values for disk parameters
