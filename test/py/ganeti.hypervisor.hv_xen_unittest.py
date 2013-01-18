@@ -44,5 +44,24 @@ class TestConsole(unittest.TestCase):
       self.assertEqual(cons.command[-1], instance.name)
 
 
+class TestCreateConfigCpus(unittest.TestCase):
+  def testEmpty(self):
+    for cpu_mask in [None, ""]:
+      self.assertEqual(hv_xen._CreateConfigCpus(cpu_mask),
+                       "cpus = [  ]")
+
+  def testAll(self):
+    self.assertEqual(hv_xen._CreateConfigCpus(constants.CPU_PINNING_ALL),
+                     None)
+
+  def testOne(self):
+    self.assertEqual(hv_xen._CreateConfigCpus("9"), "cpu = \"9\"")
+
+  def testMultiple(self):
+    self.assertEqual(hv_xen._CreateConfigCpus("0-2,4,5-5:3:all"),
+                     ("cpus = [ \"0,1,2,4,5\", \"3\", \"%s\" ]" %
+                      constants.CPU_PINNING_ALL_XEN))
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
