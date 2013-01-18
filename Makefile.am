@@ -65,6 +65,8 @@ HS_DIRS = \
 	src/Ganeti/HTools \
 	src/Ganeti/HTools/Backend \
 	src/Ganeti/HTools/Program \
+	src/Ganeti/Hypervisor \
+	src/Ganeti/Hypervisor/Xen \
 	src/Ganeti/Query \
 	test/hs \
 	test/hs/Test \
@@ -74,6 +76,8 @@ HS_DIRS = \
 	test/hs/Test/Ganeti/Confd \
 	test/hs/Test/Ganeti/HTools \
 	test/hs/Test/Ganeti/HTools/Backend \
+	test/hs/Test/Ganeti/Hypervisor \
+	test/hs/Test/Ganeti/Hypervisor/Xen \
 	test/hs/Test/Ganeti/Query
 
 DIRS = \
@@ -122,6 +126,8 @@ ALL_APIDOC_HS_DIRS = \
 	$(APIDOC_HS_DIR)/Ganeti/HTools \
 	$(APIDOC_HS_DIR)/Ganeti/HTools/Backend \
 	$(APIDOC_HS_DIR)/Ganeti/HTools/Program \
+	$(APIDOC_HS_DIR)/Ganeti/Hypervisor \
+	$(APIDOC_HS_DIR)/Ganeti/Hypervisor/Xen \
 	$(APIDOC_HS_DIR)/Ganeti/Query
 
 BUILDTIME_DIR_AUTOCREATE = \
@@ -517,6 +523,8 @@ HS_LIB_SRCS = \
 	src/Ganeti/HTools/Program/Hroller.hs \
 	src/Ganeti/HTools/Program/Main.hs \
 	src/Ganeti/HTools/Types.hs \
+	src/Ganeti/Hypervisor/Xen/XmParser.hs \
+	src/Ganeti/Hypervisor/Xen/Types.hs \
 	src/Ganeti/Hash.hs \
 	src/Ganeti/JQueue.hs \
 	src/Ganeti/JSON.hs \
@@ -566,6 +574,7 @@ HS_TEST_SRCS = \
 	test/hs/Test/Ganeti/HTools/Node.hs \
 	test/hs/Test/Ganeti/HTools/PeerMap.hs \
 	test/hs/Test/Ganeti/HTools/Types.hs \
+	test/hs/Test/Ganeti/Hypervisor/Xen/XmParser.hs \
 	test/hs/Test/Ganeti/JSON.hs \
 	test/hs/Test/Ganeti/Jobs.hs \
 	test/hs/Test/Ganeti/JQueue.hs \
@@ -1060,6 +1069,7 @@ TEST_FILES = \
 	test/data/xen-xm-info-4.0.1.txt \
 	test/data/xen-xm-list-4.0.1-dom0-only.txt \
 	test/data/xen-xm-list-4.0.1-four-instances.txt \
+	test/data/xen-xm-list-long-4.0.1.txt \
 	test/py/ganeti-cli.test \
 	test/py/gnt-cli.test \
 	test/py/import-export_unittest-helper
