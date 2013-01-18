@@ -464,7 +464,10 @@ def RunExclusiveStorageTests():
 
   node = qa_config.AcquireNode()
   try:
-    old_es = qa_cluster.TestSetExclStorCluster(True)
+    old_es = qa_cluster.TestSetExclStorCluster(False)
+    qa_cluster.TestExclStorSingleNode(node)
+
+    qa_cluster.TestSetExclStorCluster(True)
     if qa_config.TestEnabled("instance-add-plain-disk"):
       # Make sure that the cluster doesn't have any pre-existing problem
       qa_cluster.AssertClusterVerify()
