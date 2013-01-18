@@ -543,6 +543,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     constants.HV_KVM_MACHINE_VERSION: hv_base.NO_CHECK,
     }
 
+  _VIRTIO = "virtio"
+  _VIRTIO_NET_PCI = "virtio-net-pci"
+
   _MIGRATION_STATUS_RE = re.compile("Migration\s+status:\s+(\w+)",
                                     re.M | re.I)
   _MIGRATION_PROGRESS_RE = \
@@ -569,6 +572,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   _ENABLE_KVM_RE = re.compile(r"^-enable-kvm\s", re.M)
   _DISABLE_KVM_RE = re.compile(r"^-disable-kvm\s", re.M)
   _NETDEV_RE = re.compile(r"^-netdev\s", re.M)
+  _NEW_VIRTIO_RE = re.compile(r"^name \"%s\"" % _VIRTIO_NET_PCI, re.M)
   # match  -drive.*boot=on|off on different lines, but in between accept only
   # dashes not preceeded by a new line (which would mean another option
   # different than -drive is starting)
@@ -584,9 +588,11 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   # Supported kvm options to get output from
   _KVMOPT_HELP = "help"
   _KVMOPT_MLIST = "mlist"
+  _KVMOPT_DEVICELIST = "devicelist"
   _KVMOPTS_CMDS = {
     _KVMOPT_HELP: ["--help"],
     _KVMOPT_MLIST: ["-M", "?"],
+    _KVMOPT_DEVICELIST: ["-device", "?"],
   }
 
   def __init__(self):
@@ -1466,9 +1472,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     temp_files = []
 
     kvm_cmd, kvm_nics, up_hvp = kvm_runtime
+    # the first element of kvm_cmd is always the path to the kvm binary
+    kvm_path = kvm_cmd[0]
     up_hvp = objects.FillDict(conf_hvp, up_hvp)
-
-    _, v_major, v_min, _ = self._ParseKVMVersion(kvmhelp)
 
     # We know it's safe to run as a different user upon migration, so we'll use
     # the latest conf, from conf_hvp.
@@ -1498,12 +1504,16 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       tap_extra = ""
       nic_type = up_hvp[constants.HV_NIC_TYPE]
       if nic_type == constants.HT_NIC_PARAVIRTUAL:
-        # From version 0.12.0, kvm uses a new sintax for network configuration.
-        if (v_major, v_min) >= (0, 12):
-          nic_model = "virtio-net-pci"
-          vnet_hdr = True
-        else:
-          nic_model = "virtio"
+        nic_model = self._VIRTIO
+        try:
+          devlist = self._GetKVMOutput(kvm_path, self._KVMOPT_DEVICELIST)
+          if self._NEW_VIRTIO_RE.search(devlist):
+            nic_model = self._VIRTIO_NET_PCI
+            vnet_hdr = True
+        except errors.HypervisorError, _:
+          # Older versions of kvm don't support DEVICE_LIST, but they don't
+          # have new virtio syntax either.
+          pass
 
         if up_hvp[constants.HV_VHOST_NET]:
           # check for vhost_net support
