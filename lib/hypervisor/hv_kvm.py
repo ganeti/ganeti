@@ -1515,11 +1515,13 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       else:
         nic_model = nic_type
 
+      kvm_supports_netdev = self._NETDEV_RE.search(kvmhelp)
+
       for nic_seq, nic in enumerate(kvm_nics):
         tapname, tapfd = _OpenTap(vnet_hdr)
         tapfds.append(tapfd)
         taps.append(tapname)
-        if self._NETDEV_RE.search(kvmhelp):
+        if kvm_supports_netdev:
           nic_val = "%s,mac=%s,netdev=netdev%s" % (nic_model, nic.mac, nic_seq)
           tap_val = "type=tap,id=netdev%s,fd=%d%s" % (nic_seq, tapfd, tap_extra)
           kvm_cmd.extend(["-netdev", tap_val, "-device", nic_val])
