@@ -477,6 +477,17 @@ def RunExclusiveStorageTests():
       qa_cluster.AssertClusterVerify()
       qa_instance.TestInstanceRemove(instance1)
       qa_instance.TestInstanceRemove(instance2)
+    if qa_config.TestEnabled("instance-add-drbd-disk"):
+      snode = qa_config.AcquireNode()
+      try:
+        qa_cluster.TestSetExclStorCluster(False)
+        instance = qa_instance.TestInstanceAddWithDrbdDisk(node, snode)
+        qa_cluster.TestSetExclStorCluster(True)
+        exp_err = [constants.CV_EINSTANCEUNSUITABLENODE]
+        qa_cluster.AssertClusterVerify(fail=True, errors=exp_err)
+        qa_instance.TestInstanceRemove(instance)
+      finally:
+        qa_config.ReleaseNode(snode)
     qa_cluster.TestSetExclStorCluster(old_es)
   finally:
     qa_config.ReleaseNode(node)
