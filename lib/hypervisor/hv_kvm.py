@@ -581,6 +581,14 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     _KVM_NETWORK_SCRIPT,
     ]
 
+  # Supported kvm options to get output from
+  _KVMOPT_HELP = "help"
+  _KVMOPT_MLIST = "mlist"
+  _KVMOPTS_CMDS = {
+    _KVMOPT_HELP: ["--help"],
+    _KVMOPT_MLIST: ["-M", "?"],
+  }
+
   def __init__(self):
     hv_base.BaseHypervisor.__init__(self)
     # Let's make sure the directories we need exist, even if the RUN_DIR lives
@@ -1642,7 +1650,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     """
     self._CheckDown(instance.name)
     kvmpath = instance.hvparams[constants.HV_KVM_PATH]
-    kvmhelp = self._GetKVMHelpOutput(kvmpath)
+    kvmhelp = self._GetKVMOutput(kvmpath, self._KVMOPT_HELP)
     kvm_runtime = self._GenerateKVMRuntime(instance, block_devices,
                                            startup_paused, kvmhelp)
     self._SaveKVMRuntime(instance, kvm_runtime)
@@ -1690,16 +1698,19 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     return (v_all, v_maj, v_min, v_rev)
 
   @classmethod
-  def _GetKVMHelpOutput(cls, kvm_path):
-    """Return the KVM help output.
+  def _GetKVMOutput(cls, kvm_path, option):
+    """Return the output of a kvm invocation
 
-    @return: output of kvm --help
+    @return: output a supported kvm invocation
     @raise errors.HypervisorError: when the KVM help output cannot be retrieved
 
     """
-    result = utils.RunCmd([kvm_path, "--help"])
+    assert option in cls._KVMOPTS_CMDS, "Invalid output option"
+
+    result = utils.RunCmd([kvm_path] + cls._KVMOPTS_CMDS[option])
     if result.failed:
-      raise errors.HypervisorError("Unable to get KVM help output")
+      raise errors.HypervisorError("Unable to get KVM % output" %
+                                    ' '.join(cls._KVMOPTS_CMDS[option]))
     return result.output
 
   @classmethod
@@ -1710,27 +1721,14 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     @raise errors.HypervisorError: when the KVM version cannot be retrieved
 
     """
-    return cls._ParseKVMVersion(cls._GetKVMHelpOutput(kvm_path))
-
-  @classmethod
-  def _GetKVMSupportedMachinesOutput(cls, kvm_path):
-    """Return the output regarding supported machine versions.
-
-    @return: output of kvm -M ?
-    @raise errors.HypervisorError: when the KVM help output cannot be retrieved
-
-    """
-    result = utils.RunCmd([kvm_path, "-M", "?"])
-    if result.failed:
-      raise errors.HypervisorError("Unable to get kvm -M ? output")
-    return result.output
+    return cls._ParseKVMVersion(cls._GetKVMOutput(kvm_path, cls._KVMOPT_HELP))
 
   @classmethod
   def _GetDefaultMachineVersion(cls, kvm_path):
     """Return the default hardware revision (e.g. pc-1.1)
 
     """
-    output = cls._GetKVMSupportedMachinesOutput(kvm_path)
+    output = cls._GetKVMOutput(kvm_path, cls._KVMOPT_MLIST)
     match = cls._DEFAULT_MACHINE_VERSION_RE.search(output)
     if match:
       return match.group(1)
@@ -1784,7 +1782,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     # ...and finally we can save it again, and execute it...
     self._SaveKVMRuntime(instance, kvm_runtime)
     kvmpath = instance.hvparams[constants.HV_KVM_PATH]
-    kvmhelp = self._GetKVMHelpOutput(kvmpath)
+    kvmhelp = self._GetKVMOutput(kvmpath, self._KVMOPT_HELP)
     self._ExecuteKVMRuntime(instance, kvm_runtime, kvmhelp)
 
   def MigrationInfo(self, instance):
@@ -1812,7 +1810,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     kvm_runtime = self._LoadKVMRuntime(instance, serialized_runtime=info)
     incoming_address = (target, instance.hvparams[constants.HV_MIGRATION_PORT])
     kvmpath = instance.hvparams[constants.HV_KVM_PATH]
-    kvmhelp = self._GetKVMHelpOutput(kvmpath)
+    kvmhelp = self._GetKVMOutput(kvmpath, self._KVMOPT_HELP)
     self._ExecuteKVMRuntime(instance, kvm_runtime, kvmhelp,
                             incoming=incoming_address)
 
@@ -2124,7 +2122,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
                                      " given time.")
 
       # check that KVM supports SPICE
-      kvmhelp = cls._GetKVMHelpOutput(kvm_path)
+      kvmhelp = cls._GetKVMOutput(kvm_path, cls._KVMOPT_HELP)
       if not cls._SPICE_RE.search(kvmhelp):
         raise errors.HypervisorError("spice is configured, but it is not"
                                      " supported according to kvm --help")
@@ -2139,7 +2137,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     machine_version = hvparams[constants.HV_KVM_MACHINE_VERSION]
     if machine_version:
-      output = cls._GetKVMSupportedMachinesOutput(kvm_path)
+      output = cls._GetKVMOutput(kvm_path, cls._KVMOPT_MLIST)
       if not cls._CHECK_MACHINE_VERSION_RE(machine_version).search(output):
         raise errors.HypervisorError("Unsupported machine version: %s" %
                                      machine_version)
