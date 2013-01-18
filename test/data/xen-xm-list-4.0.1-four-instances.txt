@@ -1,0 +1,5 @@
+Name                                        ID   Mem VCPUs      State   Time(s)
+Domain-0                                     0  1023     1     r----- 154706.1
+server01.example.com                         1  1024     1     -b---- 167643.2
+web3106215069.example.com                    3  4096     1     -b---- 466690.9
+testinstance.example.com                     2  2048     2     r----- 244443.0

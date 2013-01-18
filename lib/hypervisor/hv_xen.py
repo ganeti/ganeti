@@ -75,6 +75,89 @@ def _CreateConfigCpus(cpu_mask):
     return "cpus = [ %s ]" % ", ".join(map(_GetCPUMap, cpu_list))
 
 
+def _RunXmList(fn, xmllist_errors):
+  """Helper function for L{_GetXmList} to run "xm list".
+
+  @type fn: callable
+  @param fn: Function returning result of running C{xm list}
+  @type xmllist_errors: list
+  @param xmllist_errors: Error list
+  @rtype: list
+
+  """
+  result = fn()
+  if result.failed:
+    logging.error("xm list failed (%s): %s", result.fail_reason,
+                  result.output)
+    xmllist_errors.append(result)
+    raise utils.RetryAgain()
+
+  # skip over the heading
+  return result.stdout.splitlines()
+
+
+def _ParseXmList(lines, include_node):
+  """Parses the output of C{xm list}.
+
+  @type lines: list
+  @param lines: Output lines of C{xm list}
+  @type include_node: boolean
+  @param include_node: If True, return information for Dom0
+  @return: list of tuple containing (name, id, memory, vcpus, state, time
+    spent)
+
+  """
+  result = []
+
+  # Iterate through all lines while ignoring header
+  for line in lines[1:]:
+    # The format of lines is:
+    # Name      ID Mem(MiB) VCPUs State  Time(s)
+    # Domain-0   0  3418     4 r-----    266.2
+    data = line.split()
+    if len(data) != 6:
+      raise errors.HypervisorError("Can't parse output of xm list,"
+                                   " line: %s" % line)
+    try:
+      data[1] = int(data[1])
+      data[2] = int(data[2])
+      data[3] = int(data[3])
+      data[5] = float(data[5])
+    except (TypeError, ValueError), err:
+      raise errors.HypervisorError("Can't parse output of xm list,"
+                                   " line: %s, error: %s" % (line, err))
+
+    # skip the Domain-0 (optional)
+    if include_node or data[0] != _DOM0_NAME:
+      result.append(data)
+
+  return result
+
+
+def _GetXmList(fn, include_node, _timeout=5):
+  """Return the list of running instances.
+
+  See L{_RunXmList} and L{_ParseXmList} for parameter details.
+
+  """
+  xmllist_errors = []
+  try:
+    lines = utils.Retry(_RunXmList, (0.3, 1.5, 1.0), _timeout,
+                        args=(fn, xmllist_errors))
+  except utils.RetryTimeout:
+    if xmllist_errors:
+      xmlist_result = xmllist_errors.pop()
+
+      errmsg = ("xm list failed, timeout exceeded (%s): %s" %
+                (xmlist_result.fail_reason, xmlist_result.output))
+    else:
+      errmsg = "xm list failed"
+
+    raise errors.HypervisorError(errmsg)
+
+  return _ParseXmList(lines, include_node)
+
+
 class XenHypervisor(hv_base.BaseHypervisor):
   """Xen generic hypervisor interface
 
@@ -154,73 +237,19 @@ class XenHypervisor(hv_base.BaseHypervisor):
     utils.RemoveFile(XenHypervisor._ConfigFileName(instance_name))
 
   @staticmethod
-  def _RunXmList(xmlist_errors):
-    """Helper function for L{_GetXMList} to run "xm list".
+  def _GetXmList(include_node):
+    """Wrapper around module level L{_GetXmList}.
 
     """
-    result = utils.RunCmd([constants.XEN_CMD, "list"])
-    if result.failed:
-      logging.error("xm list failed (%s): %s", result.fail_reason,
-                    result.output)
-      xmlist_errors.append(result)
-      raise utils.RetryAgain()
-
-    # skip over the heading
-    return result.stdout.splitlines()[1:]
-
-  @classmethod
-  def _GetXMList(cls, include_node):
-    """Return the list of running instances.
-
-    If the include_node argument is True, then we return information
-    for dom0 also, otherwise we filter that from the return value.
-
-    @return: list of (name, id, memory, vcpus, state, time spent)
-
-    """
-    xmlist_errors = []
-    try:
-      lines = utils.Retry(cls._RunXmList, 1, 5, args=(xmlist_errors, ))
-    except utils.RetryTimeout:
-      if xmlist_errors:
-        xmlist_result = xmlist_errors.pop()
-
-        errmsg = ("xm list failed, timeout exceeded (%s): %s" %
-                  (xmlist_result.fail_reason, xmlist_result.output))
-      else:
-        errmsg = "xm list failed"
-
-      raise errors.HypervisorError(errmsg)
-
-    result = []
-    for line in lines:
-      # The format of lines is:
-      # Name      ID Mem(MiB) VCPUs State  Time(s)
-      # Domain-0   0  3418     4 r-----    266.2
-      data = line.split()
-      if len(data) != 6:
-        raise errors.HypervisorError("Can't parse output of xm list,"
-                                     " line: %s" % line)
-      try:
-        data[1] = int(data[1])
-        data[2] = int(data[2])
-        data[3] = int(data[3])
-        data[5] = float(data[5])
-      except (TypeError, ValueError), err:
-        raise errors.HypervisorError("Can't parse output of xm list,"
-                                     " line: %s, error: %s" % (line, err))
-
-      # skip the Domain-0 (optional)
-      if include_node or data[0] != _DOM0_NAME:
-        result.append(data)
-
-    return result
+    # TODO: Abstract running Xen command for testing
+    return _GetXmList(lambda: utils.RunCmd([constants.XEN_CMD, "list"]),
+                      include_node)
 
   def ListInstances(self):
     """Get the list of running instances.
 
     """
-    xm_list = self._GetXMList(False)
+    xm_list = self._GetXmList(False)
     names = [info[0] for info in xm_list]
     return names
 
@@ -232,7 +261,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
     @return: tuple (name, id, memory, vcpus, stat, times)
 
     """
-    xm_list = self._GetXMList(instance_name == _DOM0_NAME)
+    xm_list = self._GetXmList(instance_name == _DOM0_NAME)
     result = None
     for data in xm_list:
       if data[0] == instance_name:
@@ -246,7 +275,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
     @return: list of tuples (name, id, memory, vcpus, stat, times)
 
     """
-    xm_list = self._GetXMList(False)
+    xm_list = self._GetXmList(False)
     return xm_list
 
   def StartInstance(self, instance, block_devices, startup_paused):
@@ -395,7 +424,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
       result["cpu_sockets"] = nr_cpus / (cores_per_socket * threads_per_core)
 
     total_instmem = 0
-    for (name, _, mem, vcpus, _, _) in self._GetXMList(True):
+    for (name, _, mem, vcpus, _, _) in self._GetXmList(True):
       if name == _DOM0_NAME:
         result["memory_dom0"] = mem
         result["dom0_cpus"] = vcpus
