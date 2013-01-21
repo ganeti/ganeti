@@ -29,6 +29,9 @@ from bitarray import bitarray
 
 from ganeti import errors
 
+IPV4_NETWORK_MIN_SIZE = 30
+IPV4_NETWORK_MIN_NUM_HOSTS = 2 ** (32 - IPV4_NETWORK_MIN_SIZE)
+
 
 class AddressPool(object):
   """Address pool class, wrapping an C{objects.Network} object.
@@ -55,6 +58,12 @@ class AddressPool(object):
     self.net = network
 
     self.network = ipaddr.IPNetwork(self.net.network)
+    if self.network.numhosts < IPV4_NETWORK_MIN_NUM_HOSTS:
+      raise errors.AddressPoolError("A network with only %s host(s) is too"
+                                    " small, please specify at least a /%s"
+                                    " network" %
+                                    (str(self.network.numhosts),
+                                     IPV4_NETWORK_MIN_SIZE))
     if self.net.gateway:
       self.gateway = ipaddr.IPAddress(self.net.gateway)
 
