@@ -2027,6 +2027,10 @@ class _VerifyErrors(object):
     """
     ltype = kwargs.get(self.ETYPE_FIELD, self.ETYPE_ERROR)
     itype, etxt, _ = ecode
+    # If the error code is in the list of ignored errors, demote the error to a
+    # warning
+    if etxt in self.op.ignore_errors:     # pylint: disable=E1101
+      ltype = self.ETYPE_WARNING
     # first complete the msg
     if args:
       msg = msg % args
@@ -2041,26 +2045,17 @@ class _VerifyErrors(object):
       msg = "%s: %s%s: %s" % (ltype, itype, item, msg)
     # and finally report it via the feedback_fn
     self._feedback_fn("  - %s" % msg) # Mix-in. pylint: disable=E1101
+    # do not mark the operation as failed for WARN cases only
+    if ltype == self.ETYPE_ERROR:
+      self.bad = True
 
-  def _ErrorIf(self, cond, ecode, *args, **kwargs):
+  def _ErrorIf(self, cond, *args, **kwargs):
     """Log an error message if the passed condition is True.
 
     """
-    cond = (bool(cond)
-            or self.op.debug_simulate_errors) # pylint: disable=E1101
-
-    # If the error code is in the list of ignored errors, demote the error to a
-    # warning
-    (_, etxt, _) = ecode
-    if etxt in self.op.ignore_errors:     # pylint: disable=E1101
-      kwargs[self.ETYPE_FIELD] = self.ETYPE_WARNING
-
-    if cond:
-      self._Error(ecode, *args, **kwargs)
-
-    # do not mark the operation as failed for WARN cases only
-    if kwargs.get(self.ETYPE_FIELD, self.ETYPE_ERROR) == self.ETYPE_ERROR:
-      self.bad = self.bad or cond
+    if (bool(cond)
+        or self.op.debug_simulate_errors): # pylint: disable=E1101
+      self._Error(*args, **kwargs)
 
 
 class LUClusterVerify(NoHooksLU):

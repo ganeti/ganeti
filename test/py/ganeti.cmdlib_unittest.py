@@ -1533,5 +1533,143 @@ class TestCheckOpportunisticLocking(unittest.TestCase):
           cmdlib._CheckOpportunisticLocking(op)
 
 
+class _OpTestVerifyErrors(opcodes.OpCode):
+  OP_PARAMS = [
+    opcodes._PDebugSimulateErrors,
+    opcodes._PErrorCodes,
+    opcodes._PIgnoreErrors,
+    ]
+
+
+class _LuTestVerifyErrors(cmdlib._VerifyErrors):
+  def __init__(self, **kwargs):
+    cmdlib._VerifyErrors.__init__(self)
+    self.op = _OpTestVerifyErrors(**kwargs)
+    self.op.Validate(True)
+    self.msglist = []
+    self._feedback_fn = self.msglist.append
+    self.bad = False
+
+  def DispatchCallError(self, which, *args, **kwargs):
+    if which:
+      self._Error(*args, **kwargs)
+    else:
+      self._ErrorIf(True, *args, **kwargs)
+
+  def CallErrorIf(self, c, *args, **kwargs):
+    self._ErrorIf(c, *args, **kwargs)
+
+
+class TestVerifyErrors(unittest.TestCase):
+  # Fake cluster-verify error code structures; we use two arbitary real error
+  # codes to pass validation of ignore_errors
+  (_, _ERR1ID, _) = constants.CV_ECLUSTERCFG
+  _NODESTR = "node"
+  _NODENAME = "mynode"
+  _ERR1CODE = (_NODESTR, _ERR1ID, "Error one")
+  (_, _ERR2ID, _) = constants.CV_ECLUSTERCERT
+  _INSTSTR = "instance"
+  _INSTNAME = "myinstance"
+  _ERR2CODE = (_INSTSTR, _ERR2ID, "Error two")
+  # Arguments used to call _Error() or _ErrorIf()
+  _ERR1ARGS = (_ERR1CODE, _NODENAME, "Error1 is %s", "an error")
+  _ERR2ARGS = (_ERR2CODE, _INSTNAME, "Error2 has no argument")
+  # Expected error messages
+  _ERR1MSG = _ERR1ARGS[2] % _ERR1ARGS[3]
+  _ERR2MSG = _ERR2ARGS[2]
+
+  def testNoError(self):
+    lu = _LuTestVerifyErrors()
+    lu.CallErrorIf(False, self._ERR1CODE, *self._ERR1ARGS)
+    self.assertFalse(lu.bad)
+    self.assertFalse(lu.msglist)
+
+  def _InitTest(self, **kwargs):
+    self.lu1 = _LuTestVerifyErrors(**kwargs)
+    self.lu2 = _LuTestVerifyErrors(**kwargs)
+
+  def _CallError(self, *args, **kwargs):
+    # Check that _Error() and _ErrorIf() produce the same results
+    self.lu1.DispatchCallError(True, *args, **kwargs)
+    self.lu2.DispatchCallError(False, *args, **kwargs)
+    self.assertEqual(self.lu1.bad, self.lu2.bad)
+    self.assertEqual(self.lu1.msglist, self.lu2.msglist)
+    # Test-specific checks are made on one LU
+    return self.lu1
+
+  def _checkMsgCommon(self, logstr, errmsg, itype, item, warning):
+    self.assertTrue(errmsg in logstr)
+    if warning:
+      self.assertTrue("WARNING" in logstr)
+    else:
+      self.assertTrue("ERROR" in logstr)
+    self.assertTrue(itype in logstr)
+    self.assertTrue(item in logstr)
+
+  def _checkMsg1(self, logstr, warning=False):
+    self._checkMsgCommon(logstr, self._ERR1MSG, self._NODESTR,
+                         self._NODENAME, warning)
+
+  def _checkMsg2(self, logstr, warning=False):
+    self._checkMsgCommon(logstr, self._ERR2MSG, self._INSTSTR,
+                         self._INSTNAME, warning)
+
+  def testPlain(self):
+    self._InitTest()
+    lu = self._CallError(*self._ERR1ARGS)
+    self.assertTrue(lu.bad)
+    self.assertEqual(len(lu.msglist), 1)
+    self._checkMsg1(lu.msglist[0])
+
+  def testMultiple(self):
+    self._InitTest()
+    self._CallError(*self._ERR1ARGS)
+    lu = self._CallError(*self._ERR2ARGS)
+    self.assertTrue(lu.bad)
+    self.assertEqual(len(lu.msglist), 2)
+    self._checkMsg1(lu.msglist[0])
+    self._checkMsg2(lu.msglist[1])
+
+  def testIgnore(self):
+    self._InitTest(ignore_errors=[self._ERR1ID])
+    lu = self._CallError(*self._ERR1ARGS)
+    self.assertFalse(lu.bad)
+    self.assertEqual(len(lu.msglist), 1)
+    self._checkMsg1(lu.msglist[0], warning=True)
+
+  def testWarning(self):
+    self._InitTest()
+    lu = self._CallError(*self._ERR1ARGS,
+                         code=_LuTestVerifyErrors.ETYPE_WARNING)
+    self.assertFalse(lu.bad)
+    self.assertEqual(len(lu.msglist), 1)
+    self._checkMsg1(lu.msglist[0], warning=True)
+
+  def testWarning2(self):
+    self._InitTest()
+    self._CallError(*self._ERR1ARGS)
+    lu = self._CallError(*self._ERR2ARGS,
+                         code=_LuTestVerifyErrors.ETYPE_WARNING)
+    self.assertTrue(lu.bad)
+    self.assertEqual(len(lu.msglist), 2)
+    self._checkMsg1(lu.msglist[0])
+    self._checkMsg2(lu.msglist[1], warning=True)
+
+  def testDebugSimulate(self):
+    lu = _LuTestVerifyErrors(debug_simulate_errors=True)
+    lu.CallErrorIf(False, *self._ERR1ARGS)
+    self.assertTrue(lu.bad)
+    self.assertEqual(len(lu.msglist), 1)
+    self._checkMsg1(lu.msglist[0])
+
+  def testErrCodes(self):
+    self._InitTest(error_codes=True)
+    lu = self._CallError(*self._ERR1ARGS)
+    self.assertTrue(lu.bad)
+    self.assertEqual(len(lu.msglist), 1)
+    self._checkMsg1(lu.msglist[0])
+    self.assertTrue(self._ERR1ID in lu.msglist[0])
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
