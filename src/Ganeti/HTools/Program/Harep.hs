@@ -352,6 +352,53 @@ detectBroken nl inst =
      _ -> Nothing  -- Other cases are unimplemented for now: DTDiskless,
                    -- DTFile, DTSharedFile, DTBlock, DTRbd, DTExt.
 
+-- | Perform the suggested repair on an instance if its policy allows it.
+doRepair :: L.Client -> InstanceData -> (AutoRepairType, [OpCode])
+         -> IO InstanceData
+doRepair client instData (rtype, opcodes) =
+  let inst = arInstance instData
+      ipol = Instance.arPolicy inst
+      iname = Instance.name inst
+  in
+  case ipol of
+    ArEnabled maxtype ->
+      if rtype > maxtype then do
+        uuid <- newUUID
+        time <- getClockTime
+
+        let arState' = ArNeedsRepair (
+              updateTag $ AutoRepairData rtype uuid time [] (Just ArEnoperm) "")
+            instData' = instData { arState = arState'
+                                 , tagsToRemove = delCurTag instData
+                                 }
+
+        putStrLn ("Not performing a repair of type " ++ show rtype ++ " on " ++
+          iname ++ " because only repairs up to " ++ show maxtype ++
+          " are allowed")
+        commitChange client instData'  -- Adds "enoperm" result label.
+      else do
+        putStrLn ("Executing " ++ show rtype ++ " repair on " ++ iname)
+
+        uuid <- newUUID
+        time <- getClockTime
+        jids <- submitJobs [map wrapOpCode opcodes] client
+
+        case jids of
+          Bad e    -> exitErr e
+          Ok jids' ->
+            let arState' = ArPendingRepair (
+                  updateTag $ AutoRepairData rtype uuid time jids' Nothing "")
+                instData' = instData { arState = arState'
+                                     , tagsToRemove = delCurTag instData
+                                     }
+            in
+             commitChange client instData'  -- Adds "pending" label.
+
+    otherSt -> do
+      putStrLn ("Not repairing " ++ iname ++ " because it's in state " ++
+                show otherSt)
+      return instData
+
 -- | Main function.
 main :: Options -> [String] -> IO ()
 main opts args = do
@@ -372,6 +419,15 @@ main opts args = do
               forM iniData . processPending
 
   -- Second step: detect any problems.
-  let _unused_repairs = map (detectBroken nl . arInstance) iniData'
+  let repairs = map (detectBroken nl . arInstance) iniData'
+
+  -- Third step: create repair jobs for broken instances that are in ArHealthy.
+  let maybeRepair c (i, r) = maybe (return i) (repairHealthy c i) r
+      repairHealthy c i = case arState i of
+                            ArHealthy _ -> doRepair c i
+                            _           -> const (return i)
+
+  _unused_repairDone <- bracket (L.getClient master) L.closeClient $
+                        forM (zip iniData' repairs) . maybeRepair
 
   return ()
