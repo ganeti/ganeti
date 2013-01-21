@@ -1721,8 +1721,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     result = utils.RunCmd([kvm_path] + cls._KVMOPTS_CMDS[option])
     if result.failed:
-      raise errors.HypervisorError("Unable to get KVM % output" %
-                                    ' '.join(cls._KVMOPTS_CMDS[option]))
+      raise errors.HypervisorError("Unable to get KVM %s output" %
+                                    " ".join(cls._KVMOPTS_CMDS[option]))
     return result.output
 
   @classmethod
