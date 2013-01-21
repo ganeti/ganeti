@@ -158,6 +158,102 @@ def _GetXmList(fn, include_node, _timeout=5):
   return _ParseXmList(lines, include_node)
 
 
+def _ParseNodeInfo(info):
+  """Return information about the node.
+
+  @return: a dict with the following keys (memory values in MiB):
+        - memory_total: the total memory size on the node
+        - memory_free: the available memory on the node for instances
+        - nr_cpus: total number of CPUs
+        - nr_nodes: in a NUMA system, the number of domains
+        - nr_sockets: the number of physical CPU sockets in the node
+        - hv_version: the hypervisor version in the form (major, minor)
+
+  """
+  result = {}
+  cores_per_socket = threads_per_core = nr_cpus = None
+  xen_major, xen_minor = None, None
+  memory_total = None
+  memory_free = None
+
+  for line in info.splitlines():
+    fields = line.split(":", 1)
+
+    if len(fields) < 2:
+      continue
+
+    (key, val) = map(lambda s: s.strip(), fields)
+
+    # Note: in Xen 3, memory has changed to total_memory
+    if key in ("memory", "total_memory"):
+      memory_total = int(val)
+    elif key == "free_memory":
+      memory_free = int(val)
+    elif key == "nr_cpus":
+      nr_cpus = result["cpu_total"] = int(val)
+    elif key == "nr_nodes":
+      result["cpu_nodes"] = int(val)
+    elif key == "cores_per_socket":
+      cores_per_socket = int(val)
+    elif key == "threads_per_core":
+      threads_per_core = int(val)
+    elif key == "xen_major":
+      xen_major = int(val)
+    elif key == "xen_minor":
+      xen_minor = int(val)
+
+  if None not in [cores_per_socket, threads_per_core, nr_cpus]:
+    result["cpu_sockets"] = nr_cpus / (cores_per_socket * threads_per_core)
+
+  if memory_free is not None:
+    result["memory_free"] = memory_free
+
+  if memory_total is not None:
+    result["memory_total"] = memory_total
+
+  if not (xen_major is None or xen_minor is None):
+    result[constants.HV_NODEINFO_KEY_VERSION] = (xen_major, xen_minor)
+
+  return result
+
+
+def _MergeInstanceInfo(info, fn):
+  """Updates node information from L{_ParseNodeInfo} with instance info.
+
+  @type info: dict
+  @param info: Result from L{_ParseNodeInfo}
+  @type fn: callable
+  @param fn: Function returning result of running C{xm list}
+  @rtype: dict
+
+  """
+  total_instmem = 0
+
+  for (name, _, mem, vcpus, _, _) in fn(True):
+    if name == _DOM0_NAME:
+      info["memory_dom0"] = mem
+      info["dom0_cpus"] = vcpus
+
+    # Include Dom0 in total memory usage
+    total_instmem += mem
+
+  memory_free = info.get("memory_free")
+  memory_total = info.get("memory_total")
+
+  # Calculate memory used by hypervisor
+  if None not in [memory_total, memory_free, total_instmem]:
+    info["memory_hv"] = memory_total - memory_free - total_instmem
+
+  return info
+
+
+def _GetNodeInfo(info, fn):
+  """Combines L{_MergeInstanceInfo} and L{_ParseNodeInfo}.
+
+  """
+  return _MergeInstanceInfo(_ParseNodeInfo(info), fn)
+
+
 class XenHypervisor(hv_base.BaseHypervisor):
   """Xen generic hypervisor interface
 
@@ -372,80 +468,17 @@ class XenHypervisor(hv_base.BaseHypervisor):
   def GetNodeInfo(self):
     """Return information about the node.
 
-    @return: a dict with the following keys (memory values in MiB):
-          - memory_total: the total memory size on the node
-          - memory_free: the available memory on the node for instances
-          - memory_dom0: the memory used by the node itself, if available
-          - nr_cpus: total number of CPUs
-          - nr_nodes: in a NUMA system, the number of domains
-          - nr_sockets: the number of physical CPU sockets in the node
-          - hv_version: the hypervisor version in the form (major, minor)
+    @see: L{_GetNodeInfo} and L{_ParseNodeInfo}
 
     """
+    # TODO: Abstract running Xen command for testing
     result = utils.RunCmd([constants.XEN_CMD, "info"])
     if result.failed:
       logging.error("Can't run 'xm info' (%s): %s", result.fail_reason,
                     result.output)
       return None
 
-    xmoutput = result.stdout.splitlines()
-    result = {}
-    cores_per_socket = threads_per_core = nr_cpus = None
-    xen_major, xen_minor = None, None
-    memory_total = None
-    memory_free = None
-
-    for line in xmoutput:
-      splitfields = line.split(":", 1)
-
-      if len(splitfields) > 1:
-        key = splitfields[0].strip()
-        val = splitfields[1].strip()
-
-        # note: in xen 3, memory has changed to total_memory
-        if key == "memory" or key == "total_memory":
-          memory_total = int(val)
-        elif key == "free_memory":
-          memory_free = int(val)
-        elif key == "nr_cpus":
-          nr_cpus = result["cpu_total"] = int(val)
-        elif key == "nr_nodes":
-          result["cpu_nodes"] = int(val)
-        elif key == "cores_per_socket":
-          cores_per_socket = int(val)
-        elif key == "threads_per_core":
-          threads_per_core = int(val)
-        elif key == "xen_major":
-          xen_major = int(val)
-        elif key == "xen_minor":
-          xen_minor = int(val)
-
-    if None not in [cores_per_socket, threads_per_core, nr_cpus]:
-      result["cpu_sockets"] = nr_cpus / (cores_per_socket * threads_per_core)
-
-    total_instmem = 0
-    for (name, _, mem, vcpus, _, _) in self._GetXmList(True):
-      if name == _DOM0_NAME:
-        result["memory_dom0"] = mem
-        result["dom0_cpus"] = vcpus
-
-      # Include Dom0 in total memory usage
-      total_instmem += mem
-
-    if memory_free is not None:
-      result["memory_free"] = memory_free
-
-    if memory_total is not None:
-      result["memory_total"] = memory_total
-
-    # Calculate memory used by hypervisor
-    if None not in [memory_total, memory_free, total_instmem]:
-      result["memory_hv"] = memory_total - memory_free - total_instmem
-
-    if not (xen_major is None or xen_minor is None):
-      result[constants.HV_NODEINFO_KEY_VERSION] = (xen_major, xen_minor)
-
-    return result
+    return _GetNodeInfo(result.stdout, self._GetXmList)
 
   @classmethod
   def GetInstanceConsole(cls, instance, hvparams, beparams):

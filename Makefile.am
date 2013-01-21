@@ -1038,6 +1038,7 @@ TEST_FILES = \
 	test/data/vgreduce-removemissing-2.02.66-ok.txt \
 	test/data/vgs-missing-pvs-2.02.02.txt \
 	test/data/vgs-missing-pvs-2.02.66.txt \
+	test/data/xen-xm-info-4.0.1.txt \
 	test/data/xen-xm-list-4.0.1-dom0-only.txt \
 	test/data/xen-xm-list-4.0.1-four-instances.txt \
 	test/py/ganeti-cli.test \

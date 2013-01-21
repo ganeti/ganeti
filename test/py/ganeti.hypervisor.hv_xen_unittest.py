@@ -152,5 +152,66 @@ class TestGetXmList(testutils.GanetiTestCase):
     self.assertEqual(fn.Count(), 1)
 
 
+class TestParseNodeInfo(testutils.GanetiTestCase):
+  def testEmpty(self):
+    self.assertEqual(hv_xen._ParseNodeInfo(""), {})
+
+  def testUnknownInput(self):
+    data = "\n".join([
+      "foo bar",
+      "something else goes",
+      "here",
+      ])
+    self.assertEqual(hv_xen._ParseNodeInfo(data), {})
+
+  def testBasicInfo(self):
+    data = testutils.ReadTestData("xen-xm-info-4.0.1.txt")
+    result = hv_xen._ParseNodeInfo(data)
+    self.assertEqual(result, {
+      "cpu_nodes": 1,
+      "cpu_sockets": 2,
+      "cpu_total": 4,
+      "hv_version": (4, 0),
+      "memory_free": 8004,
+      "memory_total": 16378,
+      })
+
+
+class TestMergeInstanceInfo(testutils.GanetiTestCase):
+  def testEmpty(self):
+    self.assertEqual(hv_xen._MergeInstanceInfo({}, lambda _: []), {})
+
+  def _FakeXmList(self, include_node):
+    self.assertTrue(include_node)
+    return [
+      (hv_xen._DOM0_NAME, NotImplemented, 4096, 7, NotImplemented,
+       NotImplemented),
+      ("inst1.example.com", NotImplemented, 2048, 4, NotImplemented,
+       NotImplemented),
+      ]
+
+  def testMissingNodeInfo(self):
+    result = hv_xen._MergeInstanceInfo({}, self._FakeXmList)
+    self.assertEqual(result, {
+      "memory_dom0": 4096,
+      "dom0_cpus": 7,
+      })
+
+  def testWithNodeInfo(self):
+    info = testutils.ReadTestData("xen-xm-info-4.0.1.txt")
+    result = hv_xen._GetNodeInfo(info, self._FakeXmList)
+    self.assertEqual(result, {
+      "cpu_nodes": 1,
+      "cpu_sockets": 2,
+      "cpu_total": 4,
+      "dom0_cpus": 7,
+      "hv_version": (4, 0),
+      "memory_dom0": 4096,
+      "memory_free": 8004,
+      "memory_hv": 2230,
+      "memory_total": 16378,
+      })
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()

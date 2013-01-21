@@ -1,0 +1,31 @@
+host                   : host.example.com
+release                : 3.2.0
+version                : #1 SMP Tue Jan  1 00:00:00 UTC 2013
+machine                : x86_64
+nr_cpus                : 4
+nr_nodes               : 1
+cores_per_socket       : 2
+threads_per_core       : 1
+cpu_mhz                : 2800
+hw_caps                : bfebfbff:20100800:00000000:00000940:0004e3bd:00000000:00000001:00000000
+virt_caps              : 
+total_memory           : 16378
+free_memory            : 8004
+node_to_cpu            : node0:0-3
+node_to_memory         : node0:8004
+node_to_dma32_mem      : node0:2985
+max_node_id            : 0
+xen_major              : 4
+xen_minor              : 0
+xen_extra              : .1
+xen_caps               : xen-3.0-x86_64 xen-3.0-x86_32p 
+xen_scheduler          : credit
+xen_pagesize           : 4096
+platform_params        : virt_start=0xffff800000000000
+xen_changeset          : unavailable
+xen_commandline        : placeholder dom0_mem=1024M com1=115200,8n1 console=com1
+cc_compiler            : gcc version 4.4.5 (Debian 4.4.5-8) 
+cc_compile_by          : user
+cc_compile_domain      : example.com
+cc_compile_date        : Tue Jan  1 00:00:00 UTC 2013
+xend_config_format     : 4
