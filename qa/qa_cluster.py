@@ -674,3 +674,21 @@ def TestExclStorSingleNode(node):
   AssertClusterVerify(fail=True, errors=[constants.CV_EGROUPMIXEDESFLAG])
   AssertCommand(_BuildSetESCmd("default", node_name))
   AssertClusterVerify()
+
+
+def TestExclStorSharedPv(node):
+  """cluster-verify reports LVs that share the same PV with exclusive_storage.
+
+  """
+  vgname = qa_config.get("vg-name", constants.DEFAULT_VG)
+  lvname1 = _QA_LV_PREFIX + "vol1"
+  lvname2 = _QA_LV_PREFIX + "vol2"
+  node_name = node["primary"]
+  AssertCommand(["lvcreate", "-L1G", "-n", lvname1, vgname], node=node_name)
+  AssertClusterVerify(fail=True, errors=[constants.CV_ENODEORPHANLV])
+  AssertCommand(["lvcreate", "-L1G", "-n", lvname2, vgname], node=node_name)
+  AssertClusterVerify(fail=True, errors=[constants.CV_ENODELVM,
+                                         constants.CV_ENODEORPHANLV])
+  AssertCommand(["lvremove", "-f", "/".join([vgname, lvname1])], node=node_name)
+  AssertCommand(["lvremove", "-f", "/".join([vgname, lvname2])], node=node_name)
+  AssertClusterVerify()
