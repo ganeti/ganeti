@@ -26,7 +26,7 @@
   "# Default network interface parameters": null,
   "#default-nicparams": {
     "mode": "bridged",
-    "link": "xen-br0",
+    "link": "xen-br0"
   },
 
   "os": "debian-etch",
