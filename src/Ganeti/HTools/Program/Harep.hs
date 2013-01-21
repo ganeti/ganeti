@@ -41,6 +41,7 @@ import Ganeti.Common
 import Ganeti.Errors
 import Ganeti.Jobs
 import Ganeti.OpCodes
+import Ganeti.OpParams
 import Ganeti.Types
 import Ganeti.Utils
 import qualified Ganeti.Constants as C
@@ -53,6 +54,7 @@ import Ganeti.HTools.ExtLoader
 import Ganeti.HTools.Types
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Instance as Instance
+import qualified Ganeti.HTools.Node as Node
 
 -- | Options list and functions.
 options :: IO [OptType]
@@ -271,6 +273,85 @@ commitChange client instData = do
 
   return instData { tagsToRemove = [] }
 
+-- | Detect brokeness with an instance and suggest repair type and jobs to run.
+detectBroken :: Node.List -> Instance.Instance
+             -> Maybe (AutoRepairType, [OpCode])
+detectBroken nl inst =
+  let disk = Instance.diskTemplate inst
+      iname = Instance.name inst
+      offPri = Node.offline $ Container.find (Instance.pNode inst) nl
+      offSec = Node.offline $ Container.find (Instance.sNode inst) nl
+  in
+   case disk of
+     DTDrbd8
+       | offPri && offSec ->
+         Just (
+           ArReinstall,
+           [ OpInstanceRecreateDisks { opInstanceName = iname
+                                     , opRecreateDisksInfo = RecreateDisksAll
+                                     , opNodes = []
+                                       -- FIXME: there should be a better way to
+                                       -- specify opcode paramteres than abusing
+                                       -- mkNonEmpty in this way (using the fact
+                                       -- that Maybe is used both for optional
+                                       -- fields, and to express failure).
+                                     , opIallocator = mkNonEmpty "hail"
+                                     }
+           , OpInstanceReinstall { opInstanceName = iname
+                                 , opOsType = Nothing
+                                 , opTempOsParams = Nothing
+                                 , opForceVariant = False
+                                 }
+           ])
+       | offPri ->
+         Just (
+           ArFailover,
+           [ OpInstanceFailover { opInstanceName = iname
+                                  -- FIXME: ditto, see above.
+                                , opShutdownTimeout = fromJust $ mkNonNegative
+                                                      C.defaultShutdownTimeout
+                                , opIgnoreConsistency = False
+                                , opTargetNode = Nothing
+                                , opIgnoreIpolicy = False
+                                , opIallocator = Nothing
+                                }
+           ])
+       | offSec ->
+         Just (
+           ArFixStorage,
+           [ OpInstanceReplaceDisks { opInstanceName = iname
+                                    , opReplaceDisksMode = ReplaceNewSecondary
+                                    , opReplaceDisksList = []
+                                    , opRemoteNode = Nothing
+                                      -- FIXME: ditto, see above.
+                                    , opIallocator = mkNonEmpty "hail"
+                                    , opEarlyRelease = False
+                                    , opIgnoreIpolicy = False
+                                    }
+            ])
+       | otherwise -> Nothing
+
+     DTPlain
+       | offPri ->
+         Just (
+           ArReinstall,
+           [ OpInstanceRecreateDisks { opInstanceName = iname
+                                     , opRecreateDisksInfo = RecreateDisksAll
+                                     , opNodes = []
+                                       -- FIXME: ditto, see above.
+                                     , opIallocator = mkNonEmpty "hail"
+                                     }
+           , OpInstanceReinstall { opInstanceName = iname
+                                 , opOsType = Nothing
+                                 , opTempOsParams = Nothing
+                                 , opForceVariant = False
+                                 }
+           ])
+       | otherwise -> Nothing
+
+     _ -> Nothing  -- Other cases are unimplemented for now: DTDiskless,
+                   -- DTFile, DTSharedFile, DTBlock, DTRbd, DTExt.
+
 -- | Main function.
 main :: Options -> [String] -> IO ()
 main opts args = do
@@ -281,13 +362,16 @@ main opts args = do
   let master = fromMaybe luxiDef $ optLuxi opts
       opts' = opts { optLuxi = Just master }
 
-  (ClusterData _ _ il _ _) <- loadExternalData opts'
+  (ClusterData _ nl il _ _) <- loadExternalData opts'
 
   let iniDataRes = mapM setInitialState $ Container.elems il
   iniData <- exitIfBad "when parsing auto-repair tags" iniDataRes
 
   -- First step: check all pending repairs, see if they are completed.
-  _unused_iniData' <- bracket (L.getClient master) L.closeClient $
-                      forM iniData . processPending
+  iniData' <- bracket (L.getClient master) L.closeClient $
+              forM iniData . processPending
+
+  -- Second step: detect any problems.
+  let _unused_repairs = map (detectBroken nl . arInstance) iniData'
 
   return ()
