@@ -75,6 +75,7 @@ def _DiskTest(node, disk_template):
     AssertCommand(cmd)
 
     _CheckSsconfInstanceList(instance["name"])
+    qa_config.SetInstanceTemplate(instance, disk_template)
 
     return instance
   except:
@@ -631,8 +632,9 @@ def TestInstanceExportNoTarget(instance):
 @InstanceCheck(None, INST_DOWN, FIRST_ARG)
 def TestInstanceImport(newinst, node, expnode, name):
   """gnt-backup import"""
+  templ = constants.DT_PLAIN
   cmd = (["gnt-backup", "import",
-          "--disk-template=plain",
+          "--disk-template=%s" % templ,
           "--no-ip-check",
           "--src-node=%s" % expnode["primary"],
           "--src-dir=%s/%s" % (pathutils.EXPORT_DIR, name),
@@ -640,6 +642,7 @@ def TestInstanceImport(newinst, node, expnode, name):
          _GetGenericAddParameters(newinst, force_mac=constants.VALUE_GENERATE))
   cmd.append(newinst["name"])
   AssertCommand(cmd)
+  qa_config.SetInstanceTemplate(newinst, templ)
 
 
 def TestBackupList(expnode):

@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2007, 2011, 2012 Google Inc.
+# Copyright (C) 2007, 2011, 2012, 2013 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -218,11 +218,28 @@ def AcquireInstance():
 
   inst = instances[0]
   inst["_used"] = True
+  inst["_template"] = None
   return inst
 
 
 def ReleaseInstance(inst):
   inst["_used"] = False
+
+
+def GetInstanceTemplate(inst):
+  """Return the disk template of an instance.
+
+  """
+  templ = inst["_template"]
+  assert templ is not None
+  return templ
+
+
+def SetInstanceTemplate(inst, template):
+  """Set the disk template for an instance.
+
+  """
+  inst["_template"] = template
 
 
 def AcquireNode(exclude=None):

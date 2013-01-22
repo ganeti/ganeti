@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2007, 2008, 2009, 2010, 2011, 2012 Google Inc.
+# Copyright (C) 2007, 2008, 2009, 2010, 2011, 2012, 2013 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -551,6 +551,7 @@ def TestRapiNodeGroups():
 def TestRapiInstanceAdd(node, use_client):
   """Test adding a new instance via RAPI"""
   instance = qa_config.AcquireInstance()
+  qa_config.SetInstanceTemplate(instance, constants.DT_PLAIN)
   try:
     disk_sizes = [utils.ParseUnit(size) for size in qa_config.get("disk")]
     disks = [{"size": size} for size in disk_sizes]
@@ -750,6 +751,9 @@ def TestInterClusterInstanceMove(src_instance, dest_instance,
   rapi_pw_file = tempfile.NamedTemporaryFile()
   rapi_pw_file.write(_rapi_password)
   rapi_pw_file.flush()
+
+  qa_config.SetInstanceTemplate(dest_instance,
+                                qa_config.GetInstanceTemplate(src_instance))
 
   # TODO: Run some instance tests before moving back
 
