@@ -62,7 +62,7 @@ Offline nodes should be ignored.
 Filtering by nodegroup should be allowed.
 
 If instances are online the tool should refuse to do offline rolling
-maintenances, unless explicitely requested.
+maintenances, unless explicitly requested.
 
 End-to-end shelltests should be provided.
 
