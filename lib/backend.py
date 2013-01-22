@@ -1217,9 +1217,16 @@ def RunRenameInstance(instance, old_name, debug):
           " log file:\n%s", result.fail_reason, "\n".join(lines), log=False)
 
 
-def _GetBlockDevSymlinkPath(instance_name, idx):
-  return utils.PathJoin(pathutils.DISK_LINKS_DIR, "%s%s%d" %
-                        (instance_name, constants.DISK_SEPARATOR, idx))
+def _GetBlockDevSymlinkPath(instance_name, idx, _dir=None):
+  """Returns symlink path for block device.
+
+  """
+  if _dir is None:
+    _dir = pathutils.DISK_LINKS_DIR
+
+  return utils.PathJoin(_dir,
+                        ("%s%s%s" %
+                         (instance_name, constants.DISK_SEPARATOR, idx)))
 
 
 def _SymlinkBlockDev(instance_name, device_path, idx):

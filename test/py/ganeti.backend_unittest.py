@@ -517,5 +517,23 @@ class TestSetWatcherPause(unittest.TestCase):
       self.assertEqual(os.stat(self.filename).st_mode & 0777, 0644)
 
 
+class TestGetBlockDevSymlinkPath(unittest.TestCase):
+  def setUp(self):
+    self.tmpdir = tempfile.mkdtemp()
+
+  def tearDown(self):
+    shutil.rmtree(self.tmpdir)
+
+  def _Test(self, name, idx):
+    self.assertEqual(backend._GetBlockDevSymlinkPath(name, idx,
+                                                     _dir=self.tmpdir),
+                     ("%s/%s%s%s" % (self.tmpdir, name,
+                                     constants.DISK_SEPARATOR, idx)))
+
+  def test(self):
+    for idx in range(100):
+      self._Test("inst1.example.com", idx)
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
