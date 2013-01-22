@@ -169,9 +169,6 @@ class BaseHypervisor(object):
   ANCILLARY_FILES_OPT = []
   CAN_MIGRATE = False
 
-  def __init__(self):
-    pass
-
   def StartInstance(self, instance, block_devices, startup_paused):
     """Start an instance."""
     raise NotImplementedError
