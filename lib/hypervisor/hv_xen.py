@@ -137,11 +137,13 @@ class XenHypervisor(hv_base.BaseHypervisor):
     """Returns the contents of the instance config file.
 
     """
+    filename = XenHypervisor._ConfigFileName(instance_name)
+
     try:
-      file_content = utils.ReadFile(
-                       XenHypervisor._ConfigFileName(instance_name))
+      file_content = utils.ReadFile(filename)
     except EnvironmentError, err:
       raise errors.HypervisorError("Failed to load Xen config file: %s" % err)
+
     return file_content
 
   @staticmethod
