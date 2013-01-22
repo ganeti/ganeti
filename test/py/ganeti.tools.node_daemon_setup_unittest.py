@@ -79,7 +79,7 @@ class TestVerifyCertificate(testutils.GanetiTestCase):
       }, _verify_fn=lambda _: None)
 
   def testNoPrivateKey(self):
-    cert_filename = self._TestDataFilename("cert1.pem")
+    cert_filename = testutils.TestDataFilename("cert1.pem")
     cert_pem = utils.ReadFile(cert_filename)
 
     self.assertRaises(errors.X509CertError,
@@ -97,7 +97,7 @@ class TestVerifyCertificate(testutils.GanetiTestCase):
     assert cert.get_subject()
 
   def testSuccessfulCheck(self):
-    cert_filename = self._TestDataFilename("cert2.pem")
+    cert_filename = testutils.TestDataFilename("cert2.pem")
     cert_pem = utils.ReadFile(cert_filename)
     result = \
       node_daemon_setup._VerifyCertificate(cert_pem, _check_fn=self._Check)
@@ -109,8 +109,8 @@ class TestVerifyCertificate(testutils.GanetiTestCase):
     self.assertTrue(key)
 
   def testMismatchingKey(self):
-    cert1_path = self._TestDataFilename("cert1.pem")
-    cert2_path = self._TestDataFilename("cert2.pem")
+    cert1_path = testutils.TestDataFilename("cert1.pem")
+    cert2_path = testutils.TestDataFilename("cert2.pem")
 
     # Extract certificate
     cert1 = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM,

@@ -73,7 +73,7 @@ class TestVerifyCertificate(testutils.GanetiTestCase):
     prepare_node_join.VerifyCertificate({}, _verify_fn=NotImplemented)
 
   def testGivenPrivateKey(self):
-    cert_filename = self._TestDataFilename("cert2.pem")
+    cert_filename = testutils.TestDataFilename("cert2.pem")
     cert_pem = utils.ReadFile(cert_filename)
 
     self.assertRaises(_JoinError, prepare_node_join._VerifyCertificate,
@@ -90,7 +90,7 @@ class TestVerifyCertificate(testutils.GanetiTestCase):
     assert cert.get_subject()
 
   def testSuccessfulCheck(self):
-    cert_filename = self._TestDataFilename("cert1.pem")
+    cert_filename = testutils.TestDataFilename("cert1.pem")
     cert_pem = utils.ReadFile(cert_filename)
     prepare_node_join._VerifyCertificate(cert_pem, _check_fn=self._Check)
 

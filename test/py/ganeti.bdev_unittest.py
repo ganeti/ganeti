@@ -106,7 +106,7 @@ class TestDRBD8Runner(testutils.GanetiTestCase):
 
   def testParser80(self):
     """Test drbdsetup show parser for disk and network version 8.0"""
-    data = self._ReadTestData("bdev-drbd-8.0.txt")
+    data = testutils.ReadTestData("bdev-drbd-8.0.txt")
     result = bdev.DRBD8._GetDevInfo(data)
     self.failUnless(self._has_disk(result, "/dev/xenvg/test.data",
                                    "/dev/xenvg/test.meta"),
@@ -117,7 +117,7 @@ class TestDRBD8Runner(testutils.GanetiTestCase):
 
   def testParser83(self):
     """Test drbdsetup show parser for disk and network version 8.3"""
-    data = self._ReadTestData("bdev-drbd-8.3.txt")
+    data = testutils.ReadTestData("bdev-drbd-8.3.txt")
     result = bdev.DRBD8._GetDevInfo(data)
     self.failUnless(self._has_disk(result, "/dev/xenvg/test.data",
                                    "/dev/xenvg/test.meta"),
@@ -128,7 +128,7 @@ class TestDRBD8Runner(testutils.GanetiTestCase):
 
   def testParserNetIP4(self):
     """Test drbdsetup show parser for IPv4 network"""
-    data = self._ReadTestData("bdev-drbd-net-ip4.txt")
+    data = testutils.ReadTestData("bdev-drbd-net-ip4.txt")
     result = bdev.DRBD8._GetDevInfo(data)
     self.failUnless(("local_dev" not in result and
                      "meta_dev" not in result and
@@ -140,7 +140,7 @@ class TestDRBD8Runner(testutils.GanetiTestCase):
 
   def testParserNetIP6(self):
     """Test drbdsetup show parser for IPv6 network"""
-    data = self._ReadTestData("bdev-drbd-net-ip6.txt")
+    data = testutils.ReadTestData("bdev-drbd-net-ip6.txt")
     result = bdev.DRBD8._GetDevInfo(data)
     self.failUnless(("local_dev" not in result and
                      "meta_dev" not in result and
@@ -152,7 +152,7 @@ class TestDRBD8Runner(testutils.GanetiTestCase):
 
   def testParserDisk(self):
     """Test drbdsetup show parser for disk"""
-    data = self._ReadTestData("bdev-drbd-disk.txt")
+    data = testutils.ReadTestData("bdev-drbd-disk.txt")
     result = bdev.DRBD8._GetDevInfo(data)
     self.failUnless(self._has_disk(result, "/dev/xenvg/test.data",
                                    "/dev/xenvg/test.meta"),
@@ -237,12 +237,12 @@ class TestDRBD8Status(testutils.GanetiTestCase):
   def setUp(self):
     """Read in txt data"""
     testutils.GanetiTestCase.setUp(self)
-    proc_data = self._TestDataFilename("proc_drbd8.txt")
-    proc80e_data = self._TestDataFilename("proc_drbd80-emptyline.txt")
-    proc83_data = self._TestDataFilename("proc_drbd83.txt")
-    proc83_sync_data = self._TestDataFilename("proc_drbd83_sync.txt")
+    proc_data = testutils.TestDataFilename("proc_drbd8.txt")
+    proc80e_data = testutils.TestDataFilename("proc_drbd80-emptyline.txt")
+    proc83_data = testutils.TestDataFilename("proc_drbd83.txt")
+    proc83_sync_data = testutils.TestDataFilename("proc_drbd83_sync.txt")
     proc83_sync_krnl_data = \
-      self._TestDataFilename("proc_drbd83_sync_krnl2.6.39.txt")
+      testutils.TestDataFilename("proc_drbd83_sync_krnl2.6.39.txt")
     self.proc_data = bdev.DRBD8._GetProcData(filename=proc_data)
     self.proc80e_data = bdev.DRBD8._GetProcData(filename=proc80e_data)
     self.proc83_data = bdev.DRBD8._GetProcData(filename=proc83_data)
@@ -265,7 +265,7 @@ class TestDRBD8Status(testutils.GanetiTestCase):
 
   def testHelper(self):
     """Test reading usermode_helper in /sys."""
-    sys_drbd_helper = self._TestDataFilename("sys_drbd_usermode_helper.txt")
+    sys_drbd_helper = testutils.TestDataFilename("sys_drbd_usermode_helper.txt")
     drbd_helper = bdev.DRBD8.GetUsermodeHelper(filename=sys_drbd_helper)
     self.failUnlessEqual(drbd_helper, "/bin/true")
 

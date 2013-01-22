@@ -61,7 +61,7 @@ class TestCertVerification(testutils.GanetiTestCase):
     shutil.rmtree(self.tmpdir)
 
   def testVerifyCertificate(self):
-    cmdlib._VerifyCertificate(self._TestDataFilename("cert1.pem"))
+    cmdlib._VerifyCertificate(testutils.TestDataFilename("cert1.pem"))
 
     nonexist_filename = os.path.join(self.tmpdir, "does-not-exist")
 
@@ -69,7 +69,7 @@ class TestCertVerification(testutils.GanetiTestCase):
     self.assertEqual(errcode, cmdlib.LUClusterVerifyConfig.ETYPE_ERROR)
 
     # Try to load non-certificate file
-    invalid_cert = self._TestDataFilename("bdev-net.txt")
+    invalid_cert = testutils.TestDataFilename("bdev-net.txt")
     (errcode, msg) = cmdlib._VerifyCertificate(invalid_cert)
     self.assertEqual(errcode, cmdlib.LUClusterVerifyConfig.ETYPE_ERROR)
 

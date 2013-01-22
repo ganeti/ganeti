@@ -48,8 +48,8 @@ class TestVGReduce(testutils.GanetiTestCase):
 
   def testOldVersion(self):
     lvmvg = storage.LvmVgStorage()
-    stdout = self._ReadTestData("vgreduce-removemissing-2.02.02.txt")
-    vgs_fail = self._ReadTestData("vgs-missing-pvs-2.02.02.txt")
+    stdout = testutils.ReadTestData("vgreduce-removemissing-2.02.02.txt")
+    vgs_fail = testutils.ReadTestData("vgs-missing-pvs-2.02.02.txt")
     self.run_history = [
       ([self.VGREDUCE_CMD, "--removemissing", self.VGNAME],
        utils.RunResult(0, None, stdout, "", "", None, None)),
@@ -71,9 +71,9 @@ class TestVGReduce(testutils.GanetiTestCase):
 
   def testNewVersion(self):
     lvmvg = storage.LvmVgStorage()
-    stdout1 = self._ReadTestData("vgreduce-removemissing-2.02.66-fail.txt")
-    stdout2 = self._ReadTestData("vgreduce-removemissing-2.02.66-ok.txt")
-    vgs_fail = self._ReadTestData("vgs-missing-pvs-2.02.66.txt")
+    stdout1 = testutils.ReadTestData("vgreduce-removemissing-2.02.66-fail.txt")
+    stdout2 = testutils.ReadTestData("vgreduce-removemissing-2.02.66-ok.txt")
+    vgs_fail = testutils.ReadTestData("vgs-missing-pvs-2.02.66.txt")
     # first: require --fail, check that it's used
     self.run_history = [
       ([self.VGREDUCE_CMD, "--removemissing", self.VGNAME],

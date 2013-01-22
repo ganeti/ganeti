@@ -379,7 +379,7 @@ class TestRunCmd(testutils.GanetiTestCase):
       temp.close()
 
   def testNoInputRead(self):
-    testfile = self._TestDataFilename("cert1.pem")
+    testfile = testutils.TestDataFilename("cert1.pem")
 
     result = utils.RunCmd(["cat"], timeout=10.0)
     self.assertFalse(result.failed)
@@ -387,7 +387,7 @@ class TestRunCmd(testutils.GanetiTestCase):
     self.assertEqual(result.stdout, "")
 
   def testInputFileHandle(self):
-    testfile = self._TestDataFilename("cert1.pem")
+    testfile = testutils.TestDataFilename("cert1.pem")
 
     result = utils.RunCmd(["cat"], input_fd=open(testfile, "r"))
     self.assertFalse(result.failed)
@@ -395,7 +395,7 @@ class TestRunCmd(testutils.GanetiTestCase):
     self.assertEqual(result.stderr, "")
 
   def testInputNumericFileDescriptor(self):
-    testfile = self._TestDataFilename("cert2.pem")
+    testfile = testutils.TestDataFilename("cert2.pem")
 
     fh = open(testfile, "r")
     try:
@@ -408,7 +408,7 @@ class TestRunCmd(testutils.GanetiTestCase):
     self.assertEqual(result.stderr, "")
 
   def testInputWithCloseFds(self):
-    testfile = self._TestDataFilename("cert1.pem")
+    testfile = testutils.TestDataFilename("cert1.pem")
 
     temp = open(self.fname, "r+")
     try:

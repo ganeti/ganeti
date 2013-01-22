@@ -36,6 +36,30 @@ def GetSourceDir():
   return os.environ.get("TOP_SRCDIR", ".")
 
 
+def TestDataFilename(name):
+  """Returns the filename of a given test data file.
+
+  @type name: str
+  @param name: the 'base' of the file name, as present in
+      the test/data directory
+  @rtype: str
+  @return: the full path to the filename, such that it can
+      be used in 'make distcheck' rules
+
+  """
+  return "%s/test/data/%s" % (GetSourceDir(), name)
+
+
+def ReadTestData(name):
+  """Returns the content of a test data file.
+
+  This is just a very simple wrapper over utils.ReadFile with the
+  proper test file name.
+
+  """
+  return utils.ReadFile(TestDataFilename(name))
+
+
 def _SetupLogging(verbose):
   """Setupup logging infrastructure.
 
@@ -171,30 +195,6 @@ class GanetiTestCase(unittest.TestCase):
     return self.assertEqual(UnifyValueType(first),
                             UnifyValueType(second),
                             msg=msg)
-
-  @staticmethod
-  def _TestDataFilename(name):
-    """Returns the filename of a given test data file.
-
-    @type name: str
-    @param name: the 'base' of the file name, as present in
-        the test/data directory
-    @rtype: str
-    @return: the full path to the filename, such that it can
-        be used in 'make distcheck' rules
-
-    """
-    return "%s/test/data/%s" % (GetSourceDir(), name)
-
-  @classmethod
-  def _ReadTestData(cls, name):
-    """Returns the contents of a test data file.
-
-    This is just a very simple wrapper over utils.ReadFile with the
-    proper test file name.
-
-    """
-    return utils.ReadFile(cls._TestDataFilename(name))
 
   def _CreateTempFile(self):
     """Creates a temporary file and adds it to the internal cleanup list.

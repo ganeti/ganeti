@@ -41,7 +41,7 @@ import testutils
 
 class TestReadFile(testutils.GanetiTestCase):
   def testReadAll(self):
-    data = utils.ReadFile(self._TestDataFilename("cert1.pem"))
+    data = utils.ReadFile(testutils.TestDataFilename("cert1.pem"))
     self.assertEqual(len(data), 814)
 
     h = compat.md5_hash()
@@ -49,7 +49,7 @@ class TestReadFile(testutils.GanetiTestCase):
     self.assertEqual(h.hexdigest(), "a491efb3efe56a0535f924d5f8680fd4")
 
   def testReadSize(self):
-    data = utils.ReadFile(self._TestDataFilename("cert1.pem"),
+    data = utils.ReadFile(testutils.TestDataFilename("cert1.pem"),
                           size=100)
     self.assertEqual(len(data), 100)
 
@@ -60,7 +60,7 @@ class TestReadFile(testutils.GanetiTestCase):
   def testCallback(self):
     def _Cb(fh):
       self.assertEqual(fh.tell(), 0)
-    data = utils.ReadFile(self._TestDataFilename("cert1.pem"), preread=_Cb)
+    data = utils.ReadFile(testutils.TestDataFilename("cert1.pem"), preread=_Cb)
     self.assertEqual(len(data), 814)
 
   def testError(self):
@@ -73,19 +73,19 @@ class TestReadOneLineFile(testutils.GanetiTestCase):
     testutils.GanetiTestCase.setUp(self)
 
   def testDefault(self):
-    data = utils.ReadOneLineFile(self._TestDataFilename("cert1.pem"))
+    data = utils.ReadOneLineFile(testutils.TestDataFilename("cert1.pem"))
     self.assertEqual(len(data), 27)
     self.assertEqual(data, "-----BEGIN CERTIFICATE-----")
 
   def testNotStrict(self):
-    data = utils.ReadOneLineFile(self._TestDataFilename("cert1.pem"),
+    data = utils.ReadOneLineFile(testutils.TestDataFilename("cert1.pem"),
                                  strict=False)
     self.assertEqual(len(data), 27)
     self.assertEqual(data, "-----BEGIN CERTIFICATE-----")
 
   def testStrictFailure(self):
     self.assertRaises(errors.GenericError, utils.ReadOneLineFile,
-                      self._TestDataFilename("cert1.pem"), strict=True)
+                      testutils.TestDataFilename("cert1.pem"), strict=True)
 
   def testLongLine(self):
     dummydata = (1024 * "Hello World! ")

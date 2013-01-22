@@ -82,7 +82,7 @@ class TestGetX509CertValidity(testutils.GanetiTestCase):
 
   def _LoadCert(self, name):
     return OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM,
-                                           self._ReadTestData(name))
+                                           testutils.ReadTestData(name))
 
   def test(self):
     validity = utils.GetX509CertValidity(self._LoadCert("cert1.pem"))
@@ -157,7 +157,7 @@ class TestCertVerification(testutils.GanetiTestCase):
     shutil.rmtree(self.tmpdir)
 
   def testVerifyCertificate(self):
-    cert_pem = utils.ReadFile(self._TestDataFilename("cert1.pem"))
+    cert_pem = testutils.ReadTestData("cert1.pem")
     cert = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM,
                                            cert_pem)
 
@@ -297,8 +297,8 @@ class TestCheckNodeCertificate(testutils.GanetiTestCase):
     shutil.rmtree(self.tmpdir)
 
   def testMismatchingKey(self):
-    other_cert = self._TestDataFilename("cert1.pem")
-    node_cert = self._TestDataFilename("cert2.pem")
+    other_cert = testutils.TestDataFilename("cert1.pem")
+    node_cert = testutils.TestDataFilename("cert2.pem")
 
     cert = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM,
                                            utils.ReadFile(other_cert))
@@ -312,7 +312,7 @@ class TestCheckNodeCertificate(testutils.GanetiTestCase):
       self.fail("Exception was not raised")
 
   def testMatchingKey(self):
-    cert_filename = self._TestDataFilename("cert2.pem")
+    cert_filename = testutils.TestDataFilename("cert2.pem")
 
     # Extract certificate
     cert = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM,
@@ -323,7 +323,7 @@ class TestCheckNodeCertificate(testutils.GanetiTestCase):
     utils.CheckNodeCertificate(cert, _noded_cert_file=cert_filename)
 
   def testMissingFile(self):
-    cert_path = self._TestDataFilename("cert1.pem")
+    cert_path = testutils.TestDataFilename("cert1.pem")
     nodecert = utils.PathJoin(self.tmpdir, "does-not-exist")
 
     utils.CheckNodeCertificate(NotImplemented, _noded_cert_file=nodecert)
@@ -338,13 +338,13 @@ class TestCheckNodeCertificate(testutils.GanetiTestCase):
                       NotImplemented, _noded_cert_file=tmpfile)
 
   def testNoPrivateKey(self):
-    cert = self._TestDataFilename("cert1.pem")
+    cert = testutils.TestDataFilename("cert1.pem")
     self.assertRaises(errors.X509CertError, utils.CheckNodeCertificate,
                       NotImplemented, _noded_cert_file=cert)
 
   def testMismatchInNodeCert(self):
-    cert1_path = self._TestDataFilename("cert1.pem")
-    cert2_path = self._TestDataFilename("cert2.pem")
+    cert1_path = testutils.TestDataFilename("cert1.pem")
+    cert2_path = testutils.TestDataFilename("cert2.pem")
     tmpfile = utils.PathJoin(self.tmpdir, "cert")
 
     # Extract certificate

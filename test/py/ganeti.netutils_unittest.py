@@ -502,7 +502,7 @@ class TestIpParsing(testutils.GanetiTestCase):
     # IPv4-only, fake loopback interface
     tests = ["ip-addr-show-lo-ipv4.txt", "ip-addr-show-lo-oneline-ipv4.txt"]
     for test_file in tests:
-      data = self._ReadTestData(test_file)
+      data = testutils.ReadTestData(test_file)
       addr = netutils._GetIpAddressesFromIpOutput(data)
       self.failUnless(len(addr[4]) == 1 and addr[4][0] == "127.0.0.1" and not
                       addr[6])
@@ -510,20 +510,20 @@ class TestIpParsing(testutils.GanetiTestCase):
     # IPv6-only, fake loopback interface
     tests = ["ip-addr-show-lo-ipv6.txt", "ip-addr-show-lo-ipv6.txt"]
     for test_file in tests:
-      data = self._ReadTestData(test_file)
+      data = testutils.ReadTestData(test_file)
       addr = netutils._GetIpAddressesFromIpOutput(data)
       self.failUnless(len(addr[6]) == 1 and addr[6][0] == "::1" and not addr[4])
 
     # IPv4 and IPv6, fake loopback interface
     tests = ["ip-addr-show-lo.txt", "ip-addr-show-lo-oneline.txt"]
     for test_file in tests:
-      data = self._ReadTestData(test_file)
+      data = testutils.ReadTestData(test_file)
       addr = netutils._GetIpAddressesFromIpOutput(data)
       self.failUnless(len(addr[6]) == 1 and addr[6][0] == "::1" and
                       len(addr[4]) == 1 and addr[4][0] == "127.0.0.1")
 
     # IPv4 and IPv6, dummy interface
-    data = self._ReadTestData("ip-addr-show-dummy0.txt")
+    data = testutils.ReadTestData("ip-addr-show-dummy0.txt")
     addr = netutils._GetIpAddressesFromIpOutput(data)
     self.failUnless(len(addr[6]) == 1 and
                     addr[6][0] == "2001:db8:85a3::8a2e:370:7334" and
