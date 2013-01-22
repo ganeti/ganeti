@@ -320,13 +320,43 @@ class XenHypervisor(hv_base.BaseHypervisor):
     XL_CONFIG_FILE,
     ]
 
-  def __init__(self, _cfgdir=None):
+  def __init__(self, _cfgdir=None, _run_cmd_fn=None, _cmd=None):
     hv_base.BaseHypervisor.__init__(self)
 
     if _cfgdir is None:
       self._cfgdir = pathutils.XEN_CONFIG_DIR
     else:
       self._cfgdir = _cfgdir
+
+    if _run_cmd_fn is None:
+      self._run_cmd_fn = utils.RunCmd
+    else:
+      self._run_cmd_fn = _run_cmd_fn
+
+    self._cmd = _cmd
+
+  def _GetCommand(self):
+    if self._cmd is None:
+      # TODO: Make command a hypervisor parameter
+      cmd = constants.XEN_CMD
+    else:
+      cmd = self._cmd
+
+    if cmd not in constants.KNOWN_XEN_COMMANDS:
+      raise errors.ProgrammerError("Unknown Xen command '%s'" % cmd)
+
+    return cmd
+
+  def _RunXen(self, args):
+    """Wrapper around L{utils.RunCmd} to run Xen command.
+
+    @see: L{utils.RunCmd}
+
+    """
+    cmd = [self._GetCommand()]
+    cmd.extend(args)
+
+    return self._run_cmd_fn(cmd)
 
   def _ConfigFileName(self, instance_name):
     """Get the config file name for an instance.
@@ -381,14 +411,11 @@ class XenHypervisor(hv_base.BaseHypervisor):
     """
     utils.RemoveFile(self._ConfigFileName(instance_name))
 
-  @staticmethod
-  def _GetXmList(include_node):
+  def _GetXmList(self, include_node):
     """Wrapper around module level L{_GetXmList}.
 
     """
-    # TODO: Abstract running Xen command for testing
-    return _GetXmList(lambda: utils.RunCmd([constants.XEN_CMD, "list"]),
-                      include_node)
+    return _GetXmList(lambda: self._RunXen(["list"]), include_node)
 
   def ListInstances(self):
     """Get the list of running instances.
@@ -445,12 +472,12 @@ class XenHypervisor(hv_base.BaseHypervisor):
 
     self._MakeConfigFile(instance, startup_memory, block_devices)
 
-    cmd = [constants.XEN_CMD, "create"]
+    cmd = ["create"]
     if startup_paused:
-      cmd.extend(["-p"])
-    cmd.extend([self._ConfigFileName(instance.name)])
-    result = utils.RunCmd(cmd)
+      cmd.append("-p")
+    cmd.append(self._ConfigFileName(instance.name))
 
+    result = self._RunXen(cmd)
     if result.failed:
       raise errors.HypervisorError("Failed to start instance %s: %s (%s)" %
                                    (instance.name, result.fail_reason,
@@ -464,11 +491,11 @@ class XenHypervisor(hv_base.BaseHypervisor):
       name = instance.name
 
     if force:
-      command = [constants.XEN_CMD, "destroy", name]
+      action = "destroy"
     else:
-      command = [constants.XEN_CMD, "shutdown", name]
-    result = utils.RunCmd(command)
+      action = "shutdown"
 
+    result = self._RunXen([action, name])
     if result.failed:
       raise errors.HypervisorError("Failed to stop instance %s: %s, %s" %
                                    (name, result.fail_reason, result.output))
@@ -486,7 +513,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
       raise errors.HypervisorError("Failed to reboot instance %s,"
                                    " not running" % instance.name)
 
-    result = utils.RunCmd([constants.XEN_CMD, "reboot", instance.name])
+    result = self._RunXen(["reboot", instance.name])
     if result.failed:
       raise errors.HypervisorError("Failed to reboot instance %s: %s, %s" %
                                    (instance.name, result.fail_reason,
@@ -519,14 +546,16 @@ class XenHypervisor(hv_base.BaseHypervisor):
     @param mem: actual memory size to use for instance runtime
 
     """
-    cmd = [constants.XEN_CMD, "mem-set", instance.name, mem]
-    result = utils.RunCmd(cmd)
+    result = self._RunXen(["mem-set", instance.name, mem])
     if result.failed:
       raise errors.HypervisorError("Failed to balloon instance %s: %s (%s)" %
                                    (instance.name, result.fail_reason,
                                     result.output))
+
+    # Update configuration file
     cmd = ["sed", "-ie", "s/^memory.*$/memory = %s/" % mem]
     cmd.append(self._ConfigFileName(instance.name))
+
     result = utils.RunCmd(cmd)
     if result.failed:
       raise errors.HypervisorError("Failed to update memory for %s: %s (%s)" %
@@ -539,8 +568,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
     @see: L{_GetNodeInfo} and L{_ParseNodeInfo}
 
     """
-    # TODO: Abstract running Xen command for testing
-    result = utils.RunCmd([constants.XEN_CMD, "info"])
+    result = self._RunXen(["info"])
     if result.failed:
       logging.error("Can't run 'xm info' (%s): %s", result.fail_reason,
                     result.output)
@@ -568,7 +596,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
     @return: Problem description if something is wrong, C{None} otherwise
 
     """
-    result = utils.RunCmd([constants.XEN_CMD, "info"])
+    result = self._RunXen(["info"])
     if result.failed:
       return "'xm info' failed: %s, %s" % (result.fail_reason, result.output)
 
@@ -634,26 +662,29 @@ class XenHypervisor(hv_base.BaseHypervisor):
 
     port = instance.hvparams[constants.HV_MIGRATION_PORT]
 
-    if (constants.XEN_CMD == constants.XEN_CMD_XM and
+    if (self._cmd == constants.XEN_CMD_XM and
         not netutils.TcpPing(target, port, live_port_needed=True)):
       raise errors.HypervisorError("Remote host %s not listening on port"
                                    " %s, cannot migrate" % (target, port))
 
-    args = [constants.XEN_CMD, "migrate"]
-    if constants.XEN_CMD == constants.XEN_CMD_XM:
+    args = ["migrate"]
+
+    if self._cmd == constants.XEN_CMD_XM:
       args.extend(["-p", "%d" % port])
       if live:
         args.append("-l")
-    elif constants.XEN_CMD == constants.XEN_CMD_XL:
+
+    elif self._cmd == constants.XEN_CMD_XL:
       cluster_name = ssconf.SimpleStore().GetClusterName()
       args.extend(["-s", constants.XL_SSH_CMD % cluster_name])
       args.extend(["-C", self._ConfigFileName(instance.name)])
+
     else:
-      raise errors.HypervisorError("Unsupported xen command: %s" %
-                                   constants.XEN_CMD)
+      raise errors.HypervisorError("Unsupported xen command: %s" % self._cmd)
 
     args.extend([instance.name, target])
-    result = utils.RunCmd(args)
+
+    result = self._RunXen(args)
     if result.failed:
       raise errors.HypervisorError("Failed to migrate instance %s: %s" %
                                    (instance.name, result.output))
