@@ -25,6 +25,7 @@
 # W0614: Unused import %s from wildcard import (since we need cli)
 
 import textwrap
+import itertools
 
 from ganeti.cli import *
 from ganeti import constants
@@ -83,6 +84,23 @@ def AddNetwork(opts, args):
   SubmitOrSend(op, opts)
 
 
+def _GetDefaultGroups(cl, groups):
+  """Gets list of groups to operate on.
+
+  If C{groups} doesn't contain groups, a list of all groups in the cluster is
+  returned.
+
+  @type cl: L{luxi.Client}
+  @type groups: list
+  @rtype: list
+
+  """
+  if groups:
+    return groups
+
+  return list(itertools.chain(*cl.QueryGroups([], ["uuid"], False)))
+
+
 def ConnectNetwork(opts, args):
   """Map a network to a node group.
 
@@ -93,13 +111,10 @@ def ConnectNetwork(opts, args):
   @return: the desired exit code
 
   """
-  (network, mode, link) = args[:3]
-  groups = args[3:]
-
   cl = GetClient()
 
-  if not groups:
-    (groups, ) = cl.QueryGroups([], ["uuid"], False)
+  (network, mode, link) = args[:3]
+  groups = _GetDefaultGroups(cl, args[3:])
 
   # TODO: Change logic to support "--submit"
   for group in groups:
@@ -121,13 +136,10 @@ def DisconnectNetwork(opts, args):
   @return: the desired exit code
 
   """
-  (network, ) = args[:1]
-  groups = args[1:]
-
   cl = GetClient()
 
-  if not groups:
-    (groups, ) = cl.QueryGroups([], ["uuid"], False)
+  (network, ) = args[:1]
+  groups = _GetDefaultGroups(cl, args[1:])
 
   # TODO: Change logic to support "--submit"
   for group in groups:
