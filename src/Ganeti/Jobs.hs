@@ -24,7 +24,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 
 module Ganeti.Jobs
-  ( execJobsWait
+  ( submitJobs
+  , execJobsWait
   , waitForJobs
   ) where
 
@@ -36,6 +37,15 @@ import qualified Ganeti.Luxi as L
 import Ganeti.OpCodes
 import Ganeti.Types
 
+-- | Submits a set of jobs and returns their job IDs without waiting for
+-- completion.
+submitJobs :: [[MetaOpCode]] -> L.Client -> IO (Result [L.JobId])
+submitJobs opcodes client = do
+  jids <- L.submitManyJobs client opcodes
+  return (case jids of
+            Bad e    -> Bad $ "Job submission error: " ++ formatError e
+            Ok jids' -> Ok jids')
+
 -- | Executes a set of jobs and waits for their completion, returning their
 -- status.
 execJobsWait :: [[MetaOpCode]]        -- ^ The list of jobs
@@ -43,9 +53,9 @@ execJobsWait :: [[MetaOpCode]]        -- ^ The list of jobs
              -> L.Client              -- ^ The Luxi client
              -> IO (Result [(L.JobId, JobStatus)])
 execJobsWait opcodes callback client = do
-  jids <- L.submitManyJobs client opcodes
+  jids <- submitJobs opcodes client
   case jids of
-    Bad e -> return . Bad $ "Job submission error: " ++ formatError e
+    Bad e -> return $ Bad e
     Ok jids' -> do
       callback jids'
       waitForJobs jids' client
