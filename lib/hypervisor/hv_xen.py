@@ -24,6 +24,7 @@
 """
 
 import logging
+import string # pylint: disable=W0402
 from cStringIO import StringIO
 
 from ganeti import constants
@@ -41,6 +42,12 @@ XL_CONFIG_FILE = utils.PathJoin(pathutils.XEN_CONFIG_DIR, "xen/xl.conf")
 VIF_BRIDGE_SCRIPT = utils.PathJoin(pathutils.XEN_CONFIG_DIR,
                                    "scripts/vif-bridge")
 _DOM0_NAME = "Domain-0"
+_DISK_LETTERS = string.ascii_lowercase
+
+_FILE_DRIVER_MAP = {
+  constants.FD_LOOP: "file",
+  constants.FD_BLKTAP: "tap:aio",
+  }
 
 
 def _CreateConfigCpus(cpu_mask):
@@ -252,6 +259,45 @@ def _GetNodeInfo(info, fn):
 
   """
   return _MergeInstanceInfo(_ParseNodeInfo(info), fn)
+
+
+def _GetConfigFileDiskData(block_devices, blockdev_prefix,
+                           _letters=_DISK_LETTERS):
+  """Get disk directives for Xen config file.
+
+  This method builds the xen config disk directive according to the
+  given disk_template and block_devices.
+
+  @param block_devices: list of tuples (cfdev, rldev):
+      - cfdev: dict containing ganeti config disk part
+      - rldev: ganeti.bdev.BlockDev object
+  @param blockdev_prefix: a string containing blockdevice prefix,
+                          e.g. "sd" for /dev/sda
+
+  @return: string containing disk directive for xen instance config file
+
+  """
+  if len(block_devices) > len(_letters):
+    raise errors.HypervisorError("Too many disks")
+
+  disk_data = []
+
+  for sd_suffix, (cfdev, dev_path) in zip(_letters, block_devices):
+    sd_name = blockdev_prefix + sd_suffix
+
+    if cfdev.mode == constants.DISK_RDWR:
+      mode = "w"
+    else:
+      mode = "r"
+
+    if cfdev.dev_type == constants.LD_FILE:
+      driver = _FILE_DRIVER_MAP[cfdev.physical_id[0]]
+    else:
+      driver = "phy"
+
+    disk_data.append("'%s:%s,%s,%s'" % (driver, dev_path, sd_name, mode))
+
+  return disk_data
 
 
 class XenHypervisor(hv_base.BaseHypervisor):
@@ -506,45 +552,6 @@ class XenHypervisor(hv_base.BaseHypervisor):
 
     return None
 
-  @staticmethod
-  def _GetConfigFileDiskData(block_devices, blockdev_prefix):
-    """Get disk directive for xen config file.
-
-    This method builds the xen config disk directive according to the
-    given disk_template and block_devices.
-
-    @param block_devices: list of tuples (cfdev, rldev):
-        - cfdev: dict containing ganeti config disk part
-        - rldev: ganeti.bdev.BlockDev object
-    @param blockdev_prefix: a string containing blockdevice prefix,
-                            e.g. "sd" for /dev/sda
-
-    @return: string containing disk directive for xen instance config file
-
-    """
-    FILE_DRIVER_MAP = {
-      constants.FD_LOOP: "file",
-      constants.FD_BLKTAP: "tap:aio",
-      }
-    disk_data = []
-    if len(block_devices) > 24:
-      # 'z' - 'a' = 24
-      raise errors.HypervisorError("Too many disks")
-    namespace = [blockdev_prefix + chr(i + ord("a")) for i in range(24)]
-    for sd_name, (cfdev, dev_path) in zip(namespace, block_devices):
-      if cfdev.mode == constants.DISK_RDWR:
-        mode = "w"
-      else:
-        mode = "r"
-      if cfdev.dev_type == constants.LD_FILE:
-        line = "'%s:%s,%s,%s'" % (FILE_DRIVER_MAP[cfdev.physical_id[0]],
-                                  dev_path, sd_name, mode)
-      else:
-        line = "'phy:%s,%s,%s'" % (dev_path, sd_name, mode)
-      disk_data.append(line)
-
-    return disk_data
-
   def MigrationInfo(self, instance):
     """Get instance information to perform a migration.
 
@@ -765,8 +772,8 @@ class XenPvmHypervisor(XenHypervisor):
         nic_str += ", bridge=%s" % nic.nicparams[constants.NIC_LINK]
       vif_data.append("'%s'" % nic_str)
 
-    disk_data = cls._GetConfigFileDiskData(block_devices,
-                                           hvp[constants.HV_BLOCKDEV_PREFIX])
+    disk_data = \
+      _GetConfigFileDiskData(block_devices, hvp[constants.HV_BLOCKDEV_PREFIX])
 
     config.write("vif = [%s]\n" % ",".join(vif_data))
     config.write("disk = [%s]\n" % ",".join(disk_data))
@@ -918,8 +925,8 @@ class XenHvmHypervisor(XenHypervisor):
 
     config.write("vif = [%s]\n" % ",".join(vif_data))
 
-    disk_data = cls._GetConfigFileDiskData(block_devices,
-                                           hvp[constants.HV_BLOCKDEV_PREFIX])
+    disk_data = \
+      _GetConfigFileDiskData(block_devices, hvp[constants.HV_BLOCKDEV_PREFIX])
 
     iso_path = hvp[constants.HV_CDROM_IMAGE_PATH]
     if iso_path:

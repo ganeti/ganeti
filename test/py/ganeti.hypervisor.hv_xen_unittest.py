@@ -21,6 +21,7 @@
 
 """Script for testing ganeti.hypervisor.hv_lxc"""
 
+import string # pylint: disable=W0402
 import unittest
 
 from ganeti import constants
@@ -211,6 +212,80 @@ class TestMergeInstanceInfo(testutils.GanetiTestCase):
       "memory_hv": 2230,
       "memory_total": 16378,
       })
+
+
+class TestGetConfigFileDiskData(unittest.TestCase):
+  def testLetterCount(self):
+    self.assertEqual(len(hv_xen._DISK_LETTERS), 26)
+
+  def testNoDisks(self):
+    self.assertEqual(hv_xen._GetConfigFileDiskData([], "hd"), [])
+
+  def testManyDisks(self):
+    for offset in [0, 1, 10]:
+      disks = [(objects.Disk(dev_type=constants.LD_LV), "/tmp/disk/%s" % idx)
+               for idx in range(len(hv_xen._DISK_LETTERS) + offset)]
+
+      if offset == 0:
+        result = hv_xen._GetConfigFileDiskData(disks, "hd")
+        self.assertEqual(result, [
+          "'phy:/tmp/disk/%s,hd%s,r'" % (idx, string.ascii_lowercase[idx])
+          for idx in range(len(hv_xen._DISK_LETTERS) + offset)
+          ])
+      else:
+        try:
+          hv_xen._GetConfigFileDiskData(disks, "hd")
+        except errors.HypervisorError, err:
+          self.assertEqual(str(err), "Too many disks")
+        else:
+          self.fail("Exception was not raised")
+
+  def testTwoLvDisksWithMode(self):
+    disks = [
+      (objects.Disk(dev_type=constants.LD_LV, mode=constants.DISK_RDWR),
+       "/tmp/diskFirst"),
+      (objects.Disk(dev_type=constants.LD_LV, mode=constants.DISK_RDONLY),
+       "/tmp/diskLast"),
+      ]
+
+    result = hv_xen._GetConfigFileDiskData(disks, "hd")
+    self.assertEqual(result, [
+      "'phy:/tmp/diskFirst,hda,w'",
+      "'phy:/tmp/diskLast,hdb,r'",
+      ])
+
+  def testFileDisks(self):
+    disks = [
+      (objects.Disk(dev_type=constants.LD_FILE, mode=constants.DISK_RDWR,
+                    physical_id=[constants.FD_LOOP]),
+       "/tmp/diskFirst"),
+      (objects.Disk(dev_type=constants.LD_FILE, mode=constants.DISK_RDONLY,
+                    physical_id=[constants.FD_BLKTAP]),
+       "/tmp/diskTwo"),
+      (objects.Disk(dev_type=constants.LD_FILE, mode=constants.DISK_RDWR,
+                    physical_id=[constants.FD_LOOP]),
+       "/tmp/diskThree"),
+      (objects.Disk(dev_type=constants.LD_FILE, mode=constants.DISK_RDWR,
+                    physical_id=[constants.FD_BLKTAP]),
+       "/tmp/diskLast"),
+      ]
+
+    result = hv_xen._GetConfigFileDiskData(disks, "sd")
+    self.assertEqual(result, [
+      "'file:/tmp/diskFirst,sda,w'",
+      "'tap:aio:/tmp/diskTwo,sdb,r'",
+      "'file:/tmp/diskThree,sdc,w'",
+      "'tap:aio:/tmp/diskLast,sdd,w'",
+      ])
+
+  def testInvalidFileDisk(self):
+    disks = [
+      (objects.Disk(dev_type=constants.LD_FILE, mode=constants.DISK_RDWR,
+                    physical_id=["#unknown#"]),
+       "/tmp/diskinvalid"),
+      ]
+
+    self.assertRaises(KeyError, hv_xen._GetConfigFileDiskData, disks, "sd")
 
 
 if __name__ == "__main__":
