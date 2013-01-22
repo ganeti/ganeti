@@ -320,8 +320,15 @@ class XenHypervisor(hv_base.BaseHypervisor):
     XL_CONFIG_FILE,
     ]
 
-  @staticmethod
-  def _ConfigFileName(instance_name):
+  def __init__(self, _cfgdir=None):
+    hv_base.BaseHypervisor.__init__(self)
+
+    if _cfgdir is None:
+      self._cfgdir = pathutils.XEN_CONFIG_DIR
+    else:
+      self._cfgdir = _cfgdir
+
+  def _ConfigFileName(self, instance_name):
     """Get the config file name for an instance.
 
     @param instance_name: instance name
@@ -330,7 +337,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
     @rtype: str
 
     """
-    return utils.PathJoin(pathutils.XEN_CONFIG_DIR, instance_name)
+    return utils.PathJoin(self._cfgdir, instance_name)
 
   @classmethod
   def _WriteConfigFile(cls, instance, startup_memory, block_devices):
@@ -339,30 +346,27 @@ class XenHypervisor(hv_base.BaseHypervisor):
     """
     raise NotImplementedError
 
-  @staticmethod
-  def _WriteConfigFileStatic(instance_name, data):
+  def _WriteConfigFileStatic(self, instance_name, data):
     """Write the Xen config file for the instance.
 
     This version of the function just writes the config file from static data.
 
     """
     # just in case it exists
-    utils.RemoveFile(utils.PathJoin(pathutils.XEN_CONFIG_DIR, "auto",
-                                    instance_name))
+    utils.RemoveFile(utils.PathJoin(self._cfgdir, "auto", instance_name))
 
-    cfg_file = XenHypervisor._ConfigFileName(instance_name)
+    cfg_file = self._ConfigFileName(instance_name)
     try:
       utils.WriteFile(cfg_file, data=data)
     except EnvironmentError, err:
       raise errors.HypervisorError("Cannot write Xen instance configuration"
                                    " file %s: %s" % (cfg_file, err))
 
-  @staticmethod
-  def _ReadConfigFile(instance_name):
+  def _ReadConfigFile(self, instance_name):
     """Returns the contents of the instance config file.
 
     """
-    filename = XenHypervisor._ConfigFileName(instance_name)
+    filename = self._ConfigFileName(instance_name)
 
     try:
       file_content = utils.ReadFile(filename)
@@ -371,12 +375,11 @@ class XenHypervisor(hv_base.BaseHypervisor):
 
     return file_content
 
-  @staticmethod
-  def _RemoveConfigFile(instance_name):
+  def _RemoveConfigFile(self, instance_name):
     """Remove the xen configuration file.
 
     """
-    utils.RemoveFile(XenHypervisor._ConfigFileName(instance_name))
+    utils.RemoveFile(self._ConfigFileName(instance_name))
 
   @staticmethod
   def _GetXmList(include_node):
@@ -504,7 +507,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
                                    (instance.name, result.fail_reason,
                                     result.output))
     cmd = ["sed", "-ie", "s/^memory.*$/memory = %s/" % mem]
-    cmd.append(XenHypervisor._ConfigFileName(instance.name))
+    cmd.append(self._ConfigFileName(instance.name))
     result = utils.RunCmd(cmd)
     if result.failed:
       raise errors.HypervisorError("Failed to update memory for %s: %s (%s)" %
@@ -713,8 +716,7 @@ class XenPvmHypervisor(XenHypervisor):
       (False, lambda x: 0 < x < 65536, "invalid weight", None, None),
     }
 
-  @classmethod
-  def _WriteConfigFile(cls, instance, startup_memory, block_devices):
+  def _WriteConfigFile(self, instance, startup_memory, block_devices):
     """Write the Xen config file for the instance.
 
     """
@@ -787,7 +789,7 @@ class XenPvmHypervisor(XenHypervisor):
       config.write("on_reboot = 'destroy'\n")
     config.write("on_crash = 'restart'\n")
     config.write("extra = '%s'\n" % hvp[constants.HV_KERNEL_ARGS])
-    cls._WriteConfigFileStatic(instance.name, config.getvalue())
+    self._WriteConfigFileStatic(instance.name, config.getvalue())
 
     return True
 
@@ -835,8 +837,7 @@ class XenHvmHypervisor(XenHypervisor):
       (False, lambda x: 0 < x < 65535, "invalid weight", None, None),
     }
 
-  @classmethod
-  def _WriteConfigFile(cls, instance, startup_memory, block_devices):
+  def _WriteConfigFile(self, instance, startup_memory, block_devices):
     """Create a Xen 3.1 HVM config file.
 
     """
@@ -946,6 +947,6 @@ class XenHvmHypervisor(XenHypervisor):
     else:
       config.write("on_reboot = 'destroy'\n")
     config.write("on_crash = 'restart'\n")
-    cls._WriteConfigFileStatic(instance.name, config.getvalue())
+    self._WriteConfigFileStatic(instance.name, config.getvalue())
 
     return True
