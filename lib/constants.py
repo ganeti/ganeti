@@ -197,6 +197,12 @@ XEN_CMD_XM = "xm"
 XEN_CMD_XL = "xl"
 # FIXME: This will be made configurable using hvparams in Ganeti 2.7
 XEN_CMD = _autoconf.XEN_CMD
+
+KNOWN_XEN_COMMANDS = compat.UniqueFrozenset([
+  XEN_CMD_XM,
+  XEN_CMD_XL,
+  ])
+
 # When the Xen toolstack used is "xl", live migration requires the source host
 # to connect to the target host via ssh (xl runs this command). We need to pass
 # the command xl runs some extra info so that it can use Ganeti's key
