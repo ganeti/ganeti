@@ -55,6 +55,7 @@ module Ganeti.HTools.CLI
   , oGroup
   , oIAllocSrc
   , oInstMoves
+  , oJobDelay
   , genOLuxiSocket
   , oLuxiSocket
   , oMachineReadable
@@ -118,6 +119,7 @@ data Options = Options
   , optIAllocSrc   :: Maybe FilePath -- ^ The iallocation spec
   , optSelInst     :: [String]       -- ^ Instances to be excluded
   , optLuxi        :: Maybe FilePath -- ^ Collect data from Luxi
+  , optJobDelay    :: Double         -- ^ Delay before executing first job
   , optMachineReadable :: Bool       -- ^ Output machine-readable format
   , optMaster      :: String         -- ^ Collect data from RAPI
   , optMaxLength   :: Int            -- ^ Stop after this many steps
@@ -162,6 +164,7 @@ defaultOptions  = Options
   , optIAllocSrc   = Nothing
   , optSelInst     = []
   , optLuxi        = Nothing
+  , optJobDelay    = 10
   , optMachineReadable = False
   , optMaster      = ""
   , optMaxLength   = -1
@@ -325,6 +328,15 @@ oIAllocSrc =
    (ReqArg (\ f opts -> Ok opts { optIAllocSrc = Just f }) "FILE")
    "Specify an iallocator spec as the cluster data source",
    OptComplFile)
+
+oJobDelay :: OptType
+oJobDelay =
+  (Option "" ["job-delay"]
+   (reqWithConversion (tryRead "job delay")
+    (\d opts -> Ok opts { optJobDelay = d }) "SECONDS")
+   "insert this much delay before the execution of repair jobs\
+   \ to allow the tool to continue processing instances",
+   OptComplFloat)
 
 genOLuxiSocket :: String -> OptType
 genOLuxiSocket defSocket =

@@ -62,6 +62,7 @@ options = do
   luxi <- oLuxiSocket
   return
     [ luxi
+    , oJobDelay
     ]
 
 arguments :: [ArgCompletion]
@@ -353,9 +354,12 @@ detectBroken nl inst =
                    -- DTFile, DTSharedFile, DTBlock, DTRbd, DTExt.
 
 -- | Perform the suggested repair on an instance if its policy allows it.
-doRepair :: L.Client -> InstanceData -> (AutoRepairType, [OpCode])
-         -> IO InstanceData
-doRepair client instData (rtype, opcodes) =
+doRepair :: L.Client     -- ^ The Luxi client
+         -> Double       -- ^ Delay to insert before the first repair opcode
+         -> InstanceData -- ^ The instance data
+         -> (AutoRepairType, [OpCode]) -- ^ The repair job to perform
+         -> IO InstanceData -- ^ The updated instance data
+doRepair client delay instData (rtype, opcodes) =
   let inst = arInstance instData
       ipol = Instance.arPolicy inst
       iname = Instance.name inst
@@ -379,9 +383,38 @@ doRepair client instData (rtype, opcodes) =
       else do
         putStrLn ("Executing " ++ show rtype ++ " repair on " ++ iname)
 
+        -- After submitting the job, we must write an autorepair:pending tag,
+        -- that includes the repair job IDs so that they can be checked later.
+        -- One problem we run into is that the repair job immediately grabs
+        -- locks for the affected instance, and the subsequent TAGS_SET job is
+        -- blocked, introducing an unnecesary delay for the end-user. One
+        -- alternative would be not to wait for the completion of the TAGS_SET
+        -- job, contrary to what commitChange normally does; but we insist on
+        -- waiting for the tag to be set so as to abort in case of failure,
+        -- because the cluster is left in an invalid state in that case.
+        --
+        -- The proper solution (in 2.9+) would be not to use tags for storing
+        -- autorepair data, or make the TAGS_SET opcode not grab an instance's
+        -- locks (if that's deemed safe). In the meantime, we introduce an
+        -- artificial delay in the repair job (via a TestDelay opcode) so that
+        -- once we have the job ID, the TAGS_SET job can complete before the
+        -- repair job actually grabs the locks. (Please note that this is not
+        -- about synchronization, but merely about speeding up the execution of
+        -- the harep tool. If this TestDelay opcode is removed, the program is
+        -- still correct.)
+        let opcodes' =
+              if delay > 0 then
+                OpTestDelay { opDelayDuration = delay
+                            , opDelayOnMaster = True
+                            , opDelayOnNodes = []
+                            , opDelayRepeat = fromJust $ mkNonNegative 0
+                            } : opcodes
+              else
+                opcodes
+
         uuid <- newUUID
         time <- getClockTime
-        jids <- submitJobs [map wrapOpCode opcodes] client
+        jids <- submitJobs [map wrapOpCode opcodes'] client
 
         case jids of
           Bad e    -> exitErr e
@@ -423,8 +456,9 @@ main opts args = do
 
   -- Third step: create repair jobs for broken instances that are in ArHealthy.
   let maybeRepair c (i, r) = maybe (return i) (repairHealthy c i) r
+      jobDelay = optJobDelay opts
       repairHealthy c i = case arState i of
-                            ArHealthy _ -> doRepair c i
+                            ArHealthy _ -> doRepair c jobDelay i
                             _           -> const (return i)
 
   _unused_repairDone <- bracket (L.getClient master) L.closeClient $
