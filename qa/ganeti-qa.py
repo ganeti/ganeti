@@ -397,19 +397,6 @@ def RunDaemonTests(instance):
   RunTest(qa_daemon.TestResumeWatcher)
 
 
-def RunSingleHomedHardwareFailureTests(instance, pnode):
-  """Test hardware failure recovery for single-homed instances.
-
-  """
-  if qa_config.TestEnabled("instance-recreate-disks"):
-    othernode = qa_config.AcquireNode(exclude=[pnode])
-    try:
-      RunTest(qa_instance.TestRecreateDisks,
-              instance, pnode, None, [othernode])
-    finally:
-      qa_config.ReleaseNode(othernode)
-
-
 def RunHardwareFailureTests(instance, inodes):
   """Test cluster internal hardware failure recovery.
 
@@ -543,50 +530,44 @@ def RunQa():
           RunTest(qa_rapi.TestRapiInstanceRemove, rapi_instance, use_client)
           del rapi_instance
 
-    if qa_config.TestEnabled("instance-add-plain-disk"):
-      instance = RunTest(qa_instance.TestInstanceAddWithPlainDisk, [pnode])
-      RunCommonInstanceTests(instance)
-      RunGroupListTests()
-      RunTestIf("cluster-epo", qa_cluster.TestClusterEpo)
-      RunExportImportTests(instance, [pnode])
-      RunDaemonTests(instance)
-      RunRepairDiskSizes()
-      RunSingleHomedHardwareFailureTests(instance, pnode)
-      RunTest(qa_instance.TestInstanceRemove, instance)
-      del instance
-
-    multinode_tests = [
-      ("instance-add-drbd-disk",
-       qa_instance.TestInstanceAddWithDrbdDisk),
-    ]
-
-    for name, func in multinode_tests:
-      if qa_config.TestEnabled(name):
-        snode = qa_config.AcquireNode(exclude=pnode)
-        try:
-          instance = RunTest(func, [pnode, snode])
-          RunTestIf("haskell-confd", qa_node.TestNodeListDrbd, pnode)
-          RunTestIf("haskell-confd", qa_node.TestNodeListDrbd, snode)
-          RunCommonInstanceTests(instance)
-          RunGroupListTests()
-          RunTestIf("group-rwops", qa_group.TestAssignNodesIncludingSplit,
-                    constants.INITIAL_NODE_GROUP_NAME,
-                    pnode["primary"], snode["primary"])
-          if qa_config.TestEnabled("instance-convert-disk"):
-            RunTest(qa_instance.TestInstanceShutdown, instance)
-            RunTest(qa_instance.TestInstanceConvertDiskToPlain, instance,
-                    [pnode, snode])
-            RunTest(qa_instance.TestInstanceStartup, instance)
-          RunExportImportTests(instance, [pnode, snode])
-          RunHardwareFailureTests(instance, [pnode, snode])
-          RunRepairDiskSizes()
-          RunTest(qa_instance.TestInstanceRemove, instance)
-          del instance
-        finally:
-          qa_config.ReleaseNode(snode)
-
   finally:
     qa_config.ReleaseNode(pnode)
+
+  instance_tests = [
+    ("instance-add-plain-disk", constants.DT_PLAIN,
+     qa_instance.TestInstanceAddWithPlainDisk, 1),
+    ("instance-add-drbd-disk", constants.DT_DRBD8,
+     qa_instance.TestInstanceAddWithDrbdDisk, 2),
+  ]
+
+  for (test_name, templ, create_fun, num_nodes) in instance_tests:
+    if (qa_config.TestEnabled(test_name) and
+        qa_config.IsTemplateSupported(templ)):
+      inodes = qa_config.AcquireManyNodes(num_nodes)
+      try:
+        instance = RunTest(create_fun, inodes)
+
+        RunTestIf("cluster-epo", qa_cluster.TestClusterEpo)
+        RunDaemonTests(instance)
+        for node in inodes:
+          RunTestIf("haskell-confd", qa_node.TestNodeListDrbd, node)
+        if len(inodes) > 1:
+          RunTestIf("group-rwops", qa_group.TestAssignNodesIncludingSplit,
+                    constants.INITIAL_NODE_GROUP_NAME,
+                    inodes[0]["primary"], inodes[1]["primary"])
+        if qa_config.TestEnabled("instance-convert-disk"):
+          RunTest(qa_instance.TestInstanceShutdown, instance)
+          RunTest(qa_instance.TestInstanceConvertDiskToPlain, instance, inodes)
+          RunTest(qa_instance.TestInstanceStartup, instance)
+        RunCommonInstanceTests(instance)
+        RunGroupListTests()
+        RunExportImportTests(instance, inodes)
+        RunHardwareFailureTests(instance, inodes)
+        RunRepairDiskSizes()
+        RunTest(qa_instance.TestInstanceRemove, instance)
+        del instance
+      finally:
+        qa_config.ReleaseManyNodes(inodes)
 
   # Test removing instance with offline drbd secondary
   if qa_config.TestEnabled("instance-remove-drbd-offline"):

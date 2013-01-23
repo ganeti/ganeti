@@ -260,6 +260,16 @@ def GetExclusiveStorage():
   return val
 
 
+def IsTemplateSupported(templ):
+  """Is the given templated supported by the current configuration?
+
+  """
+  if GetExclusiveStorage():
+    return templ in constants.DTS_EXCL_STORAGE
+  else:
+    return True
+
+
 def AcquireNode(exclude=None):
   """Returns the least used node.
 
