@@ -266,6 +266,8 @@ class BaseHypervisor(object):
   def Verify(self):
     """Verify the hypervisor.
 
+    @return: Problem description if something is wrong, C{None} otherwise
+
     """
     raise NotImplementedError
 

@@ -401,11 +401,15 @@ class LXCHypervisor(hv_base.BaseHypervisor):
   def Verify(self):
     """Verify the hypervisor.
 
-    For the chroot manager, it just checks the existence of the base dir.
+    For the LXC manager, it just checks the existence of the base dir.
+
+    @return: Problem description if something is wrong, C{None} otherwise
 
     """
-    if not os.path.exists(self._ROOT_DIR):
-      return "The required directory '%s' does not exist." % self._ROOT_DIR
+    if os.path.exists(self._ROOT_DIR):
+      return None
+    else:
+      return "The required directory '%s' does not exist" % self._ROOT_DIR
 
   @classmethod
   def PowercycleNode(cls):

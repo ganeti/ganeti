@@ -435,10 +435,14 @@ class XenHypervisor(hv_base.BaseHypervisor):
 
     For Xen, this verifies that the xend process is running.
 
+    @return: Problem description if something is wrong, C{None} otherwise
+
     """
     result = utils.RunCmd([constants.XEN_CMD, "info"])
     if result.failed:
       return "'xm info' failed: %s, %s" % (result.fail_reason, result.output)
+
+    return None
 
   @staticmethod
   def _GetConfigFileDiskData(block_devices, blockdev_prefix):
