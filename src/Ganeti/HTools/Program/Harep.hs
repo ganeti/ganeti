@@ -1,3 +1,5 @@
+{-# LANGUAGE TupleSections #-}
+
 {-| Auto-repair tool for Ganeti.
 
 -}
@@ -35,6 +37,7 @@ import Data.List
 import Data.Maybe
 import Data.Ord
 import System.Time
+import qualified Data.Map as Map
 
 import Ganeti.BasicTypes
 import Ganeti.Common
@@ -461,7 +464,15 @@ main opts args = do
                             ArHealthy _ -> doRepair c jobDelay i
                             _           -> const (return i)
 
-  _unused_repairDone <- bracket (L.getClient master) L.closeClient $
-                        forM (zip iniData' repairs) . maybeRepair
+  repairDone <- bracket (L.getClient master) L.closeClient $
+                forM (zip iniData' repairs) . maybeRepair
 
-  return ()
+  -- Print some stats and exit.
+  let states = map ((, 1 :: Int) . arStateName . arState) repairDone
+      counts = Map.fromListWith (+) states
+
+  putStrLn "---------------------"
+  putStrLn "Instance status count"
+  putStrLn "---------------------"
+  putStr . unlines . Map.elems $
+    Map.mapWithKey (\k v -> k ++ ": " ++ show v) counts
