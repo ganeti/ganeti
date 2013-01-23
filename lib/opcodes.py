@@ -1959,7 +1959,7 @@ class OpTestDelay(OpCode):
   This is used just for debugging and testing.
 
   Parameters:
-    - duration: the time to sleep
+    - duration: the time to sleep, in seconds
     - on_master: if true, sleep on the master
     - on_nodes: list of nodes in which to sleep
 

@@ -37,9 +37,10 @@ def TestDelay(duration):
   """Sleep for a fixed amount of time.
 
   @type duration: float
-  @param duration: the sleep duration
-  @rtype: boolean
-  @return: False for negative value, True otherwise
+  @param duration: the sleep duration, in seconds
+  @rtype: (boolean, str)
+  @return: False for negative value, and an accompanying error message;
+      True otherwise (and msg is None)
 
   """
   if duration < 0:
