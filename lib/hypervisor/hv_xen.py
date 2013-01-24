@@ -490,6 +490,12 @@ class XenHypervisor(hv_base.BaseHypervisor):
     if name is None:
       name = instance.name
 
+    return self._StopInstance(name, force)
+
+  def _StopInstance(self, name, force):
+    """Stop an instance.
+
+    """
     if force:
       action = "destroy"
     else:
