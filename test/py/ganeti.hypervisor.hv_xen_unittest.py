@@ -25,6 +25,7 @@ import string # pylint: disable=W0402
 import unittest
 import tempfile
 import shutil
+import random
 
 from ganeti import constants
 from ganeti import objects
@@ -36,6 +37,10 @@ from ganeti import compat
 from ganeti.hypervisor import hv_xen
 
 import testutils
+
+
+# Map from hypervisor class to hypervisor name
+HVCLASS_TO_HVNAME = utils.InvertDict(hypervisor._HYPERVISOR_MAP)
 
 
 class TestConsole(unittest.TestCase):
@@ -322,6 +327,79 @@ class TestXenHypervisorWriteConfigFile(unittest.TestCase):
       self.assertTrue(str(err).startswith("Cannot write Xen instance"))
     else:
       self.fail("Exception was not raised")
+
+
+class _TestXenHypervisor(object):
+  TARGET = NotImplemented
+  CMD = NotImplemented
+  HVNAME = NotImplemented
+
+  def setUp(self):
+    super(_TestXenHypervisor, self).setUp()
+
+    self.tmpdir = tempfile.mkdtemp()
+
+    self.vncpw = "".join(random.sample(string.ascii_letters, 10))
+
+    self.vncpw_path = utils.PathJoin(self.tmpdir, "vncpw")
+    utils.WriteFile(self.vncpw_path, data=self.vncpw)
+
+  def tearDown(self):
+    super(_TestXenHypervisor, self).tearDown()
+
+    shutil.rmtree(self.tmpdir)
+
+  def _GetHv(self, run_cmd=NotImplemented):
+    return self.TARGET(_cfgdir=self.tmpdir, _run_cmd_fn=run_cmd, _cmd=self.CMD)
+
+  def _SuccessCommand(self, stdout, cmd):
+    self.assertEqual(cmd[0], self.CMD)
+
+    return utils.RunResult(constants.EXIT_SUCCESS, None, stdout, "", None,
+                           NotImplemented, NotImplemented)
+
+  def _FailingCommand(self, cmd):
+    self.assertEqual(cmd[0], self.CMD)
+
+    return utils.RunResult(constants.EXIT_FAILURE, None,
+                           "", "This command failed", None,
+                           NotImplemented, NotImplemented)
+
+
+def _MakeTestClass(cls, cmd):
+  """Makes a class for testing.
+
+  The returned class has structure as shown in the following pseudo code:
+
+    class Test{cls.__name__}{cmd}(_TestXenHypervisor, unittest.TestCase):
+      TARGET = {cls}
+      CMD = {cmd}
+      HVNAME = {Hypervisor name retrieved using class}
+
+  @type cls: class
+  @param cls: Hypervisor class to be tested
+  @type cmd: string
+  @param cmd: Hypervisor command
+  @rtype: tuple
+  @return: Class name and class object (not instance)
+
+  """
+  name = "Test%sCmd%s" % (cls.__name__, cmd.title())
+  bases = (_TestXenHypervisor, unittest.TestCase)
+  hvname = HVCLASS_TO_HVNAME[cls]
+
+  return (name, type(name, bases, dict(TARGET=cls, CMD=cmd, HVNAME=hvname)))
+
+
+# Create test classes programmatically instead of manually to reduce the risk
+# of forgetting some combinations
+for cls in [hv_xen.XenPvmHypervisor, hv_xen.XenHvmHypervisor]:
+  for cmd in constants.KNOWN_XEN_COMMANDS:
+    (name, testcls) = _MakeTestClass(cls, cmd)
+
+    assert name not in locals()
+
+    locals()[name] = testcls
 
 
 if __name__ == "__main__":
