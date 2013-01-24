@@ -192,6 +192,7 @@ $(buildObject "Network" "network" $
   , optionalField $
     simpleField "ext_reservations" [t| String |]
   ]
+  ++ uuidFields
   ++ serialFields
   ++ tagsFields)
 
@@ -200,6 +201,9 @@ instance SerialNoObject Network where
 
 instance TagsObject Network where
   tagsOf = networkTags
+
+instance UuidObject Network where
+  uuidOf = networkUuid
 
 -- * NIC definitions
 
@@ -639,6 +643,7 @@ $(buildObject "ConfigData" "config" $
   , simpleField "nodes"      [t| Container Node      |]
   , simpleField "nodegroups" [t| Container NodeGroup |]
   , simpleField "instances"  [t| Container Instance  |]
+  , simpleField "networks"   [t| Container Network   |]
   ]
   ++ serialFields)
 

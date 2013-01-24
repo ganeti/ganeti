@@ -179,8 +179,9 @@ genValidNetwork = do
   size <- genMaybe genJSValue
   res <- liftM Just (genBitString $ netmask2NumHosts netmask)
   ext_res <- liftM Just (genBitString $ netmask2NumHosts netmask)
+  uuid <- arbitrary
   let n = Network name network_type mac_prefix net_family net net6 gateway
-          gateway6 size res ext_res 0 Set.empty
+          gateway6 size res ext_res uuid 0 Set.empty
   return n
 
 -- | Generates an arbitrary network type.
@@ -215,11 +216,13 @@ genEmptyCluster ncount = do
                                 show (map fst nodes'))
                     else GenericContainer nodemap
       continsts = GenericContainer Map.empty
+      networks = GenericContainer Map.empty
   grp <- arbitrary
   let contgroups = GenericContainer $ Map.singleton guuid grp
   serial <- arbitrary
   cluster <- resize 8 arbitrary
-  let c = ConfigData version cluster contnodes contgroups continsts serial
+  let c = ConfigData version cluster contnodes contgroups continsts networks
+            serial
   return c
 
 -- * Test properties
