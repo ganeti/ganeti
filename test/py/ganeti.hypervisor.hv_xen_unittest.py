@@ -403,6 +403,86 @@ class _TestXenHypervisor(object):
     hv = self._GetHv(run_cmd=self._FailingCommand)
     self.assertTrue("failed:" in hv.Verify())
 
+  def _StartInstanceCommand(self, inst, paused, failcreate, cmd):
+    if cmd == [self.CMD, "info"]:
+      output = testutils.ReadTestData("xen-xm-info-4.0.1.txt")
+    elif cmd == [self.CMD, "list"]:
+      output = testutils.ReadTestData("xen-xm-list-4.0.1-dom0-only.txt")
+    elif cmd[:2] == [self.CMD, "create"]:
+      args = cmd[2:]
+      cfgfile = utils.PathJoin(self.tmpdir, inst.name)
+
+      if paused:
+        self.assertEqual(args, ["-p", cfgfile])
+      else:
+        self.assertEqual(args, [cfgfile])
+
+      if failcreate:
+        return self._FailingCommand(cmd)
+
+      output = ""
+    else:
+      self.fail("Unhandled command: %s" % (cmd, ))
+
+    return self._SuccessCommand(output, cmd)
+    #return self._FailingCommand(cmd)
+
+  def _MakeInstance(self):
+    # Copy default parameters
+    bep = objects.FillDict(constants.BEC_DEFAULTS, {})
+    hvp = objects.FillDict(constants.HVC_DEFAULTS[self.HVNAME], {})
+
+    # Override default VNC password file path
+    if constants.HV_VNC_PASSWORD_FILE in hvp:
+      hvp[constants.HV_VNC_PASSWORD_FILE] = self.vncpw_path
+
+    disks = [
+      (objects.Disk(dev_type=constants.LD_LV, mode=constants.DISK_RDWR),
+       utils.PathJoin(self.tmpdir, "disk0")),
+      (objects.Disk(dev_type=constants.LD_LV, mode=constants.DISK_RDONLY),
+       utils.PathJoin(self.tmpdir, "disk1")),
+      ]
+
+    inst = objects.Instance(name="server01.example.com",
+                            hvparams=hvp, beparams=bep,
+                            osparams={}, nics=[], os="deb1",
+                            disks=map(compat.fst, disks))
+    inst.UpgradeConfig()
+
+    return (inst, disks)
+
+  def testStartInstance(self):
+    (inst, disks) = self._MakeInstance()
+
+    for failcreate in [False, True]:
+      for paused in [False, True]:
+        run_cmd = compat.partial(self._StartInstanceCommand,
+                                 inst, paused, failcreate)
+
+        hv = self._GetHv(run_cmd=run_cmd)
+
+        # Ensure instance is not listed
+        self.assertTrue(inst.name not in hv.ListInstances())
+
+        # Remove configuration
+        cfgfile = utils.PathJoin(self.tmpdir, inst.name)
+        utils.RemoveFile(cfgfile)
+
+        if failcreate:
+          self.assertRaises(errors.HypervisorError, hv.StartInstance,
+                            inst, disks, paused)
+        else:
+          hv.StartInstance(inst, disks, paused)
+
+        # Check if configuration was updated
+        lines = utils.ReadFile(cfgfile).splitlines()
+
+        if constants.HV_VNC_PASSWORD_FILE in inst.hvparams:
+          self.assertTrue(("vncpasswd = '%s'" % self.vncpw) in lines)
+        else:
+          extra = inst.hvparams[constants.HV_KERNEL_ARGS]
+          self.assertTrue(("extra = '%s'" % extra) in lines)
+
 
 def _MakeTestClass(cls, cmd):
   """Makes a class for testing.
