@@ -393,6 +393,68 @@ class _TestXenHypervisor(object):
     self.assertFalse(os.path.exists(autocfgfile))
     self.assertEqual(utils.ReadFile(cfgfile), "content")
 
+  def _XenList(self, cmd):
+    self.assertEqual(cmd, [self.CMD, "list"])
+
+    # TODO: Use actual data from "xl" command
+    output = testutils.ReadTestData("xen-xm-list-4.0.1-four-instances.txt")
+
+    return self._SuccessCommand(output, cmd)
+
+  def testGetInstanceInfo(self):
+    hv = self._GetHv(run_cmd=self._XenList)
+
+    (name, instid, memory, vcpus, state, runtime) = \
+      hv.GetInstanceInfo("server01.example.com")
+
+    self.assertEqual(name, "server01.example.com")
+    self.assertEqual(instid, 1)
+    self.assertEqual(memory, 1024)
+    self.assertEqual(vcpus, 1)
+    self.assertEqual(state, "-b----")
+    self.assertAlmostEqual(runtime, 167643.2)
+
+  def testGetInstanceInfoDom0(self):
+    hv = self._GetHv(run_cmd=self._XenList)
+
+    # TODO: Not sure if this is actually used anywhere (can't find it), but the
+    # code supports querying for Dom0
+    (name, instid, memory, vcpus, state, runtime) = \
+      hv.GetInstanceInfo(hv_xen._DOM0_NAME)
+
+    self.assertEqual(name, "Domain-0")
+    self.assertEqual(instid, 0)
+    self.assertEqual(memory, 1023)
+    self.assertEqual(vcpus, 1)
+    self.assertEqual(state, "r-----")
+    self.assertAlmostEqual(runtime, 154706.1)
+
+  def testGetInstanceInfoUnknown(self):
+    hv = self._GetHv(run_cmd=self._XenList)
+
+    result = hv.GetInstanceInfo("unknown.example.com")
+    self.assertTrue(result is None)
+
+  def testGetAllInstancesInfo(self):
+    hv = self._GetHv(run_cmd=self._XenList)
+
+    result = hv.GetAllInstancesInfo()
+
+    self.assertEqual(map(compat.fst, result), [
+      "server01.example.com",
+      "web3106215069.example.com",
+      "testinstance.example.com",
+      ])
+
+  def testListInstances(self):
+    hv = self._GetHv(run_cmd=self._XenList)
+
+    self.assertEqual(hv.ListInstances(), [
+      "server01.example.com",
+      "web3106215069.example.com",
+      "testinstance.example.com",
+      ])
+
   def testVerify(self):
     output = testutils.ReadTestData("xen-xm-info-4.0.1.txt")
     hv = self._GetHv(run_cmd=compat.partial(self._SuccessCommand,
