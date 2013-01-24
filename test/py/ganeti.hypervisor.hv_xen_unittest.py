@@ -383,6 +383,16 @@ class _TestXenHypervisor(object):
     self.assertFalse(os.path.exists(autocfgfile))
     self.assertEqual(utils.ReadFile(cfgfile), "content")
 
+  def testVerify(self):
+    output = testutils.ReadTestData("xen-xm-info-4.0.1.txt")
+    hv = self._GetHv(run_cmd=compat.partial(self._SuccessCommand,
+                                            output))
+    self.assertTrue(hv.Verify() is None)
+
+  def testVerifyFailing(self):
+    hv = self._GetHv(run_cmd=self._FailingCommand)
+    self.assertTrue("failed:" in hv.Verify())
+
 
 def _MakeTestClass(cls, cmd):
   """Makes a class for testing.
