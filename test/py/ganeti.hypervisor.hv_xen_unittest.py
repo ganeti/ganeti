@@ -26,6 +26,7 @@ import unittest
 import tempfile
 import shutil
 import random
+import os
 
 from ganeti import constants
 from ganeti import objects
@@ -364,6 +365,23 @@ class _TestXenHypervisor(object):
     return utils.RunResult(constants.EXIT_FAILURE, None,
                            "", "This command failed", None,
                            NotImplemented, NotImplemented)
+
+  def testRemovingAutoConfigFile(self):
+    name = "inst8206.example.com"
+    cfgfile = utils.PathJoin(self.tmpdir, name)
+    autodir = utils.PathJoin(self.tmpdir, "auto")
+    autocfgfile = utils.PathJoin(autodir, name)
+
+    os.mkdir(autodir)
+
+    utils.WriteFile(autocfgfile, data="")
+
+    hv = self._GetHv()
+
+    self.assertTrue(os.path.isfile(autocfgfile))
+    hv._WriteConfigFile(name, "content")
+    self.assertFalse(os.path.exists(autocfgfile))
+    self.assertEqual(utils.ReadFile(cfgfile), "content")
 
 
 def _MakeTestClass(cls, cmd):
