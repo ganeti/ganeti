@@ -23,6 +23,8 @@
 
 import string # pylint: disable=W0402
 import unittest
+import tempfile
+import shutil
 
 from ganeti import constants
 from ganeti import objects
@@ -296,6 +298,30 @@ class TestXenHypervisorUnknownCommand(unittest.TestCase):
                               _run_cmd_fn=NotImplemented,
                               _cmd=cmd)
     self.assertRaises(errors.ProgrammerError, hv._RunXen, [])
+
+
+class TestXenHypervisorWriteConfigFile(unittest.TestCase):
+  def setUp(self):
+    self.tmpdir = tempfile.mkdtemp()
+
+  def tearDown(self):
+    shutil.rmtree(self.tmpdir)
+
+  def testWriteError(self):
+    cfgdir = utils.PathJoin(self.tmpdir, "foobar")
+
+    hv = hv_xen.XenHypervisor(_cfgdir=cfgdir,
+                              _run_cmd_fn=NotImplemented,
+                              _cmd=NotImplemented)
+
+    self.assertFalse(os.path.exists(cfgdir))
+
+    try:
+      hv._WriteConfigFile("name", "data")
+    except errors.HypervisorError, err:
+      self.assertTrue(str(err).startswith("Cannot write Xen instance"))
+    else:
+      self.fail("Exception was not raised")
 
 
 if __name__ == "__main__":
