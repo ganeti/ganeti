@@ -169,9 +169,11 @@ def ListNetworks(opts, args):
     "tags": (",".join, False),
     }
 
+  cl = GetClient()
   return GenericList(constants.QR_NETWORK, desired_fields, args, None,
                      opts.separator, not opts.no_headers,
-                     verbose=opts.verbose, format_override=fmtoverride)
+                     verbose=opts.verbose, format_override=fmtoverride,
+                     cl=cl)
 
 
 def ListNetworkFields(opts, args):
