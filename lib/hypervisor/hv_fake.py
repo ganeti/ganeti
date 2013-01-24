@@ -239,9 +239,13 @@ class FakeHypervisor(hv_base.BaseHypervisor):
     For the fake hypervisor, it just checks the existence of the base
     dir.
 
+    @return: Problem description if something is wrong, C{None} otherwise
+
     """
-    if not os.path.exists(self._ROOT_DIR):
-      return "The required directory '%s' does not exist." % self._ROOT_DIR
+    if os.path.exists(self._ROOT_DIR):
+      return None
+    else:
+      return "The required directory '%s' does not exist" % self._ROOT_DIR
 
   @classmethod
   def PowercycleNode(cls):
