@@ -158,13 +158,13 @@ nodeFields =
      QffNormal)
   , (FieldDefinition "group" "Group" QFTText "Node group",
      FieldConfig (\cfg node ->
-                    rsMaybe (groupName <$> getGroupOfNode cfg node)),
+                    rsMaybeNoData (groupName <$> getGroupOfNode cfg node)),
      QffNormal)
   , (FieldDefinition "group.uuid" "GroupUUID" QFTText "UUID of node group",
      FieldSimple (rsNormal . nodeGroup), QffNormal)
   ,  (FieldDefinition "ndparams" "NodeParameters" QFTOther
         "Merged node parameters",
-      FieldConfig ((rsMaybe .) . getNodeNdParams), QffNormal)
+      FieldConfig ((rsMaybeNoData .) . getNodeNdParams), QffNormal)
   , (FieldDefinition "custom_ndparams" "CustomNodeParameters" QFTOther
                        "Custom node parameters",
      FieldSimple (rsNormal . nodeNdparams), QffNormal)

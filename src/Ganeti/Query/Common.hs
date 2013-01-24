@@ -27,7 +27,8 @@ module Ganeti.Query.Common
   ( rsNoData
   , rsUnavail
   , rsNormal
-  , rsMaybe
+  , rsMaybeNoData
+  , rsMaybeUnavail
   , rsUnknown
   , missingRuntime
   , rpcErrorToStatus
@@ -79,9 +80,17 @@ rsNormal a = ResultEntry RSNormal $ Just (showJSON a)
 -- missing, in which case we return no data). Note that there's some
 -- ambiguity here: in some cases, we mean 'RSNoData', but in other
 -- 'RSUnavail'; this is easy to solve in simple cases, but not in
--- nested dicts.
-rsMaybe :: (JSON a) => Maybe a -> ResultEntry
-rsMaybe = maybe rsNoData rsNormal
+-- nested dicts. If you want to return 'RSUnavail' in case of 'Nothing'
+-- use the function 'rsMaybeUnavail'.
+rsMaybeNoData :: (JSON a) => Maybe a -> ResultEntry
+rsMaybeNoData = maybe rsNoData rsNormal
+
+-- | Helper to declare a result from a 'Maybe'. This version returns
+-- a 'RSUnavail' in case of 'Nothing'. It should be used for optional
+-- fields that are not set. For cases where 'Nothing' means that there
+-- was an error, consider using 'rsMaybe' instead.
+rsMaybeUnavail :: (JSON a) => Maybe a -> ResultEntry
+rsMaybeUnavail = maybe rsUnavail rsNormal
 
 -- | Helper for unknown field result.
 rsUnknown :: ResultEntry
@@ -135,7 +144,7 @@ tagsFields =
 -- levels of maybe: the top level dict might be missing, or one key in
 -- the dictionary might be.
 dictFieldGetter :: (DictObject a) => String -> Maybe a -> ResultEntry
-dictFieldGetter k = maybe rsNoData (rsMaybe . lookup k . toDict)
+dictFieldGetter k = maybe rsNoData (rsMaybeNoData . lookup k . toDict)
 
 -- | Build an optimised lookup map from a Python _PARAMETER_TYPES
 -- association list.
