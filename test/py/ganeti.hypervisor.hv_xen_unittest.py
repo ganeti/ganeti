@@ -483,6 +483,49 @@ class _TestXenHypervisor(object):
           extra = inst.hvparams[constants.HV_KERNEL_ARGS]
           self.assertTrue(("extra = '%s'" % extra) in lines)
 
+  def _StopInstanceCommand(self, instance_name, force, fail, cmd):
+    if ((force and cmd[:2] == [self.CMD, "destroy"]) or
+        (not force and cmd[:2] == [self.CMD, "shutdown"])):
+      self.assertEqual(cmd[2:], [instance_name])
+      output = ""
+    else:
+      self.fail("Unhandled command: %s" % (cmd, ))
+
+    if fail:
+      # Simulate a failing command
+      return self._FailingCommand(cmd)
+    else:
+      return self._SuccessCommand(output, cmd)
+
+  def testStopInstance(self):
+    name = "inst4284.example.com"
+    cfgfile = utils.PathJoin(self.tmpdir, name)
+    cfgdata = "config file content\n"
+
+    for force in [False, True]:
+      for fail in [False, True]:
+        utils.WriteFile(cfgfile, data=cfgdata)
+
+        run_cmd = compat.partial(self._StopInstanceCommand, name, force, fail)
+
+        hv = self._GetHv(run_cmd=run_cmd)
+
+        self.assertTrue(os.path.isfile(cfgfile))
+
+        if fail:
+          try:
+            hv._StopInstance(name, force)
+          except errors.HypervisorError, err:
+            self.assertTrue(str(err).startswith("Failed to stop instance"))
+          else:
+            self.fail("Exception was not raised")
+          self.assertEqual(utils.ReadFile(cfgfile), cfgdata,
+                           msg=("Configuration was removed when stopping"
+                                " instance failed"))
+        else:
+          hv._StopInstance(name, force)
+          self.assertFalse(os.path.exists(cfgfile))
+
 
 def _MakeTestClass(cls, cmd):
   """Makes a class for testing.
