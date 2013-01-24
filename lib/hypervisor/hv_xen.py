@@ -272,7 +272,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
     """
     if name is None:
       name = instance.name
-    self._RemoveConfigFile(name)
+
     if force:
       command = [constants.XEN_CMD, "destroy", name]
     else:
@@ -282,6 +282,9 @@ class XenHypervisor(hv_base.BaseHypervisor):
     if result.failed:
       raise errors.HypervisorError("Failed to stop instance %s: %s, %s" %
                                    (name, result.fail_reason, result.output))
+
+    # Remove configuration file if stopping/starting instance was successful
+    self._RemoveConfigFile(name)
 
   def RebootInstance(self, instance):
     """Reboot an instance.
