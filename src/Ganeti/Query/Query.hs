@@ -71,6 +71,7 @@ import Ganeti.Query.Filter
 import qualified Ganeti.Query.Job as Query.Job
 import Ganeti.Query.Group
 import Ganeti.Query.Language
+import Ganeti.Query.Network
 import Ganeti.Query.Node
 import Ganeti.Query.Types
 import Ganeti.Path
@@ -197,7 +198,22 @@ queryInner cfg _ (Query (ItemTypeOpCode QRGroup) fields qfilter) wanted =
   fgroups <- filterM (\n -> evaluateFilter cfg Nothing n cfilter) groups
   let fdata = map (\node ->
                        map (execGetter cfg GroupRuntime node) fgetters) fgroups
-  return QueryResult {qresFields = fdefs, qresData = fdata }
+  return QueryResult { qresFields = fdefs, qresData = fdata }
+
+queryInner cfg _ (Query (ItemTypeOpCode QRNetwork) fields qfilter) wanted =
+  return $ do
+  cfilter <- compileFilter networkFieldsMap qfilter
+  let selected = getSelectedFields networkFieldsMap fields
+      (fdefs, fgetters, _) = unzip3 selected
+  networks <- case wanted of
+                [] -> Ok . niceSortKey (fromNonEmpty . networkName) .
+                      Map.elems . fromContainer $ configNetworks cfg
+                _  -> mapM (getNetwork cfg) wanted
+  fnetworks <- filterM (\n -> evaluateFilter cfg Nothing n cfilter) networks
+  let fdata = map (\network ->
+                   map (execGetter cfg NetworkRuntime network) fgetters)
+                   fnetworks
+  return QueryResult { qresFields = fdefs, qresData = fdata }
 
 queryInner _ _ (Query qkind _ _) _ =
   return . Bad . GenericError $ "Query '" ++ show qkind ++ "' not supported"

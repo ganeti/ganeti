@@ -42,14 +42,17 @@ module Ganeti.Config
     , getGroupNodes
     , getGroupInstances
     , getGroupOfNode
+    , getGroupConnections
     , getInstPrimaryNode
     , getInstMinorsForNode
+    , getNetwork
     , buildLinkIpInstnameMap
     , instNodes
     ) where
 
 import Control.Monad (liftM)
 import Data.List (foldl')
+import Data.Maybe (fromMaybe, mapMaybe)
 import qualified Data.Map as M
 import qualified Data.Set as S
 import qualified Text.JSON as J
@@ -209,6 +212,48 @@ getGroupInstances cfg gname =
   let gnodes = map nodeName (getGroupNodes cfg gname)
       ginsts = map (getNodeInstances cfg) gnodes in
   (concatMap fst ginsts, concatMap snd ginsts)
+
+-- | Looks up a network. If looking up by uuid fails, we look up
+-- by name.
+getNetwork :: ConfigData -> String -> ErrorResult Network
+getNetwork cfg name =
+  let networks = fromContainer (configNetworks cfg)
+  in case getItem "Network" name networks of
+       Ok net -> Ok net
+       Bad _ -> let by_name = M.mapKeys
+                              (fromNonEmpty . networkName . (M.!) networks)
+                              networks
+                in getItem "Network" name by_name
+
+-- | Given a network's UUID, this function lists all connections from
+-- the network to nodegroups including the respective mode and links.
+getGroupConnections :: ConfigData -> String -> [(String, String, String)]
+getGroupConnections cfg network_uuid =
+  mapMaybe (getGroupConnection network_uuid)
+  ((M.elems . fromContainer . configNodegroups) cfg)
+
+-- | Given a network's UUID and a node group, this function assembles
+-- a tuple of the group's name, the mode and the link by which the
+-- network is connected to the group. Returns 'Nothing' if the network
+-- is not connected to the group.
+getGroupConnection :: String -> NodeGroup -> Maybe (String, String, String)
+getGroupConnection network_uuid group =
+  let networks = fromContainer . groupNetworks $ group
+  in case M.lookup network_uuid networks of
+    Nothing -> Nothing
+    Just network ->
+      Just (groupName group, getNicMode network, getNicLink network)
+
+-- | Retrieves the network's mode and formats it human-readable,
+-- also in case it is not available.
+getNicMode :: PartialNicParams -> String
+getNicMode nic_params =
+  maybe "-" nICModeToRaw $ nicpModeP nic_params
+
+-- | Retrieves the network's link and formats it human-readable, also in
+-- case it it not available.
+getNicLink :: PartialNicParams -> String
+getNicLink nic_params = fromMaybe "-" (nicpLinkP nic_params)
 
 -- | Looks up an instance's primary node.
 getInstPrimaryNode :: ConfigData -> String -> ErrorResult Node

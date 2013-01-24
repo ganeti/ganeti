@@ -113,6 +113,7 @@ $(declareSADT "QueryTypeOp"
   , ("QRGroup",    'C.qrGroup )
   , ("QROs",       'C.qrOs )
   , ("QRExport",   'C.qrExport )
+  , ("QRNetwork",  'C.qrNetwork )
   ])
 $(makeJSONInstance ''QueryTypeOp)
 

@@ -529,6 +529,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/Query/Group.hs \
 	src/Ganeti/Query/Job.hs \
 	src/Ganeti/Query/Language.hs \
+	src/Ganeti/Query/Network.hs \
 	src/Ganeti/Query/Node.hs \
 	src/Ganeti/Query/Query.hs \
 	src/Ganeti/Query/Server.hs \
