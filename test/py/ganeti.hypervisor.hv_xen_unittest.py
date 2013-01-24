@@ -366,6 +366,16 @@ class _TestXenHypervisor(object):
                            "", "This command failed", None,
                            NotImplemented, NotImplemented)
 
+  def testReadingNonExistentConfigFile(self):
+    hv = self._GetHv()
+
+    try:
+      hv._ReadConfigFile("inst15780.example.com")
+    except errors.HypervisorError, err:
+      self.assertTrue(str(err).startswith("Failed to load Xen config file:"))
+    else:
+      self.fail("Exception was not raised")
+
   def testRemovingAutoConfigFile(self):
     name = "inst8206.example.com"
     cfgfile = utils.PathJoin(self.tmpdir, name)
