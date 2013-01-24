@@ -366,7 +366,7 @@ $(THH.declareSADT "NetworkType"
   ])
 $(THH.makeJSONInstance ''NetworkType)
 
--- | Netork mode.
+-- | Network mode.
 $(THH.declareSADT "NICMode"
   [ ("NMBridged", 'C.nicModeBridged)
   , ("NMRouted",  'C.nicModeRouted)
