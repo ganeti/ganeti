@@ -288,5 +288,15 @@ class TestGetConfigFileDiskData(unittest.TestCase):
     self.assertRaises(KeyError, hv_xen._GetConfigFileDiskData, disks, "sd")
 
 
+class TestXenHypervisorUnknownCommand(unittest.TestCase):
+  def test(self):
+    cmd = "#unknown command#"
+    self.assertFalse(cmd in constants.KNOWN_XEN_COMMANDS)
+    hv = hv_xen.XenHypervisor(_cfgdir=NotImplemented,
+                              _run_cmd_fn=NotImplemented,
+                              _cmd=cmd)
+    self.assertRaises(errors.ProgrammerError, hv._RunXen, [])
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
