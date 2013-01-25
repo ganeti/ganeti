@@ -589,10 +589,13 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   _KVMOPT_HELP = "help"
   _KVMOPT_MLIST = "mlist"
   _KVMOPT_DEVICELIST = "devicelist"
+
+  # Command to execute to get the output from kvm, and whether to
+  # accept the output even on failure.
   _KVMOPTS_CMDS = {
-    _KVMOPT_HELP: ["--help"],
-    _KVMOPT_MLIST: ["-M", "?"],
-    _KVMOPT_DEVICELIST: ["-device", "?"],
+    _KVMOPT_HELP: (["--help"], False),
+    _KVMOPT_MLIST: (["-M", "?"], False),
+    _KVMOPT_DEVICELIST: (["-device", "?"], True),
   }
 
   def __init__(self):
@@ -1713,14 +1716,20 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   def _GetKVMOutput(cls, kvm_path, option):
     """Return the output of a kvm invocation
 
+    @type kvm_path: string
+    @param kvm_path: path to the kvm executable
+    @type option: a key of _KVMOPTS_CMDS
+    @param option: kvm option to fetch the output from
     @return: output a supported kvm invocation
     @raise errors.HypervisorError: when the KVM help output cannot be retrieved
 
     """
     assert option in cls._KVMOPTS_CMDS, "Invalid output option"
 
-    result = utils.RunCmd([kvm_path] + cls._KVMOPTS_CMDS[option])
-    if result.failed:
+    optlist, can_fail = cls._KVMOPTS_CMDS[option]
+
+    result = utils.RunCmd([kvm_path] + optlist)
+    if result.failed and not can_fail:
       raise errors.HypervisorError("Unable to get KVM %s output" %
                                     " ".join(cls._KVMOPTS_CMDS[option]))
     return result.output
