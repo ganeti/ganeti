@@ -31,6 +31,7 @@ module Ganeti.Query.Network
 import qualified Data.Map as Map
 
 import Ganeti.Config
+import Ganeti.Network
 import Ganeti.Objects
 import Ganeti.Query.Language
 import Ganeti.Query.Common
@@ -54,9 +55,22 @@ networkFields =
      FieldSimple (rsMaybeUnavail . networkMacPrefix), QffNormal)
   , (FieldDefinition "network_type" "NetworkType" QFTOther "Network type",
      FieldSimple (rsMaybeUnavail . networkNetworkType), QffNormal)
+  , (FieldDefinition "free_count" "FreeCount" QFTOther "Number of free IPs",
+     FieldSimple (rsMaybeNoData . fmap getFreeCount . createAddressPool),
+     QffNormal)
+  , (FieldDefinition "map" "Map" QFTText "Map of the network's reserved IPs",
+     FieldSimple (rsMaybeNoData . fmap getMap . createAddressPool),
+     QffNormal)
+  , (FieldDefinition "reserved_count" "ReservedCount" QFTOther
+       "Number of reserved IPs",
+     FieldSimple (rsMaybeNoData . fmap getReservedCount . createAddressPool),
+     QffNormal)
   , (FieldDefinition "group_list" "GroupList" QFTOther "List of node groups",
      FieldConfig (\cfg -> rsNormal . getGroupConnections cfg . networkUuid),
-       QffNormal)
+     QffNormal)
+  , (FieldDefinition "group_cnt" "GroupCount" QFTOther "Number of node groups",
+     FieldConfig (\cfg -> rsNormal . length . getGroupConnections cfg
+       . networkUuid), QffNormal)
   ] ++
   uuidFields "Network" ++
   serialFields "Network" ++
@@ -68,5 +82,4 @@ networkFieldsMap =
   Map.fromList $ map (\v@(f, _, _) -> (fdefName f, v)) networkFields
 
 -- TODO: the following fields are not implemented yet: external_reservations,
--- free_count, group_cnt, inst_cnt, inst_list, map, reserved_count, serial_no,
--- tags, uuid
+-- inst_cnt, inst_list
