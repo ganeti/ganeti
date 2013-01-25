@@ -46,6 +46,9 @@ import qa_config
 import qa_utils
 import qa_error
 
+from qa_instance import IsFailoverSupported
+from qa_instance import IsMigrationSupported
+from qa_instance import IsDiskReplacingSupported
 from qa_utils import (AssertEqual, AssertIn, AssertMatch, StartLocalCommand)
 from qa_utils import InstanceCheck, INST_DOWN, INST_UP, FIRST_ARG
 
@@ -617,6 +620,10 @@ def TestRapiInstanceRemove(instance, use_client):
 @InstanceCheck(INST_UP, INST_UP, FIRST_ARG)
 def TestRapiInstanceMigrate(instance):
   """Test migrating instance via RAPI"""
+  if not IsMigrationSupported(instance):
+    print qa_utils.FormatInfo("Instance doesn't support migration, skipping"
+                              " test")
+    return
   # Move to secondary node
   _WaitForRapiJob(_rapi_client.MigrateInstance(instance["name"]))
   qa_utils.RunInstanceCheck(instance, True)
@@ -627,6 +634,10 @@ def TestRapiInstanceMigrate(instance):
 @InstanceCheck(INST_UP, INST_UP, FIRST_ARG)
 def TestRapiInstanceFailover(instance):
   """Test failing over instance via RAPI"""
+  if not IsFailoverSupported(instance):
+    print qa_utils.FormatInfo("Instance doesn't support failover, skipping"
+                              " test")
+    return
   # Move to secondary node
   _WaitForRapiJob(_rapi_client.FailoverInstance(instance["name"]))
   qa_utils.RunInstanceCheck(instance, True)
@@ -676,6 +687,10 @@ def TestRapiInstanceReinstall(instance):
 @InstanceCheck(INST_UP, INST_UP, FIRST_ARG)
 def TestRapiInstanceReplaceDisks(instance):
   """Test replacing instance disks via RAPI"""
+  if not IsDiskReplacingSupported(instance):
+    print qa_utils.FormatInfo("Instance doesn't support disk replacing,"
+                              " skipping test")
+    return
   fn = _rapi_client.ReplaceInstanceDisks
   _WaitForRapiJob(fn(instance["name"],
                      mode=constants.REPLACE_DISK_AUTO, disks=[]))

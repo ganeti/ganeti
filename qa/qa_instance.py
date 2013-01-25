@@ -161,6 +161,21 @@ def _GetBoolInstanceField(instance, field):
                          " %s" % (field, instance, info_out))
 
 
+def IsFailoverSupported(instance):
+  templ = qa_config.GetInstanceTemplate(instance)
+  return templ in constants.DTS_MIRRORED
+
+
+def IsMigrationSupported(instance):
+  templ = qa_config.GetInstanceTemplate(instance)
+  return templ in constants.DTS_MIRRORED
+
+
+def IsDiskReplacingSupported(instance):
+  templ = qa_config.GetInstanceTemplate(instance)
+  return templ == constants.DT_DRBD8
+
+
 @InstanceCheck(None, INST_UP, RETURN_VALUE)
 def TestInstanceAddWithPlainDisk(node):
   """gnt-instance add -t plain"""
@@ -302,6 +317,11 @@ def TestInstanceRenameAndBack(rename_source, rename_target):
 @InstanceCheck(INST_UP, INST_UP, FIRST_ARG)
 def TestInstanceFailover(instance):
   """gnt-instance failover"""
+  if not IsFailoverSupported(instance):
+    print qa_utils.FormatInfo("Instance doesn't support failover, skipping"
+                              " test")
+    return
+
   cmd = ["gnt-instance", "failover", "--force", instance["name"]]
 
   # failover ...
@@ -315,6 +335,11 @@ def TestInstanceFailover(instance):
 @InstanceCheck(INST_UP, INST_UP, FIRST_ARG)
 def TestInstanceMigrate(instance, toggle_always_failover=True):
   """gnt-instance migrate"""
+  if not IsMigrationSupported(instance):
+    print qa_utils.FormatInfo("Instance doesn't support migration, skipping"
+                              " test")
+    return
+
   cmd = ["gnt-instance", "migrate", "--force", instance["name"]]
   af_par = constants.BE_ALWAYS_FAILOVER
   af_field = "be/" + constants.BE_ALWAYS_FAILOVER
@@ -459,6 +484,11 @@ def TestInstanceStoppedModify(instance):
 def TestInstanceConvertDisk(instance, snode):
   """gnt-instance modify -t"""
   name = instance["name"]
+  template = qa_config.GetInstanceTemplate(instance)
+  if template != "drbd":
+    print qa_utils.FormatInfo("Unsupported template %s, skipping conversion"
+                              " test" % template)
+    return
   AssertCommand(["gnt-instance", "modify", "-t", "plain", name])
   AssertCommand(["gnt-instance", "modify", "-t", "drbd",
                  "-n", snode["primary"], name])
@@ -467,6 +497,9 @@ def TestInstanceConvertDisk(instance, snode):
 @InstanceCheck(INST_DOWN, INST_DOWN, FIRST_ARG)
 def TestInstanceGrowDisk(instance):
   """gnt-instance grow-disk"""
+  if qa_config.GetExclusiveStorage():
+    print qa_utils.FormatInfo("Test not supported with exclusive_storage")
+    return
   name = instance["name"]
   all_size = qa_config.get("disk")
   all_grow = qa_config.get("disk-growth")
@@ -514,6 +547,11 @@ def TestReplaceDisks(instance, pnode, snode, othernode):
     cmd.extend(args)
     cmd.append(instance["name"])
     return cmd
+
+  if not IsDiskReplacingSupported(instance):
+    print qa_utils.FormatInfo("Instance doesn't support disk replacing,"
+                              " skipping test")
+    return
 
   options = qa_config.get("options", {})
   use_ialloc = options.get("use-iallocators", True)
