@@ -23,6 +23,7 @@
 
 """
 
+import operator
 import re
 
 from ganeti import utils
@@ -177,15 +178,17 @@ def IsDiskReplacingSupported(instance):
 
 
 @InstanceCheck(None, INST_UP, RETURN_VALUE)
-def TestInstanceAddWithPlainDisk(node):
+def TestInstanceAddWithPlainDisk(nodes):
   """gnt-instance add -t plain"""
-  return _DiskTest(node["primary"], "plain")
+  assert len(nodes) == 1
+  return _DiskTest(nodes[0]["primary"], "plain")
 
 
 @InstanceCheck(None, INST_UP, RETURN_VALUE)
-def TestInstanceAddWithDrbdDisk(node, node2):
+def TestInstanceAddWithDrbdDisk(nodes):
   """gnt-instance add -t drbd"""
-  return _DiskTest("%s:%s" % (node["primary"], node2["primary"]),
+  assert len(nodes) == 2
+  return _DiskTest(":".join(map(operator.itemgetter("primary"), nodes)),
                    "drbd")
 
 
@@ -481,7 +484,7 @@ def TestInstanceStoppedModify(instance):
 
 
 @InstanceCheck(INST_DOWN, INST_DOWN, FIRST_ARG)
-def TestInstanceConvertDisk(instance, snode):
+def TestInstanceConvertDiskToPlain(instance, inodes):
   """gnt-instance modify -t"""
   name = instance["name"]
   template = qa_config.GetInstanceTemplate(instance)
@@ -489,9 +492,10 @@ def TestInstanceConvertDisk(instance, snode):
     print qa_utils.FormatInfo("Unsupported template %s, skipping conversion"
                               " test" % template)
     return
+  assert len(inodes) == 2
   AssertCommand(["gnt-instance", "modify", "-t", "plain", name])
   AssertCommand(["gnt-instance", "modify", "-t", "drbd",
-                 "-n", snode["primary"], name])
+                 "-n", inodes[1]["primary"], name])
 
 
 @InstanceCheck(INST_DOWN, INST_DOWN, FIRST_ARG)
@@ -537,11 +541,8 @@ def TestInstanceConsole(instance):
 
 
 @InstanceCheck(INST_UP, INST_UP, FIRST_ARG)
-def TestReplaceDisks(instance, pnode, snode, othernode):
+def TestReplaceDisks(instance, curr_nodes, other_nodes):
   """gnt-instance replace-disks"""
-  # pylint: disable=W0613
-  # due to unused pnode arg
-  # FIXME: should be removed from the function completely
   def buildcmd(args):
     cmd = ["gnt-instance", "replace-disks"]
     cmd.extend(args)
@@ -552,6 +553,12 @@ def TestReplaceDisks(instance, pnode, snode, othernode):
     print qa_utils.FormatInfo("Instance doesn't support disk replacing,"
                               " skipping test")
     return
+
+  # Currently all supported templates have one primary and one secondary node
+  assert len(curr_nodes) == 2
+  snode = curr_nodes[1]
+  assert len(other_nodes) == 1
+  othernode = other_nodes[0]
 
   options = qa_config.get("options", {})
   use_ialloc = options.get("use-iallocators", True)
@@ -604,21 +611,18 @@ def _AssertRecreateDisks(cmdargs, instance, fail=False, check=True,
 
 
 @InstanceCheck(INST_UP, INST_UP, FIRST_ARG)
-def TestRecreateDisks(instance, pnode, snode, othernodes):
+def TestRecreateDisks(instance, inodes, othernodes):
   """gnt-instance recreate-disks
 
   @param instance: Instance to work on
-  @param pnode: Primary node
-  @param snode: Secondary node, or None for sigle-homed instances
+  @param inodes: List of the current nodes of the instance
   @param othernodes: list/tuple of nodes where to temporarily recreate disks
 
   """
   options = qa_config.get("options", {})
   use_ialloc = options.get("use-iallocators", True)
   other_seq = ":".join([n["primary"] for n in othernodes])
-  orig_seq = pnode["primary"]
-  if snode:
-    orig_seq = orig_seq + ":" + snode["primary"]
+  orig_seq = ":".join([n["primary"] for n in inodes])
   # These fail because the instance is running
   _AssertRecreateDisks(["-n", other_seq], instance, fail=True, destroy=False)
   if use_ialloc:

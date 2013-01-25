@@ -340,17 +340,17 @@ def RunGroupRwTests():
             qa_group.GetDefaultGroup())
 
 
-def RunExportImportTests(instance, pnode, snode):
+def RunExportImportTests(instance, inodes):
   """Tries to export and import the instance.
 
-  @param pnode: current primary node of the instance
-  @param snode: current secondary node of the instance, if any,
-      otherwise None
+  @type inodes: list of nodes
+  @param inodes: current nodes of the instance
 
   """
   if qa_config.TestEnabled("instance-export"):
     RunTest(qa_instance.TestInstanceExportNoTarget, instance)
 
+    pnode = inodes[0]
     expnode = qa_config.AcquireNode(exclude=pnode)
     try:
       name = RunTest(qa_instance.TestInstanceExport, instance, expnode)
@@ -373,14 +373,10 @@ def RunExportImportTests(instance, pnode, snode):
   if qa_config.TestEnabled(["rapi", "inter-cluster-instance-move"]):
     newinst = qa_config.AcquireInstance()
     try:
-      if snode is None:
-        excl = [pnode]
-      else:
-        excl = [pnode, snode]
-      tnode = qa_config.AcquireNode(exclude=excl)
+      tnode = qa_config.AcquireNode(exclude=inodes)
       try:
         RunTest(qa_rapi.TestInterClusterInstanceMove, instance, newinst,
-                pnode, snode, tnode)
+                inodes, tnode)
       finally:
         qa_config.ReleaseNode(tnode)
     finally:
@@ -414,7 +410,7 @@ def RunSingleHomedHardwareFailureTests(instance, pnode):
       qa_config.ReleaseNode(othernode)
 
 
-def RunHardwareFailureTests(instance, pnode, snode):
+def RunHardwareFailureTests(instance, inodes):
   """Test cluster internal hardware failure recovery.
 
   """
@@ -427,32 +423,38 @@ def RunHardwareFailureTests(instance, pnode, snode):
             qa_rapi.TestRapiInstanceMigrate, instance)
 
   if qa_config.TestEnabled("instance-replace-disks"):
-    othernode = qa_config.AcquireNode(exclude=[pnode, snode])
+    # We just need alternative secondary nodes, hence "- 1"
+    othernodes = qa_config.AcquireManyNodes(len(inodes) - 1, exclude=inodes)
     try:
       RunTestIf("rapi", qa_rapi.TestRapiInstanceReplaceDisks, instance)
       RunTest(qa_instance.TestReplaceDisks,
-              instance, pnode, snode, othernode)
+              instance, inodes, othernodes)
     finally:
-      qa_config.ReleaseNode(othernode)
+      qa_config.ReleaseManyNodes(othernodes)
+    del othernodes
 
   if qa_config.TestEnabled("instance-recreate-disks"):
-    othernode1 = qa_config.AcquireNode(exclude=[pnode, snode])
     try:
-      othernode2 = qa_config.AcquireNode(exclude=[pnode, snode, othernode1])
+      acquirednodes = qa_config.AcquireManyNodes(len(inodes), exclude=inodes)
+      othernodes = acquirednodes
     except qa_error.OutOfNodesError:
-      # Let's reuse one of the nodes if the cluster is not big enough
-      othernode2 = pnode
+      if len(inodes) > 1:
+        # If the cluster is not big enough, let's reuse some of the nodes, but
+        # with different roles. In this way, we can test a DRBD instance even on
+        # a 3-node cluster.
+        acquirednodes = [qa_config.AcquireNode(exclude=inodes)]
+        othernodes = acquirednodes + inodes[:-1]
+      else:
+        raise
     try:
       RunTest(qa_instance.TestRecreateDisks,
-              instance, pnode, snode, [othernode1, othernode2])
+              instance, inodes, othernodes)
     finally:
-      qa_config.ReleaseNode(othernode1)
-      if othernode2 != pnode:
-        qa_config.ReleaseNode(othernode2)
+      qa_config.ReleaseManyNodes(acquirednodes)
 
-  RunTestIf("node-evacuate", qa_node.TestNodeEvacuate, pnode, snode)
-
-  RunTestIf("node-failover", qa_node.TestNodeFailover, pnode, snode)
+  if len(inodes) >= 2:
+    RunTestIf("node-evacuate", qa_node.TestNodeEvacuate, inodes[0], inodes[1])
+    RunTestIf("node-failover", qa_node.TestNodeFailover, inodes[0], inodes[1])
 
 
 def RunExclusiveStorageTests():
@@ -471,8 +473,8 @@ def RunExclusiveStorageTests():
     if qa_config.TestEnabled("instance-add-plain-disk"):
       # Make sure that the cluster doesn't have any pre-existing problem
       qa_cluster.AssertClusterVerify()
-      instance1 = qa_instance.TestInstanceAddWithPlainDisk(node)
-      instance2 = qa_instance.TestInstanceAddWithPlainDisk(node)
+      instance1 = qa_instance.TestInstanceAddWithPlainDisk([node])
+      instance2 = qa_instance.TestInstanceAddWithPlainDisk([node])
       # cluster-verify checks that disks are allocated correctly
       qa_cluster.AssertClusterVerify()
       qa_instance.TestInstanceRemove(instance1)
@@ -481,7 +483,7 @@ def RunExclusiveStorageTests():
       snode = qa_config.AcquireNode()
       try:
         qa_cluster.TestSetExclStorCluster(False)
-        instance = qa_instance.TestInstanceAddWithDrbdDisk(node, snode)
+        instance = qa_instance.TestInstanceAddWithDrbdDisk([node, snode])
         qa_cluster.TestSetExclStorCluster(True)
         exp_err = [constants.CV_EINSTANCEUNSUITABLENODE]
         qa_cluster.AssertClusterVerify(fail=True, errors=exp_err)
@@ -542,11 +544,11 @@ def RunQa():
           del rapi_instance
 
     if qa_config.TestEnabled("instance-add-plain-disk"):
-      instance = RunTest(qa_instance.TestInstanceAddWithPlainDisk, pnode)
+      instance = RunTest(qa_instance.TestInstanceAddWithPlainDisk, [pnode])
       RunCommonInstanceTests(instance)
       RunGroupListTests()
       RunTestIf("cluster-epo", qa_cluster.TestClusterEpo)
-      RunExportImportTests(instance, pnode, None)
+      RunExportImportTests(instance, [pnode])
       RunDaemonTests(instance)
       RunRepairDiskSizes()
       RunSingleHomedHardwareFailureTests(instance, pnode)
@@ -562,7 +564,7 @@ def RunQa():
       if qa_config.TestEnabled(name):
         snode = qa_config.AcquireNode(exclude=pnode)
         try:
-          instance = RunTest(func, pnode, snode)
+          instance = RunTest(func, [pnode, snode])
           RunTestIf("haskell-confd", qa_node.TestNodeListDrbd, pnode)
           RunTestIf("haskell-confd", qa_node.TestNodeListDrbd, snode)
           RunCommonInstanceTests(instance)
@@ -572,10 +574,11 @@ def RunQa():
                     pnode["primary"], snode["primary"])
           if qa_config.TestEnabled("instance-convert-disk"):
             RunTest(qa_instance.TestInstanceShutdown, instance)
-            RunTest(qa_instance.TestInstanceConvertDisk, instance, snode)
+            RunTest(qa_instance.TestInstanceConvertDiskToPlain, instance,
+                    [pnode, snode])
             RunTest(qa_instance.TestInstanceStartup, instance)
-          RunExportImportTests(instance, pnode, snode)
-          RunHardwareFailureTests(instance, pnode, snode)
+          RunExportImportTests(instance, [pnode, snode])
+          RunHardwareFailureTests(instance, [pnode, snode])
           RunRepairDiskSizes()
           RunTest(qa_instance.TestInstanceRemove, instance)
           del instance
@@ -592,7 +595,7 @@ def RunQa():
     try:
       pnode = qa_config.AcquireNode(exclude=snode)
       try:
-        instance = qa_instance.TestInstanceAddWithDrbdDisk(pnode, snode)
+        instance = qa_instance.TestInstanceAddWithDrbdDisk([pnode, snode])
         qa_node.MakeNodeOffline(snode, "yes")
         try:
           RunTest(qa_instance.TestInstanceRemove, instance)
@@ -607,7 +610,7 @@ def RunQa():
   try:
     if qa_config.TestEnabled(["instance-add-plain-disk", "instance-export"]):
       for shutdown in [False, True]:
-        instance = RunTest(qa_instance.TestInstanceAddWithPlainDisk, pnode)
+        instance = RunTest(qa_instance.TestInstanceAddWithPlainDisk, [pnode])
         expnode = qa_config.AcquireNode(exclude=pnode)
         try:
           if shutdown:

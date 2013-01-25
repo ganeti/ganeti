@@ -759,7 +759,7 @@ def GetOperatingSystems():
 
 
 def TestInterClusterInstanceMove(src_instance, dest_instance,
-                                 pnode, snode, tnode):
+                                 inodes, tnode):
   """Test tools/move-instance"""
   master = qa_config.GetMasterNode()
 
@@ -772,18 +772,22 @@ def TestInterClusterInstanceMove(src_instance, dest_instance,
 
   # TODO: Run some instance tests before moving back
 
-  if snode is None:
+  if len(inodes) > 1:
+    # No disk template currently requires more than 1 secondary node. If this
+    # changes, either this test must be skipped or the script must be updated.
+    assert len(inodes) == 2
+    snode = inodes[1]
+  else:
     # instance is not redundant, but we still need to pass a node
     # (which will be ignored)
-    fsec = tnode
-  else:
-    fsec = snode
+    snode = tnode
+  pnode = inodes[0]
   # note: pnode:snode are the *current* nodes, so we move it first to
   # tnode:pnode, then back to pnode:snode
   for si, di, pn, sn in [(src_instance["name"], dest_instance["name"],
                           tnode["primary"], pnode["primary"]),
                          (dest_instance["name"], src_instance["name"],
-                          pnode["primary"], fsec["primary"])]:
+                          pnode["primary"], snode["primary"])]:
     cmd = [
       "../tools/move-instance",
       "--verbose",
