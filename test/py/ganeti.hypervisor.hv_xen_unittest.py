@@ -366,6 +366,10 @@ class _TestXenHypervisor(object):
                            "", "This command failed", None,
                            NotImplemented, NotImplemented)
 
+  def _FakeTcpPing(self, expected, result, target, port, **kwargs):
+    self.assertEqual((target, port), expected)
+    return result
+
   def testReadingNonExistentConfigFile(self):
     hv = self._GetHv()
 
@@ -587,6 +591,130 @@ class _TestXenHypervisor(object):
         else:
           hv._StopInstance(name, force)
           self.assertFalse(os.path.exists(cfgfile))
+
+  def _MigrateNonRunningInstCmd(self, cmd):
+    if cmd == [self.CMD, "list"]:
+      output = testutils.ReadTestData("xen-xm-list-4.0.1-dom0-only.txt")
+    else:
+      self.fail("Unhandled command: %s" % (cmd, ))
+
+    return self._SuccessCommand(output, cmd)
+
+  def testMigrateInstanceNotRunning(self):
+    name = "nonexistinginstance.example.com"
+    target = constants.IP4_ADDRESS_LOCALHOST
+    port = 14618
+
+    hv = self._GetHv(run_cmd=self._MigrateNonRunningInstCmd)
+
+    for live in [False, True]:
+      try:
+        hv._MigrateInstance(NotImplemented, name, target, port, live,
+                            _ping_fn=NotImplemented)
+      except errors.HypervisorError, err:
+        self.assertEqual(str(err), "Instance not running, cannot migrate")
+      else:
+        self.fail("Exception was not raised")
+
+  def _MigrateInstTargetUnreachCmd(self, cmd):
+    if cmd == [self.CMD, "list"]:
+      output = testutils.ReadTestData("xen-xm-list-4.0.1-four-instances.txt")
+    else:
+      self.fail("Unhandled command: %s" % (cmd, ))
+
+    return self._SuccessCommand(output, cmd)
+
+  def testMigrateTargetUnreachable(self):
+    name = "server01.example.com"
+    target = constants.IP4_ADDRESS_LOCALHOST
+    port = 28349
+
+    hv = self._GetHv(run_cmd=self._MigrateInstTargetUnreachCmd)
+
+    for live in [False, True]:
+      if self.CMD == constants.XEN_CMD_XL:
+        # TODO: Detect unreachable targets
+        pass
+      else:
+        try:
+          hv._MigrateInstance(NotImplemented, name, target, port, live,
+                              _ping_fn=compat.partial(self._FakeTcpPing,
+                                                      (target, port), False))
+        except errors.HypervisorError, err:
+          wanted = "Remote host %s not" % target
+          self.assertTrue(str(err).startswith(wanted))
+        else:
+          self.fail("Exception was not raised")
+
+  def _MigrateInstanceCmd(self, cluster_name, instance_name, target, port,
+                          live, fail, cmd):
+    if cmd == [self.CMD, "list"]:
+      output = testutils.ReadTestData("xen-xm-list-4.0.1-four-instances.txt")
+    elif cmd[:2] == [self.CMD, "migrate"]:
+      if self.CMD == constants.XEN_CMD_XM:
+        args = ["-p", str(port)]
+
+        if live:
+          args.append("-l")
+
+      elif self.CMD == constants.XEN_CMD_XL:
+        args = [
+          "-s", constants.XL_SSH_CMD % cluster_name,
+          "-C", utils.PathJoin(self.tmpdir, instance_name),
+          ]
+
+      else:
+        self.fail("Unknown Xen command '%s'" % self.CMD)
+
+      args.extend([instance_name, target])
+      self.assertEqual(cmd[2:], args)
+
+      if fail:
+        return self._FailingCommand(cmd)
+
+      output = ""
+    else:
+      self.fail("Unhandled command: %s" % (cmd, ))
+
+    return self._SuccessCommand(output, cmd)
+
+  def testMigrateInstance(self):
+    clustername = "cluster.example.com"
+    instname = "server01.example.com"
+    target = constants.IP4_ADDRESS_LOCALHOST
+    port = 22364
+
+    for live in [False, True]:
+      for fail in [False, True]:
+        ping_fn = \
+          testutils.CallCounter(compat.partial(self._FakeTcpPing,
+                                               (target, port), True))
+
+        run_cmd = \
+          compat.partial(self._MigrateInstanceCmd,
+                         clustername, instname, target, port, live,
+                         fail)
+
+        hv = self._GetHv(run_cmd=run_cmd)
+
+        if fail:
+          try:
+            hv._MigrateInstance(clustername, instname, target, port, live,
+                                _ping_fn=ping_fn)
+          except errors.HypervisorError, err:
+            self.assertTrue(str(err).startswith("Failed to migrate instance"))
+          else:
+            self.fail("Exception was not raised")
+        else:
+          hv._MigrateInstance(clustername, instname, target, port, live,
+                              _ping_fn=ping_fn)
+
+        if self.CMD == constants.XEN_CMD_XM:
+          expected_pings = 1
+        else:
+          expected_pings = 0
+
+        self.assertEqual(ping_fn.Count(), expected_pings)
 
 
 def _MakeTestClass(cls, cmd):

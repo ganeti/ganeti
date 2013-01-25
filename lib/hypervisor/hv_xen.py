@@ -336,6 +336,9 @@ class XenHypervisor(hv_base.BaseHypervisor):
     self._cmd = _cmd
 
   def _GetCommand(self):
+    """Returns Xen command to use.
+
+    """
     if self._cmd is None:
       # TODO: Make command a hypervisor parameter
       cmd = constants.XEN_CMD
@@ -663,37 +666,53 @@ class XenHypervisor(hv_base.BaseHypervisor):
     @param live: perform a live migration
 
     """
-    if self.GetInstanceInfo(instance.name) is None:
-      raise errors.HypervisorError("Instance not running, cannot migrate")
-
     port = instance.hvparams[constants.HV_MIGRATION_PORT]
 
-    if (self._cmd == constants.XEN_CMD_XM and
-        not netutils.TcpPing(target, port, live_port_needed=True)):
+    # TODO: Pass cluster name via RPC
+    cluster_name = ssconf.SimpleStore().GetClusterName()
+
+    return self._MigrateInstance(cluster_name, instance.name, target, port,
+                                 live)
+
+  def _MigrateInstance(self, cluster_name, instance_name, target, port, live,
+                       _ping_fn=netutils.TcpPing):
+    """Migrate an instance to a target node.
+
+    @see: L{MigrateInstance} for details
+
+    """
+    if self.GetInstanceInfo(instance_name) is None:
+      raise errors.HypervisorError("Instance not running, cannot migrate")
+
+    cmd = self._GetCommand()
+
+    if (cmd == constants.XEN_CMD_XM and
+        not _ping_fn(target, port, live_port_needed=True)):
       raise errors.HypervisorError("Remote host %s not listening on port"
                                    " %s, cannot migrate" % (target, port))
 
     args = ["migrate"]
 
-    if self._cmd == constants.XEN_CMD_XM:
+    if cmd == constants.XEN_CMD_XM:
       args.extend(["-p", "%d" % port])
       if live:
         args.append("-l")
 
-    elif self._cmd == constants.XEN_CMD_XL:
-      cluster_name = ssconf.SimpleStore().GetClusterName()
-      args.extend(["-s", constants.XL_SSH_CMD % cluster_name])
-      args.extend(["-C", self._ConfigFileName(instance.name)])
+    elif cmd == constants.XEN_CMD_XL:
+      args.extend([
+        "-s", constants.XL_SSH_CMD % cluster_name,
+        "-C", self._ConfigFileName(instance_name),
+        ])
 
     else:
-      raise errors.HypervisorError("Unsupported xen command: %s" % self._cmd)
+      raise errors.HypervisorError("Unsupported Xen command: %s" % self._cmd)
 
-    args.extend([instance.name, target])
+    args.extend([instance_name, target])
 
     result = self._RunXen(args)
     if result.failed:
       raise errors.HypervisorError("Failed to migrate instance %s: %s" %
-                                   (instance.name, result.output))
+                                   (instance_name, result.output))
 
   def FinalizeMigrationSource(self, instance, success, live):
     """Finalize the instance migration on the source node.
