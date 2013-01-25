@@ -296,5 +296,41 @@ def AcquireNode(exclude=None):
   return node
 
 
+def AcquireManyNodes(num, exclude=None):
+  """Return the least used nodes.
+
+  @type num: int
+  @param num: Number of nodes; can be 0.
+  @type exclude: list of nodes or C{None}
+  @param exclude: nodes to be excluded from the choice
+  @rtype: list of nodes
+  @return: C{num} different nodes
+
+  """
+  nodes = []
+  if exclude is None:
+    exclude = []
+  elif isinstance(exclude, (list, tuple)):
+    # Don't modify the incoming argument
+    exclude = list(exclude)
+  else:
+    exclude = [exclude]
+
+  try:
+    for _ in range(0, num):
+      n = AcquireNode(exclude=exclude)
+      nodes.append(n)
+      exclude.append(n)
+  except qa_error.OutOfNodesError:
+    ReleaseManyNodes(nodes)
+    raise
+  return nodes
+
+
 def ReleaseNode(node):
   node["_count"] = node.get("_count", 0) - 1
+
+
+def ReleaseManyNodes(nodes):
+  for n in nodes:
+    ReleaseNode(n)
