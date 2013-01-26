@@ -514,6 +514,9 @@ def RunQa():
   finally:
     qa_config.ReleaseNode(pnode)
 
+  # Make sure the cluster is clean before running instance tests
+  qa_cluster.AssertClusterVerify()
+
   pnode = qa_config.AcquireNode()
   try:
     RunTestIf("tags", qa_tags.TestNodeTags, pnode)
@@ -568,6 +571,30 @@ def RunQa():
         del instance
       finally:
         qa_config.ReleaseManyNodes(inodes)
+      qa_cluster.AssertClusterVerify()
+
+  pnode = qa_config.AcquireNode()
+  try:
+    if qa_config.TestEnabled(["instance-add-plain-disk", "instance-export"]):
+      for shutdown in [False, True]:
+        instance = RunTest(qa_instance.TestInstanceAddWithPlainDisk, [pnode])
+        expnode = qa_config.AcquireNode(exclude=pnode)
+        try:
+          if shutdown:
+            # Stop instance before exporting and removing it
+            RunTest(qa_instance.TestInstanceShutdown, instance)
+          RunTest(qa_instance.TestInstanceExportWithRemove, instance, expnode)
+          RunTest(qa_instance.TestBackupList, expnode)
+        finally:
+          qa_config.ReleaseNode(expnode)
+        del expnode
+        del instance
+      qa_cluster.AssertClusterVerify()
+
+  finally:
+    qa_config.ReleaseNode(pnode)
+
+  RunExclusiveStorageTests()
 
   # Test removing instance with offline drbd secondary
   if qa_config.TestEnabled("instance-remove-drbd-offline"):
@@ -586,28 +613,8 @@ def RunQa():
         qa_config.ReleaseNode(pnode)
     finally:
       qa_config.ReleaseNode(snode)
-
-  pnode = qa_config.AcquireNode()
-  try:
-    if qa_config.TestEnabled(["instance-add-plain-disk", "instance-export"]):
-      for shutdown in [False, True]:
-        instance = RunTest(qa_instance.TestInstanceAddWithPlainDisk, [pnode])
-        expnode = qa_config.AcquireNode(exclude=pnode)
-        try:
-          if shutdown:
-            # Stop instance before exporting and removing it
-            RunTest(qa_instance.TestInstanceShutdown, instance)
-          RunTest(qa_instance.TestInstanceExportWithRemove, instance, expnode)
-          RunTest(qa_instance.TestBackupList, expnode)
-        finally:
-          qa_config.ReleaseNode(expnode)
-        del expnode
-        del instance
-
-  finally:
-    qa_config.ReleaseNode(pnode)
-
-  RunExclusiveStorageTests()
+    # FIXME: This test leaves a DRBD device and two LVs behind
+    # Cluster-verify would fail
 
   RunTestIf("create-cluster", qa_node.TestNodeRemoveAll)
 
