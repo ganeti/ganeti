@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2007, 2011, 2012 Google Inc.
+# Copyright (C) 2007, 2011, 2012, 2013 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -620,6 +620,7 @@ def TestInstanceExportWithRemove(instance, node):
   """gnt-backup export --remove-instance"""
   AssertCommand(["gnt-backup", "export", "-n", node["primary"],
                  "--remove-instance", instance["name"]])
+  qa_config.ReleaseInstance(instance)
 
 
 @InstanceCheck(INST_UP, INST_UP, FIRST_ARG)
