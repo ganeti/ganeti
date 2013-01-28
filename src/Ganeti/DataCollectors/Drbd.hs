@@ -39,6 +39,7 @@ module Ganeti.DataCollectors.Drbd
 import qualified Control.Exception as E
 import Control.Monad
 import Data.Attoparsec.Text.Lazy as A
+import Data.List
 import Data.Maybe
 import Data.Text.Lazy (pack, unpack)
 import Network.BSD (getHostName)
@@ -47,7 +48,7 @@ import qualified Text.JSON as J
 import qualified Ganeti.BasicTypes as BT
 import qualified Ganeti.Constants as C
 import Ganeti.Block.Drbd.Parser(drbdStatusParser)
-import Ganeti.Block.Drbd.Types(DrbdInstMinor)
+import Ganeti.Block.Drbd.Types
 import Ganeti.Common
 import Ganeti.Confd.Client
 import Ganeti.Confd.Types
@@ -126,6 +127,67 @@ getPairingInfo (Just filename) = do
       J.Ok instMinor -> BT.Ok instMinor
       J.Error msg -> BT.Bad msg
 
+-- | Compute the status code and message, given the current DRBD data
+-- The final state will have the code corresponding to the worst code of
+-- all the devices, and the error message given from the concatenation of the
+-- non-empty error messages.
+computeStatus :: DRBDStatus -> DCStatus
+computeStatus (DRBDStatus _ devInfos) =
+  let statuses = map computeDevStatus devInfos
+      (code, strList) = foldr mergeStatuses (DCSCOk, [""]) statuses
+  in DCStatus code $ intercalate "\n" strList
+
+-- | Helper function for merging statuses.
+mergeStatuses :: (DCStatusCode, String) -> (DCStatusCode, [String])
+              -> (DCStatusCode, [String])
+mergeStatuses (newStat, newStr) (storedStat, storedStrs) =
+  let resStat = max newStat storedStat
+      resStrs =
+        if newStr == ""
+          then storedStrs
+          else storedStrs ++ [newStr]
+  in (resStat, resStrs)
+
+-- | Compute the status of a DRBD device and its error message.
+computeDevStatus :: DeviceInfo -> (DCStatusCode, String)
+computeDevStatus (UnconfiguredDevice _) = (DCSCOk, "")
+computeDevStatus dev =
+  let errMsg s = show (minorNumber dev) ++ ": " ++ s
+      compute_helper StandAlone =
+        (DCSCBad, errMsg "No network config available")
+      compute_helper Disconnecting =
+        (DCSCBad, errMsg "The peer is being disconnected")
+      compute_helper Unconnected =
+        (DCSCTempBad, errMsg "Trying to establish a network connection")
+      compute_helper Timeout =
+        (DCSCTempBad, errMsg "Communication problems between the peers")
+      compute_helper BrokenPipe =
+        (DCSCTempBad, errMsg "Communication problems between the peers")
+      compute_helper NetworkFailure =
+        (DCSCTempBad, errMsg "Communication problems between the peers")
+      compute_helper ProtocolError =
+        (DCSCTempBad, errMsg "Communication problems between the peers")
+      compute_helper TearDown =
+        (DCSCBad, errMsg "The peer is closing the connection")
+      compute_helper WFConnection =
+        (DCSCTempBad, errMsg "Trying to establish a network connection")
+      compute_helper WFReportParams =
+        (DCSCTempBad, errMsg "Trying to establish a network connection")
+      compute_helper Connected = (DCSCOk, "")
+      compute_helper StartingSyncS = (DCSCOk, "")
+      compute_helper StartingSyncT = (DCSCOk, "")
+      compute_helper WFBitMapS = (DCSCOk, "")
+      compute_helper WFBitMapT = (DCSCOk, "")
+      compute_helper WFSyncUUID = (DCSCOk, "")
+      compute_helper SyncSource = (DCSCOk, "")
+      compute_helper SyncTarget = (DCSCOk, "")
+      compute_helper PausedSyncS = (DCSCOk, "")
+      compute_helper PausedSyncT = (DCSCOk, "")
+      compute_helper VerifyS = (DCSCOk, "")
+      compute_helper VerifyT = (DCSCOk, "")
+      compute_helper Unconfigured = (DCSCOk, "")
+  in compute_helper $ connectionState dev
+
 -- | This function computes the JSON representation of the DRBD status.
 buildJsonReport :: FilePath -> Maybe FilePath -> IO J.JSValue
 buildJsonReport statusFile pairingFile = do
@@ -134,11 +196,14 @@ buildJsonReport statusFile pairingFile = do
       exitIfBad "reading from file" . either (BT.Bad . show) BT.Ok
   pairingResult <- getPairingInfo pairingFile
   pairing <- exitIfBad "Can't get pairing info" pairingResult
-  case A.parse (drbdStatusParser pairing) $ pack contents of
-    A.Fail unparsedText contexts errorMessage -> exitErr $
-      show (Prelude.take defaultCharNum $ unpack unparsedText) ++ "\n"
-        ++ show contexts ++ "\n" ++ errorMessage
-    A.Done _ drbdStatus -> return $ J.showJSON drbdStatus
+  drbdData <-
+    case A.parse (drbdStatusParser pairing) $ pack contents of
+      A.Fail unparsedText contexts errorMessage -> exitErr $
+        show (Prelude.take defaultCharNum $ unpack unparsedText) ++ "\n"
+          ++ show contexts ++ "\n" ++ errorMessage
+      A.Done _ drbdS -> return drbdS
+  let status = computeStatus drbdData
+  return . addStatus status $ J.showJSON drbdData
 
 -- | Main function.
 main :: Options -> [String] -> IO ()
