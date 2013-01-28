@@ -37,7 +37,7 @@ _INSTANCE_CHECK_KEY = "instance-check"
 _ENABLED_HV_KEY = "enabled-hypervisors"
 
 
-cfg = None
+cfg = {}
 options = None
 
 
@@ -80,7 +80,7 @@ def Validate():
 
 
 def get(name, default=None):
-  return cfg.get(name, default) # pylint: disable=E1103
+  return cfg.get(name, default)
 
 
 class Either:
@@ -149,7 +149,7 @@ def TestEnabled(tests, _cfg=None):
     _cfg = cfg
 
   # Get settings for all tests
-  cfg_tests = _cfg.get("tests", {}) # pylint: disable=E1103
+  cfg_tests = _cfg.get("tests", {})
 
   # Get default setting
   default = cfg_tests.get("default", True)
@@ -162,7 +162,7 @@ def GetInstanceCheckScript():
   """Returns path to instance check script or C{None}.
 
   """
-  return cfg.get(_INSTANCE_CHECK_KEY, None) # pylint: disable=E1103
+  return cfg.get(_INSTANCE_CHECK_KEY, None)
 
 
 def GetEnabledHypervisors():
