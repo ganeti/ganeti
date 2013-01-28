@@ -201,6 +201,14 @@ def TestClusterInit(rapi_user, rapi_secret):
     cmd.append("--nic-parameters=%s" %
                ",".join(utils.FormatKeyValue(nicparams)))
 
+  # Cluster value of the exclusive-storage node parameter
+  e_s = qa_config.get("exclusive-storage")
+  if e_s is not None:
+    cmd.extend(["--node-parameters", "exclusive_storage=%s" % e_s])
+  else:
+    e_s = False
+  qa_config.SetExclusiveStorage(e_s)
+
   cmd.append(qa_config.get("name"))
   AssertCommand(cmd)
 
@@ -655,6 +663,7 @@ def TestSetExclStorCluster(newvalue):
   if effvalue != newvalue:
     raise qa_error.Error("exclusive_storage has the wrong value: %s instead"
                          " of %s" % (effvalue, newvalue))
+  qa_config.SetExclusiveStorage(newvalue)
   return oldvalue
 
 

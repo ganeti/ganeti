@@ -21,6 +21,8 @@
   "primary_ip_version": 4,
   "# Name of the LVM group for the cluster": null,
   "vg-name": "xenvg",
+  "# Cluster-level value of the exclusive-storage flag": null,
+  "exclusive-storage": null,
 
   "# Network interface for master role": null,
   "#master-netdev": "xen-br0",

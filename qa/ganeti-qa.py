@@ -129,6 +129,10 @@ def SetupCluster(rapi_user, rapi_secret):
   """
   RunTestIf("create-cluster", qa_cluster.TestClusterInit,
             rapi_user, rapi_secret)
+  if not qa_config.TestEnabled("create-cluster"):
+    # If the cluster is already in place, we assume that exclusive-storage is
+    # already set according to the configuration
+    qa_config.SetExclusiveStorage(qa_config.get("exclusive-storage", False))
 
   # Test on empty cluster
   RunTestIf("node-list", qa_node.TestNodeList)

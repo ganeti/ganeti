@@ -35,6 +35,8 @@ import qa_error
 
 _INSTANCE_CHECK_KEY = "instance-check"
 _ENABLED_HV_KEY = "enabled-hypervisors"
+# Key to store the cluster-wide run-time value of the exclusive storage flag
+_EXCLUSIVE_STORAGE_KEY = "_exclusive_storage"
 
 
 cfg = {}
@@ -240,6 +242,22 @@ def SetInstanceTemplate(inst, template):
 
   """
   inst["_template"] = template
+
+
+def SetExclusiveStorage(value):
+  """Set the expected value of the exclusive_storage flag for the cluster.
+
+  """
+  cfg[_EXCLUSIVE_STORAGE_KEY] = bool(value)
+
+
+def GetExclusiveStorage():
+  """Get the expected value of the exclusive_storage flag for the cluster.
+
+  """
+  val = cfg.get(_EXCLUSIVE_STORAGE_KEY)
+  assert val is not None
+  return val
 
 
 def AcquireNode(exclude=None):
