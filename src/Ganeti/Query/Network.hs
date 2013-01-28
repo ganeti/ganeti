@@ -73,6 +73,12 @@ networkFields =
   , (FieldDefinition "group_cnt" "GroupCount" QFTOther "Number of node groups",
      FieldConfig (\cfg -> rsNormal . length . getGroupConnections cfg
        . networkUuid), QffNormal)
+  , (FieldDefinition "inst_list" "InstanceList" QFTOther "List of instances",
+     FieldConfig (\cfg -> rsNormal . getInstances cfg . networkUuid),
+     QffNormal)
+  , (FieldDefinition "inst_cnt" "InstanceCount" QFTOther "Number of instances",
+     FieldConfig (\cfg -> rsNormal . length . getInstances cfg
+       . networkUuid), QffNormal)
   ] ++
   uuidFields "Network" ++
   serialFields "Network" ++
@@ -116,3 +122,13 @@ getNicMode nic_params =
 getNicLink :: PartialNicParams -> String
 getNicLink nic_params = fromMaybe "-" (nicpLinkP nic_params)
 
+-- | Retrieves the network's instances' names.
+getInstances :: ConfigData -> String -> [String]
+getInstances cfg network_uuid =
+  map instName (filter (instIsConnected network_uuid)
+    ((Map.elems . fromContainer . configInstances) cfg))
+
+-- | Helper function that checks if an instance is linked to the given network.
+instIsConnected :: String -> Instance -> Bool
+instIsConnected network_uuid inst =
+  network_uuid `elem` map networkUuid (mapMaybe nicNetwork (instNics inst))
