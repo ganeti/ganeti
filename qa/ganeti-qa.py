@@ -482,6 +482,46 @@ def RunExclusiveStorageTests():
     qa_config.ReleaseNode(node)
 
 
+def RunInstanceTests():
+  """Create and exercise instances."""
+  instance_tests = [
+    ("instance-add-plain-disk", constants.DT_PLAIN,
+     qa_instance.TestInstanceAddWithPlainDisk, 1),
+    ("instance-add-drbd-disk", constants.DT_DRBD8,
+     qa_instance.TestInstanceAddWithDrbdDisk, 2),
+  ]
+
+  for (test_name, templ, create_fun, num_nodes) in instance_tests:
+    if (qa_config.TestEnabled(test_name) and
+        qa_config.IsTemplateSupported(templ)):
+      inodes = qa_config.AcquireManyNodes(num_nodes)
+      try:
+        instance = RunTest(create_fun, inodes)
+
+        RunTestIf("cluster-epo", qa_cluster.TestClusterEpo)
+        RunDaemonTests(instance)
+        for node in inodes:
+          RunTestIf("haskell-confd", qa_node.TestNodeListDrbd, node)
+        if len(inodes) > 1:
+          RunTestIf("group-rwops", qa_group.TestAssignNodesIncludingSplit,
+                    constants.INITIAL_NODE_GROUP_NAME,
+                    inodes[0]["primary"], inodes[1]["primary"])
+        if qa_config.TestEnabled("instance-convert-disk"):
+          RunTest(qa_instance.TestInstanceShutdown, instance)
+          RunTest(qa_instance.TestInstanceConvertDiskToPlain, instance, inodes)
+          RunTest(qa_instance.TestInstanceStartup, instance)
+        RunCommonInstanceTests(instance)
+        RunGroupListTests()
+        RunExportImportTests(instance, inodes)
+        RunHardwareFailureTests(instance, inodes)
+        RunRepairDiskSizes()
+        RunTest(qa_instance.TestInstanceRemove, instance)
+        del instance
+      finally:
+        qa_config.ReleaseManyNodes(inodes)
+      qa_cluster.AssertClusterVerify()
+
+
 def RunQa():
   """Main QA body.
 
@@ -536,42 +576,17 @@ def RunQa():
   finally:
     qa_config.ReleaseNode(pnode)
 
-  instance_tests = [
-    ("instance-add-plain-disk", constants.DT_PLAIN,
-     qa_instance.TestInstanceAddWithPlainDisk, 1),
-    ("instance-add-drbd-disk", constants.DT_DRBD8,
-     qa_instance.TestInstanceAddWithDrbdDisk, 2),
+  config_list = [
+    ("default-instance-tests", lambda: None, lambda _: None),
+    ("exclusive-storage-instance-tests",
+     lambda: qa_cluster.TestSetExclStorCluster(True),
+     qa_cluster.TestSetExclStorCluster),
   ]
-
-  for (test_name, templ, create_fun, num_nodes) in instance_tests:
-    if (qa_config.TestEnabled(test_name) and
-        qa_config.IsTemplateSupported(templ)):
-      inodes = qa_config.AcquireManyNodes(num_nodes)
-      try:
-        instance = RunTest(create_fun, inodes)
-
-        RunTestIf("cluster-epo", qa_cluster.TestClusterEpo)
-        RunDaemonTests(instance)
-        for node in inodes:
-          RunTestIf("haskell-confd", qa_node.TestNodeListDrbd, node)
-        if len(inodes) > 1:
-          RunTestIf("group-rwops", qa_group.TestAssignNodesIncludingSplit,
-                    constants.INITIAL_NODE_GROUP_NAME,
-                    inodes[0]["primary"], inodes[1]["primary"])
-        if qa_config.TestEnabled("instance-convert-disk"):
-          RunTest(qa_instance.TestInstanceShutdown, instance)
-          RunTest(qa_instance.TestInstanceConvertDiskToPlain, instance, inodes)
-          RunTest(qa_instance.TestInstanceStartup, instance)
-        RunCommonInstanceTests(instance)
-        RunGroupListTests()
-        RunExportImportTests(instance, inodes)
-        RunHardwareFailureTests(instance, inodes)
-        RunRepairDiskSizes()
-        RunTest(qa_instance.TestInstanceRemove, instance)
-        del instance
-      finally:
-        qa_config.ReleaseManyNodes(inodes)
-      qa_cluster.AssertClusterVerify()
+  for (conf_name, setup_conf_f, restore_conf_f) in config_list:
+    if qa_config.TestEnabled(conf_name):
+      oldconf = setup_conf_f()
+      RunInstanceTests()
+      restore_conf_f(oldconf)
 
   pnode = qa_config.AcquireNode()
   try:

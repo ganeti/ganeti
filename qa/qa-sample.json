@@ -171,7 +171,11 @@
     "instance-recreate-disks": false,
 
     "# Whether to test the tools/move-instance utility": null,
-    "inter-cluster-instance-move": false
+    "inter-cluster-instance-move": false,
+
+    "# Run instance tests with different cluster configurations": null,
+    "default-instance-tests": true,
+    "exclusive-storage-instance-tests": false
   },
 
   "options": {
