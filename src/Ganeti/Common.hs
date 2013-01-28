@@ -123,7 +123,7 @@ argComplToText :: ArgCompletion -> String
 argComplToText (ArgCompletion optc min_cnt max_cnt) =
   complToText optc ++ " " ++ show min_cnt ++ " " ++ maybe "none" show max_cnt
 
--- | Abrreviation for the option type.
+-- | Abbreviation for the option type.
 type GenericOptType a = (OptDescr (a -> Result a), OptCompletion)
 
 -- | Type class for options which support help and version.
