@@ -90,6 +90,14 @@ class TestConstants(unittest.TestCase):
     self.assertFalse(constants.JOBS_PENDING - constants.JOB_STATUS_ALL)
     self.assertFalse(constants.JOBS_FINALIZED - constants.JOB_STATUS_ALL)
 
+  def testDefaultsForAllHypervisors(self):
+    self.assertEqual(frozenset(constants.HVC_DEFAULTS.keys()),
+                     constants.HYPER_TYPES)
+
+  def testDefaultHypervisor(self):
+    self.assertTrue(constants.DEFAULT_ENABLED_HYPERVISOR in
+                    constants.HYPER_TYPES)
+
 
 class TestExportedNames(unittest.TestCase):
   _VALID_NAME_RE = re.compile(r"^[A-Z][A-Z0-9_]+$")
