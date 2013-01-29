@@ -450,12 +450,6 @@ def RunHardwareFailureTests(instance, pnode, snode):
 
   RunTestIf("node-failover", qa_node.TestNodeFailover, pnode, snode)
 
-  RunTestIf("instance-disk-failure", qa_instance.TestInstanceMasterDiskFailure,
-            instance, pnode, snode)
-  RunTestIf("instance-disk-failure",
-            qa_instance.TestInstanceSecondaryDiskFailure, instance,
-            pnode, snode)
-
 
 def RunExclusiveStorageTests():
   """Test exclusive storage."""

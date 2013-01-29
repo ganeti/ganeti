@@ -169,12 +169,7 @@
     "instance-recreate-disks": false,
 
     "# Whether to test the tools/move-instance utility": null,
-    "inter-cluster-instance-move": false,
-
-    "# Make sure not to include the disk(s) required for Dom0 to be up": null,
-    "# in the volume group used for instances. Otherwise the whole": null,
-    "# system may stop working until restarted.": null,
-    "instance-disk-failure": false
+    "inter-cluster-instance-move": false
   },
 
   "options": {
