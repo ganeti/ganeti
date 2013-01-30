@@ -54,6 +54,8 @@ Contents:
    design-remote-commands.rst
    design-shared-storage.rst
    design-virtual-clusters.rst
+   design-network.rst
+   design-linuxha.rst
 
 Also see the :ref:`search`.
 
