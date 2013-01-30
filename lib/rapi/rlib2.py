@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -397,7 +397,7 @@ class R_2_nodes(baserlib.OpcodeResource):
     """Returns a list of all nodes.
 
     """
-    client = self.GetClient(query=True)
+    client = self.GetClient(query=False)
 
     if self.useBulk():
       bulkdata = client.QueryNodes([], N_FIELDS, False)
@@ -420,7 +420,7 @@ class R_2_nodes_name(baserlib.OpcodeResource):
 
     """
     node_name = self.items[0]
-    client = self.GetClient(query=True)
+    client = self.GetClient(query=False)
 
     result = baserlib.HandleItemQueryErrors(client.QueryNodes,
                                             names=[node_name], fields=N_FIELDS,
