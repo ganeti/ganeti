@@ -333,7 +333,7 @@ instance Arbitrary OpCodes.OpCode where
         OpCodes.OpNetworkConnect <$> genNameNE <*> genNameNE <*>
           arbitrary <*> genNameNE <*> arbitrary
       "OP_NETWORK_DISCONNECT" ->
-        OpCodes.OpNetworkDisconnect <$> genNameNE <*> genNameNE <*> arbitrary
+        OpCodes.OpNetworkDisconnect <$> genNameNE <*> genNameNE
       "OP_NETWORK_QUERY" ->
         OpCodes.OpNetworkQuery <$> genFieldsNE <*> genNamesNE <*> arbitrary
       "OP_RESTRICTED_COMMAND" ->

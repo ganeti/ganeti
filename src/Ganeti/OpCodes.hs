@@ -535,7 +535,6 @@ $(genOpCode "OpCode"
   , ("OpNetworkDisconnect",
      [ pGroupName
      , pNetworkName
-     , pIpConflictsCheck
      ])
   , ("OpNetworkQuery", dOldQuery)
   , ("OpRestrictedCommand",
