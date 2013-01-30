@@ -114,6 +114,11 @@ link
     details). Note that openvswitch support is also hypervisor
     dependent.
 
+network
+    derives the mode and the link from the settings of the network
+    which is identified by its name. If the network option is chosen,
+    link and mode must not be specified.
+
 
 Of these "mode" and "link" are nic parameters, and inherit their
 default at cluster level.  Alternatively, if no network is desired for
@@ -1033,10 +1038,10 @@ read-write (``rw``).
 The ``--net add:``*options* and ``--net`` *N*``:add,``*options* option
 will add a new network interface to the instance. The available options
 are the same as in the **add** command (``mac``, ``ip``, ``link``,
-``mode``). The ``--net remove`` will remove the last network interface
-of the instance (``--net`` *N*``:remove`` for a specific index), while
-the ``--net`` *N*``:``*options* option will change the parameters of the Nth
-instance network interface.
+``mode``, ``network``). The ``--net remove`` will remove the last network
+interface of the instance (``--net`` *N*``:remove`` for a specific index),
+while the ``--net`` *N*``:``*options* option will change the parameters of
+the Nth instance network interface.
 
 The option ``-o (--os-type)`` will change the OS name for the instance
 (without reinstallation). In case an OS variant is specified that is

@@ -286,7 +286,7 @@ oEvacMode :: OptType
 oEvacMode =
   (Option "E" ["evac-mode"]
    (NoArg (\opts -> Ok opts { optEvacMode = True }))
-   "enable evacuation mode, where the algorithm only moves \
+   "enable evacuation mode, where the algorithm only moves\
    \ instances away from offline and drained nodes",
    OptComplNone)
 
@@ -366,8 +366,8 @@ oMaxSolLength =
   (Option "l" ["max-length"]
    (reqWithConversion (tryRead "max solution length")
     (\i opts -> Ok opts { optMaxLength = i }) "N")
-   "cap the solution at this many balancing or allocation \
-   \ rounds (useful for very unbalanced clusters or empty \
+   "cap the solution at this many balancing or allocation\
+   \ rounds (useful for very unbalanced clusters or empty\
    \ clusters)",
    OptComplInteger)
 

@@ -139,8 +139,9 @@ def _OpenTap(vnet_hdr=True):
 
   try:
     res = fcntl.ioctl(tapfd, TUNSETIFF, ifr)
-  except EnvironmentError:
-    raise errors.HypervisorError("Failed to allocate a new TAP device")
+  except EnvironmentError, err:
+    raise errors.HypervisorError("Failed to allocate a new TAP device: %s" %
+                                 err)
 
   # Get the interface name from the ioctl
   ifname = struct.unpack("16sh", res)[0].strip("\x00")
@@ -1531,7 +1532,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       kvm_supports_netdev = self._NETDEV_RE.search(kvmhelp)
 
       for nic_seq, nic in enumerate(kvm_nics):
-        tapname, tapfd = _OpenTap(vnet_hdr)
+        tapname, tapfd = _OpenTap(vnet_hdr=vnet_hdr)
         tapfds.append(tapfd)
         taps.append(tapname)
         if kvm_supports_netdev:
