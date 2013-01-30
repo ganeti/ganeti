@@ -26,6 +26,7 @@ import tempfile
 import unittest
 import socket
 import os
+import struct
 
 from ganeti import serializer
 from ganeti import constants
@@ -313,6 +314,56 @@ class TestHelpRegexps(testutils.GanetiTestCase):
     self.assertFalse(boot_re.search(help_112))
     self.assertFalse(boot_re.search(help_10))
     self.assertFalse(boot_re.search(help_01590))
+
+
+class TestGetTunFeatures(unittest.TestCase):
+  def testWrongIoctl(self):
+    tmpfile = tempfile.NamedTemporaryFile()
+    # A file does not have the right ioctls, so this must always fail
+    result = hv_kvm._GetTunFeatures(tmpfile.fileno())
+    self.assertTrue(result is None)
+
+  def _FakeIoctl(self, features, fd, request, buf):
+    self.assertEqual(request, hv_kvm.TUNGETFEATURES)
+
+    (reqno, ) = struct.unpack("I", buf)
+    self.assertEqual(reqno, 0)
+
+    return struct.pack("I", features)
+
+  def test(self):
+    tmpfile = tempfile.NamedTemporaryFile()
+    fd = tmpfile.fileno()
+
+    for features in [0, hv_kvm.IFF_VNET_HDR]:
+      fn = compat.partial(self._FakeIoctl, features)
+      result = hv_kvm._GetTunFeatures(fd, _ioctl=fn)
+      self.assertEqual(result, features)
+
+
+class TestProbeTapVnetHdr(unittest.TestCase):
+  def _FakeTunFeatures(self, expected_fd, flags, fd):
+    self.assertEqual(fd, expected_fd)
+    return flags
+
+  def test(self):
+    tmpfile = tempfile.NamedTemporaryFile()
+    fd = tmpfile.fileno()
+
+    for flags in [0, hv_kvm.IFF_VNET_HDR]:
+      fn = compat.partial(self._FakeTunFeatures, fd, flags)
+
+      result = hv_kvm._ProbeTapVnetHdr(fd, _features_fn=fn)
+      if flags == 0:
+        self.assertFalse(result)
+      else:
+        self.assertTrue(result)
+
+  def testUnsupported(self):
+    tmpfile = tempfile.NamedTemporaryFile()
+    fd = tmpfile.fileno()
+
+    self.assertFalse(hv_kvm._ProbeTapVnetHdr(fd, _features_fn=lambda _: None))
 
 
 if __name__ == "__main__":

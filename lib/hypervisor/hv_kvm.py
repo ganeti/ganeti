@@ -80,7 +80,24 @@ _SPICE_ADDITIONAL_PARAMS = frozenset([
   ])
 
 
-def _ProbeTapVnetHdr(fd):
+def _GetTunFeatures(fd, _ioctl=fcntl.ioctl):
+  """Retrieves supported TUN features from file descriptor.
+
+  @see: L{_ProbeTapVnetHdr}
+
+  """
+  req = struct.pack("I", 0)
+  try:
+    buf = _ioctl(fd, TUNGETFEATURES, req)
+  except EnvironmentError, err:
+    logging.warning("ioctl(TUNGETFEATURES) failed: %s" % err)
+    return None
+  else:
+    (flags, ) = struct.unpack("I", buf)
+    return flags
+
+
+def _ProbeTapVnetHdr(fd, _features_fn=_GetTunFeatures):
   """Check whether to enable the IFF_VNET_HDR flag.
 
   To do this, _all_ of the following conditions must be met:
@@ -97,19 +114,18 @@ def _ProbeTapVnetHdr(fd):
    @param fd: the file descriptor of /dev/net/tun
 
   """
-  req = struct.pack("I", 0)
-  try:
-    res = fcntl.ioctl(fd, TUNGETFEATURES, req)
-  except EnvironmentError:
-    logging.warning("TUNGETFEATURES ioctl() not implemented")
+  flags = _features_fn(fd)
+
+  if flags is None:
+    # Not supported
     return False
 
-  tunflags = struct.unpack("I", res)[0]
-  if tunflags & IFF_VNET_HDR:
-    return True
-  else:
-    logging.warning("Host does not support IFF_VNET_HDR, not enabling")
-    return False
+  result = bool(flags & IFF_VNET_HDR)
+
+  if not result:
+    logging.warning("Kernel does not support IFF_VNET_HDR, not enabling")
+
+  return result
 
 
 def _OpenTap(vnet_hdr=True):
