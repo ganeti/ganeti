@@ -144,8 +144,7 @@ def DisconnectNetwork(opts, args):
   # TODO: Change logic to support "--submit"
   for group in groups:
     op = opcodes.OpNetworkDisconnect(group_name=group,
-                                     network_name=network,
-                                     conflicts_check=opts.conflicts_check)
+                                     network_name=network)
     SubmitOpCode(op, opts=opts, cl=cl)
 
 
@@ -349,7 +348,7 @@ commands = {
   "disconnect": (
     DisconnectNetwork,
     [ArgNetwork(min=1, max=1), ArgGroup()],
-    [NOCONFLICTSCHECK_OPT, PRIORITY_OPT],
+    [PRIORITY_OPT],
     "<network_name> [<node_group>...]",
     "Unmap a given network from a specified node group"),
   "remove": (

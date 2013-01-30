@@ -16811,9 +16811,8 @@ class LUNetworkDisconnect(LogicalUnit):
 
       # Lock instances optimistically, needs verification once group lock has
       # been acquired
-      if self.op.conflicts_check:
-        self.needed_locks[locking.LEVEL_INSTANCE] = \
-          self.cfg.GetNodeGroupInstances(self.group_uuid)
+      self.needed_locks[locking.LEVEL_INSTANCE] = \
+        self.cfg.GetNodeGroupInstances(self.group_uuid)
 
   def BuildHooksEnv(self):
     ret = {
@@ -16838,9 +16837,8 @@ class LUNetworkDisconnect(LogicalUnit):
       self.connected = False
       return
 
-    if self.op.conflicts_check:
-      _NetworkConflictCheck(self, lambda nic: nic.network == self.network_name,
-                            "disconnect from")
+    _NetworkConflictCheck(self, lambda nic: nic.network == self.network_name,
+                          "disconnect from")
 
   def Exec(self, feedback_fn):
     if not self.connected:

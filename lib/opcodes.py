@@ -2143,7 +2143,6 @@ class OpNetworkDisconnect(OpCode):
   OP_PARAMS = [
     _PGroupName,
     _PNetworkName,
-    ("conflicts_check", True, ht.TBool, "Whether to check for conflicting IPs"),
     ]
   OP_RESULT = ht.TNone
 
