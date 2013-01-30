@@ -39,6 +39,9 @@ import qa_error
 from qa_utils import AssertEqual, AssertCommand, GetCommandOutput
 
 
+# Prefix for LVM volumes created by QA code during tests
+_QA_LV_PREFIX = "qa-"
+
 #: cluster verify command
 _CLUSTER_VERIFY = ["gnt-cluster", "verify"]
 
@@ -184,6 +187,10 @@ def TestClusterInit(rapi_user, rapi_secret):
 
   if master.get("secondary", None):
     cmd.append("--secondary-ip=%s" % master["secondary"])
+
+  vgname = qa_config.get("vg-name", None)
+  if vgname:
+    cmd.append("--vg-name=%s" % vgname)
 
   master_netdev = qa_config.get("master-netdev", None)
   if master_netdev:
@@ -334,19 +341,23 @@ def TestDelay(node):
 
 def TestClusterReservedLvs():
   """gnt-cluster reserved lvs"""
+  vgname = qa_config.get("vg-name", constants.DEFAULT_VG)
+  lvname = _QA_LV_PREFIX + "test"
+  lvfullname = "/".join([vgname, lvname])
   for fail, cmd in [
     (False, _CLUSTER_VERIFY),
     (False, ["gnt-cluster", "modify", "--reserved-lvs", ""]),
-    (False, ["lvcreate", "-L1G", "-nqa-test", "xenvg"]),
+    (False, ["lvcreate", "-L1G", "-n", lvname, vgname]),
     (True, _CLUSTER_VERIFY),
     (False, ["gnt-cluster", "modify", "--reserved-lvs",
-             "xenvg/qa-test,.*/other-test"]),
+             "%s,.*/other-test" % lvfullname]),
     (False, _CLUSTER_VERIFY),
-    (False, ["gnt-cluster", "modify", "--reserved-lvs", ".*/qa-.*"]),
+    (False, ["gnt-cluster", "modify", "--reserved-lvs",
+             ".*/%s.*" % _QA_LV_PREFIX]),
     (False, _CLUSTER_VERIFY),
     (False, ["gnt-cluster", "modify", "--reserved-lvs", ""]),
     (True, _CLUSTER_VERIFY),
-    (False, ["lvremove", "-f", "xenvg/qa-test"]),
+    (False, ["lvremove", "-f", lvfullname]),
     (False, _CLUSTER_VERIFY),
     ]:
     AssertCommand(cmd, fail=fail)
