@@ -1551,20 +1551,16 @@ def _NICToTuple(lu, nic):
   @param nic: nic to convert to hooks tuple
 
   """
-  ip = nic.ip
-  mac = nic.mac
   cluster = lu.cfg.GetClusterInfo()
   filled_params = cluster.SimpleFillNIC(nic.nicparams)
   mode = filled_params[constants.NIC_MODE]
   link = filled_params[constants.NIC_LINK]
-  net = nic.network
   netinfo = None
-  if net:
-    net_uuid = lu.cfg.LookupNetwork(net)
-    if net_uuid:
-      nobj = lu.cfg.GetNetwork(net_uuid)
-      netinfo = objects.Network.ToDict(nobj)
-  return (ip, mac, mode, link, net, netinfo)
+  if nic.network:
+    net_uuid = lu.cfg.LookupNetwork(nic.network)
+    netinfo = objects.Network.ToDict(lu.cfg.GetNetwork(net_uuid))
+
+  return (nic.ip, nic.mac, mode, link, nic.network, netinfo)
 
 
 def _NICListToTuple(lu, nics):
@@ -13452,12 +13448,12 @@ class LUInstanceSetParams(LogicalUnit):
     elif new_net != old_net:
 
       def get_net_prefix(net):
+        mac_prefix = None
         if net:
           uuid = self.cfg.LookupNetwork(net)
-          if uuid:
-            nobj = self.cfg.GetNetwork(uuid)
-            return nobj.mac_prefix
-        return None
+          mac_prefix = self.cfg.GetNetwork(uuid).mac_prefix
+
+        return mac_prefix
 
       new_prefix = get_net_prefix(new_net)
       old_prefix = get_net_prefix(old_net)
@@ -16206,11 +16202,15 @@ class LUNetworkAdd(LogicalUnit):
       raise errors.OpPrereqError("Network must be given",
                                  errors.ECODE_INVAL)
 
-    uuid = self.cfg.LookupNetwork(self.op.network_name)
-
-    if uuid:
-      raise errors.OpPrereqError(("Network with name '%s' already exists" %
-                                  self.op.network_name), errors.ECODE_EXISTS)
+    try:
+      existing_uuid = self.cfg.LookupNetwork(self.op.network_name)
+    except errors.OpPrereqError:
+      pass
+    else:
+      raise errors.OpPrereqError("Desired network name '%s' already exists as a"
+                                 " network (UUID: %s)" %
+                                 (self.op.network_name, existing_uuid),
+                                 errors.ECODE_EXISTS)
 
     # Check tag validity
     for tag in self.op.tags:
@@ -16297,10 +16297,6 @@ class LUNetworkRemove(LogicalUnit):
   def ExpandNames(self):
     self.network_uuid = self.cfg.LookupNetwork(self.op.network_name)
 
-    if not self.network_uuid:
-      raise errors.OpPrereqError(("Network '%s' not found" %
-                                  self.op.network_name), errors.ECODE_NOENT)
-
     self.share_locks[locking.LEVEL_NODEGROUP] = 1
     self.needed_locks = {
       locking.LEVEL_NETWORK: [self.network_uuid],
@@ -16369,9 +16365,6 @@ class LUNetworkSetParams(LogicalUnit):
 
   def ExpandNames(self):
     self.network_uuid = self.cfg.LookupNetwork(self.op.network_name)
-    if self.network_uuid is None:
-      raise errors.OpPrereqError(("Network '%s' not found" %
-                                  self.op.network_name), errors.ECODE_NOENT)
 
     self.needed_locks = {
       locking.LEVEL_NETWORK: [self.network_uuid],
@@ -16633,14 +16626,7 @@ class LUNetworkConnect(LogicalUnit):
     self.network_link = self.op.network_link
 
     self.network_uuid = self.cfg.LookupNetwork(self.network_name)
-    if self.network_uuid is None:
-      raise errors.OpPrereqError("Network '%s' does not exist" %
-                                 self.network_name, errors.ECODE_NOENT)
-
     self.group_uuid = self.cfg.LookupNodeGroup(self.group_name)
-    if self.group_uuid is None:
-      raise errors.OpPrereqError("Group '%s' does not exist" %
-                                 self.group_name, errors.ECODE_NOENT)
 
     self.needed_locks = {
       locking.LEVEL_INSTANCE: [],
@@ -16769,14 +16755,7 @@ class LUNetworkDisconnect(LogicalUnit):
     self.group_name = self.op.group_name
 
     self.network_uuid = self.cfg.LookupNetwork(self.network_name)
-    if self.network_uuid is None:
-      raise errors.OpPrereqError("Network '%s' does not exist" %
-                                 self.network_name, errors.ECODE_NOENT)
-
     self.group_uuid = self.cfg.LookupNodeGroup(self.group_name)
-    if self.group_uuid is None:
-      raise errors.OpPrereqError("Group '%s' does not exist" %
-                                 self.group_name, errors.ECODE_NOENT)
 
     self.needed_locks = {
       locking.LEVEL_INSTANCE: [],

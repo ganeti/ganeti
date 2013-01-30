@@ -277,10 +277,9 @@ class ConfigWriter:
     prefix = None
     if net:
       net_uuid = self._UnlockedLookupNetwork(net)
-      if net_uuid:
-        nobj = self._UnlockedGetNetwork(net_uuid)
-        if nobj.mac_prefix:
-          prefix = nobj.mac_prefix
+      nobj = self._UnlockedGetNetwork(net_uuid)
+      if nobj.mac_prefix:
+        prefix = nobj.mac_prefix
 
     return prefix
 
@@ -366,8 +365,7 @@ class ConfigWriter:
 
     """
     net_uuid = self._UnlockedLookupNetwork(net)
-    if net_uuid:
-      self._UnlockedReleaseIp(net_uuid, address, ec_id)
+    self._UnlockedReleaseIp(net_uuid, address, ec_id)
 
   @locking.ssynchronized(_config_lock, shared=1)
   def GenerateIp(self, net, ec_id):
@@ -411,8 +409,7 @@ class ConfigWriter:
 
     """
     net_uuid = self._UnlockedLookupNetwork(net)
-    if net_uuid:
-      return self._UnlockedReserveIp(net_uuid, address, ec_id)
+    return self._UnlockedReserveIp(net_uuid, address, ec_id)
 
   @locking.ssynchronized(_config_lock, shared=1)
   def ReserveLV(self, lv_name, ec_id):
@@ -1457,9 +1454,8 @@ class ConfigWriter:
     for nic in instance.nics:
       if nic.network is not None and nic.ip is not None:
         net_uuid = self._UnlockedLookupNetwork(nic.network)
-        if net_uuid:
-          # Return all IP addresses to the respective address pools
-          self._UnlockedCommitIp(constants.RELEASE_ACTION, net_uuid, nic.ip)
+        # Return all IP addresses to the respective address pools
+        self._UnlockedCommitIp(constants.RELEASE_ACTION, net_uuid, nic.ip)
 
     del self._config_data.instances[instance_name]
     self._config_data.cluster.serial_no += 1
@@ -2477,12 +2473,6 @@ class ConfigWriter:
     if check_uuid:
       self._EnsureUUID(net, ec_id)
 
-    existing_uuid = self._UnlockedLookupNetwork(net.name)
-    if existing_uuid:
-      raise errors.OpPrereqError("Desired network name '%s' already"
-                                 " exists as a network (UUID: %s)" %
-                                 (net.name, existing_uuid),
-                                 errors.ECODE_EXISTS)
     net.serial_no = 1
     self._config_data.networks[net.uuid] = net
     self._config_data.cluster.serial_no += 1
@@ -2502,7 +2492,8 @@ class ConfigWriter:
     for net in self._config_data.networks.values():
       if net.name == target:
         return net.uuid
-    return None
+    raise errors.OpPrereqError("Network '%s' not found" % target,
+                               errors.ECODE_NOENT)
 
   @locking.ssynchronized(_config_lock, shared=1)
   def LookupNetwork(self, target):
@@ -2549,9 +2540,6 @@ class ConfigWriter:
 
     """
     net_uuid = self._UnlockedLookupNetwork(net)
-    if net_uuid is None:
-      return None
-
     node_info = self._UnlockedGetNodeInfo(node)
     nodegroup_info = self._UnlockedGetNodeGroup(node_info.group)
     netparams = nodegroup_info.networks.get(net_uuid, None)
