@@ -181,7 +181,7 @@ support all options. Some common options are:
   - instance disk size
   - instance vcpus
   - instance status (in Ganeti's format, e.g. ``running`` or ``ERROR_down``)
-  - instance ``auto_balance`` flag (see man page **gnt-instance** (7))
+  - instance ``auto_balance`` flag (see man page **gnt-instance**\(8))
   - instance primary node
   - instance secondary node(s), if any
   - instance disk type (e.g. ``plain`` or ``drbd``)
