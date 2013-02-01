@@ -351,6 +351,23 @@ class TestNode(unittest.TestCase):
     self.assertEqual(node2.disk_state[constants.LD_LV]["lv2082"].total, 512)
     self.assertEqual(node2.disk_state[constants.LD_LV]["lv32352"].total, 128)
 
+  def testFilterEsNdp(self):
+    node1 = objects.Node(name="node11673.example.com", ndparams={
+      constants.ND_EXCLUSIVE_STORAGE: True,
+      })
+    node2 = objects.Node(name="node11674.example.com", ndparams={
+      constants.ND_SPINDLE_COUNT: 3,
+      constants.ND_EXCLUSIVE_STORAGE: False,
+      })
+    self.assertTrue(constants.ND_EXCLUSIVE_STORAGE in node1.ndparams)
+    node1.UpgradeConfig()
+    self.assertFalse(constants.ND_EXCLUSIVE_STORAGE in node1.ndparams)
+    self.assertTrue(constants.ND_EXCLUSIVE_STORAGE in node2.ndparams)
+    self.assertTrue(constants.ND_SPINDLE_COUNT in node2.ndparams)
+    node2.UpgradeConfig()
+    self.assertFalse(constants.ND_EXCLUSIVE_STORAGE in node2.ndparams)
+    self.assertTrue(constants.ND_SPINDLE_COUNT in node2.ndparams)
+
 
 if __name__ == "__main__":
   testutils.GanetiTestProgram()

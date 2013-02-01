@@ -1020,18 +1020,32 @@ def _CheckOutputFields(static, dynamic, selected):
                                % ",".join(delta), errors.ECODE_INVAL)
 
 
-def _CheckGlobalHvParams(params):
-  """Validates that given hypervisor params are not global ones.
+def _CheckParamsNotGlobal(params, glob_pars, kind, bad_levels, good_levels):
+  """Make sure that none of the given paramters is global.
 
-  This will ensure that instances don't get customised versions of
-  global params.
+  If a global parameter is found, an L{errors.OpPrereqError} exception is
+  raised. This is used to avoid setting global parameters for individual nodes.
+
+  @type params: dictionary
+  @param params: Parameters to check
+  @type glob_pars: dictionary
+  @param glob_pars: Forbidden parameters
+  @type kind: string
+  @param kind: Kind of parameters (e.g. "node")
+  @type bad_levels: string
+  @param bad_levels: Level(s) at which the parameters are forbidden (e.g.
+      "instance")
+  @type good_levels: strings
+  @param good_levels: Level(s) at which the parameters are allowed (e.g.
+      "cluster or group")
 
   """
-  used_globals = constants.HVC_GLOBALS.intersection(params)
+  used_globals = glob_pars.intersection(params)
   if used_globals:
-    msg = ("The following hypervisor parameters are global and cannot"
-           " be customized at instance level, please modify them at"
-           " cluster level: %s" % utils.CommaJoin(used_globals))
+    msg = ("The following %s parameters are global and cannot"
+           " be customized at %s level, please modify them at"
+           " %s level: %s" %
+           (kind, bad_levels, good_levels, utils.CommaJoin(used_globals)))
     raise errors.OpPrereqError(msg, errors.ECODE_INVAL)
 
 
@@ -6129,6 +6143,8 @@ class LUNodeAdd(LogicalUnit):
 
     if self.op.ndparams:
       utils.ForceDictType(self.op.ndparams, constants.NDS_PARAMETER_TYPES)
+      _CheckParamsNotGlobal(self.op.ndparams, constants.NDC_GLOBALS, "node",
+                            "node", "cluster or group")
 
     if self.op.hv_state:
       self.new_hv_state = _MergeAndVerifyHvState(self.op.hv_state, None)
@@ -6154,9 +6170,6 @@ class LUNodeAdd(LogicalUnit):
     if vg_name is not None:
       vparams = {constants.NV_PVLIST: [vg_name]}
       excl_stor = _IsExclusiveStorageEnabledNode(cfg, self.new_node)
-      if self.op.ndparams:
-        excl_stor = self.op.ndparams.get(constants.ND_EXCLUSIVE_STORAGE,
-                                         excl_stor)
       cname = self.cfg.GetClusterName()
       result = rpcrunner.call_node_verify_light([node], vparams, cname)[node]
       (errmsgs, _) = _CheckNodePVs(result.payload, excl_stor)
@@ -6554,6 +6567,8 @@ class LUNodeSetParams(LogicalUnit):
     if self.op.ndparams:
       new_ndparams = _GetUpdatedParams(self.node.ndparams, self.op.ndparams)
       utils.ForceDictType(new_ndparams, constants.NDS_PARAMETER_TYPES)
+      _CheckParamsNotGlobal(self.op.ndparams, constants.NDC_GLOBALS, "node",
+                            "node", "cluster or group")
       self.new_ndparams = new_ndparams
 
     if self.op.hv_state:
@@ -10592,7 +10607,8 @@ class LUInstanceCreate(LogicalUnit):
     hv_type.CheckParameterSyntax(filled_hvp)
     self.hv_full = filled_hvp
     # check that we don't specify global parameters on an instance
-    _CheckGlobalHvParams(self.op.hvparams)
+    _CheckParamsNotGlobal(self.op.hvparams, constants.HVC_GLOBALS, "hypervisor",
+                          "instance", "cluster")
 
     # fill and remember the beparams dict
     self.be_full = _ComputeFullBeParams(self.op, cluster)
@@ -13290,7 +13306,8 @@ class LUInstanceSetParams(LogicalUnit):
       raise errors.OpPrereqError("No changes submitted", errors.ECODE_INVAL)
 
     if self.op.hvparams:
-      _CheckGlobalHvParams(self.op.hvparams)
+      _CheckParamsNotGlobal(self.op.hvparams, constants.HVC_GLOBALS,
+                            "hypervisor", "instance", "cluster")
 
     self.op.disks = self._UpgradeDiskNicMods(
       "disk", self.op.disks, opcodes.OpInstanceSetParams.TestDiskModifications)

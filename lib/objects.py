@@ -38,6 +38,7 @@ pass to and from external parties.
 import ConfigParser
 import re
 import copy
+import logging
 import time
 from cStringIO import StringIO
 
@@ -1334,6 +1335,12 @@ class Node(TaggableObject):
 
     if self.ndparams is None:
       self.ndparams = {}
+    # And remove any global parameter
+    for key in constants.NDC_GLOBALS:
+      if key in self.ndparams:
+        logging.warning("Ignoring %s node parameter for node %s",
+                        key, self.name)
+        del self.ndparams[key]
 
     if self.powered is None:
       self.powered = True
