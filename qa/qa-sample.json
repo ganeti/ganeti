@@ -19,6 +19,10 @@
   "# Dict of OS name and value dict of hypervisor  parameters": null,
   "os-hvp": {},
   "primary_ip_version": 4,
+  "# Name of the LVM group for the cluster": null,
+  "vg-name": "xenvg",
+  "# Cluster-level value of the exclusive-storage flag": null,
+  "exclusive-storage": null,
 
   "# Network interface for master role": null,
   "#master-netdev": "xen-br0",
@@ -119,6 +123,7 @@
     "cluster-epo": true,
     "cluster-redist-conf": true,
     "cluster-repair-disk-sizes": true,
+    "cluster-exclusive-storage": true,
 
     "haskell-confd": true,
     "htools": true,
@@ -178,10 +183,9 @@
     "# Whether to test the tools/move-instance utility": null,
     "inter-cluster-instance-move": false,
 
-    "# Make sure not to include the disk(s) required for Dom0 to be up": null,
-    "# in the volume group used for instances. Otherwise the whole": null,
-    "# system may stop working until restarted.": null,
-    "instance-disk-failure": false
+    "# Run instance tests with different cluster configurations": null,
+    "default-instance-tests": true,
+    "exclusive-storage-instance-tests": false
   },
 
   "options": {

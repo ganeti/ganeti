@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2007, 2010, 2011, 2012 Google Inc.
+# Copyright (C) 2007, 2010, 2011, 2012, 2013 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -23,6 +23,7 @@
 
 """
 
+import re
 import tempfile
 import os.path
 
@@ -37,6 +38,9 @@ import qa_error
 
 from qa_utils import AssertEqual, AssertCommand, GetCommandOutput
 
+
+# Prefix for LVM volumes created by QA code during tests
+_QA_LV_PREFIX = "qa-"
 
 #: cluster verify command
 _CLUSTER_VERIFY = ["gnt-cluster", "verify"]
@@ -57,6 +61,78 @@ def _CheckFileOnAllNodes(filename, content):
   cmd = utils.ShellQuoteArgs(["cat", filename])
   for node in qa_config.get("nodes"):
     AssertEqual(qa_utils.GetCommandOutput(node["primary"], cmd), content)
+
+
+# "gnt-cluster info" fields
+_CIFIELD_RE = re.compile(r"^[-\s]*(?P<field>[^\s:]+):\s*(?P<value>\S.*)$")
+
+
+def _GetBoolClusterField(field):
+  """Get the Boolean value of a cluster field.
+
+  This function currently assumes that the field name is unique in the cluster
+  configuration. An assertion checks this assumption.
+
+  @type field: string
+  @param field: Name of the field
+  @rtype: bool
+  @return: The effective value of the field
+
+  """
+  master = qa_config.GetMasterNode()
+  infocmd = "gnt-cluster info"
+  info_out = qa_utils.GetCommandOutput(master["primary"], infocmd)
+  ret = None
+  for l in info_out.splitlines():
+    m = _CIFIELD_RE.match(l)
+    # FIXME: There should be a way to specify a field through a hierarchy
+    if m and m.group("field") == field:
+      # Make sure that ignoring the hierarchy doesn't cause a double match
+      assert ret is None
+      ret = (m.group("value").lower() == "true")
+  if ret is not None:
+    return ret
+  raise qa_error.Error("Field not found in cluster configuration: %s" % field)
+
+
+# Cluster-verify errors (date, "ERROR", then error code)
+_CVERROR_RE = re.compile(r"^[\w\s:]+\s+- ERROR:([A-Z0-9_-]+):")
+
+
+def _GetCVErrorCodes(cvout):
+  ret = set()
+  for l in cvout.splitlines():
+    m = _CVERROR_RE.match(l)
+    if m:
+      ecode = m.group(1)
+      ret.add(ecode)
+  return ret
+
+
+def AssertClusterVerify(fail=False, errors=None):
+  """Run cluster-verify and check the result
+
+  @type fail: bool
+  @param fail: if cluster-verify is expected to fail instead of succeeding
+  @type errors: list of tuples
+  @param errors: List of CV_XXX errors that are expected; if specified, all the
+      errors listed must appear in cluster-verify output. A non-empty value
+      implies C{fail=True}.
+
+  """
+  cvcmd = "gnt-cluster verify"
+  mnode = qa_config.GetMasterNode()
+  if errors:
+    cvout = GetCommandOutput(mnode["primary"], cvcmd + " --error-codes",
+                             fail=True)
+    actual = _GetCVErrorCodes(cvout)
+    expected = compat.UniqueFrozenset(e for (_, e, _) in errors)
+    if not actual.issuperset(expected):
+      missing = expected.difference(actual)
+      raise qa_error.Error("Cluster-verify didn't return these expected"
+                           " errors: %s" % utils.CommaJoin(missing))
+  else:
+    AssertCommand(cvcmd, fail=fail, node=mnode)
 
 
 # data for testing failures due to bad keys/values for disk parameters
@@ -112,6 +188,10 @@ def TestClusterInit(rapi_user, rapi_secret):
   if master.get("secondary", None):
     cmd.append("--secondary-ip=%s" % master["secondary"])
 
+  vgname = qa_config.get("vg-name", None)
+  if vgname:
+    cmd.append("--vg-name=%s" % vgname)
+
   master_netdev = qa_config.get("master-netdev", None)
   if master_netdev:
     cmd.append("--master-netdev=%s" % master_netdev)
@@ -120,6 +200,14 @@ def TestClusterInit(rapi_user, rapi_secret):
   if nicparams:
     cmd.append("--nic-parameters=%s" %
                ",".join(utils.FormatKeyValue(nicparams)))
+
+  # Cluster value of the exclusive-storage node parameter
+  e_s = qa_config.get("exclusive-storage")
+  if e_s is not None:
+    cmd.extend(["--node-parameters", "exclusive_storage=%s" % e_s])
+  else:
+    e_s = False
+  qa_config.SetExclusiveStorage(e_s)
 
   cmd.append(qa_config.get("name"))
   AssertCommand(cmd)
@@ -261,19 +349,23 @@ def TestDelay(node):
 
 def TestClusterReservedLvs():
   """gnt-cluster reserved lvs"""
+  vgname = qa_config.get("vg-name", constants.DEFAULT_VG)
+  lvname = _QA_LV_PREFIX + "test"
+  lvfullname = "/".join([vgname, lvname])
   for fail, cmd in [
     (False, _CLUSTER_VERIFY),
     (False, ["gnt-cluster", "modify", "--reserved-lvs", ""]),
-    (False, ["lvcreate", "-L1G", "-nqa-test", "xenvg"]),
+    (False, ["lvcreate", "-L1G", "-n", lvname, vgname]),
     (True, _CLUSTER_VERIFY),
     (False, ["gnt-cluster", "modify", "--reserved-lvs",
-             "xenvg/qa-test,.*/other-test"]),
+             "%s,.*/other-test" % lvfullname]),
     (False, _CLUSTER_VERIFY),
-    (False, ["gnt-cluster", "modify", "--reserved-lvs", ".*/qa-.*"]),
+    (False, ["gnt-cluster", "modify", "--reserved-lvs",
+             ".*/%s.*" % _QA_LV_PREFIX]),
     (False, _CLUSTER_VERIFY),
     (False, ["gnt-cluster", "modify", "--reserved-lvs", ""]),
     (True, _CLUSTER_VERIFY),
-    (False, ["lvremove", "-f", "xenvg/qa-test"]),
+    (False, ["lvremove", "-f", lvfullname]),
     (False, _CLUSTER_VERIFY),
     ]:
     AssertCommand(cmd, fail=fail)
@@ -553,3 +645,59 @@ def TestClusterDestroy():
 def TestClusterRepairDiskSizes():
   """gnt-cluster repair-disk-sizes"""
   AssertCommand(["gnt-cluster", "repair-disk-sizes"])
+
+
+def TestSetExclStorCluster(newvalue):
+  """Set the exclusive_storage node parameter at the cluster level.
+
+  @type newvalue: bool
+  @param newvalue: New value of exclusive_storage
+  @rtype: bool
+  @return: The old value of exclusive_storage
+
+  """
+  oldvalue = _GetBoolClusterField("exclusive_storage")
+  AssertCommand(["gnt-cluster", "modify", "--node-parameters",
+                 "exclusive_storage=%s" % newvalue])
+  effvalue = _GetBoolClusterField("exclusive_storage")
+  if effvalue != newvalue:
+    raise qa_error.Error("exclusive_storage has the wrong value: %s instead"
+                         " of %s" % (effvalue, newvalue))
+  qa_config.SetExclusiveStorage(newvalue)
+  return oldvalue
+
+
+def _BuildSetESCmd(value, node_name):
+  return ["gnt-node", "modify", "--node-parameters",
+          "exclusive_storage=%s" % value, node_name]
+
+
+def TestExclStorSingleNode(node):
+  """cluster-verify reports exclusive_storage set only on one node.
+
+  """
+  node_name = node["primary"]
+  es_val = _GetBoolClusterField("exclusive_storage")
+  assert not es_val
+  AssertCommand(_BuildSetESCmd(True, node_name))
+  AssertClusterVerify(fail=True, errors=[constants.CV_EGROUPMIXEDESFLAG])
+  AssertCommand(_BuildSetESCmd("default", node_name))
+  AssertClusterVerify()
+
+
+def TestExclStorSharedPv(node):
+  """cluster-verify reports LVs that share the same PV with exclusive_storage.
+
+  """
+  vgname = qa_config.get("vg-name", constants.DEFAULT_VG)
+  lvname1 = _QA_LV_PREFIX + "vol1"
+  lvname2 = _QA_LV_PREFIX + "vol2"
+  node_name = node["primary"]
+  AssertCommand(["lvcreate", "-L1G", "-n", lvname1, vgname], node=node_name)
+  AssertClusterVerify(fail=True, errors=[constants.CV_ENODEORPHANLV])
+  AssertCommand(["lvcreate", "-L1G", "-n", lvname2, vgname], node=node_name)
+  AssertClusterVerify(fail=True, errors=[constants.CV_ENODELVM,
+                                         constants.CV_ENODEORPHANLV])
+  AssertCommand(["lvremove", "-f", "/".join([vgname, lvname1])], node=node_name)
+  AssertCommand(["lvremove", "-f", "/".join([vgname, lvname2])], node=node_name)
+  AssertClusterVerify()

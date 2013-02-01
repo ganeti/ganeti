@@ -56,6 +56,32 @@ Version 2.7.0 beta1
   which case the output is in ``doc/man-html``. The configure-time
   option is ``--enable-manpages-in-doc``. Sphinx 1.0 or higher is
   required.
+- A new htool called ``hroller`` helps scheduling parallel shutdown of
+  nodes on clusters where all instances are shut down, but without ever
+  rebooting both primary and secondary node for an instance at the same
+  time.
+- Queries not needing locks or RPC access to the node can now be
+  performed by the confd daemon, making them independent from jobs, and
+  thus faster to execute. This is selectable at configure time.
+- The KVM hypervisor has been updated with many new hypervisor
+  parameters, including a generic one for passing arbitrary command line
+  values. See a complete list in :manpage:`gnt-instance(8)`.
+- A new tool, called ``mon-collector``, is the stand-alone executor of
+  the data collectors for a monitoring system. As of this version, it
+  just includes the DRBD data collector, that can be executed by calling
+  ``mon-collector`` using the ``drbd`` parameter. See
+  :manpage:`mon-collector(7)`.
+- New ``exclusive-storage`` node parameter added. When it's set to true,
+  physical disks are assigned in an exclusive fashion to instances, as
+  documented in :doc:`Partitioned Ganeti <design-partitioned>`.
+  Currently, only instances using the ``plain`` disk template are
+  supported.
+- New network management functionality to support automatic allocation
+  of IP addresses and managing of network parameters. See
+  :manpage:`gnt-network(8)` for more details.
+- New external storage backend, to allow managing arbitrary storage
+  systems external to the cluster. See
+  :manpage:`ganeti-extstorage-interface(7)`.
 
 
 Version 2.6.2

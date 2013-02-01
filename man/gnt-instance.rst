@@ -117,7 +117,10 @@ link
 network
     derives the mode and the link from the settings of the network
     which is identified by its name. If the network option is chosen,
-    link and mode must not be specified.
+    link and mode must not be specified. Note that the mode and link
+    depend on the network-to-nodegroup connection, thus allowing
+    different nodegroups to be connected to the same network in
+    different ways.
 
 
 Of these "mode" and "link" are nic parameters, and inherit their

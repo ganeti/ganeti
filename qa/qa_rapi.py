@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2007, 2008, 2009, 2010, 2011, 2012 Google Inc.
+# Copyright (C) 2007, 2008, 2009, 2010, 2011, 2012, 2013 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -46,6 +46,9 @@ import qa_config
 import qa_utils
 import qa_error
 
+from qa_instance import IsFailoverSupported
+from qa_instance import IsMigrationSupported
+from qa_instance import IsDiskReplacingSupported
 from qa_utils import (AssertEqual, AssertIn, AssertMatch, StartLocalCommand)
 from qa_utils import InstanceCheck, INST_DOWN, INST_UP, FIRST_ARG
 
@@ -551,6 +554,7 @@ def TestRapiNodeGroups():
 def TestRapiInstanceAdd(node, use_client):
   """Test adding a new instance via RAPI"""
   instance = qa_config.AcquireInstance()
+  qa_config.SetInstanceTemplate(instance, constants.DT_PLAIN)
   try:
     disk_sizes = [utils.ParseUnit(size) for size in qa_config.get("disk")]
     disks = [{"size": size} for size in disk_sizes]
@@ -616,6 +620,10 @@ def TestRapiInstanceRemove(instance, use_client):
 @InstanceCheck(INST_UP, INST_UP, FIRST_ARG)
 def TestRapiInstanceMigrate(instance):
   """Test migrating instance via RAPI"""
+  if not IsMigrationSupported(instance):
+    print qa_utils.FormatInfo("Instance doesn't support migration, skipping"
+                              " test")
+    return
   # Move to secondary node
   _WaitForRapiJob(_rapi_client.MigrateInstance(instance["name"]))
   qa_utils.RunInstanceCheck(instance, True)
@@ -626,6 +634,10 @@ def TestRapiInstanceMigrate(instance):
 @InstanceCheck(INST_UP, INST_UP, FIRST_ARG)
 def TestRapiInstanceFailover(instance):
   """Test failing over instance via RAPI"""
+  if not IsFailoverSupported(instance):
+    print qa_utils.FormatInfo("Instance doesn't support failover, skipping"
+                              " test")
+    return
   # Move to secondary node
   _WaitForRapiJob(_rapi_client.FailoverInstance(instance["name"]))
   qa_utils.RunInstanceCheck(instance, True)
@@ -675,6 +687,10 @@ def TestRapiInstanceReinstall(instance):
 @InstanceCheck(INST_UP, INST_UP, FIRST_ARG)
 def TestRapiInstanceReplaceDisks(instance):
   """Test replacing instance disks via RAPI"""
+  if not IsDiskReplacingSupported(instance):
+    print qa_utils.FormatInfo("Instance doesn't support disk replacing,"
+                              " skipping test")
+    return
   fn = _rapi_client.ReplaceInstanceDisks
   _WaitForRapiJob(fn(instance["name"],
                      mode=constants.REPLACE_DISK_AUTO, disks=[]))
@@ -743,7 +759,7 @@ def GetOperatingSystems():
 
 
 def TestInterClusterInstanceMove(src_instance, dest_instance,
-                                 pnode, snode, tnode):
+                                 inodes, tnode):
   """Test tools/move-instance"""
   master = qa_config.GetMasterNode()
 
@@ -751,20 +767,27 @@ def TestInterClusterInstanceMove(src_instance, dest_instance,
   rapi_pw_file.write(_rapi_password)
   rapi_pw_file.flush()
 
+  qa_config.SetInstanceTemplate(dest_instance,
+                                qa_config.GetInstanceTemplate(src_instance))
+
   # TODO: Run some instance tests before moving back
 
-  if snode is None:
+  if len(inodes) > 1:
+    # No disk template currently requires more than 1 secondary node. If this
+    # changes, either this test must be skipped or the script must be updated.
+    assert len(inodes) == 2
+    snode = inodes[1]
+  else:
     # instance is not redundant, but we still need to pass a node
     # (which will be ignored)
-    fsec = tnode
-  else:
-    fsec = snode
+    snode = tnode
+  pnode = inodes[0]
   # note: pnode:snode are the *current* nodes, so we move it first to
   # tnode:pnode, then back to pnode:snode
   for si, di, pn, sn in [(src_instance["name"], dest_instance["name"],
                           tnode["primary"], pnode["primary"]),
                          (dest_instance["name"], src_instance["name"],
-                          pnode["primary"], fsec["primary"])]:
+                          pnode["primary"], snode["primary"])]:
     cmd = [
       "../tools/move-instance",
       "--verbose",

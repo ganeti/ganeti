@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2007, 2011, 2012 Google Inc.
+# Copyright (C) 2007, 2011, 2012, 2013 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -35,9 +35,11 @@ import qa_error
 
 _INSTANCE_CHECK_KEY = "instance-check"
 _ENABLED_HV_KEY = "enabled-hypervisors"
+# Key to store the cluster-wide run-time value of the exclusive storage flag
+_EXCLUSIVE_STORAGE_KEY = "_exclusive_storage"
 
 
-cfg = None
+cfg = {}
 options = None
 
 
@@ -80,7 +82,7 @@ def Validate():
 
 
 def get(name, default=None):
-  return cfg.get(name, default) # pylint: disable=E1103
+  return cfg.get(name, default)
 
 
 class Either:
@@ -149,7 +151,7 @@ def TestEnabled(tests, _cfg=None):
     _cfg = cfg
 
   # Get settings for all tests
-  cfg_tests = _cfg.get("tests", {}) # pylint: disable=E1103
+  cfg_tests = _cfg.get("tests", {})
 
   # Get default setting
   default = cfg_tests.get("default", True)
@@ -162,7 +164,7 @@ def GetInstanceCheckScript():
   """Returns path to instance check script or C{None}.
 
   """
-  return cfg.get(_INSTANCE_CHECK_KEY, None) # pylint: disable=E1103
+  return cfg.get(_INSTANCE_CHECK_KEY, None)
 
 
 def GetEnabledHypervisors():
@@ -218,11 +220,54 @@ def AcquireInstance():
 
   inst = instances[0]
   inst["_used"] = True
+  inst["_template"] = None
   return inst
 
 
 def ReleaseInstance(inst):
   inst["_used"] = False
+
+
+def GetInstanceTemplate(inst):
+  """Return the disk template of an instance.
+
+  """
+  templ = inst["_template"]
+  assert templ is not None
+  return templ
+
+
+def SetInstanceTemplate(inst, template):
+  """Set the disk template for an instance.
+
+  """
+  inst["_template"] = template
+
+
+def SetExclusiveStorage(value):
+  """Set the expected value of the exclusive_storage flag for the cluster.
+
+  """
+  cfg[_EXCLUSIVE_STORAGE_KEY] = bool(value)
+
+
+def GetExclusiveStorage():
+  """Get the expected value of the exclusive_storage flag for the cluster.
+
+  """
+  val = cfg.get(_EXCLUSIVE_STORAGE_KEY)
+  assert val is not None
+  return val
+
+
+def IsTemplateSupported(templ):
+  """Is the given templated supported by the current configuration?
+
+  """
+  if GetExclusiveStorage():
+    return templ in constants.DTS_EXCL_STORAGE
+  else:
+    return True
 
 
 def AcquireNode(exclude=None):
@@ -261,5 +306,41 @@ def AcquireNode(exclude=None):
   return node
 
 
+def AcquireManyNodes(num, exclude=None):
+  """Return the least used nodes.
+
+  @type num: int
+  @param num: Number of nodes; can be 0.
+  @type exclude: list of nodes or C{None}
+  @param exclude: nodes to be excluded from the choice
+  @rtype: list of nodes
+  @return: C{num} different nodes
+
+  """
+  nodes = []
+  if exclude is None:
+    exclude = []
+  elif isinstance(exclude, (list, tuple)):
+    # Don't modify the incoming argument
+    exclude = list(exclude)
+  else:
+    exclude = [exclude]
+
+  try:
+    for _ in range(0, num):
+      n = AcquireNode(exclude=exclude)
+      nodes.append(n)
+      exclude.append(n)
+  except qa_error.OutOfNodesError:
+    ReleaseManyNodes(nodes)
+    raise
+  return nodes
+
+
 def ReleaseNode(node):
   node["_count"] = node.get("_count", 0) - 1
+
+
+def ReleaseManyNodes(nodes):
+  for n in nodes:
+    ReleaseNode(n)

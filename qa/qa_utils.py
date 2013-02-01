@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2007, 2011, 2012 Google Inc.
+# Copyright (C) 2007, 2011, 2012, 2013 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -148,6 +148,18 @@ def _GetName(entity, key):
   return result
 
 
+def _AssertRetCode(rcode, fail, cmdstr, nodename):
+  """Check the return value from a command and possibly raise an exception.
+
+  """
+  if fail and rcode == 0:
+    raise qa_error.Error("Command '%s' on node %s was expected to fail but"
+                         " didn't" % (cmdstr, nodename))
+  elif not fail and rcode != 0:
+    raise qa_error.Error("Command '%s' on node %s failed, exit code %s" %
+                         (cmdstr, nodename, rcode))
+
+
 def AssertCommand(cmd, fail=False, node=None):
   """Checks that a remote command succeeds.
 
@@ -173,15 +185,7 @@ def AssertCommand(cmd, fail=False, node=None):
     cmdstr = utils.ShellQuoteArgs(cmd)
 
   rcode = StartSSH(nodename, cmdstr).wait()
-
-  if fail:
-    if rcode == 0:
-      raise qa_error.Error("Command '%s' on node %s was expected to fail but"
-                           " didn't" % (cmdstr, nodename))
-  else:
-    if rcode != 0:
-      raise qa_error.Error("Command '%s' on node %s failed, exit code %s" %
-                           (cmdstr, nodename, rcode))
+  _AssertRetCode(rcode, fail, cmdstr, nodename)
 
   return rcode
 
@@ -278,13 +282,23 @@ def CloseMultiplexers():
     utils.RemoveFile(sname)
 
 
-def GetCommandOutput(node, cmd, tty=None):
+def GetCommandOutput(node, cmd, tty=None, fail=False):
   """Returns the output of a command executed on the given node.
 
+  @type node: string
+  @param node: node the command should run on
+  @type cmd: string
+  @param cmd: command to be executed in the node (cannot be empty or None)
+  @type tty: bool or None
+  @param tty: if we should use tty; if None, it will be auto-detected
+  @type fail: bool
+  @param fail: whether the command is expected to fail
   """
+  assert cmd
   p = StartLocalCommand(GetSSHCommand(node, cmd, tty=tty),
                         stdout=subprocess.PIPE)
-  AssertEqual(p.wait(), 0)
+  rcode = p.wait()
+  _AssertRetCode(rcode, fail, node, cmd)
   return p.stdout.read()
 
 
