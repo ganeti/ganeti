@@ -89,9 +89,12 @@ def _GetInstanceInfo(instance):
 
   @type instance: string
   @param instance: the instance name
-  @return: a dictionary with two keys:
+  @return: a dictionary with the following keys:
       - "nodes": instance nodes, a list of strings
       - "volumes": instance volume IDs, a list of strings
+      - "drbd-minors": DRBD minors used by the instance, a dictionary where
+        keys are nodes, and values are lists of integers (or an empty
+        dictionary for non-DRBD instances)
 
   """
   master = qa_config.GetMasterNode()
@@ -106,8 +109,10 @@ def _GetInstanceInfo(instance):
   # FIXME This works with no more than 2 secondaries
   re_nodelist = re.compile(node_elem + "(?:," + node_elem + ")?$")
   re_vol = re.compile(r"^\s+logical_id:\s+(\S+)$")
+  re_drbdnode = re.compile(r"^\s+node[AB]:\s+([^\s,]+),\s+minor=([0-9]+)$")
   nodes = []
   vols = []
+  drbd_min = {}
   for line in info_out.splitlines():
     m = re_node.match(line)
     if m:
@@ -120,9 +125,17 @@ def _GetInstanceInfo(instance):
     m = re_vol.match(line)
     if m:
       vols.append(m.group(1))
+    m = re_drbdnode.match(line)
+    if m:
+      node = m.group(1)
+      minor = int(m.group(2))
+      if drbd_min.get(node) is not None:
+        drbd_min[node].append(minor)
+      else:
+        drbd_min[node] = [minor]
   assert vols
   assert nodes
-  return {"nodes": nodes, "volumes": vols}
+  return {"nodes": nodes, "volumes": vols, "drbd-minors": drbd_min}
 
 
 def _DestroyInstanceVolumes(instance):
@@ -698,3 +711,24 @@ def TestBackupList(expnode):
 def TestBackupListFields():
   """gnt-backup list-fields"""
   qa_utils.GenericQueryFieldsTest("gnt-backup", query.EXPORT_FIELDS.keys())
+
+
+def TestRemoveInstanceOfflineNode(instance, snode, set_offline, set_online):
+  """gtn-instance remove with an off-line node
+
+  @param instance: instance
+  @param snode: secondary node, to be set offline
+  @param set_offline: function to call to set the node off-line
+  @param set_online: function to call to set the node on-line
+
+  """
+  info = _GetInstanceInfo(instance["name"])
+  set_offline(snode)
+  try:
+    TestInstanceRemove(instance)
+  finally:
+    set_online(snode)
+  # Clean up the disks on the offline node
+  for minor in info["drbd-minors"][snode["primary"]]:
+    AssertCommand(["drbdsetup", str(minor), "down"], node=snode)
+  AssertCommand(["lvremove", "-f"] + info["volumes"], node=snode)

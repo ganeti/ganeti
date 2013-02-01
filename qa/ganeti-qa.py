@@ -619,17 +619,15 @@ def RunQa():
       pnode = qa_config.AcquireNode(exclude=snode)
       try:
         instance = qa_instance.TestInstanceAddWithDrbdDisk([pnode, snode])
-        qa_node.MakeNodeOffline(snode, "yes")
-        try:
-          RunTest(qa_instance.TestInstanceRemove, instance)
-        finally:
-          qa_node.MakeNodeOffline(snode, "no")
+        set_offline = lambda node: qa_node.MakeNodeOffline(node, "yes")
+        set_online = lambda node: qa_node.MakeNodeOffline(node, "no")
+        RunTest(qa_instance.TestRemoveInstanceOfflineNode, instance, snode,
+                set_offline, set_online)
       finally:
         qa_config.ReleaseNode(pnode)
     finally:
       qa_config.ReleaseNode(snode)
-    # FIXME: This test leaves a DRBD device and two LVs behind
-    # Cluster-verify would fail
+    qa_cluster.AssertClusterVerify()
 
   RunTestIf("create-cluster", qa_node.TestNodeRemoveAll)
 
