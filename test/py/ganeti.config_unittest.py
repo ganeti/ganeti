@@ -74,6 +74,8 @@ class TestConfigRunner(unittest.TestCase):
     """Initializes the cfg object"""
     me = netutils.Hostname()
     ip = constants.IP4_ADDRESS_LOCALHOST
+    # master_ip must not conflict with the node ip address
+    master_ip = "127.0.0.2"
 
     cluster_config = objects.Cluster(
       serial_no=1,
@@ -87,7 +89,7 @@ class TestConfigRunner(unittest.TestCase):
       tcpudp_port_pool=set(),
       enabled_hypervisors=[constants.HT_FAKE],
       master_node=me.name,
-      master_ip="127.0.0.1",
+      master_ip=master_ip,
       master_netdev=constants.DEFAULT_BRIDGE,
       cluster_name="cluster.local",
       file_storage_dir="/tmp",
@@ -425,6 +427,27 @@ class TestConfigRunner(unittest.TestCase):
       _VerifySerials()
     finally:
       node2.group = orig_group
+
+  def testVerifyConfig(self):
+    cfg = self._get_object()
+
+    errs = cfg.VerifyConfig()
+    self.assertFalse(errs)
+
+    node = cfg.GetNodeInfo(cfg.GetNodeList()[0])
+    key = list(constants.NDC_GLOBALS)[0]
+    node.ndparams[key] = constants.NDC_DEFAULTS[key]
+    errs = cfg.VerifyConfig()
+    self.assertTrue(len(errs) >= 1)
+    self.assertTrue(_IsErrorInList("has some global parameters set", errs))
+
+    del node.ndparams[key]
+    errs = cfg.VerifyConfig()
+    self.assertFalse(errs)
+
+
+def _IsErrorInList(err_str, err_list):
+  return any(map(lambda e: err_str in e, err_list))
 
 
 class TestTRM(unittest.TestCase):

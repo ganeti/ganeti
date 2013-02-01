@@ -3498,22 +3498,11 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
         nimg.sbp[pnode].append(instance)
 
     es_flags = rpc.GetExclusiveStorageForNodeNames(self.cfg, self.my_node_names)
-    es_unset_nodes = []
     # The value of exclusive_storage should be the same across the group, so if
     # it's True for at least a node, we act as if it were set for all the nodes
     self._exclusive_storage = compat.any(es_flags.values())
     if self._exclusive_storage:
       node_verify_param[constants.NV_EXCLUSIVEPVS] = True
-      es_unset_nodes = [n for (n, es) in es_flags.items()
-                        if not es]
-
-    if es_unset_nodes:
-      self._Error(constants.CV_EGROUPMIXEDESFLAG, self.group_info.name,
-                  "The exclusive_storage flag should be uniform in a group,"
-                  " but these nodes have it unset: %s",
-                  utils.CommaJoin(utils.NiceSort(es_unset_nodes)))
-      self.LogWarning("Some checks required by exclusive storage will be"
-                      " performed also on nodes with the flag unset")
 
     # At this point, we have the in-memory data structures complete,
     # except for the runtime information, which we'll gather next

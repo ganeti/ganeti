@@ -745,6 +745,10 @@ class ConfigWriter:
         _helper("node %s" % node.name, "ndparams",
                 cluster.FillND(node, data.nodegroups[node.group]),
                 constants.NDS_PARAMETER_TYPES)
+      used_globals = constants.NDC_GLOBALS.intersection(node.ndparams)
+      if used_globals:
+        result.append("Node '%s' has some global parameters set: %s" %
+                      (node.name, utils.CommaJoin(used_globals)))
 
     # nodegroups checks
     nodegroups_names = set()

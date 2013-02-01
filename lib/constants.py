@@ -1455,9 +1455,6 @@ CV_ECLUSTERDANGLINGNODES = \
 CV_ECLUSTERDANGLINGINST = \
   (CV_TNODE, "ECLUSTERDANGLINGINST",
    "Some instances have a non-existing primary node")
-CV_EGROUPMIXEDESFLAG = \
-  (CV_TGROUP, "EGROUPMIXEDESFLAG",
-   "exclusive_storage flag is not uniform within the group")
 CV_EGROUPDIFFERENTPVSIZE = \
   (CV_TGROUP, "EGROUPDIFFERENTPVSIZE", "PVs in the group have different sizes")
 CV_EINSTANCEBADNODE = \
