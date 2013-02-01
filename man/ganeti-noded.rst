@@ -31,7 +31,7 @@ Logging to syslog, rather than its own log file, can be enabled by
 passing in the ``--syslog`` option.
 
 The **ganeti-noded** daemon listens to port 1811 TCP, on all
-interfaces, by default. The port can be overridden by an entry the
+interfaces, by default. The port can be overridden by an entry in the
 services database (usually ``/etc/services``) or by passing the ``-p``
 option.  The ``-b`` option can be used to specify the address to bind
 to (defaults to ``0.0.0.0``).
