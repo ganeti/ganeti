@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2008, 2009, 2010, 2011, 2012 Google Inc.
+# Copyright (C) 2008, 2009, 2010, 2011, 2012, 2013 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -90,7 +90,7 @@ def _GetTunFeatures(fd, _ioctl=fcntl.ioctl):
   try:
     buf = _ioctl(fd, TUNGETFEATURES, req)
   except EnvironmentError, err:
-    logging.warning("ioctl(TUNGETFEATURES) failed: %s" % err)
+    logging.warning("ioctl(TUNGETFEATURES) failed: %s", err)
     return None
   else:
     (flags, ) = struct.unpack("I", buf)
