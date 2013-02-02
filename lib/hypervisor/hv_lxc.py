@@ -149,8 +149,8 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     cgroup = cls._GetCgroupMountPoint()
     try:
       memory = int(utils.ReadFile(utils.PathJoin(cgroup, 'lxc',
-                                           instance_name,
-                                           "memory.limit_in_bytes")))
+                                                 instance_name,
+                                                 "memory.limit_in_bytes")))
     except EnvironmentError:
       # memory resource controller may be disabled, ignore
       memory = 0
@@ -161,7 +161,7 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     """Get the list of running instances.
 
     """
-    return [ iinfo[0] for iinfo in self.GetAllInstancesInfo() ]
+    return [iinfo[0] for iinfo in self.GetAllInstancesInfo()]
 
   def GetInstanceInfo(self, instance_name):
     """Get instance properties.
@@ -249,12 +249,12 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     # Conditionally enable, memory resource controller might be disabled
     cgroup = self._GetCgroupMountPoint()
     if os.path.exists(utils.PathJoin(cgroup, 'memory.limit_in_bytes')):
-        out.append("lxc.cgroup.memory.limit_in_bytes = %dM" %
-                    instance.beparams[constants.BE_MAXMEM])
+      out.append("lxc.cgroup.memory.limit_in_bytes = %dM" %
+                 instance.beparams[constants.BE_MAXMEM])
 
     if os.path.exists(utils.PathJoin(cgroup, 'memory.memsw.limit_in_bytes')):
-        out.append("lxc.cgroup.memory.memsw.limit_in_bytes = %dM" %
-                    instance.beparams[constants.BE_MAXMEM])
+      out.append("lxc.cgroup.memory.memsw.limit_in_bytes = %dM" %
+                 instance.beparams[constants.BE_MAXMEM])
 
     # Device control
     # deny direct device access
@@ -355,7 +355,7 @@ class LXCHypervisor(hv_base.BaseHypervisor):
                         result.output)
 
     if not os.path.ismount(root_dir):
-        return
+      return
 
     for mpath in self._GetMountSubdirs(root_dir):
       result = utils.RunCmd(["umount", mpath])
