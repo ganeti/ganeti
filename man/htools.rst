@@ -200,7 +200,7 @@ support all options. Some common options are:
     - cpu count
     - disk size
     - disk count
-    - nic count
+    - NIC count
   - disk templates
   - vcpu ratio
   - spindle ratio

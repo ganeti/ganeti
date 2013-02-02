@@ -15,8 +15,8 @@ DESCRIPTION
 -----------
 
 The **gnt-network** command is used for network definition and
-administration in the Ganeti system. Each instance nic can be connected
-to a network via the ``network`` nic parameter. See **gnt-instance**\(8)
+administration in the Ganeti system. Each instance NIC can be connected
+to a network via the ``network`` NIC parameter. See **gnt-instance**\(8)
 for more details.
 
 COMMANDS
@@ -53,7 +53,7 @@ IPv6 semantics can be assigned to the network via the ``--network6`` and
 values can be used for EUI64 generation from a NIC's MAC address.
 
 Note that a when connecting a network to a node group (see below) you
-can specify also the nic mode and link that will be used by instances on
+can specify also the NIC mode and link that will be used by instances on
 that group to physically connect to this network. This allows the system
 to work even if the parameters (eg. the VLAN number) change between
 groups.
