@@ -4,7 +4,7 @@
 
 {-
 
-Copyright (C) 2009, 2011, 2012 Google Inc.
+Copyright (C) 2009, 2011, 2012, 2013 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -62,6 +62,7 @@ import Test.Ganeti.Query.Filter
 import Test.Ganeti.Query.Language
 import Test.Ganeti.Query.Query
 import Test.Ganeti.Rpc
+import Test.Ganeti.Runtime
 import Test.Ganeti.Ssconf
 import Test.Ganeti.THH
 import Test.Ganeti.Types
@@ -113,6 +114,7 @@ allTests =
   , testQuery_Language
   , testQuery_Query
   , testRpc
+  , testRuntime
   , testSsconf
   , testTHH
   , testTypes
