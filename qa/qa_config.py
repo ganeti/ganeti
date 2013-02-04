@@ -40,49 +40,150 @@ _ENABLED_HV_KEY = "enabled-hypervisors"
 _exclusive_storage = None
 
 
-cfg = {}
+#: QA configuration (L{_QaConfig})
+_config = None
+
+
+class _QaConfig(object):
+  def __init__(self, data):
+    """Initializes instances of this class.
+
+    """
+    self._data = data
+
+  @classmethod
+  def Load(cls, filename):
+    """Loads a configuration file and produces a configuration object.
+
+    @type filename: string
+    @param filename: Path to configuration file
+    @rtype: L{_QaConfig}
+
+    """
+    data = serializer.LoadJson(utils.ReadFile(filename))
+
+    result = cls(data)
+    result.Validate()
+
+    return result
+
+  def Validate(self):
+    """Validates loaded configuration data.
+
+    """
+    if not self.get("nodes"):
+      raise qa_error.Error("Need at least one node")
+
+    if not self.get("instances"):
+      raise qa_error.Error("Need at least one instance")
+
+    if (self.get("disk") is None or
+        self.get("disk-growth") is None or
+        len(self.get("disk")) != len(self.get("disk-growth"))):
+      raise qa_error.Error("Config options 'disk' and 'disk-growth' must exist"
+                           " and have the same number of items")
+
+    check = self.GetInstanceCheckScript()
+    if check:
+      try:
+        os.stat(check)
+      except EnvironmentError, err:
+        raise qa_error.Error("Can't find instance check script '%s': %s" %
+                             (check, err))
+
+    enabled_hv = frozenset(self.GetEnabledHypervisors())
+    if not enabled_hv:
+      raise qa_error.Error("No hypervisor is enabled")
+
+    difference = enabled_hv - constants.HYPER_TYPES
+    if difference:
+      raise qa_error.Error("Unknown hypervisor(s) enabled: %s" %
+                           utils.CommaJoin(difference))
+
+  def __getitem__(self, name):
+    """Returns configuration value.
+
+    @type name: string
+    @param name: Name of configuration entry
+
+    """
+    return self._data[name]
+
+  def get(self, name, default=None):
+    """Returns configuration value.
+
+    @type name: string
+    @param name: Name of configuration entry
+    @param default: Default value
+
+    """
+    return self._data.get(name, default)
+
+  def GetMasterNode(self):
+    """Returns the default master node for the cluster.
+
+    """
+    return self["nodes"][0]
+
+  def GetInstanceCheckScript(self):
+    """Returns path to instance check script or C{None}.
+
+    """
+    return self._data.get(_INSTANCE_CHECK_KEY, None)
+
+  def GetEnabledHypervisors(self):
+    """Returns list of enabled hypervisors.
+
+    @rtype: list
+
+    """
+    try:
+      value = self._data[_ENABLED_HV_KEY]
+    except KeyError:
+      return [constants.DEFAULT_ENABLED_HYPERVISOR]
+    else:
+      if value is None:
+        return []
+      elif isinstance(value, basestring):
+        # The configuration key ("enabled-hypervisors") implies there can be
+        # multiple values. Multiple hypervisors are comma-separated on the
+        # command line option to "gnt-cluster init", so we need to handle them
+        # equally here.
+        return value.split(",")
+      else:
+        return value
+
+  def GetDefaultHypervisor(self):
+    """Returns the default hypervisor to be used.
+
+    """
+    return self.GetEnabledHypervisors()[0]
 
 
 def Load(path):
   """Loads the passed configuration file.
 
   """
-  global cfg # pylint: disable=W0603
+  global _config # pylint: disable=W0603
 
-  cfg = serializer.LoadJson(utils.ReadFile(path))
-
-  Validate()
+  _config = _QaConfig.Load(path)
 
 
-def Validate():
-  if len(cfg["nodes"]) < 1:
-    raise qa_error.Error("Need at least one node")
-  if len(cfg["instances"]) < 1:
-    raise qa_error.Error("Need at least one instance")
-  if len(cfg["disk"]) != len(cfg["disk-growth"]):
-    raise qa_error.Error("Config options 'disk' and 'disk-growth' must have"
-                         " the same number of items")
+def GetConfig():
+  """Returns the configuration object.
 
-  check = GetInstanceCheckScript()
-  if check:
-    try:
-      os.stat(check)
-    except EnvironmentError, err:
-      raise qa_error.Error("Can't find instance check script '%s': %s" %
-                           (check, err))
+  """
+  if _config is None:
+    raise RuntimeError("Configuration not yet loaded")
 
-  enabled_hv = frozenset(GetEnabledHypervisors())
-  if not enabled_hv:
-    raise qa_error.Error("No hypervisor is enabled")
-
-  difference = enabled_hv - constants.HYPER_TYPES
-  if difference:
-    raise qa_error.Error("Unknown hypervisor(s) enabled: %s" %
-                         utils.CommaJoin(difference))
+  return _config
 
 
 def get(name, default=None):
-  return cfg.get(name, default)
+  """Wrapper for L{_QaConfig.get}.
+
+  """
+  return GetConfig().get(name, default=default)
 
 
 class Either:
@@ -148,10 +249,12 @@ def TestEnabled(tests, _cfg=None):
 
   """
   if _cfg is None:
-    _cfg = cfg
+    cfg = GetConfig()
+  else:
+    cfg = _cfg
 
   # Get settings for all tests
-  cfg_tests = _cfg.get("tests", {})
+  cfg_tests = cfg.get("tests", {})
 
   # Get default setting
   default = cfg_tests.get("default", True)
@@ -160,39 +263,25 @@ def TestEnabled(tests, _cfg=None):
                            tests, compat.all)
 
 
-def GetInstanceCheckScript():
-  """Returns path to instance check script or C{None}.
+def GetInstanceCheckScript(*args):
+  """Wrapper for L{_QaConfig.GetInstanceCheckScript}.
 
   """
-  return cfg.get(_INSTANCE_CHECK_KEY, None)
+  return GetConfig().GetInstanceCheckScript(*args)
 
 
-def GetEnabledHypervisors():
-  """Returns list of enabled hypervisors.
-
-  @rtype: list
+def GetEnabledHypervisors(*args):
+  """Wrapper for L{_QaConfig.GetEnabledHypervisors}.
 
   """
-  try:
-    value = cfg[_ENABLED_HV_KEY]
-  except KeyError:
-    return [constants.DEFAULT_ENABLED_HYPERVISOR]
-  else:
-    if isinstance(value, basestring):
-      # The configuration key ("enabled-hypervisors") implies there can be
-      # multiple values. Multiple hypervisors are comma-separated on the
-      # command line option to "gnt-cluster init", so we need to handle them
-      # equally here.
-      return value.split(",")
-    else:
-      return value
+  return GetConfig().GetEnabledHypervisors(*args)
 
 
-def GetDefaultHypervisor():
-  """Returns the default hypervisor to be used.
+def GetDefaultHypervisor(*args):
+  """Wrapper for L{_QaConfig.GetDefaultHypervisor}.
 
   """
-  return GetEnabledHypervisors()[0]
+  return GetConfig().GetDefaultHypervisor(*args)
 
 
 def GetInstanceNicMac(inst, default=None):
@@ -203,7 +292,10 @@ def GetInstanceNicMac(inst, default=None):
 
 
 def GetMasterNode():
-  return cfg["nodes"][0]
+  """Wrapper for L{_QaConfig.GetMasterNode}.
+
+  """
+  return GetConfig().GetMasterNode()
 
 
 def AcquireInstance():
@@ -212,7 +304,7 @@ def AcquireInstance():
   """
   # Filter out unwanted instances
   tmp_flt = lambda inst: not inst.get("_used", False)
-  instances = filter(tmp_flt, cfg["instances"])
+  instances = filter(tmp_flt, GetConfig()["instances"])
   del tmp_flt
 
   if len(instances) == 0:
@@ -263,7 +355,7 @@ def GetExclusiveStorage():
 
 
 def IsTemplateSupported(templ):
-  """Is the given templated supported by the current configuration?
+  """Is the given disk template supported by the current configuration?
 
   """
   if GetExclusiveStorage():
@@ -277,6 +369,7 @@ def AcquireNode(exclude=None):
 
   """
   master = GetMasterNode()
+  cfg = GetConfig()
 
   # Filter out unwanted nodes
   # TODO: Maybe combine filters
