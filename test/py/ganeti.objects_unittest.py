@@ -216,6 +216,37 @@ class TestClusterObject(unittest.TestCase):
     self.assertEqual(self.fake_cl.primary_hypervisor, constants.HT_CHROOT)
 
 
+class TestClusterObjectTcpUdpPortPool(unittest.TestCase):
+  def testNewCluster(self):
+    self.assertTrue(objects.Cluster().tcpudp_port_pool is None)
+
+  def testSerializingEmpty(self):
+    self.assertEqual(objects.Cluster().ToDict(), {
+      "tcpudp_port_pool": [],
+      })
+
+  def testSerializing(self):
+    cluster = objects.Cluster.FromDict({})
+    self.assertEqual(cluster.tcpudp_port_pool, set())
+
+    cluster.tcpudp_port_pool.add(3546)
+    cluster.tcpudp_port_pool.add(62511)
+
+    data = cluster.ToDict()
+    self.assertEqual(data.keys(), ["tcpudp_port_pool"])
+    self.assertEqual(sorted(data["tcpudp_port_pool"]), sorted([3546, 62511]))
+
+  def testDeserializingEmpty(self):
+    cluster = objects.Cluster.FromDict({})
+    self.assertEqual(cluster.tcpudp_port_pool, set())
+
+  def testDeserialize(self):
+    cluster = objects.Cluster.FromDict({
+      "tcpudp_port_pool": [26214, 10039, 267],
+      })
+    self.assertEqual(cluster.tcpudp_port_pool, set([26214, 10039, 267]))
+
+
 class TestOS(unittest.TestCase):
   ALL_DATA = [
     "debootstrap",

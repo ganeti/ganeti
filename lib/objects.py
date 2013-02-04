@@ -1623,7 +1623,14 @@ class Cluster(TaggableObject):
 
     """
     mydict = super(Cluster, self).ToDict()
-    mydict["tcpudp_port_pool"] = list(self.tcpudp_port_pool)
+
+    if self.tcpudp_port_pool is None:
+      tcpudp_port_pool = []
+    else:
+      tcpudp_port_pool = list(self.tcpudp_port_pool)
+
+    mydict["tcpudp_port_pool"] = tcpudp_port_pool
+
     return mydict
 
   @classmethod
@@ -1632,8 +1639,12 @@ class Cluster(TaggableObject):
 
     """
     obj = super(Cluster, cls).FromDict(val)
-    if not isinstance(obj.tcpudp_port_pool, set):
+
+    if obj.tcpudp_port_pool is None:
+      obj.tcpudp_port_pool = set()
+    elif not isinstance(obj.tcpudp_port_pool, set):
       obj.tcpudp_port_pool = set(obj.tcpudp_port_pool)
+
     return obj
 
   def SimpleFillDP(self, diskparams):
