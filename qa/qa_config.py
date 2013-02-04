@@ -35,8 +35,9 @@ import qa_error
 
 _INSTANCE_CHECK_KEY = "instance-check"
 _ENABLED_HV_KEY = "enabled-hypervisors"
-# Key to store the cluster-wide run-time value of the exclusive storage flag
-_EXCLUSIVE_STORAGE_KEY = "_exclusive_storage"
+
+#: Cluster-wide run-time value of the exclusive storage flag
+_exclusive_storage = None
 
 
 cfg = {}
@@ -247,14 +248,16 @@ def SetExclusiveStorage(value):
   """Set the expected value of the exclusive_storage flag for the cluster.
 
   """
-  cfg[_EXCLUSIVE_STORAGE_KEY] = bool(value)
+  global _exclusive_storage # pylint: disable=W0603
+
+  _exclusive_storage = bool(value)
 
 
 def GetExclusiveStorage():
   """Get the expected value of the exclusive_storage flag for the cluster.
 
   """
-  val = cfg.get(_EXCLUSIVE_STORAGE_KEY)
+  val = _exclusive_storage
   assert val is not None
   return val
 
