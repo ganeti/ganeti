@@ -52,7 +52,7 @@ args = None
 #: Target major version we will upgrade to
 TARGET_MAJOR = 2
 #: Target minor version we will upgrade to
-TARGET_MINOR = 6
+TARGET_MINOR = 7
 
 
 class Error(Exception):
@@ -204,8 +204,8 @@ def main():
     raise Error("Inconsistent configuration: found config_version in"
                 " configuration file")
 
-  # Upgrade from 2.0/2.1/2.2/2.3 to 2.4
-  if config_major == 2 and config_minor in (0, 1, 2, 3, 4, 5):
+  # Upgrade from 2.{0..6} to 2.7
+  if config_major == 2 and config_minor in (0, 1, 2, 3, 4, 5, 6):
     if config_revision != 0:
       logging.warning("Config revision is %s, not 0", config_revision)
 
