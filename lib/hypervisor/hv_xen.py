@@ -351,9 +351,9 @@ class XenHypervisor(hv_base.BaseHypervisor):
     return cmd
 
   def _RunXen(self, args):
-    """Wrapper around L{utils.RunCmd} to run Xen command.
+    """Wrapper around L{utils.process.RunCmd} to run Xen command.
 
-    @see: L{utils.RunCmd}
+    @see: L{utils.process.RunCmd}
 
     """
     cmd = [self._GetCommand()]
