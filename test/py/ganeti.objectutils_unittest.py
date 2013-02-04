@@ -46,5 +46,62 @@ class TestAutoSlot(unittest.TestCase):
     slotted = AutoSlotted()
     self.assertEqual(slotted.__slots__, AutoSlotted.SLOTS)
 
+
+class TestContainerToDicts(unittest.TestCase):
+  def testUnknownType(self):
+    for value in [None, 19410, "xyz"]:
+      try:
+        objectutils.ContainerToDicts(value)
+      except TypeError, err:
+        self.assertTrue(str(err).startswith("Unknown container type"))
+      else:
+        self.fail("Exception was not raised")
+
+  def testEmptyDict(self):
+    value = {}
+    self.assertFalse(type(value) in objectutils._SEQUENCE_TYPES)
+    self.assertEqual(objectutils.ContainerToDicts(value), {})
+
+  def testEmptySequences(self):
+    for cls in [list, tuple, set, frozenset]:
+      self.assertEqual(objectutils.ContainerToDicts(cls()), [])
+
+
+class _FakeWithFromDict:
+  def FromDict(self, _):
+    raise NotImplemented
+
+
+class TestContainerFromDicts(unittest.TestCase):
+  def testUnknownType(self):
+    for cls in [str, int, bool]:
+      try:
+        objectutils.ContainerFromDicts(None, cls, NotImplemented)
+      except TypeError, err:
+        self.assertTrue(str(err).startswith("Unknown container type"))
+      else:
+        self.fail("Exception was not raised")
+
+      try:
+        objectutils.ContainerFromDicts(None, cls(), NotImplemented)
+      except TypeError, err:
+        self.assertTrue(str(err).endswith("is not a type"))
+      else:
+        self.fail("Exception was not raised")
+
+  def testEmptyDict(self):
+    value = {}
+    self.assertFalse(type(value) in objectutils._SEQUENCE_TYPES)
+    self.assertEqual(objectutils.ContainerFromDicts(value, dict,
+                                                    NotImplemented),
+                     {})
+
+  def testEmptySequences(self):
+    for cls in [list, tuple, set, frozenset]:
+      self.assertEqual(objectutils.ContainerFromDicts([], cls,
+                                                      _FakeWithFromDict),
+                       cls())
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()

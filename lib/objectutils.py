@@ -21,6 +21,11 @@
 """Module for object related utils."""
 
 
+#: Supported container types for serialization/de-serialization (must be a
+#: tuple as it's used as a parameter for C{isinstance})
+_SEQUENCE_TYPES = (list, tuple, set, frozenset)
+
+
 class AutoSlots(type):
   """Meta base class for __slots__ definitions.
 
@@ -91,3 +96,55 @@ class ValidatedSlots(object):
 
     """
     raise NotImplementedError
+
+
+def ContainerToDicts(container):
+  """Convert the elements of a container to standard Python types.
+
+  This method converts a container with elements to standard Python types. If
+  the input container is of the type C{dict}, only its values are touched.
+  Those values, as well as all elements of input sequences, must support a
+  C{ToDict} method returning a serialized version.
+
+  @type container: dict or sequence (see L{_SEQUENCE_TYPES})
+
+  """
+  if isinstance(container, dict):
+    ret = dict([(k, v.ToDict()) for k, v in container.items()])
+  elif isinstance(container, _SEQUENCE_TYPES):
+    ret = [elem.ToDict() for elem in container]
+  else:
+    raise TypeError("Unknown container type '%s'" % type(container))
+
+  return ret
+
+
+def ContainerFromDicts(source, c_type, e_type):
+  """Convert a container from standard python types.
+
+  This method converts a container with standard Python types to objects. If
+  the container is a dict, we don't touch the keys, only the values.
+
+  @type source: None, dict or sequence (see L{_SEQUENCE_TYPES})
+  @param source: Input data
+  @type c_type: type class
+  @param c_type: Desired type for returned container
+  @type e_type: element type class
+  @param e_type: Item type for elements in returned container (must have a
+    C{FromDict} class method)
+
+  """
+  if not isinstance(c_type, type):
+    raise TypeError("Container type '%s' is not a type" % type(c_type))
+
+  if source is None:
+    source = c_type()
+
+  if c_type is dict:
+    ret = dict([(k, e_type.FromDict(v)) for k, v in source.items()])
+  elif c_type in _SEQUENCE_TYPES:
+    ret = c_type(map(e_type.FromDict, source))
+  else:
+    raise TypeError("Unknown container type '%s'" % c_type)
+
+  return ret

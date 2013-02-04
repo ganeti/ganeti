@@ -263,47 +263,6 @@ class ConfigObject(objectutils.ValidatedSlots):
     obj = cls(**val_str) # pylint: disable=W0142
     return obj
 
-  @staticmethod
-  def _ContainerToDicts(container):
-    """Convert the elements of a container to standard python types.
-
-    This method converts a container with elements derived from
-    ConfigData to standard python types. If the container is a dict,
-    we don't touch the keys, only the values.
-
-    """
-    if isinstance(container, dict):
-      ret = dict([(k, v.ToDict()) for k, v in container.iteritems()])
-    elif isinstance(container, (list, tuple, set, frozenset)):
-      ret = [elem.ToDict() for elem in container]
-    else:
-      raise TypeError("Invalid type %s passed to _ContainerToDicts" %
-                      type(container))
-    return ret
-
-  @staticmethod
-  def _ContainerFromDicts(source, c_type, e_type):
-    """Convert a container from standard python types.
-
-    This method converts a container with standard python types to
-    ConfigData objects. If the container is a dict, we don't touch the
-    keys, only the values.
-
-    """
-    if not isinstance(c_type, type):
-      raise TypeError("Container type %s passed to _ContainerFromDicts is"
-                      " not a type" % type(c_type))
-    if source is None:
-      source = c_type()
-    if c_type is dict:
-      ret = dict([(k, e_type.FromDict(v)) for k, v in source.iteritems()])
-    elif c_type in (list, tuple, set, frozenset):
-      ret = c_type([e_type.FromDict(elem) for elem in source])
-    else:
-      raise TypeError("Invalid container type %s passed to"
-                      " _ContainerFromDicts" % c_type)
-    return ret
-
   def Copy(self):
     """Makes a deep copy of the current object and its children.
 
@@ -446,7 +405,7 @@ class ConfigData(ConfigObject):
     mydict = super(ConfigData, self).ToDict()
     mydict["cluster"] = mydict["cluster"].ToDict()
     for key in "nodes", "instances", "nodegroups", "networks":
-      mydict[key] = self._ContainerToDicts(mydict[key])
+      mydict[key] = objectutils.ContainerToDicts(mydict[key])
 
     return mydict
 
@@ -457,10 +416,12 @@ class ConfigData(ConfigObject):
     """
     obj = super(ConfigData, cls).FromDict(val)
     obj.cluster = Cluster.FromDict(obj.cluster)
-    obj.nodes = cls._ContainerFromDicts(obj.nodes, dict, Node)
-    obj.instances = cls._ContainerFromDicts(obj.instances, dict, Instance)
-    obj.nodegroups = cls._ContainerFromDicts(obj.nodegroups, dict, NodeGroup)
-    obj.networks = cls._ContainerFromDicts(obj.networks, dict, Network)
+    obj.nodes = objectutils.ContainerFromDicts(obj.nodes, dict, Node)
+    obj.instances = \
+      objectutils.ContainerFromDicts(obj.instances, dict, Instance)
+    obj.nodegroups = \
+      objectutils.ContainerFromDicts(obj.nodegroups, dict, NodeGroup)
+    obj.networks = objectutils.ContainerFromDicts(obj.networks, dict, Network)
     return obj
 
   def HasAnyDiskOfType(self, dev_type):
@@ -768,7 +729,7 @@ class Disk(ConfigObject):
     for attr in ("children",):
       alist = bo.get(attr, None)
       if alist:
-        bo[attr] = self._ContainerToDicts(alist)
+        bo[attr] = objectutils.ContainerToDicts(alist)
     return bo
 
   @classmethod
@@ -778,7 +739,7 @@ class Disk(ConfigObject):
     """
     obj = super(Disk, cls).FromDict(val)
     if obj.children:
-      obj.children = cls._ContainerFromDicts(obj.children, list, Disk)
+      obj.children = objectutils.ContainerFromDicts(obj.children, list, Disk)
     if obj.logical_id and isinstance(obj.logical_id, list):
       obj.logical_id = tuple(obj.logical_id)
     if obj.physical_id and isinstance(obj.physical_id, list):
@@ -1136,7 +1097,7 @@ class Instance(TaggableObject):
     for attr in "nics", "disks":
       alist = bo.get(attr, None)
       if alist:
-        nlist = self._ContainerToDicts(alist)
+        nlist = objectutils.ContainerToDicts(alist)
       else:
         nlist = []
       bo[attr] = nlist
@@ -1155,8 +1116,8 @@ class Instance(TaggableObject):
     if "admin_up" in val:
       del val["admin_up"]
     obj = super(Instance, cls).FromDict(val)
-    obj.nics = cls._ContainerFromDicts(obj.nics, list, NIC)
-    obj.disks = cls._ContainerFromDicts(obj.disks, list, Disk)
+    obj.nics = objectutils.ContainerFromDicts(obj.nics, list, NIC)
+    obj.disks = objectutils.ContainerFromDicts(obj.disks, list, Disk)
     return obj
 
   def UpgradeConfig(self):
@@ -1344,12 +1305,12 @@ class Node(TaggableObject):
 
     hv_state = data.get("hv_state", None)
     if hv_state is not None:
-      data["hv_state"] = self._ContainerToDicts(hv_state)
+      data["hv_state"] = objectutils.ContainerToDicts(hv_state)
 
     disk_state = data.get("disk_state", None)
     if disk_state is not None:
       data["disk_state"] = \
-        dict((key, self._ContainerToDicts(value))
+        dict((key, objectutils.ContainerToDicts(value))
              for (key, value) in disk_state.items())
 
     return data
@@ -1362,11 +1323,12 @@ class Node(TaggableObject):
     obj = super(Node, cls).FromDict(val)
 
     if obj.hv_state is not None:
-      obj.hv_state = cls._ContainerFromDicts(obj.hv_state, dict, NodeHvState)
+      obj.hv_state = \
+        objectutils.ContainerFromDicts(obj.hv_state, dict, NodeHvState)
 
     if obj.disk_state is not None:
       obj.disk_state = \
-        dict((key, cls._ContainerFromDicts(value, dict, NodeDiskState))
+        dict((key, objectutils.ContainerFromDicts(value, dict, NodeDiskState))
              for (key, value) in obj.disk_state.items())
 
     return obj
@@ -1935,7 +1897,7 @@ class _QueryResponseBase(ConfigObject):
 
     """
     mydict = super(_QueryResponseBase, self).ToDict()
-    mydict["fields"] = self._ContainerToDicts(mydict["fields"])
+    mydict["fields"] = objectutils.ContainerToDicts(mydict["fields"])
     return mydict
 
   @classmethod
@@ -1944,7 +1906,8 @@ class _QueryResponseBase(ConfigObject):
 
     """
     obj = super(_QueryResponseBase, cls).FromDict(val)
-    obj.fields = cls._ContainerFromDicts(obj.fields, list, QueryFieldDefinition)
+    obj.fields = \
+      objectutils.ContainerFromDicts(obj.fields, list, QueryFieldDefinition)
     return obj
 
 
