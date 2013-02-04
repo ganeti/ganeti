@@ -40,7 +40,6 @@ _EXCLUSIVE_STORAGE_KEY = "_exclusive_storage"
 
 
 cfg = {}
-options = None
 
 
 def Load(path):
