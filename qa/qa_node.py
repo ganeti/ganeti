@@ -36,9 +36,9 @@ from qa_utils import AssertCommand, AssertEqual
 
 
 def _NodeAdd(node, readd=False):
-  if not readd and node.get("_added", False):
+  if not readd and node.added:
     raise qa_error.Error("Node %s already in cluster" % node["primary"])
-  elif readd and not node.get("_added", False):
+  elif readd and not node.added:
     raise qa_error.Error("Node %s not yet in cluster" % node["primary"])
 
   cmd = ["gnt-node", "add", "--no-ssh-key-check"]
@@ -50,12 +50,15 @@ def _NodeAdd(node, readd=False):
 
   AssertCommand(cmd)
 
-  node["_added"] = True
+  if readd:
+    assert node.added
+  else:
+    node.MarkAdded()
 
 
 def _NodeRemove(node):
   AssertCommand(["gnt-node", "remove", node["primary"]])
-  node["_added"] = False
+  node.MarkRemoved()
 
 
 def MakeNodeOffline(node, value):
@@ -81,7 +84,7 @@ def MarkNodeAddedAll():
   master = qa_config.GetMasterNode()
   for node in qa_config.get("nodes"):
     if node != master:
-      node["_added"] = True
+      node.MarkAdded()
 
 
 def TestNodeRemoveAll():

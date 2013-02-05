@@ -277,6 +277,10 @@ class TestQaConfig(unittest.TestCase):
     self.assertTrue(isinstance(self.config["instances"][0],
                                qa_config._QaInstance))
 
+  def testNodeConversion(self):
+    self.assertTrue(isinstance(self.config["nodes"][0],
+                               qa_config._QaNode))
+
   def testAcquireAndReleaseInstance(self):
     self.assertFalse(compat.any(map(operator.attrgetter("used"),
                                     self.config["instances"])))
@@ -303,6 +307,42 @@ class TestQaConfig(unittest.TestCase):
     # The next acquisition must fail
     self.assertRaises(qa_error.OutOfInstancesError,
                       qa_config.AcquireInstance, _cfg=self.config)
+
+  def testAcquireNodeNoneAdded(self):
+    self.assertFalse(compat.any(map(operator.attrgetter("added"),
+                                    self.config["nodes"])))
+
+    # First call must return master node
+    node = qa_config.AcquireNode(_cfg=self.config)
+    self.assertEqual(node, self.config.GetMasterNode())
+
+    # Next call with exclusion list fails
+    self.assertRaises(qa_error.OutOfNodesError, qa_config.AcquireNode,
+                      exclude=[node], _cfg=self.config)
+
+  def testAcquireNodeTooMany(self):
+    # Mark all nodes as marked (master excluded)
+    for node in self.config["nodes"]:
+      if node != self.config.GetMasterNode():
+        node.MarkAdded()
+
+    nodecount = len(self.config["nodes"])
+
+    self.assertTrue(nodecount > 1)
+
+    acquired = []
+
+    for _ in range(nodecount):
+      node = qa_config.AcquireNode(exclude=acquired, _cfg=self.config)
+      if node == self.config.GetMasterNode():
+        self.assertFalse(node.added)
+      else:
+        self.assertTrue(node.added)
+      self.assertEqual(node.use_count, 1)
+      acquired.append(node)
+
+    self.assertRaises(qa_error.OutOfNodesError, qa_config.AcquireNode,
+                      exclude=acquired, _cfg=self.config)
 
 
 if __name__ == "__main__":

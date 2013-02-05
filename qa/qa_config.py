@@ -113,8 +113,85 @@ class _QaInstance(object):
       return default
 
 
+class _QaNode(object):
+  __slots__ = [
+    "primary",
+    "secondary",
+    "_added",
+    "use_count",
+    ]
+
+  def __init__(self, primary, secondary):
+    """Initializes instances of this class.
+
+    """
+    self.primary = primary
+    self.secondary = secondary
+    self.use_count = 0
+    self._added = False
+
+  @classmethod
+  def FromDict(cls, data):
+    """Creates node object from JSON dictionary.
+
+    """
+    return cls(primary=data["primary"], secondary=data.get("secondary"))
+
+  def __getitem__(self, key):
+    """Legacy dict-like interface.
+
+    """
+    if key == "primary":
+      return self.primary
+    elif key == "secondary":
+      return self.secondary
+    else:
+      raise KeyError(key)
+
+  def get(self, key, default):
+    """Legacy dict-like interface.
+
+    """
+    try:
+      return self[key]
+    except KeyError:
+      return default
+
+  def Use(self):
+    """Marks a node as being in use.
+
+    """
+    assert self.use_count >= 0
+
+    self.use_count += 1
+
+    return self
+
+  def MarkAdded(self):
+    """Marks node as having been added to a cluster.
+
+    """
+    assert not self._added
+    self._added = True
+
+  def MarkRemoved(self):
+    """Marks node as having been removed from a cluster.
+
+    """
+    assert self._added
+    self._added = False
+
+  @property
+  def added(self):
+    """Returns whether a node is part of a cluster.
+
+    """
+    return self._added
+
+
 _RESOURCE_CONVERTER = {
   "instances": _QaInstance.FromDict,
+  "nodes": _QaNode.FromDict,
   }
 
 
@@ -470,12 +547,16 @@ def IsTemplateSupported(templ):
   return GetConfig().IsTemplateSupported(templ)
 
 
-def AcquireNode(exclude=None):
+def AcquireNode(exclude=None, _cfg=None):
   """Returns the least used node.
 
   """
-  master = GetMasterNode()
-  cfg = GetConfig()
+  if _cfg is None:
+    cfg = GetConfig()
+  else:
+    cfg = _cfg
+
+  master = cfg.GetMasterNode()
 
   # Filter out unwanted nodes
   # TODO: Maybe combine filters
@@ -486,25 +567,22 @@ def AcquireNode(exclude=None):
   else:
     nodes = filter(lambda node: node != exclude, cfg["nodes"])
 
-  tmp_flt = lambda node: node.get("_added", False) or node == master
-  nodes = filter(tmp_flt, nodes)
-  del tmp_flt
+  nodes = filter(lambda node: node.added or node == master, nodes)
 
-  if len(nodes) == 0:
+  if not nodes:
     raise qa_error.OutOfNodesError("No nodes left")
 
   # Get node with least number of uses
+  # TODO: Switch to computing sort key instead of comparing directly
   def compare(a, b):
-    result = cmp(a.get("_count", 0), b.get("_count", 0))
+    result = cmp(a.use_count, b.use_count)
     if result == 0:
-      result = cmp(a["primary"], b["primary"])
+      result = cmp(a.primary, b.primary)
     return result
 
   nodes.sort(cmp=compare)
 
-  node = nodes[0]
-  node["_count"] = node.get("_count", 0) + 1
-  return node
+  return nodes[0].Use()
 
 
 def AcquireManyNodes(num, exclude=None):
@@ -539,7 +617,9 @@ def AcquireManyNodes(num, exclude=None):
 
 
 def ReleaseNode(node):
-  node["_count"] = node.get("_count", 0) - 1
+  assert node.use_count > 0
+
+  node.use_count -= 1
 
 
 def ReleaseManyNodes(nodes):
