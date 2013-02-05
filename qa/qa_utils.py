@@ -503,7 +503,7 @@ def GenericQueryTest(cmd, fields, namefield="name", test_unknown=True):
 
   # Test a number of field combinations
   for testfields in _SelectQueryFields(rnd, fields):
-    AssertCommand([cmd, "list", "--output", ",".join(testfields)])
+    AssertRedirectedCommand([cmd, "list", "--output", ",".join(testfields)])
 
   if namefield is not None:
     namelist_fn = compat.partial(_List, cmd, [namefield])
@@ -526,8 +526,9 @@ def GenericQueryTest(cmd, fields, namefield="name", test_unknown=True):
                   fail=True)
 
   # Check exit code for listing unknown field
-  AssertEqual(AssertCommand([cmd, "list", "--output=field/does/not/exist"],
-                            fail=True),
+  AssertEqual(AssertRedirectedCommand([cmd, "list",
+                                       "--output=field/does/not/exist"],
+                                      fail=True),
               constants.EXIT_UNKNOWN_FIELD)
 
 
@@ -535,8 +536,8 @@ def GenericQueryFieldsTest(cmd, fields):
   master = qa_config.GetMasterNode()
 
   # Listing fields
-  AssertCommand([cmd, "list-fields"])
-  AssertCommand([cmd, "list-fields"] + fields)
+  AssertRedirectedCommand([cmd, "list-fields"])
+  AssertRedirectedCommand([cmd, "list-fields"] + fields)
 
   # Check listed fields (all, must be sorted)
   realcmd = [cmd, "list-fields", "--separator=|", "--no-headers"]
