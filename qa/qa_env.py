@@ -76,7 +76,7 @@ def TestIcmpPing():
   seccmd = [pingsecondary, "-e"]
   for i in nodes:
     pricmd.append(i["primary"])
-    if "secondary" in i:
+    if i.get("secondary"):
       seccmd.append(i["secondary"])
 
   pristr = utils.ShellQuoteArgs(pricmd)
