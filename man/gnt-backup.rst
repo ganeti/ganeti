@@ -121,7 +121,7 @@ ip
     the node expects the instance to use)
 
 mode
-    specifies the connection mode for this nic: ``routed``,
+    specifies the connection mode for this NIC: ``routed``,
     ``bridged`` or ``openvswitch``
 
 link
@@ -131,7 +131,7 @@ link
     dependent on the network script in use, see **gnt-cluster**\(8) for
     more details)
 
-Of these ``mode`` and ``link`` are nic parameters, and inherit their
+Of these ``mode`` and ``link`` are NIC parameters, and inherit their
 default at cluster level.
 
 If no network is desired for the instance, you should create a single

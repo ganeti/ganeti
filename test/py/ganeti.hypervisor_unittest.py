@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2010 Google Inc.
+# Copyright (C) 2010, 2013 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -28,6 +28,7 @@ from ganeti import compat
 from ganeti import objects
 from ganeti import errors
 from ganeti import hypervisor
+from ganeti.hypervisor import hv_base
 
 import testutils
 
@@ -46,6 +47,15 @@ class TestParameters(unittest.TestCase):
                         "Hypervisor %s: parameter %s defined in the hypervisor"
                         " but missing a default value" %
                         (hv, pname))
+
+
+class TestBase(unittest.TestCase):
+  def testVerifyResults(self):
+    fn = hv_base.BaseHypervisor._FormatVerifyResults
+    # FIXME: use assertIsNone when py 2.7 is minimum supported version
+    self.assertEqual(fn([]), None)
+    self.assertEqual(fn(["a"]), "a")
+    self.assertEqual(fn(["a", "b"]), "a; b")
 
 
 if __name__ == "__main__":

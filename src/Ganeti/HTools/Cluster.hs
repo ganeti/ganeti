@@ -7,7 +7,7 @@ goes into the /Main/ module for the individual binaries.
 
 {-
 
-Copyright (C) 2009, 2010, 2011, 2012 Google Inc.
+Copyright (C) 2009, 2010, 2011, 2012, 2013 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -655,7 +655,7 @@ collapseFailures flst =
     map (\k -> (k, foldl' (\a e -> if e == k then a + 1 else a) 0 flst))
             [minBound..maxBound]
 
--- | Compares two Maybe AllocElement and chooses the besst score.
+-- | Compares two Maybe AllocElement and chooses the best score.
 bestAllocElement :: Maybe Node.AllocElement
                  -> Maybe Node.AllocElement
                  -> Maybe Node.AllocElement

@@ -55,6 +55,9 @@ _MULTIPLEXERS = {}
 #: Unique ID per QA run
 _RUN_UUID = utils.NewUUID()
 
+#: Path to the QA query output log file
+_QA_OUTPUT = pathutils.GetLogFilename("qa-output")
+
 
 (INST_DOWN,
  INST_UP) = range(500, 502)
@@ -160,7 +163,7 @@ def _AssertRetCode(rcode, fail, cmdstr, nodename):
                          (cmdstr, nodename, rcode))
 
 
-def AssertCommand(cmd, fail=False, node=None):
+def AssertCommand(cmd, fail=False, node=None, log_cmd=True):
   """Checks that a remote command succeeds.
 
   @param cmd: either a string (the command to execute) or a list (to
@@ -170,6 +173,8 @@ def AssertCommand(cmd, fail=False, node=None):
   @param node: if passed, it should be the node on which the command
       should be executed, instead of the master node (can be either a
       dict or a string)
+  @param log_cmd: if False, the command won't be logged (simply passed to
+      StartSSH)
   @return: the return code of the command
   @raise qa_error.Error: if the command fails when it shouldn't or vice versa
 
@@ -184,10 +189,31 @@ def AssertCommand(cmd, fail=False, node=None):
   else:
     cmdstr = utils.ShellQuoteArgs(cmd)
 
-  rcode = StartSSH(nodename, cmdstr).wait()
+  rcode = StartSSH(nodename, cmdstr, log_cmd=log_cmd).wait()
   _AssertRetCode(rcode, fail, cmdstr, nodename)
 
   return rcode
+
+
+def AssertRedirectedCommand(cmd, fail=False, node=None, log_cmd=True):
+  """Executes a command with redirected output.
+
+  The log will go to the qa-output log file in the ganeti log
+  directory on the node where the command is executed. The fail and
+  node parameters are passed unchanged to AssertCommand.
+
+  @param cmd: the command to be executed, as a list; a string is not
+      supported
+
+  """
+  if not isinstance(cmd, list):
+    raise qa_error.Error("Non-list passed to AssertRedirectedCommand")
+  ofile = utils.ShellQuote(_QA_OUTPUT)
+  cmdstr = utils.ShellQuoteArgs(cmd)
+  AssertCommand("echo ---- $(date) %s ---- >> %s" % (cmdstr, ofile),
+                fail=False, node=node, log_cmd=False)
+  return AssertCommand(cmdstr + " >> %s" % ofile,
+                       fail=fail, node=node, log_cmd=log_cmd)
 
 
 def GetSSHCommand(node, cmd, strict=True, opts=None, tty=None):
@@ -234,24 +260,25 @@ def GetSSHCommand(node, cmd, strict=True, opts=None, tty=None):
   return args
 
 
-def StartLocalCommand(cmd, _nolog_opts=False, **kwargs):
+def StartLocalCommand(cmd, _nolog_opts=False, log_cmd=True, **kwargs):
   """Starts a local command.
 
   """
-  if _nolog_opts:
-    pcmd = [i for i in cmd if not i.startswith("-")]
-  else:
-    pcmd = cmd
-  print "Command: %s" % utils.ShellQuoteArgs(pcmd)
+  if log_cmd:
+    if _nolog_opts:
+      pcmd = [i for i in cmd if not i.startswith("-")]
+    else:
+      pcmd = cmd
+    print "Command: %s" % utils.ShellQuoteArgs(pcmd)
   return subprocess.Popen(cmd, shell=False, **kwargs)
 
 
-def StartSSH(node, cmd, strict=True):
+def StartSSH(node, cmd, strict=True, log_cmd=True):
   """Starts SSH.
 
   """
   return StartLocalCommand(GetSSHCommand(node, cmd, strict=strict),
-                           _nolog_opts=True)
+                           _nolog_opts=True, log_cmd=log_cmd)
 
 
 def StartMultiplexer(node):
@@ -476,7 +503,7 @@ def GenericQueryTest(cmd, fields, namefield="name", test_unknown=True):
 
   # Test a number of field combinations
   for testfields in _SelectQueryFields(rnd, fields):
-    AssertCommand([cmd, "list", "--output", ",".join(testfields)])
+    AssertRedirectedCommand([cmd, "list", "--output", ",".join(testfields)])
 
   if namefield is not None:
     namelist_fn = compat.partial(_List, cmd, [namefield])
@@ -499,8 +526,9 @@ def GenericQueryTest(cmd, fields, namefield="name", test_unknown=True):
                   fail=True)
 
   # Check exit code for listing unknown field
-  AssertEqual(AssertCommand([cmd, "list", "--output=field/does/not/exist"],
-                            fail=True),
+  AssertEqual(AssertRedirectedCommand([cmd, "list",
+                                       "--output=field/does/not/exist"],
+                                      fail=True),
               constants.EXIT_UNKNOWN_FIELD)
 
 
@@ -508,8 +536,8 @@ def GenericQueryFieldsTest(cmd, fields):
   master = qa_config.GetMasterNode()
 
   # Listing fields
-  AssertCommand([cmd, "list-fields"])
-  AssertCommand([cmd, "list-fields"] + fields)
+  AssertRedirectedCommand([cmd, "list-fields"])
+  AssertRedirectedCommand([cmd, "list-fields"] + fields)
 
   # Check listed fields (all, must be sorted)
   realcmd = [cmd, "list-fields", "--separator=|", "--no-headers"]

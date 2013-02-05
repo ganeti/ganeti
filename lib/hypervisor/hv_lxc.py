@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2010 Google Inc.
+# Copyright (C) 2010, 2013 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -40,19 +40,9 @@ from ganeti.errors import HypervisorError
 class LXCHypervisor(hv_base.BaseHypervisor):
   """LXC-based virtualization.
 
-  Since current (Spring 2010) distributions are not yet ready for
-  running under a container, the following changes must be done
-  manually:
-    - remove udev
-    - disable the kernel log component of sysklogd/rsyslog/etc.,
-      otherwise they will fail to read the log, and at least rsyslog
-      will fill the filesystem with error messages
-
   TODO:
     - move hardcoded parameters into hypervisor parameters, once we
       have the container-parameter support
-    - implement memory limits, but only optionally, depending on host
-      kernel support
 
   Problems/issues:
     - LXC is very temperamental; in daemon mode, it succeeds or fails
@@ -60,10 +50,6 @@ class LXCHypervisor(hv_base.BaseHypervisor):
       indication, and when failing it can leave network interfaces
       around, and future successful startups will list the instance
       twice
-    - shutdown sequence of containers leaves the init 'dead', and the
-      container effectively stopped, but LXC still believes the
-      container to be running; need to investigate using the
-      notify_on_release and release_agent feature of cgroups
 
   """
   _ROOT_DIR = pathutils.RUN_DIR + "/lxc"
@@ -146,7 +132,7 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     """
     cgroup = cls._GetCgroupMountPoint()
     try:
-      cpus = utils.ReadFile(utils.PathJoin(cgroup,
+      cpus = utils.ReadFile(utils.PathJoin(cgroup, 'lxc',
                                            instance_name,
                                            "cpuset.cpus"))
     except EnvironmentError, err:
@@ -155,39 +141,53 @@ class LXCHypervisor(hv_base.BaseHypervisor):
 
     return utils.ParseCpuMask(cpus)
 
+  @classmethod
+  def _GetCgroupMemoryLimit(cls, instance_name):
+    """Return the memory limit for an instance
+
+    """
+    cgroup = cls._GetCgroupMountPoint()
+    try:
+      memory = int(utils.ReadFile(utils.PathJoin(cgroup, 'lxc',
+                                                 instance_name,
+                                                 "memory.limit_in_bytes")))
+    except EnvironmentError:
+      # memory resource controller may be disabled, ignore
+      memory = 0
+
+    return memory
+
   def ListInstances(self):
     """Get the list of running instances.
 
     """
-    result = utils.RunCmd(["lxc-ls"])
-    if result.failed:
-      raise errors.HypervisorError("Running lxc-ls failed: %s" % result.output)
-    return result.stdout.splitlines()
+    return [iinfo[0] for iinfo in self.GetAllInstancesInfo()]
 
   def GetInstanceInfo(self, instance_name):
     """Get instance properties.
 
     @type instance_name: string
     @param instance_name: the instance name
-
+    @rtype: tuple of strings
     @return: (name, id, memory, vcpus, stat, times)
 
     """
     # TODO: read container info from the cgroup mountpoint
 
-    result = utils.RunCmd(["lxc-info", "-n", instance_name])
+    result = utils.RunCmd(["lxc-info", "-s", "-n", instance_name])
     if result.failed:
       raise errors.HypervisorError("Running lxc-info failed: %s" %
                                    result.output)
     # lxc-info output examples:
-    # 'ganeti-lxc-test1' is STOPPED
-    # 'ganeti-lxc-test1' is RUNNING
+    # 'state: STOPPED
+    # 'state: RUNNING
     _, state = result.stdout.rsplit(None, 1)
     if state != "RUNNING":
       return None
 
     cpu_list = self._GetCgroupCpuList(instance_name)
-    return (instance_name, 0, 0, len(cpu_list), 0, 0)
+    memory = self._GetCgroupMemoryLimit(instance_name) / (1024 ** 2)
+    return (instance_name, 0, memory, len(cpu_list), 0, 0)
 
   def GetAllInstancesInfo(self):
     """Get properties of all instances.
@@ -196,8 +196,13 @@ class LXCHypervisor(hv_base.BaseHypervisor):
 
     """
     data = []
-    for name in self.ListInstances():
-      data.append(self.GetInstanceInfo(name))
+    for name in os.listdir(self._ROOT_DIR):
+      try:
+        info = self.GetInstanceInfo(name)
+      except errors.HypervisorError:
+        continue
+      if info:
+        data.append(info)
     return data
 
   def _CreateConfigFile(self, instance, root_dir):
@@ -240,6 +245,17 @@ class LXCHypervisor(hv_base.BaseHypervisor):
       out.append("lxc.cgroup.cpuset.cpus = %s" %
                  instance.hvparams[constants.HV_CPU_MASK])
 
+    # Memory
+    # Conditionally enable, memory resource controller might be disabled
+    cgroup = self._GetCgroupMountPoint()
+    if os.path.exists(utils.PathJoin(cgroup, 'memory.limit_in_bytes')):
+      out.append("lxc.cgroup.memory.limit_in_bytes = %dM" %
+                 instance.beparams[constants.BE_MAXMEM])
+
+    if os.path.exists(utils.PathJoin(cgroup, 'memory.memsw.limit_in_bytes')):
+      out.append("lxc.cgroup.memory.memsw.limit_in_bytes = %dM" %
+                 instance.beparams[constants.BE_MAXMEM])
+
     # Device control
     # deny direct device access
     out.append("lxc.cgroup.devices.deny = a")
@@ -270,7 +286,7 @@ class LXCHypervisor(hv_base.BaseHypervisor):
   def StartInstance(self, instance, block_devices, startup_paused):
     """Start an instance.
 
-    For LCX, we try to mount the block device and execute 'lxc-start'.
+    For LXC, we try to mount the block device and execute 'lxc-start'.
     We use volatile containers.
 
     """
@@ -337,6 +353,9 @@ class LXCHypervisor(hv_base.BaseHypervisor):
       if result.failed:
         logging.warning("Error while doing lxc-stop for %s: %s", name,
                         result.output)
+
+    if not os.path.ismount(root_dir):
+      return
 
     for mpath in self._GetMountSubdirs(root_dir):
       result = utils.RunCmd(["umount", mpath])
@@ -406,10 +425,18 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     @return: Problem description if something is wrong, C{None} otherwise
 
     """
-    if os.path.exists(self._ROOT_DIR):
-      return None
-    else:
-      return "The required directory '%s' does not exist" % self._ROOT_DIR
+    msgs = []
+
+    if not os.path.exists(self._ROOT_DIR):
+      msgs.append("The required directory '%s' does not exist" %
+                  self._ROOT_DIR)
+
+    try:
+      self._GetCgroupMountPoint()
+    except errors.HypervisorError, err:
+      msgs.append(str(err))
+
+    return self._FormatVerifyResults(msgs)
 
   @classmethod
   def PowercycleNode(cls):

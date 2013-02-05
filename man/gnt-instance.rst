@@ -91,7 +91,7 @@ command.
 
 The NICs of the instances can be specified via the ``--net``
 option. By default, one NIC is created for the instance, with a
-random MAC, and set up according the the cluster level nic
+random MAC, and set up according the the cluster level NIC
 parameters. Each NIC can take these parameters (all optional):
 
 mac
@@ -103,7 +103,7 @@ ip
     the node expects the instance to use)
 
 mode
-    specifies the connection mode for this nic: routed, bridged or
+    specifies the connection mode for this NIC: routed, bridged or
     openvswitch.
 
 link
@@ -123,7 +123,7 @@ network
     different ways.
 
 
-Of these "mode" and "link" are nic parameters, and inherit their
+Of these "mode" and "link" are NIC parameters, and inherit their
 default at cluster level.  Alternatively, if no network is desired for
 the instance, you can prevent the default of one NIC with the
 ``--no-nics`` option.
@@ -816,10 +816,10 @@ mac, ip, mode, link
     key.
 
 nics
-    List of nics that will be created for the instance. Each entry
+    List of NICs that will be created for the instance. Each entry
     should be a dict, with mac, ip, mode and link as possible keys.
     Please don't provide the "mac, ip, mode, link" parent keys if you
-    use this method for specifying nics.
+    use this method for specifying NICs.
 
 primary\_node, secondary\_node
     The primary and optionally the secondary node to use for the
@@ -1005,7 +1005,7 @@ MODIFY
 | {*instance*}
 
 Modifies the memory size, number of vcpus, ip address, MAC address
-and/or nic parameters for an instance. It can also add and remove
+and/or NIC parameters for an instance. It can also add and remove
 disks and NICs to/from the instance. Note that you need to give at
 least one of the arguments, otherwise the command complains.
 

@@ -4,7 +4,7 @@
 
 {-
 
-Copyright (C) 2011, 2012 Google Inc.
+Copyright (C) 2011, 2012, 2013 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -75,6 +75,13 @@ daemonName GanetiNoded   = C.noded
 daemonName GanetiRapi    = C.rapi
 daemonName GanetiConfd   = C.confd
 
+-- | Returns the log file base for a daemon.
+daemonLogBase :: GanetiDaemon -> String
+daemonLogBase GanetiMasterd = C.daemonsLogbaseGanetiMasterd
+daemonLogBase GanetiNoded   = C.daemonsLogbaseGanetiNoded
+daemonLogBase GanetiRapi    = C.daemonsLogbaseGanetiRapi
+daemonLogBase GanetiConfd   = C.daemonsLogbaseGanetiConfd
+
 -- | Returns the configured user name for a daemon.
 daemonUser :: GanetiDaemon -> String
 daemonUser GanetiMasterd = C.masterdUser
@@ -95,7 +102,7 @@ daemonGroup (ExtraGroup  AdminGroup)    = C.adminGroup
 daemonLogFile :: GanetiDaemon -> IO FilePath
 daemonLogFile daemon = do
   logDir <- Path.logDir
-  return $ logDir </> daemonName daemon <.> "log"
+  return $ logDir </> daemonLogBase daemon <.> "log"
 
 -- | Returns the pid file name for a daemon.
 daemonPidFile :: GanetiDaemon -> IO FilePath

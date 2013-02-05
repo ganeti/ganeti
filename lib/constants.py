@@ -166,12 +166,16 @@ DEFAULT_RAPI_PORT = DAEMONS_PORTS[RAPI][1]
 FIRST_DRBD_PORT = 11000
 LAST_DRBD_PORT = 14999
 
-DAEMONS_LOGFILES = {
-  NODED: pathutils.GetLogFilename("node-daemon"),
-  CONFD: pathutils.GetLogFilename("conf-daemon"),
-  RAPI: pathutils.GetLogFilename("rapi-daemon"),
-  MASTERD: pathutils.GetLogFilename("master-daemon"),
+DAEMONS_LOGBASE = {
+  NODED: "node-daemon",
+  CONFD: "conf-daemon",
+  RAPI: "rapi-daemon",
+  MASTERD: "master-daemon",
   }
+
+DAEMONS_LOGFILES = \
+    dict((daemon, pathutils.GetLogFilename(DAEMONS_LOGBASE[daemon]))
+         for daemon in DAEMONS_LOGBASE)
 
 DEV_CONSOLE = "/dev/console"
 

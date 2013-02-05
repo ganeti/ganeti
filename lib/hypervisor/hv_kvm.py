@@ -2050,14 +2050,17 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     @return: Problem description if something is wrong, C{None} otherwise
 
     """
-    # FIXME: this is the global kvm version, but the actual version can be
-    # customized as an hv parameter. we should use the nodegroup's default kvm
-    # path parameter here.
+    msgs = []
+    # FIXME: this is the global kvm binary, but the actual path can be
+    # customized as an hv parameter; we should use the nodegroup's
+    # default kvm path parameter here.
     if not os.path.exists(constants.KVM_PATH):
-      return "The KVM binary ('%s') does not exist" % constants.KVM_PATH
+      msgs.append("The KVM binary ('%s') does not exist" % constants.KVM_PATH)
     if not os.path.exists(constants.SOCAT_PATH):
-      return "The socat binary ('%s') does not exist" % constants.SOCAT_PATH
-    return None
+      msgs.append("The socat binary ('%s') does not exist" %
+                  constants.SOCAT_PATH)
+
+    return self._FormatVerifyResults(msgs)
 
   @classmethod
   def CheckParameterSyntax(cls, hvparams):

@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2012 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2012, 2013 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -520,3 +520,17 @@ class BaseHypervisor(object):
       result = utils.RunCmd(["reboot", "-n", "-f"])
       if not result:
         logging.error("Can't run shutdown: %s", result.output)
+
+  @staticmethod
+  def _FormatVerifyResults(msgs):
+    """Formats the verification results, given a list of errors.
+
+    @param msgs: list of errors, possibly empty
+    @return: overall problem description if something is wrong,
+        C{None} otherwise
+
+    """
+    if msgs:
+      return "; ".join(msgs)
+    else:
+      return None
