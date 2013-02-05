@@ -36,6 +36,9 @@ module Ganeti.DataCollectors.CLI
   , oShowComp
   , oDrbdPairing
   , oDrbdStatus
+  , oNode
+  , oConfdAddr
+  , oConfdPort
   , genericOptions
   ) where
 
@@ -43,6 +46,8 @@ import System.Console.GetOpt
 
 import Ganeti.BasicTypes
 import Ganeti.Common as Common
+import Ganeti.Utils
+
 
 -- * Data types
 
@@ -55,6 +60,10 @@ data Options = Options
                                      -- status information
   , optDrbdPairing :: Maybe FilePath -- ^ Path to the file containing pairings
                                      -- between instances and DRBD minors
+  , optNode        :: Maybe String   -- ^ Info are requested for this node
+  , optConfdAddr   :: Maybe String   -- ^ IP address of the Confd server
+  , optConfdPort   :: Maybe Int      -- ^ The port of the Confd server to
+                                     -- connect to
   } deriving Show
 
 -- | Default values for the command line options.
@@ -65,6 +74,9 @@ defaultOptions  = Options
   , optShowVer     = False
   , optDrbdStatus  = Nothing
   , optDrbdPairing = Nothing
+  , optNode        = Nothing
+  , optConfdAddr   = Nothing
+  , optConfdPort   = Nothing
   }
 
 -- | Abbreviation for the option type.
@@ -92,6 +104,28 @@ oDrbdStatus =
       (ReqArg (\ f o -> Ok o { optDrbdStatus = Just f }) "FILE")
       "the DRBD status FILE",
     OptComplFile)
+
+oNode :: OptType
+oNode =
+  ( Option "n" ["node"]
+      (ReqArg (\ n o -> Ok o { optNode = Just n }) "NODE")
+      "the FQDN of the NODE about which information is requested",
+    OptComplFile)
+
+oConfdAddr :: OptType
+oConfdAddr =
+  ( Option "a" ["address"]
+      (ReqArg (\ a o -> Ok o { optConfdAddr = Just a }) "IP_ADDR")
+      "the IP address of the Confd server to connect to",
+    OptComplFile)
+
+oConfdPort :: OptType
+oConfdPort =
+  (Option "p" ["port"]
+    (reqWithConversion (tryRead "reading port")
+      (\port opts -> Ok opts { optConfdPort = Just port }) "PORT")
+    "Network port of the Confd server to connect to",
+    OptComplInteger)
 
 -- | Generic options.
 genericOptions :: [GenericOptType Options]

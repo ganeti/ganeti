@@ -90,7 +90,7 @@ arguments = [ArgCompletion OptComplFile 0 (Just 0)]
 getPairingInfo :: Maybe String -> IO (BT.Result [DrbdInstMinor])
 getPairingInfo Nothing = do
   curNode <- getHostName
-  client <- getConfdClient
+  client <- getConfdClient Nothing Nothing
   reply <- query client ReqNodeDrbd $ PlainQuery curNode
   return $
     case fmap (J.readJSONs . confdReplyAnswer) reply of

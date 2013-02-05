@@ -31,6 +31,7 @@ module Ganeti.Confd.Client
 import Control.Concurrent
 import Control.Monad
 import Data.List
+import Data.Maybe
 import qualified Network.Socket as S
 import System.Posix.Time
 import qualified Text.JSON as J
@@ -42,16 +43,22 @@ import qualified Ganeti.Constants as C
 import Ganeti.Hash
 import Ganeti.Ssconf
 
--- | Builds a properly initialized ConfdClient
-getConfdClient :: IO ConfdClient
-getConfdClient = S.withSocketsDo $ do
+-- | Builds a properly initialized ConfdClient.
+-- The parameters (an IP address and the port number for the Confd client
+-- to connect to) are mainly meant for testing purposes. If they are not
+-- provided, the list of master candidates and the default port number will
+-- be used.
+getConfdClient :: Maybe String -> Maybe Int -> IO ConfdClient
+getConfdClient addr portNum = S.withSocketsDo $ do
   hmac <- getClusterHmac
   candList <- getMasterCandidatesIps Nothing
   peerList <-
     case candList of
       (Ok p) -> return p
       (Bad msg) -> fail msg
-  return . ConfdClient hmac peerList $ fromIntegral C.defaultConfdPort
+  let addrList = maybe peerList (:[]) addr
+      port = fromMaybe C.defaultConfdPort portNum
+  return . ConfdClient hmac addrList $ fromIntegral port
 
 -- | Sends a query to all the Confd servers the client is connected to.
 -- Returns the most up-to-date result according to the serial number,
