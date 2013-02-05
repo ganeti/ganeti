@@ -40,6 +40,84 @@ _ENABLED_HV_KEY = "enabled-hypervisors"
 _config = None
 
 
+class _QaInstance(object):
+  __slots__ = [
+    "name",
+    "nicmac",
+    "used",
+    "disk_template",
+    ]
+
+  def __init__(self, name, nicmac):
+    """Initializes instances of this class.
+
+    """
+    self.name = name
+    self.nicmac = nicmac
+    self.used = None
+    self.disk_template = None
+
+  @classmethod
+  def FromDict(cls, data):
+    """Creates instance object from JSON dictionary.
+
+    """
+    nicmac = []
+
+    macaddr = data.get("nic.mac/0")
+    if macaddr:
+      nicmac.append(macaddr)
+
+    return cls(name=data["name"], nicmac=nicmac)
+
+  def __getitem__(self, key):
+    """Legacy dict-like interface.
+
+    """
+    if key == "name":
+      return self.name
+    else:
+      raise KeyError(key)
+
+  def get(self, key, default):
+    """Legacy dict-like interface.
+
+    """
+    try:
+      return self[key]
+    except KeyError:
+      return default
+
+  def GetNicMacAddr(self, idx, default):
+    """Returns MAC address for NIC.
+
+    @type idx: int
+    @param idx: NIC index
+    @param default: Default value
+
+    """
+    if len(self.nicmac) > idx:
+      return self.nicmac[idx]
+    else:
+      return default
+
+
+_RESOURCE_CONVERTER = {
+  "instances": _QaInstance.FromDict,
+  }
+
+
+def _ConvertResources((key, value)):
+  """Converts cluster resources in configuration to Python objects.
+
+  """
+  fn = _RESOURCE_CONVERTER.get(key, None)
+  if fn:
+    return (key, map(fn, value))
+  else:
+    return (key, value)
+
+
 class _QaConfig(object):
   def __init__(self, data):
     """Initializes instances of this class.
@@ -61,7 +139,8 @@ class _QaConfig(object):
     """
     data = serializer.LoadJson(utils.ReadFile(filename))
 
-    result = cls(data)
+    result = cls(dict(map(_ConvertResources,
+                          data.items()))) # pylint: disable=E1103
     result.Validate()
 
     return result
@@ -308,7 +387,7 @@ def GetInstanceNicMac(inst, default=None):
   """Returns MAC address for instance's network interface.
 
   """
-  return inst.get("nic.mac/0", default)
+  return inst.GetNicMacAddr(0, default)
 
 
 def GetMasterNode():
@@ -318,33 +397,41 @@ def GetMasterNode():
   return GetConfig().GetMasterNode()
 
 
-def AcquireInstance():
+def AcquireInstance(_cfg=None):
   """Returns an instance which isn't in use.
 
   """
-  # Filter out unwanted instances
-  tmp_flt = lambda inst: not inst.get("_used", False)
-  instances = filter(tmp_flt, GetConfig()["instances"])
-  del tmp_flt
+  if _cfg is None:
+    cfg = GetConfig()
+  else:
+    cfg = _cfg
 
-  if len(instances) == 0:
+  # Filter out unwanted instances
+  instances = filter(lambda inst: not inst.used, cfg["instances"])
+
+  if not instances:
     raise qa_error.OutOfInstancesError("No instances left")
 
   inst = instances[0]
-  inst["_used"] = True
-  inst["_template"] = None
+
+  assert not inst.used
+  assert inst.disk_template is None
+
+  inst.used = True
+
   return inst
 
 
 def ReleaseInstance(inst):
-  inst["_used"] = False
+  inst.used = False
+  inst.disk_template = None
 
 
 def GetInstanceTemplate(inst):
   """Return the disk template of an instance.
 
   """
-  templ = inst["_template"]
+  templ = inst.disk_template
   assert templ is not None
   return templ
 
@@ -353,7 +440,7 @@ def SetInstanceTemplate(inst, template):
   """Set the disk template for an instance.
 
   """
-  inst["_template"] = template
+  inst.disk_template = template
 
 
 def SetExclusiveStorage(value):

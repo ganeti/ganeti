@@ -25,6 +25,7 @@ import unittest
 import tempfile
 import shutil
 import os
+import operator
 
 from ganeti import utils
 from ganeti import serializer
@@ -271,6 +272,37 @@ class TestQaConfig(unittest.TestCase):
           self.assertFalse(self.config.IsTemplateSupported(template))
         else:
           self.assertTrue(self.config.IsTemplateSupported(template))
+
+  def testInstanceConversion(self):
+    self.assertTrue(isinstance(self.config["instances"][0],
+                               qa_config._QaInstance))
+
+  def testAcquireAndReleaseInstance(self):
+    self.assertFalse(compat.any(map(operator.attrgetter("used"),
+                                    self.config["instances"])))
+
+    inst = qa_config.AcquireInstance(_cfg=self.config)
+    self.assertTrue(inst.used)
+    self.assertTrue(inst.disk_template is None)
+
+    qa_config.ReleaseInstance(inst)
+
+    self.assertFalse(inst.used)
+    self.assertTrue(inst.disk_template is None)
+
+    self.assertFalse(compat.any(map(operator.attrgetter("used"),
+                                    self.config["instances"])))
+
+  def testAcquireInstanceTooMany(self):
+    # Acquire all instances
+    for _ in range(len(self.config["instances"])):
+      inst = qa_config.AcquireInstance(_cfg=self.config)
+      self.assertTrue(inst.used)
+      self.assertTrue(inst.disk_template is None)
+
+    # The next acquisition must fail
+    self.assertRaises(qa_error.OutOfInstancesError,
+                      qa_config.AcquireInstance, _cfg=self.config)
 
 
 if __name__ == "__main__":
