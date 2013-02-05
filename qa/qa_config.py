@@ -176,10 +176,8 @@ class _QaConfig(object):
     """Is the given disk template supported by the current configuration?
 
     """
-    if self.GetExclusiveStorage():
-      return templ in constants.DTS_EXCL_STORAGE
-    else:
-      return True
+    return (not self.GetExclusiveStorage() or
+            templ in constants.DTS_EXCL_STORAGE)
 
 
 def Load(path):
