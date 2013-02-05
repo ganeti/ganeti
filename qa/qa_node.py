@@ -205,7 +205,7 @@ def TestNodeEvacuate(node, node2):
     AssertCommand(["gnt-node", "evacuate", "-f",
                    "--new-secondary=%s" % node2["primary"], node3["primary"]])
   finally:
-    qa_config.ReleaseNode(node3)
+    node3.Release()
 
 
 def TestNodeModify(node):

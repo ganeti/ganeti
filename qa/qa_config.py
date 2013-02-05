@@ -118,7 +118,7 @@ class _QaNode(object):
     "primary",
     "secondary",
     "_added",
-    "use_count",
+    "_use_count",
     ]
 
   def __init__(self, primary, secondary):
@@ -127,8 +127,8 @@ class _QaNode(object):
     """
     self.primary = primary
     self.secondary = secondary
-    self.use_count = 0
     self._added = False
+    self._use_count = 0
 
   @classmethod
   def FromDict(cls, data):
@@ -161,11 +161,19 @@ class _QaNode(object):
     """Marks a node as being in use.
 
     """
-    assert self.use_count >= 0
+    assert self._use_count >= 0
 
-    self.use_count += 1
+    self._use_count += 1
 
     return self
+
+  def Release(self):
+    """Release a node (opposite of L{Use}).
+
+    """
+    assert self.use_count > 0
+
+    self._use_count -= 1
 
   def MarkAdded(self):
     """Marks node as having been added to a cluster.
@@ -187,6 +195,13 @@ class _QaNode(object):
 
     """
     return self._added
+
+  @property
+  def use_count(self):
+    """Returns number of current uses (controlled by L{Use} and L{Release}).
+
+    """
+    return self._use_count
 
 
 _RESOURCE_CONVERTER = {
@@ -616,12 +631,6 @@ def AcquireManyNodes(num, exclude=None):
   return nodes
 
 
-def ReleaseNode(node):
-  assert node.use_count > 0
-
-  node.use_count -= 1
-
-
 def ReleaseManyNodes(nodes):
-  for n in nodes:
-    ReleaseNode(n)
+  for node in nodes:
+    node.Release()

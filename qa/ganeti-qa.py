@@ -377,7 +377,7 @@ def RunExportImportTests(instance, inodes):
         finally:
           newinst.Release()
     finally:
-      qa_config.ReleaseNode(expnode)
+      expnode.Release()
 
   if qa_config.TestEnabled(["rapi", "inter-cluster-instance-move"]):
     newinst = qa_config.AcquireInstance()
@@ -387,7 +387,7 @@ def RunExportImportTests(instance, inodes):
         RunTest(qa_rapi.TestInterClusterInstanceMove, instance, newinst,
                 inodes, tnode)
       finally:
-        qa_config.ReleaseNode(tnode)
+        tnode.Release()
     finally:
       newinst.Release()
 
@@ -499,10 +499,10 @@ def RunExclusiveStorageTests():
         finally:
           instance.Release()
       finally:
-        qa_config.ReleaseNode(snode)
+        snode.Release()
     qa_cluster.TestSetExclStorCluster(old_es)
   finally:
-    qa_config.ReleaseNode(node)
+    node.Release()
 
 
 def RunInstanceTests():
@@ -580,7 +580,7 @@ def RunQa():
     RunTestIf("node-modify", qa_node.TestNodeModify, pnode)
     RunTestIf("delay", qa_cluster.TestDelay, pnode)
   finally:
-    qa_config.ReleaseNode(pnode)
+    pnode.Release()
 
   # Make sure the cluster is clean before running instance tests
   qa_cluster.AssertClusterVerify()
@@ -605,7 +605,7 @@ def RunQa():
           del rapi_instance
 
   finally:
-    qa_config.ReleaseNode(pnode)
+    pnode.Release()
 
   config_list = [
     ("default-instance-tests", lambda: None, lambda _: None),
@@ -633,7 +633,7 @@ def RunQa():
             RunTest(qa_instance.TestInstanceExportWithRemove, instance, expnode)
             RunTest(qa_instance.TestBackupList, expnode)
           finally:
-            qa_config.ReleaseNode(expnode)
+            expnode.Release()
         finally:
           instance.Release()
         del expnode
@@ -641,7 +641,7 @@ def RunQa():
       qa_cluster.AssertClusterVerify()
 
   finally:
-    qa_config.ReleaseNode(pnode)
+    pnode.Release()
 
   RunExclusiveStorageTests()
 
@@ -658,9 +658,9 @@ def RunQa():
         RunTest(qa_instance.TestRemoveInstanceOfflineNode, instance, snode,
                 set_offline, set_online)
       finally:
-        qa_config.ReleaseNode(pnode)
+        pnode.Release()
     finally:
-      qa_config.ReleaseNode(snode)
+      snode.Release()
     qa_cluster.AssertClusterVerify()
 
   RunTestIf("create-cluster", qa_node.TestNodeRemoveAll)

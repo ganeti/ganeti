@@ -567,7 +567,7 @@ def TestClusterMasterFailover():
     # Back to original master node
     AssertCommand(cmd, node=master)
   finally:
-    qa_config.ReleaseNode(failovermaster)
+    failovermaster.Release()
 
 
 def TestClusterMasterFailoverWithDrainedQueue():
@@ -594,7 +594,7 @@ def TestClusterMasterFailoverWithDrainedQueue():
     # Back to original master node
     AssertCommand(cmd, node=master)
   finally:
-    qa_config.ReleaseNode(failovermaster)
+    failovermaster.Release()
 
   AssertCommand(drain_check, fail=True)
   AssertCommand(drain_check, node=failovermaster, fail=True)
