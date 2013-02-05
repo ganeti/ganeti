@@ -128,7 +128,7 @@ def TestAssignNodesIncludingSplit(orig_group, node1, node2):
 
   (other_group, ) = qa_utils.GetNonexistentGroups(1)
 
-  master_node = qa_config.GetMasterNode()["primary"]
+  master_node = qa_config.GetMasterNode().primary
 
   def AssertInGroup(group, nodes):
     real_output = GetCommandOutput(master_node,

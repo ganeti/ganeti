@@ -72,7 +72,7 @@ def TestClusterTags():
 
 def TestNodeTags(node):
   """gnt-node tags"""
-  _TestTags(constants.TAG_NODE, node["primary"])
+  _TestTags(constants.TAG_NODE, node.primary)
 
 
 def TestGroupTags(group):

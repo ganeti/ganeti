@@ -37,16 +37,16 @@ from qa_utils import AssertCommand, AssertEqual
 
 def _NodeAdd(node, readd=False):
   if not readd and node.added:
-    raise qa_error.Error("Node %s already in cluster" % node["primary"])
+    raise qa_error.Error("Node %s already in cluster" % node.primary)
   elif readd and not node.added:
-    raise qa_error.Error("Node %s not yet in cluster" % node["primary"])
+    raise qa_error.Error("Node %s not yet in cluster" % node.primary)
 
   cmd = ["gnt-node", "add", "--no-ssh-key-check"]
-  if node.get("secondary", None):
-    cmd.append("--secondary-ip=%s" % node["secondary"])
+  if node.secondary:
+    cmd.append("--secondary-ip=%s" % node.secondary)
   if readd:
     cmd.append("--readd")
-  cmd.append(node["primary"])
+  cmd.append(node.primary)
 
   AssertCommand(cmd)
 
@@ -57,14 +57,14 @@ def _NodeAdd(node, readd=False):
 
 
 def _NodeRemove(node):
-  AssertCommand(["gnt-node", "remove", node["primary"]])
+  AssertCommand(["gnt-node", "remove", node.primary])
   node.MarkRemoved()
 
 
 def MakeNodeOffline(node, value):
   """gnt-node modify --offline=value"""
   # value in ["yes", "no"]
-  AssertCommand(["gnt-node", "modify", "--offline", value, node["primary"]])
+  AssertCommand(["gnt-node", "modify", "--offline", value, node.primary])
 
 
 def TestNodeAddAll():
@@ -128,7 +128,7 @@ def TestNodeStorage():
     cmd = ["gnt-node", "list-storage", "--storage-type", storage_type,
            "--output=node,name,allocatable", "--separator=|",
            "--no-headers"]
-    output = qa_utils.GetCommandOutput(master["primary"],
+    output = qa_utils.GetCommandOutput(master.primary,
                                        utils.ShellQuoteArgs(cmd))
 
     # Test with up to two devices
@@ -158,7 +158,7 @@ def TestNodeStorage():
         cmd = ["gnt-node", "list-storage", "--storage-type", storage_type,
                "--output=name,allocatable", "--separator=|",
                "--no-headers", node_name]
-        listout = qa_utils.GetCommandOutput(master["primary"],
+        listout = qa_utils.GetCommandOutput(master.primary,
                                             utils.ShellQuoteArgs(cmd))
         for line in listout.splitlines():
           (vfy_name, vfy_allocatable) = line.split("|")
@@ -182,10 +182,10 @@ def TestNodeFailover(node, node2):
                                      " it to have no primary instances.")
 
   # Fail over to secondary node
-  AssertCommand(["gnt-node", "failover", "-f", node["primary"]])
+  AssertCommand(["gnt-node", "failover", "-f", node.primary])
 
   # ... and back again.
-  AssertCommand(["gnt-node", "failover", "-f", node2["primary"]])
+  AssertCommand(["gnt-node", "failover", "-f", node2.primary])
 
 
 def TestNodeEvacuate(node, node2):
@@ -199,11 +199,11 @@ def TestNodeEvacuate(node, node2):
 
     # Evacuate all secondary instances
     AssertCommand(["gnt-node", "evacuate", "-f",
-                   "--new-secondary=%s" % node3["primary"], node2["primary"]])
+                   "--new-secondary=%s" % node3.primary, node2.primary])
 
     # ... and back again.
     AssertCommand(["gnt-node", "evacuate", "-f",
-                   "--new-secondary=%s" % node2["primary"], node3["primary"]])
+                   "--new-secondary=%s" % node2.primary, node3.primary])
   finally:
     node3.Release()
 
@@ -213,23 +213,23 @@ def TestNodeModify(node):
   for flag in ["master-candidate", "drained", "offline"]:
     for value in ["yes", "no"]:
       AssertCommand(["gnt-node", "modify", "--force",
-                     "--%s=%s" % (flag, value), node["primary"]])
+                     "--%s=%s" % (flag, value), node.primary])
 
   AssertCommand(["gnt-node", "modify", "--master-candidate=yes",
-                 "--auto-promote", node["primary"]])
+                 "--auto-promote", node.primary])
 
   # Test setting secondary IP address
-  AssertCommand(["gnt-node", "modify", "--secondary-ip=%s" % node["secondary"],
-                 node["primary"]])
+  AssertCommand(["gnt-node", "modify", "--secondary-ip=%s" % node.secondary,
+                 node.primary])
 
 
 def _CreateOobScriptStructure():
   """Create a simple OOB handling script and its structure."""
   master = qa_config.GetMasterNode()
 
-  data_path = qa_utils.UploadData(master["primary"], "")
-  verify_path = qa_utils.UploadData(master["primary"], "")
-  exit_code_path = qa_utils.UploadData(master["primary"], "")
+  data_path = qa_utils.UploadData(master.primary, "")
+  verify_path = qa_utils.UploadData(master.primary, "")
+  exit_code_path = qa_utils.UploadData(master.primary, "")
 
   oob_script = (("#!/bin/bash\n"
                  "echo \"$@\" > %s\n"
@@ -237,7 +237,7 @@ def _CreateOobScriptStructure():
                  "exit $(< %s)\n") %
                 (utils.ShellQuote(verify_path), utils.ShellQuote(data_path),
                  utils.ShellQuote(exit_code_path)))
-  oob_path = qa_utils.UploadData(master["primary"], oob_script, mode=0700)
+  oob_path = qa_utils.UploadData(master.primary, oob_script, mode=0700)
 
   return [oob_path, verify_path, data_path, exit_code_path]
 
@@ -245,7 +245,7 @@ def _CreateOobScriptStructure():
 def _UpdateOobFile(path, data):
   """Updates the data file with data."""
   master = qa_config.GetMasterNode()
-  qa_utils.UploadData(master["primary"], data, filename=path)
+  qa_utils.UploadData(master.primary, data, filename=path)
 
 
 def _AssertOobCall(verify_path, expected_args):
@@ -253,7 +253,7 @@ def _AssertOobCall(verify_path, expected_args):
   master = qa_config.GetMasterNode()
 
   verify_output_cmd = utils.ShellQuoteArgs(["cat", verify_path])
-  output = qa_utils.GetCommandOutput(master["primary"], verify_output_cmd,
+  output = qa_utils.GetCommandOutput(master.primary, verify_output_cmd,
                                      tty=False)
 
   AssertEqual(expected_args, output.strip())
@@ -265,8 +265,8 @@ def TestOutOfBand():
 
   node = qa_config.AcquireNode(exclude=master)
 
-  master_name = master["primary"]
-  node_name = node["primary"]
+  master_name = master.primary
+  node_name = node.primary
   full_node_name = qa_utils.ResolveNodeName(node)
 
   (oob_path, verify_path,
@@ -391,10 +391,10 @@ def TestOutOfBand():
     AssertCommand(["gnt-node", "health"], fail=True)
 
     # Different OOB script for node
-    verify_path2 = qa_utils.UploadData(master["primary"], "")
+    verify_path2 = qa_utils.UploadData(master.primary, "")
     oob_script = ("#!/bin/sh\n"
                   "echo \"$@\" > %s\n") % verify_path2
-    oob_path2 = qa_utils.UploadData(master["primary"], oob_script, mode=0700)
+    oob_path2 = qa_utils.UploadData(master.primary, oob_script, mode=0700)
 
     try:
       AssertCommand(["gnt-node", "modify", "--node-parameters",
@@ -424,4 +424,4 @@ def TestNodeListFields():
 
 def TestNodeListDrbd(node):
   """gnt-node list-drbd"""
-  AssertCommand(["gnt-node", "list-drbd", node["primary"]])
+  AssertCommand(["gnt-node", "list-drbd", node.primary])

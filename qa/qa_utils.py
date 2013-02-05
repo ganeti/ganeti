@@ -404,7 +404,7 @@ def _ResolveName(cmd, key):
   """
   master = qa_config.GetMasterNode()
 
-  output = GetCommandOutput(master["primary"], utils.ShellQuoteArgs(cmd))
+  output = GetCommandOutput(master.primary, utils.ShellQuoteArgs(cmd))
   for line in output.splitlines():
     (lkey, lvalue) = line.split(":", 1)
     if lkey == key:
@@ -427,7 +427,7 @@ def ResolveNodeName(node):
   """Gets the full name of a node.
 
   """
-  return _ResolveName(["gnt-node", "info", node["primary"]],
+  return _ResolveName(["gnt-node", "info", node.primary],
                       "Node name")
 
 
@@ -441,7 +441,7 @@ def GetNodeInstances(node, secondaries=False):
   # Get list of all instances
   cmd = ["gnt-instance", "list", "--separator=:", "--no-headers",
          "--output=name,pnode,snodes"]
-  output = GetCommandOutput(master["primary"], utils.ShellQuoteArgs(cmd))
+  output = GetCommandOutput(master.primary, utils.ShellQuoteArgs(cmd))
 
   instances = []
   for line in output.splitlines():
@@ -485,7 +485,7 @@ def _List(listcmd, fields, names):
   if names:
     cmd.extend(names)
 
-  return GetCommandOutput(master["primary"],
+  return GetCommandOutput(master.primary,
                           utils.ShellQuoteArgs(cmd)).splitlines()
 
 
@@ -541,7 +541,7 @@ def GenericQueryFieldsTest(cmd, fields):
 
   # Check listed fields (all, must be sorted)
   realcmd = [cmd, "list-fields", "--separator=|", "--no-headers"]
-  output = GetCommandOutput(master["primary"],
+  output = GetCommandOutput(master.primary,
                             utils.ShellQuoteArgs(realcmd)).splitlines()
   AssertEqual([line.split("|", 1)[0] for line in output],
               utils.NiceSort(fields))
@@ -570,7 +570,7 @@ def AddToEtcHosts(hostnames):
 
   """
   master = qa_config.GetMasterNode()
-  tmp_hosts = UploadData(master["primary"], "", mode=0644)
+  tmp_hosts = UploadData(master.primary, "", mode=0644)
 
   data = []
   for localhost in ("::1", "127.0.0.1"):
@@ -595,7 +595,7 @@ def RemoveFromEtcHosts(hostnames):
 
   """
   master = qa_config.GetMasterNode()
-  tmp_hosts = UploadData(master["primary"], "", mode=0644)
+  tmp_hosts = UploadData(master.primary, "", mode=0644)
   quoted_tmp_hosts = utils.ShellQuote(tmp_hosts)
 
   sed_data = " ".join(hostnames)
@@ -623,7 +623,7 @@ def RunInstanceCheck(instance, running):
   master_node = qa_config.GetMasterNode()
 
   # Build command to connect to master node
-  master_ssh = GetSSHCommand(master_node["primary"], "--")
+  master_ssh = GetSSHCommand(master_node.primary, "--")
 
   if running:
     running_shellval = "1"

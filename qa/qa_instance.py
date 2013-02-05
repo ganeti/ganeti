@@ -99,7 +99,7 @@ def _GetInstanceInfo(instance):
   """
   master = qa_config.GetMasterNode()
   infocmd = utils.ShellQuoteArgs(["gnt-instance", "info", instance])
-  info_out = qa_utils.GetCommandOutput(master["primary"], infocmd)
+  info_out = qa_utils.GetCommandOutput(master.primary, infocmd)
   re_node = re.compile(r"^\s+-\s+(?:primary|secondaries):\s+(\S.+)$")
   node_elem = r"([^,()]+)(?:\s+\([^)]+\))?"
   # re_nodelist matches a list of nodes returned by gnt-instance info, e.g.:
@@ -165,7 +165,7 @@ def _GetBoolInstanceField(instance, field):
   master = qa_config.GetMasterNode()
   infocmd = utils.ShellQuoteArgs(["gnt-instance", "list", "--no-headers",
                                   "-o", field, instance])
-  info_out = qa_utils.GetCommandOutput(master["primary"], infocmd).strip()
+  info_out = qa_utils.GetCommandOutput(master.primary, infocmd).strip()
   if info_out == "Y":
     return True
   elif info_out == "N":
@@ -194,14 +194,14 @@ def IsDiskReplacingSupported(instance):
 def TestInstanceAddWithPlainDisk(nodes):
   """gnt-instance add -t plain"""
   assert len(nodes) == 1
-  return _DiskTest(nodes[0]["primary"], "plain")
+  return _DiskTest(nodes[0].primary, "plain")
 
 
 @InstanceCheck(None, INST_UP, RETURN_VALUE)
 def TestInstanceAddWithDrbdDisk(nodes):
   """gnt-instance add -t drbd"""
   assert len(nodes) == 2
-  return _DiskTest(":".join(map(operator.itemgetter("primary"), nodes)),
+  return _DiskTest(":".join(map(operator.attrgetter("primary"), nodes)),
                    "drbd")
 
 
@@ -238,7 +238,7 @@ def TestInstanceReboot(instance):
 
   master = qa_config.GetMasterNode()
   cmd = ["gnt-instance", "list", "--no-headers", "-o", "status", name]
-  result_output = qa_utils.GetCommandOutput(master["primary"],
+  result_output = qa_utils.GetCommandOutput(master.primary,
                                             utils.ShellQuoteArgs(cmd))
   AssertEqual(result_output.strip(), constants.INSTST_RUNNING)
 
@@ -264,7 +264,7 @@ def _ReadSsconfInstanceList():
   cmd = ["cat", utils.PathJoin(pathutils.DATA_DIR,
                                "ssconf_%s" % constants.SS_INSTANCE_LIST)]
 
-  return qa_utils.GetCommandOutput(master["primary"],
+  return qa_utils.GetCommandOutput(master.primary,
                                    utils.ShellQuoteArgs(cmd)).splitlines()
 
 
@@ -506,7 +506,7 @@ def TestInstanceConvertDiskToPlain(instance, inodes):
   assert len(inodes) == 2
   AssertCommand(["gnt-instance", "modify", "-t", "plain", name])
   AssertCommand(["gnt-instance", "modify", "-t", "drbd",
-                 "-n", inodes[1]["primary"], name])
+                 "-n", inodes[1].primary, name])
 
 
 @InstanceCheck(INST_DOWN, INST_DOWN, FIRST_ARG)
@@ -579,13 +579,13 @@ def TestReplaceDisks(instance, curr_nodes, other_nodes):
     # A placeholder; the actual command choice depends on use_ialloc
     None,
     # Restore the original secondary
-    ["--new-secondary=%s" % snode["primary"]],
+    ["--new-secondary=%s" % snode.primary],
     ]:
     if data is None:
       if use_ialloc:
         data = ["-I", constants.DEFAULT_IALLOCATOR_SHORTCUT]
       else:
-        data = ["--new-secondary=%s" % othernode["primary"]]
+        data = ["--new-secondary=%s" % othernode.primary]
     AssertCommand(buildcmd(data))
 
   AssertCommand(buildcmd(["-a"]))
@@ -632,8 +632,8 @@ def TestRecreateDisks(instance, inodes, othernodes):
   """
   options = qa_config.get("options", {})
   use_ialloc = options.get("use-iallocators", True)
-  other_seq = ":".join([n["primary"] for n in othernodes])
-  orig_seq = ":".join([n["primary"] for n in inodes])
+  other_seq = ":".join([n.primary for n in othernodes])
+  orig_seq = ":".join([n.primary for n in inodes])
   # These fail because the instance is running
   _AssertRecreateDisks(["-n", other_seq], instance, fail=True, destroy=False)
   if use_ialloc:
@@ -664,14 +664,14 @@ def TestRecreateDisks(instance, inodes, othernodes):
 def TestInstanceExport(instance, node):
   """gnt-backup export -n ..."""
   name = instance["name"]
-  AssertCommand(["gnt-backup", "export", "-n", node["primary"], name])
+  AssertCommand(["gnt-backup", "export", "-n", node.primary, name])
   return qa_utils.ResolveInstanceName(name)
 
 
 @InstanceCheck(None, INST_DOWN, FIRST_ARG)
 def TestInstanceExportWithRemove(instance, node):
   """gnt-backup export --remove-instance"""
-  AssertCommand(["gnt-backup", "export", "-n", node["primary"],
+  AssertCommand(["gnt-backup", "export", "-n", node.primary,
                  "--remove-instance", instance["name"]])
 
 
@@ -688,9 +688,9 @@ def TestInstanceImport(newinst, node, expnode, name):
   cmd = (["gnt-backup", "import",
           "--disk-template=%s" % templ,
           "--no-ip-check",
-          "--src-node=%s" % expnode["primary"],
+          "--src-node=%s" % expnode.primary,
           "--src-dir=%s/%s" % (pathutils.EXPORT_DIR, name),
-          "--node=%s" % node["primary"]] +
+          "--node=%s" % node.primary] +
          _GetGenericAddParameters(newinst, force_mac=constants.VALUE_GENERATE))
   cmd.append(newinst["name"])
   AssertCommand(cmd)
@@ -699,7 +699,7 @@ def TestInstanceImport(newinst, node, expnode, name):
 
 def TestBackupList(expnode):
   """gnt-backup list"""
-  AssertCommand(["gnt-backup", "list", "--node=%s" % expnode["primary"]])
+  AssertCommand(["gnt-backup", "list", "--node=%s" % expnode.primary])
 
   qa_utils.GenericQueryTest("gnt-backup", query.EXPORT_FIELDS.keys(),
                             namefield=None, test_unknown=False)
@@ -726,6 +726,6 @@ def TestRemoveInstanceOfflineNode(instance, snode, set_offline, set_online):
   finally:
     set_online(snode)
   # Clean up the disks on the offline node
-  for minor in info["drbd-minors"][snode["primary"]]:
+  for minor in info["drbd-minors"][snode.primary]:
     AssertCommand(["drbdsetup", str(minor), "down"], node=snode)
   AssertCommand(["lvremove", "-f"] + info["volumes"], node=snode)

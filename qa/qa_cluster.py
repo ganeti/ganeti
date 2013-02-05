@@ -60,7 +60,7 @@ def _CheckFileOnAllNodes(filename, content):
   """
   cmd = utils.ShellQuoteArgs(["cat", filename])
   for node in qa_config.get("nodes"):
-    AssertEqual(qa_utils.GetCommandOutput(node["primary"], cmd), content)
+    AssertEqual(qa_utils.GetCommandOutput(node.primary, cmd), content)
 
 
 # "gnt-cluster info" fields
@@ -81,7 +81,7 @@ def _GetBoolClusterField(field):
   """
   master = qa_config.GetMasterNode()
   infocmd = "gnt-cluster info"
-  info_out = qa_utils.GetCommandOutput(master["primary"], infocmd)
+  info_out = qa_utils.GetCommandOutput(master.primary, infocmd)
   ret = None
   for l in info_out.splitlines():
     m = _CIFIELD_RE.match(l)
@@ -123,7 +123,7 @@ def AssertClusterVerify(fail=False, errors=None):
   cvcmd = "gnt-cluster verify"
   mnode = qa_config.GetMasterNode()
   if errors:
-    cvout = GetCommandOutput(mnode["primary"], cvcmd + " --error-codes",
+    cvout = GetCommandOutput(mnode.primary, cvcmd + " --error-codes",
                              fail=True)
     actual = _GetCVErrorCodes(cvout)
     expected = compat.UniqueFrozenset(e for (_, e, _) in errors)
@@ -161,7 +161,7 @@ def TestClusterInit(rapi_user, rapi_secret):
     fh.write("%s %s write\n" % (rapi_user, rapi_secret))
     fh.flush()
 
-    tmpru = qa_utils.UploadFile(master["primary"], fh.name)
+    tmpru = qa_utils.UploadFile(master.primary, fh.name)
     try:
       AssertCommand(["mkdir", "-p", rapi_dir])
       AssertCommand(["mv", tmpru, pathutils.RAPI_USERS_FILE])
@@ -185,8 +185,8 @@ def TestClusterInit(rapi_user, rapi_secret):
       if spec:
         cmd.append("--specs-%s=%s=%d" % (spec_type, spec_val, spec))
 
-  if master.get("secondary", None):
-    cmd.append("--secondary-ip=%s" % master["secondary"])
+  if master.secondary:
+    cmd.append("--secondary-ip=%s" % master.secondary)
 
   vgname = qa_config.get("vg-name", None)
   if vgname:
@@ -294,7 +294,7 @@ def TestClusterEpo():
   master = qa_config.GetMasterNode()
 
   # Assert that OOB is unavailable for all nodes
-  result_output = GetCommandOutput(master["primary"],
+  result_output = GetCommandOutput(master.primary,
                                    "gnt-node list --verbose --no-headers -o"
                                    " powered")
   AssertEqual(compat.all(powered == "(unavail)"
@@ -306,13 +306,13 @@ def TestClusterEpo():
   AssertCommand(["gnt-cluster", "epo", "--all", "some_arg"], fail=True)
 
   # Unless --all is given master is not allowed to be in the list
-  AssertCommand(["gnt-cluster", "epo", "-f", master["primary"]], fail=True)
+  AssertCommand(["gnt-cluster", "epo", "-f", master.primary], fail=True)
 
   # This shouldn't fail
   AssertCommand(["gnt-cluster", "epo", "-f", "--all"])
 
   # All instances should have been stopped now
-  result_output = GetCommandOutput(master["primary"],
+  result_output = GetCommandOutput(master.primary,
                                    "gnt-instance list --no-headers -o status")
   # ERROR_down because the instance is stopped but not recorded as such
   AssertEqual(compat.all(status == "ERROR_down"
@@ -322,7 +322,7 @@ def TestClusterEpo():
   AssertCommand(["gnt-cluster", "epo", "--on", "-f", "--all"])
 
   # All instances should have been started now
-  result_output = GetCommandOutput(master["primary"],
+  result_output = GetCommandOutput(master.primary,
                                    "gnt-instance list --no-headers -o status")
   AssertEqual(compat.all(status == "running"
                          for status in result_output.splitlines()), True)
@@ -344,7 +344,7 @@ def TestDelay(node):
   AssertCommand(["gnt-debug", "delay", "1"])
   AssertCommand(["gnt-debug", "delay", "--no-master", "1"])
   AssertCommand(["gnt-debug", "delay", "--no-master",
-                 "-n", node["primary"], "1"])
+                 "-n", node.primary, "1"])
 
 
 def TestClusterReservedLvs():
@@ -457,7 +457,7 @@ def TestClusterRenewCrypto():
          "--rapi-certificate=/dev/null"]
   AssertCommand(cmd, fail=True)
 
-  rapi_cert_backup = qa_utils.BackupFile(master["primary"],
+  rapi_cert_backup = qa_utils.BackupFile(master.primary,
                                          pathutils.RAPI_CERT_FILE)
   try:
     # Custom RAPI certificate
@@ -468,7 +468,7 @@ def TestClusterRenewCrypto():
 
     utils.GenerateSelfSignedSslCert(fh.name, validity=validity)
 
-    tmpcert = qa_utils.UploadFile(master["primary"], fh.name)
+    tmpcert = qa_utils.UploadFile(master.primary, fh.name)
     try:
       AssertCommand(["gnt-cluster", "renew-crypto", "--force",
                      "--rapi-certificate=%s" % tmpcert])
@@ -481,7 +481,7 @@ def TestClusterRenewCrypto():
     cds_fh.write("\n")
     cds_fh.flush()
 
-    tmpcds = qa_utils.UploadFile(master["primary"], cds_fh.name)
+    tmpcds = qa_utils.UploadFile(master.primary, cds_fh.name)
     try:
       AssertCommand(["gnt-cluster", "renew-crypto", "--force",
                      "--cluster-domain-secret=%s" % tmpcds])
@@ -525,7 +525,7 @@ def TestClusterBurnin():
     if len(instances) < 1:
       raise qa_error.Error("Burnin needs at least one instance")
 
-    script = qa_utils.UploadFile(master["primary"], "../tools/burnin")
+    script = qa_utils.UploadFile(master.primary, "../tools/burnin")
     try:
       # Run burnin
       cmd = [script,
@@ -613,7 +613,7 @@ def TestClusterCopyfile():
   f.seek(0)
 
   # Upload file to master node
-  testname = qa_utils.UploadFile(master["primary"], f.name)
+  testname = qa_utils.UploadFile(master.primary, f.name)
   try:
     # Copy file to all nodes
     AssertCommand(["gnt-cluster", "copyfile", testname])
@@ -676,7 +676,7 @@ def TestExclStorSingleNode(node):
   """cluster-verify reports exclusive_storage set only on one node.
 
   """
-  node_name = node["primary"]
+  node_name = node.primary
   es_val = _GetBoolClusterField("exclusive_storage")
   assert not es_val
   AssertCommand(_BuildSetESCmd(True, node_name))
@@ -692,7 +692,7 @@ def TestExclStorSharedPv(node):
   vgname = qa_config.get("vg-name", constants.DEFAULT_VG)
   lvname1 = _QA_LV_PREFIX + "vol1"
   lvname2 = _QA_LV_PREFIX + "vol2"
-  node_name = node["primary"]
+  node_name = node.primary
   AssertCommand(["lvcreate", "-L1G", "-n", lvname1, vgname], node=node_name)
   AssertClusterVerify(fail=True, errors=[constants.CV_ENODEORPHANLV])
   AssertCommand(["lvcreate", "-L1G", "-n", lvname2, vgname], node=node_name)

@@ -80,7 +80,7 @@ def Setup(username, password):
 
   # Write to temporary file
   _rapi_ca = tempfile.NamedTemporaryFile()
-  _rapi_ca.write(qa_utils.GetCommandOutput(master["primary"],
+  _rapi_ca.write(qa_utils.GetCommandOutput(master.primary,
                                            utils.ShellQuoteArgs(cmd)))
   _rapi_ca.flush()
 
@@ -88,7 +88,7 @@ def Setup(username, password):
   cfg_curl = rapi.client.GenericCurlConfig(cafile=_rapi_ca.name,
                                            proxy="")
 
-  _rapi_client = rapi.client.GanetiRapiClient(master["primary"], port=port,
+  _rapi_client = rapi.client.GanetiRapiClient(master.primary, port=port,
                                               username=username,
                                               password=password,
                                               curl_config_fn=cfg_curl)
@@ -418,7 +418,7 @@ def TestNode(node):
       _VerifyNode(node_data)
 
   _DoTests([
-    ("/2/nodes/%s" % node["primary"], _VerifyNode, "GET", None),
+    ("/2/nodes/%s" % node.primary, _VerifyNode, "GET", None),
     ("/2/nodes", _VerifyNodesList, "GET", None),
     ("/2/nodes?bulk=1", _VerifyNodesBulk, "GET", None),
     ])
@@ -575,7 +575,7 @@ def TestRapiInstanceAdd(node, use_client):
                                            constants.DT_PLAIN,
                                            disks, nics,
                                            os=qa_config.get("os"),
-                                           pnode=node["primary"],
+                                           pnode=node.primary,
                                            beparams=beparams)
     else:
       body = {
@@ -584,7 +584,7 @@ def TestRapiInstanceAdd(node, use_client):
         "name": instance["name"],
         "os_type": qa_config.get("os"),
         "disk_template": constants.DT_PLAIN,
-        "pnode": node["primary"],
+        "pnode": node.primary,
         "beparams": beparams,
         "disks": disks,
         "nics": nics,
@@ -783,9 +783,9 @@ def TestInterClusterInstanceMove(src_instance, dest_instance,
   # note: pnode:snode are the *current* nodes, so we move it first to
   # tnode:pnode, then back to pnode:snode
   for si, di, pn, sn in [(src_instance["name"], dest_instance["name"],
-                          tnode["primary"], pnode["primary"]),
+                          tnode.primary, pnode.primary),
                          (dest_instance["name"], src_instance["name"],
-                          pnode["primary"], snode["primary"])]:
+                          pnode.primary, snode.primary)]:
     cmd = [
       "../tools/move-instance",
       "--verbose",
@@ -796,8 +796,8 @@ def TestInterClusterInstanceMove(src_instance, dest_instance,
       "--dest-primary-node=%s" % pn,
       "--dest-secondary-node=%s" % sn,
       "--net=0:mac=%s" % constants.VALUE_GENERATE,
-      master["primary"],
-      master["primary"],
+      master.primary,
+      master.primary,
       si,
       ]
 

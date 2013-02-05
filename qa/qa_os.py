@@ -109,7 +109,7 @@ def _SetupTempOs(node, dirname, variant, valid):
   cmd = " && ".join(parts)
 
   print qa_utils.FormatInfo("Setting up %s with %s OS definition" %
-                            (node["primary"],
+                            (node.primary,
                              ["an invalid", "a valid"][int(valid)]))
 
   AssertCommand(cmd, node=node)
@@ -163,7 +163,7 @@ def _TestOs(mode, rapi_cb):
       AssertCommand(["gnt-os", "diagnose"], fail=(mode != _ALL_VALID))
 
       # Diagnose again, ignoring exit status
-      output = qa_utils.GetCommandOutput(master["primary"],
+      output = qa_utils.GetCommandOutput(master.primary,
                                          "gnt-os diagnose || :")
       for line in output.splitlines():
         if line.startswith("OS: %s [global status:" % name):
@@ -173,13 +173,13 @@ def _TestOs(mode, rapi_cb):
 
       # Check info for all
       cmd = ["gnt-os", "info"]
-      output = qa_utils.GetCommandOutput(master["primary"],
+      output = qa_utils.GetCommandOutput(master.primary,
                                          utils.ShellQuoteArgs(cmd))
       AssertIn("%s:" % name, output.splitlines())
 
       # Check info for OS
       cmd = ["gnt-os", "info", name]
-      output = qa_utils.GetCommandOutput(master["primary"],
+      output = qa_utils.GetCommandOutput(master.primary,
                                          utils.ShellQuoteArgs(cmd)).splitlines()
       AssertIn("%s:" % name, output)
       for (field, value) in [("valid", mode == _ALL_VALID),
@@ -189,7 +189,7 @@ def _TestOs(mode, rapi_cb):
 
       # Only valid OSes should be listed
       cmd = ["gnt-os", "list", "--no-headers"]
-      output = qa_utils.GetCommandOutput(master["primary"],
+      output = qa_utils.GetCommandOutput(master.primary,
                                          utils.ShellQuoteArgs(cmd))
       if mode == _ALL_VALID and not (hidden or blacklisted):
         assert_fn = AssertIn

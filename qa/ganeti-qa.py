@@ -528,7 +528,7 @@ def RunInstanceTests():
           if len(inodes) > 1:
             RunTestIf("group-rwops", qa_group.TestAssignNodesIncludingSplit,
                       constants.INITIAL_NODE_GROUP_NAME,
-                      inodes[0]["primary"], inodes[1]["primary"])
+                      inodes[0].primary, inodes[1].primary)
           if qa_config.TestEnabled("instance-convert-disk"):
             RunTest(qa_instance.TestInstanceShutdown, instance)
             RunTest(qa_instance.TestInstanceConvertDiskToPlain,
@@ -542,7 +542,6 @@ def RunInstanceTests():
           RunTest(qa_instance.TestInstanceRemove, instance)
         finally:
           instance.Release()
-
         del instance
       finally:
         qa_config.ReleaseManyNodes(inodes)
@@ -692,7 +691,7 @@ def main():
 
   qa_config.Load(config_file)
 
-  primary = qa_config.GetMasterNode()["primary"]
+  primary = qa_config.GetMasterNode().primary
   qa_utils.StartMultiplexer(primary)
   print ("SSH command for primary node: %s" %
          utils.ShellQuoteArgs(qa_utils.GetSSHCommand(primary, "")))

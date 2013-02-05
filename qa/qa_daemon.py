@@ -45,7 +45,7 @@ def _InstanceRunning(name):
 
   cmd = (utils.ShellQuoteArgs(["gnt-instance", "list", "-o", "status", name]) +
          ' | grep running')
-  ret = StartSSH(master["primary"], cmd).wait()
+  ret = StartSSH(master.primary, cmd).wait()
   return ret == 0
 
 
@@ -87,7 +87,7 @@ def TestPauseWatcher():
   AssertCommand(["gnt-cluster", "watcher", "pause", "4h"])
 
   cmd = ["gnt-cluster", "watcher", "info"]
-  output = GetCommandOutput(master["primary"],
+  output = GetCommandOutput(master.primary,
                             utils.ShellQuoteArgs(cmd))
   AssertMatch(output, r"^.*\bis paused\b.*")
 
@@ -101,7 +101,7 @@ def TestResumeWatcher():
   AssertCommand(["gnt-cluster", "watcher", "continue"])
 
   cmd = ["gnt-cluster", "watcher", "info"]
-  output = GetCommandOutput(master["primary"],
+  output = GetCommandOutput(master.primary,
                             utils.ShellQuoteArgs(cmd))
   AssertMatch(output, r"^.*\bis not paused\b.*")
 
