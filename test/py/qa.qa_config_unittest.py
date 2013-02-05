@@ -285,7 +285,7 @@ class TestQaConfig(unittest.TestCase):
     self.assertTrue(inst.used)
     self.assertTrue(inst.disk_template is None)
 
-    qa_config.ReleaseInstance(inst)
+    inst.Release()
 
     self.assertFalse(inst.used)
     self.assertTrue(inst.disk_template is None)

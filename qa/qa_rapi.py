@@ -598,7 +598,7 @@ def TestRapiInstanceAdd(node, use_client):
 
     return instance
   except:
-    qa_config.ReleaseInstance(instance)
+    instance.Release()
     raise
 
 

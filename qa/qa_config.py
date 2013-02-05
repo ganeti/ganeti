@@ -88,6 +88,17 @@ class _QaInstance(object):
     except KeyError:
       return default
 
+  def Release(self):
+    """Releases instance and makes it available again.
+
+    """
+    assert self.used, \
+      ("Instance '%s' was never acquired or released more than once" %
+       self.name)
+
+    self.used = False
+    self.disk_template = None
+
   def GetNicMacAddr(self, idx, default):
     """Returns MAC address for NIC.
 
@@ -420,11 +431,6 @@ def AcquireInstance(_cfg=None):
   inst.used = True
 
   return inst
-
-
-def ReleaseInstance(inst):
-  inst.used = False
-  inst.disk_template = None
 
 
 def GetInstanceTemplate(inst):

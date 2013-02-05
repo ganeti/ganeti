@@ -80,7 +80,7 @@ def _DiskTest(node, disk_template):
 
     return instance
   except:
-    qa_config.ReleaseInstance(instance)
+    instance.Release()
     raise
 
 

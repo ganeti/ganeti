@@ -290,7 +290,7 @@ def RunCommonInstanceTests(instance):
         RunTestIf("rapi", qa_rapi.TestRapiInstanceRenameAndBack,
                   rename_source, rename_target)
     finally:
-      qa_config.ReleaseInstance(tgt_instance)
+      tgt_instance.Release()
 
   RunTestIf(["instance-grow-disk"], qa_instance.TestInstanceGrowDisk, instance)
 
@@ -375,7 +375,7 @@ def RunExportImportTests(instance, inodes):
           RunTest(qa_instance.TestInstanceStartup, newinst)
           RunTest(qa_instance.TestInstanceRemove, newinst)
         finally:
-          qa_config.ReleaseInstance(newinst)
+          newinst.Release()
     finally:
       qa_config.ReleaseNode(expnode)
 
@@ -389,7 +389,7 @@ def RunExportImportTests(instance, inodes):
       finally:
         qa_config.ReleaseNode(tnode)
     finally:
-      qa_config.ReleaseInstance(newinst)
+      newinst.Release()
 
 
 def RunDaemonTests(instance):
@@ -482,9 +482,9 @@ def RunExclusiveStorageTests():
           qa_instance.TestInstanceRemove(instance2)
           qa_instance.TestInstanceRemove(instance1)
         finally:
-          qa_config.ReleaseInstance(instance2)
+          instance2.Release()
       finally:
-        qa_config.ReleaseInstance(instance1)
+        instance1.Release()
 
     if qa_config.TestEnabled("instance-add-drbd-disk"):
       snode = qa_config.AcquireNode()
@@ -497,7 +497,7 @@ def RunExclusiveStorageTests():
           qa_cluster.AssertClusterVerify(fail=True, errors=exp_err)
           qa_instance.TestInstanceRemove(instance)
         finally:
-          qa_config.ReleaseInstance(instance)
+          instance.Release()
       finally:
         qa_config.ReleaseNode(snode)
     qa_cluster.TestSetExclStorCluster(old_es)
@@ -541,7 +541,7 @@ def RunInstanceTests():
           RunRepairDiskSizes()
           RunTest(qa_instance.TestInstanceRemove, instance)
         finally:
-          qa_config.ReleaseInstance(instance)
+          instance.Release()
 
         del instance
       finally:
@@ -601,7 +601,7 @@ def RunQa():
               RunCommonInstanceTests(rapi_instance)
             RunTest(qa_rapi.TestRapiInstanceRemove, rapi_instance, use_client)
           finally:
-            qa_config.ReleaseInstance(rapi_instance)
+            rapi_instance.Release()
           del rapi_instance
 
   finally:
@@ -635,7 +635,7 @@ def RunQa():
           finally:
             qa_config.ReleaseNode(expnode)
         finally:
-          qa_config.ReleaseInstance(instance)
+          instance.Release()
         del expnode
         del instance
       qa_cluster.AssertClusterVerify()

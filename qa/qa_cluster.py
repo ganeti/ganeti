@@ -553,7 +553,7 @@ def TestClusterBurnin():
 
   finally:
     for inst in instances:
-      qa_config.ReleaseInstance(inst)
+      inst.Release()
 
 
 def TestClusterMasterFailover():
