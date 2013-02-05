@@ -160,7 +160,7 @@ def _AssertRetCode(rcode, fail, cmdstr, nodename):
                          (cmdstr, nodename, rcode))
 
 
-def AssertCommand(cmd, fail=False, node=None):
+def AssertCommand(cmd, fail=False, node=None, log_cmd=True):
   """Checks that a remote command succeeds.
 
   @param cmd: either a string (the command to execute) or a list (to
@@ -170,6 +170,8 @@ def AssertCommand(cmd, fail=False, node=None):
   @param node: if passed, it should be the node on which the command
       should be executed, instead of the master node (can be either a
       dict or a string)
+  @param log_cmd: if False, the command won't be logged (simply passed to
+      StartSSH)
   @return: the return code of the command
   @raise qa_error.Error: if the command fails when it shouldn't or vice versa
 
@@ -184,7 +186,7 @@ def AssertCommand(cmd, fail=False, node=None):
   else:
     cmdstr = utils.ShellQuoteArgs(cmd)
 
-  rcode = StartSSH(nodename, cmdstr).wait()
+  rcode = StartSSH(nodename, cmdstr, log_cmd=log_cmd).wait()
   _AssertRetCode(rcode, fail, cmdstr, nodename)
 
   return rcode
@@ -234,24 +236,25 @@ def GetSSHCommand(node, cmd, strict=True, opts=None, tty=None):
   return args
 
 
-def StartLocalCommand(cmd, _nolog_opts=False, **kwargs):
+def StartLocalCommand(cmd, _nolog_opts=False, log_cmd=True, **kwargs):
   """Starts a local command.
 
   """
-  if _nolog_opts:
-    pcmd = [i for i in cmd if not i.startswith("-")]
-  else:
-    pcmd = cmd
-  print "Command: %s" % utils.ShellQuoteArgs(pcmd)
+  if log_cmd:
+    if _nolog_opts:
+      pcmd = [i for i in cmd if not i.startswith("-")]
+    else:
+      pcmd = cmd
+    print "Command: %s" % utils.ShellQuoteArgs(pcmd)
   return subprocess.Popen(cmd, shell=False, **kwargs)
 
 
-def StartSSH(node, cmd, strict=True):
+def StartSSH(node, cmd, strict=True, log_cmd=True):
   """Starts SSH.
 
   """
   return StartLocalCommand(GetSSHCommand(node, cmd, strict=strict),
-                           _nolog_opts=True)
+                           _nolog_opts=True, log_cmd=log_cmd)
 
 
 def StartMultiplexer(node):
