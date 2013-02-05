@@ -45,7 +45,7 @@ class _QaInstance(object):
     "name",
     "nicmac",
     "used",
-    "disk_template",
+    "_disk_template",
     ]
 
   def __init__(self, name, nicmac):
@@ -55,7 +55,7 @@ class _QaInstance(object):
     self.name = name
     self.nicmac = nicmac
     self.used = None
-    self.disk_template = None
+    self._disk_template = None
 
   @classmethod
   def FromDict(cls, data):
@@ -79,7 +79,7 @@ class _QaInstance(object):
        self.name)
 
     self.used = False
-    self.disk_template = None
+    self._disk_template = None
 
   def GetNicMacAddr(self, idx, default):
     """Returns MAC address for NIC.
@@ -93,6 +93,21 @@ class _QaInstance(object):
       return self.nicmac[idx]
     else:
       return default
+
+  def SetDiskTemplate(self, template):
+    """Set the disk template.
+
+    """
+    assert template in constants.DISK_TEMPLATES
+
+    self._disk_template = template
+
+  @property
+  def disk_template(self):
+    """Returns the current disk template.
+
+    """
+    return self._disk_template
 
 
 class _QaNode(object):
@@ -478,22 +493,6 @@ def AcquireInstance(_cfg=None):
   inst.used = True
 
   return inst
-
-
-def GetInstanceTemplate(inst):
-  """Return the disk template of an instance.
-
-  """
-  templ = inst.disk_template
-  assert templ is not None
-  return templ
-
-
-def SetInstanceTemplate(inst, template):
-  """Set the disk template for an instance.
-
-  """
-  inst.disk_template = template
 
 
 def SetExclusiveStorage(value):

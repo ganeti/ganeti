@@ -77,7 +77,7 @@ def _DiskTest(node, disk_template):
     AssertCommand(cmd)
 
     _CheckSsconfInstanceList(instance.name)
-    qa_config.SetInstanceTemplate(instance, disk_template)
+    instance.SetDiskTemplate(disk_template)
 
     return instance
   except:
@@ -177,18 +177,15 @@ def _GetBoolInstanceField(instance, field):
 
 
 def IsFailoverSupported(instance):
-  templ = qa_config.GetInstanceTemplate(instance)
-  return templ in constants.DTS_MIRRORED
+  return instance.disk_template in constants.DTS_MIRRORED
 
 
 def IsMigrationSupported(instance):
-  templ = qa_config.GetInstanceTemplate(instance)
-  return templ in constants.DTS_MIRRORED
+  return instance.disk_template in constants.DTS_MIRRORED
 
 
 def IsDiskReplacingSupported(instance):
-  templ = qa_config.GetInstanceTemplate(instance)
-  return templ == constants.DT_DRBD8
+  return instance.disk_template == constants.DT_DRBD8
 
 
 @InstanceCheck(None, INST_UP, RETURN_VALUE)
@@ -500,7 +497,7 @@ def TestInstanceConvertDiskToPlain(instance, inodes):
   """gnt-instance modify -t"""
   name = instance.name
 
-  template = qa_config.GetInstanceTemplate(instance)
+  template = instance.disk_template
   if template != constants.DT_DRBD8:
     print qa_utils.FormatInfo("Unsupported template %s, skipping conversion"
                               " test" % template)
@@ -697,7 +694,7 @@ def TestInstanceImport(newinst, node, expnode, name):
          _GetGenericAddParameters(newinst, force_mac=constants.VALUE_GENERATE))
   cmd.append(newinst.name)
   AssertCommand(cmd)
-  qa_config.SetInstanceTemplate(newinst, templ)
+  newinst.SetDiskTemplate(templ)
 
 
 def TestBackupList(expnode):
