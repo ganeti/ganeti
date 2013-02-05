@@ -377,19 +377,19 @@ def TestInstance(instance):
       _VerifyInstance(instance_data)
 
   _DoTests([
-    ("/2/instances/%s" % instance["name"], _VerifyInstance, "GET", None),
+    ("/2/instances/%s" % instance.name, _VerifyInstance, "GET", None),
     ("/2/instances", _VerifyInstancesList, "GET", None),
     ("/2/instances?bulk=1", _VerifyInstancesBulk, "GET", None),
-    ("/2/instances/%s/activate-disks" % instance["name"],
+    ("/2/instances/%s/activate-disks" % instance.name,
      _VerifyReturnsJob, "PUT", None),
-    ("/2/instances/%s/deactivate-disks" % instance["name"],
+    ("/2/instances/%s/deactivate-disks" % instance.name,
      _VerifyReturnsJob, "PUT", None),
     ])
 
   # Test OpBackupPrepare
   (job_id, ) = _DoTests([
     ("/2/instances/%s/prepare-export?mode=%s" %
-     (instance["name"], constants.EXPORT_MODE_REMOTE),
+     (instance.name, constants.EXPORT_MODE_REMOTE),
      _VerifyReturnsJob, "PUT", None),
     ])
 
@@ -571,7 +571,7 @@ def TestRapiInstanceAdd(node, use_client):
 
     if use_client:
       job_id = _rapi_client.CreateInstance(constants.INSTANCE_CREATE,
-                                           instance["name"],
+                                           instance.name,
                                            constants.DT_PLAIN,
                                            disks, nics,
                                            os=qa_config.get("os"),
@@ -581,7 +581,7 @@ def TestRapiInstanceAdd(node, use_client):
       body = {
         "__version__": 1,
         "mode": constants.INSTANCE_CREATE,
-        "name": instance["name"],
+        "name": instance.name,
         "os_type": qa_config.get("os"),
         "disk_template": constants.DT_PLAIN,
         "pnode": node.primary,
@@ -606,10 +606,10 @@ def TestRapiInstanceAdd(node, use_client):
 def TestRapiInstanceRemove(instance, use_client):
   """Test removing instance via RAPI"""
   if use_client:
-    job_id = _rapi_client.DeleteInstance(instance["name"])
+    job_id = _rapi_client.DeleteInstance(instance.name)
   else:
     (job_id, ) = _DoTests([
-      ("/2/instances/%s" % instance["name"], _VerifyReturnsJob, "DELETE", None),
+      ("/2/instances/%s" % instance.name, _VerifyReturnsJob, "DELETE", None),
       ])
 
   _WaitForRapiJob(job_id)
@@ -623,10 +623,10 @@ def TestRapiInstanceMigrate(instance):
                               " test")
     return
   # Move to secondary node
-  _WaitForRapiJob(_rapi_client.MigrateInstance(instance["name"]))
+  _WaitForRapiJob(_rapi_client.MigrateInstance(instance.name))
   qa_utils.RunInstanceCheck(instance, True)
   # And back to previous primary
-  _WaitForRapiJob(_rapi_client.MigrateInstance(instance["name"]))
+  _WaitForRapiJob(_rapi_client.MigrateInstance(instance.name))
 
 
 @InstanceCheck(INST_UP, INST_UP, FIRST_ARG)
@@ -637,22 +637,22 @@ def TestRapiInstanceFailover(instance):
                               " test")
     return
   # Move to secondary node
-  _WaitForRapiJob(_rapi_client.FailoverInstance(instance["name"]))
+  _WaitForRapiJob(_rapi_client.FailoverInstance(instance.name))
   qa_utils.RunInstanceCheck(instance, True)
   # And back to previous primary
-  _WaitForRapiJob(_rapi_client.FailoverInstance(instance["name"]))
+  _WaitForRapiJob(_rapi_client.FailoverInstance(instance.name))
 
 
 @InstanceCheck(INST_UP, INST_DOWN, FIRST_ARG)
 def TestRapiInstanceShutdown(instance):
   """Test stopping an instance via RAPI"""
-  _WaitForRapiJob(_rapi_client.ShutdownInstance(instance["name"]))
+  _WaitForRapiJob(_rapi_client.ShutdownInstance(instance.name))
 
 
 @InstanceCheck(INST_DOWN, INST_UP, FIRST_ARG)
 def TestRapiInstanceStartup(instance):
   """Test starting an instance via RAPI"""
-  _WaitForRapiJob(_rapi_client.StartupInstance(instance["name"]))
+  _WaitForRapiJob(_rapi_client.StartupInstance(instance.name))
 
 
 @InstanceCheck(INST_DOWN, INST_DOWN, FIRST_ARG)
@@ -673,12 +673,12 @@ def TestRapiInstanceRenameAndBack(rename_source, rename_target):
 @InstanceCheck(INST_DOWN, INST_DOWN, FIRST_ARG)
 def TestRapiInstanceReinstall(instance):
   """Test reinstalling an instance via RAPI"""
-  _WaitForRapiJob(_rapi_client.ReinstallInstance(instance["name"]))
+  _WaitForRapiJob(_rapi_client.ReinstallInstance(instance.name))
   # By default, the instance is started again
   qa_utils.RunInstanceCheck(instance, True)
 
   # Reinstall again without starting
-  _WaitForRapiJob(_rapi_client.ReinstallInstance(instance["name"],
+  _WaitForRapiJob(_rapi_client.ReinstallInstance(instance.name,
                                                  no_startup=True))
 
 
@@ -690,9 +690,9 @@ def TestRapiInstanceReplaceDisks(instance):
                               " skipping test")
     return
   fn = _rapi_client.ReplaceInstanceDisks
-  _WaitForRapiJob(fn(instance["name"],
+  _WaitForRapiJob(fn(instance.name,
                      mode=constants.REPLACE_DISK_AUTO, disks=[]))
-  _WaitForRapiJob(fn(instance["name"],
+  _WaitForRapiJob(fn(instance.name,
                      mode=constants.REPLACE_DISK_SEC, disks="0"))
 
 
@@ -702,7 +702,7 @@ def TestRapiInstanceModify(instance):
   default_hv = qa_config.GetDefaultHypervisor()
 
   def _ModifyInstance(**kwargs):
-    _WaitForRapiJob(_rapi_client.ModifyInstance(instance["name"], **kwargs))
+    _WaitForRapiJob(_rapi_client.ModifyInstance(instance.name, **kwargs))
 
   _ModifyInstance(beparams={
     constants.BE_VCPUS: 3,
@@ -731,17 +731,17 @@ def TestRapiInstanceModify(instance):
 @InstanceCheck(INST_UP, INST_UP, FIRST_ARG)
 def TestRapiInstanceConsole(instance):
   """Test getting instance console information via RAPI"""
-  result = _rapi_client.GetInstanceConsole(instance["name"])
+  result = _rapi_client.GetInstanceConsole(instance.name)
   console = objects.InstanceConsole.FromDict(result)
   AssertEqual(console.Validate(), True)
-  AssertEqual(console.instance, qa_utils.ResolveInstanceName(instance["name"]))
+  AssertEqual(console.instance, qa_utils.ResolveInstanceName(instance.name))
 
 
 @InstanceCheck(INST_DOWN, INST_DOWN, FIRST_ARG)
 def TestRapiStoppedInstanceConsole(instance):
   """Test getting stopped instance's console information via RAPI"""
   try:
-    _rapi_client.GetInstanceConsole(instance["name"])
+    _rapi_client.GetInstanceConsole(instance.name)
   except rapi.client.GanetiApiError, err:
     AssertEqual(err.code, 503)
   else:
@@ -782,9 +782,9 @@ def TestInterClusterInstanceMove(src_instance, dest_instance,
   pnode = inodes[0]
   # note: pnode:snode are the *current* nodes, so we move it first to
   # tnode:pnode, then back to pnode:snode
-  for si, di, pn, sn in [(src_instance["name"], dest_instance["name"],
+  for si, di, pn, sn in [(src_instance.name, dest_instance.name,
                           tnode.primary, pnode.primary),
-                         (dest_instance["name"], src_instance["name"],
+                         (dest_instance.name, src_instance.name,
                           pnode.primary, snode.primary)]:
     cmd = [
       "../tools/move-instance",

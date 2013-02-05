@@ -71,11 +71,11 @@ def _DiskTest(node, disk_template):
             "--disk-template=%s" % disk_template,
             "--node=%s" % node] +
            _GetGenericAddParameters(instance))
-    cmd.append(instance["name"])
+    cmd.append(instance.name)
 
     AssertCommand(cmd)
 
-    _CheckSsconfInstanceList(instance["name"])
+    _CheckSsconfInstanceList(instance.name)
     qa_config.SetInstanceTemplate(instance, disk_template)
 
     return instance
@@ -147,7 +147,7 @@ def _DestroyInstanceVolumes(instance):
   @param instance: the instance
 
   """
-  info = _GetInstanceInfo(instance["name"])
+  info = _GetInstanceInfo(instance.name)
   vols = info["volumes"]
   for node in info["nodes"]:
     AssertCommand(["lvremove", "-f"] + vols, node=node)
@@ -208,19 +208,19 @@ def TestInstanceAddWithDrbdDisk(nodes):
 @InstanceCheck(None, INST_DOWN, FIRST_ARG)
 def TestInstanceRemove(instance):
   """gnt-instance remove"""
-  AssertCommand(["gnt-instance", "remove", "-f", instance["name"]])
+  AssertCommand(["gnt-instance", "remove", "-f", instance.name])
 
 
 @InstanceCheck(INST_DOWN, INST_UP, FIRST_ARG)
 def TestInstanceStartup(instance):
   """gnt-instance startup"""
-  AssertCommand(["gnt-instance", "startup", instance["name"]])
+  AssertCommand(["gnt-instance", "startup", instance.name])
 
 
 @InstanceCheck(INST_UP, INST_DOWN, FIRST_ARG)
 def TestInstanceShutdown(instance):
   """gnt-instance shutdown"""
-  AssertCommand(["gnt-instance", "shutdown", instance["name"]])
+  AssertCommand(["gnt-instance", "shutdown", instance.name])
 
 
 @InstanceCheck(INST_UP, INST_UP, FIRST_ARG)
@@ -228,7 +228,7 @@ def TestInstanceReboot(instance):
   """gnt-instance reboot"""
   options = qa_config.get("options", {})
   reboot_types = options.get("reboot-types", constants.REBOOT_TYPES)
-  name = instance["name"]
+  name = instance.name
   for rtype in reboot_types:
     AssertCommand(["gnt-instance", "reboot", "--type=%s" % rtype, name])
 
@@ -246,12 +246,12 @@ def TestInstanceReboot(instance):
 @InstanceCheck(INST_DOWN, INST_DOWN, FIRST_ARG)
 def TestInstanceReinstall(instance):
   """gnt-instance reinstall"""
-  AssertCommand(["gnt-instance", "reinstall", "-f", instance["name"]])
+  AssertCommand(["gnt-instance", "reinstall", "-f", instance.name])
 
   # Test with non-existant OS definition
   AssertCommand(["gnt-instance", "reinstall", "-f",
                  "--os-type=NonExistantOsForQa",
-                 instance["name"]],
+                 instance.name],
                 fail=True)
 
 
@@ -336,7 +336,7 @@ def TestInstanceFailover(instance):
                               " test")
     return
 
-  cmd = ["gnt-instance", "failover", "--force", instance["name"]]
+  cmd = ["gnt-instance", "failover", "--force", instance.name]
 
   # failover ...
   AssertCommand(cmd)
@@ -354,10 +354,10 @@ def TestInstanceMigrate(instance, toggle_always_failover=True):
                               " test")
     return
 
-  cmd = ["gnt-instance", "migrate", "--force", instance["name"]]
+  cmd = ["gnt-instance", "migrate", "--force", instance.name]
   af_par = constants.BE_ALWAYS_FAILOVER
   af_field = "be/" + constants.BE_ALWAYS_FAILOVER
-  af_init_val = _GetBoolInstanceField(instance["name"], af_field)
+  af_init_val = _GetBoolInstanceField(instance.name, af_field)
 
   # migrate ...
   AssertCommand(cmd)
@@ -368,21 +368,21 @@ def TestInstanceMigrate(instance, toggle_always_failover=True):
   if toggle_always_failover:
     AssertCommand(["gnt-instance", "modify", "-B",
                    ("%s=%s" % (af_par, not af_init_val)),
-                   instance["name"]])
+                   instance.name])
   AssertCommand(cmd)
   # TODO: Verify the choice between failover and migration
   qa_utils.RunInstanceCheck(instance, True)
   if toggle_always_failover:
     AssertCommand(["gnt-instance", "modify", "-B",
-                   ("%s=%s" % (af_par, af_init_val)), instance["name"]])
+                   ("%s=%s" % (af_par, af_init_val)), instance.name])
 
   # TODO: Split into multiple tests
-  AssertCommand(["gnt-instance", "shutdown", instance["name"]])
+  AssertCommand(["gnt-instance", "shutdown", instance.name])
   qa_utils.RunInstanceCheck(instance, False)
   AssertCommand(cmd, fail=True)
   AssertCommand(["gnt-instance", "migrate", "--force", "--allow-failover",
-                 instance["name"]])
-  AssertCommand(["gnt-instance", "start", instance["name"]])
+                 instance.name])
+  AssertCommand(["gnt-instance", "start", instance.name])
   AssertCommand(cmd)
   # @InstanceCheck enforces the check that the instance is running
   qa_utils.RunInstanceCheck(instance, True)
@@ -390,7 +390,7 @@ def TestInstanceMigrate(instance, toggle_always_failover=True):
   AssertCommand(["gnt-instance", "modify", "-B",
                  ("%s=%s" %
                   (constants.BE_ALWAYS_FAILOVER, constants.VALUE_TRUE)),
-                 instance["name"]])
+                 instance.name])
 
   AssertCommand(cmd)
   qa_utils.RunInstanceCheck(instance, True)
@@ -400,7 +400,7 @@ def TestInstanceMigrate(instance, toggle_always_failover=True):
   AssertCommand(["gnt-instance", "modify", "-B",
                  ("%s=%s" %
                   (constants.BE_ALWAYS_FAILOVER, constants.VALUE_FALSE)),
-                 instance["name"]])
+                 instance.name])
 
   AssertCommand(cmd)
   qa_utils.RunInstanceCheck(instance, True)
@@ -408,7 +408,7 @@ def TestInstanceMigrate(instance, toggle_always_failover=True):
 
 def TestInstanceInfo(instance):
   """gnt-instance info"""
-  AssertCommand(["gnt-instance", "info", instance["name"]])
+  AssertCommand(["gnt-instance", "info", instance.name])
 
 
 @InstanceCheck(INST_UP, INST_UP, FIRST_ARG)
@@ -456,23 +456,23 @@ def TestInstanceModify(instance):
       ])
 
   for alist in args:
-    AssertCommand(["gnt-instance", "modify"] + alist + [instance["name"]])
+    AssertCommand(["gnt-instance", "modify"] + alist + [instance.name])
 
   # check no-modify
-  AssertCommand(["gnt-instance", "modify", instance["name"]], fail=True)
+  AssertCommand(["gnt-instance", "modify", instance.name], fail=True)
 
   # Marking offline while instance is running must fail...
-  AssertCommand(["gnt-instance", "modify", "--offline", instance["name"]],
+  AssertCommand(["gnt-instance", "modify", "--offline", instance.name],
                  fail=True)
 
   # ...while making it online is ok, and should work
-  AssertCommand(["gnt-instance", "modify", "--online", instance["name"]])
+  AssertCommand(["gnt-instance", "modify", "--online", instance.name])
 
 
 @InstanceCheck(INST_DOWN, INST_DOWN, FIRST_ARG)
 def TestInstanceStoppedModify(instance):
   """gnt-instance modify (stopped instance)"""
-  name = instance["name"]
+  name = instance.name
 
   # Instance was not marked offline; try marking it online once more
   AssertCommand(["gnt-instance", "modify", "--online", name])
@@ -497,7 +497,7 @@ def TestInstanceStoppedModify(instance):
 @InstanceCheck(INST_DOWN, INST_DOWN, FIRST_ARG)
 def TestInstanceConvertDiskToPlain(instance, inodes):
   """gnt-instance modify -t"""
-  name = instance["name"]
+  name = instance.name
   template = qa_config.GetInstanceTemplate(instance)
   if template != "drbd":
     print qa_utils.FormatInfo("Unsupported template %s, skipping conversion"
@@ -515,7 +515,7 @@ def TestInstanceGrowDisk(instance):
   if qa_config.GetExclusiveStorage():
     print qa_utils.FormatInfo("Test not supported with exclusive_storage")
     return
-  name = instance["name"]
+  name = instance.name
   all_size = qa_config.get("disk")
   all_grow = qa_config.get("disk-growth")
   if not all_grow:
@@ -548,7 +548,7 @@ def TestInstanceListFields():
 @InstanceCheck(INST_UP, INST_UP, FIRST_ARG)
 def TestInstanceConsole(instance):
   """gnt-instance console"""
-  AssertCommand(["gnt-instance", "console", "--show-cmd", instance["name"]])
+  AssertCommand(["gnt-instance", "console", "--show-cmd", instance.name])
 
 
 @InstanceCheck(INST_UP, INST_UP, FIRST_ARG)
@@ -557,7 +557,7 @@ def TestReplaceDisks(instance, curr_nodes, other_nodes):
   def buildcmd(args):
     cmd = ["gnt-instance", "replace-disks"]
     cmd.extend(args)
-    cmd.append(instance["name"])
+    cmd.append(instance.name)
     return cmd
 
   if not IsDiskReplacingSupported(instance):
@@ -589,13 +589,13 @@ def TestReplaceDisks(instance, curr_nodes, other_nodes):
     AssertCommand(buildcmd(data))
 
   AssertCommand(buildcmd(["-a"]))
-  AssertCommand(["gnt-instance", "stop", instance["name"]])
+  AssertCommand(["gnt-instance", "stop", instance.name])
   AssertCommand(buildcmd(["-a"]), fail=True)
-  AssertCommand(["gnt-instance", "activate-disks", instance["name"]])
+  AssertCommand(["gnt-instance", "activate-disks", instance.name])
   AssertCommand(["gnt-instance", "activate-disks", "--wait-for-sync",
-                 instance["name"]])
+                 instance.name])
   AssertCommand(buildcmd(["-a"]))
-  AssertCommand(["gnt-instance", "start", instance["name"]])
+  AssertCommand(["gnt-instance", "start", instance.name])
 
 
 def _AssertRecreateDisks(cmdargs, instance, fail=False, check=True,
@@ -612,13 +612,13 @@ def _AssertRecreateDisks(cmdargs, instance, fail=False, check=True,
   if destroy:
     _DestroyInstanceVolumes(instance)
   AssertCommand((["gnt-instance", "recreate-disks"] + cmdargs +
-                 [instance["name"]]), fail)
+                 [instance.name]), fail)
   if not fail and check:
     # Quick check that the disks are there
-    AssertCommand(["gnt-instance", "activate-disks", instance["name"]])
+    AssertCommand(["gnt-instance", "activate-disks", instance.name])
     AssertCommand(["gnt-instance", "activate-disks", "--wait-for-sync",
-                   instance["name"]])
-    AssertCommand(["gnt-instance", "deactivate-disks", instance["name"]])
+                   instance.name])
+    AssertCommand(["gnt-instance", "deactivate-disks", instance.name])
 
 
 @InstanceCheck(INST_UP, INST_UP, FIRST_ARG)
@@ -640,7 +640,7 @@ def TestRecreateDisks(instance, inodes, othernodes):
     _AssertRecreateDisks(["-I", "hail"], instance, fail=True, destroy=False)
   else:
     _AssertRecreateDisks(["-n", other_seq], instance, fail=True, destroy=False)
-  AssertCommand(["gnt-instance", "stop", instance["name"]])
+  AssertCommand(["gnt-instance", "stop", instance.name])
   # Disks exist: this should fail
   _AssertRecreateDisks([], instance, fail=True, destroy=False)
   # Recreate disks in place
@@ -656,14 +656,14 @@ def TestRecreateDisks(instance, inodes, othernodes):
   # Move disks back
   _AssertRecreateDisks(["-n", orig_seq], instance, check=False)
   # This and InstanceCheck decoration check that the disks are working
-  AssertCommand(["gnt-instance", "reinstall", "-f", instance["name"]])
-  AssertCommand(["gnt-instance", "start", instance["name"]])
+  AssertCommand(["gnt-instance", "reinstall", "-f", instance.name])
+  AssertCommand(["gnt-instance", "start", instance.name])
 
 
 @InstanceCheck(INST_UP, INST_UP, FIRST_ARG)
 def TestInstanceExport(instance, node):
   """gnt-backup export -n ..."""
-  name = instance["name"]
+  name = instance.name
   AssertCommand(["gnt-backup", "export", "-n", node.primary, name])
   return qa_utils.ResolveInstanceName(name)
 
@@ -672,13 +672,13 @@ def TestInstanceExport(instance, node):
 def TestInstanceExportWithRemove(instance, node):
   """gnt-backup export --remove-instance"""
   AssertCommand(["gnt-backup", "export", "-n", node.primary,
-                 "--remove-instance", instance["name"]])
+                 "--remove-instance", instance.name])
 
 
 @InstanceCheck(INST_UP, INST_UP, FIRST_ARG)
 def TestInstanceExportNoTarget(instance):
   """gnt-backup export (without target node, should fail)"""
-  AssertCommand(["gnt-backup", "export", instance["name"]], fail=True)
+  AssertCommand(["gnt-backup", "export", instance.name], fail=True)
 
 
 @InstanceCheck(None, INST_DOWN, FIRST_ARG)
@@ -692,7 +692,7 @@ def TestInstanceImport(newinst, node, expnode, name):
           "--src-dir=%s/%s" % (pathutils.EXPORT_DIR, name),
           "--node=%s" % node.primary] +
          _GetGenericAddParameters(newinst, force_mac=constants.VALUE_GENERATE))
-  cmd.append(newinst["name"])
+  cmd.append(newinst.name)
   AssertCommand(cmd)
   qa_config.SetInstanceTemplate(newinst, templ)
 
@@ -719,7 +719,7 @@ def TestRemoveInstanceOfflineNode(instance, snode, set_offline, set_online):
   @param set_online: function to call to set the node on-line
 
   """
-  info = _GetInstanceInfo(instance["name"])
+  info = _GetInstanceInfo(instance.name)
   set_offline(snode)
   try:
     TestInstanceRemove(instance)

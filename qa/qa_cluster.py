@@ -546,7 +546,7 @@ def TestClusterBurnin():
         cmd.append("--no-reboot")
       else:
         cmd.append("--reboot-types=%s" % ",".join(reboot_types))
-      cmd += [inst["name"] for inst in instances]
+      cmd += [inst.name for inst in instances]
       AssertCommand(cmd)
     finally:
       AssertCommand(["rm", "-f", script])

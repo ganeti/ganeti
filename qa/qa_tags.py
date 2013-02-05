@@ -82,4 +82,4 @@ def TestGroupTags(group):
 
 def TestInstanceTags(instance):
   """gnt-instance tags"""
-  _TestTags(constants.TAG_INSTANCE, instance["name"])
+  _TestTags(constants.TAG_INSTANCE, instance.name)

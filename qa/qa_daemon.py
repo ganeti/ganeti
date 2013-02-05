@@ -110,7 +110,7 @@ def TestInstanceAutomaticRestart(instance):
   """Test automatic restart of instance by ganeti-watcher.
 
   """
-  inst_name = qa_utils.ResolveInstanceName(instance["name"])
+  inst_name = qa_utils.ResolveInstanceName(instance.name)
 
   _ResetWatcherDaemon()
   _ShutdownInstance(inst_name)
@@ -128,7 +128,7 @@ def TestInstanceConsecutiveFailures(instance):
   """Test five consecutive instance failures.
 
   """
-  inst_name = qa_utils.ResolveInstanceName(instance["name"])
+  inst_name = qa_utils.ResolveInstanceName(instance.name)
 
   _ResetWatcherDaemon()
 

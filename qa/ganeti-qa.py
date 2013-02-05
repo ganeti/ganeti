@@ -276,8 +276,8 @@ def RunCommonInstanceTests(instance):
   if qa_config.TestEnabled("instance-rename"):
     tgt_instance = qa_config.AcquireInstance()
     try:
-      rename_source = instance["name"]
-      rename_target = tgt_instance["name"]
+      rename_source = instance.name
+      rename_target = tgt_instance.name
       # perform instance rename to the same name
       RunTest(qa_instance.TestInstanceRenameAndBack,
               rename_source, rename_source)
