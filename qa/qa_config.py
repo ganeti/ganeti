@@ -448,13 +448,6 @@ def GetDefaultHypervisor(*args):
   return GetConfig().GetDefaultHypervisor(*args)
 
 
-def GetInstanceNicMac(inst, default=None):
-  """Returns MAC address for instance's network interface.
-
-  """
-  return inst.GetNicMacAddr(0, default)
-
-
 def GetMasterNode():
   """Wrapper for L{_QaConfig.GetMasterNode}.
 

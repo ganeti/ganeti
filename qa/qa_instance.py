@@ -56,7 +56,8 @@ def _GetGenericAddParameters(inst, force_mac=None):
   if force_mac:
     nic0_mac = force_mac
   else:
-    nic0_mac = qa_config.GetInstanceNicMac(inst)
+    nic0_mac = inst.GetNicMacAddr(0, None)
+
   if nic0_mac:
     params.extend(["--net", "0:mac=%s" % nic0_mac])
 
