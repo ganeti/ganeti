@@ -36,10 +36,6 @@ import qa_error
 _INSTANCE_CHECK_KEY = "instance-check"
 _ENABLED_HV_KEY = "enabled-hypervisors"
 
-#: Cluster-wide run-time value of the exclusive storage flag
-_exclusive_storage = None
-
-
 #: QA configuration (L{_QaConfig})
 _config = None
 
@@ -50,6 +46,9 @@ class _QaConfig(object):
 
     """
     self._data = data
+
+    #: Cluster-wide run-time value of the exclusive storage flag
+    self._exclusive_storage = None
 
   @classmethod
   def Load(cls, filename):
@@ -158,6 +157,29 @@ class _QaConfig(object):
 
     """
     return self.GetEnabledHypervisors()[0]
+
+  def SetExclusiveStorage(self, value):
+    """Set the expected value of the C{exclusive_storage} flag for the cluster.
+
+    """
+    self._exclusive_storage = bool(value)
+
+  def GetExclusiveStorage(self):
+    """Get the expected value of the C{exclusive_storage} flag for the cluster.
+
+    """
+    value = self._exclusive_storage
+    assert value is not None
+    return value
+
+  def IsTemplateSupported(self, templ):
+    """Is the given disk template supported by the current configuration?
+
+    """
+    if self.GetExclusiveStorage():
+      return templ in constants.DTS_EXCL_STORAGE
+    else:
+      return True
 
 
 def Load(path):
@@ -337,31 +359,24 @@ def SetInstanceTemplate(inst, template):
 
 
 def SetExclusiveStorage(value):
-  """Set the expected value of the exclusive_storage flag for the cluster.
+  """Wrapper for L{_QaConfig.SetExclusiveStorage}.
 
   """
-  global _exclusive_storage # pylint: disable=W0603
-
-  _exclusive_storage = bool(value)
+  return GetConfig().SetExclusiveStorage(value)
 
 
 def GetExclusiveStorage():
-  """Get the expected value of the exclusive_storage flag for the cluster.
+  """Wrapper for L{_QaConfig.GetExclusiveStorage}.
 
   """
-  val = _exclusive_storage
-  assert val is not None
-  return val
+  return GetConfig().GetExclusiveStorage()
 
 
 def IsTemplateSupported(templ):
-  """Is the given disk template supported by the current configuration?
+  """Wrapper for L{_QaConfig.GetExclusiveStorage}.
 
   """
-  if GetExclusiveStorage():
-    return templ in constants.DTS_EXCL_STORAGE
-  else:
-    return True
+  return GetConfig().IsTemplateSupported(templ)
 
 
 def AcquireNode(exclude=None):

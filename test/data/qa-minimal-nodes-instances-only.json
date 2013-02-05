@@ -1,0 +1,46 @@
+{
+  "name": "xen-test-qa-minimal-nodes-instances-only",
+
+  "disk": ["1G", "512M"],
+  "disk-growth": ["2G", "768M"],
+
+  "nodes": [
+    {
+      "# Master node": null,
+      "primary": "xen-test-0",
+      "secondary": "192.0.2.1"
+    },
+
+    {
+      "primary": "xen-test-1",
+      "secondary": "192.0.2.2"
+    },
+
+    {
+      "primary": "xen-test-2",
+      "secondary": "192.0.2.3"
+    },
+
+    {
+      "primary": "xen-test-3",
+      "secondary": "192.0.2.4"
+    }
+  ],
+
+  "instances": [
+    {
+      "name": "xen-test-inst1",
+      "nic.mac/0": "AA:00:00:11:11:11"
+    },
+    {
+      "name": "xen-test-inst2",
+      "nic.mac/0": "AA:00:00:22:22:22"
+    }
+  ],
+
+  "tests": {
+    "default": false
+  },
+
+  "# vim: set syntax=javascript :": null
+}

@@ -252,5 +252,26 @@ class TestQaConfigWithSampleConfig(unittest.TestCase):
     self.assertEqual(self.config.GetMasterNode(), self.config["nodes"][0])
 
 
+class TestQaConfig(unittest.TestCase):
+  def setUp(self):
+    filename = \
+      testutils.TestDataFilename("qa-minimal-nodes-instances-only.json")
+
+    self.config = qa_config._QaConfig.Load(filename)
+
+  def testExclusiveStorage(self):
+    self.assertRaises(AssertionError, self.config.GetExclusiveStorage)
+
+    for value in [False, True, 0, 1, 30804, ""]:
+      self.config.SetExclusiveStorage(value)
+      self.assertEqual(self.config.GetExclusiveStorage(), bool(value))
+
+      for template in constants.DISK_TEMPLATES:
+        if value and template not in constants.DTS_EXCL_STORAGE:
+          self.assertFalse(self.config.IsTemplateSupported(template))
+        else:
+          self.assertTrue(self.config.IsTemplateSupported(template))
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
