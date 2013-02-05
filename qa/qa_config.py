@@ -70,24 +70,6 @@ class _QaInstance(object):
 
     return cls(name=data["name"], nicmac=nicmac)
 
-  def __getitem__(self, key):
-    """Legacy dict-like interface.
-
-    """
-    if key == "name":
-      return self.name
-    else:
-      raise KeyError(key)
-
-  def get(self, key, default):
-    """Legacy dict-like interface.
-
-    """
-    try:
-      return self[key]
-    except KeyError:
-      return default
-
   def Release(self):
     """Releases instance and makes it available again.
 
@@ -136,26 +118,6 @@ class _QaNode(object):
 
     """
     return cls(primary=data["primary"], secondary=data.get("secondary"))
-
-  def __getitem__(self, key):
-    """Legacy dict-like interface.
-
-    """
-    if key == "primary":
-      return self.primary
-    elif key == "secondary":
-      return self.secondary
-    else:
-      raise KeyError(key)
-
-  def get(self, key, default):
-    """Legacy dict-like interface.
-
-    """
-    try:
-      return self[key]
-    except KeyError:
-      return default
 
   def Use(self):
     """Marks a node as being in use.
