@@ -55,6 +55,9 @@ _MULTIPLEXERS = {}
 #: Unique ID per QA run
 _RUN_UUID = utils.NewUUID()
 
+#: Path to the QA query output log file
+_QA_OUTPUT = pathutils.GetLogFilename("qa-output")
+
 
 (INST_DOWN,
  INST_UP) = range(500, 502)
@@ -190,6 +193,27 @@ def AssertCommand(cmd, fail=False, node=None, log_cmd=True):
   _AssertRetCode(rcode, fail, cmdstr, nodename)
 
   return rcode
+
+
+def AssertRedirectedCommand(cmd, fail=False, node=None, log_cmd=True):
+  """Executes a command with redirected output.
+
+  The log will go to the qa-output log file in the ganeti log
+  directory on the node where the command is executed. The fail and
+  node parameters are passed unchanged to AssertCommand.
+
+  @param cmd: the command to be executed, as a list; a string is not
+      supported
+
+  """
+  if not isinstance(cmd, list):
+    raise qa_error.Error("Non-list passed to AssertRedirectedCommand")
+  ofile = utils.ShellQuote(_QA_OUTPUT)
+  cmdstr = utils.ShellQuoteArgs(cmd)
+  AssertCommand("echo ---- $(date) %s ---- >> %s" % (cmdstr, ofile),
+                fail=False, node=node, log_cmd=False)
+  return AssertCommand(cmdstr + " >> %s" % ofile,
+                       fail=fail, node=node, log_cmd=log_cmd)
 
 
 def GetSSHCommand(node, cmd, strict=True, opts=None, tty=None):
