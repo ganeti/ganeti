@@ -139,7 +139,7 @@ def _GetName(entity, key):
   """
   if isinstance(entity, basestring):
     result = entity
-  elif isinstance(entity, dict):
+  elif isinstance(entity, dict) or hasattr(entity, "__getitem__"):
     result = entity[key]
   else:
     raise qa_error.Error("Expected string or dictionary, got %s: %s" %
