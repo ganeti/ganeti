@@ -216,7 +216,7 @@ $(buildObject "PartialNic" "nic"
   [ simpleField "mac" [t| String |]
   , optionalField $ simpleField "ip" [t| String |]
   , simpleField "nicparams" [t| PartialNicParams |]
-  , optionalField $ simpleField "network" [t| Network |]
+  , optionalField $ simpleField "network" [t| String |]
   ])
 
 -- * Disk definitions
