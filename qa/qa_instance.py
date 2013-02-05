@@ -194,7 +194,7 @@ def IsDiskReplacingSupported(instance):
 def TestInstanceAddWithPlainDisk(nodes):
   """gnt-instance add -t plain"""
   assert len(nodes) == 1
-  return _DiskTest(nodes[0].primary, "plain")
+  return _DiskTest(nodes[0].primary, constants.DT_PLAIN)
 
 
 @InstanceCheck(None, INST_UP, RETURN_VALUE)
@@ -202,7 +202,7 @@ def TestInstanceAddWithDrbdDisk(nodes):
   """gnt-instance add -t drbd"""
   assert len(nodes) == 2
   return _DiskTest(":".join(map(operator.attrgetter("primary"), nodes)),
-                   "drbd")
+                   constants.DT_DRBD8)
 
 
 @InstanceCheck(None, INST_DOWN, FIRST_ARG)
@@ -498,14 +498,16 @@ def TestInstanceStoppedModify(instance):
 def TestInstanceConvertDiskToPlain(instance, inodes):
   """gnt-instance modify -t"""
   name = instance.name
+
   template = qa_config.GetInstanceTemplate(instance)
-  if template != "drbd":
+  if template != constants.DT_DRBD8:
     print qa_utils.FormatInfo("Unsupported template %s, skipping conversion"
                               " test" % template)
     return
+
   assert len(inodes) == 2
-  AssertCommand(["gnt-instance", "modify", "-t", "plain", name])
-  AssertCommand(["gnt-instance", "modify", "-t", "drbd",
+  AssertCommand(["gnt-instance", "modify", "-t", constants.DT_PLAIN, name])
+  AssertCommand(["gnt-instance", "modify", "-t", constants.DT_DRBD8,
                  "-n", inodes[1].primary, name])
 
 

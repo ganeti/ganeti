@@ -510,7 +510,7 @@ def TestClusterBurnin():
   master = qa_config.GetMasterNode()
 
   options = qa_config.get("options", {})
-  disk_template = options.get("burnin-disk-template", "drbd")
+  disk_template = options.get("burnin-disk-template", constants.DT_DRBD8)
   parallel = options.get("burnin-in-parallel", False)
   check_inst = options.get("burnin-check-instances", False)
   do_rename = options.get("burnin-rename", "")
