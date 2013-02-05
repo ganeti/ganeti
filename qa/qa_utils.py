@@ -29,6 +29,7 @@ import sys
 import subprocess
 import random
 import tempfile
+import operator
 
 try:
   import functools
@@ -129,21 +130,17 @@ def AssertMatch(string, pattern):
     raise qa_error.Error("%r doesn't match /%r/" % (string, pattern))
 
 
-def _GetName(entity, key):
+def _GetName(entity, fn):
   """Tries to get name of an entity.
 
   @type entity: string or dict
-  @type key: string
-  @param key: Dictionary key containing name
+  @param fn: Function retrieving name from entity
 
   """
   if isinstance(entity, basestring):
     result = entity
-  elif isinstance(entity, dict) or hasattr(entity, "__getitem__"):
-    result = entity[key]
   else:
-    raise qa_error.Error("Expected string or dictionary, got %s: %s" %
-                         (type(entity), entity))
+    result = fn(entity)
 
   if not ht.TNonEmptyString(result):
     raise Exception("Invalid name '%s'" % result)
@@ -182,7 +179,7 @@ def AssertCommand(cmd, fail=False, node=None, log_cmd=True):
   if node is None:
     node = qa_config.GetMasterNode()
 
-  nodename = _GetName(node, "primary")
+  nodename = _GetName(node, operator.attrgetter("primary"))
 
   if isinstance(cmd, basestring):
     cmdstr = cmd
@@ -614,7 +611,7 @@ def RunInstanceCheck(instance, running):
   """Check if instance is running or not.
 
   """
-  instance_name = _GetName(instance, "name")
+  instance_name = _GetName(instance, operator.attrgetter("name"))
 
   script = qa_config.GetInstanceCheckScript()
   if not script:
