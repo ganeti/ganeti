@@ -349,6 +349,35 @@ class TestQaConfig(unittest.TestCase):
     self.assertRaises(qa_error.OutOfNodesError, qa_config.AcquireNode,
                       exclude=acquired, _cfg=self.config)
 
+  def testAcquireNodeOrder(self):
+    # Mark all nodes as marked (master excluded)
+    for node in self.config["nodes"]:
+      if node != self.config.GetMasterNode():
+        node.MarkAdded()
+
+    nodecount = len(self.config["nodes"])
+
+    for iterations in [0, 1, 3, 100, 127, 7964]:
+      acquired = []
+
+      for i in range(iterations):
+        node = qa_config.AcquireNode(_cfg=self.config)
+        self.assertTrue(node.use_count > 0)
+        self.assertEqual(node.use_count, (i / nodecount + 1))
+        acquired.append((node.use_count, node.primary, node))
+
+      # Check if returned nodes were in correct order
+      key_fn = lambda (a, b, c): (a, utils.NiceSortKey(b), c)
+      self.assertEqual(acquired, sorted(acquired, key=key_fn))
+
+      # Release previously acquired nodes
+      qa_config.ReleaseManyNodes(map(operator.itemgetter(2), acquired))
+
+      # Check if nodes were actually released
+      for node in self.config["nodes"]:
+        self.assertEqual(node.use_count, 0)
+        self.assertTrue(node.added or node == self.config.GetMasterNode())
+
 
 class TestRepresentation(unittest.TestCase):
   def _Check(self, target, part):

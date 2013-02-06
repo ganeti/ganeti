@@ -553,6 +553,15 @@ def IsTemplateSupported(templ):
   return GetConfig().IsTemplateSupported(templ)
 
 
+def _NodeSortKey(node):
+  """Returns sort key for a node.
+
+  @type node: L{_QaNode}
+
+  """
+  return (node.use_count, utils.NiceSortKey(node.primary))
+
+
 def AcquireNode(exclude=None, _cfg=None):
   """Returns the least used node.
 
@@ -578,17 +587,8 @@ def AcquireNode(exclude=None, _cfg=None):
   if not nodes:
     raise qa_error.OutOfNodesError("No nodes left")
 
-  # Get node with least number of uses
-  # TODO: Switch to computing sort key instead of comparing directly
-  def compare(a, b):
-    result = cmp(a.use_count, b.use_count)
-    if result == 0:
-      result = cmp(a.primary, b.primary)
-    return result
-
-  nodes.sort(cmp=compare)
-
-  return nodes[0].Use()
+  # Return node with least number of uses
+  return sorted(nodes, key=_NodeSortKey)[0].Use()
 
 
 def AcquireManyNodes(num, exclude=None):
