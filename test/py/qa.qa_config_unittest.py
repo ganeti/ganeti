@@ -350,5 +350,59 @@ class TestQaConfig(unittest.TestCase):
                       exclude=acquired, _cfg=self.config)
 
 
+class TestRepresentation(unittest.TestCase):
+  def _Check(self, target, part):
+    self.assertTrue(part in repr(target).split())
+
+  def testQaInstance(self):
+    inst = qa_config._QaInstance("inst1.example.com", [])
+    self._Check(inst, "name=inst1.example.com")
+    self._Check(inst, "nicmac=[]")
+
+    # Default values
+    self._Check(inst, "disk_template=None")
+    self._Check(inst, "used=None")
+
+    # Use instance
+    inst.Use()
+    self._Check(inst, "used=True")
+
+    # Disk template
+    inst.SetDiskTemplate(constants.DT_DRBD8)
+    self._Check(inst, "disk_template=%s" % constants.DT_DRBD8)
+
+    # Release instance
+    inst.Release()
+    self._Check(inst, "used=False")
+    self._Check(inst, "disk_template=None")
+
+  def testQaNode(self):
+    node = qa_config._QaNode("primary.example.com", "192.0.2.1")
+    self._Check(node, "primary=primary.example.com")
+    self._Check(node, "secondary=192.0.2.1")
+    self._Check(node, "added=False")
+    self._Check(node, "use_count=0")
+
+    # Mark as added
+    node.MarkAdded()
+    self._Check(node, "added=True")
+
+    # Use node
+    for i in range(1, 5):
+      node.Use()
+      self._Check(node, "use_count=%s" % i)
+
+    # Release node
+    for i in reversed(range(1, 5)):
+      node.Release()
+      self._Check(node, "use_count=%s" % (i - 1))
+
+    self._Check(node, "use_count=0")
+
+    # Mark as added
+    node.MarkRemoved()
+    self._Check(node, "added=False")
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()

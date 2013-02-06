@@ -70,6 +70,17 @@ class _QaInstance(object):
 
     return cls(name=data["name"], nicmac=nicmac)
 
+  def __repr__(self):
+    status = [
+      "%s.%s" % (self.__class__.__module__, self.__class__.__name__),
+      "name=%s" % self.name,
+      "nicmac=%s" % self.nicmac,
+      "used=%s" % self._used,
+      "disk_template=%s" % self._disk_template,
+      ]
+
+    return "<%s at %#x>" % (" ".join(status), id(self))
+
   def Use(self):
     """Marks instance as being in use.
 
@@ -149,6 +160,17 @@ class _QaNode(object):
 
     """
     return cls(primary=data["primary"], secondary=data.get("secondary"))
+
+  def __repr__(self):
+    status = [
+      "%s.%s" % (self.__class__.__module__, self.__class__.__name__),
+      "primary=%s" % self.primary,
+      "secondary=%s" % self.secondary,
+      "added=%s" % self._added,
+      "use_count=%s" % self._use_count,
+      ]
+
+    return "<%s at %#x>" % (" ".join(status), id(self))
 
   def Use(self):
     """Marks a node as being in use.
