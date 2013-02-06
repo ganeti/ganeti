@@ -277,7 +277,7 @@ commitChange client instData = do
 
   return instData { tagsToRemove = [] }
 
--- | Detect brokeness with an instance and suggest repair type and jobs to run.
+-- | Detect brokenness with an instance and suggest repair type and jobs to run.
 detectBroken :: Node.List -> Instance.Instance
              -> Maybe (AutoRepairType, [OpCode])
 detectBroken nl inst =
@@ -295,7 +295,7 @@ detectBroken nl inst =
                                      , opRecreateDisksInfo = RecreateDisksAll
                                      , opNodes = []
                                        -- FIXME: there should be a better way to
-                                       -- specify opcode paramteres than abusing
+                                       -- specify opcode parameters than abusing
                                        -- mkNonEmpty in this way (using the fact
                                        -- that Maybe is used both for optional
                                        -- fields, and to express failure).
@@ -390,7 +390,7 @@ doRepair client delay instData (rtype, opcodes) =
         -- that includes the repair job IDs so that they can be checked later.
         -- One problem we run into is that the repair job immediately grabs
         -- locks for the affected instance, and the subsequent TAGS_SET job is
-        -- blocked, introducing an unnecesary delay for the end-user. One
+        -- blocked, introducing an unnecessary delay for the end-user. One
         -- alternative would be not to wait for the completion of the TAGS_SET
         -- job, contrary to what commitChange normally does; but we insist on
         -- waiting for the tag to be set so as to abort in case of failure,
