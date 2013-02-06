@@ -716,6 +716,35 @@ class _TestXenHypervisor(object):
 
         self.assertEqual(ping_fn.Count(), expected_pings)
 
+  def _GetNodeInfoCmd(self, fail, cmd):
+    if cmd == [self.CMD, "info"]:
+      if fail:
+        return self._FailingCommand(cmd)
+      else:
+        output = testutils.ReadTestData("xen-xm-info-4.0.1.txt")
+    elif cmd == [self.CMD, "list"]:
+      if fail:
+        self.fail("'xm list' shouldn't be called when 'xm info' failed")
+      else:
+        output = testutils.ReadTestData("xen-xm-list-4.0.1-four-instances.txt")
+    else:
+      self.fail("Unhandled command: %s" % (cmd, ))
+
+    return self._SuccessCommand(output, cmd)
+
+  def testGetNodeInfo(self):
+    run_cmd = compat.partial(self._GetNodeInfoCmd, False)
+    hv = self._GetHv(run_cmd=run_cmd)
+    result = hv.GetNodeInfo()
+
+    self.assertEqual(result["hv_version"], (4, 0))
+    self.assertEqual(result["memory_free"], 8004)
+
+  def testGetNodeInfoFailing(self):
+    run_cmd = compat.partial(self._GetNodeInfoCmd, True)
+    hv = self._GetHv(run_cmd=run_cmd)
+    self.assertTrue(hv.GetNodeInfo() is None)
+
 
 def _MakeTestClass(cls, cmd):
   """Makes a class for testing.
