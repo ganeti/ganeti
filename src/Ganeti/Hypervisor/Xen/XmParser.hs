@@ -25,6 +25,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 module Ganeti.Hypervisor.Xen.XmParser
   ( xmListParser
   , lispConfigParser
+  , xmUptimeParser
+  , uptimeLineParser
   ) where
 
 import Control.Applicative
@@ -137,3 +139,20 @@ xmListParser = do
   case foldM foldResult Map.empty domains of
     Ok d -> return d
     Bad msg -> fail msg
+
+-- | A parser for parsing the output of the @xm uptime@ command.
+xmUptimeParser :: Parser (Map.Map Int UptimeInfo)
+xmUptimeParser = do
+  _ <- headerParser
+  uptimes <- uptimeLineParser `AC.manyTill` A.endOfInput
+  return $ Map.fromList [(uInfoID u, u) | u <- uptimes]
+    where headerParser = A.string "Name" <* A.skipSpace <* A.string "ID"
+            <* A.skipSpace <* A.string "Uptime" <* A.skipSpace
+
+-- | A helper for parsing a single line of the @xm uptime@ output.
+uptimeLineParser :: Parser UptimeInfo
+uptimeLineParser = do
+  name <- A.takeTill isSpace <* A.skipSpace
+  idNum <- A.decimal <* A.skipSpace
+  uptime <- A.takeTill (`elem` "\n\r") <* A.skipSpace
+  return . UptimeInfo (unpack name) idNum $ unpack uptime

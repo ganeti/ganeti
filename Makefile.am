@@ -1070,6 +1070,7 @@ TEST_FILES = \
 	test/data/xen-xm-list-4.0.1-dom0-only.txt \
 	test/data/xen-xm-list-4.0.1-four-instances.txt \
 	test/data/xen-xm-list-long-4.0.1.txt \
+	test/data/xen-xm-uptime-4.0.1.txt \
 	test/py/ganeti-cli.test \
 	test/py/gnt-cli.test \
 	test/py/import-export_unittest-helper

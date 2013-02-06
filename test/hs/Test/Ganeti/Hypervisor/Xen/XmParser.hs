@@ -39,6 +39,7 @@ import qualified Data.Attoparsec.Text as A
 import Data.Text (pack)
 import Data.Char
 import qualified Data.Map as Map
+import Text.Printf
 
 import Ganeti.Hypervisor.Xen.Types
 import Ganeti.Hypervisor.Xen.XmParser
@@ -70,15 +71,40 @@ canBeNumber (c:xs) = canBeNumberChar c && canBeNumber xs
 canBeNumberChar :: Char -> Bool
 canBeNumberChar c = isDigit c || (c `elem` "eE-")
 
+-- | Generates an arbitrary @xm uptime@ output line.
+instance Arbitrary UptimeInfo where
+  arbitrary = do
+    name <- genFQDN
+    NonNegative idNum <- arbitrary :: Gen (NonNegative Int)
+    NonNegative days <- arbitrary :: Gen (NonNegative Int)
+    hours <- choose (0, 23) :: Gen Int
+    mins <- choose (0, 59) :: Gen Int
+    secs <- choose (0, 59) :: Gen Int
+    let uptime :: String
+        uptime =
+          if days /= 0
+            then printf "%d days, %d:%d:%d" days hours mins secs
+            else printf "%d:%d:%d" hours mins secs
+    return $ UptimeInfo name idNum uptime
+
 -- * Helper functions for tests
 
 -- | Function for testing whether a domain configuration is parsed correctly.
 testDomain :: String -> Map.Map String Domain -> Assertion
 testDomain fileName expectedContent = do
-    fileContent <- readTestData fileName
-    case A.parseOnly xmListParser $ pack fileContent of
-        Left msg -> assertFailure $ "Parsing failed: " ++ msg
-        Right obtained -> assertEqual fileName expectedContent obtained
+  fileContent <- readTestData fileName
+  case A.parseOnly xmListParser $ pack fileContent of
+    Left msg -> assertFailure $ "Parsing failed: " ++ msg
+    Right obtained -> assertEqual fileName expectedContent obtained
+
+-- | Function for testing whether a @xm uptime@ output (stored in a file)
+-- is parsed correctly.
+testUptimeInfo :: String -> Map.Map Int UptimeInfo -> Assertion
+testUptimeInfo fileName expectedContent = do
+  fileContent <- readTestData fileName
+  case A.parseOnly xmUptimeParser $ pack fileContent of
+    Left msg -> assertFailure $ "Parsing failed: " ++ msg
+    Right obtained -> assertEqual fileName expectedContent obtained
 
 -- | Determines whether two LispConfig are equal, with the exception of Double
 -- values, that just need to be "almost equal".
@@ -102,6 +128,12 @@ serializeConf (LCList c) = "(" ++ unwords (map serializeConf c) ++ ")"
 serializeConf (LCString s) = s
 serializeConf (LCDouble d) = show d
 
+-- | Function to serialize UptimeInfos in such a way that they can be rebuilt
+-- againg by the uptimeLineParser.
+serializeUptime :: UptimeInfo -> String
+serializeUptime (UptimeInfo name idNum uptime) =
+  printf "%s\t%d\t%s" name idNum uptime
+
 -- | Test whether a randomly generated config can be parsed.
 -- Implicitly, this also tests that the Show instance of Config is correct.
 prop_config :: LispConfig -> Property
@@ -109,6 +141,13 @@ prop_config conf =
   case A.parseOnly lispConfigParser . pack . serializeConf $ conf of
         Left msg -> fail $ "Parsing failed: " ++ msg
         Right obtained -> property $ isAlmostEqual obtained conf
+
+-- | Test whether a randomly generated UptimeInfo text line can be parsed.
+prop_uptimeInfo :: UptimeInfo -> Property
+prop_uptimeInfo uInfo =
+  case A.parseOnly uptimeLineParser . pack . serializeUptime $ uInfo of
+    Left msg -> fail $ "Parsing failed: " ++ msg
+    Right obtained -> obtained ==? uInfo
 
 -- | Test a Xen 4.0.1 @xm list --long@ output.
 case_xen401list :: Assertion
@@ -119,7 +158,17 @@ case_xen401list = testDomain "xen-xm-list-long-4.0.1.txt" $
       ActualBlocked Nothing)
     ]
 
+-- | Test a Xen 4.0.1 @xm uptime@ output.
+case_xen401uptime :: Assertion
+case_xen401uptime = testUptimeInfo "xen-xm-uptime-4.0.1.txt" $
+  Map.fromList
+    [ (0, UptimeInfo "Domain-0" 0 "98 days,  2:27:44")
+    , (119, UptimeInfo "instance1.example.com" 119 "15 days, 20:57:07")
+    ]
+
 testSuite "Hypervisor/Xen/XmParser"
           [ 'prop_config
+          , 'prop_uptimeInfo
           , 'case_xen401list
+          , 'case_xen401uptime
           ]

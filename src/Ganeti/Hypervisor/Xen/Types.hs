@@ -26,6 +26,7 @@ module Ganeti.Hypervisor.Xen.Types
   ( LispConfig(..)
   , Domain(..)
   , FromLispConfig(..)
+  , UptimeInfo(..)
   , ActualState(..)
   ) where
 
@@ -83,6 +84,13 @@ instance FromLispConfig [LispConfig] where
   fromLispConfig c =
     Bad $ "Unable to extract a List from this configuration: "
       ++ show c
+
+-- Data type representing the information that can be obtained from @xm uptime@
+data UptimeInfo = UptimeInfo
+  { uInfoName   :: String
+  , uInfoID     :: Int
+  , uInfoUptime :: String
+  } deriving (Eq, Show)
 
 data ActualState = ActualRunning  -- ^ The instance is running
                  | ActualBlocked  -- ^ The instance is not running or runnable
