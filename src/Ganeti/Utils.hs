@@ -318,19 +318,19 @@ clockTimeToString (TOD t _) = show t
 (which is assumed to be a separator) to be absent from the string if the string
 terminates there.
 
->>> chompPrefix "foo:bar:" "a:b:c"
+\>>> chompPrefix \"foo:bar:\" \"a:b:c\"
 Nothing
 
->>> chompPrefix "foo:bar:" "foo:bar:baz"
-Just "baz"
+\>>> chompPrefix \"foo:bar:\" \"foo:bar:baz\"
+Just \"baz\"
 
->>> chompPrefix "foo:bar:" "foo:bar:"
-Just ""
+\>>> chompPrefix \"foo:bar:\" \"foo:bar:\"
+Just \"\"
 
->>> chompPrefix "foo:bar:" "foo:bar"
-Just ""
+\>>> chompPrefix \"foo:bar:\" \"foo:bar\"
+Just \"\"
 
->>> chompPrefix "foo:bar:" "foo:barbaz"
+\>>> chompPrefix \"foo:bar:\" \"foo:barbaz\"
 Nothing
 -}
 chompPrefix :: String -> String -> Maybe String
