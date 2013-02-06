@@ -210,8 +210,6 @@ def TestInstanceRemove(instance):
   """gnt-instance remove"""
   AssertCommand(["gnt-instance", "remove", "-f", instance["name"]])
 
-  qa_config.ReleaseInstance(instance)
-
 
 @InstanceCheck(INST_DOWN, INST_UP, FIRST_ARG)
 def TestInstanceStartup(instance):
@@ -675,7 +673,6 @@ def TestInstanceExportWithRemove(instance, node):
   """gnt-backup export --remove-instance"""
   AssertCommand(["gnt-backup", "export", "-n", node["primary"],
                  "--remove-instance", instance["name"]])
-  qa_config.ReleaseInstance(instance)
 
 
 @InstanceCheck(INST_UP, INST_UP, FIRST_ARG)

@@ -614,8 +614,6 @@ def TestRapiInstanceRemove(instance, use_client):
 
   _WaitForRapiJob(job_id)
 
-  qa_config.ReleaseInstance(instance)
-
 
 @InstanceCheck(INST_UP, INST_UP, FIRST_ARG)
 def TestRapiInstanceMigrate(instance):

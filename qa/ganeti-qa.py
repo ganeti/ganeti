@@ -469,21 +469,35 @@ def RunExclusiveStorageTests():
     if qa_config.TestEnabled("instance-add-plain-disk"):
       # Make sure that the cluster doesn't have any pre-existing problem
       qa_cluster.AssertClusterVerify()
+
+      # Create and allocate instances
       instance1 = qa_instance.TestInstanceAddWithPlainDisk([node])
-      instance2 = qa_instance.TestInstanceAddWithPlainDisk([node])
-      # cluster-verify checks that disks are allocated correctly
-      qa_cluster.AssertClusterVerify()
-      qa_instance.TestInstanceRemove(instance1)
-      qa_instance.TestInstanceRemove(instance2)
+      try:
+        instance2 = qa_instance.TestInstanceAddWithPlainDisk([node])
+        try:
+          # cluster-verify checks that disks are allocated correctly
+          qa_cluster.AssertClusterVerify()
+
+          # Remove instances
+          qa_instance.TestInstanceRemove(instance2)
+          qa_instance.TestInstanceRemove(instance1)
+        finally:
+          qa_config.ReleaseInstance(instance2)
+      finally:
+        qa_config.ReleaseInstance(instance1)
+
     if qa_config.TestEnabled("instance-add-drbd-disk"):
       snode = qa_config.AcquireNode()
       try:
         qa_cluster.TestSetExclStorCluster(False)
         instance = qa_instance.TestInstanceAddWithDrbdDisk([node, snode])
-        qa_cluster.TestSetExclStorCluster(True)
-        exp_err = [constants.CV_EINSTANCEUNSUITABLENODE]
-        qa_cluster.AssertClusterVerify(fail=True, errors=exp_err)
-        qa_instance.TestInstanceRemove(instance)
+        try:
+          qa_cluster.TestSetExclStorCluster(True)
+          exp_err = [constants.CV_EINSTANCEUNSUITABLENODE]
+          qa_cluster.AssertClusterVerify(fail=True, errors=exp_err)
+          qa_instance.TestInstanceRemove(instance)
+        finally:
+          qa_config.ReleaseInstance(instance)
       finally:
         qa_config.ReleaseNode(snode)
     qa_cluster.TestSetExclStorCluster(old_es)
@@ -506,25 +520,29 @@ def RunInstanceTests():
       inodes = qa_config.AcquireManyNodes(num_nodes)
       try:
         instance = RunTest(create_fun, inodes)
+        try:
+          RunTestIf("cluster-epo", qa_cluster.TestClusterEpo)
+          RunDaemonTests(instance)
+          for node in inodes:
+            RunTestIf("haskell-confd", qa_node.TestNodeListDrbd, node)
+          if len(inodes) > 1:
+            RunTestIf("group-rwops", qa_group.TestAssignNodesIncludingSplit,
+                      constants.INITIAL_NODE_GROUP_NAME,
+                      inodes[0]["primary"], inodes[1]["primary"])
+          if qa_config.TestEnabled("instance-convert-disk"):
+            RunTest(qa_instance.TestInstanceShutdown, instance)
+            RunTest(qa_instance.TestInstanceConvertDiskToPlain,
+                    instance, inodes)
+            RunTest(qa_instance.TestInstanceStartup, instance)
+          RunCommonInstanceTests(instance)
+          RunGroupListTests()
+          RunExportImportTests(instance, inodes)
+          RunHardwareFailureTests(instance, inodes)
+          RunRepairDiskSizes()
+          RunTest(qa_instance.TestInstanceRemove, instance)
+        finally:
+          qa_config.ReleaseInstance(instance)
 
-        RunTestIf("cluster-epo", qa_cluster.TestClusterEpo)
-        RunDaemonTests(instance)
-        for node in inodes:
-          RunTestIf("haskell-confd", qa_node.TestNodeListDrbd, node)
-        if len(inodes) > 1:
-          RunTestIf("group-rwops", qa_group.TestAssignNodesIncludingSplit,
-                    constants.INITIAL_NODE_GROUP_NAME,
-                    inodes[0]["primary"], inodes[1]["primary"])
-        if qa_config.TestEnabled("instance-convert-disk"):
-          RunTest(qa_instance.TestInstanceShutdown, instance)
-          RunTest(qa_instance.TestInstanceConvertDiskToPlain, instance, inodes)
-          RunTest(qa_instance.TestInstanceStartup, instance)
-        RunCommonInstanceTests(instance)
-        RunGroupListTests()
-        RunExportImportTests(instance, inodes)
-        RunHardwareFailureTests(instance, inodes)
-        RunRepairDiskSizes()
-        RunTest(qa_instance.TestInstanceRemove, instance)
         del instance
       finally:
         qa_config.ReleaseManyNodes(inodes)
@@ -578,9 +596,12 @@ def RunQa():
         for use_client in [True, False]:
           rapi_instance = RunTest(qa_rapi.TestRapiInstanceAdd, pnode,
                                   use_client)
-          if qa_config.TestEnabled("instance-plain-rapi-common-tests"):
-            RunCommonInstanceTests(rapi_instance)
-          RunTest(qa_rapi.TestRapiInstanceRemove, rapi_instance, use_client)
+          try:
+            if qa_config.TestEnabled("instance-plain-rapi-common-tests"):
+              RunCommonInstanceTests(rapi_instance)
+            RunTest(qa_rapi.TestRapiInstanceRemove, rapi_instance, use_client)
+          finally:
+            qa_config.ReleaseInstance(rapi_instance)
           del rapi_instance
 
   finally:
@@ -603,15 +624,18 @@ def RunQa():
     if qa_config.TestEnabled(["instance-add-plain-disk", "instance-export"]):
       for shutdown in [False, True]:
         instance = RunTest(qa_instance.TestInstanceAddWithPlainDisk, [pnode])
-        expnode = qa_config.AcquireNode(exclude=pnode)
         try:
-          if shutdown:
-            # Stop instance before exporting and removing it
-            RunTest(qa_instance.TestInstanceShutdown, instance)
-          RunTest(qa_instance.TestInstanceExportWithRemove, instance, expnode)
-          RunTest(qa_instance.TestBackupList, expnode)
+          expnode = qa_config.AcquireNode(exclude=pnode)
+          try:
+            if shutdown:
+              # Stop instance before exporting and removing it
+              RunTest(qa_instance.TestInstanceShutdown, instance)
+            RunTest(qa_instance.TestInstanceExportWithRemove, instance, expnode)
+            RunTest(qa_instance.TestBackupList, expnode)
+          finally:
+            qa_config.ReleaseNode(expnode)
         finally:
-          qa_config.ReleaseNode(expnode)
+          qa_config.ReleaseInstance(instance)
         del expnode
         del instance
       qa_cluster.AssertClusterVerify()
