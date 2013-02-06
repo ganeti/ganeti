@@ -174,6 +174,44 @@ class TestConfigRunner(unittest.TestCase):
     self.failUnlessRaises(errors.ConfigurationError, cfg.Update, fake_instance,
                           None)
 
+  def testUpgradeSave(self):
+    """Test that any modification done during upgrading is saved back"""
+    cfg = self._get_object()
+
+    # Remove an element, run upgrade, and check if the element is
+    # back and the file upgraded
+    node = cfg.GetNodeInfo(cfg.GetNodeList()[0])
+    # For a ConfigObject, None is the same as a missing field
+    node.ndparams = None
+    oldsaved = utils.ReadFile(self.cfg_file)
+    cfg._UpgradeConfig()
+    self.assertTrue(node.ndparams is not None)
+    newsaved = utils.ReadFile(self.cfg_file)
+    # We rely on the fact that at least the serial number changes
+    self.assertNotEqual(oldsaved, newsaved)
+
+    # Add something that should not be there this time
+    key = list(constants.NDC_GLOBALS)[0]
+    node.ndparams[key] = constants.NDC_DEFAULTS[key]
+    cfg._WriteConfig(None)
+    oldsaved = utils.ReadFile(self.cfg_file)
+    cfg._UpgradeConfig()
+    self.assertTrue(node.ndparams.get(key) is None)
+    newsaved = utils.ReadFile(self.cfg_file)
+    self.assertNotEqual(oldsaved, newsaved)
+
+    # Do the upgrade again, this time there should be no update
+    oldsaved = newsaved
+    cfg._UpgradeConfig()
+    newsaved = utils.ReadFile(self.cfg_file)
+    self.assertEqual(oldsaved, newsaved)
+
+    # Reload the configuration again: it shouldn't change the file
+    oldsaved = newsaved
+    self._get_object()
+    newsaved = utils.ReadFile(self.cfg_file)
+    self.assertEqual(oldsaved, newsaved)
+
   def testNICParameterSyntaxCheck(self):
     """Test the NIC's CheckParameterSyntax function"""
     mode = constants.NIC_MODE
