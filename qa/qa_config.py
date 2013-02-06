@@ -44,7 +44,7 @@ class _QaInstance(object):
   __slots__ = [
     "name",
     "nicmac",
-    "used",
+    "_used",
     "_disk_template",
     ]
 
@@ -54,7 +54,7 @@ class _QaInstance(object):
     """
     self.name = name
     self.nicmac = nicmac
-    self.used = None
+    self._used = None
     self._disk_template = None
 
   @classmethod
@@ -70,15 +70,24 @@ class _QaInstance(object):
 
     return cls(name=data["name"], nicmac=nicmac)
 
+  def Use(self):
+    """Marks instance as being in use.
+
+    """
+    assert not self._used
+    assert self._disk_template is None
+
+    self._used = True
+
   def Release(self):
     """Releases instance and makes it available again.
 
     """
-    assert self.used, \
+    assert self._used, \
       ("Instance '%s' was never acquired or released more than once" %
        self.name)
 
-    self.used = False
+    self._used = False
     self._disk_template = None
 
   def GetNicMacAddr(self, idx, default):
@@ -101,6 +110,13 @@ class _QaInstance(object):
     assert template in constants.DISK_TEMPLATES
 
     self._disk_template = template
+
+  @property
+  def used(self):
+    """Returns boolean denoting whether instance is in use.
+
+    """
+    return self._used
 
   @property
   def disk_template(self):
@@ -485,14 +501,10 @@ def AcquireInstance(_cfg=None):
   if not instances:
     raise qa_error.OutOfInstancesError("No instances left")
 
-  inst = instances[0]
+  instance = instances[0]
+  instance.Use()
 
-  assert not inst.used
-  assert inst.disk_template is None
-
-  inst.used = True
-
-  return inst
+  return instance
 
 
 def SetExclusiveStorage(value):
