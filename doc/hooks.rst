@@ -286,10 +286,17 @@ INSTANCE_NAME, INSTANCE_PRIMARY, INSTANCE_SECONDARY,
 INSTANCE_OS_TYPE, INSTANCE_DISK_TEMPLATE, INSTANCE_MEMORY,
 INSTANCE_DISK_SIZES, INSTANCE_VCPUS, INSTANCE_NIC_COUNT,
 INSTANCE_NICn_IP, INSTANCE_NICn_BRIDGE, INSTANCE_NICn_MAC,
+INSTANCE_NICn_NETWORK_SUBNET, INSTANCE_NICn_NETWORK_GATEWAY,
+INSTANCE_NICn_NETWORK_SUBNET6, INSTANCE_NICn_NETWORK_GATEWAY6,
+INSTANCE_NICn_NETWORK_MAC_PREFIX, INSTANCE_NICn_NETWORK_TYPE,
 INSTANCE_DISK_COUNT, INSTANCE_DISKn_SIZE, INSTANCE_DISKn_MODE.
 
 The INSTANCE_NICn_* and INSTANCE_DISKn_* variables represent the
 properties of the *n* -th NIC and disk, and are zero-indexed.
+
+The INSTANCE_NICn_NETWORK_* variables are only passed if a NIC's network
+parameter is set (that is if the NIC is associated to a network defined
+via ``gnt-network``)
 
 
 OP_INSTANCE_CREATE
@@ -383,7 +390,7 @@ and secondary before migration.
 
 :directory: instance-migrate
 :env. vars: MIGRATE_LIVE, MIGRATE_CLEANUP, OLD_PRIMARY, OLD_SECONDARY, NEW_PRIMARY, NEW_SECONDARY
-:pre-execution: master node, secondary node
+:pre-execution: master node, primary and secondary nodes
 :post-execution: master node, primary and secondary nodes
 
 
