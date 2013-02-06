@@ -245,6 +245,9 @@ class _QaConfig(object):
     """Validates loaded configuration data.
 
     """
+    if not self.get("name"):
+      raise qa_error.Error("Cluster name is required")
+
     if not self.get("nodes"):
       raise qa_error.Error("Need at least one node")
 

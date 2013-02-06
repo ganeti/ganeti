@@ -174,6 +174,11 @@ class TestQaConfigLoad(unittest.TestCase):
 
     check_fn = compat.partial(self._CheckLoadError, filename, testconfig)
 
+    # No cluster name
+    check_fn("Cluster name is required")
+
+    testconfig["name"] = "cluster.example.com"
+
     # No nodes
     check_fn("Need at least one node")
 
