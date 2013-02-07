@@ -1692,6 +1692,13 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     """Invoke a command on the instance monitor.
 
     """
+    # TODO: Replace monitor calls with QMP once KVM >= 0.14 is the minimum
+    # version. The monitor protocol is designed for human consumption, whereas
+    # QMP is made for programmatic usage. In the worst case QMP can also
+    # execute monitor commands. As it is, all calls to socat take at least
+    # 500ms and likely more: socat can't detect the end of the reply and waits
+    # for 500ms of no data received before exiting (500 ms is the default for
+    # the "-t" parameter).
     socat = ("echo %s | %s STDIO UNIX-CONNECT:%s" %
              (utils.ShellQuote(command),
               constants.SOCAT_PATH,
