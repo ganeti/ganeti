@@ -142,7 +142,7 @@ def GetVirtualHostname():
   return _VIRT_HOSTNAME
 
 
-def _MakeNodeRoot(base, node_name):
+def MakeNodeRoot(base, node_name):
   """Appends a node name to the base directory.
 
   """
@@ -162,7 +162,7 @@ def ExchangeNodeRoot(node_name, filename,
   """
   if _basedir:
     pure = _RemoveNodePrefix(filename, _noderoot=_noderoot)
-    result = "%s/%s" % (_MakeNodeRoot(_basedir, node_name), pure)
+    result = "%s/%s" % (MakeNodeRoot(_basedir, node_name), pure)
   else:
     result = filename
 
@@ -175,7 +175,7 @@ def EnvironmentForHost(hostname, _basedir=_VIRT_BASEDIR):
   """
   if _basedir:
     return {
-      _ROOTDIR_ENVNAME: _MakeNodeRoot(_basedir, hostname),
+      _ROOTDIR_ENVNAME: MakeNodeRoot(_basedir, hostname),
       _HOSTNAME_ENVNAME: hostname,
       }
   else:

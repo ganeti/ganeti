@@ -108,10 +108,10 @@ class TestPreparePaths(_EnvVarTest):
 
 class TestMakeNodeRoot(unittest.TestCase):
   def test(self):
-    self.assertRaises(RuntimeError, vcluster._MakeNodeRoot, "/tmp", "/")
+    self.assertRaises(RuntimeError, vcluster.MakeNodeRoot, "/tmp", "/")
 
     for i in ["/tmp", "/tmp/", "/tmp///"]:
-      self.assertEqual(vcluster._MakeNodeRoot(i, "other.example.com"),
+      self.assertEqual(vcluster.MakeNodeRoot(i, "other.example.com"),
                        "/tmp/other.example.com")
 
 
