@@ -2039,6 +2039,34 @@ class Network(TaggableObject):
     "ext_reservations",
     ] + _TIMESTAMPS + _UUID
 
+  def HooksDict(self, prefix):
+    """Export a dictionary used by hooks with a network's information.
+
+    @type prefix: String
+    @param prefix: Prefix to prepend to the dict entries
+
+    """
+    result = {
+      "%sNETWORK" % prefix: self.name,
+      "%sNETWORK_UUID" % prefix: self.uuid,
+      "%sNETWORK_FAMILY" % prefix: str(self.family),
+      "%sNETWORK_TAGS" % prefix: " ".join(self.tags),
+    }
+    if self.network:
+      result["%sNETWORK_SUBNET" % prefix] = self.network
+    if self.gateway:
+      result["%sNETWORK_GATEWAY" % prefix] = self.gateway
+    if self.network6:
+      result["%sNETWORK_SUBNET6" % prefix] = self.network6
+    if self.gateway6:
+      result["%sNETWORK_GATEWAY6" % prefix] = self.gateway6
+    if self.mac_prefix:
+      result["%sNETWORK_MAC_PREFIX" % prefix] = self.mac_prefix
+    if self.network_type:
+      result["%sNETWORK_TYPE" % prefix] = self.network_type
+
+    return result
+
 
 class SerializableConfigParser(ConfigParser.SafeConfigParser):
   """Simple wrapper over ConfigParse that allows serialization.

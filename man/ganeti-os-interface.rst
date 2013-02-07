@@ -118,6 +118,39 @@ NIC_%N_FRONTEND_TYPE
     instance, this can be one of: ``rtl8139``, ``ne2k_pci``,
     ``ne2k_isa``, ``paravirtual``.
 
+NIC_%d_NETWORK
+    (Optional) If a NIC network is specified, the network's name.
+
+NIC_%d_NETWORK_UUID
+    (Optional) If a NIC network is specified, the network's uuid.
+
+NIC_%d_NETWORK_FAMILY
+    (Optional) If a NIC network is specified, the network's family.
+
+NIC_%d_NETWORK_SUBNET
+    (Optional) If a NIC network is specified, the network's IPv4 subnet.
+
+NIC_%d_NETWORK_GATEWAY
+    (Optional) If a NIC network is specified, the network's IPv4
+    gateway.
+
+NIC_%d_NETWORK_SUBNET6
+    (Optional) If a NIC network is specified, the network's IPv6 subnet.
+
+NIC_%d_NETWORK_GATEWAY6
+    (Optional) If a NIC network is specified, the network's IPv6
+    gateway.
+
+NIC_%d_NETWORK_MAC_PREFIX
+    (Optional) If a NIC network is specified, the network's mac prefix.
+
+NIC_%d_NETWORK_TYPE
+    (Optional) If a NIC network is specified, the network's type.
+
+NIC_%d_NETWORK_TAGS
+    (Optional) If a NIC network is specified, the network's tags, space
+    separated.
+
 OSP_*name*
     Each OS parameter (see below) will be exported in its own
     variable, prefixed with ``OSP_``, and upper-cased. For example, a

@@ -1453,7 +1453,7 @@ def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
   @type vcpus: string
   @param vcpus: the count of VCPUs the instance has
   @type nics: list
-  @param nics: list of tuples (ip, mac, mode, link, network) representing
+  @param nics: list of tuples (ip, mac, mode, link, net, netinfo) representing
       the NICs the instance has
   @type disk_template: string
   @param disk_template: the disk template of the instance
@@ -1495,24 +1495,14 @@ def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
       env["INSTANCE_NIC%d_MAC" % idx] = mac
       env["INSTANCE_NIC%d_MODE" % idx] = mode
       env["INSTANCE_NIC%d_LINK" % idx] = link
-      if network:
+      if netinfo:
+        nobj = objects.Network.FromDict(netinfo)
+        env.update(nobj.HooksDict("INSTANCE_NIC%d_" % idx))
+      elif network:
+        # FIXME: broken network reference: the instance NIC specifies a
+        # network, but the relevant network entry was not in the config. This
+        # should be made impossible.
         env["INSTANCE_NIC%d_NETWORK" % idx] = net
-        if netinfo:
-          nobj = objects.Network.FromDict(netinfo)
-          if nobj.network:
-            env["INSTANCE_NIC%d_NETWORK_SUBNET" % idx] = nobj.network
-          if nobj.gateway:
-            env["INSTANCE_NIC%d_NETWORK_GATEWAY" % idx] = nobj.gateway
-          if nobj.network6:
-            env["INSTANCE_NIC%d_NETWORK_SUBNET6" % idx] = nobj.network6
-          if nobj.gateway6:
-            env["INSTANCE_NIC%d_NETWORK_GATEWAY6" % idx] = nobj.gateway6
-          if nobj.mac_prefix:
-            env["INSTANCE_NIC%d_NETWORK_MAC_PREFIX" % idx] = nobj.mac_prefix
-          if nobj.network_type:
-            env["INSTANCE_NIC%d_NETWORK_TYPE" % idx] = nobj.network_type
-          if nobj.tags:
-            env["INSTANCE_NIC%d_NETWORK_TAGS" % idx] = " ".join(nobj.tags)
       if mode == constants.NIC_MODE_BRIDGED:
         env["INSTANCE_NIC%d_BRIDGE" % idx] = link
   else:
