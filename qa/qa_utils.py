@@ -325,7 +325,7 @@ def GetCommandOutput(node, cmd, tty=None, fail=False):
   p = StartLocalCommand(GetSSHCommand(node, cmd, tty=tty),
                         stdout=subprocess.PIPE)
   rcode = p.wait()
-  _AssertRetCode(rcode, fail, node, cmd)
+  _AssertRetCode(rcode, fail, cmd, node)
   return p.stdout.read()
 
 
