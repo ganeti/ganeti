@@ -88,24 +88,30 @@ prop_select :: Int      -- ^ Default result
             -> Gen Prop -- ^ Test result
 prop_select def lst1 lst2 =
   select def (flist ++ tlist) ==? expectedresult
-    where expectedresult = if' (null lst2) def (head lst2)
+    where expectedresult = defaultHead def lst2
           flist = zip (repeat False) lst1
           tlist = zip (repeat True)  lst2
 
+{-# ANN prop_select_undefd "HLint: ignore Use alternative" #-}
 -- | Test basic select functionality with undefined default
 prop_select_undefd :: [Int]            -- ^ List of False values
                    -> NonEmptyList Int -- ^ List of True values
                    -> Gen Prop         -- ^ Test result
 prop_select_undefd lst1 (NonEmpty lst2) =
+  -- head is fine as NonEmpty "guarantees" a non-empty list, but not
+  -- via types
   select undefined (flist ++ tlist) ==? head lst2
     where flist = zip (repeat False) lst1
           tlist = zip (repeat True)  lst2
 
+{-# ANN prop_select_undefv "HLint: ignore Use alternative" #-}
 -- | Test basic select functionality with undefined list values
 prop_select_undefv :: [Int]            -- ^ List of False values
                    -> NonEmptyList Int -- ^ List of True values
                    -> Gen Prop         -- ^ Test result
 prop_select_undefv lst1 (NonEmpty lst2) =
+  -- head is fine as NonEmpty "guarantees" a non-empty list, but not
+  -- via types
   select undefined cndlist ==? head lst2
     where flist = zip (repeat False) lst1
           tlist = zip (repeat True)  lst2

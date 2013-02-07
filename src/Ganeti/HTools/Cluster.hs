@@ -829,14 +829,13 @@ findBestAllocGroup mggl mgnl mgil allowed_gdxs inst cnt =
       all_msgs = concatMap (solutionDescription mggl) sols
       goodSols = filterMGResults mggl sols
       sortedSols = sortMGResults mggl goodSols
-  in if null sortedSols
-       then Bad $ if null groups'
-                    then "no groups for evacuation: allowed groups was" ++
-                         show allowed_gdxs ++ ", all groups: " ++
-                         show (map fst groups)
-                    else intercalate ", " all_msgs
-       else let (final_group, final_sol) = head sortedSols
-            in return (final_group, final_sol, all_msgs)
+  in case sortedSols of
+       [] -> Bad $ if null groups'
+                     then "no groups for evacuation: allowed groups was" ++
+                          show allowed_gdxs ++ ", all groups: " ++
+                          show (map fst groups)
+                     else intercalate ", " all_msgs
+       (final_group, final_sol):_ -> return (final_group, final_sol, all_msgs)
 
 -- | Try to allocate an instance on a multi-group cluster.
 tryMGAlloc :: Group.List           -- ^ The group list

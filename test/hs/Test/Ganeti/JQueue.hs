@@ -6,7 +6,7 @@
 
 {-
 
-Copyright (C) 2012 Google Inc.
+Copyright (C) 2012, 2013 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -135,14 +135,12 @@ prop_JobStatus =
 case_JobStatusPri_py_equiv :: Assertion
 case_JobStatusPri_py_equiv = do
   let num_jobs = 2000::Int
-  sample_jobs <- sample' (vectorOf num_jobs $ do
-                            num_ops <- choose (1, 5)
-                            ops <- vectorOf num_ops genQueuedOpCode
-                            jid <- genJobId
-                            return $ QueuedJob jid ops justNoTs justNoTs
-                                               justNoTs)
-  let jobs = head sample_jobs
-      serialized = encode jobs
+  jobs <- genSample (vectorOf num_jobs $ do
+                       num_ops <- choose (1, 5)
+                       ops <- vectorOf num_ops genQueuedOpCode
+                       jid <- genJobId
+                       return $ QueuedJob jid ops justNoTs justNoTs justNoTs)
+  let serialized = encode jobs
   -- check for non-ASCII fields, usually due to 'arbitrary :: String'
   mapM_ (\job -> when (any (not . isAscii) (encode job)) .
                  assertFailure $ "Job has non-ASCII fields: " ++ show job

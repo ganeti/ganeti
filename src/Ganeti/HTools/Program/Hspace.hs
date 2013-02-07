@@ -4,7 +4,7 @@
 
 {-
 
-Copyright (C) 2009, 2010, 2011, 2012 Google Inc.
+Copyright (C) 2009, 2010, 2011, 2012, 2013 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -105,6 +105,11 @@ specDescription :: SpecType -> String
 specDescription SpecNormal = "Standard (fixed-size)"
 specDescription SpecTiered = "Tiered (initial size)"
 
+-- | The \"name\" of a 'SpecType'.
+specName :: SpecType -> String
+specName SpecNormal = "Standard"
+specName SpecTiered = "Tiered"
+
 -- | Efficiency generic function.
 effFn :: (Cluster.CStats -> Integer)
       -> (Cluster.CStats -> Double)
@@ -191,12 +196,14 @@ printResults True _ fin_nl num_instances allocs sreason = do
                   \ != counted (%d)\n" (num_instances + allocs)
            (Cluster.csNinst fin_stats)
 
+  main_reason <- exitIfEmpty "Internal error, no failure reasons?!" sreason
+
   printKeysHTS $ printStats PFinal fin_stats
   printKeysHTS [ ("ALLOC_USAGE", printf "%.8f"
                                    ((fromIntegral num_instances::Double) /
                                    fromIntegral fin_instances))
                , ("ALLOC_INSTANCES", printf "%d" allocs)
-               , ("ALLOC_FAIL_REASON", map toUpper . show . fst $ head sreason)
+               , ("ALLOC_FAIL_REASON", map toUpper . show . fst $ main_reason)
                ]
   printKeysHTS $ map (\(x, y) -> (printf "ALLOC_%s_CNT" (show x),
                                   printf "%d" y)) sreason
@@ -210,6 +217,7 @@ printResults False ini_nl fin_nl _ allocs sreason = do
 printFinalHTS :: Bool -> IO ()
 printFinalHTS = printFinal htsPrefix
 
+{-# ANN tieredSpecMap "HLint: ignore Use alternative" #-}
 -- | Compute the tiered spec counts from a list of allocated
 -- instances.
 tieredSpecMap :: [Instance.Instance]
@@ -217,6 +225,7 @@ tieredSpecMap :: [Instance.Instance]
 tieredSpecMap trl_ixes =
   let fin_trl_ixes = reverse trl_ixes
       ix_byspec = groupBy ((==) `on` Instance.specOf) fin_trl_ixes
+      -- head is "safe" here, as groupBy returns list of non-empty lists
       spec_map = map (\ixs -> (Instance.specOf $ head ixs, length ixs))
                  ix_byspec
   in spec_map
@@ -365,7 +374,7 @@ runAllocation cdata stop_allocation actual_result spec dt mode opts = do
         Just result_noalloc -> return result_noalloc
         Nothing -> exitIfBad "failure during allocation" actual_result
 
-  let name = head . words . specDescription $ mode
+  let name = specName mode
       descr = name ++ " allocation"
       ldescr = "after " ++ map toLower descr
 

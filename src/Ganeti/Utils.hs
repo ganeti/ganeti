@@ -51,6 +51,8 @@ module Ganeti.Utils
   , chompPrefix
   , wrap
   , trim
+  , defaultHead
+  , exitIfEmpty
   ) where
 
 import Data.Char (toUpper, isAlphaNum, isDigit, isSpace)
@@ -369,3 +371,14 @@ wrap maxWidth = filter (not . null) . map trim . wrap0
 -- strings.
 trim :: String -> String
 trim = reverse . dropWhile isSpace . reverse . dropWhile isSpace
+
+-- | A safer head version, with a default value.
+defaultHead :: a -> [a] -> a
+defaultHead def []    = def
+defaultHead _   (x:_) = x
+
+-- | A 'head' version in the I/O monad, for validating parameters
+-- without which we cannot continue.
+exitIfEmpty :: String -> [a] -> IO a
+exitIfEmpty _ (x:_) = return x
+exitIfEmpty s []    = exitErr s

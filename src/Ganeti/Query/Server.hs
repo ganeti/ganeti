@@ -6,7 +6,7 @@
 
 {-
 
-Copyright (C) 2012 Google Inc.
+Copyright (C) 2012, 2013 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -87,6 +87,9 @@ handleCall :: ConfigData -> LuxiOp -> IO (ErrorResult JSValue)
 handleCall cdata QueryClusterInfo =
   let cluster = configCluster cdata
       hypervisors = clusterEnabledHypervisors cluster
+      def_hv = case hypervisors of
+                 x:_ -> showJSON x
+                 [] -> JSNull
       bits = show (bitSize (0::Int)) ++ "bits"
       arch_tuple = [bits, arch]
       obj = [ ("software_version", showJSON C.releaseVersion)
@@ -97,7 +100,7 @@ handleCall cdata QueryClusterInfo =
             , ("architecture", showJSON arch_tuple)
             , ("name", showJSON $ clusterClusterName cluster)
             , ("master", showJSON $ clusterMasterNode cluster)
-            , ("default_hypervisor", showJSON $ head hypervisors)
+            , ("default_hypervisor", def_hv)
             , ("enabled_hypervisors", showJSON hypervisors)
             , ("hvparams", showJSON $ clusterHvparams cluster)
             , ("os_hvp", showJSON $ clusterOsHvp cluster)

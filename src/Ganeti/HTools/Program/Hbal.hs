@@ -4,7 +4,7 @@
 
 {-
 
-Copyright (C) 2009, 2010, 2011, 2012 Google Inc.
+Copyright (C) 2009, 2010, 2011, 2012, 2013 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -135,8 +135,9 @@ iterateDepth printmove ini_tbl max_rounds disk_moves inst_moves nmlen imlen
        Just fin_tbl ->
          do
            let (Cluster.Table _ _ _ fin_plc) = fin_tbl
-               fin_plc_len = length fin_plc
-               cur_plc@(idx, _, _, move, _) = head fin_plc
+           cur_plc@(idx, _, _, move, _) <-
+             exitIfEmpty "Empty placement list returned for solution?!" fin_plc
+           let fin_plc_len = length fin_plc
                (sol_line, cmds) = Cluster.printSolutionLine ini_nl ini_il
                                   nmlen imlen cur_plc fin_plc_len
                afn = Cluster.involvedNodes ini_il cur_plc
@@ -261,8 +262,8 @@ selectGroup opts gl nlf ilf = do
 
   case optGroup opts of
     Nothing -> do
-      let (gidx, cdata) = head ngroups
-          grp = Container.find gidx gl
+      (gidx, cdata) <- exitIfEmpty "No groups found by splitCluster?!" ngroups
+      let grp = Container.find gidx gl
       return (Group.name grp, cdata)
     Just g -> case Container.findByName gl g of
       Nothing -> do
