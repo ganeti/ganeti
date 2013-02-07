@@ -61,6 +61,7 @@ import Test.Ganeti.Objects
 import Test.Ganeti.OpCodes
 import Test.Ganeti.Query.Filter
 import Test.Ganeti.Query.Language
+import Test.Ganeti.Query.Network
 import Test.Ganeti.Query.Query
 import Test.Ganeti.Rpc
 import Test.Ganeti.Runtime
@@ -114,6 +115,7 @@ allTests =
   , testOpCodes
   , testQuery_Filter
   , testQuery_Language
+  , testQuery_Network
   , testQuery_Query
   , testRpc
   , testRuntime

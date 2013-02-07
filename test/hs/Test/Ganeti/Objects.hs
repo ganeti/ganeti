@@ -29,7 +29,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 module Test.Ganeti.Objects
   ( testObjects
   , Node(..)
+  , genConfigDataWithNetworks
   , genEmptyCluster
+  , genInstWithNets
   , genValidNetwork
   , genBitStringMaxLen
   ) where
@@ -40,6 +42,7 @@ import qualified Test.HUnit as HUnit
 import Control.Applicative
 import Control.Monad
 import Data.Char
+import qualified Data.List as List
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import qualified Text.JSON as J
@@ -115,6 +118,22 @@ instance Arbitrary Instance where
       <*> arbitrary
       -- tags
       <*> (Set.fromList <$> genTags)
+
+-- | Generates an instance that is connected to the given networks
+-- and possibly some other networks
+genInstWithNets :: [String] -> Gen Instance
+genInstWithNets nets = do
+  plain_inst <- arbitrary
+  mac <- arbitrary
+  ip <- arbitrary
+  nicparams <- arbitrary
+  -- generate some more networks than the given ones
+  num_more_nets <- choose (0,3)
+  more_nets <- vectorOf num_more_nets genName
+  let partial_nics = map (PartialNic mac ip nicparams . Just)
+                       (List.nub (nets ++ more_nets))
+      new_inst = plain_inst { instNics = partial_nics }
+  return new_inst
 
 -- | FIXME: This generates completely random data, without normal
 -- validation rules.
@@ -215,6 +234,24 @@ genEmptyCluster ncount = do
   let c = ConfigData version cluster contnodes contgroups continsts networks
             serial
   return c
+
+-- | FIXME: make an even simpler base version of creating a cluster.
+
+-- | Generates config data with a couple of networks.
+genConfigDataWithNetworks :: ConfigData -> Gen ConfigData
+genConfigDataWithNetworks old_cfg = do
+  num_nets <- choose (0, 3)
+  -- generate a list of network names (no duplicates)
+  net_names <- genUniquesList num_nets genName >>= mapM mkNonEmpty
+  -- generate a random list of networks (possibly with duplicate names)
+  nets <- vectorOf num_nets genValidNetwork
+  -- use unique names for the networks
+  let nets_unique = map ( \(name, net) -> net { networkName = name } )
+        (zip net_names nets)
+      net_map = GenericContainer $ Map.fromList
+        (map (\n -> (networkUuid n, n)) nets_unique)
+      new_cfg = old_cfg { configNetworks = net_map }
+  return new_cfg
 
 -- * Test properties
 

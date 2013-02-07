@@ -584,6 +584,7 @@ HS_TEST_SRCS = \
 	test/hs/Test/Ganeti/OpCodes.hs \
 	test/hs/Test/Ganeti/Query/Filter.hs \
 	test/hs/Test/Ganeti/Query/Language.hs \
+	test/hs/Test/Ganeti/Query/Network.hs \
 	test/hs/Test/Ganeti/Query/Query.hs \
 	test/hs/Test/Ganeti/Rpc.hs \
 	test/hs/Test/Ganeti/Runtime.hs \

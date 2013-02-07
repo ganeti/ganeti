@@ -24,9 +24,15 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 
 module Ganeti.Query.Network
-  ( NetworkRuntime(..)
+  ( getGroupConnection
+  , getNetworkUuid
+  , instIsConnected
+  , NetworkRuntime(..)
   , networkFieldsMap
   ) where
+
+-- FIXME: everything except NetworkRuntime(..) and networkFieldsMap
+-- is only exported for testing.
 
 import qualified Data.Map as Map
 import Data.Maybe (fromMaybe, mapMaybe)
@@ -88,8 +94,7 @@ networkFieldsMap :: FieldMap Network NetworkRuntime
 networkFieldsMap =
   Map.fromList $ map (\v@(f, _, _) -> (fdefName f, v)) networkFields
 
--- TODO: the following fields are not implemented yet: external_reservations,
--- inst_cnt, inst_list
+-- TODO: the following fields are not implemented yet: external_reservations
 
 -- | Given a network's UUID, this function lists all connections from
 -- the network to nodegroups including the respective mode and links.
