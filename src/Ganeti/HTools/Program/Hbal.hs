@@ -54,7 +54,8 @@ import Ganeti.HTools.CLI
 import Ganeti.HTools.ExtLoader
 import Ganeti.HTools.Types
 import Ganeti.HTools.Loader
-import Ganeti.OpCodes (wrapOpCode, setOpComment, OpCode, MetaOpCode)
+import Ganeti.OpCodes (wrapOpCode, setOpComment, setOpPriority,
+                       OpCode, MetaOpCode)
 import Ganeti.Jobs as Jobs
 import Ganeti.Types
 import Ganeti.Utils
@@ -93,6 +94,7 @@ options = do
     , oExTags
     , oExInst
     , oSaveCluster
+    , oPriority
     ]
 
 -- | The list of arguments supported by the program.
@@ -224,7 +226,9 @@ maybeExecJobs opts ord_plc fin_nl il cmd_jobs =
             Nothing ->
               return $ Bad "Execution of commands possible only on LUXI"
             Just master ->
-              execWithCancel annotateOpCode master fin_nl il cmd_jobs)
+              let annotator = maybe id setOpPriority (optPriority opts) .
+                              annotateOpCode
+              in execWithCancel annotator master fin_nl il cmd_jobs)
     else return $ Ok ()
 
 -- | Signal handler for graceful termination.
