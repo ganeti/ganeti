@@ -395,8 +395,8 @@ docinput = \
 	doc/design-partitioned.rst \
 	doc/design-query-splitting.rst \
 	doc/design-query2.rst \
-	doc/design-remote-commands.rst \
 	doc/design-resource-model.rst \
+	doc/design-restricted-commands.rst \
 	doc/design-shared-storage.rst \
 	doc/design-monitoring-agent.rst \
 	doc/design-virtual-clusters.rst \
