@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2012 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2012, 2013 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -25,7 +25,7 @@
 # $prefix/lib/python2.4/site-packages/ganeti and the command line utils to
 # $prefix/sbin. It needs passwordless root login to the nodes.
 
-set -e
+set -e -u
 
 usage() {
   echo "Usage: $0 [--no-restart] [--no-cron] [--no-debug] hosts..." >&2
@@ -92,6 +92,7 @@ make $make_args install DESTDIR="$TXD"
 # fixed; we can read the prefix vars/etc.
 PREFIX="$(echo @PREFIX@ | $SED)"
 SYSCONFDIR="$(echo @SYSCONFDIR@ | $SED)"
+LIBDIR="$(echo @LIBDIR@ | $SED)"
 PKGLIBDIR="$(echo @PKGLIBDIR@ | $SED)"
 
 # copy additional needed files
