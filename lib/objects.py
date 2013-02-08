@@ -499,6 +499,8 @@ class ConfigData(ConfigObject):
         self.cluster.drbd_usermode_helper = constants.DEFAULT_DRBD_HELPER
     if self.networks is None:
       self.networks = {}
+    for network in self.networks.values():
+      network.UpgradeConfig()
 
 
 class NIC(ConfigObject):
