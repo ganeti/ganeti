@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -2302,8 +2302,12 @@ def FormatError(err):
   elif isinstance(err, errors.ParameterError):
     obuf.write("Failure: unknown/wrong parameter name '%s'" % msg)
   elif isinstance(err, luxi.NoMasterError):
-    obuf.write("Cannot communicate with the master daemon.\nIs it running"
-               " and listening for connections?")
+    if err.args[0] == pathutils.MASTER_SOCKET:
+      daemon = "master"
+    else:
+      daemon = "config"
+    obuf.write("Cannot communicate with the %s daemon.\nIs it running"
+               " and listening for connections?" % daemon)
   elif isinstance(err, luxi.TimeoutError):
     obuf.write("Timeout while talking to the master daemon. Jobs might have"
                " been submitted and will continue to run even if the call"
