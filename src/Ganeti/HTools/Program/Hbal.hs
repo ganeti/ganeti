@@ -99,9 +99,12 @@ options = do
 arguments :: [ArgCompletion]
 arguments = []
 
+-- | A simple type alias for clearer signature.
+type Annotator = OpCode -> MetaOpCode
+
 -- | Wraps an 'OpCode' in a 'MetaOpCode' while also adding a comment
 -- about what generated the opcode.
-annotateOpCode :: OpCode -> MetaOpCode
+annotateOpCode :: Annotator
 annotateOpCode =
   setOpComment ("rebalancing via hbal " ++ version) . wrapOpCode
 
@@ -175,25 +178,24 @@ saveBalanceCommands opts cmd_data = do
       printf "The commands have been written to file '%s'\n" out_path
 
 -- | Wrapper over execJobSet checking for early termination via an IORef.
-execCancelWrapper :: String -> Node.List
+execCancelWrapper :: Annotator -> String -> Node.List
                   -> Instance.List -> IORef Int -> [JobSet] -> IO (Result ())
-execCancelWrapper _      _  _  _    [] = return $ Ok ()
-execCancelWrapper master nl il cref alljss = do
+execCancelWrapper _    _      _  _  _    [] = return $ Ok ()
+execCancelWrapper anno master nl il cref alljss = do
   cancel <- readIORef cref
   if cancel > 0
     then return . Bad $ "Exiting early due to user request, " ++
                         show (length alljss) ++ " jobset(s) remaining."
-    else execJobSet master nl il cref alljss
+    else execJobSet anno master nl il cref alljss
 
 -- | Execute an entire jobset.
-execJobSet :: String -> Node.List
+execJobSet :: Annotator -> String -> Node.List
            -> Instance.List -> IORef Int -> [JobSet] -> IO (Result ())
-execJobSet _      _  _  _    [] = return $ Ok ()
-execJobSet master nl il cref (js:jss) = do
+execJobSet _    _      _  _  _    [] = return $ Ok ()
+execJobSet anno master nl il cref (js:jss) = do
   -- map from jobset (htools list of positions) to [[opcodes]]
   let jobs = map (\(_, idx, move, _) ->
-                      map annotateOpCode $
-                      Cluster.iMoveToJob nl il idx move) js
+                    map anno $ Cluster.iMoveToJob nl il idx move) js
       descr = map (\(_, idx, _, _) -> Container.nameOf il idx) js
       logfn = putStrLn . ("Got job IDs" ++) . commaJoin . map (show . fromJobId)
   putStrLn $ "Executing jobset for instances " ++ commaJoin descr
@@ -202,7 +204,7 @@ execJobSet master nl il cref (js:jss) = do
   case jrs of
     Bad x -> return $ Bad x
     Ok x -> if null failures
-              then execCancelWrapper master nl il cref jss
+              then execCancelWrapper anno master nl il cref jss
               else return . Bad . unlines $ [
                 "Not all jobs completed successfully: " ++ show failures,
                 "Aborting."]
@@ -219,9 +221,10 @@ maybeExecJobs :: Options
 maybeExecJobs opts ord_plc fin_nl il cmd_jobs =
   if optExecJobs opts && not (null ord_plc)
     then (case optLuxi opts of
-            Nothing -> return $
-                       Bad "Execution of commands possible only on LUXI"
-            Just master -> execWithCancel master fin_nl il cmd_jobs)
+            Nothing ->
+              return $ Bad "Execution of commands possible only on LUXI"
+            Just master ->
+              execWithCancel annotateOpCode master fin_nl il cmd_jobs)
     else return $ Ok ()
 
 -- | Signal handler for graceful termination.
@@ -241,13 +244,13 @@ handleSigTerm cref = do
 
 -- | Prepares to run a set of jobsets with handling of signals and early
 -- termination.
-execWithCancel :: String -> Node.List -> Instance.List -> [JobSet]
+execWithCancel :: Annotator -> String -> Node.List -> Instance.List -> [JobSet]
                -> IO (Result ())
-execWithCancel master fin_nl il cmd_jobs = do
+execWithCancel anno master fin_nl il cmd_jobs = do
   cref <- newIORef 0
   mapM_ (\(hnd, sig) -> installHandler sig (Catch (hnd cref)) Nothing)
     [(handleSigTerm, softwareTermination), (handleSigInt, keyboardSignal)]
-  execCancelWrapper master fin_nl il cref cmd_jobs
+  execCancelWrapper anno master fin_nl il cref cmd_jobs
 
 -- | Select the target node group.
 selectGroup :: Options -> Group.List -> Node.List -> Instance.List
