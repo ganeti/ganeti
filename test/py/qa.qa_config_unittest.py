@@ -222,6 +222,30 @@ class TestQaConfigLoad(unittest.TestCase):
     # Unknown hypervisor
     testconfig[qa_config._ENABLED_HV_KEY] = ["#unknownhv#"]
     check_fn("Unknown hypervisor(s) enabled:")
+    del testconfig[qa_config._ENABLED_HV_KEY]
+
+    # Invalid path for virtual cluster base directory
+    testconfig[qa_config._VCLUSTER_MASTER_KEY] = "value"
+    testconfig[qa_config._VCLUSTER_BASEDIR_KEY] = "./not//normalized/"
+    check_fn("Path given in option 'vcluster-basedir' must be")
+
+    # Inconsistent virtual cluster settings
+    testconfig.pop(qa_config._VCLUSTER_MASTER_KEY)
+    testconfig[qa_config._VCLUSTER_BASEDIR_KEY] = "/tmp"
+    check_fn("All or none of the")
+
+    testconfig[qa_config._VCLUSTER_MASTER_KEY] = "master.example.com"
+    testconfig.pop(qa_config._VCLUSTER_BASEDIR_KEY)
+    check_fn("All or none of the")
+
+    # Accepted virtual cluster settings
+    testconfig[qa_config._VCLUSTER_MASTER_KEY] = "master.example.com"
+    testconfig[qa_config._VCLUSTER_BASEDIR_KEY] = "/tmp"
+
+    self._WriteConfig(filename, testconfig)
+    result = qa_config._QaConfig.Load(filename)
+    self.assertEqual(result.GetVclusterSettings(),
+                     ("master.example.com", "/tmp"))
 
 
 class TestQaConfigWithSampleConfig(unittest.TestCase):
@@ -256,6 +280,12 @@ class TestQaConfigWithSampleConfig(unittest.TestCase):
 
   def testGetMasterNode(self):
     self.assertEqual(self.config.GetMasterNode(), self.config["nodes"][0])
+
+  def testGetVclusterSettings(self):
+    # Shipped default settings should be to not use a virtual cluster
+    self.assertEqual(self.config.GetVclusterSettings(), (None, None))
+
+    self.assertFalse(qa_config.UseVirtualCluster(_cfg=self.config))
 
 
 class TestQaConfig(unittest.TestCase):

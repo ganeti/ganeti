@@ -9,6 +9,10 @@
   "# Name used for renaming cluster": null,
   "rename": "xen-test-rename",
 
+  "# Virtual cluster": null,
+  "#vcluster-master": "xen-vcluster",
+  "#vcluster-basedir": "/srv/ganeti/vcluster",
+
   "enabled-hypervisors": "xen-pvm",
   "# Dict of hypervisor name and parameters (like on the cmd line)": null,
   "hypervisor-parameters": {},

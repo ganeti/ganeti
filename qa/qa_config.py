@@ -29,12 +29,15 @@ from ganeti import constants
 from ganeti import utils
 from ganeti import serializer
 from ganeti import compat
+from ganeti import ht
 
 import qa_error
 
 
 _INSTANCE_CHECK_KEY = "instance-check"
 _ENABLED_HV_KEY = "enabled-hypervisors"
+_VCLUSTER_MASTER_KEY = "vcluster-master"
+_VCLUSTER_BASEDIR_KEY = "vcluster-basedir"
 
 #: QA configuration (L{_QaConfig})
 _config = None
@@ -299,6 +302,16 @@ class _QaConfig(object):
       raise qa_error.Error("Unknown hypervisor(s) enabled: %s" %
                            utils.CommaJoin(difference))
 
+    (vc_master, vc_basedir) = self.GetVclusterSettings()
+    if bool(vc_master) != bool(vc_basedir):
+      raise qa_error.Error("All or none of the config options '%s' and '%s'"
+                           " must be set" %
+                           (_VCLUSTER_MASTER_KEY, _VCLUSTER_BASEDIR_KEY))
+
+    if vc_basedir and not utils.IsNormAbsPath(vc_basedir):
+      raise qa_error.Error("Path given in option '%s' must be absolute and"
+                           " normalized" % _VCLUSTER_BASEDIR_KEY)
+
   def __getitem__(self, name):
     """Returns configuration value.
 
@@ -378,6 +391,15 @@ class _QaConfig(object):
     """
     return (not self.GetExclusiveStorage() or
             templ in constants.DTS_EXCL_STORAGE)
+
+  def GetVclusterSettings(self):
+    """Returns settings for virtual cluster.
+
+    """
+    master = self.get(_VCLUSTER_MASTER_KEY)
+    basedir = self.get(_VCLUSTER_BASEDIR_KEY)
+
+    return (master, basedir)
 
 
 def Load(path):
@@ -625,3 +647,34 @@ def AcquireManyNodes(num, exclude=None):
 def ReleaseManyNodes(nodes):
   for node in nodes:
     node.Release()
+
+
+def GetVclusterSettings():
+  """Wrapper for L{_QaConfig.GetVclusterSettings}.
+
+  """
+  return GetConfig().GetVclusterSettings()
+
+
+def UseVirtualCluster(_cfg=None):
+  """Returns whether a virtual cluster is used.
+
+  @rtype: bool
+
+  """
+  if _cfg is None:
+    cfg = GetConfig()
+  else:
+    cfg = _cfg
+
+  (master, _) = cfg.GetVclusterSettings()
+
+  return bool(master)
+
+
+@ht.WithDesc("No virtual cluster")
+def NoVirtualCluster():
+  """Used to disable tests for virtual clusters.
+
+  """
+  return not UseVirtualCluster()
