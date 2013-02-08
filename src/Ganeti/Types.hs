@@ -11,7 +11,7 @@ representation should go into 'Ganeti.HTools.Types'.
 
 {-
 
-Copyright (C) 2012 Google Inc.
+Copyright (C) 2012, 2013 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -86,6 +86,8 @@ module Ganeti.Types
   , JobDependency(..)
   , OpSubmitPriority(..)
   , opSubmitPriorityToRaw
+  , parseSubmitPriority
+  , fmtSubmitPriority
   , OpStatus(..)
   , opStatusToRaw
   , opStatusFromRaw
@@ -446,6 +448,19 @@ $(THH.declareIADT "OpSubmitPriority"
   , ("OpPrioHigh",   'C.opPrioHigh)
   ])
 $(THH.makeJSONInstance ''OpSubmitPriority)
+
+-- | Parse submit priorities from a string.
+parseSubmitPriority :: (Monad m) => String -> m OpSubmitPriority
+parseSubmitPriority "low"    = return OpPrioLow
+parseSubmitPriority "normal" = return OpPrioNormal
+parseSubmitPriority "high"   = return OpPrioHigh
+parseSubmitPriority str      = fail $ "Unknown priority '" ++ str ++ "'"
+
+-- | Format a submit priority as string.
+fmtSubmitPriority :: OpSubmitPriority -> String
+fmtSubmitPriority OpPrioLow    = "low"
+fmtSubmitPriority OpPrioNormal = "normal"
+fmtSubmitPriority OpPrioHigh   = "high"
 
 -- | Our ADT for the OpCode status at runtime (while in a job).
 $(THH.declareSADT "OpStatus"

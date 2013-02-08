@@ -7,7 +7,7 @@
 
 {-
 
-Copyright (C) 2012 Google Inc.
+Copyright (C) 2012, 2013 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -370,6 +370,11 @@ prop_JobDependency_serialisation = testSerialisation
 prop_OpSubmitPriority_serialisation :: OpSubmitPriority -> Property
 prop_OpSubmitPriority_serialisation = testSerialisation
 
+-- | Tests string formatting for 'OpSubmitPriority'.
+prop_OpSubmitPriority_string :: OpSubmitPriority -> Property
+prop_OpSubmitPriority_string prio =
+  parseSubmitPriority (fmtSubmitPriority prio) ==? Just prio
+
 -- | Test 'ELogType' serialisation.
 prop_ELogType_serialisation :: ELogType -> Property
 prop_ELogType_serialisation = testSerialisation
@@ -416,5 +421,6 @@ testSuite "Types"
   , 'case_JobId_BadTypes
   , 'prop_JobDependency_serialisation
   , 'prop_OpSubmitPriority_serialisation
+  , 'prop_OpSubmitPriority_string
   , 'prop_ELogType_serialisation
   ]
