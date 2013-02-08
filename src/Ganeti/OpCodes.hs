@@ -6,7 +6,7 @@
 
 {-
 
-Copyright (C) 2009, 2010, 2011, 2012 Google Inc.
+Copyright (C) 2009, 2010, 2011, 2012, 2013 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -44,6 +44,7 @@ module Ganeti.OpCodes
   , MetaOpCode(..)
   , wrapOpCode
   , setOpComment
+  , setOpPriority
   ) where
 
 import Data.Maybe (fromMaybe)
@@ -667,3 +668,8 @@ wrapOpCode = MetaOpCode defOpParams
 setOpComment :: String -> MetaOpCode -> MetaOpCode
 setOpComment comment (MetaOpCode common op) =
   MetaOpCode (common { opComment = Just comment}) op
+
+-- | Sets the priority on a meta opcode.
+setOpPriority :: OpSubmitPriority -> MetaOpCode -> MetaOpCode
+setOpPriority prio (MetaOpCode common op) =
+  MetaOpCode (common { opPriority = prio }) op
