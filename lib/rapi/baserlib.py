@@ -465,13 +465,13 @@ class OpcodeResource(ResourceBase):
 
   @cvar POST_OPCODE: Set this to a class derived from L{opcodes.OpCode} to
     automatically generate a POST handler submitting the opcode
-  @cvar POST_RENAME: Set this to rename parameters in the DELETE handler (see
+  @cvar POST_RENAME: Set this to rename parameters in the POST handler (see
     L{baserlib.FillOpcode})
   @ivar GetPostOpInput: Define this to override the default method for
     getting opcode parameters (see L{baserlib.OpcodeResource._GetDefaultData})
 
   @cvar DELETE_OPCODE: Set this to a class derived from L{opcodes.OpCode} to
-    automatically generate a GET handler submitting the opcode
+    automatically generate a DELETE handler submitting the opcode
   @cvar DELETE_RENAME: Set this to rename parameters in the DELETE handler (see
     L{baserlib.FillOpcode})
   @ivar GetDeleteOpInput: Define this to override the default method for
