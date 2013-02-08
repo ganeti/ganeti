@@ -38,10 +38,18 @@ from ganeti import objects
 from ganeti import compat
 from ganeti import netutils
 from ganeti import pathutils
+from ganeti import serializer
 
 
 # Size of reads in _CanReadDevice
 _DEVICE_READ_SIZE = 128 * 1024
+
+
+class RbdShowmappedJsonError(Exception):
+  """`rbd showmmapped' JSON formatting error Exception class.
+
+  """
+  pass
 
 
 def _IgnoreError(fn, *args, **kwargs):
@@ -2726,14 +2734,7 @@ class RADOSBlockDevice(BlockDev):
     name = unique_id[1]
 
     # Check if the mapping already exists.
-    showmap_cmd = [constants.RBD_CMD, "showmapped", "-p", pool]
-    result = utils.RunCmd(showmap_cmd)
-    if result.failed:
-      _ThrowError("rbd showmapped failed (%s): %s",
-                  result.fail_reason, result.output)
-
-    rbd_dev = self._ParseRbdShowmappedOutput(result.output, name)
-
+    rbd_dev = self._VolumeToBlockdev(pool, name)
     if rbd_dev:
       # The mapping exists. Return it.
       return rbd_dev
@@ -2746,14 +2747,7 @@ class RADOSBlockDevice(BlockDev):
                   result.fail_reason, result.output)
 
     # Find the corresponding rbd device.
-    showmap_cmd = [constants.RBD_CMD, "showmapped", "-p", pool]
-    result = utils.RunCmd(showmap_cmd)
-    if result.failed:
-      _ThrowError("rbd map succeeded, but showmapped failed (%s): %s",
-                  result.fail_reason, result.output)
-
-    rbd_dev = self._ParseRbdShowmappedOutput(result.output, name)
-
+    rbd_dev = self._VolumeToBlockdev(pool, name)
     if not rbd_dev:
       _ThrowError("rbd map succeeded, but could not find the rbd block"
                   " device in output of showmapped, for volume: %s", name)
@@ -2761,16 +2755,93 @@ class RADOSBlockDevice(BlockDev):
     # The device was successfully mapped. Return it.
     return rbd_dev
 
+  @classmethod
+  def _VolumeToBlockdev(cls, pool, volume_name):
+    """Do the 'volume name'-to-'rbd block device' resolving.
+
+    @type pool: string
+    @param pool: RADOS pool to use
+    @type volume_name: string
+    @param volume_name: the name of the volume whose device we search for
+    @rtype: string or None
+    @return: block device path if the volume is mapped, else None
+
+    """
+    try:
+      # Newer versions of the rbd tool support json output formatting. Use it
+      # if available.
+      showmap_cmd = [
+        constants.RBD_CMD,
+        "showmapped",
+        "-p",
+        pool,
+        "--format",
+        "json"
+        ]
+      result = utils.RunCmd(showmap_cmd)
+      if result.failed:
+        logging.error("rbd JSON output formatting returned error (%s): %s,"
+                      "falling back to plain output parsing",
+                      result.fail_reason, result.output)
+        raise RbdShowmappedJsonError
+
+      return cls._ParseRbdShowmappedJson(result.output, volume_name)
+    except RbdShowmappedJsonError:
+      # For older versions of rbd, we have to parse the plain / text output
+      # manually.
+      showmap_cmd = [constants.RBD_CMD, "showmapped", "-p", pool]
+      result = utils.RunCmd(showmap_cmd)
+      if result.failed:
+        _ThrowError("rbd showmapped failed (%s): %s",
+                    result.fail_reason, result.output)
+
+      return cls._ParseRbdShowmappedPlain(result.output, volume_name)
+
   @staticmethod
-  def _ParseRbdShowmappedOutput(output, volume_name):
-    """Parse the output of `rbd showmapped'.
+  def _ParseRbdShowmappedJson(output, volume_name):
+    """Parse the json output of `rbd showmapped'.
+
+    This method parses the json output of `rbd showmapped' and returns the rbd
+    block device path (e.g. /dev/rbd0) that matches the given rbd volume.
+
+    @type output: string
+    @param output: the json output of `rbd showmapped'
+    @type volume_name: string
+    @param volume_name: the name of the volume whose device we search for
+    @rtype: string or None
+    @return: block device path if the volume is mapped, else None
+
+    """
+    try:
+      devices = serializer.LoadJson(output)
+    except ValueError, err:
+      _ThrowError("Unable to parse JSON data: %s" % err)
+
+    rbd_dev = None
+    for d in devices.values(): # pylint: disable=E1103
+      try:
+        name = d["name"]
+      except KeyError:
+        _ThrowError("'name' key missing from json object %s", devices)
+
+      if name == volume_name:
+        if rbd_dev is not None:
+          _ThrowError("rbd volume %s is mapped more than once", volume_name)
+
+        rbd_dev = d["device"]
+
+    return rbd_dev
+
+  @staticmethod
+  def _ParseRbdShowmappedPlain(output, volume_name):
+    """Parse the (plain / text) output of `rbd showmapped'.
 
     This method parses the output of `rbd showmapped' and returns
     the rbd block device path (e.g. /dev/rbd0) that matches the
     given rbd volume.
 
     @type output: string
-    @param output: the whole output of `rbd showmapped'
+    @param output: the plain text output of `rbd showmapped'
     @type volume_name: string
     @param volume_name: the name of the volume whose device we search for
     @rtype: string or None
@@ -2781,30 +2852,31 @@ class RADOSBlockDevice(BlockDev):
     volumefield = 2
     devicefield = 4
 
-    field_sep = "\t"
-
     lines = output.splitlines()
-    splitted_lines = map(lambda l: l.split(field_sep), lines)
 
-    # Check empty output.
+    # Try parsing the new output format (ceph >= 0.55).
+    splitted_lines = map(lambda l: l.split(), lines)
+
+    # Check for empty output.
     if not splitted_lines:
-      _ThrowError("rbd showmapped returned empty output")
+      return None
 
-    # Check showmapped header line, to determine number of fields.
+    # Check showmapped output, to determine number of fields.
     field_cnt = len(splitted_lines[0])
     if field_cnt != allfields:
-      _ThrowError("Cannot parse rbd showmapped output because its format"
-                  " seems to have changed; expected %s fields, found %s",
-                  allfields, field_cnt)
+      # Parsing the new format failed. Fallback to parsing the old output
+      # format (< 0.55).
+      splitted_lines = map(lambda l: l.split("\t"), lines)
+      if field_cnt != allfields:
+        _ThrowError("Cannot parse rbd showmapped output expected %s fields,"
+                    " found %s", allfields, field_cnt)
 
     matched_lines = \
       filter(lambda l: len(l) == allfields and l[volumefield] == volume_name,
              splitted_lines)
 
     if len(matched_lines) > 1:
-      _ThrowError("The rbd volume %s is mapped more than once."
-                  " This shouldn't happen, try to unmap the extra"
-                  " devices manually.", volume_name)
+      _ThrowError("rbd volume %s mapped more than once", volume_name)
 
     if matched_lines:
       # rbd block device found. Return it.
@@ -2845,13 +2917,7 @@ class RADOSBlockDevice(BlockDev):
     name = unique_id[1]
 
     # Check if the mapping already exists.
-    showmap_cmd = [constants.RBD_CMD, "showmapped", "-p", pool]
-    result = utils.RunCmd(showmap_cmd)
-    if result.failed:
-      _ThrowError("rbd showmapped failed [during unmap](%s): %s",
-                  result.fail_reason, result.output)
-
-    rbd_dev = self._ParseRbdShowmappedOutput(result.output, name)
+    rbd_dev = self._VolumeToBlockdev(pool, name)
 
     if rbd_dev:
       # The mapping exists. Unmap the rbd device.
