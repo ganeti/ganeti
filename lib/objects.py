@@ -2043,7 +2043,7 @@ class Network(TaggableObject):
     "ext_reservations",
     ] + _TIMESTAMPS + _UUID
 
-  def HooksDict(self, prefix):
+  def HooksDict(self, prefix=""):
     """Export a dictionary used by hooks with a network's information.
 
     @type prefix: String
@@ -2051,7 +2051,7 @@ class Network(TaggableObject):
 
     """
     result = {
-      "%sNETWORK" % prefix: self.name,
+      "%sNETWORK_NAME" % prefix: self.name,
       "%sNETWORK_UUID" % prefix: self.uuid,
       "%sNETWORK_TAGS" % prefix: " ".join(self.tags),
     }

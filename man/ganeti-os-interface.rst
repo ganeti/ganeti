@@ -118,7 +118,7 @@ NIC_%N_FRONTEND_TYPE
     instance, this can be one of: ``rtl8139``, ``ne2k_pci``,
     ``ne2k_isa``, ``paravirtual``.
 
-NIC_%d_NETWORK
+NIC_%d_NETWORK_NAME
     (Optional) If a NIC network is specified, the network's name.
 
 NIC_%d_NETWORK_UUID

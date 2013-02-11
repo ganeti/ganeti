@@ -148,29 +148,6 @@ def _OpenTap(vnet_hdr=True):
   return (ifname, tapfd)
 
 
-def _BuildNetworkEnv(name, network, gateway, network6, gateway6,
-                     mac_prefix, tags, env):
-  """Build environment variables concerning a Network.
-
-  """
-  if name:
-    env["NETWORK_NAME"] = name
-  if network:
-    env["NETWORK_SUBNET"] = network
-  if gateway:
-    env["NETWORK_GATEWAY"] = gateway
-  if network6:
-    env["NETWORK_SUBNET6"] = network6
-  if gateway6:
-    env["NETWORK_GATEWAY6"] = gateway6
-  if mac_prefix:
-    env["NETWORK_MAC_PREFIX"] = mac_prefix
-  if tags:
-    env["NETWORK_TAGS"] = " ".join(tags)
-
-  return env
-
-
 class QmpMessage:
   """QEMU Messaging Protocol (QMP) message.
 
@@ -854,9 +831,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     if nic.network:
       n = objects.Network.FromDict(nic.netinfo)
-      _BuildNetworkEnv(nic.network, n.network, n.gateway,
-                       n.network6, n.gateway6,
-                       n.mac_prefix, n.tags, env)
+      env.update(n.HooksDict())
 
     if nic.nicparams[constants.NIC_MODE] == constants.NIC_MODE_BRIDGED:
       env["BRIDGE"] = nic.nicparams[constants.NIC_LINK]

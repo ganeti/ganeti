@@ -1512,7 +1512,7 @@ def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
         # FIXME: broken network reference: the instance NIC specifies a
         # network, but the relevant network entry was not in the config. This
         # should be made impossible.
-        env["INSTANCE_NIC%d_NETWORK" % idx] = net
+        env["INSTANCE_NIC%d_NETWORK_NAME" % idx] = net
       if mode == constants.NIC_MODE_BRIDGED:
         env["INSTANCE_NIC%d_BRIDGE" % idx] = link
   else:
