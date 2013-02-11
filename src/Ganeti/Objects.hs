@@ -174,8 +174,6 @@ $(buildObject "Network" "network" $
   [ simpleField "name"             [t| NonEmptyString |]
   , optionalField $
     simpleField "mac_prefix"       [t| String |]
-  , optionalField $
-    simpleField "family"           [t| Int |]
   , simpleField "network"          [t| NonEmptyString |]
   , optionalField $
     simpleField "network6"         [t| String |]
@@ -183,8 +181,6 @@ $(buildObject "Network" "network" $
     simpleField "gateway"          [t| String |]
   , optionalField $
     simpleField "gateway6"         [t| String |]
-  , optionalField $
-    simpleField "size"             [t| J.JSValue |]
   , optionalField $
     simpleField "reservations"     [t| String |]
   , optionalField $

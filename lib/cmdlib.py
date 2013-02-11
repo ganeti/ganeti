@@ -16242,8 +16242,7 @@ class LUNetworkAdd(LogicalUnit):
                            network6=self.op.network6,
                            gateway6=self.op.gateway6,
                            mac_prefix=self.op.mac_prefix,
-                           uuid=self.network_uuid,
-                           family=constants.IP4_VERSION)
+                           uuid=self.network_uuid)
     # Initialize the associated address pool
     try:
       pool = network.AddressPool.InitializeNetwork(nobj)

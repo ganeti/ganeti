@@ -123,14 +123,12 @@ class AddressPool(object):
     return (self.reservations | self.ext_reservations)
 
   def Validate(self):
-    assert self.net.family == 4
     assert len(self.reservations) == self._GetSize()
     assert len(self.ext_reservations) == self._GetSize()
     all_res = self.reservations & self.ext_reservations
     assert not all_res.any()
 
     if self.gateway is not None:
-      assert self.net.family == self.gateway.version
       assert self.gateway in self.network
 
     if self.network6 and self.gateway6:

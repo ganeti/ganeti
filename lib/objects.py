@@ -2035,12 +2035,10 @@ class Network(TaggableObject):
     "name",
     "serial_no",
     "mac_prefix",
-    "family",
     "network",
     "network6",
     "gateway",
     "gateway6",
-    "size",
     "reservations",
     "ext_reservations",
     ] + _TIMESTAMPS + _UUID
@@ -2055,7 +2053,6 @@ class Network(TaggableObject):
     result = {
       "%sNETWORK" % prefix: self.name,
       "%sNETWORK_UUID" % prefix: self.uuid,
-      "%sNETWORK_FAMILY" % prefix: str(self.family),
       "%sNETWORK_TAGS" % prefix: " ".join(self.tags),
     }
     if self.network:
@@ -2075,11 +2072,13 @@ class Network(TaggableObject):
   def FromDict(cls, val):
     """Custom function for networks.
 
-    Remove deprecated network_type. Still this info can be passed via tags.
+    Remove deprecated network_type and family.
 
     """
     if "network_type" in val:
       del val["network_type"]
+    if "family" in val:
+      del val["family"]
     obj = super(Network, cls).FromDict(val)
     return obj
 
