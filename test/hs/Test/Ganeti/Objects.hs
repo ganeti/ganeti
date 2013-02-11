@@ -31,7 +31,6 @@ module Test.Ganeti.Objects
   , Node(..)
   , genEmptyCluster
   , genValidNetwork
-  , genNetworkType
   , genBitStringMaxLen
   ) where
 
@@ -45,7 +44,6 @@ import qualified Data.Map as Map
 import qualified Data.Set as Set
 import qualified Text.JSON as J
 
-import Test.Ganeti.Query.Language (genJSValue)
 import Test.Ganeti.TestHelper
 import Test.Ganeti.TestCommon
 import Test.Ganeti.Types ()
@@ -169,23 +167,16 @@ genValidNetwork = do
   -- generate netmask for the IPv4 network
   netmask <- choose (24::Int, 30)
   name <- genName >>= mkNonEmpty
-  network_type <- genMaybe genNetworkType
   mac_prefix <- genMaybe genName
-  net_family <- arbitrary
   net <- genIp4NetWithNetmask netmask
   net6 <- genMaybe genIp6Net
   gateway <- genMaybe genIp4AddrStr
   gateway6 <- genMaybe genIp6Addr
-  size <- genMaybe genJSValue
   res <- liftM Just (genBitString $ netmask2NumHosts netmask)
   ext_res <- liftM Just (genBitString $ netmask2NumHosts netmask)
-  let n = Network name network_type mac_prefix net_family net net6 gateway
-          gateway6 size res ext_res 0 Set.empty
+  let n = Network name mac_prefix net net6 gateway
+          gateway6 res ext_res 0 Set.empty
   return n
-
--- | Generates an arbitrary network type.
-genNetworkType :: Gen NetworkType
-genNetworkType = elements [ PrivateNetwork, PublicNetwork ]
 
 -- | Generate an arbitrary string consisting of '0' and '1' of the given length.
 genBitString :: Int -> Gen String

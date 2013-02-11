@@ -173,8 +173,6 @@ roleDescription NRMaster    = "master"
 $(buildObject "Network" "network" $
   [ simpleField "name"             [t| NonEmptyString |]
   , optionalField $
-    simpleField "network_type"     [t| NetworkType |]
-  , optionalField $
     simpleField "mac_prefix"       [t| String |]
   , optionalField $
     simpleField "family"           [t| Int |]

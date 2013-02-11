@@ -1213,16 +1213,6 @@ NIC_VALID_MODES = compat.UniqueFrozenset([
 RESERVE_ACTION = "reserve"
 RELEASE_ACTION = "release"
 
-# An extra description of the network.
-# Can be used by hooks/kvm-vif-bridge to apply different rules
-NETWORK_TYPE_PRIVATE = "private"
-NETWORK_TYPE_PUBLIC = "public"
-
-NETWORK_VALID_TYPES = compat.UniqueFrozenset([
-  NETWORK_TYPE_PRIVATE,
-  NETWORK_TYPE_PUBLIC,
-  ])
-
 NICS_PARAMETER_TYPES = {
   NIC_MODE: VTYPE_STRING,
   NIC_LINK: VTYPE_STRING,

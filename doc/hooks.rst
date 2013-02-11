@@ -224,7 +224,7 @@ Adds a network to the cluster.
 
 :directory: network-add
 :env. vars: NETWORK_NAME, NETWORK_SUBNET, NETWORK_GATEWAY, NETWORK_SUBNET6,
-            NETWORK_GATEWAY6, NETWORK_TYPE, NETWORK_MAC_PREFIX, NETWORK_TAGS
+            NETWORK_GATEWAY6, NETWORK_MAC_PREFIX, NETWORK_TAGS
 :pre-execution: master node
 :post-execution: master node
 
@@ -247,7 +247,7 @@ Connects a network to a nodegroup.
 :env. vars: GROUP_NAME, NETWORK_NAME,
             GROUP_NETWORK_MODE, GROUP_NETWORK_LINK,
             NETWORK_SUBNET, NETWORK_GATEWAY, NETWORK_SUBNET6,
-            NETWORK_GATEWAY6, NETWORK_TYPE, NETWORK_MAC_PREFIX, NETWORK_TAGS
+            NETWORK_GATEWAY6, NETWORK_MAC_PREFIX, NETWORK_TAGS
 :pre-execution: nodegroup nodes
 :post-execution: nodegroup nodes
 
@@ -261,7 +261,7 @@ Disconnects a network from a nodegroup.
 :env. vars: GROUP_NAME, NETWORK_NAME,
             GROUP_NETWORK_MODE, GROUP_NETWORK_LINK,
             NETWORK_SUBNET, NETWORK_GATEWAY, NETWORK_SUBNET6,
-            NETWORK_GATEWAY6, NETWORK_TYPE, NETWORK_MAC_PREFIX, NETWORK_TAGS
+            NETWORK_GATEWAY6, NETWORK_MAC_PREFIX, NETWORK_TAGS
 :pre-execution: nodegroup nodes
 :post-execution: nodegroup nodes
 
@@ -273,7 +273,7 @@ Modifies a network.
 
 :directory: network-modify
 :env. vars: NETWORK_NAME, NETWORK_SUBNET, NETWORK_GATEWAY, NETWORK_SUBNET6,
-            NETWORK_GATEWAY6, NETWORK_TYPE, NETWORK_MAC_PREFIX, NETWORK_TAGS
+            NETWORK_GATEWAY6, NETWORK_MAC_PREFIX, NETWORK_TAGS
 :pre-execution: master node
 :post-execution: master node
 
@@ -290,8 +290,7 @@ INSTANCE_NICn_NETWORK, INSTANCE_NICn_NETWORK_FAMILY,
 INSTANCE_NICn_NETWORK_UUID, INSTANCE_NICn_NETWORK_SUBNET,
 INSTANCE_NICn_NETWORK_GATEWAY, INSTANCE_NICn_NETWORK_SUBNET6,
 INSTANCE_NICn_NETWORK_GATEWAY6, INSTANCE_NICn_NETWORK_MAC_PREFIX,
-INSTANCE_NICn_NETWORK_TYPE, INSTANCE_DISK_COUNT, INSTANCE_DISKn_SIZE,
-INSTANCE_DISKn_MODE.
+INSTANCE_DISK_COUNT, INSTANCE_DISKn_SIZE, INSTANCE_DISKn_MODE.
 
 The INSTANCE_NICn_* and INSTANCE_DISKn_* variables represent the
 properties of the *n* -th NIC and disk, and are zero-indexed.

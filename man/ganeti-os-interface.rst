@@ -144,9 +144,6 @@ NIC_%d_NETWORK_GATEWAY6
 NIC_%d_NETWORK_MAC_PREFIX
     (Optional) If a NIC network is specified, the network's mac prefix.
 
-NIC_%d_NETWORK_TYPE
-    (Optional) If a NIC network is specified, the network's type.
-
 NIC_%d_NETWORK_TAGS
     (Optional) If a NIC network is specified, the network's tags, space
     separated.

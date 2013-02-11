@@ -149,7 +149,7 @@ def _OpenTap(vnet_hdr=True):
 
 
 def _BuildNetworkEnv(name, network, gateway, network6, gateway6,
-                     network_type, mac_prefix, tags, env):
+                     mac_prefix, tags, env):
   """Build environment variables concerning a Network.
 
   """
@@ -165,8 +165,6 @@ def _BuildNetworkEnv(name, network, gateway, network6, gateway6,
     env["NETWORK_GATEWAY6"] = gateway6
   if mac_prefix:
     env["NETWORK_MAC_PREFIX"] = mac_prefix
-  if network_type:
-    env["NETWORK_TYPE"] = network_type
   if tags:
     env["NETWORK_TAGS"] = " ".join(tags)
 
@@ -857,7 +855,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if nic.network:
       n = objects.Network.FromDict(nic.netinfo)
       _BuildNetworkEnv(nic.network, n.network, n.gateway,
-                       n.network6, n.gateway6, n.network_type,
+                       n.network6, n.gateway6,
                        n.mac_prefix, n.tags, env)
 
     if nic.nicparams[constants.NIC_MODE] == constants.NIC_MODE_BRIDGED:

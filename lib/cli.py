@@ -117,7 +117,6 @@ __all__ = [
   "NET_OPT",
   "NETWORK_OPT",
   "NETWORK6_OPT",
-  "NETWORK_TYPE_OPT",
   "NEW_CLUSTER_CERT_OPT",
   "NEW_CLUSTER_DOMAIN_SECRET_OPT",
   "NEW_CONFD_HMAC_KEY_OPT",
@@ -1526,10 +1525,6 @@ REMOVE_RESERVED_IPS_OPT = cli_option("--remove-reserved-ips",
                                      dest="remove_reserved_ips",
                                      help="Comma-delimited list of"
                                      " reserved IPs to remove")
-
-NETWORK_TYPE_OPT = cli_option("--network-type",
-                              action="store", default=None, dest="network_type",
-                              help="Network type: private, public, None")
 
 NETWORK6_OPT = cli_option("--network6",
                           action="store", default=None, dest="network6",

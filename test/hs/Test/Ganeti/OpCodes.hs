@@ -318,14 +318,14 @@ instance Arbitrary OpCodes.OpCode where
         OpCodes.OpTestDummy <$> pure J.JSNull <*> pure J.JSNull <*>
           pure J.JSNull <*> pure J.JSNull
       "OP_NETWORK_ADD" ->
-        OpCodes.OpNetworkAdd <$> genNameNE <*> arbitrary <*> genIp4Net <*>
+        OpCodes.OpNetworkAdd <$> genNameNE <*> genIp4Net <*>
           genMaybe genIp4Addr <*> pure Nothing <*> pure Nothing <*>
           genMaybe genMacPrefix <*> genMaybe (listOf genIp4Addr) <*>
           arbitrary <*> (genTags >>= mapM mkNonEmpty)
       "OP_NETWORK_REMOVE" ->
         OpCodes.OpNetworkRemove <$> genNameNE <*> arbitrary
       "OP_NETWORK_SET_PARAMS" ->
-        OpCodes.OpNetworkSetParams <$> genNameNE <*> arbitrary <*>
+        OpCodes.OpNetworkSetParams <$> genNameNE <*>
           genMaybe genIp4Addr <*> pure Nothing <*> pure Nothing <*>
           genMaybe genMacPrefix <*> genMaybe (listOf genIp4Addr) <*>
           genMaybe (listOf genIp4Addr)

@@ -1399,7 +1399,7 @@ def _ExpandInstanceName(cfg, name):
 
 
 def _BuildNetworkHookEnv(name, subnet, gateway, network6, gateway6,
-                         network_type, mac_prefix, tags):
+                         mac_prefix, tags):
   """Builds network related env variables for hooks
 
   This builds the hook environment from individual variables.
@@ -1414,8 +1414,6 @@ def _BuildNetworkHookEnv(name, subnet, gateway, network6, gateway6,
   @param network6: the ipv6 subnet
   @type gateway6: string
   @param gateway6: the ipv6 gateway
-  @type network_type: string
-  @param network_type: the type of the network
   @type mac_prefix: string
   @param mac_prefix: the mac_prefix
   @type tags: list
@@ -1435,8 +1433,6 @@ def _BuildNetworkHookEnv(name, subnet, gateway, network6, gateway6,
     env["NETWORK_GATEWAY6"] = gateway6
   if mac_prefix:
     env["NETWORK_MAC_PREFIX"] = mac_prefix
-  if network_type:
-    env["NETWORK_TYPE"] = network_type
   if tags:
     env["NETWORK_TAGS"] = " ".join(tags)
 
@@ -16232,7 +16228,6 @@ class LUNetworkAdd(LogicalUnit):
       "network6": self.op.network6,
       "gateway6": self.op.gateway6,
       "mac_prefix": self.op.mac_prefix,
-      "network_type": self.op.network_type,
       "tags": self.op.tags,
       }
     return _BuildNetworkHookEnv(**args) # pylint: disable=W0142
@@ -16247,7 +16242,6 @@ class LUNetworkAdd(LogicalUnit):
                            network6=self.op.network6,
                            gateway6=self.op.gateway6,
                            mac_prefix=self.op.mac_prefix,
-                           network_type=self.op.network_type,
                            uuid=self.network_uuid,
                            family=constants.IP4_VERSION)
     # Initialize the associated address pool
@@ -16389,7 +16383,6 @@ class LUNetworkSetParams(LogicalUnit):
     """
     self.network = self.cfg.GetNetwork(self.network_uuid)
     self.gateway = self.network.gateway
-    self.network_type = self.network.network_type
     self.mac_prefix = self.network.mac_prefix
     self.network6 = self.network.network6
     self.gateway6 = self.network.gateway6
@@ -16406,12 +16399,6 @@ class LUNetworkSetParams(LogicalUnit):
           raise errors.OpPrereqError("Gateway IP address '%s' is already"
                                      " reserved" % self.gateway,
                                      errors.ECODE_STATE)
-
-    if self.op.network_type:
-      if self.op.network_type == constants.VALUE_NONE:
-        self.network_type = None
-      else:
-        self.network_type = self.op.network_type
 
     if self.op.mac_prefix:
       if self.op.mac_prefix == constants.VALUE_NONE:
@@ -16443,7 +16430,6 @@ class LUNetworkSetParams(LogicalUnit):
       "network6": self.network6,
       "gateway6": self.gateway6,
       "mac_prefix": self.mac_prefix,
-      "network_type": self.network_type,
       "tags": self.tags,
       }
     return _BuildNetworkHookEnv(**args) # pylint: disable=W0142
@@ -16502,9 +16488,6 @@ class LUNetworkSetParams(LogicalUnit):
 
     if self.op.gateway6:
       self.network.gateway6 = self.gateway6
-
-    if self.op.network_type:
-      self.network.network_type = self.network_type
 
     self.pool.Validate()
 

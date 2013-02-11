@@ -36,7 +36,7 @@ from ganeti import errors
 
 #: default list of fields for L{ListNetworks}
 _LIST_DEF_FIELDS = ["name", "network", "gateway",
-                    "network_type", "mac_prefix", "group_list", "tags"]
+                    "mac_prefix", "group_list", "tags"]
 
 
 def _HandleReservedIPs(ips):
@@ -77,7 +77,6 @@ def AddNetwork(opts, args):
                             gateway6=opts.gateway6,
                             network6=opts.network6,
                             mac_prefix=opts.mac_prefix,
-                            network_type=opts.network_type,
                             add_reserved_ips=reserved_ips,
                             conflicts_check=opts.conflicts_check,
                             tags=tags)
@@ -202,7 +201,7 @@ def ShowNetworkConfig(_, args):
   cl = GetClient()
   result = cl.QueryNetworks(fields=["name", "network", "gateway",
                                     "network6", "gateway6",
-                                    "mac_prefix", "network_type",
+                                    "mac_prefix",
                                     "free_count", "reserved_count",
                                     "map", "group_list", "inst_list",
                                     "external_reservations",
@@ -210,7 +209,7 @@ def ShowNetworkConfig(_, args):
                             names=args, use_locking=False)
 
   for (name, network, gateway, network6, gateway6,
-       mac_prefix, network_type, free_count, reserved_count,
+       mac_prefix, free_count, reserved_count,
        mapping, group_list, instances, ext_res, serial, uuid) in result:
     size = free_count + reserved_count
     ToStdout("Network name: %s", name)
@@ -221,7 +220,6 @@ def ShowNetworkConfig(_, args):
     ToStdout("  IPv6 Subnet: %s", network6)
     ToStdout("  IPv6 Gateway: %s", gateway6)
     ToStdout("  Mac Prefix: %s", mac_prefix)
-    ToStdout("  Type: %s", network_type)
     ToStdout("  Size: %d", size)
     ToStdout("  Free: %d (%.2f%%)", free_count,
              100 * float(free_count) / float(size))
@@ -277,7 +275,6 @@ def SetNetworkParams(opts, args):
     "add_reserved_ips": _HandleReservedIPs(opts.add_reserved_ips),
     "remove_reserved_ips": _HandleReservedIPs(opts.remove_reserved_ips),
     "mac_prefix": opts.mac_prefix,
-    "network_type": opts.network_type,
     "gateway6": opts.gateway6,
     "network6": opts.network6,
   }
@@ -312,7 +309,7 @@ commands = {
   "add": (
     AddNetwork, ARGS_ONE_NETWORK,
     [DRY_RUN_OPT, NETWORK_OPT, GATEWAY_OPT, ADD_RESERVED_IPS_OPT,
-     MAC_PREFIX_OPT, NETWORK_TYPE_OPT, NETWORK6_OPT, GATEWAY6_OPT,
+     MAC_PREFIX_OPT, NETWORK6_OPT, GATEWAY6_OPT,
      NOCONFLICTSCHECK_OPT, TAG_ADD_OPT, PRIORITY_OPT, SUBMIT_OPT],
     "<network_name>", "Add a new IP network to the cluster"),
   "list": (
@@ -331,7 +328,7 @@ commands = {
   "modify": (
     SetNetworkParams, ARGS_ONE_NETWORK,
     [DRY_RUN_OPT, SUBMIT_OPT, ADD_RESERVED_IPS_OPT, REMOVE_RESERVED_IPS_OPT,
-     GATEWAY_OPT, MAC_PREFIX_OPT, NETWORK_TYPE_OPT, NETWORK6_OPT, GATEWAY6_OPT,
+     GATEWAY_OPT, MAC_PREFIX_OPT, NETWORK6_OPT, GATEWAY6_OPT,
      PRIORITY_OPT],
     "<network_name>", "Alters the parameters of a network"),
   "connect": (

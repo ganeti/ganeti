@@ -698,7 +698,6 @@ Example::
         'name': 'nat',
         'network': '10.0.0.0/28',
         'network6': None,
-        'network_type': 'private',
         'reserved_count': 3,
         'tags': ['nfdhcpd'],
         …

@@ -2034,7 +2034,6 @@ class Network(TaggableObject):
   __slots__ = [
     "name",
     "serial_no",
-    "network_type",
     "mac_prefix",
     "family",
     "network",
@@ -2069,10 +2068,20 @@ class Network(TaggableObject):
       result["%sNETWORK_GATEWAY6" % prefix] = self.gateway6
     if self.mac_prefix:
       result["%sNETWORK_MAC_PREFIX" % prefix] = self.mac_prefix
-    if self.network_type:
-      result["%sNETWORK_TYPE" % prefix] = self.network_type
 
     return result
+
+  @classmethod
+  def FromDict(cls, val):
+    """Custom function for networks.
+
+    Remove deprecated network_type. Still this info can be passed via tags.
+
+    """
+    if "network_type" in val:
+      del val["network_type"]
+    obj = super(Network, cls).FromDict(val)
+    return obj
 
 
 class SerializableConfigParser(ConfigParser.SafeConfigParser):
