@@ -165,6 +165,7 @@ __all__ = [
   "PRIORITY_OPT",
   "RAPI_CERT_OPT",
   "READD_OPT",
+  "REASON_OPT",
   "REBOOT_TYPE_OPT",
   "REMOVE_INSTANCE_OPT",
   "REMOVE_RESERVED_IPS_OPT",
@@ -1388,6 +1389,10 @@ FAILURE_ONLY_OPT = cli_option("--failure-only", default=False,
                               action="store_true",
                               help=("Hide successful results and show failures"
                                     " only (determined by the exit code)"))
+
+REASON_OPT = cli_option("--reason", default=None,
+                        help="The reason for executing a VM-state-changing"
+                             " operation")
 
 
 def _PriorityOptionCb(option, _, value, parser):

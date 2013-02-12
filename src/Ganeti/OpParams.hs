@@ -236,6 +236,7 @@ module Ganeti.OpParams
   , pOpPriority
   , pDependencies
   , pComment
+  , pReason
   , dOldQuery
   , dOldQueryNoLocking
   ) where
@@ -1434,6 +1435,10 @@ pDependencies =
 -- | Comment field.
 pComment :: Field
 pComment = optionalNullSerField $ stringField "comment"
+
+-- | The description of the state change reason.
+pReason :: Field
+pReason = simpleField "reason" [t| (InstReasonSrc, NonEmptyString) |]
 
 -- * Entire opcode parameter list
 

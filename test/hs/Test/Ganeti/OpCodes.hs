@@ -69,6 +69,8 @@ $(genArbitrary ''OpCodes.ReplaceDisksMode)
 
 $(genArbitrary ''DiskAccess)
 
+$(genArbitrary ''InstReasonSrc)
+
 instance Arbitrary OpCodes.DiskIndex where
   arbitrary = choose (0, C.maxDisks - 1) >>= OpCodes.mkDiskIndex
 

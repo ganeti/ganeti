@@ -71,6 +71,7 @@ SOCKET_DIR = RUN_DIR + "/socket"
 CRYPTO_KEYS_DIR = RUN_DIR + "/crypto"
 IMPORT_EXPORT_DIR = RUN_DIR + "/import-export"
 INSTANCE_STATUS_FILE = RUN_DIR + "/instance-status"
+INSTANCE_REASON_DIR = RUN_DIR + "/instance-reason"
 #: User-id pool lock directory (used user IDs have a corresponding lock file in
 #: this directory)
 UIDPOOL_LOCKDIR = RUN_DIR + "/uid-pool"

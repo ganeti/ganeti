@@ -2332,5 +2332,16 @@ AUTO_REPAIR_ALL_RESULTS = frozenset([
 # The version identifier for builtin data collectors
 BUILTIN_DATA_COLLECTOR_VERSION = "B"
 
+# The source reasons for the change of state of an instance
+INSTANCE_REASON_SOURCE_CLI = "cli"
+INSTANCE_REASON_SOURCE_RAPI = "rapi"
+INSTANCE_REASON_SOURCE_UNKNOWN = "unknown"
+
+INSTANCE_REASON_SOURCES = compat.UniqueFrozenset([
+  INSTANCE_REASON_SOURCE_CLI,
+  INSTANCE_REASON_SOURCE_RAPI,
+  INSTANCE_REASON_SOURCE_UNKNOWN,
+  ])
+
 # Do not re-export imported modules
 del re, _vcsversion, _autoconf, socket, pathutils, compat

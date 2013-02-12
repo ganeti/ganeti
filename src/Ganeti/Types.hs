@@ -92,6 +92,7 @@ module Ganeti.Types
   , opStatusToRaw
   , opStatusFromRaw
   , ELogType(..)
+  , InstReasonSrc(..)
   ) where
 
 import Control.Monad (liftM)
@@ -481,3 +482,12 @@ $(THH.declareSADT "ELogType"
   , ("ELogJqueueTest",   'C.elogJqueueTest)
   ])
 $(THH.makeJSONInstance ''ELogType)
+
+-- | Type for the source of the state change of instances.
+$(THH.declareSADT "InstReasonSrc"
+  [ ("IRSCli", 'C.instanceReasonSourceCli)
+  , ("IRSRapi",  'C.instanceReasonSourceRapi)
+  ])
+$(THH.makeJSONInstance ''InstReasonSrc)
+
+

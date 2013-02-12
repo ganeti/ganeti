@@ -631,7 +631,9 @@ def _RebootInstance(name, opts):
   return opcodes.OpInstanceReboot(instance_name=name,
                                   reboot_type=opts.reboot_type,
                                   ignore_secondaries=opts.ignore_secondaries,
-                                  shutdown_timeout=opts.shutdown_timeout)
+                                  shutdown_timeout=opts.shutdown_timeout,
+                                  reason=(constants.INSTANCE_REASON_SOURCE_CLI,
+                                          opts.reason))
 
 
 def _ShutdownInstance(name, opts):
