@@ -88,17 +88,75 @@ class Mapper:
     return (handler, groups, args)
 
 
+def _ConvertPattern(value):
+  """Converts URI pattern into a regular expression group.
+
+  Used by L{_CompileHandlerPath}.
+
+  """
+  if isinstance(value, UriPattern):
+    return "(%s)" % value.content
+  else:
+    return value
+
+
+def _CompileHandlerPath(*args):
+  """Compiles path for RAPI resource into regular expression.
+
+  @return: Compiled regular expression object
+
+  """
+  return re.compile("^%s$" % "".join(map(_ConvertPattern, args)))
+
+
+class UriPattern(object):
+  __slots__ = [
+    "content",
+    ]
+
+  def __init__(self, content):
+    self.content = content
+
+
 def GetHandlers(node_name_pattern, instance_name_pattern,
                 group_name_pattern, network_name_pattern,
                 job_id_pattern, disk_pattern,
-                query_res_pattern):
+                query_res_pattern,
+                translate=None):
   """Returns all supported resources and their handlers.
 
+  C{node_name_pattern} and the other C{*_pattern} parameters are wrapped in
+  L{UriPattern} and, if used in a URI, passed to the function specified using
+  C{translate}. C{translate} receives 1..N parameters which are either plain
+  strings or instances of L{UriPattern} and returns a dictionary key suitable
+  for the caller of C{GetHandlers}. The default implementation in
+  L{_CompileHandlerPath} returns a compiled regular expression in which each
+  pattern is a group.
+
+  @rtype: dict
+
   """
+  if translate is None:
+    translate_fn = _CompileHandlerPath
+  else:
+    translate_fn = translate
+
+  node_name = UriPattern(node_name_pattern)
+  instance_name = UriPattern(instance_name_pattern)
+  group_name = UriPattern(group_name_pattern)
+  network_name = UriPattern(network_name_pattern)
+  job_id = UriPattern(job_id_pattern)
+  disk = UriPattern(disk_pattern)
+  query_res = UriPattern(query_res_pattern)
+
   # Important note: New resources should always be added under /2. During a
   # discussion in July 2010 it was decided that having per-resource versions
   # is more flexible and future-compatible than versioning the whole remote
   # API.
+  # TODO: Consider a different data structure where all keys are of the same
+  # type. Strings are faster to look up in a dictionary than iterating and
+  # matching regular expressions, therefore maybe two separate dictionaries
+  # should be used.
   return {
     "/": rlib2.R_root,
     "/2": rlib2.R_2,
@@ -106,96 +164,96 @@ def GetHandlers(node_name_pattern, instance_name_pattern,
     "/version": rlib2.R_version,
 
     "/2/nodes": rlib2.R_2_nodes,
-    re.compile(r"^/2/nodes/(%s)$" % node_name_pattern):
+
+    translate_fn("/2/nodes/", node_name):
       rlib2.R_2_nodes_name,
-    re.compile(r"^/2/nodes/(%s)/powercycle$" % node_name_pattern):
+    translate_fn("/2/nodes/", node_name, "/powercycle"):
       rlib2.R_2_nodes_name_powercycle,
-    re.compile(r"^/2/nodes/(%s)/tags$" % node_name_pattern):
+    translate_fn("/2/nodes/", node_name, "/tags"):
       rlib2.R_2_nodes_name_tags,
-    re.compile(r"^/2/nodes/(%s)/role$" % node_name_pattern):
+    translate_fn("/2/nodes/", node_name, "/role"):
       rlib2.R_2_nodes_name_role,
-    re.compile(r"^/2/nodes/(%s)/evacuate$" % node_name_pattern):
+    translate_fn("/2/nodes/", node_name, "/evacuate"):
       rlib2.R_2_nodes_name_evacuate,
-    re.compile(r"^/2/nodes/(%s)/migrate$" % node_name_pattern):
+    translate_fn("/2/nodes/", node_name, "/migrate"):
       rlib2.R_2_nodes_name_migrate,
-    re.compile(r"^/2/nodes/(%s)/modify$" % node_name_pattern):
+    translate_fn("/2/nodes/", node_name, "/modify"):
       rlib2.R_2_nodes_name_modify,
-    re.compile(r"^/2/nodes/(%s)/storage$" % node_name_pattern):
+    translate_fn("/2/nodes/", node_name, "/storage"):
       rlib2.R_2_nodes_name_storage,
-    re.compile(r"^/2/nodes/(%s)/storage/modify$" % node_name_pattern):
+    translate_fn("/2/nodes/", node_name, "/storage/modify"):
       rlib2.R_2_nodes_name_storage_modify,
-    re.compile(r"^/2/nodes/(%s)/storage/repair$" % node_name_pattern):
+    translate_fn("/2/nodes/", node_name, "/storage/repair"):
       rlib2.R_2_nodes_name_storage_repair,
 
     "/2/instances": rlib2.R_2_instances,
-    re.compile(r"^/2/instances/(%s)$" % instance_name_pattern):
+    translate_fn("/2/instances/", instance_name):
       rlib2.R_2_instances_name,
-    re.compile(r"^/2/instances/(%s)/info$" % instance_name_pattern):
+    translate_fn("/2/instances/", instance_name, "/info"):
       rlib2.R_2_instances_name_info,
-    re.compile(r"^/2/instances/(%s)/tags$" % instance_name_pattern):
+    translate_fn("/2/instances/", instance_name, "/tags"):
       rlib2.R_2_instances_name_tags,
-    re.compile(r"^/2/instances/(%s)/reboot$" % instance_name_pattern):
+    translate_fn("/2/instances/", instance_name, "/reboot"):
       rlib2.R_2_instances_name_reboot,
-    re.compile(r"^/2/instances/(%s)/reinstall$" % instance_name_pattern):
+    translate_fn("/2/instances/", instance_name, "/reinstall"):
       rlib2.R_2_instances_name_reinstall,
-    re.compile(r"^/2/instances/(%s)/replace-disks$" % instance_name_pattern):
+    translate_fn("/2/instances/", instance_name, "/replace-disks"):
       rlib2.R_2_instances_name_replace_disks,
-    re.compile(r"^/2/instances/(%s)/shutdown$" % instance_name_pattern):
+    translate_fn("/2/instances/", instance_name, "/shutdown"):
       rlib2.R_2_instances_name_shutdown,
-    re.compile(r"^/2/instances/(%s)/startup$" % instance_name_pattern):
+    translate_fn("/2/instances/", instance_name, "/startup"):
       rlib2.R_2_instances_name_startup,
-    re.compile(r"^/2/instances/(%s)/activate-disks$" % instance_name_pattern):
+    translate_fn("/2/instances/", instance_name, "/activate-disks"):
       rlib2.R_2_instances_name_activate_disks,
-    re.compile(r"^/2/instances/(%s)/deactivate-disks$" % instance_name_pattern):
+    translate_fn("/2/instances/", instance_name, "/deactivate-disks"):
       rlib2.R_2_instances_name_deactivate_disks,
-    re.compile(r"^/2/instances/(%s)/recreate-disks$" % instance_name_pattern):
+    translate_fn("/2/instances/", instance_name, "/recreate-disks"):
       rlib2.R_2_instances_name_recreate_disks,
-    re.compile(r"^/2/instances/(%s)/prepare-export$" % instance_name_pattern):
+    translate_fn("/2/instances/", instance_name, "/prepare-export"):
       rlib2.R_2_instances_name_prepare_export,
-    re.compile(r"^/2/instances/(%s)/export$" % instance_name_pattern):
+    translate_fn("/2/instances/", instance_name, "/export"):
       rlib2.R_2_instances_name_export,
-    re.compile(r"^/2/instances/(%s)/migrate$" % instance_name_pattern):
+    translate_fn("/2/instances/", instance_name, "/migrate"):
       rlib2.R_2_instances_name_migrate,
-    re.compile(r"^/2/instances/(%s)/failover$" % instance_name_pattern):
+    translate_fn("/2/instances/", instance_name, "/failover"):
       rlib2.R_2_instances_name_failover,
-    re.compile(r"^/2/instances/(%s)/rename$" % instance_name_pattern):
+    translate_fn("/2/instances/", instance_name, "/rename"):
       rlib2.R_2_instances_name_rename,
-    re.compile(r"^/2/instances/(%s)/modify$" % instance_name_pattern):
+    translate_fn("/2/instances/", instance_name, "/modify"):
       rlib2.R_2_instances_name_modify,
-    re.compile(r"^/2/instances/(%s)/disk/(%s)/grow$" %
-               (instance_name_pattern, disk_pattern)):
+    translate_fn("/2/instances/", instance_name, "/disk/", disk, "/grow"):
       rlib2.R_2_instances_name_disk_grow,
-    re.compile(r"^/2/instances/(%s)/console$" % instance_name_pattern):
+    translate_fn("/2/instances/", instance_name, "/console"):
       rlib2.R_2_instances_name_console,
 
     "/2/networks": rlib2.R_2_networks,
-    re.compile(r"^/2/networks/(%s)$" % network_name_pattern):
+    translate_fn("/2/networks/", network_name):
       rlib2.R_2_networks_name,
-    re.compile(r"^/2/networks/(%s)/connect$" % network_name_pattern):
+    translate_fn("/2/networks/", network_name, "/connect"):
       rlib2.R_2_networks_name_connect,
-    re.compile(r"^/2/networks/(%s)/disconnect$" % network_name_pattern):
+    translate_fn("/2/networks/", network_name, "/disconnect"):
       rlib2.R_2_networks_name_disconnect,
-    re.compile(r"^/2/networks/(%s)/modify$" % network_name_pattern):
+    translate_fn("/2/networks/", network_name, "/modify"):
       rlib2.R_2_networks_name_modify,
-    re.compile(r"^/2/networks/(%s)/tags$" % network_name_pattern):
+    translate_fn("/2/networks/", network_name, "/tags"):
       rlib2.R_2_networks_name_tags,
 
     "/2/groups": rlib2.R_2_groups,
-    re.compile(r"^/2/groups/(%s)$" % group_name_pattern):
+    translate_fn("/2/groups/", group_name):
       rlib2.R_2_groups_name,
-    re.compile(r"^/2/groups/(%s)/modify$" % group_name_pattern):
+    translate_fn("/2/groups/", group_name, "/modify"):
       rlib2.R_2_groups_name_modify,
-    re.compile(r"^/2/groups/(%s)/rename$" % group_name_pattern):
+    translate_fn("/2/groups/", group_name, "/rename"):
       rlib2.R_2_groups_name_rename,
-    re.compile(r"^/2/groups/(%s)/assign-nodes$" % group_name_pattern):
+    translate_fn("/2/groups/", group_name, "/assign-nodes"):
       rlib2.R_2_groups_name_assign_nodes,
-    re.compile(r"^/2/groups/(%s)/tags$" % group_name_pattern):
+    translate_fn("/2/groups/", group_name, "/tags"):
       rlib2.R_2_groups_name_tags,
 
     "/2/jobs": rlib2.R_2_jobs,
-    re.compile(r"^/2/jobs/(%s)$" % job_id_pattern):
+    translate_fn("/2/jobs/", job_id):
       rlib2.R_2_jobs_id,
-    re.compile(r"^/2/jobs/(%s)/wait$" % job_id_pattern):
+    translate_fn("/2/jobs/", job_id, "/wait"):
       rlib2.R_2_jobs_id_wait,
 
     "/2/instances-multi-alloc": rlib2.R_2_instances_multi_alloc,
@@ -205,8 +263,10 @@ def GetHandlers(node_name_pattern, instance_name_pattern,
     "/2/redistribute-config": rlib2.R_2_redist_config,
     "/2/features": rlib2.R_2_features,
     "/2/modify": rlib2.R_2_cluster_modify,
-    re.compile(r"^/2/query/(%s)$" % query_res_pattern): rlib2.R_2_query,
-    re.compile(r"^/2/query/(%s)/fields$" % query_res_pattern):
+
+    translate_fn("/2/query/", query_res):
+      rlib2.R_2_query,
+    translate_fn("/2/query/", query_res, "/fields"):
       rlib2.R_2_query_fields,
     }
 
