@@ -1451,7 +1451,7 @@ def InstanceShutdown(instance, timeout):
   _RemoveBlockDevLinks(iname, instance.disks)
 
 
-def InstanceReboot(instance, reboot_type, shutdown_timeout):
+def InstanceReboot(instance, reboot_type, shutdown_timeout, reason):
   """Reboot an instance.
 
   @type instance: L{objects.Instance}
@@ -1481,12 +1481,15 @@ def InstanceReboot(instance, reboot_type, shutdown_timeout):
   if reboot_type == constants.INSTANCE_REBOOT_SOFT:
     try:
       hyper.RebootInstance(instance)
+      reason.Store(instance.name)
     except errors.HypervisorError, err:
       _Fail("Failed to soft reboot instance %s: %s", instance.name, err)
   elif reboot_type == constants.INSTANCE_REBOOT_HARD:
     try:
       InstanceShutdown(instance, shutdown_timeout)
-      return StartInstance(instance, False)
+      result = StartInstance(instance, False)
+      reason.Store(instance.name)
+      return result
     except errors.HypervisorError, err:
       _Fail("Failed to hard reboot instance %s: %s", instance.name, err)
   else:

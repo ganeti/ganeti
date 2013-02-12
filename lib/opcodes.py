@@ -1451,6 +1451,15 @@ class OpInstanceReboot(OpCode):
      "Whether to start the instance even if secondary disks are failing"),
     ("reboot_type", ht.NoDefault, ht.TElemOf(constants.REBOOT_TYPES),
      "How to reboot instance"),
+    ("reason", (constants.INSTANCE_REASON_SOURCE_UNKNOWN, None),
+     ht.TAnd(ht.TOr(ht.TList, ht.TTuple),
+             ht.TIsLength(2),
+             ht.TItems([
+              ht.TElemOf(constants.INSTANCE_REASON_SOURCES),
+              ht.TMaybeString,
+             ])
+             ),
+     "The reason why the reboot is happening"),
     ]
   OP_RESULT = ht.TNone
 

@@ -230,6 +230,7 @@ _INSTANCE_CALLS = [
     ("inst", ED_INST_DICT, "Instance object"),
     ("reboot_type", None, None),
     ("shutdown_timeout", None, None),
+    ("reason_text", None, "Reason for the reboot"),
     ], None, None, "Returns the list of running instances on the given nodes"),
   ("instance_shutdown", SINGLE, None, constants.RPC_TMO_NORMAL, [
     ("instance", ED_INST_DICT, "Instance object"),

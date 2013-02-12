@@ -2343,5 +2343,8 @@ INSTANCE_REASON_SOURCES = compat.UniqueFrozenset([
   INSTANCE_REASON_SOURCE_UNKNOWN,
   ])
 
+# The default reasons for the change of state of an instance
+INSTANCE_REASON_REBOOT = "reboot"
+
 # Do not re-export imported modules
 del re, _vcsversion, _autoconf, socket, pathutils, compat

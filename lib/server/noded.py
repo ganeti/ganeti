@@ -112,6 +112,21 @@ def _DecodeImportExportIO(ieio, ieioargs):
   return ieioargs
 
 
+def _DefaultAlternative(value, default):
+  """Returns the given value, unless it is None. In that case, returns a
+  default alternative.
+
+  @param value: The value to return if it is not None.
+  @param default: The value to return as a default alternative.
+  @return: The given value or the default alternative.\
+
+  """
+  if value:
+    return value
+
+  return default
+
+
 class MlockallRequestExecutor(http.server.HttpServerRequestExecutor):
   """Subclass ensuring request handlers are locked in RAM.
 
@@ -633,7 +648,12 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     instance = objects.Instance.FromDict(params[0])
     reboot_type = params[1]
     shutdown_timeout = params[2]
-    return backend.InstanceReboot(instance, reboot_type, shutdown_timeout)
+    (reason_source, reason_text) = params[3]
+    reason_text = _DefaultAlternative(reason_text,
+                                      constants.INSTANCE_REASON_REBOOT)
+    reason = backend.InstReason(reason_source, reason_text)
+    return backend.InstanceReboot(instance, reboot_type, shutdown_timeout,
+                                  reason)
 
   @staticmethod
   def perspective_instance_balloon_memory(params):
