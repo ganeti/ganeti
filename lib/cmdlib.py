@@ -1020,18 +1020,32 @@ def _CheckOutputFields(static, dynamic, selected):
                                % ",".join(delta), errors.ECODE_INVAL)
 
 
-def _CheckGlobalHvParams(params):
-  """Validates that given hypervisor params are not global ones.
+def _CheckParamsNotGlobal(params, glob_pars, kind, bad_levels, good_levels):
+  """Make sure that none of the given paramters is global.
 
-  This will ensure that instances don't get customised versions of
-  global params.
+  If a global parameter is found, an L{errors.OpPrereqError} exception is
+  raised. This is used to avoid setting global parameters for individual nodes.
+
+  @type params: dictionary
+  @param params: Parameters to check
+  @type glob_pars: dictionary
+  @param glob_pars: Forbidden parameters
+  @type kind: string
+  @param kind: Kind of parameters (e.g. "node")
+  @type bad_levels: string
+  @param bad_levels: Level(s) at which the parameters are forbidden (e.g.
+      "instance")
+  @type good_levels: strings
+  @param good_levels: Level(s) at which the parameters are allowed (e.g.
+      "cluster or group")
 
   """
-  used_globals = constants.HVC_GLOBALS.intersection(params)
+  used_globals = glob_pars.intersection(params)
   if used_globals:
-    msg = ("The following hypervisor parameters are global and cannot"
-           " be customized at instance level, please modify them at"
-           " cluster level: %s" % utils.CommaJoin(used_globals))
+    msg = ("The following %s parameters are global and cannot"
+           " be customized at %s level, please modify them at"
+           " %s level: %s" %
+           (kind, bad_levels, good_levels, utils.CommaJoin(used_globals)))
     raise errors.OpPrereqError(msg, errors.ECODE_INVAL)
 
 
@@ -1385,7 +1399,7 @@ def _ExpandInstanceName(cfg, name):
 
 
 def _BuildNetworkHookEnv(name, subnet, gateway, network6, gateway6,
-                         network_type, mac_prefix, tags):
+                         mac_prefix, tags):
   """Builds network related env variables for hooks
 
   This builds the hook environment from individual variables.
@@ -1400,8 +1414,6 @@ def _BuildNetworkHookEnv(name, subnet, gateway, network6, gateway6,
   @param network6: the ipv6 subnet
   @type gateway6: string
   @param gateway6: the ipv6 gateway
-  @type network_type: string
-  @param network_type: the type of the network
   @type mac_prefix: string
   @param mac_prefix: the mac_prefix
   @type tags: list
@@ -1421,8 +1433,6 @@ def _BuildNetworkHookEnv(name, subnet, gateway, network6, gateway6,
     env["NETWORK_GATEWAY6"] = gateway6
   if mac_prefix:
     env["NETWORK_MAC_PREFIX"] = mac_prefix
-  if network_type:
-    env["NETWORK_TYPE"] = network_type
   if tags:
     env["NETWORK_TAGS"] = " ".join(tags)
 
@@ -1453,7 +1463,7 @@ def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
   @type vcpus: string
   @param vcpus: the count of VCPUs the instance has
   @type nics: list
-  @param nics: list of tuples (ip, mac, mode, link, network) representing
+  @param nics: list of tuples (ip, mac, mode, link, net, netinfo) representing
       the NICs the instance has
   @type disk_template: string
   @param disk_template: the disk template of the instance
@@ -1495,24 +1505,14 @@ def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
       env["INSTANCE_NIC%d_MAC" % idx] = mac
       env["INSTANCE_NIC%d_MODE" % idx] = mode
       env["INSTANCE_NIC%d_LINK" % idx] = link
-      if network:
-        env["INSTANCE_NIC%d_NETWORK" % idx] = net
-        if netinfo:
-          nobj = objects.Network.FromDict(netinfo)
-          if nobj.network:
-            env["INSTANCE_NIC%d_NETWORK_SUBNET" % idx] = nobj.network
-          if nobj.gateway:
-            env["INSTANCE_NIC%d_NETWORK_GATEWAY" % idx] = nobj.gateway
-          if nobj.network6:
-            env["INSTANCE_NIC%d_NETWORK_SUBNET6" % idx] = nobj.network6
-          if nobj.gateway6:
-            env["INSTANCE_NIC%d_NETWORK_GATEWAY6" % idx] = nobj.gateway6
-          if nobj.mac_prefix:
-            env["INSTANCE_NIC%d_NETWORK_MAC_PREFIX" % idx] = nobj.mac_prefix
-          if nobj.network_type:
-            env["INSTANCE_NIC%d_NETWORK_TYPE" % idx] = nobj.network_type
-          if nobj.tags:
-            env["INSTANCE_NIC%d_NETWORK_TAGS" % idx] = " ".join(nobj.tags)
+      if netinfo:
+        nobj = objects.Network.FromDict(netinfo)
+        env.update(nobj.HooksDict("INSTANCE_NIC%d_" % idx))
+      elif network:
+        # FIXME: broken network reference: the instance NIC specifies a
+        # network, but the relevant network entry was not in the config. This
+        # should be made impossible.
+        env["INSTANCE_NIC%d_NETWORK_NAME" % idx] = net
       if mode == constants.NIC_MODE_BRIDGED:
         env["INSTANCE_NIC%d_BRIDGE" % idx] = link
   else:
@@ -3490,22 +3490,11 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
         nimg.sbp[pnode].append(instance)
 
     es_flags = rpc.GetExclusiveStorageForNodeNames(self.cfg, self.my_node_names)
-    es_unset_nodes = []
     # The value of exclusive_storage should be the same across the group, so if
     # it's True for at least a node, we act as if it were set for all the nodes
     self._exclusive_storage = compat.any(es_flags.values())
     if self._exclusive_storage:
       node_verify_param[constants.NV_EXCLUSIVEPVS] = True
-      es_unset_nodes = [n for (n, es) in es_flags.items()
-                        if not es]
-
-    if es_unset_nodes:
-      self._Error(constants.CV_EGROUPMIXEDESFLAG, self.group_info.name,
-                  "The exclusive_storage flag should be uniform in a group,"
-                  " but these nodes have it unset: %s",
-                  utils.CommaJoin(utils.NiceSort(es_unset_nodes)))
-      self.LogWarning("Some checks required by exclusive storage will be"
-                      " performed also on nodes with the flag unset")
 
     # At this point, we have the in-memory data structures complete,
     # except for the runtime information, which we'll gather next
@@ -6135,6 +6124,8 @@ class LUNodeAdd(LogicalUnit):
 
     if self.op.ndparams:
       utils.ForceDictType(self.op.ndparams, constants.NDS_PARAMETER_TYPES)
+      _CheckParamsNotGlobal(self.op.ndparams, constants.NDC_GLOBALS, "node",
+                            "node", "cluster or group")
 
     if self.op.hv_state:
       self.new_hv_state = _MergeAndVerifyHvState(self.op.hv_state, None)
@@ -6160,9 +6151,6 @@ class LUNodeAdd(LogicalUnit):
     if vg_name is not None:
       vparams = {constants.NV_PVLIST: [vg_name]}
       excl_stor = _IsExclusiveStorageEnabledNode(cfg, self.new_node)
-      if self.op.ndparams:
-        excl_stor = self.op.ndparams.get(constants.ND_EXCLUSIVE_STORAGE,
-                                         excl_stor)
       cname = self.cfg.GetClusterName()
       result = rpcrunner.call_node_verify_light([node], vparams, cname)[node]
       (errmsgs, _) = _CheckNodePVs(result.payload, excl_stor)
@@ -6560,6 +6548,8 @@ class LUNodeSetParams(LogicalUnit):
     if self.op.ndparams:
       new_ndparams = _GetUpdatedParams(self.node.ndparams, self.op.ndparams)
       utils.ForceDictType(new_ndparams, constants.NDS_PARAMETER_TYPES)
+      _CheckParamsNotGlobal(self.op.ndparams, constants.NDC_GLOBALS, "node",
+                            "node", "cluster or group")
       self.new_ndparams = new_ndparams
 
     if self.op.hv_state:
@@ -10598,7 +10588,8 @@ class LUInstanceCreate(LogicalUnit):
     hv_type.CheckParameterSyntax(filled_hvp)
     self.hv_full = filled_hvp
     # check that we don't specify global parameters on an instance
-    _CheckGlobalHvParams(self.op.hvparams)
+    _CheckParamsNotGlobal(self.op.hvparams, constants.HVC_GLOBALS, "hypervisor",
+                          "instance", "cluster")
 
     # fill and remember the beparams dict
     self.be_full = _ComputeFullBeParams(self.op, cluster)
@@ -13296,7 +13287,8 @@ class LUInstanceSetParams(LogicalUnit):
       raise errors.OpPrereqError("No changes submitted", errors.ECODE_INVAL)
 
     if self.op.hvparams:
-      _CheckGlobalHvParams(self.op.hvparams)
+      _CheckParamsNotGlobal(self.op.hvparams, constants.HVC_GLOBALS,
+                            "hypervisor", "instance", "cluster")
 
     self.op.disks = self._UpgradeDiskNicMods(
       "disk", self.op.disks, opcodes.OpInstanceSetParams.TestDiskModifications)
@@ -13499,13 +13491,12 @@ class LUInstanceSetParams(LogicalUnit):
         elif self.op.conflicts_check:
           _CheckForConflictingIp(self, new_ip, pnode)
 
-      if old_ip:
-        if old_net:
-          try:
-            self.cfg.ReleaseIp(old_net, old_ip, self.proc.GetECId())
-          except errors.AddressPoolError:
-            logging.warning("Release IP %s not contained in network %s",
-                            old_ip, old_net)
+      if old_ip and old_net:
+        try:
+          self.cfg.ReleaseIp(old_net, old_ip, self.proc.GetECId())
+        except errors.AddressPoolError, err:
+          logging.warning("Releasing IP address '%s' from network '%s'"
+                          " failed: %s", old_ip, old_net, err)
 
     # there are no changes in (net, ip) tuple
     elif (old_net is not None and
@@ -16236,7 +16227,6 @@ class LUNetworkAdd(LogicalUnit):
       "network6": self.op.network6,
       "gateway6": self.op.gateway6,
       "mac_prefix": self.op.mac_prefix,
-      "network_type": self.op.network_type,
       "tags": self.op.tags,
       }
     return _BuildNetworkHookEnv(**args) # pylint: disable=W0142
@@ -16251,14 +16241,13 @@ class LUNetworkAdd(LogicalUnit):
                            network6=self.op.network6,
                            gateway6=self.op.gateway6,
                            mac_prefix=self.op.mac_prefix,
-                           network_type=self.op.network_type,
-                           uuid=self.network_uuid,
-                           family=constants.IP4_VERSION)
+                           uuid=self.network_uuid)
     # Initialize the associated address pool
     try:
       pool = network.AddressPool.InitializeNetwork(nobj)
-    except errors.AddressPoolError, e:
-      raise errors.OpExecError("Cannot create IP pool for this network: %s" % e)
+    except errors.AddressPoolError, err:
+      raise errors.OpExecError("Cannot create IP address pool for network"
+                               " '%s': %s" % (self.op.network_name, err))
 
     # Check if we need to reserve the nodes and the cluster master IP
     # These may not be allocated to any instances in routed mode, as
@@ -16271,25 +16260,26 @@ class LUNetworkAdd(LogicalUnit):
               pool.Reserve(ip)
               self.LogInfo("Reserved IP address of node '%s' (%s)",
                            node.name, ip)
-          except errors.AddressPoolError:
-            self.LogWarning("Cannot reserve IP address of node '%s' (%s)",
-                            node.name, ip)
+          except errors.AddressPoolError, err:
+            self.LogWarning("Cannot reserve IP address '%s' of node '%s': %s",
+                            ip, node.name, err)
 
       master_ip = self.cfg.GetClusterInfo().master_ip
       try:
         if pool.Contains(master_ip):
           pool.Reserve(master_ip)
           self.LogInfo("Reserved cluster master IP address (%s)", master_ip)
-      except errors.AddressPoolError:
-        self.LogWarning("Cannot reserve cluster master IP address (%s)",
-                        master_ip)
+      except errors.AddressPoolError, err:
+        self.LogWarning("Cannot reserve cluster master IP address (%s): %s",
+                        master_ip, err)
 
     if self.op.add_reserved_ips:
       for ip in self.op.add_reserved_ips:
         try:
           pool.Reserve(ip, external=True)
-        except errors.AddressPoolError, e:
-          raise errors.OpExecError("Cannot reserve IP %s. %s " % (ip, e))
+        except errors.AddressPoolError, err:
+          raise errors.OpExecError("Cannot reserve IP address '%s': %s" %
+                                   (ip, err))
 
     if self.op.tags:
       for tag in self.op.tags:
@@ -16386,7 +16376,6 @@ class LUNetworkSetParams(LogicalUnit):
     """
     self.network = self.cfg.GetNetwork(self.network_uuid)
     self.gateway = self.network.gateway
-    self.network_type = self.network.network_type
     self.mac_prefix = self.network.mac_prefix
     self.network6 = self.network.network6
     self.gateway6 = self.network.gateway6
@@ -16403,12 +16392,6 @@ class LUNetworkSetParams(LogicalUnit):
           raise errors.OpPrereqError("Gateway IP address '%s' is already"
                                      " reserved" % self.gateway,
                                      errors.ECODE_STATE)
-
-    if self.op.network_type:
-      if self.op.network_type == constants.VALUE_NONE:
-        self.network_type = None
-      else:
-        self.network_type = self.op.network_type
 
     if self.op.mac_prefix:
       if self.op.mac_prefix == constants.VALUE_NONE:
@@ -16440,7 +16423,6 @@ class LUNetworkSetParams(LogicalUnit):
       "network6": self.network6,
       "gateway6": self.gateway6,
       "mac_prefix": self.mac_prefix,
-      "network_type": self.network_type,
       "tags": self.tags,
       }
     return _BuildNetworkHookEnv(**args) # pylint: disable=W0142
@@ -16499,9 +16481,6 @@ class LUNetworkSetParams(LogicalUnit):
 
     if self.op.gateway6:
       self.network.gateway6 = self.gateway6
-
-    if self.op.network_type:
-      self.network.network_type = self.network_type
 
     self.pool.Validate()
 

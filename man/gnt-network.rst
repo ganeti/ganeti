@@ -32,7 +32,6 @@ ADD
 | [--network6=*NETWORK6*]
 | [--gateway6=*GATEWAY6*]
 | [--mac-prefix=*MACPREFIX*]
-| [--network-type=*NETWORKTYPE*]
 | [--submit]
 | {*network*}
 
@@ -45,8 +44,6 @@ notation.
 
 The ``--gateway`` option allows you to specify the default gateway for
 this network.
-
-The ``--network-type`` can be none, private or public.
 
 IPv6 semantics can be assigned to the network via the ``--network6`` and
 ``--gateway6`` options. IP pool is meaningless for IPV6 so those two
@@ -71,7 +68,6 @@ MODIFY
 | [--network6=*NETWORK6*]
 | [--gateway6=*GATEWAY6*]
 | [--mac-prefix=*MACPREFIX*]
-| [--network-type=*NETWORKTYPE*]
 | [--submit]
 | {*network*}
 

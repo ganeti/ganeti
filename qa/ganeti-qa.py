@@ -461,7 +461,7 @@ def RunExclusiveStorageTests():
   node = qa_config.AcquireNode()
   try:
     old_es = qa_cluster.TestSetExclStorCluster(False)
-    qa_cluster.TestExclStorSingleNode(node)
+    qa_node.TestExclStorSingleNode(node)
 
     qa_cluster.TestSetExclStorCluster(True)
     qa_cluster.TestExclStorSharedPv(node)

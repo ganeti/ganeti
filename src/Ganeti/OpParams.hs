@@ -222,7 +222,6 @@ module Ganeti.OpParams
   , pTestDummyFail
   , pTestDummySubmitJobs
   , pNetworkName
-  , pNetworkType
   , pNetworkAddress4
   , pNetworkGateway4
   , pNetworkAddress6
@@ -1357,10 +1356,6 @@ pTestDummySubmitJobs =
 -- | Network name.
 pNetworkName :: Field
 pNetworkName = simpleField "network_name" [t| NonEmptyString |]
-
--- | Network type field.
-pNetworkType :: Field
-pNetworkType = optionalField $ simpleField "network_type" [t| NetworkType |]
 
 -- | Network address (IPv4 subnet). FIXME: no real type for this.
 pNetworkAddress4 :: Field

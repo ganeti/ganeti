@@ -56,8 +56,6 @@ networkFields =
      FieldSimple (rsMaybeUnavail . networkGateway6), QffNormal)
   , (FieldDefinition "mac_prefix" "MacPrefix" QFTOther "MAC address prefix",
      FieldSimple (rsMaybeUnavail . networkMacPrefix), QffNormal)
-  , (FieldDefinition "network_type" "NetworkType" QFTOther "Network type",
-     FieldSimple (rsMaybeUnavail . networkNetworkType), QffNormal)
   , (FieldDefinition "free_count" "FreeCount" QFTOther "Number of free IPs",
      FieldSimple (rsMaybeNoData . fmap getFreeCount . createAddressPool),
      QffNormal)

@@ -1768,7 +1768,7 @@ class GanetiRapiClient(object): # pylint: disable=R0904
                              None, None)
 
   def CreateNetwork(self, network_name, network, gateway=None, network6=None,
-                    gateway6=None, mac_prefix=None, network_type=None,
+                    gateway6=None, mac_prefix=None,
                     add_reserved_ips=None, tags=None, dry_run=False):
     """Creates a new network.
 
@@ -1797,7 +1797,6 @@ class GanetiRapiClient(object): # pylint: disable=R0904
       "gateway6": gateway6,
       "network6": network6,
       "mac_prefix": mac_prefix,
-      "network_type": network_type,
       "add_reserved_ips": add_reserved_ips,
       "tags": tags,
       }

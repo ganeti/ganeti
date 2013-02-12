@@ -24,6 +24,9 @@
   "# Cluster-level value of the exclusive-storage flag": null,
   "exclusive-storage": null,
 
+  "# Additional arguments for initializing cluster": null,
+  "cluster-init-args": [],
+
   "# Network interface for master role": null,
   "#master-netdev": "xen-br0",
 

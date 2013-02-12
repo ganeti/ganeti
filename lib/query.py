@@ -2531,7 +2531,6 @@ _NETWORK_SIMPLE_FIELDS = {
   "network6": ("IPv6Subnet", QFT_OTHER, 0, "IPv6 subnet"),
   "gateway6": ("IPv6Gateway", QFT_OTHER, 0, "IPv6 gateway"),
   "mac_prefix": ("MacPrefix", QFT_OTHER, 0, "MAC address prefix"),
-  "network_type": ("NetworkType", QFT_OTHER, 0, "Network type"),
   "serial_no": ("SerialNo", QFT_NUMBER, 0, _SERIAL_NO_DOC % "Network"),
   "uuid": ("UUID", QFT_TEXT, 0, "Network UUID"),
   }

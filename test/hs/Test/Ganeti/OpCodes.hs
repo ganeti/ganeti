@@ -7,7 +7,7 @@
 
 {-
 
-Copyright (C) 2009, 2010, 2011, 2012 Google Inc.
+Copyright (C) 2009, 2010, 2011, 2012, 2013 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -318,14 +318,14 @@ instance Arbitrary OpCodes.OpCode where
         OpCodes.OpTestDummy <$> pure J.JSNull <*> pure J.JSNull <*>
           pure J.JSNull <*> pure J.JSNull
       "OP_NETWORK_ADD" ->
-        OpCodes.OpNetworkAdd <$> genNameNE <*> arbitrary <*> genIp4Net <*>
+        OpCodes.OpNetworkAdd <$> genNameNE <*> genIp4Net <*>
           genMaybe genIp4Addr <*> pure Nothing <*> pure Nothing <*>
           genMaybe genMacPrefix <*> genMaybe (listOf genIp4Addr) <*>
           arbitrary <*> (genTags >>= mapM mkNonEmpty)
       "OP_NETWORK_REMOVE" ->
         OpCodes.OpNetworkRemove <$> genNameNE <*> arbitrary
       "OP_NETWORK_SET_PARAMS" ->
-        OpCodes.OpNetworkSetParams <$> genNameNE <*> arbitrary <*>
+        OpCodes.OpNetworkSetParams <$> genNameNE <*>
           genMaybe genIp4Addr <*> pure Nothing <*> pure Nothing <*>
           genMaybe genMacPrefix <*> genMaybe (listOf genIp4Addr) <*>
           genMaybe (listOf genIp4Addr)
@@ -440,10 +440,9 @@ case_AllDefined = do
 case_py_compat_types :: HUnit.Assertion
 case_py_compat_types = do
   let num_opcodes = length OpCodes.allOpIDs * 100
-  sample_opcodes <- sample' (vectorOf num_opcodes
-                             (arbitrary::Gen OpCodes.MetaOpCode))
-  let opcodes = head sample_opcodes
-      with_sum = map (\o -> (OpCodes.opSummary $
+  opcodes <- genSample (vectorOf num_opcodes
+                                   (arbitrary::Gen OpCodes.MetaOpCode))
+  let with_sum = map (\o -> (OpCodes.opSummary $
                              OpCodes.metaOpCode o, o)) opcodes
       serialized = J.encode opcodes
   -- check for non-ASCII fields, usually due to 'arbitrary :: String'

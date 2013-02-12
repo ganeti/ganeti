@@ -7,7 +7,7 @@
 
 {-
 
-Copyright (C) 2009, 2010, 2011, 2012 Google Inc.
+Copyright (C) 2009, 2010, 2011, 2012, 2013 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -31,7 +31,6 @@ module Test.Ganeti.Objects
   , Node(..)
   , genEmptyCluster
   , genValidNetwork
-  , genNetworkType
   , genBitStringMaxLen
   ) where
 
@@ -45,7 +44,6 @@ import qualified Data.Map as Map
 import qualified Data.Set as Set
 import qualified Text.JSON as J
 
-import Test.Ganeti.Query.Language (genJSValue)
 import Test.Ganeti.TestHelper
 import Test.Ganeti.TestCommon
 import Test.Ganeti.Types ()
@@ -169,24 +167,17 @@ genValidNetwork = do
   -- generate netmask for the IPv4 network
   netmask <- choose (24::Int, 30)
   name <- genName >>= mkNonEmpty
-  network_type <- genMaybe genNetworkType
   mac_prefix <- genMaybe genName
-  net_family <- arbitrary
   net <- genIp4NetWithNetmask netmask
   net6 <- genMaybe genIp6Net
   gateway <- genMaybe genIp4AddrStr
   gateway6 <- genMaybe genIp6Addr
-  size <- genMaybe genJSValue
   res <- liftM Just (genBitString $ netmask2NumHosts netmask)
   ext_res <- liftM Just (genBitString $ netmask2NumHosts netmask)
   uuid <- arbitrary
-  let n = Network name network_type mac_prefix net_family net net6 gateway
-          gateway6 size res ext_res uuid 0 Set.empty
+  let n = Network name mac_prefix net net6 gateway
+          gateway6 res ext_res uuid 0 Set.empty
   return n
-
--- | Generates an arbitrary network type.
-genNetworkType :: Gen NetworkType
-genNetworkType = elements [ PrivateNetwork, PublicNetwork ]
 
 -- | Generate an arbitrary string consisting of '0' and '1' of the given length.
 genBitString :: Int -> Gen String
@@ -275,9 +266,8 @@ prop_Config_serialisation =
 case_py_compat_networks :: HUnit.Assertion
 case_py_compat_networks = do
   let num_networks = 500::Int
-  sample_networks <- sample' (vectorOf num_networks genValidNetwork)
-  let networks = head sample_networks
-      networks_with_properties = map getNetworkProperties networks
+  networks <- genSample (vectorOf num_networks genValidNetwork)
+  let networks_with_properties = map getNetworkProperties networks
       serialized = J.encode networks
   -- check for non-ASCII fields, usually due to 'arbitrary :: String'
   mapM_ (\net -> when (any (not . isAscii) (J.encode net)) .
@@ -325,9 +315,8 @@ getNetworkProperties net =
 case_py_compat_nodegroups :: HUnit.Assertion
 case_py_compat_nodegroups = do
   let num_groups = 500::Int
-  sample_groups <- sample' (vectorOf num_groups genNodeGroup)
-  let groups = head sample_groups
-      serialized = J.encode groups
+  groups <- genSample (vectorOf num_groups genNodeGroup)
+  let serialized = J.encode groups
   -- check for non-ASCII fields, usually due to 'arbitrary :: String'
   mapM_ (\group -> when (any (not . isAscii) (J.encode group)) .
                  HUnit.assertFailure $

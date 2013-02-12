@@ -4,7 +4,7 @@
 
 {-
 
-Copyright (C) 2009, 2010, 2011, 2012 Google Inc.
+Copyright (C) 2009, 2010, 2011, 2012, 2013 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -294,3 +294,12 @@ readTestData :: String -> IO String
 readTestData filename = do
     name <- testDataFilename "/test/data/" filename
     readFile name
+
+-- | Generate arbitrary values in the IO monad. This is a simple
+-- wrapper over 'sample''.
+genSample :: Gen a -> IO a
+genSample gen = do
+  values <- sample' gen
+  case values of
+    [] -> error "sample' returned an empty list of values??"
+    x:_ -> return x

@@ -6,7 +6,7 @@
 
 {-
 
-Copyright (C) 2009, 2010, 2011, 2012 Google Inc.
+Copyright (C) 2009, 2010, 2011, 2012, 2013 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -679,10 +679,13 @@ defaultFields =
   , "pfmem", "pfdsk", "rcpu"
   , "cload", "mload", "dload", "nload" ]
 
+{-# ANN computeGroups "HLint: ignore Use alternative" #-}
 -- | Split a list of nodes into a list of (node group UUID, list of
 -- associated nodes).
 computeGroups :: [Node] -> [(T.Gdx, [Node])]
 computeGroups nodes =
   let nodes' = sortBy (comparing group) nodes
       nodes'' = groupBy ((==) `on` group) nodes'
+  -- use of head here is OK, since groupBy returns non-empty lists; if
+  -- you remove groupBy, also remove use of head
   in map (\nl -> (group (head nl), nl)) nodes''

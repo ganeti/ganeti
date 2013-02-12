@@ -1705,6 +1705,7 @@ HLINT_EXCLUDES = src/Ganeti/THH.hs test/hs/hpc-htools.hs
 .PHONY: hlint
 hlint: $(HS_BUILT_SRCS) src/lint-hints.hs
 	@test -n "$(HLINT)" || { echo 'hlint' not found during configure; exit 1; }
+	@rm -f doc/hs-lint.html
 	if tty -s; then C="-c"; else C=""; fi; \
 	$(HLINT) --utf8 --report=doc/hs-lint.html --cross $$C \
 	  --ignore "Use first" \
@@ -1713,6 +1714,9 @@ hlint: $(HS_BUILT_SRCS) src/lint-hints.hs
 	  --ignore "Reduce duplication" \
 	  --hint src/lint-hints \
 	  $(filter-out $(HLINT_EXCLUDES),$(HS_LIBTEST_SRCS) $(HS_PROG_SRCS))
+	@if [ ! -f doc/hs-lint.html ]; then \
+	  echo "All good" > doc/hs-lint.html; \
+	fi
 
 # a dist hook rule for updating the vcs-version file; this is
 # hardcoded due to where it needs to build the file...

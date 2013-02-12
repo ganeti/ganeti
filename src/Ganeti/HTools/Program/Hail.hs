@@ -4,7 +4,7 @@
 
 {-
 
-Copyright (C) 2009, 2010, 2011, 2012 Google Inc.
+Copyright (C) 2009, 2010, 2011, 2012, 2013 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -59,9 +59,11 @@ arguments = [ArgCompletion OptComplFile 1 (Just 1)]
 
 wrapReadRequest :: Options -> [String] -> IO Request
 wrapReadRequest opts args = do
-  when (null args) $ exitErr "This program needs an input file."
+  r1 <- case args of
+          []    -> exitErr "This program needs an input file."
+          _:_:_ -> exitErr "Only one argument is accepted (the input file)"
+          x:_   -> readRequest x
 
-  r1 <- readRequest (head args)
   if isJust (optDataFile opts) ||  (not . null . optNodeSim) opts
     then do
       cdata <- loadExternalData opts

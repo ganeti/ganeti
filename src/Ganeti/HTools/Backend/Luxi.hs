@@ -4,7 +4,7 @@
 
 {-
 
-Copyright (C) 2009, 2010, 2011, 2012 Google Inc.
+Copyright (C) 2009, 2010, 2011, 2012, 2013 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -163,10 +163,10 @@ parseInstance ktn [ name, disk, mem, vcpus
             _ -> convert "be/memory" mem
   xvcpus <- convert "be/vcpus" vcpus
   xpnode <- convert "pnode" pnode >>= lookupNode ktn xname
-  xsnodes <- convert "snodes" snodes::Result [JSString]
-  snode <- if null xsnodes
-             then return Node.noSecondary
-             else lookupNode ktn xname (fromJSString $ head xsnodes)
+  xsnodes <- convert "snodes" snodes::Result [String]
+  snode <- case xsnodes of
+             [] -> return Node.noSecondary
+             x:_ -> lookupNode ktn xname x
   xrunning <- convert "status" status
   xtags <- convert "tags" tags
   xauto_balance <- convert "auto_balance" auto_balance

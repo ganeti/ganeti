@@ -4,7 +4,7 @@
 
 {-
 
-Copyright (C) 2009, 2010, 2011, 2012 Google Inc.
+Copyright (C) 2009, 2010, 2011, 2012, 2013 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -82,14 +82,14 @@ parseInstance :: NameAssoc -- ^ The node name-to-index association list
 parseInstance ktn n a = do
   base <- parseBaseInstance n a
   nodes <- fromObj a "nodes"
-  pnode <- if null nodes
-           then Bad $ "empty node list for instance " ++ n
-           else readEitherString $ head nodes
+  (pnode, snodes) <-
+    case nodes of
+      [] -> Bad $ "empty node list for instance " ++ n
+      x:xs -> readEitherString x >>= \x' -> return (x', xs)
   pidx <- lookupNode ktn n pnode
-  let snodes = tail nodes
-  sidx <- if null snodes
-            then return Node.noSecondary
-            else readEitherString (head snodes) >>= lookupNode ktn n
+  sidx <- case snodes of
+            [] -> return Node.noSecondary
+            x:_ -> readEitherString x >>= lookupNode ktn n
   return (n, Instance.setBoth (snd base) pidx sidx)
 
 -- | Parses a node as found in the cluster node list.

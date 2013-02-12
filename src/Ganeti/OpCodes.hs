@@ -501,7 +501,6 @@ $(genOpCode "OpCode"
      ])
   , ("OpNetworkAdd",
      [ pNetworkName
-     , pNetworkType
      , pNetworkAddress4
      , pNetworkGateway4
      , pNetworkAddress6
@@ -517,7 +516,6 @@ $(genOpCode "OpCode"
      ])
   , ("OpNetworkSetParams",
      [ pNetworkName
-     , pNetworkType
      , pNetworkGateway4
      , pNetworkAddress6
      , pNetworkGateway6

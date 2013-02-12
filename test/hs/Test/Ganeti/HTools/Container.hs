@@ -7,7 +7,7 @@
 
 {-
 
-Copyright (C) 2009, 2010, 2011, 2012 Google Inc.
+Copyright (C) 2009, 2010, 2011, 2012, 2013 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -52,8 +52,10 @@ prop_addTwo cdata i1 i2 =
 prop_nameOf :: Node.Node -> Property
 prop_nameOf node =
   let nl = makeSmallCluster node 1
-      fnode = head (Container.elems nl)
-  in Container.nameOf nl (Node.idx fnode) ==? Node.name fnode
+  in case Container.elems nl of
+       [] -> failTest "makeSmallCluster 1 returned empty cluster?"
+       _:_:_ -> failTest "makeSmallCluster 1 returned >1 node?"
+       fnode:_ -> Container.nameOf nl (Node.idx fnode) ==? Node.name fnode
 
 -- | We test that in a cluster, given a random node, we can find it by
 -- its name and alias, as long as all names and aliases are unique,

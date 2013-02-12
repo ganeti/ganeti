@@ -70,8 +70,6 @@ module Ganeti.Types
   , IAllocatorTestDir(..)
   , IAllocatorMode(..)
   , iAllocatorModeToRaw
-  , NetworkType(..)
-  , networkTypeToRaw
   , NICMode(..)
   , nICModeToRaw
   , JobStatus(..)
@@ -358,13 +356,6 @@ $(THH.declareSADT "IAllocatorMode"
   , ("IAllocatorChangeGroup", 'C.iallocatorModeChgGroup)
   ])
 $(THH.makeJSONInstance ''IAllocatorMode)
-
--- | Network type.
-$(THH.declareSADT "NetworkType"
-  [ ("PrivateNetwork", 'C.networkTypePrivate)
-  , ("PublicNetwork",  'C.networkTypePublic)
-  ])
-$(THH.makeJSONInstance ''NetworkType)
 
 -- | Network mode.
 $(THH.declareSADT "NICMode"

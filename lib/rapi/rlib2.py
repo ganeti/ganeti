@@ -94,7 +94,7 @@ N_FIELDS = ["name", "offline", "master_candidate", "drained",
 
 NET_FIELDS = ["name", "network", "gateway",
               "network6", "gateway6",
-              "mac_prefix", "network_type",
+              "mac_prefix",
               "free_count", "reserved_count",
               "map", "group_list", "inst_list",
               "external_reservations", "tags",

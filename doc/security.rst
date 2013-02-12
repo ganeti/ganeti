@@ -1,7 +1,7 @@
 Security in Ganeti
 ==================
 
-Documents Ganeti version 2.6
+Documents Ganeti version 2.7
 
 Ganeti was developed to run on internal, trusted systems. As such, the
 security model is all-or-nothing.
@@ -50,10 +50,38 @@ on this node; the RPC method will run only:
   drbd devices, start/stop instances, etc;
 - run well-defined SSH commands on other nodes in the cluster
 - scripts under the ``/etc/ganeti/hooks`` directory
+- scripts under the ``/etc/ganeti/restricted-commands`` directory, if
+  this feature has been enabled at build time (see below)
 
 It is therefore important to make sure that the contents of the
-``/etc/ganeti/hooks`` directory is supervised and only trusted sources
-can populate it.
+``/etc/ganeti/hooks`` and ``/etc/ganeti/restricted-commands``
+directories are supervised and only trusted sources can populate them.
+
+Restricted commands
+~~~~~~~~~~~~~~~~~~~
+
+The restricted commands feature is new in Ganeti 2.7. It enables the
+administrator to run any commands in the
+``/etc/ganeti/restricted-commands`` directory, if the feature has been
+enabled at build time, subject to the following restrictions:
+
+- No parameters may be passed
+- No absolute or relative path may be passed, only a filename
+- The ``/etc/ganeti/restricted-commands`` directory must
+  be owned by root:root and have mode 0755 or stricter
+- Executables must be regular files or symlinks, and must be executable
+  by root:root
+
+Note that it's not possible to list the contents of the directory, and
+there is an intentional delay when trying to execute a non-existing
+command (to slow-down dictionary attacks).
+
+Since for Ganeti itself this functionality is not needed, and is only
+provided as a way to help administrate or recover nodes, it is a local
+site decision whether to enable or not the restricted commands feature.
+
+By default, this feature is disabled.
+
 
 Cluster issues
 --------------
@@ -93,6 +121,25 @@ UNIX socket, whose permissions are reset to ``0660`` after listening but
 before serving requests. This permission-based protection is documented
 and works on Linux, but is not-portable; however, Ganeti doesn't work on
 non-Linux system at the moment.
+
+Conf daemon
+-----------
+
+In Ganeti 2.7, the ``confd`` daemon (if enabled at build time), serves
+both network-originated queries (about the static configuration) and
+local (UNIX socket) queries (about the run-time configuration; answering
+these means talking to other cluster nodes, which makes use of the
+internal RPC SSL certificate). This makes it a bit more sensitive to
+bugs (a remote attacker could get direct access to the intra-cluster
+RPC), so to harden security it's recommended to:
+
+- disable confd at build time if it's not needed in your setup
+- otherwise, configure Ganeti (at build time) to use separate users, so
+  that the confd daemon doesn't also have access to the server SSL/TLS
+  certificates
+
+It is planned to split the two functionalities (local/remote querying)
+of confd into two separate daemons in a future Ganeti version.
 
 Remote API
 ----------

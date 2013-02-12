@@ -28,7 +28,7 @@ University Clausthal, 1-9.
 
 {-
 
-Copyright (C) 2012, Google Inc.
+Copyright (C) 2012, 2013, Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -147,6 +147,7 @@ verticesColorSet cMap = IntSet.fromList . verticesColors cMap
 neighColors :: Graph.Graph -> VertColorMap -> Graph.Vertex -> [Color]
 neighColors g cMap v = verticesColors cMap $ neighbors g v
 
+{-# ANN colorNode "HLint: ignore Use alternative" #-}
 -- | Color one node.
 colorNode :: Graph.Graph -> VertColorMap -> Graph.Vertex -> Color
 -- use of "head" is A-ok as the source is an infinite list

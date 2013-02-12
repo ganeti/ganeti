@@ -4,7 +4,7 @@
 
 {-
 
-Copyright (C) 2009, 2010, 2011, 2012 Google Inc.
+Copyright (C) 2009, 2010, 2011, 2012, 2013 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -138,9 +138,9 @@ parseInstance ktn a = do
   vcpus <- extract "vcpus" beparams
   pnode <- extract "pnode" a >>= lookupNode ktn name
   snodes <- extract "snodes" a
-  snode <- if null snodes
-             then return Node.noSecondary
-             else readEitherString (head snodes) >>= lookupNode ktn name
+  snode <- case snodes of
+             [] -> return Node.noSecondary
+             x:_ -> readEitherString x >>= lookupNode ktn name
   running <- extract "status" a
   tags <- extract "tags" a
   auto_balance <- extract "auto_balance" beparams

@@ -425,3 +425,22 @@ def TestNodeListFields():
 def TestNodeListDrbd(node):
   """gnt-node list-drbd"""
   AssertCommand(["gnt-node", "list-drbd", node.primary])
+
+
+def _BuildSetESCmd(action, value, node_name):
+  cmd = ["gnt-node"]
+  if action == "add":
+    cmd.extend(["add", "--readd"])
+  else:
+    cmd.append("modify")
+  cmd.extend(["--node-parameters", "exclusive_storage=%s" % value, node_name])
+  return cmd
+
+
+def TestExclStorSingleNode(node):
+  """gnt-node add/modify cannot change the exclusive_storage flag.
+
+  """
+  for action in ["add", "modify"]:
+    for value in (True, False, "default"):
+      AssertCommand(_BuildSetESCmd(action, value, node.primary), fail=True)

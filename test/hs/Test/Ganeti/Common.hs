@@ -83,7 +83,10 @@ passFailOpt :: (StandardOptions b) =>
             -> c
 passFailOpt defaults failfn passfn
               (opt@(GetOpt.Option _ longs _ _, _), bad, good) =
-  let prefix = "--" ++ head longs ++ "="
+  let first_opt = case longs of
+                    [] -> error "no long options?"
+                    x:_ -> x
+      prefix = "--" ++ first_opt ++ "="
       good_cmd = prefix ++ good
       bad_cmd = prefix ++ bad in
   case (parseOptsInner defaults [bad_cmd]  "prog" [opt] [],

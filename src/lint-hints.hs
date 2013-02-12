@@ -20,3 +20,9 @@ warn = map (\v -> (x, v)) ==> zip (repeat x)
 warn = length x > 0 ==> not (null x)
 warn = length x /= 0 ==> not (null x)
 warn = length x == 0 ==> null x
+
+-- Never use head, use 'case' which covers all possibilities
+warn = head x ==> case x of { y:_ -> y } where note = "Head is unsafe, please use case and handle the empty list as well"
+
+-- Never use tail, use 'case' which covers all possibilities
+warn = tail x ==> case x of { _:y -> y } where note = "Tail is unsafe, please use case and handle the empty list as well"

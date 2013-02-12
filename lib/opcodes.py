@@ -361,8 +361,6 @@ def _CheckStorageType(storage_type):
 _PStorageType = ("storage_type", ht.NoDefault, _CheckStorageType,
                  "Storage type")
 
-_CheckNetworkType = ht.TElemOf(constants.NETWORK_VALID_TYPES)
-
 
 @ht.WithDesc("IPv4 network")
 def _CheckCIDRNetNotation(value):
@@ -2065,7 +2063,6 @@ class OpNetworkAdd(OpCode):
   OP_DSC_FIELD = "network_name"
   OP_PARAMS = [
     _PNetworkName,
-    ("network_type", None, ht.TMaybe(_CheckNetworkType), "Network type"),
     ("network", ht.NoDefault, _TIpNetwork4, "IPv4 subnet"),
     ("gateway", None, ht.TMaybe(_TIpAddress4), "IPv4 gateway"),
     ("network6", None, ht.TMaybe(_TIpNetwork6), "IPv6 subnet"),
@@ -2099,8 +2096,6 @@ class OpNetworkSetParams(OpCode):
   OP_DSC_FIELD = "network_name"
   OP_PARAMS = [
     _PNetworkName,
-    ("network_type", None, ht.TMaybeValueNone(_CheckNetworkType),
-     "Network type"),
     ("gateway", None, ht.TMaybeValueNone(_TIpAddress4), "IPv4 gateway"),
     ("network6", None, ht.TMaybeValueNone(_TIpNetwork6), "IPv6 subnet"),
     ("gateway6", None, ht.TMaybeValueNone(_TIpAddress6), "IPv6 gateway"),

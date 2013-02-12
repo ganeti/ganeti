@@ -1,7 +1,7 @@
 Ganeti customisation using hooks
 ================================
 
-Documents Ganeti version 2.6
+Documents Ganeti version 2.7
 
 .. contents::
 
@@ -224,7 +224,7 @@ Adds a network to the cluster.
 
 :directory: network-add
 :env. vars: NETWORK_NAME, NETWORK_SUBNET, NETWORK_GATEWAY, NETWORK_SUBNET6,
-            NETWORK_GATEWAY6, NETWORK_TYPE, NETWORK_MAC_PREFIX, NETWORK_TAGS
+            NETWORK_GATEWAY6, NETWORK_MAC_PREFIX, NETWORK_TAGS
 :pre-execution: master node
 :post-execution: master node
 
@@ -247,7 +247,7 @@ Connects a network to a nodegroup.
 :env. vars: GROUP_NAME, NETWORK_NAME,
             GROUP_NETWORK_MODE, GROUP_NETWORK_LINK,
             NETWORK_SUBNET, NETWORK_GATEWAY, NETWORK_SUBNET6,
-            NETWORK_GATEWAY6, NETWORK_TYPE, NETWORK_MAC_PREFIX, NETWORK_TAGS
+            NETWORK_GATEWAY6, NETWORK_MAC_PREFIX, NETWORK_TAGS
 :pre-execution: nodegroup nodes
 :post-execution: nodegroup nodes
 
@@ -261,7 +261,7 @@ Disconnects a network from a nodegroup.
 :env. vars: GROUP_NAME, NETWORK_NAME,
             GROUP_NETWORK_MODE, GROUP_NETWORK_LINK,
             NETWORK_SUBNET, NETWORK_GATEWAY, NETWORK_SUBNET6,
-            NETWORK_GATEWAY6, NETWORK_TYPE, NETWORK_MAC_PREFIX, NETWORK_TAGS
+            NETWORK_GATEWAY6, NETWORK_MAC_PREFIX, NETWORK_TAGS
 :pre-execution: nodegroup nodes
 :post-execution: nodegroup nodes
 
@@ -273,7 +273,7 @@ Modifies a network.
 
 :directory: network-modify
 :env. vars: NETWORK_NAME, NETWORK_SUBNET, NETWORK_GATEWAY, NETWORK_SUBNET6,
-            NETWORK_GATEWAY6, NETWORK_TYPE, NETWORK_MAC_PREFIX, NETWORK_TAGS
+            NETWORK_GATEWAY6, NETWORK_MAC_PREFIX, NETWORK_TAGS
 :pre-execution: master node
 :post-execution: master node
 
@@ -286,10 +286,18 @@ INSTANCE_NAME, INSTANCE_PRIMARY, INSTANCE_SECONDARY,
 INSTANCE_OS_TYPE, INSTANCE_DISK_TEMPLATE, INSTANCE_MEMORY,
 INSTANCE_DISK_SIZES, INSTANCE_VCPUS, INSTANCE_NIC_COUNT,
 INSTANCE_NICn_IP, INSTANCE_NICn_BRIDGE, INSTANCE_NICn_MAC,
+INSTANCE_NICn_NETWORK,
+INSTANCE_NICn_NETWORK_UUID, INSTANCE_NICn_NETWORK_SUBNET,
+INSTANCE_NICn_NETWORK_GATEWAY, INSTANCE_NICn_NETWORK_SUBNET6,
+INSTANCE_NICn_NETWORK_GATEWAY6, INSTANCE_NICn_NETWORK_MAC_PREFIX,
 INSTANCE_DISK_COUNT, INSTANCE_DISKn_SIZE, INSTANCE_DISKn_MODE.
 
 The INSTANCE_NICn_* and INSTANCE_DISKn_* variables represent the
 properties of the *n* -th NIC and disk, and are zero-indexed.
+
+The INSTANCE_NICn_NETWORK_* variables are only passed if a NIC's network
+parameter is set (that is if the NIC is associated to a network defined
+via ``gnt-network``)
 
 
 OP_INSTANCE_CREATE
@@ -383,7 +391,7 @@ and secondary before migration.
 
 :directory: instance-migrate
 :env. vars: MIGRATE_LIVE, MIGRATE_CLEANUP, OLD_PRIMARY, OLD_SECONDARY, NEW_PRIMARY, NEW_SECONDARY
-:pre-execution: master node, secondary node
+:pre-execution: master node, primary and secondary nodes
 :post-execution: master node, primary and secondary nodes
 
 

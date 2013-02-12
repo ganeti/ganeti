@@ -1219,16 +1219,6 @@ NIC_VALID_MODES = compat.UniqueFrozenset([
 RESERVE_ACTION = "reserve"
 RELEASE_ACTION = "release"
 
-# An extra description of the network.
-# Can be used by hooks/kvm-vif-bridge to apply different rules
-NETWORK_TYPE_PRIVATE = "private"
-NETWORK_TYPE_PUBLIC = "public"
-
-NETWORK_VALID_TYPES = compat.UniqueFrozenset([
-  NETWORK_TYPE_PRIVATE,
-  NETWORK_TYPE_PUBLIC,
-  ])
-
 NICS_PARAMETER_TYPES = {
   NIC_MODE: VTYPE_STRING,
   NIC_LINK: VTYPE_STRING,
@@ -1461,9 +1451,6 @@ CV_ECLUSTERDANGLINGNODES = \
 CV_ECLUSTERDANGLINGINST = \
   (CV_TNODE, "ECLUSTERDANGLINGINST",
    "Some instances have a non-existing primary node")
-CV_EGROUPMIXEDESFLAG = \
-  (CV_TGROUP, "EGROUPMIXEDESFLAG",
-   "exclusive_storage flag is not uniform within the group")
 CV_EGROUPDIFFERENTPVSIZE = \
   (CV_TGROUP, "EGROUPDIFFERENTPVSIZE", "PVs in the group have different sizes")
 CV_EINSTANCEBADNODE = \
@@ -2028,6 +2015,10 @@ NDC_DEFAULTS = {
   ND_SPINDLE_COUNT: 1,
   ND_EXCLUSIVE_STORAGE: False,
   }
+
+NDC_GLOBALS = compat.UniqueFrozenset([
+  ND_EXCLUSIVE_STORAGE,
+  ])
 
 DISK_LD_DEFAULTS = {
   LD_DRBD8: {

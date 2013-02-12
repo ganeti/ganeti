@@ -4,7 +4,6 @@
 module Test.Ganeti.Network
   ( testNetwork
   , genBitStringMaxLen
-  , genNetworkType
   ) where
 
 import Test.QuickCheck
@@ -14,7 +13,6 @@ import Ganeti.Objects as Objects
 
 import Test.Ganeti.Objects
   ( genBitStringMaxLen
-  , genNetworkType
   , genValidNetwork )
 import Test.Ganeti.TestHelper
 import Test.Ganeti.TestCommon

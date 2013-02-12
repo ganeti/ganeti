@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2010 Google Inc.
+# Copyright (C) 2006, 2007, 2010, 2013 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -44,10 +44,6 @@ def ListOS(opts, args):
   """
   op = opcodes.OpOsDiagnose(output_fields=["name", "variants"], names=[])
   result = SubmitOpCode(op, opts=opts)
-
-  if not result:
-    ToStderr("Can't get the OS list")
-    return 1
 
   if not opts.no_headers:
     headers = {"name": "Name"}

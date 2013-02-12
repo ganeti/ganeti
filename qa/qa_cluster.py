@@ -209,7 +209,12 @@ def TestClusterInit(rapi_user, rapi_secret):
     e_s = False
   qa_config.SetExclusiveStorage(e_s)
 
+  extra_args = qa_config.get("cluster-init-args")
+  if extra_args:
+    cmd.extend(extra_args)
+
   cmd.append(qa_config.get("name"))
+
   AssertCommand(cmd)
 
   cmd = ["gnt-cluster", "modify"]

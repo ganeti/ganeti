@@ -34,6 +34,7 @@ much memory.
 # pylint: disable=R0904
 # R0904: Too many public methods
 
+import copy
 import os
 import random
 import logging
@@ -741,6 +742,10 @@ class ConfigWriter:
         _helper("node %s" % node.name, "ndparams",
                 cluster.FillND(node, data.nodegroups[node.group]),
                 constants.NDS_PARAMETER_TYPES)
+      used_globals = constants.NDC_GLOBALS.intersection(node.ndparams)
+      if used_globals:
+        result.append("Node '%s' has some global parameters set: %s" %
+                      (node.name, utils.CommaJoin(used_globals)))
 
     # nodegroups checks
     nodegroups_names = set()
@@ -2029,24 +2034,22 @@ class ConfigWriter:
              (data.cluster.master_node, self._my_hostname))
       raise errors.ConfigurationError(msg)
 
-    # Upgrade configuration if needed
-    data.UpgradeConfig()
-
     self._config_data = data
     # reset the last serial as -1 so that the next write will cause
     # ssconf update
     self._last_cluster_serial = -1
 
-    # And finally run our (custom) config upgrade sequence
+    # Upgrade configuration if needed
     self._UpgradeConfig()
 
     self._cfg_id = utils.GetFileID(path=self._cfg_file)
 
   def _UpgradeConfig(self):
-    """Run upgrade steps that cannot be done purely in the objects.
+    """Run any upgrade steps.
 
-    This is because some data elements need uniqueness across the
-    whole configuration, etc.
+    This method performs both in-object upgrades and also update some data
+    elements that need uniqueness across the whole configuration or interact
+    with other objects.
 
     @warning: this function will call L{_WriteConfig()}, but also
         L{DropECReservations} so it needs to be called only from a
@@ -2055,26 +2058,31 @@ class ConfigWriter:
         created first, to avoid causing deadlock.
 
     """
-    modified = False
+    # Keep a copy of the persistent part of _config_data to check for changes
+    # Serialization doesn't guarantee order in dictionaries
+    oldconf = copy.deepcopy(self._config_data.ToDict())
+
+    # In-object upgrades
+    self._config_data.UpgradeConfig()
+
     for item in self._AllUUIDObjects():
       if item.uuid is None:
         item.uuid = self._GenerateUniqueID(_UPGRADE_CONFIG_JID)
-        modified = True
     if not self._config_data.nodegroups:
       default_nodegroup_name = constants.INITIAL_NODE_GROUP_NAME
       default_nodegroup = objects.NodeGroup(name=default_nodegroup_name,
                                             members=[])
       self._UnlockedAddNodeGroup(default_nodegroup, _UPGRADE_CONFIG_JID, True)
-      modified = True
     for node in self._config_data.nodes.values():
       if not node.group:
         node.group = self.LookupNodeGroup(None)
-        modified = True
       # This is technically *not* an upgrade, but needs to be done both when
       # nodegroups are being added, and upon normally loading the config,
       # because the members list of a node group is discarded upon
       # serializing/deserializing the object.
       self._UnlockedAddNodeToGroup(node.name, node.group)
+
+    modified = (oldconf != self._config_data.ToDict())
     if modified:
       self._WriteConfig()
       # This is ok even if it acquires the internal lock, as _UpgradeConfig is
