@@ -13495,13 +13495,12 @@ class LUInstanceSetParams(LogicalUnit):
         elif self.op.conflicts_check:
           _CheckForConflictingIp(self, new_ip, pnode)
 
-      if old_ip:
-        if old_net:
-          try:
-            self.cfg.ReleaseIp(old_net, old_ip, self.proc.GetECId())
-          except errors.AddressPoolError:
-            logging.warning("Release IP %s not contained in network %s",
-                            old_ip, old_net)
+      if old_ip and old_net:
+        try:
+          self.cfg.ReleaseIp(old_net, old_ip, self.proc.GetECId())
+        except errors.AddressPoolError, err:
+          logging.warning("Releasing IP address '%s' from network '%s'"
+                          " failed: %s", old_ip, old_net, err)
 
     # there are no changes in (net, ip) tuple
     elif (old_net is not None and
@@ -16246,8 +16245,9 @@ class LUNetworkAdd(LogicalUnit):
     # Initialize the associated address pool
     try:
       pool = network.AddressPool.InitializeNetwork(nobj)
-    except errors.AddressPoolError, e:
-      raise errors.OpExecError("Cannot create IP pool for this network: %s" % e)
+    except errors.AddressPoolError, err:
+      raise errors.OpExecError("Cannot create IP address pool for network"
+                               " '%s': %s" % (self.op.network_name, err))
 
     # Check if we need to reserve the nodes and the cluster master IP
     # These may not be allocated to any instances in routed mode, as
@@ -16260,25 +16260,26 @@ class LUNetworkAdd(LogicalUnit):
               pool.Reserve(ip)
               self.LogInfo("Reserved IP address of node '%s' (%s)",
                            node.name, ip)
-          except errors.AddressPoolError:
-            self.LogWarning("Cannot reserve IP address of node '%s' (%s)",
-                            node.name, ip)
+          except errors.AddressPoolError, err:
+            self.LogWarning("Cannot reserve IP address '%s' of node '%s': %s",
+                            ip, node.name, err)
 
       master_ip = self.cfg.GetClusterInfo().master_ip
       try:
         if pool.Contains(master_ip):
           pool.Reserve(master_ip)
           self.LogInfo("Reserved cluster master IP address (%s)", master_ip)
-      except errors.AddressPoolError:
-        self.LogWarning("Cannot reserve cluster master IP address (%s)",
-                        master_ip)
+      except errors.AddressPoolError, err:
+        self.LogWarning("Cannot reserve cluster master IP address (%s): %s",
+                        master_ip, err)
 
     if self.op.add_reserved_ips:
       for ip in self.op.add_reserved_ips:
         try:
           pool.Reserve(ip, external=True)
-        except errors.AddressPoolError, e:
-          raise errors.OpExecError("Cannot reserve IP %s. %s " % (ip, e))
+        except errors.AddressPoolError, err:
+          raise errors.OpExecError("Cannot reserve IP address '%s': %s" %
+                                   (ip, err))
 
     if self.op.tags:
       for tag in self.op.tags:
