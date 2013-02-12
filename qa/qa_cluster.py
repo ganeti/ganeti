@@ -672,24 +672,6 @@ def TestSetExclStorCluster(newvalue):
   return oldvalue
 
 
-def _BuildSetESCmd(value, node_name):
-  return ["gnt-node", "modify", "--node-parameters",
-          "exclusive_storage=%s" % value, node_name]
-
-
-def TestExclStorSingleNode(node):
-  """cluster-verify reports exclusive_storage set only on one node.
-
-  """
-  node_name = node.primary
-  es_val = _GetBoolClusterField("exclusive_storage")
-  assert not es_val
-  AssertCommand(_BuildSetESCmd(True, node_name))
-  AssertClusterVerify(fail=True, errors=[constants.CV_EGROUPMIXEDESFLAG])
-  AssertCommand(_BuildSetESCmd("default", node_name))
-  AssertClusterVerify()
-
-
 def TestExclStorSharedPv(node):
   """cluster-verify reports LVs that share the same PV with exclusive_storage.
 
