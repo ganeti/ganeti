@@ -82,6 +82,9 @@ Version 2.7.0 beta1
 - New external storage backend, to allow managing arbitrary storage
   systems external to the cluster. See
   :manpage:`ganeti-extstorage-interface(7)`.
+- Instance renames of LVM-based instances will now update the LV tags
+  (which can be used to recover the instance-to-LV mapping in case of
+  emergencies)
 
 
 Version 2.6.2
