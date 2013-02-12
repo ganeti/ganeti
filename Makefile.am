@@ -106,6 +106,7 @@ DIRS = \
 	qa \
 	test \
 	test/data \
+	test/data/bdev-rbd \
 	test/data/ovfdata \
 	test/data/ovfdata/other \
 	test/py \
@@ -986,6 +987,18 @@ TEST_FILES = \
 	test/data/bdev-drbd-disk.txt \
 	test/data/bdev-drbd-net-ip4.txt \
 	test/data/bdev-drbd-net-ip6.txt \
+	test/data/bdev-rbd/json_output_empty.txt \
+	test/data/bdev-rbd/json_output_extra_matches.txt \
+	test/data/bdev-rbd/json_output_no_matches.txt \
+	test/data/bdev-rbd/json_output_ok.txt \
+	test/data/bdev-rbd/plain_output_new_extra_matches.txt \
+	test/data/bdev-rbd/plain_output_new_no_matches.txt \
+	test/data/bdev-rbd/plain_output_new_ok.txt \
+	test/data/bdev-rbd/plain_output_old_empty.txt \
+	test/data/bdev-rbd/plain_output_old_extra_matches.txt \
+	test/data/bdev-rbd/plain_output_old_no_matches.txt \
+	test/data/bdev-rbd/plain_output_old_ok.txt \
+	test/data/bdev-rbd/output_invalid.txt \
 	test/data/cert1.pem \
 	test/data/cert2.pem \
 	test/data/instance-minor-pairing.txt \
