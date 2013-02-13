@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2010, 2012 Google Inc.
+# Copyright (C) 2010, 2012, 2013 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -1770,7 +1770,8 @@ class TestPermissions(unittest.TestCase):
   def testMethodAccess(self):
     for handler in connector.CONNECTOR.values():
       for method in baserlib._SUPPORTED_METHODS:
-        access = getattr(handler, "%s_ACCESS" % method)
+        access = baserlib.GetHandlerAccess(handler, method)
+        self.assertFalse(access is None)
         self.assertFalse(set(access) - rapi.RAPI_ACCESS_ALL,
                          msg=("Handler '%s' uses unknown access options for"
                               " method %s" % (handler, method)))

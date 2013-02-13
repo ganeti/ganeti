@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2012 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2012, 2013 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -49,6 +49,7 @@ from ganeti import compat
 from ganeti import utils
 from ganeti import pathutils
 from ganeti.rapi import connector
+from ganeti.rapi import baserlib
 
 import ganeti.http.auth   # pylint: disable=W0611
 import ganeti.http.server
@@ -120,7 +121,7 @@ class RemoteApiHandler(http.auth.HttpServerRequestAuthentication,
         raise http.HttpNotImplemented("Method %s is unsupported for path %s" %
                                       (method, req.request_path))
 
-      ctx.handler_access = getattr(ctx.handler, "%s_ACCESS" % method, None)
+      ctx.handler_access = baserlib.GetHandlerAccess(ctx.handler, method)
 
       # Require permissions definition (usually in the base class)
       if ctx.handler_access is None:

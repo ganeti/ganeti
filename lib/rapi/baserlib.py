@@ -406,6 +406,17 @@ def GetResourceOpcodes(cls):
                                  for (_, op_attr, _, _) in _OPCODE_ATTRS)))
 
 
+def GetHandlerAccess(handler, method):
+  """Returns the access rights for a method on a handler.
+
+  @type handler: L{ResourceBase}
+  @type method: string
+  @rtype: string or None
+
+  """
+  return getattr(handler, "%s_ACCESS" % method, None)
+
+
 class _MetaOpcodeResource(type):
   """Meta class for RAPI resources.
 
