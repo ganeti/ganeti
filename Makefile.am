@@ -618,7 +618,7 @@ doc/man-html/index.html: doc/manpages-enabled.rst $(mandocrst)
 doc/html/index.html doc/man-html/index.html: $(docinput) doc/conf.py \
 	configure.ac $(RUN_IN_TEMPDIR) lib/build/sphinx_ext.py \
 	lib/build/shell_example_lexer.py lib/opcodes.py lib/ht.py \
-	doc/css/style.css \
+	doc/css/style.css lib/rapi/connector.py lib/rapi/rlib2.py \
 	| $(BUILT_PYTHON_SOURCES)
 	@test -n "$(SPHINX)" || \
 	    { echo 'sphinx-build' not found during configure; exit 1; }
