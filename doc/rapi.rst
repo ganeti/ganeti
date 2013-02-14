@@ -1373,6 +1373,20 @@ console. Contained keys:
      constants.CONS_SPICE,
      ])
 
+.. pyassert::
+
+  frozenset(objects.InstanceConsole.GetAllSlots()) == frozenset([
+    "command",
+    "display",
+    "host",
+    "instance",
+    "kind",
+    "message",
+    "port",
+    "user",
+    ])
+
+
 ``instance``
   Instance name
 ``kind``
