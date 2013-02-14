@@ -48,10 +48,12 @@ Version 2.7.0 beta1
   <rapi>` interface and when an instance allocator is used. If the
   ``opportunistic_locking`` parameter is set the opcode will try to
   acquire as many locks as possible, but will not wait for any locks
-  held by other opcodes. If the not enough resources can be found to
+  held by other opcodes. If not enough resources can be found to
   allocate the instance, the temporary error code
   :pyeval:`errors.ECODE_TEMP_NORES` is returned. The operation can be
   retried thereafter, with or without opportunistic locking.
+- The functionality for allocating multiple instances at once has been
+  overhauled and is now also available through :doc:`RAPI <rapi>`.
 - Man pages can now be included when the documentation is built, in
   which case the output is in ``doc/man-html``. The configure-time
   option is ``--enable-manpages-in-doc``. Sphinx 1.0 or higher is
