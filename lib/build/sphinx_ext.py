@@ -63,6 +63,8 @@ import ganeti.rapi.rlib2 # pylint: disable=W0611
 #: Regular expression for man page names
 _MAN_RE = re.compile(r"^(?P<name>[-\w_]+)\((?P<section>\d+)\)$")
 
+_TAB_WIDTH = 2
+
 
 class ReSTError(Exception):
   """Custom class for generating errors in Sphinx.
@@ -214,12 +216,11 @@ class OpcodeParams(s_compat.Directive):
     exclude = self.options.get("exclude", None)
     alias = self.options.get("alias", {})
 
-    tab_width = 2
     path = op_id
     include_text = "\n".join(_BuildOpcodeParams(op_id, include, exclude, alias))
 
     # Inject into state machine
-    include_lines = docutils.statemachine.string2lines(include_text, tab_width,
+    include_lines = docutils.statemachine.string2lines(include_text, _TAB_WIDTH,
                                                        convert_whitespace=1)
     self.state_machine.insert_input(include_lines, path)
 
@@ -240,12 +241,11 @@ class OpcodeResult(s_compat.Directive):
   def run(self):
     op_id = self.arguments[0]
 
-    tab_width = 2
     path = op_id
     include_text = _BuildOpcodeResult(op_id)
 
     # Inject into state machine
-    include_lines = docutils.statemachine.string2lines(include_text, tab_width,
+    include_lines = docutils.statemachine.string2lines(include_text, _TAB_WIDTH,
                                                        convert_whitespace=1)
     self.state_machine.insert_input(include_lines, path)
 
