@@ -59,7 +59,7 @@ def _BuildOpcodeAttributes():
           for method in _SUPPORTED_METHODS]
 
 
-_OPCODE_ATTRS = _BuildOpcodeAttributes()
+OPCODE_ATTRS = _BuildOpcodeAttributes()
 
 
 def BuildUriList(ids, uri_format, uri_fields=("name", "uri")):
@@ -403,7 +403,7 @@ def GetResourceOpcodes(cls):
 
   """
   return frozenset(filter(None, (getattr(cls, op_attr, None)
-                                 for (_, op_attr, _, _) in _OPCODE_ATTRS)))
+                                 for (_, op_attr, _, _) in OPCODE_ATTRS)))
 
 
 def GetHandlerAccess(handler, method):
@@ -428,7 +428,7 @@ class _MetaOpcodeResource(type):
     # Access to private attributes of a client class, pylint: disable=W0212
     obj = type.__call__(mcs, *args, **kwargs)
 
-    for (method, op_attr, rename_attr, fn_attr) in _OPCODE_ATTRS:
+    for (method, op_attr, rename_attr, fn_attr) in OPCODE_ATTRS:
       if hasattr(obj, method):
         # If the method handler is already defined, "*_RENAME" or "Get*OpInput"
         # shouldn't be (they're only used by the automatically generated

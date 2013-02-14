@@ -109,14 +109,14 @@ class TestOpcodeResource(unittest.TestCase):
     attrs = ["%s_OPCODE" % method, "%s_RENAME" % method,
              "Get%sOpInput" % method.capitalize()]
     assert attrs == dict((opattrs[0], list(opattrs[1:]))
-                         for opattrs in baserlib._OPCODE_ATTRS)[method]
+                         for opattrs in baserlib.OPCODE_ATTRS)[method]
     return attrs
 
   def test(self):
     for method in baserlib._SUPPORTED_METHODS:
       # Empty handler
       obj = self._MakeClass(method, {})(None, None, None)
-      for attr in itertools.chain(*baserlib._OPCODE_ATTRS):
+      for attr in itertools.chain(*baserlib.OPCODE_ATTRS):
         self.assertFalse(hasattr(obj, attr))
 
       # Direct handler function
@@ -153,7 +153,7 @@ class TestOpcodeResource(unittest.TestCase):
 
     obj = _Empty(None, None, None)
 
-    for attr in itertools.chain(*baserlib._OPCODE_ATTRS):
+    for attr in itertools.chain(*baserlib.OPCODE_ATTRS):
       self.assertFalse(hasattr(obj, attr))
 
 
