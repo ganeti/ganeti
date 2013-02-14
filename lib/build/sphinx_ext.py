@@ -58,12 +58,22 @@ from ganeti import objects
 from ganeti import _autoconf
 
 import ganeti.rapi.rlib2 # pylint: disable=W0611
+import ganeti.rapi.connector # pylint: disable=W0611
 
 
 #: Regular expression for man page names
 _MAN_RE = re.compile(r"^(?P<name>[-\w_]+)\((?P<section>\d+)\)$")
 
 _TAB_WIDTH = 2
+
+RAPI_URI_ENCODE_RE = re.compile("[^_a-z0-9]+", re.I)
+
+RAPI_ACCESS_TEXT = {
+  rapi.RAPI_ACCESS_WRITE: "write",
+  rapi.RAPI_ACCESS_READ: "read",
+  }
+
+assert frozenset(RAPI_ACCESS_TEXT.keys()) == rapi.RAPI_ACCESS_ALL
 
 
 class ReSTError(Exception):
@@ -425,6 +435,113 @@ def _ManPageRole(typ, rawtext, text, lineno, inliner, # pylint: disable=W0102
                            options=options, content=content)
 
 
+def _EncodeRapiResourceLink(method, uri):
+  """Encodes a RAPI resource URI for use as a link target.
+
+  """
+  parts = [RAPI_URI_ENCODE_RE.sub("-", uri.lower()).strip("-")]
+
+  if method is not None:
+    parts.append(method.lower())
+
+  return "rapi-res-%s" % "+".join(filter(None, parts))
+
+
+def _MakeRapiResourceLink(method, uri):
+  """Generates link target name for RAPI resource.
+
+  """
+  if uri in ["/", "/2"]:
+    # Don't link these
+    return None
+
+  elif uri == "/version":
+    return _EncodeRapiResourceLink(method, uri)
+
+  elif uri.startswith("/2/"):
+    return _EncodeRapiResourceLink(method, uri[len("/2/"):])
+
+  else:
+    raise ReSTError("Unhandled URI '%s'" % uri)
+
+
+def _BuildRapiAccessTable(res):
+  """Build a table with access permissions needed for all RAPI resources.
+
+  """
+  for (uri, handler) in utils.NiceSort(res.items(), key=compat.fst):
+    reslink = _MakeRapiResourceLink(None, uri)
+    if not reslink:
+      # No link was generated
+      continue
+
+    yield ":ref:`%s <%s>`" % (uri, reslink)
+
+    for (method, op_attr, _, _) in sorted(rapi.baserlib.OPCODE_ATTRS):
+      if not (hasattr(handler, method) or hasattr(handler, op_attr)):
+        # Handler doesn't support method
+        continue
+
+      access = rapi.baserlib.GetHandlerAccess(handler, method)
+
+      perms = map(RAPI_ACCESS_TEXT.__getitem__, access)
+
+      if not perms:
+        perms.append("*everyone*")
+
+      yield ("  | :ref:`%s <%s>`: %s" %
+             (method, _MakeRapiResourceLink(method, uri),
+              utils.CommaJoin(perms)))
+
+
+class RapiAccessTable(s_compat.Directive):
+  """Custom directive to generate table of all RAPI resources.
+
+  See also <http://docutils.sourceforge.net/docs/howto/rst-directives.html>.
+
+  """
+  has_content = False
+  required_arguments = 0
+  optional_arguments = 0
+  final_argument_whitespace = False
+  option_spec = {}
+
+  def run(self):
+    resources = \
+      rapi.connector.GetHandlers("[node_name]", "[instance_name]",
+                                 "[group_name]", "[network_name]", "[job_id]",
+                                 "[disk_index]", "[resource]",
+                                 translate=self._TranslateResourceUri)
+
+    include_text = "\n".join(_BuildRapiAccessTable(resources))
+
+    # Inject into state machine
+    include_lines = docutils.statemachine.string2lines(include_text, _TAB_WIDTH,
+                                                       convert_whitespace=1)
+    self.state_machine.insert_input(include_lines, self.__class__.__name__)
+
+    return []
+
+  @classmethod
+  def _TranslateResourceUri(cls, *args):
+    """Translates a resource URI for use in documentation.
+
+    @see: L{rapi.connector.GetHandlers}
+
+    """
+    return "".join(map(cls._UriPatternToString, args))
+
+  @staticmethod
+  def _UriPatternToString(value):
+    """Converts L{rapi.connector.UriPattern} to strings.
+
+    """
+    if isinstance(value, rapi.connector.UriPattern):
+      return value.content
+    else:
+      return value
+
+
 def setup(app):
   """Sphinx extension callback.
 
@@ -434,6 +551,7 @@ def setup(app):
   app.add_directive("opcode_result", OpcodeResult)
   app.add_directive("pyassert", PythonAssert)
   app.add_role("pyeval", PythonEvalRole)
+  app.add_directive("rapi_access_table", RapiAccessTable)
 
   app.add_config_value("enable_manpages", False, True)
   app.add_role("manpage", _ManPageRole)

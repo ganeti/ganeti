@@ -2340,6 +2340,16 @@ It supports the following commands: ``GET``.
 Returns the remote API version. Ganeti 1.2 returned ``1`` and Ganeti 2.0
 returns ``2``.
 
+
+Access permissions
+------------------
+
+The following list describes the access permissions required for each
+resource. See :ref:`rapi-users` for more details.
+
+.. rapi_access_table::
+
+
 .. vim: set textwidth=72 :
 .. Local Variables:
 .. mode: rst
