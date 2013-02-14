@@ -11,6 +11,8 @@ The following design documents have been implemented in Ganeti 2.7:
 - :doc:`design-virtual-clusters`
 - :doc:`design-network`
 - :doc:`design-linuxha`
+- :doc:`design-shared-storage` (Updated to reflect the new ExtStorage
+  Interface)
 
 The following designs have been partially implemented in Ganeti 2.7:
 

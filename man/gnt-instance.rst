@@ -29,6 +29,7 @@ ADD
 | **add**
 | {-t|\--disk-template {diskless | file \| plain \| drbd \| rbd}}
 | {\--disk=*N*: {size=*VAL* \| adopt=*LV*}[,vg=*VG*][,metavg=*VG*][,mode=*ro\|rw*]
+|  \| {size=*VAL*,provider=*PROVIDER*}[,param=*value*... ][,mode=*ro\|rw*]
 |  \| {-s|\--os-size} *SIZE*}
 | [\--no-ip-check] [\--no-name-check] [\--no-start] [\--no-install]
 | [\--net=*N* [:options...] \| \--no-nics]
@@ -50,12 +51,20 @@ The ``disk`` option specifies the parameters for the disks of the
 instance. The numbering of disks starts at zero, and at least one disk
 needs to be passed. For each disk, either the size or the adoption
 source needs to be given, and optionally the access mode (read-only or
-the default of read-write) and the LVM volume group can also be
-specified (via the ``vg`` key). For DRBD devices, a different VG can
-be specified for the metadata device using the ``metavg`` key.  The
-size is interpreted (when no unit is given) in mebibytes. You can also
-use one of the suffixes *m*, *g* or *t* to specify the exact the units
-used; these suffixes map to mebibytes, gibibytes and tebibytes.
+the default of read-write). The size is interpreted (when no unit is
+given) in mebibytes. You can also use one of the suffixes *m*, *g* or
+*t* to specify the exact the units used; these suffixes map to
+mebibytes, gibibytes and tebibytes. For LVM and DRBD devices, the LVM
+volume group can also be specified (via the ``vg`` key). For DRBD
+devices, a different VG can be specified for the metadata device using
+the ``metavg`` key. For ExtStorage devices, also the ``provider``
+option is mandatory, to specify which ExtStorage provider to use.
+
+When creating ExtStorage disks, also arbitrary parameters can be passed,
+to the ExtStorage provider. Those parameters are passed as additional
+comma separated options. Therefore, an ExtStorage disk provided by
+provider ``pvdr1`` with parameters ``param1``, ``param2`` would be
+passed as ``--disk 0:size=10G,provider=pvdr1,param1=val1,param2=val2``.
 
 When using the ``adopt`` key in the disk definition, Ganeti will
 reuse those volumes (instead of creating new ones) as the
@@ -74,6 +83,10 @@ The minimum disk specification is therefore ``--disk 0:size=20G`` (or
 ``-s 20G`` when using the ``-s`` option), and a three-disk instance
 can be specified as ``--disk 0:size=20G --disk 1:size=4G --disk
 2:size=100G``.
+
+The minimum information needed to specify an ExtStorage disk are the
+``size`` and the ``provider``. For example:
+``--disk 0:size=20G,provider=pvdr1``.
 
 The ``--no-ip-check`` skips the checks that are done to see if the
 instance's IP is not already alive (i.e. reachable from the master
@@ -717,6 +730,9 @@ diskless
 file
     Disk devices will be regular files.
 
+sharedfile
+    Disk devices will be regulare files on a shared directory.
+
 plain
     Disk devices will be logical volumes.
 
@@ -726,6 +742,12 @@ drbd
 rbd
     Disk devices will be rbd volumes residing inside a RADOS cluster.
 
+blockdev
+    Disk devices will be adopted pre-existent block devices.
+
+ext
+    Disk devices will be provided by external shared storage,
+    through the ExtStorage Interface using ExtStorage providers.
 
 The optional second value of the ``-n (--node)`` is used for the drbd
 template type and specifies the remote node.
@@ -779,6 +801,13 @@ Example::
       -B maxmem=512 -o debian-etch -n node1.example.com instance1.example.com
     # gnt-instance add -t drbd --disk 0:size=30g -B maxmem=512 -o debian-etch \
       -n node1.example.com:node2.example.com instance2.example.com
+    # gnt-instance add -t rbd --disk 0:size=30g -B maxmem=512 -o debian-etch \
+      -n node1.example.com instance1.example.com
+    # gnt-instance add -t ext --disk 0:size=30g,provider=pvdr1 -B maxmem=512 \
+      -o debian-etch -n node1.example.com instance1.example.com
+    # gnt-instance add -t ext --disk 0:size=30g,provider=pvdr1,param1=val1 \
+      --disk 1:size=40g,provider=pvdr2,param2=val2,param3=val3 -B maxmem=512 \
+      -o debian-etch -n node1.example.com instance1.example.com
 
 
 BATCH-CREATE
@@ -994,7 +1023,9 @@ MODIFY
 | [{-B|\--backend-parameters} *BACKEND\_PARAMETERS*]
 | [{-m|\--runtime-memory} *SIZE*]
 | [\--net add*[:options]* \| \--net [*N*:]remove \| \--net *N:options*]
-| [\--disk add:size=*SIZE*[,vg=*VG*][,metavg=*VG*] \| \--disk [*N*:]remove \|
+| [\--disk add:size=*SIZE*[,vg=*VG*][,metavg=*VG*] \|
+|  \--disk add:size=*SIZE*,provider=*PROVIDER*[,param=*value*... ] \|
+|  \--disk [*N*:]remove \|
 |  \--disk *N*:mode=*MODE*]
 | [{-t|\--disk-template} plain | {-t|\--disk-template} drbd -n *new_secondary*] [\--no-wait-for-sync]
 | [\--os-type=*OS* [\--force-variant]]
@@ -1028,15 +1059,18 @@ memory to the given size (in MB if a different suffix is not specified),
 by ballooning it up or down to the new value.
 
 The ``--disk add:size=``*SIZE* option adds a disk to the instance. The
-optional ``vg=``*VG* option specifies an LVM volume group other than
-the default volume group to create the disk on. For DRBD disks, the
+optional ``vg=``*VG* option specifies an LVM volume group other than the
+default volume group to create the disk on. For DRBD disks, the
 ``metavg=``*VG* option specifies the volume group for the metadata
-device. ``--disk`` *N*``:add,size=``**SIZE** can be used to add a
-disk at a specific index. The ``--disk remove`` option will remove the
-last disk of the instance. Use ``--disk `` *N*``:remove`` to remove a
-disk by its index. The ``--disk`` *N*``:mode=``*MODE* option will change
-the mode of the Nth disk of the instance between read-only (``ro``) and
-read-write (``rw``).
+device. When adding an ExtStorage disk the ``provider=``*PROVIDER*
+option is also mandatory and specifies the ExtStorage provider. Also,
+for ExtStorage disks arbitrary parameters can be passed as additional
+comma separated options, same as in the **add** command. ``--disk``
+*N*``:add,size=``**SIZE** can be used to add a disk at a specific index.
+The ``--disk remove`` option will remove the last disk of the instance.
+Use ``--disk `` *N*``:remove`` to remove a disk by its index. The
+``--disk`` *N*``:mode=``*MODE* option will change the mode of the Nth
+disk of the instance between read-only (``ro``) and read-write (``rw``).
 
 The ``--net add:``*options* and ``--net`` *N*``:add,``*options* option
 will add a new network interface to the instance. The available options
@@ -1472,7 +1506,10 @@ GROW-DISK
 | {*instance*} {*disk*} {*amount*}
 
 Grows an instance's disk. This is only possible for instances having a
-plain, drbd, file, sharedfile or rbd disk template.
+plain, drbd, file, sharedfile, rbd or ext disk template. For the ext
+template to work, the ExtStorage provider should also support growing.
+This means having a ``grow`` script that actually grows the volume of
+the external shared storage.
 
 Note that this command only change the block device size; it will not
 grow the actual filesystems, partitions, etc. that live on that
@@ -1572,16 +1609,21 @@ FAILOVER
 
 Failover will stop the instance (if running), change its primary node,
 and if it was originally running it will start it again (on the new
-primary). This only works for instances with drbd template (in which
-case you can only fail to the secondary node) and for externally
-mirrored templates (blockdev and rbd) (which can change to any other
-node).
+primary). This works for instances with drbd template (in which case you
+can only fail to the secondary node) and for externally mirrored
+templates (sharedfile, blockdev, rbd and ext) (in which case you can
+fail to any other node).
 
-If the instance's disk template is of type blockdev or rbd, then you
-can explicitly specify the target node (which can be any node) using
-the ``-n`` or ``--target-node`` option, or specify an iallocator plugin
-using the ``-I`` or ``--iallocator`` option. If you omit both, the default
-iallocator will be used to specify the target node.
+If the instance's disk template is of type sharedfile, blockdev, rbd or
+ext, then you can explicitly specify the target node (which can be any
+node) using the ``-n`` or ``--target-node`` option, or specify an
+iallocator plugin using the ``-I`` or ``--iallocator`` option. If you
+omit both, the default iallocator will be used to specify the target
+node.
+
+If the instance's disk template is of type drbd, the target node is
+automatically selected as the drbd's secondary node. Changing the
+secondary node is possible with a replace-disks operation.
 
 Normally the failover will check the consistency of the disks before
 failing over the instance. If you are trying to migrate instances off
@@ -1606,6 +1648,10 @@ Example::
 
     # gnt-instance failover instance1.example.com
 
+For externally mirrored templates also ``-n`` is available::
+
+    # gnt-instance failover -n node3.example.com instance1.example.com
+
 
 MIGRATE
 ^^^^^^^
@@ -1618,21 +1664,25 @@ MIGRATE
 | **migrate** [-f] \--cleanup [\--submit] {*instance*}
 
 Migrate will move the instance to its secondary node without shutdown.
-As with failover, it only works for instances having the drbd disk
-template or an externally mirrored disk template type such as blockdev
-or rbd.
+As with failover, it works for instances having the drbd disk template
+or an externally mirrored disk template type such as sharedfile,
+blockdev, rbd or ext.
 
-If the instance's disk template is of type blockdev or rbd, then you can
-explicitly specify the target node (which can be any node) using the
-``-n`` or ``--target-node`` option, or specify an iallocator plugin
-using the ``-I`` or ``--iallocator`` option. If you omit both, the
-default iallocator will be used to specify the target node.
-Alternatively, the default iallocator can be requested by specifying
-``.`` as the name of the plugin.
+If the instance's disk template is of type sharedfile, blockdev, rbd or
+ext, then you can explicitly specify the target node (which can be any
+node) using the ``-n`` or ``--target-node`` option, or specify an
+iallocator plugin using the ``-I`` or ``--iallocator`` option. If you
+omit both, the default iallocator will be used to specify the target
+node.  Alternatively, the default iallocator can be requested by
+specifying ``.`` as the name of the plugin.
 
-The migration command needs a perfectly healthy instance, as we rely
-on the dual-master capability of drbd8 and the disks of the instance
-are not allowed to be degraded.
+If the instance's disk template is of type drbd, the target node is
+automatically selected as the drbd's secondary node. Changing the
+secondary node is possible with a replace-disks operation.
+
+The migration command needs a perfectly healthy instance for drbd
+instances, as we rely on the dual-master capability of drbd8 and the
+disks of the instance are not allowed to be degraded.
 
 The ``--non-live`` and ``--migration-mode=non-live`` options will
 switch (for the hypervisors that support it) between a "fully live"
@@ -1647,7 +1697,7 @@ option is passed, depends on the hypervisor parameters (and can be
 viewed with the **gnt-cluster info** command).
 
 If the ``--cleanup`` option is passed, the operation changes from
-migration to attempting recovery from a failed previous migration.  In
+migration to attempting recovery from a failed previous migration. In
 this mode, Ganeti checks if the instance runs on the correct node (and
 updates its configuration if not) and ensures the instances' disks
 are configured correctly. In this mode, the ``--non-live`` option is
@@ -1704,7 +1754,7 @@ MOVE
 | [-n *node*] [\--shutdown-timeout=*N*] [\--submit] [\--ignore-ipolicy]
 | {*instance*}
 
-Move will move the instance to an arbitrary node in the cluster.  This
+Move will move the instance to an arbitrary node in the cluster. This
 works only for instances having a plain or file disk template.
 
 Note that since this operation is done via data copy, it will take a

@@ -66,7 +66,6 @@ VOL_METADATA
 EXECUTABLE SCRIPTS
 ------------------
 
-
 create
 ~~~~~~
 
@@ -198,7 +197,6 @@ The script should return ``0`` on success.
 TEXT FILES
 ----------
 
-
 parameters.list
 ~~~~~~~~~~~~~~~
 
@@ -212,6 +210,37 @@ separated). For example::
 The parameters can then be used during instance add as follows::
 
     # gnt-instance add --disk=0:fromsnap="file_name",nas_ip="1.2.3.4" ...
+
+EXAMPLES
+--------
+
+In the following examples we assume that you have already installed
+successfully two ExtStorage providers: ``pvdr1`` and ``pvdr2``
+
+Add a new instance with a 10G first disk provided by ``pvdr1`` and a 20G
+second disk provided by ``pvdr2``::
+
+    # gnt-instance add -t ext --disk=0:size=10G,provider=pvdr1
+                              --disk=1:size=20G,provider=pvdr2
+
+Add a new instance with a 5G first disk provided by provider ``pvdr1``
+and also pass the ``prm1``, ``prm2`` parameters to the provider, with
+the corresponding values ``val1``, ``val2``::
+
+   # gnt-instance add -t ext
+                      --disk=0:size=5G,provider=pvdr1,prm1=val1,prm2=val2
+
+Modify an existing instance of disk type ``ext`` by adding a new 30G
+disk provided by provider ``pvdr2``::
+
+   # gnt-instance modify --disk 1:add,size=30G,provider=pvdr2 <instance>
+
+Modify an existing instance of disk type ``ext`` by adding 2 new disks,
+of different providers, passing one parameter for the first one::
+
+   # gnt-instance modify --disk 2:add,size=3G,provider=pvdr1,prm1=val1
+                         --disk 3:add,size=5G,provider=pvdr2
+                         <instance>
 
 NOTES
 -----
