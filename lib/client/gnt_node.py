@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -303,7 +303,7 @@ def ListNodes(opts, args):
   fmtoverride = dict.fromkeys(["pinst_list", "sinst_list", "tags"],
                               (",".join, False))
 
-  cl = GetClient(query=False)
+  cl = GetClient(query=True)
 
   return GenericList(constants.QR_NODE, selected_fields, args, opts.units,
                      opts.separator, not opts.no_headers,
@@ -529,8 +529,6 @@ def ShowNodeConfig(opts, args):
   @return: the desired exit code
 
   """
-  # note: if this starts using RPC fields, and we haven't yet fixed
-  # hconfd, then we should revert to query=False
   cl = GetClient(query=True)
   result = cl.QueryNodes(fields=["name", "pip", "sip",
                                  "pinst_list", "sinst_list",
