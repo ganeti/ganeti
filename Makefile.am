@@ -400,6 +400,7 @@ docinput = \
 	doc/design-monitoring-agent.rst \
 	doc/design-virtual-clusters.rst \
 	doc/design-x509-ca.rst \
+	doc/design-hroller.rst \
 	doc/devnotes.rst \
 	doc/glossary.rst \
 	doc/hooks.rst \
