@@ -26,6 +26,25 @@ reboots).
 Proposed changes
 ================
 
+New options
+-----------
+
+- HRoller should be able to operate on single nodegroups (-G flag) or
+  select its target node through some other mean (eg. via a tag, or a
+  regexp). (Note that individual node selection is already possible via
+  the -O flag, that makes hroller ignore a node altogether).
+- HRoller should handle non redundant instances: currently these are
+  ignored but there should be a way to select its behavior between "it's
+  ok to reboot a node when a non-redundant instance is on it" or "skip
+  nodes with non-redundant instances". This will only be selectable
+  globally, and not per instance.
+- Hroller will make sure to keep any instance which is up in its current
+  state, via live migrations, unless explicitly overridden. The
+  algorithm that will be used calculate the rolling reboot with live
+  migrations is described below, and any override on considering the
+  instance status will only be possible on the whole run, and not
+  per-instance.
+
 
 Calculating rolling maintenances
 --------------------------------
@@ -38,9 +57,14 @@ Down instances
 ++++++++++++++
 
 If an instance was shutdown when the maintenance started it will be
-ignored. This allows avoiding needlessly moving its primary around,
-since it won't suffer a downtime anyway.
+considered for avoiding contemporary reboot of its primary and secondary
+nodes, but will *not* be considered as a target for the node evacuation.
+This allows avoiding needlessly moving its primary around, since it
+won't suffer a downtime anyway.
 
+Note that a node with non-redundant instances will only ever be
+considered good for rolling-reboot if these are down (or the checking of
+status is overridden) *and* an explicit option to allow it is set.
 
 DRBD
 ++++
@@ -56,20 +80,20 @@ them (citation needed). As such we'll implement for now just the
 In order to do that we can use the following algorithm:
 
 1) Compute node sets that don't contain both the primary and the
-secondary for any instance. This can be done already by the current
-hroller graph coloring algorithm: nodes are in the same set (color) if
-and only if no edge (instance) exists between them (see the
-:manpage:`hroller(1)` manpage for more details).
+   secondary for any instance. This can be done already by the current
+   hroller graph coloring algorithm: nodes are in the same set (color)
+   if and only if no edge (instance) exists between them (see the
+   :manpage:`hroller(1)` manpage for more details).
 2) Inside each node set calculate subsets that don't have any secondary
-node in common (this can be done by creating a graph of nodes that are
-connected if and only if an instance on both has the same secondary
-node, and coloring that graph)
+   node in common (this can be done by creating a graph of nodes that
+   are connected if and only if an instance on both has the same
+   secondary node, and coloring that graph)
 3) It is then possible to migrate in parallel all nodes in a subset
-created at step 2, and then reboot/perform maintenance on them, and
-migrate back their original primaries, which allows the computation
-above to be reused for each following subset without N+1 failures being
-triggered, if none were present before. See below about the actual
-execution of the maintenance.
+   created at step 2, and then reboot/perform maintenance on them, and
+   migrate back their original primaries, which allows the computation
+   above to be reused for each following subset without N+1 failures
+   being triggered, if none were present before. See below about the
+   actual execution of the maintenance.
 
 Non-DRBD
 ++++++++
@@ -99,44 +123,28 @@ algorithm might be safe. This perhaps would be a good reason to consider
 managing better RBD pools, if those are implemented on top of nodes
 storage, rather than on dedicated storage machines.
 
-Executing rolling maintenances
-------------------------------
-
-Hroller accepts commands to run to do maintenance automatically. These
-are going to be run on the machine hroller runs on, and take a node name
-as input. They have then to gain access to the target node (via ssh,
-restricted commands, or some other means) and perform their duty.
-
-1) A command (--check-cmd) will be called on all selected online nodes
-to check whether a node needs maintenance. Hroller will proceed only on
-nodes that respond positively to this invocation.
-FIXME: decide about -D
-2) Hroller will evacuate the node of all primary instances.
-3) A command (--maint-cmd) will be called on a node to do the actual
-maintenance operation.  It should do any operation needed to perform the
-maintenance including triggering the actual reboot.
-3) A command (--verify-cmd) will be called to check that the operation
-was successful, it has to wait until the target node is back up (and
-decide after how long it should give up) and perform the verification.
-If it's not successful hroller will stop and not proceed with other
-nodes.
-4) The master node will be kept last, but will not otherwise be treated
-specially. If hroller was running on the master node, care must be
-exercised as its maintenance will have interrupted the software itself,
-and as such the verification step will not happen. This will not
-automatically be taken care of, in the first version. An additional flag
-to just skip the master node will be present as well, in case that's
-preferred.
-
-
 Future work
 ===========
+
+Hroller should become able to execute rolling maintenances, rather than
+just calculate them. For this to succeed properly one of the following
+must happen:
+
+- HRoller handles rolling maintenances that happen at the same time as
+  unrelated cluster jobs, and thus recalculates the maintenance at each
+  step
+- HRoller can selectively drain the cluster so it's sure that only the
+  rolling maintenance can be going on
 
 DRBD nodes' ``replace-disks``' functionality should be implemented. Note
 that when we will support a DRBD version that allows multi-secondary
 this can be done safely, without losing replication at any time, by
 adding a temporary secondary and only when the sync is finished dropping
 the previous one.
+
+Non-redundant (plain or file) instances should have a way to be moved
+off as well via plain storage live migration or ``gnt-instance move``
+(which requires downtime).
 
 If/when RBD pools can be managed inside Ganeti, care can be taken so
 that the pool is evacuated as well from a node before it's put into
