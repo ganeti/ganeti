@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -45,7 +45,7 @@ from cStringIO import StringIO
 from ganeti import errors
 from ganeti import constants
 from ganeti import netutils
-from ganeti import objectutils
+from ganeti import outils
 from ganeti import utils
 
 from socket import AF_INET
@@ -193,7 +193,7 @@ def MakeEmptyIPolicy():
     ])
 
 
-class ConfigObject(objectutils.ValidatedSlots):
+class ConfigObject(outils.ValidatedSlots):
   """A generic config object.
 
   It has the following properties:

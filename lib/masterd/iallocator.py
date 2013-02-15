@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2012 Google Inc.
+# Copyright (C) 2012, 2013 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -25,7 +25,7 @@ from ganeti import compat
 from ganeti import constants
 from ganeti import errors
 from ganeti import ht
-from ganeti import objectutils
+from ganeti import outils
 from ganeti import opcodes
 from ganeti import rpc
 from ganeti import serializer
@@ -60,7 +60,7 @@ _NEVAC_RESULT = ht.TAnd(ht.TIsLength(3),
 _INST_NAME = ("name", ht.TNonEmptyString)
 
 
-class _AutoReqParam(objectutils.AutoSlots):
+class _AutoReqParam(outils.AutoSlots):
   """Meta class for request definitions.
 
   """
@@ -73,7 +73,7 @@ class _AutoReqParam(objectutils.AutoSlots):
     return [slot for (slot, _) in params]
 
 
-class IARequestBase(objectutils.ValidatedSlots):
+class IARequestBase(outils.ValidatedSlots):
   """A generic IAllocator request object.
 
   """
@@ -92,7 +92,7 @@ class IARequestBase(objectutils.ValidatedSlots):
     REQ_PARAMS attribute for this class.
 
     """
-    objectutils.ValidatedSlots.__init__(self, **kwargs)
+    outils.ValidatedSlots.__init__(self, **kwargs)
 
     self.Validate()
 

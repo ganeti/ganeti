@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2012 Google Inc.
+# Copyright (C) 2012, 2013 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,17 +19,17 @@
 # 02110-1301, USA.
 
 
-"""Script for unittesting the objectutils module"""
+"""Script for unittesting the outils module"""
 
 
 import unittest
 
-from ganeti import objectutils
+from ganeti import outils
 
 import testutils
 
 
-class SlotsAutoSlot(objectutils.AutoSlots):
+class SlotsAutoSlot(outils.AutoSlots):
   @classmethod
   def _GetSlots(mcs, attr):
     return attr["SLOTS"]

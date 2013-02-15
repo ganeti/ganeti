@@ -261,8 +261,8 @@ pkgpython_PYTHON = \
 	lib/mcpu.py \
 	lib/netutils.py \
 	lib/objects.py \
-	lib/objectutils.py \
 	lib/opcodes.py \
+	lib/outils.py \
 	lib/ovf.py \
 	lib/pathutils.py \
 	lib/qlang.py \
@@ -1094,8 +1094,8 @@ python_tests = \
 	test/py/ganeti.mcpu_unittest.py \
 	test/py/ganeti.netutils_unittest.py \
 	test/py/ganeti.objects_unittest.py \
-	test/py/ganeti.objectutils_unittest.py \
 	test/py/ganeti.opcodes_unittest.py \
+	test/py/ganeti.outils_unittest.py \
 	test/py/ganeti.ovf_unittest.py \
 	test/py/ganeti.qlang_unittest.py \
 	test/py/ganeti.query_unittest.py \
