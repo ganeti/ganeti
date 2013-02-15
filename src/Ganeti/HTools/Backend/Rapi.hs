@@ -33,10 +33,8 @@ module Ganeti.HTools.Backend.Rapi
 import Control.Exception
 import Data.List (isPrefixOf)
 import Data.Maybe (fromMaybe)
-#ifndef NO_CURL
 import Network.Curl
 import Network.Curl.Types ()
-#endif
 import Control.Monad
 import Text.JSON (JSObject, fromJSObject, decodeStrict)
 import Text.JSON.Types (JSValue(..))
@@ -61,11 +59,6 @@ filePrefix = "file://"
 -- | Read an URL via curl and return the body if successful.
 getUrl :: (Monad m) => String -> IO (m String)
 
-#ifdef NO_CURL
-getUrl _ = return $ fail "RAPI/curl backend disabled at compile time"
-
-#else
-
 -- | Connection timeout (when using non-file methods).
 connTimeout :: Long
 connTimeout = 15
@@ -88,7 +81,6 @@ getUrl url = do
             CurlOK -> return body
             _ -> fail $ printf "Curl error for '%s', error %s"
                  url (show code))
-#endif
 
 -- | Helper to convert I/O errors in 'Bad' values.
 ioErrToResult :: IO a -> IO (Result a)

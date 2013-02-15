@@ -770,7 +770,7 @@ $(HS_ALL_PROGS): %: %.hs $(HS_LIBTEST_SRCS) $(HS_BUILT_SRCS) Makefile
 	@rm -f $(notdir $@).tix
 	$(GHC) --make \
 	  $(HFLAGS) \
-	  $(HS_NOCURL) $(HS_PARALLEL3) $(HS_REGEX_PCRE) \
+	  $(HS_PARALLEL3) $(HS_REGEX_PCRE) \
 	  -osuf $(notdir $@).o -hisuf $(notdir $@).hi \
 	  $(HEXTRA) $(HEXTRA_INT) $@
 	@touch "$@"
@@ -1844,10 +1844,7 @@ hs-apidoc: $(HS_BUILT_SRCS)
 	$(LN_S) ../hscolour.css $(APIDOC_HS_DIR)/Ganeti/Confd/hscolour.css
 	set -e ; \
 	cd src; \
-	if [ "$(HS_NOCURL)" ]; \
-	then OPTGHC="--optghc=$(HS_NOCURL)"; \
-	else OPTGHC=""; \
-	fi; \
+	OPTGHC=""; \
 	if [ "$(HS_PARALLEL3)" ]; \
 	then OPTGHC="$$OPTGHC --optghc=$(HS_PARALLEL3)"; \
 	fi; \
@@ -1871,7 +1868,7 @@ TAGS: $(GENERATED_FILES)
 	rm -f TAGS
 	$(GHC) -e ":etags" -v0 \
 	  $(filter-out -O -Werror,$(HFLAGS)) \
-	  $(HS_NOCURL) $(HS_PARALLEL3) $(HS_REGEX_PCRE) \
+	  $(HS_PARALLEL3) $(HS_REGEX_PCRE) \
 	  $(HS_LIBTEST_SRCS)
 	find . -path './lib/*.py' -o -path './scripts/gnt-*' -o \
 	  -path './daemons/ganeti-*' -o -path './tools/*' -o \

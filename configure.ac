@@ -467,14 +467,6 @@ then
   AC_MSG_WARN([qemu-img not found, using ovfconverter will not be possible])
 fi
 
-# --enable-htools-rapi
-HTOOLS_RAPI=
-AC_ARG_ENABLE([htools-rapi],
-        [AS_HELP_STRING([--enable-htools-rapi],
-        [enable use of curl in the Haskell code (default: check)])],
-        [],
-        [enable_htools_rapi=check])
-
 # --enable-confd
 ENABLE_CONFD=
 AC_ARG_ENABLE([confd],
@@ -517,29 +509,13 @@ fi
 
 # check for modules, first custom/special checks
 AC_MSG_NOTICE([checking for required haskell modules])
-HS_NOCURL=-DNO_CURL
-if test "$enable_htools_rapi" != no; then
-  AC_GHC_PKG_CHECK([curl], [HS_NOCURL=], [])
-  if test -n "$HS_NOCURL"; then
-    if test "$enable_htools_rapi" = check; then
-      AC_MSG_WARN(m4_normalize([The curl library was not found, Haskell
-                                code will be compiled without RAPI support]))
-    else
-      AC_MSG_FAILURE(m4_normalize([The curl library was not found, but it has
-                                   been requested]))
-    fi
-  else
-    AC_MSG_NOTICE([Enabling curl/RAPI/RPC usage in Haskell code])
-  fi
-fi
-AC_SUBST(HS_NOCURL)
-
 HS_PARALLEL3=
 AC_GHC_PKG_CHECK([parallel-3.*], [HS_PARALLEL3=-DPARALLEL3],
                  [AC_GHC_PKG_REQUIRE(parallel)], t)
 AC_SUBST(HS_PARALLEL3)
 
 # and now standard modules
+AC_GHC_PKG_REQUIRE(curl)
 AC_GHC_PKG_REQUIRE(json)
 AC_GHC_PKG_REQUIRE(network)
 AC_GHC_PKG_REQUIRE(mtl)
@@ -641,8 +617,8 @@ AC_ARG_ENABLE([split-query],
         ;;
     esac
   ]],
-  [[case "x${has_confd}x${HS_NOCURL}x" in
-     xTruexx)
+  [[case "x${has_confd}x" in
+     xTruex)
        enable_split_query=True
        ;;
      *)
@@ -653,10 +629,6 @@ AC_SUBST(ENABLE_SPLIT_QUERY, $enable_split_query)
 
 if test x$enable_split_query = xTrue -a x$has_confd != xTrue; then
   AC_MSG_ERROR([Split queries require the confd daemon])
-fi
-
-if test x$enable_split_query = xTrue -a x$HS_NOCURL != x; then
-  AC_MSG_ERROR([Split queries require the htools-rapi feature (curl library)])
 fi
 
 if test x$enable_split_query = xTrue; then

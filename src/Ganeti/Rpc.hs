@@ -1,4 +1,4 @@
-{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, CPP,
+{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies,
   BangPatterns, TemplateHaskell #-}
 
 {-| Implementation of the RPC client.
@@ -7,7 +7,7 @@
 
 {-
 
-Copyright (C) 2012 Google Inc.
+Copyright (C) 2012, 2013 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -75,10 +75,8 @@ import Data.Maybe (fromMaybe)
 import qualified Text.JSON as J
 import Text.JSON.Pretty (pp_value)
 
-#ifndef NO_CURL
 import Network.Curl
 import qualified Ganeti.Path as P
-#endif
 
 import qualified Ganeti.Constants as C
 import Ganeti.Objects
@@ -88,7 +86,6 @@ import Ganeti.Compat
 
 -- * Base RPC functionality and types
 
-#ifndef NO_CURL
 -- | The curl options used for RPC.
 curlOpts :: [CurlOption]
 curlOpts = [ CurlFollowLocation False
@@ -98,12 +95,10 @@ curlOpts = [ CurlFollowLocation False
            , CurlSSLKeyType "PEM"
            , CurlConnectTimeout (fromIntegral C.rpcConnectTimeout)
            ]
-#endif
 
 -- | Data type for RPC error reporting.
 data RpcError
-  = CurlDisabledError
-  | CurlLayerError Node String
+  = CurlLayerError Node String
   | JsonDecodeError String
   | RpcResultError String
   | OfflineNodeError Node
@@ -111,8 +106,6 @@ data RpcError
 
 -- | Provide explanation to RPC errors.
 explainRpcError :: RpcError -> String
-explainRpcError CurlDisabledError =
-    "RPC/curl backend disabled at compile time"
 explainRpcError (CurlLayerError node code) =
     "Curl error for " ++ nodeName node ++ ", " ++ code
 explainRpcError (JsonDecodeError msg) =
@@ -164,9 +157,6 @@ executeHttpRequest :: Node -> ERpcError HttpClientRequest
                    -> IO (ERpcError String)
 
 executeHttpRequest _ (Left rpc_err) = return $ Left rpc_err
-#ifdef NO_CURL
-executeHttpRequest _ _ = return $ Left CurlDisabledError
-#else
 executeHttpRequest node (Right request) = do
   cert_file <- P.nodedCertFile
   let reqOpts = [ CurlTimeout (fromIntegral $ requestTimeout request)
@@ -181,7 +171,6 @@ executeHttpRequest node (Right request) = do
   return $ case code of
              CurlOK -> Right body
              _ -> Left $ CurlLayerError node (show code)
-#endif
 
 -- | Prepare url for the HTTP request.
 prepareUrl :: (RpcCall a) => Node -> a -> String
