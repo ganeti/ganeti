@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -45,7 +45,7 @@ from cStringIO import StringIO
 from ganeti import errors
 from ganeti import constants
 from ganeti import netutils
-from ganeti import objectutils
+from ganeti import outils
 from ganeti import utils
 
 from socket import AF_INET
@@ -193,7 +193,7 @@ def MakeEmptyIPolicy():
     ])
 
 
-class ConfigObject(objectutils.ValidatedSlots):
+class ConfigObject(outils.ValidatedSlots):
   """A generic config object.
 
   It has the following properties:
@@ -406,7 +406,7 @@ class ConfigData(ConfigObject):
     mydict = super(ConfigData, self).ToDict()
     mydict["cluster"] = mydict["cluster"].ToDict()
     for key in "nodes", "instances", "nodegroups", "networks":
-      mydict[key] = objectutils.ContainerToDicts(mydict[key])
+      mydict[key] = outils.ContainerToDicts(mydict[key])
 
     return mydict
 
@@ -417,12 +417,12 @@ class ConfigData(ConfigObject):
     """
     obj = super(ConfigData, cls).FromDict(val)
     obj.cluster = Cluster.FromDict(obj.cluster)
-    obj.nodes = objectutils.ContainerFromDicts(obj.nodes, dict, Node)
+    obj.nodes = outils.ContainerFromDicts(obj.nodes, dict, Node)
     obj.instances = \
-      objectutils.ContainerFromDicts(obj.instances, dict, Instance)
+      outils.ContainerFromDicts(obj.instances, dict, Instance)
     obj.nodegroups = \
-      objectutils.ContainerFromDicts(obj.nodegroups, dict, NodeGroup)
-    obj.networks = objectutils.ContainerFromDicts(obj.networks, dict, Network)
+      outils.ContainerFromDicts(obj.nodegroups, dict, NodeGroup)
+    obj.networks = outils.ContainerFromDicts(obj.networks, dict, Network)
     return obj
 
   def HasAnyDiskOfType(self, dev_type):
@@ -732,7 +732,7 @@ class Disk(ConfigObject):
     for attr in ("children",):
       alist = bo.get(attr, None)
       if alist:
-        bo[attr] = objectutils.ContainerToDicts(alist)
+        bo[attr] = outils.ContainerToDicts(alist)
     return bo
 
   @classmethod
@@ -742,7 +742,7 @@ class Disk(ConfigObject):
     """
     obj = super(Disk, cls).FromDict(val)
     if obj.children:
-      obj.children = objectutils.ContainerFromDicts(obj.children, list, Disk)
+      obj.children = outils.ContainerFromDicts(obj.children, list, Disk)
     if obj.logical_id and isinstance(obj.logical_id, list):
       obj.logical_id = tuple(obj.logical_id)
     if obj.physical_id and isinstance(obj.physical_id, list):
@@ -1100,7 +1100,7 @@ class Instance(TaggableObject):
     for attr in "nics", "disks":
       alist = bo.get(attr, None)
       if alist:
-        nlist = objectutils.ContainerToDicts(alist)
+        nlist = outils.ContainerToDicts(alist)
       else:
         nlist = []
       bo[attr] = nlist
@@ -1119,8 +1119,8 @@ class Instance(TaggableObject):
     if "admin_up" in val:
       del val["admin_up"]
     obj = super(Instance, cls).FromDict(val)
-    obj.nics = objectutils.ContainerFromDicts(obj.nics, list, NIC)
-    obj.disks = objectutils.ContainerFromDicts(obj.disks, list, Disk)
+    obj.nics = outils.ContainerFromDicts(obj.nics, list, NIC)
+    obj.disks = outils.ContainerFromDicts(obj.disks, list, Disk)
     return obj
 
   def UpgradeConfig(self):
@@ -1314,12 +1314,12 @@ class Node(TaggableObject):
 
     hv_state = data.get("hv_state", None)
     if hv_state is not None:
-      data["hv_state"] = objectutils.ContainerToDicts(hv_state)
+      data["hv_state"] = outils.ContainerToDicts(hv_state)
 
     disk_state = data.get("disk_state", None)
     if disk_state is not None:
       data["disk_state"] = \
-        dict((key, objectutils.ContainerToDicts(value))
+        dict((key, outils.ContainerToDicts(value))
              for (key, value) in disk_state.items())
 
     return data
@@ -1333,11 +1333,11 @@ class Node(TaggableObject):
 
     if obj.hv_state is not None:
       obj.hv_state = \
-        objectutils.ContainerFromDicts(obj.hv_state, dict, NodeHvState)
+        outils.ContainerFromDicts(obj.hv_state, dict, NodeHvState)
 
     if obj.disk_state is not None:
       obj.disk_state = \
-        dict((key, objectutils.ContainerFromDicts(value, dict, NodeDiskState))
+        dict((key, outils.ContainerFromDicts(value, dict, NodeDiskState))
              for (key, value) in obj.disk_state.items())
 
     return obj
@@ -1906,7 +1906,7 @@ class _QueryResponseBase(ConfigObject):
 
     """
     mydict = super(_QueryResponseBase, self).ToDict()
-    mydict["fields"] = objectutils.ContainerToDicts(mydict["fields"])
+    mydict["fields"] = outils.ContainerToDicts(mydict["fields"])
     return mydict
 
   @classmethod
@@ -1916,7 +1916,7 @@ class _QueryResponseBase(ConfigObject):
     """
     obj = super(_QueryResponseBase, cls).FromDict(val)
     obj.fields = \
-      objectutils.ContainerFromDicts(obj.fields, list, QueryFieldDefinition)
+      outils.ContainerFromDicts(obj.fields, list, QueryFieldDefinition)
     return obj
 
 

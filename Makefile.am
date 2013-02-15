@@ -106,6 +106,7 @@ DIRS = \
 	qa \
 	test \
 	test/data \
+	test/data/bdev-rbd \
 	test/data/ovfdata \
 	test/data/ovfdata/other \
 	test/py \
@@ -260,8 +261,8 @@ pkgpython_PYTHON = \
 	lib/mcpu.py \
 	lib/netutils.py \
 	lib/objects.py \
-	lib/objectutils.py \
 	lib/opcodes.py \
+	lib/outils.py \
 	lib/ovf.py \
 	lib/pathutils.py \
 	lib/qlang.py \
@@ -394,8 +395,8 @@ docinput = \
 	doc/design-partitioned.rst \
 	doc/design-query-splitting.rst \
 	doc/design-query2.rst \
-	doc/design-remote-commands.rst \
 	doc/design-resource-model.rst \
+	doc/design-restricted-commands.rst \
 	doc/design-shared-storage.rst \
 	doc/design-monitoring-agent.rst \
 	doc/design-virtual-clusters.rst \
@@ -989,6 +990,18 @@ TEST_FILES = \
 	test/data/bdev-drbd-disk.txt \
 	test/data/bdev-drbd-net-ip4.txt \
 	test/data/bdev-drbd-net-ip6.txt \
+	test/data/bdev-rbd/json_output_empty.txt \
+	test/data/bdev-rbd/json_output_extra_matches.txt \
+	test/data/bdev-rbd/json_output_no_matches.txt \
+	test/data/bdev-rbd/json_output_ok.txt \
+	test/data/bdev-rbd/plain_output_new_extra_matches.txt \
+	test/data/bdev-rbd/plain_output_new_no_matches.txt \
+	test/data/bdev-rbd/plain_output_new_ok.txt \
+	test/data/bdev-rbd/plain_output_old_empty.txt \
+	test/data/bdev-rbd/plain_output_old_extra_matches.txt \
+	test/data/bdev-rbd/plain_output_old_no_matches.txt \
+	test/data/bdev-rbd/plain_output_old_ok.txt \
+	test/data/bdev-rbd/output_invalid.txt \
 	test/data/cert1.pem \
 	test/data/cert2.pem \
 	test/data/instance-minor-pairing.txt \
@@ -1088,8 +1101,8 @@ python_tests = \
 	test/py/ganeti.mcpu_unittest.py \
 	test/py/ganeti.netutils_unittest.py \
 	test/py/ganeti.objects_unittest.py \
-	test/py/ganeti.objectutils_unittest.py \
 	test/py/ganeti.opcodes_unittest.py \
+	test/py/ganeti.outils_unittest.py \
 	test/py/ganeti.ovf_unittest.py \
 	test/py/ganeti.qlang_unittest.py \
 	test/py/ganeti.query_unittest.py \

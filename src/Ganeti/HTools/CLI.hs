@@ -8,7 +8,7 @@ used in many other places and this is more IO oriented.
 
 {-
 
-Copyright (C) 2009, 2010, 2011, 2012 Google Inc.
+Copyright (C) 2009, 2010, 2011, 2012, 2013 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -83,6 +83,7 @@ module Ganeti.HTools.CLI
   , oStdSpec
   , oTieredSpec
   , oVerbose
+  , oPriority
   , genericOpts
   ) where
 
@@ -99,6 +100,7 @@ import qualified Ganeti.Path as Path
 import Ganeti.HTools.Types
 import Ganeti.BasicTypes
 import Ganeti.Common as Common
+import Ganeti.Types
 import Ganeti.Utils
 
 -- * Data types
@@ -145,6 +147,7 @@ data Options = Options
   , optTieredSpec  :: Maybe RSpec    -- ^ Requested specs for tiered mode
   , optReplay      :: Maybe String   -- ^ Unittests: RNG state
   , optVerbose     :: Int            -- ^ Verbosity level
+  , optPriority    :: Maybe OpSubmitPriority -- ^ OpCode submit priority
   } deriving Show
 
 -- | Default values for the command line options.
@@ -190,6 +193,7 @@ defaultOptions  = Options
   , optTieredSpec  = Nothing
   , optReplay      = Nothing
   , optVerbose     = 1
+  , optPriority    = Nothing
   }
 
 -- | Abbreviation for the option type.
@@ -529,6 +533,15 @@ oVerbose =
    (NoArg (\ opts -> Ok opts { optVerbose = optVerbose opts + 1 }))
    "increase the verbosity level",
    OptComplNone)
+
+oPriority :: OptType
+oPriority =
+  (Option "" ["priority"]
+   (ReqArg (\ inp opts -> do
+              prio <- parseSubmitPriority inp
+              Ok opts { optPriority = Just prio }) "PRIO")
+   "set the priority of submitted jobs",
+    OptComplChoices (map fmtSubmitPriority [minBound..maxBound]))
 
 -- | Generic options.
 genericOpts :: [GenericOptType Options]

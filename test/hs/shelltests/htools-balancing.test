@@ -13,6 +13,12 @@
 >>> /gnt-instance (failover|migrate|replace-disks)/
 >>>= 0
 
+# test that correct priorities are accepted
+./test/hs/hbal $BACKEND_BAL_STD -G group-01 -C -S $T/simu-rebal.standard --prio low
+>>> /gnt-instance (failover|migrate|replace-disks)/
+>>>= 0
+
+
 # test that hbal won't execute rebalances when using the text backend
 ./test/hs/hbal $BACKEND_BAL_STD -G group-01 -X
 >>>2

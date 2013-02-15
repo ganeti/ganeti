@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2012 Google Inc.
+# Copyright (C) 2012, 2013 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,17 +19,17 @@
 # 02110-1301, USA.
 
 
-"""Script for unittesting the objectutils module"""
+"""Script for unittesting the outils module"""
 
 
 import unittest
 
-from ganeti import objectutils
+from ganeti import outils
 
 import testutils
 
 
-class SlotsAutoSlot(objectutils.AutoSlots):
+class SlotsAutoSlot(outils.AutoSlots):
   @classmethod
   def _GetSlots(mcs, attr):
     return attr["SLOTS"]
@@ -51,7 +51,7 @@ class TestContainerToDicts(unittest.TestCase):
   def testUnknownType(self):
     for value in [None, 19410, "xyz"]:
       try:
-        objectutils.ContainerToDicts(value)
+        outils.ContainerToDicts(value)
       except TypeError, err:
         self.assertTrue(str(err).startswith("Unknown container type"))
       else:
@@ -59,12 +59,12 @@ class TestContainerToDicts(unittest.TestCase):
 
   def testEmptyDict(self):
     value = {}
-    self.assertFalse(type(value) in objectutils._SEQUENCE_TYPES)
-    self.assertEqual(objectutils.ContainerToDicts(value), {})
+    self.assertFalse(type(value) in outils._SEQUENCE_TYPES)
+    self.assertEqual(outils.ContainerToDicts(value), {})
 
   def testEmptySequences(self):
     for cls in [list, tuple, set, frozenset]:
-      self.assertEqual(objectutils.ContainerToDicts(cls()), [])
+      self.assertEqual(outils.ContainerToDicts(cls()), [])
 
 
 class _FakeWithFromDict:
@@ -76,14 +76,14 @@ class TestContainerFromDicts(unittest.TestCase):
   def testUnknownType(self):
     for cls in [str, int, bool]:
       try:
-        objectutils.ContainerFromDicts(None, cls, NotImplemented)
+        outils.ContainerFromDicts(None, cls, NotImplemented)
       except TypeError, err:
         self.assertTrue(str(err).startswith("Unknown container type"))
       else:
         self.fail("Exception was not raised")
 
       try:
-        objectutils.ContainerFromDicts(None, cls(), NotImplemented)
+        outils.ContainerFromDicts(None, cls(), NotImplemented)
       except TypeError, err:
         self.assertTrue(str(err).endswith("is not a type"))
       else:
@@ -91,14 +91,14 @@ class TestContainerFromDicts(unittest.TestCase):
 
   def testEmptyDict(self):
     value = {}
-    self.assertFalse(type(value) in objectutils._SEQUENCE_TYPES)
-    self.assertEqual(objectutils.ContainerFromDicts(value, dict,
+    self.assertFalse(type(value) in outils._SEQUENCE_TYPES)
+    self.assertEqual(outils.ContainerFromDicts(value, dict,
                                                     NotImplemented),
                      {})
 
   def testEmptySequences(self):
     for cls in [list, tuple, set, frozenset]:
-      self.assertEqual(objectutils.ContainerFromDicts([], cls,
+      self.assertEqual(outils.ContainerFromDicts([], cls,
                                                       _FakeWithFromDict),
                        cls())
 

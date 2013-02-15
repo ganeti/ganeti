@@ -28,7 +28,7 @@ be taken:
 
 - No parameters may be passed
 - No absolute or relative path may be passed, only a filename
-- Executable must reside in ``/etc/ganeti/remote-commands``, which must
+- Executable must reside in ``/etc/ganeti/restricted-commands``, which must
   be owned by root:root and have mode 0755 or stricter
   - Must be regular files or symlinks
   - Must be executable by root:root
@@ -46,7 +46,7 @@ If a command can not be executed for some reason, the lock is only
 released with a delay of several seconds, after which the generic error
 message will be returned to the caller.
 
-At first, remote commands will not be made available through the
+At first, restricted commands will not be made available through the
 :doc:`remote API <rapi>`, though that could be done at a later point
 (with a separate password).
 

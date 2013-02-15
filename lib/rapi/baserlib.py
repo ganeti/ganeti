@@ -298,7 +298,7 @@ class ResourceBase(object):
     return val
 
   def _checkStringVariable(self, name, default=None):
-    """Return the parsed value of an int argument.
+    """Return the parsed value of a string argument.
 
     """
     val = self.queryargs.get(name, default)

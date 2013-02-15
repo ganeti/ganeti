@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2010 Google Inc.
+# Copyright (C) 2010, 2013 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -423,7 +423,8 @@ class TestRunRestrictedCmd(unittest.TestCase):
                                _sleep_fn=sleep_fn, _prepare_fn=prepare_fn,
                                _enabled=True)
     except backend.RPCFail, err:
-      self.assertTrue(str(err).startswith("Remote command 'test3079' failed:"))
+      self.assertTrue(str(err).startswith("Restricted command 'test3079'"
+                                          " failed:"))
       self.assertTrue("stderr406328567" in str(err),
                       msg="Error did not include output")
     else:
@@ -477,7 +478,8 @@ class TestRunRestrictedCmd(unittest.TestCase):
                                _runcmd_fn=NotImplemented,
                                _enabled=False)
     except backend.RPCFail, err:
-      self.assertEqual(str(err), "Remote commands disabled at configure time")
+      self.assertEqual(str(err),
+                       "Restricted commands disabled at configure time")
     else:
       self.fail("Did not raise exception")
 
