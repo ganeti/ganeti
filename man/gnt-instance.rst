@@ -492,7 +492,11 @@ serial\_console
     Valid for the KVM hypervisor.
 
     This boolean option specifies whether to emulate a serial console
-    for the instance.
+    for the instance. Note that some versions of KVM have a bug that
+    will make an instance hang when configured to use the serial console
+    unless a connection is made to it within about 2 seconds of the
+    instance's startup. For such case it's recommended to disable this
+    option, which is enabled by default.
 
 serial\_speed
     Valid for the KVM hypervisor.

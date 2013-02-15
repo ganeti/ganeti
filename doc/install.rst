@@ -721,10 +721,19 @@ modify``.
 Your instance types, networking environment, hypervisor type and version
 may all affect what kind of parameters should be used on your cluster.
 
-For example kvm instances are by default configured to use a host
-kernel, and to be reached via serial console, which works nice for Linux
-paravirtualized instances. If you want fully virtualized instances you
-may want to handle their kernel inside the instance, and to use VNC.
+.. admonition:: KVM
+
+  Instances are by default configured to use a host kernel, and to be
+  reached via serial console, which works nice for Linux paravirtualized
+  instances. If you want fully virtualized instances you may want to
+  handle their kernel inside the instance, and to use VNC.
+
+  Some versions of KVM have a bug that will make an instance hang when
+  configured to use the serial console (which is the default) unless a
+  connection is made to it within about 2 seconds of the instance's
+  startup. For such case it's recommended to disable the
+  ``serial_console`` option.
+
 
 Joining the nodes to the cluster
 ++++++++++++++++++++++++++++++++
