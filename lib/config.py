@@ -1572,6 +1572,24 @@ class ConfigWriter:
                      for node_name in nodes)
 
   @locking.ssynchronized(_config_lock, shared=1)
+  def GetInstanceNetworks(self, instance_name):
+    """Returns set of network UUIDs for instance's nics.
+
+    @rtype: frozenset
+
+    """
+    instance = self._UnlockedGetInstanceInfo(instance_name)
+    if not instance:
+      raise errors.ConfigurationError("Unknown instance '%s'" % instance_name)
+
+    networks = set()
+    for nic in instance.nics:
+      if nic.network:
+        networks.add(nic.network)
+
+    return frozenset(networks)
+
+  @locking.ssynchronized(_config_lock, shared=1)
   def GetMultiInstanceInfo(self, instances):
     """Get the configuration of multiple instances.
 
