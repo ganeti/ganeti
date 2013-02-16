@@ -2501,11 +2501,6 @@ def OSEnvironment(instance, inst_os, debug=0):
     if nic.netinfo:
       nobj = objects.Network.FromDict(nic.netinfo)
       result.update(nobj.HooksDict("NIC_%d_" % idx))
-    elif nic.network:
-      # FIXME: broken network reference: the instance NIC specifies a network,
-      # but the relevant network entry was not in the config. This should be
-      # made impossible.
-      result["INSTANCE_NIC%d_NETWORK" % idx] = nic.network
     if constants.HV_NIC_TYPE in instance.hvparams:
       result["NIC_%d_FRONTEND_TYPE" % idx] = \
         instance.hvparams[constants.HV_NIC_TYPE]
