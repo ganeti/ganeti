@@ -617,7 +617,7 @@ class TestInstanceQuery(unittest.TestCase):
       ]
 
     iqd = query.InstanceQueryData(instances, cluster, None, [], [], {},
-                                  set(), {}, None, None)
+                                  set(), {}, None, None, None)
     self.assertEqual(q.Query(iqd),
       [[(constants.RS_NORMAL, "inst1"),
         (constants.RS_NORMAL, 128),
@@ -646,7 +646,7 @@ class TestInstanceQuery(unittest.TestCase):
     q = self._Create(selected)
     self.assertEqual(q.RequestedData(),
                      set([query.IQ_CONFIG, query.IQ_LIVE, query.IQ_DISKUSAGE,
-                          query.IQ_CONSOLE, query.IQ_NODES]))
+                          query.IQ_CONSOLE, query.IQ_NODES, query.IQ_NETWORKS]))
 
     cluster = objects.Cluster(cluster_name="testcluster",
       hvparams=constants.HVC_DEFAULTS,
@@ -823,7 +823,7 @@ class TestInstanceQuery(unittest.TestCase):
 
     iqd = query.InstanceQueryData(instances, cluster, disk_usage,
                                   offline_nodes, bad_nodes, live_data,
-                                  wrongnode_inst, consinfo, {}, {})
+                                  wrongnode_inst, consinfo, {}, {}, {})
     result = q.Query(iqd)
     self.assertEqual(len(result), len(instances))
     self.assert_(compat.all(len(row) == len(selected)
