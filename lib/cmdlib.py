@@ -5751,6 +5751,7 @@ class _InstanceQuery(_QueryBase):
       lu.needed_locks[locking.LEVEL_INSTANCE] = self.wanted
       lu.needed_locks[locking.LEVEL_NODEGROUP] = []
       lu.needed_locks[locking.LEVEL_NODE] = []
+      lu.needed_locks[locking.LEVEL_NETWORK] = []
       lu.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_REPLACE
 
     self.do_grouplocks = (self.do_locking and
@@ -5769,6 +5770,12 @@ class _InstanceQuery(_QueryBase):
               for group_uuid in lu.cfg.GetInstanceNodeGroups(instance_name))
       elif level == locking.LEVEL_NODE:
         lu._LockInstancesNodes() # pylint: disable=W0212
+
+      elif level == locking.LEVEL_NETWORK:
+        lu.needed_locks[locking.LEVEL_NETWORK] = \
+          frozenset(net_uuid
+                    for instance_name in lu.owned_locks(locking.LEVEL_INSTANCE)
+                    for net_uuid in lu.cfg.GetInstanceNetworks(instance_name))
 
   @staticmethod
   def _CheckGroupLocks(lu):
@@ -12823,12 +12830,13 @@ class LUInstanceQueryData(NoHooksLU):
 
       self.needed_locks[locking.LEVEL_NODEGROUP] = []
       self.needed_locks[locking.LEVEL_NODE] = []
+      self.needed_locks[locking.LEVEL_NETWORK] = []
       self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_REPLACE
 
   def DeclareLocks(self, level):
     if self.op.use_locking:
+      owned_instances = self.owned_locks(locking.LEVEL_INSTANCE)
       if level == locking.LEVEL_NODEGROUP:
-        owned_instances = self.owned_locks(locking.LEVEL_INSTANCE)
 
         # Lock all groups used by instances optimistically; this requires going
         # via the node before it's locked, requiring verification later on
@@ -12841,6 +12849,13 @@ class LUInstanceQueryData(NoHooksLU):
       elif level == locking.LEVEL_NODE:
         self._LockInstancesNodes()
 
+      elif level == locking.LEVEL_NETWORK:
+        self.needed_locks[locking.LEVEL_NETWORK] = \
+          frozenset(net_uuid
+                    for instance_name in owned_instances
+                    for net_uuid in
+                       self.cfg.GetInstanceNetworks(instance_name))
+
   def CheckPrereq(self):
     """Check prerequisites.
 
@@ -12850,6 +12865,7 @@ class LUInstanceQueryData(NoHooksLU):
     owned_instances = frozenset(self.owned_locks(locking.LEVEL_INSTANCE))
     owned_groups = frozenset(self.owned_locks(locking.LEVEL_NODEGROUP))
     owned_nodes = frozenset(self.owned_locks(locking.LEVEL_NODE))
+    owned_networks = frozenset(self.owned_locks(locking.LEVEL_NETWORK))
 
     if self.wanted_names is None:
       assert self.op.use_locking, "Locking was not used"
@@ -12861,7 +12877,8 @@ class LUInstanceQueryData(NoHooksLU):
       _CheckInstancesNodeGroups(self.cfg, instances, owned_groups, owned_nodes,
                                 None)
     else:
-      assert not (owned_instances or owned_groups or owned_nodes)
+      assert not (owned_instances or owned_groups or
+                  owned_nodes or owned_networks)
 
     self.wanted_instances = instances.values()
 
@@ -12945,7 +12962,6 @@ class LUInstanceQueryData(NoHooksLU):
                                                  for node in nodes.values()))
 
     group2name_fn = lambda uuid: groups[uuid].name
-
     for instance in self.wanted_instances:
       pnode = nodes[instance.primary_node]
 
