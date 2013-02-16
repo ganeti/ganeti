@@ -1557,9 +1557,8 @@ def _NICToTuple(lu, nic):
   link = filled_params[constants.NIC_LINK]
   netinfo = None
   if nic.network:
-    net_uuid = lu.cfg.LookupNetwork(nic.network)
-    netinfo = objects.Network.ToDict(lu.cfg.GetNetwork(net_uuid))
-
+    nobj = lu.cfg.GetNetwork(nic.network)
+    netinfo = objects.Network.ToDict(nobj)
   return (nic.ip, nic.mac, mode, link, nic.network, netinfo)
 
 
@@ -9950,8 +9949,9 @@ def _ComputeNics(op, cluster, default_ip, cfg, ec_id):
 
     check_params = cluster.SimpleFillNIC(nicparams)
     objects.NIC.CheckParameterSyntax(check_params)
+    net_uuid = cfg.LookupNetwork(net)
     nics.append(objects.NIC(mac=mac, ip=nic_ip,
-                            network=net, nicparams=nicparams))
+                            network=net_uuid, nicparams=nicparams))
 
   return nics
 
@@ -10687,14 +10687,15 @@ class LUInstanceCreate(LogicalUnit):
     # Fill in any IPs from IP pools. This must happen here, because we need to
     # know the nic's primary node, as specified by the iallocator
     for idx, nic in enumerate(self.nics):
-      net = nic.network
-      if net is not None:
-        netparams = self.cfg.GetGroupNetParams(net, self.pnode.name)
+      net_uuid = nic.network
+      if net_uuid is not None:
+        nobj = self.cfg.GetNetwork(net_uuid)
+        netparams = self.cfg.GetGroupNetParams(net_uuid, self.pnode.name)
         if netparams is None:
           raise errors.OpPrereqError("No netparams found for network"
                                      " %s. Propably not connected to"
                                      " node's %s nodegroup" %
-                                     (net, self.pnode.name),
+                                     (nobj.name, self.pnode.name),
                                      errors.ECODE_INVAL)
         self.LogInfo("NIC/%d inherits netparams %s" %
                      (idx, netparams.values()))
@@ -10702,19 +10703,19 @@ class LUInstanceCreate(LogicalUnit):
         if nic.ip is not None:
           if nic.ip.lower() == constants.NIC_IP_POOL:
             try:
-              nic.ip = self.cfg.GenerateIp(net, self.proc.GetECId())
+              nic.ip = self.cfg.GenerateIp(net_uuid, self.proc.GetECId())
             except errors.ReservationError:
               raise errors.OpPrereqError("Unable to get a free IP for NIC %d"
                                          " from the address pool" % idx,
                                          errors.ECODE_STATE)
-            self.LogInfo("Chose IP %s from network %s", nic.ip, net)
+            self.LogInfo("Chose IP %s from network %s", nic.ip, nobj.name)
           else:
             try:
-              self.cfg.ReserveIp(net, nic.ip, self.proc.GetECId())
+              self.cfg.ReserveIp(net_uuid, nic.ip, self.proc.GetECId())
             except errors.ReservationError:
               raise errors.OpPrereqError("IP address %s already in use"
                                          " or does not belong to network %s" %
-                                         (nic.ip, net),
+                                         (nic.ip, nobj.name),
                                          errors.ECODE_NOTUNIQUE)
 
       # net is None, ip None or given
@@ -13381,7 +13382,7 @@ class LUInstanceSetParams(LogicalUnit):
     nl = [self.cfg.GetMasterNode()] + list(self.instance.all_nodes)
     return (nl, nl)
 
-  def _PrepareNicModification(self, params, private, old_ip, old_net,
+  def _PrepareNicModification(self, params, private, old_ip, old_net_uuid,
                               old_params, cluster, pnode):
 
     update_params_dict = dict([(key, params[key])
@@ -13391,13 +13392,21 @@ class LUInstanceSetParams(LogicalUnit):
     req_link = update_params_dict.get(constants.NIC_LINK, None)
     req_mode = update_params_dict.get(constants.NIC_MODE, None)
 
-    new_net = params.get(constants.INIC_NETWORK, old_net)
-    if new_net is not None:
-      netparams = self.cfg.GetGroupNetParams(new_net, pnode)
-      if netparams is None:
+    new_net_uuid = None
+    new_net_uuid_or_name = params.get(constants.INIC_NETWORK, old_net_uuid)
+    if new_net_uuid_or_name:
+      new_net_uuid = self.cfg.LookupNetwork(new_net_uuid_or_name)
+      new_net_obj = self.cfg.GetNetwork(new_net_uuid)
+
+    if old_net_uuid:
+      old_net_obj = self.cfg.GetNetwork(old_net_uuid)
+
+    if new_net_uuid:
+      netparams = self.cfg.GetGroupNetParams(new_net_uuid, pnode)
+      if not netparams:
         raise errors.OpPrereqError("No netparams found for the network"
-                                   " %s, probably not connected" % new_net,
-                                   errors.ECODE_INVAL)
+                                   " %s, probably not connected" %
+                                   new_net_obj.name, errors.ECODE_INVAL)
       new_params = dict(netparams)
     else:
       new_params = _GetUpdatedParams(old_params, update_params_dict)
@@ -13436,7 +13445,7 @@ class LUInstanceSetParams(LogicalUnit):
       elif mac in (constants.VALUE_AUTO, constants.VALUE_GENERATE):
         # otherwise generate the MAC address
         params[constants.INIC_MAC] = \
-          self.cfg.GenerateMAC(new_net, self.proc.GetECId())
+          self.cfg.GenerateMAC(new_net_uuid, self.proc.GetECId())
       else:
         # or validate/reserve the current one
         try:
@@ -13445,61 +13454,61 @@ class LUInstanceSetParams(LogicalUnit):
           raise errors.OpPrereqError("MAC address '%s' already in use"
                                      " in cluster" % mac,
                                      errors.ECODE_NOTUNIQUE)
-    elif new_net != old_net:
+    elif new_net_uuid != old_net_uuid:
 
-      def get_net_prefix(net):
+      def get_net_prefix(net_uuid):
         mac_prefix = None
-        if net:
-          uuid = self.cfg.LookupNetwork(net)
-          mac_prefix = self.cfg.GetNetwork(uuid).mac_prefix
+        if net_uuid:
+          nobj = self.cfg.GetNetwork(net_uuid)
+          mac_prefix = nobj.mac_prefix
 
         return mac_prefix
 
-      new_prefix = get_net_prefix(new_net)
-      old_prefix = get_net_prefix(old_net)
+      new_prefix = get_net_prefix(new_net_uuid)
+      old_prefix = get_net_prefix(old_net_uuid)
       if old_prefix != new_prefix:
         params[constants.INIC_MAC] = \
-          self.cfg.GenerateMAC(new_net, self.proc.GetECId())
+          self.cfg.GenerateMAC(new_net_uuid, self.proc.GetECId())
 
-    #if there is a change in nic-network configuration
+    #if there is a change in nic's ip/network configuration
     new_ip = params.get(constants.INIC_IP, old_ip)
-    if (new_ip, new_net) != (old_ip, old_net):
+    if (new_ip, new_net_uuid) != (old_ip, old_net_uuid):
       if new_ip:
-        if new_net:
-          if new_ip.lower() == constants.NIC_IP_POOL:
-            try:
-              new_ip = self.cfg.GenerateIp(new_net, self.proc.GetECId())
-            except errors.ReservationError:
-              raise errors.OpPrereqError("Unable to get a free IP"
-                                         " from the address pool",
-                                         errors.ECODE_STATE)
-            self.LogInfo("Chose IP %s from pool %s", new_ip, new_net)
-            params[constants.INIC_IP] = new_ip
-          elif new_ip != old_ip or new_net != old_net:
-            try:
-              self.LogInfo("Reserving IP %s in pool %s", new_ip, new_net)
-              self.cfg.ReserveIp(new_net, new_ip, self.proc.GetECId())
-            except errors.ReservationError:
-              raise errors.OpPrereqError("IP %s not available in network %s" %
-                                         (new_ip, new_net),
-                                         errors.ECODE_NOTUNIQUE)
-        elif new_ip.lower() == constants.NIC_IP_POOL:
-          raise errors.OpPrereqError("ip=pool, but no network found",
-                                     errors.ECODE_INVAL)
+        if new_ip.lower() == constants.NIC_IP_POOL:
+          if not new_net_uuid:
+            raise errors.OpPrereqError("ip=pool, but no network found",
+                                       errors.ECODE_INVAL)
+          try:
+            new_ip = self.cfg.GenerateIp(new_net_uuid, self.proc.GetECId())
+          except errors.ReservationError:
+            raise errors.OpPrereqError("Unable to get a free IP"
+                                       " from the address pool",
+                                       errors.ECODE_STATE)
+          self.LogInfo("Chose IP %s from network %s", new_ip, new_net_obj.name)
+          params[constants.INIC_IP] = new_ip
+        elif new_ip != old_ip or new_net_uuid != old_net_uuid:
+          try:
+            self.cfg.ReserveIp(new_net_uuid, new_ip, self.proc.GetECId())
+            self.LogInfo("Reserving IP %s in network %s",
+                         new_ip, new_net_obj.name)
+          except errors.ReservationError:
+            raise errors.OpPrereqError("IP %s not available in network %s" %
+                                       (new_ip, new_net_obj.name),
+                                       errors.ECODE_NOTUNIQUE)
 
         # new net is None
-        elif self.op.conflicts_check:
+        elif not new_net_uuid and self.op.conflicts_check:
           _CheckForConflictingIp(self, new_ip, pnode)
 
-      if old_ip and old_net:
+      if old_ip:
         try:
-          self.cfg.ReleaseIp(old_net, old_ip, self.proc.GetECId())
-        except errors.AddressPoolError, err:
-          logging.warning("Releasing IP address '%s' from network '%s'"
-                          " failed: %s", old_ip, old_net, err)
+          self.cfg.ReleaseIp(old_net_uuid, old_ip, self.proc.GetECId())
+        except errors.AddressPoolError:
+          logging.warning("Release IP %s not contained in network %s",
+                          old_ip, old_net_obj.name)
 
     # there are no changes in (net, ip) tuple
-    elif (old_net is not None and
+    elif (old_net_uuid is not None and
           (req_link is not None or req_mode is not None)):
       raise errors.OpPrereqError("Not allowed to change link or mode of"
                                  " a NIC that is connected to a network",
@@ -16795,7 +16804,7 @@ class LUNetworkDisconnect(LogicalUnit):
       self.connected = False
       return
 
-    _NetworkConflictCheck(self, lambda nic: nic.network == self.network_name,
+    _NetworkConflictCheck(self, lambda nic: nic.network == self.network_uuid,
                           "disconnect from")
 
   def Exec(self, feedback_fn):
