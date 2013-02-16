@@ -5860,10 +5860,17 @@ class _InstanceQuery(_QueryBase):
       nodes = None
       groups = None
 
+    if query.IQ_NETWORKS in self.requested_data:
+      net_uuids = itertools.chain(*(lu.cfg.GetInstanceNetworks(i.name)
+                                    for i in instance_list))
+      networks = dict((uuid, lu.cfg.GetNetwork(uuid)) for uuid in net_uuids)
+    else:
+      networks = None
+
     return query.InstanceQueryData(instance_list, lu.cfg.GetClusterInfo(),
                                    disk_usage, offline_nodes, bad_nodes,
                                    live_data, wrongnode_inst, consinfo,
-                                   nodes, groups)
+                                   nodes, groups, networks)
 
 
 class LUQuery(NoHooksLU):
@@ -16543,8 +16550,6 @@ class _NetworkQuery(_QueryBase):
     network_uuids = self._GetNames(lu, all_networks.keys(),
                                    locking.LEVEL_NETWORK)
 
-    name_to_uuid = dict((n.name, n.uuid) for n in all_networks.values())
-
     do_instances = query.NETQ_INST in self.requested_data
     do_groups = query.NETQ_GROUP in self.requested_data
 
@@ -16569,10 +16574,8 @@ class _NetworkQuery(_QueryBase):
       network_to_instances = dict((uuid, []) for uuid in network_uuids)
       for instance in all_instances.values():
         for nic in instance.nics:
-          if nic.network:
-            net_uuid = name_to_uuid[nic.network]
-            if net_uuid in network_uuids:
-              network_to_instances[net_uuid].append(instance.name)
+          if nic.network in network_uuids:
+            network_to_instances[nic.network].append(instance.name)
             break
 
     if query.NETQ_STATS in self.requested_data:
