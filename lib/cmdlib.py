@@ -16693,6 +16693,10 @@ class LUNetworkConnect(LogicalUnit):
 
     assert self.group_uuid in owned_groups
 
+    # Check if locked instances are still correct
+    owned_instances = frozenset(self.owned_locks(locking.LEVEL_INSTANCE))
+    _CheckNodeGroupInstances(self.cfg, self.group_uuid, owned_instances)
+
     self.netparams = {
       constants.NIC_MODE: self.network_mode,
       constants.NIC_LINK: self.network_link,
@@ -16713,7 +16717,7 @@ class LUNetworkConnect(LogicalUnit):
       pool = network.AddressPool(self.cfg.GetNetwork(self.network_uuid))
 
       _NetworkConflictCheck(self, lambda nic: pool.Contains(nic.ip),
-                            "connect to")
+                            "connect to", owned_instances)
 
   def Exec(self, feedback_fn):
     if self.connected:
@@ -16723,7 +16727,7 @@ class LUNetworkConnect(LogicalUnit):
     self.cfg.Update(self.group, feedback_fn)
 
 
-def _NetworkConflictCheck(lu, check_fn, action):
+def _NetworkConflictCheck(lu, check_fn, action, instances):
   """Checks for network interface conflicts with a network.
 
   @type lu: L{LogicalUnit}
@@ -16735,13 +16739,9 @@ def _NetworkConflictCheck(lu, check_fn, action):
   @raise errors.OpPrereqError: If conflicting IP addresses are found.
 
   """
-  # Check if locked instances are still correct
-  owned_instances = frozenset(lu.owned_locks(locking.LEVEL_INSTANCE))
-  _CheckNodeGroupInstances(lu.cfg, lu.group_uuid, owned_instances)
-
   conflicts = []
 
-  for (_, instance) in lu.cfg.GetMultiInstanceInfo(owned_instances):
+  for (_, instance) in lu.cfg.GetMultiInstanceInfo(instances):
     instconflicts = [(idx, nic.ip)
                      for (idx, nic) in enumerate(instance.nics)
                      if check_fn(nic)]
@@ -16815,6 +16815,10 @@ class LUNetworkDisconnect(LogicalUnit):
 
     assert self.group_uuid in owned_groups
 
+    # Check if locked instances are still correct
+    owned_instances = frozenset(self.owned_locks(locking.LEVEL_INSTANCE))
+    _CheckNodeGroupInstances(self.cfg, self.group_uuid, owned_instances)
+
     self.group = self.cfg.GetNodeGroup(self.group_uuid)
     self.connected = True
     if self.network_uuid not in self.group.networks:
@@ -16824,7 +16828,7 @@ class LUNetworkDisconnect(LogicalUnit):
       return
 
     _NetworkConflictCheck(self, lambda nic: nic.network == self.network_uuid,
-                          "disconnect from")
+                          "disconnect from", owned_instances)
 
   def Exec(self, feedback_fn):
     if not self.connected:
