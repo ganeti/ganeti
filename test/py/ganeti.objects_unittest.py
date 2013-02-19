@@ -376,5 +376,74 @@ class TestNode(unittest.TestCase):
     self.assertTrue(constants.ND_SPINDLE_COUNT in node2.ndparams)
 
 
+class TestInstancePolicy(unittest.TestCase):
+  def setUp(self):
+    # Policies are big, and we want to see the difference in case of an error
+    self.maxDiff = None
+
+  def _AssertIPolicyIsFull(self, policy):
+    self.assertEqual(frozenset(policy.keys()), constants.IPOLICY_ALL_KEYS)
+    for key in constants.IPOLICY_ISPECS:
+      spec = policy[key]
+      self.assertEqual(frozenset(spec.keys()), constants.ISPECS_PARAMETERS)
+
+  def testDefaultIPolicy(self):
+    objects.InstancePolicy.CheckParameterSyntax(constants.IPOLICY_DEFAULTS,
+                                                True)
+    self._AssertIPolicyIsFull(constants.IPOLICY_DEFAULTS)
+
+  def testFillIPolicyEmpty(self):
+    policy = objects.FillIPolicy(constants.IPOLICY_DEFAULTS, {})
+    objects.InstancePolicy.CheckParameterSyntax(policy, True)
+    self.assertEqual(policy, constants.IPOLICY_DEFAULTS)
+
+  def _AssertISpecsMerged(self, default_spec, diff_spec, merged_spec):
+    for (param, value) in merged_spec.items():
+      if param in diff_spec:
+        self.assertEqual(value, diff_spec[param])
+      else:
+        self.assertEqual(value, default_spec[param])
+
+  def _AssertIPolicyMerged(self, default_pol, diff_pol, merged_pol):
+    for (key, value) in merged_pol.items():
+      if key in diff_pol:
+        if key in constants.IPOLICY_ISPECS:
+          self._AssertISpecsMerged(default_pol[key], diff_pol[key], value)
+        else:
+          self.assertEqual(value, diff_pol[key])
+      else:
+        self.assertEqual(value, default_pol[key])
+
+  def testFillIPolicy(self):
+    partial_policies = [
+      {constants.IPOLICY_VCPU_RATIO: 3.14},
+      {constants.IPOLICY_SPINDLE_RATIO: 2.72},
+      {constants.IPOLICY_DTS: []},
+      {constants.IPOLICY_DTS: [constants.DT_FILE]},
+      ]
+    for diff_pol in partial_policies:
+      policy = objects.FillIPolicy(constants.IPOLICY_DEFAULTS, diff_pol)
+      objects.InstancePolicy.CheckParameterSyntax(policy, True)
+      self._AssertIPolicyIsFull(policy)
+      self._AssertIPolicyMerged(constants.IPOLICY_DEFAULTS, diff_pol, policy)
+
+  def testFillIPolicySpecs(self):
+    partial_policies = [
+      {constants.ISPECS_MIN: {constants.ISPEC_MEM_SIZE: 32},
+       constants.ISPECS_MAX: {constants.ISPEC_CPU_COUNT: 1024}},
+      {constants.ISPECS_STD: {constants.ISPEC_DISK_SIZE: 2048},
+       constants.ISPECS_MAX: {
+          constants.ISPEC_DISK_COUNT: constants.MAX_DISKS - 1,
+          constants.ISPEC_NIC_COUNT: constants.MAX_NICS - 1,
+          }},
+      {constants.ISPECS_STD: {constants.ISPEC_SPINDLE_USE: 3}},
+      ]
+    for diff_pol in partial_policies:
+      policy = objects.FillIPolicy(constants.IPOLICY_DEFAULTS, diff_pol)
+      objects.InstancePolicy.CheckParameterSyntax(policy, True)
+      self._AssertIPolicyIsFull(policy)
+      self._AssertIPolicyMerged(constants.IPOLICY_DEFAULTS, diff_pol, policy)
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
