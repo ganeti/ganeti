@@ -82,16 +82,28 @@ def FillDict(defaults_dict, custom_dict, skip_keys=None):
   return ret_dict
 
 
-def FillIPolicy(default_ipolicy, custom_ipolicy, skip_keys=None):
+def _FillMinMaxISpecs(default_specs, custom_specs):
+  assert frozenset(default_specs.keys()) == constants.ISPECS_MINMAX_KEYS
+  ret_specs = {}
+  for key in constants.ISPECS_MINMAX_KEYS:
+    ret_specs[key] = FillDict(default_specs[key],
+                              custom_specs.get(key, {}))
+  return ret_specs
+
+
+def FillIPolicy(default_ipolicy, custom_ipolicy):
   """Fills an instance policy with defaults.
 
   """
   assert frozenset(default_ipolicy.keys()) == constants.IPOLICY_ALL_KEYS
   ret_dict = {}
-  for key in constants.IPOLICY_ISPECS:
-    ret_dict[key] = FillDict(default_ipolicy[key],
-                             custom_ipolicy.get(key, {}),
-                             skip_keys=skip_keys)
+  # Instance specs
+  new_mm = _FillMinMaxISpecs(default_ipolicy[constants.ISPECS_MINMAX],
+                             custom_ipolicy.get(constants.ISPECS_MINMAX, {}))
+  ret_dict[constants.ISPECS_MINMAX] = new_mm
+  new_std = FillDict(default_ipolicy[constants.ISPECS_STD],
+                     custom_ipolicy.get(constants.ISPECS_STD, {}))
+  ret_dict[constants.ISPECS_STD] = new_std
   # list items
   for key in [constants.IPOLICY_DTS]:
     ret_dict[key] = list(custom_ipolicy.get(key, default_ipolicy[key]))
@@ -186,11 +198,13 @@ def MakeEmptyIPolicy():
   """Create empty IPolicy dictionary.
 
   """
-  return dict([
-    (constants.ISPECS_MIN, {}),
-    (constants.ISPECS_MAX, {}),
-    (constants.ISPECS_STD, {}),
-    ])
+  return {
+    constants.ISPECS_MINMAX: {
+      constants.ISPECS_MIN: {},
+      constants.ISPECS_MAX: {},
+      },
+    constants.ISPECS_STD: {},
+    }
 
 
 class ConfigObject(outils.ValidatedSlots):
@@ -912,7 +926,6 @@ class Disk(ConfigObject):
 class InstancePolicy(ConfigObject):
   """Config object representing instance policy limits dictionary.
 
-
   Note that this object is not actually used in the config, it's just
   used as a placeholder for a few functions.
 
@@ -921,9 +934,21 @@ class InstancePolicy(ConfigObject):
   def CheckParameterSyntax(cls, ipolicy, check_std):
     """ Check the instance policy for validity.
 
+    @type ipolicy: dict
+    @param ipolicy: dictionary with min/max/std specs and policies
+    @type check_std: bool
+    @param check_std: Whether to check std value or just assume compliance
+    @raise errors.ConfigurationError: when the policy is not legal
+
     """
-    for param in constants.ISPECS_PARAMETERS:
-      InstancePolicy.CheckISpecSyntax(ipolicy, param, check_std)
+    if constants.ISPECS_MINMAX in ipolicy:
+      if check_std and constants.ISPECS_STD not in ipolicy:
+        msg = "Missing key in ipolicy: %s" % constants.ISPECS_STD
+        raise errors.ConfigurationError(msg)
+      minmaxspecs = ipolicy[constants.ISPECS_MINMAX]
+      stdspec = ipolicy.get(constants.ISPECS_STD)
+      for param in constants.ISPECS_PARAMETERS:
+        InstancePolicy.CheckISpecSyntax(minmaxspecs, stdspec, param, check_std)
     if constants.IPOLICY_DTS in ipolicy:
       InstancePolicy.CheckDiskTemplates(ipolicy[constants.IPOLICY_DTS])
     for key in constants.IPOLICY_PARAMETERS:
@@ -935,37 +960,47 @@ class InstancePolicy(ConfigObject):
                                       utils.CommaJoin(wrong_keys))
 
   @classmethod
-  def CheckISpecSyntax(cls, ipolicy, name, check_std):
-    """Check the instance policy for validity on a given key.
+  def CheckISpecSyntax(cls, minmaxspecs, stdspec, name, check_std):
+    """Check the instance policy specs for validity on a given key.
 
-    We check if the instance policy makes sense for a given key, that is
-    if ipolicy[min][name] <= ipolicy[std][name] <= ipolicy[max][name].
+    We check if the instance specs makes sense for a given key, that is
+    if minmaxspecs[min][name] <= stdspec[name] <= minmaxspec[max][name].
 
-    @type ipolicy: dict
-    @param ipolicy: dictionary with min, max, std specs
+    @type minmaxspecs: dict
+    @param minmaxspecs: dictionary with min and max instance spec
+    @type stdspec: dict
+    @param stdspec: dictionary with standard instance spec
     @type name: string
     @param name: what are the limits for
     @type check_std: bool
     @param check_std: Whether to check std value or just assume compliance
-    @raise errors.ConfigureError: when specs for given name are not valid
+    @raise errors.ConfigurationError: when specs for the given name are not
+        valid
 
     """
-    min_v = ipolicy[constants.ISPECS_MIN].get(name, 0)
+    missing = constants.ISPECS_MINMAX_KEYS - frozenset(minmaxspecs.keys())
+    if missing:
+      msg = "Missing instance specification: %s" % utils.CommaJoin(missing)
+      raise errors.ConfigurationError(msg)
+
+    minspec = minmaxspecs[constants.ISPECS_MIN]
+    maxspec = minmaxspecs[constants.ISPECS_MAX]
+    min_v = minspec.get(name, 0)
 
     if check_std:
-      std_v = ipolicy[constants.ISPECS_STD].get(name, min_v)
+      std_v = stdspec.get(name, min_v)
       std_msg = std_v
     else:
       std_v = min_v
       std_msg = "-"
 
-    max_v = ipolicy[constants.ISPECS_MAX].get(name, std_v)
-    err = ("Invalid specification of min/max/std values for %s: %s/%s/%s" %
-           (name,
-            ipolicy[constants.ISPECS_MIN].get(name, "-"),
-            ipolicy[constants.ISPECS_MAX].get(name, "-"),
-            std_msg))
+    max_v = maxspec.get(name, std_v)
     if min_v > std_v or std_v > max_v:
+      err = ("Invalid specification of min/max/std values for %s: %s/%s/%s" %
+             (name,
+              minspec.get(name, "-"),
+              maxspec.get(name, "-"),
+              std_msg))
       raise errors.ConfigurationError(err)
 
   @classmethod

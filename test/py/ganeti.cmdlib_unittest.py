@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2008, 2011, 2012 Google Inc.
+# Copyright (C) 2008, 2011, 2012, 2013 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -589,7 +589,7 @@ class TestDiskStateHelper(unittest.TestCase):
 
 class TestComputeMinMaxSpec(unittest.TestCase):
   def setUp(self):
-    self.ipolicy = {
+    self.ispecs = {
       constants.ISPECS_MAX: {
         constants.ISPEC_MEM_SIZE: 512,
         constants.ISPEC_DISK_SIZE: 1024,
@@ -602,38 +602,38 @@ class TestComputeMinMaxSpec(unittest.TestCase):
 
   def testNoneValue(self):
     self.assertTrue(cmdlib._ComputeMinMaxSpec(constants.ISPEC_MEM_SIZE, None,
-                                              self.ipolicy, None) is None)
+                                              self.ispecs, None) is None)
 
   def testAutoValue(self):
     self.assertTrue(cmdlib._ComputeMinMaxSpec(constants.ISPEC_MEM_SIZE, None,
-                                              self.ipolicy,
+                                              self.ispecs,
                                               constants.VALUE_AUTO) is None)
 
   def testNotDefined(self):
     self.assertTrue(cmdlib._ComputeMinMaxSpec(constants.ISPEC_NIC_COUNT, None,
-                                              self.ipolicy, 3) is None)
+                                              self.ispecs, 3) is None)
 
   def testNoMinDefined(self):
     self.assertTrue(cmdlib._ComputeMinMaxSpec(constants.ISPEC_DISK_SIZE, None,
-                                              self.ipolicy, 128) is None)
+                                              self.ispecs, 128) is None)
 
   def testNoMaxDefined(self):
     self.assertTrue(cmdlib._ComputeMinMaxSpec(constants.ISPEC_DISK_COUNT, None,
-                                                self.ipolicy, 16) is None)
+                                                self.ispecs, 16) is None)
 
   def testOutOfRange(self):
     for (name, val) in ((constants.ISPEC_MEM_SIZE, 64),
                         (constants.ISPEC_MEM_SIZE, 768),
                         (constants.ISPEC_DISK_SIZE, 4096),
                         (constants.ISPEC_DISK_COUNT, 0)):
-      min_v = self.ipolicy[constants.ISPECS_MIN].get(name, val)
-      max_v = self.ipolicy[constants.ISPECS_MAX].get(name, val)
+      min_v = self.ispecs[constants.ISPECS_MIN].get(name, val)
+      max_v = self.ispecs[constants.ISPECS_MAX].get(name, val)
       self.assertEqual(cmdlib._ComputeMinMaxSpec(name, None,
-                                                 self.ipolicy, val),
+                                                 self.ispecs, val),
                        "%s value %s is not in range [%s, %s]" %
                        (name, val,min_v, max_v))
       self.assertEqual(cmdlib._ComputeMinMaxSpec(name, "1",
-                                                 self.ipolicy, val),
+                                                 self.ispecs, val),
                        "%s/1 value %s is not in range [%s, %s]" %
                        (name, val,min_v, max_v))
 
@@ -645,7 +645,7 @@ class TestComputeMinMaxSpec(unittest.TestCase):
                         (constants.ISPEC_DISK_SIZE, 0),
                         (constants.ISPEC_DISK_COUNT, 1),
                         (constants.ISPEC_DISK_COUNT, 5)):
-      self.assertTrue(cmdlib._ComputeMinMaxSpec(name, None, self.ipolicy, val)
+      self.assertTrue(cmdlib._ComputeMinMaxSpec(name, None, self.ispecs, val)
                       is None)
 
 
@@ -673,6 +673,7 @@ class TestComputeIPolicySpecViolation(unittest.TestCase):
   # Minimal policy accepted by _ComputeIPolicySpecViolation()
   _MICRO_IPOL = {
     constants.IPOLICY_DTS: [constants.DT_PLAIN, constants.DT_DISKLESS],
+    constants.ISPECS_MINMAX: NotImplemented,
     }
 
   def test(self):
@@ -1732,21 +1733,24 @@ class TestGetUpdatedIPolicy(unittest.TestCase):
   """Tests for cmdlib._GetUpdatedIPolicy()"""
   _OLD_CLUSTER_POLICY = {
     constants.IPOLICY_VCPU_RATIO: 1.5,
-    constants.ISPECS_MIN: {
-      constants.ISPEC_MEM_SIZE: 20,
-      constants.ISPEC_CPU_COUNT: 2,
+    constants.ISPECS_MINMAX: {
+      constants.ISPECS_MIN: {
+        constants.ISPEC_MEM_SIZE: 20,
+        constants.ISPEC_CPU_COUNT: 2,
+        },
+      constants.ISPECS_MAX: {},
       },
-    constants.ISPECS_MAX: {},
     constants.ISPECS_STD: {},
     }
-
   _OLD_GROUP_POLICY = {
     constants.IPOLICY_SPINDLE_RATIO: 2.5,
-    constants.ISPECS_MIN: {
-      constants.ISPEC_DISK_SIZE: 20,
-      constants.ISPEC_NIC_COUNT: 2,
+    constants.ISPECS_MINMAX: {
+      constants.ISPECS_MIN: {
+        constants.ISPEC_DISK_SIZE: 20,
+        constants.ISPEC_NIC_COUNT: 2,
+        },
+      constants.ISPECS_MAX: {},
       },
-    constants.ISPECS_MAX: {},
     }
 
   def _TestSetSpecs(self, old_policy, isgroup):
@@ -1756,11 +1760,21 @@ class TestGetUpdatedIPolicy(unittest.TestCase):
       constants.ISPEC_DISK_SIZE: 30,
       }
     diff_policy = {
-      ispec_key: diff_ispec
+      constants.ISPECS_MINMAX: {
+        ispec_key: diff_ispec,
+        },
       }
+    if not isgroup:
+      diff_std = {
+        constants.ISPEC_CPU_COUNT: 3,
+        constants.ISPEC_DISK_COUNT: 3,
+        }
+      diff_policy[constants.ISPECS_STD] = diff_std
     new_policy = cmdlib._GetUpdatedIPolicy(old_policy, diff_policy,
                                            group_policy=isgroup)
-    new_ispec = new_policy[ispec_key]
+
+    self.assertTrue(constants.ISPECS_MINMAX in new_policy)
+    new_ispec = new_policy[constants.ISPECS_MINMAX][ispec_key]
     for key in diff_ispec:
       self.assertTrue(key in new_ispec)
       self.assertEqual(new_ispec[key], diff_ispec[key])
@@ -1768,11 +1782,26 @@ class TestGetUpdatedIPolicy(unittest.TestCase):
       if not key in diff_policy:
         self.assertTrue(key in new_policy)
         self.assertEqual(new_policy[key], old_policy[key])
-    old_ispec = old_policy[ispec_key]
-    for key in old_ispec:
-      if not key in diff_ispec:
-        self.assertTrue(key in new_ispec)
-        self.assertEqual(new_ispec[key], old_ispec[key])
+
+    if constants.ISPECS_MINMAX in old_policy:
+      old_minmax = old_policy[constants.ISPECS_MINMAX]
+      for key in old_minmax:
+        if key != ispec_key:
+          self.assertTrue(key in new_policy[constants.ISPECS_MINMAX])
+          self.assertEqual(new_policy[constants.ISPECS_MINMAX][key],
+                           old_minmax[key])
+      old_ispec = old_policy[constants.ISPECS_MINMAX][ispec_key]
+      for key in old_ispec:
+        if not key in diff_ispec:
+          self.assertTrue(key in new_ispec)
+          self.assertEqual(new_ispec[key], old_ispec[key])
+
+    if not isgroup:
+      new_std = new_policy[constants.ISPECS_STD]
+      for key in diff_std:
+        self.assertTrue(key in new_std)
+        self.assertEqual(new_std[key], diff_std[key])
+
 
   def _TestSet(self, old_policy, isgroup):
     diff_policy = {
@@ -1816,9 +1845,16 @@ class TestGetUpdatedIPolicy(unittest.TestCase):
     invalid_policy = INVALID_DICT
     self.assertRaises(errors.OpPrereqError, cmdlib._GetUpdatedIPolicy,
                       old_policy, invalid_policy, group_policy=isgroup)
-    for key in constants.IPOLICY_ISPECS:
+    invalid_ispecs = {
+      constants.ISPECS_MINMAX: INVALID_DICT,
+      }
+    self.assertRaises(errors.OpPrereqError, cmdlib._GetUpdatedIPolicy,
+                      old_policy, invalid_ispecs, group_policy=isgroup)
+    for key in constants.ISPECS_MINMAX_KEYS:
       invalid_ispec = {
-        key: INVALID_DICT,
+        constants.ISPECS_MINMAX: {
+          key: INVALID_DICT,
+          },
         }
       self.assertRaises(errors.TypeEnforcementError, cmdlib._GetUpdatedIPolicy,
                         old_policy, invalid_ispec, group_policy=isgroup)

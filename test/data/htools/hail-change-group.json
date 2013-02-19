@@ -14,21 +14,23 @@
           "cpu-count": 1,
           "spindle-use": 1
         },
-        "min": {
-          "nic-count": 1,
-          "disk-size": 128,
-          "disk-count": 1,
-          "memory-size": 128,
-          "cpu-count": 1,
-          "spindle-use": 1
-        },
-        "max": {
-          "nic-count": 8,
-          "disk-size": 1048576,
-          "disk-count": 16,
-          "memory-size": 32768,
-          "cpu-count": 8,
-          "spindle-use": 8
+        "minmax": {
+	  "min": {
+	    "nic-count": 1,
+	    "disk-size": 128,
+	    "disk-count": 1,
+	    "memory-size": 128,
+	    "cpu-count": 1,
+	    "spindle-use": 1
+	  },
+	  "max": {
+	    "nic-count": 8,
+	    "disk-size": 1048576,
+	    "disk-count": 16,
+	    "memory-size": 32768,
+	    "cpu-count": 8,
+	    "spindle-use": 8
+	  }
         },
         "vcpu-ratio": 4.0,
         "disk-templates": [
@@ -56,21 +58,23 @@
           "cpu-count": 1,
           "spindle-use": 1
         },
-        "min": {
-          "nic-count": 1,
-          "disk-size": 128,
-          "disk-count": 1,
-          "memory-size": 128,
-          "cpu-count": 1,
-          "spindle-use": 1
-        },
-        "max": {
-          "nic-count": 8,
-          "disk-size": 1048576,
-          "disk-count": 16,
-          "memory-size": 32768,
-          "cpu-count": 8,
-          "spindle-use": 8
+        "minmax": {
+	  "min": {
+	    "nic-count": 1,
+	    "disk-size": 128,
+	    "disk-count": 1,
+	    "memory-size": 128,
+	    "cpu-count": 1,
+	    "spindle-use": 1
+	  },
+	  "max": {
+	    "nic-count": 8,
+	    "disk-size": 1048576,
+	    "disk-count": 16,
+	    "memory-size": 32768,
+	    "cpu-count": 8,
+	    "spindle-use": 8
+	  }
         },
         "vcpu-ratio": 4.0,
         "disk-templates": [
@@ -98,21 +102,23 @@
       "disk-count": 1,
       "spindle-use": 1
     },
-    "min": {
-      "nic-count": 1,
-      "disk-size": 1024,
-      "memory-size": 128,
-      "cpu-count": 1,
-      "disk-count": 1,
-      "spindle-use": 1
-    },
-    "max": {
-      "nic-count": 8,
-      "disk-size": 1048576,
-      "memory-size": 32768,
-      "cpu-count": 8,
-      "disk-count": 16,
-      "spindle-use": 8
+    "minmax": {
+      "min": {
+	"nic-count": 1,
+	"disk-size": 1024,
+	"memory-size": 128,
+	"cpu-count": 1,
+	"disk-count": 1,
+	"spindle-use": 1
+      },
+      "max": {
+	"nic-count": 8,
+	"disk-size": 1048576,
+	"memory-size": 32768,
+	"cpu-count": 8,
+	"disk-count": 16,
+	"spindle-use": 8
+      }
     },
     "vcpu-ratio": 4.0,
     "disk-templates": [

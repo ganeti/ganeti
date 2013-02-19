@@ -139,12 +139,14 @@ genInstWithNets nets = do
 -- | FIXME: This generates completely random data, without normal
 -- validation rules.
 $(genArbitrary ''PartialISpecParams)
+$(genArbitrary ''PartialMinMaxISpecs)
 
 -- | FIXME: This generates completely random data, without normal
 -- validation rules.
 $(genArbitrary ''PartialIPolicy)
 
 $(genArbitrary ''FilledISpecParams)
+$(genArbitrary ''FilledMinMaxISpecs)
 $(genArbitrary ''FilledIPolicy)
 $(genArbitrary ''IpFamily)
 $(genArbitrary ''FilledNDParams)

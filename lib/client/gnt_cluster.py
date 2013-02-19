@@ -476,10 +476,14 @@ def ShowClusterConfig(opts, args):
     ("Instance policy - limits for instances",
      [
        (key,
-        _FormatGroupedParams(result["ipolicy"][key], roman=opts.roman_integers))
-       for key in constants.IPOLICY_ISPECS
+        _FormatGroupedParams(result["ipolicy"][constants.ISPECS_MINMAX][key],
+                             roman=opts.roman_integers))
+       for key in constants.ISPECS_MINMAX_KEYS
        ] +
      [
+       (constants.ISPECS_STD,
+        _FormatGroupedParams(result["ipolicy"][constants.ISPECS_STD],
+                             roman=opts.roman_integers)),
        ("enabled disk templates",
         utils.CommaJoin(result["ipolicy"][constants.IPOLICY_DTS])),
        ] +

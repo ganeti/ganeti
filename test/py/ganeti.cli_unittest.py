@@ -1141,18 +1141,22 @@ class TestCreateIPolicyFromOpts(unittest.TestCase):
 
   def testClusterPolicy(self):
     exp_pol0 = {
-      constants.ISPECS_MIN: {},
-      constants.ISPECS_MAX: {},
+      constants.ISPECS_MINMAX: {
+        constants.ISPECS_MIN: {},
+        constants.ISPECS_MAX: {},
+        },
       constants.ISPECS_STD: {},
       }
     exp_pol1 = {
-      constants.ISPECS_MIN: {
-        constants.ISPEC_CPU_COUNT: 2,
-        constants.ISPEC_DISK_COUNT: 1,
-        },
-      constants.ISPECS_MAX: {
-        constants.ISPEC_MEM_SIZE: 12*1024,
-        constants.ISPEC_DISK_COUNT: 2,
+      constants.ISPECS_MINMAX: {
+        constants.ISPECS_MIN: {
+          constants.ISPEC_CPU_COUNT: 2,
+          constants.ISPEC_DISK_COUNT: 1,
+          },
+        constants.ISPECS_MAX: {
+          constants.ISPEC_MEM_SIZE: 12*1024,
+          constants.ISPEC_DISK_COUNT: 2,
+          },
         },
       constants.ISPECS_STD: {
         constants.ISPEC_CPU_COUNT: 2,
@@ -1161,12 +1165,14 @@ class TestCreateIPolicyFromOpts(unittest.TestCase):
       constants.IPOLICY_VCPU_RATIO: 3.1,
       }
     exp_pol2 = {
-      constants.ISPECS_MIN: {
-        constants.ISPEC_DISK_SIZE: 512,
-        constants.ISPEC_NIC_COUNT: 2,
-        },
-      constants.ISPECS_MAX: {
-        constants.ISPEC_NIC_COUNT: 3,
+      constants.ISPECS_MINMAX: {
+        constants.ISPECS_MIN: {
+          constants.ISPEC_DISK_SIZE: 512,
+          constants.ISPEC_NIC_COUNT: 2,
+          },
+        constants.ISPECS_MAX: {
+          constants.ISPEC_NIC_COUNT: 3,
+          },
         },
       constants.ISPECS_STD: {
         constants.ISPEC_CPU_COUNT: 2,
@@ -1245,10 +1251,12 @@ class TestCreateIPolicyFromOpts(unittest.TestCase):
   def testAllowedValues(self):
     allowedv = "blah"
     exp_pol1 = {
-      constants.ISPECS_MIN: {
-        constants.ISPEC_CPU_COUNT: allowedv,
-        },
-      constants.ISPECS_MAX: {
+      constants.ISPECS_MINMAX: {
+        constants.ISPECS_MIN: {
+          constants.ISPEC_CPU_COUNT: allowedv,
+          },
+        constants.ISPECS_MAX: {
+          },
         },
       constants.ISPECS_STD: {
         },

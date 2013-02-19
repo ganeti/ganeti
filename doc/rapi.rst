@@ -226,8 +226,7 @@ The instance policy specification is a dict with the following fields:
 
 .. pyassert::
 
-  constants.IPOLICY_ALL_KEYS == set([constants.ISPECS_MIN,
-                                     constants.ISPECS_MAX,
+  constants.IPOLICY_ALL_KEYS == set([constants.ISPECS_MINMAX,
                                      constants.ISPECS_STD,
                                      constants.IPOLICY_DTS,
                                      constants.IPOLICY_VCPU_RATIO,
@@ -249,24 +248,30 @@ The instance policy specification is a dict with the following fields:
 .. |ispec-std| replace:: :pyeval:`constants.ISPECS_STD`
 
 
-|ispec-min|, |ispec-max|, |ispec-std|
-  A sub- `dict` with the following fields, which sets the limit and standard
-  values of the instances:
+:pyeval:`constants.ISPECS_MINMAX`
+  A dict with the following two fields:
 
-  :pyeval:`constants.ISPEC_MEM_SIZE`
-    The size in MiB of the memory used
-  :pyeval:`constants.ISPEC_DISK_SIZE`
-    The size in MiB of the disk used
-  :pyeval:`constants.ISPEC_DISK_COUNT`
-    The numbers of disks used
-  :pyeval:`constants.ISPEC_CPU_COUNT`
-    The numbers of cpus used
-  :pyeval:`constants.ISPEC_NIC_COUNT`
-    The numbers of nics used
-  :pyeval:`constants.ISPEC_SPINDLE_USE`
-    The numbers of virtual disk spindles used by this instance. They are
-    not real in the sense of actual HDD spindles, but useful for
-    accounting the spindle usage on the residing node
+  |ispec-min|, |ispec-max|
+    A sub- `dict` with the following fields, which sets the limit of the
+    instances:
+
+    :pyeval:`constants.ISPEC_MEM_SIZE`
+      The size in MiB of the memory used
+    :pyeval:`constants.ISPEC_DISK_SIZE`
+      The size in MiB of the disk used
+    :pyeval:`constants.ISPEC_DISK_COUNT`
+      The numbers of disks used
+    :pyeval:`constants.ISPEC_CPU_COUNT`
+      The numbers of cpus used
+    :pyeval:`constants.ISPEC_NIC_COUNT`
+      The numbers of nics used
+    :pyeval:`constants.ISPEC_SPINDLE_USE`
+      The numbers of virtual disk spindles used by this instance. They
+      are not real in the sense of actual HDD spindles, but useful for
+      accounting the spindle usage on the residing node
+|ispec-std|
+  A sub- `dict` with the same fields as |ispec-min| and |ispec-max| above,
+  which sets the standard values of the instances.
 :pyeval:`constants.IPOLICY_DTS`
   A `list` of disk templates allowed for instances using this policy
 :pyeval:`constants.IPOLICY_VCPU_RATIO`

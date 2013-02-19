@@ -6,7 +6,7 @@
 
 {-
 
-Copyright (C) 2009, 2010, 2011, 2012 Google Inc.
+Copyright (C) 2009, 2010, 2011, 2012, 2013 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -69,6 +69,7 @@ module Ganeti.HTools.Types
   , opToResult
   , EvacMode(..)
   , ISpec(..)
+  , MinMaxISpecs(..)
   , IPolicy(..)
   , defIPolicy
   , rspecFromISpec
@@ -168,12 +169,12 @@ $(THH.buildObject "ISpec" "iSpec"
 
 -- | The default minimum ispec.
 defMinISpec :: ISpec
-defMinISpec = ISpec { iSpecMemorySize = C.ipolicyDefaultsMinMemorySize
-                    , iSpecCpuCount   = C.ipolicyDefaultsMinCpuCount
-                    , iSpecDiskSize   = C.ipolicyDefaultsMinDiskSize
-                    , iSpecDiskCount  = C.ipolicyDefaultsMinDiskCount
-                    , iSpecNicCount   = C.ipolicyDefaultsMinNicCount
-                    , iSpecSpindleUse = C.ipolicyDefaultsMinSpindleUse
+defMinISpec = ISpec { iSpecMemorySize = C.ipolicyDefaultsMinmaxMinMemorySize
+                    , iSpecCpuCount   = C.ipolicyDefaultsMinmaxMinCpuCount
+                    , iSpecDiskSize   = C.ipolicyDefaultsMinmaxMinDiskSize
+                    , iSpecDiskCount  = C.ipolicyDefaultsMinmaxMinDiskCount
+                    , iSpecNicCount   = C.ipolicyDefaultsMinmaxMinNicCount
+                    , iSpecSpindleUse = C.ipolicyDefaultsMinmaxMinSpindleUse
                     }
 
 -- | The default standard ispec.
@@ -188,19 +189,31 @@ defStdISpec = ISpec { iSpecMemorySize = C.ipolicyDefaultsStdMemorySize
 
 -- | The default max ispec.
 defMaxISpec :: ISpec
-defMaxISpec = ISpec { iSpecMemorySize = C.ipolicyDefaultsMaxMemorySize
-                    , iSpecCpuCount   = C.ipolicyDefaultsMaxCpuCount
-                    , iSpecDiskSize   = C.ipolicyDefaultsMaxDiskSize
-                    , iSpecDiskCount  = C.ipolicyDefaultsMaxDiskCount
-                    , iSpecNicCount   = C.ipolicyDefaultsMaxNicCount
-                    , iSpecSpindleUse = C.ipolicyDefaultsMaxSpindleUse
+defMaxISpec = ISpec { iSpecMemorySize = C.ipolicyDefaultsMinmaxMaxMemorySize
+                    , iSpecCpuCount   = C.ipolicyDefaultsMinmaxMaxCpuCount
+                    , iSpecDiskSize   = C.ipolicyDefaultsMinmaxMaxDiskSize
+                    , iSpecDiskCount  = C.ipolicyDefaultsMinmaxMaxDiskCount
+                    , iSpecNicCount   = C.ipolicyDefaultsMinmaxMaxNicCount
+                    , iSpecSpindleUse = C.ipolicyDefaultsMinmaxMaxSpindleUse
                     }
+
+-- | Minimum and maximum instance specs type.
+$(THH.buildObject "MinMaxISpecs" "minMaxISpecs"
+  [ THH.renameField "MinSpec" $ THH.simpleField "min" [t| ISpec |]
+  , THH.renameField "MaxSpec" $ THH.simpleField "max" [t| ISpec |]
+  ])
+
+-- | Defult minimum and maximum instance specs.
+defMinMaxISpecs :: MinMaxISpecs
+defMinMaxISpecs = MinMaxISpecs { minMaxISpecsMinSpec = defMinISpec
+                               , minMaxISpecsMaxSpec = defMaxISpec
+                               }
 
 -- | Instance policy type.
 $(THH.buildObject "IPolicy" "iPolicy"
-  [ THH.renameField "StdSpec" $ THH.simpleField C.ispecsStd [t| ISpec |]
-  , THH.renameField "MinSpec" $ THH.simpleField C.ispecsMin [t| ISpec |]
-  , THH.renameField "MaxSpec" $ THH.simpleField C.ispecsMax [t| ISpec |]
+  [ THH.renameField "MinMaxISpecs" $
+      THH.simpleField C.ispecsMinmax [t| MinMaxISpecs |]
+  , THH.renameField "StdSpec" $ THH.simpleField C.ispecsStd [t| ISpec |]
   , THH.renameField "DiskTemplates" $
       THH.simpleField C.ipolicyDts [t| [DiskTemplate] |]
   , THH.renameField "VcpuRatio" $
@@ -218,9 +231,8 @@ rspecFromISpec ispec = RSpec { rspecCpu = iSpecCpuCount ispec
 
 -- | The default instance policy.
 defIPolicy :: IPolicy
-defIPolicy = IPolicy { iPolicyStdSpec = defStdISpec
-                     , iPolicyMinSpec = defMinISpec
-                     , iPolicyMaxSpec = defMaxISpec
+defIPolicy = IPolicy { iPolicyMinMaxISpecs = defMinMaxISpecs
+                     , iPolicyStdSpec = defStdISpec
                      -- hardcoding here since Constants.hs exports the
                      -- string values, not the actual type; and in
                      -- htools, we are mostly looking at DRBD

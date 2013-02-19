@@ -110,9 +110,11 @@ instance Arbitrary Types.IPolicy where
     dts  <- genUniquesList num_tmpl arbitrary
     vcpu_ratio <- choose (1.0, maxVcpuRatio)
     spindle_ratio <- choose (1.0, maxSpindleRatio)
-    return Types.IPolicy { Types.iPolicyMinSpec = imin
+    return Types.IPolicy { Types.iPolicyMinMaxISpecs = Types.MinMaxISpecs
+                           { Types.minMaxISpecsMinSpec = imin
+                           , Types.minMaxISpecsMaxSpec = imax
+                           }
                          , Types.iPolicyStdSpec = istd
-                         , Types.iPolicyMaxSpec = imax
                          , Types.iPolicyDiskTemplates = dts
                          , Types.iPolicyVcpuRatio = vcpu_ratio
                          , Types.iPolicySpindleRatio = spindle_ratio

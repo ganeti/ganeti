@@ -600,17 +600,17 @@ class ConfigWriter:
       except errors.ConfigurationError, err:
         result.append("%s has invalid nicparams: %s" % (owner, err))
 
-    def _helper_ipolicy(owner, params, check_std):
+    def _helper_ipolicy(owner, ipolicy, iscluster):
       try:
-        objects.InstancePolicy.CheckParameterSyntax(params, check_std)
+        objects.InstancePolicy.CheckParameterSyntax(ipolicy, iscluster)
       except errors.ConfigurationError, err:
         result.append("%s has invalid instance policy: %s" % (owner, err))
-
-    def _helper_ispecs(owner, params):
-      for key, value in params.items():
-        if key in constants.IPOLICY_ISPECS:
-          fullkey = "ipolicy/" + key
-          _helper(owner, fullkey, value, constants.ISPECS_PARAMETER_TYPES)
+      for key, value in ipolicy.items():
+        if key == constants.ISPECS_MINMAX:
+          _helper_ispecs(owner, "ipolicy/" + key, value)
+        elif key == constants.ISPECS_STD:
+          _helper(owner, "ipolicy/" + key, value,
+                  constants.ISPECS_PARAMETER_TYPES)
         else:
           # FIXME: assuming list type
           if key in constants.IPOLICY_PARAMETERS:
@@ -622,6 +622,11 @@ class ConfigWriter:
                           " expecting %s, got %s" %
                           (owner, key, exp_type.__name__, type(value)))
 
+    def _helper_ispecs(owner, parentkey, params):
+      for (key, value) in params.items():
+        fullkey = "/".join([parentkey, key])
+        _helper(owner, fullkey, value, constants.ISPECS_PARAMETER_TYPES)
+
     # check cluster parameters
     _helper("cluster", "beparams", cluster.SimpleFillBE({}),
             constants.BES_PARAMETER_TYPES)
@@ -630,8 +635,7 @@ class ConfigWriter:
     _helper_nic("cluster", cluster.SimpleFillNIC({}))
     _helper("cluster", "ndparams", cluster.SimpleFillND({}),
             constants.NDS_PARAMETER_TYPES)
-    _helper_ipolicy("cluster", cluster.SimpleFillIPolicy({}), True)
-    _helper_ispecs("cluster", cluster.SimpleFillIPolicy({}))
+    _helper_ipolicy("cluster", cluster.ipolicy, True)
 
     # per-instance checks
     for instance_name in data.instances:
@@ -762,7 +766,6 @@ class ConfigWriter:
       group_name = "group %s" % nodegroup.name
       _helper_ipolicy(group_name, cluster.SimpleFillIPolicy(nodegroup.ipolicy),
                       False)
-      _helper_ispecs(group_name, cluster.SimpleFillIPolicy(nodegroup.ipolicy))
       if nodegroup.ndparams:
         _helper(group_name, "ndparams",
                 cluster.SimpleFillND(nodegroup.ndparams),

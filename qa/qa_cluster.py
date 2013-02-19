@@ -467,8 +467,9 @@ def _GetClusterIPolicy():
   policy = info["Instance policy - limits for instances"]
   ret_specs = {}
   ret_policy = {}
+  ispec_keys = constants.ISPECS_MINMAX_KEYS | frozenset([constants.ISPECS_STD])
   for (key, val) in policy.items():
-    if key in constants.IPOLICY_ISPECS:
+    if key in ispec_keys:
       for (par, pval) in val.items():
         if par == "memory-size":
           par = "mem-size"

@@ -813,8 +813,22 @@ def _GetUpdatedParams(old_params, update_dict,
   return params_copy
 
 
+def _UpdateMinMaxISpecs(ipolicy, new_minmax, group_policy):
+  use_none = use_default = group_policy
+  minmax = ipolicy.setdefault(constants.ISPECS_MINMAX, {})
+  for (key, value) in new_minmax.items():
+    if key not in constants.ISPECS_MINMAX_KEYS:
+      raise errors.OpPrereqError("Invalid key in new ipolicy/%s: %s" %
+                                 (constants.ISPECS_MINMAX, key),
+                                 errors.ECODE_INVAL)
+    old_spec = minmax.get(key, {})
+    minmax[key] = _GetUpdatedParams(old_spec, value, use_none=use_none,
+                                    use_default=use_default)
+    utils.ForceDictType(minmax[key], constants.ISPECS_PARAMETER_TYPES)
+
+
 def _GetUpdatedIPolicy(old_ipolicy, new_ipolicy, group_policy=False):
-  """Return the new version of a instance policy.
+  """Return the new version of an instance policy.
 
   @param group_policy: whether this policy applies to a group and thus
     we should support removal of policy entries
@@ -826,7 +840,9 @@ def _GetUpdatedIPolicy(old_ipolicy, new_ipolicy, group_policy=False):
     if key not in constants.IPOLICY_ALL_KEYS:
       raise errors.OpPrereqError("Invalid key in new ipolicy: %s" % key,
                                  errors.ECODE_INVAL)
-    if key in constants.IPOLICY_ISPECS:
+    if key == constants.ISPECS_MINMAX:
+      _UpdateMinMaxISpecs(ipolicy, value, group_policy)
+    elif key == constants.ISPECS_STD:
       ipolicy[key] = _GetUpdatedParams(old_ipolicy.get(key, {}), value,
                                        use_none=use_none,
                                        use_default=use_default)
@@ -1203,22 +1219,21 @@ def _CheckInstanceState(lu, instance, req_states, msg=None):
                      " is down")
 
 
-def _ComputeMinMaxSpec(name, qualifier, ipolicy, value):
+def _ComputeMinMaxSpec(name, qualifier, ispecs, value):
   """Computes if value is in the desired range.
 
   @param name: name of the parameter for which we perform the check
   @param qualifier: a qualifier used in the error message (e.g. 'disk/1',
       not just 'disk')
-  @param ipolicy: dictionary containing min, max and std values
+  @param ispecs: dictionary containing min and max values
   @param value: actual value that we want to use
-  @return: None or element not meeting the criteria
-
+  @return: None or an error string
 
   """
   if value in [None, constants.VALUE_AUTO]:
     return None
-  max_v = ipolicy[constants.ISPECS_MAX].get(name, value)
-  min_v = ipolicy[constants.ISPECS_MIN].get(name, value)
+  max_v = ispecs[constants.ISPECS_MAX].get(name, value)
+  min_v = ispecs[constants.ISPECS_MIN].get(name, value)
   if value > max_v or min_v > value:
     if qualifier:
       fqn = "%s/%s" % (name, qualifier)
@@ -1273,8 +1288,9 @@ def _ComputeIPolicySpecViolation(ipolicy, mem_size, cpu_count, disk_count,
     ret.append("Disk template %s is not allowed (allowed templates: %s)" %
                (disk_template, utils.CommaJoin(allowed_dts)))
 
+  minmax = ipolicy[constants.ISPECS_MINMAX]
   return ret + filter(None,
-                      (_compute_fn(name, qualifier, ipolicy, value)
+                      (_compute_fn(name, qualifier, minmax, value)
                        for (name, qualifier, value) in test_settings))
 
 

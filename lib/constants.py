@@ -1139,6 +1139,7 @@ ISPECS_PARAMETER_TYPES = {
 
 ISPECS_PARAMETERS = frozenset(ISPECS_PARAMETER_TYPES.keys())
 
+ISPECS_MINMAX = "minmax"
 ISPECS_MIN = "min"
 ISPECS_MAX = "max"
 ISPECS_STD = "std"
@@ -1146,10 +1147,9 @@ IPOLICY_DTS = "disk-templates"
 IPOLICY_VCPU_RATIO = "vcpu-ratio"
 IPOLICY_SPINDLE_RATIO = "spindle-ratio"
 
-IPOLICY_ISPECS = compat.UniqueFrozenset([
+ISPECS_MINMAX_KEYS = compat.UniqueFrozenset([
   ISPECS_MIN,
   ISPECS_MAX,
-  ISPECS_STD,
   ])
 
 IPOLICY_PARAMETERS = compat.UniqueFrozenset([
@@ -1157,9 +1157,8 @@ IPOLICY_PARAMETERS = compat.UniqueFrozenset([
   IPOLICY_SPINDLE_RATIO,
   ])
 
-IPOLICY_ALL_KEYS = (IPOLICY_ISPECS |
-                    IPOLICY_PARAMETERS |
-                    frozenset([IPOLICY_DTS]))
+IPOLICY_ALL_KEYS = (IPOLICY_PARAMETERS |
+                    frozenset([ISPECS_MINMAX, ISPECS_STD, IPOLICY_DTS]))
 
 # Node parameter names
 ND_OOB_PROGRAM = "oob_program"
@@ -2182,7 +2181,7 @@ NICC_DEFAULTS = {
 
 # All of the following values are quite arbitrarily - there are no
 # "good" defaults, these must be customised per-site
-IPOLICY_DEFAULTS = {
+ISPECS_MINMAX_DEFAULTS = {
   ISPECS_MIN: {
     ISPEC_MEM_SIZE: 128,
     ISPEC_CPU_COUNT: 1,
@@ -2199,6 +2198,9 @@ IPOLICY_DEFAULTS = {
     ISPEC_NIC_COUNT: MAX_NICS,
     ISPEC_SPINDLE_USE: 12,
     },
+  }
+IPOLICY_DEFAULTS = {
+  ISPECS_MINMAX: ISPECS_MINMAX_DEFAULTS,
   ISPECS_STD: {
     ISPEC_MEM_SIZE: 128,
     ISPEC_CPU_COUNT: 1,

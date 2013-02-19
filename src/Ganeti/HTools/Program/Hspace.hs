@@ -443,7 +443,8 @@ main opts args = do
 
   -- Run the tiered allocation
 
-  let tspec = fromMaybe (rspecFromISpec (iPolicyMaxSpec ipol))
+  let minmax = iPolicyMinMaxISpecs ipol
+  let tspec = fromMaybe (rspecFromISpec (minMaxISpecsMaxSpec minmax))
               (optTieredSpec opts)
 
   (treason, trl_nl, _, spec_map) <-

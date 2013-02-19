@@ -3717,10 +3717,19 @@ def _InitIspecsFromOpts(ipolicy, ispecs_mem_size, ispecs_cpu_count,
     utils.ForceDictType(specs, forced_type, allowed_values=allowed_values)
 
   # then transpose
+  ispecs = {
+    constants.ISPECS_MIN: {},
+    constants.ISPECS_MAX: {},
+    constants.ISPECS_STD: {},
+    }
   for (name, specs) in ispecs_transposed.iteritems():
     assert name in constants.ISPECS_PARAMETERS
     for key, val in specs.items(): # {min: .. ,max: .., std: ..}
-      ipolicy[key][name] = val
+      assert key in ispecs
+      ispecs[key][name] = val
+  for key in constants.ISPECS_MINMAX_KEYS:
+    ipolicy[constants.ISPECS_MINMAX][key] = ispecs[key]
+  ipolicy[constants.ISPECS_STD] = ispecs[constants.ISPECS_STD]
 
 
 def CreateIPolicyFromOpts(ispecs_mem_size=None,

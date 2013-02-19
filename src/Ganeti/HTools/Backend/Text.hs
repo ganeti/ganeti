@@ -7,7 +7,7 @@ files, as produced by @gnt-node@ and @gnt-instance@ @list@ command.
 
 {-
 
-Copyright (C) 2009, 2010, 2011, 2012 Google Inc.
+Copyright (C) 2009, 2010, 2011, 2012, 2013 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -132,7 +132,8 @@ serializeDiskTemplates = intercalate "," . map diskTemplateToRaw
 -- | Generate policy data from a given policy object.
 serializeIPolicy :: String -> IPolicy -> String
 serializeIPolicy owner ipol =
-  let IPolicy stdspec minspec maxspec dts vcpu_ratio spindle_ratio = ipol
+  let IPolicy minmax stdspec dts vcpu_ratio spindle_ratio = ipol
+      MinMaxISpecs minspec maxspec = minmax
       strings = [ owner
                 , serializeISpec stdspec
                 , serializeISpec minspec
@@ -263,7 +264,8 @@ loadIPolicy [owner, stdspec, minspec, maxspec, dtemplates,
   xvcpu_ratio <- tryRead (owner ++ "/vcpu_ratio") vcpu_ratio
   xspindle_ratio <- tryRead (owner ++ "/spindle_ratio") spindle_ratio
   return (owner,
-          IPolicy xstdspec xminspec xmaxspec xdts xvcpu_ratio xspindle_ratio)
+          IPolicy (MinMaxISpecs xminspec xmaxspec) xstdspec
+                xdts xvcpu_ratio xspindle_ratio)
 loadIPolicy s = fail $ "Invalid ipolicy data: '" ++ show s ++ "'"
 
 loadOnePolicy :: (IPolicy, Group.List) -> String

@@ -7,7 +7,7 @@ intelligence is in the "Node" and "Cluster" modules.
 
 {-
 
-Copyright (C) 2009, 2010, 2011, 2012 Google Inc.
+Copyright (C) 2009, 2010, 2011, 2012, 2013 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -280,8 +280,9 @@ instAboveISpec inst ispec
 -- | Checks if an instance matches a policy.
 instMatchesPolicy :: Instance -> T.IPolicy -> T.OpResult ()
 instMatchesPolicy inst ipol = do
-  instAboveISpec inst (T.iPolicyMinSpec ipol)
-  instBelowISpec inst (T.iPolicyMaxSpec ipol)
+  let minmax = T.iPolicyMinMaxISpecs ipol
+  instAboveISpec inst (T.minMaxISpecsMinSpec minmax)
+  instBelowISpec inst (T.minMaxISpecsMaxSpec minmax)
   if diskTemplate inst `elem` T.iPolicyDiskTemplates ipol
     then Ok ()
     else Bad T.FailDisk
