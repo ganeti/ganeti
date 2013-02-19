@@ -392,6 +392,98 @@ class TestInstancePolicy(unittest.TestCase):
                                                 True)
     self._AssertIPolicyIsFull(constants.IPOLICY_DEFAULTS)
 
+  def testCheckISpecSyntax(self):
+    par = "my_parameter"
+    for check_std in [True, False]:
+      if check_std:
+        allkeys = constants.IPOLICY_ISPECS
+      else:
+        allkeys = constants.IPOLICY_ISPECS - frozenset([constants.ISPECS_STD])
+      # Only one policy limit
+      for key in allkeys:
+        policy = dict((k, {}) for k in allkeys)
+        policy[key][par] = 11
+        objects.InstancePolicy.CheckISpecSyntax(policy, par, check_std)
+      # Min and max only
+      good_values = [(11, 11), (11, 40), (0, 0)]
+      for (mn, mx) in good_values:
+        policy = dict((k, {}) for k in allkeys)
+        policy[constants.ISPECS_MIN][par] = mn
+        policy[constants.ISPECS_MAX][par] = mx
+        objects.InstancePolicy.CheckISpecSyntax(policy, par, check_std)
+      policy = dict((k, {}) for k in allkeys)
+      policy[constants.ISPECS_MIN][par] = 11
+      policy[constants.ISPECS_MAX][par] = 5
+      self.assertRaises(errors.ConfigurationError,
+                        objects.InstancePolicy.CheckISpecSyntax,
+                        policy, par, check_std)
+    # Min, std, max
+    good_values = [
+      (11, 11, 11),
+      (11, 11, 40),
+      (11, 40, 40),
+      ]
+    for (mn, st, mx) in good_values:
+      policy = {
+        constants.ISPECS_MIN: {par: mn},
+        constants.ISPECS_STD: {par: st},
+        constants.ISPECS_MAX: {par: mx},
+        }
+      objects.InstancePolicy.CheckISpecSyntax(policy, par, True)
+    bad_values = [
+      (11, 11,  5),
+      (40, 11, 11),
+      (11, 80, 40),
+      (11,  5, 40),
+      (11,  5,  5),
+      (40, 40, 11),
+      ]
+    for (mn, st, mx) in bad_values:
+      policy = {
+        constants.ISPECS_MIN: {par: mn},
+        constants.ISPECS_STD: {par: st},
+        constants.ISPECS_MAX: {par: mx},
+        }
+      self.assertRaises(errors.ConfigurationError,
+                        objects.InstancePolicy.CheckISpecSyntax,
+                        policy, par, True)
+
+  def testCheckDiskTemplates(self):
+    invalid = "this_is_not_a_good_template"
+    for dt in constants.DISK_TEMPLATES:
+      objects.InstancePolicy.CheckDiskTemplates([dt])
+    objects.InstancePolicy.CheckDiskTemplates(list(constants.DISK_TEMPLATES))
+    bad_examples = [
+      [invalid],
+      [constants.DT_DRBD8, invalid],
+      list(constants.DISK_TEMPLATES) + [invalid],
+      [],
+      None,
+      ]
+    for dtl in bad_examples:
+      self.assertRaises(errors.ConfigurationError,
+                        objects.InstancePolicy.CheckDiskTemplates,
+                        dtl)
+
+  def testCheckParameterSyntax(self):
+    invalid = "this_key_shouldnt_be_here"
+    for check_std in [True, False]:
+      self.assertRaises(KeyError,
+                        objects.InstancePolicy.CheckParameterSyntax,
+                        {}, check_std)
+      policy = objects.MakeEmptyIPolicy()
+      policy[invalid] = None
+      self.assertRaises(errors.ConfigurationError,
+                        objects.InstancePolicy.CheckParameterSyntax,
+                        policy, check_std)
+      for par in constants.IPOLICY_PARAMETERS:
+        policy = objects.MakeEmptyIPolicy()
+        for val in ("blah", None, {}, [42]):
+          policy[par] = val
+          self.assertRaises(errors.ConfigurationError,
+                            objects.InstancePolicy.CheckParameterSyntax,
+                            policy, check_std)
+
   def testFillIPolicyEmpty(self):
     policy = objects.FillIPolicy(constants.IPOLICY_DEFAULTS, {})
     objects.InstancePolicy.CheckParameterSyntax(policy, True)
@@ -418,7 +510,6 @@ class TestInstancePolicy(unittest.TestCase):
     partial_policies = [
       {constants.IPOLICY_VCPU_RATIO: 3.14},
       {constants.IPOLICY_SPINDLE_RATIO: 2.72},
-      {constants.IPOLICY_DTS: []},
       {constants.IPOLICY_DTS: [constants.DT_FILE]},
       ]
     for diff_pol in partial_policies:

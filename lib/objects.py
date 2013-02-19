@@ -981,6 +981,9 @@ class InstancePolicy(ConfigObject):
     """Checks the disk templates for validity.
 
     """
+    if not disk_templates:
+      raise errors.ConfigurationError("Instance policy must contain" +
+                                      " at least one disk template")
     wrong = frozenset(disk_templates).difference(constants.DISK_TEMPLATES)
     if wrong:
       raise errors.ConfigurationError("Invalid disk template(s) %s" %
