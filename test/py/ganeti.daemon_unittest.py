@@ -598,6 +598,15 @@ class TestAsyncStreamServerUnixPath(TestAsyncStreamServerTCP):
     TestAsyncStreamServerTCP.tearDown(self)
 
 
+class TestAsyncStreamServerUnixAbstract(TestAsyncStreamServerTCP):
+  """Test daemon.AsyncStreamServer with a Unix abstract connection"""
+
+  family = socket.AF_UNIX
+
+  def getAddress(self):
+    return "\0myabstractsocketaddress"
+
+
 class TestAsyncAwaker(testutils.GanetiTestCase):
   """Test daemon.AsyncAwaker"""
 
