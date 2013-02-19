@@ -32,6 +32,7 @@ import Test.QuickCheck hiding (Result)
 import Test.HUnit
 
 import Data.Char (isSpace)
+import qualified Data.Either as Either
 import Data.List
 import System.Time
 import qualified Text.JSON as J
@@ -294,6 +295,29 @@ prop_trim (NonEmpty str) =
               trim "" ==? ""
           ]
 
+-- | Tests 'splitEithers' and 'recombineEithers'.
+prop_splitRecombineEithers :: [Either Int Int] -> Property
+prop_splitRecombineEithers es =
+  conjoin
+  [ printTestCase "only lefts are mapped correctly" $
+    splitEithers (map Left lefts) ==? (reverse lefts, emptylist, falses)
+  , printTestCase "only rights are mapped correctly" $
+    splitEithers (map Right rights) ==? (emptylist, reverse rights, trues)
+  , printTestCase "recombination is no-op" $
+    recombineEithers splitleft splitright trail ==? Ok es
+  , printTestCase "fail on too long lefts" $
+    isBad (recombineEithers (0:splitleft) splitright trail)
+  , printTestCase "fail on too long rights" $
+    isBad (recombineEithers splitleft (0:splitright) trail)
+  , printTestCase "fail on too long trail" $
+    isBad (recombineEithers splitleft splitright (True:trail))
+  ]
+  where (lefts, rights) = Either.partitionEithers es
+        falses = map (const False) lefts
+        trues = map (const True) rights
+        (splitleft, splitright, trail) = splitEithers es
+        emptylist = []::[Int]
+
 -- | Test list for the Utils module.
 testSuite "Utils"
             [ 'prop_commaJoinSplit
@@ -319,4 +343,5 @@ testSuite "Utils"
             , 'prop_chompPrefix_last
             , 'prop_chompPrefix_empty_string
             , 'prop_chompPrefix_nothing
+            , 'prop_splitRecombineEithers
             ]
