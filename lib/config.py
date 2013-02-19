@@ -1450,10 +1450,9 @@ class ConfigWriter:
     instance = self._UnlockedGetInstanceInfo(instance_name)
 
     for nic in instance.nics:
-      if nic.network is not None and nic.ip is not None:
-        net_uuid = self._UnlockedLookupNetwork(nic.network)
+      if nic.network and nic.ip:
         # Return all IP addresses to the respective address pools
-        self._UnlockedCommitIp(constants.RELEASE_ACTION, net_uuid, nic.ip)
+        self._UnlockedCommitIp(constants.RELEASE_ACTION, nic.network, nic.ip)
 
     del self._config_data.instances[instance_name]
     self._config_data.cluster.serial_no += 1
@@ -2503,6 +2502,8 @@ class ConfigWriter:
     @raises errors.OpPrereqError: when the target network cannot be found
 
     """
+    if target is None:
+      return None
     if target in self._config_data.networks:
       return target
     for net in self._config_data.networks.values():

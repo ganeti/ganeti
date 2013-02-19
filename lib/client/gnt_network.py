@@ -250,7 +250,7 @@ def ShowNetworkConfig(_, args):
 
         l = lambda value: ", ".join(str(idx) + ":" + str(ip)
                                     for idx, (ip, net) in enumerate(value)
-                                      if net == name)
+                                      if net == uuid)
 
         ToStdout("    %s : %s", inst, l(zip(ips, networks)))
     else:
