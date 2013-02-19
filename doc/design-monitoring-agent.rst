@@ -48,12 +48,6 @@ The monitoring agent system will report on the following basic information:
 - Node OS resources report (memory, CPU, network interfaces)
 - Information from a plugin system
 
-Format of the query
--------------------
-
-The query will be an HTTP GET request on a particular port. At the
-beginning it will only be possible to query the full status report.
-
 Format of the report
 --------------------
 
@@ -568,6 +562,54 @@ Note that we won't go into any hardware specific details (e.g. querying a
 node RAID is outside the scope of this, and can be implemented as a
 plugin) but we can easily just report the information above, since it's
 standard enough across all systems.
+
+Format of the query
+-------------------
+
+The queries to the monitoring agent will be HTTP GET requests on port 1815.
+The answer will be encoded in JSON format and will depend on the specific
+accessed resource.
+
+If a request is sent to a non-existing resource, a 404 error will be returned by
+the HTTP server.
+
+The following paragraphs will present the existing resources supported by the
+current protocol version, that is version 1.
+
+``/``
++++++
+The root resource. It will return the list of the supported protocol version
+numbers.
+
+Currently, this will include only version 1.
+
+``/1``
+++++++
+Not an actual resource per-se, it is the root of all the resources of protocol
+version 1.
+
+If requested through GET, the null JSON value will be returned.
+
+``/1/full``
++++++++++++
+The full report of all the data collectors, as described in the section
+`Format of the report`_.
+
+`Status reporting collectors`_ will provide their output in non-verbose format.
+The verbose format can be requested by adding the parameter ``verbose=1`` to the
+request.
+
+``/[category]/[collector_name]``
+++++++++++++++++++++++++++++++++
+Returns the report of the collector ``[collector_name]`` that belongs to the
+specified ``[category]``.
+
+If a collector does not belong to any category, ``collector`` will be used as
+the value for ``[category]``.
+
+`Status reporting collectors`_ will provide their output in non-verbose format.
+The verbose format can be requested by adding the parameter ``verbose=1`` to the
+request.
 
 Instance disk status propagation
 --------------------------------
