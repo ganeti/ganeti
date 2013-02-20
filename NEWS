@@ -2,6 +2,16 @@ News
 ====
 
 
+Version 2.8.0 beta1
+-------------------
+
+*(unreleased)*
+
+- The :doc:`Remote API <rapi>` daemon now supports a command line flag
+  to always require authentication, ``--require-authentication``. It can
+  be specified in ``$sysconfdir/default/ganeti``.
+
+
 Version 2.7.0 beta1
 -------------------
 

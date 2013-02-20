@@ -51,8 +51,9 @@ class TestRemoteApiHandler(unittest.TestCase):
     return None
 
   def _Test(self, method, path, headers, reqbody,
-            user_fn=NotImplemented, luxi_client=NotImplemented):
-    rm = rapi.testutils._RapiMock(user_fn, luxi_client)
+            user_fn=NotImplemented, luxi_client=NotImplemented,
+            reqauth=False):
+    rm = rapi.testutils._RapiMock(user_fn, luxi_client, reqauth=reqauth)
 
     (resp_code, resp_headers, resp_body) = \
       rm.FetchResponse(path, method, http.ParseHeaders(StringIO(headers)),
@@ -69,6 +70,10 @@ class TestRemoteApiHandler(unittest.TestCase):
     (code, _, data) = self._Test(http.HTTP_GET, "/", "", None)
     self.assertEqual(code, http.HTTP_OK)
     self.assertTrue(data is None)
+
+  def testRootReqAuth(self):
+    (code, _, _) = self._Test(http.HTTP_GET, "/", "", None, reqauth=True)
+    self.assertEqual(code, http.HttpUnauthorized.code)
 
   def testVersion(self):
     (code, _, data) = self._Test(http.HTTP_GET, "/version", "", None)
@@ -235,13 +240,14 @@ class TestRemoteApiHandler(unittest.TestCase):
     path = "/2/instances/inst1.example.com/console"
 
     for method in rapi.baserlib._SUPPORTED_METHODS:
-      # No authorization
-      (code, _, _) = self._Test(method, path, "", "")
+      for reqauth in [False, True]:
+        # No authorization
+        (code, _, _) = self._Test(method, path, "", "", reqauth=reqauth)
 
-      if method == http.HTTP_GET:
-        self.assertEqual(code, http.HttpUnauthorized.code)
-      else:
-        self.assertEqual(code, http.HttpNotImplemented.code)
+        if method == http.HTTP_GET or reqauth:
+          self.assertEqual(code, http.HttpUnauthorized.code)
+        else:
+          self.assertEqual(code, http.HttpNotImplemented.code)
 
 
 class _FakeLuxiClientForQuery:

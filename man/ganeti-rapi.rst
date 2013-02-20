@@ -9,8 +9,8 @@ ganeti-rapi - Ganeti remote API daemon
 Synopsis
 --------
 
-**ganeti-rapi** [-d] [-f] [\--no-ssl] [-K *SSL_KEY_FILE*] [-C
-*SSL_CERT_FILE*]
+| **ganeti-rapi** [-d] [-f] [\--no-ssl] [-K *SSL_KEY_FILE*]
+| [-C *SSL_CERT_FILE*] [\--require-authentication]
 
 DESCRIPTION
 -----------
@@ -23,7 +23,7 @@ uses SSL encryption. This can be disabled by passing the
 ``--no-ssl`` option, or alternatively the certificate used can be
 changed via the ``-C`` option and the key via the ``-K`` option.
 
-The daemon will listen to the "ganeti-rapi" tcp port, as listed in the
+The daemon will listen to the "ganeti-rapi" TCP port, as listed in the
 system services database, or if not defined, to port 5080 by default.
 
 See the *Ganeti remote API* documentation for further information.
@@ -36,11 +36,12 @@ ACCESS CONTROLS
 
 Most query operations are allowed without authentication. Only the
 modification operations require authentication, in the form of basic
-authentication.
+authentication. Specify the ``--require-authentication`` command line
+flag to always require authentication.
 
 The users and their rights are defined in the
-``@LOCALSTATEDIR@/lib/ganeti/rapi/users`` file. Format of this file is
-described in the Ganeti documentation (``rapi.html``).
+``@LOCALSTATEDIR@/lib/ganeti/rapi/users`` file. The format of this file
+is described in the Ganeti documentation (``rapi.html``).
 
 .. vim: set textwidth=72 :
 .. Local Variables:

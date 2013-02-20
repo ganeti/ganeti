@@ -73,12 +73,14 @@ class RemoteApiHandler(http.auth.HttpServerRequestAuthentication,
   """
   AUTH_REALM = "Ganeti Remote API"
 
-  def __init__(self, user_fn, _client_cls=None):
+  def __init__(self, user_fn, reqauth, _client_cls=None):
     """Initializes this class.
 
     @type user_fn: callable
     @param user_fn: Function receiving username as string and returning
       L{http.auth.PasswordFileUser} or C{None} if user is not found
+    @type reqauth: bool
+    @param reqauth: Whether to require authentication
 
     """
     # pylint: disable=W0233
@@ -88,6 +90,7 @@ class RemoteApiHandler(http.auth.HttpServerRequestAuthentication,
     self._client_cls = _client_cls
     self._resmap = connector.Mapper()
     self._user_fn = user_fn
+    self._reqauth = reqauth
 
   @staticmethod
   def FormatErrorMessage(values):
@@ -143,7 +146,7 @@ class RemoteApiHandler(http.auth.HttpServerRequestAuthentication,
     """Determine whether authentication is required.
 
     """
-    return bool(self._GetRequestContext(req).handler_access)
+    return self._reqauth or bool(self._GetRequestContext(req).handler_access)
 
   def Authenticate(self, req, username, password):
     """Checks whether a user can access a resource.
@@ -324,7 +327,7 @@ def PrepRapi(options, _):
 
   users = RapiUsers()
 
-  handler = RemoteApiHandler(users.Get)
+  handler = RemoteApiHandler(users.Get, options.reqauth)
 
   # Setup file watcher (it'll be driven by asyncore)
   SetupFileWatcher(pathutils.RAPI_USERS_FILE,
@@ -360,6 +363,10 @@ def Main():
                                  usage="%prog [-f] [-d] [-p port] [-b ADDRESS]",
                                  version="%%prog (ganeti) %s" %
                                  constants.RELEASE_VERSION)
+  parser.add_option("--require-authentication", dest="reqauth",
+                    default=False, action="store_true",
+                    help=("Disable anonymous HTTP requests and require"
+                          " authentication"))
 
   daemon.GenericMain(constants.RAPI, parser, CheckRapi, PrepRapi, ExecRapi,
                      default_ssl_cert=pathutils.RAPI_CERT_FILE,

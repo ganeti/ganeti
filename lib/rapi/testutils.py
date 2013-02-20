@@ -210,7 +210,7 @@ class _RapiMock:
   """Mocking out the RAPI server parts.
 
   """
-  def __init__(self, user_fn, luxi_client):
+  def __init__(self, user_fn, luxi_client, reqauth=False):
     """Initialize this class.
 
     @type user_fn: callable
@@ -219,7 +219,7 @@ class _RapiMock:
 
     """
     self.handler = \
-      server.rapi.RemoteApiHandler(user_fn, _client_cls=luxi_client)
+      server.rapi.RemoteApiHandler(user_fn, reqauth, _client_cls=luxi_client)
 
   def FetchResponse(self, path, method, headers, request_body):
     """This is a callback method used to fetch a response.
