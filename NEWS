@@ -5,7 +5,7 @@ News
 Version 2.7.0 beta1
 -------------------
 
-*(Released Wed, 6 Mar 2013)*
+*(Released Thu, 6 Feb 2013)*
 
 - ``gnt-instance batch-create`` has been changed to use the bulk create
   opcode from Ganeti. This lead to incompatible changes in the format of
