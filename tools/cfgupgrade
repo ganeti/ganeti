@@ -111,6 +111,20 @@ def UpgradeGroups(config_data):
       group["networks"] = {}
 
 
+def UpgradeInstances(config_data):
+  network2uuid = dict((n["name"], n["uuid"])
+                      for n in config_data["networks"].values())
+  for inst in config_data["instances"].values():
+    for nic in inst["nics"]:
+      name = nic.get("network", None)
+      if name:
+        uuid = network2uuid.get(name, None)
+        if uuid:
+          print("NIC with network name %s found."
+                " Substituting with uuid %s." % (name, uuid))
+          nic["network"] = uuid
+
+
 def main():
   """Main program.
 
@@ -294,6 +308,7 @@ def main():
 
   UpgradeNetworks(config_data)
   UpgradeGroups(config_data)
+  UpgradeInstances(config_data)
 
   try:
     logging.info("Writing configuration file to %s", options.CONFIG_DATA_PATH)

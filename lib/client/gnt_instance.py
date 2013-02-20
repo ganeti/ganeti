@@ -1179,10 +1179,13 @@ def ShowInstanceConfig(opts, args):
     FormatParameterDict(buf, instance["be_instance"], be_actual, level=2)
     # TODO(ganeti 2.7) rework the NICs as well
     buf.write("    - NICs:\n")
-    for idx, (ip, mac, mode, link, network, _) in enumerate(instance["nics"]):
+    for idx, (ip, mac, mode, link, _, netinfo) in enumerate(instance["nics"]):
+      network_name = None
+      if netinfo:
+        network_name = netinfo["name"]
       buf.write("      - nic/%d: MAC: %s, IP: %s,"
                 " mode: %s, link: %s, network: %s\n" %
-                (idx, mac, ip, mode, link, network))
+                (idx, mac, ip, mode, link, network_name))
     buf.write("  Disk template: %s\n" % instance["disk_template"])
     buf.write("  Disks:\n")
 

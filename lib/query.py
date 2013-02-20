@@ -90,7 +90,8 @@ from ganeti.constants import (QFT_UNKNOWN, QFT_TEXT, QFT_BOOL, QFT_NUMBER,
  IQ_LIVE,
  IQ_DISKUSAGE,
  IQ_CONSOLE,
- IQ_NODES) = range(100, 105)
+ IQ_NODES,
+ IQ_NETWORKS) = range(100, 106)
 
 (LQ_MODE,
  LQ_OWNER,
@@ -1383,7 +1384,7 @@ class InstanceQueryData:
 
   """
   def __init__(self, instances, cluster, disk_usage, offline_nodes, bad_nodes,
-               live_data, wrongnode_inst, console, nodes, groups):
+               live_data, wrongnode_inst, console, nodes, groups, networks):
     """Initializes this class.
 
     @param instances: List of instance objects
@@ -1402,6 +1403,8 @@ class InstanceQueryData:
     @param console: Per-instance console information
     @type nodes: dict; node name as key
     @param nodes: Node objects
+    @type networks: dict; net_uuid as key
+    @param networks: Network objects
 
     """
     assert len(set(bad_nodes) & set(offline_nodes)) == len(offline_nodes), \
@@ -1419,6 +1422,7 @@ class InstanceQueryData:
     self.console = console
     self.nodes = nodes
     self.groups = groups
+    self.networks = networks
 
     # Used for individual rows
     self.inst_hvparams = None
@@ -1569,6 +1573,20 @@ def _GetInstNic(index, cb):
   return fn
 
 
+def _GetInstNicNetworkName(ctx, _, nic): # pylint: disable=W0613
+  """Get a NIC's Network.
+
+  @type ctx: L{InstanceQueryData}
+  @type nic: L{objects.NIC}
+  @param nic: NIC object
+
+  """
+  if nic.network is None:
+    return _FS_UNAVAIL
+  else:
+    return ctx.networks[nic.network].name
+
+
 def _GetInstNicNetwork(ctx, _, nic): # pylint: disable=W0613
   """Get a NIC's Network.
 
@@ -1613,6 +1631,27 @@ def _GetInstNicBridge(ctx, index, _):
     return nicparams[constants.NIC_LINK]
   else:
     return _FS_UNAVAIL
+
+
+def _GetInstAllNicNetworkNames(ctx, inst):
+  """Get all network names for an instance.
+
+  @type ctx: L{InstanceQueryData}
+  @type inst: L{objects.Instance}
+  @param inst: Instance object
+
+  """
+  result = []
+
+  for nic in inst.nics:
+    name = None
+    if nic.network:
+      name = ctx.networks[nic.network].name
+    result.append(name)
+
+  assert len(result) == len(inst.nics)
+
+  return result
 
 
 def _GetInstAllNicBridges(ctx, inst):
@@ -1697,6 +1736,9 @@ def _GetInstanceNetworkFields():
     (_MakeField("nic.networks", "NIC_networks", QFT_OTHER,
                 "List containing each interface's network"), IQ_CONFIG, 0,
      lambda ctx, inst: [nic.network for nic in inst.nics]),
+    (_MakeField("nic.networks.names", "NIC_networks_names", QFT_OTHER,
+                "List containing each interface's network"),
+     IQ_NETWORKS, 0, _GetInstAllNicNetworkNames)
     ]
 
   # NICs by number
@@ -1721,6 +1763,9 @@ def _GetInstanceNetworkFields():
       (_MakeField("nic.network/%s" % i, "NicNetwork/%s" % i, QFT_TEXT,
                   "Network of %s network interface" % numtext),
        IQ_CONFIG, 0, _GetInstNic(i, _GetInstNicNetwork)),
+      (_MakeField("nic.network.name/%s" % i, "NicNetworkName/%s" % i, QFT_TEXT,
+                  "Network name of %s network interface" % numtext),
+       IQ_NETWORKS, 0, _GetInstNic(i, _GetInstNicNetworkName)),
       ])
 
   aliases = [

@@ -1,9 +1,9 @@
-======================================
-Ganeti shared storage support for 2.3+
-======================================
+=============================
+Ganeti shared storage support
+=============================
 
 This document describes the changes in Ganeti 2.3+ compared to Ganeti
-2.3 storage model.
+2.3 storage model. It also documents the ExtStorage Interface.
 
 .. contents:: :depth: 4
 .. highlight:: shell-example
