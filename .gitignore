@@ -122,6 +122,7 @@
 /src/htools
 /src/hconfd
 /src/ganeti-confd
+/src/ganeti-mond
 /src/rpc-test
 
 # automatically-built Haskell files

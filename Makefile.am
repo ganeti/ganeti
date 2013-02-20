@@ -71,6 +71,7 @@ HS_DIRS = \
 	src/Ganeti/HTools/Program \
 	src/Ganeti/Hypervisor \
 	src/Ganeti/Hypervisor/Xen \
+	src/Ganeti/Monitoring \
 	src/Ganeti/Query \
 	test/hs \
 	test/hs/Test \
@@ -193,6 +194,7 @@ CLEANFILES = \
 	$(HS_ALL_PROGS) $(HS_BUILT_SRCS) \
 	$(HS_BUILT_TEST_HELPERS) \
 	src/ganeti-confd \
+	src/ganeti-mond \
 	.hpc/*.mix src/*.tix test/hs/*.tix \
 	doc/hs-lint.html
 
@@ -206,6 +208,10 @@ if WANT_HTOOLS
 HS_GENERATED_FILES += $(HS_PROGS)
 if ENABLE_CONFD
 HS_GENERATED_FILES += src/hconfd src/ganeti-confd
+endif
+
+if ENABLE_MOND
+HS_GENERATED_FILES += src/ganeti-mond
 endif
 endif
 
@@ -434,9 +440,9 @@ HS_BIN_PROGS=src/htools
 # Haskell programs to be installed in the MYEXECLIB dir
 HS_MYEXECLIB_PROGS=src/mon-collector
 
-# Haskell programs to compiled but not installed automatically
-# Usually they have their own specific installation rules
+# Haskell programs to be compiled by "make really-all"
 HS_COMPILE_PROGS= \
+	src/ganeti-mond \
 	src/hconfd \
 	src/rpc-test
 
@@ -530,6 +536,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/Jobs.hs \
 	src/Ganeti/Logging.hs \
 	src/Ganeti/Luxi.hs \
+	src/Ganeti/Monitoring/Server.hs \
 	src/Ganeti/Network.hs \
 	src/Ganeti/Objects.hs \
 	src/Ganeti/OpCodes.hs \
@@ -828,6 +835,10 @@ src/ganeti-confd: src/hconfd
 nodist_sbin_SCRIPTS += src/ganeti-confd
 endif
 
+if ENABLE_MOND
+nodist_sbin_SCRIPTS += src/ganeti-mond
+endif
+
 python_scripts = \
 	tools/cfgshell \
 	tools/cfgupgrade \
@@ -933,6 +944,7 @@ man_MANS = \
 	man/ganeti-confd.8 \
 	man/ganeti-listrunner.8 \
 	man/ganeti-masterd.8 \
+	man/ganeti-mond.8 \
 	man/ganeti-noded.8 \
 	man/ganeti-os-interface.7 \
 	man/ganeti-extstorage-interface.7 \

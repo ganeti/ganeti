@@ -484,7 +484,7 @@ AC_ARG_ENABLE([confd],
 ENABLE_MOND=
 AC_ARG_ENABLE([monitoring],
   [AS_HELP_STRING([--enable-monitoring],
-  [enable the ganeti monitoring agent (default: check)])],
+  [enable the ganeti monitoring daemon (default: check)])],
   [],
   [enable_monitoring=check])
 
@@ -558,17 +558,19 @@ fi
 AC_SUBST(ENABLE_CONFD, $has_confd)
 AM_CONDITIONAL([ENABLE_CONFD], [test x$has_confd = xTrue])
 
-#extra modules for monitoring agent functionality
+#extra modules for monitoring daemon functionality
 has_monitoring=False
 if test "$enable_monitoring" != no; then
   MONITORING_PKG=
   AC_GHC_PKG_CHECK([attoparsec], [],
                    [MONITORING_PKG="$MONITORING_PKG attoparsec"])
+  AC_GHC_PKG_CHECK([snap-server], [],
+                   [MONITORING_PKG="$MONITORING_PKG snap-server"])
   if test -z "$MONITORING_PKG"; then
     has_monitoring=True
   elif test "$enable_monitoring" = check; then
     AC_MSG_WARN(m4_normalize([The required extra libraries for the monitoring
-                              agent were not found ($MONITORING_PKG),
+                              daemon were not found ($MONITORING_PKG),
                               monitoring disabled]))
   else
     AC_MSG_FAILURE(m4_normalize([The monitoring functionality was requested, but
@@ -577,7 +579,7 @@ if test "$enable_monitoring" != no; then
   fi
 fi
 if test "$has_monitoring" = True; then
-  AC_MSG_NOTICE([Enabling the monitoring agent usage])
+  AC_MSG_NOTICE([Enabling the monitoring daemon usage])
 fi
 AC_SUBST(ENABLE_MOND, $has_monitoring)
 AM_CONDITIONAL([ENABLE_MOND], [test "$has_monitoring" = True])

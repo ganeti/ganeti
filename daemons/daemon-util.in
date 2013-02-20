@@ -41,10 +41,19 @@ if _confd_enabled; then
   DAEMONS+=( ganeti-confd )
 fi
 
+_mond_enabled() {
+  [[ "@CUSTOM_ENABLE_MOND@" == True ]]
+}
+
+if _mond_enabled; then
+  DAEMONS+=( ganeti-mond )
+fi
+
 NODED_ARGS=
 MASTERD_ARGS=
 CONFD_ARGS=
 RAPI_ARGS=
+MOND_ARGS=
 
 # Read defaults file if it exists
 if [[ -s $defaults_file ]]; then
@@ -78,6 +87,9 @@ _daemon_usergroup() {
       ;;
     noded)
       echo "@GNTNODEDUSER@:@GNTDAEMONSGROUP@"
+      ;;
+    mond)
+      echo "@GNTMONDUSER@:@GNTMONDGROUP@"
       ;;
     *)
       echo "root:@GNTDAEMONSGROUP@"

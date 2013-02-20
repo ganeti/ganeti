@@ -32,13 +32,25 @@ if ! grep -q '^ENABLE_CONFD = ' lib/_autoconf.py; then
   err "Please update $0, confd enable feature is missing"
 fi
 
-if grep -q '^ENABLE_CONFD = True' lib/_autoconf.py; then
-  DAEMONS="$(echo ganeti-{noded,masterd,rapi,confd})"
-  STOPDAEMONS="$(echo ganeti-{confd,rapi,masterd,noded})"
-else
-  DAEMONS="$(echo ganeti-{noded,masterd,rapi})"
-  STOPDAEMONS="$(echo ganeti-{rapi,masterd,noded})"
+if ! grep -q '^ENABLE_MOND = ' lib/_autoconf.py; then
+  err "Please update $0, mond enable feature is missing"
 fi
+
+DAEMONS_LIST="noded masterd rapi"
+STOPDAEMONS_LIST="rapi masterd noded"
+
+if grep -q '^ENABLE_CONFD = True' lib/_autoconf.py; then
+  DAEMONS_LIST="$DAEMONS_LIST confd"
+  STOPDAEMONS_LIST="confd $STOPDAEMONS_LIST"
+fi
+
+if grep -q '^ENABLE_MOND = True' lib/_autoconf.py; then
+  DAEMONS_LIST="$DAEMONS_LIST mond"
+  STOPDAEMONS_LIST="mond $STOPDAEMONS_LIST"
+fi
+
+DAEMONS=$(echo $(for d in $DAEMONS_LIST; do echo "ganeti-$d"; done))
+STOPDAEMONS=$(echo $(for d in $STOPDAEMONS_LIST; do echo "ganeti-$d"; done))
 
 $daemon_util >/dev/null 2>&1 &&
   err "daemon-util succeeded without command"
