@@ -62,22 +62,6 @@ prop_getGroupConnection_notFound group uuid =
   let net_keys = (Map.keys . fromContainer . groupNetworks) group
   in notElem uuid net_keys ==> isNothing (getGroupConnection uuid group)
 
--- | Check if getting the network's UUID from the config actually gets the
--- correct UUIDs.
-prop_getNetworkUuid :: ConfigData -> Property
-prop_getNetworkUuid cfg =
-  let nets = (Map.elems . fromContainer . configNetworks) cfg
-  in True ==? all
-    (\n -> fromJust (getNetworkUuid cfg ((fromNonEmpty . networkName) n))
-    == networkUuid n) nets
-
--- | Check if trying to get a UUID of a non-existing networks results in
--- 'Nothing'.
-prop_getNetworkUuid_notFound :: ConfigData -> String -> Property
-prop_getNetworkUuid_notFound cfg uuid =
-  let net_keys = (Map.keys . fromContainer . configNetworks) cfg
-  in notElem uuid net_keys ==> isNothing (getNetworkUuid cfg uuid)
-
 -- | Checks whether actually connected instances are identified as such.
 prop_instIsConnected :: ConfigData -> Property
 prop_instIsConnected cfg =
@@ -99,9 +83,7 @@ prop_instIsConnected_notFound cfg network_uuid =
         not (instIsConnected cfg network_uuid inst)
 
 testSuite "Query_Network"
-  [ 'prop_getNetworkUuid
-  , 'prop_getNetworkUuid_notFound
-  , 'prop_getGroupConnection
+  [ 'prop_getGroupConnection
   , 'prop_getGroupConnection_notFound
   , 'prop_instIsConnected
   , 'prop_instIsConnected_notFound
