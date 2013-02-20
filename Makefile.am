@@ -61,6 +61,7 @@ HS_DIRS = \
 	src/Ganeti/Block \
 	src/Ganeti/Block/Drbd \
 	src/Ganeti/Confd \
+	src/Ganeti/Curl \
 	src/Ganeti/DataCollectors \
 	src/Ganeti/HTools \
 	src/Ganeti/HTools/Backend \
@@ -122,6 +123,7 @@ ALL_APIDOC_HS_DIRS = \
 	$(APIDOC_HS_DIR)/Ganeti/Block \
 	$(APIDOC_HS_DIR)/Ganeti/Block/Drbd \
 	$(APIDOC_HS_DIR)/Ganeti/Confd \
+	$(APIDOC_HS_DIR)/Ganeti/Curl \
 	$(APIDOC_HS_DIR)/Ganeti/DataCollectors \
 	$(APIDOC_HS_DIR)/Ganeti/HTools \
 	$(APIDOC_HS_DIR)/Ganeti/HTools/Backend \
@@ -492,6 +494,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/Confd/Types.hs \
 	src/Ganeti/Confd/Utils.hs \
 	src/Ganeti/Config.hs \
+	src/Ganeti/Curl/Multi.hs \
 	src/Ganeti/Daemon.hs \
 	src/Ganeti/DataCollectors/CLI.hs \
 	src/Ganeti/DataCollectors/Drbd.hs \
@@ -601,8 +604,11 @@ HS_LIBTEST_SRCS = $(HS_LIB_SRCS) $(HS_TEST_SRCS)
 HS_BUILT_SRCS = \
 	test/hs/Test/Ganeti/TestImports.hs \
 	src/Ganeti/Constants.hs \
+	src/Ganeti/Curl/Internal.hs \
 	src/Ganeti/Version.hs
-HS_BUILT_SRCS_IN = $(patsubst %,%.in,$(HS_BUILT_SRCS))
+HS_BUILT_SRCS_IN = \
+	$(patsubst %,%.in,$(filter-out src/Ganeti/Curl/Internal.hs,$(HS_BUILT_SRCS))) \
+	src/Ganeti/Curl/Internal.hsc
 
 $(RUN_IN_TEMPDIR): | stamp-directories
 
@@ -1372,6 +1378,9 @@ src/Ganeti/Constants.hs: src/Ganeti/Constants.hs.in \
 	{ cat $< ; \
 	  PYTHONPATH=. $(RUN_IN_TEMPDIR) $(CURDIR)/$(CONVERT_CONSTANTS); \
 	} > $@
+
+src/Ganeti/Curl/Internal.hs: src/Ganeti/Curl/Internal.hsc | stamp-directories
+	hsc2hs -o $@ $<
 
 test/hs/Test/Ganeti/TestImports.hs: test/hs/Test/Ganeti/TestImports.hs.in \
 	$(built_base_sources)
