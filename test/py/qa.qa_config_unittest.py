@@ -142,6 +142,12 @@ class TestTestEnabled(unittest.TestCase):
           },
         }))
 
+  def testCallable(self):
+    self.assertTrue(qa_config.TestEnabled([lambda: True], _cfg={}))
+
+    for value in [None, False, "", 0]:
+      self.assertFalse(qa_config.TestEnabled(lambda: value, _cfg={}))
+
 
 class TestQaConfigLoad(unittest.TestCase):
   def setUp(self):

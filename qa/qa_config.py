@@ -475,6 +475,8 @@ def _TestEnabledInner(check_fn, names, fn):
       value = _TestEnabledInner(check_fn, name.tests, compat.any)
     elif isinstance(name, (list, tuple)):
       value = _TestEnabledInner(check_fn, name, compat.all)
+    elif callable(name):
+      value = name()
     else:
       value = check_fn(name)
 

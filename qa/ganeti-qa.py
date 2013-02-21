@@ -108,6 +108,7 @@ def RunTestIf(testnames, fn, *args, **kwargs):
   else:
     tstart = datetime.datetime.now()
     desc = _DescriptionOf(fn)
+    # TODO: Formatting test names when non-string names are involved
     print _FormatHeader("%s skipping %s, test(s) %s disabled" %
                         (tstart, desc, testnames))
 
