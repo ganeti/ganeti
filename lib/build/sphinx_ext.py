@@ -68,13 +68,6 @@ _TAB_WIDTH = 2
 
 RAPI_URI_ENCODE_RE = re.compile("[^_a-z0-9]+", re.I)
 
-RAPI_ACCESS_TEXT = {
-  rapi.RAPI_ACCESS_WRITE: "write",
-  rapi.RAPI_ACCESS_READ: "read",
-  }
-
-assert frozenset(RAPI_ACCESS_TEXT.keys()) == rapi.RAPI_ACCESS_ALL
-
 
 class ReSTError(Exception):
   """Custom class for generating errors in Sphinx.
@@ -484,14 +477,13 @@ def _BuildRapiAccessTable(res):
 
       access = rapi.baserlib.GetHandlerAccess(handler, method)
 
-      perms = map(RAPI_ACCESS_TEXT.__getitem__, access)
-
-      if not perms:
-        perms.append("*everyone*")
+      if access:
+        perms = utils.CommaJoin(sorted(access))
+      else:
+        perms = "*everyone*"
 
       yield ("  | :ref:`%s <%s>`: %s" %
-             (method, _MakeRapiResourceLink(method, uri),
-              utils.CommaJoin(perms)))
+             (method, _MakeRapiResourceLink(method, uri), perms))
 
 
 class RapiAccessTable(s_compat.Directive):
