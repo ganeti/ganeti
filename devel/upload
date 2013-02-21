@@ -22,7 +22,7 @@
 
 # Usage: upload node-{1,2,3}
 # it will upload the python libraries to
-# $prefix/lib/python2.4/site-packages/ganeti and the command line utils to
+# $prefix/lib/python2.X/dist-packages/ganeti and the command line utils to
 # $prefix/sbin. It needs passwordless root login to the nodes.
 
 set -e -u

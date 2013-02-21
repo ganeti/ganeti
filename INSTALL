@@ -29,24 +29,19 @@ Before installing, please verify that you have the following programs:
 - `iproute2 <http://www.linuxfoundation.org/en/Net:Iproute2>`_
 - `arping <http://www.skbuff.net/iputils/>`_ (part of iputils)
 - `ndisc6 <http://www.remlab.net/ndisc6/>`_ (if using IPv6)
-- `Python <http://www.python.org/>`_, version 2.4 or above, not 3.0
+- `Python <http://www.python.org/>`_, version 2.6 or above, not 3.0
 - `Python OpenSSL bindings <http://pyopenssl.sourceforge.net/>`_
 - `simplejson Python module <http://code.google.com/p/simplejson/>`_
 - `pyparsing Python module <http://pyparsing.wikispaces.com/>`_, version
   1.4.6 or above
 - `pyinotify Python module <https://github.com/seb-m/pyinotify>`_
 - `PycURL Python module <http://pycurl.sourceforge.net/>`_
-- `ctypes Python module
-  <http://starship.python.net/crew/theller/ctypes/>`_, if running on
-  python 2.4 (optional, used for node daemon memory locking)
 - `socat <http://www.dest-unreach.org/socat/>`_, see :ref:`note
   <socat-note>` below
 - `Paramiko <http://www.lag.net/paramiko/>`_, if you want to use
   ``ganeti-listrunner``
 - `affinity Python module <http://pypi.python.org/pypi/affinity/0.1.0>`_,
   optional python package for supporting CPU pinning under KVM
-- `ElementTree Python module <http://effbot.org/zone/element-index.htm>`_,
-  if running on python 2.4 (optional, used by the ``ovfconverter`` tool)
 - `qemu-img <http://qemu.org/>`_, if you want to use ``ovfconverter``
 - `fping <http://fping.sourceforge.net/>`_
 - `Python IP address manipulation library

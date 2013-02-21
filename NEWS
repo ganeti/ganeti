@@ -7,6 +7,7 @@ Version 2.8.0 beta1
 
 *(unreleased)*
 
+- The minimum Python version needed to run Ganeti is now 2.6.
 - The :doc:`Remote API <rapi>` daemon now supports a command line flag
   to always require authentication, ``--require-authentication``. It can
   be specified in ``$sysconfdir/default/ganeti``.
