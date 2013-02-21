@@ -37,6 +37,7 @@ import qualified Data.IntMap as IntMap
 
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Node as Node
+import qualified Ganeti.HTools.Group as Group
 
 import Ganeti.Common
 import Ganeti.HTools.CLI
@@ -59,6 +60,7 @@ options = do
     , oQuiet
     , oNoHeaders
     , oSaveCluster
+    , oGroup
     ]
 
 -- | The list of arguments supported by the program.
@@ -84,13 +86,17 @@ getStats colorings = snd . foldr helper (0,"") $ algBySize colorings
               where elsize = (IntMap.size.snd) el
 
 -- | Filter the output list.
--- Only online nodes are shown, and output groups which are empty after being
--- filtered are removed as well.
-filterOutput :: [[Node.Node]] -> [[Node.Node]]
-filterOutput l =
+-- Only online nodes are shown, optionally belonging to a particular target
+-- nodegroup.  Output groups which are empty after being filtered are removed
+-- as well.
+filterOutput :: Maybe Group.Group -> [[Node.Node]] -> [[Node.Node]]
+filterOutput g l =
   let onlineOnly = filter (not . Node.offline)
+      hasGroup grp node = Node.group node == Group.idx grp
+      byGroupOnly Nothing xs = xs
+      byGroupOnly (Just grp) xs = filter (hasGroup grp) xs
       nonNullOnly = filter (not . null)
-  in nonNullOnly (map onlineOnly l)
+  in nonNullOnly (map (onlineOnly . byGroupOnly g) l)
 
 -- | Main function.
 main :: Options -> [String] -> IO ()
@@ -101,13 +107,19 @@ main opts args = do
 
   -- Load cluster data. The last two arguments, cluster tags and ipolicy, are
   -- currently not used by this tool.
-  ini_cdata@(ClusterData _ fixed_nl ilf _ _) <- loadExternalData opts
+  ini_cdata@(ClusterData gl fixed_nl ilf _ _) <- loadExternalData opts
 
   nlf <- setNodeStatus opts fixed_nl
 
   maybeSaveData (optSaveCluster opts) "original" "before hroller run" ini_cdata
 
-  -- TODO: filter by node group
+  -- Find the wanted node group, if any.
+  wantedGroup <- case optGroup opts of
+    Nothing -> return Nothing
+    Just name -> case Container.findByName gl name of
+      Nothing -> exitErr "Cannot find target group."
+      Just grp -> return (Just grp)
+
   -- TODO: fail if instances are running (with option to warn only)
   -- TODO: identify master node, and put it last
 
@@ -126,7 +138,7 @@ main opts args = do
         (snd . minimumBy (comparing (IntMap.size . snd))) colorings
       idToNode = (`Container.find` nlf)
       nodesRebootGroups = map (map idToNode) $ IntMap.elems smallestColoring
-      outputRebootGroups = filterOutput nodesRebootGroups
+      outputRebootGroups = filterOutput wantedGroup nodesRebootGroups
       outputRebootNames = map (map Node.name) outputRebootGroups
 
   when (verbose > 1) . putStrLn $ getStats colorings
