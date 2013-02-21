@@ -791,7 +791,7 @@ genLoadObject :: (Field -> Q (Name, Stmt))
 genLoadObject load_fn sname fields = do
   let name = mkName sname
       funname = mkName $ "load" ++ sname
-      arg1 = mkName "v"
+      arg1 = mkName $ if null fields then "_" else "v"
       objname = mkName "o"
       opid = mkName "op_id"
   st1 <- bindS (varP objname) [| liftM JSON.fromJSObject
@@ -799,7 +799,12 @@ genLoadObject load_fn sname fields = do
   fbinds <- mapM load_fn fields
   let (fnames, fstmts) = unzip fbinds
   let cval = foldl (\accu fn -> AppE accu (VarE fn)) (ConE name) fnames
-      fstmts' = st1:fstmts ++ [NoBindS (AppE (VarE 'return) cval)]
+      retstmt = [NoBindS (AppE (VarE 'return) cval)]
+      -- FIXME: should we require an empty dict for an empty type?
+      -- this allows any JSValue right now
+      fstmts' = if null fields
+                  then retstmt
+                  else st1:fstmts ++ retstmt
   sigt <- [t| JSON.JSValue -> JSON.Result $(conT name) |]
   return $ (SigD funname sigt,
             FunD funname [Clause [VarP arg1] (NormalB (DoE fstmts')) []])

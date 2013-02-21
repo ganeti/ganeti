@@ -379,17 +379,10 @@ instance Rpc RpcCallNodeInfo RpcResultNodeInfo where
 
 -- ** Version
 
--- | Version
--- Query node version.
--- Note: We can't use THH as it does not know what to do with empty dict
-data RpcCallVersion = RpcCallVersion {}
-  deriving (Show, Eq)
+-- | Query node version.
+$(buildObject "RpcCallVersion" "rpcCallVersion" [])
 
-instance J.JSON RpcCallVersion where
-  showJSON _ = J.JSNull
-  readJSON J.JSNull = return RpcCallVersion
-  readJSON _ = fail "Unable to read RpcCallVersion"
-
+-- | Query node reply.
 $(buildObject "RpcResultVersion" "rpcResultVersion"
   [ simpleField "version" [t| Int |]
   ])
