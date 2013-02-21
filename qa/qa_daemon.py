@@ -65,10 +65,11 @@ def _ResetWatcherDaemon():
   """Removes the watcher daemon's state file.
 
   """
-  AssertCommand([
-    "bash", "-c",
-    "rm -vf %s" % (pathutils.WATCHER_GROUP_STATE_FILE % "*-*-*-*"),
-    ])
+  path = \
+    qa_utils.MakeNodePath(qa_config.GetMasterNode(),
+                          pathutils.WATCHER_GROUP_STATE_FILE % "*-*-*-*")
+
+  AssertCommand(["bash", "-c", "rm -vf %s" % path])
 
 
 def _RunWatcherDaemon():
