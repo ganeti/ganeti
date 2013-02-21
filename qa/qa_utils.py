@@ -403,13 +403,19 @@ def BackupFile(node, path):
   anymore.
 
   """
+  vpath = MakeNodePath(node, path)
+
   cmd = ("tmp=$(tempfile --prefix .gnt --directory=$(dirname %s)) && "
          "[[ -f \"$tmp\" ]] && "
          "cp %s $tmp && "
-         "echo $tmp") % (utils.ShellQuote(path), utils.ShellQuote(path))
+         "echo $tmp") % (utils.ShellQuote(vpath), utils.ShellQuote(vpath))
 
   # Return temporary filename
-  return GetCommandOutput(node, cmd).strip()
+  result = GetCommandOutput(node, cmd).strip()
+
+  print "Backup filename: %s" % result
+
+  return result
 
 
 def _ResolveName(cmd, key):
@@ -746,3 +752,26 @@ def GetNonexistentEntityNames(count, name_config, name_prefix):
                     (count, name_config))
 
   return candidates
+
+
+def MakeNodePath(node, path):
+  """Builds an absolute path for a virtual node.
+
+  @type node: string or L{qa_config._QaNode}
+  @param node: Node
+  @type path: string
+  @param path: Path without node-specific prefix
+
+  """
+  (_, basedir) = qa_config.GetVclusterSettings()
+
+  if isinstance(node, basestring):
+    name = node
+  else:
+    name = node.primary
+
+  if basedir:
+    assert path.startswith("/")
+    return "%s%s" % (vcluster.MakeNodeRoot(basedir, name), path)
+  else:
+    return path
