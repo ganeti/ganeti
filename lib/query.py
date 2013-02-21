@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2010, 2011, 2012 Google Inc.
+# Copyright (C) 2010, 2011, 2012, 2013 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -2428,7 +2428,7 @@ def _GetExportName(_, (node_name, expname)): # pylint: disable=W0613
 
   """
   if expname is None:
-    return _FS_UNAVAIL
+    return _FS_NODATA
   else:
     return expname
 
