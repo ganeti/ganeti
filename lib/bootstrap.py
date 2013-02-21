@@ -256,6 +256,27 @@ def _WaitForMasterDaemon():
                              " %s seconds" % _DAEMON_READY_TIMEOUT)
 
 
+def _WaitForSshDaemon(hostname, port, family):
+  """Wait for SSH daemon to become responsive.
+
+  """
+  hostip = netutils.GetHostname(name=hostname, family=family).ip
+
+  def _CheckSshDaemon():
+    if netutils.TcpPing(hostip, port, timeout=1.0, live_port_needed=True):
+      logging.debug("SSH daemon on %s:%s (IP address %s) has become"
+                    " responsive", hostname, port, hostip)
+    else:
+      raise utils.RetryAgain()
+
+  try:
+    utils.Retry(_CheckSshDaemon, 1.0, _DAEMON_READY_TIMEOUT)
+  except utils.RetryTimeout:
+    raise errors.OpExecError("SSH daemon on %s:%s (IP address %s) didn't"
+                             " become responsive within %s seconds" %
+                             (hostname, port, hostip, _DAEMON_READY_TIMEOUT))
+
+
 def RunNodeSetupCmd(cluster_name, node, basecmd, debug, verbose,
                     use_cluster_key, ask_key, strict_host_check, data):
   """Runs a command to configure something on a remote machine.
@@ -309,6 +330,8 @@ def RunNodeSetupCmd(cluster_name, node, basecmd, debug, verbose,
   if result.failed:
     raise errors.OpExecError("Command '%s' failed: %s" %
                              (result.cmd, result.fail_reason))
+
+  _WaitForSshDaemon(node, netutils.GetDaemonPort(constants.SSH), family)
 
 
 def _InitFileStorage(file_storage_dir):
