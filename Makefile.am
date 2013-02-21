@@ -1454,6 +1454,8 @@ lib/_autoconf.py: Makefile | stamp-directories
 	  echo "CONFD_GROUP = '$(CONFD_GROUP)'"; \
 	  echo "NODED_USER = '$(NODED_USER)'"; \
 	  echo "NODED_GROUP = '$(NODED_GROUP)'"; \
+	  echo "MOND_USER = '$(MOND_USER)'"; \
+	  echo "MOND_GROUP = '$(MOND_GROUP)'"; \
 	  echo "DISK_SEPARATOR = '$(DISK_SEPARATOR)'"; \
 	  echo "QEMUIMG_PATH = '$(QEMUIMG_PATH)'"; \
 	  echo "HTOOLS = True"; \
@@ -1461,7 +1463,7 @@ lib/_autoconf.py: Makefile | stamp-directories
 	  echo "XEN_CMD = '$(XEN_CMD)'"; \
 	  echo "ENABLE_SPLIT_QUERY = $(ENABLE_SPLIT_QUERY)"; \
 	  echo "ENABLE_RESTRICTED_COMMANDS = $(ENABLE_RESTRICTED_COMMANDS)"; \
-	  echo "ENABLE_MONITORING = $(ENABLE_MONITORING)"; \
+	  echo "ENABLE_MOND = $(ENABLE_MOND)"; \
 ## Write dictionary with man page name as the key and the section number as the
 ## value
 	  echo "MAN_PAGES = {"; \
@@ -1532,12 +1534,15 @@ $(REPLACE_VARS_SED): $(SHELL_ENV_INIT) Makefile stamp-directories
 	  echo 's#@''GNTRAPIUSER@#$(RAPI_USER)#g'; \
 	  echo 's#@''GNTCONFDUSER@#$(CONFD_USER)#g'; \
 	  echo 's#@''GNTNODEDUSER@#$(NODED_USER)#g'; \
+	  echo 's#@''GNTMONDUSER@#$(MOND_USER)#g'; \
 	  echo 's#@''GNTRAPIGROUP@#$(RAPI_GROUP)#g'; \
 	  echo 's#@''GNTADMINGROUP@#$(ADMIN_GROUP)#g'; \
 	  echo 's#@''GNTCONFDGROUP@#$(CONFD_GROUP)#g'; \
 	  echo 's#@''GNTMASTERDGROUP@#$(MASTERD_GROUP)#g'; \
+	  echo 's#@''GNTMONDGROUP@#$(MOND_GROUP)#g'; \
 	  echo 's#@''GNTDAEMONSGROUP@#$(DAEMONS_GROUP)#g'; \
 	  echo 's#@''CUSTOM_ENABLE_CONFD@#$(ENABLE_CONFD)#g'; \
+	  echo 's#@''CUSTOM_ENABLE_MOND@#$(ENABLE_MOND)#g'; \
 	  echo 's#@''MODULES@#$(strip $(lint_python_code))#g'; \
 	  echo 's#@''XEN_CONFIG_DIR@#$(XEN_CONFIG_DIR)#g'; \
 	  echo; \

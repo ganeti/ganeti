@@ -859,7 +859,7 @@ def main():
                            debug=debug)
 
   # mon-collector, if monitoring is enabled
-  if _autoconf.ENABLE_MONITORING:
+  if _autoconf.ENABLE_MOND:
     WriteHaskellCmdCompletion(sw, "src/mon-collector", debug=debug)
 
   # Reset extglob to original value

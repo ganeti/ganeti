@@ -243,15 +243,18 @@ AC_ARG_WITH([user-prefix],
   [user_masterd="${withval}masterd";
    user_rapi="${withval}rapi";
    user_confd="${withval}confd";
-   user_noded="$user_default"],
+   user_noded="$user_default";
+   user_mond="${withval}mond"],
   [user_masterd="$user_default";
    user_rapi="$user_default";
    user_confd="$user_default";
-   user_noded="$user_default"])
+   user_noded="$user_default";
+   user_mond="$user_default"])
 AC_SUBST(MASTERD_USER, $user_masterd)
 AC_SUBST(RAPI_USER, $user_rapi)
 AC_SUBST(CONFD_USER, $user_confd)
 AC_SUBST(NODED_USER, $user_noded)
+AC_SUBST(MOND_USER, $user_mond)
 
 # --with-group-prefix=...
 AC_ARG_WITH([group-prefix],
@@ -265,19 +268,22 @@ AC_ARG_WITH([group-prefix],
    group_confd="${withval}confd";
    group_masterd="${withval}masterd";
    group_noded="$group_default";
-   group_daemons="${withval}daemons";],
+   group_daemons="${withval}daemons";
+   group_mond="${withval}mond"],
   [group_rapi="$group_default";
    group_admin="$group_default";
    group_confd="$group_default";
    group_masterd="$group_default";
    group_noded="$group_default";
-   group_daemons="$group_default"])
+   group_daemons="$group_default";
+   group_mond="$group_default"])
 AC_SUBST(RAPI_GROUP, $group_rapi)
 AC_SUBST(ADMIN_GROUP, $group_admin)
 AC_SUBST(CONFD_GROUP, $group_confd)
 AC_SUBST(MASTERD_GROUP, $group_masterd)
 AC_SUBST(NODED_GROUP, $group_noded)
 AC_SUBST(DAEMONS_GROUP, $group_daemons)
+AC_SUBST(MOND_GROUP, $group_mond)
 
 # Print the config to the user
 AC_MSG_NOTICE([Running ganeti-masterd as $group_masterd:$group_masterd])
@@ -475,7 +481,7 @@ AC_ARG_ENABLE([confd],
   [],
   [enable_confd=check])
 
-ENABLE_MONITORING=
+ENABLE_MOND=
 AC_ARG_ENABLE([monitoring],
   [AS_HELP_STRING([--enable-monitoring],
   [enable the ganeti monitoring agent (default: check)])],
@@ -573,8 +579,8 @@ fi
 if test "$has_monitoring" = True; then
   AC_MSG_NOTICE([Enabling the monitoring agent usage])
 fi
-AC_SUBST(ENABLE_MONITORING, $has_monitoring)
-AM_CONDITIONAL([ENABLE_MONITORING], [test "$has_monitoring" = True])
+AC_SUBST(ENABLE_MOND, $has_monitoring)
+AM_CONDITIONAL([ENABLE_MOND], [test "$has_monitoring" = True])
 
 # development modules
 HS_NODEV=
