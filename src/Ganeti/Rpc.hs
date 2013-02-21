@@ -66,6 +66,9 @@ module Ganeti.Rpc
   , RpcCallTestDelay(..)
   , RpcResultTestDelay(..)
 
+  , RpcCallExportList(..)
+  , RpcResultExportList(..)
+
   , rpcTimeoutFromRaw -- FIXME: Not used anywhere
   ) where
 
@@ -440,7 +443,6 @@ instance Rpc RpcCallStorageList RpcResultStorageList where
 
 -- ** TestDelay
 
-
 -- | Call definition for test delay.
 $(buildObject "RpcCallTestDelay" "rpcCallTestDelay"
   [ simpleField "duration" [t| Double |]
@@ -464,3 +466,23 @@ instance RpcCall RpcCallTestDelay where
 
 instance Rpc RpcCallTestDelay RpcResultTestDelay where
   rpcResultFill _ res = fromJSValueToRes res id
+
+-- ** ExportList
+
+-- | Call definition for export list.
+
+$(buildObject "RpcCallExportList" "rpcCallExportList" [])
+
+-- | Result definition for export list.
+$(buildObject "RpcResultExportList" "rpcResExportList"
+  [ simpleField "exports" [t| [String] |]
+  ])
+
+instance RpcCall RpcCallExportList where
+  rpcCallName _          = "export_list"
+  rpcCallTimeout _       = rpcTimeoutToRaw Fast
+  rpcCallAcceptOffline _ = False
+  rpcCallData _          = J.encode
+
+instance Rpc RpcCallExportList RpcResultExportList where
+  rpcResultFill _ res = fromJSValueToRes res RpcResultExportList
