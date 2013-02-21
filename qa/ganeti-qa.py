@@ -171,6 +171,8 @@ def RunClusterTests():
     ("cluster-reserved-lvs", qa_cluster.TestClusterReservedLvs),
     # TODO: add more cluster modify tests
     ("cluster-modify", qa_cluster.TestClusterModifyEmpty),
+    ("cluster-modify", qa_cluster.TestClusterModifyIPolicy),
+    ("cluster-modify", qa_cluster.TestClusterModifyISpecs),
     ("cluster-modify", qa_cluster.TestClusterModifyBe),
     ("cluster-modify", qa_cluster.TestClusterModifyDisk),
     ("cluster-rename", qa_cluster.TestClusterRename),
