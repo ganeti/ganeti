@@ -41,6 +41,7 @@ from ganeti import compat
 from ganeti import constants
 from ganeti import ht
 from ganeti import pathutils
+from ganeti import vcluster
 
 import qa_config
 import qa_error
@@ -250,9 +251,25 @@ def GetSSHCommand(node, cmd, strict=True, opts=None, tty=None):
     spath = _MULTIPLEXERS[node][0]
     args.append("-oControlPath=%s" % spath)
     args.append("-oControlMaster=no")
-  args.append(node)
-  if cmd:
-    args.append(cmd)
+
+  (vcluster_master, vcluster_basedir) = \
+    qa_config.GetVclusterSettings()
+
+  if vcluster_master:
+    args.append(vcluster_master)
+    args.append("%s/%s/cmd" % (vcluster_basedir, node))
+
+    if cmd:
+      # For virtual clusters the whole command must be wrapped using the "cmd"
+      # script, as that script sets a number of environment variables. If the
+      # command contains shell meta characters the whole command needs to be
+      # quoted.
+      args.append(utils.ShellQuote(cmd))
+  else:
+    args.append(node)
+
+    if cmd:
+      args.append(cmd)
 
   return args
 
