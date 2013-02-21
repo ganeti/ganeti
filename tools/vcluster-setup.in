@@ -187,7 +187,7 @@ setup_node() {
   fi
 
   mkdir -p \
-    $nodedir@SYSCONFDIR@/default \
+    $nodedir@SYSCONFDIR@/{default,ganeti} \
     $nodedir@LOCALSTATEDIR@/lock\
     $nodedir@LOCALSTATEDIR@/{lib,log,run}/ganeti
 
