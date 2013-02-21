@@ -88,12 +88,19 @@ def Setup(username, password):
   cfg_curl = rapi.client.GenericCurlConfig(cafile=_rapi_ca.name,
                                            proxy="")
 
-  _rapi_client = rapi.client.GanetiRapiClient(master.primary, port=port,
-                                              username=username,
-                                              password=password,
-                                              curl_config_fn=cfg_curl)
+  if qa_config.UseVirtualCluster():
+    # TODO: Implement full support for RAPI on virtual clusters
+    print qa_utils.FormatWarning("RAPI tests are not yet supported on"
+                                 " virtual clusters and will be disabled")
 
-  print "RAPI protocol version: %s" % _rapi_client.GetVersion()
+    assert _rapi_client is None
+  else:
+    _rapi_client = rapi.client.GanetiRapiClient(master.primary, port=port,
+                                                username=username,
+                                                password=password,
+                                                curl_config_fn=cfg_curl)
+
+    print "RAPI protocol version: %s" % _rapi_client.GetVersion()
 
 
 INSTANCE_FIELDS = ("name", "os", "pnode", "snodes",
@@ -126,7 +133,9 @@ def Enabled():
   """Return whether remote API tests should be run.
 
   """
-  return qa_config.TestEnabled("rapi")
+  # TODO: Implement RAPI tests for virtual clusters
+  return (qa_config.TestEnabled("rapi") and
+          not qa_config.UseVirtualCluster())
 
 
 def _DoTests(uris):

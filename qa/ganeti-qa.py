@@ -189,9 +189,9 @@ def RunClusterTests():
      qa_cluster.TestClusterMasterFailoverWithDrainedQueue),
     (["cluster-oob", qa_config.NoVirtualCluster],
      qa_cluster.TestClusterOob),
-    ("rapi", qa_rapi.TestVersion),
-    ("rapi", qa_rapi.TestEmptyCluster),
-    ("rapi", qa_rapi.TestRapiQuery),
+    (qa_rapi.Enabled, qa_rapi.TestVersion),
+    (qa_rapi.Enabled, qa_rapi.TestEmptyCluster),
+    (qa_rapi.Enabled, qa_rapi.TestRapiQuery),
     ]:
     RunTestIf(test, fn)
 
@@ -209,7 +209,7 @@ def RunOsTests():
   """
   os_enabled = ["os", qa_config.NoVirtualCluster]
 
-  if qa_config.TestEnabled("rapi"):
+  if qa_config.TestEnabled(qa_rapi.Enabled):
     rapi_getos = qa_rapi.GetOperatingSystems
   else:
     rapi_getos = None
@@ -240,16 +240,16 @@ def RunCommonInstanceTests(instance):
 
   """
   RunTestIf("instance-shutdown", qa_instance.TestInstanceShutdown, instance)
-  RunTestIf(["instance-shutdown", "instance-console", "rapi"],
+  RunTestIf(["instance-shutdown", "instance-console", qa_rapi.Enabled],
             qa_rapi.TestRapiStoppedInstanceConsole, instance)
   RunTestIf(["instance-shutdown", "instance-modify"],
             qa_instance.TestInstanceStoppedModify, instance)
   RunTestIf("instance-shutdown", qa_instance.TestInstanceStartup, instance)
 
   # Test shutdown/start via RAPI
-  RunTestIf(["instance-shutdown", "rapi"],
+  RunTestIf(["instance-shutdown", qa_rapi.Enabled],
             qa_rapi.TestRapiInstanceShutdown, instance)
-  RunTestIf(["instance-shutdown", "rapi"],
+  RunTestIf(["instance-shutdown", qa_rapi.Enabled],
             qa_rapi.TestRapiInstanceStartup, instance)
 
   RunTestIf("instance-list", qa_instance.TestInstanceList)
@@ -257,11 +257,11 @@ def RunCommonInstanceTests(instance):
   RunTestIf("instance-info", qa_instance.TestInstanceInfo, instance)
 
   RunTestIf("instance-modify", qa_instance.TestInstanceModify, instance)
-  RunTestIf(["instance-modify", "rapi"],
+  RunTestIf(["instance-modify", qa_rapi.Enabled],
             qa_rapi.TestRapiInstanceModify, instance)
 
   RunTestIf("instance-console", qa_instance.TestInstanceConsole, instance)
-  RunTestIf(["instance-console", "rapi"],
+  RunTestIf(["instance-console", qa_rapi.Enabled],
             qa_rapi.TestRapiInstanceConsole, instance)
 
   DOWN_TESTS = qa_config.Either([
@@ -275,7 +275,7 @@ def RunCommonInstanceTests(instance):
 
   # now run the 'down' state tests
   RunTestIf("instance-reinstall", qa_instance.TestInstanceReinstall, instance)
-  RunTestIf(["instance-reinstall", "rapi"],
+  RunTestIf(["instance-reinstall", qa_rapi.Enabled],
             qa_rapi.TestRapiInstanceReinstall, instance)
 
   if qa_config.TestEnabled("instance-rename"):
@@ -286,13 +286,13 @@ def RunCommonInstanceTests(instance):
       # perform instance rename to the same name
       RunTest(qa_instance.TestInstanceRenameAndBack,
               rename_source, rename_source)
-      RunTestIf("rapi", qa_rapi.TestRapiInstanceRenameAndBack,
+      RunTestIf(qa_rapi.Enabled, qa_rapi.TestRapiInstanceRenameAndBack,
                 rename_source, rename_source)
       if rename_target is not None:
         # perform instance rename to a different name, if we have one configured
         RunTest(qa_instance.TestInstanceRenameAndBack,
                 rename_source, rename_target)
-        RunTestIf("rapi", qa_rapi.TestRapiInstanceRenameAndBack,
+        RunTestIf(qa_rapi.Enabled, qa_rapi.TestRapiInstanceRenameAndBack,
                   rename_source, rename_target)
     finally:
       tgt_instance.Release()
@@ -308,7 +308,7 @@ def RunCommonInstanceTests(instance):
 
   RunTestIf("cluster-verify", qa_cluster.TestClusterVerify)
 
-  RunTestIf("rapi", qa_rapi.TestInstance, instance)
+  RunTestIf(qa_rapi.Enabled, qa_rapi.TestInstance, instance)
 
   # Lists instances, too
   RunTestIf("node-list", qa_node.TestNodeList)
@@ -349,7 +349,7 @@ def RunGroupRwTests():
   RunTestIf("group-rwops", qa_group.TestGroupAddRemoveRename)
   RunTestIf("group-rwops", qa_group.TestGroupAddWithOptions)
   RunTestIf("group-rwops", qa_group.TestGroupModify)
-  RunTestIf(["group-rwops", "rapi"], qa_rapi.TestRapiNodeGroups)
+  RunTestIf(["group-rwops", qa_rapi.Enabled], qa_rapi.TestRapiNodeGroups)
   RunTestIf(["group-rwops", "tags"], qa_tags.TestGroupTags,
             qa_group.GetDefaultGroup())
 
@@ -384,7 +384,7 @@ def RunExportImportTests(instance, inodes):
     finally:
       expnode.Release()
 
-  if qa_config.TestEnabled(["rapi", "inter-cluster-instance-move"]):
+  if qa_config.TestEnabled([qa_rapi.Enabled, "inter-cluster-instance-move"]):
     newinst = qa_config.AcquireInstance()
     try:
       tnode = qa_config.AcquireNode(exclude=inodes)
@@ -416,18 +416,18 @@ def RunHardwareFailureTests(instance, inodes):
 
   """
   RunTestIf("instance-failover", qa_instance.TestInstanceFailover, instance)
-  RunTestIf(["instance-failover", "rapi"],
+  RunTestIf(["instance-failover", qa_rapi.Enabled],
             qa_rapi.TestRapiInstanceFailover, instance)
 
   RunTestIf("instance-migrate", qa_instance.TestInstanceMigrate, instance)
-  RunTestIf(["instance-migrate", "rapi"],
+  RunTestIf(["instance-migrate", qa_rapi.Enabled],
             qa_rapi.TestRapiInstanceMigrate, instance)
 
   if qa_config.TestEnabled("instance-replace-disks"):
     # We just need alternative secondary nodes, hence "- 1"
     othernodes = qa_config.AcquireManyNodes(len(inodes) - 1, exclude=inodes)
     try:
-      RunTestIf("rapi", qa_rapi.TestRapiInstanceReplaceDisks, instance)
+      RunTestIf(qa_rapi.Enabled, qa_rapi.TestRapiInstanceReplaceDisks, instance)
       RunTest(qa_instance.TestReplaceDisks,
               instance, inodes, othernodes)
     finally:
