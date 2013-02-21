@@ -259,8 +259,10 @@ def _ReadSsconfInstanceList():
   """
   master = qa_config.GetMasterNode()
 
-  cmd = ["cat", utils.PathJoin(pathutils.DATA_DIR,
-                               "ssconf_%s" % constants.SS_INSTANCE_LIST)]
+  ssconf_path = utils.PathJoin(pathutils.DATA_DIR,
+                               "ssconf_%s" % constants.SS_INSTANCE_LIST)
+
+  cmd = ["cat", qa_utils.MakeNodePath(master, ssconf_path)]
 
   return qa_utils.GetCommandOutput(master.primary,
                                    utils.ShellQuoteArgs(cmd)).splitlines()
