@@ -153,7 +153,8 @@ def TestClusterInit(rapi_user, rapi_secret):
   """gnt-cluster init"""
   master = qa_config.GetMasterNode()
 
-  rapi_dir = os.path.dirname(pathutils.RAPI_USERS_FILE)
+  rapi_users_path = qa_utils.MakeNodePath(master, pathutils.RAPI_USERS_FILE)
+  rapi_dir = os.path.dirname(rapi_users_path)
 
   # First create the RAPI credentials
   fh = tempfile.NamedTemporaryFile()
@@ -164,7 +165,7 @@ def TestClusterInit(rapi_user, rapi_secret):
     tmpru = qa_utils.UploadFile(master.primary, fh.name)
     try:
       AssertCommand(["mkdir", "-p", rapi_dir])
-      AssertCommand(["mv", tmpru, pathutils.RAPI_USERS_FILE])
+      AssertCommand(["mv", tmpru, rapi_users_path])
     finally:
       AssertCommand(["rm", "-f", tmpru])
   finally:
