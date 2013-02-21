@@ -83,6 +83,15 @@ getStats colorings = snd . foldr helper (0,"") $ algBySize colorings
             | otherwise = (elsize, str ++ " LOOSE " ++ algostat el)
               where elsize = (IntMap.size.snd) el
 
+-- | Filter the output list.
+-- Only online nodes are shown, and output groups which are empty after being
+-- filtered are removed as well.
+filterOutput :: [[Node.Node]] -> [[Node.Node]]
+filterOutput l =
+  let onlineOnly = filter (not . Node.offline)
+      nonNullOnly = filter (not . null)
+  in nonNullOnly (map onlineOnly l)
+
 -- | Main function.
 main :: Options -> [String] -> IO ()
 main opts args = do
@@ -98,7 +107,6 @@ main opts args = do
 
   maybeSaveData (optSaveCluster opts) "original" "before hroller run" ini_cdata
 
-  -- TODO: only online nodes!
   -- TODO: filter by node group
   -- TODO: fail if instances are running (with option to warn only)
   -- TODO: identify master node, and put it last
@@ -116,11 +124,13 @@ main opts args = do
       colorings = map (\(v,a) -> (v,(colorVertMap.a) nodeGraph)) colorAlgorithms
       smallestColoring =
         (snd . minimumBy (comparing (IntMap.size . snd))) colorings
-      idToName = Node.name  . (`Container.find` nlf)
-      nodesbycoloring = map (map idToName) $ IntMap.elems smallestColoring
+      idToNode = (`Container.find` nlf)
+      nodesRebootGroups = map (map idToNode) $ IntMap.elems smallestColoring
+      outputRebootGroups = filterOutput nodesRebootGroups
+      outputRebootNames = map (map Node.name) outputRebootGroups
 
   when (verbose > 1) . putStrLn $ getStats colorings
 
   unless (optNoHeaders opts) $
          putStrLn "'Node Reboot Groups'"
-  mapM_ (putStrLn . commaJoin) nodesbycoloring
+  mapM_ (putStrLn . commaJoin) outputRebootNames
