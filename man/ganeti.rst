@@ -267,6 +267,22 @@ and ``gnt-instance list``. So you can configure default command line
 flags by setting ``GNT_NODE_LIST``, ``GNT_GROUP_LIST`` and
 ``GNT_INSTANCE_LIST``.
 
+Debug options
+~~~~~~~~~~~~~
+
+If the variable ``FORCE_LUXI_SOCKET`` is set, it will override the
+socket used for LUXI connections by command-line tools
+(``gnt-*``). This is useful mostly for debugging, and some operations
+won't work at all if, for example, you point this variable to the
+confd-supplied query socket and try to submit a job.
+
+If the variable is set to the value ``master``, it will connect to the
+correct path for the master daemon (even if, for example, split
+queries are enabled and this is a query operation). If set to
+``query``, it will always (try to) connect to the query socket, even
+if split queries are disabled. Otherwise, the value is taken to
+represent a filesystem path to the socket to use.
+
 Field formatting
 ----------------
 

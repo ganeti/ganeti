@@ -2216,7 +2216,15 @@ def GetClient(query=False):
       connected to the query socket instead of the masterd socket
 
   """
-  if query and constants.ENABLE_SPLIT_QUERY:
+  override_socket = os.getenv(constants.LUXI_OVERRIDE, "")
+  if override_socket:
+    if override_socket == constants.LUXI_OVERRIDE_MASTER:
+      address = pathutils.MASTER_SOCKET
+    elif override_socket == constants.LUXI_OVERRIDE_QUERY:
+      address = pathutils.QUERY_SOCKET
+    else:
+      address = override_socket
+  elif query and constants.ENABLE_SPLIT_QUERY:
     address = pathutils.QUERY_SOCKET
   else:
     address = None
@@ -2303,10 +2311,12 @@ def FormatError(err):
     obuf.write("Failure: unknown/wrong parameter name '%s'" % msg)
   elif isinstance(err, luxi.NoMasterError):
     if err.args[0] == pathutils.MASTER_SOCKET:
-      daemon = "master"
+      daemon = "the master daemon"
+    elif err.args[0] == pathutils.QUERY_SOCKET:
+      daemon = "the config daemon"
     else:
-      daemon = "config"
-    obuf.write("Cannot communicate with the %s daemon.\nIs it running"
+      daemon = "socket '%s'" % str(err.args[0])
+    obuf.write("Cannot communicate with %s.\nIs the process running"
                " and listening for connections?" % daemon)
   elif isinstance(err, luxi.TimeoutError):
     obuf.write("Timeout while talking to the master daemon. Jobs might have"

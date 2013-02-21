@@ -184,6 +184,10 @@ PROC_MOUNTS = "/proc/mounts"
 # Local UniX Interface related constants
 LUXI_EOM = "\3"
 LUXI_VERSION = CONFIG_VERSION
+#: Environment variable for the luxi override socket
+LUXI_OVERRIDE = "FORCE_LUXI_SOCKET"
+LUXI_OVERRIDE_MASTER = "master"
+LUXI_OVERRIDE_QUERY = "query"
 
 # one of "no", "yes", "only"
 SYSLOG_USAGE = _autoconf.SYSLOG_USAGE
