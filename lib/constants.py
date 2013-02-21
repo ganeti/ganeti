@@ -147,6 +147,10 @@ ENABLE_CONFD = _autoconf.ENABLE_CONFD
 ENABLE_SPLIT_QUERY = _autoconf.ENABLE_SPLIT_QUERY
 ENABLE_RESTRICTED_COMMANDS = _autoconf.ENABLE_RESTRICTED_COMMANDS
 
+# SSH constants
+SSH = "ssh"
+SCP = "scp"
+
 NODED = "ganeti-noded"
 CONFD = "ganeti-confd"
 RAPI = "ganeti-rapi"
@@ -157,7 +161,7 @@ DAEMONS_PORTS = {
   NODED: ("tcp", 1811),
   CONFD: ("udp", 1814),
   RAPI: ("tcp", 5080),
-  "ssh": ("tcp", 22),
+  SSH: ("tcp", 22),
 }
 DEFAULT_NODED_PORT = DAEMONS_PORTS[NODED][1]
 DEFAULT_CONFD_PORT = DAEMONS_PORTS[CONFD][1]
@@ -721,10 +725,6 @@ ES_SCRIPTS = frozenset([
   ])
 
 ES_PARAMETERS_FILE = "parameters.list"
-
-# ssh constants
-SSH = "ssh"
-SCP = "scp"
 
 # reboot types
 INSTANCE_REBOOT_SOFT = "soft"
