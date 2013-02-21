@@ -281,10 +281,14 @@ def TcpPing(target, port, timeout=10, live_port_needed=False, source=None):
       than C{EADDRNOTAVAIL} will be ignored
 
   """
+  logging.debug("Attempting to reach TCP port %s on target %s with a timeout"
+                " of %s seconds", port, target, timeout)
+
   try:
     family = IPAddress.GetAddressFamily(target)
-  except errors.GenericError:
-    return False
+  except errors.IPAddressError, err:
+    raise errors.ProgrammerError("Family of IP address given in parameter"
+                                 " 'target' can't be determined: %s" % err)
 
   sock = socket.socket(family, socket.SOCK_STREAM)
   success = False
