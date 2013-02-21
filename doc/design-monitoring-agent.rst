@@ -590,17 +590,22 @@ version 1.
 
 If requested through GET, the null JSON value will be returned.
 
-``/1/full``
-+++++++++++
-The full report of all the data collectors, as described in the section
+``/1/list/collectors``
+++++++++++++++++++++++
+Returns a list of tuples (kind, category, name) showing all the collectors
+available in the system.
+
+``/1/report/all``
++++++++++++++++++
+A list of the reports of all the data collectors, as described in the section
 `Format of the report`_.
 
 `Status reporting collectors`_ will provide their output in non-verbose format.
 The verbose format can be requested by adding the parameter ``verbose=1`` to the
 request.
 
-``/[category]/[collector_name]``
-++++++++++++++++++++++++++++++++
+``/1/report/[category]/[collector_name]``
++++++++++++++++++++++++++++++++++++++++++
 Returns the report of the collector ``[collector_name]`` that belongs to the
 specified ``[category]``.
 
@@ -688,7 +693,6 @@ impact functionality.
 
 The libekg library should be looked at for easily providing metrics in
 json format.
-
 
 Implementation order
 --------------------
