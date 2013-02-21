@@ -205,6 +205,8 @@ def RunOsTests():
   """Runs all tests related to gnt-os.
 
   """
+  os_enabled = ["os", qa_config.NoVirtualCluster]
+
   if qa_config.TestEnabled("rapi"):
     rapi_getos = qa_rapi.GetOperatingSystems
   else:
@@ -214,21 +216,21 @@ def RunOsTests():
     qa_os.TestOsList,
     qa_os.TestOsDiagnose,
     ]:
-    RunTestIf("os", fn)
+    RunTestIf(os_enabled, fn)
 
   for fn in [
     qa_os.TestOsValid,
     qa_os.TestOsInvalid,
     qa_os.TestOsPartiallyValid,
     ]:
-    RunTestIf("os", fn, rapi_getos)
+    RunTestIf(os_enabled, fn, rapi_getos)
 
   for fn in [
     qa_os.TestOsModifyValid,
     qa_os.TestOsModifyInvalid,
     qa_os.TestOsStatesNonExisting,
     ]:
-    RunTestIf("os", fn)
+    RunTestIf(os_enabled, fn)
 
 
 def RunCommonInstanceTests(instance):
