@@ -186,7 +186,8 @@ def RunClusterTests():
     ("cluster-master-failover", qa_cluster.TestClusterMasterFailover),
     ("cluster-master-failover",
      qa_cluster.TestClusterMasterFailoverWithDrainedQueue),
-    ("cluster-oob", qa_cluster.TestClusterOob),
+    (["cluster-oob", qa_config.NoVirtualCluster],
+     qa_cluster.TestClusterOob),
     ("rapi", qa_rapi.TestVersion),
     ("rapi", qa_rapi.TestEmptyCluster),
     ("rapi", qa_rapi.TestRapiQuery),
@@ -321,7 +322,7 @@ def RunCommonNodeTests():
   """
   RunTestIf("node-volumes", qa_node.TestNodeVolumes)
   RunTestIf("node-storage", qa_node.TestNodeStorage)
-  RunTestIf("node-oob", qa_node.TestOutOfBand)
+  RunTestIf(["node-oob", qa_config.NoVirtualCluster], qa_node.TestOutOfBand)
 
 
 def RunGroupListTests():
