@@ -540,6 +540,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/OpParams.hs \
 	src/Ganeti/Path.hs \
 	src/Ganeti/Query/Common.hs \
+	src/Ganeti/Query/Export.hs \
 	src/Ganeti/Query/Filter.hs \
 	src/Ganeti/Query/Group.hs \
 	src/Ganeti/Query/Job.hs \

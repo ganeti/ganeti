@@ -4,7 +4,7 @@
 
 {-
 
-Copyright (C) 2012 Google Inc.
+Copyright (C) 2012, 2013 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -67,6 +67,7 @@ import Ganeti.JQueue
 import Ganeti.JSON
 import Ganeti.Objects
 import Ganeti.Query.Common
+import qualified Ganeti.Query.Export as Export
 import Ganeti.Query.Filter
 import qualified Ganeti.Query.Job as Query.Job
 import Ganeti.Query.Group
@@ -117,6 +118,7 @@ needsNames (Query kind _ qfilter) = requestedNames (nameField kind) qfilter
 -- | Computes the name field for different query types.
 nameField :: ItemType -> FilterField
 nameField (ItemTypeLuxi QRJob) = "id"
+nameField (ItemTypeOpCode QRExport) = "node"
 nameField _ = "name"
 
 -- | Extracts all quoted strings from a list, ignoring the
@@ -215,6 +217,31 @@ queryInner cfg _ (Query (ItemTypeOpCode QRNetwork) fields qfilter) wanted =
                    fnetworks
   return QueryResult { qresFields = fdefs, qresData = fdata }
 
+queryInner cfg live (Query (ItemTypeOpCode QRExport) fields qfilter) wanted =
+  runResultT $ do
+  cfilter <- resultT $ compileFilter Export.fieldsMap qfilter
+  let selected = getSelectedFields Export.fieldsMap fields
+      (fdefs, fgetters, _) = unzip3 selected
+      -- we alwyas have live queries in exports, but we keep this for
+      -- standard style (in case we add static fields in the future)
+      live' = live && needsLiveData fgetters
+  nodes <- resultT $ case wanted of
+             [] -> Ok . niceSortKey nodeName .
+                   Map.elems . fromContainer $ configNodes cfg
+             _  -> mapM (getNode cfg) wanted
+  -- runs first pass of the filter, without a runtime context; this
+  -- will limit the nodes that we'll contact for exports
+  fnodes <- resultT $ filterM (\n -> evaluateFilter cfg Nothing n cfilter)
+                      nodes
+  -- here we would run the runtime data gathering...
+  nruntimes <- lift $ Export.collectLiveData live' cfg fnodes
+  -- ... then filter again the results, based on existing export
+  -- names, but note that no client sends filters on the export list
+  -- today, so it's likely a no-oop
+  let fdata = map (\(node, nrt) -> map (execGetter cfg nrt node) fgetters)
+              nruntimes
+  return QueryResult { qresFields = fdefs, qresData = fdata }
+
 queryInner _ _ (Query qkind _ _) _ =
   return . Bad . GenericError $ "Query '" ++ show qkind ++ "' not supported"
 
@@ -288,6 +315,9 @@ queryFields (QueryFields (ItemTypeOpCode QRGroup) fields) =
 
 queryFields (QueryFields (ItemTypeLuxi QRJob) fields) =
   Ok $ fieldsExtractor Query.Job.fieldsMap fields
+
+queryFields (QueryFields (ItemTypeOpCode QRExport) fields) =
+  Ok $ fieldsExtractor Export.fieldsMap fields
 
 queryFields (QueryFields qkind _) =
   Bad . GenericError $ "QueryFields '" ++ show qkind ++ "' not supported"
