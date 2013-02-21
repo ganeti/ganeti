@@ -125,5 +125,6 @@
 
 # automatically-built Haskell files
 /src/Ganeti/Constants.hs
+/src/Ganeti/Curl/Internal.hs
 /src/Ganeti/Version.hs
 /test/hs/Test/Ganeti/TestImports.hs
