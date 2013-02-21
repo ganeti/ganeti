@@ -29,7 +29,21 @@ Lines starting with the hash sign (``#``) are treated as comments. Each
 line consists of two or three fields separated by whitespace. The first
 two fields are for username and password. The third field is optional
 and can be used to specify per-user options (separated by comma without
-spaces). Available options:
+spaces).
+
+Passwords can either be written in clear text or as a hash. Clear text
+passwords may not start with an opening brace (``{``) or they must be
+prefixed with ``{cleartext}``. To use the hashed form, get the MD5 hash
+of the string ``$username:Ganeti Remote API:$password`` (e.g. ``echo -n
+'jack:Ganeti Remote API:abc123' | openssl md5``) [#pwhash]_ and prefix
+it with ``{ha1}``. Using the scheme prefix for all passwords is
+recommended. Scheme prefixes are case insensitive.
+
+Options control a user's access permissions. The section
+:ref:`rapi-access-permissions` lists the permissions required for each
+resource. If the ``--require-authentication`` command line option is
+given to the ``ganeti-rapi`` daemon, all requests require
+authentication. Available options:
 
 .. pyassert::
 
@@ -38,19 +52,25 @@ spaces). Available options:
     rapi.RAPI_ACCESS_READ,
     ])
 
+.. pyassert::
+
+  rlib2.R_2_nodes_name_storage.GET_ACCESS == [rapi.RAPI_ACCESS_WRITE]
+
+.. pyassert::
+
+  rlib2.R_2_jobs_id_wait.GET_ACCESS == [rapi.RAPI_ACCESS_WRITE]
+
 :pyeval:`rapi.RAPI_ACCESS_WRITE`
   Enables the user to execute operations modifying the cluster. Implies
-  :pyeval:`rapi.RAPI_ACCESS_READ` access.
+  :pyeval:`rapi.RAPI_ACCESS_READ` access. Resources blocking other
+  operations for read-only access, such as
+  :ref:`/2/nodes/[node_name]/storage <rapi-res-nodes-node_name-storage+get>`
+  or blocking server-side processes, such as
+  :ref:`/2/jobs/[job_id]/wait <rapi-res-jobs-job_id-wait+get>`, use
+  :pyeval:`rapi.RAPI_ACCESS_WRITE` to control access to their
+  :pyeval:`http.HTTP_GET` method.
 :pyeval:`rapi.RAPI_ACCESS_READ`
   Allow access to operations querying for information.
-
-Passwords can either be written in clear text or as a hash. Clear text
-passwords may not start with an opening brace (``{``) or they must be
-prefixed with ``{cleartext}``. To use the hashed form, get the MD5 hash
-of the string ``$username:Ganeti Remote API:$password`` (e.g. ``echo -n
-'jack:Ganeti Remote API:abc123' | openssl md5``) [#pwhash]_ and prefix
-it with ``{ha1}``. Using the scheme prefix for all passwords is
-recommended. Scheme prefixes are not case sensitive.
 
 Example::
 
@@ -2340,6 +2360,8 @@ It supports the following commands: ``GET``.
 Returns the remote API version. Ganeti 1.2 returned ``1`` and Ganeti 2.0
 returns ``2``.
 
+
+.. _rapi-access-permissions:
 
 Access permissions
 ------------------
