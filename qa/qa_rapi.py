@@ -76,7 +76,7 @@ def Setup(username, password):
   master = qa_config.GetMasterNode()
 
   # Load RAPI certificate from master node
-  cmd = ["cat", pathutils.RAPI_CERT_FILE]
+  cmd = ["cat", qa_utils.MakeNodePath(master, pathutils.RAPI_CERT_FILE)]
 
   # Write to temporary file
   _rapi_ca = tempfile.NamedTemporaryFile()
