@@ -570,6 +570,49 @@ class RapiAccessTable(s_compat.Directive):
     return []
 
 
+class RapiResourceDetails(s_compat.Directive):
+  """Custom directive for RAPI resource details.
+
+  See also <http://docutils.sourceforge.net/docs/howto/rst-directives.html>.
+
+  """
+  has_content = False
+  required_arguments = 1
+  optional_arguments = 0
+  final_argument_whitespace = False
+
+  def run(self):
+    uri = self.arguments[0]
+
+    try:
+      handler = _RAPI_RESOURCES_FOR_DOCS[uri]
+    except KeyError:
+      raise self.error("Unknown resource URI '%s'" % uri)
+
+    lines = [
+      ".. list-table::",
+      "   :widths: 1 4",
+      "   :header-rows: 1",
+      "",
+      "   * - Method",
+      "     - :ref:`Required permissions <rapi-users>`",
+      ]
+
+    for method in _GetHandlerMethods(handler):
+      lines.extend([
+        "   * - :ref:`%s <%s>`" % (method, _MakeRapiResourceLink(method, uri)),
+        "     - %s" % _DescribeHandlerAccess(handler, method),
+        ])
+
+    # Inject into state machine
+    include_lines = \
+      docutils.statemachine.string2lines("\n".join(lines), _TAB_WIDTH,
+                                         convert_whitespace=1)
+    self.state_machine.insert_input(include_lines, self.__class__.__name__)
+
+    return []
+
+
 def setup(app):
   """Sphinx extension callback.
 
@@ -580,6 +623,7 @@ def setup(app):
   app.add_directive("pyassert", PythonAssert)
   app.add_role("pyeval", PythonEvalRole)
   app.add_directive("rapi_access_table", RapiAccessTable)
+  app.add_directive("rapi_resource_details", RapiResourceDetails)
 
   app.add_config_value("enable_manpages", False, True)
   app.add_role("manpage", _ManPageRole)
