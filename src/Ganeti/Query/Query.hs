@@ -313,6 +313,9 @@ queryFields (QueryFields (ItemTypeOpCode QRNode) fields) =
 queryFields (QueryFields (ItemTypeOpCode QRGroup) fields) =
   Ok $ fieldsExtractor Group.fieldsMap fields
 
+queryFields (QueryFields (ItemTypeOpCode QRNetwork) fields) =
+  Ok $ fieldsExtractor Network.fieldsMap fields
+
 queryFields (QueryFields (ItemTypeLuxi QRJob) fields) =
   Ok $ fieldsExtractor Query.Job.fieldsMap fields
 
