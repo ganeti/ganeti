@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2010, 2011 Google Inc.
+# Copyright (C) 2006, 2007, 2010, 2011, 2013 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -50,9 +50,11 @@ def PrintExportList(opts, args):
 
   qfilter = qlang.MakeSimpleFilter("node", opts.nodes)
 
+  cl = GetClient(query=True)
+
   return GenericList(constants.QR_EXPORT, selected_fields, None, opts.units,
                      opts.separator, not opts.no_headers,
-                     verbose=opts.verbose, qfilter=qfilter)
+                     verbose=opts.verbose, qfilter=qfilter, cl=cl)
 
 
 def ListExportFields(opts, args):
@@ -65,8 +67,10 @@ def ListExportFields(opts, args):
   @return: the desired exit code
 
   """
+  cl = GetClient(query=True)
+
   return GenericListFields(constants.QR_EXPORT, args, opts.separator,
-                           not opts.no_headers)
+                           not opts.no_headers, cl=cl)
 
 
 def ExportInstance(opts, args):
