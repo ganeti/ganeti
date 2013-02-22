@@ -85,6 +85,7 @@
 
 # test/hs
 /test/hs/hail
+/test/hs/harep
 /test/hs/hbal
 /test/hs/hcheck
 /test/hs/hinfo
