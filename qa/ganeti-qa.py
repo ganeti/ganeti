@@ -484,6 +484,48 @@ def RunExclusiveStorageTests():
     qa_config.ReleaseNode(node)
 
 
+def _BuildSpecDict(par, mn, st, mx):
+  return {par: {"min": mn, "std": st, "max": mx}}
+
+
+def TestIPolicyPlainInstance():
+  """Test instance policy interaction with instances"""
+  params = ["mem-size", "cpu-count", "disk-count", "disk-size", "nic-count"]
+  if not qa_config.IsTemplateSupported(constants.DT_PLAIN):
+    print "Template %s not supported" % constants.DT_PLAIN
+    return
+
+  # This test assumes that the group policy is empty
+  (_, old_specs) = qa_cluster.TestClusterSetISpecs({})
+  node = qa_config.AcquireNode()
+  try:
+    instance = qa_instance.TestInstanceAddWithPlainDisk([node])
+    try:
+      policyerror = [constants.CV_EINSTANCEPOLICY]
+      for par in params:
+        qa_cluster.AssertClusterVerify()
+        (iminval, imaxval) = qa_instance.GetInstanceSpec(instance["name"], par)
+        # Some specs must be multiple of 4
+        new_spec = _BuildSpecDict(par, imaxval + 4, imaxval + 4, imaxval + 4)
+        qa_cluster.TestClusterSetISpecs(new_spec)
+        qa_cluster.AssertClusterVerify(warnings=policyerror)
+        if iminval > 0:
+          # Some specs must be multiple of 4
+          if iminval >= 4:
+            upper = iminval - 4
+          else:
+            upper = iminval - 1
+          new_spec = _BuildSpecDict(par, 0, upper, upper)
+          qa_cluster.TestClusterSetISpecs(new_spec)
+          qa_cluster.AssertClusterVerify(warnings=policyerror)
+        qa_cluster.TestClusterSetISpecs(old_specs)
+      qa_instance.TestInstanceRemove(instance)
+    finally:
+      qa_config.ReleaseInstance(instance)
+  finally:
+    qa_config.ReleaseNode(node)
+
+
 def RunInstanceTests():
   """Create and exercise instances."""
   instance_tests = [
@@ -612,6 +654,8 @@ def RunQa():
     qa_config.ReleaseNode(pnode)
 
   RunExclusiveStorageTests()
+  RunTestIf(["cluster-instance-policy", "instance-add-plain-disk"],
+            TestIPolicyPlainInstance)
 
   # Test removing instance with offline drbd secondary
   if qa_config.TestEnabled("instance-remove-drbd-offline"):

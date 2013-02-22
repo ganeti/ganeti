@@ -96,20 +96,33 @@ def _GetBoolClusterField(field):
 
 
 # Cluster-verify errors (date, "ERROR", then error code)
-_CVERROR_RE = re.compile(r"^[\w\s:]+\s+- ERROR:([A-Z0-9_-]+):")
+_CVERROR_RE = re.compile(r"^[\w\s:]+\s+- (ERROR|WARNING):([A-Z0-9_-]+):")
 
 
 def _GetCVErrorCodes(cvout):
-  ret = set()
+  errs = set()
+  warns = set()
   for l in cvout.splitlines():
     m = _CVERROR_RE.match(l)
     if m:
-      ecode = m.group(1)
-      ret.add(ecode)
-  return ret
+      etype = m.group(1)
+      ecode = m.group(2)
+      if etype == "ERROR":
+        errs.add(ecode)
+      elif etype == "WARNING":
+        warns.add(ecode)
+  return (errs, warns)
 
 
-def AssertClusterVerify(fail=False, errors=None):
+def _CheckVerifyErrors(actual, expected, etype):
+  exp_codes = compat.UniqueFrozenset(e for (_, e, _) in expected)
+  if not actual.issuperset(exp_codes):
+    missing = exp_codes.difference(actual)
+    raise qa_error.Error("Cluster-verify didn't return these expected"
+                         " %ss: %s" % (etype, utils.CommaJoin(missing)))
+
+
+def AssertClusterVerify(fail=False, errors=None, warnings=None):
   """Run cluster-verify and check the result
 
   @type fail: bool
@@ -118,19 +131,20 @@ def AssertClusterVerify(fail=False, errors=None):
   @param errors: List of CV_XXX errors that are expected; if specified, all the
       errors listed must appear in cluster-verify output. A non-empty value
       implies C{fail=True}.
+  @type warnings: list of tuples
+  @param warnings: Same as C{errors} but for warnings.
 
   """
   cvcmd = "gnt-cluster verify"
   mnode = qa_config.GetMasterNode()
-  if errors:
+  if errors or warnings:
     cvout = GetCommandOutput(mnode["primary"], cvcmd + " --error-codes",
-                             fail=True)
-    actual = _GetCVErrorCodes(cvout)
-    expected = compat.UniqueFrozenset(e for (_, e, _) in errors)
-    if not actual.issuperset(expected):
-      missing = expected.difference(actual)
-      raise qa_error.Error("Cluster-verify didn't return these expected"
-                           " errors: %s" % utils.CommaJoin(missing))
+                             fail=(fail or errors))
+    (act_errs, act_warns) = _GetCVErrorCodes(cvout)
+    if errors:
+      _CheckVerifyErrors(act_errs, errors, "error")
+    if warnings:
+      _CheckVerifyErrors(act_warns, warnings, "warning")
   else:
     AssertCommand(cvcmd, fail=fail, node=mnode)
 
