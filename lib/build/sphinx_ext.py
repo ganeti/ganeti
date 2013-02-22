@@ -492,6 +492,43 @@ def _DescribeHandlerAccess(handler, method):
     return "*(none)*"
 
 
+class _RapiHandlersForDocsHelper(object):
+  @classmethod
+  def Build(cls):
+    """Returns dictionary of resource handlers.
+
+    """
+    resources = \
+      rapi.connector.GetHandlers("[node_name]", "[instance_name]",
+                                 "[group_name]", "[network_name]", "[job_id]",
+                                 "[disk_index]", "[resource]",
+                                 translate=cls._TranslateResourceUri)
+
+    return resources
+
+  @classmethod
+  def _TranslateResourceUri(cls, *args):
+    """Translates a resource URI for use in documentation.
+
+    @see: L{rapi.connector.GetHandlers}
+
+    """
+    return "".join(map(cls._UriPatternToString, args))
+
+  @staticmethod
+  def _UriPatternToString(value):
+    """Converts L{rapi.connector.UriPattern} to strings.
+
+    """
+    if isinstance(value, rapi.connector.UriPattern):
+      return value.content
+    else:
+      return value
+
+
+_RAPI_RESOURCES_FOR_DOCS = _RapiHandlersForDocsHelper.Build()
+
+
 def _BuildRapiAccessTable(res):
   """Build a table with access permissions needed for all RAPI resources.
 
@@ -523,13 +560,7 @@ class RapiAccessTable(s_compat.Directive):
   option_spec = {}
 
   def run(self):
-    resources = \
-      rapi.connector.GetHandlers("[node_name]", "[instance_name]",
-                                 "[group_name]", "[network_name]", "[job_id]",
-                                 "[disk_index]", "[resource]",
-                                 translate=self._TranslateResourceUri)
-
-    include_text = "\n".join(_BuildRapiAccessTable(resources))
+    include_text = "\n".join(_BuildRapiAccessTable(_RAPI_RESOURCES_FOR_DOCS))
 
     # Inject into state machine
     include_lines = docutils.statemachine.string2lines(include_text, _TAB_WIDTH,
@@ -537,25 +568,6 @@ class RapiAccessTable(s_compat.Directive):
     self.state_machine.insert_input(include_lines, self.__class__.__name__)
 
     return []
-
-  @classmethod
-  def _TranslateResourceUri(cls, *args):
-    """Translates a resource URI for use in documentation.
-
-    @see: L{rapi.connector.GetHandlers}
-
-    """
-    return "".join(map(cls._UriPatternToString, args))
-
-  @staticmethod
-  def _UriPatternToString(value):
-    """Converts L{rapi.connector.UriPattern} to strings.
-
-    """
-    if isinstance(value, rapi.connector.UriPattern):
-      return value.content
-    else:
-      return value
 
 
 def setup(app):
