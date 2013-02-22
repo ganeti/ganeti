@@ -4,7 +4,7 @@
 
 {-
 
-Copyright (C) 2012 Google Inc.
+Copyright (C) 2012, 2013 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -24,9 +24,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 
 module Ganeti.Query.Node
-  ( NodeRuntime
-  , nodeFieldsMap
-  , maybeCollectLiveData
+  ( Runtime
+  , fieldsMap
+  , collectLiveData
   ) where
 
 import Control.Applicative
@@ -42,8 +42,8 @@ import Ganeti.Query.Language
 import Ganeti.Query.Common
 import Ganeti.Query.Types
 
--- | NodeRuntime is the resulting type for NodeInfo call.
-type NodeRuntime = Either RpcError RpcResultNodeInfo
+-- | Runtime is the resulting type for NodeInfo call.
+type Runtime = Either RpcError RpcResultNodeInfo
 
 -- | List of node live fields.
 nodeLiveFieldsDefs :: [(FieldName, FieldTitle, FieldType, String, FieldDoc)]
@@ -93,7 +93,7 @@ nodeLiveFieldExtract "mtotal" res =
 nodeLiveFieldExtract _ _ = J.JSNull
 
 -- | Helper for extracting field from RPC result.
-nodeLiveRpcCall :: FieldName -> NodeRuntime -> Node -> ResultEntry
+nodeLiveRpcCall :: FieldName -> Runtime -> Node -> ResultEntry
 nodeLiveRpcCall fname (Right res) _ =
   case nodeLiveFieldExtract fname res of
     J.JSNull -> rsNoData
@@ -103,7 +103,7 @@ nodeLiveRpcCall _ (Left err) _ =
 
 -- | Builder for node live fields.
 nodeLiveFieldBuilder :: (FieldName, FieldTitle, FieldType, String, FieldDoc)
-                     -> FieldData Node NodeRuntime
+                     -> FieldData Node Runtime
 nodeLiveFieldBuilder (fname, ftitle, ftype, _, fdoc) =
   ( FieldDefinition fname ftitle ftype fdoc
   , FieldRuntime $ nodeLiveRpcCall fname
@@ -129,7 +129,7 @@ getNodePower cfg node =
                   else rsNormal (nodePowered node)
 
 -- | List of all node fields.
-nodeFields :: FieldList Node NodeRuntime
+nodeFields :: FieldList Node Runtime
 nodeFields =
   [ (FieldDefinition "drained" "Drained" QFTBool "Whether node is drained",
      FieldSimple (rsNormal . nodeDrained), QffNormal)
@@ -208,19 +208,19 @@ nodeFields =
   tagsFields
 
 -- | The node fields map.
-nodeFieldsMap :: FieldMap Node NodeRuntime
-nodeFieldsMap =
+fieldsMap :: FieldMap Node Runtime
+fieldsMap =
   Map.fromList $ map (\v@(f, _, _) -> (fdefName f, v)) nodeFields
 
 -- | Collect live data from RPC query if enabled.
 --
 -- FIXME: Check which fields we actually need and possibly send empty
--- hvs/vgs if no info from hypervisor/volume group respectively is
+-- hvs\/vgs if no info from hypervisor\/volume group respectively is
 -- required
-maybeCollectLiveData:: Bool -> ConfigData -> [Node] -> IO [(Node, NodeRuntime)]
-maybeCollectLiveData False _ nodes =
+collectLiveData:: Bool -> ConfigData -> [Node] -> IO [(Node, Runtime)]
+collectLiveData False _ nodes =
   return $ zip nodes (repeat $ Left (RpcResultError "Live data disabled"))
-maybeCollectLiveData True cfg nodes = do
+collectLiveData True cfg nodes = do
   let vgs = [clusterVolumeGroupName $ configCluster cfg]
       hvs = [getDefaultHypervisor cfg]
       step n (bn, gn, em) =

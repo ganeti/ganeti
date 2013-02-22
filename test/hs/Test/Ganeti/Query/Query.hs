@@ -7,7 +7,7 @@
 
 {-
 
-Copyright (C) 2009, 2010, 2011, 2012 Google Inc.
+Copyright (C) 2009, 2010, 2011, 2012, 2013 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -45,9 +45,9 @@ import Test.Ganeti.Objects (genEmptyCluster)
 import Ganeti.BasicTypes
 import Ganeti.Errors
 import Ganeti.Query.Filter
-import Ganeti.Query.Group
+import qualified Ganeti.Query.Group as Group
 import Ganeti.Query.Language
-import Ganeti.Query.Node
+import qualified Ganeti.Query.Node as Node
 import Ganeti.Query.Query
 import qualified Ganeti.Query.Job as Job
 
@@ -68,7 +68,7 @@ hasUnknownFields = (QFTUnknown `notElem`) . map fdefKind
 prop_queryNode_noUnknown :: Property
 prop_queryNode_noUnknown =
   forAll (choose (0, maxNodes) >>= genEmptyCluster) $ \cluster ->
-  forAll (elements (Map.keys nodeFieldsMap)) $ \field -> monadicIO $ do
+  forAll (elements (Map.keys Node.fieldsMap)) $ \field -> monadicIO $ do
   QueryResult fdefs fdata <-
     run (query cluster False (Query (ItemTypeOpCode QRNode)
                               [field] EmptyFilter)) >>= resultProp
@@ -88,7 +88,7 @@ prop_queryNode_noUnknown =
 prop_queryNode_Unknown :: Property
 prop_queryNode_Unknown =
   forAll (choose (0, maxNodes) >>= genEmptyCluster) $ \cluster ->
-  forAll (arbitrary `suchThat` (`notElem` Map.keys nodeFieldsMap))
+  forAll (arbitrary `suchThat` (`notElem` Map.keys Node.fieldsMap))
     $ \field -> monadicIO $ do
   QueryResult fdefs fdata <-
     run (query cluster False (Query (ItemTypeOpCode QRNode)
@@ -136,7 +136,7 @@ prop_queryNode_types :: Property
 prop_queryNode_types =
   forAll (choose (0, maxNodes)) $ \numnodes ->
   forAll (genEmptyCluster numnodes) $ \cfg ->
-  forAll (elements (Map.keys nodeFieldsMap)) $ \field -> monadicIO $ do
+  forAll (elements (Map.keys Node.fieldsMap)) $ \field -> monadicIO $ do
   QueryResult fdefs fdata <-
     run (query cfg False (Query (ItemTypeOpCode QRNode)
                           [field] EmptyFilter)) >>= resultProp
@@ -160,7 +160,7 @@ case_queryNode_allfields = do
               Ok (QueryFieldsResult v) -> return v
    let field_sort = compare `on` fdefName
    assertEqual "Mismatch in all fields list"
-     (sortBy field_sort . map (\(f, _, _) -> f) $ Map.elems nodeFieldsMap)
+     (sortBy field_sort . map (\(f, _, _) -> f) $ Map.elems Node.fieldsMap)
      (sortBy field_sort fdefs)
 
 -- ** Group queries
@@ -168,7 +168,7 @@ case_queryNode_allfields = do
 prop_queryGroup_noUnknown :: Property
 prop_queryGroup_noUnknown =
   forAll (choose (0, maxNodes) >>= genEmptyCluster) $ \cluster ->
-   forAll (elements (Map.keys groupFieldsMap)) $ \field -> monadicIO $ do
+   forAll (elements (Map.keys Group.fieldsMap)) $ \field -> monadicIO $ do
    QueryResult fdefs fdata <-
      run (query cluster False (Query (ItemTypeOpCode QRGroup)
                                [field] EmptyFilter)) >>=
@@ -188,7 +188,7 @@ prop_queryGroup_noUnknown =
 prop_queryGroup_Unknown :: Property
 prop_queryGroup_Unknown =
   forAll (choose (0, maxNodes) >>= genEmptyCluster) $ \cluster ->
-  forAll (arbitrary `suchThat` (`notElem` Map.keys groupFieldsMap))
+  forAll (arbitrary `suchThat` (`notElem` Map.keys Group.fieldsMap))
     $ \field -> monadicIO $ do
   QueryResult fdefs fdata <-
     run (query cluster False (Query (ItemTypeOpCode QRGroup)
@@ -212,7 +212,7 @@ prop_queryGroup_types :: Property
 prop_queryGroup_types =
   forAll (choose (0, maxNodes)) $ \numnodes ->
   forAll (genEmptyCluster numnodes) $ \cfg ->
-  forAll (elements (Map.keys groupFieldsMap)) $ \field -> monadicIO $ do
+  forAll (elements (Map.keys Group.fieldsMap)) $ \field -> monadicIO $ do
   QueryResult fdefs fdata <-
     run (query cfg False (Query (ItemTypeOpCode QRGroup)
                           [field] EmptyFilter)) >>= resultProp
@@ -232,7 +232,7 @@ case_queryGroup_allfields = do
               Ok (QueryFieldsResult v) -> return v
    let field_sort = compare `on` fdefName
    assertEqual "Mismatch in all fields list"
-     (sortBy field_sort . map (\(f, _, _) -> f) $ Map.elems groupFieldsMap)
+     (sortBy field_sort . map (\(f, _, _) -> f) $ Map.elems Group.fieldsMap)
      (sortBy field_sort fdefs)
 
 -- ** Job queries

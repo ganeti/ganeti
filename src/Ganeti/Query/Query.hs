@@ -70,10 +70,10 @@ import Ganeti.Query.Common
 import qualified Ganeti.Query.Export as Export
 import Ganeti.Query.Filter
 import qualified Ganeti.Query.Job as Query.Job
-import Ganeti.Query.Group
+import qualified Ganeti.Query.Group as Group
 import Ganeti.Query.Language
-import Ganeti.Query.Network
-import Ganeti.Query.Node
+import qualified Ganeti.Query.Network as Network
+import qualified Ganeti.Query.Node as Node
 import Ganeti.Query.Types
 import Ganeti.Path
 import Ganeti.Types
@@ -168,8 +168,8 @@ queryInner :: ConfigData   -- ^ The current configuration
 
 queryInner cfg live (Query (ItemTypeOpCode QRNode) fields qfilter) wanted =
   runResultT $ do
-  cfilter <- resultT $ compileFilter nodeFieldsMap qfilter
-  let selected = getSelectedFields nodeFieldsMap fields
+  cfilter <- resultT $ compileFilter Node.fieldsMap qfilter
+  let selected = getSelectedFields Node.fieldsMap fields
       (fdefs, fgetters, _) = unzip3 selected
       live' = live && needsLiveData fgetters
   nodes <- resultT $ case wanted of
@@ -182,15 +182,15 @@ queryInner cfg live (Query (ItemTypeOpCode QRNode) fields qfilter) wanted =
                       nodes
   -- here we would run the runtime data gathering, then filter again
   -- the nodes, based on existing runtime data
-  nruntimes <- lift $ maybeCollectLiveData live' cfg fnodes
+  nruntimes <- lift $ Node.collectLiveData live' cfg fnodes
   let fdata = map (\(node, nrt) -> map (execGetter cfg nrt node) fgetters)
               nruntimes
   return QueryResult { qresFields = fdefs, qresData = fdata }
 
 queryInner cfg _ (Query (ItemTypeOpCode QRGroup) fields qfilter) wanted =
   return $ do
-  cfilter <- compileFilter groupFieldsMap qfilter
-  let selected = getSelectedFields groupFieldsMap fields
+  cfilter <- compileFilter Group.fieldsMap qfilter
+  let selected = getSelectedFields Group.fieldsMap fields
       (fdefs, fgetters, _) = unzip3 selected
   groups <- case wanted of
               [] -> Ok . niceSortKey groupName .
@@ -199,13 +199,13 @@ queryInner cfg _ (Query (ItemTypeOpCode QRGroup) fields qfilter) wanted =
   -- there is no live data for groups, so filtering is much simpler
   fgroups <- filterM (\n -> evaluateFilter cfg Nothing n cfilter) groups
   let fdata = map (\node ->
-                       map (execGetter cfg GroupRuntime node) fgetters) fgroups
+                     map (execGetter cfg Group.Runtime node) fgetters) fgroups
   return QueryResult { qresFields = fdefs, qresData = fdata }
 
 queryInner cfg _ (Query (ItemTypeOpCode QRNetwork) fields qfilter) wanted =
   return $ do
-  cfilter <- compileFilter networkFieldsMap qfilter
-  let selected = getSelectedFields networkFieldsMap fields
+  cfilter <- compileFilter Network.fieldsMap qfilter
+  let selected = getSelectedFields Network.fieldsMap fields
       (fdefs, fgetters, _) = unzip3 selected
   networks <- case wanted of
                 [] -> Ok . niceSortKey (fromNonEmpty . networkName) .
@@ -213,7 +213,7 @@ queryInner cfg _ (Query (ItemTypeOpCode QRNetwork) fields qfilter) wanted =
                 _  -> mapM (getNetwork cfg) wanted
   fnetworks <- filterM (\n -> evaluateFilter cfg Nothing n cfilter) networks
   let fdata = map (\network ->
-                   map (execGetter cfg NetworkRuntime network) fgetters)
+                   map (execGetter cfg Network.Runtime network) fgetters)
                    fnetworks
   return QueryResult { qresFields = fdefs, qresData = fdata }
 
@@ -308,10 +308,10 @@ fieldsExtractor fieldsMap fields =
 -- | Query fields call.
 queryFields :: QueryFields -> ErrorResult QueryFieldsResult
 queryFields (QueryFields (ItemTypeOpCode QRNode) fields) =
-  Ok $ fieldsExtractor nodeFieldsMap fields
+  Ok $ fieldsExtractor Node.fieldsMap fields
 
 queryFields (QueryFields (ItemTypeOpCode QRGroup) fields) =
-  Ok $ fieldsExtractor groupFieldsMap fields
+  Ok $ fieldsExtractor Group.fieldsMap fields
 
 queryFields (QueryFields (ItemTypeLuxi QRJob) fields) =
   Ok $ fieldsExtractor Query.Job.fieldsMap fields

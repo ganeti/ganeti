@@ -4,7 +4,7 @@
 
 {-
 
-Copyright (C) 2012 Google Inc.
+Copyright (C) 2012, 2013 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -24,8 +24,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 
 module Ganeti.Query.Group
-  ( GroupRuntime(..)
-  , groupFieldsMap
+  ( Runtime(..)
+  , fieldsMap
   ) where
 
 import qualified Data.Map as Map
@@ -37,9 +37,9 @@ import Ganeti.Query.Common
 import Ganeti.Query.Types
 
 -- | There is no runtime.
-data GroupRuntime = GroupRuntime
+data Runtime = Runtime
 
-groupFields :: FieldList NodeGroup GroupRuntime
+groupFields :: FieldList NodeGroup Runtime
 groupFields =
   [ (FieldDefinition "alloc_policy" "AllocPolicy" QFTText
        "Allocation policy for group",
@@ -86,6 +86,6 @@ groupFields =
   tagsFields
 
 -- | The group fields map.
-groupFieldsMap :: FieldMap NodeGroup GroupRuntime
-groupFieldsMap =
+fieldsMap :: FieldMap NodeGroup Runtime
+fieldsMap =
   Map.fromList $ map (\v@(f, _, _) -> (fdefName f, v)) groupFields

@@ -4,7 +4,7 @@
 
 {-
 
-Copyright (C) 2012 Google Inc.
+Copyright (C) 2012, 2013 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -27,11 +27,11 @@ module Ganeti.Query.Network
   ( getGroupConnection
   , getNetworkUuid
   , instIsConnected
-  , NetworkRuntime(..)
-  , networkFieldsMap
+  , Runtime(..)
+  , fieldsMap
   ) where
 
--- FIXME: everything except NetworkRuntime(..) and networkFieldsMap
+-- FIXME: everything except Runtime(..) and fieldsMap
 -- is only exported for testing.
 
 import qualified Data.Map as Map
@@ -46,9 +46,10 @@ import Ganeti.Query.Common
 import Ganeti.Query.Types
 import Ganeti.Types
 
-data NetworkRuntime = NetworkRuntime
+-- | There is no actual runtime.
+data Runtime = Runtime
 
-networkFields :: FieldList Network NetworkRuntime
+networkFields :: FieldList Network Runtime
 networkFields =
   [ (FieldDefinition "name" "Name" QFTText "Network name",
      FieldSimple (rsNormal . networkName), QffNormal)
@@ -90,8 +91,8 @@ networkFields =
   tagsFields
 
 -- | The group fields map.
-networkFieldsMap :: FieldMap Network NetworkRuntime
-networkFieldsMap =
+fieldsMap :: FieldMap Network Runtime
+fieldsMap =
   Map.fromList $ map (\v@(f, _, _) -> (fdefName f, v)) networkFields
 
 -- TODO: the following fields are not implemented yet: external_reservations
