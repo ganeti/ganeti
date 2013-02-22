@@ -482,7 +482,7 @@ def _BuildRapiAccessTable(res):
       if access:
         perms = utils.CommaJoin(sorted(access))
       else:
-        perms = "*everyone*"
+        perms = "*(none)*"
 
       yield ("  | :ref:`%s <%s>`: %s" %
              (method, _MakeRapiResourceLink(method, uri), perms))
