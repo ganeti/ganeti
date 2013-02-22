@@ -460,6 +460,38 @@ def _MakeRapiResourceLink(method, uri):
     raise ReSTError("Unhandled URI '%s'" % uri)
 
 
+def _GetHandlerMethods(handler):
+  """Returns list of HTTP methods supported by handler class.
+
+  @type handler: L{rapi.baserlib.ResourceBase}
+  @param handler: Handler class
+  @rtype: list of strings
+
+  """
+  return sorted(method
+                for (method, op_attr, _, _) in rapi.baserlib.OPCODE_ATTRS
+                # Only if handler supports method
+                if hasattr(handler, method) or hasattr(handler, op_attr))
+
+
+def _DescribeHandlerAccess(handler, method):
+  """Returns textual description of required RAPI permissions.
+
+  @type handler: L{rapi.baserlib.ResourceBase}
+  @param handler: Handler class
+  @type method: string
+  @param method: HTTP method (e.g. L{http.HTTP_GET})
+  @rtype: string
+
+  """
+  access = rapi.baserlib.GetHandlerAccess(handler, method)
+
+  if access:
+    return utils.CommaJoin(sorted(access))
+  else:
+    return "*(none)*"
+
+
 def _BuildRapiAccessTable(res):
   """Build a table with access permissions needed for all RAPI resources.
 
@@ -472,20 +504,10 @@ def _BuildRapiAccessTable(res):
 
     yield ":ref:`%s <%s>`" % (uri, reslink)
 
-    for (method, op_attr, _, _) in sorted(rapi.baserlib.OPCODE_ATTRS):
-      if not (hasattr(handler, method) or hasattr(handler, op_attr)):
-        # Handler doesn't support method
-        continue
-
-      access = rapi.baserlib.GetHandlerAccess(handler, method)
-
-      if access:
-        perms = utils.CommaJoin(sorted(access))
-      else:
-        perms = "*(none)*"
-
+    for method in _GetHandlerMethods(handler):
       yield ("  | :ref:`%s <%s>`: %s" %
-             (method, _MakeRapiResourceLink(method, uri), perms))
+             (method, _MakeRapiResourceLink(method, uri),
+              _DescribeHandlerAccess(handler, method)))
 
 
 class RapiAccessTable(s_compat.Directive):
