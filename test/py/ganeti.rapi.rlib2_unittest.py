@@ -370,7 +370,7 @@ class TestInstanceReboot(unittest.TestCase):
     handler = _CreateHandler(rlib2.R_2_instances_name_reboot, ["inst847"], {
       "dry-run": ["1"],
       "ignore_secondaries": ["1"],
-      "reason_text": ["System update"]
+      "reason_text": ["System update"],
       }, {}, clfactory)
     job_id = handler.POST()
 
@@ -385,9 +385,7 @@ class TestInstanceReboot(unittest.TestCase):
     self.assertTrue(op.ignore_secondaries)
     self.assertTrue(op.dry_run)
     self.assertEqual(op.reason,
-      (constants.INSTANCE_REASON_SOURCE_RAPI,
-       "System update",
-      ))
+                     (constants.INSTANCE_REASON_SOURCE_RAPI, "System update"))
 
     self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 

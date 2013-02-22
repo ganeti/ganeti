@@ -113,12 +113,14 @@ def _DecodeImportExportIO(ieio, ieioargs):
 
 
 def _DefaultAlternative(value, default):
-  """Returns the given value, unless it is None. In that case, returns a
-  default alternative.
+  """Returns value or, if evaluating to False, a default value.
 
-  @param value: The value to return if it is not None.
-  @param default: The value to return as a default alternative.
-  @return: The given value or the default alternative.\
+  Returns the given value, unless it evaluates to False. In the latter case the
+  default value is returned.
+
+  @param value: Value to return if it doesn't evaluate to False
+  @param default: Default value
+  @return: Given value or the default
 
   """
   if value:

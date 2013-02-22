@@ -1040,11 +1040,10 @@ class R_2_instances_name_reboot(baserlib.OpcodeResource):
         self.queryargs.get("type", [constants.INSTANCE_REBOOT_HARD])[0],
       "ignore_secondaries": bool(self._checkIntVariable("ignore_secondaries")),
       "dry_run": self.dryRun(),
-      "reason": (
-        constants.INSTANCE_REASON_SOURCE_RAPI,
-        self._checkStringVariable("reason_text",
-                                  default=constants.INSTANCE_REASON_REBOOT),
-      )
+      "reason":
+        (constants.INSTANCE_REASON_SOURCE_RAPI,
+         self._checkStringVariable("reason_text",
+                                   default=constants.INSTANCE_REASON_REBOOT)),
       })
 
 
