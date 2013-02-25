@@ -193,7 +193,8 @@ genEmptyCluster :: Int -> Gen ConfigData
 genEmptyCluster ncount = do
   nodes <- vector ncount
   version <- arbitrary
-  let guuid = "00"
+  grp <- arbitrary
+  let guuid = groupUuid grp
       nodes' = zipWith (\n idx ->
                           let newname = nodeName n ++ "-" ++ show idx
                           in (newname, n { nodeGroup = guuid,
@@ -206,7 +207,6 @@ genEmptyCluster ncount = do
                                 show (map fst nodes'))
                     else GenericContainer nodemap
       continsts = GenericContainer Map.empty
-  grp <- arbitrary
   let contgroups = GenericContainer $ Map.singleton guuid grp
   serial <- arbitrary
   cluster <- resize 8 arbitrary
@@ -360,7 +360,7 @@ genNodeGroup = do
   -- timestamp fields
   ctime <- arbitrary
   mtime <- arbitrary
-  uuid <- arbitrary
+  uuid <- genFQDN `suchThat` (/= name)
   serial <- arbitrary
   tags <- Set.fromList <$> genTags
   let group = NodeGroup name members ndparams alloc_policy ipolicy diskparams

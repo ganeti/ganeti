@@ -36,7 +36,7 @@ import Data.Function (on)
 import Data.List
 import qualified Data.Map as Map
 import Data.Maybe
-import Text.JSON (JSValue(..))
+import Text.JSON (JSValue(..), showJSON)
 
 import Test.Ganeti.TestHelper
 import Test.Ganeti.TestCommon
@@ -235,6 +235,22 @@ case_queryGroup_allfields = do
      (sortBy field_sort . map (\(f, _, _) -> f) $ Map.elems groupFieldsMap)
      (sortBy field_sort fdefs)
 
+-- | Check that the node count reported by a group list is sane.
+--
+-- FIXME: also verify the node list, etc.
+prop_queryGroup_nodeCount :: Property
+prop_queryGroup_nodeCount =
+  forAll (choose (0, maxNodes)) $ \nodes ->
+  forAll (genEmptyCluster nodes) $ \cluster -> monadicIO $
+  do
+    QueryResult _ fdata <-
+      run (query cluster False (Query (ItemTypeOpCode QRGroup)
+                                ["node_cnt"] EmptyFilter)) >>= resultProp
+    stop $ conjoin
+      [ printTestCase "Invalid node count" $
+        map (map rentryValue) fdata ==? [[Just (showJSON nodes)]]
+      ]
+
 -- ** Job queries
 
 -- | Tests that querying any existing fields, via either query or
@@ -317,6 +333,7 @@ testSuite "Query/Query"
   , 'prop_queryGroup_Unknown
   , 'prop_queryGroup_types
   , 'case_queryGroup_allfields
+  , 'prop_queryGroup_nodeCount
   , 'prop_queryJob_noUnknown
   , 'prop_queryJob_Unknown
   , 'prop_getRequestedNames
