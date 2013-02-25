@@ -9559,7 +9559,9 @@ def _WipeDisks(lu, instance, disks=None):
   @param lu: the logical unit on whose behalf we execute
   @type instance: L{objects.Instance}
   @param instance: the instance whose disks we should create
-  @return: the success of the wipe
+  @type disks: None or list of tuple of (number, L{objects.Disk}, number)
+  @param disks: Disk details; tuple contains disk index, disk object and the
+    start offset
 
   """
   node = instance.primary_node
@@ -14073,6 +14075,11 @@ class LUInstanceSetParams(LogicalUnit):
       except errors.OpExecError, err:
         self.LogWarning("Failed to create volume %s (%s) on node '%s': %s",
                         disk.iv_name, disk, node, err)
+
+    if self.cluster.prealloc_wipe_disks:
+      # Wipe new disk
+      _WipeDisks(self, instance,
+                 disks=[(idx, disk, 0)])
 
     return (disk, [
       ("disk/%d" % idx, "add:size=%s,mode=%s" % (disk.size, disk.mode)),
