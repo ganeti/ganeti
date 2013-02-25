@@ -65,20 +65,20 @@ groupFields =
   , (FieldDefinition "ndparams" "NDParams" QFTOther "Node parameters",
      FieldConfig (\cfg ng -> rsNormal (getGroupNdParams cfg ng)), QffNormal)
   , (FieldDefinition "node_cnt" "Nodes" QFTNumber "Number of nodes",
-     FieldConfig (\cfg -> rsNormal . length . getGroupNodes cfg . groupName),
+     FieldConfig (\cfg -> rsNormal . length . getGroupNodes cfg . groupUuid),
      QffNormal)
   , (FieldDefinition "node_list" "NodeList" QFTOther "List of nodes",
      FieldConfig (\cfg -> rsNormal . map nodeName .
-                          getGroupNodes cfg . groupName), QffNormal)
+                          getGroupNodes cfg . groupUuid), QffNormal)
   , (FieldDefinition "pinst_cnt" "Instances" QFTNumber
        "Number of primary instances",
      FieldConfig
-       (\cfg -> rsNormal . length . fst . getGroupInstances cfg . groupName),
+       (\cfg -> rsNormal . length . fst . getGroupInstances cfg . groupUuid),
      QffNormal)
   , (FieldDefinition "pinst_list" "InstanceList" QFTOther
        "List of primary instances",
      FieldConfig (\cfg -> rsNormal . map instName . fst .
-                          getGroupInstances cfg . groupName), QffNormal)
+                          getGroupInstances cfg . groupUuid), QffNormal)
   ] ++
   map buildNdParamField allNDParamFields ++
   timeStampFields ++
