@@ -827,10 +827,10 @@ def _GetUpdatedIPolicy(old_ipolicy, new_ipolicy, group_policy=False):
       raise errors.OpPrereqError("Invalid key in new ipolicy: %s" % key,
                                  errors.ECODE_INVAL)
     if key in constants.IPOLICY_ISPECS:
-      utils.ForceDictType(value, constants.ISPECS_PARAMETER_TYPES)
       ipolicy[key] = _GetUpdatedParams(old_ipolicy.get(key, {}), value,
                                        use_none=use_none,
                                        use_default=use_default)
+      utils.ForceDictType(ipolicy[key], constants.ISPECS_PARAMETER_TYPES)
     else:
       if (not value or value == [constants.VALUE_DEFAULT] or
           value == constants.VALUE_DEFAULT):

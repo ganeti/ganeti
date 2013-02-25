@@ -98,6 +98,12 @@ def TestGroupModify():
                    "min=%s,max=%s,std=0" % (min_v, max_v), group1], fail=True)
     AssertCommand(["gnt-group", "modify", "--specs-mem-size",
                    "min=%s,max=%s" % (min_v, max_v), group1])
+    AssertCommand(["gnt-group", "modify", "--specs-mem-size",
+                   "min=default,max=default", group1])
+    AssertCommand(["gnt-group", "modify", "--ipolicy-vcpu-ratio",
+                   "3.5", group1])
+    AssertCommand(["gnt-group", "modify", "--ipolicy-vcpu-ratio",
+                   "default", group1])
     AssertCommand(["gnt-group", "modify",
                    "--node-parameters", "spindle_count=10", group1])
     if qa_config.TestEnabled("htools"):
