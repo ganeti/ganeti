@@ -150,6 +150,42 @@ getRequestedJobIDs qfilter =
                     NumericValue i -> makeJobId $ fromIntegral i
            ) vals
 
+-- | Generic query implementation for resources that are backed by
+-- some configuration objects.
+genericQuery :: FieldMap a b       -- ^ Field map
+             -> (Bool -> ConfigData -> [a] -> IO [(a, b)]) -- ^ Collector
+             -> (a -> String)      -- ^ Object to name function
+             -> (ConfigData -> Container a) -- ^ Get all objects from config
+             -> (ConfigData -> String -> ErrorResult a) -- ^ Lookup object
+             -> ConfigData         -- ^ The config to run the query against
+             -> Bool               -- ^ Whether the query should be run live
+             -> [String]           -- ^ List of requested fields
+             -> Filter FilterField -- ^ Filter field
+             -> [String]           -- ^ List of requested names
+             -> IO (ErrorResult QueryResult)
+genericQuery fieldsMap collector nameFn configFn getFn cfg
+             live fields qfilter wanted =
+  runResultT $ do
+  cfilter <- resultT $ compileFilter fieldsMap qfilter
+  let selected = getSelectedFields fieldsMap fields
+      (fdefs, fgetters, _) = unzip3 selected
+      live' = live && needsLiveData fgetters
+  objects <- resultT $ case wanted of
+             [] -> Ok . niceSortKey nameFn .
+                   Map.elems . fromContainer $ configFn cfg
+             _  -> mapM (getFn cfg) wanted
+  -- runs first pass of the filter, without a runtime context; this
+  -- will limit the objects that we'll contact for exports
+  fobjects <- resultT $ filterM (\n -> evaluateFilter cfg Nothing n cfilter)
+                        objects
+  -- here run the runtime data gathering...
+  runtimes <- lift $ collector live' cfg fobjects
+  -- ... then filter again the results, based on gathered runtime data
+  let fdata = map (\(obj, runtime) ->
+                     map (execGetter cfg runtime obj) fgetters)
+              runtimes
+  return QueryResult { qresFields = fdefs, qresData = fdata }
+
 -- | Main query execution function.
 query :: ConfigData   -- ^ The current configuration
       -> Bool         -- ^ Whether to collect live data
@@ -167,80 +203,21 @@ queryInner :: ConfigData   -- ^ The current configuration
            -> IO (ErrorResult QueryResult) -- ^ Result
 
 queryInner cfg live (Query (ItemTypeOpCode QRNode) fields qfilter) wanted =
-  runResultT $ do
-  cfilter <- resultT $ compileFilter Node.fieldsMap qfilter
-  let selected = getSelectedFields Node.fieldsMap fields
-      (fdefs, fgetters, _) = unzip3 selected
-      live' = live && needsLiveData fgetters
-  nodes <- resultT $ case wanted of
-             [] -> Ok . niceSortKey nodeName .
-                   Map.elems . fromContainer $ configNodes cfg
-             _  -> mapM (getNode cfg) wanted
-  -- runs first pass of the filter, without a runtime context; this
-  -- will limit the nodes that we'll contact for runtime data
-  fnodes <- resultT $ filterM (\n -> evaluateFilter cfg Nothing n cfilter)
-                      nodes
-  -- here we would run the runtime data gathering, then filter again
-  -- the nodes, based on existing runtime data
-  nruntimes <- lift $ Node.collectLiveData live' cfg fnodes
-  let fdata = map (\(node, nrt) -> map (execGetter cfg nrt node) fgetters)
-              nruntimes
-  return QueryResult { qresFields = fdefs, qresData = fdata }
+  genericQuery Node.fieldsMap Node.collectLiveData nodeName configNodes getNode
+               cfg live fields qfilter wanted
 
-queryInner cfg _ (Query (ItemTypeOpCode QRGroup) fields qfilter) wanted =
-  return $ do
-  cfilter <- compileFilter Group.fieldsMap qfilter
-  let selected = getSelectedFields Group.fieldsMap fields
-      (fdefs, fgetters, _) = unzip3 selected
-  groups <- case wanted of
-              [] -> Ok . niceSortKey groupName .
-                    Map.elems . fromContainer $ configNodegroups cfg
-              _  -> mapM (getGroup cfg) wanted
-  -- there is no live data for groups, so filtering is much simpler
-  fgroups <- filterM (\n -> evaluateFilter cfg Nothing n cfilter) groups
-  let fdata = map (\node ->
-                     map (execGetter cfg Group.Runtime node) fgetters) fgroups
-  return QueryResult { qresFields = fdefs, qresData = fdata }
+queryInner cfg live (Query (ItemTypeOpCode QRGroup) fields qfilter) wanted =
+  genericQuery Group.fieldsMap Group.collectLiveData groupName configNodegroups
+               getGroup cfg live fields qfilter wanted
 
-queryInner cfg _ (Query (ItemTypeOpCode QRNetwork) fields qfilter) wanted =
-  return $ do
-  cfilter <- compileFilter Network.fieldsMap qfilter
-  let selected = getSelectedFields Network.fieldsMap fields
-      (fdefs, fgetters, _) = unzip3 selected
-  networks <- case wanted of
-                [] -> Ok . niceSortKey (fromNonEmpty . networkName) .
-                      Map.elems . fromContainer $ configNetworks cfg
-                _  -> mapM (getNetwork cfg) wanted
-  fnetworks <- filterM (\n -> evaluateFilter cfg Nothing n cfilter) networks
-  let fdata = map (\network ->
-                   map (execGetter cfg Network.Runtime network) fgetters)
-                   fnetworks
-  return QueryResult { qresFields = fdefs, qresData = fdata }
+queryInner cfg live (Query (ItemTypeOpCode QRNetwork) fields qfilter) wanted =
+  genericQuery Network.fieldsMap Network.collectLiveData
+               (fromNonEmpty . networkName)
+               configNetworks getNetwork cfg live fields qfilter wanted
 
 queryInner cfg live (Query (ItemTypeOpCode QRExport) fields qfilter) wanted =
-  runResultT $ do
-  cfilter <- resultT $ compileFilter Export.fieldsMap qfilter
-  let selected = getSelectedFields Export.fieldsMap fields
-      (fdefs, fgetters, _) = unzip3 selected
-      -- we alwyas have live queries in exports, but we keep this for
-      -- standard style (in case we add static fields in the future)
-      live' = live && needsLiveData fgetters
-  nodes <- resultT $ case wanted of
-             [] -> Ok . niceSortKey nodeName .
-                   Map.elems . fromContainer $ configNodes cfg
-             _  -> mapM (getNode cfg) wanted
-  -- runs first pass of the filter, without a runtime context; this
-  -- will limit the nodes that we'll contact for exports
-  fnodes <- resultT $ filterM (\n -> evaluateFilter cfg Nothing n cfilter)
-                      nodes
-  -- here we would run the runtime data gathering...
-  nruntimes <- lift $ Export.collectLiveData live' cfg fnodes
-  -- ... then filter again the results, based on existing export
-  -- names, but note that no client sends filters on the export list
-  -- today, so it's likely a no-oop
-  let fdata = map (\(node, nrt) -> map (execGetter cfg nrt node) fgetters)
-              nruntimes
-  return QueryResult { qresFields = fdefs, qresData = fdata }
+  genericQuery Export.fieldsMap Export.collectLiveData nodeName configNodes
+               getNode cfg live fields qfilter wanted
 
 queryInner _ _ (Query qkind _ _) _ =
   return . Bad . GenericError $ "Query '" ++ show qkind ++ "' not supported"

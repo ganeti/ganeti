@@ -24,8 +24,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 
 module Ganeti.Query.Group
-  ( Runtime(..)
+  ( Runtime
   , fieldsMap
+  , collectLiveData
   ) where
 
 import qualified Data.Map as Map
@@ -89,3 +90,8 @@ groupFields =
 fieldsMap :: FieldMap NodeGroup Runtime
 fieldsMap =
   Map.fromList $ map (\v@(f, _, _) -> (fdefName f, v)) groupFields
+
+-- | Dummy function for collecting live data (which groups don't have).
+collectLiveData :: Bool -> ConfigData -> [NodeGroup]
+                -> IO [(NodeGroup, Runtime)]
+collectLiveData _ _ = return . map (\n -> (n, Runtime))

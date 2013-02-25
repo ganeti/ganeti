@@ -27,8 +27,9 @@ module Ganeti.Query.Network
   ( getGroupConnection
   , getNetworkUuid
   , instIsConnected
-  , Runtime(..)
+  , Runtime
   , fieldsMap
+  , collectLiveData
   ) where
 
 -- FIXME: everything except Runtime(..) and fieldsMap
@@ -145,3 +146,7 @@ getNetworkUuid cfg name =
   let net = find (\n -> name == fromNonEmpty (networkName n))
                ((Map.elems . fromContainer . configNetworks) cfg)
   in fmap networkUuid net
+
+-- | Dummy function for collecting live data (which networks don't have).
+collectLiveData :: Bool -> ConfigData -> [Network] -> IO [(Network, Runtime)]
+collectLiveData _ _ = return . map (\n -> (n, Runtime))
