@@ -2034,11 +2034,11 @@ DISK_LD_DEFAULTS = {
     LDP_NET_CUSTOM: "",
     LDP_DYNAMIC_RESYNC: False,
 
-    # The default values for the DRBD dynamic resync speed algorithm are taken
-    # from the drbsetup 8.3.11 man page, except for c-plan-ahead (that we
-    # don't need to set to 0, because we have a separate option to enable it)
-    # and for c-max-rate, that we cap to the default value for the static resync
-    # rate.
+    # The default values for the DRBD dynamic resync speed algorithm
+    # are taken from the drbsetup 8.3.11 man page, except for
+    # c-plan-ahead (that we don't need to set to 0, because we have a
+    # separate option to enable it) and for c-max-rate, that we cap to
+    # the default value for the static resync rate.
     LDP_PLAN_AHEAD: 20, # ds
     LDP_FILL_TARGET: 0, # sectors
     LDP_DELAY_TARGET: 1, # ds
