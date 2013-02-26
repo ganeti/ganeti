@@ -16701,7 +16701,8 @@ class LUNetworkConnect(LogicalUnit):
 
     # Check if locked instances are still correct
     owned_instances = frozenset(self.owned_locks(locking.LEVEL_INSTANCE))
-    _CheckNodeGroupInstances(self.cfg, self.group_uuid, owned_instances)
+    if self.op.conflicts_check:
+      _CheckNodeGroupInstances(self.cfg, self.group_uuid, owned_instances)
 
     self.netparams = {
       constants.NIC_MODE: self.network_mode,
