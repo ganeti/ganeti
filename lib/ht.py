@@ -297,7 +297,7 @@ def TAnd(*args):
 
 
 def TOr(*args):
-  """Combine multiple functions using an AND operation.
+  """Combine multiple functions using an OR operation.
 
   """
   def fn(val):
