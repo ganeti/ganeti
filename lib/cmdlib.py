@@ -13493,23 +13493,28 @@ class LUInstanceSetParams(LogicalUnit):
         params[constants.INIC_MAC] = \
           self.cfg.GenerateMAC(new_net_uuid, self.proc.GetECId())
 
-    #if there is a change in nic's ip/network configuration
+    # if there is a change in (ip, network) tuple
     new_ip = params.get(constants.INIC_IP, old_ip)
     if (new_ip, new_net_uuid) != (old_ip, old_net_uuid):
       if new_ip:
+        # if IP is pool then require a network and generate one IP
         if new_ip.lower() == constants.NIC_IP_POOL:
-          if not new_net_uuid:
+          if new_net_uuid:
+            try:
+              new_ip = self.cfg.GenerateIp(new_net_uuid, self.proc.GetECId())
+            except errors.ReservationError:
+              raise errors.OpPrereqError("Unable to get a free IP"
+                                         " from the address pool",
+                                         errors.ECODE_STATE)
+            self.LogInfo("Chose IP %s from network %s",
+                         new_ip,
+                         new_net_obj.name)
+            params[constants.INIC_IP] = new_ip
+          else:
             raise errors.OpPrereqError("ip=pool, but no network found",
                                        errors.ECODE_INVAL)
-          try:
-            new_ip = self.cfg.GenerateIp(new_net_uuid, self.proc.GetECId())
-          except errors.ReservationError:
-            raise errors.OpPrereqError("Unable to get a free IP"
-                                       " from the address pool",
-                                       errors.ECODE_STATE)
-          self.LogInfo("Chose IP %s from network %s", new_ip, new_net_obj.name)
-          params[constants.INIC_IP] = new_ip
-        elif new_ip != old_ip or new_net_uuid != old_net_uuid:
+        # Reserve new IP if in the new network if any
+        elif new_net_uuid:
           try:
             self.cfg.ReserveIp(new_net_uuid, new_ip, self.proc.GetECId())
             self.LogInfo("Reserving IP %s in network %s",
@@ -13518,19 +13523,19 @@ class LUInstanceSetParams(LogicalUnit):
             raise errors.OpPrereqError("IP %s not available in network %s" %
                                        (new_ip, new_net_obj.name),
                                        errors.ECODE_NOTUNIQUE)
-
-        # new net is None
-        elif not new_net_uuid and self.op.conflicts_check:
+        # new network is None so check if new IP is a conflicting IP
+        elif self.op.conflicts_check:
           _CheckForConflictingIp(self, new_ip, pnode)
 
-      if old_ip:
+      # release old IP if old network is not None
+      if old_ip and old_net_uuid:
         try:
           self.cfg.ReleaseIp(old_net_uuid, old_ip, self.proc.GetECId())
         except errors.AddressPoolError:
           logging.warning("Release IP %s not contained in network %s",
                           old_ip, old_net_obj.name)
 
-    # there are no changes in (net, ip) tuple
+    # there are no changes in (ip, network) tuple and old network is not None
     elif (old_net_uuid is not None and
           (req_link is not None or req_mode is not None)):
       raise errors.OpPrereqError("Not allowed to change link or mode of"
