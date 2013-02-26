@@ -2021,6 +2021,7 @@ class ConfigWriter:
     return (self._config_data.instances.values() +
             self._config_data.nodes.values() +
             self._config_data.nodegroups.values() +
+            self._config_data.networks.values() +
             [self._config_data.cluster])
 
   def _OpenConfig(self, accept_foreign):
