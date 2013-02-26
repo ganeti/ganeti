@@ -14103,18 +14103,19 @@ class LUInstanceSetParams(LogicalUnit):
     if root.dev_type in constants.LDS_DRBD:
       self.cfg.AddTcpUdpPort(root.logical_id[2])
 
-  @staticmethod
-  def _CreateNewNic(idx, params, private):
+  def _CreateNewNic(self, idx, params, private):
     """Creates data structure for a new network interface.
 
     """
     mac = params[constants.INIC_MAC]
     ip = params.get(constants.INIC_IP, None)
     net = params.get(constants.INIC_NETWORK, None)
+    net_uuid = self.cfg.LookupNetwork(net)
     #TODO: not private.filled?? can a nic have no nicparams??
     nicparams = private.filled
+    nobj = objects.NIC(mac=mac, ip=ip, network=net_uuid, nicparams=nicparams)
 
-    return (objects.NIC(mac=mac, ip=ip, network=net, nicparams=nicparams), [
+    return (nobj, [
       ("nic.%d" % idx,
        "add:mac=%s,ip=%s,mode=%s,link=%s,network=%s" %
        (mac, ip, private.filled[constants.NIC_MODE],
@@ -14122,17 +14123,22 @@ class LUInstanceSetParams(LogicalUnit):
        net)),
       ])
 
-  @staticmethod
-  def _ApplyNicMods(idx, nic, params, private):
+  def _ApplyNicMods(self, idx, nic, params, private):
     """Modifies a network interface.
 
     """
     changes = []
 
-    for key in [constants.INIC_MAC, constants.INIC_IP, constants.INIC_NETWORK]:
+    for key in [constants.INIC_MAC, constants.INIC_IP]:
       if key in params:
         changes.append(("nic.%s/%d" % (key, idx), params[key]))
         setattr(nic, key, params[key])
+
+    new_net = params.get(constants.INIC_NETWORK, nic.network)
+    new_net_uuid = self.cfg.LookupNetwork(new_net)
+    if new_net_uuid != nic.network:
+      changes.append(("nic.network/%d" % idx, new_net))
+      nic.network = new_net_uuid
 
     if private.filled:
       nic.nicparams = private.filled
