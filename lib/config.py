@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -2104,6 +2104,12 @@ class ConfigWriter:
       # This is ok even if it acquires the internal lock, as _UpgradeConfig is
       # only called at config init time, without the lock held
       self.DropECReservations(_UPGRADE_CONFIG_JID)
+    else:
+      config_errors = self._UnlockedVerifyConfig()
+      if config_errors:
+        errmsg = ("Loaded configuration data is not consistent: %s" %
+                  (utils.CommaJoin(config_errors)))
+        logging.critical(errmsg)
 
   def _DistributeConfig(self, feedback_fn):
     """Distribute the configuration to the other nodes.
