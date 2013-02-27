@@ -215,6 +215,13 @@ class TestClusterObject(unittest.TestCase):
     self.fake_cl.enabled_hypervisors = sorted(constants.HYPER_TYPES)
     self.assertEqual(self.fake_cl.primary_hypervisor, constants.HT_CHROOT)
 
+  def testUpgradeConfig(self):
+    # FIXME: This test is incomplete
+    cluster = objects.Cluster()
+    cluster.UpgradeConfig()
+    cluster = objects.Cluster(ipolicy={"unknown_key": None})
+    self.assertRaises(errors.ConfigurationError, cluster.UpgradeConfig)
+
 
 class TestOS(unittest.TestCase):
   ALL_DATA = [
