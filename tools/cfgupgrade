@@ -53,6 +53,10 @@ args = None
 TARGET_MAJOR = 2
 #: Target minor version we will upgrade to
 TARGET_MINOR = 7
+#: Target major version for downgrade
+DOWNGRADE_MAJOR = 2
+#: Target minor version for downgrade
+DOWNGRADE_MINOR = 7
 
 
 class Error(Exception):
@@ -215,6 +219,27 @@ def UpgradeAll(config_data):
   UpgradeInstances(config_data)
 
 
+def DowngradeStorageTypes(cluster):
+  # Remove storage types to downgrade to 2.7
+  if "enabled_storage_types" in cluster:
+    logging.warning("Removing cluster storage types; value = %s",
+                    utils.CommaJoin(cluster["enabled_storage_types"]))
+    del cluster["enabled_storage_types"]
+
+
+def DowngradeCluster(config_data):
+  cluster = config_data.get("cluster", None)
+  if cluster is None:
+    raise Error("Cannot find cluster")
+  DowngradeStorageTypes(cluster)
+
+
+def DowngradeAll(config_data):
+  # Any code specific to a particular version should be labeled that way, so
+  # it can be removed when updating to the next version.
+  DowngradeCluster(config_data)
+
+
 def main():
   """Main program.
 
@@ -243,6 +268,9 @@ def main():
   parser.add_option("--no-verify",
                     help="Do not verify configuration after upgrade",
                     action="store_true", dest="no_verify", default=False)
+  parser.add_option("--downgrade",
+                    help="Downgrade to the previous stable version",
+                    action="store_true", dest="downgrade", default=False)
   (options, args) = parser.parse_args()
 
   # We need to keep filenames locally because they might be renamed between
@@ -267,6 +295,8 @@ def main():
   # Option checking
   if args:
     raise Error("No arguments expected")
+  if options.downgrade and not options.no_verify:
+    options.no_verify = True
 
   # Check master name
   if not (CheckHostname(options.SSCONF_MASTER_NODE) or options.ignore_hostname):
@@ -274,10 +304,19 @@ def main():
     sys.exit(constants.EXIT_FAILURE)
 
   if not options.force:
-    usertext = ("Please make sure you have read the upgrade notes for"
-                " Ganeti %s (available in the UPGRADE file and included"
-                " in other documentation formats). Continue with upgrading"
-                " configuration?" % constants.RELEASE_VERSION)
+    if options.downgrade:
+      usertext = ("The configuration is going to be DOWNGRADED to version %s.%s"
+                  " Some configuration data might be removed if they don't fit"
+                  " in the old format. Please make sure you have read the"
+                  " upgrade notes (available in the UPGRADE file and included"
+                  " in other documentation formats) to understand what they"
+                  " are. Continue with *DOWNGRADING* the configuration?" %
+                  (DOWNGRADE_MAJOR, DOWNGRADE_MINOR))
+    else:
+      usertext = ("Please make sure you have read the upgrade notes for"
+                  " Ganeti %s (available in the UPGRADE file and included"
+                  " in other documentation formats). Continue with upgrading"
+                  " configuration?" % constants.RELEASE_VERSION)
     if not cli.AskUser(usertext):
       sys.exit(constants.EXIT_FAILURE)
 
@@ -308,8 +347,17 @@ def main():
     raise Error("Inconsistent configuration: found config_version in"
                 " configuration file")
 
+  # Downgrade to the previous stable version
+  if options.downgrade:
+    if config_major != TARGET_MAJOR or config_minor != TARGET_MINOR:
+      raise Error("Downgrade supported only from the latest version (%s.%s),"
+                  " found %s (%s.%s.%s) instead" %
+                  (TARGET_MAJOR, TARGET_MINOR, config_version, config_major,
+                   config_minor, config_revision))
+    DowngradeAll(config_data)
+
   # Upgrade from 2.{0..6} to 2.7
-  if config_major == 2 and config_minor in (0, 1, 2, 3, 4, 5, 6):
+  elif config_major == 2 and config_minor in (0, 1, 2, 3, 4, 5, 6):
     if config_revision != 0:
       logging.warning("Config revision is %s, not 0", config_revision)
     UpgradeAll(config_data)
@@ -362,12 +410,18 @@ def main():
       logging.info("File loaded successfully after upgrading")
     del cfg
 
-  if all_ok:
-    cli.ToStderr("Configuration successfully upgraded to version %s.",
-                 constants.RELEASE_VERSION)
+  if options.downgrade:
+    action = "downgraded"
+    out_ver = "%s.%s" % (DOWNGRADE_MAJOR, DOWNGRADE_MINOR)
   else:
-    cli.ToStderr("Configuration upgraded to version %s, but there are errors."
-                 "\nPlease review the file.", constants.RELEASE_VERSION)
+    action = "upgraded"
+    out_ver = constants.RELEASE_VERSION
+  if all_ok:
+    cli.ToStderr("Configuration successfully %s to version %s.",
+                 action, out_ver)
+  else:
+    cli.ToStderr("Configuration %s to version %s, but there are errors."
+                 "\nPlease review the file.", action, out_ver)
 
 
 if __name__ == "__main__":

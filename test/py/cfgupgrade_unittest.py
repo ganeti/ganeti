@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2010, 2012 Google Inc.
+# Copyright (C) 2010, 2012, 2013 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -37,7 +37,8 @@ from ganeti import netutils
 import testutils
 
 
-def _RunUpgrade(path, dry_run, no_verify, ignore_hostname=True):
+def _RunUpgrade(path, dry_run, no_verify, ignore_hostname=True,
+                downgrade=False):
   cmd = [sys.executable, "%s/tools/cfgupgrade" % testutils.GetSourceDir(),
          "--debug", "--force", "--path=%s" % path, "--confdir=%s" % path]
 
@@ -47,6 +48,8 @@ def _RunUpgrade(path, dry_run, no_verify, ignore_hostname=True):
     cmd.append("--dry-run")
   if no_verify:
     cmd.append("--no-verify")
+  if downgrade:
+    cmd.append("--downgrade")
 
   result = utils.RunCmd(cmd, cwd=os.getcwd())
   if result.failed:
@@ -347,6 +350,22 @@ class TestCfgupgrade(unittest.TestCase):
   def testUpgradeCurrent(self):
     self._TestSimpleUpgrade(constants.CONFIG_VERSION, False)
 
+  def testDowngrade(self):
+    self._TestSimpleUpgrade(constants.CONFIG_VERSION, False)
+    oldconf = self._LoadConfig()
+    _RunUpgrade(self.tmpdir, False, True, downgrade=True)
+    _RunUpgrade(self.tmpdir, False, True)
+    newconf = self._LoadConfig()
+    self.assertEqual(oldconf, newconf)
+
+  def testDowngradeTwice(self):
+    self._TestSimpleUpgrade(constants.CONFIG_VERSION, False)
+    _RunUpgrade(self.tmpdir, False, True, downgrade=True)
+    oldconf = self._LoadConfig()
+    _RunUpgrade(self.tmpdir, False, True, downgrade=True)
+    newconf = self._LoadConfig()
+    self.assertEqual(oldconf, newconf)
+
   def testUpgradeDryRunFrom_2_0(self):
     self._TestSimpleUpgrade(constants.BuildVersion(2, 0, 0), True)
 
@@ -371,6 +390,12 @@ class TestCfgupgrade(unittest.TestCase):
   def testUpgradeCurrentDryRun(self):
     self._TestSimpleUpgrade(constants.CONFIG_VERSION, True)
 
+  def testDowngradeDryRun(self):
+    self._TestSimpleUpgrade(constants.CONFIG_VERSION, False)
+    oldconf = self._LoadConfig()
+    _RunUpgrade(self.tmpdir, True, True, downgrade=True)
+    newconf = self._LoadConfig()
+    self.assertEqual(oldconf["version"], newconf["version"])
 
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
