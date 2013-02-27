@@ -140,7 +140,7 @@ nodeFields =
        "Whether node can become a master candidate",
      FieldSimple (rsNormal . nodeMasterCapable), QffNormal)
   , (FieldDefinition "name" "Node" QFTText "Node name",
-     FieldSimple (rsNormal . nodeName), QffNormal)
+     FieldSimple (rsNormal . nodeName), QffHostname)
   , (FieldDefinition "offline" "Offline" QFTBool
        "Whether node is marked offline",
      FieldSimple (rsNormal . nodeOffline), QffNormal)

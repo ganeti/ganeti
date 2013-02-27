@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TemplateHaskell, BangPatterns #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 {-| Unittests for ganeti-htools.
@@ -36,6 +36,7 @@ import Data.Function (on)
 import Data.List
 import qualified Data.Map as Map
 import Data.Maybe
+import qualified Data.Set as Set
 import Text.JSON (JSValue(..), showJSON)
 
 import Test.Ganeti.TestHelper
@@ -44,12 +45,15 @@ import Test.Ganeti.Objects (genEmptyCluster)
 
 import Ganeti.BasicTypes
 import Ganeti.Errors
+import Ganeti.JSON
+import Ganeti.Objects
 import Ganeti.Query.Filter
 import qualified Ganeti.Query.Group as Group
 import Ganeti.Query.Language
 import qualified Ganeti.Query.Node as Node
 import Ganeti.Query.Query
 import qualified Ganeti.Query.Job as Job
+import Ganeti.Utils (sepSplit)
 
 {-# ANN module "HLint: ignore Use camelCase" #-}
 
@@ -162,6 +166,34 @@ case_queryNode_allfields = do
   assertEqual "Mismatch in all fields list"
     (sortBy field_sort . map (\(f, _, _) -> f) $ Map.elems Node.fieldsMap)
     (sortBy field_sort fdefs)
+
+-- | Check if cluster node names are unique (first elems).
+areNodeNamesSane :: ConfigData -> Bool
+areNodeNamesSane cfg =
+  let fqdns = map nodeName . Map.elems . fromContainer $ configNodes cfg
+      names = map (head . sepSplit '.') fqdns
+  in length names == length (nub names)
+
+-- | Check that the nodes reported by a name filter are sane.
+prop_queryNode_filter :: Property
+prop_queryNode_filter =
+  forAll (choose (1, maxNodes)) $ \nodes ->
+  forAll (genEmptyCluster nodes `suchThat`
+          areNodeNamesSane) $ \cluster -> monadicIO $ do
+    let node_list = map nodeName . Map.elems . fromContainer $
+                    configNodes cluster
+    count <- pick $ choose (1, nodes)
+    fqdn_set <- pick . genSetHelper node_list $ Just count
+    let fqdns = Set.elems fqdn_set
+        names = map (head . sepSplit '.') fqdns
+        flt = makeSimpleFilter "name" $ map Left names
+    QueryResult _ fdata <-
+      run (query cluster False (Query (ItemTypeOpCode QRNode)
+                                ["name"] flt)) >>= resultProp
+    stop $ conjoin
+      [ printTestCase "Invalid node names" $
+        map (map rentryValue) fdata ==? map (\f -> [Just (showJSON f)]) fqdns
+      ]
 
 -- ** Group queries
 
@@ -328,6 +360,7 @@ testSuite "Query/Query"
   [ 'prop_queryNode_noUnknown
   , 'prop_queryNode_Unknown
   , 'prop_queryNode_types
+  , 'prop_queryNode_filter
   , 'case_queryNode_allfields
   , 'prop_queryGroup_noUnknown
   , 'prop_queryGroup_Unknown

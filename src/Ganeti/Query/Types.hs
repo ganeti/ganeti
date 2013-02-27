@@ -7,7 +7,7 @@ use the library should not need to import it.
 
 {-
 
-Copyright (C) 2012 Google Inc.
+Copyright (C) 2012, 2013 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -56,6 +56,7 @@ data FieldGetter a b = FieldSimple  (a -> ResultEntry)
 -- don't use OR-able values.
 data QffMode = QffNormal     -- ^ Value is used as-is in filters
              | QffTimestamp  -- ^ Value is a timestamp tuple, convert to float
+             | QffHostname   -- ^ Value is a hostname, compare it smartly
                deriving (Show, Eq)
 
 
