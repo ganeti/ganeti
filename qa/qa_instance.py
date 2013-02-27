@@ -136,7 +136,11 @@ def _GetInstanceInfo(instance):
         drbd_min[node] = [minor]
   assert vols
   assert nodes
-  return {"nodes": nodes, "volumes": vols, "drbd-minors": drbd_min}
+  return {
+    "nodes": nodes,
+    "volumes": vols,
+    "drbd-minors": drbd_min,
+    }
 
 
 def _DestroyInstanceVolumes(instance):
