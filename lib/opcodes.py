@@ -184,6 +184,16 @@ _PTargetGroups = \
   ("target_groups", None, ht.TMaybeListOf(ht.TNonEmptyString),
    "Destination group names or UUIDs (defaults to \"all but current group\")")
 
+# The reason for a state change of an instance
+_PReason = \
+  ("reason", (constants.INSTANCE_REASON_SOURCE_UNKNOWN, None),
+   ht.TAnd(ht.TIsLength(2),
+           ht.TItems([
+             ht.TElemOf(constants.INSTANCE_REASON_SOURCES),
+             ht.TMaybeString,
+           ])),
+   "The reason why the reboot is happening")
+
 #: OP_ID conversion regular expression
 _OPID_RE = re.compile("([a-z])([A-Z])")
 
@@ -1451,13 +1461,7 @@ class OpInstanceReboot(OpCode):
      "Whether to start the instance even if secondary disks are failing"),
     ("reboot_type", ht.NoDefault, ht.TElemOf(constants.REBOOT_TYPES),
      "How to reboot instance"),
-    ("reason", (constants.INSTANCE_REASON_SOURCE_UNKNOWN, None),
-     ht.TAnd(ht.TIsLength(2),
-             ht.TItems([
-               ht.TElemOf(constants.INSTANCE_REASON_SOURCES),
-               ht.TMaybeString,
-             ])),
-     "The reason why the reboot is happening"),
+    _PReason,
     ]
   OP_RESULT = ht.TNone
 
