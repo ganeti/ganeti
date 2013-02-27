@@ -650,7 +650,8 @@ def RunQa():
   RunExclusiveStorageTests()
 
   # Test removing instance with offline drbd secondary
-  if qa_config.TestEnabled("instance-remove-drbd-offline"):
+  if qa_config.TestEnabled(["instance-remove-drbd-offline",
+                            "instance-add-drbd-disk"]):
     # Make sure the master is not put offline
     snode = qa_config.AcquireNode(exclude=qa_config.GetMasterNode())
     try:
