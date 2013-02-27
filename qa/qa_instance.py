@@ -134,8 +134,10 @@ def _GetInstanceInfo(instance):
         drbd_min[node].append(minor)
       else:
         drbd_min[node] = [minor]
-  assert vols
+
   assert nodes
+  assert len(nodes) < 2 or vols
+
   return {
     "nodes": nodes,
     "volumes": vols,
