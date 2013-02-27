@@ -63,7 +63,7 @@ def _GetGenericAddParameters(inst, force_mac=None):
   return params
 
 
-def _DiskTest(node, disk_template):
+def _DiskTest(node, disk_template, fail=False):
   instance = qa_config.AcquireInstance()
   try:
     cmd = (["gnt-instance", "add",
@@ -73,15 +73,21 @@ def _DiskTest(node, disk_template):
            _GetGenericAddParameters(instance))
     cmd.append(instance["name"])
 
-    AssertCommand(cmd)
+    AssertCommand(cmd, fail=fail)
 
-    _CheckSsconfInstanceList(instance["name"])
-    qa_config.SetInstanceTemplate(instance, disk_template)
+    if not fail:
+      _CheckSsconfInstanceList(instance["name"])
+      qa_config.SetInstanceTemplate(instance, disk_template)
 
-    return instance
+      return instance
   except:
     qa_config.ReleaseInstance(instance)
     raise
+
+  # Handle the case where creation is expected to fail
+  assert fail
+  qa_config.ReleaseInstance(instance)
+  return None
 
 
 def _GetInstanceInfo(instance):
@@ -257,11 +263,13 @@ def IsDiskReplacingSupported(instance):
   return templ == constants.DT_DRBD8
 
 
-@InstanceCheck(None, INST_UP, RETURN_VALUE)
-def TestInstanceAddWithPlainDisk(nodes):
+def TestInstanceAddWithPlainDisk(nodes, fail=False):
   """gnt-instance add -t plain"""
   assert len(nodes) == 1
-  return _DiskTest(nodes[0]["primary"], "plain")
+  instance = _DiskTest(nodes[0]["primary"], constants.DT_PLAIN, fail=fail)
+  if not fail:
+    qa_utils.RunInstanceCheck(instance, True)
+  return instance
 
 
 @InstanceCheck(None, INST_UP, RETURN_VALUE)
