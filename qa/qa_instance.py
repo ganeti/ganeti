@@ -43,14 +43,16 @@ def _GetDiskStatePath(disk):
   return "/sys/block/%s/device/state" % disk
 
 
-def _GetGenericAddParameters(inst, force_mac=None):
+def _GetGenericAddParameters(inst, disk_template, force_mac=None):
   params = ["-B"]
   params.append("%s=%s,%s=%s" % (constants.BE_MINMEM,
                                  qa_config.get(constants.BE_MINMEM),
                                  constants.BE_MAXMEM,
                                  qa_config.get(constants.BE_MAXMEM)))
-  for idx, size in enumerate(qa_config.get("disk")):
-    params.extend(["--disk", "%s:size=%s" % (idx, size)])
+
+  if disk_template != constants.DT_DISKLESS:
+    for idx, size in enumerate(qa_config.get("disk")):
+      params.extend(["--disk", "%s:size=%s" % (idx, size)])
 
   # Set static MAC address if configured
   if force_mac:
@@ -71,7 +73,7 @@ def _DiskTest(node, disk_template):
             "--os-type=%s" % qa_config.get("os"),
             "--disk-template=%s" % disk_template,
             "--node=%s" % node] +
-           _GetGenericAddParameters(instance))
+           _GetGenericAddParameters(instance, disk_template))
     cmd.append(instance.name)
 
     AssertCommand(cmd)
@@ -207,6 +209,13 @@ def TestInstanceAddWithDrbdDisk(nodes):
   assert len(nodes) == 2
   return _DiskTest(":".join(map(operator.attrgetter("primary"), nodes)),
                    constants.DT_DRBD8)
+
+
+@InstanceCheck(None, INST_UP, RETURN_VALUE)
+def TestInstanceAddDiskless(nodes):
+  """gnt-instance add -t diskless"""
+  assert len(nodes) == 1
+  return _DiskTest(nodes[0].primary, constants.DT_DISKLESS)
 
 
 @InstanceCheck(None, INST_DOWN, FIRST_ARG)
@@ -527,13 +536,20 @@ def TestInstanceGrowDisk(instance):
   if qa_config.GetExclusiveStorage():
     print qa_utils.FormatInfo("Test not supported with exclusive_storage")
     return
+
+  if instance.disk_template == constants.DT_DISKLESS:
+    print qa_utils.FormatInfo("Test not supported for diskless instances")
+    return
+
   name = instance.name
   all_size = qa_config.get("disk")
   all_grow = qa_config.get("disk-growth")
+
   if not all_grow:
     # missing disk sizes but instance grow disk has been enabled,
     # let's set fixed/nomimal growth
     all_grow = ["128M" for _ in all_size]
+
   for idx, (size, grow) in enumerate(zip(all_size, all_grow)):
     # succeed in grow by amount
     AssertCommand(["gnt-instance", "grow-disk", name, str(idx), grow])
@@ -703,7 +719,8 @@ def TestInstanceImport(newinst, node, expnode, name):
           "--src-node=%s" % expnode.primary,
           "--src-dir=%s/%s" % (pathutils.EXPORT_DIR, name),
           "--node=%s" % node.primary] +
-         _GetGenericAddParameters(newinst, force_mac=constants.VALUE_GENERATE))
+         _GetGenericAddParameters(newinst, templ,
+                                  force_mac=constants.VALUE_GENERATE))
   cmd.append(newinst.name)
   AssertCommand(cmd)
   newinst.SetDiskTemplate(templ)
