@@ -248,6 +248,10 @@ def TestInstanceReboot(instance):
 @InstanceCheck(INST_DOWN, INST_DOWN, FIRST_ARG)
 def TestInstanceReinstall(instance):
   """gnt-instance reinstall"""
+  if instance.disk_template == constants.DT_DISKLESS:
+    print qa_utils.FormatInfo("Test not supported for diskless instances")
+    return
+
   AssertCommand(["gnt-instance", "reinstall", "-f", instance.name])
 
   # Test with non-existant OS definition
