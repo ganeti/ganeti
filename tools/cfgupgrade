@@ -114,8 +114,11 @@ def UpgradeGroups(config_data):
 def UpgradeInstances(config_data):
   network2uuid = dict((n["name"], n["uuid"])
                       for n in config_data["networks"].values())
-  for inst in config_data["instances"].values():
-    for nic in inst["nics"]:
+  if "instances" not in config_data:
+    raise Error("Can't find the 'instances' key in the configuration!")
+
+  for instance, iobj in config_data["instances"].items():
+    for nic in iobj["nics"]:
       name = nic.get("network", None)
       if name:
         uuid = network2uuid.get(name, None)
@@ -123,6 +126,93 @@ def UpgradeInstances(config_data):
           print("NIC with network name %s found."
                 " Substituting with uuid %s." % (name, uuid))
           nic["network"] = uuid
+
+    if "disks" not in iobj:
+      raise Error("Instance '%s' doesn't have a disks entry?!" % instance)
+    disks = iobj["disks"]
+    for idx, dobj in enumerate(disks):
+      expected = "disk/%s" % idx
+      current = dobj.get("iv_name", "")
+      if current != expected:
+        logging.warning("Updating iv_name for instance %s/disk %s"
+                        " from '%s' to '%s'",
+                        instance, idx, current, expected)
+        dobj["iv_name"] = expected
+
+
+def UpgradeRapiUsers():
+  if (os.path.isfile(options.RAPI_USERS_FILE_PRE24) and
+      not os.path.islink(options.RAPI_USERS_FILE_PRE24)):
+    if os.path.exists(options.RAPI_USERS_FILE):
+      raise Error("Found pre-2.4 RAPI users file at %s, but another file"
+                  " already exists at %s" %
+                  (options.RAPI_USERS_FILE_PRE24, options.RAPI_USERS_FILE))
+    logging.info("Found pre-2.4 RAPI users file at %s, renaming to %s",
+                 options.RAPI_USERS_FILE_PRE24, options.RAPI_USERS_FILE)
+    if not options.dry_run:
+      utils.RenameFile(options.RAPI_USERS_FILE_PRE24, options.RAPI_USERS_FILE,
+                       mkdir=True, mkdir_mode=0750)
+
+  # Create a symlink for RAPI users file
+  if (not (os.path.islink(options.RAPI_USERS_FILE_PRE24) or
+           os.path.isfile(options.RAPI_USERS_FILE_PRE24)) and
+      os.path.isfile(options.RAPI_USERS_FILE)):
+    logging.info("Creating symlink from %s to %s",
+                 options.RAPI_USERS_FILE_PRE24, options.RAPI_USERS_FILE)
+    if not options.dry_run:
+      os.symlink(options.RAPI_USERS_FILE, options.RAPI_USERS_FILE_PRE24)
+
+
+def UpgradeWatcher():
+  # Remove old watcher state file if it exists
+  if os.path.exists(options.WATCHER_STATEFILE):
+    logging.info("Removing watcher state file %s", options.WATCHER_STATEFILE)
+    if not options.dry_run:
+      utils.RemoveFile(options.WATCHER_STATEFILE)
+
+
+def UpgradeFileStoragePaths(config_data):
+  # Write file storage paths
+  if not os.path.exists(options.FILE_STORAGE_PATHS_FILE):
+    cluster = config_data["cluster"]
+    file_storage_dir = cluster.get("file_storage_dir")
+    shared_file_storage_dir = cluster.get("shared_file_storage_dir")
+    del cluster
+
+    logging.info("Ganeti 2.7 and later only allow whitelisted directories"
+                 " for file storage; writing existing configuration values"
+                 " into '%s'",
+                 options.FILE_STORAGE_PATHS_FILE)
+
+    if file_storage_dir:
+      logging.info("File storage directory: %s", file_storage_dir)
+    if shared_file_storage_dir:
+      logging.info("Shared file storage directory: %s",
+                   shared_file_storage_dir)
+
+    buf = StringIO()
+    buf.write("# List automatically generated from configuration by\n")
+    buf.write("# cfgupgrade at %s\n" % time.asctime())
+    if file_storage_dir:
+      buf.write("%s\n" % file_storage_dir)
+    if shared_file_storage_dir:
+      buf.write("%s\n" % shared_file_storage_dir)
+    utils.WriteFile(file_name=options.FILE_STORAGE_PATHS_FILE,
+                    data=buf.getvalue(),
+                    mode=0600,
+                    dry_run=options.dry_run,
+                    backup=True)
+
+
+def UpgradeAll(config_data):
+  config_data["version"] = constants.BuildVersion(TARGET_MAJOR,
+                                                  TARGET_MINOR, 0)
+  UpgradeRapiUsers()
+  UpgradeWatcher()
+  UpgradeFileStoragePaths(config_data)
+  UpgradeNetworks(config_data)
+  UpgradeGroups(config_data)
+  UpgradeInstances(config_data)
 
 
 def main():
@@ -222,24 +312,7 @@ def main():
   if config_major == 2 and config_minor in (0, 1, 2, 3, 4, 5, 6):
     if config_revision != 0:
       logging.warning("Config revision is %s, not 0", config_revision)
-
-    config_data["version"] = constants.BuildVersion(TARGET_MAJOR,
-                                                    TARGET_MINOR, 0)
-
-    if "instances" not in config_data:
-      raise Error("Can't find the 'instances' key in the configuration!")
-    for instance, iobj in config_data["instances"].items():
-      if "disks" not in iobj:
-        raise Error("Instance '%s' doesn't have a disks entry?!" % instance)
-      disks = iobj["disks"]
-      for idx, dobj in enumerate(disks):
-        expected = "disk/%s" % idx
-        current = dobj.get("iv_name", "")
-        if current != expected:
-          logging.warning("Updating iv_name for instance %s/disk %s"
-                          " from '%s' to '%s'",
-                          instance, idx, current, expected)
-          dobj["iv_name"] = expected
+    UpgradeAll(config_data)
 
   elif config_major == TARGET_MAJOR and config_minor == TARGET_MINOR:
     logging.info("No changes necessary")
@@ -247,68 +320,6 @@ def main():
   else:
     raise Error("Configuration version %d.%d.%d not supported by this tool" %
                 (config_major, config_minor, config_revision))
-
-  if (os.path.isfile(options.RAPI_USERS_FILE_PRE24) and
-      not os.path.islink(options.RAPI_USERS_FILE_PRE24)):
-    if os.path.exists(options.RAPI_USERS_FILE):
-      raise Error("Found pre-2.4 RAPI users file at %s, but another file"
-                  " already exists at %s" %
-                  (options.RAPI_USERS_FILE_PRE24, options.RAPI_USERS_FILE))
-    logging.info("Found pre-2.4 RAPI users file at %s, renaming to %s",
-                 options.RAPI_USERS_FILE_PRE24, options.RAPI_USERS_FILE)
-    if not options.dry_run:
-      utils.RenameFile(options.RAPI_USERS_FILE_PRE24, options.RAPI_USERS_FILE,
-                       mkdir=True, mkdir_mode=0750)
-
-  # Create a symlink for RAPI users file
-  if (not (os.path.islink(options.RAPI_USERS_FILE_PRE24) or
-           os.path.isfile(options.RAPI_USERS_FILE_PRE24)) and
-      os.path.isfile(options.RAPI_USERS_FILE)):
-    logging.info("Creating symlink from %s to %s",
-                 options.RAPI_USERS_FILE_PRE24, options.RAPI_USERS_FILE)
-    if not options.dry_run:
-      os.symlink(options.RAPI_USERS_FILE, options.RAPI_USERS_FILE_PRE24)
-
-  # Remove old watcher state file if it exists
-  if os.path.exists(options.WATCHER_STATEFILE):
-    logging.info("Removing watcher state file %s", options.WATCHER_STATEFILE)
-    if not options.dry_run:
-      utils.RemoveFile(options.WATCHER_STATEFILE)
-
-  # Write file storage paths
-  if not os.path.exists(options.FILE_STORAGE_PATHS_FILE):
-    cluster = config_data["cluster"]
-    file_storage_dir = cluster.get("file_storage_dir")
-    shared_file_storage_dir = cluster.get("shared_file_storage_dir")
-    del cluster
-
-    logging.info("Ganeti 2.7 and later only allow whitelisted directories"
-                 " for file storage; writing existing configuration values"
-                 " into '%s'",
-                 options.FILE_STORAGE_PATHS_FILE)
-
-    if file_storage_dir:
-      logging.info("File storage directory: %s", file_storage_dir)
-    if shared_file_storage_dir:
-      logging.info("Shared file storage directory: %s",
-                   shared_file_storage_dir)
-
-    buf = StringIO()
-    buf.write("# List automatically generated from configuration by\n")
-    buf.write("# cfgupgrade at %s\n" % time.asctime())
-    if file_storage_dir:
-      buf.write("%s\n" % file_storage_dir)
-    if shared_file_storage_dir:
-      buf.write("%s\n" % shared_file_storage_dir)
-    utils.WriteFile(file_name=options.FILE_STORAGE_PATHS_FILE,
-                    data=buf.getvalue(),
-                    mode=0600,
-                    dry_run=options.dry_run,
-                    backup=True)
-
-  UpgradeNetworks(config_data)
-  UpgradeGroups(config_data)
-  UpgradeInstances(config_data)
 
   try:
     logging.info("Writing configuration file to %s", options.CONFIG_DATA_PATH)
