@@ -116,7 +116,8 @@ handleCall cdata QueryClusterInfo =
             , ("master_netmask", showJSON $ clusterMasterNetmask cluster)
             , ("use_external_mip_script",
                showJSON $ clusterUseExternalMipScript cluster)
-            , ("volume_group_name", showJSON $ clusterVolumeGroupName cluster)
+            , ("volume_group_name",
+               maybe JSNull showJSON (clusterVolumeGroupName cluster))
             , ("drbd_usermode_helper",
                maybe JSNull showJSON (clusterDrbdUsermodeHelper cluster))
             , ("file_storage_dir", showJSON $ clusterFileStorageDir cluster)

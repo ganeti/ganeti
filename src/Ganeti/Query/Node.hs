@@ -31,6 +31,7 @@ module Ganeti.Query.Node
 
 import Control.Applicative
 import Data.List
+import Data.Maybe
 import qualified Data.Map as Map
 import qualified Text.JSON as J
 
@@ -221,7 +222,7 @@ maybeCollectLiveData:: Bool -> ConfigData -> [Node] -> IO [(Node, NodeRuntime)]
 maybeCollectLiveData False _ nodes =
   return $ zip nodes (repeat $ Left (RpcResultError "Live data disabled"))
 maybeCollectLiveData True cfg nodes = do
-  let vgs = [clusterVolumeGroupName $ configCluster cfg]
+  let vgs = maybeToList . clusterVolumeGroupName $ configCluster cfg
       hvs = [getDefaultHypervisor cfg]
       step n (bn, gn, em) =
         let ndp' = getNodeNdParams cfg n
