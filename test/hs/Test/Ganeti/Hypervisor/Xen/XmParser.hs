@@ -48,17 +48,31 @@ import Ganeti.Hypervisor.Xen.XmParser
 
 -- * Arbitraries
 
--- | Arbitrary instance for generating configurations.
--- A completely arbitrary configuration would contain too many lists and its
--- size would be to big to be actually parsable in reasonable time.
--- This Arbitrary builds a random Config that is still of a reasonable size.
--- Avoid generating strings that might be interpreted as numbers.
+-- | Generator for 'ListConfig'.
+--
+-- A completely arbitrary configuration would contain too many lists
+-- and its size would be to big to be actually parsable in reasonable
+-- time. This generator builds a random Config that is still of a
+-- reasonable size, and it also Avoids generating strings that might
+-- be interpreted as numbers.
+genConfig :: Int -> Gen LispConfig
+genConfig 0 =
+  -- only terminal values for size 0
+  frequency [ (5, liftM LCString (genName `suchThat` (not . canBeNumber)))
+            , (5, liftM LCDouble arbitrary)
+            ]
+genConfig n =
+  -- for size greater than 0, allow "some" lists
+  frequency [ (5, liftM LCString (resize n genName `suchThat`
+                                  (not . canBeNumber)))
+            , (5, liftM LCDouble arbitrary)
+            , (1, liftM LCList (choose (1, n) >>=
+                                (\n' -> vectorOf n' (genConfig $ n `div` n'))))
+            ]
+
+-- | Arbitrary instance for 'LispConfig' using 'genConfig'.
 instance Arbitrary LispConfig where
-  arbitrary = frequency
-    [ (5, liftM LCString (genName `suchThat` (not . canBeNumber)))
-    , (5, liftM LCDouble arbitrary)
-    , (1, liftM LCList (choose(1,20) >>= (`vectorOf` arbitrary)))
-    ]
+  arbitrary = sized genConfig
 
 -- | Determines conservatively whether a string could be a number.
 canBeNumber :: String -> Bool
