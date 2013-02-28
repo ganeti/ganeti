@@ -59,8 +59,8 @@ lispConfigParser =
     where listConfigP = LCList <$> (A.char '(' *> liftA2 (++)
             (many middleP)
             (((:[]) <$> finalP) <|> (rparen *> pure [])))
-          doubleP = LCDouble <$> A.double <* A.skipSpace <* A.endOfInput
-          innerDoubleP = LCDouble <$> A.double
+          doubleP = LCDouble <$> A.rational <* A.skipSpace <* A.endOfInput
+          innerDoubleP = LCDouble <$> A.rational
           stringP = LCString . unpack <$> A.takeWhile1 (not . (\c -> isSpace c
             || c `elem` "()"))
           wspace = AC.many1 A.space
