@@ -16718,20 +16718,19 @@ class LUNetworkConnect(LogicalUnit):
       self.LogWarning("Network '%s' is already mapped to group '%s'" %
                       (self.network_name, self.group.name))
       self.connected = True
-      return
 
-    if self.op.conflicts_check:
+    # check only if not already connected
+    elif self.op.conflicts_check:
       pool = network.AddressPool(self.cfg.GetNetwork(self.network_uuid))
 
       _NetworkConflictCheck(self, lambda nic: pool.Contains(nic.ip),
                             "connect to", owned_instances)
 
   def Exec(self, feedback_fn):
-    if self.connected:
-      return
-
-    self.group.networks[self.network_uuid] = self.netparams
-    self.cfg.Update(self.group, feedback_fn)
+    # Connect the network and update the group only if not already connected
+    if not self.connected:
+      self.group.networks[self.network_uuid] = self.netparams
+      self.cfg.Update(self.group, feedback_fn)
 
 
 def _NetworkConflictCheck(lu, check_fn, action, instances):
@@ -16832,17 +16831,17 @@ class LUNetworkDisconnect(LogicalUnit):
       self.LogWarning("Network '%s' is not mapped to group '%s'",
                       self.network_name, self.group.name)
       self.connected = False
-      return
 
-    _NetworkConflictCheck(self, lambda nic: nic.network == self.network_uuid,
-                          "disconnect from", owned_instances)
+    # We need this check only if network is not already connected
+    else:
+      _NetworkConflictCheck(self, lambda nic: nic.network == self.network_uuid,
+                            "disconnect from", owned_instances)
 
   def Exec(self, feedback_fn):
-    if not self.connected:
-      return
-
-    del self.group.networks[self.network_uuid]
-    self.cfg.Update(self.group, feedback_fn)
+    # Disconnect the network and update the group only if network is connected
+    if self.connected:
+      del self.group.networks[self.network_uuid]
+      self.cfg.Update(self.group, feedback_fn)
 
 
 #: Query type implementations
