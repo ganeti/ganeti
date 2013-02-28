@@ -120,8 +120,25 @@ testUptimeInfo fileName expectedContent = do
     Left msg -> assertFailure $ "Parsing failed: " ++ msg
     Right obtained -> assertEqual fileName expectedContent obtained
 
+-- | Computes the relative error of two 'Double' numbers.
+--
+-- This is the \"relative error\" algorithm in
+-- http:\/\/randomascii.wordpress.com\/2012\/02\/25\/
+-- comparing-floating-point-numbers-2012-edition (URL split due to too
+-- long line).
+relativeError :: Double -> Double -> Double
+relativeError d1 d2 =
+  let delta = abs $ d1 - d2
+      a1 = abs d1
+      a2 = abs d2
+      greatest = max a1 a2
+  in if delta == 0
+       then 0
+       else delta / greatest
+
 -- | Determines whether two LispConfig are equal, with the exception of Double
--- values, that just need to be "almost equal".
+-- values, that just need to be \"almost equal\".
+--
 -- Meant mainly for testing purposes, given that Double values may be slightly
 -- rounded during parsing.
 isAlmostEqual :: LispConfig -> LispConfig -> Property
@@ -129,9 +146,9 @@ isAlmostEqual (LCList c1) (LCList c2) =
   (length c1 ==? length c2) .&&.
   conjoin (zipWith isAlmostEqual c1 c2)
 isAlmostEqual (LCString s1) (LCString s2) = s1 ==? s2
-isAlmostEqual (LCDouble d1) (LCDouble d2) = printTestCase msg $ delta <= 1e-12
-    where delta = abs (d1-d2)
-          msg = "Delta " ++ show delta ++ " not smaller than 1e-12\n" ++
+isAlmostEqual (LCDouble d1) (LCDouble d2) = printTestCase msg $ rel <= 1e-12
+    where rel = relativeError d1 d2
+          msg = "Relative error " ++ show rel ++ " not smaller than 1e-12\n" ++
                 "expected: " ++ show d2 ++ "\n but got: " ++ show d1
 isAlmostEqual a b =
   failTest $ "Comparing different types: '" ++ show a ++ "' with '" ++
