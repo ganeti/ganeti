@@ -69,8 +69,9 @@ destination-related options default to the source value (e.g. setting
 ``--src-ca-file``/``--dest-ca-file``
   Path to file containing source cluster Certificate Authority (CA) in
   PEM format. For self-signed certificates, this is the certificate
-  itself. For certificates signed by a third party CA, the complete
-  chain must be in the file (see documentation for
+  itself (see more details below in :ref:`certificates`). For
+  certificates signed by a third party CA, the complete chain must be in
+  the file (see documentation for
   :manpage:`SSL_CTX_load_verify_locations(3)`).
 ``--src-username``/``--dest-username``
   RAPI username, must have write access to cluster.
@@ -95,6 +96,28 @@ destination-related options default to the source value (e.g. setting
 
 The exit value of the tool is zero if and only if all instance moves
 were successful.
+
+.. _certificates:
+
+Certificates
+------------
+
+If using certificates signed by a CA, then you need to pass the same CA
+certificate via both ``--src-ca-file`` and ``dest-ca-file``.
+
+However, if you're using self-signed certificates, this has a few
+(security) implications:
+
+- the certificates of both the source and destinations clusters
+  (``rapi.pem`` from the Ganeti configuration directory, usually
+  ``/var/lib/ganeti/rapi.pem``) must be available to the tool
+- by default, the certificates include the private key as well, so
+  simply copying them to a third machine means that machine can now
+  impersonate both the source and destination clusters RAPI endpoint
+
+It is therefore recommended to copy only the certificate from the
+``rapi.pem`` files, and pass these to ``--src-ca-file`` and
+``--dest-ca-file`` appropriately.
 
 .. vim: set textwidth=72 :
 .. Local Variables:
