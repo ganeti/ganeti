@@ -69,10 +69,10 @@ destination-related options default to the source value (e.g. setting
 ``--src-ca-file``/``--dest-ca-file``
   Path to file containing source cluster Certificate Authority (CA) in
   PEM format. For self-signed certificates, this is the certificate
-  itself (see more details below in :ref:`certificates`). For
-  certificates signed by a third party CA, the complete chain must be in
-  the file (see documentation for
-  :manpage:`SSL_CTX_load_verify_locations(3)`).
+  itself (see more details below in
+  :ref:`instance-move-certificates`). For certificates signed by a third
+  party CA, the complete chain must be in the file (see documentation
+  for :manpage:`SSL_CTX_load_verify_locations(3)`).
 ``--src-username``/``--dest-username``
   RAPI username, must have write access to cluster.
 ``--src-password-file``/``--dest-password-file``
@@ -97,7 +97,7 @@ destination-related options default to the source value (e.g. setting
 The exit value of the tool is zero if and only if all instance moves
 were successful.
 
-.. _certificates:
+.. _instance-move-certificates:
 
 Certificates
 ------------
