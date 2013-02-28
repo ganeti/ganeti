@@ -110,16 +110,18 @@ testUptimeInfo fileName expectedContent = do
 -- values, that just need to be "almost equal".
 -- Meant mainly for testing purposes, given that Double values may be slightly
 -- rounded during parsing.
-isAlmostEqual :: LispConfig -> LispConfig -> Bool
+isAlmostEqual :: LispConfig -> LispConfig -> Property
 isAlmostEqual (LCList c1) (LCList c2) =
-  (length c1 == length c2) &&
-  foldr
-    (\current acc -> (acc && uncurry isAlmostEqual current))
-    True
-    (zip c1 c2)
-isAlmostEqual (LCString s1) (LCString s2) = s1 == s2
-isAlmostEqual (LCDouble d1) (LCDouble d2) = abs (d1-d2) <= 1e-12
-isAlmostEqual _ _ = False
+  (length c1 ==? length c2) .&&.
+  conjoin (zipWith isAlmostEqual c1 c2)
+isAlmostEqual (LCString s1) (LCString s2) = s1 ==? s2
+isAlmostEqual (LCDouble d1) (LCDouble d2) = printTestCase msg $ delta <= 1e-12
+    where delta = abs (d1-d2)
+          msg = "Delta " ++ show delta ++ " not smaller than 1e-12\n" ++
+                "expected: " ++ show d2 ++ "\n but got: " ++ show d1
+isAlmostEqual a b =
+  failTest $ "Comparing different types: '" ++ show a ++ "' with '" ++
+             show b ++ "'"
 
 -- | Function to serialize LispConfigs in such a way that they can be rebuilt
 -- again by the lispConfigParser.
@@ -139,14 +141,15 @@ serializeUptime (UptimeInfo name idNum uptime) =
 prop_config :: LispConfig -> Property
 prop_config conf =
   case A.parseOnly lispConfigParser . pack . serializeConf $ conf of
-        Left msg -> fail $ "Parsing failed: " ++ msg
-        Right obtained -> property $ isAlmostEqual obtained conf
+        Left msg -> failTest $ "Parsing failed: " ++ msg
+        Right obtained -> printTestCase "Failing almost equal check" $
+                          isAlmostEqual obtained conf
 
 -- | Test whether a randomly generated UptimeInfo text line can be parsed.
 prop_uptimeInfo :: UptimeInfo -> Property
 prop_uptimeInfo uInfo =
   case A.parseOnly uptimeLineParser . pack . serializeUptime $ uInfo of
-    Left msg -> fail $ "Parsing failed: " ++ msg
+    Left msg -> failTest $ "Parsing failed: " ++ msg
     Right obtained -> obtained ==? uInfo
 
 -- | Test a Xen 4.0.1 @xm list --long@ output.
