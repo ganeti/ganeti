@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16168,7 +16168,8 @@ class LUTestAllocator(NoHooksLU):
                                           nics=self.op.nics,
                                           vcpus=self.op.vcpus,
                                           spindle_use=self.op.spindle_use,
-                                          hypervisor=self.op.hypervisor)
+                                          hypervisor=self.op.hypervisor,
+                                          node_whitelist=None)
     elif self.op.mode == constants.IALLOCATOR_MODE_RELOC:
       req = iallocator.IAReqRelocate(name=self.op.name,
                                      relocate_from=list(self.relocate_from))
