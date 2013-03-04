@@ -544,8 +544,6 @@ def _GetClusterIPolicy():
   for (key, val) in policy.items():
     if key in ispec_keys:
       for (par, pval) in val.items():
-        if par == "memory-size":
-          par = "mem-size"
         d = ret_specs.setdefault(par, {})
         d[key] = pval
     else:
@@ -617,6 +615,20 @@ def TestClusterModifyIPolicy():
       AssertEqual(eff_policy[p], old_policy[p])
 
 
+def _GetParameterOptions(key, specs, old_specs):
+  values = ["%s=%s" % (par, keyvals[key])
+            for (par, keyvals) in specs.items()
+            if key in keyvals]
+  if old_specs:
+    present_pars = frozenset(par
+                             for (par, keyvals) in specs.items()
+                             if key in keyvals)
+    values.extend("%s=%s" % (par, keyvals[key])
+                  for (par, keyvals) in old_specs.items()
+                  if key in keyvals and par not in present_pars)
+  return ",".join(values)
+
+
 def TestClusterSetISpecs(new_specs, fail=False, old_values=None):
   """Change instance specs.
 
@@ -637,15 +649,20 @@ def TestClusterSetISpecs(new_specs, fail=False, old_values=None):
     (old_policy, old_specs) = _GetClusterIPolicy()
   if new_specs:
     cmd = ["gnt-cluster", "modify"]
-    for (par, keyvals) in new_specs.items():
-      if par == "spindle-use":
-        # ignore spindle-use, which is not settable
-        continue
-      cmd += [
-        "--specs-%s" % par,
-        ",".join(["%s=%s" % (k, v) for (k, v) in keyvals.items()]),
-        ]
+    if any(("min" in val or "max" in val) for val in new_specs.values()):
+      minmax_opt_items = []
+      for key in ["min", "max"]:
+        keyopt = _GetParameterOptions(key, new_specs, old_specs)
+        minmax_opt_items.append("%s:%s" % (key, keyopt))
+      cmd.extend([
+        "--ipolicy-bounds-specs",
+        "/".join(minmax_opt_items)
+        ])
+    std_opt = _GetParameterOptions("std", new_specs, {})
+    if std_opt:
+      cmd.extend(["--ipolicy-std-specs", std_opt])
     AssertCommand(cmd, fail=fail)
+
   # Check the new state
   (eff_policy, eff_specs) = _GetClusterIPolicy()
   AssertEqual(eff_policy, old_policy)
@@ -663,7 +680,7 @@ def TestClusterSetISpecs(new_specs, fail=False, old_values=None):
 
 def TestClusterModifyISpecs():
   """gnt-cluster modify --specs-*"""
-  params = ["mem-size", "disk-size", "disk-count", "cpu-count", "nic-count"]
+  params = ["memory-size", "disk-size", "disk-count", "cpu-count", "nic-count"]
   (cur_policy, cur_specs) = _GetClusterIPolicy()
   for par in params:
     test_values = [

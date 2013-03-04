@@ -338,7 +338,7 @@ def GetInstanceSpec(instance, spec):
   @type instance: string
   @param instance: Instance name
   @type spec: string
-  @param spec: one of the supported parameters: "mem-size", "cpu-count",
+  @param spec: one of the supported parameters: "memory-size", "cpu-count",
       "disk-count", "disk-size", "nic-count"
   @rtype: tuple
   @return: (minspec, maxspec); minspec and maxspec can be different only for
@@ -346,7 +346,7 @@ def GetInstanceSpec(instance, spec):
 
   """
   specmap = {
-    "mem-size": ["be/minmem", "be/maxmem"],
+    "memory-size": ["be/minmem", "be/maxmem"],
     "cpu-count": ["vcpus"],
     "disk-count": ["disk.count"],
     "disk-size": ["disk.size/ "],

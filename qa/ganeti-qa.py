@@ -528,7 +528,7 @@ def _BuildSpecDict(par, mn, st, mx):
 
 def TestIPolicyPlainInstance():
   """Test instance policy interaction with instances"""
-  params = ["mem-size", "cpu-count", "disk-count", "disk-size", "nic-count"]
+  params = ["memory-size", "cpu-count", "disk-count", "disk-size", "nic-count"]
   if not qa_config.IsTemplateSupported(constants.DT_PLAIN):
     print "Template %s not supported" % constants.DT_PLAIN
     return

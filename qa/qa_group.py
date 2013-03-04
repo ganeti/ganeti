@@ -80,10 +80,6 @@ def TestGroupAddWithOptions():
 
 
 def _TestGroupModifyISpecs(groupname):
-  std_defaults = constants.IPOLICY_DEFAULTS[constants.ISPECS_STD]
-  min_v = std_defaults[constants.ISPEC_MEM_SIZE] * 10
-  max_v = min_v * 10
-
   # Get the ipolicy command (from the cluster config)
   mnode = qa_config.GetMasterNode()
   addcmd = GetCommandOutput(mnode.primary, utils.ShellQuoteArgs([
@@ -103,13 +99,6 @@ def _TestGroupModifyISpecs(groupname):
     "gnt-group", "show-ispecs-cmd", groupname,
     ]))
   AssertEqual(addcmd, new_addcmd)
-
-  AssertCommand(["gnt-group", "modify", "--specs-mem-size",
-                 "min=%s,max=%s,std=0" % (min_v, max_v), groupname], fail=True)
-  AssertCommand(["gnt-group", "modify", "--specs-mem-size",
-                 "min=%s,max=%s" % (min_v, max_v), groupname])
-  AssertCommand(["gnt-group", "modify", "--specs-mem-size",
-                 "min=default,max=default", groupname])
 
 
 def _TestGroupModifyIPolicy(groupname):
