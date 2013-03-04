@@ -30,13 +30,14 @@ module Test.Ganeti.Types
   ( testTypes
   , AllocPolicy(..)
   , DiskTemplate(..)
+  , allDiskTemplates
   , InstanceStatus(..)
   , NonEmpty(..)
   , Hypervisor(..)
   , JobId(..)
   ) where
 
-import Data.List (sort)
+import Data.List (delete, sort)
 import Test.QuickCheck as QuickCheck hiding (Result)
 import Test.HUnit
 import qualified Text.JSON as J
@@ -78,7 +79,22 @@ instance (Arbitrary a) => Arbitrary (Types.NonEmpty a) where
 
 $(genArbitrary ''AllocPolicy)
 
-$(genArbitrary ''DiskTemplate)
+-- | Valid disk templates (depending on configure options).
+allDiskTemplates :: [DiskTemplate]
+allDiskTemplates =
+  let all_vals = [minBound..maxBound]::[DiskTemplate]
+      sel1 = if C.enableFileStorage
+               then all_vals
+               else delete DTFile all_vals
+      sel2 = if C.enableSharedFileStorage
+               then sel1
+               else delete DTSharedFile sel1
+  in sel2
+
+-- | Custom 'Arbitrary' instance for 'DiskTemplate', which needs to
+-- handle the case of file storage being disabled at configure time.
+instance Arbitrary DiskTemplate where
+  arbitrary = elements allDiskTemplates
 
 $(genArbitrary ''InstanceStatus)
 
@@ -96,7 +112,18 @@ $(genArbitrary ''Hypervisor)
 
 $(genArbitrary ''OobCommand)
 
-$(genArbitrary ''StorageType)
+-- | Valid storage types.
+allStorageTypes :: [StorageType]
+allStorageTypes =
+  let all_vals = [minBound..maxBound]::[StorageType]
+  in if C.enableFileStorage
+       then all_vals
+       else delete StorageFile all_vals
+
+-- | Custom 'Arbitrary' instance for 'StorageType', which needs to
+-- handle the case of file storage being disabled at configure time.
+instance Arbitrary StorageType where
+  arbitrary = elements allStorageTypes
 
 $(genArbitrary ''NodeEvacMode)
 
