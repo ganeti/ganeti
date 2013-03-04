@@ -319,7 +319,7 @@ checkGroup verbose gname nl il = do
   putStrLn $ "Selected node group: " ++ gname
 
   let (bad_nodes, bad_instances) = Cluster.computeBadItems nl il
-  unless (verbose == 0) $ printf
+  unless (verbose < 1) $ printf
              "Initial check done: %d bad nodes, %d bad instances.\n"
              (length bad_nodes) (length bad_instances)
 
@@ -399,7 +399,7 @@ main opts args = do
 
   putStr sol_msg
 
-  unless (verbose == 0) $
+  unless (verbose < 1) $
          printf "Solution length=%d\n" (length ord_plc)
 
   let cmd_jobs = Cluster.splitJobs cmd_strs

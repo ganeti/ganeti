@@ -4,7 +4,7 @@
 
 {-
 
-Copyright (C) 2012 Google Inc.
+Copyright (C) 2012, 2013 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -191,7 +191,7 @@ printStats _ True level phase values = do
 printStats verbose False level phase values = do
   let prefix = phaseLevelDescr phase level
       descr = descrData level
-  unless (verbose == 0) $ do
+  unless (verbose < 1) $ do
     putStrLn ""
     putStr prefix
     mapM_ (uncurry (printf "    %s: %s\n")) (zip descr values)
@@ -311,7 +311,7 @@ main opts args = do
       clusterstats = map sum . transpose . map snd $ groupsstats
       needrebalance = clusterNeedsRebalance clusterstats
 
-  unless (verbose == 0 || machineread) .
+  unless (verbose < 1 || machineread) .
     putStrLn $ if nosimulation
                  then "Running in no-simulation mode."
                  else if needrebalance
