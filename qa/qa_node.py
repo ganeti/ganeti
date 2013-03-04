@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2007, 2011, 2012 Google Inc.
+# Copyright (C) 2007, 2011, 2012, 2013 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -112,8 +112,18 @@ def TestNodeStorage():
   master = qa_config.GetMasterNode()
 
   for storage_type in constants.VALID_STORAGE_TYPES:
+
+    cmd = ["gnt-node", "list-storage", "--storage-type", storage_type]
+
+    # Skip file storage if not enabled, otherwise QA will fail; we
+    # just test for basic failure, but otherwise skip the rest of the
+    # tests
+    if storage_type == constants.ST_FILE and not constants.ENABLE_FILE_STORAGE:
+      AssertCommand(cmd, fail=True)
+      continue
+
     # Test simple list
-    AssertCommand(["gnt-node", "list-storage", "--storage-type", storage_type])
+    AssertCommand(cmd)
 
     # Test all storage fields
     cmd = ["gnt-node", "list-storage", "--storage-type", storage_type,
