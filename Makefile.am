@@ -14,6 +14,9 @@ empty :=
 space := $(empty) $(empty)
 comma := ,
 
+# Helper function to strip src/ and test/hs/ from a list
+strip_hsroot = $(patsubst src/%,%,$(patsubst test/hs/%,%,$(1)))
+
 # Use bash in order to be able to use pipefail
 SHELL=/bin/bash
 
@@ -76,6 +79,9 @@ HS_DIRS = \
 	test/hs/Test/Ganeti/HTools/Backend \
 	test/hs/Test/Ganeti/Query
 
+# Haskell directories without the roots (src, test/hs)
+HS_DIRS_NOROOT = $(filter-out src,$(filter-out test/hs,$(HS_DIRS)))
+
 DIRS = \
 	$(HS_DIRS) \
 	autotools \
@@ -114,15 +120,7 @@ DIRS = \
 
 ALL_APIDOC_HS_DIRS = \
 	$(APIDOC_HS_DIR) \
-	$(APIDOC_HS_DIR)/Ganeti \
-	$(APIDOC_HS_DIR)/Ganeti/Block \
-	$(APIDOC_HS_DIR)/Ganeti/Block/Drbd \
-	$(APIDOC_HS_DIR)/Ganeti/Confd \
-	$(APIDOC_HS_DIR)/Ganeti/DataCollectors \
-	$(APIDOC_HS_DIR)/Ganeti/HTools \
-	$(APIDOC_HS_DIR)/Ganeti/HTools/Backend \
-	$(APIDOC_HS_DIR)/Ganeti/HTools/Program \
-	$(APIDOC_HS_DIR)/Ganeti/Query
+	$(patsubst %,$(APIDOC_HS_DIR)/%,$(call strip_hsroot,$(HS_DIRS_NOROOT)))
 
 BUILDTIME_DIR_AUTOCREATE = \
 	scripts \
@@ -590,6 +588,8 @@ HS_BUILT_SRCS = \
 	src/Ganeti/Version.hs
 HS_BUILT_SRCS_IN = $(patsubst %,%.in,$(HS_BUILT_SRCS))
 
+HS_LIBTESTBUILT_SRCS = $(HS_LIBTEST_SRCS) $(HS_BUILT_SRCS)
+
 $(RUN_IN_TEMPDIR): | stamp-directories
 
 doc/html/index.html: ENABLE_MANPAGES =
@@ -747,7 +747,7 @@ install-exec-hook:
 	done
 endif
 
-$(HS_ALL_PROGS): %: %.hs $(HS_LIBTEST_SRCS) $(HS_BUILT_SRCS) Makefile
+$(HS_ALL_PROGS): %: %.hs $(HS_LIBTESTBUILT_SRCS) Makefile
 	@if [ "$(notdir $@)" = "test" ] && [ "$(HS_NODEV)" ]; then \
 	  echo "Error: cannot run unittests without the development" \
 	       " libraries (see devnotes.rst)" 1>&2; \
@@ -1810,7 +1810,9 @@ py-apidoc: epydoc.conf $(RUN_IN_TEMPDIR) $(GENERATED_FILES)
 	  --output $(CURDIR)/$(APIDOC_PY_DIR)
 
 .PHONY: hs-apidoc
-hs-apidoc: $(HS_BUILT_SRCS)
+hs-apidoc: $(APIDOC_HS_DIR)/index.html
+
+$(APIDOC_HS_DIR)/index.html: $(HS_LIBTESTBUILT_SRCS) Makefile
 	@test -n "$(HSCOLOUR)" || \
 	    { echo 'HsColour' not found during configure; exit 1; }
 	@test -n "$(HADDOCK)" || \
@@ -1823,10 +1825,10 @@ hs-apidoc: $(HS_BUILT_SRCS)
 	$(LN_S) ../hscolour.css $(APIDOC_HS_DIR)/Ganeti/HTools/hscolour.css
 	$(LN_S) ../hscolour.css $(APIDOC_HS_DIR)/Ganeti/Confd/hscolour.css
 	set -e ; \
-	cd src; \
+	export LC_ALL=en_US.UTF-8; \
+	OPTGHC="--optghc=-isrc --optghc=-itest/hs"; \
 	if [ "$(HS_NOCURL)" ]; \
-	then OPTGHC="--optghc=$(HS_NOCURL)"; \
-	else OPTGHC=""; \
+	then OPTGHC="$$OPTGHC --optghc=$(HS_NOCURL)"; \
 	fi; \
 	if [ "$(HS_PARALLEL3)" ]; \
 	then OPTGHC="$$OPTGHC --optghc=$(HS_PARALLEL3)"; \
@@ -1834,17 +1836,18 @@ hs-apidoc: $(HS_BUILT_SRCS)
 	if [ "$(HS_REGEX_PCRE)" ]; \
 	then OPTGHC="$$OPTGHC --optghc=$(HS_REGEX_PCRE)"; \
 	fi; \
-	RELSRCS="$(HS_LIB_SRCS:src/%=%) $(patsubst src/%,%,$(filter src/%,$(HS_BUILT_SRCS)))"; \
-	for file in $$RELSRCS; do \
-	  hfile=`echo $$file|sed 's/\\.hs$$//'`.html; \
-	  $(HSCOLOUR) -css -anchor $$file > ../$(APIDOC_HS_DIR)/$$hfile ; \
+	for file in $(HS_LIBTESTBUILT_SRCS); do \
+	  f_nosrc=$${file##src/}; \
+	  f_notst=$${f_nosrc##test/hs/}; \
+	  f_html=$${f_notst%%.hs}.html; \
+	  $(HSCOLOUR) -css -anchor $$file > $(APIDOC_HS_DIR)/$$f_html ; \
 	done ; \
-	$(HADDOCK) --odir ../$(APIDOC_HS_DIR) --html --ignore-all-exports -w \
-	  -t ganeti -p haddock-prologue \
+	$(HADDOCK) --odir $(APIDOC_HS_DIR) --html --ignore-all-exports -w \
+	  -t ganeti -p src/haddock-prologue \
 	  --source-module="%{MODULE/.//}.html" \
 	  --source-entity="%{MODULE/.//}.html#%{NAME}" \
 	  $$OPTGHC \
-	  $(filter-out Ganeti/HTools/ExtLoader.hs,$(HS_LIB_SRCS:src/%=%))
+	  $(HS_LIBTESTBUILT_SRCS)
 
 .PHONY: TAGS
 TAGS: $(GENERATED_FILES)
