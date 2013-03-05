@@ -1820,10 +1820,8 @@ $(APIDOC_HS_DIR)/index.html: $(HS_LIBTESTBUILT_SRCS) Makefile
 	rm -rf $(APIDOC_HS_DIR)/*
 	for i in $(ALL_APIDOC_HS_DIRS); do \
 	  @mkdir_p@ $$i; \
+	  $(HSCOLOUR) -print-css > $$i/hscolour.css; \
 	done
-	$(HSCOLOUR) -print-css > $(APIDOC_HS_DIR)/Ganeti/hscolour.css
-	$(LN_S) ../hscolour.css $(APIDOC_HS_DIR)/Ganeti/HTools/hscolour.css
-	$(LN_S) ../hscolour.css $(APIDOC_HS_DIR)/Ganeti/Confd/hscolour.css
 	set -e ; \
 	export LC_ALL=en_US.UTF-8; \
 	OPTGHC="--optghc=-isrc --optghc=-itest/hs"; \
