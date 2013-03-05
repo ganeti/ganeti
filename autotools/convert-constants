@@ -182,7 +182,7 @@ def FormatDict(all_items, pfx_name, py_name, hs_name, mydict):
 
   # finally generate the output
   kv_pairs = ["(%s, %s)" % (k, v) for k, v in zip(key_v, val_v)]
-  return ["-- | Converted from Python dictionary %s" % py_name,
+  return ["-- | Converted from Python dictionary @%s@" % py_name,
           "%s :: [(%s, %s)]" % (hs_name, key_type, val_type),
           "%s = [%s]" % (hs_name, ", ".join(kv_pairs)),
           ]
@@ -220,7 +220,7 @@ def ConvertVariable(prefix, name, value, all_items):
   elif hs_typeval is not None:
     # this is a simple value
     (hs_type, hs_val) = hs_typeval
-    lines.append("-- | Converted from Python constant %s" % fqn)
+    lines.append("-- | Converted from Python constant @%s@" % fqn)
     lines.append("%s :: %s" % (hs_name, hs_type))
     lines.append("%s = %s" % (hs_name, hs_val))
   elif isinstance(value, dict):
@@ -245,7 +245,7 @@ def ConvertVariable(prefix, name, value, all_items):
     if compat.all(e is not None for e in tvs):
       ttypes = ", ".join(e[0] for e in tvs)
       tvals = FormatListElems(all_items, pfx_name, value, [e[1] for e in tvs])
-      lines.append("-- | Converted from Python tuple %s" % fqn)
+      lines.append("-- | Converted from Python tuple @%s@" % fqn)
       lines.append("%s :: (%s)" % (hs_name, ttypes))
       lines.append("%s = (%s)" % (hs_name, tvals))
     else:
@@ -264,7 +264,7 @@ def ConvertVariable(prefix, name, value, all_items):
       uniq_types = set(ttypes)
       if len(uniq_types) == 1:
         values = FormatListElems(all_items, pfx_name, value, tvals)
-        lines.append("-- | Converted from Python list or set %s" % fqn)
+        lines.append("-- | Converted from Python list or set @%s@" % fqn)
         lines.append("%s :: [%s]" % (hs_name, uniq_types.pop()))
         lines.append("%s = [%s]" % (hs_name, values))
       else:
@@ -274,7 +274,7 @@ def ConvertVariable(prefix, name, value, all_items):
   elif isinstance(value, RE_TYPE):
     tvs = HaskellTypeVal(value.pattern)
     assert tvs is not None
-    lines.append("-- | Converted from Python RE object %s" % fqn)
+    lines.append("-- | Converted from Python RE object @%s@" % fqn)
     lines.append("%s :: %s" % (hs_name, tvs[0]))
     lines.append("%s = %s" % (hs_name, tvs[1]))
   else:
