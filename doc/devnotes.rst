@@ -29,13 +29,15 @@ Note that for pylint, at the current moment the following versions
 must be used::
 
     $ pylint --version
-    pylint 0.21.1,
-    astng 0.20.1, common 0.50.3
+    pylint 0.25.1,
+    astng 0.23.1, common 0.58.0
 
 The same with pep8, other versions may give you errors::
 
      $ pep8 --version
      1.2
+
+Both these versions are the ones shipped with Debian Wheezy.
 
 To generate unittest coverage reports (``make coverage``), `coverage
 <http://pypi.python.org/pypi/coverage>`_ needs to be installed.
@@ -46,9 +48,9 @@ Installation of all dependencies listed here::
      $ apt-get install pandoc python-epydoc graphviz
      $ cd / && sudo easy_install \
                sphinx \
-               logilab-astng==0.20.1 \
-               logilab-common==0.50.3 \
-               pylint==0.21.1 \
+               logilab-astng==0.25.1 \
+               logilab-common==0.58.0 \
+               pylint==0.23.1 \
                pep8==1.2 \
                coverage
 
