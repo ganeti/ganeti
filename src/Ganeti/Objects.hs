@@ -578,7 +578,8 @@ $(buildObject "Cluster" "cluster" $
   , simpleField "highest_used_port"       [t| Int              |]
   , simpleField "tcpudp_port_pool"        [t| [Int]            |]
   , simpleField "mac_prefix"              [t| String           |]
-  , simpleField "volume_group_name"       [t| String           |]
+  , optionalField $
+    simpleField "volume_group_name"       [t| String           |]
   , simpleField "reserved_lvs"            [t| [String]         |]
   , optionalField $
     simpleField "drbd_usermode_helper"    [t| String           |]

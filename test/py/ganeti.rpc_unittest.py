@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2010, 2011, 2012 Google Inc.
+# Copyright (C) 2010, 2011, 2012, 2013 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -887,6 +887,39 @@ class TestRpcRunner(unittest.TestCase):
 
     self.assertTrue(compat.all(disk.params == {} for disk in inst.disks),
                     msg="Configuration objects were modified")
+
+
+class TestLegacyNodeInfo(unittest.TestCase):
+  KEY_BOOT = "bootid"
+  KEY_VG = "disk_free"
+  KEY_HV = "cpu_count"
+  VAL_BOOT = 0
+  VAL_VG = 1
+  VAL_HV = 2
+  DICT_VG = {KEY_VG: VAL_VG}
+  DICT_HV = {KEY_HV: VAL_HV}
+  STD_LST = [VAL_BOOT, [DICT_VG], [DICT_HV]]
+  STD_DICT = {
+    KEY_BOOT: VAL_BOOT,
+    KEY_VG: VAL_VG,
+    KEY_HV: VAL_HV
+    }
+
+  def testStandard(self):
+    result = rpc.MakeLegacyNodeInfo(self.STD_LST)
+    self.assertEqual(result, self.STD_DICT)
+
+  def testReqVg(self):
+    my_lst = [self.VAL_BOOT, [], [self.DICT_HV]]
+    self.assertRaises(ValueError, rpc.MakeLegacyNodeInfo, my_lst)
+
+  def testNoReqVg(self):
+    my_lst = [self.VAL_BOOT, [], [self.DICT_HV]]
+    result = rpc.MakeLegacyNodeInfo(my_lst, require_vg_info = False)
+    self.assertEqual(result, {self.KEY_BOOT: self.VAL_BOOT,
+                              self.KEY_HV: self.VAL_HV})
+    result = rpc.MakeLegacyNodeInfo(self.STD_LST, require_vg_info = False)
+    self.assertEqual(result, self.STD_DICT)
 
 
 if __name__ == "__main__":

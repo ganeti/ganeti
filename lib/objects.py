@@ -2027,7 +2027,7 @@ class Network(TaggableObject):
     result = {
       "%sNETWORK_NAME" % prefix: self.name,
       "%sNETWORK_UUID" % prefix: self.uuid,
-      "%sNETWORK_TAGS" % prefix: " ".join(self.tags),
+      "%sNETWORK_TAGS" % prefix: " ".join(self.GetTags()),
     }
     if self.network:
       result["%sNETWORK_SUBNET" % prefix] = self.network

@@ -6,7 +6,7 @@
 
 {-
 
-Copyright (C) 2009, 2010, 2011, 2012 Google Inc.
+Copyright (C) 2009, 2010, 2011, 2012, 2013 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -25,7 +25,15 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 -}
 
-module Test.Ganeti.TestHTools where
+module Test.Ganeti.TestHTools
+  ( nullIPolicy
+  , defGroup
+  , defGroupList
+  , defGroupAssoc
+  , createInstance
+  , makeSmallCluster
+  , setInstanceSmallerThanNode
+  ) where
 
 import qualified Data.Map as Map
 
@@ -71,14 +79,17 @@ nullIPolicy = Types.IPolicy
   , Types.iPolicySpindleRatio = maxSpindleRatio
   }
 
+-- | Default group definition.
 defGroup :: Group.Group
 defGroup = flip Group.setIdx 0 $
              Group.create "default" Types.defaultGroupID Types.AllocPreferred
                   nullIPolicy []
 
+-- | Default group, as a (singleton) 'Group.List'.
 defGroupList :: Group.List
 defGroupList = Container.fromList [(Group.idx defGroup, defGroup)]
 
+-- | Default group, as a string map.
 defGroupAssoc :: Map.Map String Types.Gdx
 defGroupAssoc = Map.singleton (Group.uuid defGroup) (Group.idx defGroup)
 

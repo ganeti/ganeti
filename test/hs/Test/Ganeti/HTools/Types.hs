@@ -7,7 +7,7 @@
 
 {-
 
-Copyright (C) 2009, 2010, 2011, 2012 Google Inc.
+Copyright (C) 2009, 2010, 2011, 2012, 2013 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -46,7 +46,7 @@ import Data.List (sort)
 import Test.Ganeti.TestHelper
 import Test.Ganeti.TestCommon
 import Test.Ganeti.TestHTools
-import Test.Ganeti.Types ()
+import Test.Ganeti.Types (allDiskTemplates)
 
 import Ganeti.BasicTypes
 import qualified Ganeti.Constants as C
@@ -55,10 +55,6 @@ import qualified Ganeti.HTools.Types as Types
 {-# ANN module "HLint: ignore Use camelCase" #-}
 
 -- * Helpers
-
--- | All disk templates (used later)
-allDiskTemplates :: [Types.DiskTemplate]
-allDiskTemplates = [minBound..maxBound]
 
 -- * Arbitrary instance
 

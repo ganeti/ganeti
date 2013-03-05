@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2011, 2012 Google Inc.
+# Copyright (C) 2011, 2012, 2013 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -87,6 +87,8 @@ def HaskellTypeVal(value):
   """
   if isinstance(value, basestring):
     return ("String", "\"%s\"" % StringValueRules(value))
+  elif isinstance(value, bool):
+    return ("Bool", "%s" % value)
   elif isinstance(value, int):
     return ("Int", "%d" % value)
   elif isinstance(value, long):

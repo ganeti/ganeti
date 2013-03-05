@@ -431,7 +431,14 @@ class IAllocator(object):
       node_whitelist = None
 
     es_flags = rpc.GetExclusiveStorageForNodeNames(cfg, node_list)
-    node_data = self.rpc.call_node_info(node_list, [cfg.GetVGName()],
+    vg_name = cfg.GetVGName()
+    if vg_name is not None:
+      has_lvm = True
+      vg_req = [vg_name]
+    else:
+      has_lvm = False
+      vg_req = []
+    node_data = self.rpc.call_node_info(node_list, vg_req,
                                         [hypervisor_name], es_flags)
     node_iinfo = \
       self.rpc.call_all_instances_info(node_list,
@@ -441,7 +448,7 @@ class IAllocator(object):
 
     config_ndata = self._ComputeBasicNodeData(cfg, ninfo, node_whitelist)
     data["nodes"] = self._ComputeDynamicNodeData(ninfo, node_data, node_iinfo,
-                                                 i_list, config_ndata)
+                                                 i_list, config_ndata, has_lvm)
     assert len(data["nodes"]) == len(ninfo), \
         "Incomplete node data computed"
 
@@ -494,7 +501,7 @@ class IAllocator(object):
 
   @staticmethod
   def _ComputeDynamicNodeData(node_cfg, node_data, node_iinfo, i_list,
-                              node_results):
+                              node_results, has_lvm):
     """Compute global node data.
 
     @param node_results: the basic node structures as filled from the config
@@ -511,17 +518,22 @@ class IAllocator(object):
         nresult.Raise("Can't get data for node %s" % nname)
         node_iinfo[nname].Raise("Can't get node instance info from node %s" %
                                 nname)
-        remote_info = rpc.MakeLegacyNodeInfo(nresult.payload)
+        remote_info = rpc.MakeLegacyNodeInfo(nresult.payload,
+                                             require_vg_info=has_lvm)
 
-        for attr in ["memory_total", "memory_free", "memory_dom0",
-                     "vg_size", "vg_free", "cpu_total"]:
+        def get_attr(attr):
           if attr not in remote_info:
             raise errors.OpExecError("Node '%s' didn't return attribute"
                                      " '%s'" % (nname, attr))
-          if not isinstance(remote_info[attr], int):
+          value = remote_info[attr]
+          if not isinstance(value, int):
             raise errors.OpExecError("Node '%s' returned invalid value"
                                      " for '%s': %s" %
-                                     (nname, attr, remote_info[attr]))
+                                     (nname, attr, value))
+          return value
+
+        mem_free = get_attr("memory_free")
+
         # compute memory used by primary instances
         i_p_mem = i_p_up_mem = 0
         for iinfo, beinfo in i_list:
@@ -532,19 +544,27 @@ class IAllocator(object):
             else:
               i_used_mem = int(node_iinfo[nname].payload[iinfo.name]["memory"])
             i_mem_diff = beinfo[constants.BE_MAXMEM] - i_used_mem
-            remote_info["memory_free"] -= max(0, i_mem_diff)
+            mem_free -= max(0, i_mem_diff)
 
             if iinfo.admin_state == constants.ADMINST_UP:
               i_p_up_mem += beinfo[constants.BE_MAXMEM]
 
+        # TODO: replace this with proper storage reporting
+        if has_lvm:
+          total_disk = get_attr("vg_size")
+          free_disk = get_attr("vg_free")
+        else:
+          # we didn't even ask the node for VG status, so use zeros
+          total_disk = free_disk = 0
+
         # compute memory used by instances
         pnr_dyn = {
-          "total_memory": remote_info["memory_total"],
-          "reserved_memory": remote_info["memory_dom0"],
-          "free_memory": remote_info["memory_free"],
-          "total_disk": remote_info["vg_size"],
-          "free_disk": remote_info["vg_free"],
-          "total_cpus": remote_info["cpu_total"],
+          "total_memory": get_attr("memory_total"),
+          "reserved_memory": get_attr("memory_dom0"),
+          "free_memory": mem_free,
+          "total_disk": total_disk,
+          "free_disk": free_disk,
+          "total_cpus": get_attr("cpu_total"),
           "i_pri_memory": i_p_mem,
           "i_pri_up_memory": i_p_up_mem,
           }

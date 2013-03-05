@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2011, 2012 Google Inc.
+# Copyright (C) 2011, 2012, 2013 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -39,6 +39,9 @@ RELEASED_RE = re.compile(r"^\*\(Released (?P<day>[A-Z][a-z]{2}),"
                          r" (?P<date>.+)\)\*$")
 UNRELEASED_RE = re.compile(r"^\*\(unreleased\)\*$")
 VERSION_RE = re.compile(r"^Version \d+(\.\d+)+( (beta|rc)\d+)?$")
+
+#: How many days release timestamps may be in the future
+TIMESTAMP_FUTURE_DAYS_MAX = 3
 
 errors = []
 
@@ -115,6 +118,13 @@ def main():
       # would return an inconsistent result if the weekday is incorrect.
       parsed_ts = time.mktime(time.strptime(m.group("date"), "%d %b %Y"))
       parsed = datetime.date.fromtimestamp(parsed_ts)
+      today = datetime.date.today()
+
+      if (parsed - datetime.timedelta(TIMESTAMP_FUTURE_DAYS_MAX)) > today:
+        Error("Line %s: %s is more than %s days in the future (today is %s)" %
+              (fileinput.filelineno(), parsed, TIMESTAMP_FUTURE_DAYS_MAX,
+               today))
+
       weekday = parsed.strftime("%a")
 
       # Check weekday

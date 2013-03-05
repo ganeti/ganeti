@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -571,18 +571,25 @@ def _EncodeBlockdevRename(value):
   return [(d.ToDict(), uid) for d, uid in value]
 
 
-def MakeLegacyNodeInfo(data):
+def MakeLegacyNodeInfo(data, require_vg_info=True):
   """Formats the data returned by L{rpc.RpcRunner.call_node_info}.
 
   Converts the data into a single dictionary. This is fine for most use cases,
   but some require information from more than one volume group or hypervisor.
 
-  """
-  (bootid, (vg_info, ), (hv_info, )) = data
+  @param require_vg_info: raise an error if the returnd vg_info
+      doesn't have any values
 
-  return utils.JoinDisjointDicts(utils.JoinDisjointDicts(vg_info, hv_info), {
-    "bootid": bootid,
-    })
+  """
+  (bootid, vgs_info, (hv_info, )) = data
+
+  ret = utils.JoinDisjointDicts(hv_info, {"bootid": bootid})
+
+  if require_vg_info or vgs_info:
+    (vg0_info, ) = vgs_info
+    ret = utils.JoinDisjointDicts(vg0_info, ret)
+
+  return ret
 
 
 def _AnnotateDParamsDRBD(disk, (drbd_params, data_params, meta_params)):

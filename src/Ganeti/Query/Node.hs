@@ -31,6 +31,7 @@ module Ganeti.Query.Node
 
 import Control.Applicative
 import Data.List
+import Data.Maybe
 import qualified Data.Map as Map
 import qualified Text.JSON as J
 
@@ -109,7 +110,7 @@ nodeLiveFieldBuilder (fname, ftitle, ftype, _, fdoc) =
   , FieldRuntime $ nodeLiveRpcCall fname
   , QffNormal)
 
--- | The docstring for the node role. Note that we use 'reverse in
+-- | The docstring for the node role. Note that we use 'reverse' in
 -- order to keep the same order as Python.
 nodeRoleDoc :: String
 nodeRoleDoc =
@@ -221,7 +222,7 @@ collectLiveData:: Bool -> ConfigData -> [Node] -> IO [(Node, Runtime)]
 collectLiveData False _ nodes =
   return $ zip nodes (repeat $ Left (RpcResultError "Live data disabled"))
 collectLiveData True cfg nodes = do
-  let vgs = [clusterVolumeGroupName $ configCluster cfg]
+  let vgs = maybeToList . clusterVolumeGroupName $ configCluster cfg
       hvs = [getDefaultHypervisor cfg]
       step n (bn, gn, em) =
         let ndp' = getNodeNdParams cfg n

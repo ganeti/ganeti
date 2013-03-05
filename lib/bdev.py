@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2010, 2011, 2012 Google Inc.
+# Copyright (C) 2006, 2007, 2010, 2011, 2012, 2013 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -255,7 +255,7 @@ class BlockDev(object):
       an attached instance (lvcreate)
     - attaching of a python instance to an existing (real) device
 
-  The second point, the attachement to a device, is different
+  The second point, the attachment to a device, is different
   depending on whether the device is assembled or not. At init() time,
   we search for a device with the same unique_id as us. If found,
   good. It also means that the device is already assembled. If not,
