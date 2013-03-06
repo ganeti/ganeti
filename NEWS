@@ -87,6 +87,10 @@ Version 2.7.0 beta1
 - Instance renames of LVM-based instances will now update the LV tags
   (which can be used to recover the instance-to-LV mapping in case of
   emergencies)
+- ``hbal`` will now exit with status 0 if, during job execution over
+  LUXI, early exit has been requested and all jobs are successful;
+  before, exit status 1 was used, which cannot be differentiated from
+  "job error" case
 
 
 Version 2.6.2
