@@ -563,12 +563,13 @@ def check_unit(option, opt, value): # pylint: disable=W0613
     raise OptionValueError("option %s: %s" % (opt, err))
 
 
-def _SplitKeyVal(opt, data):
+def _SplitKeyVal(opt, data, parse_prefixes):
   """Convert a KeyVal string into a dict.
 
   This function will convert a key=val[,...] string into a dict. Empty
   values will be converted specially: keys which have the prefix 'no_'
-  will have the value=False and the prefix stripped, the others will
+  will have the value=False and the prefix stripped, keys with the prefix
+  "-" will have value=None and the prefix stripped, and the others will
   have value=True.
 
   @type opt: string
@@ -576,6 +577,8 @@ def _SplitKeyVal(opt, data):
       data, used in building error messages
   @type data: string
   @param data: a string of the format key=val,key=val,...
+  @type parse_prefixes: bool
+  @param parse_prefixes: whether to handle prefixes specially
   @rtype: dict
   @return: {key=val, key=val}
   @raises errors.ParameterError: if there are duplicate keys
@@ -586,18 +589,58 @@ def _SplitKeyVal(opt, data):
     for elem in utils.UnescapeAndSplit(data, sep=","):
       if "=" in elem:
         key, val = elem.split("=", 1)
-      else:
+      elif parse_prefixes:
         if elem.startswith(NO_PREFIX):
           key, val = elem[len(NO_PREFIX):], False
         elif elem.startswith(UN_PREFIX):
           key, val = elem[len(UN_PREFIX):], None
         else:
           key, val = elem, True
+      else:
+        raise errors.ParameterError("Missing value for key '%s' in option %s" %
+                                    (elem, opt))
       if key in kv_dict:
         raise errors.ParameterError("Duplicate key '%s' in option %s" %
                                     (key, opt))
       kv_dict[key] = val
   return kv_dict
+
+
+def _SplitIdentKeyVal(opt, value, parse_prefixes):
+  """Helper function to parse "ident:key=val,key=val" options.
+
+  @type opt: string
+  @param opt: option name, used in error messages
+  @type value: string
+  @param value: expected to be in the format "ident:key=val,key=val,..."
+  @type parse_prefixes: bool
+  @param parse_prefixes: whether to handle prefixes specially (see
+      L{_SplitKeyVal})
+  @rtype: tuple
+  @return: (ident, {key=val, key=val})
+  @raises errors.ParameterError: in case of duplicates or other parsing errors
+
+  """
+  if ":" not in value:
+    ident, rest = value, ""
+  else:
+    ident, rest = value.split(":", 1)
+
+  if parse_prefixes and ident.startswith(NO_PREFIX):
+    if rest:
+      msg = "Cannot pass options when removing parameter groups: %s" % value
+      raise errors.ParameterError(msg)
+    retval = (ident[len(NO_PREFIX):], False)
+  elif (parse_prefixes and ident.startswith(UN_PREFIX) and
+        (len(ident) <= len(UN_PREFIX) or not ident[len(UN_PREFIX)].isdigit())):
+    if rest:
+      msg = "Cannot pass options when removing parameter groups: %s" % value
+      raise errors.ParameterError(msg)
+    retval = (ident[len(UN_PREFIX):], None)
+  else:
+    kv_dict = _SplitKeyVal(opt, rest, parse_prefixes)
+    retval = (ident, kv_dict)
+  return retval
 
 
 def check_ident_key_val(option, opt, value):  # pylint: disable=W0613
@@ -607,27 +650,7 @@ def check_ident_key_val(option, opt, value):  # pylint: disable=W0613
   multiple uses of this option via action=append is possible.
 
   """
-  if ":" not in value:
-    ident, rest = value, ""
-  else:
-    ident, rest = value.split(":", 1)
-
-  if ident.startswith(NO_PREFIX):
-    if rest:
-      msg = "Cannot pass options when removing parameter groups: %s" % value
-      raise errors.ParameterError(msg)
-    retval = (ident[len(NO_PREFIX):], False)
-  elif (ident.startswith(UN_PREFIX) and
-        (len(ident) <= len(UN_PREFIX) or
-         not ident[len(UN_PREFIX)][0].isdigit())):
-    if rest:
-      msg = "Cannot pass options when removing parameter groups: %s" % value
-      raise errors.ParameterError(msg)
-    retval = (ident[len(UN_PREFIX):], None)
-  else:
-    kv_dict = _SplitKeyVal(opt, rest)
-    retval = (ident, kv_dict)
-  return retval
+  return _SplitIdentKeyVal(opt, value, True)
 
 
 def check_key_val(option, opt, value):  # pylint: disable=W0613
@@ -636,7 +659,31 @@ def check_key_val(option, opt, value):  # pylint: disable=W0613
   This will store the parsed values as a dict {key: val}.
 
   """
-  return _SplitKeyVal(opt, value)
+  return _SplitKeyVal(opt, value, True)
+
+
+def _SplitListKeyVal(opt, value):
+  retval = {}
+  for elem in value.split("/"):
+    if not elem:
+      raise errors.ParameterError("Empty section in option '%s'" % opt)
+    (ident, valdict) = _SplitIdentKeyVal(opt, elem, False)
+    if ident in retval:
+      msg = ("Duplicated parameter '%s' in parsing %s: %s" %
+             (ident, opt, elem))
+      raise errors.ParameterError(msg)
+    retval[ident] = valdict
+  return retval
+
+
+def check_list_ident_key_val(_, opt, value):
+  """Custom parser for "ident:key=val,key=val/ident:key=val" options.
+
+  @rtype: list of dictionary
+  @return: {ident: {key: val, key: val}, ident: {key: val}}
+
+  """
+  return _SplitListKeyVal(opt, value)
 
 
 def check_bool(option, opt, value): # pylint: disable=W0613
@@ -711,6 +758,7 @@ class CliOption(Option):
     "completion_suggest",
     ]
   TYPES = Option.TYPES + (
+    "listidentkeyval",
     "identkeyval",
     "keyval",
     "unit",
@@ -719,6 +767,7 @@ class CliOption(Option):
     "maybefloat",
     )
   TYPE_CHECKER = Option.TYPE_CHECKER.copy()
+  TYPE_CHECKER["listidentkeyval"] = check_list_ident_key_val
   TYPE_CHECKER["identkeyval"] = check_ident_key_val
   TYPE_CHECKER["keyval"] = check_key_val
   TYPE_CHECKER["unit"] = check_unit

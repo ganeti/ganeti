@@ -71,20 +71,22 @@ class TestSplitKeyVal(unittest.TestCase):
   """Testing case for cli._SplitKeyVal"""
   DATA = "a=b,c,no_d,-e"
   RESULT = {"a": "b", "c": True, "d": False, "e": None}
+  RESULT_NOPREFIX = {"a": "b", "c": {}, "no_d": {}, "-e": {}}
 
   def testSplitKeyVal(self):
     """Test splitting"""
-    self.failUnlessEqual(cli._SplitKeyVal("option", self.DATA), self.RESULT)
+    self.failUnlessEqual(cli._SplitKeyVal("option", self.DATA, True),
+                         self.RESULT)
 
   def testDuplicateParam(self):
     """Test duplicate parameters"""
     for data in ("a=1,a=2", "a,no_a"):
       self.failUnlessRaises(ParameterError, cli._SplitKeyVal,
-                            "option", data)
+                            "option", data, True)
 
   def testEmptyData(self):
     """Test how we handle splitting an empty string"""
-    self.failUnlessEqual(cli._SplitKeyVal("option", ""), {})
+    self.failUnlessEqual(cli._SplitKeyVal("option", "", True), {})
 
 
 class TestIdentKeyVal(unittest.TestCase):
@@ -101,6 +103,7 @@ class TestIdentKeyVal(unittest.TestCase):
     self.assertEqual(cikv("no_bar"), ("bar", False))
     self.assertRaises(ParameterError, cikv, "no_bar:foo")
     self.assertRaises(ParameterError, cikv, "no_bar:foo=baz")
+    self.assertRaises(ParameterError, cikv, "bar:foo=baz,foo=baz")
     self.assertEqual(cikv("-foo"), ("foo", None))
     self.assertRaises(ParameterError, cikv, "-foo:a=c")
 
@@ -114,6 +117,60 @@ class TestIdentKeyVal(unittest.TestCase):
       }))
     for i in ["-:", "-"]:
       self.assertEqual(cikv(i), ("", None))
+
+  @staticmethod
+  def _csikv(value):
+    return cli._SplitIdentKeyVal("opt", value, False)
+
+  def testIdentKeyValNoPrefix(self):
+    """Test identkeyval without prefixes"""
+    test_cases = [
+      ("foo:bar", None),
+      ("foo:no_bar", None),
+      ("foo:bar=baz,bar=baz", None),
+      ("foo",
+       ("foo", {})),
+      ("foo:bar=baz",
+       ("foo", {"bar": "baz"})),
+      ("no_foo:-1=baz,no_op=3",
+       ("no_foo", {"-1": "baz", "no_op": "3"})),
+      ]
+    for (arg, res) in test_cases:
+      if res is None:
+        self.assertRaises(ParameterError, self._csikv, arg)
+      else:
+        self.assertEqual(self._csikv(arg), res)
+
+
+class TestListIdentKeyVal(unittest.TestCase):
+  """Test for cli.check_list_ident_key_val()"""
+
+  @staticmethod
+  def _clikv(value):
+    return cli.check_list_ident_key_val("option", "opt", value)
+
+  def testListIdentKeyVal(self):
+    test_cases = [
+      ("",
+       None),
+      ("foo",
+       {"foo": {}}),
+      ("foo:bar=baz",
+       {"foo": {"bar": "baz"}}),
+      ("foo:bar=baz/foo:bat=bad",
+       None),
+      ("foo:abc=42/bar:def=11",
+       {"foo": {"abc": "42"},
+        "bar": {"def": "11"}}),
+      ("foo:abc=42/bar:def=11,ghi=07",
+       {"foo": {"abc": "42"},
+        "bar": {"def": "11", "ghi": "07"}}),
+      ]
+    for (arg, res) in test_cases:
+      if res is None:
+        self.assertRaises(ParameterError, self._clikv, arg)
+      else:
+        self.assertEqual(res, self._clikv(arg))
 
 
 class TestToStream(unittest.TestCase):
