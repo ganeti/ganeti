@@ -1293,7 +1293,7 @@ man/%.gen: man/%.rst lib/query.py lib/build/sphinx_ext.py \
 man/%.7.in man/%.8.in man/%.1.in: man/%.gen man/footer.rst
 	@test -n "$(PANDOC)" || \
 	  { echo 'pandoc' not found during configure; exit 1; }
-	set -o pipefail ; \
+	set -o pipefail -e; \
 	trap 'echo auto-removing $@; rm $@' EXIT; \
 	$(PANDOC) -s -f rst -t man $< man/footer.rst | \
 	  sed -e 's/\\@/@/g' > $@; \

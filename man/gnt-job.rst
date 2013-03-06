@@ -53,7 +53,7 @@ respective state, ``--pending`` includes both.
 CHANGE-PRIORITY
 ~~~~~~~~~~~~~~~
 
-| **change-priority** --priority {low | normal | high}
+| **change-priority** \--priority {low | normal | high}
 | {[\--force] {\--pending | \--queued | \--waiting} | *job-id* ...}
 
 Changes the priority of one or multiple pending jobs. Jobs currently

@@ -26,13 +26,13 @@ ADD
 ~~~
 
 | **add**
-| [--network=*NETWORK*]
-| [--gateway=*GATEWAY*]
-| [--add-reserved-ips=*RESERVEDIPS*]
-| [--network6=*NETWORK6*]
-| [--gateway6=*GATEWAY6*]
-| [--mac-prefix=*MACPREFIX*]
-| [--submit]
+| [\--network=*NETWORK*]
+| [\--gateway=*GATEWAY*]
+| [\--add-reserved-ips=*RESERVEDIPS*]
+| [\--network6=*NETWORK6*]
+| [\--gateway6=*GATEWAY6*]
+| [\--mac-prefix=*MACPREFIX*]
+| [\--submit]
 | {*network*}
 
 Creates a new network with the given name. The network will be unused
@@ -62,13 +62,13 @@ MODIFY
 ~~~~~~
 
 | **modify**
-| [--gateway=*GATEWAY*]
-| [--add-reserved-ips=*RESERVEDIPS*]
-| [--remove-reserved-ips=*RESERVEDIPS*]
-| [--network6=*NETWORK6*]
-| [--gateway6=*GATEWAY6*]
-| [--mac-prefix=*MACPREFIX*]
-| [--submit]
+| [\--gateway=*GATEWAY*]
+| [\--add-reserved-ips=*RESERVEDIPS*]
+| [\--remove-reserved-ips=*RESERVEDIPS*]
+| [\--network6=*NETWORK6*]
+| [\--gateway6=*GATEWAY6*]
+| [\--mac-prefix=*MACPREFIX*]
+| [\--submit]
 | {*network*}
 
 Modifies parameters from the network.
@@ -83,7 +83,7 @@ options.
 REMOVE
 ~~~~~~
 
-| **remove** [--submit] {*network*}
+| **remove** [\--submit] {*network*}
 
 Deletes the indicated network, which must be not connected to any node group.
 
@@ -92,7 +92,7 @@ See **ganeti**\(7) for a description of ``--submit`` and other common options.
 LIST
 ~~~~
 
-| **list** [--no-headers] [--separator=*SEPARATOR*] [-v]
+| **list** [\--no-headers] [\--separator=*SEPARATOR*] [-v]
 | [-o *[+]FIELD,...*] [network...]
 
 Lists all existing networks in the cluster. If no group names are given,

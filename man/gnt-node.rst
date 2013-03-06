@@ -585,7 +585,7 @@ annotated in the command line output.
 RESTRICTED-COMMAND
 ~~~~~~~~~~~~~~~~~~
 
-| **restricted-command** [-M] [--sync]
+| **restricted-command** [-M] [\--sync]
 | { -g *group* *command* | *command* *nodes*... }
 
 Executes a restricted command on the specified nodes. Restricted commands are
