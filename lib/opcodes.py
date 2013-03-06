@@ -192,7 +192,7 @@ _PReason = \
              ht.TElemOf(constants.INSTANCE_REASON_SOURCES),
              ht.TMaybeString,
            ])),
-   "The reason why the reboot is happening")
+   "The reason why the state of the instance is changing")
 
 #: OP_ID conversion regular expression
 _OPID_RE = re.compile("([a-z])([A-Z])")
