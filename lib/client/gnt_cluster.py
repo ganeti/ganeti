@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2010, 2011, 2012 Google Inc.
+# Copyright (C) 2006, 2007, 2010, 2011, 2012, 2013 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -144,7 +144,7 @@ def InitCluster(opts, args):
     utils.ForceDictType(diskparams[templ], constants.DISK_DT_TYPES)
 
   # prepare ipolicy dict
-  ipolicy_raw = CreateIPolicyFromOpts(
+  ipolicy = CreateIPolicyFromOpts(
     ispecs_mem_size=opts.ispecs_mem_size,
     ispecs_cpu_count=opts.ispecs_cpu_count,
     ispecs_disk_count=opts.ispecs_disk_count,
@@ -154,7 +154,6 @@ def InitCluster(opts, args):
     ipolicy_vcpu_ratio=opts.ipolicy_vcpu_ratio,
     ipolicy_spindle_ratio=opts.ipolicy_spindle_ratio,
     fill_all=True)
-  ipolicy = objects.FillIPolicy(constants.IPOLICY_DEFAULTS, ipolicy_raw)
 
   if opts.candidate_pool_size is None:
     opts.candidate_pool_size = constants.MASTER_POOL_SIZE_DEFAULT

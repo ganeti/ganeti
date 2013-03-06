@@ -3739,16 +3739,6 @@ def CreateIPolicyFromOpts(ispecs_mem_size=None,
     for key, val in specs.items(): # {min: .. ,max: .., std: ..}
       ipolicy_out[key][name] = val
 
-  # no filldict for non-dicts
-  if not group_ipolicy and fill_all:
-    if ipolicy_disk_templates is None:
-      ipolicy_disk_templates = constants.DISK_TEMPLATES
-    if ipolicy_vcpu_ratio is None:
-      ipolicy_vcpu_ratio = \
-        constants.IPOLICY_DEFAULTS[constants.IPOLICY_VCPU_RATIO]
-    if ipolicy_spindle_ratio is None:
-      ipolicy_spindle_ratio = \
-        constants.IPOLICY_DEFAULTS[constants.IPOLICY_SPINDLE_RATIO]
   if ipolicy_disk_templates is not None:
     ipolicy_out[constants.IPOLICY_DTS] = list(ipolicy_disk_templates)
   if ipolicy_vcpu_ratio is not None:
@@ -3757,6 +3747,9 @@ def CreateIPolicyFromOpts(ispecs_mem_size=None,
     ipolicy_out[constants.IPOLICY_SPINDLE_RATIO] = ipolicy_spindle_ratio
 
   assert not (frozenset(ipolicy_out.keys()) - constants.IPOLICY_ALL_KEYS)
+
+  if not group_ipolicy and fill_all:
+    ipolicy_out = objects.FillIPolicy(constants.IPOLICY_DEFAULTS, ipolicy_out)
 
   return ipolicy_out
 
