@@ -10765,25 +10765,6 @@ class LUInstanceCreate(LogicalUnit):
 
     nodenames = [pnode.name] + self.secondaries
 
-    # Verify instance specs
-    spindle_use = self.be_full.get(constants.BE_SPINDLE_USE, None)
-    ispec = {
-      constants.ISPEC_MEM_SIZE: self.be_full.get(constants.BE_MAXMEM, None),
-      constants.ISPEC_CPU_COUNT: self.be_full.get(constants.BE_VCPUS, None),
-      constants.ISPEC_DISK_COUNT: len(self.disks),
-      constants.ISPEC_DISK_SIZE: [disk["size"] for disk in self.disks],
-      constants.ISPEC_NIC_COUNT: len(self.nics),
-      constants.ISPEC_SPINDLE_USE: spindle_use,
-      }
-
-    group_info = self.cfg.GetNodeGroup(pnode.group)
-    ipolicy = ganeti.masterd.instance.CalculateGroupIPolicy(cluster, group_info)
-    res = _ComputeIPolicyInstanceSpecViolation(ipolicy, ispec)
-    if not self.op.ignore_ipolicy and res:
-      msg = ("Instance allocation to group %s (%s) violates policy: %s" %
-             (pnode.group, group_info.name, utils.CommaJoin(res)))
-      raise errors.OpPrereqError(msg, errors.ECODE_INVAL)
-
     if not self.adopt_disks:
       if self.op.disk_template == constants.DT_RBD:
         # _CheckRADOSFreeSpace() is just a placeholder.
@@ -10884,10 +10865,9 @@ class LUInstanceCreate(LogicalUnit):
     ipolicy = ganeti.masterd.instance.CalculateGroupIPolicy(cluster, group_info)
     res = _ComputeIPolicyInstanceSpecViolation(ipolicy, ispec)
     if not self.op.ignore_ipolicy and res:
-      raise errors.OpPrereqError(("Instance allocation to group %s violates"
-                                  " policy: %s") % (pnode.group,
-                                                    utils.CommaJoin(res)),
-                                  errors.ECODE_INVAL)
+      msg = ("Instance allocation to group %s (%s) violates policy: %s" %
+             (pnode.group, group_info.name, utils.CommaJoin(res)))
+      raise errors.OpPrereqError(msg, errors.ECODE_INVAL)
 
     _CheckHVParams(self, nodenames, self.op.hypervisor, self.op.hvparams)
 
