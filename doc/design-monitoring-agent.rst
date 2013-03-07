@@ -197,8 +197,9 @@ in its ``data`` section, at least the following field:
     A message to better explain the reason of the status.
     The exact format of the message string is data collector dependent.
 
-    The field is mandatory, but the content can be ``null`` if the code is
-    ``0`` (working as intended) or ``1`` (being fixed automatically).
+    The field is mandatory, but the content can be an empty string if the
+    ``code`` is ``0`` (working as intended) or ``1`` (being fixed
+    automatically).
 
     If the status code is ``2``, the message should specify what has gone
     wrong.
