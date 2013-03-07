@@ -743,6 +743,14 @@ class _StubComputeIPolicySpecViolation:
     return []
 
 
+class _FakeConfigForComputeIPolicyInstanceViolation:
+  def __init__(self, be):
+    self.cluster = objects.Cluster(beparams={"default": be})
+
+  def GetClusterInfo(self):
+    return self.cluster
+
+
 class TestComputeIPolicyInstanceViolation(unittest.TestCase):
   def test(self):
     beparams = {
@@ -751,12 +759,18 @@ class TestComputeIPolicyInstanceViolation(unittest.TestCase):
       constants.BE_SPINDLE_USE: 4,
       }
     disks = [objects.Disk(size=512)]
+    cfg = _FakeConfigForComputeIPolicyInstanceViolation(beparams)
     instance = objects.Instance(beparams=beparams, disks=disks, nics=[],
                                 disk_template=constants.DT_PLAIN)
     stub = _StubComputeIPolicySpecViolation(2048, 2, 1, 0, [512], 4,
                                             constants.DT_PLAIN)
     ret = cmdlib._ComputeIPolicyInstanceViolation(NotImplemented, instance,
-                                                  _compute_fn=stub)
+                                                  cfg, _compute_fn=stub)
+    self.assertEqual(ret, [])
+    instance2 = objects.Instance(beparams={}, disks=disks, nics=[],
+                                 disk_template=constants.DT_PLAIN)
+    ret = cmdlib._ComputeIPolicyInstanceViolation(NotImplemented, instance2,
+                                                  cfg, _compute_fn=stub)
     self.assertEqual(ret, [])
 
 
@@ -794,14 +808,14 @@ class TestComputeIPolicyNodeViolation(unittest.TestCase):
 
   def testSameGroup(self):
     ret = cmdlib._ComputeIPolicyNodeViolation(NotImplemented, NotImplemented,
-                                              "foo", "foo",
+                                              "foo", "foo", NotImplemented,
                                               _compute_fn=self.recorder)
     self.assertFalse(self.recorder.called)
     self.assertEqual(ret, [])
 
   def testDifferentGroup(self):
     ret = cmdlib._ComputeIPolicyNodeViolation(NotImplemented, NotImplemented,
-                                              "foo", "bar",
+                                              "foo", "bar", NotImplemented,
                                               _compute_fn=self.recorder)
     self.assertTrue(self.recorder.called)
     self.assertEqual(ret, [])
@@ -826,7 +840,7 @@ class TestCheckTargetNodeIPolicy(unittest.TestCase):
   def testNoViolation(self):
     compute_recoder = _CallRecorder(return_value=[])
     cmdlib._CheckTargetNodeIPolicy(self.lu, NotImplemented, self.instance,
-                                   self.target_node,
+                                   self.target_node, NotImplemented,
                                    _compute_fn=compute_recoder)
     self.assertTrue(compute_recoder.called)
     self.assertEqual(self.lu.warning_log, [])
@@ -835,15 +849,15 @@ class TestCheckTargetNodeIPolicy(unittest.TestCase):
     compute_recoder = _CallRecorder(return_value=["mem_size not in range"])
     self.assertRaises(errors.OpPrereqError, cmdlib._CheckTargetNodeIPolicy,
                       self.lu, NotImplemented, self.instance, self.target_node,
-                      _compute_fn=compute_recoder)
+                      NotImplemented, _compute_fn=compute_recoder)
     self.assertTrue(compute_recoder.called)
     self.assertEqual(self.lu.warning_log, [])
 
   def testIgnoreViolation(self):
     compute_recoder = _CallRecorder(return_value=["mem_size not in range"])
     cmdlib._CheckTargetNodeIPolicy(self.lu, NotImplemented, self.instance,
-                                   self.target_node, ignore=True,
-                                   _compute_fn=compute_recoder)
+                                   self.target_node, NotImplemented,
+                                   ignore=True, _compute_fn=compute_recoder)
     self.assertTrue(compute_recoder.called)
     msg = ("Instance does not meet target node group's (bar) instance policy:"
            " mem_size not in range")

@@ -1278,7 +1278,7 @@ def _ComputeIPolicySpecViolation(ipolicy, mem_size, cpu_count, disk_count,
                        for (name, qualifier, value) in test_settings))
 
 
-def _ComputeIPolicyInstanceViolation(ipolicy, instance,
+def _ComputeIPolicyInstanceViolation(ipolicy, instance, cfg,
                                      _compute_fn=_ComputeIPolicySpecViolation):
   """Compute if instance meets the specs of ipolicy.
 
@@ -1286,13 +1286,16 @@ def _ComputeIPolicyInstanceViolation(ipolicy, instance,
   @param ipolicy: The ipolicy to verify against
   @type instance: L{objects.Instance}
   @param instance: The instance to verify
+  @type cfg: L{config.ConfigWriter}
+  @param cfg: Cluster configuration
   @param _compute_fn: The function to verify ipolicy (unittest only)
   @see: L{_ComputeIPolicySpecViolation}
 
   """
-  mem_size = instance.beparams.get(constants.BE_MAXMEM, None)
-  cpu_count = instance.beparams.get(constants.BE_VCPUS, None)
-  spindle_use = instance.beparams.get(constants.BE_SPINDLE_USE, None)
+  be_full = cfg.GetClusterInfo().FillBE(instance)
+  mem_size = be_full[constants.BE_MAXMEM]
+  cpu_count = be_full[constants.BE_VCPUS]
+  spindle_use = be_full[constants.BE_SPINDLE_USE]
   disk_count = len(instance.disks)
   disk_sizes = [disk.size for disk in instance.disks]
   nic_count = len(instance.nics)
@@ -1329,7 +1332,7 @@ def _ComputeIPolicyInstanceSpecViolation(
 
 
 def _ComputeIPolicyNodeViolation(ipolicy, instance, current_group,
-                                 target_group,
+                                 target_group, cfg,
                                  _compute_fn=_ComputeIPolicyInstanceViolation):
   """Compute if instance meets the specs of the new target group.
 
@@ -1337,6 +1340,8 @@ def _ComputeIPolicyNodeViolation(ipolicy, instance, current_group,
   @param instance: The instance object to verify
   @param current_group: The current group of the instance
   @param target_group: The new group of the instance
+  @type cfg: L{config.ConfigWriter}
+  @param cfg: Cluster configuration
   @param _compute_fn: The function to verify ipolicy (unittest only)
   @see: L{_ComputeIPolicySpecViolation}
 
@@ -1344,23 +1349,25 @@ def _ComputeIPolicyNodeViolation(ipolicy, instance, current_group,
   if current_group == target_group:
     return []
   else:
-    return _compute_fn(ipolicy, instance)
+    return _compute_fn(ipolicy, instance, cfg)
 
 
-def _CheckTargetNodeIPolicy(lu, ipolicy, instance, node, ignore=False,
+def _CheckTargetNodeIPolicy(lu, ipolicy, instance, node, cfg, ignore=False,
                             _compute_fn=_ComputeIPolicyNodeViolation):
   """Checks that the target node is correct in terms of instance policy.
 
   @param ipolicy: The ipolicy to verify
   @param instance: The instance object to verify
   @param node: The new node to relocate
+  @type cfg: L{config.ConfigWriter}
+  @param cfg: Cluster configuration
   @param ignore: Ignore violations of the ipolicy
   @param _compute_fn: The function to verify ipolicy (unittest only)
   @see: L{_ComputeIPolicySpecViolation}
 
   """
   primary_node = lu.cfg.GetNodeInfo(instance.primary_node)
-  res = _compute_fn(ipolicy, instance, primary_node.group, node.group)
+  res = _compute_fn(ipolicy, instance, primary_node.group, node.group, cfg)
 
   if res:
     msg = ("Instance does not meet target node group's (%s) instance"
@@ -1371,18 +1378,20 @@ def _CheckTargetNodeIPolicy(lu, ipolicy, instance, node, ignore=False,
       raise errors.OpPrereqError(msg, errors.ECODE_INVAL)
 
 
-def _ComputeNewInstanceViolations(old_ipolicy, new_ipolicy, instances):
+def _ComputeNewInstanceViolations(old_ipolicy, new_ipolicy, instances, cfg):
   """Computes a set of any instances that would violate the new ipolicy.
 
   @param old_ipolicy: The current (still in-place) ipolicy
   @param new_ipolicy: The new (to become) ipolicy
   @param instances: List of instances to verify
+  @type cfg: L{config.ConfigWriter}
+  @param cfg: Cluster configuration
   @return: A list of instances which violates the new ipolicy but
       did not before
 
   """
-  return (_ComputeViolatingInstances(new_ipolicy, instances) -
-          _ComputeViolatingInstances(old_ipolicy, instances))
+  return (_ComputeViolatingInstances(new_ipolicy, instances, cfg) -
+          _ComputeViolatingInstances(old_ipolicy, instances, cfg))
 
 
 def _ExpandItemName(fn, name, kind):
@@ -1661,17 +1670,19 @@ def _DecideSelfPromotion(lu, exceptions=None):
   return mc_now < mc_should
 
 
-def _ComputeViolatingInstances(ipolicy, instances):
+def _ComputeViolatingInstances(ipolicy, instances, cfg):
   """Computes a set of instances who violates given ipolicy.
 
   @param ipolicy: The ipolicy to verify
-  @type instances: object.Instance
+  @type instances: L{objects.Instance}
   @param instances: List of instances to verify
+  @type cfg: L{config.ConfigWriter}
+  @param cfg: Cluster configuration
   @return: A frozenset of instance names violating the ipolicy
 
   """
   return frozenset([inst.name for inst in instances
-                    if _ComputeIPolicyInstanceViolation(ipolicy, inst)])
+                    if _ComputeIPolicyInstanceViolation(ipolicy, inst, cfg)])
 
 
 def _CheckNicsBridgesExist(lu, target_nics, target_node):
@@ -2640,7 +2651,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     cluster = self.cfg.GetClusterInfo()
     ipolicy = ganeti.masterd.instance.CalculateGroupIPolicy(cluster,
                                                             self.group_info)
-    err = _ComputeIPolicyInstanceViolation(ipolicy, inst_config)
+    err = _ComputeIPolicyInstanceViolation(ipolicy, inst_config, self.cfg)
     _ErrorIf(err, constants.CV_EINSTANCEPOLICY, instance, utils.CommaJoin(err),
              code=self.ETYPE_WARNING)
 
@@ -4280,7 +4291,7 @@ class LUClusterSetParams(LogicalUnit):
         new_ipolicy = objects.FillIPolicy(self.new_ipolicy, group.ipolicy)
         ipol = ganeti.masterd.instance.CalculateGroupIPolicy(cluster, group)
         new = _ComputeNewInstanceViolations(ipol,
-                                            new_ipolicy, instances)
+                                            new_ipolicy, instances, self.cfg)
         if new:
           violations.update(new)
 
@@ -8401,7 +8412,7 @@ class LUInstanceMove(LogicalUnit):
     cluster = self.cfg.GetClusterInfo()
     group_info = self.cfg.GetNodeGroup(node.group)
     ipolicy = ganeti.masterd.instance.CalculateGroupIPolicy(cluster, group_info)
-    _CheckTargetNodeIPolicy(self, ipolicy, instance, node,
+    _CheckTargetNodeIPolicy(self, ipolicy, instance, node, self.cfg,
                             ignore=self.op.ignore_ipolicy)
 
     if instance.admin_state == constants.ADMINST_UP:
@@ -8676,7 +8687,7 @@ class TLMigrateInstance(Tasklet):
       group_info = self.cfg.GetNodeGroup(nodeinfo.group)
       ipolicy = ganeti.masterd.instance.CalculateGroupIPolicy(cluster,
                                                               group_info)
-      _CheckTargetNodeIPolicy(self.lu, ipolicy, instance, nodeinfo,
+      _CheckTargetNodeIPolicy(self.lu, ipolicy, instance, nodeinfo, self.cfg,
                               ignore=self.ignore_ipolicy)
 
       # self.target_node is already populated, either directly or by the
@@ -8720,7 +8731,7 @@ class TLMigrateInstance(Tasklet):
       group_info = self.cfg.GetNodeGroup(nodeinfo.group)
       ipolicy = ganeti.masterd.instance.CalculateGroupIPolicy(cluster,
                                                               group_info)
-      _CheckTargetNodeIPolicy(self.lu, ipolicy, instance, nodeinfo,
+      _CheckTargetNodeIPolicy(self.lu, ipolicy, instance, nodeinfo, self.cfg,
                               ignore=self.ignore_ipolicy)
 
     i_be = cluster.FillBE(instance)
@@ -11729,7 +11740,7 @@ class TLReplaceDisks(Tasklet):
       ipolicy = ganeti.masterd.instance.CalculateGroupIPolicy(cluster,
                                                               new_group_info)
       _CheckTargetNodeIPolicy(self, ipolicy, instance, self.remote_node_info,
-                              ignore=self.ignore_ipolicy)
+                              self.cfg, ignore=self.ignore_ipolicy)
 
     for node in check_nodes:
       _CheckNodeOnline(self.lu, node)
@@ -13577,7 +13588,7 @@ class LUInstanceSetParams(LogicalUnit):
       snode_group = self.cfg.GetNodeGroup(snode_info.group)
       ipolicy = ganeti.masterd.instance.CalculateGroupIPolicy(cluster,
                                                               snode_group)
-      _CheckTargetNodeIPolicy(self, ipolicy, instance, snode_info,
+      _CheckTargetNodeIPolicy(self, ipolicy, instance, snode_info, self.cfg,
                               ignore=self.op.ignore_ipolicy)
       if pnode_info.group != snode_info.group:
         self.LogWarning("The primary and secondary nodes are in two"
@@ -15349,7 +15360,7 @@ class LUGroupSetParams(LogicalUnit):
       violations = \
           _ComputeNewInstanceViolations(gmi.CalculateGroupIPolicy(cluster,
                                                                   self.group),
-                                        new_ipolicy, instances)
+                                        new_ipolicy, instances, self.cfg)
 
       if violations:
         self.LogWarning("After the ipolicy change the following instances"
