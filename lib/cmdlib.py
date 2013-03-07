@@ -1231,6 +1231,7 @@ def _ComputeMinMaxSpec(name, qualifier, ipolicy, value):
 
 def _ComputeIPolicySpecViolation(ipolicy, mem_size, cpu_count, disk_count,
                                  nic_count, disk_sizes, spindle_use,
+                                 disk_template,
                                  _compute_fn=_ComputeMinMaxSpec):
   """Verifies ipolicy against provided specs.
 
@@ -1248,6 +1249,8 @@ def _ComputeIPolicySpecViolation(ipolicy, mem_size, cpu_count, disk_count,
   @param disk_sizes: Disk sizes of used disk (len must match C{disk_count})
   @type spindle_use: int
   @param spindle_use: The number of spindles this instance uses
+  @type disk_template: string
+  @param disk_template: The disk template of the instance
   @param _compute_fn: The compute function (unittest only)
   @return: A list of violations, or an empty list of no violations are found
 
@@ -1257,15 +1260,22 @@ def _ComputeIPolicySpecViolation(ipolicy, mem_size, cpu_count, disk_count,
   test_settings = [
     (constants.ISPEC_MEM_SIZE, "", mem_size),
     (constants.ISPEC_CPU_COUNT, "", cpu_count),
-    (constants.ISPEC_DISK_COUNT, "", disk_count),
     (constants.ISPEC_NIC_COUNT, "", nic_count),
     (constants.ISPEC_SPINDLE_USE, "", spindle_use),
     ] + [(constants.ISPEC_DISK_SIZE, str(idx), d)
          for idx, d in enumerate(disk_sizes)]
+  if disk_template != constants.DT_DISKLESS:
+    # This check doesn't make sense for diskless instances
+    test_settings.append((constants.ISPEC_DISK_COUNT, "", disk_count))
+  ret = []
+  allowed_dts = ipolicy[constants.IPOLICY_DTS]
+  if disk_template not in allowed_dts:
+    ret.append("Disk template %s is not allowed (allowed templates: %s)" %
+               (disk_template, utils.CommaJoin(allowed_dts)))
 
-  return filter(None,
-                (_compute_fn(name, qualifier, ipolicy, value)
-                 for (name, qualifier, value) in test_settings))
+  return ret + filter(None,
+                      (_compute_fn(name, qualifier, ipolicy, value)
+                       for (name, qualifier, value) in test_settings))
 
 
 def _ComputeIPolicyInstanceViolation(ipolicy, instance,
@@ -1286,19 +1296,23 @@ def _ComputeIPolicyInstanceViolation(ipolicy, instance,
   disk_count = len(instance.disks)
   disk_sizes = [disk.size for disk in instance.disks]
   nic_count = len(instance.nics)
+  disk_template = instance.disk_template
 
   return _compute_fn(ipolicy, mem_size, cpu_count, disk_count, nic_count,
-                     disk_sizes, spindle_use)
+                     disk_sizes, spindle_use, disk_template)
 
 
 def _ComputeIPolicyInstanceSpecViolation(
-  ipolicy, instance_spec, _compute_fn=_ComputeIPolicySpecViolation):
+  ipolicy, instance_spec, disk_template,
+  _compute_fn=_ComputeIPolicySpecViolation):
   """Compute if instance specs meets the specs of ipolicy.
 
   @type ipolicy: dict
   @param ipolicy: The ipolicy to verify against
   @param instance_spec: dict
   @param instance_spec: The instance spec to verify
+  @type disk_template: string
+  @param disk_template: the disk template of the instance
   @param _compute_fn: The function to verify ipolicy (unittest only)
   @see: L{_ComputeIPolicySpecViolation}
 
@@ -1311,7 +1325,7 @@ def _ComputeIPolicyInstanceSpecViolation(
   spindle_use = instance_spec.get(constants.ISPEC_SPINDLE_USE, None)
 
   return _compute_fn(ipolicy, mem_size, cpu_count, disk_count, nic_count,
-                     disk_sizes, spindle_use)
+                     disk_sizes, spindle_use, disk_template)
 
 
 def _ComputeIPolicyNodeViolation(ipolicy, instance, current_group,
@@ -10863,7 +10877,8 @@ class LUInstanceCreate(LogicalUnit):
 
     group_info = self.cfg.GetNodeGroup(pnode.group)
     ipolicy = ganeti.masterd.instance.CalculateGroupIPolicy(cluster, group_info)
-    res = _ComputeIPolicyInstanceSpecViolation(ipolicy, ispec)
+    res = _ComputeIPolicyInstanceSpecViolation(ipolicy, ispec,
+                                               self.op.disk_template)
     if not self.op.ignore_ipolicy and res:
       msg = ("Instance allocation to group %s (%s) violates policy: %s" %
              (pnode.group, group_info.name, utils.CommaJoin(res)))
@@ -13889,14 +13904,20 @@ class LUInstanceSetParams(LogicalUnit):
                                                          None)
 
       # Copy ispec to verify parameters with min/max values separately
+      if self.op.disk_template:
+        new_disk_template = self.op.disk_template
+      else:
+        new_disk_template = instance.disk_template
       ispec_max = ispec.copy()
       ispec_max[constants.ISPEC_MEM_SIZE] = \
         self.be_new.get(constants.BE_MAXMEM, None)
-      res_max = _ComputeIPolicyInstanceSpecViolation(ipolicy, ispec_max)
+      res_max = _ComputeIPolicyInstanceSpecViolation(ipolicy, ispec_max,
+                                                     new_disk_template)
       ispec_min = ispec.copy()
       ispec_min[constants.ISPEC_MEM_SIZE] = \
         self.be_new.get(constants.BE_MINMEM, None)
-      res_min = _ComputeIPolicyInstanceSpecViolation(ipolicy, ispec_min)
+      res_min = _ComputeIPolicyInstanceSpecViolation(ipolicy, ispec_min,
+                                                     new_disk_template)
 
       if (res_max or res_min):
         # FIXME: Improve error message by including information about whether

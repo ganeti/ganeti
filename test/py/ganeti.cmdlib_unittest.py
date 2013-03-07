@@ -654,6 +654,13 @@ def _ValidateComputeMinMaxSpec(name, *_):
   return None
 
 
+def _NoDiskComputeMinMaxSpec(name, *_):
+  if name == constants.ISPEC_DISK_COUNT:
+    return name
+  else:
+    return None
+
+
 class _SpecWrapper:
   def __init__(self, spec):
     self.spec = spec
@@ -663,43 +670,75 @@ class _SpecWrapper:
 
 
 class TestComputeIPolicySpecViolation(unittest.TestCase):
+  # Minimal policy accepted by _ComputeIPolicySpecViolation()
+  _MICRO_IPOL = {
+    constants.IPOLICY_DTS: [constants.DT_PLAIN, constants.DT_DISKLESS],
+    }
+
   def test(self):
     compute_fn = _ValidateComputeMinMaxSpec
-    ret = cmdlib._ComputeIPolicySpecViolation(NotImplemented, 1024, 1, 1, 1,
-                                              [1024], 1, _compute_fn=compute_fn)
+    ret = cmdlib._ComputeIPolicySpecViolation(self._MICRO_IPOL, 1024, 1, 1, 1,
+                                              [1024], 1, constants.DT_PLAIN,
+                                              _compute_fn=compute_fn)
     self.assertEqual(ret, [])
+
+  def testDiskFull(self):
+    compute_fn = _NoDiskComputeMinMaxSpec
+    ret = cmdlib._ComputeIPolicySpecViolation(self._MICRO_IPOL, 1024, 1, 1, 1,
+                                              [1024], 1, constants.DT_PLAIN,
+                                              _compute_fn=compute_fn)
+    self.assertEqual(ret, [constants.ISPEC_DISK_COUNT])
+
+  def testDiskLess(self):
+    compute_fn = _NoDiskComputeMinMaxSpec
+    ret = cmdlib._ComputeIPolicySpecViolation(self._MICRO_IPOL, 1024, 1, 1, 1,
+                                              [1024], 1, constants.DT_DISKLESS,
+                                              _compute_fn=compute_fn)
+    self.assertEqual(ret, [])
+
+  def testWrongTemplates(self):
+    compute_fn = _ValidateComputeMinMaxSpec
+    ret = cmdlib._ComputeIPolicySpecViolation(self._MICRO_IPOL, 1024, 1, 1, 1,
+                                              [1024], 1, constants.DT_DRBD8,
+                                              _compute_fn=compute_fn)
+    self.assertEqual(len(ret), 1)
+    self.assertTrue("Disk template" in ret[0])
 
   def testInvalidArguments(self):
     self.assertRaises(AssertionError, cmdlib._ComputeIPolicySpecViolation,
-                      NotImplemented, 1024, 1, 1, 1, [], 1)
+                      self._MICRO_IPOL, 1024, 1, 1, 1, [], 1,
+                      constants.DT_PLAIN,)
 
   def testInvalidSpec(self):
     spec = _SpecWrapper([None, False, "foo", None, "bar", None])
     compute_fn = spec.ComputeMinMaxSpec
-    ret = cmdlib._ComputeIPolicySpecViolation(NotImplemented, 1024, 1, 1, 1,
-                                              [1024], 1, _compute_fn=compute_fn)
+    ret = cmdlib._ComputeIPolicySpecViolation(self._MICRO_IPOL, 1024, 1, 1, 1,
+                                              [1024], 1, constants.DT_PLAIN,
+                                              _compute_fn=compute_fn)
     self.assertEqual(ret, ["foo", "bar"])
     self.assertFalse(spec.spec)
 
 
 class _StubComputeIPolicySpecViolation:
   def __init__(self, mem_size, cpu_count, disk_count, nic_count, disk_sizes,
-               spindle_use):
+               spindle_use, disk_template):
     self.mem_size = mem_size
     self.cpu_count = cpu_count
     self.disk_count = disk_count
     self.nic_count = nic_count
     self.disk_sizes = disk_sizes
     self.spindle_use = spindle_use
+    self.disk_template = disk_template
 
   def __call__(self, _, mem_size, cpu_count, disk_count, nic_count, disk_sizes,
-               spindle_use):
+               spindle_use, disk_template):
     assert self.mem_size == mem_size
     assert self.cpu_count == cpu_count
     assert self.disk_count == disk_count
     assert self.nic_count == nic_count
     assert self.disk_sizes == disk_sizes
     assert self.spindle_use == spindle_use
+    assert self.disk_template == disk_template
 
     return []
 
@@ -712,8 +751,10 @@ class TestComputeIPolicyInstanceViolation(unittest.TestCase):
       constants.BE_SPINDLE_USE: 4,
       }
     disks = [objects.Disk(size=512)]
-    instance = objects.Instance(beparams=beparams, disks=disks, nics=[])
-    stub = _StubComputeIPolicySpecViolation(2048, 2, 1, 0, [512], 4)
+    instance = objects.Instance(beparams=beparams, disks=disks, nics=[],
+                                disk_template=constants.DT_PLAIN)
+    stub = _StubComputeIPolicySpecViolation(2048, 2, 1, 0, [512], 4,
+                                            constants.DT_PLAIN)
     ret = cmdlib._ComputeIPolicyInstanceViolation(NotImplemented, instance,
                                                   _compute_fn=stub)
     self.assertEqual(ret, [])
@@ -729,8 +770,10 @@ class TestComputeIPolicyInstanceSpecViolation(unittest.TestCase):
       constants.ISPEC_NIC_COUNT: 0,
       constants.ISPEC_SPINDLE_USE: 1,
       }
-    stub = _StubComputeIPolicySpecViolation(2048, 2, 1, 0, [512], 1)
+    stub = _StubComputeIPolicySpecViolation(2048, 2, 1, 0, [512], 1,
+                                            constants.DT_PLAIN)
     ret = cmdlib._ComputeIPolicyInstanceSpecViolation(NotImplemented, ispec,
+                                                      constants.DT_PLAIN,
                                                       _compute_fn=stub)
     self.assertEqual(ret, [])
 
