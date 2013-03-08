@@ -157,12 +157,14 @@ NODED = "ganeti-noded"
 CONFD = "ganeti-confd"
 RAPI = "ganeti-rapi"
 MASTERD = "ganeti-masterd"
+MOND = "ganeti-mond"
 
 DAEMONS = compat.UniqueFrozenset([
   NODED,
   CONFD,
   RAPI,
   MASTERD,
+  MOND,
   ])
 
 DAEMONS_PORTS = {
@@ -172,6 +174,7 @@ DAEMONS_PORTS = {
   RAPI: ("tcp", 5080),
   SSH: ("tcp", 22),
 }
+
 DEFAULT_NODED_PORT = DAEMONS_PORTS[NODED][1]
 DEFAULT_CONFD_PORT = DAEMONS_PORTS[CONFD][1]
 DEFAULT_RAPI_PORT = DAEMONS_PORTS[RAPI][1]
@@ -184,6 +187,7 @@ DAEMONS_LOGBASE = {
   CONFD: "conf-daemon",
   RAPI: "rapi-daemon",
   MASTERD: "master-daemon",
+  MOND: "monitoring-daemon",
   }
 
 DAEMONS_LOGFILES = \
@@ -191,6 +195,8 @@ DAEMONS_LOGFILES = \
          for daemon in DAEMONS_LOGBASE)
 
 # Some daemons might require more than one logfile.
+# Specifically, right now only the Haskell http library "snap", used by the
+# monitoring daemon, requires multiple log files.
 
 # These are the only valid reasons for having an extra logfile
 EXTRA_LOGREASON_ACCESS = "access"
@@ -202,7 +208,12 @@ VALID_EXTRA_LOGREASONS = compat.UniqueFrozenset([
   ])
 
 # These are the extra logfiles, grouped by daemon
-DAEMONS_EXTRA_LOGBASE = {}
+DAEMONS_EXTRA_LOGBASE = {
+  MOND: {
+    EXTRA_LOGREASON_ACCESS: "monitoring-daemon-access",
+    EXTRA_LOGREASON_ERROR: "monitoring-daemon-error",
+    }
+  }
 
 DAEMONS_EXTRA_LOGFILES = \
   dict((daemon, dict((extra,

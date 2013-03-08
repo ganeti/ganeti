@@ -83,13 +83,16 @@ case_UsersGroups = do
               \         constants.NODED_USER,\n\
               \         constants.RAPI_USER,\n\
               \         constants.CONFD_USER,\n\
+              \         constants.MOND_USER,\n\
               \        ]\n\
               \groups = [constants.MASTERD_GROUP,\n\
               \          constants.NODED_GROUP,\n\
               \          constants.RAPI_GROUP,\n\
               \          constants.CONFD_GROUP,\n\
+              \          constants.MOND_GROUP,\n\
               \          constants.DAEMONS_GROUP,\n\
-              \          constants.ADMIN_GROUP]\n\
+              \          constants.ADMIN_GROUP,\n\
+              \         ]\n\
               \encoded = (users, groups)\n\
               \print serializer.Dump(encoded)" ""
     >>= checkPythonResult

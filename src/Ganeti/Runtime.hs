@@ -56,6 +56,7 @@ data GanetiDaemon = GanetiMasterd
                   | GanetiNoded
                   | GanetiRapi
                   | GanetiConfd
+                  | GanetiMond
                     deriving (Show, Enum, Bounded, Eq, Ord)
 
 data MiscGroup = DaemonsGroup
@@ -74,6 +75,7 @@ daemonName GanetiMasterd = C.masterd
 daemonName GanetiNoded   = C.noded
 daemonName GanetiRapi    = C.rapi
 daemonName GanetiConfd   = C.confd
+daemonName GanetiMond    = C.mond
 
 -- | Returns the log file base for a daemon.
 daemonLogBase :: GanetiDaemon -> String
@@ -81,6 +83,7 @@ daemonLogBase GanetiMasterd = C.daemonsLogbaseGanetiMasterd
 daemonLogBase GanetiNoded   = C.daemonsLogbaseGanetiNoded
 daemonLogBase GanetiRapi    = C.daemonsLogbaseGanetiRapi
 daemonLogBase GanetiConfd   = C.daemonsLogbaseGanetiConfd
+daemonLogBase GanetiMond    = C.daemonsLogbaseGanetiMond
 
 -- | Returns the configured user name for a daemon.
 daemonUser :: GanetiDaemon -> String
@@ -88,6 +91,7 @@ daemonUser GanetiMasterd = C.masterdUser
 daemonUser GanetiNoded   = C.nodedUser
 daemonUser GanetiRapi    = C.rapiUser
 daemonUser GanetiConfd   = C.confdUser
+daemonUser GanetiMond    = C.mondUser
 
 -- | Returns the configured group for a daemon.
 daemonGroup :: GanetiGroup -> String
@@ -95,6 +99,7 @@ daemonGroup (DaemonGroup GanetiMasterd) = C.masterdGroup
 daemonGroup (DaemonGroup GanetiNoded)   = C.nodedGroup
 daemonGroup (DaemonGroup GanetiRapi)    = C.rapiGroup
 daemonGroup (DaemonGroup GanetiConfd)   = C.confdGroup
+daemonGroup (DaemonGroup GanetiMond)    = C.mondGroup
 daemonGroup (ExtraGroup  DaemonsGroup)  = C.daemonsGroup
 daemonGroup (ExtraGroup  AdminGroup)    = C.adminGroup
 
