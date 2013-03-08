@@ -31,7 +31,13 @@ module Ganeti.Monitoring.Server
   , prepMain
   ) where
 
+import Snap.Core
+import Snap.Http.Server
+import Data.Text
+import qualified Text.JSON as J
+
 import Ganeti.Daemon
+import qualified Ganeti.Constants as C
 
 -- * Types and constants definitions
 
@@ -39,7 +45,22 @@ import Ganeti.Daemon
 type CheckResult = ()
 
 -- | Type alias for prepMain results.
-type PrepResult = ()
+type PrepResult = Config Snap ()
+
+-- | Version of the latest supported http API.
+latestAPIVersion :: Int
+latestAPIVersion = 1
+
+-- * Configuration handling
+
+-- | The default configuration for the HTTP server.
+defaultHttpConf :: Config Snap ()
+defaultHttpConf =
+  setAccessLog (ConfigFileLog C.daemonsExtraLogfilesGanetiMondAccess) .
+  setCompression False .
+  setErrorLog (ConfigFileLog C.daemonsExtraLogfilesGanetiMondError) $
+  setVerbose False
+  emptyConfig
 
 -- * Helper functions
 
@@ -49,9 +70,25 @@ checkMain _ = return $ Right ()
 
 -- | Prepare function for monitoring agent.
 prepMain :: PrepFn CheckResult PrepResult
-prepMain _ _ = return ()
+prepMain opts _ =
+  return $
+    setPort (maybe C.defaultMondPort fromIntegral (optPort opts))
+      defaultHttpConf
+
+-- * Query answers
+
+-- | Reply to the supported API version numbers query.
+versionQ :: Snap ()
+versionQ = writeText . pack $ J.encode [latestAPIVersion]
+
+-- | The function implementing the HTTP API of the monitoring agent.
+-- TODO: Currently it only replies to the API version query: implement all the
+-- missing features.
+monitoringApi :: Snap ()
+monitoringApi =
+  ifTop versionQ
 
 -- | Main function.
 main :: MainFn CheckResult PrepResult
-main _ _ _ =
-  return ()
+main _ _ httpConf =
+  httpServe httpConf monitoringApi
