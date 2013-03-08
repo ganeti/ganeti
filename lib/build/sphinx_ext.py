@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2011, 2012 Google Inc.
+# Copyright (C) 2011, 2012, 2013 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -168,15 +168,15 @@ def _BuildOpcodeParams(op_id, include, exclude, alias):
     has_test = not (test is None or test is ht.NoType)
 
     buf = StringIO()
-    buf.write("``%s``" % rapi_name)
+    buf.write("``%s``" % (rapi_name,))
     if has_default or has_test:
       buf.write(" (")
       if has_default:
-        buf.write("defaults to ``%s``" % default)
+        buf.write("defaults to ``%s``" % (default,))
         if has_test:
           buf.write(", ")
       if has_test:
-        buf.write("must be ``%s``" % test)
+        buf.write("must be ``%s``" % (test,))
       buf.write(")")
     yield buf.getvalue()
 
@@ -335,8 +335,8 @@ def BuildValuesDoc(values):
   """
   for name, doc in values:
     assert len(doc.splitlines()) == 1
-    yield "``%s``" % name
-    yield "  %s" % doc
+    yield "``%s``" % (name,)
+    yield "  %s" % (doc,)
 
 
 def _ManPageNodeClass(*args, **kwargs):

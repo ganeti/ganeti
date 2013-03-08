@@ -400,16 +400,18 @@ in two ways:
 
 - by sending a ``SIGINT`` (``^C``), hbal will register the termination
   request, and will wait until the currently submitted jobs finish, at
-  which point it will exit (with exit code 1)
+  which point it will exit (with exit code 0 if all jobs finished
+  correctly, otherwise with exit code 1 as usual)
+
 - by sending a ``SIGTERM``, hbal will immediately exit (with exit code
-  2); it is the responsibility of the user to follow up with Ganeti the
-  result of the currently-executing jobs
+  2\); it is the responsibility of the user to follow up with Ganeti
+  and check the result of the currently-executing jobs
 
 Note that in any situation, it's perfectly safe to kill hbal, either via
 the above signals or via any other signal (e.g. ``SIGQUIT``,
 ``SIGKILL``), since the jobs themselves are processed by Ganeti whereas
 hbal (after submission) only watches their progression. In this case,
-the use will again have to query Ganeti for job results.
+the user will have to query Ganeti for job results.
 
 EXIT STATUS
 -----------

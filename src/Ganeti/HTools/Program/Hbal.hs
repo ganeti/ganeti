@@ -186,8 +186,10 @@ execCancelWrapper _    _      _  _  _    [] = return $ Ok ()
 execCancelWrapper anno master nl il cref alljss = do
   cancel <- readIORef cref
   if cancel > 0
-    then return . Bad $ "Exiting early due to user request, " ++
-                        show (length alljss) ++ " jobset(s) remaining."
+    then do
+      putStrLn $ "Exiting early due to user request, " ++
+               show (length alljss) ++ " jobset(s) remaining."
+      return $ Ok ()
     else execJobSet anno master nl il cref alljss
 
 -- | Execute an entire jobset.

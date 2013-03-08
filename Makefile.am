@@ -1317,7 +1317,7 @@ man/%.gen: man/%.rst lib/query.py lib/build/sphinx_ext.py \
 man/%.7.in man/%.8.in man/%.1.in: man/%.gen man/footer.rst
 	@test -n "$(PANDOC)" || \
 	  { echo 'pandoc' not found during configure; exit 1; }
-	set -o pipefail ; \
+	set -o pipefail -e; \
 	trap 'echo auto-removing $@; rm $@' EXIT; \
 	$(PANDOC) -s -f rst -t man $< man/footer.rst | \
 	  sed -e 's/\\@/@/g' > $@; \
@@ -1847,10 +1847,8 @@ $(APIDOC_HS_DIR)/index.html: $(HS_LIBTESTBUILT_SRCS) Makefile
 	rm -rf $(APIDOC_HS_DIR)/*
 	for i in $(ALL_APIDOC_HS_DIRS); do \
 	  @mkdir_p@ $$i; \
+	  $(HSCOLOUR) -print-css > $$i/hscolour.css; \
 	done
-	$(HSCOLOUR) -print-css > $(APIDOC_HS_DIR)/Ganeti/hscolour.css
-	$(LN_S) ../hscolour.css $(APIDOC_HS_DIR)/Ganeti/HTools/hscolour.css
-	$(LN_S) ../hscolour.css $(APIDOC_HS_DIR)/Ganeti/Confd/hscolour.css
 	set -e ; \
 	export LC_ALL=en_US.UTF-8; \
 	OPTGHC="--optghc=-isrc --optghc=-itest/hs"; \
