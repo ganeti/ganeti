@@ -163,8 +163,8 @@ Haskell optional features
 
 Optionally, more functionality can be enabled if your build machine has
 a few more Haskell libraries enabled: the ``ganeti-confd`` daemon
-(``--enable-confd``) and the monitoring agent
-(``--enable-monitoring``). The list of extra dependencies for these is:
+(``--enable-confd``) and the monitoring daemon
+(``--enable-mond``). The list of extra dependencies for these is:
 
 - `hslogger <http://software.complete.org/hslogger>`_, version 1.1 and
   above (note that Debian Squeeze only has version 1.0.9)
@@ -177,20 +177,32 @@ a few more Haskell libraries enabled: the ``ganeti-confd`` daemon
   bindings for the ``pcre`` library
 - `attoparsec <http://hackage.haskell.org/package/attoparsec>`_
 - `vector <http://hackage.haskell.org/package/vector>`_
+- `snap-server` <http://hackage.haskell.org/package/snap-server>`_, version
+  0.8.1 and above.
 
 These libraries are available in Debian Wheezy (but not in Squeeze, with
 the exception of curl), so you can use either apt::
 
   $ apt-get install libghc-hslogger-dev libghc-crypto-dev libghc-text-dev \
                     libghc-hinotify-dev libghc-regex-pcre-dev \
-                    libghc-attoparsec-dev libghc-vector-dev
+                    libghc-attoparsec-dev libghc-vector-dev \
+                    libghc-snap-server-dev
 
 or ``cabal``::
 
   $ cabal install hslogger Crypto text hinotify regex-pcre \
-                  attoparsec vector
+                  attoparsec vector snap-server
 
 to install them.
+
+In case you still use ghc-6.12, note that ``cabal`` would automatically try to
+install newer versions of some of the libraries snap-server depends on, that
+cannot be compiled with ghc-6.12, so you have to install snap-server on its
+own, esplicitly forcing the installation of compatible versions::
+
+  $ cabal install MonadCatchIO-transformers==0.2.2.0 mtl==2.0.1.0 \
+                  hashable==1.1.2.0 case-insensitive==0.3 parsec==3.0.1 \
+                  network==2.3 snap-server==0.8.1
 
 The most recent Fedora doesn't provide ``crypto``, ``inotify``. So these
 need to be installed using ``cabal``, if desired. The other packages can
