@@ -98,6 +98,12 @@ class TestConstants(unittest.TestCase):
     self.assertTrue(constants.DEFAULT_ENABLED_HYPERVISOR in
                     constants.HYPER_TYPES)
 
+  def testExtraLogfiles(self):
+    for daemon in constants.DAEMONS_EXTRA_LOGBASE:
+      self.assertTrue(daemon in constants.DAEMONS)
+      for log_reason in constants.DAEMONS_EXTRA_LOGBASE[daemon]:
+        self.assertTrue(log_reason in constants.VALID_EXTRA_LOGREASONS)
+
 
 class TestExportedNames(unittest.TestCase):
   _VALID_NAME_RE = re.compile(r"^[A-Z][A-Z0-9_]+$")

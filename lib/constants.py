@@ -158,6 +158,13 @@ CONFD = "ganeti-confd"
 RAPI = "ganeti-rapi"
 MASTERD = "ganeti-masterd"
 
+DAEMONS = compat.UniqueFrozenset([
+  NODED,
+  CONFD,
+  RAPI,
+  MASTERD,
+  ])
+
 DAEMONS_PORTS = {
   # daemon-name: ("proto", "default-port")
   NODED: ("tcp", 1811),
@@ -182,6 +189,26 @@ DAEMONS_LOGBASE = {
 DAEMONS_LOGFILES = \
     dict((daemon, pathutils.GetLogFilename(DAEMONS_LOGBASE[daemon]))
          for daemon in DAEMONS_LOGBASE)
+
+# Some daemons might require more than one logfile.
+
+# These are the only valid reasons for having an extra logfile
+EXTRA_LOGREASON_ACCESS = "access"
+EXTRA_LOGREASON_ERROR = "error"
+
+VALID_EXTRA_LOGREASONS = compat.UniqueFrozenset([
+  EXTRA_LOGREASON_ACCESS,
+  EXTRA_LOGREASON_ERROR,
+  ])
+
+# These are the extra logfiles, grouped by daemon
+DAEMONS_EXTRA_LOGBASE = {}
+
+DAEMONS_EXTRA_LOGFILES = \
+  dict((daemon, dict((extra,
+       pathutils.GetLogFilename(DAEMONS_EXTRA_LOGBASE[daemon][extra]))
+       for extra in DAEMONS_EXTRA_LOGBASE[daemon]))
+         for daemon in DAEMONS_EXTRA_LOGBASE)
 
 DEV_CONSOLE = "/dev/console"
 
