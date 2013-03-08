@@ -52,7 +52,7 @@ data Runtime = Runtime
 
 networkFields :: FieldList Network Runtime
 networkFields =
-  [ (FieldDefinition "name" "Name" QFTText "Network name",
+  [ (FieldDefinition "name" "Network" QFTText "Name",
      FieldSimple (rsNormal . networkName), QffNormal)
   , (FieldDefinition "network" "Subnet" QFTText "IPv4 subnet",
      FieldSimple (rsNormal . networkNetwork), QffNormal)
@@ -64,26 +64,28 @@ networkFields =
      FieldSimple (rsMaybeUnavail . networkGateway6), QffNormal)
   , (FieldDefinition "mac_prefix" "MacPrefix" QFTOther "MAC address prefix",
      FieldSimple (rsMaybeUnavail . networkMacPrefix), QffNormal)
-  , (FieldDefinition "free_count" "FreeCount" QFTOther "Number of free IPs",
+  , (FieldDefinition "free_count" "FreeCount" QFTNumber "Number of available\
+                                                       \ addresses",
      FieldSimple (rsMaybeNoData . fmap getFreeCount . createAddressPool),
      QffNormal)
-  , (FieldDefinition "map" "Map" QFTText "Map of the network's reserved IPs",
+  , (FieldDefinition "map" "Map" QFTText "Actual mapping",
      FieldSimple (rsMaybeNoData . fmap getMap . createAddressPool),
      QffNormal)
-  , (FieldDefinition "reserved_count" "ReservedCount" QFTOther
-       "Number of reserved IPs",
+  , (FieldDefinition "reserved_count" "ReservedCount" QFTNumber
+       "Number of reserved addresses",
      FieldSimple (rsMaybeNoData . fmap getReservedCount . createAddressPool),
      QffNormal)
-  , (FieldDefinition "group_list" "GroupList" QFTOther "List of node groups",
+  , (FieldDefinition "group_list" "GroupList" QFTOther
+       "List of nodegroups (group name, NIC mode, NIC link)",
      FieldConfig (\cfg -> rsNormal . getGroupConnections cfg . networkUuid),
      QffNormal)
-  , (FieldDefinition "group_cnt" "GroupCount" QFTOther "Number of node groups",
+  , (FieldDefinition "group_cnt" "NodeGroups" QFTNumber "Number of nodegroups",
      FieldConfig (\cfg -> rsNormal . length . getGroupConnections cfg
        . networkUuid), QffNormal)
   , (FieldDefinition "inst_list" "InstanceList" QFTOther "List of instances",
      FieldConfig (\cfg -> rsNormal . getInstances cfg . networkUuid),
      QffNormal)
-  , (FieldDefinition "inst_cnt" "InstanceCount" QFTOther "Number of instances",
+  , (FieldDefinition "inst_cnt" "Instances" QFTNumber "Number of instances",
      FieldConfig (\cfg -> rsNormal . length . getInstances cfg
        . networkUuid), QffNormal)
   ] ++
