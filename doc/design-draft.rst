@@ -17,6 +17,7 @@ Design document drafts
    design-monitoring-agent.rst
    design-hroller.rst
    design-storagespace.rst
+   design-reason-trail.rst
 
 .. vim: set textwidth=72 :
 .. Local Variables:
