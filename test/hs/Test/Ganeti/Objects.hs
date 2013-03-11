@@ -57,8 +57,6 @@ import Ganeti.Objects as Objects
 import Ganeti.JSON
 import Ganeti.Types
 
-{-# ANN module "HLint: ignore Use camelCase" #-}
-
 -- * Arbitrary instances
 
 $(genArbitrary ''PartialNDParams)
@@ -300,8 +298,8 @@ prop_Config_serialisation =
 -- networks and their Python decoded, validated and re-encoded version.
 -- For the technical background of this unit test, check the documentation
 -- of "case_py_compat_types" of test/hs/Test/Ganeti/Opcodes.hs
-case_py_compat_networks :: HUnit.Assertion
-case_py_compat_networks = do
+casePyCompatNetworks :: HUnit.Assertion
+casePyCompatNetworks = do
   let num_networks = 500::Int
   networks <- genSample (vectorOf num_networks genValidNetwork)
   let networks_with_properties = map getNetworkProperties networks
@@ -349,8 +347,8 @@ getNetworkProperties net =
 
 -- | Tests the compatibility between Haskell-serialized node groups and their
 -- python-decoded and encoded version.
-case_py_compat_nodegroups :: HUnit.Assertion
-case_py_compat_nodegroups = do
+casePyCompatNodegroups :: HUnit.Assertion
+casePyCompatNodegroups = do
   let num_groups = 500::Int
   groups <- genSample (vectorOf num_groups genNodeGroup)
   let serialized = J.encode groups
@@ -417,6 +415,6 @@ testSuite "Objects"
   , 'prop_Network_serialisation
   , 'prop_Node_serialisation
   , 'prop_Config_serialisation
-  , 'case_py_compat_networks
-  , 'case_py_compat_nodegroups
+  , 'casePyCompatNetworks
+  , 'casePyCompatNodegroups
   ]
