@@ -36,6 +36,7 @@ import Ganeti.Objects
 import Ganeti.Query.Language
 import Ganeti.Query.Common
 import Ganeti.Query.Types
+import Ganeti.Utils (niceSort)
 
 -- | There is no runtime.
 data Runtime = Runtime
@@ -77,7 +78,8 @@ groupFields =
      QffNormal)
   , (FieldDefinition "pinst_list" "InstanceList" QFTOther
        "List of primary instances",
-     FieldConfig (\cfg -> rsNormal . map instName . fst .
+     -- FIXME: the niceSort here is not tested
+     FieldConfig (\cfg -> rsNormal . niceSort . map instName . fst .
                           getGroupInstances cfg . groupUuid), QffNormal)
   ] ++
   map buildNdParamField allNDParamFields ++
