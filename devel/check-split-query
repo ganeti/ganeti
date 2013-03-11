@@ -1,0 +1,69 @@
+#!/bin/bash
+
+# Copyright (C) 2013 Google Inc.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+# 02110-1301, USA.
+
+# Checks query equivalence between masterd and confd
+#
+# This is not (currently) run automatically during QA, but you can run
+# it manually on a test cluster. It will force all queries known to be
+# converted via both paths and check the difference, via both 'list'
+# and 'list-fields'. For best results, it should be run on a non-empty
+# cluster.
+#
+# Also note that this is not expected to show 100% perfect matches,
+# since the JSON output differs slightly for complex data types
+# (e.g. dictionaries with different sort order for keys, etc.).
+#
+# Current known delta:
+# - all dicts, sort order
+# - ctime is always defined in Haskell as epoch 0 if missing
+
+MA=`mktemp master.XXXXXX`
+CF=`mktemp confd.XXXXXX`
+trap 'rm -f "$MA" "$CF"' EXIT
+trap 'exit 1' SIGINT
+
+RET=0
+SEP="--separator=,"
+ENABLED_QUERIES="node group network backup"
+
+test_cmd() {
+  cmd="$1"
+  desc="$2"
+  FORCE_LUXI_SOCKET=master $cmd > "$MA"
+  FORCE_LUXI_SOCKET=query  $cmd > "$CF"
+  diff -u "$MA" "$CF" || {
+    echo "Mismatch in $desc, see above."
+    RET=1
+  }
+}
+
+for kind in $ENABLED_QUERIES; do
+  all_fields=$(FORCE_LUXI_SOCKET=master gnt-$kind list-fields \
+    --no-headers --separator=,|cut -d, -f1)
+  comma_fields=$(echo $all_fields|tr ' ' ,|sed -e 's/,$//')
+  for op in list list-fields; do
+    test_cmd "gnt-$kind $op $SEP" "$kind $op"
+  done
+  #test_cmd "gnt-$kind list $SEP -o$comma_fields" "$kind list with all fields"
+  for field in $all_fields; do
+    test_cmd "gnt-$kind list $SEP -o$field" "$kind list for field $field"
+  done
+done
+
+exit $RET
