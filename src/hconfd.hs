@@ -43,7 +43,8 @@ options =
 
 -- | Main function.
 main :: IO ()
-main = genericMain GanetiConfd options
-         Ganeti.Confd.Server.checkMain
-         Ganeti.Confd.Server.prepMain
-         Ganeti.Confd.Server.main
+main =
+  genericMain GanetiConfd options
+    Ganeti.Confd.Server.checkMain
+    Ganeti.Confd.Server.prepMain
+    Ganeti.Confd.Server.main
