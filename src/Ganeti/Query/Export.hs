@@ -58,7 +58,7 @@ rpcExtractor node (Left err)  = [(node, rpcErrToRs err)]
 exportFields :: FieldList Node Runtime
 exportFields =
   [ (FieldDefinition "node" "Node" QFTText "Node name",
-     FieldSimple (rsNormal . nodeName), QffHostname)
+     FieldRuntime (\_ n -> rsNormal $ nodeName n), QffHostname)
   , (FieldDefinition "export" "Export" QFTText "Export name",
      FieldRuntime (curry fst), QffNormal)
   ]
