@@ -1,4 +1,5 @@
-{-# LANGUAGE TemplateHaskell, TypeSynonymInstances, FlexibleInstances #-}
+{-# LANGUAGE TemplateHaskell, TypeSynonymInstances, FlexibleInstances,
+  OverloadedStrings #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 {-| Unittests for ganeti-htools.
@@ -44,7 +45,9 @@ import Control.Monad
 import Data.Char
 import qualified Data.List as List
 import qualified Data.Map as Map
+import Data.Maybe (fromMaybe)
 import qualified Data.Set as Set
+import GHC.Exts (IsString(..))
 import qualified Text.JSON as J
 
 import Test.Ganeti.TestHelper
@@ -182,17 +185,17 @@ instance Arbitrary Network where
 genValidNetwork :: Gen Objects.Network
 genValidNetwork = do
   -- generate netmask for the IPv4 network
-  netmask <- choose (24::Int, 30)
+  netmask <- fromIntegral <$> choose (24::Int, 30)
   name <- genName >>= mkNonEmpty
   mac_prefix <- genMaybe genName
-  net <- genIp4NetWithNetmask netmask
+  net <- arbitrary
   net6 <- genMaybe genIp6Net
-  gateway <- genMaybe genIp4AddrStr
+  gateway <- genMaybe arbitrary
   gateway6 <- genMaybe genIp6Addr
   res <- liftM Just (genBitString $ netmask2NumHosts netmask)
   ext_res <- liftM Just (genBitString $ netmask2NumHosts netmask)
   uuid <- arbitrary
-  let n = Network name mac_prefix net net6 gateway
+  let n = Network name mac_prefix (Ip4Network net netmask) net6 gateway
           gateway6 res ext_res uuid 0 Set.empty
   return n
 
@@ -408,6 +411,36 @@ genNodeGroup = do
 instance Arbitrary NodeGroup where
   arbitrary = genNodeGroup
 
+$(genArbitrary ''Ip4Address)
+
+$(genArbitrary ''Ip4Network)
+
+-- | Helper to compute absolute value of an IPv4 address.
+ip4AddrValue :: Ip4Address -> Integer
+ip4AddrValue (Ip4Address a b c d) =
+  fromIntegral a * (2^(24::Integer)) +
+  fromIntegral b * (2^(16::Integer)) +
+  fromIntegral c * (2^(8::Integer)) + fromIntegral d
+
+-- | Tests that any difference between IPv4 consecutive addresses is 1.
+prop_nextIp4Address :: Ip4Address -> Property
+prop_nextIp4Address ip4 =
+  ip4AddrValue (nextIp4Address ip4) ==? ip4AddrValue ip4 + 1
+
+-- | IsString instance for 'Ip4Address', to help write the tests.
+instance IsString Ip4Address where
+  fromString s =
+    fromMaybe (error $ "Failed to parse address from " ++ s) (readIp4Address s)
+
+-- | Tests a few simple cases of IPv4 next address.
+caseNextIp4Address :: HUnit.Assertion
+caseNextIp4Address = do
+  HUnit.assertEqual "" "0.0.0.1" $ nextIp4Address "0.0.0.0"
+  HUnit.assertEqual "" "0.0.0.0" $ nextIp4Address "255.255.255.255"
+  HUnit.assertEqual "" "1.2.3.5" $ nextIp4Address "1.2.3.4"
+  HUnit.assertEqual "" "1.3.0.0" $ nextIp4Address "1.2.255.255"
+  HUnit.assertEqual "" "1.2.255.63" $ nextIp4Address "1.2.255.62"
+
 testSuite "Objects"
   [ 'prop_fillDict
   , 'prop_Disk_serialisation
@@ -417,4 +450,6 @@ testSuite "Objects"
   , 'prop_Config_serialisation
   , 'casePyCompatNetworks
   , 'casePyCompatNodegroups
+  , 'prop_nextIp4Address
+  , 'caseNextIp4Address
   ]

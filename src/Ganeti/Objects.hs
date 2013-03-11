@@ -9,7 +9,7 @@ commented out below.
 
 {-
 
-Copyright (C) 2011, 2012 Google Inc.
+Copyright (C) 2011, 2012, 2013 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -88,19 +88,26 @@ module Ganeti.Objects
   , DictObject(..) -- re-exported from THH
   , TagSet -- re-exported from THH
   , Network(..)
+  , Ip4Address(..)
+  , Ip4Network(..)
+  , readIp4Address
+  , nextIp4Address
   ) where
 
+import Control.Applicative
 import Data.List (foldl')
 import Data.Maybe
 import qualified Data.Map as Map
 import qualified Data.Set as Set
-import Text.JSON (showJSON, readJSON, JSON, JSValue(..))
+import Data.Word
+import Text.JSON (showJSON, readJSON, JSON, JSValue(..), fromJSString)
 import qualified Text.JSON as J
 
 import qualified Ganeti.Constants as C
 import Ganeti.JSON
 import Ganeti.Types
 import Ganeti.THH
+import Ganeti.Utils (sepSplit, tryRead)
 
 -- * Generic definitions
 
@@ -168,17 +175,81 @@ roleDescription NRMaster    = "master"
 
 -- * Network definitions
 
+-- ** Ipv4 types
+
+-- | Custom type for a simple IPv4 address.
+data Ip4Address = Ip4Address Word8 Word8 Word8 Word8
+                  deriving Eq
+
+instance Show Ip4Address where
+  show (Ip4Address a b c d) = show a ++ "." ++ show b ++ "." ++
+                              show c ++ "." ++ show d
+
+-- | Parses an IPv4 address from a string.
+readIp4Address :: (Applicative m, Monad m) => String -> m Ip4Address
+readIp4Address s =
+  case sepSplit '.' s of
+    [a, b, c, d] -> Ip4Address <$>
+                      tryRead "first octect" a <*>
+                      tryRead "second octet" b <*>
+                      tryRead "third octet"  c <*>
+                      tryRead "fourth octet" d
+    _ -> fail $ "Can't parse IPv4 address from string " ++ s
+
+-- | JSON instance for 'Ip4Address'.
+instance JSON Ip4Address where
+  showJSON = showJSON . show
+  readJSON (JSString s) = readIp4Address (fromJSString s)
+  readJSON v = fail $ "Invalid JSON value " ++ show v ++ " for an IPv4 address"
+
+-- | \"Next\" address implementation for IPv4 addresses.
+--
+-- Note that this loops! Note also that this is a very dumb
+-- implementation.
+nextIp4Address :: Ip4Address -> Ip4Address
+nextIp4Address (Ip4Address a b c d) =
+  let inc xs y = if all (==0) xs then y + 1 else y
+      d' = d + 1
+      c' = inc [d'] c
+      b' = inc [c', d'] b
+      a' = inc [b', c', d'] a
+  in Ip4Address a' b' c' d'
+
+-- | Custom type for an IPv4 network.
+data Ip4Network = Ip4Network Ip4Address Word8
+                  deriving Eq
+
+instance Show Ip4Network where
+  show (Ip4Network ip netmask) = show ip ++ "/" ++ show netmask
+
+-- | JSON instance for 'Ip4Network'.
+instance JSON Ip4Network where
+  showJSON = showJSON . show
+  readJSON (JSString s) =
+    case sepSplit '/' (fromJSString s) of
+      [ip, nm] -> do
+        ip' <- readIp4Address ip
+        nm' <- tryRead "parsing netmask" nm
+        if nm' >= 0 && nm' <= 32
+          then return $ Ip4Network ip' nm'
+          else fail $ "Invalid netmask " ++ show nm' ++ " from string " ++
+                      fromJSString s
+      _ -> fail $ "Can't parse IPv4 network from string " ++ fromJSString s
+  readJSON v = fail $ "Invalid JSON value " ++ show v ++ " for an IPv4 network"
+
+-- ** Ganeti \"network\" config object.
+
 -- FIXME: Not all types might be correct here, since they
 -- haven't been exhaustively deduced from the python code yet.
 $(buildObject "Network" "network" $
   [ simpleField "name"             [t| NonEmptyString |]
   , optionalField $
     simpleField "mac_prefix"       [t| String |]
-  , simpleField "network"          [t| NonEmptyString |]
+  , simpleField "network"          [t| Ip4Network |]
   , optionalField $
     simpleField "network6"         [t| String |]
   , optionalField $
-    simpleField "gateway"          [t| String |]
+    simpleField "gateway"          [t| Ip4Address |]
   , optionalField $
     simpleField "gateway6"         [t| String |]
   , optionalField $
