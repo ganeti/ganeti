@@ -1332,6 +1332,96 @@ class TestCreateIPolicyFromOpts(unittest.TestCase):
                                      allowed_values=[allowedv])
     self.assertEqual(pol1, exp_pol1)
 
+  @staticmethod
+  def _ConvertSpecToStrings(spec):
+    ret = {}
+    for (par, val) in spec.items():
+      ret[par] = str(val)
+    return ret
+
+  def _CheckNewStyleSpecsCall(self, exp_ipolicy, minmax_ispecs, std_ispecs,
+                              group_ipolicy, fill_all):
+    ipolicy = cli.CreateIPolicyFromOpts(minmax_ispecs=minmax_ispecs,
+                                        std_ispecs=std_ispecs,
+                                        group_ipolicy=group_ipolicy,
+                                        fill_all=fill_all)
+    self.assertEqual(ipolicy, exp_ipolicy)
+
+  def _TestFullISpecsInner(self, skel_exp_ipol, exp_minmax, exp_std,
+                           group_ipolicy, fill_all):
+    exp_ipol = skel_exp_ipol.copy()
+    if exp_minmax is not None:
+      minmax_ispecs = {}
+      for (key, spec) in exp_minmax.items():
+        minmax_ispecs[key] = self._ConvertSpecToStrings(spec)
+      exp_ipol[constants.ISPECS_MINMAX] = exp_minmax
+    else:
+      minmax_ispecs = None
+      if constants.ISPECS_MINMAX not in exp_ipol:
+        empty_minmax = dict((k, {}) for k in constants.ISPECS_MINMAX_KEYS)
+        exp_ipol[constants.ISPECS_MINMAX] = empty_minmax
+    if exp_std is not None:
+      std_ispecs = self._ConvertSpecToStrings(exp_std)
+      exp_ipol[constants.ISPECS_STD] = exp_std
+    else:
+      std_ispecs = None
+      if constants.ISPECS_STD not in exp_ipol:
+        exp_ipol[constants.ISPECS_STD] = {}
+
+    self._CheckNewStyleSpecsCall(exp_ipol, minmax_ispecs, std_ispecs,
+                                 group_ipolicy, fill_all)
+    if minmax_ispecs:
+      for (key, spec) in minmax_ispecs.items():
+        for par in [constants.ISPEC_MEM_SIZE, constants.ISPEC_DISK_SIZE]:
+          if par in spec:
+            spec[par] += "m"
+            self._CheckNewStyleSpecsCall(exp_ipol, minmax_ispecs, std_ispecs,
+                                         group_ipolicy, fill_all)
+    if std_ispecs:
+      for par in [constants.ISPEC_MEM_SIZE, constants.ISPEC_DISK_SIZE]:
+        if par in std_ispecs:
+          std_ispecs[par] += "m"
+          self._CheckNewStyleSpecsCall(exp_ipol, minmax_ispecs, std_ispecs,
+                                       group_ipolicy, fill_all)
+
+  def testFullISpecs(self):
+    exp_minmax1 = {
+      constants.ISPECS_MIN: {
+        constants.ISPEC_MEM_SIZE: 512,
+        constants.ISPEC_CPU_COUNT: 2,
+        constants.ISPEC_DISK_COUNT: 2,
+        constants.ISPEC_DISK_SIZE: 512,
+        constants.ISPEC_NIC_COUNT: 2,
+        constants.ISPEC_SPINDLE_USE: 2,
+        },
+      constants.ISPECS_MAX: {
+        constants.ISPEC_MEM_SIZE: 768*1024,
+        constants.ISPEC_CPU_COUNT: 7,
+        constants.ISPEC_DISK_COUNT: 6,
+        constants.ISPEC_DISK_SIZE: 2048*1024,
+        constants.ISPEC_NIC_COUNT: 3,
+        constants.ISPEC_SPINDLE_USE: 1,
+        },
+      }
+    exp_std1 = {
+      constants.ISPEC_MEM_SIZE: 768*1024,
+      constants.ISPEC_CPU_COUNT: 7,
+      constants.ISPEC_DISK_COUNT: 6,
+      constants.ISPEC_DISK_SIZE: 2048*1024,
+      constants.ISPEC_NIC_COUNT: 3,
+      constants.ISPEC_SPINDLE_USE: 1,
+      }
+    for fill_all in [False, True]:
+      if fill_all:
+        skel_ipolicy = constants.IPOLICY_DEFAULTS
+      else:
+        skel_ipolicy = {}
+      self._TestFullISpecsInner(skel_ipolicy, exp_minmax1, exp_std1,
+                                False, fill_all)
+      self._TestFullISpecsInner(skel_ipolicy, None, exp_std1,
+                                False, fill_all)
+      self._TestFullISpecsInner(skel_ipolicy, exp_minmax1, None,
+                                False, fill_all)
 
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
