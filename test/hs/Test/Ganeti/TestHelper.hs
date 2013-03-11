@@ -6,7 +6,7 @@
 
 {-
 
-Copyright (C) 2011, 2012 Google Inc.
+Copyright (C) 2011, 2012, 2013 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -48,6 +48,10 @@ propPrefix = "prop_"
 casePrefix :: String
 casePrefix = "case_"
 
+-- | Test case prefix without underscore.
+case2Pfx :: String
+case2Pfx = "case"
+
 -- | Tries to drop a prefix from a string.
 simplifyName :: String -> String -> String
 simplifyName pfx string = fromMaybe string (stripPrefix pfx string)
@@ -70,6 +74,8 @@ run name =
   in case () of
        _ | propPrefix `isPrefixOf` str -> [| runProp $strE $nameE |]
          | casePrefix `isPrefixOf` str -> [| runCase $strE $nameE |]
+         | case2Pfx `isPrefixOf` str ->
+           [| (testCase . simplifyName case2Pfx) $strE $nameE |]
          | otherwise -> fail $ "Unsupported test function name '" ++ str ++ "'"
 
 -- | Convert slashes in a name to underscores.
