@@ -37,7 +37,7 @@ module Ganeti.Query.Network
 
 import qualified Data.Map as Map
 import Data.Maybe (fromMaybe, mapMaybe)
-import Data.List (find)
+import Data.List (find, foldl', intercalate)
 
 import Ganeti.JSON
 import Ganeti.Network
@@ -88,6 +88,9 @@ networkFields =
   , (FieldDefinition "inst_cnt" "Instances" QFTNumber "Number of instances",
      FieldConfig (\cfg -> rsNormal . length . getInstances cfg
        . networkUuid), QffNormal)
+  , (FieldDefinition "external_reservations" "ExternalReservations" QFTText
+     "External reservations",
+     FieldSimple getExtReservationsString, QffNormal)
   ] ++
   uuidFields "Network" ++
   serialFields "Network" ++
@@ -148,6 +151,31 @@ getNetworkUuid cfg name =
   let net = find (\n -> name == fromNonEmpty (networkName n))
                ((Map.elems . fromContainer . configNetworks) cfg)
   in fmap networkUuid net
+
+-- | Computes the reservations list for a network.
+--
+-- This doesn't use the netmask for validation of the length, instead
+-- simply iterating over the reservations string.
+getReservations :: Ip4Network -> String -> [Ip4Address]
+getReservations (Ip4Network net _) =
+  reverse .
+  fst .
+  foldl' (\(accu, addr) c ->
+            let addr' = nextIp4Address addr
+                accu' = case c of
+                          '1' -> addr:accu
+                          '0' -> accu
+                          _ -> -- FIXME: the reservations string
+                               -- should be a proper type
+                               accu
+            in (accu', addr')) ([], net)
+
+-- | Computes the external reservations as string for a network.
+getExtReservationsString :: Network -> ResultEntry
+getExtReservationsString net =
+  let addrs = getReservations (networkNetwork net)
+              (fromMaybe "" $ networkExtReservations net)
+  in rsNormal . intercalate ", " $ map show addrs
 
 -- | Dummy function for collecting live data (which networks don't have).
 collectLiveData :: Bool -> ConfigData -> [Network] -> IO [(Network, Runtime)]
