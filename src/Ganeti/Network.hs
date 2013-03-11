@@ -7,7 +7,7 @@ corresponding python implementation (network.py).
 
 {-
 
-Copyright (C) 2011, 2012 Google Inc.
+Copyright (C) 2011, 2012, 2013 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -42,6 +42,8 @@ import qualified Data.Vector.Unboxed as V
 
 import Ganeti.Objects
 
+-- | An address pool, holding a network plus internal and external
+-- reservations.
 data AddressPool = AddressPool { network :: Network,
                                  reservations :: V.Vector Bool,
                                  extReservations :: V.Vector Bool }
@@ -61,7 +63,8 @@ createAddressPool n
 -- | Checks the consistency of the network object. So far, only checks the
 -- length of the reservation strings.
 networkIsValid :: Network -> Bool
-networkIsValid n = sameLength (networkReservations n) (networkExtReservations n)
+networkIsValid n =
+  sameLength (networkReservations n) (networkExtReservations n)
 
 -- | Checks if two maybe strings are both nothing or of equal length.
 sameLength :: Maybe String -> Maybe String -> Bool
@@ -100,4 +103,3 @@ isFull = V.and . allReservations
 getMap :: AddressPool -> String
 getMap = V.toList . V.map mapPixel . allReservations
   where mapPixel c = if c then 'X' else '.'
-
