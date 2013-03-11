@@ -198,9 +198,9 @@ nodeFields =
   -- non-implemented node resource model; they are declared just for
   -- parity, but are not functional
   , (FieldDefinition "hv_state" "HypervisorState" QFTOther "Hypervisor state",
-     missingRuntime, QffNormal)
+     FieldSimple (const rsUnavail), QffNormal)
   , (FieldDefinition "disk_state" "DiskState" QFTOther "Disk state",
-     missingRuntime, QffNormal)
+     FieldSimple (const rsUnavail), QffNormal)
   ] ++
   map nodeLiveFieldBuilder nodeLiveFieldsDefs ++
   map buildNdParamField allNDParamFields ++
