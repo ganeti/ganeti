@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -675,7 +675,7 @@ class R_2_networks(baserlib.OpcodeResource):
     """Returns a list of all networks.
 
     """
-    client = self.GetClient()
+    client = self.GetClient(query=True)
 
     if self.useBulk():
       bulkdata = client.QueryNetworks([], NET_FIELDS, False)
@@ -698,7 +698,7 @@ class R_2_networks_name(baserlib.OpcodeResource):
 
     """
     network_name = self.items[0]
-    client = self.GetClient()
+    client = self.GetClient(query=True)
 
     result = baserlib.HandleItemQueryErrors(client.QueryNetworks,
                                             names=[network_name],

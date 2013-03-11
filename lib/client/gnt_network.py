@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2011, 2012 Google Inc.
+# Copyright (C) 2011, 2012, 2013 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -167,7 +167,7 @@ def ListNetworks(opts, args):
     "tags": (",".join, False),
     }
 
-  cl = GetClient()
+  cl = GetClient(query=True)
   return GenericList(constants.QR_NETWORK, desired_fields, args, None,
                      opts.separator, not opts.no_headers,
                      verbose=opts.verbose, format_override=fmtoverride,
@@ -184,8 +184,10 @@ def ListNetworkFields(opts, args):
   @return: the desired exit code
 
   """
+  cl = GetClient(query=True)
+
   return GenericListFields(constants.QR_NETWORK, args, opts.separator,
-                           not opts.no_headers)
+                           not opts.no_headers, cl=cl)
 
 
 def ShowNetworkConfig(_, args):
