@@ -42,6 +42,7 @@ import Ganeti.Rpc
 import Ganeti.Query.Language
 import Ganeti.Query.Common
 import Ganeti.Query.Types
+import Ganeti.Utils (niceSort)
 
 -- | Runtime is the resulting type for NodeInfo call.
 type Runtime = Either RpcError RpcResultNodeInfo
@@ -182,11 +183,11 @@ nodeFields =
      QffNormal)
   , (FieldDefinition "pinst_list" "PriInstances" QFTOther
        "List of instances with this node as primary",
-     FieldConfig (\cfg -> rsNormal . map instName . fst .
+     FieldConfig (\cfg -> rsNormal . niceSort . map instName . fst .
                           getNodeInstances cfg . nodeName), QffNormal)
   , (FieldDefinition "sinst_list" "SecInstances" QFTOther
        "List of instances with this node as secondary",
-     FieldConfig (\cfg -> rsNormal . map instName . snd .
+     FieldConfig (\cfg -> rsNormal . niceSort . map instName . snd .
                           getNodeInstances cfg . nodeName), QffNormal)
   , (FieldDefinition "role" "Role" QFTText nodeRoleDoc,
      FieldConfig ((rsNormal .) . getNodeRole), QffNormal)

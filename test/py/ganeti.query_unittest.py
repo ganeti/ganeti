@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2010, 2011, 2012 Google Inc.
+# Copyright (C) 2010, 2011, 2012, 2013 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -524,7 +524,7 @@ class TestNodeQuery(unittest.TestCase):
                       list(node_to_primary[master_name])))
     self.assertEqual(live_data_row[field_index["sinst_list"]],
                      (constants.RS_NORMAL,
-                      list(node_to_secondary[live_data_name])))
+                      utils.NiceSort(list(node_to_secondary[live_data_name]))))
 
   def testGetLiveNodeField(self):
     nodes = [

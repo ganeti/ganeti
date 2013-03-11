@@ -1362,7 +1362,7 @@ def _BuildNodeFields():
     return lambda ctx, node: len(getter(ctx)[node.name])
 
   def _GetList(getter):
-    return lambda ctx, node: list(getter(ctx)[node.name])
+    return lambda ctx, node: utils.NiceSort(list(getter(ctx)[node.name]))
 
   # Add fields operating on instance lists
   for prefix, titleprefix, docword, getter in \
