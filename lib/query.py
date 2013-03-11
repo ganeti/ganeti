@@ -977,6 +977,23 @@ def _GetItemAttr(attr):
   return lambda _, item: getter(item)
 
 
+def _GetItemMaybeAttr(attr):
+  """Returns a field function to return a not-None attribute of the item.
+
+  If the value is None, then C{_FS_UNAVAIL} will be returned instead.
+
+  @param attr: Attribute name
+
+  """
+  def _helper(_, obj):
+    val = getattr(obj, attr)
+    if val is None:
+      return _FS_UNAVAIL
+    else:
+      return val
+  return _helper
+
+
 def _GetNDParam(name):
   """Return a field function to return an ND parameter out of the context.
 
@@ -2614,7 +2631,7 @@ def _BuildNetworkFields():
   # Add simple fields
   fields.extend([
     (_MakeField(name, title, kind, doc),
-     NETQ_CONFIG, 0, _GetItemAttr(name))
+     NETQ_CONFIG, 0, _GetItemMaybeAttr(name))
      for (name, (title, kind, _, doc)) in _NETWORK_SIMPLE_FIELDS.items()])
 
   def _GetLength(getter):
