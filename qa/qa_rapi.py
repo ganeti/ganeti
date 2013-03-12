@@ -681,6 +681,10 @@ def TestRapiInstanceRenameAndBack(rename_source, rename_target):
 @InstanceCheck(INST_DOWN, INST_DOWN, FIRST_ARG)
 def TestRapiInstanceReinstall(instance):
   """Test reinstalling an instance via RAPI"""
+  if instance.disk_template == constants.DT_DISKLESS:
+    print qa_utils.FormatInfo("Test not supported for diskless instances")
+    return
+
   _WaitForRapiJob(_rapi_client.ReinstallInstance(instance.name))
   # By default, the instance is started again
   qa_utils.RunInstanceCheck(instance, True)
