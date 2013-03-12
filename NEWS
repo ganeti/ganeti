@@ -1,6 +1,43 @@
 News
 ====
 
+Version 2.7.0 beta2
+-------------------
+
+*(Unreleased)*
+
+- Networks no longer have a "type" slot, since this information was
+  unused in Ganeti: instead of it tags should be used.
+- Diskless instances are now externally mirrored (Issue 237). This for
+  now has only been tested in conjunction with explicit target nodes for
+  migration/failover.
+- The rapi client now has a ``target_node`` option to MigrateInstance.
+- Fix early exit return code for hbal (Issue 386).
+- Fix ``gnt-instance migrate/failover -n`` (Issue 396).
+- Fix ``rbd showmapped`` output parsing (Issue 312).
+- Networks are now referenced indexed by UUID, rather than name. This
+  will require running cfgupgrade, from 2.7.0beta1, if networks are in
+  use.
+- The OS environment now includes network information.
+- Deleting of a network is now disallowed if any instance nic is using
+  it, to prevent dangling references.
+- External storage is now documented in man pages.
+- The exclusive_storage flag can now only be set at nodegroup level.
+- Hbal can now submit an explicit priority with its jobs.
+- Many network related locking fixes.
+- Bump up the required pylint version to 0.25.1.
+- Fix the ``no_remember`` option in RAPI client.
+- Many ipolicy related tests, qa, and fixes.
+- Many documentation improvements and fixes.
+- Fix building with ``--disable-file-storage``.
+- Fix ``-q`` option in htools, which was broken if passed more than
+  once.
+- Some haskell/python interaction improvements and fixes.
+- Fix iallocator in case of missing LVM storage.
+- Fix confd config load in case of ``--no-lvm-storage``.
+- The confd/query functionality is now mentioned in the security
+  documentation.
+
 
 Version 2.7.0 beta1
 -------------------
