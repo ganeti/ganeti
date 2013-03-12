@@ -96,20 +96,33 @@ def _GetBoolClusterField(field):
 
 
 # Cluster-verify errors (date, "ERROR", then error code)
-_CVERROR_RE = re.compile(r"^[\w\s:]+\s+- ERROR:([A-Z0-9_-]+):")
+_CVERROR_RE = re.compile(r"^[\w\s:]+\s+- (ERROR|WARNING):([A-Z0-9_-]+):")
 
 
 def _GetCVErrorCodes(cvout):
-  ret = set()
+  errs = set()
+  warns = set()
   for l in cvout.splitlines():
     m = _CVERROR_RE.match(l)
     if m:
-      ecode = m.group(1)
-      ret.add(ecode)
-  return ret
+      etype = m.group(1)
+      ecode = m.group(2)
+      if etype == "ERROR":
+        errs.add(ecode)
+      elif etype == "WARNING":
+        warns.add(ecode)
+  return (errs, warns)
 
 
-def AssertClusterVerify(fail=False, errors=None):
+def _CheckVerifyErrors(actual, expected, etype):
+  exp_codes = compat.UniqueFrozenset(e for (_, e, _) in expected)
+  if not actual.issuperset(exp_codes):
+    missing = exp_codes.difference(actual)
+    raise qa_error.Error("Cluster-verify didn't return these expected"
+                         " %ss: %s" % (etype, utils.CommaJoin(missing)))
+
+
+def AssertClusterVerify(fail=False, errors=None, warnings=None):
   """Run cluster-verify and check the result
 
   @type fail: bool
@@ -118,19 +131,20 @@ def AssertClusterVerify(fail=False, errors=None):
   @param errors: List of CV_XXX errors that are expected; if specified, all the
       errors listed must appear in cluster-verify output. A non-empty value
       implies C{fail=True}.
+  @type warnings: list of tuples
+  @param warnings: Same as C{errors} but for warnings.
 
   """
   cvcmd = "gnt-cluster verify"
   mnode = qa_config.GetMasterNode()
-  if errors:
+  if errors or warnings:
     cvout = GetCommandOutput(mnode.primary, cvcmd + " --error-codes",
-                             fail=True)
-    actual = _GetCVErrorCodes(cvout)
-    expected = compat.UniqueFrozenset(e for (_, e, _) in errors)
-    if not actual.issuperset(expected):
-      missing = expected.difference(actual)
-      raise qa_error.Error("Cluster-verify didn't return these expected"
-                           " errors: %s" % utils.CommaJoin(missing))
+                             fail=(fail or errors))
+    (act_errs, act_warns) = _GetCVErrorCodes(cvout)
+    if errors:
+      _CheckVerifyErrors(act_errs, errors, "error")
+    if warnings:
+      _CheckVerifyErrors(act_warns, warnings, "warning")
   else:
     AssertCommand(cvcmd, fail=fail, node=mnode)
 
@@ -422,6 +436,199 @@ def TestClusterModifyBe():
   bep = qa_config.get("backend-parameters", "")
   if bep:
     AssertCommand(["gnt-cluster", "modify", "-B", bep])
+
+
+_START_IPOLICY_RE = re.compile(r"^(\s*)Instance policy")
+_START_ISPEC_RE = re.compile(r"^\s+-\s+(std|min|max)")
+_VALUE_RE = r"([^\s:][^:]*):\s+(\S.*)$"
+_IPOLICY_PARAM_RE = re.compile(r"^\s+-\s+" + _VALUE_RE)
+_ISPEC_VALUE_RE = re.compile(r"^\s+" + _VALUE_RE)
+
+
+def _GetClusterIPolicy():
+  """Return the run-time values of the cluster-level instance policy.
+
+  @rtype: tuple
+  @return: (policy, specs), where:
+      - policy is a dictionary of the policy values, instance specs excluded
+      - specs is dict of dict, specs[par][key] is a spec value, where key is
+        "min", "max", or "std"
+
+  """
+  mnode = qa_config.GetMasterNode()
+  info = GetCommandOutput(mnode.primary, "gnt-cluster info")
+  inside_policy = False
+  end_ispec_re = None
+  curr_spec = ""
+  specs = {}
+  policy = {}
+  for line in info.splitlines():
+    if inside_policy:
+      # The order of the matching is important, as some REs overlap
+      m = _START_ISPEC_RE.match(line)
+      if m:
+        curr_spec = m.group(1)
+        continue
+      m = _IPOLICY_PARAM_RE.match(line)
+      if m:
+        policy[m.group(1)] = m.group(2).strip()
+        continue
+      m = _ISPEC_VALUE_RE.match(line)
+      if m:
+        assert curr_spec
+        par = m.group(1)
+        if par == "memory-size":
+          par = "mem-size"
+        d = specs.setdefault(par, {})
+        d[curr_spec] = m.group(2).strip()
+        continue
+      assert end_ispec_re is not None
+      if end_ispec_re.match(line):
+        inside_policy = False
+    else:
+      m = _START_IPOLICY_RE.match(line)
+      if m:
+        inside_policy = True
+        # We stop parsing when we find the same indentation level
+        re_str = r"^\s{%s}\S" % len(m.group(1))
+        end_ispec_re = re.compile(re_str)
+  # Sanity checks
+  assert len(specs) > 0
+  good = ("min" in d and "std" in d and "max" in d for d in specs)
+  assert good, "Missing item in specs: %s" % specs
+  assert len(policy) > 0
+  return (policy, specs)
+
+
+def TestClusterModifyIPolicy():
+  """gnt-cluster modify --ipolicy-*"""
+  basecmd = ["gnt-cluster", "modify"]
+  (old_policy, old_specs) = _GetClusterIPolicy()
+  for par in ["vcpu-ratio", "spindle-ratio"]:
+    curr_val = float(old_policy[par])
+    test_values = [
+      (True, 1.0),
+      (True, 1.5),
+      (True, 2),
+      (False, "a"),
+      # Restore the old value
+      (True, curr_val),
+      ]
+    for (good, val) in test_values:
+      cmd = basecmd + ["--ipolicy-%s=%s" % (par, val)]
+      AssertCommand(cmd, fail=not good)
+      if good:
+        curr_val = val
+      # Check the affected parameter
+      (eff_policy, eff_specs) = _GetClusterIPolicy()
+      AssertEqual(float(eff_policy[par]), curr_val)
+      # Check everything else
+      AssertEqual(eff_specs, old_specs)
+      for p in eff_policy.keys():
+        if p == par:
+          continue
+        AssertEqual(eff_policy[p], old_policy[p])
+
+  # Disk templates are treated slightly differently
+  par = "disk-templates"
+  disp_str = "enabled disk templates"
+  curr_val = old_policy[disp_str]
+  test_values = [
+    (True, constants.DT_PLAIN),
+    (True, "%s,%s" % (constants.DT_PLAIN, constants.DT_DRBD8)),
+    (False, "thisisnotadisktemplate"),
+    (False, ""),
+    # Restore the old value
+    (True, curr_val.replace(" ", "")),
+    ]
+  for (good, val) in test_values:
+    cmd = basecmd + ["--ipolicy-%s=%s" % (par, val)]
+    AssertCommand(cmd, fail=not good)
+    if good:
+      curr_val = val
+    # Check the affected parameter
+    (eff_policy, eff_specs) = _GetClusterIPolicy()
+    AssertEqual(eff_policy[disp_str].replace(" ", ""), curr_val)
+    # Check everything else
+    AssertEqual(eff_specs, old_specs)
+    for p in eff_policy.keys():
+      if p == disp_str:
+        continue
+      AssertEqual(eff_policy[p], old_policy[p])
+
+
+def TestClusterSetISpecs(new_specs, fail=False, old_values=None):
+  """Change instance specs.
+
+  @type new_specs: dict of dict
+  @param new_specs: new_specs[par][key], where key is "min", "max", "std". It
+      can be an empty dictionary.
+  @type fail: bool
+  @param fail: if the change is expected to fail
+  @type old_values: tuple
+  @param old_values: (old_policy, old_specs), as returned by
+     L{_GetClusterIPolicy}
+  @return: same as L{_GetClusterIPolicy}
+
+  """
+  if old_values:
+    (old_policy, old_specs) = old_values
+  else:
+    (old_policy, old_specs) = _GetClusterIPolicy()
+  if new_specs:
+    cmd = ["gnt-cluster", "modify"]
+    for (par, keyvals) in new_specs.items():
+      if par == "spindle-use":
+        # ignore spindle-use, which is not settable
+        continue
+      cmd += [
+        "--specs-%s" % par,
+        ",".join(["%s=%s" % (k, v) for (k, v) in keyvals.items()]),
+        ]
+    AssertCommand(cmd, fail=fail)
+  # Check the new state
+  (eff_policy, eff_specs) = _GetClusterIPolicy()
+  AssertEqual(eff_policy, old_policy)
+  if fail:
+    AssertEqual(eff_specs, old_specs)
+  else:
+    for par in eff_specs:
+      for key in eff_specs[par]:
+        if par in new_specs and key in new_specs[par]:
+          AssertEqual(int(eff_specs[par][key]), int(new_specs[par][key]))
+        else:
+          AssertEqual(int(eff_specs[par][key]), int(old_specs[par][key]))
+  return (eff_policy, eff_specs)
+
+
+def TestClusterModifyISpecs():
+  """gnt-cluster modify --specs-*"""
+  params = ["mem-size", "disk-size", "disk-count", "cpu-count", "nic-count"]
+  (cur_policy, cur_specs) = _GetClusterIPolicy()
+  for par in params:
+    test_values = [
+      (True, 0, 4, 12),
+      (True, 4, 4, 12),
+      (True, 4, 12, 12),
+      (True, 4, 4, 4),
+      (False, 4, 0, 12),
+      (False, 4, 16, 12),
+      (False, 4, 4, 0),
+      (False, 12, 4, 4),
+      (False, 12, 4, 0),
+      (False, "a", 4, 12),
+      (False, 0, "a", 12),
+      (False, 0, 4, "a"),
+      # This is to restore the old values
+      (True,
+       cur_specs[par]["min"], cur_specs[par]["std"], cur_specs[par]["max"])
+      ]
+    for (good, mn, st, mx) in test_values:
+      new_vals = {par: {"min": str(mn), "std": str(st), "max": str(mx)}}
+      cur_state = (cur_policy, cur_specs)
+      # We update cur_specs, as we've copied the values to restore already
+      (cur_policy, cur_specs) = TestClusterSetISpecs(new_vals, fail=not good,
+                                                     old_values=cur_state)
 
 
 def TestClusterInfo():

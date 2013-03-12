@@ -215,6 +215,13 @@ class TestClusterObject(unittest.TestCase):
     self.fake_cl.enabled_hypervisors = sorted(constants.HYPER_TYPES)
     self.assertEqual(self.fake_cl.primary_hypervisor, constants.HT_CHROOT)
 
+  def testUpgradeConfig(self):
+    # FIXME: This test is incomplete
+    cluster = objects.Cluster()
+    cluster.UpgradeConfig()
+    cluster = objects.Cluster(ipolicy={"unknown_key": None})
+    self.assertRaises(errors.ConfigurationError, cluster.UpgradeConfig)
+
 
 class TestClusterObjectTcpUdpPortPool(unittest.TestCase):
   def testNewCluster(self):
@@ -398,6 +405,166 @@ class TestNode(unittest.TestCase):
     node2.UpgradeConfig()
     self.assertFalse(constants.ND_EXCLUSIVE_STORAGE in node2.ndparams)
     self.assertTrue(constants.ND_SPINDLE_COUNT in node2.ndparams)
+
+
+class TestInstancePolicy(unittest.TestCase):
+  def setUp(self):
+    # Policies are big, and we want to see the difference in case of an error
+    self.maxDiff = None
+
+  def _AssertIPolicyIsFull(self, policy):
+    self.assertEqual(frozenset(policy.keys()), constants.IPOLICY_ALL_KEYS)
+    for key in constants.IPOLICY_ISPECS:
+      spec = policy[key]
+      self.assertEqual(frozenset(spec.keys()), constants.ISPECS_PARAMETERS)
+
+  def testDefaultIPolicy(self):
+    objects.InstancePolicy.CheckParameterSyntax(constants.IPOLICY_DEFAULTS,
+                                                True)
+    self._AssertIPolicyIsFull(constants.IPOLICY_DEFAULTS)
+
+  def testCheckISpecSyntax(self):
+    par = "my_parameter"
+    for check_std in [True, False]:
+      if check_std:
+        allkeys = constants.IPOLICY_ISPECS
+      else:
+        allkeys = constants.IPOLICY_ISPECS - frozenset([constants.ISPECS_STD])
+      # Only one policy limit
+      for key in allkeys:
+        policy = dict((k, {}) for k in allkeys)
+        policy[key][par] = 11
+        objects.InstancePolicy.CheckISpecSyntax(policy, par, check_std)
+      # Min and max only
+      good_values = [(11, 11), (11, 40), (0, 0)]
+      for (mn, mx) in good_values:
+        policy = dict((k, {}) for k in allkeys)
+        policy[constants.ISPECS_MIN][par] = mn
+        policy[constants.ISPECS_MAX][par] = mx
+        objects.InstancePolicy.CheckISpecSyntax(policy, par, check_std)
+      policy = dict((k, {}) for k in allkeys)
+      policy[constants.ISPECS_MIN][par] = 11
+      policy[constants.ISPECS_MAX][par] = 5
+      self.assertRaises(errors.ConfigurationError,
+                        objects.InstancePolicy.CheckISpecSyntax,
+                        policy, par, check_std)
+    # Min, std, max
+    good_values = [
+      (11, 11, 11),
+      (11, 11, 40),
+      (11, 40, 40),
+      ]
+    for (mn, st, mx) in good_values:
+      policy = {
+        constants.ISPECS_MIN: {par: mn},
+        constants.ISPECS_STD: {par: st},
+        constants.ISPECS_MAX: {par: mx},
+        }
+      objects.InstancePolicy.CheckISpecSyntax(policy, par, True)
+    bad_values = [
+      (11, 11,  5),
+      (40, 11, 11),
+      (11, 80, 40),
+      (11,  5, 40),
+      (11,  5,  5),
+      (40, 40, 11),
+      ]
+    for (mn, st, mx) in bad_values:
+      policy = {
+        constants.ISPECS_MIN: {par: mn},
+        constants.ISPECS_STD: {par: st},
+        constants.ISPECS_MAX: {par: mx},
+        }
+      self.assertRaises(errors.ConfigurationError,
+                        objects.InstancePolicy.CheckISpecSyntax,
+                        policy, par, True)
+
+  def testCheckDiskTemplates(self):
+    invalid = "this_is_not_a_good_template"
+    for dt in constants.DISK_TEMPLATES:
+      objects.InstancePolicy.CheckDiskTemplates([dt])
+    objects.InstancePolicy.CheckDiskTemplates(list(constants.DISK_TEMPLATES))
+    bad_examples = [
+      [invalid],
+      [constants.DT_DRBD8, invalid],
+      list(constants.DISK_TEMPLATES) + [invalid],
+      [],
+      None,
+      ]
+    for dtl in bad_examples:
+      self.assertRaises(errors.ConfigurationError,
+                        objects.InstancePolicy.CheckDiskTemplates,
+                        dtl)
+
+  def testCheckParameterSyntax(self):
+    invalid = "this_key_shouldnt_be_here"
+    for check_std in [True, False]:
+      self.assertRaises(KeyError,
+                        objects.InstancePolicy.CheckParameterSyntax,
+                        {}, check_std)
+      policy = objects.MakeEmptyIPolicy()
+      policy[invalid] = None
+      self.assertRaises(errors.ConfigurationError,
+                        objects.InstancePolicy.CheckParameterSyntax,
+                        policy, check_std)
+      for par in constants.IPOLICY_PARAMETERS:
+        policy = objects.MakeEmptyIPolicy()
+        for val in ("blah", None, {}, [42]):
+          policy[par] = val
+          self.assertRaises(errors.ConfigurationError,
+                            objects.InstancePolicy.CheckParameterSyntax,
+                            policy, check_std)
+
+  def testFillIPolicyEmpty(self):
+    policy = objects.FillIPolicy(constants.IPOLICY_DEFAULTS, {})
+    objects.InstancePolicy.CheckParameterSyntax(policy, True)
+    self.assertEqual(policy, constants.IPOLICY_DEFAULTS)
+
+  def _AssertISpecsMerged(self, default_spec, diff_spec, merged_spec):
+    for (param, value) in merged_spec.items():
+      if param in diff_spec:
+        self.assertEqual(value, diff_spec[param])
+      else:
+        self.assertEqual(value, default_spec[param])
+
+  def _AssertIPolicyMerged(self, default_pol, diff_pol, merged_pol):
+    for (key, value) in merged_pol.items():
+      if key in diff_pol:
+        if key in constants.IPOLICY_ISPECS:
+          self._AssertISpecsMerged(default_pol[key], diff_pol[key], value)
+        else:
+          self.assertEqual(value, diff_pol[key])
+      else:
+        self.assertEqual(value, default_pol[key])
+
+  def testFillIPolicy(self):
+    partial_policies = [
+      {constants.IPOLICY_VCPU_RATIO: 3.14},
+      {constants.IPOLICY_SPINDLE_RATIO: 2.72},
+      {constants.IPOLICY_DTS: [constants.DT_FILE]},
+      ]
+    for diff_pol in partial_policies:
+      policy = objects.FillIPolicy(constants.IPOLICY_DEFAULTS, diff_pol)
+      objects.InstancePolicy.CheckParameterSyntax(policy, True)
+      self._AssertIPolicyIsFull(policy)
+      self._AssertIPolicyMerged(constants.IPOLICY_DEFAULTS, diff_pol, policy)
+
+  def testFillIPolicySpecs(self):
+    partial_policies = [
+      {constants.ISPECS_MIN: {constants.ISPEC_MEM_SIZE: 32},
+       constants.ISPECS_MAX: {constants.ISPEC_CPU_COUNT: 1024}},
+      {constants.ISPECS_STD: {constants.ISPEC_DISK_SIZE: 2048},
+       constants.ISPECS_MAX: {
+          constants.ISPEC_DISK_COUNT: constants.MAX_DISKS - 1,
+          constants.ISPEC_NIC_COUNT: constants.MAX_NICS - 1,
+          }},
+      {constants.ISPECS_STD: {constants.ISPEC_SPINDLE_USE: 3}},
+      ]
+    for diff_pol in partial_policies:
+      policy = objects.FillIPolicy(constants.IPOLICY_DEFAULTS, diff_pol)
+      objects.InstancePolicy.CheckParameterSyntax(policy, True)
+      self._AssertIPolicyIsFull(policy)
+      self._AssertIPolicyMerged(constants.IPOLICY_DEFAULTS, diff_pol, policy)
 
 
 if __name__ == "__main__":

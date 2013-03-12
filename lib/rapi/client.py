@@ -1048,7 +1048,7 @@ class GanetiRapiClient(object): # pylint: disable=R0904
     body = kwargs
 
     _AppendDryRunIf(query, dry_run)
-    _AppendIf(query, no_remember, ("no-remember", 1))
+    _AppendIf(query, no_remember, ("no_remember", 1))
 
     return self._SendRequest(HTTP_PUT,
                              ("/%s/instances/%s/shutdown" %
@@ -1069,7 +1069,7 @@ class GanetiRapiClient(object): # pylint: disable=R0904
     """
     query = []
     _AppendDryRunIf(query, dry_run)
-    _AppendIf(query, no_remember, ("no-remember", 1))
+    _AppendIf(query, no_remember, ("no_remember", 1))
 
     return self._SendRequest(HTTP_PUT,
                              ("/%s/instances/%s/startup" %

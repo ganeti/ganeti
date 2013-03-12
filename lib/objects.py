@@ -942,6 +942,9 @@ class InstancePolicy(ConfigObject):
     """Checks the disk templates for validity.
 
     """
+    if not disk_templates:
+      raise errors.ConfigurationError("Instance policy must contain" +
+                                      " at least one disk template")
     wrong = frozenset(disk_templates).difference(constants.DISK_TEMPLATES)
     if wrong:
       raise errors.ConfigurationError("Invalid disk template(s) %s" %
@@ -1578,6 +1581,12 @@ class Cluster(TaggableObject):
       # we can either make sure to upgrade the ipolicy always, or only
       # do it in some corner cases (e.g. missing keys); note that this
       # will break any removal of keys from the ipolicy dict
+      wrongkeys = frozenset(self.ipolicy.keys()) - constants.IPOLICY_ALL_KEYS
+      if wrongkeys:
+        # These keys would be silently removed by FillIPolicy()
+        msg = ("Cluster instance policy contains spourious keys: %s" %
+               utils.CommaJoin(wrongkeys))
+        raise errors.ConfigurationError(msg)
       self.ipolicy = FillIPolicy(constants.IPOLICY_DEFAULTS, self.ipolicy)
 
   @property

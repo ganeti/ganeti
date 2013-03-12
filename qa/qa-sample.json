@@ -144,6 +144,7 @@
     "cluster-redist-conf": true,
     "cluster-repair-disk-sizes": true,
     "cluster-exclusive-storage": true,
+    "cluster-instance-policy": true,
 
     "haskell-confd": true,
     "htools": true,

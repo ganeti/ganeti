@@ -66,7 +66,7 @@ def _GetGenericAddParameters(inst, disk_template, force_mac=None):
   return params
 
 
-def _DiskTest(node, disk_template):
+def _DiskTest(node, disk_template, fail=False):
   instance = qa_config.AcquireInstance()
   try:
     cmd = (["gnt-instance", "add",
@@ -76,15 +76,21 @@ def _DiskTest(node, disk_template):
            _GetGenericAddParameters(instance, disk_template))
     cmd.append(instance.name)
 
-    AssertCommand(cmd)
+    AssertCommand(cmd, fail=fail)
 
-    _CheckSsconfInstanceList(instance.name)
-    instance.SetDiskTemplate(disk_template)
+    if not fail:
+      _CheckSsconfInstanceList(instance.name)
+      instance.SetDiskTemplate(disk_template)
 
-    return instance
+      return instance
   except:
     instance.Release()
     raise
+
+  # Handle the case where creation is expected to fail
+  assert fail
+  instance.Release()
+  return None
 
 
 def _GetInstanceInfo(instance):
@@ -162,6 +168,22 @@ def _DestroyInstanceVolumes(instance):
     AssertCommand(["lvremove", "-f"] + vols, node=node)
 
 
+def _GetInstanceField(instance, field):
+  """Get the value of a field of an instance.
+
+  @type instance: string
+  @param instance: Instance name
+  @type field: string
+  @param field: Name of the field
+  @rtype: string
+
+  """
+  master = qa_config.GetMasterNode()
+  infocmd = utils.ShellQuoteArgs(["gnt-instance", "list", "--no-headers",
+                                  "--units", "m", "-o", field, instance])
+  return qa_utils.GetCommandOutput(master.primary, infocmd).strip()
+
+
 def _GetBoolInstanceField(instance, field):
   """Get the Boolean value of a field of an instance.
 
@@ -169,12 +191,10 @@ def _GetBoolInstanceField(instance, field):
   @param instance: Instance name
   @type field: string
   @param field: Name of the field
+  @rtype: bool
 
   """
-  master = qa_config.GetMasterNode()
-  infocmd = utils.ShellQuoteArgs(["gnt-instance", "list", "--no-headers",
-                                  "-o", field, instance])
-  info_out = qa_utils.GetCommandOutput(master.primary, infocmd).strip()
+  info_out = _GetInstanceField(instance, field)
   if info_out == "Y":
     return True
   elif info_out == "N":
@@ -182,6 +202,59 @@ def _GetBoolInstanceField(instance, field):
   else:
     raise qa_error.Error("Field %s of instance %s has a non-Boolean value:"
                          " %s" % (field, instance, info_out))
+
+
+def _GetNumInstanceField(instance, field):
+  """Get a numeric value of a field of an instance.
+
+  @type instance: string
+  @param instance: Instance name
+  @type field: string
+  @param field: Name of the field
+  @rtype: int or float
+
+  """
+  info_out = _GetInstanceField(instance, field)
+  try:
+    ret = int(info_out)
+  except ValueError:
+    try:
+      ret = float(info_out)
+    except ValueError:
+      raise qa_error.Error("Field %s of instance %s has a non-numeric value:"
+                           " %s" % (field, instance, info_out))
+  return ret
+
+
+def GetInstanceSpec(instance, spec):
+  """Return the current spec for the given parameter.
+
+  @type instance: string
+  @param instance: Instance name
+  @type spec: string
+  @param spec: one of the supported parameters: "mem-size", "cpu-count",
+      "disk-count", "disk-size", "nic-count"
+  @rtype: tuple
+  @return: (minspec, maxspec); minspec and maxspec can be different only for
+      memory and disk size
+
+  """
+  specmap = {
+    "mem-size": ["be/minmem", "be/maxmem"],
+    "cpu-count": ["vcpus"],
+    "disk-count": ["disk.count"],
+    "disk-size": ["disk.size/ "],
+    "nic-count": ["nic.count"],
+    }
+  # For disks, first we need the number of disks
+  if spec == "disk-size":
+    (numdisk, _) = GetInstanceSpec(instance, "disk-count")
+    fields = ["disk.size/%s" % k for k in range(0, numdisk)]
+  else:
+    assert spec in specmap, "%s not in %s" % (spec, specmap)
+    fields = specmap[spec]
+  values = [_GetNumInstanceField(instance, f) for f in fields]
+  return (min(values), max(values))
 
 
 def IsFailoverSupported(instance):
@@ -196,11 +269,13 @@ def IsDiskReplacingSupported(instance):
   return instance.disk_template == constants.DT_DRBD8
 
 
-@InstanceCheck(None, INST_UP, RETURN_VALUE)
-def TestInstanceAddWithPlainDisk(nodes):
+def TestInstanceAddWithPlainDisk(nodes, fail=False):
   """gnt-instance add -t plain"""
   assert len(nodes) == 1
-  return _DiskTest(nodes[0].primary, constants.DT_PLAIN)
+  instance = _DiskTest(nodes[0].primary, constants.DT_PLAIN, fail=fail)
+  if not fail:
+    qa_utils.RunInstanceCheck(instance, True)
+  return instance
 
 
 @InstanceCheck(None, INST_UP, RETURN_VALUE)

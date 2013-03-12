@@ -654,6 +654,13 @@ def _ValidateComputeMinMaxSpec(name, *_):
   return None
 
 
+def _NoDiskComputeMinMaxSpec(name, *_):
+  if name == constants.ISPEC_DISK_COUNT:
+    return name
+  else:
+    return None
+
+
 class _SpecWrapper:
   def __init__(self, spec):
     self.spec = spec
@@ -663,45 +670,85 @@ class _SpecWrapper:
 
 
 class TestComputeIPolicySpecViolation(unittest.TestCase):
+  # Minimal policy accepted by _ComputeIPolicySpecViolation()
+  _MICRO_IPOL = {
+    constants.IPOLICY_DTS: [constants.DT_PLAIN, constants.DT_DISKLESS],
+    }
+
   def test(self):
     compute_fn = _ValidateComputeMinMaxSpec
-    ret = cmdlib._ComputeIPolicySpecViolation(NotImplemented, 1024, 1, 1, 1,
-                                              [1024], 1, _compute_fn=compute_fn)
+    ret = cmdlib._ComputeIPolicySpecViolation(self._MICRO_IPOL, 1024, 1, 1, 1,
+                                              [1024], 1, constants.DT_PLAIN,
+                                              _compute_fn=compute_fn)
     self.assertEqual(ret, [])
+
+  def testDiskFull(self):
+    compute_fn = _NoDiskComputeMinMaxSpec
+    ret = cmdlib._ComputeIPolicySpecViolation(self._MICRO_IPOL, 1024, 1, 1, 1,
+                                              [1024], 1, constants.DT_PLAIN,
+                                              _compute_fn=compute_fn)
+    self.assertEqual(ret, [constants.ISPEC_DISK_COUNT])
+
+  def testDiskLess(self):
+    compute_fn = _NoDiskComputeMinMaxSpec
+    ret = cmdlib._ComputeIPolicySpecViolation(self._MICRO_IPOL, 1024, 1, 1, 1,
+                                              [1024], 1, constants.DT_DISKLESS,
+                                              _compute_fn=compute_fn)
+    self.assertEqual(ret, [])
+
+  def testWrongTemplates(self):
+    compute_fn = _ValidateComputeMinMaxSpec
+    ret = cmdlib._ComputeIPolicySpecViolation(self._MICRO_IPOL, 1024, 1, 1, 1,
+                                              [1024], 1, constants.DT_DRBD8,
+                                              _compute_fn=compute_fn)
+    self.assertEqual(len(ret), 1)
+    self.assertTrue("Disk template" in ret[0])
 
   def testInvalidArguments(self):
     self.assertRaises(AssertionError, cmdlib._ComputeIPolicySpecViolation,
-                      NotImplemented, 1024, 1, 1, 1, [], 1)
+                      self._MICRO_IPOL, 1024, 1, 1, 1, [], 1,
+                      constants.DT_PLAIN,)
 
   def testInvalidSpec(self):
     spec = _SpecWrapper([None, False, "foo", None, "bar", None])
     compute_fn = spec.ComputeMinMaxSpec
-    ret = cmdlib._ComputeIPolicySpecViolation(NotImplemented, 1024, 1, 1, 1,
-                                              [1024], 1, _compute_fn=compute_fn)
+    ret = cmdlib._ComputeIPolicySpecViolation(self._MICRO_IPOL, 1024, 1, 1, 1,
+                                              [1024], 1, constants.DT_PLAIN,
+                                              _compute_fn=compute_fn)
     self.assertEqual(ret, ["foo", "bar"])
     self.assertFalse(spec.spec)
 
 
 class _StubComputeIPolicySpecViolation:
   def __init__(self, mem_size, cpu_count, disk_count, nic_count, disk_sizes,
-               spindle_use):
+               spindle_use, disk_template):
     self.mem_size = mem_size
     self.cpu_count = cpu_count
     self.disk_count = disk_count
     self.nic_count = nic_count
     self.disk_sizes = disk_sizes
     self.spindle_use = spindle_use
+    self.disk_template = disk_template
 
   def __call__(self, _, mem_size, cpu_count, disk_count, nic_count, disk_sizes,
-               spindle_use):
+               spindle_use, disk_template):
     assert self.mem_size == mem_size
     assert self.cpu_count == cpu_count
     assert self.disk_count == disk_count
     assert self.nic_count == nic_count
     assert self.disk_sizes == disk_sizes
     assert self.spindle_use == spindle_use
+    assert self.disk_template == disk_template
 
     return []
+
+
+class _FakeConfigForComputeIPolicyInstanceViolation:
+  def __init__(self, be):
+    self.cluster = objects.Cluster(beparams={"default": be})
+
+  def GetClusterInfo(self):
+    return self.cluster
 
 
 class TestComputeIPolicyInstanceViolation(unittest.TestCase):
@@ -712,10 +759,18 @@ class TestComputeIPolicyInstanceViolation(unittest.TestCase):
       constants.BE_SPINDLE_USE: 4,
       }
     disks = [objects.Disk(size=512)]
-    instance = objects.Instance(beparams=beparams, disks=disks, nics=[])
-    stub = _StubComputeIPolicySpecViolation(2048, 2, 1, 0, [512], 4)
+    cfg = _FakeConfigForComputeIPolicyInstanceViolation(beparams)
+    instance = objects.Instance(beparams=beparams, disks=disks, nics=[],
+                                disk_template=constants.DT_PLAIN)
+    stub = _StubComputeIPolicySpecViolation(2048, 2, 1, 0, [512], 4,
+                                            constants.DT_PLAIN)
     ret = cmdlib._ComputeIPolicyInstanceViolation(NotImplemented, instance,
-                                                  _compute_fn=stub)
+                                                  cfg, _compute_fn=stub)
+    self.assertEqual(ret, [])
+    instance2 = objects.Instance(beparams={}, disks=disks, nics=[],
+                                 disk_template=constants.DT_PLAIN)
+    ret = cmdlib._ComputeIPolicyInstanceViolation(NotImplemented, instance2,
+                                                  cfg, _compute_fn=stub)
     self.assertEqual(ret, [])
 
 
@@ -729,8 +784,10 @@ class TestComputeIPolicyInstanceSpecViolation(unittest.TestCase):
       constants.ISPEC_NIC_COUNT: 0,
       constants.ISPEC_SPINDLE_USE: 1,
       }
-    stub = _StubComputeIPolicySpecViolation(2048, 2, 1, 0, [512], 1)
+    stub = _StubComputeIPolicySpecViolation(2048, 2, 1, 0, [512], 1,
+                                            constants.DT_PLAIN)
     ret = cmdlib._ComputeIPolicyInstanceSpecViolation(NotImplemented, ispec,
+                                                      constants.DT_PLAIN,
                                                       _compute_fn=stub)
     self.assertEqual(ret, [])
 
@@ -751,14 +808,14 @@ class TestComputeIPolicyNodeViolation(unittest.TestCase):
 
   def testSameGroup(self):
     ret = cmdlib._ComputeIPolicyNodeViolation(NotImplemented, NotImplemented,
-                                              "foo", "foo",
+                                              "foo", "foo", NotImplemented,
                                               _compute_fn=self.recorder)
     self.assertFalse(self.recorder.called)
     self.assertEqual(ret, [])
 
   def testDifferentGroup(self):
     ret = cmdlib._ComputeIPolicyNodeViolation(NotImplemented, NotImplemented,
-                                              "foo", "bar",
+                                              "foo", "bar", NotImplemented,
                                               _compute_fn=self.recorder)
     self.assertTrue(self.recorder.called)
     self.assertEqual(ret, [])
@@ -783,7 +840,7 @@ class TestCheckTargetNodeIPolicy(unittest.TestCase):
   def testNoViolation(self):
     compute_recoder = _CallRecorder(return_value=[])
     cmdlib._CheckTargetNodeIPolicy(self.lu, NotImplemented, self.instance,
-                                   self.target_node,
+                                   self.target_node, NotImplemented,
                                    _compute_fn=compute_recoder)
     self.assertTrue(compute_recoder.called)
     self.assertEqual(self.lu.warning_log, [])
@@ -792,15 +849,15 @@ class TestCheckTargetNodeIPolicy(unittest.TestCase):
     compute_recoder = _CallRecorder(return_value=["mem_size not in range"])
     self.assertRaises(errors.OpPrereqError, cmdlib._CheckTargetNodeIPolicy,
                       self.lu, NotImplemented, self.instance, self.target_node,
-                      _compute_fn=compute_recoder)
+                      NotImplemented, _compute_fn=compute_recoder)
     self.assertTrue(compute_recoder.called)
     self.assertEqual(self.lu.warning_log, [])
 
   def testIgnoreViolation(self):
     compute_recoder = _CallRecorder(return_value=["mem_size not in range"])
     cmdlib._CheckTargetNodeIPolicy(self.lu, NotImplemented, self.instance,
-                                   self.target_node, ignore=True,
-                                   _compute_fn=compute_recoder)
+                                   self.target_node, NotImplemented,
+                                   ignore=True, _compute_fn=compute_recoder)
     self.assertTrue(compute_recoder.called)
     msg = ("Instance does not meet target node group's (bar) instance policy:"
            " mem_size not in range")
@@ -1669,6 +1726,106 @@ class TestVerifyErrors(unittest.TestCase):
     self.assertEqual(len(lu.msglist), 1)
     self._checkMsg1(lu.msglist[0])
     self.assertTrue(self._ERR1ID in lu.msglist[0])
+
+
+class TestGetUpdatedIPolicy(unittest.TestCase):
+  """Tests for cmdlib._GetUpdatedIPolicy()"""
+  _OLD_CLUSTER_POLICY = {
+    constants.IPOLICY_VCPU_RATIO: 1.5,
+    constants.ISPECS_MIN: {
+      constants.ISPEC_MEM_SIZE: 20,
+      constants.ISPEC_CPU_COUNT: 2,
+      },
+    constants.ISPECS_MAX: {},
+    constants.ISPECS_STD: {},
+    }
+
+  _OLD_GROUP_POLICY = {
+    constants.IPOLICY_SPINDLE_RATIO: 2.5,
+    constants.ISPECS_MIN: {
+      constants.ISPEC_DISK_SIZE: 20,
+      constants.ISPEC_NIC_COUNT: 2,
+      },
+    constants.ISPECS_MAX: {},
+    }
+
+  def _TestSetSpecs(self, old_policy, isgroup):
+    ispec_key = constants.ISPECS_MIN
+    diff_ispec = {
+      constants.ISPEC_MEM_SIZE: 50,
+      constants.ISPEC_DISK_SIZE: 30,
+      }
+    diff_policy = {
+      ispec_key: diff_ispec
+      }
+    new_policy = cmdlib._GetUpdatedIPolicy(old_policy, diff_policy,
+                                           group_policy=isgroup)
+    new_ispec = new_policy[ispec_key]
+    for key in diff_ispec:
+      self.assertTrue(key in new_ispec)
+      self.assertEqual(new_ispec[key], diff_ispec[key])
+    for key in old_policy:
+      if not key in diff_policy:
+        self.assertTrue(key in new_policy)
+        self.assertEqual(new_policy[key], old_policy[key])
+    old_ispec = old_policy[ispec_key]
+    for key in old_ispec:
+      if not key in diff_ispec:
+        self.assertTrue(key in new_ispec)
+        self.assertEqual(new_ispec[key], old_ispec[key])
+
+  def _TestSet(self, old_policy, isgroup):
+    diff_policy = {
+      constants.IPOLICY_VCPU_RATIO: 3,
+      constants.IPOLICY_SPINDLE_RATIO: 1.9,
+      }
+    new_policy = cmdlib._GetUpdatedIPolicy(old_policy, diff_policy,
+                                           group_policy=isgroup)
+    for key in diff_policy:
+      self.assertTrue(key in new_policy)
+      self.assertEqual(new_policy[key], diff_policy[key])
+    for key in old_policy:
+      if not key in diff_policy:
+        self.assertTrue(key in new_policy)
+        self.assertEqual(new_policy[key], old_policy[key])
+
+  def testSet(self):
+    self._TestSet(self._OLD_GROUP_POLICY, True)
+    self._TestSetSpecs(self._OLD_GROUP_POLICY, True)
+    self._TestSet(self._OLD_CLUSTER_POLICY, False)
+    self._TestSetSpecs(self._OLD_CLUSTER_POLICY, False)
+
+  def testUnset(self):
+    old_policy = self._OLD_GROUP_POLICY
+    diff_policy = {
+      constants.IPOLICY_SPINDLE_RATIO: constants.VALUE_DEFAULT,
+      }
+    new_policy = cmdlib._GetUpdatedIPolicy(old_policy, diff_policy,
+                                           group_policy=True)
+    for key in diff_policy:
+      self.assertFalse(key in new_policy)
+    for key in old_policy:
+      if not key in diff_policy:
+        self.assertTrue(key in new_policy)
+        self.assertEqual(new_policy[key], old_policy[key])
+
+  def _TestInvalidKeys(self, old_policy, isgroup):
+    INVALID_DICT = {
+      "this_key_shouldnt_be_allowed": 3,
+      }
+    invalid_policy = INVALID_DICT
+    self.assertRaises(errors.OpPrereqError, cmdlib._GetUpdatedIPolicy,
+                      old_policy, invalid_policy, group_policy=isgroup)
+    for key in constants.IPOLICY_ISPECS:
+      invalid_ispec = {
+        key: INVALID_DICT,
+        }
+      self.assertRaises(errors.TypeEnforcementError, cmdlib._GetUpdatedIPolicy,
+                        old_policy, invalid_ispec, group_policy=isgroup)
+
+  def testInvalidKeys(self):
+    self._TestInvalidKeys(self._OLD_GROUP_POLICY, True)
+    self._TestInvalidKeys(self._OLD_CLUSTER_POLICY, False)
 
 
 if __name__ == "__main__":
