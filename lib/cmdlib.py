@@ -8162,8 +8162,8 @@ def _ExpandNamesForMigration(lu):
   lu.needed_locks[locking.LEVEL_NODE_RES] = []
   lu.recalculate_locks[locking.LEVEL_NODE_RES] = constants.LOCKS_REPLACE
 
-  # The node allocation lock is actually only needed for replicated instances
-  # (e.g. DRBD8) and if an iallocator is used.
+  # The node allocation lock is actually only needed for externally replicated
+  # instances (e.g. sharedfile or RBD) and if an iallocator is used.
   lu.needed_locks[locking.LEVEL_NODE_ALLOC] = []
 
 
@@ -8671,11 +8671,10 @@ class TLMigrateInstance(Tasklet):
                                  errors.ECODE_STATE)
 
     if instance.disk_template in constants.DTS_EXT_MIRROR:
-      assert locking.NAL in self.lu.owned_locks(locking.LEVEL_NODE_ALLOC)
-
       _CheckIAllocatorOrNode(self.lu, "iallocator", "target_node")
 
       if self.lu.op.iallocator:
+        assert locking.NAL in self.lu.owned_locks(locking.LEVEL_NODE_ALLOC)
         self._RunAllocator()
       else:
         # We set set self.target_node as it is required by
