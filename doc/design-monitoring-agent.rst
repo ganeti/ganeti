@@ -73,7 +73,7 @@ the data collectors:
   what format to expect, and how to correctly interpret it.
 
 ``timestamp``
-  The time when the reported data were gathered. Is has to be expressed
+  The time when the reported data were gathered. It has to be expressed
   in nanoseconds since the unix epoch (0:00:00 January 01, 1970). If not
   enough precision is available (or needed) it can be padded with
   zeroes. If a report object needs multiple timestamps, it can add more
