@@ -3685,6 +3685,44 @@ def _MaybeParseUnit(elements):
   return parsed
 
 
+def _InitIspecsFromOpts(ipolicy, ispecs_mem_size, ispecs_cpu_count,
+                        ispecs_disk_count, ispecs_disk_size, ispecs_nic_count,
+                        group_ipolicy, allowed_values):
+  try:
+    if ispecs_mem_size:
+      ispecs_mem_size = _MaybeParseUnit(ispecs_mem_size)
+    if ispecs_disk_size:
+      ispecs_disk_size = _MaybeParseUnit(ispecs_disk_size)
+  except (TypeError, ValueError, errors.UnitParseError), err:
+    raise errors.OpPrereqError("Invalid disk (%s) or memory (%s) size"
+                               " in policy: %s" %
+                               (ispecs_disk_size, ispecs_mem_size, err),
+                               errors.ECODE_INVAL)
+
+  # prepare ipolicy dict
+  ispecs_transposed = {
+    constants.ISPEC_MEM_SIZE: ispecs_mem_size,
+    constants.ISPEC_CPU_COUNT: ispecs_cpu_count,
+    constants.ISPEC_DISK_COUNT: ispecs_disk_count,
+    constants.ISPEC_DISK_SIZE: ispecs_disk_size,
+    constants.ISPEC_NIC_COUNT: ispecs_nic_count,
+    }
+
+  # first, check that the values given are correct
+  if group_ipolicy:
+    forced_type = TISPECS_GROUP_TYPES
+  else:
+    forced_type = TISPECS_CLUSTER_TYPES
+  for specs in ispecs_transposed.values():
+    utils.ForceDictType(specs, forced_type, allowed_values=allowed_values)
+
+  # then transpose
+  for (name, specs) in ispecs_transposed.iteritems():
+    assert name in constants.ISPECS_PARAMETERS
+    for key, val in specs.items(): # {min: .. ,max: .., std: ..}
+      ipolicy[key][name] = val
+
+
 def CreateIPolicyFromOpts(ispecs_mem_size=None,
                           ispecs_cpu_count=None,
                           ispecs_disk_count=None,
@@ -3703,41 +3741,11 @@ def CreateIPolicyFromOpts(ispecs_mem_size=None,
 
 
   """
-  try:
-    if ispecs_mem_size:
-      ispecs_mem_size = _MaybeParseUnit(ispecs_mem_size)
-    if ispecs_disk_size:
-      ispecs_disk_size = _MaybeParseUnit(ispecs_disk_size)
-  except (TypeError, ValueError, errors.UnitParseError), err:
-    raise errors.OpPrereqError("Invalid disk (%s) or memory (%s) size"
-                               " in policy: %s" %
-                               (ispecs_disk_size, ispecs_mem_size, err),
-                               errors.ECODE_INVAL)
 
-  # prepare ipolicy dict
-  ipolicy_transposed = {
-    constants.ISPEC_MEM_SIZE: ispecs_mem_size,
-    constants.ISPEC_CPU_COUNT: ispecs_cpu_count,
-    constants.ISPEC_DISK_COUNT: ispecs_disk_count,
-    constants.ISPEC_DISK_SIZE: ispecs_disk_size,
-    constants.ISPEC_NIC_COUNT: ispecs_nic_count,
-    }
-
-  # first, check that the values given are correct
-  if group_ipolicy:
-    forced_type = TISPECS_GROUP_TYPES
-  else:
-    forced_type = TISPECS_CLUSTER_TYPES
-
-  for specs in ipolicy_transposed.values():
-    utils.ForceDictType(specs, forced_type, allowed_values=allowed_values)
-
-  # then transpose
   ipolicy_out = objects.MakeEmptyIPolicy()
-  for name, specs in ipolicy_transposed.iteritems():
-    assert name in constants.ISPECS_PARAMETERS
-    for key, val in specs.items(): # {min: .. ,max: .., std: ..}
-      ipolicy_out[key][name] = val
+  _InitIspecsFromOpts(ipolicy_out, ispecs_mem_size, ispecs_cpu_count,
+                      ispecs_disk_count, ispecs_disk_size, ispecs_nic_count,
+                      group_ipolicy, allowed_values)
 
   if ipolicy_disk_templates is not None:
     ipolicy_out[constants.IPOLICY_DTS] = list(ipolicy_disk_templates)
