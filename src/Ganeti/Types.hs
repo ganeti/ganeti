@@ -302,6 +302,11 @@ $(THH.declareSADT "StorageType"
   [ ("StorageFile", 'C.stFile)
   , ("StorageLvmPv", 'C.stLvmPv)
   , ("StorageLvmVg", 'C.stLvmVg)
+  , ("StorageDiskless", 'C.stDiskless)
+  , ("StorageSharedFile", 'C.stSharedFile)
+  , ("StorageBlock", 'C.stBlock)
+  , ("StorageRados", 'C.stRados)
+  , ("StorageExt", 'C.stExt)
   ])
 $(THH.makeJSONInstance ''StorageType)
 

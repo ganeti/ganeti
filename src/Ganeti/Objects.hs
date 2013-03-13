@@ -681,6 +681,7 @@ $(buildObject "Cluster" "cluster" $
   , simpleField "primary_ip_family"       [t| IpFamily         |]
   , simpleField "prealloc_wipe_disks"     [t| Bool             |]
   , simpleField "ipolicy"                 [t| FilledIPolicy    |]
+  , simpleField "enabled_storage_types"   [t| [StorageType]    |]
  ]
  ++ timeStampFields
  ++ uuidFields

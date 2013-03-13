@@ -1474,6 +1474,7 @@ class Cluster(TaggableObject):
     "prealloc_wipe_disks",
     "hv_state_static",
     "disk_state_static",
+    "enabled_storage_types",
     ] + _TIMESTAMPS + _UUID
 
   def UpgradeConfig(self):
