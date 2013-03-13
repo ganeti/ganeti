@@ -29,7 +29,6 @@ import copy
 import itertools
 import simplejson
 import logging
-from cStringIO import StringIO
 
 from ganeti.cli import *
 from ganeti import opcodes
@@ -929,8 +928,8 @@ def _FormatLogicalID(dev_type, logical_id, roman):
                                                             convert=roman))),
       ("nodeB", "%s, minor=%s" % (node_b, compat.TryToRoman(minor_b,
                                                             convert=roman))),
-      ("port", compat.TryToRoman(port, convert=roman)),
-      ("auth key", key),
+      ("port", str(compat.TryToRoman(port, convert=roman))),
+      ("auth key", str(key)),
       ]
   elif dev_type == constants.LD_LV:
     vg_name, lv_name = logical_id
@@ -939,6 +938,10 @@ def _FormatLogicalID(dev_type, logical_id, roman):
     data = [str(logical_id)]
 
   return data
+
+
+def _FormatListInfo(data):
+  return list(str(i) for i in data)
 
 
 def _FormatBlockDevInfo(idx, top_level, dev, roman):
@@ -1023,9 +1026,8 @@ def _FormatBlockDevInfo(idx, top_level, dev, roman):
   if isinstance(dev["size"], int):
     nice_size = utils.FormatUnit(dev["size"], "h")
   else:
-    nice_size = dev["size"]
-  d1 = ["- %s: %s, size %s" % (txt, dev["dev_type"], nice_size)]
-  data = []
+    nice_size = str(dev["size"])
+  data = [(txt, "%s, size %s" % (dev["dev_type"], nice_size))]
   if top_level:
     data.append(("access mode", dev["mode"]))
   if dev["logical_id"] is not None:
@@ -1038,8 +1040,7 @@ def _FormatBlockDevInfo(idx, top_level, dev, roman):
     else:
       data.extend(l_id)
   elif dev["physical_id"] is not None:
-    data.append("physical_id:")
-    data.append([dev["physical_id"]])
+    data.append(("physical_id:", _FormatListInfo(dev["physical_id"])))
 
   if dev["pstatus"]:
     data.append(("on primary", helper(dev["dev_type"], dev["pstatus"])))
@@ -1048,40 +1049,120 @@ def _FormatBlockDevInfo(idx, top_level, dev, roman):
     data.append(("on secondary", helper(dev["dev_type"], dev["sstatus"])))
 
   if dev["children"]:
-    data.append("child devices:")
-    for c_idx, child in enumerate(dev["children"]):
-      data.append(_FormatBlockDevInfo(c_idx, False, child, roman))
-  d1.append(data)
-  return d1
+    data.append(("child devices", [
+      _FormatBlockDevInfo(c_idx, False, child, roman)
+      for c_idx, child in enumerate(dev["children"])
+      ]))
+  return data
 
 
-def _FormatList(buf, data, indent_level):
-  """Formats a list of data at a given indent level.
+def _FormatInstanceNicInfo(idx, nic):
+  """Helper function for L{_FormatInstanceInfo()}"""
+  (ip, mac, mode, link, _, netinfo) = nic
+  network_name = None
+  if netinfo:
+    network_name = netinfo["name"]
+  return [
+    ("nic/%d" % idx, ""),
+    ("MAC", str(mac)),
+    ("IP", str(ip)),
+    ("mode", str(mode)),
+    ("link", str(link)),
+    ("network", str(network_name)),
+    ]
 
-  If the element of the list is:
-    - a string, it is simply formatted as is
-    - a tuple, it will be split into key, value and the all the
-      values in a list will be aligned all at the same start column
-    - a list, will be recursively formatted
 
-  @type buf: StringIO
-  @param buf: the buffer into which we write the output
-  @param data: the list to format
-  @type indent_level: int
-  @param indent_level: the indent level to format at
+def _FormatInstanceNodesInfo(instance):
+  """Helper function for L{_FormatInstanceInfo()}"""
+  pgroup = ("%s (UUID %s)" %
+            (instance["pnode_group_name"], instance["pnode_group_uuid"]))
+  secs = utils.CommaJoin(("%s (group %s, group UUID %s)" %
+                          (name, group_name, group_uuid))
+                         for (name, group_name, group_uuid) in
+                           zip(instance["snodes"],
+                               instance["snodes_group_names"],
+                               instance["snodes_group_uuids"]))
+  return [
+    [
+      ("primary", instance["pnode"]),
+      ("group", pgroup),
+      ],
+    [("secondaries", secs)],
+    ]
 
-  """
-  max_tlen = max([len(elem[0]) for elem in data
-                 if isinstance(elem, tuple)] or [0])
-  for elem in data:
-    if isinstance(elem, basestring):
-      buf.write("%*s%s\n" % (2 * indent_level, "", elem))
-    elif isinstance(elem, tuple):
-      key, value = elem
-      spacer = "%*s" % (max_tlen - len(key), "")
-      buf.write("%*s%s:%s %s\n" % (2 * indent_level, "", key, spacer, value))
-    elif isinstance(elem, list):
-      _FormatList(buf, elem, indent_level + 1)
+
+def _GetVncConsoleInfo(instance):
+  """Helper function for L{_FormatInstanceInfo()}"""
+  vnc_bind_address = instance["hv_actual"].get(constants.HV_VNC_BIND_ADDRESS,
+                                               None)
+  if vnc_bind_address:
+    port = instance["network_port"]
+    display = int(port) - constants.VNC_BASE_PORT
+    if display > 0 and vnc_bind_address == constants.IP4_ADDRESS_ANY:
+      vnc_console_port = "%s:%s (display %s)" % (instance["pnode"],
+                                                 port,
+                                                 display)
+    elif display > 0 and netutils.IP4Address.IsValid(vnc_bind_address):
+      vnc_console_port = ("%s:%s (node %s) (display %s)" %
+                           (vnc_bind_address, port,
+                            instance["pnode"], display))
+    else:
+      # vnc bind address is a file
+      vnc_console_port = "%s:%s" % (instance["pnode"],
+                                    vnc_bind_address)
+    ret = "vnc to %s" % vnc_console_port
+  else:
+    ret = None
+  return ret
+
+
+def _FormatInstanceInfo(instance, roman_integers):
+  """Format instance information for L{cli.PrintGenericInfo()}"""
+  istate = "configured to be %s" % instance["config_state"]
+  if instance["run_state"]:
+    istate += ", actual state is %s" % instance["run_state"]
+  info = [
+    ("Instance name", instance["name"]),
+    ("UUID", instance["uuid"]),
+    ("Serial number",
+     str(compat.TryToRoman(instance["serial_no"], convert=roman_integers))),
+    ("Creation time", utils.FormatTime(instance["ctime"])),
+    ("Modification time", utils.FormatTime(instance["mtime"])),
+    ("State", istate),
+    ("Nodes", _FormatInstanceNodesInfo(instance)),
+    ("Operating system", instance["os"]),
+    ("Operating system parameters",
+     FormatParamsDictInfo(instance["os_instance"], instance["os_actual"])),
+    ]
+
+  if "network_port" in instance:
+    info.append(("Allocated network port",
+                 str(compat.TryToRoman(instance["network_port"],
+                                       convert=roman_integers))))
+  info.append(("Hypervisor", instance["hypervisor"]))
+  console = _GetVncConsoleInfo(instance)
+  if console:
+    info.append(("console connection", console))
+  # deprecated "memory" value, kept for one version for compatibility
+  # TODO(ganeti 2.7) remove.
+  be_actual = copy.deepcopy(instance["be_actual"])
+  be_actual["memory"] = be_actual[constants.BE_MAXMEM]
+  info.extend([
+    ("Hypervisor parameters",
+     FormatParamsDictInfo(instance["hv_instance"], instance["hv_actual"])),
+    ("Back-end parameters",
+     FormatParamsDictInfo(instance["be_instance"], be_actual)),
+    ("NICs", [
+      _FormatInstanceNicInfo(idx, nic)
+      for (idx, nic) in enumerate(instance["nics"])
+      ]),
+    ("Disk template", instance["disk_template"]),
+    ("Disks", [
+      _FormatBlockDevInfo(idx, True, device, roman_integers)
+      for (idx, device) in enumerate(instance["disks"])
+      ]),
+    ])
+  return info
 
 
 def ShowInstanceConfig(opts, args):
@@ -1112,88 +1193,10 @@ def ShowInstanceConfig(opts, args):
     ToStdout("No instances.")
     return 1
 
-  buf = StringIO()
-  retcode = 0
-  for instance_name in result:
-    instance = result[instance_name]
-    buf.write("Instance name: %s\n" % instance["name"])
-    buf.write("UUID: %s\n" % instance["uuid"])
-    buf.write("Serial number: %s\n" %
-              compat.TryToRoman(instance["serial_no"],
-                                convert=opts.roman_integers))
-    buf.write("Creation time: %s\n" % utils.FormatTime(instance["ctime"]))
-    buf.write("Modification time: %s\n" % utils.FormatTime(instance["mtime"]))
-    buf.write("State: configured to be %s" % instance["config_state"])
-    if instance["run_state"]:
-      buf.write(", actual state is %s" % instance["run_state"])
-    buf.write("\n")
-    ##buf.write("Considered for memory checks in cluster verify: %s\n" %
-    ##          instance["auto_balance"])
-    buf.write("  Nodes:\n")
-    buf.write("    - primary: %s\n" % instance["pnode"])
-    buf.write("      group: %s (UUID %s)\n" %
-              (instance["pnode_group_name"], instance["pnode_group_uuid"]))
-    buf.write("    - secondaries: %s\n" %
-              utils.CommaJoin("%s (group %s, group UUID %s)" %
-                                (name, group_name, group_uuid)
-                              for (name, group_name, group_uuid) in
-                                zip(instance["snodes"],
-                                    instance["snodes_group_names"],
-                                    instance["snodes_group_uuids"])))
-    buf.write("  Operating system: %s\n" % instance["os"])
-    FormatParameterDict(buf, instance["os_instance"], instance["os_actual"],
-                        level=2)
-    if "network_port" in instance:
-      buf.write("  Allocated network port: %s\n" %
-                compat.TryToRoman(instance["network_port"],
-                                  convert=opts.roman_integers))
-    buf.write("  Hypervisor: %s\n" % instance["hypervisor"])
-
-    # custom VNC console information
-    vnc_bind_address = instance["hv_actual"].get(constants.HV_VNC_BIND_ADDRESS,
-                                                 None)
-    if vnc_bind_address:
-      port = instance["network_port"]
-      display = int(port) - constants.VNC_BASE_PORT
-      if display > 0 and vnc_bind_address == constants.IP4_ADDRESS_ANY:
-        vnc_console_port = "%s:%s (display %s)" % (instance["pnode"],
-                                                   port,
-                                                   display)
-      elif display > 0 and netutils.IP4Address.IsValid(vnc_bind_address):
-        vnc_console_port = ("%s:%s (node %s) (display %s)" %
-                             (vnc_bind_address, port,
-                              instance["pnode"], display))
-      else:
-        # vnc bind address is a file
-        vnc_console_port = "%s:%s" % (instance["pnode"],
-                                      vnc_bind_address)
-      buf.write("    - console connection: vnc to %s\n" % vnc_console_port)
-
-    FormatParameterDict(buf, instance["hv_instance"], instance["hv_actual"],
-                        level=2)
-    buf.write("  Hardware:\n")
-    # deprecated "memory" value, kept for one version for compatibility
-    # TODO(ganeti 2.7) remove.
-    be_actual = copy.deepcopy(instance["be_actual"])
-    be_actual["memory"] = be_actual[constants.BE_MAXMEM]
-    FormatParameterDict(buf, instance["be_instance"], be_actual, level=2)
-    # TODO(ganeti 2.7) rework the NICs as well
-    buf.write("    - NICs:\n")
-    for idx, (ip, mac, mode, link, _, netinfo) in enumerate(instance["nics"]):
-      network_name = None
-      if netinfo:
-        network_name = netinfo["name"]
-      buf.write("      - nic/%d: MAC: %s, IP: %s,"
-                " mode: %s, link: %s, network: %s\n" %
-                (idx, mac, ip, mode, link, network_name))
-    buf.write("  Disk template: %s\n" % instance["disk_template"])
-    buf.write("  Disks:\n")
-
-    for idx, device in enumerate(instance["disks"]):
-      _FormatList(buf, _FormatBlockDevInfo(idx, True, device,
-                  opts.roman_integers), 2)
-
-  ToStdout(buf.getvalue().rstrip("\n"))
+  PrintGenericInfo([
+    _FormatInstanceInfo(instance, opts.roman_integers)
+    for instance in result.values()
+    ])
   return retcode
 
 

@@ -455,8 +455,8 @@ def ResolveInstanceName(instance):
   @param instance: Instance name
 
   """
-  return _ResolveName(["gnt-instance", "info", instance],
-                      "Instance name")
+  info = GetObjectInfo(["gnt-instance", "info", instance])
+  return info[0]["Instance name"]
 
 
 def ResolveNodeName(node):

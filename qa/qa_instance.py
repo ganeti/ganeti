@@ -106,10 +106,6 @@ def _GetInstanceInfo(instance):
         dictionary for non-DRBD instances)
 
   """
-  master = qa_config.GetMasterNode()
-  infocmd = utils.ShellQuoteArgs(["gnt-instance", "info", instance])
-  info_out = qa_utils.GetCommandOutput(master.primary, infocmd)
-  re_node = re.compile(r"^\s+-\s+(?:primary|secondaries):\s+(\S.+)$")
   node_elem = r"([^,()]+)(?:\s+\([^)]+\))?"
   # re_nodelist matches a list of nodes returned by gnt-instance info, e.g.:
   #  node1.fqdn
@@ -117,35 +113,42 @@ def _GetInstanceInfo(instance):
   #  node4.fqdn (group mygroup, group UUID 01234567-abcd-0123-4567-0123456789ab)
   # FIXME This works with no more than 2 secondaries
   re_nodelist = re.compile(node_elem + "(?:," + node_elem + ")?$")
-  re_vol = re.compile(r"^\s+logical_id:\s+(\S+)$")
-  re_drbdnode = re.compile(r"^\s+node[AB]:\s+([^\s,]+),\s+minor=([0-9]+)$")
+
+  info = qa_utils.GetObjectInfo(["gnt-instance", "info", instance])[0]
   nodes = []
+  for nodeinfo in info["Nodes"]:
+    if "primary" in nodeinfo:
+      nodes.append(nodeinfo["primary"])
+    elif "secondaries" in nodeinfo:
+      nodestr = nodeinfo["secondaries"]
+      if nodestr:
+        m = re_nodelist.match(nodestr)
+        if m:
+          nodes.extend(filter(None, m.groups()))
+        else:
+          nodes.append(nodestr)
+
+  re_drbdnode = re.compile(r"^([^\s,]+),\s+minor=([0-9]+)$")
   vols = []
   drbd_min = {}
-  for line in info_out.splitlines():
-    m = re_node.match(line)
-    if m:
-      nodestr = m.group(1)
-      m2 = re_nodelist.match(nodestr)
-      if m2:
-        nodes.extend(filter(None, m2.groups()))
-      else:
-        nodes.append(nodestr)
-    m = re_vol.match(line)
-    if m:
-      vols.append(m.group(1))
-    m = re_drbdnode.match(line)
-    if m:
-      node = m.group(1)
-      minor = int(m.group(2))
-      if drbd_min.get(node) is not None:
-        drbd_min[node].append(minor)
-      else:
-        drbd_min[node] = [minor]
+  for (count, diskinfo) in enumerate(info["Disks"]):
+    (dtype, _) = diskinfo["disk/%s" % count].split(",", 1)
+    if dtype == constants.LD_DRBD8:
+      for child in diskinfo["child devices"]:
+        vols.append(child["logical_id"])
+      for key in ["nodeA", "nodeB"]:
+        m = re_drbdnode.match(diskinfo[key])
+        if not m:
+          raise qa_error.Error("Cannot parse DRBD info: %s" % diskinfo[key])
+        node = m.group(1)
+        minor = int(m.group(2))
+        minorlist = drbd_min.setdefault(node, [])
+        minorlist.append(minor)
+    elif dtype == constants.LD_LV:
+      vols.append(diskinfo["logical_id"])
 
   assert nodes
   assert len(nodes) < 2 or vols
-
   return {
     "nodes": nodes,
     "volumes": vols,
