@@ -1044,5 +1044,83 @@ class TestFieldDescValues(unittest.TestCase):
                      ["zname", kind, "Ztitle", "zzz doc zzz"])
 
 
+class TestSerializeGenericInfo(unittest.TestCase):
+  """Test case for cli._SerializeGenericInfo"""
+  def _RunTest(self, data, expected):
+    buf = StringIO()
+    cli._SerializeGenericInfo(buf, data, 0)
+    self.assertEqual(buf.getvalue(), expected)
+
+  def testSimple(self):
+    test_samples = [
+      ("abc", "abc\n"),
+      ([], "\n"),
+      ({}, "\n"),
+      (["1", "2", "3"], "- 1\n- 2\n- 3\n"),
+      ([("z", "26")], "z: 26\n"),
+      ({"z": "26"}, "z: 26\n"),
+      ([("z", "26"), ("a", "1")], "z: 26\na: 1\n"),
+      ({"z": "26", "a": "1"}, "a: 1\nz: 26\n"),
+      ]
+    for (data, expected) in test_samples:
+      self._RunTest(data, expected)
+
+  def testLists(self):
+    adict = {
+      "aa": "11",
+      "bb": "22",
+      "cc": "33",
+      }
+    adict_exp = ("- aa: 11\n"
+                 "  bb: 22\n"
+                 "  cc: 33\n")
+    anobj = [
+      ("zz", "11"),
+      ("ww", "33"),
+      ("xx", "22"),
+      ]
+    anobj_exp = ("- zz: 11\n"
+                 "  ww: 33\n"
+                 "  xx: 22\n")
+    alist = ["aa", "cc", "bb"]
+    alist_exp = ("- - aa\n"
+                 "  - cc\n"
+                 "  - bb\n")
+    test_samples = [
+      (adict, adict_exp),
+      (anobj, anobj_exp),
+      (alist, alist_exp),
+      ]
+    for (base_data, base_expected) in test_samples:
+      for k in range(1, 4):
+        data = k * [base_data]
+        expected = k * base_expected
+        self._RunTest(data, expected)
+
+  def testDictionaries(self):
+    data = [
+      ("aaa", ["x", "y"]),
+      ("bbb", {
+          "w": "1",
+          "z": "2",
+          }),
+      ("ccc", [
+          ("xyz", "123"),
+          ("efg", "456"),
+          ]),
+      ]
+    expected = ("aaa: \n"
+                "  - x\n"
+                "  - y\n"
+                "bbb: \n"
+                "  w: 1\n"
+                "  z: 2\n"
+                "ccc: \n"
+                "  xyz: 123\n"
+                "  efg: 456\n")
+    self._RunTest(data, expected)
+    self._RunTest(dict(data), expected)
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()

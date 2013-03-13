@@ -234,6 +234,8 @@ __all__ = [
   "FormatError",
   "FormatQueryResult",
   "FormatParameterDict",
+  "FormatParamsDictInfo",
+  "PrintGenericInfo",
   "GenerateTable",
   "AskUser",
   "FormatTimestamp",
@@ -3610,6 +3612,27 @@ def FormatParameterDict(buf, param_dict, actual, level=1):
       buf.write(" %s\n" % val)
 
 
+def FormatParamsDictInfo(param_dict, actual):
+  """Formats a parameter dictionary.
+
+  @type param_dict: dict
+  @param param_dict: the own parameters
+  @type actual: dict
+  @param actual: the current parameter set (including defaults)
+  @rtype: dict
+  @return: dictionary where the value of each parameter is either a fully
+      formatted string or a dictionary containing formatted strings
+
+  """
+  ret = {}
+  for (key, data) in actual.items():
+    if isinstance(data, dict) and data:
+      ret[key] = FormatParamsDictInfo(param_dict.get(key, {}), data)
+    else:
+      ret[key] = str(param_dict.get(key, "default (%s)" % data))
+  return ret
+
+
 def ConfirmOperation(names, list_type, text, extra=""):
   """Ask the user to confirm an operation on a list of list_type.
 
@@ -3736,3 +3759,93 @@ def CreateIPolicyFromOpts(ispecs_mem_size=None,
   assert not (frozenset(ipolicy_out.keys()) - constants.IPOLICY_ALL_KEYS)
 
   return ipolicy_out
+
+
+def _SerializeGenericInfo(buf, data, level, afterkey=False):
+  """Formatting core of L{PrintGenericInfo}.
+
+  @param buf: (string) stream to accumulate the result into
+  @param data: data to format
+  @type level: int
+  @param level: depth in the data hierarchy, used for indenting
+  @type afterkey: bool
+  @param afterkey: True when we are in the middle of a line after a key (used
+      to properly add newlines or indentation)
+
+  """
+  baseind = "  "
+  if isinstance(data, dict):
+    if not data:
+      buf.write("\n")
+    else:
+      if afterkey:
+        buf.write("\n")
+        doindent = True
+      else:
+        doindent = False
+      for key in sorted(data):
+        if doindent:
+          buf.write(baseind * level)
+        else:
+          doindent = True
+        buf.write(key)
+        buf.write(": ")
+        _SerializeGenericInfo(buf, data[key], level + 1, afterkey=True)
+  elif isinstance(data, list) and len(data) > 0 and isinstance(data[0], tuple):
+    # list of tuples (an ordered dictionary)
+    if afterkey:
+      buf.write("\n")
+      doindent = True
+    else:
+      doindent = False
+    for (key, val) in data:
+      if doindent:
+        buf.write(baseind * level)
+      else:
+        doindent = True
+      buf.write(key)
+      buf.write(": ")
+      _SerializeGenericInfo(buf, val, level + 1, afterkey=True)
+  elif isinstance(data, list):
+    if not data:
+      buf.write("\n")
+    else:
+      if afterkey:
+        buf.write("\n")
+        doindent = True
+      else:
+        doindent = False
+      for item in data:
+        if doindent:
+          buf.write(baseind * level)
+        else:
+          doindent = True
+        buf.write("-")
+        buf.write(baseind[1:])
+        _SerializeGenericInfo(buf, item, level + 1)
+  else:
+    # This branch should be only taken for strings, but it's practically
+    # impossible to guarantee that no other types are produced somewhere
+    buf.write(str(data))
+    buf.write("\n")
+
+
+def PrintGenericInfo(data):
+  """Print information formatted according to the hierarchy.
+
+  The output is a valid YAML string.
+
+  @param data: the data to print. It's a hierarchical structure whose elements
+      can be:
+        - dictionaries, where keys are strings and values are of any of the
+          types listed here
+        - lists of pairs (key, value), where key is a string and value is of
+          any of the types listed here; it's a way to encode ordered
+          dictionaries
+        - lists of any of the types listed here
+        - strings
+
+  """
+  buf = StringIO()
+  _SerializeGenericInfo(buf, data, 0)
+  ToStdout(buf.getvalue().rstrip("\n"))
