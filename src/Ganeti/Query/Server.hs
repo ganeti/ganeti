@@ -87,6 +87,7 @@ handleCall :: ConfigData -> LuxiOp -> IO (ErrorResult JSValue)
 handleCall cdata QueryClusterInfo =
   let cluster = configCluster cdata
       hypervisors = clusterEnabledHypervisors cluster
+      storageTypes = clusterEnabledStorageTypes cluster
       def_hv = case hypervisors of
                  x:_ -> showJSON x
                  [] -> JSNull
@@ -135,10 +136,11 @@ handleCall cdata QueryClusterInfo =
             , ("reserved_lvs", showJSON $ clusterReservedLvs cluster)
             , ("primary_ip_version",
                showJSON . ipFamilyToVersion $ clusterPrimaryIpFamily cluster)
-             , ("prealloc_wipe_disks",
-                showJSON $ clusterPreallocWipeDisks cluster)
-             , ("hidden_os", showJSON $ clusterHiddenOs cluster)
-             , ("blacklisted_os", showJSON $ clusterBlacklistedOs cluster)
+            , ("prealloc_wipe_disks",
+               showJSON $ clusterPreallocWipeDisks cluster)
+            , ("hidden_os", showJSON $ clusterHiddenOs cluster)
+            , ("blacklisted_os", showJSON $ clusterBlacklistedOs cluster)
+            , ("enabled_storage_types", showJSON storageTypes)
             ]
 
   in return . Ok . J.makeObj $ obj

@@ -454,6 +454,8 @@ def ShowClusterConfig(opts, args):
   ToStdout("  - OS search path: %s", utils.CommaJoin(pathutils.OS_SEARCH_PATH))
   ToStdout("  - ExtStorage Providers search path: %s",
            utils.CommaJoin(pathutils.ES_SEARCH_PATH))
+  ToStdout("  - enabled storage types: %s",
+           utils.CommaJoin(result["enabled_storage_types"]))
 
   ToStdout("Default node parameters:")
   _PrintGroupedParams(result["ndparams"], roman=opts.roman_integers)
