@@ -175,6 +175,7 @@ $(genOpCode "OpCode"
      , pHiddenOs
      , pBlacklistedOs
      , pUseExternalMipScript
+     , pEnabledStorageTypes
      ])
   , ("OpClusterRedistConf", [])
   , ("OpClusterActivateMasterIp", [])

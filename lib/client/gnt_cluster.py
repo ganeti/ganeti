@@ -962,6 +962,7 @@ def SetClusterParams(opts, args):
           opts.use_external_mip_script is not None or
           opts.prealloc_wipe_disks is not None or
           opts.hv_state or
+          opts.enabled_storage_types or
           opts.disk_state or
           opts.ispecs_mem_size or
           opts.ispecs_cpu_count or
@@ -993,6 +994,10 @@ def SetClusterParams(opts, args):
   hvlist = opts.enabled_hypervisors
   if hvlist is not None:
     hvlist = hvlist.split(",")
+
+  enabled_storage_types = opts.enabled_storage_types
+  if enabled_storage_types is not None:
+    enabled_storage_types = enabled_storage_types.split(",")
 
   # a list of (name, dict) we can pass directly to dict() (or [])
   hvparams = dict(opts.hvparams)
@@ -1061,30 +1066,32 @@ def SetClusterParams(opts, args):
 
   hv_state = dict(opts.hv_state)
 
-  op = opcodes.OpClusterSetParams(vg_name=vg_name,
-                                  drbd_helper=drbd_helper,
-                                  enabled_hypervisors=hvlist,
-                                  hvparams=hvparams,
-                                  os_hvp=None,
-                                  beparams=beparams,
-                                  nicparams=nicparams,
-                                  ndparams=ndparams,
-                                  diskparams=diskparams,
-                                  ipolicy=ipolicy,
-                                  candidate_pool_size=opts.candidate_pool_size,
-                                  maintain_node_health=mnh,
-                                  uid_pool=uid_pool,
-                                  add_uids=add_uids,
-                                  remove_uids=remove_uids,
-                                  default_iallocator=opts.default_iallocator,
-                                  prealloc_wipe_disks=opts.prealloc_wipe_disks,
-                                  master_netdev=opts.master_netdev,
-                                  master_netmask=opts.master_netmask,
-                                  reserved_lvs=opts.reserved_lvs,
-                                  use_external_mip_script=ext_ip_script,
-                                  hv_state=hv_state,
-                                  disk_state=disk_state,
-                                  )
+  op = opcodes.OpClusterSetParams(
+    vg_name=vg_name,
+    drbd_helper=drbd_helper,
+    enabled_hypervisors=hvlist,
+    hvparams=hvparams,
+    os_hvp=None,
+    beparams=beparams,
+    nicparams=nicparams,
+    ndparams=ndparams,
+    diskparams=diskparams,
+    ipolicy=ipolicy,
+    candidate_pool_size=opts.candidate_pool_size,
+    maintain_node_health=mnh,
+    uid_pool=uid_pool,
+    add_uids=add_uids,
+    remove_uids=remove_uids,
+    default_iallocator=opts.default_iallocator,
+    prealloc_wipe_disks=opts.prealloc_wipe_disks,
+    master_netdev=opts.master_netdev,
+    master_netmask=opts.master_netmask,
+    reserved_lvs=opts.reserved_lvs,
+    use_external_mip_script=ext_ip_script,
+    hv_state=hv_state,
+    disk_state=disk_state,
+    enabled_storage_types=enabled_storage_types,
+    )
   SubmitOrSend(op, opts)
   return 0
 
@@ -1566,7 +1573,7 @@ commands = {
      DRBD_HELPER_OPT, NODRBD_STORAGE_OPT, DEFAULT_IALLOCATOR_OPT,
      RESERVED_LVS_OPT, DRY_RUN_OPT, PRIORITY_OPT, PREALLOC_WIPE_DISKS_OPT,
      NODE_PARAMS_OPT, USE_EXTERNAL_MIP_SCRIPT, DISK_PARAMS_OPT, HV_STATE_OPT,
-     DISK_STATE_OPT, SUBMIT_OPT] +
+     DISK_STATE_OPT, SUBMIT_OPT, ENABLED_STORAGE_TYPES_OPT] +
     INSTANCE_POLICY_OPTS,
     "[opts...]",
     "Alters the parameters of the cluster"),

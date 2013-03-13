@@ -4408,6 +4408,10 @@ class LUClusterSetParams(LogicalUnit):
           hv_class.CheckParameterSyntax(hv_params)
           _CheckHVParams(self, node_list, hv_name, hv_params)
 
+    # FIXME: Regarding enabled_storage_types: If a method is removed
+    # which is actually currently used by an instance, should removing
+    # it be prevented?
+
     if self.op.os_hvp:
       # no need to check any newly-enabled hypervisors, since the
       # defaults have already been checked in the above code-block
@@ -4459,6 +4463,9 @@ class LUClusterSetParams(LogicalUnit):
     if self.op.enabled_hypervisors is not None:
       self.cluster.hvparams = self.new_hvparams
       self.cluster.enabled_hypervisors = self.op.enabled_hypervisors
+    if self.op.enabled_storage_types is not None:
+      self.cluster.enabled_storage_types = \
+        list(set(self.op.enabled_storage_types))
     if self.op.beparams:
       self.cluster.beparams[constants.PP_DEFAULT] = self.new_beparams
     if self.op.nicparams:

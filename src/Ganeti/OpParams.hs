@@ -237,6 +237,7 @@ module Ganeti.OpParams
   , pDependencies
   , pComment
   , pReason
+  , pEnabledStorageTypes
   , dOldQuery
   , dOldQueryNoLocking
   ) where
@@ -757,6 +758,12 @@ pEnabledHypervisors :: Field
 pEnabledHypervisors =
   optionalField $
   simpleField "enabled_hypervisors" [t| NonEmpty Hypervisor |]
+
+-- | List of enabled storage methods.
+pEnabledStorageTypes :: Field
+pEnabledStorageTypes =
+  optionalField $
+  simpleField "enabled_storage_types" [t| NonEmpty StorageType |]
 
 -- | Selected hypervisor for an instance.
 pHypervisor :: Field

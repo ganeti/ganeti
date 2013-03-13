@@ -81,6 +81,7 @@ __all__ = [
   "DST_NODE_OPT",
   "EARLY_RELEASE_OPT",
   "ENABLED_HV_OPT",
+  "ENABLED_STORAGE_TYPES_OPT",
   "ERROR_CODES_OPT",
   "FAILURE_ONLY_OPT",
   "FIELDS_OPT",
@@ -1155,6 +1156,12 @@ ENABLED_HV_OPT = cli_option("--enabled-hypervisors",
                             dest="enabled_hypervisors",
                             help="Comma-separated list of hypervisors",
                             type="string", default=None)
+
+ENABLED_STORAGE_TYPES_OPT = cli_option("--enabled-storage-types",
+                                       dest="enabled_storage_types",
+                                       help="Comma-separated list of "
+                                            "storage methods",
+                                       type="string", default=None)
 
 NIC_PARAMS_OPT = cli_option("-N", "--nic-parameters", dest="nicparams",
                             type="keyval", default={},
