@@ -2092,7 +2092,8 @@ Manages storage units on the node.
 ``GET``
 ~~~~~~~
 
-.. pyassert::
+FIXME: enable ".. pyassert::" again when all storage types are
+implemented::
 
    constants.VALID_STORAGE_TYPES == set([constants.ST_FILE,
                                          constants.ST_LVM_PV,

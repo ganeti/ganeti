@@ -114,7 +114,10 @@ def TestNodeStorage():
   """gnt-node storage"""
   master = qa_config.GetMasterNode()
 
-  for storage_type in constants.VALID_STORAGE_TYPES:
+  # FIXME: test all storage_types in constants.VALID_STORAGE_TYPES
+  # as soon as they are implemented.
+  for storage_type in [constants.ST_FILE, constants.ST_LVM_VG,
+                       constants.ST_LVM_PV]:
 
     cmd = ["gnt-node", "list-storage", "--storage-type", storage_type]
 

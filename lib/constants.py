@@ -376,6 +376,27 @@ HKR_SUCCESS = 2
 ST_FILE = "file"
 ST_LVM_PV = "lvm-pv"
 ST_LVM_VG = "lvm-vg"
+ST_DISKLESS = "diskless"
+ST_SHARED_FILE = "sharedfile"
+ST_BLOCK = "blockdev"
+ST_RADOS = "rados"
+ST_EXT = "ext"
+
+VALID_STORAGE_TYPES = compat.UniqueFrozenset([
+  ST_FILE,
+  ST_LVM_PV,
+  ST_LVM_VG,
+  ST_DISKLESS,
+  ST_SHARED_FILE,
+  ST_BLOCK,
+  ST_RADOS,
+  ST_EXT,
+  ])
+
+# Per default, only lvm is enabled.
+DEFAULT_ENABLED_STORAGE_TYPES = compat.UniqueFrozenset([
+  ST_LVM_VG,
+  ])
 
 # Storage fields
 # first two are valid in LU context only, not passed to backend
@@ -399,12 +420,6 @@ VALID_STORAGE_FIELDS = compat.UniqueFrozenset([
   SF_USED,
   SF_FREE,
   SF_ALLOCATABLE,
-  ])
-
-VALID_STORAGE_TYPES = compat.UniqueFrozenset([
-  ST_FILE,
-  ST_LVM_PV,
-  ST_LVM_VG,
   ])
 
 MODIFIABLE_STORAGE_FIELDS = {
