@@ -38,6 +38,7 @@ _INSTANCE_CHECK_KEY = "instance-check"
 _ENABLED_HV_KEY = "enabled-hypervisors"
 _VCLUSTER_MASTER_KEY = "vcluster-master"
 _VCLUSTER_BASEDIR_KEY = "vcluster-basedir"
+_ENABLED_STORAGE_TYPES_KEY = "enabled-storage-types"
 
 #: QA configuration (L{_QaConfig})
 _config = None
@@ -349,27 +350,49 @@ class _QaConfig(object):
     @rtype: list
 
     """
-    try:
-      value = self._data[_ENABLED_HV_KEY]
-    except KeyError:
-      return [constants.DEFAULT_ENABLED_HYPERVISOR]
-    else:
-      if value is None:
-        return []
-      elif isinstance(value, basestring):
-        # The configuration key ("enabled-hypervisors") implies there can be
-        # multiple values. Multiple hypervisors are comma-separated on the
-        # command line option to "gnt-cluster init", so we need to handle them
-        # equally here.
-        return value.split(",")
-      else:
-        return value
+    return self._GetStringListParameter(
+      _ENABLED_HV_KEY,
+      [constants.DEFAULT_ENABLED_HYPERVISOR])
 
   def GetDefaultHypervisor(self):
     """Returns the default hypervisor to be used.
 
     """
     return self.GetEnabledHypervisors()[0]
+
+  def GetEnabledStorageTypes(self):
+    """Returns the list of enabled storage types.
+
+    @rtype: list
+
+    """
+    return self._GetStringListParameter(
+      _ENABLED_STORAGE_TYPES_KEY,
+      list(constants.DEFAULT_ENABLED_STORAGE_TYPES))
+
+  def GetDefaultStorageType(self):
+    """Returns the default storage type to be used.
+
+    """
+    return self.GetEnabledStorageTypes()[0]
+
+  def _GetStringListParameter(self, key, default_values):
+    """Retrieves a parameter's value that is supposed to be a list of strings.
+
+    @rtype: list
+
+    """
+    try:
+      value = self._data[key]
+    except KeyError:
+      return default_values
+    else:
+      if value is None:
+        return []
+      elif isinstance(value, basestring):
+        return value.split(",")
+      else:
+        return value
 
   def SetExclusiveStorage(self, value):
     """Set the expected value of the C{exclusive_storage} flag for the cluster.
@@ -526,6 +549,20 @@ def GetDefaultHypervisor(*args):
 
   """
   return GetConfig().GetDefaultHypervisor(*args)
+
+
+def GetEnabledStorageTypes(*args):
+  """Wrapper for L{_QaConfig.GetEnabledStorageTypes}.
+
+  """
+  return GetConfig().GetEnabledStorageTypes(*args)
+
+
+def GetDefaultStorageType(*args):
+  """Wrapper for L{_QaConfig.GetDefaultStorageType}.
+
+  """
+  return GetConfig().GetDefaultStorageType(*args)
 
 
 def GetMasterNode():

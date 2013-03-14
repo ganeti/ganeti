@@ -190,6 +190,8 @@ def TestClusterInit(rapi_user, rapi_secret):
     "gnt-cluster", "init",
     "--primary-ip-version=%d" % qa_config.get("primary_ip_version", 4),
     "--enabled-hypervisors=%s" % ",".join(qa_config.GetEnabledHypervisors()),
+    "--enabled-storage-types=%s" %
+      ",".join(qa_config.GetEnabledStorageTypes())
     ]
 
   for spec_type in ("mem-size", "disk-size", "disk-count", "cpu-count",
@@ -400,6 +402,33 @@ def TestClusterModifyDisk():
   """gnt-cluster modify -D"""
   for param in _FAIL_PARAMS:
     AssertCommand(["gnt-cluster", "modify", "-D", param], fail=True)
+
+
+def TestClusterModifyStorageTypes():
+  """gnt-cluster modify --enabled-storage-types=..."""
+  default_storage_type = qa_config.GetDefaultStorageType()
+  AssertCommand(
+    ["gnt-cluster", "modify",
+     "--enabled-storage-types=%s" % default_storage_type],
+    fail=False)
+  AssertCommand(["gnt-cluster", "info"])
+  AssertCommand(
+    ["gnt-cluster", "modify",
+     "--enabled-storage-types=%s" %
+       ",".join(qa_config.GetEnabledStorageTypes())],
+    fail=False)
+  AssertCommand(["gnt-cluster", "info"])
+  # bogus types
+  AssertCommand(["gnt-cluster", "modify",
+                 "--enabled-storage-types=pinkbunny"],
+                fail=True)
+  # duplicate entries do no harm
+  AssertCommand(
+    ["gnt-cluster", "modify",
+     "--enabled-storage-types=%s,%s" %
+      (default_storage_type, default_storage_type)],
+    fail=False)
+  AssertCommand(["gnt-cluster", "info"])
 
 
 def TestClusterModifyBe():

@@ -27,6 +27,7 @@
   "vg-name": "xenvg",
   "# Cluster-level value of the exclusive-storage flag": null,
   "exclusive-storage": null,
+  "enabled-storage-types": "lvm-vg",
 
   "# Additional arguments for initializing cluster": null,
   "cluster-init-args": [],
