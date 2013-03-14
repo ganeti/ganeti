@@ -28,6 +28,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 module Ganeti.DataCollectors.Types
   ( DCReport(..)
   , DCCategory(..)
+  , DCKind(..)
   , DCVersion(..)
   , buildReport
   ) where
@@ -48,6 +49,17 @@ instance JSON DCCategory where
   readJSON =
     error "JSON read instance not implemented for type DCCategory"
 
+-- | The type representing the kind of the collector.
+data DCKind = DCKPerf   -- ^ Performance reporting collector
+            | DCKStatus -- ^ Status reporting collector
+            deriving (Show, Eq)
+
+-- | The JSON instance for CollectorKind.
+instance JSON DCKind where
+  showJSON DCKPerf   = showJSON (0 :: Int)
+  showJSON DCKStatus = showJSON (1 :: Int)
+  readJSON = error "JSON read instance not implemented for type DCKind"
+
 -- | Type representing the version number of a data collector.
 data DCVersion = DCVerBuiltin | DCVersion String deriving (Show, Eq)
 
@@ -65,6 +77,7 @@ $(buildObject "DCReport" "dcReport"
   , simpleField "timestamp"      [t| Integer |]
   , optionalNullSerField $
       simpleField "category"     [t| DCCategory |]
+  , simpleField "kind"           [t| DCKind |]
   , simpleField "data"           [t| JSValue |]
   ])
 
@@ -72,9 +85,11 @@ $(buildObject "DCReport" "dcReport"
 -- timestamp (rounded up to seconds).
 -- If the version is not specified, it will be set to the value indicating
 -- a builtin collector.
-buildReport :: String -> DCVersion -> Int -> Maybe DCCategory -> JSValue
-            -> IO DCReport
-buildReport name version format_version category jsonData = do
+buildReport :: String -> DCVersion -> Int -> Maybe DCCategory -> DCKind
+            -> JSValue -> IO DCReport
+buildReport name version format_version category kind jsonData = do
   now <- getCurrentTime
   let timestamp = now * 1000000000 :: Integer
-  return $ DCReport name version format_version timestamp category jsonData
+  return $
+    DCReport name version format_version timestamp category kind
+      jsonData

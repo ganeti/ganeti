@@ -31,6 +31,7 @@ module Ganeti.DataCollectors.Drbd
   , dcVersion
   , dcFormatVersion
   , dcCategory
+  , dcKind
   ) where
 
 
@@ -82,6 +83,10 @@ dcFormatVersion = 1
 dcCategory :: Maybe DCCategory
 dcCategory = Just DCStorage
 
+-- | The kind of this data collector.
+dcKind :: DCKind
+dcKind = DCKStatus
+
 -- * Command line options
 
 options :: IO [OptType]
@@ -130,7 +135,7 @@ buildDRBDReport statusFile pairingFile = do
         show (Prelude.take defaultCharNum $ unpack unparsedText) ++ "\n"
           ++ show contexts ++ "\n" ++ errorMessage
       A.Done _ drbdStatus -> return $ J.showJSON drbdStatus
-  buildReport dcName dcVersion dcFormatVersion dcCategory jsonData
+  buildReport dcName dcVersion dcFormatVersion dcCategory dcKind jsonData
 
 -- | Main function.
 main :: Options -> [String] -> IO ()
