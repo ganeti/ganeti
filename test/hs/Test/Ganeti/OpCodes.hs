@@ -263,8 +263,9 @@ instance Arbitrary OpCodes.OpCode where
         OpCodes.OpInstanceSetParams <$> genFQDN <*> arbitrary <*>
           arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*>
           pure emptyJSObject <*> arbitrary <*> pure emptyJSObject <*>
-          arbitrary <*> genMaybe genNodeNameNE <*> genMaybe genNameNE <*>
-          pure emptyJSObject <*> arbitrary <*> arbitrary <*> arbitrary
+          arbitrary <*> genMaybe genNodeNameNE <*> genMaybe genNodeNameNE <*>
+          genMaybe genNameNE <*> pure emptyJSObject <*> arbitrary <*>
+          arbitrary <*> arbitrary
       "OP_INSTANCE_GROW_DISK" ->
         OpCodes.OpInstanceGrowDisk <$> genFQDN <*> arbitrary <*>
           arbitrary <*> arbitrary <*> arbitrary

@@ -1684,6 +1684,7 @@ class OpInstanceSetParams(OpCode):
      "Per-instance hypervisor parameters, hypervisor-dependent"),
     ("disk_template", None, ht.TMaybe(_BuildDiskTemplateCheck(False)),
      "Disk template for instance"),
+    ("pnode", None, ht.TMaybeString, "New primary node"),
     ("remote_node", None, ht.TMaybeString,
      "Secondary node (used when changing disk template)"),
     ("os_name", None, ht.TMaybeString,
