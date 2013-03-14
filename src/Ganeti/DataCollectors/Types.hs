@@ -26,9 +26,12 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 
 module Ganeti.DataCollectors.Types
-  ( DCReport(..)
+  ( addStatus
   , DCCategory(..)
   , DCKind(..)
+  , DCReport(..)
+  , DCStatus(..)
+  , DCStatusCode(..)
   , DCVersion(..)
   , buildReport
   ) where
@@ -48,6 +51,27 @@ instance JSON DCCategory where
   showJSON = showJSON . show
   readJSON =
     error "JSON read instance not implemented for type DCCategory"
+
+-- | The possible status codes of a data collector.
+data DCStatusCode = DCSCOk      -- ^ Everything is OK
+                  | DCSCTempBad -- ^ Bad, but being automatically fixed
+                  | DCSCUnknown -- ^ Unable to determine the status
+                  | DCSCBad     -- ^ Bad. External intervention required
+                  deriving (Show, Eq, Ord)
+
+-- | The JSON instance for CollectorStatus.
+instance JSON DCStatusCode where
+  showJSON DCSCOk      = showJSON (0 :: Int)
+  showJSON DCSCTempBad = showJSON (1 :: Int)
+  showJSON DCSCUnknown = showJSON (2 :: Int)
+  showJSON DCSCBad     = showJSON (4 :: Int)
+  readJSON = error "JSON read instance not implemented for type DCStatusCode"
+
+-- | The status of a \"status reporting data collector\".
+$(buildObject "DCStatus" "dcStatus"
+  [ simpleField "code"    [t| DCStatusCode |]
+  , simpleField "message" [t| String |]
+  ])
 
 -- | The type representing the kind of the collector.
 data DCKind = DCKPerf   -- ^ Performance reporting collector
@@ -80,6 +104,16 @@ $(buildObject "DCReport" "dcReport"
   , simpleField "kind"           [t| DCKind |]
   , simpleField "data"           [t| JSValue |]
   ])
+
+-- | Add the data collector status information to the JSON representation of
+-- the collector data.
+addStatus :: DCStatus -> JSValue -> JSValue
+addStatus dcStatus (JSObject obj) =
+  makeObj $ ("status", showJSON dcStatus) : fromJSObject obj
+addStatus dcStatus value = makeObj
+  [ ("status", showJSON dcStatus)
+  , ("data", value)
+  ]
 
 -- | Utility function for building a report automatically adding the current
 -- timestamp (rounded up to seconds).

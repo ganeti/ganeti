@@ -185,13 +185,13 @@ in its ``data`` section, at least the following field:
       There is no need of external intervention.
 
     ``2``
-      The collector can determine that something is wrong and Ganeti has no
-      way to fix it autonomously. External intervention is required.
-
-    ``4``
       The collector has failed to understand whether the status is good or
       bad. Further analysis is required. Interpret this status as a
       potentially dangerous situation.
+
+    ``4``
+      The collector can determine that something is wrong and Ganeti has no
+      way to fix it autonomously. External intervention is required.
 
   ``message``
     A message to better explain the reason of the status.
