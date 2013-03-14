@@ -32,6 +32,7 @@ module Ganeti.DataCollectors.Drbd
   , dcFormatVersion
   , dcCategory
   , dcKind
+  , dcData
   ) where
 
 
@@ -87,6 +88,10 @@ dcCategory = Just DCStorage
 dcKind :: DCKind
 dcKind = DCKStatus
 
+-- | The data exported by the data collector, taken from the default location.
+dcData :: IO J.JSValue
+dcData = buildJsonReport defaultFile Nothing
+
 -- * Command line options
 
 options :: IO [OptType]
@@ -121,21 +126,19 @@ getPairingInfo (Just filename) = do
       J.Ok instMinor -> BT.Ok instMinor
       J.Error msg -> BT.Bad msg
 
--- | This function builds a report with the DRBD status.
-buildDRBDReport :: FilePath -> Maybe FilePath -> IO DCReport
-buildDRBDReport statusFile pairingFile = do
+-- | This function computes the JSON representation of the DRBD status.
+buildJsonReport :: FilePath -> Maybe FilePath -> IO J.JSValue
+buildJsonReport statusFile pairingFile = do
   contents <-
     ((E.try $ readFile statusFile) :: IO (Either IOError String)) >>=
       exitIfBad "reading from file" . either (BT.Bad . show) BT.Ok
   pairingResult <- getPairingInfo pairingFile
   pairing <- exitIfBad "Can't get pairing info" pairingResult
-  jsonData <-
-    case A.parse (drbdStatusParser pairing) $ pack contents of
-      A.Fail unparsedText contexts errorMessage -> exitErr $
-        show (Prelude.take defaultCharNum $ unpack unparsedText) ++ "\n"
-          ++ show contexts ++ "\n" ++ errorMessage
-      A.Done _ drbdStatus -> return $ J.showJSON drbdStatus
-  buildReport dcName dcVersion dcFormatVersion dcCategory dcKind jsonData
+  case A.parse (drbdStatusParser pairing) $ pack contents of
+    A.Fail unparsedText contexts errorMessage -> exitErr $
+      show (Prelude.take defaultCharNum $ unpack unparsedText) ++ "\n"
+        ++ show contexts ++ "\n" ++ errorMessage
+    A.Done _ drbdStatus -> return $ J.showJSON drbdStatus
 
 -- | Main function.
 main :: Options -> [String] -> IO ()
@@ -144,5 +147,6 @@ main opts args = do
       pairingFile = optDrbdPairing opts
   unless (null args) . exitErr $ "This program takes exactly zero" ++
                                   " arguments, got '" ++ unwords args ++ "'"
-  report <- buildDRBDReport statusFile pairingFile
+  report <- buildJsonReport statusFile pairingFile >>=
+    buildReport dcName dcVersion dcFormatVersion dcCategory dcKind
   putStrLn $ J.encode report
