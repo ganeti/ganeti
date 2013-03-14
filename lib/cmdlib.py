@@ -13358,7 +13358,8 @@ class LUInstanceSetParams(LogicalUnit):
   def CheckArguments(self):
     if not (self.op.nics or self.op.disks or self.op.disk_template or
             self.op.hvparams or self.op.beparams or self.op.os_name or
-            self.op.offline is not None or self.op.runtime_mem):
+            self.op.offline is not None or self.op.runtime_mem or
+            self.op.pnode):
       raise errors.OpPrereqError("No changes submitted", errors.ECODE_INVAL)
 
     if self.op.hvparams:
@@ -13385,6 +13386,9 @@ class LUInstanceSetParams(LogicalUnit):
     # Check NIC modifications
     self._CheckMods("NIC", self.op.nics, constants.INIC_PARAMS_TYPES,
                     self._VerifyNicModification)
+
+    if self.op.pnode:
+      self.op.pnode = _ExpandNodeName(self.cfg, self.op.pnode)
 
   def ExpandNames(self):
     self._ExpandAndLockInstance()
@@ -13668,6 +13672,21 @@ class LUInstanceSetParams(LogicalUnit):
       "Cannot retrieve locked instance %s" % self.op.instance_name
 
     pnode = instance.primary_node
+
+    self.warn = []
+
+    if (self.op.pnode is not None and self.op.pnode != pnode and
+        not self.op.force):
+      # verify that the instance is not up
+      instance_info = self.rpc.call_instance_info(pnode, instance.name,
+                                                  instance.hypervisor)
+      if instance_info.fail_msg:
+        self.warn.append("Can't get instance runtime information: %s" %
+                         instance_info.fail_msg)
+      elif instance_info.payload:
+        raise errors.OpPrereqError("Instance is still running on %s" % pnode,
+                                   errors.ECODE_STATE)
+
     assert pnode in self.owned_locks(locking.LEVEL_NODE)
     nodelist = list(instance.all_nodes)
     pnode_info = self.cfg.GetNodeInfo(pnode)
@@ -13799,8 +13818,6 @@ class LUInstanceSetParams(LogicalUnit):
       self.os_inst = i_osdict # the new dict (without defaults)
     else:
       self.os_inst = {}
-
-    self.warn = []
 
     #TODO(dynmem): do the appropriate check involving MINMEM
     if (constants.BE_MAXMEM in self.op.beparams and not self.op.force and
@@ -14233,6 +14250,10 @@ class LUInstanceSetParams(LogicalUnit):
 
     result = []
     instance = self.instance
+
+    # New primary node
+    if self.op.pnode:
+      instance.primary_node = self.op.pnode
 
     # runtime memory
     if self.op.runtime_mem:
