@@ -170,6 +170,7 @@
     "node-failover": false,
 
     "instance-add-plain-disk": true,
+    "instance-add-file": true,
     "instance-add-drbd-disk": true,
     "instance-add-diskless": true,
     "instance-convert-disk": true,

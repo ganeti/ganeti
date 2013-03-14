@@ -577,6 +577,8 @@ def RunInstanceTests():
      qa_instance.TestInstanceAddWithDrbdDisk, 2),
     ("instance-add-diskless", constants.DT_DISKLESS,
      qa_instance.TestInstanceAddDiskless, 1),
+    ("instance-add-file", constants.DT_FILE,
+     qa_instance.TestInstanceAddFile, 1),
   ]
 
   for (test_name, templ, create_fun, num_nodes) in instance_tests:

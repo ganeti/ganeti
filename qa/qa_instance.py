@@ -290,6 +290,13 @@ def TestInstanceAddWithDrbdDisk(nodes):
 
 
 @InstanceCheck(None, INST_UP, RETURN_VALUE)
+def TestInstanceAddFile(nodes):
+  """gnt-instance add -t file"""
+  assert len(nodes) == 1
+  return _DiskTest(nodes[0].primary, constants.DT_FILE)
+
+
+@InstanceCheck(None, INST_UP, RETURN_VALUE)
 def TestInstanceAddDiskless(nodes):
   """gnt-instance add -t diskless"""
   assert len(nodes) == 1
