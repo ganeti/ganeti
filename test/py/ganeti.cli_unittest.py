@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2008, 2011 Google Inc.
+# Copyright (C) 2008, 2011, 2012, 2013 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -1120,6 +1120,149 @@ class TestSerializeGenericInfo(unittest.TestCase):
                 "  efg: 456\n")
     self._RunTest(data, expected)
     self._RunTest(dict(data), expected)
+
+
+class TestCreateIPolicyFromOpts(unittest.TestCase):
+  """Test case for cli.CreateIPolicyFromOpts."""
+  def _RecursiveCheckMergedDicts(self, default_pol, diff_pol, merged_pol):
+    self.assertTrue(type(default_pol) is dict)
+    self.assertTrue(type(diff_pol) is dict)
+    self.assertTrue(type(merged_pol) is dict)
+    self.assertEqual(frozenset(default_pol.keys()),
+                     frozenset(merged_pol.keys()))
+    for (key, val) in merged_pol.items():
+      if key in diff_pol:
+        if type(val) is dict:
+          self._RecursiveCheckMergedDicts(default_pol[key], diff_pol[key], val)
+        else:
+          self.assertEqual(val, diff_pol[key])
+      else:
+        self.assertEqual(val, default_pol[key])
+
+  def testClusterPolicy(self):
+    exp_pol0 = {
+      constants.ISPECS_MIN: {},
+      constants.ISPECS_MAX: {},
+      constants.ISPECS_STD: {},
+      }
+    exp_pol1 = {
+      constants.ISPECS_MIN: {
+        constants.ISPEC_CPU_COUNT: 2,
+        constants.ISPEC_DISK_COUNT: 1,
+        },
+      constants.ISPECS_MAX: {
+        constants.ISPEC_MEM_SIZE: 12*1024,
+        constants.ISPEC_DISK_COUNT: 2,
+        },
+      constants.ISPECS_STD: {
+        constants.ISPEC_CPU_COUNT: 2,
+        constants.ISPEC_DISK_COUNT: 2,
+        },
+      constants.IPOLICY_VCPU_RATIO: 3.1,
+      }
+    exp_pol2 = {
+      constants.ISPECS_MIN: {
+        constants.ISPEC_DISK_SIZE: 512,
+        constants.ISPEC_NIC_COUNT: 2,
+        },
+      constants.ISPECS_MAX: {
+        constants.ISPEC_NIC_COUNT: 3,
+        },
+      constants.ISPECS_STD: {
+        constants.ISPEC_CPU_COUNT: 2,
+        constants.ISPEC_NIC_COUNT: 3,
+        },
+      constants.IPOLICY_SPINDLE_RATIO: 1.3,
+      constants.IPOLICY_DTS: ["templates"],
+      }
+    for fillall in [False, True]:
+      pol0 = cli.CreateIPolicyFromOpts(
+        ispecs_mem_size={},
+        ispecs_cpu_count={},
+        ispecs_disk_count={},
+        ispecs_disk_size={},
+        ispecs_nic_count={},
+        ipolicy_disk_templates=None,
+        ipolicy_vcpu_ratio=None,
+        ipolicy_spindle_ratio=None,
+        fill_all=fillall
+        )
+      if fillall:
+        self.assertEqual(pol0, constants.IPOLICY_DEFAULTS)
+      else:
+        self.assertEqual(pol0, exp_pol0)
+      pol1 = cli.CreateIPolicyFromOpts(
+        ispecs_mem_size={"max": "12g"},
+        ispecs_cpu_count={"min": 2, "std": 2},
+        ispecs_disk_count={"min": 1, "max": 2, "std": 2},
+        ispecs_disk_size={},
+        ispecs_nic_count={},
+        ipolicy_disk_templates=None,
+        ipolicy_vcpu_ratio=3.1,
+        ipolicy_spindle_ratio=None,
+        fill_all=fillall
+        )
+      if fillall:
+        self._RecursiveCheckMergedDicts(constants.IPOLICY_DEFAULTS,
+                                        exp_pol1, pol1)
+      else:
+        self.assertEqual(pol1, exp_pol1)
+      pol2 = cli.CreateIPolicyFromOpts(
+        ispecs_mem_size={},
+        ispecs_cpu_count={"std": 2},
+        ispecs_disk_count={},
+        ispecs_disk_size={"min": "0.5g"},
+        ispecs_nic_count={"min": 2, "max": 3, "std": 3},
+        ipolicy_disk_templates=["templates"],
+        ipolicy_vcpu_ratio=None,
+        ipolicy_spindle_ratio=1.3,
+        fill_all=fillall
+        )
+      if fillall:
+        self._RecursiveCheckMergedDicts(constants.IPOLICY_DEFAULTS,
+                                        exp_pol2, pol2)
+      else:
+        self.assertEqual(pol2, exp_pol2)
+
+  def testInvalidPolicies(self):
+    self.assertRaises(errors.TypeEnforcementError, cli.CreateIPolicyFromOpts,
+                      ispecs_mem_size={}, ispecs_cpu_count={},
+                      ispecs_disk_count={}, ispecs_disk_size={"std": 1},
+                      ispecs_nic_count={}, ipolicy_disk_templates=None,
+                      ipolicy_vcpu_ratio=None, ipolicy_spindle_ratio=None,
+                      group_ipolicy=True)
+    self.assertRaises(errors.OpPrereqError, cli.CreateIPolicyFromOpts,
+                      ispecs_mem_size={"wrong": "x"}, ispecs_cpu_count={},
+                      ispecs_disk_count={}, ispecs_disk_size={},
+                      ispecs_nic_count={}, ipolicy_disk_templates=None,
+                      ipolicy_vcpu_ratio=None, ipolicy_spindle_ratio=None)
+    self.assertRaises(errors.TypeEnforcementError, cli.CreateIPolicyFromOpts,
+                      ispecs_mem_size={}, ispecs_cpu_count={"min": "default"},
+                      ispecs_disk_count={}, ispecs_disk_size={},
+                      ispecs_nic_count={}, ipolicy_disk_templates=None,
+                      ipolicy_vcpu_ratio=None, ipolicy_spindle_ratio=None)
+
+  def testAllowedValues(self):
+    allowedv = "blah"
+    exp_pol1 = {
+      constants.ISPECS_MIN: {
+        constants.ISPEC_CPU_COUNT: allowedv,
+        },
+      constants.ISPECS_MAX: {
+        },
+      constants.ISPECS_STD: {
+        },
+      }
+    pol1 = cli.CreateIPolicyFromOpts(ispecs_mem_size={},
+                                     ispecs_cpu_count={"min": allowedv},
+                                     ispecs_disk_count={},
+                                     ispecs_disk_size={},
+                                     ispecs_nic_count={},
+                                     ipolicy_disk_templates=None,
+                                     ipolicy_vcpu_ratio=None,
+                                     ipolicy_spindle_ratio=None,
+                                     allowed_values=[allowedv])
+    self.assertEqual(pol1, exp_pol1)
 
 
 if __name__ == "__main__":
