@@ -24,6 +24,7 @@
 """
 
 import operator
+import os
 import re
 
 from ganeti import utils
@@ -571,6 +572,38 @@ def TestInstanceModify(instance):
 
   # ...while making it online is ok, and should work
   AssertCommand(["gnt-instance", "modify", "--online", instance.name])
+
+
+@InstanceCheck(INST_UP, INST_UP, FIRST_ARG)
+def TestInstanceModifyPrimaryAndBack(instance, currentnode, othernode):
+  """gnt-instance modify --new-primary
+
+  This will leave the instance on its original primary node, not other node.
+
+  """
+  if instance.disk_template != constants.DT_FILE:
+    print qa_utils.FormatInfo("Test only supported for the file disk template")
+    return
+
+  name = instance.name
+  current = currentnode.primary
+  other = othernode.primary
+
+  filestorage = qa_config.get("file-storage-dir")
+  disk = os.path.join(filestorage, name)
+
+  AssertCommand(["gnt-instance", "modify", "--new-primary=%s" % other, name],
+                fail=True)
+  AssertCommand(["gnt-instance", "shutdown", name])
+  AssertCommand(["scp", "-r", disk, "%s:%s" % (other, filestorage)])
+  AssertCommand(["gnt-instance", "modify", "--new-primary=%s" % other, name])
+  AssertCommand(["gnt-instance", "startup", name])
+
+  # and back
+  AssertCommand(["gnt-instance", "shutdown", name])
+  AssertCommand(["rm", "-rf", disk], node=other)
+  AssertCommand(["gnt-instance", "modify", "--new-primary=%s" % current, name])
+  AssertCommand(["gnt-instance", "startup", name])
 
 
 @InstanceCheck(INST_DOWN, INST_DOWN, FIRST_ARG)

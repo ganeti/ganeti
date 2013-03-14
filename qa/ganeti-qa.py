@@ -602,6 +602,11 @@ def RunInstanceTests():
                     instance, inodes)
             RunTest(qa_instance.TestInstanceStartup, instance)
           RunCommonInstanceTests(instance)
+          if qa_config.TestEnabled("instance-modify-primary"):
+            othernode = qa_config.AcquireNode()
+            RunTest(qa_instance.TestInstanceModifyPrimaryAndBack,
+                    instance, inodes[0], othernode)
+            othernode.Release()
           RunGroupListTests()
           RunExportImportTests(instance, inodes)
           RunHardwareFailureTests(instance, inodes)

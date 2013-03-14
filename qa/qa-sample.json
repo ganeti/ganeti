@@ -185,6 +185,7 @@
     "instance-list": true,
     "instance-migrate": true,
     "instance-modify": true,
+    "instance-modify-primary": true,
     "instance-reboot": true,
     "instance-reinstall": true,
     "instance-rename": true,
