@@ -4,7 +4,7 @@
 
 {-
 
-Copyright (C) 2012 Google Inc.
+Copyright (C) 2012, 2013 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -27,6 +27,7 @@ module Ganeti.DataCollectors.Drbd
   ( main
   , options
   , arguments
+  , dcName
   ) where
 
 
