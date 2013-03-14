@@ -6,7 +6,7 @@
 
 {-
 
-Copyright (C) 2012 Google Inc.
+Copyright (C) 2012, 2013 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -27,20 +27,29 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Ganeti.DataCollectors.Types
   ( DCReport(..)
+  , DCVersion(..)
   , buildReport
   ) where
 
-import Data.Maybe
 import Text.JSON
 
 import Ganeti.Constants as C
 import Ganeti.THH
 import Ganeti.Utils (getCurrentTime)
 
+-- | Type representing the version number of a data collector.
+data DCVersion = DCVerBuiltin | DCVersion String deriving (Show, Eq)
+
+-- | The JSON instance for DCVersion.
+instance JSON DCVersion where
+  showJSON DCVerBuiltin = showJSON C.builtinDataCollectorVersion
+  showJSON (DCVersion v) = showJSON v
+  readJSON = error "JSON read instance not implemented for type DCVersion"
+
 -- | This is the format of the report produced by each data collector.
 $(buildObject "DCReport" "dcReport"
   [ simpleField "name"           [t| String |]
-  , simpleField "version"        [t| String |]
+  , simpleField "version"        [t| DCVersion |]
   , simpleField "format_version" [t| Int |]
   , simpleField "timestamp"      [t| Integer |]
   , simpleField "data"           [t| JSValue |]
@@ -50,9 +59,8 @@ $(buildObject "DCReport" "dcReport"
 -- timestamp (rounded up to seconds).
 -- If the version is not specified, it will be set to the value indicating
 -- a builtin collector.
-buildReport :: String -> Maybe String -> Int -> JSValue -> IO DCReport
+buildReport :: String -> DCVersion -> Int -> JSValue -> IO DCReport
 buildReport name version format_version jsonData = do
   now <- getCurrentTime
   let timestamp = now * 1000000000 :: Integer
-      ver = fromMaybe C.builtinDataCollectorVersion version
-  return $ DCReport name ver format_version timestamp jsonData
+  return $ DCReport name version format_version timestamp jsonData

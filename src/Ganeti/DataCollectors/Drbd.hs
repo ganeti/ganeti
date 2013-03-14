@@ -28,6 +28,7 @@ module Ganeti.DataCollectors.Drbd
   , options
   , arguments
   , dcName
+  , dcVersion
   ) where
 
 
@@ -66,6 +67,10 @@ defaultCharNum = 80*20
 -- | The name of this data collector.
 dcName :: String
 dcName = "drbd"
+
+-- | The version of this data collector.
+dcVersion :: DCVersion
+dcVersion = DCVerBuiltin
 
 -- | The version number for the data format of this data collector.
 dcFormatVersion :: Int
@@ -119,7 +124,7 @@ buildDRBDReport statusFile pairingFile = do
         show (Prelude.take defaultCharNum $ unpack unparsedText) ++ "\n"
           ++ show contexts ++ "\n" ++ errorMessage
       A.Done _ drbdStatus -> return $ J.showJSON drbdStatus
-  buildReport dcName Nothing dcFormatVersion jsonData
+  buildReport dcName dcVersion dcFormatVersion jsonData
 
 -- | Main function.
 main :: Options -> [String] -> IO ()
