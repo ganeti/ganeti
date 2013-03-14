@@ -71,6 +71,8 @@ dcName = "drbd"
 dcFormatVersion :: Int
 dcFormatVersion = 1
 
+-- * Command line options
+
 options :: IO [OptType]
 options =
   return
@@ -81,8 +83,6 @@ options =
 -- | The list of arguments supported by the program.
 arguments :: [ArgCompletion]
 arguments = [ArgCompletion OptComplFile 0 (Just 0)]
-
--- * Command line options
 
 -- | Get information about the pairing of DRBD minors and Ganeti instances
 -- on the current node. The information is taken from the Confd client
