@@ -27,6 +27,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Ganeti.DataCollectors.Types
   ( DCReport(..)
+  , DCCategory(..)
   , DCVersion(..)
   , buildReport
   ) where
@@ -36,6 +37,16 @@ import Text.JSON
 import Ganeti.Constants as C
 import Ganeti.THH
 import Ganeti.Utils (getCurrentTime)
+
+-- | The possible classes a data collector can belong to.
+data DCCategory = DCInstance | DCStorage | DCDaemon | DCHypervisor
+  deriving (Show, Eq)
+
+-- | The JSON instance for DCCategory.
+instance JSON DCCategory where
+  showJSON = showJSON . show
+  readJSON =
+    error "JSON read instance not implemented for type DCCategory"
 
 -- | Type representing the version number of a data collector.
 data DCVersion = DCVerBuiltin | DCVersion String deriving (Show, Eq)
@@ -52,6 +63,8 @@ $(buildObject "DCReport" "dcReport"
   , simpleField "version"        [t| DCVersion |]
   , simpleField "format_version" [t| Int |]
   , simpleField "timestamp"      [t| Integer |]
+  , optionalNullSerField $
+      simpleField "category"     [t| DCCategory |]
   , simpleField "data"           [t| JSValue |]
   ])
 
@@ -59,8 +72,9 @@ $(buildObject "DCReport" "dcReport"
 -- timestamp (rounded up to seconds).
 -- If the version is not specified, it will be set to the value indicating
 -- a builtin collector.
-buildReport :: String -> DCVersion -> Int -> JSValue -> IO DCReport
-buildReport name version format_version jsonData = do
+buildReport :: String -> DCVersion -> Int -> Maybe DCCategory -> JSValue
+            -> IO DCReport
+buildReport name version format_version category jsonData = do
   now <- getCurrentTime
   let timestamp = now * 1000000000 :: Integer
-  return $ DCReport name version format_version timestamp jsonData
+  return $ DCReport name version format_version timestamp category jsonData
