@@ -1294,7 +1294,8 @@ def SetInstanceParams(opts, args):
   """
   if not (opts.nics or opts.disks or opts.disk_template or
           opts.hvparams or opts.beparams or opts.os or opts.osparams or
-          opts.offline_inst or opts.online_inst or opts.runtime_mem):
+          opts.offline_inst or opts.online_inst or opts.runtime_mem or
+          opts.new_primary_node):
     ToStderr("Please give at least one of the parameters.")
     return 1
 
@@ -1336,6 +1337,7 @@ def SetInstanceParams(opts, args):
                                    disks=disks,
                                    disk_template=opts.disk_template,
                                    remote_node=opts.node,
+                                   pnode=opts.new_primary_node,
                                    hvparams=opts.hvparams,
                                    beparams=opts.beparams,
                                    runtime_mem=opts.runtime_mem,
@@ -1536,7 +1538,7 @@ commands = {
      DISK_TEMPLATE_OPT, SINGLE_NODE_OPT, OS_OPT, FORCE_VARIANT_OPT,
      OSPARAMS_OPT, DRY_RUN_OPT, PRIORITY_OPT, NWSYNC_OPT, OFFLINE_INST_OPT,
      ONLINE_INST_OPT, IGNORE_IPOLICY_OPT, RUNTIME_MEM_OPT,
-     NOCONFLICTSCHECK_OPT],
+     NOCONFLICTSCHECK_OPT, NEW_PRIMARY_OPT],
     "<instance>", "Alters the parameters of an instance"),
   "shutdown": (
     GenericManyOps("shutdown", _ShutdownInstance), [ArgInstance()],

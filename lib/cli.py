@@ -122,6 +122,7 @@ __all__ = [
   "NEW_CLUSTER_DOMAIN_SECRET_OPT",
   "NEW_CONFD_HMAC_KEY_OPT",
   "NEW_RAPI_CERT_OPT",
+  "NEW_PRIMARY_OPT",
   "NEW_SECONDARY_OPT",
   "NEW_SPICE_CERT_OPT",
   "NIC_PARAMS_OPT",
@@ -1066,6 +1067,11 @@ NEW_SECONDARY_OPT = cli_option("-n", "--new-secondary", dest="dst_node",
                                help="Specifies the new secondary node",
                                metavar="NODE", default=None,
                                completion_suggest=OPT_COMPL_ONE_NODE)
+
+NEW_PRIMARY_OPT = cli_option("--new-primary", dest="new_primary_node",
+                             help="Specifies the new primary node",
+                             metavar="<node>", default=None,
+                             completion_suggest=OPT_COMPL_ONE_NODE)
 
 ON_PRIMARY_OPT = cli_option("-p", "--on-primary", dest="on_primary",
                             default=False, action="store_true",

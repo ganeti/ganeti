@@ -1032,6 +1032,7 @@ MODIFY
 |  \--disk [*N*:]remove \|
 |  \--disk *N*:mode=*MODE*]
 | [{-t|\--disk-template} plain | {-t|\--disk-template} drbd -n *new_secondary*] [\--no-wait-for-sync]
+| [\--new-primary=*node*]
 | [\--os-type=*OS* [\--force-variant]]
 | [{-O|\--os-parameters} *param*=*value*... ]
 | [\--offline \| \--online]
@@ -1089,6 +1090,11 @@ The option ``-o (--os-type)`` will change the OS name for the instance
 not found, then by default the modification is refused, unless
 ``--force-variant`` is passed. An invalid OS will also be refused,
 unless the ``--force`` option is given.
+
+The option ``--new-primary`` will set the new primary node of an instance
+assuming the disks have already been moved manually. Unless the ``--force``
+option is given, it is verified that the instance is no longer running
+on its current primary node.
 
 The ``--online`` and ``--offline`` options are used to transition an
 instance into and out of the ``offline`` state. An instance can be
