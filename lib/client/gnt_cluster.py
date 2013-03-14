@@ -194,6 +194,12 @@ def InitCluster(opts, args):
 
   hv_state = dict(opts.hv_state)
 
+  enabled_storage_types = opts.enabled_storage_types
+  if enabled_storage_types is not None:
+    enabled_storage_types = enabled_storage_types.split(",")
+  else:
+    enabled_storage_types = list(constants.DEFAULT_ENABLED_STORAGE_TYPES)
+
   bootstrap.InitCluster(cluster_name=args[0],
                         secondary_ip=opts.secondary_ip,
                         vg_name=vg_name,
@@ -221,6 +227,7 @@ def InitCluster(opts, args):
                         use_external_mip_script=external_ip_setup_script,
                         hv_state=hv_state,
                         disk_state=disk_state,
+                        enabled_storage_types=enabled_storage_types,
                         )
   op = opcodes.OpClusterPostInit()
   SubmitOpCode(op, opts=opts)
@@ -1495,7 +1502,8 @@ commands = {
      MAINTAIN_NODE_HEALTH_OPT, UIDPOOL_OPT, DRBD_HELPER_OPT, NODRBD_STORAGE_OPT,
      DEFAULT_IALLOCATOR_OPT, PRIMARY_IP_VERSION_OPT, PREALLOC_WIPE_DISKS_OPT,
      NODE_PARAMS_OPT, GLOBAL_SHARED_FILEDIR_OPT, USE_EXTERNAL_MIP_SCRIPT,
-     DISK_PARAMS_OPT, HV_STATE_OPT, DISK_STATE_OPT] + INSTANCE_POLICY_OPTS,
+     DISK_PARAMS_OPT, HV_STATE_OPT, DISK_STATE_OPT, ENABLED_STORAGE_TYPES_OPT]
+     + INSTANCE_POLICY_OPTS,
     "[opts...] <cluster_name>", "Initialises a new cluster configuration"),
   "destroy": (
     DestroyCluster, ARGS_NONE, [YES_DOIT_OPT],

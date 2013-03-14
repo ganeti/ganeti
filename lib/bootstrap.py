@@ -372,11 +372,14 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
                 maintain_node_health=False, drbd_helper=None, uid_pool=None,
                 default_iallocator=None, primary_ip_version=None, ipolicy=None,
                 prealloc_wipe_disks=False, use_external_mip_script=False,
-                hv_state=None, disk_state=None):
+                hv_state=None, disk_state=None, enabled_storage_types=None):
   """Initialise the cluster.
 
   @type candidate_pool_size: int
   @param candidate_pool_size: master candidate pool size
+  @type enabled_storage_types: list of string
+  @param enabled_storage_types: list of storage types to be used in this
+    cluster
 
   """
   # TODO: complete the docstring
@@ -391,6 +394,16 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
   if invalid_hvs:
     raise errors.OpPrereqError("Enabled hypervisors contains invalid"
                                " entries: %s" % invalid_hvs,
+                               errors.ECODE_INVAL)
+
+  if not enabled_storage_types:
+    raise errors.OpPrereqError("Enabled storage types list must contain at"
+                               " least one member", errors.ECODE_INVAL)
+  invalid_storage_types = \
+    set(enabled_storage_types) - constants.VALID_STORAGE_TYPES
+  if invalid_storage_types:
+    raise errors.OpPrereqError("Enabled storage_types contains invalid"
+                               " entries: %s" % invalid_storage_types,
                                errors.ECODE_INVAL)
 
   try:
@@ -621,6 +634,7 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
     ipolicy=full_ipolicy,
     hv_state_static=hv_state,
     disk_state_static=disk_state,
+    enabled_storage_types=enabled_storage_types,
     )
   master_node_config = objects.Node(name=hostname.name,
                                     primary_ip=hostname.ip,
