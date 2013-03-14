@@ -66,7 +66,7 @@ the data collectors:
   report. Built-in data collectors (as opposed to those implemented as
   plugins) should have "B" as the version number.
 
-``formatVersion``
+``format_version``
   The format of what is represented in the "data" field for each data
   collector might change over time. Every time this happens, the
   format_version should be changed, so that who reads the report knows
@@ -103,7 +103,7 @@ Here follows a minimal example of a report::
   {
       "name" : "TheCollectorIdentifier",
       "version" : "1.2",
-      "formatVersion" : 1,
+      "format_version" : 1,
       "timestamp" : 1351607182000000000,
       "category" : null,
       "kind" : 0,
@@ -112,7 +112,7 @@ Here follows a minimal example of a report::
   {
       "name" : "AnotherDataCollector",
       "version" : "B",
-      "formatVersion" : 7,
+      "format_version" : 7,
       "timestamp" : 1351609526123854000,
       "category" : "storage",
       "kind" : 1,

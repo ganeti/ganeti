@@ -29,6 +29,7 @@ module Ganeti.DataCollectors.Drbd
   , arguments
   , dcName
   , dcVersion
+  , dcFormatVersion
   ) where
 
 
