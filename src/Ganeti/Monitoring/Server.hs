@@ -35,10 +35,12 @@ import Control.Applicative
 import Control.Monad
 import Snap.Core
 import Snap.Http.Server
-import Data.ByteString.Char8
+import Data.ByteString.Char8 hiding (map)
 import qualified Text.JSON as J
 
 import Ganeti.Daemon
+import qualified Ganeti.DataCollectors.Drbd as Drbd
+import Ganeti.DataCollectors.Types
 import qualified Ganeti.Constants as C
 
 -- * Types and constants definitions
@@ -52,6 +54,22 @@ type PrepResult = Config Snap ()
 -- | Version of the latest supported http API.
 latestAPIVersion :: Int
 latestAPIVersion = 1
+
+-- | Type describing a data collector basic information
+data DataCollector = DataCollector
+  { dName     :: String           -- ^ Name of the data collector
+  , dCategory :: Maybe DCCategory -- ^ Category (storage, instance, ecc)
+                                  --   of the collector
+  , dKind     :: DCKind           -- ^ Kind (performance or status reporting) of
+                                  --   the data collector
+  }
+
+-- | The list of available builtin data collectors.
+collectors :: [DataCollector]
+collectors =
+  [ DataCollector Drbd.dcName Drbd.dcCategory Drbd.dcKind
+  ]
+
 
 -- * Configuration handling
 
@@ -93,10 +111,20 @@ version1Api =
        , ("report", reportHandler)
        ]
 
+-- | Get the JSON representation of a data collector to be used in the collector
+-- list.
+dcListItem :: DataCollector -> J.JSValue
+dcListItem dc =
+  J.JSArray
+    [ J.showJSON $ dName dc
+    , maybe J.JSNull J.showJSON $ dCategory dc
+    , J.showJSON $ dKind dc
+    ]
+
 -- | Handler for returning lists.
 listHandler :: Snap ()
 listHandler =
-  dir "collectors" $ writeText "TODO: return the list of collectors"
+  dir "collectors" . writeBS . pack . J.encode $ map dcListItem collectors
 
 -- | Handler for returning data collector reports.
 reportHandler :: Snap ()
