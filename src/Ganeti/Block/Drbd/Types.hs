@@ -144,8 +144,8 @@ data ConnState
   | Unconnected    -- ^ Prior to a connection attempt
   | Timeout        -- ^ Following a timeout in the communication
   | BrokenPipe     -- ^ After the connection to the peer was lost
-  | NetworkFailure -- ^ After the connection to the parner was lost
-  | ProtocolError  -- ^ After the connection to the parner was lost
+  | NetworkFailure -- ^ After the connection to the partner was lost
+  | ProtocolError  -- ^ After the connection to the partner was lost
   | TearDown       -- ^ The peer is closing the connection
   | WFConnection   -- ^ Waiting for the peer to become visible
   | WFReportParams -- ^ Waiting for first packet from peer
@@ -159,8 +159,8 @@ data ConnState
   | SyncTarget     -- ^ Target of a running synchronization
   | PausedSyncS    -- ^ Source of a paused synchronization
   | PausedSyncT    -- ^ Target of a paused synchronization
-  | VerifyS        -- ^ Source of an running verification
-  | VerifyT        -- ^ Target of an running verification
+  | VerifyS        -- ^ Source of a running verification
+  | VerifyT        -- ^ Target of a running verification
   | Unconfigured   -- ^ The device is not configured
     deriving (Show, Eq)
 
