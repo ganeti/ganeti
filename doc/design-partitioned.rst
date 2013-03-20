@@ -163,10 +163,12 @@ defined at node-group level.
 Currently it's possible to define an instance policy that limits the
 minimum and maximum value for CPU, memory, and disk usage (and spindles
 and any other resource, when implemented), independently from each other. We
-extend the policy by allowing it to specify more specifications, where
-each specification contains the limits (minimum, maximum, and standard)
-for all the resources. Each specification has a unique priority (an
-integer) associated to it, which is used by ``hspace`` (see below).
+extend the policy by allowing it to contain more occurrences of the
+specifications for both the limits for the instance resources. Each
+specification pair (minimum and maximum) has a unique priority
+associated to it (or in other words, specifications are ordered), which
+is used by ``hspace`` (see below). The standard specification doesn't
+change: there is one for the whole cluster.
 
 For example, a policy could be set up to allow instances with this
 constraints:
@@ -183,12 +185,11 @@ Ganeti will refuse to create (or modify) instances that violate instance
 policy constraints, unless the flag ``--ignore-ipolicy`` is passed.
 
 While the changes needed to check constraint violations are
-straightforward, ``hspace`` behavior needs some adjustments. For both
-standard and tiered allocation, ``hspace`` will start to allocate
-instances using the specification with the highest priority, then it
-will fall back to second highest priority, and so on. For tiered
-allocation, it will try to lower the most constrained resources (without
-breaking the policy) before going to the next specification.
+straightforward, ``hspace`` behavior needs some adjustments for tiered
+allocation. ``hspace`` will start to allocate instances using the
+maximum specification with the highest priority, then it will try to
+lower the most constrained resources (without breaking the policy)
+before moving to the second highest priority, and so on.
 
 For consistent results in capacity calculation, the specifications
 inside a policy should be ordered so that the biggest specifications
