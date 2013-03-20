@@ -642,7 +642,7 @@ class LogicalVolume(BlockDev):
 
   @staticmethod
   def _GetVolumeInfo(lvm_cmd, fields):
-    """Returns LVM Volumen infos using lvm_cmd
+    """Returns LVM Volume infos using lvm_cmd
 
     @param lvm_cmd: Should be one of "pvs", "vgs" or "lvs"
     @param fields: Fields to return
