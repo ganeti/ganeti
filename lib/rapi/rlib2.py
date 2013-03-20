@@ -167,7 +167,7 @@ _WFJC_TIMEOUT = 10
 
 
 # FIXME: For compatibility we update the beparams/memory field. Needs to be
-#        removed in Ganeti 2.7
+#        removed in Ganeti 2.8
 def _UpdateBeparams(inst):
   """Updates the beparams dict of inst to support the memory field.
 
