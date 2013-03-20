@@ -21,7 +21,7 @@ Configuration changes
 ---------------------
 
 Add a new attribute "enabled_storage_types" (type: list of strings) to the
-cluster config which holds the types of storages, for example, "plain", "drbd",
+cluster config which holds the types of storages, for example, "file", "rados",
 or "ext". We consider the first one of the list as the default type.
 
 For file storage, we'll report the storage space on the file storage dir,
@@ -156,7 +156,7 @@ is set. That doesn't interact directly with this design, as the specific
 of how the free space is computed is not in the scope of this design.
 But the ``node info`` call contains the value of the
 ``exclusive_storage`` flag, which is currently only meaningful for the
-LVM back-end. Additional flags like the ``external_storage`` flag
+LVM back-end. Additional flags like the ``exclusive_storage`` flag
 for lvm might be useful for other storage types as well. We therefore
 extend the RPC call with <type>,<key> to <type>,<key>,<params> to
 include any storage-type specific parameters in the RPC call.
