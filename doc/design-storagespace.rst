@@ -20,17 +20,17 @@ interaction with different storage types.
 Configuration changes
 ---------------------
 
-Add a new attribute "enabled_storage_methods" (type: list of strings) to the
+Add a new attribute "enabled_storage_types" (type: list of strings) to the
 cluster config which holds the types of storages, for example, "plain", "drbd",
-or "ext". We consider the first one of the list as the default method.
+or "ext". We consider the first one of the list as the default type.
 
 For file storage, we'll report the storage space on the file storage dir,
 which is currently limited to one directory. In the future, if we'll have
 support for more directories, or for per-nodegroup directories this can be
 changed.
 
-Note that the abovementioned enabled_storage_methods are just "mechanisms"
-parameters that define which storage methods the cluster can use. Further
+Note that the abovementioned enabled_storage_types are just "mechanisms"
+parameters that define which storage types the cluster can use. Further
 filtering about what's allowed can go in the ipolicy, but these changes are
 not covered in this design doc.
 
@@ -45,28 +45,28 @@ RPC changes
 -----------
 
 The noded RPC call that reports node storage space will be changed to
-accept a list of <method>,<key> string tuples. For each of them, it will
+accept a list of <type>,<key> string tuples. For each of them, it will
 report the free amount of storage space found on storage <key> as known
-by the requested storage type method. For example methods are ``lvm``,
+by the requested storage type types. For example types are ``lvm``,
 ``filesystem``, or ``rados``, and the key would be a volume group name, in
 the case of lvm, a directory name for the filesystem and a rados pool name
 for rados storage.
 
 For now, we will implement only the storage reporting for non-shared storage,
-that is ``filesystem`` and ``lvm``. For shared storage methods like ``rados``
+that is ``filesystem`` and ``lvm``. For shared storage types like ``rados``
 and ``ext`` we will not implement a free space calculation, because it does
 not make sense to query each node for the free space of a commonly used
 storage.
 
 Masterd will know (through a constant map) which storage type uses which
-method for storage calculation (i.e. ``plain`` and ``drbd`` use ``lvm``,
+type for storage calculation (i.e. ``plain`` and ``drbd`` use ``lvm``,
 ``file`` uses ``filesystem``, etc) and query the one needed (or all of the
 needed ones).
 
 Note that for file and sharedfile the node knows which directories are
 allowed and won't allow any other directory to be queried for security
 reasons. The actual path still needs to be passed to distinguish the
-two, as the method will be the same for both.
+two, as the type will be the same for both.
 
 These calculations will be implemented in the node storage system
 (currently lib/storage.py) but querying will still happen through the
@@ -75,9 +75,9 @@ These calculations will be implemented in the node storage system
 Ganeti reporting
 ----------------
 
-`gnt-node list`` can be queried for the different storage methods, if they
+`gnt-node list`` can be queried for the different storage types, if they
 are enabled. By default, it will just report information about the default
-storage method. Examples::
+storage type. Examples::
 
   > gnt-node list
   Node                       DTotal DFree MTotal MNode MFree Pinst Sinst
@@ -98,14 +98,14 @@ is an interim state only). It is the administrator's responsibility to ensure
 that there is enough space for the meta volume group.
 
 When storage pools are implemented, we switch from referencing the storage
-method to referencing the storage pool name. For that, of course, the pool
-names need to be unique over all storage methods. For drbd, we will use the
+type to referencing the storage pool name. For that, of course, the pool
+names need to be unique over all storage types. For drbd, we will use the
 default 'lvm' storage pool and possibly a second lvm-based storage pool for
 the metavg. It will be possible to rename storage pools (thus also the default
 lvm storage pool). There will be new functionality to ask about what storage
 pools are available and of what type.
 
-``gnt-cluster info`` will report which storage methods are enabled, i.e.
+``gnt-cluster info`` will report which storage types are enabled, i.e.
 which ones are supported according to the cluster configuration. Example
 output::
 
@@ -113,11 +113,11 @@ output::
   [...]
   Cluster parameters:
     - [...]
-    - enabled storage methods: plain (default), drbd, lvm, rados
+    - enabled storage types: plain (default), drbd, lvm, rados
     - [...]
 
 ``gnt-node list-storage`` will not be affected by any changes, since this design
-describes only free storage reporting for non-shared storage methods.
+describes only free storage reporting for non-shared storage types.
 
 Allocator changes
 -----------------
@@ -158,8 +158,8 @@ But the ``node info`` call contains the value of the
 ``exclusive_storage`` flag, which is currently only meaningful for the
 LVM back-end. Additional flags like the ``external_storage`` flag
 for lvm might be useful for other storage types as well. We therefore
-extend the RPC call with <method>,<key> to <method>,<key>,<params> to
-include any storage-method specific parameters in the RPC call.
+extend the RPC call with <type>,<key> to <type>,<key>,<params> to
+include any storage-type specific parameters in the RPC call.
 
 The reporting of free spindles, also part of Partitioned Ganeti, is not
 concerned with this design doc, as those are seen as a separate resource.
