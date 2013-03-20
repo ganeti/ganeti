@@ -214,7 +214,7 @@ handleClient client creader = do
         Ok args -> handleClientMsg client creader args
 
 -- | Main client loop: runs one loop of 'handleClient', and if that
--- doesn't repot a finished (closed) connection, restarts itself.
+-- doesn't report a finished (closed) connection, restarts itself.
 clientLoop :: Client -> ConfigReader -> IO ()
 clientLoop client creader = do
   result <- handleClient client creader
