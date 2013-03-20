@@ -373,30 +373,42 @@ HKR_FAIL = 1
 HKR_SUCCESS = 2
 
 # Storage types
+ST_BLOCK = "blockdev"
+ST_DISKLESS = "diskless"
+ST_EXT = "ext"
 ST_FILE = "file"
 ST_LVM_PV = "lvm-pv"
 ST_LVM_VG = "lvm-vg"
-ST_DISKLESS = "diskless"
-ST_SHARED_FILE = "sharedfile"
-ST_BLOCK = "blockdev"
 ST_RADOS = "rados"
-ST_EXT = "ext"
+ST_SHARED_FILE = "sharedfile"
 
 VALID_STORAGE_TYPES = compat.UniqueFrozenset([
+  ST_BLOCK,
+  ST_DISKLESS,
+  ST_EXT,
   ST_FILE,
   ST_LVM_PV,
   ST_LVM_VG,
-  ST_DISKLESS,
-  ST_SHARED_FILE,
-  ST_BLOCK,
   ST_RADOS,
-  ST_EXT,
+  ST_SHARED_FILE,
   ])
 
 # Per default, only lvm is enabled.
 DEFAULT_ENABLED_STORAGE_TYPES = compat.UniqueFrozenset([
   ST_LVM_VG,
   ])
+
+# This is used to order determine the default storage type when the list
+# of enabled storage types is inferred from the current state of the cluster.
+# This only happens on an upgrade from a version of Ganeti that did not
+# support the 'enabled_storage_methods' so far.
+STORAGE_TYPES_PREFERENCE = [
+  ST_LVM_VG,
+  ST_FILE,
+  ST_SHARED_FILE,
+  ST_RADOS,
+  ST_BLOCK,
+  ]
 
 # Storage fields
 # first two are valid in LU context only, not passed to backend
@@ -437,14 +449,26 @@ VALID_STORAGE_OPERATIONS = {
  LDS_FAULTY) = range(1, 4)
 
 # disk template types
-DT_DISKLESS = "diskless"
-DT_PLAIN = "plain"
-DT_DRBD8 = "drbd"
-DT_FILE = "file"
-DT_SHARED_FILE = "sharedfile"
 DT_BLOCK = "blockdev"
-DT_RBD = "rbd"
+DT_DISKLESS = "diskless"
+DT_DRBD8 = "drbd"
 DT_EXT = "ext"
+DT_FILE = "file"
+DT_PLAIN = "plain"
+DT_RBD = "rbd"
+DT_SHARED_FILE = "sharedfile"
+
+# mapping of disk templates to storage types
+DISK_TEMPLATES_STORAGE_TYPE = {
+  DT_BLOCK: ST_BLOCK,
+  DT_DISKLESS: ST_DISKLESS,
+  DT_DRBD8: ST_LVM_VG,
+  DT_EXT: ST_EXT,
+  DT_FILE: ST_FILE,
+  DT_PLAIN: ST_LVM_VG,
+  DT_RBD: ST_RADOS,
+  DT_SHARED_FILE: ST_SHARED_FILE,
+  }
 
 # the set of network-mirrored disk templates
 DTS_INT_MIRROR = compat.UniqueFrozenset([DT_DRBD8])

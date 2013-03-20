@@ -11,6 +11,13 @@ Version 2.8.0 beta1
 - The :doc:`Remote API <rapi>` daemon now supports a command line flag
   to always require authentication, ``--require-authentication``. It can
   be specified in ``$sysconfdir/default/ganeti``.
+- A new cluster attribute 'enabled_storage_types' is introduced. It will
+  be used to manage the storage types to be used by instances in the cluster.
+  Initially, it will be set to a list that includes lvm, file and sharedfile
+  if those are enabled. Additionally, it will include all storage types that
+  are currently used by instances. The order of storage types will be based
+  on Ganeti's history of supporting them. In the future, the first entry of
+  the list will be used as a default storage type on instance creation.
 
 
 Version 2.7.0 beta1

@@ -463,6 +463,37 @@ class ConfigData(ConfigObject):
       self.networks = {}
     for network in self.networks.values():
       network.UpgradeConfig()
+    self._UpgradeStorageTypes()
+
+  def _UpgradeStorageTypes(self):
+    """Upgrade the cluster's enabled storage types by inspecting the currently
+       enabled and/or used storage types.
+
+    """
+    # enabled_storage_types in the cluster config were introduced in 2.8. Remove
+    # this code once upgrading from earlier versions is deprecated.
+    if not self.cluster.enabled_storage_types:
+      storage_type_set = \
+        set([constants.DISK_TEMPLATES_STORAGE_TYPE[inst.disk_template]
+               for inst in self.instances.values()])
+      # Add lvm, file and shared file storage, if they are enabled, even though
+      # they might currently not be used.
+      if self.cluster.volume_group_name:
+        storage_type_set.add(constants.ST_LVM_VG)
+      # FIXME: Adapt this when dis/enabling at configure time is removed.
+      if constants.ENABLE_FILE_STORAGE:
+        storage_type_set.add(constants.ST_FILE)
+      if constants.ENABLE_SHARED_FILE_STORAGE:
+        storage_type_set.add(constants.ST_SHARED_FILE)
+      # Set enabled_storage_types to the inferred storage types. Order them
+      # according to a preference list that is based on Ganeti's history of
+      # supported storage types.
+      self.cluster.enabled_storage_types = []
+      for preferred_type in constants.STORAGE_TYPES_PREFERENCE:
+        if preferred_type in storage_type_set:
+          self.cluster.enabled_storage_types.append(preferred_type)
+          storage_type_set.remove(preferred_type)
+      self.cluster.enabled_storage_types.extend(list(storage_type_set))
 
 
 class NIC(ConfigObject):
