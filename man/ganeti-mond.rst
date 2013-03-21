@@ -52,10 +52,9 @@ available in the system.
 
 ``/1/report/all``
 +++++++++++++++++
-A list of the reports of all the data collectors, as described in the section
-`Format of the report`_.
+A list of the reports of all the data collectors.
 
-`Status reporting collectors`_ will provide their output in non-verbose format.
+`Status reporting collectors` will provide their output in non-verbose format.
 The verbose format can be requested by adding the parameter ``verbose=1`` to the
 request.
 
@@ -67,7 +66,7 @@ specified ``[category]``.
 If a collector does not belong to any category, ``collector`` will be used as
 the value for ``[category]``.
 
-`Status reporting collectors`_ will provide their output in non-verbose format.
+`Status reporting collectors` will provide their output in non-verbose format.
 The verbose format can be requested by adding the parameter ``verbose=1`` to the
 request.
 
