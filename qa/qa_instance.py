@@ -67,13 +67,25 @@ def _GetGenericAddParameters(inst, disk_template, force_mac=None):
   return params
 
 
-def _DiskTest(node, disk_template, fail=False):
+def _CreateInstanceByDiskTemplateRaw(nodes_spec, disk_template, fail=False):
+  """Creates an instance with the given disk template on the given nodes(s).
+     Note that this function does not check if enough nodes are given for
+     the respective disk template.
+
+  @type nodes_spec: string
+  @param nodes_spec: string specification of one node (by node name) or several
+                     nodes according to the requirements of the disk template
+  @type disk_template: string
+  @param disk_template: the disk template to be used by the instance
+  @return: the created instance
+
+  """
   instance = qa_config.AcquireInstance()
   try:
     cmd = (["gnt-instance", "add",
             "--os-type=%s" % qa_config.get("os"),
             "--disk-template=%s" % disk_template,
-            "--node=%s" % node] +
+            "--node=%s" % nodes_spec] +
            _GetGenericAddParameters(instance, disk_template))
     cmd.append(instance.name)
 
@@ -92,6 +104,68 @@ def _DiskTest(node, disk_template, fail=False):
   assert fail
   instance.Release()
   return None
+
+
+def _CreateInstanceByDiskTemplateOneNode(nodes, disk_template, fail=False):
+  """Creates an instance using the given disk template for disk templates
+     for which one given node is sufficient. These templates are for example:
+     plain, diskless, file, sharedfile, blockdev, rados.
+
+  @type nodes: list of nodes
+  @param nodes: a list of nodes, whose first element is used to create the
+                instance
+  @type disk_template: string
+  @param disk_template: the disk template to be used by the instance
+  @return: the created instance
+
+  """
+  assert len(nodes) > 0
+  return _CreateInstanceByDiskTemplateRaw(nodes[0].primary, disk_template,
+                                          fail=fail)
+
+
+def _CreateInstanceDrbd8(nodes, fail=False):
+  """Creates an instance using disk template 'drbd' on the given nodes.
+
+  @type nodes: list of nodes
+  @param nodes: nodes to be used by the instance
+  @return: the created instance
+
+  """
+  assert len(nodes) > 1
+  return _CreateInstanceByDiskTemplateRaw(
+    ":".join(map(operator.attrgetter("primary"), nodes)),
+    constants.DT_DRBD8, fail=fail)
+
+
+def CreateInstanceByDiskTemplate(nodes, disk_template, fail=False):
+  """Given a disk template, this function creates an instance using
+     the template. It uses the required number of nodes depending on
+     the disk template. This function is intended to be used by tests
+     that don't care about the specifics of the instance other than
+     that it uses the given disk template.
+
+     Note: If you use this function, make sure to call
+     'TestInstanceRemove' at the end of your tests to avoid orphaned
+     instances hanging around and interfering with the following tests.
+
+  @type nodes: list of nodes
+  @param nodes: the list of the nodes on which the instance will be placed;
+                it needs to have sufficiently many elements for the given
+                disk template
+  @type disk_template: string
+  @param disk_template: the disk template to be used by the instance
+  @return: the created instance
+
+  """
+  if disk_template == constants.DT_DRBD8:
+    return _CreateInstanceDrbd8(nodes, fail=fail)
+  elif disk_template in [constants.DT_DISKLESS, constants.DT_PLAIN]:
+    return _CreateInstanceByDiskTemplateOneNode(nodes, disk_template, fail=fail)
+  else:
+    #FIXME: Implement this for the remaining disk templates
+    qa_error.Error("Instance creation not implemented for disk type '%s'." %
+                   disk_template)
 
 
 def _GetInstanceInfo(instance):
@@ -295,33 +369,35 @@ def IsDiskReplacingSupported(instance):
 
 def TestInstanceAddWithPlainDisk(nodes, fail=False):
   """gnt-instance add -t plain"""
-  assert len(nodes) == 1
-  instance = _DiskTest(nodes[0].primary, constants.DT_PLAIN, fail=fail)
-  if not fail:
-    qa_utils.RunInstanceCheck(instance, True)
-  return instance
+  if constants.DT_PLAIN in qa_config.GetEnabledDiskTemplates():
+    instance = _CreateInstanceByDiskTemplateOneNode(nodes, constants.DT_PLAIN,
+                                                    fail=fail)
+    if not fail:
+      qa_utils.RunInstanceCheck(instance, True)
+    return instance
 
 
 @InstanceCheck(None, INST_UP, RETURN_VALUE)
 def TestInstanceAddWithDrbdDisk(nodes):
   """gnt-instance add -t drbd"""
-  assert len(nodes) == 2
-  return _DiskTest(":".join(map(operator.attrgetter("primary"), nodes)),
-                   constants.DT_DRBD8)
+  if constants.DT_DRBD8 in qa_config.GetEnabledDiskTemplates():
+    return _CreateInstanceDrbd8(nodes)
 
 
 @InstanceCheck(None, INST_UP, RETURN_VALUE)
 def TestInstanceAddFile(nodes):
   """gnt-instance add -t file"""
   assert len(nodes) == 1
-  return _DiskTest(nodes[0].primary, constants.DT_FILE)
+  if constants.DT_FILE in qa_config.GetEnabledDiskTemplates():
+    return _CreateInstanceByDiskTemplateOneNode(nodes, constants.DT_FILE)
 
 
 @InstanceCheck(None, INST_UP, RETURN_VALUE)
 def TestInstanceAddDiskless(nodes):
   """gnt-instance add -t diskless"""
   assert len(nodes) == 1
-  return _DiskTest(nodes[0].primary, constants.DT_DISKLESS)
+  if constants.DT_FILE in qa_config.GetEnabledDiskTemplates():
+    return _CreateInstanceByDiskTemplateOneNode(nodes, constants.DT_DISKLESS)
 
 
 @InstanceCheck(None, INST_DOWN, FIRST_ARG)
