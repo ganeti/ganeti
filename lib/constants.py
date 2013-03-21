@@ -436,6 +436,7 @@ DTS_INT_MIRROR = compat.UniqueFrozenset([DT_DRBD8])
 
 # the set of externally-mirrored disk templates (e.g. SAN, NAS)
 DTS_EXT_MIRROR = compat.UniqueFrozenset([
+  DT_DISKLESS, # 'trivially' externally mirrored
   DT_SHARED_FILE,
   DT_BLOCK,
   DT_RBD,

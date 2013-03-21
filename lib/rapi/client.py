@@ -1196,7 +1196,8 @@ class GanetiRapiClient(object): # pylint: disable=R0904
                              ("/%s/instances/%s/export" %
                               (GANETI_RAPI_VERSION, instance)), None, body)
 
-  def MigrateInstance(self, instance, mode=None, cleanup=None):
+  def MigrateInstance(self, instance, mode=None, cleanup=None,
+                      target_node=None):
     """Migrates an instance.
 
     @type instance: string
@@ -1205,6 +1206,8 @@ class GanetiRapiClient(object): # pylint: disable=R0904
     @param mode: Migration mode
     @type cleanup: bool
     @param cleanup: Whether to clean up a previously failed migration
+    @type target_node: string
+    @param target_node: Target Node for externally mirrored instances
     @rtype: string
     @return: job id
 
@@ -1212,6 +1215,7 @@ class GanetiRapiClient(object): # pylint: disable=R0904
     body = {}
     _SetItemIf(body, mode is not None, "mode", mode)
     _SetItemIf(body, cleanup is not None, "cleanup", cleanup)
+    _SetItemIf(body, target_node is not None, "target_node", target_node)
 
     return self._SendRequest(HTTP_PUT,
                              ("/%s/instances/%s/migrate" %
