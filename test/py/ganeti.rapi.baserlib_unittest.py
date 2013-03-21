@@ -115,14 +115,14 @@ class TestOpcodeResource(unittest.TestCase):
   def test(self):
     for method in baserlib._SUPPORTED_METHODS:
       # Empty handler
-      obj = self._MakeClass(method, {})(None, None, None)
+      obj = self._MakeClass(method, {})(None, {}, None)
       for attr in itertools.chain(*baserlib.OPCODE_ATTRS):
         self.assertFalse(hasattr(obj, attr))
 
       # Direct handler function
       obj = self._MakeClass(method, {
         method: lambda _: None,
-        })(None, None, None)
+        })(None, {}, None)
       self.assertFalse(compat.all(hasattr(obj, attr)
                                   for i in baserlib._SUPPORTED_METHODS
                                   for attr in self._GetMethodAttributes(i)))
@@ -131,7 +131,7 @@ class TestOpcodeResource(unittest.TestCase):
       for opcls in [None, object()]:
         obj = self._MakeClass(method, {
           "%s_OPCODE" % method: opcls,
-          })(None, None, None)
+          })(None, {}, None)
         self.assertTrue(callable(getattr(obj, method)))
         self.assertEqual(getattr(obj, "%s_OPCODE" % method), opcls)
         self.assertFalse(hasattr(obj, "%s_RENAME" % method))
@@ -151,7 +151,7 @@ class TestOpcodeResource(unittest.TestCase):
     class _Empty(baserlib.OpcodeResource):
       pass
 
-    obj = _Empty(None, None, None)
+    obj = _Empty(None, {}, None)
 
     for attr in itertools.chain(*baserlib.OPCODE_ATTRS):
       self.assertFalse(hasattr(obj, attr))

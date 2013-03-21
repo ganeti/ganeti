@@ -116,7 +116,7 @@ class TestClientConnectError(unittest.TestCase):
       rlib2.R_2_nodes,
       ]
     for cls in resources:
-      handler = _CreateHandler(cls, ["name"], [], None, self._FailingClient)
+      handler = _CreateHandler(cls, ["name"], {}, None, self._FailingClient)
       self.assertRaises(http.HttpBadGateway, handler.GET)
 
 
@@ -130,7 +130,7 @@ class TestJobSubmitError(unittest.TestCase):
       raise errors.JobQueueFull("test")
 
   def test(self):
-    handler = _CreateHandler(rlib2.R_2_redist_config, [], [], None,
+    handler = _CreateHandler(rlib2.R_2_redist_config, [], {}, None,
                              self._SubmitErrorClient)
     self.assertRaises(http.HttpServiceUnavailable, handler.PUT)
 
@@ -138,7 +138,7 @@ class TestJobSubmitError(unittest.TestCase):
 class TestClusterModify(unittest.TestCase):
   def test(self):
     clfactory = _FakeClientFactory(_FakeClient)
-    handler = _CreateHandler(rlib2.R_2_cluster_modify, [], [], {
+    handler = _CreateHandler(rlib2.R_2_cluster_modify, [], {}, {
       "vg_name": "testvg",
       "candidate_pool_size": 100,
       }, clfactory)
@@ -158,7 +158,7 @@ class TestClusterModify(unittest.TestCase):
   def testInvalidValue(self):
     for attr in ["vg_name", "candidate_pool_size", "beparams", "_-Unknown#"]:
       clfactory = _FakeClientFactory(_FakeClient)
-      handler = _CreateHandler(rlib2.R_2_cluster_modify, [], [], {
+      handler = _CreateHandler(rlib2.R_2_cluster_modify, [], {}, {
         attr: True,
         }, clfactory)
       self.assertRaises(http.HttpBadRequest, handler.PUT)
@@ -168,7 +168,7 @@ class TestClusterModify(unittest.TestCase):
 class TestRedistConfig(unittest.TestCase):
   def test(self):
     clfactory = _FakeClientFactory(_FakeClient)
-    handler = _CreateHandler(rlib2.R_2_redist_config, [], [], None, clfactory)
+    handler = _CreateHandler(rlib2.R_2_redist_config, [], {}, None, clfactory)
     job_id = handler.PUT()
 
     cl = clfactory.GetNextClient()

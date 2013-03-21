@@ -263,6 +263,8 @@ class ResourceBase(object):
     @param _client_cls: L{luxi} client class (unittests only)
 
     """
+    assert isinstance(queryargs, dict)
+
     self.items = items
     self.queryargs = queryargs
     self._req = req
