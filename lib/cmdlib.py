@@ -4408,9 +4408,7 @@ class LUClusterSetParams(LogicalUnit):
           hv_class.CheckParameterSyntax(hv_params)
           _CheckHVParams(self, node_list, hv_name, hv_params)
 
-    # FIXME: Regarding enabled_storage_types: If a method is removed
-    # which is actually currently used by an instance, should removing
-    # it be prevented?
+    self._CheckDiskTypeConsistency()
 
     if self.op.os_hvp:
       # no need to check any newly-enabled hypervisors, since the
@@ -4433,6 +4431,26 @@ class LUClusterSetParams(LogicalUnit):
         raise errors.OpPrereqError("Invalid default iallocator script '%s'"
                                    " specified" % self.op.default_iallocator,
                                    errors.ECODE_INVAL)
+
+  def _CheckDiskTypeConsistency(self):
+    """Check whether the storage types that are going to be disabled
+       are still in use by some instances.
+
+    """
+    cluster = self.cfg.GetClusterInfo()
+    instances = self.cfg.GetAllInstancesInfo()
+
+    storage_types_to_remove = set(cluster.enabled_storage_types) \
+      - set(self.op.enabled_storage_types)
+    for instance in instances.itervalues():
+      storage_type = constants.DISK_TEMPLATES_STORAGE_TYPE[
+                       instance.disk_template]
+      if storage_type in storage_types_to_remove:
+        raise errors.OpPrereqError("Cannot disable storage type '%s',"
+                                   " because instance '%s' is using disk"
+                                   " template '%s'." %
+                                   (storage_type, instance.name,
+                                    instance.disk_template))
 
   def Exec(self, feedback_fn):
     """Change the parameters of the cluster.
