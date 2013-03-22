@@ -4437,20 +4437,21 @@ class LUClusterSetParams(LogicalUnit):
        are still in use by some instances.
 
     """
-    cluster = self.cfg.GetClusterInfo()
-    instances = self.cfg.GetAllInstancesInfo()
+    if self.op.enabled_storage_types:
+      cluster = self.cfg.GetClusterInfo()
+      instances = self.cfg.GetAllInstancesInfo()
 
-    storage_types_to_remove = set(cluster.enabled_storage_types) \
-      - set(self.op.enabled_storage_types)
-    for instance in instances.itervalues():
-      storage_type = constants.DISK_TEMPLATES_STORAGE_TYPE[
-                       instance.disk_template]
-      if storage_type in storage_types_to_remove:
-        raise errors.OpPrereqError("Cannot disable storage type '%s',"
-                                   " because instance '%s' is using disk"
-                                   " template '%s'." %
-                                   (storage_type, instance.name,
-                                    instance.disk_template))
+      storage_types_to_remove = set(cluster.enabled_storage_types) \
+        - set(self.op.enabled_storage_types)
+      for instance in instances.itervalues():
+        storage_type = constants.DISK_TEMPLATES_STORAGE_TYPE[
+                         instance.disk_template]
+        if storage_type in storage_types_to_remove:
+          raise errors.OpPrereqError("Cannot disable storage type '%s',"
+                                     " because instance '%s' is using disk"
+                                     " template '%s'." %
+                                     (storage_type, instance.name,
+                                      instance.disk_template))
 
   def Exec(self, feedback_fn):
     """Change the parameters of the cluster.
