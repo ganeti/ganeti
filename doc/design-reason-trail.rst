@@ -80,16 +80,25 @@ remote API, would have a reason trail like::
 Implementation
 ==============
 
-The OpCode base class will be modified to include a new field, OP_REASON.
+The OpCode base class will be modified to include a new parameter, "reason".
 This will receive the reason trail as built by all the previous steps.
 
 When an OpCode is added to a job (in jqueue.py) the job number and the opcode
 index will be recorded as the reason for the existence of that opcode.
 
-The implementation of this design will start from the operations that affect the
-instance status. They will be changed so that the "reason" is passed to them.
-They will then export the new expected instance status, together
-with the associated reason for the monitoring daemon.
+From the command line tools down to the opcodes, the implementation of this
+design will be shared by all the components of the system. After the opcodes
+have been enqueued in a job queue and are dispatched for execution, the
+implementation will have to be OpCode specific because of the current
+structure of the ganeti backend.
+
+The implementation of opcode-specific parts will start from the operations that
+affect the instance status (as required by the design document about the
+monitoring daemon, for the instance status data collector). Such opcodes will
+be changed so that the "reason" is passed to them and they will then export
+the reason trail on a file.
+
+The implementation for other opcodes will follow when required.
 
 .. vim: set textwidth=72 :
 .. Local Variables:
