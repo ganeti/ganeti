@@ -1424,7 +1424,7 @@ def InstanceShutdown(instance, timeout):
   _RemoveBlockDevLinks(iname, instance.disks)
 
 
-def InstanceReboot(instance, reboot_type, shutdown_timeout):
+def InstanceReboot(instance, reboot_type, shutdown_timeout, reason):
   """Reboot an instance.
 
   @type instance: L{objects.Instance}
@@ -1442,6 +1442,8 @@ def InstanceReboot(instance, reboot_type, shutdown_timeout):
         instance (instead of a call_instance_reboot RPC)
   @type shutdown_timeout: integer
   @param shutdown_timeout: maximum timeout for soft shutdown
+  @type reason: list of reasons
+  @param reason: the reason trail for this reboot
   @rtype: None
 
   """
@@ -1460,6 +1462,7 @@ def InstanceReboot(instance, reboot_type, shutdown_timeout):
     try:
       InstanceShutdown(instance, shutdown_timeout)
       result = StartInstance(instance, False)
+      _StoreInstReasonTrail(instance.name, reason)
       return result
     except errors.HypervisorError, err:
       _Fail("Failed to hard reboot instance %s: %s", instance.name, err)

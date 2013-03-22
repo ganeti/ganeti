@@ -1001,7 +1001,7 @@ class GanetiRapiClient(object): # pylint: disable=R0904
                               (GANETI_RAPI_VERSION, instance)), query, None)
 
   def RebootInstance(self, instance, reboot_type=None, ignore_secondaries=None,
-                     dry_run=False):
+                     dry_run=False, reason=None):
     """Reboots an instance.
 
     @type instance: str
@@ -1013,6 +1013,8 @@ class GanetiRapiClient(object): # pylint: disable=R0904
         while re-assembling disks (in hard-reboot mode only)
     @type dry_run: bool
     @param dry_run: whether to perform a dry run
+    @type reason: string
+    @param reason: the reason for the reboot
     @rtype: string
     @return: job id
 
@@ -1022,6 +1024,7 @@ class GanetiRapiClient(object): # pylint: disable=R0904
     _AppendIf(query, reboot_type, ("type", reboot_type))
     _AppendIf(query, ignore_secondaries is not None,
               ("ignore_secondaries", ignore_secondaries))
+    _AppendIf(query, reason, ("reason", reason))
 
     return self._SendRequest(HTTP_POST,
                              ("/%s/instances/%s/reboot" %

@@ -594,13 +594,15 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
   def testRebootInstance(self):
     self.rapi.AddResponse("6146")
     job_id = self.client.RebootInstance("i-bar", reboot_type="hard",
-                                        ignore_secondaries=True, dry_run=True)
+                                        ignore_secondaries=True, dry_run=True,
+                                        reason="Updates")
     self.assertEqual(6146, job_id)
     self.assertHandler(rlib2.R_2_instances_name_reboot)
     self.assertItems(["i-bar"])
     self.assertDryRun()
     self.assertQuery("type", ["hard"])
     self.assertQuery("ignore_secondaries", ["1"])
+    self.assertQuery("reason", ["Updates"])
 
   def testRebootInstanceDefaultReason(self):
     self.rapi.AddResponse("6146")
@@ -612,6 +614,7 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
     self.assertDryRun()
     self.assertQuery("type", ["hard"])
     self.assertQuery("ignore_secondaries", ["1"])
+    self.assertQuery("reason", None)
 
   def testShutdownInstance(self):
     self.rapi.AddResponse("1487")

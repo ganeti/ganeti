@@ -660,7 +660,10 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     instance = objects.Instance.FromDict(params[0])
     reboot_type = params[1]
     shutdown_timeout = params[2]
-    return backend.InstanceReboot(instance, reboot_type, shutdown_timeout)
+    trail = params[3]
+    _extendReasonTrail(trail, "reboot")
+    return backend.InstanceReboot(instance, reboot_type, shutdown_timeout,
+                                  trail)
 
   @staticmethod
   def perspective_instance_balloon_memory(params):
