@@ -26,8 +26,8 @@
 
 # C0103: Invalid name, since the R_* names are not conforming
 
-import cgi
 import re
+import urlparse
 
 from ganeti import constants
 from ganeti import http
@@ -71,7 +71,7 @@ class Mapper:
     """
     if "?" in uri:
       (path, query) = uri.split("?", 1)
-      args = cgi.parse_qs(query)
+      args = urlparse.parse_qs(query)
     else:
       path = uri
       query = None
