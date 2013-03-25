@@ -23,13 +23,14 @@
 
 """
 
-import os
-import re
-import sys
-import subprocess
-import random
-import tempfile
 import operator
+import os
+import random
+import re
+import subprocess
+import sys
+import tempfile
+import yaml
 
 try:
   import functools
@@ -341,6 +342,21 @@ def GetCommandOutput(node, cmd, tty=None, fail=False):
   rcode = p.wait()
   _AssertRetCode(rcode, fail, cmd, node)
   return p.stdout.read()
+
+
+def GetObjectInfo(infocmd):
+  """Get and parse information about a Ganeti object.
+
+  @type infocmd: list of strings
+  @param infocmd: command to be executed, e.g. ["gnt-cluster", "info"]
+  @return: the information parsed, appropriately stored in dictionaries,
+      lists...
+
+  """
+  master = qa_config.GetMasterNode()
+  cmdline = utils.ShellQuoteArgs(infocmd)
+  info_out = GetCommandOutput(master.primary, cmdline)
+  return yaml.load(info_out)
 
 
 def UploadFile(node, src):

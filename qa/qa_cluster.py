@@ -63,36 +63,22 @@ def _CheckFileOnAllNodes(filename, content):
     AssertEqual(qa_utils.GetCommandOutput(node.primary, cmd), content)
 
 
-# "gnt-cluster info" fields
-_CIFIELD_RE = re.compile(r"^[-\s]*(?P<field>[^\s:]+):\s*(?P<value>\S.*)$")
+def _GetClusterField(field_path):
+  """Get the value of a cluster field.
 
-
-def _GetBoolClusterField(field):
-  """Get the Boolean value of a cluster field.
-
-  This function currently assumes that the field name is unique in the cluster
-  configuration. An assertion checks this assumption.
-
-  @type field: string
-  @param field: Name of the field
-  @rtype: bool
-  @return: The effective value of the field
+  @type field_path: list of strings
+  @param field_path: Names of the groups/fields to navigate to get the desired
+      value, e.g. C{["Default node parameters", "oob_program"]}
+  @return: The effective value of the field (the actual type depends on the
+      chosen field)
 
   """
-  master = qa_config.GetMasterNode()
-  infocmd = "gnt-cluster info"
-  info_out = qa_utils.GetCommandOutput(master.primary, infocmd)
-  ret = None
-  for l in info_out.splitlines():
-    m = _CIFIELD_RE.match(l)
-    # FIXME: There should be a way to specify a field through a hierarchy
-    if m and m.group("field") == field:
-      # Make sure that ignoring the hierarchy doesn't cause a double match
-      assert ret is None
-      ret = (m.group("value").lower() == "true")
-  if ret is not None:
-    return ret
-  raise qa_error.Error("Field not found in cluster configuration: %s" % field)
+  assert isinstance(field_path, list)
+  assert field_path
+  ret = qa_utils.GetObjectInfo(["gnt-cluster", "info"])
+  for key in field_path:
+    ret = ret[key]
+  return ret
 
 
 # Cluster-verify errors (date, "ERROR", then error code)
@@ -467,13 +453,6 @@ def TestClusterModifyBe():
     AssertCommand(["gnt-cluster", "modify", "-B", bep])
 
 
-_START_IPOLICY_RE = re.compile(r"^(\s*)Instance policy")
-_START_ISPEC_RE = re.compile(r"^\s+-\s+(std|min|max)")
-_VALUE_RE = r"([^\s:][^:]*):\s+(\S.*)$"
-_IPOLICY_PARAM_RE = re.compile(r"^\s+-\s+" + _VALUE_RE)
-_ISPEC_VALUE_RE = re.compile(r"^\s+" + _VALUE_RE)
-
-
 def _GetClusterIPolicy():
   """Return the run-time values of the cluster-level instance policy.
 
@@ -484,49 +463,26 @@ def _GetClusterIPolicy():
         "min", "max", or "std"
 
   """
-  mnode = qa_config.GetMasterNode()
-  info = GetCommandOutput(mnode.primary, "gnt-cluster info")
-  inside_policy = False
-  end_ispec_re = None
-  curr_spec = ""
-  specs = {}
-  policy = {}
-  for line in info.splitlines():
-    if inside_policy:
-      # The order of the matching is important, as some REs overlap
-      m = _START_ISPEC_RE.match(line)
-      if m:
-        curr_spec = m.group(1)
-        continue
-      m = _IPOLICY_PARAM_RE.match(line)
-      if m:
-        policy[m.group(1)] = m.group(2).strip()
-        continue
-      m = _ISPEC_VALUE_RE.match(line)
-      if m:
-        assert curr_spec
-        par = m.group(1)
+  info = qa_utils.GetObjectInfo(["gnt-cluster", "info"])
+  policy = info["Instance policy - limits for instances"]
+  ret_specs = {}
+  ret_policy = {}
+  for (key, val) in policy.items():
+    if key in constants.IPOLICY_ISPECS:
+      for (par, pval) in val.items():
         if par == "memory-size":
           par = "mem-size"
-        d = specs.setdefault(par, {})
-        d[curr_spec] = m.group(2).strip()
-        continue
-      assert end_ispec_re is not None
-      if end_ispec_re.match(line):
-        inside_policy = False
+        d = ret_specs.setdefault(par, {})
+        d[key] = pval
     else:
-      m = _START_IPOLICY_RE.match(line)
-      if m:
-        inside_policy = True
-        # We stop parsing when we find the same indentation level
-        re_str = r"^\s{%s}\S" % len(m.group(1))
-        end_ispec_re = re.compile(re_str)
+      ret_policy[key] = val
+
   # Sanity checks
-  assert len(specs) > 0
-  good = ("min" in d and "std" in d and "max" in d for d in specs)
-  assert good, "Missing item in specs: %s" % specs
-  assert len(policy) > 0
-  return (policy, specs)
+  assert len(ret_specs) > 0
+  good = ("min" in d and "std" in d and "max" in d for d in ret_specs)
+  assert good, "Missing item in specs: %s" % ret_specs
+  assert len(ret_policy) > 0
+  return (ret_policy, ret_specs)
 
 
 def TestClusterModifyIPolicy():
@@ -912,10 +868,11 @@ def TestSetExclStorCluster(newvalue):
   @return: The old value of exclusive_storage
 
   """
-  oldvalue = _GetBoolClusterField("exclusive_storage")
+  es_path = ["Default node parameters", "exclusive_storage"]
+  oldvalue = _GetClusterField(es_path)
   AssertCommand(["gnt-cluster", "modify", "--node-parameters",
                  "exclusive_storage=%s" % newvalue])
-  effvalue = _GetBoolClusterField("exclusive_storage")
+  effvalue = _GetClusterField(es_path)
   if effvalue != newvalue:
     raise qa_error.Error("exclusive_storage has the wrong value: %s instead"
                          " of %s" % (effvalue, newvalue))

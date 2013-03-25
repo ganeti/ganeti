@@ -367,24 +367,24 @@ def ShowClusterMaster(opts, args):
   return 0
 
 
-def _PrintGroupedParams(paramsdict, level=1, roman=False):
-  """Print Grouped parameters (be, nic, disk) by group.
+def _FormatGroupedParams(paramsdict, roman=False):
+  """Format Grouped parameters (be, nic, disk) by group.
 
   @type paramsdict: dict of dicts
   @param paramsdict: {group: {param: value, ...}, ...}
-  @type level: int
-  @param level: Level of indention
+  @rtype: dict of dicts
+  @return: copy of the input dictionaries with strings as values
 
   """
-  indent = "  " * level
-  for item, val in sorted(paramsdict.items()):
+  ret = {}
+  for (item, val) in paramsdict.items():
     if isinstance(val, dict):
-      ToStdout("%s- %s:", indent, item)
-      _PrintGroupedParams(val, level=level + 1, roman=roman)
+      ret[item] = _FormatGroupedParams(val, roman=roman)
     elif roman and isinstance(val, int):
-      ToStdout("%s  %s: %s", indent, item, compat.TryToRoman(val))
+      ret[item] = compat.TryToRoman(val)
     else:
-      ToStdout("%s  %s: %s", indent, item, val)
+      ret[item] = str(val)
+  return ret
 
 
 def ShowClusterConfig(opts, args):
@@ -400,91 +400,97 @@ def ShowClusterConfig(opts, args):
   cl = GetClient(query=True)
   result = cl.QueryClusterInfo()
 
-  ToStdout("Cluster name: %s", result["name"])
-  ToStdout("Cluster UUID: %s", result["uuid"])
-
-  ToStdout("Creation time: %s", utils.FormatTime(result["ctime"]))
-  ToStdout("Modification time: %s", utils.FormatTime(result["mtime"]))
-
-  ToStdout("Master node: %s", result["master"])
-
-  ToStdout("Architecture (this node): %s (%s)",
-           result["architecture"][0], result["architecture"][1])
-
   if result["tags"]:
     tags = utils.CommaJoin(utils.NiceSort(result["tags"]))
   else:
     tags = "(none)"
-
-  ToStdout("Tags: %s", tags)
-
-  ToStdout("Default hypervisor: %s", result["default_hypervisor"])
-  ToStdout("Enabled hypervisors: %s",
-           utils.CommaJoin(result["enabled_hypervisors"]))
-
-  ToStdout("Hypervisor parameters:")
-  _PrintGroupedParams(result["hvparams"])
-
-  ToStdout("OS-specific hypervisor parameters:")
-  _PrintGroupedParams(result["os_hvp"])
-
-  ToStdout("OS parameters:")
-  _PrintGroupedParams(result["osparams"])
-
-  ToStdout("Hidden OSes: %s", utils.CommaJoin(result["hidden_os"]))
-  ToStdout("Blacklisted OSes: %s", utils.CommaJoin(result["blacklisted_os"]))
-
-  ToStdout("Cluster parameters:")
-  ToStdout("  - candidate pool size: %s",
-            compat.TryToRoman(result["candidate_pool_size"],
-                              convert=opts.roman_integers))
-  ToStdout("  - master netdev: %s", result["master_netdev"])
-  ToStdout("  - master netmask: %s", result["master_netmask"])
-  ToStdout("  - use external master IP address setup script: %s",
-           result["use_external_mip_script"])
-  ToStdout("  - lvm volume group: %s", result["volume_group_name"])
   if result["reserved_lvs"]:
     reserved_lvs = utils.CommaJoin(result["reserved_lvs"])
   else:
     reserved_lvs = "(none)"
-  ToStdout("  - lvm reserved volumes: %s", reserved_lvs)
-  ToStdout("  - drbd usermode helper: %s", result["drbd_usermode_helper"])
-  ToStdout("  - file storage path: %s", result["file_storage_dir"])
-  ToStdout("  - shared file storage path: %s",
-           result["shared_file_storage_dir"])
-  ToStdout("  - maintenance of node health: %s",
-           result["maintain_node_health"])
-  ToStdout("  - uid pool: %s", uidpool.FormatUidPool(result["uid_pool"]))
-  ToStdout("  - default instance allocator: %s", result["default_iallocator"])
-  ToStdout("  - primary ip version: %d", result["primary_ip_version"])
-  ToStdout("  - preallocation wipe disks: %s", result["prealloc_wipe_disks"])
-  ToStdout("  - OS search path: %s", utils.CommaJoin(pathutils.OS_SEARCH_PATH))
-  ToStdout("  - ExtStorage Providers search path: %s",
-           utils.CommaJoin(pathutils.ES_SEARCH_PATH))
-  ToStdout("  - enabled storage types: %s",
-           utils.CommaJoin(result["enabled_storage_types"]))
 
-  ToStdout("Default node parameters:")
-  _PrintGroupedParams(result["ndparams"], roman=opts.roman_integers)
+  info = [
+    ("Cluster name", result["name"]),
+    ("Cluster UUID", result["uuid"]),
 
-  ToStdout("Default instance parameters:")
-  _PrintGroupedParams(result["beparams"], roman=opts.roman_integers)
+    ("Creation time", utils.FormatTime(result["ctime"])),
+    ("Modification time", utils.FormatTime(result["mtime"])),
 
-  ToStdout("Default nic parameters:")
-  _PrintGroupedParams(result["nicparams"], roman=opts.roman_integers)
+    ("Master node", result["master"]),
 
-  ToStdout("Default disk parameters:")
-  _PrintGroupedParams(result["diskparams"], roman=opts.roman_integers)
+    ("Architecture (this node)",
+     "%s (%s)" % (result["architecture"][0], result["architecture"][1])),
 
-  ToStdout("Instance policy - limits for instances:")
-  for key in constants.IPOLICY_ISPECS:
-    ToStdout("  - %s", key)
-    _PrintGroupedParams(result["ipolicy"][key], roman=opts.roman_integers)
-  ToStdout("  - enabled disk templates: %s",
-           utils.CommaJoin(result["ipolicy"][constants.IPOLICY_DTS]))
-  for key in constants.IPOLICY_PARAMETERS:
-    ToStdout("  - %s: %s", key, result["ipolicy"][key])
+    ("Tags", tags),
 
+    ("Default hypervisor", result["default_hypervisor"]),
+    ("Enabled hypervisors",
+     utils.CommaJoin(result["enabled_hypervisors"])),
+
+    ("Hypervisor parameters", _FormatGroupedParams(result["hvparams"])),
+
+    ("OS-specific hypervisor parameters",
+     _FormatGroupedParams(result["os_hvp"])),
+
+    ("OS parameters", _FormatGroupedParams(result["osparams"])),
+
+    ("Hidden OSes", utils.CommaJoin(result["hidden_os"])),
+    ("Blacklisted OSes", utils.CommaJoin(result["blacklisted_os"])),
+
+    ("Cluster parameters", [
+      ("candidate pool size",
+       compat.TryToRoman(result["candidate_pool_size"],
+                         convert=opts.roman_integers)),
+      ("master netdev", result["master_netdev"]),
+      ("master netmask", result["master_netmask"]),
+      ("use external master IP address setup script",
+       result["use_external_mip_script"]),
+      ("lvm volume group", result["volume_group_name"]),
+      ("lvm reserved volumes", reserved_lvs),
+      ("drbd usermode helper", result["drbd_usermode_helper"]),
+      ("file storage path", result["file_storage_dir"]),
+      ("shared file storage path", result["shared_file_storage_dir"]),
+      ("maintenance of node health", result["maintain_node_health"]),
+      ("uid pool", uidpool.FormatUidPool(result["uid_pool"])),
+      ("default instance allocator", result["default_iallocator"]),
+      ("primary ip version", result["primary_ip_version"]),
+      ("preallocation wipe disks", result["prealloc_wipe_disks"]),
+      ("OS search path", utils.CommaJoin(pathutils.OS_SEARCH_PATH)),
+      ("ExtStorage Providers search path",
+       utils.CommaJoin(pathutils.ES_SEARCH_PATH)),
+      ("enabled storage types",
+       utils.CommaJoin(result["enabled_storage_types"])),
+      ]),
+
+    ("Default node parameters",
+     _FormatGroupedParams(result["ndparams"], roman=opts.roman_integers)),
+
+    ("Default instance parameters",
+     _FormatGroupedParams(result["beparams"], roman=opts.roman_integers)),
+
+    ("Default nic parameters",
+     _FormatGroupedParams(result["nicparams"], roman=opts.roman_integers)),
+
+    ("Default disk parameters",
+     _FormatGroupedParams(result["diskparams"], roman=opts.roman_integers)),
+
+    ("Instance policy - limits for instances",
+     [
+       (key,
+        _FormatGroupedParams(result["ipolicy"][key], roman=opts.roman_integers))
+       for key in constants.IPOLICY_ISPECS
+       ] +
+     [
+       ("enabled disk templates",
+        utils.CommaJoin(result["ipolicy"][constants.IPOLICY_DTS])),
+       ] +
+     [
+       (key, result["ipolicy"][key])
+       for key in constants.IPOLICY_PARAMETERS
+       ]),
+    ]
+
+  PrintGenericInfo(info)
   return 0
 
 
