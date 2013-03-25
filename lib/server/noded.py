@@ -57,6 +57,16 @@ import ganeti.http.server # pylint: disable=W0611
 queue_lock = None
 
 
+def _extendReasonTrail(trail, source, reason=""):
+  """Extend the reason trail with noded information
+
+  The trail is extended by appending the name of the noded functionality
+  """
+  assert trail is not None
+  trail_source = "%s:%s" % (constants.OPCODE_REASON_SRC_NODED, source)
+  trail.append((trail_source, reason, utils.EpochNano()))
+
+
 def _PrepareQueueLock():
   """Try to prepare the queue lock.
 
