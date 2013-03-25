@@ -356,6 +356,9 @@ TMaybeBool = TMaybe(TBool)
 #: Maybe a dictionary (dict or None)
 TMaybeDict = TMaybe(TDict)
 
+#: Maybe a list (list or None)
+TMaybeList = TMaybe(TList)
+
 #: a non-negative integer (value >= 0)
 TNonNegativeInt = \
   TAnd(TInt, WithDesc("EqualOrGreaterThanZero")(lambda v: v >= 0))
