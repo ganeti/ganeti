@@ -2435,5 +2435,23 @@ AUTO_REPAIR_ALL_RESULTS = frozenset([
 # The version identifier for builtin data collectors
 BUILTIN_DATA_COLLECTOR_VERSION = "B"
 
+# The reason trail opcode parameter name
+OPCODE_REASON = "reason"
+
+# The source reasons for the execution of an OpCode
+OPCODE_REASON_SRC_CLIENT = "gnt:client"
+OPCODE_REASON_SRC_NODED = "gnt:daemon:noded"
+OPCODE_REASON_SRC_OPCODE = "gnt:opcode"
+OPCODE_REASON_SRC_RLIB2 = "gnt:library:rlib2"
+OPCODE_REASON_SRC_USER = "gnt:user"
+
+OPCODE_REASON_SOURCES = compat.UniqueFrozenset([
+  OPCODE_REASON_SRC_CLIENT,
+  OPCODE_REASON_SRC_NODED,
+  OPCODE_REASON_SRC_OPCODE,
+  OPCODE_REASON_SRC_RLIB2,
+  OPCODE_REASON_SRC_USER,
+  ])
+
 # Do not re-export imported modules
 del re, _vcsversion, _autoconf, socket, pathutils, compat
