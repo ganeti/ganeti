@@ -525,6 +525,16 @@ def MergeTime(timetuple):
   return float(seconds) + (float(microseconds) * 0.000001)
 
 
+def EpochNano():
+  """Return the current timestamp expressed as number of nanoseconds since the
+  unix epoch
+
+  @return: nanoseconds since the Unix epoch
+
+  """
+  return int(time.time() * 1000000000)
+
+
 def FindMatch(data, name):
   """Tries to find an item in a dictionary matching a name.
 
