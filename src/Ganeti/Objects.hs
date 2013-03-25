@@ -706,7 +706,10 @@ $(buildObject "Cluster" "cluster" $
   , simpleField "primary_ip_family"       [t| IpFamily         |]
   , simpleField "prealloc_wipe_disks"     [t| Bool             |]
   , simpleField "ipolicy"                 [t| FilledIPolicy    |]
+  -- FIXME: Remove enabled storage types once enabled disk templates
+  -- is fully implemented.
   , simpleField "enabled_storage_types"   [t| [StorageType]    |]
+  , simpleField "enabled_disk_templates"  [t| [DiskTemplate]   |]
  ]
  ++ timeStampFields
  ++ uuidFields

@@ -398,18 +398,6 @@ DEFAULT_ENABLED_STORAGE_TYPES = compat.UniqueFrozenset([
   ST_LVM_VG,
   ])
 
-# This is used to order determine the default storage type when the list
-# of enabled storage types is inferred from the current state of the cluster.
-# This only happens on an upgrade from a version of Ganeti that did not
-# support the 'enabled_storage_methods' so far.
-STORAGE_TYPES_PREFERENCE = [
-  ST_LVM_VG,
-  ST_FILE,
-  ST_SHARED_FILE,
-  ST_RADOS,
-  ST_BLOCK,
-  ]
-
 # Storage fields
 # first two are valid in LU context only, not passed to backend
 SF_NODE = "node"
@@ -457,6 +445,38 @@ DT_FILE = "file"
 DT_PLAIN = "plain"
 DT_RBD = "rbd"
 DT_SHARED_FILE = "sharedfile"
+
+# This is used to order determine the default disk template when the list
+# of enabled disk templates is inferred from the current state of the cluster.
+# This only happens on an upgrade from a version of Ganeti that did not
+# support the 'enabled_disk_templates' so far.
+DISK_TEMPLATE_PREFERENCE = [
+  DT_DRBD8,
+  DT_PLAIN,
+  DT_FILE,
+  DT_SHARED_FILE,
+  DT_RBD,
+  DT_BLOCK,
+  DT_DISKLESS,
+  DT_EXT
+  ]
+
+DISK_TEMPLATES = compat.UniqueFrozenset([
+  DT_DISKLESS,
+  DT_PLAIN,
+  DT_DRBD8,
+  DT_FILE,
+  DT_SHARED_FILE,
+  DT_BLOCK,
+  DT_RBD,
+  DT_EXT
+  ])
+
+# disk templates that are enabled by default
+DEFAULT_ENABLED_DISK_TEMPLATES = compat.UniqueFrozenset([
+  DT_DRBD8,
+  DT_PLAIN,
+  ])
 
 # mapping of disk templates to storage types
 DISK_TEMPLATES_STORAGE_TYPE = {
@@ -644,17 +664,6 @@ RIE_CONNECT_RETRIES = 10
 
 #: Give child process up to 5 seconds to exit after sending a signal
 CHILD_LINGER_TIMEOUT = 5.0
-
-DISK_TEMPLATES = compat.UniqueFrozenset([
-  DT_DISKLESS,
-  DT_PLAIN,
-  DT_DRBD8,
-  DT_FILE,
-  DT_SHARED_FILE,
-  DT_BLOCK,
-  DT_RBD,
-  DT_EXT
-  ])
 
 FILE_DRIVER = compat.UniqueFrozenset([FD_LOOP, FD_BLKTAP])
 

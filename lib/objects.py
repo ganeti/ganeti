@@ -477,37 +477,38 @@ class ConfigData(ConfigObject):
       self.networks = {}
     for network in self.networks.values():
       network.UpgradeConfig()
-    self._UpgradeStorageTypes()
+    self._UpgradeEnabledDiskTemplates()
 
-  def _UpgradeStorageTypes(self):
-    """Upgrade the cluster's enabled storage types by inspecting the currently
-       enabled and/or used storage types.
+  def _UpgradeEnabledDiskTemplates(self):
+    """Upgrade the cluster's enabled disk templates by inspecting the currently
+       enabled and/or used disk templates.
 
     """
-    # enabled_storage_types in the cluster config were introduced in 2.8. Remove
-    # this code once upgrading from earlier versions is deprecated.
-    if not self.cluster.enabled_storage_types:
-      storage_type_set = \
-        set([constants.DISK_TEMPLATES_STORAGE_TYPE[inst.disk_template]
-               for inst in self.instances.values()])
-      # Add lvm, file and shared file storage, if they are enabled, even though
-      # they might currently not be used.
+    # enabled_disk_templates in the cluster config were introduced in 2.8.
+    # Remove this code once upgrading from earlier versions is deprecated.
+    if not self.cluster.enabled_disk_templates:
+      template_set = \
+        set([inst.disk_template for inst in self.instances.values()])
+      # Add drbd and plain, if lvm is enabled (by specifying a volume group)
       if self.cluster.volume_group_name:
-        storage_type_set.add(constants.ST_LVM_VG)
+        template_set.add(constants.DT_DRBD8)
+        template_set.add(constants.DT_PLAIN)
       # FIXME: Adapt this when dis/enabling at configure time is removed.
+      # Enable 'file' and 'sharedfile', if they are enabled, even though they
+      # might currently not be used.
       if constants.ENABLE_FILE_STORAGE:
-        storage_type_set.add(constants.ST_FILE)
+        template_set.add(constants.DT_FILE)
       if constants.ENABLE_SHARED_FILE_STORAGE:
-        storage_type_set.add(constants.ST_SHARED_FILE)
-      # Set enabled_storage_types to the inferred storage types. Order them
+        template_set.add(constants.DT_SHARED_FILE)
+      # Set enabled_disk_templates to the inferred disk templates. Order them
       # according to a preference list that is based on Ganeti's history of
-      # supported storage types.
-      self.cluster.enabled_storage_types = []
-      for preferred_type in constants.STORAGE_TYPES_PREFERENCE:
-        if preferred_type in storage_type_set:
-          self.cluster.enabled_storage_types.append(preferred_type)
-          storage_type_set.remove(preferred_type)
-      self.cluster.enabled_storage_types.extend(list(storage_type_set))
+      # supported disk templates.
+      self.cluster.enabled_disk_templates = []
+      for preferred_template in constants.DISK_TEMPLATE_PREFERENCE:
+        if preferred_template in template_set:
+          self.cluster.enabled_disk_templates.append(preferred_template)
+          template_set.remove(preferred_template)
+      self.cluster.enabled_disk_templates.extend(list(template_set))
 
 
 class NIC(ConfigObject):
@@ -1540,7 +1541,10 @@ class Cluster(TaggableObject):
     "prealloc_wipe_disks",
     "hv_state_static",
     "disk_state_static",
+    # Keeping this in temporarily to not break the build between patches of
+    # this series. Remove after 'enabled_disk_templates' is fully implemented.
     "enabled_storage_types",
+    "enabled_disk_templates",
     ] + _TIMESTAMPS + _UUID
 
   def UpgradeConfig(self):
