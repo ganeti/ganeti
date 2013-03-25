@@ -193,11 +193,19 @@ def InitCluster(opts, args):
 
   hv_state = dict(opts.hv_state)
 
+  # FIXME: remove enabled_storage_types when enabled_disk_templates are
+  # fully implemented.
   enabled_storage_types = opts.enabled_storage_types
   if enabled_storage_types is not None:
     enabled_storage_types = enabled_storage_types.split(",")
   else:
     enabled_storage_types = list(constants.DEFAULT_ENABLED_STORAGE_TYPES)
+
+  enabled_disk_templates = opts.enabled_disk_templates
+  if enabled_disk_templates:
+    enabled_disk_templates = enabled_disk_templates.split(",")
+  else:
+    enabled_disk_templates = list(constants.DEFAULT_ENABLED_DISK_TEMPLATES)
 
   bootstrap.InitCluster(cluster_name=args[0],
                         secondary_ip=opts.secondary_ip,
@@ -459,6 +467,8 @@ def ShowClusterConfig(opts, args):
        utils.CommaJoin(pathutils.ES_SEARCH_PATH)),
       ("enabled storage types",
        utils.CommaJoin(result["enabled_storage_types"])),
+      ("enabled disk templates",
+       utils.CommaJoin(result["enabled_disk_templates"])),
       ]),
 
     ("Default node parameters",
