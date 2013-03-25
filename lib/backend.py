@@ -110,7 +110,7 @@ class RPCFail(Exception):
   """
 
 
-def GetInstReasonFilename(instance_name):
+def _GetInstReasonFilename(instance_name):
   """Path of the file containing the reason of the instance status change.
 
   @type instance_name: string
@@ -120,6 +120,22 @@ def GetInstReasonFilename(instance_name):
 
   """
   return utils.PathJoin(pathutils.INSTANCE_REASON_DIR, instance_name)
+
+
+def _StoreInstReasonTrail(instance_name, trail):
+  """Serialize a reason trail related to an instance change of state to file.
+
+  The exact location of the file depends on the name of the instance and on
+  the configuration of the Ganeti cluster defined at deploy time.
+
+  @type instance_name: string
+  @param instance_name: The name of the instance
+  @rtype: None
+
+  """
+  json = serializer.DumpJson(trail)
+  filename = _GetInstReasonFilename(instance_name)
+  utils.WriteFile(filename, data=json)
 
 
 def _Fail(msg, *args, **kwargs):
