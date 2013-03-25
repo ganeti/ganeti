@@ -1560,7 +1560,7 @@ NOCONFLICTSCHECK_OPT = cli_option("--no-conflicts-check",
                                   help="Don't check for conflicting IPs")
 
 #: Options provided by all commands
-COMMON_OPTS = [DEBUG_OPT]
+COMMON_OPTS = [DEBUG_OPT, REASON_OPT]
 
 # common options for creating instances. add and import then add their own
 # specific ones.
