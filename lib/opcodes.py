@@ -245,6 +245,26 @@ DEPEND_ATTR = "depends"
 COMMENT_ATTR = "comment"
 
 
+def _NameComponents(name):
+  """Split an opcode class name into its components
+
+  @type name: string
+  @param name: the class name, as OpXxxYyy
+  @rtype: array of strings
+  @return: the components of the name
+
+  """
+  assert name.startswith("Op")
+  # Note: (?<=[a-z])(?=[A-Z]) would be ideal, since it wouldn't
+  # consume any input, and hence we would just have all the elements
+  # in the list, one by one; but it seems that split doesn't work on
+  # non-consuming input, hence we have to process the input string a
+  # bit
+  name = _OPID_RE.sub(r"\1,\2", name)
+  elems = name.split(",")
+  return elems
+
+
 def _NameToId(name):
   """Convert an opcode class name to an OP_ID.
 
@@ -256,14 +276,22 @@ def _NameToId(name):
   """
   if not name.startswith("Op"):
     return None
-  # Note: (?<=[a-z])(?=[A-Z]) would be ideal, since it wouldn't
-  # consume any input, and hence we would just have all the elements
-  # in the list, one by one; but it seems that split doesn't work on
-  # non-consuming input, hence we have to process the input string a
-  # bit
-  name = _OPID_RE.sub(r"\1,\2", name)
-  elems = name.split(",")
-  return "_".join(n.upper() for n in elems)
+  return "_".join(n.upper() for n in _NameComponents(name))
+
+
+def NameToReasonSrc(name):
+  """Convert an opcode class name to a source string for the reason trail
+
+  @type name: string
+  @param name: the class name, as OpXxxYyy
+  @rtype: string
+  @return: the name in the OP_XXXX_YYYY format
+
+  """
+  if not name.startswith("Op"):
+    return None
+  return "%s:%s" % (constants.OPCODE_REASON_SRC_OPCODE,
+                    "_".join(n.lower() for n in _NameComponents(name)))
 
 
 def _GenerateObjectTypeCheck(obj, fields_types):
