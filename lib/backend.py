@@ -122,49 +122,6 @@ def GetInstReasonFilename(instance_name):
   return utils.PathJoin(pathutils.INSTANCE_REASON_DIR, instance_name)
 
 
-class InstReason(object):
-  """Class representing the reason for a change of state of a VM.
-
-  It is used to allow an easy serialization of the reason, so that it can be
-  written on a file.
-
-  """
-  def __init__(self, source, text):
-    """Initialize the class with all the required values.
-
-    @type text: string
-    @param text: The textual description of the reason for changing state
-    @type source: string
-    @param source: The source of the state change (RAPI, CLI, ...)
-
-    """
-    self.source = source
-    self.text = text
-
-  def GetJson(self):
-    """Get the JSON representation of the InstReason.
-
-    @rtype: string
-    @return : The JSON representation of the object
-
-    """
-    return serializer.DumpJson(dict(source=self.source, text=self.text))
-
-  def Store(self, instance_name):
-    """Serialize on a file the reason for the last state change of an instance.
-
-    The exact location of the file depends on the name of the instance and on
-    the configuration of the Ganeti cluster defined at deploy time.
-
-    @type instance_name: string
-    @param instance_name: The name of the instance
-    @rtype: None
-
-    """
-    filename = GetInstReasonFilename(instance_name)
-    utils.WriteFile(filename, data=self.GetJson())
-
-
 def _Fail(msg, *args, **kwargs):
   """Log an error and the raise an RPCFail exception.
 
@@ -1451,7 +1408,7 @@ def InstanceShutdown(instance, timeout):
   _RemoveBlockDevLinks(iname, instance.disks)
 
 
-def InstanceReboot(instance, reboot_type, shutdown_timeout, reason):
+def InstanceReboot(instance, reboot_type, shutdown_timeout):
   """Reboot an instance.
 
   @type instance: L{objects.Instance}
@@ -1481,14 +1438,12 @@ def InstanceReboot(instance, reboot_type, shutdown_timeout, reason):
   if reboot_type == constants.INSTANCE_REBOOT_SOFT:
     try:
       hyper.RebootInstance(instance)
-      reason.Store(instance.name)
     except errors.HypervisorError, err:
       _Fail("Failed to soft reboot instance %s: %s", instance.name, err)
   elif reboot_type == constants.INSTANCE_REBOOT_HARD:
     try:
       InstanceShutdown(instance, shutdown_timeout)
       result = StartInstance(instance, False)
-      reason.Store(instance.name)
       return result
     except errors.HypervisorError, err:
       _Fail("Failed to hard reboot instance %s: %s", instance.name, err)

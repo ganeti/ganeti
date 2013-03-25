@@ -538,18 +538,5 @@ class TestGetBlockDevSymlinkPath(unittest.TestCase):
       self._Test("inst1.example.com", idx)
 
 
-class TestInstReason(unittest.TestCase):
-  def testGetJson(self):
-    reason_text = "OS Update"
-    reason_source = constants.INSTANCE_REASON_SOURCE_CLI
-    origDict = dict(text=reason_text, source=reason_source)
-
-    reason = backend.InstReason(reason_source, reason_text)
-    json = reason.GetJson()
-    resultDict = serializer.LoadJson(json)
-
-    self.assertEqual(origDict, resultDict)
-
-
 if __name__ == "__main__":
   testutils.GanetiTestProgram()

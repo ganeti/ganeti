@@ -69,8 +69,6 @@ $(genArbitrary ''OpCodes.ReplaceDisksMode)
 
 $(genArbitrary ''DiskAccess)
 
-$(genArbitrary ''InstReasonSrc)
-
 instance Arbitrary OpCodes.DiskIndex where
   arbitrary = choose (0, C.maxDisks - 1) >>= OpCodes.mkDiskIndex
 
@@ -241,7 +239,7 @@ instance Arbitrary OpCodes.OpCode where
           arbitrary <*> arbitrary
       "OP_INSTANCE_REBOOT" ->
         OpCodes.OpInstanceReboot <$> genFQDN <*> arbitrary <*>
-          arbitrary <*> arbitrary <*> ((,) <$> arbitrary <*> genStringNE)
+          arbitrary <*> arbitrary
       "OP_INSTANCE_MOVE" ->
         OpCodes.OpInstanceMove <$> genFQDN <*> arbitrary <*> arbitrary <*>
           genNodeNameNE <*> arbitrary
@@ -397,10 +395,6 @@ genMacPrefix :: Gen NonEmptyString
 genMacPrefix = do
   octets <- vectorOf 3 $ choose (0::Int, 255)
   mkNonEmpty . intercalate ":" $ map (printf "%02x") octets
-
--- | Generate a non empty string
-genStringNE :: Gen NonEmptyString
-genStringNE = genName >>= mkNonEmpty
 
 -- | Arbitrary instance for MetaOpCode, defined here due to TH ordering.
 $(genArbitrary ''OpCodes.MetaOpCode)

@@ -1406,8 +1406,7 @@ FAILURE_ONLY_OPT = cli_option("--failure-only", default=False,
                                     " only (determined by the exit code)"))
 
 REASON_OPT = cli_option("--reason", default=None,
-                        help="The reason for executing a VM-state-changing"
-                             " operation")
+                        help="The reason for executing the command")
 
 
 def _PriorityOptionCb(option, _, value, parser):

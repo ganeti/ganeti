@@ -345,7 +345,6 @@ $(genOpCode "OpCode"
      , pShutdownTimeout
      , pIgnoreSecondaries
      , pRebootType
-     , pReason
      ])
   , ("OpInstanceMove",
      [ pInstanceName

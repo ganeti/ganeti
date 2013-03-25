@@ -630,9 +630,7 @@ def _RebootInstance(name, opts):
   return opcodes.OpInstanceReboot(instance_name=name,
                                   reboot_type=opts.reboot_type,
                                   ignore_secondaries=opts.ignore_secondaries,
-                                  shutdown_timeout=opts.shutdown_timeout,
-                                  reason=(constants.INSTANCE_REASON_SOURCE_CLI,
-                                          opts.reason))
+                                  shutdown_timeout=opts.shutdown_timeout)
 
 
 def _ShutdownInstance(name, opts):
@@ -1559,8 +1557,7 @@ commands = {
     [m_force_multi, REBOOT_TYPE_OPT, IGNORE_SECONDARIES_OPT, m_node_opt,
      m_pri_node_opt, m_sec_node_opt, m_clust_opt, m_inst_opt, SUBMIT_OPT,
      m_node_tags_opt, m_pri_node_tags_opt, m_sec_node_tags_opt,
-     m_inst_tags_opt, SHUTDOWN_TIMEOUT_OPT, DRY_RUN_OPT, PRIORITY_OPT,
-     REASON_OPT],
+     m_inst_tags_opt, SHUTDOWN_TIMEOUT_OPT, DRY_RUN_OPT, PRIORITY_OPT],
     "<instance>", "Reboots an instance"),
   "activate-disks": (
     ActivateDisks, ARGS_ONE_INSTANCE,

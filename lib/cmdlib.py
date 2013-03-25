@@ -7440,7 +7440,6 @@ class LUInstanceReboot(LogicalUnit):
     instance = self.instance
     ignore_secondaries = self.op.ignore_secondaries
     reboot_type = self.op.reboot_type
-    reason = self.op.reason
 
     remote_info = self.rpc.call_instance_info(instance.primary_node,
                                               instance.name,
@@ -7456,8 +7455,7 @@ class LUInstanceReboot(LogicalUnit):
         self.cfg.SetDiskID(disk, node_current)
       result = self.rpc.call_instance_reboot(node_current, instance,
                                              reboot_type,
-                                             self.op.shutdown_timeout,
-                                             reason)
+                                             self.op.shutdown_timeout)
       result.Raise("Could not reboot instance")
     else:
       if instance_running:
