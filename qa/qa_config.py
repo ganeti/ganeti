@@ -38,7 +38,7 @@ _INSTANCE_CHECK_KEY = "instance-check"
 _ENABLED_HV_KEY = "enabled-hypervisors"
 _VCLUSTER_MASTER_KEY = "vcluster-master"
 _VCLUSTER_BASEDIR_KEY = "vcluster-basedir"
-_ENABLED_STORAGE_TYPES_KEY = "enabled-storage-types"
+_ENABLED_DISK_TEMPLATES_KEY = "enabled-disk-templates"
 
 #: QA configuration (L{_QaConfig})
 _config = None
@@ -360,21 +360,21 @@ class _QaConfig(object):
     """
     return self.GetEnabledHypervisors()[0]
 
-  def GetEnabledStorageTypes(self):
-    """Returns the list of enabled storage types.
+  def GetEnabledDiskTemplates(self):
+    """Returns the list of enabled disk templates.
 
     @rtype: list
 
     """
     return self._GetStringListParameter(
-      _ENABLED_STORAGE_TYPES_KEY,
-      list(constants.DEFAULT_ENABLED_STORAGE_TYPES))
+      _ENABLED_DISK_TEMPLATES_KEY,
+      list(constants.DEFAULT_ENABLED_DISK_TEMPLATES))
 
-  def GetDefaultStorageType(self):
-    """Returns the default storage type to be used.
+  def GetDefaultDiskTemplate(self):
+    """Returns the default disk template to be used.
 
     """
-    return self.GetEnabledStorageTypes()[0]
+    return self.GetEnabledDiskTemplates()[0]
 
   def _GetStringListParameter(self, key, default_values):
     """Retrieves a parameter's value that is supposed to be a list of strings.
@@ -551,18 +551,18 @@ def GetDefaultHypervisor(*args):
   return GetConfig().GetDefaultHypervisor(*args)
 
 
-def GetEnabledStorageTypes(*args):
-  """Wrapper for L{_QaConfig.GetEnabledStorageTypes}.
+def GetEnabledDiskTemplates(*args):
+  """Wrapper for L{_QaConfig.GetEnabledDiskTemplates}.
 
   """
-  return GetConfig().GetEnabledStorageTypes(*args)
+  return GetConfig().GetEnabledDiskTemplates(*args)
 
 
-def GetDefaultStorageType(*args):
-  """Wrapper for L{_QaConfig.GetDefaultStorageType}.
+def GetDefaultDiskTemplate(*args):
+  """Wrapper for L{_QaConfig.GetDefaultDiskTemplate}.
 
   """
-  return GetConfig().GetDefaultStorageType(*args)
+  return GetConfig().GetDefaultDiskTemplate(*args)
 
 
 def GetMasterNode():
