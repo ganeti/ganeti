@@ -457,8 +457,6 @@ def ShowClusterConfig(opts, args):
       ("OS search path", utils.CommaJoin(pathutils.OS_SEARCH_PATH)),
       ("ExtStorage Providers search path",
        utils.CommaJoin(pathutils.ES_SEARCH_PATH)),
-      ("enabled storage types",
-       utils.CommaJoin(result["enabled_storage_types"])),
       ("enabled disk templates",
        utils.CommaJoin(result["enabled_disk_templates"])),
       ]),
@@ -964,9 +962,6 @@ def SetClusterParams(opts, args):
           opts.use_external_mip_script is not None or
           opts.prealloc_wipe_disks is not None or
           opts.hv_state or
-          # FIXME: Remove 'enabled_storage_types' once 'enabled_disk_templates'
-          # are fully implemented.
-          opts.enabled_storage_types or
           opts.enabled_disk_templates or
           opts.disk_state or
           opts.ispecs_mem_size or
@@ -999,11 +994,6 @@ def SetClusterParams(opts, args):
   hvlist = opts.enabled_hypervisors
   if hvlist is not None:
     hvlist = hvlist.split(",")
-
-  # FIXME: Remove once 'enabled_disk_templates' are fully implemented.
-  enabled_storage_types = opts.enabled_storage_types
-  if enabled_storage_types is not None:
-    enabled_storage_types = enabled_storage_types.split(",")
 
   enabled_disk_templates = opts.enabled_disk_templates
   if enabled_disk_templates:
@@ -1100,8 +1090,6 @@ def SetClusterParams(opts, args):
     use_external_mip_script=ext_ip_script,
     hv_state=hv_state,
     disk_state=disk_state,
-    # FIXME: remove once 'enabled_disk_templates' are fully implemented.
-    enabled_storage_types=enabled_storage_types,
     enabled_disk_templates=enabled_disk_templates,
     )
   SubmitOrSend(op, opts)
@@ -1586,8 +1574,7 @@ commands = {
      DRBD_HELPER_OPT, NODRBD_STORAGE_OPT, DEFAULT_IALLOCATOR_OPT,
      RESERVED_LVS_OPT, DRY_RUN_OPT, PRIORITY_OPT, PREALLOC_WIPE_DISKS_OPT,
      NODE_PARAMS_OPT, USE_EXTERNAL_MIP_SCRIPT, DISK_PARAMS_OPT, HV_STATE_OPT,
-     DISK_STATE_OPT, SUBMIT_OPT, ENABLED_STORAGE_TYPES_OPT,
-     ENABLED_DISK_TEMPLATES_OPT] +
+     DISK_STATE_OPT, SUBMIT_OPT, ENABLED_DISK_TEMPLATES_OPT] +
     INSTANCE_POLICY_OPTS,
     "[opts...]",
     "Alters the parameters of the cluster"),

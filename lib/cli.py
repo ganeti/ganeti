@@ -81,8 +81,6 @@ __all__ = [
   "DST_NODE_OPT",
   "EARLY_RELEASE_OPT",
   "ENABLED_HV_OPT",
-  # FIXME: disable storage types once disk templates are fully implemented.
-  "ENABLED_STORAGE_TYPES_OPT",
   "ENABLED_DISK_TEMPLATES_OPT",
   "ERROR_CODES_OPT",
   "FAILURE_ONLY_OPT",
@@ -1166,13 +1164,6 @@ ENABLED_HV_OPT = cli_option("--enabled-hypervisors",
                             dest="enabled_hypervisors",
                             help="Comma-separated list of hypervisors",
                             type="string", default=None)
-
-# FIXME: Remove once enabled disk templates are fully implemented.
-ENABLED_STORAGE_TYPES_OPT = cli_option("--enabled-storage-types",
-                                       dest="enabled_storage_types",
-                                       help="Comma-separated list of "
-                                            "storage methods",
-                                       type="string", default=None)
 
 ENABLED_DISK_TEMPLATES_OPT = cli_option("--enabled-disk-templates",
                                         dest="enabled_disk_templates",

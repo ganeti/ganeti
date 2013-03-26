@@ -393,11 +393,6 @@ VALID_STORAGE_TYPES = compat.UniqueFrozenset([
   ST_SHARED_FILE,
   ])
 
-# Per default, only lvm is enabled.
-DEFAULT_ENABLED_STORAGE_TYPES = compat.UniqueFrozenset([
-  ST_LVM_VG,
-  ])
-
 # Storage fields
 # first two are valid in LU context only, not passed to backend
 SF_NODE = "node"

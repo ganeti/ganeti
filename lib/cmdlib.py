@@ -4494,10 +4494,6 @@ class LUClusterSetParams(LogicalUnit):
     if self.op.enabled_hypervisors is not None:
       self.cluster.hvparams = self.new_hvparams
       self.cluster.enabled_hypervisors = self.op.enabled_hypervisors
-    # FIXME: remove once 'enabled_disk_templates' is fully implemented.
-    if self.op.enabled_storage_types is not None:
-      self.cluster.enabled_storage_types = \
-        list(set(self.op.enabled_storage_types))
     if self.op.enabled_disk_templates:
       self.cluster.enabled_disk_templates = \
         list(set(self.op.enabled_disk_templates))

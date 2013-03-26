@@ -1541,9 +1541,6 @@ class Cluster(TaggableObject):
     "prealloc_wipe_disks",
     "hv_state_static",
     "disk_state_static",
-    # Keeping this in temporarily to not break the build between patches of
-    # this series. Remove after 'enabled_disk_templates' is fully implemented.
-    "enabled_storage_types",
     "enabled_disk_templates",
     ] + _TIMESTAMPS + _UUID
 

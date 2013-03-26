@@ -175,8 +175,6 @@ $(genOpCode "OpCode"
      , pHiddenOs
      , pBlacklistedOs
      , pUseExternalMipScript
-     -- FIXME: Remove once enabled disk templates are fully implemented.
-     , pEnabledStorageTypes
      , pEnabledDiskTemplates
      ])
   , ("OpClusterRedistConf", [])

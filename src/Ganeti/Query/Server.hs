@@ -87,7 +87,6 @@ handleCall :: ConfigData -> LuxiOp -> IO (ErrorResult JSValue)
 handleCall cdata QueryClusterInfo =
   let cluster = configCluster cdata
       hypervisors = clusterEnabledHypervisors cluster
-      storageTypes = clusterEnabledStorageTypes cluster
       diskTemplates = clusterEnabledDiskTemplates cluster
       def_hv = case hypervisors of
                  x:_ -> showJSON x
@@ -141,9 +140,6 @@ handleCall cdata QueryClusterInfo =
                showJSON $ clusterPreallocWipeDisks cluster)
             , ("hidden_os", showJSON $ clusterHiddenOs cluster)
             , ("blacklisted_os", showJSON $ clusterBlacklistedOs cluster)
-            -- FIXME: remove storage types once enabled disk templates are
-            -- fully implemented.
-            , ("enabled_storage_types", showJSON storageTypes)
             , ("enabled_disk_templates", showJSON diskTemplates)
             ]
 
