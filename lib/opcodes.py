@@ -954,10 +954,15 @@ class OpClusterSetParams(OpCode):
      " ``%s`` or ``%s``" % (constants.DDM_ADD, constants.DDM_REMOVE)),
     ("use_external_mip_script", None, ht.TMaybeBool,
      "Whether to use an external master IP address setup script"),
+    # FIXME: remove once enabled disk templates are fully implemented.
     ("enabled_storage_types", None,
      ht.TMaybe(ht.TAnd(ht.TListOf(ht.TElemOf(constants.VALID_STORAGE_TYPES)),
                        ht.TTrue)),
      "List of enabled storage types"),
+    ("enabled_disk_templates", None,
+     ht.TMaybe(ht.TAnd(ht.TListOf(ht.TElemOf(constants.DISK_TEMPLATES)),
+                       ht.TTrue)),
+     "List of enabled disk templates"),
     ]
   OP_RESULT = ht.TNone
 

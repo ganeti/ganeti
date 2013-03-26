@@ -163,7 +163,8 @@ instance Arbitrary OpCodes.OpCode where
           arbitrary <*> arbitrary <*> arbitrary <*>
           emptyMUD <*> emptyMUD <*> arbitrary <*>
           arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*>
-          arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+          arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*>
+          arbitrary
       "OP_CLUSTER_REDIST_CONF" -> pure OpCodes.OpClusterRedistConf
       "OP_CLUSTER_ACTIVATE_MASTER_IP" ->
         pure OpCodes.OpClusterActivateMasterIp

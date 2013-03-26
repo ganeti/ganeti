@@ -237,7 +237,9 @@ module Ganeti.OpParams
   , pDependencies
   , pComment
   , pReason
+  -- FIXME: Remove once enabled disk templates are fully implemented
   , pEnabledStorageTypes
+  , pEnabledDiskTemplates
   , dOldQuery
   , dOldQueryNoLocking
   ) where
@@ -760,10 +762,17 @@ pEnabledHypervisors =
   simpleField "enabled_hypervisors" [t| NonEmpty Hypervisor |]
 
 -- | List of enabled storage methods.
+-- FIXME: Remove once enabled disk templates are fully implemented.
 pEnabledStorageTypes :: Field
 pEnabledStorageTypes =
   optionalField $
   simpleField "enabled_storage_types" [t| NonEmpty StorageType |]
+
+-- | List of enabled disk templates.
+pEnabledDiskTemplates :: Field
+pEnabledDiskTemplates =
+  optionalField $
+  simpleField "enabled_disk_templates" [t| NonEmpty DiskTemplate |]
 
 -- | Selected hypervisor for an instance.
 pHypervisor :: Field
