@@ -91,6 +91,11 @@ Example::
   # write access)
   superuser {HA1}ec018ffe72b8e75bb4d508ed5b6d079c read,write
 
+When using the RAPI, username and password can be sent to the server
+by using the standard HTTP basic access authentication. This means that
+for accessing the protected URL ``https://cluster.example.com/resource``,
+the address ``https://username:password@cluster.example.com/resource`` should
+be used instead.
 
 .. [#pwhash] Using the MD5 hash of username, realm and password is
    described in :rfc:`2617` ("HTTP Authentication"), sections 3.2.2.2
@@ -285,14 +290,16 @@ Shell
 
 .. highlight:: shell-example
 
-Using wget::
+Using ``wget``::
 
    $ wget -q -O - https://%CLUSTERNAME%:5080/2/info
 
-or curl::
+or ``curl``::
 
   $ curl https://%CLUSTERNAME%:5080/2/info
 
+Note: with ``curl``, the request method (GET, POST, PUT) can be specified
+using the ``-X`` command line option.
 
 Python
 ++++++
