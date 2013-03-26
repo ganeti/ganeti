@@ -2199,6 +2199,31 @@ def SubmitOrSend(op, opts, cl=None, feedback_fn=None):
     return SubmitOpCode(op, cl=cl, feedback_fn=feedback_fn, opts=opts)
 
 
+def _InitReasonTrail(op, opts):
+  """Builds the first part of the reason trail
+
+  Builds the initial part of the reason trail, adding the user provided reason
+  (if it exists) and the name of the command starting the operation.
+
+  @param op: the opcode the reason trail will be added to
+  @param opts: the command line options selected by the user
+
+  """
+  assert len(sys.argv) >= 2
+  trail = []
+
+  if opts.reason:
+    trail.append((constants.OPCODE_REASON_SRC_USER,
+                  opts.reason,
+                  utils.EpochNano()))
+
+  binary = os.path.basename(sys.argv[0])
+  source = "%s:%s" % (constants.OPCODE_REASON_SRC_CLIENT, binary)
+  command = sys.argv[1]
+  trail.append((source, command, utils.EpochNano()))
+  op.reason = trail
+
+
 def SetGenericOpcodeOpts(opcode_list, options):
   """Processor for generic options.
 
@@ -2218,6 +2243,7 @@ def SetGenericOpcodeOpts(opcode_list, options):
       op.dry_run = options.dry_run
     if getattr(options, "priority", None) is not None:
       op.priority = options.priority
+    _InitReasonTrail(op, options)
 
 
 def GetClient(query=False):
