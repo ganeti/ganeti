@@ -10154,6 +10154,14 @@ class LUInstanceCreate(LogicalUnit):
     for nic in self.op.nics:
       utils.ForceDictType(nic, constants.INIC_PARAMS_TYPES)
 
+    cluster = self.cfg.GetClusterInfo()
+    if not self.op.disk_template in cluster.enabled_disk_templates:
+      raise errors.OpPrereqError("Cannot create an instance with disk template"
+                                 " '%s', because it is not enabled in the"
+                                 " cluster. Enabled disk templates are: %s." %
+                                 (self.op.disk_template,
+                                  ",".join(cluster.enabled_disk_templates)))
+
     # check disks. parameter names and consistent adopt/no-adopt strategy
     has_adopt = has_no_adopt = False
     for disk in self.op.disks:
