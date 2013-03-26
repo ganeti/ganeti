@@ -102,10 +102,32 @@ def CheckHostname(path):
   return False
 
 
+def UpgradeIPolicy(ipolicy):
+  minmax_keys = ["min", "max"]
+  if any((k in ipolicy) for k in minmax_keys):
+    minmax = {}
+    ipolicy["minmax"] = minmax
+    for key in minmax_keys:
+      if key in ipolicy:
+        minmax[key] = ipolicy[key]
+        del ipolicy[key]
+      else:
+        minmax[key] = {}
+
+
 def UpgradeNetworks(config_data):
   networks = config_data.get("networks", None)
   if not networks:
     config_data["networks"] = {}
+
+
+def UpgradeCluster(config_data):
+  cluster = config_data.get("cluster", None)
+  if cluster is None:
+    raise Error("Cannot find cluster")
+  ipolicy = cluster.get("ipolicy", None)
+  if ipolicy:
+    UpgradeIPolicy(ipolicy)
 
 
 def UpgradeGroups(config_data):
@@ -113,6 +135,9 @@ def UpgradeGroups(config_data):
     networks = group.get("networks", None)
     if not networks:
       group["networks"] = {}
+    ipolicy = group.get("ipolicy", None)
+    if ipolicy:
+      UpgradeIPolicy(ipolicy)
 
 
 def UpgradeInstances(config_data):
@@ -215,8 +240,31 @@ def UpgradeAll(config_data):
   UpgradeWatcher()
   UpgradeFileStoragePaths(config_data)
   UpgradeNetworks(config_data)
+  UpgradeCluster(config_data)
   UpgradeGroups(config_data)
   UpgradeInstances(config_data)
+
+
+def DowngradeIPolicy(ipolicy):
+  # Downgrade IPolicy to 2.7 (stable)
+  minmax_keys = ["min", "max"]
+  specs_is_split = any((k in ipolicy) for k in minmax_keys)
+  if not specs_is_split:
+    if "minmax" in ipolicy:
+      minmax = ipolicy["minmax"]
+      del ipolicy["minmax"]
+    else:
+      minmax = {}
+    for key in minmax_keys:
+      spec = minmax.get(key, {})
+      ipolicy[key] = spec
+
+
+def DowngradeGroups(config_data):
+  for group in config_data["nodegroups"].values():
+    ipolicy = group.get("ipolicy", None)
+    if ipolicy:
+      DowngradeIPolicy(ipolicy)
 
 
 def DowngradeStorageTypes(cluster):
@@ -232,12 +280,16 @@ def DowngradeCluster(config_data):
   if cluster is None:
     raise Error("Cannot find cluster")
   DowngradeStorageTypes(cluster)
+  ipolicy = cluster.get("ipolicy", None)
+  if ipolicy:
+    DowngradeIPolicy(ipolicy)
 
 
 def DowngradeAll(config_data):
   # Any code specific to a particular version should be labeled that way, so
   # it can be removed when updating to the next version.
   DowngradeCluster(config_data)
+  DowngradeGroups(config_data)
 
 
 def main():
@@ -356,8 +408,8 @@ def main():
                    config_minor, config_revision))
     DowngradeAll(config_data)
 
-  # Upgrade from 2.{0..6} to 2.7
-  elif config_major == 2 and config_minor in (0, 1, 2, 3, 4, 5, 6):
+  # Upgrade from 2.{0..7} to 2.7
+  elif config_major == 2 and config_minor in range(0, 8):
     if config_revision != 0:
       logging.warning("Config revision is %s, not 0", config_revision)
     UpgradeAll(config_data)
