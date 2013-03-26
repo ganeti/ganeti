@@ -496,7 +496,17 @@ class OpcodeResource(ResourceBase):
   def _GetDefaultData(self):
     return (self.request_body, None)
 
+  def _GetCommonStatic(self):
+    """Return the static parameters common to all the RAPI calls
+
+    """
+    common_static = {}
+    return common_static
+
   def _GenericHandler(self, opcode, rename, fn):
-    (body, static) = fn()
+    (body, specific_static) = fn()
+    static = self._GetCommonStatic()
+    if specific_static:
+      static.update(specific_static)
     op = FillOpcode(opcode, body, static, rename=rename)
     return self.SubmitJob([op])
