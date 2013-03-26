@@ -222,6 +222,22 @@ class _QueuedJob(object):
                "received_timestamp", "start_timestamp", "end_timestamp",
                "__weakref__", "processor_lock", "writable", "archived"]
 
+  def _AddReasons(self):
+    """Extend the reason trail
+
+    Add the reason for all the opcodes of this job to be executed.
+
+    """
+    count = 0
+    for queued_op in self.ops:
+      op = queued_op.input
+      reason_src = opcodes.NameToReasonSrc(op.__class__.__name__)
+      reason_text = "job=%d;index=%d" % (self.id, count)
+      reason = getattr(op, "reason", [])
+      reason.append((reason_src, reason_text, utils.EpochNano()))
+      op.reason = reason
+      count = count + 1
+
   def __init__(self, queue, job_id, ops, writable):
     """Constructor for the _QueuedJob.
 
@@ -242,6 +258,7 @@ class _QueuedJob(object):
     self.queue = queue
     self.id = int(job_id)
     self.ops = [_QueuedOpCode(op) for op in ops]
+    self._AddReasons()
     self.log_serial = 0
     self.received_timestamp = TimeStampNow()
     self.start_timestamp = None
