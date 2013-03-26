@@ -372,13 +372,13 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
                 maintain_node_health=False, drbd_helper=None, uid_pool=None,
                 default_iallocator=None, primary_ip_version=None, ipolicy=None,
                 prealloc_wipe_disks=False, use_external_mip_script=False,
-                hv_state=None, disk_state=None, enabled_storage_types=None):
+                hv_state=None, disk_state=None, enabled_disk_templates=None):
   """Initialise the cluster.
 
   @type candidate_pool_size: int
   @param candidate_pool_size: master candidate pool size
-  @type enabled_storage_types: list of string
-  @param enabled_storage_types: list of storage types to be used in this
+  @type enabled_disk_templates: list of string
+  @param enabled_disk_templates: list of disk_templates to be used in this
     cluster
 
   """
@@ -396,14 +396,14 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
                                " entries: %s" % invalid_hvs,
                                errors.ECODE_INVAL)
 
-  if not enabled_storage_types:
-    raise errors.OpPrereqError("Enabled storage types list must contain at"
+  if not enabled_disk_templates:
+    raise errors.OpPrereqError("Enabled disk templates list must contain at"
                                " least one member", errors.ECODE_INVAL)
-  invalid_storage_types = \
-    set(enabled_storage_types) - constants.VALID_STORAGE_TYPES
-  if invalid_storage_types:
-    raise errors.OpPrereqError("Enabled storage_types contains invalid"
-                               " entries: %s" % invalid_storage_types,
+  invalid_disk_templates = \
+    set(enabled_disk_templates) - constants.DISK_TEMPLATES
+  if invalid_disk_templates:
+    raise errors.OpPrereqError("Enabled disk templates list contains invalid"
+                               " entries: %s" % invalid_disk_templates,
                                errors.ECODE_INVAL)
 
   try:
@@ -634,7 +634,7 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
     ipolicy=full_ipolicy,
     hv_state_static=hv_state,
     disk_state_static=disk_state,
-    enabled_storage_types=enabled_storage_types,
+    enabled_disk_templates=enabled_disk_templates,
     )
   master_node_config = objects.Node(name=hostname.name,
                                     primary_ip=hostname.ip,
