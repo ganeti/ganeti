@@ -36,6 +36,7 @@ from ganeti import errors
 from ganeti import compat
 from ganeti import constants
 from ganeti import pathutils
+from ganeti import utils
 
 
 # Dummy value to detect unchanged parameters
@@ -496,11 +497,35 @@ class OpcodeResource(ResourceBase):
   def _GetDefaultData(self):
     return (self.request_body, None)
 
+  def _GetRapiOpName(self):
+    """Extracts the name of the RAPI operation from the class name
+
+    """
+    if self.__class__.__name__.startswith("R_2_"):
+      return self.__class__.__name__[4:]
+    return self.__class__.__name__
+
   def _GetCommonStatic(self):
     """Return the static parameters common to all the RAPI calls
 
+    The reason is a parameter present in all the RAPI calls, and the reason
+    trail has to be build for all of them, so the parameter is read here and
+    used to build the reason trail, that is the actual parameter passed
+    forward.
+
     """
-    common_static = {}
+    trail = []
+    usr_reason = self._checkStringVariable("reason", default=None)
+    if usr_reason:
+      trail.append((constants.OPCODE_REASON_SRC_USER,
+                    usr_reason,
+                    utils.EpochNano()))
+    reason_src = "%s:%s" % (constants.OPCODE_REASON_SRC_RLIB2,
+                            self._GetRapiOpName())
+    trail.append((reason_src, "", utils.EpochNano()))
+    common_static = {
+      "reason": trail,
+      }
     return common_static
 
   def _GenericHandler(self, opcode, rename, fn):
