@@ -479,7 +479,8 @@ def _GetClusterIPolicy():
 
   # Sanity checks
   assert len(ret_specs) > 0
-  good = ("min" in d and "std" in d and "max" in d for d in ret_specs)
+  good = all("min" in d and "std" in d and "max" in d
+             for d in ret_specs.values())
   assert good, "Missing item in specs: %s" % ret_specs
   assert len(ret_policy) > 0
   return (ret_policy, ret_specs)
