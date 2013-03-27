@@ -179,6 +179,7 @@
     "instance-add-file": true,
     "instance-add-drbd-disk": true,
     "instance-add-diskless": true,
+    "instance-add-restricted-by-disktemplates": true,
     "instance-convert-disk": true,
     "instance-plain-rapi-common-tests": true,
     "instance-remove-drbd-offline": true,

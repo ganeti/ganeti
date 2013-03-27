@@ -577,16 +577,21 @@ def TestIPolicyPlainInstance():
 
 def RunInstanceTests():
   """Create and exercise instances."""
-  instance_tests = [
-    ("instance-add-plain-disk", constants.DT_PLAIN,
-     qa_instance.TestInstanceAddWithPlainDisk, 1),
-    ("instance-add-drbd-disk", constants.DT_DRBD8,
-     qa_instance.TestInstanceAddWithDrbdDisk, 2),
-    ("instance-add-diskless", constants.DT_DISKLESS,
-     qa_instance.TestInstanceAddDiskless, 1),
-    ("instance-add-file", constants.DT_FILE,
-     qa_instance.TestInstanceAddFile, 1),
-  ]
+  instance_tests = []
+  enabled_disk_templates = qa_config.GetEnabledDiskTemplates()
+  # FIXME: Refactor this to make the code more elegant wrt to disk templates.
+  if constants.DT_PLAIN in enabled_disk_templates:
+    instance_tests.append(("instance-add-plain-disk", constants.DT_PLAIN,
+                           qa_instance.TestInstanceAddWithPlainDisk, 1))
+  if constants.DT_DRBD8 in enabled_disk_templates:
+    instance_tests.append(("instance-add-drbd-disk", constants.DT_DRBD8,
+                           qa_instance.TestInstanceAddWithDrbdDisk, 2))
+  if constants.DT_DISKLESS in enabled_disk_templates:
+    instance_tests.append(("instance-add-diskless", constants.DT_DISKLESS,
+                           qa_instance.TestInstanceAddDiskless, 1))
+  if constants.DT_FILE in enabled_disk_templates:
+    instance_tests.append(("instance-add-file", constants.DT_FILE,
+                           qa_instance.TestInstanceAddFile, 1))
 
   for (test_name, templ, create_fun, num_nodes) in instance_tests:
     if (qa_config.TestEnabled(test_name) and
@@ -625,6 +630,10 @@ def RunInstanceTests():
       finally:
         qa_config.ReleaseManyNodes(inodes)
       qa_cluster.AssertClusterVerify()
+
+  RunTestIf(
+    "instance-add-restricted-by-disktemplates",
+    qa_instance.TestInstanceCreationRestrictedByDiskTemplates)
 
 
 def RunQa():
