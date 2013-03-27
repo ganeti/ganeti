@@ -35,6 +35,7 @@ from ganeti import pathutils
 import qa_config
 import qa_utils
 import qa_error
+import qa_instance
 
 from qa_utils import AssertEqual, AssertCommand, GetCommandOutput
 
@@ -392,29 +393,101 @@ def TestClusterModifyDisk():
 
 def TestClusterModifyDiskTemplates():
   """gnt-cluster modify --enabled-disk-templates=..."""
+  enabled_disk_templates = qa_config.GetEnabledDiskTemplates()
   default_disk_template = qa_config.GetDefaultDiskTemplate()
-  AssertCommand(
-    ["gnt-cluster", "modify",
-     "--enabled-disk-templates=%s" % default_disk_template],
-    fail=False)
-  AssertCommand(["gnt-cluster", "info"])
+
+  _TestClusterModifyDiskTemplatesArguments(default_disk_template,
+                                           enabled_disk_templates)
+
+  _RestoreEnabledDiskTemplates()
+  nodes = qa_config.AcquireManyNodes(2)
+
+  instance_template = enabled_disk_templates[0]
+  instance = qa_instance.CreateInstanceByDiskTemplate(nodes, instance_template)
+
+  _TestClusterModifyUnusedDiskTemplate(instance_template)
+  _TestClusterModifyUsedDiskTemplate(instance_template,
+                                     enabled_disk_templates)
+
+  qa_instance.TestInstanceRemove(instance)
+  _RestoreEnabledDiskTemplates()
+
+
+def _RestoreEnabledDiskTemplates():
+  """Sets the list of enabled disk templates back to the list of enabled disk
+     templates from the QA configuration. This can be used to make sure that
+     the tests that modify the list of disk templates do not interfere with
+     other tests.
+
+  """
   AssertCommand(
     ["gnt-cluster", "modify",
      "--enabled-disk-template=%s" %
        ",".join(qa_config.GetEnabledDiskTemplates())],
     fail=False)
-  AssertCommand(["gnt-cluster", "info"])
+
+
+def _TestClusterModifyDiskTemplatesArguments(default_disk_template,
+                                             enabled_disk_templates):
+  """Tests argument handling of 'gnt-cluster modify' with respect to
+     the parameter '--enabled-disk-templates'. This test is independent
+     of instances.
+
+  """
+  AssertCommand(
+    ["gnt-cluster", "modify",
+     "--enabled-disk-template=%s" %
+       ",".join(enabled_disk_templates)],
+    fail=False)
+
   # bogus templates
   AssertCommand(["gnt-cluster", "modify",
                  "--enabled-disk-templates=pinkbunny"],
                 fail=True)
+
   # duplicate entries do no harm
   AssertCommand(
     ["gnt-cluster", "modify",
      "--enabled-disk-templates=%s,%s" %
       (default_disk_template, default_disk_template)],
     fail=False)
-  AssertCommand(["gnt-cluster", "info"])
+
+
+def _TestClusterModifyUsedDiskTemplate(instance_template,
+                                       enabled_disk_templates):
+  """Tests that disk templates that are currently in use by instances cannot
+     be disabled on the cluster.
+
+  """
+  # If the list of enabled disk templates contains only one template
+  # we need to add some other templates, because the list of enabled disk
+  # templates can only be set to a non-empty list.
+  new_disk_templates = list(set(enabled_disk_templates)
+                              - set([instance_template]))
+  if not new_disk_templates:
+    new_disk_templates = list(set(constants.DISK_TEMPLATES)
+                                - set([instance_template]))
+  AssertCommand(
+    ["gnt-cluster", "modify",
+     "--enabled-disk-templates=%s" %
+       ",".join(new_disk_templates)],
+    fail=True)
+
+
+def _TestClusterModifyUnusedDiskTemplate(instance_template):
+  """Tests that unused disk templates can be disabled safely."""
+  all_disk_templates = constants.DISK_TEMPLATES
+  AssertCommand(
+    ["gnt-cluster", "modify",
+     "--enabled-disk-templates=%s" %
+       ",".join(all_disk_templates)],
+    fail=False)
+  new_disk_templates = [instance_template]
+  AssertCommand(
+    ["gnt-cluster", "modify",
+     "--enabled-disk-templates=%s" %
+       ",".join(new_disk_templates)],
+    fail=False)
 
 
 def TestClusterModifyBe():

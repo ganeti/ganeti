@@ -27,6 +27,8 @@
   "vg-name": "xenvg",
   "# Cluster-level value of the exclusive-storage flag": null,
   "exclusive-storage": null,
+
+  "# Only enable disk templates that the QA machines can actually use.": null,
   "enabled-disk-templates": [
     "plain",
     "drbd",
