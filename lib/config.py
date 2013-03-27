@@ -577,12 +577,20 @@ class ConfigWriter:
     invalid_hvs = set(cluster.enabled_hypervisors) - constants.HYPER_TYPES
     if invalid_hvs:
       result.append("enabled hypervisors contains invalid entries: %s" %
-                    invalid_hvs)
+                    utils.CommaJoin(invalid_hvs))
     missing_hvp = (set(cluster.enabled_hypervisors) -
                    set(cluster.hvparams.keys()))
     if missing_hvp:
       result.append("hypervisor parameters missing for the enabled"
                     " hypervisor(s) %s" % utils.CommaJoin(missing_hvp))
+
+    if not cluster.enabled_disk_templates:
+      result.append("enabled disk templates list doesn't have any entries")
+    invalid_disk_templates = set(cluster.enabled_disk_templates) \
+                               - constants.DISK_TEMPLATES
+    if invalid_disk_templates:
+      result.append("enabled disk templates list contains invalid entries:"
+                    " %s" % utils.CommaJoin(invalid_disk_templates))
 
     if cluster.master_node not in data.nodes:
       result.append("cluster has invalid primary node '%s'" %
@@ -662,6 +670,11 @@ class ConfigWriter:
           _helper(owner, "nicparams",
                   filled, constants.NICS_PARAMETER_TYPES)
           _helper_nic(owner, filled)
+
+      # disk template checks
+      if not instance.disk_template in data.cluster.enabled_disk_templates:
+        result.append("instance '%s' uses the disabled disk template '%s'." %
+                      (instance_name, instance.disk_template))
 
       # parameter checks
       if instance.beparams:
