@@ -50,9 +50,9 @@ Installation of all dependencies listed here::
      $ apt-get install python-yaml
      $ cd / && sudo easy_install \
                sphinx \
-               logilab-astng==0.25.1 \
+               logilab-astng==0.23.1 \
                logilab-common==0.58.0 \
-               pylint==0.23.1 \
+               pylint==0.25.1 \
                pep8==1.2 \
                coverage
 
