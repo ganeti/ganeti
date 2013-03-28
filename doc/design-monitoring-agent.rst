@@ -610,8 +610,10 @@ request.
 Returns the report of the collector ``[collector_name]`` that belongs to the
 specified ``[category]``.
 
-If a collector does not belong to any category, ``collector`` will be used as
-the value for ``[category]``.
+The ``category`` has to be written in lowercase.
+
+If a collector does not belong to any category, ``default`` will have to be
+used as the value for ``[category]``.
 
 `Status reporting collectors`_ will provide their output in non-verbose format.
 The verbose format can be requested by adding the parameter ``verbose=1`` to the
