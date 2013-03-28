@@ -186,6 +186,7 @@ INIT
 | [\--ipolicy-disk-templates *template* [,*template*...]]
 | [\--disk-state *diskstate*]
 | [\--hypervisor-state *hvstate*]
+| [\--enabled-disk-templates *template* [,*template*...]]
 | {*clustername*}
 
 This commands is only run once initially on the first node of the
@@ -508,6 +509,14 @@ comma-separated list of disk templates.
 For details about how to use ``--hypervisor-state`` and ``--disk-state``
 have a look at **ganeti**\(7).
 
+The ``--enabled-disk-templates`` option specifies a list of disk templates
+that can be used by instances of the cluster. For the possible values in
+this list, see **gnt-instance**\(8). Note that in contrast to the list of
+disk templates in the ipolicy, this list is a hard restriction. It is not
+possible to create instances with disk templates that are not enabled in
+the cluster. It is also not possible to disable a disk template when there
+are still instances using it.
+
 MASTER-FAILOVER
 ~~~~~~~~~~~~~~~
 
@@ -574,6 +583,7 @@ MODIFY
 | [\--specs-mem-size *spec-param*=*value* [,*spec-param*=*value*...]]
 | [\--specs-nic-count *spec-param*=*value* [,*spec-param*=*value*...]]
 | [\--ipolicy-disk-templates *template* [,*template*...]]
+| [\--enabled-disk-templates *template* [,*template*...]]
 
 
 Modify the options for the cluster.
@@ -583,8 +593,8 @@ The ``--vg-name``, ``--no-lvm-storage``, ``--enabled-hypervisors``,
 ``-D (--disk-parameters)``, ``--nic-parameters``, ``-C
 (--candidate-pool-size)``, ``--maintain-node-health``,
 ``--prealloc-wipe-disks``, ``--uid-pool``, ``--node-parameters``,
-``--master-netdev``, ``--master-netmask`` and
-``--use-external-mip-script`` options are described in the **init**
+``--master-netdev``, ``--master-netmask``, ``--use-external-mip-script``,
+and ``--enabled-disk-templates`` options are described in the **init**
 command.
 
 The ``--hypervisor-state`` and ``--disk-state`` options are described in
