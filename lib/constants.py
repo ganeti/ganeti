@@ -380,7 +380,6 @@ ST_FILE = "file"
 ST_LVM_PV = "lvm-pv"
 ST_LVM_VG = "lvm-vg"
 ST_RADOS = "rados"
-ST_SHARED_FILE = "sharedfile"
 
 VALID_STORAGE_TYPES = compat.UniqueFrozenset([
   ST_BLOCK,
@@ -390,7 +389,6 @@ VALID_STORAGE_TYPES = compat.UniqueFrozenset([
   ST_LVM_PV,
   ST_LVM_VG,
   ST_RADOS,
-  ST_SHARED_FILE,
   ])
 
 # Storage fields
@@ -482,7 +480,7 @@ DISK_TEMPLATES_STORAGE_TYPE = {
   DT_FILE: ST_FILE,
   DT_PLAIN: ST_LVM_VG,
   DT_RBD: ST_RADOS,
-  DT_SHARED_FILE: ST_SHARED_FILE,
+  DT_SHARED_FILE: ST_FILE,
   }
 
 # the set of network-mirrored disk templates
