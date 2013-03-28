@@ -236,6 +236,7 @@ __all__ = [
   "FormatQueryResult",
   "FormatParameterDict",
   "FormatParamsDictInfo",
+  "FormatPolicyInfo",
   "PrintGenericInfo",
   "GenerateTable",
   "AskUser",
@@ -3636,6 +3637,57 @@ def FormatParamsDictInfo(param_dict, actual):
       ret[key] = FormatParamsDictInfo(param_dict.get(key, {}), data)
     else:
       ret[key] = str(param_dict.get(key, "default (%s)" % data))
+  return ret
+
+
+def _FormatListInfoDefault(data, def_data):
+  if data is not None:
+    ret = utils.CommaJoin(data)
+  else:
+    ret = "default (%s)" % utils.CommaJoin(def_data)
+  return ret
+
+
+def FormatPolicyInfo(custom_ipolicy, eff_ipolicy, iscluster):
+  """Formats an instance policy.
+
+  @type custom_ipolicy: dict
+  @param custom_ipolicy: own policy
+  @type eff_ipolicy: dict
+  @param eff_ipolicy: effective policy (including defaults); ignored for
+      cluster
+  @type iscluster: bool
+  @param iscluster: the policy is at cluster level
+  @rtype: list of pairs
+  @return: formatted data, suitable for L{PrintGenericInfo}
+
+  """
+  if iscluster:
+    eff_ipolicy = custom_ipolicy
+
+  custom_minmax = custom_ipolicy.get(constants.ISPECS_MINMAX)
+  ret = [
+    (key,
+     FormatParamsDictInfo(custom_minmax.get(key, {}),
+                          eff_ipolicy[constants.ISPECS_MINMAX][key]))
+    for key in constants.ISPECS_MINMAX_KEYS
+    ]
+  if iscluster:
+    stdspecs = custom_ipolicy[constants.ISPECS_STD]
+    ret.append(
+      (constants.ISPECS_STD,
+       FormatParamsDictInfo(stdspecs, stdspecs))
+      )
+
+  ret.append(
+    ("enabled disk templates",
+     _FormatListInfoDefault(custom_ipolicy.get(constants.IPOLICY_DTS),
+                            eff_ipolicy[constants.IPOLICY_DTS]))
+    )
+  ret.extend([
+    (key, str(custom_ipolicy.get(key, "default (%s)" % eff_ipolicy[key])))
+    for key in constants.IPOLICY_PARAMETERS
+    ])
   return ret
 
 
