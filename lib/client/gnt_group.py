@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2010, 2011, 2012 Google Inc.
+# Copyright (C) 2010, 2011, 2012, 2013 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -29,7 +29,6 @@ from ganeti import constants
 from ganeti import opcodes
 from ganeti import utils
 from ganeti import compat
-from cStringIO import StringIO
 
 
 #: default list of fields for L{ListGroups}
@@ -283,16 +282,15 @@ def EvacuateGroup(opts, args):
   return rcode
 
 
-def _FormatDict(custom, actual, level=2):
-  """Helper function to L{cli.FormatParameterDict}.
-
-  @param custom: The customized dict
-  @param actual: The fully filled dict
-
-  """
-  buf = StringIO()
-  FormatParameterDict(buf, custom, actual, level=level)
-  return buf.getvalue().rstrip("\n")
+def _FormatGroupInfo(group):
+  (name, ndparams, custom_ndparams, diskparams, custom_diskparams,
+   ipolicy, custom_ipolicy) = group
+  return [
+    ("Node group", name),
+    ("Node parameters", FormatParamsDictInfo(custom_ndparams, ndparams)),
+    ("Disk parameters", FormatParamsDictInfo(custom_diskparams, diskparams)),
+    ("Instance policy", FormatPolicyInfo(custom_ipolicy, ipolicy, False)),
+    ]
 
 
 def GroupInfo(_, args):
@@ -307,17 +305,9 @@ def GroupInfo(_, args):
   result = cl.QueryGroups(names=args, fields=selected_fields,
                           use_locking=False)
 
-  for (name,
-       ndparams, custom_ndparams,
-       diskparams, custom_diskparams,
-       ipolicy, custom_ipolicy) in result:
-    ToStdout("Node group: %s" % name)
-    ToStdout("  Node parameters:")
-    ToStdout(_FormatDict(custom_ndparams, ndparams))
-    ToStdout("  Disk parameters:")
-    ToStdout(_FormatDict(custom_diskparams, diskparams))
-    ToStdout("  Instance policy:")
-    ToStdout(_FormatDict(custom_ipolicy, ipolicy))
+  PrintGenericInfo([
+    _FormatGroupInfo(group) for group in result
+    ])
 
 
 commands = {
