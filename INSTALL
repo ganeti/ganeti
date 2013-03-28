@@ -67,7 +67,7 @@ If some of the python packages are not available in your system,
 you can try installing them using ``easy_install`` command.
 For example::
 
-  $ apt-get install python-setuptools
+  $ apt-get install python-setuptools python-dev
   $ cd / && sudo easy_install \
             affinity
 
@@ -190,6 +190,7 @@ the exception of curl), so you can use either apt::
 
 or ``cabal``::
 
+  $ apt-get install libpcre3-dev
   $ cabal install hslogger Crypto text hinotify regex-pcre \
                   attoparsec vector snap-server
 
