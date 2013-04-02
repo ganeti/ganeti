@@ -57,7 +57,8 @@ packages, except for RBD, DRBD and Xen::
   $ apt-get install lvm2 ssh bridge-utils iproute iputils-arping \
                     ndisc6 python python-pyopenssl openssl \
                     python-pyparsing python-simplejson \
-                    python-pyinotify python-pycurl socat fping
+                    python-pyinotify python-pycurl socat fping \
+                    python-ipaddr python-bitarray
 
 Note that this does not install optional packages::
 
@@ -69,14 +70,16 @@ For example::
 
   $ apt-get install python-setuptools python-dev
   $ cd / && sudo easy_install \
-            affinity
+            affinity \
+            bitarray \
+            ipaddr \
 
 
 On Fedora to install all required packages except RBD, DRBD and Xen::
 
   $ yum install openssh openssh-clients bridge-utils iproute ndisc6 \
                 pyOpenSSL pyparsing python-simplejson python-inotify \
-                python-lxm socat fping
+                python-lxm socat fping python-bitarray python-ipaddr
 
 For optional packages use the command::
 

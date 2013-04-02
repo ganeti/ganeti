@@ -44,7 +44,7 @@ To generate unittest coverage reports (``make coverage``), `coverage
 
 Installation of all dependencies listed here::
 
-     $ apt-get install python-setuptools
+     $ apt-get install python-setuptools automake git fakeroot
      $ apt-get install pandoc python-epydoc graphviz
      $ cd / && sudo easy_install \
                sphinx \
