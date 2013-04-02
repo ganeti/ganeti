@@ -21,6 +21,7 @@ Most dependencies from :doc:`install-quick`, including ``qemu-img``
 - `pylint <http://www.logilab.org/857>`_ and its associated
   dependencies
 - `pep8 <https://github.com/jcrocholl/pep8/>`_
+- `PyYAML <http://pyyaml.org/>`_
 
 For older developement (Ganeti < 2.4) ``docbook`` was used instead
 ``pandoc``.
@@ -46,6 +47,7 @@ Installation of all dependencies listed here::
 
      $ apt-get install python-setuptools automake git fakeroot
      $ apt-get install pandoc python-epydoc graphviz
+     $ apt-get install python-yaml
      $ cd / && sudo easy_install \
                sphinx \
                logilab-astng==0.25.1 \
