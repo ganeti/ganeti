@@ -113,6 +113,8 @@ def main():
       m = RELEASED_RE.match(line)
       if not m:
         Error("Line %s: Invalid release line" % fileinput.filelineno())
+        expect_date = False
+        continue
 
       # Including the weekday in the date string does not work as time.strptime
       # would return an inconsistent result if the weekday is incorrect.
