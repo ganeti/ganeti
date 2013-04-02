@@ -192,9 +192,13 @@ def TestClusterInit(rapi_user, rapi_secret):
   if master.secondary:
     cmd.append("--secondary-ip=%s" % master.secondary)
 
-  vgname = qa_config.get("vg-name", None)
-  if vgname:
-    cmd.append("--vg-name=%s" % vgname)
+  if utils.IsLvmEnabled(qa_config.GetEnabledDiskTemplates()):
+    vgname = qa_config.get("vg-name", constants.DEFAULT_VG)
+    if vgname:
+      cmd.append("--vg-name=%s" % vgname)
+    else:
+      raise qa_error.Error("Please specify a volume group if you enable"
+                           " lvm-based disk templates in the QA.")
 
   master_netdev = qa_config.get("master-netdev", None)
   if master_netdev:
@@ -398,6 +402,7 @@ def TestClusterModifyDiskTemplates():
 
   _TestClusterModifyDiskTemplatesArguments(default_disk_template,
                                            enabled_disk_templates)
+  _TestClusterModifyDiskTemplatesVgName(enabled_disk_templates)
 
   _RestoreEnabledDiskTemplates()
   nodes = qa_config.AcquireManyNodes(2)
@@ -420,10 +425,12 @@ def _RestoreEnabledDiskTemplates():
      other tests.
 
   """
+  vgname = qa_config.get("vg-name", constants.DEFAULT_VG)
   AssertCommand(
     ["gnt-cluster", "modify",
-     "--enabled-disk-template=%s" %
-       ",".join(qa_config.GetEnabledDiskTemplates())],
+     "--enabled-disk-templates=%s" %
+       ",".join(qa_config.GetEnabledDiskTemplates()),
+     "--vg-name=%s" % vgname],
     fail=False)
 
 
@@ -434,11 +441,7 @@ def _TestClusterModifyDiskTemplatesArguments(default_disk_template,
      of instances.
 
   """
-  AssertCommand(
-    ["gnt-cluster", "modify",
-     "--enabled-disk-template=%s" %
-       ",".join(enabled_disk_templates)],
-    fail=False)
+  _RestoreEnabledDiskTemplates()
 
   # bogus templates
   AssertCommand(["gnt-cluster", "modify",
@@ -451,6 +454,105 @@ def _TestClusterModifyDiskTemplatesArguments(default_disk_template,
      "--enabled-disk-templates=%s,%s" %
       (default_disk_template, default_disk_template)],
     fail=False)
+
+  # interaction with --drbd-usermode-helper option
+  drbd_usermode_helper = qa_config.get("drbd-usermode-helper", None)
+  if not drbd_usermode_helper:
+    drbd_usermode_helper = "/bin/true"
+  # specifying a helper when drbd gets disabled
+  AssertCommand(["gnt-cluster", "modify",
+                 "--drbd-usermode-helper=%s" % drbd_usermode_helper,
+                 "--enabled-disk-templates=%s" % constants.DT_DISKLESS],
+                 fail=False)
+  if constants.DT_DRBD8 in enabled_disk_templates:
+    # specifying a vg name when lvm is enabled
+    AssertCommand(["gnt-cluster", "modify",
+                   "--drbd-usermode-helper=%s" % drbd_usermode_helper,
+                   "--enabled-disk-templates=%s" %
+                     ",".join(enabled_disk_templates)],
+                  fail=False)
+
+
+def _TestClusterModifyDiskTemplatesVgName(enabled_disk_templates):
+  """Tests argument handling of 'gnt-cluster modify' with respect to
+     the parameter '--enabled-disk-templates' and '--vg-name'. This test is
+     independent of instances.
+
+  """
+  if not utils.IsLvmEnabled(enabled_disk_templates):
+    # These tests only make sense if lvm is enabled for QA
+    return
+
+  # determine an LVM and a non-LVM disk template for the tests
+  non_lvm_templates = list(set(enabled_disk_templates)
+                           - set(utils.GetLvmDiskTemplates()))
+  lvm_template = list(set(enabled_disk_templates)
+                      .intersection(set(utils.GetLvmDiskTemplates())))[0]
+  non_lvm_template = None
+  if non_lvm_templates:
+    non_lvm_template = non_lvm_templates[0]
+  else:
+    # If no non-lvm disk template is available for QA, choose 'diskless' and
+    # hope for the best.
+    non_lvm_template = constants.ST_DISKLESS
+
+  vgname = qa_config.get("vg-name", constants.DEFAULT_VG)
+
+  # Clean start: unset volume group name, disable lvm storage
+  AssertCommand(
+    ["gnt-cluster", "modify",
+     "--enabled-disk-templates=%s" % non_lvm_template,
+     "--vg-name="],
+    fail=False)
+
+  # Try to enable lvm, when no volume group is given
+  AssertCommand(
+    ["gnt-cluster", "modify",
+     "--enabled-disk-templates=%s" % lvm_template],
+    fail=True)
+
+  # Set volume group, with lvm still disabled: just a warning
+  AssertCommand(["gnt-cluster", "modify", "--vg-name=%s" % vgname], fail=False)
+
+  # Try unsetting vg name and enabling lvm at the same time
+  AssertCommand(
+    ["gnt-cluster", "modify",
+     "--enabled-disk-templates=%s" % lvm_template,
+     "--vg-name="],
+    fail=True)
+
+  # Enable lvm with vg name present
+  AssertCommand(
+    ["gnt-cluster", "modify",
+     "--enabled-disk-templates=%s" % lvm_template],
+    fail=False)
+
+  # Try unsetting vg name with lvm still enabled
+  AssertCommand(["gnt-cluster", "modify", "--vg-name="], fail=True)
+
+  # Disable lvm with vg name still set
+  AssertCommand(
+    ["gnt-cluster", "modify", "--enabled-disk-templates=%s" % non_lvm_template],
+    fail=False)
+
+  # Try unsetting vg name with lvm disabled
+  AssertCommand(["gnt-cluster", "modify", "--vg-name="], fail=False)
+
+  # Set vg name and enable lvm at the same time
+  AssertCommand(
+    ["gnt-cluster", "modify",
+     "--enabled-disk-templates=%s" % lvm_template,
+     "--vg-name=%s" % vgname],
+    fail=False)
+
+  # Unset vg name and disable lvm at the same time
+  AssertCommand(
+    ["gnt-cluster", "modify",
+     "--enabled-disk-templates=%s" % non_lvm_template,
+     "--vg-name="],
+    fail=False)
+
+  _RestoreEnabledDiskTemplates()
 
 
 def _TestClusterModifyUsedDiskTemplate(instance_template,

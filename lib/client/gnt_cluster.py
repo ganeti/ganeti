@@ -62,6 +62,19 @@ _EPO_PING_TIMEOUT = 1 # 1 second
 _EPO_REACHABLE_TIMEOUT = 15 * 60 # 15 minutes
 
 
+def _CheckNoLvmStorageOptDeprecated(opts):
+  """Checks if the legacy option '--no-lvm-storage' is used.
+
+  """
+  if not opts.lvm_storage:
+    ToStderr("The option --no-lvm-storage is no longer supported. If you want"
+             " to disable lvm-based storage cluster-wide, use the option"
+             " --enabled-disk-templates to disable all of these lvm-base disk "
+             "  templates: %s" %
+             utils.CommaJoin(utils.GetLvmDiskTemplates()))
+    return 1
+
+
 @UsesRPC
 def InitCluster(opts, args):
   """Initialize the cluster.
@@ -74,13 +87,28 @@ def InitCluster(opts, args):
   @return: the desired exit code
 
   """
-  if not opts.lvm_storage and opts.vg_name:
-    ToStderr("Options --no-lvm-storage and --vg-name conflict.")
+  if _CheckNoLvmStorageOptDeprecated(opts):
     return 1
+  enabled_disk_templates = opts.enabled_disk_templates
+  if enabled_disk_templates:
+    enabled_disk_templates = enabled_disk_templates.split(",")
+  else:
+    enabled_disk_templates = list(constants.DEFAULT_ENABLED_DISK_TEMPLATES)
 
-  vg_name = opts.vg_name
-  if opts.lvm_storage and not opts.vg_name:
-    vg_name = constants.DEFAULT_VG
+  vg_name = None
+  if opts.vg_name is not None:
+    vg_name = opts.vg_name
+    if vg_name:
+      if not utils.IsLvmEnabled(enabled_disk_templates):
+        ToStdout("You specified a volume group with --vg-name, but you did not"
+                 " enable any disk template that uses lvm.")
+    else:
+      if utils.IsLvmEnabled(enabled_disk_templates):
+        ToStderr("LVM disk templates are enabled, but vg name not set.")
+        return 1
+  else:
+    if utils.IsLvmEnabled(enabled_disk_templates):
+      vg_name = constants.DEFAULT_VG
 
   if not opts.drbd_storage and opts.drbd_helper:
     ToStderr("Options --no-drbd-storage and --drbd-usermode-helper conflict.")
@@ -192,12 +220,6 @@ def InitCluster(opts, args):
     disk_state = {}
 
   hv_state = dict(opts.hv_state)
-
-  enabled_disk_templates = opts.enabled_disk_templates
-  if enabled_disk_templates:
-    enabled_disk_templates = enabled_disk_templates.split(",")
-  else:
-    enabled_disk_templates = list(constants.DEFAULT_ENABLED_DISK_TEMPLATES)
 
   bootstrap.InitCluster(cluster_name=args[0],
                         secondary_ip=opts.secondary_ip,
@@ -945,8 +967,7 @@ def SetClusterParams(opts, args):
   @return: the desired exit code
 
   """
-  if not (not opts.lvm_storage or opts.vg_name or
-          not opts.drbd_storage or opts.drbd_helper or
+  if not (opts.vg_name is not None or opts.drbd_helper or
           opts.enabled_hypervisors or opts.hvparams or
           opts.beparams or opts.nicparams or
           opts.ndparams or opts.diskparams or
@@ -975,13 +996,22 @@ def SetClusterParams(opts, args):
     ToStderr("Please give at least one of the parameters.")
     return 1
 
-  vg_name = opts.vg_name
-  if not opts.lvm_storage and opts.vg_name:
-    ToStderr("Options --no-lvm-storage and --vg-name conflict.")
+  if _CheckNoLvmStorageOptDeprecated(opts):
     return 1
 
-  if not opts.lvm_storage:
-    vg_name = ""
+  enabled_disk_templates = None
+  if opts.enabled_disk_templates:
+    enabled_disk_templates = opts.enabled_disk_templates.split(",")
+
+  # consistency between vg name and enabled disk templates
+  vg_name = None
+  if opts.vg_name is not None:
+    vg_name = opts.vg_name
+  if enabled_disk_templates:
+    if vg_name and not utils.IsLvmEnabled(enabled_disk_templates):
+      ToStdout("You specified a volume group with --vg-name, but you did not"
+               " enable any of the following lvm-based disk templates: %s" %
+               utils.CommaJoin(utils.GetLvmDiskTemplates()))
 
   drbd_helper = opts.drbd_helper
   if not opts.drbd_storage and opts.drbd_helper:
@@ -994,10 +1024,6 @@ def SetClusterParams(opts, args):
   hvlist = opts.enabled_hypervisors
   if hvlist is not None:
     hvlist = hvlist.split(",")
-
-  enabled_disk_templates = opts.enabled_disk_templates
-  if enabled_disk_templates:
-    enabled_disk_templates = enabled_disk_templates.split(",")
 
   # a list of (name, dict) we can pass directly to dict() (or [])
   hvparams = dict(opts.hvparams)

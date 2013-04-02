@@ -4212,11 +4212,10 @@ class LUClusterSetParams(LogicalUnit):
     mn = self.cfg.GetMasterNode()
     return ([mn], [mn])
 
-  def CheckPrereq(self):
-    """Check prerequisites.
-
-    This checks whether the given params don't conflict and
-    if the given volume group is valid.
+  def _CheckVgName(self, node_list, enabled_disk_templates,
+                   new_enabled_disk_templates):
+    """Check the consistency of the vg name on all nodes and in case it gets
+       unset whether there are instances still using it.
 
     """
     if self.op.vg_name is not None and not self.op.vg_name:
@@ -4224,6 +4223,55 @@ class LUClusterSetParams(LogicalUnit):
         raise errors.OpPrereqError("Cannot disable lvm storage while lvm-based"
                                    " instances exist", errors.ECODE_INVAL)
 
+    if (self.op.vg_name is not None and
+        utils.IsLvmEnabled(enabled_disk_templates)) or \
+           (self.cfg.GetVGName() is not None and
+            utils.LvmGetsEnabled(enabled_disk_templates,
+                                 new_enabled_disk_templates)):
+      self._CheckVgNameOnNodes(node_list)
+
+  def _CheckVgNameOnNodes(self, node_list):
+    """Check the status of the volume group on each node.
+
+    """
+    vglist = self.rpc.call_vg_list(node_list)
+    for node in node_list:
+      msg = vglist[node].fail_msg
+      if msg:
+        # ignoring down node
+        self.LogWarning("Error while gathering data on node %s"
+                        " (ignoring node): %s", node, msg)
+        continue
+      vgstatus = utils.CheckVolumeGroupSize(vglist[node].payload,
+                                            self.op.vg_name,
+                                            constants.MIN_VG_SIZE)
+      if vgstatus:
+        raise errors.OpPrereqError("Error on node '%s': %s" %
+                                   (node, vgstatus), errors.ECODE_ENVIRON)
+
+  def _GetEnabledDiskTemplates(self, cluster):
+    """Determines the enabled disk templates and the subset of disk templates
+       that are newly enabled by this operation.
+
+    """
+    enabled_disk_templates = None
+    new_enabled_disk_templates = []
+    if self.op.enabled_disk_templates:
+      enabled_disk_templates = self.op.enabled_disk_templates
+      new_enabled_disk_templates = \
+        list(set(enabled_disk_templates)
+             - set(cluster.enabled_disk_templates))
+    else:
+      enabled_disk_templates = cluster.enabled_disk_templates
+    return (enabled_disk_templates, new_enabled_disk_templates)
+
+  def CheckPrereq(self):
+    """Check prerequisites.
+
+    This checks whether the given params don't conflict and
+    if the given volume group is valid.
+
+    """
     if self.op.drbd_helper is not None and not self.op.drbd_helper:
       if self.cfg.HasAnyDiskOfType(constants.LD_DRBD8):
         raise errors.OpPrereqError("Cannot disable drbd helper while"
@@ -4231,23 +4279,13 @@ class LUClusterSetParams(LogicalUnit):
                                    errors.ECODE_INVAL)
 
     node_list = self.owned_locks(locking.LEVEL_NODE)
+    self.cluster = cluster = self.cfg.GetClusterInfo()
 
-    # if vg_name not None, checks given volume group on all nodes
-    if self.op.vg_name:
-      vglist = self.rpc.call_vg_list(node_list)
-      for node in node_list:
-        msg = vglist[node].fail_msg
-        if msg:
-          # ignoring down node
-          self.LogWarning("Error while gathering data on node %s"
-                          " (ignoring node): %s", node, msg)
-          continue
-        vgstatus = utils.CheckVolumeGroupSize(vglist[node].payload,
-                                              self.op.vg_name,
-                                              constants.MIN_VG_SIZE)
-        if vgstatus:
-          raise errors.OpPrereqError("Error on node '%s': %s" %
-                                     (node, vgstatus), errors.ECODE_ENVIRON)
+    (enabled_disk_templates, new_enabled_disk_templates) = \
+      self._GetEnabledDiskTemplates(cluster)
+
+    self._CheckVgName(node_list, enabled_disk_templates,
+                      new_enabled_disk_templates)
 
     if self.op.drbd_helper:
       # checks given drbd helper on all nodes
@@ -4266,7 +4304,6 @@ class LUClusterSetParams(LogicalUnit):
           raise errors.OpPrereqError("Error on node '%s': drbd helper is %s" %
                                      (node, node_helper), errors.ECODE_ENVIRON)
 
-    self.cluster = cluster = self.cfg.GetClusterInfo()
     # validate params changes
     if self.op.beparams:
       objects.UpgradeBeParams(self.op.beparams)
@@ -4468,20 +4505,47 @@ class LUClusterSetParams(LogicalUnit):
                                      " because instance '%s' is using it." %
                                      (instance.disk_template, instance.name))
 
-  def Exec(self, feedback_fn):
-    """Change the parameters of the cluster.
+
+  def _SetVgName(self, feedback_fn):
+    """Determines and sets the new volume group name.
 
     """
     if self.op.vg_name is not None:
+      if self.op.vg_name and not \
+           utils.IsLvmEnabled(self.cluster.enabled_disk_templates):
+        feedback_fn("Note that you specified a volume group, but did not"
+                    " enable any lvm disk template.")
       new_volume = self.op.vg_name
       if not new_volume:
+        if utils.IsLvmEnabled(self.cluster.enabled_disk_templates):
+          raise errors.OpPrereqError("Cannot unset volume group if lvm-based"
+                                     " disk templates are enabled.")
         new_volume = None
       if new_volume != self.cfg.GetVGName():
         self.cfg.SetVGName(new_volume)
       else:
         feedback_fn("Cluster LVM configuration already in desired"
                     " state, not changing")
+    else:
+      if utils.IsLvmEnabled(self.cluster.enabled_disk_templates) and \
+          not self.cfg.GetVGName():
+        raise errors.OpPrereqError("Please specify a volume group when"
+                                   " enabling lvm-based disk-templates.")
+
+  def Exec(self, feedback_fn):
+    """Change the parameters of the cluster.
+
+    """
+    if self.op.enabled_disk_templates:
+      self.cluster.enabled_disk_templates = \
+        list(set(self.op.enabled_disk_templates))
+
+    self._SetVgName(feedback_fn)
+
     if self.op.drbd_helper is not None:
+      if not constants.DT_DRBD8 in self.cluster.enabled_disk_templates:
+        feedback_fn("Note that you specified a drbd user helper, but did"
+                    " enabled the drbd disk template.")
       new_helper = self.op.drbd_helper
       if not new_helper:
         new_helper = None
@@ -4497,9 +4561,6 @@ class LUClusterSetParams(LogicalUnit):
     if self.op.enabled_hypervisors is not None:
       self.cluster.hvparams = self.new_hvparams
       self.cluster.enabled_hypervisors = self.op.enabled_hypervisors
-    if self.op.enabled_disk_templates:
-      self.cluster.enabled_disk_templates = \
-        list(set(self.op.enabled_disk_templates))
     if self.op.beparams:
       self.cluster.beparams[constants.PP_DEFAULT] = self.new_beparams
     if self.op.nicparams:

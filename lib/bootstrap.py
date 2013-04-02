@@ -461,14 +461,12 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
   else:
     master_netmask = ipcls.iplen
 
-  if vg_name is not None:
+  if vg_name:
     # Check if volume group is valid
     vgstatus = utils.CheckVolumeGroupSize(utils.ListVolumeGroups(), vg_name,
                                           constants.MIN_VG_SIZE)
     if vgstatus:
-      raise errors.OpPrereqError("Error: %s\nspecify --no-lvm-storage if"
-                                 " you are not using lvm" % vgstatus,
-                                 errors.ECODE_INVAL)
+      raise errors.OpPrereqError("Error: %s" % vgstatus, errors.ECODE_INVAL)
 
   if drbd_helper is not None:
     try:
