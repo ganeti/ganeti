@@ -379,6 +379,7 @@ utils_PYTHON = \
 	lib/utils/nodesetup.py \
 	lib/utils/process.py \
 	lib/utils/retry.py \
+	lib/utils/storage.py \
 	lib/utils/text.py \
 	lib/utils/wrapper.py \
 	lib/utils/x509.py
