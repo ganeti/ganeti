@@ -371,7 +371,8 @@ commands = {
     [TAG_SRC_OPT, PRIORITY_OPT, SUBMIT_OPT],
     "<group_name> tag...", "Remove tags from the given group"),
   "info": (
-    GroupInfo, ARGS_MANY_GROUPS, [], "<group_name>", "Show group information"),
+    GroupInfo, ARGS_MANY_GROUPS, [], "[<group_name>...]",
+    "Show group information"),
   }
 
 
