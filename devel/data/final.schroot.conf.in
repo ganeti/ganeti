@@ -1,0 +1,6 @@
+[${CHROOTNAME}]
+description=Debian ${DIST_RELEASE} ${ARCH}
+groups=src
+source-root-groups=root
+type=file
+file=${CHROOT_DIR}/${COMP_FILENAME}

@@ -93,6 +93,7 @@ DIRS = \
 	autotools \
 	daemons \
 	devel \
+	devel/data \
 	doc \
 	doc/css \
 	doc/examples \
@@ -178,6 +179,8 @@ CLEANFILES = \
 	$(SHELL_ENV_INIT) \
 	daemons/daemon-util \
 	daemons/ganeti-cleaner \
+	devel/squeeze-amd64.tar.gz \
+	devel/squeeze-amd64.conf \
 	$(mandocrst) \
 	doc/manpages-enabled.rst \
 	$(BUILT_EXAMPLES) \

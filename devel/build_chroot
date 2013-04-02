@@ -1,0 +1,151 @@
+#!/bin/bash
+#Configuration
+: ${DATA_DIR=data}
+: ${ARCH=amd64}
+: ${DIST_RELEASE=squeeze}
+: ${CONF_DIR:=/etc/schroot/chroot.d}
+: ${CHROOT_DIR:=/srv/chroot}
+
+#Automatically generated variables
+CHROOTNAME=$DIST_RELEASE-$ARCH
+CHNAME=building_$CHROOTNAME
+TEMP_CHROOT_CONF=$CONF_DIR/$CHNAME.conf
+FINAL_CHROOT_CONF=$CHROOTNAME.conf
+ROOT=`pwd`
+CHDIR=$ROOT/$CHNAME
+USER=`whoami`
+COMP_FILENAME=$CHROOTNAME.tar.gz
+COMP_FILEPATH=$ROOT/$COMP_FILENAME
+
+#Runnability checks
+if [ $USER != 'root' ]
+then
+  echo "This script requires root permissions to run"
+  exit
+fi
+
+if [ -f $TEMP_CHROOT_CONF ]
+then
+  echo "The configuration file name for the temporary chroot"
+  echo "  $TEMP_CHROOT_CONF"
+  echo "already exists."
+  echo "Remove it or change the CHNAME value in the script."
+  exit
+fi
+
+set -e
+
+#Cleanup
+rm -rf $CHDIR
+mkdir $CHDIR
+
+#Install tools for building chroots
+apt-get install -y schroot debootstrap
+
+shopt -s expand_aliases
+alias in_chroot='schroot -c $CHNAME -d / '
+alias subst_variables='sed \
+  -e "s/\${ARCH}/$ARCH/" \
+  -e "s*\${CHDIR}*$CHDIR*" \
+  -e "s/\${CHNAME}/$CHNAME/" \
+  -e "s/\${CHROOTNAME}/$CHROOTNAME/" \
+  -e "s*\${CHROOT_DIR}*$CHROOT_DIR*" \
+  -e "s/\${COMP_FILENAME}/$COMP_FILENAME/" \
+  -e "s/\${DIST_RELEASE}/$DIST_RELEASE/"'
+
+#Generate chroot configurations
+cat $DATA_DIR/temp.schroot.conf.in | subst_variables > $TEMP_CHROOT_CONF
+cat $DATA_DIR/final.schroot.conf.in | subst_variables > $FINAL_CHROOT_CONF
+
+#Install the base system
+debootstrap --arch $ARCH $DIST_RELEASE $CHDIR
+
+APT_INSTALL="apt-get install -y --no-install-recommends"
+
+#Install all the packages
+in_chroot -- \
+  apt-get update
+
+in_chroot -- \
+  $APT_INSTALL python-setuptools build-essential python-dev sudo automake git \
+               fakeroot vim rsync locales
+
+echo "en_US.UTF-8 UTF-8" >> $CHDIR/etc/locale.gen
+
+in_chroot -- \
+  locale-gen
+
+in_chroot -- \
+  $APT_INSTALL lvm2 ssh bridge-utils iproute iputils-arping \
+               ndisc6 python python-pyopenssl openssl \
+               python-pyparsing python-simplejson \
+               python-pyinotify python-pycurl python-yaml socat fping
+
+in_chroot -- \
+  $APT_INSTALL python-paramiko qemu-utils
+
+in_chroot -- \
+  easy_install affinity bitarray ipaddr
+
+#Haskell packages
+in_chroot -- \
+  $APT_INSTALL ghc6 \
+               libghc6-parallel-dev libghc6-deepseq-dev \
+               libghc6-curl-dev
+
+in_chroot -- \
+  $APT_INSTALL cabal-install
+
+in_chroot -- \
+  cabal update
+
+in_chroot -- \
+  $APT_INSTALL libpcre3-dev
+
+in_chroot -- \
+  cabal install --global \
+    QuickCheck==2.5.1.1 \
+    network==2.3 hslogger Crypto text regex-pcre \
+    attoparsec vector \
+    json==0.4.4 \
+    MonadCatchIO-transformers==0.2.2.0 mtl==2.0.1.0 \
+    hashable==1.1.2.0 case-insensitive==0.3 parsec==3.0.1 \
+    network==2.3 snap-server==0.8.1 \
+    hinotify==0.3.2
+
+#Python development tools
+in_chroot -- \
+  $APT_INSTALL pandoc python-epydoc graphviz
+
+in_chroot -- \
+  easy_install sphinx==1.1.3 \
+               logilab-common \
+               logilab-astng==0.23.1 \
+               pylint==0.25.1 \
+               pep8==1.2 \
+               coverage
+
+#Haskell development tools
+in_chroot -- \
+  cabal install --global \
+    HUnit \
+    happy \
+    hlint==1.8.34 \
+    hscolour==1.20.3 \
+    temporary \
+    test-framework==0.6.1 \
+    test-framework-hunit==0.2.7 \
+    test-framework-quickcheck2==0.2.12.3
+
+in_chroot -- \
+  cabal install --global shelltestrunner
+
+rm -f $COMP_FILEPATH
+echo "Creating compressed schroot image..."
+cd $CHDIR
+tar czf $COMP_FILEPATH ./*
+cd $ROOT
+echo "Done"
+
+rm -rf $CHDIR
+rm -f $TEMP_CHROOT_CONF

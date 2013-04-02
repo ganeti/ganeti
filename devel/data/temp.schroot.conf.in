@@ -1,0 +1,6 @@
+[${CHNAME}]
+description=Debian ${DIST_RELEASE} ${ARCH}
+directory=${CHDIR}
+groups=src
+users=root
+type=directory

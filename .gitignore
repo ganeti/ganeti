@@ -31,6 +31,8 @@
 /config.log
 /config.status
 /configure
+/devel/squeeze-amd64.tar.gz
+/devel/squeeze-amd64.conf
 /epydoc.conf
 /ganeti
 /stamp-srclinks
