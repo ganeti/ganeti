@@ -8463,12 +8463,9 @@ class LUInstanceMove(LogicalUnit):
     try:
       _CreateDisks(self, instance, target_node=target_node)
     except errors.OpExecError:
-      self.LogWarning("Device creation failed, reverting...")
-      try:
-        _RemoveDisks(self, instance, target_node=target_node)
-      finally:
-        self.cfg.ReleaseDRBDMinors(instance.name)
-        raise
+      self.LogWarning("Device creation failed")
+      self.cfg.ReleaseDRBDMinors(instance.name)
+      raise
 
     cluster_name = self.cfg.GetClusterInfo().cluster_name
 
@@ -10995,12 +10992,9 @@ class LUInstanceCreate(LogicalUnit):
       try:
         _CreateDisks(self, iobj)
       except errors.OpExecError:
-        self.LogWarning("Device creation failed, reverting...")
-        try:
-          _RemoveDisks(self, iobj)
-        finally:
-          self.cfg.ReleaseDRBDMinors(instance)
-          raise
+        self.LogWarning("Device creation failed")
+        self.cfg.ReleaseDRBDMinors(instance)
+        raise
 
     feedback_fn("adding instance %s to cluster config" % instance)
 
