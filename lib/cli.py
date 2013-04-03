@@ -234,7 +234,6 @@ __all__ = [
   "ToStderr", "ToStdout",
   "FormatError",
   "FormatQueryResult",
-  "FormatParameterDict",
   "FormatParamsDictInfo",
   "FormatPolicyInfo",
   "PrintGenericInfo",
@@ -3590,33 +3589,6 @@ class JobExecutor(object):
         else:
           ToStderr("Failure for %s: %s", name, result)
       return [row[1:3] for row in self.jobs]
-
-
-def FormatParameterDict(buf, param_dict, actual, level=1):
-  """Formats a parameter dictionary.
-
-  @type buf: L{StringIO}
-  @param buf: the buffer into which to write
-  @type param_dict: dict
-  @param param_dict: the own parameters
-  @type actual: dict
-  @param actual: the current parameter set (including defaults)
-  @param level: Level of indent
-
-  """
-  indent = "  " * level
-
-  for key in sorted(actual):
-    data = actual[key]
-    buf.write("%s- %s:" % (indent, key))
-
-    if isinstance(data, dict) and data:
-      buf.write("\n")
-      FormatParameterDict(buf, param_dict.get(key, {}), data,
-                          level=level + 1)
-    else:
-      val = param_dict.get(key, "default (%s)" % data)
-      buf.write(" %s\n" % val)
 
 
 def FormatParamsDictInfo(param_dict, actual):
