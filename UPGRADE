@@ -30,6 +30,10 @@ To run commands on all nodes, the `distributed shell (dsh)
 
     $ gnt-job list
 
+#. Pause the watcher for an hour (master node only)::
+
+    $ gnt-cluster watcher pause 1h
+
 #. Stop all daemons on all nodes::
 
     $ /etc/init.d/ganeti stop
@@ -58,6 +62,10 @@ To run commands on all nodes, the `distributed shell (dsh)
 #. Restart daemons again on all nodes::
 
     $ /etc/init.d/ganeti restart
+
+#. Enable the watcher again (master node only)::
+
+    $ gnt-cluster watcher continue
 
 #. Verify cluster (master node only)::
 
