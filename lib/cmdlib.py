@@ -8388,6 +8388,10 @@ class LUInstanceMove(LogicalUnit):
     assert self.instance is not None, \
       "Cannot retrieve locked instance %s" % self.op.instance_name
 
+    if instance.disk_template not in constants.DTS_COPYABLE:
+      raise errors.OpPrereqError("Disk template %s not suitable for copying" %
+                                 instance.disk_template, errors.ECODE_STATE)
+
     node = self.cfg.GetNodeInfo(self.op.target_node)
     assert node is not None, \
       "Cannot retrieve locked node %s" % self.op.target_node
