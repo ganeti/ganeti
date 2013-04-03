@@ -434,20 +434,6 @@ def BackupFile(node, path):
   return result
 
 
-def _ResolveName(cmd, key):
-  """Helper function.
-
-  """
-  master = qa_config.GetMasterNode()
-
-  output = GetCommandOutput(master.primary, utils.ShellQuoteArgs(cmd))
-  for line in output.splitlines():
-    (lkey, lvalue) = line.split(":", 1)
-    if lkey == key:
-      return lvalue.lstrip()
-  raise KeyError("Key not found")
-
-
 def ResolveInstanceName(instance):
   """Gets the full name of an instance.
 
@@ -463,8 +449,8 @@ def ResolveNodeName(node):
   """Gets the full name of a node.
 
   """
-  return _ResolveName(["gnt-node", "info", node.primary],
-                      "Node name")
+  info = GetObjectInfo(["gnt-node", "info", node.primary])
+  return info[0]["Node name"]
 
 
 def GetNodeInstances(node, secondaries=False):
