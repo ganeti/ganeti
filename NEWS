@@ -18,6 +18,8 @@ Version 2.8.0 beta1
   are currently used by instances. The order of storage types will be based
   on Ganeti's history of supporting them. In the future, the first entry of
   the list will be used as a default storage type on instance creation.
+- ``cfgupgrade`` now supports a ``--downgrade`` option to bring the
+  configuration back to the previous stable version.
 
 
 Version 2.7.0 beta1

@@ -1564,7 +1564,8 @@ cfgupgrade
 ++++++++++
 
 The ``cfgupgrade`` tools is used to upgrade between major (and minor)
-Ganeti versions. Point-releases are usually transparent for the admin.
+Ganeti versions, and to roll back. Point-releases are usually
+transparent for the admin.
 
 More information about the upgrade procedure is listed on the wiki at
 http://code.google.com/p/ganeti/wiki/UpgradeNotes.
