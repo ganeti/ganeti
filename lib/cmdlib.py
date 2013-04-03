@@ -9699,6 +9699,7 @@ def _CreateDisks(lu, instance, to_skip=None, target_node=None):
     result.Raise("Failed to create directory '%s' on"
                  " node %s" % (file_storage_dir, pnode))
 
+  disks_created = []
   # Note: this needs to be kept in sync with adding of disks in
   # LUInstanceSetParams
   for idx, device in enumerate(instance.disks):
@@ -9708,7 +9709,19 @@ def _CreateDisks(lu, instance, to_skip=None, target_node=None):
     #HARDCODE
     for node in all_nodes:
       f_create = node == pnode
-      _CreateBlockDev(lu, node, instance, device, f_create, info, f_create)
+      try:
+        _CreateBlockDev(lu, node, instance, device, f_create, info, f_create)
+        disks_created.append((node, device))
+      except errors.OpExecError:
+        logging.warning("Creating disk %s for instance '%s' failed",
+                        idx, instance.name)
+        for (node, disk) in disks_created:
+          lu.cfg.SetDiskID(disk, node)
+          result = lu.rpc.call_blockdev_remove(node, disk)
+          if result.fail_msg:
+            logging.warning("Failed to remove newly-created disk %s on node %s:"
+                            " %s", device, node, result.fail_msg)
+        raise
 
 
 def _RemoveDisks(lu, instance, target_node=None, ignore_failures=False):
@@ -9716,8 +9729,7 @@ def _RemoveDisks(lu, instance, target_node=None, ignore_failures=False):
 
   This abstracts away some work from `AddInstance()` and
   `RemoveInstance()`. Note that in case some of the devices couldn't
-  be removed, the removal will continue with the other ones (compare
-  with `_CreateDisks()`).
+  be removed, the removal will continue with the other ones.
 
   @type lu: L{LogicalUnit}
   @param lu: the logical unit on whose behalf we execute
