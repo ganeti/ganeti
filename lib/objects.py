@@ -1622,7 +1622,7 @@ class Cluster(TaggableObject):
       wrongkeys = frozenset(self.ipolicy.keys()) - constants.IPOLICY_ALL_KEYS
       if wrongkeys:
         # These keys would be silently removed by FillIPolicy()
-        msg = ("Cluster instance policy contains spourious keys: %s" %
+        msg = ("Cluster instance policy contains spurious keys: %s" %
                utils.CommaJoin(wrongkeys))
         raise errors.ConfigurationError(msg)
       self.ipolicy = FillIPolicy(constants.IPOLICY_DEFAULTS, self.ipolicy)
