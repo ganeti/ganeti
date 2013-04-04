@@ -1,8 +1,17 @@
 {
   "name": "xen-test-qa-minimal-nodes-instances-only",
 
-  "disk": ["1G", "512M"],
-  "disk-growth": ["2G", "768M"],
+  "# Lists of disks": null,
+  "disks": [
+    {
+      "size": "1G",
+      "growth": "2G"
+    },
+    {
+      "size": "512M",
+      "growth": "768M"
+    }
+  ],
 
   "enabled-disk-templates": [
     "plain",

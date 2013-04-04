@@ -280,12 +280,14 @@ class _QaConfig(object):
     if not self.get("instances"):
       raise qa_error.Error("Need at least one instance")
 
-    if (self.get("disk") is None or
-        self.get("disk-growth") is None or
-        len(self.get("disk")) != len(self.get("disk-growth"))):
-      raise qa_error.Error("Config options 'disk' and 'disk-growth' must exist"
-                           " and have the same number of items")
-
+    disks = self.GetDiskOptions()
+    if disks is None:
+      raise qa_error.Error("Config option 'disks' must exist")
+    else:
+      for d in disks:
+        if d.get("size") is None or d.get("growth") is None:
+          raise qa_error.Error("Config options `size` and `growth` must exist"
+                               " for all `disks` items")
     check = self.GetInstanceCheckScript()
     if check:
       try:
@@ -424,6 +426,32 @@ class _QaConfig(object):
     basedir = self.get(_VCLUSTER_BASEDIR_KEY)
 
     return (master, basedir)
+
+  def GetDiskOptions(self):
+    """Return options for the disks of the instances.
+
+    Get 'disks' parameter from the configuration data. If 'disks' is missing,
+    try to create it from the legacy 'disk' and 'disk-growth' parameters.
+
+    """
+    try:
+      return self._data["disks"]
+    except KeyError:
+      pass
+
+    # Legacy interface
+    sizes = self._data.get("disk")
+    growths = self._data.get("disk-growth")
+    if sizes or growths:
+      if (sizes is None or growths is None or len(sizes) != len(growths)):
+        raise qa_error.Error("Config options 'disk' and 'disk-growth' must"
+                             " exist and have the same number of items")
+      disks = []
+      for (size, growth) in zip(sizes, growths):
+        disks.append({"size": size, "growth": growth})
+      return disks
+    else:
+      return None
 
 
 def Load(path):
@@ -718,3 +746,10 @@ def NoVirtualCluster():
 
   """
   return not UseVirtualCluster()
+
+
+def GetDiskOptions():
+  """Wrapper for L{_QaConfig.GetDiskOptions}.
+
+  """
+  return GetConfig().GetDiskOptions()

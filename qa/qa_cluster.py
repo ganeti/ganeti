@@ -800,13 +800,14 @@ def TestClusterBurnin():
 
     script = qa_utils.UploadFile(master.primary, "../tools/burnin")
     try:
+      disks = qa_config.GetDiskOptions()
       # Run burnin
       cmd = [script,
              "--os=%s" % qa_config.get("os"),
              "--minmem-size=%s" % qa_config.get(constants.BE_MINMEM),
              "--maxmem-size=%s" % qa_config.get(constants.BE_MAXMEM),
-             "--disk-size=%s" % ",".join(qa_config.get("disk")),
-             "--disk-growth=%s" % ",".join(qa_config.get("disk-growth")),
+             "--disk-size=%s" % ",".join([d.get("size") for d in disks]),
+             "--disk-growth=%s" % ",".join([d.get("growth") for d in disks]),
              "--disk-template=%s" % disk_template]
       if parallel:
         cmd.append("--parallel")

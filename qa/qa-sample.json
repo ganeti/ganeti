@@ -68,9 +68,19 @@
   "#ispec_nic_count_min": null,
   "#ispec_nic_count_std": null,
 
-  "# Lists of disk sizes": null,
-  "disk": ["1G", "512M"],
-  "disk-growth": ["2G", "768M"],
+  "# Lists of disks": null,
+  "disks": [
+    {
+      "size": "1G",
+      "name": "disk0",
+      "growth": "2G"
+    },
+    {
+      "size": "512M",
+      "name": "disk1",
+      "growth": "768M"
+    }
+  ],
 
   "# Script to check instance status": null,
   "instance-check": null,
@@ -197,6 +207,7 @@
     "instance-reinstall": true,
     "instance-rename": true,
     "instance-shutdown": true,
+    "instance-device-names": true,
 
     "job-list": true,
 

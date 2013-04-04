@@ -52,8 +52,10 @@ def _GetGenericAddParameters(inst, disk_template, force_mac=None):
                                  qa_config.get(constants.BE_MAXMEM)))
 
   if disk_template != constants.DT_DISKLESS:
-    for idx, size in enumerate(qa_config.get("disk")):
-      params.extend(["--disk", "%s:size=%s" % (idx, size)])
+    for idx, disk in enumerate(qa_config.GetDiskOptions()):
+      size = disk.get("size")
+      name = disk.get("name")
+      params.extend(["--disk", "%s:size=%s,name=%s" % (idx, size, name)])
 
   # Set static MAC address if configured
   if force_mac:
@@ -780,8 +782,9 @@ def TestInstanceGrowDisk(instance):
     return
 
   name = instance.name
-  all_size = qa_config.get("disk")
-  all_grow = qa_config.get("disk-growth")
+  disks = qa_config.GetDiskOptions()
+  all_size = [d.get("size") for d in disks]
+  all_grow = [d.get("growth") for d in disks]
 
   if not all_grow:
     # missing disk sizes but instance grow disk has been enabled,
@@ -799,6 +802,55 @@ def TestInstanceGrowDisk(instance):
     int_grow = utils.ParseUnit(grow)
     AssertCommand(["gnt-instance", "grow-disk", "--absolute", name, str(idx),
                    str(int_size + 2 * int_grow)])
+
+
+@InstanceCheck(INST_UP, INST_UP, FIRST_ARG)
+def TestInstanceDeviceNames(instance):
+  if instance.disk_template == constants.DT_DISKLESS:
+    print qa_utils.FormatInfo("Test not supported for diskless instances")
+    return
+
+  name = instance.name
+  for dev_type in ["disk", "net"]:
+    if dev_type == "disk":
+      options = ",size=512M"
+    else:
+      options = ""
+    # succeed in adding a device named 'test_device'
+    AssertCommand(["gnt-instance", "modify",
+                   "--%s=-1:add,name=test_device%s" % (dev_type, options),
+                   name])
+    # succeed in removing the 'test_device'
+    AssertCommand(["gnt-instance", "modify",
+                   "--%s=test_device:remove" % dev_type,
+                   name])
+    # fail to add two devices with the same name
+    AssertCommand(["gnt-instance", "modify",
+                   "--%s=-1:add,name=test_device%s" % (dev_type, options),
+                   "--%s=-1:add,name=test_device%s" % (dev_type, options),
+                   name], fail=True)
+    # fail to add a device with invalid name
+    AssertCommand(["gnt-instance", "modify",
+                   "--%s=-1:add,name=2%s" % (dev_type, options),
+                   name], fail=True)
+  # Rename disks
+  disks = qa_config.GetDiskOptions()
+  disk_names = [d.get("name") for d in disks]
+  for idx, disk_name in enumerate(disk_names):
+    # Refer to disk by idx
+    AssertCommand(["gnt-instance", "modify",
+                   "--disk=%s:modify,name=renamed" % idx,
+                   name])
+    # Refer to by name and rename to original name
+    AssertCommand(["gnt-instance", "modify",
+                   "--disk=renamed:modify,name=%s" % disk_name,
+                   name])
+  if len(disks) >= 2:
+    # fail in renaming to disks to the same name
+    AssertCommand(["gnt-instance", "modify",
+                   "--disk=0:modify,name=same_name",
+                   "--disk=1:modify,name=same_name",
+                   name], fail=True)
 
 
 def TestInstanceList():

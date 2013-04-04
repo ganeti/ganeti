@@ -565,8 +565,9 @@ def TestRapiInstanceAdd(node, use_client):
   instance = qa_config.AcquireInstance()
   instance.SetDiskTemplate(constants.DT_PLAIN)
   try:
-    disk_sizes = [utils.ParseUnit(size) for size in qa_config.get("disk")]
-    disks = [{"size": size} for size in disk_sizes]
+    disks = [{"size": utils.ParseUnit(d.get("size")),
+              "name": str(d.get("name"))}
+             for d in qa_config.GetDiskOptions()]
     nic0_mac = instance.GetNicMacAddr(0, constants.VALUE_GENERATE)
     nics = [{
       constants.INIC_MAC: nic0_mac,

@@ -205,10 +205,9 @@ class TestQaConfigLoad(unittest.TestCase):
       ]
 
     # Missing "disk" and "disk-growth"
-    check_fn("Config options 'disk' and 'disk-growth' ")
+    check_fn("Config option 'disks'")
 
-    testconfig["disk"] = []
-    testconfig["disk-growth"] = testconfig["disk"]
+    testconfig["disks"] = []
 
     # Minimal accepted configuration
     self._WriteConfig(filename, testconfig)

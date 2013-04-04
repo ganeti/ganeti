@@ -267,6 +267,8 @@ def RunCommonInstanceTests(instance):
   RunTestIf(["instance-console", qa_rapi.Enabled],
             qa_rapi.TestRapiInstanceConsole, instance)
 
+  RunTestIf("instance-device-names", qa_instance.TestInstanceDeviceNames,
+            instance)
   DOWN_TESTS = qa_config.Either([
     "instance-reinstall",
     "instance-rename",
