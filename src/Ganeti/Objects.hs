@@ -280,12 +280,16 @@ $(buildParam "Nic" "nicp"
   , simpleField "link" [t| String  |]
   ])
 
-$(buildObject "PartialNic" "nic"
+$(buildObject "PartialNic" "nic" $
   [ simpleField "mac" [t| String |]
   , optionalField $ simpleField "ip" [t| String |]
   , simpleField "nicparams" [t| PartialNicParams |]
   , optionalField $ simpleField "network" [t| String |]
-  ])
+  , optionalField $ simpleField "name" [t| String |]
+  ] ++ uuidFields)
+
+instance UuidObject PartialNic where
+  uuidOf = nicUuid
 
 -- * Disk definitions
 
@@ -423,9 +427,11 @@ data Disk = Disk
   , diskIvName     :: String
   , diskSize       :: Int
   , diskMode       :: DiskMode
+  , diskName       :: Maybe String
+  , diskUuid       :: String
   } deriving (Show, Eq)
 
-$(buildObjectSerialisation "Disk"
+$(buildObjectSerialisation "Disk" $
   [ customField 'decodeDLId 'encodeFullDLId ["dev_type"] $
       simpleField "logical_id"    [t| DiskLogicalId   |]
 --  , simpleField "physical_id" [t| String   |]
@@ -433,7 +439,12 @@ $(buildObjectSerialisation "Disk"
   , defaultField [| "" |] $ simpleField "iv_name" [t| String |]
   , simpleField "size" [t| Int |]
   , defaultField [| DiskRdWr |] $ simpleField "mode" [t| DiskMode |]
-  ])
+  , optionalField $ simpleField "name" [t| String |]
+  ]
+  ++ uuidFields)
+
+instance UuidObject Disk where
+  uuidOf = diskUuid
 
 -- * Instance definitions
 

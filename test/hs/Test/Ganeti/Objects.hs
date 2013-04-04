@@ -89,7 +89,8 @@ instance Arbitrary DiskLogicalId where
 -- generating recursive datastructures is a bit more work.
 instance Arbitrary Disk where
   arbitrary = Disk <$> arbitrary <*> pure [] <*> arbitrary
-                   <*> arbitrary <*> arbitrary
+                   <*> arbitrary <*> arbitrary <*> arbitrary
+                   <*> arbitrary
 
 -- FIXME: we should generate proper values, >=0, etc., but this is
 -- hard for partial ones, where all must be wrapped in a 'Maybe'
@@ -128,11 +129,14 @@ genInstWithNets nets = do
   mac <- arbitrary
   ip <- arbitrary
   nicparams <- arbitrary
+  name <- arbitrary
+  uuid <- arbitrary
   -- generate some more networks than the given ones
   num_more_nets <- choose (0,3)
   more_nets <- vectorOf num_more_nets genName
-  let partial_nics = map (PartialNic mac ip nicparams . Just)
-                       (List.nub (nets ++ more_nets))
+  let genNic net = PartialNic mac ip nicparams net name uuid
+      partial_nics = map (genNic . Just)
+                         (List.nub (nets ++ more_nets))
       new_inst = plain_inst { instNics = partial_nics }
   return new_inst
 
