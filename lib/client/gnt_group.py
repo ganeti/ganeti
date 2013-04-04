@@ -24,6 +24,8 @@
 # W0401: Wildcard import ganeti.cli
 # W0614: Unused import %s from wildcard import (since we need cli)
 
+from cStringIO import StringIO
+
 from ganeti.cli import *
 from ganeti import constants
 from ganeti import opcodes
@@ -313,6 +315,35 @@ def GroupInfo(_, args):
     ])
 
 
+def _GetCreateCommand(group):
+  (name, ipolicy) = group
+  buf = StringIO()
+  buf.write("gnt-group add")
+  PrintIPolicyCommand(buf, ipolicy, True)
+  buf.write(" ")
+  buf.write(name)
+  return buf.getvalue()
+
+
+def ShowCreateCommand(opts, args):
+  """Shows the command that can be used to re-create a node group.
+
+  Currently it works only for ipolicy specs.
+
+  """
+  cl = GetClient(query=True)
+  selected_fields = ["name"]
+  if opts.include_defaults:
+    selected_fields += ["ipolicy"]
+  else:
+    selected_fields += ["custom_ipolicy"]
+  result = cl.QueryGroups(names=args, fields=selected_fields,
+                          use_locking=False)
+
+  for group in result:
+    ToStdout(_GetCreateCommand(group))
+
+
 commands = {
   "add": (
     AddGroup, ARGS_ONE_GROUP,
@@ -366,6 +397,10 @@ commands = {
   "info": (
     GroupInfo, ARGS_MANY_GROUPS, [], "[<group_name>...]",
     "Show group information"),
+  "show-ispecs-cmd": (
+    ShowCreateCommand, ARGS_MANY_GROUPS, [INCLUDEDEFAULTS_OPT],
+    "[--include-defaults] [<group_name>...]",
+    "Show the command line to re-create a group"),
   }
 
 

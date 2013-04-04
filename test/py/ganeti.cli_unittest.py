@@ -1423,5 +1423,59 @@ class TestCreateIPolicyFromOpts(unittest.TestCase):
       self._TestFullISpecsInner(skel_ipolicy, exp_minmax1, None,
                                 False, fill_all)
 
+
+class TestPrintIPolicyCommand(unittest.TestCase):
+  """Test case for cli.PrintIPolicyCommand"""
+  _SPECS1 = {
+    "par1": 42,
+    "par2": "xyz",
+    }
+  _SPECS1_STR = "par1=42,par2=xyz"
+  _SPECS2 = {
+    "param": 10,
+    "another_param": 101,
+    }
+  _SPECS2_STR = "another_param=101,param=10"
+
+  def _CheckPrintIPolicyCommand(self, ipolicy, isgroup, expected):
+    buf = StringIO()
+    cli.PrintIPolicyCommand(buf, ipolicy, isgroup)
+    self.assertEqual(buf.getvalue(), expected)
+
+  def testIgnoreStdForGroup(self):
+    self._CheckPrintIPolicyCommand({"std": self._SPECS1}, True, "")
+
+  def testIgnoreEmpty(self):
+    policies = [
+      {},
+      {"std": {}},
+      {"minmax": {}},
+      {"minmax": {
+        "min": {},
+        "max": {},
+        }},
+      {"minmax": {
+        "min": self._SPECS1,
+        "max": {},
+        }},
+      ]
+    for pol in policies:
+      self._CheckPrintIPolicyCommand(pol, False, "")
+
+  def testFullPolicies(self):
+    cases = [
+      ({"std": self._SPECS1},
+       " %s %s" % (cli.IPOLICY_STD_SPECS_STR, self._SPECS1_STR)),
+      ({"minmax": {
+        "min": self._SPECS1,
+        "max": self._SPECS2,
+        }},
+       " %s min:%s/max:%s" % (cli.IPOLICY_BOUNDS_SPECS_STR,
+                              self._SPECS1_STR, self._SPECS2_STR)),
+      ]
+    for (pol, exp) in cases:
+      self._CheckPrintIPolicyCommand(pol, False, exp)
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()

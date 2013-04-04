@@ -152,6 +152,14 @@ Passing the ``--roman`` option gnt-cluster info will try to print
 its integer fields in a latin friendly way. This allows further
 diffusion of Ganeti among ancient cultures.
 
+SHOW-ISPECS-CMD
+~~~~~~~~~~~~~~~
+
+**show-ispecs-cmd**
+
+Shows the command line that can be used to recreate the cluster with the
+same options relative to specs in the instance policies.
+
 INIT
 ~~~~
 

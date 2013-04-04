@@ -257,9 +257,22 @@ be interpreted as stdin.
 INFO
 ~~~~
 
-**info** [group...]
+**info** [*group*...]
 
 Shows config information for all (or given) groups.
+
+SHOW-ISPECS-CMD
+~~~~~~~~~~~~~~~
+
+**show-ispecs-cmd** [\--include-defaults] [*group*...]
+
+Shows the command line that can be used to recreate the given groups (or
+all groups, if none is given) with the same options relative to specs in
+the instance policies.
+
+If ``--include-defaults`` is specified, include also the default values
+(i.e. the cluster-level settings), and not only the configuration items
+that a group overrides.
 
 
 .. vim: set textwidth=72 :

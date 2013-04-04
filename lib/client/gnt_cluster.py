@@ -26,6 +26,7 @@
 # W0614: Unused import %s from wildcard import (since we need cli)
 # C0103: Invalid name gnt-cluster
 
+from cStringIO import StringIO
 import os.path
 import time
 import OpenSSL
@@ -1491,6 +1492,26 @@ def Epo(opts, args, cl=None, _on_fn=_EpoOn, _off_fn=_EpoOff,
     return _off_fn(opts, node_list, inst_map)
 
 
+def _GetCreateCommand(info):
+  buf = StringIO()
+  buf.write("gnt-cluster init")
+  PrintIPolicyCommand(buf, info["ipolicy"], False)
+  buf.write(" ")
+  buf.write(info["name"])
+  return buf.getvalue()
+
+
+def ShowCreateCommand(opts, args):
+  """Shows the command that can be used to re-create the cluster.
+
+  Currently it works only for ipolicy specs.
+
+  """
+  cl = GetClient(query=True)
+  result = cl.QueryClusterInfo()
+  ToStdout(_GetCreateCommand(result))
+
+
 commands = {
   "init": (
     InitCluster, [ArgHost(min=1, max=1)],
@@ -1603,6 +1624,9 @@ commands = {
   "deactivate-master-ip": (
     DeactivateMasterIp, ARGS_NONE, [CONFIRM_OPT], "",
     "Deactivates the master IP"),
+  "show-ispecs-cmd": (
+    ShowCreateCommand, ARGS_NONE, [], "",
+    "Show the command line to re-create the cluster"),
   }
 
 

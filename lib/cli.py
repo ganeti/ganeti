@@ -108,6 +108,7 @@ __all__ = [
   "IGNORE_REMOVE_FAILURES_OPT",
   "IGNORE_SECONDARIES_OPT",
   "IGNORE_SIZE_OPT",
+  "INCLUDEDEFAULTS_OPT",
   "INTERVAL_OPT",
   "MAC_PREFIX_OPT",
   "MAINTAIN_NODE_HEALTH_OPT",
@@ -237,6 +238,7 @@ __all__ = [
   "FormatQueryResult",
   "FormatParamsDictInfo",
   "FormatPolicyInfo",
+  "PrintIPolicyCommand",
   "PrintGenericInfo",
   "GenerateTable",
   "AskUser",
@@ -1620,6 +1622,10 @@ NOCONFLICTSCHECK_OPT = cli_option("--no-conflicts-check",
                                   default=True,
                                   action="store_false",
                                   help="Don't check for conflicting IPs")
+
+INCLUDEDEFAULTS_OPT = cli_option("--include-defaults", dest="include_defaults",
+                                 default=False, action="store_true",
+                                 help="Include default values")
 
 #: Options provided by all commands
 COMMON_OPTS = [DEBUG_OPT, REASON_OPT]
@@ -3749,6 +3755,41 @@ def FormatPolicyInfo(custom_ipolicy, eff_ipolicy, iscluster):
     for key in constants.IPOLICY_PARAMETERS
     ])
   return ret
+
+
+def _PrintSpecsParameters(buf, specs):
+  values = ("%s=%s" % (par, val) for (par, val) in sorted(specs.items()))
+  buf.write(",".join(values))
+
+
+def PrintIPolicyCommand(buf, ipolicy, isgroup):
+  """Print the command option used to generate the given instance policy.
+
+  Currently only the parts dealing with specs are supported.
+
+  @type buf: StringIO
+  @param buf: stream to write into
+  @type ipolicy: dict
+  @param ipolicy: instance policy
+  @type isgroup: bool
+  @param isgroup: whether the policy is at group level
+
+  """
+  if not isgroup:
+    stdspecs = ipolicy.get("std")
+    if stdspecs:
+      buf.write(" %s " % IPOLICY_STD_SPECS_STR)
+      _PrintSpecsParameters(buf, stdspecs)
+  minmax = ipolicy.get("minmax")
+  if minmax:
+    minspecs = minmax.get("min")
+    maxspecs = minmax.get("max")
+    if minspecs and maxspecs:
+      buf.write(" %s " % IPOLICY_BOUNDS_SPECS_STR)
+      buf.write("min:")
+      _PrintSpecsParameters(buf, minspecs)
+      buf.write("/max:")
+      _PrintSpecsParameters(buf, maxspecs)
 
 
 def ConfirmOperation(names, list_type, text, extra=""):
