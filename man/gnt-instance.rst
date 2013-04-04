@@ -28,8 +28,8 @@ ADD
 
 | **add**
 | {-t|\--disk-template {diskless | file \| plain \| drbd \| rbd}}
-| {\--disk=*N*: {size=*VAL* \| adopt=*LV*}[,vg=*VG*][,metavg=*VG*][,mode=*ro\|rw*]
-|  \| {size=*VAL*,provider=*PROVIDER*}[,param=*value*... ][,mode=*ro\|rw*]
+| {\--disk=*N*: {size=*VAL* \| adopt=*LV*}[,options...]
+|  \| {size=*VAL*,provider=*PROVIDER*}[,param=*value*... ][,options...]
 |  \| {-s|\--os-size} *SIZE*}
 | [\--no-ip-check] [\--no-name-check] [\--no-start] [\--no-install]
 | [\--net=*N* [:options...] \| \--no-nics]
@@ -50,15 +50,26 @@ in the same network as the nodes in the cluster.
 The ``disk`` option specifies the parameters for the disks of the
 instance. The numbering of disks starts at zero, and at least one disk
 needs to be passed. For each disk, either the size or the adoption
-source needs to be given, and optionally the access mode (read-only or
-the default of read-write). The size is interpreted (when no unit is
+source needs to be given. The size is interpreted (when no unit is
 given) in mebibytes. You can also use one of the suffixes *m*, *g* or
 *t* to specify the exact the units used; these suffixes map to
-mebibytes, gibibytes and tebibytes. For LVM and DRBD devices, the LVM
-volume group can also be specified (via the ``vg`` key). For DRBD
-devices, a different VG can be specified for the metadata device using
-the ``metavg`` key. For ExtStorage devices, also the ``provider``
-option is mandatory, to specify which ExtStorage provider to use.
+mebibytes, gibibytes and tebibytes. Each disk can also take these
+parameters (all optional):
+
+mode
+  The access mode. Either ``ro`` (read-only) or the default ``rw``
+  (read-write).
+
+name
+   this option specifies a name for the disk, which can be used as a disk
+   identifier. An instance can not have two disks with the same name.
+
+vg
+   The LVM volume group. This works only for LVM and DRBD devices.
+
+metavg
+   This options specifies a different VG for the metadata device. This
+   works only for DRBD devices
 
 When creating ExtStorage disks, also arbitrary parameters can be passed,
 to the ExtStorage provider. Those parameters are passed as additional
@@ -134,6 +145,10 @@ network
     depend on the network-to-nodegroup connection, thus allowing
     different nodegroups to be connected to the same network in
     different ways.
+
+name
+   this option specifies a name for the NIC, which can be used as a NIC
+   identifier. An instance can not have two NICs with the same name.
 
 
 Of these "mode" and "link" are NIC parameters, and inherit their
@@ -1026,11 +1041,15 @@ MODIFY
 | [{-H|\--hypervisor-parameters} *HYPERVISOR\_PARAMETERS*]
 | [{-B|\--backend-parameters} *BACKEND\_PARAMETERS*]
 | [{-m|\--runtime-memory} *SIZE*]
-| [\--net add*[:options]* \| \--net [*N*:]remove \| \--net *N:options*]
-| [\--disk add:size=*SIZE*[,vg=*VG*][,metavg=*VG*] \|
-|  \--disk add:size=*SIZE*,provider=*PROVIDER*[,param=*value*... ] \|
-|  \--disk [*N*:]remove \|
-|  \--disk *N*:mode=*MODE*]
+| [\--net add[:options...] \|
+|  \--net [*N*:]add[,options...] \|
+|  \--net [*ID*:]remove \|
+|  \--net *ID*:modify[,options...]]
+| [\--disk add:size=*SIZE*[,options...] \|
+|  \--disk *N*:add,size=*SIZE*[,options...] \|
+|  \--disk *N*:add,size=*SIZE*,provider=*PROVIDER*[,options...][,param=*value*... ] \|
+|  \--disk *ID*:modify[,options...]
+|  \--disk [*ID*:]remove]
 | [{-t|\--disk-template} plain | {-t|\--disk-template} drbd -n *new_secondary*] [\--no-wait-for-sync]
 | [\--new-primary=*node*]
 | [\--os-type=*OS* [\--force-variant]]
@@ -1063,27 +1082,34 @@ The ``-m (--runtime-memory)`` option will change an instance's runtime
 memory to the given size (in MB if a different suffix is not specified),
 by ballooning it up or down to the new value.
 
-The ``--disk add:size=``*SIZE* option adds a disk to the instance. The
-optional ``vg=``*VG* option specifies an LVM volume group other than the
-default volume group to create the disk on. For DRBD disks, the
-``metavg=``*VG* option specifies the volume group for the metadata
-device. When adding an ExtStorage disk the ``provider=``*PROVIDER*
-option is also mandatory and specifies the ExtStorage provider. Also,
-for ExtStorage disks arbitrary parameters can be passed as additional
-comma separated options, same as in the **add** command. ``--disk``
-*N*``:add,size=``**SIZE** can be used to add a disk at a specific index.
-The ``--disk remove`` option will remove the last disk of the instance.
-Use ``--disk `` *N*``:remove`` to remove a disk by its index. The
-``--disk`` *N*``:mode=``*MODE* option will change the mode of the Nth
-disk of the instance between read-only (``ro``) and read-write (``rw``).
+The ``--disk add:size=*SIZE*,[options..]`` option adds a disk to the
+instance, and ``--disk *N*:add:size=*SIZE*,[options..]`` will add a disk
+to the the instance at a specific index. The available options are the
+same as in the **add** command(``mode``, ``name``, ``vg``, ``metavg``).
+When adding an ExtStorage disk the ``provider=*PROVIDER*`` option is
+also mandatory and specifies the ExtStorage provider. Also, for
+ExtStorage disks arbitrary parameters can be passed as additional comma
+separated options, same as in the **add** command. -The ``--disk remove``
+option will remove the last disk of the instance. Use
+``--disk `` *ID*``:remove`` to remove a disk by its identifier.  *ID*
+can be the index of the disk, the disks's name or the disks's UUID.  The
+``--disk *ID*:modify[,options...]`` wil change the options of the disk.
+Available options are:
 
-The ``--net add:``*options* and ``--net`` *N*``:add,``*options* option
-will add a new network interface to the instance. The available options
-are the same as in the **add** command (``mac``, ``ip``, ``link``,
-``mode``, ``network``). The ``--net remove`` will remove the last network
-interface of the instance (``--net`` *N*``:remove`` for a specific index),
-while the ``--net`` *N*``:``*options* option will change the parameters of
-the Nth instance network interface.
+mode
+  The access mode. Either ``ro`` (read-only) or the default ``rw`` (read-write).
+
+name
+   this option specifies a name for the disk, which can be used as a disk
+   identifier. An instance can not have two disks with the same name.
+
+The ``--net *N*:add[,options..]`` will add a new network interface to
+the instance. The available options are the same as in the **add**
+command (``mac``, ``ip``, ``link``, ``mode``, ``network``). The
+``--net *ID*,remove`` will remove the intances' NIC with *ID* identifier,
+which can be the index of the NIC, the NIC's name or the NIC's UUID.
+The ``--net *ID*:modify[,options..]`` option will change the parameters of
+the instance network interface with the *ID* identifier.
 
 The option ``-o (--os-type)`` will change the OS name for the instance
 (without reinstallation). In case an OS variant is specified that is
