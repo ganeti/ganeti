@@ -13037,6 +13037,8 @@ class LUInstanceQueryData(NoHooksLU):
       "children": dev_children,
       "mode": dev.mode,
       "size": dev.size,
+      "name": dev.name,
+      "uuid": dev.uuid,
       }
 
   def Exec(self, feedback_fn):
