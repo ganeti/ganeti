@@ -1048,6 +1048,9 @@ def _FormatBlockDevInfo(idx, top_level, dev, roman):
   if dev["sstatus"]:
     data.append(("on secondary", helper(dev["dev_type"], dev["sstatus"])))
 
+  data.append(("name", dev["name"]))
+  data.append(("UUID", dev["uuid"]))
+
   if dev["children"]:
     data.append(("child devices", [
       _FormatBlockDevInfo(c_idx, False, child, roman)
@@ -1058,7 +1061,7 @@ def _FormatBlockDevInfo(idx, top_level, dev, roman):
 
 def _FormatInstanceNicInfo(idx, nic):
   """Helper function for L{_FormatInstanceInfo()}"""
-  (ip, mac, mode, link, _, netinfo) = nic
+  (name, uuid, ip, mac, mode, link, _, netinfo) = nic
   network_name = None
   if netinfo:
     network_name = netinfo["name"]
@@ -1069,6 +1072,8 @@ def _FormatInstanceNicInfo(idx, nic):
     ("mode", str(mode)),
     ("link", str(link)),
     ("network", str(network_name)),
+    ("UUID", str(uuid)),
+    ("name", str(name)),
     ]
 
 
