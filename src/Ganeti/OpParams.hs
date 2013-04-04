@@ -403,6 +403,7 @@ $(buildObject "INicParams" "inic"
   , optionalField $ simpleField C.inicIp   [t| String         |]
   , optionalField $ simpleField C.inicMode [t| NonEmptyString |]
   , optionalField $ simpleField C.inicLink [t| NonEmptyString |]
+  , optionalField $ simpleField C.inicName [t| NonEmptyString |]
   ])
 
 -- | Disk modification definition. FIXME: disksize should be VTYPE_UNIT.
@@ -412,6 +413,7 @@ $(buildObject "IDiskParams" "idisk"
   , optionalField $ simpleField C.idiskAdopt  [t| NonEmptyString |]
   , optionalField $ simpleField C.idiskVg     [t| NonEmptyString |]
   , optionalField $ simpleField C.idiskMetavg [t| NonEmptyString |]
+  , optionalField $ simpleField C.idiskName   [t| NonEmptyString |]
   ])
 
 -- | Disk changes type for OpInstanceRecreateDisks. This is a bit

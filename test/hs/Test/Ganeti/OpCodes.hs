@@ -76,12 +76,12 @@ instance Arbitrary OpCodes.DiskIndex where
 
 instance Arbitrary INicParams where
   arbitrary = INicParams <$> genMaybe genNameNE <*> genMaybe genName <*>
-              genMaybe genNameNE <*> genMaybe genNameNE
+              genMaybe genNameNE <*> genMaybe genNameNE <*> genMaybe genNameNE
 
 instance Arbitrary IDiskParams where
   arbitrary = IDiskParams <$> arbitrary <*> arbitrary <*>
               genMaybe genNameNE <*> genMaybe genNameNE <*>
-              genMaybe genNameNE
+              genMaybe genNameNE <*> genMaybe genNameNE
 
 instance Arbitrary RecreateDisksInfo where
   arbitrary = oneof [ pure RecreateDisksAll
