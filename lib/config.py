@@ -445,6 +445,24 @@ class ConfigWriter:
         lvnames.update(lv_list)
     return lvnames
 
+  def _AllDisks(self):
+    """Compute the list of all Disks.
+
+    """
+    disks = []
+    for instance in self._config_data.instances.values():
+      disks.extend(instance.disks)
+    return disks
+
+  def _AllNICs(self):
+    """Compute the list of all NICs.
+
+    """
+    nics = []
+    for instance in self._config_data.instances.values():
+      nics.extend(instance.nics)
+    return nics
+
   def _AllIDs(self, include_temporary):
     """Compute the list of all UUIDs and names we have.
 
@@ -2038,6 +2056,8 @@ class ConfigWriter:
             self._config_data.nodes.values() +
             self._config_data.nodegroups.values() +
             self._config_data.networks.values() +
+            self._AllDisks() +
+            self._AllNICs() +
             [self._config_data.cluster])
 
   def _OpenConfig(self, accept_foreign):
