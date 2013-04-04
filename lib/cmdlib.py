@@ -10055,6 +10055,8 @@ def _ComputeNics(op, cluster, default_ip, cfg, ec_id):
     objects.NIC.CheckParameterSyntax(check_params)
     net_uuid = cfg.LookupNetwork(net)
     name = nic.get(constants.INIC_NAME, None)
+    if name is not None and name.lower() == constants.VALUE_NONE:
+      name = None
     nic_obj = objects.NIC(mac=mac, ip=nic_ip, name=name,
                           network=net_uuid, nicparams=nicparams)
     nic_obj.uuid = cfg.GenerateUniqueID(ec_id)
@@ -10096,6 +10098,8 @@ def _ComputeDisks(op, default_vg):
 
     data_vg = disk.get(constants.IDISK_VG, default_vg)
     name = disk.get(constants.IDISK_NAME, None)
+    if name is not None and name.lower() == constants.VALUE_NONE:
+      name = None
     new_disk = {
       constants.IDISK_SIZE: size,
       constants.IDISK_MODE: mode,
@@ -13357,19 +13361,21 @@ class LUInstanceSetParams(LogicalUnit):
                                    errors.ECODE_INVAL)
 
       params[constants.IDISK_SIZE] = size
+      name = params.get(constants.IDISK_NAME, None)
+      if name is not None and name.lower() == constants.VALUE_NONE:
+        params[constants.IDISK_NAME] = None
 
     elif op == constants.DDM_MODIFY:
       if constants.IDISK_SIZE in params:
         raise errors.OpPrereqError("Disk size change not possible, use"
                                    " grow-disk", errors.ECODE_INVAL)
-      if constants.IDISK_MODE not in params:
-        raise errors.OpPrereqError("Disk 'mode' is the only kind of"
-                                   " modification supported, but missing",
-                                   errors.ECODE_NOENT)
-      if len(params) > 1:
+      if len(params) > 2:
         raise errors.OpPrereqError("Disk modification doesn't support"
                                    " additional arbitrary parameters",
                                    errors.ECODE_INVAL)
+      name = params.get(constants.IDISK_NAME, None)
+      if name is not None and name.lower() == constants.VALUE_NONE:
+        params[constants.IDISK_NAME] = None
 
   @staticmethod
   def _VerifyNicModification(op, params):
@@ -13378,9 +13384,12 @@ class LUInstanceSetParams(LogicalUnit):
     """
     if op in (constants.DDM_ADD, constants.DDM_MODIFY):
       ip = params.get(constants.INIC_IP, None)
+      name = params.get(constants.INIC_NAME, None)
       req_net = params.get(constants.INIC_NETWORK, None)
       link = params.get(constants.NIC_LINK, None)
       mode = params.get(constants.NIC_MODE, None)
+      if name is not None and name.lower() == constants.VALUE_NONE:
+        params[constants.INIC_NAME] = None
       if req_net is not None:
         if req_net.lower() == constants.VALUE_NONE:
           params[constants.INIC_NETWORK] = None
@@ -14232,11 +14241,17 @@ class LUInstanceSetParams(LogicalUnit):
     """Modifies a disk.
 
     """
-    disk.mode = params[constants.IDISK_MODE]
+    changes = []
+    mode = params.get(constants.IDISK_MODE, None)
+    if mode:
+      disk.mode = mode
+      changes.append(("disk.mode/%d" % idx, disk.mode))
 
-    return [
-      ("disk.mode/%d" % idx, disk.mode),
-      ]
+    name = params.get(constants.IDISK_NAME, None)
+    disk.name = name
+    changes.append(("disk.name/%d" % idx, disk.name))
+
+    return changes
 
   def _RemoveDisk(self, idx, root, _):
     """Removes a disk.
@@ -14283,7 +14298,7 @@ class LUInstanceSetParams(LogicalUnit):
     """
     changes = []
 
-    for key in [constants.INIC_MAC, constants.INIC_IP]:
+    for key in [constants.INIC_MAC, constants.INIC_IP, constants.INIC_NAME]:
       if key in params:
         changes.append(("nic.%s/%d" % (key, idx), params[key]))
         setattr(nic, key, params[key])
