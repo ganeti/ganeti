@@ -1645,7 +1645,8 @@ def _TestInstSetParamsModList(fn):
   mod_item_fn = \
     ht.TAnd(ht.TIsLength(3), ht.TItems([
       ht.TElemOf(constants.DDMS_VALUES_WITH_MODIFY),
-      ht.Comment("Disk index, can be negative, e.g. -1 for last disk")(ht.TInt),
+      ht.Comment("Device index, can be negative, e.g. -1 for last disk")
+                 (ht.TOr(ht.TInt, ht.TString)),
       fn,
       ]))
 
@@ -1667,9 +1668,10 @@ class OpInstanceSetParams(OpCode):
     _PForceVariant,
     _PIgnoreIpolicy,
     ("nics", ht.EmptyList, TestNicModifications,
-     "List of NIC changes: each item is of the form ``(op, index, settings)``,"
-     " ``op`` is one of ``%s``, ``%s`` or ``%s``, ``index`` can be either -1"
-     " to refer to the last position, or a zero-based index number; a"
+     "List of NIC changes: each item is of the form"
+     " ``(op, identifier, settings)``, ``op`` is one of ``%s``, ``%s`` or"
+     " ``%s``, ``identifier`` can be a zero-based index number (or -1 to refer"
+     " to the last position), the NIC's UUID of the NIC's name; a"
      " deprecated version of this parameter used the form ``(op, settings)``,"
      " where ``op`` can be ``%s`` to add a new NIC with the specified"
      " settings, ``%s`` to remove the last NIC or a number to modify the"

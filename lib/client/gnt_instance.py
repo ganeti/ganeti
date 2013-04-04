@@ -1216,23 +1216,17 @@ def _ConvertNicDiskModifications(mods):
   """
   result = []
 
-  for (idx, params) in mods:
-    if idx == constants.DDM_ADD:
+  for (identifier, params) in mods:
+    if identifier == constants.DDM_ADD:
       # Add item as last item (legacy interface)
       action = constants.DDM_ADD
-      idxno = -1
-    elif idx == constants.DDM_REMOVE:
+      identifier = -1
+    elif identifier == constants.DDM_REMOVE:
       # Remove last item (legacy interface)
       action = constants.DDM_REMOVE
-      idxno = -1
+      identifier = -1
     else:
       # Modifications and adding/removing at arbitrary indices
-      try:
-        idxno = int(idx)
-      except (TypeError, ValueError):
-        raise errors.OpPrereqError("Non-numeric index '%s'" % idx,
-                                   errors.ECODE_INVAL)
-
       add = params.pop(constants.DDM_ADD, _MISSING)
       remove = params.pop(constants.DDM_REMOVE, _MISSING)
       modify = params.pop(constants.DDM_MODIFY, _MISSING)
@@ -1260,7 +1254,7 @@ def _ConvertNicDiskModifications(mods):
       raise errors.OpPrereqError("Not accepting parameters on removal",
                                  errors.ECODE_INVAL)
 
-    result.append((action, idxno, params))
+    result.append((action, identifier, params))
 
   return result
 

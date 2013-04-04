@@ -133,9 +133,6 @@ class TestConvertNicDiskModifications(unittest.TestCase):
       (0, { constants.DDM_REMOVE: True, "param": "value", }),
       ])
     self.assertRaises(errors.OpPrereqError, fn, [
-      ("Hello", {}),
-      ])
-    self.assertRaises(errors.OpPrereqError, fn, [
       (0, {
         constants.DDM_REMOVE: True,
         constants.DDM_ADD: True,
@@ -205,6 +202,38 @@ class TestConvertNicDiskModifications(unittest.TestCase):
       (constants.DDM_MODIFY, -1, {
         constants.IDISK_SIZE: 1024,
         }),
+      ])
+
+    # Names and UUIDs
+    self.assertEqual(fn([
+      ('name', {
+        constants.IDISK_MODE: constants.DISK_RDWR,
+        constants.IDISK_NAME: "rename",
+        }),
+      ]), [
+      (constants.DDM_MODIFY, 'name', {
+        constants.IDISK_MODE: constants.DISK_RDWR,
+        constants.IDISK_NAME: "rename",
+        }),
+      ])
+    self.assertEqual(fn([
+      ('024ef14d-4879-400e-8767-d61c051950bf', {
+        constants.DDM_MODIFY: True,
+        constants.IDISK_SIZE: 1024,
+        constants.IDISK_NAME: "name",
+        }),
+      ]), [
+      (constants.DDM_MODIFY, '024ef14d-4879-400e-8767-d61c051950bf', {
+        constants.IDISK_SIZE: 1024,
+        constants.IDISK_NAME: "name",
+        }),
+      ])
+    self.assertEqual(fn([
+      ('name', {
+        constants.DDM_REMOVE: True,
+        }),
+      ]), [
+      (constants.DDM_REMOVE, 'name', {}),
       ])
 
 

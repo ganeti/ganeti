@@ -13123,6 +13123,42 @@ def PrepareContainerMods(mods, private_fn):
   return [(op, idx, params, fn()) for (op, idx, params) in mods]
 
 
+def GetItemFromContainer(identifier, kind, container):
+  """Return the item refered by the identifier.
+
+  @type identifier: string
+  @param identifier: Item index or name or UUID
+  @type kind: string
+  @param kind: One-word item description
+  @type container: list
+  @param container: Container to get the item from
+
+  """
+  # Index
+  try:
+    idx = int(identifier)
+    if idx == -1:
+      # Append
+      absidx = len(container) - 1
+    elif idx < 0:
+      raise IndexError("Not accepting negative indices other than -1")
+    elif idx > len(container):
+      raise IndexError("Got %s index %s, but there are only %s" %
+                       (kind, idx, len(container)))
+    else:
+      absidx = idx
+    return (absidx, container[idx])
+  except ValueError:
+    pass
+
+  for idx, item in enumerate(container):
+    if item.uuid == identifier or item.name == identifier:
+      return (idx, item)
+
+  raise errors.OpPrereqError("Cannot find %s with identifier %s" %
+                             (kind, identifier), errors.ECODE_NOENT)
+
+
 #: Type description for changes as returned by L{ApplyContainerMods}'s
 #: callbacks
 _TApplyContModsCbChanges = \
@@ -13159,25 +13195,26 @@ def ApplyContainerMods(kind, container, chgdesc, mods,
     item and private data object as added by L{PrepareContainerMods}
 
   """
-  for (op, idx, params, private) in mods:
-    if idx == -1:
-      # Append
-      absidx = len(container) - 1
-    elif idx < 0:
-      raise IndexError("Not accepting negative indices other than -1")
-    elif idx > len(container):
-      raise IndexError("Got %s index %s, but there are only %s" %
-                       (kind, idx, len(container)))
-    else:
-      absidx = idx
-
+  for (op, identifier, params, private) in mods:
     changes = None
 
     if op == constants.DDM_ADD:
       # Calculate where item will be added
+      # When adding an item, identifier can only be an index
+      try:
+        idx = int(identifier)
+      except ValueError:
+        raise errors.OpPrereqError("Only possitive integer or -1 is accepted as"
+                                   " identifier for %s" % constants.DDM_ADD,
+                                   errors.ECODE_INVAL)
       if idx == -1:
         addidx = len(container)
       else:
+        if idx < 0:
+          raise IndexError("Not accepting negative indices other than -1")
+        elif idx > len(container):
+          raise IndexError("Got %s index %s, but there are only %s" %
+                           (kind, idx, len(container)))
         addidx = idx
 
       if create_fn is None:
@@ -13194,10 +13231,7 @@ def ApplyContainerMods(kind, container, chgdesc, mods,
         container.insert(idx, item)
     else:
       # Retrieve existing item
-      try:
-        item = container[absidx]
-      except IndexError:
-        raise IndexError("Invalid %s index %s" % (kind, idx))
+      (absidx, item) = GetItemFromContainer(identifier, kind, container)
 
       if op == constants.DDM_REMOVE:
         assert not params
