@@ -369,5 +369,26 @@ class TestVerifyDictOptions(unittest.TestCase):
                       some_keys, self.defaults)
 
 
+class TestValidateDeviceNames(unittest.TestCase):
+  def testEmpty(self):
+    utils.ValidateDeviceNames("NIC", [])
+    utils.ValidateDeviceNames("disk", [])
+
+  def testNoName(self):
+    nics = [{}, {}]
+    utils.ValidateDeviceNames("NIC", nics)
+
+  def testInvalidName(self):
+    self.assertRaises(errors.OpPrereqError, utils.ValidateDeviceNames,
+                      "disk", [{constants.IDISK_NAME: "42"}])
+    self.assertRaises(errors.OpPrereqError, utils.ValidateDeviceNames,
+                      "NIC", [{constants.INIC_NAME: "42"}])
+
+  def testUsedName(self):
+    disks = [{constants.IDISK_NAME: "name1"}, {constants.IDISK_NAME: "name1"}]
+    self.assertRaises(errors.OpPrereqError, utils.ValidateDeviceNames,
+                      "disk", disks)
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()

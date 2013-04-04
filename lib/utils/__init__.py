@@ -797,3 +797,47 @@ class FieldSet(object):
 
     """
     return [val for val in items if not self.Matches(val)]
+
+
+def ValidateDeviceNames(kind, container):
+  """Validate instance device names.
+
+  Check that a device container contains only unique and valid names.
+
+  @type kind: string
+  @param kind: One-word item description
+  @type container: list
+  @param container: Container containing the devices
+
+  """
+
+  valid = []
+  for device in container:
+    if isinstance(device, dict):
+      if kind == "NIC":
+        name = device.get(constants.INIC_NAME, None)
+      elif kind == "disk":
+        name = device.get(constants.IDISK_NAME, None)
+      else:
+        raise errors.OpPrereqError("Invalid container kind '%s'" % kind,
+                                   errors.ECODE_INVAL)
+    else:
+      name = device.name
+      # Check that a device name is not the UUID of another device
+      valid.append(device.uuid)
+
+    try:
+      int(name)
+    except (ValueError, TypeError):
+      pass
+    else:
+      raise errors.OpPrereqError("Invalid name '%s'. Purely numeric %s names"
+                                 " are not allowed" % (name, kind),
+                                 errors.ECODE_INVAL)
+
+    if name is not None and name.lower() != constants.VALUE_NONE:
+      if name in valid:
+        raise errors.OpPrereqError("%s name '%s' already used" % (kind, name),
+                                   errors.ECODE_NOTUNIQUE)
+      else:
+        valid.append(name)

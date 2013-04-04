@@ -10186,6 +10186,11 @@ class LUInstanceCreate(LogicalUnit):
     # check nics' parameter names
     for nic in self.op.nics:
       utils.ForceDictType(nic, constants.INIC_PARAMS_TYPES)
+    # check that NIC's parameters names are unique and valid
+    utils.ValidateDeviceNames("NIC", self.op.nics)
+
+    # check that disk's names are unique and valid
+    utils.ValidateDeviceNames("disk", self.op.disks)
 
     cluster = self.cfg.GetClusterInfo()
     if not self.op.disk_template in cluster.enabled_disk_templates:
@@ -14009,9 +14014,14 @@ class LUInstanceSetParams(LogicalUnit):
                                  " (%d), cannot add more" % constants.MAX_NICS,
                                  errors.ECODE_STATE)
 
+    def _PrepareDiskMod(_, disk, params, __):
+      disk.name = params.get(constants.IDISK_NAME, None)
+
     # Verify disk changes (operating on a copy)
-    disks = instance.disks[:]
-    ApplyContainerMods("disk", disks, None, self.diskmod, None, None, None)
+    disks = copy.deepcopy(instance.disks)
+    ApplyContainerMods("disk", disks, None, self.diskmod, None, _PrepareDiskMod,
+                       None)
+    utils.ValidateDeviceNames("disk", disks)
     if len(disks) > constants.MAX_DISKS:
       raise errors.OpPrereqError("Instance has too many disks (%d), cannot add"
                                  " more" % constants.MAX_DISKS,
@@ -14033,6 +14043,8 @@ class LUInstanceSetParams(LogicalUnit):
       nics = [nic.Copy() for nic in instance.nics]
       ApplyContainerMods("NIC", nics, self._nic_chgdesc, self.nicmod,
                          self._CreateNewNic, self._ApplyNicMods, None)
+      # Verify that NIC names are unique and valid
+      utils.ValidateDeviceNames("NIC", nics)
       self._new_nics = nics
       ispec[constants.ISPEC_NIC_COUNT] = len(self._new_nics)
     else:
