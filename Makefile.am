@@ -393,6 +393,7 @@ docinput = \
 	doc/design-bulk-create.rst \
 	doc/design-chained-jobs.rst \
 	doc/design-cpu-pinning.rst \
+	doc/design-device-uuid-name.rst \
 	doc/design-draft.rst \
 	doc/design-htools-2.3.rst \
 	doc/design-http-server.rst \

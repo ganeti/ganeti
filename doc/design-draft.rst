@@ -18,6 +18,7 @@ Design document drafts
    design-hroller.rst
    design-storagespace.rst
    design-reason-trail.rst
+   design-device-uuid-name.rst
 
 .. vim: set textwidth=72 :
 .. Local Variables:
