@@ -1502,12 +1502,12 @@ def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
   @type vcpus: string
   @param vcpus: the count of VCPUs the instance has
   @type nics: list
-  @param nics: list of tuples (ip, mac, mode, link, net, netinfo) representing
-      the NICs the instance has
+  @param nics: list of tuples (name, uuid, ip, mac, mode, link, net, netinfo)
+      representing the NICs the instance has
   @type disk_template: string
   @param disk_template: the disk template of the instance
   @type disks: list
-  @param disks: the list of (size, mode) pairs
+  @param disks: list of tuples (name, uuid, size, mode)
   @type bep: dict
   @param bep: the backend parameters for the instance
   @type hvp: dict
@@ -1537,9 +1537,10 @@ def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
   }
   if nics:
     nic_count = len(nics)
-    for idx, (ip, mac, mode, link, net, netinfo) in enumerate(nics):
+    for idx, (name, _, ip, mac, mode, link, net, netinfo) in enumerate(nics):
       if ip is None:
         ip = ""
+      env["INSTANCE_NIC%d_NAME" % idx] = name
       env["INSTANCE_NIC%d_IP" % idx] = ip
       env["INSTANCE_NIC%d_MAC" % idx] = mac
       env["INSTANCE_NIC%d_MODE" % idx] = mode
@@ -1561,7 +1562,8 @@ def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
 
   if disks:
     disk_count = len(disks)
-    for idx, (size, mode) in enumerate(disks):
+    for idx, (name, size, mode) in enumerate(disks):
+      env["INSTANCE_DISK%d_NAME" % idx] = name
       env["INSTANCE_DISK%d_SIZE" % idx] = size
       env["INSTANCE_DISK%d_MODE" % idx] = mode
   else:
@@ -1598,7 +1600,7 @@ def _NICToTuple(lu, nic):
   if nic.network:
     nobj = lu.cfg.GetNetwork(nic.network)
     netinfo = objects.Network.ToDict(nobj)
-  return (nic.ip, nic.mac, mode, link, nic.network, netinfo)
+  return (nic.name, nic.uuid, nic.ip, nic.mac, mode, link, nic.network, netinfo)
 
 
 def _NICListToTuple(lu, nics):
@@ -1648,7 +1650,8 @@ def _BuildInstanceHookEnvByObject(lu, instance, override=None):
     "vcpus": bep[constants.BE_VCPUS],
     "nics": _NICListToTuple(lu, instance.nics),
     "disk_template": instance.disk_template,
-    "disks": [(disk.size, disk.mode) for disk in instance.disks],
+    "disks": [(disk.name, disk.size, disk.mode)
+              for disk in instance.disks],
     "bep": bep,
     "hvp": hvp,
     "hypervisor_name": instance.hypervisor,
@@ -9456,16 +9459,19 @@ def _GenerateDRBD8Branch(lu, primary, secondary, size, vgnames, names,
   dev_data = objects.Disk(dev_type=constants.LD_LV, size=size,
                           logical_id=(vgnames[0], names[0]),
                           params={})
+  dev_data.uuid = lu.cfg.GenerateUniqueID(lu.proc.GetECId())
   dev_meta = objects.Disk(dev_type=constants.LD_LV,
                           size=constants.DRBD_META_SIZE,
                           logical_id=(vgnames[1], names[1]),
                           params={})
+  dev_meta.uuid = lu.cfg.GenerateUniqueID(lu.proc.GetECId())
   drbd_dev = objects.Disk(dev_type=constants.LD_DRBD8, size=size,
                           logical_id=(primary, secondary, port,
                                       p_minor, s_minor,
                                       shared_secret),
                           children=[dev_data, dev_meta],
                           iv_name=iv_name, params={})
+  drbd_dev.uuid = lu.cfg.GenerateUniqueID(lu.proc.GetECId())
   return drbd_dev
 
 
@@ -9527,6 +9533,7 @@ def _GenerateDiskTemplate(
                                       "disk/%d" % disk_index,
                                       minors[idx * 2], minors[idx * 2 + 1])
       disk_dev.mode = disk[constants.IDISK_MODE]
+      disk_dev.name = disk.get(constants.IDISK_NAME, None)
       disks.append(disk_dev)
   else:
     if secondary_nodes:
@@ -9587,11 +9594,14 @@ def _GenerateDiskTemplate(
       size = disk[constants.IDISK_SIZE]
       feedback_fn("* disk %s, size %s" %
                   (disk_index, utils.FormatUnit(size, "h")))
-      disks.append(objects.Disk(dev_type=dev_type, size=size,
-                                logical_id=logical_id_fn(idx, disk_index, disk),
-                                iv_name="disk/%d" % disk_index,
-                                mode=disk[constants.IDISK_MODE],
-                                params=params))
+      disk_dev = objects.Disk(dev_type=dev_type, size=size,
+                              logical_id=logical_id_fn(idx, disk_index, disk),
+                              iv_name="disk/%d" % disk_index,
+                              mode=disk[constants.IDISK_MODE],
+                              params=params)
+      disk_dev.name = disk.get(constants.IDISK_NAME, None)
+      disk_dev.uuid = lu.cfg.GenerateUniqueID(lu.proc.GetECId())
+      disks.append(disk_dev)
 
   return disks
 
@@ -10044,8 +10054,11 @@ def _ComputeNics(op, cluster, default_ip, cfg, ec_id):
     check_params = cluster.SimpleFillNIC(nicparams)
     objects.NIC.CheckParameterSyntax(check_params)
     net_uuid = cfg.LookupNetwork(net)
-    nics.append(objects.NIC(mac=mac, ip=nic_ip,
-                            network=net_uuid, nicparams=nicparams))
+    name = nic.get(constants.INIC_NAME, None)
+    nic_obj = objects.NIC(mac=mac, ip=nic_ip, name=name,
+                          network=net_uuid, nicparams=nicparams)
+    nic_obj.uuid = cfg.GenerateUniqueID(ec_id)
+    nics.append(nic_obj)
 
   return nics
 
@@ -10082,10 +10095,12 @@ def _ComputeDisks(op, default_vg):
                                  op.disk_template), errors.ECODE_INVAL)
 
     data_vg = disk.get(constants.IDISK_VG, default_vg)
+    name = disk.get(constants.IDISK_NAME, None)
     new_disk = {
       constants.IDISK_SIZE: size,
       constants.IDISK_MODE: mode,
       constants.IDISK_VG: data_vg,
+      constants.IDISK_NAME: name,
       }
 
     if constants.IDISK_METAVG in disk:
@@ -10440,8 +10455,8 @@ class LUInstanceCreate(LogicalUnit):
       vcpus=self.be_full[constants.BE_VCPUS],
       nics=_NICListToTuple(self, self.nics),
       disk_template=self.op.disk_template,
-      disks=[(d[constants.IDISK_SIZE], d[constants.IDISK_MODE])
-             for d in self.disks],
+      disks=[(d[constants.IDISK_NAME], d[constants.IDISK_SIZE],
+             d[constants.IDISK_MODE]) for d in self.disks],
       bep=self.be_full,
       hvp=self.hv_full,
       hypervisor_name=self.op.hypervisor,
@@ -14028,7 +14043,8 @@ class LUInstanceSetParams(LogicalUnit):
 
     # create a fake disk info for _GenerateDiskTemplate
     disk_info = [{constants.IDISK_SIZE: d.size, constants.IDISK_MODE: d.mode,
-                  constants.IDISK_VG: d.logical_id[0]}
+                  constants.IDISK_VG: d.logical_id[0],
+                  constants.IDISK_NAME: d.name}
                  for d in instance.disks]
     new_disks = _GenerateDiskTemplate(self, self.op.disk_template,
                                       instance.name, pnode, [snode],
@@ -14097,10 +14113,11 @@ class LUInstanceSetParams(LogicalUnit):
     old_disks = _AnnotateDiskParams(instance, instance.disks, self.cfg)
     new_disks = [d.children[0] for d in instance.disks]
 
-    # copy over size and mode
+    # copy over size, mode and name
     for parent, child in zip(old_disks, new_disks):
       child.size = parent.size
       child.mode = parent.mode
+      child.name = parent.name
 
     # this is a DRBD disk, return its port to the pool
     # NOTE: this must be done right before the call to cfg.Update!
@@ -14210,10 +14227,13 @@ class LUInstanceSetParams(LogicalUnit):
     mac = params[constants.INIC_MAC]
     ip = params.get(constants.INIC_IP, None)
     net = params.get(constants.INIC_NETWORK, None)
+    name = params.get(constants.INIC_NAME, None)
     net_uuid = self.cfg.LookupNetwork(net)
     #TODO: not private.filled?? can a nic have no nicparams??
     nicparams = private.filled
-    nobj = objects.NIC(mac=mac, ip=ip, network=net_uuid, nicparams=nicparams)
+    nobj = objects.NIC(mac=mac, ip=ip, network=net_uuid, name=name,
+                       nicparams=nicparams)
+    nobj.uuid = self.cfg.GenerateUniqueID(self.proc.GetECId())
 
     return (nobj, [
       ("nic.%d" % idx,
