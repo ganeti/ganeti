@@ -196,7 +196,7 @@ handleClientMsg client creader args = do
   return True
 
 -- | Handles one iteration of the client protocol: receives message,
--- checks for validity and decods, returns response.
+-- checks it for validity and decodes it, returns response.
 handleClient :: Client -> ConfigReader -> IO Bool
 handleClient client creader = do
   !msg <- recvMsgExt client
