@@ -231,24 +231,28 @@ determineJobDirectories rootdir archived = do
   return $ rootdir:other
 
 -- | Computes the list of all jobs in the given directories.
-getJobIDs :: [FilePath] -> IO [JobId]
-getJobIDs = liftM concat . mapM getDirJobIDs
+getJobIDs :: [FilePath] -> IO (Either IOError [JobId])
+getJobIDs paths = liftM (fmap concat . sequence) (mapM getDirJobIDs paths)
 
 -- | Sorts the a list of job IDs.
 sortJobIDs :: [JobId] -> [JobId]
 sortJobIDs = sortBy (comparing fromJobId)
 
 -- | Computes the list of jobs in a given directory.
-getDirJobIDs :: FilePath -> IO [JobId]
+getDirJobIDs :: FilePath -> IO (Either IOError [JobId])
 getDirJobIDs path = do
-  contents <- getDirectoryContents path `Control.Exception.catch`
-                ignoreIOError [] False
-                  ("Failed to list job directory " ++ path)
-  let jids = foldl (\ids file ->
-                      case parseJobFileId file of
-                        Nothing -> ids
-                        Just new_id -> new_id:ids) [] contents
-  return $ reverse jids
+  either_contents <-
+    try (getDirectoryContents path) :: IO (Either IOError [FilePath])
+  case either_contents of
+    Left e -> do
+      logWarning $ "Failed to list job directory " ++ path ++ ": " ++ show e
+      return $ Left e
+    Right contents -> do
+      let jids = foldl (\ids file ->
+                         case parseJobFileId file of
+                           Nothing -> ids
+                           Just new_id -> new_id:ids) [] contents
+      return . Right $ reverse jids
 
 -- | Reads the job data from disk.
 readJobDataFromDisk :: FilePath -> Bool -> JobId -> IO (Maybe (String, Bool))

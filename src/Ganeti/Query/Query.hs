@@ -53,7 +53,7 @@ module Ganeti.Query.Query
     ) where
 
 import Control.DeepSeq
-import Control.Monad (filterM, liftM, foldM)
+import Control.Monad (filterM, foldM)
 import Control.Monad.Trans (lift)
 import Data.List (intercalate)
 import Data.Maybe (fromMaybe)
@@ -218,9 +218,14 @@ queryJobs cfg live fields qfilter =
              Bad msg -> resultT . Bad $ GenericError msg
              Ok [] -> if live
                         -- we can check the filesystem for actual jobs
-                        then lift $ liftM sortJobIDs
-                             (determineJobDirectories rootdir want_arch >>=
-                              getJobIDs)
+                        then do
+                          maybeJobIDs <-
+                            lift (determineJobDirectories rootdir want_arch
+                              >>= getJobIDs)
+                          case maybeJobIDs of
+                            Left e -> (resultT . Bad) . BlockDeviceError $
+                              "Unable to fetch the job list: " ++ show e
+                            Right jobIDs -> resultT . Ok $ sortJobIDs jobIDs
                         -- else we shouldn't look at the filesystem...
                         else return []
              Ok v -> resultT $ Ok v
