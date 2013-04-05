@@ -79,31 +79,59 @@ def TestGroupAddWithOptions():
   AssertCommand(["gnt-group", "remove", group1])
 
 
+def _TestGroupModifyISpecs(groupname):
+  std_defaults = constants.IPOLICY_DEFAULTS[constants.ISPECS_STD]
+  min_v = std_defaults[constants.ISPEC_MEM_SIZE] * 10
+  max_v = min_v * 10
+
+  # Get the ipolicy command (from the cluster config)
+  mnode = qa_config.GetMasterNode()
+  addcmd = GetCommandOutput(mnode.primary, utils.ShellQuoteArgs([
+    "gnt-group", "show-ispecs-cmd", "--include-defaults", groupname,
+    ]))
+  modcmd = ["gnt-group", "modify"]
+  opts = addcmd.split()
+  assert opts[0:2] == ["gnt-group", "add"]
+  for k in range(2, len(opts) - 1):
+    if opts[k].startswith("--ipolicy-"):
+      assert k + 2 <= len(opts)
+      modcmd.extend(opts[k:k + 2])
+  modcmd.append(groupname)
+  # Apply the ipolicy to the group and verify the result
+  AssertCommand(modcmd)
+  new_addcmd = GetCommandOutput(mnode.primary, utils.ShellQuoteArgs([
+    "gnt-group", "show-ispecs-cmd", groupname,
+    ]))
+  AssertEqual(addcmd, new_addcmd)
+
+  AssertCommand(["gnt-group", "modify", "--specs-mem-size",
+                 "min=%s,max=%s,std=0" % (min_v, max_v), groupname], fail=True)
+  AssertCommand(["gnt-group", "modify", "--specs-mem-size",
+                 "min=%s,max=%s" % (min_v, max_v), groupname])
+  AssertCommand(["gnt-group", "modify", "--specs-mem-size",
+                 "min=default,max=default", groupname])
+
+
+def _TestGroupModifyIPolicy(groupname):
+  _TestGroupModifyISpecs(groupname)
+  AssertCommand(["gnt-group", "modify", "--ipolicy-vcpu-ratio",
+                 "3.5", groupname])
+  AssertCommand(["gnt-group", "modify", "--ipolicy-vcpu-ratio",
+                 "default", groupname])
+
+
 def TestGroupModify():
   """gnt-group modify"""
   (group1, ) = qa_utils.GetNonexistentGroups(1)
 
   AssertCommand(["gnt-group", "add", group1])
 
-  std_defaults = constants.IPOLICY_DEFAULTS[constants.ISPECS_STD]
-  min_v = std_defaults[constants.ISPEC_MEM_SIZE] * 10
-  max_v = min_v * 10
-
   try:
+    _TestGroupModifyIPolicy(group1)
     AssertCommand(["gnt-group", "modify", "--alloc-policy", "unallocable",
                    "--node-parameters", "oob_program=/bin/false", group1])
     AssertCommand(["gnt-group", "modify",
                    "--alloc-policy", "notvalid", group1], fail=True)
-    AssertCommand(["gnt-group", "modify", "--specs-mem-size",
-                   "min=%s,max=%s,std=0" % (min_v, max_v), group1], fail=True)
-    AssertCommand(["gnt-group", "modify", "--specs-mem-size",
-                   "min=%s,max=%s" % (min_v, max_v), group1])
-    AssertCommand(["gnt-group", "modify", "--specs-mem-size",
-                   "min=default,max=default", group1])
-    AssertCommand(["gnt-group", "modify", "--ipolicy-vcpu-ratio",
-                   "3.5", group1])
-    AssertCommand(["gnt-group", "modify", "--ipolicy-vcpu-ratio",
-                   "default", group1])
     AssertCommand(["gnt-group", "modify",
                    "--node-parameters", "spindle_count=10", group1])
     if qa_config.TestEnabled("htools"):

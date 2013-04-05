@@ -690,6 +690,21 @@ def TestClusterModifyISpecs():
       (cur_policy, cur_specs) = TestClusterSetISpecs(new_vals, fail=not good,
                                                      old_values=cur_state)
 
+    # Get the ipolicy command
+    mnode = qa_config.GetMasterNode()
+    initcmd = GetCommandOutput(mnode.primary, "gnt-cluster show-ispecs-cmd")
+    modcmd = ["gnt-cluster", "modify"]
+    opts = initcmd.split()
+    assert opts[0:2] == ["gnt-cluster", "init"]
+    for k in range(2, len(opts) - 1):
+      if opts[k].startswith("--ipolicy-"):
+        assert k + 2 <= len(opts)
+        modcmd.extend(opts[k:k + 2])
+    # Re-apply the ipolicy (this should be a no-op)
+    AssertCommand(modcmd)
+    new_initcmd = GetCommandOutput(mnode.primary, "gnt-cluster show-ispecs-cmd")
+    AssertEqual(initcmd, new_initcmd)
+
 
 def TestClusterInfo():
   """gnt-cluster info"""
