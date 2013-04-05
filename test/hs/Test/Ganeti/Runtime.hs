@@ -79,7 +79,7 @@ case_UsersGroups = do
     runPython "from ganeti import constants\n\
               \from ganeti import serializer\n\
               \import sys\n\
-              \users = [constants.MASTERD_GROUP,\n\
+              \users = [constants.MASTERD_USER,\n\
               \         constants.NODED_USER,\n\
               \         constants.RAPI_USER,\n\
               \         constants.CONFD_USER,\n\
