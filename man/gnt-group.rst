@@ -33,6 +33,8 @@ ADD
 | [\--specs-mem-size *spec-param*=*value* [,*spec-param*=*value*...]]
 | [\--specs-nic-count *spec-param*=*value* [,*spec-param*=*value*...]]
 | [\--ipolicy-disk-templates *template* [,*template*...]]
+| [\--ipolicy-spindle-ratio *ratio*]
+| [\--ipolicy-vcpu-ratio *ratio*]
 | [\--disk-state *diskstate*]
 | [\--hypervisor-state *hvstate*]
 | {*group*}
@@ -67,8 +69,8 @@ parameters for the node group; please see the section about
 **gnt-cluster add** in **gnt-cluster**\(8) for more information about
 disk parameters
 
-The ``--specs-...`` and ``--ipolicy-disk-templates`` options specify
-instance policies on the node group, and are documented in the
+The ``--specs-...`` and ``--ipolicy-...`` options specify instance
+policies on the node group, and are documented in the
 **gnt-cluster**\(8) man page.
 
 See **ganeti**\(7) for a description of ``--submit`` and other common
@@ -108,6 +110,8 @@ MODIFY
 | [\--specs-mem-size *spec-param*=*value* [,*spec-param*=*value*...]]
 | [\--specs-nic-count *spec-param*=*value* [,*spec-param*=*value*...]]
 | [\--ipolicy-disk-templates *template* [,*template*...]]
+| [\--ipolicy-spindle-ratio *ratio*]
+| [\--ipolicy-vcpu-ratio *ratio*]
 | {*group*}
 
 Modifies some parameters from the node group.
@@ -120,8 +124,8 @@ The ``--node-parameters``, ``--alloc-policy``, ``-D
 (--disk-parameters)`` options are documented in the **add** command
 above.
 
-The ``--specs-...`` and ``--ipolicy-disk-templates`` options specify
-instance policies on the node group, and are documented in the
+The ``--specs-...`` and ``--ipolicy-...`` options specify instance
+policies on the node group, and are documented in the
 **gnt-cluster**\(8) man page.
 
 See **ganeti**\(7) for a description of ``--submit`` and other common
