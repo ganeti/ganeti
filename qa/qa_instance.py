@@ -611,7 +611,9 @@ def TestInstanceModifyPrimaryAndBack(instance, currentnode, othernode):
   current = currentnode.primary
   other = othernode.primary
 
-  filestorage = qa_config.get("file-storage-dir")
+  # FIXME: the qa doesn't have a customizable file storage dir parameter. As
+  # such for now we use the default.
+  filestorage = pathutils.DEFAULT_FILE_STORAGE_DIR
   disk = os.path.join(filestorage, name)
 
   AssertCommand(["gnt-instance", "modify", "--new-primary=%s" % other, name],
