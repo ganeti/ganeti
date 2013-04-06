@@ -607,6 +607,8 @@ def TestInstanceModifyPrimaryAndBack(instance, currentnode, othernode):
     print qa_utils.FormatInfo("Test only supported for the file disk template")
     return
 
+  cluster_name = qa_config.get("name")
+
   name = instance.name
   current = currentnode.primary
   other = othernode.primary
@@ -619,7 +621,11 @@ def TestInstanceModifyPrimaryAndBack(instance, currentnode, othernode):
   AssertCommand(["gnt-instance", "modify", "--new-primary=%s" % other, name],
                 fail=True)
   AssertCommand(["gnt-instance", "shutdown", name])
-  AssertCommand(["scp", "-r", disk, "%s:%s" % (other, filestorage)])
+  AssertCommand(["scp", "-oGlobalKnownHostsFile=%s" %
+                 pathutils.SSH_KNOWN_HOSTS_FILE,
+                 "-oCheckHostIp=no", "-oStrictHostKeyChecking=yes",
+                 "-oHashKnownHosts=no", "-oHostKeyAlias=%s" % cluster_name,
+                 "-r", disk, "%s:%s" % (other, filestorage)])
   AssertCommand(["gnt-instance", "modify", "--new-primary=%s" % other, name])
   AssertCommand(["gnt-instance", "startup", name])
 
