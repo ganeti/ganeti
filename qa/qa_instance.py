@@ -105,6 +105,8 @@ def _GetInstanceInfo(instance):
       - "drbd-minors": DRBD minors used by the instance, a dictionary where
         keys are nodes, and values are lists of integers (or an empty
         dictionary for non-DRBD instances)
+      - "disk-template": instance disk template
+      - "storage-type": storage type associated with the instance disk template
 
   """
   node_elem = r"([^,()]+)(?:\s+\([^)]+\))?"
@@ -128,6 +130,11 @@ def _GetInstanceInfo(instance):
           nodes.extend(filter(None, m.groups()))
         else:
           nodes.append(nodestr)
+
+  disk_template = info["Disk template"]
+  if not disk_template:
+    raise qa_error.Error("Can't get instance disk template")
+  storage_type = constants.DISK_TEMPLATES_STORAGE_TYPE[disk_template]
 
   re_drbdnode = re.compile(r"^([^\s,]+),\s+minor=([0-9]+)$")
   vols = []
@@ -154,6 +161,8 @@ def _GetInstanceInfo(instance):
     "nodes": nodes,
     "volumes": vols,
     "drbd-minors": drbd_min,
+    "disk-template": disk_template,
+    "storage-type": storage_type,
     }
 
 
@@ -403,11 +412,22 @@ def TestInstanceRenameAndBack(rename_source, rename_target):
   finally:
     qa_utils.RemoveFromEtcHosts(["meeeeh-not-exists", rename_target])
 
-  # Check instance volume tags correctly updated
-  # FIXME: this is LVM specific!
   info = _GetInstanceInfo(rename_source)
-  tags_cmd = ("lvs -o tags --noheadings %s | grep " %
-              (" ".join(info["volumes"]), ))
+
+  # Check instance volume tags correctly updated. Note that this check is lvm
+  # specific, so we skip it for non-lvm-based instances.
+  # FIXME: This will need updating when instances will be able to have
+  # different disks living on storage pools with etherogeneous storage types.
+  # FIXME: This check should be put inside the disk/storage class themselves,
+  # rather than explicitly called here.
+  if info["storage-type"] == constants.ST_LVM_VG:
+    # In the lvm world we can check for tags on the logical volume
+    tags_cmd = ("lvs -o tags --noheadings %s | grep " %
+                (" ".join(info["volumes"]), ))
+  else:
+    # Other storage types don't have tags, so we use an always failing command,
+    # to make sure it never gets executed
+    tags_cmd = "false"
 
   # and now rename instance to rename_target...
   AssertCommand(["gnt-instance", "rename", rename_source, rename_target])
@@ -417,7 +437,8 @@ def TestInstanceRenameAndBack(rename_source, rename_target):
 
   # NOTE: tags might not be the exactly as the instance name, due to
   # charset restrictions; hence the test might be flaky
-  if rename_source != rename_target:
+  if (rename_source != rename_target and
+      info["storage-type"] == constants.ST_LVM_VG):
     for node in info["nodes"]:
       AssertCommand(tags_cmd + rename_source, node=node, fail=True)
       AssertCommand(tags_cmd + rename_target, node=node, fail=False)
@@ -427,7 +448,8 @@ def TestInstanceRenameAndBack(rename_source, rename_target):
   _CheckSsconfInstanceList(rename_source)
   qa_utils.RunInstanceCheck(rename_target, False)
 
-  if rename_source != rename_target:
+  if (rename_source != rename_target and
+      info["storage-type"] == constants.ST_LVM_VG):
     for node in info["nodes"]:
       AssertCommand(tags_cmd + rename_source, node=node, fail=False)
       AssertCommand(tags_cmd + rename_target, node=node, fail=True)
