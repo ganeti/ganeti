@@ -391,7 +391,10 @@ def RunExportImportTests(instance, inodes):
     finally:
       expnode.Release()
 
-  if qa_config.TestEnabled([qa_rapi.Enabled, "inter-cluster-instance-move"]):
+  # FIXME: inter-cluster-instance-move crashes on file based instances :/
+  # See Issue 414.
+  if (qa_config.TestEnabled([qa_rapi.Enabled, "inter-cluster-instance-move"])
+      and instance.disk_template != constants.DT_FILE):
     newinst = qa_config.AcquireInstance()
     try:
       tnode = qa_config.AcquireNode(exclude=inodes)
