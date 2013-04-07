@@ -888,7 +888,7 @@ def TestBackupListFields():
 
 
 def TestRemoveInstanceOfflineNode(instance, snode, set_offline, set_online):
-  """gtn-instance remove with an off-line node
+  """gnt-instance remove with an off-line node
 
   @param instance: instance
   @param snode: secondary node, to be set offline
@@ -902,7 +902,15 @@ def TestRemoveInstanceOfflineNode(instance, snode, set_offline, set_online):
     TestInstanceRemove(instance)
   finally:
     set_online(snode)
-  # Clean up the disks on the offline node
-  for minor in info["drbd-minors"][snode.primary]:
-    AssertCommand(["drbdsetup", str(minor), "down"], node=snode)
-  AssertCommand(["lvremove", "-f"] + info["volumes"], node=snode)
+
+  # Clean up the disks on the offline node, if necessary
+  if instance.disk_template not in constants.DTS_EXT_MIRROR:
+    # FIXME: abstract the cleanup inside the disks
+    if info["storage-type"] == constants.ST_LVM_VG:
+      for minor in info["drbd-minors"][snode.primary]:
+        AssertCommand(["drbdsetup", str(minor), "down"], node=snode)
+      AssertCommand(["lvremove", "-f"] + info["volumes"], node=snode)
+    elif info["storage-type"] == constants.ST_FILE:
+      filestorage = pathutils.DEFAULT_FILE_STORAGE_DIR
+      disk = os.path.join(filestorage, instance.name)
+      AssertCommand(["rm", "-rf", disk], node=snode)
