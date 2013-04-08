@@ -2962,7 +2962,7 @@ def JobQueueUpdate(file_name, content):
 
   # Write and replace the file atomically
   utils.WriteFile(file_name, data=_Decompress(content), uid=getents.masterd_uid,
-                  gid=getents.masterd_gid)
+                  gid=getents.daemons_gid, mode=constants.JOB_QUEUE_FILES_PERMS)
 
 
 def JobQueueRename(old, new):
@@ -2986,8 +2986,8 @@ def JobQueueRename(old, new):
 
   getents = runtime.GetEnts()
 
-  utils.RenameFile(old, new, mkdir=True, mkdir_mode=0700,
-                   dir_uid=getents.masterd_uid, dir_gid=getents.masterd_gid)
+  utils.RenameFile(old, new, mkdir=True, mkdir_mode=0750,
+                   dir_uid=getents.masterd_uid, dir_gid=getents.daemons_gid)
 
 
 def BlockdevClose(instance_name, disks):

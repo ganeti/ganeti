@@ -159,19 +159,19 @@ def GetPaths():
                   getent.noded_uid, getent.noded_gid, False))
 
   paths.extend([
-    (pathutils.QUEUE_DIR, DIR, 0700, getent.masterd_uid, getent.masterd_gid),
-    (pathutils.QUEUE_DIR, QUEUE_DIR, 0600,
-     getent.masterd_uid, getent.masterd_gid),
+    (pathutils.QUEUE_DIR, DIR, 0750, getent.masterd_uid, getent.daemons_gid),
+    (pathutils.QUEUE_DIR, QUEUE_DIR, constants.JOB_QUEUE_FILES_PERMS,
+     getent.masterd_uid, getent.daemons_gid),
     (pathutils.JOB_QUEUE_DRAIN_FILE, FILE, 0644,
-     getent.masterd_uid, getent.masterd_gid, False),
-    (pathutils.JOB_QUEUE_LOCK_FILE, FILE, 0600,
-     getent.masterd_uid, getent.masterd_gid, False),
-    (pathutils.JOB_QUEUE_SERIAL_FILE, FILE, 0600,
-     getent.masterd_uid, getent.masterd_gid, False),
-    (pathutils.JOB_QUEUE_VERSION_FILE, FILE, 0600,
-     getent.masterd_uid, getent.masterd_gid, False),
-    (pathutils.JOB_QUEUE_ARCHIVE_DIR, DIR, 0700,
-     getent.masterd_uid, getent.masterd_gid),
+     getent.masterd_uid, getent.daemons_gid, False),
+    (pathutils.JOB_QUEUE_LOCK_FILE, FILE, constants.JOB_QUEUE_FILES_PERMS,
+     getent.masterd_uid, getent.daemons_gid, False),
+    (pathutils.JOB_QUEUE_SERIAL_FILE, FILE, constants.JOB_QUEUE_FILES_PERMS,
+     getent.masterd_uid, getent.daemons_gid, False),
+    (pathutils.JOB_QUEUE_VERSION_FILE, FILE, constants.JOB_QUEUE_FILES_PERMS,
+     getent.masterd_uid, getent.daemons_gid, False),
+    (pathutils.JOB_QUEUE_ARCHIVE_DIR, DIR, 0740,
+     getent.masterd_uid, getent.daemons_gid),
     (rapi_dir, DIR, 0750, getent.rapi_uid, getent.masterd_gid),
     (pathutils.RAPI_USERS_FILE, FILE, 0640,
      getent.rapi_uid, getent.masterd_gid, False),
@@ -244,7 +244,7 @@ def Main():
 
     if opts.full_run:
       RecursiveEnsure(pathutils.JOB_QUEUE_ARCHIVE_DIR, getent.masterd_uid,
-                      getent.masterd_gid, 0700, 0600)
+                      getent.daemons_gid, 0750, constants.JOB_QUEUE_FILES_PERMS)
   except errors.GenericError, err:
     logging.error("An error occurred while setting permissions: %s", err)
     return constants.EXIT_FAILURE

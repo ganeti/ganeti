@@ -47,6 +47,10 @@ To run commands on all nodes, the `distributed shell (dsh)
    (``cfgupgrade`` supports a number of parameters, run it with
    ``--help`` for more information)
 
+#. Upgrade the directory permissions on all nodes::
+
+    $ /usr/lib/ganeti/ensure-dirs --full-run
+
 #. Restart daemons on all nodes::
 
     $ /etc/init.d/ganeti restart

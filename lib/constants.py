@@ -1677,6 +1677,7 @@ NODE_EVAC_MODES = compat.UniqueFrozenset([
 # Job queue
 JOB_QUEUE_VERSION = 1
 JOB_QUEUE_SIZE_HARD_LIMIT = 5000
+JOB_QUEUE_FILES_PERMS = 0640
 
 JOB_ID_TEMPLATE = r"\d+"
 JOB_FILE_RE = re.compile(r"^job-(%s)$" % JOB_ID_TEMPLATE)
