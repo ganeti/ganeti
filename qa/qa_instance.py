@@ -166,8 +166,8 @@ def _GetInstanceInfo(instance):
     }
 
 
-def _DestroyInstanceVolumes(instance):
-  """Remove all the LVM volumes of an instance.
+def _DestroyInstanceDisks(instance):
+  """Remove all the backend disks of an instance.
 
   This is used to simulate HW errors (dead nodes, broken disks...); the
   configuration of the instance is not affected.
@@ -176,9 +176,20 @@ def _DestroyInstanceVolumes(instance):
 
   """
   info = _GetInstanceInfo(instance.name)
-  vols = info["volumes"]
-  for node in info["nodes"]:
-    AssertCommand(["lvremove", "-f"] + vols, node=node)
+  # FIXME: destruction/removal should be part of the disk class
+  if info["storage-type"] == constants.ST_LVM_VG:
+    vols = info["volumes"]
+    for node in info["nodes"]:
+      AssertCommand(["lvremove", "-f"] + vols, node=node)
+  elif info["storage-type"] == constants.ST_FILE:
+    # FIXME: file storage dir not configurable in qa
+    # Note that this works for both file and sharedfile, and this is intended.
+    filestorage = pathutils.DEFAULT_FILE_STORAGE_DIR
+    idir = os.path.join(filestorage, instance.name)
+    for node in info["nodes"]:
+      AssertCommand(["rm", "-rf"] + idir, node=node)
+  elif info["storage-type"] == constants.ST_DISKLESS:
+    pass
 
 
 def _GetInstanceField(instance, field):
@@ -786,7 +797,7 @@ def _AssertRecreateDisks(cmdargs, instance, fail=False, check=True,
 
   """
   if destroy:
-    _DestroyInstanceVolumes(instance)
+    _DestroyInstanceDisks(instance)
   AssertCommand((["gnt-instance", "recreate-disks"] + cmdargs +
                  [instance.name]), fail)
   if not fail and check:
