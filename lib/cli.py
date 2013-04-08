@@ -3731,7 +3731,7 @@ def FormatPolicyInfo(custom_ipolicy, eff_ipolicy, iscluster):
   if iscluster:
     eff_ipolicy = custom_ipolicy
 
-  custom_minmax = custom_ipolicy.get(constants.ISPECS_MINMAX)
+  custom_minmax = custom_ipolicy.get(constants.ISPECS_MINMAX, {})
   ret = [
     (key,
      FormatParamsDictInfo(custom_minmax.get(key, {}),

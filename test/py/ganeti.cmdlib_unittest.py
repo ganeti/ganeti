@@ -1733,81 +1733,81 @@ class TestGetUpdatedIPolicy(unittest.TestCase):
   """Tests for cmdlib._GetUpdatedIPolicy()"""
   _OLD_CLUSTER_POLICY = {
     constants.IPOLICY_VCPU_RATIO: 1.5,
-    constants.ISPECS_MINMAX: {
-      constants.ISPECS_MIN: {
-        constants.ISPEC_MEM_SIZE: 20,
-        constants.ISPEC_CPU_COUNT: 2,
-        },
-      constants.ISPECS_MAX: {},
-      },
-    constants.ISPECS_STD: {},
+    constants.ISPECS_MINMAX: constants.ISPECS_MINMAX_DEFAULTS,
+    constants.ISPECS_STD: constants.IPOLICY_DEFAULTS[constants.ISPECS_STD],
     }
   _OLD_GROUP_POLICY = {
     constants.IPOLICY_SPINDLE_RATIO: 2.5,
     constants.ISPECS_MINMAX: {
       constants.ISPECS_MIN: {
-        constants.ISPEC_DISK_SIZE: 20,
-        constants.ISPEC_NIC_COUNT: 2,
+        constants.ISPEC_MEM_SIZE: 128,
+        constants.ISPEC_CPU_COUNT: 1,
+        constants.ISPEC_DISK_COUNT: 1,
+        constants.ISPEC_DISK_SIZE: 1024,
+        constants.ISPEC_NIC_COUNT: 1,
+        constants.ISPEC_SPINDLE_USE: 1,
         },
-      constants.ISPECS_MAX: {},
+      constants.ISPECS_MAX: {
+        constants.ISPEC_MEM_SIZE: 32768,
+        constants.ISPEC_CPU_COUNT: 8,
+        constants.ISPEC_DISK_COUNT: 5,
+        constants.ISPEC_DISK_SIZE: 1024 * 1024,
+        constants.ISPEC_NIC_COUNT: 3,
+        constants.ISPEC_SPINDLE_USE: 12,
+        },
       },
     }
 
   def _TestSetSpecs(self, old_policy, isgroup):
-    ispec_key = constants.ISPECS_MIN
-    diff_ispec = {
-      constants.ISPEC_MEM_SIZE: 50,
-      constants.ISPEC_DISK_SIZE: 30,
-      }
-    diff_policy = {
-      constants.ISPECS_MINMAX: {
-        ispec_key: diff_ispec,
+    diff_minmax = {
+      constants.ISPECS_MIN: {
+        constants.ISPEC_MEM_SIZE: 64,
+        constants.ISPEC_CPU_COUNT: 1,
+        constants.ISPEC_DISK_COUNT: 2,
+        constants.ISPEC_DISK_SIZE: 64,
+        constants.ISPEC_NIC_COUNT: 1,
+        constants.ISPEC_SPINDLE_USE: 1,
+        },
+      constants.ISPECS_MAX: {
+        constants.ISPEC_MEM_SIZE: 16384,
+        constants.ISPEC_CPU_COUNT: 10,
+        constants.ISPEC_DISK_COUNT: 12,
+        constants.ISPEC_DISK_SIZE: 1024,
+        constants.ISPEC_NIC_COUNT: 9,
+        constants.ISPEC_SPINDLE_USE: 18,
         },
       }
-    if not isgroup:
-      diff_std = {
-        constants.ISPEC_CPU_COUNT: 3,
-        constants.ISPEC_DISK_COUNT: 3,
+    diff_std = {
+        constants.ISPEC_DISK_COUNT: 10,
+        constants.ISPEC_DISK_SIZE: 512,
         }
+    diff_policy = {
+      constants.ISPECS_MINMAX: diff_minmax
+      }
+    if not isgroup:
       diff_policy[constants.ISPECS_STD] = diff_std
     new_policy = cmdlib._GetUpdatedIPolicy(old_policy, diff_policy,
                                            group_policy=isgroup)
 
     self.assertTrue(constants.ISPECS_MINMAX in new_policy)
-    new_ispec = new_policy[constants.ISPECS_MINMAX][ispec_key]
-    for key in diff_ispec:
-      self.assertTrue(key in new_ispec)
-      self.assertEqual(new_ispec[key], diff_ispec[key])
+    self.assertEqual(new_policy[constants.ISPECS_MINMAX], diff_minmax)
     for key in old_policy:
       if not key in diff_policy:
         self.assertTrue(key in new_policy)
         self.assertEqual(new_policy[key], old_policy[key])
-
-    if constants.ISPECS_MINMAX in old_policy:
-      old_minmax = old_policy[constants.ISPECS_MINMAX]
-      for key in old_minmax:
-        if key != ispec_key:
-          self.assertTrue(key in new_policy[constants.ISPECS_MINMAX])
-          self.assertEqual(new_policy[constants.ISPECS_MINMAX][key],
-                           old_minmax[key])
-      old_ispec = old_policy[constants.ISPECS_MINMAX][ispec_key]
-      for key in old_ispec:
-        if not key in diff_ispec:
-          self.assertTrue(key in new_ispec)
-          self.assertEqual(new_ispec[key], old_ispec[key])
 
     if not isgroup:
       new_std = new_policy[constants.ISPECS_STD]
       for key in diff_std:
         self.assertTrue(key in new_std)
         self.assertEqual(new_std[key], diff_std[key])
+      old_std = old_policy.get(constants.ISPECS_STD, {})
+      for key in old_std:
+        self.assertTrue(key in new_std)
+        if key not in diff_std:
+          self.assertEqual(new_std[key], old_std[key])
 
-
-  def _TestSet(self, old_policy, isgroup):
-    diff_policy = {
-      constants.IPOLICY_VCPU_RATIO: 3,
-      constants.IPOLICY_SPINDLE_RATIO: 1.9,
-      }
+  def _TestSet(self, old_policy, diff_policy, isgroup):
     new_policy = cmdlib._GetUpdatedIPolicy(old_policy, diff_policy,
                                            group_policy=isgroup)
     for key in diff_policy:
@@ -1819,9 +1819,15 @@ class TestGetUpdatedIPolicy(unittest.TestCase):
         self.assertEqual(new_policy[key], old_policy[key])
 
   def testSet(self):
-    self._TestSet(self._OLD_GROUP_POLICY, True)
+    diff_policy = {
+      constants.IPOLICY_VCPU_RATIO: 3,
+      constants.IPOLICY_DTS: [constants.DT_FILE],
+      }
+    self._TestSet(self._OLD_GROUP_POLICY, diff_policy, True)
     self._TestSetSpecs(self._OLD_GROUP_POLICY, True)
-    self._TestSet(self._OLD_CLUSTER_POLICY, False)
+    self._TestSet({}, diff_policy, True)
+    self._TestSetSpecs({}, True)
+    self._TestSet(self._OLD_CLUSTER_POLICY, diff_policy, False)
     self._TestSetSpecs(self._OLD_CLUSTER_POLICY, False)
 
   def testUnset(self):
@@ -1838,9 +1844,13 @@ class TestGetUpdatedIPolicy(unittest.TestCase):
         self.assertTrue(key in new_policy)
         self.assertEqual(new_policy[key], old_policy[key])
 
+    self.assertRaises(errors.OpPrereqError, cmdlib._GetUpdatedIPolicy,
+                      old_policy, diff_policy, group_policy=False)
+
   def _TestInvalidKeys(self, old_policy, isgroup):
+    INVALID_KEY = "this_key_shouldnt_be_allowed"
     INVALID_DICT = {
-      "this_key_shouldnt_be_allowed": 3,
+      INVALID_KEY: 3,
       }
     invalid_policy = INVALID_DICT
     self.assertRaises(errors.OpPrereqError, cmdlib._GetUpdatedIPolicy,
@@ -1848,21 +1858,47 @@ class TestGetUpdatedIPolicy(unittest.TestCase):
     invalid_ispecs = {
       constants.ISPECS_MINMAX: INVALID_DICT,
       }
-    self.assertRaises(errors.OpPrereqError, cmdlib._GetUpdatedIPolicy,
+    self.assertRaises(errors.TypeEnforcementError, cmdlib._GetUpdatedIPolicy,
                       old_policy, invalid_ispecs, group_policy=isgroup)
-    for key in constants.ISPECS_MINMAX_KEYS:
-      invalid_ispec = {
-        constants.ISPECS_MINMAX: {
-          key: INVALID_DICT,
-          },
+    if isgroup:
+      invalid_for_group = {
+        constants.ISPECS_STD: constants.IPOLICY_DEFAULTS[constants.ISPECS_STD],
         }
+      self.assertRaises(errors.OpPrereqError, cmdlib._GetUpdatedIPolicy,
+                        old_policy, invalid_for_group, group_policy=isgroup)
+    good_ispecs = self._OLD_CLUSTER_POLICY[constants.ISPECS_MINMAX]
+    invalid_ispecs = copy.deepcopy(good_ispecs)
+    invalid_policy = {
+      constants.ISPECS_MINMAX: invalid_ispecs,
+      }
+    for key in constants.ISPECS_MINMAX_KEYS:
+      ispec = invalid_ispecs[key]
+      ispec[INVALID_KEY] = None
       self.assertRaises(errors.TypeEnforcementError, cmdlib._GetUpdatedIPolicy,
-                        old_policy, invalid_ispec, group_policy=isgroup)
+                        old_policy, invalid_policy, group_policy=isgroup)
+      del ispec[INVALID_KEY]
+      for par in constants.ISPECS_PARAMETERS:
+        oldv = ispec[par]
+        ispec[par] = "this_is_not_good"
+        self.assertRaises(errors.TypeEnforcementError,
+                          cmdlib._GetUpdatedIPolicy,
+                          old_policy, invalid_policy, group_policy=isgroup)
+        ispec[par] = oldv
+    # This is to make sure that no two errors were present during the tests
+    cmdlib._GetUpdatedIPolicy(old_policy, invalid_policy, group_policy=isgroup)
 
   def testInvalidKeys(self):
     self._TestInvalidKeys(self._OLD_GROUP_POLICY, True)
     self._TestInvalidKeys(self._OLD_CLUSTER_POLICY, False)
 
+  def testInvalidValues(self):
+    for par in (constants.IPOLICY_PARAMETERS |
+                frozenset([constants.IPOLICY_DTS])):
+      bad_policy = {
+        par: "invalid_value",
+        }
+      self.assertRaises(errors.OpPrereqError, cmdlib._GetUpdatedIPolicy, {},
+                        bad_policy, group_policy=True)
 
 if __name__ == "__main__":
   testutils.GanetiTestProgram()

@@ -813,20 +813,6 @@ def _GetUpdatedParams(old_params, update_dict,
   return params_copy
 
 
-def _UpdateMinMaxISpecs(ipolicy, new_minmax, group_policy):
-  use_none = use_default = group_policy
-  minmax = ipolicy.setdefault(constants.ISPECS_MINMAX, {})
-  for (key, value) in new_minmax.items():
-    if key not in constants.ISPECS_MINMAX_KEYS:
-      raise errors.OpPrereqError("Invalid key in new ipolicy/%s: %s" %
-                                 (constants.ISPECS_MINMAX, key),
-                                 errors.ECODE_INVAL)
-    old_spec = minmax.get(key, {})
-    minmax[key] = _GetUpdatedParams(old_spec, value, use_none=use_none,
-                                    use_default=use_default)
-    utils.ForceDictType(minmax[key], constants.ISPECS_PARAMETER_TYPES)
-
-
 def _GetUpdatedIPolicy(old_ipolicy, new_ipolicy, group_policy=False):
   """Return the new version of an instance policy.
 
@@ -834,41 +820,43 @@ def _GetUpdatedIPolicy(old_ipolicy, new_ipolicy, group_policy=False):
     we should support removal of policy entries
 
   """
-  use_none = use_default = group_policy
   ipolicy = copy.deepcopy(old_ipolicy)
   for key, value in new_ipolicy.items():
     if key not in constants.IPOLICY_ALL_KEYS:
       raise errors.OpPrereqError("Invalid key in new ipolicy: %s" % key,
                                  errors.ECODE_INVAL)
-    if key == constants.ISPECS_MINMAX:
-      _UpdateMinMaxISpecs(ipolicy, value, group_policy)
-    elif key == constants.ISPECS_STD:
-      ipolicy[key] = _GetUpdatedParams(old_ipolicy.get(key, {}), value,
-                                       use_none=use_none,
-                                       use_default=use_default)
-      utils.ForceDictType(ipolicy[key], constants.ISPECS_PARAMETER_TYPES)
-    else:
-      if (not value or value == [constants.VALUE_DEFAULT] or
-          value == constants.VALUE_DEFAULT):
-        if group_policy:
-          del ipolicy[key]
-        else:
-          raise errors.OpPrereqError("Can't unset ipolicy attribute '%s'"
-                                     " on the cluster'" % key,
-                                     errors.ECODE_INVAL)
+    if (not value or value == [constants.VALUE_DEFAULT] or
+        value == constants.VALUE_DEFAULT):
+      if group_policy:
+        del ipolicy[key]
       else:
-        if key in constants.IPOLICY_PARAMETERS:
-          # FIXME: we assume all such values are float
-          try:
-            ipolicy[key] = float(value)
-          except (TypeError, ValueError), err:
-            raise errors.OpPrereqError("Invalid value for attribute"
-                                       " '%s': '%s', error: %s" %
-                                       (key, value, err), errors.ECODE_INVAL)
-        else:
-          # FIXME: we assume all others are lists; this should be redone
-          # in a nicer way
-          ipolicy[key] = list(value)
+        raise errors.OpPrereqError("Can't unset ipolicy attribute '%s'"
+                                   " on the cluster'" % key,
+                                   errors.ECODE_INVAL)
+    else:
+      if key in constants.IPOLICY_PARAMETERS:
+        # FIXME: we assume all such values are float
+        try:
+          ipolicy[key] = float(value)
+        except (TypeError, ValueError), err:
+          raise errors.OpPrereqError("Invalid value for attribute"
+                                     " '%s': '%s', error: %s" %
+                                     (key, value, err), errors.ECODE_INVAL)
+      elif key == constants.ISPECS_MINMAX:
+        for k in value.keys():
+          utils.ForceDictType(value[k], constants.ISPECS_PARAMETER_TYPES)
+        ipolicy[key] = value
+      elif key == constants.ISPECS_STD:
+        if group_policy:
+          msg = "%s cannot appear in group instance specs" % key
+          raise errors.OpPrereqError(msg, errors.ECODE_INVAL)
+        ipolicy[key] = _GetUpdatedParams(old_ipolicy.get(key, {}), value,
+                                         use_none=False, use_default=False)
+        utils.ForceDictType(ipolicy[key], constants.ISPECS_PARAMETER_TYPES)
+      else:
+        # FIXME: we assume all others are lists; this should be redone
+        # in a nicer way
+        ipolicy[key] = list(value)
   try:
     objects.InstancePolicy.CheckParameterSyntax(ipolicy, not group_policy)
   except errors.ConfigurationError, err:

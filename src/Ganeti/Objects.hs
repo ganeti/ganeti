@@ -66,9 +66,7 @@ module Ganeti.Objects
   , PartialISpecParams(..)
   , fillISpecParams
   , allISpecParamFields
-  , FilledMinMaxISpecs(..)
-  , PartialMinMaxISpecs(..)
-  , fillMinMaxISpecs
+  , MinMaxISpecs(..)
   , FilledIPolicy(..)
   , PartialIPolicy(..)
   , fillIPolicy
@@ -505,16 +503,7 @@ $(buildParam "ISpec" "ispec"
   , simpleField C.ispecSpindleUse  [t| Int |]
   ])
 
--- | Partial min-max instance specs. These is not built via buildParam since
--- it has a special 2-level inheritance mode.
-$(buildObject "PartialMinMaxISpecs" "mmis"
-  [ renameField "MinSpecP" $ simpleField "min" [t| PartialISpecParams |]
-  , renameField "MaxSpecP" $ simpleField "max" [t| PartialISpecParams |]
-  ])
-
--- | Filled min-max instance specs. This is not built via buildParam since
--- it has a special 2-level inheritance mode.
-$(buildObject "FilledMinMaxISpecs" "mmis"
+$(buildObject "MinMaxISpecs" "mmis"
   [ renameField "MinSpec" $ simpleField "min" [t| FilledISpecParams |]
   , renameField "MaxSpec" $ simpleField "max" [t| FilledISpecParams |]
   ])
@@ -523,8 +512,9 @@ $(buildObject "FilledMinMaxISpecs" "mmis"
 -- has a special 2-level inheritance mode.
 $(buildObject "PartialIPolicy" "ipolicy"
   [ optionalField . renameField "MinMaxISpecsP"
-                    $ simpleField C.ispecsMinmax [t| PartialMinMaxISpecs |]
-  , renameField "StdSpecP" $ simpleField "std" [t| PartialISpecParams |]
+                    $ simpleField C.ispecsMinmax   [t| MinMaxISpecs |]
+  , optionalField . renameField "StdSpecP"
+                    $ simpleField "std"            [t| PartialISpecParams |]
   , optionalField . renameField "SpindleRatioP"
                     $ simpleField "spindle-ratio"  [t| Double |]
   , optionalField . renameField "VcpuRatioP"
@@ -537,23 +527,12 @@ $(buildObject "PartialIPolicy" "ipolicy"
 -- has a special 2-level inheritance mode.
 $(buildObject "FilledIPolicy" "ipolicy"
   [ renameField "MinMaxISpecs"
-    $ simpleField C.ispecsMinmax [t| FilledMinMaxISpecs |]
+    $ simpleField C.ispecsMinmax [t| MinMaxISpecs |]
   , renameField "StdSpec" $ simpleField "std" [t| FilledISpecParams |]
   , simpleField "spindle-ratio"  [t| Double |]
   , simpleField "vcpu-ratio"     [t| Double |]
   , simpleField "disk-templates" [t| [DiskTemplate] |]
   ])
-
--- | Custom filler for the min-max instance specs.
-fillMinMaxISpecs :: FilledMinMaxISpecs -> Maybe PartialMinMaxISpecs ->
-                    FilledMinMaxISpecs
-fillMinMaxISpecs fminmax Nothing = fminmax
-fillMinMaxISpecs (FilledMinMaxISpecs { mmisMinSpec = fmin
-                                     , mmisMaxSpec = fmax })
-                 (Just PartialMinMaxISpecs { mmisMinSpecP = pmin
-                                           , mmisMaxSpecP = pmax }) =
-  FilledMinMaxISpecs { mmisMinSpec = fillISpecParams fmin pmin
-                     , mmisMaxSpec = fillISpecParams fmax pmax }
 
 -- | Custom filler for the ipolicy types.
 fillIPolicy :: FilledIPolicy -> PartialIPolicy -> FilledIPolicy
@@ -567,8 +546,10 @@ fillIPolicy (FilledIPolicy { ipolicyMinMaxISpecs  = fminmax
                             , ipolicySpindleRatioP  = pspindleRatio
                             , ipolicyVcpuRatioP     = pvcpuRatio
                             , ipolicyDiskTemplatesP = pdiskTemplates}) =
-  FilledIPolicy { ipolicyMinMaxISpecs  = fillMinMaxISpecs fminmax pminmax
-                , ipolicyStdSpec       = fillISpecParams fstd pstd
+  FilledIPolicy { ipolicyMinMaxISpecs  = fromMaybe fminmax pminmax
+                , ipolicyStdSpec       = case pstd of
+                                         Nothing -> fstd
+                                         Just p -> fillISpecParams fstd p
                 , ipolicySpindleRatio  = fromMaybe fspindleRatio pspindleRatio
                 , ipolicyVcpuRatio     = fromMaybe fvcpuRatio pvcpuRatio
                 , ipolicyDiskTemplates = fromMaybe fdiskTemplates

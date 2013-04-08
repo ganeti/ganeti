@@ -460,18 +460,6 @@ class TestInstancePolicy(unittest.TestCase):
   def testCheckISpecParamSyntax(self):
     par = "my_parameter"
     for check_std in [True, False]:
-      # Only one policy limit
-      for key in constants.ISPECS_MINMAX_KEYS:
-        minmax = dict((k, {}) for k in constants.ISPECS_MINMAX_KEYS)
-        minmax[key][par] = 11
-        objects.InstancePolicy._CheckISpecParamSyntax(minmax, {}, par,
-                                                      check_std)
-      if check_std:
-        minmax = dict((k, {}) for k in constants.ISPECS_MINMAX_KEYS)
-        stdspec = {par: 11}
-        objects.InstancePolicy._CheckISpecParamSyntax(minmax, stdspec, par,
-                                                      check_std)
-
       # Min and max only
       good_values = [(11, 11), (11, 40), (0, 0)]
       for (mn, mx) in good_values:
@@ -583,34 +571,6 @@ class TestInstancePolicy(unittest.TestCase):
       {constants.IPOLICY_DTS: [constants.DT_FILE]},
       ]
     for diff_pol in partial_policies:
-      policy = objects.FillIPolicy(constants.IPOLICY_DEFAULTS, diff_pol)
-      objects.InstancePolicy.CheckParameterSyntax(policy, True)
-      self._AssertIPolicyIsFull(policy)
-      self._AssertIPolicyMerged(constants.IPOLICY_DEFAULTS, diff_pol, policy)
-
-  def testFillIPolicySpecs(self):
-    partial_ipolicies = [
-      {
-        constants.ISPECS_MINMAX: {
-          constants.ISPECS_MIN: {constants.ISPEC_MEM_SIZE: 32},
-          constants.ISPECS_MAX: {constants.ISPEC_CPU_COUNT: 1024}
-          },
-        },
-      {
-        constants.ISPECS_MINMAX: {
-          constants.ISPECS_MAX: {
-            constants.ISPEC_DISK_COUNT: constants.MAX_DISKS - 1,
-            constants.ISPEC_NIC_COUNT: constants.MAX_NICS - 1,
-            },
-          constants.ISPECS_MIN: {},
-          },
-          constants.ISPECS_STD: {constants.ISPEC_DISK_SIZE: 2048},
-        },
-      {
-        constants.ISPECS_STD: {constants.ISPEC_SPINDLE_USE: 3},
-        },
-      ]
-    for diff_pol in partial_ipolicies:
       policy = objects.FillIPolicy(constants.IPOLICY_DEFAULTS, diff_pol)
       objects.InstancePolicy.CheckParameterSyntax(policy, True)
       self._AssertIPolicyIsFull(policy)
