@@ -1260,15 +1260,18 @@ class TestCreateIPolicyFromOpts(unittest.TestCase):
         },
       constants.ISPECS_STD: {
         },
+      constants.IPOLICY_DTS: allowedv,
+      constants.IPOLICY_VCPU_RATIO: allowedv,
+      constants.IPOLICY_SPINDLE_RATIO: allowedv,
       }
     pol1 = cli.CreateIPolicyFromOpts(ispecs_mem_size={},
                                      ispecs_cpu_count={"min": allowedv},
                                      ispecs_disk_count={},
                                      ispecs_disk_size={},
                                      ispecs_nic_count={},
-                                     ipolicy_disk_templates=None,
-                                     ipolicy_vcpu_ratio=None,
-                                     ipolicy_spindle_ratio=None,
+                                     ipolicy_disk_templates=allowedv,
+                                     ipolicy_vcpu_ratio=allowedv,
+                                     ipolicy_spindle_ratio=allowedv,
                                      allowed_values=[allowedv])
     self.assertEqual(pol1, exp_pol1)
 

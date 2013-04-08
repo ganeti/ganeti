@@ -3812,7 +3812,10 @@ def CreateIPolicyFromOpts(ispecs_mem_size=None,
                       group_ipolicy, allowed_values)
 
   if ipolicy_disk_templates is not None:
-    ipolicy_out[constants.IPOLICY_DTS] = list(ipolicy_disk_templates)
+    if allowed_values and ipolicy_disk_templates in allowed_values:
+      ipolicy_out[constants.IPOLICY_DTS] = ipolicy_disk_templates
+    else:
+      ipolicy_out[constants.IPOLICY_DTS] = list(ipolicy_disk_templates)
   if ipolicy_vcpu_ratio is not None:
     ipolicy_out[constants.IPOLICY_VCPU_RATIO] = ipolicy_vcpu_ratio
   if ipolicy_spindle_ratio is not None:
