@@ -102,17 +102,28 @@ def CheckHostname(path):
   return False
 
 
-def UpgradeIPolicy(ipolicy):
+def _FillIPolicySpecs(default_ipolicy, ipolicy):
+  if "minmax" in ipolicy:
+    for (key, spec) in ipolicy["minmax"].items():
+      for (par, val) in default_ipolicy["minmax"][key].items():
+        if par not in spec:
+          spec[par] = val
+
+
+def UpgradeIPolicy(ipolicy, default_ipolicy, isgroup):
   minmax_keys = ["min", "max"]
   if any((k in ipolicy) for k in minmax_keys):
     minmax = {}
-    ipolicy["minmax"] = minmax
     for key in minmax_keys:
       if key in ipolicy:
-        minmax[key] = ipolicy[key]
+        if ipolicy[key]:
+          minmax[key] = ipolicy[key]
         del ipolicy[key]
-      else:
-        minmax[key] = {}
+    if minmax:
+      ipolicy["minmax"] = minmax
+  if isgroup and "std" in ipolicy:
+    del ipolicy["std"]
+  _FillIPolicySpecs(default_ipolicy, ipolicy)
 
 
 def UpgradeNetworks(config_data):
@@ -125,19 +136,23 @@ def UpgradeCluster(config_data):
   cluster = config_data.get("cluster", None)
   if cluster is None:
     raise Error("Cannot find cluster")
-  ipolicy = cluster.get("ipolicy", None)
+  ipolicy = cluster.setdefault("ipolicy", None)
   if ipolicy:
-    UpgradeIPolicy(ipolicy)
+    UpgradeIPolicy(ipolicy, constants.IPOLICY_DEFAULTS, False)
 
 
 def UpgradeGroups(config_data):
+  cl_ipolicy = config_data["cluster"].get("ipolicy")
   for group in config_data["nodegroups"].values():
     networks = group.get("networks", None)
     if not networks:
       group["networks"] = {}
     ipolicy = group.get("ipolicy", None)
     if ipolicy:
-      UpgradeIPolicy(ipolicy)
+      if cl_ipolicy is None:
+        raise Error("A group defines an instance policy but there is no"
+                    " instance policy at cluster level")
+      UpgradeIPolicy(ipolicy, cl_ipolicy, True)
 
 
 def UpgradeInstances(config_data):
@@ -258,12 +273,14 @@ def DowngradeIPolicy(ipolicy):
     for key in minmax_keys:
       spec = minmax.get(key, {})
       ipolicy[key] = spec
+    if "std" not in ipolicy:
+      ipolicy["std"] = {}
 
 
 def DowngradeGroups(config_data):
   for group in config_data["nodegroups"].values():
     ipolicy = group.get("ipolicy", None)
-    if ipolicy:
+    if ipolicy is not None:
       DowngradeIPolicy(ipolicy)
 
 
