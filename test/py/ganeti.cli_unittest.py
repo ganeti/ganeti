@@ -21,12 +21,11 @@
 
 """Script for unittesting the cli module"""
 
-import unittest
-import time
-from cStringIO import StringIO
-
-import ganeti
+import copy
 import testutils
+import time
+import unittest
+from cStringIO import StringIO
 
 from ganeti import constants
 from ganeti import cli
@@ -1181,6 +1180,10 @@ class TestSerializeGenericInfo(unittest.TestCase):
 
 class TestCreateIPolicyFromOpts(unittest.TestCase):
   """Test case for cli.CreateIPolicyFromOpts."""
+  def setUp(self):
+    # Policies are big, and we want to see the difference in case of an error
+    self.maxDiff = None
+
   def _RecursiveCheckMergedDicts(self, default_pol, diff_pol, merged_pol):
     self.assertTrue(type(default_pol) is dict)
     self.assertTrue(type(diff_pol) is dict)
@@ -1197,13 +1200,19 @@ class TestCreateIPolicyFromOpts(unittest.TestCase):
         self.assertEqual(val, default_pol[key])
 
   def testClusterPolicy(self):
-    exp_pol0 = {
-      constants.ISPECS_MINMAX: {
-        constants.ISPECS_MIN: {},
-        constants.ISPECS_MAX: {},
-        },
-      constants.ISPECS_STD: {},
-      }
+    pol0 = cli.CreateIPolicyFromOpts(
+      ispecs_mem_size={},
+      ispecs_cpu_count={},
+      ispecs_disk_count={},
+      ispecs_disk_size={},
+      ispecs_nic_count={},
+      ipolicy_disk_templates=None,
+      ipolicy_vcpu_ratio=None,
+      ipolicy_spindle_ratio=None,
+      fill_all=True
+      )
+    self.assertEqual(pol0, constants.IPOLICY_DEFAULTS)
+
     exp_pol1 = {
       constants.ISPECS_MINMAX: {
         constants.ISPECS_MIN: {
@@ -1221,6 +1230,20 @@ class TestCreateIPolicyFromOpts(unittest.TestCase):
         },
       constants.IPOLICY_VCPU_RATIO: 3.1,
       }
+    pol1 = cli.CreateIPolicyFromOpts(
+      ispecs_mem_size={"max": "12g"},
+      ispecs_cpu_count={"min": 2, "std": 2},
+      ispecs_disk_count={"min": 1, "max": 2, "std": 2},
+      ispecs_disk_size={},
+      ispecs_nic_count={},
+      ipolicy_disk_templates=None,
+      ipolicy_vcpu_ratio=3.1,
+      ipolicy_spindle_ratio=None,
+      fill_all=True
+      )
+    self._RecursiveCheckMergedDicts(constants.IPOLICY_DEFAULTS,
+                                    exp_pol1, pol1)
+
     exp_pol2 = {
       constants.ISPECS_MINMAX: {
         constants.ISPECS_MIN: {
@@ -1238,94 +1261,154 @@ class TestCreateIPolicyFromOpts(unittest.TestCase):
       constants.IPOLICY_SPINDLE_RATIO: 1.3,
       constants.IPOLICY_DTS: ["templates"],
       }
-    for fillall in [False, True]:
-      pol0 = cli.CreateIPolicyFromOpts(
-        ispecs_mem_size={},
-        ispecs_cpu_count={},
-        ispecs_disk_count={},
-        ispecs_disk_size={},
-        ispecs_nic_count={},
+    pol2 = cli.CreateIPolicyFromOpts(
+      ispecs_mem_size={},
+      ispecs_cpu_count={"std": 2},
+      ispecs_disk_count={},
+      ispecs_disk_size={"min": "0.5g"},
+      ispecs_nic_count={"min": 2, "max": 3, "std": 3},
+      ipolicy_disk_templates=["templates"],
+      ipolicy_vcpu_ratio=None,
+      ipolicy_spindle_ratio=1.3,
+      fill_all=True
+      )
+    self._RecursiveCheckMergedDicts(constants.IPOLICY_DEFAULTS,
+                                      exp_pol2, pol2)
+
+    for fill_all in [False, True]:
+      exp_pol3 = {
+        constants.ISPECS_STD: {
+          constants.ISPEC_CPU_COUNT: 2,
+          constants.ISPEC_NIC_COUNT: 3,
+          },
+        }
+      pol3 = cli.CreateIPolicyFromOpts(
+        std_ispecs={
+          constants.ISPEC_CPU_COUNT: "2",
+          constants.ISPEC_NIC_COUNT: "3",
+          },
         ipolicy_disk_templates=None,
         ipolicy_vcpu_ratio=None,
         ipolicy_spindle_ratio=None,
-        fill_all=fillall
+        fill_all=fill_all
         )
-      if fillall:
-        self.assertEqual(pol0, constants.IPOLICY_DEFAULTS)
-      else:
-        self.assertEqual(pol0, exp_pol0)
-      pol1 = cli.CreateIPolicyFromOpts(
-        ispecs_mem_size={"max": "12g"},
-        ispecs_cpu_count={"min": 2, "std": 2},
-        ispecs_disk_count={"min": 1, "max": 2, "std": 2},
-        ispecs_disk_size={},
-        ispecs_nic_count={},
-        ipolicy_disk_templates=None,
-        ipolicy_vcpu_ratio=3.1,
-        ipolicy_spindle_ratio=None,
-        fill_all=fillall
-        )
-      if fillall:
+      if fill_all:
         self._RecursiveCheckMergedDicts(constants.IPOLICY_DEFAULTS,
-                                        exp_pol1, pol1)
+                                        exp_pol3, pol3)
       else:
-        self.assertEqual(pol1, exp_pol1)
-      pol2 = cli.CreateIPolicyFromOpts(
-        ispecs_mem_size={},
-        ispecs_cpu_count={"std": 2},
-        ispecs_disk_count={},
-        ispecs_disk_size={"min": "0.5g"},
-        ispecs_nic_count={"min": 2, "max": 3, "std": 3},
-        ipolicy_disk_templates=["templates"],
-        ipolicy_vcpu_ratio=None,
-        ipolicy_spindle_ratio=1.3,
-        fill_all=fillall
-        )
-      if fillall:
-        self._RecursiveCheckMergedDicts(constants.IPOLICY_DEFAULTS,
-                                        exp_pol2, pol2)
+        self.assertEqual(pol3, exp_pol3)
+
+  def testPartialPolicy(self):
+    exp_pol0 = objects.MakeEmptyIPolicy()
+    pol0 = cli.CreateIPolicyFromOpts(
+      minmax_ispecs=None,
+      std_ispecs=None,
+      ipolicy_disk_templates=None,
+      ipolicy_vcpu_ratio=None,
+      ipolicy_spindle_ratio=None,
+      fill_all=False
+      )
+    self.assertEqual(pol0, exp_pol0)
+
+    exp_pol1 = {
+      constants.IPOLICY_VCPU_RATIO: 3.1,
+      }
+    pol1 = cli.CreateIPolicyFromOpts(
+      minmax_ispecs=None,
+      std_ispecs=None,
+      ipolicy_disk_templates=None,
+      ipolicy_vcpu_ratio=3.1,
+      ipolicy_spindle_ratio=None,
+      fill_all=False
+      )
+    self.assertEqual(pol1, exp_pol1)
+
+    exp_pol2 = {
+      constants.IPOLICY_SPINDLE_RATIO: 1.3,
+      constants.IPOLICY_DTS: ["templates"],
+      }
+    pol2 = cli.CreateIPolicyFromOpts(
+      minmax_ispecs=None,
+      std_ispecs=None,
+      ipolicy_disk_templates=["templates"],
+      ipolicy_vcpu_ratio=None,
+      ipolicy_spindle_ratio=1.3,
+      fill_all=False
+      )
+    self.assertEqual(pol2, exp_pol2)
+
+  def _TestInvalidISpecs(self, minmax_ispecs, std_ispecs, fail=True):
+    for fill_all in [False, True]:
+      if fail:
+        self.assertRaises((errors.OpPrereqError,
+                           errors.UnitParseError,
+                           errors.TypeEnforcementError),
+                          cli.CreateIPolicyFromOpts,
+                          minmax_ispecs=minmax_ispecs,
+                          std_ispecs=std_ispecs,
+                          fill_all=fill_all)
       else:
-        self.assertEqual(pol2, exp_pol2)
+        cli.CreateIPolicyFromOpts(minmax_ispecs=minmax_ispecs,
+                                  std_ispecs=std_ispecs,
+                                  fill_all=fill_all)
 
   def testInvalidPolicies(self):
-    self.assertRaises(errors.TypeEnforcementError, cli.CreateIPolicyFromOpts,
-                      ispecs_mem_size={}, ispecs_cpu_count={},
-                      ispecs_disk_count={}, ispecs_disk_size={"std": 1},
-                      ispecs_nic_count={}, ipolicy_disk_templates=None,
-                      ipolicy_vcpu_ratio=None, ipolicy_spindle_ratio=None,
-                      group_ipolicy=True)
+    self.assertRaises(AssertionError, cli.CreateIPolicyFromOpts,
+                      std_ispecs={constants.ISPEC_MEM_SIZE: 1024},
+                      ipolicy_disk_templates=None, ipolicy_vcpu_ratio=None,
+                      ipolicy_spindle_ratio=None, group_ipolicy=True)
     self.assertRaises(errors.OpPrereqError, cli.CreateIPolicyFromOpts,
                       ispecs_mem_size={"wrong": "x"}, ispecs_cpu_count={},
                       ispecs_disk_count={}, ispecs_disk_size={},
                       ispecs_nic_count={}, ipolicy_disk_templates=None,
-                      ipolicy_vcpu_ratio=None, ipolicy_spindle_ratio=None)
+                      ipolicy_vcpu_ratio=None, ipolicy_spindle_ratio=None,
+                      fill_all=True)
     self.assertRaises(errors.TypeEnforcementError, cli.CreateIPolicyFromOpts,
                       ispecs_mem_size={}, ispecs_cpu_count={"min": "default"},
                       ispecs_disk_count={}, ispecs_disk_size={},
                       ispecs_nic_count={}, ipolicy_disk_templates=None,
-                      ipolicy_vcpu_ratio=None, ipolicy_spindle_ratio=None)
+                      ipolicy_vcpu_ratio=None, ipolicy_spindle_ratio=None,
+                      fill_all=True)
+
+    good_mmspecs = constants.ISPECS_MINMAX_DEFAULTS
+    self._TestInvalidISpecs(good_mmspecs, None, fail=False)
+    broken_mmspecs = copy.deepcopy(good_mmspecs)
+    for key in constants.ISPECS_MINMAX_KEYS:
+      for par in constants.ISPECS_PARAMETERS:
+        old = broken_mmspecs[key][par]
+        del broken_mmspecs[key][par]
+        self._TestInvalidISpecs(broken_mmspecs, None)
+        broken_mmspecs[key][par] = "invalid"
+        self._TestInvalidISpecs(broken_mmspecs, None)
+        broken_mmspecs[key][par] = old
+      broken_mmspecs[key]["invalid_key"] = None
+      self._TestInvalidISpecs(broken_mmspecs, None)
+      del broken_mmspecs[key]["invalid_key"]
+    assert broken_mmspecs == good_mmspecs
+
+    good_stdspecs = constants.IPOLICY_DEFAULTS[constants.ISPECS_STD]
+    self._TestInvalidISpecs(None, good_stdspecs, fail=False)
+    broken_stdspecs = copy.deepcopy(good_stdspecs)
+    for par in constants.ISPECS_PARAMETERS:
+      old = broken_stdspecs[par]
+      broken_stdspecs[par] = "invalid"
+      self._TestInvalidISpecs(None, broken_stdspecs)
+      broken_stdspecs[par] = old
+    broken_stdspecs["invalid_key"] = None
+    self._TestInvalidISpecs(None, broken_stdspecs)
+    del broken_stdspecs["invalid_key"]
+    assert broken_stdspecs == good_stdspecs
 
   def testAllowedValues(self):
     allowedv = "blah"
     exp_pol1 = {
-      constants.ISPECS_MINMAX: {
-        constants.ISPECS_MIN: {
-          constants.ISPEC_CPU_COUNT: allowedv,
-          },
-        constants.ISPECS_MAX: {
-          },
-        },
-      constants.ISPECS_STD: {
-        },
+      constants.ISPECS_MINMAX: allowedv,
       constants.IPOLICY_DTS: allowedv,
       constants.IPOLICY_VCPU_RATIO: allowedv,
       constants.IPOLICY_SPINDLE_RATIO: allowedv,
       }
-    pol1 = cli.CreateIPolicyFromOpts(ispecs_mem_size={},
-                                     ispecs_cpu_count={"min": allowedv},
-                                     ispecs_disk_count={},
-                                     ispecs_disk_size={},
-                                     ispecs_nic_count={},
+    pol1 = cli.CreateIPolicyFromOpts(minmax_ispecs={allowedv: {}},
+                                     std_ispecs=None,
                                      ipolicy_disk_templates=allowedv,
                                      ipolicy_vcpu_ratio=allowedv,
                                      ipolicy_spindle_ratio=allowedv,
@@ -1357,16 +1440,11 @@ class TestCreateIPolicyFromOpts(unittest.TestCase):
       exp_ipol[constants.ISPECS_MINMAX] = exp_minmax
     else:
       minmax_ispecs = None
-      if constants.ISPECS_MINMAX not in exp_ipol:
-        empty_minmax = dict((k, {}) for k in constants.ISPECS_MINMAX_KEYS)
-        exp_ipol[constants.ISPECS_MINMAX] = empty_minmax
     if exp_std is not None:
       std_ispecs = self._ConvertSpecToStrings(exp_std)
       exp_ipol[constants.ISPECS_STD] = exp_std
     else:
       std_ispecs = None
-      if constants.ISPECS_STD not in exp_ipol:
-        exp_ipol[constants.ISPECS_STD] = {}
 
     self._CheckNewStyleSpecsCall(exp_ipol, minmax_ispecs, std_ispecs,
                                  group_ipolicy, fill_all)

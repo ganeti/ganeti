@@ -536,6 +536,10 @@ comma-separated list of disk templates.
 - ``--ipolicy-spindle-ratio`` limits the instances-spindles ratio
 - ``--ipolicy-vcpu-ratio`` limits the vcpu-cpu ratio
 
+All the instance policy elements can be overridden at group level. Group
+level overrides can be removed by specifying ``default`` as the value of
+an item.
+
 For details about how to use ``--hypervisor-state`` and ``--disk-state``
 have a look at **ganeti**\(7).
 
@@ -607,11 +611,6 @@ MODIFY
 | [\--use-external-mip-script {yes \| no}]
 | [\--hypervisor-state *hvstate*]
 | [\--disk-state *diskstate*]
-| [\--specs-cpu-count *spec-param*=*value* [,*spec-param*=*value*...]]
-| [\--specs-disk-count *spec-param*=*value* [,*spec-param*=*value*...]]
-| [\--specs-disk-size *spec-param*=*value* [,*spec-param*=*value*...]]
-| [\--specs-mem-size *spec-param*=*value* [,*spec-param*=*value*...]]
-| [\--specs-nic-count *spec-param*=*value* [,*spec-param*=*value*...]]
 | [\--ipolicy-std-specs *spec*=*value* [,*spec*=*value*...]]
 | [\--ipolicy-bounds-specs *bounds_ispecs*]
 | [\--ipolicy-disk-templates *template* [,*template*...]]
@@ -654,8 +653,7 @@ The ``-I (--default-iallocator)`` is described in the **init**
 command. To clear the default iallocator, just pass an empty string
 ('').
 
-The ``--specs-...`` and ``--ipolicy-...`` options are described in the
-**init** command.
+The ``--ipolicy-...`` options are described in the **init** command.
 
 See **ganeti**\(7) for a description of ``--submit`` and other common
 options.

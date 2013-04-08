@@ -189,6 +189,7 @@ __all__ = [
   "SPECS_DISK_SIZE_OPT",
   "SPECS_MEM_SIZE_OPT",
   "SPECS_NIC_COUNT_OPT",
+  "SPLIT_ISPECS_OPTS",
   "IPOLICY_STD_SPECS_OPT",
   "IPOLICY_DISK_TEMPLATES",
   "IPOLICY_VCPU_RATIO",
@@ -1657,15 +1658,19 @@ COMMON_CREATE_OPTS = [
 
 # common instance policy options
 INSTANCE_POLICY_OPTS = [
+  IPOLICY_BOUNDS_SPECS_OPT,
+  IPOLICY_DISK_TEMPLATES,
+  IPOLICY_VCPU_RATIO,
+  IPOLICY_SPINDLE_RATIO,
+  ]
+
+# instance policy split specs options
+SPLIT_ISPECS_OPTS = [
   SPECS_CPU_COUNT_OPT,
   SPECS_DISK_COUNT_OPT,
   SPECS_DISK_SIZE_OPT,
   SPECS_MEM_SIZE_OPT,
   SPECS_NIC_COUNT_OPT,
-  IPOLICY_BOUNDS_SPECS_OPT,
-  IPOLICY_DISK_TEMPLATES,
-  IPOLICY_VCPU_RATIO,
-  IPOLICY_SPINDLE_RATIO,
   ]
 
 
@@ -3846,7 +3851,7 @@ def _MaybeParseUnit(elements):
 
 def _InitISpecsFromSplitOpts(ipolicy, ispecs_mem_size, ispecs_cpu_count,
                              ispecs_disk_count, ispecs_disk_size,
-                             ispecs_nic_count, group_ipolicy, allowed_values):
+                             ispecs_nic_count, group_ipolicy, fill_all):
   try:
     if ispecs_mem_size:
       ispecs_mem_size = _MaybeParseUnit(ispecs_mem_size)
@@ -3874,7 +3879,7 @@ def _InitISpecsFromSplitOpts(ipolicy, ispecs_mem_size, ispecs_cpu_count,
     forced_type = TISPECS_CLUSTER_TYPES
   for specs in ispecs_transposed.values():
     assert type(specs) is dict
-    utils.ForceDictType(specs, forced_type, allowed_values=allowed_values)
+    utils.ForceDictType(specs, forced_type)
 
   # then transpose
   ispecs = {
@@ -3887,15 +3892,25 @@ def _InitISpecsFromSplitOpts(ipolicy, ispecs_mem_size, ispecs_cpu_count,
     for key, val in specs.items(): # {min: .. ,max: .., std: ..}
       assert key in ispecs
       ispecs[key][name] = val
+  ipolicy[constants.ISPECS_MINMAX] = {}
   for key in constants.ISPECS_MINMAX_KEYS:
-    ipolicy[constants.ISPECS_MINMAX][key] = ispecs[key]
-  ipolicy[constants.ISPECS_STD] = ispecs[constants.ISPECS_STD]
+    if fill_all:
+      ipolicy[constants.ISPECS_MINMAX][key] = \
+        objects.FillDict(constants.ISPECS_MINMAX_DEFAULTS[key], ispecs[key])
+    else:
+      ipolicy[constants.ISPECS_MINMAX][key] = ispecs[key]
+  if fill_all:
+    ipolicy[constants.ISPECS_STD] = \
+        objects.FillDict(constants.IPOLICY_DEFAULTS[constants.ISPECS_STD],
+                         ispecs[constants.ISPECS_STD])
+  else:
+    ipolicy[constants.ISPECS_STD] = ispecs[constants.ISPECS_STD]
 
 
 def _ParseSpecUnit(spec, keyname):
   ret = spec.copy()
   for k in [constants.ISPEC_DISK_SIZE, constants.ISPEC_MEM_SIZE]:
-    if k in ret and ret[k] != constants.VALUE_DEFAULT:
+    if k in ret:
       try:
         ret[k] = utils.ParseUnit(ret[k])
       except (TypeError, ValueError, errors.UnitParseError), err:
@@ -3905,27 +3920,43 @@ def _ParseSpecUnit(spec, keyname):
   return ret
 
 
-def _ParseISpec(spec, keyname, allowed_values):
+def _ParseISpec(spec, keyname, required):
   ret = _ParseSpecUnit(spec, keyname)
-  utils.ForceDictType(ret, constants.ISPECS_PARAMETER_TYPES,
-                      allowed_values=allowed_values)
+  utils.ForceDictType(ret, constants.ISPECS_PARAMETER_TYPES)
+  missing = constants.ISPECS_PARAMETERS - frozenset(ret.keys())
+  if required and missing:
+    raise errors.OpPrereqError("Missing parameters in ipolicy spec %s: %s" %
+                               (keyname, utils.CommaJoin(missing)),
+                               errors.ECODE_INVAL)
+  return ret
+
+
+def _GetISpecsInAllowedValues(minmax_ispecs, allowed_values):
+  ret = None
+  if minmax_ispecs and allowed_values and len(minmax_ispecs) == 1:
+    for (key, spec) in minmax_ispecs.items():
+      # This loop is executed exactly once
+      if key in allowed_values and not spec:
+        ret = key
   return ret
 
 
 def _InitISpecsFromFullOpts(ipolicy_out, minmax_ispecs, std_ispecs,
                             group_ipolicy, allowed_values):
-  if minmax_ispecs is not None:
+  found_allowed = _GetISpecsInAllowedValues(minmax_ispecs, allowed_values)
+  if found_allowed is not None:
+    ipolicy_out[constants.ISPECS_MINMAX] = found_allowed
+  elif minmax_ispecs is not None:
     minmax_out = {}
     for (key, spec) in minmax_ispecs.items():
       if key not in constants.ISPECS_MINMAX_KEYS:
         msg = "Invalid key in bounds instance specifications: %s" % key
         raise errors.OpPrereqError(msg, errors.ECODE_INVAL)
-      minmax_out[key] = _ParseISpec(spec, key, allowed_values)
+      minmax_out[key] = _ParseISpec(spec, key, True)
     ipolicy_out[constants.ISPECS_MINMAX] = minmax_out
   if std_ispecs is not None:
     assert not group_ipolicy # This is not an option for gnt-group
-    ipolicy_out[constants.ISPECS_STD] = _ParseISpec(std_ispecs, "std",
-                                                    allowed_values)
+    ipolicy_out[constants.ISPECS_STD] = _ParseISpec(std_ispecs, "std", False)
 
 
 def CreateIPolicyFromOpts(ispecs_mem_size=None,
@@ -3946,21 +3977,23 @@ def CreateIPolicyFromOpts(ispecs_mem_size=None,
   @param fill_all: whether for cluster policies we should ensure that
     all values are filled
 
-
   """
-  if ((ispecs_mem_size or ispecs_cpu_count or ispecs_disk_count or
-       ispecs_disk_size or ispecs_nic_count) and
-      (minmax_ispecs is not None or std_ispecs is not None)):
+  assert not (fill_all and allowed_values)
+
+  split_specs = (ispecs_mem_size or ispecs_cpu_count or ispecs_disk_count or
+                 ispecs_disk_size or ispecs_nic_count)
+  if (split_specs and (minmax_ispecs is not None or std_ispecs is not None)):
     raise errors.OpPrereqError("A --specs-xxx option cannot be specified"
                                " together with any --ipolicy-xxx-specs option",
                                errors.ECODE_INVAL)
 
   ipolicy_out = objects.MakeEmptyIPolicy()
-  if minmax_ispecs is None and std_ispecs is None:
+  if split_specs:
+    assert fill_all
     _InitISpecsFromSplitOpts(ipolicy_out, ispecs_mem_size, ispecs_cpu_count,
                              ispecs_disk_count, ispecs_disk_size,
-                             ispecs_nic_count, group_ipolicy, allowed_values)
-  else:
+                             ispecs_nic_count, group_ipolicy, fill_all)
+  elif (minmax_ispecs is not None or std_ispecs is not None):
     _InitISpecsFromFullOpts(ipolicy_out, minmax_ispecs, std_ispecs,
                             group_ipolicy, allowed_values)
 

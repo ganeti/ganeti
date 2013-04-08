@@ -27,11 +27,6 @@ ADD
 | [\--node-parameters=*NDPARAMS*]
 | [\--alloc-policy=*POLICY*]
 | [{-D|\--disk-parameters} *disk-template*:*disk-param*=*value*[,*disk-param*=*value*...]]
-| [\--specs-cpu-count *spec-param*=*value* [,*spec-param*=*value*...]]
-| [\--specs-disk-count *spec-param*=*value* [,*spec-param*=*value*...]]
-| [\--specs-disk-size *spec-param*=*value* [,*spec-param*=*value*...]]
-| [\--specs-mem-size *spec-param*=*value* [,*spec-param*=*value*...]]
-| [\--specs-nic-count *spec-param*=*value* [,*spec-param*=*value*...]]
 | [\--ipolicy-bounds-specs *bound_ispecs*]
 | [\--ipolicy-disk-templates *template* [,*template*...]]
 | [\--ipolicy-spindle-ratio *ratio*]
@@ -70,9 +65,8 @@ parameters for the node group; please see the section about
 **gnt-cluster add** in **gnt-cluster**\(8) for more information about
 disk parameters
 
-The ``--specs-...`` and ``--ipolicy-...`` options specify instance
-policies on the node group, and are documented in the
-**gnt-cluster**\(8) man page.
+The ``--ipolicy-...`` options specify instance policies on the node
+group, and are documented in the **gnt-cluster**\(8) man page.
 
 See **ganeti**\(7) for a description of ``--submit`` and other common
 options.
@@ -105,11 +99,6 @@ MODIFY
 | [\--hypervisor-state *hvstate*]
 | [{-D|\--disk-parameters} *disk-template*:*disk-param*=*value*[,*disk-param*=*value*...]]
 | [\--disk-state *diskstate*]
-| [\--specs-cpu-count *spec-param*=*value* [,*spec-param*=*value*...]]
-| [\--specs-disk-count *spec-param*=*value* [,*spec-param*=*value*...]]
-| [\--specs-disk-size *spec-param*=*value* [,*spec-param*=*value*...]]
-| [\--specs-mem-size *spec-param*=*value* [,*spec-param*=*value*...]]
-| [\--specs-nic-count *spec-param*=*value* [,*spec-param*=*value*...]]
 | [\--ipolicy-bounds-specs *bound_ispecs*]
 | [\--ipolicy-disk-templates *template* [,*template*...]]
 | [\--ipolicy-spindle-ratio *ratio*]
@@ -126,9 +115,8 @@ The ``--node-parameters``, ``--alloc-policy``, ``-D
 (--disk-parameters)`` options are documented in the **add** command
 above.
 
-The ``--specs-...`` and ``--ipolicy-...`` options specify instance
-policies on the node group, and are documented in the
-**gnt-cluster**\(8) man page.
+The ``--ipolicy-...`` options specify instance policies on the node
+group, and are documented in the **gnt-cluster**\(8) man page.
 
 See **ganeti**\(7) for a description of ``--submit`` and other common
 options.

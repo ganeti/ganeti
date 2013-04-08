@@ -967,11 +967,6 @@ def SetClusterParams(opts, args):
           opts.hv_state or
           opts.enabled_disk_templates or
           opts.disk_state or
-          opts.ispecs_mem_size or
-          opts.ispecs_cpu_count or
-          opts.ispecs_disk_count or
-          opts.ispecs_disk_size or
-          opts.ispecs_nic_count or
           opts.ipolicy_bounds_specs is not None or
           opts.ipolicy_std_specs is not None or
           opts.ipolicy_disk_templates is not None or
@@ -1025,11 +1020,6 @@ def SetClusterParams(opts, args):
     utils.ForceDictType(ndparams, constants.NDS_PARAMETER_TYPES)
 
   ipolicy = CreateIPolicyFromOpts(
-    ispecs_mem_size=opts.ispecs_mem_size,
-    ispecs_cpu_count=opts.ispecs_cpu_count,
-    ispecs_disk_count=opts.ispecs_disk_count,
-    ispecs_disk_size=opts.ispecs_disk_size,
-    ispecs_nic_count=opts.ispecs_nic_count,
     minmax_ispecs=opts.ipolicy_bounds_specs,
     std_ispecs=opts.ipolicy_std_specs,
     ipolicy_disk_templates=opts.ipolicy_disk_templates,
@@ -1523,7 +1513,7 @@ commands = {
      DEFAULT_IALLOCATOR_OPT, PRIMARY_IP_VERSION_OPT, PREALLOC_WIPE_DISKS_OPT,
      NODE_PARAMS_OPT, GLOBAL_SHARED_FILEDIR_OPT, USE_EXTERNAL_MIP_SCRIPT,
      DISK_PARAMS_OPT, HV_STATE_OPT, DISK_STATE_OPT, ENABLED_DISK_TEMPLATES_OPT,
-     IPOLICY_STD_SPECS_OPT] + INSTANCE_POLICY_OPTS,
+     IPOLICY_STD_SPECS_OPT] + INSTANCE_POLICY_OPTS + SPLIT_ISPECS_OPTS,
     "[opts...] <cluster_name>", "Initialises a new cluster configuration"),
   "destroy": (
     DestroyCluster, ARGS_NONE, [YES_DOIT_OPT],
