@@ -187,7 +187,7 @@ def _DestroyInstanceDisks(instance):
     filestorage = pathutils.DEFAULT_FILE_STORAGE_DIR
     idir = os.path.join(filestorage, instance.name)
     for node in info["nodes"]:
-      AssertCommand(["rm", "-rf"] + idir, node=node)
+      AssertCommand(["rm", "-rf", idir], node=node)
   elif info["storage-type"] == constants.ST_DISKLESS:
     pass
 
