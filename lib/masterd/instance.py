@@ -1621,7 +1621,7 @@ def ComputeDiskSize(disk_template, disks):
   """
   # Required free disk space as a function of disk and swap space
   req_size_dict = {
-    constants.DT_DISKLESS: None,
+    constants.DT_DISKLESS: 0,
     constants.DT_PLAIN: sum(d[constants.IDISK_SIZE] for d in disks),
     # 128 MB are added for drbd metadata for each disk
     constants.DT_DRBD8:
