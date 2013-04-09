@@ -171,7 +171,7 @@ asJSObject _ = fail "not an object"
 asObjectList :: (Monad m) => [J.JSValue] -> m [J.JSObject J.JSValue]
 asObjectList = mapM asJSObject
 
--- | Try to extract a key from a object with better error reporting
+-- | Try to extract a key from an object with better error reporting
 -- than fromObj.
 tryFromObj :: (J.JSON a) =>
               String     -- ^ Textual "owner" in error messages
