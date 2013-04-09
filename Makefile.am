@@ -959,6 +959,8 @@ TEST_FILES = \
 	test/data/htools/common-suffix.data \
 	test/data/htools/empty-cluster.data \
 	test/data/htools/hail-alloc-drbd.json \
+	test/data/htools/hail-alloc-invalid-twodisks.json \
+	test/data/htools/hail-alloc-twodisks.json \
 	test/data/htools/hail-change-group.json \
 	test/data/htools/hail-invalid-reloc.json \
 	test/data/htools/hail-node-evac.json \
