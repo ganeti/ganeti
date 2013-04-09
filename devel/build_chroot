@@ -62,13 +62,23 @@ debootstrap --arch $ARCH $DIST_RELEASE $CHDIR
 
 APT_INSTALL="apt-get install -y --no-install-recommends"
 
+echo "deb http://backports.debian.org/debian-backports" \
+     "$DIST_RELEASE-backports main contrib non-free" \
+     > $CHDIR/etc/apt/sources.list.d/backports.list
+
 #Install all the packages
 in_chroot -- \
   apt-get update
 
+#Install selected packages from backports
 in_chroot -- \
-  $APT_INSTALL python-setuptools build-essential python-dev sudo automake git \
-               fakeroot vim rsync locales
+  apt-get -y --no-install-recommends -t squeeze-backports install \
+    git \
+    vim
+
+in_chroot -- \
+  $APT_INSTALL python-setuptools build-essential python-dev sudo automake \
+               fakeroot rsync locales
 
 echo "en_US.UTF-8 UTF-8" >> $CHDIR/etc/locale.gen
 
