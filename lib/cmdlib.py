@@ -1513,7 +1513,7 @@ def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
     "INSTANCE_STATUS": status,
     "INSTANCE_MINMEM": minmem,
     "INSTANCE_MAXMEM": maxmem,
-    # TODO(2.7) remove deprecated "memory" value
+    # TODO(2.9) remove deprecated "memory" value
     "INSTANCE_MEMORY": maxmem,
     "INSTANCE_VCPUS": vcpus,
     "INSTANCE_DISK_TEMPLATE": disk_template,
