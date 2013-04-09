@@ -942,14 +942,7 @@ class InstancePolicy(ConfigObject):
     @raise errors.ConfigurationError: when the policy is not legal
 
     """
-    if constants.ISPECS_MINMAX in ipolicy:
-      if check_std and constants.ISPECS_STD not in ipolicy:
-        msg = "Missing key in ipolicy: %s" % constants.ISPECS_STD
-        raise errors.ConfigurationError(msg)
-      minmaxspecs = ipolicy[constants.ISPECS_MINMAX]
-      stdspec = ipolicy.get(constants.ISPECS_STD)
-      for param in constants.ISPECS_PARAMETERS:
-        InstancePolicy.CheckISpecSyntax(minmaxspecs, stdspec, param, check_std)
+    InstancePolicy.CheckISpecSyntax(ipolicy, check_std)
     if constants.IPOLICY_DTS in ipolicy:
       InstancePolicy.CheckDiskTemplates(ipolicy[constants.IPOLICY_DTS])
     for key in constants.IPOLICY_PARAMETERS:
@@ -961,7 +954,35 @@ class InstancePolicy(ConfigObject):
                                       utils.CommaJoin(wrong_keys))
 
   @classmethod
-  def CheckISpecSyntax(cls, minmaxspecs, stdspec, name, check_std):
+  def CheckISpecSyntax(cls, ipolicy, check_std):
+    """Check the instance policy specs for validity.
+
+    @type ipolicy: dict
+    @param ipolicy: dictionary with min/max/std specs
+    @type check_std: bool
+    @param check_std: Whether to check std value or just assume compliance
+    @raise errors.ConfigurationError: when specs are not valid
+
+    """
+    if constants.ISPECS_MINMAX not in ipolicy:
+      # Nothing to check
+      return
+
+    if check_std and constants.ISPECS_STD not in ipolicy:
+      msg = "Missing key in ipolicy: %s" % constants.ISPECS_STD
+      raise errors.ConfigurationError(msg)
+    minmaxspecs = ipolicy[constants.ISPECS_MINMAX]
+    stdspec = ipolicy.get(constants.ISPECS_STD)
+    missing = constants.ISPECS_MINMAX_KEYS - frozenset(minmaxspecs.keys())
+    if missing:
+      msg = "Missing instance specification: %s" % utils.CommaJoin(missing)
+      raise errors.ConfigurationError(msg)
+    for param in constants.ISPECS_PARAMETERS:
+      InstancePolicy._CheckISpecParamSyntax(minmaxspecs, stdspec, param,
+                                            check_std)
+
+  @classmethod
+  def _CheckISpecParamSyntax(cls, minmaxspecs, stdspec, name, check_std):
     """Check the instance policy specs for validity on a given key.
 
     We check if the instance specs makes sense for a given key, that is
@@ -979,11 +1000,6 @@ class InstancePolicy(ConfigObject):
         valid
 
     """
-    missing = constants.ISPECS_MINMAX_KEYS - frozenset(minmaxspecs.keys())
-    if missing:
-      msg = "Missing instance specification: %s" % utils.CommaJoin(missing)
-      raise errors.ConfigurationError(msg)
-
     minspec = minmaxspecs[constants.ISPECS_MIN]
     maxspec = minmaxspecs[constants.ISPECS_MAX]
     min_v = minspec.get(name, 0)

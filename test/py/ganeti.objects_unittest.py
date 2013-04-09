@@ -428,17 +428,49 @@ class TestInstancePolicy(unittest.TestCase):
     self._AssertIPolicyIsFull(constants.IPOLICY_DEFAULTS)
 
   def testCheckISpecSyntax(self):
+    incomplete_ipolicies = [
+      {
+         constants.ISPECS_MINMAX: {},
+         constants.ISPECS_STD: NotImplemented,
+         },
+      {
+        constants.ISPECS_MINMAX: {
+          constants.ISPECS_MIN: NotImplemented,
+          },
+        constants.ISPECS_STD: NotImplemented,
+        },
+      {
+        constants.ISPECS_MINMAX: {
+          constants.ISPECS_MAX: NotImplemented,
+          },
+        constants.ISPECS_STD: NotImplemented,
+        },
+      {
+        constants.ISPECS_MINMAX: {
+          constants.ISPECS_MIN: NotImplemented,
+          constants.ISPECS_MAX: NotImplemented,
+          },
+        },
+      ]
+    for ipol in incomplete_ipolicies:
+      self.assertRaises(errors.ConfigurationError,
+                        objects.InstancePolicy.CheckISpecSyntax,
+                        ipol, True)
+
+  def testCheckISpecParamSyntax(self):
     par = "my_parameter"
     for check_std in [True, False]:
       # Only one policy limit
       for key in constants.ISPECS_MINMAX_KEYS:
         minmax = dict((k, {}) for k in constants.ISPECS_MINMAX_KEYS)
         minmax[key][par] = 11
-        objects.InstancePolicy.CheckISpecSyntax(minmax, {}, par, check_std)
+        objects.InstancePolicy._CheckISpecParamSyntax(minmax, {}, par,
+                                                      check_std)
       if check_std:
         minmax = dict((k, {}) for k in constants.ISPECS_MINMAX_KEYS)
         stdspec = {par: 11}
-        objects.InstancePolicy.CheckISpecSyntax(minmax, stdspec, par, check_std)
+        objects.InstancePolicy._CheckISpecParamSyntax(minmax, stdspec, par,
+                                                      check_std)
 
       # Min and max only
       good_values = [(11, 11), (11, 40), (0, 0)]
@@ -446,12 +478,13 @@ class TestInstancePolicy(unittest.TestCase):
         minmax = dict((k, {}) for k in constants.ISPECS_MINMAX_KEYS)
         minmax[constants.ISPECS_MIN][par] = mn
         minmax[constants.ISPECS_MAX][par] = mx
-        objects.InstancePolicy.CheckISpecSyntax(minmax, {}, par, check_std)
+        objects.InstancePolicy._CheckISpecParamSyntax(minmax, {}, par,
+                                                     check_std)
       minmax = dict((k, {}) for k in constants.ISPECS_MINMAX_KEYS)
       minmax[constants.ISPECS_MIN][par] = 11
       minmax[constants.ISPECS_MAX][par] = 5
       self.assertRaises(errors.ConfigurationError,
-                        objects.InstancePolicy.CheckISpecSyntax,
+                        objects.InstancePolicy._CheckISpecParamSyntax,
                         minmax, {}, par, check_std)
     # Min, std, max
     good_values = [
@@ -465,7 +498,7 @@ class TestInstancePolicy(unittest.TestCase):
         constants.ISPECS_MAX: {par: mx},
         }
       stdspec = {par: st}
-      objects.InstancePolicy.CheckISpecSyntax(minmax, stdspec, par, True)
+      objects.InstancePolicy._CheckISpecParamSyntax(minmax, stdspec, par, True)
     bad_values = [
       (11, 11,  5),
       (40, 11, 11),
@@ -481,7 +514,7 @@ class TestInstancePolicy(unittest.TestCase):
         }
       stdspec = {par: st}
       self.assertRaises(errors.ConfigurationError,
-                        objects.InstancePolicy.CheckISpecSyntax,
+                        objects.InstancePolicy._CheckISpecParamSyntax,
                         minmax, stdspec, par, True)
 
   def testCheckDiskTemplates(self):
