@@ -62,7 +62,7 @@ genInstanceSmallerThan lim_mem lim_dsk lim_cpu = do
   sn <- arbitrary
   vcpus <- choose (0, lim_cpu)
   dt <- arbitrary
-  return $ Instance.create name mem dsk vcpus run_st [] True pn sn dt 1
+  return $ Instance.create name mem dsk [dsk] vcpus run_st [] True pn sn dt 1
 
 -- | Generates an instance smaller than a node.
 genInstanceSmallerThanNode :: Node.Node -> Gen Instance.Instance

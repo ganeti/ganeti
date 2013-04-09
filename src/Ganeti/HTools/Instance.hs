@@ -163,16 +163,16 @@ type List = Container.Container Instance
 --
 -- Some parameters are not initialized by function, and must be set
 -- later (via 'setIdx' for example).
-create :: String -> Int -> Int -> Int -> T.InstanceStatus
+create :: String -> Int -> Int -> [Int] -> Int -> T.InstanceStatus
        -> [String] -> Bool -> T.Ndx -> T.Ndx -> T.DiskTemplate -> Int
        -> Instance
-create name_init mem_init dsk_init vcpus_init run_init tags_init
+create name_init mem_init dsk_init disks_init vcpus_init run_init tags_init
        auto_balance_init pn sn dt su =
   Instance { name = name_init
            , alias = name_init
            , mem = mem_init
            , dsk = dsk_init
-           , disks = [dsk_init]
+           , disks = disks_init
            , vcpus = vcpus_init
            , runSt = run_init
            , pNode = pn

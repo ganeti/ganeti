@@ -172,7 +172,7 @@ parseInstance ktn [ name, disk, mem, vcpus
   xauto_balance <- convert "auto_balance" auto_balance
   xdt <- convert "disk_template" disk_template
   xsu <- convert "be/spindle_use" su
-  let inst = Instance.create xname xmem xdisk xvcpus
+  let inst = Instance.create xname xmem xdisk [xdisk] xvcpus
              xrunning xtags xauto_balance xpnode snode xdt xsu
   return (xname, inst)
 

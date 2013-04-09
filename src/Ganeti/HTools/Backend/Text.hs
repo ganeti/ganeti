@@ -230,7 +230,7 @@ loadInst ktn [ name, mem, dsk, vcpus, status, auto_bal, pnode, snode
   when (sidx == pidx) . fail $ "Instance " ++ name ++
            " has same primary and secondary node - " ++ pnode
   let vtags = commaSplit tags
-      newinst = Instance.create name vmem vdsk vvcpus vstatus vtags
+      newinst = Instance.create name vmem vdsk [vdsk] vvcpus vstatus vtags
                 auto_balance pidx sidx disk_template spindle_use
   return (name, newinst)
 
