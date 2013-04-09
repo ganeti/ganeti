@@ -160,15 +160,15 @@ RPC changes
 -----------
 
 The noded RPC call that reports node storage space will be changed to
-accept a list of <disktemplate>,<key> string tuples. For each of them, it will
+accept a list of <storage_type>,<key> string tuples. For each of them, it will
 report the free amount of storage space found on storage <key> as known
-by the requested disk template. Depending on the disk template, the key would
-be a volume group name, in case of lvm-based disk templates, a directory name
-for the file and shared file storage, and a rados pool name for rados storage.
+by the requested storage_type. Depending on the storage_type, the key would
+be a volume group name in case of lvm, a directory name for the file-based
+storage, and a rados pool name for rados storage.
 
-Masterd will know through the mapping of disk templates to storage types which
-storage type uses which mechanism for storage calculation and invoke only the
-needed ones.
+Masterd will know through the mapping of storage types to storage calculation
+functions which storage type uses which mechanism for storage calculation
+and invoke only the needed ones.
 
 Note that for file and sharedfile the node knows which directories are allowed
 and won't allow any other directory to be queried for security reasons. The
@@ -269,8 +269,8 @@ But the ``node info`` call contains the value of the
 ``exclusive_storage`` flag, which is currently only meaningful for the
 LVM storage type. Additional flags like the ``exclusive_storage`` flag
 for lvm might be useful for other disk templates / storage types as well.
-We therefore extend the RPC call with <disktemplate>,<key> to
-<disktemplate>,<key>,<params> to include any disk-template-specific
+We therefore extend the RPC call with <storage_type>,<key> to
+<storage_type>,<key>,[<param>] to include any disk-template-specific
 (or storage-type specific) parameters in the RPC call.
 
 The reporting of free spindles, also part of Partitioned Ganeti, is not
