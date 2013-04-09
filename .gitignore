@@ -99,6 +99,7 @@
 /tools/kvm-ifup
 /tools/burnin
 /tools/ensure-dirs
+/tools/users-setup
 /tools/vcluster-setup
 /tools/node-cleanup
 /tools/node-daemon-setup

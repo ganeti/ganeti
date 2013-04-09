@@ -181,6 +181,7 @@ CLEANFILES = \
 	$(man_MANS) \
 	$(manhtml) \
 	tools/kvm-ifup \
+	tools/users-setup \
 	tools/vcluster-setup \
 	stamp-directories \
 	stamp-srclinks \
@@ -832,6 +833,7 @@ nodist_tools_python_scripts = \
 
 nodist_tools_SCRIPTS = \
 	$(nodist_tools_python_scripts) \
+	tools/users-setup \
 	tools/vcluster-setup
 
 pkglib_python_scripts = \
@@ -882,6 +884,7 @@ EXTRA_DIST = \
 	devel/upload \
 	devel/webserver \
 	tools/kvm-ifup.in \
+	tools/users-setup.in \
 	tools/vcluster-setup.in \
 	$(docinput) \
 	doc/html \
@@ -1251,6 +1254,10 @@ test/py/ganeti-cleaner_unittest.bash: daemons/ganeti-cleaner
 test/py/bash_completion.bash: doc/examples/bash_completion-debug
 
 tools/kvm-ifup: tools/kvm-ifup.in $(REPLACE_VARS_SED)
+	sed -f $(REPLACE_VARS_SED) < $< > $@
+	chmod +x $@
+
+tools/users-setup: tools/users-setup.in $(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@
 	chmod +x $@
 
