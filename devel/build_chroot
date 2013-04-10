@@ -5,6 +5,7 @@
 : ${DIST_RELEASE=squeeze}
 : ${CONF_DIR:=/etc/schroot/chroot.d}
 : ${CHROOT_DIR:=/srv/chroot}
+: ${ALTERNATIVE_EDITOR:=/usr/bin/vim.basic}
 
 #Automatically generated variables
 CHROOTNAME=$DIST_RELEASE-$ARCH
@@ -149,6 +150,10 @@ in_chroot -- \
 
 in_chroot -- \
   cabal install --global shelltestrunner
+
+#Set default editor
+in_chroot -- \
+  update-alternatives --set editor $ALTERNATIVE_EDITOR
 
 rm -f $COMP_FILEPATH
 echo "Creating compressed schroot image..."
