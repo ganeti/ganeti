@@ -156,6 +156,11 @@ class TestCfgupgrade(unittest.TestCase):
       "instances": {},
       "nodegroups": {},
       }
+    self._TestUpgradeFromData(cfg, dry_run)
+
+  def _TestUpgradeFromData(self, cfg, dry_run):
+    assert "version" in cfg
+    from_version = cfg["version"]
     self._CreateValidConfigDir()
     utils.WriteFile(self.config_path, data=serializer.DumpJson(cfg))
 
@@ -350,21 +355,28 @@ class TestCfgupgrade(unittest.TestCase):
   def testUpgradeCurrent(self):
     self._TestSimpleUpgrade(constants.CONFIG_VERSION, False)
 
-  def testDowngrade(self):
-    self._TestSimpleUpgrade(constants.CONFIG_VERSION, False)
+  def _RunDowngradeUpgrade(self):
     oldconf = self._LoadConfig()
     _RunUpgrade(self.tmpdir, False, True, downgrade=True)
     _RunUpgrade(self.tmpdir, False, True)
     newconf = self._LoadConfig()
     self.assertEqual(oldconf, newconf)
 
-  def testDowngradeTwice(self):
+  def testDowngrade(self):
     self._TestSimpleUpgrade(constants.CONFIG_VERSION, False)
+    self._RunDowngradeUpgrade()
+
+  def _RunDowngradeTwice(self):
+    """Make sure that downgrade is idempotent."""
     _RunUpgrade(self.tmpdir, False, True, downgrade=True)
     oldconf = self._LoadConfig()
     _RunUpgrade(self.tmpdir, False, True, downgrade=True)
     newconf = self._LoadConfig()
     self.assertEqual(oldconf, newconf)
+
+  def testDowngradeTwice(self):
+    self._TestSimpleUpgrade(constants.CONFIG_VERSION, False)
+    self._RunDowngradeTwice()
 
   def testUpgradeDryRunFrom_2_0(self):
     self._TestSimpleUpgrade(constants.BuildVersion(2, 0, 0), True)
