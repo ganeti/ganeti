@@ -636,7 +636,7 @@ def TestInstanceModifyPrimaryAndBack(instance, currentnode, othernode):
                  pathutils.SSH_KNOWN_HOSTS_FILE,
                  "-oCheckHostIp=no", "-oStrictHostKeyChecking=yes",
                  "-oHashKnownHosts=no", "-oHostKeyAlias=%s" % cluster_name,
-                 "-r", disk, "%s:%s" % (other, filestorage)])
+                 "-r", disk, "%s:%s" % (other, filestorage)], node=current)
   AssertCommand(["gnt-instance", "modify", "--new-primary=%s" % other, name])
   AssertCommand(["gnt-instance", "startup", name])
 
