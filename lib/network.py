@@ -29,8 +29,20 @@ from bitarray import bitarray
 
 from ganeti import errors
 
+
+def _ComputeIpv4NumHosts(network_size):
+  """Derives the number of hosts in an IPv4 network from the size.
+
+  """
+  return 2 ** (32 - network_size)
+
+
 IPV4_NETWORK_MIN_SIZE = 30
-IPV4_NETWORK_MIN_NUM_HOSTS = 2 ** (32 - IPV4_NETWORK_MIN_SIZE)
+# FIXME: This limit is for performance reasons. Remove when refactoring
+# for performance tuning was successful.
+IPV4_NETWORK_MAX_SIZE = 16
+IPV4_NETWORK_MIN_NUM_HOSTS = _ComputeIpv4NumHosts(IPV4_NETWORK_MIN_SIZE)
+IPV4_NETWORK_MAX_NUM_HOSTS = _ComputeIpv4NumHosts(IPV4_NETWORK_MAX_SIZE)
 
 
 class AddressPool(object):
@@ -58,6 +70,13 @@ class AddressPool(object):
     self.net = network
 
     self.network = ipaddr.IPNetwork(self.net.network)
+    if self.network.numhosts > IPV4_NETWORK_MAX_NUM_HOSTS:
+      raise errors.AddressPoolError("A big network with %s host(s) is currently"
+                                    " not supported. please specify at most a"
+                                    " /%s network" %
+                                    (str(self.network.numhosts),
+                                     IPV4_NETWORK_MAX_SIZE))
+
     if self.network.numhosts < IPV4_NETWORK_MIN_NUM_HOSTS:
       raise errors.AddressPoolError("A network with only %s host(s) is too"
                                     " small, please specify at least a /%s"
