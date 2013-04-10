@@ -14043,6 +14043,7 @@ class LUInstanceSetParams(LogicalUnit):
     # update instance structure
     instance.disks = new_disks
     instance.disk_template = constants.DT_PLAIN
+    _UpdateIvNames(0, instance.disks)
     self.cfg.Update(instance, feedback_fn)
 
     # Release locks in case removing disks takes a while
