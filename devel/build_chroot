@@ -79,7 +79,7 @@ in_chroot -- \
 
 in_chroot -- \
   $APT_INSTALL python-setuptools build-essential python-dev sudo automake \
-               fakeroot rsync locales
+               fakeroot rsync locales less
 
 echo "en_US.UTF-8 UTF-8" >> $CHDIR/etc/locale.gen
 
