@@ -824,6 +824,7 @@ python_scripts = \
 
 dist_tools_SCRIPTS = \
 	$(python_scripts) \
+	tools/burnin \
 	tools/kvm-console-wrapper \
 	tools/master-ip-setup \
 	tools/xen-console-wrapper
@@ -841,7 +842,6 @@ pkglib_python_scripts = \
 	tools/check-cert-expired
 
 nodist_pkglib_python_scripts = \
-	tools/burnin \
 	tools/ensure-dirs \
 	tools/node-daemon-setup \
 	tools/prepare-node-join
