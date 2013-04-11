@@ -1,6 +1,13 @@
 News
 ====
 
+Version 2.7.0 rc1
+-----------------
+
+*(Unreleased)*
+
+- Fix hail to verify disk instance policies on a per-disk basis (Issue 418).
+
 
 Version 2.7.0 beta2
 -------------------
