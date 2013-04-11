@@ -48,7 +48,7 @@ module Ganeti.OpCodes
   ) where
 
 import Data.Maybe (fromMaybe)
-import Text.JSON (readJSON, showJSON, JSON, JSValue, makeObj)
+import Text.JSON (readJSON, JSON, JSValue, makeObj)
 import qualified Text.JSON
 
 import Ganeti.THH

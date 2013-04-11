@@ -1529,7 +1529,7 @@ def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
     "INSTANCE_STATUS": status,
     "INSTANCE_MINMEM": minmem,
     "INSTANCE_MAXMEM": maxmem,
-    # TODO(2.7) remove deprecated "memory" value
+    # TODO(2.9) remove deprecated "memory" value
     "INSTANCE_MEMORY": maxmem,
     "INSTANCE_VCPUS": vcpus,
     "INSTANCE_DISK_TEMPLATE": disk_template,
@@ -8428,6 +8428,10 @@ class LUInstanceMove(LogicalUnit):
     assert self.instance is not None, \
       "Cannot retrieve locked instance %s" % self.op.instance_name
 
+    if instance.disk_template not in constants.DTS_COPYABLE:
+      raise errors.OpPrereqError("Disk template %s not suitable for copying" %
+                                 instance.disk_template, errors.ECODE_STATE)
+
     node = self.cfg.GetNodeInfo(self.op.target_node)
     assert node is not None, \
       "Cannot retrieve locked node %s" % self.op.target_node
@@ -8503,12 +8507,9 @@ class LUInstanceMove(LogicalUnit):
     try:
       _CreateDisks(self, instance, target_node=target_node)
     except errors.OpExecError:
-      self.LogWarning("Device creation failed, reverting...")
-      try:
-        _RemoveDisks(self, instance, target_node=target_node)
-      finally:
-        self.cfg.ReleaseDRBDMinors(instance.name)
-        raise
+      self.LogWarning("Device creation failed")
+      self.cfg.ReleaseDRBDMinors(instance.name)
+      raise
 
     cluster_name = self.cfg.GetClusterInfo().cluster_name
 
@@ -9741,6 +9742,7 @@ def _CreateDisks(lu, instance, to_skip=None, target_node=None):
     result.Raise("Failed to create directory '%s' on"
                  " node %s" % (file_storage_dir, pnode))
 
+  disks_created = []
   # Note: this needs to be kept in sync with adding of disks in
   # LUInstanceSetParams
   for idx, device in enumerate(instance.disks):
@@ -9750,7 +9752,19 @@ def _CreateDisks(lu, instance, to_skip=None, target_node=None):
     #HARDCODE
     for node in all_nodes:
       f_create = node == pnode
-      _CreateBlockDev(lu, node, instance, device, f_create, info, f_create)
+      try:
+        _CreateBlockDev(lu, node, instance, device, f_create, info, f_create)
+        disks_created.append((node, device))
+      except errors.OpExecError:
+        logging.warning("Creating disk %s for instance '%s' failed",
+                        idx, instance.name)
+        for (node, disk) in disks_created:
+          lu.cfg.SetDiskID(disk, node)
+          result = lu.rpc.call_blockdev_remove(node, disk)
+          if result.fail_msg:
+            logging.warning("Failed to remove newly-created disk %s on node %s:"
+                            " %s", device, node, result.fail_msg)
+        raise
 
 
 def _RemoveDisks(lu, instance, target_node=None, ignore_failures=False):
@@ -9758,8 +9772,7 @@ def _RemoveDisks(lu, instance, target_node=None, ignore_failures=False):
 
   This abstracts away some work from `AddInstance()` and
   `RemoveInstance()`. Note that in case some of the devices couldn't
-  be removed, the removal will continue with the other ones (compare
-  with `_CreateDisks()`).
+  be removed, the removal will continue with the other ones.
 
   @type lu: L{LogicalUnit}
   @param lu: the logical unit on whose behalf we execute
@@ -11033,12 +11046,9 @@ class LUInstanceCreate(LogicalUnit):
       try:
         _CreateDisks(self, iobj)
       except errors.OpExecError:
-        self.LogWarning("Device creation failed, reverting...")
-        try:
-          _RemoveDisks(self, iobj)
-        finally:
-          self.cfg.ReleaseDRBDMinors(instance)
-          raise
+        self.LogWarning("Device creation failed")
+        self.cfg.ReleaseDRBDMinors(instance)
+        raise
 
     feedback_fn("adding instance %s to cluster config" % instance)
 
@@ -14100,6 +14110,7 @@ class LUInstanceSetParams(LogicalUnit):
     # update instance structure
     instance.disks = new_disks
     instance.disk_template = constants.DT_PLAIN
+    _UpdateIvNames(0, instance.disks)
     self.cfg.Update(instance, feedback_fn)
 
     # Release locks in case removing disks takes a while

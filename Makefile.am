@@ -190,6 +190,7 @@ CLEANFILES = \
 	$(man_MANS) \
 	$(manhtml) \
 	tools/kvm-ifup \
+	tools/users-setup \
 	tools/vcluster-setup \
 	stamp-directories \
 	stamp-srclinks \
@@ -856,6 +857,7 @@ python_scripts = \
 
 dist_tools_SCRIPTS = \
 	$(python_scripts) \
+	tools/burnin \
 	tools/kvm-console-wrapper \
 	tools/master-ip-setup \
 	tools/xen-console-wrapper
@@ -865,6 +867,7 @@ nodist_tools_python_scripts = \
 
 nodist_tools_SCRIPTS = \
 	$(nodist_tools_python_scripts) \
+	tools/users-setup \
 	tools/vcluster-setup
 
 pkglib_python_scripts = \
@@ -872,7 +875,6 @@ pkglib_python_scripts = \
 	tools/check-cert-expired
 
 nodist_pkglib_python_scripts = \
-	tools/burnin \
 	tools/ensure-dirs \
 	tools/node-daemon-setup \
 	tools/prepare-node-join
@@ -915,6 +917,7 @@ EXTRA_DIST = \
 	devel/upload \
 	devel/webserver \
 	tools/kvm-ifup.in \
+	tools/users-setup.in \
 	tools/vcluster-setup.in \
 	$(docinput) \
 	doc/html \
@@ -990,6 +993,8 @@ TEST_FILES = \
 	test/data/htools/common-suffix.data \
 	test/data/htools/empty-cluster.data \
 	test/data/htools/hail-alloc-drbd.json \
+	test/data/htools/hail-alloc-invalid-twodisks.json \
+	test/data/htools/hail-alloc-twodisks.json \
 	test/data/htools/hail-change-group.json \
 	test/data/htools/hail-invalid-reloc.json \
 	test/data/htools/hail-node-evac.json \
@@ -1291,6 +1296,10 @@ test/py/ganeti-cleaner_unittest.bash: daemons/ganeti-cleaner
 test/py/bash_completion.bash: doc/examples/bash_completion-debug
 
 tools/kvm-ifup: tools/kvm-ifup.in $(REPLACE_VARS_SED)
+	sed -f $(REPLACE_VARS_SED) < $< > $@
+	chmod +x $@
+
+tools/users-setup: tools/users-setup.in $(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@
 	chmod +x $@
 

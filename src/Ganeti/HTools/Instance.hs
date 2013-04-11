@@ -70,7 +70,8 @@ data Instance = Instance
   { name         :: String    -- ^ The instance name
   , alias        :: String    -- ^ The shortened name
   , mem          :: Int       -- ^ Memory of the instance
-  , dsk          :: Int       -- ^ Disk size of instance
+  , dsk          :: Int       -- ^ Total disk usage of the instance
+  , disks        :: [Int]     -- ^ Sizes of the individual disks
   , vcpus        :: Int       -- ^ Number of VCPUs
   , runSt        :: T.InstanceStatus -- ^ Original run status
   , pNode        :: T.Ndx     -- ^ Original primary node
@@ -162,15 +163,16 @@ type List = Container.Container Instance
 --
 -- Some parameters are not initialized by function, and must be set
 -- later (via 'setIdx' for example).
-create :: String -> Int -> Int -> Int -> T.InstanceStatus
+create :: String -> Int -> Int -> [Int] -> Int -> T.InstanceStatus
        -> [String] -> Bool -> T.Ndx -> T.Ndx -> T.DiskTemplate -> Int
        -> Instance
-create name_init mem_init dsk_init vcpus_init run_init tags_init
+create name_init mem_init dsk_init disks_init vcpus_init run_init tags_init
        auto_balance_init pn sn dt su =
   Instance { name = name_init
            , alias = name_init
            , mem = mem_init
            , dsk = dsk_init
+           , disks = disks_init
            , vcpus = vcpus_init
            , runSt = run_init
            , pNode = pn
@@ -265,7 +267,7 @@ specOf Instance { mem = m, dsk = d, vcpus = c } =
 instBelowISpec :: Instance -> T.ISpec -> T.OpResult ()
 instBelowISpec inst ispec
   | mem inst > T.iSpecMemorySize ispec = Bad T.FailMem
-  | dsk inst > T.iSpecDiskSize ispec   = Bad T.FailDisk
+  | any (> T.iSpecDiskSize ispec) (disks inst) = Bad T.FailDisk
   | vcpus inst > T.iSpecCpuCount ispec = Bad T.FailCPU
   | otherwise = Ok ()
 
@@ -273,7 +275,7 @@ instBelowISpec inst ispec
 instAboveISpec :: Instance -> T.ISpec -> T.OpResult ()
 instAboveISpec inst ispec
   | mem inst < T.iSpecMemorySize ispec = Bad T.FailMem
-  | dsk inst < T.iSpecDiskSize ispec   = Bad T.FailDisk
+  | any (< T.iSpecDiskSize ispec) (disks inst) = Bad T.FailDisk
   | vcpus inst < T.iSpecCpuCount ispec = Bad T.FailCPU
   | otherwise = Ok ()
 

@@ -111,7 +111,8 @@ def InitAndVerifyQueue(must_lock):
       if version is None:
         # Write new version file
         utils.WriteFile(pathutils.JOB_QUEUE_VERSION_FILE,
-                        uid=getents.masterd_uid, gid=getents.masterd_gid,
+                        uid=getents.masterd_uid, gid=getents.daemons_gid,
+                        mode=constants.JOB_QUEUE_FILES_PERMS,
                         data="%s\n" % constants.JOB_QUEUE_VERSION)
 
         # Read again
@@ -125,7 +126,8 @@ def InitAndVerifyQueue(must_lock):
       if serial is None:
         # Write new serial file
         utils.WriteFile(pathutils.JOB_QUEUE_SERIAL_FILE,
-                        uid=getents.masterd_uid, gid=getents.masterd_gid,
+                        uid=getents.masterd_uid, gid=getents.daemons_gid,
+                        mode=constants.JOB_QUEUE_FILES_PERMS,
                         data="%s\n" % 0)
 
         # Read again
@@ -174,7 +176,8 @@ def SetDrainFlag(drain_flag):
 
   if drain_flag:
     utils.WriteFile(pathutils.JOB_QUEUE_DRAIN_FILE, data="",
-                    uid=getents.masterd_uid, gid=getents.masterd_gid)
+                    uid=getents.masterd_uid, gid=getents.daemons_gid,
+                    mode=constants.JOB_QUEUE_FILES_PERMS)
   else:
     utils.RemoveFile(pathutils.JOB_QUEUE_DRAIN_FILE)
 

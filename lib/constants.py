@@ -533,6 +533,14 @@ DTS_FILEBASED = compat.UniqueFrozenset([
   DT_SHARED_FILE,
   ])
 
+# the set of disk templates that can be moved by copying
+# Note: a requirement is that they're not accessed externally or shared between
+# nodes; in particular, sharedfile is not suitable.
+DTS_COPYABLE = compat.UniqueFrozenset([
+  DT_FILE,
+  DT_PLAIN,
+  ])
+
 # the set of disk templates that are supported by exclusive_storage
 DTS_EXCL_STORAGE = compat.UniqueFrozenset([DT_PLAIN])
 
@@ -1761,6 +1769,7 @@ NODE_EVAC_MODES = compat.UniqueFrozenset([
 # Job queue
 JOB_QUEUE_VERSION = 1
 JOB_QUEUE_SIZE_HARD_LIMIT = 5000
+JOB_QUEUE_FILES_PERMS = 0640
 
 JOB_ID_TEMPLATE = r"\d+"
 JOB_FILE_RE = re.compile(r"^job-(%s)$" % JOB_ID_TEMPLATE)

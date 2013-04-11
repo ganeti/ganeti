@@ -65,14 +65,17 @@ parseBaseInstance :: String
                   -> JSRecord
                   -> Result (String, Instance.Instance)
 parseBaseInstance n a = do
-  let extract x = tryFromObj ("invalid data for instance '" ++ n ++ "'") a x
+  let errorMessage = "invalid data for instance '" ++ n ++ "'"
+  let extract x = tryFromObj errorMessage a x
   disk  <- extract "disk_space_total"
+  disks <- extract "disks" >>= toArray >>= asObjectList >>=
+           mapM (flip (tryFromObj errorMessage) "size" . fromJSObject)
   mem   <- extract "memory"
   vcpus <- extract "vcpus"
   tags  <- extract "tags"
   dt    <- extract "disk_template"
   su    <- extract "spindle_use"
-  return (n, Instance.create n mem disk vcpus Running tags True 0 0 dt su)
+  return (n, Instance.create n mem disk disks vcpus Running tags True 0 0 dt su)
 
 -- | Parses an instance as found in the cluster instance list.
 parseInstance :: NameAssoc -- ^ The node name-to-index association list

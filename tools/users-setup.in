@@ -1,0 +1,26 @@
+#!/bin/sh
+#Create common groups
+addgroup --system @GNTDAEMONSGROUP@
+addgroup --system @GNTADMINGROUP@
+
+#Create user-specific groups
+addgroup --system @GNTMASTERUSER@
+addgroup --system @GNTRAPIUSER@
+addgroup --system @GNTCONFDUSER@
+
+#Create users
+adduser --system --ingroup @GNTMASTERDGROUP@ @GNTMASTERUSER@
+adduser --system --ingroup @GNTRAPIGROUP@ @GNTRAPIUSER@
+adduser --system --ingroup @GNTCONFDGROUP@ @GNTCONFDUSER@
+adduser --system @GNTNODEDUSER@
+
+#Add users to extra groups
+for u in @GNTMASTERUSER@ @GNTCONFDUSER@ @GNTRAPIUSER@
+do
+  adduser $u @GNTDAEMONSGROUP@
+done
+
+for u in @GNTMASTERUSER@ @GNTRAPIUSER@
+do
+  adduser $u @GNTADMINGROUP@
+done

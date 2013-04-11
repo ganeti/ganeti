@@ -390,9 +390,12 @@ runAllocation cdata stop_allocation actual_result spec dt mode opts = do
   return (sortReasons reasons, new_nl, length new_ixes, tieredSpecMap new_ixes)
 
 -- | Create an instance from a given spec.
+-- For values not implied by the resorce specification (like distribution of
+-- of the disk space to individual disks), sensible defaults are guessed (e.g.,
+-- having a single disk).
 instFromSpec :: RSpec -> DiskTemplate -> Int -> Instance.Instance
 instFromSpec spx =
-  Instance.create "new" (rspecMem spx) (rspecDsk spx)
+  Instance.create "new" (rspecMem spx) (rspecDsk spx) [rspecDsk spx]
     (rspecCpu spx) Running [] True (-1) (-1)
 
 -- | Main function.

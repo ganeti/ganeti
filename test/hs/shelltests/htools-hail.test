@@ -38,6 +38,15 @@ echo '{"request": 0}' | ./test/hs/hail -
 >>> /"success":true,"info":"Request successful: 0 instances failed to move and 1 were moved successfully"/
 >>>= 0
 
+# check that hail correctly applies the disk policy on a per-disk basis
+./test/hs/hail $TESTDATA_DIR/hail-alloc-twodisks.json
+>>> /"success":true,.*,"result":\["node1"\]/
+>>>= 0
+
+./test/hs/hail $TESTDATA_DIR/hail-alloc-invalid-twodisks.json
+>>> /"success":false,.*FailDisk: 1/
+>>>= 0
+
 # check that hail can use the simu backend
 ./test/hs/hail --simu p,8,8T,16g,16 $TESTDATA_DIR/hail-alloc-drbd.json
 >>> /"success":true,/
