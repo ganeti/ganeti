@@ -68,7 +68,6 @@ Version 2.7.0 beta2
 - Fix confd config load in case of ``--no-lvm-storage``.
 - The confd/query functionality is now mentioned in the security
   documentation.
->>>>>>> devel-2.7
 
 
 Version 2.7.0 beta1
