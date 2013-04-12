@@ -489,6 +489,7 @@ class MoveDestExecutor(object):
     disks = [{
       constants.IDISK_SIZE: i["size"],
       constants.IDISK_MODE: i["mode"],
+      constants.IDISK_NAME: str(i.get("name")),
       } for i in instance["disks"]]
 
     nics = [{
@@ -496,8 +497,9 @@ class MoveDestExecutor(object):
       constants.INIC_MAC: mac,
       constants.INIC_MODE: mode,
       constants.INIC_LINK: link,
-      constants.INIC_NETWORK: network
-      } for ip, mac, mode, link, network, _ in instance["nics"]]
+      constants.INIC_NETWORK: network,
+      constants.INIC_NAME: nic_name
+      } for nic_name, _, ip, mac, mode, link, network, _ in instance["nics"]]
 
     if len(override_nics) > len(nics):
       raise Error("Can not create new NICs")
