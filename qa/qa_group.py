@@ -79,7 +79,74 @@ def TestGroupAddWithOptions():
   AssertCommand(["gnt-group", "remove", group1])
 
 
+def _GetGroupIPolicy(groupname):
+  """Return the run-time values of the cluster-level instance policy.
+
+  @type groupname: string
+  @param groupname: node group name
+  @rtype: tuple
+  @return: (policy, specs), where:
+      - policy is a dictionary of the policy values, instance specs excluded
+      - specs is dict of dict, specs[par][key] is a spec value, where key is
+        "min" or "max"
+
+  """
+  info = qa_utils.GetObjectInfo(["gnt-group", "info", groupname])
+  assert len(info) == 1
+  policy = info[0]["Instance policy"]
+
+  (ret_policy, ret_specs) = qa_utils.ParseIPolicy(policy)
+
+  # Sanity checks
+  assert len(ret_specs) > 0
+  good = all("min" in d and "max" in d
+             for d in ret_specs.values())
+  assert good, "Missing item in specs: %s" % ret_specs
+  assert len(ret_policy) > 0
+  return (ret_policy, ret_specs)
+
+
+def _TestGroupSetISpecs(groupname, new_specs, fail=False, old_values=None):
+  """Change instance specs on a group.
+
+  @type groupname: string
+  @param groupname: group name
+  @type new_specs: dict of dict
+  @param new_specs: new_specs[par][key], where key is "min", "max", "std". It
+      can be an empty dictionary.
+  @type fail: bool
+  @param fail: if the change is expected to fail
+  @type old_values: tuple
+  @param old_values: (old_policy, old_specs), as returned by
+     L{_GetGroupIPolicy}
+  @return: same as L{_GetGroupIPolicy}
+
+  """
+  build_cmd = lambda opts: ["gnt-group", "modify"] + opts + [groupname]
+  get_policy = lambda: _GetGroupIPolicy(groupname)
+  return qa_utils.TestSetISpecs(new_specs, get_policy_fn=get_policy,
+                                build_cmd_fn=build_cmd, fail=fail,
+                                old_values=old_values)
+
+
 def _TestGroupModifyISpecs(groupname):
+  # This test is built on the assumption that the default ipolicy holds for
+  # the node group under test
+  old_values = _GetGroupIPolicy(groupname)
+  mod_values = _TestGroupSetISpecs(groupname,
+                                   dict((p, {"min": 4, "max": 4})
+                                        for p in constants.ISPECS_PARAMETERS),
+                                   old_values=old_values)
+  for par in constants.ISPECS_PARAMETERS:
+    # First make sure that the test works with good values
+    mod_values = _TestGroupSetISpecs(groupname, {par: {"min": 8, "max": 8}},
+                                     old_values=mod_values)
+    _TestGroupSetISpecs(groupname, {par: {"min": 8, "max": 4}},
+                        fail=True, old_values=mod_values)
+  AssertCommand(["gnt-group", "modify", "--ipolicy-bounds-specs", "default",
+                 groupname])
+  AssertEqual(_GetGroupIPolicy(groupname), old_values)
+
   # Get the ipolicy command (from the cluster config)
   mnode = qa_config.GetMasterNode()
   addcmd = GetCommandOutput(mnode.primary, utils.ShellQuoteArgs([
@@ -103,10 +170,33 @@ def _TestGroupModifyISpecs(groupname):
 
 def _TestGroupModifyIPolicy(groupname):
   _TestGroupModifyISpecs(groupname)
-  AssertCommand(["gnt-group", "modify", "--ipolicy-vcpu-ratio",
-                 "3.5", groupname])
-  AssertCommand(["gnt-group", "modify", "--ipolicy-vcpu-ratio",
-                 "default", groupname])
+
+  # We assume that the default ipolicy holds
+  (old_policy, old_specs) = _GetGroupIPolicy(groupname)
+  for (par, setval, iname, expval) in [
+    ("vcpu-ratio", 1.5, None, 1.5),
+    ("spindle-ratio", 1.5, None, 1.5),
+    ("disk-templates", constants.DT_PLAIN,
+     "enabled disk templates", constants.DT_PLAIN)
+    ]:
+    if not iname:
+      iname = par
+    build_cmdline = lambda val: ["gnt-group", "modify", "--ipolicy-" + par,
+                                 str(val), groupname]
+
+    AssertCommand(build_cmdline(setval))
+    (new_policy, new_specs) = _GetGroupIPolicy(groupname)
+    AssertEqual(new_specs, old_specs)
+    for (p, val) in new_policy.items():
+      if p == iname:
+        AssertEqual(val, expval)
+      else:
+        AssertEqual(val, old_policy[p])
+
+    AssertCommand(build_cmdline("default"))
+    (new_policy, new_specs) = _GetGroupIPolicy(groupname)
+    AssertEqual(new_specs, old_specs)
+    AssertEqual(new_policy, old_policy)
 
 
 def TestGroupModify():
