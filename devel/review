@@ -44,7 +44,7 @@ add_reviewed_by() {
       $sob = 1;
 
     } elsif ($sob == 1 and not m/^Signed-off-by:/) {
-      print "Reviewed-by: \n";
+      print "Reviewed-by: $REVIEWER\n";
       $sob = -1;
     }
 
