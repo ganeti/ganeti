@@ -538,16 +538,7 @@ def _GetClusterIPolicy():
   """
   info = qa_utils.GetObjectInfo(["gnt-cluster", "info"])
   policy = info["Instance policy - limits for instances"]
-  ret_specs = {}
-  ret_policy = {}
-  ispec_keys = constants.ISPECS_MINMAX_KEYS | frozenset([constants.ISPECS_STD])
-  for (key, val) in policy.items():
-    if key in ispec_keys:
-      for (par, pval) in val.items():
-        d = ret_specs.setdefault(par, {})
-        d[key] = pval
-    else:
-      ret_policy[key] = val
+  (ret_policy, ret_specs) = qa_utils.ParseIPolicy(policy)
 
   # Sanity checks
   assert len(ret_specs) > 0
@@ -615,20 +606,6 @@ def TestClusterModifyIPolicy():
       AssertEqual(eff_policy[p], old_policy[p])
 
 
-def _GetParameterOptions(key, specs, old_specs):
-  values = ["%s=%s" % (par, keyvals[key])
-            for (par, keyvals) in specs.items()
-            if key in keyvals]
-  if old_specs:
-    present_pars = frozenset(par
-                             for (par, keyvals) in specs.items()
-                             if key in keyvals)
-    values.extend("%s=%s" % (par, keyvals[key])
-                  for (par, keyvals) in old_specs.items()
-                  if key in keyvals and par not in present_pars)
-  return ",".join(values)
-
-
 def TestClusterSetISpecs(new_specs, fail=False, old_values=None):
   """Change instance specs.
 
@@ -643,39 +620,10 @@ def TestClusterSetISpecs(new_specs, fail=False, old_values=None):
   @return: same as L{_GetClusterIPolicy}
 
   """
-  if old_values:
-    (old_policy, old_specs) = old_values
-  else:
-    (old_policy, old_specs) = _GetClusterIPolicy()
-  if new_specs:
-    cmd = ["gnt-cluster", "modify"]
-    if any(("min" in val or "max" in val) for val in new_specs.values()):
-      minmax_opt_items = []
-      for key in ["min", "max"]:
-        keyopt = _GetParameterOptions(key, new_specs, old_specs)
-        minmax_opt_items.append("%s:%s" % (key, keyopt))
-      cmd.extend([
-        "--ipolicy-bounds-specs",
-        "/".join(minmax_opt_items)
-        ])
-    std_opt = _GetParameterOptions("std", new_specs, {})
-    if std_opt:
-      cmd.extend(["--ipolicy-std-specs", std_opt])
-    AssertCommand(cmd, fail=fail)
-
-  # Check the new state
-  (eff_policy, eff_specs) = _GetClusterIPolicy()
-  AssertEqual(eff_policy, old_policy)
-  if fail:
-    AssertEqual(eff_specs, old_specs)
-  else:
-    for par in eff_specs:
-      for key in eff_specs[par]:
-        if par in new_specs and key in new_specs[par]:
-          AssertEqual(int(eff_specs[par][key]), int(new_specs[par][key]))
-        else:
-          AssertEqual(int(eff_specs[par][key]), int(old_specs[par][key]))
-  return (eff_policy, eff_specs)
+  build_cmd = lambda opts: ["gnt-cluster", "modify"] + opts
+  return qa_utils.TestSetISpecs(new_specs, get_policy_fn=_GetClusterIPolicy,
+                                build_cmd_fn=build_cmd, fail=fail,
+                                old_values=old_values)
 
 
 def TestClusterModifyISpecs():
