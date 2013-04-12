@@ -162,7 +162,6 @@ INIT
 | [\--master-netmask *netmask*]
 | [\--use-external-mip-script {yes \| no}]
 | [{-m|\--mac-prefix} *mac-prefix*]
-| [\--no-lvm-storage]
 | [\--no-etc-hosts]
 | [\--no-ssh-init]
 | [\--file-storage-dir *dir*]
@@ -219,7 +218,8 @@ different than "xenvg" for Ganeti to use when creating instance
 disks. This volume group must have the same name on all nodes. Once
 the cluster is initialized this can be altered by using the
 **modify** command. If you don't want to use lvm storage at all use
-the ``--no-lvm-storage`` option. Once the cluster is initialized
+the ``--enabled-disk-template`` option to restrict the set of enabled
+disk templates. Once the cluster is initialized
 you can change this setup with the **modify** command.
 
 The ``--master-netdev`` option is useful for specifying a different
@@ -242,12 +242,6 @@ The ``-m (--mac-prefix)`` option will let you specify a three byte
 prefix under which the virtual MAC addresses of your instances will be
 generated. The prefix must be specified in the format ``XX:XX:XX`` and
 the default is ``aa:00:00``.
-
-The ``--no-lvm-storage`` option allows you to initialize the
-cluster without lvm support. This means that only instances using
-files as storage backend will be possible to create. Once the
-cluster is initialized you can change this setup with the
-**modify** command.
 
 The ``--no-etc-hosts`` option allows you to initialize the cluster
 without modifying the /etc/hosts file.
@@ -557,7 +551,6 @@ MODIFY
 
 | **modify** [\--submit]
 | [\--vg-name *vg-name*]
-| [\--no-lvm-storage]
 | [\--enabled-hypervisors *hypervisors*]
 | [{-H|\--hypervisor-parameters} *hypervisor*:*hv-param*=*value*[,*hv-param*=*value*...]]
 | [{-B|\--backend-parameters} *be-param*=*value*[,*be-param*=*value*...]]
@@ -588,10 +581,9 @@ MODIFY
 
 Modify the options for the cluster.
 
-The ``--vg-name``, ``--no-lvm-storage``, ``--enabled-hypervisors``,
-``-H (--hypervisor-parameters)``, ``-B (--backend-parameters)``,
-``-D (--disk-parameters)``, ``--nic-parameters``, ``-C
-(--candidate-pool-size)``, ``--maintain-node-health``,
+The ``--vg-name``, ``--enabled-hypervisors``, ``-H (--hypervisor-parameters)``,
+``-B (--backend-parameters)``, ``-D (--disk-parameters)``, ``--nic-parameters``,
+``-C (--candidate-pool-size)``, ``--maintain-node-health``,
 ``--prealloc-wipe-disks``, ``--uid-pool``, ``--node-parameters``,
 ``--master-netdev``, ``--master-netmask``, ``--use-external-mip-script``,
 and ``--enabled-disk-templates`` options are described in the **init**
