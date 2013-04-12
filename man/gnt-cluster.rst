@@ -185,6 +185,7 @@ INIT
 | [\--ipolicy-disk-templates *template* [,*template*...]]
 | [\--disk-state *diskstate*]
 | [\--hypervisor-state *hvstate*]
+| [\--drbd-usermode-helper *helper*]
 | [\--enabled-disk-templates *template* [,*template*...]]
 | {*clustername*}
 
@@ -500,6 +501,9 @@ comma-separated list of disk templates.
 - ``--specs-nic-count`` sets limits on the number of NICs used
 - ``--ipolicy-disk-templates`` limits the allowed disk templates
 
+The ``--drbd-usermode-helper`` option can be used to specify a usermode
+helper. Check that this string is the one used by the DRBD kernel.
+
 For details about how to use ``--hypervisor-state`` and ``--disk-state``
 have a look at **ganeti**\(7).
 
@@ -577,6 +581,7 @@ MODIFY
 | [\--specs-nic-count *spec-param*=*value* [,*spec-param*=*value*...]]
 | [\--ipolicy-disk-templates *template* [,*template*...]]
 | [\--enabled-disk-templates *template* [,*template*...]]
+| [\--drbd-usermode-helper *helper*]
 
 
 Modify the options for the cluster.
@@ -586,8 +591,8 @@ The ``--vg-name``, ``--enabled-hypervisors``, ``-H (--hypervisor-parameters)``,
 ``-C (--candidate-pool-size)``, ``--maintain-node-health``,
 ``--prealloc-wipe-disks``, ``--uid-pool``, ``--node-parameters``,
 ``--master-netdev``, ``--master-netmask``, ``--use-external-mip-script``,
-and ``--enabled-disk-templates`` options are described in the **init**
-command.
+``--drbd-usermode-helper``, and ``--enabled-disk-templates`` options are
+described in the **init** command.
 
 The ``--hypervisor-state`` and ``--disk-state`` options are described in
 detail in **ganeti**\(7).
