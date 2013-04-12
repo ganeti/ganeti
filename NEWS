@@ -22,6 +22,8 @@ Version 2.8.0 beta1
   creation.
 - ``cfgupgrade`` now supports a ``--downgrade`` option to bring the
   configuration back to the previous stable version.
+- The cluster option '--no-lvm-storage' was removed in favor of the new option
+  '--enabled-disk-templates'.
 
 
 Version 2.7.0 rc1
