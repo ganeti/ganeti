@@ -1007,8 +1007,7 @@ def TestRemoveInstanceOfflineNode(instance, snode, set_offline, set_online):
 
 
 def TestInstanceCreationRestrictedByDiskTemplates():
-  """Test if adding instances is only possible if they use an enabled
-     disk template."""
+  """Test adding instances for disbled disk templates."""
   enabled_disk_templates = qa_config.GetEnabledDiskTemplates()
   nodes = qa_config.AcquireManyNodes(2)
 

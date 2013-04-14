@@ -626,10 +626,6 @@ def RunInstanceTests():
         qa_config.ReleaseManyNodes(inodes)
       qa_cluster.AssertClusterVerify()
 
-  RunTestIf(
-    "instance-add-restricted-by-disktemplates",
-    qa_instance.TestInstanceCreationRestrictedByDiskTemplates)
-
 
 def RunQa():
   """Main QA body.
@@ -728,6 +724,10 @@ def RunQa():
   RunExclusiveStorageTests()
   RunTestIf(["cluster-instance-policy", "instance-add-plain-disk"],
             TestIPolicyPlainInstance)
+
+  RunTestIf(
+    "instance-add-restricted-by-disktemplates",
+    qa_instance.TestInstanceCreationRestrictedByDiskTemplates)
 
   # Test removing instance with offline drbd secondary
   if qa_config.TestEnabled(["instance-remove-drbd-offline",
