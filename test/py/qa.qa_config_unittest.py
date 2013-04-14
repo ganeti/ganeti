@@ -308,8 +308,13 @@ class TestQaConfig(unittest.TestCase):
       self.config.SetExclusiveStorage(value)
       self.assertEqual(self.config.GetExclusiveStorage(), bool(value))
 
+  def testIsTemplateSupported(self):
+    enabled_dts = self.config.GetEnabledDiskTemplates()
+    for e_s in [False, True]:
+      self.config.SetExclusiveStorage(e_s)
       for template in constants.DISK_TEMPLATES:
-        if value and template not in constants.DTS_EXCL_STORAGE:
+        if (template not in enabled_dts or
+            e_s and template not in constants.DTS_EXCL_STORAGE):
           self.assertFalse(self.config.IsTemplateSupported(template))
         else:
           self.assertTrue(self.config.IsTemplateSupported(template))

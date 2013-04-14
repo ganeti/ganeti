@@ -412,8 +412,9 @@ class _QaConfig(object):
     """Is the given disk template supported by the current configuration?
 
     """
-    return (not self.GetExclusiveStorage() or
-            templ in constants.DTS_EXCL_STORAGE)
+    enabled = templ in self.GetEnabledDiskTemplates()
+    return enabled and (not self.GetExclusiveStorage() or
+                        templ in constants.DTS_EXCL_STORAGE)
 
   def GetVclusterSettings(self):
     """Returns settings for virtual cluster.
@@ -608,7 +609,7 @@ def GetExclusiveStorage():
 
 
 def IsTemplateSupported(templ):
-  """Wrapper for L{_QaConfig.GetExclusiveStorage}.
+  """Wrapper for L{_QaConfig.IsTemplateSupported}.
 
   """
   return GetConfig().IsTemplateSupported(templ)

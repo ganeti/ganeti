@@ -4,6 +4,12 @@
   "disk": ["1G", "512M"],
   "disk-growth": ["2G", "768M"],
 
+  "enabled-disk-templates": [
+    "plain",
+    "drbd",
+    "diskless"
+  ],
+
   "nodes": [
     {
       "# Master node": null,
