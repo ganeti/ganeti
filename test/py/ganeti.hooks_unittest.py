@@ -30,7 +30,7 @@ import os.path
 
 from ganeti import errors
 from ganeti import opcodes
-from ganeti import mcpu
+from ganeti import hooksmaster
 from ganeti import backend
 from ganeti import constants
 from ganeti import cmdlib
@@ -250,14 +250,14 @@ class TestHooksMaster(unittest.TestCase):
 
   def testTotalFalse(self):
     """Test complete rpc failure"""
-    hm = mcpu.HooksMaster.BuildFromLu(self._call_false, self.lu)
+    hm = hooksmaster.HooksMaster.BuildFromLu(self._call_false, self.lu)
     self.failUnlessRaises(errors.HooksFailure,
                           hm.RunPhase, constants.HOOKS_PHASE_PRE)
     hm.RunPhase(constants.HOOKS_PHASE_POST)
 
   def testIndividualFalse(self):
     """Test individual node failure"""
-    hm = mcpu.HooksMaster.BuildFromLu(self._call_nodes_false, self.lu)
+    hm = hooksmaster.HooksMaster.BuildFromLu(self._call_nodes_false, self.lu)
     hm.RunPhase(constants.HOOKS_PHASE_PRE)
     #self.failUnlessRaises(errors.HooksFailure,
     #                      hm.RunPhase, constants.HOOKS_PHASE_PRE)
@@ -265,14 +265,14 @@ class TestHooksMaster(unittest.TestCase):
 
   def testScriptFalse(self):
     """Test individual rpc failure"""
-    hm = mcpu.HooksMaster.BuildFromLu(self._call_script_fail, self.lu)
+    hm = hooksmaster.HooksMaster.BuildFromLu(self._call_script_fail, self.lu)
     self.failUnlessRaises(errors.HooksAbort,
                           hm.RunPhase, constants.HOOKS_PHASE_PRE)
     hm.RunPhase(constants.HOOKS_PHASE_POST)
 
   def testScriptSucceed(self):
     """Test individual rpc failure"""
-    hm = mcpu.HooksMaster.BuildFromLu(FakeHooksRpcSuccess, self.lu)
+    hm = hooksmaster.HooksMaster.BuildFromLu(FakeHooksRpcSuccess, self.lu)
     for phase in (constants.HOOKS_PHASE_PRE, constants.HOOKS_PHASE_POST):
       hm.RunPhase(phase)
 
@@ -323,7 +323,7 @@ class TestHooksRunnerEnv(unittest.TestCase):
   def testEmptyEnv(self):
     # Check pre-phase hook
     self.lu.hook_env = {}
-    hm = mcpu.HooksMaster.BuildFromLu(self._HooksRpc, self.lu)
+    hm = hooksmaster.HooksMaster.BuildFromLu(self._HooksRpc, self.lu)
     hm.RunPhase(constants.HOOKS_PHASE_PRE)
 
     (node_list, hpath, phase, env) = self._rpcs.pop(0)
@@ -349,7 +349,7 @@ class TestHooksRunnerEnv(unittest.TestCase):
     self.lu.hook_env = {
       "FOO": "pre-foo-value",
       }
-    hm = mcpu.HooksMaster.BuildFromLu(self._HooksRpc, self.lu)
+    hm = hooksmaster.HooksMaster.BuildFromLu(self._HooksRpc, self.lu)
     hm.RunPhase(constants.HOOKS_PHASE_PRE)
 
     (node_list, hpath, phase, env) = self._rpcs.pop(0)
@@ -396,7 +396,7 @@ class TestHooksRunnerEnv(unittest.TestCase):
       self.lu.hook_env = { name: "value" }
 
       # Test using a clean HooksMaster instance
-      hm = mcpu.HooksMaster.BuildFromLu(self._HooksRpc, self.lu)
+      hm = hooksmaster.HooksMaster.BuildFromLu(self._HooksRpc, self.lu)
 
       for phase in [constants.HOOKS_PHASE_PRE, constants.HOOKS_PHASE_POST]:
         self.assertRaises(AssertionError, hm.RunPhase, phase)
@@ -404,7 +404,7 @@ class TestHooksRunnerEnv(unittest.TestCase):
 
   def testNoNodes(self):
     self.lu.hook_env = {}
-    hm = mcpu.HooksMaster.BuildFromLu(self._HooksRpc, self.lu)
+    hm = hooksmaster.HooksMaster.BuildFromLu(self._HooksRpc, self.lu)
     hm.RunPhase(constants.HOOKS_PHASE_PRE, nodes=[])
     self.assertRaises(IndexError, self._rpcs.pop)
 
@@ -416,7 +416,7 @@ class TestHooksRunnerEnv(unittest.TestCase):
       "node93782.example.net",
       ]
 
-    hm = mcpu.HooksMaster.BuildFromLu(self._HooksRpc, self.lu)
+    hm = hooksmaster.HooksMaster.BuildFromLu(self._HooksRpc, self.lu)
 
     for phase in [constants.HOOKS_PHASE_PRE, constants.HOOKS_PHASE_POST]:
       hm.RunPhase(phase, nodes=nodes)
@@ -434,7 +434,7 @@ class TestHooksRunnerEnv(unittest.TestCase):
       "FOO": "value",
       }
 
-    hm = mcpu.HooksMaster.BuildFromLu(self._HooksRpc, self.lu)
+    hm = hooksmaster.HooksMaster.BuildFromLu(self._HooksRpc, self.lu)
     hm.RunConfigUpdate()
 
     (node_list, hpath, phase, env) = self._rpcs.pop(0)
@@ -453,7 +453,7 @@ class TestHooksRunnerEnv(unittest.TestCase):
       "FOO": "value",
       }
 
-    hm = mcpu.HooksMaster.BuildFromLu(self._HooksRpc, self.lu)
+    hm = hooksmaster.HooksMaster.BuildFromLu(self._HooksRpc, self.lu)
     hm.RunPhase(constants.HOOKS_PHASE_POST)
 
     (node_list, hpath, phase, env) = self._rpcs.pop(0)
@@ -471,7 +471,7 @@ class TestHooksRunnerEnv(unittest.TestCase):
     self.assertRaises(AssertionError, self.lu.BuildHooksEnv)
     self.assertRaises(AssertionError, self.lu.BuildHooksNodes)
 
-    hm = mcpu.HooksMaster.BuildFromLu(self._HooksRpc, self.lu)
+    hm = hooksmaster.HooksMaster.BuildFromLu(self._HooksRpc, self.lu)
     self.assertEqual(hm.pre_env, {})
     self.assertRaises(IndexError, self._rpcs.pop)
 
