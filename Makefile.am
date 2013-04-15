@@ -1044,6 +1044,8 @@ TEST_FILES = \
 	test/data/bdev-rbd/output_invalid.txt \
 	test/data/cert1.pem \
 	test/data/cert2.pem \
+	test/data/cluster_config_2.7.json \
+	test/data/cluster_config_downgraded_2.7.json \
 	test/data/instance-minor-pairing.txt \
 	test/data/ip-addr-show-dummy0.txt \
 	test/data/ip-addr-show-lo-ipv4.txt \

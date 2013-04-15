@@ -78,6 +78,9 @@ class TestCfgupgrade(unittest.TestCase):
   def _LoadConfig(self):
     return serializer.LoadJson(utils.ReadFile(self.config_path))
 
+  def _LoadTestDataConfig(self, filename):
+    return serializer.LoadJson(testutils.ReadTestData(filename))
+
   def _CreateValidConfigDir(self):
     utils.WriteFile(self.noded_cert_path, data="")
     utils.WriteFile(self.known_hosts_path, data="")
@@ -139,6 +142,10 @@ class TestCfgupgrade(unittest.TestCase):
     # Missing version from config
     utils.WriteFile(self.config_path, data=serializer.DumpJson({}))
     self.assertRaises(Exception, _RunUpgrade, self.tmpdir, False, True)
+
+  def _TestUpgradeFromFile(self, filename, dry_run):
+    cfg = self._LoadTestDataConfig(filename)
+    self._TestUpgradeFromData(cfg, dry_run)
 
   def _TestSimpleUpgrade(self, from_version, dry_run,
                          file_storage_dir=None,
@@ -352,6 +359,12 @@ class TestCfgupgrade(unittest.TestCase):
   def testUpgradeFrom_2_6(self):
     self._TestSimpleUpgrade(constants.BuildVersion(2, 6, 0), False)
 
+  def testUpgradeFrom_2_7(self):
+    self._TestSimpleUpgrade(constants.BuildVersion(2, 7, 0), False)
+
+  def testUpgradeFullConfigFrom_2_7(self):
+    self._TestUpgradeFromFile("cluster_config_2.7.json", False)
+
   def testUpgradeCurrent(self):
     self._TestSimpleUpgrade(constants.CONFIG_VERSION, False)
 
@@ -366,6 +379,23 @@ class TestCfgupgrade(unittest.TestCase):
     self._TestSimpleUpgrade(constants.CONFIG_VERSION, False)
     self._RunDowngradeUpgrade()
 
+  def testDowngradeFullConfig(self):
+    """Test for upgrade + downgrade combination."""
+    # This test can work only with the previous version of a configuration!
+    # For 2.7, downgrading returns the original file only if group policies
+    # don't override instance specs, so we need to use an ad-hoc configuration.
+    oldconfname = "cluster_config_downgraded_2.7.json"
+    self._TestUpgradeFromFile(oldconfname, False)
+    _RunUpgrade(self.tmpdir, False, True, downgrade=True)
+    oldconf = self._LoadTestDataConfig(oldconfname)
+    newconf = self._LoadConfig()
+    self.assertEqual(oldconf, newconf)
+
+  def testDowngradeFullConfigBackwardFrom_2_7(self):
+    """Test for upgrade + downgrade + upgrade combination."""
+    self._TestUpgradeFromFile("cluster_config_2.7.json", False)
+    self._RunDowngradeUpgrade()
+
   def _RunDowngradeTwice(self):
     """Make sure that downgrade is idempotent."""
     _RunUpgrade(self.tmpdir, False, True, downgrade=True)
@@ -376,6 +406,10 @@ class TestCfgupgrade(unittest.TestCase):
 
   def testDowngradeTwice(self):
     self._TestSimpleUpgrade(constants.CONFIG_VERSION, False)
+    self._RunDowngradeTwice()
+
+  def testDowngradeTwiceFullConfigFrom_2_7(self):
+    self._TestUpgradeFromFile("cluster_config_2.7.json", False)
     self._RunDowngradeTwice()
 
   def testUpgradeDryRunFrom_2_0(self):
