@@ -166,7 +166,7 @@ parseNode ktg a = do
               dtotal  <- extract "dtotal"
               dfree   <- extract "dfree"
               ctotal  <- extract "ctotal"
-              return $ Node.create name mtotal mnode mfree
+              return $ Node.create name mtotal mnode mfree 
                      dtotal dfree ctotal False spindles guuid'
   return (name, node)
 

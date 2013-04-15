@@ -39,6 +39,7 @@ module Ganeti.HTools.Node
   , setFmem
   , setPri
   , setSec
+  , setMaster
   , setMdsk
   , setMcpu
   , setPolicy
@@ -130,6 +131,7 @@ data Node = Node
   , offline  :: Bool      -- ^ Whether the node should not be used for
                           -- allocations and skipped from score
                           -- computations
+  , isMaster :: Bool      -- ^ Whether the node is the master node
   , utilPool :: T.DynUtil -- ^ Total utilisation capacity
   , utilLoad :: T.DynUtil -- ^ Sum of instance utilisation
   , pTags    :: TagMap    -- ^ Primary instance exclusion tags and their count
@@ -235,6 +237,7 @@ create name_init mem_t_init mem_n_init mem_f_init
        , pRem = 0
        , pCpu = 0
        , offline = offline_init
+       , isMaster = False
        , xMem = 0
        , mDsk = T.defReservedDiskRatio
        , loDsk = mDskToloDsk T.defReservedDiskRatio dsk_t_init
@@ -276,6 +279,10 @@ setAlias t s = t { alias = s }
 -- | Sets the offline attribute.
 setOffline :: Node -> Bool -> Node
 setOffline t val = t { offline = val }
+
+-- | Sets the master attribute
+setMaster :: Node -> Bool -> Node
+setMaster t val = t { isMaster = val }
 
 -- | Sets the unnaccounted memory.
 setXmem :: Node -> Int -> Node
