@@ -141,35 +141,57 @@ class TestIdentKeyVal(unittest.TestCase):
         self.assertEqual(self._csikv(arg), res)
 
 
-class TestListIdentKeyVal(unittest.TestCase):
-  """Test for cli.check_list_ident_key_val()"""
+class TestMultilistIdentKeyVal(unittest.TestCase):
+  """Test for cli.check_multilist_ident_key_val()"""
 
   @staticmethod
-  def _clikv(value):
-    return cli.check_list_ident_key_val("option", "opt", value)
+  def _cmikv(value):
+    return cli.check_multilist_ident_key_val("option", "opt", value)
 
   def testListIdentKeyVal(self):
     test_cases = [
       ("",
        None),
-      ("foo",
-       {"foo": {}}),
-      ("foo:bar=baz",
-       {"foo": {"bar": "baz"}}),
+      ("foo", [
+        {"foo": {}}
+        ]),
+      ("foo:bar=baz", [
+        {"foo": {"bar": "baz"}}
+        ]),
       ("foo:bar=baz/foo:bat=bad",
        None),
-      ("foo:abc=42/bar:def=11",
-       {"foo": {"abc": "42"},
-        "bar": {"def": "11"}}),
-      ("foo:abc=42/bar:def=11,ghi=07",
-       {"foo": {"abc": "42"},
-        "bar": {"def": "11", "ghi": "07"}}),
+      ("foo:abc=42/bar:def=11", [
+        {"foo": {"abc": "42"},
+         "bar": {"def": "11"}}
+        ]),
+      ("foo:abc=42/bar:def=11,ghi=07", [
+        {"foo": {"abc": "42"},
+         "bar": {"def": "11", "ghi": "07"}}
+        ]),
+      ("foo:abc=42/bar:def=11//",
+       None),
+      ("foo:abc=42/bar:def=11,ghi=07//foobar", [
+        {"foo": {"abc": "42"},
+         "bar": {"def": "11", "ghi": "07"}},
+        {"foobar": {}}
+        ]),
+      ("foo:abc=42/bar:def=11,ghi=07//foobar:xyz=88", [
+        {"foo": {"abc": "42"},
+         "bar": {"def": "11", "ghi": "07"}},
+        {"foobar": {"xyz": "88"}}
+        ]),
+      ("foo:abc=42/bar:def=11,ghi=07//foobar:xyz=88/foo:uvw=314", [
+        {"foo": {"abc": "42"},
+         "bar": {"def": "11", "ghi": "07"}},
+        {"foobar": {"xyz": "88"},
+         "foo": {"uvw": "314"}}
+        ]),
       ]
     for (arg, res) in test_cases:
       if res is None:
-        self.assertRaises(ParameterError, self._clikv, arg)
+        self.assertRaises(ParameterError, self._cmikv, arg)
       else:
-        self.assertEqual(res, self._clikv(arg))
+        self.assertEqual(res, self._cmikv(arg))
 
 
 class TestToStream(unittest.TestCase):
@@ -1381,24 +1403,28 @@ class TestCreateIPolicyFromOpts(unittest.TestCase):
                       ipolicy_vcpu_ratio=None, ipolicy_spindle_ratio=None,
                       fill_all=True)
 
-    good_mmspecs = constants.ISPECS_MINMAX_DEFAULTS
+    good_mmspecs = [
+      constants.ISPECS_MINMAX_DEFAULTS,
+      constants.ISPECS_MINMAX_DEFAULTS,
+      ]
     self._TestInvalidISpecs(good_mmspecs, None, fail=False)
     broken_mmspecs = copy.deepcopy(good_mmspecs)
-    for key in constants.ISPECS_MINMAX_KEYS:
-      for par in constants.ISPECS_PARAMETERS:
-        old = broken_mmspecs[key][par]
-        del broken_mmspecs[key][par]
+    for minmaxpair in broken_mmspecs:
+      for key in constants.ISPECS_MINMAX_KEYS:
+        for par in constants.ISPECS_PARAMETERS:
+          old = minmaxpair[key][par]
+          del minmaxpair[key][par]
+          self._TestInvalidISpecs(broken_mmspecs, None)
+          minmaxpair[key][par] = "invalid"
+          self._TestInvalidISpecs(broken_mmspecs, None)
+          minmaxpair[key][par] = old
+        minmaxpair[key]["invalid_key"] = None
         self._TestInvalidISpecs(broken_mmspecs, None)
-        broken_mmspecs[key][par] = "invalid"
-        self._TestInvalidISpecs(broken_mmspecs, None)
-        broken_mmspecs[key][par] = old
-      broken_mmspecs[key]["invalid_key"] = None
+        del minmaxpair[key]["invalid_key"]
+      minmaxpair["invalid_key"] = None
       self._TestInvalidISpecs(broken_mmspecs, None)
-      del broken_mmspecs[key]["invalid_key"]
-    broken_mmspecs["invalid_key"] = None
-    self._TestInvalidISpecs(broken_mmspecs, None)
-    del broken_mmspecs["invalid_key"]
-    assert broken_mmspecs == good_mmspecs
+      del minmaxpair["invalid_key"]
+      assert broken_mmspecs == good_mmspecs
 
     good_stdspecs = constants.IPOLICY_DEFAULTS[constants.ISPECS_STD]
     self._TestInvalidISpecs(None, good_stdspecs, fail=False)
@@ -1421,7 +1447,7 @@ class TestCreateIPolicyFromOpts(unittest.TestCase):
       constants.IPOLICY_VCPU_RATIO: allowedv,
       constants.IPOLICY_SPINDLE_RATIO: allowedv,
       }
-    pol1 = cli.CreateIPolicyFromOpts(minmax_ispecs={allowedv: {}},
+    pol1 = cli.CreateIPolicyFromOpts(minmax_ispecs=[{allowedv: {}}],
                                      std_ispecs=None,
                                      ipolicy_disk_templates=allowedv,
                                      ipolicy_vcpu_ratio=allowedv,
@@ -1448,10 +1474,13 @@ class TestCreateIPolicyFromOpts(unittest.TestCase):
                            group_ipolicy, fill_all):
     exp_ipol = skel_exp_ipol.copy()
     if exp_minmax is not None:
-      minmax_ispecs = {}
-      for (key, spec) in exp_minmax.items():
-        minmax_ispecs[key] = self._ConvertSpecToStrings(spec)
-      exp_ipol[constants.ISPECS_MINMAX] = [exp_minmax]
+      minmax_ispecs = []
+      for exp_mm_pair in exp_minmax:
+        mmpair = {}
+        for (key, spec) in exp_mm_pair.items():
+          mmpair[key] = self._ConvertSpecToStrings(spec)
+        minmax_ispecs.append(mmpair)
+      exp_ipol[constants.ISPECS_MINMAX] = exp_minmax
     else:
       minmax_ispecs = None
     if exp_std is not None:
@@ -1463,12 +1492,13 @@ class TestCreateIPolicyFromOpts(unittest.TestCase):
     self._CheckNewStyleSpecsCall(exp_ipol, minmax_ispecs, std_ispecs,
                                  group_ipolicy, fill_all)
     if minmax_ispecs:
-      for (key, spec) in minmax_ispecs.items():
-        for par in [constants.ISPEC_MEM_SIZE, constants.ISPEC_DISK_SIZE]:
-          if par in spec:
-            spec[par] += "m"
-            self._CheckNewStyleSpecsCall(exp_ipol, minmax_ispecs, std_ispecs,
-                                         group_ipolicy, fill_all)
+      for mmpair in minmax_ispecs:
+        for (key, spec) in mmpair.items():
+          for par in [constants.ISPEC_MEM_SIZE, constants.ISPEC_DISK_SIZE]:
+            if par in spec:
+              spec[par] += "m"
+              self._CheckNewStyleSpecsCall(exp_ipol, minmax_ispecs, std_ispecs,
+                                           group_ipolicy, fill_all)
     if std_ispecs:
       for par in [constants.ISPEC_MEM_SIZE, constants.ISPEC_DISK_SIZE]:
         if par in std_ispecs:
@@ -1477,24 +1507,64 @@ class TestCreateIPolicyFromOpts(unittest.TestCase):
                                        group_ipolicy, fill_all)
 
   def testFullISpecs(self):
-    exp_minmax1 = {
-      constants.ISPECS_MIN: {
-        constants.ISPEC_MEM_SIZE: 512,
-        constants.ISPEC_CPU_COUNT: 2,
-        constants.ISPEC_DISK_COUNT: 2,
-        constants.ISPEC_DISK_SIZE: 512,
-        constants.ISPEC_NIC_COUNT: 2,
-        constants.ISPEC_SPINDLE_USE: 2,
+    exp_minmax1 = [
+      {
+        constants.ISPECS_MIN: {
+          constants.ISPEC_MEM_SIZE: 512,
+          constants.ISPEC_CPU_COUNT: 2,
+          constants.ISPEC_DISK_COUNT: 2,
+          constants.ISPEC_DISK_SIZE: 512,
+          constants.ISPEC_NIC_COUNT: 2,
+          constants.ISPEC_SPINDLE_USE: 2,
+          },
+        constants.ISPECS_MAX: {
+          constants.ISPEC_MEM_SIZE: 768*1024,
+          constants.ISPEC_CPU_COUNT: 7,
+          constants.ISPEC_DISK_COUNT: 6,
+          constants.ISPEC_DISK_SIZE: 2048*1024,
+          constants.ISPEC_NIC_COUNT: 3,
+          constants.ISPEC_SPINDLE_USE: 3,
+          },
         },
-      constants.ISPECS_MAX: {
-        constants.ISPEC_MEM_SIZE: 768*1024,
-        constants.ISPEC_CPU_COUNT: 7,
-        constants.ISPEC_DISK_COUNT: 6,
-        constants.ISPEC_DISK_SIZE: 2048*1024,
-        constants.ISPEC_NIC_COUNT: 3,
-        constants.ISPEC_SPINDLE_USE: 1,
+      ]
+    exp_minmax2 = [
+      {
+        constants.ISPECS_MIN: {
+          constants.ISPEC_MEM_SIZE: 512,
+          constants.ISPEC_CPU_COUNT: 2,
+          constants.ISPEC_DISK_COUNT: 2,
+          constants.ISPEC_DISK_SIZE: 512,
+          constants.ISPEC_NIC_COUNT: 2,
+          constants.ISPEC_SPINDLE_USE: 2,
+          },
+        constants.ISPECS_MAX: {
+          constants.ISPEC_MEM_SIZE: 768*1024,
+          constants.ISPEC_CPU_COUNT: 7,
+          constants.ISPEC_DISK_COUNT: 6,
+          constants.ISPEC_DISK_SIZE: 2048*1024,
+          constants.ISPEC_NIC_COUNT: 3,
+          constants.ISPEC_SPINDLE_USE: 3,
+          },
         },
-      }
+      {
+        constants.ISPECS_MIN: {
+          constants.ISPEC_MEM_SIZE: 1024*1024,
+          constants.ISPEC_CPU_COUNT: 3,
+          constants.ISPEC_DISK_COUNT: 3,
+          constants.ISPEC_DISK_SIZE: 256,
+          constants.ISPEC_NIC_COUNT: 4,
+          constants.ISPEC_SPINDLE_USE: 5,
+          },
+        constants.ISPECS_MAX: {
+          constants.ISPEC_MEM_SIZE: 2048*1024,
+          constants.ISPEC_CPU_COUNT: 5,
+          constants.ISPEC_DISK_COUNT: 5,
+          constants.ISPEC_DISK_SIZE: 1024*1024,
+          constants.ISPEC_NIC_COUNT: 5,
+          constants.ISPEC_SPINDLE_USE: 7,
+          },
+        },
+      ]
     exp_std1 = {
       constants.ISPEC_MEM_SIZE: 768*1024,
       constants.ISPEC_CPU_COUNT: 7,
@@ -1508,12 +1578,13 @@ class TestCreateIPolicyFromOpts(unittest.TestCase):
         skel_ipolicy = constants.IPOLICY_DEFAULTS
       else:
         skel_ipolicy = {}
-      self._TestFullISpecsInner(skel_ipolicy, exp_minmax1, exp_std1,
-                                False, fill_all)
       self._TestFullISpecsInner(skel_ipolicy, None, exp_std1,
                                 False, fill_all)
-      self._TestFullISpecsInner(skel_ipolicy, exp_minmax1, None,
-                                False, fill_all)
+      for exp_minmax in [exp_minmax1, exp_minmax2]:
+        self._TestFullISpecsInner(skel_ipolicy, exp_minmax, exp_std1,
+                                  False, fill_all)
+        self._TestFullISpecsInner(skel_ipolicy, exp_minmax, None,
+                                  False, fill_all)
 
 
 class TestPrintIPolicyCommand(unittest.TestCase):
@@ -1528,6 +1599,11 @@ class TestPrintIPolicyCommand(unittest.TestCase):
     "another_param": 101,
     }
   _SPECS2_STR = "another_param=101,param=10"
+  _SPECS3 = {
+    "par1": 1024,
+    "param": "abc",
+    }
+  _SPECS3_STR = "par1=1024,param=abc"
 
   def _CheckPrintIPolicyCommand(self, ipolicy, isgroup, expected):
     buf = StringIO()
@@ -1565,6 +1641,19 @@ class TestPrintIPolicyCommand(unittest.TestCase):
         }]},
        " %s min:%s/max:%s" % (cli.IPOLICY_BOUNDS_SPECS_STR,
                               self._SPECS1_STR, self._SPECS2_STR)),
+      ({"minmax": [
+        {
+          "min": self._SPECS1,
+          "max": self._SPECS2,
+          },
+        {
+          "min": self._SPECS2,
+          "max": self._SPECS3,
+          },
+        ]},
+       " %s min:%s/max:%s//min:%s/max:%s" %
+       (cli.IPOLICY_BOUNDS_SPECS_STR, self._SPECS1_STR, self._SPECS2_STR,
+        self._SPECS2_STR, self._SPECS3_STR)),
       ]
     for (pol, exp) in cases:
       self._CheckPrintIPolicyCommand(pol, False, exp)

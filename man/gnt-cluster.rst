@@ -508,7 +508,8 @@ details about this role and other node roles, see the **ganeti**\(7).
 The ``--specs-...`` and ``--ipolicy-...`` options specify the instance
 policy on the cluster. The ``--ipolicy-bounds-specs`` option sets the
 minimum and maximum specifications for instances. The format is:
-min:*param*=*value*,.../max:*param*=*value*,... The
+min:*param*=*value*,.../max:*param*=*value*,... and further
+specifications pairs can be added by using ``//`` as a separator. The
 ``--ipolicy-std-specs`` option takes a list of parameter/value pairs.
 For both options, *param* can be:
 

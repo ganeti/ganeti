@@ -680,14 +680,17 @@ def _SplitListKeyVal(opt, value):
   return retval
 
 
-def check_list_ident_key_val(_, opt, value):
-  """Custom parser for "ident:key=val,key=val/ident:key=val" options.
+def check_multilist_ident_key_val(_, opt, value):
+  """Custom parser for "ident:key=val,key=val/ident:key=val//ident:.." options.
 
   @rtype: list of dictionary
-  @return: {ident: {key: val, key: val}, ident: {key: val}}
+  @return: [{ident: {key: val, key: val}, ident: {key: val}}, {ident:..}]
 
   """
-  return _SplitListKeyVal(opt, value)
+  retval = []
+  for line in value.split("//"):
+    retval.append(_SplitListKeyVal(opt, line))
+  return retval
 
 
 def check_bool(option, opt, value): # pylint: disable=W0613
@@ -762,7 +765,7 @@ class CliOption(Option):
     "completion_suggest",
     ]
   TYPES = Option.TYPES + (
-    "listidentkeyval",
+    "multilistidentkeyval",
     "identkeyval",
     "keyval",
     "unit",
@@ -771,7 +774,7 @@ class CliOption(Option):
     "maybefloat",
     )
   TYPE_CHECKER = Option.TYPE_CHECKER.copy()
-  TYPE_CHECKER["listidentkeyval"] = check_list_ident_key_val
+  TYPE_CHECKER["multilistidentkeyval"] = check_multilist_ident_key_val
   TYPE_CHECKER["identkeyval"] = check_ident_key_val
   TYPE_CHECKER["keyval"] = check_key_val
   TYPE_CHECKER["unit"] = check_unit
@@ -964,7 +967,7 @@ SPECS_NIC_COUNT_OPT = cli_option("--specs-nic-count", dest="ispecs_nic_count",
 IPOLICY_BOUNDS_SPECS_STR = "--ipolicy-bounds-specs"
 IPOLICY_BOUNDS_SPECS_OPT = cli_option(IPOLICY_BOUNDS_SPECS_STR,
                                       dest="ipolicy_bounds_specs",
-                                      type="listidentkeyval", default=None,
+                                      type="multilistidentkeyval", default=None,
                                       help="Complete instance specs limits")
 
 IPOLICY_STD_SPECS_STR = "--ipolicy-std-specs"
@@ -3796,12 +3799,17 @@ def PrintIPolicyCommand(buf, ipolicy, isgroup):
     if stdspecs:
       buf.write(" %s " % IPOLICY_STD_SPECS_STR)
       _PrintSpecsParameters(buf, stdspecs)
-  minmax = ipolicy.get("minmax")
-  if minmax:
-    minspecs = minmax[0].get("min")
-    maxspecs = minmax[0].get("max")
+  minmaxes = ipolicy.get("minmax", [])
+  first = True
+  for minmax in minmaxes:
+    minspecs = minmax.get("min")
+    maxspecs = minmax.get("max")
     if minspecs and maxspecs:
-      buf.write(" %s " % IPOLICY_BOUNDS_SPECS_STR)
+      if first:
+        buf.write(" %s " % IPOLICY_BOUNDS_SPECS_STR)
+        first = False
+      else:
+        buf.write("//")
       buf.write("min:")
       _PrintSpecsParameters(buf, minspecs)
       buf.write("/max:")
@@ -3945,8 +3953,9 @@ def _ParseISpec(spec, keyname, required):
 
 def _GetISpecsInAllowedValues(minmax_ispecs, allowed_values):
   ret = None
-  if minmax_ispecs and allowed_values and len(minmax_ispecs) == 1:
-    for (key, spec) in minmax_ispecs.items():
+  if (minmax_ispecs and allowed_values and len(minmax_ispecs) == 1 and
+      len(minmax_ispecs[0]) == 1):
+    for (key, spec) in minmax_ispecs[0].items():
       # This loop is executed exactly once
       if key in allowed_values and not spec:
         ret = key
@@ -3959,13 +3968,16 @@ def _InitISpecsFromFullOpts(ipolicy_out, minmax_ispecs, std_ispecs,
   if found_allowed is not None:
     ipolicy_out[constants.ISPECS_MINMAX] = found_allowed
   elif minmax_ispecs is not None:
-    minmax_out = {}
-    for (key, spec) in minmax_ispecs.items():
-      if key not in constants.ISPECS_MINMAX_KEYS:
-        msg = "Invalid key in bounds instance specifications: %s" % key
-        raise errors.OpPrereqError(msg, errors.ECODE_INVAL)
-      minmax_out[key] = _ParseISpec(spec, key, True)
-    ipolicy_out[constants.ISPECS_MINMAX] = [minmax_out]
+    minmax_out = []
+    for mmpair in minmax_ispecs:
+      mmpair_out = {}
+      for (key, spec) in mmpair.items():
+        if key not in constants.ISPECS_MINMAX_KEYS:
+          msg = "Invalid key in bounds instance specifications: %s" % key
+          raise errors.OpPrereqError(msg, errors.ECODE_INVAL)
+        mmpair_out[key] = _ParseISpec(spec, key, True)
+      minmax_out.append(mmpair_out)
+    ipolicy_out[constants.ISPECS_MINMAX] = minmax_out
   if std_ispecs is not None:
     assert not group_ipolicy # This is not an option for gnt-group
     ipolicy_out[constants.ISPECS_STD] = _ParseISpec(std_ispecs, "std", False)
