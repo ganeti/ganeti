@@ -512,7 +512,7 @@ $(buildObject "MinMaxISpecs" "mmis"
 -- has a special 2-level inheritance mode.
 $(buildObject "PartialIPolicy" "ipolicy"
   [ optionalField . renameField "MinMaxISpecsP"
-                    $ simpleField C.ispecsMinmax   [t| MinMaxISpecs |]
+                    $ simpleField C.ispecsMinmax   [t| [MinMaxISpecs] |]
   , optionalField . renameField "StdSpecP"
                     $ simpleField "std"            [t| PartialISpecParams |]
   , optionalField . renameField "SpindleRatioP"
@@ -527,7 +527,7 @@ $(buildObject "PartialIPolicy" "ipolicy"
 -- has a special 2-level inheritance mode.
 $(buildObject "FilledIPolicy" "ipolicy"
   [ renameField "MinMaxISpecs"
-    $ simpleField C.ispecsMinmax [t| MinMaxISpecs |]
+    $ simpleField C.ispecsMinmax [t| [MinMaxISpecs] |]
   , renameField "StdSpec" $ simpleField "std" [t| FilledISpecParams |]
   , simpleField "spindle-ratio"  [t| Double |]
   , simpleField "vcpu-ratio"     [t| Double |]

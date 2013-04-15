@@ -198,8 +198,10 @@ support all options. Some common options are:
   groups, in the following format (separated by ``|``):
 
   - owner (empty if cluster, group name otherwise)
-  - standard, min, max instance specs, containing the following values
-    separated by commas:
+  - standard, min, max instance specs; min and max instance specs are
+    separated between them by a semicolon, and can be specified multiple
+    times (min;max;min;max...); each of the specs contains the following
+    values separated by commas:
     - memory size
     - cpu count
     - disk size

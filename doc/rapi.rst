@@ -251,7 +251,7 @@ The instance policy specification is a dict with the following fields:
 
 
 :pyeval:`constants.ISPECS_MINMAX`
-  A dict with the following two fields:
+  A list of dictionaries, each with the following two fields:
 
   |ispec-min|, |ispec-max|
     A sub- `dict` with the following fields, which sets the limit of the

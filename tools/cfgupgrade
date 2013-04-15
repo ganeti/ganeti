@@ -104,8 +104,8 @@ def CheckHostname(path):
 
 def _FillIPolicySpecs(default_ipolicy, ipolicy):
   if "minmax" in ipolicy:
-    for (key, spec) in ipolicy["minmax"].items():
-      for (par, val) in default_ipolicy["minmax"][key].items():
+    for (key, spec) in ipolicy["minmax"][0].items():
+      for (par, val) in default_ipolicy["minmax"][0][key].items():
         if par not in spec:
           spec[par] = val
 
@@ -120,7 +120,7 @@ def UpgradeIPolicy(ipolicy, default_ipolicy, isgroup):
           minmax[key] = ipolicy[key]
         del ipolicy[key]
     if minmax:
-      ipolicy["minmax"] = minmax
+      ipolicy["minmax"] = [minmax]
   if isgroup and "std" in ipolicy:
     del ipolicy["std"]
   _FillIPolicySpecs(default_ipolicy, ipolicy)
@@ -260,13 +260,19 @@ def UpgradeAll(config_data):
   UpgradeInstances(config_data)
 
 
-def DowngradeIPolicy(ipolicy):
+def DowngradeIPolicy(ipolicy, owner):
   # Downgrade IPolicy to 2.7 (stable)
   minmax_keys = ["min", "max"]
   specs_is_split = any((k in ipolicy) for k in minmax_keys)
   if not specs_is_split:
     if "minmax" in ipolicy:
-      minmax = ipolicy["minmax"]
+      if type(ipolicy["minmax"]) is not list:
+        raise Error("Invalid minmax type in %s ipolicy: %s" %
+                    (owner, type(ipolicy["minmax"])))
+      if len(ipolicy["minmax"]) > 1:
+        logging.warning("Discarding some limit specs values from %s policy",
+                        owner)
+      minmax = ipolicy["minmax"][0]
       del ipolicy["minmax"]
     else:
       minmax = {}
@@ -281,7 +287,7 @@ def DowngradeGroups(config_data):
   for group in config_data["nodegroups"].values():
     ipolicy = group.get("ipolicy", None)
     if ipolicy is not None:
-      DowngradeIPolicy(ipolicy)
+      DowngradeIPolicy(ipolicy, "group \"%s\"" % group.get("name"))
 
 
 def DowngradeEnabledTemplates(cluster):
@@ -300,7 +306,7 @@ def DowngradeCluster(config_data):
   DowngradeEnabledTemplates(cluster)
   ipolicy = cluster.get("ipolicy", None)
   if ipolicy:
-    DowngradeIPolicy(ipolicy)
+    DowngradeIPolicy(ipolicy, "cluster")
 
 
 def DowngradeAll(config_data):

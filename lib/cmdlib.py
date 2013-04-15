@@ -828,7 +828,8 @@ def _GetUpdatedIPolicy(old_ipolicy, new_ipolicy, group_policy=False):
     if (not value or value == [constants.VALUE_DEFAULT] or
         value == constants.VALUE_DEFAULT):
       if group_policy:
-        del ipolicy[key]
+        if key in ipolicy:
+          del ipolicy[key]
       else:
         raise errors.OpPrereqError("Can't unset ipolicy attribute '%s'"
                                    " on the cluster'" % key,
@@ -843,8 +844,9 @@ def _GetUpdatedIPolicy(old_ipolicy, new_ipolicy, group_policy=False):
                                      " '%s': '%s', error: %s" %
                                      (key, value, err), errors.ECODE_INVAL)
       elif key == constants.ISPECS_MINMAX:
-        for k in value.keys():
-          utils.ForceDictType(value[k], constants.ISPECS_PARAMETER_TYPES)
+        for minmax in value:
+          for k in minmax.keys():
+            utils.ForceDictType(minmax[k], constants.ISPECS_PARAMETER_TYPES)
         ipolicy[key] = value
       elif key == constants.ISPECS_STD:
         if group_policy:
@@ -1276,10 +1278,15 @@ def _ComputeIPolicySpecViolation(ipolicy, mem_size, cpu_count, disk_count,
     ret.append("Disk template %s is not allowed (allowed templates: %s)" %
                (disk_template, utils.CommaJoin(allowed_dts)))
 
-  minmax = ipolicy[constants.ISPECS_MINMAX]
-  return ret + filter(None,
-                      (_compute_fn(name, qualifier, minmax, value)
-                       for (name, qualifier, value) in test_settings))
+  min_errs = None
+  for minmax in ipolicy[constants.ISPECS_MINMAX]:
+    errs = filter(None,
+                  (_compute_fn(name, qualifier, minmax, value)
+                   for (name, qualifier, value) in test_settings))
+    if min_errs is None or len(errs) < len(min_errs):
+      min_errs = errs
+  assert min_errs is not None
+  return ret + min_errs
 
 
 def _ComputeIPolicyInstanceViolation(ipolicy, instance, cfg,

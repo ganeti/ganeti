@@ -169,12 +169,12 @@ $(THH.buildObject "ISpec" "iSpec"
 
 -- | The default minimum ispec.
 defMinISpec :: ISpec
-defMinISpec = ISpec { iSpecMemorySize = C.ipolicyDefaultsMinmaxMinMemorySize
-                    , iSpecCpuCount   = C.ipolicyDefaultsMinmaxMinCpuCount
-                    , iSpecDiskSize   = C.ipolicyDefaultsMinmaxMinDiskSize
-                    , iSpecDiskCount  = C.ipolicyDefaultsMinmaxMinDiskCount
-                    , iSpecNicCount   = C.ipolicyDefaultsMinmaxMinNicCount
-                    , iSpecSpindleUse = C.ipolicyDefaultsMinmaxMinSpindleUse
+defMinISpec = ISpec { iSpecMemorySize = C.ispecsMinmaxDefaultsMinMemorySize
+                    , iSpecCpuCount   = C.ispecsMinmaxDefaultsMinCpuCount
+                    , iSpecDiskSize   = C.ispecsMinmaxDefaultsMinDiskSize
+                    , iSpecDiskCount  = C.ispecsMinmaxDefaultsMinDiskCount
+                    , iSpecNicCount   = C.ispecsMinmaxDefaultsMinNicCount
+                    , iSpecSpindleUse = C.ispecsMinmaxDefaultsMinSpindleUse
                     }
 
 -- | The default standard ispec.
@@ -189,12 +189,12 @@ defStdISpec = ISpec { iSpecMemorySize = C.ipolicyDefaultsStdMemorySize
 
 -- | The default max ispec.
 defMaxISpec :: ISpec
-defMaxISpec = ISpec { iSpecMemorySize = C.ipolicyDefaultsMinmaxMaxMemorySize
-                    , iSpecCpuCount   = C.ipolicyDefaultsMinmaxMaxCpuCount
-                    , iSpecDiskSize   = C.ipolicyDefaultsMinmaxMaxDiskSize
-                    , iSpecDiskCount  = C.ipolicyDefaultsMinmaxMaxDiskCount
-                    , iSpecNicCount   = C.ipolicyDefaultsMinmaxMaxNicCount
-                    , iSpecSpindleUse = C.ipolicyDefaultsMinmaxMaxSpindleUse
+defMaxISpec = ISpec { iSpecMemorySize = C.ispecsMinmaxDefaultsMaxMemorySize
+                    , iSpecCpuCount   = C.ispecsMinmaxDefaultsMaxCpuCount
+                    , iSpecDiskSize   = C.ispecsMinmaxDefaultsMaxDiskSize
+                    , iSpecDiskCount  = C.ispecsMinmaxDefaultsMaxDiskCount
+                    , iSpecNicCount   = C.ispecsMinmaxDefaultsMaxNicCount
+                    , iSpecSpindleUse = C.ispecsMinmaxDefaultsMaxSpindleUse
                     }
 
 -- | Minimum and maximum instance specs type.
@@ -204,15 +204,15 @@ $(THH.buildObject "MinMaxISpecs" "minMaxISpecs"
   ])
 
 -- | Defult minimum and maximum instance specs.
-defMinMaxISpecs :: MinMaxISpecs
-defMinMaxISpecs = MinMaxISpecs { minMaxISpecsMinSpec = defMinISpec
-                               , minMaxISpecsMaxSpec = defMaxISpec
-                               }
+defMinMaxISpecs :: [MinMaxISpecs]
+defMinMaxISpecs = [MinMaxISpecs { minMaxISpecsMinSpec = defMinISpec
+                                , minMaxISpecsMaxSpec = defMaxISpec
+                                }]
 
 -- | Instance policy type.
 $(THH.buildObject "IPolicy" "iPolicy"
   [ THH.renameField "MinMaxISpecs" $
-      THH.simpleField C.ispecsMinmax [t| MinMaxISpecs |]
+      THH.simpleField C.ispecsMinmax [t| [MinMaxISpecs] |]
   , THH.renameField "StdSpec" $ THH.simpleField C.ispecsStd [t| ISpec |]
   , THH.renameField "DiskTemplates" $
       THH.simpleField C.ipolicyDts [t| [DiskTemplate] |]

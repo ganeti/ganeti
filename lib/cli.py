@@ -3736,13 +3736,24 @@ def FormatPolicyInfo(custom_ipolicy, eff_ipolicy, iscluster):
   if iscluster:
     eff_ipolicy = custom_ipolicy
 
-  custom_minmax = custom_ipolicy.get(constants.ISPECS_MINMAX, {})
-  ret = [
-    (key,
-     FormatParamsDictInfo(custom_minmax.get(key, {}),
-                          eff_ipolicy[constants.ISPECS_MINMAX][key]))
-    for key in constants.ISPECS_MINMAX_KEYS
-    ]
+  minmax_out = []
+  custom_minmax = custom_ipolicy.get(constants.ISPECS_MINMAX)
+  if custom_minmax:
+    for (k, minmax) in enumerate(custom_minmax):
+      minmax_out.append([
+        ("%s/%s" % (key, k),
+         FormatParamsDictInfo(minmax[key], minmax[key]))
+        for key in constants.ISPECS_MINMAX_KEYS
+        ])
+  else:
+    for (k, minmax) in enumerate(eff_ipolicy[constants.ISPECS_MINMAX]):
+      minmax_out.append([
+        ("%s/%s" % (key, k),
+         FormatParamsDictInfo({}, minmax[key]))
+        for key in constants.ISPECS_MINMAX_KEYS
+        ])
+  ret = [("bounds specs", minmax_out)]
+
   if iscluster:
     stdspecs = custom_ipolicy[constants.ISPECS_STD]
     ret.append(
@@ -3787,8 +3798,8 @@ def PrintIPolicyCommand(buf, ipolicy, isgroup):
       _PrintSpecsParameters(buf, stdspecs)
   minmax = ipolicy.get("minmax")
   if minmax:
-    minspecs = minmax.get("min")
-    maxspecs = minmax.get("max")
+    minspecs = minmax[0].get("min")
+    maxspecs = minmax[0].get("max")
     if minspecs and maxspecs:
       buf.write(" %s " % IPOLICY_BOUNDS_SPECS_STR)
       buf.write("min:")
@@ -3892,13 +3903,14 @@ def _InitISpecsFromSplitOpts(ipolicy, ispecs_mem_size, ispecs_cpu_count,
     for key, val in specs.items(): # {min: .. ,max: .., std: ..}
       assert key in ispecs
       ispecs[key][name] = val
-  ipolicy[constants.ISPECS_MINMAX] = {}
+  minmax_out = {}
   for key in constants.ISPECS_MINMAX_KEYS:
     if fill_all:
-      ipolicy[constants.ISPECS_MINMAX][key] = \
+      minmax_out[key] = \
         objects.FillDict(constants.ISPECS_MINMAX_DEFAULTS[key], ispecs[key])
     else:
-      ipolicy[constants.ISPECS_MINMAX][key] = ispecs[key]
+      minmax_out[key] = ispecs[key]
+  ipolicy[constants.ISPECS_MINMAX] = [minmax_out]
   if fill_all:
     ipolicy[constants.ISPECS_STD] = \
         objects.FillDict(constants.IPOLICY_DEFAULTS[constants.ISPECS_STD],
@@ -3953,7 +3965,7 @@ def _InitISpecsFromFullOpts(ipolicy_out, minmax_ispecs, std_ispecs,
         msg = "Invalid key in bounds instance specifications: %s" % key
         raise errors.OpPrereqError(msg, errors.ECODE_INVAL)
       minmax_out[key] = _ParseISpec(spec, key, True)
-    ipolicy_out[constants.ISPECS_MINMAX] = minmax_out
+    ipolicy_out[constants.ISPECS_MINMAX] = [minmax_out]
   if std_ispecs is not None:
     assert not group_ipolicy # This is not an option for gnt-group
     ipolicy_out[constants.ISPECS_STD] = _ParseISpec(std_ispecs, "std", False)

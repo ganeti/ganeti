@@ -52,7 +52,7 @@ import qualified Ganeti.HTools.Types as Types
 -- | Null iPolicy, and by null we mean very liberal.
 nullIPolicy :: Types.IPolicy
 nullIPolicy = Types.IPolicy
-  { Types.iPolicyMinMaxISpecs = Types.MinMaxISpecs
+  { Types.iPolicyMinMaxISpecs = [Types.MinMaxISpecs
     { Types.minMaxISpecsMinSpec = Types.ISpec { Types.iSpecMemorySize = 0
                                               , Types.iSpecCpuCount   = 0
                                               , Types.iSpecDiskSize   = 0
@@ -68,7 +68,7 @@ nullIPolicy = Types.IPolicy
       , Types.iSpecNicCount   = C.maxNics
       , Types.iSpecSpindleUse = maxBound
       }
-    }
+    }]
   , Types.iPolicyStdSpec = Types.ISpec { Types.iSpecMemorySize = Types.unitMem
                                        , Types.iSpecCpuCount   = Types.unitCpu
                                        , Types.iSpecDiskSize   = Types.unitDsk

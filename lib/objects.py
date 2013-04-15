@@ -959,20 +959,24 @@ class InstancePolicy(ConfigObject):
     if check_std:
       InstancePolicy._CheckIncompleteSpec(stdspec, constants.ISPECS_STD)
 
-    minmaxspecs = ipolicy[constants.ISPECS_MINMAX]
-    missing = constants.ISPECS_MINMAX_KEYS - frozenset(minmaxspecs.keys())
-    if missing:
-      msg = "Missing instance specification: %s" % utils.CommaJoin(missing)
-      raise errors.ConfigurationError(msg)
-    for (key, spec) in minmaxspecs.items():
-      InstancePolicy._CheckIncompleteSpec(spec, key)
+    if not ipolicy[constants.ISPECS_MINMAX]:
+      raise errors.ConfigurationError("Empty minmax specifications")
+    std_is_good = False
+    for minmaxspecs in ipolicy[constants.ISPECS_MINMAX]:
+      missing = constants.ISPECS_MINMAX_KEYS - frozenset(minmaxspecs.keys())
+      if missing:
+        msg = "Missing instance specification: %s" % utils.CommaJoin(missing)
+        raise errors.ConfigurationError(msg)
+      for (key, spec) in minmaxspecs.items():
+        InstancePolicy._CheckIncompleteSpec(spec, key)
 
-    spec_std_ok = True
-    for param in constants.ISPECS_PARAMETERS:
-      par_std_ok = InstancePolicy._CheckISpecParamSyntax(minmaxspecs, stdspec,
-                                                         param, check_std)
-      spec_std_ok = spec_std_ok and par_std_ok
-    if not spec_std_ok:
+      spec_std_ok = True
+      for param in constants.ISPECS_PARAMETERS:
+        par_std_ok = InstancePolicy._CheckISpecParamSyntax(minmaxspecs, stdspec,
+                                                           param, check_std)
+        spec_std_ok = spec_std_ok and par_std_ok
+      std_is_good = std_is_good or spec_std_ok
+    if not std_is_good:
       raise errors.ConfigurationError("Invalid std specifications")
 
   @classmethod

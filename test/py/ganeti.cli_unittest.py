@@ -1184,7 +1184,8 @@ class TestCreateIPolicyFromOpts(unittest.TestCase):
     # Policies are big, and we want to see the difference in case of an error
     self.maxDiff = None
 
-  def _RecursiveCheckMergedDicts(self, default_pol, diff_pol, merged_pol):
+  def _RecursiveCheckMergedDicts(self, default_pol, diff_pol, merged_pol,
+                                 merge_minmax=False):
     self.assertTrue(type(default_pol) is dict)
     self.assertTrue(type(diff_pol) is dict)
     self.assertTrue(type(merged_pol) is dict)
@@ -1194,6 +1195,12 @@ class TestCreateIPolicyFromOpts(unittest.TestCase):
       if key in diff_pol:
         if type(val) is dict:
           self._RecursiveCheckMergedDicts(default_pol[key], diff_pol[key], val)
+        elif (merge_minmax and key == "minmax" and type(val) is list and
+              len(val) == 1):
+          self.assertEqual(len(default_pol[key]), 1)
+          self.assertEqual(len(diff_pol[key]), 1)
+          self._RecursiveCheckMergedDicts(default_pol[key][0],
+                                          diff_pol[key][0], val[0])
         else:
           self.assertEqual(val, diff_pol[key])
       else:
@@ -1214,16 +1221,18 @@ class TestCreateIPolicyFromOpts(unittest.TestCase):
     self.assertEqual(pol0, constants.IPOLICY_DEFAULTS)
 
     exp_pol1 = {
-      constants.ISPECS_MINMAX: {
-        constants.ISPECS_MIN: {
-          constants.ISPEC_CPU_COUNT: 2,
-          constants.ISPEC_DISK_COUNT: 1,
+      constants.ISPECS_MINMAX: [
+        {
+          constants.ISPECS_MIN: {
+            constants.ISPEC_CPU_COUNT: 2,
+            constants.ISPEC_DISK_COUNT: 1,
+            },
+          constants.ISPECS_MAX: {
+            constants.ISPEC_MEM_SIZE: 12*1024,
+            constants.ISPEC_DISK_COUNT: 2,
+            },
           },
-        constants.ISPECS_MAX: {
-          constants.ISPEC_MEM_SIZE: 12*1024,
-          constants.ISPEC_DISK_COUNT: 2,
-          },
-        },
+        ],
       constants.ISPECS_STD: {
         constants.ISPEC_CPU_COUNT: 2,
         constants.ISPEC_DISK_COUNT: 2,
@@ -1242,18 +1251,20 @@ class TestCreateIPolicyFromOpts(unittest.TestCase):
       fill_all=True
       )
     self._RecursiveCheckMergedDicts(constants.IPOLICY_DEFAULTS,
-                                    exp_pol1, pol1)
+                                    exp_pol1, pol1, merge_minmax=True)
 
     exp_pol2 = {
-      constants.ISPECS_MINMAX: {
-        constants.ISPECS_MIN: {
-          constants.ISPEC_DISK_SIZE: 512,
-          constants.ISPEC_NIC_COUNT: 2,
+      constants.ISPECS_MINMAX: [
+        {
+          constants.ISPECS_MIN: {
+            constants.ISPEC_DISK_SIZE: 512,
+            constants.ISPEC_NIC_COUNT: 2,
+            },
+          constants.ISPECS_MAX: {
+            constants.ISPEC_NIC_COUNT: 3,
+            },
           },
-        constants.ISPECS_MAX: {
-          constants.ISPEC_NIC_COUNT: 3,
-          },
-        },
+        ],
       constants.ISPECS_STD: {
         constants.ISPEC_CPU_COUNT: 2,
         constants.ISPEC_NIC_COUNT: 3,
@@ -1273,7 +1284,7 @@ class TestCreateIPolicyFromOpts(unittest.TestCase):
       fill_all=True
       )
     self._RecursiveCheckMergedDicts(constants.IPOLICY_DEFAULTS,
-                                      exp_pol2, pol2)
+                                      exp_pol2, pol2, merge_minmax=True)
 
     for fill_all in [False, True]:
       exp_pol3 = {
@@ -1294,7 +1305,7 @@ class TestCreateIPolicyFromOpts(unittest.TestCase):
         )
       if fill_all:
         self._RecursiveCheckMergedDicts(constants.IPOLICY_DEFAULTS,
-                                        exp_pol3, pol3)
+                                        exp_pol3, pol3, merge_minmax=True)
       else:
         self.assertEqual(pol3, exp_pol3)
 
@@ -1384,6 +1395,9 @@ class TestCreateIPolicyFromOpts(unittest.TestCase):
       broken_mmspecs[key]["invalid_key"] = None
       self._TestInvalidISpecs(broken_mmspecs, None)
       del broken_mmspecs[key]["invalid_key"]
+    broken_mmspecs["invalid_key"] = None
+    self._TestInvalidISpecs(broken_mmspecs, None)
+    del broken_mmspecs["invalid_key"]
     assert broken_mmspecs == good_mmspecs
 
     good_stdspecs = constants.IPOLICY_DEFAULTS[constants.ISPECS_STD]
@@ -1437,7 +1451,7 @@ class TestCreateIPolicyFromOpts(unittest.TestCase):
       minmax_ispecs = {}
       for (key, spec) in exp_minmax.items():
         minmax_ispecs[key] = self._ConvertSpecToStrings(spec)
-      exp_ipol[constants.ISPECS_MINMAX] = exp_minmax
+      exp_ipol[constants.ISPECS_MINMAX] = [exp_minmax]
     else:
       minmax_ispecs = None
     if exp_std is not None:
@@ -1527,15 +1541,16 @@ class TestPrintIPolicyCommand(unittest.TestCase):
     policies = [
       {},
       {"std": {}},
-      {"minmax": {}},
-      {"minmax": {
+      {"minmax": []},
+      {"minmax": [{}]},
+      {"minmax": [{
         "min": {},
         "max": {},
-        }},
-      {"minmax": {
+        }]},
+      {"minmax": [{
         "min": self._SPECS1,
         "max": {},
-        }},
+        }]},
       ]
     for pol in policies:
       self._CheckPrintIPolicyCommand(pol, False, "")
@@ -1544,10 +1559,10 @@ class TestPrintIPolicyCommand(unittest.TestCase):
     cases = [
       ({"std": self._SPECS1},
        " %s %s" % (cli.IPOLICY_STD_SPECS_STR, self._SPECS1_STR)),
-      ({"minmax": {
+      ({"minmax": [{
         "min": self._SPECS1,
         "max": self._SPECS2,
-        }},
+        }]},
        " %s min:%s/max:%s" % (cli.IPOLICY_BOUNDS_SPECS_STR,
                               self._SPECS1_STR, self._SPECS2_STR)),
       ]

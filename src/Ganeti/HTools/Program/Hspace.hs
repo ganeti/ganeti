@@ -446,9 +446,13 @@ main opts args = do
 
   -- Run the tiered allocation
 
-  let minmax = iPolicyMinMaxISpecs ipol
-  let tspec = fromMaybe (rspecFromISpec (minMaxISpecsMaxSpec minmax))
-              (optTieredSpec opts)
+  let minmaxes = iPolicyMinMaxISpecs ipol
+  -- TODO: Go through all min/max specs pairs
+  tspec <- case minmaxes of
+             [] -> exitErr "Empty list of specs received from the cluster"
+             minmax:_ -> return $ fromMaybe
+                         (rspecFromISpec (minMaxISpecsMaxSpec minmax))
+                         (optTieredSpec opts)
 
   (treason, trl_nl, _, spec_map) <-
     runAllocation cdata stop_allocation

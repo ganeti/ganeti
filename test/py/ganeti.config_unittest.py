@@ -461,12 +461,13 @@ class TestConfigRunner(unittest.TestCase):
 
     ispeclist = []
     if constants.ISPECS_MINMAX in ipolicy:
-      ispeclist.extend([
-        (ipolicy[constants.ISPECS_MINMAX][constants.ISPECS_MIN],
-         "%s/%s" % (constants.ISPECS_MINMAX, constants.ISPECS_MIN)),
-        (ipolicy[constants.ISPECS_MINMAX][constants.ISPECS_MAX],
-         "%s/%s" % (constants.ISPECS_MINMAX, constants.ISPECS_MAX)),
-        ])
+      for k in range(len(ipolicy[constants.ISPECS_MINMAX])):
+        ispeclist.extend([
+            (ipolicy[constants.ISPECS_MINMAX][k][constants.ISPECS_MIN],
+             "%s[%s]/%s" % (constants.ISPECS_MINMAX, k, constants.ISPECS_MIN)),
+            (ipolicy[constants.ISPECS_MINMAX][k][constants.ISPECS_MAX],
+             "%s[%s]/%s" % (constants.ISPECS_MINMAX, k, constants.ISPECS_MAX)),
+            ])
     if constants.ISPECS_STD in ipolicy:
       ispeclist.append((ipolicy[constants.ISPECS_STD], constants.ISPECS_STD))
 
@@ -498,23 +499,24 @@ class TestConfigRunner(unittest.TestCase):
 
     if constants.ISPECS_MINMAX in ipolicy:
       # Test partial minmax specs
-      minmax = ipolicy[constants.ISPECS_MINMAX]
-      for key in constants.ISPECS_MINMAX_KEYS:
-        self.assertTrue(key in minmax)
-        ispec = minmax[key]
-        del minmax[key]
-        errs = cfg.VerifyConfig()
-        self.assertTrue(len(errs) >= 1)
-        self.assertTrue(_IsErrorInList("Missing instance specification", errs))
-        minmax[key] = ispec
-        for par in constants.ISPECS_PARAMETERS:
-          oldv = ispec[par]
-          del ispec[par]
+      for minmax in ipolicy[constants.ISPECS_MINMAX]:
+        for key in constants.ISPECS_MINMAX_KEYS:
+          self.assertTrue(key in minmax)
+          ispec = minmax[key]
+          del minmax[key]
           errs = cfg.VerifyConfig()
           self.assertTrue(len(errs) >= 1)
-          self.assertTrue(_IsErrorInList("Missing instance specs parameters",
+          self.assertTrue(_IsErrorInList("Missing instance specification",
                                          errs))
-          ispec[par] = oldv
+          minmax[key] = ispec
+          for par in constants.ISPECS_PARAMETERS:
+            oldv = ispec[par]
+            del ispec[par]
+            errs = cfg.VerifyConfig()
+            self.assertTrue(len(errs) >= 1)
+            self.assertTrue(_IsErrorInList("Missing instance specs parameters",
+                                           errs))
+            ispec[par] = oldv
       errs = cfg.VerifyConfig()
       self.assertFalse(errs)
 

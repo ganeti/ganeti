@@ -6,5 +6,5 @@ node2.example.com|1024|0|896|95367|94343|4|N|fake-uuid-01|1
 instance1.example.com|128|1024|1|running|Y|node2.example.com||plain|
 
 
-|128,1,1024,1,1,1|128,1,1024,1,1,1|32768,8,1048576,16,8,1|diskless,file,sharedfile,plain,blockdev,drbd,rbd|4.0|32.0
-default|128,1,1024,1,1,1|128,1,1024,1,1,1|32768,8,1048576,16,8,1|diskless,file,sharedfile,plain,blockdev,drbd,rbd|4.0|32.0
+|128,1,1024,1,1,1|128,1,1024,1,1,1;32768,8,1048576,16,8,1|diskless,file,sharedfile,plain,blockdev,drbd,rbd|4.0|32.0
+default|128,1,1024,1,1,1|128,1,1024,1,1,1;32768,8,1048576,16,8,1|diskless,file,sharedfile,plain,blockdev,drbd,rbd|4.0|32.0

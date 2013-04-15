@@ -7,7 +7,7 @@
 
 {-
 
-Copyright (C) 2009, 2010, 2011, 2012 Google Inc.
+Copyright (C) 2009, 2010, 2011, 2012, 2013 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -158,6 +158,13 @@ prop_ISpecIdempotent ispec =
     Bad msg -> failTest $ "Failed to load ispec: " ++ msg
     Ok ispec' -> ispec ==? ispec'
 
+prop_MultipleMinMaxISpecsIdempotent :: [Types.MinMaxISpecs] -> Property
+prop_MultipleMinMaxISpecsIdempotent minmaxes =
+  case Text.loadMultipleMinMaxISpecs "dummy" . Utils.sepSplit ';' .
+       Text.serializeMultipleMinMaxISpecs $ minmaxes of
+    Bad msg -> failTest $ "Failed to load min/max ispecs: " ++ msg
+    Ok minmaxes' -> minmaxes ==? minmaxes'
+
 prop_IPolicyIdempotent :: Types.IPolicy -> Property
 prop_IPolicyIdempotent ipol =
   case Text.loadIPolicy . Utils.sepSplit '|' $
@@ -210,6 +217,7 @@ testSuite "HTools/Backend/Text"
             , 'prop_Load_NodeFail
             , 'prop_NodeLSIdempotent
             , 'prop_ISpecIdempotent
+            , 'prop_MultipleMinMaxISpecsIdempotent
             , 'prop_IPolicyIdempotent
             , 'prop_CreateSerialise
             ]
