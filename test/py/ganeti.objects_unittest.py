@@ -428,22 +428,23 @@ class TestInstancePolicy(unittest.TestCase):
     self._AssertIPolicyIsFull(constants.IPOLICY_DEFAULTS)
 
   def testCheckISpecSyntax(self):
+    default_stdspec = constants.IPOLICY_DEFAULTS[constants.ISPECS_STD]
     incomplete_ipolicies = [
       {
          constants.ISPECS_MINMAX: {},
-         constants.ISPECS_STD: NotImplemented,
+         constants.ISPECS_STD: default_stdspec,
          },
       {
         constants.ISPECS_MINMAX: {
           constants.ISPECS_MIN: NotImplemented,
           },
-        constants.ISPECS_STD: NotImplemented,
+        constants.ISPECS_STD: default_stdspec,
         },
       {
         constants.ISPECS_MINMAX: {
           constants.ISPECS_MAX: NotImplemented,
           },
-        constants.ISPECS_STD: NotImplemented,
+        constants.ISPECS_STD: default_stdspec,
         },
       {
         constants.ISPECS_MINMAX: {
@@ -488,22 +489,27 @@ class TestInstancePolicy(unittest.TestCase):
       stdspec = {par: st}
       objects.InstancePolicy._CheckISpecParamSyntax(minmax, stdspec, par, True)
     bad_values = [
-      (11, 11,  5),
-      (40, 11, 11),
-      (11, 80, 40),
-      (11,  5, 40),
-      (11,  5,  5),
-      (40, 40, 11),
+      (11, 11,  5, True),
+      (40, 11, 11, True),
+      (11, 80, 40, False),
+      (11,  5, 40, False,),
+      (11,  5,  5, True),
+      (40, 40, 11, True),
       ]
-    for (mn, st, mx) in bad_values:
+    for (mn, st, mx, excp) in bad_values:
       minmax = {
         constants.ISPECS_MIN: {par: mn},
         constants.ISPECS_MAX: {par: mx},
         }
       stdspec = {par: st}
-      self.assertRaises(errors.ConfigurationError,
-                        objects.InstancePolicy._CheckISpecParamSyntax,
-                        minmax, stdspec, par, True)
+      if excp:
+        self.assertRaises(errors.ConfigurationError,
+                          objects.InstancePolicy._CheckISpecParamSyntax,
+                          minmax, stdspec, par, True)
+      else:
+        ret = objects.InstancePolicy._CheckISpecParamSyntax(minmax, stdspec,
+                                                            par, True)
+        self.assertFalse(ret)
 
   def testCheckDiskTemplates(self):
     invalid = "this_is_not_a_good_template"
