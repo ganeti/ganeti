@@ -98,6 +98,14 @@ filterOutput g l =
       nonNullOnly = filter (not . null)
   in nonNullOnly (map (onlineOnly . byGroupOnly g) l)
 
+-- | Put the master node last.
+-- Reorder a list of lists of nodes such that the master node (if present)
+-- is the last node of the last group.
+masterLast :: [[Node.Node]] -> [[Node.Node]]
+masterLast rebootgroups =
+  map (uncurry (++)) . uncurry (++) . partition (null . snd) $
+  map (partition (not . Node.isMaster)) rebootgroups
+
 -- | Main function.
 main :: Options -> [String] -> IO ()
 main opts args = do
@@ -121,7 +129,6 @@ main opts args = do
       Just grp -> return (Just grp)
 
   -- TODO: fail if instances are running (with option to warn only)
-  -- TODO: identify master node, and put it last
 
   nodeGraph <- case Node.mkNodeGraph nlf ilf of
                      Nothing -> exitErr "Cannot create node graph"
@@ -138,7 +145,8 @@ main opts args = do
         (snd . minimumBy (comparing (IntMap.size . snd))) colorings
       idToNode = (`Container.find` nlf)
       nodesRebootGroups = map (map idToNode) $ IntMap.elems smallestColoring
-      outputRebootGroups = filterOutput wantedGroup nodesRebootGroups
+      outputRebootGroups = masterLast $
+                           filterOutput wantedGroup nodesRebootGroups
       outputRebootNames = map (map Node.name) outputRebootGroups
 
   when (verbose > 1) . putStrLn $ getStats colorings
