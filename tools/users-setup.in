@@ -24,3 +24,5 @@ for u in @GNTMASTERUSER@ @GNTRAPIUSER@
 do
   adduser $u @GNTADMINGROUP@
 done
+
+adduser @GNTMASTERUSER@ @GNTCONFDGROUP@
