@@ -49,8 +49,11 @@ this design doc. Note that it is possible to force an instance to use a disk
 template that is not allowed by the ipolicy. This is not possible if the
 template is not enabled by the cluster.
 
-FIXME: In what way should verification between the enabled disk templates in
-the cluster and in the ipolicy take place?
+The ipolicy also contains a list of enabled disk templates. Since the cluster-
+wide enabled disk templates should be a stronger constraint, the list of
+enabled disk templates in the ipolicy should be a subset of those. In case the
+user tries to create an inconsistent situation here, gnt-cluster should emit
+a warning.
 
 We consider the first disk template in the list to be the default template for
 instance creation and storage reporting. This will remove the need to specify
