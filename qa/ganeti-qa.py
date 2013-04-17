@@ -640,7 +640,8 @@ def RunQa():
   SetupCluster(rapi_user, rapi_secret)
 
   # Load RAPI certificate
-  qa_rapi.Setup(rapi_user, rapi_secret)
+  if qa_config.get("rapi"):
+    qa_rapi.Setup(rapi_user, rapi_secret)
 
   RunClusterTests()
   RunOsTests()
