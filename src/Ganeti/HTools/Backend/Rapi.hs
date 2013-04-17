@@ -166,7 +166,7 @@ parseNode ktg a = do
               dtotal  <- extract "dtotal"
               dfree   <- extract "dfree"
               ctotal  <- extract "ctotal"
-              return $ Node.create name mtotal mnode mfree 
+              return $ Node.create name mtotal mnode mfree
                      dtotal dfree ctotal False spindles guuid'
   return (name, node)
 
@@ -182,13 +182,14 @@ parseGroup a = do
   return (uuid, Group.create name uuid apol ipol tags)
 
 -- | Parse cluster data from the info resource.
-parseCluster :: JSObject JSValue -> Result ([String], IPolicy)
+parseCluster :: JSObject JSValue -> Result ([String], IPolicy, String)
 parseCluster obj = do
   let obj' = fromJSObject obj
       extract s = tryFromObj "Parsing cluster data" obj' s
+  master <- extract "master"
   tags <- extract "tags"
   ipolicy <- extract "ipolicy"
-  return (tags, ipolicy)
+  return (tags, ipolicy, master)
 
 -- | Loads the raw cluster data from an URL.
 readDataHttp :: String -- ^ Cluster or URL to use as source
@@ -229,10 +230,12 @@ parseData (group_body, node_body, inst_body, info_body) = do
   let (node_names, node_idx) = assignIndices node_data
   inst_data <- inst_body >>= getInstances node_names
   let (_, inst_idx) = assignIndices inst_data
-  (tags, ipolicy) <- info_body >>=
-                     (fromJResult "Parsing cluster info" . decodeStrict) >>=
-                     parseCluster
-  return (ClusterData group_idx node_idx inst_idx tags ipolicy)
+  (tags, ipolicy, master) <- 
+    info_body >>=
+    (fromJResult "Parsing cluster info" . decodeStrict) >>=
+    parseCluster
+  node_idx' <- setMaster node_names node_idx master
+  return (ClusterData group_idx node_idx' inst_idx tags ipolicy)
 
 -- | Top level function for data loading.
 loadData :: String -- ^ Cluster or URL to use as source
