@@ -30,6 +30,7 @@ module Ganeti.HTools.Loader
   ( mergeData
   , checkData
   , assignIndices
+  , setMaster
   , lookupNode
   , lookupInstance
   , lookupGroup
@@ -126,6 +127,14 @@ assignIndices name_element =
           unzip . map (\ (idx, (k, v)) -> ((k, idx), (idx, setIdx v idx)))
           . zip [0..] $ name_element
   in (M.fromList name_idx, Container.fromList idx_element)
+
+-- | Given am indexed node list, and the name of the master, mark it as such. 
+setMaster :: (Monad m) => NameAssoc -> Node.List -> String -> m Node.List
+setMaster node_names node_idx master = do
+  kmaster <- maybe (fail $ "Master node " ++ master ++ " unknown") return $
+             M.lookup master node_names
+  let mnode = Container.find kmaster node_idx
+  return $ Container.add kmaster (Node.setMaster mnode True) node_idx
 
 -- | For each instance, add its index to its primary and secondary nodes.
 fixNodes :: Node.List
