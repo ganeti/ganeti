@@ -159,4 +159,4 @@ main opts clusters = do
 
   results <- mapM (\name -> Rapi.loadData name >>= writeData nlen name opts)
              clusters
-  unless (all id results) $ exitWith (ExitFailure 2)
+  unless (and results) $ exitWith (ExitFailure 2)

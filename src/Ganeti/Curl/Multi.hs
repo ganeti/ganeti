@@ -191,7 +191,7 @@ makeEasyHandle (f, e, (opts, url)) = do
 execMultiCall :: [([CurlOption], String)] -> IO [(CurlCode, String)]
 execMultiCall ous = do
   -- error buffers
-  errorbufs <- mapM (\_ -> mallocErrorBuffer) ous
+  errorbufs <- mapM (const mallocErrorBuffer) ous
   -- result buffers
   outbufs <- mapM (\_ -> newIORef []) ous
   -- handles
