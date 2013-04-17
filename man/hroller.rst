@@ -21,6 +21,8 @@ Backend options:
 
 Algorithm options:
 
+**[ -G *name* ]**
+
 **[ -O *name...* ]**
 
 Reporting options:
@@ -58,8 +60,6 @@ The master node should be always the last node of the last group, or anyway
 somehow easily identifiable. Right now this is not done.
 
 Offline nodes should be ignored.
-
-Filtering by nodegroup should be allowed.
 
 If instances are online the tool should refuse to do offline rolling
 maintenances, unless explicitly requested.
