@@ -55,7 +55,10 @@ def _GetGenericAddParameters(inst, disk_template, force_mac=None):
     for idx, disk in enumerate(qa_config.GetDiskOptions()):
       size = disk.get("size")
       name = disk.get("name")
-      params.extend(["--disk", "%s:size=%s,name=%s" % (idx, size, name)])
+      diskparams = "%s:size=%s" % (idx, size)
+      if name:
+        diskparams += ",name=%s" % name
+      params.extend(["--disk", diskparams])
 
   # Set static MAC address if configured
   if force_mac:
