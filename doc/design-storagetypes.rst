@@ -1,6 +1,6 @@
-============================
-Storage free space reporting
-============================
+=============================================================================
+Management of storage types and disk templates, incl. storage space reporting
+=============================================================================
 
 .. contents:: :depth: 4
 
@@ -11,9 +11,6 @@ Currently, there is no consistent management of different variants of storage
 in Ganeti. One direct consequence is that storage space reporting is currently
 broken for all storage that is not based on lvm technolgy. This design looks at
 the root causes and proposes a way to fix it.
-
-FIXME: rename the design doc to make clear that space reporting is not the only
-thing covered here?
 
 Proposed changes
 ================
