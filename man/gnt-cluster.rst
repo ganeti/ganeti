@@ -217,9 +217,9 @@ The ``--vg-name`` option will let you specify a volume group
 different than "xenvg" for Ganeti to use when creating instance
 disks. This volume group must have the same name on all nodes. Once
 the cluster is initialized this can be altered by using the
-**modify** command. Note that if the volume group is modified after
-the cluster creation, the metavg will have to be manually modified
-accordingly.
+**modify** command. Note that if the volume group name is modified after
+the cluster creation and DRBD support is enabled you might have to
+manually modify the metavg as well.
 
 If you don't want to use lvm storage at all use
 the ``--no-lvm-storage`` option. Once the cluster is initialized
