@@ -52,6 +52,7 @@ module Ganeti.HTools.CLI
   , oExInst
   , oExTags
   , oExecJobs
+  , oForce
   , oGroup
   , oIAllocSrc
   , oInstMoves
@@ -117,6 +118,7 @@ data Options = Options
   , optExInst      :: [String]       -- ^ Instances to be excluded
   , optExTags      :: Maybe [String] -- ^ Tags to use for exclusion
   , optExecJobs    :: Bool           -- ^ Execute the commands via Luxi
+  , optForce       :: Bool           -- ^ Force the execution
   , optGroup       :: Maybe GroupID  -- ^ The UUID of the group to process
   , optIAllocSrc   :: Maybe FilePath -- ^ The iallocation spec
   , optSelInst     :: [String]       -- ^ Instances to be excluded
@@ -163,6 +165,7 @@ defaultOptions  = Options
   , optExInst      = []
   , optExTags      = Nothing
   , optExecJobs    = False
+  , optForce       = False
   , optGroup       = Nothing
   , optIAllocSrc   = Nothing
   , optSelInst     = []
@@ -317,6 +320,14 @@ oExecJobs =
    (NoArg (\ opts -> Ok opts { optExecJobs = True}))
    "execute the suggested moves via Luxi (only available when using\
    \ it for data gathering)",
+   OptComplNone)
+
+oForce :: OptType
+oForce =
+  (Option "f" ["force"]
+   (NoArg (\ opts -> Ok opts {optForce = True}))
+   "force the execution of this program, even if warnings would\
+   \ otherwise prevent it",
    OptComplNone)
 
 oGroup :: OptType

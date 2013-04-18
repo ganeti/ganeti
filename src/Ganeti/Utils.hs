@@ -49,6 +49,7 @@ module Ganeti.Utils
   , getCurrentTimeUSec
   , clockTimeToString
   , chompPrefix
+  , warn
   , wrap
   , trim
   , defaultHead
@@ -246,6 +247,10 @@ exitWhen False _  = return ()
 -- if true, the opposite of 'exitWhen'.
 exitUnless :: Bool -> String -> IO ()
 exitUnless cond = exitWhen (not cond)
+
+-- | Print a warning, but do not exit.
+warn :: String -> IO ()
+warn = hPutStrLn stderr . (++) "Warning: "
 
 -- | Helper for 'niceSort'. Computes the key element for a given string.
 extractKey :: [Either Integer String]  -- ^ Current (partial) key, reversed

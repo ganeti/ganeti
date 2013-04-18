@@ -61,6 +61,7 @@ options = do
     , oNoHeaders
     , oSaveCluster
     , oGroup
+    , oForce
     ]
 
 -- | The list of arguments supported by the program.
@@ -112,10 +113,18 @@ main opts args = do
   unless (null args) $ exitErr "This program doesn't take any arguments."
 
   let verbose = optVerbose opts
+      maybeExit = if optForce opts then warn else exitErr
 
   -- Load cluster data. The last two arguments, cluster tags and ipolicy, are
   -- currently not used by this tool.
   ini_cdata@(ClusterData gl fixed_nl ilf _ _) <- loadExternalData opts
+
+  let master_names = map Node.name . filter Node.isMaster . IntMap.elems $
+                     fixed_nl
+  case master_names of
+    [] -> maybeExit "No master node found (maybe not supported by backend)."
+    [ _ ] -> return ()
+    _ -> exitErr $ "Found more than one master node: " ++  show master_names
 
   nlf <- setNodeStatus opts fixed_nl
 
