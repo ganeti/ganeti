@@ -417,7 +417,7 @@ docinput = \
 	doc/design-virtual-clusters.rst \
 	doc/design-x509-ca.rst \
 	doc/design-hroller.rst \
-	doc/design-storagespace.rst \
+	doc/design-storagetypes.rst \
 	doc/devnotes.rst \
 	doc/glossary.rst \
 	doc/hooks.rst \

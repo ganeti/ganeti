@@ -16,7 +16,7 @@ Design document drafts
    design-partitioned.rst
    design-monitoring-agent.rst
    design-hroller.rst
-   design-storagespace.rst
+   design-storagetypes.rst
    design-reason-trail.rst
    design-device-uuid-name.rst
 
