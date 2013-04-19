@@ -639,8 +639,9 @@ def RunQa():
   RunEnvTests()
   SetupCluster(rapi_user, rapi_secret)
 
-  # Load RAPI certificate
-  qa_rapi.Setup(rapi_user, rapi_secret)
+  if qa_rapi.Enabled():
+    # Load RAPI certificate
+    qa_rapi.Setup(rapi_user, rapi_secret)
 
   RunClusterTests()
   RunOsTests()
