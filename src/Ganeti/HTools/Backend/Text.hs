@@ -83,7 +83,8 @@ serializeNode gl node =
   printf "%s|%.0f|%d|%d|%.0f|%d|%.0f|%c|%s|%d" (Node.name node)
            (Node.tMem node) (Node.nMem node) (Node.fMem node)
            (Node.tDsk node) (Node.fDsk node) (Node.tCpu node)
-           (if Node.offline node then 'Y' else 'N')
+           (if Node.offline node then 'Y' else
+              if Node.isMaster node then 'M' else 'N')
            (Group.uuid grp)
            (Node.spindleCount node)
     where grp = Container.find (Node.group node) gl
@@ -196,7 +197,8 @@ loadNode ktg [name, tm, nm, fm, td, fd, tc, fo, gu, spindles] = do
         vfd <- tryRead name fd
         vtc <- tryRead name tc
         vspindles <- tryRead name spindles
-        return $ Node.create name vtm vnm vfm vtd vfd vtc False vspindles gdx
+        return . flip Node.setMaster (fo == "M") $
+          Node.create name vtm vnm vfm vtd vfd vtc False vspindles gdx
   return (name, new_node)
 
 loadNode ktg [name, tm, nm, fm, td, fd, tc, fo, gu] =
