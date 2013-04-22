@@ -7,15 +7,17 @@ addgroup --system @GNTADMINGROUP@
 addgroup --system @GNTMASTERUSER@
 addgroup --system @GNTRAPIUSER@
 addgroup --system @GNTCONFDUSER@
+addgroup --system @GNTMONDUSER@
 
 #Create users
 adduser --system --ingroup @GNTMASTERDGROUP@ @GNTMASTERUSER@
 adduser --system --ingroup @GNTRAPIGROUP@ @GNTRAPIUSER@
 adduser --system --ingroup @GNTCONFDGROUP@ @GNTCONFDUSER@
+adduser --system --ingroup @GNTMONDGROUP@ @GNTMONDUSER@
 adduser --system @GNTNODEDUSER@
 
 #Add users to extra groups
-for u in @GNTMASTERUSER@ @GNTCONFDUSER@ @GNTRAPIUSER@
+for u in @GNTMASTERUSER@ @GNTCONFDUSER@ @GNTRAPIUSER@ @GNTMONDUSER@
 do
   adduser $u @GNTDAEMONSGROUP@
 done
