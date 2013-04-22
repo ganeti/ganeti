@@ -523,7 +523,11 @@ def RunExclusiveStorageTests():
 
 
 def _BuildSpecDict(par, mn, st, mx):
-  return {par: {"min": mn, "std": st, "max": mx}}
+  return {
+    "min": {par: mn},
+    "max": {par: mx},
+    "std": {par: st},
+    }
 
 
 def TestIPolicyPlainInstance():
@@ -534,10 +538,11 @@ def TestIPolicyPlainInstance():
     return
 
   # This test assumes that the group policy is empty
-  (_, old_specs) = qa_cluster.TestClusterSetISpecs({})
+  (_, old_specs) = qa_cluster.TestClusterSetISpecs()
   node = qa_config.AcquireNode()
   try:
-    # Log of policy changes, list of tuples: (change, policy_violated)
+    # Log of policy changes, list of tuples:
+    # (full_change, incremental_change, policy_violated)
     history = []
     instance = qa_instance.TestInstanceAddWithPlainDisk([node])
     try:
@@ -547,8 +552,8 @@ def TestIPolicyPlainInstance():
         (iminval, imaxval) = qa_instance.GetInstanceSpec(instance.name, par)
         # Some specs must be multiple of 4
         new_spec = _BuildSpecDict(par, imaxval + 4, imaxval + 4, imaxval + 4)
-        history.append((new_spec, True))
-        qa_cluster.TestClusterSetISpecs(new_spec)
+        history.append((None, new_spec, True))
+        qa_cluster.TestClusterSetISpecs(diff_specs=new_spec)
         qa_cluster.AssertClusterVerify(warnings=policyerror)
         if iminval > 0:
           # Some specs must be multiple of 4
@@ -557,19 +562,20 @@ def TestIPolicyPlainInstance():
           else:
             upper = iminval - 1
           new_spec = _BuildSpecDict(par, 0, upper, upper)
-          history.append((new_spec, True))
-          qa_cluster.TestClusterSetISpecs(new_spec)
+          history.append((None, new_spec, True))
+          qa_cluster.TestClusterSetISpecs(diff_specs=new_spec)
           qa_cluster.AssertClusterVerify(warnings=policyerror)
-        qa_cluster.TestClusterSetISpecs(old_specs)
-        history.append((old_specs, False))
+        qa_cluster.TestClusterSetISpecs(new_specs=old_specs)
+        history.append((old_specs, None, False))
       qa_instance.TestInstanceRemove(instance)
     finally:
       instance.Release()
 
     # Now we replay the same policy changes, and we expect that the instance
     # cannot be created for the cases where we had a policy violation above
-    for (change, failed) in history:
-      qa_cluster.TestClusterSetISpecs(change)
+    for (new_specs, diff_specs, failed) in history:
+      qa_cluster.TestClusterSetISpecs(new_specs=new_specs,
+                                      diff_specs=diff_specs)
       if failed:
         qa_instance.TestInstanceAddWithPlainDisk([node], fail=True)
       # Instance creation with no policy violation has been tested already

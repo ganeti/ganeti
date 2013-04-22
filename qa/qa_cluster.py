@@ -532,7 +532,7 @@ def _GetClusterIPolicy():
   @rtype: tuple
   @return: (policy, specs), where:
       - policy is a dictionary of the policy values, instance specs excluded
-      - specs is dict of dict, specs[par][key] is a spec value, where key is
+      - specs is dict of dict, specs[key][par] is a spec value, where key is
         "min", "max", or "std"
 
   """
@@ -541,10 +541,7 @@ def _GetClusterIPolicy():
   (ret_policy, ret_specs) = qa_utils.ParseIPolicy(policy)
 
   # Sanity checks
-  assert len(ret_specs) > 0
-  good = all("min" in d and "std" in d and "max" in d
-             for d in ret_specs.values())
-  assert good, "Missing item in specs: %s" % ret_specs
+  assert "min" in ret_specs and "std" in ret_specs and "max" in ret_specs
   assert len(ret_policy) > 0
   return (ret_policy, ret_specs)
 
@@ -606,24 +603,31 @@ def TestClusterModifyIPolicy():
       AssertEqual(eff_policy[p], old_policy[p])
 
 
-def TestClusterSetISpecs(new_specs, fail=False, old_values=None):
+def TestClusterSetISpecs(new_specs=None, diff_specs=None, fail=False,
+                         old_values=None):
   """Change instance specs.
 
-  @type new_specs: dict of dict
-  @param new_specs: new_specs[par][key], where key is "min", "max", "std". It
-      can be an empty dictionary.
+  At most one of new_specs or diff_specs can be specified.
+
+  @type new_specs: dict
+  @param new_specs: new complete specs, in the same format returned by
+      L{_GetClusterIPolicy}
+  @type diff_specs: dict
+  @param diff_specs: diff_specs[key][par], where key is "min", "max", "std". It
+      can be an incomplete specifications or an empty dictionary.
   @type fail: bool
   @param fail: if the change is expected to fail
   @type old_values: tuple
   @param old_values: (old_policy, old_specs), as returned by
-     L{_GetClusterIPolicy}
+      L{_GetClusterIPolicy}
   @return: same as L{_GetClusterIPolicy}
 
   """
   build_cmd = lambda opts: ["gnt-cluster", "modify"] + opts
-  return qa_utils.TestSetISpecs(new_specs, get_policy_fn=_GetClusterIPolicy,
-                                build_cmd_fn=build_cmd, fail=fail,
-                                old_values=old_values)
+  return qa_utils.TestSetISpecs(
+    new_specs=new_specs, diff_specs=diff_specs,
+    get_policy_fn=_GetClusterIPolicy, build_cmd_fn=build_cmd,
+    fail=fail, old_values=old_values)
 
 
 def TestClusterModifyISpecs():
@@ -646,14 +650,18 @@ def TestClusterModifyISpecs():
       (False, 0, 4, "a"),
       # This is to restore the old values
       (True,
-       cur_specs[par]["min"], cur_specs[par]["std"], cur_specs[par]["max"])
+       cur_specs["min"][par], cur_specs["std"][par], cur_specs["max"][par])
       ]
     for (good, mn, st, mx) in test_values:
-      new_vals = {par: {"min": str(mn), "std": str(st), "max": str(mx)}}
+      new_vals = {
+        "min": {par: mn},
+        "std": {par: st},
+        "max": {par: mx}
+        }
       cur_state = (cur_policy, cur_specs)
       # We update cur_specs, as we've copied the values to restore already
-      (cur_policy, cur_specs) = TestClusterSetISpecs(new_vals, fail=not good,
-                                                     old_values=cur_state)
+      (cur_policy, cur_specs) = TestClusterSetISpecs(
+        diff_specs=new_vals, fail=not good, old_values=cur_state)
 
     # Get the ipolicy command
     mnode = qa_config.GetMasterNode()

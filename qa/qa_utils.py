@@ -23,6 +23,7 @@
 
 """
 
+import copy
 import operator
 import os
 import random
@@ -779,31 +780,28 @@ def MakeNodePath(node, path):
     return path
 
 
-def _GetParameterOptions(key, specs, old_specs):
+def _GetParameterOptions(specs):
   """Helper to build policy options."""
-  values = ["%s=%s" % (par, keyvals[key])
-            for (par, keyvals) in specs.items()
-            if key in keyvals]
-  if old_specs:
-    present_pars = frozenset(par
-                             for (par, keyvals) in specs.items()
-                             if key in keyvals)
-    values.extend("%s=%s" % (par, keyvals[key])
-                  for (par, keyvals) in old_specs.items()
-                  if key in keyvals and par not in present_pars)
+  values = ["%s=%s" % (par, val)
+            for (par, val) in specs.items()]
   return ",".join(values)
 
 
-def TestSetISpecs(new_specs, get_policy_fn=None, build_cmd_fn=None,
-                  fail=False, old_values=None):
+def TestSetISpecs(new_specs=None, diff_specs=None, get_policy_fn=None,
+                  build_cmd_fn=None, fail=False, old_values=None):
   """Change instance specs for an object.
 
-  @type new_specs: dict of dict
-  @param new_specs: new_specs[par][key], where key is "min", "max", "std". It
-      can be an empty dictionary.
+  At most one of new_specs or diff_specs can be specified.
+
+  @type new_specs: dict
+  @param new_specs: new complete specs, in the same format returned by
+      L{ParseIPolicy}.
+  @type diff_specs: dict
+  @param diff_specs: diff_specs[key][par], where key is "min", "max", "std". It
+      can be an incomplete specifications or an empty dictionary.
   @type get_policy_fn: function
   @param get_policy_fn: function that returns the current policy as in
-      L{qa_cluster._GetClusterIPolicy}
+      L{ParseIPolicy}
   @type build_cmd_fn: function
   @param build_cmd_fn: function that return the full command line from the
       options alone
@@ -811,45 +809,57 @@ def TestSetISpecs(new_specs, get_policy_fn=None, build_cmd_fn=None,
   @param fail: if the change is expected to fail
   @type old_values: tuple
   @param old_values: (old_policy, old_specs), as returned by
-     L{qa_cluster._GetClusterIPolicy}
-  @return: same as L{qa_cluster._GetClusterIPolicy}
+     L{ParseIPolicy}
+  @return: same as L{ParseIPolicy}
 
   """
   assert get_policy_fn is not None
   assert build_cmd_fn is not None
+  assert new_specs is None or diff_specs is None
 
   if old_values:
     (old_policy, old_specs) = old_values
   else:
     (old_policy, old_specs) = get_policy_fn()
+
+  if diff_specs:
+    new_specs = copy.deepcopy(old_specs)
+    for (key, parvals) in diff_specs.items():
+      for (par, val) in parvals.items():
+        new_specs[key][par] = val
+
   if new_specs:
     cmd = []
-    if any(("min" in val or "max" in val) for val in new_specs.values()):
+    if (diff_specs is None or
+        ("min" in diff_specs or "max" in diff_specs)):
       minmax_opt_items = []
       for key in ["min", "max"]:
-        keyopt = _GetParameterOptions(key, new_specs, old_specs)
+        keyopt = _GetParameterOptions(new_specs[key])
         minmax_opt_items.append("%s:%s" % (key, keyopt))
       cmd.extend([
         "--ipolicy-bounds-specs",
         "/".join(minmax_opt_items)
         ])
-    std_opt = _GetParameterOptions("std", new_specs, {})
+    if diff_specs:
+      std_source = diff_specs
+    else:
+      std_source = new_specs
+    std_opt = _GetParameterOptions(std_source.get("std", {}))
     if std_opt:
       cmd.extend(["--ipolicy-std-specs", std_opt])
     AssertCommand(build_cmd_fn(cmd), fail=fail)
 
-  # Check the new state
-  (eff_policy, eff_specs) = get_policy_fn()
-  AssertEqual(eff_policy, old_policy)
-  if fail:
-    AssertEqual(eff_specs, old_specs)
+    # Check the new state
+    (eff_policy, eff_specs) = get_policy_fn()
+    AssertEqual(eff_policy, old_policy)
+    if fail:
+      AssertEqual(eff_specs, old_specs)
+    else:
+      AssertEqual(eff_specs, new_specs)
+
   else:
-    for par in eff_specs:
-      for key in eff_specs[par]:
-        if par in new_specs and key in new_specs[par]:
-          AssertEqual(int(eff_specs[par][key]), int(new_specs[par][key]))
-        else:
-          AssertEqual(int(eff_specs[par][key]), int(old_specs[par][key]))
+    (eff_policy, eff_specs) = (old_policy, old_specs)
+
   return (eff_policy, eff_specs)
 
 
@@ -861,7 +871,7 @@ def ParseIPolicy(policy):
   @rtype: tuple
   @return: (policy, specs), where:
       - policy is a dictionary of the policy values, instance specs excluded
-      - specs is dict of dict, specs[par][key] is a spec value, where key is
+      - specs is dict of dict, specs[key][par] is a spec value, where key is
         "min", "max", or "std"
 
   """
@@ -870,9 +880,7 @@ def ParseIPolicy(policy):
   ispec_keys = constants.ISPECS_MINMAX_KEYS | frozenset([constants.ISPECS_STD])
   for (key, val) in policy.items():
     if key in ispec_keys:
-      for (par, pval) in val.items():
-        d = ret_specs.setdefault(par, {})
-        d[key] = pval
+      ret_specs[key] = val
     else:
       ret_policy[key] = val
   return (ret_policy, ret_specs)

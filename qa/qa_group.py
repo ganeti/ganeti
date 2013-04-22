@@ -87,7 +87,7 @@ def _GetGroupIPolicy(groupname):
   @rtype: tuple
   @return: (policy, specs), where:
       - policy is a dictionary of the policy values, instance specs excluded
-      - specs is dict of dict, specs[par][key] is a spec value, where key is
+      - specs is dict of dict, specs[key][par] is a spec value, where key is
         "min" or "max"
 
   """
@@ -98,51 +98,57 @@ def _GetGroupIPolicy(groupname):
   (ret_policy, ret_specs) = qa_utils.ParseIPolicy(policy)
 
   # Sanity checks
-  assert len(ret_specs) > 0
-  good = all("min" in d and "max" in d
-             for d in ret_specs.values())
-  assert good, "Missing item in specs: %s" % ret_specs
+  assert "min" in ret_specs and "max" in ret_specs
   assert len(ret_policy) > 0
   return (ret_policy, ret_specs)
 
 
-def _TestGroupSetISpecs(groupname, new_specs, fail=False, old_values=None):
+def _TestGroupSetISpecs(groupname, new_specs=None, diff_specs=None,
+                        fail=False, old_values=None):
   """Change instance specs on a group.
+
+  At most one of new_specs or diff_specs can be specified.
 
   @type groupname: string
   @param groupname: group name
-  @type new_specs: dict of dict
-  @param new_specs: new_specs[par][key], where key is "min", "max", "std". It
-      can be an empty dictionary.
+  @type new_specs: dict
+  @param new_specs: new complete specs, in the same format returned by
+      L{_GetGroupIPolicy}
+  @type diff_specs: dict
+  @param diff_specs: diff_specs[key][par], where key is "min", "max". It
+      can be an incomplete specifications or an empty dictionary.
   @type fail: bool
   @param fail: if the change is expected to fail
   @type old_values: tuple
   @param old_values: (old_policy, old_specs), as returned by
-     L{_GetGroupIPolicy}
+      L{_GetGroupIPolicy}
   @return: same as L{_GetGroupIPolicy}
 
   """
   build_cmd = lambda opts: ["gnt-group", "modify"] + opts + [groupname]
   get_policy = lambda: _GetGroupIPolicy(groupname)
-  return qa_utils.TestSetISpecs(new_specs, get_policy_fn=get_policy,
-                                build_cmd_fn=build_cmd, fail=fail,
-                                old_values=old_values)
+  return qa_utils.TestSetISpecs(
+    new_specs=new_specs, diff_specs=diff_specs,
+    get_policy_fn=get_policy, build_cmd_fn=build_cmd,
+    fail=fail, old_values=old_values)
 
 
 def _TestGroupModifyISpecs(groupname):
   # This test is built on the assumption that the default ipolicy holds for
   # the node group under test
   old_values = _GetGroupIPolicy(groupname)
-  mod_values = _TestGroupSetISpecs(groupname,
-                                   dict((p, {"min": 4, "max": 4})
-                                        for p in constants.ISPECS_PARAMETERS),
+  samevals = dict((p, 4) for p in constants.ISPECS_PARAMETERS)
+  base_specs = {"min": samevals, "max": samevals}
+  mod_values = _TestGroupSetISpecs(groupname, new_specs=base_specs,
                                    old_values=old_values)
   for par in constants.ISPECS_PARAMETERS:
     # First make sure that the test works with good values
-    mod_values = _TestGroupSetISpecs(groupname, {par: {"min": 8, "max": 8}},
+    good_specs = {"min": {par: 8}, "max": {par: 8}}
+    mod_values = _TestGroupSetISpecs(groupname, diff_specs=good_specs,
                                      old_values=mod_values)
-    _TestGroupSetISpecs(groupname, {par: {"min": 8, "max": 4}},
-                        fail=True, old_values=mod_values)
+    bad_specs = {"min": {par: 8}, "max": {par: 4}}
+    _TestGroupSetISpecs(groupname, diff_specs=bad_specs, fail=True,
+                        old_values=mod_values)
   AssertCommand(["gnt-group", "modify", "--ipolicy-bounds-specs", "default",
                  groupname])
   AssertEqual(_GetGroupIPolicy(groupname), old_values)
