@@ -78,10 +78,11 @@ createGroup grpIndex spec = do
   (apol, ncount, disk, mem, cpu, spindles) <- parseDesc spec $
                                               sepSplit ',' spec
   let nodes = map (\idx ->
-                     Node.create (printf "node-%02d-%03d" grpIndex idx)
-                           (fromIntegral mem) 0 mem
-                           (fromIntegral disk) disk
-                           (fromIntegral cpu) False spindles grpIndex
+                    flip Node.setMaster (grpIndex == 1 && idx == 1) $
+                    Node.create (printf "node-%02d-%03d" grpIndex idx)
+                      (fromIntegral mem) 0 mem
+                      (fromIntegral disk) disk
+                      (fromIntegral cpu) False spindles grpIndex
                   ) [1..ncount]
       grp = Group.create (printf "group-%02d" grpIndex)
             (printf "fake-uuid-%02d" grpIndex) apol defIPolicy []

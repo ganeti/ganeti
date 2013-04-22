@@ -28,12 +28,10 @@
 >>> /HCHECK_INIT_CLUSTER_NEED_REBALANCE=0/
 >>>= 0
 
-# FIXME: remove option -f once the text backend supports indicating
-#        the master node
 # hroller should be able to print the solution
-./test/hs/hroller -f -t$T/simu-onegroup.tiered
+./test/hs/hroller -t$T/simu-onegroup.tiered
 >>>= 0
 
 # hroller should be able to print the solution, in verbose mode as well
-./test/hs/hroller -f -t$T/simu-onegroup.tiered -v -v
+./test/hs/hroller -t$T/simu-onegroup.tiered -v -v
 >>>= 0
