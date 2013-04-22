@@ -574,6 +574,7 @@ You also need to copy the file ``doc/examples/ganeti.initd`` from the
 source archive to ``/etc/init.d/ganeti`` and register it with your
 distribution's startup scripts, for example in Debian::
 
+  $ chmod +x /etc/init.d/ganeti
   $ update-rc.d ganeti defaults 20 80
 
 In order to automatically restart failed instances, you need to setup a

@@ -261,7 +261,7 @@ can give include, among others:
 
 - Arguments for the NICs of the instance; by default, a single-NIC
   instance is created. The IP and/or bridge of the NIC can be changed
-  via ``--nic 0:ip=IP,bridge=BRIDGE``
+  via ``--net 0:ip=IP,link=BRIDGE``
 
 See the manpage for gnt-instance for the detailed option list.
 
