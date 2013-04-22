@@ -532,8 +532,8 @@ def _GetClusterIPolicy():
   @rtype: tuple
   @return: (policy, specs), where:
       - policy is a dictionary of the policy values, instance specs excluded
-      - specs is dict of dict, specs[key][par] is a spec value, where key is
-        "min", "max", or "std"
+      - specs is a dictionary containing only the specs, using the internal
+        format (see L{constants.IPOLICY_DEFAULTS} for an example)
 
   """
   info = qa_utils.GetObjectInfo(["gnt-cluster", "info"])
@@ -541,7 +541,8 @@ def _GetClusterIPolicy():
   (ret_policy, ret_specs) = qa_utils.ParseIPolicy(policy)
 
   # Sanity checks
-  assert "min" in ret_specs and "std" in ret_specs and "max" in ret_specs
+  assert "minmax" in ret_specs and "std" in ret_specs
+  assert len(ret_specs["minmax"]) > 0
   assert len(ret_policy) > 0
   return (ret_policy, ret_specs)
 
@@ -613,8 +614,9 @@ def TestClusterSetISpecs(new_specs=None, diff_specs=None, fail=False,
   @param new_specs: new complete specs, in the same format returned by
       L{_GetClusterIPolicy}
   @type diff_specs: dict
-  @param diff_specs: diff_specs[key][par], where key is "min", "max", "std". It
-      can be an incomplete specifications or an empty dictionary.
+  @param diff_specs: partial specs, it can be an incomplete specifications, but
+      if min/max specs are specified, their number must match the number of the
+      existing specs
   @type fail: bool
   @param fail: if the change is expected to fail
   @type old_values: tuple
@@ -634,6 +636,8 @@ def TestClusterModifyISpecs():
   """gnt-cluster modify --specs-*"""
   params = ["memory-size", "disk-size", "disk-count", "cpu-count", "nic-count"]
   (cur_policy, cur_specs) = _GetClusterIPolicy()
+  # This test assumes that there is only one min/max bound
+  assert len(cur_specs[constants.ISPECS_MINMAX]) == 1
   for par in params:
     test_values = [
       (True, 0, 4, 12),
@@ -650,13 +654,17 @@ def TestClusterModifyISpecs():
       (False, 0, 4, "a"),
       # This is to restore the old values
       (True,
-       cur_specs["min"][par], cur_specs["std"][par], cur_specs["max"][par])
+       cur_specs[constants.ISPECS_MINMAX][0][constants.ISPECS_MIN][par],
+       cur_specs[constants.ISPECS_STD][par],
+       cur_specs[constants.ISPECS_MINMAX][0][constants.ISPECS_MAX][par])
       ]
     for (good, mn, st, mx) in test_values:
       new_vals = {
-        "min": {par: mn},
-        "std": {par: st},
-        "max": {par: mx}
+        constants.ISPECS_MINMAX: [{
+          constants.ISPECS_MIN: {par: mn},
+          constants.ISPECS_MAX: {par: mx}
+          }],
+        constants.ISPECS_STD: {par: st}
         }
       cur_state = (cur_policy, cur_specs)
       # We update cur_specs, as we've copied the values to restore already

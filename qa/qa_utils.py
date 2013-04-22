@@ -797,8 +797,9 @@ def TestSetISpecs(new_specs=None, diff_specs=None, get_policy_fn=None,
   @param new_specs: new complete specs, in the same format returned by
       L{ParseIPolicy}.
   @type diff_specs: dict
-  @param diff_specs: diff_specs[key][par], where key is "min", "max", "std". It
-      can be an incomplete specifications or an empty dictionary.
+  @param diff_specs: partial specs, it can be an incomplete specifications, but
+      if min/max specs are specified, their number must match the number of the
+      existing specs
   @type get_policy_fn: function
   @param get_policy_fn: function that returns the current policy as in
       L{ParseIPolicy}
@@ -824,26 +825,35 @@ def TestSetISpecs(new_specs=None, diff_specs=None, get_policy_fn=None,
 
   if diff_specs:
     new_specs = copy.deepcopy(old_specs)
-    for (key, parvals) in diff_specs.items():
-      for (par, val) in parvals.items():
-        new_specs[key][par] = val
+    if constants.ISPECS_MINMAX in diff_specs:
+      AssertEqual(len(new_specs[constants.ISPECS_MINMAX]),
+                  len(diff_specs[constants.ISPECS_MINMAX]))
+      for (new_minmax, diff_minmax) in zip(new_specs[constants.ISPECS_MINMAX],
+                                           diff_specs[constants.ISPECS_MINMAX]):
+        for (key, parvals) in diff_minmax.items():
+          for (par, val) in parvals.items():
+            new_minmax[key][par] = val
+    for (par, val) in diff_specs.get(constants.ISPECS_STD, {}).items():
+      new_specs[constants.ISPECS_STD][par] = val
 
   if new_specs:
     cmd = []
-    if (diff_specs is None or
-        ("min" in diff_specs or "max" in diff_specs)):
+    if (diff_specs is None or constants.ISPECS_MINMAX in diff_specs):
       minmax_opt_items = []
-      for key in ["min", "max"]:
-        keyopt = _GetParameterOptions(new_specs[key])
-        minmax_opt_items.append("%s:%s" % (key, keyopt))
+      for minmax in new_specs[constants.ISPECS_MINMAX]:
+        minmax_opts = []
+        for key in ["min", "max"]:
+          keyopt = _GetParameterOptions(minmax[key])
+          minmax_opts.append("%s:%s" % (key, keyopt))
+        minmax_opt_items.append("/".join(minmax_opts))
       cmd.extend([
         "--ipolicy-bounds-specs",
-        "/".join(minmax_opt_items)
+        "//".join(minmax_opt_items)
         ])
-    if diff_specs:
-      std_source = diff_specs
-    else:
+    if diff_specs is None:
       std_source = new_specs
+    else:
+      std_source = diff_specs
     std_opt = _GetParameterOptions(std_source.get("std", {}))
     if std_opt:
       cmd.extend(["--ipolicy-std-specs", std_opt])
@@ -871,15 +881,23 @@ def ParseIPolicy(policy):
   @rtype: tuple
   @return: (policy, specs), where:
       - policy is a dictionary of the policy values, instance specs excluded
-      - specs is dict of dict, specs[key][par] is a spec value, where key is
-        "min", "max", or "std"
+      - specs is a dictionary containing only the specs, using the internal
+        format (see L{constants.IPOLICY_DEFAULTS} for an example)
 
   """
   ret_specs = {}
   ret_policy = {}
-  ispec_keys = constants.ISPECS_MINMAX_KEYS | frozenset([constants.ISPECS_STD])
   for (key, val) in policy.items():
-    if key in ispec_keys:
+    if key == "bounds specs":
+      ret_specs[constants.ISPECS_MINMAX] = []
+      for minmax in val:
+        ret_minmax = {}
+        for key in minmax:
+          keyparts = key.split("/", 1)
+          assert len(keyparts) > 1
+          ret_minmax[keyparts[0]] = minmax[key]
+        ret_specs[constants.ISPECS_MINMAX].append(ret_minmax)
+    elif key == constants.ISPECS_STD:
       ret_specs[key] = val
     else:
       ret_policy[key] = val

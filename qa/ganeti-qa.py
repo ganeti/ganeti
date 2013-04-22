@@ -524,9 +524,11 @@ def RunExclusiveStorageTests():
 
 def _BuildSpecDict(par, mn, st, mx):
   return {
-    "min": {par: mn},
-    "max": {par: mx},
-    "std": {par: st},
+    constants.ISPECS_MINMAX: [{
+      constants.ISPECS_MIN: {par: mn},
+      constants.ISPECS_MAX: {par: mx},
+      }],
+    constants.ISPECS_STD: {par: st},
     }
 
 
@@ -539,6 +541,8 @@ def TestIPolicyPlainInstance():
 
   # This test assumes that the group policy is empty
   (_, old_specs) = qa_cluster.TestClusterSetISpecs()
+  # We also assume to have only one min/max bound
+  assert len(old_specs[constants.ISPECS_MINMAX]) == 1
   node = qa_config.AcquireNode()
   try:
     # Log of policy changes, list of tuples:

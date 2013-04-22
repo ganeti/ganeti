@@ -87,8 +87,9 @@ def _GetGroupIPolicy(groupname):
   @rtype: tuple
   @return: (policy, specs), where:
       - policy is a dictionary of the policy values, instance specs excluded
-      - specs is dict of dict, specs[key][par] is a spec value, where key is
-        "min" or "max"
+      - specs is a dictionary containing only the specs, using the internal
+        format (see L{constants.IPOLICY_DEFAULTS} for an example), but without
+        the standard values
 
   """
   info = qa_utils.GetObjectInfo(["gnt-group", "info", groupname])
@@ -98,7 +99,8 @@ def _GetGroupIPolicy(groupname):
   (ret_policy, ret_specs) = qa_utils.ParseIPolicy(policy)
 
   # Sanity checks
-  assert "min" in ret_specs and "max" in ret_specs
+  assert "minmax" in ret_specs
+  assert len(ret_specs["minmax"]) > 0
   assert len(ret_policy) > 0
   return (ret_policy, ret_specs)
 
@@ -115,8 +117,9 @@ def _TestGroupSetISpecs(groupname, new_specs=None, diff_specs=None,
   @param new_specs: new complete specs, in the same format returned by
       L{_GetGroupIPolicy}
   @type diff_specs: dict
-  @param diff_specs: diff_specs[key][par], where key is "min", "max". It
-      can be an incomplete specifications or an empty dictionary.
+  @param diff_specs: partial specs, it can be an incomplete specifications, but
+      if min/max specs are specified, their number must match the number of the
+      existing specs
   @type fail: bool
   @param fail: if the change is expected to fail
   @type old_values: tuple
@@ -138,15 +141,30 @@ def _TestGroupModifyISpecs(groupname):
   # the node group under test
   old_values = _GetGroupIPolicy(groupname)
   samevals = dict((p, 4) for p in constants.ISPECS_PARAMETERS)
-  base_specs = {"min": samevals, "max": samevals}
+  base_specs = {
+    constants.ISPECS_MINMAX: [{
+      constants.ISPECS_MIN: samevals,
+      constants.ISPECS_MAX: samevals,
+      }],
+    }
   mod_values = _TestGroupSetISpecs(groupname, new_specs=base_specs,
                                    old_values=old_values)
   for par in constants.ISPECS_PARAMETERS:
     # First make sure that the test works with good values
-    good_specs = {"min": {par: 8}, "max": {par: 8}}
+    good_specs = {
+      constants.ISPECS_MINMAX: [{
+        constants.ISPECS_MIN: {par: 8},
+        constants.ISPECS_MAX: {par: 8},
+        }],
+      }
     mod_values = _TestGroupSetISpecs(groupname, diff_specs=good_specs,
                                      old_values=mod_values)
-    bad_specs = {"min": {par: 8}, "max": {par: 4}}
+    bad_specs = {
+      constants.ISPECS_MINMAX: [{
+        constants.ISPECS_MIN: {par: 8},
+        constants.ISPECS_MAX: {par: 4},
+        }],
+      }
     _TestGroupSetISpecs(groupname, diff_specs=bad_specs, fail=True,
                         old_values=mod_values)
   AssertCommand(["gnt-group", "modify", "--ipolicy-bounds-specs", "default",
