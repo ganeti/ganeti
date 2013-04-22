@@ -38,13 +38,15 @@ add_reviewed_by() {
   grep -q '^Reviewed-by: ' "$msgfile" && return
 
   perl -i -e '
+  my $reviewer = $ENV{"REVIEWER"};
+  defined($reviewer) or $reviewer = "";
   my $sob = 0;
   while (<>) {
     if ($sob == 0 and m/^Signed-off-by:/) {
       $sob = 1;
 
     } elsif ($sob == 1 and not m/^Signed-off-by:/) {
-      print "Reviewed-by: $REVIEWER\n";
+      print "Reviewed-by: $reviewer\n";
       $sob = -1;
     }
 
@@ -52,7 +54,7 @@ add_reviewed_by() {
   }
 
   if ($sob == 1) {
-    print "Reviewed-by: \n";
+    print "Reviewed-by: $reviewer\n";
   }
   ' "$msgfile"
 }
