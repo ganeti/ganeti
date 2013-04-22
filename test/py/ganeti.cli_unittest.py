@@ -25,6 +25,7 @@ import copy
 import testutils
 import time
 import unittest
+import yaml
 from cStringIO import StringIO
 
 from ganeti import constants
@@ -1198,6 +1199,77 @@ class TestSerializeGenericInfo(unittest.TestCase):
                 "  efg: 456\n")
     self._RunTest(data, expected)
     self._RunTest(dict(data), expected)
+
+
+class TestFormatPolicyInfo(unittest.TestCase):
+  """Test case for cli.FormatPolicyInfo.
+
+  These tests rely on cli._SerializeGenericInfo (tested elsewhere).
+
+  """
+  def setUp(self):
+    # Policies are big, and we want to see the difference in case of an error
+    self.maxDiff = None
+
+  def _RenameDictItem(self, parsed, old, new):
+    self.assertTrue(old in parsed)
+    self.assertTrue(new not in parsed)
+    parsed[new] = parsed[old]
+    del parsed[old]
+
+  def _TranslateParsedNames(self, parsed):
+    for (pretty, raw) in [
+      ("bounds specs", constants.ISPECS_MINMAX),
+      ("enabled disk templates", constants.IPOLICY_DTS)
+      ]:
+      self._RenameDictItem(parsed, pretty, raw)
+    for minmax in parsed[constants.ISPECS_MINMAX]:
+      for key in minmax:
+        keyparts = key.split("/", 1)
+        if len(keyparts) > 1:
+          self._RenameDictItem(minmax, key, keyparts[0])
+    self.assertTrue(constants.IPOLICY_DTS in parsed)
+    parsed[constants.IPOLICY_DTS] = yaml.load("[%s]" %
+                                              parsed[constants.IPOLICY_DTS])
+
+  @staticmethod
+  def _PrintAndParsePolicy(custom, effective, iscluster):
+    formatted = cli.FormatPolicyInfo(custom, effective, iscluster)
+    buf = StringIO()
+    cli._SerializeGenericInfo(buf, formatted, 0)
+    return yaml.load(buf.getvalue())
+
+  def _PrintAndCheckParsed(self, policy):
+    parsed = self._PrintAndParsePolicy(policy, NotImplemented, True)
+    self._TranslateParsedNames(parsed)
+    self.assertEqual(parsed, policy)
+
+  def _CompareClusterGroupItems(self, cluster, group, skip=None):
+    if isinstance(group, dict):
+      self.assertTrue(isinstance(cluster, dict))
+      if skip is None:
+        skip = frozenset()
+      self.assertEqual(frozenset(cluster.keys()).difference(skip),
+                       frozenset(group.keys()))
+      for key in group:
+        self._CompareClusterGroupItems(cluster[key], group[key])
+    elif isinstance(group, list):
+      self.assertTrue(isinstance(cluster, list))
+      self.assertEqual(len(cluster), len(group))
+      for (cval, gval) in zip(cluster, group):
+        self._CompareClusterGroupItems(cval, gval)
+    else:
+      self.assertTrue(isinstance(group, basestring))
+      self.assertEqual("default (%s)" % cluster, group)
+
+  def _TestClusterVsGroup(self, policy):
+    cluster = self._PrintAndParsePolicy(policy, NotImplemented, True)
+    group = self._PrintAndParsePolicy({}, policy, False)
+    self._CompareClusterGroupItems(cluster, group, ["std"])
+
+  def testWithDefaults(self):
+    self._PrintAndCheckParsed(constants.IPOLICY_DEFAULTS)
+    self._TestClusterVsGroup(constants.IPOLICY_DEFAULTS)
 
 
 class TestCreateIPolicyFromOpts(unittest.TestCase):
