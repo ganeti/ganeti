@@ -1004,16 +1004,19 @@ TEST_FILES = \
 	test/data/htools/hbal-split-insts.data \
 	test/data/htools/invalid-node.data \
 	test/data/htools/missing-resources.data \
+	test/data/htools/multiple-master.data \
 	test/data/htools/n1-failure.data \
 	test/data/htools/rapi/groups.json \
 	test/data/htools/rapi/info.json \
 	test/data/htools/rapi/instances.json \
 	test/data/htools/rapi/nodes.json \
+	test/data/htools/unique-reboot-order.data \
 	test/hs/shelltests/htools-balancing.test \
 	test/hs/shelltests/htools-basic.test \
 	test/hs/shelltests/htools-dynutil.test \
 	test/hs/shelltests/htools-excl.test \
 	test/hs/shelltests/htools-hail.test \
+	test/hs/shelltests/htools-hroller.test \
 	test/hs/shelltests/htools-hspace.test \
 	test/hs/shelltests/htools-invalid.test \
 	test/hs/shelltests/htools-multi-group.test \

@@ -62,6 +62,12 @@ Error: This program doesn't take any arguments.
 >>>2/Error: Cannot create node graph/
 >>>=1
 
+# hroller should reject a configuration with more than one master,
+# even with -f
+./test/hs/hroller -f -t$TESTDATA_DIR/multiple-master.data
+>>>2/Error: Found more than one master node/
+>>>=1
+
 # hbal doesn't accept invalid priority
 ./test/hs/hbal --priority=abc
 >>>2/Unknown priority/
