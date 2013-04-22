@@ -1355,7 +1355,7 @@ def StartInstance(instance, startup_paused):
     _Fail("Hypervisor error: %s", err, exc=True)
 
 
-def InstanceShutdown(instance, timeout):
+def InstanceShutdown(instance, timeout, reason, store_reason=True):
   """Shut an instance down.
 
   @note: this functions uses polling with a hardcoded timeout.
@@ -1364,6 +1364,10 @@ def InstanceShutdown(instance, timeout):
   @param instance: the instance object
   @type timeout: integer
   @param timeout: maximum timeout for soft shutdown
+  @type reason: list of reasons
+  @param reason: the reason trail for this shutdown
+  @type store_reason: boolean
+  @param store_reason: whether to store the shutdown reason trail on file
   @rtype: None
 
   """
@@ -1385,6 +1389,8 @@ def InstanceShutdown(instance, timeout):
 
       try:
         hyper.StopInstance(instance, retry=self.tried_once)
+        if store_reason:
+          _StoreInstReasonTrail(instance.name, reason)
       except errors.HypervisorError, err:
         if iname not in hyper.ListInstances():
           # if the instance is no longer existing, consider this a
@@ -1460,7 +1466,7 @@ def InstanceReboot(instance, reboot_type, shutdown_timeout, reason):
       _Fail("Failed to soft reboot instance %s: %s", instance.name, err)
   elif reboot_type == constants.INSTANCE_REBOOT_HARD:
     try:
-      InstanceShutdown(instance, shutdown_timeout)
+      InstanceShutdown(instance, shutdown_timeout, reason, store_reason=False)
       result = StartInstance(instance, False)
       _StoreInstReasonTrail(instance.name, reason)
       return result

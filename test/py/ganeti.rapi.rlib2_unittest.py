@@ -422,6 +422,7 @@ class TestInstanceShutdown(unittest.TestCase):
     clfactory = _FakeClientFactory(_FakeClient)
     handler = _CreateHandler(rlib2.R_2_instances_name_shutdown, ["inst26791"], {
       "no_remember": ["0"],
+      "reason": ["Not used anymore"],
       }, {}, clfactory)
     job_id = handler.PUT()
 
@@ -434,6 +435,12 @@ class TestInstanceShutdown(unittest.TestCase):
     self.assertEqual(op.instance_name, "inst26791")
     self.assertFalse(op.no_remember)
     self.assertFalse(op.dry_run)
+    self.assertEqual(op.reason[0][0], constants.OPCODE_REASON_SRC_USER)
+    self.assertEqual(op.reason[0][1], "Not used anymore")
+    self.assertEqual(op.reason[1][0],
+                     "%s:%s" % (constants.OPCODE_REASON_SRC_RLIB2,
+                                "instances_name_shutdown"))
+    self.assertEqual(op.reason[1][1], "")
 
     self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 

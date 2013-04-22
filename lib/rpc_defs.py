@@ -235,6 +235,7 @@ _INSTANCE_CALLS = [
   ("instance_shutdown", SINGLE, None, constants.RPC_TMO_NORMAL, [
     ("instance", ED_INST_DICT, "Instance object"),
     ("timeout", None, None),
+    ("reason", None, "The reason for the shutdown"),
     ], None, None, "Stops an instance"),
   ("instance_balloon_memory", SINGLE, None, constants.RPC_TMO_NORMAL, [
     ("instance", ED_INST_DICT, "Instance object"),

@@ -7449,7 +7449,8 @@ class LUInstanceReboot(LogicalUnit):
     else:
       if instance_running:
         result = self.rpc.call_instance_shutdown(node_current, instance,
-                                                 self.op.shutdown_timeout)
+                                                 self.op.shutdown_timeout,
+                                                 reason)
         result.Raise("Could not shutdown instance for full reboot")
         _ShutdownInstanceDisks(self, instance)
       else:
@@ -7525,6 +7526,7 @@ class LUInstanceShutdown(LogicalUnit):
     instance = self.instance
     node_current = instance.primary_node
     timeout = self.op.timeout
+    reason = self.op.reason
 
     # If the instance is offline we shouldn't mark it as down, as that
     # resets the offline flag.
@@ -7535,7 +7537,8 @@ class LUInstanceShutdown(LogicalUnit):
       assert self.op.ignore_offline_nodes
       self.LogInfo("Primary node offline, marked instance as stopped")
     else:
-      result = self.rpc.call_instance_shutdown(node_current, instance, timeout)
+      result = self.rpc.call_instance_shutdown(node_current, instance, timeout,
+                                               reason)
       msg = result.fail_msg
       if msg:
         self.LogWarning("Could not shutdown instance: %s", msg)
@@ -8116,7 +8119,8 @@ class LUInstanceRemove(LogicalUnit):
                  instance.name, instance.primary_node)
 
     result = self.rpc.call_instance_shutdown(instance.primary_node, instance,
-                                             self.op.shutdown_timeout)
+                                             self.op.shutdown_timeout,
+                                             self.op.reason)
     msg = result.fail_msg
     if msg:
       if self.op.ignore_failures:
@@ -8481,7 +8485,8 @@ class LUInstanceMove(LogicalUnit):
             self.owned_locks(locking.LEVEL_NODE_RES))
 
     result = self.rpc.call_instance_shutdown(source_node, instance,
-                                             self.op.shutdown_timeout)
+                                             self.op.shutdown_timeout,
+                                             self.op.reason)
     msg = result.fail_msg
     if msg:
       if self.op.ignore_consistency:
@@ -9254,7 +9259,8 @@ class TLMigrateInstance(Tasklet):
                  instance.name, source_node)
 
     result = self.rpc.call_instance_shutdown(source_node, instance,
-                                             self.shutdown_timeout)
+                                             self.shutdown_timeout,
+                                             self.lu.op.reason)
     msg = result.fail_msg
     if msg:
       if self.ignore_consistency or primary_node.offline:
@@ -14927,7 +14933,8 @@ class LUBackupExport(LogicalUnit):
       # shutdown the instance, but not the disks
       feedback_fn("Shutting down instance %s" % instance.name)
       result = self.rpc.call_instance_shutdown(src_node, instance,
-                                               self.op.shutdown_timeout)
+                                               self.op.shutdown_timeout,
+                                               self.op.reason)
       # TODO: Maybe ignore failures if ignore_remove_failures is set
       result.Raise("Could not shutdown instance %s on"
                    " node %s" % (instance.name, src_node))

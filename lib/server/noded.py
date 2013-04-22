@@ -589,7 +589,9 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     """
     instance = objects.Instance.FromDict(params[0])
     timeout = params[1]
-    return backend.InstanceShutdown(instance, timeout)
+    trail = params[2]
+    _extendReasonTrail(trail, "shutdown")
+    return backend.InstanceShutdown(instance, timeout, trail)
 
   @staticmethod
   def perspective_instance_start(params):

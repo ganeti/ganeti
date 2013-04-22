@@ -1031,7 +1031,7 @@ class GanetiRapiClient(object): # pylint: disable=R0904
                               (GANETI_RAPI_VERSION, instance)), query, None)
 
   def ShutdownInstance(self, instance, dry_run=False, no_remember=False,
-                       **kwargs):
+                       reason=None, **kwargs):
     """Shuts down an instance.
 
     @type instance: str
@@ -1040,6 +1040,8 @@ class GanetiRapiClient(object): # pylint: disable=R0904
     @param dry_run: whether to perform a dry run
     @type no_remember: bool
     @param no_remember: if true, will not record the state change
+    @type reason: string
+    @param reason: the reason for the shutdown
     @rtype: string
     @return: job id
 
@@ -1049,6 +1051,7 @@ class GanetiRapiClient(object): # pylint: disable=R0904
 
     _AppendDryRunIf(query, dry_run)
     _AppendIf(query, no_remember, ("no_remember", 1))
+    _AppendIf(query, reason, ("reason", reason))
 
     return self._SendRequest(HTTP_PUT,
                              ("/%s/instances/%s/shutdown" %
