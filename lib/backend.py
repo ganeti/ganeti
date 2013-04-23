@@ -1328,13 +1328,17 @@ def _GatherAndLinkBlockDevs(instance):
   return block_devices
 
 
-def StartInstance(instance, startup_paused):
+def StartInstance(instance, startup_paused, reason, store_reason=True):
   """Start an instance.
 
   @type instance: L{objects.Instance}
   @param instance: the instance object
   @type startup_paused: bool
   @param instance: pause instance at startup?
+  @type reason: list of reasons
+  @param reason: the reason trail for this startup
+  @type store_reason: boolean
+  @param store_reason: whether to store the shutdown reason trail on file
   @rtype: None
 
   """
@@ -1348,6 +1352,8 @@ def StartInstance(instance, startup_paused):
     block_devices = _GatherAndLinkBlockDevs(instance)
     hyper = hypervisor.GetHypervisor(instance.hypervisor)
     hyper.StartInstance(instance, block_devices, startup_paused)
+    if store_reason:
+      _StoreInstReasonTrail(instance.name, reason)
   except errors.BlockDeviceError, err:
     _Fail("Block device error: %s", err, exc=True)
   except errors.HypervisorError, err:
@@ -1467,7 +1473,7 @@ def InstanceReboot(instance, reboot_type, shutdown_timeout, reason):
   elif reboot_type == constants.INSTANCE_REBOOT_HARD:
     try:
       InstanceShutdown(instance, shutdown_timeout, reason, store_reason=False)
-      result = StartInstance(instance, False)
+      result = StartInstance(instance, False, reason, store_reason=False)
       _StoreInstReasonTrail(instance.name, reason)
       return result
     except errors.HypervisorError, err:

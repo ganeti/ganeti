@@ -279,6 +279,7 @@ _INSTANCE_CALLS = [
   ("instance_start", SINGLE, None, constants.RPC_TMO_NORMAL, [
     ("instance_hvp_bep", ED_INST_DICT_HVP_BEP_DP, None),
     ("startup_paused", None, None),
+    ("reason", None, "The reason for the startup"),
     ], None, None, "Starts an instance"),
   ("instance_os_add", SINGLE, None, constants.RPC_TMO_1DAY, [
     ("instance_osp", ED_INST_DICT_OSP_DP, None),

@@ -400,6 +400,7 @@ class TestInstanceStartup(unittest.TestCase):
     handler = _CreateHandler(rlib2.R_2_instances_name_startup, ["inst31083"], {
       "force": ["1"],
       "no_remember": ["1"],
+      "reason": ["Newly created instance"],
       }, {}, clfactory)
     job_id = handler.PUT()
 
@@ -413,6 +414,12 @@ class TestInstanceStartup(unittest.TestCase):
     self.assertTrue(op.no_remember)
     self.assertTrue(op.force)
     self.assertFalse(op.dry_run)
+    self.assertEqual(op.reason[0][0], constants.OPCODE_REASON_SRC_USER)
+    self.assertEqual(op.reason[0][1], "Newly created instance")
+    self.assertEqual(op.reason[1][0],
+                     "%s:%s" % (constants.OPCODE_REASON_SRC_RLIB2,
+                                "instances_name_startup"))
+    self.assertEqual(op.reason[1][1], "")
 
     self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 

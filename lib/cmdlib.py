@@ -7349,6 +7349,7 @@ class LUInstanceStartup(LogicalUnit):
     """
     instance = self.instance
     force = self.op.force
+    reason = self.op.reason
 
     if not self.op.no_remember:
       self.cfg.MarkInstanceUp(instance.name)
@@ -7365,7 +7366,7 @@ class LUInstanceStartup(LogicalUnit):
         self.rpc.call_instance_start(node_current,
                                      (instance, self.op.hvparams,
                                       self.op.beparams),
-                                     self.op.startup_paused)
+                                     self.op.startup_paused, reason)
       msg = result.fail_msg
       if msg:
         _ShutdownInstanceDisks(self, instance)
@@ -7458,7 +7459,8 @@ class LUInstanceReboot(LogicalUnit):
                      instance.name)
       _StartInstanceDisks(self, instance, ignore_secondaries)
       result = self.rpc.call_instance_start(node_current,
-                                            (instance, None, None), False)
+                                            (instance, None, None), False,
+                                             reason)
       msg = result.fail_msg
       if msg:
         _ShutdownInstanceDisks(self, instance)
@@ -8557,7 +8559,8 @@ class LUInstanceMove(LogicalUnit):
         raise errors.OpExecError("Can't activate the instance's disks")
 
       result = self.rpc.call_instance_start(target_node,
-                                            (instance, None, None), False)
+                                            (instance, None, None), False,
+                                             self.op.reason)
       msg = result.fail_msg
       if msg:
         _ShutdownInstanceDisks(self, instance)
@@ -9297,7 +9300,7 @@ class TLMigrateInstance(Tasklet):
       self.feedback_fn("* starting the instance on the target node %s" %
                        target_node)
       result = self.rpc.call_instance_start(target_node, (instance, None, None),
-                                            False)
+                                            False, self.lu.op.reason)
       msg = result.fail_msg
       if msg:
         _ShutdownInstanceDisks(self.lu, instance)
@@ -11229,7 +11232,7 @@ class LUInstanceCreate(LogicalUnit):
       logging.info("Starting instance %s on node %s", instance, pnode_name)
       feedback_fn("* starting instance...")
       result = self.rpc.call_instance_start(pnode_name, (iobj, None, None),
-                                            False)
+                                            False, self.op.reason)
       result.Raise("Could not start instance")
 
     return list(iobj.all_nodes)
@@ -14963,7 +14966,8 @@ class LUBackupExport(LogicalUnit):
           assert not activate_disks
           feedback_fn("Starting instance %s" % instance.name)
           result = self.rpc.call_instance_start(src_node,
-                                                (instance, None, None), False)
+                                                (instance, None, None), False,
+                                                 self.op.reason)
           msg = result.fail_msg
           if msg:
             feedback_fn("Failed to start instance: %s" % msg)
