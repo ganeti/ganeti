@@ -259,6 +259,7 @@ OPTIONS = [
                  help=("Leave instances on the cluster after burnin,"
                        " for investigation in case of errors or simply"
                        " to use them")),
+  cli.REASON_OPT,
   ]
 
 # Mainly used for bash completion
