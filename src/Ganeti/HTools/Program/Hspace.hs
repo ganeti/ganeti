@@ -398,6 +398,18 @@ instFromSpec spx =
   Instance.create "new" (rspecMem spx) (rspecDsk spx) [rspecDsk spx]
     (rspecCpu spx) Running [] True (-1) (-1)
 
+combineTiered :: Maybe Int -> Cluster.AllocNodes -> Cluster.AllocResult ->
+           Instance.Instance -> Result Cluster.AllocResult
+combineTiered limit allocnodes result inst = do
+  let (_, nl, il, ixes, cstats) = result
+      ixes_cnt = length ixes
+      (stop, newlimit) = case limit of
+        Nothing -> (False, Nothing)
+        Just n -> (n <= ixes_cnt, Just (n - ixes_cnt))
+  if stop
+    then return result
+    else Cluster.tieredAlloc nl il newlimit inst allocnodes ixes cstats
+
 -- | Main function.
 main :: Options -> [String] -> IO ()
 main opts args = do
@@ -447,17 +459,18 @@ main opts args = do
   -- Run the tiered allocation
 
   let minmaxes = iPolicyMinMaxISpecs ipol
-  -- TODO: Go through all min/max specs pairs
-  tspec <- case minmaxes of
-             [] -> exitErr "Empty list of specs received from the cluster"
-             minmax:_ -> return $ fromMaybe
-                         (rspecFromISpec (minMaxISpecsMaxSpec minmax))
-                         (optTieredSpec opts)
+      tspecs = case optTieredSpec opts of
+                 Nothing -> map (rspecFromISpec . minMaxISpecsMaxSpec)
+                            minmaxes
+                 Just t -> [t]
+      tinsts = map (\ts -> instFromSpec ts disk_template su) tspecs
+  tspec <- case tspecs of
+    [] -> exitErr "Empty list of specs received from the cluster"
+    t:_ -> return t
 
   (treason, trl_nl, _, spec_map) <-
     runAllocation cdata stop_allocation
-       (Cluster.tieredAlloc nl il alloclimit
-        (instFromSpec tspec disk_template su) allocnodes [] [])
+       (foldM (combineTiered alloclimit allocnodes) ([], nl, il, [], []) tinsts)
        tspec disk_template SpecTiered opts
 
   printTiered machine_r spec_map nl trl_nl treason

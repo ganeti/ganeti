@@ -33,6 +33,7 @@ module Ganeti.HTools.Cluster
   , EvacSolution(..)
   , Table(..)
   , CStats(..)
+  , AllocNodes
   , AllocResult
   , AllocMethod
   , AllocSolutionList
