@@ -14008,11 +14008,22 @@ class LUInstanceSetParams(LogicalUnit):
 
     feedback_fn("Initializing DRBD devices...")
     # all child devices are in place, we can now create the DRBD devices
-    for disk in anno_disks:
-      for (node, excl_stor) in [(pnode, p_excl_stor), (snode, s_excl_stor)]:
-        f_create = node == pnode
-        _CreateSingleBlockDev(self, node, instance, disk, info, f_create,
-                              excl_stor)
+    try:
+      for disk in anno_disks:
+        for (node, excl_stor) in [(pnode, p_excl_stor), (snode, s_excl_stor)]:
+          f_create = node == pnode
+          _CreateSingleBlockDev(self, node, instance, disk, info, f_create,
+                                excl_stor)
+    except errors.GenericError, e:
+      feedback_fn("Initializing of DRBD devices failed;"
+                  " renaming back original volumes...")
+      for disk in new_disks:
+        self.cfg.SetDiskID(disk, pnode)
+      rename_back_list = [(n.children[0], o.logical_id)
+                          for (n, o) in zip(new_disks, instance.disks)]
+      result = self.rpc.call_blockdev_rename(pnode, rename_back_list)
+      result.Raise("Failed to rename LVs back after error %s" % str(e))
+      raise
 
     # at this point, the instance has been modified
     instance.disk_template = constants.DT_DRBD8
