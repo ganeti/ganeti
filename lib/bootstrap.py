@@ -40,7 +40,7 @@ from ganeti import objects
 from ganeti import ssconf
 from ganeti import serializer
 from ganeti import hypervisor
-from ganeti import bdev
+from ganeti.block import bdev
 from ganeti import netutils
 from ganeti import luxi
 from ganeti import jstore

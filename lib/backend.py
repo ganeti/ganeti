@@ -54,7 +54,7 @@ from ganeti import utils
 from ganeti import ssh
 from ganeti import hypervisor
 from ganeti import constants
-from ganeti import bdev
+from ganeti.block import bdev
 from ganeti import objects
 from ganeti import ssconf
 from ganeti import serializer

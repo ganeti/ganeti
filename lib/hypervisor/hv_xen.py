@@ -270,7 +270,7 @@ def _GetConfigFileDiskData(block_devices, blockdev_prefix,
 
   @param block_devices: list of tuples (cfdev, rldev):
       - cfdev: dict containing ganeti config disk part
-      - rldev: ganeti.bdev.BlockDev object
+      - rldev: ganeti.block.bdev.BlockDev object
   @param blockdev_prefix: a string containing blockdevice prefix,
                           e.g. "sd" for /dev/sda
 

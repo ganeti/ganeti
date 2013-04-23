@@ -41,6 +41,7 @@ SHELL_ENV_INIT = autotools/shell-env-init
 # the directory + 'dir' suffix
 clientdir = $(pkgpythondir)/client
 hypervisordir = $(pkgpythondir)/hypervisor
+blockdir = $(pkgpythondir)/block
 httpdir = $(pkgpythondir)/http
 masterddir = $(pkgpythondir)/masterd
 confddir = $(pkgpythondir)/confd
@@ -108,6 +109,7 @@ DIRS = \
 	lib/confd \
 	lib/http \
 	lib/hypervisor \
+	lib/block \
 	lib/impexpd \
 	lib/masterd \
 	lib/rapi \
@@ -257,7 +259,6 @@ pkgpython_PYTHON = \
 	lib/__init__.py \
 	lib/asyncnotifier.py \
 	lib/backend.py \
-	lib/bdev.py \
 	lib/bootstrap.py \
 	lib/cli.py \
 	lib/cmdlib.py \
@@ -313,6 +314,10 @@ hypervisor_PYTHON = \
 	lib/hypervisor/hv_kvm.py \
 	lib/hypervisor/hv_lxc.py \
 	lib/hypervisor/hv_xen.py
+
+block_PYTHON = \
+	lib/block/__init__.py \
+	lib/block/bdev.py
 
 rapi_PYTHON = \
 	lib/rapi/__init__.py \
@@ -1112,7 +1117,7 @@ python_tests = \
 	test/py/ganeti.asyncnotifier_unittest.py \
 	test/py/ganeti.backend_unittest-runasroot.py \
 	test/py/ganeti.backend_unittest.py \
-	test/py/ganeti.bdev_unittest.py \
+	test/py/ganeti.block.bdev_unittest.py \
 	test/py/ganeti.cli_unittest.py \
 	test/py/ganeti.client.gnt_cluster_unittest.py \
 	test/py/ganeti.client.gnt_instance_unittest.py \
@@ -1232,6 +1237,7 @@ all_python_code = \
 	$(pkgpython_PYTHON) \
 	$(client_PYTHON) \
 	$(hypervisor_PYTHON) \
+	$(block_PYTHON) \
 	$(rapi_PYTHON) \
 	$(server_PYTHON) \
 	$(pytools_PYTHON) \

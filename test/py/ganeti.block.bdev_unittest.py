@@ -26,12 +26,12 @@ import os
 import random
 import unittest
 
-from ganeti import bdev
 from ganeti import compat
 from ganeti import constants
 from ganeti import errors
 from ganeti import objects
 from ganeti import utils
+from ganeti.block import bdev
 
 import testutils
 

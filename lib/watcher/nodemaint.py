@@ -25,7 +25,6 @@
 
 import logging
 
-from ganeti import bdev
 from ganeti import constants
 from ganeti import errors
 from ganeti import hypervisor
@@ -33,6 +32,7 @@ from ganeti import netutils
 from ganeti import ssconf
 from ganeti import utils
 from ganeti import confd
+from ganeti.block import bdev
 
 import ganeti.confd.client # pylint: disable=W0611
 
