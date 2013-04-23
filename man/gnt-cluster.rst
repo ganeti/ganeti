@@ -690,24 +690,24 @@ RENEW-CRYPTO
 This command will stop all Ganeti daemons in the cluster and start
 them again once the new certificates and keys are replicated. The
 options ``--new-cluster-certificate`` and ``--new-confd-hmac-key``
-can be used to regenerate the cluster-internal SSL certificate
-respective the HMAC key used by **ganeti-confd**\(8).
+can be used to regenerate respectively the cluster-internal SSL
+certificate and the HMAC key used by **ganeti-confd**\(8).
 
 To generate a new self-signed RAPI certificate (used by
 **ganeti-rapi**\(8)) specify ``--new-rapi-certificate``. If you want to
 use your own certificate, e.g. one signed by a certificate
 authority (CA), pass its filename to ``--rapi-certificate``.
 
-To generate a new self-signed SPICE certificate, used by SPICE
+To generate a new self-signed SPICE certificate, used for SPICE
 connections to the KVM hypervisor, specify the
 ``--new-spice-certificate`` option. If you want to provide a
 certificate, pass its filename to ``--spice-certificate`` and pass the
 signing CA certificate to ``--spice-ca-certificate``.
 
-``--new-cluster-domain-secret`` generates a new, random cluster
-domain secret. ``--cluster-domain-secret`` reads the secret from a
-file. The cluster domain secret is used to sign information
-exchanged between separate clusters via a third party.
+Finally ``--new-cluster-domain-secret`` generates a new, random
+cluster domain secret, and ``--cluster-domain-secret`` reads the
+secret from a file. The cluster domain secret is used to sign
+information exchanged between separate clusters via a third party.
 
 REPAIR-DISK-SIZES
 ~~~~~~~~~~~~~~~~~
