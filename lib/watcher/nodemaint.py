@@ -32,7 +32,7 @@ from ganeti import netutils
 from ganeti import ssconf
 from ganeti import utils
 from ganeti import confd
-from ganeti.block import bdev
+from ganeti.block import drbd
 
 import ganeti.confd.client # pylint: disable=W0611
 
@@ -80,7 +80,7 @@ class NodeMaintenance(object):
     """Get list of used DRBD minors.
 
     """
-    return bdev.DRBD8.GetUsedDevs().keys()
+    return drbd.DRBD8.GetUsedDevs().keys()
 
   @classmethod
   def DoMaintenance(cls, role):
@@ -124,7 +124,7 @@ class NodeMaintenance(object):
         # pylint: disable=W0212
         # using the private method as is, pending enhancements to the DRBD
         # interface
-        bdev.DRBD8._ShutdownAll(minor)
+        drbd.DRBD8._ShutdownAll(minor)
 
   def Exec(self):
     """Check node status versus cluster desired state.

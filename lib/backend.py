@@ -55,6 +55,7 @@ from ganeti import ssh
 from ganeti import hypervisor
 from ganeti import constants
 from ganeti.block import bdev
+from ganeti.block import drbd
 from ganeti import objects
 from ganeti import ssconf
 from ganeti import serializer
@@ -65,6 +66,7 @@ from ganeti import compat
 from ganeti import pathutils
 from ganeti import vcluster
 from ganeti import ht
+from ganeti.block.base import BlockDev
 
 
 _BOOT_ID_PATH = "/proc/sys/kernel/random/boot_id"
@@ -830,7 +832,7 @@ def VerifyNode(what, cluster_name):
 
   if constants.NV_DRBDLIST in what and vm_capable:
     try:
-      used_minors = bdev.DRBD8.GetUsedDevs().keys()
+      used_minors = drbd.DRBD8.GetUsedDevs().keys()
     except errors.BlockDeviceError, err:
       logging.warning("Can't get used minors list", exc_info=True)
       used_minors = str(err)
@@ -839,7 +841,7 @@ def VerifyNode(what, cluster_name):
   if constants.NV_DRBDHELPER in what and vm_capable:
     status = True
     try:
-      payload = bdev.BaseDRBD.GetUsermodeHelper()
+      payload = drbd.BaseDRBD.GetUsermodeHelper()
     except errors.BlockDeviceError, err:
       logging.error("Can't get DRBD usermode helper: %s", str(err))
       status = False
@@ -1872,7 +1874,7 @@ def BlockdevAssemble(disk, owner, as_primary, idx):
   """
   try:
     result = _RecursiveAssembleBD(disk, owner, as_primary)
-    if isinstance(result, bdev.BlockDev):
+    if isinstance(result, BlockDev):
       # pylint: disable=E1103
       result = result.dev_path
       if as_primary:
@@ -3669,7 +3671,7 @@ def GetDrbdUsermodeHelper():
 
   """
   try:
-    return bdev.BaseDRBD.GetUsermodeHelper()
+    return drbd.BaseDRBD.GetUsermodeHelper()
   except errors.BlockDeviceError, err:
     _Fail(str(err))
 

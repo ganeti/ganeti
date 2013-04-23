@@ -40,7 +40,7 @@ from ganeti import objects
 from ganeti import ssconf
 from ganeti import serializer
 from ganeti import hypervisor
-from ganeti.block import bdev
+from ganeti.block import drbd
 from ganeti import netutils
 from ganeti import luxi
 from ganeti import jstore
@@ -472,7 +472,7 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
 
   if drbd_helper is not None:
     try:
-      curr_helper = bdev.BaseDRBD.GetUsermodeHelper()
+      curr_helper = drbd.BaseDRBD.GetUsermodeHelper()
     except errors.BlockDeviceError, err:
       raise errors.OpPrereqError("Error while checking drbd helper"
                                  " (specify --no-drbd-storage if you are not"

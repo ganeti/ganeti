@@ -32,6 +32,7 @@ from ganeti import errors
 from ganeti import objects
 from ganeti import utils
 from ganeti.block import bdev
+from ganeti.block import drbd
 
 import testutils
 
@@ -70,11 +71,11 @@ class TestBaseDRBD(testutils.GanetiTestCase):
       }
     ]
     for d,r in zip(data, result):
-      self.assertEqual(bdev.BaseDRBD._GetVersion(d), r)
+      self.assertEqual(drbd.BaseDRBD._GetVersion(d), r)
 
 
 class TestDRBD8Runner(testutils.GanetiTestCase):
-  """Testing case for DRBD8"""
+  """Testing case for drbd.DRBD8"""
 
   @staticmethod
   def _has_disk(data, dname, mname):
@@ -102,12 +103,12 @@ class TestDRBD8Runner(testutils.GanetiTestCase):
 
   def testParserCreation(self):
     """Test drbdsetup show parser creation"""
-    bdev.DRBD8._GetShowParser()
+    drbd.DRBD8._GetShowParser()
 
   def testParser80(self):
     """Test drbdsetup show parser for disk and network version 8.0"""
     data = testutils.ReadTestData("bdev-drbd-8.0.txt")
-    result = bdev.DRBD8._GetDevInfo(data)
+    result = drbd.DRBD8._GetDevInfo(data)
     self.failUnless(self._has_disk(result, "/dev/xenvg/test.data",
                                    "/dev/xenvg/test.meta"),
                     "Wrong local disk info")
@@ -118,7 +119,7 @@ class TestDRBD8Runner(testutils.GanetiTestCase):
   def testParser83(self):
     """Test drbdsetup show parser for disk and network version 8.3"""
     data = testutils.ReadTestData("bdev-drbd-8.3.txt")
-    result = bdev.DRBD8._GetDevInfo(data)
+    result = drbd.DRBD8._GetDevInfo(data)
     self.failUnless(self._has_disk(result, "/dev/xenvg/test.data",
                                    "/dev/xenvg/test.meta"),
                     "Wrong local disk info")
@@ -129,7 +130,7 @@ class TestDRBD8Runner(testutils.GanetiTestCase):
   def testParserNetIP4(self):
     """Test drbdsetup show parser for IPv4 network"""
     data = testutils.ReadTestData("bdev-drbd-net-ip4.txt")
-    result = bdev.DRBD8._GetDevInfo(data)
+    result = drbd.DRBD8._GetDevInfo(data)
     self.failUnless(("local_dev" not in result and
                      "meta_dev" not in result and
                      "meta_index" not in result),
@@ -141,7 +142,7 @@ class TestDRBD8Runner(testutils.GanetiTestCase):
   def testParserNetIP6(self):
     """Test drbdsetup show parser for IPv6 network"""
     data = testutils.ReadTestData("bdev-drbd-net-ip6.txt")
-    result = bdev.DRBD8._GetDevInfo(data)
+    result = drbd.DRBD8._GetDevInfo(data)
     self.failUnless(("local_dev" not in result and
                      "meta_dev" not in result and
                      "meta_index" not in result),
@@ -153,7 +154,7 @@ class TestDRBD8Runner(testutils.GanetiTestCase):
   def testParserDisk(self):
     """Test drbdsetup show parser for disk"""
     data = testutils.ReadTestData("bdev-drbd-disk.txt")
-    result = bdev.DRBD8._GetDevInfo(data)
+    result = drbd.DRBD8._GetDevInfo(data)
     self.failUnless(self._has_disk(result, "/dev/xenvg/test.data",
                                    "/dev/xenvg/test.meta"),
                     "Wrong local disk info")
@@ -174,7 +175,7 @@ class TestDRBD8Runner(testutils.GanetiTestCase):
 
     for vmaj, vmin, vrel, opts, meta in should_fail:
       self.assertRaises(errors.BlockDeviceError,
-                        bdev.DRBD8._ComputeDiskBarrierArgs,
+                        drbd.DRBD8._ComputeDiskBarrierArgs,
                         vmaj, vmin, vrel, opts, meta)
 
     # get the valid options from the frozenset(frozenset()) in constants.
@@ -184,7 +185,7 @@ class TestDRBD8Runner(testutils.GanetiTestCase):
     for vmaj, vmin, vrel in ((8, 0, 0), (8, 0, 11), (8, 2, 6)):
       for opts in valid_options:
         self.assertRaises(errors.BlockDeviceError,
-                          bdev.DRBD8._ComputeDiskBarrierArgs,
+                          drbd.DRBD8._ComputeDiskBarrierArgs,
                           vmaj, vmin, vrel, opts, True)
 
     # Versions with partial support (testing only options that are supported)
@@ -212,7 +213,7 @@ class TestDRBD8Runner(testutils.GanetiTestCase):
     for test in tests:
       vmaj, vmin, vrel, disabled_barriers, disable_meta_flush, expected = test
       args = \
-        bdev.DRBD8._ComputeDiskBarrierArgs(vmaj, vmin, vrel,
+        drbd.DRBD8._ComputeDiskBarrierArgs(vmaj, vmin, vrel,
                                            disabled_barriers,
                                            disable_meta_flush)
       self.failUnless(set(args) == set(expected),
@@ -221,13 +222,13 @@ class TestDRBD8Runner(testutils.GanetiTestCase):
     # Unsupported or invalid versions
     for vmaj, vmin, vrel in ((0, 7, 25), (9, 0, 0), (7, 0, 0), (8, 4, 0)):
       self.assertRaises(errors.BlockDeviceError,
-                        bdev.DRBD8._ComputeDiskBarrierArgs,
+                        drbd.DRBD8._ComputeDiskBarrierArgs,
                         vmaj, vmin, vrel, "n", True)
 
     # Invalid options
     for option in ("", "c", "whatever", "nbdfc", "nf"):
       self.assertRaises(errors.BlockDeviceError,
-                        bdev.DRBD8._ComputeDiskBarrierArgs,
+                        drbd.DRBD8._ComputeDiskBarrierArgs,
                         8, 3, 11, option, True)
 
 
@@ -243,30 +244,30 @@ class TestDRBD8Status(testutils.GanetiTestCase):
     proc83_sync_data = testutils.TestDataFilename("proc_drbd83_sync.txt")
     proc83_sync_krnl_data = \
       testutils.TestDataFilename("proc_drbd83_sync_krnl2.6.39.txt")
-    self.proc_data = bdev.DRBD8._GetProcData(filename=proc_data)
-    self.proc80e_data = bdev.DRBD8._GetProcData(filename=proc80e_data)
-    self.proc83_data = bdev.DRBD8._GetProcData(filename=proc83_data)
-    self.proc83_sync_data = bdev.DRBD8._GetProcData(filename=proc83_sync_data)
+    self.proc_data = drbd.DRBD8._GetProcData(filename=proc_data)
+    self.proc80e_data = drbd.DRBD8._GetProcData(filename=proc80e_data)
+    self.proc83_data = drbd.DRBD8._GetProcData(filename=proc83_data)
+    self.proc83_sync_data = drbd.DRBD8._GetProcData(filename=proc83_sync_data)
     self.proc83_sync_krnl_data = \
-      bdev.DRBD8._GetProcData(filename=proc83_sync_krnl_data)
-    self.mass_data = bdev.DRBD8._MassageProcData(self.proc_data)
-    self.mass80e_data = bdev.DRBD8._MassageProcData(self.proc80e_data)
-    self.mass83_data = bdev.DRBD8._MassageProcData(self.proc83_data)
-    self.mass83_sync_data = bdev.DRBD8._MassageProcData(self.proc83_sync_data)
+      drbd.DRBD8._GetProcData(filename=proc83_sync_krnl_data)
+    self.mass_data = drbd.DRBD8._MassageProcData(self.proc_data)
+    self.mass80e_data = drbd.DRBD8._MassageProcData(self.proc80e_data)
+    self.mass83_data = drbd.DRBD8._MassageProcData(self.proc83_data)
+    self.mass83_sync_data = drbd.DRBD8._MassageProcData(self.proc83_sync_data)
     self.mass83_sync_krnl_data = \
-      bdev.DRBD8._MassageProcData(self.proc83_sync_krnl_data)
+      drbd.DRBD8._MassageProcData(self.proc83_sync_krnl_data)
 
   def testIOErrors(self):
     """Test handling of errors while reading the proc file."""
     temp_file = self._CreateTempFile()
     os.unlink(temp_file)
     self.failUnlessRaises(errors.BlockDeviceError,
-                          bdev.DRBD8._GetProcData, filename=temp_file)
+                          drbd.DRBD8._GetProcData, filename=temp_file)
 
   def testHelper(self):
     """Test reading usermode_helper in /sys."""
     sys_drbd_helper = testutils.TestDataFilename("sys_drbd_usermode_helper.txt")
-    drbd_helper = bdev.DRBD8.GetUsermodeHelper(filename=sys_drbd_helper)
+    drbd_helper = drbd.DRBD8.GetUsermodeHelper(filename=sys_drbd_helper)
     self.failUnlessEqual(drbd_helper, "/bin/true")
 
   def testHelperIOErrors(self):
@@ -274,7 +275,7 @@ class TestDRBD8Status(testutils.GanetiTestCase):
     temp_file = self._CreateTempFile()
     os.unlink(temp_file)
     self.failUnlessRaises(errors.BlockDeviceError,
-                          bdev.DRBD8.GetUsermodeHelper, filename=temp_file)
+                          drbd.DRBD8.GetUsermodeHelper, filename=temp_file)
 
   def testMinorNotFound(self):
     """Test not-found-minor in /proc"""
@@ -283,13 +284,13 @@ class TestDRBD8Status(testutils.GanetiTestCase):
     self.failUnless(3 not in self.mass80e_data)
 
   def testLineNotMatch(self):
-    """Test wrong line passed to DRBD8Status"""
-    self.assertRaises(errors.BlockDeviceError, bdev.DRBD8Status, "foo")
+    """Test wrong line passed to drbd.DRBD8Status"""
+    self.assertRaises(errors.BlockDeviceError, drbd.DRBD8Status, "foo")
 
   def testMinor0(self):
     """Test connected, primary device"""
     for data in [self.mass_data, self.mass83_data]:
-      stats = bdev.DRBD8Status(data[0])
+      stats = drbd.DRBD8Status(data[0])
       self.failUnless(stats.is_in_use)
       self.failUnless(stats.is_connected and stats.is_primary and
                       stats.peer_secondary and stats.is_disk_uptodate)
@@ -297,7 +298,7 @@ class TestDRBD8Status(testutils.GanetiTestCase):
   def testMinor1(self):
     """Test connected, secondary device"""
     for data in [self.mass_data, self.mass83_data]:
-      stats = bdev.DRBD8Status(data[1])
+      stats = drbd.DRBD8Status(data[1])
       self.failUnless(stats.is_in_use)
       self.failUnless(stats.is_connected and stats.is_secondary and
                       stats.peer_primary and stats.is_disk_uptodate)
@@ -305,13 +306,13 @@ class TestDRBD8Status(testutils.GanetiTestCase):
   def testMinor2(self):
     """Test unconfigured device"""
     for data in [self.mass_data, self.mass83_data, self.mass80e_data]:
-      stats = bdev.DRBD8Status(data[2])
+      stats = drbd.DRBD8Status(data[2])
       self.failIf(stats.is_in_use)
 
   def testMinor4(self):
     """Test WFconn device"""
     for data in [self.mass_data, self.mass83_data]:
-      stats = bdev.DRBD8Status(data[4])
+      stats = drbd.DRBD8Status(data[4])
       self.failUnless(stats.is_in_use)
       self.failUnless(stats.is_wfconn and stats.is_primary and
                       stats.rrole == "Unknown" and
@@ -320,7 +321,7 @@ class TestDRBD8Status(testutils.GanetiTestCase):
   def testMinor6(self):
     """Test diskless device"""
     for data in [self.mass_data, self.mass83_data]:
-      stats = bdev.DRBD8Status(data[6])
+      stats = drbd.DRBD8Status(data[6])
       self.failUnless(stats.is_in_use)
       self.failUnless(stats.is_connected and stats.is_secondary and
                       stats.peer_primary and stats.is_diskless)
@@ -328,19 +329,19 @@ class TestDRBD8Status(testutils.GanetiTestCase):
   def testMinor8(self):
     """Test standalone device"""
     for data in [self.mass_data, self.mass83_data]:
-      stats = bdev.DRBD8Status(data[8])
+      stats = drbd.DRBD8Status(data[8])
       self.failUnless(stats.is_in_use)
       self.failUnless(stats.is_standalone and
                       stats.rrole == "Unknown" and
                       stats.is_disk_uptodate)
 
   def testDRBD83SyncFine(self):
-    stats = bdev.DRBD8Status(self.mass83_sync_data[3])
+    stats = drbd.DRBD8Status(self.mass83_sync_data[3])
     self.failUnless(stats.is_in_resync)
     self.failUnless(stats.sync_percent is not None)
 
   def testDRBD83SyncBroken(self):
-    stats = bdev.DRBD8Status(self.mass83_sync_krnl_data[3])
+    stats = drbd.DRBD8Status(self.mass83_sync_krnl_data[3])
     self.failUnless(stats.is_in_resync)
     self.failUnless(stats.sync_percent is not None)
 
