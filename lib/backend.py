@@ -841,7 +841,7 @@ def VerifyNode(what, cluster_name):
   if constants.NV_DRBDHELPER in what and vm_capable:
     status = True
     try:
-      payload = drbd.BaseDRBD.GetUsermodeHelper()
+      payload = drbd.DRBD8.GetUsermodeHelper()
     except errors.BlockDeviceError, err:
       logging.error("Can't get DRBD usermode helper: %s", str(err))
       status = False
@@ -3671,7 +3671,7 @@ def GetDrbdUsermodeHelper():
 
   """
   try:
-    return drbd.BaseDRBD.GetUsermodeHelper()
+    return drbd.DRBD8.GetUsermodeHelper()
   except errors.BlockDeviceError, err:
     _Fail(str(err))
 

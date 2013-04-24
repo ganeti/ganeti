@@ -42,11 +42,126 @@ from ganeti.block import base
 _DEVICE_READ_SIZE = 128 * 1024
 
 
-class BaseDRBD(base.BlockDev): # pylint: disable=W0223
-  """Base DRBD class.
+class DRBD8Status(object):
+  """A DRBD status representation class.
 
-  This class contains a few bits of common functionality between the
-  0.7 and 8.x versions of DRBD.
+  Note that this class is meant to be used to parse one of the entries returned
+  from L{DRBD8._JoinProcDataPerMinor}.
+
+  """
+  UNCONF_RE = re.compile(r"\s*[0-9]+:\s*cs:Unconfigured$")
+  LINE_RE = re.compile(r"\s*[0-9]+:\s*cs:(\S+)\s+(?:st|ro):([^/]+)/(\S+)"
+                       "\s+ds:([^/]+)/(\S+)\s+.*$")
+  SYNC_RE = re.compile(r"^.*\ssync'ed:\s*([0-9.]+)%.*"
+                       # Due to a bug in drbd in the kernel, introduced in
+                       # commit 4b0715f096 (still unfixed as of 2011-08-22)
+                       "(?:\s|M)"
+                       "finish: ([0-9]+):([0-9]+):([0-9]+)\s.*$")
+
+  CS_UNCONFIGURED = "Unconfigured"
+  CS_STANDALONE = "StandAlone"
+  CS_WFCONNECTION = "WFConnection"
+  CS_WFREPORTPARAMS = "WFReportParams"
+  CS_CONNECTED = "Connected"
+  CS_STARTINGSYNCS = "StartingSyncS"
+  CS_STARTINGSYNCT = "StartingSyncT"
+  CS_WFBITMAPS = "WFBitMapS"
+  CS_WFBITMAPT = "WFBitMapT"
+  CS_WFSYNCUUID = "WFSyncUUID"
+  CS_SYNCSOURCE = "SyncSource"
+  CS_SYNCTARGET = "SyncTarget"
+  CS_PAUSEDSYNCS = "PausedSyncS"
+  CS_PAUSEDSYNCT = "PausedSyncT"
+  CSET_SYNC = compat.UniqueFrozenset([
+    CS_WFREPORTPARAMS,
+    CS_STARTINGSYNCS,
+    CS_STARTINGSYNCT,
+    CS_WFBITMAPS,
+    CS_WFBITMAPT,
+    CS_WFSYNCUUID,
+    CS_SYNCSOURCE,
+    CS_SYNCTARGET,
+    CS_PAUSEDSYNCS,
+    CS_PAUSEDSYNCT,
+    ])
+
+  DS_DISKLESS = "Diskless"
+  DS_ATTACHING = "Attaching" # transient state
+  DS_FAILED = "Failed" # transient state, next: diskless
+  DS_NEGOTIATING = "Negotiating" # transient state
+  DS_INCONSISTENT = "Inconsistent" # while syncing or after creation
+  DS_OUTDATED = "Outdated"
+  DS_DUNKNOWN = "DUnknown" # shown for peer disk when not connected
+  DS_CONSISTENT = "Consistent"
+  DS_UPTODATE = "UpToDate" # normal state
+
+  RO_PRIMARY = "Primary"
+  RO_SECONDARY = "Secondary"
+  RO_UNKNOWN = "Unknown"
+
+  def __init__(self, procline):
+    u = self.UNCONF_RE.match(procline)
+    if u:
+      self.cstatus = self.CS_UNCONFIGURED
+      self.lrole = self.rrole = self.ldisk = self.rdisk = None
+    else:
+      m = self.LINE_RE.match(procline)
+      if not m:
+        raise errors.BlockDeviceError("Can't parse input data '%s'" % procline)
+      self.cstatus = m.group(1)
+      self.lrole = m.group(2)
+      self.rrole = m.group(3)
+      self.ldisk = m.group(4)
+      self.rdisk = m.group(5)
+
+    # end reading of data from the LINE_RE or UNCONF_RE
+
+    self.is_standalone = self.cstatus == self.CS_STANDALONE
+    self.is_wfconn = self.cstatus == self.CS_WFCONNECTION
+    self.is_connected = self.cstatus == self.CS_CONNECTED
+    self.is_primary = self.lrole == self.RO_PRIMARY
+    self.is_secondary = self.lrole == self.RO_SECONDARY
+    self.peer_primary = self.rrole == self.RO_PRIMARY
+    self.peer_secondary = self.rrole == self.RO_SECONDARY
+    self.both_primary = self.is_primary and self.peer_primary
+    self.both_secondary = self.is_secondary and self.peer_secondary
+
+    self.is_diskless = self.ldisk == self.DS_DISKLESS
+    self.is_disk_uptodate = self.ldisk == self.DS_UPTODATE
+
+    self.is_in_resync = self.cstatus in self.CSET_SYNC
+    self.is_in_use = self.cstatus != self.CS_UNCONFIGURED
+
+    m = self.SYNC_RE.match(procline)
+    if m:
+      self.sync_percent = float(m.group(1))
+      hours = int(m.group(2))
+      minutes = int(m.group(3))
+      seconds = int(m.group(4))
+      self.est_time = hours * 3600 + minutes * 60 + seconds
+    else:
+      # we have (in this if branch) no percent information, but if
+      # we're resyncing we need to 'fake' a sync percent information,
+      # as this is how cmdlib determines if it makes sense to wait for
+      # resyncing or not
+      if self.is_in_resync:
+        self.sync_percent = 0
+      else:
+        self.sync_percent = None
+      self.est_time = None
+
+
+class DRBD8(base.BlockDev):
+  """DRBD v8.x block device.
+
+  This implements the local host part of the DRBD device, i.e. it
+  doesn't do anything to the supposed peer. If you need a fully
+  connected DRBD pair, you need to use this class on both hosts.
+
+  The unique_id for the drbd device is a (local_ip, local_port,
+  remote_ip, remote_port, local_minor, secret) tuple, and it must have
+  two children: the data device and the meta_device. The meta device
+  is checked for valid size and is zeroed on create.
 
   """
   _VERSION_RE = re.compile(r"^version: (\d+)\.(\d+)\.(\d+)(?:\.\d+)?"
@@ -55,12 +170,52 @@ class BaseDRBD(base.BlockDev): # pylint: disable=W0223
   _UNUSED_LINE_RE = re.compile("^ *([0-9]+): cs:Unconfigured$")
 
   _DRBD_MAJOR = 147
-  _ST_UNCONFIGURED = "Unconfigured"
-  _ST_WFCONNECTION = "WFConnection"
-  _ST_CONNECTED = "Connected"
+  _ST_UNCONFIGURED = DRBD8Status.CS_UNCONFIGURED
+  _ST_WFCONNECTION = DRBD8Status.CS_WFCONNECTION
+  _ST_CONNECTED = DRBD8Status.CS_CONNECTED
 
   _STATUS_FILE = constants.DRBD_STATUS_FILE
   _USERMODE_HELPER_FILE = "/sys/module/drbd/parameters/usermode_helper"
+
+  _MAX_MINORS = 255
+  _PARSE_SHOW = None
+
+  # timeout constants
+  _NET_RECONFIG_TIMEOUT = 60
+
+  # command line options for barriers
+  _DISABLE_DISK_OPTION = "--no-disk-barrier"  # -a
+  _DISABLE_DRAIN_OPTION = "--no-disk-drain"   # -D
+  _DISABLE_FLUSH_OPTION = "--no-disk-flushes" # -i
+  _DISABLE_META_FLUSH_OPTION = "--no-md-flushes"  # -m
+
+  def __init__(self, unique_id, children, size, params):
+    if children and children.count(None) > 0:
+      children = []
+    if len(children) not in (0, 2):
+      raise ValueError("Invalid configuration data %s" % str(children))
+    if not isinstance(unique_id, (tuple, list)) or len(unique_id) != 6:
+      raise ValueError("Invalid configuration data %s" % str(unique_id))
+    (self._lhost, self._lport,
+     self._rhost, self._rport,
+     self._aminor, self._secret) = unique_id
+    if children:
+      if not _CanReadDevice(children[1].dev_path):
+        logging.info("drbd%s: Ignoring unreadable meta device", self._aminor)
+        children = []
+    super(DRBD8, self).__init__(unique_id, children, size, params)
+    self.major = self._DRBD_MAJOR
+    version = self._GetVersion(self._GetProcData())
+    if version["k_major"] != 8:
+      base.ThrowError("Mismatch in DRBD kernel version and requested ganeti"
+                      " usage: kernel is %s.%s, ganeti wants 8.x",
+                      version["k_major"], version["k_minor"])
+
+    if (self._lhost is not None and self._lhost == self._rhost and
+            self._lport == self._rport):
+      raise ValueError("Invalid configuration data, same local/remote %s" %
+                       (unique_id,))
+    self.Attach()
 
   @staticmethod
   def _GetProcData(filename=_STATUS_FILE):
@@ -227,176 +382,6 @@ class BaseDRBD(base.BlockDev): # pylint: disable=W0223
     if num_bytes > 1024 * 1024 * 1024:
       base.ThrowError("Meta device too big (%.2fMiB)",
                       (num_bytes / 1024 / 1024))
-
-  def Rename(self, new_id):
-    """Rename a device.
-
-    This is not supported for drbd devices.
-
-    """
-    raise errors.ProgrammerError("Can't rename a drbd device")
-
-
-class DRBD8Status(object):
-  """A DRBD status representation class.
-
-  Note that this doesn't support unconfigured devices (cs:Unconfigured).
-
-  """
-  UNCONF_RE = re.compile(r"\s*[0-9]+:\s*cs:Unconfigured$")
-  LINE_RE = re.compile(r"\s*[0-9]+:\s*cs:(\S+)\s+(?:st|ro):([^/]+)/(\S+)"
-                       "\s+ds:([^/]+)/(\S+)\s+.*$")
-  SYNC_RE = re.compile(r"^.*\ssync'ed:\s*([0-9.]+)%.*"
-                       # Due to a bug in drbd in the kernel, introduced in
-                       # commit 4b0715f096 (still unfixed as of 2011-08-22)
-                       "(?:\s|M)"
-                       "finish: ([0-9]+):([0-9]+):([0-9]+)\s.*$")
-
-  CS_UNCONFIGURED = "Unconfigured"
-  CS_STANDALONE = "StandAlone"
-  CS_WFCONNECTION = "WFConnection"
-  CS_WFREPORTPARAMS = "WFReportParams"
-  CS_CONNECTED = "Connected"
-  CS_STARTINGSYNCS = "StartingSyncS"
-  CS_STARTINGSYNCT = "StartingSyncT"
-  CS_WFBITMAPS = "WFBitMapS"
-  CS_WFBITMAPT = "WFBitMapT"
-  CS_WFSYNCUUID = "WFSyncUUID"
-  CS_SYNCSOURCE = "SyncSource"
-  CS_SYNCTARGET = "SyncTarget"
-  CS_PAUSEDSYNCS = "PausedSyncS"
-  CS_PAUSEDSYNCT = "PausedSyncT"
-  CSET_SYNC = compat.UniqueFrozenset([
-    CS_WFREPORTPARAMS,
-    CS_STARTINGSYNCS,
-    CS_STARTINGSYNCT,
-    CS_WFBITMAPS,
-    CS_WFBITMAPT,
-    CS_WFSYNCUUID,
-    CS_SYNCSOURCE,
-    CS_SYNCTARGET,
-    CS_PAUSEDSYNCS,
-    CS_PAUSEDSYNCT,
-    ])
-
-  DS_DISKLESS = "Diskless"
-  DS_ATTACHING = "Attaching" # transient state
-  DS_FAILED = "Failed" # transient state, next: diskless
-  DS_NEGOTIATING = "Negotiating" # transient state
-  DS_INCONSISTENT = "Inconsistent" # while syncing or after creation
-  DS_OUTDATED = "Outdated"
-  DS_DUNKNOWN = "DUnknown" # shown for peer disk when not connected
-  DS_CONSISTENT = "Consistent"
-  DS_UPTODATE = "UpToDate" # normal state
-
-  RO_PRIMARY = "Primary"
-  RO_SECONDARY = "Secondary"
-  RO_UNKNOWN = "Unknown"
-
-  def __init__(self, procline):
-    u = self.UNCONF_RE.match(procline)
-    if u:
-      self.cstatus = self.CS_UNCONFIGURED
-      self.lrole = self.rrole = self.ldisk = self.rdisk = None
-    else:
-      m = self.LINE_RE.match(procline)
-      if not m:
-        raise errors.BlockDeviceError("Can't parse input data '%s'" % procline)
-      self.cstatus = m.group(1)
-      self.lrole = m.group(2)
-      self.rrole = m.group(3)
-      self.ldisk = m.group(4)
-      self.rdisk = m.group(5)
-
-    # end reading of data from the LINE_RE or UNCONF_RE
-
-    self.is_standalone = self.cstatus == self.CS_STANDALONE
-    self.is_wfconn = self.cstatus == self.CS_WFCONNECTION
-    self.is_connected = self.cstatus == self.CS_CONNECTED
-    self.is_primary = self.lrole == self.RO_PRIMARY
-    self.is_secondary = self.lrole == self.RO_SECONDARY
-    self.peer_primary = self.rrole == self.RO_PRIMARY
-    self.peer_secondary = self.rrole == self.RO_SECONDARY
-    self.both_primary = self.is_primary and self.peer_primary
-    self.both_secondary = self.is_secondary and self.peer_secondary
-
-    self.is_diskless = self.ldisk == self.DS_DISKLESS
-    self.is_disk_uptodate = self.ldisk == self.DS_UPTODATE
-
-    self.is_in_resync = self.cstatus in self.CSET_SYNC
-    self.is_in_use = self.cstatus != self.CS_UNCONFIGURED
-
-    m = self.SYNC_RE.match(procline)
-    if m:
-      self.sync_percent = float(m.group(1))
-      hours = int(m.group(2))
-      minutes = int(m.group(3))
-      seconds = int(m.group(4))
-      self.est_time = hours * 3600 + minutes * 60 + seconds
-    else:
-      # we have (in this if branch) no percent information, but if
-      # we're resyncing we need to 'fake' a sync percent information,
-      # as this is how cmdlib determines if it makes sense to wait for
-      # resyncing or not
-      if self.is_in_resync:
-        self.sync_percent = 0
-      else:
-        self.sync_percent = None
-      self.est_time = None
-
-
-class DRBD8(BaseDRBD):
-  """DRBD v8.x block device.
-
-  This implements the local host part of the DRBD device, i.e. it
-  doesn't do anything to the supposed peer. If you need a fully
-  connected DRBD pair, you need to use this class on both hosts.
-
-  The unique_id for the drbd device is a (local_ip, local_port,
-  remote_ip, remote_port, local_minor, secret) tuple, and it must have
-  two children: the data device and the meta_device. The meta device
-  is checked for valid size and is zeroed on create.
-
-  """
-  _MAX_MINORS = 255
-  _PARSE_SHOW = None
-
-  # timeout constants
-  _NET_RECONFIG_TIMEOUT = 60
-
-  # command line options for barriers
-  _DISABLE_DISK_OPTION = "--no-disk-barrier"  # -a
-  _DISABLE_DRAIN_OPTION = "--no-disk-drain"   # -D
-  _DISABLE_FLUSH_OPTION = "--no-disk-flushes" # -i
-  _DISABLE_META_FLUSH_OPTION = "--no-md-flushes"  # -m
-
-  def __init__(self, unique_id, children, size, params):
-    if children and children.count(None) > 0:
-      children = []
-    if len(children) not in (0, 2):
-      raise ValueError("Invalid configuration data %s" % str(children))
-    if not isinstance(unique_id, (tuple, list)) or len(unique_id) != 6:
-      raise ValueError("Invalid configuration data %s" % str(unique_id))
-    (self._lhost, self._lport,
-     self._rhost, self._rport,
-     self._aminor, self._secret) = unique_id
-    if children:
-      if not _CanReadDevice(children[1].dev_path):
-        logging.info("drbd%s: Ignoring unreadable meta device", self._aminor)
-        children = []
-    super(DRBD8, self).__init__(unique_id, children, size, params)
-    self.major = self._DRBD_MAJOR
-    version = self._GetVersion(self._GetProcData())
-    if version["k_major"] != 8:
-      base.ThrowError("Mismatch in DRBD kernel version and requested ganeti"
-                      " usage: kernel is %s.%s, ganeti wants 8.x",
-                      version["k_major"], version["k_minor"])
-
-    if (self._lhost is not None and self._lhost == self._rhost and
-        self._lport == self._rport):
-      raise ValueError("Invalid configuration data, same local/remote %s" %
-                       (unique_id,))
-    self.Attach()
 
   @classmethod
   def _InitMeta(cls, minor, dev_path):
@@ -1303,6 +1288,14 @@ class DRBD8(BaseDRBD):
 
     """
     self.Shutdown()
+
+  def Rename(self, new_id):
+    """Rename a device.
+
+    This is not supported for drbd devices.
+
+    """
+    raise errors.ProgrammerError("Can't rename a drbd device")
 
   @classmethod
   def Create(cls, unique_id, children, size, params, excl_stor):

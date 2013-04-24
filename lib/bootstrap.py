@@ -470,7 +470,7 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
 
   if drbd_helper is not None:
     try:
-      curr_helper = drbd.BaseDRBD.GetUsermodeHelper()
+      curr_helper = drbd.DRBD8.GetUsermodeHelper()
     except errors.BlockDeviceError, err:
       raise errors.OpPrereqError("Error while checking drbd helper"
                                  " (specify --no-drbd-storage if you are not"

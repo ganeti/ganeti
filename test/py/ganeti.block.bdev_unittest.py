@@ -37,7 +37,7 @@ from ganeti.block import drbd
 import testutils
 
 
-class TestBaseDRBD(testutils.GanetiTestCase):
+class TestDRBD8(testutils.GanetiTestCase):
   def testGetVersion(self):
     data = [
       ["version: 8.0.12 (api:76/proto:86-91)"],
@@ -71,7 +71,7 @@ class TestBaseDRBD(testutils.GanetiTestCase):
       }
     ]
     for d,r in zip(data, result):
-      self.assertEqual(drbd.BaseDRBD._GetVersion(d), r)
+      self.assertEqual(drbd.DRBD8._GetVersion(d), r)
 
 
 class TestDRBD8Runner(testutils.GanetiTestCase):
