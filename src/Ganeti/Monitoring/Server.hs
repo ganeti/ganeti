@@ -135,7 +135,8 @@ reportHandler =
   route
     [ ("all", allReports)
     , (":category/:collector", oneReport)
-    ]
+    ] <|>
+  errorReport
 
 -- | Return the report of all the available collectors.
 allReports :: Snap ()
@@ -153,6 +154,16 @@ catFromName "daemon"     = BT.Ok $ Just DCDaemon
 catFromName "hypervisor" = BT.Ok $ Just DCHypervisor
 catFromName "default"    = BT.Ok Nothing
 catFromName _            = BT.Bad "No such category"
+
+errorReport :: Snap ()
+errorReport = do
+  modifyResponse $ setResponseStatus 404 "Not found"
+  writeBS "Unable to produce a report for the requested resource"
+
+error404 :: Snap ()
+error404 = do
+  modifyResponse $ setResponseStatus 404 "Not found"
+  writeBS "Resource not found"
 
 -- | Return the report of one collector
 oneReport :: Snap ()
@@ -178,7 +189,8 @@ oneReport = do
 monitoringApi :: Snap ()
 monitoringApi =
   ifTop versionQ <|>
-  dir "1" version1Api
+  dir "1" version1Api <|>
+  error404
 
 -- | Main function.
 main :: MainFn CheckResult PrepResult
