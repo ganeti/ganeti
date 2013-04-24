@@ -284,19 +284,20 @@ def DowngradeGroups(config_data):
       DowngradeIPolicy(ipolicy)
 
 
-def DowngradeStorageTypes(cluster):
-  # Remove storage types to downgrade to 2.7
-  if "enabled_storage_types" in cluster:
-    logging.warning("Removing cluster storage types; value = %s",
-                    utils.CommaJoin(cluster["enabled_storage_types"]))
-    del cluster["enabled_storage_types"]
+def DowngradeEnabledTemplates(cluster):
+  # Remove enabled disk templates to downgrade to 2.7
+  edt_key = "enabled_disk_templates"
+  if edt_key in cluster:
+    logging.warning("Removing cluster's enabled disk templates; value = %s",
+                    utils.CommaJoin(cluster[edt_key]))
+    del cluster[edt_key]
 
 
 def DowngradeCluster(config_data):
   cluster = config_data.get("cluster", None)
   if cluster is None:
     raise Error("Cannot find cluster")
-  DowngradeStorageTypes(cluster)
+  DowngradeEnabledTemplates(cluster)
   ipolicy = cluster.get("ipolicy", None)
   if ipolicy:
     DowngradeIPolicy(ipolicy)
