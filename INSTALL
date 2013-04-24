@@ -192,6 +192,8 @@ a few more Haskell libraries enabled: the ``ganeti-confd`` daemon
 - `vector <http://hackage.haskell.org/package/vector>`_
 - `snap-server` <http://hackage.haskell.org/package/snap-server>`_, version
   0.8.1 and above.
+- `process <http://hackage.haskell.org/package/process>`_, version 1.0.1.1 and
+  above
 
 These libraries are available in Debian Wheezy (but not in Squeeze), so you
 can use either apt::

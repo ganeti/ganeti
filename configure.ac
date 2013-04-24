@@ -566,6 +566,8 @@ if test "$enable_monitoring" != no; then
                    [MONITORING_PKG="$MONITORING_PKG attoparsec"])
   AC_GHC_PKG_CHECK([snap-server], [],
                    [MONITORING_PKG="$MONITORING_PKG snap-server"])
+  AC_GHC_PKG_CHECK([process], [],
+                   [MONITORING_PKG="$MONITORING_PKG process"])
   MONITORING_DEP=
   if test "$has_confd" = False; then
     MONITORING_DEP="$MONITORING_DEP confd"
@@ -615,6 +617,8 @@ AC_GHC_PKG_CHECK([temporary], [], [HS_NODEV=1])
 #        of the checks.
 AC_GHC_PKG_CHECK([attoparsec], [], [HS_NODEV=1])
 AC_GHC_PKG_CHECK([vector], [], [HS_NODEV=1])
+AC_GHC_PKG_CHECK([process], [],
+                 [MONITORING_PKG="$MONITORING_PKG process"])
 if test -n "$HS_NODEV"; then
    AC_MSG_WARN(m4_normalize([Required development modules were not found,
                              you won't be able to run Haskell unittests]))

@@ -123,7 +123,9 @@ in_chroot -- \
     MonadCatchIO-transformers==0.2.2.0 mtl==2.0.1.0 \
     hashable==1.1.2.0 case-insensitive==0.3 parsec==3.0.1 \
     network==2.3 snap-server==0.8.1 \
-    hinotify==0.3.2
+    hinotify==0.3.2 \
+    process==1.0.1.2
+
 
 #Python development tools
 in_chroot -- \
