@@ -139,7 +139,9 @@ reportHandler =
 
 -- | Return the report of all the available collectors.
 allReports :: Snap ()
-allReports = writeText "TODO: return the reports of all the collectors"
+allReports = do
+  reports <- mapM (liftIO . dReport) collectors
+  writeBS . pack . J.encode $ reports
 
 -- | Returns a category given its name.
 -- If "collector" is given as the name, the collector has no category, and
