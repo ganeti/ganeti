@@ -184,8 +184,6 @@ oneReport = do
   writeBS . pack . J.encode $ report
 
 -- | The function implementing the HTTP API of the monitoring agent.
--- TODO: Currently it only replies to the API version query: implement all the
--- missing features.
 monitoringApi :: Snap ()
 monitoringApi =
   ifTop versionQ <|>
