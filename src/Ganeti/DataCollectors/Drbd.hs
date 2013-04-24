@@ -32,7 +32,7 @@ module Ganeti.DataCollectors.Drbd
   , dcFormatVersion
   , dcCategory
   , dcKind
-  , dcData
+  , dcReport
   ) where
 
 
@@ -90,8 +90,8 @@ dcKind :: DCKind
 dcKind = DCKStatus
 
 -- | The data exported by the data collector, taken from the default location.
-dcData :: IO J.JSValue
-dcData = buildJsonReport defaultFile Nothing
+dcReport :: IO DCReport
+dcReport = buildDCReport defaultFile Nothing
 
 -- * Command line options
 
@@ -205,6 +205,12 @@ buildJsonReport statusFile pairingFile = do
   let status = computeStatus drbdData
   return . addStatus status $ J.showJSON drbdData
 
+-- | This function computes the DCReport for the DRBD status.
+buildDCReport :: FilePath -> Maybe FilePath -> IO DCReport
+buildDCReport statusFile pairingFile =
+  buildJsonReport statusFile pairingFile >>=
+    buildReport dcName dcVersion dcFormatVersion dcCategory dcKind
+
 -- | Main function.
 main :: Options -> [String] -> IO ()
 main opts args = do
@@ -212,6 +218,5 @@ main opts args = do
       pairingFile = optDrbdPairing opts
   unless (null args) . exitErr $ "This program takes exactly zero" ++
                                   " arguments, got '" ++ unwords args ++ "'"
-  report <- buildJsonReport statusFile pairingFile >>=
-    buildReport dcName dcVersion dcFormatVersion dcCategory dcKind
+  report <- buildDCReport statusFile pairingFile
   putStrLn $ J.encode report
