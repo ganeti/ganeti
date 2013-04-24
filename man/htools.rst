@@ -153,19 +153,22 @@ support all options. Some common options are:
   other backends must be selected. The option is described in the man
   page **htools**\(1).
 
-  The file should contain text data, line-based, with two empty lines
+  The file should contain text data, line-based, with single empty lines
   separating sections. The lines themselves are column-based, with the
   pipe symbol (``|``) acting as separator.
 
-  The first section contains group data, with two columns:
+  The first section contains group data, with the following columns:
 
   - group name
   - group uuid
+  - allocation policy
+  - tags (separated by comma)
 
   The second sections contains node data, with the following columns:
 
   - node name
   - node total memory
+  - memory used by the node
   - node free memory
   - node total disk
   - node free disk
