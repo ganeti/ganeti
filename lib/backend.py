@@ -60,11 +60,11 @@ from ganeti import ssconf
 from ganeti import serializer
 from ganeti import netutils
 from ganeti import runtime
-from ganeti import mcpu
 from ganeti import compat
 from ganeti import pathutils
 from ganeti import vcluster
 from ganeti import ht
+from ganeti import hooksmaster
 
 
 _BOOT_ID_PATH = "/proc/sys/kernel/random/boot_id"
@@ -325,10 +325,10 @@ def RunLocalHooks(hook_opcode, hooks_path, env_builder_fn):
 
       cfg = _GetConfig()
       hr = HooksRunner()
-      hm = mcpu.HooksMaster(hook_opcode, hooks_path, nodes, hr.RunLocalHooks,
-                            None, env_fn, logging.warning, cfg.GetClusterName(),
-                            cfg.GetMasterNode())
-
+      hm = hooksmaster.HooksMaster(hook_opcode, hooks_path, nodes,
+                                   hr.RunLocalHooks, None, env_fn,
+                                   logging.warning, cfg.GetClusterName(),
+                                   cfg.GetMasterNode())
       hm.RunPhase(constants.HOOKS_PHASE_PRE)
       result = fn(*args, **kwargs)
       hm.RunPhase(constants.HOOKS_PHASE_POST)

@@ -9380,20 +9380,34 @@ def _CreateBlockDevInner(lu, node, instance, device, force_create,
   @type excl_stor: boolean
   @param excl_stor: Whether exclusive_storage is active for the node
 
+  @return: list of created devices
   """
-  if device.CreateOnSecondary():
-    force_create = True
+  created_devices = []
+  try:
+    if device.CreateOnSecondary():
+      force_create = True
 
-  if device.children:
-    for child in device.children:
-      _CreateBlockDevInner(lu, node, instance, child, force_create,
-                           info, force_open, excl_stor)
+    if device.children:
+      for child in device.children:
+        devs = _CreateBlockDevInner(lu, node, instance, child, force_create,
+                                    info, force_open, excl_stor)
+        created_devices.extend(devs)
 
-  if not force_create:
-    return
+    if not force_create:
+      return created_devices
 
-  _CreateSingleBlockDev(lu, node, instance, device, info, force_open,
-                        excl_stor)
+    _CreateSingleBlockDev(lu, node, instance, device, info, force_open,
+                          excl_stor)
+    # The device has been completely created, so there is no point in keeping
+    # its subdevices in the list. We just add the device itself instead.
+    created_devices = [(node, device)]
+    return created_devices
+
+  except errors.DeviceCreationError, e:
+    e.created_devices.extend(created_devices)
+    raise e
+  except errors.OpExecError, e:
+    raise errors.DeviceCreationError(str(e), created_devices)
 
 
 def _CreateSingleBlockDev(lu, node, instance, device, info, force_open,
@@ -9765,13 +9779,17 @@ def _CreateDisks(lu, instance, to_skip=None, target_node=None):
       except errors.OpExecError:
         logging.warning("Creating disk %s for instance '%s' failed",
                         idx, instance.name)
+      except errors.DeviceCreationError, e:
+        logging.warning("Creating disk %s for instance '%s' failed",
+                        idx, instance.name)
+        disks_created.extend(e.created_devices)
         for (node, disk) in disks_created:
           lu.cfg.SetDiskID(disk, node)
           result = lu.rpc.call_blockdev_remove(node, disk)
           if result.fail_msg:
             logging.warning("Failed to remove newly-created disk %s on node %s:"
                             " %s", device, node, result.fail_msg)
-        raise
+        raise errors.OpExecError(e.message)
 
 
 def _RemoveDisks(lu, instance, target_node=None, ignore_failures=False):

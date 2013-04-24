@@ -230,7 +230,11 @@ The ``--vg-name`` option will let you specify a volume group
 different than "xenvg" for Ganeti to use when creating instance
 disks. This volume group must have the same name on all nodes. Once
 the cluster is initialized this can be altered by using the
-**modify** command. If you don't want to use lvm storage at all use
+**modify** command. Note that if the volume group name is modified after
+the cluster creation and DRBD support is enabled you might have to
+manually modify the metavg as well.
+
+If you don't want to use lvm storage at all use
 the ``--no-lvm-storage`` option. Once the cluster is initialized
 you can change this setup with the **modify** command.
 
@@ -728,24 +732,24 @@ RENEW-CRYPTO
 This command will stop all Ganeti daemons in the cluster and start
 them again once the new certificates and keys are replicated. The
 options ``--new-cluster-certificate`` and ``--new-confd-hmac-key``
-can be used to regenerate the cluster-internal SSL certificate
-respective the HMAC key used by **ganeti-confd**\(8).
+can be used to regenerate respectively the cluster-internal SSL
+certificate and the HMAC key used by **ganeti-confd**\(8).
 
 To generate a new self-signed RAPI certificate (used by
 **ganeti-rapi**\(8)) specify ``--new-rapi-certificate``. If you want to
 use your own certificate, e.g. one signed by a certificate
 authority (CA), pass its filename to ``--rapi-certificate``.
 
-To generate a new self-signed SPICE certificate, used by SPICE
+To generate a new self-signed SPICE certificate, used for SPICE
 connections to the KVM hypervisor, specify the
 ``--new-spice-certificate`` option. If you want to provide a
 certificate, pass its filename to ``--spice-certificate`` and pass the
 signing CA certificate to ``--spice-ca-certificate``.
 
-``--new-cluster-domain-secret`` generates a new, random cluster
-domain secret. ``--cluster-domain-secret`` reads the secret from a
-file. The cluster domain secret is used to sign information
-exchanged between separate clusters via a third party.
+Finally ``--new-cluster-domain-secret`` generates a new, random
+cluster domain secret, and ``--cluster-domain-secret`` reads the
+secret from a file. The cluster domain secret is used to sign
+information exchanged between separate clusters via a third party.
 
 REPAIR-DISK-SIZES
 ~~~~~~~~~~~~~~~~~

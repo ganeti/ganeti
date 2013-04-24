@@ -266,6 +266,7 @@ pkgpython_PYTHON = \
 	lib/constants.py \
 	lib/daemon.py \
 	lib/errors.py \
+	lib/hooksmaster.py \
 	lib/ht.py \
 	lib/jqueue.py \
 	lib/jstore.py \

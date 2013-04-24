@@ -24,12 +24,136 @@ Version 2.8.0 beta1
   configuration back to the previous stable version.
 
 
-Version 2.7.0 rc1
------------------
+Version 2.7.0 beta3
+-------------------
 
-*(unreleased)*
+*(Released Mon, 22 Apr 2013)*
+
+Incompatible/important changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Instance policies for disk size were documented to be on a per-disk
+  basis, but hail applied them to the sum of all disks. This has been
+  fixed.
+- ``hbal`` will now exit with status 0 if, during job execution over
+  LUXI, early exit has been requested and all jobs are successful;
+  before, exit status 1 was used, which cannot be differentiated from
+  "job error" case
+- Compatibility with newer versions of rbd has been fixed
+- ``gnt-instance batch-create`` has been changed to use the bulk create
+  opcode from Ganeti. This lead to incompatible changes in the format of
+  the JSON file. It's now not a custom dict anymore but a dict
+  compatible with the ``OpInstanceCreate`` opcode.
+- Parent directories for file storage need to be listed in
+  ``$sysconfdir/ganeti/file-storage-paths`` now. ``cfgupgrade`` will
+  write the file automatically based on old configuration values, but it
+  can not distribute it across all nodes and the file contents should be
+  verified. Use ``gnt-cluster copyfile
+  $sysconfdir/ganeti/file-storage-paths`` once the cluster has been
+  upgraded. The reason for requiring this list of paths now is that
+  before it would have been possible to inject new paths via RPC,
+  allowing files to be created in arbitrary locations. The RPC protocol
+  is protected using SSL/X.509 certificates, but as a design principle
+  Ganeti does not permit arbitrary paths to be passed.
+- The parsing of the variants file for OSes (see
+  :manpage:`ganeti-os-interface(7)`) has been slightly changed: now empty
+  lines and comment lines (starting with ``#``) are ignored for better
+  readability.
+- The ``setup-ssh`` tool added in Ganeti 2.2 has been replaced and is no
+  longer available. ``gnt-node add`` now invokes a new tool on the
+  destination node, named ``prepare-node-join``, to configure the SSH
+  daemon. Paramiko is no longer necessary to configure nodes' SSH
+  daemons via ``gnt-node add``.
+- Draining (``gnt-cluster queue drain``) and un-draining the job queue
+  (``gnt-cluster queue undrain``) now affects all nodes in a cluster and
+  the flag is not reset after a master failover.
+- Python 2.4 has *not* been tested with this release. Using 2.6 or above
+  is recommended. 2.6 will be mandatory from the 2.8 series.
+
+
+New features
+~~~~~~~~~~~~
+
+- New network management functionality to support automatic allocation
+  of IP addresses and managing of network parameters. See
+  :manpage:`gnt-network(8)` for more details.
+- New external storage backend, to allow managing arbitrary storage
+  systems external to the cluster. See
+  :manpage:`ganeti-extstorage-interface(7)`.
+- New ``exclusive-storage`` node parameter added, restricted to
+  nodegroup level. When it's set to true, physical disks are assigned in
+  an exclusive fashion to instances, as documented in :doc:`Partitioned
+  Ganeti <design-partitioned>`.  Currently, only instances using the
+  ``plain`` disk template are supported.
+- The KVM hypervisor has been updated with many new hypervisor
+  parameters, including a generic one for passing arbitrary command line
+  values. See a complete list in :manpage:`gnt-instance(8)`.
+- A new tool, called ``mon-collector``, is the stand-alone executor of
+  the data collectors for a monitoring system. As of this version, it
+  just includes the DRBD data collector, that can be executed by calling
+  ``mon-collector`` using the ``drbd`` parameter. See
+  :manpage:`mon-collector(7)`.
+- A new user option, :pyeval:`rapi.RAPI_ACCESS_READ`, has been added
+  for RAPI users. It allows granting permissions to query for
+  information to a specific user without giving
+  :pyeval:`rapi.RAPI_ACCESS_WRITE` permissions.
+- A new tool named ``node-cleanup`` has been added. It cleans remains of
+  a cluster from a machine by stopping all daemons, removing
+  certificates and ssconf files. Unless the ``--no-backup`` option is
+  given, copies of the certificates are made.
+- Instance creations now support the use of opportunistic locking,
+  potentially speeding up the (parallel) creation of multiple instances.
+  This feature is currently only available via the :doc:`RAPI
+  <rapi>` interface and when an instance allocator is used. If the
+  ``opportunistic_locking`` parameter is set the opcode will try to
+  acquire as many locks as possible, but will not wait for any locks
+  held by other opcodes. If not enough resources can be found to
+  allocate the instance, the temporary error code
+  :pyeval:`errors.ECODE_TEMP_NORES` is returned. The operation can be
+  retried thereafter, with or without opportunistic locking.
+- New experimental linux-ha resource scripts.
+- Restricted-commands support: ganeti can now be asked (via command line
+  or rapi) to perform commands on a node. These are passed via ganeti
+  RPC rather than ssh. This functionality is restricted to commands
+  specified on the ``$sysconfdir/ganeti/restricted-commands`` for security
+  reasons. The file is not copied automatically.
+
+
+Misc changes
+~~~~~~~~~~~~
+
+- Diskless instances are now externally mirrored (Issue 237). This for
+  now has only been tested in conjunction with explicit target nodes for
+  migration/failover.
+- Queries not needing locks or RPC access to the node can now be
+  performed by the confd daemon, making them independent from jobs, and
+  thus faster to execute. This is selectable at configure time.
+- The functionality for allocating multiple instances at once has been
+  overhauled and is now also available through :doc:`RAPI <rapi>`.
+
+Since beta2:
 
 - Fix hail to verify disk instance policies on a per-disk basis (Issue 418).
+- Fix data loss on wrong usage of ``gnt-instance move``
+- Properly export errors in confd-based job queries
+- Add ``users-setup`` tool
+- Fix iallocator protocol to report 0 as a disk size for diskless
+  instances. This avoids hail breaking when a diskless instance is
+  present.
+- Fix job queue directory permission problem that made confd job queries
+  fail. This requires running an ``ensure-dirs --full-run`` on upgrade
+  for access to archived jobs (Issue 406).
+- Limit the sizes of networks supported by ``gnt-network`` to something
+  between a ``/16`` and a ``/30`` to prevent memory bloat and crashes.
+- Fix bugs in instance disk template conversion
+- Fix GHC 7 compatibility
+- Fix ``burnin`` install path (Issue 426).
+- Allow very small disk grows (Issue 347).
+- Fix a ``ganeti-noded`` memory bloat introduced in 2.5, by making sure
+  that noded doesn't import masterd code (Issue 419).
+- Make sure the default metavg at cluster init is the same as the vg, if
+  unspecified (Issue 358).
+- Fix cleanup of partially created disks (part of Issue 416)
 
 
 Version 2.7.0 beta2
@@ -37,11 +161,10 @@ Version 2.7.0 beta2
 
 *(Released Tue, 2 Apr 2013)*
 
+This was the second beta release of the 2.7 series. Since beta1:
+
 - Networks no longer have a "type" slot, since this information was
   unused in Ganeti: instead of it tags should be used.
-- Diskless instances are now externally mirrored (Issue 237). This for
-  now has only been tested in conjunction with explicit target nodes for
-  migration/failover.
 - The rapi client now has a ``target_node`` option to MigrateInstance.
 - Fix early exit return code for hbal (Issue 386).
 - Fix ``gnt-instance migrate/failover -n`` (Issue 396).
@@ -75,90 +198,8 @@ Version 2.7.0 beta1
 
 *(Released Wed, 6 Feb 2013)*
 
-- ``gnt-instance batch-create`` has been changed to use the bulk create
-  opcode from Ganeti. This lead to incompatible changes in the format of
-  the JSON file. It's now not a custom dict anymore but a dict
-  compatible with the ``OpInstanceCreate`` opcode.
-- Parent directories for file storage need to be listed in
-  ``$sysconfdir/ganeti/file-storage-paths`` now. ``cfgupgrade`` will
-  write the file automatically based on old configuration values, but it
-  can not distribute it across all nodes and the file contents should be
-  verified. Use ``gnt-cluster copyfile
-  $sysconfdir/ganeti/file-storage-paths`` once the cluster has been
-  upgraded. The reason for requiring this list of paths now is that
-  before it would have been possible to inject new paths via RPC,
-  allowing files to be created in arbitrary locations. The RPC protocol
-  is protected using SSL/X.509 certificates, but as a design principle
-  Ganeti does not permit arbitrary paths to be passed.
-- The parsing of the variants file for OSes (see
-  :manpage:`ganeti-os-interface(7)`) has been slightly changed: now empty
-  lines and comment lines (starting with ``#``) are ignored for better
-  readability.
-- The ``setup-ssh`` tool added in Ganeti 2.2 has been replaced and is no
-  longer available. ``gnt-node add`` now invokes a new tool on the
-  destination node, named ``prepare-node-join``, to configure the SSH
-  daemon. Paramiko is no longer necessary to configure nodes' SSH
-  daemons via ``gnt-node add``.
-- A new user option, :pyeval:`rapi.RAPI_ACCESS_READ`, has been added
-  for RAPI users. It allows granting permissions to query for
-  information to a specific user without giving
-  :pyeval:`rapi.RAPI_ACCESS_WRITE` permissions.
-- A new tool named ``node-cleanup`` has been added. It cleans remains of
-  a cluster from a machine by stopping all daemons, removing
-  certificates and ssconf files. Unless the ``--no-backup`` option is
-  given, copies of the certificates are made.
-- Draining (``gnt-cluster queue drain``) and un-draining the job queue
-  (``gnt-cluster queue undrain``) now affects all nodes in a cluster and
-  the flag is not reset after a master failover.
-- Instance creations now support the use of opportunistic locking,
-  potentially speeding up the (parallel) creation of multiple instances.
-  This feature is currently only available via the :doc:`RAPI
-  <rapi>` interface and when an instance allocator is used. If the
-  ``opportunistic_locking`` parameter is set the opcode will try to
-  acquire as many locks as possible, but will not wait for any locks
-  held by other opcodes. If not enough resources can be found to
-  allocate the instance, the temporary error code
-  :pyeval:`errors.ECODE_TEMP_NORES` is returned. The operation can be
-  retried thereafter, with or without opportunistic locking.
-- The functionality for allocating multiple instances at once has been
-  overhauled and is now also available through :doc:`RAPI <rapi>`.
-- Man pages can now be included when the documentation is built, in
-  which case the output is in ``doc/man-html``. The configure-time
-  option is ``--enable-manpages-in-doc``. Sphinx 1.0 or higher is
-  required.
-- A new htool called ``hroller`` helps scheduling parallel shutdown of
-  nodes on clusters where all instances are shut down, but without ever
-  rebooting both primary and secondary node for an instance at the same
-  time.
-- Queries not needing locks or RPC access to the node can now be
-  performed by the confd daemon, making them independent from jobs, and
-  thus faster to execute. This is selectable at configure time.
-- The KVM hypervisor has been updated with many new hypervisor
-  parameters, including a generic one for passing arbitrary command line
-  values. See a complete list in :manpage:`gnt-instance(8)`.
-- A new tool, called ``mon-collector``, is the stand-alone executor of
-  the data collectors for a monitoring system. As of this version, it
-  just includes the DRBD data collector, that can be executed by calling
-  ``mon-collector`` using the ``drbd`` parameter. See
-  :manpage:`mon-collector(7)`.
-- New ``exclusive-storage`` node parameter added. When it's set to true,
-  physical disks are assigned in an exclusive fashion to instances, as
-  documented in :doc:`Partitioned Ganeti <design-partitioned>`.
-  Currently, only instances using the ``plain`` disk template are
-  supported.
-- New network management functionality to support automatic allocation
-  of IP addresses and managing of network parameters. See
-  :manpage:`gnt-network(8)` for more details.
-- New external storage backend, to allow managing arbitrary storage
-  systems external to the cluster. See
-  :manpage:`ganeti-extstorage-interface(7)`.
-- Instance renames of LVM-based instances will now update the LV tags
-  (which can be used to recover the instance-to-LV mapping in case of
-  emergencies)
-- ``hbal`` will now exit with status 0 if, during job execution over
-  LUXI, early exit has been requested and all jobs are successful;
-  before, exit status 1 was used, which cannot be differentiated from
-  "job error" case
+This was the first beta release of the 2.7 series. All important changes
+are listed in the latest 2.7 entry.
 
 
 Version 2.6.2
