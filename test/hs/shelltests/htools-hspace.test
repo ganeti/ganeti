@@ -6,3 +6,12 @@
 # test again via a file and shell parsing
 ./test/hs/hspace --simu p,4,8T,64g,16 --machine-readable --disk-template drbd -l 8 > $T/capacity && sh -c ". $T/capacity && test x\$HTS_OK = x1"
 >>>= 0
+
+# standard & tiered allocation, using shell parsing to do multiple checks
+./test/hs/hspace --machine-readable -t $TESTDATA_DIR/hspace-tiered.data > $T/capacity && sh -c ". $T/capacity && test \"\${HTS_TSPEC}\" = '131072,1048576,4=4 129984,1048320,4=2' && test \"\${HTS_ALLOC_INSTANCES}\" = 6"
+>>>=0
+
+# again, but with a policy containing two min/max specs pairs
+./test/hs/hspace --machine-readable -t $TESTDATA_DIR/hspace-tiered-dualspec.data > $T/capacity && sh -c ". $T/capacity && test \"\${HTS_TSPEC}\" = '131072,1048576,4=4 129984,1048320,4=2 65472,524288,2=2' && test \"\${HTS_ALLOC_INSTANCES}\" = 14"
+>>>2
+>>>=0
