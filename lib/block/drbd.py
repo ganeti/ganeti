@@ -81,7 +81,7 @@ class BaseDRBD(base.BlockDev): # pylint: disable=W0223
     return data
 
   @classmethod
-  def _MassageProcData(cls, data):
+  def _JoinProcDataPerMinor(cls, data):
     """Transform the output of _GetProdData into a nicer form.
 
     @return: a dictionary of minor: joined lines from /proc/drbd
@@ -944,7 +944,7 @@ class DRBD8(BaseDRBD):
     if self.minor is None:
       base.ThrowError("drbd%d: GetStats() called while not attached",
                       self._aminor)
-    proc_info = self._MassageProcData(self._GetProcData())
+    proc_info = self._JoinProcDataPerMinor(self._GetProcData())
     if self.minor not in proc_info:
       base.ThrowError("drbd%d: can't find myself in /proc", self.minor)
     return DRBD8Status(proc_info[self.minor])
@@ -1319,7 +1319,7 @@ class DRBD8(BaseDRBD):
                                    " exclusive_storage")
     # check that the minor is unused
     aminor = unique_id[4]
-    proc_info = cls._MassageProcData(cls._GetProcData())
+    proc_info = cls._JoinProcDataPerMinor(cls._GetProcData())
     if aminor in proc_info:
       status = DRBD8Status(proc_info[aminor])
       in_use = status.is_in_use

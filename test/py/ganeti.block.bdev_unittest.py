@@ -250,12 +250,13 @@ class TestDRBD8Status(testutils.GanetiTestCase):
     self.proc83_sync_data = drbd.DRBD8._GetProcData(filename=proc83_sync_data)
     self.proc83_sync_krnl_data = \
       drbd.DRBD8._GetProcData(filename=proc83_sync_krnl_data)
-    self.mass_data = drbd.DRBD8._MassageProcData(self.proc_data)
-    self.mass80e_data = drbd.DRBD8._MassageProcData(self.proc80e_data)
-    self.mass83_data = drbd.DRBD8._MassageProcData(self.proc83_data)
-    self.mass83_sync_data = drbd.DRBD8._MassageProcData(self.proc83_sync_data)
+    self.mass_data = drbd.DRBD8._JoinProcDataPerMinor(self.proc_data)
+    self.mass80e_data = drbd.DRBD8._JoinProcDataPerMinor(self.proc80e_data)
+    self.mass83_data = drbd.DRBD8._JoinProcDataPerMinor(self.proc83_data)
+    self.mass83_sync_data = \
+      drbd.DRBD8._JoinProcDataPerMinor(self.proc83_sync_data)
     self.mass83_sync_krnl_data = \
-      drbd.DRBD8._MassageProcData(self.proc83_sync_krnl_data)
+      drbd.DRBD8._JoinProcDataPerMinor(self.proc83_sync_krnl_data)
 
   def testIOErrors(self):
     """Test handling of errors while reading the proc file."""
