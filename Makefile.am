@@ -520,6 +520,8 @@ HS_LIB_SRCS = \
 	src/Ganeti/Daemon.hs \
 	src/Ganeti/DataCollectors/CLI.hs \
 	src/Ganeti/DataCollectors/Drbd.hs \
+	src/Ganeti/DataCollectors/InstStatus.hs \
+	src/Ganeti/DataCollectors/InstStatusTypes.hs \
 	src/Ganeti/DataCollectors/Program.hs \
 	src/Ganeti/DataCollectors/Types.hs \
 	src/Ganeti/Errors.hs \

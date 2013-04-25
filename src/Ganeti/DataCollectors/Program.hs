@@ -29,10 +29,15 @@ import Ganeti.Common (PersonalityList)
 import Ganeti.DataCollectors.CLI (Options)
 
 import qualified Ganeti.DataCollectors.Drbd as Drbd
+import qualified Ganeti.DataCollectors.InstStatus as InstStatus
 
 -- | Supported binaries.
 personalities :: PersonalityList Options
 personalities = [ ("drbd",   (Drbd.main, Drbd.options, Drbd.arguments,
-                             "gathers and displays DRBD statistics in JSON\
-                             \ format"))
+                              "gathers and displays DRBD statistics in JSON\
+                              \ format"))
+                , ("inst-status-xen", (InstStatus.main, InstStatus.options,
+                                       InstStatus.arguments,
+                                       "gathers and displays the status of the\
+                                       \ instances in JSON format"))
                 ]
