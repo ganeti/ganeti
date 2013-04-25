@@ -1624,7 +1624,7 @@ check-local: check-dirs $(GENERATED_FILES)
 	$(CHECK_PYTHON_CODE) $(check_python_code)
 	PYTHONPATH=. $(CHECK_HEADER) $(check_python_code)
 	$(CHECK_VERSION) $(VERSION) $(top_srcdir)/NEWS
-	$(CHECK_NEWS) < $(top_srcdir)/NEWS
+	RELEASE=$(PACKAGE_VERSION) $(CHECK_NEWS) < $(top_srcdir)/NEWS
 	PYTHONPATH=. $(RUN_IN_TEMPDIR) $(CURDIR)/$(CHECK_IMPORTS) . $(standalone_python_modules)
 	@expver=$(VERSION_MAJOR).$(VERSION_MINOR); \
 	error= ; \
@@ -1765,18 +1765,12 @@ distcheck-hook:
 	  echo "Found empty files or directories in final archive." 1>&2; \
 	  exit 1; \
 	fi
-	if test -n "$(BUILD_RELEASE)" && \
-	   grep -n -H -E '^\*.*unreleased' $(top_distdir)/NEWS; then \
-	   echo "Found unreleased version in NEWS." >&2; \
-	   exit 1; \
-	fi
 	if test -e $(top_distdir)/doc/man-html; then \
 	  echo "Found documentation including man pages in final archive" >&2; \
 	  exit 1; \
 	fi
 
-# When building a release, stricter checks should be used
-distcheck-release dist-release: export BUILD_RELEASE = 1
+# Backwards compatible distcheck-release target
 distcheck-release: distcheck
 
 distrebuildcheck: dist
