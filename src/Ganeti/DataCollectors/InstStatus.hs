@@ -41,6 +41,7 @@ import Ganeti.Confd.Types
 import Ganeti.Common
 import Ganeti.DataCollectors.CLI
 import Ganeti.DataCollectors.InstStatusTypes
+import Ganeti.DataCollectors.Types
 import Ganeti.Hypervisor.Xen
 import Ganeti.Hypervisor.Xen.Types
 import Ganeti.Objects
@@ -78,6 +79,23 @@ getInstances node srvAddr srvPort = do
       Just (J.Error msg) -> BT.Bad msg
       Nothing -> BT.Bad "No answer from the Confd server"
 
+-- | Determine the value of the status field for the report of one instance
+computeStatusField :: AdminState -> ActualState -> DCStatus
+computeStatusField AdminDown actualState =
+  if actualState `notElem` [ActualShutdown, ActualDying]
+    then DCStatus DCSCBad "The instance is not stopped as it should be"
+    else DCStatus DCSCOk ""
+computeStatusField AdminUp ActualHung =
+  DCStatus DCSCUnknown "Instance marked as running, but it appears to be hung"
+computeStatusField AdminUp actualState =
+  if actualState `notElem` [ActualRunning, ActualBlocked]
+    then DCStatus DCSCBad "The instance is not running as it should be"
+    else DCStatus DCSCOk ""
+computeStatusField AdminOffline _ =
+  -- FIXME: The "offline" status seems not to be used anywhere in the source
+  -- code, but it is defined, so we have to consider it anyway here.
+  DCStatus DCSCUnknown "The instance is marked as offline"
+
 -- Builds the status of an instance using runtime information about the Xen
 -- Domains, their uptime information and the static information provided by
 -- the ConfD server.
@@ -99,6 +117,7 @@ buildStatus domains uptimes inst = do
                 then ActualHung
                 else domState dom
             _ -> ActualUnknown
+      status = computeStatusField adminState actualState
   return $
     InstStatus
       name
@@ -107,6 +126,7 @@ buildStatus domains uptimes inst = do
       actualState
       uptime
       (instMtime inst)
+      status
 
 -- | Main function.
 main :: Options -> [String] -> IO ()
