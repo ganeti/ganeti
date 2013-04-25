@@ -36,6 +36,8 @@ module Ganeti.Path
   , queueDir
   , jobQueueSerialFile
   , jobQueueArchiveSubDir
+  , instanceReasonDir
+  , getInstReasonFilename
   ) where
 
 import System.FilePath
@@ -111,3 +113,13 @@ jobQueueSerialFile = dataDirP "serial"
 -- | Job queue archive directory.
 jobQueueArchiveSubDir :: FilePath
 jobQueueArchiveSubDir = "archive"
+
+-- | Directory containing the reason trails for the last change of status of
+-- instances.
+instanceReasonDir :: IO FilePath
+instanceReasonDir = runDir `pjoin` "instance-reason"
+
+-- | The path of the file containing the reason trail for an instance, given the
+-- instance name.
+getInstReasonFilename :: String -> IO FilePath
+getInstReasonFilename instName = instanceReasonDir `pjoin` instName
