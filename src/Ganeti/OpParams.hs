@@ -236,6 +236,7 @@ module Ganeti.OpParams
   , pOpPriority
   , pDependencies
   , pComment
+  , pReason
   , pEnabledDiskTemplates
   , dOldQuery
   , dOldQueryNoLocking
@@ -1443,6 +1444,10 @@ pDependencies =
 -- | Comment field.
 pComment :: Field
 pComment = optionalNullSerField $ stringField "comment"
+
+-- | Reason trail field.
+pReason :: Field
+pReason = simpleField C.opcodeReason [t| ReasonTrail |]
 
 -- * Entire opcode parameter list
 
