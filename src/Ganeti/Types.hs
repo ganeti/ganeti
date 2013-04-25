@@ -92,6 +92,8 @@ module Ganeti.Types
   , opStatusToRaw
   , opStatusFromRaw
   , ELogType(..)
+  , ReasonElem
+  , ReasonTrail
   ) where
 
 import Control.Monad (liftM)
@@ -485,3 +487,9 @@ $(THH.declareSADT "ELogType"
   , ("ELogJqueueTest",   'C.elogJqueueTest)
   ])
 $(THH.makeJSONInstance ''ELogType)
+
+-- | Type of one element of a reason trail.
+type ReasonElem = (String, String, Integer)
+
+-- | Type representing a reason trail.
+type ReasonTrail = [ReasonElem]
