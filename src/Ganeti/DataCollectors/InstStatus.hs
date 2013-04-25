@@ -30,6 +30,7 @@ module Ganeti.DataCollectors.InstStatus
   ) where
 
 
+import Control.Exception.Base
 import Data.Maybe
 import qualified Data.Map as Map
 import Network.BSD (getHostName)
@@ -44,7 +45,10 @@ import Ganeti.DataCollectors.InstStatusTypes
 import Ganeti.DataCollectors.Types
 import Ganeti.Hypervisor.Xen
 import Ganeti.Hypervisor.Xen.Types
+import Ganeti.Logging
 import Ganeti.Objects
+import Ganeti.Path
+import Ganeti.Types
 import Ganeti.Utils
 
 -- * Command line options
@@ -78,6 +82,25 @@ getInstances node srvAddr srvPort = do
       Just (J.Ok instances) -> BT.Ok instances
       Just (J.Error msg) -> BT.Bad msg
       Nothing -> BT.Bad "No answer from the Confd server"
+
+-- | Try to get the reason trail for an instance. In case it is not possible,
+-- log the failure and return an empty list instead.
+getReasonTrail :: String -> IO ReasonTrail
+getReasonTrail instanceName = do
+  fileName <- getInstReasonFilename instanceName
+  content <- try $ readFile fileName
+  case content of
+    Left e -> do
+      logWarning $
+        "Unable to open the reason trail for instance " ++ instanceName ++
+        " expected at " ++ fileName ++ ": " ++ show (e :: IOException)
+      return []
+    Right trailString ->
+      case J.decode trailString of
+        J.Ok t -> return t
+        J.Error msg -> do
+          logWarning $ "Unable to parse the reason trail: " ++ msg
+          return []
 
 -- | Determine the value of the status field for the report of one instance
 computeStatusField :: AdminState -> ActualState -> DCStatus
@@ -118,6 +141,7 @@ buildStatus domains uptimes inst = do
                 else domState dom
             _ -> ActualUnknown
       status = computeStatusField adminState actualState
+  trail <- getReasonTrail name
   return $
     InstStatus
       name
@@ -126,6 +150,7 @@ buildStatus domains uptimes inst = do
       actualState
       uptime
       (instMtime inst)
+      trail
       status
 
 -- | Main function.
