@@ -1669,6 +1669,7 @@ CV_ALL_ECODES_STRINGS = \
 # Node verify constants
 NV_BRIDGES = "bridges"
 NV_DRBDHELPER = "drbd-helper"
+NV_DRBDVERSION = "drbd-version"
 NV_DRBDLIST = "drbd-list"
 NV_EXCLUSIVEPVS = "exclusive-pvs"
 NV_FILELIST = "filelist"

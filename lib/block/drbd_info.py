@@ -149,7 +149,7 @@ class DRBD8Info(object):
 
   """
 
-  _VERSION_RE = re.compile(r"^version: (\d+)\.(\d+)\.(\d+)(?:\.\d+)?"
+  _VERSION_RE = re.compile(r"^version: (\d+)\.(\d+)\.(\d+)(?:\.(\d+))?"
                            r" \(api:(\d+)/proto:(\d+)(?:-(\d+))?\)")
   _VALID_LINE_RE = re.compile("^ *([0-9]+): cs:([^ ]+).*$")
 
@@ -164,12 +164,29 @@ class DRBD8Info(object):
       - k_major
       - k_minor
       - k_point
+      - k_fix (only on some drbd versions)
       - api
       - proto
       - proto2 (only on drbd > 8.2.X)
 
     """
     return self._version
+
+  def GetVersionString(self):
+    """Return the DRBD version as a single string.
+
+    """
+    version = self.GetVersion()
+    retval = "%d.%d.%d" % \
+             (version["k_major"], version["k_minor"], version["k_point"])
+    if "k_fix" in version:
+      retval += ".%s" % version["k_fix"]
+
+    retval += " (api:%d/proto:%d" % (version["api"], version["proto"])
+    if "proto2" in version:
+      retval += "-%s" % version["proto2"]
+    retval += ")"
+    return retval
 
   def GetMinors(self):
     """Return a list of minor for which information is available.
@@ -198,11 +215,13 @@ class DRBD8Info(object):
       "k_major": int(values[0]),
       "k_minor": int(values[1]),
       "k_point": int(values[2]),
-      "api": int(values[3]),
-      "proto": int(values[4]),
+      "api": int(values[4]),
+      "proto": int(values[5]),
       }
-    if values[5] is not None:
-      retval["proto2"] = values[5]
+    if values[3] is not None:
+      retval["k_fix"] = values[3]
+    if values[6] is not None:
+      retval["proto2"] = values[6]
 
     return retval
 

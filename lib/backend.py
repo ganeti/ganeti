@@ -66,6 +66,7 @@ from ganeti import pathutils
 from ganeti import vcluster
 from ganeti import ht
 from ganeti.block.base import BlockDev
+from ganeti.block.drbd_info import DRBD8Info
 from ganeti import hooksmaster
 
 
@@ -829,6 +830,14 @@ def VerifyNode(what, cluster_name):
   if constants.NV_HVINFO in what and vm_capable:
     hyper = hypervisor.GetHypervisor(what[constants.NV_HVINFO])
     result[constants.NV_HVINFO] = hyper.GetNodeInfo()
+
+  if constants.NV_DRBDVERSION in what and vm_capable:
+    try:
+      drbd_version = DRBD8Info.CreateFromFile().GetVersionString()
+    except errors.BlockDeviceError, err:
+      logging.warning("Can't get DRBD version", exc_info=True)
+      drbd_version = str(err)
+    result[constants.NV_DRBDVERSION] = drbd_version
 
   if constants.NV_DRBDLIST in what and vm_capable:
     try:

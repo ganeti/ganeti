@@ -36,11 +36,19 @@ import testutils
 class TestDRBD8(testutils.GanetiTestCase):
   def testGetVersion(self):
     data = [
-      ["version: 8.0.12 (api:76/proto:86-91)"],
-      ["version: 8.2.7 (api:88/proto:0-100)"],
-      ["version: 8.3.7.49 (api:188/proto:13-191)"],
+      "version: 8.0.0 (api:76/proto:80)",
+      "version: 8.0.12 (api:76/proto:86-91)",
+      "version: 8.2.7 (api:88/proto:0-100)",
+      "version: 8.3.7.49 (api:188/proto:13-191)",
     ]
     result = [
+      {
+        "k_major": 8,
+        "k_minor": 0,
+        "k_point": 0,
+        "api": 76,
+        "proto": 80,
+      },
       {
         "k_major": 8,
         "k_minor": 0,
@@ -61,14 +69,16 @@ class TestDRBD8(testutils.GanetiTestCase):
         "k_major": 8,
         "k_minor": 3,
         "k_point": 7,
+        "k_fix": "49",
         "api": 188,
         "proto": 13,
         "proto2": "191",
       }
     ]
     for d, r in zip(data, result):
-      info = drbd.DRBD8Info.CreateFromLines(d)
+      info = drbd.DRBD8Info.CreateFromLines([d])
       self.assertEqual(info.GetVersion(), r)
+      self.assertEqual(info.GetVersionString(), d.replace("version: ", ""))
 
 
 class TestDRBD8Runner(testutils.GanetiTestCase):
