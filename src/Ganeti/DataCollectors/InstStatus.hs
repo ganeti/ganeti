@@ -42,6 +42,7 @@ import Ganeti.Common
 import Ganeti.DataCollectors.CLI
 import Ganeti.DataCollectors.InstStatusTypes
 import Ganeti.Hypervisor.Xen
+import Ganeti.Hypervisor.Xen.Types
 import Ganeti.Objects
 import Ganeti.Utils
 
@@ -89,11 +90,21 @@ buildStatus domains uptimes inst = do
       currUInfo = idNum >>= (`Map.lookup` uptimes)
       uptime = fmap uInfoUptime currUInfo
       adminState = instAdminState inst
+      actualState =
+        if adminState == AdminDown && isNothing currDomain
+          then ActualShutdown
+          else case currDomain of
+            (Just dom@(Domain _ _ _ _ (Just isHung))) ->
+              if isHung
+                then ActualHung
+                else domState dom
+            _ -> ActualUnknown
   return $
     InstStatus
       name
       (instUuid inst)
       adminState
+      actualState
       uptime
       (instMtime inst)
 

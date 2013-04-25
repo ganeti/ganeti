@@ -29,6 +29,7 @@ module Ganeti.DataCollectors.InstStatusTypes
   ) where
 
 
+import Ganeti.Hypervisor.Xen.Types
 import Ganeti.Objects
 import Ganeti.THH
 
@@ -37,6 +38,7 @@ $(buildObject "InstStatus" "iStat"
   [ simpleField "name"         [t| String |]
   , simpleField "uuid"         [t| String |]
   , simpleField "adminState"   [t| AdminState |]
+  , simpleField "actualState"  [t| ActualState |]
   , optionalNullSerField $
     simpleField "uptime"       [t| String |]
   , simpleField "mtime"        [t| Double |]
