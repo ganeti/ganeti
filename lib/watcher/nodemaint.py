@@ -80,7 +80,7 @@ class NodeMaintenance(object):
     """Get list of used DRBD minors.
 
     """
-    return drbd.DRBD8Dev.GetUsedDevs()
+    return drbd.DRBD8.GetUsedDevs()
 
   @classmethod
   def DoMaintenance(cls, role):
@@ -121,10 +121,7 @@ class NodeMaintenance(object):
       logging.info("Following DRBD minors should not be active,"
                    " shutting them down: %s", utils.CommaJoin(drbd_running))
       for minor in drbd_running:
-        # pylint: disable=W0212
-        # using the private method as is, pending enhancements to the DRBD
-        # interface
-        drbd.DRBD8Dev._ShutdownAll(minor)
+        drbd.DRBD8.ShutdownAll(minor)
 
   def Exec(self):
     """Check node status versus cluster desired state.

@@ -66,7 +66,7 @@ from ganeti import pathutils
 from ganeti import vcluster
 from ganeti import ht
 from ganeti.block.base import BlockDev
-from ganeti.block.drbd_info import DRBD8Info
+from ganeti.block.drbd import DRBD8
 from ganeti import hooksmaster
 
 
@@ -833,7 +833,7 @@ def VerifyNode(what, cluster_name):
 
   if constants.NV_DRBDVERSION in what and vm_capable:
     try:
-      drbd_version = DRBD8Info.CreateFromFile().GetVersionString()
+      drbd_version = DRBD8.GetProcInfo().GetVersionString()
     except errors.BlockDeviceError, err:
       logging.warning("Can't get DRBD version", exc_info=True)
       drbd_version = str(err)
@@ -841,7 +841,7 @@ def VerifyNode(what, cluster_name):
 
   if constants.NV_DRBDLIST in what and vm_capable:
     try:
-      used_minors = drbd.DRBD8Dev.GetUsedDevs()
+      used_minors = drbd.DRBD8.GetUsedDevs()
     except errors.BlockDeviceError, err:
       logging.warning("Can't get used minors list", exc_info=True)
       used_minors = str(err)
@@ -850,7 +850,7 @@ def VerifyNode(what, cluster_name):
   if constants.NV_DRBDHELPER in what and vm_capable:
     status = True
     try:
-      payload = drbd.DRBD8Dev.GetUsermodeHelper()
+      payload = drbd.DRBD8.GetUsermodeHelper()
     except errors.BlockDeviceError, err:
       logging.error("Can't get DRBD usermode helper: %s", str(err))
       status = False
@@ -3692,7 +3692,7 @@ def GetDrbdUsermodeHelper():
 
   """
   try:
-    return drbd.DRBD8Dev.GetUsermodeHelper()
+    return drbd.DRBD8.GetUsermodeHelper()
   except errors.BlockDeviceError, err:
     _Fail(str(err))
 

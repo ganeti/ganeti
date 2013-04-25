@@ -149,6 +149,8 @@ class BlockDev(object):
     The force parameter signifies that if the device has any kind of
     --force thing, it should be used, we know what we are doing.
 
+    @type force: boolean
+
     """
     raise NotImplementedError
 
@@ -185,6 +187,7 @@ class BlockDev(object):
 
     In case this is not a mirroring device, this is no-op.
 
+    @type pause: boolean
     @param pause: Whether to pause or resume
 
     """

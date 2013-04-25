@@ -32,14 +32,128 @@ from ganeti import netutils
 from ganeti import objects
 from ganeti.block import base
 from ganeti.block.drbd_info import DRBD8Info
-from ganeti.block.drbd_info import DRBD83ShowInfo
-from ganeti.block.drbd_info import DRBD84ShowInfo
+from ganeti.block import drbd_info
 from ganeti.block import drbd_cmdgen
 
 
 # Size of reads in _CanReadDevice
 
 _DEVICE_READ_SIZE = 128 * 1024
+
+
+class DRBD8(object):
+  """Various methods to deals with the DRBD system as a whole.
+
+  This class provides a set of methods to deal with the DRBD installation on
+  the node or with uninitialized devices as opposed to a DRBD device.
+
+  """
+  _USERMODE_HELPER_FILE = "/sys/module/drbd/parameters/usermode_helper"
+
+  _MAX_MINORS = 255
+
+  @staticmethod
+  def GetUsermodeHelper(filename=_USERMODE_HELPER_FILE):
+    """Returns DRBD usermode_helper currently set.
+
+    @type filename: string
+    @param filename: the filename to read the usermode helper from
+    @rtype: string
+    @return: the currently configured DRBD usermode helper
+
+    """
+    try:
+      helper = utils.ReadFile(filename).splitlines()[0]
+    except EnvironmentError, err:
+      if err.errno == errno.ENOENT:
+        base.ThrowError("The file %s cannot be opened, check if the module"
+                        " is loaded (%s)", filename, str(err))
+      else:
+        base.ThrowError("Can't read DRBD helper file %s: %s",
+                        filename, str(err))
+    if not helper:
+      base.ThrowError("Can't read any data from %s", filename)
+    return helper
+
+  @staticmethod
+  def GetProcInfo():
+    """Reads and parses information from /proc/drbd.
+
+    @rtype: DRBD8Info
+    @return: a L{DRBD8Info} instance containing the current /proc/drbd info
+
+    """
+    return DRBD8Info.CreateFromFile()
+
+  @staticmethod
+  def GetUsedDevs():
+    """Compute the list of used DRBD minors.
+
+    @rtype: list of ints
+
+    """
+    info = DRBD8.GetProcInfo()
+    return filter(lambda m: not info.GetMinorStatus(m).is_unconfigured,
+                  info.GetMinors())
+
+  @staticmethod
+  def FindUnusedMinor():
+    """Find an unused DRBD device.
+
+    This is specific to 8.x as the minors are allocated dynamically,
+    so non-existing numbers up to a max minor count are actually free.
+
+    @rtype: int
+
+    """
+    highest = None
+    info = DRBD8.GetProcInfo()
+    for minor in info.GetMinors():
+      status = info.GetMinorStatus(minor)
+      if not status.is_in_use:
+        return minor
+      highest = max(highest, minor)
+
+    if highest is None: # there are no minors in use at all
+      return 0
+    if highest >= DRBD8._MAX_MINORS:
+      logging.error("Error: no free drbd minors!")
+      raise errors.BlockDeviceError("Can't find a free DRBD minor")
+
+    return highest + 1
+
+  @staticmethod
+  def GetCmdGenerator(info):
+    """Creates a suitable L{BaseDRBDCmdGenerator} based on the given info.
+
+    @type info: DRBD8Info
+    @rtype: BaseDRBDCmdGenerator
+
+    """
+    version = info.GetVersion()
+    if version["k_minor"] <= 3:
+      return drbd_cmdgen.DRBD83CmdGenerator(version)
+    else:
+      return drbd_cmdgen.DRBD84CmdGenerator(version)
+
+  @staticmethod
+  def ShutdownAll(minor):
+    """Deactivate the device.
+
+    This will, of course, fail if the device is in use.
+
+    @type minor: int
+    @param minor: the minor to shut down
+
+    """
+    info = DRBD8.GetProcInfo()
+    cmd_gen = DRBD8.GetCmdGenerator(info)
+
+    cmd = cmd_gen.GenDownCmd(minor)
+    result = utils.RunCmd(cmd)
+    if result.failed:
+      base.ThrowError("drbd%d: can't shutdown drbd device: %s",
+                      minor, result.output)
 
 
 class DRBD8Dev(base.BlockDev):
@@ -56,10 +170,6 @@ class DRBD8Dev(base.BlockDev):
 
   """
   _DRBD_MAJOR = 147
-
-  _USERMODE_HELPER_FILE = "/sys/module/drbd/parameters/usermode_helper"
-
-  _MAX_MINORS = 255
 
   # timeout constants
   _NET_RECONFIG_TIMEOUT = 60
@@ -81,19 +191,19 @@ class DRBD8Dev(base.BlockDev):
     super(DRBD8Dev, self).__init__(unique_id, children, size, params)
     self.major = self._DRBD_MAJOR
 
-    drbd_info = DRBD8Info.CreateFromFile()
-    version = drbd_info.GetVersion()
+    info = DRBD8.GetProcInfo()
+    version = info.GetVersion()
     if version["k_major"] != 8:
       base.ThrowError("Mismatch in DRBD kernel version and requested ganeti"
                       " usage: kernel is %s.%s, ganeti wants 8.x",
                       version["k_major"], version["k_minor"])
 
     if version["k_minor"] <= 3:
-      self._show_info_cls = DRBD83ShowInfo
+      self._show_info_cls = drbd_info.DRBD83ShowInfo
     else:
-      self._show_info_cls = DRBD84ShowInfo
+      self._show_info_cls = drbd_info.DRBD84ShowInfo
 
-    self._cmd_gen = self._GetCmdGenerator(drbd_info)
+    self._cmd_gen = DRBD8.GetCmdGenerator(info)
 
     if (self._lhost is not None and self._lhost == self._rhost and
             self._lport == self._rport):
@@ -101,52 +211,22 @@ class DRBD8Dev(base.BlockDev):
                        (unique_id,))
     self.Attach()
 
-  @classmethod
-  def _GetCmdGenerator(cls, drbd_info):
-    version = drbd_info.GetVersion()
-    if version["k_minor"] <= 3:
-      return drbd_cmdgen.DRBD83CmdGenerator(version)
-    else:
-      return drbd_cmdgen.DRBD84CmdGenerator(version)
-
-  @staticmethod
-  def GetUsermodeHelper(filename=_USERMODE_HELPER_FILE):
-    """Returns DRBD usermode_helper currently set.
-
-    """
-    try:
-      helper = utils.ReadFile(filename).splitlines()[0]
-    except EnvironmentError, err:
-      if err.errno == errno.ENOENT:
-        base.ThrowError("The file %s cannot be opened, check if the module"
-                        " is loaded (%s)", filename, str(err))
-      else:
-        base.ThrowError("Can't read DRBD helper file %s: %s",
-                        filename, str(err))
-    if not helper:
-      base.ThrowError("Can't read any data from %s", filename)
-    return helper
-
   @staticmethod
   def _DevPath(minor):
     """Return the path to a drbd device for a given minor.
 
+    @type minor: int
+    @rtype: string
+
     """
     return "/dev/drbd%d" % minor
-
-  @classmethod
-  def GetUsedDevs(cls):
-    """Compute the list of used DRBD devices.
-
-    """
-    drbd_info = DRBD8Info.CreateFromFile()
-    return filter(lambda m: not drbd_info.GetMinorStatus(m).is_unconfigured,
-                  drbd_info.GetMinors())
 
   def _SetFromMinor(self, minor):
     """Set our parameters based on the given minor.
 
     This sets our minor variable and our dev_path.
+
+    @type minor: int
 
     """
     if minor is None:
@@ -163,6 +243,9 @@ class DRBD8Dev(base.BlockDev):
 
     This currently only checks the size, which must be around
     128MiB.
+
+    @type meta_device: string
+    @param meta_device: the path to the device to check
 
     """
     result = utils.RunCmd(["blockdev", "--getsize", meta_device])
@@ -187,58 +270,12 @@ class DRBD8Dev(base.BlockDev):
       base.ThrowError("Meta device too big (%.2fMiB)",
                       (num_bytes / 1024 / 1024))
 
-  @classmethod
-  def _InitMeta(cls, minor, dev_path):
-    """Initialize a meta device.
-
-    This will not work if the given minor is in use.
-
-    """
-    # Zero the metadata first, in order to make sure drbdmeta doesn't
-    # try to auto-detect existing filesystems or similar (see
-    # http://code.google.com/p/ganeti/issues/detail?id=182); we only
-    # care about the first 128MB of data in the device, even though it
-    # can be bigger
-    result = utils.RunCmd([constants.DD_CMD,
-                           "if=/dev/zero", "of=%s" % dev_path,
-                           "bs=1048576", "count=128", "oflag=direct"])
-    if result.failed:
-      base.ThrowError("Can't wipe the meta device: %s", result.output)
-
-    drbd_info = DRBD8Info.CreateFromFile()
-    cmd_gen = cls._GetCmdGenerator(drbd_info)
-    cmd = cmd_gen.GenInitMetaCmd(minor, dev_path)
-
-    result = utils.RunCmd(cmd)
-    if result.failed:
-      base.ThrowError("Can't initialize meta device: %s", result.output)
-
-  def _FindUnusedMinor(self):
-    """Find an unused DRBD device.
-
-    This is specific to 8.x as the minors are allocated dynamically,
-    so non-existing numbers up to a max minor count are actually free.
-
-    """
-
-    highest = None
-    drbd_info = DRBD8Info.CreateFromFile()
-    for minor in drbd_info.GetMinors():
-      status = drbd_info.GetMinorStatus(minor)
-      if not status.is_in_use:
-        return minor
-      highest = max(highest, minor)
-
-    if highest is None: # there are no minors in use at all
-      return 0
-    if highest >= self._MAX_MINORS:
-      logging.error("Error: no free drbd minors!")
-      raise errors.BlockDeviceError("Can't find a free DRBD minor")
-
-    return highest + 1
-
   def _GetShowData(self, minor):
-    """Return the `drbdsetup show` data for a minor.
+    """Return the `drbdsetup show` data.
+
+    @type minor: int
+    @param minor: the minor to collect show output for
+    @rtype: string
 
     """
     result = utils.RunCmd(self._cmd_gen.GenShowCmd(minor))
@@ -249,15 +286,25 @@ class DRBD8Dev(base.BlockDev):
     return result.stdout
 
   def _GetShowInfo(self, minor):
+    """Return parsed information from `drbdsetup show`.
+
+    @type minor: int
+    @param minor: the minor to return information for
+    @rtype: dict as described in L{drbd_info.BaseShowInfo.GetDevInfo}
+
+    """
     return self._show_info_cls.GetDevInfo(self._GetShowData(minor))
 
   def _MatchesLocal(self, info):
     """Test if our local config matches with an existing device.
 
-    The parameter should be as returned from `_GetDevInfo()`. This
+    The parameter should be as returned from `_GetShowInfo()`. This
     method tests if our local backing device is the same as the one in
     the info parameter, in effect testing if we look like the given
     device.
+
+    @type info: dict as described in L{drbd_info.BaseShowInfo.GetDevInfo}
+    @rtype: boolean
 
     """
     if self._children:
@@ -283,10 +330,13 @@ class DRBD8Dev(base.BlockDev):
   def _MatchesNet(self, info):
     """Test if our network config matches with an existing device.
 
-    The parameter should be as returned from `_GetDevInfo()`. This
+    The parameter should be as returned from `_GetShowInfo()`. This
     method tests if our network configuration is the same as the one
     in the info parameter, in effect testing if we look like the given
     device.
+
+    @type info: dict as described in L{drbd_info.BaseShowInfo.GetDevInfo}
+    @rtype: boolean
 
     """
     if (((self._lhost is None and not ("local_addr" in info)) and
@@ -308,6 +358,15 @@ class DRBD8Dev(base.BlockDev):
   def _AssembleLocal(self, minor, backend, meta, size):
     """Configure the local part of a DRBD device.
 
+    @type minor: int
+    @param minor: the minor to assemble locally
+    @type backend: string
+    @param backend: path to the data device to use
+    @type meta: string
+    @param meta: path to the meta device to use
+    @type size: int
+    @param size: size in MiB
+
     """
     cmds = self._cmd_gen.GenLocalInitCmds(minor, backend, meta,
                                           size, self.params)
@@ -321,6 +380,20 @@ class DRBD8Dev(base.BlockDev):
   def _AssembleNet(self, minor, net_info, protocol,
                    dual_pri=False, hmac=None, secret=None):
     """Configure the network part of the device.
+
+    @type minor: int
+    @param minor: the minor to assemble the network for
+    @type net_info: (string, int, string, int)
+    @param net_info: tuple containing the local address, local port, remote
+      address and remote port
+    @type protocol: string
+    @param protocol: either "ipv4" or "ipv6"
+    @type dual_pri: boolean
+    @param dual_pri: whether two primaries should be allowed or not
+    @type hmac: string
+    @param hmac: the HMAC algorithm to use
+    @type secret: string
+    @param secret: the shared secret to use
 
     """
     lhost, lport, rhost, rport = net_info
@@ -384,6 +457,10 @@ class DRBD8Dev(base.BlockDev):
   def AddChildren(self, devices):
     """Add a disk to the DRBD device.
 
+    @type devices: list of L{BlockDev}
+    @param devices: a list of exactly two L{BlockDev} objects; the first
+      denotes the data device, the second the meta device for this DRBD device
+
     """
     if self.minor is None:
       base.ThrowError("drbd%d: can't attach to dbrd8 during AddChildren",
@@ -400,13 +477,17 @@ class DRBD8Dev(base.BlockDev):
     backend.Open()
     meta.Open()
     self._CheckMetaSize(meta.dev_path)
-    self._InitMeta(self._FindUnusedMinor(), meta.dev_path)
+    self._InitMeta(DRBD8.FindUnusedMinor(), meta.dev_path)
 
     self._AssembleLocal(self.minor, backend.dev_path, meta.dev_path, self.size)
     self._children = devices
 
   def RemoveChildren(self, devices):
     """Detach the drbd device from local storage.
+
+    @type devices: list of L{BlockDev}
+    @param devices: a list of exactly two L{BlockDev} objects; the first
+      denotes the data device, the second the meta device for this DRBD device
 
     """
     if self.minor is None:
@@ -459,11 +540,7 @@ class DRBD8Dev(base.BlockDev):
   def SetSyncParams(self, params):
     """Set the synchronization parameters of the DRBD syncer.
 
-    @type params: dict
-    @param params: LD level disk parameters related to the synchronization
-    @rtype: list
-    @return: a list of error messages, emitted both by the current node and by
-    children. An empty list means no errors
+    See L{BlockDev.SetSyncParams} for parameter description.
 
     """
     if self.minor is None:
@@ -478,8 +555,7 @@ class DRBD8Dev(base.BlockDev):
   def PauseResumeSync(self, pause):
     """Pauses or resumes the sync of a DRBD device.
 
-    @param pause: Wether to pause or resume
-    @return: the success of the operation
+    See L{BlockDev.PauseResumeSync} for parameter description.
 
     """
     if self.minor is None:
@@ -500,25 +576,25 @@ class DRBD8Dev(base.BlockDev):
     return not result.failed and children_result
 
   def GetProcStatus(self):
-    """Return device data from /proc.
+    """Return the current status data from /proc/drbd for this device.
+
+    @rtype: DRBD8Status
 
     """
     if self.minor is None:
       base.ThrowError("drbd%d: GetStats() called while not attached",
                       self._aminor)
-    drbd_info = DRBD8Info.CreateFromFile()
-    if not drbd_info.HasMinorStatus(self.minor):
+    info = DRBD8.GetProcInfo()
+    if not info.HasMinorStatus(self.minor):
       base.ThrowError("drbd%d: can't find myself in /proc", self.minor)
-    return drbd_info.GetMinorStatus(self.minor)
+    return info.GetMinorStatus(self.minor)
 
   def GetSyncStatus(self):
     """Returns the sync status of the device.
 
-
     If sync_percent is None, it means all is ok
     If estimated_time is None, it means we can't estimate
     the time needed, otherwise it's the time left in seconds.
-
 
     We set the is_degraded parameter to True on two conditions:
     network not connected or local disk missing.
@@ -553,10 +629,10 @@ class DRBD8Dev(base.BlockDev):
   def Open(self, force=False):
     """Make the local state primary.
 
-    If the 'force' parameter is given, the '-o' option is passed to
-    drbdsetup. Since this is a potentially dangerous operation, the
-    force flag should be only given after creation, when it actually
-    is mandatory.
+    If the 'force' parameter is given, DRBD is instructed to switch the device
+    into primary mode. Since this is a potentially dangerous operation, the
+    force flag should be only given after creation, when it actually is
+    mandatory.
 
     """
     if self.minor is None and not self.Attach():
@@ -653,8 +729,8 @@ class DRBD8Dev(base.BlockDev):
     specified multi-master flag. The device needs to be 'Standalone'
     but have valid network configuration data.
 
-    Args:
-      - multimaster: init the network in dual-primary mode
+    @type multimaster: boolean
+    @param multimaster: init the network in dual-primary mode
 
     """
     if self.minor is None:
@@ -685,7 +761,7 @@ class DRBD8Dev(base.BlockDev):
     /proc).
 
     """
-    used_devs = self.GetUsedDevs()
+    used_devs = DRBD8.GetUsedDevs()
     if self._aminor in used_devs:
       minor = self._aminor
     else:
@@ -818,6 +894,9 @@ class DRBD8Dev(base.BlockDev):
     I/Os will continue to be served from the remote device. If we
     don't have a remote device, this operation will fail.
 
+    @type minor: int
+    @param minor: the device to detach from the local device
+
     """
     cmd = self._cmd_gen.GenDetachCmd(minor)
     result = utils.RunCmd(cmd)
@@ -830,6 +909,9 @@ class DRBD8Dev(base.BlockDev):
 
     This fails if we don't have a local device.
 
+    @type minor: boolean
+    @param minor: the device to disconnect from the remote peer
+
     """
     family = self._GetNetFamily(minor, self._lhost, self._rhost)
     cmd = self._cmd_gen.GenDisconnectCmd(minor, family,
@@ -838,25 +920,6 @@ class DRBD8Dev(base.BlockDev):
     result = utils.RunCmd(cmd)
     if result.failed:
       base.ThrowError("drbd%d: can't shutdown network: %s",
-                      minor, result.output)
-
-  @classmethod
-  def _ShutdownAll(cls, minor):
-    """Deactivate the device.
-
-    This will, of course, fail if the device is in use.
-
-    """
-    # FIXME: _ShutdownAll, despite being private, is used in nodemaint.py.
-    # That's why we can't make it an instance method, which in turn requires
-    # us to duplicate code here (from __init__). This should be properly fixed.
-    drbd_info = DRBD8Info.CreateFromFile()
-    cmd_gen = cls._GetCmdGenerator(drbd_info)
-
-    cmd = cmd_gen.GenDownCmd(minor)
-    result = utils.RunCmd(cmd)
-    if result.failed:
-      base.ThrowError("drbd%d: can't shutdown drbd device: %s",
                       minor, result.output)
 
   def Shutdown(self):
@@ -869,7 +932,7 @@ class DRBD8Dev(base.BlockDev):
     minor = self.minor
     self.minor = None
     self.dev_path = None
-    self._ShutdownAll(minor)
+    DRBD8.ShutdownAll(minor)
 
   def Remove(self):
     """Stub remove for DRBD devices.
@@ -884,6 +947,58 @@ class DRBD8Dev(base.BlockDev):
 
     """
     raise errors.ProgrammerError("Can't rename a drbd device")
+
+  def Grow(self, amount, dryrun, backingstore):
+    """Resize the DRBD device and its backing storage.
+
+    See L{BlockDev.Grow} for parameter description.
+
+    """
+    if self.minor is None:
+      base.ThrowError("drbd%d: Grow called while not attached", self._aminor)
+    if len(self._children) != 2 or None in self._children:
+      base.ThrowError("drbd%d: cannot grow diskless device", self.minor)
+    self._children[0].Grow(amount, dryrun, backingstore)
+    if dryrun or backingstore:
+      # DRBD does not support dry-run mode and is not backing storage,
+      # so we'll return here
+      return
+    cmd = self._cmd_gen.GenResizeCmd(self.minor, self.size + amount)
+    result = utils.RunCmd(cmd)
+    if result.failed:
+      base.ThrowError("drbd%d: resize failed: %s", self.minor, result.output)
+
+  @classmethod
+  def _InitMeta(cls, minor, dev_path):
+    """Initialize a meta device.
+
+    This will not work if the given minor is in use.
+
+    @type minor: int
+    @param minor: the DRBD minor whose (future) meta device should be
+      initialized
+    @type dev_path: string
+    @param dev_path: path to the meta device to initialize
+
+    """
+    # Zero the metadata first, in order to make sure drbdmeta doesn't
+    # try to auto-detect existing filesystems or similar (see
+    # http://code.google.com/p/ganeti/issues/detail?id=182); we only
+    # care about the first 128MB of data in the device, even though it
+    # can be bigger
+    result = utils.RunCmd([constants.DD_CMD,
+                           "if=/dev/zero", "of=%s" % dev_path,
+                           "bs=1048576", "count=128", "oflag=direct"])
+    if result.failed:
+      base.ThrowError("Can't wipe the meta device: %s", result.output)
+
+    info = DRBD8.GetProcInfo()
+    cmd_gen = DRBD8.GetCmdGenerator(info)
+    cmd = cmd_gen.GenInitMetaCmd(minor, dev_path)
+
+    result = utils.RunCmd(cmd)
+    if result.failed:
+      base.ThrowError("Can't initialize meta device: %s", result.output)
 
   @classmethod
   def Create(cls, unique_id, children, size, params, excl_stor):
@@ -901,9 +1016,9 @@ class DRBD8Dev(base.BlockDev):
     # check that the minor is unused
     aminor = unique_id[4]
 
-    drbd_info = DRBD8Info.CreateFromFile()
-    if drbd_info.HasMinorStatus(aminor):
-      status = drbd_info.GetMinorStatus(aminor)
+    info = DRBD8.GetProcInfo()
+    if info.HasMinorStatus(aminor):
+      status = info.GetMinorStatus(aminor)
       in_use = status.is_in_use
     else:
       in_use = False
@@ -919,29 +1034,13 @@ class DRBD8Dev(base.BlockDev):
     cls._InitMeta(aminor, meta.dev_path)
     return cls(unique_id, children, size, params)
 
-  def Grow(self, amount, dryrun, backingstore):
-    """Resize the DRBD device and its backing storage.
-
-    """
-    if self.minor is None:
-      base.ThrowError("drbd%d: Grow called while not attached", self._aminor)
-    if len(self._children) != 2 or None in self._children:
-      base.ThrowError("drbd%d: cannot grow diskless device", self.minor)
-    self._children[0].Grow(amount, dryrun, backingstore)
-    if dryrun or backingstore:
-      # DRBD does not support dry-run mode and is not backing storage,
-      # so we'll return here
-      return
-    cmd = self._cmd_gen.GenResizeCmd(self.minor, self.size + amount)
-    result = utils.RunCmd(cmd)
-    if result.failed:
-      base.ThrowError("drbd%d: resize failed: %s", self.minor, result.output)
-
 
 def _CanReadDevice(path):
   """Check if we can read from the given device.
 
   This tries to read the first 128k of the device.
+
+  @type path: string
 
   """
   try:

@@ -295,7 +295,7 @@ class TestDRBD8Status(testutils.GanetiTestCase):
   def testHelper(self):
     """Test reading usermode_helper in /sys."""
     sys_drbd_helper = testutils.TestDataFilename("sys_drbd_usermode_helper.txt")
-    drbd_helper = drbd.DRBD8Dev.GetUsermodeHelper(filename=sys_drbd_helper)
+    drbd_helper = drbd.DRBD8.GetUsermodeHelper(filename=sys_drbd_helper)
     self.failUnlessEqual(drbd_helper, "/bin/true")
 
   def testHelperIOErrors(self):
@@ -303,7 +303,7 @@ class TestDRBD8Status(testutils.GanetiTestCase):
     temp_file = self._CreateTempFile()
     os.unlink(temp_file)
     self.failUnlessRaises(errors.BlockDeviceError,
-                          drbd.DRBD8Dev.GetUsermodeHelper, filename=temp_file)
+                          drbd.DRBD8.GetUsermodeHelper, filename=temp_file)
 
   def testMinorNotFound(self):
     """Test not-found-minor in /proc"""
@@ -401,7 +401,7 @@ class TestDRBD8Construction(testutils.GanetiTestCase):
 
     self.test_unique_id = ("hosta.com", 123, "host2.com", 123, 0, "secret")
 
-  @testutils.patch_object(drbd_info.DRBD8Info, "CreateFromFile")
+  @testutils.patch_object(drbd.DRBD8, "GetProcInfo")
   def testConstructionWith80Data(self, mock_create_from_file):
     mock_create_from_file.return_value = self.proc80_info
 
@@ -409,7 +409,7 @@ class TestDRBD8Construction(testutils.GanetiTestCase):
     self.assertEqual(inst._show_info_cls, drbd_info.DRBD83ShowInfo)
     self.assertTrue(isinstance(inst._cmd_gen, drbd_cmdgen.DRBD83CmdGenerator))
 
-  @testutils.patch_object(drbd_info.DRBD8Info, "CreateFromFile")
+  @testutils.patch_object(drbd.DRBD8, "GetProcInfo")
   def testConstructionWith83Data(self, mock_create_from_file):
     mock_create_from_file.return_value = self.proc83_info
 
@@ -417,7 +417,7 @@ class TestDRBD8Construction(testutils.GanetiTestCase):
     self.assertEqual(inst._show_info_cls, drbd_info.DRBD83ShowInfo)
     self.assertTrue(isinstance(inst._cmd_gen, drbd_cmdgen.DRBD83CmdGenerator))
 
-  @testutils.patch_object(drbd_info.DRBD8Info, "CreateFromFile")
+  @testutils.patch_object(drbd.DRBD8, "GetProcInfo")
   def testConstructionWith84Data(self, mock_create_from_file):
     mock_create_from_file.return_value = self.proc84_info
 
