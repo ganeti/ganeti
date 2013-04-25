@@ -548,6 +548,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/HTools/Program/Hroller.hs \
 	src/Ganeti/HTools/Program/Main.hs \
 	src/Ganeti/HTools/Types.hs \
+	src/Ganeti/Hypervisor/Xen.hs \
 	src/Ganeti/Hypervisor/Xen/XmParser.hs \
 	src/Ganeti/Hypervisor/Xen/Types.hs \
 	src/Ganeti/Hash.hs \
