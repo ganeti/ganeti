@@ -42,7 +42,7 @@ from ganeti.block import drbd_cmdgen
 _DEVICE_READ_SIZE = 128 * 1024
 
 
-class DRBD8(base.BlockDev):
+class DRBD8Dev(base.BlockDev):
   """DRBD v8.x block device.
 
   This implements the local host part of the DRBD device, i.e. it
@@ -78,7 +78,7 @@ class DRBD8(base.BlockDev):
       if not _CanReadDevice(children[1].dev_path):
         logging.info("drbd%s: Ignoring unreadable meta device", self._aminor)
         children = []
-    super(DRBD8, self).__init__(unique_id, children, size, params)
+    super(DRBD8Dev, self).__init__(unique_id, children, size, params)
     self.major = self._DRBD_MAJOR
 
     drbd_info = DRBD8Info.CreateFromFile()
@@ -471,7 +471,7 @@ class DRBD8(base.BlockDev):
       logging.info(err)
       return [err]
 
-    children_result = super(DRBD8, self).SetSyncParams(params)
+    children_result = super(DRBD8Dev, self).SetSyncParams(params)
     children_result.extend(self._SetMinorSyncParams(self.minor, params))
     return children_result
 
@@ -486,7 +486,7 @@ class DRBD8(base.BlockDev):
       logging.info("Not attached during PauseSync")
       return False
 
-    children_result = super(DRBD8, self).PauseResumeSync(pause)
+    children_result = super(DRBD8Dev, self).PauseResumeSync(pause)
 
     if pause:
       cmd = self._cmd_gen.GenPauseSyncCmd(self.minor)
@@ -704,7 +704,7 @@ class DRBD8(base.BlockDev):
       - anyway, set the device parameters
 
     """
-    super(DRBD8, self).Assemble()
+    super(DRBD8Dev, self).Assemble()
 
     self.Attach()
     if self.minor is None:

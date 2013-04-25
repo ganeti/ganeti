@@ -82,7 +82,7 @@ class TestDRBD8(testutils.GanetiTestCase):
 
 
 class TestDRBD8Runner(testutils.GanetiTestCase):
-  """Testing case for drbd.DRBD8"""
+  """Testing case for drbd.DRBD8Dev"""
 
   @staticmethod
   def _has_disk(data, dname, mname):
@@ -257,7 +257,7 @@ class TestDRBD8Runner(testutils.GanetiTestCase):
 
 
 class TestDRBD8Status(testutils.GanetiTestCase):
-  """Testing case for DRBD8 /proc status"""
+  """Testing case for DRBD8Dev /proc status"""
 
   def setUp(self):
     """Read in txt data"""
@@ -295,7 +295,7 @@ class TestDRBD8Status(testutils.GanetiTestCase):
   def testHelper(self):
     """Test reading usermode_helper in /sys."""
     sys_drbd_helper = testutils.TestDataFilename("sys_drbd_usermode_helper.txt")
-    drbd_helper = drbd.DRBD8.GetUsermodeHelper(filename=sys_drbd_helper)
+    drbd_helper = drbd.DRBD8Dev.GetUsermodeHelper(filename=sys_drbd_helper)
     self.failUnlessEqual(drbd_helper, "/bin/true")
 
   def testHelperIOErrors(self):
@@ -303,7 +303,7 @@ class TestDRBD8Status(testutils.GanetiTestCase):
     temp_file = self._CreateTempFile()
     os.unlink(temp_file)
     self.failUnlessRaises(errors.BlockDeviceError,
-                          drbd.DRBD8.GetUsermodeHelper, filename=temp_file)
+                          drbd.DRBD8Dev.GetUsermodeHelper, filename=temp_file)
 
   def testMinorNotFound(self):
     """Test not-found-minor in /proc"""
@@ -405,7 +405,7 @@ class TestDRBD8Construction(testutils.GanetiTestCase):
   def testConstructionWith80Data(self, mock_create_from_file):
     mock_create_from_file.return_value = self.proc80_info
 
-    inst = drbd.DRBD8(self.test_unique_id, [], 123, {})
+    inst = drbd.DRBD8Dev(self.test_unique_id, [], 123, {})
     self.assertEqual(inst._show_info_cls, drbd_info.DRBD83ShowInfo)
     self.assertTrue(isinstance(inst._cmd_gen, drbd_cmdgen.DRBD83CmdGenerator))
 
@@ -413,7 +413,7 @@ class TestDRBD8Construction(testutils.GanetiTestCase):
   def testConstructionWith83Data(self, mock_create_from_file):
     mock_create_from_file.return_value = self.proc83_info
 
-    inst = drbd.DRBD8(self.test_unique_id, [], 123, {})
+    inst = drbd.DRBD8Dev(self.test_unique_id, [], 123, {})
     self.assertEqual(inst._show_info_cls, drbd_info.DRBD83ShowInfo)
     self.assertTrue(isinstance(inst._cmd_gen, drbd_cmdgen.DRBD83CmdGenerator))
 
@@ -421,7 +421,7 @@ class TestDRBD8Construction(testutils.GanetiTestCase):
   def testConstructionWith84Data(self, mock_create_from_file):
     mock_create_from_file.return_value = self.proc84_info
 
-    inst = drbd.DRBD8(self.test_unique_id, [], 123, {})
+    inst = drbd.DRBD8Dev(self.test_unique_id, [], 123, {})
     self.assertEqual(inst._show_info_cls, drbd_info.DRBD84ShowInfo)
     self.assertTrue(isinstance(inst._cmd_gen, drbd_cmdgen.DRBD84CmdGenerator))
 

@@ -1719,7 +1719,7 @@ def _VolumeLogName(kind, es_name, volume):
 
 DEV_MAP = {
   constants.LD_LV: LogicalVolume,
-  constants.LD_DRBD8: drbd.DRBD8,
+  constants.LD_DRBD8: drbd.DRBD8Dev,
   constants.LD_BLOCKDEV: PersistentBlockDevice,
   constants.LD_RBD: RADOSBlockDevice,
   constants.LD_EXT: ExtStorageDevice,

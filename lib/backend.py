@@ -841,7 +841,7 @@ def VerifyNode(what, cluster_name):
 
   if constants.NV_DRBDLIST in what and vm_capable:
     try:
-      used_minors = drbd.DRBD8.GetUsedDevs()
+      used_minors = drbd.DRBD8Dev.GetUsedDevs()
     except errors.BlockDeviceError, err:
       logging.warning("Can't get used minors list", exc_info=True)
       used_minors = str(err)
@@ -850,7 +850,7 @@ def VerifyNode(what, cluster_name):
   if constants.NV_DRBDHELPER in what and vm_capable:
     status = True
     try:
-      payload = drbd.DRBD8.GetUsermodeHelper()
+      payload = drbd.DRBD8Dev.GetUsermodeHelper()
     except errors.BlockDeviceError, err:
       logging.error("Can't get DRBD usermode helper: %s", str(err))
       status = False
@@ -3692,7 +3692,7 @@ def GetDrbdUsermodeHelper():
 
   """
   try:
-    return drbd.DRBD8.GetUsermodeHelper()
+    return drbd.DRBD8Dev.GetUsermodeHelper()
   except errors.BlockDeviceError, err:
     _Fail(str(err))
 

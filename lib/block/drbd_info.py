@@ -326,7 +326,7 @@ class BaseShowInfo(object):
     This returns, if available, the local backing device (as a path)
     and the local and remote (ip, port) information from a string
     containing the output of the `drbdsetup show` command as returned
-    by DRBD8._GetShowData.
+    by DRBD8Dev._GetShowData.
 
     This will return a dict with keys:
       - local_dev

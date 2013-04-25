@@ -11611,7 +11611,7 @@ class LUInstanceReplaceDisks(LogicalUnit):
       self.op.remote_node = _ExpandNodeName(self.cfg, self.op.remote_node)
 
       # Warning: do not remove the locking of the new secondary here
-      # unless DRBD8.AddChildren is changed to work in parallel;
+      # unless DRBD8Dev.AddChildren is changed to work in parallel;
       # currently it doesn't since parallel invocations of
       # FindUnusedMinor will conflict
       self.needed_locks[locking.LEVEL_NODE] = [self.op.remote_node]
