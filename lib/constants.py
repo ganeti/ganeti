@@ -1588,6 +1588,8 @@ CV_EINSTANCEUNSUITABLENODE = \
    "Instance running on nodes that are not suitable for it")
 CV_ENODEDRBD = \
   (CV_TNODE, "ENODEDRBD", "Error parsing the DRBD status file")
+CV_ENODEDRBDVERSION = \
+  (CV_TNODE, "ENODEDRBDVERSION", "DRBD version mismatch within a node group")
 CV_ENODEDRBDHELPER = \
   (CV_TNODE, "ENODEDRBDHELPER", "Error caused by the DRBD helper")
 CV_ENODEFILECHECK = \

@@ -2530,6 +2530,26 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     if pvminmax is not None:
       (nimg.pv_min, nimg.pv_max) = pvminmax
 
+  def _VerifyGroupDRBDVersion(self, node_verify_infos):
+    """Check cross-node DRBD version consistency.
+
+    @type node_verify_infos: dict
+    @param node_verify_infos: infos about nodes as returned from the
+      node_verify call.
+
+    """
+    node_versions = {}
+    for node, ndata in node_verify_infos.items():
+      nresult = ndata.payload
+      version = nresult.get(constants.NV_DRBDVERSION, "Missing DRBD version")
+      node_versions[node] = version
+
+    if len(set(node_versions.values())) > 1:
+      for node, version in sorted(node_versions.items()):
+        msg = "DRBD version mismatch: %s" % version
+        self._Error(constants.CV_ENODEDRBDHELPER, node, msg,
+                    code=self.ETYPE_WARNING)
+
   def _VerifyGroupLVM(self, node_image, vg_name):
     """Check cross-node consistency in LVM.
 
@@ -3466,6 +3486,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       node_verify_param[constants.NV_PVLIST] = [vg_name]
 
     if drbd_helper:
+      node_verify_param[constants.NV_DRBDVERSION] = None
       node_verify_param[constants.NV_DRBDLIST] = None
       node_verify_param[constants.NV_DRBDHELPER] = drbd_helper
 
@@ -3664,6 +3685,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
           _ErrorIf(not test, constants.CV_ENODEORPHANINSTANCE, node_i.name,
                    "node is running unknown instance %s", inst)
 
+    self._VerifyGroupDRBDVersion(all_nvinfo)
     self._VerifyGroupLVM(node_image, vg_name)
 
     for node, result in extra_lv_nvinfo.items():
