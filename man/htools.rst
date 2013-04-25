@@ -173,7 +173,8 @@ support all options. Some common options are:
   - node total disk
   - node free disk
   - node physical cores
-  - offline field (as ``Y`` or ``N``)
+  - offline/role field (``Y`` for offline nodes, ``N`` for online non-master
+    nodes, and ``M`` for the master node which is always online)
   - group UUID
   - node spindle count
 
