@@ -4505,7 +4505,6 @@ class LUClusterSetParams(LogicalUnit):
                                      " because instance '%s' is using it." %
                                      (instance.disk_template, instance.name))
 
-
   def _SetVgName(self, feedback_fn):
     """Determines and sets the new volume group name.
 
