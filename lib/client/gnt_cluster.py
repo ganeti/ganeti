@@ -93,7 +93,7 @@ def InitCluster(opts, args):
   if enabled_disk_templates:
     enabled_disk_templates = enabled_disk_templates.split(",")
   else:
-    enabled_disk_templates = list(constants.DEFAULT_ENABLED_DISK_TEMPLATES)
+    enabled_disk_templates = constants.DEFAULT_ENABLED_DISK_TEMPLATES
 
   vg_name = None
   if opts.vg_name is not None:

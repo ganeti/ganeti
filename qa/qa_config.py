@@ -370,7 +370,7 @@ class _QaConfig(object):
     """
     return self._GetStringListParameter(
       _ENABLED_DISK_TEMPLATES_KEY,
-      list(constants.DEFAULT_ENABLED_DISK_TEMPLATES))
+      constants.DEFAULT_ENABLED_DISK_TEMPLATES)
 
   def GetDefaultDiskTemplate(self):
     """Returns the default disk template to be used.

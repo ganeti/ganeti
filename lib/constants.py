@@ -466,10 +466,10 @@ DISK_TEMPLATES = compat.UniqueFrozenset([
   ])
 
 # disk templates that are enabled by default
-DEFAULT_ENABLED_DISK_TEMPLATES = compat.UniqueFrozenset([
+DEFAULT_ENABLED_DISK_TEMPLATES = [
   DT_DRBD8,
   DT_PLAIN,
-  ])
+  ]
 
 # mapping of disk templates to storage types
 DISK_TEMPLATES_STORAGE_TYPE = {
