@@ -27,6 +27,11 @@ module Ganeti.DataCollectors.InstStatus
   ( main
   , options
   , arguments
+  , dcName
+  , dcVersion
+  , dcFormatVersion
+  , dcCategory
+  , dcKind
   ) where
 
 
@@ -50,6 +55,27 @@ import Ganeti.Objects
 import Ganeti.Path
 import Ganeti.Types
 import Ganeti.Utils
+
+
+-- | The name of this data collector.
+dcName :: String
+dcName = "inst-status-xen"
+
+-- | The version of this data collector.
+dcVersion :: DCVersion
+dcVersion = DCVerBuiltin
+
+-- | The version number for the data format of this data collector.
+dcFormatVersion :: Int
+dcFormatVersion = 1
+
+-- | The category of this data collector.
+dcCategory :: Maybe DCCategory
+dcCategory = Just DCInstance
+
+-- | The kind of this data collector.
+dcKind :: DCKind
+dcKind = DCKStatus
 
 -- * Command line options
 
