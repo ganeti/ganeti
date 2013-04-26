@@ -16940,7 +16940,8 @@ def _CheckForConflictingIp(lu, ip, node):
   """
   (conf_net, _) = lu.cfg.CheckIPInNodeGroup(ip, node)
   if conf_net is not None:
-    raise errors.OpPrereqError(("Conflicting IP address found: '%s' != '%s'" %
+    raise errors.OpPrereqError(("The requested IP address (%s) belongs to"
+                                " network %s, but the target NIC does not." %
                                 (ip, conf_net)),
                                errors.ECODE_STATE)
 
