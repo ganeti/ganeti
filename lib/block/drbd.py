@@ -23,7 +23,6 @@
 
 import errno
 import logging
-import shlex
 import time
 
 from ganeti import constants
@@ -35,6 +34,7 @@ from ganeti.block import base
 from ganeti.block.drbd_info import DRBD8Info
 from ganeti.block.drbd_info import DRBD83ShowInfo
 from ganeti.block.drbd_info import DRBD84ShowInfo
+from ganeti.block import drbd_cmdgen
 
 
 # Size of reads in _CanReadDevice
@@ -64,12 +64,6 @@ class DRBD8(base.BlockDev):
   # timeout constants
   _NET_RECONFIG_TIMEOUT = 60
 
-  # command line options for barriers
-  _DISABLE_DISK_OPTION = "--no-disk-barrier"  # -a
-  _DISABLE_DRAIN_OPTION = "--no-disk-drain"   # -D
-  _DISABLE_FLUSH_OPTION = "--no-disk-flushes" # -i
-  _DISABLE_META_FLUSH_OPTION = "--no-md-flushes"  # -m
-
   def __init__(self, unique_id, children, size, params):
     if children and children.count(None) > 0:
       children = []
@@ -96,8 +90,11 @@ class DRBD8(base.BlockDev):
 
     if version["k_minor"] <= 3:
       self._show_info_cls = DRBD83ShowInfo
+      self._cmd_gen = drbd_cmdgen.DRBD83CmdGenerator(drbd_info)
     else:
       self._show_info_cls = DRBD84ShowInfo
+      # FIXME: use proper command generator!
+      self._cmd_gen = None
 
     if (self._lhost is not None and self._lhost == self._rhost and
             self._lport == self._rport):
@@ -230,12 +227,11 @@ class DRBD8(base.BlockDev):
 
     return highest + 1
 
-  @classmethod
-  def _GetShowData(cls, minor):
+  def _GetShowData(self, minor):
     """Return the `drbdsetup show` data for a minor.
 
     """
-    result = utils.RunCmd(["drbdsetup", cls._DevPath(minor), "show"])
+    result = utils.RunCmd(self._cmd_gen.GenShowCmd(minor))
     if result.failed:
       logging.error("Can't display the drbd config: %s - %s",
                     result.fail_reason, result.output)
@@ -303,106 +299,14 @@ class DRBD8(base.BlockDev):
     """Configure the local part of a DRBD device.
 
     """
-    args = ["drbdsetup", self._DevPath(minor), "disk",
-            backend, meta, "0",
-            "-e", "detach",
-            "--create-device"]
-    if size:
-      args.extend(["-d", "%sm" % size])
+    cmds = self._cmd_gen.GenLocalInitCmds(minor, backend, meta,
+                                          size, self.params)
 
-    drbd_info = DRBD8Info.CreateFromFile()
-    version = drbd_info.GetVersion()
-    vmaj = version["k_major"]
-    vmin = version["k_minor"]
-    vrel = version["k_point"]
-
-    barrier_args = \
-      self._ComputeDiskBarrierArgs(vmaj, vmin, vrel,
-                                   self.params[constants.LDP_BARRIERS],
-                                   self.params[constants.LDP_NO_META_FLUSH])
-    args.extend(barrier_args)
-
-    if self.params[constants.LDP_DISK_CUSTOM]:
-      args.extend(shlex.split(self.params[constants.LDP_DISK_CUSTOM]))
-
-    result = utils.RunCmd(args)
-    if result.failed:
-      base.ThrowError("drbd%d: can't attach local disk: %s",
-                      minor, result.output)
-
-  @classmethod
-  def _ComputeDiskBarrierArgs(cls, vmaj, vmin, vrel, disabled_barriers,
-                              disable_meta_flush):
-    """Compute the DRBD command line parameters for disk barriers
-
-    Returns a list of the disk barrier parameters as requested via the
-    disabled_barriers and disable_meta_flush arguments, and according to the
-    supported ones in the DRBD version vmaj.vmin.vrel
-
-    If the desired option is unsupported, raises errors.BlockDeviceError.
-
-    """
-    disabled_barriers_set = frozenset(disabled_barriers)
-    if not disabled_barriers_set in constants.DRBD_VALID_BARRIER_OPT:
-      raise errors.BlockDeviceError("%s is not a valid option set for DRBD"
-                                    " barriers" % disabled_barriers)
-
-    args = []
-
-    # The following code assumes DRBD 8.x, with x < 4 and x != 1 (DRBD 8.1.x
-    # does not exist)
-    if not vmaj == 8 and vmin in (0, 2, 3):
-      raise errors.BlockDeviceError("Unsupported DRBD version: %d.%d.%d" %
-                                    (vmaj, vmin, vrel))
-
-    def _AppendOrRaise(option, min_version):
-      """Helper for DRBD options"""
-      if min_version is not None and vrel >= min_version:
-        args.append(option)
-      else:
-        raise errors.BlockDeviceError("Could not use the option %s as the"
-                                      " DRBD version %d.%d.%d does not support"
-                                      " it." % (option, vmaj, vmin, vrel))
-
-    # the minimum version for each feature is encoded via pairs of (minor
-    # version -> x) where x is version in which support for the option was
-    # introduced.
-    meta_flush_supported = disk_flush_supported = {
-      0: 12,
-      2: 7,
-      3: 0,
-      }
-
-    disk_drain_supported = {
-      2: 7,
-      3: 0,
-      }
-
-    disk_barriers_supported = {
-      3: 0,
-      }
-
-    # meta flushes
-    if disable_meta_flush:
-      _AppendOrRaise(cls._DISABLE_META_FLUSH_OPTION,
-                     meta_flush_supported.get(vmin, None))
-
-    # disk flushes
-    if constants.DRBD_B_DISK_FLUSH in disabled_barriers_set:
-      _AppendOrRaise(cls._DISABLE_FLUSH_OPTION,
-                     disk_flush_supported.get(vmin, None))
-
-    # disk drain
-    if constants.DRBD_B_DISK_DRAIN in disabled_barriers_set:
-      _AppendOrRaise(cls._DISABLE_DRAIN_OPTION,
-                     disk_drain_supported.get(vmin, None))
-
-    # disk barriers
-    if constants.DRBD_B_DISK_BARRIERS in disabled_barriers_set:
-      _AppendOrRaise(cls._DISABLE_DISK_OPTION,
-                     disk_barriers_supported.get(vmin, None))
-
-    return args
+    for cmd in cmds:
+      result = utils.RunCmd(cmd)
+      if result.failed:
+        base.ThrowError("drbd%d: can't attach local disk: %s",
+                        minor, result.output)
 
   def _AssembleNet(self, minor, net_info, protocol,
                    dual_pri=False, hmac=None, secret=None):
@@ -440,22 +344,11 @@ class DRBD8(base.BlockDev):
     else:
       base.ThrowError("drbd%d: Invalid ip %s" % (minor, lhost))
 
-    args = ["drbdsetup", self._DevPath(minor), "net",
-            "%s:%s:%s" % (family, lhost, lport),
-            "%s:%s:%s" % (family, rhost, rport), protocol,
-            "-A", "discard-zero-changes",
-            "-B", "consensus",
-            "--create-device",
-            ]
-    if dual_pri:
-      args.append("-m")
-    if hmac and secret:
-      args.extend(["-a", hmac, "-x", secret])
+    cmd = self._cmd_gen.GenNetInitCmd(minor, family, lhost, lport,
+                                      rhost, rport, protocol,
+                                      dual_pri, hmac, secret, self.params)
 
-    if self.params[constants.LDP_NET_CUSTOM]:
-      args.extend(shlex.split(self.params[constants.LDP_NET_CUSTOM]))
-
-    result = utils.RunCmd(args)
+    result = utils.RunCmd(cmd)
     if result.failed:
       base.ThrowError("drbd%d: can't setup network: %s - %s",
                       minor, result.fail_reason, result.output)
@@ -539,42 +432,8 @@ class DRBD8(base.BlockDev):
     @return: a list of error messages
 
     """
-
-    args = ["drbdsetup", self._DevPath(minor), "syncer"]
-    if params[constants.LDP_DYNAMIC_RESYNC]:
-      drbd_info = DRBD8Info.CreateFromFile()
-      version = drbd_info.GetVersion()
-      vmin = version["k_minor"]
-      vrel = version["k_point"]
-
-      # By definition we are using 8.x, so just check the rest of the version
-      # number
-      if vmin != 3 or vrel < 9:
-        msg = ("The current DRBD version (8.%d.%d) does not support the "
-               "dynamic resync speed controller" % (vmin, vrel))
-        logging.error(msg)
-        return [msg]
-
-      if params[constants.LDP_PLAN_AHEAD] == 0:
-        msg = ("A value of 0 for c-plan-ahead disables the dynamic sync speed"
-               " controller at DRBD level. If you want to disable it, please"
-               " set the dynamic-resync disk parameter to False.")
-        logging.error(msg)
-        return [msg]
-
-      # add the c-* parameters to args
-      args.extend(["--c-plan-ahead", params[constants.LDP_PLAN_AHEAD],
-                   "--c-fill-target", params[constants.LDP_FILL_TARGET],
-                   "--c-delay-target", params[constants.LDP_DELAY_TARGET],
-                   "--c-max-rate", params[constants.LDP_MAX_RATE],
-                   "--c-min-rate", params[constants.LDP_MIN_RATE],
-                   ])
-
-    else:
-      args.extend(["-r", "%d" % params[constants.LDP_RESYNC_RATE]])
-
-    args.append("--create-device")
-    result = utils.RunCmd(args)
+    cmd = self._cmd_gen.GenSyncParamsCmd(minor, params)
+    result = utils.RunCmd(cmd)
     if result.failed:
       msg = ("Can't change syncer rate: %s - %s" %
              (result.fail_reason, result.output))
@@ -616,11 +475,11 @@ class DRBD8(base.BlockDev):
     children_result = super(DRBD8, self).PauseResumeSync(pause)
 
     if pause:
-      cmd = "pause-sync"
+      cmd = self._cmd_gen.GenPauseSyncCmd(self.minor)
     else:
-      cmd = "resume-sync"
+      cmd = self._cmd_gen.GenResumeSyncCmd(self.minor)
 
-    result = utils.RunCmd(["drbdsetup", self.dev_path, cmd])
+    result = utils.RunCmd(cmd)
     if result.failed:
       logging.error("Can't %s: %s - %s", cmd,
                     result.fail_reason, result.output)
@@ -689,9 +548,9 @@ class DRBD8(base.BlockDev):
     if self.minor is None and not self.Attach():
       logging.error("DRBD cannot attach to a device during open")
       return False
-    cmd = ["drbdsetup", self.dev_path, "primary"]
-    if force:
-      cmd.append("-o")
+
+    cmd = self._cmd_gen.GenPrimaryCmd(self.minor, force)
+
     result = utils.RunCmd(cmd)
     if result.failed:
       base.ThrowError("drbd%d: can't make drbd device primary: %s", self.minor,
@@ -705,7 +564,8 @@ class DRBD8(base.BlockDev):
     """
     if self.minor is None and not self.Attach():
       base.ThrowError("drbd%d: can't Attach() in Close()", self._aminor)
-    result = utils.RunCmd(["drbdsetup", self.dev_path, "secondary"])
+    cmd = self._cmd_gen.GenSecondaryCmd(self.minor)
+    result = utils.RunCmd(cmd)
     if result.failed:
       base.ThrowError("drbd%d: can't switch drbd device to secondary: %s",
                       self.minor, result.output)
@@ -938,27 +798,27 @@ class DRBD8(base.BlockDev):
                         hmac=constants.DRBD_HMAC_ALG, secret=self._secret)
     self._SetFromMinor(minor)
 
-  @classmethod
-  def _ShutdownLocal(cls, minor):
+  def _ShutdownLocal(self, minor):
     """Detach from the local device.
 
     I/Os will continue to be served from the remote device. If we
     don't have a remote device, this operation will fail.
 
     """
-    result = utils.RunCmd(["drbdsetup", cls._DevPath(minor), "detach"])
+    cmd = self._cmd_gen.GenDetachCmd(minor)
+    result = utils.RunCmd(cmd)
     if result.failed:
       base.ThrowError("drbd%d: can't detach local disk: %s",
                       minor, result.output)
 
-  @classmethod
-  def _ShutdownNet(cls, minor):
+  def _ShutdownNet(self, minor):
     """Disconnect from the remote peer.
 
     This fails if we don't have a local device.
 
     """
-    result = utils.RunCmd(["drbdsetup", cls._DevPath(minor), "disconnect"])
+    cmd = self._cmd_gen.GenDisconnectCmd(minor)
+    result = utils.RunCmd(cmd)
     if result.failed:
       base.ThrowError("drbd%d: can't shutdown network: %s",
                       minor, result.output)
@@ -970,7 +830,18 @@ class DRBD8(base.BlockDev):
     This will, of course, fail if the device is in use.
 
     """
-    result = utils.RunCmd(["drbdsetup", cls._DevPath(minor), "down"])
+    # FIXME: _ShutdownAll, despite being private, is used in nodemaint.py.
+    # That's why we can't make it an instance method, which in turn requires
+    # us to duplicate code here (from __init__). This should be proberly fixed.
+    drbd_info = DRBD8Info.CreateFromFile()
+    if drbd_info.GetVersion()["k_minor"] <= 3:
+      cmd_gen = drbd_cmdgen.DRBD83CmdGenerator(drbd_info)
+    else:
+      # FIXME: use proper command generator!
+      cmd_gen = None
+
+    cmd = cmd_gen.GenDownCmd(minor)
+    result = utils.RunCmd(cmd)
     if result.failed:
       base.ThrowError("drbd%d: can't shutdown drbd device: %s",
                       minor, result.output)
@@ -1048,8 +919,8 @@ class DRBD8(base.BlockDev):
       # DRBD does not support dry-run mode and is not backing storage,
       # so we'll return here
       return
-    result = utils.RunCmd(["drbdsetup", self.dev_path, "resize", "-s",
-                           "%dm" % (self.size + amount)])
+    cmd = self._cmd_gen.GenResizeCmd(self.minor, self.size + amount)
+    result = utils.RunCmd(cmd)
     if result.failed:
       base.ThrowError("drbd%d: resize failed: %s", self.minor, result.output)
 

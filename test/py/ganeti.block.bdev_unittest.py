@@ -34,6 +34,7 @@ from ganeti import utils
 from ganeti.block import bdev
 from ganeti.block import drbd
 from ganeti.block import drbd_info
+from ganeti.block import drbd_cmdgen
 
 import testutils
 
@@ -192,7 +193,7 @@ class TestDRBD8Runner(testutils.GanetiTestCase):
 
     for vmaj, vmin, vrel, opts, meta in should_fail:
       self.assertRaises(errors.BlockDeviceError,
-                        drbd.DRBD8._ComputeDiskBarrierArgs,
+                        drbd_cmdgen.DRBD83CmdGenerator._ComputeDiskBarrierArgs,
                         vmaj, vmin, vrel, opts, meta)
 
     # get the valid options from the frozenset(frozenset()) in constants.
@@ -201,9 +202,10 @@ class TestDRBD8Runner(testutils.GanetiTestCase):
     # Versions that do not support anything
     for vmaj, vmin, vrel in ((8, 0, 0), (8, 0, 11), (8, 2, 6)):
       for opts in valid_options:
-        self.assertRaises(errors.BlockDeviceError,
-                          drbd.DRBD8._ComputeDiskBarrierArgs,
-                          vmaj, vmin, vrel, opts, True)
+        self.assertRaises(
+          errors.BlockDeviceError,
+          drbd_cmdgen.DRBD83CmdGenerator._ComputeDiskBarrierArgs,
+          vmaj, vmin, vrel, opts, True)
 
     # Versions with partial support (testing only options that are supported)
     tests = [
@@ -230,22 +232,23 @@ class TestDRBD8Runner(testutils.GanetiTestCase):
     for test in tests:
       vmaj, vmin, vrel, disabled_barriers, disable_meta_flush, expected = test
       args = \
-        drbd.DRBD8._ComputeDiskBarrierArgs(vmaj, vmin, vrel,
-                                           disabled_barriers,
-                                           disable_meta_flush)
+        drbd_cmdgen.DRBD83CmdGenerator._ComputeDiskBarrierArgs(
+          vmaj, vmin, vrel,
+          disabled_barriers,
+          disable_meta_flush)
       self.failUnless(set(args) == set(expected),
                       "For test %s, got wrong results %s" % (test, args))
 
     # Unsupported or invalid versions
     for vmaj, vmin, vrel in ((0, 7, 25), (9, 0, 0), (7, 0, 0), (8, 4, 0)):
       self.assertRaises(errors.BlockDeviceError,
-                        drbd.DRBD8._ComputeDiskBarrierArgs,
+                        drbd_cmdgen.DRBD83CmdGenerator._ComputeDiskBarrierArgs,
                         vmaj, vmin, vrel, "n", True)
 
     # Invalid options
     for option in ("", "c", "whatever", "nbdfc", "nf"):
       self.assertRaises(errors.BlockDeviceError,
-                        drbd.DRBD8._ComputeDiskBarrierArgs,
+                        drbd_cmdgen.DRBD83CmdGenerator._ComputeDiskBarrierArgs,
                         8, 3, 11, option, True)
 
 

@@ -1,7 +1,11 @@
-resource test0 {
+resource resource0 {
     options {
     }
     net {
+        cram-hmac-alg           "md5";
+        shared-secret           "shared_secret_123";
+        after-sb-0pri           discard-zero-changes;
+        after-sb-1pri           consensus;
     }
     _remote_host {
         address                 ipv4 192.0.2.2:11000;
@@ -13,6 +17,8 @@ resource test0 {
             disk                        "/dev/xenvg/test.data";
             meta-disk                   "/dev/xenvg/test.meta" [ 0 ];
             disk {
+                size                    2097152s; # bytes
+                resync-rate             61440k; # bytes/second
             }
         }
     }
