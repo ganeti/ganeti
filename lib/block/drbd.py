@@ -46,7 +46,7 @@ class DRBD8Status(object): # pylint: disable=R0902
   """A DRBD status representation class.
 
   Note that this class is meant to be used to parse one of the entries returned
-  from L{DRBD8Info._JoinProcDataPerMinor}.
+  from L{DRBD8Info._JoinLinesPerMinor}.
 
   """
   UNCONF_RE = re.compile(r"\s*[0-9]+:\s*cs:Unconfigured$")
@@ -165,7 +165,7 @@ class DRBD8Info(object):
 
   def __init__(self, lines):
     self._version = self._ParseVersion(lines)
-    self._minors, self._line_per_minor = self._JoinProcDataPerMinor(lines)
+    self._minors, self._line_per_minor = self._JoinLinesPerMinor(lines)
 
   def GetVersion(self):
     """Return the DRBD version.
@@ -216,7 +216,7 @@ class DRBD8Info(object):
 
     return retval
 
-  def _JoinProcDataPerMinor(self, lines):
+  def _JoinLinesPerMinor(self, lines):
     """Transform the raw lines into a dictionary based on the minor.
 
     @return: a dictionary of minor: joined lines from /proc/drbd
