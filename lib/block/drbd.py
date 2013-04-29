@@ -90,17 +90,24 @@ class DRBD8(base.BlockDev):
 
     if version["k_minor"] <= 3:
       self._show_info_cls = DRBD83ShowInfo
-      self._cmd_gen = drbd_cmdgen.DRBD83CmdGenerator(drbd_info)
     else:
       self._show_info_cls = DRBD84ShowInfo
-      # FIXME: use proper command generator!
-      self._cmd_gen = None
+
+    self._cmd_gen = self._GetCmdGenerator(drbd_info)
 
     if (self._lhost is not None and self._lhost == self._rhost and
             self._lport == self._rport):
       raise ValueError("Invalid configuration data, same local/remote %s" %
                        (unique_id,))
     self.Attach()
+
+  @classmethod
+  def _GetCmdGenerator(cls, drbd_info):
+    version = drbd_info.GetVersion()
+    if version["k_minor"] <= 3:
+      return drbd_cmdgen.DRBD83CmdGenerator(version)
+    else:
+      return drbd_cmdgen.DRBD84CmdGenerator(version)
 
   @staticmethod
   def GetUsermodeHelper(filename=_USERMODE_HELPER_FILE):
@@ -198,8 +205,11 @@ class DRBD8(base.BlockDev):
     if result.failed:
       base.ThrowError("Can't wipe the meta device: %s", result.output)
 
-    result = utils.RunCmd(["drbdmeta", "--force", cls._DevPath(minor),
-                           "v08", dev_path, "0", "create-md"])
+    drbd_info = DRBD8Info.CreateFromFile()
+    cmd_gen = cls._GetCmdGenerator(drbd_info)
+    cmd = cmd_gen.GenInitMetaCmd(minor, dev_path)
+
+    result = utils.RunCmd(cmd)
     if result.failed:
       base.ThrowError("Can't initialize meta device: %s", result.output)
 
@@ -331,18 +341,7 @@ class DRBD8(base.BlockDev):
       base.ThrowError("drbd%d: can't set the synchronization parameters: %s" %
                       (minor, utils.CommaJoin(sync_errors)))
 
-    if netutils.IP6Address.IsValid(lhost):
-      if not netutils.IP6Address.IsValid(rhost):
-        base.ThrowError("drbd%d: can't connect ip %s to ip %s" %
-                        (minor, lhost, rhost))
-      family = "ipv6"
-    elif netutils.IP4Address.IsValid(lhost):
-      if not netutils.IP4Address.IsValid(rhost):
-        base.ThrowError("drbd%d: can't connect ip %s to ip %s" %
-                        (minor, lhost, rhost))
-      family = "ipv4"
-    else:
-      base.ThrowError("drbd%d: Invalid ip %s" % (minor, lhost))
+    family = self._GetNetFamily(minor, lhost, rhost)
 
     cmd = self._cmd_gen.GenNetInitCmd(minor, family, lhost, lport,
                                       rhost, rport, protocol,
@@ -366,6 +365,21 @@ class DRBD8(base.BlockDev):
       utils.Retry(_CheckNetworkConfig, 1.0, 10.0)
     except utils.RetryTimeout:
       base.ThrowError("drbd%d: timeout while configuring network", minor)
+
+  @staticmethod
+  def _GetNetFamily(minor, lhost, rhost):
+    if netutils.IP6Address.IsValid(lhost):
+      if not netutils.IP6Address.IsValid(rhost):
+        base.ThrowError("drbd%d: can't connect ip %s to ip %s" %
+                        (minor, lhost, rhost))
+      return "ipv6"
+    elif netutils.IP4Address.IsValid(lhost):
+      if not netutils.IP4Address.IsValid(rhost):
+        base.ThrowError("drbd%d: can't connect ip %s to ip %s" %
+                        (minor, lhost, rhost))
+      return "ipv4"
+    else:
+      base.ThrowError("drbd%d: Invalid ip %s" % (minor, lhost))
 
   def AddChildren(self, devices):
     """Add a disk to the DRBD device.
@@ -817,7 +831,10 @@ class DRBD8(base.BlockDev):
     This fails if we don't have a local device.
 
     """
-    cmd = self._cmd_gen.GenDisconnectCmd(minor)
+    family = self._GetNetFamily(minor, self._lhost, self._rhost)
+    cmd = self._cmd_gen.GenDisconnectCmd(minor, family,
+                                         self._lhost, self._lport,
+                                         self._rhost, self._rport)
     result = utils.RunCmd(cmd)
     if result.failed:
       base.ThrowError("drbd%d: can't shutdown network: %s",
@@ -832,13 +849,9 @@ class DRBD8(base.BlockDev):
     """
     # FIXME: _ShutdownAll, despite being private, is used in nodemaint.py.
     # That's why we can't make it an instance method, which in turn requires
-    # us to duplicate code here (from __init__). This should be proberly fixed.
+    # us to duplicate code here (from __init__). This should be properly fixed.
     drbd_info = DRBD8Info.CreateFromFile()
-    if drbd_info.GetVersion()["k_minor"] <= 3:
-      cmd_gen = drbd_cmdgen.DRBD83CmdGenerator(drbd_info)
-    else:
-      # FIXME: use proper command generator!
-      cmd_gen = None
+    cmd_gen = cls._GetCmdGenerator(drbd_info)
 
     cmd = cmd_gen.GenDownCmd(minor)
     result = utils.RunCmd(cmd)

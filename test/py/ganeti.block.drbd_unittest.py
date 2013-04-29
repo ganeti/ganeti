@@ -413,8 +413,7 @@ class TestDRBD8Construction(testutils.GanetiTestCase):
 
     inst = drbd.DRBD8(self.test_unique_id, [], 123, {})
     self.assertEqual(inst._show_info_cls, drbd_info.DRBD84ShowInfo)
-    # FIXME: add assertion for right class here!
-    self.assertEqual(inst._cmd_gen, None)
+    self.assertTrue(isinstance(inst._cmd_gen, drbd_cmdgen.DRBD84CmdGenerator))
 
 
 if __name__ == "__main__":
