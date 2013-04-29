@@ -80,7 +80,7 @@ class NodeMaintenance(object):
     """Get list of used DRBD minors.
 
     """
-    return drbd.DRBD8.GetUsedDevs().keys()
+    return drbd.DRBD8.GetUsedDevs()
 
   @classmethod
   def DoMaintenance(cls, role):

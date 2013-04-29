@@ -42,11 +42,11 @@ from ganeti.block import base
 _DEVICE_READ_SIZE = 128 * 1024
 
 
-class DRBD8Status(object):
+class DRBD8Status(object): # pylint: disable=R0902
   """A DRBD status representation class.
 
   Note that this class is meant to be used to parse one of the entries returned
-  from L{DRBD8._JoinProcDataPerMinor}.
+  from L{DRBD8Info._JoinProcDataPerMinor}.
 
   """
   UNCONF_RE = re.compile(r"\s*[0-9]+:\s*cs:Unconfigured$")
@@ -119,6 +119,7 @@ class DRBD8Status(object):
     self.is_standalone = self.cstatus == self.CS_STANDALONE
     self.is_wfconn = self.cstatus == self.CS_WFCONNECTION
     self.is_connected = self.cstatus == self.CS_CONNECTED
+    self.is_unconfigured = self.cstatus == self.CS_UNCONFIGURED
     self.is_primary = self.lrole == self.RO_PRIMARY
     self.is_secondary = self.lrole == self.RO_SECONDARY
     self.peer_primary = self.rrole == self.RO_PRIMARY
@@ -151,6 +152,119 @@ class DRBD8Status(object):
       self.est_time = None
 
 
+class DRBD8Info(object):
+  """Represents information DRBD exports (usually via /proc/drbd).
+
+  An instance of this class is created by one of the CreateFrom... methods.
+
+  """
+
+  _VERSION_RE = re.compile(r"^version: (\d+)\.(\d+)\.(\d+)(?:\.\d+)?"
+                           r" \(api:(\d+)/proto:(\d+)(?:-(\d+))?\)")
+  _VALID_LINE_RE = re.compile("^ *([0-9]+): cs:([^ ]+).*$")
+
+  def __init__(self, lines):
+    self._version = self._ParseVersion(lines)
+    self._minors, self._line_per_minor = self._JoinProcDataPerMinor(lines)
+
+  def GetVersion(self):
+    """Return the DRBD version.
+
+    This will return a dict with keys:
+      - k_major
+      - k_minor
+      - k_point
+      - api
+      - proto
+      - proto2 (only on drbd > 8.2.X)
+
+    """
+    return self._version
+
+  def GetMinors(self):
+    """Return a list of minor for which information is available.
+
+    This list is ordered in exactly the order which was found in the underlying
+    data.
+
+    """
+    return self._minors
+
+  def HasMinorStatus(self, minor):
+    return minor in self._line_per_minor
+
+  def GetMinorStatus(self, minor):
+    return DRBD8Status(self._line_per_minor[minor])
+
+  def _ParseVersion(self, lines):
+    first_line = lines[0].strip()
+    version = self._VERSION_RE.match(first_line)
+    if not version:
+      raise errors.BlockDeviceError("Can't parse DRBD version from '%s'" %
+                                    first_line)
+
+    values = version.groups()
+    retval = {
+      "k_major": int(values[0]),
+      "k_minor": int(values[1]),
+      "k_point": int(values[2]),
+      "api": int(values[3]),
+      "proto": int(values[4]),
+      }
+    if values[5] is not None:
+      retval["proto2"] = values[5]
+
+    return retval
+
+  def _JoinProcDataPerMinor(self, lines):
+    """Transform the raw lines into a dictionary based on the minor.
+
+    @return: a dictionary of minor: joined lines from /proc/drbd
+        for that minor
+
+    """
+    minors = []
+    results = {}
+    old_minor = old_line = None
+    for line in lines:
+      if not line: # completely empty lines, as can be returned by drbd8.0+
+        continue
+      lresult = self._VALID_LINE_RE.match(line)
+      if lresult is not None:
+        if old_minor is not None:
+          minors.append(old_minor)
+          results[old_minor] = old_line
+        old_minor = int(lresult.group(1))
+        old_line = line
+      else:
+        if old_minor is not None:
+          old_line += " " + line.strip()
+    # add last line
+    if old_minor is not None:
+      minors.append(old_minor)
+      results[old_minor] = old_line
+    return minors, results
+
+  @staticmethod
+  def CreateFromLines(lines):
+    return DRBD8Info(lines)
+
+  @staticmethod
+  def CreateFromFile(filename=constants.DRBD_STATUS_FILE):
+    try:
+      lines = utils.ReadFile(filename).splitlines()
+    except EnvironmentError, err:
+      if err.errno == errno.ENOENT:
+        base.ThrowError("The file %s cannot be opened, check if the module"
+                        " is loaded (%s)", filename, str(err))
+      else:
+        base.ThrowError("Can't read the DRBD proc file %s: %s",
+                        filename, str(err))
+    if not lines:
+      base.ThrowError("Can't read any data from %s", filename)
+    return DRBD8Info.CreateFromLines(lines)
+
+
 class DRBD8(base.BlockDev):
   """DRBD v8.x block device.
 
@@ -164,17 +278,8 @@ class DRBD8(base.BlockDev):
   is checked for valid size and is zeroed on create.
 
   """
-  _VERSION_RE = re.compile(r"^version: (\d+)\.(\d+)\.(\d+)(?:\.\d+)?"
-                           r" \(api:(\d+)/proto:(\d+)(?:-(\d+))?\)")
-  _VALID_LINE_RE = re.compile("^ *([0-9]+): cs:([^ ]+).*$")
-  _UNUSED_LINE_RE = re.compile("^ *([0-9]+): cs:Unconfigured$")
-
   _DRBD_MAJOR = 147
-  _ST_UNCONFIGURED = DRBD8Status.CS_UNCONFIGURED
-  _ST_WFCONNECTION = DRBD8Status.CS_WFCONNECTION
-  _ST_CONNECTED = DRBD8Status.CS_CONNECTED
 
-  _STATUS_FILE = constants.DRBD_STATUS_FILE
   _USERMODE_HELPER_FILE = "/sys/module/drbd/parameters/usermode_helper"
 
   _MAX_MINORS = 255
@@ -205,7 +310,9 @@ class DRBD8(base.BlockDev):
         children = []
     super(DRBD8, self).__init__(unique_id, children, size, params)
     self.major = self._DRBD_MAJOR
-    version = self._GetVersion(self._GetProcData())
+
+    drbd_info = DRBD8Info.CreateFromFile()
+    version = drbd_info.GetVersion()
     if version["k_major"] != 8:
       base.ThrowError("Mismatch in DRBD kernel version and requested ganeti"
                       " usage: kernel is %s.%s, ganeti wants 8.x",
@@ -216,83 +323,6 @@ class DRBD8(base.BlockDev):
       raise ValueError("Invalid configuration data, same local/remote %s" %
                        (unique_id,))
     self.Attach()
-
-  @staticmethod
-  def _GetProcData(filename=_STATUS_FILE):
-    """Return data from /proc/drbd.
-
-    """
-    try:
-      data = utils.ReadFile(filename).splitlines()
-    except EnvironmentError, err:
-      if err.errno == errno.ENOENT:
-        base.ThrowError("The file %s cannot be opened, check if the module"
-                        " is loaded (%s)", filename, str(err))
-      else:
-        base.ThrowError("Can't read the DRBD proc file %s: %s",
-                        filename, str(err))
-    if not data:
-      base.ThrowError("Can't read any data from %s", filename)
-    return data
-
-  @classmethod
-  def _JoinProcDataPerMinor(cls, data):
-    """Transform the output of _GetProdData into a nicer form.
-
-    @return: a dictionary of minor: joined lines from /proc/drbd
-        for that minor
-
-    """
-    results = {}
-    old_minor = old_line = None
-    for line in data:
-      if not line: # completely empty lines, as can be returned by drbd8.0+
-        continue
-      lresult = cls._VALID_LINE_RE.match(line)
-      if lresult is not None:
-        if old_minor is not None:
-          results[old_minor] = old_line
-        old_minor = int(lresult.group(1))
-        old_line = line
-      else:
-        if old_minor is not None:
-          old_line += " " + line.strip()
-    # add last line
-    if old_minor is not None:
-      results[old_minor] = old_line
-    return results
-
-  @classmethod
-  def _GetVersion(cls, proc_data):
-    """Return the DRBD version.
-
-    This will return a dict with keys:
-      - k_major
-      - k_minor
-      - k_point
-      - api
-      - proto
-      - proto2 (only on drbd > 8.2.X)
-
-    """
-    first_line = proc_data[0].strip()
-    version = cls._VERSION_RE.match(first_line)
-    if not version:
-      raise errors.BlockDeviceError("Can't parse DRBD version from '%s'" %
-                                    first_line)
-
-    values = version.groups()
-    retval = {
-      "k_major": int(values[0]),
-      "k_minor": int(values[1]),
-      "k_point": int(values[2]),
-      "api": int(values[3]),
-      "proto": int(values[4]),
-      }
-    if values[5] is not None:
-      retval["proto2"] = values[5]
-
-    return retval
 
   @staticmethod
   def GetUsermodeHelper(filename=_USERMODE_HELPER_FILE):
@@ -324,20 +354,9 @@ class DRBD8(base.BlockDev):
     """Compute the list of used DRBD devices.
 
     """
-    data = cls._GetProcData()
-
-    used_devs = {}
-    for line in data:
-      match = cls._VALID_LINE_RE.match(line)
-      if not match:
-        continue
-      minor = int(match.group(1))
-      state = match.group(2)
-      if state == cls._ST_UNCONFIGURED:
-        continue
-      used_devs[minor] = state, line
-
-    return used_devs
+    drbd_info = DRBD8Info.CreateFromFile()
+    return filter(lambda m: not drbd_info.GetMinorStatus(m).is_unconfigured,
+                  drbd_info.GetMinors())
 
   def _SetFromMinor(self, minor):
     """Set our parameters based on the given minor.
@@ -406,30 +425,28 @@ class DRBD8(base.BlockDev):
     if result.failed:
       base.ThrowError("Can't initialize meta device: %s", result.output)
 
-  @classmethod
-  def _FindUnusedMinor(cls):
+  def _FindUnusedMinor(self):
     """Find an unused DRBD device.
 
     This is specific to 8.x as the minors are allocated dynamically,
     so non-existing numbers up to a max minor count are actually free.
 
     """
-    data = cls._GetProcData()
 
     highest = None
-    for line in data:
-      match = cls._UNUSED_LINE_RE.match(line)
-      if match:
-        return int(match.group(1))
-      match = cls._VALID_LINE_RE.match(line)
-      if match:
-        minor = int(match.group(1))
-        highest = max(highest, minor)
+    drbd_info = DRBD8Info.CreateFromFile()
+    for minor in drbd_info.GetMinors():
+      status = drbd_info.GetMinorStatus(minor)
+      if not status.is_in_use:
+        return minor
+      highest = max(highest, minor)
+
     if highest is None: # there are no minors in use at all
       return 0
-    if highest >= cls._MAX_MINORS:
+    if highest >= self._MAX_MINORS:
       logging.error("Error: no free drbd minors!")
       raise errors.BlockDeviceError("Can't find a free DRBD minor")
+
     return highest + 1
 
   @classmethod
@@ -607,7 +624,8 @@ class DRBD8(base.BlockDev):
     if size:
       args.extend(["-d", "%sm" % size])
 
-    version = self._GetVersion(self._GetProcData())
+    drbd_info = DRBD8Info.CreateFromFile()
+    version = drbd_info.GetVersion()
     vmaj = version["k_major"]
     vmin = version["k_minor"]
     vrel = version["k_point"]
@@ -822,8 +840,7 @@ class DRBD8(base.BlockDev):
     self._ShutdownLocal(self.minor)
     self._children = []
 
-  @classmethod
-  def _SetMinorSyncParams(cls, minor, params):
+  def _SetMinorSyncParams(self, minor, params):
     """Set the parameters of the DRBD syncer.
 
     This is the low-level implementation.
@@ -837,9 +854,10 @@ class DRBD8(base.BlockDev):
 
     """
 
-    args = ["drbdsetup", cls._DevPath(minor), "syncer"]
+    args = ["drbdsetup", self._DevPath(minor), "syncer"]
     if params[constants.LDP_DYNAMIC_RESYNC]:
-      version = cls._GetVersion(cls._GetProcData())
+      drbd_info = DRBD8Info.CreateFromFile()
+      version = drbd_info.GetVersion()
       vmin = version["k_minor"]
       vrel = version["k_point"]
 
@@ -929,10 +947,10 @@ class DRBD8(base.BlockDev):
     if self.minor is None:
       base.ThrowError("drbd%d: GetStats() called while not attached",
                       self._aminor)
-    proc_info = self._JoinProcDataPerMinor(self._GetProcData())
-    if self.minor not in proc_info:
+    drbd_info = DRBD8Info.CreateFromFile()
+    if not drbd_info.HasMinorStatus(self.minor):
       base.ThrowError("drbd%d: can't find myself in /proc", self.minor)
-    return DRBD8Status(proc_info[self.minor])
+    return drbd_info.GetMinorStatus(self.minor)
 
   def GetSyncStatus(self):
     """Returns the sync status of the device.
@@ -1312,9 +1330,10 @@ class DRBD8(base.BlockDev):
                                    " exclusive_storage")
     # check that the minor is unused
     aminor = unique_id[4]
-    proc_info = cls._JoinProcDataPerMinor(cls._GetProcData())
-    if aminor in proc_info:
-      status = DRBD8Status(proc_info[aminor])
+
+    drbd_info = DRBD8Info.CreateFromFile()
+    if drbd_info.HasMinorStatus(aminor):
+      status = drbd_info.GetMinorStatus(aminor)
       in_use = status.is_in_use
     else:
       in_use = False

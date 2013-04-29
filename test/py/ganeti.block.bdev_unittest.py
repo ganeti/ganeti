@@ -71,7 +71,8 @@ class TestDRBD8(testutils.GanetiTestCase):
       }
     ]
     for d,r in zip(data, result):
-      self.assertEqual(drbd.DRBD8._GetVersion(d), r)
+      info = drbd.DRBD8Info.CreateFromLines(d)
+      self.assertEqual(info.GetVersion(), r)
 
 
 class TestDRBD8Runner(testutils.GanetiTestCase):
@@ -244,26 +245,21 @@ class TestDRBD8Status(testutils.GanetiTestCase):
     proc83_sync_data = testutils.TestDataFilename("proc_drbd83_sync.txt")
     proc83_sync_krnl_data = \
       testutils.TestDataFilename("proc_drbd83_sync_krnl2.6.39.txt")
-    self.proc_data = drbd.DRBD8._GetProcData(filename=proc_data)
-    self.proc80e_data = drbd.DRBD8._GetProcData(filename=proc80e_data)
-    self.proc83_data = drbd.DRBD8._GetProcData(filename=proc83_data)
-    self.proc83_sync_data = drbd.DRBD8._GetProcData(filename=proc83_sync_data)
-    self.proc83_sync_krnl_data = \
-      drbd.DRBD8._GetProcData(filename=proc83_sync_krnl_data)
-    self.mass_data = drbd.DRBD8._JoinProcDataPerMinor(self.proc_data)
-    self.mass80e_data = drbd.DRBD8._JoinProcDataPerMinor(self.proc80e_data)
-    self.mass83_data = drbd.DRBD8._JoinProcDataPerMinor(self.proc83_data)
-    self.mass83_sync_data = \
-      drbd.DRBD8._JoinProcDataPerMinor(self.proc83_sync_data)
-    self.mass83_sync_krnl_data = \
-      drbd.DRBD8._JoinProcDataPerMinor(self.proc83_sync_krnl_data)
+
+    self.drbd_info = drbd.DRBD8Info.CreateFromFile(filename=proc_data)
+    self.drbd_info80e = drbd.DRBD8Info.CreateFromFile(filename=proc80e_data)
+    self.drbd_info83 = drbd.DRBD8Info.CreateFromFile(filename=proc83_data)
+    self.drbd_info83_sync = \
+      drbd.DRBD8Info.CreateFromFile(filename=proc83_sync_data)
+    self.drbd_info83_sync_krnl = \
+      drbd.DRBD8Info.CreateFromFile(filename=proc83_sync_krnl_data)
 
   def testIOErrors(self):
     """Test handling of errors while reading the proc file."""
     temp_file = self._CreateTempFile()
     os.unlink(temp_file)
     self.failUnlessRaises(errors.BlockDeviceError,
-                          drbd.DRBD8._GetProcData, filename=temp_file)
+                          drbd.DRBD8Info.CreateFromFile, filename=temp_file)
 
   def testHelper(self):
     """Test reading usermode_helper in /sys."""
@@ -280,9 +276,9 @@ class TestDRBD8Status(testutils.GanetiTestCase):
 
   def testMinorNotFound(self):
     """Test not-found-minor in /proc"""
-    self.failUnless(9 not in self.mass_data)
-    self.failUnless(9 not in self.mass83_data)
-    self.failUnless(3 not in self.mass80e_data)
+    self.failUnless(not self.drbd_info.HasMinorStatus(9))
+    self.failUnless(not self.drbd_info83.HasMinorStatus(9))
+    self.failUnless(not self.drbd_info80e.HasMinorStatus(3))
 
   def testLineNotMatch(self):
     """Test wrong line passed to drbd.DRBD8Status"""
@@ -290,30 +286,30 @@ class TestDRBD8Status(testutils.GanetiTestCase):
 
   def testMinor0(self):
     """Test connected, primary device"""
-    for data in [self.mass_data, self.mass83_data]:
-      stats = drbd.DRBD8Status(data[0])
+    for info in [self.drbd_info, self.drbd_info83]:
+      stats = info.GetMinorStatus(0)
       self.failUnless(stats.is_in_use)
       self.failUnless(stats.is_connected and stats.is_primary and
                       stats.peer_secondary and stats.is_disk_uptodate)
 
   def testMinor1(self):
     """Test connected, secondary device"""
-    for data in [self.mass_data, self.mass83_data]:
-      stats = drbd.DRBD8Status(data[1])
+    for info in [self.drbd_info, self.drbd_info83]:
+      stats = info.GetMinorStatus(1)
       self.failUnless(stats.is_in_use)
       self.failUnless(stats.is_connected and stats.is_secondary and
                       stats.peer_primary and stats.is_disk_uptodate)
 
   def testMinor2(self):
     """Test unconfigured device"""
-    for data in [self.mass_data, self.mass83_data, self.mass80e_data]:
-      stats = drbd.DRBD8Status(data[2])
+    for info in [self.drbd_info, self.drbd_info83, self.drbd_info80e]:
+      stats = info.GetMinorStatus(2)
       self.failIf(stats.is_in_use)
 
   def testMinor4(self):
     """Test WFconn device"""
-    for data in [self.mass_data, self.mass83_data]:
-      stats = drbd.DRBD8Status(data[4])
+    for info in [self.drbd_info, self.drbd_info83]:
+      stats = info.GetMinorStatus(4)
       self.failUnless(stats.is_in_use)
       self.failUnless(stats.is_wfconn and stats.is_primary and
                       stats.rrole == "Unknown" and
@@ -321,28 +317,28 @@ class TestDRBD8Status(testutils.GanetiTestCase):
 
   def testMinor6(self):
     """Test diskless device"""
-    for data in [self.mass_data, self.mass83_data]:
-      stats = drbd.DRBD8Status(data[6])
+    for info in [self.drbd_info, self.drbd_info83]:
+      stats = info.GetMinorStatus(6)
       self.failUnless(stats.is_in_use)
       self.failUnless(stats.is_connected and stats.is_secondary and
                       stats.peer_primary and stats.is_diskless)
 
   def testMinor8(self):
     """Test standalone device"""
-    for data in [self.mass_data, self.mass83_data]:
-      stats = drbd.DRBD8Status(data[8])
+    for info in [self.drbd_info, self.drbd_info83]:
+      stats = info.GetMinorStatus(8)
       self.failUnless(stats.is_in_use)
       self.failUnless(stats.is_standalone and
                       stats.rrole == "Unknown" and
                       stats.is_disk_uptodate)
 
   def testDRBD83SyncFine(self):
-    stats = drbd.DRBD8Status(self.mass83_sync_data[3])
+    stats = self.drbd_info83_sync.GetMinorStatus(3)
     self.failUnless(stats.is_in_resync)
     self.failUnless(stats.sync_percent is not None)
 
   def testDRBD83SyncBroken(self):
-    stats = drbd.DRBD8Status(self.mass83_sync_krnl_data[3])
+    stats = self.drbd_info83_sync_krnl.GetMinorStatus(3)
     self.failUnless(stats.is_in_resync)
     self.failUnless(stats.sync_percent is not None)
 

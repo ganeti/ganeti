@@ -832,7 +832,7 @@ def VerifyNode(what, cluster_name):
 
   if constants.NV_DRBDLIST in what and vm_capable:
     try:
-      used_minors = drbd.DRBD8.GetUsedDevs().keys()
+      used_minors = drbd.DRBD8.GetUsedDevs()
     except errors.BlockDeviceError, err:
       logging.warning("Can't get used minors list", exc_info=True)
       used_minors = str(err)

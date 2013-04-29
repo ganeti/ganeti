@@ -52,7 +52,7 @@ testFile fileName expectedContent = do
 case_drbd80_emptyline :: Assertion
 case_drbd80_emptyline = testFile "proc_drbd80-emptyline.txt" $
   DRBDStatus
-    ( VersionInfo Nothing Nothing Nothing Nothing
+    ( VersionInfo (Just "8.0.12") (Just "86") (Just "86") Nothing
         (Just "5c9f89594553e32adb87d9638dce591782f947e3")
         (Just "root@node1.example.com, 2009-05-22 12:47:52")
     )
