@@ -90,7 +90,8 @@ in_chroot -- \
   $APT_INSTALL lvm2 ssh bridge-utils iproute iputils-arping \
                ndisc6 python python-pyopenssl openssl \
                python-pyparsing python-simplejson \
-               python-pyinotify python-pycurl python-yaml socat fping
+               python-pyinotify python-pycurl python-yaml python-mock \
+               socat fping
 
 in_chroot -- \
   $APT_INSTALL python-paramiko qemu-utils

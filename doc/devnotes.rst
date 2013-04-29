@@ -16,6 +16,7 @@ Most dependencies from :doc:`install-quick`, including ``qemu-img``
 - `python-epydoc <http://epydoc.sourceforge.net/>`_
 - `python-sphinx <http://sphinx.pocoo.org/>`_
   (tested with version 1.1.3)
+- `python-mock <http://www.voidspace.org.uk/python/mock/>`_
 - `graphviz <http://www.graphviz.org/>`_
 - the `en_US.UTF-8` locale must be enabled on the system
 - `pylint <http://www.logilab.org/857>`_ and its associated
@@ -47,7 +48,7 @@ Installation of all dependencies listed here::
 
      $ apt-get install python-setuptools automake git fakeroot
      $ apt-get install pandoc python-epydoc graphviz
-     $ apt-get install python-yaml
+     $ apt-get install python-yaml python-mock
      $ cd / && sudo easy_install \
                sphinx \
                logilab-astng==0.23.1 \
