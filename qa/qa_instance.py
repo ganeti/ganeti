@@ -1053,7 +1053,16 @@ def TestRemoveInstanceOfflineNode(instance, snode, set_offline, set_online):
     # FIXME: abstract the cleanup inside the disks
     if info["storage-type"] == constants.ST_LVM_VG:
       for minor in info["drbd-minors"][snode.primary]:
-        AssertCommand(["drbdsetup", str(minor), "down"], node=snode)
+        # DRBD 8.3 syntax comes first, then DRBD 8.4 syntax. The 8.4 syntax
+        # relies on the fact that we always create a resources for each minor,
+        # and that this resources is always named resource{minor}.
+        # As 'drbdsetup 0 down' does return success (even though that's invalid
+        # syntax), we always have to perform both commands and ignore the
+        # output.
+        drbd_shutdown_cmd = \
+          "(drbdsetup %d down && drbdsetup down resource%d) || /bin/true" % \
+            (minor, minor)
+        AssertCommand(drbd_shutdown_cmd, node=snode)
       AssertCommand(["lvremove", "-f"] + info["volumes"], node=snode)
     elif info["storage-type"] == constants.ST_FILE:
       filestorage = pathutils.DEFAULT_FILE_STORAGE_DIR
