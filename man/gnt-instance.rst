@@ -270,6 +270,17 @@ nic\_type
     - e1000 (KVM)
     - paravirtual (default for KVM) (HVM & KVM)
 
+vif\_type
+    Valid for the Xen HVM hypervisor.
+
+    This parameter specifies the vif type of the nic configuration
+    of the instance. Unsetting the value leads to no type being specified
+    in the configuration. Note that this parameter only takes effect when
+    the 'nic_type' is not set. The possible options are:
+
+    - ioemu
+    - vif
+
 disk\_type
     Valid for the Xen HVM and KVM hypervisors.
 
