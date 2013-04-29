@@ -1,0 +1,11 @@
+version: 8.4.2 (api:1/proto:86-101)
+GIT-hash: 7ad5f850d711223713d6dcadc3dd48860321070c build by root@example.com, 2013-04-10 07:45:25
+ 0: cs:StandAlone ro:Primary/Unknown ds:UpToDate/DUnknown   r-----
+    ns:0 nr:0 dw:33318 dr:730 al:15 bm:0 lo:0 pe:0 ua:0 ap:0 ep:1 wo:d oos:1048320
+
+ 3: cs:Unconfigured
+
+ 5: cs:SyncSource ro:Secondary/Secondary ds:UpToDate/Inconsistent C r---n-
+    ns:716992 nr:0 dw:0 dr:719432 al:0 bm:43 lo:0 pe:33 ua:18 ap:0 ep:1 wo:f oos:335744
+        [============>.......] sync'ed: 68.5% (335744/1048576)K
+        finish: 0:00:05 speed: 64,800 (64,800) K/sec

@@ -1098,6 +1098,8 @@ TEST_FILES = \
 	test/data/proc_drbd83_sync.txt \
 	test/data/proc_drbd83_sync_want.txt \
 	test/data/proc_drbd83_sync_krnl2.6.39.txt \
+	test/data/proc_drbd84.txt \
+	test/data/proc_drbd84_sync.txt \
 	test/data/qa-minimal-nodes-instances-only.json \
 	test/data/sys_drbd_usermode_helper.txt \
 	test/data/vgreduce-removemissing-2.02.02.txt \
