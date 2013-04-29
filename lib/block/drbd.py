@@ -265,6 +265,116 @@ class DRBD8Info(object):
     return DRBD8Info.CreateFromLines(lines)
 
 
+class DRBD8ShowInfo(object):
+  """Helper class which parses the output of drbdsetup show
+
+  """
+  _PARSE_SHOW = None
+
+  @classmethod
+  def _GetShowParser(cls):
+    """Return a parser for `drbd show` output.
+
+    This will either create or return an already-created parser for the
+    output of the command `drbd show`.
+
+    """
+    if cls._PARSE_SHOW is not None:
+      return cls._PARSE_SHOW
+
+    # pyparsing setup
+    lbrace = pyp.Literal("{").suppress()
+    rbrace = pyp.Literal("}").suppress()
+    lbracket = pyp.Literal("[").suppress()
+    rbracket = pyp.Literal("]").suppress()
+    semi = pyp.Literal(";").suppress()
+    colon = pyp.Literal(":").suppress()
+    # this also converts the value to an int
+    number = pyp.Word(pyp.nums).setParseAction(lambda s, l, t: int(t[0]))
+
+    comment = pyp.Literal("#") + pyp.Optional(pyp.restOfLine)
+    defa = pyp.Literal("_is_default").suppress()
+    dbl_quote = pyp.Literal('"').suppress()
+
+    keyword = pyp.Word(pyp.alphanums + "-")
+
+    # value types
+    value = pyp.Word(pyp.alphanums + "_-/.:")
+    quoted = dbl_quote + pyp.CharsNotIn('"') + dbl_quote
+    ipv4_addr = (pyp.Optional(pyp.Literal("ipv4")).suppress() +
+                 pyp.Word(pyp.nums + ".") + colon + number)
+    ipv6_addr = (pyp.Optional(pyp.Literal("ipv6")).suppress() +
+                 pyp.Optional(lbracket) + pyp.Word(pyp.hexnums + ":") +
+                 pyp.Optional(rbracket) + colon + number)
+    # meta device, extended syntax
+    meta_value = ((value ^ quoted) + lbracket + number + rbracket)
+    # device name, extended syntax
+    device_value = pyp.Literal("minor").suppress() + number
+
+    # a statement
+    stmt = (~rbrace + keyword + ~lbrace +
+            pyp.Optional(ipv4_addr ^ ipv6_addr ^ value ^ quoted ^ meta_value ^
+                         device_value) +
+            pyp.Optional(defa) + semi +
+            pyp.Optional(pyp.restOfLine).suppress())
+
+    # an entire section
+    section_name = pyp.Word(pyp.alphas + "_")
+    section = section_name + lbrace + pyp.ZeroOrMore(pyp.Group(stmt)) + rbrace
+
+    bnf = pyp.ZeroOrMore(pyp.Group(section ^ stmt))
+    bnf.ignore(comment)
+
+    cls._PARSE_SHOW = bnf
+
+    return bnf
+
+  @classmethod
+  def GetDevInfo(cls, show_data):
+    """Parse details about a given DRBD minor.
+
+    This returns, if available, the local backing device (as a path)
+    and the local and remote (ip, port) information from a string
+    containing the output of the `drbdsetup show` command as returned
+    by DRBD8._GetShowData.
+
+    This will return a dict with keys:
+      - local_dev
+      - meta_dev
+      - meta_index
+      - local_addr
+      - remote_addr
+
+    """
+    retval = {}
+    if not show_data:
+      return retval
+
+    try:
+      # run pyparse
+      results = (cls._GetShowParser()).parseString(show_data)
+    except pyp.ParseException, err:
+      base.ThrowError("Can't parse drbdsetup show output: %s", str(err))
+
+    # and massage the results into our desired format
+    for section in results:
+      sname = section[0]
+      if sname == "_this_host":
+        for lst in section[1:]:
+          if lst[0] == "disk":
+            retval["local_dev"] = lst[1]
+          elif lst[0] == "meta-disk":
+            retval["meta_dev"] = lst[1]
+            retval["meta_index"] = lst[2]
+          elif lst[0] == "address":
+            retval["local_addr"] = tuple(lst[1:])
+      elif sname == "_remote_host":
+        for lst in section[1:]:
+          if lst[0] == "address":
+            retval["remote_addr"] = tuple(lst[1:])
+    return retval
+
+
 class DRBD8(base.BlockDev):
   """DRBD v8.x block device.
 
@@ -283,7 +393,6 @@ class DRBD8(base.BlockDev):
   _USERMODE_HELPER_FILE = "/sys/module/drbd/parameters/usermode_helper"
 
   _MAX_MINORS = 255
-  _PARSE_SHOW = None
 
   # timeout constants
   _NET_RECONFIG_TIMEOUT = 60
@@ -450,64 +559,6 @@ class DRBD8(base.BlockDev):
     return highest + 1
 
   @classmethod
-  def _GetShowParser(cls):
-    """Return a parser for `drbd show` output.
-
-    This will either create or return an already-created parser for the
-    output of the command `drbd show`.
-
-    """
-    if cls._PARSE_SHOW is not None:
-      return cls._PARSE_SHOW
-
-    # pyparsing setup
-    lbrace = pyp.Literal("{").suppress()
-    rbrace = pyp.Literal("}").suppress()
-    lbracket = pyp.Literal("[").suppress()
-    rbracket = pyp.Literal("]").suppress()
-    semi = pyp.Literal(";").suppress()
-    colon = pyp.Literal(":").suppress()
-    # this also converts the value to an int
-    number = pyp.Word(pyp.nums).setParseAction(lambda s, l, t: int(t[0]))
-
-    comment = pyp.Literal("#") + pyp.Optional(pyp.restOfLine)
-    defa = pyp.Literal("_is_default").suppress()
-    dbl_quote = pyp.Literal('"').suppress()
-
-    keyword = pyp.Word(pyp.alphanums + "-")
-
-    # value types
-    value = pyp.Word(pyp.alphanums + "_-/.:")
-    quoted = dbl_quote + pyp.CharsNotIn('"') + dbl_quote
-    ipv4_addr = (pyp.Optional(pyp.Literal("ipv4")).suppress() +
-                 pyp.Word(pyp.nums + ".") + colon + number)
-    ipv6_addr = (pyp.Optional(pyp.Literal("ipv6")).suppress() +
-                 pyp.Optional(lbracket) + pyp.Word(pyp.hexnums + ":") +
-                 pyp.Optional(rbracket) + colon + number)
-    # meta device, extended syntax
-    meta_value = ((value ^ quoted) + lbracket + number + rbracket)
-    # device name, extended syntax
-    device_value = pyp.Literal("minor").suppress() + number
-
-    # a statement
-    stmt = (~rbrace + keyword + ~lbrace +
-            pyp.Optional(ipv4_addr ^ ipv6_addr ^ value ^ quoted ^ meta_value ^
-                         device_value) +
-            pyp.Optional(defa) + semi +
-            pyp.Optional(pyp.restOfLine).suppress())
-
-    # an entire section
-    section_name = pyp.Word(pyp.alphas + "_")
-    section = section_name + lbrace + pyp.ZeroOrMore(pyp.Group(stmt)) + rbrace
-
-    bnf = pyp.ZeroOrMore(pyp.Group(section ^ stmt))
-    bnf.ignore(comment)
-
-    cls._PARSE_SHOW = bnf
-
-    return bnf
-
-  @classmethod
   def _GetShowData(cls, minor):
     """Return the `drbdsetup show` data for a minor.
 
@@ -518,46 +569,6 @@ class DRBD8(base.BlockDev):
                     result.fail_reason, result.output)
       return None
     return result.stdout
-
-  @classmethod
-  def _GetDevInfo(cls, out):
-    """Parse details about a given DRBD minor.
-
-    This return, if available, the local backing device (as a path)
-    and the local and remote (ip, port) information from a string
-    containing the output of the `drbdsetup show` command as returned
-    by _GetShowData.
-
-    """
-    data = {}
-    if not out:
-      return data
-
-    bnf = cls._GetShowParser()
-    # run pyparse
-
-    try:
-      results = bnf.parseString(out)
-    except pyp.ParseException, err:
-      base.ThrowError("Can't parse drbdsetup show output: %s", str(err))
-
-    # and massage the results into our desired format
-    for section in results:
-      sname = section[0]
-      if sname == "_this_host":
-        for lst in section[1:]:
-          if lst[0] == "disk":
-            data["local_dev"] = lst[1]
-          elif lst[0] == "meta-disk":
-            data["meta_dev"] = lst[1]
-            data["meta_index"] = lst[2]
-          elif lst[0] == "address":
-            data["local_addr"] = tuple(lst[1:])
-      elif sname == "_remote_host":
-        for lst in section[1:]:
-          if lst[0] == "address":
-            data["remote_addr"] = tuple(lst[1:])
-    return data
 
   def _MatchesLocal(self, info):
     """Test if our local config matches with an existing device.
@@ -775,7 +786,7 @@ class DRBD8(base.BlockDev):
                       minor, result.fail_reason, result.output)
 
     def _CheckNetworkConfig():
-      info = self._GetDevInfo(self._GetShowData(minor))
+      info = DRBD8ShowInfo.GetDevInfo(self._GetShowData(minor))
       if not "local_addr" in info or not "remote_addr" in info:
         raise utils.RetryAgain()
 
@@ -797,7 +808,7 @@ class DRBD8(base.BlockDev):
                       self._aminor)
     if len(devices) != 2:
       base.ThrowError("drbd%d: need two devices for AddChildren", self.minor)
-    info = self._GetDevInfo(self._GetShowData(self.minor))
+    info = DRBD8ShowInfo.GetDevInfo(self._GetShowData(self.minor))
     if "local_dev" in info:
       base.ThrowError("drbd%d: already attached to a local disk", self.minor)
     backend, meta = devices
@@ -820,7 +831,7 @@ class DRBD8(base.BlockDev):
       base.ThrowError("drbd%d: can't attach to drbd8 during RemoveChildren",
                       self._aminor)
     # early return if we don't actually have backing storage
-    info = self._GetDevInfo(self._GetShowData(self.minor))
+    info = DRBD8ShowInfo.GetDevInfo(self._GetShowData(self.minor))
     if "local_dev" not in info:
       return
     if len(self._children) != 2:
@@ -1172,7 +1183,7 @@ class DRBD8(base.BlockDev):
     # pylint: disable=W0631
     net_data = (self._lhost, self._lport, self._rhost, self._rport)
     for minor in (self._aminor,):
-      info = self._GetDevInfo(self._GetShowData(minor))
+      info = DRBD8ShowInfo.GetDevInfo(self._GetShowData(minor))
       match_l = self._MatchesLocal(info)
       match_r = self._MatchesNet(info)
 
@@ -1184,7 +1195,7 @@ class DRBD8(base.BlockDev):
         # disk matches, but not attached to network, attach and recheck
         self._AssembleNet(minor, net_data, constants.DRBD_NET_PROTOCOL,
                           hmac=constants.DRBD_HMAC_ALG, secret=self._secret)
-        if self._MatchesNet(self._GetDevInfo(self._GetShowData(minor))):
+        if self._MatchesNet(DRBD8ShowInfo.GetDevInfo(self._GetShowData(minor))):
           break
         else:
           base.ThrowError("drbd%d: network attach successful, but 'drbdsetup"
@@ -1194,7 +1205,7 @@ class DRBD8(base.BlockDev):
         # no local disk, but network attached and it matches
         self._AssembleLocal(minor, self._children[0].dev_path,
                             self._children[1].dev_path, self.size)
-        if self._MatchesNet(self._GetDevInfo(self._GetShowData(minor))):
+        if self._MatchesNet(DRBD8ShowInfo.GetDevInfo(self._GetShowData(minor))):
           break
         else:
           base.ThrowError("drbd%d: disk attach successful, but 'drbdsetup"
@@ -1221,7 +1232,7 @@ class DRBD8(base.BlockDev):
         # None)
         self._AssembleNet(minor, net_data, constants.DRBD_NET_PROTOCOL,
                           hmac=constants.DRBD_HMAC_ALG, secret=self._secret)
-        if self._MatchesNet(self._GetDevInfo(self._GetShowData(minor))):
+        if self._MatchesNet(DRBD8ShowInfo.GetDevInfo(self._GetShowData(minor))):
           break
         else:
           base.ThrowError("drbd%d: network attach successful, but 'drbdsetup"

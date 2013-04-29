@@ -104,12 +104,12 @@ class TestDRBD8Runner(testutils.GanetiTestCase):
 
   def testParserCreation(self):
     """Test drbdsetup show parser creation"""
-    drbd.DRBD8._GetShowParser()
+    drbd.DRBD8ShowInfo._GetShowParser()
 
   def testParser80(self):
     """Test drbdsetup show parser for disk and network version 8.0"""
     data = testutils.ReadTestData("bdev-drbd-8.0.txt")
-    result = drbd.DRBD8._GetDevInfo(data)
+    result = drbd.DRBD8ShowInfo.GetDevInfo(data)
     self.failUnless(self._has_disk(result, "/dev/xenvg/test.data",
                                    "/dev/xenvg/test.meta"),
                     "Wrong local disk info")
@@ -120,7 +120,7 @@ class TestDRBD8Runner(testutils.GanetiTestCase):
   def testParser83(self):
     """Test drbdsetup show parser for disk and network version 8.3"""
     data = testutils.ReadTestData("bdev-drbd-8.3.txt")
-    result = drbd.DRBD8._GetDevInfo(data)
+    result = drbd.DRBD8ShowInfo.GetDevInfo(data)
     self.failUnless(self._has_disk(result, "/dev/xenvg/test.data",
                                    "/dev/xenvg/test.meta"),
                     "Wrong local disk info")
@@ -131,7 +131,7 @@ class TestDRBD8Runner(testutils.GanetiTestCase):
   def testParserNetIP4(self):
     """Test drbdsetup show parser for IPv4 network"""
     data = testutils.ReadTestData("bdev-drbd-net-ip4.txt")
-    result = drbd.DRBD8._GetDevInfo(data)
+    result = drbd.DRBD8ShowInfo.GetDevInfo(data)
     self.failUnless(("local_dev" not in result and
                      "meta_dev" not in result and
                      "meta_index" not in result),
@@ -143,7 +143,7 @@ class TestDRBD8Runner(testutils.GanetiTestCase):
   def testParserNetIP6(self):
     """Test drbdsetup show parser for IPv6 network"""
     data = testutils.ReadTestData("bdev-drbd-net-ip6.txt")
-    result = drbd.DRBD8._GetDevInfo(data)
+    result = drbd.DRBD8ShowInfo.GetDevInfo(data)
     self.failUnless(("local_dev" not in result and
                      "meta_dev" not in result and
                      "meta_index" not in result),
@@ -155,7 +155,7 @@ class TestDRBD8Runner(testutils.GanetiTestCase):
   def testParserDisk(self):
     """Test drbdsetup show parser for disk"""
     data = testutils.ReadTestData("bdev-drbd-disk.txt")
-    result = drbd.DRBD8._GetDevInfo(data)
+    result = drbd.DRBD8ShowInfo.GetDevInfo(data)
     self.failUnless(self._has_disk(result, "/dev/xenvg/test.data",
                                    "/dev/xenvg/test.meta"),
                     "Wrong local disk info")
