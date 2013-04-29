@@ -1,0 +1,9 @@
+GIT-hash: 5c9f89594553e32adb87d9638dce591782f947e3 build by root@node1.example.com, 2009-05-22 12:47:52
+ 0: cs:Connected st:Primary/Secondary ds:UpToDate/UpToDate C r---
+    ns:78728316 nr:0 dw:77675644 dr:1277039 al:254 bm:270 lo:0 pe:0 ua:0 ap:0
+        resync: used:0/61 hits:65657 misses:135 starving:0 dirty:0 changed:135
+        act_log: used:0/257 hits:11378843 misses:254 starving:0 dirty:0 changed:254
+ 1: cs:Unconfigured
+ 2: cs:Unconfigured
+ 5: cs:Unconfigured
+ 6: cs:Unconfigured

@@ -1093,6 +1093,7 @@ TEST_FILES = \
 	test/data/ovfdata/wrong_xml.ovf \
 	test/data/proc_drbd8.txt \
 	test/data/proc_drbd80-emptyline.txt \
+	test/data/proc_drbd80-emptyversion.txt \
 	test/data/proc_drbd83.txt \
 	test/data/proc_drbd83_sync.txt \
 	test/data/proc_drbd83_sync_want.txt \

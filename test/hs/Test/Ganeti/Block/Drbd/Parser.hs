@@ -70,6 +70,28 @@ case_drbd80_emptyline = testFile "proc_drbd80-emptyline.txt" $
       UnconfiguredDevice 6
     ]
 
+-- | Test a DRBD 8.0 file with an empty version.
+case_drbd80_emptyversion :: Assertion
+case_drbd80_emptyversion = testFile "proc_drbd80-emptyversion.txt" $
+  DRBDStatus
+    ( VersionInfo Nothing Nothing Nothing Nothing
+        (Just "5c9f89594553e32adb87d9638dce591782f947e3")
+        (Just "root@node1.example.com, 2009-05-22 12:47:52")
+    )
+    [ DeviceInfo 0 Connected (LocalRemote Primary Secondary)
+        (LocalRemote UpToDate UpToDate) 'C' "r---"
+        (PerfIndicators 78728316 0 77675644 1277039 254 270 0 0 0 0
+          Nothing Nothing Nothing)
+        Nothing
+        (Just $ AdditionalInfo 0 61 65657 135 0 0 135)
+        (Just $ AdditionalInfo 0 257 11378843 254 0 0 254)
+        Nothing,
+      UnconfiguredDevice 1,
+      UnconfiguredDevice 2,
+      UnconfiguredDevice 5,
+      UnconfiguredDevice 6
+    ]
+
 -- | Test a DRBD 8.3 file with a NULL caracter inside.
 case_drbd83_sync_krnl2_6_39 :: Assertion
 case_drbd83_sync_krnl2_6_39 = testFile "proc_drbd83_sync_krnl2.6.39.txt" $
@@ -381,6 +403,7 @@ case_commaInt_non_triplet = testCommaInt "61,736,12" 61736
 
 testSuite "Block/Drbd/Parser"
           [ 'case_drbd80_emptyline,
+            'case_drbd80_emptyversion,
             'case_drbd83_sync_krnl2_6_39,
             'case_drbd83_sync,
             'case_drbd83_sync_want,

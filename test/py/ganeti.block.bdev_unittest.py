@@ -246,6 +246,9 @@ class TestDRBD8Status(testutils.GanetiTestCase):
     proc83_sync_krnl_data = \
       testutils.TestDataFilename("proc_drbd83_sync_krnl2.6.39.txt")
 
+    self.proc80ev_data = \
+      testutils.TestDataFilename("proc_drbd80-emptyversion.txt")
+
     self.drbd_info = drbd.DRBD8Info.CreateFromFile(filename=proc_data)
     self.drbd_info80e = drbd.DRBD8Info.CreateFromFile(filename=proc80e_data)
     self.drbd_info83 = drbd.DRBD8Info.CreateFromFile(filename=proc83_data)
@@ -341,6 +344,11 @@ class TestDRBD8Status(testutils.GanetiTestCase):
     stats = self.drbd_info83_sync_krnl.GetMinorStatus(3)
     self.failUnless(stats.is_in_resync)
     self.failUnless(stats.sync_percent is not None)
+
+  def testDRBDEmptyVersion(self):
+    self.assertRaises(errors.BlockDeviceError,
+                      drbd.DRBD8Info.CreateFromFile,
+                      filename=self.proc80ev_data)
 
 
 class TestRADOSBlockDevice(testutils.GanetiTestCase):
