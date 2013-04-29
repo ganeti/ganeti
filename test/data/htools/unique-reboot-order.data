@@ -8,5 +8,5 @@ new-0|128|1152|1|running|Y|node-01-001|node-01-002|drbd||1
 new-1|128|1152|1|running|Y|node-01-002|node-01-003|drbd||1
 
 
-|128,1,1024,1,1,1|128,1,1024,1,1,1|32768,8,1048576,16,8,12|diskless,file,sharedfile,plain,blockdev,drbd,rbd,ext|4.0|32.0
-group-01|128,1,1024,1,1,1|128,1,1024,1,1,1|32768,8,1048576,16,8,12|diskless,file,sharedfile,plain,blockdev,drbd,rbd,ext|4.0|32.0
+|128,1,1024,1,1,1|128,1,1024,1,1,1;32768,8,1048576,16,8,12|diskless,file,sharedfile,plain,blockdev,drbd,rbd,ext|4.0|32.0
+group-01|128,1,1024,1,1,1|128,1,1024,1,1,1;32768,8,1048576,16,8,12|diskless,file,sharedfile,plain,blockdev,drbd,rbd,ext|4.0|32.0

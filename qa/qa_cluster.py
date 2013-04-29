@@ -634,30 +634,17 @@ def _GetClusterIPolicy():
   @rtype: tuple
   @return: (policy, specs), where:
       - policy is a dictionary of the policy values, instance specs excluded
-      - specs is dict of dict, specs[par][key] is a spec value, where key is
-        "min", "max", or "std"
+      - specs is a dictionary containing only the specs, using the internal
+        format (see L{constants.IPOLICY_DEFAULTS} for an example)
 
   """
   info = qa_utils.GetObjectInfo(["gnt-cluster", "info"])
   policy = info["Instance policy - limits for instances"]
-  ret_specs = {}
-  ret_policy = {}
-  ispec_keys = constants.ISPECS_MINMAX_KEYS | frozenset([constants.ISPECS_STD])
-  for (key, val) in policy.items():
-    if key in ispec_keys:
-      for (par, pval) in val.items():
-        if par == "memory-size":
-          par = "mem-size"
-        d = ret_specs.setdefault(par, {})
-        d[key] = pval
-    else:
-      ret_policy[key] = val
+  (ret_policy, ret_specs) = qa_utils.ParseIPolicy(policy)
 
   # Sanity checks
-  assert len(ret_specs) > 0
-  good = all("min" in d and "std" in d and "max" in d
-             for d in ret_specs.values())
-  assert good, "Missing item in specs: %s" % ret_specs
+  assert "minmax" in ret_specs and "std" in ret_specs
+  assert len(ret_specs["minmax"]) > 0
   assert len(ret_policy) > 0
   return (ret_policy, ret_specs)
 
@@ -719,54 +706,40 @@ def TestClusterModifyIPolicy():
       AssertEqual(eff_policy[p], old_policy[p])
 
 
-def TestClusterSetISpecs(new_specs, fail=False, old_values=None):
+def TestClusterSetISpecs(new_specs=None, diff_specs=None, fail=False,
+                         old_values=None):
   """Change instance specs.
 
-  @type new_specs: dict of dict
-  @param new_specs: new_specs[par][key], where key is "min", "max", "std". It
-      can be an empty dictionary.
+  At most one of new_specs or diff_specs can be specified.
+
+  @type new_specs: dict
+  @param new_specs: new complete specs, in the same format returned by
+      L{_GetClusterIPolicy}
+  @type diff_specs: dict
+  @param diff_specs: partial specs, it can be an incomplete specifications, but
+      if min/max specs are specified, their number must match the number of the
+      existing specs
   @type fail: bool
   @param fail: if the change is expected to fail
   @type old_values: tuple
   @param old_values: (old_policy, old_specs), as returned by
-     L{_GetClusterIPolicy}
+      L{_GetClusterIPolicy}
   @return: same as L{_GetClusterIPolicy}
 
   """
-  if old_values:
-    (old_policy, old_specs) = old_values
-  else:
-    (old_policy, old_specs) = _GetClusterIPolicy()
-  if new_specs:
-    cmd = ["gnt-cluster", "modify"]
-    for (par, keyvals) in new_specs.items():
-      if par == "spindle-use":
-        # ignore spindle-use, which is not settable
-        continue
-      cmd += [
-        "--specs-%s" % par,
-        ",".join(["%s=%s" % (k, v) for (k, v) in keyvals.items()]),
-        ]
-    AssertCommand(cmd, fail=fail)
-  # Check the new state
-  (eff_policy, eff_specs) = _GetClusterIPolicy()
-  AssertEqual(eff_policy, old_policy)
-  if fail:
-    AssertEqual(eff_specs, old_specs)
-  else:
-    for par in eff_specs:
-      for key in eff_specs[par]:
-        if par in new_specs and key in new_specs[par]:
-          AssertEqual(int(eff_specs[par][key]), int(new_specs[par][key]))
-        else:
-          AssertEqual(int(eff_specs[par][key]), int(old_specs[par][key]))
-  return (eff_policy, eff_specs)
+  build_cmd = lambda opts: ["gnt-cluster", "modify"] + opts
+  return qa_utils.TestSetISpecs(
+    new_specs=new_specs, diff_specs=diff_specs,
+    get_policy_fn=_GetClusterIPolicy, build_cmd_fn=build_cmd,
+    fail=fail, old_values=old_values)
 
 
 def TestClusterModifyISpecs():
   """gnt-cluster modify --specs-*"""
-  params = ["mem-size", "disk-size", "disk-count", "cpu-count", "nic-count"]
+  params = ["memory-size", "disk-size", "disk-count", "cpu-count", "nic-count"]
   (cur_policy, cur_specs) = _GetClusterIPolicy()
+  # This test assumes that there is only one min/max bound
+  assert len(cur_specs[constants.ISPECS_MINMAX]) == 1
   for par in params:
     test_values = [
       (True, 0, 4, 12),
@@ -783,14 +756,37 @@ def TestClusterModifyISpecs():
       (False, 0, 4, "a"),
       # This is to restore the old values
       (True,
-       cur_specs[par]["min"], cur_specs[par]["std"], cur_specs[par]["max"])
+       cur_specs[constants.ISPECS_MINMAX][0][constants.ISPECS_MIN][par],
+       cur_specs[constants.ISPECS_STD][par],
+       cur_specs[constants.ISPECS_MINMAX][0][constants.ISPECS_MAX][par])
       ]
     for (good, mn, st, mx) in test_values:
-      new_vals = {par: {"min": str(mn), "std": str(st), "max": str(mx)}}
+      new_vals = {
+        constants.ISPECS_MINMAX: [{
+          constants.ISPECS_MIN: {par: mn},
+          constants.ISPECS_MAX: {par: mx}
+          }],
+        constants.ISPECS_STD: {par: st}
+        }
       cur_state = (cur_policy, cur_specs)
       # We update cur_specs, as we've copied the values to restore already
-      (cur_policy, cur_specs) = TestClusterSetISpecs(new_vals, fail=not good,
-                                                     old_values=cur_state)
+      (cur_policy, cur_specs) = TestClusterSetISpecs(
+        diff_specs=new_vals, fail=not good, old_values=cur_state)
+
+    # Get the ipolicy command
+    mnode = qa_config.GetMasterNode()
+    initcmd = GetCommandOutput(mnode.primary, "gnt-cluster show-ispecs-cmd")
+    modcmd = ["gnt-cluster", "modify"]
+    opts = initcmd.split()
+    assert opts[0:2] == ["gnt-cluster", "init"]
+    for k in range(2, len(opts) - 1):
+      if opts[k].startswith("--ipolicy-"):
+        assert k + 2 <= len(opts)
+        modcmd.extend(opts[k:k + 2])
+    # Re-apply the ipolicy (this should be a no-op)
+    AssertCommand(modcmd)
+    new_initcmd = GetCommandOutput(mnode.primary, "gnt-cluster show-ispecs-cmd")
+    AssertEqual(initcmd, new_initcmd)
 
 
 def TestClusterInfo():

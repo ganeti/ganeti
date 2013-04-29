@@ -96,6 +96,8 @@ by using the standard HTTP basic access authentication. This means that
 for accessing the protected URL ``https://cluster.example.com/resource``,
 the address ``https://username:password@cluster.example.com/resource`` should
 be used instead.
+be used instead. Alternatively, the appropriate parameter of your HTTP client
+(such as ``-u`` for ``curl``) can be used.
 
 .. [#pwhash] Using the MD5 hash of username, realm and password is
    described in :rfc:`2617` ("HTTP Authentication"), sections 3.2.2.2
@@ -249,7 +251,7 @@ The instance policy specification is a dict with the following fields:
 
 
 :pyeval:`constants.ISPECS_MINMAX`
-  A dict with the following two fields:
+  A list of dictionaries, each with the following two fields:
 
   |ispec-min|, |ispec-max|
     A sub- `dict` with the following fields, which sets the limit of the
@@ -304,7 +306,10 @@ or ``curl``::
   $ curl https://%CLUSTERNAME%:5080/2/info
 
 Note: with ``curl``, the request method (GET, POST, PUT) can be specified
-using the ``-X`` command line option.
+using the ``-X`` command line option, and the username/password can be
+specified with the ``-u`` option. In case of POST requests with a body, the
+Content-Type can be set to JSON (as per the Protocol_ section) using the
+parameter ``-H "Content-Type: application/json"``.
 
 Python
 ++++++

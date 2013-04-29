@@ -23,6 +23,7 @@
 
 """
 
+import copy
 import operator
 import os
 import random
@@ -777,3 +778,127 @@ def MakeNodePath(node, path):
     return "%s%s" % (vcluster.MakeNodeRoot(basedir, name), path)
   else:
     return path
+
+
+def _GetParameterOptions(specs):
+  """Helper to build policy options."""
+  values = ["%s=%s" % (par, val)
+            for (par, val) in specs.items()]
+  return ",".join(values)
+
+
+def TestSetISpecs(new_specs=None, diff_specs=None, get_policy_fn=None,
+                  build_cmd_fn=None, fail=False, old_values=None):
+  """Change instance specs for an object.
+
+  At most one of new_specs or diff_specs can be specified.
+
+  @type new_specs: dict
+  @param new_specs: new complete specs, in the same format returned by
+      L{ParseIPolicy}.
+  @type diff_specs: dict
+  @param diff_specs: partial specs, it can be an incomplete specifications, but
+      if min/max specs are specified, their number must match the number of the
+      existing specs
+  @type get_policy_fn: function
+  @param get_policy_fn: function that returns the current policy as in
+      L{ParseIPolicy}
+  @type build_cmd_fn: function
+  @param build_cmd_fn: function that return the full command line from the
+      options alone
+  @type fail: bool
+  @param fail: if the change is expected to fail
+  @type old_values: tuple
+  @param old_values: (old_policy, old_specs), as returned by
+     L{ParseIPolicy}
+  @return: same as L{ParseIPolicy}
+
+  """
+  assert get_policy_fn is not None
+  assert build_cmd_fn is not None
+  assert new_specs is None or diff_specs is None
+
+  if old_values:
+    (old_policy, old_specs) = old_values
+  else:
+    (old_policy, old_specs) = get_policy_fn()
+
+  if diff_specs:
+    new_specs = copy.deepcopy(old_specs)
+    if constants.ISPECS_MINMAX in diff_specs:
+      AssertEqual(len(new_specs[constants.ISPECS_MINMAX]),
+                  len(diff_specs[constants.ISPECS_MINMAX]))
+      for (new_minmax, diff_minmax) in zip(new_specs[constants.ISPECS_MINMAX],
+                                           diff_specs[constants.ISPECS_MINMAX]):
+        for (key, parvals) in diff_minmax.items():
+          for (par, val) in parvals.items():
+            new_minmax[key][par] = val
+    for (par, val) in diff_specs.get(constants.ISPECS_STD, {}).items():
+      new_specs[constants.ISPECS_STD][par] = val
+
+  if new_specs:
+    cmd = []
+    if (diff_specs is None or constants.ISPECS_MINMAX in diff_specs):
+      minmax_opt_items = []
+      for minmax in new_specs[constants.ISPECS_MINMAX]:
+        minmax_opts = []
+        for key in ["min", "max"]:
+          keyopt = _GetParameterOptions(minmax[key])
+          minmax_opts.append("%s:%s" % (key, keyopt))
+        minmax_opt_items.append("/".join(minmax_opts))
+      cmd.extend([
+        "--ipolicy-bounds-specs",
+        "//".join(minmax_opt_items)
+        ])
+    if diff_specs is None:
+      std_source = new_specs
+    else:
+      std_source = diff_specs
+    std_opt = _GetParameterOptions(std_source.get("std", {}))
+    if std_opt:
+      cmd.extend(["--ipolicy-std-specs", std_opt])
+    AssertCommand(build_cmd_fn(cmd), fail=fail)
+
+    # Check the new state
+    (eff_policy, eff_specs) = get_policy_fn()
+    AssertEqual(eff_policy, old_policy)
+    if fail:
+      AssertEqual(eff_specs, old_specs)
+    else:
+      AssertEqual(eff_specs, new_specs)
+
+  else:
+    (eff_policy, eff_specs) = (old_policy, old_specs)
+
+  return (eff_policy, eff_specs)
+
+
+def ParseIPolicy(policy):
+  """Parse and split instance an instance policy.
+
+  @type policy: dict
+  @param policy: policy, as returned by L{GetObjectInfo}
+  @rtype: tuple
+  @return: (policy, specs), where:
+      - policy is a dictionary of the policy values, instance specs excluded
+      - specs is a dictionary containing only the specs, using the internal
+        format (see L{constants.IPOLICY_DEFAULTS} for an example)
+
+  """
+  ret_specs = {}
+  ret_policy = {}
+  for (key, val) in policy.items():
+    if key == "bounds specs":
+      ret_specs[constants.ISPECS_MINMAX] = []
+      for minmax in val:
+        ret_minmax = {}
+        for key in minmax:
+          keyparts = key.split("/", 1)
+          assert len(keyparts) > 1
+          ret_minmax[keyparts[0]] = minmax[key]
+        ret_specs[constants.ISPECS_MINMAX].append(ret_minmax)
+    elif key == constants.ISPECS_STD:
+      ret_specs[key] = val
+    else:
+      ret_policy[key] = val
+  return (ret_policy, ret_specs)

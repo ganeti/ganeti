@@ -497,7 +497,7 @@ class LogicalVolume(base.BlockDev):
     """
     self.attached = False
     result = utils.RunCmd(["lvs", "--noheadings", "--separator=,",
-                           "--units=m", "--nosuffix",
+                           "--units=k", "--nosuffix",
                            "-olv_attr,lv_kernel_major,lv_kernel_minor,"
                            "vg_extent_size,stripes", self.dev_path])
     if result.failed:
@@ -690,10 +690,12 @@ class LogicalVolume(base.BlockDev):
       if not self.Attach():
         base.ThrowError("Can't attach to LV during Grow()")
     full_stripe_size = self.pe_size * self.stripe_count
+    # pe_size is in KB
+    amount *= 1024
     rest = amount % full_stripe_size
     if rest != 0:
       amount += full_stripe_size - rest
-    cmd = ["lvextend", "-L", "+%dm" % amount]
+    cmd = ["lvextend", "-L", "+%dk" % amount]
     if dryrun:
       cmd.append("--test")
     # we try multiple algorithms since the 'best' ones might not have

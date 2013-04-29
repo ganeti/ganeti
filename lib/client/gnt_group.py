@@ -24,6 +24,8 @@
 # W0401: Wildcard import ganeti.cli
 # W0614: Unused import %s from wildcard import (since we need cli)
 
+from cStringIO import StringIO
+
 from ganeti.cli import *
 from ganeti import constants
 from ganeti import opcodes
@@ -48,11 +50,7 @@ def AddGroup(opts, args):
 
   """
   ipolicy = CreateIPolicyFromOpts(
-    ispecs_mem_size=opts.ispecs_mem_size,
-    ispecs_cpu_count=opts.ispecs_cpu_count,
-    ispecs_disk_count=opts.ispecs_disk_count,
-    ispecs_disk_size=opts.ispecs_disk_size,
-    ispecs_nic_count=opts.ispecs_nic_count,
+    minmax_ispecs=opts.ipolicy_bounds_specs,
     ipolicy_vcpu_ratio=opts.ipolicy_vcpu_ratio,
     ipolicy_spindle_ratio=opts.ipolicy_spindle_ratio,
     group_ipolicy=True)
@@ -159,10 +157,9 @@ def SetGroupParams(opts, args):
 
   """
   allmods = [opts.ndparams, opts.alloc_policy, opts.diskparams, opts.hv_state,
-             opts.disk_state, opts.ispecs_mem_size, opts.ispecs_cpu_count,
-             opts.ispecs_disk_count, opts.ispecs_disk_size,
-             opts.ispecs_nic_count, opts.ipolicy_vcpu_ratio,
-             opts.ipolicy_spindle_ratio, opts.diskparams]
+             opts.disk_state, opts.ipolicy_bounds_specs,
+             opts.ipolicy_vcpu_ratio, opts.ipolicy_spindle_ratio,
+             opts.diskparams]
   if allmods.count(None) == len(allmods):
     ToStderr("Please give at least one of the parameters.")
     return 1
@@ -176,26 +173,9 @@ def SetGroupParams(opts, args):
 
   diskparams = dict(opts.diskparams)
 
-  # set the default values
-  to_ipolicy = [
-    opts.ispecs_mem_size,
-    opts.ispecs_cpu_count,
-    opts.ispecs_disk_count,
-    opts.ispecs_disk_size,
-    opts.ispecs_nic_count,
-    ]
-  for ispec in to_ipolicy:
-    for param in ispec:
-      if isinstance(ispec[param], basestring):
-        if ispec[param].lower() == "default":
-          ispec[param] = constants.VALUE_DEFAULT
   # create ipolicy object
   ipolicy = CreateIPolicyFromOpts(
-    ispecs_mem_size=opts.ispecs_mem_size,
-    ispecs_cpu_count=opts.ispecs_cpu_count,
-    ispecs_disk_count=opts.ispecs_disk_count,
-    ispecs_disk_size=opts.ispecs_disk_size,
-    ispecs_nic_count=opts.ispecs_nic_count,
+    minmax_ispecs=opts.ipolicy_bounds_specs,
     ipolicy_disk_templates=opts.ipolicy_disk_templates,
     ipolicy_vcpu_ratio=opts.ipolicy_vcpu_ratio,
     ipolicy_spindle_ratio=opts.ipolicy_spindle_ratio,
@@ -310,6 +290,35 @@ def GroupInfo(_, args):
     ])
 
 
+def _GetCreateCommand(group):
+  (name, ipolicy) = group
+  buf = StringIO()
+  buf.write("gnt-group add")
+  PrintIPolicyCommand(buf, ipolicy, True)
+  buf.write(" ")
+  buf.write(name)
+  return buf.getvalue()
+
+
+def ShowCreateCommand(opts, args):
+  """Shows the command that can be used to re-create a node group.
+
+  Currently it works only for ipolicy specs.
+
+  """
+  cl = GetClient(query=True)
+  selected_fields = ["name"]
+  if opts.include_defaults:
+    selected_fields += ["ipolicy"]
+  else:
+    selected_fields += ["custom_ipolicy"]
+  result = cl.QueryGroups(names=args, fields=selected_fields,
+                          use_locking=False)
+
+  for group in result:
+    ToStdout(_GetCreateCommand(group))
+
+
 commands = {
   "add": (
     AddGroup, ARGS_ONE_GROUP,
@@ -363,6 +372,10 @@ commands = {
   "info": (
     GroupInfo, ARGS_MANY_GROUPS, [], "[<group_name>...]",
     "Show group information"),
+  "show-ispecs-cmd": (
+    ShowCreateCommand, ARGS_MANY_GROUPS, [INCLUDEDEFAULTS_OPT],
+    "[--include-defaults] [<group_name>...]",
+    "Show the command line to re-create a group"),
   }
 
 

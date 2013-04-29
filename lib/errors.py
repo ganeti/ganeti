@@ -209,6 +209,22 @@ class OpResultError(GenericError):
   """
 
 
+class DeviceCreationError(GenericError):
+  """Error during the creation of a device.
+
+  This exception should contain the list of the devices actually created
+  up to now, in the form of pairs (node, device)
+
+  """
+  def __init__(self, message, created_devices):
+    GenericError.__init__(self)
+    self.message = message
+    self.created_devices = created_devices
+
+  def __str__(self):
+    return self.message
+
+
 class OpCodeUnknown(GenericError):
   """Unknown opcode submitted.
 

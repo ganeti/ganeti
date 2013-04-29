@@ -61,12 +61,12 @@ from ganeti import ssconf
 from ganeti import serializer
 from ganeti import netutils
 from ganeti import runtime
-from ganeti import mcpu
 from ganeti import compat
 from ganeti import pathutils
 from ganeti import vcluster
 from ganeti import ht
 from ganeti.block.base import BlockDev
+from ganeti import hooksmaster
 
 
 _BOOT_ID_PATH = "/proc/sys/kernel/random/boot_id"
@@ -327,10 +327,10 @@ def RunLocalHooks(hook_opcode, hooks_path, env_builder_fn):
 
       cfg = _GetConfig()
       hr = HooksRunner()
-      hm = mcpu.HooksMaster(hook_opcode, hooks_path, nodes, hr.RunLocalHooks,
-                            None, env_fn, logging.warning, cfg.GetClusterName(),
-                            cfg.GetMasterNode())
-
+      hm = hooksmaster.HooksMaster(hook_opcode, hooks_path, nodes,
+                                   hr.RunLocalHooks, None, env_fn,
+                                   logging.warning, cfg.GetClusterName(),
+                                   cfg.GetMasterNode())
       hm.RunPhase(constants.HOOKS_PHASE_PRE)
       result = fn(*args, **kwargs)
       hm.RunPhase(constants.HOOKS_PHASE_POST)
@@ -1330,13 +1330,17 @@ def _GatherAndLinkBlockDevs(instance):
   return block_devices
 
 
-def StartInstance(instance, startup_paused):
+def StartInstance(instance, startup_paused, reason, store_reason=True):
   """Start an instance.
 
   @type instance: L{objects.Instance}
   @param instance: the instance object
   @type startup_paused: bool
   @param instance: pause instance at startup?
+  @type reason: list of reasons
+  @param reason: the reason trail for this startup
+  @type store_reason: boolean
+  @param store_reason: whether to store the shutdown reason trail on file
   @rtype: None
 
   """
@@ -1350,6 +1354,8 @@ def StartInstance(instance, startup_paused):
     block_devices = _GatherAndLinkBlockDevs(instance)
     hyper = hypervisor.GetHypervisor(instance.hypervisor)
     hyper.StartInstance(instance, block_devices, startup_paused)
+    if store_reason:
+      _StoreInstReasonTrail(instance.name, reason)
   except errors.BlockDeviceError, err:
     _Fail("Block device error: %s", err, exc=True)
   except errors.HypervisorError, err:
@@ -1357,7 +1363,7 @@ def StartInstance(instance, startup_paused):
     _Fail("Hypervisor error: %s", err, exc=True)
 
 
-def InstanceShutdown(instance, timeout):
+def InstanceShutdown(instance, timeout, reason, store_reason=True):
   """Shut an instance down.
 
   @note: this functions uses polling with a hardcoded timeout.
@@ -1366,6 +1372,10 @@ def InstanceShutdown(instance, timeout):
   @param instance: the instance object
   @type timeout: integer
   @param timeout: maximum timeout for soft shutdown
+  @type reason: list of reasons
+  @param reason: the reason trail for this shutdown
+  @type store_reason: boolean
+  @param store_reason: whether to store the shutdown reason trail on file
   @rtype: None
 
   """
@@ -1387,6 +1397,8 @@ def InstanceShutdown(instance, timeout):
 
       try:
         hyper.StopInstance(instance, retry=self.tried_once)
+        if store_reason:
+          _StoreInstReasonTrail(instance.name, reason)
       except errors.HypervisorError, err:
         if iname not in hyper.ListInstances():
           # if the instance is no longer existing, consider this a
@@ -1462,8 +1474,8 @@ def InstanceReboot(instance, reboot_type, shutdown_timeout, reason):
       _Fail("Failed to soft reboot instance %s: %s", instance.name, err)
   elif reboot_type == constants.INSTANCE_REBOOT_HARD:
     try:
-      InstanceShutdown(instance, shutdown_timeout)
-      result = StartInstance(instance, False)
+      InstanceShutdown(instance, shutdown_timeout, reason, store_reason=False)
+      result = StartInstance(instance, False, reason, store_reason=False)
       _StoreInstReasonTrail(instance.name, reason)
       return result
     except errors.HypervisorError, err:

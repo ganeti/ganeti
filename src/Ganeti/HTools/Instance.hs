@@ -279,12 +279,26 @@ instAboveISpec inst ispec
   | vcpus inst < T.iSpecCpuCount ispec = Bad T.FailCPU
   | otherwise = Ok ()
 
+-- | Checks if an instance matches a min/max specs pair
+instMatchesMinMaxSpecs :: Instance -> T.MinMaxISpecs -> T.OpResult ()
+instMatchesMinMaxSpecs inst minmax = do
+  instAboveISpec inst (T.minMaxISpecsMinSpec minmax)
+  instBelowISpec inst (T.minMaxISpecsMaxSpec minmax)
+
+-- | Checks if an instance matches any specs of a policy
+instMatchesSpecs :: Instance -> [T.MinMaxISpecs] -> T.OpResult ()
+ -- Return Ok for no constraints, though this should never happen
+instMatchesSpecs _ [] = Ok ()
+instMatchesSpecs inst (minmax:minmaxes) =
+  foldr eithermatch (instMatchesMinMaxSpecs inst minmax) minmaxes
+  where eithermatch mm (Bad _) = instMatchesMinMaxSpecs inst mm
+        eithermatch _ y@(Ok ()) = y
+--  # See 04f231771
+
 -- | Checks if an instance matches a policy.
 instMatchesPolicy :: Instance -> T.IPolicy -> T.OpResult ()
 instMatchesPolicy inst ipol = do
-  let minmax = T.iPolicyMinMaxISpecs ipol
-  instAboveISpec inst (T.minMaxISpecsMinSpec minmax)
-  instBelowISpec inst (T.minMaxISpecsMaxSpec minmax)
+  instMatchesSpecs inst $ T.iPolicyMinMaxISpecs ipol
   if diskTemplate inst `elem` T.iPolicyDiskTemplates ipol
     then Ok ()
     else Bad T.FailDisk

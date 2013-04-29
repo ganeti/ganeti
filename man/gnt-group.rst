@@ -27,12 +27,10 @@ ADD
 | [\--node-parameters=*NDPARAMS*]
 | [\--alloc-policy=*POLICY*]
 | [{-D|\--disk-parameters} *disk-template*:*disk-param*=*value*[,*disk-param*=*value*...]]
-| [\--specs-cpu-count *spec-param*=*value* [,*spec-param*=*value*...]]
-| [\--specs-disk-count *spec-param*=*value* [,*spec-param*=*value*...]]
-| [\--specs-disk-size *spec-param*=*value* [,*spec-param*=*value*...]]
-| [\--specs-mem-size *spec-param*=*value* [,*spec-param*=*value*...]]
-| [\--specs-nic-count *spec-param*=*value* [,*spec-param*=*value*...]]
+| [\--ipolicy-bounds-specs *bound_ispecs*]
 | [\--ipolicy-disk-templates *template* [,*template*...]]
+| [\--ipolicy-spindle-ratio *ratio*]
+| [\--ipolicy-vcpu-ratio *ratio*]
 | [\--disk-state *diskstate*]
 | [\--hypervisor-state *hvstate*]
 | {*group*}
@@ -67,9 +65,8 @@ parameters for the node group; please see the section about
 **gnt-cluster add** in **gnt-cluster**\(8) for more information about
 disk parameters
 
-The ``--specs-...`` and ``--ipolicy-disk-templates`` options specify
-instance policies on the node group, and are documented in the
-**gnt-cluster**\(8) man page.
+The ``--ipolicy-...`` options specify instance policies on the node
+group, and are documented in the **gnt-cluster**\(8) man page.
 
 See **ganeti**\(7) for a description of ``--submit`` and other common
 options.
@@ -102,12 +99,10 @@ MODIFY
 | [\--hypervisor-state *hvstate*]
 | [{-D|\--disk-parameters} *disk-template*:*disk-param*=*value*[,*disk-param*=*value*...]]
 | [\--disk-state *diskstate*]
-| [\--specs-cpu-count *spec-param*=*value* [,*spec-param*=*value*...]]
-| [\--specs-disk-count *spec-param*=*value* [,*spec-param*=*value*...]]
-| [\--specs-disk-size *spec-param*=*value* [,*spec-param*=*value*...]]
-| [\--specs-mem-size *spec-param*=*value* [,*spec-param*=*value*...]]
-| [\--specs-nic-count *spec-param*=*value* [,*spec-param*=*value*...]]
+| [\--ipolicy-bounds-specs *bound_ispecs*]
 | [\--ipolicy-disk-templates *template* [,*template*...]]
+| [\--ipolicy-spindle-ratio *ratio*]
+| [\--ipolicy-vcpu-ratio *ratio*]
 | {*group*}
 
 Modifies some parameters from the node group.
@@ -120,9 +115,8 @@ The ``--node-parameters``, ``--alloc-policy``, ``-D
 (--disk-parameters)`` options are documented in the **add** command
 above.
 
-The ``--specs-...`` and ``--ipolicy-disk-templates`` options specify
-instance policies on the node group, and are documented in the
-**gnt-cluster**\(8) man page.
+The ``--ipolicy-...`` options specify instance policies on the node
+group, and are documented in the **gnt-cluster**\(8) man page.
 
 See **ganeti**\(7) for a description of ``--submit`` and other common
 options.
@@ -251,9 +245,22 @@ be interpreted as stdin.
 INFO
 ~~~~
 
-**info** [group...]
+**info** [*group*...]
 
 Shows config information for all (or given) groups.
+
+SHOW-ISPECS-CMD
+~~~~~~~~~~~~~~~
+
+**show-ispecs-cmd** [\--include-defaults] [*group*...]
+
+Shows the command line that can be used to recreate the given groups (or
+all groups, if none is given) with the same options relative to specs in
+the instance policies.
+
+If ``--include-defaults`` is specified, include also the default values
+(i.e. the cluster-level settings), and not only the configuration items
+that a group overrides.
 
 
 .. vim: set textwidth=72 :

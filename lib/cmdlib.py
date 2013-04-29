@@ -813,20 +813,6 @@ def _GetUpdatedParams(old_params, update_dict,
   return params_copy
 
 
-def _UpdateMinMaxISpecs(ipolicy, new_minmax, group_policy):
-  use_none = use_default = group_policy
-  minmax = ipolicy.setdefault(constants.ISPECS_MINMAX, {})
-  for (key, value) in new_minmax.items():
-    if key not in constants.ISPECS_MINMAX_KEYS:
-      raise errors.OpPrereqError("Invalid key in new ipolicy/%s: %s" %
-                                 (constants.ISPECS_MINMAX, key),
-                                 errors.ECODE_INVAL)
-    old_spec = minmax.get(key, {})
-    minmax[key] = _GetUpdatedParams(old_spec, value, use_none=use_none,
-                                    use_default=use_default)
-    utils.ForceDictType(minmax[key], constants.ISPECS_PARAMETER_TYPES)
-
-
 def _GetUpdatedIPolicy(old_ipolicy, new_ipolicy, group_policy=False):
   """Return the new version of an instance policy.
 
@@ -834,41 +820,45 @@ def _GetUpdatedIPolicy(old_ipolicy, new_ipolicy, group_policy=False):
     we should support removal of policy entries
 
   """
-  use_none = use_default = group_policy
   ipolicy = copy.deepcopy(old_ipolicy)
   for key, value in new_ipolicy.items():
     if key not in constants.IPOLICY_ALL_KEYS:
       raise errors.OpPrereqError("Invalid key in new ipolicy: %s" % key,
                                  errors.ECODE_INVAL)
-    if key == constants.ISPECS_MINMAX:
-      _UpdateMinMaxISpecs(ipolicy, value, group_policy)
-    elif key == constants.ISPECS_STD:
-      ipolicy[key] = _GetUpdatedParams(old_ipolicy.get(key, {}), value,
-                                       use_none=use_none,
-                                       use_default=use_default)
-      utils.ForceDictType(ipolicy[key], constants.ISPECS_PARAMETER_TYPES)
-    else:
-      if (not value or value == [constants.VALUE_DEFAULT] or
-          value == constants.VALUE_DEFAULT):
-        if group_policy:
+    if (not value or value == [constants.VALUE_DEFAULT] or
+        value == constants.VALUE_DEFAULT):
+      if group_policy:
+        if key in ipolicy:
           del ipolicy[key]
-        else:
-          raise errors.OpPrereqError("Can't unset ipolicy attribute '%s'"
-                                     " on the cluster'" % key,
-                                     errors.ECODE_INVAL)
       else:
-        if key in constants.IPOLICY_PARAMETERS:
-          # FIXME: we assume all such values are float
-          try:
-            ipolicy[key] = float(value)
-          except (TypeError, ValueError), err:
-            raise errors.OpPrereqError("Invalid value for attribute"
-                                       " '%s': '%s', error: %s" %
-                                       (key, value, err), errors.ECODE_INVAL)
-        else:
-          # FIXME: we assume all others are lists; this should be redone
-          # in a nicer way
-          ipolicy[key] = list(value)
+        raise errors.OpPrereqError("Can't unset ipolicy attribute '%s'"
+                                   " on the cluster'" % key,
+                                   errors.ECODE_INVAL)
+    else:
+      if key in constants.IPOLICY_PARAMETERS:
+        # FIXME: we assume all such values are float
+        try:
+          ipolicy[key] = float(value)
+        except (TypeError, ValueError), err:
+          raise errors.OpPrereqError("Invalid value for attribute"
+                                     " '%s': '%s', error: %s" %
+                                     (key, value, err), errors.ECODE_INVAL)
+      elif key == constants.ISPECS_MINMAX:
+        for minmax in value:
+          for k in minmax.keys():
+            utils.ForceDictType(minmax[k], constants.ISPECS_PARAMETER_TYPES)
+        ipolicy[key] = value
+      elif key == constants.ISPECS_STD:
+        if group_policy:
+          msg = "%s cannot appear in group instance specs" % key
+          raise errors.OpPrereqError(msg, errors.ECODE_INVAL)
+        ipolicy[key] = _GetUpdatedParams(old_ipolicy.get(key, {}), value,
+                                         use_none=False, use_default=False)
+        utils.ForceDictType(ipolicy[key], constants.ISPECS_PARAMETER_TYPES)
+      else:
+        # FIXME: we assume all others are lists; this should be redone
+        # in a nicer way
+        ipolicy[key] = list(value)
   try:
     objects.InstancePolicy.CheckParameterSyntax(ipolicy, not group_policy)
   except errors.ConfigurationError, err:
@@ -1288,10 +1278,15 @@ def _ComputeIPolicySpecViolation(ipolicy, mem_size, cpu_count, disk_count,
     ret.append("Disk template %s is not allowed (allowed templates: %s)" %
                (disk_template, utils.CommaJoin(allowed_dts)))
 
-  minmax = ipolicy[constants.ISPECS_MINMAX]
-  return ret + filter(None,
-                      (_compute_fn(name, qualifier, minmax, value)
-                       for (name, qualifier, value) in test_settings))
+  min_errs = None
+  for minmax in ipolicy[constants.ISPECS_MINMAX]:
+    errs = filter(None,
+                  (_compute_fn(name, qualifier, minmax, value)
+                   for (name, qualifier, value) in test_settings))
+    if min_errs is None or len(errs) < len(min_errs):
+      min_errs = errs
+  assert min_errs is not None
+  return ret + min_errs
 
 
 def _ComputeIPolicyInstanceViolation(ipolicy, instance, cfg,
@@ -7421,6 +7416,7 @@ class LUInstanceStartup(LogicalUnit):
     """
     instance = self.instance
     force = self.op.force
+    reason = self.op.reason
 
     if not self.op.no_remember:
       self.cfg.MarkInstanceUp(instance.name)
@@ -7437,7 +7433,7 @@ class LUInstanceStartup(LogicalUnit):
         self.rpc.call_instance_start(node_current,
                                      (instance, self.op.hvparams,
                                       self.op.beparams),
-                                     self.op.startup_paused)
+                                     self.op.startup_paused, reason)
       msg = result.fail_msg
       if msg:
         _ShutdownInstanceDisks(self, instance)
@@ -7521,7 +7517,8 @@ class LUInstanceReboot(LogicalUnit):
     else:
       if instance_running:
         result = self.rpc.call_instance_shutdown(node_current, instance,
-                                                 self.op.shutdown_timeout)
+                                                 self.op.shutdown_timeout,
+                                                 reason)
         result.Raise("Could not shutdown instance for full reboot")
         _ShutdownInstanceDisks(self, instance)
       else:
@@ -7529,7 +7526,8 @@ class LUInstanceReboot(LogicalUnit):
                      instance.name)
       _StartInstanceDisks(self, instance, ignore_secondaries)
       result = self.rpc.call_instance_start(node_current,
-                                            (instance, None, None), False)
+                                            (instance, None, None), False,
+                                             reason)
       msg = result.fail_msg
       if msg:
         _ShutdownInstanceDisks(self, instance)
@@ -7597,6 +7595,7 @@ class LUInstanceShutdown(LogicalUnit):
     instance = self.instance
     node_current = instance.primary_node
     timeout = self.op.timeout
+    reason = self.op.reason
 
     # If the instance is offline we shouldn't mark it as down, as that
     # resets the offline flag.
@@ -7607,7 +7606,8 @@ class LUInstanceShutdown(LogicalUnit):
       assert self.op.ignore_offline_nodes
       self.LogInfo("Primary node offline, marked instance as stopped")
     else:
-      result = self.rpc.call_instance_shutdown(node_current, instance, timeout)
+      result = self.rpc.call_instance_shutdown(node_current, instance, timeout,
+                                               reason)
       msg = result.fail_msg
       if msg:
         self.LogWarning("Could not shutdown instance: %s", msg)
@@ -8188,7 +8188,8 @@ class LUInstanceRemove(LogicalUnit):
                  instance.name, instance.primary_node)
 
     result = self.rpc.call_instance_shutdown(instance.primary_node, instance,
-                                             self.op.shutdown_timeout)
+                                             self.op.shutdown_timeout,
+                                             self.op.reason)
     msg = result.fail_msg
     if msg:
       if self.op.ignore_failures:
@@ -8553,7 +8554,8 @@ class LUInstanceMove(LogicalUnit):
             self.owned_locks(locking.LEVEL_NODE_RES))
 
     result = self.rpc.call_instance_shutdown(source_node, instance,
-                                             self.op.shutdown_timeout)
+                                             self.op.shutdown_timeout,
+                                             self.op.reason)
     msg = result.fail_msg
     if msg:
       if self.op.ignore_consistency:
@@ -8624,7 +8626,8 @@ class LUInstanceMove(LogicalUnit):
         raise errors.OpExecError("Can't activate the instance's disks")
 
       result = self.rpc.call_instance_start(target_node,
-                                            (instance, None, None), False)
+                                            (instance, None, None), False,
+                                             self.op.reason)
       msg = result.fail_msg
       if msg:
         _ShutdownInstanceDisks(self, instance)
@@ -9326,7 +9329,8 @@ class TLMigrateInstance(Tasklet):
                  instance.name, source_node)
 
     result = self.rpc.call_instance_shutdown(source_node, instance,
-                                             self.shutdown_timeout)
+                                             self.shutdown_timeout,
+                                             self.lu.op.reason)
     msg = result.fail_msg
     if msg:
       if self.ignore_consistency or primary_node.offline:
@@ -9363,7 +9367,7 @@ class TLMigrateInstance(Tasklet):
       self.feedback_fn("* starting the instance on the target node %s" %
                        target_node)
       result = self.rpc.call_instance_start(target_node, (instance, None, None),
-                                            False)
+                                            False, self.lu.op.reason)
       msg = result.fail_msg
       if msg:
         _ShutdownInstanceDisks(self.lu, instance)
@@ -9443,20 +9447,34 @@ def _CreateBlockDevInner(lu, node, instance, device, force_create,
   @type excl_stor: boolean
   @param excl_stor: Whether exclusive_storage is active for the node
 
+  @return: list of created devices
   """
-  if device.CreateOnSecondary():
-    force_create = True
+  created_devices = []
+  try:
+    if device.CreateOnSecondary():
+      force_create = True
 
-  if device.children:
-    for child in device.children:
-      _CreateBlockDevInner(lu, node, instance, child, force_create,
-                           info, force_open, excl_stor)
+    if device.children:
+      for child in device.children:
+        devs = _CreateBlockDevInner(lu, node, instance, child, force_create,
+                                    info, force_open, excl_stor)
+        created_devices.extend(devs)
 
-  if not force_create:
-    return
+    if not force_create:
+      return created_devices
 
-  _CreateSingleBlockDev(lu, node, instance, device, info, force_open,
-                        excl_stor)
+    _CreateSingleBlockDev(lu, node, instance, device, info, force_open,
+                          excl_stor)
+    # The device has been completely created, so there is no point in keeping
+    # its subdevices in the list. We just add the device itself instead.
+    created_devices = [(node, device)]
+    return created_devices
+
+  except errors.DeviceCreationError, e:
+    e.created_devices.extend(created_devices)
+    raise e
+  except errors.OpExecError, e:
+    raise errors.DeviceCreationError(str(e), created_devices)
 
 
 def _CreateSingleBlockDev(lu, node, instance, device, info, force_open,
@@ -9828,13 +9846,17 @@ def _CreateDisks(lu, instance, to_skip=None, target_node=None):
       except errors.OpExecError:
         logging.warning("Creating disk %s for instance '%s' failed",
                         idx, instance.name)
+      except errors.DeviceCreationError, e:
+        logging.warning("Creating disk %s for instance '%s' failed",
+                        idx, instance.name)
+        disks_created.extend(e.created_devices)
         for (node, disk) in disks_created:
           lu.cfg.SetDiskID(disk, node)
           result = lu.rpc.call_blockdev_remove(node, disk)
           if result.fail_msg:
             logging.warning("Failed to remove newly-created disk %s on node %s:"
                             " %s", device, node, result.fail_msg)
-        raise
+        raise errors.OpExecError(e.message)
 
 
 def _RemoveDisks(lu, instance, target_node=None, ignore_failures=False):
@@ -11295,7 +11317,7 @@ class LUInstanceCreate(LogicalUnit):
       logging.info("Starting instance %s on node %s", instance, pnode_name)
       feedback_fn("* starting instance...")
       result = self.rpc.call_instance_start(pnode_name, (iobj, None, None),
-                                            False)
+                                            False, self.op.reason)
       result.Raise("Could not start instance")
 
     return list(iobj.all_nodes)
@@ -14999,7 +15021,8 @@ class LUBackupExport(LogicalUnit):
       # shutdown the instance, but not the disks
       feedback_fn("Shutting down instance %s" % instance.name)
       result = self.rpc.call_instance_shutdown(src_node, instance,
-                                               self.op.shutdown_timeout)
+                                               self.op.shutdown_timeout,
+                                               self.op.reason)
       # TODO: Maybe ignore failures if ignore_remove_failures is set
       result.Raise("Could not shutdown instance %s on"
                    " node %s" % (instance.name, src_node))
@@ -15028,7 +15051,8 @@ class LUBackupExport(LogicalUnit):
           assert not activate_disks
           feedback_fn("Starting instance %s" % instance.name)
           result = self.rpc.call_instance_start(src_node,
-                                                (instance, None, None), False)
+                                                (instance, None, None), False,
+                                                 self.op.reason)
           msg = result.fail_msg
           if msg:
             feedback_fn("Failed to start instance: %s" % msg)

@@ -589,16 +589,19 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     """
     instance = objects.Instance.FromDict(params[0])
     timeout = params[1]
-    return backend.InstanceShutdown(instance, timeout)
+    trail = params[2]
+    _extendReasonTrail(trail, "shutdown")
+    return backend.InstanceShutdown(instance, timeout, trail)
 
   @staticmethod
   def perspective_instance_start(params):
     """Start an instance.
 
     """
-    (instance_name, startup_paused) = params
+    (instance_name, startup_paused, trail) = params
     instance = objects.Instance.FromDict(instance_name)
-    return backend.StartInstance(instance, startup_paused)
+    _extendReasonTrail(trail, "start")
+    return backend.StartInstance(instance, startup_paused, trail)
 
   @staticmethod
   def perspective_migration_info(params):

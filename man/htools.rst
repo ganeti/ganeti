@@ -153,24 +153,28 @@ support all options. Some common options are:
   other backends must be selected. The option is described in the man
   page **htools**\(1).
 
-  The file should contain text data, line-based, with two empty lines
+  The file should contain text data, line-based, with single empty lines
   separating sections. The lines themselves are column-based, with the
   pipe symbol (``|``) acting as separator.
 
-  The first section contains group data, with two columns:
+  The first section contains group data, with the following columns:
 
   - group name
   - group uuid
+  - allocation policy
+  - tags (separated by comma)
 
   The second sections contains node data, with the following columns:
 
   - node name
   - node total memory
+  - memory used by the node
   - node free memory
   - node total disk
   - node free disk
   - node physical cores
-  - offline field (as ``Y`` or ``N``)
+  - offline/role field (``Y`` for offline nodes, ``N`` for online non-master
+    nodes, and ``M`` for the master node which is always online)
   - group UUID
   - node spindle count
 
@@ -194,8 +198,10 @@ support all options. Some common options are:
   groups, in the following format (separated by ``|``):
 
   - owner (empty if cluster, group name otherwise)
-  - standard, min, max instance specs, containing the following values
-    separated by commas:
+  - standard, min, max instance specs; min and max instance specs are
+    separated between them by a semicolon, and can be specified multiple
+    times (min;max;min;max...); each of the specs contains the following
+    values separated by commas:
     - memory size
     - cpu count
     - disk size

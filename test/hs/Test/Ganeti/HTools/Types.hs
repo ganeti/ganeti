@@ -42,6 +42,7 @@ import Test.HUnit
 
 import Control.Applicative
 import Data.List (sort)
+import Control.Monad (replicateM)
 
 import Test.Ganeti.TestHelper
 import Test.Ganeti.TestCommon
@@ -101,19 +102,45 @@ genBiggerISpec imin = do
                      , Types.iSpecSpindleUse = fromIntegral su
                      }
 
+genMinMaxISpecs :: Gen Types.MinMaxISpecs
+genMinMaxISpecs = do
+  imin <- arbitrary
+  imax <- genBiggerISpec imin
+  return Types.MinMaxISpecs { Types.minMaxISpecsMinSpec = imin
+                             , Types.minMaxISpecsMaxSpec = imax
+                             }
+
+instance Arbitrary Types.MinMaxISpecs where
+  arbitrary = genMinMaxISpecs
+
+genMinMaxStdISpecs :: Gen (Types.MinMaxISpecs, Types.ISpec)
+genMinMaxStdISpecs = do
+  imin <- arbitrary
+  istd <- genBiggerISpec imin
+  imax <- genBiggerISpec istd
+  return (Types.MinMaxISpecs { Types.minMaxISpecsMinSpec = imin
+                             , Types.minMaxISpecsMaxSpec = imax
+                             },
+          istd)
+
+genIPolicySpecs :: Gen ([Types.MinMaxISpecs], Types.ISpec)
+genIPolicySpecs = do
+  num_mm <- choose (1, 6) -- 6 is just an arbitrary limit
+  std_compl <- choose (1, num_mm)
+  mm_head <- replicateM (std_compl - 1) genMinMaxISpecs
+  (mm_middle, istd) <- genMinMaxStdISpecs
+  mm_tail <- replicateM (num_mm - std_compl) genMinMaxISpecs
+  return (mm_head ++ (mm_middle : mm_tail), istd)
+
+
 instance Arbitrary Types.IPolicy where
   arbitrary = do
-    imin <- arbitrary
-    istd <- genBiggerISpec imin
-    imax <- genBiggerISpec istd
+    (iminmax, istd) <- genIPolicySpecs
     num_tmpl <- choose (0, length allDiskTemplates)
     dts  <- genUniquesList num_tmpl arbitrary
     vcpu_ratio <- choose (1.0, maxVcpuRatio)
     spindle_ratio <- choose (1.0, maxSpindleRatio)
-    return Types.IPolicy { Types.iPolicyMinMaxISpecs = Types.MinMaxISpecs
-                           { Types.minMaxISpecsMinSpec = imin
-                           , Types.minMaxISpecsMaxSpec = imax
-                           }
+    return Types.IPolicy { Types.iPolicyMinMaxISpecs = iminmax
                          , Types.iPolicyStdSpec = istd
                          , Types.iPolicyDiskTemplates = dts
                          , Types.iPolicyVcpuRatio = vcpu_ratio

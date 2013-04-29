@@ -633,7 +633,8 @@ class ConfigWriter:
         result.append("%s has invalid instance policy: %s" % (owner, err))
       for key, value in ipolicy.items():
         if key == constants.ISPECS_MINMAX:
-          _helper_ispecs(owner, "ipolicy/" + key, value)
+          for k in range(len(value)):
+            _helper_ispecs(owner, "ipolicy/%s[%s]" % (key, k), value[k])
         elif key == constants.ISPECS_STD:
           _helper(owner, "ipolicy/" + key, value,
                   constants.ISPECS_PARAMETER_TYPES)

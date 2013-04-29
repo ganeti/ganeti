@@ -108,6 +108,7 @@ __all__ = [
   "IGNORE_REMOVE_FAILURES_OPT",
   "IGNORE_SECONDARIES_OPT",
   "IGNORE_SIZE_OPT",
+  "INCLUDEDEFAULTS_OPT",
   "INTERVAL_OPT",
   "MAC_PREFIX_OPT",
   "MAINTAIN_NODE_HEALTH_OPT",
@@ -188,6 +189,8 @@ __all__ = [
   "SPECS_DISK_SIZE_OPT",
   "SPECS_MEM_SIZE_OPT",
   "SPECS_NIC_COUNT_OPT",
+  "SPLIT_ISPECS_OPTS",
+  "IPOLICY_STD_SPECS_OPT",
   "IPOLICY_DISK_TEMPLATES",
   "IPOLICY_VCPU_RATIO",
   "SPICE_CACERT_OPT",
@@ -236,6 +239,7 @@ __all__ = [
   "FormatQueryResult",
   "FormatParamsDictInfo",
   "FormatPolicyInfo",
+  "PrintIPolicyCommand",
   "PrintGenericInfo",
   "GenerateTable",
   "AskUser",
@@ -563,12 +567,13 @@ def check_unit(option, opt, value): # pylint: disable=W0613
     raise OptionValueError("option %s: %s" % (opt, err))
 
 
-def _SplitKeyVal(opt, data):
+def _SplitKeyVal(opt, data, parse_prefixes):
   """Convert a KeyVal string into a dict.
 
   This function will convert a key=val[,...] string into a dict. Empty
   values will be converted specially: keys which have the prefix 'no_'
-  will have the value=False and the prefix stripped, the others will
+  will have the value=False and the prefix stripped, keys with the prefix
+  "-" will have value=None and the prefix stripped, and the others will
   have value=True.
 
   @type opt: string
@@ -576,6 +581,8 @@ def _SplitKeyVal(opt, data):
       data, used in building error messages
   @type data: string
   @param data: a string of the format key=val,key=val,...
+  @type parse_prefixes: bool
+  @param parse_prefixes: whether to handle prefixes specially
   @rtype: dict
   @return: {key=val, key=val}
   @raises errors.ParameterError: if there are duplicate keys
@@ -586,18 +593,58 @@ def _SplitKeyVal(opt, data):
     for elem in utils.UnescapeAndSplit(data, sep=","):
       if "=" in elem:
         key, val = elem.split("=", 1)
-      else:
+      elif parse_prefixes:
         if elem.startswith(NO_PREFIX):
           key, val = elem[len(NO_PREFIX):], False
         elif elem.startswith(UN_PREFIX):
           key, val = elem[len(UN_PREFIX):], None
         else:
           key, val = elem, True
+      else:
+        raise errors.ParameterError("Missing value for key '%s' in option %s" %
+                                    (elem, opt))
       if key in kv_dict:
         raise errors.ParameterError("Duplicate key '%s' in option %s" %
                                     (key, opt))
       kv_dict[key] = val
   return kv_dict
+
+
+def _SplitIdentKeyVal(opt, value, parse_prefixes):
+  """Helper function to parse "ident:key=val,key=val" options.
+
+  @type opt: string
+  @param opt: option name, used in error messages
+  @type value: string
+  @param value: expected to be in the format "ident:key=val,key=val,..."
+  @type parse_prefixes: bool
+  @param parse_prefixes: whether to handle prefixes specially (see
+      L{_SplitKeyVal})
+  @rtype: tuple
+  @return: (ident, {key=val, key=val})
+  @raises errors.ParameterError: in case of duplicates or other parsing errors
+
+  """
+  if ":" not in value:
+    ident, rest = value, ""
+  else:
+    ident, rest = value.split(":", 1)
+
+  if parse_prefixes and ident.startswith(NO_PREFIX):
+    if rest:
+      msg = "Cannot pass options when removing parameter groups: %s" % value
+      raise errors.ParameterError(msg)
+    retval = (ident[len(NO_PREFIX):], False)
+  elif (parse_prefixes and ident.startswith(UN_PREFIX) and
+        (len(ident) <= len(UN_PREFIX) or not ident[len(UN_PREFIX)].isdigit())):
+    if rest:
+      msg = "Cannot pass options when removing parameter groups: %s" % value
+      raise errors.ParameterError(msg)
+    retval = (ident[len(UN_PREFIX):], None)
+  else:
+    kv_dict = _SplitKeyVal(opt, rest, parse_prefixes)
+    retval = (ident, kv_dict)
+  return retval
 
 
 def check_ident_key_val(option, opt, value):  # pylint: disable=W0613
@@ -607,27 +654,7 @@ def check_ident_key_val(option, opt, value):  # pylint: disable=W0613
   multiple uses of this option via action=append is possible.
 
   """
-  if ":" not in value:
-    ident, rest = value, ""
-  else:
-    ident, rest = value.split(":", 1)
-
-  if ident.startswith(NO_PREFIX):
-    if rest:
-      msg = "Cannot pass options when removing parameter groups: %s" % value
-      raise errors.ParameterError(msg)
-    retval = (ident[len(NO_PREFIX):], False)
-  elif (ident.startswith(UN_PREFIX) and
-        (len(ident) <= len(UN_PREFIX) or
-         not ident[len(UN_PREFIX)][0].isdigit())):
-    if rest:
-      msg = "Cannot pass options when removing parameter groups: %s" % value
-      raise errors.ParameterError(msg)
-    retval = (ident[len(UN_PREFIX):], None)
-  else:
-    kv_dict = _SplitKeyVal(opt, rest)
-    retval = (ident, kv_dict)
-  return retval
+  return _SplitIdentKeyVal(opt, value, True)
 
 
 def check_key_val(option, opt, value):  # pylint: disable=W0613
@@ -636,7 +663,34 @@ def check_key_val(option, opt, value):  # pylint: disable=W0613
   This will store the parsed values as a dict {key: val}.
 
   """
-  return _SplitKeyVal(opt, value)
+  return _SplitKeyVal(opt, value, True)
+
+
+def _SplitListKeyVal(opt, value):
+  retval = {}
+  for elem in value.split("/"):
+    if not elem:
+      raise errors.ParameterError("Empty section in option '%s'" % opt)
+    (ident, valdict) = _SplitIdentKeyVal(opt, elem, False)
+    if ident in retval:
+      msg = ("Duplicated parameter '%s' in parsing %s: %s" %
+             (ident, opt, elem))
+      raise errors.ParameterError(msg)
+    retval[ident] = valdict
+  return retval
+
+
+def check_multilist_ident_key_val(_, opt, value):
+  """Custom parser for "ident:key=val,key=val/ident:key=val//ident:.." options.
+
+  @rtype: list of dictionary
+  @return: [{ident: {key: val, key: val}, ident: {key: val}}, {ident:..}]
+
+  """
+  retval = []
+  for line in value.split("//"):
+    retval.append(_SplitListKeyVal(opt, line))
+  return retval
 
 
 def check_bool(option, opt, value): # pylint: disable=W0613
@@ -711,6 +765,7 @@ class CliOption(Option):
     "completion_suggest",
     ]
   TYPES = Option.TYPES + (
+    "multilistidentkeyval",
     "identkeyval",
     "keyval",
     "unit",
@@ -719,6 +774,7 @@ class CliOption(Option):
     "maybefloat",
     )
   TYPE_CHECKER = Option.TYPE_CHECKER.copy()
+  TYPE_CHECKER["multilistidentkeyval"] = check_multilist_ident_key_val
   TYPE_CHECKER["identkeyval"] = check_ident_key_val
   TYPE_CHECKER["keyval"] = check_key_val
   TYPE_CHECKER["unit"] = check_unit
@@ -907,6 +963,18 @@ SPECS_NIC_COUNT_OPT = cli_option("--specs-nic-count", dest="ispecs_nic_count",
                                  type="keyval", default={},
                                  help="NIC count specs: list of key=value,"
                                  " where key is one of min, max, std")
+
+IPOLICY_BOUNDS_SPECS_STR = "--ipolicy-bounds-specs"
+IPOLICY_BOUNDS_SPECS_OPT = cli_option(IPOLICY_BOUNDS_SPECS_STR,
+                                      dest="ipolicy_bounds_specs",
+                                      type="multilistidentkeyval", default=None,
+                                      help="Complete instance specs limits")
+
+IPOLICY_STD_SPECS_STR = "--ipolicy-std-specs"
+IPOLICY_STD_SPECS_OPT = cli_option(IPOLICY_STD_SPECS_STR,
+                                   dest="ipolicy_std_specs",
+                                   type="keyval", default=None,
+                                   help="Complte standard instance specs")
 
 IPOLICY_DISK_TEMPLATES = cli_option("--ipolicy-disk-templates",
                                     dest="ipolicy_disk_templates",
@@ -1559,6 +1627,10 @@ NOCONFLICTSCHECK_OPT = cli_option("--no-conflicts-check",
                                   action="store_false",
                                   help="Don't check for conflicting IPs")
 
+INCLUDEDEFAULTS_OPT = cli_option("--include-defaults", dest="include_defaults",
+                                 default=False, action="store_true",
+                                 help="Include default values")
+
 #: Options provided by all commands
 COMMON_OPTS = [DEBUG_OPT, REASON_OPT]
 
@@ -1589,14 +1661,19 @@ COMMON_CREATE_OPTS = [
 
 # common instance policy options
 INSTANCE_POLICY_OPTS = [
+  IPOLICY_BOUNDS_SPECS_OPT,
+  IPOLICY_DISK_TEMPLATES,
+  IPOLICY_VCPU_RATIO,
+  IPOLICY_SPINDLE_RATIO,
+  ]
+
+# instance policy split specs options
+SPLIT_ISPECS_OPTS = [
   SPECS_CPU_COUNT_OPT,
   SPECS_DISK_COUNT_OPT,
   SPECS_DISK_SIZE_OPT,
   SPECS_MEM_SIZE_OPT,
   SPECS_NIC_COUNT_OPT,
-  IPOLICY_DISK_TEMPLATES,
-  IPOLICY_VCPU_RATIO,
-  IPOLICY_SPINDLE_RATIO,
   ]
 
 
@@ -3662,13 +3739,24 @@ def FormatPolicyInfo(custom_ipolicy, eff_ipolicy, iscluster):
   if iscluster:
     eff_ipolicy = custom_ipolicy
 
+  minmax_out = []
   custom_minmax = custom_ipolicy.get(constants.ISPECS_MINMAX)
-  ret = [
-    (key,
-     FormatParamsDictInfo(custom_minmax.get(key, {}),
-                          eff_ipolicy[constants.ISPECS_MINMAX][key]))
-    for key in constants.ISPECS_MINMAX_KEYS
-    ]
+  if custom_minmax:
+    for (k, minmax) in enumerate(custom_minmax):
+      minmax_out.append([
+        ("%s/%s" % (key, k),
+         FormatParamsDictInfo(minmax[key], minmax[key]))
+        for key in constants.ISPECS_MINMAX_KEYS
+        ])
+  else:
+    for (k, minmax) in enumerate(eff_ipolicy[constants.ISPECS_MINMAX]):
+      minmax_out.append([
+        ("%s/%s" % (key, k),
+         FormatParamsDictInfo({}, minmax[key]))
+        for key in constants.ISPECS_MINMAX_KEYS
+        ])
+  ret = [("bounds specs", minmax_out)]
+
   if iscluster:
     stdspecs = custom_ipolicy[constants.ISPECS_STD]
     ret.append(
@@ -3686,6 +3774,46 @@ def FormatPolicyInfo(custom_ipolicy, eff_ipolicy, iscluster):
     for key in constants.IPOLICY_PARAMETERS
     ])
   return ret
+
+
+def _PrintSpecsParameters(buf, specs):
+  values = ("%s=%s" % (par, val) for (par, val) in sorted(specs.items()))
+  buf.write(",".join(values))
+
+
+def PrintIPolicyCommand(buf, ipolicy, isgroup):
+  """Print the command option used to generate the given instance policy.
+
+  Currently only the parts dealing with specs are supported.
+
+  @type buf: StringIO
+  @param buf: stream to write into
+  @type ipolicy: dict
+  @param ipolicy: instance policy
+  @type isgroup: bool
+  @param isgroup: whether the policy is at group level
+
+  """
+  if not isgroup:
+    stdspecs = ipolicy.get("std")
+    if stdspecs:
+      buf.write(" %s " % IPOLICY_STD_SPECS_STR)
+      _PrintSpecsParameters(buf, stdspecs)
+  minmaxes = ipolicy.get("minmax", [])
+  first = True
+  for minmax in minmaxes:
+    minspecs = minmax.get("min")
+    maxspecs = minmax.get("max")
+    if minspecs and maxspecs:
+      if first:
+        buf.write(" %s " % IPOLICY_BOUNDS_SPECS_STR)
+        first = False
+      else:
+        buf.write("//")
+      buf.write("min:")
+      _PrintSpecsParameters(buf, minspecs)
+      buf.write("/max:")
+      _PrintSpecsParameters(buf, maxspecs)
 
 
 def ConfirmOperation(names, list_type, text, extra=""):
@@ -3740,9 +3868,9 @@ def _MaybeParseUnit(elements):
   return parsed
 
 
-def _InitIspecsFromOpts(ipolicy, ispecs_mem_size, ispecs_cpu_count,
-                        ispecs_disk_count, ispecs_disk_size, ispecs_nic_count,
-                        group_ipolicy, allowed_values):
+def _InitISpecsFromSplitOpts(ipolicy, ispecs_mem_size, ispecs_cpu_count,
+                             ispecs_disk_count, ispecs_disk_size,
+                             ispecs_nic_count, group_ipolicy, fill_all):
   try:
     if ispecs_mem_size:
       ispecs_mem_size = _MaybeParseUnit(ispecs_mem_size)
@@ -3769,7 +3897,8 @@ def _InitIspecsFromOpts(ipolicy, ispecs_mem_size, ispecs_cpu_count,
   else:
     forced_type = TISPECS_CLUSTER_TYPES
   for specs in ispecs_transposed.values():
-    utils.ForceDictType(specs, forced_type, allowed_values=allowed_values)
+    assert type(specs) is dict
+    utils.ForceDictType(specs, forced_type)
 
   # then transpose
   ispecs = {
@@ -3782,9 +3911,76 @@ def _InitIspecsFromOpts(ipolicy, ispecs_mem_size, ispecs_cpu_count,
     for key, val in specs.items(): # {min: .. ,max: .., std: ..}
       assert key in ispecs
       ispecs[key][name] = val
+  minmax_out = {}
   for key in constants.ISPECS_MINMAX_KEYS:
-    ipolicy[constants.ISPECS_MINMAX][key] = ispecs[key]
-  ipolicy[constants.ISPECS_STD] = ispecs[constants.ISPECS_STD]
+    if fill_all:
+      minmax_out[key] = \
+        objects.FillDict(constants.ISPECS_MINMAX_DEFAULTS[key], ispecs[key])
+    else:
+      minmax_out[key] = ispecs[key]
+  ipolicy[constants.ISPECS_MINMAX] = [minmax_out]
+  if fill_all:
+    ipolicy[constants.ISPECS_STD] = \
+        objects.FillDict(constants.IPOLICY_DEFAULTS[constants.ISPECS_STD],
+                         ispecs[constants.ISPECS_STD])
+  else:
+    ipolicy[constants.ISPECS_STD] = ispecs[constants.ISPECS_STD]
+
+
+def _ParseSpecUnit(spec, keyname):
+  ret = spec.copy()
+  for k in [constants.ISPEC_DISK_SIZE, constants.ISPEC_MEM_SIZE]:
+    if k in ret:
+      try:
+        ret[k] = utils.ParseUnit(ret[k])
+      except (TypeError, ValueError, errors.UnitParseError), err:
+        raise errors.OpPrereqError(("Invalid parameter %s (%s) in %s instance"
+                                    " specs: %s" % (k, ret[k], keyname, err)),
+                                   errors.ECODE_INVAL)
+  return ret
+
+
+def _ParseISpec(spec, keyname, required):
+  ret = _ParseSpecUnit(spec, keyname)
+  utils.ForceDictType(ret, constants.ISPECS_PARAMETER_TYPES)
+  missing = constants.ISPECS_PARAMETERS - frozenset(ret.keys())
+  if required and missing:
+    raise errors.OpPrereqError("Missing parameters in ipolicy spec %s: %s" %
+                               (keyname, utils.CommaJoin(missing)),
+                               errors.ECODE_INVAL)
+  return ret
+
+
+def _GetISpecsInAllowedValues(minmax_ispecs, allowed_values):
+  ret = None
+  if (minmax_ispecs and allowed_values and len(minmax_ispecs) == 1 and
+      len(minmax_ispecs[0]) == 1):
+    for (key, spec) in minmax_ispecs[0].items():
+      # This loop is executed exactly once
+      if key in allowed_values and not spec:
+        ret = key
+  return ret
+
+
+def _InitISpecsFromFullOpts(ipolicy_out, minmax_ispecs, std_ispecs,
+                            group_ipolicy, allowed_values):
+  found_allowed = _GetISpecsInAllowedValues(minmax_ispecs, allowed_values)
+  if found_allowed is not None:
+    ipolicy_out[constants.ISPECS_MINMAX] = found_allowed
+  elif minmax_ispecs is not None:
+    minmax_out = []
+    for mmpair in minmax_ispecs:
+      mmpair_out = {}
+      for (key, spec) in mmpair.items():
+        if key not in constants.ISPECS_MINMAX_KEYS:
+          msg = "Invalid key in bounds instance specifications: %s" % key
+          raise errors.OpPrereqError(msg, errors.ECODE_INVAL)
+        mmpair_out[key] = _ParseISpec(spec, key, True)
+      minmax_out.append(mmpair_out)
+    ipolicy_out[constants.ISPECS_MINMAX] = minmax_out
+  if std_ispecs is not None:
+    assert not group_ipolicy # This is not an option for gnt-group
+    ipolicy_out[constants.ISPECS_STD] = _ParseISpec(std_ispecs, "std", False)
 
 
 def CreateIPolicyFromOpts(ispecs_mem_size=None,
@@ -3792,6 +3988,8 @@ def CreateIPolicyFromOpts(ispecs_mem_size=None,
                           ispecs_disk_count=None,
                           ispecs_disk_size=None,
                           ispecs_nic_count=None,
+                          minmax_ispecs=None,
+                          std_ispecs=None,
                           ipolicy_disk_templates=None,
                           ipolicy_vcpu_ratio=None,
                           ipolicy_spindle_ratio=None,
@@ -3803,16 +4001,31 @@ def CreateIPolicyFromOpts(ispecs_mem_size=None,
   @param fill_all: whether for cluster policies we should ensure that
     all values are filled
 
-
   """
+  assert not (fill_all and allowed_values)
+
+  split_specs = (ispecs_mem_size or ispecs_cpu_count or ispecs_disk_count or
+                 ispecs_disk_size or ispecs_nic_count)
+  if (split_specs and (minmax_ispecs is not None or std_ispecs is not None)):
+    raise errors.OpPrereqError("A --specs-xxx option cannot be specified"
+                               " together with any --ipolicy-xxx-specs option",
+                               errors.ECODE_INVAL)
 
   ipolicy_out = objects.MakeEmptyIPolicy()
-  _InitIspecsFromOpts(ipolicy_out, ispecs_mem_size, ispecs_cpu_count,
-                      ispecs_disk_count, ispecs_disk_size, ispecs_nic_count,
-                      group_ipolicy, allowed_values)
+  if split_specs:
+    assert fill_all
+    _InitISpecsFromSplitOpts(ipolicy_out, ispecs_mem_size, ispecs_cpu_count,
+                             ispecs_disk_count, ispecs_disk_size,
+                             ispecs_nic_count, group_ipolicy, fill_all)
+  elif (minmax_ispecs is not None or std_ispecs is not None):
+    _InitISpecsFromFullOpts(ipolicy_out, minmax_ispecs, std_ispecs,
+                            group_ipolicy, allowed_values)
 
   if ipolicy_disk_templates is not None:
-    ipolicy_out[constants.IPOLICY_DTS] = list(ipolicy_disk_templates)
+    if allowed_values and ipolicy_disk_templates in allowed_values:
+      ipolicy_out[constants.IPOLICY_DTS] = ipolicy_disk_templates
+    else:
+      ipolicy_out[constants.IPOLICY_DTS] = list(ipolicy_disk_templates)
   if ipolicy_vcpu_ratio is not None:
     ipolicy_out[constants.IPOLICY_VCPU_RATIO] = ipolicy_vcpu_ratio
   if ipolicy_spindle_ratio is not None:

@@ -267,6 +267,7 @@ pkgpython_PYTHON = \
 	lib/constants.py \
 	lib/daemon.py \
 	lib/errors.py \
+	lib/hooksmaster.py \
 	lib/ht.py \
 	lib/jqueue.py \
 	lib/jstore.py \
@@ -1012,6 +1013,8 @@ TEST_FILES = \
 	test/data/htools/hail-reloc-drbd.json \
 	test/data/htools/hbal-excl-tags.data \
 	test/data/htools/hbal-split-insts.data \
+	test/data/htools/hspace-tiered-dualspec.data \
+	test/data/htools/hspace-tiered.data \
 	test/data/htools/invalid-node.data \
 	test/data/htools/missing-resources.data \
 	test/data/htools/multiple-master.data \
@@ -1055,6 +1058,8 @@ TEST_FILES = \
 	test/data/bdev-rbd/output_invalid.txt \
 	test/data/cert1.pem \
 	test/data/cert2.pem \
+	test/data/cluster_config_2.7.json \
+	test/data/cluster_config_downgraded_2.7.json \
 	test/data/instance-minor-pairing.txt \
 	test/data/ip-addr-show-dummy0.txt \
 	test/data/ip-addr-show-lo-ipv4.txt \
@@ -1691,7 +1696,7 @@ check-local: check-dirs $(GENERATED_FILES)
 	$(CHECK_PYTHON_CODE) $(check_python_code)
 	PYTHONPATH=. $(CHECK_HEADER) $(check_python_code)
 	$(CHECK_VERSION) $(VERSION) $(top_srcdir)/NEWS
-	$(CHECK_NEWS) < $(top_srcdir)/NEWS
+	RELEASE=$(PACKAGE_VERSION) $(CHECK_NEWS) < $(top_srcdir)/NEWS
 	PYTHONPATH=. $(RUN_IN_TEMPDIR) $(CURDIR)/$(CHECK_IMPORTS) . $(standalone_python_modules)
 	@expver=$(VERSION_MAJOR).$(VERSION_MINOR); \
 	error= ; \
@@ -1832,18 +1837,12 @@ distcheck-hook:
 	  echo "Found empty files or directories in final archive." 1>&2; \
 	  exit 1; \
 	fi
-	if test -n "$(BUILD_RELEASE)" && \
-	   grep -n -H -E '^\*.*unreleased' $(top_distdir)/NEWS; then \
-	   echo "Found unreleased version in NEWS." >&2; \
-	   exit 1; \
-	fi
 	if test -e $(top_distdir)/doc/man-html; then \
 	  echo "Found documentation including man pages in final archive" >&2; \
 	  exit 1; \
 	fi
 
-# When building a release, stricter checks should be used
-distcheck-release dist-release: export BUILD_RELEASE = 1
+# Backwards compatible distcheck-release target
 distcheck-release: distcheck
 
 distrebuildcheck: dist

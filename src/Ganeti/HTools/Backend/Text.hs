@@ -32,12 +32,14 @@ module Ganeti.HTools.Backend.Text
   , loadInst
   , loadNode
   , loadISpec
+  , loadMultipleMinMaxISpecs
   , loadIPolicy
   , serializeInstances
   , serializeNode
   , serializeNodes
   , serializeGroup
   , serializeISpec
+  , serializeMultipleMinMaxISpecs
   , serializeIPolicy
   , serializeCluster
   ) where
@@ -117,6 +119,10 @@ serializeInstances :: Node.List -> Instance.List -> String
 serializeInstances nl =
   unlines . map (serializeInstance nl) . Container.elems
 
+-- | Separator between ISpecs (in MinMaxISpecs).
+iSpecsSeparator :: Char
+iSpecsSeparator = ';'
+
 -- | Generate a spec data from a given ISpec object.
 serializeISpec :: ISpec -> String
 serializeISpec ispec =
@@ -130,15 +136,20 @@ serializeISpec ispec =
 serializeDiskTemplates :: [DiskTemplate] -> String
 serializeDiskTemplates = intercalate "," . map diskTemplateToRaw
 
+-- | Generate min/max instance specs data.
+serializeMultipleMinMaxISpecs :: [MinMaxISpecs] -> String
+serializeMultipleMinMaxISpecs minmaxes =
+  intercalate [iSpecsSeparator] $ foldr serialpair [] minmaxes
+  where serialpair (MinMaxISpecs minspec maxspec) acc =
+          serializeISpec minspec : serializeISpec maxspec : acc
+
 -- | Generate policy data from a given policy object.
 serializeIPolicy :: String -> IPolicy -> String
 serializeIPolicy owner ipol =
   let IPolicy minmax stdspec dts vcpu_ratio spindle_ratio = ipol
-      MinMaxISpecs minspec maxspec = minmax
       strings = [ owner
                 , serializeISpec stdspec
-                , serializeISpec minspec
-                , serializeISpec maxspec
+                , serializeMultipleMinMaxISpecs minmax
                 , serializeDiskTemplates dts
                 , show vcpu_ratio
                 , show spindle_ratio
@@ -255,18 +266,41 @@ loadISpec owner [mem_s, cpu_c, dsk_s, dsk_c, nic_c, su] = do
   return $ ISpec xmem_s xcpu_c xdsk_s xdsk_c xnic_c xsu
 loadISpec owner s = fail $ "Invalid ispec data for " ++ owner ++ ": " ++ show s
 
--- | Loads an ipolicy from a field list.
-loadIPolicy :: [String] -> Result (String, IPolicy)
-loadIPolicy [owner, stdspec, minspec, maxspec, dtemplates,
-             vcpu_ratio, spindle_ratio] = do
-  xstdspec <- loadISpec (owner ++ "/stdspec") (commaSplit stdspec)
+-- | Load a single min/max ISpec pair
+loadMinMaxISpecs :: String -> String -> String -> Result MinMaxISpecs
+loadMinMaxISpecs owner minspec maxspec = do
   xminspec <- loadISpec (owner ++ "/minspec") (commaSplit minspec)
   xmaxspec <- loadISpec (owner ++ "/maxspec") (commaSplit maxspec)
+  return $ MinMaxISpecs xminspec xmaxspec
+
+-- | Break a list of ispecs strings into a list of (min/max) ispecs pairs
+breakISpecsPairs :: String -> [String] -> Result [(String, String)]
+breakISpecsPairs _ [] =
+  return []
+breakISpecsPairs owner (x:y:xs) = do
+  rest <- breakISpecsPairs owner xs
+  return $ (x, y) : rest
+breakISpecsPairs owner _ =
+  fail $ "Odd number of min/max specs for " ++ owner
+
+-- | Load a list of min/max ispecs pairs
+loadMultipleMinMaxISpecs :: String -> [String] -> Result [MinMaxISpecs]
+loadMultipleMinMaxISpecs owner ispecs = do
+  pairs <- breakISpecsPairs owner ispecs
+  mapM (uncurry $ loadMinMaxISpecs owner) pairs
+
+-- | Loads an ipolicy from a field list.
+loadIPolicy :: [String] -> Result (String, IPolicy)
+loadIPolicy [owner, stdspec, minmaxspecs, dtemplates,
+             vcpu_ratio, spindle_ratio] = do
+  xstdspec <- loadISpec (owner ++ "/stdspec") (commaSplit stdspec)
+  xminmaxspecs <- loadMultipleMinMaxISpecs owner $
+                  sepSplit iSpecsSeparator minmaxspecs
   xdts <- mapM diskTemplateFromRaw $ commaSplit dtemplates
   xvcpu_ratio <- tryRead (owner ++ "/vcpu_ratio") vcpu_ratio
   xspindle_ratio <- tryRead (owner ++ "/spindle_ratio") spindle_ratio
   return (owner,
-          IPolicy (MinMaxISpecs xminspec xmaxspec) xstdspec
+          IPolicy xminmaxspecs xstdspec
                 xdts xvcpu_ratio xspindle_ratio)
 loadIPolicy s = fail $ "Invalid ipolicy data: '" ++ show s ++ "'"
 

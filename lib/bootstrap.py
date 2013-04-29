@@ -563,6 +563,11 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
                                           utils.CommaJoin(unknown_params)),
                                  errors.ECODE_INVAL)
     utils.ForceDictType(dt_params, constants.DISK_DT_TYPES)
+    if template == constants.DT_DRBD8 and vg_name is not None:
+      # The default METAVG value is equal to the VG name set at init time,
+      # if provided
+      dt_params[constants.DRBD_DEFAULT_METAVG] = vg_name
+
   try:
     utils.VerifyDictOptions(diskparams, constants.DISK_DT_DEFAULTS)
   except errors.OpPrereqError, err:

@@ -26,6 +26,7 @@
 # W0614: Unused import %s from wildcard import (since we need cli)
 # C0103: Invalid name gnt-cluster
 
+from cStringIO import StringIO
 import os.path
 import time
 import OpenSSL
@@ -178,6 +179,8 @@ def InitCluster(opts, args):
     ispecs_disk_count=opts.ispecs_disk_count,
     ispecs_disk_size=opts.ispecs_disk_size,
     ispecs_nic_count=opts.ispecs_nic_count,
+    minmax_ispecs=opts.ipolicy_bounds_specs,
+    std_ispecs=opts.ipolicy_std_specs,
     ipolicy_disk_templates=opts.ipolicy_disk_templates,
     ipolicy_vcpu_ratio=opts.ipolicy_vcpu_ratio,
     ipolicy_spindle_ratio=opts.ipolicy_spindle_ratio,
@@ -985,11 +988,8 @@ def SetClusterParams(opts, args):
           opts.hv_state or
           opts.enabled_disk_templates or
           opts.disk_state or
-          opts.ispecs_mem_size or
-          opts.ispecs_cpu_count or
-          opts.ispecs_disk_count or
-          opts.ispecs_disk_size or
-          opts.ispecs_nic_count or
+          opts.ipolicy_bounds_specs is not None or
+          opts.ipolicy_std_specs is not None or
           opts.ipolicy_disk_templates is not None or
           opts.ipolicy_vcpu_ratio is not None or
           opts.ipolicy_spindle_ratio is not None):
@@ -1046,11 +1046,8 @@ def SetClusterParams(opts, args):
     utils.ForceDictType(ndparams, constants.NDS_PARAMETER_TYPES)
 
   ipolicy = CreateIPolicyFromOpts(
-    ispecs_mem_size=opts.ispecs_mem_size,
-    ispecs_cpu_count=opts.ispecs_cpu_count,
-    ispecs_disk_count=opts.ispecs_disk_count,
-    ispecs_disk_size=opts.ispecs_disk_size,
-    ispecs_nic_count=opts.ispecs_nic_count,
+    minmax_ispecs=opts.ipolicy_bounds_specs,
+    std_ispecs=opts.ipolicy_std_specs,
     ipolicy_disk_templates=opts.ipolicy_disk_templates,
     ipolicy_vcpu_ratio=opts.ipolicy_vcpu_ratio,
     ipolicy_spindle_ratio=opts.ipolicy_spindle_ratio,
@@ -1511,6 +1508,26 @@ def Epo(opts, args, cl=None, _on_fn=_EpoOn, _off_fn=_EpoOff,
     return _off_fn(opts, node_list, inst_map)
 
 
+def _GetCreateCommand(info):
+  buf = StringIO()
+  buf.write("gnt-cluster init")
+  PrintIPolicyCommand(buf, info["ipolicy"], False)
+  buf.write(" ")
+  buf.write(info["name"])
+  return buf.getvalue()
+
+
+def ShowCreateCommand(opts, args):
+  """Shows the command that can be used to re-create the cluster.
+
+  Currently it works only for ipolicy specs.
+
+  """
+  cl = GetClient(query=True)
+  result = cl.QueryClusterInfo()
+  ToStdout(_GetCreateCommand(result))
+
+
 commands = {
   "init": (
     InitCluster, [ArgHost(min=1, max=1)],
@@ -1521,8 +1538,8 @@ commands = {
      MAINTAIN_NODE_HEALTH_OPT, UIDPOOL_OPT, DRBD_HELPER_OPT, NODRBD_STORAGE_OPT,
      DEFAULT_IALLOCATOR_OPT, PRIMARY_IP_VERSION_OPT, PREALLOC_WIPE_DISKS_OPT,
      NODE_PARAMS_OPT, GLOBAL_SHARED_FILEDIR_OPT, USE_EXTERNAL_MIP_SCRIPT,
-     DISK_PARAMS_OPT, HV_STATE_OPT, DISK_STATE_OPT, ENABLED_DISK_TEMPLATES_OPT]
-     + INSTANCE_POLICY_OPTS,
+     DISK_PARAMS_OPT, HV_STATE_OPT, DISK_STATE_OPT, ENABLED_DISK_TEMPLATES_OPT,
+     IPOLICY_STD_SPECS_OPT] + INSTANCE_POLICY_OPTS + SPLIT_ISPECS_OPTS,
     "[opts...] <cluster_name>", "Initialises a new cluster configuration"),
   "destroy": (
     DestroyCluster, ARGS_NONE, [YES_DOIT_OPT],
@@ -1600,8 +1617,8 @@ commands = {
      DRBD_HELPER_OPT, NODRBD_STORAGE_OPT, DEFAULT_IALLOCATOR_OPT,
      RESERVED_LVS_OPT, DRY_RUN_OPT, PRIORITY_OPT, PREALLOC_WIPE_DISKS_OPT,
      NODE_PARAMS_OPT, USE_EXTERNAL_MIP_SCRIPT, DISK_PARAMS_OPT, HV_STATE_OPT,
-     DISK_STATE_OPT, SUBMIT_OPT, ENABLED_DISK_TEMPLATES_OPT] +
-    INSTANCE_POLICY_OPTS,
+     DISK_STATE_OPT, SUBMIT_OPT, ENABLED_DISK_TEMPLATES_OPT,
+     IPOLICY_STD_SPECS_OPT] + INSTANCE_POLICY_OPTS,
     "[opts...]",
     "Alters the parameters of the cluster"),
   "renew-crypto": (
@@ -1623,6 +1640,9 @@ commands = {
   "deactivate-master-ip": (
     DeactivateMasterIp, ARGS_NONE, [CONFIRM_OPT], "",
     "Deactivates the master IP"),
+  "show-ispecs-cmd": (
+    ShowCreateCommand, ARGS_NONE, [], "",
+    "Show the command line to re-create the cluster"),
   }
 
 

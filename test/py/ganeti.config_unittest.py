@@ -436,11 +436,9 @@ class TestConfigRunner(unittest.TestCase):
     # depending on the owner (cluster or group)
     if isgroup:
       errs = cfg.VerifyConfig()
-      # FIXME: A bug in FillIPolicy (issue 401) makes this test fail, so we
-      # invert the assertions for the time being
-      self.assertFalse(len(errs) >= 1)
+      self.assertTrue(len(errs) >= 1)
       errstr = "%s has invalid instance policy" % ipowner
-      self.assertFalse(_IsErrorInList(errstr, errs))
+      self.assertTrue(_IsErrorInList(errstr, errs))
     else:
       self.assertRaises(AssertionError, cfg.VerifyConfig)
     del ipolicy[INVALID_KEY]
@@ -461,13 +459,18 @@ class TestConfigRunner(unittest.TestCase):
     else:
       del ipolicy[key]
 
-    ispeclist = [
-      (ipolicy[constants.ISPECS_MINMAX][constants.ISPECS_MIN],
-       "%s/%s" % (constants.ISPECS_MINMAX, constants.ISPECS_MIN)),
-      (ipolicy[constants.ISPECS_MINMAX][constants.ISPECS_MAX],
-       "%s/%s" % (constants.ISPECS_MINMAX, constants.ISPECS_MAX)),
-      (ipolicy[constants.ISPECS_STD], constants.ISPECS_STD),
-      ]
+    ispeclist = []
+    if constants.ISPECS_MINMAX in ipolicy:
+      for k in range(len(ipolicy[constants.ISPECS_MINMAX])):
+        ispeclist.extend([
+            (ipolicy[constants.ISPECS_MINMAX][k][constants.ISPECS_MIN],
+             "%s[%s]/%s" % (constants.ISPECS_MINMAX, k, constants.ISPECS_MIN)),
+            (ipolicy[constants.ISPECS_MINMAX][k][constants.ISPECS_MAX],
+             "%s[%s]/%s" % (constants.ISPECS_MINMAX, k, constants.ISPECS_MAX)),
+            ])
+    if constants.ISPECS_STD in ipolicy:
+      ispeclist.append((ipolicy[constants.ISPECS_STD], constants.ISPECS_STD))
+
     for (ispec, ispecpath) in ispeclist:
       ispec[INVALID_KEY] = None
       errs = cfg.VerifyConfig()
@@ -494,6 +497,29 @@ class TestConfigRunner(unittest.TestCase):
         errs = cfg.VerifyConfig()
         self.assertFalse(errs)
 
+    if constants.ISPECS_MINMAX in ipolicy:
+      # Test partial minmax specs
+      for minmax in ipolicy[constants.ISPECS_MINMAX]:
+        for key in constants.ISPECS_MINMAX_KEYS:
+          self.assertTrue(key in minmax)
+          ispec = minmax[key]
+          del minmax[key]
+          errs = cfg.VerifyConfig()
+          self.assertTrue(len(errs) >= 1)
+          self.assertTrue(_IsErrorInList("Missing instance specification",
+                                         errs))
+          minmax[key] = ispec
+          for par in constants.ISPECS_PARAMETERS:
+            oldv = ispec[par]
+            del ispec[par]
+            errs = cfg.VerifyConfig()
+            self.assertTrue(len(errs) >= 1)
+            self.assertTrue(_IsErrorInList("Missing instance specs parameters",
+                                           errs))
+            ispec[par] = oldv
+      errs = cfg.VerifyConfig()
+      self.assertFalse(errs)
+
   def _TestVerifyConfigGroupIPolicy(self, groupinfo, cfg):
     old_ipolicy = groupinfo.ipolicy
     ipolicy = cfg.GetClusterInfo().SimpleFillIPolicy({})
@@ -506,16 +532,6 @@ class TestConfigRunner(unittest.TestCase):
       errs = cfg.VerifyConfig()
       self.assertFalse(errs)
       ipolicy[key] = oldv
-    # Test partial minmax specs
-    minmax = ipolicy[constants.ISPECS_MINMAX]
-    for ispec_key in minmax.keys():
-      ispec = minmax[ispec_key]
-      for par in constants.ISPECS_PARAMETERS:
-        oldv = ispec[par]
-        del ispec[par]
-        errs = cfg.VerifyConfig()
-        self.assertFalse(errs)
-        ispec[par] = oldv
     groupinfo.ipolicy = old_ipolicy
 
   def _TestVerifyConfigClusterIPolicy(self, ipolicy, cfg):
@@ -526,14 +542,18 @@ class TestConfigRunner(unittest.TestCase):
       del ipolicy[key]
       self.assertRaises(AssertionError, cfg.VerifyConfig)
       ipolicy[key] = oldv
-    # Test partial minmax specs
-    minmax = ipolicy[constants.ISPECS_MINMAX]
-    for key in constants.ISPECS_MINMAX_KEYS:
-      self.assertTrue(key in minmax)
-      oldv = minmax[key]
-      del minmax[key]
-      self.assertRaises(AssertionError, cfg.VerifyConfig)
-      minmax[key] = oldv
+    errs = cfg.VerifyConfig()
+    self.assertFalse(errs)
+    # Partial standard specs
+    ispec = ipolicy[constants.ISPECS_STD]
+    for par in constants.ISPECS_PARAMETERS:
+      oldv = ispec[par]
+      del ispec[par]
+      errs = cfg.VerifyConfig()
+      self.assertTrue(len(errs) >= 1)
+      self.assertTrue(_IsErrorInList("Missing instance specs parameters",
+                                     errs))
+      ispec[par] = oldv
     errs = cfg.VerifyConfig()
     self.assertFalse(errs)
 

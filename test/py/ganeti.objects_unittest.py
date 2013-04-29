@@ -22,6 +22,7 @@
 """Script for unittesting the objects module"""
 
 
+import copy
 import unittest
 
 from ganeti import constants
@@ -414,11 +415,12 @@ class TestInstancePolicy(unittest.TestCase):
 
   def _AssertIPolicyIsFull(self, policy):
     self.assertEqual(frozenset(policy.keys()), constants.IPOLICY_ALL_KEYS)
-    minmax = policy[constants.ISPECS_MINMAX]
-    self.assertEqual(frozenset(minmax.keys()), constants.ISPECS_MINMAX_KEYS)
-    for key in constants.ISPECS_MINMAX_KEYS:
-      self.assertEqual(frozenset(minmax[key].keys()),
-                       constants.ISPECS_PARAMETERS)
+    self.assertTrue(len(policy[constants.ISPECS_MINMAX]) > 0)
+    for minmax in policy[constants.ISPECS_MINMAX]:
+      self.assertEqual(frozenset(minmax.keys()), constants.ISPECS_MINMAX_KEYS)
+      for key in constants.ISPECS_MINMAX_KEYS:
+        self.assertEqual(frozenset(minmax[key].keys()),
+                         constants.ISPECS_PARAMETERS)
     self.assertEqual(frozenset(policy[constants.ISPECS_STD].keys()),
                      constants.ISPECS_PARAMETERS)
 
@@ -427,31 +429,149 @@ class TestInstancePolicy(unittest.TestCase):
                                                 True)
     self._AssertIPolicyIsFull(constants.IPOLICY_DEFAULTS)
 
+  def _AssertPolicyIsBad(self, ipolicy, do_check_std=None):
+    if do_check_std is None:
+      check_std_vals = [False, True]
+    else:
+      check_std_vals = [do_check_std]
+    for check_std in check_std_vals:
+      self.assertRaises(errors.ConfigurationError,
+                        objects.InstancePolicy.CheckISpecSyntax,
+                        ipolicy, check_std)
+
   def testCheckISpecSyntax(self):
+    default_stdspec = constants.IPOLICY_DEFAULTS[constants.ISPECS_STD]
+    incomplete_ipolicies = [
+      {
+         constants.ISPECS_MINMAX: [],
+         constants.ISPECS_STD: default_stdspec,
+         },
+      {
+         constants.ISPECS_MINMAX: [{}],
+         constants.ISPECS_STD: default_stdspec,
+         },
+      {
+        constants.ISPECS_MINMAX: [{
+          constants.ISPECS_MIN: NotImplemented,
+          }],
+        constants.ISPECS_STD: default_stdspec,
+        },
+      {
+        constants.ISPECS_MINMAX: [{
+          constants.ISPECS_MAX: NotImplemented,
+          }],
+        constants.ISPECS_STD: default_stdspec,
+        },
+      {
+        constants.ISPECS_MINMAX: [{
+          constants.ISPECS_MIN: NotImplemented,
+          constants.ISPECS_MAX: NotImplemented,
+          }],
+        },
+      ]
+    for ipol in incomplete_ipolicies:
+      self.assertRaises(errors.ConfigurationError,
+                        objects.InstancePolicy.CheckISpecSyntax,
+                        ipol, True)
+      oldminmax = ipol[constants.ISPECS_MINMAX]
+      if oldminmax:
+        # Prepending valid specs shouldn't change the error
+        ipol[constants.ISPECS_MINMAX] = ([constants.ISPECS_MINMAX_DEFAULTS] +
+                                         oldminmax)
+        self.assertRaises(errors.ConfigurationError,
+                          objects.InstancePolicy.CheckISpecSyntax,
+                          ipol, True)
+
+    good_ipolicy = {
+      constants.ISPECS_MINMAX: [
+        {
+          constants.ISPECS_MIN: {
+            constants.ISPEC_MEM_SIZE: 64,
+            constants.ISPEC_CPU_COUNT: 1,
+            constants.ISPEC_DISK_COUNT: 2,
+            constants.ISPEC_DISK_SIZE: 64,
+            constants.ISPEC_NIC_COUNT: 1,
+            constants.ISPEC_SPINDLE_USE: 1,
+            },
+          constants.ISPECS_MAX: {
+            constants.ISPEC_MEM_SIZE: 16384,
+            constants.ISPEC_CPU_COUNT: 5,
+            constants.ISPEC_DISK_COUNT: 12,
+            constants.ISPEC_DISK_SIZE: 1024,
+            constants.ISPEC_NIC_COUNT: 9,
+            constants.ISPEC_SPINDLE_USE: 18,
+            },
+          },
+        {
+          constants.ISPECS_MIN: {
+            constants.ISPEC_MEM_SIZE: 32768,
+            constants.ISPEC_CPU_COUNT: 8,
+            constants.ISPEC_DISK_COUNT: 1,
+            constants.ISPEC_DISK_SIZE: 1024,
+            constants.ISPEC_NIC_COUNT: 1,
+            constants.ISPEC_SPINDLE_USE: 1,
+            },
+          constants.ISPECS_MAX: {
+            constants.ISPEC_MEM_SIZE: 65536,
+            constants.ISPEC_CPU_COUNT: 10,
+            constants.ISPEC_DISK_COUNT: 5,
+            constants.ISPEC_DISK_SIZE: 1024 * 1024,
+            constants.ISPEC_NIC_COUNT: 3,
+            constants.ISPEC_SPINDLE_USE: 12,
+            },
+          },
+        ],
+      }
+    good_ipolicy[constants.ISPECS_STD] = copy.deepcopy(
+      good_ipolicy[constants.ISPECS_MINMAX][0][constants.ISPECS_MAX])
+    # Check that it's really good before making it bad
+    objects.InstancePolicy.CheckISpecSyntax(good_ipolicy, True)
+
+    bad_ipolicy = copy.deepcopy(good_ipolicy)
+    for minmax in bad_ipolicy[constants.ISPECS_MINMAX]:
+      for (key, spec) in minmax.items():
+        for param in spec:
+          oldv = spec[param]
+          del spec[param]
+          self._AssertPolicyIsBad(bad_ipolicy)
+          if key == constants.ISPECS_MIN:
+            spec[param] = minmax[constants.ISPECS_MAX][param] + 1
+          self._AssertPolicyIsBad(bad_ipolicy)
+          spec[param] = oldv
+    assert bad_ipolicy == good_ipolicy
+
+    stdspec = bad_ipolicy[constants.ISPECS_STD]
+    for param in stdspec:
+      oldv = stdspec[param]
+      del stdspec[param]
+      self._AssertPolicyIsBad(bad_ipolicy, True)
+      # Note that std spec is the same as a max spec
+      stdspec[param] = oldv + 1
+      self._AssertPolicyIsBad(bad_ipolicy, True)
+      stdspec[param] = oldv
+    assert bad_ipolicy == good_ipolicy
+
+    for minmax in good_ipolicy[constants.ISPECS_MINMAX]:
+      for spec in minmax.values():
+        good_ipolicy[constants.ISPECS_STD] = spec
+        objects.InstancePolicy.CheckISpecSyntax(good_ipolicy, True)
+
+  def testCheckISpecParamSyntax(self):
     par = "my_parameter"
     for check_std in [True, False]:
-      # Only one policy limit
-      for key in constants.ISPECS_MINMAX_KEYS:
-        minmax = dict((k, {}) for k in constants.ISPECS_MINMAX_KEYS)
-        minmax[key][par] = 11
-        objects.InstancePolicy.CheckISpecSyntax(minmax, {}, par, check_std)
-      if check_std:
-        minmax = dict((k, {}) for k in constants.ISPECS_MINMAX_KEYS)
-        stdspec = {par: 11}
-        objects.InstancePolicy.CheckISpecSyntax(minmax, stdspec, par, check_std)
-
       # Min and max only
       good_values = [(11, 11), (11, 40), (0, 0)]
       for (mn, mx) in good_values:
         minmax = dict((k, {}) for k in constants.ISPECS_MINMAX_KEYS)
         minmax[constants.ISPECS_MIN][par] = mn
         minmax[constants.ISPECS_MAX][par] = mx
-        objects.InstancePolicy.CheckISpecSyntax(minmax, {}, par, check_std)
+        objects.InstancePolicy._CheckISpecParamSyntax(minmax, {}, par,
+                                                     check_std)
       minmax = dict((k, {}) for k in constants.ISPECS_MINMAX_KEYS)
       minmax[constants.ISPECS_MIN][par] = 11
       minmax[constants.ISPECS_MAX][par] = 5
       self.assertRaises(errors.ConfigurationError,
-                        objects.InstancePolicy.CheckISpecSyntax,
+                        objects.InstancePolicy._CheckISpecParamSyntax,
                         minmax, {}, par, check_std)
     # Min, std, max
     good_values = [
@@ -465,24 +585,29 @@ class TestInstancePolicy(unittest.TestCase):
         constants.ISPECS_MAX: {par: mx},
         }
       stdspec = {par: st}
-      objects.InstancePolicy.CheckISpecSyntax(minmax, stdspec, par, True)
+      objects.InstancePolicy._CheckISpecParamSyntax(minmax, stdspec, par, True)
     bad_values = [
-      (11, 11,  5),
-      (40, 11, 11),
-      (11, 80, 40),
-      (11,  5, 40),
-      (11,  5,  5),
-      (40, 40, 11),
+      (11, 11,  5, True),
+      (40, 11, 11, True),
+      (11, 80, 40, False),
+      (11,  5, 40, False,),
+      (11,  5,  5, True),
+      (40, 40, 11, True),
       ]
-    for (mn, st, mx) in bad_values:
+    for (mn, st, mx, excp) in bad_values:
       minmax = {
         constants.ISPECS_MIN: {par: mn},
         constants.ISPECS_MAX: {par: mx},
         }
       stdspec = {par: st}
-      self.assertRaises(errors.ConfigurationError,
-                        objects.InstancePolicy.CheckISpecSyntax,
-                        minmax, stdspec, par, True)
+      if excp:
+        self.assertRaises(errors.ConfigurationError,
+                          objects.InstancePolicy._CheckISpecParamSyntax,
+                          minmax, stdspec, par, True)
+      else:
+        ret = objects.InstancePolicy._CheckISpecParamSyntax(minmax, stdspec,
+                                                            par, True)
+        self.assertFalse(ret)
 
   def testCheckDiskTemplates(self):
     invalid = "this_is_not_a_good_template"
@@ -531,12 +656,7 @@ class TestInstancePolicy(unittest.TestCase):
   def _AssertIPolicyMerged(self, default_pol, diff_pol, merged_pol):
     for (key, value) in merged_pol.items():
       if key in diff_pol:
-        if key == constants.ISPECS_MINMAX:
-          self.assertEqual(frozenset(value), constants.ISPECS_MINMAX_KEYS)
-          for k in constants.ISPECS_MINMAX_KEYS:
-            self._AssertISpecsMerged(default_pol[key][k], diff_pol[key][k],
-                                     value[k])
-        elif key == constants.ISPECS_STD:
+        if key == constants.ISPECS_STD:
           self._AssertISpecsMerged(default_pol[key], diff_pol[key], value)
         else:
           self.assertEqual(value, diff_pol[key])
@@ -548,36 +668,11 @@ class TestInstancePolicy(unittest.TestCase):
       {constants.IPOLICY_VCPU_RATIO: 3.14},
       {constants.IPOLICY_SPINDLE_RATIO: 2.72},
       {constants.IPOLICY_DTS: [constants.DT_FILE]},
+      {constants.ISPECS_STD: {constants.ISPEC_DISK_COUNT: 3}},
+      {constants.ISPECS_MINMAX: [constants.ISPECS_MINMAX_DEFAULTS,
+                                 constants.ISPECS_MINMAX_DEFAULTS]}
       ]
     for diff_pol in partial_policies:
-      policy = objects.FillIPolicy(constants.IPOLICY_DEFAULTS, diff_pol)
-      objects.InstancePolicy.CheckParameterSyntax(policy, True)
-      self._AssertIPolicyIsFull(policy)
-      self._AssertIPolicyMerged(constants.IPOLICY_DEFAULTS, diff_pol, policy)
-
-  def testFillIPolicySpecs(self):
-    partial_ipolicies = [
-      {
-        constants.ISPECS_MINMAX: {
-          constants.ISPECS_MIN: {constants.ISPEC_MEM_SIZE: 32},
-          constants.ISPECS_MAX: {constants.ISPEC_CPU_COUNT: 1024}
-          },
-        },
-      {
-        constants.ISPECS_MINMAX: {
-          constants.ISPECS_MAX: {
-            constants.ISPEC_DISK_COUNT: constants.MAX_DISKS - 1,
-            constants.ISPEC_NIC_COUNT: constants.MAX_NICS - 1,
-            },
-          constants.ISPECS_MIN: {},
-          },
-          constants.ISPECS_STD: {constants.ISPEC_DISK_SIZE: 2048},
-        },
-      {
-        constants.ISPECS_STD: {constants.ISPEC_SPINDLE_USE: 3},
-        },
-      ]
-    for diff_pol in partial_ipolicies:
       policy = objects.FillIPolicy(constants.IPOLICY_DEFAULTS, diff_pol)
       objects.InstancePolicy.CheckParameterSyntax(policy, True)
       self._AssertIPolicyIsFull(policy)

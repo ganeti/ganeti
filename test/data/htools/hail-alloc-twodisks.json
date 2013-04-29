@@ -16,24 +16,26 @@
         "disk-templates": [
           "file"
         ],
-        "minmax": {
-          "max": {
-            "cpu-count": 2,
-            "disk-count": 8,
-            "disk-size": 2048,
-            "memory-size": 12800,
-            "nic-count": 8,
-            "spindle-use": 8
-          },
-          "min": {
-            "cpu-count": 1,
-            "disk-count": 1,
-            "disk-size": 1024,
-            "memory-size": 128,
-            "nic-count": 1,
-            "spindle-use": 1
+        "minmax": [
+          {
+            "max": {
+              "cpu-count": 2,
+              "disk-count": 8,
+              "disk-size": 2048,
+              "memory-size": 12800,
+              "nic-count": 8,
+              "spindle-use": 8
+            },
+            "min": {
+              "cpu-count": 1,
+              "disk-count": 1,
+              "disk-size": 1024,
+              "memory-size": 128,
+              "nic-count": 1,
+              "spindle-use": 1
+            }
           }
-        },
+        ],
         "spindle-ratio": 32.0,
         "std": {
           "cpu-count": 1,

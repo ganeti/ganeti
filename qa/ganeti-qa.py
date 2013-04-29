@@ -26,9 +26,10 @@
 # pylint: disable=C0103
 # due to invalid name
 
-import sys
+import copy
 import datetime
 import optparse
+import sys
 
 import qa_cluster
 import qa_config
@@ -523,33 +524,52 @@ def RunExclusiveStorageTests():
 
 
 def _BuildSpecDict(par, mn, st, mx):
-  return {par: {"min": mn, "std": st, "max": mx}}
+  return {
+    constants.ISPECS_MINMAX: [{
+      constants.ISPECS_MIN: {par: mn},
+      constants.ISPECS_MAX: {par: mx},
+      }],
+    constants.ISPECS_STD: {par: st},
+    }
+
+
+def _BuildDoubleSpecDict(index, par, mn, st, mx):
+  new_spec = {
+    constants.ISPECS_MINMAX: [{}, {}],
+    }
+  if st is not None:
+    new_spec[constants.ISPECS_STD] = {par: st}
+  new_spec[constants.ISPECS_MINMAX][index] = {
+    constants.ISPECS_MIN: {par: mn},
+    constants.ISPECS_MAX: {par: mx},
+    }
+  return new_spec
 
 
 def TestIPolicyPlainInstance():
   """Test instance policy interaction with instances"""
-  params = ["mem-size", "cpu-count", "disk-count", "disk-size", "nic-count"]
+  params = ["memory-size", "cpu-count", "disk-count", "disk-size", "nic-count"]
   if not qa_config.IsTemplateSupported(constants.DT_PLAIN):
     print "Template %s not supported" % constants.DT_PLAIN
     return
 
   # This test assumes that the group policy is empty
-  (_, old_specs) = qa_cluster.TestClusterSetISpecs({})
+  (_, old_specs) = qa_cluster.TestClusterSetISpecs()
+  # We also assume to have only one min/max bound
+  assert len(old_specs[constants.ISPECS_MINMAX]) == 1
   node = qa_config.AcquireNode()
   try:
-    # Log of policy changes, list of tuples: (change, policy_violated)
+    # Log of policy changes, list of tuples:
+    # (full_change, incremental_change, policy_violated)
     history = []
     instance = qa_instance.TestInstanceAddWithPlainDisk([node])
     try:
       policyerror = [constants.CV_EINSTANCEPOLICY]
       for par in params:
-        qa_cluster.AssertClusterVerify()
         (iminval, imaxval) = qa_instance.GetInstanceSpec(instance.name, par)
         # Some specs must be multiple of 4
         new_spec = _BuildSpecDict(par, imaxval + 4, imaxval + 4, imaxval + 4)
-        history.append((new_spec, True))
-        qa_cluster.TestClusterSetISpecs(new_spec)
-        qa_cluster.AssertClusterVerify(warnings=policyerror)
+        history.append((None, new_spec, True))
         if iminval > 0:
           # Some specs must be multiple of 4
           if iminval >= 4:
@@ -557,19 +577,57 @@ def TestIPolicyPlainInstance():
           else:
             upper = iminval - 1
           new_spec = _BuildSpecDict(par, 0, upper, upper)
-          history.append((new_spec, True))
-          qa_cluster.TestClusterSetISpecs(new_spec)
+          history.append((None, new_spec, True))
+        history.append((old_specs, None, False))
+
+      # Test with two instance specs
+      double_specs = copy.deepcopy(old_specs)
+      double_specs[constants.ISPECS_MINMAX] = \
+          double_specs[constants.ISPECS_MINMAX] * 2
+      (par1, par2) = params[0:2]
+      (_, imaxval1) = qa_instance.GetInstanceSpec(instance.name, par1)
+      (_, imaxval2) = qa_instance.GetInstanceSpec(instance.name, par2)
+      old_minmax = old_specs[constants.ISPECS_MINMAX][0]
+      history.extend([
+        (double_specs, None, False),
+        # The first min/max limit is being violated
+        (None,
+         _BuildDoubleSpecDict(0, par1, imaxval1 + 4, imaxval1 + 4,
+                              imaxval1 + 4),
+         False),
+        # Both min/max limits are being violated
+        (None,
+         _BuildDoubleSpecDict(1, par2, imaxval2 + 4, None, imaxval2 + 4),
+         True),
+        # The second min/max limit is being violated
+        (None,
+         _BuildDoubleSpecDict(0, par1,
+                              old_minmax[constants.ISPECS_MIN][par1],
+                              old_specs[constants.ISPECS_STD][par1],
+                              old_minmax[constants.ISPECS_MAX][par1]),
+         False),
+        (old_specs, None, False),
+        ])
+
+      # Apply the changes, and check policy violations after each change
+      qa_cluster.AssertClusterVerify()
+      for (new_specs, diff_specs, failed) in history:
+        qa_cluster.TestClusterSetISpecs(new_specs=new_specs,
+                                        diff_specs=diff_specs)
+        if failed:
           qa_cluster.AssertClusterVerify(warnings=policyerror)
-        qa_cluster.TestClusterSetISpecs(old_specs)
-        history.append((old_specs, False))
+        else:
+          qa_cluster.AssertClusterVerify()
+
       qa_instance.TestInstanceRemove(instance)
     finally:
       instance.Release()
 
     # Now we replay the same policy changes, and we expect that the instance
     # cannot be created for the cases where we had a policy violation above
-    for (change, failed) in history:
-      qa_cluster.TestClusterSetISpecs(change)
+    for (new_specs, diff_specs, failed) in history:
+      qa_cluster.TestClusterSetISpecs(new_specs=new_specs,
+                                      diff_specs=diff_specs)
       if failed:
         qa_instance.TestInstanceAddWithPlainDisk([node], fail=True)
       # Instance creation with no policy violation has been tested already
