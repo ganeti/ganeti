@@ -375,5 +375,47 @@ class TestDRBD8Status(testutils.GanetiTestCase):
                       filename=self.proc80ev_data)
 
 
+class TestDRBD8Construction(testutils.GanetiTestCase):
+  def setUp(self):
+    """Read in txt data"""
+    testutils.GanetiTestCase.setUp(self)
+    self.proc80_info = \
+      drbd_info.DRBD8Info.CreateFromFile(
+        filename=testutils.TestDataFilename("proc_drbd8.txt"))
+    self.proc83_info = \
+      drbd_info.DRBD8Info.CreateFromFile(
+        filename=testutils.TestDataFilename("proc_drbd83.txt"))
+    self.proc84_info = \
+      drbd_info.DRBD8Info.CreateFromFile(
+        filename=testutils.TestDataFilename("proc_drbd84.txt"))
+
+    self.test_unique_id = ("hosta.com", 123, "host2.com", 123, 0, "secret")
+
+  @testutils.patch_object(drbd_info.DRBD8Info, "CreateFromFile")
+  def testConstructionWith80Data(self, mock_create_from_file):
+    mock_create_from_file.return_value = self.proc80_info
+
+    inst = drbd.DRBD8(self.test_unique_id, [], 123, {})
+    self.assertEqual(inst._show_info_cls, drbd_info.DRBD83ShowInfo)
+    self.assertTrue(isinstance(inst._cmd_gen, drbd_cmdgen.DRBD83CmdGenerator))
+
+  @testutils.patch_object(drbd_info.DRBD8Info, "CreateFromFile")
+  def testConstructionWith83Data(self, mock_create_from_file):
+    mock_create_from_file.return_value = self.proc83_info
+
+    inst = drbd.DRBD8(self.test_unique_id, [], 123, {})
+    self.assertEqual(inst._show_info_cls, drbd_info.DRBD83ShowInfo)
+    self.assertTrue(isinstance(inst._cmd_gen, drbd_cmdgen.DRBD83CmdGenerator))
+
+  @testutils.patch_object(drbd_info.DRBD8Info, "CreateFromFile")
+  def testConstructionWith84Data(self, mock_create_from_file):
+    mock_create_from_file.return_value = self.proc84_info
+
+    inst = drbd.DRBD8(self.test_unique_id, [], 123, {})
+    self.assertEqual(inst._show_info_cls, drbd_info.DRBD84ShowInfo)
+    # FIXME: add assertion for right class here!
+    self.assertEqual(inst._cmd_gen, None)
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()

@@ -209,6 +209,21 @@ class GanetiTestCase(unittest.TestCase):
     return fname
 
 
+def patch_object(*args, **kwargs):
+  """Unified patch_object for various versions of Python Mock.
+
+  Different Python Mock versions provide incompatible versions of patching an
+  object. More recent versions use _patch_object, older ones used patch_object.
+  This function unifies the different variations.
+
+  """
+  import mock
+  try:
+    return mock._patch_object(*args, **kwargs)
+  except AttributeError:
+    return mock.patch_object(*args, **kwargs)
+
+
 def UnifyValueType(data):
   """Converts all tuples into lists.
 
