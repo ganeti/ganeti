@@ -1,0 +1,19 @@
+resource test0 {
+    options {
+    }
+    net {
+    }
+    _remote_host {
+        address                 ipv4 192.0.2.2:11000;
+    }
+    _this_host {
+        address                 ipv4 192.0.2.1:11000;
+        volume 0 {
+            device                      minor 0;
+            disk                        "/dev/xenvg/test.data";
+            meta-disk                   "/dev/xenvg/test.meta" [ 0 ];
+            disk {
+            }
+        }
+    }
+}

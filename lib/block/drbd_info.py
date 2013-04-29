@@ -255,69 +255,50 @@ class DRBD8Info(object):
     return DRBD8Info.CreateFromLines(lines)
 
 
-class DRBD8ShowInfo(object):
-  """Helper class which parses the output of drbdsetup show
+class BaseShowInfo(object):
+  """Base class for parsing the `drbdsetup show` output.
+
+  Holds various common pyparsing expressions which are used by subclasses. Also
+  provides caching of the constructed parser.
 
   """
   _PARSE_SHOW = None
 
-  @classmethod
-  def _GetShowParser(cls):
-    """Return a parser for `drbd show` output.
+  # pyparsing setup
+  _lbrace = pyp.Literal("{").suppress()
+  _rbrace = pyp.Literal("}").suppress()
+  _lbracket = pyp.Literal("[").suppress()
+  _rbracket = pyp.Literal("]").suppress()
+  _semi = pyp.Literal(";").suppress()
+  _colon = pyp.Literal(":").suppress()
+  # this also converts the value to an int
+  _number = pyp.Word(pyp.nums).setParseAction(lambda s, l, t: int(t[0]))
 
-    This will either create or return an already-created parser for the
-    output of the command `drbd show`.
+  _comment = pyp.Literal("#") + pyp.Optional(pyp.restOfLine)
+  _defa = pyp.Literal("_is_default").suppress()
+  _dbl_quote = pyp.Literal('"').suppress()
 
-    """
-    if cls._PARSE_SHOW is not None:
-      return cls._PARSE_SHOW
+  _keyword = pyp.Word(pyp.alphanums + "-")
 
-    # pyparsing setup
-    lbrace = pyp.Literal("{").suppress()
-    rbrace = pyp.Literal("}").suppress()
-    lbracket = pyp.Literal("[").suppress()
-    rbracket = pyp.Literal("]").suppress()
-    semi = pyp.Literal(";").suppress()
-    colon = pyp.Literal(":").suppress()
-    # this also converts the value to an int
-    number = pyp.Word(pyp.nums).setParseAction(lambda s, l, t: int(t[0]))
+  # value types
+  _value = pyp.Word(pyp.alphanums + "_-/.:")
+  _quoted = _dbl_quote + pyp.CharsNotIn('"') + _dbl_quote
+  _ipv4_addr = (pyp.Optional(pyp.Literal("ipv4")).suppress() +
+                pyp.Word(pyp.nums + ".") + _colon + _number)
+  _ipv6_addr = (pyp.Optional(pyp.Literal("ipv6")).suppress() +
+                pyp.Optional(_lbracket) + pyp.Word(pyp.hexnums + ":") +
+                pyp.Optional(_rbracket) + _colon + _number)
+  # meta device, extended syntax
+  _meta_value = ((_value ^ _quoted) + _lbracket + _number + _rbracket)
+  # device name, extended syntax
+  _device_value = pyp.Literal("minor").suppress() + _number
 
-    comment = pyp.Literal("#") + pyp.Optional(pyp.restOfLine)
-    defa = pyp.Literal("_is_default").suppress()
-    dbl_quote = pyp.Literal('"').suppress()
-
-    keyword = pyp.Word(pyp.alphanums + "-")
-
-    # value types
-    value = pyp.Word(pyp.alphanums + "_-/.:")
-    quoted = dbl_quote + pyp.CharsNotIn('"') + dbl_quote
-    ipv4_addr = (pyp.Optional(pyp.Literal("ipv4")).suppress() +
-                 pyp.Word(pyp.nums + ".") + colon + number)
-    ipv6_addr = (pyp.Optional(pyp.Literal("ipv6")).suppress() +
-                 pyp.Optional(lbracket) + pyp.Word(pyp.hexnums + ":") +
-                 pyp.Optional(rbracket) + colon + number)
-    # meta device, extended syntax
-    meta_value = ((value ^ quoted) + lbracket + number + rbracket)
-    # device name, extended syntax
-    device_value = pyp.Literal("minor").suppress() + number
-
-    # a statement
-    stmt = (~rbrace + keyword + ~lbrace +
-            pyp.Optional(ipv4_addr ^ ipv6_addr ^ value ^ quoted ^ meta_value ^
-                         device_value) +
-            pyp.Optional(defa) + semi +
-            pyp.Optional(pyp.restOfLine).suppress())
-
-    # an entire section
-    section_name = pyp.Word(pyp.alphas + "_")
-    section = section_name + lbrace + pyp.ZeroOrMore(pyp.Group(stmt)) + rbrace
-
-    bnf = pyp.ZeroOrMore(pyp.Group(section ^ stmt))
-    bnf.ignore(comment)
-
-    cls._PARSE_SHOW = bnf
-
-    return bnf
+  # a statement
+  _stmt = (~_rbrace + _keyword + ~_lbrace +
+           pyp.Optional(_ipv4_addr ^ _ipv6_addr ^ _value ^ _quoted ^
+                        _meta_value ^ _device_value) +
+           pyp.Optional(_defa) + _semi +
+           pyp.Optional(pyp.restOfLine).suppress())
 
   @classmethod
   def GetDevInfo(cls, show_data):
@@ -336,9 +317,8 @@ class DRBD8ShowInfo(object):
       - remote_addr
 
     """
-    retval = {}
     if not show_data:
-      return retval
+      return {}
 
     try:
       # run pyparse
@@ -346,8 +326,49 @@ class DRBD8ShowInfo(object):
     except pyp.ParseException, err:
       base.ThrowError("Can't parse drbdsetup show output: %s", str(err))
 
-    # and massage the results into our desired format
-    for section in results:
+    return cls._TransformParseResult(results)
+
+  @classmethod
+  def _TransformParseResult(cls, parse_result):
+    raise NotImplementedError
+
+  @classmethod
+  def _GetShowParser(cls):
+    """Return a parser for `drbd show` output.
+
+    This will either create or return an already-created parser for the
+    output of the command `drbd show`.
+
+    """
+    if cls._PARSE_SHOW is None:
+      cls._PARSE_SHOW = cls._ConstructShowParser()
+
+    return cls._PARSE_SHOW
+
+  @classmethod
+  def _ConstructShowParser(cls):
+    raise NotImplementedError
+
+
+class DRBD83ShowInfo(BaseShowInfo):
+  @classmethod
+  def _ConstructShowParser(cls):
+    # an entire section
+    section_name = pyp.Word(pyp.alphas + "_")
+    section = section_name + \
+              cls._lbrace + \
+              pyp.ZeroOrMore(pyp.Group(cls._stmt)) + \
+              cls._rbrace
+
+    bnf = pyp.ZeroOrMore(pyp.Group(section ^ cls._stmt))
+    bnf.ignore(cls._comment)
+
+    return bnf
+
+  @classmethod
+  def _TransformParseResult(cls, parse_result):
+    retval = {}
+    for section in parse_result:
       sname = section[0]
       if sname == "_this_host":
         for lst in section[1:]:
@@ -358,6 +379,53 @@ class DRBD8ShowInfo(object):
             retval["meta_index"] = lst[2]
           elif lst[0] == "address":
             retval["local_addr"] = tuple(lst[1:])
+      elif sname == "_remote_host":
+        for lst in section[1:]:
+          if lst[0] == "address":
+            retval["remote_addr"] = tuple(lst[1:])
+    return retval
+
+
+class DRBD84ShowInfo(BaseShowInfo):
+  @classmethod
+  def _ConstructShowParser(cls):
+    # an entire section (sections can be nested in DRBD 8.4, and there exist
+    # sections like "volume 0")
+    section_name = pyp.Word(pyp.alphas + "_") + \
+                   pyp.Optional(pyp.Word(pyp.nums)).suppress() # skip volume idx
+    section = pyp.Forward()
+    # pylint: disable=W0106
+    section << (section_name +
+                cls._lbrace +
+                pyp.ZeroOrMore(pyp.Group(cls._stmt ^ section)) +
+                cls._rbrace)
+
+    resource_name = pyp.Word(pyp.alphanums + "_-.")
+    resource = (pyp.Literal("resource") + resource_name).suppress() + \
+               cls._lbrace + \
+               pyp.ZeroOrMore(pyp.Group(section)) + \
+               cls._rbrace
+
+    resource.ignore(cls._comment)
+
+    return resource
+
+  @classmethod
+  def _TransformParseResult(cls, parse_result):
+    retval = {}
+    for section in parse_result:
+      sname = section[0]
+      if sname == "_this_host":
+        for lst in section[1:]:
+          if lst[0] == "address":
+            retval["local_addr"] = tuple(lst[1:])
+          elif lst[0] == "volume":
+            for inner in lst[1:]:
+              if inner[0] == "disk" and len(inner) == 2:
+                retval["local_dev"] = inner[1]
+              elif inner[0] == "meta-disk" and len(inner) == 3:
+                retval["meta_dev"] = inner[1]
+                retval["meta_index"] = inner[2]
       elif sname == "_remote_host":
         for lst in section[1:]:
           if lst[0] == "address":

@@ -1036,6 +1036,7 @@ TEST_FILES = \
 	test/hs/shelltests/htools-mon-collector.test \
 	test/data/bdev-drbd-8.0.txt \
 	test/data/bdev-drbd-8.3.txt \
+	test/data/bdev-drbd-8.4.txt \
 	test/data/bdev-drbd-disk.txt \
 	test/data/bdev-drbd-net-ip4.txt \
 	test/data/bdev-drbd-net-ip6.txt \
