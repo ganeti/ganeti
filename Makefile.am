@@ -1127,6 +1127,7 @@ python_tests = \
 	test/py/ganeti.backend_unittest-runasroot.py \
 	test/py/ganeti.backend_unittest.py \
 	test/py/ganeti.block.bdev_unittest.py \
+	test/py/ganeti.block.drbd_unittest.py \
 	test/py/ganeti.cli_unittest.py \
 	test/py/ganeti.client.gnt_cluster_unittest.py \
 	test/py/ganeti.client.gnt_instance_unittest.py \
