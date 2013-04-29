@@ -33,6 +33,7 @@ from ganeti import objects
 from ganeti import utils
 from ganeti.block import bdev
 from ganeti.block import drbd
+from ganeti.block import drbd_info
 
 import testutils
 
@@ -104,12 +105,12 @@ class TestDRBD8Runner(testutils.GanetiTestCase):
 
   def testParserCreation(self):
     """Test drbdsetup show parser creation"""
-    drbd.DRBD8ShowInfo._GetShowParser()
+    drbd_info.DRBD8ShowInfo._GetShowParser()
 
   def testParser80(self):
     """Test drbdsetup show parser for disk and network version 8.0"""
     data = testutils.ReadTestData("bdev-drbd-8.0.txt")
-    result = drbd.DRBD8ShowInfo.GetDevInfo(data)
+    result = drbd_info.DRBD8ShowInfo.GetDevInfo(data)
     self.failUnless(self._has_disk(result, "/dev/xenvg/test.data",
                                    "/dev/xenvg/test.meta"),
                     "Wrong local disk info")
@@ -120,7 +121,7 @@ class TestDRBD8Runner(testutils.GanetiTestCase):
   def testParser83(self):
     """Test drbdsetup show parser for disk and network version 8.3"""
     data = testutils.ReadTestData("bdev-drbd-8.3.txt")
-    result = drbd.DRBD8ShowInfo.GetDevInfo(data)
+    result = drbd_info.DRBD8ShowInfo.GetDevInfo(data)
     self.failUnless(self._has_disk(result, "/dev/xenvg/test.data",
                                    "/dev/xenvg/test.meta"),
                     "Wrong local disk info")
@@ -131,7 +132,7 @@ class TestDRBD8Runner(testutils.GanetiTestCase):
   def testParserNetIP4(self):
     """Test drbdsetup show parser for IPv4 network"""
     data = testutils.ReadTestData("bdev-drbd-net-ip4.txt")
-    result = drbd.DRBD8ShowInfo.GetDevInfo(data)
+    result = drbd_info.DRBD8ShowInfo.GetDevInfo(data)
     self.failUnless(("local_dev" not in result and
                      "meta_dev" not in result and
                      "meta_index" not in result),
@@ -143,7 +144,7 @@ class TestDRBD8Runner(testutils.GanetiTestCase):
   def testParserNetIP6(self):
     """Test drbdsetup show parser for IPv6 network"""
     data = testutils.ReadTestData("bdev-drbd-net-ip6.txt")
-    result = drbd.DRBD8ShowInfo.GetDevInfo(data)
+    result = drbd_info.DRBD8ShowInfo.GetDevInfo(data)
     self.failUnless(("local_dev" not in result and
                      "meta_dev" not in result and
                      "meta_index" not in result),
@@ -155,7 +156,7 @@ class TestDRBD8Runner(testutils.GanetiTestCase):
   def testParserDisk(self):
     """Test drbdsetup show parser for disk"""
     data = testutils.ReadTestData("bdev-drbd-disk.txt")
-    result = drbd.DRBD8ShowInfo.GetDevInfo(data)
+    result = drbd_info.DRBD8ShowInfo.GetDevInfo(data)
     self.failUnless(self._has_disk(result, "/dev/xenvg/test.data",
                                    "/dev/xenvg/test.meta"),
                     "Wrong local disk info")
@@ -289,8 +290,8 @@ class TestDRBD8Status(testutils.GanetiTestCase):
     self.failUnless(not self.drbd_info80e.HasMinorStatus(3))
 
   def testLineNotMatch(self):
-    """Test wrong line passed to drbd.DRBD8Status"""
-    self.assertRaises(errors.BlockDeviceError, drbd.DRBD8Status, "foo")
+    """Test wrong line passed to drbd_info.DRBD8Status"""
+    self.assertRaises(errors.BlockDeviceError, drbd_info.DRBD8Status, "foo")
 
   def testMinor0(self):
     """Test connected, primary device"""

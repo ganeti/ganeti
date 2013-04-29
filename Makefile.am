@@ -319,7 +319,8 @@ block_PYTHON = \
 	lib/block/__init__.py \
 	lib/block/bdev.py \
 	lib/block/base.py \
-	lib/block/drbd.py
+	lib/block/drbd.py \
+	lib/block/drbd_info.py
 
 rapi_PYTHON = \
 	lib/rapi/__init__.py \
