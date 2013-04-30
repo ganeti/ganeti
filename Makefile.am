@@ -426,7 +426,11 @@ mandocrst = $(addprefix doc/man-,$(notdir $(manrst)))
 HS_BIN_PROGS=src/htools
 
 # Haskell programs to be installed in the MYEXECLIB dir
+if ENABLE_MONITORING
 HS_MYEXECLIB_PROGS=src/mon-collector
+else
+HS_MYEXECLIB_PROGS=
+endif
 
 # Haskell programs to compiled but not installed automatically
 # Usually they have their own specific installation rules
