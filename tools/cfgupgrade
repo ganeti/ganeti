@@ -260,60 +260,11 @@ def UpgradeAll(config_data):
   UpgradeInstances(config_data)
 
 
-def DowngradeIPolicy(ipolicy, owner):
-  # Downgrade IPolicy to 2.7 (stable)
-  minmax_keys = ["min", "max"]
-  specs_is_split = any((k in ipolicy) for k in minmax_keys)
-  if not specs_is_split:
-    if "minmax" in ipolicy:
-      if type(ipolicy["minmax"]) is not list:
-        raise Error("Invalid minmax type in %s ipolicy: %s" %
-                    (owner, type(ipolicy["minmax"])))
-      if len(ipolicy["minmax"]) > 1:
-        logging.warning("Discarding some limit specs values from %s policy",
-                        owner)
-      minmax = ipolicy["minmax"][0]
-      del ipolicy["minmax"]
-    else:
-      minmax = {}
-    for key in minmax_keys:
-      spec = minmax.get(key, {})
-      ipolicy[key] = spec
-    if "std" not in ipolicy:
-      ipolicy["std"] = {}
-
-
-def DowngradeGroups(config_data):
-  for group in config_data["nodegroups"].values():
-    ipolicy = group.get("ipolicy", None)
-    if ipolicy is not None:
-      DowngradeIPolicy(ipolicy, "group \"%s\"" % group.get("name"))
-
-
-def DowngradeEnabledTemplates(cluster):
-  # Remove enabled disk templates to downgrade to 2.7
-  edt_key = "enabled_disk_templates"
-  if edt_key in cluster:
-    logging.warning("Removing cluster's enabled disk templates; value = %s",
-                    utils.CommaJoin(cluster[edt_key]))
-    del cluster[edt_key]
-
-
-def DowngradeCluster(config_data):
-  cluster = config_data.get("cluster", None)
-  if cluster is None:
-    raise Error("Cannot find cluster")
-  DowngradeEnabledTemplates(cluster)
-  ipolicy = cluster.get("ipolicy", None)
-  if ipolicy:
-    DowngradeIPolicy(ipolicy, "cluster")
-
-
 def DowngradeAll(config_data):
+  # Unused arguments, pylint: disable=W0613
   # Any code specific to a particular version should be labeled that way, so
   # it can be removed when updating to the next version.
-  DowngradeCluster(config_data)
-  DowngradeGroups(config_data)
+  pass
 
 
 def main():

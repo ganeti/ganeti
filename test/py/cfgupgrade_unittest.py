@@ -365,6 +365,9 @@ class TestCfgupgrade(unittest.TestCase):
   def testUpgradeFullConfigFrom_2_7(self):
     self._TestUpgradeFromFile("cluster_config_2.7.json", False)
 
+  def testUpgradeFullConfigFrom_2_8(self):
+    self._TestUpgradeFromFile("cluster_config_2.8.json", False)
+
   def testUpgradeCurrent(self):
     self._TestSimpleUpgrade(constants.CONFIG_VERSION, False)
 
@@ -382,9 +385,7 @@ class TestCfgupgrade(unittest.TestCase):
   def testDowngradeFullConfig(self):
     """Test for upgrade + downgrade combination."""
     # This test can work only with the previous version of a configuration!
-    # For 2.7, downgrading returns the original file only if group policies
-    # don't override instance specs, so we need to use an ad-hoc configuration.
-    oldconfname = "cluster_config_downgraded_2.7.json"
+    oldconfname = "cluster_config_2.8.json"
     self._TestUpgradeFromFile(oldconfname, False)
     _RunUpgrade(self.tmpdir, False, True, downgrade=True)
     oldconf = self._LoadTestDataConfig(oldconfname)

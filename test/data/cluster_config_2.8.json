@@ -46,6 +46,12 @@
       "sharedfile": {}
     },
     "drbd_usermode_helper": "/bin/true",
+    "enabled_disk_templates": [
+      "drbd",
+      "plain",
+      "file",
+      "sharedfile"
+    ],
     "enabled_hypervisors": [
       "xen-pvm"
     ],
@@ -175,22 +181,26 @@
         "file",
         "rbd"
       ],
-      "max": {
-        "cpu-count": 8,
-        "disk-count": 16,
-        "disk-size": 1048576,
-        "memory-size": 32768,
-        "nic-count": 8,
-        "spindle-use": 12
-      },
-      "min": {
-        "cpu-count": 1,
-        "disk-count": 1,
-        "disk-size": 1024,
-        "memory-size": 128,
-        "nic-count": 1,
-        "spindle-use": 1
-      },
+      "minmax": [
+        {
+          "max": {
+            "cpu-count": 8,
+            "disk-count": 16,
+            "disk-size": 1048576,
+            "memory-size": 32768,
+            "nic-count": 8,
+            "spindle-use": 12
+          },
+          "min": {
+            "cpu-count": 1,
+            "disk-count": 1,
+            "disk-size": 1024,
+            "memory-size": 128,
+            "nic-count": 1,
+            "spindle-use": 1
+          }
+        }
+      ],
       "spindle-ratio": 32.0,
       "std": {
         "cpu-count": 1,
@@ -312,7 +322,8 @@
             0,
             "d3c3fd475fcbaf5fd177fb245ac43b71247ada38"
           ],
-          "size": 1024
+          "size": 1024,
+          "uuid": "77ced3a5-6756-49ae-8d1f-274e27664c05"
         }
       ],
       "hvparams": {},
@@ -322,7 +333,8 @@
       "nics": [
         {
           "mac": "aa:bb:cc:b2:6e:0b",
-          "nicparams": {}
+          "nicparams": {},
+          "uuid": "2c953d72-fac4-4aa9-a225-4131bb271791"
         }
       ],
       "os": "busybox",
@@ -350,7 +362,8 @@
             "xenvg",
             "3e559cd7-1024-4294-a923-a9fd13182b2f.disk0"
           ],
-          "size": 102400
+          "size": 102400,
+          "uuid": "79acf611-be58-4334-9fe4-4f2b73ae8abb"
         }
       ],
       "hvparams": {},
@@ -360,7 +373,8 @@
       "nics": [
         {
           "mac": "aa:bb:cc:56:83:fb",
-          "nicparams": {}
+          "nicparams": {},
+          "uuid": "1cf95562-e676-4fd0-8214-e8b84a2f7bd1"
         }
       ],
       "os": "debian-image",
@@ -389,7 +403,8 @@
             "xenvg",
             "b27a576a-13f7-4f07-885c-63fcad4fdfcc.disk0"
           ],
-          "size": 1280
+          "size": 1280,
+          "uuid": "150bd154-8e23-44d1-b762-5065ae5a507b"
         }
       ],
       "hvparams": {},
@@ -399,7 +414,8 @@
       "nics": [
         {
           "mac": "aa:bb:cc:5e:5c:75",
-          "nicparams": {}
+          "nicparams": {},
+          "uuid": "1ab090c1-e017-406c-afb4-fc285cb43e31"
         }
       ],
       "os": "debian-image",
@@ -410,7 +426,7 @@
       "uuid": "4e091bdc-e205-4ed7-8a47-0c9130a6619f"
     }
   },
-  "mtime": 1361984633.373014,
+  "mtime": 1367352404.758083,
   "networks": {
     "99f0128a-1c84-44da-90b9-9581ea00c075": {
       "ext_reservations": "1000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001",
@@ -425,11 +441,7 @@
     "5244a46d-7506-4e14-922d-02b58153dde1": {
       "alloc_policy": "preferred",
       "diskparams": {},
-      "ipolicy": {
-        "max": {},
-        "min": {},
-        "std": {}
-      },
+      "ipolicy": {},
       "mtime": 1361963775.575009,
       "name": "default",
       "ndparams": {},
@@ -442,14 +454,31 @@
       "alloc_policy": "preferred",
       "diskparams": {},
       "ipolicy": {
-	"disk-templates": [
-	  "plain"
-	],
-	"max": {},
-	"min": {},
-	"spindle-ratio": 5.2,
-	"std": {},
-	"vcpu-ratio": 3.14
+        "disk-templates": [
+          "plain"
+        ],
+        "minmax": [
+          {
+            "max": {
+              "cpu-count": 8,
+              "disk-count": 16,
+              "disk-size": 1048576,
+              "memory-size": 32768,
+              "nic-count": 18,
+              "spindle-use": 14
+            },
+            "min": {
+              "cpu-count": 2,
+              "disk-count": 2,
+              "disk-size": 1024,
+              "memory-size": 128,
+              "nic-count": 1,
+              "spindle-use": 1
+            }
+          }
+        ],
+        "spindle-ratio": 5.2,
+        "vcpu-ratio": 3.14
       },
       "mtime": 1361963775.575009,
       "name": "another",
@@ -518,6 +547,6 @@
       "vm_capable": true
     }
   },
-  "serial_no": 7624,
+  "serial_no": 7625,
   "version": 2070000
 }
