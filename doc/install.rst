@@ -301,6 +301,13 @@ instances on a node.
      $ apt-get install drbd8-source drbd8-utils
      $ m-a update
      $ m-a a-i drbd8
+
+   Or on newer versions, if the kernel already has modules:
+
+     $ apt-get install drbd8-utils
+
+   Then to configure it for Ganeti::
+
      $ echo drbd minor_count=128 usermode_helper=/bin/true >> /etc/modules
      $ depmod -a
      $ modprobe drbd minor_count=128 usermode_helper=/bin/true
