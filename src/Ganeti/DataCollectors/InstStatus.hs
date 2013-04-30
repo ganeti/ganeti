@@ -179,15 +179,22 @@ buildStatus domains uptimes inst = do
       trail
       status
 
--- | Main function.
-main :: Options -> [String] -> IO ()
-main opts _ = do
-  curNode <- getHostName
-  let node = fromMaybe curNode $ optNode opts
-  answer <- getInstances node (optConfdAddr opts) (optConfdPort opts)
+-- | Build the report of this data collector, containing all the information
+-- about the status of the instances.
+buildInstStatusReport :: Maybe String -> Maybe Int -> IO DCReport
+buildInstStatusReport srvAddr srvPort = do
+  node <- getHostName
+  answer <- getInstances node srvAddr srvPort
   inst <- exitIfBad "Can't get instance info from ConfD" answer
   domains <- getInferredDomInfo
   uptimes <- getUptimeInfo
   let primaryInst =  fst inst
   iStatus <- mapM (buildStatus domains uptimes) primaryInst
-  putStrLn $ J.encode iStatus
+  let jsonReport = J.showJSON iStatus
+  buildReport dcName dcVersion dcFormatVersion dcCategory dcKind jsonReport
+
+-- | Main function.
+main :: Options -> [String] -> IO ()
+main opts _ = do
+  report <- buildInstStatusReport (optConfdAddr opts) (optConfdPort opts)
+  putStrLn $ J.encode report
