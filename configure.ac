@@ -582,8 +582,13 @@ if test "$enable_monitoring" != no; then
   MONITORING_PKG=
   AC_GHC_PKG_CHECK([attoparsec], [],
                    [MONITORING_PKG="$MONITORING_PKG attoparsec"])
+  MONITORING_DEP=
+  if test "$has_confd" = False; then
+    MONITORING_DEP="$MONITORING_DEP confd"
+  fi
+  has_monitoring_pkg=False
   if test -z "$MONITORING_PKG"; then
-    has_monitoring=True
+    has_monitoring_pkg=True
   elif test "$enable_monitoring" = check; then
     AC_MSG_WARN(m4_normalize([The required extra libraries for the monitoring
                               agent were not found ($MONITORING_PKG),
@@ -593,8 +598,22 @@ if test "$enable_monitoring" != no; then
                                  required libraries were not found:
                                  $MONITORING_PKG]))
   fi
+  has_monitoring_dep=False
+  if test -z "$MONITORING_DEP"; then
+    has_monitoring_dep=True
+  elif test "$enable_monitoring" = check; then
+    AC_MSG_WARN(m4_normalize([The optional Ganeti components required for the
+                              monitoring agent were not enabled
+                              ($MONITORING_DEP), monitoring disabled]))
+  else
+    AC_MSG_FAILURE(m4_normalize([The monitoring functionality was requested, but
+                                 required optional Ganeti components were not
+                                 found: $MONITORING_DEP]))
+  fi
+
 fi
-if test "$has_monitoring" = True; then
+if test "$has_monitoring_pkg" = True -a "$has_monitoring_dep" = True; then
+  has_monitoring=True
   AC_MSG_NOTICE([Enabling the monitoring agent usage])
 fi
 AC_SUBST(ENABLE_MONITORING, $has_monitoring)
