@@ -36,6 +36,7 @@ module Ganeti.DataCollectors.InstStatus
 
 
 import Control.Exception.Base
+import Data.List
 import Data.Maybe
 import qualified Data.Map as Map
 import Network.BSD (getHostName)
@@ -179,6 +180,17 @@ buildStatus domains uptimes inst = do
       trail
       status
 
+-- | Compute the status code and message, given the current DRBD data
+-- The final state will have the code corresponding to the worst code of
+-- all the devices, and the error message given from the concatenation of the
+-- non-empty error messages.
+computeGlobalStatus :: [InstStatus] -> DCStatus
+computeGlobalStatus instStatusList =
+  let dcstatuses = map iStatStatus instStatusList
+      statuses = map (\s -> (dcStatusCode s, dcStatusMessage s)) dcstatuses
+      (code, strList) = foldr mergeStatuses (DCSCOk, [""]) statuses
+  in DCStatus code $ intercalate "\n" strList
+
 -- | Build the report of this data collector, containing all the information
 -- about the status of the instances.
 buildInstStatusReport :: Maybe String -> Maybe Int -> IO DCReport
@@ -190,7 +202,8 @@ buildInstStatusReport srvAddr srvPort = do
   uptimes <- getUptimeInfo
   let primaryInst =  fst inst
   iStatus <- mapM (buildStatus domains uptimes) primaryInst
-  let jsonReport = J.showJSON iStatus
+  let globalStatus = computeGlobalStatus iStatus
+      jsonReport = J.showJSON $ ReportData iStatus globalStatus
   buildReport dcName dcVersion dcFormatVersion dcCategory dcKind jsonReport
 
 -- | Main function.

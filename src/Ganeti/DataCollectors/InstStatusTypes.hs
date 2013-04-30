@@ -26,6 +26,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Ganeti.DataCollectors.InstStatusTypes
   ( InstStatus(..)
+  , ReportData(..)
   ) where
 
 
@@ -46,4 +47,9 @@ $(buildObject "InstStatus" "iStat"
   , simpleField "mtime"        [t| Double |]
   , simpleField "state_reason" [t| ReasonTrail |]
   , simpleField "status"       [t| DCStatus |]
+  ])
+
+$(buildObject "ReportData" "rData"
+  [ simpleField "instances" [t| [InstStatus] |]
+  , simpleField "status"    [t| DCStatus |]
   ])
