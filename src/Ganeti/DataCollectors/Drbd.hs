@@ -137,17 +137,6 @@ computeStatus (DRBDStatus _ devInfos) =
       (code, strList) = foldr mergeStatuses (DCSCOk, [""]) statuses
   in DCStatus code $ intercalate "\n" strList
 
--- | Helper function for merging statuses.
-mergeStatuses :: (DCStatusCode, String) -> (DCStatusCode, [String])
-              -> (DCStatusCode, [String])
-mergeStatuses (newStat, newStr) (storedStat, storedStrs) =
-  let resStat = max newStat storedStat
-      resStrs =
-        if newStr == ""
-          then storedStrs
-          else storedStrs ++ [newStr]
-  in (resStat, resStrs)
-
 -- | Compute the status of a DRBD device and its error message.
 computeDevStatus :: DeviceInfo -> (DCStatusCode, String)
 computeDevStatus (UnconfiguredDevice _) = (DCSCOk, "")

@@ -34,6 +34,7 @@ module Ganeti.DataCollectors.Types
   , DCStatusCode(..)
   , DCVersion(..)
   , buildReport
+  , mergeStatuses
   ) where
 
 import Data.Char
@@ -115,6 +116,17 @@ addStatus dcStatus value = makeObj
   [ ("status", showJSON dcStatus)
   , ("data", value)
   ]
+
+-- | Helper function for merging statuses.
+mergeStatuses :: (DCStatusCode, String) -> (DCStatusCode, [String])
+              -> (DCStatusCode, [String])
+mergeStatuses (newStat, newStr) (storedStat, storedStrs) =
+  let resStat = max newStat storedStat
+      resStrs =
+        if newStr == ""
+          then storedStrs
+          else storedStrs ++ [newStr]
+  in (resStat, resStrs)
 
 -- | Utility function for building a report automatically adding the current
 -- timestamp (rounded up to seconds).
