@@ -246,7 +246,8 @@ upon.
 
 The instance status will be on each node, for the instances it is
 primary for, and its ``data`` section of the report will contain a list
-of instances, with at least the following fields for each instance:
+of instances, named ``instances``, with at least the following fields for
+each instance:
 
 ``name``
   The name of the instance.
@@ -269,8 +270,8 @@ of instances, with at least the following fields for each instance:
 
 ``state_reason``
   The last known reason for state change of the instance, described according
-  to the JSON representation of a reason trail, as detailed in the :doc:`reason trail
-  design document <design-reason-trail>`.
+  to the JSON representation of a reason trail, as detailed in the :doc:`reason
+  trail design document <design-reason-trail>`.
 
 ``status``
   It represents the status of the instance, and its format is the same as that
