@@ -548,6 +548,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   _ENABLE_KVM_RE = re.compile(r"^-enable-kvm\s", re.M)
   _DISABLE_KVM_RE = re.compile(r"^-disable-kvm\s", re.M)
   _NETDEV_RE = re.compile(r"^-netdev\s", re.M)
+  _DISPLAY_RE = re.compile(r"^-display\s", re.M)
   _NEW_VIRTIO_RE = re.compile(r"^name \"%s\"" % _VIRTIO_NET_PCI, re.M)
   # match  -drive.*boot=on|off on different lines, but in between accept only
   # dashes not preceeded by a new line (which would mean another option
@@ -1324,7 +1325,12 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       kvm_cmd.extend(["-spice", spice_arg])
 
     else:
-      kvm_cmd.extend(["-nographic"])
+      # From qemu 1.4 -nographic is incompatible with -daemonize. The new way
+      # also works in earlier versions though (tested with 1.1 and 1.3)
+      if self._DISPLAY_RE.search(kvmhelp):
+        kvm_cmd.extend(["-display", "none"])
+      else:
+        kvm_cmd.extend(["-nographic"])
 
     if hvp[constants.HV_USE_LOCALTIME]:
       kvm_cmd.extend(["-localtime"])
