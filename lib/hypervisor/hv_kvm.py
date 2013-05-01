@@ -1019,6 +1019,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     """
     # pylint: disable=R0912,R0914,R0915
     hvp = instance.hvparams
+    self.ValidateParameters(hvp)
 
     pidfile = self._InstancePidFile(instance.name)
     kvm = hvp[constants.HV_KVM_PATH]
@@ -1059,8 +1060,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       boot_cdrom = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_CDROM
       boot_floppy = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_FLOPPY
       boot_network = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_NETWORK
-
-    self.ValidateParameters(hvp)
 
     if startup_paused:
       kvm_cmd.extend([_KVM_START_PAUSED_FLAG])
