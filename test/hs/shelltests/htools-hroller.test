@@ -3,3 +3,14 @@
 node-01-002
 node-01-003,node-01-001
 >>>= 0
+
+./test/hs/hroller -O node-01-002 --no-headers -t $TESTDATA_DIR/unique-reboot-order.data
+>>>
+node-01-003,node-01-001
+>>>= 0
+
+./test/hs/hroller -O node-01-003 --no-headers -t $TESTDATA_DIR/unique-reboot-order.data
+>>>
+node-01-002
+node-01-001
+>>>= 0
