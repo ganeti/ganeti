@@ -124,6 +124,9 @@ Since beta3:
 - Fix failure path for instance storage type conversion (Issue 229)
 - Update htools text backend documentation
 - Improve the renew-crypto section of :manpage:`gnt-cluster(8)`
+- Disable inter-cluster instance move for file-based instances, because
+  it is dependant on instance export, which is not supported for
+  file-based instances. (Issue 414)
 
 
 Version 2.7.0 beta3
