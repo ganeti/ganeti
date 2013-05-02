@@ -29,6 +29,7 @@ module Ganeti.HTools.Program.Hroller
   , arguments
   ) where
 
+import Control.Applicative
 import Control.Monad
 import Data.List
 import Data.Ord
@@ -86,18 +87,10 @@ getStats colorings = snd . foldr helper (0,"") $ algBySize colorings
             | otherwise = (elsize, str ++ " LOOSE " ++ algostat el)
               where elsize = (IntMap.size.snd) el
 
--- | Filter the output list.
--- Only online nodes are shown, optionally belonging to a particular target
--- nodegroup.  Output groups which are empty after being filtered are removed
--- as well.
-filterOutput :: Maybe Group.Group -> [[Node.Node]] -> [[Node.Node]]
-filterOutput g l =
-  let onlineOnly = filter (not . Node.offline)
-      hasGroup grp node = Node.group node == Group.idx grp
-      byGroupOnly Nothing xs = xs
-      byGroupOnly (Just grp) xs = filter (hasGroup grp) xs
-      nonNullOnly = filter (not . null)
-  in nonNullOnly (map (onlineOnly . byGroupOnly g) l)
+-- | Predicate of belonging to a given group restriction.
+hasGroup :: Maybe Group.Group -> Node.Node -> Bool
+hasGroup Nothing _ = True
+hasGroup (Just grp) node = Node.group node == Group.idx grp 
 
 -- | Put the master node last.
 -- Reorder a list of lists of nodes such that the master node (if present)
@@ -137,9 +130,13 @@ main opts args = do
       Nothing -> exitErr "Cannot find target group."
       Just grp -> return (Just grp)
 
+  let nodes = IntMap.filter
+              (liftA2 (&&) (not . Node.offline) (hasGroup wantedGroup))
+              nlf
+
   -- TODO: fail if instances are running (with option to warn only)
 
-  nodeGraph <- case Node.mkNodeGraph nlf ilf of
+  nodeGraph <- case Node.mkNodeGraph nodes ilf of
                      Nothing -> exitErr "Cannot create node graph"
                      Just g -> return g
 
@@ -152,10 +149,11 @@ main opts args = do
       colorings = map (\(v,a) -> (v,(colorVertMap.a) nodeGraph)) colorAlgorithms
       smallestColoring =
         (snd . minimumBy (comparing (IntMap.size . snd))) colorings
-      idToNode = (`Container.find` nlf)
-      nodesRebootGroups = map (map idToNode) $ IntMap.elems smallestColoring
-      outputRebootGroups = masterLast $
-                           filterOutput wantedGroup nodesRebootGroups
+      idToNode = (`Container.find` nodes)
+      nodesRebootGroups =
+        map (map idToNode . filter (`IntMap.member` nodes)) $
+        IntMap.elems smallestColoring
+      outputRebootGroups = masterLast nodesRebootGroups
       outputRebootNames = map (map Node.name) outputRebootGroups
 
   when (verbose > 1) . putStrLn $ getStats colorings
