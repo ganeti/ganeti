@@ -86,12 +86,22 @@ accounted separately in allocation and balancing.
 There is already a concept of spindles in Ganeti. It's not related to
 any actual spindle or volume count, but it's used in ``spindle_use`` to
 measure the pressure of an instance on the storage system and in
-``spindle_ratio`` to balance the I/O load on the nodes. These two
-parameters will be renamed to ``storage_io_use`` and
-``storage_io_ratio`` to reflect better their meaning. When
-``exclusive_storage`` is enabled, such parameters are ignored, as
-balancing the use of storage I/O is already addressed by the exclusive
-assignment of PVs.
+``spindle_ratio`` to balance the I/O load on the nodes. When
+``exclusive_storage`` is enabled, these parameters as currently defined
+won't make any sense, so their meaning will be changed in this way:
+
+- ``spindle_use`` refers to the resource, hence to the actual spindles
+  (PVs in LVM), used by an instance. The values specified in the instance
+  policy specifications are compared to the run-time numbers of spindle
+  used by an instance. The ``spindle_use`` back-end parameter will be
+  ignored.
+- ``spindle_ratio`` in instance policies and ``spindle_count`` in node
+  parameters are ignored, as the exclusive assignment of PVs already
+  implies a value of 1.0 for the first, and the second is replaced by
+  the actual number of spindles.
+
+When ``exclusive_storage`` is disabled, the existing spindle parameters
+behave as before.
 
 Dedicated CPUs
 --------------
