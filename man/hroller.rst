@@ -27,6 +27,8 @@ Algorithm options:
 
 **[ -O *name...* ]**
 
+**[ --node-tags** *tag,..* **]**
+
 Reporting options:
 
 **[ -v... | -q ]**
@@ -58,6 +60,9 @@ OPTIONS
 
 For a description of the standard options check **htools**\(7) and
 **hbal**\(1).
+
+\--node-tags *tag,...*
+  Restrict to nodes having at least one of the given tags.
 
 \--force
   Do not fail, even if the master node cannot be determined.

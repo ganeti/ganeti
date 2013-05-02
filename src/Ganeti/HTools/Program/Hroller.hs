@@ -60,6 +60,7 @@ options = do
     , oVerbose
     , oQuiet
     , oNoHeaders
+    , oNodeTags
     , oSaveCluster
     , oGroup
     , oForce
@@ -91,6 +92,11 @@ getStats colorings = snd . foldr helper (0,"") $ algBySize colorings
 hasGroup :: Maybe Group.Group -> Node.Node -> Bool
 hasGroup Nothing _ = True
 hasGroup (Just grp) node = Node.group node == Group.idx grp 
+
+-- | Predicate of having at least one tag in a given set.
+hasTag :: Maybe [String] -> Node.Node -> Bool
+hasTag Nothing _ = True
+hasTag (Just tags) node = not . null $ Node.nTags node `intersect` tags
 
 -- | Put the master node last.
 -- Reorder a list of lists of nodes such that the master node (if present)
@@ -130,8 +136,10 @@ main opts args = do
       Nothing -> exitErr "Cannot find target group."
       Just grp -> return (Just grp)
 
-  let nodes = IntMap.filter
-              (liftA2 (&&) (not . Node.offline) (hasGroup wantedGroup))
+  let nodes = IntMap.filter (foldl (liftA2 (&&)) (const True)
+                             [ (not . Node.offline) 
+                             , (hasTag $ optNodeTags opts)
+                             , hasGroup wantedGroup ])
               nlf
 
   -- TODO: fail if instances are running (with option to warn only)

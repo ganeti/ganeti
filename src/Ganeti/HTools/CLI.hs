@@ -69,6 +69,7 @@ module Ganeti.HTools.CLI
   , oNoHeaders
   , oNoSimulation
   , oNodeSim
+  , oNodeTags
   , oOfflineNode
   , oOutputDir
   , oPrintCommands
@@ -135,6 +136,7 @@ data Options = Options
   , optNoHeaders   :: Bool           -- ^ Do not show a header line
   , optNoSimulation :: Bool          -- ^ Skip the rebalancing dry-run
   , optNodeSim     :: [String]       -- ^ Cluster simulation mode
+  , optNodeTags    :: Maybe [String] -- ^ List of node tags to restrict to 
   , optOffline     :: [String]       -- ^ Names of offline nodes
   , optOutPath     :: FilePath       -- ^ Path to the output directory
   , optSaveCluster :: Maybe FilePath -- ^ Save cluster state to this file
@@ -182,6 +184,7 @@ defaultOptions  = Options
   , optNoHeaders   = False
   , optNoSimulation = False
   , optNodeSim     = []
+  , optNodeTags    = Nothing
   , optOffline     = []
   , optOutPath     = "."
   , optSaveCluster = Nothing
@@ -452,6 +455,13 @@ oNodeSim =
    \ 'alloc_policy,num_nodes,disk,ram,cpu'",
    OptComplString)
 
+oNodeTags :: OptType
+oNodeTags =
+  (Option "" ["node-tags"]
+   (ReqArg (\ f opts -> Ok opts { optNodeTags = Just $ sepSplit ',' f })
+    "TAG,...") "Restrict to nodes with the given tags",
+   OptComplString)
+     
 oOfflineNode :: OptType
 oOfflineNode =
   (Option "O" ["offline"]
