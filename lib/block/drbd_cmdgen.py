@@ -306,7 +306,7 @@ class DRBD84CmdGenerator(BaseDRBDCmdGenerator):
 
   def GenInitMetaCmd(self, minor, meta_dev):
     return ["drbdmeta", "--force", self._DevPath(minor),
-            "v08", meta_dev, "0", "create-md"]
+            "v08", meta_dev, "flex-external", "create-md"]
 
   def GenLocalInitCmds(self, minor, data_dev, meta_dev, size_mb, params):
     cmds = []
@@ -317,9 +317,9 @@ class DRBD84CmdGenerator(BaseDRBDCmdGenerator):
     # We need to apply the activity log before attaching the disk else drbdsetup
     # will fail.
     cmds.append(["drbdmeta", self._DevPath(minor),
-                 "v08", meta_dev, "0", "apply-al"])
+                 "v08", meta_dev, "flex-external", "apply-al"])
 
-    attach_cmd = ["drbdsetup", "attach", minor, data_dev, meta_dev, "0",
+    attach_cmd = ["drbdsetup", "attach", minor, data_dev, meta_dev, "flexible",
                   "--on-io-error=detach"]
     if size_mb:
       attach_cmd.extend(["--size", "%sm" % size_mb])
