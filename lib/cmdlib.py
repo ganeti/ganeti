@@ -4213,10 +4213,14 @@ class LUClusterSetParams(LogicalUnit):
 
     node_list = self.owned_locks(locking.LEVEL_NODE)
 
+    vm_capable_nodes = [node.name
+                        for node in self.cfg.GetAllNodesInfo().values()
+                        if node.name in node_list and node.vm_capable]
+
     # if vg_name not None, checks given volume group on all nodes
     if self.op.vg_name:
-      vglist = self.rpc.call_vg_list(node_list)
-      for node in node_list:
+      vglist = self.rpc.call_vg_list(vm_capable_nodes)
+      for node in vm_capable_nodes:
         msg = vglist[node].fail_msg
         if msg:
           # ignoring down node
