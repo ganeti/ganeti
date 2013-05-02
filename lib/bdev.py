@@ -184,7 +184,9 @@ def _CheckFileStoragePath(path, allowed):
       break
   else:
     raise errors.FileStoragePathError("Path '%s' is not acceptable for file"
-                                      " storage" % path)
+                                      " storage. A possible fix might be to add"
+                                      " it to /etc/ganeti/file-storage-paths"
+                                      " on all nodes." % path)
 
 
 def _LoadAllowedFileStoragePaths(filename):
