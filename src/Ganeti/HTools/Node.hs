@@ -586,7 +586,10 @@ nodesToBounds nl = liftM2 (,) nmin nmax
 -- Returns Nothing if the node list is empty.
 mkNodeGraph :: List -> Instance.List -> Maybe Graph.Graph
 mkNodeGraph nl il =
-  liftM (`Graph.buildG` instancesToEdges il) (nodesToBounds nl)
+  liftM (`Graph.buildG` (filterValid . instancesToEdges $ il))
+  (nodesToBounds nl)
+  where
+    filterValid = filter (\(x,y) -> IntMap.member x nl && IntMap.member y nl)
 
 -- * Display functions
 
