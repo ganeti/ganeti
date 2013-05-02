@@ -124,7 +124,18 @@ diskless
 file
   The instance will use plain files as backend for its disks. No
   redundancy is provided, and this is somewhat more difficult to
-  configure for high performance.
+  configure for high performance. Note that for security reasons the
+  file storage directory must be listed under
+  ``/etc/ganeti/file-storage-paths``, and that file is not copied
+  automatically to all nodes by Ganeti.
+
+sharedfile
+  The instance will use plain files as backend, but Ganeti assumes that
+  those files will be available and in sync automatically on all nodes.
+  This allows live migration and failover of instances using this
+  method. As for ``file`` the file storage directory must be listed under
+  ``/etc/ganeti/file-storage-paths`` or ganeti will refuse to create
+  instances under it.
 
 plain
   The instance will use LVM devices as backend for its disks. No
@@ -145,6 +156,11 @@ drbd
 rbd
   The instance will use Volumes inside a RADOS cluster as backend for its
   disks. It will access them using the RADOS block device (RBD).
+
+ext
+  The instance will use an external storage provider. See
+  :manpage:`ganeti-extstorage-interface(7)` for how to implement one.
+
 
 IAllocator
 ~~~~~~~~~~
@@ -263,7 +279,7 @@ can give include, among others:
   instance is created. The IP and/or bridge of the NIC can be changed
   via ``--nic 0:ip=IP,bridge=BRIDGE``
 
-See the manpage for gnt-instance for the detailed option list.
+See :manpage:`ganeti-instance(8)` for the detailed option list.
 
 For example if you want to create an highly available instance, with a
 single disk of 50GB and the default memory size, having primary node
