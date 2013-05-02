@@ -166,8 +166,10 @@ parseNode ktg a = do
               dtotal  <- extract "dtotal"
               dfree   <- extract "dfree"
               ctotal  <- extract "ctotal"
-              return $ Node.create name mtotal mnode mfree
-                     dtotal dfree ctotal False spindles guuid'
+              tags    <- extract "tags"
+              return . flip Node.setNodeTags tags $
+                Node.create name mtotal mnode mfree dtotal dfree ctotal False
+                            spindles guuid'
   return (name, node)
 
 -- | Construct a group from a JSON object.
