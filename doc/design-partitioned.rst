@@ -125,7 +125,7 @@ Under KVM or LXC memory is fully shared between the host system and all
 the guests, and instances can even be swapped out by the host OS.
 
 It's not clear if the problem can be solved by limiting the size of the
-instances, so that there is plenty of room for the host OS. 
+instances, so that there is plenty of room for the host OS.
 
 We could implement segregation using cgroups to limit the memory used by
 the host OS. This requires finishing the implementation of the memory
@@ -172,8 +172,9 @@ change: there is one for the whole cluster.
 
 For example, a policy could be set up to allow instances with this
 constraints:
+
 - between 1 and 2 CPUs, 2 GB of RAM, and between 10 GB and 400 GB of
-disk space;
+  disk space;
 - 4 CPUs, 4 GB of RAM, and between 10 GB and 800 GB of disk space.
 
 Then, an instance using 1 CPU, 2 GB of RAM and 50 GB of disk would be
