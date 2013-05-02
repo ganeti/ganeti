@@ -104,7 +104,7 @@ queryNodesMsg =
   L.Query (Qlang.ItemTypeOpCode Qlang.QRNode)
      ["name", "mtotal", "mnode", "mfree", "dtotal", "dfree",
       "ctotal", "offline", "drained", "vm_capable",
-      "ndp/spindle_count", "group.uuid"] Qlang.EmptyFilter
+      "ndp/spindle_count", "group.uuid", "tags"] Qlang.EmptyFilter
 
 -- | The input data for instance query.
 queryInstancesMsg :: L.LuxiOp
@@ -185,7 +185,8 @@ getNodes ktg arr = extractArray arr >>= mapM (parseNode ktg)
 -- | Construct a node from a JSON object.
 parseNode :: NameAssoc -> [(JSValue, JSValue)] -> Result (String, Node.Node)
 parseNode ktg [ name, mtotal, mnode, mfree, dtotal, dfree
-              , ctotal, offline, drained, vm_capable, spindles, g_uuid ]
+              , ctotal, offline, drained, vm_capable, spindles, g_uuid 
+              , tags ]
     = do
   xname <- annotateResult "Parsing new node" (fromJValWithStatus name)
   let convert a = genericConvert "Node" xname a
@@ -194,6 +195,7 @@ parseNode ktg [ name, mtotal, mnode, mfree, dtotal, dfree
   xvm_capable <- convert "vm_capable" vm_capable
   xspindles <- convert "spindles" spindles
   xgdx   <- convert "group.uuid" g_uuid >>= lookupGroup ktg xname
+  xtags <- convert "tags" tags
   node <- if xoffline || xdrained || not xvm_capable
             then return $ Node.create xname 0 0 0 0 0 0 True xspindles xgdx
             else do
@@ -203,8 +205,9 @@ parseNode ktg [ name, mtotal, mnode, mfree, dtotal, dfree
               xdtotal  <- convert "dtotal" dtotal
               xdfree   <- convert "dfree" dfree
               xctotal  <- convert "ctotal" ctotal
-              return $ Node.create xname xmtotal xmnode xmfree
-                     xdtotal xdfree xctotal False xspindles xgdx
+              return . flip Node.setNodeTags xtags $
+                Node.create xname xmtotal xmnode xmfree xdtotal xdfree
+                            xctotal False xspindles xgdx
   return (xname, node)
 
 parseNode _ v = fail ("Invalid node query result: " ++ show v)
