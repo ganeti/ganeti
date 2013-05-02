@@ -82,13 +82,14 @@ serializeNode :: Group.List -- ^ The list of groups (needed for group uuid)
               -> Node.Node  -- ^ The node to be serialised
               -> String
 serializeNode gl node =
-  printf "%s|%.0f|%d|%d|%.0f|%d|%.0f|%c|%s|%d" (Node.name node)
+  printf "%s|%.0f|%d|%d|%.0f|%d|%.0f|%c|%s|%d|%s" (Node.name node)
            (Node.tMem node) (Node.nMem node) (Node.fMem node)
            (Node.tDsk node) (Node.fDsk node) (Node.tCpu node)
            (if Node.offline node then 'Y' else
               if Node.isMaster node then 'M' else 'N')
            (Group.uuid grp)
            (Node.spindleCount node)
+           (intercalate "," (Node.nTags node))
     where grp = Container.find (Node.group node) gl
 
 -- | Generate node file data from node objects.
@@ -195,12 +196,13 @@ loadNode :: (Monad m) =>
          -> [String]              -- ^ Input data as a list of fields
          -> m (String, Node.Node) -- ^ The result, a tuple o node name
                                   -- and node object
-loadNode ktg [name, tm, nm, fm, td, fd, tc, fo, gu, spindles] = do
+loadNode ktg [name, tm, nm, fm, td, fd, tc, fo, gu, spindles, tags] = do
   gdx <- lookupGroup ktg name gu
   new_node <-
       if "?" `elem` [tm,nm,fm,td,fd,tc] || fo == "Y" then
           return $ Node.create name 0 0 0 0 0 0 True 0 gdx
       else do
+        let vtags = commaSplit tags
         vtm <- tryRead name tm
         vnm <- tryRead name nm
         vfm <- tryRead name fm
@@ -208,12 +210,15 @@ loadNode ktg [name, tm, nm, fm, td, fd, tc, fo, gu, spindles] = do
         vfd <- tryRead name fd
         vtc <- tryRead name tc
         vspindles <- tryRead name spindles
-        return . flip Node.setMaster (fo == "M") $
+        return . flip Node.setMaster (fo == "M") . flip Node.setNodeTags vtags $
           Node.create name vtm vnm vfm vtd vfd vtc False vspindles gdx
   return (name, new_node)
 
 loadNode ktg [name, tm, nm, fm, td, fd, tc, fo, gu] =
   loadNode ktg [name, tm, nm, fm, td, fd, tc, fo, gu, "1"]
+
+loadNode ktg [name, tm, nm, fm, td, fd, tc, fo, gu, spindles] =
+  loadNode ktg [name, tm, nm, fm, td, fd, tc, fo, gu, spindles, ""]
 
 loadNode _ s = fail $ "Invalid/incomplete node data: '" ++ show s ++ "'"
 
@@ -363,7 +368,7 @@ parseData fdata = do
   {- group file: name uuid alloc_policy -}
   (ktg, gl) <- loadTabular glines loadGroup
   {- node file: name t_mem n_mem f_mem t_disk f_disk t_cpu offline grp_uuid
-                spindles -}
+                spindles tags -}
   (ktn, nl) <- loadTabular nlines (loadNode ktg)
   {- instance file: name mem disk vcpus status auto_bal pnode snode
                     disk_template tags spindle_use -}

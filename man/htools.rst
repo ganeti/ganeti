@@ -177,6 +177,7 @@ support all options. Some common options are:
     nodes, and ``M`` for the master node which is always online)
   - group UUID
   - node spindle count
+  - node tags
 
   The third section contains instance data, with the fields:
 
