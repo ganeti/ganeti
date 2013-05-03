@@ -183,8 +183,8 @@ a few more Haskell libraries enabled: the ``ganeti-confd`` daemon
 - `snap-server` <http://hackage.haskell.org/package/snap-server>`_, version
   0.8.1 and above.
 
-These libraries are available in Debian Wheezy (but not in Squeeze, with
-the exception of curl), so you can use either apt::
+These libraries are available in Debian Wheezy (but not in Squeeze), so you
+can use either apt::
 
   $ apt-get install libghc-hslogger-dev libghc-crypto-dev libghc-text-dev \
                     libghc-hinotify-dev libghc-regex-pcre-dev \
