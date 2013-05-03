@@ -24,6 +24,7 @@ Contents:
    design-2.5.rst
    design-2.6.rst
    design-2.7.rst
+   design-2.8.rst
    design-draft.rst
    cluster-merge.rst
    locking.rst
@@ -41,6 +42,7 @@ Contents:
 .. toctree::
    :hidden:
 
+   design-autorepair.rst
    design-bulk-create.rst
    design-chained-jobs.rst
    design-cpu-pinning.rst
@@ -51,6 +53,7 @@ Contents:
    design-opportunistic-locking.rst
    design-ovf-support.rst
    design-query2.rst
+   design-reason-trail.rst
    design-restricted-commands.rst
    design-shared-storage.rst
    design-virtual-clusters.rst
