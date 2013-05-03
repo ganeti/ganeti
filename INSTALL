@@ -56,9 +56,19 @@ packages, except for RBD, DRBD and Xen::
 
   $ apt-get install lvm2 ssh bridge-utils iproute iputils-arping \
                     ndisc6 python python-pyopenssl openssl \
-                    python-pyparsing python-simplejson \
-                    python-pyinotify python-pycurl socat fping \
-                    python-ipaddr python-bitarray
+                    python-pyparsing python-simplejson python-bitarray \
+                    python-pyinotify python-pycurl python-ipaddr socat fping
+
+If bitarray is missing it can be installed from easy-install::
+
+  $ easy_install bitarray
+
+Or on newer distributions (eg. Debian Wheezy) the above becomes::
+
+  $ apt-get install lvm2 ssh bridge-utils iproute iputils-arping \
+                    ndisc6 python python-openssl openssl \
+                    python-pyparsing python-simplejson python-bitarray \
+                    python-pyinotify python-pycurl python-ipaddr socat fping
 
 Note that this does not install optional packages::
 
@@ -183,8 +193,8 @@ a few more Haskell libraries enabled: the ``ganeti-confd`` daemon
 - `snap-server` <http://hackage.haskell.org/package/snap-server>`_, version
   0.8.1 and above.
 
-These libraries are available in Debian Wheezy (but not in Squeeze, with
-the exception of curl), so you can use either apt::
+These libraries are available in Debian Wheezy (but not in Squeeze), so you
+can use either apt::
 
   $ apt-get install libghc-hslogger-dev libghc-crypto-dev libghc-text-dev \
                     libghc-hinotify-dev libghc-regex-pcre-dev \
@@ -194,7 +204,7 @@ the exception of curl), so you can use either apt::
 or ``cabal``, after installing a required non-Haskell dependency::
 
   $ apt-get install libpcre3-dev
-  $ cabal install hslogger Crypto text hinotify regex-pcre \
+  $ cabal install hslogger Crypto text hinotify==0.3.2 regex-pcre \
                   attoparsec vector snap-server
 
 to install them.

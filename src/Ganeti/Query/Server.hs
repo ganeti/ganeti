@@ -177,7 +177,6 @@ handleCall _ op =
   return . Bad $
     GenericError ("Luxi call '" ++ strOfOp op ++ "' not implemented")
 
-
 -- | Given a decoded luxi request, executes it and sends the luxi
 -- response back to the client.
 handleClientMsg :: Client -> ConfigReader -> LuxiOp -> IO Bool
@@ -188,11 +187,13 @@ handleClientMsg client creader args = do
   (!status, !rval) <-
     case call_result of
       Bad err -> do
-        logWarning $ "Failed to execute request: " ++ show err
+        logWarning $ "Failed to execute request " ++ show args ++ ": "
+                     ++ show err
         return (False, showJSON err)
       Ok result -> do
         -- only log the first 2,000 chars of the result
         logDebug $ "Result (truncated): " ++ take 2000 (J.encode result)
+        logInfo $ "Successfully handled " ++ strOfOp args
         return (True, result)
   sendMsg client $ buildResponse status rval
   return True

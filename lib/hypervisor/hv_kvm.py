@@ -564,6 +564,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   _ENABLE_KVM_RE = re.compile(r"^-enable-kvm\s", re.M)
   _DISABLE_KVM_RE = re.compile(r"^-disable-kvm\s", re.M)
   _NETDEV_RE = re.compile(r"^-netdev\s", re.M)
+  _DISPLAY_RE = re.compile(r"^-display\s", re.M)
+  _MACHINE_RE = re.compile(r"^-machine\s", re.M)
   _NEW_VIRTIO_RE = re.compile(r"^name \"%s\"" % _VIRTIO_NET_PCI, re.M)
   # match  -drive.*boot=on|off on different lines, but in between accept only
   # dashes not preceeded by a new line (which would mean another option
@@ -1034,6 +1036,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     """
     # pylint: disable=R0912,R0914,R0915
     hvp = instance.hvparams
+    self.ValidateParameters(hvp)
 
     pidfile = self._InstancePidFile(instance.name)
     kvm = hvp[constants.HV_KVM_PATH]
@@ -1064,7 +1067,24 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     mversion = hvp[constants.HV_KVM_MACHINE_VERSION]
     if not mversion:
       mversion = self._GetDefaultMachineVersion(kvm)
-    kvm_cmd.extend(["-M", mversion])
+    if self._MACHINE_RE.search(kvmhelp):
+      # TODO (2.8): kernel_irqchip and kvm_shadow_mem machine properties, as
+      # extra hypervisor parameters. We should also investigate whether and how
+      # shadow_mem should be considered for the resource model.
+      if (hvp[constants.HV_KVM_FLAG] == constants.HT_KVM_ENABLED):
+        specprop = ",accel=kvm"
+      else:
+        specprop = ""
+      machinespec = "%s%s" % (mversion, specprop)
+      kvm_cmd.extend(["-machine", machinespec])
+    else:
+      kvm_cmd.extend(["-M", mversion])
+      if (hvp[constants.HV_KVM_FLAG] == constants.HT_KVM_ENABLED and
+          self._ENABLE_KVM_RE.search(kvmhelp)):
+        kvm_cmd.extend(["-enable-kvm"])
+      elif (hvp[constants.HV_KVM_FLAG] == constants.HT_KVM_DISABLED and
+            self._DISABLE_KVM_RE.search(kvmhelp)):
+        kvm_cmd.extend(["-disable-kvm"])
 
     kernel_path = hvp[constants.HV_KERNEL_PATH]
     if kernel_path:
@@ -1075,17 +1095,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       boot_floppy = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_FLOPPY
       boot_network = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_NETWORK
 
-    self.ValidateParameters(hvp)
-
     if startup_paused:
       kvm_cmd.extend([_KVM_START_PAUSED_FLAG])
-
-    if (hvp[constants.HV_KVM_FLAG] == constants.HT_KVM_ENABLED and
-        self._ENABLE_KVM_RE.search(kvmhelp)):
-      kvm_cmd.extend(["-enable-kvm"])
-    elif (hvp[constants.HV_KVM_FLAG] == constants.HT_KVM_DISABLED and
-          self._DISABLE_KVM_RE.search(kvmhelp)):
-      kvm_cmd.extend(["-disable-kvm"])
 
     if boot_network:
       kvm_cmd.extend(["-boot", "n"])
@@ -1342,7 +1353,12 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       kvm_cmd.extend(["-spice", spice_arg])
 
     else:
-      kvm_cmd.extend(["-nographic"])
+      # From qemu 1.4 -nographic is incompatible with -daemonize. The new way
+      # also works in earlier versions though (tested with 1.1 and 1.3)
+      if self._DISPLAY_RE.search(kvmhelp):
+        kvm_cmd.extend(["-display", "none"])
+      else:
+        kvm_cmd.extend(["-nographic"])
 
     if hvp[constants.HV_USE_LOCALTIME]:
       kvm_cmd.extend(["-localtime"])

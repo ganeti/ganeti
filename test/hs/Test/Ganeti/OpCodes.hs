@@ -342,9 +342,20 @@ instance Arbitrary OpCodes.OpCode where
           genNameNE
       _ -> fail $ "Undefined arbitrary for opcode " ++ op_id
 
+-- | Generates one element of a reason trail
+genReasonElem :: Gen ReasonElem
+genReasonElem = (,,) <$> genFQDN <*> genFQDN <*> arbitrary
+
+-- | Generates a reason trail
+genReasonTrail :: Gen ReasonTrail
+genReasonTrail = do
+  size <- choose (0, 10)
+  vectorOf size genReasonElem
+
 instance Arbitrary OpCodes.CommonOpParams where
   arbitrary = OpCodes.CommonOpParams <$> arbitrary <*> arbitrary <*>
-                arbitrary <*> resize 5 arbitrary <*> genMaybe genName
+                arbitrary <*> resize 5 arbitrary <*> genMaybe genName <*>
+                genReasonTrail
 
 -- * Helper functions
 

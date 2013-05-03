@@ -680,7 +680,7 @@ def TestClusterModifyIPolicy():
 
   # Disk templates are treated slightly differently
   par = "disk-templates"
-  disp_str = "enabled disk templates"
+  disp_str = "allowed disk templates"
   curr_val = old_policy[disp_str]
   test_values = [
     (True, constants.DT_PLAIN),

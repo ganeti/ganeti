@@ -31,7 +31,8 @@ ADD
 | {\--disk=*N*: {size=*VAL* \| adopt=*LV*}[,options...]
 |  \| {size=*VAL*,provider=*PROVIDER*}[,param=*value*... ][,options...]
 |  \| {-s|\--os-size} *SIZE*}
-| [\--no-ip-check] [\--no-name-check] [\--no-start] [\--no-install]
+| [\--no-ip-check] [\--no-name-check] [\--no-conflicts-check]
+| [\--no-start] [\--no-install]
 | [\--net=*N* [:options...] \| \--no-nics]
 | [{-B|\--backend-parameters} *BEPARAMS*]
 | [{-H|\--hypervisor-parameters} *HYPERVISOR* [: option=*value*... ]]
@@ -124,7 +125,13 @@ mac
 ip
     specifies the IP address assigned to the instance from the Ganeti
     side (this is not necessarily what the instance will use, but what
-    the node expects the instance to use)
+    the node expects the instance to use). Note that if an IP in the
+    range of a network configured with **gnt-network**\(8) is used,
+    and the NIC is not already connected to it, this network has to be
+    passed in the **network** parameter if this NIC is meant to be
+    connected to the said network. ``--no-conflicts-check`` can be used
+    to override this check. The special value **pool** causes Ganeti to
+    select an IP from the the network the NIC is or will be connected to.
 
 mode
     specifies the connection mode for this NIC: routed, bridged or
@@ -277,6 +284,17 @@ nic\_type
     - pcnet (KVM)
     - e1000 (KVM)
     - paravirtual (default for KVM) (HVM & KVM)
+
+vif\_type
+    Valid for the Xen HVM hypervisor.
+
+    This parameter specifies the vif type of the nic configuration
+    of the instance. Unsetting the value leads to no type being specified
+    in the configuration. Note that this parameter only takes effect when
+    the 'nic_type' is not set. The possible options are:
+
+    - ioemu
+    - vif
 
 disk\_type
     Valid for the Xen HVM and KVM hypervisors.

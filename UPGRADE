@@ -63,6 +63,12 @@ To run commands on all nodes, the `distributed shell (dsh)
 
     $ gnt-cluster redist-conf
 
+#. If you use file storage, check that the ``/etc/ganeti/file-storage-paths``
+#. is correct on all nodes. For security reasons it's not copied
+#. automatically, but it can be copied manually via::
+
+   $ gnt-cluster copyfile /etc/ganeti/file-storage-paths
+
 #. Restart daemons again on all nodes::
 
     $ /etc/init.d/ganeti restart

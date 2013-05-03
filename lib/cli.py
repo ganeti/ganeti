@@ -3765,7 +3765,7 @@ def FormatPolicyInfo(custom_ipolicy, eff_ipolicy, iscluster):
       )
 
   ret.append(
-    ("enabled disk templates",
+    ("allowed disk templates",
      _FormatListInfoDefault(custom_ipolicy.get(constants.IPOLICY_DTS),
                             eff_ipolicy[constants.IPOLICY_DTS]))
     )

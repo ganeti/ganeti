@@ -36,6 +36,7 @@ module Ganeti.DataCollectors.Types
   , buildReport
   ) where
 
+import Data.Char
 import Text.JSON
 
 import Ganeti.Constants as C
@@ -48,7 +49,7 @@ data DCCategory = DCInstance | DCStorage | DCDaemon | DCHypervisor
 
 -- | The JSON instance for DCCategory.
 instance JSON DCCategory where
-  showJSON = showJSON . show
+  showJSON = showJSON . map toLower . drop 2 . show
   readJSON =
     error "JSON read instance not implemented for type DCCategory"
 

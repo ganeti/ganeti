@@ -4276,11 +4276,26 @@ class LUClusterSetParams(LogicalUnit):
     node_list = self.owned_locks(locking.LEVEL_NODE)
     self.cluster = cluster = self.cfg.GetClusterInfo()
 
-    (enabled_disk_templates, new_enabled_disk_templates) = \
-      self._GetEnabledDiskTemplates(cluster)
+    vm_capable_nodes = [node.name
+                        for node in self.cfg.GetAllNodesInfo().values()
+                        if node.name in node_list and node.vm_capable]
 
-    self._CheckVgName(node_list, enabled_disk_templates,
-                      new_enabled_disk_templates)
+    # if vg_name not None, checks given volume group on all nodes
+    if self.op.vg_name:
+      vglist = self.rpc.call_vg_list(vm_capable_nodes)
+      for node in vm_capable_nodes:
+        msg = vglist[node].fail_msg
+        if msg:
+          # ignoring down node
+          self.LogWarning("Error while gathering data on node %s"
+                          " (ignoring node): %s", node, msg)
+          continue
+        vgstatus = utils.CheckVolumeGroupSize(vglist[node].payload,
+                                              self.op.vg_name,
+                                              constants.MIN_VG_SIZE)
+        if vgstatus:
+          raise errors.OpPrereqError("Error on node '%s': %s" %
+                                     (node, vgstatus), errors.ECODE_ENVIRON)
 
     if self.op.drbd_helper:
       # checks given drbd helper on all nodes
@@ -14212,11 +14227,22 @@ class LUInstanceSetParams(LogicalUnit):
 
     feedback_fn("Initializing DRBD devices...")
     # all child devices are in place, we can now create the DRBD devices
-    for disk in anno_disks:
-      for (node, excl_stor) in [(pnode, p_excl_stor), (snode, s_excl_stor)]:
-        f_create = node == pnode
-        _CreateSingleBlockDev(self, node, instance, disk, info, f_create,
-                              excl_stor)
+    try:
+      for disk in anno_disks:
+        for (node, excl_stor) in [(pnode, p_excl_stor), (snode, s_excl_stor)]:
+          f_create = node == pnode
+          _CreateSingleBlockDev(self, node, instance, disk, info, f_create,
+                                excl_stor)
+    except errors.GenericError, e:
+      feedback_fn("Initializing of DRBD devices failed;"
+                  " renaming back original volumes...")
+      for disk in new_disks:
+        self.cfg.SetDiskID(disk, pnode)
+      rename_back_list = [(n.children[0], o.logical_id)
+                          for (n, o) in zip(new_disks, instance.disks)]
+      result = self.rpc.call_blockdev_rename(pnode, rename_back_list)
+      result.Raise("Failed to rename LVs back after error %s" % str(e))
+      raise
 
     # at this point, the instance has been modified
     instance.disk_template = constants.DT_DRBD8
@@ -17154,7 +17180,8 @@ def _CheckForConflictingIp(lu, ip, node):
   """
   (conf_net, _) = lu.cfg.CheckIPInNodeGroup(ip, node)
   if conf_net is not None:
-    raise errors.OpPrereqError(("Conflicting IP address found: '%s' != '%s'" %
+    raise errors.OpPrereqError(("The requested IP address (%s) belongs to"
+                                " network %s, but the target NIC does not." %
                                 (ip, conf_net)),
                                errors.ECODE_STATE)
 

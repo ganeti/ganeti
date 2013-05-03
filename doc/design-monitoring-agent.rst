@@ -224,11 +224,9 @@ As such we propose that:
   "reason" attached to it (at opcode level). This can be used for
   example to distinguish an admin request, from a scheduled maintenance
   or an automated tool's work. If this reason is not passed, Ganeti will
-  just use the information it has about the source of the request: for
-  example a cli shutdown operation will have "cli:shutdown" as a reason,
-  a cli failover operation will have "cli:failover". Operations coming
-  from the remote API will use "rapi" instead of "cli". Of course
-  setting a real site-specific reason is still preferred.
+  just use the information it has about the source of the request.
+  This reason information will be structured according to the
+  :doc:`Ganeti reason trail <design-reason-trail>` design document.
 - RPCs that affect the instance status will be changed so that the
   "reason" and the version of the config object they ran on is passed to
   them. They will then export the new expected instance status, together
@@ -270,18 +268,9 @@ of instances, with at least the following fields for each instance:
   The timestamp of the last known change to the instance state.
 
 ``state_reason``
-  The last known reason for state change, described according to the
-  following subfields:
-
-  ``text``
-    Either a user-provided reason (if any), or the name of the command that
-    triggered the state change, as a fallback.
-
-  ``jobID``
-    The ID of the job that caused the state change.
-
-  ``source``
-    Where the state change was triggered (RAPI, CLI).
+  The last known reason for state change of the instance, described according
+  to the JSON representation of a reason trail, as detailed in the :doc:`reason trail
+  design document <design-reason-trail>`.
 
 ``status``
   It represents the status of the instance, and its format is the same as that
@@ -610,8 +599,10 @@ request.
 Returns the report of the collector ``[collector_name]`` that belongs to the
 specified ``[category]``.
 
-If a collector does not belong to any category, ``collector`` will be used as
-the value for ``[category]``.
+The ``category`` has to be written in lowercase.
+
+If a collector does not belong to any category, ``default`` will have to be
+used as the value for ``[category]``.
 
 `Status reporting collectors`_ will provide their output in non-verbose format.
 The verbose format can be requested by adding the parameter ``verbose=1`` to the

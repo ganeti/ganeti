@@ -626,6 +626,7 @@ $(buildObject "CommonOpParams" "op"
   , pOpPriority
   , pDependencies
   , pComment
+  , pReason
   ])
 
 -- | Default common parameter values.
@@ -636,6 +637,7 @@ defOpParams =
                  , opPriority   = OpPrioNormal
                  , opDepends    = Nothing
                  , opComment    = Nothing
+                 , opReason     = []
                  }
 
 -- | The top-level opcode type.

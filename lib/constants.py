@@ -942,6 +942,7 @@ HV_VGA = "vga"
 HV_KVM_EXTRA = "kvm_extra"
 HV_KVM_MACHINE_VERSION = "machine_version"
 HV_KVM_PATH = "kvm_path"
+HV_VIF_TYPE = "vif_type"
 
 
 HVS_PARAMETER_TYPES = {
@@ -1011,6 +1012,7 @@ HVS_PARAMETER_TYPES = {
   HV_VGA: VTYPE_STRING,
   HV_KVM_EXTRA: VTYPE_STRING,
   HV_KVM_MACHINE_VERSION: VTYPE_STRING,
+  HV_VIF_TYPE: VTYPE_STRING,
   }
 
 HVS_PARAMETERS = frozenset(HVS_PARAMETER_TYPES.keys())
@@ -1405,6 +1407,15 @@ HT_KVM_VALID_NIC_TYPES = compat.UniqueFrozenset([
   HT_NIC_PCNET,
   HT_NIC_E1000,
   HT_NIC_PARAVIRTUAL,
+  ])
+
+# Vif types
+# default vif type in xen-hvm
+HT_HVM_VIF_IOEMU = "ioemu"
+HT_HVM_VIF_VIF = "vif"
+HT_HVM_VALID_VIF_TYPES = compat.UniqueFrozenset([
+  HT_HVM_VIF_IOEMU,
+  HT_HVM_VIF_VIF,
   ])
 
 # Disk types
@@ -2027,6 +2038,7 @@ HVC_DEFAULTS = {
     HV_CPU_MASK: CPU_PINNING_ALL,
     HV_CPU_CAP: 0,
     HV_CPU_WEIGHT: 256,
+    HV_VIF_TYPE: HT_HVM_VIF_IOEMU,
     },
   HT_KVM: {
     HV_KVM_PATH: KVM_PATH,

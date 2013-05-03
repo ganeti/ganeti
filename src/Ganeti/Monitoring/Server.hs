@@ -33,12 +33,17 @@ module Ganeti.Monitoring.Server
 
 import Control.Applicative
 import Control.Monad
+import Control.Monad.IO.Class
+import Data.ByteString.Char8 hiding (map, filter, find)
+import Data.List
 import Snap.Core
 import Snap.Http.Server
-import Data.ByteString.Char8
 import qualified Text.JSON as J
 
+import qualified Ganeti.BasicTypes as BT
 import Ganeti.Daemon
+import qualified Ganeti.DataCollectors.Drbd as Drbd
+import Ganeti.DataCollectors.Types
 import qualified Ganeti.Constants as C
 
 -- * Types and constants definitions
@@ -52,6 +57,22 @@ type PrepResult = Config Snap ()
 -- | Version of the latest supported http API.
 latestAPIVersion :: Int
 latestAPIVersion = 1
+
+-- | Type describing a data collector basic information
+data DataCollector = DataCollector
+  { dName     :: String           -- ^ Name of the data collector
+  , dCategory :: Maybe DCCategory -- ^ Category (storage, instance, ecc)
+                                  --   of the collector
+  , dKind     :: DCKind           -- ^ Kind (performance or status reporting) of
+                                  --   the data collector
+  , dReport   :: IO DCReport      -- ^ Report produced by the collector
+  }
+
+-- | The list of available builtin data collectors.
+collectors :: [DataCollector]
+collectors =
+  [ DataCollector Drbd.dcName Drbd.dcCategory Drbd.dcKind Drbd.dcReport
+  ]
 
 -- * Configuration handling
 
@@ -93,10 +114,20 @@ version1Api =
        , ("report", reportHandler)
        ]
 
+-- | Get the JSON representation of a data collector to be used in the collector
+-- list.
+dcListItem :: DataCollector -> J.JSValue
+dcListItem dc =
+  J.JSArray
+    [ J.showJSON $ dName dc
+    , maybe J.JSNull J.showJSON $ dCategory dc
+    , J.showJSON $ dKind dc
+    ]
+
 -- | Handler for returning lists.
 listHandler :: Snap ()
 listHandler =
-  dir "collectors" $ writeText "TODO: return the list of collectors"
+  dir "collectors" . writeBS . pack . J.encode $ map dcListItem collectors
 
 -- | Handler for returning data collector reports.
 reportHandler :: Snap ()
@@ -104,28 +135,60 @@ reportHandler =
   route
     [ ("all", allReports)
     , (":category/:collector", oneReport)
-    ]
+    ] <|>
+  errorReport
 
--- | Return the report of all the available collectors
+-- | Return the report of all the available collectors.
 allReports :: Snap ()
-allReports = writeText "TODO: return the reports of all the collectors"
+allReports = do
+  reports <- mapM (liftIO . dReport) collectors
+  writeBS . pack . J.encode $ reports
+
+-- | Returns a category given its name.
+-- If "collector" is given as the name, the collector has no category, and
+-- Nothing will be returned.
+catFromName :: String -> BT.Result (Maybe DCCategory)
+catFromName "instance"   = BT.Ok $ Just DCInstance
+catFromName "storage"    = BT.Ok $ Just DCStorage
+catFromName "daemon"     = BT.Ok $ Just DCDaemon
+catFromName "hypervisor" = BT.Ok $ Just DCHypervisor
+catFromName "default"    = BT.Ok Nothing
+catFromName _            = BT.Bad "No such category"
+
+errorReport :: Snap ()
+errorReport = do
+  modifyResponse $ setResponseStatus 404 "Not found"
+  writeBS "Unable to produce a report for the requested resource"
+
+error404 :: Snap ()
+error404 = do
+  modifyResponse $ setResponseStatus 404 "Not found"
+  writeBS "Resource not found"
 
 -- | Return the report of one collector
 oneReport :: Snap ()
 oneReport = do
-  category <- fmap (maybe mzero unpack) $ getParam "category"
-  collector <- fmap (maybe mzero unpack) $ getParam "collector"
-  writeBS . pack $
-    "TODO: return the report for collector " ++ category
-      ++ "/" ++ collector
+  categoryName <- fmap (maybe mzero unpack) $ getParam "category"
+  collectorName <- fmap (maybe mzero unpack) $ getParam "collector"
+  category <-
+    case catFromName categoryName of
+      BT.Ok cat -> return cat
+      BT.Bad msg -> fail msg
+  collector <-
+    case
+      find (\col -> collectorName == dName col) $
+        filter (\c -> category == dCategory c) collectors of
+      Just col -> return col
+      Nothing -> fail "Unable to find the requested collector"
+  report <- liftIO $ dReport collector
+  writeBS . pack . J.encode $ report
 
 -- | The function implementing the HTTP API of the monitoring agent.
--- TODO: Currently it only replies to the API version query: implement all the
--- missing features.
 monitoringApi :: Snap ()
 monitoringApi =
   ifTop versionQ <|>
-  dir "1" version1Api
+  dir "1" version1Api <|>
+  error404
 
 -- | Main function.
 main :: MainFn CheckResult PrepResult
