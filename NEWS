@@ -5,7 +5,7 @@ News
 Version 2.7.0 rc1
 -----------------
 
-*(unreleased)*
+*(Released Fri, 3 May 2013)*
 
 Incompatible/important changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -127,6 +127,8 @@ Since beta3:
 - Disable inter-cluster instance move for file-based instances, because
   it is dependant on instance export, which is not supported for
   file-based instances. (Issue 414)
+- Fix gnt-job crashes on non-ascii characters (Issue 427)
+- Fix volume group checks on non-vm-capable nodes (Issue 432)
 
 
 Version 2.7.0 beta3
