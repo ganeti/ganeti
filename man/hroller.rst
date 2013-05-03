@@ -19,6 +19,8 @@ Backend options:
 { **-m** *cluster* | **-L[** *path* **]** | **-t** *data-file* |
 **-I** *path* }
 
+**[ --force ]**
+
 Algorithm options:
 
 **[ -G *name* ]**
@@ -54,8 +56,12 @@ secondary node on them, so they are safe to be rebooted concurrently.
 OPTIONS
 -------
 
-Currently only standard htools options are supported. For a description of them
-check **htools**\(7) and **hbal**\(1).
+For a description of the standard options check **htools**\(7) and
+**hbal**\(1).
+
+\--force
+  Do not fail, even if the master node cannot be determined.
+
 
 BUGS
 ----
