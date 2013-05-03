@@ -678,6 +678,14 @@ class TestInstancePolicy(unittest.TestCase):
       self._AssertIPolicyIsFull(policy)
       self._AssertIPolicyMerged(constants.IPOLICY_DEFAULTS, diff_pol, policy)
 
+  def testFillIPolicyKeepsUnknown(self):
+    INVALID_KEY = "invalid_ipolicy_key"
+    diff_pol = {
+      INVALID_KEY: None,
+      }
+    policy = objects.FillIPolicy(constants.IPOLICY_DEFAULTS, diff_pol)
+    self.assertTrue(INVALID_KEY in policy)
+
 
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
