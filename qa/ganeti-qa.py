@@ -635,6 +635,30 @@ def TestIPolicyPlainInstance():
     node.Release()
 
 
+def IsExclusiveStorageInstanceTestEnabled():
+  test_name = "exclusive-storage-instance-tests"
+  if qa_config.TestEnabled(test_name):
+    vgname = qa_config.get("vg-name", constants.DEFAULT_VG)
+    vgscmd = utils.ShellQuoteArgs([
+      "vgs", "--noheadings", "-o", "pv_count", vgname,
+      ])
+    nodes = qa_config.GetConfig()["nodes"]
+    for node in nodes:
+      try:
+        pvnum = int(qa_utils.GetCommandOutput(node.primary, vgscmd))
+      except Exception, e:
+        msg = ("Cannot get the number of PVs on %s, needed by '%s': %s" %
+               (node.primary, test_name, e))
+        raise qa_error.Error(msg)
+      if pvnum < 2:
+        raise qa_error.Error("Node %s has not enough PVs (%s) to run '%s'" %
+                             (node.primary, pvnum, test_name))
+    res = True
+  else:
+    res = False
+  return res
+
+
 def RunInstanceTests():
   """Create and exercise instances."""
   instance_tests = [
@@ -748,7 +772,7 @@ def RunQa():
 
   config_list = [
     ("default-instance-tests", lambda: None, lambda _: None),
-    ("exclusive-storage-instance-tests",
+    (IsExclusiveStorageInstanceTestEnabled,
      lambda: qa_cluster.TestSetExclStorCluster(True),
      qa_cluster.TestSetExclStorCluster),
   ]
