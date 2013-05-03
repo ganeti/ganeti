@@ -201,7 +201,7 @@ def _TestGroupModifyIPolicy(groupname):
     ("vcpu-ratio", 1.5, None, 1.5),
     ("spindle-ratio", 1.5, None, 1.5),
     ("disk-templates", constants.DT_PLAIN,
-     "enabled disk templates", constants.DT_PLAIN)
+     "allowed disk templates", constants.DT_PLAIN)
     ]:
     if not iname:
       iname = par

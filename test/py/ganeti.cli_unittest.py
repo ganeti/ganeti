@@ -1220,7 +1220,7 @@ class TestFormatPolicyInfo(unittest.TestCase):
   def _TranslateParsedNames(self, parsed):
     for (pretty, raw) in [
       ("bounds specs", constants.ISPECS_MINMAX),
-      ("enabled disk templates", constants.IPOLICY_DTS)
+      ("allowed disk templates", constants.IPOLICY_DTS)
       ]:
       self._RenameDictItem(parsed, pretty, raw)
     for minmax in parsed[constants.ISPECS_MINMAX]:
