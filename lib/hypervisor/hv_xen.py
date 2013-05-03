@@ -909,6 +909,8 @@ class XenHvmHypervisor(XenHypervisor):
     constants.HV_CPU_CAP: hv_base.NO_CHECK,
     constants.HV_CPU_WEIGHT:
       (False, lambda x: 0 < x < 65535, "invalid weight", None, None),
+    constants.HV_VIF_TYPE:
+      hv_base.ParamInSet(False, constants.HT_HVM_VALID_VIF_TYPES),
     }
 
   def _GetConfig(self, instance, startup_memory, block_devices):
@@ -980,14 +982,23 @@ class XenHvmHypervisor(XenHypervisor):
       config.write("localtime = 1\n")
 
     vif_data = []
+    # Note: what is called 'nic_type' here, is used as value for the xen nic
+    # vif config parameter 'model'. For the xen nic vif parameter 'type', we use
+    # the 'vif_type' to avoid a clash of notation.
     nic_type = hvp[constants.HV_NIC_TYPE]
+
     if nic_type is None:
+      vif_type_str = ""
+      if hvp[constants.HV_VIF_TYPE]:
+        vif_type_str = ", type=%s" % hvp[constants.HV_VIF_TYPE]
       # ensure old instances don't change
-      nic_type_str = ", type=ioemu"
+      nic_type_str = vif_type_str
     elif nic_type == constants.HT_NIC_PARAVIRTUAL:
       nic_type_str = ", type=paravirtualized"
     else:
-      nic_type_str = ", model=%s, type=ioemu" % nic_type
+      # parameter 'model' is only valid with type 'ioemu'
+      nic_type_str = ", model=%s, type=%s" % \
+        (nic_type, constants.HT_HVM_VIF_IOEMU)
     for nic in instance.nics:
       nic_str = "mac=%s%s" % (nic.mac, nic_type_str)
       ip = getattr(nic, "ip", None)

@@ -24,10 +24,10 @@ Version 2.8.0 beta1
   configuration back to the previous stable version.
 
 
-Version 2.7.0 beta3
--------------------
+Version 2.7.0 rc1
+-----------------
 
-*(Released Mon, 22 Apr 2013)*
+*(unreleased)*
 
 Incompatible/important changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -87,7 +87,8 @@ New features
   ``plain`` disk template are supported.
 - The KVM hypervisor has been updated with many new hypervisor
   parameters, including a generic one for passing arbitrary command line
-  values. See a complete list in :manpage:`gnt-instance(8)`.
+  values. See a complete list in :manpage:`gnt-instance(8)`. It is now
+  compatible up to qemu 1.4.
 - A new tool, called ``mon-collector``, is the stand-alone executor of
   the data collectors for a monitoring system. As of this version, it
   just includes the DRBD data collector, that can be executed by calling
@@ -131,7 +132,31 @@ Misc changes
 - The functionality for allocating multiple instances at once has been
   overhauled and is now also available through :doc:`RAPI <rapi>`.
 
-Since beta2:
+
+Since beta3:
+
+- Fix kvm compatibility with qemu 1.4 (Issue 389)
+- Documentation updates (admin guide, upgrade notes, install
+  instructions) (Issue 372)
+- Fix gnt-group list nodes and instances count (Issue 436)
+- Fix compilation without non-mandatory libraries (Issue 441)
+- Fix xen-hvm hypervisor forcing nics to type 'ioemu' (Issue 247)
+- Make confd logging more verbose at INFO level (Issue 435)
+- Improve "networks" documentation in :manpage:`gnt-instance(8)`
+- Fix failure path for instance storage type conversion (Issue 229)
+- Update htools text backend documentation
+- Improve the renew-crypto section of :manpage:`gnt-cluster(8)`
+- Disable inter-cluster instance move for file-based instances, because
+  it is dependant on instance export, which is not supported for
+  file-based instances. (Issue 414)
+
+
+Version 2.7.0 beta3
+-------------------
+
+*(Released Mon, 22 Apr 2013)*
+
+This was the third beta release of the 2.7 series. Since beta2:
 
 - Fix hail to verify disk instance policies on a per-disk basis (Issue 418).
 - Fix data loss on wrong usage of ``gnt-instance move``

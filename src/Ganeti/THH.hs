@@ -660,7 +660,7 @@ genStrOfKey = genConstrToStr ensureLower
 -- | Generates the LuxiOp data type.
 --
 -- This takes a Luxi operation definition and builds both the
--- datatype and the function trnasforming the arguments to JSON.
+-- datatype and the function transforming the arguments to JSON.
 -- We can't use anything less generic, because the way different
 -- operations are serialized differs on both parameter- and top-level.
 --

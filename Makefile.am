@@ -444,7 +444,11 @@ mandocrst = $(addprefix doc/man-,$(notdir $(manrst)))
 HS_BIN_PROGS=src/htools
 
 # Haskell programs to be installed in the MYEXECLIB dir
+if ENABLE_MOND
 HS_MYEXECLIB_PROGS=src/mon-collector
+else
+HS_MYEXECLIB_PROGS=
+endif
 
 # Haskell programs to be compiled by "make really-all"
 HS_COMPILE_PROGS= \
