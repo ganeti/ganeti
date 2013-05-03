@@ -1022,6 +1022,7 @@ TEST_FILES = \
 	test/data/htools/invalid-node.data \
 	test/data/htools/missing-resources.data \
 	test/data/htools/multiple-master.data \
+	test/data/htools/multiple-tags.data \
 	test/data/htools/n1-failure.data \
 	test/data/htools/rapi/groups.json \
 	test/data/htools/rapi/info.json \

@@ -14,3 +14,11 @@ node-01-003,node-01-001
 node-01-002
 node-01-001
 >>>= 0
+
+./test/hs/hroller --node-tags=red --no-headers -t $TESTDATA_DIR/multiple-tags.data
+>>>/node-01-00.,node-01-00.,node-01-001/
+>>>= 0
+
+./test/hs/hroller --node-tags=blue --no-headers -t $TESTDATA_DIR/multiple-tags.data
+>>>/node-01-00.,node-01-00.,node-01-00?/
+>>>= 0
