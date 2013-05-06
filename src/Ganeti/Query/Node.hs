@@ -42,6 +42,7 @@ import Ganeti.Rpc
 import Ganeti.Query.Language
 import Ganeti.Query.Common
 import Ganeti.Query.Types
+import qualified Ganeti.Types as T
 import Ganeti.Utils (niceSort)
 
 -- | Runtime is the resulting type for NodeInfo call.
@@ -224,6 +225,8 @@ collectLiveData False _ nodes =
   return $ zip nodes (repeat $ Left (RpcResultError "Live data disabled"))
 collectLiveData True cfg nodes = do
   let vgs = maybeToList . clusterVolumeGroupName $ configCluster cfg
+      -- FIXME: This currently sets every storage unit to LVM
+      storage_units = zip (repeat T.StorageLvmVg) vgs
       hvs = [getDefaultHypervisor cfg]
       step n (bn, gn, em) =
         let ndp' = getNodeNdParams cfg n
@@ -232,7 +235,8 @@ collectLiveData True cfg nodes = do
                           (nodeName n, ndpExclusiveStorage ndp) : em)
              Nothing -> (n : bn, gn, em)
       (bnodes, gnodes, emap) = foldr step ([], [], []) nodes
-  rpcres <- executeRpcCall gnodes (RpcCallNodeInfo vgs hvs (Map.fromList emap))
+  rpcres <- executeRpcCall gnodes (RpcCallNodeInfo storage_units hvs
+    (Map.fromList emap))
   -- FIXME: The order of nodes in the result could be different from the input
   return $ zip bnodes (repeat $ Left (RpcResultError "Broken configuration"))
            ++ rpcres

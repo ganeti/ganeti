@@ -464,8 +464,9 @@ _NODE_CALLS = [
     ("address", None, "IP address"),
     ], None, None, "Checks if a node has the given IP address"),
   ("node_info", MULTI, None, constants.RPC_TMO_URGENT, [
-    ("vg_names", None,
-     "Names of the volume groups to ask for disk space information"),
+    ("storage_units", None,
+     "List of tuples '<storage_type>,<key>' to ask for disk space"
+     " information"),
     ("hv_names", None,
      "Names of the hypervisors to ask for node information"),
     ("exclusive_storage", None,

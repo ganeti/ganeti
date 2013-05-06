@@ -434,7 +434,7 @@ class IAllocator(object):
     vg_name = cfg.GetVGName()
     if vg_name is not None:
       has_lvm = True
-      vg_req = [vg_name]
+      vg_req = [(constants.ST_LVM_VG, vg_name)]
     else:
       has_lvm = False
       vg_req = []

@@ -1042,10 +1042,13 @@ class LUInstanceCreate(LogicalUnit):
       elif self.op.disk_template == constants.DT_EXT:
         # FIXME: Function that checks prereqs if needed
         pass
-      else:
+      elif self.op.disk_template in utils.GetLvmDiskTemplates():
         # Check lv size requirements, if not adopting
         req_sizes = ComputeDiskSizePerVG(self.op.disk_template, self.disks)
         CheckNodesFreeDiskPerVG(self, nodenames, req_sizes)
+      else:
+        # FIXME: add checks for other, non-adopting, non-lvm disk templates
+        pass
 
     elif self.op.disk_template == constants.DT_PLAIN: # Check the adoption data
       all_lvs = set(["%s/%s" % (disk[constants.IDISK_VG],

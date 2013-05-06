@@ -337,7 +337,7 @@ instance Rpc RpcCallInstanceList RpcResultInstanceList where
 -- | NodeInfo
 -- Return node information.
 $(buildObject "RpcCallNodeInfo" "rpcCallNodeInfo"
-  [ simpleField "volume_groups" [t| [String] |]
+  [ simpleField "storage_units" [t| [ (StorageType,String) ] |]
   , simpleField "hypervisors" [t| [Hypervisor] |]
   , simpleField "exclusive_storage" [t| Map.Map String Bool |]
   ])
@@ -369,7 +369,7 @@ instance RpcCall RpcCallNodeInfo where
   rpcCallTimeout _       = rpcTimeoutToRaw Urgent
   rpcCallAcceptOffline _ = False
   rpcCallData n call     = J.encode
-    ( rpcCallNodeInfoVolumeGroups call
+    ( rpcCallNodeInfoStorageUnits call
     , rpcCallNodeInfoHypervisors call
     , fromMaybe (error $ "Programmer error: missing parameter for node named "
                          ++ nodeName n)

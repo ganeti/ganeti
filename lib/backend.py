@@ -620,11 +620,13 @@ def _GetNamedNodeInfo(names, fn):
     return map(fn, names)
 
 
-def GetNodeInfo(vg_names, hv_names, excl_stor):
+def GetNodeInfo(storage_units, hv_names, excl_stor):
   """Gives back a hash with different information about the node.
 
-  @type vg_names: list of string
-  @param vg_names: Names of the volume groups to ask for disk space information
+  @type storage_units: list of pairs (string, string)
+  @param storage_units: List of pairs (storage unit, identifier) to ask for disk
+                        space information. In case of lvm-vg, the identifier is
+                        the VG name.
   @type hv_names: list of string
   @param hv_names: Names of the hypervisors to ask for node information
   @type excl_stor: boolean
@@ -635,10 +637,51 @@ def GetNodeInfo(vg_names, hv_names, excl_stor):
 
   """
   bootid = utils.ReadFile(_BOOT_ID_PATH, size=128).rstrip("\n")
-  vg_info = _GetNamedNodeInfo(vg_names, (lambda vg: _GetVgInfo(vg, excl_stor)))
+  storage_info = _GetNamedNodeInfo(
+    storage_units,
+    (lambda storage_unit: _ApplyStorageInfoFunction(storage_unit[0],
+                                                    storage_unit[1],
+                                                    excl_stor)))
   hv_info = _GetNamedNodeInfo(hv_names, _GetHvInfo)
 
-  return (bootid, vg_info, hv_info)
+  return (bootid, storage_info, hv_info)
+
+
+# FIXME: implement storage reporting for all missing storage types.
+_STORAGE_TYPE_INFO_FN = {
+  constants.ST_BLOCK: None,
+  constants.ST_DISKLESS: None,
+  constants.ST_EXT: None,
+  constants.ST_FILE: None,
+  constants.ST_LVM_VG: _GetVgInfo,
+  constants.ST_RADOS: None,
+}
+
+
+def _ApplyStorageInfoFunction(storage_type, storage_key, *args):
+  """Looks up and applies the correct function to calculate free and total
+  storage for the given storage type.
+
+  @type storage_type: string
+  @param storage_type: the storage type for which the storage shall be reported.
+  @type storage_key: string
+  @param storage_key: identifier of a storage unit, e.g. the volume group name
+    of an LVM storage unit
+  @type args: any
+  @param args: various parameters that can be used for storage reporting. These
+    parameters and their semantics vary from storage type to storage type and
+    are just propagated in this function.
+  @return: the results of the application of the storage space function (see
+    _STORAGE_TYPE_INFO_FN) if storage space reporting is implemented for that
+    storage type
+  @raises NotImplementedError: for storage types who don't support space
+    reporting yet
+  """
+  fn = _STORAGE_TYPE_INFO_FN[storage_type]
+  if fn is not None:
+    return fn(storage_key, *args)
+  else:
+    raise NotImplementedError
 
 
 def _CheckExclusivePvs(pvi_list):

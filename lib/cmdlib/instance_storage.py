@@ -847,7 +847,10 @@ def _CheckNodesFreeDiskOnVG(lu, nodenames, vg, requested):
 
   """
   es_flags = rpc.GetExclusiveStorageForNodeNames(lu.cfg, nodenames)
-  nodeinfo = lu.rpc.call_node_info(nodenames, [vg], None, es_flags)
+  # FIXME: This maps everything to storage type 'lvm-vg' to maintain
+  # the current functionality. Refactor to make it more flexible.
+  nodeinfo = lu.rpc.call_node_info(nodenames, [(constants.ST_LVM_VG, vg)], None,
+                                   es_flags)
   for node in nodenames:
     info = nodeinfo[node]
     info.Raise("Cannot get current information from node %s" % node,
