@@ -80,18 +80,18 @@ them (citation needed). As such we'll implement for now just the
 In order to do that we can use the following algorithm:
 
 1) Compute node sets that don't contain both the primary and the
-   secondary for any instance. This can be done already by the current
-   hroller graph coloring algorithm: nodes are in the same set (color)
-   if and only if no edge (instance) exists between them (see the
-   :manpage:`hroller(1)` manpage for more details).
-2) Inside each node set calculate subsets that don't have any secondary
-   node in common (this can be done by creating a graph of nodes that
-   are connected if and only if an instance on both has the same
-   secondary node, and coloring that graph)
-3) It is then possible to migrate in parallel all nodes in a subset
-   created at step 2, and then reboot/perform maintenance on them, and
+   secondary of any instance, and also don't contain the primary
+   nodes of two instances that have the same node as secondary. These
+   can be obtained by computing a coloring of the graph with nodes
+   as vertexes and an edge between two nodes, if either condition
+   prevents simultaneous maintenance. (This is the current algorithm of
+   :manpage:`hroller(1)` with the extension that the graph to be colored
+   has additional edges between the primary nodes of two instances sharing
+   their secondary node.)
+2) It is then possible to migrate in parallel all nodes in a set
+   created at step 1, and then reboot/perform maintenance on them, and
    migrate back their original primaries, which allows the computation
-   above to be reused for each following subset without N+1 failures
+   above to be reused for each following set without N+1 failures
    being triggered, if none were present before. See below about the
    actual execution of the maintenance.
 
