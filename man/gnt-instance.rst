@@ -27,7 +27,7 @@ ADD
 ^^^
 
 | **add**
-| {-t|\--disk-template {diskless | file \| plain \| drbd \| rbd}}
+| {-t|\--disk-template {diskless \| file \| plain \| drbd \| rbd}}
 | {\--disk=*N*: {size=*VAL* \| adopt=*LV*}[,options...]
 |  \| {size=*VAL*,provider=*PROVIDER*}[,param=*value*... ][,options...]
 |  \| {-s|\--os-size} *SIZE*}
@@ -62,7 +62,7 @@ mode
   (read-write).
 
 name
-   this option specifies a name for the disk, which can be used as a disk
+   This option specifies a name for the disk, which can be used as a disk
    identifier. An instance can not have two disks with the same name.
 
 vg
@@ -1068,7 +1068,7 @@ MODIFY
 |  \--disk *N*:add,size=*SIZE*,provider=*PROVIDER*[,options...][,param=*value*... ] \|
 |  \--disk *ID*:modify[,options...]
 |  \--disk [*ID*:]remove]
-| [{-t|\--disk-template} plain | {-t|\--disk-template} drbd -n *new_secondary*] [\--no-wait-for-sync]
+| [{-t|\--disk-template} plain \| {-t|\--disk-template} drbd -n *new_secondary*] [\--no-wait-for-sync]
 | [\--new-primary=*node*]
 | [\--os-type=*OS* [\--force-variant]]
 | [{-O|\--os-parameters} *param*=*value*... ]
@@ -1111,14 +1111,14 @@ separated options, same as in the **add** command. -The ``--disk remove``
 option will remove the last disk of the instance. Use
 ``--disk `` *ID*``:remove`` to remove a disk by its identifier.  *ID*
 can be the index of the disk, the disks's name or the disks's UUID.  The
-``--disk *ID*:modify[,options...]`` wil change the options of the disk.
+``--disk *ID*:modify[,options...]`` will change the options of the disk.
 Available options are:
 
 mode
   The access mode. Either ``ro`` (read-only) or the default ``rw`` (read-write).
 
 name
-   this option specifies a name for the disk, which can be used as a disk
+   This option specifies a name for the disk, which can be used as a disk
    identifier. An instance can not have two disks with the same name.
 
 The ``--net *N*:add[,options..]`` will add a new network interface to
