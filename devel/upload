@@ -130,7 +130,7 @@ echo ---
 # and now put it under $prefix on the target node(s)
 for host; do
   echo Uploading code to ${host}...
-  rsync -v -rlDc \
+  rsync -v -rlKDc \
     -e "ssh -oBatchMode=yes" \
     --exclude="*.py[oc]" --exclude="*.pdf" --exclude="*.html" \
     "$TXD/" \
