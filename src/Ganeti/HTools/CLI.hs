@@ -71,6 +71,7 @@ module Ganeti.HTools.CLI
   , oNodeSim
   , oNodeTags
   , oOfflineNode
+  , oOneStepOnly
   , oOutputDir
   , oPrintCommands
   , oPrintInsts
@@ -138,6 +139,7 @@ data Options = Options
   , optNodeSim     :: [String]       -- ^ Cluster simulation mode
   , optNodeTags    :: Maybe [String] -- ^ List of node tags to restrict to 
   , optOffline     :: [String]       -- ^ Names of offline nodes
+  , optOneStepOnly :: Bool           -- ^ Only do the first step
   , optOutPath     :: FilePath       -- ^ Path to the output directory
   , optSaveCluster :: Maybe FilePath -- ^ Save cluster state to this file
   , optShowCmds    :: Maybe FilePath -- ^ Whether to show the command list
@@ -186,6 +188,7 @@ defaultOptions  = Options
   , optNodeSim     = []
   , optNodeTags    = Nothing
   , optOffline     = []
+  , optOneStepOnly = False
   , optOutPath     = "."
   , optSaveCluster = Nothing
   , optShowCmds    = Nothing
@@ -468,6 +471,13 @@ oOfflineNode =
    (ReqArg (\ n o -> Ok o { optOffline = n:optOffline o }) "NODE")
    "set node as offline",
    OptComplOneNode)
+
+oOneStepOnly :: OptType
+oOneStepOnly =
+  (Option "" ["one-step-only"]
+   (NoArg (\ opts -> Ok opts {optOneStepOnly = True}))
+   "Only do the first step",
+   OptComplNone)
 
 oOutputDir :: OptType
 oOutputDir =

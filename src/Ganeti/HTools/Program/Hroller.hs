@@ -65,6 +65,7 @@ options = do
     , oSaveCluster
     , oGroup
     , oForce
+    , oOneStepOnly
     ]
 
 -- | The list of arguments supported by the program.
@@ -169,6 +170,15 @@ main opts args = do
 
   when (verbose > 1) . putStrLn $ getStats colorings
 
-  unless (optNoHeaders opts) $
-         putStrLn "'Node Reboot Groups'"
-  mapM_ (putStrLn . commaJoin) outputRebootNames
+  if optOneStepOnly opts
+     then do
+       unless (optNoHeaders opts) $
+              putStrLn "'First Reboot Group'"
+       case outputRebootNames of
+         [] -> return ()
+         y : _ -> mapM_ putStrLn y
+     else do
+       unless (optNoHeaders opts) $
+              putStrLn "'Node Reboot Groups'"
+       mapM_ (putStrLn . commaJoin) outputRebootNames
+

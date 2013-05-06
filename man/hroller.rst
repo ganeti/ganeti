@@ -33,6 +33,7 @@ Reporting options:
 
 **[ -v... | -q ]**
 **[ -S *file* ]**
+**[ --one-step-only ]**
 
 DESCRIPTION
 -----------
@@ -64,6 +65,9 @@ For a description of the standard options check **htools**\(7) and
 
 \--node-tags *tag,...*
   Restrict to nodes having at least one of the given tags.
+
+\--one-step-only
+  Restrict to the first reboot group. Output the group one node per line.
 
 \--force
   Do not fail, even if the master node cannot be determined.
