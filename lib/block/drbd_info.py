@@ -442,9 +442,11 @@ class DRBD84ShowInfo(BaseShowInfo):
             for inner in lst[1:]:
               if inner[0] == "disk" and len(inner) == 2:
                 retval["local_dev"] = inner[1]
-              elif inner[0] == "meta-disk" and len(inner) == 3:
-                retval["meta_dev"] = inner[1]
-                retval["meta_index"] = inner[2]
+              elif inner[0] == "meta-disk":
+                if len(inner) > 1:
+                  retval["meta_dev"] = inner[1]
+                if len(inner) > 2:
+                  retval["meta_index"] = inner[2]
       elif sname == "_remote_host":
         for lst in section[1:]:
           if lst[0] == "address":

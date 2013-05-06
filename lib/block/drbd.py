@@ -320,8 +320,8 @@ class DRBD8Dev(base.BlockDev):
     if meta is not None:
       retval = retval and ("meta_dev" in info and
                            info["meta_dev"] == meta.dev_path)
-      retval = retval and ("meta_index" in info and
-                           info["meta_index"] == 0)
+      if "meta_index" in info:
+        retval = retval and info["meta_index"] == 0
     else:
       retval = retval and ("meta_dev" not in info and
                            "meta_index" not in info)
@@ -830,7 +830,7 @@ class DRBD8Dev(base.BlockDev):
         # no local disk, but network attached and it matches
         self._AssembleLocal(minor, self._children[0].dev_path,
                             self._children[1].dev_path, self.size)
-        if self._MatchesNet(self._GetShowInfo(minor)):
+        if self._MatchesLocal(self._GetShowInfo(minor)):
           break
         else:
           base.ThrowError("drbd%d: disk attach successful, but 'drbdsetup"
