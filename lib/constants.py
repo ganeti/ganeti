@@ -1326,6 +1326,7 @@ NICS_PARAMETERS = frozenset(NICS_PARAMETER_TYPES.keys())
 
 # IDISK_* constants are used in opcodes, to create/change disks
 IDISK_SIZE = "size"
+IDISK_SPINDLES = "spindles"
 IDISK_MODE = "mode"
 IDISK_ADOPT = "adopt"
 IDISK_VG = "vg"
@@ -1334,6 +1335,7 @@ IDISK_PROVIDER = "provider"
 IDISK_NAME = "name"
 IDISK_PARAMS_TYPES = {
   IDISK_SIZE: VTYPE_SIZE,
+  IDISK_SPINDLES: VTYPE_INT,
   IDISK_MODE: VTYPE_STRING,
   IDISK_ADOPT: VTYPE_STRING,
   IDISK_VG: VTYPE_STRING,

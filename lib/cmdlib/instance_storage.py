@@ -526,6 +526,7 @@ class LUInstanceRecreateDisks(LogicalUnit):
   _MODIFYABLE = compat.UniqueFrozenset([
     constants.IDISK_SIZE,
     constants.IDISK_MODE,
+    constants.IDISK_SPINDLES,
     ])
 
   # New or changed disk parameters may have different semantics

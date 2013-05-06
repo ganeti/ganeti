@@ -28,7 +28,7 @@ ADD
 
 | **add**
 | {-t|\--disk-template {diskless \| file \| plain \| drbd \| rbd}}
-| {\--disk=*N*: {size=*VAL* \| adopt=*LV*}[,options...]
+| {\--disk=*N*: {size=*VAL*[,spindles=*VAL*] \| adopt=*LV*}[,options...]
 |  \| {size=*VAL*,provider=*PROVIDER*}[,param=*value*... ][,options...]
 |  \| {-s|\--os-size} *SIZE*}
 | [\--no-ip-check] [\--no-name-check] [\--no-conflicts-check]
@@ -56,6 +56,9 @@ given) in mebibytes. You can also use one of the suffixes *m*, *g* or
 *t* to specify the exact the units used; these suffixes map to
 mebibytes, gibibytes and tebibytes. Each disk can also take these
 parameters (all optional):
+
+spindles
+  How many spindles (physical disks on the node) the disk should span.
 
 mode
   The access mode. Either ``ro`` (read-only) or the default ``rw``
@@ -1103,15 +1106,15 @@ by ballooning it up or down to the new value.
 The ``--disk add:size=*SIZE*,[options..]`` option adds a disk to the
 instance, and ``--disk *N*:add:size=*SIZE*,[options..]`` will add a disk
 to the the instance at a specific index. The available options are the
-same as in the **add** command(``mode``, ``name``, ``vg``, ``metavg``).
-When adding an ExtStorage disk the ``provider=*PROVIDER*`` option is
-also mandatory and specifies the ExtStorage provider. Also, for
-ExtStorage disks arbitrary parameters can be passed as additional comma
-separated options, same as in the **add** command. -The ``--disk remove``
-option will remove the last disk of the instance. Use
-``--disk `` *ID*``:remove`` to remove a disk by its identifier.  *ID*
-can be the index of the disk, the disks's name or the disks's UUID.  The
-``--disk *ID*:modify[,options...]`` will change the options of the disk.
+same as in the **add** command(``spindles``, ``mode``, ``name``, ``vg``,
+``metavg``). When adding an ExtStorage disk the ``provider=*PROVIDER*``
+option is also mandatory and specifies the ExtStorage provider. Also,
+for ExtStorage disks arbitrary parameters can be passed as additional
+comma separated options, same as in the **add** command. -The ``--disk
+remove`` option will remove the last disk of the instance. Use ``--disk
+`` *ID*``:remove`` to remove a disk by its identifier. *ID* can be the
+index of the disk, the disks's name or the disks's UUID. The ``--disk
+*ID*:modify[,options...]`` will change the options of the disk.
 Available options are:
 
 mode
@@ -1616,7 +1619,7 @@ RECREATE-DISKS
 
 | **recreate-disks** [\--submit]
 | [{-n node1:[node2] \| {-I\|\--iallocator *name*}}]
-| [\--disk=*N*[:[size=*VAL*][,mode=*ro\|rw*]]] {*instance*}
+| [\--disk=*N*[:[size=*VAL*][,spindles=*VAL*][,mode=*ro\|rw*]]] {*instance*}
 
 Recreates all or a subset of disks of the given instance.
 
@@ -1627,10 +1630,10 @@ normal operation and as such the impact of this is low.
 
 If only a subset should be recreated, any number of ``disk`` options can
 be specified. It expects a disk index and an optional list of disk
-parameters to change. Only ``size`` and ``mode`` can be changed while
-recreating disks. To recreate all disks while changing parameters on
-a subset only, a ``--disk`` option must be given for every disk of the
-instance.
+parameters to change. Only ``size``, ``spindles``, and ``mode`` can be
+changed while recreating disks. To recreate all disks while changing
+parameters on a subset only, a ``--disk`` option must be given for every
+disk of the instance.
 
 Optionally the instance's disks can be recreated on different
 nodes. This can be useful if, for example, the original nodes of the

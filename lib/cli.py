@@ -2647,6 +2647,9 @@ def GenericInstanceCreate(mode, opts, args):
           raise errors.OpPrereqError("Invalid disk size for disk %d: %s" %
                                      (didx, err), errors.ECODE_INVAL)
       elif constants.IDISK_ADOPT in ddict:
+        if constants.IDISK_SPINDLES in ddict:
+          raise errors.OpPrereqError("spindles is not a valid option when"
+                                     " adopting a disk", errors.ECODE_INVAL)
         if mode == constants.INSTANCE_IMPORT:
           raise errors.OpPrereqError("Disk adoption not allowed for instance"
                                      " import", errors.ECODE_INVAL)
