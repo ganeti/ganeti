@@ -73,9 +73,11 @@ module Ganeti.HTools.Node
   , noSecondary
   , computeGroups
   , mkNodeGraph
+  , mkRebootNodeGraph
   ) where
 
 import Control.Monad (liftM, liftM2)
+import Control.Applicative ((<$>), (<*>))
 import qualified Data.Foldable as Foldable
 import Data.Function (on)
 import qualified Data.Graph as Graph
@@ -589,14 +591,37 @@ nodesToBounds nl = liftM2 (,) nmin nmax
     where nmin = fmap (fst . fst) (IntMap.minViewWithKey nl)
           nmax = fmap (fst . fst) (IntMap.maxViewWithKey nl)
 
+-- | The clique of the primary nodes of the instances with a given secondary.
+-- Return the full graph of those nodes that are primary node of at least one
+-- instance that has the given node as secondary.
+nodeToSharedSecondaryEdge :: Instance.List -> Node -> [Graph.Edge]
+nodeToSharedSecondaryEdge il n = (,) <$> primaries <*> primaries
+  where primaries = map (Instance.pNode . flip Container.find il) $ sList n
+
+
+-- | Predicate of an edge having both vertices in a set of nodes.
+filterValid :: List -> [Graph.Edge] -> [Graph.Edge]
+filterValid nl  =  filter $ \(x,y) -> IntMap.member x nl && IntMap.member y nl
+
 -- | Transform a Node + Instance list into a NodeGraph type.
 -- Returns Nothing if the node list is empty.
 mkNodeGraph :: List -> Instance.List -> Maybe Graph.Graph
 mkNodeGraph nl il =
-  liftM (`Graph.buildG` (filterValid . instancesToEdges $ il))
+  liftM (`Graph.buildG` (filterValid nl . instancesToEdges $ il))
   (nodesToBounds nl)
+
+-- | Transform a Nodes + Instances into a NodeGraph with all reboot exclusions.
+-- This includes edges between nodes that are the primary nodes of instances
+-- that have the same secondary node. Nodes not in the node list will not be
+-- part of the graph, but they are still considered for the edges arising from
+-- two instances having the same secondary node.
+-- Return Nothing if the node list is empty.
+mkRebootNodeGraph :: List -> List -> Instance.List -> Maybe Graph.Graph
+mkRebootNodeGraph allnodes nl il =
+  liftM (`Graph.buildG` filterValid nl edges) (nodesToBounds nl)
   where
-    filterValid = filter (\(x,y) -> IntMap.member x nl && IntMap.member y nl)
+    edges = instancesToEdges il `union`
+            (Container.elems allnodes >>= nodeToSharedSecondaryEdge il) 
 
 -- * Display functions
 
