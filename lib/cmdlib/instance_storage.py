@@ -510,7 +510,8 @@ def GenerateDiskTemplate(
                               logical_id=logical_id_fn(idx, disk_index, disk),
                               iv_name="disk/%d" % disk_index,
                               mode=disk[constants.IDISK_MODE],
-                              params=params)
+                              params=params,
+                              spindles=disk.get(constants.IDISK_SPINDLES))
       disk_dev.name = disk.get(constants.IDISK_NAME, None)
       disk_dev.uuid = lu.cfg.GenerateUniqueID(lu.proc.GetECId())
       disks.append(disk_dev)
@@ -833,7 +834,8 @@ class LUInstanceRecreateDisks(LogicalUnit):
         disk.logical_id = new_id
       if changes:
         disk.Update(size=changes.get(constants.IDISK_SIZE, None),
-                    mode=changes.get(constants.IDISK_MODE, None))
+                    mode=changes.get(constants.IDISK_MODE, None),
+                    spindles=changes.get(constants.IDISK_SPINDLES, None))
 
     # change primary node, if needed
     if self.op.nodes:

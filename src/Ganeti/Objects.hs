@@ -426,6 +426,7 @@ data Disk = Disk
   , diskSize       :: Int
   , diskMode       :: DiskMode
   , diskName       :: Maybe String
+  , diskSpindles   :: Maybe Int
   , diskUuid       :: String
   } deriving (Show, Eq)
 
@@ -438,6 +439,7 @@ $(buildObjectSerialisation "Disk" $
   , simpleField "size" [t| Int |]
   , defaultField [| DiskRdWr |] $ simpleField "mode" [t| DiskMode |]
   , optionalField $ simpleField "name" [t| String |]
+  , optionalField $ simpleField "spindles" [t| Int |]
   ]
   ++ uuidFields)
 

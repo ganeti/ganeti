@@ -512,8 +512,9 @@ class NIC(ConfigObject):
 
 class Disk(ConfigObject):
   """Config object representing a block device."""
-  __slots__ = ["name", "dev_type", "logical_id", "physical_id",
-               "children", "iv_name", "size", "mode", "params"] + _UUID
+  __slots__ = (["name", "dev_type", "logical_id", "physical_id",
+                "children", "iv_name", "size", "mode", "params", "spindles"] +
+               _UUID)
 
   def CreateOnSecondary(self):
     """Test if this device needs to be created on a secondary node."""
@@ -674,8 +675,8 @@ class Disk(ConfigObject):
       raise errors.ProgrammerError("Disk.RecordGrow called for unsupported"
                                    " disk type %s" % self.dev_type)
 
-  def Update(self, size=None, mode=None):
-    """Apply changes to size and mode.
+  def Update(self, size=None, mode=None, spindles=None):
+    """Apply changes to size, spindles and mode.
 
     """
     if self.dev_type == constants.LD_DRBD8:
@@ -688,6 +689,8 @@ class Disk(ConfigObject):
       self.size = size
     if mode is not None:
       self.mode = mode
+    if spindles is not None:
+      self.spindles = spindles
 
   def UnsetSize(self):
     """Sets recursively the size to zero for the disk and its children.
@@ -804,6 +807,8 @@ class Disk(ConfigObject):
       val += ", not visible"
     else:
       val += ", visible as /dev/%s" % self.iv_name
+    if self.spindles is not None:
+      val += ", spindles=%s" % self.spindles
     if isinstance(self.size, int):
       val += ", size=%dm)>" % self.size
     else:

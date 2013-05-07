@@ -93,7 +93,7 @@ instance Arbitrary DiskLogicalId where
 instance Arbitrary Disk where
   arbitrary = Disk <$> arbitrary <*> pure [] <*> arbitrary
                    <*> arbitrary <*> arbitrary <*> arbitrary
-                   <*> arbitrary
+                   <*> arbitrary <*> arbitrary
 
 -- FIXME: we should generate proper values, >=0, etc., but this is
 -- hard for partial ones, where all must be wrapped in a 'Maybe'
@@ -179,8 +179,9 @@ genDiskWithChildren num_children = do
   size <- arbitrary
   mode <- arbitrary
   name <- genMaybe genName
+  spindles <- arbitrary
   uuid <- genName
-  let disk = Disk logicalid children ivname size mode name uuid
+  let disk = Disk logicalid children ivname size mode name spindles uuid
   return disk
 
 genDisk :: Gen Disk
