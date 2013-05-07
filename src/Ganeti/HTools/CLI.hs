@@ -70,6 +70,7 @@ module Ganeti.HTools.CLI
   , oNoSimulation
   , oNodeSim
   , oNodeTags
+  , oOfflineMaintenance
   , oOfflineNode
   , oOneStepOnly
   , oOutputDir
@@ -139,6 +140,7 @@ data Options = Options
   , optNodeSim     :: [String]       -- ^ Cluster simulation mode
   , optNodeTags    :: Maybe [String] -- ^ List of node tags to restrict to 
   , optOffline     :: [String]       -- ^ Names of offline nodes
+  , optOfflineMaintenance :: Bool    -- ^ Pretend all instances are offline
   , optOneStepOnly :: Bool           -- ^ Only do the first step
   , optOutPath     :: FilePath       -- ^ Path to the output directory
   , optSaveCluster :: Maybe FilePath -- ^ Save cluster state to this file
@@ -188,6 +190,7 @@ defaultOptions  = Options
   , optNodeSim     = []
   , optNodeTags    = Nothing
   , optOffline     = []
+  , optOfflineMaintenance = False
   , optOneStepOnly = False
   , optOutPath     = "."
   , optSaveCluster = Nothing
@@ -465,6 +468,14 @@ oNodeTags =
     "TAG,...") "Restrict to nodes with the given tags",
    OptComplString)
      
+oOfflineMaintenance :: OptType
+oOfflineMaintenance =
+  (Option "" ["offline-maintenance"]
+   (NoArg (\ opts -> Ok opts {optOfflineMaintenance = True}))
+   "Schedule offline maintenance, i.e., pretend that all instance are\
+   \ offline.",
+   OptComplNone)
+
 oOfflineNode :: OptType
 oOfflineNode =
   (Option "O" ["offline"]

@@ -58,6 +58,7 @@ options = do
     , oDataFile
     , oIAllocSrc
     , oOfflineNode
+    , oOfflineMaintenance
     , oVerbose
     , oQuiet
     , oNoHeaders
@@ -143,10 +144,13 @@ main opts args = do
                              , hasTag $ optNodeTags opts
                              , hasGroup wantedGroup ])
               nlf
+      mkGraph = if optOfflineMaintenance opts
+                   then Node.mkNodeGraph
+                   else Node.mkRebootNodeGraph nlf
 
   -- TODO: fail if instances are running (with option to warn only)
 
-  nodeGraph <- case Node.mkNodeGraph nodes ilf of
+  nodeGraph <- case mkGraph nodes ilf of
                      Nothing -> exitErr "Cannot create node graph"
                      Just g -> return g
 

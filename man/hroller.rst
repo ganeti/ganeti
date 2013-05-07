@@ -51,11 +51,13 @@ ALGORITHM FOR CALCULATING OFFLINE REBOOT GROUPS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 hroller will view the nodes as vertices of an undirected graph,
-connecting by instances which have both a primary and a secondary node.
-It will then color the graph using a few different heuristics, and
-return the minimum-size color set found. Node with the same color don't
-share an edge, and as such don't have an instance with both primary and
-secondary node on them, so they are safe to be rebooted concurrently.
+with two kind of edges. Firstly, there are edges from the primary
+to the secondary node of every instance. Secondly, two nodes are connected
+by an edge if they are the primary nodes of two instances that have the
+same secondary node. It will then color the graph using a few different
+heuristics, and return the minimum-size color set found. Node with the same
+color can then simultaneously migrate all instance off to their respective
+secondary nodes, and it is safe to reboot them simultaneously.
 
 OPTIONS
 -------
@@ -68,6 +70,11 @@ For a description of the standard options check **htools**\(7) and
 
 \--one-step-only
   Restrict to the first reboot group. Output the group one node per line.
+
+\--offline-maintenance
+  Pretend that all instances are shutdown before the reboots are carried
+  out. I.e., only edges from the primary to the secondary node of an instance
+  are considered.
 
 \--force
   Do not fail, even if the master node cannot be determined.
@@ -90,8 +97,8 @@ should support them both with and without secondary node replacement.
 EXAMPLE
 -------
 
-Offline Rolling node reboot output
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Rolling node reboot output
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 With the default options, the program shows one reboot group per line as
 a comma-separated list.
