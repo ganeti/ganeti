@@ -13856,6 +13856,80 @@ class LUInstanceSetParams(LogicalUnit):
                                            self.op.disk_template))
         raise errors.OpPrereqError(errmsg, errors.ECODE_STATE)
 
+  def _PreCheckDisks(self, ispec):
+    """CheckPrereq checks related to disk changes.
+
+    @type ispec: dict
+    @param ispec: instance specs to be updated with the new disks
+
+    """
+    instance = self.instance
+    self.diskparams = self.cfg.GetInstanceDiskParams(instance)
+
+    # Check disk modifications. This is done here and not in CheckArguments
+    # (as with NICs), because we need to know the instance's disk template
+    if instance.disk_template == constants.DT_EXT:
+      self._CheckMods("disk", self.op.disks, {},
+                      self._VerifyDiskModification)
+    else:
+      self._CheckMods("disk", self.op.disks, constants.IDISK_PARAMS_TYPES,
+                      self._VerifyDiskModification)
+
+    self.diskmod = PrepareContainerMods(self.op.disks, None)
+
+    # Check the validity of the `provider' parameter
+    if instance.disk_template in constants.DT_EXT:
+      for mod in self.diskmod:
+        ext_provider = mod[2].get(constants.IDISK_PROVIDER, None)
+        if mod[0] == constants.DDM_ADD:
+          if ext_provider is None:
+            raise errors.OpPrereqError("Instance template is '%s' and parameter"
+                                       " '%s' missing, during disk add" %
+                                       (constants.DT_EXT,
+                                        constants.IDISK_PROVIDER),
+                                       errors.ECODE_NOENT)
+        elif mod[0] == constants.DDM_MODIFY:
+          if ext_provider:
+            raise errors.OpPrereqError("Parameter '%s' is invalid during disk"
+                                       " modification" %
+                                       constants.IDISK_PROVIDER,
+                                       errors.ECODE_INVAL)
+    else:
+      for mod in self.diskmod:
+        ext_provider = mod[2].get(constants.IDISK_PROVIDER, None)
+        if ext_provider is not None:
+          raise errors.OpPrereqError("Parameter '%s' is only valid for"
+                                     " instances of type '%s'" %
+                                     (constants.IDISK_PROVIDER,
+                                      constants.DT_EXT),
+                                     errors.ECODE_INVAL)
+
+    if self.op.disks and instance.disk_template == constants.DT_DISKLESS:
+      raise errors.OpPrereqError("Disk operations not supported for"
+                                 " diskless instances", errors.ECODE_INVAL)
+
+    def _PrepareDiskMod(_, disk, params, __):
+      disk.name = params.get(constants.IDISK_NAME, None)
+
+    # Verify disk changes (operating on a copy)
+    disks = copy.deepcopy(instance.disks)
+    ApplyContainerMods("disk", disks, None, self.diskmod, None, _PrepareDiskMod,
+                       None)
+    utils.ValidateDeviceNames("disk", disks)
+    if len(disks) > constants.MAX_DISKS:
+      raise errors.OpPrereqError("Instance has too many disks (%d), cannot add"
+                                 " more" % constants.MAX_DISKS,
+                                 errors.ECODE_STATE)
+    disk_sizes = [disk.size for disk in instance.disks]
+    disk_sizes.extend(params["size"] for (op, idx, params, private) in
+                      self.diskmod if op == constants.DDM_ADD)
+    ispec[constants.ISPEC_DISK_COUNT] = len(disk_sizes)
+    ispec[constants.ISPEC_DISK_SIZE] = disk_sizes
+
+    if self.op.offline is not None and self.op.offline:
+      _CheckInstanceState(self, instance, CAN_CHANGE_INSTANCE_OFFLINE,
+                          msg="can't change to offline")
+
   def CheckPrereq(self):
     """Check prerequisites.
 
@@ -13888,7 +13962,6 @@ class LUInstanceSetParams(LogicalUnit):
     assert pnode in self.owned_locks(locking.LEVEL_NODE)
     nodelist = list(instance.all_nodes)
     pnode_info = self.cfg.GetNodeInfo(pnode)
-    self.diskparams = self.cfg.GetInstanceDiskParams(instance)
 
     #_CheckInstanceNodeGroups(self.cfg, self.op.instance_name, owned_groups)
     assert pnode_info.group in self.owned_locks(locking.LEVEL_NODEGROUP)
@@ -13897,45 +13970,8 @@ class LUInstanceSetParams(LogicalUnit):
     # dictionary with instance information after the modification
     ispec = {}
 
-    # Check disk modifications. This is done here and not in CheckArguments
-    # (as with NICs), because we need to know the instance's disk template
-    if instance.disk_template == constants.DT_EXT:
-      self._CheckMods("disk", self.op.disks, {},
-                      self._VerifyDiskModification)
-    else:
-      self._CheckMods("disk", self.op.disks, constants.IDISK_PARAMS_TYPES,
-                      self._VerifyDiskModification)
-
-    # Prepare disk/NIC modifications
-    self.diskmod = PrepareContainerMods(self.op.disks, None)
+    # Prepare NIC modifications
     self.nicmod = PrepareContainerMods(self.op.nics, _InstNicModPrivate)
-
-    # Check the validity of the `provider' parameter
-    if instance.disk_template in constants.DT_EXT:
-      for mod in self.diskmod:
-        ext_provider = mod[2].get(constants.IDISK_PROVIDER, None)
-        if mod[0] == constants.DDM_ADD:
-          if ext_provider is None:
-            raise errors.OpPrereqError("Instance template is '%s' and parameter"
-                                       " '%s' missing, during disk add" %
-                                       (constants.DT_EXT,
-                                        constants.IDISK_PROVIDER),
-                                       errors.ECODE_NOENT)
-        elif mod[0] == constants.DDM_MODIFY:
-          if ext_provider:
-            raise errors.OpPrereqError("Parameter '%s' is invalid during disk"
-                                       " modification" %
-                                       constants.IDISK_PROVIDER,
-                                       errors.ECODE_INVAL)
-    else:
-      for mod in self.diskmod:
-        ext_provider = mod[2].get(constants.IDISK_PROVIDER, None)
-        if ext_provider is not None:
-          raise errors.OpPrereqError("Parameter '%s' is only valid for"
-                                     " instances of type '%s'" %
-                                     (constants.IDISK_PROVIDER,
-                                      constants.DT_EXT),
-                                     errors.ECODE_INVAL)
 
     # OS change
     if self.op.os_name and not self.op.force:
@@ -13950,6 +13986,8 @@ class LUInstanceSetParams(LogicalUnit):
 
     if self.op.disk_template:
       self._PreCheckDiskTemplate(pnode_info)
+
+    self._PreCheckDisks(ispec)
 
     # hvparams processing
     if self.op.hvparams:
@@ -14105,10 +14143,6 @@ class LUInstanceSetParams(LogicalUnit):
                              "ballooning memory for instance %s" %
                              instance.name, delta, instance.hypervisor)
 
-    if self.op.disks and instance.disk_template == constants.DT_DISKLESS:
-      raise errors.OpPrereqError("Disk operations not supported for"
-                                 " diskless instances", errors.ECODE_INVAL)
-
     def _PrepareNicCreate(_, params, private):
       self._PrepareNicModification(params, private, None, None,
                                    {}, cluster, pnode)
@@ -14133,28 +14167,6 @@ class LUInstanceSetParams(LogicalUnit):
       raise errors.OpPrereqError("Instance has too many network interfaces"
                                  " (%d), cannot add more" % constants.MAX_NICS,
                                  errors.ECODE_STATE)
-
-    def _PrepareDiskMod(_, disk, params, __):
-      disk.name = params.get(constants.IDISK_NAME, None)
-
-    # Verify disk changes (operating on a copy)
-    disks = copy.deepcopy(instance.disks)
-    ApplyContainerMods("disk", disks, None, self.diskmod, None, _PrepareDiskMod,
-                       None)
-    utils.ValidateDeviceNames("disk", disks)
-    if len(disks) > constants.MAX_DISKS:
-      raise errors.OpPrereqError("Instance has too many disks (%d), cannot add"
-                                 " more" % constants.MAX_DISKS,
-                                 errors.ECODE_STATE)
-    disk_sizes = [disk.size for disk in instance.disks]
-    disk_sizes.extend(params["size"] for (op, idx, params, private) in
-                      self.diskmod if op == constants.DDM_ADD)
-    ispec[constants.ISPEC_DISK_COUNT] = len(disk_sizes)
-    ispec[constants.ISPEC_DISK_SIZE] = disk_sizes
-
-    if self.op.offline is not None and self.op.offline:
-      _CheckInstanceState(self, instance, CAN_CHANGE_INSTANCE_OFFLINE,
-                          msg="can't change to offline")
 
     # Pre-compute NIC changes (necessary to use result in hooks)
     self._nic_chgdesc = []
