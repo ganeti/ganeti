@@ -137,8 +137,8 @@ main opts args = do
       Just grp -> return (Just grp)
 
   let nodes = IntMap.filter (foldl (liftA2 (&&)) (const True)
-                             [ (not . Node.offline) 
-                             , (hasTag $ optNodeTags opts)
+                             [ not . Node.offline 
+                             , hasTag $ optNodeTags opts
                              , hasGroup wantedGroup ])
               nlf
 
