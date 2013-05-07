@@ -32,6 +32,7 @@ module Ganeti.DataCollectors.InstStatus
   , dcFormatVersion
   , dcCategory
   , dcKind
+  , dcReport
   ) where
 
 
@@ -77,6 +78,10 @@ dcCategory = Just DCInstance
 -- | The kind of this data collector.
 dcKind :: DCKind
 dcKind = DCKStatus
+
+-- | The report of this data collector.
+dcReport :: IO DCReport
+dcReport = buildInstStatusReport Nothing Nothing
 
 -- * Command line options
 
