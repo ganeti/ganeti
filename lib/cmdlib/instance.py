@@ -54,7 +54,8 @@ from ganeti.cmdlib.instance_storage import CreateDisks, \
   CheckNodesFreeDiskPerVG, WipeDisks, WipeOrCleanupDisks, WaitForSync, \
   IsExclusiveStorageEnabledNodeName, CreateSingleBlockDev, ComputeDisks, \
   CheckRADOSFreeSpace, ComputeDiskSizePerVG, GenerateDiskTemplate, \
-  StartInstanceDisks, ShutdownInstanceDisks, AssembleInstanceDisks
+  StartInstanceDisks, ShutdownInstanceDisks, AssembleInstanceDisks, \
+  CheckSpindlesExclusiveStorage
 from ganeti.cmdlib.instance_utils import BuildInstanceHookEnvByObject, \
   GetClusterDomainSecret, BuildInstanceHookEnv, NICListToTuple, \
   NICToTuple, CheckNodeNotDrained, RemoveInstance, CopyLockList, \
@@ -1025,11 +1026,13 @@ class LUInstanceCreate(LogicalUnit):
     if self.op.disk_template in constants.DTS_INT_MIRROR:
       nodes.append(snode)
     has_es = lambda n: IsExclusiveStorageEnabledNode(self.cfg, n)
-    if compat.any(map(has_es, nodes)):
-      if not self.op.disk_template in constants.DTS_EXCL_STORAGE:
-        raise errors.OpPrereqError("Disk template %s not supported with"
-                                   " exclusive storage" % self.op.disk_template,
-                                   errors.ECODE_STATE)
+    excl_stor = compat.any(map(has_es, nodes))
+    if excl_stor and not self.op.disk_template in constants.DTS_EXCL_STORAGE:
+      raise errors.OpPrereqError("Disk template %s not supported with"
+                                 " exclusive storage" % self.op.disk_template,
+                                 errors.ECODE_STATE)
+    for disk in self.disks:
+      CheckSpindlesExclusiveStorage(disk, excl_stor)
 
     nodenames = [pnode.name] + self.secondaries
 
@@ -2212,7 +2215,7 @@ class LUInstanceSetParams(LogicalUnit):
         raise errors.ProgrammerError("Unhandled operation '%s'" % op)
 
   @staticmethod
-  def _VerifyDiskModification(op, params):
+  def _VerifyDiskModification(op, params, excl_stor):
     """Verifies a disk modification.
 
     """
@@ -2237,6 +2240,8 @@ class LUInstanceSetParams(LogicalUnit):
       name = params.get(constants.IDISK_NAME, None)
       if name is not None and name.lower() == constants.VALUE_NONE:
         params[constants.IDISK_NAME] = None
+
+      CheckSpindlesExclusiveStorage(params, excl_stor)
 
     elif op == constants.DDM_MODIFY:
       if constants.IDISK_SIZE in params:
@@ -2614,14 +2619,18 @@ class LUInstanceSetParams(LogicalUnit):
     instance = self.instance
     self.diskparams = self.cfg.GetInstanceDiskParams(instance)
 
+    excl_stor = compat.any(
+      rpc.GetExclusiveStorageForNodeNames(self.cfg, instance.all_nodes).values()
+      )
+
     # Check disk modifications. This is done here and not in CheckArguments
     # (as with NICs), because we need to know the instance's disk template
+    ver_fn = lambda op, par: self._VerifyDiskModification(op, par, excl_stor)
     if instance.disk_template == constants.DT_EXT:
-      self._CheckMods("disk", self.op.disks, {},
-                      self._VerifyDiskModification)
+      self._CheckMods("disk", self.op.disks, {}, ver_fn)
     else:
       self._CheckMods("disk", self.op.disks, constants.IDISK_PARAMS_TYPES,
-                      self._VerifyDiskModification)
+                      ver_fn)
 
     self.diskmod = _PrepareContainerMods(self.op.disks, None)
 

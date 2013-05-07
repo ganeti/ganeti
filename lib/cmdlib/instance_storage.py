@@ -343,10 +343,13 @@ def ComputeDisks(op, default_vg):
       constants.IDISK_NAME: name,
       }
 
-    if constants.IDISK_METAVG in disk:
-      new_disk[constants.IDISK_METAVG] = disk[constants.IDISK_METAVG]
-    if constants.IDISK_ADOPT in disk:
-      new_disk[constants.IDISK_ADOPT] = disk[constants.IDISK_ADOPT]
+    for key in [
+      constants.IDISK_METAVG,
+      constants.IDISK_ADOPT,
+      constants.IDISK_SPINDLES,
+      ]:
+      if key in disk:
+        new_disk[key] = disk[key]
 
     # For extstorage, demand the `provider' option and add any
     # additional parameters (ext-params) to the dict
@@ -513,6 +516,23 @@ def GenerateDiskTemplate(
       disks.append(disk_dev)
 
   return disks
+
+
+def CheckSpindlesExclusiveStorage(diskdict, es_flag):
+  """Check the presence of the spindle options with exclusive_storage.
+
+  @type diskdict: dict
+  @param diskdict: disk parameters
+  @type es_flag: bool
+  @param es_flag: the effective value of the exlusive_storage flag
+  @raise errors.OpPrereqError when spindles are given and they should not
+
+  """
+  if (not es_flag and constants.IDISK_SPINDLES in diskdict and
+      diskdict[constants.IDISK_SPINDLES] is not None):
+    raise errors.OpPrereqError("Spindles in instance disks cannot be specified"
+                               " when exclusive storage is not active",
+                               errors.ECODE_INVAL)
 
 
 class LUInstanceRecreateDisks(LogicalUnit):
@@ -757,6 +777,16 @@ class LUInstanceRecreateDisks(LogicalUnit):
       ReleaseLocks(self, locking.LEVEL_NODE_ALLOC)
 
     assert not self.glm.is_owned(locking.LEVEL_NODE_ALLOC)
+
+    if self.op.nodes:
+      nodes = self.op.nodes
+    else:
+      nodes = instance.all_nodes
+    excl_stor = compat.any(
+      rpc.GetExclusiveStorageForNodeNames(self.cfg, nodes).values()
+      )
+    for new_params in self.disks.values():
+      CheckSpindlesExclusiveStorage(new_params, excl_stor)
 
   def Exec(self, feedback_fn):
     """Recreate the disks.
