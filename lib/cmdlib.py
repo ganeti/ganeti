@@ -10983,12 +10983,12 @@ class LUInstanceCreate(LogicalUnit):
                         " from the first disk's node group will be"
                         " used")
 
-    if not self.op.disk_template in constants.DTS_EXCL_STORAGE:
-      nodes = [pnode]
-      if self.op.disk_template in constants.DTS_INT_MIRROR:
-        nodes.append(snode)
-      has_es = lambda n: _IsExclusiveStorageEnabledNode(self.cfg, n)
-      if compat.any(map(has_es, nodes)):
+    nodes = [pnode]
+    if self.op.disk_template in constants.DTS_INT_MIRROR:
+      nodes.append(snode)
+    has_es = lambda n: _IsExclusiveStorageEnabledNode(self.cfg, n)
+    if compat.any(map(has_es, nodes)):
+      if not self.op.disk_template in constants.DTS_EXCL_STORAGE:
         raise errors.OpPrereqError("Disk template %s not supported with"
                                    " exclusive storage" % self.op.disk_template,
                                    errors.ECODE_STATE)
