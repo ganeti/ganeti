@@ -43,6 +43,7 @@ import qualified Text.JSON as J
 import qualified Ganeti.BasicTypes as BT
 import Ganeti.Daemon
 import qualified Ganeti.DataCollectors.Drbd as Drbd
+import qualified Ganeti.DataCollectors.InstStatus as InstStatus
 import Ganeti.DataCollectors.Types
 import qualified Ganeti.Constants as C
 
@@ -72,6 +73,8 @@ data DataCollector = DataCollector
 collectors :: [DataCollector]
 collectors =
   [ DataCollector Drbd.dcName Drbd.dcCategory Drbd.dcKind Drbd.dcReport
+  , DataCollector InstStatus.dcName InstStatus.dcCategory InstStatus.dcKind
+      InstStatus.dcReport
   ]
 
 -- * Configuration handling
