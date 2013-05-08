@@ -244,7 +244,7 @@ AC_ARG_WITH([user-prefix],
    user_rapi="${withval}rapi";
    user_confd="${withval}confd";
    user_noded="$user_default";
-   user_mond="${withval}mond"],
+   user_mond="$user_default"],
   [user_masterd="$user_default";
    user_rapi="$user_default";
    user_confd="$user_default";
@@ -269,7 +269,7 @@ AC_ARG_WITH([group-prefix],
    group_masterd="${withval}masterd";
    group_noded="$group_default";
    group_daemons="${withval}daemons";
-   group_mond="${withval}mond"],
+   group_mond="$group_default"],
   [group_rapi="$group_default";
    group_admin="$group_default";
    group_confd="$group_default";
