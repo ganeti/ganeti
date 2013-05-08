@@ -31,6 +31,7 @@ module Ganeti.HTools.Program.Hroller
 
 import Control.Applicative
 import Control.Monad
+import Data.Function
 import Data.List
 import Data.Ord
 
@@ -161,7 +162,9 @@ main opts args = do
       nodesRebootGroups =
         map (map idToNode . filter (`IntMap.member` nodes)) $
         IntMap.elems smallestColoring
-      outputRebootGroups = masterLast nodesRebootGroups
+      outputRebootGroups = masterLast .
+                           sortBy (flip compare `on` length) $
+                           nodesRebootGroups
       outputRebootNames = map (map Node.name) outputRebootGroups
 
   when (verbose > 1) . putStrLn $ getStats colorings

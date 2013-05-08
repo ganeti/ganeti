@@ -43,7 +43,8 @@ having both primary and secondary nodes being rebooted at the same time.
 
 For backends that support identifying the master node (currenlty
 RAPI and LUXI), the master node is scheduled as the last node
-in the last reboot group.
+in the last reboot group. Apart from this restriction, larger reboot
+groups are put first.
 
 ALGORITHM FOR CALCULATING OFFLINE REBOOT GROUPS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
