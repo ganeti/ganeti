@@ -71,7 +71,7 @@ respective disk templates from the set of enabled disk templates.
 
 There is currently no possibility to dis/enable the disk templates
 ``diskless``, ``blockdev``, ``ext``, and ``rdb``. By introducing the set of
-enabled disk templates, we will require these disk templates to be explicitely
+enabled disk templates, we will require these disk templates to be explicitly
 enabled in order to be used. The idea is that the administrator of the cluster
 can tailor the cluster configuration to what is actually needed in the cluster.
 There is hope that this will lead to cleaner code, better performance and fewer
