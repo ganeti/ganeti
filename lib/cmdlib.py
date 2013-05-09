@@ -9733,9 +9733,6 @@ def _CreateDisks(lu, instance, to_skip=None, target_node=None):
       try:
         _CreateBlockDev(lu, node, instance, device, f_create, info, f_create)
         disks_created.append((node, device))
-      except errors.OpExecError:
-        logging.warning("Creating disk %s for instance '%s' failed",
-                        idx, instance.name)
       except errors.DeviceCreationError, e:
         logging.warning("Creating disk %s for instance '%s' failed",
                         idx, instance.name)
