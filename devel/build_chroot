@@ -1,6 +1,6 @@
 #!/bin/bash
 #Configuration
-: ${DATA_DIR=data}
+: ${DATA_DIR=`dirname $0`/data}
 : ${ARCH=amd64}
 : ${DIST_RELEASE=squeeze}
 : ${CONF_DIR:=/etc/schroot/chroot.d}
