@@ -750,7 +750,13 @@ def TestRecreateDisks(instance, inodes, othernodes):
   else:
     _AssertRecreateDisks(["-n", other_seq], instance)
   # Move disks back
-  _AssertRecreateDisks(["-n", orig_seq], instance, check=False)
+  _AssertRecreateDisks(["-n", orig_seq], instance)
+  # Recreate the disks one by one
+  for idx in range(0, len(qa_config.get("disk"))):
+    # Only the first call should destroy all the disk
+    destroy = (idx == 0)
+    _AssertRecreateDisks(["--disk=%s" % idx], instance, destroy=destroy,
+                         check=False)
   # This and InstanceCheck decoration check that the disks are working
   AssertCommand(["gnt-instance", "reinstall", "-f", instance["name"]])
   AssertCommand(["gnt-instance", "start", instance["name"]])
