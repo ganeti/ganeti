@@ -9736,7 +9736,7 @@ def _UndoCreateDisks(lu, disks_created):
                       " %s", disk, node, result.fail_msg)
 
 
-def _CreateDisks(lu, instance, to_skip=None, target_node=None):
+def _CreateDisks(lu, instance, to_skip=None, target_node=None, disks=None):
   """Create all disks for an instance.
 
   This abstracts away some work from AddInstance.
@@ -9749,6 +9749,9 @@ def _CreateDisks(lu, instance, to_skip=None, target_node=None):
   @param to_skip: list of indices to skip
   @type target_node: string
   @param target_node: if passed, overrides the target node for creation
+  @type disks: list of {objects.Disk}
+  @param disks: the disks to create; if not specified, all the disks of the
+      instance are created
   @return: information about the created disks, to be used to call
       L{_UndoCreateDisks}
   @raise errors.OpPrereqError: in case of error
@@ -9762,6 +9765,9 @@ def _CreateDisks(lu, instance, to_skip=None, target_node=None):
     pnode = target_node
     all_nodes = [pnode]
 
+  if disks is None:
+    disks = instance.disks
+
   if instance.disk_template in constants.DTS_FILEBASED:
     file_storage_dir = os.path.dirname(instance.disks[0].logical_id[1])
     result = lu.rpc.call_file_storage_dir_create(pnode, file_storage_dir)
@@ -9770,13 +9776,10 @@ def _CreateDisks(lu, instance, to_skip=None, target_node=None):
                  " node %s" % (file_storage_dir, pnode))
 
   disks_created = []
-  # Note: this needs to be kept in sync with adding of disks in
-  # LUInstanceSetParams
-  for idx, device in enumerate(instance.disks):
+  for idx, device in enumerate(disks):
     if to_skip and idx in to_skip:
       continue
     logging.info("Creating disk %s for instance '%s'", idx, instance.name)
-    #HARDCODE
     for node in all_nodes:
       f_create = node == pnode
       try:
@@ -14162,24 +14165,13 @@ class LUInstanceSetParams(LogicalUnit):
                             [params], file_path, file_driver, idx,
                             self.Log, self.diskparams)[0]
 
-    info = _GetInstanceInfoText(instance)
-
-    logging.info("Creating volume %s for instance %s",
-                 disk.iv_name, instance.name)
-    # Note: this needs to be kept in sync with _CreateDisks
-    #HARDCODE
-    for node in instance.all_nodes:
-      f_create = (node == instance.primary_node)
-      try:
-        _CreateBlockDev(self, node, instance, disk, f_create, info, f_create)
-      except errors.OpExecError, err:
-        self.LogWarning("Failed to create volume %s (%s) on node '%s': %s",
-                        disk.iv_name, disk, node, err)
+    new_disks = _CreateDisks(self, instance, disks=[disk])
 
     if self.cluster.prealloc_wipe_disks:
       # Wipe new disk
-      _WipeDisks(self, instance,
-                 disks=[(idx, disk, 0)])
+      _WipeOrCleanupDisks(self, instance,
+                          disks=[(idx, disk, 0)],
+                          cleanup=new_disks)
 
     return (disk, [
       ("disk/%d" % idx, "add:size=%s,mode=%s" % (disk.size, disk.mode)),
