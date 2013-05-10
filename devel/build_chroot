@@ -34,6 +34,16 @@ then
   exit
 fi
 
+if [ ! -d $DATA_DIR ]
+then
+  echo "The data directory"
+  echo "  $DATA_DIR"
+  echo "does not exist."
+  echo "Please, set the DATA_DIR environment variable so that it points to the"
+  echo "data directory."
+  exit
+fi
+
 set -e
 
 #Cleanup
