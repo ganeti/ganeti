@@ -7905,7 +7905,14 @@ class LUInstanceRecreateDisks(LogicalUnit):
     # All touched nodes must be locked
     mylocks = self.owned_locks(locking.LEVEL_NODE)
     assert mylocks.issuperset(frozenset(instance.all_nodes))
-    _CreateDisks(self, instance, to_skip=to_skip)
+    new_disks = _CreateDisks(self, instance, to_skip=to_skip)
+
+    # TODO: Release node locks before wiping, or explain why it's not possible
+    if self.cfg.GetClusterInfo().prealloc_wipe_disks:
+      wipedisks = [(idx, disk, 0)
+                   for (idx, disk) in enumerate(instance.disks)
+                   if idx not in to_skip]
+      _WipeOrCleanupDisks(self, instance, disks=wipedisks, cleanup=new_disks)
 
 
 class LUInstanceRename(LogicalUnit):
