@@ -16,11 +16,11 @@ node-01-001
 >>>= 0
 
 ./test/hs/hroller --node-tags=red --no-headers -t $TESTDATA_DIR/multiple-tags.data
->>>/^node-01-00.,node-01-00.,node-01-001$/
+>>>/^node-01-00[45],node-01-00[45],node-01-001$/
 >>>= 0
 
 ./test/hs/hroller --node-tags=blue --no-headers -t $TESTDATA_DIR/multiple-tags.data
->>>/^node-01-00.,node-01-00.,node-01-00.$/
+>>>/^node-01-00[246],node-01-00[246],node-01-00[246]$/
 >>>= 0
 
 ./test/hs/hroller --no-headers --offline-maintenance -t $TESTDATA_DIR/hroller-online.data
