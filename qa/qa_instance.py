@@ -23,7 +23,6 @@
 
 """
 
-import operator
 import os
 import re
 
@@ -36,144 +35,17 @@ import qa_config
 import qa_utils
 import qa_error
 
-from qa_utils import AssertIn, AssertCommand, AssertEqual
+from qa_utils import AssertCommand, AssertEqual
 from qa_utils import InstanceCheck, INST_DOWN, INST_UP, FIRST_ARG, RETURN_VALUE
+from qa_instance_utils import CheckSsconfInstanceList, \
+                              CreateInstanceDrbd8, \
+                              CreateInstanceByDiskTemplate, \
+                              CreateInstanceByDiskTemplateOneNode, \
+                              GetGenericAddParameters
 
 
 def _GetDiskStatePath(disk):
   return "/sys/block/%s/device/state" % disk
-
-
-def _GetGenericAddParameters(inst, disk_template, force_mac=None):
-  params = ["-B"]
-  params.append("%s=%s,%s=%s" % (constants.BE_MINMEM,
-                                 qa_config.get(constants.BE_MINMEM),
-                                 constants.BE_MAXMEM,
-                                 qa_config.get(constants.BE_MAXMEM)))
-
-  if disk_template != constants.DT_DISKLESS:
-    for idx, disk in enumerate(qa_config.GetDiskOptions()):
-      size = disk.get("size")
-      name = disk.get("name")
-      diskparams = "%s:size=%s" % (idx, size)
-      if name:
-        diskparams += ",name=%s" % name
-      params.extend(["--disk", diskparams])
-
-  # Set static MAC address if configured
-  if force_mac:
-    nic0_mac = force_mac
-  else:
-    nic0_mac = inst.GetNicMacAddr(0, None)
-
-  if nic0_mac:
-    params.extend(["--net", "0:mac=%s" % nic0_mac])
-
-  return params
-
-
-def _CreateInstanceByDiskTemplateRaw(nodes_spec, disk_template, fail=False):
-  """Creates an instance with the given disk template on the given nodes(s).
-     Note that this function does not check if enough nodes are given for
-     the respective disk template.
-
-  @type nodes_spec: string
-  @param nodes_spec: string specification of one node (by node name) or several
-                     nodes according to the requirements of the disk template
-  @type disk_template: string
-  @param disk_template: the disk template to be used by the instance
-  @return: the created instance
-
-  """
-  instance = qa_config.AcquireInstance()
-  try:
-    cmd = (["gnt-instance", "add",
-            "--os-type=%s" % qa_config.get("os"),
-            "--disk-template=%s" % disk_template,
-            "--node=%s" % nodes_spec] +
-           _GetGenericAddParameters(instance, disk_template))
-    cmd.append(instance.name)
-
-    AssertCommand(cmd, fail=fail)
-
-    if not fail:
-      _CheckSsconfInstanceList(instance.name)
-      instance.SetDiskTemplate(disk_template)
-
-      return instance
-  except:
-    instance.Release()
-    raise
-
-  # Handle the case where creation is expected to fail
-  assert fail
-  instance.Release()
-  return None
-
-
-def _CreateInstanceByDiskTemplateOneNode(nodes, disk_template, fail=False):
-  """Creates an instance using the given disk template for disk templates
-     for which one given node is sufficient. These templates are for example:
-     plain, diskless, file, sharedfile, blockdev, rados.
-
-  @type nodes: list of nodes
-  @param nodes: a list of nodes, whose first element is used to create the
-                instance
-  @type disk_template: string
-  @param disk_template: the disk template to be used by the instance
-  @return: the created instance
-
-  """
-  assert len(nodes) > 0
-  return _CreateInstanceByDiskTemplateRaw(nodes[0].primary, disk_template,
-                                          fail=fail)
-
-
-def _CreateInstanceDrbd8(nodes, fail=False):
-  """Creates an instance using disk template 'drbd' on the given nodes.
-
-  @type nodes: list of nodes
-  @param nodes: nodes to be used by the instance
-  @return: the created instance
-
-  """
-  assert len(nodes) > 1
-  return _CreateInstanceByDiskTemplateRaw(
-    ":".join(map(operator.attrgetter("primary"), nodes)),
-    constants.DT_DRBD8, fail=fail)
-
-
-def CreateInstanceByDiskTemplate(nodes, disk_template, fail=False):
-  """Given a disk template, this function creates an instance using
-     the template. It uses the required number of nodes depending on
-     the disk template. This function is intended to be used by tests
-     that don't care about the specifics of the instance other than
-     that it uses the given disk template.
-
-     Note: If you use this function, make sure to call
-     'TestInstanceRemove' at the end of your tests to avoid orphaned
-     instances hanging around and interfering with the following tests.
-
-  @type nodes: list of nodes
-  @param nodes: the list of the nodes on which the instance will be placed;
-                it needs to have sufficiently many elements for the given
-                disk template
-  @type disk_template: string
-  @param disk_template: the disk template to be used by the instance
-  @return: the created instance
-
-  """
-  if disk_template == constants.DT_DRBD8:
-    return _CreateInstanceDrbd8(nodes, fail=fail)
-  elif disk_template in [constants.DT_DISKLESS, constants.DT_PLAIN,
-                         constants.DT_FILE]:
-    return _CreateInstanceByDiskTemplateOneNode(nodes, disk_template, fail=fail)
-  else:
-    # FIXME: This assumes that for all other disk templates, we only need one
-    # node and no disk template specific parameters. This else-branch is
-    # currently only used in cases where we expect failure. Extend it when
-    # QA needs for these templates change.
-    return _CreateInstanceByDiskTemplateOneNode(nodes, disk_template, fail=fail)
 
 
 def _GetInstanceInfo(instance):
@@ -378,7 +250,7 @@ def IsDiskReplacingSupported(instance):
 def TestInstanceAddWithPlainDisk(nodes, fail=False):
   """gnt-instance add -t plain"""
   if constants.DT_PLAIN in qa_config.GetEnabledDiskTemplates():
-    instance = _CreateInstanceByDiskTemplateOneNode(nodes, constants.DT_PLAIN,
+    instance = CreateInstanceByDiskTemplateOneNode(nodes, constants.DT_PLAIN,
                                                     fail=fail)
     if not fail:
       qa_utils.RunInstanceCheck(instance, True)
@@ -389,7 +261,7 @@ def TestInstanceAddWithPlainDisk(nodes, fail=False):
 def TestInstanceAddWithDrbdDisk(nodes):
   """gnt-instance add -t drbd"""
   if constants.DT_DRBD8 in qa_config.GetEnabledDiskTemplates():
-    return _CreateInstanceDrbd8(nodes)
+    return CreateInstanceDrbd8(nodes)
 
 
 @InstanceCheck(None, INST_UP, RETURN_VALUE)
@@ -397,7 +269,7 @@ def TestInstanceAddFile(nodes):
   """gnt-instance add -t file"""
   assert len(nodes) == 1
   if constants.DT_FILE in qa_config.GetEnabledDiskTemplates():
-    return _CreateInstanceByDiskTemplateOneNode(nodes, constants.DT_FILE)
+    return CreateInstanceByDiskTemplateOneNode(nodes, constants.DT_FILE)
 
 
 @InstanceCheck(None, INST_UP, RETURN_VALUE)
@@ -405,7 +277,7 @@ def TestInstanceAddDiskless(nodes):
   """gnt-instance add -t diskless"""
   assert len(nodes) == 1
   if constants.DT_FILE in qa_config.GetEnabledDiskTemplates():
-    return _CreateInstanceByDiskTemplateOneNode(nodes, constants.DT_DISKLESS)
+    return CreateInstanceByDiskTemplateOneNode(nodes, constants.DT_DISKLESS)
 
 
 @InstanceCheck(None, INST_DOWN, FIRST_ARG)
@@ -462,32 +334,6 @@ def TestInstanceReinstall(instance):
                 fail=True)
 
 
-def _ReadSsconfInstanceList():
-  """Reads ssconf_instance_list from the master node.
-
-  """
-  master = qa_config.GetMasterNode()
-
-  ssconf_path = utils.PathJoin(pathutils.DATA_DIR,
-                               "ssconf_%s" % constants.SS_INSTANCE_LIST)
-
-  cmd = ["cat", qa_utils.MakeNodePath(master, ssconf_path)]
-
-  return qa_utils.GetCommandOutput(master.primary,
-                                   utils.ShellQuoteArgs(cmd)).splitlines()
-
-
-def _CheckSsconfInstanceList(instance):
-  """Checks if a certain instance is in the ssconf instance list.
-
-  @type instance: string
-  @param instance: Instance name
-
-  """
-  AssertIn(qa_utils.ResolveInstanceName(instance),
-           _ReadSsconfInstanceList())
-
-
 @InstanceCheck(INST_DOWN, INST_DOWN, FIRST_ARG)
 def TestInstanceRenameAndBack(rename_source, rename_target):
   """gnt-instance rename
@@ -496,14 +342,14 @@ def TestInstanceRenameAndBack(rename_source, rename_target):
   name.
 
   """
-  _CheckSsconfInstanceList(rename_source)
+  CheckSsconfInstanceList(rename_source)
 
   # first do a rename to a different actual name, expecting it to fail
   qa_utils.AddToEtcHosts(["meeeeh-not-exists", rename_target])
   try:
     AssertCommand(["gnt-instance", "rename", rename_source, rename_target],
                   fail=True)
-    _CheckSsconfInstanceList(rename_source)
+    CheckSsconfInstanceList(rename_source)
   finally:
     qa_utils.RemoveFromEtcHosts(["meeeeh-not-exists", rename_target])
 
@@ -526,7 +372,7 @@ def TestInstanceRenameAndBack(rename_source, rename_target):
 
   # and now rename instance to rename_target...
   AssertCommand(["gnt-instance", "rename", rename_source, rename_target])
-  _CheckSsconfInstanceList(rename_target)
+  CheckSsconfInstanceList(rename_target)
   qa_utils.RunInstanceCheck(rename_source, False)
   qa_utils.RunInstanceCheck(rename_target, False)
 
@@ -540,7 +386,7 @@ def TestInstanceRenameAndBack(rename_source, rename_target):
 
   # and back
   AssertCommand(["gnt-instance", "rename", rename_target, rename_source])
-  _CheckSsconfInstanceList(rename_source)
+  CheckSsconfInstanceList(rename_source)
   qa_utils.RunInstanceCheck(rename_target, False)
 
   if (rename_source != rename_target and
@@ -1012,7 +858,7 @@ def TestInstanceImport(newinst, node, expnode, name):
           "--src-node=%s" % expnode.primary,
           "--src-dir=%s/%s" % (pathutils.EXPORT_DIR, name),
           "--node=%s" % node.primary] +
-         _GetGenericAddParameters(newinst, templ,
+         GetGenericAddParameters(newinst, templ,
                                   force_mac=constants.VALUE_GENERATE))
   cmd.append(newinst.name)
   AssertCommand(cmd)
