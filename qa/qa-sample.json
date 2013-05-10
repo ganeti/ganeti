@@ -155,6 +155,7 @@
     "instance-list": true,
     "instance-migrate": true,
     "instance-modify": true,
+    "instance-modify-disks": false,
     "instance-reboot": true,
     "instance-reinstall": true,
     "instance-rename": true,

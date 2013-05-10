@@ -263,6 +263,11 @@ def IsDiskReplacingSupported(instance):
   return templ == constants.DT_DRBD8
 
 
+def IsDiskSupported(instance):
+  templ = qa_config.GetInstanceTemplate(instance)
+  return templ != constants.DT_DISKLESS
+
+
 def TestInstanceAddWithPlainDisk(nodes, fail=False):
   """gnt-instance add -t plain"""
   assert len(nodes) == 1
@@ -584,6 +589,20 @@ def TestInstanceConvertDiskToPlain(instance, inodes):
   AssertCommand(["gnt-instance", "modify", "-t", "plain", name])
   AssertCommand(["gnt-instance", "modify", "-t", "drbd",
                  "-n", inodes[1]["primary"], name])
+
+
+@InstanceCheck(INST_UP, INST_UP, FIRST_ARG)
+def TestInstanceModifyDisks(instance):
+  """gnt-instance modify --disk"""
+  if not IsDiskSupported(instance):
+    print qa_utils.FormatInfo("Instance doesn't support disks, skipping test")
+    return
+
+  size = qa_config.get("disk")[-1]
+  name = instance["name"]
+  build_cmd = lambda arg: ["gnt-instance", "modify", "--disk", arg, name]
+  AssertCommand(build_cmd("add:size=%s" % size))
+  AssertCommand(build_cmd("remove"))
 
 
 @InstanceCheck(INST_DOWN, INST_DOWN, FIRST_ARG)
