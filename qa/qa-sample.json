@@ -228,7 +228,9 @@
 
     "# Run instance tests with different cluster configurations": null,
     "default-instance-tests": true,
-    "exclusive-storage-instance-tests": false
+    "exclusive-storage-instance-tests": false,
+
+    "mon-collector": true
   },
 
   "options": {

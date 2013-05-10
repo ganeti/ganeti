@@ -38,6 +38,7 @@ import qa_env
 import qa_error
 import qa_group
 import qa_instance
+import qa_monitoring
 import qa_network
 import qa_node
 import qa_os
@@ -687,6 +688,11 @@ def RunInstanceTests():
       qa_cluster.AssertClusterVerify()
 
 
+def RunMonitoringTests():
+  if qa_config.TestEnabled("mon-collector"):
+    RunTest(qa_monitoring.TestInstStatusCollector)
+
+
 def RunQa():
   """Main QA body.
 
@@ -808,6 +814,8 @@ def RunQa():
     finally:
       snode.Release()
     qa_cluster.AssertClusterVerify()
+
+  RunMonitoringTests()
 
   RunTestIf("create-cluster", qa_node.TestNodeRemoveAll)
 
