@@ -94,17 +94,38 @@ Online rolling maintenances (where instance need not be shut down, but
 are migrated from node to node) are not supported yet. Hroller by design
 should support them both with and without secondary node replacement.
 
-EXAMPLE
--------
+EXAMPLES
+--------
 
-Rolling node reboot output
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+Online Rolling reboots, using tags
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-With the default options, the program shows one reboot group per line as
-a comma-separated list.
+Selecting by tags and getting output for one step only can be used for
+planing the next maintenance step.
 ::
 
-    $ hroller -L
+   $ hroller --node-tags needsreboot --one-step-only -L
+   'First Reboot Group'
+    node1.example.com
+    node3.example.com
+
+Typically these nodes would be drained and migrated.
+::
+
+   $ GROUP=`hroller --node-tags needsreboot --one-step-only --no-headers -L`
+   $ for node in $GROUP; do gnt-node modify -D yes $node; done
+   $ for node in $GROUP; do gnt-node migrate -f --submit $node; done
+
+After maintenance, the tags would be removed and the nodes undrained.
+
+
+Offline Rolling node reboot output
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If all instances are shut down, usually larger node groups can be found.
+::
+
+    $ hroller --offline-maintainance -L
     'Node Reboot Groups'
     node1.example.com,node3.example.com,node5.example.com
     node8.example.com,node6.example.com,node2.example.com
