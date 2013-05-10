@@ -9688,6 +9688,47 @@ def _WipeDisks(lu, instance, disks=None):
                         " failed", idx, instance.name)
 
 
+def _WipeOrCleanupDisks(lu, instance, disks=None, cleanup=None):
+  """Wrapper for L{_WipeDisks} that handles errors.
+
+  @type lu: L{LogicalUnit}
+  @param lu: the logical unit on whose behalf we execute
+  @type instance: L{objects.Instance}
+  @param instance: the instance whose disks we should wipe
+  @param disks: see L{_WipeDisks}
+  @param cleanup: the result returned by L{_CreateDisks}, used for cleanup in
+      case of error
+  @raise errors.OpPrereqError: in case of failure
+
+  """
+  try:
+    _WipeDisks(lu, instance, disks=disks)
+  except errors.OpExecError:
+    logging.warning("Wiping disks for instance '%s' failed",
+                    instance.name)
+    _UndoCreateDisks(lu, cleanup)
+    raise
+
+
+def _UndoCreateDisks(lu, disks_created):
+  """Undo the work performed by L{_CreateDisks}.
+
+  This function is called in case of an error to undo the work of
+  L{_CreateDisks}.
+
+  @type lu: L{LogicalUnit}
+  @param lu: the logical unit on whose behalf we execute
+  @param disks_created: the result returned by L{_CreateDisks}
+
+  """
+  for (node, disk) in disks_created:
+    lu.cfg.SetDiskID(disk, node)
+    result = lu.rpc.call_blockdev_remove(node, disk)
+    if result.fail_msg:
+      logging.warning("Failed to remove newly-created disk %s on node %s:"
+                      " %s", disk, node, result.fail_msg)
+
+
 def _CreateDisks(lu, instance, to_skip=None, target_node=None):
   """Create all disks for an instance.
 
@@ -9701,8 +9742,9 @@ def _CreateDisks(lu, instance, to_skip=None, target_node=None):
   @param to_skip: list of indices to skip
   @type target_node: string
   @param target_node: if passed, overrides the target node for creation
-  @rtype: boolean
-  @return: the success of the creation
+  @return: information about the created disks, to be used to call
+      L{_UndoCreateDisks}
+  @raise errors.OpPrereqError: in case of error
 
   """
   info = _GetInstanceInfoText(instance)
@@ -9737,13 +9779,9 @@ def _CreateDisks(lu, instance, to_skip=None, target_node=None):
         logging.warning("Creating disk %s for instance '%s' failed",
                         idx, instance.name)
         disks_created.extend(e.created_devices)
-        for (node, disk) in disks_created:
-          lu.cfg.SetDiskID(disk, node)
-          result = lu.rpc.call_blockdev_remove(node, disk)
-          if result.fail_msg:
-            logging.warning("Failed to remove newly-created disk %s on node %s:"
-                            " %s", device, node, result.fail_msg)
+        _UndoCreateDisks(lu, disks_created)
         raise errors.OpExecError(e.message)
+  return disks_created
 
 
 def _RemoveDisks(lu, instance, target_node=None, ignore_failures=False):
