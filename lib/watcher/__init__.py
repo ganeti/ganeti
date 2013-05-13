@@ -96,6 +96,10 @@ def StartNodeDaemons():
   # start confd as well. On non candidates it will be in disabled mode.
   if constants.ENABLE_CONFD:
     utils.EnsureDaemon(constants.CONFD)
+  # start mond as well: all nodes need monitoring
+  if constants.ENABLE_MOND:
+    utils.EnsureDaemon(constants.MOND)
+
 
 
 def RunWatcherHooks():
