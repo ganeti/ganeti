@@ -23,6 +23,7 @@
 
 from ganeti import errors
 from ganeti import locking
+from ganeti import utils
 
 
 def _ExpandItemName(fn, name, kind):
@@ -57,3 +58,27 @@ def _ShareAll():
 
   """
   return dict.fromkeys(locking.LEVELS, 1)
+
+
+def _CheckNodeGroupInstances(cfg, group_uuid, owned_instances):
+  """Checks if the instances in a node group are still correct.
+
+  @type cfg: L{config.ConfigWriter}
+  @param cfg: The cluster configuration
+  @type group_uuid: string
+  @param group_uuid: Node group UUID
+  @type owned_instances: set or frozenset
+  @param owned_instances: List of currently owned instances
+
+  """
+  wanted_instances = cfg.GetNodeGroupInstances(group_uuid)
+  if owned_instances != wanted_instances:
+    raise errors.OpPrereqError("Instances in node group '%s' changed since"
+                               " locks were acquired, wanted '%s', have '%s';"
+                               " retry the operation" %
+                               (group_uuid,
+                                utils.CommaJoin(wanted_instances),
+                                utils.CommaJoin(owned_instances)),
+                               errors.ECODE_STATE)
+
+  return wanted_instances
