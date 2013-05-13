@@ -308,7 +308,9 @@ client_PYTHON = \
 	lib/client/gnt_storage.py
 
 cmdlib_PYTHON = \
-	lib/cmdlib/__init__.py
+	lib/cmdlib/__init__.py \
+	lib/cmdlib/common.py \
+	lib/cmdlib/base.py
 
 hypervisor_PYTHON = \
 	lib/hypervisor/__init__.py \
