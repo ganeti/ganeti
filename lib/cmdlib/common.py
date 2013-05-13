@@ -20,14 +20,17 @@
 
 
 """Common functions used by multiple logical units."""
+
 import copy
 import os
 
+from ganeti import compat
 from ganeti import constants
 from ganeti import errors
 from ganeti import hypervisor
 from ganeti import locking
 from ganeti import objects
+from ganeti import opcodes
 from ganeti import pathutils
 from ganeti import rpc
 from ganeti import ssconf
@@ -722,3 +725,151 @@ def _FilterVmNodes(lu, nodenames):
   """
   vm_nodes = frozenset(lu.cfg.GetNonVmCapableNodeList())
   return [name for name in nodenames if name not in vm_nodes]
+
+
+def _GetDefaultIAllocator(cfg, ialloc):
+  """Decides on which iallocator to use.
+
+  @type cfg: L{config.ConfigWriter}
+  @param cfg: Cluster configuration object
+  @type ialloc: string or None
+  @param ialloc: Iallocator specified in opcode
+  @rtype: string
+  @return: Iallocator name
+
+  """
+  if not ialloc:
+    # Use default iallocator
+    ialloc = cfg.GetDefaultIAllocator()
+
+  if not ialloc:
+    raise errors.OpPrereqError("No iallocator was specified, neither in the"
+                               " opcode nor as a cluster-wide default",
+                               errors.ECODE_INVAL)
+
+  return ialloc
+
+
+def _CheckInstancesNodeGroups(cfg, instances, owned_groups, owned_nodes,
+                              cur_group_uuid):
+  """Checks if node groups for locked instances are still correct.
+
+  @type cfg: L{config.ConfigWriter}
+  @param cfg: Cluster configuration
+  @type instances: dict; string as key, L{objects.Instance} as value
+  @param instances: Dictionary, instance name as key, instance object as value
+  @type owned_groups: iterable of string
+  @param owned_groups: List of owned groups
+  @type owned_nodes: iterable of string
+  @param owned_nodes: List of owned nodes
+  @type cur_group_uuid: string or None
+  @param cur_group_uuid: Optional group UUID to check against instance's groups
+
+  """
+  for (name, inst) in instances.items():
+    assert owned_nodes.issuperset(inst.all_nodes), \
+      "Instance %s's nodes changed while we kept the lock" % name
+
+    inst_groups = _CheckInstanceNodeGroups(cfg, name, owned_groups)
+
+    assert cur_group_uuid is None or cur_group_uuid in inst_groups, \
+      "Instance %s has no node in group %s" % (name, cur_group_uuid)
+
+
+def _CheckInstanceNodeGroups(cfg, instance_name, owned_groups,
+                             primary_only=False):
+  """Checks if the owned node groups are still correct for an instance.
+
+  @type cfg: L{config.ConfigWriter}
+  @param cfg: The cluster configuration
+  @type instance_name: string
+  @param instance_name: Instance name
+  @type owned_groups: set or frozenset
+  @param owned_groups: List of currently owned node groups
+  @type primary_only: boolean
+  @param primary_only: Whether to check node groups for only the primary node
+
+  """
+  inst_groups = cfg.GetInstanceNodeGroups(instance_name, primary_only)
+
+  if not owned_groups.issuperset(inst_groups):
+    raise errors.OpPrereqError("Instance %s's node groups changed since"
+                               " locks were acquired, current groups are"
+                               " are '%s', owning groups '%s'; retry the"
+                               " operation" %
+                               (instance_name,
+                                utils.CommaJoin(inst_groups),
+                                utils.CommaJoin(owned_groups)),
+                               errors.ECODE_STATE)
+
+  return inst_groups
+
+
+def _LoadNodeEvacResult(lu, alloc_result, early_release, use_nodes):
+  """Unpacks the result of change-group and node-evacuate iallocator requests.
+
+  Iallocator modes L{constants.IALLOCATOR_MODE_NODE_EVAC} and
+  L{constants.IALLOCATOR_MODE_CHG_GROUP}.
+
+  @type lu: L{LogicalUnit}
+  @param lu: Logical unit instance
+  @type alloc_result: tuple/list
+  @param alloc_result: Result from iallocator
+  @type early_release: bool
+  @param early_release: Whether to release locks early if possible
+  @type use_nodes: bool
+  @param use_nodes: Whether to display node names instead of groups
+
+  """
+  (moved, failed, jobs) = alloc_result
+
+  if failed:
+    failreason = utils.CommaJoin("%s (%s)" % (name, reason)
+                                 for (name, reason) in failed)
+    lu.LogWarning("Unable to evacuate instances %s", failreason)
+    raise errors.OpExecError("Unable to evacuate instances %s" % failreason)
+
+  if moved:
+    lu.LogInfo("Instances to be moved: %s",
+               utils.CommaJoin("%s (to %s)" %
+                               (name, _NodeEvacDest(use_nodes, group, nodes))
+                               for (name, group, nodes) in moved))
+
+  return [map(compat.partial(_SetOpEarlyRelease, early_release),
+              map(opcodes.OpCode.LoadOpCode, ops))
+          for ops in jobs]
+
+
+def _NodeEvacDest(use_nodes, group, nodes):
+  """Returns group or nodes depending on caller's choice.
+
+  """
+  if use_nodes:
+    return utils.CommaJoin(nodes)
+  else:
+    return group
+
+
+def _SetOpEarlyRelease(early_release, op):
+  """Sets C{early_release} flag on opcodes if available.
+
+  """
+  try:
+    op.early_release = early_release
+  except AttributeError:
+    assert not isinstance(op, opcodes.OpInstanceReplaceDisks)
+
+  return op
+
+
+def _MapInstanceDisksToNodes(instances):
+  """Creates a map from (node, volume) to instance name.
+
+  @type instances: list of L{objects.Instance}
+  @rtype: dict; tuple of (node name, volume name) as key, instance name as value
+
+  """
+  return dict(((node, vol), inst.name)
+              for inst in instances
+              for (node, vols) in inst.MapLVsByNode().items()
+              for vol in vols)

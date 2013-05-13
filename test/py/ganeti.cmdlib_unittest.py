@@ -35,6 +35,7 @@ from ganeti import constants
 from ganeti import mcpu
 from ganeti import cmdlib
 from ganeti.cmdlib import cluster
+from ganeti.cmdlib import group
 from ganeti.cmdlib import common
 from ganeti import opcodes
 from ganeti import errors
@@ -210,19 +211,19 @@ class TestLUGroupAssignNodes(unittest.TestCase):
 
     # Test first with the existing state.
     (new, prev) = \
-      cmdlib.LUGroupAssignNodes.CheckAssignmentForSplitInstances([],
-                                                                 node_data,
-                                                                 instance_data)
+      group.LUGroupAssignNodes.CheckAssignmentForSplitInstances([],
+                                                                node_data,
+                                                                instance_data)
 
     self.assertEqual([], new)
     self.assertEqual(set(["inst3b", "inst3c"]), set(prev))
 
     # And now some changes.
     (new, prev) = \
-      cmdlib.LUGroupAssignNodes.CheckAssignmentForSplitInstances([("n1b",
-                                                                   "g3")],
-                                                                 node_data,
-                                                                 instance_data)
+      group.LUGroupAssignNodes.CheckAssignmentForSplitInstances([("n1b",
+                                                                  "g3")],
+                                                                node_data,
+                                                                instance_data)
 
     self.assertEqual(set(["inst1a", "inst1b"]), set(new))
     self.assertEqual(set(["inst3c"]), set(prev))
@@ -429,7 +430,7 @@ class TestLoadNodeEvacResult(unittest.TestCase):
           assert iallocator._NEVAC_RESULT(alloc_result)
 
           lu = _FakeLU()
-          result = cmdlib._LoadNodeEvacResult(lu, alloc_result,
+          result = common._LoadNodeEvacResult(lu, alloc_result,
                                               early_release, use_nodes)
 
           if moved:
@@ -458,7 +459,7 @@ class TestLoadNodeEvacResult(unittest.TestCase):
     assert iallocator._NEVAC_RESULT(alloc_result)
 
     lu = _FakeLU()
-    self.assertRaises(errors.OpExecError, cmdlib._LoadNodeEvacResult,
+    self.assertRaises(errors.OpExecError, common._LoadNodeEvacResult,
                       lu, alloc_result, False, False)
     self.assertFalse(lu.info_log)
     (_, (args, )) = lu.warning_log.pop(0)
