@@ -311,6 +311,7 @@ cmdlib_PYTHON = \
 	lib/cmdlib/__init__.py \
 	lib/cmdlib/common.py \
 	lib/cmdlib/base.py \
+	lib/cmdlib/cluster.py \
 	lib/cmdlib/tags.py \
 	lib/cmdlib/network.py \
 	lib/cmdlib/test.py
