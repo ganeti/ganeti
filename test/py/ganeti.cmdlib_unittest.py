@@ -109,7 +109,7 @@ class TestIAllocatorChecks(testutils.GanetiTestCase):
     op = OpTest()
     lu = TestLU(op)
 
-    c_i = lambda: cmdlib._CheckIAllocatorOrNode(lu, "iallocator", "node")
+    c_i = lambda: common._CheckIAllocatorOrNode(lu, "iallocator", "node")
 
     # Neither node nor iallocator given
     for n in (None, []):

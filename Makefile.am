@@ -313,6 +313,7 @@ cmdlib_PYTHON = \
 	lib/cmdlib/base.py \
 	lib/cmdlib/cluster.py \
 	lib/cmdlib/group.py \
+	lib/cmdlib/node.py \
 	lib/cmdlib/tags.py \
 	lib/cmdlib/network.py \
 	lib/cmdlib/test.py

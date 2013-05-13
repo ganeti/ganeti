@@ -37,6 +37,17 @@ from ganeti import ssconf
 from ganeti import utils
 
 
+# States of instance
+INSTANCE_DOWN = [constants.ADMINST_DOWN]
+INSTANCE_ONLINE = [constants.ADMINST_DOWN, constants.ADMINST_UP]
+INSTANCE_NOT_RUNNING = [constants.ADMINST_DOWN, constants.ADMINST_OFFLINE]
+
+#: Instance status in which an instance can be marked as offline/online
+CAN_CHANGE_INSTANCE_OFFLINE = (frozenset(INSTANCE_DOWN) | frozenset([
+  constants.ADMINST_OFFLINE,
+  ]))
+
+
 def _ExpandItemName(fn, name, kind):
   """Expand an item name.
 
@@ -873,3 +884,131 @@ def _MapInstanceDisksToNodes(instances):
               for inst in instances
               for (node, vols) in inst.MapLVsByNode().items()
               for vol in vols)
+
+
+def _CheckParamsNotGlobal(params, glob_pars, kind, bad_levels, good_levels):
+  """Make sure that none of the given paramters is global.
+
+  If a global parameter is found, an L{errors.OpPrereqError} exception is
+  raised. This is used to avoid setting global parameters for individual nodes.
+
+  @type params: dictionary
+  @param params: Parameters to check
+  @type glob_pars: dictionary
+  @param glob_pars: Forbidden parameters
+  @type kind: string
+  @param kind: Kind of parameters (e.g. "node")
+  @type bad_levels: string
+  @param bad_levels: Level(s) at which the parameters are forbidden (e.g.
+      "instance")
+  @type good_levels: strings
+  @param good_levels: Level(s) at which the parameters are allowed (e.g.
+      "cluster or group")
+
+  """
+  used_globals = glob_pars.intersection(params)
+  if used_globals:
+    msg = ("The following %s parameters are global and cannot"
+           " be customized at %s level, please modify them at"
+           " %s level: %s" %
+           (kind, bad_levels, good_levels, utils.CommaJoin(used_globals)))
+    raise errors.OpPrereqError(msg, errors.ECODE_INVAL)
+
+
+def _IsExclusiveStorageEnabledNode(cfg, node):
+  """Whether exclusive_storage is in effect for the given node.
+
+  @type cfg: L{config.ConfigWriter}
+  @param cfg: The cluster configuration
+  @type node: L{objects.Node}
+  @param node: The node
+  @rtype: bool
+  @return: The effective value of exclusive_storage
+
+  """
+  return cfg.GetNdParams(node)[constants.ND_EXCLUSIVE_STORAGE]
+
+
+def _CheckInstanceState(lu, instance, req_states, msg=None):
+  """Ensure that an instance is in one of the required states.
+
+  @param lu: the LU on behalf of which we make the check
+  @param instance: the instance to check
+  @param msg: if passed, should be a message to replace the default one
+  @raise errors.OpPrereqError: if the instance is not in the required state
+
+  """
+  if msg is None:
+    msg = ("can't use instance from outside %s states" %
+           utils.CommaJoin(req_states))
+  if instance.admin_state not in req_states:
+    raise errors.OpPrereqError("Instance '%s' is marked to be %s, %s" %
+                               (instance.name, instance.admin_state, msg),
+                               errors.ECODE_STATE)
+
+  if constants.ADMINST_UP not in req_states:
+    pnode = instance.primary_node
+    if not lu.cfg.GetNodeInfo(pnode).offline:
+      ins_l = lu.rpc.call_instance_list([pnode], [instance.hypervisor])[pnode]
+      ins_l.Raise("Can't contact node %s for instance information" % pnode,
+                  prereq=True, ecode=errors.ECODE_ENVIRON)
+      if instance.name in ins_l.payload:
+        raise errors.OpPrereqError("Instance %s is running, %s" %
+                                   (instance.name, msg), errors.ECODE_STATE)
+    else:
+      lu.LogWarning("Primary node offline, ignoring check that instance"
+                     " is down")
+
+
+def _CheckIAllocatorOrNode(lu, iallocator_slot, node_slot):
+  """Check the sanity of iallocator and node arguments and use the
+  cluster-wide iallocator if appropriate.
+
+  Check that at most one of (iallocator, node) is specified. If none is
+  specified, or the iallocator is L{constants.DEFAULT_IALLOCATOR_SHORTCUT},
+  then the LU's opcode's iallocator slot is filled with the cluster-wide
+  default iallocator.
+
+  @type iallocator_slot: string
+  @param iallocator_slot: the name of the opcode iallocator slot
+  @type node_slot: string
+  @param node_slot: the name of the opcode target node slot
+
+  """
+  node = getattr(lu.op, node_slot, None)
+  ialloc = getattr(lu.op, iallocator_slot, None)
+  if node == []:
+    node = None
+
+  if node is not None and ialloc is not None:
+    raise errors.OpPrereqError("Do not specify both, iallocator and node",
+                               errors.ECODE_INVAL)
+  elif ((node is None and ialloc is None) or
+        ialloc == constants.DEFAULT_IALLOCATOR_SHORTCUT):
+    default_iallocator = lu.cfg.GetDefaultIAllocator()
+    if default_iallocator:
+      setattr(lu.op, iallocator_slot, default_iallocator)
+    else:
+      raise errors.OpPrereqError("No iallocator or node given and no"
+                                 " cluster-wide default iallocator found;"
+                                 " please specify either an iallocator or a"
+                                 " node, or set a cluster-wide default"
+                                 " iallocator", errors.ECODE_INVAL)
+
+
+def _FindFaultyInstanceDisks(cfg, rpc_runner, instance, node_name, prereq):
+  faulty = []
+
+  for dev in instance.disks:
+    cfg.SetDiskID(dev, node_name)
+
+  result = rpc_runner.call_blockdev_getmirrorstatus(node_name, (instance.disks,
+                                                                instance))
+  result.Raise("Failed to get disk status from node %s" % node_name,
+               prereq=prereq, ecode=errors.ECODE_ENVIRON)
+
+  for idx, bdev_status in enumerate(result.payload):
+    if bdev_status and bdev_status.ldisk_status == constants.LDS_FAULTY:
+      faulty.append(idx)
+
+  return faulty
