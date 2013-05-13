@@ -22,6 +22,7 @@
 """Common functions used by multiple logical units."""
 
 from ganeti import errors
+from ganeti import locking
 
 
 def _ExpandItemName(fn, name, kind):
@@ -49,3 +50,10 @@ def _ExpandInstanceName(cfg, name):
 def _ExpandNodeName(cfg, name):
   """Wrapper over L{_ExpandItemName} for nodes."""
   return _ExpandItemName(cfg.ExpandNodeName, name, "Node")
+
+
+def _ShareAll():
+  """Returns a dict declaring all lock levels shared.
+
+  """
+  return dict.fromkeys(locking.LEVELS, 1)
