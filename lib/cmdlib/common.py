@@ -82,3 +82,41 @@ def _CheckNodeGroupInstances(cfg, group_uuid, owned_instances):
                                errors.ECODE_STATE)
 
   return wanted_instances
+
+
+def _GetWantedNodes(lu, nodes):
+  """Returns list of checked and expanded node names.
+
+  @type lu: L{LogicalUnit}
+  @param lu: the logical unit on whose behalf we execute
+  @type nodes: list
+  @param nodes: list of node names or None for all nodes
+  @rtype: list
+  @return: the list of nodes, sorted
+  @raise errors.ProgrammerError: if the nodes parameter is wrong type
+
+  """
+  if nodes:
+    return [_ExpandNodeName(lu.cfg, name) for name in nodes]
+
+  return utils.NiceSort(lu.cfg.GetNodeList())
+
+
+def _GetWantedInstances(lu, instances):
+  """Returns list of checked and expanded instance names.
+
+  @type lu: L{LogicalUnit}
+  @param lu: the logical unit on whose behalf we execute
+  @type instances: list
+  @param instances: list of instance names or None for all instances
+  @rtype: list
+  @return: the list of instances, sorted
+  @raise errors.OpPrereqError: if the instances parameter is wrong type
+  @raise errors.OpPrereqError: if any of the passed instances is not found
+
+  """
+  if instances:
+    wanted = [_ExpandInstanceName(lu.cfg, name) for name in instances]
+  else:
+    wanted = utils.NiceSort(lu.cfg.GetInstanceList())
+  return wanted

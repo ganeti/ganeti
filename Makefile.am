@@ -312,7 +312,8 @@ cmdlib_PYTHON = \
 	lib/cmdlib/common.py \
 	lib/cmdlib/base.py \
 	lib/cmdlib/tags.py \
-	lib/cmdlib/network.py
+	lib/cmdlib/network.py \
+	lib/cmdlib/test.py
 
 hypervisor_PYTHON = \
 	lib/hypervisor/__init__.py \
