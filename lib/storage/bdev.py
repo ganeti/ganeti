@@ -1796,6 +1796,8 @@ def Create(disk, children, excl_stor):
                   represented by the disk parameter
   @type excl_stor: boolean
   @param excl_stor: Whether exclusive_storage is active
+  @rtype: L{bdev.BlockDev}
+  @return: the created device, or C{None} in case of an error
 
   """
   _VerifyDiskType(disk.dev_type)

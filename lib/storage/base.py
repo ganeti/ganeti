@@ -119,6 +119,20 @@ class BlockDev(object):
     the children. The idea is that these two, taken together, are
     enough for both creation and assembly (later).
 
+    @type unique_id: 2-element tuple or list
+    @param unique_id: unique identifier; the details depend on the actual device
+        type
+    @type children: list of L{BlockDev}
+    @param children: for hierarchical devices, the child devices
+    @type size: float
+    @param size: size in MiB
+    @type params: dict
+    @param params: device-specific options/parameters
+    @type excl_stor: bool
+    @param excl_stor: whether exclusive_storage is active
+    @rtype: L{BlockDev}
+    @return: the created device, or C{None} in case of an error
+
     """
     raise NotImplementedError
 
