@@ -25,7 +25,6 @@ from ganeti import constants
 from ganeti import errors
 from ganeti import query
 from ganeti.cmdlib import _ExtStorageQuery
-from ganeti.cmdlib import _OsQuery
 from ganeti.cmdlib.backup import _ExportQuery
 from ganeti.cmdlib.base import NoHooksLU
 from ganeti.cmdlib.cluster import _ClusterQuery
@@ -33,6 +32,7 @@ from ganeti.cmdlib.group import _GroupQuery
 from ganeti.cmdlib.instance import _InstanceQuery
 from ganeti.cmdlib.network import _NetworkQuery
 from ganeti.cmdlib.node import _NodeQuery
+from ganeti.cmdlib.operating_system import _OsQuery
 
 
 #: Query type implementations

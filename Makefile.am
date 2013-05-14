@@ -318,6 +318,7 @@ cmdlib_PYTHON = \
 	lib/cmdlib/instance_utils.py \
 	lib/cmdlib/backup.py \
 	lib/cmdlib/query.py \
+	lib/cmdlib/operating_system.py \
 	lib/cmdlib/tags.py \
 	lib/cmdlib/network.py \
 	lib/cmdlib/test.py
