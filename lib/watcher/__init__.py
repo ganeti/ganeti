@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -99,7 +99,6 @@ def StartNodeDaemons():
   # start mond as well: all nodes need monitoring
   if constants.ENABLE_MOND:
     utils.EnsureDaemon(constants.MOND)
-
 
 
 def RunWatcherHooks():
