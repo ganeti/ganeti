@@ -29,8 +29,8 @@ from ganeti import objects
 from ganeti import qlang
 from ganeti import query
 from ganeti import utils
-from ganeti.cmdlib.base import LogicalUnit, NoHooksLU, _QueryBase
-from ganeti.cmdlib.common import _ShareAll, _CheckNodeGroupInstances
+from ganeti.cmdlib.base import LogicalUnit, NoHooksLU, QueryBase
+from ganeti.cmdlib.common import ShareAll, CheckNodeGroupInstances
 
 
 def _BuildNetworkHookEnv(name, subnet, gateway, network6, gateway6,
@@ -399,12 +399,12 @@ class LUNetworkSetParams(LogicalUnit):
     self.cfg.Update(self.network, feedback_fn)
 
 
-class _NetworkQuery(_QueryBase):
+class NetworkQuery(QueryBase):
   FIELDS = query.NETWORK_FIELDS
 
   def ExpandNames(self, lu):
     lu.needed_locks = {}
-    lu.share_locks = _ShareAll()
+    lu.share_locks = ShareAll()
 
     self.do_locking = self.use_locking
 
@@ -509,7 +509,7 @@ class LUNetworkQuery(NoHooksLU):
   REQ_BGL = False
 
   def CheckArguments(self):
-    self.nq = _NetworkQuery(qlang.MakeSimpleFilter("name", self.op.names),
+    self.nq = NetworkQuery(qlang.MakeSimpleFilter("name", self.op.names),
                             self.op.output_fields, self.op.use_locking)
 
   def ExpandNames(self):
@@ -619,7 +619,7 @@ class LUNetworkConnect(LogicalUnit):
     # Check if locked instances are still correct
     owned_instances = frozenset(self.owned_locks(locking.LEVEL_INSTANCE))
     if self.op.conflicts_check:
-      _CheckNodeGroupInstances(self.cfg, self.group_uuid, owned_instances)
+      CheckNodeGroupInstances(self.cfg, self.group_uuid, owned_instances)
 
     self.netparams = {
       constants.NIC_MODE: self.network_mode,
@@ -697,7 +697,7 @@ class LUNetworkDisconnect(LogicalUnit):
 
     # Check if locked instances are still correct
     owned_instances = frozenset(self.owned_locks(locking.LEVEL_INSTANCE))
-    _CheckNodeGroupInstances(self.cfg, self.group_uuid, owned_instances)
+    CheckNodeGroupInstances(self.cfg, self.group_uuid, owned_instances)
 
     self.group = self.cfg.GetNodeGroup(self.group_uuid)
     self.connected = True

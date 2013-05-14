@@ -65,24 +65,24 @@ def _ExpandItemName(fn, name, kind):
   return full_name
 
 
-def _ExpandInstanceName(cfg, name):
+def ExpandInstanceName(cfg, name):
   """Wrapper over L{_ExpandItemName} for instance."""
   return _ExpandItemName(cfg.ExpandInstanceName, name, "Instance")
 
 
-def _ExpandNodeName(cfg, name):
+def ExpandNodeName(cfg, name):
   """Wrapper over L{_ExpandItemName} for nodes."""
   return _ExpandItemName(cfg.ExpandNodeName, name, "Node")
 
 
-def _ShareAll():
+def ShareAll():
   """Returns a dict declaring all lock levels shared.
 
   """
   return dict.fromkeys(locking.LEVELS, 1)
 
 
-def _CheckNodeGroupInstances(cfg, group_uuid, owned_instances):
+def CheckNodeGroupInstances(cfg, group_uuid, owned_instances):
   """Checks if the instances in a node group are still correct.
 
   @type cfg: L{config.ConfigWriter}
@@ -106,7 +106,7 @@ def _CheckNodeGroupInstances(cfg, group_uuid, owned_instances):
   return wanted_instances
 
 
-def _GetWantedNodes(lu, nodes):
+def GetWantedNodes(lu, nodes):
   """Returns list of checked and expanded node names.
 
   @type lu: L{LogicalUnit}
@@ -119,12 +119,12 @@ def _GetWantedNodes(lu, nodes):
 
   """
   if nodes:
-    return [_ExpandNodeName(lu.cfg, name) for name in nodes]
+    return [ExpandNodeName(lu.cfg, name) for name in nodes]
 
   return utils.NiceSort(lu.cfg.GetNodeList())
 
 
-def _GetWantedInstances(lu, instances):
+def GetWantedInstances(lu, instances):
   """Returns list of checked and expanded instance names.
 
   @type lu: L{LogicalUnit}
@@ -138,13 +138,13 @@ def _GetWantedInstances(lu, instances):
 
   """
   if instances:
-    wanted = [_ExpandInstanceName(lu.cfg, name) for name in instances]
+    wanted = [ExpandInstanceName(lu.cfg, name) for name in instances]
   else:
     wanted = utils.NiceSort(lu.cfg.GetInstanceList())
   return wanted
 
 
-def _RunPostHook(lu, node_name):
+def RunPostHook(lu, node_name):
   """Runs the post-hook for an opcode on a single node.
 
   """
@@ -156,7 +156,7 @@ def _RunPostHook(lu, node_name):
                   node_name, err)
 
 
-def _RedistributeAncillaryFiles(lu, additional_nodes=None, additional_vm=True):
+def RedistributeAncillaryFiles(lu, additional_nodes=None, additional_vm=True):
   """Distribute additional files which are part of the cluster configuration.
 
   ConfigWriter takes care of distributing the config and ssconf files, but
@@ -189,7 +189,7 @@ def _RedistributeAncillaryFiles(lu, additional_nodes=None, additional_vm=True):
 
   # Gather file lists
   (files_all, _, files_mc, files_vm) = \
-    _ComputeAncillaryFiles(cluster, True)
+    ComputeAncillaryFiles(cluster, True)
 
   # Never re-distribute configuration file from here
   assert not (pathutils.CLUSTER_CONF_FILE in files_all or
@@ -204,10 +204,10 @@ def _RedistributeAncillaryFiles(lu, additional_nodes=None, additional_vm=True):
   # Upload the files
   for (node_list, files) in filemap:
     for fname in files:
-      _UploadHelper(lu, node_list, fname)
+      UploadHelper(lu, node_list, fname)
 
 
-def _ComputeAncillaryFiles(cluster, redist):
+def ComputeAncillaryFiles(cluster, redist):
   """Compute files external to Ganeti which need to be consistent.
 
   @type redist: boolean
@@ -286,7 +286,7 @@ def _ComputeAncillaryFiles(cluster, redist):
   return (files_all, files_opt, files_mc, files_vm)
 
 
-def _UploadHelper(lu, nodes, fname):
+def UploadHelper(lu, nodes, fname):
   """Helper for uploading a file and showing warnings.
 
   """
@@ -300,7 +300,7 @@ def _UploadHelper(lu, nodes, fname):
         lu.LogWarning(msg)
 
 
-def _MergeAndVerifyHvState(op_input, obj_input):
+def MergeAndVerifyHvState(op_input, obj_input):
   """Combines the hv state from an opcode with the one of the object
 
   @param op_input: The input dict from the opcode
@@ -322,7 +322,7 @@ def _MergeAndVerifyHvState(op_input, obj_input):
   return None
 
 
-def _MergeAndVerifyDiskState(op_input, obj_input):
+def MergeAndVerifyDiskState(op_input, obj_input):
   """Combines the disk state from an opcode with the one of the object
 
   @param op_input: The input dict from the opcode
@@ -345,7 +345,7 @@ def _MergeAndVerifyDiskState(op_input, obj_input):
   return None
 
 
-def _CheckOSParams(lu, required, nodenames, osname, osparams):
+def CheckOSParams(lu, required, nodenames, osname, osparams):
   """OS parameters validation.
 
   @type lu: L{LogicalUnit}
@@ -375,7 +375,7 @@ def _CheckOSParams(lu, required, nodenames, osname, osparams):
                  osname, node)
 
 
-def _CheckHVParams(lu, nodenames, hvname, hvparams):
+def CheckHVParams(lu, nodenames, hvname, hvparams):
   """Hypervisor parameter validation.
 
   This function abstract the hypervisor parameter validation to be
@@ -405,7 +405,7 @@ def _CheckHVParams(lu, nodenames, hvname, hvparams):
     info.Raise("Hypervisor parameter validation failed on node %s" % node)
 
 
-def _AdjustCandidatePool(lu, exceptions):
+def AdjustCandidatePool(lu, exceptions):
   """Adjust the candidate pool after node operations.
 
   """
@@ -421,7 +421,7 @@ def _AdjustCandidatePool(lu, exceptions):
                (mc_now, mc_max))
 
 
-def _CheckNodePVs(nresult, exclusive_storage):
+def CheckNodePVs(nresult, exclusive_storage):
   """Check node PVs.
 
   """
@@ -475,10 +475,10 @@ def _ComputeMinMaxSpec(name, qualifier, ispecs, value):
   return None
 
 
-def _ComputeIPolicySpecViolation(ipolicy, mem_size, cpu_count, disk_count,
-                                 nic_count, disk_sizes, spindle_use,
-                                 disk_template,
-                                 _compute_fn=_ComputeMinMaxSpec):
+def ComputeIPolicySpecViolation(ipolicy, mem_size, cpu_count, disk_count,
+                                nic_count, disk_sizes, spindle_use,
+                                disk_template,
+                                _compute_fn=_ComputeMinMaxSpec):
   """Verifies ipolicy against provided specs.
 
   @type ipolicy: dict
@@ -530,8 +530,8 @@ def _ComputeIPolicySpecViolation(ipolicy, mem_size, cpu_count, disk_count,
   return ret + min_errs
 
 
-def _ComputeIPolicyInstanceViolation(ipolicy, instance, cfg,
-                                     _compute_fn=_ComputeIPolicySpecViolation):
+def ComputeIPolicyInstanceViolation(ipolicy, instance, cfg,
+                                    _compute_fn=ComputeIPolicySpecViolation):
   """Compute if instance meets the specs of ipolicy.
 
   @type ipolicy: dict
@@ -541,7 +541,7 @@ def _ComputeIPolicyInstanceViolation(ipolicy, instance, cfg,
   @type cfg: L{config.ConfigWriter}
   @param cfg: Cluster configuration
   @param _compute_fn: The function to verify ipolicy (unittest only)
-  @see: L{_ComputeIPolicySpecViolation}
+  @see: L{ComputeIPolicySpecViolation}
 
   """
   be_full = cfg.GetClusterInfo().FillBE(instance)
@@ -569,10 +569,10 @@ def _ComputeViolatingInstances(ipolicy, instances, cfg):
 
   """
   return frozenset([inst.name for inst in instances
-                    if _ComputeIPolicyInstanceViolation(ipolicy, inst, cfg)])
+                    if ComputeIPolicyInstanceViolation(ipolicy, inst, cfg)])
 
 
-def _ComputeNewInstanceViolations(old_ipolicy, new_ipolicy, instances, cfg):
+def ComputeNewInstanceViolations(old_ipolicy, new_ipolicy, instances, cfg):
   """Computes a set of any instances that would violate the new ipolicy.
 
   @param old_ipolicy: The current (still in-place) ipolicy
@@ -588,7 +588,7 @@ def _ComputeNewInstanceViolations(old_ipolicy, new_ipolicy, instances, cfg):
           _ComputeViolatingInstances(old_ipolicy, instances, cfg))
 
 
-def _GetUpdatedParams(old_params, update_dict,
+def GetUpdatedParams(old_params, update_dict,
                       use_default=True, use_none=False):
   """Return the new version of a parameter dictionary.
 
@@ -621,7 +621,7 @@ def _GetUpdatedParams(old_params, update_dict,
   return params_copy
 
 
-def _GetUpdatedIPolicy(old_ipolicy, new_ipolicy, group_policy=False):
+def GetUpdatedIPolicy(old_ipolicy, new_ipolicy, group_policy=False):
   """Return the new version of an instance policy.
 
   @param group_policy: whether this policy applies to a group and thus
@@ -660,8 +660,8 @@ def _GetUpdatedIPolicy(old_ipolicy, new_ipolicy, group_policy=False):
         if group_policy:
           msg = "%s cannot appear in group instance specs" % key
           raise errors.OpPrereqError(msg, errors.ECODE_INVAL)
-        ipolicy[key] = _GetUpdatedParams(old_ipolicy.get(key, {}), value,
-                                         use_none=False, use_default=False)
+        ipolicy[key] = GetUpdatedParams(old_ipolicy.get(key, {}), value,
+                                        use_none=False, use_default=False)
         utils.ForceDictType(ipolicy[key], constants.ISPECS_PARAMETER_TYPES)
       else:
         # FIXME: we assume all others are lists; this should be redone
@@ -675,7 +675,7 @@ def _GetUpdatedIPolicy(old_ipolicy, new_ipolicy, group_policy=False):
   return ipolicy
 
 
-def _AnnotateDiskParams(instance, devs, cfg):
+def AnnotateDiskParams(instance, devs, cfg):
   """Little helper wrapper to the rpc annotation method.
 
   @param instance: The instance object
@@ -690,7 +690,7 @@ def _AnnotateDiskParams(instance, devs, cfg):
                                 cfg.GetInstanceDiskParams(instance))
 
 
-def _SupportsOob(cfg, node):
+def SupportsOob(cfg, node):
   """Tells if node supports OOB.
 
   @type cfg: L{config.ConfigWriter}
@@ -713,7 +713,7 @@ def _UpdateAndVerifySubDict(base, updates, type_check):
 
   """
   def fn(old, value):
-    new = _GetUpdatedParams(old, value)
+    new = GetUpdatedParams(old, value)
     utils.ForceDictType(new, type_check)
     return new
 
@@ -738,7 +738,7 @@ def _FilterVmNodes(lu, nodenames):
   return [name for name in nodenames if name not in vm_nodes]
 
 
-def _GetDefaultIAllocator(cfg, ialloc):
+def GetDefaultIAllocator(cfg, ialloc):
   """Decides on which iallocator to use.
 
   @type cfg: L{config.ConfigWriter}
@@ -761,8 +761,8 @@ def _GetDefaultIAllocator(cfg, ialloc):
   return ialloc
 
 
-def _CheckInstancesNodeGroups(cfg, instances, owned_groups, owned_nodes,
-                              cur_group_uuid):
+def CheckInstancesNodeGroups(cfg, instances, owned_groups, owned_nodes,
+                             cur_group_uuid):
   """Checks if node groups for locked instances are still correct.
 
   @type cfg: L{config.ConfigWriter}
@@ -781,14 +781,14 @@ def _CheckInstancesNodeGroups(cfg, instances, owned_groups, owned_nodes,
     assert owned_nodes.issuperset(inst.all_nodes), \
       "Instance %s's nodes changed while we kept the lock" % name
 
-    inst_groups = _CheckInstanceNodeGroups(cfg, name, owned_groups)
+    inst_groups = CheckInstanceNodeGroups(cfg, name, owned_groups)
 
     assert cur_group_uuid is None or cur_group_uuid in inst_groups, \
       "Instance %s has no node in group %s" % (name, cur_group_uuid)
 
 
-def _CheckInstanceNodeGroups(cfg, instance_name, owned_groups,
-                             primary_only=False):
+def CheckInstanceNodeGroups(cfg, instance_name, owned_groups,
+                            primary_only=False):
   """Checks if the owned node groups are still correct for an instance.
 
   @type cfg: L{config.ConfigWriter}
@@ -816,7 +816,7 @@ def _CheckInstanceNodeGroups(cfg, instance_name, owned_groups,
   return inst_groups
 
 
-def _LoadNodeEvacResult(lu, alloc_result, early_release, use_nodes):
+def LoadNodeEvacResult(lu, alloc_result, early_release, use_nodes):
   """Unpacks the result of change-group and node-evacuate iallocator requests.
 
   Iallocator modes L{constants.IALLOCATOR_MODE_NODE_EVAC} and
@@ -873,7 +873,7 @@ def _SetOpEarlyRelease(early_release, op):
   return op
 
 
-def _MapInstanceDisksToNodes(instances):
+def MapInstanceDisksToNodes(instances):
   """Creates a map from (node, volume) to instance name.
 
   @type instances: list of L{objects.Instance}
@@ -886,7 +886,7 @@ def _MapInstanceDisksToNodes(instances):
               for vol in vols)
 
 
-def _CheckParamsNotGlobal(params, glob_pars, kind, bad_levels, good_levels):
+def CheckParamsNotGlobal(params, glob_pars, kind, bad_levels, good_levels):
   """Make sure that none of the given paramters is global.
 
   If a global parameter is found, an L{errors.OpPrereqError} exception is
@@ -915,7 +915,7 @@ def _CheckParamsNotGlobal(params, glob_pars, kind, bad_levels, good_levels):
     raise errors.OpPrereqError(msg, errors.ECODE_INVAL)
 
 
-def _IsExclusiveStorageEnabledNode(cfg, node):
+def IsExclusiveStorageEnabledNode(cfg, node):
   """Whether exclusive_storage is in effect for the given node.
 
   @type cfg: L{config.ConfigWriter}
@@ -929,7 +929,7 @@ def _IsExclusiveStorageEnabledNode(cfg, node):
   return cfg.GetNdParams(node)[constants.ND_EXCLUSIVE_STORAGE]
 
 
-def _CheckInstanceState(lu, instance, req_states, msg=None):
+def CheckInstanceState(lu, instance, req_states, msg=None):
   """Ensure that an instance is in one of the required states.
 
   @param lu: the LU on behalf of which we make the check
@@ -960,7 +960,7 @@ def _CheckInstanceState(lu, instance, req_states, msg=None):
                      " is down")
 
 
-def _CheckIAllocatorOrNode(lu, iallocator_slot, node_slot):
+def CheckIAllocatorOrNode(lu, iallocator_slot, node_slot):
   """Check the sanity of iallocator and node arguments and use the
   cluster-wide iallocator if appropriate.
 
@@ -996,7 +996,7 @@ def _CheckIAllocatorOrNode(lu, iallocator_slot, node_slot):
                                  " iallocator", errors.ECODE_INVAL)
 
 
-def _FindFaultyInstanceDisks(cfg, rpc_runner, instance, node_name, prereq):
+def FindFaultyInstanceDisks(cfg, rpc_runner, instance, node_name, prereq):
   faulty = []
 
   for dev in instance.disks:
@@ -1015,7 +1015,7 @@ def _FindFaultyInstanceDisks(cfg, rpc_runner, instance, node_name, prereq):
   return faulty
 
 
-def _CheckNodeOnline(lu, node, msg=None):
+def CheckNodeOnline(lu, node, msg=None):
   """Ensure that a given node is online.
 
   @param lu: the LU on behalf of which we make the check

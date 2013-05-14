@@ -31,13 +31,13 @@ from ganeti import qlang
 from ganeti import query
 from ganeti import utils
 from ganeti.masterd import iallocator
-from ganeti.cmdlib.base import LogicalUnit, NoHooksLU, _QueryBase, \
+from ganeti.cmdlib.base import LogicalUnit, NoHooksLU, QueryBase, \
   ResultWithJobs
-from ganeti.cmdlib.common import _MergeAndVerifyHvState, \
-  _MergeAndVerifyDiskState, _GetWantedNodes, _GetUpdatedParams, \
-  _CheckNodeGroupInstances, _GetUpdatedIPolicy, \
-  _ComputeNewInstanceViolations, _GetDefaultIAllocator, _ShareAll, \
-  _CheckInstancesNodeGroups, _LoadNodeEvacResult, _MapInstanceDisksToNodes
+from ganeti.cmdlib.common import MergeAndVerifyHvState, \
+  MergeAndVerifyDiskState, GetWantedNodes, GetUpdatedParams, \
+  CheckNodeGroupInstances, GetUpdatedIPolicy, \
+  ComputeNewInstanceViolations, GetDefaultIAllocator, ShareAll, \
+  CheckInstancesNodeGroups, LoadNodeEvacResult, MapInstanceDisksToNodes
 
 import ganeti.masterd.instance
 
@@ -79,12 +79,12 @@ class LUGroupAdd(LogicalUnit):
       utils.ForceDictType(self.op.ndparams, constants.NDS_PARAMETER_TYPES)
 
     if self.op.hv_state:
-      self.new_hv_state = _MergeAndVerifyHvState(self.op.hv_state, None)
+      self.new_hv_state = MergeAndVerifyHvState(self.op.hv_state, None)
     else:
       self.new_hv_state = None
 
     if self.op.disk_state:
-      self.new_disk_state = _MergeAndVerifyDiskState(self.op.disk_state, None)
+      self.new_disk_state = MergeAndVerifyDiskState(self.op.disk_state, None)
     else:
       self.new_disk_state = None
 
@@ -152,7 +152,7 @@ class LUGroupAssignNodes(NoHooksLU):
   def ExpandNames(self):
     # These raise errors.OpPrereqError on their own:
     self.group_uuid = self.cfg.LookupNodeGroup(self.op.group_name)
-    self.op.nodes = _GetWantedNodes(self, self.op.nodes)
+    self.op.nodes = GetWantedNodes(self, self.op.nodes)
 
     # We want to lock all the affected nodes and groups. We have readily
     # available the list of nodes, and the *destination* group. To gather the
@@ -276,7 +276,7 @@ class LUGroupAssignNodes(NoHooksLU):
             list(previously_split_instances & all_split_instances))
 
 
-class _GroupQuery(_QueryBase):
+class GroupQuery(QueryBase):
   FIELDS = query.GROUP_FIELDS
 
   def ExpandNames(self, lu):
@@ -363,7 +363,7 @@ class LUGroupQuery(NoHooksLU):
   REQ_BGL = False
 
   def CheckArguments(self):
-    self.gq = _GroupQuery(qlang.MakeSimpleFilter("name", self.op.names),
+    self.gq = GroupQuery(qlang.MakeSimpleFilter("name", self.op.names),
                           self.op.output_fields, False)
 
   def ExpandNames(self):
@@ -423,7 +423,7 @@ class LUGroupSetParams(LogicalUnit):
     """Updates and verifies disk parameters.
 
     """
-    new_params = _GetUpdatedParams(old, new)
+    new_params = GetUpdatedParams(old, new)
     utils.ForceDictType(new_params, constants.DISK_DT_TYPES)
     return new_params
 
@@ -434,7 +434,7 @@ class LUGroupSetParams(LogicalUnit):
     owned_instances = frozenset(self.owned_locks(locking.LEVEL_INSTANCE))
 
     # Check if locked instances are still correct
-    _CheckNodeGroupInstances(self.cfg, self.group_uuid, owned_instances)
+    CheckNodeGroupInstances(self.cfg, self.group_uuid, owned_instances)
 
     self.group = self.cfg.GetNodeGroup(self.group_uuid)
     cluster = self.cfg.GetClusterInfo()
@@ -444,7 +444,7 @@ class LUGroupSetParams(LogicalUnit):
                                (self.op.group_name, self.group_uuid))
 
     if self.op.ndparams:
-      new_ndparams = _GetUpdatedParams(self.group.ndparams, self.op.ndparams)
+      new_ndparams = GetUpdatedParams(self.group.ndparams, self.op.ndparams)
       utils.ForceDictType(new_ndparams, constants.NDS_PARAMETER_TYPES)
       self.new_ndparams = new_ndparams
 
@@ -467,27 +467,27 @@ class LUGroupSetParams(LogicalUnit):
                                    errors.ECODE_INVAL)
 
     if self.op.hv_state:
-      self.new_hv_state = _MergeAndVerifyHvState(self.op.hv_state,
-                                                 self.group.hv_state_static)
+      self.new_hv_state = MergeAndVerifyHvState(self.op.hv_state,
+                                                self.group.hv_state_static)
 
     if self.op.disk_state:
       self.new_disk_state = \
-        _MergeAndVerifyDiskState(self.op.disk_state,
-                                 self.group.disk_state_static)
+        MergeAndVerifyDiskState(self.op.disk_state,
+                                self.group.disk_state_static)
 
     if self.op.ipolicy:
-      self.new_ipolicy = _GetUpdatedIPolicy(self.group.ipolicy,
-                                            self.op.ipolicy,
-                                            group_policy=True)
+      self.new_ipolicy = GetUpdatedIPolicy(self.group.ipolicy,
+                                           self.op.ipolicy,
+                                           group_policy=True)
 
       new_ipolicy = cluster.SimpleFillIPolicy(self.new_ipolicy)
       inst_filter = lambda inst: inst.name in owned_instances
       instances = self.cfg.GetInstancesInfoByFilter(inst_filter).values()
       gmi = ganeti.masterd.instance
       violations = \
-          _ComputeNewInstanceViolations(gmi.CalculateGroupIPolicy(cluster,
-                                                                  self.group),
-                                        new_ipolicy, instances, self.cfg)
+          ComputeNewInstanceViolations(gmi.CalculateGroupIPolicy(cluster,
+                                                                 self.group),
+                                       new_ipolicy, instances, self.cfg)
 
       if violations:
         self.LogWarning("After the ipolicy change the following instances"
@@ -697,9 +697,9 @@ class LUGroupEvacuate(LogicalUnit):
                                   utils.CommaJoin(self.req_target_uuids)),
                                  errors.ECODE_INVAL)
 
-    self.op.iallocator = _GetDefaultIAllocator(self.cfg, self.op.iallocator)
+    self.op.iallocator = GetDefaultIAllocator(self.cfg, self.op.iallocator)
 
-    self.share_locks = _ShareAll()
+    self.share_locks = ShareAll()
     self.needed_locks = {
       locking.LEVEL_INSTANCE: [],
       locking.LEVEL_NODEGROUP: [],
@@ -757,14 +757,14 @@ class LUGroupEvacuate(LogicalUnit):
     assert self.group_uuid in owned_groups
 
     # Check if locked instances are still correct
-    _CheckNodeGroupInstances(self.cfg, self.group_uuid, owned_instances)
+    CheckNodeGroupInstances(self.cfg, self.group_uuid, owned_instances)
 
     # Get instance information
     self.instances = dict(self.cfg.GetMultiInstanceInfo(owned_instances))
 
     # Check if node groups for locked instances are still correct
-    _CheckInstancesNodeGroups(self.cfg, self.instances,
-                              owned_groups, owned_nodes, self.group_uuid)
+    CheckInstancesNodeGroups(self.cfg, self.instances,
+                             owned_groups, owned_nodes, self.group_uuid)
 
     if self.req_target_uuids:
       # User requested specific target groups
@@ -816,7 +816,7 @@ class LUGroupEvacuate(LogicalUnit):
                                  (self.op.iallocator, ial.info),
                                  errors.ECODE_NORES)
 
-    jobs = _LoadNodeEvacResult(self, ial.result, self.op.early_release, False)
+    jobs = LoadNodeEvacResult(self, ial.result, self.op.early_release, False)
 
     self.LogInfo("Iallocator returned %s job(s) for evacuating node group %s",
                  len(jobs), self.op.group_name)
@@ -834,7 +834,7 @@ class LUGroupVerifyDisks(NoHooksLU):
     # Raises errors.OpPrereqError on its own if group can't be found
     self.group_uuid = self.cfg.LookupNodeGroup(self.op.group_name)
 
-    self.share_locks = _ShareAll()
+    self.share_locks = ShareAll()
     self.needed_locks = {
       locking.LEVEL_INSTANCE: [],
       locking.LEVEL_NODEGROUP: [],
@@ -887,14 +887,14 @@ class LUGroupVerifyDisks(NoHooksLU):
     assert self.group_uuid in owned_groups
 
     # Check if locked instances are still correct
-    _CheckNodeGroupInstances(self.cfg, self.group_uuid, owned_instances)
+    CheckNodeGroupInstances(self.cfg, self.group_uuid, owned_instances)
 
     # Get instance information
     self.instances = dict(self.cfg.GetMultiInstanceInfo(owned_instances))
 
     # Check if node groups for locked instances are still correct
-    _CheckInstancesNodeGroups(self.cfg, self.instances,
-                              owned_groups, owned_nodes, self.group_uuid)
+    CheckInstancesNodeGroups(self.cfg, self.instances,
+                             owned_groups, owned_nodes, self.group_uuid)
 
   def Exec(self, feedback_fn):
     """Verify integrity of cluster disks.
@@ -909,7 +909,7 @@ class LUGroupVerifyDisks(NoHooksLU):
     res_instances = set()
     res_missing = {}
 
-    nv_dict = _MapInstanceDisksToNodes(
+    nv_dict = MapInstanceDisksToNodes(
       [inst for inst in self.instances.values()
        if inst.admin_state == constants.ADMINST_UP])
 

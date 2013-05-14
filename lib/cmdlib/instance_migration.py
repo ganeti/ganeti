@@ -30,13 +30,13 @@ from ganeti import locking
 from ganeti.masterd import iallocator
 from ganeti import utils
 from ganeti.cmdlib.base import LogicalUnit, Tasklet
-from ganeti.cmdlib.common import _ExpandInstanceName, \
-  _CheckIAllocatorOrNode, _ExpandNodeName
-from ganeti.cmdlib.instance_storage import _CheckDiskConsistency, \
-  _ExpandCheckDisks, _ShutdownInstanceDisks, _AssembleInstanceDisks
-from ganeti.cmdlib.instance_utils import _BuildInstanceHookEnvByObject, \
-  _CheckTargetNodeIPolicy, _ReleaseLocks, _CheckNodeNotDrained, \
-  _CopyLockList, _CheckNodeFreeMemory, _CheckInstanceBridgesExist
+from ganeti.cmdlib.common import ExpandInstanceName, \
+  CheckIAllocatorOrNode, ExpandNodeName
+from ganeti.cmdlib.instance_storage import CheckDiskConsistency, \
+  ExpandCheckDisks, ShutdownInstanceDisks, AssembleInstanceDisks
+from ganeti.cmdlib.instance_utils import BuildInstanceHookEnvByObject, \
+  CheckTargetNodeIPolicy, ReleaseLocks, CheckNodeNotDrained, \
+  CopyLockList, CheckNodeFreeMemory, CheckInstanceBridgesExist
 
 import ganeti.masterd.instance
 
@@ -48,7 +48,7 @@ def _ExpandNamesForMigration(lu):
 
   """
   if lu.op.target_node is not None:
-    lu.op.target_node = _ExpandNodeName(lu.cfg, lu.op.target_node)
+    lu.op.target_node = ExpandNodeName(lu.cfg, lu.op.target_node)
 
   lu.needed_locks[locking.LEVEL_NODE] = []
   lu.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_REPLACE
@@ -94,7 +94,7 @@ def _DeclareLocksForMigration(lu, level):
   elif level == locking.LEVEL_NODE_RES:
     # Copy node locks
     lu.needed_locks[locking.LEVEL_NODE_RES] = \
-      _CopyLockList(lu.needed_locks[locking.LEVEL_NODE])
+      CopyLockList(lu.needed_locks[locking.LEVEL_NODE])
 
 
 class LUInstanceFailover(LogicalUnit):
@@ -148,7 +148,7 @@ class LUInstanceFailover(LogicalUnit):
     else:
       env["OLD_SECONDARY"] = env["NEW_SECONDARY"] = ""
 
-    env.update(_BuildInstanceHookEnvByObject(self, instance))
+    env.update(BuildInstanceHookEnvByObject(self, instance))
 
     return env
 
@@ -197,7 +197,7 @@ class LUInstanceMigrate(LogicalUnit):
     instance = self._migrater.instance
     source_node = instance.primary_node
     target_node = self.op.target_node
-    env = _BuildInstanceHookEnvByObject(self, instance)
+    env = BuildInstanceHookEnvByObject(self, instance)
     env.update({
       "MIGRATE_LIVE": self._migrater.live,
       "MIGRATE_CLEANUP": self.op.cleanup,
@@ -280,7 +280,7 @@ class TLMigrateInstance(Tasklet):
     This checks that the instance is in the cluster.
 
     """
-    instance_name = _ExpandInstanceName(self.lu.cfg, self.instance_name)
+    instance_name = ExpandInstanceName(self.lu.cfg, self.instance_name)
     instance = self.cfg.GetInstanceInfo(instance_name)
     assert instance is not None
     self.instance = instance
@@ -303,7 +303,7 @@ class TLMigrateInstance(Tasklet):
                                  errors.ECODE_STATE)
 
     if instance.disk_template in constants.DTS_EXT_MIRROR:
-      _CheckIAllocatorOrNode(self.lu, "iallocator", "target_node")
+      CheckIAllocatorOrNode(self.lu, "iallocator", "target_node")
 
       if self.lu.op.iallocator:
         assert locking.NAL in self.lu.owned_locks(locking.LEVEL_NODE_ALLOC)
@@ -318,8 +318,8 @@ class TLMigrateInstance(Tasklet):
       group_info = self.cfg.GetNodeGroup(nodeinfo.group)
       ipolicy = ganeti.masterd.instance.CalculateGroupIPolicy(cluster,
                                                               group_info)
-      _CheckTargetNodeIPolicy(self.lu, ipolicy, instance, nodeinfo, self.cfg,
-                              ignore=self.ignore_ipolicy)
+      CheckTargetNodeIPolicy(self.lu, ipolicy, instance, nodeinfo, self.cfg,
+                             ignore=self.ignore_ipolicy)
 
       # self.target_node is already populated, either directly or by the
       # iallocator run
@@ -333,9 +333,9 @@ class TLMigrateInstance(Tasklet):
       if len(self.lu.tasklets) == 1:
         # It is safe to release locks only when we're the only tasklet
         # in the LU
-        _ReleaseLocks(self.lu, locking.LEVEL_NODE,
-                      keep=[instance.primary_node, self.target_node])
-        _ReleaseLocks(self.lu, locking.LEVEL_NODE_ALLOC)
+        ReleaseLocks(self.lu, locking.LEVEL_NODE,
+                     keep=[instance.primary_node, self.target_node])
+        ReleaseLocks(self.lu, locking.LEVEL_NODE_ALLOC)
 
     else:
       assert not self.lu.glm.is_owned(locking.LEVEL_NODE_ALLOC)
@@ -362,19 +362,19 @@ class TLMigrateInstance(Tasklet):
       group_info = self.cfg.GetNodeGroup(nodeinfo.group)
       ipolicy = ganeti.masterd.instance.CalculateGroupIPolicy(cluster,
                                                               group_info)
-      _CheckTargetNodeIPolicy(self.lu, ipolicy, instance, nodeinfo, self.cfg,
-                              ignore=self.ignore_ipolicy)
+      CheckTargetNodeIPolicy(self.lu, ipolicy, instance, nodeinfo, self.cfg,
+                             ignore=self.ignore_ipolicy)
 
     i_be = cluster.FillBE(instance)
 
     # check memory requirements on the secondary node
     if (not self.cleanup and
          (not self.failover or instance.admin_state == constants.ADMINST_UP)):
-      self.tgt_free_mem = _CheckNodeFreeMemory(self.lu, target_node,
-                                               "migrating instance %s" %
-                                               instance.name,
-                                               i_be[constants.BE_MINMEM],
-                                               instance.hypervisor)
+      self.tgt_free_mem = CheckNodeFreeMemory(self.lu, target_node,
+                                              "migrating instance %s" %
+                                              instance.name,
+                                              i_be[constants.BE_MINMEM],
+                                              instance.hypervisor)
     else:
       self.lu.LogInfo("Not checking memory on the secondary node as"
                       " instance will not be started")
@@ -387,10 +387,10 @@ class TLMigrateInstance(Tasklet):
       self.failover = True
 
     # check bridge existance
-    _CheckInstanceBridgesExist(self.lu, instance, node=target_node)
+    CheckInstanceBridgesExist(self.lu, instance, node=target_node)
 
     if not self.cleanup:
-      _CheckNodeNotDrained(self.lu, target_node)
+      CheckNodeNotDrained(self.lu, target_node)
       if not self.failover:
         result = self.rpc.call_instance_migratable(instance.primary_node,
                                                    instance)
@@ -671,7 +671,7 @@ class TLMigrateInstance(Tasklet):
 
     self.feedback_fn("* checking disk consistency between source and target")
     for (idx, dev) in enumerate(instance.disks):
-      if not _CheckDiskConsistency(self.lu, instance, dev, target_node, False):
+      if not CheckDiskConsistency(self.lu, instance, dev, target_node, False):
         raise errors.OpExecError("Disk %s is degraded or not fully"
                                  " synchronized on target node,"
                                  " aborting migration" % idx)
@@ -805,7 +805,7 @@ class TLMigrateInstance(Tasklet):
     # If the instance's disk template is `rbd' or `ext' and there was a
     # successful migration, unmap the device from the source node.
     if self.instance.disk_template in (constants.DT_RBD, constants.DT_EXT):
-      disks = _ExpandCheckDisks(instance, instance.disks)
+      disks = ExpandCheckDisks(instance, instance.disks)
       self.feedback_fn("* unmapping instance's disks from %s" % source_node)
       for disk in disks:
         result = self.rpc.call_blockdev_shutdown(source_node, (disk, instance))
@@ -836,8 +836,8 @@ class TLMigrateInstance(Tasklet):
       self.feedback_fn("* checking disk consistency between source and target")
       for (idx, dev) in enumerate(instance.disks):
         # for drbd, these are drbd over lvm
-        if not _CheckDiskConsistency(self.lu, instance, dev, target_node,
-                                     False):
+        if not CheckDiskConsistency(self.lu, instance, dev, target_node,
+                                    False):
           if primary_node.offline:
             self.feedback_fn("Node %s is offline, ignoring degraded disk %s on"
                              " target node %s" %
@@ -869,7 +869,7 @@ class TLMigrateInstance(Tasklet):
                                  (instance.name, source_node, msg))
 
     self.feedback_fn("* deactivating the instance's disks on source node")
-    if not _ShutdownInstanceDisks(self.lu, instance, ignore_primary=True):
+    if not ShutdownInstanceDisks(self.lu, instance, ignore_primary=True):
       raise errors.OpExecError("Can't shut down the instance's disks")
 
     instance.primary_node = target_node
@@ -883,10 +883,10 @@ class TLMigrateInstance(Tasklet):
       logging.info("Starting instance %s on node %s",
                    instance.name, target_node)
 
-      disks_ok, _ = _AssembleInstanceDisks(self.lu, instance,
-                                           ignore_secondaries=True)
+      disks_ok, _ = AssembleInstanceDisks(self.lu, instance,
+                                          ignore_secondaries=True)
       if not disks_ok:
-        _ShutdownInstanceDisks(self.lu, instance)
+        ShutdownInstanceDisks(self.lu, instance)
         raise errors.OpExecError("Can't activate the instance's disks")
 
       self.feedback_fn("* starting the instance on the target node %s" %
@@ -895,7 +895,7 @@ class TLMigrateInstance(Tasklet):
                                             False, self.lu.op.reason)
       msg = result.fail_msg
       if msg:
-        _ShutdownInstanceDisks(self.lu, instance)
+        ShutdownInstanceDisks(self.lu, instance)
         raise errors.OpExecError("Could not start instance %s on node %s: %s" %
                                  (instance.name, target_node, msg))
 

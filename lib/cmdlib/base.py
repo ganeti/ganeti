@@ -28,7 +28,7 @@ from ganeti import constants
 from ganeti import locking
 from ganeti import query
 from ganeti import utils
-from ganeti.cmdlib.common import _ExpandInstanceName
+from ganeti.cmdlib.common import ExpandInstanceName
 
 
 class ResultWithJobs:
@@ -319,8 +319,8 @@ class LogicalUnit(object):
     else:
       assert locking.LEVEL_INSTANCE not in self.needed_locks, \
         "_ExpandAndLockInstance called with instance-level locks set"
-    self.op.instance_name = _ExpandInstanceName(self.cfg,
-                                                self.op.instance_name)
+    self.op.instance_name = ExpandInstanceName(self.cfg,
+                                               self.op.instance_name)
     self.needed_locks[locking.LEVEL_INSTANCE] = self.op.instance_name
 
   def _LockInstancesNodes(self, primary_only=False,
@@ -444,7 +444,7 @@ class Tasklet:
     raise NotImplementedError
 
 
-class _QueryBase:
+class QueryBase:
   """Base for query utility classes.
 
   """

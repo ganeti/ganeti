@@ -33,16 +33,16 @@ from ganeti import qlang
 from ganeti import query
 from ganeti import utils
 
-from ganeti.cmdlib.base import _QueryBase, NoHooksLU, LogicalUnit
-from ganeti.cmdlib.common import _GetWantedNodes, _ShareAll, \
-  _CheckNodeOnline, _ExpandNodeName
-from ganeti.cmdlib.instance_storage import _StartInstanceDisks, \
-  _ShutdownInstanceDisks
-from ganeti.cmdlib.instance_utils import _GetClusterDomainSecret, \
-  _BuildInstanceHookEnvByObject, _CheckNodeNotDrained, _RemoveInstance
+from ganeti.cmdlib.base import QueryBase, NoHooksLU, LogicalUnit
+from ganeti.cmdlib.common import GetWantedNodes, ShareAll, CheckNodeOnline, \
+  ExpandNodeName
+from ganeti.cmdlib.instance_storage import StartInstanceDisks, \
+  ShutdownInstanceDisks
+from ganeti.cmdlib.instance_utils import GetClusterDomainSecret, \
+  BuildInstanceHookEnvByObject, CheckNodeNotDrained, RemoveInstance
 
 
-class _ExportQuery(_QueryBase):
+class ExportQuery(QueryBase):
   FIELDS = query.EXPORT_FIELDS
 
   #: The node name is not a unique key for this query
@@ -53,14 +53,14 @@ class _ExportQuery(_QueryBase):
 
     # The following variables interact with _QueryBase._GetNames
     if self.names:
-      self.wanted = _GetWantedNodes(lu, self.names)
+      self.wanted = GetWantedNodes(lu, self.names)
     else:
       self.wanted = locking.ALL_SET
 
     self.do_locking = self.use_locking
 
     if self.do_locking:
-      lu.share_locks = _ShareAll()
+      lu.share_locks = ShareAll()
       lu.needed_locks = {
         locking.LEVEL_NODE: self.wanted,
         }
@@ -102,8 +102,8 @@ class LUBackupQuery(NoHooksLU):
   REQ_BGL = False
 
   def CheckArguments(self):
-    self.expq = _ExportQuery(qlang.MakeSimpleFilter("node", self.op.nodes),
-                             ["node", "export"], self.op.use_locking)
+    self.expq = ExportQuery(qlang.MakeSimpleFilter("node", self.op.nodes),
+                            ["node", "export"], self.op.use_locking)
 
   def ExpandNames(self):
     self.expq.ExpandNames(self)
@@ -141,9 +141,9 @@ class LUBackupPrepare(NoHooksLU):
     self.instance = self.cfg.GetInstanceInfo(instance_name)
     assert self.instance is not None, \
           "Cannot retrieve locked instance %s" % self.op.instance_name
-    _CheckNodeOnline(self, self.instance.primary_node)
+    CheckNodeOnline(self, self.instance.primary_node)
 
-    self._cds = _GetClusterDomainSecret()
+    self._cds = GetClusterDomainSecret()
 
   def Exec(self, feedback_fn):
     """Prepares an instance for an export.
@@ -237,7 +237,7 @@ class LUBackupExport(LogicalUnit):
       "REMOVE_INSTANCE": str(bool(self.op.remove_instance)),
       }
 
-    env.update(_BuildInstanceHookEnvByObject(self, self.instance))
+    env.update(BuildInstanceHookEnvByObject(self, self.instance))
 
     return env
 
@@ -263,7 +263,7 @@ class LUBackupExport(LogicalUnit):
     self.instance = self.cfg.GetInstanceInfo(instance_name)
     assert self.instance is not None, \
           "Cannot retrieve locked instance %s" % self.op.instance_name
-    _CheckNodeOnline(self, self.instance.primary_node)
+    CheckNodeOnline(self, self.instance.primary_node)
 
     if (self.op.remove_instance and
         self.instance.admin_state == constants.ADMINST_UP and
@@ -272,12 +272,12 @@ class LUBackupExport(LogicalUnit):
                                  " down before", errors.ECODE_STATE)
 
     if self.op.mode == constants.EXPORT_MODE_LOCAL:
-      self.op.target_node = _ExpandNodeName(self.cfg, self.op.target_node)
+      self.op.target_node = ExpandNodeName(self.cfg, self.op.target_node)
       self.dst_node = self.cfg.GetNodeInfo(self.op.target_node)
       assert self.dst_node is not None
 
-      _CheckNodeOnline(self, self.dst_node.name)
-      _CheckNodeNotDrained(self, self.dst_node.name)
+      CheckNodeOnline(self, self.dst_node.name)
+      CheckNodeNotDrained(self, self.dst_node.name)
 
       self._cds = None
       self.dest_disk_info = None
@@ -293,7 +293,7 @@ class LUBackupExport(LogicalUnit):
                                     len(self.instance.disks)),
                                    errors.ECODE_INVAL)
 
-      cds = _GetClusterDomainSecret()
+      cds = GetClusterDomainSecret()
 
       # Check X509 key name
       try:
@@ -403,7 +403,7 @@ class LUBackupExport(LogicalUnit):
     if activate_disks:
       # Activate the instance disks if we'exporting a stopped instance
       feedback_fn("Activating disks for %s" % instance.name)
-      _StartInstanceDisks(self, instance, None)
+      StartInstanceDisks(self, instance, None)
 
     try:
       helper = masterd.instance.ExportInstanceHelper(self, feedback_fn,
@@ -422,7 +422,7 @@ class LUBackupExport(LogicalUnit):
           msg = result.fail_msg
           if msg:
             feedback_fn("Failed to start instance: %s" % msg)
-            _ShutdownInstanceDisks(self, instance)
+            ShutdownInstanceDisks(self, instance)
             raise errors.OpExecError("Could not start instance: %s" % msg)
 
         if self.op.mode == constants.EXPORT_MODE_LOCAL:
@@ -451,7 +451,7 @@ class LUBackupExport(LogicalUnit):
     finally:
       if activate_disks:
         feedback_fn("Deactivating disks for %s" % instance.name)
-        _ShutdownInstanceDisks(self, instance)
+        ShutdownInstanceDisks(self, instance)
 
     if not (compat.all(dresults) and fin_resu):
       failures = []
@@ -470,8 +470,8 @@ class LUBackupExport(LogicalUnit):
     # Remove instance if requested
     if self.op.remove_instance:
       feedback_fn("Removing instance %s" % instance.name)
-      _RemoveInstance(self, feedback_fn, instance,
-                      self.op.ignore_remove_failures)
+      RemoveInstance(self, feedback_fn, instance,
+                     self.op.ignore_remove_failures)
 
     if self.op.mode == constants.EXPORT_MODE_LOCAL:
       self._CleanupExports(feedback_fn)

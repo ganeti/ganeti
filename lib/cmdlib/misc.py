@@ -31,8 +31,8 @@ from ganeti import locking
 from ganeti import qlang
 from ganeti import query
 from ganeti import utils
-from ganeti.cmdlib.base import NoHooksLU, _QueryBase
-from ganeti.cmdlib.common import _GetWantedNodes, _SupportsOob
+from ganeti.cmdlib.base import NoHooksLU, QueryBase
+from ganeti.cmdlib.common import GetWantedNodes, SupportsOob
 
 
 class LUOobCommand(NoHooksLU):
@@ -47,7 +47,7 @@ class LUOobCommand(NoHooksLU):
 
     """
     if self.op.node_names:
-      self.op.node_names = _GetWantedNodes(self, self.op.node_names)
+      self.op.node_names = GetWantedNodes(self, self.op.node_names)
       lock_names = self.op.node_names
     else:
       lock_names = locking.ALL_SET
@@ -81,7 +81,7 @@ class LUOobCommand(NoHooksLU):
       if (self.op.command in self._SKIP_MASTER and
           self.master_node in self.op.node_names):
         master_node_obj = self.cfg.GetNodeInfo(self.master_node)
-        master_oob_handler = _SupportsOob(self.cfg, master_node_obj)
+        master_oob_handler = SupportsOob(self.cfg, master_node_obj)
 
         if master_oob_handler:
           additional_text = ("run '%s %s %s' if you want to operate on the"
@@ -128,7 +128,7 @@ class LUOobCommand(NoHooksLU):
       node_entry = [(constants.RS_NORMAL, node.name)]
       ret.append(node_entry)
 
-      oob_program = _SupportsOob(self.cfg, node)
+      oob_program = SupportsOob(self.cfg, node)
 
       if not oob_program:
         node_entry.append((constants.RS_UNAVAIL, None))
@@ -221,7 +221,7 @@ class LUOobCommand(NoHooksLU):
                                utils.CommaJoin(errs))
 
 
-class _ExtStorageQuery(_QueryBase):
+class ExtStorageQuery(QueryBase):
   FIELDS = query.EXTSTORAGE_FIELDS
 
   def ExpandNames(self, lu):
@@ -364,7 +364,7 @@ class LUExtStorageDiagnose(NoHooksLU):
   REQ_BGL = False
 
   def CheckArguments(self):
-    self.eq = _ExtStorageQuery(qlang.MakeSimpleFilter("name", self.op.names),
+    self.eq = ExtStorageQuery(qlang.MakeSimpleFilter("name", self.op.names),
                                self.op.output_fields, False)
 
   def ExpandNames(self):
@@ -382,7 +382,7 @@ class LURestrictedCommand(NoHooksLU):
 
   def ExpandNames(self):
     if self.op.nodes:
-      self.op.nodes = _GetWantedNodes(self, self.op.nodes)
+      self.op.nodes = GetWantedNodes(self, self.op.nodes)
 
     self.needed_locks = {
       locking.LEVEL_NODE: self.op.nodes,

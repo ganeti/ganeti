@@ -31,13 +31,13 @@ from ganeti import network
 from ganeti import objects
 from ganeti import pathutils
 from ganeti import utils
-from ganeti.cmdlib.common import _AnnotateDiskParams, \
-  _ComputeIPolicyInstanceViolation
+from ganeti.cmdlib.common import AnnotateDiskParams, \
+  ComputeIPolicyInstanceViolation
 
 
-def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
-                          minmem, maxmem, vcpus, nics, disk_template, disks,
-                          bep, hvp, hypervisor_name, tags):
+def BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
+                         minmem, maxmem, vcpus, nics, disk_template, disks,
+                         bep, hvp, hypervisor_name, tags):
   """Builds instance related env variables for hooks
 
   This builds the hook environment from individual variables.
@@ -140,7 +140,7 @@ def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
   return env
 
 
-def _BuildInstanceHookEnvByObject(lu, instance, override=None):
+def BuildInstanceHookEnvByObject(lu, instance, override=None):
   """Builds instance related env variables for hooks from an object.
 
   @type lu: L{LogicalUnit}
@@ -167,7 +167,7 @@ def _BuildInstanceHookEnvByObject(lu, instance, override=None):
     "maxmem": bep[constants.BE_MAXMEM],
     "minmem": bep[constants.BE_MINMEM],
     "vcpus": bep[constants.BE_VCPUS],
-    "nics": _NICListToTuple(lu, instance.nics),
+    "nics": NICListToTuple(lu, instance.nics),
     "disk_template": instance.disk_template,
     "disks": [(disk.name, disk.size, disk.mode)
               for disk in instance.disks],
@@ -178,10 +178,10 @@ def _BuildInstanceHookEnvByObject(lu, instance, override=None):
   }
   if override:
     args.update(override)
-  return _BuildInstanceHookEnv(**args) # pylint: disable=W0142
+  return BuildInstanceHookEnv(**args) # pylint: disable=W0142
 
 
-def _GetClusterDomainSecret():
+def GetClusterDomainSecret():
   """Reads the cluster domain secret.
 
   """
@@ -189,7 +189,7 @@ def _GetClusterDomainSecret():
                                strict=True)
 
 
-def _CheckNodeNotDrained(lu, node):
+def CheckNodeNotDrained(lu, node):
   """Ensure that a given node is not drained.
 
   @param lu: the LU on behalf of which we make the check
@@ -202,7 +202,7 @@ def _CheckNodeNotDrained(lu, node):
                                errors.ECODE_STATE)
 
 
-def _CheckNodeVmCapable(lu, node):
+def CheckNodeVmCapable(lu, node):
   """Ensure that a given node is vm capable.
 
   @param lu: the LU on behalf of which we make the check
@@ -215,13 +215,13 @@ def _CheckNodeVmCapable(lu, node):
                                errors.ECODE_STATE)
 
 
-def _RemoveInstance(lu, feedback_fn, instance, ignore_failures):
+def RemoveInstance(lu, feedback_fn, instance, ignore_failures):
   """Utility function to remove an instance.
 
   """
   logging.info("Removing block devices for instance %s", instance.name)
 
-  if not _RemoveDisks(lu, instance, ignore_failures=ignore_failures):
+  if not RemoveDisks(lu, instance, ignore_failures=ignore_failures):
     if not ignore_failures:
       raise errors.OpExecError("Can't remove instance's disks")
     feedback_fn("Warning: can't remove instance's disks")
@@ -237,7 +237,7 @@ def _RemoveInstance(lu, feedback_fn, instance, ignore_failures):
   lu.remove_locks[locking.LEVEL_INSTANCE] = instance.name
 
 
-def _RemoveDisks(lu, instance, target_node=None, ignore_failures=False):
+def RemoveDisks(lu, instance, target_node=None, ignore_failures=False):
   """Remove all disks for an instance.
 
   This abstracts away some work from `AddInstance()` and
@@ -258,7 +258,7 @@ def _RemoveDisks(lu, instance, target_node=None, ignore_failures=False):
 
   all_result = True
   ports_to_release = set()
-  anno_disks = _AnnotateDiskParams(instance, instance.disks, lu.cfg)
+  anno_disks = AnnotateDiskParams(instance, instance.disks, lu.cfg)
   for (idx, device) in enumerate(anno_disks):
     if target_node:
       edata = [(target_node, device)]
@@ -296,7 +296,7 @@ def _RemoveDisks(lu, instance, target_node=None, ignore_failures=False):
   return all_result
 
 
-def _NICToTuple(lu, nic):
+def NICToTuple(lu, nic):
   """Build a tupple of nic information.
 
   @type lu:  L{LogicalUnit}
@@ -316,7 +316,7 @@ def _NICToTuple(lu, nic):
   return (nic.name, nic.uuid, nic.ip, nic.mac, mode, link, nic.network, netinfo)
 
 
-def _NICListToTuple(lu, nics):
+def NICListToTuple(lu, nics):
   """Build a list of nic information tuples.
 
   This list is suitable to be passed to _BuildInstanceHookEnv or as a return
@@ -330,11 +330,11 @@ def _NICListToTuple(lu, nics):
   """
   hooks_nics = []
   for nic in nics:
-    hooks_nics.append(_NICToTuple(lu, nic))
+    hooks_nics.append(NICToTuple(lu, nic))
   return hooks_nics
 
 
-def _CopyLockList(names):
+def CopyLockList(names):
   """Makes a copy of a list of lock names.
 
   Handles L{locking.ALL_SET} correctly.
@@ -346,7 +346,7 @@ def _CopyLockList(names):
     return names[:]
 
 
-def _ReleaseLocks(lu, level, names=None, keep=None):
+def ReleaseLocks(lu, level, names=None, keep=None):
   """Releases locks owned by an LU.
 
   @type lu: L{LogicalUnit}
@@ -398,7 +398,7 @@ def _ReleaseLocks(lu, level, names=None, keep=None):
 
 def _ComputeIPolicyNodeViolation(ipolicy, instance, current_group,
                                  target_group, cfg,
-                                 _compute_fn=_ComputeIPolicyInstanceViolation):
+                                 _compute_fn=ComputeIPolicyInstanceViolation):
   """Compute if instance meets the specs of the new target group.
 
   @param ipolicy: The ipolicy to verify
@@ -408,7 +408,7 @@ def _ComputeIPolicyNodeViolation(ipolicy, instance, current_group,
   @type cfg: L{config.ConfigWriter}
   @param cfg: Cluster configuration
   @param _compute_fn: The function to verify ipolicy (unittest only)
-  @see: L{ganeti.cmdlib.common._ComputeIPolicySpecViolation}
+  @see: L{ganeti.cmdlib.common.ComputeIPolicySpecViolation}
 
   """
   if current_group == target_group:
@@ -417,8 +417,8 @@ def _ComputeIPolicyNodeViolation(ipolicy, instance, current_group,
     return _compute_fn(ipolicy, instance, cfg)
 
 
-def _CheckTargetNodeIPolicy(lu, ipolicy, instance, node, cfg, ignore=False,
-                            _compute_fn=_ComputeIPolicyNodeViolation):
+def CheckTargetNodeIPolicy(lu, ipolicy, instance, node, cfg, ignore=False,
+                           _compute_fn=_ComputeIPolicyNodeViolation):
   """Checks that the target node is correct in terms of instance policy.
 
   @param ipolicy: The ipolicy to verify
@@ -428,7 +428,7 @@ def _CheckTargetNodeIPolicy(lu, ipolicy, instance, node, cfg, ignore=False,
   @param cfg: Cluster configuration
   @param ignore: Ignore violations of the ipolicy
   @param _compute_fn: The function to verify ipolicy (unittest only)
-  @see: L{ganeti.cmdlib.common._ComputeIPolicySpecViolation}
+  @see: L{ganeti.cmdlib.common.ComputeIPolicySpecViolation}
 
   """
   primary_node = lu.cfg.GetNodeInfo(instance.primary_node)
@@ -443,14 +443,14 @@ def _CheckTargetNodeIPolicy(lu, ipolicy, instance, node, cfg, ignore=False,
       raise errors.OpPrereqError(msg, errors.ECODE_INVAL)
 
 
-def _GetInstanceInfoText(instance):
+def GetInstanceInfoText(instance):
   """Compute that text that should be added to the disk's metadata.
 
   """
   return "originstname+%s" % instance.name
 
 
-def _CheckNodeFreeMemory(lu, node, reason, requested, hypervisor_name):
+def CheckNodeFreeMemory(lu, node, reason, requested, hypervisor_name):
   """Checks if a node has enough free memory.
 
   This function checks if a given node has the needed amount of free
@@ -492,16 +492,16 @@ def _CheckNodeFreeMemory(lu, node, reason, requested, hypervisor_name):
   return free_mem
 
 
-def _CheckInstanceBridgesExist(lu, instance, node=None):
+def CheckInstanceBridgesExist(lu, instance, node=None):
   """Check that the brigdes needed by an instance exist.
 
   """
   if node is None:
     node = instance.primary_node
-  _CheckNicsBridgesExist(lu, instance.nics, node)
+  CheckNicsBridgesExist(lu, instance.nics, node)
 
 
-def _CheckNicsBridgesExist(lu, target_nics, target_node):
+def CheckNicsBridgesExist(lu, target_nics, target_node):
   """Check that the brigdes needed by a list of nics exist.
 
   """
@@ -515,7 +515,7 @@ def _CheckNicsBridgesExist(lu, target_nics, target_node):
                  target_node, prereq=True, ecode=errors.ECODE_ENVIRON)
 
 
-def _CheckNodeHasOS(lu, node, os_name, force_variant):
+def CheckNodeHasOS(lu, node, os_name, force_variant):
   """Ensure that a node supports a given OS.
 
   @param lu: the LU on behalf of which we make the check

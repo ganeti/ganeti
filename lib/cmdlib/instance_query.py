@@ -30,24 +30,24 @@ from ganeti import constants
 from ganeti import locking
 from ganeti import qlang
 from ganeti import query
-from ganeti.cmdlib.base import _QueryBase, NoHooksLU
-from ganeti.cmdlib.common import _ShareAll, _GetWantedInstances, \
-  _CheckInstanceNodeGroups, _CheckInstancesNodeGroups, _AnnotateDiskParams
-from ganeti.cmdlib.instance_operation import _GetInstanceConsole
-from ganeti.cmdlib.instance_utils import _NICListToTuple
+from ganeti.cmdlib.base import QueryBase, NoHooksLU
+from ganeti.cmdlib.common import ShareAll, GetWantedInstances, \
+  CheckInstanceNodeGroups, CheckInstancesNodeGroups, AnnotateDiskParams
+from ganeti.cmdlib.instance_operation import GetInstanceConsole
+from ganeti.cmdlib.instance_utils import NICListToTuple
 
 import ganeti.masterd.instance
 
 
-class _InstanceQuery(_QueryBase):
+class InstanceQuery(QueryBase):
   FIELDS = query.INSTANCE_FIELDS
 
   def ExpandNames(self, lu):
     lu.needed_locks = {}
-    lu.share_locks = _ShareAll()
+    lu.share_locks = ShareAll()
 
     if self.names:
-      self.wanted = _GetWantedInstances(lu, self.names)
+      self.wanted = GetWantedInstances(lu, self.names)
     else:
       self.wanted = locking.ALL_SET
 
@@ -90,7 +90,7 @@ class _InstanceQuery(_QueryBase):
 
     # Check if node groups for locked instances are still correct
     for instance_name in owned_instances:
-      _CheckInstanceNodeGroups(lu.cfg, instance_name, owned_groups)
+      CheckInstanceNodeGroups(lu.cfg, instance_name, owned_groups)
 
   def _GetQueryData(self, lu):
     """Computes the list of instances and their attributes.
@@ -155,7 +155,7 @@ class _InstanceQuery(_QueryBase):
       for inst in instance_list:
         if inst.name in live_data:
           # Instance is running
-          consinfo[inst.name] = _GetInstanceConsole(cluster, inst)
+          consinfo[inst.name] = GetInstanceConsole(cluster, inst)
         else:
           consinfo[inst.name] = None
       assert set(consinfo.keys()) == set(instance_names)
@@ -194,7 +194,7 @@ class LUInstanceQuery(NoHooksLU):
   REQ_BGL = False
 
   def CheckArguments(self):
-    self.iq = _InstanceQuery(qlang.MakeSimpleFilter("name", self.op.names),
+    self.iq = InstanceQuery(qlang.MakeSimpleFilter("name", self.op.names),
                              self.op.output_fields, self.op.use_locking)
 
   def ExpandNames(self):
@@ -223,13 +223,13 @@ class LUInstanceQueryData(NoHooksLU):
 
     if self.op.instances or not self.op.use_locking:
       # Expand instance names right here
-      self.wanted_names = _GetWantedInstances(self, self.op.instances)
+      self.wanted_names = GetWantedInstances(self, self.op.instances)
     else:
       # Will use acquired locks
       self.wanted_names = None
 
     if self.op.use_locking:
-      self.share_locks = _ShareAll()
+      self.share_locks = ShareAll()
 
       if self.wanted_names is None:
         self.needed_locks[locking.LEVEL_INSTANCE] = locking.ALL_SET
@@ -282,8 +282,8 @@ class LUInstanceQueryData(NoHooksLU):
     instances = dict(self.cfg.GetMultiInstanceInfo(self.wanted_names))
 
     if self.op.use_locking:
-      _CheckInstancesNodeGroups(self.cfg, instances, owned_groups, owned_nodes,
-                                None)
+      CheckInstancesNodeGroups(self.cfg, instances, owned_groups, owned_nodes,
+                               None)
     else:
       assert not (owned_instances or owned_groups or
                   owned_nodes or owned_networks)
@@ -317,7 +317,7 @@ class LUInstanceQueryData(NoHooksLU):
     """Compute block device status.
 
     """
-    (anno_dev,) = _AnnotateDiskParams(instance, [dev], self.cfg)
+    (anno_dev,) = AnnotateDiskParams(instance, [dev], self.cfg)
 
     return self._ComputeDiskStatusInner(instance, snode, anno_dev)
 
@@ -413,7 +413,7 @@ class LUInstanceQueryData(NoHooksLU):
         "snodes_group_names": map(group2name_fn, snodes_group_uuids),
         "os": instance.os,
         # this happens to be the same format used for hooks
-        "nics": _NICListToTuple(self, instance.nics),
+        "nics": NICListToTuple(self, instance.nics),
         "disk_template": instance.disk_template,
         "disks": disks,
         "hypervisor": instance.hypervisor,

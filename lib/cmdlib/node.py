@@ -36,16 +36,16 @@ from ganeti import rpc
 from ganeti import utils
 from ganeti.masterd import iallocator
 
-from ganeti.cmdlib.base import LogicalUnit, NoHooksLU, _QueryBase, \
+from ganeti.cmdlib.base import LogicalUnit, NoHooksLU, QueryBase, \
   ResultWithJobs
-from ganeti.cmdlib.common import _CheckParamsNotGlobal, \
-  _MergeAndVerifyHvState, _MergeAndVerifyDiskState, \
-  _IsExclusiveStorageEnabledNode, _CheckNodePVs, \
-  _RedistributeAncillaryFiles, _ExpandNodeName, _ShareAll, _SupportsOob, \
-  _CheckInstanceState, INSTANCE_DOWN, _GetUpdatedParams, \
-  _AdjustCandidatePool, _CheckIAllocatorOrNode, _LoadNodeEvacResult, \
-  _GetWantedNodes, _MapInstanceDisksToNodes, _RunPostHook, \
-  _FindFaultyInstanceDisks
+from ganeti.cmdlib.common import CheckParamsNotGlobal, \
+  MergeAndVerifyHvState, MergeAndVerifyDiskState, \
+  IsExclusiveStorageEnabledNode, CheckNodePVs, \
+  RedistributeAncillaryFiles, ExpandNodeName, ShareAll, SupportsOob, \
+  CheckInstanceState, INSTANCE_DOWN, GetUpdatedParams, \
+  AdjustCandidatePool, CheckIAllocatorOrNode, LoadNodeEvacResult, \
+  GetWantedNodes, MapInstanceDisksToNodes, RunPostHook, \
+  FindFaultyInstanceDisks
 
 
 def _DecideSelfPromotion(lu, exceptions=None):
@@ -262,14 +262,14 @@ class LUNodeAdd(LogicalUnit):
 
     if self.op.ndparams:
       utils.ForceDictType(self.op.ndparams, constants.NDS_PARAMETER_TYPES)
-      _CheckParamsNotGlobal(self.op.ndparams, constants.NDC_GLOBALS, "node",
-                            "node", "cluster or group")
+      CheckParamsNotGlobal(self.op.ndparams, constants.NDC_GLOBALS, "node",
+                           "node", "cluster or group")
 
     if self.op.hv_state:
-      self.new_hv_state = _MergeAndVerifyHvState(self.op.hv_state, None)
+      self.new_hv_state = MergeAndVerifyHvState(self.op.hv_state, None)
 
     if self.op.disk_state:
-      self.new_disk_state = _MergeAndVerifyDiskState(self.op.disk_state, None)
+      self.new_disk_state = MergeAndVerifyDiskState(self.op.disk_state, None)
 
     # TODO: If we need to have multiple DnsOnlyRunner we probably should make
     #       it a property on the base class.
@@ -288,10 +288,10 @@ class LUNodeAdd(LogicalUnit):
     vg_name = cfg.GetVGName()
     if vg_name is not None:
       vparams = {constants.NV_PVLIST: [vg_name]}
-      excl_stor = _IsExclusiveStorageEnabledNode(cfg, self.new_node)
+      excl_stor = IsExclusiveStorageEnabledNode(cfg, self.new_node)
       cname = self.cfg.GetClusterName()
       result = rpcrunner.call_node_verify_light([node], vparams, cname)[node]
-      (errmsgs, _) = _CheckNodePVs(result.payload, excl_stor)
+      (errmsgs, _) = CheckNodePVs(result.payload, excl_stor)
       if errmsgs:
         raise errors.OpPrereqError("Checks on node PVs failed: %s" %
                                    "; ".join(errmsgs), errors.ECODE_ENVIRON)
@@ -372,7 +372,7 @@ class LUNodeAdd(LogicalUnit):
         raise errors.OpExecError("ssh/hostname verification failed")
 
     if self.op.readd:
-      _RedistributeAncillaryFiles(self)
+      RedistributeAncillaryFiles(self)
       self.context.ReaddNode(new_node)
       # make sure we redistribute the config
       self.cfg.Update(new_node, feedback_fn)
@@ -384,8 +384,8 @@ class LUNodeAdd(LogicalUnit):
           self.LogWarning("Node failed to demote itself from master"
                           " candidate status: %s" % msg)
     else:
-      _RedistributeAncillaryFiles(self, additional_nodes=[node],
-                                  additional_vm=self.op.vm_capable)
+      RedistributeAncillaryFiles(self, additional_nodes=[node],
+                                 additional_vm=self.op.vm_capable)
       self.context.AddNode(new_node, self.proc.GetECId())
 
 
@@ -412,7 +412,7 @@ class LUNodeSetParams(LogicalUnit):
   _FLAGS = ["master_candidate", "drained", "offline"]
 
   def CheckArguments(self):
-    self.op.node_name = _ExpandNodeName(self.cfg, self.op.node_name)
+    self.op.node_name = ExpandNodeName(self.cfg, self.op.node_name)
     all_mods = [self.op.offline, self.op.master_candidate, self.op.drained,
                 self.op.master_capable, self.op.vm_capable,
                 self.op.secondary_ip, self.op.ndparams, self.op.hv_state,
@@ -467,7 +467,7 @@ class LUNodeSetParams(LogicalUnit):
 
     # Get all locks except nodes in shared mode; they are not used for anything
     # but read-only access
-    self.share_locks = _ShareAll()
+    self.share_locks = ShareAll()
     self.share_locks[locking.LEVEL_NODE] = 0
     self.share_locks[locking.LEVEL_NODE_RES] = 0
     self.share_locks[locking.LEVEL_NODE_ALLOC] = 0
@@ -573,7 +573,7 @@ class LUNodeSetParams(LogicalUnit):
     # away from the respective state, as only real changes are kept
 
     # TODO: We might query the real power state if it supports OOB
-    if _SupportsOob(self.cfg, node):
+    if SupportsOob(self.cfg, node):
       if self.op.offline is False and not (node.powered or
                                            self.op.powered is True):
         raise errors.OpPrereqError(("Node %s needs to be turned on before its"
@@ -670,8 +670,8 @@ class LUNodeSetParams(LogicalUnit):
         # On online nodes, check that no instances are running, and that
         # the node has the new ip and we can reach it.
         for instance in affected_instances.values():
-          _CheckInstanceState(self, instance, INSTANCE_DOWN,
-                              msg="cannot change secondary ip")
+          CheckInstanceState(self, instance, INSTANCE_DOWN,
+                             msg="cannot change secondary ip")
 
         _CheckNodeHasSecondaryIP(self, node.name, self.op.secondary_ip, True)
         if master.name != node.name:
@@ -684,20 +684,20 @@ class LUNodeSetParams(LogicalUnit):
                                        errors.ECODE_ENVIRON)
 
     if self.op.ndparams:
-      new_ndparams = _GetUpdatedParams(self.node.ndparams, self.op.ndparams)
+      new_ndparams = GetUpdatedParams(self.node.ndparams, self.op.ndparams)
       utils.ForceDictType(new_ndparams, constants.NDS_PARAMETER_TYPES)
-      _CheckParamsNotGlobal(self.op.ndparams, constants.NDC_GLOBALS, "node",
-                            "node", "cluster or group")
+      CheckParamsNotGlobal(self.op.ndparams, constants.NDC_GLOBALS, "node",
+                           "node", "cluster or group")
       self.new_ndparams = new_ndparams
 
     if self.op.hv_state:
-      self.new_hv_state = _MergeAndVerifyHvState(self.op.hv_state,
-                                                 self.node.hv_state_static)
+      self.new_hv_state = MergeAndVerifyHvState(self.op.hv_state,
+                                                self.node.hv_state_static)
 
     if self.op.disk_state:
       self.new_disk_state = \
-        _MergeAndVerifyDiskState(self.op.disk_state,
-                                 self.node.disk_state_static)
+        MergeAndVerifyDiskState(self.op.disk_state,
+                                self.node.disk_state_static)
 
   def Exec(self, feedback_fn):
     """Modifies a node.
@@ -742,7 +742,7 @@ class LUNodeSetParams(LogicalUnit):
 
       # we locked all nodes, we adjust the CP before updating this node
       if self.lock_all:
-        _AdjustCandidatePool(self, [node.name])
+        AdjustCandidatePool(self, [node.name])
 
     if self.op.secondary_ip:
       node.secondary_ip = self.op.secondary_ip
@@ -766,7 +766,7 @@ class LUNodePowercycle(NoHooksLU):
   REQ_BGL = False
 
   def CheckArguments(self):
-    self.op.node_name = _ExpandNodeName(self.cfg, self.op.node_name)
+    self.op.node_name = ExpandNodeName(self.cfg, self.op.node_name)
     if self.op.node_name == self.cfg.GetMasterNode() and not self.op.force:
       raise errors.OpPrereqError("The node is the master and the force"
                                  " parameter was not set",
@@ -835,13 +835,13 @@ class LUNodeEvacuate(NoHooksLU):
           constants.IALLOCATOR_NEVAC_MODES)
 
   def CheckArguments(self):
-    _CheckIAllocatorOrNode(self, "iallocator", "remote_node")
+    CheckIAllocatorOrNode(self, "iallocator", "remote_node")
 
   def ExpandNames(self):
-    self.op.node_name = _ExpandNodeName(self.cfg, self.op.node_name)
+    self.op.node_name = ExpandNodeName(self.cfg, self.op.node_name)
 
     if self.op.remote_node is not None:
-      self.op.remote_node = _ExpandNodeName(self.cfg, self.op.remote_node)
+      self.op.remote_node = ExpandNodeName(self.cfg, self.op.remote_node)
       assert self.op.remote_node
 
       if self.op.remote_node == self.op.node_name:
@@ -854,7 +854,7 @@ class LUNodeEvacuate(NoHooksLU):
                                    errors.ECODE_INVAL)
 
     # Declare locks
-    self.share_locks = _ShareAll()
+    self.share_locks = ShareAll()
     self.needed_locks = {
       locking.LEVEL_INSTANCE: [],
       locking.LEVEL_NODEGROUP: [],
@@ -1000,7 +1000,7 @@ class LUNodeEvacuate(NoHooksLU):
                                    (self.op.iallocator, ial.info),
                                    errors.ECODE_NORES)
 
-      jobs = _LoadNodeEvacResult(self, ial.result, self.op.early_release, True)
+      jobs = LoadNodeEvacResult(self, ial.result, self.op.early_release, True)
 
     elif self.op.remote_node is not None:
       assert self.op.mode == constants.NODE_EVAC_SEC
@@ -1030,9 +1030,9 @@ class LUNodeMigrate(LogicalUnit):
     pass
 
   def ExpandNames(self):
-    self.op.node_name = _ExpandNodeName(self.cfg, self.op.node_name)
+    self.op.node_name = ExpandNodeName(self.cfg, self.op.node_name)
 
-    self.share_locks = _ShareAll()
+    self.share_locks = ShareAll()
     self.needed_locks = {
       locking.LEVEL_NODE: [self.op.node_name],
       }
@@ -1101,7 +1101,7 @@ class LUNodeModifyStorage(NoHooksLU):
   REQ_BGL = False
 
   def CheckArguments(self):
-    self.op.node_name = _ExpandNodeName(self.cfg, self.op.node_name)
+    self.op.node_name = ExpandNodeName(self.cfg, self.op.node_name)
 
     storage_type = self.op.storage_type
 
@@ -1136,15 +1136,15 @@ class LUNodeModifyStorage(NoHooksLU):
                  (self.op.name, self.op.node_name))
 
 
-class _NodeQuery(_QueryBase):
+class NodeQuery(QueryBase):
   FIELDS = query.NODE_FIELDS
 
   def ExpandNames(self, lu):
     lu.needed_locks = {}
-    lu.share_locks = _ShareAll()
+    lu.share_locks = ShareAll()
 
     if self.names:
-      self.wanted = _GetWantedNodes(lu, self.names)
+      self.wanted = GetWantedNodes(lu, self.names)
     else:
       self.wanted = locking.ALL_SET
 
@@ -1198,7 +1198,7 @@ class _NodeQuery(_QueryBase):
       node_to_secondary = None
 
     if query.NQ_OOB in self.requested_data:
-      oob_support = dict((name, bool(_SupportsOob(lu.cfg, node)))
+      oob_support = dict((name, bool(SupportsOob(lu.cfg, node)))
                          for name, node in all_info.iteritems())
     else:
       oob_support = None
@@ -1222,7 +1222,7 @@ class LUNodeQuery(NoHooksLU):
   REQ_BGL = False
 
   def CheckArguments(self):
-    self.nq = _NodeQuery(qlang.MakeSimpleFilter("name", self.op.names),
+    self.nq = NodeQuery(qlang.MakeSimpleFilter("name", self.op.names),
                          self.op.output_fields, self.op.use_locking)
 
   def ExpandNames(self):
@@ -1268,11 +1268,11 @@ class LUNodeQueryvols(NoHooksLU):
                        selected=self.op.output_fields)
 
   def ExpandNames(self):
-    self.share_locks = _ShareAll()
+    self.share_locks = ShareAll()
 
     if self.op.nodes:
       self.needed_locks = {
-        locking.LEVEL_NODE: _GetWantedNodes(self, self.op.nodes),
+        locking.LEVEL_NODE: GetWantedNodes(self, self.op.nodes),
         }
     else:
       self.needed_locks = {
@@ -1288,7 +1288,7 @@ class LUNodeQueryvols(NoHooksLU):
     volumes = self.rpc.call_node_volumes(nodenames)
 
     ilist = self.cfg.GetAllInstancesInfo()
-    vol2inst = _MapInstanceDisksToNodes(ilist.values())
+    vol2inst = MapInstanceDisksToNodes(ilist.values())
 
     output = []
     for node in nodenames:
@@ -1340,11 +1340,11 @@ class LUNodeQueryStorage(NoHooksLU):
                        selected=self.op.output_fields)
 
   def ExpandNames(self):
-    self.share_locks = _ShareAll()
+    self.share_locks = ShareAll()
 
     if self.op.nodes:
       self.needed_locks = {
-        locking.LEVEL_NODE: _GetWantedNodes(self, self.op.nodes),
+        locking.LEVEL_NODE: GetWantedNodes(self, self.op.nodes),
         }
     else:
       self.needed_locks = {
@@ -1454,7 +1454,7 @@ class LUNodeRemove(LogicalUnit):
     Any errors are signaled by raising errors.OpPrereqError.
 
     """
-    self.op.node_name = _ExpandNodeName(self.cfg, self.op.node_name)
+    self.op.node_name = ExpandNodeName(self.cfg, self.op.node_name)
     node = self.cfg.GetNodeInfo(self.op.node_name)
     assert node is not None
 
@@ -1485,11 +1485,11 @@ class LUNodeRemove(LogicalUnit):
       "Not owning BGL"
 
     # Promote nodes to master candidate as needed
-    _AdjustCandidatePool(self, exceptions=[node.name])
+    AdjustCandidatePool(self, exceptions=[node.name])
     self.context.RemoveNode(node.name)
 
     # Run post hooks on the node before it's removed
-    _RunPostHook(self, node.name)
+    RunPostHook(self, node.name)
 
     result = self.rpc.call_node_leave_cluster(node.name, modify_ssh_setup)
     msg = result.fail_msg
@@ -1504,7 +1504,7 @@ class LUNodeRemove(LogicalUnit):
                                               constants.ETC_HOSTS_REMOVE,
                                               node.name, None)
       result.Raise("Can't update hosts file with new host data")
-      _RedistributeAncillaryFiles(self)
+      RedistributeAncillaryFiles(self)
 
 
 class LURepairNodeStorage(NoHooksLU):
@@ -1514,7 +1514,7 @@ class LURepairNodeStorage(NoHooksLU):
   REQ_BGL = False
 
   def CheckArguments(self):
-    self.op.node_name = _ExpandNodeName(self.cfg, self.op.node_name)
+    self.op.node_name = ExpandNodeName(self.cfg, self.op.node_name)
 
     storage_type = self.op.storage_type
 
@@ -1532,8 +1532,8 @@ class LURepairNodeStorage(NoHooksLU):
   def _CheckFaultyDisks(self, instance, node_name):
     """Ensure faulty disks abort the opcode or at least warn."""
     try:
-      if _FindFaultyInstanceDisks(self.cfg, self.rpc, instance,
-                                  node_name, True):
+      if FindFaultyInstanceDisks(self.cfg, self.rpc, instance,
+                                 node_name, True):
         raise errors.OpPrereqError("Instance '%s' has faulty disks on"
                                    " node '%s'" % (instance.name, node_name),
                                    errors.ECODE_STATE)

@@ -112,7 +112,7 @@ class TestIAllocatorChecks(testutils.GanetiTestCase):
     op = OpTest()
     lu = TestLU(op)
 
-    c_i = lambda: common._CheckIAllocatorOrNode(lu, "iallocator", "node")
+    c_i = lambda: common.CheckIAllocatorOrNode(lu, "iallocator", "node")
 
     # Neither node nor iallocator given
     for n in (None, []):
@@ -434,8 +434,8 @@ class TestLoadNodeEvacResult(unittest.TestCase):
           assert iallocator._NEVAC_RESULT(alloc_result)
 
           lu = _FakeLU()
-          result = common._LoadNodeEvacResult(lu, alloc_result,
-                                              early_release, use_nodes)
+          result = common.LoadNodeEvacResult(lu, alloc_result,
+                                             early_release, use_nodes)
 
           if moved:
             (_, (info_args, )) = lu.info_log.pop(0)
@@ -463,7 +463,7 @@ class TestLoadNodeEvacResult(unittest.TestCase):
     assert iallocator._NEVAC_RESULT(alloc_result)
 
     lu = _FakeLU()
-    self.assertRaises(errors.OpExecError, common._LoadNodeEvacResult,
+    self.assertRaises(errors.OpExecError, common.LoadNodeEvacResult,
                       lu, alloc_result, False, False)
     self.assertFalse(lu.info_log)
     (_, (args, )) = lu.warning_log.pop(0)
@@ -549,7 +549,7 @@ class TestUpdateAndVerifySubDict(unittest.TestCase):
 
 class TestHvStateHelper(unittest.TestCase):
   def testWithoutOpData(self):
-    self.assertEqual(common._MergeAndVerifyHvState(None, NotImplemented),
+    self.assertEqual(common.MergeAndVerifyHvState(None, NotImplemented),
                      None)
 
   def testWithoutOldData(self):
@@ -558,7 +558,7 @@ class TestHvStateHelper(unittest.TestCase):
         constants.HVST_MEMORY_TOTAL: 4096,
         },
       }
-    self.assertEqual(common._MergeAndVerifyHvState(new, None), new)
+    self.assertEqual(common.MergeAndVerifyHvState(new, None), new)
 
   def testWithWrongHv(self):
     new = {
@@ -566,12 +566,12 @@ class TestHvStateHelper(unittest.TestCase):
         constants.HVST_MEMORY_TOTAL: 4096,
         },
       }
-    self.assertRaises(errors.OpPrereqError, common._MergeAndVerifyHvState,
+    self.assertRaises(errors.OpPrereqError, common.MergeAndVerifyHvState,
                       new, None)
 
 class TestDiskStateHelper(unittest.TestCase):
   def testWithoutOpData(self):
-    self.assertEqual(common._MergeAndVerifyDiskState(None, NotImplemented),
+    self.assertEqual(common.MergeAndVerifyDiskState(None, NotImplemented),
                      None)
 
   def testWithoutOldData(self):
@@ -582,7 +582,7 @@ class TestDiskStateHelper(unittest.TestCase):
           },
         },
       }
-    self.assertEqual(common._MergeAndVerifyDiskState(new, None), new)
+    self.assertEqual(common.MergeAndVerifyDiskState(new, None), new)
 
   def testWithWrongStorageType(self):
     new = {
@@ -592,7 +592,7 @@ class TestDiskStateHelper(unittest.TestCase):
           },
         },
       }
-    self.assertRaises(errors.OpPrereqError, common._MergeAndVerifyDiskState,
+    self.assertRaises(errors.OpPrereqError, common.MergeAndVerifyDiskState,
                       new, None)
 
 
@@ -687,44 +687,44 @@ class TestComputeIPolicySpecViolation(unittest.TestCase):
 
   def test(self):
     compute_fn = _ValidateComputeMinMaxSpec
-    ret = common._ComputeIPolicySpecViolation(self._MICRO_IPOL, 1024, 1, 1, 1,
-                                              [1024], 1, constants.DT_PLAIN,
-                                              _compute_fn=compute_fn)
+    ret = common.ComputeIPolicySpecViolation(self._MICRO_IPOL, 1024, 1, 1, 1,
+                                             [1024], 1, constants.DT_PLAIN,
+                                             _compute_fn=compute_fn)
     self.assertEqual(ret, [])
 
   def testDiskFull(self):
     compute_fn = _NoDiskComputeMinMaxSpec
-    ret = common._ComputeIPolicySpecViolation(self._MICRO_IPOL, 1024, 1, 1, 1,
-                                              [1024], 1, constants.DT_PLAIN,
-                                              _compute_fn=compute_fn)
+    ret = common.ComputeIPolicySpecViolation(self._MICRO_IPOL, 1024, 1, 1, 1,
+                                             [1024], 1, constants.DT_PLAIN,
+                                             _compute_fn=compute_fn)
     self.assertEqual(ret, [constants.ISPEC_DISK_COUNT])
 
   def testDiskLess(self):
     compute_fn = _NoDiskComputeMinMaxSpec
-    ret = common._ComputeIPolicySpecViolation(self._MICRO_IPOL, 1024, 1, 1, 1,
-                                              [1024], 1, constants.DT_DISKLESS,
-                                              _compute_fn=compute_fn)
+    ret = common.ComputeIPolicySpecViolation(self._MICRO_IPOL, 1024, 1, 1, 1,
+                                             [1024], 1, constants.DT_DISKLESS,
+                                             _compute_fn=compute_fn)
     self.assertEqual(ret, [])
 
   def testWrongTemplates(self):
     compute_fn = _ValidateComputeMinMaxSpec
-    ret = common._ComputeIPolicySpecViolation(self._MICRO_IPOL, 1024, 1, 1, 1,
-                                              [1024], 1, constants.DT_DRBD8,
-                                              _compute_fn=compute_fn)
+    ret = common.ComputeIPolicySpecViolation(self._MICRO_IPOL, 1024, 1, 1, 1,
+                                             [1024], 1, constants.DT_DRBD8,
+                                             _compute_fn=compute_fn)
     self.assertEqual(len(ret), 1)
     self.assertTrue("Disk template" in ret[0])
 
   def testInvalidArguments(self):
-    self.assertRaises(AssertionError, common._ComputeIPolicySpecViolation,
+    self.assertRaises(AssertionError, common.ComputeIPolicySpecViolation,
                       self._MICRO_IPOL, 1024, 1, 1, 1, [], 1,
                       constants.DT_PLAIN,)
 
   def testInvalidSpec(self):
     spec = _SpecWrapper([None, False, "foo", None, "bar", None])
     compute_fn = spec.ComputeMinMaxSpec
-    ret = common._ComputeIPolicySpecViolation(self._MICRO_IPOL, 1024, 1, 1, 1,
-                                              [1024], 1, constants.DT_PLAIN,
-                                              _compute_fn=compute_fn)
+    ret = common.ComputeIPolicySpecViolation(self._MICRO_IPOL, 1024, 1, 1, 1,
+                                             [1024], 1, constants.DT_PLAIN,
+                                             _compute_fn=compute_fn)
     self.assertEqual(ret, ["foo", "bar"])
     self.assertFalse(spec.spec)
 
@@ -779,10 +779,10 @@ class TestComputeIPolicySpecViolation(unittest.TestCase):
       constants.IPOLICY_DTS: [disk_template],
       }
     def AssertComputeViolation(ipolicy, violations):
-      ret = common._ComputeIPolicySpecViolation(ipolicy, mem_size, cpu_count,
-                                                disk_count, nic_count,
-                                                disk_sizes, spindle_use,
-                                                disk_template)
+      ret = common.ComputeIPolicySpecViolation(ipolicy, mem_size, cpu_count,
+                                               disk_count, nic_count,
+                                               disk_sizes, spindle_use,
+                                               disk_template)
       self.assertEqual(len(ret), violations)
 
     AssertComputeViolation(ipolicy1, 0)
@@ -847,13 +847,13 @@ class TestComputeIPolicyInstanceViolation(unittest.TestCase):
                                 disk_template=constants.DT_PLAIN)
     stub = _StubComputeIPolicySpecViolation(2048, 2, 1, 0, [512], 4,
                                             constants.DT_PLAIN)
-    ret = common._ComputeIPolicyInstanceViolation(NotImplemented, instance,
-                                                  cfg, _compute_fn=stub)
+    ret = common.ComputeIPolicyInstanceViolation(NotImplemented, instance,
+                                                 cfg, _compute_fn=stub)
     self.assertEqual(ret, [])
     instance2 = objects.Instance(beparams={}, disks=disks, nics=[],
                                  disk_template=constants.DT_PLAIN)
-    ret = common._ComputeIPolicyInstanceViolation(NotImplemented, instance2,
-                                                  cfg, _compute_fn=stub)
+    ret = common.ComputeIPolicyInstanceViolation(NotImplemented, instance2,
+                                                 cfg, _compute_fn=stub)
     self.assertEqual(ret, [])
 
 
@@ -926,15 +926,15 @@ class TestCheckTargetNodeIPolicy(unittest.TestCase):
 
   def testNoViolation(self):
     compute_recoder = _CallRecorder(return_value=[])
-    instance._CheckTargetNodeIPolicy(self.lu, NotImplemented, self.instance,
-                                     self.target_node, NotImplemented,
-                                     _compute_fn=compute_recoder)
+    instance.CheckTargetNodeIPolicy(self.lu, NotImplemented, self.instance,
+                                    self.target_node, NotImplemented,
+                                    _compute_fn=compute_recoder)
     self.assertTrue(compute_recoder.called)
     self.assertEqual(self.lu.warning_log, [])
 
   def testNoIgnore(self):
     compute_recoder = _CallRecorder(return_value=["mem_size not in range"])
-    self.assertRaises(errors.OpPrereqError, instance._CheckTargetNodeIPolicy,
+    self.assertRaises(errors.OpPrereqError, instance.CheckTargetNodeIPolicy,
                       self.lu, NotImplemented, self.instance,
                       self.target_node, NotImplemented,
                       _compute_fn=compute_recoder)
@@ -943,7 +943,7 @@ class TestCheckTargetNodeIPolicy(unittest.TestCase):
 
   def testIgnoreViolation(self):
     compute_recoder = _CallRecorder(return_value=["mem_size not in range"])
-    instance._CheckTargetNodeIPolicy(self.lu, NotImplemented, self.instance,
+    instance.CheckTargetNodeIPolicy(self.lu, NotImplemented, self.instance,
                                      self.target_node, NotImplemented,
                                      ignore=True, _compute_fn=compute_recoder)
     self.assertTrue(compute_recoder.called)
@@ -956,7 +956,7 @@ class TestApplyContainerMods(unittest.TestCase):
   def testEmptyContainer(self):
     container = []
     chgdesc = []
-    instance.ApplyContainerMods("test", container, chgdesc, [], None, None,
+    instance._ApplyContainerMods("test", container, chgdesc, [], None, None,
                                 None)
     self.assertEqual(container, [])
     self.assertEqual(chgdesc, [])
@@ -964,24 +964,24 @@ class TestApplyContainerMods(unittest.TestCase):
   def testAdd(self):
     container = []
     chgdesc = []
-    mods = instance.PrepareContainerMods([
+    mods = instance._PrepareContainerMods([
       (constants.DDM_ADD, -1, "Hello"),
       (constants.DDM_ADD, -1, "World"),
       (constants.DDM_ADD, 0, "Start"),
       (constants.DDM_ADD, -1, "End"),
       ], None)
-    instance.ApplyContainerMods("test", container, chgdesc, mods,
+    instance._ApplyContainerMods("test", container, chgdesc, mods,
                                 None, None, None)
     self.assertEqual(container, ["Start", "Hello", "World", "End"])
     self.assertEqual(chgdesc, [])
 
-    mods = instance.PrepareContainerMods([
+    mods = instance._PrepareContainerMods([
       (constants.DDM_ADD, 0, "zero"),
       (constants.DDM_ADD, 3, "Added"),
       (constants.DDM_ADD, 5, "four"),
       (constants.DDM_ADD, 7, "xyz"),
       ], None)
-    instance.ApplyContainerMods("test", container, chgdesc, mods,
+    instance._ApplyContainerMods("test", container, chgdesc, mods,
                                 None, None, None)
     self.assertEqual(container,
                      ["zero", "Start", "Hello", "Added", "World", "four",
@@ -989,43 +989,43 @@ class TestApplyContainerMods(unittest.TestCase):
     self.assertEqual(chgdesc, [])
 
     for idx in [-2, len(container) + 1]:
-      mods = instance.PrepareContainerMods([
+      mods = instance._PrepareContainerMods([
         (constants.DDM_ADD, idx, "error"),
         ], None)
-      self.assertRaises(IndexError, instance.ApplyContainerMods,
+      self.assertRaises(IndexError, instance._ApplyContainerMods,
                         "test", container, None, mods, None, None, None)
 
   def testRemoveError(self):
     for idx in [0, 1, 2, 100, -1, -4]:
-      mods = instance.PrepareContainerMods([
+      mods = instance._PrepareContainerMods([
         (constants.DDM_REMOVE, idx, None),
         ], None)
-      self.assertRaises(IndexError, instance.ApplyContainerMods,
+      self.assertRaises(IndexError, instance._ApplyContainerMods,
                         "test", [], None, mods, None, None, None)
 
-    mods = instance.PrepareContainerMods([
+    mods = instance._PrepareContainerMods([
       (constants.DDM_REMOVE, 0, object()),
       ], None)
-    self.assertRaises(AssertionError, instance.ApplyContainerMods,
+    self.assertRaises(AssertionError, instance._ApplyContainerMods,
                       "test", [""], None, mods, None, None, None)
 
   def testAddError(self):
     for idx in range(-100, -1) + [100]:
-      mods = instance.PrepareContainerMods([
+      mods = instance._PrepareContainerMods([
         (constants.DDM_ADD, idx, None),
         ], None)
-      self.assertRaises(IndexError, instance.ApplyContainerMods,
+      self.assertRaises(IndexError, instance._ApplyContainerMods,
                         "test", [], None, mods, None, None, None)
 
   def testRemove(self):
     container = ["item 1", "item 2"]
-    mods = instance.PrepareContainerMods([
+    mods = instance._PrepareContainerMods([
       (constants.DDM_ADD, -1, "aaa"),
       (constants.DDM_REMOVE, -1, None),
       (constants.DDM_ADD, -1, "bbb"),
       ], None)
     chgdesc = []
-    instance.ApplyContainerMods("test", container, chgdesc, mods,
+    instance._ApplyContainerMods("test", container, chgdesc, mods,
                                 None, None, None)
     self.assertEqual(container, ["item 1", "item 2", "bbb"])
     self.assertEqual(chgdesc, [
@@ -1034,22 +1034,22 @@ class TestApplyContainerMods(unittest.TestCase):
 
   def testModify(self):
     container = ["item 1", "item 2"]
-    mods = instance.PrepareContainerMods([
+    mods = instance._PrepareContainerMods([
       (constants.DDM_MODIFY, -1, "a"),
       (constants.DDM_MODIFY, 0, "b"),
       (constants.DDM_MODIFY, 1, "c"),
       ], None)
     chgdesc = []
-    instance.ApplyContainerMods("test", container, chgdesc, mods,
+    instance._ApplyContainerMods("test", container, chgdesc, mods,
                                 None, None, None)
     self.assertEqual(container, ["item 1", "item 2"])
     self.assertEqual(chgdesc, [])
 
     for idx in [-2, len(container) + 1]:
-      mods = instance.PrepareContainerMods([
+      mods = instance._PrepareContainerMods([
         (constants.DDM_MODIFY, idx, "error"),
         ], None)
-      self.assertRaises(IndexError, instance.ApplyContainerMods,
+      self.assertRaises(IndexError, instance._ApplyContainerMods,
                         "test", container, None, mods, None, None, None)
 
   class _PrivateData:
@@ -1077,7 +1077,7 @@ class TestApplyContainerMods(unittest.TestCase):
   def testAddWithCreateFunction(self):
     container = []
     chgdesc = []
-    mods = instance.PrepareContainerMods([
+    mods = instance._PrepareContainerMods([
       (constants.DDM_ADD, -1, "Hello"),
       (constants.DDM_ADD, -1, "World"),
       (constants.DDM_ADD, 0, "Start"),
@@ -1087,7 +1087,7 @@ class TestApplyContainerMods(unittest.TestCase):
       (constants.DDM_REMOVE, 2, None),
       (constants.DDM_ADD, 1, "More"),
       ], self._PrivateData)
-    instance.ApplyContainerMods("test", container, chgdesc, mods,
+    instance._ApplyContainerMods("test", container, chgdesc, mods,
                                 self._CreateTestFn, self._ModifyTestFn,
                                 self._RemoveTestFn)
     self.assertEqual(container, [
@@ -1167,7 +1167,7 @@ class TestGenerateDiskTemplate(unittest.TestCase):
     return copy.deepcopy(constants.DISK_DT_DEFAULTS)
 
   def testWrongDiskTemplate(self):
-    gdt = instance._GenerateDiskTemplate
+    gdt = instance.GenerateDiskTemplate
     disk_template = "##unknown##"
 
     assert disk_template not in constants.DISK_TEMPLATES
@@ -1178,7 +1178,7 @@ class TestGenerateDiskTemplate(unittest.TestCase):
                       self.GetDiskParams())
 
   def testDiskless(self):
-    gdt = instance._GenerateDiskTemplate
+    gdt = instance.GenerateDiskTemplate
 
     result = gdt(self.lu, constants.DT_DISKLESS, "inst27734.example.com",
                  "node30113.example.com", [], [],
@@ -1191,7 +1191,7 @@ class TestGenerateDiskTemplate(unittest.TestCase):
                        file_driver=NotImplemented,
                        req_file_storage=NotImplemented,
                        req_shr_file_storage=NotImplemented):
-    gdt = instance._GenerateDiskTemplate
+    gdt = instance.GenerateDiskTemplate
 
     map(lambda params: utils.ForceDictType(params,
                                            constants.IDISK_PARAMS_TYPES),
@@ -1320,7 +1320,7 @@ class TestGenerateDiskTemplate(unittest.TestCase):
       ])
 
   def testDrbd8(self):
-    gdt = instance._GenerateDiskTemplate
+    gdt = instance.GenerateDiskTemplate
     drbd8_defaults = constants.DISK_LD_DEFAULTS[constants.LD_DRBD8]
     drbd8_default_metavg = drbd8_defaults[constants.LDP_DEFAULT_METAVG]
 
@@ -1491,7 +1491,7 @@ class TestWipeDisks(unittest.TestCase):
                             disk_template=constants.DT_PLAIN,
                             disks=disks)
 
-    self.assertRaises(errors.OpExecError, instance._WipeDisks, lu, inst)
+    self.assertRaises(errors.OpExecError, instance.WipeDisks, lu, inst)
 
   def _FailingWipeCb(self, (disk, _), offset, size):
     # This should only ever be called for the first disk
@@ -1519,7 +1519,7 @@ class TestWipeDisks(unittest.TestCase):
                             disks=disks)
 
     try:
-      instance._WipeDisks(lu, inst)
+      instance.WipeDisks(lu, inst)
     except errors.OpExecError, err:
       self.assertTrue(str(err), "Could not wipe disk 0 at offset 0 ")
     else:
@@ -1562,7 +1562,7 @@ class TestWipeDisks(unittest.TestCase):
 
     (lu, inst, pauset, progresst) = self._PrepareWipeTest(0, disks)
 
-    instance._WipeDisks(lu, inst)
+    instance.WipeDisks(lu, inst)
 
     self.assertEqual(pauset.history, [
       ("disk0", 1024, True),
@@ -1592,8 +1592,8 @@ class TestWipeDisks(unittest.TestCase):
         self._PrepareWipeTest(start_offset, disks)
 
       # Test start offset with only one disk
-      instance._WipeDisks(lu, inst,
-                          disks=[(1, disks[1], start_offset)])
+      instance.WipeDisks(lu, inst,
+                         disks=[(1, disks[1], start_offset)])
 
       # Only the second disk may have been paused and wiped
       self.assertEqual(pauset.history, [
@@ -1639,12 +1639,12 @@ class TestDiskSizeInBytesToMebibytes(unittest.TestCase):
 
 class TestCopyLockList(unittest.TestCase):
   def test(self):
-    self.assertEqual(instance._CopyLockList([]), [])
-    self.assertEqual(instance._CopyLockList(None), None)
-    self.assertEqual(instance._CopyLockList(locking.ALL_SET), locking.ALL_SET)
+    self.assertEqual(instance.CopyLockList([]), [])
+    self.assertEqual(instance.CopyLockList(None), None)
+    self.assertEqual(instance.CopyLockList(locking.ALL_SET), locking.ALL_SET)
 
     names = ["foo", "bar"]
-    output = instance._CopyLockList(names)
+    output = instance.CopyLockList(names)
     self.assertEqual(names, output)
     self.assertNotEqual(id(names), id(output), msg="List was not copied")
 
@@ -1897,8 +1897,8 @@ class TestGetUpdatedIPolicy(unittest.TestCase):
       }
     if not isgroup:
       diff_policy[constants.ISPECS_STD] = diff_std
-    new_policy = common._GetUpdatedIPolicy(old_policy, diff_policy,
-                                           group_policy=isgroup)
+    new_policy = common.GetUpdatedIPolicy(old_policy, diff_policy,
+                                          group_policy=isgroup)
 
     self.assertTrue(constants.ISPECS_MINMAX in new_policy)
     self.assertEqual(new_policy[constants.ISPECS_MINMAX], diff_minmax)
@@ -1919,7 +1919,7 @@ class TestGetUpdatedIPolicy(unittest.TestCase):
           self.assertEqual(new_std[key], old_std[key])
 
   def _TestSet(self, old_policy, diff_policy, isgroup):
-    new_policy = common._GetUpdatedIPolicy(old_policy, diff_policy,
+    new_policy = common.GetUpdatedIPolicy(old_policy, diff_policy,
                                            group_policy=isgroup)
     for key in diff_policy:
       self.assertTrue(key in new_policy)
@@ -1946,8 +1946,8 @@ class TestGetUpdatedIPolicy(unittest.TestCase):
     diff_policy = {
       constants.IPOLICY_SPINDLE_RATIO: constants.VALUE_DEFAULT,
       }
-    new_policy = common._GetUpdatedIPolicy(old_policy, diff_policy,
-                                           group_policy=True)
+    new_policy = common.GetUpdatedIPolicy(old_policy, diff_policy,
+                                          group_policy=True)
     for key in diff_policy:
       self.assertFalse(key in new_policy)
     for key in old_policy:
@@ -1955,7 +1955,7 @@ class TestGetUpdatedIPolicy(unittest.TestCase):
         self.assertTrue(key in new_policy)
         self.assertEqual(new_policy[key], old_policy[key])
 
-    self.assertRaises(errors.OpPrereqError, common._GetUpdatedIPolicy,
+    self.assertRaises(errors.OpPrereqError, common.GetUpdatedIPolicy,
                       old_policy, diff_policy, group_policy=False)
 
   def testUnsetEmpty(self):
@@ -1964,8 +1964,8 @@ class TestGetUpdatedIPolicy(unittest.TestCase):
       diff_policy = {
         key: constants.VALUE_DEFAULT,
         }
-    new_policy = common._GetUpdatedIPolicy(old_policy, diff_policy,
-                                           group_policy=True)
+    new_policy = common.GetUpdatedIPolicy(old_policy, diff_policy,
+                                          group_policy=True)
     self.assertEqual(new_policy, old_policy)
 
   def _TestInvalidKeys(self, old_policy, isgroup):
@@ -1974,18 +1974,18 @@ class TestGetUpdatedIPolicy(unittest.TestCase):
       INVALID_KEY: 3,
       }
     invalid_policy = INVALID_DICT
-    self.assertRaises(errors.OpPrereqError, common._GetUpdatedIPolicy,
+    self.assertRaises(errors.OpPrereqError, common.GetUpdatedIPolicy,
                       old_policy, invalid_policy, group_policy=isgroup)
     invalid_ispecs = {
       constants.ISPECS_MINMAX: [INVALID_DICT],
       }
-    self.assertRaises(errors.TypeEnforcementError, common._GetUpdatedIPolicy,
+    self.assertRaises(errors.TypeEnforcementError, common.GetUpdatedIPolicy,
                       old_policy, invalid_ispecs, group_policy=isgroup)
     if isgroup:
       invalid_for_group = {
         constants.ISPECS_STD: constants.IPOLICY_DEFAULTS[constants.ISPECS_STD],
         }
-      self.assertRaises(errors.OpPrereqError, common._GetUpdatedIPolicy,
+      self.assertRaises(errors.OpPrereqError, common.GetUpdatedIPolicy,
                         old_policy, invalid_for_group, group_policy=isgroup)
     good_ispecs = self._OLD_CLUSTER_POLICY[constants.ISPECS_MINMAX]
     invalid_ispecs = copy.deepcopy(good_ispecs)
@@ -1997,19 +1997,19 @@ class TestGetUpdatedIPolicy(unittest.TestCase):
         ispec = minmax[key]
         ispec[INVALID_KEY] = None
         self.assertRaises(errors.TypeEnforcementError,
-                          common._GetUpdatedIPolicy, old_policy,
+                          common.GetUpdatedIPolicy, old_policy,
                           invalid_policy, group_policy=isgroup)
         del ispec[INVALID_KEY]
         for par in constants.ISPECS_PARAMETERS:
           oldv = ispec[par]
           ispec[par] = "this_is_not_good"
           self.assertRaises(errors.TypeEnforcementError,
-                            common._GetUpdatedIPolicy,
+                            common.GetUpdatedIPolicy,
                             old_policy, invalid_policy, group_policy=isgroup)
           ispec[par] = oldv
     # This is to make sure that no two errors were present during the tests
-    common._GetUpdatedIPolicy(old_policy, invalid_policy,
-                              group_policy=isgroup)
+    common.GetUpdatedIPolicy(old_policy, invalid_policy,
+                             group_policy=isgroup)
 
   def testInvalidKeys(self):
     self._TestInvalidKeys(self._OLD_GROUP_POLICY, True)
@@ -2021,7 +2021,7 @@ class TestGetUpdatedIPolicy(unittest.TestCase):
       bad_policy = {
         par: "invalid_value",
         }
-      self.assertRaises(errors.OpPrereqError, common._GetUpdatedIPolicy, {},
+      self.assertRaises(errors.OpPrereqError, common.GetUpdatedIPolicy, {},
                         bad_policy, group_policy=True)
 
 if __name__ == "__main__":

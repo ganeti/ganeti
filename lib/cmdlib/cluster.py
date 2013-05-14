@@ -49,15 +49,14 @@ from ganeti import uidpool
 from ganeti import utils
 from ganeti import vcluster
 
-from ganeti.cmdlib.base import NoHooksLU, _QueryBase, LogicalUnit, \
+from ganeti.cmdlib.base import NoHooksLU, QueryBase, LogicalUnit, \
   ResultWithJobs
-from ganeti.cmdlib.common import _ShareAll, _RunPostHook, \
-  _ComputeAncillaryFiles, _RedistributeAncillaryFiles, _UploadHelper, \
-  _GetWantedInstances, _MergeAndVerifyHvState, _MergeAndVerifyDiskState, \
-  _GetUpdatedIPolicy, _ComputeNewInstanceViolations, _GetUpdatedParams, \
-  _CheckOSParams, _CheckHVParams, _AdjustCandidatePool, _CheckNodePVs, \
-  _ComputeIPolicyInstanceViolation, _AnnotateDiskParams, \
-  _SupportsOob
+from ganeti.cmdlib.common import ShareAll, RunPostHook, \
+  ComputeAncillaryFiles, RedistributeAncillaryFiles, UploadHelper, \
+  GetWantedInstances, MergeAndVerifyHvState, MergeAndVerifyDiskState, \
+  GetUpdatedIPolicy, ComputeNewInstanceViolations, GetUpdatedParams, \
+  CheckOSParams, CheckHVParams, AdjustCandidatePool, CheckNodePVs, \
+  ComputeIPolicyInstanceViolation, AnnotateDiskParams, SupportsOob
 
 import ganeti.masterd.instance
 
@@ -99,7 +98,7 @@ class LUClusterConfigQuery(NoHooksLU):
   REQ_BGL = False
 
   def CheckArguments(self):
-    self.cq = _ClusterQuery(None, self.op.output_fields, False)
+    self.cq = ClusterQuery(None, self.op.output_fields, False)
 
   def ExpandNames(self):
     self.cq.ExpandNames(self)
@@ -164,7 +163,7 @@ class LUClusterDestroy(LogicalUnit):
     master_params = self.cfg.GetMasterNetworkParameters()
 
     # Run post hooks on master node before it's removed
-    _RunPostHook(self, master_params.name)
+    RunPostHook(self, master_params.name)
 
     ems = self.cfg.GetUseExternalMipScript()
     result = self.rpc.call_node_deactivate_master_ip(master_params.name,
@@ -204,7 +203,7 @@ class LUClusterPostInit(LogicalUnit):
     return True
 
 
-class _ClusterQuery(_QueryBase):
+class ClusterQuery(QueryBase):
   FIELDS = query.CLUSTER_FIELDS
 
   #: Do not sort (there is only one item)
@@ -344,14 +343,14 @@ class LUClusterRedistConf(NoHooksLU):
       locking.LEVEL_NODE: locking.ALL_SET,
       locking.LEVEL_NODE_ALLOC: locking.ALL_SET,
     }
-    self.share_locks = _ShareAll()
+    self.share_locks = ShareAll()
 
   def Exec(self, feedback_fn):
     """Redistribute the configuration.
 
     """
     self.cfg.Update(self.cfg.GetClusterInfo(), feedback_fn)
-    _RedistributeAncillaryFiles(self)
+    RedistributeAncillaryFiles(self)
 
 
 class LUClusterRename(LogicalUnit):
@@ -426,7 +425,7 @@ class LUClusterRename(LogicalUnit):
         node_list.remove(master_params.name)
       except ValueError:
         pass
-      _UploadHelper(self, node_list, pathutils.SSH_KNOWN_HOSTS_FILE)
+      UploadHelper(self, node_list, pathutils.SSH_KNOWN_HOSTS_FILE)
     finally:
       master_params.ip = new_ip
       result = self.rpc.call_node_activate_master_ip(master_params.name,
@@ -447,7 +446,7 @@ class LUClusterRepairDiskSizes(NoHooksLU):
 
   def ExpandNames(self):
     if self.op.instances:
-      self.wanted_names = _GetWantedInstances(self, self.op.instances)
+      self.wanted_names = GetWantedInstances(self, self.op.instances)
       # Not getting the node allocation lock as only a specific set of
       # instances (and their nodes) is going to be acquired
       self.needed_locks = {
@@ -633,7 +632,7 @@ class LUClusterSetParams(LogicalUnit):
       locking.LEVEL_NODEGROUP: locking.ALL_SET,
       locking.LEVEL_NODE_ALLOC: locking.ALL_SET,
     }
-    self.share_locks = _ShareAll()
+    self.share_locks = ShareAll()
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -727,22 +726,22 @@ class LUClusterSetParams(LogicalUnit):
             constants.NDC_DEFAULTS[constants.ND_OOB_PROGRAM]
 
     if self.op.hv_state:
-      new_hv_state = _MergeAndVerifyHvState(self.op.hv_state,
-                                            self.cluster.hv_state_static)
+      new_hv_state = MergeAndVerifyHvState(self.op.hv_state,
+                                           self.cluster.hv_state_static)
       self.new_hv_state = dict((hv, cluster.SimpleFillHvState(values))
                                for hv, values in new_hv_state.items())
 
     if self.op.disk_state:
-      new_disk_state = _MergeAndVerifyDiskState(self.op.disk_state,
-                                                self.cluster.disk_state_static)
+      new_disk_state = MergeAndVerifyDiskState(self.op.disk_state,
+                                               self.cluster.disk_state_static)
       self.new_disk_state = \
         dict((storage, dict((name, cluster.SimpleFillDiskState(values))
                             for name, values in svalues.items()))
              for storage, svalues in new_disk_state.items())
 
     if self.op.ipolicy:
-      self.new_ipolicy = _GetUpdatedIPolicy(cluster.ipolicy, self.op.ipolicy,
-                                            group_policy=False)
+      self.new_ipolicy = GetUpdatedIPolicy(cluster.ipolicy, self.op.ipolicy,
+                                           group_policy=False)
 
       all_instances = self.cfg.GetAllInstancesInfo().values()
       violations = set()
@@ -752,8 +751,8 @@ class LUClusterSetParams(LogicalUnit):
                                              for node in inst.all_nodes)])
         new_ipolicy = objects.FillIPolicy(self.new_ipolicy, group.ipolicy)
         ipol = masterd.instance.CalculateGroupIPolicy(cluster, group)
-        new = _ComputeNewInstanceViolations(ipol,
-                                            new_ipolicy, instances, self.cfg)
+        new = ComputeNewInstanceViolations(ipol,
+                                           new_ipolicy, instances, self.cfg)
         if new:
           violations.update(new)
 
@@ -831,16 +830,16 @@ class LUClusterSetParams(LogicalUnit):
         if os_name not in self.new_osp:
           self.new_osp[os_name] = {}
 
-        self.new_osp[os_name] = _GetUpdatedParams(self.new_osp[os_name], osp,
-                                                  use_none=True)
+        self.new_osp[os_name] = GetUpdatedParams(self.new_osp[os_name], osp,
+                                                 use_none=True)
 
         if not self.new_osp[os_name]:
           # we removed all parameters
           del self.new_osp[os_name]
         else:
           # check the parameter validity (remote check)
-          _CheckOSParams(self, False, [self.cfg.GetMasterNode()],
-                         os_name, self.new_osp[os_name])
+          CheckOSParams(self, False, [self.cfg.GetMasterNode()],
+                        os_name, self.new_osp[os_name])
 
     # changes to the hypervisor list
     if self.op.enabled_hypervisors is not None:
@@ -868,7 +867,7 @@ class LUClusterSetParams(LogicalUnit):
           hv_class = hypervisor.GetHypervisorClass(hv_name)
           utils.ForceDictType(hv_params, constants.HVS_PARAMETER_TYPES)
           hv_class.CheckParameterSyntax(hv_params)
-          _CheckHVParams(self, node_list, hv_name, hv_params)
+          CheckHVParams(self, node_list, hv_name, hv_params)
 
     self._CheckDiskTemplateConsistency()
 
@@ -883,7 +882,7 @@ class LUClusterSetParams(LogicalUnit):
           new_osp = objects.FillDict(cluster_defaults, hv_params)
           hv_class = hypervisor.GetHypervisorClass(hv_name)
           hv_class.CheckParameterSyntax(new_osp)
-          _CheckHVParams(self, node_list, hv_name, new_osp)
+          CheckHVParams(self, node_list, hv_name, new_osp)
 
     if self.op.default_iallocator:
       alloc_script = utils.FindFile(self.op.default_iallocator,
@@ -963,7 +962,7 @@ class LUClusterSetParams(LogicalUnit):
     if self.op.candidate_pool_size is not None:
       self.cluster.candidate_pool_size = self.op.candidate_pool_size
       # we need to update the pool size here, otherwise the save will fail
-      _AdjustCandidatePool(self, [])
+      AdjustCandidatePool(self, [])
 
     if self.op.maintain_node_health is not None:
       if self.op.maintain_node_health and not constants.ENABLE_CONFD:
@@ -1242,7 +1241,7 @@ class LUClusterVerifyConfig(NoHooksLU, _VerifyErrors):
 
   def ExpandNames(self):
     self.needed_locks = dict.fromkeys(locking.LEVELS, locking.ALL_SET)
-    self.share_locks = _ShareAll()
+    self.share_locks = ShareAll()
 
   def CheckPrereq(self):
     """Check prerequisites.
@@ -1399,7 +1398,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       locking.LEVEL_NODE_ALLOC: locking.ALL_SET,
       }
 
-    self.share_locks = _ShareAll()
+    self.share_locks = ShareAll()
 
   def DeclareLocks(self, level):
     if level == locking.LEVEL_NODE:
@@ -1607,7 +1606,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       _ErrorIf(vgstatus, constants.CV_ENODELVM, node, vgstatus)
 
     # Check PVs
-    (errmsgs, pvminmax) = _CheckNodePVs(nresult, self._exclusive_storage)
+    (errmsgs, pvminmax) = CheckNodePVs(nresult, self._exclusive_storage)
     for em in errmsgs:
       self._Error(constants.CV_ENODELVM, node, em)
     if pvminmax is not None:
@@ -1748,7 +1747,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     cluster = self.cfg.GetClusterInfo()
     ipolicy = ganeti.masterd.instance.CalculateGroupIPolicy(cluster,
                                                             self.group_info)
-    err = _ComputeIPolicyInstanceViolation(ipolicy, inst_config, self.cfg)
+    err = ComputeIPolicyInstanceViolation(ipolicy, inst_config, self.cfg)
     _ErrorIf(err, constants.CV_EINSTANCEPOLICY, instance, utils.CommaJoin(err),
              code=self.ETYPE_WARNING)
 
@@ -2354,7 +2353,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       # _AnnotateDiskParams makes already copies of the disks
       devonly = []
       for (inst, dev) in disks:
-        (anno_disk,) = _AnnotateDiskParams(instanceinfo[inst], [dev], self.cfg)
+        (anno_disk,) = AnnotateDiskParams(instanceinfo[inst], [dev], self.cfg)
         self.cfg.SetDiskID(anno_disk, nname)
         devonly.append(anno_disk)
 
@@ -2505,7 +2504,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     # FIXME: verify OS list
 
     # File verification
-    filemap = _ComputeAncillaryFiles(cluster, False)
+    filemap = ComputeAncillaryFiles(cluster, False)
 
     # do local checksums
     master_node = self.master_node = self.cfg.GetMasterNode()
@@ -2580,7 +2579,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     # Gather OOB paths
     oob_paths = []
     for node in self.all_node_info.values():
-      path = _SupportsOob(self.cfg, node)
+      path = SupportsOob(self.cfg, node)
       if path and path not in oob_paths:
         oob_paths.append(path)
 
@@ -2862,7 +2861,7 @@ class LUClusterVerifyDisks(NoHooksLU):
   REQ_BGL = False
 
   def ExpandNames(self):
-    self.share_locks = _ShareAll()
+    self.share_locks = ShareAll()
     self.needed_locks = {
       locking.LEVEL_NODEGROUP: locking.ALL_SET,
       }

@@ -33,8 +33,8 @@ from ganeti import locking
 from ganeti import utils
 from ganeti.masterd import iallocator
 from ganeti.cmdlib.base import NoHooksLU
-from ganeti.cmdlib.common import _ExpandInstanceName, _GetWantedNodes, \
-  _GetWantedInstances
+from ganeti.cmdlib.common import ExpandInstanceName, GetWantedNodes, \
+  GetWantedInstances
 
 
 class LUTestDelay(NoHooksLU):
@@ -57,7 +57,7 @@ class LUTestDelay(NoHooksLU):
       # _GetWantedNodes can be used here, but is not always appropriate to use
       # this way in ExpandNames. Check LogicalUnit.ExpandNames docstring for
       # more information.
-      self.op.on_nodes = _GetWantedNodes(self, self.op.on_nodes)
+      self.op.on_nodes = GetWantedNodes(self, self.op.on_nodes)
       self.needed_locks[locking.LEVEL_NODE] = self.op.on_nodes
 
   def _TestDelay(self):
@@ -261,7 +261,7 @@ class LUTestAllocator(NoHooksLU):
       if self.op.hypervisor is None:
         self.op.hypervisor = self.cfg.GetHypervisorType()
     elif self.op.mode == constants.IALLOCATOR_MODE_RELOC:
-      fname = _ExpandInstanceName(self.cfg, self.op.name)
+      fname = ExpandInstanceName(self.cfg, self.op.name)
       self.op.name = fname
       self.relocate_from = \
           list(self.cfg.GetInstanceInfo(fname).secondary_nodes)
@@ -269,7 +269,7 @@ class LUTestAllocator(NoHooksLU):
                           constants.IALLOCATOR_MODE_NODE_EVAC):
       if not self.op.instances:
         raise errors.OpPrereqError("Missing instances", errors.ECODE_INVAL)
-      self.op.instances = _GetWantedInstances(self, self.op.instances)
+      self.op.instances = GetWantedInstances(self, self.op.instances)
     else:
       raise errors.OpPrereqError("Invalid test allocator mode '%s'" %
                                  self.op.mode, errors.ECODE_INVAL)

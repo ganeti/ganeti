@@ -25,10 +25,10 @@ from ganeti import compat
 from ganeti import locking
 from ganeti import qlang
 from ganeti import query
-from ganeti.cmdlib.base import NoHooksLU, _QueryBase
+from ganeti.cmdlib.base import QueryBase, NoHooksLU
 
 
-class _OsQuery(_QueryBase):
+class OsQuery(QueryBase):
   FIELDS = query.OS_FIELDS
 
   def ExpandNames(self, lu):
@@ -179,7 +179,7 @@ class LUOsDiagnose(NoHooksLU):
       return status_filter
 
   def CheckArguments(self):
-    self.oq = _OsQuery(self._BuildFilter(self.op.output_fields, self.op.names),
+    self.oq = OsQuery(self._BuildFilter(self.op.output_fields, self.op.names),
                        self.op.output_fields, False)
 
   def ExpandNames(self):

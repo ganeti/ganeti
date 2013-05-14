@@ -38,12 +38,12 @@ from ganeti import opcodes
 from ganeti import rpc
 from ganeti.cmdlib.base import LogicalUnit, NoHooksLU, Tasklet
 from ganeti.cmdlib.common import INSTANCE_DOWN, INSTANCE_NOT_RUNNING, \
-  _AnnotateDiskParams, _CheckIAllocatorOrNode, _ExpandNodeName, \
-  _CheckNodeOnline, _CheckInstanceNodeGroups, _CheckInstanceState, \
-  _IsExclusiveStorageEnabledNode, _FindFaultyInstanceDisks
-from ganeti.cmdlib.instance_utils import _GetInstanceInfoText, \
-  _CopyLockList, _ReleaseLocks, _CheckNodeVmCapable, \
-  _BuildInstanceHookEnvByObject, _CheckNodeNotDrained, _CheckTargetNodeIPolicy
+  AnnotateDiskParams, CheckIAllocatorOrNode, ExpandNodeName, \
+  CheckNodeOnline, CheckInstanceNodeGroups, CheckInstanceState, \
+  IsExclusiveStorageEnabledNode, FindFaultyInstanceDisks
+from ganeti.cmdlib.instance_utils import GetInstanceInfoText, \
+  CopyLockList, ReleaseLocks, CheckNodeVmCapable, \
+  BuildInstanceHookEnvByObject, CheckNodeNotDrained, CheckTargetNodeIPolicy
 
 import ganeti.masterd.instance
 
@@ -65,8 +65,8 @@ _DISK_TEMPLATE_DEVICE_TYPE = {
   }
 
 
-def _CreateSingleBlockDev(lu, node, instance, device, info, force_open,
-                          excl_stor):
+def CreateSingleBlockDev(lu, node, instance, device, info, force_open,
+                         excl_stor):
   """Create a single block device on a given node.
 
   This will not recurse over children of the device, so they must be
@@ -146,8 +146,8 @@ def _CreateBlockDevInner(lu, node, instance, device, force_create,
     if not force_create:
       return created_devices
 
-    _CreateSingleBlockDev(lu, node, instance, device, info, force_open,
-                          excl_stor)
+    CreateSingleBlockDev(lu, node, instance, device, info, force_open,
+                         excl_stor)
     # The device has been completely created, so there is no point in keeping
     # its subdevices in the list. We just add the device itself instead.
     created_devices = [(node, device)]
@@ -160,7 +160,7 @@ def _CreateBlockDevInner(lu, node, instance, device, force_create,
     raise errors.DeviceCreationError(str(e), created_devices)
 
 
-def _IsExclusiveStorageEnabledNodeName(cfg, nodename):
+def IsExclusiveStorageEnabledNodeName(cfg, nodename):
   """Whether exclusive_storage is in effect for the given node.
 
   @type cfg: L{config.ConfigWriter}
@@ -176,23 +176,23 @@ def _IsExclusiveStorageEnabledNodeName(cfg, nodename):
   if ni is None:
     raise errors.OpPrereqError("Invalid node name %s" % nodename,
                                errors.ECODE_NOENT)
-  return _IsExclusiveStorageEnabledNode(cfg, ni)
+  return IsExclusiveStorageEnabledNode(cfg, ni)
 
 
-def _CreateBlockDev(lu, node, instance, device, force_create, info,
+def CreateBlockDev(lu, node, instance, device, force_create, info,
                     force_open):
   """Wrapper around L{_CreateBlockDevInner}.
 
   This method annotates the root device first.
 
   """
-  (disk,) = _AnnotateDiskParams(instance, [device], lu.cfg)
-  excl_stor = _IsExclusiveStorageEnabledNodeName(lu.cfg, node)
+  (disk,) = AnnotateDiskParams(instance, [device], lu.cfg)
+  excl_stor = IsExclusiveStorageEnabledNodeName(lu.cfg, node)
   return _CreateBlockDevInner(lu, node, instance, disk, force_create, info,
                               force_open, excl_stor)
 
 
-def _CreateDisks(lu, instance, to_skip=None, target_node=None):
+def CreateDisks(lu, instance, to_skip=None, target_node=None):
   """Create all disks for an instance.
 
   This abstracts away some work from AddInstance.
@@ -209,7 +209,7 @@ def _CreateDisks(lu, instance, to_skip=None, target_node=None):
   @return: the success of the creation
 
   """
-  info = _GetInstanceInfoText(instance)
+  info = GetInstanceInfoText(instance)
   if target_node is None:
     pnode = instance.primary_node
     all_nodes = instance.all_nodes
@@ -235,7 +235,7 @@ def _CreateDisks(lu, instance, to_skip=None, target_node=None):
     for node in all_nodes:
       f_create = node == pnode
       try:
-        _CreateBlockDev(lu, node, instance, device, f_create, info, f_create)
+        CreateBlockDev(lu, node, instance, device, f_create, info, f_create)
         disks_created.append((node, device))
       except errors.OpExecError:
         logging.warning("Creating disk %s for instance '%s' failed",
@@ -253,7 +253,7 @@ def _CreateDisks(lu, instance, to_skip=None, target_node=None):
         raise errors.OpExecError(e.message)
 
 
-def _ComputeDiskSizePerVG(disk_template, disks):
+def ComputeDiskSizePerVG(disk_template, disks):
   """Compute disk size requirements in the volume group
 
   """
@@ -285,7 +285,7 @@ def _ComputeDiskSizePerVG(disk_template, disks):
   return req_size_dict[disk_template]
 
 
-def _ComputeDisks(op, default_vg):
+def ComputeDisks(op, default_vg):
   """Computes the instance disks.
 
   @param op: The instance opcode
@@ -349,7 +349,7 @@ def _ComputeDisks(op, default_vg):
   return disks
 
 
-def _CheckRADOSFreeSpace():
+def CheckRADOSFreeSpace():
   """Compute disk size requirements inside the RADOS cluster.
 
   """
@@ -385,7 +385,7 @@ def _GenerateDRBD8Branch(lu, primary, secondary, size, vgnames, names,
   return drbd_dev
 
 
-def _GenerateDiskTemplate(
+def GenerateDiskTemplate(
   lu, template_name, instance_name, primary_node, secondary_nodes,
   disk_info, file_storage_dir, file_driver, base_index,
   feedback_fn, full_disk_params, _req_file_storage=opcodes.RequireFileStorage,
@@ -591,7 +591,7 @@ class LUInstanceRecreateDisks(LogicalUnit):
     # We don't want _CheckIAllocatorOrNode selecting the default iallocator
     # when neither iallocator nor nodes are specified
     if self.op.iallocator or self.op.nodes:
-      _CheckIAllocatorOrNode(self, "iallocator", "nodes")
+      CheckIAllocatorOrNode(self, "iallocator", "nodes")
 
     for (idx, params) in self.op.disks:
       utils.ForceDictType(params, constants.IDISK_PARAMS_TYPES)
@@ -607,7 +607,7 @@ class LUInstanceRecreateDisks(LogicalUnit):
     self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_APPEND
 
     if self.op.nodes:
-      self.op.nodes = [_ExpandNodeName(self.cfg, n) for n in self.op.nodes]
+      self.op.nodes = [ExpandNodeName(self.cfg, n) for n in self.op.nodes]
       self.needed_locks[locking.LEVEL_NODE] = list(self.op.nodes)
     else:
       self.needed_locks[locking.LEVEL_NODE] = []
@@ -652,7 +652,7 @@ class LUInstanceRecreateDisks(LogicalUnit):
     elif level == locking.LEVEL_NODE_RES:
       # Copy node locks
       self.needed_locks[locking.LEVEL_NODE_RES] = \
-        _CopyLockList(self.needed_locks[locking.LEVEL_NODE])
+        CopyLockList(self.needed_locks[locking.LEVEL_NODE])
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -660,7 +660,7 @@ class LUInstanceRecreateDisks(LogicalUnit):
     This runs on master, primary and secondary nodes of the instance.
 
     """
-    return _BuildInstanceHookEnvByObject(self, self.instance)
+    return BuildInstanceHookEnvByObject(self, self.instance)
 
   def BuildHooksNodes(self):
     """Build hooks nodes.
@@ -693,7 +693,7 @@ class LUInstanceRecreateDisks(LogicalUnit):
     else:
       primary_node = instance.primary_node
     if not self.op.iallocator:
-      _CheckNodeOnline(self, primary_node)
+      CheckNodeOnline(self, primary_node)
 
     if instance.disk_template == constants.DT_DISKLESS:
       raise errors.OpPrereqError("Instance '%s' has no disks" %
@@ -704,15 +704,15 @@ class LUInstanceRecreateDisks(LogicalUnit):
     if owned_groups:
       # Node group locks are acquired only for the primary node (and only
       # when the allocator is used)
-      _CheckInstanceNodeGroups(self.cfg, self.op.instance_name, owned_groups,
-                               primary_only=True)
+      CheckInstanceNodeGroups(self.cfg, self.op.instance_name, owned_groups,
+                              primary_only=True)
 
     # if we replace nodes *and* the old primary is offline, we don't
     # check the instance state
     old_pnode = self.cfg.GetNodeInfo(instance.primary_node)
     if not ((self.op.iallocator or self.op.nodes) and old_pnode.offline):
-      _CheckInstanceState(self, instance, INSTANCE_NOT_RUNNING,
-                          msg="cannot recreate disks")
+      CheckInstanceState(self, instance, INSTANCE_NOT_RUNNING,
+                         msg="cannot recreate disks")
 
     if self.op.disks:
       self.disks = dict(self.op.disks)
@@ -735,9 +735,9 @@ class LUInstanceRecreateDisks(LogicalUnit):
     if self.op.iallocator:
       self._RunAllocator()
       # Release unneeded node and node resource locks
-      _ReleaseLocks(self, locking.LEVEL_NODE, keep=self.op.nodes)
-      _ReleaseLocks(self, locking.LEVEL_NODE_RES, keep=self.op.nodes)
-      _ReleaseLocks(self, locking.LEVEL_NODE_ALLOC)
+      ReleaseLocks(self, locking.LEVEL_NODE, keep=self.op.nodes)
+      ReleaseLocks(self, locking.LEVEL_NODE_RES, keep=self.op.nodes)
+      ReleaseLocks(self, locking.LEVEL_NODE_ALLOC)
 
     assert not self.glm.is_owned(locking.LEVEL_NODE_ALLOC)
 
@@ -800,7 +800,7 @@ class LUInstanceRecreateDisks(LogicalUnit):
     # All touched nodes must be locked
     mylocks = self.owned_locks(locking.LEVEL_NODE)
     assert mylocks.issuperset(frozenset(instance.all_nodes))
-    _CreateDisks(self, instance, to_skip=to_skip)
+    CreateDisks(self, instance, to_skip=to_skip)
 
 
 def _CheckNodesFreeDiskOnVG(lu, nodenames, vg, requested):
@@ -842,7 +842,7 @@ def _CheckNodesFreeDiskOnVG(lu, nodenames, vg, requested):
                                  errors.ECODE_NORES)
 
 
-def _CheckNodesFreeDiskPerVG(lu, nodenames, req_sizes):
+def CheckNodesFreeDiskPerVG(lu, nodenames, req_sizes):
   """Checks if nodes have enough free disk space in all the VGs.
 
   This function checks if all given nodes have the needed amount of
@@ -895,7 +895,7 @@ def _CalcEta(time_taken, written, total_size):
   return (total_size - written) * avg_time
 
 
-def _WipeDisks(lu, instance, disks=None):
+def WipeDisks(lu, instance, disks=None):
   """Wipes instance disks.
 
   @type lu: L{LogicalUnit}
@@ -990,7 +990,7 @@ def _WipeDisks(lu, instance, disks=None):
                         " failed", idx, instance.name)
 
 
-def _ExpandCheckDisks(instance, disks):
+def ExpandCheckDisks(instance, disks):
   """Return the instance disks selected by the disks list
 
   @type disks: list of L{objects.Disk} or None
@@ -1008,14 +1008,14 @@ def _ExpandCheckDisks(instance, disks):
     return disks
 
 
-def _WaitForSync(lu, instance, disks=None, oneshot=False):
+def WaitForSync(lu, instance, disks=None, oneshot=False):
   """Sleep and poll for an instance's disk to sync.
 
   """
   if not instance.disks or disks is not None and not disks:
     return True
 
-  disks = _ExpandCheckDisks(instance, disks)
+  disks = ExpandCheckDisks(instance, disks)
 
   if not oneshot:
     lu.LogInfo("Waiting for instance %s to sync disks", instance.name)
@@ -1084,7 +1084,7 @@ def _WaitForSync(lu, instance, disks=None, oneshot=False):
   return not cumul_degraded
 
 
-def _ShutdownInstanceDisks(lu, instance, disks=None, ignore_primary=False):
+def ShutdownInstanceDisks(lu, instance, disks=None, ignore_primary=False):
   """Shutdown block devices of an instance.
 
   This does the shutdown on all nodes of the instance.
@@ -1094,7 +1094,7 @@ def _ShutdownInstanceDisks(lu, instance, disks=None, ignore_primary=False):
 
   """
   all_result = True
-  disks = _ExpandCheckDisks(instance, disks)
+  disks = ExpandCheckDisks(instance, disks)
 
   for disk in disks:
     for node, top_disk in disk.ComputeNodeTree(instance.primary_node):
@@ -1117,11 +1117,11 @@ def _SafeShutdownInstanceDisks(lu, instance, disks=None):
   _ShutdownInstanceDisks.
 
   """
-  _CheckInstanceState(lu, instance, INSTANCE_DOWN, msg="cannot shutdown disks")
-  _ShutdownInstanceDisks(lu, instance, disks=disks)
+  CheckInstanceState(lu, instance, INSTANCE_DOWN, msg="cannot shutdown disks")
+  ShutdownInstanceDisks(lu, instance, disks=disks)
 
 
-def _AssembleInstanceDisks(lu, instance, disks=None, ignore_secondaries=False,
+def AssembleInstanceDisks(lu, instance, disks=None, ignore_secondaries=False,
                            ignore_size=False):
   """Prepare the block devices for an instance.
 
@@ -1148,7 +1148,7 @@ def _AssembleInstanceDisks(lu, instance, disks=None, ignore_secondaries=False,
   device_info = []
   disks_ok = True
   iname = instance.name
-  disks = _ExpandCheckDisks(instance, disks)
+  disks = ExpandCheckDisks(instance, disks)
 
   # With the two passes mechanism we try to reduce the window of
   # opportunity for the race condition of switching DRBD to primary
@@ -1213,14 +1213,14 @@ def _AssembleInstanceDisks(lu, instance, disks=None, ignore_secondaries=False,
   return disks_ok, device_info
 
 
-def _StartInstanceDisks(lu, instance, force):
+def StartInstanceDisks(lu, instance, force):
   """Start the disks of an instance.
 
   """
-  disks_ok, _ = _AssembleInstanceDisks(lu, instance,
-                                       ignore_secondaries=force)
+  disks_ok, _ = AssembleInstanceDisks(lu, instance,
+                                      ignore_secondaries=force)
   if not disks_ok:
-    _ShutdownInstanceDisks(lu, instance)
+    ShutdownInstanceDisks(lu, instance)
     if force is not None and not force:
       lu.LogWarning("",
                     hint=("If the message above refers to a secondary node,"
@@ -1249,7 +1249,7 @@ class LUInstanceGrowDisk(LogicalUnit):
     elif level == locking.LEVEL_NODE_RES:
       # Copy node locks
       self.needed_locks[locking.LEVEL_NODE_RES] = \
-        _CopyLockList(self.needed_locks[locking.LEVEL_NODE])
+        CopyLockList(self.needed_locks[locking.LEVEL_NODE])
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -1262,7 +1262,7 @@ class LUInstanceGrowDisk(LogicalUnit):
       "AMOUNT": self.op.amount,
       "ABSOLUTE": self.op.absolute,
       }
-    env.update(_BuildInstanceHookEnvByObject(self, self.instance))
+    env.update(BuildInstanceHookEnvByObject(self, self.instance))
     return env
 
   def BuildHooksNodes(self):
@@ -1283,7 +1283,7 @@ class LUInstanceGrowDisk(LogicalUnit):
       "Cannot retrieve locked instance %s" % self.op.instance_name
     nodenames = list(instance.all_nodes)
     for node in nodenames:
-      _CheckNodeOnline(self, node)
+      CheckNodeOnline(self, node)
 
     self.instance = instance
 
@@ -1318,14 +1318,14 @@ class LUInstanceGrowDisk(LogicalUnit):
       # TODO: check the free disk space for file, when that feature will be
       # supported
       nodes = map(self.cfg.GetNodeInfo, nodenames)
-      es_nodes = filter(lambda n: _IsExclusiveStorageEnabledNode(self.cfg, n),
+      es_nodes = filter(lambda n: IsExclusiveStorageEnabledNode(self.cfg, n),
                         nodes)
       if es_nodes:
         # With exclusive storage we need to something smarter than just looking
         # at free space; for now, let's simply abort the operation.
         raise errors.OpPrereqError("Cannot grow disks when exclusive_storage"
                                    " is enabled", errors.ECODE_STATE)
-      _CheckNodesFreeDiskPerVG(self, nodenames, req_vgspace)
+      CheckNodesFreeDiskPerVG(self, nodenames, req_vgspace)
 
   def Exec(self, feedback_fn):
     """Execute disk grow.
@@ -1340,7 +1340,7 @@ class LUInstanceGrowDisk(LogicalUnit):
 
     wipe_disks = self.cfg.GetClusterInfo().prealloc_wipe_disks
 
-    disks_ok, _ = _AssembleInstanceDisks(self, self.instance, disks=[disk])
+    disks_ok, _ = AssembleInstanceDisks(self, self.instance, disks=[disk])
     if not disks_ok:
       raise errors.OpExecError("Cannot activate block device to grow")
 
@@ -1395,7 +1395,7 @@ class LUInstanceGrowDisk(LogicalUnit):
     self.cfg.Update(instance, feedback_fn)
 
     # Changes have been recorded, release node lock
-    _ReleaseLocks(self, locking.LEVEL_NODE)
+    ReleaseLocks(self, locking.LEVEL_NODE)
 
     # Downgrade lock while waiting for sync
     self.glm.downgrade(locking.LEVEL_INSTANCE)
@@ -1406,11 +1406,11 @@ class LUInstanceGrowDisk(LogicalUnit):
       assert instance.disks[self.op.disk] == disk
 
       # Wipe newly added disk space
-      _WipeDisks(self, instance,
-                 disks=[(self.op.disk, disk, old_disk_size)])
+      WipeDisks(self, instance,
+                disks=[(self.op.disk, disk, old_disk_size)])
 
     if self.op.wait_for_sync:
-      disk_abort = not _WaitForSync(self, instance, disks=[disk])
+      disk_abort = not WaitForSync(self, instance, disks=[disk])
       if disk_abort:
         self.LogWarning("Disk syncing has not returned a good status; check"
                         " the instance")
@@ -1445,7 +1445,7 @@ class LUInstanceReplaceDisks(LogicalUnit):
                                    " iallocator script must be used or the"
                                    " new node given", errors.ECODE_INVAL)
       else:
-        _CheckIAllocatorOrNode(self, "iallocator", "remote_node")
+        CheckIAllocatorOrNode(self, "iallocator", "remote_node")
 
     elif remote_node is not None or ialloc is not None:
       # Not replacing the secondary
@@ -1464,7 +1464,7 @@ class LUInstanceReplaceDisks(LogicalUnit):
       "Conflicting options"
 
     if self.op.remote_node is not None:
-      self.op.remote_node = _ExpandNodeName(self.cfg, self.op.remote_node)
+      self.op.remote_node = ExpandNodeName(self.cfg, self.op.remote_node)
 
       # Warning: do not remove the locking of the new secondary here
       # unless DRBD8.AddChildren is changed to work in parallel;
@@ -1535,7 +1535,7 @@ class LUInstanceReplaceDisks(LogicalUnit):
       "NEW_SECONDARY": self.op.remote_node,
       "OLD_SECONDARY": instance.secondary_nodes[0],
       }
-    env.update(_BuildInstanceHookEnvByObject(self, instance))
+    env.update(BuildInstanceHookEnvByObject(self, instance))
     return env
 
   def BuildHooksNodes(self):
@@ -1561,7 +1561,7 @@ class LUInstanceReplaceDisks(LogicalUnit):
     # Verify if node group locks are still correct
     owned_groups = self.owned_locks(locking.LEVEL_NODEGROUP)
     if owned_groups:
-      _CheckInstanceNodeGroups(self.cfg, self.op.instance_name, owned_groups)
+      CheckInstanceNodeGroups(self.cfg, self.op.instance_name, owned_groups)
 
     return LogicalUnit.CheckPrereq(self)
 
@@ -1590,20 +1590,20 @@ class LUInstanceActivateDisks(NoHooksLU):
     self.instance = self.cfg.GetInstanceInfo(self.op.instance_name)
     assert self.instance is not None, \
       "Cannot retrieve locked instance %s" % self.op.instance_name
-    _CheckNodeOnline(self, self.instance.primary_node)
+    CheckNodeOnline(self, self.instance.primary_node)
 
   def Exec(self, feedback_fn):
     """Activate the disks.
 
     """
     disks_ok, disks_info = \
-              _AssembleInstanceDisks(self, self.instance,
-                                     ignore_size=self.op.ignore_size)
+              AssembleInstanceDisks(self, self.instance,
+                                    ignore_size=self.op.ignore_size)
     if not disks_ok:
       raise errors.OpExecError("Cannot activate block devices")
 
     if self.op.wait_for_sync:
-      if not _WaitForSync(self, self.instance):
+      if not WaitForSync(self, self.instance):
         raise errors.OpExecError("Some disks of the instance are degraded!")
 
     return disks_info
@@ -1640,7 +1640,7 @@ class LUInstanceDeactivateDisks(NoHooksLU):
     """
     instance = self.instance
     if self.op.force:
-      _ShutdownInstanceDisks(self, instance)
+      ShutdownInstanceDisks(self, instance)
     else:
       _SafeShutdownInstanceDisks(self, instance)
 
@@ -1683,11 +1683,11 @@ def _CheckDiskConsistencyInner(lu, instance, dev, node, on_primary,
   return result
 
 
-def _CheckDiskConsistency(lu, instance, dev, node, on_primary, ldisk=False):
+def CheckDiskConsistency(lu, instance, dev, node, on_primary, ldisk=False):
   """Wrapper around L{_CheckDiskConsistencyInner}.
 
   """
-  (disk,) = _AnnotateDiskParams(instance, [dev], lu.cfg)
+  (disk,) = AnnotateDiskParams(instance, [dev], lu.cfg)
   return _CheckDiskConsistencyInner(lu, instance, disk, node, on_primary,
                                     ldisk=ldisk)
 
@@ -1702,7 +1702,7 @@ def _BlockdevFind(lu, node, dev, instance):
   @returns The result of the rpc call
 
   """
-  (disk,) = _AnnotateDiskParams(instance, [dev], lu.cfg)
+  (disk,) = AnnotateDiskParams(instance, [dev], lu.cfg)
   return lu.rpc.call_blockdev_find(node, disk)
 
 
@@ -1773,11 +1773,11 @@ class TLReplaceDisks(Tasklet):
     return remote_node_name
 
   def _FindFaultyDisks(self, node_name):
-    """Wrapper for L{_FindFaultyInstanceDisks}.
+    """Wrapper for L{FindFaultyInstanceDisks}.
 
     """
-    return _FindFaultyInstanceDisks(self.cfg, self.rpc, self.instance,
-                                    node_name, True)
+    return FindFaultyInstanceDisks(self.cfg, self.rpc, self.instance,
+                                   node_name, True)
 
   def _CheckDisksActivated(self, instance):
     """Checks if the instance disks are activated.
@@ -1901,8 +1901,8 @@ class TLReplaceDisks(Tasklet):
         self.target_node = secondary_node
         check_nodes = [self.new_node, self.other_node]
 
-        _CheckNodeNotDrained(self.lu, remote_node)
-        _CheckNodeVmCapable(self.lu, remote_node)
+        CheckNodeNotDrained(self.lu, remote_node)
+        CheckNodeVmCapable(self.lu, remote_node)
 
         old_node_info = self.cfg.GetNodeInfo(secondary_node)
         assert old_node_info is not None
@@ -1928,11 +1928,11 @@ class TLReplaceDisks(Tasklet):
       cluster = self.cfg.GetClusterInfo()
       ipolicy = ganeti.masterd.instance.CalculateGroupIPolicy(cluster,
                                                               new_group_info)
-      _CheckTargetNodeIPolicy(self, ipolicy, instance, self.remote_node_info,
-                              self.cfg, ignore=self.ignore_ipolicy)
+      CheckTargetNodeIPolicy(self, ipolicy, instance, self.remote_node_info,
+                             self.cfg, ignore=self.ignore_ipolicy)
 
     for node in check_nodes:
-      _CheckNodeOnline(self.lu, node)
+      CheckNodeOnline(self.lu, node)
 
     touched_nodes = frozenset(node_name for node_name in [self.new_node,
                                                           self.other_node,
@@ -1940,12 +1940,12 @@ class TLReplaceDisks(Tasklet):
                               if node_name is not None)
 
     # Release unneeded node and node resource locks
-    _ReleaseLocks(self.lu, locking.LEVEL_NODE, keep=touched_nodes)
-    _ReleaseLocks(self.lu, locking.LEVEL_NODE_RES, keep=touched_nodes)
-    _ReleaseLocks(self.lu, locking.LEVEL_NODE_ALLOC)
+    ReleaseLocks(self.lu, locking.LEVEL_NODE, keep=touched_nodes)
+    ReleaseLocks(self.lu, locking.LEVEL_NODE_RES, keep=touched_nodes)
+    ReleaseLocks(self.lu, locking.LEVEL_NODE_ALLOC)
 
     # Release any owned node group
-    _ReleaseLocks(self.lu, locking.LEVEL_NODEGROUP)
+    ReleaseLocks(self.lu, locking.LEVEL_NODEGROUP)
 
     # Check whether disks are valid
     for disk_idx in self.disks:
@@ -1993,7 +1993,7 @@ class TLReplaceDisks(Tasklet):
 
     # Activate the instance disks if we're replacing them on a down instance
     if activate_disks:
-      _StartInstanceDisks(self.lu, self.instance, True)
+      StartInstanceDisks(self.lu, self.instance, True)
 
     try:
       # Should we replace the secondary node?
@@ -2066,8 +2066,8 @@ class TLReplaceDisks(Tasklet):
       self.lu.LogInfo("Checking disk/%d consistency on node %s" %
                       (idx, node_name))
 
-      if not _CheckDiskConsistency(self.lu, self.instance, dev, node_name,
-                                   on_primary, ldisk=ldisk):
+      if not CheckDiskConsistency(self.lu, self.instance, dev, node_name,
+                                  on_primary, ldisk=ldisk):
         raise errors.OpExecError("Node %s has degraded storage, unsafe to"
                                  " replace disks for instance %s" %
                                  (node_name, self.instance.name))
@@ -2081,7 +2081,7 @@ class TLReplaceDisks(Tasklet):
     """
     iv_names = {}
 
-    disks = _AnnotateDiskParams(self.instance, self.instance.disks, self.cfg)
+    disks = AnnotateDiskParams(self.instance, self.instance.disks, self.cfg)
     for idx, dev in enumerate(disks):
       if idx not in self.disks:
         continue
@@ -2107,12 +2107,12 @@ class TLReplaceDisks(Tasklet):
       new_lvs = [lv_data, lv_meta]
       old_lvs = [child.Copy() for child in dev.children]
       iv_names[dev.iv_name] = (dev, old_lvs, new_lvs)
-      excl_stor = _IsExclusiveStorageEnabledNodeName(self.lu.cfg, node_name)
+      excl_stor = IsExclusiveStorageEnabledNodeName(self.lu.cfg, node_name)
 
       # we pass force_create=True to force the LVM creation
       for new_lv in new_lvs:
         _CreateBlockDevInner(self.lu, node_name, self.instance, new_lv, True,
-                             _GetInstanceInfoText(self.instance), False,
+                             GetInstanceInfoText(self.instance), False,
                              excl_stor)
 
     return iv_names
@@ -2261,14 +2261,14 @@ class TLReplaceDisks(Tasklet):
       self.lu.LogStep(cstep.next(), steps_total, "Removing old storage")
       self._RemoveOldStorage(self.target_node, iv_names)
       # TODO: Check if releasing locks early still makes sense
-      _ReleaseLocks(self.lu, locking.LEVEL_NODE_RES)
+      ReleaseLocks(self.lu, locking.LEVEL_NODE_RES)
     else:
       # Release all resource locks except those used by the instance
-      _ReleaseLocks(self.lu, locking.LEVEL_NODE_RES,
-                    keep=self.node_secondary_ip.keys())
+      ReleaseLocks(self.lu, locking.LEVEL_NODE_RES,
+                   keep=self.node_secondary_ip.keys())
 
     # Release all node locks while waiting for sync
-    _ReleaseLocks(self.lu, locking.LEVEL_NODE)
+    ReleaseLocks(self.lu, locking.LEVEL_NODE)
 
     # TODO: Can the instance lock be downgraded here? Take the optional disk
     # shutdown in the caller into consideration.
@@ -2277,7 +2277,7 @@ class TLReplaceDisks(Tasklet):
     # This can fail as the old devices are degraded and _WaitForSync
     # does a combined result over all disks, so we don't check its return value
     self.lu.LogStep(cstep.next(), steps_total, "Sync devices")
-    _WaitForSync(self.lu, self.instance)
+    WaitForSync(self.lu, self.instance)
 
     # Check all devices manually
     self._CheckDevices(self.instance.primary_node, iv_names)
@@ -2321,15 +2321,15 @@ class TLReplaceDisks(Tasklet):
 
     # Step: create new storage
     self.lu.LogStep(3, steps_total, "Allocate new storage")
-    disks = _AnnotateDiskParams(self.instance, self.instance.disks, self.cfg)
-    excl_stor = _IsExclusiveStorageEnabledNodeName(self.lu.cfg, self.new_node)
+    disks = AnnotateDiskParams(self.instance, self.instance.disks, self.cfg)
+    excl_stor = IsExclusiveStorageEnabledNodeName(self.lu.cfg, self.new_node)
     for idx, dev in enumerate(disks):
       self.lu.LogInfo("Adding new local storage on %s for disk/%d" %
                       (self.new_node, idx))
       # we pass force_create=True to force LVM creation
       for new_lv in dev.children:
         _CreateBlockDevInner(self.lu, self.new_node, self.instance, new_lv,
-                             True, _GetInstanceInfoText(self.instance), False,
+                             True, GetInstanceInfoText(self.instance), False,
                              excl_stor)
 
     # Step 4: dbrd minors and drbd setups changes
@@ -2369,13 +2369,13 @@ class TLReplaceDisks(Tasklet):
                               children=dev.children,
                               size=dev.size,
                               params={})
-      (anno_new_drbd,) = _AnnotateDiskParams(self.instance, [new_drbd],
-                                             self.cfg)
+      (anno_new_drbd,) = AnnotateDiskParams(self.instance, [new_drbd],
+                                            self.cfg)
       try:
-        _CreateSingleBlockDev(self.lu, self.new_node, self.instance,
-                              anno_new_drbd,
-                              _GetInstanceInfoText(self.instance), False,
-                              excl_stor)
+        CreateSingleBlockDev(self.lu, self.new_node, self.instance,
+                             anno_new_drbd,
+                             GetInstanceInfoText(self.instance), False,
+                             excl_stor)
       except errors.GenericError:
         self.cfg.ReleaseDRBDMinors(self.instance.name)
         raise
@@ -2413,7 +2413,7 @@ class TLReplaceDisks(Tasklet):
     self.cfg.Update(self.instance, feedback_fn)
 
     # Release all node locks (the configuration has been updated)
-    _ReleaseLocks(self.lu, locking.LEVEL_NODE)
+    ReleaseLocks(self.lu, locking.LEVEL_NODE)
 
     # and now perform the drbd attach
     self.lu.LogInfo("Attaching primary drbds to new secondary"
@@ -2438,11 +2438,11 @@ class TLReplaceDisks(Tasklet):
       self.lu.LogStep(cstep.next(), steps_total, "Removing old storage")
       self._RemoveOldStorage(self.target_node, iv_names)
       # TODO: Check if releasing locks early still makes sense
-      _ReleaseLocks(self.lu, locking.LEVEL_NODE_RES)
+      ReleaseLocks(self.lu, locking.LEVEL_NODE_RES)
     else:
       # Release all resource locks except those used by the instance
-      _ReleaseLocks(self.lu, locking.LEVEL_NODE_RES,
-                    keep=self.node_secondary_ip.keys())
+      ReleaseLocks(self.lu, locking.LEVEL_NODE_RES,
+                   keep=self.node_secondary_ip.keys())
 
     # TODO: Can the instance lock be downgraded here? Take the optional disk
     # shutdown in the caller into consideration.
@@ -2451,7 +2451,7 @@ class TLReplaceDisks(Tasklet):
     # This can fail as the old devices are degraded and _WaitForSync
     # does a combined result over all disks, so we don't check its return value
     self.lu.LogStep(cstep.next(), steps_total, "Sync devices")
-    _WaitForSync(self.lu, self.instance)
+    WaitForSync(self.lu, self.instance)
 
     # Check all devices manually
     self._CheckDevices(self.instance.primary_node, iv_names)

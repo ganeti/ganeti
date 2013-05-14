@@ -36,12 +36,12 @@ from ganeti import objects
 from ganeti import utils
 from ganeti.cmdlib.base import LogicalUnit, NoHooksLU
 from ganeti.cmdlib.common import INSTANCE_ONLINE, INSTANCE_DOWN, \
-  _CheckHVParams, _CheckInstanceState, _CheckNodeOnline, _ExpandNodeName, \
-  _GetUpdatedParams, _CheckOSParams, _ShareAll
-from ganeti.cmdlib.instance_storage import _StartInstanceDisks, \
-  _ShutdownInstanceDisks
-from ganeti.cmdlib.instance_utils import _BuildInstanceHookEnvByObject, \
-  _CheckInstanceBridgesExist, _CheckNodeFreeMemory, _CheckNodeHasOS
+  CheckHVParams, CheckInstanceState, CheckNodeOnline, ExpandNodeName, \
+  GetUpdatedParams, CheckOSParams, ShareAll
+from ganeti.cmdlib.instance_storage import StartInstanceDisks, \
+  ShutdownInstanceDisks
+from ganeti.cmdlib.instance_utils import BuildInstanceHookEnvByObject, \
+  CheckInstanceBridgesExist, CheckNodeFreeMemory, CheckNodeHasOS
 
 
 class LUInstanceStartup(LogicalUnit):
@@ -77,7 +77,7 @@ class LUInstanceStartup(LogicalUnit):
       "FORCE": self.op.force,
       }
 
-    env.update(_BuildInstanceHookEnvByObject(self, self.instance))
+    env.update(BuildInstanceHookEnvByObject(self, self.instance))
 
     return env
 
@@ -107,9 +107,9 @@ class LUInstanceStartup(LogicalUnit):
       filled_hvp.update(self.op.hvparams)
       hv_type = hypervisor.GetHypervisorClass(instance.hypervisor)
       hv_type.CheckParameterSyntax(filled_hvp)
-      _CheckHVParams(self, instance.all_nodes, instance.hypervisor, filled_hvp)
+      CheckHVParams(self, instance.all_nodes, instance.hypervisor, filled_hvp)
 
-    _CheckInstanceState(self, instance, INSTANCE_ONLINE)
+    CheckInstanceState(self, instance, INSTANCE_ONLINE)
 
     self.primary_offline = self.cfg.GetNodeInfo(instance.primary_node).offline
 
@@ -119,13 +119,13 @@ class LUInstanceStartup(LogicalUnit):
       if self.op.hvparams or self.op.beparams:
         self.LogWarning("Overridden parameters are ignored")
     else:
-      _CheckNodeOnline(self, instance.primary_node)
+      CheckNodeOnline(self, instance.primary_node)
 
       bep = self.cfg.GetClusterInfo().FillBE(instance)
       bep.update(self.op.beparams)
 
       # check bridges existence
-      _CheckInstanceBridgesExist(self, instance)
+      CheckInstanceBridgesExist(self, instance)
 
       remote_info = self.rpc.call_instance_info(instance.primary_node,
                                                 instance.name,
@@ -133,9 +133,9 @@ class LUInstanceStartup(LogicalUnit):
       remote_info.Raise("Error checking node %s" % instance.primary_node,
                         prereq=True, ecode=errors.ECODE_ENVIRON)
       if not remote_info.payload: # not running already
-        _CheckNodeFreeMemory(self, instance.primary_node,
-                             "starting instance %s" % instance.name,
-                             bep[constants.BE_MINMEM], instance.hypervisor)
+        CheckNodeFreeMemory(self, instance.primary_node,
+                            "starting instance %s" % instance.name,
+                            bep[constants.BE_MINMEM], instance.hypervisor)
 
   def Exec(self, feedback_fn):
     """Start the instance.
@@ -154,7 +154,7 @@ class LUInstanceStartup(LogicalUnit):
     else:
       node_current = instance.primary_node
 
-      _StartInstanceDisks(self, instance, force)
+      StartInstanceDisks(self, instance, force)
 
       result = \
         self.rpc.call_instance_start(node_current,
@@ -163,7 +163,7 @@ class LUInstanceStartup(LogicalUnit):
                                      self.op.startup_paused, reason)
       msg = result.fail_msg
       if msg:
-        _ShutdownInstanceDisks(self, instance)
+        ShutdownInstanceDisks(self, instance)
         raise errors.OpExecError("Could not start instance: %s" % msg)
 
 
@@ -184,7 +184,7 @@ class LUInstanceShutdown(LogicalUnit):
     This runs on master, primary and secondary nodes of the instance.
 
     """
-    env = _BuildInstanceHookEnvByObject(self, self.instance)
+    env = BuildInstanceHookEnvByObject(self, self.instance)
     env["TIMEOUT"] = self.op.timeout
     return env
 
@@ -206,7 +206,7 @@ class LUInstanceShutdown(LogicalUnit):
       "Cannot retrieve locked instance %s" % self.op.instance_name
 
     if not self.op.force:
-      _CheckInstanceState(self, self.instance, INSTANCE_ONLINE)
+      CheckInstanceState(self, self.instance, INSTANCE_ONLINE)
     else:
       self.LogWarning("Ignoring offline instance check")
 
@@ -216,7 +216,7 @@ class LUInstanceShutdown(LogicalUnit):
     if self.primary_offline and self.op.ignore_offline_nodes:
       self.LogWarning("Ignoring offline primary node")
     else:
-      _CheckNodeOnline(self, self.instance.primary_node)
+      CheckNodeOnline(self, self.instance.primary_node)
 
   def Exec(self, feedback_fn):
     """Shutdown the instance.
@@ -242,7 +242,7 @@ class LUInstanceShutdown(LogicalUnit):
       if msg:
         self.LogWarning("Could not shutdown instance: %s", msg)
 
-      _ShutdownInstanceDisks(self, instance)
+      ShutdownInstanceDisks(self, instance)
 
 
 class LUInstanceReinstall(LogicalUnit):
@@ -262,7 +262,7 @@ class LUInstanceReinstall(LogicalUnit):
     This runs on master, primary and secondary nodes of the instance.
 
     """
-    return _BuildInstanceHookEnvByObject(self, self.instance)
+    return BuildInstanceHookEnvByObject(self, self.instance)
 
   def BuildHooksNodes(self):
     """Build hooks nodes.
@@ -280,19 +280,19 @@ class LUInstanceReinstall(LogicalUnit):
     instance = self.cfg.GetInstanceInfo(self.op.instance_name)
     assert instance is not None, \
       "Cannot retrieve locked instance %s" % self.op.instance_name
-    _CheckNodeOnline(self, instance.primary_node, "Instance primary node"
-                     " offline, cannot reinstall")
+    CheckNodeOnline(self, instance.primary_node, "Instance primary node"
+                    " offline, cannot reinstall")
 
     if instance.disk_template == constants.DT_DISKLESS:
       raise errors.OpPrereqError("Instance '%s' has no disks" %
                                  self.op.instance_name,
                                  errors.ECODE_INVAL)
-    _CheckInstanceState(self, instance, INSTANCE_DOWN, msg="cannot reinstall")
+    CheckInstanceState(self, instance, INSTANCE_DOWN, msg="cannot reinstall")
 
     if self.op.os_type is not None:
       # OS verification
-      pnode = _ExpandNodeName(self.cfg, instance.primary_node)
-      _CheckNodeHasOS(self, pnode, self.op.os_type, self.op.force_variant)
+      pnode = ExpandNodeName(self.cfg, instance.primary_node)
+      CheckNodeHasOS(self, pnode, self.op.os_type, self.op.force_variant)
       instance_os = self.op.os_type
     else:
       instance_os = instance.os
@@ -300,8 +300,8 @@ class LUInstanceReinstall(LogicalUnit):
     nodelist = list(instance.all_nodes)
 
     if self.op.osparams:
-      i_osdict = _GetUpdatedParams(instance.osparams, self.op.osparams)
-      _CheckOSParams(self, True, nodelist, instance_os, i_osdict)
+      i_osdict = GetUpdatedParams(instance.osparams, self.op.osparams)
+      CheckOSParams(self, True, nodelist, instance_os, i_osdict)
       self.os_inst = i_osdict # the new dict (without defaults)
     else:
       self.os_inst = None
@@ -320,7 +320,7 @@ class LUInstanceReinstall(LogicalUnit):
       # Write to configuration
       self.cfg.Update(inst, feedback_fn)
 
-    _StartInstanceDisks(self, inst, None)
+    StartInstanceDisks(self, inst, None)
     try:
       feedback_fn("Running the instance OS create scripts...")
       # FIXME: pass debug option from opcode to backend
@@ -330,7 +330,7 @@ class LUInstanceReinstall(LogicalUnit):
       result.Raise("Could not install OS for instance %s on node %s" %
                    (inst.name, inst.primary_node))
     finally:
-      _ShutdownInstanceDisks(self, inst)
+      ShutdownInstanceDisks(self, inst)
 
 
 class LUInstanceReboot(LogicalUnit):
@@ -356,7 +356,7 @@ class LUInstanceReboot(LogicalUnit):
       "SHUTDOWN_TIMEOUT": self.op.shutdown_timeout,
       }
 
-    env.update(_BuildInstanceHookEnvByObject(self, self.instance))
+    env.update(BuildInstanceHookEnvByObject(self, self.instance))
 
     return env
 
@@ -376,11 +376,11 @@ class LUInstanceReboot(LogicalUnit):
     self.instance = instance = self.cfg.GetInstanceInfo(self.op.instance_name)
     assert self.instance is not None, \
       "Cannot retrieve locked instance %s" % self.op.instance_name
-    _CheckInstanceState(self, instance, INSTANCE_ONLINE)
-    _CheckNodeOnline(self, instance.primary_node)
+    CheckInstanceState(self, instance, INSTANCE_ONLINE)
+    CheckNodeOnline(self, instance.primary_node)
 
     # check bridges existence
-    _CheckInstanceBridgesExist(self, instance)
+    CheckInstanceBridgesExist(self, instance)
 
   def Exec(self, feedback_fn):
     """Reboot the instance.
@@ -413,24 +413,24 @@ class LUInstanceReboot(LogicalUnit):
                                                  self.op.shutdown_timeout,
                                                  reason)
         result.Raise("Could not shutdown instance for full reboot")
-        _ShutdownInstanceDisks(self, instance)
+        ShutdownInstanceDisks(self, instance)
       else:
         self.LogInfo("Instance %s was already stopped, starting now",
                      instance.name)
-      _StartInstanceDisks(self, instance, ignore_secondaries)
+      StartInstanceDisks(self, instance, ignore_secondaries)
       result = self.rpc.call_instance_start(node_current,
                                             (instance, None, None), False,
                                             reason)
       msg = result.fail_msg
       if msg:
-        _ShutdownInstanceDisks(self, instance)
+        ShutdownInstanceDisks(self, instance)
         raise errors.OpExecError("Could not start instance for"
                                  " full reboot: %s" % msg)
 
     self.cfg.MarkInstanceUp(instance.name)
 
 
-def _GetInstanceConsole(cluster, instance):
+def GetInstanceConsole(cluster, instance):
   """Returns console information for an instance.
 
   @type cluster: L{objects.Cluster}
@@ -462,7 +462,7 @@ class LUInstanceConsole(NoHooksLU):
   REQ_BGL = False
 
   def ExpandNames(self):
-    self.share_locks = _ShareAll()
+    self.share_locks = ShareAll()
     self._ExpandAndLockInstance()
 
   def CheckPrereq(self):
@@ -474,7 +474,7 @@ class LUInstanceConsole(NoHooksLU):
     self.instance = self.cfg.GetInstanceInfo(self.op.instance_name)
     assert self.instance is not None, \
       "Cannot retrieve locked instance %s" % self.op.instance_name
-    _CheckNodeOnline(self, self.instance.primary_node)
+    CheckNodeOnline(self, self.instance.primary_node)
 
   def Exec(self, feedback_fn):
     """Connect to the console of an instance
@@ -499,4 +499,4 @@ class LUInstanceConsole(NoHooksLU):
 
     logging.debug("Connecting to console of %s on %s", instance.name, node)
 
-    return _GetInstanceConsole(self.cfg.GetClusterInfo(), instance)
+    return GetInstanceConsole(self.cfg.GetClusterInfo(), instance)

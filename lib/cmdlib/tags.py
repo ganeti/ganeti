@@ -29,8 +29,7 @@ from ganeti import locking
 from ganeti import objects
 from ganeti import utils
 from ganeti.cmdlib.base import NoHooksLU
-from ganeti.cmdlib.common import _ExpandNodeName, _ExpandInstanceName, \
-  _ShareAll
+from ganeti.cmdlib.common import ExpandNodeName, ExpandInstanceName, ShareAll
 
 
 class TagsLU(NoHooksLU): # pylint: disable=W0223
@@ -44,11 +43,11 @@ class TagsLU(NoHooksLU): # pylint: disable=W0223
     self.needed_locks = {}
 
     if self.op.kind == constants.TAG_NODE:
-      self.op.name = _ExpandNodeName(self.cfg, self.op.name)
+      self.op.name = ExpandNodeName(self.cfg, self.op.name)
       lock_level = locking.LEVEL_NODE
       lock_name = self.op.name
     elif self.op.kind == constants.TAG_INSTANCE:
-      self.op.name = _ExpandInstanceName(self.cfg, self.op.name)
+      self.op.name = ExpandInstanceName(self.cfg, self.op.name)
       lock_level = locking.LEVEL_INSTANCE
       lock_name = self.op.name
     elif self.op.kind == constants.TAG_NODEGROUP:
@@ -98,7 +97,7 @@ class LUTagsGet(TagsLU):
     TagsLU.ExpandNames(self)
 
     # Share locks as this is only a read operation
-    self.share_locks = _ShareAll()
+    self.share_locks = ShareAll()
 
   def Exec(self, feedback_fn):
     """Returns the tag list.

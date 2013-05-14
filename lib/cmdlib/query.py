@@ -24,27 +24,27 @@
 from ganeti import constants
 from ganeti import errors
 from ganeti import query
-from ganeti.cmdlib.backup import _ExportQuery
+from ganeti.cmdlib.backup import ExportQuery
 from ganeti.cmdlib.base import NoHooksLU
-from ganeti.cmdlib.cluster import _ClusterQuery
-from ganeti.cmdlib.group import _GroupQuery
-from ganeti.cmdlib.instance_query import _InstanceQuery
-from ganeti.cmdlib.misc import _ExtStorageQuery
-from ganeti.cmdlib.network import _NetworkQuery
-from ganeti.cmdlib.node import _NodeQuery
-from ganeti.cmdlib.operating_system import _OsQuery
+from ganeti.cmdlib.cluster import ClusterQuery
+from ganeti.cmdlib.group import GroupQuery
+from ganeti.cmdlib.instance_query import InstanceQuery
+from ganeti.cmdlib.misc import ExtStorageQuery
+from ganeti.cmdlib.network import NetworkQuery
+from ganeti.cmdlib.node import NodeQuery
+from ganeti.cmdlib.operating_system import OsQuery
 
 
 #: Query type implementations
 _QUERY_IMPL = {
-  constants.QR_CLUSTER: _ClusterQuery,
-  constants.QR_INSTANCE: _InstanceQuery,
-  constants.QR_NODE: _NodeQuery,
-  constants.QR_GROUP: _GroupQuery,
-  constants.QR_NETWORK: _NetworkQuery,
-  constants.QR_OS: _OsQuery,
-  constants.QR_EXTSTORAGE: _ExtStorageQuery,
-  constants.QR_EXPORT: _ExportQuery,
+  constants.QR_CLUSTER: ClusterQuery,
+  constants.QR_INSTANCE: InstanceQuery,
+  constants.QR_NODE: NodeQuery,
+  constants.QR_GROUP: GroupQuery,
+  constants.QR_NETWORK: NetworkQuery,
+  constants.QR_OS: OsQuery,
+  constants.QR_EXTSTORAGE: ExtStorageQuery,
+  constants.QR_EXPORT: ExportQuery,
   }
 
 assert set(_QUERY_IMPL.keys()) == constants.QR_VIA_OP
