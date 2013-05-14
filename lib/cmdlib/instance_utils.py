@@ -448,3 +448,68 @@ def _GetInstanceInfoText(instance):
 
   """
   return "originstname+%s" % instance.name
+
+
+def _CheckNodeFreeMemory(lu, node, reason, requested, hypervisor_name):
+  """Checks if a node has enough free memory.
+
+  This function checks if a given node has the needed amount of free
+  memory. In case the node has less memory or we cannot get the
+  information from the node, this function raises an OpPrereqError
+  exception.
+
+  @type lu: C{LogicalUnit}
+  @param lu: a logical unit from which we get configuration data
+  @type node: C{str}
+  @param node: the node to check
+  @type reason: C{str}
+  @param reason: string to use in the error message
+  @type requested: C{int}
+  @param requested: the amount of memory in MiB to check for
+  @type hypervisor_name: C{str}
+  @param hypervisor_name: the hypervisor to ask for memory stats
+  @rtype: integer
+  @return: node current free memory
+  @raise errors.OpPrereqError: if the node doesn't have enough memory, or
+      we cannot check the node
+
+  """
+  nodeinfo = lu.rpc.call_node_info([node], None, [hypervisor_name], False)
+  nodeinfo[node].Raise("Can't get data from node %s" % node,
+                       prereq=True, ecode=errors.ECODE_ENVIRON)
+  (_, _, (hv_info, )) = nodeinfo[node].payload
+
+  free_mem = hv_info.get("memory_free", None)
+  if not isinstance(free_mem, int):
+    raise errors.OpPrereqError("Can't compute free memory on node %s, result"
+                               " was '%s'" % (node, free_mem),
+                               errors.ECODE_ENVIRON)
+  if requested > free_mem:
+    raise errors.OpPrereqError("Not enough memory on node %s for %s:"
+                               " needed %s MiB, available %s MiB" %
+                               (node, reason, requested, free_mem),
+                               errors.ECODE_NORES)
+  return free_mem
+
+
+def _CheckInstanceBridgesExist(lu, instance, node=None):
+  """Check that the brigdes needed by an instance exist.
+
+  """
+  if node is None:
+    node = instance.primary_node
+  _CheckNicsBridgesExist(lu, instance.nics, node)
+
+
+def _CheckNicsBridgesExist(lu, target_nics, target_node):
+  """Check that the brigdes needed by a list of nics exist.
+
+  """
+  cluster = lu.cfg.GetClusterInfo()
+  paramslist = [cluster.SimpleFillNIC(nic.nicparams) for nic in target_nics]
+  brlist = [params[constants.NIC_LINK] for params in paramslist
+            if params[constants.NIC_MODE] == constants.NIC_MODE_BRIDGED]
+  if brlist:
+    result = lu.rpc.call_bridges_exist(target_node, brlist)
+    result.Raise("Error checking bridges on destination node '%s'" %
+                 target_node, prereq=True, ecode=errors.ECODE_ENVIRON)

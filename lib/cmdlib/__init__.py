@@ -79,8 +79,6 @@ from ganeti.cmdlib.instance import \
   LUInstanceReinstall, \
   LUInstanceReboot, \
   LUInstanceConsole, \
-  LUInstanceFailover, \
-  LUInstanceMigrate, \
   LUInstanceMultiAlloc, \
   LUInstanceSetParams, \
   LUInstanceChangeGroup
@@ -90,6 +88,9 @@ from ganeti.cmdlib.instance_storage import \
   LUInstanceReplaceDisks, \
   LUInstanceActivateDisks, \
   LUInstanceDeactivateDisks
+from ganeti.cmdlib.instance_migration import \
+  LUInstanceFailover, \
+  LUInstanceMigrate
 from ganeti.cmdlib.backup import \
   LUBackupQuery, \
   LUBackupPrepare, \
