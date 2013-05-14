@@ -30,10 +30,10 @@ from ganeti import utils
 from ganeti import errors
 from ganeti import netutils
 from ganeti import objects
-from ganeti.block import base
-from ganeti.block.drbd_info import DRBD8Info
-from ganeti.block import drbd_info
-from ganeti.block import drbd_cmdgen
+from ganeti.storage import base
+from ganeti.storage.drbd_info import DRBD8Info
+from ganeti.storage import drbd_info
+from ganeti.storage import drbd_cmdgen
 
 
 # Size of reads in _CanReadDevice

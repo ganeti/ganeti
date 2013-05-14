@@ -32,7 +32,7 @@ from ganeti import netutils
 from ganeti import ssconf
 from ganeti import utils
 from ganeti import confd
-from ganeti.block import drbd
+from ganeti.storage import drbd
 
 import ganeti.confd.client # pylint: disable=W0611
 

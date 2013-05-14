@@ -35,8 +35,8 @@ from ganeti import objects
 from ganeti import compat
 from ganeti import pathutils
 from ganeti import serializer
-from ganeti.block import drbd
-from ganeti.block import base
+from ganeti.storage import drbd
+from ganeti.storage import base
 
 
 class RbdShowmappedJsonError(Exception):

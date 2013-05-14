@@ -31,7 +31,7 @@ from ganeti import constants
 from ganeti import errors
 from ganeti import objects
 from ganeti import utils
-from ganeti.block import bdev
+from ganeti.storage import bdev
 
 import testutils
 

@@ -54,8 +54,8 @@ from ganeti import utils
 from ganeti import ssh
 from ganeti import hypervisor
 from ganeti import constants
-from ganeti.block import bdev
-from ganeti.block import drbd
+from ganeti.storage import bdev
+from ganeti.storage import drbd
 from ganeti import objects
 from ganeti import ssconf
 from ganeti import serializer
@@ -65,8 +65,8 @@ from ganeti import compat
 from ganeti import pathutils
 from ganeti import vcluster
 from ganeti import ht
-from ganeti.block.base import BlockDev
-from ganeti.block.drbd import DRBD8
+from ganeti.storage.base import BlockDev
+from ganeti.storage.drbd import DRBD8
 from ganeti import hooksmaster
 
 
