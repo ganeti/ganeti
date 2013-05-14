@@ -39,13 +39,16 @@ import qualified Data.IntMap as IntMap
 
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Node as Node
+import qualified Ganeti.HTools.Instance as Instance
 import qualified Ganeti.HTools.Group as Group
 
+import Ganeti.BasicTypes
 import Ganeti.Common
 import Ganeti.HTools.CLI
 import Ganeti.HTools.ExtLoader
 import Ganeti.HTools.Graph
 import Ganeti.HTools.Loader
+import Ganeti.HTools.Types
 import Ganeti.Utils
 
 -- | Options list and functions.
@@ -73,6 +76,60 @@ options = do
 -- | The list of arguments supported by the program.
 arguments :: [ArgCompletion]
 arguments = []
+
+-- | Compute the result of moving an instance to a different node.
+move :: Idx -> Ndx -> (Node.List, Instance.List)
+        -> OpResult (Node.List, Instance.List)
+move idx new_ndx (nl, il) = do
+  let new_node = Container.find new_ndx nl
+      inst = Container.find idx il
+      old_ndx = Instance.pNode inst
+      old_node = Container.find old_ndx nl
+  new_node' <- Node.addPriEx True new_node inst
+  let old_node' = Node.removePri old_node inst
+      inst' = Instance.setPri inst new_ndx
+      nl' = Container.addTwo old_ndx old_node' new_ndx new_node' nl
+      il' = Container.add idx inst' il
+  return (nl', il')
+
+-- | Move an instance to one of the candidate nodes mentioned.
+locateInstance :: Idx -> [Ndx] -> (Node.List, Instance.List)
+                  -> Result (Node.List, Instance.List)
+locateInstance idx ndxs conf =
+  msum $ map (opToResult . flip (move idx) conf) ndxs
+
+-- | Move a list of instances to some of the candidate nodes mentioned.
+locateInstances :: [Idx] -> [Ndx] -> (Node.List, Instance.List)
+                   -> Result (Node.List, Instance.List)
+locateInstances idxs ndxs conf =
+  foldM (\ cf idx -> locateInstance idx ndxs cf) conf idxs
+
+-- | Greedily move the non-redundant instances away from a list of nodes.
+-- The arguments are the list of nodes to be cleared, a list of nodes the
+-- instances can be moved to, and an initial configuration. Returned is a
+-- list of nodes that can be cleared simultaneously and the configuration
+-- after these nodes are cleared.
+clearNodes :: [Ndx] -> [Ndx] -> (Node.List, Instance.List)
+              -> Result ([Ndx], (Node.List, Instance.List))
+clearNodes [] _ conf = return ([], conf)
+clearNodes (ndx:ndxs) targets conf = withFirst `mplus` withoutFirst where
+  withFirst = do
+     let othernodes = delete ndx targets
+     conf' <- locateInstances (nonRedundant conf ndx) othernodes conf
+     (ndxs', conf'') <- clearNodes ndxs othernodes conf'
+     return (ndx:ndxs', conf'')
+  withoutFirst = clearNodes ndxs targets conf
+
+-- | Parition a list of nodes into chunks according cluster capacity.
+partitionNonRedundant :: [Ndx] -> [Ndx] -> (Node.List, Instance.List)
+                         -> Result [[Ndx]]
+partitionNonRedundant [] _ _ = return []
+partitionNonRedundant ndxs targets conf = do
+  (grp, _) <- clearNodes ndxs targets conf
+  guard . not . null $ grp
+  let remaining = ndxs \\ grp
+  part <- partitionNonRedundant remaining targets conf
+  return $ grp : part
 
 -- | Gather statistics for the coloring algorithms.
 -- Returns a string with a summary on how each algorithm has performed,
@@ -179,10 +236,16 @@ main opts args = do
       colorings = map (\(v,a) -> (v,(colorVertMap.a) nodeGraph)) colorAlgorithms
       smallestColoring =
         (snd . minimumBy (comparing (IntMap.size . snd))) colorings
-      idToNode = (`Container.find` nodes)
+      allNdx = map Node.idx $ Container.elems nlf
+      splitted = mapM (\ grp -> partitionNonRedundant grp allNdx (nlf,ilf)) $
+                 IntMap.elems smallestColoring
+  rebootGroups <- case splitted of
+                    Ok splitgroups -> return $ concat splitgroups
+                    Bad _ -> exitErr "Not enough capacity to move non-redundant\ 
+                                     \ instances"
+  let idToNode = (`Container.find` nodes)
       nodesRebootGroups =
-        map (map idToNode . filter (`IntMap.member` nodes)) $
-        IntMap.elems smallestColoring
+        map (map idToNode . filter (`IntMap.member` nodes)) rebootGroups
       outputRebootGroups = masterLast .
                            sortBy (flip compare `on` length) $
                            nodesRebootGroups
