@@ -263,20 +263,6 @@ defaultBindAddr port Socket.AF_INET6 =
       Socket.SockAddrInet6 (fromIntegral port) 0 Socket.iN6ADDR_ANY 0)
 defaultBindAddr _ fam = Bad $ "Unsupported address family: " ++ show fam
 
--- | Default hints for the resolver
-resolveAddrHints :: Maybe Socket.AddrInfo
-resolveAddrHints =
-  Just Socket.defaultHints { Socket.addrFlags = [Socket.AI_NUMERICHOST,
-                                                 Socket.AI_NUMERICSERV] }
-
--- | Resolves a numeric address.
-resolveAddr :: Int -> String -> IO (Result (Socket.Family, Socket.SockAddr))
-resolveAddr port str = do
-  resolved <- Socket.getAddrInfo resolveAddrHints (Just str) (Just (show port))
-  return $ case resolved of
-             [] -> Bad "Invalid results from lookup?"
-             best:_ -> Ok (Socket.addrFamily best, Socket.addrAddress best)
-
 -- | Based on the options, compute the socket address to use for the
 -- daemon.
 parseAddress :: DaemonOptions      -- ^ Command line options
