@@ -265,6 +265,7 @@ pkgpython_PYTHON = \
 	lib/compat.py \
 	lib/config.py \
 	lib/constants.py \
+	lib/container.py \
 	lib/daemon.py \
 	lib/errors.py \
 	lib/hooksmaster.py \
@@ -288,7 +289,6 @@ pkgpython_PYTHON = \
 	lib/serializer.py \
 	lib/ssconf.py \
 	lib/ssh.py \
-	lib/storage.py \
 	lib/uidpool.py \
 	lib/vcluster.py \
 	lib/network.py \
@@ -1153,6 +1153,7 @@ python_tests = \
 	test/py/ganeti.confd.client_unittest.py \
 	test/py/ganeti.config_unittest.py \
 	test/py/ganeti.constants_unittest.py \
+	test/py/ganeti.container_unittest.py \
 	test/py/ganeti.daemon_unittest.py \
 	test/py/ganeti.errors_unittest.py \
 	test/py/ganeti.hooks_unittest.py \
@@ -1190,7 +1191,6 @@ python_tests = \
 	test/py/ganeti.server.rapi_unittest.py \
 	test/py/ganeti.ssconf_unittest.py \
 	test/py/ganeti.ssh_unittest.py \
-	test/py/ganeti.storage_unittest.py \
 	test/py/ganeti.tools.burnin_unittest.py \
 	test/py/ganeti.tools.ensure_dirs_unittest.py \
 	test/py/ganeti.tools.node_daemon_setup_unittest.py \

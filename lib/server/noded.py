@@ -45,7 +45,7 @@ from ganeti import jstore
 from ganeti import daemon
 from ganeti import http
 from ganeti import utils
-from ganeti import storage
+from ganeti import container
 from ganeti import serializer
 from ganeti import netutils
 from ganeti import pathutils
@@ -532,7 +532,7 @@ class NodeRequestHandler(http.server.HttpServerHandler):
 
     """
     (su_name, su_args, name, fields) = params
-    return storage.GetStorage(su_name, *su_args).List(name, fields)
+    return container.GetStorage(su_name, *su_args).List(name, fields)
 
   @staticmethod
   def perspective_storage_modify(params):
@@ -540,7 +540,7 @@ class NodeRequestHandler(http.server.HttpServerHandler):
 
     """
     (su_name, su_args, name, changes) = params
-    return storage.GetStorage(su_name, *su_args).Modify(name, changes)
+    return container.GetStorage(su_name, *su_args).Modify(name, changes)
 
   @staticmethod
   def perspective_storage_execute(params):
@@ -548,7 +548,7 @@ class NodeRequestHandler(http.server.HttpServerHandler):
 
     """
     (su_name, su_args, name, op) = params
-    return storage.GetStorage(su_name, *su_args).Execute(name, op)
+    return container.GetStorage(su_name, *su_args).Execute(name, op)
 
   # bridge  --------------------------
 

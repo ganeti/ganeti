@@ -19,7 +19,7 @@
 # 02110-1301, USA.
 
 
-"""Script for testing ganeti.storage"""
+"""Script for testing ganeti.storage.container"""
 
 import re
 import unittest
@@ -29,15 +29,15 @@ from ganeti import constants
 from ganeti import utils
 from ganeti import compat
 from ganeti import errors
-from ganeti import storage
+from ganeti import container
 
 import testutils
 
 
 class TestVGReduce(testutils.GanetiTestCase):
   VGNAME = "xenvg"
-  LIST_CMD = storage.LvmVgStorage.LIST_COMMAND
-  VGREDUCE_CMD = storage.LvmVgStorage.VGREDUCE_COMMAND
+  LIST_CMD = container.LvmVgStorage.LIST_COMMAND
+  VGREDUCE_CMD = container.LvmVgStorage.VGREDUCE_COMMAND
 
   def _runCmd(self, cmd, **kwargs):
     if not self.run_history:
@@ -47,7 +47,7 @@ class TestVGReduce(testutils.GanetiTestCase):
     return result
 
   def testOldVersion(self):
-    lvmvg = storage.LvmVgStorage()
+    lvmvg = container.LvmVgStorage()
     stdout = testutils.ReadTestData("vgreduce-removemissing-2.02.02.txt")
     vgs_fail = testutils.ReadTestData("vgs-missing-pvs-2.02.02.txt")
     self.run_history = [
@@ -70,7 +70,7 @@ class TestVGReduce(testutils.GanetiTestCase):
       self.assertEqual(self.run_history, [])
 
   def testNewVersion(self):
-    lvmvg = storage.LvmVgStorage()
+    lvmvg = container.LvmVgStorage()
     stdout1 = testutils.ReadTestData("vgreduce-removemissing-2.02.66-fail.txt")
     stdout2 = testutils.ReadTestData("vgreduce-removemissing-2.02.66-ok.txt")
     vgs_fail = testutils.ReadTestData("vgs-missing-pvs-2.02.66.txt")
