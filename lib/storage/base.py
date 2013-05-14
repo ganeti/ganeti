@@ -109,7 +109,7 @@ class BlockDev(object):
     raise NotImplementedError
 
   @classmethod
-  def Create(cls, unique_id, children, size, params, excl_stor):
+  def Create(cls, unique_id, children, size, spindles, params, excl_stor):
     """Create the device.
 
     If the device cannot be created, it will return None
@@ -126,6 +126,8 @@ class BlockDev(object):
     @param children: for hierarchical devices, the child devices
     @type size: float
     @param size: size in MiB
+    @type spindles: int
+    @param spindles: number of physical disk to dedicate to the device
     @type params: dict
     @param params: device-specific options/parameters
     @type excl_stor: bool

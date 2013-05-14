@@ -230,7 +230,7 @@ class LogicalVolume(base.BlockDev):
     return map((lambda pv: pv.name), empty_pvs)
 
   @classmethod
-  def Create(cls, unique_id, children, size, params, excl_stor):
+  def Create(cls, unique_id, children, size, spindles, params, excl_stor):
     """Create a new logical volume.
 
     """
@@ -265,11 +265,19 @@ class LogicalVolume(base.BlockDev):
         for m in err_msgs:
           logging.warning(m)
       req_pvs = cls._ComputeNumPvs(size, pvs_info)
+      if spindles:
+        if spindles < req_pvs:
+          base.ThrowError("Requested number of spindles (%s) is not enough for"
+                          " a disk of %d MB (at least %d spindles needed)",
+                          spindles, size, req_pvs)
+        else:
+          req_pvs = spindles
       pvlist = cls._GetEmptyPvNames(pvs_info, req_pvs)
       current_pvs = len(pvlist)
       if current_pvs < req_pvs:
-        base.ThrowError("Not enough empty PVs to create a disk of %d MB:"
-                        " %d available, %d needed", size, current_pvs, req_pvs)
+        base.ThrowError("Not enough empty PVs (spindles) to create a disk of %d"
+                        " MB: %d available, %d needed",
+                        size, current_pvs, req_pvs)
       assert current_pvs == len(pvlist)
       if stripes > current_pvs:
         # No warning issued for this, as it's no surprise
@@ -836,7 +844,7 @@ class FileStorage(base.BlockDev):
       base.ThrowError("Can't stat %s: %s", self.dev_path, err)
 
   @classmethod
-  def Create(cls, unique_id, children, size, params, excl_stor):
+  def Create(cls, unique_id, children, size, spindles, params, excl_stor):
     """Create a new file.
 
     @param size: the size of file in MiB
@@ -904,7 +912,7 @@ class PersistentBlockDevice(base.BlockDev):
     self.Attach()
 
   @classmethod
-  def Create(cls, unique_id, children, size, params, excl_stor):
+  def Create(cls, unique_id, children, size, spindles, params, excl_stor):
     """Create a new device
 
     This is a noop, we only return a PersistentBlockDevice instance
@@ -1004,7 +1012,7 @@ class RADOSBlockDevice(base.BlockDev):
     self.Attach()
 
   @classmethod
-  def Create(cls, unique_id, children, size, params, excl_stor):
+  def Create(cls, unique_id, children, size, spindles, params, excl_stor):
     """Create a new rbd device.
 
     Provision a new rbd volume inside a RADOS pool.
@@ -1358,7 +1366,7 @@ class ExtStorageDevice(base.BlockDev):
     self.Attach()
 
   @classmethod
-  def Create(cls, unique_id, children, size, params, excl_stor):
+  def Create(cls, unique_id, children, size, spindles, params, excl_stor):
     """Create a new extstorage device.
 
     Provision a new volume using an extstorage provider, which will
@@ -1803,5 +1811,5 @@ def Create(disk, children, excl_stor):
   _VerifyDiskType(disk.dev_type)
   _VerifyDiskParams(disk)
   device = DEV_MAP[disk.dev_type].Create(disk.physical_id, children, disk.size,
-                                         disk.params, excl_stor)
+                                         disk.spindles, disk.params, excl_stor)
   return device

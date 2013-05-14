@@ -1001,7 +1001,7 @@ class DRBD8Dev(base.BlockDev):
       base.ThrowError("Can't initialize meta device: %s", result.output)
 
   @classmethod
-  def Create(cls, unique_id, children, size, params, excl_stor):
+  def Create(cls, unique_id, children, size, spindles, params, excl_stor):
     """Create a new DRBD8 device.
 
     Since DRBD devices are not created per se, just assembled, this
