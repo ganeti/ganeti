@@ -1027,6 +1027,8 @@ def _FormatBlockDevInfo(idx, top_level, dev, roman):
     nice_size = str(dev["size"])
   data = [(txt, "%s, size %s" % (dev["dev_type"], nice_size))]
   if top_level:
+    if dev["spindles"] is not None:
+      data.append(("spindles", dev["spindles"]))
     data.append(("access mode", dev["mode"]))
   if dev["logical_id"] is not None:
     try:

@@ -355,6 +355,7 @@ class LUInstanceQueryData(NoHooksLU):
       "children": dev_children,
       "mode": dev.mode,
       "size": dev.size,
+      "spindles": dev.spindles,
       "name": dev.name,
       "uuid": dev.uuid,
       }
