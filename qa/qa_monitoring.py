@@ -27,7 +27,6 @@ from ganeti import _autoconf
 from ganeti import constants
 
 import qa_config
-import qa_utils
 
 from qa_utils import AssertCommand
 from qa_instance_utils import CreateInstanceByDiskTemplate, \
