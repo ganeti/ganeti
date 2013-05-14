@@ -1056,6 +1056,7 @@ TEST_FILES = \
 	test/data/htools/rapi/info.json \
 	test/data/htools/rapi/instances.json \
 	test/data/htools/rapi/nodes.json \
+	test/data/htools/hroller-nonredundant.data \
 	test/data/htools/hroller-online.data \
 	test/data/htools/unique-reboot-order.data \
 	test/hs/shelltests/htools-balancing.test \

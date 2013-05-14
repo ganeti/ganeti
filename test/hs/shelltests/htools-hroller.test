@@ -34,3 +34,18 @@ node-01-002
 node-01-003/
 >>>= 0
 
+./test/hs/hroller --no-headers -t $TESTDATA_DIR/hroller-nonredundant.data
+>>>/^node-01-00.,node-01-00.
+node-01-00.,node-01-00.
+node-01-00.,node-01-000$/
+>>>= 0
+
+./test/hs/hroller --skip-non-redundant -t $TESTDATA_DIR/hroller-nonredundant.data
+>>>2
+Error: Cannot create node graph
+>>>=1
+
+./test/hs/hroller --no-headers --ignore-non-redundant -t $TESTDATA_DIR/hroller-nonredundant.data
+>>>/^node-01-00.,node-01-00.,node-01-00.,node-01-00.,node-01-00.,node-01-000$/
+>>>= 0
+
