@@ -513,3 +513,45 @@ def _CheckNicsBridgesExist(lu, target_nics, target_node):
     result = lu.rpc.call_bridges_exist(target_node, brlist)
     result.Raise("Error checking bridges on destination node '%s'" %
                  target_node, prereq=True, ecode=errors.ECODE_ENVIRON)
+
+
+def _CheckNodeHasOS(lu, node, os_name, force_variant):
+  """Ensure that a node supports a given OS.
+
+  @param lu: the LU on behalf of which we make the check
+  @param node: the node to check
+  @param os_name: the OS to query about
+  @param force_variant: whether to ignore variant errors
+  @raise errors.OpPrereqError: if the node is not supporting the OS
+
+  """
+  result = lu.rpc.call_os_get(node, os_name)
+  result.Raise("OS '%s' not in supported OS list for node %s" %
+               (os_name, node),
+               prereq=True, ecode=errors.ECODE_INVAL)
+  if not force_variant:
+    _CheckOSVariant(result.payload, os_name)
+
+
+def _CheckOSVariant(os_obj, name):
+  """Check whether an OS name conforms to the os variants specification.
+
+  @type os_obj: L{objects.OS}
+  @param os_obj: OS object to check
+  @type name: string
+  @param name: OS name passed by the user, to check for validity
+
+  """
+  variant = objects.OS.GetVariant(name)
+  if not os_obj.supported_variants:
+    if variant:
+      raise errors.OpPrereqError("OS '%s' doesn't support variants ('%s'"
+                                 " passed)" % (os_obj.name, variant),
+                                 errors.ECODE_INVAL)
+    return
+  if not variant:
+    raise errors.OpPrereqError("OS name must include a variant",
+                               errors.ECODE_INVAL)
+
+  if variant not in os_obj.supported_variants:
+    raise errors.OpPrereqError("Unsupported OS variant", errors.ECODE_INVAL)
