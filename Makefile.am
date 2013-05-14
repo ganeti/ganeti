@@ -321,6 +321,7 @@ cmdlib_PYTHON = \
 	lib/cmdlib/operating_system.py \
 	lib/cmdlib/tags.py \
 	lib/cmdlib/network.py \
+	lib/cmdlib/misc.py \
 	lib/cmdlib/test.py
 
 hypervisor_PYTHON = \
