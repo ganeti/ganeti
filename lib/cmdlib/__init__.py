@@ -62,31 +62,29 @@ from ganeti.cmdlib.instance_utils import _AssembleInstanceDisks, \
 
 from ganeti.cmdlib.cluster import LUClusterActivateMasterIp, \
   LUClusterDeactivateMasterIp, LUClusterConfigQuery, LUClusterDestroy, \
-  LUClusterPostInit, _ClusterQuery, LUClusterQuery, LUClusterRedistConf, \
-  LUClusterRename, LUClusterRepairDiskSizes, LUClusterSetParams, \
-  LUClusterVerify, LUClusterVerifyConfig, LUClusterVerifyGroup, \
-  LUClusterVerifyDisks
+  LUClusterPostInit, LUClusterQuery, LUClusterRedistConf, LUClusterRename, \
+  LUClusterRepairDiskSizes, LUClusterSetParams, LUClusterVerify, \
+  LUClusterVerifyConfig, LUClusterVerifyGroup, LUClusterVerifyDisks
 from ganeti.cmdlib.group import LUGroupAdd, LUGroupAssignNodes, \
-  _GroupQuery, LUGroupQuery, LUGroupSetParams, LUGroupRemove, \
-  LUGroupRename, LUGroupEvacuate, LUGroupVerifyDisks
+  LUGroupQuery, LUGroupSetParams, LUGroupRemove, LUGroupRename, \
+  LUGroupEvacuate, LUGroupVerifyDisks
 from ganeti.cmdlib.node import LUNodeAdd, LUNodeSetParams, \
   LUNodePowercycle, LUNodeEvacuate, LUNodeMigrate, LUNodeModifyStorage, \
-  _NodeQuery, LUNodeQuery, LUNodeQueryvols, LUNodeQueryStorage, \
-  LUNodeRemove, LURepairNodeStorage
+  LUNodeQuery, LUNodeQueryvols, LUNodeQueryStorage, LUNodeRemove, \
+  LURepairNodeStorage
 from ganeti.cmdlib.instance import LUInstanceCreate, LUInstanceRename, \
-  LUInstanceRemove, LUInstanceMove, _InstanceQuery, LUInstanceQuery, \
-  LUInstanceQueryData, LUInstanceRecreateDisks, LUInstanceGrowDisk, \
-  LUInstanceReplaceDisks, LUInstanceActivateDisks, \
-  LUInstanceDeactivateDisks, LUInstanceStartup, LUInstanceShutdown, \
-  LUInstanceReinstall, LUInstanceReboot, LUInstanceConsole, \
-  LUInstanceFailover, LUInstanceMigrate, LUInstanceMultiAlloc, \
-  LUInstanceSetParams, LUInstanceChangeGroup
-from ganeti.cmdlib.backup import _ExportQuery, LUBackupQuery, \
-  LUBackupPrepare, LUBackupExport, LUBackupRemove
+  LUInstanceRemove, LUInstanceMove, LUInstanceQuery, LUInstanceQueryData, \
+  LUInstanceRecreateDisks, LUInstanceGrowDisk, LUInstanceReplaceDisks, \
+  LUInstanceActivateDisks, LUInstanceDeactivateDisks, LUInstanceStartup, \
+  LUInstanceShutdown, LUInstanceReinstall, LUInstanceReboot, \
+  LUInstanceConsole, LUInstanceFailover, LUInstanceMigrate, \
+  LUInstanceMultiAlloc, LUInstanceSetParams, LUInstanceChangeGroup
+from ganeti.cmdlib.backup import LUBackupQuery, LUBackupPrepare, \
+  LUBackupExport, LUBackupRemove
+from ganeti.cmdlib.query import LUQuery, LUQueryFields
 from ganeti.cmdlib.tags import LUTagsGet, LUTagsSearch, LUTagsSet, LUTagsDel
 from ganeti.cmdlib.network import LUNetworkAdd, LUNetworkRemove, \
-  LUNetworkSetParams, _NetworkQuery, LUNetworkQuery, LUNetworkConnect, \
-  LUNetworkDisconnect
+  LUNetworkSetParams, LUNetworkQuery, LUNetworkConnect, LUNetworkDisconnect
 from ganeti.cmdlib.test import LUTestDelay, LUTestJqueue, LUTestAllocator
 
 
@@ -590,45 +588,6 @@ class LUExtStorageDiagnose(NoHooksLU):
     return self.eq.OldStyleQuery(self)
 
 
-class LUQuery(NoHooksLU):
-  """Query for resources/items of a certain kind.
-
-  """
-  # pylint: disable=W0142
-  REQ_BGL = False
-
-  def CheckArguments(self):
-    qcls = _GetQueryImplementation(self.op.what)
-
-    self.impl = qcls(self.op.qfilter, self.op.fields, self.op.use_locking)
-
-  def ExpandNames(self):
-    self.impl.ExpandNames(self)
-
-  def DeclareLocks(self, level):
-    self.impl.DeclareLocks(self, level)
-
-  def Exec(self, feedback_fn):
-    return self.impl.NewStyleQuery(self)
-
-
-class LUQueryFields(NoHooksLU):
-  """Query for resources/items of a certain kind.
-
-  """
-  # pylint: disable=W0142
-  REQ_BGL = False
-
-  def CheckArguments(self):
-    self.qcls = _GetQueryImplementation(self.op.what)
-
-  def ExpandNames(self):
-    self.needed_locks = {}
-
-  def Exec(self, feedback_fn):
-    return query.QueryFields(self.qcls.FIELDS, self.op.fields)
-
-
 class LURestrictedCommand(NoHooksLU):
   """Logical unit for executing restricted commands.
 
@@ -674,31 +633,3 @@ class LURestrictedCommand(NoHooksLU):
         result.append((True, nres.payload))
 
     return result
-
-
-#: Query type implementations
-_QUERY_IMPL = {
-  constants.QR_CLUSTER: _ClusterQuery,
-  constants.QR_INSTANCE: _InstanceQuery,
-  constants.QR_NODE: _NodeQuery,
-  constants.QR_GROUP: _GroupQuery,
-  constants.QR_NETWORK: _NetworkQuery,
-  constants.QR_OS: _OsQuery,
-  constants.QR_EXTSTORAGE: _ExtStorageQuery,
-  constants.QR_EXPORT: _ExportQuery,
-  }
-
-assert set(_QUERY_IMPL.keys()) == constants.QR_VIA_OP
-
-
-def _GetQueryImplementation(name):
-  """Returns the implemtnation for a query type.
-
-  @param name: Query type, must be one of L{constants.QR_VIA_OP}
-
-  """
-  try:
-    return _QUERY_IMPL[name]
-  except KeyError:
-    raise errors.OpPrereqError("Unknown query resource '%s'" % name,
-                               errors.ECODE_INVAL)

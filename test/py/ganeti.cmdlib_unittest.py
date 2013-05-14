@@ -37,6 +37,7 @@ from ganeti.cmdlib import cluster
 from ganeti.cmdlib import group
 from ganeti.cmdlib import instance
 from ganeti.cmdlib import common
+from ganeti.cmdlib import query
 from ganeti import opcodes
 from ganeti import errors
 from ganeti import utils
@@ -164,18 +165,18 @@ class TestLUTestJqueue(unittest.TestCase):
 
 class TestLUQuery(unittest.TestCase):
   def test(self):
-    self.assertEqual(sorted(cmdlib._QUERY_IMPL.keys()),
+    self.assertEqual(sorted(query._QUERY_IMPL.keys()),
                      sorted(constants.QR_VIA_OP))
 
     assert constants.QR_NODE in constants.QR_VIA_OP
     assert constants.QR_INSTANCE in constants.QR_VIA_OP
 
     for i in constants.QR_VIA_OP:
-      self.assert_(cmdlib._GetQueryImplementation(i))
+      self.assert_(query._GetQueryImplementation(i))
 
-    self.assertRaises(errors.OpPrereqError, cmdlib._GetQueryImplementation,
+    self.assertRaises(errors.OpPrereqError, query._GetQueryImplementation,
                       "")
-    self.assertRaises(errors.OpPrereqError, cmdlib._GetQueryImplementation,
+    self.assertRaises(errors.OpPrereqError, query._GetQueryImplementation,
                       "xyz")
 
 
