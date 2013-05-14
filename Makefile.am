@@ -322,7 +322,8 @@ storage_PYTHON = \
 	lib/storage/container.py \
 	lib/storage/drbd.py \
 	lib/storage/drbd_info.py \
-	lib/storage/drbd_cmdgen.py
+	lib/storage/drbd_cmdgen.py \
+	lib/storage/filestorage.py
 
 rapi_PYTHON = \
 	lib/rapi/__init__.py \
@@ -1191,6 +1192,7 @@ python_tests = \
 	test/py/ganeti.server.rapi_unittest.py \
 	test/py/ganeti.ssconf_unittest.py \
 	test/py/ganeti.ssh_unittest.py \
+	test/py/ganeti.storage.filestorage_unittest.py \
 	test/py/ganeti.tools.burnin_unittest.py \
 	test/py/ganeti.tools.ensure_dirs_unittest.py \
 	test/py/ganeti.tools.node_daemon_setup_unittest.py \
