@@ -24,12 +24,8 @@
 
 import unittest
 import os
-import time
 import tempfile
-import os.path
-import socket
 import operator
-import itertools
 
 from ganeti import bootstrap
 from ganeti import config
@@ -39,7 +35,7 @@ from ganeti import objects
 from ganeti import utils
 from ganeti import netutils
 from ganeti import compat
-from ganeti import cmdlib
+from ganeti.cmdlib import instance
 
 from ganeti.config import TemporaryReservationManager
 
@@ -614,7 +610,7 @@ class TestCheckInstanceDiskIvNames(unittest.TestCase):
   def testNoError(self):
     disks = self._MakeDisks(["disk/0", "disk/1"])
     self.assertEqual(config._CheckInstanceDiskIvNames(disks), [])
-    cmdlib._UpdateIvNames(0, disks)
+    instance._UpdateIvNames(0, disks)
     self.assertEqual(config._CheckInstanceDiskIvNames(disks), [])
 
   def testWrongNames(self):
@@ -625,7 +621,7 @@ class TestCheckInstanceDiskIvNames(unittest.TestCase):
       ])
 
     # Fix names
-    cmdlib._UpdateIvNames(0, disks)
+    instance._UpdateIvNames(0, disks)
     self.assertEqual(config._CheckInstanceDiskIvNames(disks), [])
 
 

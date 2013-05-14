@@ -24,7 +24,6 @@
 
 import os
 import unittest
-import time
 import tempfile
 import shutil
 import operator
@@ -36,6 +35,7 @@ from ganeti import mcpu
 from ganeti import cmdlib
 from ganeti.cmdlib import cluster
 from ganeti.cmdlib import group
+from ganeti.cmdlib import instance
 from ganeti.cmdlib import common
 from ganeti import opcodes
 from ganeti import errors
@@ -173,7 +173,8 @@ class TestLUQuery(unittest.TestCase):
     for i in constants.QR_VIA_OP:
       self.assert_(cmdlib._GetQueryImplementation(i))
 
-    self.assertRaises(errors.OpPrereqError, cmdlib._GetQueryImplementation, "")
+    self.assertRaises(errors.OpPrereqError, cmdlib._GetQueryImplementation,
+                      "")
     self.assertRaises(errors.OpPrereqError, cmdlib._GetQueryImplementation,
                       "xyz")
 
@@ -181,12 +182,12 @@ class TestLUQuery(unittest.TestCase):
 class TestLUGroupAssignNodes(unittest.TestCase):
 
   def testCheckAssignmentForSplitInstances(self):
-    node_data = dict((name, objects.Node(name=name, group=group))
-                     for (name, group) in [("n1a", "g1"), ("n1b", "g1"),
-                                           ("n2a", "g2"), ("n2b", "g2"),
-                                           ("n3a", "g3"), ("n3b", "g3"),
-                                           ("n3c", "g3"),
-                                           ])
+    node_data = dict((n, objects.Node(name=n, group=g))
+                     for (n, g) in [("n1a", "g1"), ("n1b", "g1"),
+                                    ("n2a", "g2"), ("n2b", "g2"),
+                                    ("n3a", "g3"), ("n3b", "g3"),
+                                    ("n3c", "g3"),
+                                    ])
 
     def Instance(name, pnode, snode):
       if snode is None:
@@ -865,9 +866,9 @@ class TestComputeIPolicyInstanceSpecViolation(unittest.TestCase):
       }
     stub = _StubComputeIPolicySpecViolation(2048, 2, 1, 0, [512], 1,
                                             constants.DT_PLAIN)
-    ret = cmdlib._ComputeIPolicyInstanceSpecViolation(NotImplemented, ispec,
-                                                      constants.DT_PLAIN,
-                                                      _compute_fn=stub)
+    ret = instance._ComputeIPolicyInstanceSpecViolation(NotImplemented, ispec,
+                                                        constants.DT_PLAIN,
+                                                        _compute_fn=stub)
     self.assertEqual(ret, [])
 
 
@@ -886,16 +887,18 @@ class TestComputeIPolicyNodeViolation(unittest.TestCase):
     self.recorder = _CallRecorder(return_value=[])
 
   def testSameGroup(self):
-    ret = cmdlib._ComputeIPolicyNodeViolation(NotImplemented, NotImplemented,
-                                              "foo", "foo", NotImplemented,
-                                              _compute_fn=self.recorder)
+    ret = instance._ComputeIPolicyNodeViolation(NotImplemented,
+                                                NotImplemented,
+                                                "foo", "foo", NotImplemented,
+                                                _compute_fn=self.recorder)
     self.assertFalse(self.recorder.called)
     self.assertEqual(ret, [])
 
   def testDifferentGroup(self):
-    ret = cmdlib._ComputeIPolicyNodeViolation(NotImplemented, NotImplemented,
-                                              "foo", "bar", NotImplemented,
-                                              _compute_fn=self.recorder)
+    ret = instance._ComputeIPolicyNodeViolation(NotImplemented,
+                                                NotImplemented,
+                                                "foo", "bar", NotImplemented,
+                                                _compute_fn=self.recorder)
     self.assertTrue(self.recorder.called)
     self.assertEqual(ret, [])
 
@@ -918,25 +921,26 @@ class TestCheckTargetNodeIPolicy(unittest.TestCase):
 
   def testNoViolation(self):
     compute_recoder = _CallRecorder(return_value=[])
-    cmdlib._CheckTargetNodeIPolicy(self.lu, NotImplemented, self.instance,
-                                   self.target_node, NotImplemented,
-                                   _compute_fn=compute_recoder)
+    instance._CheckTargetNodeIPolicy(self.lu, NotImplemented, self.instance,
+                                     self.target_node, NotImplemented,
+                                     _compute_fn=compute_recoder)
     self.assertTrue(compute_recoder.called)
     self.assertEqual(self.lu.warning_log, [])
 
   def testNoIgnore(self):
     compute_recoder = _CallRecorder(return_value=["mem_size not in range"])
-    self.assertRaises(errors.OpPrereqError, cmdlib._CheckTargetNodeIPolicy,
-                      self.lu, NotImplemented, self.instance, self.target_node,
-                      NotImplemented, _compute_fn=compute_recoder)
+    self.assertRaises(errors.OpPrereqError, instance._CheckTargetNodeIPolicy,
+                      self.lu, NotImplemented, self.instance,
+                      self.target_node, NotImplemented,
+                      _compute_fn=compute_recoder)
     self.assertTrue(compute_recoder.called)
     self.assertEqual(self.lu.warning_log, [])
 
   def testIgnoreViolation(self):
     compute_recoder = _CallRecorder(return_value=["mem_size not in range"])
-    cmdlib._CheckTargetNodeIPolicy(self.lu, NotImplemented, self.instance,
-                                   self.target_node, NotImplemented,
-                                   ignore=True, _compute_fn=compute_recoder)
+    instance._CheckTargetNodeIPolicy(self.lu, NotImplemented, self.instance,
+                                     self.target_node, NotImplemented,
+                                     ignore=True, _compute_fn=compute_recoder)
     self.assertTrue(compute_recoder.called)
     msg = ("Instance does not meet target node group's (bar) instance policy:"
            " mem_size not in range")
@@ -947,76 +951,77 @@ class TestApplyContainerMods(unittest.TestCase):
   def testEmptyContainer(self):
     container = []
     chgdesc = []
-    cmdlib.ApplyContainerMods("test", container, chgdesc, [], None, None, None)
+    instance.ApplyContainerMods("test", container, chgdesc, [], None, None,
+                                None)
     self.assertEqual(container, [])
     self.assertEqual(chgdesc, [])
 
   def testAdd(self):
     container = []
     chgdesc = []
-    mods = cmdlib.PrepareContainerMods([
+    mods = instance.PrepareContainerMods([
       (constants.DDM_ADD, -1, "Hello"),
       (constants.DDM_ADD, -1, "World"),
       (constants.DDM_ADD, 0, "Start"),
       (constants.DDM_ADD, -1, "End"),
       ], None)
-    cmdlib.ApplyContainerMods("test", container, chgdesc, mods,
-                              None, None, None)
+    instance.ApplyContainerMods("test", container, chgdesc, mods,
+                                None, None, None)
     self.assertEqual(container, ["Start", "Hello", "World", "End"])
     self.assertEqual(chgdesc, [])
 
-    mods = cmdlib.PrepareContainerMods([
+    mods = instance.PrepareContainerMods([
       (constants.DDM_ADD, 0, "zero"),
       (constants.DDM_ADD, 3, "Added"),
       (constants.DDM_ADD, 5, "four"),
       (constants.DDM_ADD, 7, "xyz"),
       ], None)
-    cmdlib.ApplyContainerMods("test", container, chgdesc, mods,
-                              None, None, None)
+    instance.ApplyContainerMods("test", container, chgdesc, mods,
+                                None, None, None)
     self.assertEqual(container,
                      ["zero", "Start", "Hello", "Added", "World", "four",
                       "End", "xyz"])
     self.assertEqual(chgdesc, [])
 
     for idx in [-2, len(container) + 1]:
-      mods = cmdlib.PrepareContainerMods([
+      mods = instance.PrepareContainerMods([
         (constants.DDM_ADD, idx, "error"),
         ], None)
-      self.assertRaises(IndexError, cmdlib.ApplyContainerMods,
+      self.assertRaises(IndexError, instance.ApplyContainerMods,
                         "test", container, None, mods, None, None, None)
 
   def testRemoveError(self):
     for idx in [0, 1, 2, 100, -1, -4]:
-      mods = cmdlib.PrepareContainerMods([
+      mods = instance.PrepareContainerMods([
         (constants.DDM_REMOVE, idx, None),
         ], None)
-      self.assertRaises(IndexError, cmdlib.ApplyContainerMods,
+      self.assertRaises(IndexError, instance.ApplyContainerMods,
                         "test", [], None, mods, None, None, None)
 
-    mods = cmdlib.PrepareContainerMods([
+    mods = instance.PrepareContainerMods([
       (constants.DDM_REMOVE, 0, object()),
       ], None)
-    self.assertRaises(AssertionError, cmdlib.ApplyContainerMods,
+    self.assertRaises(AssertionError, instance.ApplyContainerMods,
                       "test", [""], None, mods, None, None, None)
 
   def testAddError(self):
     for idx in range(-100, -1) + [100]:
-      mods = cmdlib.PrepareContainerMods([
+      mods = instance.PrepareContainerMods([
         (constants.DDM_ADD, idx, None),
         ], None)
-      self.assertRaises(IndexError, cmdlib.ApplyContainerMods,
+      self.assertRaises(IndexError, instance.ApplyContainerMods,
                         "test", [], None, mods, None, None, None)
 
   def testRemove(self):
     container = ["item 1", "item 2"]
-    mods = cmdlib.PrepareContainerMods([
+    mods = instance.PrepareContainerMods([
       (constants.DDM_ADD, -1, "aaa"),
       (constants.DDM_REMOVE, -1, None),
       (constants.DDM_ADD, -1, "bbb"),
       ], None)
     chgdesc = []
-    cmdlib.ApplyContainerMods("test", container, chgdesc, mods,
-                              None, None, None)
+    instance.ApplyContainerMods("test", container, chgdesc, mods,
+                                None, None, None)
     self.assertEqual(container, ["item 1", "item 2", "bbb"])
     self.assertEqual(chgdesc, [
       ("test/2", "remove"),
@@ -1024,22 +1029,22 @@ class TestApplyContainerMods(unittest.TestCase):
 
   def testModify(self):
     container = ["item 1", "item 2"]
-    mods = cmdlib.PrepareContainerMods([
+    mods = instance.PrepareContainerMods([
       (constants.DDM_MODIFY, -1, "a"),
       (constants.DDM_MODIFY, 0, "b"),
       (constants.DDM_MODIFY, 1, "c"),
       ], None)
     chgdesc = []
-    cmdlib.ApplyContainerMods("test", container, chgdesc, mods,
-                              None, None, None)
+    instance.ApplyContainerMods("test", container, chgdesc, mods,
+                                None, None, None)
     self.assertEqual(container, ["item 1", "item 2"])
     self.assertEqual(chgdesc, [])
 
     for idx in [-2, len(container) + 1]:
-      mods = cmdlib.PrepareContainerMods([
+      mods = instance.PrepareContainerMods([
         (constants.DDM_MODIFY, idx, "error"),
         ], None)
-      self.assertRaises(IndexError, cmdlib.ApplyContainerMods,
+      self.assertRaises(IndexError, instance.ApplyContainerMods,
                         "test", container, None, mods, None, None, None)
 
   class _PrivateData:
@@ -1067,7 +1072,7 @@ class TestApplyContainerMods(unittest.TestCase):
   def testAddWithCreateFunction(self):
     container = []
     chgdesc = []
-    mods = cmdlib.PrepareContainerMods([
+    mods = instance.PrepareContainerMods([
       (constants.DDM_ADD, -1, "Hello"),
       (constants.DDM_ADD, -1, "World"),
       (constants.DDM_ADD, 0, "Start"),
@@ -1077,8 +1082,9 @@ class TestApplyContainerMods(unittest.TestCase):
       (constants.DDM_REMOVE, 2, None),
       (constants.DDM_ADD, 1, "More"),
       ], self._PrivateData)
-    cmdlib.ApplyContainerMods("test", container, chgdesc, mods,
-      self._CreateTestFn, self._ModifyTestFn, self._RemoveTestFn)
+    instance.ApplyContainerMods("test", container, chgdesc, mods,
+                                self._CreateTestFn, self._ModifyTestFn,
+                                self._RemoveTestFn)
     self.assertEqual(container, [
       (000, "Start"),
       (100, "More"),
@@ -1156,7 +1162,7 @@ class TestGenerateDiskTemplate(unittest.TestCase):
     return copy.deepcopy(constants.DISK_DT_DEFAULTS)
 
   def testWrongDiskTemplate(self):
-    gdt = cmdlib._GenerateDiskTemplate
+    gdt = instance._GenerateDiskTemplate
     disk_template = "##unknown##"
 
     assert disk_template not in constants.DISK_TEMPLATES
@@ -1167,7 +1173,7 @@ class TestGenerateDiskTemplate(unittest.TestCase):
                       self.GetDiskParams())
 
   def testDiskless(self):
-    gdt = cmdlib._GenerateDiskTemplate
+    gdt = instance._GenerateDiskTemplate
 
     result = gdt(self.lu, constants.DT_DISKLESS, "inst27734.example.com",
                  "node30113.example.com", [], [],
@@ -1180,7 +1186,7 @@ class TestGenerateDiskTemplate(unittest.TestCase):
                        file_driver=NotImplemented,
                        req_file_storage=NotImplemented,
                        req_shr_file_storage=NotImplemented):
-    gdt = cmdlib._GenerateDiskTemplate
+    gdt = instance._GenerateDiskTemplate
 
     map(lambda params: utils.ForceDictType(params,
                                            constants.IDISK_PARAMS_TYPES),
@@ -1210,7 +1216,7 @@ class TestGenerateDiskTemplate(unittest.TestCase):
       self.assertTrue(disk.children is None)
 
     self._CheckIvNames(result, base_index, base_index + len(disk_info))
-    cmdlib._UpdateIvNames(base_index, result)
+    instance._UpdateIvNames(base_index, result)
     self._CheckIvNames(result, base_index, base_index + len(disk_info))
 
     return result
@@ -1309,7 +1315,7 @@ class TestGenerateDiskTemplate(unittest.TestCase):
       ])
 
   def testDrbd8(self):
-    gdt = cmdlib._GenerateDiskTemplate
+    gdt = instance._GenerateDiskTemplate
     drbd8_defaults = constants.DISK_LD_DEFAULTS[constants.LD_DRBD8]
     drbd8_default_metavg = drbd8_defaults[constants.LDP_DEFAULT_METAVG]
 
@@ -1374,7 +1380,7 @@ class TestGenerateDiskTemplate(unittest.TestCase):
       self.assertEqual(disk.children[1].size, constants.DRBD_META_SIZE)
 
     self._CheckIvNames(result, 0, len(disk_info))
-    cmdlib._UpdateIvNames(0, result)
+    instance._UpdateIvNames(0, result)
     self._CheckIvNames(result, 0, len(disk_info))
 
     self.assertEqual(map(operator.attrgetter("logical_id"), result), [
@@ -1475,12 +1481,12 @@ class TestWipeDisks(unittest.TestCase):
       objects.Disk(dev_type=constants.LD_LV),
       ]
 
-    instance = objects.Instance(name="inst21201",
-                                primary_node=node_name,
-                                disk_template=constants.DT_PLAIN,
-                                disks=disks)
+    inst = objects.Instance(name="inst21201",
+                            primary_node=node_name,
+                            disk_template=constants.DT_PLAIN,
+                            disks=disks)
 
-    self.assertRaises(errors.OpExecError, cmdlib._WipeDisks, lu, instance)
+    self.assertRaises(errors.OpExecError, instance._WipeDisks, lu, inst)
 
   def _FailingWipeCb(self, (disk, _), offset, size):
     # This should only ever be called for the first disk
@@ -1502,13 +1508,13 @@ class TestWipeDisks(unittest.TestCase):
       objects.Disk(dev_type=constants.LD_LV, logical_id="disk2", size=256),
       ]
 
-    instance = objects.Instance(name="inst562",
-                                primary_node=node_name,
-                                disk_template=constants.DT_PLAIN,
-                                disks=disks)
+    inst = objects.Instance(name="inst562",
+                            primary_node=node_name,
+                            disk_template=constants.DT_PLAIN,
+                            disks=disks)
 
     try:
-      cmdlib._WipeDisks(lu, instance)
+      instance._WipeDisks(lu, inst)
     except errors.OpExecError, err:
       self.assertTrue(str(err), "Could not wipe disk 0 at offset 0 ")
     else:
@@ -1549,9 +1555,9 @@ class TestWipeDisks(unittest.TestCase):
                    size=constants.MAX_WIPE_CHUNK),
       ]
 
-    (lu, instance, pauset, progresst) = self._PrepareWipeTest(0, disks)
+    (lu, inst, pauset, progresst) = self._PrepareWipeTest(0, disks)
 
-    cmdlib._WipeDisks(lu, instance)
+    instance._WipeDisks(lu, inst)
 
     self.assertEqual(pauset.history, [
       ("disk0", 1024, True),
@@ -1577,12 +1583,12 @@ class TestWipeDisks(unittest.TestCase):
                      size=start_offset + (100 * 1024)),
         ]
 
-      (lu, instance, pauset, progresst) = \
+      (lu, inst, pauset, progresst) = \
         self._PrepareWipeTest(start_offset, disks)
 
       # Test start offset with only one disk
-      cmdlib._WipeDisks(lu, instance,
-                        disks=[(1, disks[1], start_offset)])
+      instance._WipeDisks(lu, inst,
+                          disks=[(1, disks[1], start_offset)])
 
       # Only the second disk may have been paused and wiped
       self.assertEqual(pauset.history, [
@@ -1598,7 +1604,7 @@ class TestDiskSizeInBytesToMebibytes(unittest.TestCase):
   def testLessThanOneMebibyte(self):
     for i in [1, 2, 7, 512, 1000, 1023]:
       lu = _FakeLU()
-      result = cmdlib._DiskSizeInBytesToMebibytes(lu, i)
+      result = instance._DiskSizeInBytesToMebibytes(lu, i)
       self.assertEqual(result, 1)
       self.assertEqual(len(lu.warning_log), 1)
       self.assertEqual(len(lu.warning_log[0]), 2)
@@ -1608,7 +1614,7 @@ class TestDiskSizeInBytesToMebibytes(unittest.TestCase):
   def testEven(self):
     for i in [1, 2, 7, 512, 1000, 1023]:
       lu = _FakeLU()
-      result = cmdlib._DiskSizeInBytesToMebibytes(lu, i * 1024 * 1024)
+      result = instance._DiskSizeInBytesToMebibytes(lu, i * 1024 * 1024)
       self.assertEqual(result, i)
       self.assertFalse(lu.warning_log)
 
@@ -1617,7 +1623,7 @@ class TestDiskSizeInBytesToMebibytes(unittest.TestCase):
       for j in [1, 2, 486, 326, 986, 1023]:
         lu = _FakeLU()
         size = (1024 * 1024 * i) + j
-        result = cmdlib._DiskSizeInBytesToMebibytes(lu, size)
+        result = instance._DiskSizeInBytesToMebibytes(lu, size)
         self.assertEqual(result, i + 1, msg="Amount was not rounded up")
         self.assertEqual(len(lu.warning_log), 1)
         self.assertEqual(len(lu.warning_log[0]), 2)
@@ -1627,12 +1633,12 @@ class TestDiskSizeInBytesToMebibytes(unittest.TestCase):
 
 class TestCopyLockList(unittest.TestCase):
   def test(self):
-    self.assertEqual(cmdlib._CopyLockList([]), [])
-    self.assertEqual(cmdlib._CopyLockList(None), None)
-    self.assertEqual(cmdlib._CopyLockList(locking.ALL_SET), locking.ALL_SET)
+    self.assertEqual(instance._CopyLockList([]), [])
+    self.assertEqual(instance._CopyLockList(None), None)
+    self.assertEqual(instance._CopyLockList(locking.ALL_SET), locking.ALL_SET)
 
     names = ["foo", "bar"]
-    output = cmdlib._CopyLockList(names)
+    output = instance._CopyLockList(names)
     self.assertEqual(names, output)
     self.assertNotEqual(id(names), id(output), msg="List was not copied")
 
@@ -1651,22 +1657,23 @@ class TestCheckOpportunisticLocking(unittest.TestCase):
     return op
 
   def testMissingAttributes(self):
-    self.assertRaises(AttributeError, cmdlib._CheckOpportunisticLocking,
+    self.assertRaises(AttributeError, instance._CheckOpportunisticLocking,
                       object())
 
   def testDefaults(self):
     op = self._MakeOp()
-    cmdlib._CheckOpportunisticLocking(op)
+    instance._CheckOpportunisticLocking(op)
 
   def test(self):
     for iallocator in [None, "something", "other"]:
       for opplock in [False, True]:
-        op = self._MakeOp(iallocator=iallocator, opportunistic_locking=opplock)
+        op = self._MakeOp(iallocator=iallocator,
+                          opportunistic_locking=opplock)
         if opplock and not iallocator:
           self.assertRaises(errors.OpPrereqError,
-                            cmdlib._CheckOpportunisticLocking, op)
+                            instance._CheckOpportunisticLocking, op)
         else:
-          cmdlib._CheckOpportunisticLocking(op)
+          instance._CheckOpportunisticLocking(op)
 
 
 class _OpTestVerifyErrors(opcodes.OpCode):

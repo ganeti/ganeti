@@ -1002,8 +1002,9 @@ def _FindFaultyInstanceDisks(cfg, rpc_runner, instance, node_name, prereq):
   for dev in instance.disks:
     cfg.SetDiskID(dev, node_name)
 
-  result = rpc_runner.call_blockdev_getmirrorstatus(node_name, (instance.disks,
-                                                                instance))
+  result = rpc_runner.call_blockdev_getmirrorstatus(node_name,
+                                                    (instance.disks,
+                                                     instance))
   result.Raise("Failed to get disk status from node %s" % node_name,
                prereq=prereq, ecode=errors.ECODE_ENVIRON)
 
@@ -1012,3 +1013,18 @@ def _FindFaultyInstanceDisks(cfg, rpc_runner, instance, node_name, prereq):
       faulty.append(idx)
 
   return faulty
+
+
+def _CheckNodeOnline(lu, node, msg=None):
+  """Ensure that a given node is online.
+
+  @param lu: the LU on behalf of which we make the check
+  @param node: the node to check
+  @param msg: if passed, should be a message to replace the default one
+  @raise errors.OpPrereqError: if the node is offline
+
+  """
+  if msg is None:
+    msg = "Can't use offline node"
+  if lu.cfg.GetNodeInfo(node).offline:
+    raise errors.OpPrereqError("%s: %s" % (msg, node), errors.ECODE_STATE)

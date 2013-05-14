@@ -314,6 +314,8 @@ cmdlib_PYTHON = \
 	lib/cmdlib/cluster.py \
 	lib/cmdlib/group.py \
 	lib/cmdlib/node.py \
+	lib/cmdlib/instance.py \
+	lib/cmdlib/instance_utils.py \
 	lib/cmdlib/tags.py \
 	lib/cmdlib/network.py \
 	lib/cmdlib/test.py
