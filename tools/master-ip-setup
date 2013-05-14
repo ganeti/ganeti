@@ -62,6 +62,20 @@ start() {
 
 # Stop the master IP
 stop() {
+  # Check if the master IP address is still configured on this machine
+  if ! ip addr show dev $MASTER_NETDEV | \
+     grep -F " $MASTER_IP/$MASTER_NETMASK" >/dev/null 2>&1; then
+    # Check if the master IP address is configured on a wrong device
+    if fping -S 127.0.0.1 $MASTER_IP >/dev/null 2>&1; then
+      echo "Error: master IP address configured on wrong device," \
+           "can't shut it down." >&2
+      exit 1
+    else
+      echo "Master IP address not configured on this machine. Doing nothing."
+      exit 0
+    fi
+  fi
+
   if ! ip addr del $MASTER_IP/$MASTER_NETMASK dev $MASTER_NETDEV; then
     echo "Error during the deactivation of the master IP address" >&2
     exit 1
