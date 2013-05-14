@@ -1143,8 +1143,6 @@ python_tests = \
 	test/py/ganeti.asyncnotifier_unittest.py \
 	test/py/ganeti.backend_unittest-runasroot.py \
 	test/py/ganeti.backend_unittest.py \
-	test/py/ganeti.storage.bdev_unittest.py \
-	test/py/ganeti.storage.drbd_unittest.py \
 	test/py/ganeti.cli_unittest.py \
 	test/py/ganeti.client.gnt_cluster_unittest.py \
 	test/py/ganeti.client.gnt_instance_unittest.py \
@@ -1154,7 +1152,6 @@ python_tests = \
 	test/py/ganeti.confd.client_unittest.py \
 	test/py/ganeti.config_unittest.py \
 	test/py/ganeti.constants_unittest.py \
-	test/py/ganeti.storage.container_unittest.py \
 	test/py/ganeti.daemon_unittest.py \
 	test/py/ganeti.errors_unittest.py \
 	test/py/ganeti.hooks_unittest.py \
@@ -1192,6 +1189,9 @@ python_tests = \
 	test/py/ganeti.server.rapi_unittest.py \
 	test/py/ganeti.ssconf_unittest.py \
 	test/py/ganeti.ssh_unittest.py \
+	test/py/ganeti.storage.bdev_unittest.py \
+	test/py/ganeti.storage.container_unittest.py \
+	test/py/ganeti.storage.drbd_unittest.py \
 	test/py/ganeti.storage.filestorage_unittest.py \
 	test/py/ganeti.tools.burnin_unittest.py \
 	test/py/ganeti.tools.ensure_dirs_unittest.py \
