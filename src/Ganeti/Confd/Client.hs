@@ -42,6 +42,7 @@ import Ganeti.Confd.Utils
 import qualified Ganeti.Constants as C
 import Ganeti.Hash
 import Ganeti.Ssconf
+import Ganeti.Utils
 
 -- | Builds a properly initialized ConfdClient.
 -- The parameters (an IP address and the port number for the Confd client
@@ -117,9 +118,11 @@ queryOneServer semaphore answer crType cQuery hmac (host, port) = do
   let signedMsg =
         signMessage hmac timestamp (J.encodeStrict request)
       completeMsg = C.confdMagicFourcc ++ J.encodeStrict signedMsg
-  s <- S.socket S.AF_INET S.Datagram S.defaultProtocol
-  hostAddr <- S.inet_addr host
-  _ <- S.sendTo s completeMsg $ S.SockAddrInet port hostAddr
+  addr <- resolveAddr (fromIntegral port) host
+  (af_family, sockaddr) <-
+    exitIfBad "Unable to resolve the IP address" addr
+  s <- S.socket af_family S.Datagram S.defaultProtocol
+  _ <- S.sendTo s completeMsg sockaddr
   replyMsg <- S.recv s C.maxUdpDataSize
   parsedReply <-
     if C.confdMagicFourcc `isPrefixOf` replyMsg
