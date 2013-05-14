@@ -29,7 +29,7 @@ from ganeti import constants
 from ganeti import utils
 from ganeti import compat
 from ganeti import errors
-from ganeti import container
+from ganeti.storage import container
 
 import testutils
 

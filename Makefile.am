@@ -265,7 +265,6 @@ pkgpython_PYTHON = \
 	lib/compat.py \
 	lib/config.py \
 	lib/constants.py \
-	lib/container.py \
 	lib/daemon.py \
 	lib/errors.py \
 	lib/hooksmaster.py \
@@ -320,6 +319,7 @@ storage_PYTHON = \
 	lib/storage/__init__.py \
 	lib/storage/bdev.py \
 	lib/storage/base.py \
+	lib/storage/container.py \
 	lib/storage/drbd.py \
 	lib/storage/drbd_info.py \
 	lib/storage/drbd_cmdgen.py
@@ -1153,7 +1153,7 @@ python_tests = \
 	test/py/ganeti.confd.client_unittest.py \
 	test/py/ganeti.config_unittest.py \
 	test/py/ganeti.constants_unittest.py \
-	test/py/ganeti.container_unittest.py \
+	test/py/ganeti.storage.container_unittest.py \
 	test/py/ganeti.daemon_unittest.py \
 	test/py/ganeti.errors_unittest.py \
 	test/py/ganeti.hooks_unittest.py \

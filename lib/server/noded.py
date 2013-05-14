@@ -45,7 +45,7 @@ from ganeti import jstore
 from ganeti import daemon
 from ganeti import http
 from ganeti import utils
-from ganeti import container
+from ganeti.storage import container
 from ganeti import serializer
 from ganeti import netutils
 from ganeti import pathutils
