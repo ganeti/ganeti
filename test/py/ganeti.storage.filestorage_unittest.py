@@ -45,50 +45,6 @@ class TestFileStorageSpaceInfo(unittest.TestCase):
     """
     info = filestorage.GetSpaceInfo("/")
 
-  def testParseDfOutputValidInput(self):
-    """Tests that parsing of the output of 'df' works correctly.
-
-    """
-    valid_df_output = \
-      "Filesystem             1M-blocks   Used Available Use% Mounted on\n" \
-      "/dev/mapper/sysvg-root   161002M 58421M    94403M  39% /"
-    expected_size = 161002
-    expected_free = 94403
-
-    (size, free) = filestorage._ParseDfResult(valid_df_output)
-    self.assertEqual(expected_size, size,
-                     "Calculation of total size is incorrect.")
-    self.assertEqual(expected_free, free,
-                     "Calculation of free space is incorrect.")
-
-
-  def testParseDfOutputInvalidInput(self):
-    """Tests that parsing of the output of 'df' works correctly when invalid
-       input is given.
-
-    """
-    invalid_output_header_missing = \
-      "/dev/mapper/sysvg-root   161002M 58421M    94403M  39% /"
-    invalid_output_dataline_missing = \
-      "Filesystem             1M-blocks   Used Available Use% Mounted on\n"
-    invalid_output_wrong_num_columns = \
-      "Filesystem             1M-blocks Available\n" \
-      "/dev/mapper/sysvg-root   161002M    94403M"
-    invalid_output_units_wrong = \
-      "Filesystem             1M-blocks   Used Available Use% Mounted on\n" \
-      "/dev/mapper/sysvg-root   161002G 58421G    94403G  39% /"
-    invalid_output_units_missing = \
-      "Filesystem             1M-blocks   Used Available Use% Mounted on\n" \
-      "/dev/mapper/sysvg-root    161002  58421     94403  39% /"
-    invalid_outputs = [invalid_output_header_missing,
-                       invalid_output_dataline_missing,
-                       invalid_output_wrong_num_columns,
-                       invalid_output_units_wrong,
-                       invalid_output_units_missing]
-
-    for output in invalid_outputs:
-      self.assertRaises(errors.CommandError, filestorage._ParseDfResult, output)
-
 
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
