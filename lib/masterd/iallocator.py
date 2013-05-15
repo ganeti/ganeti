@@ -605,6 +605,7 @@ class IAllocator(object):
                    constants.IDISK_MODE: dsk.mode}
                   for dsk in iinfo.disks],
         "disk_template": iinfo.disk_template,
+        "disks_active": iinfo.disks_active,
         "hypervisor": iinfo.hypervisor,
         }
       pir["disk_space_total"] = gmi.ComputeDiskSize(iinfo.disk_template,

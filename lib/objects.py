@@ -1057,6 +1057,7 @@ class Instance(TaggableObject):
     "nics",
     "disks",
     "disk_template",
+    "disks_active",
     "network_port",
     "serial_no",
     ] + _TIMESTAMPS + _UUID

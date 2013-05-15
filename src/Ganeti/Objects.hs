@@ -472,6 +472,7 @@ $(buildObject "Instance" "inst" $
   , simpleField "nics"           [t| [PartialNic]       |]
   , simpleField "disks"          [t| [Disk]             |]
   , simpleField "disk_template"  [t| DiskTemplate       |]
+  , simpleField "disks_active"   [t| Bool               |]
   , optionalField $ simpleField "network_port" [t| Int  |]
   ]
   ++ timeStampFields

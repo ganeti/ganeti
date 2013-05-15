@@ -1139,6 +1139,7 @@ def ShutdownInstanceDisks(lu, instance, disks=None, ignore_primary=False):
   ignored.
 
   """
+  lu.cfg.MarkInstanceDisksInactive(instance.name)
   all_result = True
   disks = ExpandCheckDisks(instance, disks)
 
@@ -1205,6 +1206,10 @@ def AssembleInstanceDisks(lu, instance, disks=None, ignore_secondaries=False,
   # into any other network-connected state (Connected, SyncTarget,
   # SyncSource, etc.)
 
+  # mark instance disks as active before doing actual work, so watcher does
+  # not try to shut them down erroneously
+  lu.cfg.MarkInstanceDisksActive(iname)
+
   # 1st pass, assemble on all nodes in secondary mode
   for idx, inst_disk in enumerate(disks):
     for node, node_disk in inst_disk.ComputeNodeTree(instance.primary_node):
@@ -1255,6 +1260,9 @@ def AssembleInstanceDisks(lu, instance, disks=None, ignore_secondaries=False,
   # improving the logical/physical id handling
   for disk in disks:
     lu.cfg.SetDiskID(disk, instance.primary_node)
+
+  if not disks_ok:
+    lu.cfg.MarkInstanceDisksInactive(iname)
 
   return disks_ok, device_info
 
@@ -1460,9 +1468,9 @@ class LUInstanceGrowDisk(LogicalUnit):
       if disk_abort:
         self.LogWarning("Disk syncing has not returned a good status; check"
                         " the instance")
-      if instance.admin_state != constants.ADMINST_UP:
+      if not instance.disks_active:
         _SafeShutdownInstanceDisks(self, instance, disks=[disk])
-    elif instance.admin_state != constants.ADMINST_UP:
+    elif not instance.disks_active:
       self.LogWarning("Not shutting down the disk even if the instance is"
                       " not supposed to be running because no wait for"
                       " sync mode was requested")
@@ -1650,6 +1658,7 @@ class LUInstanceActivateDisks(NoHooksLU):
 
     if self.op.wait_for_sync:
       if not WaitForSync(self, self.instance):
+        self.cfg.MarkInstanceDisksInactive(self.instance.name)
         raise errors.OpExecError("Some disks of the instance are degraded!")
 
     return disks_info
@@ -2035,7 +2044,7 @@ class TLReplaceDisks(Tasklet):
     feedback_fn("Current seconary node: %s" %
                 utils.CommaJoin(self.instance.secondary_nodes))
 
-    activate_disks = (self.instance.admin_state != constants.ADMINST_UP)
+    activate_disks = not self.instance.disks_active
 
     # Activate the instance disks if we're replacing them on a down instance
     if activate_disks:

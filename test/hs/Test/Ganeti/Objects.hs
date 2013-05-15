@@ -131,6 +131,8 @@ instance Arbitrary Instance where
       <*> vectorOf 5 genDisk
       -- disk template
       <*> arbitrary
+      -- disks active
+      <*> arbitrary
       -- network port
       <*> arbitrary
       -- ts

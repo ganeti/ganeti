@@ -910,8 +910,7 @@ class LUGroupVerifyDisks(NoHooksLU):
     res_missing = {}
 
     nv_dict = MapInstanceDisksToNodes(
-      [inst for inst in self.instances.values()
-       if inst.admin_state == constants.ADMINST_UP])
+      [inst for inst in self.instances.values() if inst.disks_active])
 
     if nv_dict:
       nodes = utils.NiceSort(set(self.owned_locks(locking.LEVEL_NODE)) &
