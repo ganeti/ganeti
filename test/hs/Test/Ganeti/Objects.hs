@@ -34,6 +34,7 @@ module Test.Ganeti.Objects
   , genDisk
   , genDiskWithChildren
   , genEmptyCluster
+  , genInst
   , genInstWithNets
   , genValidNetwork
   , genBitStringMaxLen
@@ -127,7 +128,7 @@ instance Arbitrary Instance where
       -- nics
       <*> arbitrary
       -- disks
-      <*> arbitrary
+      <*> vectorOf 5 genDisk
       -- disk template
       <*> arbitrary
       -- network port
@@ -146,6 +147,16 @@ instance Arbitrary Instance where
 genInstWithNets :: [String] -> Gen Instance
 genInstWithNets nets = do
   plain_inst <- arbitrary
+  enhanceInstWithNets plain_inst nets
+
+-- | Generates an instance that is connected to some networks
+genInst :: Gen Instance
+genInst = genInstWithNets []
+
+-- | Enhances a given instance with network information, by connecting it to the
+-- given networks and possibly some other networks
+enhanceInstWithNets :: Instance -> [String] -> Gen Instance
+enhanceInstWithNets inst nets = do
   mac <- arbitrary
   ip <- arbitrary
   nicparams <- arbitrary
@@ -157,7 +168,7 @@ genInstWithNets nets = do
   let genNic net = PartialNic mac ip nicparams net name uuid
       partial_nics = map (genNic . Just)
                          (List.nub (nets ++ more_nets))
-      new_inst = plain_inst { instNics = partial_nics }
+      new_inst = inst { instNics = partial_nics }
   return new_inst
 
 genDiskWithChildren :: Int -> Gen Disk
