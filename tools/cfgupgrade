@@ -260,11 +260,29 @@ def UpgradeAll(config_data):
   UpgradeInstances(config_data)
 
 
+def DowngradeDisks(disks, owner):
+  for disk in disks:
+    # Remove spindles to downgrade to 2.8
+    if "spindles" in disk:
+      logging.warning("Removing spindles (value=%s) from disk %s (%s) of"
+                      " instance %s",
+                      disk["spindles"], disk["iv_name"], disk["uuid"], owner)
+      del disk["spindles"]
+
+
+def DowngradeInstances(config_data):
+  if "instances" not in config_data:
+    raise Error("Cannot find the 'instances' key in the configuration!")
+  for (iname, iobj) in config_data["instances"].items():
+    if "disks" not in iobj:
+      raise Error("Cannot find 'disks' key for instance %s" % iname)
+    DowngradeDisks(iobj["disks"], iname)
+
+
 def DowngradeAll(config_data):
-  # Unused arguments, pylint: disable=W0613
   # Any code specific to a particular version should be labeled that way, so
   # it can be removed when updating to the next version.
-  pass
+  DowngradeInstances(config_data)
 
 
 def main():
