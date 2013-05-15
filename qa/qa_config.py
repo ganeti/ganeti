@@ -418,6 +418,12 @@ class _QaConfig(object):
     return enabled and (not self.GetExclusiveStorage() or
                         templ in constants.DTS_EXCL_STORAGE)
 
+  def AreSpindlesSupported(self):
+    """Are spindles supported by the current configuration?
+
+    """
+    return self.GetExclusiveStorage()
+
   def GetVclusterSettings(self):
     """Returns settings for virtual cluster.
 
@@ -641,6 +647,13 @@ def IsTemplateSupported(templ):
 
   """
   return GetConfig().IsTemplateSupported(templ)
+
+
+def AreSpindlesSupported():
+  """Wrapper for L{_QaConfig.AreSpindlesSupported}.
+
+  """
+  return GetConfig().AreSpindlesSupported()
 
 
 def _NodeSortKey(node):

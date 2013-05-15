@@ -828,6 +828,10 @@ def TestRecreateDisks(instance, inodes, othernodes):
   AssertCommand(["gnt-instance", "stop", instance.name])
   # Disks exist: this should fail
   _AssertRecreateDisks([], instance, fail=True, destroy=False)
+  # Unsupported spindles parameters: fail
+  if not qa_config.AreSpindlesSupported():
+    _AssertRecreateDisks(["--disk=0:spindles=2"], instance,
+                         fail=True, destroy=False)
   # Recreate disks in place
   _AssertRecreateDisks([], instance)
   # Move disks away
@@ -840,12 +844,33 @@ def TestRecreateDisks(instance, inodes, othernodes):
     _AssertRecreateDisks(["-n", other_seq], instance)
   # Move disks back
   _AssertRecreateDisks(["-n", orig_seq], instance)
-  # Recreate the disks one by one
-  for idx in range(0, len(qa_config.GetDiskOptions())):
+  # Recreate resized disks
+  alldisks = qa_config.GetDiskOptions()
+  if qa_config.AreSpindlesSupported():
+    build_disks_opt = (lambda idx, disk:
+                       ("--disk=%s:size=%s,spindles=%s" %
+                        (idx, (utils.ParseUnit(disk["size"]) +
+                               utils.ParseUnit(disk["growth"])),
+                         disk["spindles"] + disk["spindles-growth"])))
+  else:
+    build_disks_opt = (lambda idx, disk:
+                       ("--disk=%s:size=%s" %
+                        (idx, (utils.ParseUnit(disk["size"]) +
+                               utils.ParseUnit(disk["growth"])))))
+  disk_opts = map(build_disks_opt, range(0, len(alldisks)), (alldisks))
+  _AssertRecreateDisks(disk_opts, instance)
+  # Recreate the disks one by one (with the original size)
+  if qa_config.AreSpindlesSupported():
+    build_disks_opt = lambda idx, disk: ("--disk=%s:size=%s,spindles=%s" %
+                                         (idx, disk["size"], disk["spindles"]))
+  else:
+    build_disks_opt = lambda idx, disk: ("--disk=%s:size=%s" %
+                                         (idx, disk["size"]))
+  for (idx, disk) in enumerate(alldisks):
     # Only the first call should destroy all the disk
     destroy = (idx == 0)
-    _AssertRecreateDisks(["--disk=%s" % idx], instance, destroy=destroy,
-                         check=False)
+    _AssertRecreateDisks([build_disks_opt(idx, disk)], instance,
+                         destroy=destroy, check=False)
   # This and InstanceCheck decoration check that the disks are working
   AssertCommand(["gnt-instance", "reinstall", "-f", instance.name])
   AssertCommand(["gnt-instance", "start", instance.name])

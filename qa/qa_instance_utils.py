@@ -30,6 +30,7 @@ from ganeti import constants
 from ganeti import pathutils
 
 import qa_config
+import qa_error
 import qa_utils
 
 from qa_utils import AssertIn, AssertCommand
@@ -53,6 +54,12 @@ def GetGenericAddParameters(inst, disk_template, force_mac=None):
       diskparams = "%s:size=%s" % (idx, size)
       if name:
         diskparams += ",name=%s" % name
+      if qa_config.AreSpindlesSupported():
+        spindles = disk.get("spindles")
+        if spindles is None:
+          qa_error.Error("'spindles' is a required parameter for disks when you"
+                         " enable exclusive storage tests")
+        diskparams += ",spindles=%s" % spindles
       params.extend(["--disk", diskparams])
 
   # Set static MAC address if configured

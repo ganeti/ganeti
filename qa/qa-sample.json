@@ -72,13 +72,17 @@
   "disks": [
     {
       "size": "1G",
+      "spindles": 2,
       "name": "disk0",
-      "growth": "2G"
+      "growth": "2G",
+      "spindles-growth": 1
     },
     {
       "size": "512M",
+      "spindles": 1,
       "name": "disk1",
-      "growth": "768M"
+      "growth": "768M",
+      "spindles-growth": 0
     }
   ],
 
