@@ -137,10 +137,10 @@ class Instance(object):
   """Abstraction for a Virtual Machine instance.
 
   """
-  def __init__(self, name, status, autostart, snodes):
+  def __init__(self, name, status, disks_active, snodes):
     self.name = name
     self.status = status
-    self.autostart = autostart
+    self.disks_active = disks_active
     self.snodes = snodes
 
   def Restart(self, cl):
@@ -246,9 +246,9 @@ def _CheckDisks(cl, notepad, nodes, instances, started):
                        instance_name)
           continue
 
-        if not inst.autostart:
-          logging.info("Skipping disk activation for non-autostart"
-                       " instance '%s'", inst.name)
+        if not inst.disks_active:
+          logging.info("Skipping disk activation for instance with not"
+                       " activated disks '%s'", inst.name)
           continue
 
         if inst.name in started:
@@ -626,7 +626,7 @@ def _GetGroupData(cl, uuid):
   job = [
     # Get all primary instances in group
     opcodes.OpQuery(what=constants.QR_INSTANCE,
-                    fields=["name", "status", "admin_state", "snodes",
+                    fields=["name", "status", "disks_active", "snodes",
                             "pnode.group.uuid", "snodes.group.uuid"],
                     qfilter=[qlang.OP_EQUAL, "pnode.group.uuid", uuid],
                     use_locking=True),
@@ -657,14 +657,14 @@ def _GetGroupData(cl, uuid):
   instances = []
 
   # Load all instances
-  for (name, status, autostart, snodes, pnode_group_uuid,
+  for (name, status, disks_active, snodes, pnode_group_uuid,
        snodes_group_uuid) in raw_instances:
     if snodes and set([pnode_group_uuid]) != set(snodes_group_uuid):
       logging.error("Ignoring split instance '%s', primary group %s, secondary"
                     " groups %s", name, pnode_group_uuid,
                     utils.CommaJoin(snodes_group_uuid))
     else:
-      instances.append(Instance(name, status, autostart, snodes))
+      instances.append(Instance(name, status, disks_active, snodes))
 
       for node in snodes:
         secondaries.setdefault(node, set()).add(name)
