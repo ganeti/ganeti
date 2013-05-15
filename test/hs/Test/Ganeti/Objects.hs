@@ -107,13 +107,31 @@ $(genArbitrary ''PartialNic)
 instance Arbitrary Instance where
   arbitrary =
     Instance
-      <$> genFQDN <*> genFQDN <*> genFQDN -- OS name, but...
+      -- name
+      <$> genFQDN
+      -- primary node
+      <*> genFQDN
+      -- OS
+      <*> genFQDN
+      -- hypervisor
       <*> arbitrary
+      -- hvparams
       -- FIXME: add non-empty hvparams when they're a proper type
-      <*> pure (GenericContainer Map.empty) <*> arbitrary
-      -- ... and for OSParams
-      <*> pure (GenericContainer Map.empty) <*> arbitrary <*> arbitrary
-      <*> arbitrary <*> arbitrary <*> arbitrary
+      <*> pure (GenericContainer Map.empty)
+      -- beparams
+      <*> arbitrary
+      -- osparams
+      <*> pure (GenericContainer Map.empty)
+      -- admin_state
+      <*> arbitrary
+      -- nics
+      <*> arbitrary
+      -- disks
+      <*> arbitrary
+      -- disk template
+      <*> arbitrary
+      -- network port
+      <*> arbitrary
       -- ts
       <*> arbitrary <*> arbitrary
       -- uuid
