@@ -492,6 +492,41 @@ caseNextIp4Address = do
   HUnit.assertEqual "" "1.3.0.0" $ nextIp4Address "1.2.255.255"
   HUnit.assertEqual "" "1.2.255.63" $ nextIp4Address "1.2.255.62"
 
+-- | Tests the compatibility between Haskell-serialized instances and their
+-- python-decoded and encoded version.
+-- Note: this can be enhanced with logical validations on the decoded objects
+casePyCompatInstances :: HUnit.Assertion
+casePyCompatInstances = do
+  let num_inst = 500::Int
+  instances <- genSample (vectorOf num_inst genInst)
+  let serialized = J.encode instances
+  -- check for non-ASCII fields, usually due to 'arbitrary :: String'
+  mapM_ (\inst -> when (any (not . isAscii) (J.encode inst)) .
+                 HUnit.assertFailure $
+                 "Instance has non-ASCII fields: " ++ show inst
+        ) instances
+  py_stdout <-
+    runPython "from ganeti import objects\n\
+              \from ganeti import serializer\n\
+              \import sys\n\
+              \inst_data = serializer.Load(sys.stdin.read())\n\
+              \decoded = [objects.Instance.FromDict(i) for i in inst_data]\n\
+              \encoded = [i.ToDict() for i in decoded]\n\
+              \print serializer.Dump(encoded)" serialized
+    >>= checkPythonResult
+  let deserialised = J.decode py_stdout::J.Result [Instance]
+  decoded <- case deserialised of
+               J.Ok ops -> return ops
+               J.Error msg ->
+                 HUnit.assertFailure ("Unable to decode instance: " ++ msg)
+                 -- this already raised an expection, but we need it
+                 -- for proper types
+                 >> fail "Unable to decode instances"
+  HUnit.assertEqual "Mismatch in number of returned instances"
+    (length decoded) (length instances)
+  mapM_ (uncurry (HUnit.assertEqual "Different result after encoding/decoding")
+        ) $ zip decoded instances
+
 testSuite "Objects"
   [ 'prop_fillDict
   , 'prop_Disk_serialisation
@@ -501,6 +536,7 @@ testSuite "Objects"
   , 'prop_Config_serialisation
   , 'casePyCompatNetworks
   , 'casePyCompatNodegroups
+  , 'casePyCompatInstances
   , 'prop_nextIp4Address
   , 'caseNextIp4Address
   ]
