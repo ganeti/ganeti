@@ -31,6 +31,8 @@ module Test.Ganeti.Objects
   ( testObjects
   , Node(..)
   , genConfigDataWithNetworks
+  , genDisk
+  , genDiskWithChildren
   , genEmptyCluster
   , genInstWithNets
   , genValidNetwork
@@ -139,6 +141,21 @@ genInstWithNets nets = do
                          (List.nub (nets ++ more_nets))
       new_inst = plain_inst { instNics = partial_nics }
   return new_inst
+
+genDiskWithChildren :: Int -> Gen Disk
+genDiskWithChildren num_children = do
+  logicalid <- arbitrary
+  children <- vectorOf num_children (genDiskWithChildren 0)
+  ivname <- genName
+  size <- arbitrary
+  mode <- arbitrary
+  name <- genMaybe genName
+  uuid <- genName
+  let disk = Disk logicalid children ivname size mode name uuid
+  return disk
+
+genDisk :: Gen Disk
+genDisk = genDiskWithChildren 3
 
 -- | FIXME: This generates completely random data, without normal
 -- validation rules.
