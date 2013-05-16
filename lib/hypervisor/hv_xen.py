@@ -804,6 +804,8 @@ class XenPvmHypervisor(XenHypervisor):
     constants.HV_CPU_CAP: hv_base.OPT_NONNEGATIVE_INT_CHECK,
     constants.HV_CPU_WEIGHT:
       (False, lambda x: 0 < x < 65536, "invalid weight", None, None),
+    constants.HV_XEN_CMD:
+      hv_base.ParamInSet(True, constants.KNOWN_XEN_COMMANDS),
     }
 
   def _GetConfig(self, instance, startup_memory, block_devices):
@@ -926,6 +928,8 @@ class XenHvmHypervisor(XenHypervisor):
       (False, lambda x: 0 < x < 65535, "invalid weight", None, None),
     constants.HV_VIF_TYPE:
       hv_base.ParamInSet(False, constants.HT_HVM_VALID_VIF_TYPES),
+    constants.HV_XEN_CMD:
+      hv_base.ParamInSet(True, constants.KNOWN_XEN_COMMANDS),
     }
 
   def _GetConfig(self, instance, startup_memory, block_devices):
