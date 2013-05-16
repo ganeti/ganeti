@@ -309,11 +309,21 @@ def DowngradeCluster(config_data):
     DowngradeIPolicy(ipolicy, "cluster")
 
 
+def DowngradeInstances(config_data):
+  if "instances" not in config_data:
+    raise Error("Can't find the 'instances' key in the configuration!")
+
+  for _, iobj in config_data["instances"].items():
+    if "disks_active" in iobj:
+      del iobj["disks_active"]
+
+
 def DowngradeAll(config_data):
   # Any code specific to a particular version should be labeled that way, so
   # it can be removed when updating to the next version.
   DowngradeCluster(config_data)
   DowngradeGroups(config_data)
+  DowngradeInstances(config_data)
 
 
 def main():

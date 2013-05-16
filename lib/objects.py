@@ -1223,6 +1223,8 @@ class Instance(TaggableObject):
     if self.osparams is None:
       self.osparams = {}
     UpgradeBeParams(self.beparams)
+    if self.disks_active is None:
+      self.disks_active = self.admin_state == constants.ADMINST_UP
 
 
 class OS(ConfigObject):
