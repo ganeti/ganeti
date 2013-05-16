@@ -94,7 +94,7 @@ getStats colorings = snd . foldr helper (0,"") $ algBySize colorings
 -- | Predicate of belonging to a given group restriction.
 hasGroup :: Maybe Group.Group -> Node.Node -> Bool
 hasGroup Nothing _ = True
-hasGroup (Just grp) node = Node.group node == Group.idx grp 
+hasGroup (Just grp) node = Node.group node == Group.idx grp
 
 -- | Predicate of having at least one tag in a given set.
 hasTag :: Maybe [String] -> Node.Node -> Bool
@@ -140,7 +140,7 @@ main opts args = do
       Just grp -> return (Just grp)
 
   let nodes = IntMap.filter (foldl (liftA2 (&&)) (const True)
-                             [ not . Node.offline 
+                             [ not . Node.offline
                              , hasTag $ optNodeTags opts
                              , hasGroup wantedGroup ])
               nlf
