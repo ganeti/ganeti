@@ -55,6 +55,7 @@ module Ganeti.HTools.CLI
   , oForce
   , oGroup
   , oIAllocSrc
+  , oIgnoreNonRedundant
   , oInstMoves
   , oJobDelay
   , genOLuxiSocket
@@ -125,6 +126,7 @@ data Options = Options
   , optForce       :: Bool           -- ^ Force the execution
   , optGroup       :: Maybe GroupID  -- ^ The UUID of the group to process
   , optIAllocSrc   :: Maybe FilePath -- ^ The iallocation spec
+  , optIgnoreNonRedundant :: Bool    -- ^ Ignore non-redundant instances
   , optSelInst     :: [String]       -- ^ Instances to be excluded
   , optLuxi        :: Maybe FilePath -- ^ Collect data from Luxi
   , optJobDelay    :: Double         -- ^ Delay before executing first job
@@ -176,6 +178,7 @@ defaultOptions  = Options
   , optForce       = False
   , optGroup       = Nothing
   , optIAllocSrc   = Nothing
+  , optIgnoreNonRedundant = False
   , optSelInst     = []
   , optLuxi        = Nothing
   , optJobDelay    = 10
@@ -355,6 +358,13 @@ oIAllocSrc =
    (ReqArg (\ f opts -> Ok opts { optIAllocSrc = Just f }) "FILE")
    "Specify an iallocator spec as the cluster data source",
    OptComplFile)
+
+oIgnoreNonRedundant :: OptType
+oIgnoreNonRedundant =
+  (Option "" ["ignore-non-redundant"]
+   (NoArg (\ opts -> Ok opts { optIgnoreNonRedundant = True }))
+    "Pretend that there are no non-redundant instances in the cluster",
+    OptComplNone)
 
 oJobDelay :: OptType
 oJobDelay =

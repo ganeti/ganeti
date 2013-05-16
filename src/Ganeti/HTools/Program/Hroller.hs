@@ -69,6 +69,7 @@ options = do
     , oSaveCluster
     , oGroup
     , oSkipNonRedundant
+    , oIgnoreNonRedundant
     , oForce
     , oOneStepOnly
     ]
@@ -234,15 +235,17 @@ main opts args = do
                         , ("Dcolor", colorDcolor)
                         ]
       colorings = map (\(v,a) -> (v,(colorVertMap.a) nodeGraph)) colorAlgorithms
-      smallestColoring =
+      smallestColoring = IntMap.elems $
         (snd . minimumBy (comparing (IntMap.size . snd))) colorings
       allNdx = map Node.idx $ Container.elems nlf
-      splitted = mapM (\ grp -> partitionNonRedundant grp allNdx (nlf,ilf)) $
-                 IntMap.elems smallestColoring
-  rebootGroups <- case splitted of
-                    Ok splitgroups -> return $ concat splitgroups
-                    Bad _ -> exitErr "Not enough capacity to move non-redundant\ 
-                                     \ instances"
+      splitted = mapM (\ grp -> partitionNonRedundant grp allNdx (nlf,ilf))
+                 smallestColoring
+  rebootGroups <- if optIgnoreNonRedundant opts
+                     then return smallestColoring
+                     else case splitted of
+                            Ok splitgroups -> return $ concat splitgroups
+                            Bad _ -> exitErr "Not enough capacity to move\ 
+                                             \ non-redundant instances"
   let idToNode = (`Container.find` nodes)
       nodesRebootGroups =
         map (map idToNode . filter (`IntMap.member` nodes)) rebootGroups
