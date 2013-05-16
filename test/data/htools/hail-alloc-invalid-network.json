@@ -1,0 +1,155 @@
+{
+  "cluster_tags": [],
+  "instances": {},
+  "ipolicy": {
+    "max": {
+      "disk-size": 2048
+    },
+    "min": {
+      "disk-size": 1024
+    }
+  },
+  "nodegroups": {
+    "uuid-group-1": {
+      "alloc_policy": "preferred",
+      "ipolicy": {
+        "disk-templates": [
+          "drbd"
+        ],
+        "minmax": [
+          {
+            "max": {
+              "cpu-count": 2,
+              "disk-count": 8,
+              "disk-size": 2048,
+              "memory-size": 12800,
+              "nic-count": 8,
+              "spindle-use": 8
+            },
+            "min": {
+              "cpu-count": 1,
+              "disk-count": 1,
+              "disk-size": 1024,
+              "memory-size": 128,
+              "nic-count": 1,
+              "spindle-use": 1
+            }
+          }
+        ],
+        "spindle-ratio": 32.0,
+        "std": {
+          "cpu-count": 1,
+          "disk-count": 1,
+          "disk-size": 1024,
+          "memory-size": 128,
+          "nic-count": 1,
+          "spindle-use": 1
+        },
+        "vcpu-ratio": 4.0
+      },
+      "name": "Group 1",
+      "networks": ["uuid-net-1-1", "uuid-net-1-2"],
+      "tags": []
+    },
+    "uuid-group-2": {
+      "alloc_policy": "preferred",
+      "ipolicy": {
+          "disk-templates": [
+              "file"
+          ],
+          "minmax": [
+              {
+                  "max": {
+                      "cpu-count": 2,
+                      "disk-count": 8,
+                      "disk-size": 2048,
+                      "memory-size": 12800,
+                      "nic-count": 8,
+                      "spindle-use": 8
+                  },
+                  "min": {
+                      "cpu-count": 1,
+                      "disk-count": 1,
+                      "disk-size": 1024,
+                      "memory-size": 128,
+                      "nic-count": 1,
+                      "spindle-use": 1
+                  }
+              }
+          ],
+          "spindle-ratio": 32.0,
+          "std": {
+              "cpu-count": 1,
+              "disk-count": 1,
+              "disk-size": 1024,
+              "memory-size": 128,
+              "nic-count": 1,
+              "spindle-use": 1
+          },
+          "vcpu-ratio": 4.0
+      },
+      "name": "Group 2",
+      "networks": ["uuid-net-2-1", "uuid-net-2-2", "uuid-net-2-3"],
+      "tags": []
+    }
+  },
+  "nodes": {
+    "node1_1": {
+      "drained": false,
+      "free_disk": 7168,
+      "free_memory": 4096,
+      "group": "uuid-group-1",
+      "ndparams": {
+        "spindle_count": 1
+      },
+      "offline": false,
+      "reserved_memory": 1017,
+      "total_cpus": 4,
+      "total_disk": 7168,
+      "total_memory": 4096
+    },
+    "node2_1": {
+      "drained": false,
+      "free_disk": 7168,
+      "free_memory": 4096,
+      "group": "uuid-group-2",
+      "ndparams": {
+        "spindle_count": 1
+      },
+      "offline": false,
+      "reserved_memory": 1017,
+      "total_cpus": 4,
+      "total_disk": 7168,
+      "total_memory": 4096
+    }
+  },
+  "request": {
+    "disk_space_total": 1536,
+    "disk_template": "file",
+    "disks": [
+      {
+        "size": 1536
+      }
+    ],
+    "memory": 1024,
+    "name": "instance1",
+    "required_nodes": 1,
+    "spindle_use": 2,
+    "nics":[
+      {
+        "mac":"aa:00:00:85:f3:a7",
+        "network":"uuid-net-1-1",
+        "nicparams":{}
+      },
+      {
+        "mac":"aa:00:00:85:f3:a8",
+        "network":"uuid-net-1-2",
+        "nicparams":{}
+      }
+    ],
+    "tags": [],
+    "type": "allocate",
+    "vcpus": 1
+  },
+  "version": 2
+}

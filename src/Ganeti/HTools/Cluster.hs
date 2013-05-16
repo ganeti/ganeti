@@ -847,7 +847,7 @@ findBestAllocGroup mggl mgnl mgil allowed_gdxs inst cnt =
                    (gr, genAllocNodes mggl nl cnt False >>=
                         tryAlloc nl il inst))
              groups''::[(Group.Group, Result AllocSolution)]
-      all_msgs = filter_group_msgs ++ (concatMap solutionDescription sols)
+      all_msgs = filter_group_msgs ++ concatMap solutionDescription sols
       goodSols = filterMGResults sols
       sortedSols = sortMGResults goodSols
   in case sortedSols of
