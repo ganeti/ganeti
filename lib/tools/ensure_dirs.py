@@ -195,6 +195,7 @@ def GetPaths():
     (noded_log, FILE, 0600, getent.noded_uid, getent.masterd_gid, False),
     (rapi_log, FILE, 0600, getent.rapi_uid, getent.masterd_gid, False),
     (pathutils.LOG_OS_DIR, DIR, 0750, getent.masterd_uid, getent.daemons_gid),
+    (pathutils.LOG_XEN_DIR, DIR, 0750, getent.noded_uid, getent.daemons_gid),
     (cleaner_log_dir, DIR, 0750, getent.noded_uid, getent.noded_gid),
     (master_cleaner_log_dir, DIR, 0750, getent.masterd_uid, getent.masterd_gid),
     (pathutils.INSTANCE_REASON_DIR, DIR, 0755, getent.noded_uid,

@@ -414,6 +414,17 @@ class XenHypervisor(hv_base.BaseHypervisor):
     """
     utils.RemoveFile(self._ConfigFileName(instance_name))
 
+  def _StashConfigFile(self, instance_name):
+    """Move the Xen config file to the log directory and return its new path.
+
+    """
+    old_filename = self._ConfigFileName(instance_name)
+    base = ("%s-%s" %
+            (instance_name, utils.TimestampForFilename()))
+    new_filename = utils.PathJoin(pathutils.LOG_XEN_DIR, base)
+    utils.RenameFile(old_filename, new_filename)
+    return new_filename
+
   def _GetXmList(self, include_node):
     """Wrapper around module level L{_GetXmList}.
 
@@ -482,9 +493,13 @@ class XenHypervisor(hv_base.BaseHypervisor):
 
     result = self._RunXen(cmd)
     if result.failed:
-      raise errors.HypervisorError("Failed to start instance %s: %s (%s)" %
+      # Move the Xen configuration file to the log directory to avoid
+      # leaving a stale config file behind.
+      stashed_config = self._StashConfigFile(instance.name)
+      raise errors.HypervisorError("Failed to start instance %s: %s (%s). Moved"
+                                   " config file to %s" %
                                    (instance.name, result.fail_reason,
-                                    result.output))
+                                    result.output, stashed_config))
 
   def StopInstance(self, instance, force=False, retry=False, name=None):
     """Stop an instance.

@@ -30,6 +30,7 @@ import os
 
 from ganeti import constants
 from ganeti import objects
+from ganeti import pathutils
 from ganeti import hypervisor
 from ganeti import utils
 from ganeti import errors
@@ -491,7 +492,6 @@ class _TestXenHypervisor(object):
       self.fail("Unhandled command: %s" % (cmd, ))
 
     return self._SuccessCommand(output, cmd)
-    #return self._FailingCommand(cmd)
 
   def _MakeInstance(self):
     # Copy default parameters
@@ -519,6 +519,7 @@ class _TestXenHypervisor(object):
 
   def testStartInstance(self):
     (inst, disks) = self._MakeInstance()
+    pathutils.LOG_XEN_DIR = self.tmpdir
 
     for failcreate in [False, True]:
       for paused in [False, True]:
@@ -537,11 +538,12 @@ class _TestXenHypervisor(object):
         if failcreate:
           self.assertRaises(errors.HypervisorError, hv.StartInstance,
                             inst, disks, paused)
+          # Check whether a stale config file is left behind
+          self.assertFalse(os.path.exists(cfgfile))
         else:
           hv.StartInstance(inst, disks, paused)
-
-        # Check if configuration was updated
-        lines = utils.ReadFile(cfgfile).splitlines()
+          # Check if configuration was updated
+          lines = utils.ReadFile(cfgfile).splitlines()
 
         if constants.HV_VNC_PASSWORD_FILE in inst.hvparams:
           self.assertTrue(("vncpasswd = '%s'" % self.vncpw) in lines)
