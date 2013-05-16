@@ -65,6 +65,7 @@ options = do
     , oNodeTags
     , oSaveCluster
     , oGroup
+    , oSkipNonRedundant
     , oForce
     , oOneStepOnly
     ]
@@ -100,6 +101,18 @@ hasGroup (Just grp) node = Node.group node == Group.idx grp
 hasTag :: Maybe [String] -> Node.Node -> Bool
 hasTag Nothing _ = True
 hasTag (Just tags) node = not . null $ Node.nTags node `intersect` tags
+
+-- | From a cluster configuration, get the list of non-redundant instances
+-- of a node.
+nonRedundant :: (Node.List, Instance.List) -> Ndx -> [Idx]
+nonRedundant (nl, il) ndx =
+  filter (not . Instance.hasSecondary . flip Container.find  il) $
+  Node.pList (Container.find ndx nl)
+
+-- | Within a cluster configuration, decide if the node hosts non-redundant
+-- Instances.
+noNonRedundant :: (Node.List, Instance.List) -> Node.Node -> Bool
+noNonRedundant conf = null . nonRedundant conf . Node.idx
 
 -- | Put the master node last.
 -- Reorder a list of lists of nodes such that the master node (if present)
@@ -141,6 +154,9 @@ main opts args = do
 
   let nodes = IntMap.filter (foldl (liftA2 (&&)) (const True)
                              [ not . Node.offline
+                             , if optSkipNonRedundant opts
+                                  then noNonRedundant (nlf, ilf)
+                                  else const True
                              , hasTag $ optNodeTags opts
                              , hasGroup wantedGroup ])
               nlf
@@ -185,4 +201,3 @@ main opts args = do
        unless (optNoHeaders opts) $
               putStrLn "'Node Reboot Groups'"
        mapM_ (putStrLn . commaJoin) outputRebootNames
-

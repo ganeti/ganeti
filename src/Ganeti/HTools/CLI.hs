@@ -84,6 +84,7 @@ module Ganeti.HTools.CLI
   , oShowHelp
   , oShowVer
   , oShowComp
+  , oSkipNonRedundant
   , oStdSpec
   , oTieredSpec
   , oVerbose
@@ -150,6 +151,7 @@ data Options = Options
   , optShowInsts   :: Bool           -- ^ Whether to show the instance map
   , optShowNodes   :: Maybe [String] -- ^ Whether to show node status
   , optShowVer     :: Bool           -- ^ Just show the program version
+  , optSkipNonRedundant :: Bool      -- ^ Skip nodes with non-redundant instance
   , optStdSpec     :: Maybe RSpec    -- ^ Requested standard specs
   , optTestCount   :: Maybe Int      -- ^ Optional test count override
   , optTieredSpec  :: Maybe RSpec    -- ^ Requested specs for tiered mode
@@ -189,6 +191,7 @@ defaultOptions  = Options
   , optNoSimulation = False
   , optNodeSim     = []
   , optNodeTags    = Nothing
+  , optSkipNonRedundant = False
   , optOffline     = []
   , optOfflineMaintenance = False
   , optOneStepOnly = False
@@ -548,6 +551,13 @@ oSaveCluster =
    (ReqArg (\ f opts -> Ok opts { optSaveCluster = Just f }) "FILE")
    "Save cluster state at the end of the processing to FILE",
    OptComplNone)
+
+oSkipNonRedundant :: OptType
+oSkipNonRedundant =
+  (Option "" ["skip-non-redundant"]
+   (NoArg (\ opts -> Ok opts { optSkipNonRedundant = True }))
+    "Skip nodes that host a non-redundant instance",
+    OptComplNone)
 
 oStdSpec :: OptType
 oStdSpec =
