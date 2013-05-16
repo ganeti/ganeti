@@ -31,8 +31,8 @@ from ganeti import network
 from ganeti import objects
 from ganeti import pathutils
 from ganeti import utils
-
-from ganeti.cmdlib.common import _AnnotateDiskParams
+from ganeti.cmdlib.common import _AnnotateDiskParams, \
+  _ComputeIPolicyInstanceViolation
 
 
 def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
@@ -202,45 +202,17 @@ def _CheckNodeNotDrained(lu, node):
                                errors.ECODE_STATE)
 
 
-def _StartInstanceDisks(lu, instance, force):
-  """Start the disks of an instance.
+def _CheckNodeVmCapable(lu, node):
+  """Ensure that a given node is vm capable.
+
+  @param lu: the LU on behalf of which we make the check
+  @param node: the node to check
+  @raise errors.OpPrereqError: if the node is not vm capable
 
   """
-  disks_ok, _ = _AssembleInstanceDisks(lu, instance,
-                                           ignore_secondaries=force)
-  if not disks_ok:
-    _ShutdownInstanceDisks(lu, instance)
-    if force is not None and not force:
-      lu.LogWarning("",
-                    hint=("If the message above refers to a secondary node,"
-                          " you can retry the operation using '--force'"))
-    raise errors.OpExecError("Disk consistency error")
-
-
-def _ShutdownInstanceDisks(lu, instance, disks=None, ignore_primary=False):
-  """Shutdown block devices of an instance.
-
-  This does the shutdown on all nodes of the instance.
-
-  If the ignore_primary is false, errors on the primary node are
-  ignored.
-
-  """
-  all_result = True
-  disks = _ExpandCheckDisks(instance, disks)
-
-  for disk in disks:
-    for node, top_disk in disk.ComputeNodeTree(instance.primary_node):
-      lu.cfg.SetDiskID(top_disk, node)
-      result = lu.rpc.call_blockdev_shutdown(node, (top_disk, instance))
-      msg = result.fail_msg
-      if msg:
-        lu.LogWarning("Could not shutdown block device %s on node %s: %s",
-                      disk.iv_name, node, msg)
-        if ((node == instance.primary_node and not ignore_primary) or
-            (node != instance.primary_node and not result.offline)):
-          all_result = False
-  return all_result
+  if not lu.cfg.GetNodeInfo(node).vm_capable:
+    raise errors.OpPrereqError("Can't use non-vm_capable node %s" % node,
+                               errors.ECODE_STATE)
 
 
 def _RemoveInstance(lu, feedback_fn, instance, ignore_failures):
@@ -263,98 +235,6 @@ def _RemoveInstance(lu, feedback_fn, instance, ignore_failures):
 
   # Remove lock for the instance
   lu.remove_locks[locking.LEVEL_INSTANCE] = instance.name
-
-
-def _AssembleInstanceDisks(lu, instance, disks=None, ignore_secondaries=False,
-                           ignore_size=False):
-  """Prepare the block devices for an instance.
-
-  This sets up the block devices on all nodes.
-
-  @type lu: L{LogicalUnit}
-  @param lu: the logical unit on whose behalf we execute
-  @type instance: L{objects.Instance}
-  @param instance: the instance for whose disks we assemble
-  @type disks: list of L{objects.Disk} or None
-  @param disks: which disks to assemble (or all, if None)
-  @type ignore_secondaries: boolean
-  @param ignore_secondaries: if true, errors on secondary nodes
-      won't result in an error return from the function
-  @type ignore_size: boolean
-  @param ignore_size: if true, the current known size of the disk
-      will not be used during the disk activation, useful for cases
-      when the size is wrong
-  @return: False if the operation failed, otherwise a list of
-      (host, instance_visible_name, node_visible_name)
-      with the mapping from node devices to instance devices
-
-  """
-  device_info = []
-  disks_ok = True
-  iname = instance.name
-  disks = _ExpandCheckDisks(instance, disks)
-
-  # With the two passes mechanism we try to reduce the window of
-  # opportunity for the race condition of switching DRBD to primary
-  # before handshaking occured, but we do not eliminate it
-
-  # The proper fix would be to wait (with some limits) until the
-  # connection has been made and drbd transitions from WFConnection
-  # into any other network-connected state (Connected, SyncTarget,
-  # SyncSource, etc.)
-
-  # 1st pass, assemble on all nodes in secondary mode
-  for idx, inst_disk in enumerate(disks):
-    for node, node_disk in inst_disk.ComputeNodeTree(instance.primary_node):
-      if ignore_size:
-        node_disk = node_disk.Copy()
-        node_disk.UnsetSize()
-      lu.cfg.SetDiskID(node_disk, node)
-      result = lu.rpc.call_blockdev_assemble(node, (node_disk, instance), iname,
-                                             False, idx)
-      msg = result.fail_msg
-      if msg:
-        is_offline_secondary = (node in instance.secondary_nodes and
-                                result.offline)
-        lu.LogWarning("Could not prepare block device %s on node %s"
-                      " (is_primary=False, pass=1): %s",
-                      inst_disk.iv_name, node, msg)
-        if not (ignore_secondaries or is_offline_secondary):
-          disks_ok = False
-
-  # FIXME: race condition on drbd migration to primary
-
-  # 2nd pass, do only the primary node
-  for idx, inst_disk in enumerate(disks):
-    dev_path = None
-
-    for node, node_disk in inst_disk.ComputeNodeTree(instance.primary_node):
-      if node != instance.primary_node:
-        continue
-      if ignore_size:
-        node_disk = node_disk.Copy()
-        node_disk.UnsetSize()
-      lu.cfg.SetDiskID(node_disk, node)
-      result = lu.rpc.call_blockdev_assemble(node, (node_disk, instance), iname,
-                                             True, idx)
-      msg = result.fail_msg
-      if msg:
-        lu.LogWarning("Could not prepare block device %s on node %s"
-                      " (is_primary=True, pass=2): %s",
-                      inst_disk.iv_name, node, msg)
-        disks_ok = False
-      else:
-        dev_path = result.payload
-
-    device_info.append((instance.primary_node, inst_disk.iv_name, dev_path))
-
-  # leave the disks configured for the primary node
-  # this is a workaround that would be fixed better by
-  # improving the logical/physical id handling
-  for disk in disks:
-    lu.cfg.SetDiskID(disk, instance.primary_node)
-
-  return disks_ok, device_info
 
 
 def _RemoveDisks(lu, instance, target_node=None, ignore_failures=False):
@@ -416,24 +296,6 @@ def _RemoveDisks(lu, instance, target_node=None, ignore_failures=False):
   return all_result
 
 
-def _ExpandCheckDisks(instance, disks):
-  """Return the instance disks selected by the disks list
-
-  @type disks: list of L{objects.Disk} or None
-  @param disks: selected disks
-  @rtype: list of L{objects.Disk}
-  @return: selected instance disks to act on
-
-  """
-  if disks is None:
-    return instance.disks
-  else:
-    if not set(disks).issubset(instance.disks):
-      raise errors.ProgrammerError("Can only act on disks belonging to the"
-                                   " target instance")
-    return disks
-
-
 def _NICToTuple(lu, nic):
   """Build a tupple of nic information.
 
@@ -470,3 +332,119 @@ def _NICListToTuple(lu, nics):
   for nic in nics:
     hooks_nics.append(_NICToTuple(lu, nic))
   return hooks_nics
+
+
+def _CopyLockList(names):
+  """Makes a copy of a list of lock names.
+
+  Handles L{locking.ALL_SET} correctly.
+
+  """
+  if names == locking.ALL_SET:
+    return locking.ALL_SET
+  else:
+    return names[:]
+
+
+def _ReleaseLocks(lu, level, names=None, keep=None):
+  """Releases locks owned by an LU.
+
+  @type lu: L{LogicalUnit}
+  @param level: Lock level
+  @type names: list or None
+  @param names: Names of locks to release
+  @type keep: list or None
+  @param keep: Names of locks to retain
+
+  """
+  assert not (keep is not None and names is not None), \
+         "Only one of the 'names' and the 'keep' parameters can be given"
+
+  if names is not None:
+    should_release = names.__contains__
+  elif keep:
+    should_release = lambda name: name not in keep
+  else:
+    should_release = None
+
+  owned = lu.owned_locks(level)
+  if not owned:
+    # Not owning any lock at this level, do nothing
+    pass
+
+  elif should_release:
+    retain = []
+    release = []
+
+    # Determine which locks to release
+    for name in owned:
+      if should_release(name):
+        release.append(name)
+      else:
+        retain.append(name)
+
+    assert len(lu.owned_locks(level)) == (len(retain) + len(release))
+
+    # Release just some locks
+    lu.glm.release(level, names=release)
+
+    assert frozenset(lu.owned_locks(level)) == frozenset(retain)
+  else:
+    # Release everything
+    lu.glm.release(level)
+
+    assert not lu.glm.is_owned(level), "No locks should be owned"
+
+
+def _ComputeIPolicyNodeViolation(ipolicy, instance, current_group,
+                                 target_group, cfg,
+                                 _compute_fn=_ComputeIPolicyInstanceViolation):
+  """Compute if instance meets the specs of the new target group.
+
+  @param ipolicy: The ipolicy to verify
+  @param instance: The instance object to verify
+  @param current_group: The current group of the instance
+  @param target_group: The new group of the instance
+  @type cfg: L{config.ConfigWriter}
+  @param cfg: Cluster configuration
+  @param _compute_fn: The function to verify ipolicy (unittest only)
+  @see: L{ganeti.cmdlib.common._ComputeIPolicySpecViolation}
+
+  """
+  if current_group == target_group:
+    return []
+  else:
+    return _compute_fn(ipolicy, instance, cfg)
+
+
+def _CheckTargetNodeIPolicy(lu, ipolicy, instance, node, cfg, ignore=False,
+                            _compute_fn=_ComputeIPolicyNodeViolation):
+  """Checks that the target node is correct in terms of instance policy.
+
+  @param ipolicy: The ipolicy to verify
+  @param instance: The instance object to verify
+  @param node: The new node to relocate
+  @type cfg: L{config.ConfigWriter}
+  @param cfg: Cluster configuration
+  @param ignore: Ignore violations of the ipolicy
+  @param _compute_fn: The function to verify ipolicy (unittest only)
+  @see: L{ganeti.cmdlib.common._ComputeIPolicySpecViolation}
+
+  """
+  primary_node = lu.cfg.GetNodeInfo(instance.primary_node)
+  res = _compute_fn(ipolicy, instance, primary_node.group, node.group, cfg)
+
+  if res:
+    msg = ("Instance does not meet target node group's (%s) instance"
+           " policy: %s") % (node.group, utils.CommaJoin(res))
+    if ignore:
+      lu.LogWarning(msg)
+    else:
+      raise errors.OpPrereqError(msg, errors.ECODE_INVAL)
+
+
+def _GetInstanceInfoText(instance):
+  """Compute that text that should be added to the disk's metadata.
+
+  """
+  return "originstname+%s" % instance.name

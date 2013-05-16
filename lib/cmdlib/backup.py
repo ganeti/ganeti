@@ -36,9 +36,10 @@ from ganeti import utils
 from ganeti.cmdlib.base import _QueryBase, NoHooksLU, LogicalUnit
 from ganeti.cmdlib.common import _GetWantedNodes, _ShareAll, \
   _CheckNodeOnline, _ExpandNodeName
+from ganeti.cmdlib.instance_storage import _StartInstanceDisks, \
+  _ShutdownInstanceDisks
 from ganeti.cmdlib.instance_utils import _GetClusterDomainSecret, \
-  _BuildInstanceHookEnvByObject, _CheckNodeNotDrained, _StartInstanceDisks, \
-  _ShutdownInstanceDisks, _RemoveInstance
+  _BuildInstanceHookEnvByObject, _CheckNodeNotDrained, _RemoveInstance
 
 
 class _ExportQuery(_QueryBase):

@@ -315,6 +315,7 @@ cmdlib_PYTHON = \
 	lib/cmdlib/group.py \
 	lib/cmdlib/node.py \
 	lib/cmdlib/instance.py \
+	lib/cmdlib/instance_storage.py \
 	lib/cmdlib/instance_utils.py \
 	lib/cmdlib/backup.py \
 	lib/cmdlib/query.py \

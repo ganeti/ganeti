@@ -36,6 +36,8 @@ from ganeti import cmdlib
 from ganeti.cmdlib import cluster
 from ganeti.cmdlib import group
 from ganeti.cmdlib import instance
+from ganeti.cmdlib import instance_storage
+from ganeti.cmdlib import instance_utils
 from ganeti.cmdlib import common
 from ganeti.cmdlib import query
 from ganeti import opcodes
@@ -888,18 +890,20 @@ class TestComputeIPolicyNodeViolation(unittest.TestCase):
     self.recorder = _CallRecorder(return_value=[])
 
   def testSameGroup(self):
-    ret = instance._ComputeIPolicyNodeViolation(NotImplemented,
-                                                NotImplemented,
-                                                "foo", "foo", NotImplemented,
-                                                _compute_fn=self.recorder)
+    ret = instance_utils._ComputeIPolicyNodeViolation(
+      NotImplemented,
+      NotImplemented,
+      "foo", "foo", NotImplemented,
+      _compute_fn=self.recorder)
     self.assertFalse(self.recorder.called)
     self.assertEqual(ret, [])
 
   def testDifferentGroup(self):
-    ret = instance._ComputeIPolicyNodeViolation(NotImplemented,
-                                                NotImplemented,
-                                                "foo", "bar", NotImplemented,
-                                                _compute_fn=self.recorder)
+    ret = instance_utils._ComputeIPolicyNodeViolation(
+      NotImplemented,
+      NotImplemented,
+      "foo", "bar", NotImplemented,
+      _compute_fn=self.recorder)
     self.assertTrue(self.recorder.called)
     self.assertEqual(ret, [])
 
@@ -1605,7 +1609,7 @@ class TestDiskSizeInBytesToMebibytes(unittest.TestCase):
   def testLessThanOneMebibyte(self):
     for i in [1, 2, 7, 512, 1000, 1023]:
       lu = _FakeLU()
-      result = instance._DiskSizeInBytesToMebibytes(lu, i)
+      result = instance_storage._DiskSizeInBytesToMebibytes(lu, i)
       self.assertEqual(result, 1)
       self.assertEqual(len(lu.warning_log), 1)
       self.assertEqual(len(lu.warning_log[0]), 2)
@@ -1615,7 +1619,8 @@ class TestDiskSizeInBytesToMebibytes(unittest.TestCase):
   def testEven(self):
     for i in [1, 2, 7, 512, 1000, 1023]:
       lu = _FakeLU()
-      result = instance._DiskSizeInBytesToMebibytes(lu, i * 1024 * 1024)
+      result = instance_storage._DiskSizeInBytesToMebibytes(lu,
+                                                            i * 1024 * 1024)
       self.assertEqual(result, i)
       self.assertFalse(lu.warning_log)
 
@@ -1624,7 +1629,7 @@ class TestDiskSizeInBytesToMebibytes(unittest.TestCase):
       for j in [1, 2, 486, 326, 986, 1023]:
         lu = _FakeLU()
         size = (1024 * 1024 * i) + j
-        result = instance._DiskSizeInBytesToMebibytes(lu, size)
+        result = instance_storage._DiskSizeInBytesToMebibytes(lu, size)
         self.assertEqual(result, i + 1, msg="Amount was not rounded up")
         self.assertEqual(len(lu.warning_log), 1)
         self.assertEqual(len(lu.warning_log[0]), 2)

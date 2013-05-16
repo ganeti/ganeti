@@ -83,7 +83,8 @@ from ganeti.cmdlib.instance import \
   LUInstanceMigrate, \
   LUInstanceMultiAlloc, \
   LUInstanceSetParams, \
-  LUInstanceChangeGroup, \
+  LUInstanceChangeGroup
+from ganeti.cmdlib.instance_storage import \
   LUInstanceRecreateDisks, \
   LUInstanceGrowDisk, \
   LUInstanceReplaceDisks, \
