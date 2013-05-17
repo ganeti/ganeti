@@ -185,7 +185,8 @@ loadGroup :: (Monad m) => [String]
 loadGroup [name, gid, apol, tags] = do
   xapol <- allocPolicyFromRaw apol
   let xtags = commaSplit tags
-  return (gid, Group.create name gid xapol defIPolicy xtags)
+  -- TODO: parse networks to which this group is connected
+  return (gid, Group.create name gid xapol [] defIPolicy xtags)
 
 loadGroup s = fail $ "Invalid/incomplete group data: '" ++ show s ++ "'"
 

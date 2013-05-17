@@ -84,8 +84,9 @@ createGroup grpIndex spec = do
                       (fromIntegral disk) disk
                       (fromIntegral cpu) False spindles grpIndex
                   ) [1..ncount]
+      -- TODO: parse networks to which this group is connected
       grp = Group.create (printf "group-%02d" grpIndex)
-            (printf "fake-uuid-%02d" grpIndex) apol defIPolicy []
+            (printf "fake-uuid-%02d" grpIndex) apol [] defIPolicy []
   return (Group.setIdx grp grpIndex, nodes)
 
 -- | Builds the cluster data from node\/instance files.

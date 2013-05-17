@@ -48,6 +48,7 @@
         "vcpu-ratio": 4.0
       },
       "name": "default",
+      "networks": [],
       "tags": []
     }
   },

@@ -45,6 +45,7 @@ data Group = Group
   , uuid        :: T.GroupID     -- ^ The UUID of the group
   , idx         :: T.Gdx         -- ^ Internal index for book-keeping
   , allocPolicy :: T.AllocPolicy -- ^ The allocation policy for this group
+  , networks    :: [T.NetworkID] -- ^ The networks connected to this group
   , iPolicy     :: T.IPolicy     -- ^ The instance policy for this group
   , allTags     :: [String]      -- ^ The tags for this group
   } deriving (Show, Eq)
@@ -67,11 +68,18 @@ type List = Container.Container Group
 -- * Initialization functions
 
 -- | Create a new group.
-create :: String -> T.GroupID -> T.AllocPolicy -> T.IPolicy -> [String] -> Group
-create name_init id_init apol_init ipol_init tags_init =
+create :: String        -- ^ The node name
+       -> T.GroupID     -- ^ The UUID of the group
+       -> T.AllocPolicy -- ^ The allocation policy for this group
+       -> [T.NetworkID] -- ^ The networks connected to this group
+       -> T.IPolicy     -- ^ The instance policy for this group
+       -> [String]      -- ^ The tags for this group
+       -> Group
+create name_init id_init apol_init nets_init ipol_init tags_init =
   Group { name        = name_init
         , uuid        = id_init
         , allocPolicy = apol_init
+        , networks    = nets_init
         , iPolicy     = ipol_init
         , allTags     = tags_init
         , idx         = -1

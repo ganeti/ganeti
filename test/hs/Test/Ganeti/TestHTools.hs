@@ -86,7 +86,7 @@ nullIPolicy = Types.IPolicy
 defGroup :: Group.Group
 defGroup = flip Group.setIdx 0 $
              Group.create "default" Types.defaultGroupID Types.AllocPreferred
-                  nullIPolicy []
+                  [] nullIPolicy []
 
 -- | Default group, as a (singleton) 'Group.List'.
 defGroupList :: Group.List

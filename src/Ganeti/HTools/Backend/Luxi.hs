@@ -234,7 +234,8 @@ parseGroup [uuid, name, apol, ipol, tags] = do
   xapol <- convert "alloc_policy" apol
   xipol <- convert "ipolicy" ipol
   xtags <- convert "tags" tags
-  return (xuuid, Group.create xname xuuid xapol xipol xtags)
+  -- TODO: parse networks to which this group is connected
+  return (xuuid, Group.create xname xuuid xapol [] xipol xtags)
 
 parseGroup v = fail ("Invalid group query result: " ++ show v)
 
