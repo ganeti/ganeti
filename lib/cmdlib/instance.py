@@ -51,11 +51,10 @@ from ganeti.cmdlib.common import INSTANCE_DOWN, \
   AnnotateDiskParams, GetUpdatedParams, ExpandInstanceName, \
   ComputeIPolicySpecViolation, CheckInstanceState, ExpandNodeName
 from ganeti.cmdlib.instance_storage import CreateDisks, \
-  CheckNodesFreeDiskPerVG, WipeDisks, WaitForSync, \
+  CheckNodesFreeDiskPerVG, WipeDisks, WipeOrCleanupDisks, WaitForSync, \
   IsExclusiveStorageEnabledNodeName, CreateSingleBlockDev, ComputeDisks, \
   CheckRADOSFreeSpace, ComputeDiskSizePerVG, GenerateDiskTemplate, \
-  CreateBlockDev, StartInstanceDisks, ShutdownInstanceDisks, \
-  AssembleInstanceDisks
+  StartInstanceDisks, ShutdownInstanceDisks, AssembleInstanceDisks
 from ganeti.cmdlib.instance_utils import BuildInstanceHookEnvByObject, \
   GetClusterDomainSecret, BuildInstanceHookEnv, NICListToTuple, \
   NICToTuple, CheckNodeNotDrained, RemoveInstance, CopyLockList, \
@@ -3102,24 +3101,13 @@ class LUInstanceSetParams(LogicalUnit):
                            [params], file_path, file_driver, idx,
                            self.Log, self.diskparams)[0]
 
-    info = GetInstanceInfoText(instance)
-
-    logging.info("Creating volume %s for instance %s",
-                 disk.iv_name, instance.name)
-    # Note: this needs to be kept in sync with _CreateDisks
-    #HARDCODE
-    for node in instance.all_nodes:
-      f_create = (node == instance.primary_node)
-      try:
-        CreateBlockDev(self, node, instance, disk, f_create, info, f_create)
-      except errors.OpExecError, err:
-        self.LogWarning("Failed to create volume %s (%s) on node '%s': %s",
-                        disk.iv_name, disk, node, err)
+    new_disks = CreateDisks(self, instance, disks=[disk])
 
     if self.cluster.prealloc_wipe_disks:
       # Wipe new disk
-      WipeDisks(self, instance,
-                disks=[(idx, disk, 0)])
+      WipeOrCleanupDisks(self, instance,
+                         disks=[(idx, disk, 0)],
+                         cleanup=new_disks)
 
     return (disk, [
       ("disk/%d" % idx, "add:size=%s,mode=%s" % (disk.size, disk.mode)),

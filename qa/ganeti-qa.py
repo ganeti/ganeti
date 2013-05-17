@@ -692,6 +692,8 @@ def RunInstanceTests():
             RunTest(qa_instance.TestInstanceConvertDiskToPlain,
                     instance, inodes)
             RunTest(qa_instance.TestInstanceStartup, instance)
+          RunTestIf("instance-modify-disks",
+                    qa_instance.TestInstanceModifyDisks, instance)
           RunCommonInstanceTests(instance)
           if qa_config.TestEnabled("instance-modify-primary"):
             othernode = qa_config.AcquireNode()

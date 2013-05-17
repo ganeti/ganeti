@@ -179,7 +179,7 @@ def IsExclusiveStorageEnabledNodeName(cfg, nodename):
   return IsExclusiveStorageEnabledNode(cfg, ni)
 
 
-def CreateBlockDev(lu, node, instance, device, force_create, info,
+def _CreateBlockDev(lu, node, instance, device, force_create, info,
                     force_open):
   """Wrapper around L{_CreateBlockDevInner}.
 
@@ -192,7 +192,26 @@ def CreateBlockDev(lu, node, instance, device, force_create, info,
                               force_open, excl_stor)
 
 
-def CreateDisks(lu, instance, to_skip=None, target_node=None):
+def _UndoCreateDisks(lu, disks_created):
+  """Undo the work performed by L{CreateDisks}.
+
+  This function is called in case of an error to undo the work of
+  L{CreateDisks}.
+
+  @type lu: L{LogicalUnit}
+  @param lu: the logical unit on whose behalf we execute
+  @param disks_created: the result returned by L{CreateDisks}
+
+  """
+  for (node, disk) in disks_created:
+    lu.cfg.SetDiskID(disk, node)
+    result = lu.rpc.call_blockdev_remove(node, disk)
+    if result.fail_msg:
+      logging.warning("Failed to remove newly-created disk %s on node %s:"
+                      " %s", disk, node, result.fail_msg)
+
+
+def CreateDisks(lu, instance, to_skip=None, target_node=None, disks=None):
   """Create all disks for an instance.
 
   This abstracts away some work from AddInstance.
@@ -205,8 +224,12 @@ def CreateDisks(lu, instance, to_skip=None, target_node=None):
   @param to_skip: list of indices to skip
   @type target_node: string
   @param target_node: if passed, overrides the target node for creation
-  @rtype: boolean
-  @return: the success of the creation
+  @type disks: list of {objects.Disk}
+  @param disks: the disks to create; if not specified, all the disks of the
+      instance are created
+  @return: information about the created disks, to be used to call
+      L{_UndoCreateDisks}
+  @raise errors.OpPrereqError: in case of error
 
   """
   info = GetInstanceInfoText(instance)
@@ -217,6 +240,9 @@ def CreateDisks(lu, instance, to_skip=None, target_node=None):
     pnode = target_node
     all_nodes = [pnode]
 
+  if disks is None:
+    disks = instance.disks
+
   if instance.disk_template in constants.DTS_FILEBASED:
     file_storage_dir = os.path.dirname(instance.disks[0].logical_id[1])
     result = lu.rpc.call_file_storage_dir_create(pnode, file_storage_dir)
@@ -225,32 +251,22 @@ def CreateDisks(lu, instance, to_skip=None, target_node=None):
                  " node %s" % (file_storage_dir, pnode))
 
   disks_created = []
-  # Note: this needs to be kept in sync with adding of disks in
-  # LUInstanceSetParams
-  for idx, device in enumerate(instance.disks):
+  for idx, device in enumerate(disks):
     if to_skip and idx in to_skip:
       continue
     logging.info("Creating disk %s for instance '%s'", idx, instance.name)
-    #HARDCODE
     for node in all_nodes:
       f_create = node == pnode
       try:
-        CreateBlockDev(lu, node, instance, device, f_create, info, f_create)
+        _CreateBlockDev(lu, node, instance, device, f_create, info, f_create)
         disks_created.append((node, device))
-      except errors.OpExecError:
-        logging.warning("Creating disk %s for instance '%s' failed",
-                        idx, instance.name)
       except errors.DeviceCreationError, e:
         logging.warning("Creating disk %s for instance '%s' failed",
                         idx, instance.name)
         disks_created.extend(e.created_devices)
-        for (node, disk) in disks_created:
-          lu.cfg.SetDiskID(disk, node)
-          result = lu.rpc.call_blockdev_remove(node, disk)
-          if result.fail_msg:
-            logging.warning("Failed to remove newly-created disk %s on node %s:"
-                            " %s", device, node, result.fail_msg)
+        _UndoCreateDisks(lu, disks_created)
         raise errors.OpExecError(e.message)
+  return disks_created
 
 
 def ComputeDiskSizePerVG(disk_template, disks):
@@ -800,7 +816,14 @@ class LUInstanceRecreateDisks(LogicalUnit):
     # All touched nodes must be locked
     mylocks = self.owned_locks(locking.LEVEL_NODE)
     assert mylocks.issuperset(frozenset(instance.all_nodes))
-    CreateDisks(self, instance, to_skip=to_skip)
+    new_disks = CreateDisks(self, instance, to_skip=to_skip)
+
+    # TODO: Release node locks before wiping, or explain why it's not possible
+    if self.cfg.GetClusterInfo().prealloc_wipe_disks:
+      wipedisks = [(idx, disk, 0)
+                   for (idx, disk) in enumerate(instance.disks)
+                   if idx not in to_skip]
+      WipeOrCleanupDisks(self, instance, disks=wipedisks, cleanup=new_disks)
 
 
 def _CheckNodesFreeDiskOnVG(lu, nodenames, vg, requested):
@@ -988,6 +1011,28 @@ def WipeDisks(lu, instance, disks=None):
         if not success:
           lu.LogWarning("Resuming synchronization of disk %s of instance '%s'"
                         " failed", idx, instance.name)
+
+
+def WipeOrCleanupDisks(lu, instance, disks=None, cleanup=None):
+  """Wrapper for L{WipeDisks} that handles errors.
+
+  @type lu: L{LogicalUnit}
+  @param lu: the logical unit on whose behalf we execute
+  @type instance: L{objects.Instance}
+  @param instance: the instance whose disks we should wipe
+  @param disks: see L{WipeDisks}
+  @param cleanup: the result returned by L{CreateDisks}, used for cleanup in
+      case of error
+  @raise errors.OpPrereqError: in case of failure
+
+  """
+  try:
+    WipeDisks(lu, instance, disks=disks)
+  except errors.OpExecError:
+    logging.warning("Wiping disks for instance '%s' failed",
+                    instance.name)
+    _UndoCreateDisks(lu, cleanup)
+    raise
 
 
 def ExpandCheckDisks(instance, disks):

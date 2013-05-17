@@ -375,6 +375,10 @@ def IsDiskReplacingSupported(instance):
   return instance.disk_template == constants.DT_DRBD8
 
 
+def IsDiskSupported(instance):
+  return instance.disk_template != constants.DT_DISKLESS
+
+
 def TestInstanceAddWithPlainDisk(nodes, fail=False):
   """gnt-instance add -t plain"""
   if constants.DT_PLAIN in qa_config.GetEnabledDiskTemplates():
@@ -773,6 +777,20 @@ def TestInstanceConvertDiskToPlain(instance, inodes):
                  "-n", inodes[1].primary, name])
 
 
+@InstanceCheck(INST_UP, INST_UP, FIRST_ARG)
+def TestInstanceModifyDisks(instance):
+  """gnt-instance modify --disk"""
+  if not IsDiskSupported(instance):
+    print qa_utils.FormatInfo("Instance doesn't support disks, skipping test")
+    return
+
+  size = qa_config.GetDiskOptions()[-1].get("size")
+  name = instance.name
+  build_cmd = lambda arg: ["gnt-instance", "modify", "--disk", arg, name]
+  AssertCommand(build_cmd("add:size=%s" % size))
+  AssertCommand(build_cmd("remove"))
+
+
 @InstanceCheck(INST_DOWN, INST_DOWN, FIRST_ARG)
 def TestInstanceGrowDisk(instance):
   """gnt-instance grow-disk"""
@@ -975,7 +993,13 @@ def TestRecreateDisks(instance, inodes, othernodes):
   else:
     _AssertRecreateDisks(["-n", other_seq], instance)
   # Move disks back
-  _AssertRecreateDisks(["-n", orig_seq], instance, check=False)
+  _AssertRecreateDisks(["-n", orig_seq], instance)
+  # Recreate the disks one by one
+  for idx in range(0, len(qa_config.GetDiskOptions())):
+    # Only the first call should destroy all the disk
+    destroy = (idx == 0)
+    _AssertRecreateDisks(["--disk=%s" % idx], instance, destroy=destroy,
+                         check=False)
   # This and InstanceCheck decoration check that the disks are working
   AssertCommand(["gnt-instance", "reinstall", "-f", instance.name])
   AssertCommand(["gnt-instance", "start", instance.name])
