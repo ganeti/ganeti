@@ -309,23 +309,23 @@ client_PYTHON = \
 
 cmdlib_PYTHON = \
 	lib/cmdlib/__init__.py \
-	lib/cmdlib/common.py \
+	lib/cmdlib/backup.py \
 	lib/cmdlib/base.py \
 	lib/cmdlib/cluster.py \
+	lib/cmdlib/common.py \
 	lib/cmdlib/group.py \
-	lib/cmdlib/node.py \
 	lib/cmdlib/instance.py \
-	lib/cmdlib/instance_storage.py \
 	lib/cmdlib/instance_migration.py \
 	lib/cmdlib/instance_operation.py \
 	lib/cmdlib/instance_query.py \
+	lib/cmdlib/instance_storage.py \
 	lib/cmdlib/instance_utils.py \
-	lib/cmdlib/backup.py \
-	lib/cmdlib/query.py \
-	lib/cmdlib/operating_system.py \
-	lib/cmdlib/tags.py \
-	lib/cmdlib/network.py \
 	lib/cmdlib/misc.py \
+	lib/cmdlib/network.py \
+	lib/cmdlib/node.py \
+	lib/cmdlib/operating_system.py \
+	lib/cmdlib/query.py \
+	lib/cmdlib/tags.py \
 	lib/cmdlib/test.py
 
 hypervisor_PYTHON = \
