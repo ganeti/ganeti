@@ -432,6 +432,7 @@ docinput = \
 	doc/design-htools-2.3.rst \
 	doc/design-http-server.rst \
 	doc/design-impexp2.rst \
+	doc/design-internal-shutdown.rst \
 	doc/design-lu-generated-jobs.rst \
 	doc/design-linuxha.rst \
 	doc/design-multi-reloc.rst \

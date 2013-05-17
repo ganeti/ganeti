@@ -19,6 +19,7 @@ Design document drafts
    design-storagetypes.rst
    design-reason-trail.rst
    design-device-uuid-name.rst
+   design-internal-shutdown.rst
 
 .. vim: set textwidth=72 :
 .. Local Variables:
