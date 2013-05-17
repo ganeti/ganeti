@@ -60,9 +60,16 @@ def _FormatStatus(value):
     raise errors.ProgrammerError("Unknown job status code '%s'" % value)
 
 
+def _FormatSummary(value):
+  """Formats a job's summary. Takes possible non-ascii encoding into account.
+
+  """
+  return ','.encode('utf-8').join(item.encode('utf-8') for item in value)
+
+
 _JOB_LIST_FORMAT = {
   "status": (_FormatStatus, False),
-  "summary": (lambda value: ",".join(str(item) for item in value), False),
+  "summary": (_FormatSummary, False),
   }
 _JOB_LIST_FORMAT.update(dict.fromkeys(["opstart", "opexec", "opend"],
                                       (lambda value: map(FormatTimestamp,

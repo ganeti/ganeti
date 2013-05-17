@@ -40,6 +40,7 @@ SHELL_ENV_INIT = autotools/shell-env-init
 # Note: these are automake-specific variables, and must be named after
 # the directory + 'dir' suffix
 clientdir = $(pkgpythondir)/client
+cmdlibdir = $(pkgpythondir)/cmdlib
 hypervisordir = $(pkgpythondir)/hypervisor
 storagedir = $(pkgpythondir)/storage
 httpdir = $(pkgpythondir)/http
@@ -106,6 +107,7 @@ DIRS = \
 	lib \
 	lib/build \
 	lib/client \
+	lib/cmdlib \
 	lib/confd \
 	lib/http \
 	lib/hypervisor \
@@ -261,7 +263,6 @@ pkgpython_PYTHON = \
 	lib/backend.py \
 	lib/bootstrap.py \
 	lib/cli.py \
-	lib/cmdlib.py \
 	lib/compat.py \
 	lib/config.py \
 	lib/constants.py \
@@ -305,6 +306,27 @@ client_PYTHON = \
 	lib/client/gnt_network.py \
 	lib/client/gnt_os.py \
 	lib/client/gnt_storage.py
+
+cmdlib_PYTHON = \
+	lib/cmdlib/__init__.py \
+	lib/cmdlib/backup.py \
+	lib/cmdlib/base.py \
+	lib/cmdlib/cluster.py \
+	lib/cmdlib/common.py \
+	lib/cmdlib/group.py \
+	lib/cmdlib/instance.py \
+	lib/cmdlib/instance_migration.py \
+	lib/cmdlib/instance_operation.py \
+	lib/cmdlib/instance_query.py \
+	lib/cmdlib/instance_storage.py \
+	lib/cmdlib/instance_utils.py \
+	lib/cmdlib/misc.py \
+	lib/cmdlib/network.py \
+	lib/cmdlib/node.py \
+	lib/cmdlib/operating_system.py \
+	lib/cmdlib/query.py \
+	lib/cmdlib/tags.py \
+	lib/cmdlib/test.py
 
 hypervisor_PYTHON = \
 	lib/hypervisor/__init__.py \
@@ -1264,6 +1286,7 @@ all_python_code = \
 	$(python_tests) \
 	$(pkgpython_PYTHON) \
 	$(client_PYTHON) \
+	$(cmdlib_PYTHON) \
 	$(hypervisor_PYTHON) \
 	$(storage_PYTHON) \
 	$(rapi_PYTHON) \

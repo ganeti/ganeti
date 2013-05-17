@@ -1,6 +1,6 @@
 #!/bin/bash
 #Configuration
-: ${DATA_DIR=data}
+: ${DATA_DIR=`dirname $0`/data}
 : ${ARCH=amd64}
 : ${DIST_RELEASE=squeeze}
 : ${CONF_DIR:=/etc/schroot/chroot.d}
@@ -31,6 +31,16 @@ then
   echo "  $TEMP_CHROOT_CONF"
   echo "already exists."
   echo "Remove it or change the CHNAME value in the script."
+  exit
+fi
+
+if [ ! -d $DATA_DIR ]
+then
+  echo "The data directory"
+  echo "  $DATA_DIR"
+  echo "does not exist."
+  echo "Please, set the DATA_DIR environment variable so that it points to the"
+  echo "data directory."
   exit
 fi
 
@@ -116,16 +126,24 @@ in_chroot -- \
 
 in_chroot -- \
   cabal install --global \
-    QuickCheck==2.5.1.1 \
-    network==2.3 hslogger Crypto text regex-pcre \
-    attoparsec vector \
-    json==0.4.4 \
-    MonadCatchIO-transformers==0.2.2.0 mtl==2.0.1.0 \
-    hashable==1.1.2.0 case-insensitive==0.3 parsec==3.0.1 \
-    network==2.3 snap-server==0.8.1 \
+    network==2.3 \
+    regex-pcre==0.94.2 \
     hinotify==0.3.2 \
+    hslogger==1.1.4 \
+    attoparsec==0.10.1.1\
+    quickcheck==2.5.1.1 \
+    crypto==4.2.4 \
+    monadcatchio-transformers==0.2.2.0 \
+    mtl==2.0.1.0 \
+    hashable==1.1.2.0 \
+    case-insensitive==0.3 \
+    parsec==3.0.1 \
+    network==2.3 \
+    snap-server==0.8.1 \
+    text==0.11.3.0 \
+    vector==0.9.1 \
+    json==0.4.4 \
     process==1.0.1.2
-
 
 #Python development tools
 in_chroot -- \
@@ -142,11 +160,11 @@ in_chroot -- \
 #Haskell development tools
 in_chroot -- \
   cabal install --global \
-    HUnit \
-    happy \
+    hunit==1.2.5.2 \
+    happy==1.18.10 \
     hlint==1.8.34 \
     hscolour==1.20.3 \
-    temporary \
+    temporary==1.1.2.3 \
     test-framework==0.6.1 \
     test-framework-hunit==0.2.7 \
     test-framework-quickcheck2==0.2.12.3

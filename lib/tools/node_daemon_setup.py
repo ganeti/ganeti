@@ -216,12 +216,17 @@ def Main():
         not opts.dry_run):
       logging.info("Restarting node daemon ...")
 
-      cmd = ("%s stop-all; %s start %s" %
-             (pathutils.DAEMON_UTIL, pathutils.DAEMON_UTIL, constants.NODED))
+      stop_cmd = "%s stop-all" % pathutils.DAEMON_UTIL
+      noded_cmd = "%s start %s" % (pathutils.DAEMON_UTIL, constants.NODED)
+      mond_cmd = ""
+      if constants.ENABLE_MOND:
+        mond_cmd = "%s start %s" % (pathutils.DAEMON_UTIL, constants.MOND)
+
+      cmd = "; ".join([stop_cmd, noded_cmd, mond_cmd])
 
       result = utils.RunCmd(cmd, interactive=True)
       if result.failed:
-        raise SetupError("Could not start the node daemon, command '%s'"
+        raise SetupError("Could not start the node daemons, command '%s'"
                          " failed: %s" % (result.cmd, result.fail_reason))
 
     logging.info("Node daemon successfully configured")
