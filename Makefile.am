@@ -996,6 +996,7 @@ man_MANS = \
 	man/gnt-os.8 \
 	man/gnt-storage.8 \
 	man/hail.1 \
+	man/harep.1 \
 	man/hbal.1 \
 	man/hcheck.1 \
 	man/hinfo.1 \
