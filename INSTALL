@@ -2,8 +2,9 @@ Ganeti quick installation guide
 ===============================
 
 Please note that a more detailed installation procedure is described in
-the :doc:`install`. A glossary of terms can be found in the
-:doc:`glossary`.
+the :doc:`install`. Refer to it if you are setting up Ganeti the first time.
+This quick installation guide is mainly meant as reference for experienced
+users. A glossary of terms can be found in the :doc:`glossary`.
 
 
 Software Requirements

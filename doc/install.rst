@@ -171,7 +171,11 @@ the file ``/etc/xen/xend-config.sxp`` by setting the value
 
 For optimum performance when running both CPU and I/O intensive
 instances, it's also recommended that the dom0 is restricted to one CPU
-only, for example by booting with the kernel parameter ``maxcpus=1``.
+only. For example you can add ``dom0_max_vcpus=1,dom0_vcpus_pin`` to your
+kernels boot command line and set ``dom0-cpus`` in
+``/etc/xen/xend-config.sxp`` like this::
+
+  (dom0-cpus 1)
 
 It is recommended that you disable xen's automatic save of virtual
 machines at system shutdown and subsequent restore of them at reboot.
@@ -312,8 +316,8 @@ instances on a node.
      $ depmod -a
      $ modprobe drbd minor_count=128 usermode_helper=/bin/true
 
-   It is also recommended that you comment out the default resources in
-   the ``/etc/drbd.conf`` file, so that the init script doesn't try to
+   It is also recommended that you comment out the default resources (if any)
+   in the ``/etc/drbd.conf`` file, so that the init script doesn't try to
    configure any drbd devices. You can do this by prefixing all
    *resource* lines in the file with the keyword *skip*, like this:
 
@@ -418,7 +422,9 @@ For more information, please see the `Ceph Docs
 Other required software
 +++++++++++++++++++++++
 
-See :doc:`install-quick`.
+Please install all software requirements mentioned in :doc:`install-quick`.
+If you want to build Ganeti from source, don't forget to follow the steps
+required for that as well.
 
 Setting up the environment for Ganeti
 -------------------------------------
@@ -620,14 +626,14 @@ To be able to install instances you need to have an Operating System
 installation script. An example OS that works under Debian and can
 install Debian and Ubuntu instace OSes is provided on the project web
 site.  Download it from the project page and follow the instructions in
-the ``README`` file.  Here is the installation procedure (replace 0.9
+the ``README`` file.  Here is the installation procedure (replace 0.12
 with the latest version that is compatible with your ganeti version)::
 
   $ cd /usr/local/src/
-  $ wget http://ganeti.googlecode.com/files/ganeti-instance-debootstrap-%0.9%.tar.gz
-  $ tar xzf ganeti-instance-debootstrap-%0.9%.tar.gz
-  $ cd ganeti-instance-debootstrap-%0.9%
-  $ ./configure
+  $ wget http://ganeti.googlecode.com/files/ganeti-instance-debootstrap-%0.12%.tar.gz
+  $ tar xzf ganeti-instance-debootstrap-%0.12%.tar.gz
+  $ cd ganeti-instance-debootstrap-%0.12%
+  $ ./configure --with-os-dir=/srv/ganeti/os
   $ make
   $ make install
 
@@ -662,6 +668,9 @@ installed.
    ``kbd`` can be used instead of ``console-tools``, and more packages
    can be added, of course, if needed.
 
+Please refer to the ``README`` file of ``ganeti-instance-debootstrap`` for
+further documentation.
+
 Alternatively, you can create your own OS definitions. See the manpage
 :manpage:`ganeti-os-interface(7)`.
 
@@ -671,8 +680,9 @@ Initializing the cluster
 **Mandatory** once per cluster, on the first node.
 
 The last step is to initialize the cluster. After you have repeated the
-above process on all of your nodes, choose one as the master, and
-execute::
+above process on all of your nodes and choose one as the master. Make sure
+there is a SSH key pair on the master node (optionally generating one using
+``ssh-keygen``). Finally execute::
 
   $ gnt-cluster init %CLUSTERNAME%
 
