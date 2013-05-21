@@ -305,31 +305,36 @@ class TestLogicalVolume(unittest.TestCase):
   def testParseLvInfoLine(self):
     """Tests for LogicalVolume._ParseLvInfoLine."""
     broken_lines = [
-      "  toomuch#-wi-ao#253#3#4096.00#2",
-      "  -wi-ao#253#3#4096.00",
-      "  -wi-a#253#3#4096.00#2",
-      "  -wi-ao#25.3#3#4096.00#2",
-      "  -wi-ao#twenty#3#4096.00#2",
-      "  -wi-ao#253#3.1#4096.00#2",
-      "  -wi-ao#253#three#4096.00#2",
-      "  -wi-ao#253#3#four#2",
-      "  -wi-ao#253#3#4096..00#2",
-      "  -wi-ao#253#3#4096.00#2.0",
-      "  -wi-ao#253#3#4096.00#two",
+      "  toomuch#-wi-ao#253#3#4096.00#2#/dev/abc(20)",
+      "  -wi-ao#253#3#4096.00#/dev/abc(20)",
+      "  -wi-a#253#3#4096.00#2#/dev/abc(20)",
+      "  -wi-ao#25.3#3#4096.00#2#/dev/abc(20)",
+      "  -wi-ao#twenty#3#4096.00#2#/dev/abc(20)",
+      "  -wi-ao#253#3.1#4096.00#2#/dev/abc(20)",
+      "  -wi-ao#253#three#4096.00#2#/dev/abc(20)",
+      "  -wi-ao#253#3#four#2#/dev/abc(20)",
+      "  -wi-ao#253#3#4096..00#2#/dev/abc(20)",
+      "  -wi-ao#253#3#4096.00#2.0#/dev/abc(20)",
+      "  -wi-ao#253#3#4096.00#two#/dev/abc(20)",
       ]
     for broken in broken_lines:
       self.assertRaises(errors.BlockDeviceError,
                         bdev.LogicalVolume._ParseLvInfoLine, broken, "#")
 
+    # Examples of good lines from "lvs":
+    #  -wi-ao|253|3|4096.00|2|/dev/sdb(144),/dev/sdc(0)
+    #  -wi-a-|253|4|4096.00|1|/dev/sdb(208)
     true_out = [
-      ("-wi-ao", 253, 3, 4096.00, 2),
-      ("-wi-a-", 253, 7, 4096.00, 4),
-      ("-ri-a-", 253, 4, 4.00, 5),
-      ("-wc-ao", 15, 18, 4096.00, 32),
+      ("-wi-ao", 253, 3, 4096.00, 2, ["/dev/abc"]),
+      ("-wi-a-", 253, 7, 4096.00, 4, ["/dev/abc"]),
+      ("-ri-a-", 253, 4, 4.00, 5, ["/dev/abc", "/dev/def"]),
+      ("-wc-ao", 15, 18, 4096.00, 32, ["/dev/abc", "/dev/def", "/dev/ghi0"]),
       ]
     for exp in true_out:
-      for sep in "#;|,":
-        lvs_line = sep.join(("  %s", "%d", "%d", "%.2f", "%d")) % exp
+      for sep in "#;|":
+        pvs = ",".join("%s(%s)" % (d, i * 12) for (i, d) in enumerate(exp[-1]))
+        lvs_line = (sep.join(("  %s", "%d", "%d", "%.2f", "%d", "%s")) %
+                    (exp[0:-1] + (pvs,)))
         parsed = bdev.LogicalVolume._ParseLvInfoLine(lvs_line, sep)
         self.assertEqual(parsed, exp)
 
@@ -351,18 +356,35 @@ class TestLogicalVolume(unittest.TestCase):
                       "fake_path", _run_cmd=self._FakeRunCmd(True, ""))
     self.assertRaises(errors.BlockDeviceError, bdev.LogicalVolume._GetLvInfo,
                       "fake_path", _run_cmd=self._FakeRunCmd(True, "BadStdOut"))
-    good_line = "  -wi-ao,253,3,4096.00,2"
+    good_line = "  -wi-ao|253|3|4096.00|2|/dev/abc(20)"
     fake_cmd = self._FakeRunCmd(True, good_line)
     good_res = bdev.LogicalVolume._GetLvInfo("fake_path", _run_cmd=fake_cmd)
-    # Only the last line should be parsed and taken into account
+    # If the same line is repeated, the result should be the same
     for lines in [
       [good_line] * 2,
       [good_line] * 3,
-      ["bad line", good_line],
       ]:
       fake_cmd = self._FakeRunCmd(True, "\n".join(lines))
       same_res = bdev.LogicalVolume._GetLvInfo("fake_path", fake_cmd)
       self.assertEqual(same_res, good_res)
+
+    # Complex multi-line examples
+    one_line = "  -wi-ao|253|3|4096.00|2|/dev/sda(20),/dev/sdb(50),/dev/sdc(0)"
+    fake_cmd = self._FakeRunCmd(True, one_line)
+    one_res = bdev.LogicalVolume._GetLvInfo("fake_path", _run_cmd=fake_cmd)
+    # These should give the same results
+    for multi_lines in [
+      ("  -wi-ao|253|3|4096.00|2|/dev/sda(30),/dev/sdb(50)\n"
+       "  -wi-ao|253|3|4096.00|2|/dev/sdb(200),/dev/sdc(300)"),
+      ("  -wi-ao|253|3|4096.00|2|/dev/sda(0)\n"
+       "  -wi-ao|253|3|4096.00|2|/dev/sdb(20)\n"
+       "  -wi-ao|253|3|4096.00|2|/dev/sdc(30)"),
+      ("  -wi-ao|253|3|4096.00|2|/dev/sda(20)\n"
+       "  -wi-ao|253|3|4096.00|2|/dev/sdb(50),/dev/sdc(0)"),
+      ]:
+      fake_cmd = self._FakeRunCmd(True, multi_lines)
+      multi_res = bdev.LogicalVolume._GetLvInfo("fake_path", _run_cmd=fake_cmd)
+      self.assertEqual(multi_res, one_res)
 
 
 if __name__ == "__main__":

@@ -172,6 +172,7 @@ class LogicalVolume(base.BlockDev):
 
   """
   _VALID_NAME_RE = re.compile("^[a-zA-Z0-9+_.-]*$")
+  _PARSE_PV_DEV_RE = re.compile("^([^ ()]+)\([0-9]+\)$")
   _INVALID_NAMES = compat.UniqueFrozenset([".", "..", "snapshot", "pvmove"])
   _INVALID_SUBSTRINGS = compat.UniqueFrozenset(["_mlog", "_mimage"])
 
@@ -190,6 +191,7 @@ class LogicalVolume(base.BlockDev):
     self.dev_path = utils.PathJoin("/dev", self._vg_name, self._lv_name)
     self._degraded = True
     self.major = self.minor = self.pe_size = self.stripe_count = None
+    self.pv_names = None
     self.Attach()
 
   @staticmethod
@@ -501,10 +503,10 @@ class LogicalVolume(base.BlockDev):
 
     """
     elems = line.strip().rstrip(sep).split(sep)
-    if len(elems) != 5:
-      base.ThrowError("Can't parse LVS output, len(%s) != 5", str(elems))
+    if len(elems) != 6:
+      base.ThrowError("Can't parse LVS output, len(%s) != 6", str(elems))
 
-    (status, major, minor, pe_size, stripes) = elems
+    (status, major, minor, pe_size, stripes, pvs) = elems
     if len(status) < 6:
       base.ThrowError("lvs lv_attr is not at least 6 characters (%s)", status)
 
@@ -524,17 +526,26 @@ class LogicalVolume(base.BlockDev):
     except (TypeError, ValueError), err:
       base.ThrowError("Can't parse the number of stripes: %s", err)
 
-    return (status, major, minor, pe_size, stripes)
+    pv_names = []
+    for pv in pvs.split(","):
+      m = re.match(cls._PARSE_PV_DEV_RE, pv)
+      if not m:
+        base.ThrowError("Can't parse this device list: %s", pvs)
+      pv_names.append(m.group(1))
+    assert len(pv_names) > 0
+
+    return (status, major, minor, pe_size, stripes, pv_names)
 
   @classmethod
   def _GetLvInfo(cls, dev_path, _run_cmd=utils.RunCmd):
     """Get info about the given existing LV to be used.
 
     """
-    result = _run_cmd(["lvs", "--noheadings", "--separator=,",
+    sep = "|"
+    result = _run_cmd(["lvs", "--noheadings", "--separator=%s" % sep,
                        "--units=k", "--nosuffix",
                        "-olv_attr,lv_kernel_major,lv_kernel_minor,"
-                       "vg_extent_size,stripes", dev_path])
+                       "vg_extent_size,stripes,devices", dev_path])
     if result.failed:
       base.ThrowError("Can't find LV %s: %s, %s",
                       dev_path, result.fail_reason, result.output)
@@ -547,7 +558,12 @@ class LogicalVolume(base.BlockDev):
     if not out: # totally empty result? splitlines() returns at least
                 # one line for any non-empty string
       base.ThrowError("Can't parse LVS output, no lines? Got '%s'", str(out))
-    return cls._ParseLvInfoLine(out[-1], ",")
+    pv_names = set()
+    for line in out:
+      (status, major, minor, pe_size, stripes, more_pvs) = \
+        cls._ParseLvInfoLine(line, sep)
+      pv_names.update(more_pvs)
+    return (status, major, minor, pe_size, stripes, pv_names)
 
   def Attach(self):
     """Attach to an existing LV.
@@ -559,7 +575,7 @@ class LogicalVolume(base.BlockDev):
     """
     self.attached = False
     try:
-      (status, major, minor, pe_size, stripes) = \
+      (status, major, minor, pe_size, stripes, pv_names) = \
         self._GetLvInfo(self.dev_path)
     except errors.BlockDeviceError:
       return False
@@ -570,6 +586,7 @@ class LogicalVolume(base.BlockDev):
     self.stripe_count = stripes
     self._degraded = status[0] == "v" # virtual volume, i.e. doesn't backing
                                       # storage
+    self.pv_names = pv_names
     self.attached = True
     return True
 
