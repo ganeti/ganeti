@@ -60,6 +60,7 @@ module Ganeti.HTools.Instance
 import Ganeti.BasicTypes
 import qualified Ganeti.HTools.Types as T
 import qualified Ganeti.HTools.Container as Container
+import Ganeti.HTools.Nic (Nic)
 
 import Ganeti.Utils
 
@@ -85,6 +86,7 @@ data Instance = Instance
   , allTags      :: [String]  -- ^ List of all instance tags
   , exclTags     :: [String]  -- ^ List of instance exclusion tags
   , arPolicy     :: T.AutoRepairPolicy -- ^ Instance's auto-repair policy
+  , nics         :: [Nic]     -- ^ NICs of the instance
   } deriving (Show, Eq)
 
 instance T.Element Instance where
@@ -165,9 +167,9 @@ type List = Container.Container Instance
 -- later (via 'setIdx' for example).
 create :: String -> Int -> Int -> [Int] -> Int -> T.InstanceStatus
        -> [String] -> Bool -> T.Ndx -> T.Ndx -> T.DiskTemplate -> Int
-       -> Instance
+       -> [Nic] -> Instance
 create name_init mem_init dsk_init disks_init vcpus_init run_init tags_init
-       auto_balance_init pn sn dt su =
+       auto_balance_init pn sn dt su nics_init =
   Instance { name = name_init
            , alias = name_init
            , mem = mem_init
@@ -186,6 +188,7 @@ create name_init mem_init dsk_init disks_init vcpus_init run_init tags_init
            , allTags = tags_init
            , exclTags = []
            , arPolicy = T.ArNotEnabled
+           , nics = nics_init
            }
 
 -- | Changes the index.

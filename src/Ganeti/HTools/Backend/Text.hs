@@ -247,7 +247,7 @@ loadInst ktn [ name, mem, dsk, vcpus, status, auto_bal, pnode, snode
            " has same primary and secondary node - " ++ pnode
   let vtags = commaSplit tags
       newinst = Instance.create name vmem vdsk [vdsk] vvcpus vstatus vtags
-                auto_balance pidx sidx disk_template spindle_use
+                auto_balance pidx sidx disk_template spindle_use []
   return (name, newinst)
 
 loadInst ktn [ name, mem, dsk, vcpus, status, auto_bal, pnode, snode

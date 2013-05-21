@@ -394,9 +394,9 @@ runAllocation cdata stop_allocation actual_result spec dt mode opts = do
 -- of the disk space to individual disks), sensible defaults are guessed (e.g.,
 -- having a single disk).
 instFromSpec :: RSpec -> DiskTemplate -> Int -> Instance.Instance
-instFromSpec spx =
+instFromSpec spx dt su =
   Instance.create "new" (rspecMem spx) (rspecDsk spx) [rspecDsk spx]
-    (rspecCpu spx) Running [] True (-1) (-1)
+    (rspecCpu spx) Running [] True (-1) (-1) dt su []
 
 combineTiered :: Maybe Int -> Cluster.AllocNodes -> Cluster.AllocResult ->
            Instance.Instance -> Result Cluster.AllocResult

@@ -173,7 +173,7 @@ parseInstance ktn [ name, disk, mem, vcpus
   xdt <- convert "disk_template" disk_template
   xsu <- convert "be/spindle_use" su
   let inst = Instance.create xname xmem xdisk [xdisk] xvcpus
-             xrunning xtags xauto_balance xpnode snode xdt xsu
+             xrunning xtags xauto_balance xpnode snode xdt xsu []
   return (xname, inst)
 
 parseInstance _ v = fail ("Invalid instance query result: " ++ show v)

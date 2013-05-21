@@ -549,6 +549,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/HTools/Group.hs \
 	src/Ganeti/HTools/Instance.hs \
 	src/Ganeti/HTools/Loader.hs \
+	src/Ganeti/HTools/Nic.hs \
 	src/Ganeti/HTools/Node.hs \
 	src/Ganeti/HTools/PeerMap.hs \
 	src/Ganeti/HTools/Program/Hail.hs \
