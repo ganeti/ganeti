@@ -495,6 +495,60 @@ class LogicalVolume(base.BlockDev):
     self._lv_name = new_name
     self.dev_path = utils.PathJoin("/dev", self._vg_name, self._lv_name)
 
+  @classmethod
+  def _ParseLvInfoLine(cls, line, sep):
+    """Parse one line of the lvs output used in L{_GetLvInfo}.
+
+    """
+    elems = line.strip().rstrip(sep).split(sep)
+    if len(elems) != 5:
+      base.ThrowError("Can't parse LVS output, len(%s) != 5", str(elems))
+
+    (status, major, minor, pe_size, stripes) = elems
+    if len(status) < 6:
+      base.ThrowError("lvs lv_attr is not at least 6 characters (%s)", status)
+
+    try:
+      major = int(major)
+      minor = int(minor)
+    except (TypeError, ValueError), err:
+      base.ThrowError("lvs major/minor cannot be parsed: %s", str(err))
+
+    try:
+      pe_size = int(float(pe_size))
+    except (TypeError, ValueError), err:
+      base.ThrowError("Can't parse vg extent size: %s", err)
+
+    try:
+      stripes = int(stripes)
+    except (TypeError, ValueError), err:
+      base.ThrowError("Can't parse the number of stripes: %s", err)
+
+    return (status, major, minor, pe_size, stripes)
+
+  @classmethod
+  def _GetLvInfo(cls, dev_path, _run_cmd=utils.RunCmd):
+    """Get info about the given existing LV to be used.
+
+    """
+    result = _run_cmd(["lvs", "--noheadings", "--separator=,",
+                       "--units=k", "--nosuffix",
+                       "-olv_attr,lv_kernel_major,lv_kernel_minor,"
+                       "vg_extent_size,stripes", dev_path])
+    if result.failed:
+      base.ThrowError("Can't find LV %s: %s, %s",
+                      dev_path, result.fail_reason, result.output)
+    # the output can (and will) have multiple lines for multi-segment
+    # LVs, as the 'stripes' parameter is a segment one, so we take
+    # only the last entry, which is the one we're interested in; note
+    # that with LVM2 anyway the 'stripes' value must be constant
+    # across segments, so this is a no-op actually
+    out = result.stdout.splitlines()
+    if not out: # totally empty result? splitlines() returns at least
+                # one line for any non-empty string
+      base.ThrowError("Can't parse LVS output, no lines? Got '%s'", str(out))
+    return cls._ParseLvInfoLine(out[-1], ",")
+
   def Attach(self):
     """Attach to an existing LV.
 
@@ -504,51 +558,10 @@ class LogicalVolume(base.BlockDev):
 
     """
     self.attached = False
-    result = utils.RunCmd(["lvs", "--noheadings", "--separator=,",
-                           "--units=k", "--nosuffix",
-                           "-olv_attr,lv_kernel_major,lv_kernel_minor,"
-                           "vg_extent_size,stripes", self.dev_path])
-    if result.failed:
-      logging.error("Can't find LV %s: %s, %s",
-                    self.dev_path, result.fail_reason, result.output)
-      return False
-    # the output can (and will) have multiple lines for multi-segment
-    # LVs, as the 'stripes' parameter is a segment one, so we take
-    # only the last entry, which is the one we're interested in; note
-    # that with LVM2 anyway the 'stripes' value must be constant
-    # across segments, so this is a no-op actually
-    out = result.stdout.splitlines()
-    if not out: # totally empty result? splitlines() returns at least
-                # one line for any non-empty string
-      logging.error("Can't parse LVS output, no lines? Got '%s'", str(out))
-      return False
-    out = out[-1].strip().rstrip(",")
-    out = out.split(",")
-    if len(out) != 5:
-      logging.error("Can't parse LVS output, len(%s) != 5", str(out))
-      return False
-
-    status, major, minor, pe_size, stripes = out
-    if len(status) < 6:
-      logging.error("lvs lv_attr is not at least 6 characters (%s)", status)
-      return False
-
     try:
-      major = int(major)
-      minor = int(minor)
-    except (TypeError, ValueError), err:
-      logging.error("lvs major/minor cannot be parsed: %s", str(err))
-
-    try:
-      pe_size = int(float(pe_size))
-    except (TypeError, ValueError), err:
-      logging.error("Can't parse vg extent size: %s", err)
-      return False
-
-    try:
-      stripes = int(stripes)
-    except (TypeError, ValueError), err:
-      logging.error("Can't parse the number of stripes: %s", err)
+      (status, major, minor, pe_size, stripes) = \
+        self._GetLvInfo(self.dev_path)
+    except errors.BlockDeviceError:
       return False
 
     self.major = major

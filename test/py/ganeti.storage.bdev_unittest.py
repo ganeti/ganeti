@@ -300,5 +300,70 @@ class TestExclusiveStoragePvs(unittest.TestCase):
             self.assertTrue(len(epvs) == num_req or pvi.free != pvi.size)
 
 
+class TestLogicalVolume(unittest.TestCase):
+  """Tests for bdev.LogicalVolume."""
+  def testParseLvInfoLine(self):
+    """Tests for LogicalVolume._ParseLvInfoLine."""
+    broken_lines = [
+      "  toomuch#-wi-ao#253#3#4096.00#2",
+      "  -wi-ao#253#3#4096.00",
+      "  -wi-a#253#3#4096.00#2",
+      "  -wi-ao#25.3#3#4096.00#2",
+      "  -wi-ao#twenty#3#4096.00#2",
+      "  -wi-ao#253#3.1#4096.00#2",
+      "  -wi-ao#253#three#4096.00#2",
+      "  -wi-ao#253#3#four#2",
+      "  -wi-ao#253#3#4096..00#2",
+      "  -wi-ao#253#3#4096.00#2.0",
+      "  -wi-ao#253#3#4096.00#two",
+      ]
+    for broken in broken_lines:
+      self.assertRaises(errors.BlockDeviceError,
+                        bdev.LogicalVolume._ParseLvInfoLine, broken, "#")
+
+    true_out = [
+      ("-wi-ao", 253, 3, 4096.00, 2),
+      ("-wi-a-", 253, 7, 4096.00, 4),
+      ("-ri-a-", 253, 4, 4.00, 5),
+      ("-wc-ao", 15, 18, 4096.00, 32),
+      ]
+    for exp in true_out:
+      for sep in "#;|,":
+        lvs_line = sep.join(("  %s", "%d", "%d", "%.2f", "%d")) % exp
+        parsed = bdev.LogicalVolume._ParseLvInfoLine(lvs_line, sep)
+        self.assertEqual(parsed, exp)
+
+  @staticmethod
+  def _FakeRunCmd(success, stdout):
+    if success:
+      exit_code = 0
+    else:
+      exit_code = 1
+    return lambda cmd: utils.RunResult(exit_code, None, stdout, "", cmd,
+                                       utils.process._TIMEOUT_NONE, 5)
+
+  def testGetLvInfo(self):
+    """Tests for LogicalVolume._GetLvInfo."""
+    self.assertRaises(errors.BlockDeviceError, bdev.LogicalVolume._GetLvInfo,
+                      "fake_path",
+                      _run_cmd=self._FakeRunCmd(False, "Fake error msg"))
+    self.assertRaises(errors.BlockDeviceError, bdev.LogicalVolume._GetLvInfo,
+                      "fake_path", _run_cmd=self._FakeRunCmd(True, ""))
+    self.assertRaises(errors.BlockDeviceError, bdev.LogicalVolume._GetLvInfo,
+                      "fake_path", _run_cmd=self._FakeRunCmd(True, "BadStdOut"))
+    good_line = "  -wi-ao,253,3,4096.00,2"
+    fake_cmd = self._FakeRunCmd(True, good_line)
+    good_res = bdev.LogicalVolume._GetLvInfo("fake_path", _run_cmd=fake_cmd)
+    # Only the last line should be parsed and taken into account
+    for lines in [
+      [good_line] * 2,
+      [good_line] * 3,
+      ["bad line", good_line],
+      ]:
+      fake_cmd = self._FakeRunCmd(True, "\n".join(lines))
+      same_res = bdev.LogicalVolume._GetLvInfo("fake_path", fake_cmd)
+      self.assertEqual(same_res, good_res)
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
