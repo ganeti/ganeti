@@ -746,6 +746,13 @@ class LogicalVolume(base.BlockDev):
         return
     base.ThrowError("Can't grow LV %s: %s", self.dev_path, result.output)
 
+  def GetActualSpindles(self):
+    """Return the number of spindles used.
+
+    """
+    assert self.attached, "BlockDevice not attached in GetActualSpindles()"
+    return len(self.pv_names)
+
 
 class FileStorage(base.BlockDev):
   """File device.

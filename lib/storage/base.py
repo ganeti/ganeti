@@ -330,6 +330,28 @@ class BlockDev(object):
       ThrowError("Failed to parse blockdev output: %s", str(err))
     return sz
 
+  def GetActualSpindles(self):
+    """Return the actual number of spindles used.
+
+    This is not supported by all devices; if not supported, C{None} is returned.
+
+    @note: the device needs to be active when this is called
+
+    """
+    assert self.attached, "BlockDevice not attached in GetActualSpindles()"
+    return None
+
+  def GetActualDimensions(self):
+    """Return the actual disk size and number of spindles used.
+
+    @rtype: tuple
+    @return: (size, spindles); spindles is C{None} when they are not supported
+
+    @note: the device needs to be active when this is called
+
+    """
+    return (self.GetActualSize(), self.GetActualSpindles())
+
   def __repr__(self):
     return ("<%s: unique_id: %s, children: %s, %s:%s, %s>" %
             (self.__class__, self.unique_id, self._children,
