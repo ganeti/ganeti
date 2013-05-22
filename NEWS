@@ -123,6 +123,7 @@ Since rc1:
 - Removing the master IP address doesn't fail if the address has been
   already removed.
 - Fix ownership of the OS log dir
+- Workaround missing SO_PEERCRED constant (Issue 191)
 
 
 Version 2.7.0 rc1
