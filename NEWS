@@ -13,6 +13,10 @@ Version 2.9.0 beta1
   enables rolling upgrades of DRBD with no downtime. As permanent operation
   of different DRBD versions within a node group is discouraged,
   ``gnt-cluster verify`` will emit a warning if it detects such a situation.
+- hroller now also plans for capacity to move non-redundant instances off
+  any node to be rebooted; the old behavior of completely ignoring any
+  non-redundant instances can be restored by adding the --ignore-non-redundant
+  option.
 
 
 Version 2.8.0 beta1
