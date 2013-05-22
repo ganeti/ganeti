@@ -1,15 +1,26 @@
-./test/hs/hroller --no-headers -t $TESTDATA_DIR/unique-reboot-order.data
+./test/hs/hroller --no-headers --ignore-non-redundant -t $TESTDATA_DIR/unique-reboot-order.data
 >>>
 node-01-002
 node-01-003,node-01-001
 >>>= 0
 
-./test/hs/hroller -O node-01-002 --no-headers -t $TESTDATA_DIR/unique-reboot-order.data
+./test/hs/hroller --no-headers --skip-non-redundant -t $TESTDATA_DIR/unique-reboot-order.data
+>>>
+node-01-002
+>>>= 0
+
+./test/hs/hroller --no-headers -t $TESTDATA_DIR/unique-reboot-order.data
+>>>/^node-01-00.
+node-01-00.
+node-01-001$/
+>>>= 0
+
+./test/hs/hroller --ignore-non-redundant -O node-01-002 --no-headers -t $TESTDATA_DIR/unique-reboot-order.data
 >>>
 node-01-003,node-01-001
 >>>= 0
 
-./test/hs/hroller -O node-01-003 --no-headers -t $TESTDATA_DIR/unique-reboot-order.data
+./test/hs/hroller --ignore-non-redundant -O node-01-003 --no-headers -t $TESTDATA_DIR/unique-reboot-order.data
 >>>
 node-01-002
 node-01-001
