@@ -199,32 +199,6 @@ The second line assumes that the hypervisor parameter
 line assumes that all your nodes have secondary IPs in the
 192.0.2.0/24 network, adjust it accordingly to your setup.
 
-.. admonition:: Debian
-
-   Besides the ballooning change which you need to set in
-   ``/etc/xen/xend-config.sxp``, you need to set the memory and nosmp
-   parameters in the file ``/boot/grub/menu.lst``. You need to modify
-   the variable ``xenhopt`` to add ``dom0_mem=1024M`` like this:
-
-   .. code-block:: text
-
-     ## Xen hypervisor options to use with the default Xen boot option
-     # xenhopt=dom0_mem=1024M
-
-   and the ``xenkopt`` needs to include the ``maxcpus`` option like
-   this:
-
-   .. code-block:: text
-
-     ## Xen Linux kernel options to use with the default Xen boot option
-     # xenkopt=maxcpus=1
-
-   Any existing parameters can be left in place: it's ok to have
-   ``xenkopt=console=tty0 maxcpus=1``, for example. After modifying the
-   files, you need to run::
-
-     $ /sbin/update-grub
-
 If you want to run HVM instances too with Ganeti and want VNC access to
 the console of your instances, set the following two entries in
 ``/etc/xen/xend-config.sxp``:
