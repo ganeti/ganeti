@@ -2149,7 +2149,7 @@ def BlockdevFind(disk):
   return rbd.GetSyncStatus()
 
 
-def BlockdevGetsize(disks):
+def BlockdevGetdimensions(disks):
   """Computes the size of the given disks.
 
   If a disk is not found, returns None instead.
@@ -2158,7 +2158,8 @@ def BlockdevGetsize(disks):
   @param disks: the list of disk to compute the size for
   @rtype: list
   @return: list with elements None if the disk cannot be found,
-      otherwise the size
+      otherwise the pair (size, spindles), where spindles is None if the
+      device doesn't support that
 
   """
   result = []
@@ -2171,7 +2172,7 @@ def BlockdevGetsize(disks):
     if rbd is None:
       result.append(None)
     else:
-      result.append(rbd.GetActualSize())
+      result.append(rbd.GetActualDimensions())
   return result
 
 

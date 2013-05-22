@@ -384,9 +384,9 @@ _BLOCKDEV_CALLS = [
     ("instance_name", None, None),
     ("disks", ED_OBJECT_DICT_LIST, None),
     ], None, None, "Closes the given block devices"),
-  ("blockdev_getsize", SINGLE, None, constants.RPC_TMO_NORMAL, [
+  ("blockdev_getdimensions", SINGLE, None, constants.RPC_TMO_NORMAL, [
     ("disks", ED_OBJECT_DICT_LIST, None),
-    ], None, None, "Returns the size of the given disks"),
+    ], None, None, "Returns size and spindles of the given disks"),
   ("drbd_disconnect_net", MULTI, None, constants.RPC_TMO_NORMAL, [
     ("nodes_ip", None, None),
     ("disks", ED_OBJECT_DICT_LIST, None),

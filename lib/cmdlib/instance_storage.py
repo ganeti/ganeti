@@ -1440,15 +1440,17 @@ class LUInstanceGrowDisk(LogicalUnit):
 
     if wipe_disks:
       # Get disk size from primary node for wiping
-      result = self.rpc.call_blockdev_getsize(instance.primary_node, [disk])
+      result = self.rpc.call_blockdev_getdimensions(instance.primary_node,
+                                                    [disk])
       result.Raise("Failed to retrieve disk size from node '%s'" %
                    instance.primary_node)
 
-      (disk_size_in_bytes, ) = result.payload
+      (disk_dimensions, ) = result.payload
 
-      if disk_size_in_bytes is None:
+      if disk_dimensions is None:
         raise errors.OpExecError("Failed to retrieve disk size from primary"
                                  " node '%s'" % instance.primary_node)
+      (disk_size_in_bytes, _) = disk_dimensions
 
       old_disk_size = _DiskSizeInBytesToMebibytes(self, disk_size_in_bytes)
 

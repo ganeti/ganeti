@@ -533,9 +533,9 @@ class LUClusterRepairDiskSizes(NoHooksLU):
       newl = [v[2].Copy() for v in dskl]
       for dsk in newl:
         self.cfg.SetDiskID(dsk, node)
-      result = self.rpc.call_blockdev_getsize(node, newl)
+      result = self.rpc.call_blockdev_getdimensions(node, newl)
       if result.fail_msg:
-        self.LogWarning("Failure in blockdev_getsize call to node"
+        self.LogWarning("Failure in blockdev_getdimensions call to node"
                         " %s, ignoring", node)
         continue
       if len(result.payload) != len(dskl):
@@ -544,11 +544,17 @@ class LUClusterRepairDiskSizes(NoHooksLU):
         self.LogWarning("Invalid result from node %s, ignoring node results",
                         node)
         continue
-      for ((instance, idx, disk), size) in zip(dskl, result.payload):
-        if size is None:
+      for ((instance, idx, disk), dimensions) in zip(dskl, result.payload):
+        if dimensions is None:
           self.LogWarning("Disk %d of instance %s did not return size"
                           " information, ignoring", idx, instance.name)
           continue
+        if not isinstance(dimensions, (tuple, list)):
+          self.LogWarning("Disk %d of instance %s did not return valid"
+                          " dimension information, ignoring", idx,
+                          instance.name)
+          continue
+        (size, _) = dimensions
         if not isinstance(size, (int, long)):
           self.LogWarning("Disk %d of instance %s did not return valid"
                           " size information, ignoring", idx, instance.name)
