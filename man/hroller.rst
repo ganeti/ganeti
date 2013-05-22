@@ -24,10 +24,12 @@ Backend options:
 Algorithm options:
 
 **[ -G *name* ]**
-
 **[ -O *name...* ]**
-
 **[ --node-tags** *tag,..* **]**
+**[ --skip-non-redundant ]**
+
+**[ --offline-maintenance ]**
+**[ --ignore-non-redundant ]**
 
 Reporting options:
 
@@ -65,19 +67,26 @@ OPTIONS
 For a description of the standard options check **htools**\(7) and
 **hbal**\(1).
 
+\--force
+  Do not fail, even if the master node cannot be determined.
+
 \--node-tags *tag,...*
   Restrict to nodes having at least one of the given tags.
 
-\--one-step-only
-  Restrict to the first reboot group. Output the group one node per line.
+\--skip-non-redundant
+  Restrict to nodes not hosting any non-redundant instance.
 
 \--offline-maintenance
   Pretend that all instances are shutdown before the reboots are carried
   out. I.e., only edges from the primary to the secondary node of an instance
   are considered.
 
-\--force
-  Do not fail, even if the master node cannot be determined.
+\--ignore-non-redundnant
+  Pretend that the non-redundant instances do not exist, and only take
+  instances with primary and secondary node into account.
+
+\--one-step-only
+  Restrict to the first reboot group. Output the group one node per line.
 
 
 BUGS
