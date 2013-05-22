@@ -118,6 +118,14 @@ EXIT STATUS
 The exist status of the command will be zero, unless for some reason
 the algorithm fatally failed (e.g. wrong node or instance data).
 
+BUGS
+----
+
+Networks (as configured by **gnt-network**\(8)) are not taken into
+account in Ganeti 2.7. The only way to guarantee that they work
+correctly is having your networks connected to all nodegroups. This will
+be fixed in a future version.
+
 .. vim: set textwidth=72 :
 .. Local Variables:
 .. mode: rst

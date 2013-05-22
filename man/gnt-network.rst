@@ -19,6 +19,14 @@ administration in the Ganeti system. Each instance NIC can be connected
 to a network via the ``network`` NIC parameter. See **gnt-instance**\(8)
 for more details.
 
+BUGS
+----
+
+The ``hail`` iallocator hasn't been updated to take networks into
+account in Ganeti 2.7. The only way to guarantee that it works correctly
+is having your networks connected to all nodegroups. This will be fixed
+in a future version.
+
 COMMANDS
 --------
 
