@@ -73,7 +73,7 @@ int-import-graph =
 
 [FORMAT]
 max-line-length = 80
-max-module-lines = 10000
+max-module-lines = 4500
 indent-string = "  "
 
 [MISCELLANEOUS]
