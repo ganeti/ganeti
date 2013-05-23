@@ -155,12 +155,31 @@ def UpgradeGroups(config_data):
       UpgradeIPolicy(ipolicy, cl_ipolicy, True)
 
 
+def GetExclusiveStorageValue(config_data):
+  """Return a conservative value of the exclusive_storage flag.
+
+  Return C{True} if the cluster or at least a nodegroup have the flag set.
+
+  """
+  ret = False
+  cluster = config_data["cluster"]
+  ndparams = cluster.get("ndparams")
+  if ndparams is not None and ndparams.get("exclusive_storage"):
+    ret = True
+  for group in config_data["nodegroups"].values():
+    ndparams = group.get("ndparams")
+    if ndparams is not None and ndparams.get("exclusive_storage"):
+      ret = True
+  return ret
+
+
 def UpgradeInstances(config_data):
   network2uuid = dict((n["name"], n["uuid"])
                       for n in config_data["networks"].values())
   if "instances" not in config_data:
     raise Error("Can't find the 'instances' key in the configuration!")
 
+  missing_spindles = False
   for instance, iobj in config_data["instances"].items():
     for nic in iobj["nics"]:
       name = nic.get("network", None)
@@ -182,6 +201,17 @@ def UpgradeInstances(config_data):
                         " from '%s' to '%s'",
                         instance, idx, current, expected)
         dobj["iv_name"] = expected
+      if not "spindles" in dobj:
+        missing_spindles = True
+
+  if GetExclusiveStorageValue(config_data) and missing_spindles:
+    # We cannot be sure that the instances that are missing spindles have
+    # exclusive storage enabled (the check would be more complicated), so we
+    # give a noncommittal message
+    logging.warning("Some instance disks could be needing to update the"
+                    " spindles parameter; you can check by running"
+                    " 'gnt-cluster verify', and fix any problem with"
+                    " 'gnt-cluster repair-disk-sizes'")
 
 
 def UpgradeRapiUsers():

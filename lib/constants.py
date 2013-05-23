@@ -1589,6 +1589,9 @@ CV_EINSTANCEPOLICY = \
 CV_EINSTANCEUNSUITABLENODE = \
   (CV_TINSTANCE, "EINSTANCEUNSUITABLENODE",
    "Instance running on nodes that are not suitable for it")
+CV_EINSTANCEMISSINGCFGPARAMETER = \
+  (CV_TINSTANCE, "EINSTANCEMISSINGCFGPARAMETER",
+   "A configuration parameter for an instance is missing")
 CV_ENODEDRBD = \
   (CV_TNODE, "ENODEDRBD", "Error parsing the DRBD status file")
 CV_ENODEDRBDVERSION = \

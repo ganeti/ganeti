@@ -1900,17 +1900,26 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
              utils.CommaJoin(inst_config.secondary_nodes),
              code=self.ETYPE_WARNING)
 
-    if inst_config.disk_template not in constants.DTS_EXCL_STORAGE:
-      # Disk template not compatible with exclusive_storage: no instance
-      # node should have the flag set
-      es_flags = rpc.GetExclusiveStorageForNodeNames(self.cfg,
-                                                     inst_config.all_nodes)
-      es_nodes = [n for (n, es) in es_flags.items()
-                  if es]
-      _ErrorIf(es_nodes, constants.CV_EINSTANCEUNSUITABLENODE, instance,
-               "instance has template %s, which is not supported on nodes"
-               " that have exclusive storage set: %s",
-               inst_config.disk_template, utils.CommaJoin(es_nodes))
+    es_flags = rpc.GetExclusiveStorageForNodeNames(self.cfg,
+                                                   inst_config.all_nodes)
+    if any(es_flags.values()):
+      if inst_config.disk_template not in constants.DTS_EXCL_STORAGE:
+        # Disk template not compatible with exclusive_storage: no instance
+        # node should have the flag set
+        es_nodes = [n
+                    for (n, es) in es_flags.items()
+                    if es]
+        self._Error(constants.CV_EINSTANCEUNSUITABLENODE, instance,
+                    "instance has template %s, which is not supported on nodes"
+                    " that have exclusive storage set: %s",
+                    inst_config.disk_template, utils.CommaJoin(es_nodes))
+      for (idx, disk) in enumerate(inst_config.disks):
+        _ErrorIf(disk.spindles is None,
+                 constants.CV_EINSTANCEMISSINGCFGPARAMETER, instance,
+                 "number of spindles not configured for disk %s while"
+                 " exclusive storage is enabled, try running"
+                 " gnt-cluster repair-disk-sizes",
+                 idx)
 
     if inst_config.disk_template in constants.DTS_INT_MIRROR:
       instance_nodes = utils.NiceSort(inst_config.all_nodes)
