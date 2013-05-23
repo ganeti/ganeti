@@ -109,8 +109,12 @@ nodegroups
   alloc_policy
     the allocation policy of the node group (consult the semantics of
     this attribute in the :manpage:`gnt-group(8)` manpage)
+  networks
+    the list of network UUID's this node group is connected to
   ipolicy
     the instance policy of the node group
+  tags
+    the list of node group tags
 
 instances
   a dictionary with the data for the current existing instance on the
@@ -377,7 +381,42 @@ time, but not included in further examples below)::
     "nodegroups": {
       "f4e06e0d-528a-4963-a5ad-10f3e114232d": {
         "name": "default",
-        "alloc_policy": "preferred"
+        "alloc_policy": "preferred",
+        "networks": ["net-uuid-1", "net-uuid-2"],
+        "ipolicy": {
+          "disk-templates": ["drbd", "plain"],
+          "minmax": [
+            {
+              "max": {
+                "cpu-count": 2,
+                "disk-count": 8,
+                "disk-size": 2048,
+                "memory-size": 12800,
+                "nic-count": 8,
+                "spindle-use": 8
+              },
+              "min": {
+                "cpu-count": 1,
+                "disk-count": 1,
+                "disk-size": 1024,
+                "memory-size": 128,
+                "nic-count": 1,
+                "spindle-use": 1
+              }
+            }
+          ],
+          "spindle-ratio": 32.0,
+          "std": {
+            "cpu-count": 1,
+            "disk-count": 1,
+            "disk-size": 1024,
+            "memory-size": 128,
+            "nic-count": 1,
+            "spindle-use": 1
+          },
+          "vcpu-ratio": 4.0
+        },
+        "tags": ["ng-tag-1", "ng-tag-2"]
       }
     },
     "instances": {
