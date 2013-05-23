@@ -22,6 +22,9 @@ Version 2.8.0 beta1
   creation.
 - ``cfgupgrade`` now supports a ``--downgrade`` option to bring the
   configuration back to the previous stable version.
+- hail now honors network restrictions when allocating nodes. This led to an
+  update of the IAllocator protocol. See the IAllocator documentation for
+  details.
 
 
 Version 2.7.0 rc2
