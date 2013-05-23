@@ -440,6 +440,28 @@ def WatchJob(opts, args):
   return retcode
 
 
+def WaitJob(opts, args):
+  """Wait for a job to finish, not producing any output.
+
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: Contains the job ID
+  @rtype: int
+  @return: the desired exit code
+
+  """
+  job_id = args[0]
+
+  retcode = 0
+  try:
+    cli.PollJob(job_id, feedback_fn=lambda _: None)
+  except errors.GenericError, err:
+    (retcode, job_result) = cli.FormatError(err)
+    ToStderr("Job %s failed: %s", job_id, job_result)
+
+  return retcode
+
+
 _PENDING_OPT = \
   cli_option("--pending", default=None,
              action="store_const", dest="status_filter",
@@ -523,6 +545,9 @@ commands = {
     ShowJobs, [ArgJobId(min=1)], [],
     "<job-id> [<job-id> ...]",
     "Show detailed information about the specified jobs"),
+  "wait": (
+    WaitJob, [ArgJobId(min=1, max=1)], [],
+    "<job-id>", "Wait for a job to finish"),
   "watch": (
     WatchJob, [ArgJobId(min=1, max=1)], [],
     "<job-id>", "Follows a job and prints its output as it arrives"),

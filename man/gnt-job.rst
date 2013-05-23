@@ -124,6 +124,14 @@ LIST-FIELDS
 Lists available fields for jobs.
 
 
+WAIT
+~~~~~
+
+**wait** {id}
+
+Wait for the job by the given *id* to finish; do not produce
+any output.
+
 WATCH
 ~~~~~
 
