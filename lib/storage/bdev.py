@@ -262,18 +262,21 @@ class LogicalVolume(base.BlockDev):
     stripes = min(current_pvs, desired_stripes)
 
     if excl_stor:
+      if spindles is None:
+        base.ThrowError("Unspecified number of spindles: this is required"
+                        "when exclusive storage is enabled, try running"
+                        " gnt-cluster repair-disk-sizes")
       (err_msgs, _) = utils.LvmExclusiveCheckNodePvs(pvs_info)
       if err_msgs:
         for m in err_msgs:
           logging.warning(m)
       req_pvs = cls._ComputeNumPvs(size, pvs_info)
-      if spindles:
-        if spindles < req_pvs:
-          base.ThrowError("Requested number of spindles (%s) is not enough for"
-                          " a disk of %d MB (at least %d spindles needed)",
-                          spindles, size, req_pvs)
-        else:
-          req_pvs = spindles
+      if spindles < req_pvs:
+        base.ThrowError("Requested number of spindles (%s) is not enough for"
+                        " a disk of %d MB (at least %d spindles needed)",
+                        spindles, size, req_pvs)
+      else:
+        req_pvs = spindles
       pvlist = cls._GetEmptyPvNames(pvs_info, req_pvs)
       current_pvs = len(pvlist)
       if current_pvs < req_pvs:

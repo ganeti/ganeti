@@ -519,13 +519,15 @@ def GenerateDiskTemplate(
   return disks
 
 
-def CheckSpindlesExclusiveStorage(diskdict, es_flag):
+def CheckSpindlesExclusiveStorage(diskdict, es_flag, required):
   """Check the presence of the spindle options with exclusive_storage.
 
   @type diskdict: dict
   @param diskdict: disk parameters
   @type es_flag: bool
   @param es_flag: the effective value of the exlusive_storage flag
+  @type required: bool
+  @param required: whether spindles are required or just optional
   @raise errors.OpPrereqError when spindles are given and they should not
 
   """
@@ -533,6 +535,11 @@ def CheckSpindlesExclusiveStorage(diskdict, es_flag):
       diskdict[constants.IDISK_SPINDLES] is not None):
     raise errors.OpPrereqError("Spindles in instance disks cannot be specified"
                                " when exclusive storage is not active",
+                               errors.ECODE_INVAL)
+  if (es_flag and required and (constants.IDISK_SPINDLES not in diskdict or
+                                diskdict[constants.IDISK_SPINDLES] is None)):
+    raise errors.OpPrereqError("You must specify spindles in instance disks"
+                               " when exclusive storage is active",
                                errors.ECODE_INVAL)
 
 
@@ -787,7 +794,7 @@ class LUInstanceRecreateDisks(LogicalUnit):
       rpc.GetExclusiveStorageForNodeNames(self.cfg, nodes).values()
       )
     for new_params in self.disks.values():
-      CheckSpindlesExclusiveStorage(new_params, excl_stor)
+      CheckSpindlesExclusiveStorage(new_params, excl_stor, False)
 
   def Exec(self, feedback_fn):
     """Recreate the disks.

@@ -1032,7 +1032,7 @@ class LUInstanceCreate(LogicalUnit):
                                  " exclusive storage" % self.op.disk_template,
                                  errors.ECODE_STATE)
     for disk in self.disks:
-      CheckSpindlesExclusiveStorage(disk, excl_stor)
+      CheckSpindlesExclusiveStorage(disk, excl_stor, True)
 
     nodenames = [pnode.name] + self.secondaries
 
@@ -2241,7 +2241,7 @@ class LUInstanceSetParams(LogicalUnit):
       if name is not None and name.lower() == constants.VALUE_NONE:
         params[constants.IDISK_NAME] = None
 
-      CheckSpindlesExclusiveStorage(params, excl_stor)
+      CheckSpindlesExclusiveStorage(params, excl_stor, True)
 
     elif op == constants.DDM_MODIFY:
       if constants.IDISK_SIZE in params:

@@ -630,10 +630,22 @@ def TestInstanceModifyDisks(instance):
     print qa_utils.FormatInfo("Instance doesn't support disks, skipping test")
     return
 
-  size = qa_config.GetDiskOptions()[-1].get("size")
+  disk_conf = qa_config.GetDiskOptions()[-1]
+  size = disk_conf.get("size")
   name = instance.name
   build_cmd = lambda arg: ["gnt-instance", "modify", "--disk", arg, name]
-  AssertCommand(build_cmd("add:size=%s" % size))
+  if qa_config.AreSpindlesSupported():
+    spindles = disk_conf.get("spindles")
+    spindles_supported = True
+  else:
+    # Any number is good for spindles in this case
+    spindles = 1
+    spindles_supported = False
+  AssertCommand(build_cmd("add:size=%s,spindles=%s" % (size, spindles)),
+                fail=not spindles_supported)
+  AssertCommand(build_cmd("add:size=%s" % size),
+                fail=spindles_supported)
+  # Exactly one of the above commands has succeded, so we need one remove
   AssertCommand(build_cmd("remove"))
 
 
@@ -681,6 +693,8 @@ def TestInstanceDeviceNames(instance):
   for dev_type in ["disk", "net"]:
     if dev_type == "disk":
       options = ",size=512M"
+      if qa_config.AreSpindlesSupported():
+        options += ",spindles=1"
     else:
       options = ""
     # succeed in adding a device named 'test_device'
@@ -806,6 +820,33 @@ def _AssertRecreateDisks(cmdargs, instance, fail=False, check=True,
     AssertCommand(["gnt-instance", "deactivate-disks", instance.name])
 
 
+def _BuildRecreateDisksOpts(en_disks, with_spindles, with_growth,
+                            spindles_supported):
+  if with_spindles:
+    if spindles_supported:
+      if with_growth:
+        build_spindles_opt = (lambda disk:
+                              ",spindles=%s" %
+                              (disk["spindles"] + disk["spindles-growth"]))
+      else:
+        build_spindles_opt = (lambda disk:
+                              ",spindles=%s" % disk["spindles"])
+    else:
+      build_spindles_opt = (lambda _: ",spindles=1")
+  else:
+    build_spindles_opt = (lambda _: "")
+  if with_growth:
+    build_size_opt = (lambda disk:
+                      "size=%s" % (utils.ParseUnit(disk["size"]) +
+                                   utils.ParseUnit(disk["growth"])))
+  else:
+    build_size_opt = (lambda disk: "size=%s" % disk["size"])
+  build_disk_opt = (lambda (idx, disk):
+                    "--disk=%s:%s%s" % (idx, build_size_opt(disk),
+                                        build_spindles_opt(disk)))
+  return map(build_disk_opt, en_disks)
+
+
 @InstanceCheck(INST_UP, INST_UP, FIRST_ARG)
 def TestRecreateDisks(instance, inodes, othernodes):
   """gnt-instance recreate-disks
@@ -845,32 +886,31 @@ def TestRecreateDisks(instance, inodes, othernodes):
   # Move disks back
   _AssertRecreateDisks(["-n", orig_seq], instance)
   # Recreate resized disks
+  # One of the two commands fails because either spindles are given when they
+  # should not or vice versa
   alldisks = qa_config.GetDiskOptions()
-  if qa_config.AreSpindlesSupported():
-    build_disks_opt = (lambda idx, disk:
-                       ("--disk=%s:size=%s,spindles=%s" %
-                        (idx, (utils.ParseUnit(disk["size"]) +
-                               utils.ParseUnit(disk["growth"])),
-                         disk["spindles"] + disk["spindles-growth"])))
-  else:
-    build_disks_opt = (lambda idx, disk:
-                       ("--disk=%s:size=%s" %
-                        (idx, (utils.ParseUnit(disk["size"]) +
-                               utils.ParseUnit(disk["growth"])))))
-  disk_opts = map(build_disks_opt, range(0, len(alldisks)), (alldisks))
-  _AssertRecreateDisks(disk_opts, instance)
+  spindles_supported = qa_config.AreSpindlesSupported()
+  disk_opts = _BuildRecreateDisksOpts(enumerate(alldisks), True, True,
+                                      spindles_supported)
+  _AssertRecreateDisks(disk_opts, instance, destroy=True,
+                       fail=not spindles_supported)
+  disk_opts = _BuildRecreateDisksOpts(enumerate(alldisks), False, True,
+                                      spindles_supported)
+  _AssertRecreateDisks(disk_opts, instance, destroy=False,
+                       fail=spindles_supported)
   # Recreate the disks one by one (with the original size)
-  if qa_config.AreSpindlesSupported():
-    build_disks_opt = lambda idx, disk: ("--disk=%s:size=%s,spindles=%s" %
-                                         (idx, disk["size"], disk["spindles"]))
-  else:
-    build_disks_opt = lambda idx, disk: ("--disk=%s:size=%s" %
-                                         (idx, disk["size"]))
   for (idx, disk) in enumerate(alldisks):
     # Only the first call should destroy all the disk
     destroy = (idx == 0)
-    _AssertRecreateDisks([build_disks_opt(idx, disk)], instance,
-                         destroy=destroy, check=False)
+    # Again, one of the two commands is expected to fail
+    disk_opts = _BuildRecreateDisksOpts([(idx, disk)], True, False,
+                                        spindles_supported)
+    _AssertRecreateDisks(disk_opts, instance, destroy=destroy, check=False,
+                         fail=not spindles_supported)
+    disk_opts = _BuildRecreateDisksOpts([(idx, disk)], False, False,
+                                        spindles_supported)
+    _AssertRecreateDisks(disk_opts, instance, destroy=False, check=False,
+                         fail=spindles_supported)
   # This and InstanceCheck decoration check that the disks are working
   AssertCommand(["gnt-instance", "reinstall", "-f", instance.name])
   AssertCommand(["gnt-instance", "start", instance.name])
