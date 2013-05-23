@@ -868,7 +868,7 @@ class OpClusterRepairDiskSizes(OpCode):
   Parameters: optional instances list, in case we want to restrict the
   checks to only a subset of the instances.
 
-  Result: a list of tuples, (instance, disk, new-size) for changed
+  Result: a list of tuples, (instance, disk, parameter, new-size) for changed
   configurations.
 
   In normal operation, the list should be empty.
@@ -880,9 +880,10 @@ class OpClusterRepairDiskSizes(OpCode):
   OP_PARAMS = [
     ("instances", ht.EmptyList, ht.TListOf(ht.TNonEmptyString), None),
     ]
-  OP_RESULT = ht.TListOf(ht.TAnd(ht.TIsLength(3),
+  OP_RESULT = ht.TListOf(ht.TAnd(ht.TIsLength(4),
                                  ht.TItems([ht.TNonEmptyString,
                                             ht.TNonNegativeInt,
+                                            ht.TNonEmptyString,
                                             ht.TNonNegativeInt])))
 
 

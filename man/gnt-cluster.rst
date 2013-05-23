@@ -758,14 +758,15 @@ This command checks that the recorded size of the given instance's
 disks matches the actual size and updates any mismatches found.
 This is needed if the Ganeti configuration is no longer consistent
 with reality, as it will impact some disk operations. If no
-arguments are given, all instances will be checked.
+arguments are given, all instances will be checked. When exclusive
+storage is active, also spindles are updated.
 
 Note that only active disks can be checked by this command; in case
 a disk cannot be activated it's advised to use
 **gnt-instance activate-disks \--ignore-size ...** to force
 activation without regard to the current size.
 
-When the all disk sizes are consistent, the command will return no
+When all the disk sizes are consistent, the command will return no
 output. Otherwise it will log details about the inconsistencies in
 the configuration.
 

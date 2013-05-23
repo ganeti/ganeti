@@ -528,6 +528,9 @@ class LUClusterRepairDiskSizes(NoHooksLU):
       "Not owning correct locks"
     assert not self.owned_locks(locking.LEVEL_NODE)
 
+    es_flags = rpc.GetExclusiveStorageForNodeNames(self.cfg,
+                                                   per_node_disks.keys())
+
     changed = []
     for node, dskl in per_node_disks.items():
       newl = [v[2].Copy() for v in dskl]
@@ -554,7 +557,7 @@ class LUClusterRepairDiskSizes(NoHooksLU):
                           " dimension information, ignoring", idx,
                           instance.name)
           continue
-        (size, _) = dimensions
+        (size, spindles) = dimensions
         if not isinstance(size, (int, long)):
           self.LogWarning("Disk %d of instance %s did not return valid"
                           " size information, ignoring", idx, instance.name)
@@ -566,10 +569,22 @@ class LUClusterRepairDiskSizes(NoHooksLU):
                        instance.name, disk.size, size)
           disk.size = size
           self.cfg.Update(instance, feedback_fn)
-          changed.append((instance.name, idx, size))
+          changed.append((instance.name, idx, "size", size))
+        if es_flags[node]:
+          if spindles is None:
+            self.LogWarning("Disk %d of instance %s did not return valid"
+                            " spindles information, ignoring", idx,
+                            instance.name)
+          elif disk.spindles is None or disk.spindles != spindles:
+            self.LogInfo("Disk %d of instance %s has mismatched spindles,"
+                         " correcting: recorded %s, actual %s",
+                         idx, instance.name, disk.spindles, spindles)
+            disk.spindles = spindles
+            self.cfg.Update(instance, feedback_fn)
+            changed.append((instance.name, idx, "spindles", disk.spindles))
         if self._EnsureChildSizes(disk):
           self.cfg.Update(instance, feedback_fn)
-          changed.append((instance.name, idx, disk.size))
+          changed.append((instance.name, idx, "size", disk.size))
     return changed
 
 
