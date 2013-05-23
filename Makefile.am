@@ -64,6 +64,7 @@ HS_DIRS = \
 	src \
 	src/Ganeti \
 	src/Ganeti/Block \
+	src/Ganeti/Block/Diskstats \
 	src/Ganeti/Block/Drbd \
 	src/Ganeti/Confd \
 	src/Ganeti/Curl \
@@ -531,6 +532,8 @@ HPCEXCL = --exclude Main \
 	$(patsubst src.%,--exclude Test.%,$(subst /,.,$(patsubst %.hs,%, $(HS_LIB_SRCS))))
 
 HS_LIB_SRCS = \
+	src/Ganeti/Block/Diskstats/Parser.hs \
+	src/Ganeti/Block/Diskstats/Types.hs \
 	src/Ganeti/Block/Drbd/Types.hs \
 	src/Ganeti/Block/Drbd/Parser.hs \
 	src/Ganeti/BasicTypes.hs \
