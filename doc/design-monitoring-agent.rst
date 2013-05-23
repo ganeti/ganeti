@@ -321,6 +321,78 @@ as a type specific information. Examples of these are "backend pv unavailable"
 for lvm storage, "unreachable" for network based storage or "filesystem error"
 for filesystem based implementations.
 
+Diskstats collector
+*******************
+
+This storage data collector will gather information about the status of the
+disks installed in the system, as listed in the /proc/diskstats file. This means
+that not only physical hard drives, but also ramdisks and loopback devices will
+be listed.
+
+Its ``kind`` in the report will be ``0`` (`Performance reporting collectors`_).
+
+Its ``category`` field in the report will contain the value ``storage``.
+
+When executed in verbose mode, the ``data`` section of the report of this
+collector will be a list of items, each representing one disk, each providing
+the following fields:
+
+``major``
+  The major number of the device.
+
+``minor``
+  The minor number of the device.
+
+``name``
+  The name of the device.
+
+``reads``
+  This is the total number of reads completed successfully.
+
+``mergedReads``
+  Reads which are adjacent to each other may be merged for efficiency. Thus
+  two 4K reads may become one 8K read before it is ultimately handed to the
+  disk, and so it will be counted (and queued) as only one I/O. This field
+  specifies how often this was done.
+
+``secRead``
+  This is the total number of sectors read successfully.
+
+``timeRead``
+  This is the total number of milliseconds spent by all reads.
+
+``writes``
+  This is the total number of writes completed successfully.
+
+``mergedWrites``
+  Writes which are adjacent to each other may be merged for efficiency. Thus
+  two 4K writes may become one 8K read before it is ultimately handed to the
+  disk, and so it will be counted (and queued) as only one I/O. This field
+  specifies how often this was done.
+
+``secWritten``
+  This is the total number of sectors written successfully.
+
+``timeWrite``
+  This is the total number of milliseconds spent by all writes
+
+``ios``
+  The number of I/Os currently in progress.
+  The only field that should go to zero, it is incremented as requests are
+  given to appropriate struct request_queue and decremented as they finish.
+
+``timeIO``
+  The number of milliseconds spent doing I/Os. This field increases so long
+  as field ``IOs`` is nonzero.
+
+``wIOmillis``
+  The weighted number of milliseconds spent doing I/Os.
+  This field is incremented at each I/O start, I/O completion, I/O merge,
+  or read of these stats by the number of I/Os in progress (field ``IOs``)
+  times the number of milliseconds spent doing I/O since the last update of
+  this field. This can provide an easy measure of both I/O completion time
+  and the backlog that may be accumulating.
+
 DRBD status
 ***********
 
