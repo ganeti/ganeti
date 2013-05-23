@@ -296,33 +296,24 @@ collector will be:
 ``1``
   otherwise.
 
-Storage status
-++++++++++++++
+Storage collectors
+++++++++++++++++++
 
-The storage status collectors will be a series of data collectors
-(drbd, rbd, plain, file) that will gather data about all the storage types
-for the current node (this is right now hardcoded to the enabled storage
-types, and in the future tied to the enabled storage pools for the nodegroup).
+The storage collectors will be a series of data collectors
+that will gather data about storage for the current node. The collection
+will be performed at different granularity and abstraction levels, from
+the physical disks, to partitions, logical volumes and to the specific
+storage types used by Ganeti itself (drbd, rbd, plain, file).
 
 The ``name`` of each of these collector will reflect what storage type each of
 them refers to.
 
 The ``category`` field of these collector will be ``storage``.
 
-The ``kind`` field will be ``1`` (`Status reporting collectors`_).
+The ``kind`` field will depend on the specific collector.
 
-The ``data`` section of the report will provide at least the following fields:
-
-``free``
-  The amount of free space (in KBytes).
-
-``used``
-  The amount of used space (in KBytes).
-
-``total``
-  The total visible space (in KBytes).
-
-Each specific storage type might provide more type-specific fields.
+Each ``storage`` collector's ``data`` section will provide collector-specific
+fields.
 
 In case of error, the ``message`` subfield of the ``status`` field of the
 report of the instance status collector will disclose the nature of the error
