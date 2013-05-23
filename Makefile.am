@@ -534,8 +534,8 @@ HPCEXCL = --exclude Main \
 HS_LIB_SRCS = \
 	src/Ganeti/Block/Diskstats/Parser.hs \
 	src/Ganeti/Block/Diskstats/Types.hs \
-	src/Ganeti/Block/Drbd/Types.hs \
 	src/Ganeti/Block/Drbd/Parser.hs \
+	src/Ganeti/Block/Drbd/Types.hs \
 	src/Ganeti/BasicTypes.hs \
 	src/Ganeti/Common.hs \
 	src/Ganeti/Compat.hs \
