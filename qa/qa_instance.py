@@ -1086,7 +1086,7 @@ def TestRemoveInstanceOfflineNode(instance, snode, set_offline, set_online):
 
 
 def TestInstanceCreationRestrictedByDiskTemplates():
-  """Test adding instances for disbled disk templates."""
+  """Test adding instances for disabled disk templates."""
   enabled_disk_templates = qa_config.GetEnabledDiskTemplates()
   nodes = qa_config.AcquireManyNodes(2)
 
@@ -1099,14 +1099,15 @@ def TestInstanceCreationRestrictedByDiskTemplates():
 
   # Test instance creation for enabled disk templates
   for disk_template in enabled_disk_templates:
-    instance = CreateInstanceByDiskTemplate(nodes, disk_template, False)
+    instance = CreateInstanceByDiskTemplate(nodes, disk_template, fail=False)
     TestInstanceRemove(instance)
+    instance.Release()
 
   # Test that instance creation fails for disabled disk templates
   disabled_disk_templates = list(constants.DISK_TEMPLATES
                                  - set(enabled_disk_templates))
   for disk_template in disabled_disk_templates:
-    instance = CreateInstanceByDiskTemplate(nodes, disk_template, True)
+    instance = CreateInstanceByDiskTemplate(nodes, disk_template, fail=True)
 
   # Test instance creation for after disabling enabled disk templates
   if (len(enabled_disk_templates) > 1):
@@ -1123,7 +1124,7 @@ def TestInstanceCreationRestrictedByDiskTemplates():
                        ",".join(enabled)],
                     fail=False)
       for disk_template in disabled:
-        CreateInstanceByDiskTemplate(nodes, disk_template, True)
+        CreateInstanceByDiskTemplate(nodes, disk_template, fail=True)
   elif (len(enabled_disk_templates) == 1):
     # If only one disk template is enabled in the QA config, we have to enable
     # some of the disabled disk templates in order to test if the disabling the
@@ -1132,7 +1133,7 @@ def TestInstanceCreationRestrictedByDiskTemplates():
                    "--enabled-disk-template=%s" %
                      ",".join(disabled_disk_templates)],
                   fail=False)
-    CreateInstanceByDiskTemplate(nodes, enabled_disk_templates[0], True)
+    CreateInstanceByDiskTemplate(nodes, enabled_disk_templates[0], fail=True)
   else:
     raise qa_error.Error("Please enable at least one disk template"
                          " in your QA setup.")
