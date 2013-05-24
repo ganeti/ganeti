@@ -335,13 +335,20 @@ class XenHypervisor(hv_base.BaseHypervisor):
 
     self._cmd = _cmd
 
-  def _GetCommand(self):
+  def _GetCommand(self, hvparams=None):
     """Returns Xen command to use.
+
+    @type hvparams: dict of strings
+    @param hvparams: hypervisor parameters
 
     """
     if self._cmd is None:
-      # TODO: Make command a hypervisor parameter
-      cmd = constants.XEN_CMD
+      if hvparams is not None:
+        cmd = hvparams[constants.HV_XEN_CMD]
+      else:
+        # TODO: Remove autoconf option once retrieving the command from
+        # the hvparams is fully implemented.
+        cmd = constants.XEN_CMD
     else:
       cmd = self._cmd
 

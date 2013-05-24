@@ -97,6 +97,22 @@ class TestGetCommand(testutils.GanetiTestCase):
     hv = hv_xen.XenHypervisor(_cmd="invalidcommand")
     self.assertRaises(errors.ProgrammerError, hv._GetCommand, None)
 
+  def testCommandHvparams(self):
+    expected_cmd = "xl"
+    test_hvparams = {constants.HV_XEN_CMD: constants.XEN_CMD_XL}
+    hv = hv_xen.XenHypervisor()
+    self.assertEqual(hv._GetCommand(hvparams=test_hvparams), expected_cmd)
+
+  def testCommandHvparamsInvalid(self):
+    test_hvparams = {}
+    hv = hv_xen.XenHypervisor()
+    self.assertRaises(KeyError, hv._GetCommand, test_hvparams)
+
+  def testCommandHvparamsCmdInvalid(self):
+    test_hvparams = {constants.HV_XEN_CMD: "invalidcommand"}
+    hv = hv_xen.XenHypervisor()
+    self.assertRaises(errors.ProgrammerError, hv._GetCommand, test_hvparams)
+
 
 class TestParseXmList(testutils.GanetiTestCase):
   def test(self):
