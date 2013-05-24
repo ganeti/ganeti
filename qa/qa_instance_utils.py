@@ -57,8 +57,8 @@ def GetGenericAddParameters(inst, disk_template, force_mac=None):
       if qa_config.AreSpindlesSupported():
         spindles = disk.get("spindles")
         if spindles is None:
-          qa_error.Error("'spindles' is a required parameter for disks when you"
-                         " enable exclusive storage tests")
+          raise qa_error.Error("'spindles' is a required parameter for disks"
+                               " when you enable exclusive storage tests")
         diskparams += ",spindles=%s" % spindles
       params.extend(["--disk", diskparams])
 
