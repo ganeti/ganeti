@@ -1,4 +1,4 @@
-group-01|fake-uuid-01|preferred|
+group-01|fake-uuid-01|preferred||
 
 node-01-001|91552|0|91424|953674|953674|16|N|fake-uuid-01|1
 node-01-002|91552|0|91296|953674|953674|16|N|fake-uuid-01|1
