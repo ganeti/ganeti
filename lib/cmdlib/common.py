@@ -962,7 +962,9 @@ def CheckInstanceState(lu, instance, req_states, msg=None):
   if constants.ADMINST_UP not in req_states:
     pnode = instance.primary_node
     if not lu.cfg.GetNodeInfo(pnode).offline:
-      ins_l = lu.rpc.call_instance_list([pnode], [instance.hypervisor])[pnode]
+      all_hvparams = lu.cfg.GetClusterInfo().hvparams
+      ins_l = lu.rpc.call_instance_list([pnode], [instance.hypervisor],
+                                        all_hvparams)[pnode]
       ins_l.Raise("Can't contact node %s for instance information" % pnode,
                   prereq=True, ecode=errors.ECODE_ENVIRON)
       if instance.name in ins_l.payload:

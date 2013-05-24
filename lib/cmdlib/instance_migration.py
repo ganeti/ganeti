@@ -545,7 +545,9 @@ class TLMigrateInstance(Tasklet):
     self.feedback_fn("* checking where the instance actually runs"
                      " (if this hangs, the hypervisor might be in"
                      " a bad state)")
-    ins_l = self.rpc.call_instance_list(self.all_nodes, [instance.hypervisor])
+    cluster_hvparams = self.cfg.GetClusterInfo().hvparams
+    ins_l = self.rpc.call_instance_list(self.all_nodes, [instance.hypervisor],
+                                        cluster_hvparams)
     for node, result in ins_l.items():
       result.Raise("Can't contact node %s" % node)
 

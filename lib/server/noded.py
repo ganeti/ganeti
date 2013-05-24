@@ -704,7 +704,8 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     """Query the list of running instances.
 
     """
-    return backend.GetInstanceList(params[0])
+    (hypervisor_list, hvparams) = params
+    return backend.GetInstanceList(hypervisor_list, hvparams)
 
   # node --------------------------
 

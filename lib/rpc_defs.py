@@ -225,6 +225,7 @@ _INSTANCE_CALLS = [
    "Returns information about all instances on the given nodes"),
   ("instance_list", MULTI, None, constants.RPC_TMO_URGENT, [
     ("hypervisor_list", None, "Hypervisors to query for instances"),
+    ("hvparams", None, "Hvparams of all hypervisors"),
     ], None, None, "Returns the list of running instances on the given nodes"),
   ("instance_reboot", SINGLE, None, constants.RPC_TMO_NORMAL, [
     ("inst", ED_INST_DICT, "Instance object"),

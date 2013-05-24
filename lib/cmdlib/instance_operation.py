@@ -483,8 +483,10 @@ class LUInstanceConsole(NoHooksLU):
     instance = self.instance
     node = instance.primary_node
 
+    cluster_hvparams = self.cfg.GetClusterInfo().hvparams
     node_insts = self.rpc.call_instance_list([node],
-                                             [instance.hypervisor])[node]
+                                             [instance.hypervisor],
+                                             cluster_hvparams)[node]
     node_insts.Raise("Can't get node information from %s" % node)
 
     if instance.name not in node_insts.payload:
