@@ -52,6 +52,12 @@ from ganeti import vcluster
 _STRUCT_UCRED = "iII"
 _STRUCT_UCRED_SIZE = struct.calcsize(_STRUCT_UCRED)
 
+# Workaround a bug in some linux distributions that don't define SO_PEERCRED
+try:
+  _SO_PEERCRED = IN.SO_PEERCRED
+except AttributeError:
+  _SO_PEERCRED = 17
+
 # Regexes used to find IP addresses in the output of ip.
 _IP_RE_TEXT = r"[.:a-z0-9]+"      # separate for testing purposes
 _IP_FAMILY_RE = re.compile(r"(?P<family>inet6?)\s+(?P<ip>%s)/" % _IP_RE_TEXT,
@@ -93,7 +99,7 @@ def GetSocketCredentials(sock):
   @return: The PID, UID and GID of the connected foreign process.
 
   """
-  peercred = sock.getsockopt(socket.SOL_SOCKET, IN.SO_PEERCRED,
+  peercred = sock.getsockopt(socket.SOL_SOCKET, _SO_PEERCRED,
                              _STRUCT_UCRED_SIZE)
   return struct.unpack(_STRUCT_UCRED, peercred)
 
