@@ -1,6 +1,6 @@
 {-# LANGUAGE TemplateHaskell #-}
 
-{-| Unittests for Attoparsec support for unicode -}
+{-| Unittests for the DRBD Parser -}
 
 {-
 
