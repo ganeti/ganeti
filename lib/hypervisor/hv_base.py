@@ -206,7 +206,7 @@ class BaseHypervisor(object):
     """Reboot an instance."""
     raise NotImplementedError
 
-  def ListInstances(self):
+  def ListInstances(self, hvparams=None):
     """Get the list of running instances."""
     raise NotImplementedError
 

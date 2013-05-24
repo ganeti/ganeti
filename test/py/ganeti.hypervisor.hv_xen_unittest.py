@@ -27,6 +27,7 @@ import tempfile
 import shutil
 import random
 import os
+import mock
 
 from ganeti import constants
 from ganeti import objects
@@ -335,14 +336,80 @@ class TestGetConfigFileDiskData(unittest.TestCase):
     self.assertRaises(KeyError, hv_xen._GetConfigFileDiskData, disks, "sd")
 
 
-class TestXenHypervisorUnknownCommand(unittest.TestCase):
-  def test(self):
+class TestXenHypervisorRunXen(unittest.TestCase):
+
+  XEN_SUB_CMD = "help"
+
+  def testCommandUnknown(self):
     cmd = "#unknown command#"
     self.assertFalse(cmd in constants.KNOWN_XEN_COMMANDS)
     hv = hv_xen.XenHypervisor(_cfgdir=NotImplemented,
                               _run_cmd_fn=NotImplemented,
                               _cmd=cmd)
     self.assertRaises(errors.ProgrammerError, hv._RunXen, [])
+
+  def testCommandValid(self):
+    xen_cmd = "xm"
+    mock_run_cmd = mock.Mock()
+    hv = hv_xen.XenHypervisor(_cfgdir=NotImplemented,
+                              _run_cmd_fn=mock_run_cmd)
+    hv._RunXen([self.XEN_SUB_CMD])
+    mock_run_cmd.assert_called_with([xen_cmd, self.XEN_SUB_CMD])
+
+  def testCommandFromHvparams(self):
+    expected_xen_cmd = "xl"
+    hvparams = {constants.HV_XEN_CMD: constants.XEN_CMD_XL}
+    mock_run_cmd = mock.Mock()
+    hv = hv_xen.XenHypervisor(_cfgdir=NotImplemented,
+                              _run_cmd_fn=mock_run_cmd)
+    hv._RunXen([self.XEN_SUB_CMD], hvparams=hvparams)
+    mock_run_cmd.assert_called_with([expected_xen_cmd, self.XEN_SUB_CMD])
+
+
+class TestXenHypervisorGetInstanceList(unittest.TestCase):
+
+  RESULT_OK = utils.RunResult(0, None, "", "", "", None, None)
+  XEN_LIST = "list"
+
+  def testOk(self):
+    expected_xen_cmd = "xm"
+    mock_run_cmd = mock.Mock( return_value=self.RESULT_OK )
+    hv = hv_xen.XenHypervisor(_cfgdir=NotImplemented,
+                              _run_cmd_fn=mock_run_cmd)
+    hv._GetInstanceList(True)
+    mock_run_cmd.assert_called_with([expected_xen_cmd, self.XEN_LIST])
+
+  def testFromHvparams(self):
+    expected_xen_cmd = "xl"
+    hvparams = {constants.HV_XEN_CMD: constants.XEN_CMD_XL}
+    mock_run_cmd = mock.Mock( return_value=self.RESULT_OK )
+    hv = hv_xen.XenHypervisor(_cfgdir=NotImplemented,
+                              _run_cmd_fn=mock_run_cmd)
+    hv._GetInstanceList(True, hvparams=hvparams)
+    mock_run_cmd.assert_called_with([expected_xen_cmd, self.XEN_LIST])
+
+
+class TestXenHypervisorListInstances(unittest.TestCase):
+
+  RESULT_OK = utils.RunResult(0, None, "", "", "", None, None)
+  XEN_LIST = "list"
+
+  def testDefaultXm(self):
+    expected_xen_cmd = "xm"
+    mock_run_cmd = mock.Mock( return_value=self.RESULT_OK )
+    hv = hv_xen.XenHypervisor(_cfgdir=NotImplemented,
+                              _run_cmd_fn=mock_run_cmd)
+    hv.ListInstances()
+    mock_run_cmd.assert_called_with([expected_xen_cmd, self.XEN_LIST])
+
+  def testHvparamsXl(self):
+    expected_xen_cmd = "xl"
+    hvparams = {constants.HV_XEN_CMD: constants.XEN_CMD_XL}
+    mock_run_cmd = mock.Mock( return_value=self.RESULT_OK )
+    hv = hv_xen.XenHypervisor(_cfgdir=NotImplemented,
+                              _run_cmd_fn=mock_run_cmd)
+    hv.ListInstances(hvparams=hvparams)
+    mock_run_cmd.assert_called_with([expected_xen_cmd, self.XEN_LIST])
 
 
 class TestXenHypervisorWriteConfigFile(unittest.TestCase):
@@ -620,7 +687,7 @@ class _TestXenHypervisor(object):
 
         if fail:
           try:
-            hv._StopInstance(name, force)
+            hv._StopInstance(name, force, None)
           except errors.HypervisorError, err:
             self.assertTrue(str(err).startswith("Failed to stop instance"))
           else:
@@ -629,7 +696,7 @@ class _TestXenHypervisor(object):
                            msg=("Configuration was removed when stopping"
                                 " instance failed"))
         else:
-          hv._StopInstance(name, force)
+          hv._StopInstance(name, force, None)
           self.assertFalse(os.path.exists(cfgfile))
 
   def _MigrateNonRunningInstCmd(self, cmd):

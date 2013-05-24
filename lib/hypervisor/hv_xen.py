@@ -358,13 +358,15 @@ class XenHypervisor(hv_base.BaseHypervisor):
 
     return cmd
 
-  def _RunXen(self, args):
+  def _RunXen(self, args, hvparams=None):
     """Wrapper around L{utils.process.RunCmd} to run Xen command.
 
+    @type hvparams: dict of strings
+    @param hvparams: dictionary of hypervisor params
     @see: L{utils.process.RunCmd}
 
     """
-    cmd = [self._GetCommand()]
+    cmd = [self._GetCommand(hvparams=hvparams)]
     cmd.extend(args)
 
     return self._run_cmd_fn(cmd)
@@ -433,17 +435,18 @@ class XenHypervisor(hv_base.BaseHypervisor):
     utils.RenameFile(old_filename, new_filename)
     return new_filename
 
-  def _GetInstanceList(self, include_node):
+  def _GetInstanceList(self, include_node, hvparams=None):
     """Wrapper around module level L{_GetInstanceList}.
 
     """
-    return _GetInstanceList(lambda: self._RunXen(["list"]), include_node)
+    return _GetInstanceList(lambda: self._RunXen(["list"], hvparams=hvparams),
+                            include_node)
 
-  def ListInstances(self):
+  def ListInstances(self, hvparams=None):
     """Get the list of running instances.
 
     """
-    instance_list = self._GetInstanceList(False)
+    instance_list = self._GetInstanceList(False, hvparams=hvparams)
     names = [info[0] for info in instance_list]
     return names
 
@@ -498,7 +501,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
       cmd.append("-p")
     cmd.append(self._ConfigFileName(instance.name))
 
-    result = self._RunXen(cmd)
+    result = self._RunXen(cmd, hvparams=instance.hvparams)
     if result.failed:
       # Move the Xen configuration file to the log directory to avoid
       # leaving a stale config file behind.
@@ -515,10 +518,17 @@ class XenHypervisor(hv_base.BaseHypervisor):
     if name is None:
       name = instance.name
 
-    return self._StopInstance(name, force)
+    return self._StopInstance(name, force, instance.hvparams)
 
-  def _StopInstance(self, name, force):
+  def _StopInstance(self, name, force, hvparams):
     """Stop an instance.
+
+    @type name: string
+    @param name: name of the instance to be shutdown
+    @type force: boolean
+    @param force: flag specifying whether shutdown should be forced
+    @type hvparams: dict of string
+    @param hvparams: hypervisor parameters of the instance
 
     """
     if force:
@@ -526,7 +536,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
     else:
       action = "shutdown"
 
-    result = self._RunXen([action, name])
+    result = self._RunXen([action, name], hvparams=hvparams)
     if result.failed:
       raise errors.HypervisorError("Failed to stop instance %s: %s, %s" %
                                    (name, result.fail_reason, result.output))
@@ -544,7 +554,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
       raise errors.HypervisorError("Failed to reboot instance %s,"
                                    " not running" % instance.name)
 
-    result = self._RunXen(["reboot", instance.name])
+    result = self._RunXen(["reboot", instance.name], hvparams=instance.hvparams)
     if result.failed:
       raise errors.HypervisorError("Failed to reboot instance %s: %s, %s" %
                                    (instance.name, result.fail_reason,
@@ -577,7 +587,8 @@ class XenHypervisor(hv_base.BaseHypervisor):
     @param mem: actual memory size to use for instance runtime
 
     """
-    result = self._RunXen(["mem-set", instance.name, mem])
+    result = self._RunXen(["mem-set", instance.name, mem],
+                          hvparams=instance.hvparams)
     if result.failed:
       raise errors.HypervisorError("Failed to balloon instance %s: %s (%s)" %
                                    (instance.name, result.fail_reason,
@@ -731,7 +742,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
 
     args.extend([instance_name, target])
 
-    result = self._RunXen(args)
+    result = self._RunXen(args, hvparams=hvparams)
     if result.failed:
       raise errors.HypervisorError("Failed to migrate instance %s: %s" %
                                    (instance_name, result.output))

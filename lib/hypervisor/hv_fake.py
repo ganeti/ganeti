@@ -50,7 +50,7 @@ class FakeHypervisor(hv_base.BaseHypervisor):
     hv_base.BaseHypervisor.__init__(self)
     utils.EnsureDirs([(self._ROOT_DIR, constants.RUN_DIRS_MODE)])
 
-  def ListInstances(self):
+  def ListInstances(self, hvparams=None):
     """Get the list of running instances.
 
     """

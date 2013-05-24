@@ -961,7 +961,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     # Run CPU pinning, based on configured mask
     self._AssignCpuAffinity(cpu_mask, pid, thread_dict)
 
-  def ListInstances(self):
+  def ListInstances(self, hvparams=None):
     """Get the list of running instances.
 
     We can do this by listing our live instances directory and

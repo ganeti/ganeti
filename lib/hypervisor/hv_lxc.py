@@ -157,7 +157,7 @@ class LXCHypervisor(hv_base.BaseHypervisor):
 
     return memory
 
-  def ListInstances(self):
+  def ListInstances(self, hvparams=None):
     """Get the list of running instances.
 
     """
