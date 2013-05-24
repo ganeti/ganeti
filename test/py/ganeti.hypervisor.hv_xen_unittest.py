@@ -159,7 +159,7 @@ class TestParseXmList(testutils.GanetiTestCase):
         self.fail("Exception was not raised")
 
 
-class TestGetXmList(testutils.GanetiTestCase):
+class TestGetInstanceList(testutils.GanetiTestCase):
   def _Fail(self):
     return utils.RunResult(constants.EXIT_FAILURE, None,
                            "stdout", "stderr", None,
@@ -168,7 +168,7 @@ class TestGetXmList(testutils.GanetiTestCase):
   def testTimeout(self):
     fn = testutils.CallCounter(self._Fail)
     try:
-      hv_xen._GetXmList(fn, False, _timeout=0.1)
+      hv_xen._GetInstanceList(fn, False, _timeout=0.1)
     except errors.HypervisorError, err:
       self.assertTrue("timeout exceeded" in str(err))
     else:
@@ -186,7 +186,7 @@ class TestGetXmList(testutils.GanetiTestCase):
 
     fn = testutils.CallCounter(compat.partial(self._Success, data))
 
-    result = hv_xen._GetXmList(fn, True, _timeout=0.1)
+    result = hv_xen._GetInstanceList(fn, True, _timeout=0.1)
 
     self.assertEqual(len(result), 4)
 

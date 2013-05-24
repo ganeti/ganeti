@@ -83,7 +83,7 @@ def _CreateConfigCpus(cpu_mask):
 
 
 def _RunXmList(fn, xmllist_errors):
-  """Helper function for L{_GetXmList} to run "xm list".
+  """Helper function for L{_GetInstanceList} to run "xm list".
 
   @type fn: callable
   @param fn: Function returning result of running C{xm list}
@@ -141,7 +141,7 @@ def _ParseXmList(lines, include_node):
   return result
 
 
-def _GetXmList(fn, include_node, _timeout=5):
+def _GetInstanceList(fn, include_node, _timeout=5):
   """Return the list of running instances.
 
   See L{_RunXmList} and L{_ParseXmList} for parameter details.
@@ -432,18 +432,18 @@ class XenHypervisor(hv_base.BaseHypervisor):
     utils.RenameFile(old_filename, new_filename)
     return new_filename
 
-  def _GetXmList(self, include_node):
-    """Wrapper around module level L{_GetXmList}.
+  def _GetInstanceList(self, include_node):
+    """Wrapper around module level L{_GetInstanceList}.
 
     """
-    return _GetXmList(lambda: self._RunXen(["list"]), include_node)
+    return _GetInstanceList(lambda: self._RunXen(["list"]), include_node)
 
   def ListInstances(self):
     """Get the list of running instances.
 
     """
-    xm_list = self._GetXmList(False)
-    names = [info[0] for info in xm_list]
+    instance_list = self._GetInstanceList(False)
+    names = [info[0] for info in instance_list]
     return names
 
   def GetInstanceInfo(self, instance_name):
@@ -454,9 +454,9 @@ class XenHypervisor(hv_base.BaseHypervisor):
     @return: tuple (name, id, memory, vcpus, stat, times)
 
     """
-    xm_list = self._GetXmList(instance_name == _DOM0_NAME)
+    instance_list = self._GetInstanceList(instance_name == _DOM0_NAME)
     result = None
-    for data in xm_list:
+    for data in instance_list:
       if data[0] == instance_name:
         result = data
         break
@@ -468,8 +468,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
     @return: list of tuples (name, id, memory, vcpus, stat, times)
 
     """
-    xm_list = self._GetXmList(False)
-    return xm_list
+    return self._GetInstanceList(False)
 
   def _MakeConfigFile(self, instance, startup_memory, block_devices):
     """Gather configuration details and write to disk.
@@ -605,7 +604,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
                     result.output)
       return None
 
-    return _GetNodeInfo(result.stdout, self._GetXmList)
+    return _GetNodeInfo(result.stdout, self._GetInstanceList)
 
   @classmethod
   def GetInstanceConsole(cls, instance, hvparams, beparams):
