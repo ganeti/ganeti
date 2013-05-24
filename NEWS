@@ -46,24 +46,7 @@ Version 2.8.0 beta1
 Version 2.7.0 rc2
 -----------------
 
-*(unreleased)*
-
-- ``devel/upload`` now works when ``/var/run`` on the target nodes is a
-  symlink.
-- Disks added through ``gnt-instance modify`` or created through
-  ``gnt-instance recreate-disks`` are wiped, if the
-  ``prealloc_wipe_disks`` flag is set.
-- If wiping newly created disks fails, the disks are removed. Also,
-  partial failures in creating disks through ``gnt-instance modify``
-  triggers a cleanup of the partially-created disks.
-- Removing the master IP address doesn't fail if the address has been
-  already removed.
-
-
-Version 2.7.0 rc1
------------------
-
-*(Released Fri, 3 May 2013)*
+*(Released Fri, 24 May 2013)*
 
 Incompatible/important changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -168,8 +151,28 @@ Misc changes
 - The functionality for allocating multiple instances at once has been
   overhauled and is now also available through :doc:`RAPI <rapi>`.
 
+Since rc1:
 
-Since beta3:
+- ``devel/upload`` now works when ``/var/run`` on the target nodes is a
+  symlink.
+- Disks added through ``gnt-instance modify`` or created through
+  ``gnt-instance recreate-disks`` are wiped, if the
+  ``prealloc_wipe_disks`` flag is set.
+- If wiping newly created disks fails, the disks are removed. Also,
+  partial failures in creating disks through ``gnt-instance modify``
+  triggers a cleanup of the partially-created disks.
+- Removing the master IP address doesn't fail if the address has been
+  already removed.
+- Fix ownership of the OS log dir
+- Workaround missing SO_PEERCRED constant (Issue 191)
+
+
+Version 2.7.0 rc1
+-----------------
+
+*(Released Fri, 3 May 2013)*
+
+This was the first release candidate of the 2.7 series. Since beta3:
 
 - Fix kvm compatibility with qemu 1.4 (Issue 389)
 - Documentation updates (admin guide, upgrade notes, install

@@ -1085,7 +1085,8 @@ def ExpandCheckDisks(instance, disks):
   else:
     if not set(disks).issubset(instance.disks):
       raise errors.ProgrammerError("Can only act on disks belonging to the"
-                                   " target instance")
+                                   " target instance: expected a subset of %r,"
+                                   " got %r" % (instance.disks, disks))
     return disks
 
 

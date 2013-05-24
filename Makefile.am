@@ -423,6 +423,7 @@ docinput = \
 	doc/design-2.5.rst \
 	doc/design-2.6.rst \
 	doc/design-2.7.rst \
+	doc/design-2.8.rst \
 	doc/design-autorepair.rst \
 	doc/design-bulk-create.rst \
 	doc/design-chained-jobs.rst \
@@ -1013,6 +1014,7 @@ man_MANS = \
 	man/gnt-os.8 \
 	man/gnt-storage.8 \
 	man/hail.1 \
+	man/harep.1 \
 	man/hbal.1 \
 	man/hcheck.1 \
 	man/hinfo.1 \

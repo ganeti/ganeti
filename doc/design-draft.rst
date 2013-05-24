@@ -12,12 +12,10 @@ Design document drafts
    design-impexp2.rst
    design-resource-model.rst
    design-query-splitting.rst
-   design-autorepair.rst
    design-partitioned.rst
    design-monitoring-agent.rst
    design-hroller.rst
    design-storagetypes.rst
-   design-reason-trail.rst
    design-device-uuid-name.rst
    design-internal-shutdown.rst
 

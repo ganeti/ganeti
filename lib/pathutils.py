@@ -133,6 +133,8 @@ QUERY_SOCKET = SOCKET_DIR + "/ganeti-query"
 
 LOG_OS_DIR = LOG_DIR + "/os"
 LOG_ES_DIR = LOG_DIR + "/extstorage"
+#: Directory for storing Xen config files after failed instance starts
+LOG_XEN_DIR = LOG_DIR + "/xen"
 
 # Job queue paths
 JOB_QUEUE_LOCK_FILE = QUEUE_DIR + "/lock"
