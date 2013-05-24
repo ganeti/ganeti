@@ -40,18 +40,10 @@ import Ganeti.Block.Drbd.Types
 
 {-# ANN module "HLint: ignore Use camelCase" #-}
 
--- | Function for testing whether a file is parsed correctly.
-testFile :: String -> DRBDStatus -> Assertion
-testFile fileName expectedContent = do
-    fileContent <- readTestData fileName
-    case A.parseOnly (drbdStatusParser []) $ pack fileContent of
-        Left msg -> assertFailure $ "Parsing failed: " ++ msg
-        Right obtained -> assertEqual fileName expectedContent obtained
-
 -- | Test a DRBD 8.0 file with an empty line inside.
 case_drbd80_emptyline :: Assertion
-case_drbd80_emptyline = testFile "proc_drbd80-emptyline.txt" $
-  DRBDStatus
+case_drbd80_emptyline = testParser (drbdStatusParser [])
+  "proc_drbd80-emptyline.txt" $ DRBDStatus
     ( VersionInfo (Just "8.0.12") (Just "86") (Just "86") Nothing
         (Just "5c9f89594553e32adb87d9638dce591782f947e3")
         (Just "root@node1.example.com, 2009-05-22 12:47:52")
@@ -72,8 +64,8 @@ case_drbd80_emptyline = testFile "proc_drbd80-emptyline.txt" $
 
 -- | Test a DRBD 8.0 file with an empty version.
 case_drbd80_emptyversion :: Assertion
-case_drbd80_emptyversion = testFile "proc_drbd80-emptyversion.txt" $
-  DRBDStatus
+case_drbd80_emptyversion = testParser (drbdStatusParser [])
+  "proc_drbd80-emptyversion.txt" $ DRBDStatus
     ( VersionInfo Nothing Nothing Nothing Nothing
         (Just "5c9f89594553e32adb87d9638dce591782f947e3")
         (Just "root@node1.example.com, 2009-05-22 12:47:52")
@@ -94,7 +86,7 @@ case_drbd80_emptyversion = testFile "proc_drbd80-emptyversion.txt" $
 
 -- | Test a DRBD 8.4 file with an ongoing synchronization.
 case_drbd84_sync :: Assertion
-case_drbd84_sync = testFile "proc_drbd84_sync.txt" $
+case_drbd84_sync = testParser (drbdStatusParser []) "proc_drbd84_sync.txt" $
   DRBDStatus
     ( VersionInfo (Just "8.4.2") (Just "1") (Just "86-101") Nothing
         (Just "7ad5f850d711223713d6dcadc3dd48860321070c")
@@ -122,7 +114,7 @@ case_drbd84_sync = testFile "proc_drbd84_sync.txt" $
 
 -- | Test a DRBD 8.4 file.
 case_drbd84 :: Assertion
-case_drbd84 = testFile "proc_drbd84.txt" $
+case_drbd84 = testParser (drbdStatusParser []) "proc_drbd84.txt" $
   DRBDStatus
     ( VersionInfo (Just "8.4.2") (Just "1") (Just "86-101") Nothing
       (Just "7ad5f850d711223713d6dcadc3dd48860321070c")
@@ -173,8 +165,8 @@ case_drbd84 = testFile "proc_drbd84.txt" $
 
 -- | Test a DRBD 8.3 file with a NULL caracter inside.
 case_drbd83_sync_krnl2_6_39 :: Assertion
-case_drbd83_sync_krnl2_6_39 = testFile "proc_drbd83_sync_krnl2.6.39.txt" $
-  DRBDStatus
+case_drbd83_sync_krnl2_6_39 = testParser (drbdStatusParser [])
+  "proc_drbd83_sync_krnl2.6.39.txt" $ DRBDStatus
     ( VersionInfo (Just "8.3.1") (Just "88") (Just "86-89") Nothing
         (Just "fd40f4a8f9104941537d1afc8521e584a6d3003c")
         (Just "phil@fat-tyre, 2009-03-27 12:19:49")
@@ -217,7 +209,7 @@ case_drbd83_sync_krnl2_6_39 = testFile "proc_drbd83_sync_krnl2.6.39.txt" $
 
 -- | Test a DRBD 8.3 file with an ongoing synchronization.
 case_drbd83_sync :: Assertion
-case_drbd83_sync = testFile "proc_drbd83_sync.txt" $
+case_drbd83_sync = testParser (drbdStatusParser []) "proc_drbd83_sync.txt" $
   DRBDStatus
     ( VersionInfo (Just "8.3.1") (Just "88") (Just "86-89") Nothing
         (Just "fd40f4a8f9104941537d1afc8521e584a6d3003c")
@@ -262,8 +254,8 @@ case_drbd83_sync = testFile "proc_drbd83_sync.txt" $
 -- | Test a DRBD 8.3 file not from git sources, with an ongoing synchronization
 -- and the "want" field
 case_drbd83_sync_want :: Assertion
-case_drbd83_sync_want = testFile "proc_drbd83_sync_want.txt" $
-  DRBDStatus
+case_drbd83_sync_want = testParser (drbdStatusParser [])
+  "proc_drbd83_sync_want.txt" $ DRBDStatus
     ( VersionInfo (Just "8.3.11") (Just "88") (Just "86-96")
         (Just "2D876214BAAD53B31ADC1D6")
         Nothing Nothing
@@ -284,7 +276,7 @@ case_drbd83_sync_want = testFile "proc_drbd83_sync_want.txt" $
 
 -- | Test a DRBD 8.3 file.
 case_drbd83 :: Assertion
-case_drbd83 = testFile "proc_drbd83.txt" $
+case_drbd83 = testParser (drbdStatusParser []) "proc_drbd83.txt" $
   DRBDStatus
     ( VersionInfo (Just "8.3.1") (Just "88") (Just "86-89")
       Nothing
@@ -352,7 +344,7 @@ case_drbd83 = testFile "proc_drbd83.txt" $
 
 -- | Test a DRBD 8.0 file with a missing device.
 case_drbd8 :: Assertion
-case_drbd8 = testFile "proc_drbd8.txt" $
+case_drbd8 = testParser (drbdStatusParser []) "proc_drbd8.txt" $
   DRBDStatus
     ( VersionInfo (Just "8.0.12") (Just "86") (Just "86") Nothing
         (Just "5c9f89594553e32adb87d9638dce591782f947e3")

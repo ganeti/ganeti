@@ -59,12 +59,15 @@ module Test.Ganeti.TestCommon
   , resultProp
   , readTestData
   , genSample
+  , testParser
   ) where
 
 import Control.Applicative
 import Control.Exception (catchJust)
 import Control.Monad
+import Data.Attoparsec.Text (Parser, parseOnly)
 import Data.List
+import Data.Text (pack)
 import Data.Word
 import qualified Data.Set as Set
 import System.Environment (getEnv)
@@ -340,3 +343,11 @@ genSample gen = do
   case values of
     [] -> error "sample' returned an empty list of values??"
     x:_ -> return x
+
+-- | Function for testing whether a file is parsed correctly.
+testParser :: (Show a, Eq a) => Parser a -> String -> a -> HUnit.Assertion
+testParser parser fileName expectedContent = do
+  fileContent <- readTestData fileName
+  case parseOnly parser $ pack fileContent of
+    Left msg -> HUnit.assertFailure $ "Parsing failed: " ++ msg
+    Right obtained -> HUnit.assertEqual fileName expectedContent obtained
