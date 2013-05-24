@@ -82,21 +82,22 @@ def _CreateConfigCpus(cpu_mask):
     return "cpus = [ %s ]" % ", ".join(map(_GetCPUMap, cpu_list))
 
 
-def _RunXmList(fn, xmllist_errors):
-  """Helper function for L{_GetInstanceList} to run "xm list".
+def _RunInstanceList(fn, instance_list_errors):
+  """Helper function for L{_GetInstanceList} to retrieve the list of instances
+  from xen.
 
   @type fn: callable
-  @param fn: Function returning result of running C{xm list}
-  @type xmllist_errors: list
-  @param xmllist_errors: Error list
+  @param fn: Function to query xen for the list of instances
+  @type instance_list_errors: list
+  @param instance_list_errors: Error list
   @rtype: list
 
   """
   result = fn()
   if result.failed:
-    logging.error("xm list failed (%s): %s", result.fail_reason,
-                  result.output)
-    xmllist_errors.append(result)
+    logging.error("Retrieving the instance list from xen failed (%s): %s",
+                  result.fail_reason, result.output)
+    instance_list_errors.append(result)
     raise utils.RetryAgain()
 
   # skip over the heading
@@ -144,21 +145,21 @@ def _ParseXmList(lines, include_node):
 def _GetInstanceList(fn, include_node, _timeout=5):
   """Return the list of running instances.
 
-  See L{_RunXmList} and L{_ParseXmList} for parameter details.
+  See L{_RunInstanceList} and L{_ParseXmList} for parameter details.
 
   """
-  xmllist_errors = []
+  instance_list_errors = []
   try:
-    lines = utils.Retry(_RunXmList, (0.3, 1.5, 1.0), _timeout,
-                        args=(fn, xmllist_errors))
+    lines = utils.Retry(_RunInstanceList, (0.3, 1.5, 1.0), _timeout,
+                        args=(fn, instance_list_errors))
   except utils.RetryTimeout:
-    if xmllist_errors:
-      xmlist_result = xmllist_errors.pop()
+    if instance_list_errors:
+      instance_list_result = instance_list_errors.pop()
 
-      errmsg = ("xm list failed, timeout exceeded (%s): %s" %
-                (xmlist_result.fail_reason, xmlist_result.output))
+      errmsg = ("listing instances failed, timeout exceeded (%s): %s" %
+                (instance_list_result.fail_reason, instance_list_result.output))
     else:
-      errmsg = "xm list failed"
+      errmsg = "listing instances failed"
 
     raise errors.HypervisorError(errmsg)
 
