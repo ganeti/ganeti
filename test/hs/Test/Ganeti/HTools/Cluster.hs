@@ -394,8 +394,9 @@ prop_AllocPolicy =
   forAll genOnlineNode $ \node ->
   forAll (choose (5, 20)) $ \count ->
   forAll (genInstanceSmallerThanNode node) $ \inst ->
-  forAll (arbitrary `suchThat` (isBad .
-                                Instance.instMatchesPolicy inst)) $ \ipol ->
+  forAll (arbitrary `suchThat`
+          (isBad . flip (Instance.instMatchesPolicy inst)
+           (Node.exclStorage node))) $ \ipol ->
   let rqn = Instance.requiredNodes $ Instance.diskTemplate inst
       node' = Node.setPolicy ipol node
       nl = makeSmallCluster node' count

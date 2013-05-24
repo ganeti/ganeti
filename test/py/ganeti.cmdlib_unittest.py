@@ -827,11 +827,20 @@ class _StubComputeIPolicySpecViolation:
 
 
 class _FakeConfigForComputeIPolicyInstanceViolation:
-  def __init__(self, be):
+  def __init__(self, be, excl_stor):
     self.cluster = objects.Cluster(beparams={"default": be})
+    self.excl_stor = excl_stor
 
   def GetClusterInfo(self):
     return self.cluster
+
+  def GetNodeInfo(self, _):
+    return {}
+
+  def GetNdParams(self, _):
+    return {
+      constants.ND_EXCLUSIVE_STORAGE: self.excl_stor,
+      }
 
 
 class TestComputeIPolicyInstanceViolation(unittest.TestCase):
@@ -841,8 +850,8 @@ class TestComputeIPolicyInstanceViolation(unittest.TestCase):
       constants.BE_VCPUS: 2,
       constants.BE_SPINDLE_USE: 4,
       }
-    disks = [objects.Disk(size=512)]
-    cfg = _FakeConfigForComputeIPolicyInstanceViolation(beparams)
+    disks = [objects.Disk(size=512, spindles=13)]
+    cfg = _FakeConfigForComputeIPolicyInstanceViolation(beparams, False)
     instance = objects.Instance(beparams=beparams, disks=disks, nics=[],
                                 disk_template=constants.DT_PLAIN)
     stub = _StubComputeIPolicySpecViolation(2048, 2, 1, 0, [512], 4,
@@ -854,6 +863,15 @@ class TestComputeIPolicyInstanceViolation(unittest.TestCase):
                                  disk_template=constants.DT_PLAIN)
     ret = common.ComputeIPolicyInstanceViolation(NotImplemented, instance2,
                                                  cfg, _compute_fn=stub)
+    self.assertEqual(ret, [])
+    cfg_es = _FakeConfigForComputeIPolicyInstanceViolation(beparams, True)
+    stub_es = _StubComputeIPolicySpecViolation(2048, 2, 1, 0, [512], 13,
+                                               constants.DT_PLAIN)
+    ret = common.ComputeIPolicyInstanceViolation(NotImplemented, instance,
+                                                 cfg_es, _compute_fn=stub_es)
+    self.assertEqual(ret, [])
+    ret = common.ComputeIPolicyInstanceViolation(NotImplemented, instance2,
+                                                 cfg_es, _compute_fn=stub_es)
     self.assertEqual(ret, [])
 
 

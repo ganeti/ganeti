@@ -59,6 +59,8 @@ module Ganeti.HTools.Instance
   , mirrorType
   ) where
 
+import Control.Monad (liftM2)
+
 import Ganeti.BasicTypes
 import qualified Ganeti.HTools.Types as T
 import qualified Ganeti.HTools.Container as Container
@@ -278,13 +280,18 @@ specOf Instance { mem = m, dsk = d, vcpus = c } =
 -- | Checks if an instance is smaller/bigger than a given spec. Returns
 -- OpGood for a correct spec, otherwise Bad one of the possible
 -- failure modes.
-instCompareISpec :: Ordering -> Instance-> T.ISpec -> T.OpResult ()
-instCompareISpec which inst ispec
+instCompareISpec :: Ordering -> Instance-> T.ISpec -> Bool -> T.OpResult ()
+instCompareISpec which inst ispec exclstor
   | which == mem inst `compare` T.iSpecMemorySize ispec = Bad T.FailMem
   | which `elem` map ((`compare` T.iSpecDiskSize ispec) . dskSize)
     (disks inst) = Bad T.FailDisk
   | which == vcpus inst `compare` T.iSpecCpuCount ispec = Bad T.FailCPU
-  | which == spindleUse inst `compare` T.iSpecSpindleUse ispec
+  | exclstor &&
+    case getTotalSpindles inst of
+      Nothing -> True
+      Just sp_sum -> which == sp_sum `compare` T.iSpecSpindleUse ispec
+    = Bad T.FailSpindles
+  | not exclstor && which == spindleUse inst `compare` T.iSpecSpindleUse ispec
     = Bad T.FailSpindles
   | diskTemplate inst /= T.DTDiskless &&
     which == length (disks inst) `compare` T.iSpecDiskCount ispec
@@ -292,33 +299,33 @@ instCompareISpec which inst ispec
   | otherwise = Ok ()
 
 -- | Checks if an instance is smaller than a given spec.
-instBelowISpec :: Instance -> T.ISpec -> T.OpResult ()
+instBelowISpec :: Instance -> T.ISpec -> Bool -> T.OpResult ()
 instBelowISpec = instCompareISpec GT
 
 -- | Checks if an instance is bigger than a given spec.
-instAboveISpec :: Instance -> T.ISpec -> T.OpResult ()
+instAboveISpec :: Instance -> T.ISpec -> Bool -> T.OpResult ()
 instAboveISpec = instCompareISpec LT
 
 -- | Checks if an instance matches a min/max specs pair
-instMatchesMinMaxSpecs :: Instance -> T.MinMaxISpecs -> T.OpResult ()
-instMatchesMinMaxSpecs inst minmax = do
-  instAboveISpec inst (T.minMaxISpecsMinSpec minmax)
-  instBelowISpec inst (T.minMaxISpecsMaxSpec minmax)
+instMatchesMinMaxSpecs :: Instance -> T.MinMaxISpecs -> Bool -> T.OpResult ()
+instMatchesMinMaxSpecs inst minmax exclstor = do
+  instAboveISpec inst (T.minMaxISpecsMinSpec minmax) exclstor
+  instBelowISpec inst (T.minMaxISpecsMaxSpec minmax) exclstor
 
 -- | Checks if an instance matches any specs of a policy
-instMatchesSpecs :: Instance -> [T.MinMaxISpecs] -> T.OpResult ()
+instMatchesSpecs :: Instance -> [T.MinMaxISpecs] -> Bool -> T.OpResult ()
  -- Return Ok for no constraints, though this should never happen
-instMatchesSpecs _ [] = Ok ()
-instMatchesSpecs inst minmaxes =
+instMatchesSpecs _ [] _ = Ok ()
+instMatchesSpecs inst minmaxes exclstor =
   -- The initial "Bad" should be always replaced by a real result
   foldr eithermatch (Bad T.FailInternal) minmaxes
-  where eithermatch mm (Bad _) = instMatchesMinMaxSpecs inst mm
+  where eithermatch mm (Bad _) = instMatchesMinMaxSpecs inst mm exclstor
         eithermatch _ y@(Ok ()) = y
 
 -- | Checks if an instance matches a policy.
-instMatchesPolicy :: Instance -> T.IPolicy -> T.OpResult ()
-instMatchesPolicy inst ipol = do
-  instMatchesSpecs inst $ T.iPolicyMinMaxISpecs ipol
+instMatchesPolicy :: Instance -> T.IPolicy -> Bool -> T.OpResult ()
+instMatchesPolicy inst ipol exclstor = do
+  instMatchesSpecs inst (T.iPolicyMinMaxISpecs ipol) exclstor
   if diskTemplate inst `elem` T.iPolicyDiskTemplates ipol
     then Ok ()
     else Bad T.FailDisk

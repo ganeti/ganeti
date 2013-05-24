@@ -544,17 +544,30 @@ def ComputeIPolicyInstanceViolation(ipolicy, instance, cfg,
   @see: L{ComputeIPolicySpecViolation}
 
   """
+  ret = []
   be_full = cfg.GetClusterInfo().FillBE(instance)
   mem_size = be_full[constants.BE_MAXMEM]
   cpu_count = be_full[constants.BE_VCPUS]
-  spindle_use = be_full[constants.BE_SPINDLE_USE]
+  es_flags = rpc.GetExclusiveStorageForNodeNames(cfg, instance.all_nodes)
+  if any(es_flags.values()):
+    # With exclusive storage use the actual spindles
+    try:
+      spindle_use = sum([disk.spindles for disk in instance.disks])
+    except TypeError:
+      ret.append("Number of spindles not configured for disks of instance %s"
+                 " while exclusive storage is enabled, try running gnt-cluster"
+                 " repair-disk-sizes" % instance.name)
+      # _ComputeMinMaxSpec ignores 'None's
+      spindle_use = None
+  else:
+    spindle_use = be_full[constants.BE_SPINDLE_USE]
   disk_count = len(instance.disks)
   disk_sizes = [disk.size for disk in instance.disks]
   nic_count = len(instance.nics)
   disk_template = instance.disk_template
 
-  return _compute_fn(ipolicy, mem_size, cpu_count, disk_count, nic_count,
-                     disk_sizes, spindle_use, disk_template)
+  return ret + _compute_fn(ipolicy, mem_size, cpu_count, disk_count, nic_count,
+                           disk_sizes, spindle_use, disk_template)
 
 
 def _ComputeViolatingInstances(ipolicy, instances, cfg):

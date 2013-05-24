@@ -489,7 +489,7 @@ allocateOnSingle nl inst new_pdx =
   let p = Container.find new_pdx nl
       new_inst = Instance.setBoth inst new_pdx Node.noSecondary
   in do
-    Instance.instMatchesPolicy inst (Node.iPolicy p)
+    Instance.instMatchesPolicy inst (Node.iPolicy p) (Node.exclStorage p)
     new_p <- Node.addPri p inst
     let new_nl = Container.add new_pdx new_p nl
         new_score = compCV new_nl
@@ -503,6 +503,7 @@ allocateOnPair nl inst new_pdx new_sdx =
       tgt_s = Container.find new_sdx nl
   in do
     Instance.instMatchesPolicy inst (Node.iPolicy tgt_p)
+      (Node.exclStorage tgt_p)
     new_p <- Node.addPri tgt_p inst
     new_s <- Node.addSec tgt_s inst new_pdx
     let new_inst = Instance.setBoth inst new_pdx new_sdx
