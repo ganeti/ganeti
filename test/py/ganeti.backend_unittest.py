@@ -26,6 +26,7 @@ import sys
 import shutil
 import tempfile
 import unittest
+import mock
 
 from ganeti import utils
 from ganeti import constants
@@ -33,6 +34,7 @@ from ganeti import backend
 from ganeti import netutils
 from ganeti import errors
 from ganeti import serializer
+from ganeti import hypervisor
 
 import testutils
 import mocks
@@ -536,6 +538,28 @@ class TestGetBlockDevSymlinkPath(unittest.TestCase):
   def test(self):
     for idx in range(100):
       self._Test("inst1.example.com", idx)
+
+
+class TestGetInstanceList(unittest.TestCase):
+
+  def setUp(self):
+    self._test_hv = self._TestHypervisor()
+    self._test_hv.ListInstances = mock.Mock(
+      return_value=["instance1", "instance2", "instance3"] )
+
+  class _TestHypervisor(hypervisor.hv_base.BaseHypervisor):
+    def __init__(self):
+      hypervisor.hv_base.BaseHypervisor.__init__(self)
+
+  def _GetHypervisor(self, name):
+    return self._test_hv
+
+  def testHvparams(self):
+    fake_hvparams = {constants.HV_XEN_CMD: constants.XEN_CMD_XL}
+    hvparams = {constants.HT_FAKE: fake_hvparams}
+    backend.GetInstanceList([constants.HT_FAKE], all_hvparams=hvparams,
+                            get_hv_fn=self._GetHypervisor)
+    self._test_hv.ListInstances.assert_called_with(hvparams=fake_hvparams)
 
 
 if __name__ == "__main__":

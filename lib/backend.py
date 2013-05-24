@@ -1112,11 +1112,18 @@ def BridgesExist(bridges_list):
     _Fail("Missing bridges %s", utils.CommaJoin(missing))
 
 
-def GetInstanceList(hypervisor_list):
+def GetInstanceList(hypervisor_list, all_hvparams=None,
+                    get_hv_fn=hypervisor.GetHypervisor):
   """Provides a list of instances.
 
   @type hypervisor_list: list
   @param hypervisor_list: the list of hypervisors to query information
+  @type all_hvparams: dict of dict of strings
+  @param all_hvparams: a dictionary mapping hypervisor types to respective
+    cluster-wide hypervisor parameters
+  @type get_hv_fn: function
+  @param get_hv_fn: function that returns a hypervisor for the given hypervisor
+    name; optional parameter to increase testability
 
   @rtype: list
   @return: a list of all running instances on the current node
@@ -1127,7 +1134,11 @@ def GetInstanceList(hypervisor_list):
   results = []
   for hname in hypervisor_list:
     try:
-      names = hypervisor.GetHypervisor(hname).ListInstances()
+      hvparams = None
+      if all_hvparams is not None:
+        hvparams = all_hvparams[hname]
+      hv = get_hv_fn(hname)
+      names = hv.ListInstances(hvparams)
       results.extend(names)
     except errors.HypervisorError, err:
       _Fail("Error enumerating instances (hypervisor %s): %s",
