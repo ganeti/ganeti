@@ -284,9 +284,12 @@ class LogicalVolume(base.BlockDev):
                         " MB: %d available, %d needed",
                         size, current_pvs, req_pvs)
       assert current_pvs == len(pvlist)
-      if stripes > current_pvs:
-        # No warning issued for this, as it's no surprise
-        stripes = current_pvs
+      # We must update stripes to be sure to use all the desired spindles
+      stripes = current_pvs
+      if stripes > desired_stripes:
+        # Don't warn when lowering stripes, as it's no surprise
+        logging.warning("Using %s stripes instead of %s, to be able to use"
+                        " %s spindles", stripes, desired_stripes, current_pvs)
 
     else:
       if stripes < desired_stripes:
