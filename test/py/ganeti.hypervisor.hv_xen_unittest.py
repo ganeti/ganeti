@@ -76,6 +76,28 @@ class TestCreateConfigCpus(unittest.TestCase):
                       constants.CPU_PINNING_ALL_XEN))
 
 
+class TestGetCommand(testutils.GanetiTestCase):
+  def testDefault(self):
+    expected_cmd = "xm"
+    hv = hv_xen.XenHypervisor()
+    self.assertEqual(hv._GetCommand(), expected_cmd)
+
+  def testCommandExplicit(self):
+    """Test the case when the command is given as class parameter explicitly.
+
+    """
+    expected_cmd = "xl"
+    hv = hv_xen.XenHypervisor(_cmd=constants.XEN_CMD_XL)
+    self.assertEqual(hv._GetCommand(), expected_cmd)
+
+  def testCommandInvalid(self):
+    """Test the case an invalid command is given as class parameter explicitly.
+
+    """
+    hv = hv_xen.XenHypervisor(_cmd="invalidcommand")
+    self.assertRaises(errors.ProgrammerError, hv._GetCommand, None)
+
+
 class TestParseXmList(testutils.GanetiTestCase):
   def test(self):
     data = testutils.ReadTestData("xen-xm-list-4.0.1-dom0-only.txt")
