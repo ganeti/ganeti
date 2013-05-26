@@ -111,12 +111,16 @@ serializeInstance nl inst =
       snode = (if sidx == Node.noSecondary
                  then ""
                  else Container.nameOf nl sidx)
-  in printf "%s|%d|%d|%d|%s|%s|%s|%s|%s|%s|%d"
+  in printf "%s|%d|%d|%d|%s|%s|%s|%s|%s|%s|%d|%s"
        iname (Instance.mem inst) (Instance.dsk inst)
        (Instance.vcpus inst) (instanceStatusToRaw (Instance.runSt inst))
        (if Instance.autoBalance inst then "Y" else "N")
        pnode snode (diskTemplateToRaw (Instance.diskTemplate inst))
        (intercalate "," (Instance.allTags inst)) (Instance.spindleUse inst)
+       -- disk spindles are summed together, as it's done for disk size
+       (case Instance.getTotalSpindles inst of
+          Nothing -> "-"
+          Just x -> show x)
 
 -- | Generate instance file data from instance objects.
 serializeInstances :: Node.List -> Instance.List -> String
@@ -244,13 +248,13 @@ loadInst :: NameAssoc -- ^ Association list with the current nodes
                                                -- instance name and
                                                -- the instance object
 loadInst ktn [ name, mem, dsk, vcpus, status, auto_bal, pnode, snode
-             , dt, tags, su ] = do
+             , dt, tags, su, spindles ] = do
   pidx <- lookupNode ktn name pnode
   sidx <- if null snode
             then return Node.noSecondary
             else lookupNode ktn name snode
   vmem <- tryRead name mem
-  vdsk <- tryRead name dsk
+  dsize <- tryRead name dsk
   vvcpus <- tryRead name vcpus
   vstatus <- instanceStatusFromRaw status
   auto_balance <- case auto_bal of
@@ -261,8 +265,12 @@ loadInst ktn [ name, mem, dsk, vcpus, status, auto_bal, pnode, snode
   disk_template <- annotateResult ("Instance " ++ name)
                    (diskTemplateFromRaw dt)
   spindle_use <- tryRead name su
+  vspindles <- case spindles of
+                 "-" -> return Nothing
+                 _ -> liftM Just (tryRead name spindles)
+  let disk = Instance.Disk dsize vspindles
   let vtags = commaSplit tags
-      newinst = Instance.create name vmem vdsk [vdsk] vvcpus vstatus vtags
+      newinst = Instance.create name vmem dsize [disk] vvcpus vstatus vtags
                 auto_balance pidx sidx disk_template spindle_use []
   when (Instance.hasSecondary newinst && sidx == pidx) . fail $
     "Instance " ++ name ++ " has same primary and secondary node - " ++ pnode
@@ -272,6 +280,12 @@ loadInst ktn [ name, mem, dsk, vcpus, status, auto_bal, pnode, snode
              , dt, tags ] = loadInst ktn [ name, mem, dsk, vcpus, status,
                                            auto_bal, pnode, snode, dt, tags,
                                            "1" ]
+
+loadInst ktn [ name, mem, dsk, vcpus, status, auto_bal, pnode, snode
+             , dt, tags, su ] =
+  loadInst ktn [ name, mem, dsk, vcpus, status, auto_bal, pnode, snode, dt
+               , tags, su, "-" ]
+
 loadInst _ s = fail $ "Invalid/incomplete instance data: '" ++ show s ++ "'"
 
 -- | Loads a spec from a field list.

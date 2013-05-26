@@ -49,6 +49,9 @@
     "disk.sizes": [
       128
     ],
+    "disk.spindles": [
+      null
+    ],
     "admin_state": "up",
     "nic.links": [
       "xen-br0"
@@ -130,6 +133,10 @@
       256,
       128
     ],
+    "disk.spindles": [
+      null,
+      null
+    ],
     "admin_state": "down",
     "nic.links": [
       "xen-br0"
@@ -195,6 +202,9 @@
     "uuid": "33f4c063-bb65-41b2-af29-d8a631201bd7",
     "disk.sizes": [
       2048
+    ],
+    "disk.spindles": [
+      null
     ],
     "admin_state": "down",
     "nic.links": [
@@ -290,6 +300,9 @@
     "disk.sizes": [
       256
     ],
+    "disk.spindles": [
+      null
+    ],
     "admin_state": "down",
     "nic.links": [
       "xen-br0"
@@ -370,6 +383,9 @@
     "disk.sizes": [
       128
     ],
+    "disk.spindles": [
+      null
+    ],
     "admin_state": "down",
     "nic.links": [
       "xen-br0"
@@ -434,6 +450,9 @@
     "disk.sizes": [
       512
     ],
+    "disk.spindles": [
+      null
+    ],
     "admin_state": "down",
     "nic.links": [
       "xen-br1"
@@ -497,6 +516,9 @@
     "uuid": "e9dae1c9-b4cb-4f11-b0e9-65931a6b3524",
     "disk.sizes": [
       128
+    ],
+    "disk.spindles": [
+      null
     ],
     "admin_state": "down",
     "nic.links": [
@@ -563,6 +585,9 @@
     "disk.sizes": [
       128
     ],
+    "disk.spindles": [
+      null
+    ],
     "admin_state": "down",
     "nic.links": [
       "xen-br0"
@@ -626,6 +651,9 @@
     "uuid": "624c1844-82a2-474e-bdaf-1bafa820fdcf",
     "disk.sizes": [
       128
+    ],
+    "disk.spindles": [
+      null
     ],
     "admin_state": "down",
     "nic.links": [
@@ -723,6 +751,9 @@
     "disk.sizes": [
       512
     ],
+    "disk.spindles": [
+      null
+    ],
     "admin_state": "down",
     "nic.links": [
       "xen-br0"
@@ -786,6 +817,9 @@
     "uuid": "6f2f7824-8392-408e-ac54-c938f4fb0638",
     "disk.sizes": [
       128
+    ],
+    "disk.spindles": [
+      null
     ],
     "admin_state": "down",
     "nic.links": [

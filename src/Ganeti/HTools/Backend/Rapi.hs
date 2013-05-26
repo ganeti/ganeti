@@ -122,7 +122,8 @@ parseInstance ktn a = do
   let owner_name = "Instance '" ++ name ++ "', error while parsing data"
   let extract s x = tryFromObj owner_name x s
   disk <- extract "disk_usage" a
-  disks <- extract "disk.sizes" a
+  dsizes <- extract "disk.sizes" a
+  dspindles <- tryArrayMaybeFromObj owner_name a "disk.spindles"
   beparams <- liftM fromJSObject (extract "beparams" a)
   omem <- extract "oper_ram" a
   mem <- case omem of
@@ -139,6 +140,7 @@ parseInstance ktn a = do
   auto_balance <- extract "auto_balance" beparams
   dt <- extract "disk_template" a
   su <- extract "spindle_use" beparams
+  let disks = zipWith Instance.Disk dsizes dspindles
   let inst = Instance.create name mem disk disks vcpus running tags
              auto_balance pnode snode dt su []
   return (name, inst)

@@ -85,8 +85,11 @@ parseBaseInstance n a = do
   let errorMessage = "invalid data for instance '" ++ n ++ "'"
   let extract x = tryFromObj errorMessage a x
   disk  <- extract "disk_space_total"
-  disks <- extract "disks" >>= toArray >>= asObjectList >>=
-           mapM (flip (tryFromObj errorMessage) "size" . fromJSObject)
+  jsdisks <- extract "disks" >>= toArray >>= asObjectList
+  dsizes <- mapM (flip (tryFromObj errorMessage) "size" . fromJSObject) jsdisks
+  dspindles <- mapM (annotateResult errorMessage .
+                     flip maybeFromObj "spindles" . fromJSObject) jsdisks
+  let disks = zipWith Instance.Disk dsizes dspindles
   mem   <- extract "memory"
   vcpus <- extract "vcpus"
   tags  <- extract "tags"

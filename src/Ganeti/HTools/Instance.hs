@@ -28,6 +28,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Ganeti.HTools.Instance
   ( Instance(..)
+  , Disk(..)
   , AssocList
   , List
   , create
@@ -45,6 +46,7 @@ module Ganeti.HTools.Instance
   , setBoth
   , setMovable
   , specOf
+  , getTotalSpindles
   , instBelowISpec
   , instAboveISpec
   , instMatchesPolicy
@@ -65,6 +67,10 @@ import Ganeti.HTools.Nic (Nic)
 import Ganeti.Utils
 
 -- * Type declarations
+data Disk = Disk
+  { dskSize     :: Int       -- ^ Size in bytes
+  , dskSpindles :: Maybe Int -- ^ Number of spindles
+  } deriving (Show, Eq)
 
 -- | The instance type.
 data Instance = Instance
@@ -72,7 +78,7 @@ data Instance = Instance
   , alias        :: String    -- ^ The shortened name
   , mem          :: Int       -- ^ Memory of the instance
   , dsk          :: Int       -- ^ Total disk usage of the instance
-  , disks        :: [Int]     -- ^ Sizes of the individual disks
+  , disks        :: [Disk]    -- ^ Sizes of the individual disks
   , vcpus        :: Int       -- ^ Number of VCPUs
   , runSt        :: T.InstanceStatus -- ^ Original run status
   , pNode        :: T.Ndx     -- ^ Original primary node
@@ -165,7 +171,7 @@ type List = Container.Container Instance
 --
 -- Some parameters are not initialized by function, and must be set
 -- later (via 'setIdx' for example).
-create :: String -> Int -> Int -> [Int] -> Int -> T.InstanceStatus
+create :: String -> Int -> Int -> [Disk] -> Int -> T.InstanceStatus
        -> [String] -> Bool -> T.Ndx -> T.Ndx -> T.DiskTemplate -> Int
        -> [Nic] -> Instance
 create name_init mem_init dsk_init disks_init vcpus_init run_init tags_init
@@ -259,6 +265,11 @@ shrinkByType inst T.FailCPU = let v = vcpus inst - T.unitCpu
                                  else Ok inst { vcpus = v }
 shrinkByType _ f = Bad $ "Unhandled failure mode " ++ show f
 
+-- | Get the number of disk spindles
+getTotalSpindles :: Instance -> Maybe Int
+getTotalSpindles inst =
+  foldr (liftM2 (+) . dskSpindles ) (Just 0) (disks inst)
+
 -- | Return the spec of an instance.
 specOf :: Instance -> T.RSpec
 specOf Instance { mem = m, dsk = d, vcpus = c } =
@@ -270,7 +281,7 @@ specOf Instance { mem = m, dsk = d, vcpus = c } =
 instBelowISpec :: Instance -> T.ISpec -> T.OpResult ()
 instBelowISpec inst ispec
   | mem inst > T.iSpecMemorySize ispec = Bad T.FailMem
-  | any (> T.iSpecDiskSize ispec) (disks inst) = Bad T.FailDisk
+  | any (> T.iSpecDiskSize ispec) (map dskSize $ disks inst) = Bad T.FailDisk
   | vcpus inst > T.iSpecCpuCount ispec = Bad T.FailCPU
   | otherwise = Ok ()
 
@@ -278,7 +289,7 @@ instBelowISpec inst ispec
 instAboveISpec :: Instance -> T.ISpec -> T.OpResult ()
 instAboveISpec inst ispec
   | mem inst < T.iSpecMemorySize ispec = Bad T.FailMem
-  | any (< T.iSpecDiskSize ispec) (disks inst) = Bad T.FailDisk
+  | any (< T.iSpecDiskSize ispec) (map dskSize $ disks inst) = Bad T.FailDisk
   | vcpus inst < T.iSpecCpuCount ispec = Bad T.FailCPU
   | otherwise = Ok ()
 
