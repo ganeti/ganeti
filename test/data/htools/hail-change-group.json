@@ -461,7 +461,8 @@
       "free_memory": 31389,
       "ndparams": {
         "spindle_count": 1,
-        "oob_program": null
+        "oob_program": null,
+        "exclusive_storage": false
       },
       "reserved_memory": 1017,
       "master_capable": true,
@@ -484,7 +485,8 @@
       "free_memory": 31234,
       "ndparams": {
         "spindle_count": 1,
-        "oob_program": null
+        "oob_program": null,
+        "exclusive_storage": false
       },
       "reserved_memory": 1017,
       "master_capable": true,
@@ -507,7 +509,8 @@
       "free_memory": 22914,
       "ndparams": {
         "spindle_count": 1,
-        "oob_program": null
+        "oob_program": null,
+        "exclusive_storage": false
       },
       "reserved_memory": 1017,
       "master_capable": true,
@@ -530,7 +533,8 @@
       "free_memory": 31746,
       "ndparams": {
         "spindle_count": 1,
-        "oob_program": null
+        "oob_program": null,
+        "exclusive_storage": false
       },
       "reserved_memory": 1017,
       "master_capable": true,
@@ -553,7 +557,8 @@
       "free_memory": 31746,
       "ndparams": {
         "spindle_count": 1,
-        "oob_program": null
+        "oob_program": null,
+        "exclusive_storage": false
       },
       "reserved_memory": 1017,
       "master_capable": true,

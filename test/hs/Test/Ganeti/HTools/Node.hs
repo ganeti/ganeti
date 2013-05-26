@@ -7,7 +7,7 @@
 
 {-
 
-Copyright (C) 2009, 2010, 2011, 2012 Google Inc.
+Copyright (C) 2009, 2010, 2011, 2012, 2013 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -90,7 +90,7 @@ genNode min_multiplier max_multiplier = do
   cpu_t <- choose (base_cpu, top_cpu)
   offl  <- arbitrary
   let n = Node.create name (fromIntegral mem_t) mem_n mem_f
-          (fromIntegral dsk_t) dsk_f (fromIntegral cpu_t) offl 1 0
+          (fromIntegral dsk_t) dsk_f (fromIntegral cpu_t) offl 1 0 False
       n' = Node.setPolicy nullIPolicy n
   return $ Node.buildPeers n' Container.empty
 

@@ -104,7 +104,8 @@ queryNodesMsg =
   L.Query (Qlang.ItemTypeOpCode Qlang.QRNode)
      ["name", "mtotal", "mnode", "mfree", "dtotal", "dfree",
       "ctotal", "offline", "drained", "vm_capable",
-      "ndp/spindle_count", "group.uuid", "tags"] Qlang.EmptyFilter
+      "ndp/spindle_count", "group.uuid", "tags",
+      "ndp/exclusive_storage"] Qlang.EmptyFilter
 
 -- | The input data for instance query.
 queryInstancesMsg :: L.LuxiOp
@@ -185,8 +186,8 @@ getNodes ktg arr = extractArray arr >>= mapM (parseNode ktg)
 -- | Construct a node from a JSON object.
 parseNode :: NameAssoc -> [(JSValue, JSValue)] -> Result (String, Node.Node)
 parseNode ktg [ name, mtotal, mnode, mfree, dtotal, dfree
-              , ctotal, offline, drained, vm_capable, spindles, g_uuid 
-              , tags ]
+              , ctotal, offline, drained, vm_capable, spindles, g_uuid
+              , tags, excl_stor ]
     = do
   xname <- annotateResult "Parsing new node" (fromJValWithStatus name)
   let convert a = genericConvert "Node" xname a
@@ -196,8 +197,10 @@ parseNode ktg [ name, mtotal, mnode, mfree, dtotal, dfree
   xspindles <- convert "spindles" spindles
   xgdx   <- convert "group.uuid" g_uuid >>= lookupGroup ktg xname
   xtags <- convert "tags" tags
+  xexcl_stor <- convert "exclusive_storage" excl_stor
   node <- if xoffline || xdrained || not xvm_capable
-            then return $ Node.create xname 0 0 0 0 0 0 True xspindles xgdx
+            then return $
+              Node.create xname 0 0 0 0 0 0 True xspindles xgdx False
             else do
               xmtotal  <- convert "mtotal" mtotal
               xmnode   <- convert "mnode" mnode
@@ -207,7 +210,7 @@ parseNode ktg [ name, mtotal, mnode, mfree, dtotal, dfree
               xctotal  <- convert "ctotal" ctotal
               return . flip Node.setNodeTags xtags $
                 Node.create xname xmtotal xmnode xmfree xdtotal xdfree
-                            xctotal False xspindles xgdx
+                            xctotal False xspindles xgdx xexcl_stor
   return (xname, node)
 
 parseNode _ v = fail ("Invalid node query result: " ++ show v)

@@ -6,7 +6,7 @@ This module holds the code for parsing a cluster description.
 
 {-
 
-Copyright (C) 2009, 2010, 2011, 2012 Google Inc.
+Copyright (C) 2009, 2010, 2011, 2012, 2013 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -51,17 +51,20 @@ apolAbbrev c | c == "p"  = return AllocPreferred
 
 -- | Parse the string description into nodes.
 parseDesc :: String -> [String]
-          -> Result (AllocPolicy, Int, Int, Int, Int, Int)
-parseDesc _ [a, n, d, m, c, s] = do
+          -> Result (AllocPolicy, Int, Int, Int, Int, Int, Bool)
+parseDesc _ [a, n, d, m, c, s, exstor] = do
   apol <- allocPolicyFromRaw a `mplus` apolAbbrev a
   ncount <- tryRead "node count" n
   disk <- annotateResult "disk size" (parseUnit d)
   mem <- annotateResult "memory size" (parseUnit m)
   cpu <- tryRead "cpu count" c
   spindles <- tryRead "spindles" s
-  return (apol, ncount, disk, mem, cpu, spindles)
+  excl_stor <- tryRead "exclusive storage" exstor
+  return (apol, ncount, disk, mem, cpu, spindles, excl_stor)
 
 parseDesc desc [a, n, d, m, c] = parseDesc desc [a, n, d, m, c, "1"]
+
+parseDesc desc [a, n, d, m, c, s] = parseDesc desc [a, n, d, m, c, s, "False"]
 
 parseDesc desc es =
   fail $ printf
@@ -75,14 +78,14 @@ createGroup :: Int    -- ^ The group index
             -> String -- ^ The group specification
             -> Result (Group.Group, [Node.Node])
 createGroup grpIndex spec = do
-  (apol, ncount, disk, mem, cpu, spindles) <- parseDesc spec $
-                                              sepSplit ',' spec
+  (apol, ncount, disk, mem, cpu, spindles, excl_stor) <- parseDesc spec $
+                                                         sepSplit ',' spec
   let nodes = map (\idx ->
                     flip Node.setMaster (grpIndex == 1 && idx == 1) $
                     Node.create (printf "node-%02d-%03d" grpIndex idx)
                       (fromIntegral mem) 0 mem
                       (fromIntegral disk) disk
-                      (fromIntegral cpu) False spindles grpIndex
+                      (fromIntegral cpu) False spindles grpIndex excl_stor
                   ) [1..ncount]
       -- TODO: parse networks to which this group is connected
       grp = Group.create (printf "group-%02d" grpIndex)

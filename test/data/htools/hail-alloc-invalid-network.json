@@ -100,7 +100,8 @@
       "free_memory": 4096,
       "group": "uuid-group-1",
       "ndparams": {
-        "spindle_count": 1
+        "spindle_count": 1,
+        "exclusive_storage": false
       },
       "offline": false,
       "reserved_memory": 1017,
@@ -114,7 +115,8 @@
       "free_memory": 4096,
       "group": "uuid-group-2",
       "ndparams": {
-        "spindle_count": 1
+        "spindle_count": 1,
+        "exclusive_storage": false
       },
       "offline": false,
       "reserved_memory": 1017,

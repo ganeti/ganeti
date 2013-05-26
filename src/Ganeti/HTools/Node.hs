@@ -141,6 +141,7 @@ data Node = Node
   , pTags    :: TagMap    -- ^ Primary instance exclusion tags and their count
   , group    :: T.Gdx     -- ^ The node's group (index)
   , iPolicy  :: T.IPolicy -- ^ The instance policy (of the node's group)
+  , exclStorage :: Bool   -- ^ Effective value of exclusive_storage
   } deriving (Show, Eq)
 
 instance T.Element Node where
@@ -216,10 +217,10 @@ decIf False base _     = base
 -- The index and the peers maps are empty, and will be need to be
 -- update later via the 'setIdx' and 'buildPeers' functions.
 create :: String -> Double -> Int -> Int -> Double
-       -> Int -> Double -> Bool -> Int -> T.Gdx -> Node
+       -> Int -> Double -> Bool -> Int -> T.Gdx -> Bool -> Node
 create name_init mem_t_init mem_n_init mem_f_init
        dsk_t_init dsk_f_init cpu_t_init offline_init spindles_init
-       group_init =
+       group_init excl_stor =
   Node { name = name_init
        , alias = name_init
        , tMem = mem_t_init
@@ -255,6 +256,7 @@ create name_init mem_t_init mem_n_init mem_f_init
        , pTags = Map.empty
        , group = group_init
        , iPolicy = T.defIPolicy
+       , exclStorage = excl_stor
        }
 
 -- | Conversion formula from mDsk\/tDsk to loDsk.

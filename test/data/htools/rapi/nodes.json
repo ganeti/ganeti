@@ -29,7 +29,8 @@
     "vm_capable": true,
     "ndparams": {
       "spindle_count": 1,
-      "oob_program": null
+      "oob_program": null,
+      "exclusive_storage": false
     }
   },
   {
@@ -62,7 +63,8 @@
     "vm_capable": true,
     "ndparams": {
       "spindle_count": 1,
-      "oob_program": null
+      "oob_program": null,
+      "exclusive_storage": false
     }
   },
   {
@@ -103,7 +105,8 @@
     ],
     "ndparams": {
       "spindle_count": 1,
-      "oob_program": null
+      "oob_program": null,
+      "exclusive_storage": false
     }
   },
   {
@@ -150,7 +153,8 @@
     ],
     "ndparams": {
       "spindle_count": 1,
-      "oob_program": null
+      "oob_program": null,
+      "exclusive_storage": false
     }
   }
 ]

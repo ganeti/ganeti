@@ -155,10 +155,11 @@ parseNode ktg a = do
   let vm_cap' = fromMaybe True vm_cap
   ndparams <- extract "ndparams" >>= asJSObject
   spindles <- tryFromObj desc (fromJSObject ndparams) "spindle_count"
+  excl_stor <- tryFromObj desc (fromJSObject ndparams) "exclusive_storage"
   guuid   <- annotateResult desc $ maybeFromObj a "group.uuid"
   guuid' <-  lookupGroup ktg name (fromMaybe defaultGroupID guuid)
   node <- if offline || drained || not vm_cap'
-            then return $ Node.create name 0 0 0 0 0 0 True 0 guuid'
+            then return $ Node.create name 0 0 0 0 0 0 True 0 guuid' False
             else do
               mtotal  <- extract "mtotal"
               mnode   <- extract "mnode"
@@ -169,7 +170,7 @@ parseNode ktg a = do
               tags    <- extract "tags"
               return . flip Node.setNodeTags tags $
                 Node.create name mtotal mnode mfree dtotal dfree ctotal False
-                            spindles guuid'
+                            spindles guuid' excl_stor
   return (name, node)
 
 -- | Construct a group from a JSON object.
