@@ -35,19 +35,19 @@ from ganeti.cmdlib.common import AnnotateDiskParams, \
   ComputeIPolicyInstanceViolation
 
 
-def BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
-                         minmem, maxmem, vcpus, nics, disk_template, disks,
-                         bep, hvp, hypervisor_name, tags):
+def BuildInstanceHookEnv(name, primary_node_name, secondary_node_names, os_type,
+                         status, minmem, maxmem, vcpus, nics, disk_template,
+                         disks, bep, hvp, hypervisor_name, tags):
   """Builds instance related env variables for hooks
 
   This builds the hook environment from individual variables.
 
   @type name: string
   @param name: the name of the instance
-  @type primary_node: string
-  @param primary_node: the name of the instance's primary node
-  @type secondary_nodes: list
-  @param secondary_nodes: list of secondary nodes as strings
+  @type primary_node_name: string
+  @param primary_node_name: the name of the instance's primary node
+  @type secondary_node_names: list
+  @param secondary_node_names: list of secondary nodes as strings
   @type os_type: string
   @param os_type: the name of the instance's OS
   @type status: string
@@ -80,8 +80,8 @@ def BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
   env = {
     "OP_TARGET": name,
     "INSTANCE_NAME": name,
-    "INSTANCE_PRIMARY": primary_node,
-    "INSTANCE_SECONDARIES": " ".join(secondary_nodes),
+    "INSTANCE_PRIMARY": primary_node_name,
+    "INSTANCE_SECONDARIES": " ".join(secondary_node_names),
     "INSTANCE_OS_TYPE": os_type,
     "INSTANCE_STATUS": status,
     "INSTANCE_MINMEM": minmem,
@@ -160,8 +160,8 @@ def BuildInstanceHookEnvByObject(lu, instance, override=None):
   hvp = cluster.FillHV(instance)
   args = {
     "name": instance.name,
-    "primary_node": instance.primary_node,
-    "secondary_nodes": instance.secondary_nodes,
+    "primary_node_name": lu.cfg.GetNodeName(instance.primary_node),
+    "secondary_node_names": lu.cfg.GetNodeNames(instance.secondary_nodes),
     "os_type": instance.os,
     "status": instance.admin_state,
     "maxmem": bep[constants.BE_MAXMEM],
@@ -189,29 +189,29 @@ def GetClusterDomainSecret():
                                strict=True)
 
 
-def CheckNodeNotDrained(lu, node):
+def CheckNodeNotDrained(lu, node_uuid):
   """Ensure that a given node is not drained.
 
   @param lu: the LU on behalf of which we make the check
-  @param node: the node to check
+  @param node_uuid: the node to check
   @raise errors.OpPrereqError: if the node is drained
 
   """
-  if lu.cfg.GetNodeInfo(node).drained:
-    raise errors.OpPrereqError("Can't use drained node %s" % node,
+  if lu.cfg.GetNodeInfo(node_uuid).drained:
+    raise errors.OpPrereqError("Can't use drained node %s" % node_uuid,
                                errors.ECODE_STATE)
 
 
-def CheckNodeVmCapable(lu, node):
+def CheckNodeVmCapable(lu, node_uuid):
   """Ensure that a given node is vm capable.
 
   @param lu: the LU on behalf of which we make the check
-  @param node: the node to check
+  @param node_uuid: the node to check
   @raise errors.OpPrereqError: if the node is not vm capable
 
   """
-  if not lu.cfg.GetNodeInfo(node).vm_capable:
-    raise errors.OpPrereqError("Can't use non-vm_capable node %s" % node,
+  if not lu.cfg.GetNodeInfo(node_uuid).vm_capable:
+    raise errors.OpPrereqError("Can't use non-vm_capable node %s" % node_uuid,
                                errors.ECODE_STATE)
 
 
@@ -237,7 +237,7 @@ def RemoveInstance(lu, feedback_fn, instance, ignore_failures):
   lu.remove_locks[locking.LEVEL_INSTANCE] = instance.name
 
 
-def RemoveDisks(lu, instance, target_node=None, ignore_failures=False):
+def RemoveDisks(lu, instance, target_node_uuid=None, ignore_failures=False):
   """Remove all disks for an instance.
 
   This abstracts away some work from `AddInstance()` and
@@ -248,8 +248,9 @@ def RemoveDisks(lu, instance, target_node=None, ignore_failures=False):
   @param lu: the logical unit on whose behalf we execute
   @type instance: L{objects.Instance}
   @param instance: the instance whose disks we should remove
-  @type target_node: string
-  @param target_node: used to override the node on which to remove the disks
+  @type target_node_uuid: string
+  @param target_node_uuid: used to override the node on which to remove the
+          disks
   @rtype: boolean
   @return: the success of the removal
 
@@ -260,17 +261,18 @@ def RemoveDisks(lu, instance, target_node=None, ignore_failures=False):
   ports_to_release = set()
   anno_disks = AnnotateDiskParams(instance, instance.disks, lu.cfg)
   for (idx, device) in enumerate(anno_disks):
-    if target_node:
-      edata = [(target_node, device)]
+    if target_node_uuid:
+      edata = [(target_node_uuid, device)]
     else:
       edata = device.ComputeNodeTree(instance.primary_node)
-    for node, disk in edata:
-      lu.cfg.SetDiskID(disk, node)
-      result = lu.rpc.call_blockdev_remove(node, disk)
+    for node_uuid, disk in edata:
+      lu.cfg.SetDiskID(disk, node_uuid)
+      result = lu.rpc.call_blockdev_remove(node_uuid, disk)
       if result.fail_msg:
         lu.LogWarning("Could not remove disk %s on node %s,"
-                      " continuing anyway: %s", idx, node, result.fail_msg)
-        if not (result.offline and node != instance.primary_node):
+                      " continuing anyway: %s", idx,
+                      lu.cfg.GetNodeName(node_uuid), result.fail_msg)
+        if not (result.offline and node_uuid != instance.primary_node):
           all_result = False
 
     # if this is a DRBD disk, return its port to the pool
@@ -283,14 +285,14 @@ def RemoveDisks(lu, instance, target_node=None, ignore_failures=False):
 
   if instance.disk_template in constants.DTS_FILEBASED:
     file_storage_dir = os.path.dirname(instance.disks[0].logical_id[1])
-    if target_node:
-      tgt = target_node
+    if target_node_uuid:
+      tgt = target_node_uuid
     else:
       tgt = instance.primary_node
     result = lu.rpc.call_file_storage_dir_remove(tgt, file_storage_dir)
     if result.fail_msg:
       lu.LogWarning("Could not remove directory '%s' on node %s: %s",
-                    file_storage_dir, instance.primary_node, result.fail_msg)
+                    file_storage_dir, lu.cfg.GetNodeName(tgt), result.fail_msg)
       all_result = False
 
   return all_result
@@ -450,7 +452,7 @@ def GetInstanceInfoText(instance):
   return "originstname+%s" % instance.name
 
 
-def CheckNodeFreeMemory(lu, node, reason, requested, hvname, hvparams):
+def CheckNodeFreeMemory(lu, node_uuid, reason, requested, hvname, hvparams):
   """Checks if a node has enough free memory.
 
   This function checks if a given node has the needed amount of free
@@ -460,8 +462,8 @@ def CheckNodeFreeMemory(lu, node, reason, requested, hvname, hvparams):
 
   @type lu: C{LogicalUnit}
   @param lu: a logical unit from which we get configuration data
-  @type node: C{str}
-  @param node: the node to check
+  @type node_uuid: C{str}
+  @param node_uuid: the node to check
   @type reason: C{str}
   @param reason: string to use in the error message
   @type requested: C{int}
@@ -476,60 +478,63 @@ def CheckNodeFreeMemory(lu, node, reason, requested, hvname, hvparams):
       we cannot check the node
 
   """
-  nodeinfo = lu.rpc.call_node_info([node], None, [(hvname, hvparams)], False)
-  nodeinfo[node].Raise("Can't get data from node %s" % node,
-                       prereq=True, ecode=errors.ECODE_ENVIRON)
-  (_, _, (hv_info, )) = nodeinfo[node].payload
+  node_name = lu.cfg.GetNodeName(node_uuid)
+  nodeinfo = lu.rpc.call_node_info([node_uuid], None, [(hvname, hvparams)],
+                                   False)
+  nodeinfo[node_uuid].Raise("Can't get data from node %s" % node_name,
+                            prereq=True, ecode=errors.ECODE_ENVIRON)
+  (_, _, (hv_info, )) = nodeinfo[node_uuid].payload
 
   free_mem = hv_info.get("memory_free", None)
   if not isinstance(free_mem, int):
     raise errors.OpPrereqError("Can't compute free memory on node %s, result"
-                               " was '%s'" % (node, free_mem),
+                               " was '%s'" % (node_name, free_mem),
                                errors.ECODE_ENVIRON)
   if requested > free_mem:
     raise errors.OpPrereqError("Not enough memory on node %s for %s:"
                                " needed %s MiB, available %s MiB" %
-                               (node, reason, requested, free_mem),
+                               (node_name, reason, requested, free_mem),
                                errors.ECODE_NORES)
   return free_mem
 
 
-def CheckInstanceBridgesExist(lu, instance, node=None):
+def CheckInstanceBridgesExist(lu, instance, node_uuid=None):
   """Check that the brigdes needed by an instance exist.
 
   """
-  if node is None:
-    node = instance.primary_node
-  CheckNicsBridgesExist(lu, instance.nics, node)
+  if node_uuid is None:
+    node_uuid = instance.primary_node
+  CheckNicsBridgesExist(lu, instance.nics, node_uuid)
 
 
-def CheckNicsBridgesExist(lu, target_nics, target_node):
+def CheckNicsBridgesExist(lu, nics, node_uuid):
   """Check that the brigdes needed by a list of nics exist.
 
   """
   cluster = lu.cfg.GetClusterInfo()
-  paramslist = [cluster.SimpleFillNIC(nic.nicparams) for nic in target_nics]
+  paramslist = [cluster.SimpleFillNIC(nic.nicparams) for nic in nics]
   brlist = [params[constants.NIC_LINK] for params in paramslist
             if params[constants.NIC_MODE] == constants.NIC_MODE_BRIDGED]
   if brlist:
-    result = lu.rpc.call_bridges_exist(target_node, brlist)
+    result = lu.rpc.call_bridges_exist(node_uuid, brlist)
     result.Raise("Error checking bridges on destination node '%s'" %
-                 target_node, prereq=True, ecode=errors.ECODE_ENVIRON)
+                 lu.cfg.GetNodeName(node_uuid), prereq=True,
+                 ecode=errors.ECODE_ENVIRON)
 
 
-def CheckNodeHasOS(lu, node, os_name, force_variant):
+def CheckNodeHasOS(lu, node_uuid, os_name, force_variant):
   """Ensure that a node supports a given OS.
 
   @param lu: the LU on behalf of which we make the check
-  @param node: the node to check
+  @param node_uuid: the node to check
   @param os_name: the OS to query about
   @param force_variant: whether to ignore variant errors
   @raise errors.OpPrereqError: if the node is not supporting the OS
 
   """
-  result = lu.rpc.call_os_get(node, os_name)
+  result = lu.rpc.call_os_get(node_uuid, os_name)
   result.Raise("OS '%s' not in supported OS list for node %s" %
-               (os_name, node),
+               (os_name, lu.cfg.GetNodeName(node_uuid)),
                prereq=True, ecode=errors.ECODE_INVAL)
   if not force_variant:
     _CheckOSVariant(result.payload, os_name)

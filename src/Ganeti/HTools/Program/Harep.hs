@@ -299,6 +299,7 @@ detectBroken nl inst =
                                        -- mkNonEmpty in this way (using the fact
                                        -- that Maybe is used both for optional
                                        -- fields, and to express failure).
+                                     , opNodeUuids = Nothing
                                      , opIallocator = mkNonEmpty "hail"
                                      }
            , OpInstanceReinstall { opInstanceName = iname
@@ -316,6 +317,7 @@ detectBroken nl inst =
                                                       C.defaultShutdownTimeout
                                 , opIgnoreConsistency = False
                                 , opTargetNode = Nothing
+                                , opTargetNodeUuid = Nothing
                                 , opIgnoreIpolicy = False
                                 , opIallocator = Nothing
                                 }
@@ -328,6 +330,7 @@ detectBroken nl inst =
                                     , opReplaceDisksList = []
                                     , opRemoteNode = Nothing
                                       -- FIXME: ditto, see above.
+                                    , opRemoteNodeUuid = Nothing
                                     , opIallocator = mkNonEmpty "hail"
                                     , opEarlyRelease = False
                                     , opIgnoreIpolicy = False
@@ -343,6 +346,7 @@ detectBroken nl inst =
                                      , opRecreateDisksInfo = RecreateDisksAll
                                      , opNodes = []
                                        -- FIXME: ditto, see above.
+                                     , opNodeUuids = Nothing
                                      , opIallocator = mkNonEmpty "hail"
                                      }
            , OpInstanceReinstall { opInstanceName = iname
@@ -410,6 +414,7 @@ doRepair client delay instData (rtype, opcodes) =
                 OpTestDelay { opDelayDuration = delay
                             , opDelayOnMaster = True
                             , opDelayOnNodes = []
+                            , opDelayOnNodeUuids = Nothing
                             , opDelayRepeat = fromJust $ mkNonNegative 0
                             } : opcodes
               else

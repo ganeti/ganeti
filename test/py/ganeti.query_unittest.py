@@ -423,8 +423,8 @@ class TestNodeQuery(unittest.TestCase):
     master_node.mtime = None
     assert master_node.name == master_name
 
-    live_data_name = node_names[4]
-    assert live_data_name != master_name
+    live_data_node = nodes[4]
+    assert live_data_node.name != master_name
 
     fake_live_data = {
       "bootid": "a2504766-498e-4b25-b21e-d23098dc3af4",
@@ -443,31 +443,31 @@ class TestNodeQuery(unittest.TestCase):
     assert (sorted(query._NODE_LIVE_FIELDS.keys()) ==
             sorted(fake_live_data.keys()))
 
-    live_data = dict.fromkeys(node_names, {})
-    live_data[live_data_name] = \
+    live_data = dict.fromkeys([node.uuid for node in nodes], {})
+    live_data[live_data_node.uuid] = \
       dict((query._NODE_LIVE_FIELDS[name][2], value)
            for name, value in fake_live_data.items())
 
-    node_to_primary = dict((name, set()) for name in node_names)
-    node_to_primary[master_name].update(["inst1", "inst2"])
+    node_to_primary = dict((node.uuid, set()) for node in nodes)
+    node_to_primary[master_node.uuid].update(["inst1", "inst2"])
 
-    node_to_secondary = dict((name, set()) for name in node_names)
-    node_to_secondary[live_data_name].update(["instX", "instY", "instZ"])
+    node_to_secondary = dict((node.uuid, set()) for node in nodes)
+    node_to_secondary[live_data_node.uuid].update(["instX", "instY", "instZ"])
 
     ng_uuid = "492b4b74-8670-478a-b98d-4c53a76238e6"
     groups = {
       ng_uuid: objects.NodeGroup(name="ng1", uuid=ng_uuid, ndparams={}),
       }
 
-    oob_not_powered_node = node_names[0]
-    nodes[0].powered = False
-    oob_support = dict((name, False) for name in node_names)
-    oob_support[master_name] = True
-    oob_support[oob_not_powered_node] = True
+    oob_not_powered_node = nodes[0]
+    oob_not_powered_node.powered = False
+    oob_support = dict((node.uuid, False) for node in nodes)
+    oob_support[master_node.uuid] = True
+    oob_support[oob_not_powered_node.uuid] = True
 
     master_node.group = ng_uuid
 
-    nqd = query.NodeQueryData(nodes, live_data, master_name,
+    nqd = query.NodeQueryData(nodes, live_data, master_node.uuid,
                               node_to_primary, node_to_secondary, groups,
                               oob_support, cluster)
     result = q.Query(nqd)
@@ -511,7 +511,7 @@ class TestNodeQuery(unittest.TestCase):
                  row[field_index["powered"]] == (constants.RS_UNAVAIL, None)
                  for row, node in zip(result, nodes))
 
-    live_data_row = result[node_to_row[live_data_name]]
+    live_data_row = result[node_to_row[live_data_node.name]]
 
     for (field, value) in fake_live_data.items():
       self.assertEqual(live_data_row[field_index[field]],
@@ -523,10 +523,11 @@ class TestNodeQuery(unittest.TestCase):
                      (constants.RS_NORMAL, 3))
     self.assertEqual(master_row[field_index["pinst_list"]],
                      (constants.RS_NORMAL,
-                      list(node_to_primary[master_name])))
+                      list(node_to_primary[master_node.uuid])))
     self.assertEqual(live_data_row[field_index["sinst_list"]],
                      (constants.RS_NORMAL,
-                      utils.NiceSort(list(node_to_secondary[live_data_name]))))
+                      utils.NiceSort(list(
+                        node_to_secondary[live_data_node.uuid]))))
 
   def testGetLiveNodeField(self):
     nodes = [
@@ -666,9 +667,10 @@ class TestInstanceQuery(unittest.TestCase):
           },
         })
 
-    offline_nodes = ["nodeoff1", "nodeoff2"]
-    bad_nodes = ["nodebad1", "nodebad2", "nodebad3"] + offline_nodes
-    nodes = ["node%s" % i for i in range(10)] + bad_nodes
+    offline_nodes = ["nodeoff1-uuid", "nodeoff2-uuid"]
+    bad_nodes = ["nodebad1-uuid", "nodebad2-uuid", "nodebad3-uuid"] +\
+                offline_nodes
+    node_uuids = ["node%s-uuid" % i for i in range(10)] + bad_nodes
 
     instances = [
       objects.Instance(name="inst1", hvparams={}, beparams={}, nics=[],
@@ -676,7 +678,7 @@ class TestInstanceQuery(unittest.TestCase):
         ctime=1291244000, mtime=1291244400, serial_no=30,
         admin_state=constants.ADMINST_UP, hypervisor=constants.HT_XEN_PVM,
         os="linux1",
-        primary_node="node1",
+        primary_node="node1-uuid",
         disk_template=constants.DT_PLAIN,
         disks=[],
         disks_active=True,
@@ -686,7 +688,7 @@ class TestInstanceQuery(unittest.TestCase):
         ctime=1291211000, mtime=1291211077, serial_no=1,
         admin_state=constants.ADMINST_UP, hypervisor=constants.HT_XEN_HVM,
         os="deb99",
-        primary_node="node5",
+        primary_node="node5-uuid",
         disk_template=constants.DT_DISKLESS,
         disks=[],
         disks_active=True,
@@ -700,7 +702,7 @@ class TestInstanceQuery(unittest.TestCase):
         ctime=1291011000, mtime=1291013000, serial_no=1923,
         admin_state=constants.ADMINST_DOWN, hypervisor=constants.HT_KVM,
         os="busybox",
-        primary_node="node6",
+        primary_node="node6-uuid",
         disk_template=constants.DT_DRBD8,
         disks=[],
         disks_active=False,
@@ -717,7 +719,7 @@ class TestInstanceQuery(unittest.TestCase):
         ctime=1291244390, mtime=1291244395, serial_no=25,
         admin_state=constants.ADMINST_DOWN, hypervisor=constants.HT_XEN_PVM,
         os="linux1",
-        primary_node="nodeoff2",
+        primary_node="nodeoff2-uuid",
         disk_template=constants.DT_DRBD8,
         disks=[],
         disks_active=True,
@@ -743,7 +745,7 @@ class TestInstanceQuery(unittest.TestCase):
         ctime=1231211000, mtime=1261200000, serial_no=3,
         admin_state=constants.ADMINST_UP, hypervisor=constants.HT_XEN_HVM,
         os="deb99",
-        primary_node="nodebad2",
+        primary_node="nodebad2-uuid",
         disk_template=constants.DT_DISKLESS,
         disks=[],
         disks_active=True,
@@ -757,7 +759,7 @@ class TestInstanceQuery(unittest.TestCase):
         ctime=7513, mtime=11501, serial_no=13390,
         admin_state=constants.ADMINST_DOWN, hypervisor=constants.HT_XEN_HVM,
         os="deb99",
-        primary_node="node7",
+        primary_node="node7-uuid",
         disk_template=constants.DT_DISKLESS,
         disks=[],
         disks_active=False,
@@ -773,7 +775,7 @@ class TestInstanceQuery(unittest.TestCase):
         ctime=None, mtime=None, serial_no=1947,
         admin_state=constants.ADMINST_DOWN, hypervisor=constants.HT_XEN_HVM,
         os="deb99",
-        primary_node="node6",
+        primary_node="node6-uuid",
         disk_template=constants.DT_DISKLESS,
         disks=[],
         disks_active=False,
@@ -784,7 +786,7 @@ class TestInstanceQuery(unittest.TestCase):
         ctime=None, mtime=None, serial_no=19478,
         admin_state=constants.ADMINST_OFFLINE, hypervisor=constants.HT_XEN_HVM,
         os="deb99",
-        primary_node="node6",
+        primary_node="node6-uuid",
         disk_template=constants.DT_DISKLESS,
         disks=[],
         disks_active=False,
@@ -831,9 +833,15 @@ class TestInstanceQuery(unittest.TestCase):
                               user="root",
                               command=["hostname"]).ToDict()
 
+    nodes = dict([(uuid, objects.Node(
+                           name="%s.example.com" % uuid,
+                           uuid=uuid,
+                           group="default-uuid"))
+                  for uuid in node_uuids])
+
     iqd = query.InstanceQueryData(instances, cluster, disk_usage,
                                   offline_nodes, bad_nodes, live_data,
-                                  wrongnode_inst, consinfo, {}, {}, {})
+                                  wrongnode_inst, consinfo, nodes, {}, {})
     result = q.Query(iqd)
     self.assertEqual(len(result), len(instances))
     self.assert_(compat.all(len(row) == len(selected)
@@ -845,7 +853,7 @@ class TestInstanceQuery(unittest.TestCase):
     tested_status = set()
 
     for (inst, row) in zip(instances, result):
-      assert inst.primary_node in nodes
+      assert inst.primary_node in node_uuids
 
       self.assertEqual(row[fieldidx["name"]],
                        (constants.RS_NORMAL, inst.name))

@@ -358,7 +358,7 @@ class TaggableObject(ConfigObject):
 class MasterNetworkParameters(ConfigObject):
   """Network configuration parameters for the master
 
-  @ivar name: master name
+  @ivar uuid: master nodes UUID
   @ivar ip: master IP
   @ivar netmask: master netmask
   @ivar netdev: master network device
@@ -366,7 +366,7 @@ class MasterNetworkParameters(ConfigObject):
 
   """
   __slots__ = [
-    "name",
+    "uuid",
     "ip",
     "netmask",
     "netdev",
@@ -578,7 +578,7 @@ class Disk(ConfigObject):
           return True
     return self.dev_type == dev_type
 
-  def GetNodes(self, node):
+  def GetNodes(self, node_uuid):
     """This function returns the nodes this device lives on.
 
     Given the node on which the parent of the device lives on (or, in
@@ -590,26 +590,26 @@ class Disk(ConfigObject):
     if self.dev_type in [constants.LD_LV, constants.LD_FILE,
                          constants.LD_BLOCKDEV, constants.LD_RBD,
                          constants.LD_EXT]:
-      result = [node]
+      result = [node_uuid]
     elif self.dev_type in constants.LDS_DRBD:
       result = [self.logical_id[0], self.logical_id[1]]
-      if node not in result:
+      if node_uuid not in result:
         raise errors.ConfigurationError("DRBD device passed unknown node")
     else:
       raise errors.ProgrammerError("Unhandled device type %s" % self.dev_type)
     return result
 
-  def ComputeNodeTree(self, parent_node):
+  def ComputeNodeTree(self, parent_node_uuid):
     """Compute the node/disk tree for this disk and its children.
 
     This method, given the node on which the parent disk lives, will
-    return the list of all (node, disk) pairs which describe the disk
+    return the list of all (node UUID, disk) pairs which describe the disk
     tree in the most compact way. For example, a drbd/lvm stack
     will be returned as (primary_node, drbd) and (secondary_node, drbd)
     which represents all the top-level devices on the nodes.
 
     """
-    my_nodes = self.GetNodes(parent_node)
+    my_nodes = self.GetNodes(parent_node_uuid)
     result = [(node, self) for node in my_nodes]
     if not self.children:
       # leaf device
@@ -701,7 +701,7 @@ class Disk(ConfigObject):
         child.UnsetSize()
     self.size = 0
 
-  def SetPhysicalID(self, target_node, nodes_ip):
+  def SetPhysicalID(self, target_node_uuid, nodes_ip):
     """Convert the logical ID to the physical ID.
 
     This is used only for drbd, which needs ip/port configuration.
@@ -711,7 +711,7 @@ class Disk(ConfigObject):
     node.
 
     Arguments:
-      - target_node: the node we wish to configure for
+      - target_node_uuid: the node UUID we wish to configure for
       - nodes_ip: a mapping of node name to ip
 
     The target_node must exist in in nodes_ip, and must be one of the
@@ -721,23 +721,23 @@ class Disk(ConfigObject):
     """
     if self.children:
       for child in self.children:
-        child.SetPhysicalID(target_node, nodes_ip)
+        child.SetPhysicalID(target_node_uuid, nodes_ip)
 
     if self.logical_id is None and self.physical_id is not None:
       return
     if self.dev_type in constants.LDS_DRBD:
-      pnode, snode, port, pminor, sminor, secret = self.logical_id
-      if target_node not in (pnode, snode):
+      pnode_uuid, snode_uuid, port, pminor, sminor, secret = self.logical_id
+      if target_node_uuid not in (pnode_uuid, snode_uuid):
         raise errors.ConfigurationError("DRBD device not knowing node %s" %
-                                        target_node)
-      pnode_ip = nodes_ip.get(pnode, None)
-      snode_ip = nodes_ip.get(snode, None)
+                                        target_node_uuid)
+      pnode_ip = nodes_ip.get(pnode_uuid, None)
+      snode_ip = nodes_ip.get(snode_uuid, None)
       if pnode_ip is None or snode_ip is None:
         raise errors.ConfigurationError("Can't find primary or secondary node"
                                         " for %s" % str(self))
       p_data = (pnode_ip, port)
       s_data = (snode_ip, port)
-      if pnode == target_node:
+      if pnode_uuid == target_node_uuid:
         self.physical_id = p_data + s_data + (pminor, secret)
       else: # it must be secondary, we tested above
         self.physical_id = s_data + p_data + (sminor, secret)
@@ -1118,7 +1118,7 @@ class Instance(TaggableObject):
         'node' : ['lv', ...] data.
 
     @return: None if lvmap arg is given, otherwise, a dictionary of
-        the form { 'nodename' : ['volume1', 'volume2', ...], ... };
+        the form { 'node_uuid' : ['volume1', 'volume2', ...], ... };
         volumeN is of the form "vg_name/lv_name", compatible with
         GetVolumeList()
 

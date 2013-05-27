@@ -160,9 +160,16 @@ getItem kind name allitems = do
   maybe (err "not found after successfull match?!") Ok $
         M.lookup fullname allitems
 
--- | Looks up a node.
+-- | Looks up a node by name or uuid.
 getNode :: ConfigData -> String -> ErrorResult Node
-getNode cfg name = getItem "Node" name (fromContainer $ configNodes cfg)
+getNode cfg name =
+  let nodes = fromContainer (configNodes cfg)
+  in case getItem "Node" name nodes of
+       -- if not found by uuid, we need to look it up by name
+       Ok node -> Ok node
+       Bad _ -> let by_name = M.mapKeys
+                              (nodeName . (M.!) nodes) nodes
+                in getItem "Node" name by_name
 
 -- | Looks up an instance.
 getInstance :: ConfigData -> String -> ErrorResult Instance

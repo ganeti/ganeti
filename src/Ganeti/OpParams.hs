@@ -61,7 +61,9 @@ module Ganeti.OpParams
   , pForce
   , pIgnoreOfflineNodes
   , pNodeName
+  , pNodeUuid
   , pNodeNames
+  , pNodeUuids
   , pGroupName
   , pMigrationMode
   , pMigrationLive
@@ -82,7 +84,9 @@ module Ganeti.OpParams
   , pIpConflictsCheck
   , pNoRemember
   , pMigrationTargetNode
+  , pMigrationTargetNodeUuid
   , pMoveTargetNode
+  , pMoveTargetNodeUuid
   , pStartupPaused
   , pVerbose
   , pDebugSimulateErrors
@@ -144,6 +148,7 @@ module Ganeti.OpParams
   , pNames
   , pNodes
   , pRequiredNodes
+  , pRequiredNodeUuids
   , pStorageType
   , pStorageChanges
   , pMasterCandidate
@@ -153,17 +158,21 @@ module Ganeti.OpParams
   , pPowered
   , pIallocator
   , pRemoteNode
+  , pRemoteNodeUuid
   , pEvacMode
   , pInstCreateMode
   , pNoInstall
   , pInstOs
   , pPrimaryNode
+  , pPrimaryNodeUuid
   , pSecondaryNode
+  , pSecondaryNodeUuid
   , pSourceHandshake
   , pSourceInstance
   , pSourceShutdownTimeout
   , pSourceX509Ca
   , pSrcNode
+  , pSrcNodeUuid
   , pSrcPath
   , pStartInstance
   , pInstTags
@@ -188,6 +197,7 @@ module Ganeti.OpParams
   , pTargetGroups
   , pExportMode
   , pExportTargetNode
+  , pExportTargetNodeUuid
   , pRemoveInstance
   , pIgnoreRemoveFailures
   , pX509KeyName
@@ -200,6 +210,7 @@ module Ganeti.OpParams
   , pDelayDuration
   , pDelayOnMaster
   , pDelayOnNodes
+  , pDelayOnNodeUuids
   , pDelayRepeat
   , pIAllocatorDirection
   , pIAllocatorMode
@@ -563,10 +574,19 @@ pIgnoreOfflineNodes = defaultFalse "ignore_offline_nodes"
 pNodeName :: Field
 pNodeName = simpleField "node_name" [t| NonEmptyString |]
 
+-- | A node UUID (for single-node LUs).
+pNodeUuid :: Field
+pNodeUuid = optionalField $ simpleField "node_uuid" [t| NonEmptyString |]
+
 -- | List of nodes.
 pNodeNames :: Field
 pNodeNames =
   defaultField [| [] |] $ simpleField "node_names" [t| [NonEmptyString] |]
+
+-- | List of node UUIDs.
+pNodeUuids :: Field
+pNodeUuids =
+  optionalField $ simpleField "node_uuids" [t| [NonEmptyString] |]
 
 -- | A required node group name (for single-group LUs).
 pGroupName :: Field
@@ -656,11 +676,21 @@ pNoRemember = defaultFalse "no_remember"
 pMigrationTargetNode :: Field
 pMigrationTargetNode = optionalNEStringField "target_node"
 
+-- | Target node UUID for instance migration/failover.
+pMigrationTargetNodeUuid :: Field
+pMigrationTargetNodeUuid = optionalNEStringField "target_node_uuid"
+
 -- | Target node for instance move (required).
 pMoveTargetNode :: Field
 pMoveTargetNode =
   renameField "MoveTargetNode" $
   simpleField "target_node" [t| NonEmptyString |]
+
+-- | Target node UUID for instance move.
+pMoveTargetNodeUuid :: Field
+pMoveTargetNodeUuid =
+  renameField "MoveTargetNodeUuid" . optionalField $
+  simpleField "target_node_uuid" [t| NonEmptyString |]
 
 -- | Pause instance at startup.
 pStartupPaused :: Field
@@ -990,6 +1020,12 @@ pRequiredNodes :: Field
 pRequiredNodes =
   renameField "ReqNodes " $ simpleField "nodes" [t| [NonEmptyString] |]
 
+-- | Required list of node names.
+pRequiredNodeUuids :: Field
+pRequiredNodeUuids =
+  renameField "ReqNodeUuids " . optionalField $
+    simpleField "node_uuids" [t| [NonEmptyString] |]
+
 -- | Storage type.
 pStorageType :: Field
 pStorageType = simpleField "storage_type" [t| StorageType |]
@@ -1027,6 +1063,10 @@ pIallocator = optionalNEStringField "iallocator"
 pRemoteNode :: Field
 pRemoteNode = optionalNEStringField "remote_node"
 
+-- | New secondary node UUID.
+pRemoteNodeUuid :: Field
+pRemoteNodeUuid = optionalNEStringField "remote_node_uuid"
+
 -- | Node evacuation mode.
 pEvacMode :: Field
 pEvacMode = renameField "EvacMode" $ simpleField "mode" [t| NodeEvacMode |]
@@ -1048,9 +1088,17 @@ pInstOs = optionalNEStringField "os_type"
 pPrimaryNode :: Field
 pPrimaryNode = optionalNEStringField "pnode"
 
+-- | Primary node UUID for an instance.
+pPrimaryNodeUuid :: Field
+pPrimaryNodeUuid = optionalNEStringField "pnode_uuid"
+
 -- | Secondary node for an instance.
 pSecondaryNode :: Field
 pSecondaryNode = optionalNEStringField "snode"
+
+-- | Secondary node UUID for an instance.
+pSecondaryNodeUuid :: Field
+pSecondaryNodeUuid = optionalNEStringField "snode_uuid"
 
 -- | Signed handshake from source (remote import only).
 pSourceHandshake :: Field
@@ -1075,6 +1123,10 @@ pSourceX509Ca = optionalNEStringField "source_x509_ca"
 -- | Source node for import.
 pSrcNode :: Field
 pSrcNode = optionalNEStringField "src_node"
+
+-- | Source node for import.
+pSrcNodeUuid :: Field
+pSrcNodeUuid = optionalNEStringField "src_node_uuid"
 
 -- | Source directory for import.
 pSrcPath :: Field
@@ -1181,6 +1233,12 @@ pExportTargetNode =
   renameField "ExportTarget" $
   simpleField "target_node" [t| ExportTarget |]
 
+-- | Export target node UUID field.
+pExportTargetNodeUuid :: Field
+pExportTargetNodeUuid =
+  renameField "ExportTargetNodeUuid" . optionalField $
+  simpleField "target_node_uuid" [t| NonEmptyString |]
+
 -- | Whether to remove instance after export.
 pRemoveInstance :: Field
 pRemoveInstance = defaultFalse "remove_instance"
@@ -1240,6 +1298,12 @@ pDelayOnNodes =
   renameField "DelayOnNodes" .
   defaultField [| [] |] $
   simpleField "on_nodes" [t| [NonEmptyString] |]
+
+-- | on_node_uuids field for 'OpTestDelay'.
+pDelayOnNodeUuids :: Field
+pDelayOnNodeUuids =
+  renameField "DelayOnNodeUuids" . optionalField $
+  simpleField "on_node_uuids" [t| [NonEmptyString] |]
 
 -- | Repeat parameter for OpTestDelay.
 pDelayRepeat :: Field

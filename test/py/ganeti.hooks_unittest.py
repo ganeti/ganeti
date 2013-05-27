@@ -51,7 +51,7 @@ class FakeLU(cmdlib.LogicalUnit):
     return {}
 
   def BuildHooksNodes(self):
-    return ["localhost"], ["localhost"]
+    return ["a"], ["a"]
 
 
 class TestHooksRunner(unittest.TestCase):
@@ -290,7 +290,7 @@ class FakeEnvLU(cmdlib.LogicalUnit):
     return self.hook_env
 
   def BuildHooksNodes(self):
-    return (["localhost"], ["localhost"])
+    return (["a"], ["a"])
 
 
 class FakeNoHooksLU(cmdlib.NoHooksLU):
@@ -327,7 +327,7 @@ class TestHooksRunnerEnv(unittest.TestCase):
     hm.RunPhase(constants.HOOKS_PHASE_PRE)
 
     (node_list, hpath, phase, env) = self._rpcs.pop(0)
-    self.assertEqual(node_list, set(["localhost"]))
+    self.assertEqual(node_list, set(["node_a.example.com"]))
     self.assertEqual(hpath, self.lu.HPATH)
     self.assertEqual(phase, constants.HOOKS_PHASE_PRE)
     self._CheckEnv(env, constants.HOOKS_PHASE_PRE, self.lu.HPATH)
@@ -337,7 +337,7 @@ class TestHooksRunnerEnv(unittest.TestCase):
     hm.RunPhase(constants.HOOKS_PHASE_POST)
 
     (node_list, hpath, phase, env) = self._rpcs.pop(0)
-    self.assertEqual(node_list, set(["localhost"]))
+    self.assertEqual(node_list, set(["node_a.example.com"]))
     self.assertEqual(hpath, self.lu.HPATH)
     self.assertEqual(phase, constants.HOOKS_PHASE_POST)
     self._CheckEnv(env, constants.HOOKS_PHASE_POST, self.lu.HPATH)
@@ -353,7 +353,7 @@ class TestHooksRunnerEnv(unittest.TestCase):
     hm.RunPhase(constants.HOOKS_PHASE_PRE)
 
     (node_list, hpath, phase, env) = self._rpcs.pop(0)
-    self.assertEqual(node_list, set(["localhost"]))
+    self.assertEqual(node_list, set(["node_a.example.com"]))
     self.assertEqual(hpath, self.lu.HPATH)
     self.assertEqual(phase, constants.HOOKS_PHASE_PRE)
     self.assertEqual(env["GANETI_FOO"], "pre-foo-value")
@@ -368,7 +368,7 @@ class TestHooksRunnerEnv(unittest.TestCase):
     hm.RunPhase(constants.HOOKS_PHASE_POST)
 
     (node_list, hpath, phase, env) = self._rpcs.pop(0)
-    self.assertEqual(node_list, set(["localhost"]))
+    self.assertEqual(node_list, set(["node_a.example.com"]))
     self.assertEqual(hpath, self.lu.HPATH)
     self.assertEqual(phase, constants.HOOKS_PHASE_POST)
     self.assertEqual(env["GANETI_FOO"], "pre-foo-value")
@@ -382,7 +382,7 @@ class TestHooksRunnerEnv(unittest.TestCase):
     # Check configuration update hook
     hm.RunConfigUpdate()
     (node_list, hpath, phase, env) = self._rpcs.pop(0)
-    self.assertEqual(set(node_list), set([self.lu.cfg.GetMasterNode()]))
+    self.assertEqual(set(node_list), set([self.lu.cfg.GetMasterNodeName()]))
     self.assertEqual(hpath, constants.HOOKS_NAME_CFGUPDATE)
     self.assertEqual(phase, constants.HOOKS_PHASE_POST)
     self._CheckEnv(env, constants.HOOKS_PHASE_POST,
@@ -405,7 +405,7 @@ class TestHooksRunnerEnv(unittest.TestCase):
   def testNoNodes(self):
     self.lu.hook_env = {}
     hm = hooksmaster.HooksMaster.BuildFromLu(self._HooksRpc, self.lu)
-    hm.RunPhase(constants.HOOKS_PHASE_PRE, nodes=[])
+    hm.RunPhase(constants.HOOKS_PHASE_PRE, node_names=[])
     self.assertRaises(IndexError, self._rpcs.pop)
 
   def testSpecificNodes(self):
@@ -419,7 +419,7 @@ class TestHooksRunnerEnv(unittest.TestCase):
     hm = hooksmaster.HooksMaster.BuildFromLu(self._HooksRpc, self.lu)
 
     for phase in [constants.HOOKS_PHASE_PRE, constants.HOOKS_PHASE_POST]:
-      hm.RunPhase(phase, nodes=nodes)
+      hm.RunPhase(phase, node_names=nodes)
 
       (node_list, hpath, rpc_phase, env) = self._rpcs.pop(0)
       self.assertEqual(set(node_list), set(nodes))
@@ -438,7 +438,7 @@ class TestHooksRunnerEnv(unittest.TestCase):
     hm.RunConfigUpdate()
 
     (node_list, hpath, phase, env) = self._rpcs.pop(0)
-    self.assertEqual(set(node_list), set([self.lu.cfg.GetMasterNode()]))
+    self.assertEqual(set(node_list), set([self.lu.cfg.GetMasterNodeName()]))
     self.assertEqual(hpath, constants.HOOKS_NAME_CFGUPDATE)
     self.assertEqual(phase, constants.HOOKS_PHASE_POST)
     self.assertEqual(env["GANETI_FOO"], "value")
@@ -457,7 +457,7 @@ class TestHooksRunnerEnv(unittest.TestCase):
     hm.RunPhase(constants.HOOKS_PHASE_POST)
 
     (node_list, hpath, phase, env) = self._rpcs.pop(0)
-    self.assertEqual(node_list, set(["localhost"]))
+    self.assertEqual(node_list, set(["node_a.example.com"]))
     self.assertEqual(hpath, self.lu.HPATH)
     self.assertEqual(phase, constants.HOOKS_PHASE_POST)
     self.assertEqual(env["GANETI_FOO"], "value")
@@ -484,7 +484,7 @@ class TestHooksRunnerEnv(unittest.TestCase):
     hm.RunConfigUpdate()
 
     (node_list, hpath, phase, env) = self._rpcs.pop(0)
-    self.assertEqual(set(node_list), set([self.lu.cfg.GetMasterNode()]))
+    self.assertEqual(set(node_list), set([self.lu.cfg.GetMasterNodeName()]))
     self.assertEqual(hpath, constants.HOOKS_NAME_CFGUPDATE)
     self.assertEqual(phase, constants.HOOKS_PHASE_POST)
     self.assertFalse(compat.any(key.startswith("GANETI_POST") for key in env))
@@ -493,6 +493,50 @@ class TestHooksRunnerEnv(unittest.TestCase):
     self.assertRaises(IndexError, self._rpcs.pop)
 
     assert isinstance(self.lu, FakeNoHooksLU), "LU was replaced"
+
+
+class FakeEnvWithNodeNameLU(cmdlib.LogicalUnit):
+  HPATH = "env_test_lu"
+  HTYPE = constants.HTYPE_GROUP
+
+  def __init__(self, *args):
+    cmdlib.LogicalUnit.__init__(self, *args)
+
+  def BuildHooksEnv(self):
+    return {}
+
+  def BuildHooksNodes(self):
+    return (["a"], ["a"], ["explicit.node1.com", "explicit.node2.com"])
+
+
+class TestHooksRunnerEnv(unittest.TestCase):
+  def setUp(self):
+    self._rpcs = []
+
+    self.op = opcodes.OpTestDummy(result=False, messages=[], fail=False)
+    self.lu = FakeEnvWithNodeNameLU(FakeProc(), self.op, FakeContext(), None)
+
+  def _HooksRpc(self, *args):
+    self._rpcs.append(args)
+    return FakeHooksRpcSuccess(*args)
+
+  def testEmptyEnv(self):
+    # Check pre-phase hook
+    hm = hooksmaster.HooksMaster.BuildFromLu(self._HooksRpc, self.lu)
+    hm.RunPhase(constants.HOOKS_PHASE_PRE)
+
+    (node_list, hpath, phase, env) = self._rpcs.pop(0)
+    self.assertEqual(node_list, set(["node_a.example.com"]))
+
+    # Check post-phase hook
+    hm.RunPhase(constants.HOOKS_PHASE_POST)
+
+    (node_list, hpath, phase, env) = self._rpcs.pop(0)
+    self.assertEqual(node_list, set(["node_a.example.com",
+                                     "explicit.node1.com",
+                                     "explicit.node2.com"]))
+
+    self.assertRaises(IndexError, self._rpcs.pop)
 
 
 if __name__ == "__main__":

@@ -181,7 +181,7 @@ class LogicalUnit(object):
       }
       # Acquire just two nodes
       self.needed_locks = {
-        locking.LEVEL_NODE: ['node1.example.com', 'node2.example.com'],
+        locking.LEVEL_NODE: ['node1-uuid', 'node2-uuid'],
       }
       # Acquire no locks
       self.needed_locks = {} # No, you can't leave it to the default value None
@@ -269,11 +269,14 @@ class LogicalUnit(object):
   def BuildHooksNodes(self):
     """Build list of nodes to run LU's hooks.
 
-    @rtype: tuple; (list, list)
-    @return: Tuple containing a list of node names on which the hook
-      should run before the execution and a list of node names on which the
-      hook should run after the execution. No nodes should be returned as an
-      empty list (and not None).
+    @rtype: tuple; (list, list) or (list, list, list)
+    @return: Tuple containing a list of node UUIDs on which the hook
+      should run before the execution and a list of node UUIDs on which the
+      hook should run after the execution. As it might be possible that the
+      node UUID is not known at the time this method is invoked, an optional
+      third list can be added which contains node names on which the hook
+      should run after the execution (in case of node add, for instance).
+      No nodes should be returned as an empty list (and not None).
     @note: If the C{HPATH} attribute of the LU class is C{None}, this function
       will not be called.
 
@@ -356,17 +359,17 @@ class LogicalUnit(object):
     # For now we'll replace self.needed_locks[locking.LEVEL_NODE], but in the
     # future we might want to have different behaviors depending on the value
     # of self.recalculate_locks[locking.LEVEL_NODE]
-    wanted_nodes = []
+    wanted_node_uuids = []
     locked_i = self.owned_locks(locking.LEVEL_INSTANCE)
     for _, instance in self.cfg.GetMultiInstanceInfo(locked_i):
-      wanted_nodes.append(instance.primary_node)
+      wanted_node_uuids.append(instance.primary_node)
       if not primary_only:
-        wanted_nodes.extend(instance.secondary_nodes)
+        wanted_node_uuids.extend(instance.secondary_nodes)
 
     if self.recalculate_locks[level] == constants.LOCKS_REPLACE:
-      self.needed_locks[level] = wanted_nodes
+      self.needed_locks[level] = wanted_node_uuids
     elif self.recalculate_locks[level] == constants.LOCKS_APPEND:
-      self.needed_locks[level].extend(wanted_nodes)
+      self.needed_locks[level].extend(wanted_node_uuids)
     else:
       raise errors.ProgrammerError("Unknown recalculation mode")
 

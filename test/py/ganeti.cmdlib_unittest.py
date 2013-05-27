@@ -306,22 +306,33 @@ class TestClusterVerifyFiles(unittest.TestCase):
     if cond:
       errors.append((item, msg))
 
-  _VerifyFiles = cluster.LUClusterVerifyGroup._VerifyFiles
-
   def test(self):
     errors = []
-    master_name = "master.example.com"
     nodeinfo = [
-      objects.Node(name=master_name, offline=False, vm_capable=True),
-      objects.Node(name="node2.example.com", offline=False, vm_capable=True),
-      objects.Node(name="node3.example.com", master_candidate=True,
+      objects.Node(name="master.example.com",
+                   uuid="master-uuid",
+                   offline=False,
+                   vm_capable=True),
+      objects.Node(name="node2.example.com",
+                   uuid="node2-uuid",
+                   offline=False,
+                   vm_capable=True),
+      objects.Node(name="node3.example.com",
+                   uuid="node3-uuid",
+                   master_candidate=True,
                    vm_capable=False),
-      objects.Node(name="node4.example.com", offline=False, vm_capable=True),
-      objects.Node(name="nodata.example.com", offline=False, vm_capable=True),
-      objects.Node(name="offline.example.com", offline=True),
+      objects.Node(name="node4.example.com",
+                   uuid="node4-uuid",
+                   offline=False,
+                   vm_capable=True),
+      objects.Node(name="nodata.example.com",
+                   uuid="nodata-uuid",
+                   offline=False,
+                   vm_capable=True),
+      objects.Node(name="offline.example.com",
+                   uuid="offline-uuid",
+                   offline=True),
       ]
-    cluster = objects.Cluster(modify_etc_hosts=True,
-                              enabled_hypervisors=[constants.HT_XEN_HVM])
     files_all = set([
       pathutils.CLUSTER_DOMAIN_SECRET_FILE,
       pathutils.RAPI_CERT_FILE,
@@ -341,7 +352,7 @@ class TestClusterVerifyFiles(unittest.TestCase):
       pathutils.VNC_PASSWORD_FILE,
       ])
     nvinfo = {
-      master_name: rpc.RpcResult(data=(True, {
+      "master-uuid": rpc.RpcResult(data=(True, {
         constants.NV_FILELIST: {
           pathutils.CLUSTER_CONF_FILE: "82314f897f38b35f9dab2f7c6b1593e0",
           pathutils.RAPI_CERT_FILE: "babbce8f387bc082228e544a2146fee4",
@@ -349,19 +360,19 @@ class TestClusterVerifyFiles(unittest.TestCase):
           hv_xen.XEND_CONFIG_FILE: "b4a8a824ab3cac3d88839a9adeadf310",
           hv_xen.XL_CONFIG_FILE: "77935cee92afd26d162f9e525e3d49b9"
         }})),
-      "node2.example.com": rpc.RpcResult(data=(True, {
+      "node2-uuid": rpc.RpcResult(data=(True, {
         constants.NV_FILELIST: {
           pathutils.RAPI_CERT_FILE: "97f0356500e866387f4b84233848cc4a",
           hv_xen.XEND_CONFIG_FILE: "b4a8a824ab3cac3d88839a9adeadf310",
           }
         })),
-      "node3.example.com": rpc.RpcResult(data=(True, {
+      "node3-uuid": rpc.RpcResult(data=(True, {
         constants.NV_FILELIST: {
           pathutils.RAPI_CERT_FILE: "97f0356500e866387f4b84233848cc4a",
           pathutils.CLUSTER_DOMAIN_SECRET_FILE: "cds-47b5b3f19202936bb4",
           }
         })),
-      "node4.example.com": rpc.RpcResult(data=(True, {
+      "node4-uuid": rpc.RpcResult(data=(True, {
         constants.NV_FILELIST: {
           pathutils.RAPI_CERT_FILE: "97f0356500e866387f4b84233848cc4a",
           pathutils.CLUSTER_CONF_FILE: "conf-a6d4b13e407867f7a7b4f0f232a8f527",
@@ -370,14 +381,30 @@ class TestClusterVerifyFiles(unittest.TestCase):
           hv_xen.XL_CONFIG_FILE: "77935cee92afd26d162f9e525e3d49b9"
           }
         })),
-      "nodata.example.com": rpc.RpcResult(data=(True, {})),
-      "offline.example.com": rpc.RpcResult(offline=True),
+      "nodata-uuid": rpc.RpcResult(data=(True, {})),
+      "offline-uuid": rpc.RpcResult(offline=True),
       }
-    assert set(nvinfo.keys()) == set(map(operator.attrgetter("name"), nodeinfo))
+    assert set(nvinfo.keys()) == set(map(operator.attrgetter("uuid"), nodeinfo))
 
-    self._VerifyFiles(compat.partial(self._FakeErrorIf, errors), nodeinfo,
-                      master_name, nvinfo,
-                      (files_all, files_opt, files_mc, files_vm))
+    verify_lu = cluster.LUClusterVerifyGroup(mocks.FakeProc(),
+                                             opcodes.OpClusterVerify(),
+                                             mocks.FakeContext(),
+                                             None)
+
+    verify_lu._ErrorIf = compat.partial(self._FakeErrorIf, errors)
+
+    # TODO: That's a bit hackish to mock only this single method. We should
+    # build a better FakeConfig which provides such a feature already.
+    def GetNodeName(node_uuid):
+      for node in nodeinfo:
+        if node.uuid == node_uuid:
+          return node.name
+      return None
+
+    verify_lu.cfg.GetNodeName = GetNodeName
+
+    verify_lu._VerifyFiles(nodeinfo, "master-uuid", nvinfo,
+                           (files_all, files_opt, files_mc, files_vm))
     self.assertEqual(sorted(errors), sorted([
       (None, ("File %s found with 2 different checksums (variant 1 on"
               " node2.example.com, node3.example.com, node4.example.com;"
@@ -1417,12 +1444,16 @@ class TestGenerateDiskTemplate(unittest.TestCase):
 
 
 class _ConfigForDiskWipe:
-  def __init__(self, exp_node):
-    self._exp_node = exp_node
+  def __init__(self, exp_node_uuid):
+    self._exp_node_uuid = exp_node_uuid
 
-  def SetDiskID(self, device, node):
+  def SetDiskID(self, device, node_uuid):
     assert isinstance(device, objects.Disk)
-    assert node == self._exp_node
+    assert node_uuid == self._exp_node_uuid
+
+  def GetNodeName(self, node_uuid):
+    assert node_uuid == self._exp_node_uuid
+    return "name.of.expected.node"
 
 
 class _RpcForDiskWipe:
@@ -1517,11 +1548,11 @@ class TestWipeDisks(unittest.TestCase):
     return (False, None)
 
   def testFailingWipe(self):
-    node_name = "node13445.example.com"
+    node_uuid = "node13445-uuid"
     pt = _DiskPauseTracker()
 
-    lu = _FakeLU(rpc=_RpcForDiskWipe(node_name, pt, self._FailingWipeCb),
-                 cfg=_ConfigForDiskWipe(node_name))
+    lu = _FakeLU(rpc=_RpcForDiskWipe(node_uuid, pt, self._FailingWipeCb),
+                 cfg=_ConfigForDiskWipe(node_uuid))
 
     disks = [
       objects.Disk(dev_type=constants.LD_LV, logical_id="disk0",
@@ -1532,7 +1563,7 @@ class TestWipeDisks(unittest.TestCase):
       ]
 
     inst = objects.Instance(name="inst562",
-                            primary_node=node_name,
+                            primary_node=node_uuid,
                             disk_template=constants.DT_PLAIN,
                             disks=disks)
 

@@ -414,13 +414,13 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     return self.GetLinuxNodeInfo()
 
   @classmethod
-  def GetInstanceConsole(cls, instance, hvparams, beparams):
+  def GetInstanceConsole(cls, instance, primary_node, hvparams, beparams):
     """Return a command for connecting to the console of an instance.
 
     """
     return objects.InstanceConsole(instance=instance.name,
                                    kind=constants.CONS_SSH,
-                                   host=instance.primary_node,
+                                   host=primary_node.name,
                                    user=constants.SSH_CONSOLE_USER,
                                    command=["lxc-console", "-n", instance.name])
 

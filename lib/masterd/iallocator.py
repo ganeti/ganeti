@@ -234,7 +234,7 @@ class IAReqRelocate(IARequestBase):
   MODE = constants.IALLOCATOR_MODE_RELOC
   REQ_PARAMS = [
     _INST_NAME,
-    ("relocate_from", _STRING_LIST),
+    ("relocate_from_node_uuids", _STRING_LIST),
     ]
   REQ_RESULT = ht.TList
 
@@ -266,7 +266,7 @@ class IAReqRelocate(IARequestBase):
       "name": self.name,
       "disk_space_total": disk_space,
       "required_nodes": 1,
-      "relocate_from": self.relocate_from,
+      "relocate_from": cfg.GetNodeNames(self.relocate_from_node_uuids),
       }
 
   def ValidateResult(self, ia, result):
@@ -282,12 +282,13 @@ class IAReqRelocate(IARequestBase):
                         ia.in_data["nodegroups"])
 
     instance = ia.cfg.GetInstanceInfo(self.name)
-    request_groups = fn(self.relocate_from + [instance.primary_node])
-    result_groups = fn(result + [instance.primary_node])
+    request_groups = fn(ia.cfg.GetNodeNames(self.relocate_from_node_uuids) +
+                        ia.cfg.GetNodeNames([instance.primary_node]))
+    result_groups = fn(result + ia.cfg.GetNodeNames([instance.primary_node]))
 
     if ia.success and not set(result_groups).issubset(request_groups):
       raise errors.ResultValidationError("Groups of nodes returned by"
-                                         "iallocator (%s) differ from original"
+                                         " iallocator (%s) differ from original"
                                          " groups (%s)" %
                                          (utils.CommaJoin(result_groups),
                                           utils.CommaJoin(request_groups)))
@@ -418,7 +419,7 @@ class IAllocator(object):
     i_list = [(inst, cluster_info.FillBE(inst)) for inst in iinfo]
 
     # node data
-    node_list = [n.name for n in ninfo.values() if n.vm_capable]
+    node_list = [n.uuid for n in ninfo.values() if n.vm_capable]
 
     if isinstance(self.req, IAReqInstanceAlloc):
       hypervisor_name = self.req.hypervisor
@@ -430,7 +431,7 @@ class IAllocator(object):
       hypervisor_name = cluster_info.primary_hypervisor
       node_whitelist = None
 
-    es_flags = rpc.GetExclusiveStorageForNodeNames(cfg, node_list)
+    es_flags = rpc.GetExclusiveStorageForNodes(cfg, node_list)
     vg_req = rpc.BuildVgInfoQuery(cfg)
     has_lvm = bool(vg_req)
     hvspecs = [(hypervisor_name, cluster_info.hvparams[hypervisor_name])]
@@ -449,7 +450,7 @@ class IAllocator(object):
     assert len(data["nodes"]) == len(ninfo), \
         "Incomplete node data computed"
 
-    data["instances"] = self._ComputeInstanceData(cluster_info, i_list)
+    data["instances"] = self._ComputeInstanceData(cfg, cluster_info, i_list)
 
     self.in_data = data
 
@@ -508,26 +509,27 @@ class IAllocator(object):
     #TODO(dynmem): compute the right data on MAX and MIN memory
     # make a copy of the current dict
     node_results = dict(node_results)
-    for nname, nresult in node_data.items():
-      assert nname in node_results, "Missing basic data for node %s" % nname
-      ninfo = node_cfg[nname]
+    for nuuid, nresult in node_data.items():
+      ninfo = node_cfg[nuuid]
+      assert ninfo.name in node_results, "Missing basic data for node %s" % \
+                                         ninfo.name
 
       if not (ninfo.offline or ninfo.drained):
-        nresult.Raise("Can't get data for node %s" % nname)
-        node_iinfo[nname].Raise("Can't get node instance info from node %s" %
-                                nname)
+        nresult.Raise("Can't get data for node %s" % ninfo.name)
+        node_iinfo[nuuid].Raise("Can't get node instance info from node %s" %
+                                ninfo.name)
         remote_info = rpc.MakeLegacyNodeInfo(nresult.payload,
                                              require_vg_info=has_lvm)
 
         def get_attr(attr):
           if attr not in remote_info:
             raise errors.OpExecError("Node '%s' didn't return attribute"
-                                     " '%s'" % (nname, attr))
+                                     " '%s'" % (ninfo.name, attr))
           value = remote_info[attr]
           if not isinstance(value, int):
             raise errors.OpExecError("Node '%s' returned invalid value"
                                      " for '%s': %s" %
-                                     (nname, attr, value))
+                                     (ninfo.name, attr, value))
           return value
 
         mem_free = get_attr("memory_free")
@@ -535,12 +537,12 @@ class IAllocator(object):
         # compute memory used by primary instances
         i_p_mem = i_p_up_mem = 0
         for iinfo, beinfo in i_list:
-          if iinfo.primary_node == nname:
+          if iinfo.primary_node == nuuid:
             i_p_mem += beinfo[constants.BE_MAXMEM]
-            if iinfo.name not in node_iinfo[nname].payload:
+            if iinfo.name not in node_iinfo[nuuid].payload:
               i_used_mem = 0
             else:
-              i_used_mem = int(node_iinfo[nname].payload[iinfo.name]["memory"])
+              i_used_mem = int(node_iinfo[nuuid].payload[iinfo.name]["memory"])
             i_mem_diff = beinfo[constants.BE_MAXMEM] - i_used_mem
             mem_free -= max(0, i_mem_diff)
 
@@ -571,13 +573,13 @@ class IAllocator(object):
           "i_pri_memory": i_p_mem,
           "i_pri_up_memory": i_p_up_mem,
           }
-        pnr_dyn.update(node_results[nname])
-        node_results[nname] = pnr_dyn
+        pnr_dyn.update(node_results[ninfo.name])
+        node_results[ninfo.name] = pnr_dyn
 
     return node_results
 
   @staticmethod
-  def _ComputeInstanceData(cluster_info, i_list):
+  def _ComputeInstanceData(cfg, cluster_info, i_list):
     """Compute global instance data.
 
     """
@@ -602,7 +604,8 @@ class IAllocator(object):
         "memory": beinfo[constants.BE_MAXMEM],
         "spindle_use": beinfo[constants.BE_SPINDLE_USE],
         "os": iinfo.os,
-        "nodes": [iinfo.primary_node] + list(iinfo.secondary_nodes),
+        "nodes": [cfg.GetNodeName(iinfo.primary_node)] +
+                 cfg.GetNodeNames(iinfo.secondary_nodes),
         "nics": nic_data,
         "disks": [{constants.IDISK_SIZE: dsk.size,
                    constants.IDISK_MODE: dsk.mode,

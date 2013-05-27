@@ -3777,14 +3777,13 @@ def CleanupImportExport(name):
   shutil.rmtree(status_dir, ignore_errors=True)
 
 
-def _FindDisks(nodes_ip, disks):
+def _FindDisks(target_node_uuid, nodes_ip, disks):
   """Sets the physical ID on disks and returns the block devices.
 
   """
   # set the correct physical ID
-  my_name = netutils.Hostname.GetSysName()
   for cf in disks:
-    cf.SetPhysicalID(my_name, nodes_ip)
+    cf.SetPhysicalID(target_node_uuid, nodes_ip)
 
   bdevs = []
 
@@ -3796,11 +3795,11 @@ def _FindDisks(nodes_ip, disks):
   return bdevs
 
 
-def DrbdDisconnectNet(nodes_ip, disks):
+def DrbdDisconnectNet(target_node_uuid, nodes_ip, disks):
   """Disconnects the network on a list of drbd devices.
 
   """
-  bdevs = _FindDisks(nodes_ip, disks)
+  bdevs = _FindDisks(target_node_uuid, nodes_ip, disks)
 
   # disconnect disks
   for rd in bdevs:
@@ -3811,11 +3810,12 @@ def DrbdDisconnectNet(nodes_ip, disks):
             err, exc=True)
 
 
-def DrbdAttachNet(nodes_ip, disks, instance_name, multimaster):
+def DrbdAttachNet(target_node_uuid, nodes_ip, disks, instance_name,
+                  multimaster):
   """Attaches the network on a list of drbd devices.
 
   """
-  bdevs = _FindDisks(nodes_ip, disks)
+  bdevs = _FindDisks(target_node_uuid, nodes_ip, disks)
 
   if multimaster:
     for idx, rd in enumerate(bdevs):
@@ -3873,7 +3873,7 @@ def DrbdAttachNet(nodes_ip, disks, instance_name, multimaster):
         _Fail("Can't change to primary mode: %s", err)
 
 
-def DrbdWaitSync(nodes_ip, disks):
+def DrbdWaitSync(target_node_uuid, nodes_ip, disks):
   """Wait until DRBDs have synchronized.
 
   """
@@ -3883,7 +3883,7 @@ def DrbdWaitSync(nodes_ip, disks):
       raise utils.RetryAgain()
     return stats
 
-  bdevs = _FindDisks(nodes_ip, disks)
+  bdevs = _FindDisks(target_node_uuid, nodes_ip, disks)
 
   min_resync = 100
   alldone = True

@@ -109,17 +109,18 @@ instance Arbitrary OpCodes.OpCode where
     case op_id of
       "OP_TEST_DELAY" ->
         OpCodes.OpTestDelay <$> arbitrary <*> arbitrary <*>
-          genNodeNamesNE <*> arbitrary
+          genNodeNamesNE <*> return Nothing <*> arbitrary
       "OP_INSTANCE_REPLACE_DISKS" ->
         OpCodes.OpInstanceReplaceDisks <$> genFQDN <*> arbitrary <*>
           arbitrary <*> arbitrary <*> genDiskIndices <*>
-          genMaybe genNodeNameNE <*> genMaybe genNameNE
+          genMaybe genNodeNameNE <*> return Nothing <*> genMaybe genNameNE
       "OP_INSTANCE_FAILOVER" ->
         OpCodes.OpInstanceFailover <$> genFQDN <*> arbitrary <*> arbitrary <*>
-          genMaybe genNodeNameNE <*> arbitrary <*> genMaybe genNameNE
+        genMaybe genNodeNameNE <*> return Nothing <*> arbitrary <*>
+        genMaybe genNameNE
       "OP_INSTANCE_MIGRATE" ->
         OpCodes.OpInstanceMigrate <$> genFQDN <*> arbitrary <*> arbitrary <*>
-          genMaybe genNodeNameNE <*> arbitrary <*>
+          genMaybe genNodeNameNE <*> return Nothing <*> arbitrary <*>
           arbitrary <*> arbitrary <*> genMaybe genNameNE <*> arbitrary
       "OP_TAGS_GET" ->
         OpCodes.OpTagsGet <$> arbitrary <*> arbitrary
@@ -172,9 +173,11 @@ instance Arbitrary OpCodes.OpCode where
       "OP_QUERY_FIELDS" ->
         OpCodes.OpQueryFields <$> arbitrary <*> arbitrary
       "OP_OOB_COMMAND" ->
-        OpCodes.OpOobCommand <$> genNodeNamesNE <*> arbitrary <*>
-          arbitrary <*> arbitrary <*> (arbitrary `suchThat` (>0))
-      "OP_NODE_REMOVE" -> OpCodes.OpNodeRemove <$> genNodeNameNE
+        OpCodes.OpOobCommand <$> genNodeNamesNE <*> return Nothing <*>
+          arbitrary <*> arbitrary <*> arbitrary <*>
+          (arbitrary `suchThat` (>0))
+      "OP_NODE_REMOVE" ->
+        OpCodes.OpNodeRemove <$> genNodeNameNE <*> return Nothing
       "OP_NODE_ADD" ->
         OpCodes.OpNodeAdd <$> genNodeNameNE <*> emptyMUD <*> emptyMUD <*>
           genMaybe genName <*> genMaybe genNameNE <*> arbitrary <*>
@@ -187,25 +190,27 @@ instance Arbitrary OpCodes.OpCode where
         OpCodes.OpNodeQueryStorage <$> arbitrary <*> arbitrary <*>
           genNodeNamesNE <*> genNameNE
       "OP_NODE_MODIFY_STORAGE" ->
-        OpCodes.OpNodeModifyStorage <$> genNodeNameNE <*> arbitrary <*>
-          genNameNE <*> pure emptyJSObject
+        OpCodes.OpNodeModifyStorage <$> genNodeNameNE <*> return Nothing <*>
+          arbitrary <*> genNameNE <*> pure emptyJSObject
       "OP_REPAIR_NODE_STORAGE" ->
-        OpCodes.OpRepairNodeStorage <$> genNodeNameNE <*> arbitrary <*>
-          genNameNE <*> arbitrary
+        OpCodes.OpRepairNodeStorage <$> genNodeNameNE <*> return Nothing <*>
+          arbitrary <*> genNameNE <*> arbitrary
       "OP_NODE_SET_PARAMS" ->
-        OpCodes.OpNodeSetParams <$> genNodeNameNE <*> arbitrary <*>
-          emptyMUD <*> emptyMUD <*> arbitrary <*> arbitrary <*> arbitrary <*>
-          arbitrary <*> arbitrary <*> arbitrary <*> genMaybe genNameNE <*>
-          emptyMUD <*> arbitrary
+        OpCodes.OpNodeSetParams <$> genNodeNameNE <*> return Nothing <*>
+          arbitrary <*> emptyMUD <*> emptyMUD <*> arbitrary <*> arbitrary <*>
+          arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*>
+          genMaybe genNameNE <*> emptyMUD <*> arbitrary
       "OP_NODE_POWERCYCLE" ->
-        OpCodes.OpNodePowercycle <$> genNodeNameNE <*> arbitrary
+        OpCodes.OpNodePowercycle <$> genNodeNameNE <*> return Nothing <*>
+          arbitrary
       "OP_NODE_MIGRATE" ->
-        OpCodes.OpNodeMigrate <$> genNodeNameNE <*> arbitrary <*>
-          arbitrary <*> genMaybe genNodeNameNE <*> arbitrary <*>
-          arbitrary <*> genMaybe genNameNE
+        OpCodes.OpNodeMigrate <$> genNodeNameNE <*> return Nothing <*>
+          arbitrary <*> arbitrary <*> genMaybe genNodeNameNE <*>
+          return Nothing <*> arbitrary <*> arbitrary <*> genMaybe genNameNE
       "OP_NODE_EVACUATE" ->
         OpCodes.OpNodeEvacuate <$> arbitrary <*> genNodeNameNE <*>
-          genMaybe genNodeNameNE <*> genMaybe genNameNE <*> arbitrary
+          return Nothing <*> genMaybe genNodeNameNE <*> return Nothing <*>
+          genMaybe genNameNE <*> arbitrary
       "OP_INSTANCE_CREATE" ->
         OpCodes.OpInstanceCreate <$> genFQDN <*> arbitrary <*>
           arbitrary <*> arbitrary <*> arbitrary <*> pure emptyJSObject <*>
@@ -214,9 +219,10 @@ instance Arbitrary OpCodes.OpCode where
           arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*>
           arbitrary <*> arbitrary <*> pure emptyJSObject <*>
           genMaybe genNameNE <*>
-          genMaybe genNodeNameNE <*> genMaybe genNodeNameNE <*>
+          genMaybe genNodeNameNE <*> return Nothing <*>
+          genMaybe genNodeNameNE <*> return Nothing <*>
           genMaybe (pure []) <*> genMaybe genNodeNameNE <*>
-          arbitrary <*> genMaybe genNodeNameNE <*>
+          arbitrary <*> genMaybe genNodeNameNE <*> return Nothing <*>
           genMaybe genNodeNameNE <*> genMaybe genNameNE <*>
           arbitrary <*> arbitrary <*> (genTags >>= mapM mkNonEmpty)
       "OP_INSTANCE_MULTI_ALLOC" ->
@@ -242,7 +248,7 @@ instance Arbitrary OpCodes.OpCode where
           arbitrary <*> arbitrary
       "OP_INSTANCE_MOVE" ->
         OpCodes.OpInstanceMove <$> genFQDN <*> arbitrary <*> arbitrary <*>
-          genNodeNameNE <*> arbitrary
+          genNodeNameNE <*> return Nothing <*> arbitrary
       "OP_INSTANCE_CONSOLE" -> OpCodes.OpInstanceConsole <$> genFQDN
       "OP_INSTANCE_ACTIVATE_DISKS" ->
         OpCodes.OpInstanceActivateDisks <$> genFQDN <*>
@@ -251,7 +257,7 @@ instance Arbitrary OpCodes.OpCode where
         OpCodes.OpInstanceDeactivateDisks <$> genFQDN <*> arbitrary
       "OP_INSTANCE_RECREATE_DISKS" ->
         OpCodes.OpInstanceRecreateDisks <$> genFQDN <*> arbitrary <*>
-          genNodeNamesNE <*> genMaybe genNameNE
+          genNodeNamesNE <*> return Nothing <*> genMaybe genNameNE
       "OP_INSTANCE_QUERY" ->
         OpCodes.OpInstanceQuery <$> genFieldsNE <*> genNamesNE <*> arbitrary
       "OP_INSTANCE_QUERY_DATA" ->
@@ -261,7 +267,8 @@ instance Arbitrary OpCodes.OpCode where
         OpCodes.OpInstanceSetParams <$> genFQDN <*> arbitrary <*>
           arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*>
           pure emptyJSObject <*> arbitrary <*> pure emptyJSObject <*>
-          arbitrary <*> genMaybe genNodeNameNE <*> genMaybe genNodeNameNE <*>
+          arbitrary <*> genMaybe genNodeNameNE <*> return Nothing <*>
+          genMaybe genNodeNameNE <*> return Nothing <*>
           genMaybe genNameNE <*> pure emptyJSObject <*> arbitrary <*>
           arbitrary <*> arbitrary
       "OP_INSTANCE_GROW_DISK" ->
@@ -276,7 +283,7 @@ instance Arbitrary OpCodes.OpCode where
           emptyMUD <*> emptyMUD <*> emptyMUD
       "OP_GROUP_ASSIGN_NODES" ->
         OpCodes.OpGroupAssignNodes <$> genNameNE <*> arbitrary <*>
-          genNodeNamesNE
+          genNodeNamesNE <*> return Nothing
       "OP_GROUP_QUERY" ->
         OpCodes.OpGroupQuery <$> genFieldsNE <*> genNamesNE
       "OP_GROUP_SET_PARAMS" ->
@@ -300,8 +307,9 @@ instance Arbitrary OpCodes.OpCode where
         OpCodes.OpBackupPrepare <$> genFQDN <*> arbitrary
       "OP_BACKUP_EXPORT" ->
         OpCodes.OpBackupExport <$> genFQDN <*> arbitrary <*>
-          arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*>
-          arbitrary <*> genMaybe (pure []) <*> genMaybe genNameNE
+          arbitrary <*> return Nothing <*> arbitrary <*> arbitrary <*>
+          arbitrary <*> arbitrary <*> genMaybe (pure []) <*>
+          genMaybe genNameNE
       "OP_BACKUP_REMOVE" ->
         OpCodes.OpBackupRemove <$> genFQDN
       "OP_TEST_ALLOCATOR" ->
@@ -339,7 +347,7 @@ instance Arbitrary OpCodes.OpCode where
         OpCodes.OpNetworkQuery <$> genFieldsNE <*> genNamesNE <*> arbitrary
       "OP_RESTRICTED_COMMAND" ->
         OpCodes.OpRestrictedCommand <$> arbitrary <*> genNodeNamesNE <*>
-          genNameNE
+          return Nothing <*> genNameNE
       _ -> fail $ "Undefined arbitrary for opcode " ++ op_id
 
 -- | Generates one element of a reason trail

@@ -414,9 +414,9 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     disk list must all be drbd devices.
 
     """
-    nodes_ip, disks = params
+    nodes_ip, disks, target_node_uuid = params
     disks = [objects.Disk.FromDict(cf) for cf in disks]
-    return backend.DrbdDisconnectNet(nodes_ip, disks)
+    return backend.DrbdDisconnectNet(target_node_uuid, nodes_ip, disks)
 
   @staticmethod
   def perspective_drbd_attach_net(params):
@@ -426,10 +426,10 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     disk list must all be drbd devices.
 
     """
-    nodes_ip, disks, instance_name, multimaster = params
+    nodes_ip, disks, instance_name, multimaster, target_node_uuid = params
     disks = [objects.Disk.FromDict(cf) for cf in disks]
-    return backend.DrbdAttachNet(nodes_ip, disks,
-                                     instance_name, multimaster)
+    return backend.DrbdAttachNet(target_node_uuid, nodes_ip, disks,
+                                 instance_name, multimaster)
 
   @staticmethod
   def perspective_drbd_wait_sync(params):
@@ -439,9 +439,9 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     disk list must all be drbd devices.
 
     """
-    nodes_ip, disks = params
+    nodes_ip, disks, target_node_uuid = params
     disks = [objects.Disk.FromDict(cf) for cf in disks]
-    return backend.DrbdWaitSync(nodes_ip, disks)
+    return backend.DrbdWaitSync(target_node_uuid, nodes_ip, disks)
 
   @staticmethod
   def perspective_drbd_helper(params):

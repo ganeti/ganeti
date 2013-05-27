@@ -915,25 +915,29 @@ def _DoConsole(console, show_command, cluster_name, feedback_fn=ToStdout,
   return constants.EXIT_SUCCESS
 
 
-def _FormatLogicalID(dev_type, logical_id, roman):
+def _FormatDiskDetails(dev_type, dev, roman):
   """Formats the logical_id of a disk.
 
   """
   if dev_type == constants.LD_DRBD8:
-    node_a, node_b, port, minor_a, minor_b, key = logical_id
+    drbd_info = dev["drbd_info"]
     data = [
-      ("nodeA", "%s, minor=%s" % (node_a, compat.TryToRoman(minor_a,
-                                                            convert=roman))),
-      ("nodeB", "%s, minor=%s" % (node_b, compat.TryToRoman(minor_b,
-                                                            convert=roman))),
-      ("port", str(compat.TryToRoman(port, convert=roman))),
-      ("auth key", str(key)),
+      ("nodeA", "%s, minor=%s" %
+                (drbd_info["primary_node"],
+                 compat.TryToRoman(drbd_info["primary_minor"],
+                                   convert=roman))),
+      ("nodeB", "%s, minor=%s" %
+                (drbd_info["secondary_node"],
+                 compat.TryToRoman(drbd_info["secondary_minor"],
+                                   convert=roman))),
+      ("port", str(compat.TryToRoman(drbd_info["port"], convert=roman))),
+      ("auth key", str(drbd_info["secret"])),
       ]
   elif dev_type == constants.LD_LV:
-    vg_name, lv_name = logical_id
+    vg_name, lv_name = dev["logical_id"]
     data = ["%s/%s" % (vg_name, lv_name)]
   else:
-    data = [str(logical_id)]
+    data = [str(dev["logical_id"])]
 
   return data
 
@@ -1032,7 +1036,7 @@ def _FormatBlockDevInfo(idx, top_level, dev, roman):
     data.append(("access mode", dev["mode"]))
   if dev["logical_id"] is not None:
     try:
-      l_id = _FormatLogicalID(dev["dev_type"], dev["logical_id"], roman)
+      l_id = _FormatDiskDetails(dev["dev_type"], dev, roman)
     except ValueError:
       l_id = [str(dev["logical_id"])]
     if len(l_id) == 1:

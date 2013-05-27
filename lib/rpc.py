@@ -275,7 +275,7 @@ def _SsconfResolver(ssconf_ips, node_list, _,
     ip = ipmap.get(node)
     if ip is None:
       ip = nslookup_fn(node, family=family)
-    result.append((node, ip))
+    result.append((node, ip, node))
 
   return result
 
@@ -292,30 +292,35 @@ class _StaticResolver:
 
     """
     assert len(hosts) == len(self._addresses)
-    return zip(hosts, self._addresses)
+    return zip(hosts, self._addresses, hosts)
 
 
-def _CheckConfigNode(name, node, accept_offline_node):
+def _CheckConfigNode(node_uuid_or_name, node, accept_offline_node):
   """Checks if a node is online.
 
-  @type name: string
-  @param name: Node name
+  @type node_uuid_or_name: string
+  @param node_uuid_or_name: Node UUID
   @type node: L{objects.Node} or None
   @param node: Node object
 
   """
   if node is None:
-    # Depend on DNS for name resolution
-    ip = name
-  elif node.offline and not accept_offline_node:
-    ip = _OFFLINE
+    # Assume that the passed parameter was actually a node name, so depend on
+    # DNS for name resolution
+    return (node_uuid_or_name, node_uuid_or_name, node_uuid_or_name)
   else:
-    ip = node.primary_ip
-  return (name, ip)
+    if node.offline and not accept_offline_node:
+      ip = _OFFLINE
+    else:
+      ip = node.primary_ip
+    return (node.name, ip, node_uuid_or_name)
 
 
-def _NodeConfigResolver(single_node_fn, all_nodes_fn, hosts, opts):
+def _NodeConfigResolver(single_node_fn, all_nodes_fn, node_uuids, opts):
   """Calculate node addresses using configuration.
+
+  Note that strings in node_uuids are treated as node names if the UUID is not
+  found in the configuration.
 
   """
   accept_offline_node = (opts is rpc_defs.ACCEPT_OFFLINE_NODE)
@@ -323,23 +328,24 @@ def _NodeConfigResolver(single_node_fn, all_nodes_fn, hosts, opts):
   assert accept_offline_node or opts is None, "Unknown option"
 
   # Special case for single-host lookups
-  if len(hosts) == 1:
-    (name, ) = hosts
-    return [_CheckConfigNode(name, single_node_fn(name), accept_offline_node)]
+  if len(node_uuids) == 1:
+    (uuid, ) = node_uuids
+    return [_CheckConfigNode(uuid, single_node_fn(uuid), accept_offline_node)]
   else:
     all_nodes = all_nodes_fn()
-    return [_CheckConfigNode(name, all_nodes.get(name, None),
+    return [_CheckConfigNode(uuid, all_nodes.get(uuid, None),
                              accept_offline_node)
-            for name in hosts]
+            for uuid in node_uuids]
 
 
 class _RpcProcessor:
   def __init__(self, resolver, port, lock_monitor_cb=None):
     """Initializes this class.
 
-    @param resolver: callable accepting a list of hostnames, returning a list
-      of tuples containing name and IP address (IP address can be the name or
-      the special value L{_OFFLINE} to mark offline machines)
+    @param resolver: callable accepting a list of node UUIDs or hostnames,
+      returning a list of tuples containing name, IP address and original name
+      of the resolved node. IP address can be the name or the special value
+      L{_OFFLINE} to mark offline machines.
     @type port: int
     @param port: TCP port
     @param lock_monitor_cb: Callable for registering with lock monitor
@@ -363,19 +369,21 @@ class _RpcProcessor:
     assert isinstance(body, dict)
     assert len(body) == len(hosts)
     assert compat.all(isinstance(v, str) for v in body.values())
-    assert frozenset(map(compat.fst, hosts)) == frozenset(body.keys()), \
+    assert frozenset(map(lambda x: x[2], hosts)) == frozenset(body.keys()), \
         "%s != %s" % (hosts, body.keys())
 
-    for (name, ip) in hosts:
+    for (name, ip, original_name) in hosts:
       if ip is _OFFLINE:
         # Node is marked as offline
-        results[name] = RpcResult(node=name, offline=True, call=procedure)
+        results[original_name] = RpcResult(node=name,
+                                           offline=True,
+                                           call=procedure)
       else:
-        requests[name] = \
+        requests[original_name] = \
           http.client.HttpClientRequest(str(ip), port,
                                         http.HTTP_POST, str("/%s" % procedure),
                                         headers=_RPC_CLIENT_HEADERS,
-                                        post_data=body[name],
+                                        post_data=body[original_name],
                                         read_timeout=read_timeout,
                                         nicename="%s/%s" % (name, procedure),
                                         curl_config_fn=_ConfigRpcCurl)
@@ -406,12 +414,12 @@ class _RpcProcessor:
 
     return results
 
-  def __call__(self, hosts, procedure, body, read_timeout, resolver_opts,
+  def __call__(self, nodes, procedure, body, read_timeout, resolver_opts,
                _req_process_fn=None):
     """Makes an RPC request to a number of nodes.
 
-    @type hosts: sequence
-    @param hosts: Hostnames
+    @type nodes: sequence
+    @param nodes: node UUIDs or Hostnames
     @type procedure: string
     @param procedure: Request path
     @type body: dictionary
@@ -429,7 +437,7 @@ class _RpcProcessor:
       _req_process_fn = http.client.ProcessRequests
 
     (results, requests) = \
-      self._PrepareRequests(self._resolver(hosts, resolver_opts), self._port,
+      self._PrepareRequests(self._resolver(nodes, resolver_opts), self._port,
                             procedure, body, read_timeout)
 
     _req_process_fn(requests.values(), lock_monitor_cb=self._lock_monitor_cb)
@@ -675,29 +683,30 @@ def AnnotateDiskParams(template, disks, disk_params):
   return [annotation_fn(disk.Copy(), ld_params) for disk in disks]
 
 
-def _GetESFlag(cfg, nodename):
-  ni = cfg.GetNodeInfo(nodename)
+def _GetESFlag(cfg, node_uuid):
+  ni = cfg.GetNodeInfo(node_uuid)
   if ni is None:
-    raise errors.OpPrereqError("Invalid node name %s" % nodename,
+    raise errors.OpPrereqError("Invalid node name %s" % node_uuid,
                                errors.ECODE_NOENT)
   return cfg.GetNdParams(ni)[constants.ND_EXCLUSIVE_STORAGE]
 
 
-def GetExclusiveStorageForNodeNames(cfg, nodelist):
+def GetExclusiveStorageForNodes(cfg, node_uuids):
   """Return the exclusive storage flag for all the given nodes.
 
   @type cfg: L{config.ConfigWriter}
   @param cfg: cluster configuration
-  @type nodelist: list or tuple
-  @param nodelist: node names for which to read the flag
+  @type node_uuids: list or tuple
+  @param node_uuids: node UUIDs for which to read the flag
   @rtype: dict
   @return: mapping from node names to exclusive storage flags
-  @raise errors.OpPrereqError: if any given node name has no corresponding node
+  @raise errors.OpPrereqError: if any given node name has no corresponding
+  node
 
   """
   getflag = lambda n: _GetESFlag(cfg, n)
-  flags = map(getflag, nodelist)
-  return dict(zip(nodelist, flags))
+  flags = map(getflag, node_uuids)
+  return dict(zip(node_uuids, flags))
 
 
 #: Generic encoders

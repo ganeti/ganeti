@@ -609,7 +609,6 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
     mac_prefix=mac_prefix,
     volume_group_name=vg_name,
     tcpudp_port_pool=set(),
-    master_node=hostname.name,
     master_ip=clustername.ip,
     master_netmask=master_netmask,
     master_netdev=master_netdev,
@@ -688,13 +687,14 @@ def InitConfig(version, cluster_config, master_node_config,
                                                 _INITCONF_ECID)
   master_node_config.uuid = uuid_generator.Generate([], utils.NewUUID,
                                                     _INITCONF_ECID)
+  cluster_config.master_node = master_node_config.uuid
   nodes = {
-    master_node_config.name: master_node_config,
+    master_node_config.uuid: master_node_config,
     }
   default_nodegroup = objects.NodeGroup(
     uuid=uuid_generator.Generate([], utils.NewUUID, _INITCONF_ECID),
     name=constants.INITIAL_NODE_GROUP_NAME,
-    members=[master_node_config.name],
+    members=[master_node_config.uuid],
     diskparams={},
     )
   nodegroups = {
@@ -714,7 +714,7 @@ def InitConfig(version, cluster_config, master_node_config,
                   mode=0600)
 
 
-def FinalizeClusterDestroy(master):
+def FinalizeClusterDestroy(master_uuid):
   """Execute the last steps of cluster destroy
 
   This function shuts down all the daemons, completing the destroy
@@ -725,22 +725,24 @@ def FinalizeClusterDestroy(master):
   modify_ssh_setup = cfg.GetClusterInfo().modify_ssh_setup
   runner = rpc.BootstrapRunner()
 
+  master_name = cfg.GetNodeName(master_uuid)
+
   master_params = cfg.GetMasterNetworkParameters()
-  master_params.name = master
+  master_params.uuid = master_uuid
   ems = cfg.GetUseExternalMipScript()
-  result = runner.call_node_deactivate_master_ip(master_params.name,
-                                                 master_params, ems)
+  result = runner.call_node_deactivate_master_ip(master_name, master_params,
+                                                 ems)
 
   msg = result.fail_msg
   if msg:
     logging.warning("Could not disable the master IP: %s", msg)
 
-  result = runner.call_node_stop_master(master)
+  result = runner.call_node_stop_master(master_name)
   msg = result.fail_msg
   if msg:
     logging.warning("Could not disable the master role: %s", msg)
 
-  result = runner.call_node_leave_cluster(master, modify_ssh_setup)
+  result = runner.call_node_leave_cluster(master_name, modify_ssh_setup)
   msg = result.fail_msg
   if msg:
     logging.warning("Could not shutdown the node daemon and cleanup"
@@ -788,7 +790,7 @@ def MasterFailover(no_voting=False):
   sstore = ssconf.SimpleStore()
 
   old_master, new_master = ssconf.GetMasterAndMyself(sstore)
-  node_list = sstore.GetNodeList()
+  node_names = sstore.GetNodeList()
   mc_list = sstore.GetMasterCandidates()
 
   if old_master == new_master:
@@ -807,7 +809,7 @@ def MasterFailover(no_voting=False):
                                errors.ECODE_STATE)
 
   if not no_voting:
-    vote_list = GatherMasterVotes(node_list)
+    vote_list = GatherMasterVotes(node_names)
 
     if vote_list:
       voted_master = vote_list[0][0]
@@ -832,8 +834,20 @@ def MasterFailover(no_voting=False):
     # configuration data
     cfg = config.ConfigWriter(accept_foreign=True)
 
+    old_master_node = cfg.GetNodeInfoByName(old_master)
+    if old_master_node is None:
+      raise errors.OpPrereqError("Could not find old master node '%s' in"
+                                 " cluster configuration." % old_master,
+                                 errors.ECODE_NOENT)
+
     cluster_info = cfg.GetClusterInfo()
-    cluster_info.master_node = new_master
+    new_master_node = cfg.GetNodeInfoByName(new_master)
+    if new_master_node is None:
+      raise errors.OpPrereqError("Could not find new master node '%s' in"
+                                 " cluster configuration." % new_master,
+                                 errors.ECODE_NOENT)
+
+    cluster_info.master_node = new_master_node.uuid
     # this will also regenerate the ssconf files, since we updated the
     # cluster info
     cfg.Update(cluster_info, logging.error)
@@ -851,9 +865,9 @@ def MasterFailover(no_voting=False):
 
   runner = rpc.BootstrapRunner()
   master_params = cfg.GetMasterNetworkParameters()
-  master_params.name = old_master
+  master_params.uuid = old_master_node.uuid
   ems = cfg.GetUseExternalMipScript()
-  result = runner.call_node_deactivate_master_ip(master_params.name,
+  result = runner.call_node_deactivate_master_ip(old_master,
                                                  master_params, ems)
 
   msg = result.fail_msg
@@ -917,7 +931,7 @@ def GetMaster():
   return old_master
 
 
-def GatherMasterVotes(node_list):
+def GatherMasterVotes(node_names):
   """Check the agreement on who is the master.
 
   This function will return a list of (node, number of votes), ordered
@@ -931,8 +945,8 @@ def GatherMasterVotes(node_list):
   since we use the same source for configuration information for both
   backend and boostrap, we'll always vote for ourselves.
 
-  @type node_list: list
-  @param node_list: the list of nodes to query for master info; the current
+  @type node_names: list
+  @param node_names: the list of nodes to query for master info; the current
       node will be removed if it is in the list
   @rtype: list
   @return: list of (node, votes)
@@ -940,30 +954,31 @@ def GatherMasterVotes(node_list):
   """
   myself = netutils.Hostname.GetSysName()
   try:
-    node_list.remove(myself)
+    node_names.remove(myself)
   except ValueError:
     pass
-  if not node_list:
+  if not node_names:
     # no nodes left (eventually after removing myself)
     return []
-  results = rpc.BootstrapRunner().call_master_info(node_list)
+  results = rpc.BootstrapRunner().call_master_info(node_names)
   if not isinstance(results, dict):
     # this should not happen (unless internal error in rpc)
     logging.critical("Can't complete rpc call, aborting master startup")
-    return [(None, len(node_list))]
+    return [(None, len(node_names))]
   votes = {}
-  for node in results:
-    nres = results[node]
+  for node_name in results:
+    nres = results[node_name]
     data = nres.payload
     msg = nres.fail_msg
     fail = False
     if msg:
-      logging.warning("Error contacting node %s: %s", node, msg)
+      logging.warning("Error contacting node %s: %s", node_name, msg)
       fail = True
     # for now we accept both length 3, 4 and 5 (data[3] is primary ip version
     # and data[4] is the master netmask)
     elif not isinstance(data, (tuple, list)) or len(data) < 3:
-      logging.warning("Invalid data received from node %s: %s", node, data)
+      logging.warning("Invalid data received from node %s: %s",
+                      node_name, data)
       fail = True
     if fail:
       if None not in votes:

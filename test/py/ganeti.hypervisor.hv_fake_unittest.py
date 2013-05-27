@@ -35,7 +35,8 @@ import testutils
 class TestConsole(unittest.TestCase):
   def test(self):
     instance = objects.Instance(name="fake.example.com")
-    cons = hv_fake.FakeHypervisor.GetInstanceConsole(instance, {}, {})
+    node = objects.Node(name="fakenode.example.com")
+    cons = hv_fake.FakeHypervisor.GetInstanceConsole(instance, node, {}, {})
     self.assertTrue(cons.Validate())
     self.assertEqual(cons.kind, constants.CONS_MESSAGE)
 

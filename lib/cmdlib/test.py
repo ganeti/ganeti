@@ -57,8 +57,9 @@ class LUTestDelay(NoHooksLU):
       # _GetWantedNodes can be used here, but is not always appropriate to use
       # this way in ExpandNames. Check LogicalUnit.ExpandNames docstring for
       # more information.
-      self.op.on_nodes = GetWantedNodes(self, self.op.on_nodes)
-      self.needed_locks[locking.LEVEL_NODE] = self.op.on_nodes
+      (self.op.on_node_uuids, self.op.on_nodes) = \
+        GetWantedNodes(self, self.op.on_nodes)
+      self.needed_locks[locking.LEVEL_NODE] = self.op.on_node_uuids
 
   def _TestDelay(self):
     """Do the actual sleep.
@@ -67,10 +68,11 @@ class LUTestDelay(NoHooksLU):
     if self.op.on_master:
       if not utils.TestDelay(self.op.duration):
         raise errors.OpExecError("Error during master delay test")
-    if self.op.on_nodes:
-      result = self.rpc.call_test_delay(self.op.on_nodes, self.op.duration)
-      for node, node_result in result.items():
-        node_result.Raise("Failure during rpc call to node %s" % node)
+    if self.op.on_node_uuids:
+      result = self.rpc.call_test_delay(self.op.on_node_uuids, self.op.duration)
+      for node_uuid, node_result in result.items():
+        node_result.Raise("Failure during rpc call to node %s" %
+                          self.cfg.GetNodeName(node_uuid))
 
   def Exec(self, feedback_fn):
     """Execute the test delay opcode, with the wanted repetitions.
@@ -263,7 +265,7 @@ class LUTestAllocator(NoHooksLU):
     elif self.op.mode == constants.IALLOCATOR_MODE_RELOC:
       fname = ExpandInstanceName(self.cfg, self.op.name)
       self.op.name = fname
-      self.relocate_from = \
+      self.relocate_from_node_uuids = \
           list(self.cfg.GetInstanceInfo(fname).secondary_nodes)
     elif self.op.mode in (constants.IALLOCATOR_MODE_CHG_GROUP,
                           constants.IALLOCATOR_MODE_NODE_EVAC):
@@ -299,8 +301,9 @@ class LUTestAllocator(NoHooksLU):
                                           hypervisor=self.op.hypervisor,
                                           node_whitelist=None)
     elif self.op.mode == constants.IALLOCATOR_MODE_RELOC:
-      req = iallocator.IAReqRelocate(name=self.op.name,
-                                     relocate_from=list(self.relocate_from))
+      req = iallocator.IAReqRelocate(
+            name=self.op.name,
+            relocate_from_node_uuids=list(self.relocate_from_node_uuids))
     elif self.op.mode == constants.IALLOCATOR_MODE_CHG_GROUP:
       req = iallocator.IAReqGroupChange(instances=self.op.instances,
                                         target_groups=self.op.target_groups)

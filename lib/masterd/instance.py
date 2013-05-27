@@ -134,13 +134,13 @@ class ImportExportCbBase(object):
 class _DiskImportExportBase(object):
   MODE_TEXT = None
 
-  def __init__(self, lu, node_name, opts,
+  def __init__(self, lu, node_uuid, opts,
                instance, component, timeouts, cbs, private=None):
     """Initializes this class.
 
     @param lu: Logical unit instance
-    @type node_name: string
-    @param node_name: Node name for import
+    @type node_uuid: string
+    @param node_uuid: Node UUID for import
     @type opts: L{objects.ImportExportOptions}
     @param opts: Import/export daemon options
     @type instance: L{objects.Instance}
@@ -157,7 +157,8 @@ class _DiskImportExportBase(object):
     assert self.MODE_TEXT
 
     self._lu = lu
-    self.node_name = node_name
+    self.node_uuid = node_uuid
+    self.node_name = lu.cfg.GetNodeName(node_uuid)
     self._opts = opts.Copy()
     self._instance = instance
     self._component = component
@@ -293,12 +294,12 @@ class _DiskImportExportBase(object):
     """
     if self._daemon_name:
       self._lu.LogWarning("Aborting %s '%s' on %s",
-                          self.MODE_TEXT, self._daemon_name, self.node_name)
-      result = self._lu.rpc.call_impexp_abort(self.node_name, self._daemon_name)
+                          self.MODE_TEXT, self._daemon_name, self.node_uuid)
+      result = self._lu.rpc.call_impexp_abort(self.node_uuid, self._daemon_name)
       if result.fail_msg:
         self._lu.LogWarning("Failed to abort %s '%s' on %s: %s",
                             self.MODE_TEXT, self._daemon_name,
-                            self.node_name, result.fail_msg)
+                            self.node_uuid, result.fail_msg)
         return False
 
     return True
@@ -374,7 +375,7 @@ class _DiskImportExportBase(object):
 
       # TODO: Log remote peer
       logging.debug("%s '%s' on %s is now connected",
-                    self.MODE_TEXT, self._daemon_name, self.node_name)
+                    self.MODE_TEXT, self._daemon_name, self.node_uuid)
 
       self._cbs.ReportConnected(self, self._private)
 
@@ -440,14 +441,15 @@ class _DiskImportExportBase(object):
 
     if success:
       logging.info("%s '%s' on %s succeeded", self.MODE_TEXT,
-                   self._daemon_name, self.node_name)
+                   self._daemon_name, self.node_uuid)
     elif self._daemon_name:
       self._lu.LogWarning("%s '%s' on %s failed: %s",
-                          self.MODE_TEXT, self._daemon_name, self.node_name,
+                          self.MODE_TEXT, self._daemon_name,
+                          self._lu.cfg.GetNodeName(self.node_uuid),
                           message)
     else:
       self._lu.LogWarning("%s on %s failed: %s", self.MODE_TEXT,
-                          self.node_name, message)
+                          self._lu.cfg.GetNodeName(self.node_uuid), message)
 
     self._cbs.ReportFinished(self, self._private)
 
@@ -455,7 +457,7 @@ class _DiskImportExportBase(object):
     """Makes the RPC call to finalize this import/export.
 
     """
-    return self._lu.rpc.call_impexp_cleanup(self.node_name, self._daemon_name)
+    return self._lu.rpc.call_impexp_cleanup(self.node_uuid, self._daemon_name)
 
   def Finalize(self, error=None):
     """Finalizes this import/export.
@@ -463,13 +465,13 @@ class _DiskImportExportBase(object):
     """
     if self._daemon_name:
       logging.info("Finalizing %s '%s' on %s",
-                   self.MODE_TEXT, self._daemon_name, self.node_name)
+                   self.MODE_TEXT, self._daemon_name, self.node_uuid)
 
       result = self._Finalize()
       if result.fail_msg:
         self._lu.LogWarning("Failed to finalize %s '%s' on %s: %s",
                             self.MODE_TEXT, self._daemon_name,
-                            self.node_name, result.fail_msg)
+                            self.node_uuid, result.fail_msg)
         return False
 
       # Daemon is no longer running
@@ -485,13 +487,13 @@ class _DiskImportExportBase(object):
 class DiskImport(_DiskImportExportBase):
   MODE_TEXT = "import"
 
-  def __init__(self, lu, node_name, opts, instance, component,
+  def __init__(self, lu, node_uuid, opts, instance, component,
                dest, dest_args, timeouts, cbs, private=None):
     """Initializes this class.
 
     @param lu: Logical unit instance
-    @type node_name: string
-    @param node_name: Node name for import
+    @type node_uuid: string
+    @param node_uuid: Node name for import
     @type opts: L{objects.ImportExportOptions}
     @param opts: Import/export daemon options
     @type instance: L{objects.Instance}
@@ -507,7 +509,7 @@ class DiskImport(_DiskImportExportBase):
     @param private: Private data for callback functions
 
     """
-    _DiskImportExportBase.__init__(self, lu, node_name, opts, instance,
+    _DiskImportExportBase.__init__(self, lu, node_uuid, opts, instance,
                                    component, timeouts, cbs, private)
     self._dest = dest
     self._dest_args = dest_args
@@ -529,7 +531,7 @@ class DiskImport(_DiskImportExportBase):
     """Starts the import daemon.
 
     """
-    return self._lu.rpc.call_import_start(self.node_name, self._opts,
+    return self._lu.rpc.call_import_start(self.node_uuid, self._opts,
                                           self._instance, self._component,
                                           (self._dest, self._dest_args))
 
@@ -550,7 +552,7 @@ class DiskImport(_DiskImportExportBase):
       self._ts_listening = time.time()
 
       logging.debug("Import '%s' on %s is now listening on port %s",
-                    self._daemon_name, self.node_name, port)
+                    self._daemon_name, self.node_uuid, port)
 
       self._cbs.ReportListening(self, self._private, self._component)
 
@@ -576,14 +578,14 @@ class DiskImport(_DiskImportExportBase):
 class DiskExport(_DiskImportExportBase):
   MODE_TEXT = "export"
 
-  def __init__(self, lu, node_name, opts, dest_host, dest_port,
+  def __init__(self, lu, node_uuid, opts, dest_host, dest_port,
                instance, component, source, source_args,
                timeouts, cbs, private=None):
     """Initializes this class.
 
     @param lu: Logical unit instance
-    @type node_name: string
-    @param node_name: Node name for import
+    @type node_uuid: string
+    @param node_uuid: Node UUID for import
     @type opts: L{objects.ImportExportOptions}
     @param opts: Import/export daemon options
     @type dest_host: string
@@ -603,7 +605,7 @@ class DiskExport(_DiskImportExportBase):
     @param private: Private data for callback functions
 
     """
-    _DiskImportExportBase.__init__(self, lu, node_name, opts, instance,
+    _DiskImportExportBase.__init__(self, lu, node_uuid, opts, instance,
                                    component, timeouts, cbs, private)
     self._dest_host = dest_host
     self._dest_port = dest_port
@@ -614,7 +616,7 @@ class DiskExport(_DiskImportExportBase):
     """Starts the export daemon.
 
     """
-    return self._lu.rpc.call_export_start(self.node_name, self._opts,
+    return self._lu.rpc.call_export_start(self.node_uuid, self._opts,
                                           self._dest_host, self._dest_port,
                                           self._instance, self._component,
                                           (self._source, self._source_args))
@@ -823,8 +825,8 @@ class ImportExportLoop:
 
 
 class _TransferInstCbBase(ImportExportCbBase):
-  def __init__(self, lu, feedback_fn, instance, timeouts, src_node, src_cbs,
-               dest_node, dest_ip):
+  def __init__(self, lu, feedback_fn, instance, timeouts, src_node_uuid,
+               src_cbs, dest_node_uuid, dest_ip):
     """Initializes this class.
 
     """
@@ -834,9 +836,9 @@ class _TransferInstCbBase(ImportExportCbBase):
     self.feedback_fn = feedback_fn
     self.instance = instance
     self.timeouts = timeouts
-    self.src_node = src_node
+    self.src_node_uuid = src_node_uuid
     self.src_cbs = src_cbs
-    self.dest_node = dest_node
+    self.dest_node_uuid = dest_node_uuid
     self.dest_ip = dest_ip
 
 
@@ -901,7 +903,7 @@ class _TransferInstDestCb(_TransferInstCbBase):
     self.feedback_fn("%s is now listening, starting export" % dtp.data.name)
 
     # Start export on source node
-    de = DiskExport(self.lu, self.src_node, dtp.export_opts,
+    de = DiskExport(self.lu, self.src_node_uuid, dtp.export_opts,
                     self.dest_ip, ie.listen_port, self.instance,
                     component, dtp.data.src_io, dtp.data.src_ioargs,
                     self.timeouts, self.src_cbs, private=dtp)
@@ -914,7 +916,8 @@ class _TransferInstDestCb(_TransferInstCbBase):
 
     """
     self.feedback_fn("%s is receiving data on %s" %
-                     (dtp.data.name, self.dest_node))
+                     (dtp.data.name,
+                      self.lu.cfg.GetNodeName(self.dest_node_uuid)))
 
   def ReportFinished(self, ie, dtp):
     """Called when a transfer has finished.
@@ -1003,16 +1006,16 @@ def _GetInstDiskMagic(base, instance_name, index):
   return h.hexdigest()
 
 
-def TransferInstanceData(lu, feedback_fn, src_node, dest_node, dest_ip,
-                         instance, all_transfers):
+def TransferInstanceData(lu, feedback_fn, src_node_uuid, dest_node_uuid,
+                         dest_ip, instance, all_transfers):
   """Transfers an instance's data from one node to another.
 
   @param lu: Logical unit instance
   @param feedback_fn: Feedback function
-  @type src_node: string
-  @param src_node: Source node name
-  @type dest_node: string
-  @param dest_node: Destination node name
+  @type src_node_uuid: string
+  @param src_node_uuid: Source node UUID
+  @type dest_node_uuid: string
+  @param dest_node_uuid: Destination node UUID
   @type dest_ip: string
   @param dest_ip: IP address of destination node
   @type instance: L{objects.Instance}
@@ -1027,14 +1030,18 @@ def TransferInstanceData(lu, feedback_fn, src_node, dest_node, dest_ip,
   # Disable compression for all moves as these are all within the same cluster
   compress = constants.IEC_NONE
 
+  src_node_name = lu.cfg.GetNodeName(src_node_uuid)
+  dest_node_name = lu.cfg.GetNodeName(dest_node_uuid)
+
   logging.debug("Source node %s, destination node %s, compression '%s'",
-                src_node, dest_node, compress)
+                src_node_name, dest_node_name, compress)
 
   timeouts = ImportExportTimeouts(constants.DISK_TRANSFER_CONNECT_TIMEOUT)
   src_cbs = _TransferInstSourceCb(lu, feedback_fn, instance, timeouts,
-                                  src_node, None, dest_node, dest_ip)
+                                  src_node_uuid, None, dest_node_uuid, dest_ip)
   dest_cbs = _TransferInstDestCb(lu, feedback_fn, instance, timeouts,
-                                 src_node, src_cbs, dest_node, dest_ip)
+                                 src_node_uuid, src_cbs, dest_node_uuid,
+                                 dest_ip)
 
   all_dtp = []
 
@@ -1045,7 +1052,7 @@ def TransferInstanceData(lu, feedback_fn, src_node, dest_node, dest_ip,
     for idx, transfer in enumerate(all_transfers):
       if transfer:
         feedback_fn("Exporting %s from %s to %s" %
-                    (transfer.name, src_node, dest_node))
+                    (transfer.name, src_node_name, dest_node_name))
 
         magic = _GetInstDiskMagic(base_magic, instance.name, idx)
         opts = objects.ImportExportOptions(key_name=None, ca_pem=None,
@@ -1053,7 +1060,7 @@ def TransferInstanceData(lu, feedback_fn, src_node, dest_node, dest_ip,
 
         dtp = _DiskTransferPrivate(transfer, True, opts)
 
-        di = DiskImport(lu, dest_node, opts, instance, "disk%d" % idx,
+        di = DiskImport(lu, dest_node_uuid, opts, instance, "disk%d" % idx,
                         transfer.dest_io, transfer.dest_ioargs,
                         timeouts, dest_cbs, private=dtp)
         ieloop.Add(di)
@@ -1217,7 +1224,7 @@ class ExportInstanceHelper:
 
     """
     instance = self._instance
-    src_node = instance.primary_node
+    src_node_uuid = instance.primary_node
 
     assert len(self._snap_disks) == len(instance.disks)
 
@@ -1242,14 +1249,14 @@ class ExportInstanceHelper:
 
     # Actually export data
     dresults = TransferInstanceData(self._lu, self._feedback_fn,
-                                    src_node, dest_node.name,
+                                    src_node_uuid, dest_node.uuid,
                                     dest_node.secondary_ip,
                                     instance, transfers)
 
     assert len(dresults) == len(instance.disks)
 
     self._feedback_fn("Finalizing export on %s" % dest_node.name)
-    result = self._lu.rpc.call_finalize_export(dest_node.name, instance,
+    result = self._lu.rpc.call_finalize_export(dest_node.uuid, instance,
                                                self._snap_disks)
     msg = result.fail_msg
     fin_resu = not msg

@@ -2020,7 +2020,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     return result
 
   @classmethod
-  def GetInstanceConsole(cls, instance, hvparams, beparams):
+  def GetInstanceConsole(cls, instance, primary_node, hvparams, beparams):
     """Return a command for connecting to the console of an instance.
 
     """
@@ -2032,7 +2032,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
              "UNIX-CONNECT:%s" % cls._InstanceSerial(instance.name)]
       return objects.InstanceConsole(instance=instance.name,
                                      kind=constants.CONS_SSH,
-                                     host=instance.primary_node,
+                                     host=primary_node.name,
                                      user=constants.SSH_CONSOLE_USER,
                                      command=cmd)
 

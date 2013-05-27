@@ -248,7 +248,7 @@ class BaseHypervisor(object):
     raise NotImplementedError
 
   @classmethod
-  def GetInstanceConsole(cls, instance, hvparams, beparams):
+  def GetInstanceConsole(cls, instance, primary_node, hvparams, beparams):
     """Return information for connecting to the console of an instance.
 
     """

@@ -1499,6 +1499,7 @@ iMoveToJob nl il idx move =
               , OpCodes.opMigrationMode       = Nothing -- default
               , OpCodes.opOldLiveMode         = Nothing -- default as well
               , OpCodes.opTargetNode          = Nothing -- this is drbd
+              , OpCodes.opTargetNodeUuid      = Nothing
               , OpCodes.opAllowRuntimeChanges = False
               , OpCodes.opIgnoreIpolicy       = False
               , OpCodes.opMigrationCleanup    = False
@@ -1512,6 +1513,7 @@ iMoveToJob nl il idx move =
                 , OpCodes.opReplaceDisksMode = OpCodes.ReplaceNewSecondary
                 , OpCodes.opReplaceDisksList = []
                 , OpCodes.opRemoteNode       = lookNode n
+                , OpCodes.opRemoteNodeUuid   = Nothing
                 , OpCodes.opIallocator       = Nothing
                 }
   in case move of

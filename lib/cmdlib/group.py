@@ -152,14 +152,14 @@ class LUGroupAssignNodes(NoHooksLU):
   def ExpandNames(self):
     # These raise errors.OpPrereqError on their own:
     self.group_uuid = self.cfg.LookupNodeGroup(self.op.group_name)
-    self.op.nodes = GetWantedNodes(self, self.op.nodes)
+    (self.op.node_uuids, self.op.nodes) = GetWantedNodes(self, self.op.nodes)
 
     # We want to lock all the affected nodes and groups. We have readily
     # available the list of nodes, and the *destination* group. To gather the
     # list of "source" groups, we need to fetch node information later on.
     self.needed_locks = {
       locking.LEVEL_NODEGROUP: set([self.group_uuid]),
-      locking.LEVEL_NODE: self.op.nodes,
+      locking.LEVEL_NODE: self.op.node_uuids,
       }
 
   def DeclareLocks(self, level):
@@ -168,7 +168,7 @@ class LUGroupAssignNodes(NoHooksLU):
 
       # Try to get all affected nodes' groups without having the group or node
       # lock yet. Needs verification later in the code flow.
-      groups = self.cfg.GetNodeGroupsFromNodes(self.op.nodes)
+      groups = self.cfg.GetNodeGroupsFromNodes(self.op.node_uuids)
 
       self.needed_locks[locking.LEVEL_NODEGROUP].update(groups)
 
@@ -178,10 +178,10 @@ class LUGroupAssignNodes(NoHooksLU):
     """
     assert self.needed_locks[locking.LEVEL_NODEGROUP]
     assert (frozenset(self.owned_locks(locking.LEVEL_NODE)) ==
-            frozenset(self.op.nodes))
+            frozenset(self.op.node_uuids))
 
     expected_locks = (set([self.group_uuid]) |
-                      self.cfg.GetNodeGroupsFromNodes(self.op.nodes))
+                      self.cfg.GetNodeGroupsFromNodes(self.op.node_uuids))
     actual_locks = self.owned_locks(locking.LEVEL_NODEGROUP)
     if actual_locks != expected_locks:
       raise errors.OpExecError("Nodes changed groups since locks were acquired,"
@@ -198,8 +198,8 @@ class LUGroupAssignNodes(NoHooksLU):
                                (self.op.group_name, self.group_uuid))
 
     (new_splits, previous_splits) = \
-      self.CheckAssignmentForSplitInstances([(node, self.group_uuid)
-                                             for node in self.op.nodes],
+      self.CheckAssignmentForSplitInstances([(uuid, self.group_uuid)
+                                             for uuid in self.op.node_uuids],
                                             self.node_data, instance_data)
 
     if new_splits:
@@ -222,7 +222,7 @@ class LUGroupAssignNodes(NoHooksLU):
     """Assign nodes to a new group.
 
     """
-    mods = [(node_name, self.group_uuid) for node_name in self.op.nodes]
+    mods = [(node_uuid, self.group_uuid) for node_uuid in self.op.node_uuids]
 
     self.cfg.AssignGroupNodes(mods)
 
@@ -240,7 +240,7 @@ class LUGroupAssignNodes(NoHooksLU):
     Only instances whose disk template is listed in constants.DTS_INT_MIRROR are
     considered.
 
-    @type changes: list of (node_name, new_group_uuid) pairs.
+    @type changes: list of (node_uuid, new_group_uuid) pairs.
     @param changes: list of node assignments to consider.
     @param node_data: a dict with data for all nodes
     @param instance_data: a dict with all instances to consider
@@ -250,26 +250,22 @@ class LUGroupAssignNodes(NoHooksLU):
       split and this change does not fix.
 
     """
-    changed_nodes = dict((node, group) for node, group in changes
-                         if node_data[node].group != group)
+    changed_nodes = dict((uuid, group) for uuid, group in changes
+                         if node_data[uuid].group != group)
 
     all_split_instances = set()
     previously_split_instances = set()
-
-    def InstanceNodes(instance):
-      return [instance.primary_node] + list(instance.secondary_nodes)
 
     for inst in instance_data.values():
       if inst.disk_template not in constants.DTS_INT_MIRROR:
         continue
 
-      instance_nodes = InstanceNodes(inst)
-
-      if len(set(node_data[node].group for node in instance_nodes)) > 1:
+      if len(set(node_data[node_uuid].group
+                 for node_uuid in inst.all_nodes)) > 1:
         previously_split_instances.add(inst.name)
 
-      if len(set(changed_nodes.get(node, node_data[node].group)
-                 for node in instance_nodes)) > 1:
+      if len(set(changed_nodes.get(node_uuid, node_data[node_uuid].group)
+                 for node_uuid in inst.all_nodes)) > 1:
         all_split_instances.add(inst.name)
 
     return (list(all_split_instances - previously_split_instances),
@@ -333,8 +329,8 @@ class GroupQuery(QueryBase):
 
       for node in all_nodes.values():
         if node.group in group_to_nodes:
-          group_to_nodes[node.group].append(node.name)
-          node_to_group[node.name] = node.group
+          group_to_nodes[node.group].append(node.uuid)
+          node_to_group[node.uuid] = node.group
 
       if do_instances:
         all_instances = lu.cfg.GetAllInstancesInfo()
@@ -561,7 +557,7 @@ class LUGroupRemove(LogicalUnit):
 
     """
     # Verify that the group is empty.
-    group_nodes = [node.name
+    group_nodes = [node.uuid
                    for node in self.cfg.GetAllNodesInfo().values()
                    if node.group == self.group_uuid]
 
@@ -654,7 +650,7 @@ class LUGroupRename(LogicalUnit):
     all_nodes.pop(mn, None)
 
     run_nodes = [mn]
-    run_nodes.extend(node.name for node in all_nodes.values()
+    run_nodes.extend(node.uuid for node in all_nodes.values()
                      if node.group == self.group_uuid)
 
     return (run_nodes, run_nodes)
@@ -743,15 +739,16 @@ class LUGroupEvacuate(LogicalUnit):
       # Lock all nodes in group to be evacuated and target groups
       owned_groups = frozenset(self.owned_locks(locking.LEVEL_NODEGROUP))
       assert self.group_uuid in owned_groups
-      member_nodes = [node_name
-                      for group in owned_groups
-                      for node_name in self.cfg.GetNodeGroup(group).members]
-      self.needed_locks[locking.LEVEL_NODE].extend(member_nodes)
+      member_node_uuids = [node_uuid
+                           for group in owned_groups
+                           for node_uuid in
+                             self.cfg.GetNodeGroup(group).members]
+      self.needed_locks[locking.LEVEL_NODE].extend(member_node_uuids)
 
   def CheckPrereq(self):
     owned_instances = frozenset(self.owned_locks(locking.LEVEL_INSTANCE))
     owned_groups = frozenset(self.owned_locks(locking.LEVEL_NODEGROUP))
-    owned_nodes = frozenset(self.owned_locks(locking.LEVEL_NODE))
+    owned_node_uuids = frozenset(self.owned_locks(locking.LEVEL_NODE))
 
     assert owned_groups.issuperset(self.req_target_uuids)
     assert self.group_uuid in owned_groups
@@ -764,7 +761,7 @@ class LUGroupEvacuate(LogicalUnit):
 
     # Check if node groups for locked instances are still correct
     CheckInstancesNodeGroups(self.cfg, self.instances,
-                             owned_groups, owned_nodes, self.group_uuid)
+                             owned_groups, owned_node_uuids, self.group_uuid)
 
     if self.req_target_uuids:
       # User requested specific target groups
@@ -876,13 +873,13 @@ class LUGroupVerifyDisks(NoHooksLU):
 
       # Lock all nodes in group to be verified
       assert self.group_uuid in self.owned_locks(locking.LEVEL_NODEGROUP)
-      member_nodes = self.cfg.GetNodeGroup(self.group_uuid).members
-      self.needed_locks[locking.LEVEL_NODE].extend(member_nodes)
+      member_node_uuids = self.cfg.GetNodeGroup(self.group_uuid).members
+      self.needed_locks[locking.LEVEL_NODE].extend(member_node_uuids)
 
   def CheckPrereq(self):
     owned_instances = frozenset(self.owned_locks(locking.LEVEL_INSTANCE))
     owned_groups = frozenset(self.owned_locks(locking.LEVEL_NODEGROUP))
-    owned_nodes = frozenset(self.owned_locks(locking.LEVEL_NODE))
+    owned_node_uuids = frozenset(self.owned_locks(locking.LEVEL_NODE))
 
     assert self.group_uuid in owned_groups
 
@@ -894,7 +891,7 @@ class LUGroupVerifyDisks(NoHooksLU):
 
     # Check if node groups for locked instances are still correct
     CheckInstancesNodeGroups(self.cfg, self.instances,
-                             owned_groups, owned_nodes, self.group_uuid)
+                             owned_groups, owned_node_uuids, self.group_uuid)
 
   def Exec(self, feedback_fn):
     """Verify integrity of cluster disks.
@@ -913,23 +910,24 @@ class LUGroupVerifyDisks(NoHooksLU):
       [inst for inst in self.instances.values() if inst.disks_active])
 
     if nv_dict:
-      nodes = utils.NiceSort(set(self.owned_locks(locking.LEVEL_NODE)) &
-                             set(self.cfg.GetVmCapableNodeList()))
+      node_uuids = utils.NiceSort(set(self.owned_locks(locking.LEVEL_NODE)) &
+                                  set(self.cfg.GetVmCapableNodeList()))
 
-      node_lvs = self.rpc.call_lv_list(nodes, [])
+      node_lvs = self.rpc.call_lv_list(node_uuids, [])
 
-      for (node, node_res) in node_lvs.items():
+      for (node_uuid, node_res) in node_lvs.items():
         if node_res.offline:
           continue
 
         msg = node_res.fail_msg
         if msg:
-          logging.warning("Error enumerating LVs on node %s: %s", node, msg)
-          res_nodes[node] = msg
+          logging.warning("Error enumerating LVs on node %s: %s",
+                          self.cfg.GetNodeName(node_uuid), msg)
+          res_nodes[node_uuid] = msg
           continue
 
         for lv_name, (_, _, lv_online) in node_res.payload.items():
-          inst = nv_dict.pop((node, lv_name), None)
+          inst = nv_dict.pop((node_uuid, lv_name), None)
           if not (lv_online or inst is None):
             res_instances.add(inst)
 

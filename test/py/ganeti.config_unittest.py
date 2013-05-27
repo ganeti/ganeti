@@ -328,14 +328,18 @@ class TestConfigRunner(unittest.TestCase):
     cluster_serial += 1
 
     # Create two nodes
-    node1 = objects.Node(name="node1", group=grp1.uuid, ndparams={})
+    node1 = objects.Node(name="node1", group=grp1.uuid, ndparams={},
+                         uuid="node1-uuid")
     node1_serial = 1
-    node2 = objects.Node(name="node2", group=grp2.uuid, ndparams={})
+    node2 = objects.Node(name="node2", group=grp2.uuid, ndparams={},
+                         uuid="node2-uuid")
     node2_serial = 1
     cfg.AddNode(node1, "job")
     cfg.AddNode(node2, "job")
     cluster_serial += 2
-    self.assertEqual(set(cfg.GetNodeList()), set(["node1", "node2", me.name]))
+    self.assertEqual(set(cfg.GetNodeList()),
+                     set(["node1-uuid", "node2-uuid",
+                          cfg.GetNodeInfoByName(me.name).uuid]))
 
     def _VerifySerials():
       self.assertEqual(cfg.GetClusterInfo().serial_no, cluster_serial)
@@ -346,8 +350,8 @@ class TestConfigRunner(unittest.TestCase):
 
     _VerifySerials()
 
-    self.assertEqual(set(grp1.members), set(["node1"]))
-    self.assertEqual(set(grp2.members), set(["node2"]))
+    self.assertEqual(set(grp1.members), set(["node1-uuid"]))
+    self.assertEqual(set(grp2.members), set(["node2-uuid"]))
 
     # Check invalid nodes and groups
     self.assertRaises(errors.ConfigurationError, cfg.AssignGroupNodes, [
@@ -359,8 +363,8 @@ class TestConfigRunner(unittest.TestCase):
 
     self.assertEqual(node1.group, grp1.uuid)
     self.assertEqual(node2.group, grp2.uuid)
-    self.assertEqual(set(grp1.members), set(["node1"]))
-    self.assertEqual(set(grp2.members), set(["node2"]))
+    self.assertEqual(set(grp1.members), set(["node1-uuid"]))
+    self.assertEqual(set(grp2.members), set(["node2-uuid"]))
 
     # Another no-op
     cfg.AssignGroupNodes([])
@@ -370,18 +374,18 @@ class TestConfigRunner(unittest.TestCase):
     # Assign to the same group (should be a no-op)
     self.assertEqual(node2.group, grp2.uuid)
     cfg.AssignGroupNodes([
-      (node2.name, grp2.uuid),
+      (node2.uuid, grp2.uuid),
       ])
     cluster_serial += 1
     self.assertEqual(node2.group, grp2.uuid)
     _VerifySerials()
-    self.assertEqual(set(grp1.members), set(["node1"]))
-    self.assertEqual(set(grp2.members), set(["node2"]))
+    self.assertEqual(set(grp1.members), set(["node1-uuid"]))
+    self.assertEqual(set(grp2.members), set(["node2-uuid"]))
 
     # Assign node 2 to group 1
     self.assertEqual(node2.group, grp2.uuid)
     cfg.AssignGroupNodes([
-      (node2.name, grp1.uuid),
+      (node2.uuid, grp1.uuid),
       ])
     cluster_serial += 1
     node2_serial += 1
@@ -389,7 +393,7 @@ class TestConfigRunner(unittest.TestCase):
     grp2_serial += 1
     self.assertEqual(node2.group, grp1.uuid)
     _VerifySerials()
-    self.assertEqual(set(grp1.members), set(["node1", "node2"]))
+    self.assertEqual(set(grp1.members), set(["node1-uuid", "node2-uuid"]))
     self.assertFalse(grp2.members)
 
     # And assign both nodes to group 2
@@ -397,8 +401,8 @@ class TestConfigRunner(unittest.TestCase):
     self.assertEqual(node2.group, grp1.uuid)
     self.assertNotEqual(grp1.uuid, grp2.uuid)
     cfg.AssignGroupNodes([
-      (node1.name, grp2.uuid),
-      (node2.name, grp2.uuid),
+      (node1.uuid, grp2.uuid),
+      (node2.uuid, grp2.uuid),
       ])
     cluster_serial += 1
     node1_serial += 1
@@ -409,7 +413,7 @@ class TestConfigRunner(unittest.TestCase):
     self.assertEqual(node2.group, grp2.uuid)
     _VerifySerials()
     self.assertFalse(grp1.members)
-    self.assertEqual(set(grp2.members), set(["node1", "node2"]))
+    self.assertEqual(set(grp2.members), set(["node1-uuid", "node2-uuid"]))
 
     # Destructive tests
     orig_group = node2.group
@@ -419,7 +423,7 @@ class TestConfigRunner(unittest.TestCase):
                         for node in cfg.GetAllNodesInfo().values())
       node2.group = "68b3d087-6ea5-491c-b81f-0a47d90228c5"
       self.assertRaises(errors.ConfigurationError, cfg.AssignGroupNodes, [
-        ("node2", grp2.uuid),
+        (node2.uuid, grp2.uuid),
         ])
       _VerifySerials()
     finally:

@@ -608,8 +608,8 @@ class LUNetworkConnect(LogicalUnit):
     return ret
 
   def BuildHooksNodes(self):
-    nodes = self.cfg.GetNodeGroup(self.group_uuid).members
-    return (nodes, nodes)
+    node_uuids = self.cfg.GetNodeGroup(self.group_uuid).members
+    return (node_uuids, node_uuids)
 
   def CheckPrereq(self):
     owned_groups = frozenset(self.owned_locks(locking.LEVEL_NODEGROUP))

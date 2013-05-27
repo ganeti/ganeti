@@ -35,7 +35,7 @@ from ganeti import utils
 
 from ganeti.cmdlib.base import QueryBase, NoHooksLU, LogicalUnit
 from ganeti.cmdlib.common import GetWantedNodes, ShareAll, CheckNodeOnline, \
-  ExpandNodeName
+  ExpandNodeUuidAndName
 from ganeti.cmdlib.instance_storage import StartInstanceDisks, \
   ShutdownInstanceDisks
 from ganeti.cmdlib.instance_utils import GetClusterDomainSecret, \
@@ -53,7 +53,7 @@ class ExportQuery(QueryBase):
 
     # The following variables interact with _QueryBase._GetNames
     if self.names:
-      self.wanted = GetWantedNodes(lu, self.names)
+      (self.wanted, _) = GetWantedNodes(lu, self.names)
     else:
       self.wanted = locking.ALL_SET
 
@@ -82,15 +82,15 @@ class ExportQuery(QueryBase):
                            if level != locking.LEVEL_CLUSTER) or
                 self.do_locking or self.use_locking)
 
-    nodes = self._GetNames(lu, lu.cfg.GetNodeList(), locking.LEVEL_NODE)
+    node_uuids = self._GetNames(lu, lu.cfg.GetNodeList(), locking.LEVEL_NODE)
 
     result = []
 
-    for (node, nres) in lu.rpc.call_export_list(nodes).items():
+    for (node_uuid, nres) in lu.rpc.call_export_list(node_uuids).items():
       if nres.fail_msg:
-        result.append((node, None))
+        result.append((node_uuid, None))
       else:
-        result.extend((node, expname) for expname in nres.payload)
+        result.extend((node_uuid, expname) for expname in nres.payload)
 
     return result
 
@@ -154,10 +154,12 @@ class LUBackupPrepare(NoHooksLU):
     if self.op.mode == constants.EXPORT_MODE_REMOTE:
       salt = utils.GenerateSecret(8)
 
-      feedback_fn("Generating X509 certificate on %s" % instance.primary_node)
+      feedback_fn("Generating X509 certificate on %s" %
+                  self.cfg.GetNodeName(instance.primary_node))
       result = self.rpc.call_x509_cert_create(instance.primary_node,
                                               constants.RIE_CERT_VALIDITY)
-      result.Raise("Can't create X509 key and certificate on %s" % result.node)
+      result.Raise("Can't create X509 key and certificate on %s" %
+                   self.cfg.GetNodeName(result.node))
 
       (name, cert_pem) = result.payload
 
@@ -203,6 +205,9 @@ class LUBackupExport(LogicalUnit):
 
     # Lock all nodes for local exports
     if self.op.mode == constants.EXPORT_MODE_LOCAL:
+      (self.op.target_node_uuid, self.op.target_node) = \
+        ExpandNodeUuidAndName(self.cfg, self.op.target_node_uuid,
+                              self.op.target_node)
       # FIXME: lock only instance primary and destination node
       #
       # Sad but true, for now we have do lock all nodes, as we don't know where
@@ -248,7 +253,7 @@ class LUBackupExport(LogicalUnit):
     nl = [self.cfg.GetMasterNode(), self.instance.primary_node]
 
     if self.op.mode == constants.EXPORT_MODE_LOCAL:
-      nl.append(self.op.target_node)
+      nl.append(self.op.target_node_uuid)
 
     return (nl, nl)
 
@@ -272,12 +277,11 @@ class LUBackupExport(LogicalUnit):
                                  " down before", errors.ECODE_STATE)
 
     if self.op.mode == constants.EXPORT_MODE_LOCAL:
-      self.op.target_node = ExpandNodeName(self.cfg, self.op.target_node)
-      self.dst_node = self.cfg.GetNodeInfo(self.op.target_node)
+      self.dst_node = self.cfg.GetNodeInfo(self.op.target_node_uuid)
       assert self.dst_node is not None
 
-      CheckNodeOnline(self, self.dst_node.name)
-      CheckNodeNotDrained(self, self.dst_node.name)
+      CheckNodeOnline(self, self.dst_node.uuid)
+      CheckNodeNotDrained(self, self.dst_node.uuid)
 
       self._cds = None
       self.dest_disk_info = None
@@ -355,24 +359,25 @@ class LUBackupExport(LogicalUnit):
     """
     assert self.op.mode != constants.EXPORT_MODE_REMOTE
 
-    nodelist = self.cfg.GetNodeList()
-    nodelist.remove(self.dst_node.name)
+    node_uuids = self.cfg.GetNodeList()
+    node_uuids.remove(self.dst_node.uuid)
 
     # on one-node clusters nodelist will be empty after the removal
     # if we proceed the backup would be removed because OpBackupQuery
     # substitutes an empty list with the full cluster node list.
     iname = self.instance.name
-    if nodelist:
+    if node_uuids:
       feedback_fn("Removing old exports for instance %s" % iname)
-      exportlist = self.rpc.call_export_list(nodelist)
-      for node in exportlist:
-        if exportlist[node].fail_msg:
+      exportlist = self.rpc.call_export_list(node_uuids)
+      for node_uuid in exportlist:
+        if exportlist[node_uuid].fail_msg:
           continue
-        if iname in exportlist[node].payload:
-          msg = self.rpc.call_export_remove(node, iname).fail_msg
+        if iname in exportlist[node_uuid].payload:
+          msg = self.rpc.call_export_remove(node_uuid, iname).fail_msg
           if msg:
             self.LogWarning("Could not remove older export for instance %s"
-                            " on node %s: %s", iname, node, msg)
+                            " on node %s: %s", iname,
+                            self.cfg.GetNodeName(node_uuid), msg)
 
   def Exec(self, feedback_fn):
     """Export an instance to an image in the cluster.
@@ -381,22 +386,23 @@ class LUBackupExport(LogicalUnit):
     assert self.op.mode in constants.EXPORT_MODES
 
     instance = self.instance
-    src_node = instance.primary_node
+    src_node_uuid = instance.primary_node
 
     if self.op.shutdown:
       # shutdown the instance, but not the disks
       feedback_fn("Shutting down instance %s" % instance.name)
-      result = self.rpc.call_instance_shutdown(src_node, instance,
+      result = self.rpc.call_instance_shutdown(src_node_uuid, instance,
                                                self.op.shutdown_timeout,
                                                self.op.reason)
       # TODO: Maybe ignore failures if ignore_remove_failures is set
       result.Raise("Could not shutdown instance %s on"
-                   " node %s" % (instance.name, src_node))
+                   " node %s" % (instance.name,
+                                 self.cfg.GetNodeName(src_node_uuid)))
 
     # set the disks ID correctly since call_instance_start needs the
     # correct drbd minor to create the symlinks
     for disk in instance.disks:
-      self.cfg.SetDiskID(disk, src_node)
+      self.cfg.SetDiskID(disk, src_node_uuid)
 
     activate_disks = not instance.disks_active
 
@@ -416,7 +422,7 @@ class LUBackupExport(LogicalUnit):
             not self.op.remove_instance):
           assert not activate_disks
           feedback_fn("Starting instance %s" % instance.name)
-          result = self.rpc.call_instance_start(src_node,
+          result = self.rpc.call_instance_start(src_node_uuid,
                                                 (instance, None, None), False,
                                                  self.op.reason)
           msg = result.fail_msg
@@ -515,18 +521,20 @@ class LUBackupRemove(NoHooksLU):
     locked_nodes = self.owned_locks(locking.LEVEL_NODE)
     exportlist = self.rpc.call_export_list(locked_nodes)
     found = False
-    for node in exportlist:
-      msg = exportlist[node].fail_msg
+    for node_uuid in exportlist:
+      msg = exportlist[node_uuid].fail_msg
       if msg:
-        self.LogWarning("Failed to query node %s (continuing): %s", node, msg)
+        self.LogWarning("Failed to query node %s (continuing): %s",
+                        self.cfg.GetNodeName(node_uuid), msg)
         continue
-      if instance_name in exportlist[node].payload:
+      if instance_name in exportlist[node_uuid].payload:
         found = True
-        result = self.rpc.call_export_remove(node, instance_name)
+        result = self.rpc.call_export_remove(node_uuid, instance_name)
         msg = result.fail_msg
         if msg:
           logging.error("Could not remove export for instance %s"
-                        " on node %s: %s", instance_name, node, msg)
+                        " on node %s: %s", instance_name,
+                        self.cfg.GetNodeName(node_uuid), msg)
 
     if fqdn_warn and not found:
       feedback_fn("Export not found. If trying to remove an export belonging"

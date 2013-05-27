@@ -519,8 +519,8 @@ class GanetiContext(object):
     self.jobqueue.AddNode(node)
 
     # Add the new node to the Ganeti Lock Manager
-    self.glm.add(locking.LEVEL_NODE, node.name)
-    self.glm.add(locking.LEVEL_NODE_RES, node.name)
+    self.glm.add(locking.LEVEL_NODE, node.uuid)
+    self.glm.add(locking.LEVEL_NODE_RES, node.uuid)
 
   def ReaddNode(self, node):
     """Updates a node that's already in the configuration
@@ -529,19 +529,19 @@ class GanetiContext(object):
     # Synchronize the queue again
     self.jobqueue.AddNode(node)
 
-  def RemoveNode(self, name):
+  def RemoveNode(self, node):
     """Removes a node from the configuration and lock manager.
 
     """
     # Remove node from configuration
-    self.cfg.RemoveNode(name)
+    self.cfg.RemoveNode(node.uuid)
 
     # Notify job queue
-    self.jobqueue.RemoveNode(name)
+    self.jobqueue.RemoveNode(node.name)
 
     # Remove the node from the Ganeti Lock Manager
-    self.glm.remove(locking.LEVEL_NODE, name)
-    self.glm.remove(locking.LEVEL_NODE_RES, name)
+    self.glm.remove(locking.LEVEL_NODE, node.uuid)
+    self.glm.remove(locking.LEVEL_NODE_RES, node.uuid)
 
 
 def _SetWatcherPause(context, until):
@@ -602,11 +602,11 @@ def CheckAgreement():
   myself = netutils.Hostname.GetSysName()
   #temp instantiation of a config writer, used only to get the node list
   cfg = config.ConfigWriter()
-  node_list = cfg.GetNodeList()
+  node_names = cfg.GetNodeNames(cfg.GetNodeList())
   del cfg
   retries = 6
   while retries > 0:
-    votes = bootstrap.GatherMasterVotes(node_list)
+    votes = bootstrap.GatherMasterVotes(node_names)
     if not votes:
       # empty node list, this is a one node cluster
       return True
@@ -646,8 +646,9 @@ def ActivateMasterIP():
   master_params = cfg.GetMasterNetworkParameters()
   ems = cfg.GetUseExternalMipScript()
   runner = rpc.BootstrapRunner()
-  result = runner.call_node_activate_master_ip(master_params.name,
-                                               master_params, ems)
+  # we use the node name, as the configuration is only available here yet
+  result = runner.call_node_activate_master_ip(
+             cfg.GetNodeName(master_params.uuid), master_params, ems)
 
   msg = result.fail_msg
   if msg:

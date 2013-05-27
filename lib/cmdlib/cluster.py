@@ -71,7 +71,7 @@ class LUClusterActivateMasterIp(NoHooksLU):
     """
     master_params = self.cfg.GetMasterNetworkParameters()
     ems = self.cfg.GetUseExternalMipScript()
-    result = self.rpc.call_node_activate_master_ip(master_params.name,
+    result = self.rpc.call_node_activate_master_ip(master_params.uuid,
                                                    master_params, ems)
     result.Raise("Could not activate the master IP")
 
@@ -86,7 +86,7 @@ class LUClusterDeactivateMasterIp(NoHooksLU):
     """
     master_params = self.cfg.GetMasterNetworkParameters()
     ems = self.cfg.GetUseExternalMipScript()
-    result = self.rpc.call_node_deactivate_master_ip(master_params.name,
+    result = self.rpc.call_node_deactivate_master_ip(master_params.uuid,
                                                      master_params, ems)
     result.Raise("Could not deactivate the master IP")
 
@@ -163,13 +163,13 @@ class LUClusterDestroy(LogicalUnit):
     master_params = self.cfg.GetMasterNetworkParameters()
 
     # Run post hooks on master node before it's removed
-    RunPostHook(self, master_params.name)
+    RunPostHook(self, self.cfg.GetNodeName(master_params.uuid))
 
     ems = self.cfg.GetUseExternalMipScript()
-    result = self.rpc.call_node_deactivate_master_ip(master_params.name,
+    result = self.rpc.call_node_deactivate_master_ip(master_params.uuid,
                                                      master_params, ems)
     result.Warn("Error disabling the master IP address", self.LogWarning)
-    return master_params.name
+    return master_params.uuid
 
 
 class LUClusterPostInit(LogicalUnit):
@@ -232,8 +232,10 @@ class ClusterQuery(QueryBase):
 
     if query.CQ_CONFIG in self.requested_data:
       cluster = lu.cfg.GetClusterInfo()
+      nodes = lu.cfg.GetAllNodesInfo()
     else:
       cluster = NotImplemented
+      nodes = NotImplemented
 
     if query.CQ_QUEUE_DRAINED in self.requested_data:
       drain_flag = os.path.exists(pathutils.JOB_QUEUE_DRAIN_FILE)
@@ -241,17 +243,17 @@ class ClusterQuery(QueryBase):
       drain_flag = NotImplemented
 
     if query.CQ_WATCHER_PAUSE in self.requested_data:
-      master_name = lu.cfg.GetMasterNode()
+      master_node_uuid = lu.cfg.GetMasterNode()
 
-      result = lu.rpc.call_get_watcher_pause(master_name)
+      result = lu.rpc.call_get_watcher_pause(master_node_uuid)
       result.Raise("Can't retrieve watcher pause from master node '%s'" %
-                   master_name)
+                   lu.cfg.GetMasterNodeName())
 
       watcher_pause = result.payload
     else:
       watcher_pause = NotImplemented
 
-    return query.ClusterQueryData(cluster, drain_flag, watcher_pause)
+    return query.ClusterQueryData(cluster, nodes, drain_flag, watcher_pause)
 
 
 class LUClusterQuery(NoHooksLU):
@@ -290,7 +292,7 @@ class LUClusterQuery(NoHooksLU):
       "export_version": constants.EXPORT_VERSION,
       "architecture": runtime.GetArchInfo(),
       "name": cluster.cluster_name,
-      "master": cluster.master_node,
+      "master": self.cfg.GetMasterNodeName(),
       "default_hypervisor": cluster.primary_hypervisor,
       "enabled_hypervisors": cluster.enabled_hypervisors,
       "hvparams": dict([(hypervisor_name, cluster.hvparams[hypervisor_name])
@@ -405,7 +407,7 @@ class LUClusterRename(LogicalUnit):
     # shutdown the master IP
     master_params = self.cfg.GetMasterNetworkParameters()
     ems = self.cfg.GetUseExternalMipScript()
-    result = self.rpc.call_node_deactivate_master_ip(master_params.name,
+    result = self.rpc.call_node_deactivate_master_ip(master_params.uuid,
                                                      master_params, ems)
     result.Raise("Could not disable the master role")
 
@@ -419,13 +421,13 @@ class LUClusterRename(LogicalUnit):
       ssh.WriteKnownHostsFile(self.cfg, pathutils.SSH_KNOWN_HOSTS_FILE)
       node_list = self.cfg.GetOnlineNodeList()
       try:
-        node_list.remove(master_params.name)
+        node_list.remove(master_params.uuid)
       except ValueError:
         pass
       UploadHelper(self, node_list, pathutils.SSH_KNOWN_HOSTS_FILE)
     finally:
       master_params.ip = new_ip
-      result = self.rpc.call_node_activate_master_ip(master_params.name,
+      result = self.rpc.call_node_activate_master_ip(master_params.uuid,
                                                      master_params, ems)
       result.Warn("Could not re-enable the master role on the master,"
                   " please restart manually", self.LogWarning)
@@ -523,24 +525,26 @@ class LUClusterRepairDiskSizes(NoHooksLU):
       "Not owning correct locks"
     assert not self.owned_locks(locking.LEVEL_NODE)
 
-    es_flags = rpc.GetExclusiveStorageForNodeNames(self.cfg,
-                                                   per_node_disks.keys())
+    es_flags = rpc.GetExclusiveStorageForNodes(self.cfg,
+                                               per_node_disks.keys())
 
     changed = []
-    for node, dskl in per_node_disks.items():
+    for node_uuid, dskl in per_node_disks.items():
       newl = [v[2].Copy() for v in dskl]
       for dsk in newl:
-        self.cfg.SetDiskID(dsk, node)
-      result = self.rpc.call_blockdev_getdimensions(node, newl)
+        self.cfg.SetDiskID(dsk, node_uuid)
+      node_name = self.cfg.GetNodeName(node_uuid)
+      result = self.rpc.call_blockdev_getdimensions(node_uuid, newl)
       if result.fail_msg:
         self.LogWarning("Failure in blockdev_getdimensions call to node"
-                        " %s, ignoring", node)
+                        " %s, ignoring", node_name)
         continue
       if len(result.payload) != len(dskl):
         logging.warning("Invalid result from node %s: len(dksl)=%d,"
-                        " result.payload=%s", node, len(dskl), result.payload)
+                        " result.payload=%s", node_name, len(dskl),
+                        result.payload)
         self.LogWarning("Invalid result from node %s, ignoring node results",
-                        node)
+                        node_name)
         continue
       for ((instance, idx, disk), dimensions) in zip(dskl, result.payload):
         if dimensions is None:
@@ -565,7 +569,7 @@ class LUClusterRepairDiskSizes(NoHooksLU):
           disk.size = size
           self.cfg.Update(instance, feedback_fn)
           changed.append((instance.name, idx, "size", size))
-        if es_flags[node]:
+        if es_flags[node_uuid]:
           if spindles is None:
             self.LogWarning("Disk %d of instance %s did not return valid"
                             " spindles information, ignoring", idx,
@@ -666,7 +670,7 @@ class LUClusterSetParams(LogicalUnit):
     mn = self.cfg.GetMasterNode()
     return ([mn], [mn])
 
-  def _CheckVgName(self, node_list, enabled_disk_templates,
+  def _CheckVgName(self, node_uuids, enabled_disk_templates,
                    new_enabled_disk_templates):
     """Check the consistency of the vg name on all nodes and in case it gets
        unset whether there are instances still using it.
@@ -682,26 +686,28 @@ class LUClusterSetParams(LogicalUnit):
            (self.cfg.GetVGName() is not None and
             utils.LvmGetsEnabled(enabled_disk_templates,
                                  new_enabled_disk_templates)):
-      self._CheckVgNameOnNodes(node_list)
+      self._CheckVgNameOnNodes(node_uuids)
 
-  def _CheckVgNameOnNodes(self, node_list):
+  def _CheckVgNameOnNodes(self, node_uuids):
     """Check the status of the volume group on each node.
 
     """
-    vglist = self.rpc.call_vg_list(node_list)
-    for node in node_list:
-      msg = vglist[node].fail_msg
+    vglist = self.rpc.call_vg_list(node_uuids)
+    for node_uuid in node_uuids:
+      msg = vglist[node_uuid].fail_msg
       if msg:
         # ignoring down node
         self.LogWarning("Error while gathering data on node %s"
-                        " (ignoring node): %s", node, msg)
+                        " (ignoring node): %s",
+                        self.cfg.GetNodeName(node_uuid), msg)
         continue
-      vgstatus = utils.CheckVolumeGroupSize(vglist[node].payload,
+      vgstatus = utils.CheckVolumeGroupSize(vglist[node_uuid].payload,
                                             self.op.vg_name,
                                             constants.MIN_VG_SIZE)
       if vgstatus:
         raise errors.OpPrereqError("Error on node '%s': %s" %
-                                   (node, vgstatus), errors.ECODE_ENVIRON)
+                                   (self.cfg.GetNodeName(node_uuid), vgstatus),
+                                   errors.ECODE_ENVIRON)
 
   def _GetEnabledDiskTemplates(self, cluster):
     """Determines the enabled disk templates and the subset of disk templates
@@ -732,35 +738,37 @@ class LUClusterSetParams(LogicalUnit):
                                    " drbd-based instances exist",
                                    errors.ECODE_INVAL)
 
-    node_list = self.owned_locks(locking.LEVEL_NODE)
+    node_uuids = self.owned_locks(locking.LEVEL_NODE)
     self.cluster = cluster = self.cfg.GetClusterInfo()
 
-    vm_capable_nodes = [node.name
-                        for node in self.cfg.GetAllNodesInfo().values()
-                        if node.name in node_list and node.vm_capable]
+    vm_capable_node_uuids = [node.uuid
+                             for node in self.cfg.GetAllNodesInfo().values()
+                             if node.uuid in node_uuids and node.vm_capable]
 
     (enabled_disk_templates, new_enabled_disk_templates) = \
       self._GetEnabledDiskTemplates(cluster)
 
-    self._CheckVgName(vm_capable_nodes, enabled_disk_templates,
+    self._CheckVgName(vm_capable_node_uuids, enabled_disk_templates,
                       new_enabled_disk_templates)
 
     if self.op.drbd_helper:
       # checks given drbd helper on all nodes
-      helpers = self.rpc.call_drbd_helper(node_list)
-      for (node, ninfo) in self.cfg.GetMultiNodeInfo(node_list):
+      helpers = self.rpc.call_drbd_helper(node_uuids)
+      for (_, ninfo) in self.cfg.GetMultiNodeInfo(node_uuids):
         if ninfo.offline:
-          self.LogInfo("Not checking drbd helper on offline node %s", node)
+          self.LogInfo("Not checking drbd helper on offline node %s",
+                       ninfo.name)
           continue
-        msg = helpers[node].fail_msg
+        msg = helpers[ninfo.uuid].fail_msg
         if msg:
           raise errors.OpPrereqError("Error checking drbd helper on node"
-                                     " '%s': %s" % (node, msg),
+                                     " '%s': %s" % (ninfo.name, msg),
                                      errors.ECODE_ENVIRON)
-        node_helper = helpers[node].payload
+        node_helper = helpers[ninfo.uuid].payload
         if node_helper != self.op.drbd_helper:
           raise errors.OpPrereqError("Error on node '%s': drbd helper is %s" %
-                                     (node, node_helper), errors.ECODE_ENVIRON)
+                                     (ninfo.name, node_helper),
+                                     errors.ECODE_ENVIRON)
 
     # validate params changes
     if self.op.beparams:
@@ -800,8 +808,8 @@ class LUClusterSetParams(LogicalUnit):
       violations = set()
       for group in self.cfg.GetAllNodeGroupsInfo().values():
         instances = frozenset([inst for inst in all_instances
-                               if compat.any(node in group.members
-                                             for node in inst.all_nodes)])
+                               if compat.any(nuuid in group.members
+                                             for nuuid in inst.all_nodes)])
         new_ipolicy = objects.FillIPolicy(self.new_ipolicy, group.ipolicy)
         ipol = masterd.instance.CalculateGroupIPolicy(cluster, group)
         new = ComputeNewInstanceViolations(ipol,
@@ -920,7 +928,7 @@ class LUClusterSetParams(LogicalUnit):
           hv_class = hypervisor.GetHypervisorClass(hv_name)
           utils.ForceDictType(hv_params, constants.HVS_PARAMETER_TYPES)
           hv_class.CheckParameterSyntax(hv_params)
-          CheckHVParams(self, node_list, hv_name, hv_params)
+          CheckHVParams(self, node_uuids, hv_name, hv_params)
 
     self._CheckDiskTemplateConsistency()
 
@@ -935,7 +943,7 @@ class LUClusterSetParams(LogicalUnit):
           new_osp = objects.FillDict(cluster_defaults, hv_params)
           hv_class = hypervisor.GetHypervisorClass(hv_name)
           hv_class.CheckParameterSyntax(new_osp)
-          CheckHVParams(self, node_list, hv_name, new_osp)
+          CheckHVParams(self, node_uuids, hv_name, new_osp)
 
     if self.op.default_iallocator:
       alloc_script = utils.FindFile(self.op.default_iallocator,
@@ -1095,7 +1103,7 @@ class LUClusterSetParams(LogicalUnit):
       ems = self.cfg.GetUseExternalMipScript()
       feedback_fn("Shutting down master ip on the current netdev (%s)" %
                   self.cluster.master_netdev)
-      result = self.rpc.call_node_deactivate_master_ip(master_params.name,
+      result = self.rpc.call_node_deactivate_master_ip(master_params.uuid,
                                                        master_params, ems)
       result.Raise("Could not disable the master ip")
       feedback_fn("Changing master_netdev from %s to %s" %
@@ -1105,11 +1113,10 @@ class LUClusterSetParams(LogicalUnit):
     if self.op.master_netmask:
       master_params = self.cfg.GetMasterNetworkParameters()
       feedback_fn("Changing master IP netmask to %s" % self.op.master_netmask)
-      result = self.rpc.call_node_change_master_netmask(master_params.name,
-                                                        master_params.netmask,
-                                                        self.op.master_netmask,
-                                                        master_params.ip,
-                                                        master_params.netdev)
+      result = self.rpc.call_node_change_master_netmask(
+                 master_params.uuid, master_params.netmask,
+                 self.op.master_netmask, master_params.ip,
+                 master_params.netdev)
       result.Warn("Could not change the master IP netmask", feedback_fn)
       self.cluster.master_netmask = self.op.master_netmask
 
@@ -1120,7 +1127,7 @@ class LUClusterSetParams(LogicalUnit):
       feedback_fn("Starting the master ip on the new master netdev (%s)" %
                   self.op.master_netdev)
       ems = self.cfg.GetUseExternalMipScript()
-      result = self.rpc.call_node_activate_master_ip(master_params.name,
+      result = self.rpc.call_node_activate_master_ip(master_params.uuid,
                                                      master_params, ems)
       result.Warn("Could not re-enable the master ip on the master,"
                   " please restart manually", self.LogWarning)
@@ -1352,14 +1359,14 @@ class LUClusterVerifyConfig(NoHooksLU, _VerifyErrors):
     # occur, it would never be caught by VerifyGroup, which only acts on
     # nodes/instances reachable from existing node groups.
 
-    dangling_nodes = set(node.name for node in self.all_node_info.values()
+    dangling_nodes = set(node for node in self.all_node_info.values()
                          if node.group not in self.all_group_info)
 
     dangling_instances = {}
     no_node_instances = []
 
     for inst in self.all_inst_info.values():
-      if inst.primary_node in dangling_nodes:
+      if inst.primary_node in [node.uuid for node in dangling_nodes]:
         dangling_instances.setdefault(inst.primary_node, []).append(inst.name)
       elif inst.primary_node not in self.all_node_info:
         no_node_instances.append(inst.name)
@@ -1367,7 +1374,7 @@ class LUClusterVerifyConfig(NoHooksLU, _VerifyErrors):
     pretty_dangling = [
         "%s (%s)" %
         (node.name,
-         utils.CommaJoin(dangling_instances.get(node.name,
+         utils.CommaJoin(dangling_instances.get(node.uuid,
                                                 ["no instances"])))
         for node in dangling_nodes]
 
@@ -1397,8 +1404,8 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
   class NodeImage(object):
     """A class representing the logical and physical status of a node.
 
-    @type name: string
-    @ivar name: the node name to which this object refers
+    @type uuid: string
+    @ivar uuid: the node UUID to which this object refers
     @ivar volumes: a structure as returned from
         L{ganeti.backend.GetVolumeList} (runtime)
     @ivar instances: a list of running instances (runtime)
@@ -1430,8 +1437,8 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     @ivar pv_max: size in MiB of the biggest PVs
 
     """
-    def __init__(self, offline=False, name=None, vm_capable=True):
-      self.name = name
+    def __init__(self, offline=False, uuid=None, vm_capable=True):
+      self.uuid = uuid
       self.volumes = {}
       self.instances = []
       self.pinst = []
@@ -1494,20 +1501,21 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     assert self.group_uuid in self.owned_locks(locking.LEVEL_NODEGROUP)
     self.group_info = self.cfg.GetNodeGroup(self.group_uuid)
 
-    group_nodes = set(self.group_info.members)
+    group_node_uuids = set(self.group_info.members)
     group_instances = \
       self.cfg.GetNodeGroupInstances(self.group_uuid, primary_only=True)
 
-    unlocked_nodes = \
-        group_nodes.difference(self.owned_locks(locking.LEVEL_NODE))
+    unlocked_node_uuids = \
+        group_node_uuids.difference(self.owned_locks(locking.LEVEL_NODE))
 
     unlocked_instances = \
         group_instances.difference(self.owned_locks(locking.LEVEL_INSTANCE))
 
-    if unlocked_nodes:
-      raise errors.OpPrereqError("Missing lock for nodes: %s" %
-                                 utils.CommaJoin(unlocked_nodes),
-                                 errors.ECODE_STATE)
+    if unlocked_node_uuids:
+      raise errors.OpPrereqError(
+        "Missing lock for nodes: %s" %
+        utils.CommaJoin(self.cfg.GetNodeNames(unlocked_node_uuids)),
+        errors.ECODE_STATE)
 
     if unlocked_instances:
       raise errors.OpPrereqError("Missing lock for instances: %s" %
@@ -1517,12 +1525,11 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     self.all_node_info = self.cfg.GetAllNodesInfo()
     self.all_inst_info = self.cfg.GetAllInstancesInfo()
 
-    self.my_node_names = utils.NiceSort(group_nodes)
+    self.my_node_uuids = group_node_uuids
+    self.my_node_info = dict((node_uuid, self.all_node_info[node_uuid])
+                             for node_uuid in group_node_uuids)
+
     self.my_inst_names = utils.NiceSort(group_instances)
-
-    self.my_node_info = dict((name, self.all_node_info[name])
-                             for name in self.my_node_names)
-
     self.my_inst_info = dict((name, self.all_inst_info[name])
                              for name in self.my_inst_names)
 
@@ -1532,9 +1539,9 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
     for inst in self.my_inst_info.values():
       if inst.disk_template in constants.DTS_INT_MIRROR:
-        for nname in inst.all_nodes:
-          if self.all_node_info[nname].group != self.group_uuid:
-            extra_lv_nodes.add(nname)
+        for nuuid in inst.all_nodes:
+          if self.all_node_info[nuuid].group != self.group_uuid:
+            extra_lv_nodes.add(nuuid)
 
     unlocked_lv_nodes = \
         extra_lv_nodes.difference(self.owned_locks(locking.LEVEL_NODE))
@@ -1560,12 +1567,12 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
          reasonable values in the respose)
 
     """
-    node = ninfo.name
+    node_name = ninfo.name
     _ErrorIf = self._ErrorIf # pylint: disable=C0103
 
     # main result, nresult should be a non-empty dict
     test = not nresult or not isinstance(nresult, dict)
-    _ErrorIf(test, constants.CV_ENODERPC, node,
+    _ErrorIf(test, constants.CV_ENODERPC, node_name,
                   "unable to verify node: no data returned")
     if test:
       return False
@@ -1576,13 +1583,13 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     test = not (remote_version and
                 isinstance(remote_version, (list, tuple)) and
                 len(remote_version) == 2)
-    _ErrorIf(test, constants.CV_ENODERPC, node,
+    _ErrorIf(test, constants.CV_ENODERPC, node_name,
              "connection to node returned invalid data")
     if test:
       return False
 
     test = local_version != remote_version[0]
-    _ErrorIf(test, constants.CV_ENODEVERSION, node,
+    _ErrorIf(test, constants.CV_ENODEVERSION, node_name,
              "incompatible protocol versions: master %s,"
              " node %s", local_version, remote_version[0])
     if test:
@@ -1592,7 +1599,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
     # full package version
     self._ErrorIf(constants.RELEASE_VERSION != remote_version[1],
-                  constants.CV_ENODEVERSION, node,
+                  constants.CV_ENODEVERSION, node_name,
                   "software version mismatch: master %s, node %s",
                   constants.RELEASE_VERSION, remote_version[1],
                   code=self.ETYPE_WARNING)
@@ -1601,19 +1608,19 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     if ninfo.vm_capable and isinstance(hyp_result, dict):
       for hv_name, hv_result in hyp_result.iteritems():
         test = hv_result is not None
-        _ErrorIf(test, constants.CV_ENODEHV, node,
+        _ErrorIf(test, constants.CV_ENODEHV, node_name,
                  "hypervisor %s verify failure: '%s'", hv_name, hv_result)
 
     hvp_result = nresult.get(constants.NV_HVPARAMS, None)
     if ninfo.vm_capable and isinstance(hvp_result, list):
       for item, hv_name, hv_result in hvp_result:
-        _ErrorIf(True, constants.CV_ENODEHV, node,
+        _ErrorIf(True, constants.CV_ENODEHV, node_name,
                  "hypervisor %s parameter verify failure (source %s): %s",
                  hv_name, item, hv_result)
 
     test = nresult.get(constants.NV_NODESETUP,
                        ["Missing NODESETUP results"])
-    _ErrorIf(test, constants.CV_ENODESETUP, node, "node setup error: %s",
+    _ErrorIf(test, constants.CV_ENODESETUP, node_name, "node setup error: %s",
              "; ".join(test))
 
     return True
@@ -1629,14 +1636,15 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     @param nvinfo_endtime: the end time of the RPC call
 
     """
-    node = ninfo.name
+    node_name = ninfo.name
     _ErrorIf = self._ErrorIf # pylint: disable=C0103
 
     ntime = nresult.get(constants.NV_TIME, None)
     try:
       ntime_merged = utils.MergeTime(ntime)
     except (ValueError, TypeError):
-      _ErrorIf(True, constants.CV_ENODETIME, node, "Node returned invalid time")
+      _ErrorIf(True, constants.CV_ENODETIME, node_name,
+               "Node returned invalid time")
       return
 
     if ntime_merged < (nvinfo_starttime - constants.NODE_MAX_CLOCK_SKEW):
@@ -1646,7 +1654,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     else:
       ntime_diff = None
 
-    _ErrorIf(ntime_diff is not None, constants.CV_ENODETIME, node,
+    _ErrorIf(ntime_diff is not None, constants.CV_ENODETIME, node_name,
              "Node time diverges by at least %s from master node time",
              ntime_diff)
 
@@ -1664,22 +1672,23 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     if vg_name is None:
       return
 
-    node = ninfo.name
+    node_name = ninfo.name
     _ErrorIf = self._ErrorIf # pylint: disable=C0103
 
     # checks vg existence and size > 20G
     vglist = nresult.get(constants.NV_VGLIST, None)
     test = not vglist
-    _ErrorIf(test, constants.CV_ENODELVM, node, "unable to check volume groups")
+    _ErrorIf(test, constants.CV_ENODELVM, node_name,
+             "unable to check volume groups")
     if not test:
       vgstatus = utils.CheckVolumeGroupSize(vglist, vg_name,
                                             constants.MIN_VG_SIZE)
-      _ErrorIf(vgstatus, constants.CV_ENODELVM, node, vgstatus)
+      _ErrorIf(vgstatus, constants.CV_ENODELVM, node_name, vgstatus)
 
     # Check PVs
     (errmsgs, pvminmax) = CheckNodePVs(nresult, self._exclusive_storage)
     for em in errmsgs:
-      self._Error(constants.CV_ENODELVM, node, em)
+      self._Error(constants.CV_ENODELVM, node_name, em)
     if pvminmax is not None:
       (nimg.pv_min, nimg.pv_max) = pvminmax
 
@@ -1692,15 +1701,15 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
     """
     node_versions = {}
-    for node, ndata in node_verify_infos.items():
+    for node_uuid, ndata in node_verify_infos.items():
       nresult = ndata.payload
       version = nresult.get(constants.NV_DRBDVERSION, "Missing DRBD version")
-      node_versions[node] = version
+      node_versions[node_uuid] = version
 
     if len(set(node_versions.values())) > 1:
-      for node, version in sorted(node_versions.items()):
+      for node_uuid, version in sorted(node_versions.items()):
         msg = "DRBD version mismatch: %s" % version
-        self._Error(constants.CV_ENODEDRBDHELPER, node, msg,
+        self._Error(constants.CV_ENODEDRBDHELPER, node_uuid, msg,
                     code=self.ETYPE_WARNING)
 
   def _VerifyGroupLVM(self, node_image, vg_name):
@@ -1745,15 +1754,15 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     if not bridges:
       return
 
-    node = ninfo.name
+    node_name = ninfo.name
     _ErrorIf = self._ErrorIf # pylint: disable=C0103
 
     missing = nresult.get(constants.NV_BRIDGES, None)
     test = not isinstance(missing, list)
-    _ErrorIf(test, constants.CV_ENODENET, node,
+    _ErrorIf(test, constants.CV_ENODENET, node_name,
              "did not return valid bridge information")
     if not test:
-      _ErrorIf(bool(missing), constants.CV_ENODENET, node,
+      _ErrorIf(bool(missing), constants.CV_ENODENET, node_name,
                "missing bridges: %s" % utils.CommaJoin(sorted(missing)))
 
   def _VerifyNodeUserScripts(self, ninfo, nresult):
@@ -1764,15 +1773,15 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     @param nresult: the remote results for the node
 
     """
-    node = ninfo.name
+    node_name = ninfo.name
 
     test = not constants.NV_USERSCRIPTS in nresult
-    self._ErrorIf(test, constants.CV_ENODEUSERSCRIPTS, node,
+    self._ErrorIf(test, constants.CV_ENODEUSERSCRIPTS, node_name,
                   "did not return user scripts information")
 
     broken_scripts = nresult.get(constants.NV_USERSCRIPTS, None)
     if not test:
-      self._ErrorIf(broken_scripts, constants.CV_ENODEUSERSCRIPTS, node,
+      self._ErrorIf(broken_scripts, constants.CV_ENODEUSERSCRIPTS, node_name,
                     "user scripts not present or not executable: %s" %
                     utils.CommaJoin(sorted(broken_scripts)))
 
@@ -1784,39 +1793,39 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     @param nresult: the remote results for the node
 
     """
-    node = ninfo.name
+    node_name = ninfo.name
     _ErrorIf = self._ErrorIf # pylint: disable=C0103
 
     test = constants.NV_NODELIST not in nresult
-    _ErrorIf(test, constants.CV_ENODESSH, node,
+    _ErrorIf(test, constants.CV_ENODESSH, node_name,
              "node hasn't returned node ssh connectivity data")
     if not test:
       if nresult[constants.NV_NODELIST]:
         for a_node, a_msg in nresult[constants.NV_NODELIST].items():
-          _ErrorIf(True, constants.CV_ENODESSH, node,
+          _ErrorIf(True, constants.CV_ENODESSH, node_name,
                    "ssh communication with node '%s': %s", a_node, a_msg)
 
     test = constants.NV_NODENETTEST not in nresult
-    _ErrorIf(test, constants.CV_ENODENET, node,
+    _ErrorIf(test, constants.CV_ENODENET, node_name,
              "node hasn't returned node tcp connectivity data")
     if not test:
       if nresult[constants.NV_NODENETTEST]:
         nlist = utils.NiceSort(nresult[constants.NV_NODENETTEST].keys())
         for anode in nlist:
-          _ErrorIf(True, constants.CV_ENODENET, node,
+          _ErrorIf(True, constants.CV_ENODENET, node_name,
                    "tcp communication with node '%s': %s",
                    anode, nresult[constants.NV_NODENETTEST][anode])
 
     test = constants.NV_MASTERIP not in nresult
-    _ErrorIf(test, constants.CV_ENODENET, node,
+    _ErrorIf(test, constants.CV_ENODENET, node_name,
              "node hasn't returned node master IP reachability data")
     if not test:
       if not nresult[constants.NV_MASTERIP]:
-        if node == self.master_node:
+        if ninfo.uuid == self.master_node:
           msg = "the master node cannot reach the master IP (not configured?)"
         else:
           msg = "cannot reach the master IP"
-        _ErrorIf(True, constants.CV_ENODENET, node, msg)
+        _ErrorIf(True, constants.CV_ENODENET, node_name, msg)
 
   def _VerifyInstance(self, instance, inst_config, node_image,
                       diskstatus):
@@ -1850,16 +1859,17 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       for volume in node_vol_should[node]:
         test = volume not in n_img.volumes
         _ErrorIf(test, constants.CV_EINSTANCEMISSINGDISK, instance,
-                 "volume %s missing on node %s", volume, node)
+                 "volume %s missing on node %s", volume,
+                 self.cfg.GetNodeName(node))
 
     if inst_config.admin_state == constants.ADMINST_UP:
       test = instance not in pnode_img.instances and not pnode_img.offline
       _ErrorIf(test, constants.CV_EINSTANCEDOWN, instance,
                "instance not running on its primary node %s",
-               pnode)
+               self.cfg.GetNodeName(pnode))
       _ErrorIf(pnode_img.offline, constants.CV_EINSTANCEBADNODE, instance,
                "instance is marked as running and lives on offline node %s",
-               pnode)
+               self.cfg.GetNodeName(pnode))
 
     diskdata = [(nname, success, status, idx)
                 for (nname, disks) in diskstatus.items()
@@ -1874,11 +1884,11 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
                not success and not bad_snode,
                constants.CV_EINSTANCEFAULTYDISK, instance,
                "couldn't retrieve status for disk/%s on %s: %s",
-               idx, nname, bdev_status)
+               idx, self.cfg.GetNodeName(nname), bdev_status)
       _ErrorIf((inst_config.disks_active and
                 success and bdev_status.ldisk_status == constants.LDS_FAULTY),
                constants.CV_EINSTANCEFAULTYDISK, instance,
-               "disk/%s on %s is faulty", idx, nname)
+               "disk/%s on %s is faulty", idx, self.cfg.GetNodeName(nname))
 
     _ErrorIf(pnode_img.rpc_fail and not pnode_img.offline,
              constants.CV_ENODERPC, pnode, "instance %s, connection to"
@@ -1890,8 +1900,8 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
              utils.CommaJoin(inst_config.secondary_nodes),
              code=self.ETYPE_WARNING)
 
-    es_flags = rpc.GetExclusiveStorageForNodeNames(self.cfg,
-                                                   inst_config.all_nodes)
+    es_flags = rpc.GetExclusiveStorageForNodes(self.cfg,
+                                               inst_config.all_nodes)
     if any(es_flags.values()):
       if inst_config.disk_template not in constants.DTS_EXCL_STORAGE:
         # Disk template not compatible with exclusive_storage: no instance
@@ -1902,7 +1912,8 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
         self._Error(constants.CV_EINSTANCEUNSUITABLENODE, instance,
                     "instance has template %s, which is not supported on nodes"
                     " that have exclusive storage set: %s",
-                    inst_config.disk_template, utils.CommaJoin(es_nodes))
+                    inst_config.disk_template,
+                    utils.CommaJoin(self.cfg.GetNodeNames(es_nodes)))
       for (idx, disk) in enumerate(inst_config.disks):
         _ErrorIf(disk.spindles is None,
                  constants.CV_EINSTANCEMISSINGCFGPARAMETER, instance,
@@ -1920,7 +1931,8 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
                                    []).append(node)
 
       pretty_list = [
-        "%s (group %s)" % (utils.CommaJoin(nodes), groupinfo[group].name)
+        "%s (group %s)" % (utils.CommaJoin(self.cfg.GetNodeNames(nodes)),
+                           groupinfo[group].name)
         # Sort so that we always list the primary node first.
         for group, nodes in sorted(instance_groups.items(),
                                    key=lambda (_, nodes): pnode in nodes,
@@ -1945,13 +1957,15 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     # warn that the instance lives on offline nodes
     _ErrorIf(inst_nodes_offline, constants.CV_EINSTANCEBADNODE, instance,
              "instance has offline secondary node(s) %s",
-             utils.CommaJoin(inst_nodes_offline))
+             utils.CommaJoin(self.cfg.GetNodeNames(inst_nodes_offline)))
     # ... or ghost/non-vm_capable nodes
     for node in inst_config.all_nodes:
       _ErrorIf(node_image[node].ghost, constants.CV_EINSTANCEBADNODE,
-               instance, "instance lives on ghost node %s", node)
+               instance, "instance lives on ghost node %s",
+               self.cfg.GetNodeName(node))
       _ErrorIf(not node_image[node].vm_capable, constants.CV_EINSTANCEBADNODE,
-               instance, "instance lives on non-vm_capable node %s", node)
+               instance, "instance lives on non-vm_capable node %s",
+               self.cfg.GetNodeName(node))
 
   def _VerifyOrphanVolumes(self, node_vol_should, node_image, reserved):
     """Verify if there are any unknown volumes in the cluster.
@@ -1963,16 +1977,17 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     @param reserved: a FieldSet of reserved volume names
 
     """
-    for node, n_img in node_image.items():
+    for node_uuid, n_img in node_image.items():
       if (n_img.offline or n_img.rpc_fail or n_img.lvm_fail or
-          self.all_node_info[node].group != self.group_uuid):
+          self.all_node_info[node_uuid].group != self.group_uuid):
         # skip non-healthy nodes
         continue
       for volume in n_img.volumes:
-        test = ((node not in node_vol_should or
-                volume not in node_vol_should[node]) and
+        test = ((node_uuid not in node_vol_should or
+                volume not in node_vol_should[node_uuid]) and
                 not reserved.Matches(volume))
-        self._ErrorIf(test, constants.CV_ENODEORPHANLV, node,
+        self._ErrorIf(test, constants.CV_ENODEORPHANLV,
+                      self.cfg.GetNodeName(node_uuid),
                       "volume %s is unknown", volume)
 
   def _VerifyNPlusOneMemory(self, node_image, instance_cfg):
@@ -1983,7 +1998,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
     """
     cluster_info = self.cfg.GetClusterInfo()
-    for node, n_img in node_image.items():
+    for node_uuid, n_img in node_image.items():
       # This code checks that every node which is now listed as
       # secondary has enough memory to host all instances it is
       # supposed to should a single other node in the cluster fail.
@@ -1992,7 +2007,8 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       # WARNING: we currently take into account down instances as well
       # as up ones, considering that even if they're down someone
       # might want to start them even in the event of a node failure.
-      if n_img.offline or self.all_node_info[node].group != self.group_uuid:
+      if n_img.offline or \
+         self.all_node_info[node_uuid].group != self.group_uuid:
         # we're skipping nodes marked offline and nodes in other groups from
         # the N+1 warning, since most likely we don't have good memory
         # infromation from them; we already list instances living on such
@@ -2006,19 +2022,18 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
           if bep[constants.BE_AUTO_BALANCE]:
             needed_mem += bep[constants.BE_MINMEM]
         test = n_img.mfree < needed_mem
-        self._ErrorIf(test, constants.CV_ENODEN1, node,
+        self._ErrorIf(test, constants.CV_ENODEN1,
+                      self.cfg.GetNodeName(node_uuid),
                       "not enough memory to accomodate instance failovers"
                       " should node %s fail (%dMiB needed, %dMiB available)",
-                      prinode, needed_mem, n_img.mfree)
+                      self.cfg.GetNodeName(prinode), needed_mem, n_img.mfree)
 
-  @classmethod
-  def _VerifyFiles(cls, errorif, nodeinfo, master_node, all_nvinfo,
+  def _VerifyFiles(self, nodes, master_node_uuid, all_nvinfo,
                    (files_all, files_opt, files_mc, files_vm)):
     """Verifies file checksums collected from all nodes.
 
-    @param errorif: Callback for reporting errors
-    @param nodeinfo: List of L{objects.Node} objects
-    @param master_node: Name of master node
+    @param nodes: List of L{objects.Node} objects
+    @param master_node_uuid: UUID of master node
     @param all_nvinfo: RPC results
 
     """
@@ -2026,7 +2041,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     files2nodefn = [
       (files_all, None),
       (files_mc, lambda node: (node.master_candidate or
-                               node.name == master_node)),
+                               node.uuid == master_node_uuid)),
       (files_vm, lambda node: node.vm_capable),
       ]
 
@@ -2034,11 +2049,11 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     nodefiles = {}
     for (files, fn) in files2nodefn:
       if fn is None:
-        filenodes = nodeinfo
+        filenodes = nodes
       else:
-        filenodes = filter(fn, nodeinfo)
+        filenodes = filter(fn, nodes)
       nodefiles.update((filename,
-                        frozenset(map(operator.attrgetter("name"), filenodes)))
+                        frozenset(map(operator.attrgetter("uuid"), filenodes)))
                        for filename in files)
 
     assert set(nodefiles) == (files_all | files_mc | files_vm)
@@ -2046,12 +2061,12 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     fileinfo = dict((filename, {}) for filename in nodefiles)
     ignore_nodes = set()
 
-    for node in nodeinfo:
+    for node in nodes:
       if node.offline:
-        ignore_nodes.add(node.name)
+        ignore_nodes.add(node.uuid)
         continue
 
-      nresult = all_nvinfo[node.name]
+      nresult = all_nvinfo[node.uuid]
 
       if nresult.fail_msg or not nresult.payload:
         node_files = None
@@ -2062,24 +2077,24 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
         del fingerprints
 
       test = not (node_files and isinstance(node_files, dict))
-      errorif(test, constants.CV_ENODEFILECHECK, node.name,
-              "Node did not return file checksum data")
+      self._ErrorIf(test, constants.CV_ENODEFILECHECK, node.name,
+                    "Node did not return file checksum data")
       if test:
-        ignore_nodes.add(node.name)
+        ignore_nodes.add(node.uuid)
         continue
 
       # Build per-checksum mapping from filename to nodes having it
       for (filename, checksum) in node_files.items():
         assert filename in nodefiles
-        fileinfo[filename].setdefault(checksum, set()).add(node.name)
+        fileinfo[filename].setdefault(checksum, set()).add(node.uuid)
 
     for (filename, checksums) in fileinfo.items():
       assert compat.all(len(i) > 10 for i in checksums), "Invalid checksum"
 
       # Nodes having the file
-      with_file = frozenset(node_name
-                            for nodes in fileinfo[filename].values()
-                            for node_name in nodes) - ignore_nodes
+      with_file = frozenset(node_uuid
+                            for node_uuids in fileinfo[filename].values()
+                            for node_uuid in node_uuids) - ignore_nodes
 
       expected_nodes = nodefiles[filename] - ignore_nodes
 
@@ -2088,36 +2103,44 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
       if filename in files_opt:
         # All or no nodes
-        errorif(missing_file and missing_file != expected_nodes,
-                constants.CV_ECLUSTERFILECHECK, None,
-                "File %s is optional, but it must exist on all or no"
-                " nodes (not found on %s)",
-                filename, utils.CommaJoin(utils.NiceSort(missing_file)))
+        self._ErrorIf(missing_file and missing_file != expected_nodes,
+                      constants.CV_ECLUSTERFILECHECK, None,
+                      "File %s is optional, but it must exist on all or no"
+                      " nodes (not found on %s)",
+                      filename,
+                      utils.CommaJoin(
+                        utils.NiceSort(
+                          map(self.cfg.GetNodeName, missing_file))))
       else:
-        errorif(missing_file, constants.CV_ECLUSTERFILECHECK, None,
-                "File %s is missing from node(s) %s", filename,
-                utils.CommaJoin(utils.NiceSort(missing_file)))
+        self._ErrorIf(missing_file, constants.CV_ECLUSTERFILECHECK, None,
+                      "File %s is missing from node(s) %s", filename,
+                      utils.CommaJoin(
+                        utils.NiceSort(
+                          map(self.cfg.GetNodeName, missing_file))))
 
         # Warn if a node has a file it shouldn't
         unexpected = with_file - expected_nodes
-        errorif(unexpected,
-                constants.CV_ECLUSTERFILECHECK, None,
-                "File %s should not exist on node(s) %s",
-                filename, utils.CommaJoin(utils.NiceSort(unexpected)))
+        self._ErrorIf(unexpected,
+                      constants.CV_ECLUSTERFILECHECK, None,
+                      "File %s should not exist on node(s) %s",
+                      filename, utils.CommaJoin(
+                        utils.NiceSort(map(self.cfg.GetNodeName, unexpected))))
 
       # See if there are multiple versions of the file
       test = len(checksums) > 1
       if test:
         variants = ["variant %s on %s" %
-                    (idx + 1, utils.CommaJoin(utils.NiceSort(nodes)))
-                    for (idx, (checksum, nodes)) in
+                    (idx + 1,
+                     utils.CommaJoin(utils.NiceSort(
+                       map(self.cfg.GetNodeName, node_uuids))))
+                    for (idx, (checksum, node_uuids)) in
                       enumerate(sorted(checksums.items()))]
       else:
         variants = []
 
-      errorif(test, constants.CV_ECLUSTERFILECHECK, None,
-              "File %s found with %s different checksums (%s)",
-              filename, len(checksums), "; ".join(variants))
+      self._ErrorIf(test, constants.CV_ECLUSTERFILECHECK, None,
+                    "File %s found with %s different checksums (%s)",
+                    filename, len(checksums), "; ".join(variants))
 
   def _VerifyNodeDrbd(self, ninfo, nresult, instanceinfo, drbd_helper,
                       drbd_map):
@@ -2132,26 +2155,26 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
         L{ganeti.config.ConfigWriter.ComputeDRBDMap}
 
     """
-    node = ninfo.name
+    node_name = ninfo.name
     _ErrorIf = self._ErrorIf # pylint: disable=C0103
 
     if drbd_helper:
       helper_result = nresult.get(constants.NV_DRBDHELPER, None)
       test = (helper_result is None)
-      _ErrorIf(test, constants.CV_ENODEDRBDHELPER, node,
+      _ErrorIf(test, constants.CV_ENODEDRBDHELPER, node_name,
                "no drbd usermode helper returned")
       if helper_result:
         status, payload = helper_result
         test = not status
-        _ErrorIf(test, constants.CV_ENODEDRBDHELPER, node,
+        _ErrorIf(test, constants.CV_ENODEDRBDHELPER, node_name,
                  "drbd usermode helper check unsuccessful: %s", payload)
         test = status and (payload != drbd_helper)
-        _ErrorIf(test, constants.CV_ENODEDRBDHELPER, node,
+        _ErrorIf(test, constants.CV_ENODEDRBDHELPER, node_name,
                  "wrong drbd usermode helper: %s", payload)
 
     # compute the DRBD minors
     node_drbd = {}
-    for minor, instance in drbd_map[node].items():
+    for minor, instance in drbd_map[ninfo.uuid].items():
       test = instance not in instanceinfo
       _ErrorIf(test, constants.CV_ECLUSTERCFG, None,
                "ghost instance '%s' in temporary DRBD map", instance)
@@ -2167,7 +2190,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     # and now check them
     used_minors = nresult.get(constants.NV_DRBDLIST, [])
     test = not isinstance(used_minors, (tuple, list))
-    _ErrorIf(test, constants.CV_ENODEDRBD, node,
+    _ErrorIf(test, constants.CV_ENODEDRBD, node_name,
              "cannot parse drbd status file: %s", str(used_minors))
     if test:
       # we cannot check drbd status
@@ -2175,11 +2198,11 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
     for minor, (iname, must_exist) in node_drbd.items():
       test = minor not in used_minors and must_exist
-      _ErrorIf(test, constants.CV_ENODEDRBD, node,
+      _ErrorIf(test, constants.CV_ENODEDRBD, node_name,
                "drbd minor %d of instance %s is not active", minor, iname)
     for minor in used_minors:
       test = minor not in node_drbd
-      _ErrorIf(test, constants.CV_ENODEDRBD, node,
+      _ErrorIf(test, constants.CV_ENODEDRBD, node_name,
                "unallocated drbd minor %d is in use", minor)
 
   def _UpdateNodeOS(self, ninfo, nresult, nimg):
@@ -2191,7 +2214,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     @param nimg: the node image object
 
     """
-    node = ninfo.name
+    node_name = ninfo.name
     _ErrorIf = self._ErrorIf # pylint: disable=C0103
 
     remote_os = nresult.get(constants.NV_OSLIST, None)
@@ -2199,7 +2222,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
             not compat.all(isinstance(v, list) and len(v) == 7
                            for v in remote_os))
 
-    _ErrorIf(test, constants.CV_ENODEOS, node,
+    _ErrorIf(test, constants.CV_ENODEOS, node_name,
              "node hasn't returned valid OS data")
 
     nimg.os_fail = test
@@ -2232,7 +2255,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     @param base: the 'template' node we match against (e.g. from the master)
 
     """
-    node = ninfo.name
+    node_name = ninfo.name
     _ErrorIf = self._ErrorIf # pylint: disable=C0103
 
     assert not nimg.os_fail, "Entered _VerifyNodeOS with failed OS rpc?"
@@ -2241,16 +2264,16 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     for os_name, os_data in nimg.oslist.items():
       assert os_data, "Empty OS status for OS %s?!" % os_name
       f_path, f_status, f_diag, f_var, f_param, f_api = os_data[0]
-      _ErrorIf(not f_status, constants.CV_ENODEOS, node,
+      _ErrorIf(not f_status, constants.CV_ENODEOS, node_name,
                "Invalid OS %s (located at %s): %s", os_name, f_path, f_diag)
-      _ErrorIf(len(os_data) > 1, constants.CV_ENODEOS, node,
+      _ErrorIf(len(os_data) > 1, constants.CV_ENODEOS, node_name,
                "OS '%s' has multiple entries (first one shadows the rest): %s",
                os_name, utils.CommaJoin([v[0] for v in os_data]))
       # comparisons with the 'base' image
       test = os_name not in base.oslist
-      _ErrorIf(test, constants.CV_ENODEOS, node,
+      _ErrorIf(test, constants.CV_ENODEOS, node_name,
                "Extra OS %s not present on reference node (%s)",
-               os_name, base.name)
+               os_name, self.cfg.GetNodeName(base.uuid))
       if test:
         continue
       assert base.oslist[os_name], "Base node has empty OS status?"
@@ -2262,16 +2285,16 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
                          ("variants list", f_var, b_var),
                          ("parameters", beautify_params(f_param),
                           beautify_params(b_param))]:
-        _ErrorIf(a != b, constants.CV_ENODEOS, node,
+        _ErrorIf(a != b, constants.CV_ENODEOS, node_name,
                  "OS %s for %s differs from reference node %s: [%s] vs. [%s]",
-                 kind, os_name, base.name,
+                 kind, os_name, self.cfg.GetNodeName(base.uuid),
                  utils.CommaJoin(sorted(a)), utils.CommaJoin(sorted(b)))
 
     # check any missing OSes
     missing = set(base.oslist.keys()).difference(nimg.oslist.keys())
-    _ErrorIf(missing, constants.CV_ENODEOS, node,
+    _ErrorIf(missing, constants.CV_ENODEOS, node_name,
              "OSes present on reference node %s but missing on this node: %s",
-             base.name, utils.CommaJoin(missing))
+             self.cfg.GetNodeName(base.uuid), utils.CommaJoin(missing))
 
   def _VerifyFileStoragePaths(self, ninfo, nresult, is_master):
     """Verifies paths in L{pathutils.FILE_STORAGE_PATHS_FILE}.
@@ -2283,7 +2306,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     @param is_master: Whether node is the master node
 
     """
-    node = ninfo.name
+    node_name = ninfo.name
 
     if (is_master and
         (constants.ENABLE_FILE_STORAGE or
@@ -2292,15 +2315,15 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
         fspaths = nresult[constants.NV_FILE_STORAGE_PATHS]
       except KeyError:
         # This should never happen
-        self._ErrorIf(True, constants.CV_ENODEFILESTORAGEPATHS, node,
+        self._ErrorIf(True, constants.CV_ENODEFILESTORAGEPATHS, node_name,
                       "Node did not return forbidden file storage paths")
       else:
-        self._ErrorIf(fspaths, constants.CV_ENODEFILESTORAGEPATHS, node,
+        self._ErrorIf(fspaths, constants.CV_ENODEFILESTORAGEPATHS, node_name,
                       "Found forbidden file storage paths: %s",
                       utils.CommaJoin(fspaths))
     else:
       self._ErrorIf(constants.NV_FILE_STORAGE_PATHS in nresult,
-                    constants.CV_ENODEFILESTORAGEPATHS, node,
+                    constants.CV_ENODEFILESTORAGEPATHS, node_name,
                     "Node should not have returned forbidden file storage"
                     " paths")
 
@@ -2312,13 +2335,14 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     @param nresult: the remote results for the node
 
     """
-    node = ninfo.name
+    node_name = ninfo.name
     # We just have to verify the paths on master and/or master candidates
     # as the oob helper is invoked on the master
     if ((ninfo.master_candidate or ninfo.master_capable) and
         constants.NV_OOB_PATHS in nresult):
       for path_result in nresult[constants.NV_OOB_PATHS]:
-        self._ErrorIf(path_result, constants.CV_ENODEOOBPATH, node, path_result)
+        self._ErrorIf(path_result, constants.CV_ENODEOOBPATH,
+                      node_name, path_result)
 
   def _UpdateNodeVolumes(self, ninfo, nresult, nimg, vg_name):
     """Verifies and updates the node volume data.
@@ -2333,7 +2357,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     @param vg_name: the configured VG name
 
     """
-    node = ninfo.name
+    node_name = ninfo.name
     _ErrorIf = self._ErrorIf # pylint: disable=C0103
 
     nimg.lvm_fail = True
@@ -2341,10 +2365,10 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     if vg_name is None:
       pass
     elif isinstance(lvdata, basestring):
-      _ErrorIf(True, constants.CV_ENODELVM, node, "LVM problem on node: %s",
-               utils.SafeEncode(lvdata))
+      _ErrorIf(True, constants.CV_ENODELVM, node_name,
+               "LVM problem on node: %s", utils.SafeEncode(lvdata))
     elif not isinstance(lvdata, dict):
-      _ErrorIf(True, constants.CV_ENODELVM, node,
+      _ErrorIf(True, constants.CV_ENODELVM, node_name,
                "rpc call to node failed (lvlist)")
     else:
       nimg.volumes = lvdata
@@ -2383,40 +2407,40 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     @param vg_name: the configured VG name
 
     """
-    node = ninfo.name
+    node_name = ninfo.name
     _ErrorIf = self._ErrorIf # pylint: disable=C0103
 
     # try to read free memory (from the hypervisor)
     hv_info = nresult.get(constants.NV_HVINFO, None)
     test = not isinstance(hv_info, dict) or "memory_free" not in hv_info
-    _ErrorIf(test, constants.CV_ENODEHV, node,
+    _ErrorIf(test, constants.CV_ENODEHV, node_name,
              "rpc call to node failed (hvinfo)")
     if not test:
       try:
         nimg.mfree = int(hv_info["memory_free"])
       except (ValueError, TypeError):
-        _ErrorIf(True, constants.CV_ENODERPC, node,
+        _ErrorIf(True, constants.CV_ENODERPC, node_name,
                  "node returned invalid nodeinfo, check hypervisor")
 
     # FIXME: devise a free space model for file based instances as well
     if vg_name is not None:
       test = (constants.NV_VGLIST not in nresult or
               vg_name not in nresult[constants.NV_VGLIST])
-      _ErrorIf(test, constants.CV_ENODELVM, node,
+      _ErrorIf(test, constants.CV_ENODELVM, node_name,
                "node didn't return data for the volume group '%s'"
                " - it is either missing or broken", vg_name)
       if not test:
         try:
           nimg.dfree = int(nresult[constants.NV_VGLIST][vg_name])
         except (ValueError, TypeError):
-          _ErrorIf(True, constants.CV_ENODERPC, node,
+          _ErrorIf(True, constants.CV_ENODERPC, node_name,
                    "node returned invalid LVM info, check LVM status")
 
-  def _CollectDiskInfo(self, nodelist, node_image, instanceinfo):
+  def _CollectDiskInfo(self, node_uuids, node_image, instanceinfo):
     """Gets per-disk status information for all instances.
 
-    @type nodelist: list of strings
-    @param nodelist: Node names
+    @type node_uuids: list of strings
+    @param node_uuids: Node UUIDs
     @type node_image: dict of (name, L{objects.Node})
     @param node_image: Node objects
     @type instanceinfo: dict of (name, L{objects.Instance})
@@ -2427,16 +2451,14 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
         list of tuples (success, payload)
 
     """
-    _ErrorIf = self._ErrorIf # pylint: disable=C0103
-
     node_disks = {}
     node_disks_devonly = {}
     diskless_instances = set()
     diskless = constants.DT_DISKLESS
 
-    for nname in nodelist:
-      node_instances = list(itertools.chain(node_image[nname].pinst,
-                                            node_image[nname].sinst))
+    for nuuid in node_uuids:
+      node_instances = list(itertools.chain(node_image[nuuid].pinst,
+                                            node_image[nuuid].sinst))
       diskless_instances.update(inst for inst in node_instances
                                 if instanceinfo[inst].disk_template == diskless)
       disks = [(inst, disk)
@@ -2447,16 +2469,16 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
         # No need to collect data
         continue
 
-      node_disks[nname] = disks
+      node_disks[nuuid] = disks
 
       # _AnnotateDiskParams makes already copies of the disks
       devonly = []
       for (inst, dev) in disks:
         (anno_disk,) = AnnotateDiskParams(instanceinfo[inst], [dev], self.cfg)
-        self.cfg.SetDiskID(anno_disk, nname)
+        self.cfg.SetDiskID(anno_disk, nuuid)
         devonly.append(anno_disk)
 
-      node_disks_devonly[nname] = devonly
+      node_disks_devonly[nuuid] = devonly
 
     assert len(node_disks) == len(node_disks_devonly)
 
@@ -2468,16 +2490,17 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
     instdisk = {}
 
-    for (nname, nres) in result.items():
-      disks = node_disks[nname]
+    for (nuuid, nres) in result.items():
+      node = self.cfg.GetNodeInfo(nuuid)
+      disks = node_disks[node.uuid]
 
       if nres.offline:
         # No data from this node
         data = len(disks) * [(False, "node offline")]
       else:
         msg = nres.fail_msg
-        _ErrorIf(msg, constants.CV_ENODERPC, nname,
-                 "while getting disk information: %s", msg)
+        self._ErrorIf(msg, constants.CV_ENODERPC, node.name,
+                      "while getting disk information: %s", msg)
         if msg:
           # No data from this node
           data = len(disks) * [(False, msg)]
@@ -2488,11 +2511,11 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
               data.append(i)
             else:
               logging.warning("Invalid result from node %s, entry %d: %s",
-                              nname, idx, i)
+                              node.name, idx, i)
               data.append((False, "Invalid result from the remote node"))
 
       for ((inst, _), status) in zip(disks, data):
-        instdisk.setdefault(inst, {}).setdefault(nname, []).append(status)
+        instdisk.setdefault(inst, {}).setdefault(node.uuid, []).append(status)
 
     # Add empty entries for diskless instances.
     for inst in diskless_instances:
@@ -2500,11 +2523,11 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       instdisk[inst] = {}
 
     assert compat.all(len(statuses) == len(instanceinfo[inst].disks) and
-                      len(nnames) <= len(instanceinfo[inst].all_nodes) and
+                      len(nuuids) <= len(instanceinfo[inst].all_nodes) and
                       compat.all(isinstance(s, (tuple, list)) and
                                  len(s) == 2 for s in statuses)
-                      for inst, nnames in instdisk.items()
-                      for nname, statuses in nnames.items())
+                      for inst, nuuids in instdisk.items()
+                      for nuuid, statuses in nuuids.items())
     if __debug__:
       instdisk_keys = set(instdisk)
       instanceinfo_keys = set(instanceinfo)
@@ -2568,7 +2591,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     """Build hooks nodes.
 
     """
-    return ([], self.my_node_names)
+    return ([], list(self.my_node_info.keys()))
 
   def Exec(self, feedback_fn):
     """Verify integrity of the node group, performing various test on nodes.
@@ -2577,7 +2600,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     # This method has too many local variables. pylint: disable=R0914
     feedback_fn("* Verifying group '%s'" % self.group_info.name)
 
-    if not self.my_node_names:
+    if not self.my_node_uuids:
       # empty node group
       feedback_fn("* Empty node group, skipping verification")
       return True
@@ -2591,7 +2614,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     drbd_helper = self.cfg.GetDRBDHelper()
     cluster = self.cfg.GetClusterInfo()
     hypervisors = cluster.enabled_hypervisors
-    node_data_list = [self.my_node_info[name] for name in self.my_node_names]
+    node_data_list = self.my_node_info.values()
 
     i_non_redundant = [] # Non redundant instances
     i_non_a_balanced = [] # Non auto-balanced instances
@@ -2606,10 +2629,10 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     filemap = ComputeAncillaryFiles(cluster, False)
 
     # do local checksums
-    master_node = self.master_node = self.cfg.GetMasterNode()
+    master_node_uuid = self.master_node = self.cfg.GetMasterNode()
     master_ip = self.cfg.GetMasterIP()
 
-    feedback_fn("* Gathering data (%d nodes)" % len(self.my_node_names))
+    feedback_fn("* Gathering data (%d nodes)" % len(self.my_node_uuids))
 
     user_scripts = []
     if self.cfg.GetUseExternalMipScript():
@@ -2635,7 +2658,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       constants.NV_HVINFO: self.cfg.GetHypervisorType(),
       constants.NV_NODESETUP: None,
       constants.NV_TIME: None,
-      constants.NV_MASTERIP: (master_node, master_ip),
+      constants.NV_MASTERIP: (self.cfg.GetMasterNodeName(), master_ip),
       constants.NV_OSLIST: None,
       constants.NV_VMNODES: self.cfg.GetNonVmCapableNodeList(),
       constants.NV_USERSCRIPTS: user_scripts,
@@ -2653,7 +2676,8 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
     if constants.ENABLE_FILE_STORAGE or constants.ENABLE_SHARED_FILE_STORAGE:
       # Load file storage paths only from master node
-      node_verify_param[constants.NV_FILE_STORAGE_PATHS] = master_node
+      node_verify_param[constants.NV_FILE_STORAGE_PATHS] = \
+        self.cfg.GetMasterNodeName()
 
     # bridge checks
     # FIXME: this needs to be changed per node-group, not cluster-wide
@@ -2671,8 +2695,8 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       node_verify_param[constants.NV_BRIDGES] = list(bridges)
 
     # Build our expected cluster state
-    node_image = dict((node.name, self.NodeImage(offline=node.offline,
-                                                 name=node.name,
+    node_image = dict((node.uuid, self.NodeImage(offline=node.offline,
+                                                 uuid=node.uuid,
                                                  vm_capable=node.vm_capable))
                       for node in node_data_list)
 
@@ -2691,11 +2715,11 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       if inst_config.admin_state == constants.ADMINST_OFFLINE:
         i_offline += 1
 
-      for nname in inst_config.all_nodes:
-        if nname not in node_image:
-          gnode = self.NodeImage(name=nname)
-          gnode.ghost = (nname not in self.all_node_info)
-          node_image[nname] = gnode
+      for nuuid in inst_config.all_nodes:
+        if nuuid not in node_image:
+          gnode = self.NodeImage(uuid=nuuid)
+          gnode.ghost = (nuuid not in self.all_node_info)
+          node_image[nuuid] = gnode
 
       inst_config.MapLVsByNode(node_vol_should)
 
@@ -2709,7 +2733,8 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
           nimg.sbp[pnode] = []
         nimg.sbp[pnode].append(instance)
 
-    es_flags = rpc.GetExclusiveStorageForNodeNames(self.cfg, self.my_node_names)
+    es_flags = rpc.GetExclusiveStorageForNodes(self.cfg,
+                                               self.my_node_info.keys())
     # The value of exclusive_storage should be the same across the group, so if
     # it's True for at least a node, we act as if it were set for all the nodes
     self._exclusive_storage = compat.any(es_flags.values())
@@ -2724,7 +2749,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     # time before and after executing the request, we can at least have a time
     # window.
     nvinfo_starttime = time.time()
-    all_nvinfo = self.rpc.call_node_verify(self.my_node_names,
+    all_nvinfo = self.rpc.call_node_verify(self.my_node_uuids,
                                            node_verify_param,
                                            self.cfg.GetClusterName(),
                                            self.cfg.GetClusterInfo().hvparams)
@@ -2742,56 +2767,55 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     all_drbd_map = self.cfg.ComputeDRBDMap()
 
     feedback_fn("* Gathering disk information (%s nodes)" %
-                len(self.my_node_names))
-    instdisk = self._CollectDiskInfo(self.my_node_names, node_image,
+                len(self.my_node_uuids))
+    instdisk = self._CollectDiskInfo(self.my_node_info.keys(), node_image,
                                      self.my_inst_info)
 
     feedback_fn("* Verifying configuration file consistency")
 
     # If not all nodes are being checked, we need to make sure the master node
     # and a non-checked vm_capable node are in the list.
-    absent_nodes = set(self.all_node_info).difference(self.my_node_info)
-    if absent_nodes:
+    absent_node_uuids = set(self.all_node_info).difference(self.my_node_info)
+    if absent_node_uuids:
       vf_nvinfo = all_nvinfo.copy()
       vf_node_info = list(self.my_node_info.values())
-      additional_nodes = []
-      if master_node not in self.my_node_info:
-        additional_nodes.append(master_node)
-        vf_node_info.append(self.all_node_info[master_node])
+      additional_node_uuids = []
+      if master_node_uuid not in self.my_node_info:
+        additional_node_uuids.append(master_node_uuid)
+        vf_node_info.append(self.all_node_info[master_node_uuid])
       # Add the first vm_capable node we find which is not included,
       # excluding the master node (which we already have)
-      for node in absent_nodes:
-        nodeinfo = self.all_node_info[node]
+      for node_uuid in absent_node_uuids:
+        nodeinfo = self.all_node_info[node_uuid]
         if (nodeinfo.vm_capable and not nodeinfo.offline and
-            node != master_node):
-          additional_nodes.append(node)
-          vf_node_info.append(self.all_node_info[node])
+            node_uuid != master_node_uuid):
+          additional_node_uuids.append(node_uuid)
+          vf_node_info.append(self.all_node_info[node_uuid])
           break
       key = constants.NV_FILELIST
       vf_nvinfo.update(self.rpc.call_node_verify(
-         additional_nodes, {key: node_verify_param[key]},
+         additional_node_uuids, {key: node_verify_param[key]},
          self.cfg.GetClusterName(), self.cfg.GetClusterInfo().hvparams))
     else:
       vf_nvinfo = all_nvinfo
       vf_node_info = self.my_node_info.values()
 
-    self._VerifyFiles(_ErrorIf, vf_node_info, master_node, vf_nvinfo, filemap)
+    self._VerifyFiles(vf_node_info, master_node_uuid, vf_nvinfo, filemap)
 
     feedback_fn("* Verifying node status")
 
     refos_img = None
 
     for node_i in node_data_list:
-      node = node_i.name
-      nimg = node_image[node]
+      nimg = node_image[node_i.uuid]
 
       if node_i.offline:
         if verbose:
-          feedback_fn("* Skipping offline node %s" % (node,))
+          feedback_fn("* Skipping offline node %s" % (node_i.name,))
         n_offline += 1
         continue
 
-      if node == master_node:
+      if node_i.uuid == master_node_uuid:
         ntype = "master"
       elif node_i.master_candidate:
         ntype = "master candidate"
@@ -2801,16 +2825,16 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       else:
         ntype = "regular"
       if verbose:
-        feedback_fn("* Verifying node %s (%s)" % (node, ntype))
+        feedback_fn("* Verifying node %s (%s)" % (node_i.name, ntype))
 
-      msg = all_nvinfo[node].fail_msg
-      _ErrorIf(msg, constants.CV_ENODERPC, node, "while contacting node: %s",
-               msg)
+      msg = all_nvinfo[node_i.uuid].fail_msg
+      _ErrorIf(msg, constants.CV_ENODERPC, node_i.name,
+               "while contacting node: %s", msg)
       if msg:
         nimg.rpc_fail = True
         continue
 
-      nresult = all_nvinfo[node].payload
+      nresult = all_nvinfo[node_i.uuid].payload
 
       nimg.call_ok = self._VerifyNode(node_i, nresult)
       self._VerifyNodeTime(node_i, nresult, nvinfo_starttime, nvinfo_endtime)
@@ -2818,7 +2842,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       self._VerifyNodeUserScripts(node_i, nresult)
       self._VerifyOob(node_i, nresult)
       self._VerifyFileStoragePaths(node_i, nresult,
-                                   node == master_node)
+                                   node_i.uuid == master_node_uuid)
 
       if nimg.vm_capable:
         self._UpdateVerifyNodeLVM(node_i, nresult, vg_name, nimg)
@@ -2851,9 +2875,9 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     self._VerifyGroupDRBDVersion(all_nvinfo)
     self._VerifyGroupLVM(node_image, vg_name)
 
-    for node, result in extra_lv_nvinfo.items():
-      self._UpdateNodeVolumes(self.all_node_info[node], result.payload,
-                              node_image[node], vg_name)
+    for node_uuid, result in extra_lv_nvinfo.items():
+      self._UpdateNodeVolumes(self.all_node_info[node_uuid], result.payload,
+                              node_image[node_uuid], vg_name)
 
     feedback_fn("* Verifying instance status")
     for instance in self.my_inst_names:
@@ -2927,7 +2951,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     """
     # We only really run POST phase hooks, only for non-empty groups,
     # and are only interested in their results
-    if not self.my_node_names:
+    if not self.my_node_uuids:
       # empty node group
       pass
     elif phase == constants.HOOKS_PHASE_POST:

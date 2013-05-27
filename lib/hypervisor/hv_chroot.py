@@ -267,7 +267,7 @@ class ChrootManager(hv_base.BaseHypervisor):
     return self.GetLinuxNodeInfo()
 
   @classmethod
-  def GetInstanceConsole(cls, instance, # pylint: disable=W0221
+  def GetInstanceConsole(cls, instance, primary_node, # pylint: disable=W0221
                          hvparams, beparams, root_dir=None):
     """Return information for connecting to the console of an instance.
 
@@ -279,7 +279,7 @@ class ChrootManager(hv_base.BaseHypervisor):
 
     return objects.InstanceConsole(instance=instance.name,
                                    kind=constants.CONS_SSH,
-                                   host=instance.primary_node,
+                                   host=primary_node.name,
                                    user=constants.SSH_CONSOLE_USER,
                                    command=["chroot", root_dir])
 

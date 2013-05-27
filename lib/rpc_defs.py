@@ -142,6 +142,11 @@ def _NodeInfoPreProc(node, args):
     return args
 
 
+def _DrbdCallsPreProc(node, args):
+  """Add the target node UUID as additional field for DRBD related calls."""
+  return args + [node]
+
+
 def _OsGetPostProc(result):
   """Post-processor for L{rpc.RpcRunner.call_os_get}.
 
@@ -394,17 +399,18 @@ _BLOCKDEV_CALLS = [
   ("drbd_disconnect_net", MULTI, None, constants.RPC_TMO_NORMAL, [
     ("nodes_ip", None, None),
     ("disks", ED_OBJECT_DICT_LIST, None),
-    ], None, None, "Disconnects the network of the given drbd devices"),
+    ], _DrbdCallsPreProc, None,
+   "Disconnects the network of the given drbd devices"),
   ("drbd_attach_net", MULTI, None, constants.RPC_TMO_NORMAL, [
     ("nodes_ip", None, None),
     ("disks", ED_DISKS_DICT_DP, None),
     ("instance_name", None, None),
     ("multimaster", None, None),
-    ], None, None, "Connects the given DRBD devices"),
+    ], _DrbdCallsPreProc, None, "Connects the given DRBD devices"),
   ("drbd_wait_sync", MULTI, None, constants.RPC_TMO_SLOW, [
     ("nodes_ip", None, None),
     ("disks", ED_DISKS_DICT_DP, None),
-    ], None, None,
+    ], _DrbdCallsPreProc, None,
    "Waits for the synchronization of drbd devices is complete"),
   ("blockdev_grow", SINGLE, None, constants.RPC_TMO_NORMAL, [
     ("cf_bdev", ED_SINGLE_DISK_DICT_DP, None),

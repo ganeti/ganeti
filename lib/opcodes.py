@@ -69,6 +69,9 @@ _PIgnoreOfflineNodes = ("ignore_offline_nodes", False, ht.TBool,
 #: a required node name (for single-node LUs)
 _PNodeName = ("node_name", ht.NoDefault, ht.TNonEmptyString, "Node name")
 
+#: a node UUID (for use with _PNodeName)
+_PNodeUuid = ("node_uuid", None, ht.TMaybeString, "Node UUID")
+
 #: a required node group name (for single-group LUs)
 _PGroupName = ("group_name", ht.NoDefault, ht.TNonEmptyString, "Group name")
 
@@ -132,6 +135,9 @@ _PNoRemember = ("no_remember", False, ht.TBool,
 #: Target node for instance migration/failover
 _PMigrationTargetNode = ("target_node", None, ht.TMaybeString,
                          "Target node for shared-storage instances")
+
+_PMigrationTargetNodeUuid = ("target_node_uuid", None, ht.TMaybeString,
+                             "Target node UUID for shared-storage instances")
 
 _PStartupPaused = ("startup_paused", False, ht.TBool,
                    "Pause instance at startup")
@@ -1051,7 +1057,9 @@ class OpOobCommand(OpCode):
   """Interact with OOB."""
   OP_PARAMS = [
     ("node_names", ht.EmptyList, ht.TListOf(ht.TNonEmptyString),
-     "List of nodes to run the OOB command against"),
+     "List of node names to run the OOB command against"),
+    ("node_uuids", None, ht.TMaybeListOf(ht.TNonEmptyString),
+     "List of node UUIDs to run the OOB command against"),
     ("command", ht.NoDefault, ht.TElemOf(constants.OOB_COMMANDS),
      "OOB command to be run"),
     ("timeout", constants.OOB_TIMEOUT, ht.TInt,
@@ -1073,6 +1081,8 @@ class OpRestrictedCommand(OpCode):
     _PUseLocking,
     ("nodes", ht.NoDefault, ht.TListOf(ht.TNonEmptyString),
      "Nodes on which the command should be run (at least one)"),
+    ("node_uuids", None, ht.TMaybeListOf(ht.TNonEmptyString),
+     "Node UUIDs on which the command should be run (at least one)"),
     ("command", ht.NoDefault, ht.TNonEmptyString,
      "Command name (no parameters)"),
     ]
@@ -1100,6 +1110,7 @@ class OpNodeRemove(OpCode):
   OP_DSC_FIELD = "node_name"
   OP_PARAMS = [
     _PNodeName,
+    _PNodeUuid
     ]
   OP_RESULT = ht.TNone
 
@@ -1187,6 +1198,7 @@ class OpNodeModifyStorage(OpCode):
   OP_DSC_FIELD = "node_name"
   OP_PARAMS = [
     _PNodeName,
+    _PNodeUuid,
     _PStorageType,
     _PStorageName,
     ("changes", ht.NoDefault, ht.TDict, "Requested changes"),
@@ -1199,6 +1211,7 @@ class OpRepairNodeStorage(OpCode):
   OP_DSC_FIELD = "node_name"
   OP_PARAMS = [
     _PNodeName,
+    _PNodeUuid,
     _PStorageType,
     _PStorageName,
     _PIgnoreConsistency,
@@ -1211,6 +1224,7 @@ class OpNodeSetParams(OpCode):
   OP_DSC_FIELD = "node_name"
   OP_PARAMS = [
     _PNodeName,
+    _PNodeUuid,
     _PForce,
     _PHvState,
     _PDiskState,
@@ -1240,6 +1254,7 @@ class OpNodePowercycle(OpCode):
   OP_DSC_FIELD = "node_name"
   OP_PARAMS = [
     _PNodeName,
+    _PNodeUuid,
     _PForce,
     ]
   OP_RESULT = ht.TMaybeString
@@ -1250,9 +1265,11 @@ class OpNodeMigrate(OpCode):
   OP_DSC_FIELD = "node_name"
   OP_PARAMS = [
     _PNodeName,
+    _PNodeUuid,
     _PMigrationMode,
     _PMigrationLive,
     _PMigrationTargetNode,
+    _PMigrationTargetNodeUuid,
     _PAllowRuntimeChgs,
     _PIgnoreIpolicy,
     _PIAllocFromDesc("Iallocator for deciding the target node"
@@ -1267,7 +1284,9 @@ class OpNodeEvacuate(OpCode):
   OP_PARAMS = [
     _PEarlyRelease,
     _PNodeName,
+    _PNodeUuid,
     ("remote_node", None, ht.TMaybeString, "New secondary node"),
+    ("remote_node_uuid", None, ht.TMaybeString, "New secondary node UUID"),
     _PIAllocFromDesc("Iallocator for computing solution"),
     ("mode", ht.NoDefault, ht.TElemOf(constants.NODE_EVAC_MODES),
      "Node evacuation mode"),
@@ -1333,7 +1352,9 @@ class OpInstanceCreate(OpCode):
     ("osparams", ht.EmptyDict, ht.TDict, "OS parameters for instance"),
     ("os_type", None, ht.TMaybeString, "Operating system"),
     ("pnode", None, ht.TMaybeString, "Primary node"),
+    ("pnode_uuid", None, ht.TMaybeString, "Primary node UUID"),
     ("snode", None, ht.TMaybeString, "Secondary node"),
+    ("snode_uuid", None, ht.TMaybeString, "Secondary node UUID"),
     ("source_handshake", None, ht.TMaybe(ht.TList),
      "Signed handshake from source (remote import only)"),
     ("source_instance_name", None, ht.TMaybeString,
@@ -1344,6 +1365,7 @@ class OpInstanceCreate(OpCode):
     ("source_x509_ca", None, ht.TMaybeString,
      "Source X509 CA in PEM format (remote import only)"),
     ("src_node", None, ht.TMaybeString, "Source node for import"),
+    ("src_node_uuid", None, ht.TMaybeString, "Source node UUID for import"),
     ("src_path", None, ht.TMaybeString, "Source directory for import"),
     ("start", True, ht.TBool, "Whether to start instance after creation"),
     ("tags", ht.EmptyList, ht.TListOf(ht.TNonEmptyString), "Instance tags"),
@@ -1502,6 +1524,7 @@ class OpInstanceReplaceDisks(OpCode):
     ("disks", ht.EmptyList, ht.TListOf(ht.TNonNegativeInt),
      "Disk indexes"),
     ("remote_node", None, ht.TMaybeString, "New secondary node"),
+    ("remote_node_uuid", None, ht.TMaybeString, "New secondary node UUID"),
     _PIAllocFromDesc("Iallocator for deciding new secondary node"),
     ]
   OP_RESULT = ht.TNone
@@ -1515,6 +1538,7 @@ class OpInstanceFailover(OpCode):
     _PShutdownTimeout,
     _PIgnoreConsistency,
     _PMigrationTargetNode,
+    _PMigrationTargetNodeUuid,
     _PIgnoreIpolicy,
     _PIAllocFromDesc("Iallocator for deciding the target node for"
                      " shared-storage instances"),
@@ -1538,6 +1562,7 @@ class OpInstanceMigrate(OpCode):
     _PMigrationMode,
     _PMigrationLive,
     _PMigrationTargetNode,
+    _PMigrationTargetNodeUuid,
     _PAllowRuntimeChgs,
     _PIgnoreIpolicy,
     ("cleanup", False, ht.TBool,
@@ -1566,6 +1591,7 @@ class OpInstanceMove(OpCode):
     _PShutdownTimeout,
     _PIgnoreIpolicy,
     ("target_node", ht.NoDefault, ht.TNonEmptyString, "Target node"),
+    ("target_node_uuid", None, ht.TMaybeString, "Target node UUID"),
     _PIgnoreConsistency,
     ]
   OP_RESULT = ht.TNone
@@ -1620,6 +1646,8 @@ class OpInstanceRecreateDisks(OpCode):
      " index and a possibly empty dictionary with disk parameter changes"),
     ("nodes", ht.EmptyList, ht.TListOf(ht.TNonEmptyString),
      "New instance nodes, if relocation is desired"),
+    ("node_uuids", None, ht.TMaybeListOf(ht.TNonEmptyString),
+     "New instance node UUIDs, if relocation is desired"),
     _PIAllocFromDesc("Iallocator for deciding new nodes"),
     ]
   OP_RESULT = ht.TNone
@@ -1707,8 +1735,11 @@ class OpInstanceSetParams(OpCode):
     ("disk_template", None, ht.TMaybe(_BuildDiskTemplateCheck(False)),
      "Disk template for instance"),
     ("pnode", None, ht.TMaybeString, "New primary node"),
+    ("pnode_uuid", None, ht.TMaybeString, "New primary node UUID"),
     ("remote_node", None, ht.TMaybeString,
      "Secondary node (used when changing disk template)"),
+    ("remote_node_uuid", None, ht.TMaybeString,
+     "Secondary node UUID (used when changing disk template)"),
     ("os_name", None, ht.TMaybeString,
      "Change the instance's OS without reinstalling the instance"),
     ("osparams", None, ht.TMaybeDict, "Per-instance OS parameters"),
@@ -1773,6 +1804,8 @@ class OpGroupAssignNodes(OpCode):
     _PForce,
     ("nodes", ht.NoDefault, ht.TListOf(ht.TNonEmptyString),
      "List of nodes to assign"),
+    ("node_uuids", None, ht.TMaybeListOf(ht.TNonEmptyString),
+     "List of node UUIDs to assign"),
     ]
   OP_RESULT = ht.TNone
 
@@ -1908,6 +1941,8 @@ class OpBackupExport(OpCode):
     # (e.g. "destination")
     ("target_node", ht.NoDefault, ht.TOr(ht.TNonEmptyString, ht.TList),
      "Destination information, depends on export mode"),
+    ("target_node_uuid", None, ht.TMaybeString,
+     "Target node UUID (if local export)"),
     ("shutdown", True, ht.TBool, "Whether to shutdown instance before export"),
     ("remove_instance", False, ht.TBool,
      "Whether to remove instance after export"),
@@ -2015,6 +2050,7 @@ class OpTestDelay(OpCode):
     ("duration", ht.NoDefault, ht.TNumber, None),
     ("on_master", True, ht.TBool, None),
     ("on_nodes", ht.EmptyList, ht.TListOf(ht.TNonEmptyString), None),
+    ("on_node_uuids", None, ht.TMaybeListOf(ht.TNonEmptyString), None),
     ("repeat", 0, ht.TNonNegativeInt, None),
     ]
 

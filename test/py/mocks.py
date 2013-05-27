@@ -53,10 +53,22 @@ class FakeConfig:
     return "test.cluster"
 
   def GetMasterNode(self):
+    return "a"
+
+  def GetMasterNodeName(self):
     return netutils.Hostname.GetSysName()
 
   def GetDefaultIAllocator(Self):
     return "testallocator"
+
+  def GetNodeName(self, node_uuid):
+    if node_uuid in self.GetNodeList():
+      return "node_%s.example.com" % (node_uuid,)
+    else:
+      return None
+
+  def GetNodeNames(self, node_uuids):
+    return map(self.GetNodeName, node_uuids)
 
 
 class FakeProc:

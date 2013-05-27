@@ -58,12 +58,12 @@ class OsQuery(QueryBase):
 
     @rtype: dict
     @return: a dictionary with osnames as keys and as value another
-        map, with nodes as keys and tuples of (path, status, diagnose,
+        map, with node UUIDs as keys and tuples of (path, status, diagnose,
         variants, parameters, api_versions) as values, eg::
 
-          {"debian-etch": {"node1": [(/usr/lib/..., True, "", [], []),
-                                     (/srv/..., False, "invalid api")],
-                           "node2": [(/srv/..., True, "", [], [])]}
+          {"debian-etch": {"node1-uuid": [(/usr/lib/..., True, "", [], []),
+                                          (/srv/..., False, "invalid api")],
+                           "node2-uuid": [(/srv/..., True, "", [], [])]}
           }
 
     """
@@ -71,9 +71,9 @@ class OsQuery(QueryBase):
     # we build here the list of nodes that didn't fail the RPC (at RPC
     # level), so that nodes with a non-responding node daemon don't
     # make all OSes invalid
-    good_nodes = [node_name for node_name in rlist
-                  if not rlist[node_name].fail_msg]
-    for node_name, nr in rlist.items():
+    good_node_uuids = [node_uuid for node_uuid in rlist
+                       if not rlist[node_uuid].fail_msg]
+    for node_uuid, nr in rlist.items():
       if nr.fail_msg or not nr.payload:
         continue
       for (name, path, status, diagnose, variants,
@@ -82,11 +82,11 @@ class OsQuery(QueryBase):
           # build a list of nodes for this os containing empty lists
           # for each node in node_list
           all_os[name] = {}
-          for nname in good_nodes:
-            all_os[name][nname] = []
+          for nuuid in good_node_uuids:
+            all_os[name][nuuid] = []
         # convert params from [name, help] to (name, help)
         params = [tuple(v) for v in params]
-        all_os[name][node_name].append((path, status, diagnose,
+        all_os[name][node_uuid].append((path, status, diagnose,
                                         variants, params, api_versions))
     return all_os
 
@@ -100,10 +100,10 @@ class OsQuery(QueryBase):
                            if level != locking.LEVEL_CLUSTER) or
                 self.do_locking or self.use_locking)
 
-    valid_nodes = [node.name
-                   for node in lu.cfg.GetAllNodesInfo().values()
-                   if not node.offline and node.vm_capable]
-    pol = self._DiagnoseByOS(lu.rpc.call_os_diagnose(valid_nodes))
+    valid_node_uuids = [node.uuid
+                        for node in lu.cfg.GetAllNodesInfo().values()
+                        if not node.offline and node.vm_capable]
+    pol = self._DiagnoseByOS(lu.rpc.call_os_diagnose(valid_node_uuids))
     cluster = lu.cfg.GetClusterInfo()
 
     data = {}

@@ -66,6 +66,7 @@ $(genOpCode "OpCode"
      [ pDelayDuration
      , pDelayOnMaster
      , pDelayOnNodes
+     , pDelayOnNodeUuids
      , pDelayRepeat
      ])
   , ("OpInstanceReplaceDisks",
@@ -75,6 +76,7 @@ $(genOpCode "OpCode"
      , pReplaceDisksMode
      , pReplaceDisksList
      , pRemoteNode
+     , pRemoteNodeUuid
      , pIallocator
      ])
   , ("OpInstanceFailover",
@@ -82,6 +84,7 @@ $(genOpCode "OpCode"
      , pShutdownTimeout
      , pIgnoreConsistency
      , pMigrationTargetNode
+     , pMigrationTargetNodeUuid
      , pIgnoreIpolicy
      , pIallocator
      ])
@@ -90,6 +93,7 @@ $(genOpCode "OpCode"
      , pMigrationMode
      , pMigrationLive
      , pMigrationTargetNode
+     , pMigrationTargetNodeUuid
      , pAllowRuntimeChgs
      , pIgnoreIpolicy
      , pMigrationCleanup
@@ -192,12 +196,16 @@ $(genOpCode "OpCode"
      ])
   , ("OpOobCommand",
      [ pNodeNames
+     , pNodeUuids
      , pOobCommand
      , pOobTimeout
      , pIgnoreStatus
      , pPowerDelay
      ])
-  , ("OpNodeRemove", [ pNodeName ])
+  , ("OpNodeRemove",
+     [ pNodeName
+     , pNodeUuid
+     ])
   , ("OpNodeAdd",
      [ pNodeName
      , pHvState
@@ -223,18 +231,21 @@ $(genOpCode "OpCode"
      ])
   , ("OpNodeModifyStorage",
      [ pNodeName
+     , pNodeUuid
      , pStorageType
      , pStorageName
      , pStorageChanges
      ])
   , ("OpRepairNodeStorage",
      [ pNodeName
+     , pNodeUuid
      , pStorageType
      , pStorageName
      , pIgnoreConsistency
      ])
   , ("OpNodeSetParams",
      [ pNodeName
+     , pNodeUuid
      , pForce
      , pHvState
      , pDiskState
@@ -250,13 +261,16 @@ $(genOpCode "OpCode"
      ])
   , ("OpNodePowercycle",
      [ pNodeName
+     , pNodeUuid
      , pForce
      ])
   , ("OpNodeMigrate",
      [ pNodeName
+     , pNodeUuid
      , pMigrationMode
      , pMigrationLive
      , pMigrationTargetNode
+     , pMigrationTargetNodeUuid
      , pAllowRuntimeChgs
      , pIgnoreIpolicy
      , pIallocator
@@ -264,7 +278,9 @@ $(genOpCode "OpCode"
   , ("OpNodeEvacuate",
      [ pEarlyRelease
      , pNodeName
+     , pNodeUuid
      , pRemoteNode
+     , pRemoteNodeUuid
      , pIallocator
      , pEvacMode
      ])
@@ -291,12 +307,15 @@ $(genOpCode "OpCode"
      , pInstOsParams
      , pInstOs
      , pPrimaryNode
+     , pPrimaryNodeUuid
      , pSecondaryNode
+     , pSecondaryNodeUuid
      , pSourceHandshake
      , pSourceInstance
      , pSourceShutdownTimeout
      , pSourceX509Ca
      , pSrcNode
+     , pSrcNodeUuid
      , pSrcPath
      , pStartInstance
      , pOpportunisticLocking
@@ -351,6 +370,7 @@ $(genOpCode "OpCode"
      , pShutdownTimeout
      , pIgnoreIpolicy
      , pMoveTargetNode
+     , pMoveTargetNodeUuid
      , pIgnoreConsistency
      ])
   , ("OpInstanceConsole",
@@ -368,6 +388,7 @@ $(genOpCode "OpCode"
      [ pInstanceName
      , pRecreateDisksInfo
      , pNodes
+     , pNodeUuids
      , pIallocator
      ])
   , ("OpInstanceQuery", dOldQuery)
@@ -388,7 +409,9 @@ $(genOpCode "OpCode"
      , pInstHvParams
      , pOptDiskTemplate
      , pPrimaryNode
+     , pPrimaryNodeUuid
      , pRemoteNode
+     , pRemoteNodeUuid
      , pOsNameChange
      , pInstOsParams
      , pWaitForSync
@@ -421,6 +444,7 @@ $(genOpCode "OpCode"
      [ pGroupName
      , pForce
      , pRequiredNodes
+     , pRequiredNodeUuids
      ])
   , ("OpGroupQuery", dOldQueryNoLocking)
   , ("OpGroupSetParams",
@@ -462,6 +486,7 @@ $(genOpCode "OpCode"
      [ pInstanceName
      , pShutdownTimeout
      , pExportTargetNode
+     , pExportTargetNodeUuid
      , pShutdownInstance
      , pRemoveInstance
      , pIgnoreRemoveFailures
@@ -541,6 +566,7 @@ $(genOpCode "OpCode"
   , ("OpRestrictedCommand",
      [ pUseLocking
      , pRequiredNodes
+     , pRequiredNodeUuids
      , pRestrictedCommand
      ])
   ])

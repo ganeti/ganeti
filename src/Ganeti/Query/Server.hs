@@ -52,6 +52,7 @@ import Ganeti.Logging
 import Ganeti.Luxi
 import Ganeti.OpCodes (TagObject(..))
 import qualified Ganeti.Query.Language as Qlang
+import qualified Ganeti.Query.Cluster as QCluster
 import Ganeti.Query.Query
 import Ganeti.Query.Filter (makeSimpleFilter)
 
@@ -86,6 +87,7 @@ handleCallWrapper (Ok config) op = handleCall config op
 handleCall :: ConfigData -> LuxiOp -> IO (ErrorResult JSValue)
 handleCall cdata QueryClusterInfo =
   let cluster = configCluster cdata
+      master = QCluster.clusterMasterNodeName cdata
       hypervisors = clusterEnabledHypervisors cluster
       diskTemplates = clusterEnabledDiskTemplates cluster
       def_hv = case hypervisors of
@@ -100,7 +102,9 @@ handleCall cdata QueryClusterInfo =
             , ("export_version", showJSON C.exportVersion)
             , ("architecture", showJSON arch_tuple)
             , ("name", showJSON $ clusterClusterName cluster)
-            , ("master", showJSON $ clusterMasterNode cluster)
+            , ("master", showJSON (case master of
+                                     Ok name -> name
+                                     _ -> undefined))
             , ("default_hypervisor", def_hv)
             , ("enabled_hypervisors", showJSON hypervisors)
             , ("hvparams", showJSON $ clusterHvparams cluster)
@@ -143,7 +147,9 @@ handleCall cdata QueryClusterInfo =
             , ("enabled_disk_templates", showJSON diskTemplates)
             ]
 
-  in return . Ok . J.makeObj $ obj
+  in case master of
+    Ok _ -> return . Ok . J.makeObj $ obj
+    Bad ex -> return $ Bad ex
 
 handleCall cfg (QueryTags kind) =
   let tags = case kind of

@@ -47,13 +47,14 @@ class LUOobCommand(NoHooksLU):
 
     """
     if self.op.node_names:
-      self.op.node_names = GetWantedNodes(self, self.op.node_names)
-      lock_names = self.op.node_names
+      (self.op.node_uuids, self.op.node_names) = \
+        GetWantedNodes(self, self.op.node_names)
+      lock_node_uuids = self.op.node_uuids
     else:
-      lock_names = locking.ALL_SET
+      lock_node_uuids = locking.ALL_SET
 
     self.needed_locks = {
-      locking.LEVEL_NODE: lock_names,
+      locking.LEVEL_NODE: lock_node_uuids,
       }
 
     self.share_locks[locking.LEVEL_NODE_ALLOC] = 1
@@ -73,54 +74,54 @@ class LUOobCommand(NoHooksLU):
 
     """
     self.nodes = []
-    self.master_node = self.cfg.GetMasterNode()
+    self.master_node_uuid = self.cfg.GetMasterNode()
+    master_node_obj = self.cfg.GetNodeInfo(self.master_node_uuid)
 
     assert self.op.power_delay >= 0.0
 
-    if self.op.node_names:
+    if self.op.node_uuids:
       if (self.op.command in self._SKIP_MASTER and
-          self.master_node in self.op.node_names):
-        master_node_obj = self.cfg.GetNodeInfo(self.master_node)
+          master_node_obj.uuid in self.op.node_uuids):
         master_oob_handler = SupportsOob(self.cfg, master_node_obj)
 
         if master_oob_handler:
           additional_text = ("run '%s %s %s' if you want to operate on the"
                              " master regardless") % (master_oob_handler,
                                                       self.op.command,
-                                                      self.master_node)
+                                                      master_node_obj.name)
         else:
           additional_text = "it does not support out-of-band operations"
 
         raise errors.OpPrereqError(("Operating on the master node %s is not"
                                     " allowed for %s; %s") %
-                                   (self.master_node, self.op.command,
+                                   (master_node_obj.name, self.op.command,
                                     additional_text), errors.ECODE_INVAL)
     else:
-      self.op.node_names = self.cfg.GetNodeList()
+      self.op.node_uuids = self.cfg.GetNodeList()
       if self.op.command in self._SKIP_MASTER:
-        self.op.node_names.remove(self.master_node)
+        self.op.node_uuids.remove(master_node_obj.uuid)
 
     if self.op.command in self._SKIP_MASTER:
-      assert self.master_node not in self.op.node_names
+      assert master_node_obj.uuid not in self.op.node_uuids
 
-    for (node_name, node) in self.cfg.GetMultiNodeInfo(self.op.node_names):
+    for node_uuid in self.op.node_uuids:
+      node = self.cfg.GetNodeInfo(node_uuid)
       if node is None:
-        raise errors.OpPrereqError("Node %s not found" % node_name,
+        raise errors.OpPrereqError("Node %s not found" % node_uuid,
                                    errors.ECODE_NOENT)
-      else:
-        self.nodes.append(node)
+
+      self.nodes.append(node)
 
       if (not self.op.ignore_status and
           (self.op.command == constants.OOB_POWER_OFF and not node.offline)):
         raise errors.OpPrereqError(("Cannot power off node %s because it is"
-                                    " not marked offline") % node_name,
+                                    " not marked offline") % node.name,
                                    errors.ECODE_STATE)
 
   def Exec(self, feedback_fn):
     """Execute OOB and return result if we expect any.
 
     """
-    master_node = self.master_node
     ret = []
 
     for idx, node in enumerate(utils.NiceSort(self.nodes,
@@ -136,7 +137,7 @@ class LUOobCommand(NoHooksLU):
 
       logging.info("Executing out-of-band command '%s' using '%s' on %s",
                    self.op.command, oob_program, node.name)
-      result = self.rpc.call_run_oob(master_node, oob_program,
+      result = self.rpc.call_run_oob(self.master_node_uuid, oob_program,
                                      self.op.command, node.name,
                                      self.op.timeout)
 
@@ -234,7 +235,7 @@ class ExtStorageQuery(QueryBase):
 
     # The following variables interact with _QueryBase._GetNames
     if self.names:
-      self.wanted = self.names
+      self.wanted = [lu.cfg.GetNodeInfoByName(name).uuid for name in self.names]
     else:
       self.wanted = locking.ALL_SET
 
@@ -247,16 +248,16 @@ class ExtStorageQuery(QueryBase):
   def _DiagnoseByProvider(rlist):
     """Remaps a per-node return list into an a per-provider per-node dictionary
 
-    @param rlist: a map with node names as keys and ExtStorage objects as values
+    @param rlist: a map with node uuids as keys and ExtStorage objects as values
 
     @rtype: dict
     @return: a dictionary with extstorage providers as keys and as
-        value another map, with nodes as keys and tuples of
+        value another map, with node uuids as keys and tuples of
         (path, status, diagnose, parameters) as values, eg::
 
-          {"provider1": {"node1": [(/usr/lib/..., True, "", [])]
-                         "node2": [(/srv/..., False, "missing file")]
-                         "node3": [(/srv/..., True, "", [])]
+          {"provider1": {"node_uuid1": [(/usr/lib/..., True, "", [])]
+                         "node_uuid2": [(/srv/..., False, "missing file")]
+                         "node_uuid3": [(/srv/..., True, "", [])]
           }
 
     """
@@ -264,9 +265,9 @@ class ExtStorageQuery(QueryBase):
     # we build here the list of nodes that didn't fail the RPC (at RPC
     # level), so that nodes with a non-responding node daemon don't
     # make all OSes invalid
-    good_nodes = [node_name for node_name in rlist
-                  if not rlist[node_name].fail_msg]
-    for node_name, nr in rlist.items():
+    good_nodes = [node_uuid for node_uuid in rlist
+                  if not rlist[node_uuid].fail_msg]
+    for node_uuid, nr in rlist.items():
       if nr.fail_msg or not nr.payload:
         continue
       for (name, path, status, diagnose, params) in nr.payload:
@@ -274,11 +275,11 @@ class ExtStorageQuery(QueryBase):
           # build a list of nodes for this os containing empty lists
           # for each node in node_list
           all_es[name] = {}
-          for nname in good_nodes:
-            all_es[name][nname] = []
+          for nuuid in good_nodes:
+            all_es[name][nuuid] = []
         # convert params from [name, help] to (name, help)
         params = [tuple(v) for v in params]
-        all_es[name][node_name].append((path, status, diagnose, params))
+        all_es[name][node_uuid].append((path, status, diagnose, params))
     return all_es
 
   def _GetQueryData(self, lu):
@@ -291,7 +292,7 @@ class ExtStorageQuery(QueryBase):
                            if level != locking.LEVEL_CLUSTER) or
                 self.do_locking or self.use_locking)
 
-    valid_nodes = [node.name
+    valid_nodes = [node.uuid
                    for node in lu.cfg.GetAllNodesInfo().values()
                    if not node.offline and node.vm_capable]
     pol = self._DiagnoseByProvider(lu.rpc.call_extstorage_diagnose(valid_nodes))
@@ -382,10 +383,10 @@ class LURestrictedCommand(NoHooksLU):
 
   def ExpandNames(self):
     if self.op.nodes:
-      self.op.nodes = GetWantedNodes(self, self.op.nodes)
+      (self.op.node_uuids, self.op.nodes) = GetWantedNodes(self, self.op.nodes)
 
     self.needed_locks = {
-      locking.LEVEL_NODE: self.op.nodes,
+      locking.LEVEL_NODE: self.op.node_uuids,
       }
     self.share_locks = {
       locking.LEVEL_NODE: not self.op.use_locking,
@@ -403,17 +404,19 @@ class LURestrictedCommand(NoHooksLU):
     owned_nodes = frozenset(self.owned_locks(locking.LEVEL_NODE))
 
     # Check if correct locks are held
-    assert set(self.op.nodes).issubset(owned_nodes)
+    assert set(self.op.node_uuids).issubset(owned_nodes)
 
-    rpcres = self.rpc.call_restricted_command(self.op.nodes, self.op.command)
+    rpcres = self.rpc.call_restricted_command(self.op.node_uuids,
+                                              self.op.command)
 
     result = []
 
-    for node_name in self.op.nodes:
-      nres = rpcres[node_name]
+    for node_uuid in self.op.node_uuids:
+      nres = rpcres[node_uuid]
       if nres.fail_msg:
         msg = ("Command '%s' on node '%s' failed: %s" %
-               (self.op.command, node_name, nres.fail_msg))
+               (self.op.command, self.cfg.GetNodeName(node_uuid),
+                nres.fail_msg))
         result.append((False, msg))
       else:
         result.append((True, nres.payload))

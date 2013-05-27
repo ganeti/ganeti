@@ -29,7 +29,8 @@ from ganeti import locking
 from ganeti import objects
 from ganeti import utils
 from ganeti.cmdlib.base import NoHooksLU
-from ganeti.cmdlib.common import ExpandNodeName, ExpandInstanceName, ShareAll
+from ganeti.cmdlib.common import ExpandNodeUuidAndName, ExpandInstanceName, \
+  ShareAll
 
 
 class TagsLU(NoHooksLU): # pylint: disable=W0223
@@ -43,9 +44,10 @@ class TagsLU(NoHooksLU): # pylint: disable=W0223
     self.needed_locks = {}
 
     if self.op.kind == constants.TAG_NODE:
-      self.op.name = ExpandNodeName(self.cfg, self.op.name)
+      (self.node_uuid, _) = \
+        ExpandNodeUuidAndName(self.cfg, None, self.op.name)
       lock_level = locking.LEVEL_NODE
-      lock_name = self.op.name
+      lock_name = self.node_uuid
     elif self.op.kind == constants.TAG_INSTANCE:
       self.op.name = ExpandInstanceName(self.cfg, self.op.name)
       lock_level = locking.LEVEL_INSTANCE
@@ -75,7 +77,7 @@ class TagsLU(NoHooksLU): # pylint: disable=W0223
     if self.op.kind == constants.TAG_CLUSTER:
       self.target = self.cfg.GetClusterInfo()
     elif self.op.kind == constants.TAG_NODE:
-      self.target = self.cfg.GetNodeInfo(self.op.name)
+      self.target = self.cfg.GetNodeInfo(self.node_uuid)
     elif self.op.kind == constants.TAG_INSTANCE:
       self.target = self.cfg.GetInstanceInfo(self.op.name)
     elif self.op.kind == constants.TAG_NODEGROUP:

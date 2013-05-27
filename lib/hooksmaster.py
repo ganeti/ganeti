@@ -171,40 +171,41 @@ class HooksMaster(object):
 
     return self.hooks_execution_fn(node_list, hpath, phase, env)
 
-  def RunPhase(self, phase, nodes=None):
+  def RunPhase(self, phase, node_names=None):
     """Run all the scripts for a phase.
 
     This is the main function of the HookMaster.
     It executes self.hooks_execution_fn, and after running
-    self.hooks_results_adapt_fn on its results it expects them to be in the form
-    {node_name: (fail_msg, [(script, result, output), ...]}).
+    self.hooks_results_adapt_fn on its results it expects them to be in the
+    form {node_name: (fail_msg, [(script, result, output), ...]}).
 
     @param phase: one of L{constants.HOOKS_PHASE_POST} or
         L{constants.HOOKS_PHASE_PRE}; it denotes the hooks phase
-    @param nodes: overrides the predefined list of nodes for the given phase
+    @param node_names: overrides the predefined list of nodes for the given
+        phase
     @return: the processed results of the hooks multi-node rpc call
     @raise errors.HooksFailure: on communication failure to the nodes
     @raise errors.HooksAbort: on failure of one of the hooks
 
     """
     if phase == constants.HOOKS_PHASE_PRE:
-      if nodes is None:
-        nodes = self.pre_nodes
+      if node_names is None:
+        node_names = self.pre_nodes
       env = self.pre_env
     elif phase == constants.HOOKS_PHASE_POST:
-      if nodes is None:
-        nodes = self.post_nodes
+      if node_names is None:
+        node_names = self.post_nodes
       env = self._BuildEnv(phase)
     else:
       raise AssertionError("Unknown phase '%s'" % phase)
 
-    if not nodes:
+    if not node_names:
       # empty node list, we should not attempt to run this as either
       # we're in the cluster init phase and the rpc client part can't
       # even attempt to run, or this LU doesn't do hooks at all
       return
 
-    results = self._RunWrapper(nodes, self.hooks_path, phase, env)
+    results = self._RunWrapper(node_names, self.hooks_path, phase, env)
     if not results:
       msg = "Communication Failure"
       if phase == constants.HOOKS_PHASE_PRE:
@@ -258,11 +259,20 @@ class HooksMaster(object):
     if lu.HPATH is None:
       nodes = (None, None)
     else:
-      nodes = map(frozenset, lu.BuildHooksNodes())
+      hooks_nodes = lu.BuildHooksNodes()
+      to_name = lambda node_uuids: frozenset(lu.cfg.GetNodeNames(node_uuids))
+      if len(hooks_nodes) == 2:
+        nodes = (to_name(hooks_nodes[0]), to_name(hooks_nodes[1]))
+      elif len(hooks_nodes) == 3:
+        nodes = (to_name(hooks_nodes[0]),
+                 to_name(hooks_nodes[1]) | frozenset(hooks_nodes[2]))
+      else:
+        raise errors.ProgrammerError(
+          "LogicalUnit.BuildHooksNodes must return a 2- or 3-tuple")
 
     master_name = cluster_name = None
     if lu.cfg:
-      master_name = lu.cfg.GetMasterNode()
+      master_name = lu.cfg.GetMasterNodeName()
       cluster_name = lu.cfg.GetClusterName()
 
     return HooksMaster(lu.op.OP_ID, lu.HPATH, nodes, hooks_execution_fn,

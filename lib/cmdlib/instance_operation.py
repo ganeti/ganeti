@@ -36,8 +36,8 @@ from ganeti import objects
 from ganeti import utils
 from ganeti.cmdlib.base import LogicalUnit, NoHooksLU
 from ganeti.cmdlib.common import INSTANCE_ONLINE, INSTANCE_DOWN, \
-  CheckHVParams, CheckInstanceState, CheckNodeOnline, ExpandNodeName, \
-  GetUpdatedParams, CheckOSParams, ShareAll
+  CheckHVParams, CheckInstanceState, CheckNodeOnline, GetUpdatedParams, \
+  CheckOSParams, ShareAll
 from ganeti.cmdlib.instance_storage import StartInstanceDisks, \
   ShutdownInstanceDisks
 from ganeti.cmdlib.instance_utils import BuildInstanceHookEnvByObject, \
@@ -130,7 +130,8 @@ class LUInstanceStartup(LogicalUnit):
       remote_info = self.rpc.call_instance_info(
           instance.primary_node, instance.name, instance.hypervisor,
           cluster.hvparams[instance.hypervisor])
-      remote_info.Raise("Error checking node %s" % instance.primary_node,
+      remote_info.Raise("Error checking node %s" %
+                        self.cfg.GetNodeName(instance.primary_node),
                         prereq=True, ecode=errors.ECODE_ENVIRON)
       if not remote_info.payload: # not running already
         CheckNodeFreeMemory(
@@ -153,12 +154,10 @@ class LUInstanceStartup(LogicalUnit):
       assert self.op.ignore_offline_nodes
       self.LogInfo("Primary node offline, marked instance as started")
     else:
-      node_current = instance.primary_node
-
       StartInstanceDisks(self, instance, force)
 
       result = \
-        self.rpc.call_instance_start(node_current,
+        self.rpc.call_instance_start(instance.primary_node,
                                      (instance, self.op.hvparams,
                                       self.op.beparams),
                                      self.op.startup_paused, reason)
@@ -224,7 +223,6 @@ class LUInstanceShutdown(LogicalUnit):
 
     """
     instance = self.instance
-    node_current = instance.primary_node
     timeout = self.op.timeout
     reason = self.op.reason
 
@@ -237,8 +235,8 @@ class LUInstanceShutdown(LogicalUnit):
       assert self.op.ignore_offline_nodes
       self.LogInfo("Primary node offline, marked instance as stopped")
     else:
-      result = self.rpc.call_instance_shutdown(node_current, instance, timeout,
-                                               reason)
+      result = self.rpc.call_instance_shutdown(instance.primary_node, instance,
+                                               timeout, reason)
       msg = result.fail_msg
       if msg:
         self.LogWarning("Could not shutdown instance: %s", msg)
@@ -292,17 +290,17 @@ class LUInstanceReinstall(LogicalUnit):
 
     if self.op.os_type is not None:
       # OS verification
-      pnode = ExpandNodeName(self.cfg, instance.primary_node)
-      CheckNodeHasOS(self, pnode, self.op.os_type, self.op.force_variant)
+      CheckNodeHasOS(self, instance.primary_node, self.op.os_type,
+                     self.op.force_variant)
       instance_os = self.op.os_type
     else:
       instance_os = instance.os
 
-    nodelist = list(instance.all_nodes)
+    node_uuids = list(instance.all_nodes)
 
     if self.op.osparams:
       i_osdict = GetUpdatedParams(instance.osparams, self.op.osparams)
-      CheckOSParams(self, True, nodelist, instance_os, i_osdict)
+      CheckOSParams(self, True, node_uuids, instance_os, i_osdict)
       self.os_inst = i_osdict # the new dict (without defaults)
     else:
       self.os_inst = None
@@ -329,7 +327,7 @@ class LUInstanceReinstall(LogicalUnit):
                                              (inst, self.os_inst), True,
                                              self.op.debug_level)
       result.Raise("Could not install OS for instance %s on node %s" %
-                   (inst.name, inst.primary_node))
+                   (inst.name, self.cfg.GetNodeName(inst.primary_node)))
     finally:
       ShutdownInstanceDisks(self, inst)
 
@@ -396,22 +394,23 @@ class LUInstanceReboot(LogicalUnit):
     remote_info = self.rpc.call_instance_info(
         instance.primary_node, instance.name, instance.hypervisor,
         cluster.hvparams[instance.hypervisor])
-    remote_info.Raise("Error checking node %s" % instance.primary_node)
+    remote_info.Raise("Error checking node %s" %
+                      self.cfg.GetNodeName(instance.primary_node))
     instance_running = bool(remote_info.payload)
 
-    node_current = instance.primary_node
+    current_node_uuid = instance.primary_node
 
     if instance_running and reboot_type in [constants.INSTANCE_REBOOT_SOFT,
                                             constants.INSTANCE_REBOOT_HARD]:
       for disk in instance.disks:
-        self.cfg.SetDiskID(disk, node_current)
-      result = self.rpc.call_instance_reboot(node_current, instance,
+        self.cfg.SetDiskID(disk, current_node_uuid)
+      result = self.rpc.call_instance_reboot(current_node_uuid, instance,
                                              reboot_type,
                                              self.op.shutdown_timeout, reason)
       result.Raise("Could not reboot instance")
     else:
       if instance_running:
-        result = self.rpc.call_instance_shutdown(node_current, instance,
+        result = self.rpc.call_instance_shutdown(current_node_uuid, instance,
                                                  self.op.shutdown_timeout,
                                                  reason)
         result.Raise("Could not shutdown instance for full reboot")
@@ -420,7 +419,7 @@ class LUInstanceReboot(LogicalUnit):
         self.LogInfo("Instance %s was already stopped, starting now",
                      instance.name)
       StartInstanceDisks(self, instance, ignore_secondaries)
-      result = self.rpc.call_instance_start(node_current,
+      result = self.rpc.call_instance_start(current_node_uuid,
                                             (instance, None, None), False,
                                             reason)
       msg = result.fail_msg
@@ -432,11 +431,12 @@ class LUInstanceReboot(LogicalUnit):
     self.cfg.MarkInstanceUp(instance.name)
 
 
-def GetInstanceConsole(cluster, instance):
+def GetInstanceConsole(cluster, instance, primary_node):
   """Returns console information for an instance.
 
   @type cluster: L{objects.Cluster}
   @type instance: L{objects.Instance}
+  @type primary_node: L{objects.Node}
   @rtype: dict
 
   """
@@ -445,7 +445,7 @@ def GetInstanceConsole(cluster, instance):
   # instance and then saving the defaults in the instance itself.
   hvparams = cluster.FillHV(instance)
   beparams = cluster.FillBE(instance)
-  console = hyper.GetInstanceConsole(instance, hvparams, beparams)
+  console = hyper.GetInstanceConsole(instance, primary_node, hvparams, beparams)
 
   assert console.instance == instance.name
   assert console.Validate()
@@ -483,13 +483,14 @@ class LUInstanceConsole(NoHooksLU):
 
     """
     instance = self.instance
-    node = instance.primary_node
+    node_uuid = instance.primary_node
 
     cluster_hvparams = self.cfg.GetClusterInfo().hvparams
-    node_insts = self.rpc.call_instance_list([node],
+    node_insts = self.rpc.call_instance_list([node_uuid],
                                              [instance.hypervisor],
-                                             cluster_hvparams)[node]
-    node_insts.Raise("Can't get node information from %s" % node)
+                                             cluster_hvparams)[node_uuid]
+    node_insts.Raise("Can't get node information from %s" %
+                     self.cfg.GetNodeName(node_uuid))
 
     if instance.name not in node_insts.payload:
       if instance.admin_state == constants.ADMINST_UP:
@@ -501,6 +502,8 @@ class LUInstanceConsole(NoHooksLU):
       raise errors.OpExecError("Instance %s is not running (state %s)" %
                                (instance.name, state))
 
-    logging.debug("Connecting to console of %s on %s", instance.name, node)
+    logging.debug("Connecting to console of %s on %s", instance.name,
+                  self.cfg.GetNodeName(node_uuid))
 
-    return GetInstanceConsole(self.cfg.GetClusterInfo(), instance)
+    return GetInstanceConsole(self.cfg.GetClusterInfo(), instance,
+                              self.cfg.GetNodeInfo(instance.primary_node))

@@ -42,12 +42,14 @@ class TestConsole(unittest.TestCase):
     shutil.rmtree(self.tmpdir)
 
   def test(self):
-    instance = objects.Instance(name="fake.example.com", primary_node="node837")
-    cons = hv_chroot.ChrootManager.GetInstanceConsole(instance, {}, {},
+    instance = objects.Instance(name="fake.example.com",
+                                primary_node="node837-uuid")
+    node = objects.Node(name="node837", uuid="node837-uuid")
+    cons = hv_chroot.ChrootManager.GetInstanceConsole(instance, node, {}, {},
                                                       root_dir=self.tmpdir)
     self.assertTrue(cons.Validate())
     self.assertEqual(cons.kind, constants.CONS_SSH)
-    self.assertEqual(cons.host, instance.primary_node)
+    self.assertEqual(cons.host, node.name)
 
 
 if __name__ == "__main__":
