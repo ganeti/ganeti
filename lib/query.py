@@ -1582,6 +1582,19 @@ def _GetInstDiskSize(ctx, _, disk): # pylint: disable=W0613
     return disk.size
 
 
+def _GetInstDiskSpindles(ctx, _, disk): # pylint: disable=W0613
+  """Get a Disk's spindles.
+
+  @type disk: L{objects.Disk}
+  @param disk: The Disk object
+
+  """
+  if disk.spindles is None:
+    return _FS_UNAVAIL
+  else:
+    return disk.spindles
+
+
 def _GetInstDeviceName(ctx, _, device): # pylint: disable=W0613
   """Get a Device's Name.
 
@@ -1905,6 +1918,9 @@ def _GetInstanceDiskFields():
      IQ_CONFIG, 0, lambda ctx, inst: len(inst.disks)),
     (_MakeField("disk.sizes", "Disk_sizes", QFT_OTHER, "List of disk sizes"),
      IQ_CONFIG, 0, lambda ctx, inst: [disk.size for disk in inst.disks]),
+    (_MakeField("disk.spindles", "Disk_spindles", QFT_OTHER,
+                "List of disk spindles"),
+     IQ_CONFIG, 0, lambda ctx, inst: [disk.spindles for disk in inst.disks]),
     (_MakeField("disk.names", "Disk_names", QFT_OTHER, "List of disk names"),
      IQ_CONFIG, 0, lambda ctx, inst: [disk.name for disk in inst.disks]),
     (_MakeField("disk.uuids", "Disk_UUIDs", QFT_OTHER, "List of disk UUIDs"),
@@ -1918,6 +1934,9 @@ def _GetInstanceDiskFields():
         (_MakeField("disk.size/%s" % i, "Disk/%s" % i, QFT_UNIT,
                     "Disk size of %s disk" % numtext),
         IQ_CONFIG, 0, _GetInstDisk(i, _GetInstDiskSize)),
+        (_MakeField("disk.spindles/%s" % i, "DiskSpindles/%s" % i, QFT_NUMBER,
+                    "Spindles of %s disk" % numtext),
+         IQ_CONFIG, 0, _GetInstDisk(i, _GetInstDiskSpindles)),
         (_MakeField("disk.name/%s" % i, "DiskName/%s" % i, QFT_TEXT,
                     "Name of %s disk" % numtext),
         IQ_CONFIG, 0, _GetInstDisk(i, _GetInstDeviceName)),

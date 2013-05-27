@@ -593,6 +593,11 @@ class LUInstanceRecreateDisks(LogicalUnit):
     # reasons, then recreating the disks on the same nodes should be fine.
     disk_template = self.instance.disk_template
     spindle_use = be_full[constants.BE_SPINDLE_USE]
+    disks = [{
+      constants.IDISK_SIZE: d.size,
+      constants.IDISK_MODE: d.mode,
+      constants.IDISK_SPINDLES: d.spindles,
+      } for d in self.instance.disks]
     req = iallocator.IAReqInstanceAlloc(name=self.op.instance_name,
                                         disk_template=disk_template,
                                         tags=list(self.instance.GetTags()),
@@ -601,9 +606,7 @@ class LUInstanceRecreateDisks(LogicalUnit):
                                         vcpus=be_full[constants.BE_VCPUS],
                                         memory=be_full[constants.BE_MAXMEM],
                                         spindle_use=spindle_use,
-                                        disks=[{constants.IDISK_SIZE: d.size,
-                                                constants.IDISK_MODE: d.mode}
-                                               for d in self.instance.disks],
+                                        disks=disks,
                                         hypervisor=self.instance.hypervisor,
                                         node_whitelist=None)
     ial = iallocator.IAllocator(self.cfg, self.rpc, req)

@@ -105,7 +105,7 @@ def Setup(username, password):
 
 INSTANCE_FIELDS = ("name", "os", "pnode", "snodes",
                    "admin_state",
-                   "disk_template", "disk.sizes",
+                   "disk_template", "disk.sizes", "disk.spindles",
                    "nic.ips", "nic.macs", "nic.modes", "nic.links",
                    "beparams", "hvparams",
                    "oper_state", "oper_ram", "oper_vcpus", "status", "tags")

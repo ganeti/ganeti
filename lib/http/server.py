@@ -159,7 +159,7 @@ class _HttpClientToServerMessageReader(http.HttpMessageReader):
 
   """
   # Length limits
-  START_LINE_LENGTH_MAX = 4096
+  START_LINE_LENGTH_MAX = 8192
   HEADER_LENGTH_MAX = 4096
 
   def ParseStartLine(self, start_line):

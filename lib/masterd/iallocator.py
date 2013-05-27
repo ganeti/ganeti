@@ -603,7 +603,8 @@ class IAllocator(object):
         "nodes": [iinfo.primary_node] + list(iinfo.secondary_nodes),
         "nics": nic_data,
         "disks": [{constants.IDISK_SIZE: dsk.size,
-                   constants.IDISK_MODE: dsk.mode}
+                   constants.IDISK_MODE: dsk.mode,
+                   constants.IDISK_SPINDLES: dsk.spindles}
                   for dsk in iinfo.disks],
         "disk_template": iinfo.disk_template,
         "disks_active": iinfo.disks_active,
