@@ -9,7 +9,7 @@ ganeti-noded - Ganeti node daemon
 Synopsis
 --------
 
-**ganeti-noded** [-f] [-d] [-p *PORT*] [-b *ADDRESS*]
+**ganeti-noded** [-f] [-d] [-p *PORT*] [-b *ADDRESS*] [-i *INTERFACE*]
 [--no-mlock] [--syslog] [--no-ssl] [-K *SSL_KEY_FILE*] [-C *SSL_CERT_FILE*]
 
 DESCRIPTION
@@ -35,7 +35,8 @@ The **ganeti-noded** daemon listens to port 1811 TCP, on all
 interfaces, by default. The port can be overridden by an entry in the
 services database (usually ``/etc/services``) or by passing the ``-p``
 option.  The ``-b`` option can be used to specify the address to bind
-to (defaults to ``0.0.0.0``).
+to (defaults to ``0.0.0.0``); alternatively, the ``-i`` option can be
+used to specify the interface to bind do.
 
 Ganeti noded communication is protected via SSL, with a key
 generated at cluster init time. This can be disabled with the

@@ -360,7 +360,8 @@ def Main():
 
   """
   parser = optparse.OptionParser(description="Ganeti Remote API",
-                                 usage="%prog [-f] [-d] [-p port] [-b ADDRESS]",
+                                 usage="%prog [-f] [-d] [-p port] [-b ADDRESS]\
+                                       \ [-i INTERFACE]",
                                  version="%%prog (ganeti) %s" %
                                  constants.RELEASE_VERSION)
   parser.add_option("--require-authentication", dest="reqauth",

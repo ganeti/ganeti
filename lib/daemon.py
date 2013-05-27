@@ -712,12 +712,12 @@ def GenericMain(daemon_name, optionparser,
                           default=constants.SYSLOG_USAGE,
                           choices=["no", "yes", "only"])
 
+  family = ssconf.SimpleStore().GetPrimaryIPFamily()
+  # family will default to AF_INET if there is no ssconf file (e.g. when
+  # upgrading a cluster from 2.2 -> 2.3. This is intended, as Ganeti clusters
+  # <= 2.2 can not be AF_INET6
   if daemon_name in constants.DAEMONS_PORTS:
     default_bind_address = constants.IP4_ADDRESS_ANY
-    family = ssconf.SimpleStore().GetPrimaryIPFamily()
-    # family will default to AF_INET if there is no ssconf file (e.g. when
-    # upgrading a cluster from 2.2 -> 2.3. This is intended, as Ganeti clusters
-    # <= 2.2 can not be AF_INET6
     if family == netutils.IP6Address.family:
       default_bind_address = constants.IP6_ADDRESS_ANY
 
@@ -731,6 +731,8 @@ def GenericMain(daemon_name, optionparser,
                             help=("Bind address (default: '%s')" %
                                   default_bind_address),
                             default=default_bind_address, metavar="ADDRESS")
+    optionparser.add_option("-i", "--interface", dest="bind_interface",
+                            help=("Bind interface"), metavar="INTERFACE")
 
   if default_ssl_key is not None and default_ssl_cert is not None:
     optionparser.add_option("--no-ssl", dest="ssl",
@@ -752,6 +754,24 @@ def GenericMain(daemon_name, optionparser,
     utils.DisableFork()
 
   options, args = optionparser.parse_args()
+
+  if getattr(options, "bind_interface", None) is not None:
+    if options.bind_address != default_bind_address:
+      msg = ("Can't specify both, bind address (%s) and bind interface (%s)" %
+             (options.bind_address, options.bind_interface))
+      print >> sys.stderr, msg
+      sys.exit(constants.EXIT_FAILURE)
+    interface_ip_addresses = \
+      netutils.GetInterfaceIpAddresses(options.bind_interface)
+    if family == netutils.IP6Address.family:
+      if_addresses = interface_ip_addresses[constants.IP6_VERSION]
+    else:
+      if_addresses = interface_ip_addresses[constants.IP4_VERSION]
+    if len(if_addresses) < 1:
+      msg = "Failed to find IP for interface %s" % options.bind_interace
+      print >> sys.stderr, msg
+      sys.exit(constants.EXIT_FAILURE)
+    options.bind_address = if_addresses[0]
 
   if getattr(options, "ssl", False):
     ssl_paths = {
