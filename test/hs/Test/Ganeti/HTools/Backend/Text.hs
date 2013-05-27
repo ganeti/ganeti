@@ -38,8 +38,9 @@ import System.Time (ClockTime(..))
 import Test.Ganeti.TestHelper
 import Test.Ganeti.TestCommon
 import Test.Ganeti.TestHTools
-import Test.Ganeti.HTools.Instance (genInstanceSmallerThanNode)
-import Test.Ganeti.HTools.Node (genNode, genOnlineNode)
+import Test.Ganeti.HTools.Instance (genInstanceSmallerThanNode,
+                                    genInstanceOnNodeList)
+import Test.Ganeti.HTools.Node (genNode, genOnlineNode, genUniqueNodeList)
 
 import Ganeti.BasicTypes
 import qualified Ganeti.HTools.Backend.Text as Text
@@ -97,12 +98,24 @@ prop_Load_Instance name mem dsk vcpus status
 
 prop_Load_InstanceFail :: [(String, Int)] -> [String] -> Property
 prop_Load_InstanceFail ktn fields =
-  length fields /= 10 && length fields /= 11 ==>
+  length fields < 10 || length fields > 12 ==>
     case Text.loadInst nl fields of
       Ok _ -> failTest "Managed to load instance from invalid data"
       Bad msg -> printTestCase ("Unrecognised error message: " ++ msg) $
                  "Invalid/incomplete instance data: '" `isPrefixOf` msg
     where nl = Map.fromList ktn
+
+genInstanceNodes :: Gen (Instance.Instance, Node.List, Types.NameAssoc)
+genInstanceNodes = do
+    (nl, na) <- genUniqueNodeList genOnlineNode
+    inst <- genInstanceOnNodeList nl
+    return (inst, nl, na)
+
+prop_InstanceLSIdempotent :: Property
+prop_InstanceLSIdempotent =
+  forAll genInstanceNodes $ \(inst, nl, assoc) ->
+    (Text.loadInst assoc . Utils.sepSplit '|' . Text.serializeInstance nl)
+    inst ==? Ok (Instance.name inst, inst)
 
 prop_Load_Node :: String -> Int -> Int -> Int -> Int -> Int
                -> Int -> Bool -> Bool
@@ -213,6 +226,7 @@ prop_CreateSerialise =
 testSuite "HTools/Backend/Text"
             [ 'prop_Load_Instance
             , 'prop_Load_InstanceFail
+            , 'prop_InstanceLSIdempotent
             , 'prop_Load_Node
             , 'prop_Load_NodeFail
             , 'prop_NodeLSIdempotent

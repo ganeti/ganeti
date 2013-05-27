@@ -34,6 +34,7 @@ module Ganeti.HTools.Backend.Text
   , loadISpec
   , loadMultipleMinMaxISpecs
   , loadIPolicy
+  , serializeInstance
   , serializeInstances
   , serializeNode
   , serializeNodes
@@ -248,11 +249,11 @@ loadInst ktn [ name, mem, dsk, vcpus, status, auto_bal, pnode, snode
   disk_template <- annotateResult ("Instance " ++ name)
                    (diskTemplateFromRaw dt)
   spindle_use <- tryRead name su
-  when (sidx == pidx) . fail $ "Instance " ++ name ++
-           " has same primary and secondary node - " ++ pnode
   let vtags = commaSplit tags
       newinst = Instance.create name vmem vdsk [vdsk] vvcpus vstatus vtags
                 auto_balance pidx sidx disk_template spindle_use []
+  when (Instance.hasSecondary newinst && sidx == pidx) . fail $
+    "Instance " ++ name ++ " has same primary and secondary node - " ++ pnode
   return (name, newinst)
 
 loadInst ktn [ name, mem, dsk, vcpus, status, auto_bal, pnode, snode

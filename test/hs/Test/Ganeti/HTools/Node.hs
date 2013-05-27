@@ -33,6 +33,7 @@ module Test.Ganeti.HTools.Node
   , genNode
   , genOnlineNode
   , genNodeList
+  , genUniqueNodeList
   ) where
 
 import Test.QuickCheck
@@ -113,6 +114,15 @@ instance Arbitrary Node.Node where
 genNodeList :: Gen Node.Node -> Gen Node.List
 genNodeList ngen = fmap (snd . Loader.assignIndices) names_nodes
     where names_nodes = (fmap . map) (\n -> (Node.name n, n)) $ listOf1 ngen
+
+-- | Node list generator where node names are unique
+genUniqueNodeList :: Gen Node.Node -> Gen (Node.List, Types.NameAssoc)
+genUniqueNodeList ngen = (do
+  nl <- genNodeList ngen
+  let na = (fst . Loader.assignIndices) $
+           map (\n -> (Node.name n, n)) (Container.elems nl)
+  return (nl, na)) `suchThat`
+    (\(nl, na) -> Container.size nl == Map.size na)
 
 -- | Generate a node list, an instance list, and a node graph.
 -- We choose instances with nodes contained in the node list.
