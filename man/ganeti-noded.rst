@@ -9,7 +9,8 @@ ganeti-noded - Ganeti node daemon
 Synopsis
 --------
 
-**ganeti-noded** [-f] [-d]
+**ganeti-noded** [-f] [-d] [-p *PORT*] [-b *ADDRESS*]
+[--no-mlock] [--syslog] [--no-ssl] [-K *SSL_KEY_FILE*] [-C *SSL_CERT_FILE*]
 
 DESCRIPTION
 -----------
