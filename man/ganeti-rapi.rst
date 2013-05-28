@@ -9,8 +9,9 @@ ganeti-rapi - Ganeti remote API daemon
 Synopsis
 --------
 
-| **ganeti-rapi** [-d] [-f] [\--no-ssl] [-K *SSL_KEY_FILE*]
-| [-C *SSL_CERT_FILE*] [\--require-authentication]
+| **ganeti-rapi** [-d] [-f] [-p *PORT] [-b *ADDRESS*]
+| [\--no-ssl] [-K *SSL_KEY_FILE*] [-C *SSL_CERT_FILE*]
+| [\--require-authentication]
 
 DESCRIPTION
 -----------
@@ -25,6 +26,9 @@ changed via the ``-C`` option and the key via the ``-K`` option.
 
 The daemon will listen to the "ganeti-rapi" TCP port, as listed in the
 system services database, or if not defined, to port 5080 by default.
+The port can be overridded by passing the ``-p`` option. The ``-b``
+option can be used to specify the address to bind to (defaults to
+``0.0.0.0``).
 
 See the *Ganeti remote API* documentation for further information.
 
