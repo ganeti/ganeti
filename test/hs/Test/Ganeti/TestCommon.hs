@@ -60,6 +60,7 @@ module Test.Ganeti.TestCommon
   , readTestData
   , genSample
   , testParser
+  , genNonNegative
   ) where
 
 import Control.Applicative
@@ -351,3 +352,8 @@ testParser parser fileName expectedContent = do
   case parseOnly parser $ pack fileContent of
     Left msg -> HUnit.assertFailure $ "Parsing failed: " ++ msg
     Right obtained -> HUnit.assertEqual fileName expectedContent obtained
+
+-- | Generate an arbitrary non negative integer number
+genNonNegative :: Gen Int
+genNonNegative =
+  fmap fromIntegral (arbitrary::Gen (Test.QuickCheck.NonNegative Int))
