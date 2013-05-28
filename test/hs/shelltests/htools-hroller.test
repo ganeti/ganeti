@@ -60,3 +60,9 @@ Error: Cannot create node graph
 >>>/^node-01-00.,node-01-00.,node-01-00.,node-01-00.,node-01-00.,node-01-000$/
 >>>= 0
 
+
+./test/hs/hroller --no-headers -t $TESTDATA_DIR/hroller-nodegroups.data
+>>>/^node-01-00.
+node-01-00.
+node-01-00.,node-02-000$/
+>>>= 0
