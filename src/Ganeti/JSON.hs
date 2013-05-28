@@ -39,6 +39,7 @@ module Ganeti.JSON
   , asJSObject
   , asObjectList
   , tryFromObj
+  , tryArrayMaybeFromObj
   , toArray
   , optionalJSField
   , optFieldsToObj
@@ -104,12 +105,16 @@ loadJSArray :: (Monad m)
                -> m [J.JSObject J.JSValue]
 loadJSArray s = fromJResult s . J.decodeStrict
 
+-- | Helper function for missing-key errors
+buildNoKeyError :: JSRecord -> String -> String
+buildNoKeyError o k =
+  printf "key '%s' not found, object contains only %s" k (show (map fst o))
+
 -- | Reads the value of a key in a JSON object.
 fromObj :: (J.JSON a, Monad m) => JSRecord -> String -> m a
 fromObj o k =
   case lookup k o of
-    Nothing -> fail $ printf "key '%s' not found, object contains only %s"
-               k (show (map fst o))
+    Nothing -> fail $ buildNoKeyError o k
     Just val -> fromKeyValue k val
 
 -- | Reads the value of an optional key in a JSON object. Missing
@@ -135,6 +140,25 @@ maybeFromObj o k =
 fromObjWithDefault :: (J.JSON a, Monad m) =>
                       JSRecord -> String -> a -> m a
 fromObjWithDefault o k d = liftM (fromMaybe d) $ maybeFromObj o k
+
+-- | Reads an array of optional items
+arrayMaybeFromObj :: (J.JSON a, Monad m) =>
+                     JSRecord -> String -> m [Maybe a]
+arrayMaybeFromObj o k =
+  case lookup k o of
+    Just (J.JSArray xs) -> mapM parse xs
+      where
+        parse J.JSNull = return Nothing
+        parse x = liftM Just $ fromJVal x
+    _ -> fail $ buildNoKeyError o k
+
+-- | Wrapper for arrayMaybeFromObj with better diagnostic
+tryArrayMaybeFromObj :: (J.JSON a)
+                     => String     -- ^ Textual "owner" in error messages
+                     -> JSRecord   -- ^ The object array
+                     -> String     -- ^ The desired key from the object
+                     -> Result [Maybe a]
+tryArrayMaybeFromObj t o = annotateResult t . arrayMaybeFromObj o
 
 -- | Reads a JValue, that originated from an object key.
 fromKeyValue :: (J.JSON a, Monad m)
