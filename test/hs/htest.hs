@@ -33,6 +33,7 @@ import System.Log.Logger
 import Test.Ganeti.TestImports ()
 import Test.Ganeti.Attoparsec
 import Test.Ganeti.BasicTypes
+import Test.Ganeti.Block.Diskstats.Parser
 import Test.Ganeti.Block.Drbd.Parser
 import Test.Ganeti.Block.Drbd.Types
 import Test.Ganeti.Common
@@ -91,6 +92,7 @@ allTests =
   , testConfd_Types
   , testConfd_Utils
   , testDaemon
+  , testBlock_Diskstats_Parser
   , testBlock_Drbd_Parser
   , testBlock_Drbd_Types
   , testErrors

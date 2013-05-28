@@ -80,6 +80,7 @@ HS_DIRS = \
 	test/hs/Test \
 	test/hs/Test/Ganeti \
 	test/hs/Test/Ganeti/Block \
+	test/hs/Test/Ganeti/Block/Diskstats \
 	test/hs/Test/Ganeti/Block/Drbd \
 	test/hs/Test/Ganeti/Confd \
 	test/hs/Test/Ganeti/HTools \
@@ -615,6 +616,7 @@ HS_LIB_SRCS = \
 HS_TEST_SRCS = \
 	test/hs/Test/Ganeti/Attoparsec.hs \
 	test/hs/Test/Ganeti/BasicTypes.hs \
+	test/hs/Test/Ganeti/Block/Diskstats/Parser.hs \
 	test/hs/Test/Ganeti/Block/Drbd/Parser.hs \
 	test/hs/Test/Ganeti/Block/Drbd/Types.hs \
 	test/hs/Test/Ganeti/Common.hs \
@@ -1145,6 +1147,7 @@ TEST_FILES = \
 	test/data/ovfdata/wrong_manifest.ovf \
 	test/data/ovfdata/wrong_ova.ova \
 	test/data/ovfdata/wrong_xml.ovf \
+	test/data/proc_diskstats.txt \
 	test/data/proc_drbd8.txt \
 	test/data/proc_drbd80-emptyline.txt \
 	test/data/proc_drbd80-emptyversion.txt \
