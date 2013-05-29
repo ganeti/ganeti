@@ -179,6 +179,8 @@ def GetPaths():
     (pathutils.SOCKET_DIR, DIR, 0770, getent.masterd_uid, getent.daemons_gid),
     (pathutils.MASTER_SOCKET, FILE, 0660,
      getent.masterd_uid, getent.daemons_gid, False),
+    (pathutils.QUERY_SOCKET, FILE, 0660,
+     getent.confd_uid, getent.daemons_gid, False),
     (pathutils.BDEV_CACHE_DIR, DIR, 0755,
      getent.noded_uid, getent.masterd_gid),
     (pathutils.UIDPOOL_LOCKDIR, DIR, 0750,
