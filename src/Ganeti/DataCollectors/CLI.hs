@@ -39,6 +39,7 @@ module Ganeti.DataCollectors.CLI
   , oNode
   , oConfdAddr
   , oConfdPort
+  , oInputFile
   , genericOptions
   ) where
 
@@ -64,6 +65,8 @@ data Options = Options
   , optConfdAddr   :: Maybe String   -- ^ IP address of the Confd server
   , optConfdPort   :: Maybe Int      -- ^ The port of the Confd server to
                                      -- connect to
+  , optInputFile   :: Maybe FilePath -- ^ Path to the file containing the
+                                     -- information to be parsed
   } deriving Show
 
 -- | Default values for the command line options.
@@ -77,6 +80,7 @@ defaultOptions  = Options
   , optNode        = Nothing
   , optConfdAddr   = Nothing
   , optConfdPort   = Nothing
+  , optInputFile   = Nothing
   }
 
 -- | Abbreviation for the option type.
@@ -126,6 +130,13 @@ oConfdPort =
       (\port opts -> Ok opts { optConfdPort = Just port }) "PORT")
     "Network port of the Confd server to connect to",
     OptComplInteger)
+
+oInputFile :: OptType
+oInputFile =
+  ( Option "f" ["file"]
+      (ReqArg (\ f o -> Ok o { optInputFile = Just f }) "FILE")
+      "the input FILE",
+    OptComplFile)
 
 -- | Generic options.
 genericOptions :: [GenericOptType Options]
