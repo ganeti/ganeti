@@ -486,11 +486,17 @@ class MoveDestExecutor(object):
     """
     disk_template = instance["disk_template"]
 
-    disks = [{
-      constants.IDISK_SIZE: i["size"],
-      constants.IDISK_MODE: i["mode"],
-      constants.IDISK_NAME: str(i.get("name")),
-      } for i in instance["disks"]]
+    disks = []
+    for idisk in instance["disks"]:
+      odisk = {
+        constants.IDISK_SIZE: idisk["size"],
+        constants.IDISK_MODE: idisk["mode"],
+        constants.IDISK_NAME: str(idisk.get("name")),
+        }
+      spindles = idisk.get("spindles")
+      if spindles is not None:
+        odisk[constants.IDISK_SPINDLES] = spindles
+      disks.append(odisk)
 
     nics = [{
       constants.INIC_IP: ip,
