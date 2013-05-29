@@ -240,6 +240,12 @@ start() {
       --user ${usergroup%:*} \
       $daemonexec $args "$@"
   fi
+
+  # FIXME: This is a workaround for issue 477. Remove this once confd does not
+  # mess up the permissions anymore.
+  if [[ "$name" == ganeti-confd ]]; then
+    @PKGLIBDIR@/ensure-dirs;
+  fi
 }
 
 # Stops a daemon
