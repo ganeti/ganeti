@@ -49,3 +49,32 @@ Error: "\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL
 []
 Failed reading: versionInfo
 >>>= !0
+
+# Tests for diskstats
+./test/hs/hpc-mon-collector diskstats --help
+>>>= 0
+
+./test/hs/hpc-mon-collector diskstats --help-completion
+>>>= 0
+
+./test/hs/hpc-mon-collector diskstats --version
+>>>= 0
+
+# Test that the diskstats collector fails parsing a non-diskstats file
+./test/hs/hpc-mon-collector diskstats -f /dev/zero
+>>>2/Failed reading/
+>>>= !0
+
+# Test that a non-existent file is correctly reported
+./test/hs/hpc-mon-collector diskstats --file=/proc/no-such-file
+>>>2/Error: reading from file: .* does not exist/
+>>>= !0
+
+# Test that arguments are rejected
+./test/hs/hpc-mon-collector diskstats /dev/null
+>>>2/takes exactly zero arguments/
+>>>= !0
+
+# Test that a standard test file is parsed correctly
+./test/hs/hpc-mon-collector diskstats -f $PYTESTDATA_DIR/proc_diskstats.txt
+>>>=0
