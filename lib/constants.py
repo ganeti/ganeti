@@ -2474,5 +2474,7 @@ OPCODE_REASON_SOURCES = compat.UniqueFrozenset([
   OPCODE_REASON_SRC_USER,
   ])
 
+DISKSTATS_FILE = "/proc/diskstats"
+
 # Do not re-export imported modules
 del re, _vcsversion, _autoconf, socket, pathutils, compat
