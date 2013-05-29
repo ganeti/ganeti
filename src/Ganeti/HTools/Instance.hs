@@ -275,23 +275,29 @@ specOf :: Instance -> T.RSpec
 specOf Instance { mem = m, dsk = d, vcpus = c } =
   T.RSpec { T.rspecCpu = c, T.rspecMem = m, T.rspecDsk = d }
 
--- | Checks if an instance is smaller than a given spec. Returns
+-- | Checks if an instance is smaller/bigger than a given spec. Returns
 -- OpGood for a correct spec, otherwise Bad one of the possible
 -- failure modes.
-instBelowISpec :: Instance -> T.ISpec -> T.OpResult ()
-instBelowISpec inst ispec
-  | mem inst > T.iSpecMemorySize ispec = Bad T.FailMem
-  | any (> T.iSpecDiskSize ispec) (map dskSize $ disks inst) = Bad T.FailDisk
-  | vcpus inst > T.iSpecCpuCount ispec = Bad T.FailCPU
+instCompareISpec :: Ordering -> Instance-> T.ISpec -> T.OpResult ()
+instCompareISpec which inst ispec
+  | which == mem inst `compare` T.iSpecMemorySize ispec = Bad T.FailMem
+  | which `elem` map ((`compare` T.iSpecDiskSize ispec) . dskSize)
+    (disks inst) = Bad T.FailDisk
+  | which == vcpus inst `compare` T.iSpecCpuCount ispec = Bad T.FailCPU
+  | which == spindleUse inst `compare` T.iSpecSpindleUse ispec
+    = Bad T.FailSpindles
+  | diskTemplate inst /= T.DTDiskless &&
+    which == length (disks inst) `compare` T.iSpecDiskCount ispec
+    = Bad T.FailDiskCount
   | otherwise = Ok ()
+
+-- | Checks if an instance is smaller than a given spec.
+instBelowISpec :: Instance -> T.ISpec -> T.OpResult ()
+instBelowISpec = instCompareISpec GT
 
 -- | Checks if an instance is bigger than a given spec.
 instAboveISpec :: Instance -> T.ISpec -> T.OpResult ()
-instAboveISpec inst ispec
-  | mem inst < T.iSpecMemorySize ispec = Bad T.FailMem
-  | any (< T.iSpecDiskSize ispec) (map dskSize $ disks inst) = Bad T.FailDisk
-  | vcpus inst < T.iSpecCpuCount ispec = Bad T.FailCPU
-  | otherwise = Ok ()
+instAboveISpec = instCompareISpec LT
 
 -- | Checks if an instance matches a min/max specs pair
 instMatchesMinMaxSpecs :: Instance -> T.MinMaxISpecs -> T.OpResult ()
@@ -303,11 +309,11 @@ instMatchesMinMaxSpecs inst minmax = do
 instMatchesSpecs :: Instance -> [T.MinMaxISpecs] -> T.OpResult ()
  -- Return Ok for no constraints, though this should never happen
 instMatchesSpecs _ [] = Ok ()
-instMatchesSpecs inst (minmax:minmaxes) =
-  foldr eithermatch (instMatchesMinMaxSpecs inst minmax) minmaxes
+instMatchesSpecs inst minmaxes =
+  -- The initial "Bad" should be always replaced by a real result
+  foldr eithermatch (Bad T.FailInternal) minmaxes
   where eithermatch mm (Bad _) = instMatchesMinMaxSpecs inst mm
         eithermatch _ y@(Ok ()) = y
---  # See 04f231771
 
 -- | Checks if an instance matches a policy.
 instMatchesPolicy :: Instance -> T.IPolicy -> T.OpResult ()
