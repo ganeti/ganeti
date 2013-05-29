@@ -42,6 +42,7 @@ import qualified Text.JSON as J
 
 import qualified Ganeti.BasicTypes as BT
 import Ganeti.Daemon
+import qualified Ganeti.DataCollectors.Diskstats as Diskstats
 import qualified Ganeti.DataCollectors.Drbd as Drbd
 import qualified Ganeti.DataCollectors.InstStatus as InstStatus
 import Ganeti.DataCollectors.Types
@@ -72,7 +73,9 @@ data DataCollector = DataCollector
 -- | The list of available builtin data collectors.
 collectors :: [DataCollector]
 collectors =
-  [ DataCollector Drbd.dcName Drbd.dcCategory Drbd.dcKind Drbd.dcReport
+  [ DataCollector Diskstats.dcName Diskstats.dcCategory Diskstats.dcKind
+      Diskstats.dcReport
+  , DataCollector Drbd.dcName Drbd.dcCategory Drbd.dcKind Drbd.dcReport
   , DataCollector InstStatus.dcName InstStatus.dcCategory InstStatus.dcKind
       InstStatus.dcReport
   ]
