@@ -28,6 +28,7 @@ module Ganeti.DataCollectors.Program (personalities) where
 import Ganeti.Common (PersonalityList)
 import Ganeti.DataCollectors.CLI (Options)
 
+import qualified Ganeti.DataCollectors.Diskstats as Diskstats
 import qualified Ganeti.DataCollectors.Drbd as Drbd
 import qualified Ganeti.DataCollectors.InstStatus as InstStatus
 
@@ -40,4 +41,8 @@ personalities = [ (Drbd.dcName, (Drbd.main, Drbd.options, Drbd.arguments,
                                        InstStatus.arguments,
                                        "gathers and displays the status of the\
                                        \ instances in JSON format"))
+                , (Diskstats.dcName, (Diskstats.main, Diskstats.options,
+                                      Diskstats.arguments,
+                                      "gathers and displays the disk usage\
+                                      \ statistics in JSON format"))
                 ]

@@ -548,6 +548,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/Curl/Multi.hs \
 	src/Ganeti/Daemon.hs \
 	src/Ganeti/DataCollectors/CLI.hs \
+	src/Ganeti/DataCollectors/Diskstats.hs \
 	src/Ganeti/DataCollectors/Drbd.hs \
 	src/Ganeti/DataCollectors/InstStatus.hs \
 	src/Ganeti/DataCollectors/InstStatusTypes.hs \
