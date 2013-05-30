@@ -571,6 +571,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   # dashes not preceeded by a new line (which would mean another option
   # different than -drive is starting)
   _BOOT_RE = re.compile(r"^-drive\s([^-]|(?<!^)-)*,boot=on\|off", re.M | re.S)
+  _UUID_RE = re.compile(r"^-uuid\s", re.M)
 
   ANCILLARY_FILES = [
     _KVM_NETWORK_SCRIPT,
@@ -1385,6 +1386,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if hvp[constants.HV_USB_DEVICES]:
       for dev in hvp[constants.HV_USB_DEVICES].split(","):
         kvm_cmd.extend(["-usbdevice", dev])
+
+    # Set system UUID to instance UUID
+    if self._UUID_RE.search(kvmhelp):
+      kvm_cmd.extend(["-uuid", instance.uuid])
 
     if hvp[constants.HV_KVM_EXTRA]:
       kvm_cmd.extend([hvp[constants.HV_KVM_EXTRA]])
