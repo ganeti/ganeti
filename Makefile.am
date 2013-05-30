@@ -1044,6 +1044,7 @@ TEST_FILES = \
 	test/data/htools/hail-alloc-invalid-network.json \
 	test/data/htools/hail-alloc-invalid-twodisks.json \
 	test/data/htools/hail-alloc-restricted-network.json \
+	test/data/htools/hail-alloc-spindles.json \
 	test/data/htools/hail-alloc-twodisks.json \
 	test/data/htools/hail-change-group.json \
 	test/data/htools/hail-invalid-reloc.json \

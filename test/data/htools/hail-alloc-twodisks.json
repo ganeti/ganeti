@@ -74,9 +74,11 @@
     "disk_template": "file",
     "disks": [
       {
+        "spindles": 1,
         "size": 1536
       },
       {
+        "spindles": 1,
         "size": 1536
       }
     ],

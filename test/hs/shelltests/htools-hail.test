@@ -62,6 +62,53 @@ cat $TESTDATA_DIR/hail-alloc-invalid-network.json | grep -v -e '"network":"uuid-
 >>> /"success":true,"info":"Request successful: Selected group: Group 2.*/
 >>>= 0
 
+# Run some of the tests above, with exclusive storage enabled
+./test/hs/hail $T/hail-alloc-drbd.json.excl-stor
+>>> /"success":true,.*,"result":\["node2","node1"\]/
+>>>= 0
+
+./test/hs/hail $T/hail-reloc-drbd.json.excl-stor
+>>> /"success":true,.*,"result":\["node1"\]/
+>>>= 0
+
+./test/hs/hail $T/hail-node-evac.json.excl-stor
+>>> /"success":true,"info":"Request successful: 0 instances failed to move and 1 were moved successfully"/
+>>>= 0
+
+./test/hs/hail $T/hail-change-group.json.excl-stor
+>>> /"success":true,"info":"Request successful: 0 instances failed to move and 1 were moved successfully"/
+>>>= 0
+
+./test/hs/hail $T/hail-alloc-twodisks.json.excl-stor
+>>> /"success":true,.*,"result":\["node1"\]/
+>>>= 0
+
+./test/hs/hail $T/hail-alloc-invalid-twodisks.json.excl-stor
+>>> /"success":false,.*FailDisk: 1"/
+>>>= 0
+
+# Same tests with exclusive storage enabled, but no spindles info in instances
+# Operations involving relocation succed because policies are not checked
+./test/hs/hail $T/hail-alloc-drbd.json.fail-excl-stor
+>>> /"success":false,.*FailSpindles: 12"/
+>>>= 0
+
+./test/hs/hail $T/hail-reloc-drbd.json.fail-excl-stor
+>>> /"success":true,.*,"result":\["node1"\]/
+>>>= 0
+
+./test/hs/hail $T/hail-node-evac.json.fail-excl-stor
+>>> /"success":true,"info":"Request successful: 0 instances failed to move and 1 were moved successfully"/
+>>>= 0
+
+./test/hs/hail $T/hail-change-group.json.fail-excl-stor
+>>> /"success":true,"info":"Request successful: 1 instances failed to move and 0 were moved successfully",.*FailSpindles: 2"/
+>>>= 0
+
+./test/hs/hail $T/hail-alloc-twodisks.json.fail-excl-stor
+>>> /"success":false,.*FailSpindles: 1"/
+>>>= 0
+
 # check that hail can use the simu backend
 ./test/hs/hail --simu p,8,8T,16g,16 $TESTDATA_DIR/hail-alloc-drbd.json
 >>> /"success":true,/
@@ -98,4 +145,13 @@ cat $TESTDATA_DIR/hail-alloc-invalid-network.json | grep -v -e '"network":"uuid-
 
 ./test/hs/hail $T/hail-node-evac.json.all
 >>> /"success":true,"info":"Request successful: 0 instances failed to move and 1 were moved successfully"/
+>>>= 0
+
+# Check interaction between policies and spindles
+./test/hs/hail $TESTDATA_DIR/hail-alloc-spindles.json
+>>> /"success":true,"info":"Request successful: Selected group: group2,.*FailSpindles: 2,.*"result":\["node4"\]/
+>>>= 0
+
+./test/hs/hail $T/hail-alloc-spindles.json.excl-stor
+>>> /"success":true,"info":"Request successful: Selected group: group1,.*FailSpindles: 2",.*"result":\["node2"\]/
 >>>= 0

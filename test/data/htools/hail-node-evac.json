@@ -98,6 +98,7 @@
     "instance14": {
       "disks": [
         {
+          "spindles": 1,
           "mode": "rw",
           "size": 128
         }
@@ -128,6 +129,7 @@
     "instance13": {
       "disks": [
         {
+          "spindles": 1,
           "mode": "rw",
           "size": 512
         }
@@ -157,6 +159,7 @@
     "instance18": {
       "disks": [
         {
+          "spindles": 1,
           "mode": "rw",
           "size": 128
         }
@@ -186,6 +189,7 @@
     "instance19": {
       "disks": [
         {
+          "spindles": 1,
           "mode": "rw",
           "size": 128
         }
@@ -216,6 +220,7 @@
     "instance2": {
       "disks": [
         {
+          "spindles": 1,
           "mode": "rw",
           "size": 128
         }
@@ -246,10 +251,12 @@
     "instance3": {
       "disks": [
         {
+          "spindles": 1,
           "mode": "rw",
           "size": 256
         },
         {
+	  "spindles": 1,
           "mode": "rw",
           "size": 128
         }
@@ -279,6 +286,7 @@
     "instance4": {
       "disks": [
         {
+          "spindles": 2,
           "mode": "rw",
           "size": 2048
         }
@@ -309,6 +317,7 @@
     "instance8": {
       "disks": [
         {
+          "spindles": 1,
           "mode": "rw",
           "size": 256
         }
@@ -338,6 +347,7 @@
     "instance9": {
       "disks": [
         {
+          "spindles": 1,
           "mode": "rw",
           "size": 128
         }
@@ -370,6 +380,7 @@
     "instance20": {
       "disks": [
         {
+          "spindles": 1,
           "mode": "rw",
           "size": 512
         }

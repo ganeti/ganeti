@@ -67,8 +67,18 @@ export BACKEND_EXCL="-t $T/simu-onegroup.standard"
 echo -n Generating data files for IAllocator checks...
 for evac_mode in primary-only secondary-only all; do
   sed -e 's/"evac_mode": "all"/"evac_mode": "'${evac_mode}'"/' \
+    -e 's/"spindles": [0-9]\+,//' \
     < $TESTDATA_DIR/hail-node-evac.json \
     > $T/hail-node-evac.json.$evac_mode
+done
+for bf in hail-alloc-drbd hail-alloc-invalid-twodisks hail-alloc-twodisks \
+  hail-change-group hail-node-evac hail-reloc-drbd hail-alloc-spindles; do
+  f=$bf.json
+  sed -e 's/"exclusive_storage": false/"exclusive_storage": true/' \
+    < $TESTDATA_DIR/$f > $T/$f.excl-stor
+  sed -e 's/"exclusive_storage": false/"exclusive_storage": true/' \
+    -e 's/"spindles": [0-9]\+,//' \
+    < $TESTDATA_DIR/$f > $T/$f.fail-excl-stor
 done
 echo OK
 

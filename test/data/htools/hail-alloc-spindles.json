@@ -30,7 +30,7 @@
               "disk-count": 16,
               "memory-size": 32768,
               "cpu-count": 8,
-              "spindle-use": 8
+              "spindle-use": 2
             }
           }
         ],
@@ -46,10 +46,57 @@
         ],
         "spindle-ratio": 32.0
       },
-      "networks": [],
       "alloc_policy": "preferred",
+      "networks": [],
       "tags": [],
-      "name": "default"
+      "name": "group1"
+    },
+    "uuid-group-2": {
+      "ipolicy": {
+        "std": {
+          "nic-count": 1,
+          "disk-size": 1024,
+          "disk-count": 1,
+          "memory-size": 128,
+          "cpu-count": 1,
+          "spindle-use": 2
+        },
+        "minmax": [
+          {
+            "min": {
+              "nic-count": 1,
+              "disk-size": 128,
+              "disk-count": 1,
+              "memory-size": 128,
+              "cpu-count": 1,
+              "spindle-use": 2
+            },
+            "max": {
+              "nic-count": 8,
+              "disk-size": 1048576,
+              "disk-count": 16,
+              "memory-size": 32768,
+              "cpu-count": 8,
+              "spindle-use": 3
+            }
+          }
+        ],
+        "vcpu-ratio": 4.0,
+        "disk-templates": [
+          "sharedfile",
+          "diskless",
+          "plain",
+          "blockdev",
+          "drbd",
+          "file",
+          "rbd"
+        ],
+        "spindle-ratio": 32.0
+      },
+      "alloc_policy": "preferred",
+      "networks": [],
+      "tags": [],
+      "name": "group2"
     }
   },
   "ipolicy": {
@@ -99,52 +146,21 @@
   ],
   "cluster_name": "cluster",
   "instances": {
-    "instance14": {
+    "instance1": {
       "disks": [
         {
           "spindles": 1,
           "mode": "rw",
-          "size": 128
+          "size": 650000
         }
       ],
-      "disk_space_total": 256,
+      "disk_space_total": 650000,
       "hypervisor": "xen-pvm",
       "tags": [],
       "nics": [
         {
           "ip": null,
-          "mac": "aa:00:00:eb:0b:a5",
-          "link": "xen-br0",
-          "mode": "bridged",
-          "bridge": "xen-br0"
-        }
-      ],
-      "vcpus": 1,
-      "admin_state": "down",
-      "disk_template": "drbd",
-      "spindle_use": 1,
-      "memory": 128,
-      "nodes": [
-        "node3",
-        "node4"
-      ],
-      "os": "debian-image"
-    },
-    "instance13": {
-      "disks": [
-        {
-          "spindles": 1,
-          "mode": "rw",
-          "size": 512
-        }
-      ],
-      "disk_space_total": 512,
-      "hypervisor": "xen-pvm",
-      "tags": [],
-      "nics": [
-        {
-          "ip": null,
-          "mac": "aa:00:00:7f:8c:9c",
+          "mac": "aa:00:00:7f:8c:91",
           "link": "xen-br1",
           "mode": "bridged",
           "bridge": "xen-br1"
@@ -152,81 +168,20 @@
       ],
       "vcpus": 1,
       "spindle_use": 1,
-      "admin_state": "down",
+      "admin_state": "up",
       "disk_template": "plain",
-      "memory": 128,
+      "memory": 1024,
       "nodes": [
-        "node4"
+        "node1"
       ],
       "os": "instance-debootstrap"
-    },
-    "instance18": {
-      "disks": [
-        {
-          "spindles": 1,
-          "mode": "rw",
-          "size": 128
-        }
-      ],
-      "disk_space_total": 128,
-      "hypervisor": "xen-pvm",
-      "tags": [],
-      "nics": [
-        {
-          "ip": null,
-          "mac": "aa:00:00:55:94:93",
-          "link": "xen-br0",
-          "mode": "bridged",
-          "bridge": "xen-br0"
-        }
-      ],
-      "vcpus": 1,
-      "spindle_use": 1,
-      "admin_state": "down",
-      "disk_template": "plain",
-      "memory": 8192,
-      "nodes": [
-        "node4"
-      ],
-      "os": "instance-debootstrap"
-    },
-    "instance19": {
-      "disks": [
-        {
-          "spindles": 1,
-          "mode": "rw",
-          "size": 128
-        }
-      ],
-      "disk_space_total": 256,
-      "hypervisor": "xen-pvm",
-      "tags": [],
-      "nics": [
-        {
-          "ip": null,
-          "mac": "aa:00:00:15:92:6f",
-          "link": "xen-br0",
-          "mode": "bridged",
-          "bridge": "xen-br0"
-        }
-      ],
-      "vcpus": 1,
-      "spindle_use": 1,
-      "admin_state": "down",
-      "disk_template": "drbd",
-      "memory": 128,
-      "nodes": [
-        "node3",
-        "node4"
-      ],
-      "os": "debian-image"
     },
     "instance2": {
       "disks": [
         {
-          "spindles": 1,
+          "spindles": 2,
           "mode": "rw",
-          "size": 128
+          "size": 256
         }
       ],
       "disk_space_total": 256,
@@ -235,177 +190,77 @@
       "nics": [
         {
           "ip": null,
-          "mac": "aa:00:00:73:20:3e",
-          "link": "xen-br0",
+          "mac": "aa:00:00:7f:8c:92",
+          "link": "xen-br1",
           "mode": "bridged",
-          "bridge": "xen-br0"
+          "bridge": "xen-br1"
         }
       ],
       "vcpus": 1,
       "spindle_use": 1,
       "admin_state": "up",
-      "disk_template": "drbd",
-      "memory": 128,
+      "disk_template": "plain",
+      "memory": 1024,
       "nodes": [
-        "node3",
-        "node4"
+        "node2"
       ],
-      "os": "debian-image"
+      "os": "instance-debootstrap"
     },
     "instance3": {
       "disks": [
         {
           "spindles": 1,
           "mode": "rw",
-          "size": 256
-        },
-        {
-          "spindles": 1,
-          "mode": "rw",
-          "size": 128
+          "size": 650000
         }
       ],
-      "disk_space_total": 384,
+      "disk_space_total": 650000,
       "hypervisor": "xen-pvm",
       "tags": [],
       "nics": [
         {
           "ip": null,
-          "mac": "aa:00:00:ec:e8:a2",
-          "link": "xen-br0",
+          "mac": "aa:00:00:7f:8c:93",
+          "link": "xen-br1",
           "mode": "bridged",
-          "bridge": "xen-br0"
+          "bridge": "xen-br1"
         }
       ],
       "vcpus": 1,
       "spindle_use": 1,
-      "admin_state": "down",
+      "admin_state": "up",
       "disk_template": "plain",
-      "memory": 128,
+      "memory": 1024,
       "nodes": [
-        "node4"
+        "node3"
       ],
-      "os": "debian-image"
+      "os": "instance-debootstrap"
     },
     "instance4": {
       "disks": [
         {
           "spindles": 2,
           "mode": "rw",
-          "size": 2048
-        }
-      ],
-      "disk_space_total": 2176,
-      "hypervisor": "xen-pvm",
-      "tags": [],
-      "nics": [
-        {
-          "ip": null,
-          "mac": "aa:00:00:62:b0:76",
-          "link": "xen-br0",
-          "mode": "bridged",
-          "bridge": "xen-br0"
-        }
-      ],
-      "vcpus": 1,
-      "spindle_use": 1,
-      "admin_state": "down",
-      "disk_template": "drbd",
-      "memory": 128,
-      "nodes": [
-        "node4",
-        "node3"
-      ],
-      "os": "instance-debootstrap"
-    },
-    "instance8": {
-      "disks": [
-        {
-          "spindles": 1,
-          "mode": "rw",
           "size": 256
         }
       ],
       "disk_space_total": 256,
-      "hypervisor": "kvm",
-      "tags": [],
-      "nics": [
-        {
-          "ip": null,
-          "mac": "aa:00:00:3f:6d:e3",
-          "link": "xen-br0",
-          "mode": "bridged",
-          "bridge": "xen-br0"
-        }
-      ],
-      "vcpus": 1,
-      "spindle_use": 1,
-      "admin_state": "down",
-      "disk_template": "plain",
-      "memory": 128,
-      "nodes": [
-        "node4"
-      ],
-      "os": "debian-image"
-    },
-    "instance9": {
-      "disks": [
-        {
-          "spindles": 1,
-          "mode": "rw",
-          "size": 128
-        }
-      ],
-      "disk_space_total": 256,
       "hypervisor": "xen-pvm",
-      "tags": [
-        "test:test"
-      ],
-      "nics": [
-        {
-          "ip": null,
-          "mac": "aa:00:00:10:d2:01",
-          "link": "xen-br0",
-          "mode": "bridged",
-          "bridge": "xen-br0"
-        }
-      ],
-      "vcpus": 1,
-      "spindle_use": 1,
-      "admin_state": "down",
-      "disk_template": "drbd",
-      "memory": 128,
-      "nodes": [
-        "node3",
-        "node4"
-      ],
-      "os": "instance-debootstrap"
-    },
-    "instance20": {
-      "disks": [
-        {
-          "spindles": 1,
-          "mode": "rw",
-          "size": 512
-        }
-      ],
-      "disk_space_total": 512,
-      "hypervisor": "kvm",
       "tags": [],
       "nics": [
         {
           "ip": null,
-          "mac": "aa:00:00:db:2a:6d",
-          "link": "xen-br0",
+          "mac": "aa:00:00:7f:8c:94",
+          "link": "xen-br1",
           "mode": "bridged",
-          "bridge": "xen-br0"
+          "bridge": "xen-br1"
         }
       ],
       "vcpus": 1,
       "spindle_use": 1,
-      "admin_state": "down",
+      "admin_state": "up",
       "disk_template": "plain",
-      "memory": 128,
+      "memory": 1024,
       "nodes": [
         "node4"
       ],
@@ -419,22 +274,22 @@
       "total_cpus": 4,
       "group": "uuid-group-1",
       "secondary_ip": "192.168.2.1",
-      "i_pri_up_memory": 0,
+      "i_pri_up_memory": 1024,
       "tags": [],
       "master_candidate": true,
-      "free_memory": 31389,
+      "free_memory": 30722,
       "ndparams": {
-        "spindle_count": 1,
+        "spindle_count": 2,
         "oob_program": null,
         "exclusive_storage": false
       },
       "reserved_memory": 1017,
       "master_capable": true,
-      "free_disk": 1377280,
+      "free_disk": 687280,
       "drained": false,
       "total_memory": 32763,
       "primary_ip": "192.168.1.1",
-      "i_pri_memory": 0,
+      "i_pri_memory": 1024,
       "vm_capable": true,
       "offline": false
     },
@@ -443,70 +298,70 @@
       "total_cpus": 4,
       "group": "uuid-group-1",
       "secondary_ip": "192.168.2.2",
-      "i_pri_up_memory": 0,
+      "i_pri_up_memory": 1024,
       "tags": [],
       "master_candidate": true,
-      "free_memory": 31746,
+      "free_memory": 30722,
       "ndparams": {
-        "spindle_count": 1,
+        "spindle_count": 2,
         "oob_program": null,
         "exclusive_storage": false
       },
       "reserved_memory": 1017,
       "master_capable": true,
-      "free_disk": 1376640,
+      "free_disk": 1377024,
       "drained": false,
       "total_memory": 32763,
       "primary_ip": "192.168.1.2",
-      "i_pri_memory": 0,
+      "i_pri_memory": 1024,
       "vm_capable": true,
       "offline": false
     },
     "node3": {
-      "total_disk": 1377304,
+      "total_disk": 1377280,
       "total_cpus": 4,
-      "group": "uuid-group-1",
+      "group": "uuid-group-2",
       "secondary_ip": "192.168.2.3",
-      "i_pri_up_memory": 128,
+      "i_pri_up_memory": 1024,
       "tags": [],
       "master_candidate": true,
-      "free_memory": 31234,
+      "free_memory": 30722,
       "ndparams": {
-        "spindle_count": 1,
+        "spindle_count": 2,
         "oob_program": null,
         "exclusive_storage": false
       },
       "reserved_memory": 1017,
       "master_capable": true,
-      "free_disk": 1373336,
+      "free_disk": 687280,
       "drained": false,
       "total_memory": 32763,
       "primary_ip": "192.168.1.3",
-      "i_pri_memory": 2432,
+      "i_pri_memory": 1204,
       "vm_capable": true,
       "offline": false
     },
     "node4": {
       "total_disk": 1377280,
       "total_cpus": 4,
-      "group": "uuid-group-1",
+      "group": "uuid-group-2",
       "secondary_ip": "192.168.2.4",
-      "i_pri_up_memory": 128,
+      "i_pri_up_memory": 1024,
       "tags": [],
       "master_candidate": true,
-      "free_memory": 22914,
+      "free_memory": 30722,
       "ndparams": {
-        "spindle_count": 1,
+        "spindle_count": 2,
         "oob_program": null,
         "exclusive_storage": false
       },
       "reserved_memory": 1017,
       "master_capable": true,
-      "free_disk": 1371520,
+      "free_disk": 1377024,
       "drained": false,
       "total_memory": 32763,
       "primary_ip": "192.168.1.4",
-      "i_pri_memory": 23552,
+      "i_pri_memory": 1024,
       "vm_capable": true,
       "offline": false
     }
@@ -519,8 +374,8 @@
         "size": 1024
       }
     ],
-    "required_nodes": 2,
-    "name": "instance1",
+    "required_nodes": 1,
+    "name": "instance10",
     "tags": [],
     "hypervisor": "xen-pvm",
     "disk_space_total": 1024,
@@ -532,9 +387,9 @@
       }
     ],
     "vcpus": 1,
-    "spindle_use": 1,
+    "spindle_use": 3,
     "os": "instance-debootstrap",
-    "disk_template": "drbd",
+    "disk_template": "plain",
     "memory": 1024,
     "type": "allocate"
   }
