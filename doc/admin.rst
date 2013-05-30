@@ -1660,6 +1660,22 @@ move-instance
 
 See :doc:`separate documentation for move-instance <move-instance>`.
 
+users-setup
++++++++++++
+
+Ganeti can either be run entirely as root, or with every daemon running as
+its own specific user (if the parameters ``--with-user-prefix`` and/or
+``--with-group-prefix`` have been specified at ``./configure``-time).
+
+In case split users are activated, they are required to exist on the system,
+and they need to belong to the proper groups in order for the access
+permissions to files and programs to be correct.
+
+The ``users-setup`` tool, when run, takes care of setting up the proper
+users and groups.
+
+The tool does not accept any parameter, and requires root permissions to run.
+
 .. TODO: document cluster-merge tool
 
 
