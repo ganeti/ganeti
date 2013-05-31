@@ -37,6 +37,7 @@ module Ganeti.HTools.Types
   , AllocPolicy(..)
   , allocPolicyFromRaw
   , allocPolicyToRaw
+  , NetworkID
   , InstanceStatus(..)
   , instanceStatusFromRaw
   , instanceStatusToRaw
@@ -156,6 +157,9 @@ data AllocInfo = AllocInfo
 
 -- | Currently used, possibly to allocate, unallocable.
 type AllocStats = (AllocInfo, AllocInfo, AllocInfo)
+
+-- | The network UUID type.
+type NetworkID = String
 
 -- | Instance specification type.
 $(THH.buildObject "ISpec" "iSpec"

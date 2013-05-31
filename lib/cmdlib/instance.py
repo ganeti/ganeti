@@ -1203,6 +1203,7 @@ class LUInstanceCreate(LogicalUnit):
                             primary_node=pnode_name,
                             nics=self.nics, disks=disks,
                             disk_template=self.op.disk_template,
+                            disks_active=False,
                             admin_state=constants.ADMINST_DOWN,
                             network_port=network_port,
                             beparams=self.op.beparams,
@@ -1281,6 +1282,9 @@ class LUInstanceCreate(LogicalUnit):
       self.remove_locks[locking.LEVEL_INSTANCE] = iobj.name
       raise errors.OpExecError("There are some degraded disks for"
                                " this instance")
+
+    # instance disks are now active
+    iobj.disks_active = True
 
     # Release all node resource locks
     ReleaseLocks(self, locking.LEVEL_NODE_RES)

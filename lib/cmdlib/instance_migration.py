@@ -832,7 +832,7 @@ class TLMigrateInstance(Tasklet):
     source_node = instance.primary_node
     target_node = self.target_node
 
-    if instance.admin_state == constants.ADMINST_UP:
+    if instance.disks_active:
       self.feedback_fn("* checking disk consistency between source and target")
       for (idx, dev) in enumerate(instance.disks):
         # for drbd, these are drbd over lvm

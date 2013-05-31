@@ -1880,12 +1880,12 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       # node here
       snode = node_image[nname]
       bad_snode = snode.ghost or snode.offline
-      _ErrorIf(inst_config.admin_state == constants.ADMINST_UP and
+      _ErrorIf(inst_config.disks_active and
                not success and not bad_snode,
                constants.CV_EINSTANCEFAULTYDISK, instance,
                "couldn't retrieve status for disk/%s on %s: %s",
                idx, nname, bdev_status)
-      _ErrorIf((inst_config.admin_state == constants.ADMINST_UP and
+      _ErrorIf((inst_config.disks_active and
                 success and bdev_status.ldisk_status == constants.LDS_FAULTY),
                constants.CV_EINSTANCEFAULTYDISK, instance,
                "disk/%s on %s is faulty", idx, nname)
@@ -2172,8 +2172,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
         node_drbd[minor] = (instance, False)
       else:
         instance = instanceinfo[instance]
-        node_drbd[minor] = (instance.name,
-                            instance.admin_state == constants.ADMINST_UP)
+        node_drbd[minor] = (instance.name, instance.disks_active)
 
     # and now check them
     used_minors = nresult.get(constants.NV_DRBDLIST, [])

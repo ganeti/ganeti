@@ -163,6 +163,7 @@ support all options. Some common options are:
   - group uuid
   - allocation policy
   - tags (separated by comma)
+  - networks (UUID's, separated by comma)
 
   The second sections contains node data, with the following columns:
 

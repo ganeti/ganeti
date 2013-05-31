@@ -1,5 +1,5 @@
-group-01|fake-uuid-01|preferred|
-group-02|fake-uuid-02|unallocable|
+group-01|fake-uuid-01|preferred||
+group-02|fake-uuid-02|unallocable||
 
 node-01-001|256|0|0|7629394|7625298|16|N|fake-uuid-01|1
 node-01-002|256|0|0|7629394|7625298|16|N|fake-uuid-01|1

@@ -44,6 +44,7 @@ import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Group as Group
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
+import qualified Ganeti.HTools.Nic as Nic
 import qualified Ganeti.Constants as C
 import Ganeti.HTools.CLI
 import Ganeti.HTools.Loader
@@ -55,6 +56,22 @@ import Ganeti.Utils
 
 -- | Type alias for the result of an IAllocator call.
 type IAllocResult = (String, JSValue, Node.List, Instance.List)
+
+-- | Parse a NIC within an instance (in a creation request)
+parseNic :: String -> JSRecord -> Result Nic.Nic
+parseNic n a = do
+  mac     <- maybeFromObj a "mac"
+  ip      <- maybeFromObj a "ip"
+  mode    <- maybeFromObj a "mode" >>= \m -> case m of
+               Just "bridged" -> Ok $ Just Nic.Bridged
+               Just "routed" -> Ok $ Just Nic.Routed
+               Just "openvswitch" -> Ok $ Just Nic.OpenVSwitch
+               Nothing -> Ok Nothing
+               _ -> Bad $ "invalid NIC mode in instance " ++ n
+  link    <- maybeFromObj a "link"
+  bridge  <- maybeFromObj a "bridge"
+  network <- maybeFromObj a "network"
+  return (Nic.create mac ip mode link bridge network)
 
 -- | Parse the basic specifications of an instance.
 --
@@ -75,7 +92,11 @@ parseBaseInstance n a = do
   tags  <- extract "tags"
   dt    <- extract "disk_template"
   su    <- extract "spindle_use"
-  return (n, Instance.create n mem disk disks vcpus Running tags True 0 0 dt su)
+  nics  <- extract "nics" >>= toArray >>= asObjectList >>=
+           mapM (parseNic n . fromJSObject)
+  return
+    (n,
+     Instance.create n mem disk disks vcpus Running tags True 0 0 dt su nics)
 
 -- | Parses an instance as found in the cluster instance list.
 parseInstance :: NameAssoc -- ^ The node name-to-index association list
@@ -133,9 +154,10 @@ parseGroup u a = do
   let extract x = tryFromObj ("invalid data for group '" ++ u ++ "'") a x
   name <- extract "name"
   apol <- extract "alloc_policy"
+  nets <- extract "networks"
   ipol <- extract "ipolicy"
   tags <- extract "tags"
-  return (u, Group.create name u apol ipol tags)
+  return (u, Group.create name u apol nets ipol tags)
 
 -- | Top-level parser.
 --

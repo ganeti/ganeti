@@ -48,6 +48,7 @@
         "vcpu-ratio": 4.0
       },
       "name": "default",
+      "networks": [],
       "tags": []
     }
   },
@@ -84,7 +85,8 @@
     "spindle_use": 2,
     "tags": [],
     "type": "allocate",
-    "vcpus": 1
+    "vcpus": 1,
+    "nics": []
   },
   "version": 2
 }

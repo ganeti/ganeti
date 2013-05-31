@@ -173,7 +173,7 @@ parseInstance ktn [ name, disk, mem, vcpus
   xdt <- convert "disk_template" disk_template
   xsu <- convert "be/spindle_use" su
   let inst = Instance.create xname xmem xdisk [xdisk] xvcpus
-             xrunning xtags xauto_balance xpnode snode xdt xsu
+             xrunning xtags xauto_balance xpnode snode xdt xsu []
   return (xname, inst)
 
 parseInstance _ v = fail ("Invalid instance query result: " ++ show v)
@@ -237,7 +237,8 @@ parseGroup [uuid, name, apol, ipol, tags] = do
   xapol <- convert "alloc_policy" apol
   xipol <- convert "ipolicy" ipol
   xtags <- convert "tags" tags
-  return (xuuid, Group.create xname xuuid xapol xipol xtags)
+  -- TODO: parse networks to which this group is connected
+  return (xuuid, Group.create xname xuuid xapol [] xipol xtags)
 
 parseGroup v = fail ("Invalid group query result: " ++ show v)
 

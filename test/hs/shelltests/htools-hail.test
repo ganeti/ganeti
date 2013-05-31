@@ -47,6 +47,21 @@ echo '{"request": 0}' | ./test/hs/hail -
 >>> /"success":false,.*FailDisk: 1/
 >>>= 0
 
+# check that hail honors network requirements
+./test/hs/hail $TESTDATA_DIR/hail-alloc-restricted-network.json
+>>> /"success":true,"info":"Request successful: Selected group: Group 1.*/
+>>>= 0
+
+# check that hail fails if no nodegroup can meet network and disk template requirements
+./test/hs/hail $TESTDATA_DIR/hail-alloc-invalid-network.json
+>>> /"success":false,/
+>>>= 0
+
+# check that hail succeeds with the same test data, but with the network restrictions removed
+cat $TESTDATA_DIR/hail-alloc-invalid-network.json | grep -v -e '"network":"uuid-net-1-."' | ./test/hs/hail -
+>>> /"success":true,"info":"Request successful: Selected group: Group 2.*/
+>>>= 0
+
 # check that hail can use the simu backend
 ./test/hs/hail --simu p,8,8T,16g,16 $TESTDATA_DIR/hail-alloc-drbd.json
 >>> /"success":true,/

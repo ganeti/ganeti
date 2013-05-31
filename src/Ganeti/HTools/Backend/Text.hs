@@ -69,9 +69,10 @@ commaSplit = sepSplit ','
 -- | Serialize a single group.
 serializeGroup :: Group.Group -> String
 serializeGroup grp =
-  printf "%s|%s|%s|%s" (Group.name grp) (Group.uuid grp)
+  printf "%s|%s|%s|%s|%s" (Group.name grp) (Group.uuid grp)
            (allocPolicyToRaw (Group.allocPolicy grp))
            (intercalate "," (Group.allTags grp))
+           (intercalate "," (Group.networks grp))
 
 -- | Generate group file data from a group list.
 serializeGroups :: Group.List -> String
@@ -183,11 +184,12 @@ serializeCluster (ClusterData gl nl il ctags cpol) =
 loadGroup :: (Monad m) => [String]
           -> m (String, Group.Group) -- ^ The result, a tuple of group
                                      -- UUID and group object
-loadGroup [name, gid, apol, tags] = do
+loadGroup [name, gid, apol, tags, nets] = do
   xapol <- allocPolicyFromRaw apol
   let xtags = commaSplit tags
-  return (gid, Group.create name gid xapol defIPolicy xtags)
-
+  let xnets = commaSplit nets
+  return (gid, Group.create name gid xapol xnets defIPolicy xtags)
+loadGroup [name, gid, apol, tags] = loadGroup [name, gid, apol, tags, ""]
 loadGroup s = fail $ "Invalid/incomplete group data: '" ++ show s ++ "'"
 
 -- | Load a node from a field list.
@@ -250,7 +252,7 @@ loadInst ktn [ name, mem, dsk, vcpus, status, auto_bal, pnode, snode
            " has same primary and secondary node - " ++ pnode
   let vtags = commaSplit tags
       newinst = Instance.create name vmem vdsk [vdsk] vvcpus vstatus vtags
-                auto_balance pidx sidx disk_template spindle_use
+                auto_balance pidx sidx disk_template spindle_use []
   return (name, newinst)
 
 loadInst ktn [ name, mem, dsk, vcpus, status, auto_bal, pnode, snode

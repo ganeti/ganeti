@@ -398,7 +398,7 @@ class LUBackupExport(LogicalUnit):
     for disk in instance.disks:
       self.cfg.SetDiskID(disk, src_node)
 
-    activate_disks = (instance.admin_state != constants.ADMINST_UP)
+    activate_disks = not instance.disks_active
 
     if activate_disks:
       # Activate the instance disks if we'exporting a stopped instance

@@ -140,7 +140,7 @@ parseInstance ktn a = do
   dt <- extract "disk_template" a
   su <- extract "spindle_use" beparams
   let inst = Instance.create name mem disk disks vcpus running tags
-             auto_balance pnode snode dt su
+             auto_balance pnode snode dt su []
   return (name, inst)
 
 -- | Construct a node from a JSON object.
@@ -181,7 +181,8 @@ parseGroup a = do
   apol <- extract "alloc_policy"
   ipol <- extract "ipolicy"
   tags <- extract "tags"
-  return (uuid, Group.create name uuid apol ipol tags)
+  -- TODO: parse networks to which this group is connected
+  return (uuid, Group.create name uuid apol [] ipol tags)
 
 -- | Parse cluster data from the info resource.
 parseCluster :: JSObject JSValue -> Result ([String], IPolicy, String)
@@ -232,7 +233,7 @@ parseData (group_body, node_body, inst_body, info_body) = do
   let (node_names, node_idx) = assignIndices node_data
   inst_data <- inst_body >>= getInstances node_names
   let (_, inst_idx) = assignIndices inst_data
-  (tags, ipolicy, master) <- 
+  (tags, ipolicy, master) <-
     info_body >>=
     (fromJResult "Parsing cluster info" . decodeStrict) >>=
     parseCluster

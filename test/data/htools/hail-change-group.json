@@ -47,6 +47,7 @@
         "spindle-ratio": 32.0
       },
       "alloc_policy": "preferred",
+      "networks": [],
       "tags": [],
       "name": "default"
     },
@@ -93,6 +94,7 @@
         "spindle-ratio": 32.0
       },
       "alloc_policy": "preferred",
+      "networks": [],
       "tags": [],
       "name": "empty"
     }

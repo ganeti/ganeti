@@ -1552,7 +1552,7 @@ class LURepairNodeStorage(NoHooksLU):
     """
     # Check whether any instance on this node has faulty disks
     for inst in _GetNodeInstances(self.cfg, self.op.node_name):
-      if inst.admin_state != constants.ADMINST_UP:
+      if not inst.disks_active:
         continue
       check_nodes = set(inst.all_nodes)
       check_nodes.discard(self.op.node_name)
