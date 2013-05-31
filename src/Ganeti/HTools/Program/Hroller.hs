@@ -113,10 +113,14 @@ locateInstances idxs ndxs conf =
 clearNodes :: [Ndx] -> [Ndx] -> (Node.List, Instance.List)
               -> Result ([Ndx], (Node.List, Instance.List))
 clearNodes [] _ conf = return ([], conf)
-clearNodes (ndx:ndxs) targets conf = withFirst `mplus` withoutFirst where
+clearNodes (ndx:ndxs) targets conf@(nl, _) =
+  withFirst `mplus` withoutFirst where
   withFirst = do
      let othernodes = delete ndx targets
-     conf' <- locateInstances (nonRedundant conf ndx) othernodes conf
+         grp = Node.group $ Container.find ndx nl
+         othernodesSameGroup =
+           filter ((==) grp . Node.group . flip Container.find nl) othernodes
+     conf' <- locateInstances (nonRedundant conf ndx) othernodesSameGroup conf
      (ndxs', conf'') <- clearNodes ndxs othernodes conf'
      return (ndx:ndxs', conf'')
   withoutFirst = clearNodes ndxs targets conf
