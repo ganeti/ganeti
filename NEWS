@@ -17,6 +17,8 @@ Version 2.9.0 beta1
   any node to be rebooted; the old behavior of completely ignoring any
   non-redundant instances can be restored by adding the --ignore-non-redundant
   option.
+- The cluster option '--no-lvm-storage' was removed in favor of the new option
+  '--enabled-disk-templates'.
 
 
 Version 2.8.0 beta1
@@ -39,8 +41,6 @@ Version 2.8.0 beta1
   creation.
 - ``cfgupgrade`` now supports a ``--downgrade`` option to bring the
   configuration back to the previous stable version.
-- The cluster option '--no-lvm-storage' was removed in favor of the new option
-  '--enabled-disk-templates'.
 
 
 Version 2.7.0 rc2
