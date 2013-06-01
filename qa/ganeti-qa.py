@@ -49,7 +49,9 @@ import qa_utils
 from ganeti import utils
 from ganeti import rapi # pylint: disable=W0611
 from ganeti import constants
+from ganeti import pathutils
 
+from ganeti.http.auth import ParsePasswordFile
 import ganeti.rapi.client # pylint: disable=W0611
 from ganeti.rapi.client import UsesRapiClient
 
@@ -123,19 +125,48 @@ def RunEnvTests():
   RunTestIf("env", qa_env.TestGanetiCommands)
 
 
-def SetupCluster(rapi_user, rapi_secret):
+def _LookupRapiSecret(rapi_user):
+  """Find the RAPI secret for the given user.
+
+  @param rapi_user: Login user
+  @return: Login secret for the user
+
+  """
+  CTEXT = "{CLEARTEXT}"
+  master = qa_config.GetMasterNode()
+  cmd = ["cat", qa_utils.MakeNodePath(master, pathutils.RAPI_USERS_FILE)]
+  file_content = qa_utils.GetCommandOutput(master.primary,
+                                           utils.ShellQuoteArgs(cmd))
+  users = ParsePasswordFile(file_content)
+  entry = users.get(rapi_user)
+  if not entry:
+    raise qa_error.Error("User %s not found in RAPI users file" % rapi_user)
+  secret = entry.password
+  if secret.upper().startswith(CTEXT):
+    secret = secret[len(CTEXT):]
+  elif secret.startswith("{"):
+    raise qa_error.Error("Unsupported password schema for RAPI user %s:"
+                         " not a clear text password" % rapi_user)
+  return secret
+
+
+def SetupCluster(rapi_user):
   """Initializes the cluster.
 
   @param rapi_user: Login user for RAPI
-  @param rapi_secret: Login secret for RAPI
+  @return: Login secret for RAPI
 
   """
+  rapi_secret = utils.GenerateSecret()
   RunTestIf("create-cluster", qa_cluster.TestClusterInit,
             rapi_user, rapi_secret)
   if not qa_config.TestEnabled("create-cluster"):
     # If the cluster is already in place, we assume that exclusive-storage is
     # already set according to the configuration
     qa_config.SetExclusiveStorage(qa_config.get("exclusive-storage", False))
+    if qa_rapi.Enabled():
+      # To support RAPI on an existing cluster we have to find out the secret
+      rapi_secret = _LookupRapiSecret(rapi_user)
 
   # Test on empty cluster
   RunTestIf("node-list", qa_node.TestNodeList)
@@ -161,6 +192,8 @@ def SetupCluster(rapi_user, rapi_secret):
   RunTestIf("instance-export", qa_instance.TestBackupListFields)
 
   RunTestIf("node-info", qa_node.TestNodeInfo)
+
+  return rapi_secret
 
 
 def RunClusterTests():
@@ -718,10 +751,9 @@ def RunQa():
 
   """
   rapi_user = "ganeti-qa"
-  rapi_secret = utils.GenerateSecret()
 
   RunEnvTests()
-  SetupCluster(rapi_user, rapi_secret)
+  rapi_secret = SetupCluster(rapi_user)
 
   if qa_rapi.Enabled():
     # Load RAPI certificate
