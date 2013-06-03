@@ -59,6 +59,7 @@ Contents:
    design-virtual-clusters.rst
    design-network.rst
    design-linuxha.rst
+   monitoring-query-format.rst
 
 Also see the :ref:`search`.
 
