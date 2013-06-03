@@ -7,11 +7,13 @@ Ganeti was developed to run on internal, trusted systems. As such, the
 security model is all-or-nothing.
 
 Up to version 2.3 all Ganeti code ran as root. Since version 2.4 it is
-possible to run all daemons except the node daemon as non-root users by
-specifying user names and groups at build time. The node daemon
-continues to require root privileges to create logical volumes, DRBD
-devices, start instances, etc. Cluster commands can be run as root or by
-users in a group specified at build time.
+possible to run all daemons except the node daemon and the monitoring daemon
+as non-root users by specifying user names and groups at build time.
+The node daemon continues to require root privileges to create logical volumes,
+DRBD devices, start instances, etc. Cluster commands can be run as root or by
+users in a group specified at build time. The monitoring daemon requires root
+privileges in order to be able to access and present information that are only
+avilable to root (such as the output of the ``xm`` command of Xen).
 
 Host issues
 -----------
@@ -140,6 +142,20 @@ RPC), so to harden security it's recommended to:
 
 It is planned to split the two functionalities (local/remote querying)
 of confd into two separate daemons in a future Ganeti version.
+
+Monitoring daemon
+-----------------
+
+The monitoring daemon provides information about the status and the
+performance of the cluster over HTTP.
+It is currently unencrypted and non-authenticated, therefore it is strongly
+advised to set proper firewalling rules to prevent unwanted access.
+
+The monitoring daemon runs as root, because it needs to be able to access
+privileged information (such as the state of the instances as provided by
+the Xen hypervisor). Nevertheless, the security implications are mitigated
+by the fact that the agent only provides reporting functionalities,
+without the ability to actually modify the state of the cluster.
 
 Remote API
 ----------
