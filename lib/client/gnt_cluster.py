@@ -411,6 +411,10 @@ def ShowClusterConfig(opts, args):
   else:
     reserved_lvs = "(none)"
 
+  enabled_hv = result["enabled_hypervisors"]
+  hvparams = dict((k, v) for k, v in result["hvparams"].iteritems()
+                  if k in enabled_hv)
+
   info = [
     ("Cluster name", result["name"]),
     ("Cluster UUID", result["uuid"]),
@@ -426,10 +430,9 @@ def ShowClusterConfig(opts, args):
     ("Tags", tags),
 
     ("Default hypervisor", result["default_hypervisor"]),
-    ("Enabled hypervisors",
-     utils.CommaJoin(result["enabled_hypervisors"])),
+    ("Enabled hypervisors", utils.CommaJoin(enabled_hv)),
 
-    ("Hypervisor parameters", _FormatGroupedParams(result["hvparams"])),
+    ("Hypervisor parameters", _FormatGroupedParams(hvparams)),
 
     ("OS-specific hypervisor parameters",
      _FormatGroupedParams(result["os_hvp"])),
