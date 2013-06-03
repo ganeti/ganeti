@@ -94,10 +94,12 @@ def BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
     }
   if nics:
     nic_count = len(nics)
-    for idx, (name, _, ip, mac, mode, link, net, netinfo) in enumerate(nics):
+    for idx, (name, uuid, ip, mac, mode, link, net, netinfo) in enumerate(nics):
       if ip is None:
         ip = ""
-      env["INSTANCE_NIC%d_NAME" % idx] = name
+      if name:
+        env["INSTANCE_NIC%d_NAME" % idx] = name
+      env["INSTANCE_NIC%d_UUID" % idx] = uuid
       env["INSTANCE_NIC%d_IP" % idx] = ip
       env["INSTANCE_NIC%d_MAC" % idx] = mac
       env["INSTANCE_NIC%d_MODE" % idx] = mode
@@ -119,8 +121,10 @@ def BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
 
   if disks:
     disk_count = len(disks)
-    for idx, (name, size, mode) in enumerate(disks):
-      env["INSTANCE_DISK%d_NAME" % idx] = name
+    for idx, (name, uuid, size, mode) in enumerate(disks):
+      if name:
+        env["INSTANCE_DISK%d_NAME" % idx] = name
+      env["INSTANCE_DISK%d_UUID" % idx] = uuid
       env["INSTANCE_DISK%d_SIZE" % idx] = size
       env["INSTANCE_DISK%d_MODE" % idx] = mode
   else:
@@ -169,7 +173,7 @@ def BuildInstanceHookEnvByObject(lu, instance, override=None):
     "vcpus": bep[constants.BE_VCPUS],
     "nics": NICListToTuple(lu, instance.nics),
     "disk_template": instance.disk_template,
-    "disks": [(disk.name, disk.size, disk.mode)
+    "disks": [(disk.name, disk.uuid, disk.size, disk.mode)
               for disk in instance.disks],
     "bep": bep,
     "hvp": hvp,
