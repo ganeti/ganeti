@@ -346,7 +346,7 @@ the following fields:
 ``name``
   The name of the device.
 
-``reads``
+``readsNum``
   This is the total number of reads completed successfully.
 
 ``mergedReads``

@@ -37,7 +37,7 @@ $(buildObject "Diskstats" "ds"
   [ simpleField "major"        [t| Int |]
   , simpleField "minor"        [t| Int |]
   , simpleField "name"         [t| String |]
-  , simpleField "reads"        [t| Int |]
+  , simpleField "readsNum"        [t| Int |]
   , simpleField "mergedReads"  [t| Int |]
   , simpleField "secRead"      [t| Int |]
   , simpleField "timeRead"     [t| Int |]

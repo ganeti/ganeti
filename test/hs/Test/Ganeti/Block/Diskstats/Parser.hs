@@ -101,7 +101,7 @@ serializeDiskstatsList = concatMap serializeDiskstats
 serializeDiskstats :: Diskstats -> String
 serializeDiskstats ds =
   printf "\t%d\t%d %s %d %d %d %d %d %d %d %d %d %d %d\n"
-    (dsMajor ds) (dsMinor ds) (dsName ds) (dsReads ds) (dsMergedReads ds)
+    (dsMajor ds) (dsMinor ds) (dsName ds) (dsReadsNum ds) (dsMergedReads ds)
     (dsSecRead ds) (dsTimeRead ds) (dsWrites ds) (dsMergedWrites ds)
     (dsSecWritten ds) (dsTimeWrite ds) (dsIos ds) (dsTimeIO ds) (dsWIOmillis ds)
 
