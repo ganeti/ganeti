@@ -1339,6 +1339,18 @@ SSH changes and log directories:
 Otherwise, if you plan to re-create the cluster, you can just go ahead
 and rerun ``gnt-cluster init``.
 
+Monitoring the cluster
+----------------------
+
+Starting with Ganeti 2.8, a monitoring daemon is available, providing
+information about the status and the performance of the system.
+
+The monitoring daemon runs on every node, listening on TCP port 1815. Each
+instance of the daemon provides information related to the node it is running
+on.
+
+.. include:: monitoring-query-format.rst
+
 Tags handling
 -------------
 
