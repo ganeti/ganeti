@@ -592,6 +592,30 @@ def _GetVgInfo(name, excl_stor):
     }
 
 
+def _GetVgSpindlesInfo(name, excl_stor):
+  """Retrieves information about spindles in an LVM volume group.
+
+  @type name: string
+  @param name: VG name
+  @type excl_stor: bool
+  @param excl_stor: exclusive storage
+  @rtype: dict
+  @return: dictionary whose keys are "name", "vg_free", "vg_size" for VG name,
+      free spindles, total spindles respectively
+
+  """
+  if excl_stor:
+    (vg_free, vg_size) = bdev.LogicalVolume.GetVgSpindlesInfo(name)
+  else:
+    vg_free = 0
+    vg_size = 0
+  return {
+    "name": name,
+    "vg_free": vg_free,
+    "vg_size": vg_size,
+    }
+
+
 def _GetHvInfo(name):
   """Retrieves node information from a hypervisor.
 
@@ -653,6 +677,7 @@ _STORAGE_TYPE_INFO_FN = {
   constants.ST_DISKLESS: None,
   constants.ST_EXT: None,
   constants.ST_FILE: None,
+  constants.ST_LVM_PV: _GetVgSpindlesInfo,
   constants.ST_LVM_VG: _GetVgInfo,
   constants.ST_RADOS: None,
 }

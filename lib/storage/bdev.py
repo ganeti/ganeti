@@ -407,6 +407,27 @@ class LogicalVolume(base.BlockDev):
     return data
 
   @classmethod
+  def _GetRawFreePvInfo(cls, vg_name):
+    """Return info (size/free) about PVs.
+
+    @type vg_name: string
+    @param vg_name: VG name
+    @rtype: tuple
+    @return: (standard_pv_size_in_MiB, number_of_free_pvs, total_number_of_pvs)
+
+    """
+    pvs_info = cls.GetPVInfo([vg_name])
+    if not pvs_info:
+      pv_size = 0.0
+      free_pvs = 0
+      num_pvs = 0
+    else:
+      pv_size = cls._GetStdPvSize(pvs_info)
+      free_pvs = len(cls._GetEmptyPvNames(pvs_info))
+      num_pvs = len(pvs_info)
+    return (pv_size, free_pvs, num_pvs)
+
+  @classmethod
   def _GetExclusiveStorageVgFree(cls, vg_name):
     """Return the free disk space in the given VG, in exclusive storage mode.
 
@@ -415,12 +436,20 @@ class LogicalVolume(base.BlockDev):
     @rtype: float
     @return: free space in MiB
     """
-    pvs_info = cls.GetPVInfo([vg_name])
-    if not pvs_info:
-      return 0.0
-    pv_size = cls._GetStdPvSize(pvs_info)
-    num_pvs = len(cls._GetEmptyPvNames(pvs_info))
-    return pv_size * num_pvs
+    (pv_size, free_pvs, _) = cls._GetRawFreePvInfo(vg_name)
+    return pv_size * free_pvs
+
+  @classmethod
+  def GetVgSpindlesInfo(cls, vg_name):
+    """Get the free space info for specific VGs.
+
+    @param vg_name: volume group name
+    @rtype: tuple
+    @return: (free_spindles, total_spindles)
+
+    """
+    (_, free_pvs, num_pvs) = cls._GetRawFreePvInfo(vg_name)
+    return (free_pvs, num_pvs)
 
   @classmethod
   def GetVGInfo(cls, vg_names, excl_stor, filter_readonly=True):
