@@ -152,7 +152,7 @@ instance Arbitrary OpCodes.OpCode where
       "OP_CLUSTER_RENAME" ->
         OpCodes.OpClusterRename <$> genNameNE
       "OP_CLUSTER_SET_PARAMS" ->
-        OpCodes.OpClusterSetParams <$> emptyMUD <*> emptyMUD <*>
+        OpCodes.OpClusterSetParams <$> arbitrary <*> emptyMUD <*> emptyMUD <*>
           arbitrary <*> genMaybe (listOf1 arbitrary >>= mkNonEmpty) <*>
           genMaybe genEmptyContainer <*> emptyMUD <*>
           genMaybe genEmptyContainer <*> genMaybe genEmptyContainer <*>
