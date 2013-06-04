@@ -417,10 +417,13 @@ class LXCHypervisor(hv_base.BaseHypervisor):
                                    user=constants.SSH_CONSOLE_USER,
                                    command=["lxc-console", "-n", instance.name])
 
-  def Verify(self):
+  def Verify(self, hvparams=None):
     """Verify the hypervisor.
 
     For the LXC manager, it just checks the existence of the base dir.
+
+    @type hvparams: dict of strings
+    @param hvparams: hypervisor parameters to be verified against; not used here
 
     @return: Problem description if something is wrong, C{None} otherwise
 

@@ -412,6 +412,55 @@ class TestXenHypervisorListInstances(unittest.TestCase):
     mock_run_cmd.assert_called_with([expected_xen_cmd, self.XEN_LIST])
 
 
+class TestXenHypervisorCheckToolstack(unittest.TestCase):
+
+  def setUp(self):
+    self.tmpdir = tempfile.mkdtemp()
+    self.cfg_name = "xen_config"
+    self.cfg_path = utils.PathJoin(self.tmpdir, self.cfg_name)
+    self.hv = hv_xen.XenHypervisor()
+
+  def tearDown(self):
+    shutil.rmtree(self.tmpdir)
+
+  def testBinaryNotFound(self):
+    RESULT_FAILED = utils.RunResult(1, None, "", "", "", None, None)
+    mock_run_cmd = mock.Mock(return_value=RESULT_FAILED)
+    hv = hv_xen.XenHypervisor(_cfgdir=NotImplemented,
+                              _run_cmd_fn=mock_run_cmd)
+    result = hv._CheckToolstackBinary("xl")
+    self.assertFalse(result)
+
+  def testCheckToolstackXlConfigured(self):
+    RESULT_OK = utils.RunResult(0, None, "", "", "", None, None)
+    mock_run_cmd = mock.Mock(return_value=RESULT_OK)
+    hv = hv_xen.XenHypervisor(_cfgdir=NotImplemented,
+                              _run_cmd_fn=mock_run_cmd)
+    result = hv._CheckToolstackXlConfigured()
+    self.assertTrue(result)
+
+  def testCheckToolstackXlNotConfigured(self):
+    RESULT_FAILED = utils.RunResult(
+        1, None, "",
+        "ERROR:  A different toolstack (xm) have been selected!",
+        "", None, None)
+    mock_run_cmd = mock.Mock(return_value=RESULT_FAILED)
+    hv = hv_xen.XenHypervisor(_cfgdir=NotImplemented,
+                              _run_cmd_fn=mock_run_cmd)
+    result = hv._CheckToolstackXlConfigured()
+    self.assertFalse(result)
+
+  def testCheckToolstackXlFails(self):
+    RESULT_FAILED = utils.RunResult(
+        1, None, "",
+        "ERROR: The pink bunny hid the binary.",
+        "", None, None)
+    mock_run_cmd = mock.Mock(return_value=RESULT_FAILED)
+    hv = hv_xen.XenHypervisor(_cfgdir=NotImplemented,
+                              _run_cmd_fn=mock_run_cmd)
+    self.assertRaises(errors.HypervisorError, hv._CheckToolstackXlConfigured)
+
+
 class TestXenHypervisorWriteConfigFile(unittest.TestCase):
   def setUp(self):
     self.tmpdir = tempfile.mkdtemp()
@@ -434,6 +483,41 @@ class TestXenHypervisorWriteConfigFile(unittest.TestCase):
       self.assertTrue(str(err).startswith("Cannot write Xen instance"))
     else:
       self.fail("Exception was not raised")
+
+
+class TestXenHypervisorVerify(unittest.TestCase):
+
+  def setUp(self):
+    output = testutils.ReadTestData("xen-xm-info-4.0.1.txt")
+    self._result_ok = utils.RunResult(0, None, output, "", "", None, None)
+
+  def testVerify(self):
+    hvparams = {constants.HV_XEN_CMD : constants.XEN_CMD_XL}
+    mock_run_cmd = mock.Mock(return_value=self._result_ok)
+    hv = hv_xen.XenHypervisor(_cfgdir=NotImplemented,
+                              _run_cmd_fn=mock_run_cmd)
+    hv._CheckToolstack = mock.Mock(return_value=True)
+    result = hv.Verify(hvparams)
+    self.assertTrue(result is None)
+
+  def testVerifyToolstackNotOk(self):
+    hvparams = {constants.HV_XEN_CMD : constants.XEN_CMD_XL}
+    mock_run_cmd = mock.Mock(return_value=self._result_ok)
+    hv = hv_xen.XenHypervisor(_cfgdir=NotImplemented,
+                              _run_cmd_fn=mock_run_cmd)
+    hv._CheckToolstack = mock.Mock()
+    hv._CheckToolstack.side_effect = errors.HypervisorError("foo")
+    result = hv.Verify(hvparams)
+    self.assertTrue(result is not None)
+
+  def testVerifyFailing(self):
+    result_failed = utils.RunResult(1, None, "", "", "", None, None)
+    mock_run_cmd = mock.Mock(return_value=result_failed)
+    hv = hv_xen.XenHypervisor(_cfgdir=NotImplemented,
+                              _run_cmd_fn=mock_run_cmd)
+    hv._CheckToolstack = mock.Mock(return_value=True)
+    result = hv.Verify()
+    self.assertTrue(result is not None)
 
 
 class _TestXenHypervisor(object):
@@ -564,16 +648,6 @@ class _TestXenHypervisor(object):
       "web3106215069.example.com",
       "testinstance.example.com",
       ])
-
-  def testVerify(self):
-    output = testutils.ReadTestData("xen-xm-info-4.0.1.txt")
-    hv = self._GetHv(run_cmd=compat.partial(self._SuccessCommand,
-                                            output))
-    self.assertTrue(hv.Verify() is None)
-
-  def testVerifyFailing(self):
-    hv = self._GetHv(run_cmd=self._FailingCommand)
-    self.assertTrue("failed:" in hv.Verify())
 
   def _StartInstanceCommand(self, inst, paused, failcreate, cmd):
     if cmd == [self.CMD, "info"]:

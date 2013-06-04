@@ -263,8 +263,11 @@ class BaseHypervisor(object):
 
     return (cls.ANCILLARY_FILES, cls.ANCILLARY_FILES_OPT)
 
-  def Verify(self):
+  def Verify(self, hvparams=None):
     """Verify the hypervisor.
+
+    @type hvparams: dict of strings
+    @param hvparams: hypervisor parameters to be verified against
 
     @return: Problem description if something is wrong, C{None} otherwise
 

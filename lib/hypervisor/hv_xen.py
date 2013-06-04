@@ -630,17 +630,33 @@ class XenHypervisor(hv_base.BaseHypervisor):
                                    command=[pathutils.XEN_CONSOLE_WRAPPER,
                                             constants.XEN_CMD, instance.name])
 
-  def Verify(self):
+  def Verify(self, hvparams=None):
     """Verify the hypervisor.
 
     For Xen, this verifies that the xend process is running.
 
+    @type hvparams: dict of strings
+    @param hvparams: hypervisor parameters to be verified against
+
     @return: Problem description if something is wrong, C{None} otherwise
 
     """
-    result = self._RunXen(["info"])
+    if hvparams is None:
+      return "Could not verify the hypervisor, because no hvparams were" \
+             " provided."
+
+    if constants.HV_XEN_CMD in hvparams:
+      xen_cmd = hvparams[constants.HV_XEN_CMD]
+      try:
+        self._CheckToolstack(xen_cmd)
+      except errors.HypervisorError:
+        return "The configured xen toolstack '%s' is not available on this" \
+               " node." % xen_cmd
+
+    result = self._RunXen(["info"], hvparams=hvparams)
     if result.failed:
-      return "'xm info' failed: %s, %s" % (result.fail_reason, result.output)
+      return "Retrieving information from xen failed: %s, %s" % \
+        (result.fail_reason, result.output)
 
     return None
 
@@ -799,6 +815,48 @@ class XenHypervisor(hv_base.BaseHypervisor):
       cls.LinuxPowercycle()
     finally:
       utils.RunCmd([constants.XEN_CMD, "debug", "R"])
+
+  def _CheckToolstack(self, xen_cmd):
+    """Check whether the given toolstack is available on the node.
+
+    @type xen_cmd: string
+    @param xen_cmd: xen command (e.g. 'xm' or 'xl')
+
+    """
+    binary_found = self._CheckToolstackBinary(xen_cmd)
+    if not binary_found:
+      raise errors.HypervisorError("No '%s' binary found on node." % xen_cmd)
+    elif xen_cmd == constants.XEN_CMD_XL:
+      if not self._CheckToolstackXlConfigured():
+        raise errors.HypervisorError("Toolstack '%s' is not enabled on this"
+                                     "node." % xen_cmd)
+
+  def _CheckToolstackBinary(self, xen_cmd):
+    """Checks whether the xen command's binary is found on the machine.
+
+    """
+    if xen_cmd not in constants.KNOWN_XEN_COMMANDS:
+      raise errors.HypervisorError("Unknown xen command '%s'." % xen_cmd)
+    result = self._run_cmd_fn(["which", xen_cmd])
+    return not result.failed
+
+  def _CheckToolstackXlConfigured(self):
+    """Checks whether xl is enabled on an xl-capable node.
+
+    @rtype: bool
+    @returns: C{True} if 'xl' is enabled, C{False} otherwise
+
+    """
+    result = self._run_cmd_fn([constants.XEN_CMD_XL, "help"])
+    if not result.failed:
+      return True
+    elif result.failed:
+      if "toolstack" in result.stderr:
+        return False
+      # xl fails for some other reason than the toolstack
+      else:
+        raise errors.HypervisorError("Cannot run xen ('%s'). Error: %s."
+                                     % (constants.XEN_CMD_XL, result.stderr))
 
 
 class XenPvmHypervisor(XenHypervisor):

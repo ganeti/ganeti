@@ -233,11 +233,15 @@ class FakeHypervisor(hv_base.BaseHypervisor):
                                    message=("Console not available for fake"
                                             " hypervisor"))
 
-  def Verify(self):
+  def Verify(self, hvparams=None):
     """Verify the hypervisor.
 
     For the fake hypervisor, it just checks the existence of the base
     dir.
+
+    @type hvparams: dict of strings
+    @param hvparams: hypervisor parameters to be verified against; not used
+      for fake hypervisors
 
     @return: Problem description if something is wrong, C{None} otherwise
 

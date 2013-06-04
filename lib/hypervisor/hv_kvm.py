@@ -2044,10 +2044,13 @@ class KVMHypervisor(hv_base.BaseHypervisor):
                                    message=("No serial shell for instance %s" %
                                             instance.name))
 
-  def Verify(self):
+  def Verify(self, hvparams=None):
     """Verify the hypervisor.
 
     Check that the required binaries exist.
+
+    @type hvparams: dict of strings
+    @param hvparams: hypervisor parameters to be verified against, not used here
 
     @return: Problem description if something is wrong, C{None} otherwise
 

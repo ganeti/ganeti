@@ -77,11 +77,22 @@ class TestX509Certificates(unittest.TestCase):
 
 
 class TestNodeVerify(testutils.GanetiTestCase):
+
+  def setUp(self):
+    testutils.GanetiTestCase.setUp(self)
+    self._mock_hv = None
+
+  def _GetHypervisor(self, hv_name):
+    self._mock_hv = hypervisor.GetHypervisor(hv_name)
+    self._mock_hv.ValidateParameters = mock.Mock()
+    self._mock_hv.Verify = mock.Mock()
+    return self._mock_hv
+
   def testMasterIPLocalhost(self):
     # this a real functional test, but requires localhost to be reachable
     local_data = (netutils.Hostname.GetSysName(),
                   constants.IP4_ADDRESS_LOCALHOST)
-    result = backend.VerifyNode({constants.NV_MASTERIP: local_data}, None)
+    result = backend.VerifyNode({constants.NV_MASTERIP: local_data}, None, {})
     self.failUnless(constants.NV_MASTERIP in result,
                     "Master IP data not returned")
     self.failUnless(result[constants.NV_MASTERIP], "Cannot reach localhost")
@@ -92,11 +103,31 @@ class TestNodeVerify(testutils.GanetiTestCase):
     bad_data =  ("master.example.com", "192.0.2.1")
     # we just test that whatever TcpPing returns, VerifyNode returns too
     netutils.TcpPing = lambda a, b, source=None: False
-    result = backend.VerifyNode({constants.NV_MASTERIP: bad_data}, None)
+    result = backend.VerifyNode({constants.NV_MASTERIP: bad_data}, None, {})
     self.failUnless(constants.NV_MASTERIP in result,
                     "Master IP data not returned")
     self.failIf(result[constants.NV_MASTERIP],
                 "Result from netutils.TcpPing corrupted")
+
+  def testVerifyHvparams(self):
+    test_hvparams = {constants.HV_XEN_CMD: constants.XEN_CMD_XL}
+    test_what = {constants.NV_HVPARAMS: \
+        [("mynode", constants.HT_XEN_PVM, test_hvparams)]}
+    result = {}
+    backend._VerifyHvparams(test_what, True, result,
+                            get_hv_fn=self._GetHypervisor)
+    self._mock_hv.ValidateParameters.assert_called_with(test_hvparams)
+
+  def testVerifyHypervisors(self):
+    hvname = constants.HT_XEN_PVM
+    hvparams = {constants.HV_XEN_CMD: constants.XEN_CMD_XL}
+    all_hvparams = {hvname: hvparams}
+    test_what = {constants.NV_HYPERVISOR: [hvname]}
+    result = {}
+    backend._VerifyHypervisors(
+        test_what, True, result, all_hvparams=all_hvparams,
+        get_hv_fn=self._GetHypervisor)
+    self._mock_hv.Verify.assert_called_with(hvparams=hvparams)
 
 
 def _DefRestrictedCmdOwner():

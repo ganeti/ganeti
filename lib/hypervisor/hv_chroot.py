@@ -276,10 +276,14 @@ class ChrootManager(hv_base.BaseHypervisor):
                                    user=constants.SSH_CONSOLE_USER,
                                    command=["chroot", root_dir])
 
-  def Verify(self):
+  def Verify(self, hvparams=None):
     """Verify the hypervisor.
 
     For the chroot manager, it just checks the existence of the base dir.
+
+    @type hvparams: dict of strings
+    @param hvparams: hypervisor parameters to be verified against, not used
+      in for chroot
 
     @return: Problem description if something is wrong, C{None} otherwise
 

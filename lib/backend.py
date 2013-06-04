@@ -726,6 +726,65 @@ def _CheckExclusivePvs(pvi_list):
   return res
 
 
+def _VerifyHypervisors(what, vm_capable, result, all_hvparams,
+                       get_hv_fn=hypervisor.GetHypervisor):
+  """Verifies the hypervisor. Appends the results to the 'results' list.
+
+  @type what: C{dict}
+  @param what: a dictionary of things to check
+  @type vm_capable: boolean
+  @param vm_capable: whether or not this not is vm capable
+  @type result: dict
+  @param result: dictionary of verification results; results of the
+    verifications in this function will be added here
+  @type all_hvparams: dict of dict of string
+  @param all_hvparams: dictionary mapping hypervisor names to hvparams
+  @type get_hv_fn: function
+  @param get_hv_fn: function to retrieve the hypervisor, to improve testability
+
+  """
+  if not vm_capable:
+    return
+
+  if constants.NV_HYPERVISOR in what:
+    result[constants.NV_HYPERVISOR] = {}
+    for hv_name in what[constants.NV_HYPERVISOR]:
+      hvparams = all_hvparams[hv_name]
+      try:
+        val = get_hv_fn(hv_name).Verify(hvparams=hvparams)
+      except errors.HypervisorError, err:
+        val = "Error while checking hypervisor: %s" % str(err)
+      result[constants.NV_HYPERVISOR][hv_name] = val
+
+
+def _VerifyHvparams(what, vm_capable, result,
+                    get_hv_fn=hypervisor.GetHypervisor):
+  """Verifies the hvparams. Appends the results to the 'results' list.
+
+  @type what: C{dict}
+  @param what: a dictionary of things to check
+  @type vm_capable: boolean
+  @param vm_capable: whether or not this not is vm capable
+  @type result: dict
+  @param result: dictionary of verification results; results of the
+    verifications in this function will be added here
+  @type get_hv_fn: function
+  @param get_hv_fn: function to retrieve the hypervisor, to improve testability
+
+  """
+  if not vm_capable:
+    return
+
+  if constants.NV_HVPARAMS in what:
+    result[constants.NV_HVPARAMS] = []
+    for source, hv_name, hvparms in what[constants.NV_HVPARAMS]:
+      try:
+        logging.info("Validating hv %s, %s", hv_name, hvparms)
+        get_hv_fn(hv_name).ValidateParameters(hvparms)
+      except errors.HypervisorError, err:
+        result[constants.NV_HVPARAMS].append((source, hv_name, str(err)))
+
+
 def VerifyNode(what, cluster_name):
   """Verify the status of the local node.
 
@@ -750,6 +809,7 @@ def VerifyNode(what, cluster_name):
       - node-net-test: list of nodes we should check node daemon port
         connectivity with
       - hypervisor: list with hypervisors to run the verify for
+
   @rtype: dict
   @return: a dictionary with the same keys as the input dict, and
       values representing the result of the checks
@@ -760,23 +820,8 @@ def VerifyNode(what, cluster_name):
   port = netutils.GetDaemonPort(constants.NODED)
   vm_capable = my_name not in what.get(constants.NV_VMNODES, [])
 
-  if constants.NV_HYPERVISOR in what and vm_capable:
-    result[constants.NV_HYPERVISOR] = tmp = {}
-    for hv_name in what[constants.NV_HYPERVISOR]:
-      try:
-        val = hypervisor.GetHypervisor(hv_name).Verify()
-      except errors.HypervisorError, err:
-        val = "Error while checking hypervisor: %s" % str(err)
-      tmp[hv_name] = val
-
-  if constants.NV_HVPARAMS in what and vm_capable:
-    result[constants.NV_HVPARAMS] = tmp = []
-    for source, hv_name, hvparms in what[constants.NV_HVPARAMS]:
-      try:
-        logging.info("Validating hv %s, %s", hv_name, hvparms)
-        hypervisor.GetHypervisor(hv_name).ValidateParameters(hvparms)
-      except errors.HypervisorError, err:
-        tmp.append((source, hv_name, str(err)))
+  _VerifyHypervisors(what, vm_capable, result, all_hvparams)
+  _VerifyHvparams(what, vm_capable, result)
 
   if constants.NV_FILELIST in what:
     fingerprints = utils.FingerprintFiles(map(vcluster.LocalizeVirtualPath,
