@@ -595,6 +595,7 @@ MODIFY
 ~~~~~~
 
 | **modify** [\--submit]
+| [\--force]
 | [\--vg-name *vg-name*]
 | [\--no-lvm-storage]
 | [\--enabled-hypervisors *hypervisors*]
