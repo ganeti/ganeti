@@ -1160,6 +1160,10 @@ _NODE_LIVE_FIELDS = {
   "dtotal": ("DTotal", QFT_UNIT, "vg_size",
              "Total disk space in volume group used for instance disk"
              " allocation"),
+  "spfree": ("SpFree", QFT_NUMBER, "spindles_free",
+             "Available spindles in volume group (exclusive storage only)"),
+  "sptotal": ("SpTotal", QFT_NUMBER, "spindles_total",
+              "Total spindles in volume group (exclusive storage only)"),
   "mfree": ("MFree", QFT_UNIT, "memory_free",
             "Memory available for instance allocations"),
   "mnode": ("MNode", QFT_UNIT, "memory_dom0",

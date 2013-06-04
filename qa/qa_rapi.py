@@ -110,7 +110,7 @@ INSTANCE_FIELDS = ("name", "os", "pnode", "snodes",
                    "beparams", "hvparams",
                    "oper_state", "oper_ram", "oper_vcpus", "status", "tags")
 
-NODE_FIELDS = ("name", "dtotal", "dfree",
+NODE_FIELDS = ("name", "dtotal", "dfree", "sptotal", "spfree",
                "mtotal", "mnode", "mfree",
                "pinst_cnt", "sinst_cnt", "tags")
 

@@ -64,6 +64,10 @@ nodeLiveFieldsDefs =
      "Available disk space in volume group")
   , ("dtotal", "DTotal", QFTUnit, "vg_size",
      "Total disk space in volume group used for instance disk allocation")
+  , ("spfree", "SpFree", QFTNumber, "spindles_free",
+     "Available spindles in volume group (exclusive storage only)")
+  , ("sptotal", "SpTotal", QFTNumber, "spindles_total",
+     "Total spindles in volume group (exclusive storage only)")
   , ("mfree", "MFree", QFTUnit, "memory_free",
      "Memory available for instance allocations")
   , ("mnode", "MNode", QFTUnit, "memory_dom0",
@@ -87,6 +91,10 @@ nodeLiveFieldExtract "dfree" res =
   getMaybeJsonHead (rpcResNodeInfoVgInfo res) vgInfoVgFree
 nodeLiveFieldExtract "dtotal" res =
   getMaybeJsonHead (rpcResNodeInfoVgInfo res) vgInfoVgSize
+nodeLiveFieldExtract "spfree" res =
+  getMaybeJsonElem (rpcResNodeInfoVgInfo res) 1 vgInfoVgFree
+nodeLiveFieldExtract "sptotal" res =
+  getMaybeJsonElem (rpcResNodeInfoVgInfo res) 1 vgInfoVgSize
 nodeLiveFieldExtract "mfree" res =
   jsonHead (rpcResNodeInfoHvInfo res) hvInfoMemoryFree
 nodeLiveFieldExtract "mnode" res =
@@ -226,7 +234,8 @@ collectLiveData False _ nodes =
 collectLiveData True cfg nodes = do
   let vgs = maybeToList . clusterVolumeGroupName $ configCluster cfg
       -- FIXME: This currently sets every storage unit to LVM
-      storage_units = zip (repeat T.StorageLvmVg) vgs
+      storage_units = zip (repeat T.StorageLvmVg) vgs ++
+                      zip (repeat T.StorageLvmPv) vgs
       hvs = [getDefaultHypervisor cfg]
       step n (bn, gn, em) =
         let ndp' = getNodeNdParams cfg n

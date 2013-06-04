@@ -81,7 +81,7 @@ I_FIELDS = ["name", "admin_state", "os",
             ] + _COMMON_FIELDS
 
 N_FIELDS = ["name", "offline", "master_candidate", "drained",
-            "dtotal", "dfree",
+            "dtotal", "dfree", "sptotal", "spfree",
             "mtotal", "mnode", "mfree",
             "pinst_cnt", "sinst_cnt",
             "ctotal", "cnodes", "csockets",

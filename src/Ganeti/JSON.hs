@@ -5,7 +5,7 @@
 
 {-
 
-Copyright (C) 2009, 2010, 2011, 2012 Google Inc.
+Copyright (C) 2009, 2010, 2011, 2012, 2013 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -36,6 +36,7 @@ module Ganeti.JSON
   , fromJVal
   , jsonHead
   , getMaybeJsonHead
+  , getMaybeJsonElem
   , asJSObject
   , asObjectList
   , tryFromObj
@@ -185,6 +186,14 @@ jsonHead (x:_) f = J.showJSON $ f x
 getMaybeJsonHead :: (J.JSON b) => [a] -> (a -> Maybe b) -> J.JSValue
 getMaybeJsonHead [] _ = J.JSNull
 getMaybeJsonHead (x:_) f = maybe J.JSNull J.showJSON (f x)
+
+-- | Helper for extracting Maybe values from a list that might be too short.
+getMaybeJsonElem :: (J.JSON b) => [a] -> Int -> (a -> Maybe b) -> J.JSValue
+getMaybeJsonElem [] _ _ = J.JSNull
+getMaybeJsonElem xs 0 f = getMaybeJsonHead xs f
+getMaybeJsonElem (_:xs) n f
+  | n < 0 = J.JSNull
+  | otherwise = getMaybeJsonElem xs (n - 1) f
 
 -- | Converts a JSON value into a JSON object.
 asJSObject :: (Monad m) => J.JSValue -> m (J.JSObject J.JSValue)

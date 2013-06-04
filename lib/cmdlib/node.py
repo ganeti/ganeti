@@ -1173,8 +1173,8 @@ class NodeQuery(QueryBase):
       es_flags = rpc.GetExclusiveStorageForNodeNames(lu.cfg, toquery_nodes)
       # FIXME: This currently maps everything to lvm, this should be more
       # flexible
-      storage_units = [(constants.ST_LVM_VG, lu.cfg.GetVGName())]
-      node_data = lu.rpc.call_node_info(toquery_nodes, storage_units,
+      vg_req = rpc.BuildVgInfoQuery(lu.cfg)
+      node_data = lu.rpc.call_node_info(toquery_nodes, vg_req,
                                         [lu.cfg.GetHypervisorType()], es_flags)
       live_data = dict((name, rpc.MakeLegacyNodeInfo(nresult.payload))
                        for (name, nresult) in node_data.items()

@@ -431,13 +431,8 @@ class IAllocator(object):
       node_whitelist = None
 
     es_flags = rpc.GetExclusiveStorageForNodeNames(cfg, node_list)
-    vg_name = cfg.GetVGName()
-    if vg_name is not None:
-      has_lvm = True
-      vg_req = [(constants.ST_LVM_VG, vg_name)]
-    else:
-      has_lvm = False
-      vg_req = []
+    vg_req = rpc.BuildVgInfoQuery(cfg)
+    has_lvm = bool(vg_req)
     node_data = self.rpc.call_node_info(node_list, vg_req,
                                         [hypervisor_name], es_flags)
     node_iinfo = \
@@ -554,9 +549,12 @@ class IAllocator(object):
         if has_lvm:
           total_disk = get_attr("vg_size")
           free_disk = get_attr("vg_free")
+          total_spindles = get_attr("spindles_total")
+          free_spindles = get_attr("spindles_free")
         else:
           # we didn't even ask the node for VG status, so use zeros
           total_disk = free_disk = 0
+          total_spindles = free_spindles = 0
 
         # compute memory used by instances
         pnr_dyn = {
@@ -565,6 +563,8 @@ class IAllocator(object):
           "free_memory": mem_free,
           "total_disk": total_disk,
           "free_disk": free_disk,
+          "total_spindles": total_spindles,
+          "free_spindles": free_spindles,
           "total_cpus": get_attr("cpu_total"),
           "i_pri_memory": i_p_mem,
           "i_pri_up_memory": i_p_up_mem,

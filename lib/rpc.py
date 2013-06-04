@@ -584,6 +584,28 @@ def _EncodeBlockdevRename(value):
   return [(d.ToDict(), uid) for d, uid in value]
 
 
+def BuildVgInfoQuery(cfg):
+  """Build a query about the default VG for C{node_info}.
+
+  The result of the RPC can be parsed with L{MakeLegacyNodeInfo}.
+
+  @type cfg: L{config.ConfigWriter}
+  @param cfg: Cluster configuration
+  @rtype: list
+  @return: argument suitable for L{rpc.RpcRunner.call_node_info}
+
+  """
+  vg_name = cfg.GetVGName()
+  if vg_name:
+    ret = [
+      (constants.ST_LVM_VG, vg_name),
+      (constants.ST_LVM_PV, vg_name),
+      ]
+  else:
+    ret = []
+  return ret
+
+
 def MakeLegacyNodeInfo(data, require_vg_info=True):
   """Formats the data returned by L{rpc.RpcRunner.call_node_info}.
 
@@ -599,8 +621,10 @@ def MakeLegacyNodeInfo(data, require_vg_info=True):
   ret = utils.JoinDisjointDicts(hv_info, {"bootid": bootid})
 
   if require_vg_info or vgs_info:
-    (vg0_info, ) = vgs_info
+    (vg0_info, vg0_spindles) = vgs_info
     ret = utils.JoinDisjointDicts(vg0_info, ret)
+    ret["spindles_free"] = vg0_spindles["vg_free"]
+    ret["spindles_total"] = vg0_spindles["vg_size"]
 
   return ret
 

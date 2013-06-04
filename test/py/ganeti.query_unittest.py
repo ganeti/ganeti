@@ -436,6 +436,8 @@ class TestNodeQuery(unittest.TestCase):
       "mtotal": 4096,
       "dfree": 5 * 1024 * 1024,
       "dtotal": 100 * 1024 * 1024,
+      "spfree": 0,
+      "sptotal": 0,
       }
 
     assert (sorted(query._NODE_LIVE_FIELDS.keys()) ==

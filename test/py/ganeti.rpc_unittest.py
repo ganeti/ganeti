@@ -891,18 +891,40 @@ class TestRpcRunner(unittest.TestCase):
 
 class TestLegacyNodeInfo(unittest.TestCase):
   KEY_BOOT = "bootid"
-  KEY_VG = "disk_free"
+  KEY_VG0 = "name"
+  KEY_VG1 = "vg_free"
+  KEY_VG2 = "vg_size"
   KEY_HV = "cpu_count"
+  KEY_SP1 = "spindles_free"
+  KEY_SP2 = "spindles_total"
   VAL_BOOT = 0
-  VAL_VG = 1
+  VAL_VG0 = "xy"
+  VAL_VG1 = 11
+  VAL_VG2 = 12
   VAL_HV = 2
-  DICT_VG = {KEY_VG: VAL_VG}
+  VAL_SP0 = "ab"
+  VAL_SP1 = 31
+  VAL_SP2 = 32
+  DICT_VG = {
+    KEY_VG0: VAL_VG0,
+    KEY_VG1: VAL_VG1,
+    KEY_VG2: VAL_VG2,
+    }
   DICT_HV = {KEY_HV: VAL_HV}
-  STD_LST = [VAL_BOOT, [DICT_VG], [DICT_HV]]
+  DICT_SP = {
+    KEY_VG0: VAL_SP0,
+    KEY_VG1: VAL_SP1,
+    KEY_VG2: VAL_SP2,
+    }
+  STD_LST = [VAL_BOOT, [DICT_VG, DICT_SP], [DICT_HV]]
   STD_DICT = {
     KEY_BOOT: VAL_BOOT,
-    KEY_VG: VAL_VG,
-    KEY_HV: VAL_HV
+    KEY_VG0: VAL_VG0,
+    KEY_VG1: VAL_VG1,
+    KEY_VG2: VAL_VG2,
+    KEY_HV: VAL_HV,
+    KEY_SP1: VAL_SP1,
+    KEY_SP2: VAL_SP2,
     }
 
   def testStandard(self):
