@@ -194,17 +194,16 @@ parseNode ktg [ name, mtotal, mnode, mfree, dtotal, dfree
   xvm_capable <- convert "vm_capable" vm_capable
   xspindles <- convert "spindles" spindles
   xgdx   <- convert "group.uuid" g_uuid >>= lookupGroup ktg xname
-  node <- if xoffline || xdrained || not xvm_capable
-            then return $ Node.create xname 0 0 0 0 0 0 True xspindles xgdx
-            else do
-              xmtotal  <- convert "mtotal" mtotal
-              xmnode   <- convert "mnode" mnode
-              xmfree   <- convert "mfree" mfree
-              xdtotal  <- convert "dtotal" dtotal
-              xdfree   <- convert "dfree" dfree
-              xctotal  <- convert "ctotal" ctotal
-              return $ Node.create xname xmtotal xmnode xmfree
-                     xdtotal xdfree xctotal False xspindles xgdx
+  let live = not xoffline && not xdrained && xvm_capable
+      lvconvert def n d = eitherLive live def $ convert n d
+  xmtotal <- lvconvert 0.0 "mtotal" mtotal
+  xmnode <- lvconvert 0 "mnode" mnode
+  xmfree <- lvconvert 0 "mfree" mfree
+  xdtotal <- lvconvert 0.0 "dtotal" dtotal
+  xdfree <- lvconvert 0 "dfree" dfree
+  xctotal <- lvconvert 0.0 "ctotal" ctotal
+  let node = Node.create xname xmtotal xmnode xmfree xdtotal xdfree
+             xctotal (not live) xspindles xgdx
   return (xname, node)
 
 parseNode _ v = fail ("Invalid node query result: " ++ show v)
