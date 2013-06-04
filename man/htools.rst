@@ -179,6 +179,7 @@ support all options. Some common options are:
   - group UUID
   - node spindle count
   - node tags
+  - exclusive storage value (``Y`` if active, ``N`` otherwise)
 
   The third section contains instance data, with the fields:
 
@@ -192,6 +193,9 @@ support all options. Some common options are:
   - instance secondary node(s), if any
   - instance disk type (e.g. ``plain`` or ``drbd``)
   - instance tags
+  - spindle use back-end parameter
+  - actual disk spindles used by the instance (it can be ``-`` when
+    exclusive storage is not active)
 
   The fourth section contains the cluster tags, with one tag per line
   (no columns/no column processing).
