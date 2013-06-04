@@ -34,6 +34,7 @@ module Ganeti.HTools.Loader
   , lookupNode
   , lookupInstance
   , lookupGroup
+  , eitherLive
   , commonSuffix
   , RqType(..)
   , Request(..)
@@ -332,3 +333,8 @@ nodeIdsk node il =
   let rfind = flip Container.find il
   in sum . map (Instance.dsk . rfind)
        $ Node.pList node ++ Node.sList node
+
+-- | Get live information or a default value
+eitherLive :: (Monad m) => Bool -> a -> m a -> m a
+eitherLive True _ live_data = live_data
+eitherLive False def_data _ = return def_data

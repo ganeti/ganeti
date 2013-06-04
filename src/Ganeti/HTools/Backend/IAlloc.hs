@@ -133,22 +133,19 @@ parseNode ktg n a = do
   vm_capable  <- annotateResult desc $ maybeFromObj a "vm_capable"
   let vm_capable' = fromMaybe True vm_capable
   gidx <- lookupGroup ktg n guuid
-  node <- if offline || drained || not vm_capable'
-            then return $ Node.create n 0 0 0 0 0 0 True 0 gidx False
-            else do
-              mtotal <- extract "total_memory"
-              mnode  <- extract "reserved_memory"
-              mfree  <- extract "free_memory"
-              dtotal <- extract "total_disk"
-              dfree  <- extract "free_disk"
-              ctotal <- extract "total_cpus"
-              ndparams <- extract "ndparams" >>= asJSObject
-              spindles <- tryFromObj desc (fromJSObject ndparams)
-                          "spindle_count"
-              excl_stor <- tryFromObj desc (fromJSObject ndparams)
-                           "exclusive_storage"
-              return $ Node.create n mtotal mnode mfree
-                     dtotal dfree ctotal False spindles gidx excl_stor
+  ndparams <- extract "ndparams" >>= asJSObject
+  spindles <- tryFromObj desc (fromJSObject ndparams) "spindle_count"
+  excl_stor <- tryFromObj desc (fromJSObject ndparams) "exclusive_storage"
+  let live = not offline && not drained && vm_capable'
+      lvextract def = eitherLive live def . extract
+  mtotal <- lvextract 0.0 "total_memory"
+  mnode  <- lvextract 0 "reserved_memory"
+  mfree  <- lvextract 0 "free_memory"
+  dtotal <- lvextract 0.0 "total_disk"
+  dfree  <- lvextract 0 "free_disk"
+  ctotal <- lvextract 0.0 "total_cpus"
+  let node = Node.create n mtotal mnode mfree dtotal dfree ctotal (not live)
+             spindles gidx excl_stor
   return (n, node)
 
 -- | Parses a group as found in the cluster group list.
