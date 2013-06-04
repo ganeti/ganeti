@@ -180,6 +180,7 @@ support all options. Some common options are:
   - node spindle count
   - node tags
   - exclusive storage value (``Y`` if active, ``N`` otherwise)
+  - node free spindles
 
   The third section contains instance data, with the fields:
 

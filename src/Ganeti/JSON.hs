@@ -40,6 +40,7 @@ module Ganeti.JSON
   , asJSObject
   , asObjectList
   , tryFromObj
+  , arrayMaybeFromJVal
   , tryArrayMaybeFromObj
   , toArray
   , optionalJSField
@@ -142,15 +143,21 @@ fromObjWithDefault :: (J.JSON a, Monad m) =>
                       JSRecord -> String -> a -> m a
 fromObjWithDefault o k d = liftM (fromMaybe d) $ maybeFromObj o k
 
+arrayMaybeFromJVal :: (J.JSON a, Monad m) => J.JSValue -> m [Maybe a]
+arrayMaybeFromJVal (J.JSArray xs) =
+  mapM parse xs
+    where
+      parse J.JSNull = return Nothing
+      parse x = liftM Just $ fromJVal x
+arrayMaybeFromJVal v =
+  fail $ "Expecting array, got '" ++ show (pp_value v) ++ "'"
+
 -- | Reads an array of optional items
 arrayMaybeFromObj :: (J.JSON a, Monad m) =>
                      JSRecord -> String -> m [Maybe a]
 arrayMaybeFromObj o k =
   case lookup k o of
-    Just (J.JSArray xs) -> mapM parse xs
-      where
-        parse J.JSNull = return Nothing
-        parse x = liftM Just $ fromJVal x
+    Just a -> arrayMaybeFromJVal a
     _ -> fail $ buildNoKeyError o k
 
 -- | Wrapper for arrayMaybeFromObj with better diagnostic

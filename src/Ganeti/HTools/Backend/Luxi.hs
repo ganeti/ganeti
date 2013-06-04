@@ -83,6 +83,11 @@ fromJValWithStatus (st, v) = do
   st' <- fromJVal st
   Qlang.checkRS st' v >>= fromJVal
 
+annotateConvert :: String -> String -> String -> Result a -> Result a
+annotateConvert otype oname oattr =
+  annotateResult $ otype ++ " '" ++ oname ++
+    "', error while reading attribute '" ++ oattr ++ "'"
+
 -- | Annotate errors when converting values with owner/attribute for
 -- better debugging.
 genericConvert :: (Text.JSON.JSON a) =>
@@ -92,9 +97,18 @@ genericConvert :: (Text.JSON.JSON a) =>
                -> (JSValue, JSValue) -- ^ The value we're trying to convert
                -> Result a           -- ^ The annotated result
 genericConvert otype oname oattr =
-  annotateResult (otype ++ " '" ++ oname ++
-                  "', error while reading attribute '" ++
-                  oattr ++ "'") . fromJValWithStatus
+  annotateConvert otype oname oattr . fromJValWithStatus
+
+convertArrayMaybe :: (Text.JSON.JSON a) =>
+                  String             -- ^ The object type
+               -> String             -- ^ The object name
+               -> String             -- ^ The attribute we're trying to convert
+               -> (JSValue, JSValue) -- ^ The value we're trying to convert
+               -> Result [Maybe a]   -- ^ The annotated result
+convertArrayMaybe otype oname oattr (st, v) = do
+  st' <- fromJVal st
+  Qlang.checkRS st' v >>=
+    annotateConvert otype oname oattr . arrayMaybeFromJVal
 
 -- * Data querying functionality
 
@@ -114,7 +128,7 @@ queryInstancesMsg =
      ["name", "disk_usage", "be/memory", "be/vcpus",
       "status", "pnode", "snodes", "tags", "oper_ram",
       "be/auto_balance", "disk_template",
-      "be/spindle_use"] Qlang.EmptyFilter
+      "be/spindle_use", "disk.sizes", "disk.spindles"] Qlang.EmptyFilter
 
 -- | The input data for cluster query.
 queryClusterInfoMsg :: L.LuxiOp
@@ -155,7 +169,8 @@ parseInstance :: NameAssoc
               -> Result (String, Instance.Instance)
 parseInstance ktn [ name, disk, mem, vcpus
                   , status, pnode, snodes, tags, oram
-                  , auto_balance, disk_template, su ] = do
+                  , auto_balance, disk_template, su
+                  , dsizes, dspindles ] = do
   xname <- annotateResult "Parsing new instance" (fromJValWithStatus name)
   let convert a = genericConvert "Instance" xname a
   xdisk <- convert "disk_usage" disk
@@ -173,7 +188,10 @@ parseInstance ktn [ name, disk, mem, vcpus
   xauto_balance <- convert "auto_balance" auto_balance
   xdt <- convert "disk_template" disk_template
   xsu <- convert "be/spindle_use" su
-  let inst = Instance.create xname xmem xdisk [Instance.Disk xdisk Nothing]
+  xdsizes <- convert "disk.sizes" dsizes
+  xdspindles <- convertArrayMaybe "Instance" xname "disk.spindles" dspindles
+  let disks = zipWith Instance.Disk xdsizes xdspindles
+      inst = Instance.create xname xmem xdisk disks
              xvcpus xrunning xtags xauto_balance xpnode snode xdt xsu []
   return (xname, inst)
 
