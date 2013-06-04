@@ -170,9 +170,9 @@ in its ``data`` section, at least the following field:
 
   ``code``
     It assumes a numeric value, encoded in such a way to allow using a bitset
-    to easily distinguish which states are currently present in the whole cluster.
-    If the bitwise OR of all the ``status`` fields is 0, the cluster is
-    completely healty.
+    to easily distinguish which states are currently present in the whole
+    cluster. If the bitwise OR of all the ``status`` fields is 0, the cluster
+    is completely healty.
     The status codes are as follows:
 
     ``0``
