@@ -19,7 +19,7 @@
 # 02110-1301, USA.
 
 
-"""Script for testing ganeti.hypervisor.hv_lxc"""
+"""Script for testing ganeti.hypervisor.hv_xen"""
 
 import string # pylint: disable=W0402
 import unittest
