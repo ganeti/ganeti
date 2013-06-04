@@ -230,6 +230,19 @@ class RpcResult(object):
       args = (msg, )
     raise ec(*args) # pylint: disable=W0142
 
+  def Warn(self, msg, feedback_fn):
+    """If the result has failed, call the feedback_fn.
+
+    This is used to in cases were LU wants to warn the
+    user about a failure, but continue anyway.
+
+    """
+    if not self.fail_msg:
+      return
+
+    msg = "%s: %s" % (msg, self.fail_msg)
+    feedback_fn(msg)
+
 
 def _SsconfResolver(ssconf_ips, node_list, _,
                     ssc=ssconf.SimpleStore,
