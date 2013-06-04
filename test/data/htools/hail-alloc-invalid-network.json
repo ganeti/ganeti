@@ -98,6 +98,7 @@
       "drained": false,
       "free_disk": 7168,
       "free_memory": 4096,
+      "free_spindles": 0,
       "group": "uuid-group-1",
       "ndparams": {
         "spindle_count": 1,
@@ -107,12 +108,14 @@
       "reserved_memory": 1017,
       "total_cpus": 4,
       "total_disk": 7168,
-      "total_memory": 4096
+      "total_memory": 4096,
+      "total_spindles": 0
     },
     "node2_1": {
       "drained": false,
       "free_disk": 7168,
       "free_memory": 4096,
+      "free_spindles": 0,
       "group": "uuid-group-2",
       "ndparams": {
         "spindle_count": 1,
@@ -122,7 +125,8 @@
       "reserved_memory": 1017,
       "total_cpus": 4,
       "total_disk": 7168,
-      "total_memory": 4096
+      "total_memory": 4096,
+      "total_spindles": 0
     }
   },
   "request": {

@@ -105,7 +105,7 @@ queryNodesMsg =
      ["name", "mtotal", "mnode", "mfree", "dtotal", "dfree",
       "ctotal", "offline", "drained", "vm_capable",
       "ndp/spindle_count", "group.uuid", "tags",
-      "ndp/exclusive_storage"] Qlang.EmptyFilter
+      "ndp/exclusive_storage", "sptotal", "spfree"] Qlang.EmptyFilter
 
 -- | The input data for instance query.
 queryInstancesMsg :: L.LuxiOp
@@ -187,19 +187,22 @@ getNodes ktg arr = extractArray arr >>= mapM (parseNode ktg)
 parseNode :: NameAssoc -> [(JSValue, JSValue)] -> Result (String, Node.Node)
 parseNode ktg [ name, mtotal, mnode, mfree, dtotal, dfree
               , ctotal, offline, drained, vm_capable, spindles, g_uuid
-              , tags, excl_stor ]
+              , tags, excl_stor, sptotal, spfree ]
     = do
   xname <- annotateResult "Parsing new node" (fromJValWithStatus name)
   let convert a = genericConvert "Node" xname a
   xoffline <- convert "offline" offline
   xdrained <- convert "drained" drained
   xvm_capable <- convert "vm_capable" vm_capable
-  xspindles <- convert "spindles" spindles
   xgdx   <- convert "group.uuid" g_uuid >>= lookupGroup ktg xname
   xtags <- convert "tags" tags
   xexcl_stor <- convert "exclusive_storage" excl_stor
   let live = not xoffline && not xdrained && xvm_capable
       lvconvert def n d = eitherLive live def $ convert n d
+  xsptotal <- if xexcl_stor
+              then lvconvert 0 "sptotal" sptotal
+              else convert "spindles" spindles
+  xspfree <- lvconvert 0 "spfree" spfree
   xmtotal <- lvconvert 0.0 "mtotal" mtotal
   xmnode <- lvconvert 0 "mnode" mnode
   xmfree <- lvconvert 0 "mfree" mfree
@@ -208,7 +211,7 @@ parseNode ktg [ name, mtotal, mnode, mfree, dtotal, dfree
   xctotal <- lvconvert 0.0 "ctotal" ctotal
   let node = flip Node.setNodeTags xtags $
              Node.create xname xmtotal xmnode xmfree xdtotal xdfree
-             xctotal (not live) xspindles xgdx xexcl_stor
+             xctotal (not live) xsptotal xspfree xgdx xexcl_stor
   return (xname, node)
 
 parseNode _ v = fail ("Invalid node query result: " ++ show v)

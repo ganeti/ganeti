@@ -57,6 +57,7 @@
       "drained": false,
       "free_disk": 1377280,
       "free_memory": 31389,
+      "free_spindles": 12,
       "group": "uuid-group-1",
       "ndparams": {
         "spindle_count": 1,
@@ -66,7 +67,8 @@
       "reserved_memory": 1017,
       "total_cpus": 4,
       "total_disk": 1377280,
-      "total_memory": 32763
+      "total_memory": 32763,
+      "total_spindles": 12
     }
   },
   "request": {

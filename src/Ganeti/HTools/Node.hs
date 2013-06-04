@@ -111,7 +111,9 @@ data Node = Node
   , fDsk     :: Int       -- ^ Free disk space (MiB)
   , tCpu     :: Double    -- ^ Total CPU count
   , uCpu     :: Int       -- ^ Used VCPU count
-  , spindleCount :: Int   -- ^ Node spindles (spindle_count node parameter)
+  , tSpindles :: Int      -- ^ Node spindles (spindle_count node parameter,
+                          -- or actual spindles, see note below)
+  , fSpindles :: Int      -- ^ Free spindles (see note below)
   , pList    :: [T.Idx]   -- ^ List of primary instance indices
   , sList    :: [T.Idx]   -- ^ List of secondary instance indices
   , idx      :: T.Ndx     -- ^ Internal index for book-keeping
@@ -128,9 +130,9 @@ data Node = Node
                           -- threshold
   , hiCpu    :: Int       -- ^ Autocomputed from mCpu high cpu
                           -- threshold
-  , hiSpindles :: Double  -- ^ Auto-computed from policy spindle_ratio
-                          -- and the node spindle count
-  , instSpindles :: Double -- ^ Spindles used by instances
+  , hiSpindles :: Double  -- ^ Limit auto-computed from policy spindle_ratio
+                          -- and the node spindle count (see note below)
+  , instSpindles :: Double -- ^ Spindles used by instances (see note below)
   , offline  :: Bool      -- ^ Whether the node should not be used for
                           -- allocations and skipped from score
                           -- computations
@@ -143,6 +145,16 @@ data Node = Node
   , iPolicy  :: T.IPolicy -- ^ The instance policy (of the node's group)
   , exclStorage :: Bool   -- ^ Effective value of exclusive_storage
   } deriving (Show, Eq)
+{- A note on how we handle spindles
+
+With exclusive storage spindles is a resource, so we track the number of
+spindles still available (fSpindles). This is the only reliable way, as some
+spindles could be used outside of Ganeti. When exclusive storage is off,
+spindles are a way to represent disk I/O pressure, and hence we track the amount
+used by the instances. We compare it against 'hiSpindles', computed from the
+instance policy, to avoid policy violations. In both cases we store the total
+spindles in 'tSpindles'.
+-}
 
 instance T.Element Node where
   nameOf = name
@@ -217,10 +229,10 @@ decIf False base _     = base
 -- The index and the peers maps are empty, and will be need to be
 -- update later via the 'setIdx' and 'buildPeers' functions.
 create :: String -> Double -> Int -> Int -> Double
-       -> Int -> Double -> Bool -> Int -> T.Gdx -> Bool -> Node
+       -> Int -> Double -> Bool -> Int -> Int -> T.Gdx -> Bool -> Node
 create name_init mem_t_init mem_n_init mem_f_init
-       dsk_t_init dsk_f_init cpu_t_init offline_init spindles_init
-       group_init excl_stor =
+       dsk_t_init dsk_f_init cpu_t_init offline_init spindles_t_init
+       spindles_f_init group_init excl_stor =
   Node { name = name_init
        , alias = name_init
        , tMem = mem_t_init
@@ -229,7 +241,8 @@ create name_init mem_t_init mem_n_init mem_f_init
        , tDsk = dsk_t_init
        , fDsk = dsk_f_init
        , tCpu = cpu_t_init
-       , spindleCount = spindles_init
+       , tSpindles = spindles_t_init
+       , fSpindles = spindles_f_init
        , uCpu = 0
        , pList = []
        , sList = []
@@ -249,7 +262,7 @@ create name_init mem_t_init mem_n_init mem_f_init
        , loDsk = mDskToloDsk T.defReservedDiskRatio dsk_t_init
        , hiCpu = mCpuTohiCpu (T.iPolicyVcpuRatio T.defIPolicy) cpu_t_init
        , hiSpindles = computeHiSpindles (T.iPolicySpindleRatio T.defIPolicy)
-                      spindles_init
+                      spindles_t_init
        , instSpindles = 0
        , utilPool = T.baseUtil
        , utilLoad = T.zeroUtil
@@ -316,7 +329,7 @@ setPolicy pol node =
   node { iPolicy = pol
        , hiCpu = mCpuTohiCpu (T.iPolicyVcpuRatio pol) (tCpu node)
        , hiSpindles = computeHiSpindles (T.iPolicySpindleRatio pol)
-                      (spindleCount node)
+                      (tSpindles node)
        }
 
 -- | Computes the maximum reserved memory for peers from a peer map.
@@ -665,7 +678,7 @@ showField t field =
     "ptags" -> intercalate "," . map (uncurry (printf "%s=%d")) .
                Map.toList $ pTags t
     "peermap" -> show $ peers t
-    "spindle_count" -> show $ spindleCount t
+    "spindle_count" -> show $ tSpindles t
     "hi_spindles" -> show $ hiSpindles t
     "inst_spindles" -> show $ instSpindles t
     _ -> T.unknownField

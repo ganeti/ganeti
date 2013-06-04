@@ -85,7 +85,7 @@ createGroup grpIndex spec = do
                     Node.create (printf "node-%02d-%03d" grpIndex idx)
                       (fromIntegral mem) 0 mem
                       (fromIntegral disk) disk
-                      (fromIntegral cpu) False spindles grpIndex excl_stor
+                      (fromIntegral cpu) False spindles 0 grpIndex excl_stor
                   ) [1..ncount]
       -- TODO: parse networks to which this group is connected
       grp = Group.create (printf "group-%02d" grpIndex)

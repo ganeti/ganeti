@@ -90,7 +90,7 @@ genNode min_multiplier max_multiplier = do
   cpu_t <- choose (base_cpu, top_cpu)
   offl  <- arbitrary
   let n = Node.create name (fromIntegral mem_t) mem_n mem_f
-          (fromIntegral dsk_t) dsk_f (fromIntegral cpu_t) offl 1 0 False
+          (fromIntegral dsk_t) dsk_f (fromIntegral cpu_t) offl 1 0 0 False
       n' = Node.setPolicy nullIPolicy n
   return $ Node.buildPeers n' Container.empty
 
