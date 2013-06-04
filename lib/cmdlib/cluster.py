@@ -168,10 +168,7 @@ class LUClusterDestroy(LogicalUnit):
     ems = self.cfg.GetUseExternalMipScript()
     result = self.rpc.call_node_deactivate_master_ip(master_params.name,
                                                      master_params, ems)
-    if result.fail_msg:
-      self.LogWarning("Error disabling the master IP address: %s",
-                      result.fail_msg)
-
+    result.Warn("Error disabling the master IP address", self.LogWarning)
     return master_params.name
 
 
@@ -430,10 +427,8 @@ class LUClusterRename(LogicalUnit):
       master_params.ip = new_ip
       result = self.rpc.call_node_activate_master_ip(master_params.name,
                                                      master_params, ems)
-      msg = result.fail_msg
-      if msg:
-        self.LogWarning("Could not re-enable the master role on"
-                        " the master, please restart manually: %s", msg)
+      result.Warn("Could not re-enable the master role on the master,"
+                  " please restart manually", self.LogWarning)
 
     return clustername
 
@@ -1115,10 +1110,7 @@ class LUClusterSetParams(LogicalUnit):
                                                         self.op.master_netmask,
                                                         master_params.ip,
                                                         master_params.netdev)
-      if result.fail_msg:
-        msg = "Could not change the master IP netmask: %s" % result.fail_msg
-        feedback_fn(msg)
-
+      result.Warn("Could not change the master IP netmask", feedback_fn)
       self.cluster.master_netmask = self.op.master_netmask
 
     self.cfg.Update(self.cluster, feedback_fn)
@@ -1130,10 +1122,8 @@ class LUClusterSetParams(LogicalUnit):
       ems = self.cfg.GetUseExternalMipScript()
       result = self.rpc.call_node_activate_master_ip(master_params.name,
                                                      master_params, ems)
-      if result.fail_msg:
-        self.LogWarning("Could not re-enable the master ip on"
-                        " the master, please restart manually: %s",
-                        result.fail_msg)
+      result.Warn("Could not re-enable the master ip on the master,"
+                  " please restart manually", self.LogWarning)
 
 
 class LUClusterVerify(NoHooksLU):

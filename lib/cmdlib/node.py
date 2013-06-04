@@ -379,10 +379,8 @@ class LUNodeAdd(LogicalUnit):
       # and make sure the new node will not have old files around
       if not new_node.master_candidate:
         result = self.rpc.call_node_demote_from_mc(new_node.name)
-        msg = result.fail_msg
-        if msg:
-          self.LogWarning("Node failed to demote itself from master"
-                          " candidate status: %s" % msg)
+        result.Warn("Node failed to demote itself from master candidate status",
+                    self.LogWarning)
     else:
       RedistributeAncillaryFiles(self, additional_nodes=[node],
                                  additional_vm=self.op.vm_capable)

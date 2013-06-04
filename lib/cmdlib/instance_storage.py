@@ -206,9 +206,8 @@ def _UndoCreateDisks(lu, disks_created):
   for (node, disk) in disks_created:
     lu.cfg.SetDiskID(disk, node)
     result = lu.rpc.call_blockdev_remove(node, disk)
-    if result.fail_msg:
-      logging.warning("Failed to remove newly-created disk %s on node %s:"
-                      " %s", disk, node, result.fail_msg)
+    result.Warn("Failed to remove newly-created disk %s on node %s" %
+                (disk, node), logging.warning)
 
 
 def CreateDisks(lu, instance, to_skip=None, target_node=None, disks=None):

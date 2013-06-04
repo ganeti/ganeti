@@ -1390,9 +1390,8 @@ class LUInstanceCreate(LogicalUnit):
         result = self.rpc.call_instance_run_rename(pnode_name, iobj,
                                                    rename_from,
                                                    self.op.debug_level)
-        if result.fail_msg:
-          self.LogWarning("Failed to run rename script for %s on node"
-                          " %s: %s" % (instance, pnode_name, result.fail_msg))
+        result.Warn("Failed to run rename script for %s on node %s" %
+                    (instance, pnode_name), self.LogWarning)
 
     assert not self.owned_locks(locking.LEVEL_NODE_RES)
 
@@ -1512,18 +1511,14 @@ class LUInstanceRename(LogicalUnit):
       for node in inst.all_nodes:
         self.cfg.SetDiskID(disk, node)
         result = self.rpc.call_blockdev_setinfo(node, disk, info)
-        if result.fail_msg:
-          self.LogWarning("Error setting info on node %s for disk %s: %s",
-                          node, idx, result.fail_msg)
+        result.Warn("Error setting info on node %s for disk %s" % (node, idx),
+                    self.LogWarning)
     try:
       result = self.rpc.call_instance_run_rename(inst.primary_node, inst,
                                                  old_name, self.op.debug_level)
-      msg = result.fail_msg
-      if msg:
-        msg = ("Could not run OS rename script for instance %s on node %s"
-               " (but the instance has been renamed in Ganeti): %s" %
-               (inst.name, inst.primary_node, msg))
-        self.LogWarning(msg)
+      result.Warn("Could not run OS rename script for instance %s on node %s"
+                  " (but the instance has been renamed in Ganeti)" %
+                  (inst.name, inst.primary_node), self.LogWarning)
     finally:
       ShutdownInstanceDisks(self, inst)
 
@@ -1591,14 +1586,11 @@ class LUInstanceRemove(LogicalUnit):
     result = self.rpc.call_instance_shutdown(instance.primary_node, instance,
                                              self.op.shutdown_timeout,
                                              self.op.reason)
-    msg = result.fail_msg
-    if msg:
-      if self.op.ignore_failures:
-        feedback_fn("Warning: can't shutdown instance: %s" % msg)
-      else:
-        raise errors.OpExecError("Could not shutdown instance %s on"
-                                 " node %s: %s" %
-                                 (instance.name, instance.primary_node, msg))
+    if self.op.ignore_failures:
+      result.Warn("Warning: can't shutdown instance", feedback_fn)
+    else:
+      result.Raise("Could not shutdown instance %s on node %s" %
+                   (instance.name, instance.primary_node))
 
     assert (self.owned_locks(locking.LEVEL_NODE) ==
             self.owned_locks(locking.LEVEL_NODE_RES))
@@ -1732,17 +1724,13 @@ class LUInstanceMove(LogicalUnit):
     result = self.rpc.call_instance_shutdown(source_node, instance,
                                              self.op.shutdown_timeout,
                                              self.op.reason)
-    msg = result.fail_msg
-    if msg:
-      if self.op.ignore_consistency:
-        self.LogWarning("Could not shutdown instance %s on node %s."
-                        " Proceeding anyway. Please make sure node"
-                        " %s is down. Error details: %s",
-                        instance.name, source_node, source_node, msg)
-      else:
-        raise errors.OpExecError("Could not shutdown instance %s on"
-                                 " node %s: %s" %
-                                 (instance.name, source_node, msg))
+    if self.op.ignore_consistency:
+      result.Warn("Could not shutdown instance %s on node %s. Proceeding"
+                  " anyway. Please make sure node %s is down. Error details" %
+                  (instance.name, source_node, source_node), self.LogWarning)
+    else:
+      result.Raise("Could not shutdown instance %s on node %s" %
+                   (instance.name, source_node))
 
     # create the target disks
     try:
