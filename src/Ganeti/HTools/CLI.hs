@@ -77,6 +77,7 @@ module Ganeti.HTools.CLI
   , oOutputDir
   , oPrintCommands
   , oPrintInsts
+  , oPrintMoves
   , oPrintNodes
   , oQuiet
   , oRapiMaster
@@ -146,6 +147,7 @@ data Options = Options
   , optOfflineMaintenance :: Bool    -- ^ Pretend all instances are offline
   , optOneStepOnly :: Bool           -- ^ Only do the first step
   , optOutPath     :: FilePath       -- ^ Path to the output directory
+  , optPrintMoves  :: Bool           -- ^ Whether to show the instance moves
   , optSaveCluster :: Maybe FilePath -- ^ Save cluster state to this file
   , optShowCmds    :: Maybe FilePath -- ^ Whether to show the command list
   , optShowHelp    :: Bool           -- ^ Just show the help
@@ -199,6 +201,7 @@ defaultOptions  = Options
   , optOfflineMaintenance = False
   , optOneStepOnly = False
   , optOutPath     = "."
+  , optPrintMoves  = False
   , optSaveCluster = Nothing
   , optShowCmds    = Nothing
   , optShowHelp    = False
@@ -533,6 +536,13 @@ oPrintInsts =
   (Option "" ["print-instances"]
    (NoArg (\ opts -> Ok opts { optShowInsts = True }))
    "print the final instance map",
+   OptComplNone)
+
+oPrintMoves :: OptType
+oPrintMoves =
+  (Option "" ["print-moves"]
+   (NoArg (\ opts -> Ok opts { optPrintMoves = True }))
+   "print the moves of the instances",
    OptComplNone)
 
 oPrintNodes :: OptType

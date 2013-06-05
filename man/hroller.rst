@@ -36,6 +36,7 @@ Reporting options:
 **[ -v... | -q ]**
 **[ -S *file* ]**
 **[ --one-step-only ]**
+**[ --print-moves ]**
 
 DESCRIPTION
 -----------
@@ -88,6 +89,10 @@ For a description of the standard options check **htools**\(7) and
 \--one-step-only
   Restrict to the first reboot group. Output the group one node per line.
 
+\--print-moves
+  After each group list for each affected non-redundant instance a node
+  where it can be evacuated to.
+
 
 BUGS
 ----
@@ -139,6 +144,36 @@ If all instances are shut down, usually larger node groups can be found.
     node1.example.com,node3.example.com,node5.example.com
     node8.example.com,node6.example.com,node2.example.com
     node7.example.com,node4.example.com
+
+Rolling reboots with non-redundant instances
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+By default, hroller plans capacity to move the non-redundant instances
+out of the nodes to be rebooted. If requested, apropriate locations for
+the non-redundant instances can be shown. The assumption is that instances
+are moved back to their original node after each reboot; these back moves
+are not part of the output.
+::
+
+    $ hroller --print-moves -L
+    'Node Reboot Groups'
+    node-01-002,node-01-003
+      inst-20 node-01-001
+      inst-21 node-01-000
+      inst-30 node-01-005
+      inst-31 node-01-004
+    node-01-004,node-01-005
+      inst-40 node-01-001
+      inst-41 node-01-000
+      inst-50 node-01-003
+      inst-51 node-01-002
+    node-01-001,node-01-000
+      inst-00 node-01-002
+      inst-01 node-01-003
+      inst-10 node-01-005
+      inst-11 node-01-004
+
+
 
 .. vim: set textwidth=72 :
 .. Local Variables:

@@ -30,10 +30,12 @@ module Ganeti.HTools.Program.Hroller
   ) where
 
 import Control.Applicative
+import Control.Arrow
 import Control.Monad
 import Data.Function
 import Data.List
 import Data.Ord
+import Text.Printf
 
 import qualified Data.IntMap as IntMap
 
@@ -68,6 +70,7 @@ options = do
     , oNodeTags
     , oSaveCluster
     , oGroup
+    , oPrintMoves
     , oSkipNonRedundant
     , oIgnoreNonRedundant
     , oForce
@@ -127,14 +130,14 @@ clearNodes (ndx:ndxs) targets conf@(nl, _) =
 
 -- | Parition a list of nodes into chunks according cluster capacity.
 partitionNonRedundant :: [Ndx] -> [Ndx] -> (Node.List, Instance.List)
-                         -> Result [[Ndx]]
+                         -> Result [([Ndx], (Node.List, Instance.List))]
 partitionNonRedundant [] _ _ = return []
 partitionNonRedundant ndxs targets conf = do
-  (grp, _) <- clearNodes ndxs targets conf
+  (grp, conf') <- clearNodes ndxs targets conf
   guard . not . null $ grp
   let remaining = ndxs \\ grp
   part <- partitionNonRedundant remaining targets conf
-  return $ grp : part
+  return $ (grp, conf') : part
 
 -- | Gather statistics for the coloring algorithms.
 -- Returns a string with a summary on how each algorithm has performed,
@@ -177,12 +180,22 @@ noNonRedundant :: (Node.List, Instance.List) -> Node.Node -> Bool
 noNonRedundant conf = null . nonRedundant conf . Node.idx
 
 -- | Put the master node last.
--- Reorder a list of lists of nodes such that the master node (if present)
--- is the last node of the last group.
-masterLast :: [[Node.Node]] -> [[Node.Node]]
+-- Reorder a list groups of nodes (with additional information) such that the
+-- master node (if present) is the last node of the last group.
+masterLast :: [([Node.Node], a)] -> [([Node.Node], a)]
 masterLast rebootgroups =
-  map (uncurry (++)) . uncurry (++) . partition (null . snd) $
-  map (partition (not . Node.isMaster)) rebootgroups
+  map (first $ uncurry (++)) . uncurry (++) . partition (null . snd . fst) $
+  map (first $ partition (not . Node.isMaster)) rebootgroups
+
+-- | From two configurations compute the list of moved instances.
+getMoves :: (Node.List, Instance.List) -> (Node.List, Instance.List)
+            -> [(Instance.Instance, Node.Node)]
+getMoves (_, il) (nl', il') = do
+  ix <- Container.keys il
+  let inst = Container.find ix il
+      inst' = Container.find ix il'
+  guard $ Instance.pNode inst /= Instance.pNode inst'
+  return (inst', Container.find (Instance.pNode inst') nl')
 
 -- | Main function.
 main :: Options -> [String] -> IO ()
@@ -245,29 +258,39 @@ main opts args = do
       splitted = mapM (\ grp -> partitionNonRedundant grp allNdx (nlf,ilf))
                  smallestColoring
   rebootGroups <- if optIgnoreNonRedundant opts
-                     then return smallestColoring
+                     then return $ zip smallestColoring (repeat (nlf, ilf))
                      else case splitted of
                             Ok splitgroups -> return $ concat splitgroups
                             Bad _ -> exitErr "Not enough capacity to move\ 
                                              \ non-redundant instances"
   let idToNode = (`Container.find` nodes)
       nodesRebootGroups =
-        map (map idToNode . filter (`IntMap.member` nodes)) rebootGroups
+        map (first $ map idToNode . filter (`IntMap.member` nodes)) rebootGroups
       outputRebootGroups = masterLast .
-                           sortBy (flip compare `on` length) $
+                           sortBy (flip compare `on` length . fst) $
                            nodesRebootGroups
-      outputRebootNames = map (map Node.name) outputRebootGroups
+      confToMoveNames = map (Instance.name *** Node.name) . getMoves (nlf, ilf)
+      namesAndMoves = map (map Node.name *** confToMoveNames) outputRebootGroups
 
   when (verbose > 1) . putStrLn $ getStats colorings
+
+  let showGroup = if optOneStepOnly opts
+                    then mapM_ putStrLn
+                    else putStrLn . commaJoin
+      showMoves = if optPrintMoves opts
+                    then mapM_ $ putStrLn . uncurry (printf "  %s %s")
+                    else const $ return ()
+      showBoth = liftM2 (>>) (showGroup . fst) (showMoves . snd)
+
 
   if optOneStepOnly opts
      then do
        unless (optNoHeaders opts) $
               putStrLn "'First Reboot Group'"
-       case outputRebootNames of
+       case namesAndMoves of
          [] -> return ()
-         y : _ -> mapM_ putStrLn y
+         y : _ -> showBoth y
      else do
        unless (optNoHeaders opts) $
               putStrLn "'Node Reboot Groups'"
-       mapM_ (putStrLn . commaJoin) outputRebootNames
+       mapM_ showBoth namesAndMoves
