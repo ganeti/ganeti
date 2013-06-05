@@ -524,6 +524,7 @@ class _TestXenHypervisor(object):
   TARGET = NotImplemented
   CMD = NotImplemented
   HVNAME = NotImplemented
+  VALID_HVPARAMS = {constants.HV_XEN_CMD: constants.XEN_CMD_XL}
 
   def setUp(self):
     super(_TestXenHypervisor, self).setUp()
@@ -791,7 +792,7 @@ class _TestXenHypervisor(object):
     for live in [False, True]:
       try:
         hv._MigrateInstance(NotImplemented, name, target, port, live,
-                            _ping_fn=NotImplemented)
+                            self.VALID_HVPARAMS, _ping_fn=NotImplemented)
       except errors.HypervisorError, err:
         self.assertEqual(str(err), "Instance not running, cannot migrate")
       else:
@@ -811,6 +812,7 @@ class _TestXenHypervisor(object):
     port = 28349
 
     hv = self._GetHv(run_cmd=self._MigrateInstTargetUnreachCmd)
+    hvparams = {constants.HV_XEN_CMD: self.CMD}
 
     for live in [False, True]:
       if self.CMD == constants.XEN_CMD_XL:
@@ -819,6 +821,7 @@ class _TestXenHypervisor(object):
       else:
         try:
           hv._MigrateInstance(NotImplemented, name, target, port, live,
+                              hvparams,
                               _ping_fn=compat.partial(self._FakeTcpPing,
                                                       (target, port), False))
         except errors.HypervisorError, err:
@@ -865,6 +868,8 @@ class _TestXenHypervisor(object):
     target = constants.IP4_ADDRESS_LOCALHOST
     port = 22364
 
+    hvparams = {constants.HV_XEN_CMD: self.CMD}
+
     for live in [False, True]:
       for fail in [False, True]:
         ping_fn = \
@@ -881,14 +886,14 @@ class _TestXenHypervisor(object):
         if fail:
           try:
             hv._MigrateInstance(clustername, instname, target, port, live,
-                                _ping_fn=ping_fn)
+                                hvparams, _ping_fn=ping_fn)
           except errors.HypervisorError, err:
             self.assertTrue(str(err).startswith("Failed to migrate instance"))
           else:
             self.fail("Exception was not raised")
         else:
           hv._MigrateInstance(clustername, instname, target, port, live,
-                              _ping_fn=ping_fn)
+                              hvparams, _ping_fn=ping_fn)
 
         if self.CMD == constants.XEN_CMD_XM:
           expected_pings = 1

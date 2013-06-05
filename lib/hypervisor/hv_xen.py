@@ -721,19 +721,22 @@ class XenHypervisor(hv_base.BaseHypervisor):
     cluster_name = ssconf.SimpleStore().GetClusterName()
 
     return self._MigrateInstance(cluster_name, instance.name, target, port,
-                                 live)
+                                 live, instance.hvparams)
 
   def _MigrateInstance(self, cluster_name, instance_name, target, port, live,
-                       _ping_fn=netutils.TcpPing):
+                       hvparams, _ping_fn=netutils.TcpPing):
     """Migrate an instance to a target node.
 
     @see: L{MigrateInstance} for details
 
     """
-    if self.GetInstanceInfo(instance_name) is None:
+    if hvparams is None:
+      raise errors.HypervisorError("No hvparams provided.")
+
+    if self.GetInstanceInfo(instance_name, hvparams=hvparams) is None:
       raise errors.HypervisorError("Instance not running, cannot migrate")
 
-    cmd = self._GetCommand()
+    cmd = self._GetCommand(hvparams=hvparams)
 
     if (cmd == constants.XEN_CMD_XM and
         not _ping_fn(target, port, live_port_needed=True)):
