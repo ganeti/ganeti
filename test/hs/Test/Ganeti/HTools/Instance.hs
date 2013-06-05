@@ -7,7 +7,7 @@
 
 {-
 
-Copyright (C) 2009, 2010, 2011, 2012 Google Inc.
+Copyright (C) 2009, 2010, 2011, 2012, 2013 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -30,12 +30,12 @@ module Test.Ganeti.HTools.Instance
   ( testHTools_Instance
   , genInstanceSmallerThanNode
   , genInstanceMaybeBiggerThanNode
-  , genInstanceSmallerThan
   , genInstanceOnNodeList
   , genInstanceList
   , Instance.Instance(..)
   ) where
 
+import Control.Monad (liftM)
 import Test.QuickCheck hiding (Result)
 
 import Test.Ganeti.TestHelper
@@ -52,8 +52,9 @@ import qualified Ganeti.HTools.Types as Types
 -- * Arbitrary instances
 
 -- | Generates a random instance with maximum disk/mem/cpu values.
-genInstanceSmallerThan :: Int -> Int -> Int -> Gen Instance.Instance
-genInstanceSmallerThan lim_mem lim_dsk lim_cpu = do
+genInstanceSmallerThan :: Int -> Int -> Int -> Maybe Int ->
+                          Gen Instance.Instance
+genInstanceSmallerThan lim_mem lim_dsk lim_cpu lim_spin = do
   name <- genFQDN
   mem <- choose (0, lim_mem)
   dsk <- choose (0, lim_dsk)
@@ -62,7 +63,9 @@ genInstanceSmallerThan lim_mem lim_dsk lim_cpu = do
   sn <- arbitrary
   vcpus <- choose (0, lim_cpu)
   dt <- arbitrary
-  spindles <- arbitrary
+  spindles <- case lim_spin of
+    Nothing -> genMaybe $ choose (0, maxSpindles)
+    Just ls -> liftM Just $ choose (0, ls)
   let disk = Instance.Disk dsk spindles
   return $ Instance.create
     name mem dsk [disk] vcpus run_st [] True pn sn dt 1 []
@@ -73,6 +76,9 @@ genInstanceSmallerThanNode node =
   genInstanceSmallerThan (Node.availMem node `div` 2)
                          (Node.availDisk node `div` 2)
                          (Node.availCpu node `div` 2)
+                         (if Node.exclStorage node
+                          then Just $ Node.fSpindles node `div` 2
+                          else Nothing)
 
 -- | Generates an instance possibly bigger than a node.
 genInstanceMaybeBiggerThanNode :: Node.Node -> Gen Instance.Instance
@@ -80,6 +86,10 @@ genInstanceMaybeBiggerThanNode node =
   genInstanceSmallerThan (Node.availMem  node + Types.unitMem * 2)
                          (Node.availDisk node + Types.unitDsk * 3)
                          (Node.availCpu  node + Types.unitCpu * 4)
+                         (if Node.exclStorage node
+                          then Just $ Node.fSpindles node +
+                               Types.unitSpindle * 5
+                          else Nothing)
 
 -- | Generates an instance with nodes on a node list.
 -- The following rules are respected:
@@ -106,7 +116,7 @@ genInstanceList igen = fmap (snd . Loader.assignIndices) names_instances
 
 -- let's generate a random instance
 instance Arbitrary Instance.Instance where
-  arbitrary = genInstanceSmallerThan maxMem maxDsk maxCpu
+  arbitrary = genInstanceSmallerThan maxMem maxDsk maxCpu Nothing
 
 -- * Test cases
 

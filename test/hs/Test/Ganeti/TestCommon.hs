@@ -27,6 +27,7 @@ module Test.Ganeti.TestCommon
   ( maxMem
   , maxDsk
   , maxCpu
+  , maxSpindles
   , maxVcpuRatio
   , maxSpindleRatio
   , maxNodes
@@ -97,6 +98,10 @@ maxDsk = 1024 * 1024 * 8
 -- | Max CPUs (1024, somewhat random value).
 maxCpu :: Int
 maxCpu = 1024
+
+-- | Max spindles (1024, somewhat random value).
+maxSpindles :: Int
+maxSpindles = 1024
 
 -- | Max vcpu ratio (random value).
 maxVcpuRatio :: Double

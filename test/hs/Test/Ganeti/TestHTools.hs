@@ -119,7 +119,12 @@ makeSmallCluster node count =
 setInstanceSmallerThanNode :: Node.Node
                            -> Instance.Instance -> Instance.Instance
 setInstanceSmallerThanNode node inst =
-  inst { Instance.mem = Node.availMem node `div` 2
-       , Instance.dsk = Node.availDisk node `div` 2
-       , Instance.vcpus = Node.availCpu node `div` 2
-       }
+  let new_dsk = Node.availDisk node `div` 2
+  in inst { Instance.mem = Node.availMem node `div` 2
+          , Instance.dsk = new_dsk
+          , Instance.vcpus = Node.availCpu node `div` 2
+          , Instance.disks = [Instance.Disk new_dsk
+                              (if Node.exclStorage node
+                               then Just $ Node.fSpindles node `div` 2
+                               else Nothing)]
+          }

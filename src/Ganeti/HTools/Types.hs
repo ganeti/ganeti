@@ -53,6 +53,7 @@ module Ganeti.HTools.Types
   , unitMem
   , unitCpu
   , unitDsk
+  , unitSpindle
   , unknownField
   , Placement
   , IMove(..)
@@ -316,6 +317,10 @@ unitDsk = 256
 -- | Base vcpus unit.
 unitCpu :: Int
 unitCpu = 1
+
+-- | Base spindles unit.
+unitSpindle :: Int
+unitSpindle = 1
 
 -- | Reason for an operation's falure.
 data FailMode = FailMem  -- ^ Failed due to not enough RAM

@@ -69,18 +69,20 @@ genNode :: Maybe Int -- ^ Minimum node size in terms of units
                      -- just by the max... constants)
         -> Gen Node.Node
 genNode min_multiplier max_multiplier = do
-  let (base_mem, base_dsk, base_cpu) =
+  let (base_mem, base_dsk, base_cpu, base_spindles) =
         case min_multiplier of
           Just mm -> (mm * Types.unitMem,
                       mm * Types.unitDsk,
-                      mm * Types.unitCpu)
-          Nothing -> (0, 0, 0)
-      (top_mem, top_dsk, top_cpu)  =
+                      mm * Types.unitCpu,
+                      mm)
+          Nothing -> (0, 0, 0, 0)
+      (top_mem, top_dsk, top_cpu, top_spindles)  =
         case max_multiplier of
           Just mm -> (mm * Types.unitMem,
                       mm * Types.unitDsk,
-                      mm * Types.unitCpu)
-          Nothing -> (maxMem, maxDsk, maxCpu)
+                      mm * Types.unitCpu,
+                      mm)
+          Nothing -> (maxMem, maxDsk, maxCpu, maxSpindles)
   name  <- genFQDN
   mem_t <- choose (base_mem, top_mem)
   mem_f <- choose (base_mem, mem_t)
@@ -89,8 +91,10 @@ genNode min_multiplier max_multiplier = do
   dsk_f <- choose (base_dsk, dsk_t)
   cpu_t <- choose (base_cpu, top_cpu)
   offl  <- arbitrary
+  spindles <- choose (base_spindles, top_spindles)
   let n = Node.create name (fromIntegral mem_t) mem_n mem_f
-          (fromIntegral dsk_t) dsk_f (fromIntegral cpu_t) offl 1 0 0 False
+          (fromIntegral dsk_t) dsk_f (fromIntegral cpu_t) offl spindles
+          0 0 False
       n' = Node.setPolicy nullIPolicy n
   return $ Node.buildPeers n' Container.empty
 
@@ -101,7 +105,21 @@ genOnlineNode =
                               not (Node.failN1 n) &&
                               Node.availDisk n > 0 &&
                               Node.availMem n > 0 &&
-                              Node.availCpu n > 0)
+                              Node.availCpu n > 0 &&
+                              Node.tSpindles n > 0)
+
+-- | Generate a node with exclusive storage enabled.
+genExclStorNode :: Gen Node.Node
+genExclStorNode = do
+  n <- genOnlineNode
+  fs <- choose (Types.unitSpindle, Node.tSpindles n)
+  return n { Node.exclStorage = True
+           , Node.fSpindles = fs
+           }
+
+-- | Generate a node with exclusive storage possibly enabled.
+genMaybeExclStorNode :: Gen Node.Node
+genMaybeExclStorNode = oneof [genOnlineNode, genExclStorNode]
 
 -- and a random node
 instance Arbitrary Node.Node where
@@ -170,7 +188,7 @@ prop_setFmemExact node =
 -- memory does not raise an N+1 error
 prop_addPri_NoN1Fail :: Property
 prop_addPri_NoN1Fail =
-  forAll genOnlineNode $ \node ->
+  forAll genMaybeExclStorNode $ \node ->
   forAll (genInstanceSmallerThanNode node) $ \inst ->
   let inst' = inst { Instance.mem = Node.fMem node - Node.rMem node }
   in (Node.addPri node inst' /=? Bad Types.FailN1)
@@ -201,7 +219,7 @@ prop_addPriFD node inst =
 prop_addPriFC :: Property
 prop_addPriFC =
   forAll (choose (1, maxCpu)) $ \extra ->
-  forAll genOnlineNode $ \node ->
+  forAll genMaybeExclStorNode $ \node ->
   forAll (arbitrary `suchThat` Instance.notOffline) $ \inst ->
   let inst' = setInstanceSmallerThanNode node inst
       inst'' = inst' { Instance.vcpus = Node.availCpu node + extra }
@@ -223,7 +241,7 @@ prop_addSec node inst pdx =
 -- extra mem/cpu can always be added.
 prop_addOfflinePri :: NonNegative Int -> NonNegative Int -> Property
 prop_addOfflinePri (NonNegative extra_mem) (NonNegative extra_cpu) =
-  forAll genOnlineNode $ \node ->
+  forAll genMaybeExclStorNode $ \node ->
   forAll (genInstanceSmallerThanNode node) $ \inst ->
   let inst' = inst { Instance.runSt = Types.StatusOffline
                    , Instance.mem = Node.availMem node + extra_mem
@@ -237,7 +255,7 @@ prop_addOfflinePri (NonNegative extra_mem) (NonNegative extra_cpu) =
 prop_addOfflineSec :: NonNegative Int -> NonNegative Int
                    -> Types.Ndx -> Property
 prop_addOfflineSec (NonNegative extra_mem) (NonNegative extra_cpu) pdx =
-  forAll genOnlineNode $ \node ->
+  forAll genMaybeExclStorNode $ \node ->
   forAll (genInstanceSmallerThanNode node) $ \inst ->
   let inst' = inst { Instance.runSt = Types.StatusOffline
                    , Instance.mem = Node.availMem node + extra_mem
@@ -251,7 +269,8 @@ prop_addOfflineSec (NonNegative extra_mem) (NonNegative extra_cpu) pdx =
 prop_rMem :: Instance.Instance -> Property
 prop_rMem inst =
   not (Instance.isOffline inst) ==>
-  forAll (genOnlineNode `suchThat` ((> Types.unitMem) . Node.fMem)) $ \node ->
+  forAll (genMaybeExclStorNode `suchThat` ((> Types.unitMem) . Node.fMem)) $
+    \node ->
   -- ab = auto_balance, nb = non-auto_balance
   -- we use -1 as the primary node of the instance
   let inst' = inst { Instance.pNode = -1, Instance.autoBalance = True
@@ -324,7 +343,7 @@ prop_computeGroups nodes =
 -- Check idempotence of add/remove operations
 prop_addPri_idempotent :: Property
 prop_addPri_idempotent =
-  forAll genOnlineNode $ \node ->
+  forAll genMaybeExclStorNode $ \node ->
   forAll (genInstanceSmallerThanNode node) $ \inst ->
   case Node.addPri node inst of
     Ok node' -> Node.removePri node' inst ==? node
@@ -332,7 +351,7 @@ prop_addPri_idempotent =
 
 prop_addSec_idempotent :: Property
 prop_addSec_idempotent =
-  forAll genOnlineNode $ \node ->
+  forAll genMaybeExclStorNode $ \node ->
   forAll (genInstanceSmallerThanNode node) $ \inst ->
   let pdx = Node.idx node + 1
       inst' = Instance.setPri inst pdx
