@@ -64,11 +64,12 @@ class NodeMaintenance(object):
 
     """
     hyp_list = ssconf.SimpleStore().GetHypervisorList()
+    hvparams = ssconf.SimpleStore().GetHvparams()
     results = []
     for hv_name in hyp_list:
       try:
         hv = hypervisor.GetHypervisor(hv_name)
-        ilist = hv.ListInstances()
+        ilist = hv.ListInstances(hvparams=hvparams)
         results.extend([(iname, hv_name) for iname in ilist])
       except: # pylint: disable=W0702
         logging.error("Error while listing instances for hypervisor %s",
