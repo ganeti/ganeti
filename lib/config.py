@@ -1805,6 +1805,32 @@ class ConfigWriter:
                      for node_name in nodes_fn(inst)
                      if self._UnlockedGetNodeInfo(node_name).group == uuid)
 
+  def _UnlockedGetHvparamsString(self, hvname):
+    """Return the string representation of the list of hyervisor parameters of
+    the given hypervisor.
+
+    @see: C{GetHvparams}
+
+    """
+    result = ""
+    hvparams = self._config_data.cluster.hvparams[hvname]
+    for key in hvparams:
+      result += "%s=%s\n" % (key, hvparams[key])
+    return result
+
+  @locking.ssynchronized(_config_lock, shared=1)
+  def GetHvparamsString(self, hvname):
+    """Return the hypervisor parameters of the given hypervisor.
+
+    @type hvname: string
+    @param hvname: name of a hypervisor
+    @rtype: string
+    @return: string containing key-value-pairs, one pair on each line;
+      format: KEY=VALUE
+
+    """
+    return self._UnlockedGetHvparamsString(hvname)
+
   def _UnlockedGetNodeList(self):
     """Return the list of nodes which are in the configuration.
 
@@ -2282,6 +2308,40 @@ class ConfigWriter:
 
       self._last_cluster_serial = self._config_data.cluster.serial_no
 
+  def _GetAllHvparamsStrings(self, hypervisors):
+    """Get the hvparams of all given hypervisors from the config.
+
+    @type hypervisors: list of string
+    @param hypervisors: list of hypervisor names
+    @rtype: dict of strings
+    @returns: dictionary mapping the hypervisor name to a string representation
+      of the hypervisor's hvparams
+
+    """
+    hvparams = {}
+    for hv in hypervisors:
+      hvparams[hv] = self._UnlockedGetHvparamsString(hv)
+    return hvparams
+
+  @staticmethod
+  def _ExtendByAllHvparamsStrings(ssconf_values, all_hvparams):
+    """Extends the ssconf_values dictionary by hvparams.
+
+    @type ssconf_values: dict of strings
+    @param ssconf_values: dictionary mapping ssconf_keys to strings
+      representing the content of ssconf files
+    @type all_hvparams: dict of strings
+    @param all_hvparams: dictionary mapping hypervisor names to a string
+      representation of their hvparams
+    @rtype: same as ssconf_values
+    @returns: the ssconf_values dictionary extended by hvparams
+
+    """
+    for hv in all_hvparams:
+      ssconf_key = constants.SS_HVPARAMS_PREF + hv
+      ssconf_values[ssconf_key] = all_hvparams[hv]
+    return ssconf_values
+
   def _UnlockedGetSsconfValues(self):
     """Return the values needed by ssconf.
 
@@ -2313,6 +2373,7 @@ class ConfigWriter:
     cluster_tags = fn(cluster.GetTags())
 
     hypervisor_list = fn(cluster.enabled_hypervisors)
+    all_hvparams = self._GetAllHvparamsStrings(constants.HYPER_TYPES)
 
     uid_pool = uidpool.FormatUidPool(cluster.uid_pool, separator="\n")
 
@@ -2348,6 +2409,8 @@ class ConfigWriter:
       constants.SS_NODEGROUPS: nodegroups_data,
       constants.SS_NETWORKS: networks_data,
       }
+    ssconf_values = self._ExtendByAllHvparamsStrings(ssconf_values,
+                                                     all_hvparams)
     bad_values = [(k, v) for k, v in ssconf_values.items()
                   if not isinstance(v, (str, basestring))]
     if bad_values:

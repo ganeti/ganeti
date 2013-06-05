@@ -41,6 +41,7 @@ from ganeti.config import TemporaryReservationManager
 
 import testutils
 import mocks
+import mock
 
 
 def _StubGetEntResolver():
@@ -578,6 +579,31 @@ class TestConfigRunner(unittest.TestCase):
     self._TestVerifyConfigGroupIPolicy(nodegroup, cfg)
     nodegroup.ipolicy = cluster.SimpleFillIPolicy(nodegroup.ipolicy)
     self._TestVerifyConfigIPolicy(nodegroup.ipolicy, nodegroup.name, cfg, True)
+
+  # Tests for Ssconf helper functions
+  def testUnlockedGetHvparamsString(self):
+    hvparams = {"a": "A", "b": "B", "c": "C"}
+    hvname = "myhv"
+    cfg_writer = self._get_object()
+    cfg_writer._config_data = mock.Mock()
+    cfg_writer._config_data.cluster = mock.Mock()
+    cfg_writer._config_data.cluster.hvparams = {hvname: hvparams}
+
+    result = cfg_writer._UnlockedGetHvparamsString(hvname)
+
+    self.assertTrue("a=A" in result)
+    lines = [line for line in result.split('\n') if line != '']
+    self.assertEqual(len(hvparams.keys()), len(lines))
+
+  def testExtendByAllHvparamsStrings(self):
+    all_hvparams = {constants.HT_XEN_PVM: "foo"}
+    ssconf_values = {}
+    cfg_writer = self._get_object()
+
+    cfg_writer._ExtendByAllHvparamsStrings(ssconf_values, all_hvparams)
+
+    expected_key = constants.SS_HVPARAMS_PREF + constants.HT_XEN_PVM
+    self.assertTrue(expected_key in ssconf_values)
 
 
 def _IsErrorInList(err_str, err_list):

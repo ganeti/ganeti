@@ -65,6 +65,12 @@ _VALID_KEYS = compat.UniqueFrozenset([
   constants.SS_UID_POOL,
   constants.SS_NODEGROUPS,
   constants.SS_NETWORKS,
+  constants.SS_HVPARAMS_XEN_PVM,
+  constants.SS_HVPARAMS_XEN_FAKE,
+  constants.SS_HVPARAMS_XEN_HVM,
+  constants.SS_HVPARAMS_XEN_KVM,
+  constants.SS_HVPARAMS_XEN_CHROOT,
+  constants.SS_HVPARAMS_XEN_LXC,
   ])
 
 #: Maximum size for ssconf files
@@ -314,6 +320,35 @@ class SimpleStore(object):
     data = self._ReadFile(constants.SS_HYPERVISOR_LIST)
     nl = data.splitlines(False)
     return nl
+
+  def GetHvparamsForHypervisor(self, hvname):
+    """Return the hypervisor parameters of the given hypervisor.
+
+    @type hvname: string
+    @param hvname: name of the hypervisor, must be in C{constants.HYPER_TYPES}
+    @rtype: dict of strings
+    @returns: dictionary with hypervisor parameters
+
+    """
+    data = self._ReadFile(constants.SS_HVPARAMS_PREF + hvname)
+    lines = data.splitlines(False)
+    hvparams = {}
+    for line in lines:
+      (key, value) = line.split("=")
+      hvparams[key] = value
+    return hvparams
+
+  def GetHvparams(self):
+    """Return the hypervisor parameters of all hypervisors.
+
+    @rtype: dict of dict of strings
+    @returns: dictionary mapping hypervisor names to hvparams
+
+    """
+    all_hvparams = {}
+    for hv in constants.HYPER_TYPES:
+      all_hvparams[hv] = self.GetHvparamsForHypervisor(hv)
+    return all_hvparams
 
   def GetMaintainNodeHealth(self):
     """Return the value of the maintain_node_health option.

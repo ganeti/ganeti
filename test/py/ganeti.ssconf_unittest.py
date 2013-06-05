@@ -33,6 +33,7 @@ from ganeti import errors
 from ganeti import ssconf
 
 import testutils
+import mock
 
 
 class TestReadSsconfFile(unittest.TestCase):
@@ -219,6 +220,16 @@ class TestSimpleStore(unittest.TestCase):
         self.fail("Exception was not raised")
 
       self.assertEqual(os.listdir(self.ssdir), [])
+
+  def testGetHvparamsForHypervisor(self):
+    hvparams = [("a", "A"), ("b", "B"), ("c", "C")]
+    ssconf_file_content = '\n'.join("%s=%s" % (key, value) for (key, value)
+                                    in hvparams)
+    self.sstore._ReadFile = mock.Mock(return_value=ssconf_file_content)
+    result = self.sstore.GetHvparamsForHypervisor("foo")
+    for (key, value) in hvparams:
+      self.assertTrue(key in result)
+      self.assertEqual(value, result[key])
 
 
 class TestVerifyClusterName(unittest.TestCase):
