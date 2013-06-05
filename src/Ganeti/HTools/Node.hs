@@ -353,9 +353,28 @@ buildPeers t il =
   in t {peers=pmap, failN1 = new_failN1, rMem = new_rmem, pRem = new_prem}
 
 -- | Calculate the new spindle usage
-calcSpindleUse :: Node -> Instance.Instance -> Double
-calcSpindleUse n i = incIf (Instance.usesLocalStorage i) (instSpindles n)
-                       (fromIntegral $ Instance.spindleUse i)
+calcSpindleUse ::
+                  Bool -- Action: True = adding instance, False = removing it
+               -> Node -> Instance.Instance -> Double
+calcSpindleUse _ (Node {exclStorage = True}) _ = 0.0
+calcSpindleUse act n@(Node {exclStorage = False}) i =
+  f (Instance.usesLocalStorage i) (instSpindles n)
+    (fromIntegral $ Instance.spindleUse i)
+    where
+      f :: Bool -> Double -> Double -> Double -- avoid monomorphism restriction
+      f = if act then incIf else decIf
+
+-- | Calculate the new number of free spindles
+calcNewFreeSpindles ::
+                       Bool -- Action: True = adding instance, False = removing
+                    -> Node -> Instance.Instance -> Int
+calcNewFreeSpindles _ (Node {exclStorage = False}) _ = 0
+calcNewFreeSpindles act n@(Node {exclStorage = True}) i =
+  case Instance.getTotalSpindles i of
+    Nothing -> if act
+               then -1 -- Force a spindle error, so the instance don't go here
+               else fSpindles n -- No change, as we aren't sure
+    Just s -> (if act then (-) else (+)) (fSpindles n) s
 
 -- | Assigns an instance to a node as primary and update the used VCPU
 -- count, utilisation data and tags map.
@@ -365,17 +384,17 @@ setPri t inst = t { pList = Instance.idx inst:pList t
                   , pCpu = fromIntegral new_count / tCpu t
                   , utilLoad = utilLoad t `T.addUtil` Instance.util inst
                   , pTags = addTags (pTags t) (Instance.exclTags inst)
-                  , instSpindles = calcSpindleUse t inst
+                  , instSpindles = calcSpindleUse True t inst
                   }
   where new_count = Instance.applyIfOnline inst (+ Instance.vcpus inst)
                     (uCpu t )
 
--- | Assigns an instance to a node as secondary without other updates.
+-- | Assigns an instance to a node as secondary and updates disk utilisation.
 setSec :: Node -> Instance.Instance -> Node
 setSec t inst = t { sList = Instance.idx inst:sList t
                   , utilLoad = old_load { T.dskWeight = T.dskWeight old_load +
                                           T.dskWeight (Instance.util inst) }
-                  , instSpindles = calcSpindleUse t inst
+                  , instSpindles = calcSpindleUse True t inst
                   }
   where old_load = utilLoad t
 
@@ -403,7 +422,8 @@ removePri t inst =
       new_plist = delete iname (pList t)
       new_mem = incIf i_online (fMem t) (Instance.mem inst)
       new_dsk = incIf uses_disk (fDsk t) (Instance.dsk inst)
-      new_spindles = decIf uses_disk (instSpindles t) 1
+      new_free_sp = calcNewFreeSpindles False t inst
+      new_inst_sp = calcSpindleUse False t inst
       new_mp = fromIntegral new_mem / tMem t
       new_dp = computePDsk new_dsk (tDsk t)
       new_failn1 = new_mem <= rMem t
@@ -414,7 +434,7 @@ removePri t inst =
        , failN1 = new_failn1, pMem = new_mp, pDsk = new_dp
        , uCpu = new_ucpu, pCpu = new_rcpu, utilLoad = new_load
        , pTags = delTags (pTags t) (Instance.exclTags inst)
-       , instSpindles = new_spindles
+       , instSpindles = new_inst_sp, fSpindles = new_free_sp
        }
 
 -- | Removes a secondary instance.
@@ -426,7 +446,8 @@ removeSec t inst =
       pnode = Instance.pNode inst
       new_slist = delete iname (sList t)
       new_dsk = incIf uses_disk cur_dsk (Instance.dsk inst)
-      new_spindles = decIf uses_disk (instSpindles t) 1
+      new_free_sp = calcNewFreeSpindles False t inst
+      new_inst_sp = calcSpindleUse False t inst
       old_peers = peers t
       old_peem = P.find pnode old_peers
       new_peem = decIf (Instance.usesSecMem inst) old_peem (Instance.mem inst)
@@ -446,7 +467,7 @@ removeSec t inst =
   in t { sList = new_slist, fDsk = new_dsk, peers = new_peers
        , failN1 = new_failn1, rMem = new_rmem, pDsk = new_dp
        , pRem = new_prem, utilLoad = new_load
-       , instSpindles = new_spindles
+       , instSpindles = new_inst_sp, fSpindles = new_free_sp
        }
 
 -- | Adds a primary instance (basic version).
@@ -470,7 +491,8 @@ addPriEx force t inst =
       cur_dsk = fDsk t
       new_mem = decIf i_online (fMem t) (Instance.mem inst)
       new_dsk = decIf uses_disk cur_dsk (Instance.dsk inst)
-      new_spindles = incIf uses_disk (instSpindles t) 1
+      new_free_sp = calcNewFreeSpindles True t inst
+      new_inst_sp = calcSpindleUse True t inst
       new_failn1 = new_mem <= rMem t
       new_ucpu = incIf i_online (uCpu t) (Instance.vcpus inst)
       new_pcpu = fromIntegral new_ucpu / tCpu t
@@ -484,8 +506,8 @@ addPriEx force t inst =
        _ | new_mem <= 0 -> Bad T.FailMem
          | uses_disk && new_dsk <= 0 -> Bad T.FailDisk
          | uses_disk && mDsk t > new_dp && strict -> Bad T.FailDisk
-         | uses_disk && new_spindles > hiSpindles t
-             && strict -> Bad T.FailDisk
+         | uses_disk && exclStorage t && new_free_sp < 0 -> Bad T.FailSpindles
+         | uses_disk && new_inst_sp > hiSpindles t && strict -> Bad T.FailDisk
          | new_failn1 && not (failN1 t) && strict -> Bad T.FailMem
          | l_cpu >= 0 && l_cpu < new_pcpu && strict -> Bad T.FailCPU
          | rejectAddTags old_tags inst_tags -> Bad T.FailTags
@@ -497,7 +519,8 @@ addPriEx force t inst =
                      , uCpu = new_ucpu, pCpu = new_pcpu
                      , utilLoad = new_load
                      , pTags = addTags old_tags inst_tags
-                     , instSpindles = new_spindles
+                     , instSpindles = new_inst_sp
+                     , fSpindles = new_free_sp
                      }
            in Ok r
 
@@ -512,7 +535,8 @@ addSecEx force t inst pdx =
       old_peers = peers t
       old_mem = fMem t
       new_dsk = fDsk t - Instance.dsk inst
-      new_spindles = instSpindles t + 1
+      new_free_sp = calcNewFreeSpindles True t inst
+      new_inst_sp = calcSpindleUse True t inst
       secondary_needed_mem = if Instance.usesSecMem inst
                                then Instance.mem inst
                                else 0
@@ -530,7 +554,8 @@ addSecEx force t inst pdx =
        _ | not (Instance.hasSecondary inst) -> Bad T.FailDisk
          | new_dsk <= 0 -> Bad T.FailDisk
          | mDsk t > new_dp && strict -> Bad T.FailDisk
-         | new_spindles > hiSpindles t && strict -> Bad T.FailDisk
+         | exclStorage t && new_free_sp < 0 -> Bad T.FailSpindles
+         | new_inst_sp > hiSpindles t && strict -> Bad T.FailDisk
          | secondary_needed_mem >= old_mem && strict -> Bad T.FailMem
          | new_failn1 && not (failN1 t) && strict -> Bad T.FailMem
          | otherwise ->
@@ -539,7 +564,8 @@ addSecEx force t inst pdx =
                      , peers = new_peers, failN1 = new_failn1
                      , rMem = new_rmem, pDsk = new_dp
                      , pRem = new_prem, utilLoad = new_load
-                     , instSpindles = new_spindles
+                     , instSpindles = new_inst_sp
+                     , fSpindles = new_free_sp
                      }
            in Ok r
 

@@ -214,6 +214,26 @@ prop_addPriFD node inst =
                      , Instance.diskTemplate = dt }
   in (Node.addPri node inst'' ==? Bad Types.FailDisk)
 
+-- | Check if an instance exceeds a spindles limit or has no spindles set.
+hasInstTooManySpindles :: Instance.Instance -> Int -> Bool
+hasInstTooManySpindles inst sp_lim =
+  case Instance.getTotalSpindles inst of
+    Just s -> s > sp_lim
+    Nothing -> True
+
+-- | Check that adding a primary instance with too many spindles fails
+-- with type FailSpindles (when exclusive storage is enabled).
+prop_addPriFS :: Instance.Instance -> Property
+prop_addPriFS inst =
+  forAll genExclStorNode $ \node ->
+  forAll (elements Instance.localStorageTemplates) $ \dt ->
+  hasInstTooManySpindles inst (Node.fSpindles node) &&
+    not (Node.failN1 node) ==>
+  let inst' = setInstanceSmallerThanNode node inst
+      inst'' = inst' { Instance.disks = Instance.disks inst
+                     , Instance.diskTemplate = dt }
+  in (Node.addPri node inst'' ==? Bad Types.FailSpindles)
+
 -- | Check that adding a primary instance with too many VCPUs fails
 -- with type FailCPU.
 prop_addPriFC :: Property
@@ -233,7 +253,9 @@ prop_addSec :: Node.Node -> Instance.Instance -> Int -> Property
 prop_addSec node inst pdx =
   ((Instance.mem inst >= (Node.fMem node - Node.rMem node) &&
     not (Instance.isOffline inst)) ||
-   Instance.dsk inst >= Node.fDsk node) &&
+   Instance.dsk inst >= Node.fDsk node ||
+   (Node.exclStorage node &&
+    hasInstTooManySpindles inst (Node.fSpindles node))) &&
   not (Node.failN1 node) ==>
       isBad (Node.addSec node inst pdx)
 
@@ -419,6 +441,7 @@ testSuite "HTools/Node"
             , 'prop_setXmem
             , 'prop_addPriFM
             , 'prop_addPriFD
+            , 'prop_addPriFS
             , 'prop_addPriFC
             , 'prop_addPri_NoN1Fail
             , 'prop_addSec

@@ -88,17 +88,16 @@ cat $TESTDATA_DIR/hail-alloc-invalid-network.json | grep -v -e '"network":"uuid-
 >>>= 0
 
 # Same tests with exclusive storage enabled, but no spindles info in instances
-# Operations involving relocation succed because policies are not checked
 ./test/hs/hail $T/hail-alloc-drbd.json.fail-excl-stor
 >>> /"success":false,.*FailSpindles: 12"/
 >>>= 0
 
 ./test/hs/hail $T/hail-reloc-drbd.json.fail-excl-stor
->>> /"success":true,.*,"result":\["node1"\]/
+>>> /"success":false,.*FailSpindles/
 >>>= 0
 
 ./test/hs/hail $T/hail-node-evac.json.fail-excl-stor
->>> /"success":true,"info":"Request successful: 0 instances failed to move and 1 were moved successfully"/
+>>> /"success":true,"info":"Request successful: 1 instances failed to move and 0 were moved successfully",.*FailSpindles/
 >>>= 0
 
 ./test/hs/hail $T/hail-change-group.json.fail-excl-stor
@@ -153,5 +152,5 @@ cat $TESTDATA_DIR/hail-alloc-invalid-network.json | grep -v -e '"network":"uuid-
 >>>= 0
 
 ./test/hs/hail $T/hail-alloc-spindles.json.excl-stor
->>> /"success":true,"info":"Request successful: Selected group: group1,.*FailSpindles: 2",.*"result":\["node2"\]/
+>>> /"success":true,"info":"Request successful: Selected group: group1,.*FailSpindles: 2",.*"result":\["node1"\]/
 >>>= 0
