@@ -78,18 +78,13 @@ class TestCreateConfigCpus(unittest.TestCase):
 
 
 class TestGetCommand(testutils.GanetiTestCase):
-  def testDefault(self):
-    expected_cmd = "xm"
-    hv = hv_xen.XenHypervisor()
-    self.assertEqual(hv._GetCommand(), expected_cmd)
-
   def testCommandExplicit(self):
     """Test the case when the command is given as class parameter explicitly.
 
     """
     expected_cmd = "xl"
     hv = hv_xen.XenHypervisor(_cmd=constants.XEN_CMD_XL)
-    self.assertEqual(hv._GetCommand(), expected_cmd)
+    self.assertEqual(hv._GetCommand(None), expected_cmd)
 
   def testCommandInvalid(self):
     """Test the case an invalid command is given as class parameter explicitly.
@@ -102,12 +97,12 @@ class TestGetCommand(testutils.GanetiTestCase):
     expected_cmd = "xl"
     test_hvparams = {constants.HV_XEN_CMD: constants.XEN_CMD_XL}
     hv = hv_xen.XenHypervisor()
-    self.assertEqual(hv._GetCommand(hvparams=test_hvparams), expected_cmd)
+    self.assertEqual(hv._GetCommand(test_hvparams), expected_cmd)
 
   def testCommandHvparamsInvalid(self):
     test_hvparams = {}
     hv = hv_xen.XenHypervisor()
-    self.assertRaises(KeyError, hv._GetCommand, test_hvparams)
+    self.assertRaises(errors.HypervisorError, hv._GetCommand, test_hvparams)
 
   def testCommandHvparamsCmdInvalid(self):
     test_hvparams = {constants.HV_XEN_CMD: "invalidcommand"}
@@ -347,15 +342,14 @@ class TestXenHypervisorRunXen(unittest.TestCase):
     hv = hv_xen.XenHypervisor(_cfgdir=NotImplemented,
                               _run_cmd_fn=NotImplemented,
                               _cmd=cmd)
-    self.assertRaises(errors.ProgrammerError, hv._RunXen, [])
+    self.assertRaises(errors.ProgrammerError, hv._RunXen, [], None)
 
-  def testCommandValid(self):
-    xen_cmd = "xm"
-    mock_run_cmd = mock.Mock()
+  def testCommandNoHvparams(self):
     hv = hv_xen.XenHypervisor(_cfgdir=NotImplemented,
-                              _run_cmd_fn=mock_run_cmd)
-    hv._RunXen([self.XEN_SUB_CMD])
-    mock_run_cmd.assert_called_with([xen_cmd, self.XEN_SUB_CMD])
+                              _run_cmd_fn=NotImplemented)
+    hvparams = None
+    self.assertRaises(errors.HypervisorError, hv._RunXen, [self.XEN_SUB_CMD],
+                      hvparams)
 
   def testCommandFromHvparams(self):
     expected_xen_cmd = "xl"
@@ -372,13 +366,12 @@ class TestXenHypervisorGetInstanceList(unittest.TestCase):
   RESULT_OK = utils.RunResult(0, None, "", "", "", None, None)
   XEN_LIST = "list"
 
-  def testOk(self):
+  def testNoHvparams(self):
     expected_xen_cmd = "xm"
     mock_run_cmd = mock.Mock( return_value=self.RESULT_OK )
     hv = hv_xen.XenHypervisor(_cfgdir=NotImplemented,
                               _run_cmd_fn=mock_run_cmd)
-    hv._GetInstanceList(True)
-    mock_run_cmd.assert_called_with([expected_xen_cmd, self.XEN_LIST])
+    self.assertRaises(errors.HypervisorError, hv._GetInstanceList, True, None)
 
   def testFromHvparams(self):
     expected_xen_cmd = "xl"
@@ -386,7 +379,7 @@ class TestXenHypervisorGetInstanceList(unittest.TestCase):
     mock_run_cmd = mock.Mock( return_value=self.RESULT_OK )
     hv = hv_xen.XenHypervisor(_cfgdir=NotImplemented,
                               _run_cmd_fn=mock_run_cmd)
-    hv._GetInstanceList(True, hvparams=hvparams)
+    hv._GetInstanceList(True, hvparams)
     mock_run_cmd.assert_called_with([expected_xen_cmd, self.XEN_LIST])
 
 
@@ -395,13 +388,12 @@ class TestXenHypervisorListInstances(unittest.TestCase):
   RESULT_OK = utils.RunResult(0, None, "", "", "", None, None)
   XEN_LIST = "list"
 
-  def testDefaultXm(self):
+  def testNoHvparams(self):
     expected_xen_cmd = "xm"
     mock_run_cmd = mock.Mock( return_value=self.RESULT_OK )
     hv = hv_xen.XenHypervisor(_cfgdir=NotImplemented,
                               _run_cmd_fn=mock_run_cmd)
-    hv.ListInstances()
-    mock_run_cmd.assert_called_with([expected_xen_cmd, self.XEN_LIST])
+    self.assertRaises(errors.HypervisorError, hv.ListInstances)
 
   def testHvparamsXl(self):
     expected_xen_cmd = "xl"

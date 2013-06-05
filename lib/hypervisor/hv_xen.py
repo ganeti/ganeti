@@ -339,7 +339,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
 
     self._cmd = _cmd
 
-  def _GetCommand(self, hvparams=None):
+  def _GetCommand(self, hvparams):
     """Returns Xen command to use.
 
     @type hvparams: dict of strings
@@ -347,12 +347,10 @@ class XenHypervisor(hv_base.BaseHypervisor):
 
     """
     if self._cmd is None:
-      if hvparams is not None:
-        cmd = hvparams[constants.HV_XEN_CMD]
+      if hvparams is None or constants.HV_XEN_CMD not in hvparams:
+        raise errors.HypervisorError("Cannot determine xen command.")
       else:
-        # TODO: Remove autoconf option once retrieving the command from
-        # the hvparams is fully implemented.
-        cmd = constants.XEN_CMD
+        cmd = hvparams[constants.HV_XEN_CMD]
     else:
       cmd = self._cmd
 
@@ -361,7 +359,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
 
     return cmd
 
-  def _RunXen(self, args, hvparams=None):
+  def _RunXen(self, args, hvparams):
     """Wrapper around L{utils.process.RunCmd} to run Xen command.
 
     @type hvparams: dict of strings
@@ -369,7 +367,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
     @see: L{utils.process.RunCmd}
 
     """
-    cmd = [self._GetCommand(hvparams=hvparams)]
+    cmd = [self._GetCommand(hvparams)]
     cmd.extend(args)
 
     return self._run_cmd_fn(cmd)
@@ -438,18 +436,21 @@ class XenHypervisor(hv_base.BaseHypervisor):
     utils.RenameFile(old_filename, new_filename)
     return new_filename
 
-  def _GetInstanceList(self, include_node, hvparams=None):
+  def _GetInstanceList(self, include_node, hvparams):
     """Wrapper around module level L{_GetInstanceList}.
 
+    @type hvparams: dict of strings
+    @param hvparams: hypervisor parameters to be used on this node
+
     """
-    return _GetInstanceList(lambda: self._RunXen(["list"], hvparams=hvparams),
+    return _GetInstanceList(lambda: self._RunXen(["list"], hvparams),
                             include_node)
 
   def ListInstances(self, hvparams=None):
     """Get the list of running instances.
 
     """
-    instance_list = self._GetInstanceList(False, hvparams=hvparams)
+    instance_list = self._GetInstanceList(False, hvparams)
     names = [info[0] for info in instance_list]
     return names
 
@@ -464,8 +465,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
     @return: tuple (name, id, memory, vcpus, stat, times)
 
     """
-    instance_list = self._GetInstanceList(instance_name == _DOM0_NAME,
-                                          hvparams=hvparams)
+    instance_list = self._GetInstanceList(instance_name == _DOM0_NAME, hvparams)
     result = None
     for data in instance_list:
       if data[0] == instance_name:
@@ -481,7 +481,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
     @return: list of tuples (name, id, memory, vcpus, stat, times)
 
     """
-    return self._GetInstanceList(False, hvparams=hvparams)
+    return self._GetInstanceList(False, hvparams)
 
   def _MakeConfigFile(self, instance, startup_memory, block_devices):
     """Gather configuration details and write to disk.
@@ -511,7 +511,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
       cmd.append("-p")
     cmd.append(self._ConfigFileName(instance.name))
 
-    result = self._RunXen(cmd, hvparams=instance.hvparams)
+    result = self._RunXen(cmd, instance.hvparams)
     if result.failed:
       # Move the Xen configuration file to the log directory to avoid
       # leaving a stale config file behind.
@@ -546,7 +546,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
     else:
       action = "shutdown"
 
-    result = self._RunXen([action, name], hvparams=hvparams)
+    result = self._RunXen([action, name], hvparams)
     if result.failed:
       raise errors.HypervisorError("Failed to stop instance %s: %s, %s" %
                                    (name, result.fail_reason, result.output))
@@ -564,7 +564,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
       raise errors.HypervisorError("Failed to reboot instance %s,"
                                    " not running" % instance.name)
 
-    result = self._RunXen(["reboot", instance.name], hvparams=instance.hvparams)
+    result = self._RunXen(["reboot", instance.name], instance.hvparams)
     if result.failed:
       raise errors.HypervisorError("Failed to reboot instance %s: %s, %s" %
                                    (instance.name, result.fail_reason,
@@ -597,8 +597,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
     @param mem: actual memory size to use for instance runtime
 
     """
-    result = self._RunXen(["mem-set", instance.name, mem],
-                          hvparams=instance.hvparams)
+    result = self._RunXen(["mem-set", instance.name, mem], instance.hvparams)
     if result.failed:
       raise errors.HypervisorError("Failed to balloon instance %s: %s (%s)" %
                                    (instance.name, result.fail_reason,
@@ -620,13 +619,13 @@ class XenHypervisor(hv_base.BaseHypervisor):
     @see: L{_GetNodeInfo} and L{_ParseNodeInfo}
 
     """
-    result = self._RunXen(["info"], hvparams=hvparams)
+    result = self._RunXen(["info"], hvparams)
     if result.failed:
       logging.error("Can't retrieve xen hypervisor information (%s): %s",
                     result.fail_reason, result.output)
       return None
 
-    instance_list = self._GetInstanceList(True, hvparams=hvparams)
+    instance_list = self._GetInstanceList(True, hvparams)
     return _GetNodeInfo(result.stdout, instance_list)
 
   @classmethod
@@ -664,7 +663,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
         return "The configured xen toolstack '%s' is not available on this" \
                " node." % xen_cmd
 
-    result = self._RunXen(["info"], hvparams=hvparams)
+    result = self._RunXen(["info"], hvparams)
     if result.failed:
       return "Retrieving information from xen failed: %s, %s" % \
         (result.fail_reason, result.output)
@@ -747,7 +746,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
     if self.GetInstanceInfo(instance_name, hvparams=hvparams) is None:
       raise errors.HypervisorError("Instance not running, cannot migrate")
 
-    cmd = self._GetCommand(hvparams=hvparams)
+    cmd = self._GetCommand(hvparams)
 
     if (cmd == constants.XEN_CMD_XM and
         not _ping_fn(target, port, live_port_needed=True)):
@@ -772,7 +771,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
 
     args.extend([instance_name, target])
 
-    result = self._RunXen(args, hvparams=hvparams)
+    result = self._RunXen(args, hvparams)
     if result.failed:
       raise errors.HypervisorError("Failed to migrate instance %s: %s" %
                                    (instance_name, result.output))
