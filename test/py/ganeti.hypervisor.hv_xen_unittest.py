@@ -115,15 +115,15 @@ class TestGetCommand(testutils.GanetiTestCase):
     self.assertRaises(errors.ProgrammerError, hv._GetCommand, test_hvparams)
 
 
-class TestParseXmList(testutils.GanetiTestCase):
+class TestParseInstanceList(testutils.GanetiTestCase):
   def test(self):
     data = testutils.ReadTestData("xen-xm-list-4.0.1-dom0-only.txt")
 
     # Exclude node
-    self.assertEqual(hv_xen._ParseXmList(data.splitlines(), False), [])
+    self.assertEqual(hv_xen._ParseInstanceList(data.splitlines(), False), [])
 
     # Include node
-    result = hv_xen._ParseXmList(data.splitlines(), True)
+    result = hv_xen._ParseInstanceList(data.splitlines(), True)
     self.assertEqual(len(result), 1)
     self.assertEqual(len(result[0]), 6)
 
@@ -153,9 +153,9 @@ class TestParseXmList(testutils.GanetiTestCase):
 
     for lines in tests:
       try:
-        hv_xen._ParseXmList(["Header would be here"] + lines, False)
+        hv_xen._ParseInstanceList(["Header would be here"] + lines, False)
       except errors.HypervisorError, err:
-        self.assertTrue("Can't parse output of xm list" in str(err))
+        self.assertTrue("Can't parse instance list" in str(err))
       else:
         self.fail("Exception was not raised")
 

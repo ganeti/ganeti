@@ -104,11 +104,11 @@ def _RunInstanceList(fn, instance_list_errors):
   return result.stdout.splitlines()
 
 
-def _ParseXmList(lines, include_node):
-  """Parses the output of C{xm list}.
+def _ParseInstanceList(lines, include_node):
+  """Parses the output of listing instances by xen.
 
   @type lines: list
-  @param lines: Output lines of C{xm list}
+  @param lines: Result of retrieving the instance list from xen
   @type include_node: boolean
   @param include_node: If True, return information for Dom0
   @return: list of tuple containing (name, id, memory, vcpus, state, time
@@ -124,7 +124,7 @@ def _ParseXmList(lines, include_node):
     # Domain-0   0  3418     4 r-----    266.2
     data = line.split()
     if len(data) != 6:
-      raise errors.HypervisorError("Can't parse output of xm list,"
+      raise errors.HypervisorError("Can't parse instance list,"
                                    " line: %s" % line)
     try:
       data[1] = int(data[1])
@@ -132,7 +132,7 @@ def _ParseXmList(lines, include_node):
       data[3] = int(data[3])
       data[5] = float(data[5])
     except (TypeError, ValueError), err:
-      raise errors.HypervisorError("Can't parse output of xm list,"
+      raise errors.HypervisorError("Can't parse instance list,"
                                    " line: %s, error: %s" % (line, err))
 
     # skip the Domain-0 (optional)
@@ -145,7 +145,7 @@ def _ParseXmList(lines, include_node):
 def _GetInstanceList(fn, include_node, _timeout=5):
   """Return the list of running instances.
 
-  See L{_RunInstanceList} and L{_ParseXmList} for parameter details.
+  See L{_RunInstanceList} and L{_ParseInstanceList} for parameter details.
 
   """
   instance_list_errors = []
@@ -163,7 +163,7 @@ def _GetInstanceList(fn, include_node, _timeout=5):
 
     raise errors.HypervisorError(errmsg)
 
-  return _ParseXmList(lines, include_node)
+  return _ParseInstanceList(lines, include_node)
 
 
 def _ParseNodeInfo(info):
@@ -231,7 +231,7 @@ def _MergeInstanceInfo(info, fn):
   @type info: dict
   @param info: Result from L{_ParseNodeInfo}
   @type fn: callable
-  @param fn: Function returning result of running C{xm list}
+  @param fn: Function retrieving the instance list
   @rtype: dict
 
   """
@@ -612,8 +612,8 @@ class XenHypervisor(hv_base.BaseHypervisor):
     """
     result = self._RunXen(["info"])
     if result.failed:
-      logging.error("Can't run 'xm info' (%s): %s", result.fail_reason,
-                    result.output)
+      logging.error("Can't retrieve xen hypervisor information (%s): %s",
+                    result.fail_reason, result.output)
       return None
 
     return _GetNodeInfo(result.stdout, self._GetInstanceList)
