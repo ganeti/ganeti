@@ -487,6 +487,7 @@ _NODE_CALLS = [
    "Demote a node from the master candidate role"),
   ("node_powercycle", SINGLE, ACCEPT_OFFLINE_NODE, constants.RPC_TMO_NORMAL, [
     ("hypervisor", None, "Hypervisor type"),
+    ("hvparams", None, "Hypervisor parameters"),
     ], None, None, "Tries to powercycle a node"),
   ]
 

@@ -628,17 +628,17 @@ class XenHypervisor(hv_base.BaseHypervisor):
     instance_list = self._GetInstanceList(True, hvparams)
     return _GetNodeInfo(result.stdout, instance_list)
 
-  @classmethod
-  def GetInstanceConsole(cls, instance, hvparams, beparams):
+  def GetInstanceConsole(self, instance, hvparams, beparams):
     """Return a command for connecting to the console of an instance.
 
     """
+    xen_cmd = self._GetCommand(hvparams)
     return objects.InstanceConsole(instance=instance.name,
                                    kind=constants.CONS_SSH,
                                    host=instance.primary_node,
                                    user=constants.SSH_CONSOLE_USER,
                                    command=[pathutils.XEN_CONSOLE_WRAPPER,
-                                            constants.XEN_CMD, instance.name])
+                                            xen_cmd, instance.name])
 
   def Verify(self, hvparams=None):
     """Verify the hypervisor.
@@ -812,8 +812,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
     """
     return objects.MigrationStatus(status=constants.HV_MIGRATION_COMPLETED)
 
-  @classmethod
-  def PowercycleNode(cls):
+  def PowercycleNode(self, hvparams=None):
     """Xen-specific powercycle.
 
     This first does a Linux reboot (which triggers automatically a Xen
@@ -823,11 +822,15 @@ class XenHypervisor(hv_base.BaseHypervisor):
     won't work in case the root filesystem is broken and/or the xend
     daemon is not working.
 
+    @type hvparams: dict of strings
+    @param hvparams: hypervisor params to be used on this node
+
     """
     try:
-      cls.LinuxPowercycle()
+      self.LinuxPowercycle()
     finally:
-      utils.RunCmd([constants.XEN_CMD, "debug", "R"])
+      xen_cmd = self._GetCommand(hvparams)
+      utils.RunCmd([xen_cmd, "debug", "R"])
 
   def _CheckToolstack(self, xen_cmd):
     """Check whether the given toolstack is available on the node.

@@ -48,10 +48,11 @@ HVCLASS_TO_HVNAME = utils.InvertDict(hypervisor._HYPERVISOR_MAP)
 
 class TestConsole(unittest.TestCase):
   def test(self):
-    for cls in [hv_xen.XenPvmHypervisor, hv_xen.XenHvmHypervisor]:
+    hvparams = {constants.HV_XEN_CMD: constants.XEN_CMD_XL}
+    for cls in [hv_xen.XenPvmHypervisor(), hv_xen.XenHvmHypervisor()]:
       instance = objects.Instance(name="xen.example.com",
                                   primary_node="node24828")
-      cons = cls.GetInstanceConsole(instance, {}, {})
+      cons = cls.GetInstanceConsole(instance, hvparams, {})
       self.assertTrue(cons.Validate())
       self.assertEqual(cons.kind, constants.CONS_SSH)
       self.assertEqual(cons.host, instance.primary_node)

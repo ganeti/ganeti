@@ -301,8 +301,11 @@ class ChrootManager(hv_base.BaseHypervisor):
       return "The required directory '%s' does not exist" % self._ROOT_DIR
 
   @classmethod
-  def PowercycleNode(cls):
+  def PowercycleNode(cls, hvparams=None):
     """Chroot powercycle, just a wrapper over Linux powercycle.
+
+    @type hvparams: dict of strings
+    @param hvparams: hypervisor params to be used on this node
 
     """
     cls.LinuxPowercycle()

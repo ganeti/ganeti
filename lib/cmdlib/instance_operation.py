@@ -440,7 +440,7 @@ def GetInstanceConsole(cluster, instance):
   @rtype: dict
 
   """
-  hyper = hypervisor.GetHypervisorClass(instance.hypervisor)
+  hyper = hypervisor.GetHypervisor(instance.hypervisor)
   # beparams and hvparams are passed separately, to avoid editing the
   # instance and then saving the defaults in the instance itself.
   hvparams = cluster.FillHV(instance)

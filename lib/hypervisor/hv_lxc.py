@@ -449,8 +449,11 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     return self._FormatVerifyResults(msgs)
 
   @classmethod
-  def PowercycleNode(cls):
+  def PowercycleNode(cls, hvparams=None):
     """LXC powercycle, just a wrapper over Linux powercycle.
+
+    @type hvparams: dict of strings
+    @param hvparams: hypervisor params to be used on this node
 
     """
     cls.LinuxPowercycle()

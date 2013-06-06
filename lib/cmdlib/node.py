@@ -785,8 +785,11 @@ class LUNodePowercycle(NoHooksLU):
     """Reboots a node.
 
     """
+    default_hypervisor = self.cfg.GetHypervisorType()
+    hvparams = self.cfg.GetClusterInfo().hvparams[default_hypervisor]
     result = self.rpc.call_node_powercycle(self.op.node_name,
-                                           self.cfg.GetHypervisorType())
+                                           default_hypervisor,
+                                           hvparams)
     result.Raise("Failed to schedule the reboot")
     return result.payload
 

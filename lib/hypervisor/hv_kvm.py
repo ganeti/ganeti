@@ -2199,8 +2199,11 @@ class KVMHypervisor(hv_base.BaseHypervisor):
                                      machine_version)
 
   @classmethod
-  def PowercycleNode(cls):
+  def PowercycleNode(cls, hvparams=None):
     """KVM powercycle, just a wrapper over Linux powercycle.
+
+    @type hvparams: dict of strings
+    @param hvparams: hypervisor params to be used on this node
 
     """
     cls.LinuxPowercycle()

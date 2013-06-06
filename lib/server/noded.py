@@ -815,8 +815,8 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     """Tries to powercycle the nod.
 
     """
-    hypervisor_type = params[0]
-    return backend.PowercycleNode(hypervisor_type)
+    (hypervisor_type, hvparams) = params
+    return backend.PowercycleNode(hypervisor_type, hvparams)
 
   # cluster --------------------------
 

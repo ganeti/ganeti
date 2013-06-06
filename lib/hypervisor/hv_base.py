@@ -446,12 +446,15 @@ class BaseHypervisor(object):
                                      (name, errstr, value))
 
   @classmethod
-  def PowercycleNode(cls):
+  def PowercycleNode(cls, hvparams=None):
     """Hard powercycle a node using hypervisor specific methods.
 
     This method should hard powercycle the node, using whatever
     methods the hypervisor provides. Note that this means that all
     instances running on the node must be stopped too.
+
+    @type hvparams: dict of strings
+    @param hvparams: hypervisor params to be used on this node
 
     """
     raise NotImplementedError

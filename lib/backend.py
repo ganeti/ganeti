@@ -3911,7 +3911,7 @@ def GetDrbdUsermodeHelper():
     _Fail(str(err))
 
 
-def PowercycleNode(hypervisor_type):
+def PowercycleNode(hypervisor_type, hvparams=None):
   """Hard-powercycle the node.
 
   Because we need to return first, and schedule the powercycle in the
@@ -3932,7 +3932,7 @@ def PowercycleNode(hypervisor_type):
   except Exception: # pylint: disable=W0703
     pass
   time.sleep(5)
-  hyper.PowercycleNode()
+  hyper.PowercycleNode(hvparams=hvparams)
 
 
 def _VerifyRestrictedCmdName(cmd):
