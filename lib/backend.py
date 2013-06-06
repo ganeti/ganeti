@@ -616,7 +616,7 @@ def _GetVgSpindlesInfo(name, excl_stor):
     }
 
 
-def _GetHvInfo(name):
+def _GetHvInfo(name, hvparams, get_hv_fn=hypervisor.GetHypervisor):
   """Retrieves node information from a hypervisor.
 
   The information returned depends on the hypervisor. Common items:
@@ -628,8 +628,36 @@ def _GetHvInfo(name):
     - memory_total is the total number of ram in MiB
     - hv_version: the hypervisor version, if available
 
+  @type hvparams: dict of string
+  @param hvparams: the hypervisor's hvparams
+
   """
-  return hypervisor.GetHypervisor(name).GetNodeInfo()
+  return get_hv_fn(name).GetNodeInfo(hvparams=hvparams)
+
+
+def _GetHvInfoAll(hv_specs, get_hv_fn=hypervisor.GetHypervisor):
+  """Retrieves node information for all hypervisors.
+
+  See C{_GetHvInfo} for information on the output.
+
+  @type hv_specs: list of pairs (string, dict of strings)
+  @param hv_specs: list of pairs of a hypervisor's name and its hvparams
+
+  """
+  if hv_specs is None:
+    return None
+
+  # FIXME: remove this fallback once all calls to call_node_info are fixed
+  if (len(hv_specs) > 0) and isinstance(hv_specs[0], str):
+    result = []
+    for hvname in hv_specs:
+      result.append(_GetHvInfo(hvname, None, get_hv_fn))
+    return result
+
+  result = []
+  for hvname, hvparams in hv_specs:
+    result.append(_GetHvInfo(hvname, hvparams, get_hv_fn))
+  return result
 
 
 def _GetNamedNodeInfo(names, fn):
@@ -644,15 +672,15 @@ def _GetNamedNodeInfo(names, fn):
     return map(fn, names)
 
 
-def GetNodeInfo(storage_units, hv_names, excl_stor):
+def GetNodeInfo(storage_units, hv_specs, excl_stor):
   """Gives back a hash with different information about the node.
 
   @type storage_units: list of pairs (string, string)
   @param storage_units: List of pairs (storage unit, identifier) to ask for disk
                         space information. In case of lvm-vg, the identifier is
                         the VG name.
-  @type hv_names: list of string
-  @param hv_names: Names of the hypervisors to ask for node information
+  @type hv_specs: list of pairs (string, dict of strings)
+  @param hv_specs: list of pairs of a hypervisor's name and its hvparams
   @type excl_stor: boolean
   @param excl_stor: Whether exclusive_storage is active
   @rtype: tuple; (string, None/dict, None/dict)
@@ -666,8 +694,7 @@ def GetNodeInfo(storage_units, hv_names, excl_stor):
     (lambda storage_unit: _ApplyStorageInfoFunction(storage_unit[0],
                                                     storage_unit[1],
                                                     excl_stor)))
-  hv_info = _GetNamedNodeInfo(hv_names, _GetHvInfo)
-
+  hv_info = _GetHvInfoAll(hv_specs)
   return (bootid, storage_info, hv_info)
 
 

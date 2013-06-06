@@ -593,5 +593,31 @@ class TestGetInstanceList(unittest.TestCase):
     self._test_hv.ListInstances.assert_called_with(hvparams=fake_hvparams)
 
 
+class TestGetHvInfo(unittest.TestCase):
+
+  def setUp(self):
+    self._test_hv = self._TestHypervisor()
+    self._test_hv.GetNodeInfo = mock.Mock()
+
+  class _TestHypervisor(hypervisor.hv_base.BaseHypervisor):
+    def __init__(self):
+      hypervisor.hv_base.BaseHypervisor.__init__(self)
+
+  def _GetHypervisor(self, name):
+    return self._test_hv
+
+  def testGetHvInfoAllNone(self):
+    result = backend._GetHvInfoAll(None)
+    self.assertTrue(result is None)
+
+  def testGetHvInfoAll(self):
+    hvname = constants.HT_XEN_PVM
+    hvparams = {constants.HV_XEN_CMD: constants.XEN_CMD_XL}
+    hv_specs = [(hvname, hvparams)]
+
+    result = backend._GetHvInfoAll(hv_specs, self._GetHypervisor)
+    self._test_hv.GetNodeInfo.assert_called_with(hvparams=hvparams)
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
