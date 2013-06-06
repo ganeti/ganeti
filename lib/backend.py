@@ -647,13 +647,6 @@ def _GetHvInfoAll(hv_specs, get_hv_fn=hypervisor.GetHypervisor):
   if hv_specs is None:
     return None
 
-  # FIXME: remove this fallback once all calls to call_node_info are fixed
-  if (len(hv_specs) > 0) and isinstance(hv_specs[0], str):
-    result = []
-    for hvname in hv_specs:
-      result.append(_GetHvInfo(hvname, None, get_hv_fn))
-    return result
-
   result = []
   for hvname, hvparams in hv_specs:
     result.append(_GetHvInfo(hvname, hvparams, get_hv_fn))
