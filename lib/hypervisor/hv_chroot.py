@@ -125,9 +125,11 @@ class ChrootManager(hv_base.BaseHypervisor):
       raise HypervisorError("Instance %s is not running" % instance_name)
     return (instance_name, 0, 0, 0, 0, 0)
 
-  def GetAllInstancesInfo(self):
+  def GetAllInstancesInfo(self, hvparams=None):
     """Get properties of all instances.
 
+    @type hvparams: dict of strings
+    @param hvparams: hypervisor parameter
     @return: [(name, id, memory, vcpus, stat, times),...]
 
     """

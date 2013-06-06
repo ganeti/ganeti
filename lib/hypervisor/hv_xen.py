@@ -473,13 +473,15 @@ class XenHypervisor(hv_base.BaseHypervisor):
         break
     return result
 
-  def GetAllInstancesInfo(self):
+  def GetAllInstancesInfo(self, hvparams=None):
     """Get properties of all instances.
 
+    @type hvparams: dict of strings
+    @param hvparams: hypervisor parameters
     @return: list of tuples (name, id, memory, vcpus, stat, times)
 
     """
-    return self._GetInstanceList(False)
+    return self._GetInstanceList(False, hvparams=hvparams)
 
   def _MakeConfigFile(self, instance, startup_memory, block_devices):
     """Gather configuration details and write to disk.

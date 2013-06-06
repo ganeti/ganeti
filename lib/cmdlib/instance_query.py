@@ -115,7 +115,8 @@ class InstanceQuery(QueryBase):
     # Gather data as requested
     if self.requested_data & set([query.IQ_LIVE, query.IQ_CONSOLE]):
       live_data = {}
-      node_data = lu.rpc.call_all_instances_info(nodes, hv_list)
+      node_data = lu.rpc.call_all_instances_info(nodes, hv_list,
+                                                 cluster.hvparams)
       for name in nodes:
         result = node_data[name]
         if result.offline:

@@ -1328,7 +1328,7 @@ def GetInstanceMigratable(instance):
                       iname, link_name, idx)
 
 
-def GetAllInstancesInfo(hypervisor_list):
+def GetAllInstancesInfo(hypervisor_list, all_hvparams):
   """Gather data about all instances.
 
   This is the equivalent of L{GetInstanceInfo}, except that it
@@ -1337,6 +1337,8 @@ def GetAllInstancesInfo(hypervisor_list):
 
   @type hypervisor_list: list
   @param hypervisor_list: list of hypervisors to query for instance data
+  @type all_hvparams: dict of dict of strings
+  @param all_hvparams: mapping of hypervisor names to hvparams
 
   @rtype: dict
   @return: dictionary of instance: data, with data having the following keys:
@@ -1349,7 +1351,8 @@ def GetAllInstancesInfo(hypervisor_list):
   output = {}
 
   for hname in hypervisor_list:
-    iinfo = hypervisor.GetHypervisor(hname).GetAllInstancesInfo()
+    hvparams = all_hvparams[hname]
+    iinfo = hypervisor.GetHypervisor(hname).GetAllInstancesInfo(hvparams)
     if iinfo:
       for name, _, memory, vcpus, state, times in iinfo:
         value = {

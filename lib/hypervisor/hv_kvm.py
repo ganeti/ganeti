@@ -1006,9 +1006,11 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     return (instance_name, pid, memory, vcpus, istat, times)
 
-  def GetAllInstancesInfo(self):
+  def GetAllInstancesInfo(self, hvparams=None):
     """Get properties of all instances.
 
+    @type hvparams: dict of strings
+    @param hvparams: hypervisor parameter
     @return: list of tuples (name, id, memory, vcpus, stat, times)
 
     """

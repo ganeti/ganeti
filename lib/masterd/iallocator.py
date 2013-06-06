@@ -438,7 +438,8 @@ class IAllocator(object):
                                         hvspecs, es_flags)
     node_iinfo = \
       self.rpc.call_all_instances_info(node_list,
-                                       cluster_info.enabled_hypervisors)
+                                       cluster_info.enabled_hypervisors,
+                                       cluster_info.hvparams)
 
     data["nodegroups"] = self._ComputeNodeGroupData(cfg)
 

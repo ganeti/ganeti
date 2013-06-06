@@ -698,7 +698,8 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     """Query information about all instances.
 
     """
-    return backend.GetAllInstancesInfo(params[0])
+    (hypervisor_list, all_hvparams) = params
+    return backend.GetAllInstancesInfo(hypervisor_list, all_hvparams)
 
   @staticmethod
   def perspective_instance_list(params):

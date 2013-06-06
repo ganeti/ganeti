@@ -222,6 +222,7 @@ _INSTANCE_CALLS = [
     ], None, None, "Returns information about a single instance"),
   ("all_instances_info", MULTI, None, constants.RPC_TMO_URGENT, [
     ("hypervisor_list", None, "Hypervisors to query for instances"),
+    ("all_hvparams", None, "Dictionary mapping hypervisor names to hvparams"),
     ], None, None,
    "Returns information about all instances on the given nodes"),
   ("instance_list", MULTI, None, constants.RPC_TMO_URGENT, [

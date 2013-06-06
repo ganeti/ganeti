@@ -85,9 +85,11 @@ class FakeHypervisor(hv_base.BaseHypervisor):
       raise errors.HypervisorError("Failed to list instance %s: %s" %
                                    (instance_name, err))
 
-  def GetAllInstancesInfo(self):
+  def GetAllInstancesInfo(self, hvparams=None):
     """Get properties of all instances.
 
+    @type hvparams: dict of strings
+    @param hvparams: hypervisor parameter
     @return: list of tuples (name, id, memory, vcpus, stat, times)
 
     """
