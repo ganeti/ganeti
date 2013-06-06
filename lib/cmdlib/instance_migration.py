@@ -427,9 +427,9 @@ class TLMigrateInstance(Tasklet):
       self.live = False
 
     if not (self.failover or self.cleanup):
-      remote_info = self.rpc.call_instance_info(instance.primary_node,
-                                                instance.name,
-                                                instance.hypervisor)
+      remote_info = self.rpc.call_instance_info(
+          instance.primary_node, instance.name, instance.hypervisor,
+          cluster.hvparams[instance.hypervisor])
       remote_info.Raise("Error checking instance on node %s" %
                         instance.primary_node)
       instance_running = bool(remote_info.payload)

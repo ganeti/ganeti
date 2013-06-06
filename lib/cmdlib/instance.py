@@ -2704,8 +2704,8 @@ class LUInstanceSetParams(LogicalUnit):
     if (self.op.pnode is not None and self.op.pnode != pnode and
         not self.op.force):
       # verify that the instance is not up
-      instance_info = self.rpc.call_instance_info(pnode, instance.name,
-                                                  instance.hypervisor)
+      instance_info = self.rpc.call_instance_info(
+          pnode, instance.name, instance.hypervisor, instance.hvparams)
       if instance_info.fail_msg:
         self.warn.append("Can't get instance runtime information: %s" %
                          instance_info.fail_msg)
@@ -2820,8 +2820,7 @@ class LUInstanceSetParams(LogicalUnit):
         # either we changed auto_balance to yes or it was from before
         mem_check_list.extend(instance.secondary_nodes)
       instance_info = self.rpc.call_instance_info(
-          pnode, instance.name, instance.hypervisor,
-          cluster.hvparams[instance.hypervisor])
+          pnode, instance.name, instance.hypervisor, instance.hvparams)
       hvspecs = [(instance.hypervisor, cluster.hvparams[instance.hypervisor])]
       nodeinfo = self.rpc.call_node_info(mem_check_list, None,
                                          hvspecs, False)
@@ -2876,9 +2875,9 @@ class LUInstanceSetParams(LogicalUnit):
                                        errors.ECODE_STATE)
 
     if self.op.runtime_mem:
-      remote_info = self.rpc.call_instance_info(instance.primary_node,
-                                                instance.name,
-                                                instance.hypervisor)
+      remote_info = self.rpc.call_instance_info(
+         instance.primary_node, instance.name, instance.hypervisor,
+         instance.hvparams)
       remote_info.Raise("Error checking node %s" % instance.primary_node)
       if not remote_info.payload: # not running already
         raise errors.OpPrereqError("Instance %s is not running" %

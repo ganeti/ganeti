@@ -383,9 +383,9 @@ class LUInstanceQueryData(NoHooksLU):
                           " information only for instance %s" %
                           (pnode.name, instance.name))
       else:
-        remote_info = self.rpc.call_instance_info(instance.primary_node,
-                                                  instance.name,
-                                                  instance.hypervisor)
+        remote_info = self.rpc.call_instance_info(
+            instance.primary_node, instance.name, instance.hypervisor,
+            cluster.hvparams[instance.hypervisor])
         remote_info.Raise("Error checking node %s" % instance.primary_node)
         remote_info = remote_info.payload
         if remote_info and "state" in remote_info:

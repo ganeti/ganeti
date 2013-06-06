@@ -98,10 +98,10 @@ class LUInstanceStartup(LogicalUnit):
     assert self.instance is not None, \
       "Cannot retrieve locked instance %s" % self.op.instance_name
 
+    cluster = self.cfg.GetClusterInfo()
     # extra hvparams
     if self.op.hvparams:
       # check hypervisor parameter syntax (locally)
-      cluster = self.cfg.GetClusterInfo()
       utils.ForceDictType(self.op.hvparams, constants.HVS_PARAMETER_TYPES)
       filled_hvp = cluster.FillHV(instance)
       filled_hvp.update(self.op.hvparams)
@@ -127,9 +127,9 @@ class LUInstanceStartup(LogicalUnit):
       # check bridges existence
       CheckInstanceBridgesExist(self, instance)
 
-      remote_info = self.rpc.call_instance_info(instance.primary_node,
-                                                instance.name,
-                                                instance.hypervisor)
+      remote_info = self.rpc.call_instance_info(
+          instance.primary_node, instance.name, instance.hypervisor,
+          cluster.hvparams[instance.hypervisor])
       remote_info.Raise("Error checking node %s" % instance.primary_node,
                         prereq=True, ecode=errors.ECODE_ENVIRON)
       if not remote_info.payload: # not running already
@@ -392,9 +392,10 @@ class LUInstanceReboot(LogicalUnit):
     reboot_type = self.op.reboot_type
     reason = self.op.reason
 
-    remote_info = self.rpc.call_instance_info(instance.primary_node,
-                                              instance.name,
-                                              instance.hypervisor)
+    cluster = self.cfg.GetClusterInfo()
+    remote_info = self.rpc.call_instance_info(
+        instance.primary_node, instance.name, instance.hypervisor,
+        cluster.hvparams[instance.hypervisor])
     remote_info.Raise("Error checking node %s" % instance.primary_node)
     instance_running = bool(remote_info.payload)
 

@@ -218,6 +218,7 @@ _INSTANCE_CALLS = [
   ("instance_info", SINGLE, None, constants.RPC_TMO_URGENT, [
     ("instance", None, "Instance name"),
     ("hname", None, "Hypervisor type"),
+    ("hvparams", None, "Hypervisor parameters"),
     ], None, None, "Returns information about a single instance"),
   ("all_instances_info", MULTI, None, constants.RPC_TMO_URGENT, [
     ("hypervisor_list", None, "Hypervisors to query for instances"),

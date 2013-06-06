@@ -682,7 +682,8 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     """Query instance information.
 
     """
-    return backend.GetInstanceInfo(params[0], params[1])
+    (instance_name, hypervisor_name, hvparams) = params
+    return backend.GetInstanceInfo(instance_name, hypervisor_name, hvparams)
 
   @staticmethod
   def perspective_instance_migratable(params):

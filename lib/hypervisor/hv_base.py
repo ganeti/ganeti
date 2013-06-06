@@ -210,11 +210,13 @@ class BaseHypervisor(object):
     """Get the list of running instances."""
     raise NotImplementedError
 
-  def GetInstanceInfo(self, instance_name):
+  def GetInstanceInfo(self, instance_name, hvparams=None):
     """Get instance properties.
 
     @type instance_name: string
     @param instance_name: the instance name
+    @type hvparams: dict of strings
+    @param hvparams: hvparams to be used with this instance
 
     @return: tuple (name, id, memory, vcpus, state, times)
 
@@ -371,7 +373,7 @@ class BaseHypervisor(object):
     """
     raise NotImplementedError
 
-  def _InstanceStartupMemory(self, instance):
+  def _InstanceStartupMemory(self, instance, hvparams=None):
     """Get the correct startup memory for an instance
 
     This function calculates how much memory an instance should be started
@@ -384,7 +386,7 @@ class BaseHypervisor(object):
     @return: memory the instance should be started with
 
     """
-    free_memory = self.GetNodeInfo()["memory_free"]
+    free_memory = self.GetNodeInfo(hvparams=hvparams)["memory_free"]
     max_start_mem = min(instance.beparams[constants.BE_MAXMEM], free_memory)
     start_mem = max(instance.beparams[constants.BE_MINMEM], max_start_mem)
     return start_mem

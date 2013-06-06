@@ -974,11 +974,13 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         result.append(name)
     return result
 
-  def GetInstanceInfo(self, instance_name):
+  def GetInstanceInfo(self, instance_name, hvparams=None):
     """Get instance properties.
 
     @type instance_name: string
     @param instance_name: the instance name
+    @type hvparams: dict of strings
+    @param hvparams: hvparams to be used with this instance
     @rtype: tuple of strings
     @return: (name, id, memory, vcpus, stat, times)
 

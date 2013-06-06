@@ -56,10 +56,13 @@ class FakeHypervisor(hv_base.BaseHypervisor):
     """
     return os.listdir(self._ROOT_DIR)
 
-  def GetInstanceInfo(self, instance_name):
+  def GetInstanceInfo(self, instance_name, hvparams=None):
     """Get instance properties.
 
+    @type instance_name: string
     @param instance_name: the instance name
+    @type hvparams: dict of strings
+    @param hvparams: hvparams to be used with this instance
 
     @return: tuple of (name, id, memory, vcpus, stat, times)
 

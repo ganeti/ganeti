@@ -453,15 +453,19 @@ class XenHypervisor(hv_base.BaseHypervisor):
     names = [info[0] for info in instance_list]
     return names
 
-  def GetInstanceInfo(self, instance_name):
+  def GetInstanceInfo(self, instance_name, hvparams=None):
     """Get instance properties.
 
+    @type instance_name: string
     @param instance_name: the instance name
+    @type hvparams: dict of strings
+    @param hvparams: the instance's hypervisor params
 
     @return: tuple (name, id, memory, vcpus, stat, times)
 
     """
-    instance_list = self._GetInstanceList(instance_name == _DOM0_NAME)
+    instance_list = self._GetInstanceList(instance_name == _DOM0_NAME,
+                                          hvparams=hvparams)
     result = None
     for data in instance_list:
       if data[0] == instance_name:
@@ -495,7 +499,8 @@ class XenHypervisor(hv_base.BaseHypervisor):
     """Start an instance.
 
     """
-    startup_memory = self._InstanceStartupMemory(instance)
+    startup_memory = self._InstanceStartupMemory(instance,
+                                                 hvparams=instance.hvparams)
 
     self._MakeConfigFile(instance, startup_memory, block_devices)
 
@@ -551,7 +556,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
     """Reboot an instance.
 
     """
-    ini_info = self.GetInstanceInfo(instance.name)
+    ini_info = self.GetInstanceInfo(instance.name, hvparams=instance.hvparams)
 
     if ini_info is None:
       raise errors.HypervisorError("Failed to reboot instance %s,"
@@ -564,7 +569,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
                                     result.output))
 
     def _CheckInstance():
-      new_info = self.GetInstanceInfo(instance.name)
+      new_info = self.GetInstanceInfo(instance.name, hvparams=instance.hvparams)
 
       # check if the domain ID has changed or the run time has decreased
       if (new_info is not None and

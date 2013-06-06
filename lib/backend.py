@@ -1273,13 +1273,15 @@ def GetInstanceList(hypervisor_list, all_hvparams=None,
   return results
 
 
-def GetInstanceInfo(instance, hname):
+def GetInstanceInfo(instance, hname, hvparams=None):
   """Gives back the information about an instance as a dictionary.
 
   @type instance: string
   @param instance: the instance name
   @type hname: string
   @param hname: the hypervisor type of the instance
+  @type hvparams: dict of strings
+  @param hvparams: the instance's hvparams
 
   @rtype: dict
   @return: dictionary with the following keys:
@@ -1291,7 +1293,8 @@ def GetInstanceInfo(instance, hname):
   """
   output = {}
 
-  iinfo = hypervisor.GetHypervisor(hname).GetInstanceInfo(instance)
+  iinfo = hypervisor.GetHypervisor(hname).GetInstanceInfo(instance,
+                                                          hvparams=hvparams)
   if iinfo is not None:
     output["memory"] = iinfo[2]
     output["vcpus"] = iinfo[3]

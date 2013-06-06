@@ -109,11 +109,13 @@ class ChrootManager(hv_base.BaseHypervisor):
     return [name for name in os.listdir(self._ROOT_DIR)
             if self._IsDirLive(utils.PathJoin(self._ROOT_DIR, name))]
 
-  def GetInstanceInfo(self, instance_name):
+  def GetInstanceInfo(self, instance_name, hvparams=None):
     """Get instance properties.
 
     @type instance_name: string
     @param instance_name: the instance name
+    @type hvparams: dict of strings
+    @param hvparams: hvparams to be used with this instance
 
     @return: (name, id, memory, vcpus, stat, times)
 
