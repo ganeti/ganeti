@@ -265,6 +265,15 @@ shrinkByType inst T.FailCPU = let v = vcpus inst - T.unitCpu
                               in if v < T.unitCpu
                                  then Bad "out of vcpus"
                                  else Ok inst { vcpus = v }
+shrinkByType inst T.FailSpindles =
+  case disks inst of
+    [Disk ds sp] -> case sp of
+                      Nothing -> Bad "No spindles, shouldn't have happened"
+                      Just sp' -> let v = sp' - T.unitSpindle
+                                  in if v < T.unitSpindle
+                                     then Bad "out of spindles"
+                                     else Ok inst { disks = [Disk ds (Just v)] }
+    d -> Bad $ "Expected one disk, but found " ++ show d
 shrinkByType _ f = Bad $ "Unhandled failure mode " ++ show f
 
 -- | Get the number of disk spindles
