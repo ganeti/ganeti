@@ -274,8 +274,12 @@ getTotalSpindles inst =
 
 -- | Return the spec of an instance.
 specOf :: Instance -> T.RSpec
-specOf Instance { mem = m, dsk = d, vcpus = c } =
-  T.RSpec { T.rspecCpu = c, T.rspecMem = m, T.rspecDsk = d }
+specOf Instance { mem = m, dsk = d, vcpus = c, disks = dl } =
+  let sp = case dl of
+             [Disk _ (Just sp')] -> sp'
+             _ -> 0
+  in T.RSpec { T.rspecCpu = c, T.rspecMem = m,
+               T.rspecDsk = d, T.rspecSpn = sp }
 
 -- | Checks if an instance is smaller/bigger than a given spec. Returns
 -- OpGood for a correct spec, otherwise Bad one of the possible

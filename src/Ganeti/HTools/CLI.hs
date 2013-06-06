@@ -232,14 +232,21 @@ parseISpecString descr inp = do
   let sp = sepSplit ',' inp
       err = Bad ("Invalid " ++ descr ++ " specification: '" ++ inp ++
                  "', expected disk,ram,cpu")
-  when (length sp /= 3) err
+  when (length sp < 3 || length sp > 4) err
   prs <- mapM (\(fn, val) -> fn val) $
          zip [ annotateResult (descr ++ " specs disk") . parseUnit
              , annotateResult (descr ++ " specs memory") . parseUnit
              , tryRead (descr ++ " specs cpus")
+             , tryRead (descr ++ " specs spindles")
              ] sp
   case prs of
-    [dsk, ram, cpu] -> return $ RSpec cpu ram dsk
+    {- Spindles are optional, so that they are not needed when exclusive storage
+       is disabled. When exclusive storage is disabled, spindles are ignored,
+       so the actual value doesn't matter. We use 1 as a default so that in
+       case someone forgets and exclusive storage is enabled, we don't run into
+       weird situations. -}
+    [dsk, ram, cpu] -> return $ RSpec cpu ram dsk 1
+    [dsk, ram, cpu, spn] -> return $ RSpec cpu ram dsk spn
     _ -> err
 
 -- | Disk template choices.

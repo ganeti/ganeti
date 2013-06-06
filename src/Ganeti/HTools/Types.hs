@@ -142,6 +142,7 @@ data RSpec = RSpec
   { rspecCpu  :: Int  -- ^ Requested VCPUs
   , rspecMem  :: Int  -- ^ Requested memory
   , rspecDsk  :: Int  -- ^ Requested disk
+  , rspecSpn  :: Int  -- ^ Requested spindles
   } deriving (Show, Eq)
 
 -- | Allocation stats type. This is used instead of 'RSpec' (which was
@@ -232,6 +233,7 @@ rspecFromISpec :: ISpec -> RSpec
 rspecFromISpec ispec = RSpec { rspecCpu = iSpecCpuCount ispec
                              , rspecMem = iSpecMemorySize ispec
                              , rspecDsk = iSpecDiskSize ispec
+                             , rspecSpn = iSpecSpindleUse ispec
                              }
 
 -- | The default instance policy.

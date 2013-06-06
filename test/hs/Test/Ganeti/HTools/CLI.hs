@@ -47,15 +47,18 @@ import qualified Ganeti.HTools.Types as Types
 {-# ANN module "HLint: ignore Use camelCase" #-}
 
 -- | Test correct parsing.
-prop_parseISpec :: String -> Int -> Int -> Int -> Property
-prop_parseISpec descr dsk mem cpu =
-  let str = printf "%d,%d,%d" dsk mem cpu::String
-  in parseISpecString descr str ==? Ok (Types.RSpec cpu mem dsk)
+prop_parseISpec :: String -> Int -> Int -> Int -> Maybe Int -> Property
+prop_parseISpec descr dsk mem cpu spn =
+  let (str, spn') = case spn of
+                      Nothing -> (printf "%d,%d,%d" dsk mem cpu::String, 1)
+                      Just spn'' ->
+                        (printf "%d,%d,%d,%d" dsk mem cpu spn''::String, spn'')
+  in parseISpecString descr str ==? Ok (Types.RSpec cpu mem dsk spn')
 
 -- | Test parsing failure due to wrong section count.
 prop_parseISpecFail :: String -> Property
 prop_parseISpecFail descr =
-  forAll (choose (0,100) `suchThat` (/= 3)) $ \nelems ->
+  forAll (choose (0,100) `suchThat` (not . flip elem [3, 4])) $ \nelems ->
   forAll (replicateM nelems arbitrary) $ \values ->
   let str = intercalate "," $ map show (values::[Int])
   in case parseISpecString descr str of
