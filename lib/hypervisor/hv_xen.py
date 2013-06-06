@@ -225,19 +225,19 @@ def _ParseNodeInfo(info):
   return result
 
 
-def _MergeInstanceInfo(info, fn):
+def _MergeInstanceInfo(info, instance_list):
   """Updates node information from L{_ParseNodeInfo} with instance info.
 
   @type info: dict
   @param info: Result from L{_ParseNodeInfo}
-  @type fn: callable
-  @param fn: Function retrieving the instance list
+  @type instance_list: list of tuples
+  @param instance_list: list of instance information; one tuple per instance
   @rtype: dict
 
   """
   total_instmem = 0
 
-  for (name, _, mem, vcpus, _, _) in fn(True):
+  for (name, _, mem, vcpus, _, _) in instance_list:
     if name == _DOM0_NAME:
       info["memory_dom0"] = mem
       info["dom0_cpus"] = vcpus
@@ -255,11 +255,14 @@ def _MergeInstanceInfo(info, fn):
   return info
 
 
-def _GetNodeInfo(info, fn):
+def _GetNodeInfo(info, instance_list):
   """Combines L{_MergeInstanceInfo} and L{_ParseNodeInfo}.
 
+  @type instance_list: list of tuples
+  @param instance_list: list of instance information; one tuple per instance
+
   """
-  return _MergeInstanceInfo(_ParseNodeInfo(info), fn)
+  return _MergeInstanceInfo(_ParseNodeInfo(info), instance_list)
 
 
 def _GetConfigFileDiskData(block_devices, blockdev_prefix,
@@ -604,19 +607,20 @@ class XenHypervisor(hv_base.BaseHypervisor):
                                    (instance.name, result.fail_reason,
                                     result.output))
 
-  def GetNodeInfo(self):
+  def GetNodeInfo(self, hvparams=None):
     """Return information about the node.
 
     @see: L{_GetNodeInfo} and L{_ParseNodeInfo}
 
     """
-    result = self._RunXen(["info"])
+    result = self._RunXen(["info"], hvparams=hvparams)
     if result.failed:
       logging.error("Can't retrieve xen hypervisor information (%s): %s",
                     result.fail_reason, result.output)
       return None
 
-    return _GetNodeInfo(result.stdout, self._GetInstanceList)
+    instance_list = self._GetInstanceList(True, hvparams=hvparams)
+    return _GetNodeInfo(result.stdout, instance_list)
 
   @classmethod
   def GetInstanceConsole(cls, instance, hvparams, beparams):

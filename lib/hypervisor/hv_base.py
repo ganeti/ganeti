@@ -229,8 +229,11 @@ class BaseHypervisor(object):
     """
     raise NotImplementedError
 
-  def GetNodeInfo(self):
+  def GetNodeInfo(self, hvparams=None):
     """Return information about the node.
+
+    @type hvparams: dict of strings
+    @param hvparams: hypervisor parameters
 
     @return: a dict with the following keys (values in MiB):
           - memory_total: the total memory size on the node

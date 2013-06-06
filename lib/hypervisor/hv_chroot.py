@@ -246,10 +246,13 @@ class ChrootManager(hv_base.BaseHypervisor):
     # Currently chroots don't have memory limits
     pass
 
-  def GetNodeInfo(self):
+  def GetNodeInfo(self, hvparams=None):
     """Return information about the node.
 
     This is just a wrapper over the base GetLinuxNodeInfo method.
+
+    @type hvparams: dict of strings
+    @param hvparams: hypervisor parameters, not used in this class
 
     @return: a dict with the following keys (values in MiB):
           - memory_total: the total memory size on the node

@@ -228,10 +228,9 @@ class TestParseNodeInfo(testutils.GanetiTestCase):
 
 class TestMergeInstanceInfo(testutils.GanetiTestCase):
   def testEmpty(self):
-    self.assertEqual(hv_xen._MergeInstanceInfo({}, lambda _: []), {})
+    self.assertEqual(hv_xen._MergeInstanceInfo({}, []), {})
 
   def _FakeXmList(self, include_node):
-    self.assertTrue(include_node)
     return [
       (hv_xen._DOM0_NAME, NotImplemented, 4096, 7, NotImplemented,
        NotImplemented),
@@ -240,7 +239,8 @@ class TestMergeInstanceInfo(testutils.GanetiTestCase):
       ]
 
   def testMissingNodeInfo(self):
-    result = hv_xen._MergeInstanceInfo({}, self._FakeXmList)
+    instance_list = self._FakeXmList(True)
+    result = hv_xen._MergeInstanceInfo({}, instance_list)
     self.assertEqual(result, {
       "memory_dom0": 4096,
       "dom0_cpus": 7,
@@ -248,7 +248,8 @@ class TestMergeInstanceInfo(testutils.GanetiTestCase):
 
   def testWithNodeInfo(self):
     info = testutils.ReadTestData("xen-xm-info-4.0.1.txt")
-    result = hv_xen._GetNodeInfo(info, self._FakeXmList)
+    instance_list = self._FakeXmList(True)
+    result = hv_xen._GetNodeInfo(info, instance_list)
     self.assertEqual(result, {
       "cpu_nodes": 1,
       "cpu_sockets": 2,
