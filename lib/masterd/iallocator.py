@@ -433,8 +433,9 @@ class IAllocator(object):
     es_flags = rpc.GetExclusiveStorageForNodeNames(cfg, node_list)
     vg_req = rpc.BuildVgInfoQuery(cfg)
     has_lvm = bool(vg_req)
+    hvspecs = [(hypervisor_name, cluster_info.hvparams[hypervisor_name])]
     node_data = self.rpc.call_node_info(node_list, vg_req,
-                                        [hypervisor_name], es_flags)
+                                        hvspecs, es_flags)
     node_iinfo = \
       self.rpc.call_all_instances_info(node_list,
                                        cluster_info.enabled_hypervisors)

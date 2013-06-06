@@ -1176,8 +1176,11 @@ class NodeQuery(QueryBase):
       # FIXME: This currently maps everything to lvm, this should be more
       # flexible
       vg_req = rpc.BuildVgInfoQuery(lu.cfg)
+      default_hypervisor = lu.cfg.GetHypervisorType()
+      hvparams = lu.cfg.GetClusterInfo().hvparams[default_hypervisor]
+      hvspecs = [(default_hypervisor, hvparams)]
       node_data = lu.rpc.call_node_info(toquery_nodes, vg_req,
-                                        [lu.cfg.GetHypervisorType()], es_flags)
+                                        hvspecs, es_flags)
       live_data = dict((name, rpc.MakeLegacyNodeInfo(nresult.payload))
                        for (name, nresult) in node_data.items()
                        if not nresult.fail_msg and nresult.payload)

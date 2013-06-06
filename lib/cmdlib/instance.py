@@ -1158,10 +1158,12 @@ class LUInstanceCreate(LogicalUnit):
     # memory check on primary node
     #TODO(dynmem): use MINMEM for checking
     if self.op.start:
+      hvfull = objects.FillDict(cluster.hvparams.get(self.op.hypervisor, {}),
+                                self.op.hvparams)
       CheckNodeFreeMemory(self, self.pnode.name,
                           "creating instance %s" % self.op.instance_name,
                           self.be_full[constants.BE_MAXMEM],
-                          self.op.hypervisor)
+                          self.op.hypervisor, hvfull)
 
     self.dry_run_result = list(nodenames)
 
@@ -1692,10 +1694,10 @@ class LUInstanceMove(LogicalUnit):
 
     if instance.admin_state == constants.ADMINST_UP:
       # check memory requirements on the secondary node
-      CheckNodeFreeMemory(self, target_node,
-                          "failing over instance %s" %
-                          instance.name, bep[constants.BE_MAXMEM],
-                          instance.hypervisor)
+      CheckNodeFreeMemory(
+          self, target_node, "failing over instance %s" %
+          instance.name, bep[constants.BE_MAXMEM], instance.hypervisor,
+          self.cfg.GetClusterInfo().hvparams[instance.hypervisor])
     else:
       self.LogInfo("Not checking memory on the secondary node as"
                    " instance will not be started")
@@ -1980,7 +1982,7 @@ def _PrepareContainerMods(mods, private_fn):
   return [(op, idx, params, fn()) for (op, idx, params) in mods]
 
 
-def _CheckNodesPhysicalCPUs(lu, nodenames, requested, hypervisor_name):
+def _CheckNodesPhysicalCPUs(lu, nodenames, requested, hypervisor_specs):
   """Checks if nodes have enough physical CPUs
 
   This function checks if all given nodes have the needed number of
@@ -1994,11 +1996,14 @@ def _CheckNodesPhysicalCPUs(lu, nodenames, requested, hypervisor_name):
   @param nodenames: the list of node names to check
   @type requested: C{int}
   @param requested: the minimum acceptable number of physical CPUs
+  @type hypervisor_specs: list of pairs (string, dict of strings)
+  @param hypervisor_specs: list of hypervisor specifications in
+      pairs (hypervisor_name, hvparams)
   @raise errors.OpPrereqError: if the node doesn't have enough CPUs,
       or we cannot check the node
 
   """
-  nodeinfo = lu.rpc.call_node_info(nodenames, None, [hypervisor_name], None)
+  nodeinfo = lu.rpc.call_node_info(nodenames, None, hypervisor_specs, None)
   for node in nodenames:
     info = nodeinfo[node]
     info.Raise("Cannot get current information from node %s" % node,
@@ -2793,8 +2798,11 @@ class LUInstanceSetParams(LogicalUnit):
         max_requested_cpu = max(map(max, cpu_list))
         # Check that all of the instance's nodes have enough physical CPUs to
         # satisfy the requested CPU mask
+        hvspecs = [(instance.hypervisor,
+                    self.cfg.GetClusterInfo().hvparams[instance.hypervisor])]
         _CheckNodesPhysicalCPUs(self, instance.all_nodes,
-                                max_requested_cpu + 1, instance.hypervisor)
+                                max_requested_cpu + 1,
+                                hvspecs)
 
     # osparams processing
     if self.op.osparams:
@@ -2811,10 +2819,12 @@ class LUInstanceSetParams(LogicalUnit):
       if be_new[constants.BE_AUTO_BALANCE]:
         # either we changed auto_balance to yes or it was from before
         mem_check_list.extend(instance.secondary_nodes)
-      instance_info = self.rpc.call_instance_info(pnode, instance.name,
-                                                  instance.hypervisor)
+      instance_info = self.rpc.call_instance_info(
+          pnode, instance.name, instance.hypervisor,
+          cluster.hvparams[instance.hypervisor])
+      hvspecs = [(instance.hypervisor, cluster.hvparams[instance.hypervisor])]
       nodeinfo = self.rpc.call_node_info(mem_check_list, None,
-                                         [instance.hypervisor], False)
+                                         hvspecs, False)
       pninfo = nodeinfo[pnode]
       msg = pninfo.fail_msg
       if msg:
@@ -2888,9 +2898,10 @@ class LUInstanceSetParams(LogicalUnit):
 
       delta = self.op.runtime_mem - current_memory
       if delta > 0:
-        CheckNodeFreeMemory(self, instance.primary_node,
-                            "ballooning memory for instance %s" %
-                            instance.name, delta, instance.hypervisor)
+        CheckNodeFreeMemory(
+            self, instance.primary_node, "ballooning memory for instance %s" %
+            instance.name, delta, instance.hypervisor,
+            self.cfg.GetClusterInfo().hvparams[instance.hypervisor])
 
     def _PrepareNicCreate(_, params, private):
       self._PrepareNicModification(params, private, None, None,

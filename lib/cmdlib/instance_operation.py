@@ -133,9 +133,10 @@ class LUInstanceStartup(LogicalUnit):
       remote_info.Raise("Error checking node %s" % instance.primary_node,
                         prereq=True, ecode=errors.ECODE_ENVIRON)
       if not remote_info.payload: # not running already
-        CheckNodeFreeMemory(self, instance.primary_node,
-                            "starting instance %s" % instance.name,
-                            bep[constants.BE_MINMEM], instance.hypervisor)
+        CheckNodeFreeMemory(
+            self, instance.primary_node, "starting instance %s" % instance.name,
+            bep[constants.BE_MINMEM], instance.hypervisor,
+            self.cfg.GetClusterInfo().hvparams[instance.hypervisor])
 
   def Exec(self, feedback_fn):
     """Start the instance.

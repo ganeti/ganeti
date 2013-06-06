@@ -450,7 +450,7 @@ def GetInstanceInfoText(instance):
   return "originstname+%s" % instance.name
 
 
-def CheckNodeFreeMemory(lu, node, reason, requested, hypervisor_name):
+def CheckNodeFreeMemory(lu, node, reason, requested, hvname, hvparams):
   """Checks if a node has enough free memory.
 
   This function checks if a given node has the needed amount of free
@@ -466,15 +466,17 @@ def CheckNodeFreeMemory(lu, node, reason, requested, hypervisor_name):
   @param reason: string to use in the error message
   @type requested: C{int}
   @param requested: the amount of memory in MiB to check for
-  @type hypervisor_name: C{str}
-  @param hypervisor_name: the hypervisor to ask for memory stats
+  @type hvname: string
+  @param hvname: the hypervisor's name
+  @type hvparams: dict of strings
+  @param hvparams: the hypervisor's parameters
   @rtype: integer
   @return: node current free memory
   @raise errors.OpPrereqError: if the node doesn't have enough memory, or
       we cannot check the node
 
   """
-  nodeinfo = lu.rpc.call_node_info([node], None, [hypervisor_name], False)
+  nodeinfo = lu.rpc.call_node_info([node], None, [(hvname, hvparams)], False)
   nodeinfo[node].Raise("Can't get data from node %s" % node,
                        prereq=True, ecode=errors.ECODE_ENVIRON)
   (_, _, (hv_info, )) = nodeinfo[node].payload

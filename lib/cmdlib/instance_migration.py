@@ -370,11 +370,10 @@ class TLMigrateInstance(Tasklet):
     # check memory requirements on the secondary node
     if (not self.cleanup and
          (not self.failover or instance.admin_state == constants.ADMINST_UP)):
-      self.tgt_free_mem = CheckNodeFreeMemory(self.lu, target_node,
-                                              "migrating instance %s" %
-                                              instance.name,
-                                              i_be[constants.BE_MINMEM],
-                                              instance.hypervisor)
+      self.tgt_free_mem = CheckNodeFreeMemory(
+          self.lu, target_node, "migrating instance %s" % instance.name,
+          i_be[constants.BE_MINMEM], instance.hypervisor,
+          self.cfg.GetClusterInfo().hvparams[instance.hypervisor])
     else:
       self.lu.LogInfo("Not checking memory on the secondary node as"
                       " instance will not be started")
@@ -654,8 +653,10 @@ class TLMigrateInstance(Tasklet):
     source_node = self.source_node
 
     # Check for hypervisor version mismatch and warn the user.
+    hvspecs = [(instance.hypervisor,
+                self.cfg.GetClusterInfo().hvparams[instance.hypervisor])]
     nodeinfo = self.rpc.call_node_info([source_node, target_node],
-                                       None, [self.instance.hypervisor], False)
+                                       None, hvspecs, False)
     for ninfo in nodeinfo.values():
       ninfo.Raise("Unable to retrieve node information from node '%s'" %
                   ninfo.node)
