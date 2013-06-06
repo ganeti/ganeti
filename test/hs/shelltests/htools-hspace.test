@@ -8,10 +8,23 @@
 >>>= 0
 
 # standard & tiered allocation, using shell parsing to do multiple checks
-./test/hs/hspace --machine-readable -t $TESTDATA_DIR/hspace-tiered.data > $T/capacity && sh -c ". $T/capacity && test \"\${HTS_TSPEC}\" = '131072,1048576,4=4 129984,1048320,4=2' && test \"\${HTS_ALLOC_INSTANCES}\" = 6"
+./test/hs/hspace --machine-readable -t $TESTDATA_DIR/hspace-tiered.data > $T/capacity && sh -c ". $T/capacity && test \"\${HTS_TSPEC}\" = '131072,1048576,4,12=4 129984,1048320,4,12=2' && test \"\${HTS_ALLOC_INSTANCES}\" = 6"
 >>>=0
 
 # again, but with a policy containing two min/max specs pairs
-./test/hs/hspace --machine-readable -t $TESTDATA_DIR/hspace-tiered-dualspec.data > $T/capacity && sh -c ". $T/capacity && test \"\${HTS_TSPEC}\" = '131072,1048576,4=4 129984,1048320,4=2 65472,524288,2=2' && test \"\${HTS_ALLOC_INSTANCES}\" = 14"
+./test/hs/hspace --machine-readable -t $TESTDATA_DIR/hspace-tiered-dualspec.data > $T/capacity && sh -c ". $T/capacity && test \"\${HTS_TSPEC}\" = '131072,1048576,4,12=4 129984,1048320,4,12=2 65472,524288,2,12=2' && test \"\${HTS_ALLOC_INSTANCES}\" = 14"
 >>>2
+>>>=0
+
+# With exclusive storage
+./test/hs/hspace --machine-readable -t $TESTDATA_DIR/hspace-tiered-exclusive.data > $T/capacity && sh -c ". $T/capacity && test \"\${HTS_TSPEC}\" = '131072,1048576,4,10=1 131072,1048576,4,9=1 131072,1048576,4,8=2' && test \"\${HTS_ALLOC_INSTANCES}\" = 6 && test \"\${HTS_TRL_SPN_FREE}\" = 0 && test \"\${HTS_FIN_SPN_FREE}\" = 29"
+>>>=0
+
+# With exclusive storage and a policy containing two min/max specs pairs
+./test/hs/hspace --machine-readable -t $TESTDATA_DIR/hspace-tiered-dualspec-exclusive.data > $T/capacity && sh -c ". $T/capacity && test \"\${HTS_TSPEC}\" = '131072,1048576,4,4=4 129984,1048320,4,4=2 65472,524288,2,2=2' && test \"\${HTS_ALLOC_INSTANCES}\" = 14 && test \"\${HTS_TRL_SPN_FREE}\" = 7 && test \"\${HTS_FIN_SPN_FREE}\" = 7"
+>>>2
+>>>=0
+
+# Mixed cluster, half with exclusive storage
+./test/hs/hspace --machine-readable -t $TESTDATA_DIR/hspace-tiered-mixed.data > $T/capacity && sh -c ". $T/capacity && test \"\${HTS_TSPEC}\" = '131072,1048576,4,12=2 131072,1048576,4,10=2 129984,1048320,4,10=2' && test \"\${HTS_ALLOC_INSTANCES}\" = 6 && test \"\${HTS_TRL_SPN_FREE}\" = 0 && test \"\${HTS_FIN_SPN_FREE}\" = 18"
 >>>=0

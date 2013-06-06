@@ -1058,7 +1058,10 @@ TEST_FILES = \
 	test/data/htools/hail-reloc-drbd.json \
 	test/data/htools/hbal-excl-tags.data \
 	test/data/htools/hbal-split-insts.data \
+	test/data/htools/hspace-tiered-dualspec-exclusive.data \
 	test/data/htools/hspace-tiered-dualspec.data \
+	test/data/htools/hspace-tiered-exclusive.data \
+	test/data/htools/hspace-tiered-mixed.data \
 	test/data/htools/hspace-tiered.data \
 	test/data/htools/invalid-node.data \
 	test/data/htools/missing-resources.data \
