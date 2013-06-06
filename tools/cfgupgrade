@@ -278,6 +278,50 @@ def UpgradeFileStoragePaths(config_data):
                     backup=True)
 
 
+def GetNewNodeIndex(nodes_by_old_key, old_key, new_key_field):
+  if old_key not in nodes_by_old_key:
+    logging.warning("Can't find node '%s' in configuration, assuming that it's"
+                    " already up-to-date", old_key)
+    return old_key
+  return nodes_by_old_key[old_key][new_key_field]
+
+
+def ChangeNodeIndices(config_data, old_key_field, new_key_field):
+  def ChangeDiskNodeIndices(disk):
+    if disk["dev_type"] in constants.LDS_DRBD:
+      for i in range(0, 2):
+        disk["logical_id"][i] = GetNewNodeIndex(nodes_by_old_key,
+                                                disk["logical_id"][i],
+                                                new_key_field)
+    if "children" in disk:
+      for child in disk["children"]:
+        ChangeDiskNodeIndices(child)
+
+  nodes_by_old_key = {}
+  nodes_by_new_key = {}
+  for (_, node) in config_data["nodes"].items():
+    nodes_by_old_key[node[old_key_field]] = node
+    nodes_by_new_key[node[new_key_field]] = node
+
+  config_data["nodes"] = nodes_by_new_key
+
+  cluster = config_data["cluster"]
+  cluster["master_node"] = GetNewNodeIndex(nodes_by_old_key,
+                                           cluster["master_node"],
+                                           new_key_field)
+
+  for inst in config_data["instances"].values():
+    inst["primary_node"] = GetNewNodeIndex(nodes_by_old_key,
+                                           inst["primary_node"],
+                                           new_key_field)
+    for disk in inst["disks"]:
+      ChangeDiskNodeIndices(disk)
+
+
+def UpgradeNodeIndices(config_data):
+  ChangeNodeIndices(config_data, "name", "uuid")
+
+
 def UpgradeAll(config_data):
   config_data["version"] = constants.BuildVersion(TARGET_MAJOR,
                                                   TARGET_MINOR, 0)
@@ -288,6 +332,7 @@ def UpgradeAll(config_data):
   UpgradeCluster(config_data)
   UpgradeGroups(config_data)
   UpgradeInstances(config_data)
+  UpgradeNodeIndices(config_data)
 
 
 def DowngradeDisks(disks, owner):
@@ -309,10 +354,15 @@ def DowngradeInstances(config_data):
     DowngradeDisks(iobj["disks"], iname)
 
 
+def DowngradeNodeIndices(config_data):
+  ChangeNodeIndices(config_data, "uuid", "name")
+
+
 def DowngradeAll(config_data):
   # Any code specific to a particular version should be labeled that way, so
   # it can be removed when updating to the next version.
   DowngradeInstances(config_data)
+  DowngradeNodeIndices(config_data)
 
 
 def main():
