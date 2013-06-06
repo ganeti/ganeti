@@ -40,6 +40,8 @@ import Test.Ganeti.Objects ()
 
 import qualified Ganeti.Rpc as Rpc
 import qualified Ganeti.Objects as Objects
+import qualified Ganeti.Types as Types
+import qualified Ganeti.JSON as JSON
 
 instance Arbitrary Rpc.RpcCallAllInstancesInfo where
   arbitrary = Rpc.RpcCallAllInstancesInfo <$> arbitrary
@@ -48,8 +50,22 @@ instance Arbitrary Rpc.RpcCallInstanceList where
   arbitrary = Rpc.RpcCallInstanceList <$> arbitrary
 
 instance Arbitrary Rpc.RpcCallNodeInfo where
-  arbitrary = Rpc.RpcCallNodeInfo <$> arbitrary <*> arbitrary <*>
+  arbitrary = Rpc.RpcCallNodeInfo <$> arbitrary <*> genHvSpecs <*>
                 pure Map.empty
+
+-- | Generate hypervisor specifications to be used for the NodeInfo call
+genHvSpecs :: Gen [ (Types.Hypervisor, Objects.HvParams) ]
+genHvSpecs = do
+  numhv <- choose (0, 5)
+  hvs <- vectorOf numhv arbitrary
+  hvparams <- vectorOf numhv genHvParams
+  let specs = zip hvs hvparams
+  return specs
+
+-- FIXME: Generate more interesting hvparams
+-- | Generate Hvparams
+genHvParams :: Gen Objects.HvParams
+genHvParams = return $ JSON.GenericContainer Map.empty
 
 -- | Monadic check that, for an offline node and a call that does not
 -- offline nodes, we get a OfflineNodeError response.

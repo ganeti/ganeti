@@ -468,8 +468,9 @@ _NODE_CALLS = [
     ("storage_units", None,
      "List of tuples '<storage_type>,<key>' to ask for disk space"
      " information"),
-    ("hv_names", None,
-     "Names of the hypervisors to ask for node information"),
+    ("hv_specs", None,
+     "List of hypervisor specification (name, hvparams) to ask for node "
+     "information"),
     ("exclusive_storage", None,
      "Whether exclusive storage is enabled"),
     ], _NodeInfoPreProc, None, "Return node information"),

@@ -721,8 +721,8 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     """Query node information.
 
     """
-    (storage_units, hv_names, excl_stor) = params
-    return backend.GetNodeInfo(storage_units, hv_names, excl_stor)
+    (storage_units, hv_specs, excl_stor) = params
+    return backend.GetNodeInfo(storage_units, hv_specs, excl_stor)
 
   @staticmethod
   def perspective_etc_hosts_modify(params):

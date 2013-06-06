@@ -39,6 +39,7 @@ import Ganeti.Config
 import Ganeti.Objects
 import Ganeti.JSON
 import Ganeti.Rpc
+import Ganeti.Types
 import Ganeti.Query.Language
 import Ganeti.Query.Common
 import Ganeti.Query.Types
@@ -236,7 +237,7 @@ collectLiveData True cfg nodes = do
       -- FIXME: This currently sets every storage unit to LVM
       storage_units = zip (repeat T.StorageLvmVg) vgs ++
                       zip (repeat T.StorageLvmPv) vgs
-      hvs = [getDefaultHypervisor cfg]
+      hvs = [getDefaultHypervisorSpec cfg]
       step n (bn, gn, em) =
         let ndp' = getNodeNdParams cfg n
         in case ndp' of
@@ -249,3 +250,15 @@ collectLiveData True cfg nodes = do
   -- FIXME: The order of nodes in the result could be different from the input
   return $ zip bnodes (repeat $ Left (RpcResultError "Broken configuration"))
            ++ rpcres
+
+-- | Looks up the default hypervisor and it's hvparams
+getDefaultHypervisorSpec :: ConfigData -> (Hypervisor, HvParams)
+getDefaultHypervisorSpec cfg = (hv, getHvParamsFromCluster cfg hv)
+  where hv = getDefaultHypervisor cfg
+
+-- | Looks up the cluster's hvparams of the given hypervisor
+getHvParamsFromCluster :: ConfigData -> Hypervisor -> HvParams
+getHvParamsFromCluster cfg hv =
+  fromMaybe (GenericContainer (Map.fromList []))
+    (Map.lookup (show hv)
+       (fromContainer (clusterHvparams (configCluster cfg))))

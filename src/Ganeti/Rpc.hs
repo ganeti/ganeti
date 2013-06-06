@@ -337,8 +337,8 @@ instance Rpc RpcCallInstanceList RpcResultInstanceList where
 -- | NodeInfo
 -- Return node information.
 $(buildObject "RpcCallNodeInfo" "rpcCallNodeInfo"
-  [ simpleField "storage_units" [t| [ (StorageType,String) ] |]
-  , simpleField "hypervisors" [t| [Hypervisor] |]
+  [ simpleField "storage_units" [t| [ (StorageType, String) ] |]
+  , simpleField "hypervisors" [t| [ (Hypervisor, HvParams) ] |]
   , simpleField "exclusive_storage" [t| Map.Map String Bool |]
   ])
 
