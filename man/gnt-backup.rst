@@ -26,6 +26,7 @@ EXPORT
 
 | **export** {-n *node*} [\--shutdown-timeout=*N*] [\--noshutdown]
 | [\--remove-instance] [\--ignore-remove-failures] [\--submit]
+| [\--print-job-id]
 | {*instance*}
 
 Exports an instance to the target node. All the instance data and
@@ -75,7 +76,7 @@ IMPORT
 | [-t [diskless | plain | drbd | file]]
 | [\--identify-defaults]
 | [\--ignore-ipolicy]
-| [\--submit]
+| [\--submit] [\--print-job-id]
 | {*instance*}
 
 Imports a new instance from an export residing on *source-node* in

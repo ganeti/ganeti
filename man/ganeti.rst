@@ -240,7 +240,7 @@ availability for a certain command can be checked by calling the
 command using the ``--help`` option.
 
 | **gnt-...** *command* [\--dry-run] [\--priority {low | normal | high}]
-| [\--submit]
+| [\--submit] [\--print-job-id]
 
 The ``--dry-run`` option can be used to check whether an operation
 would succeed.
@@ -251,6 +251,9 @@ by the command.
 The ``--submit`` option is used to send the job to the master daemon but
 not wait for its completion. The job ID will be shown so that it can be
 examined using **gnt-job info**.
+
+The ``--print-job-id`` option makes the command print the job id as first
+line on stdout, so that it is easy to parse by other programs.
 
 Defaults
 ~~~~~~~~

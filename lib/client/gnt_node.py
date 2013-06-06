@@ -1090,7 +1090,7 @@ commands = {
   "evacuate": (
     EvacuateNode, ARGS_ONE_NODE,
     [FORCE_OPT, IALLOCATOR_OPT, NEW_SECONDARY_OPT, EARLY_RELEASE_OPT,
-     PRIORITY_OPT, PRIMARY_ONLY_OPT, SECONDARY_ONLY_OPT, SUBMIT_OPT],
+     PRIORITY_OPT, PRIMARY_ONLY_OPT, SECONDARY_ONLY_OPT] + SUBMIT_OPTS,
     "[-f] {-I <iallocator> | -n <dst>} [-p | -s] [options...] <node>",
     "Relocate the primary and/or secondary instances from a node"),
   "failover": (
@@ -1103,7 +1103,7 @@ commands = {
     MigrateNode, ARGS_ONE_NODE,
     [FORCE_OPT, NONLIVE_OPT, MIGRATION_MODE_OPT, DST_NODE_OPT,
      IALLOCATOR_OPT, PRIORITY_OPT, IGNORE_IPOLICY_OPT,
-     NORUNTIME_CHGS_OPT, SUBMIT_OPT],
+     NORUNTIME_CHGS_OPT] + SUBMIT_OPTS,
     "[-f] <node>",
     "Migrate all the primary instance on a node away from it"
     " (only for instances of type drbd)"),
@@ -1126,21 +1126,24 @@ commands = {
     "Lists all available fields for nodes"),
   "modify": (
     SetNodeParams, ARGS_ONE_NODE,
-    [FORCE_OPT, SUBMIT_OPT, MC_OPT, DRAINED_OPT, OFFLINE_OPT,
+    [FORCE_OPT] + SUBMIT_OPTS +
+    [MC_OPT, DRAINED_OPT, OFFLINE_OPT,
      CAPAB_MASTER_OPT, CAPAB_VM_OPT, SECONDARY_IP_OPT,
      AUTO_PROMOTE_OPT, DRY_RUN_OPT, PRIORITY_OPT, NODE_PARAMS_OPT,
      NODE_POWERED_OPT, HV_STATE_OPT, DISK_STATE_OPT],
     "<node_name>", "Alters the parameters of a node"),
   "powercycle": (
     PowercycleNode, ARGS_ONE_NODE,
-    [FORCE_OPT, CONFIRM_OPT, DRY_RUN_OPT, PRIORITY_OPT, SUBMIT_OPT],
+    [FORCE_OPT, CONFIRM_OPT, DRY_RUN_OPT, PRIORITY_OPT] + SUBMIT_OPTS,
     "<node_name>", "Tries to forcefully powercycle a node"),
   "power": (
     PowerNode,
     [ArgChoice(min=1, max=1, choices=_LIST_POWER_COMMANDS),
      ArgNode()],
-    [SUBMIT_OPT, AUTO_PROMOTE_OPT, PRIORITY_OPT, IGNORE_STATUS_OPT,
-     FORCE_OPT, NOHDR_OPT, SEP_OPT, OOB_TIMEOUT_OPT, POWER_DELAY_OPT],
+    SUBMIT_OPTS +
+    [AUTO_PROMOTE_OPT, PRIORITY_OPT,
+     IGNORE_STATUS_OPT, FORCE_OPT, NOHDR_OPT, SEP_OPT, OOB_TIMEOUT_OPT,
+     POWER_DELAY_OPT],
     "on|off|cycle|status [nodes...]",
     "Change power state of node by calling out-of-band helper."),
   "remove": (
@@ -1162,14 +1165,14 @@ commands = {
     [ArgNode(min=1, max=1),
      ArgChoice(min=1, max=1, choices=_MODIFIABLE_STORAGE_TYPES),
      ArgFile(min=1, max=1)],
-    [ALLOCATABLE_OPT, DRY_RUN_OPT, PRIORITY_OPT, SUBMIT_OPT],
+    [ALLOCATABLE_OPT, DRY_RUN_OPT, PRIORITY_OPT] + SUBMIT_OPTS,
     "<node_name> <storage_type> <name>", "Modify storage volume on a node"),
   "repair-storage": (
     RepairStorage,
     [ArgNode(min=1, max=1),
      ArgChoice(min=1, max=1, choices=_REPAIRABLE_STORAGE_TYPES),
      ArgFile(min=1, max=1)],
-    [IGNORE_CONSIST_OPT, DRY_RUN_OPT, PRIORITY_OPT, SUBMIT_OPT],
+    [IGNORE_CONSIST_OPT, DRY_RUN_OPT, PRIORITY_OPT] + SUBMIT_OPTS,
     "<node_name> <storage_type> <name>",
     "Repairs a storage volume on a node"),
   "list-tags": (
@@ -1177,11 +1180,11 @@ commands = {
     "<node_name>", "List the tags of the given node"),
   "add-tags": (
     AddTags, [ArgNode(min=1, max=1), ArgUnknown()],
-    [TAG_SRC_OPT, PRIORITY_OPT, SUBMIT_OPT],
+    [TAG_SRC_OPT, PRIORITY_OPT] + SUBMIT_OPTS,
     "<node_name> tag...", "Add tags to the given node"),
   "remove-tags": (
     RemoveTags, [ArgNode(min=1, max=1), ArgUnknown()],
-    [TAG_SRC_OPT, PRIORITY_OPT, SUBMIT_OPT],
+    [TAG_SRC_OPT, PRIORITY_OPT] + SUBMIT_OPTS,
     "<node_name> tag...", "Remove tags from the given node"),
   "health": (
     Health, ARGS_MANY_NODES,
@@ -1193,7 +1196,7 @@ commands = {
     "[<node_name>]", "Query the list of used DRBD minors on the given node"),
   "restricted-command": (
     RestrictedCommand, [ArgUnknown(min=1, max=1)] + ARGS_MANY_NODES,
-    [SYNC_OPT, PRIORITY_OPT, SUBMIT_OPT, SHOW_MACHINE_OPT, NODEGROUP_OPT],
+    [SYNC_OPT, PRIORITY_OPT] + SUBMIT_OPTS + [SHOW_MACHINE_OPT, NODEGROUP_OPT],
     "<command> <node_name> [<node_name>...]",
     "Executes a restricted command on node(s)"),
   }

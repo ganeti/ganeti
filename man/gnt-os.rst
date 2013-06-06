@@ -56,7 +56,8 @@ documentations, etc.
 MODIFY
 ~~~~~~
 
-| **modify** [\--submit] [-H *HYPERVISOR*:option=*value*[,...]]
+| **modify** [\--submit] [\--print-job-id]
+| [-H *HYPERVISOR*:option=*value*[,...]]
 | [\--hidden=*yes|no*] [\--blacklisted=*yes|no*]
 | {*OS*}
 

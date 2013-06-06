@@ -150,7 +150,7 @@ commands = {
     ExportInstance, ARGS_ONE_INSTANCE,
     [FORCE_OPT, SINGLE_NODE_OPT, NOSHUTDOWN_OPT, SHUTDOWN_TIMEOUT_OPT,
      REMOVE_INSTANCE_OPT, IGNORE_REMOVE_FAILURES_OPT, DRY_RUN_OPT,
-     PRIORITY_OPT, SUBMIT_OPT],
+     PRIORITY_OPT] + SUBMIT_OPTS,
     "-n <target_node> [opts...] <name>",
     "Exports an instance to an image"),
   "import": (
@@ -159,7 +159,7 @@ commands = {
     "Imports an instance from an exported image"),
   "remove": (
     RemoveExport, [ArgUnknown(min=1, max=1)],
-    [DRY_RUN_OPT, PRIORITY_OPT, SUBMIT_OPT],
+    [DRY_RUN_OPT, PRIORITY_OPT] + SUBMIT_OPTS,
     "<name>", "Remove exports of named instance from the filesystem."),
   }
 

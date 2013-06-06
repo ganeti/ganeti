@@ -631,8 +631,7 @@ commands = {
                 action="append", help="Select nodes to sleep on"),
      cli_option("-r", "--repeat", type="int", default="0", dest="repeat",
                 help="Number of times to repeat the sleep"),
-     DRY_RUN_OPT, PRIORITY_OPT, SUBMIT_OPT,
-     ],
+     DRY_RUN_OPT, PRIORITY_OPT] + SUBMIT_OPTS,
     "[opts...] <duration>", "Executes a TestDelay OpCode"),
   "submit-job": (
     GenericOpCodes, [ArgFile(min=1)],

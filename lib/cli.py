@@ -165,6 +165,7 @@ __all__ = [
   "PREALLOC_WIPE_DISKS_OPT",
   "PRIMARY_IP_VERSION_OPT",
   "PRIMARY_ONLY_OPT",
+  "PRINT_JOBID_OPT",
   "PRIORITY_OPT",
   "RAPI_CERT_OPT",
   "READD_OPT",
@@ -198,6 +199,7 @@ __all__ = [
   "SRC_DIR_OPT",
   "SRC_NODE_OPT",
   "SUBMIT_OPT",
+  "SUBMIT_OPTS",
   "STARTUP_PAUSED_OPT",
   "STATIC_OPT",
   "SYNC_OPT",
@@ -831,6 +833,11 @@ SUBMIT_OPT = cli_option("--submit", dest="submit_only",
                         default=False, action="store_true",
                         help=("Submit the job and return the job ID, but"
                               " don't wait for the job to finish"))
+
+PRINT_JOBID_OPT = cli_option("--print-jobid", dest="print_jobid",
+                             default=False, action="store_true",
+                             help=("Additionally print the job as first line"
+                                   " on stdout (for scripting)."))
 
 SYNC_OPT = cli_option("--sync", dest="do_locking",
                       default=False, action="store_true",
@@ -1634,6 +1641,13 @@ INCLUDEDEFAULTS_OPT = cli_option("--include-defaults", dest="include_defaults",
 #: Options provided by all commands
 COMMON_OPTS = [DEBUG_OPT, REASON_OPT]
 
+# options related to asynchronous job handling
+
+SUBMIT_OPTS = [
+  SUBMIT_OPT,
+  PRINT_JOBID_OPT,
+  ]
+
 # common options for creating instances. add and import then add their own
 # specific ones.
 COMMON_CREATE_OPTS = [
@@ -1654,6 +1668,7 @@ COMMON_CREATE_OPTS = [
   OSPARAMS_OPT,
   OS_SIZE_OPT,
   SUBMIT_OPT,
+  PRINT_JOBID_OPT,
   TAG_ADD_OPT,
   DRY_RUN_OPT,
   PRIORITY_OPT,
@@ -2248,6 +2263,8 @@ def SubmitOpCode(op, cl=None, feedback_fn=None, opts=None, reporter=None):
   SetGenericOpcodeOpts([op], opts)
 
   job_id = SendJob([op], cl=cl)
+  if opts.print_jobid:
+    ToStdout("%d" % job_id)
 
   op_results = PollJob(job_id, cl=cl, feedback_fn=feedback_fn,
                        reporter=reporter)
@@ -2271,6 +2288,8 @@ def SubmitOrSend(op, opts, cl=None, feedback_fn=None):
     job = [op]
     SetGenericOpcodeOpts(job, opts)
     job_id = SendJob(job, cl=cl)
+    if opts.print_jobid:
+      ToStdout("%d" % job_id)
     raise JobSubmittedException(job_id)
   else:
     return SubmitOpCode(op, cl=cl, feedback_fn=feedback_fn, opts=opts)

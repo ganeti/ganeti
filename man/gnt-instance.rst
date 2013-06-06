@@ -40,7 +40,7 @@ ADD
 | [\--file-storage-dir *dir\_path*] [\--file-driver {loop \| blktap}]
 | {{-n|\--node} *node[:secondary-node]* \| {-I|\--iallocator} *name*}
 | {{-o|\--os-type} *os-type*}
-| [\--submit]
+| [\--submit] [\--print-job-id]
 | [\--ignore-ipolicy]
 | {*instance*}
 
@@ -945,8 +945,8 @@ follows::
 REMOVE
 ^^^^^^
 
-**remove** [\--ignore-failures] [\--shutdown-timeout=*N*] [\--submit]
-[\--force] {*instance*}
+| **remove** [\--ignore-failures] [\--shutdown-timeout=*N*] [\--submit]
+| [\--print-job-id] [\--force] {*instance*}
 
 Remove an instance. This will remove all data from the instance and
 there is *no way back*. If you are not sure if you use an instance
@@ -1076,7 +1076,7 @@ MODIFY
 | [\--os-type=*OS* [\--force-variant]]
 | [{-O|\--os-parameters} *param*=*value*... ]
 | [\--offline \| \--online]
-| [\--submit]
+| [\--submit] [\--print-job-id]
 | [\--ignore-ipolicy]
 | {*instance*}
 
@@ -1165,7 +1165,8 @@ REINSTALL
 | **reinstall** [{-o|\--os-type} *os-type*] [\--select-os] [-f *force*]
 | [\--force-multiple]
 | [\--instance \| \--node \| \--primary \| \--secondary \| \--all]
-| [{-O|\--os-parameters} *OS\_PARAMETERS*] [\--submit] {*instance*...}
+| [{-O|\--os-parameters} *OS\_PARAMETERS*] [\--submit] [\--print-job-id]
+| {*instance*...}
 
 Reinstalls the operating system on the given instance(s). The
 instance(s) must be stopped when running this command. If the ``-o
@@ -1190,7 +1191,7 @@ options.
 RENAME
 ^^^^^^
 
-| **rename** [\--no-ip-check] [\--no-name-check] [\--submit]
+| **rename** [\--no-ip-check] [\--no-name-check] [\--submit] [\--print-job-id]
 | {*instance*} {*new\_name*}
 
 Renames the given instance. The instance must be stopped when running
@@ -1226,7 +1227,7 @@ STARTUP
 | \--tags \| \--node-tags \| \--pri-node-tags \| \--sec-node-tags]
 | [{-H|\--hypervisor-parameters} ``key=value...``]
 | [{-B|\--backend-parameters} ``key=value...``]
-| [\--submit] [\--paused]
+| [\--submit] [\--print-job-id] [\--paused]
 | {*name*...}
 
 Starts one or more instances, depending on the following options.  The
@@ -1324,7 +1325,7 @@ SHUTDOWN
 | [\--force] [\--force-multiple] [\--ignore-offline] [\--no-remember]
 | [\--instance \| \--node \| \--primary \| \--secondary \| \--all \|
 | \--tags \| \--node-tags \| \--pri-node-tags \| \--sec-node-tags]
-| [\--submit]
+| [\--submit] [\--print-job-id]
 | {*name*...}
 
 Stops one or more instances. If the instance cannot be cleanly stopped
@@ -1378,7 +1379,7 @@ REBOOT
 | [\--force-multiple]
 | [\--instance \| \--node \| \--primary \| \--secondary \| \--all \|
 | \--tags \| \--node-tags \| \--pri-node-tags \| \--sec-node-tags]
-| [\--submit]
+| [\--submit] [\--print-job-id]
 | [*name*...]
 
 Reboots one or more instances. The type of reboot depends on the value
@@ -1442,17 +1443,18 @@ Disk management
 REPLACE-DISKS
 ^^^^^^^^^^^^^
 
-**replace-disks** [\--submit] [\--early-release] [\--ignore-ipolicy] {-p}
-[\--disks *idx*] {*instance*}
+| **replace-disks** [\--submit] [\--print-job-id] [\--early-release]
+| [\--ignore-ipolicy] {-p} [\--disks *idx*] {*instance*}
 
-**replace-disks** [\--submit] [\--early-release] [\--ignore-ipolicy] {-s}
-[\--disks *idx*] {*instance*}
+| **replace-disks** [\--submit] [\--print-job-id] [\--early-release]
+| [\--ignore-ipolicy] {-s} [\--disks *idx*] {*instance*}
 
-**replace-disks** [\--submit] [\--early-release] [\--ignore-ipolicy]
-{{-I\|\--iallocator} *name* \| {{-n|\--new-secondary} *node* } {*instance*}
+| **replace-disks** [\--submit] [\--print-job-id] [\--early-release]
+| [\--ignore-ipolicy]
+| {{-I\|\--iallocator} *name* \| {{-n|\--new-secondary} *node* } {*instance*}
 
-**replace-disks** [\--submit] [\--early-release] [\--ignore-ipolicy]
-{-a\|\--auto} {*instance*}
+| **replace-disks** [\--submit] [\--print-job-id] [\--early-release]
+| [\--ignore-ipolicy] {-a\|\--auto} {*instance*}
 
 This command is a generalized form for replacing disks. It is
 currently only valid for the mirrored (DRBD) disk template.
@@ -1500,7 +1502,8 @@ options.
 ACTIVATE-DISKS
 ^^^^^^^^^^^^^^
 
-**activate-disks** [\--submit] [\--ignore-size] [\--wait-for-sync] {*instance*}
+| **activate-disks** [\--submit] [\--print-job-id] [\--ignore-size]
+| [\--wait-for-sync] {*instance*}
 
 Activates the block devices of the given instance. If successful, the
 command will show the location and name of the block devices::
@@ -1538,7 +1541,7 @@ options.
 DEACTIVATE-DISKS
 ^^^^^^^^^^^^^^^^
 
-**deactivate-disks** [-f] [\--submit] {*instance*}
+**deactivate-disks** [-f] [\--submit] [\--print-job-id] {*instance*}
 
 De-activates the block devices of the given instance. Note that if you
 run this command for an instance with a drbd disk template, while it
@@ -1559,7 +1562,8 @@ options.
 GROW-DISK
 ^^^^^^^^^
 
-| **grow-disk** [\--no-wait-for-sync] [\--submit] [\--absolute]
+| **grow-disk** [\--no-wait-for-sync] [\--submit] [\--print-job-id]
+| [\--absolute]
 | {*instance*} {*disk*} {*amount*}
 
 Grows an instance's disk. This is only possible for instances having a
@@ -1617,7 +1621,7 @@ instance.
 RECREATE-DISKS
 ^^^^^^^^^^^^^^
 
-| **recreate-disks** [\--submit]
+| **recreate-disks** [\--submit] [\--print-job-id]
 | [{-n node1:[node2] \| {-I\|\--iallocator *name*}}]
 | [\--disk=*N*[:[size=*VAL*][,spindles=*VAL*][,mode=*ro\|rw*]]] {*instance*}
 
@@ -1661,7 +1665,7 @@ FAILOVER
 | **failover** [-f] [\--ignore-consistency] [\--ignore-ipolicy]
 | [\--shutdown-timeout=*N*]
 | [{-n|\--target-node} *node* \| {-I|\--iallocator} *name*]
-| [\--submit]
+| [\--submit] [\--print-job-id]
 | {*instance*}
 
 Failover will stop the instance (if running), change its primary node,
@@ -1715,10 +1719,10 @@ MIGRATE
 
 | **migrate** [-f] [\--allow-failover] [\--non-live]
 | [\--migration-mode=live\|non-live] [\--ignore-ipolicy]
-| [\--no-runtime-changes] [\--submit]
+| [\--no-runtime-changes] [\--submit] [\--print-job-id]
 | [{-n|\--target-node} *node* \| {-I|\--iallocator} *name*] {*instance*}
 
-| **migrate** [-f] \--cleanup [\--submit] {*instance*}
+| **migrate** [-f] \--cleanup [\--submit] [\--print-job-id] {*instance*}
 
 Migrate will move the instance to its secondary node without shutdown.
 As with failover, it works for instances having the drbd disk template
@@ -1808,7 +1812,8 @@ MOVE
 ^^^^
 
 | **move** [-f] [\--ignore-consistency]
-| [-n *node*] [\--shutdown-timeout=*N*] [\--submit] [\--ignore-ipolicy]
+| [-n *node*] [\--shutdown-timeout=*N*] [\--submit] [\--print-job-id]
+| [\--ignore-ipolicy]
 | {*instance*}
 
 Move will move the instance to an arbitrary node in the cluster. This
@@ -1841,7 +1846,7 @@ Example::
 CHANGE-GROUP
 ^^^^^^^^^^^^
 
-| **change-group** [\--submit]
+| **change-group** [\--submit] [\--print-job-id]
 | [\--iallocator *NAME*] [\--to *GROUP*...] {*instance*}
 
 This command moves an instance to another node group. The move is

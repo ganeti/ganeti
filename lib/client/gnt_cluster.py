@@ -1550,7 +1550,7 @@ commands = {
     "<new_name>",
     "Renames the cluster"),
   "redist-conf": (
-    RedistributeConfig, ARGS_NONE, [SUBMIT_OPT, DRY_RUN_OPT, PRIORITY_OPT],
+    RedistributeConfig, ARGS_NONE, SUBMIT_OPTS + [DRY_RUN_OPT, PRIORITY_OPT],
     "", "Forces a push of the configuration file and ssconf files"
     " to the nodes in the cluster"),
   "verify": (
@@ -1590,10 +1590,10 @@ commands = {
   "list-tags": (
     ListTags, ARGS_NONE, [], "", "List the tags of the cluster"),
   "add-tags": (
-    AddTags, [ArgUnknown()], [TAG_SRC_OPT, PRIORITY_OPT, SUBMIT_OPT],
+    AddTags, [ArgUnknown()], [TAG_SRC_OPT, PRIORITY_OPT] + SUBMIT_OPTS,
     "tag...", "Add tags to the cluster"),
   "remove-tags": (
-    RemoveTags, [ArgUnknown()], [TAG_SRC_OPT, PRIORITY_OPT, SUBMIT_OPT],
+    RemoveTags, [ArgUnknown()], [TAG_SRC_OPT, PRIORITY_OPT] + SUBMIT_OPTS,
     "tag...", "Remove tags from the cluster"),
   "search-tags": (
     SearchTags, [ArgUnknown(min=1, max=1)], [PRIORITY_OPT], "",
@@ -1617,8 +1617,8 @@ commands = {
      DRBD_HELPER_OPT, NODRBD_STORAGE_OPT, DEFAULT_IALLOCATOR_OPT,
      RESERVED_LVS_OPT, DRY_RUN_OPT, PRIORITY_OPT, PREALLOC_WIPE_DISKS_OPT,
      NODE_PARAMS_OPT, USE_EXTERNAL_MIP_SCRIPT, DISK_PARAMS_OPT, HV_STATE_OPT,
-     DISK_STATE_OPT, SUBMIT_OPT, ENABLED_DISK_TEMPLATES_OPT,
-     IPOLICY_STD_SPECS_OPT] + INSTANCE_POLICY_OPTS,
+     DISK_STATE_OPT] + SUBMIT_OPTS +
+    [ENABLED_DISK_TEMPLATES_OPT, IPOLICY_STD_SPECS_OPT] + INSTANCE_POLICY_OPTS,
     "[opts...]",
     "Alters the parameters of the cluster"),
   "renew-crypto": (
