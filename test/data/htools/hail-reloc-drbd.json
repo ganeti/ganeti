@@ -461,7 +461,7 @@
       "total_memory": 32763,
       "primary_ip": "192.168.1.2",
       "i_pri_memory": 0,
-      "free_spindles": 12,
+      "free_spindles": 11,
       "total_spindles": 12,
       "vm_capable": true,
       "offline": false

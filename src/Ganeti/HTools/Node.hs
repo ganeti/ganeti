@@ -251,7 +251,9 @@ create name_init mem_t_init mem_n_init mem_f_init
        , peers = P.empty
        , rMem = 0
        , pMem = fromIntegral mem_f_init / mem_t_init
-       , pDsk = computePDsk dsk_f_init dsk_t_init
+       , pDsk = if excl_stor
+                then computePDsk spindles_f_init $ fromIntegral spindles_t_init
+                else computePDsk dsk_f_init dsk_t_init
        , pRem = 0
        , pCpu = 0
        , offline = offline_init
@@ -399,10 +401,17 @@ setSec t inst = t { sList = Instance.idx inst:sList t
   where old_load = utilLoad t
 
 -- | Computes the new 'pDsk' value, handling nodes without local disk
--- storage (we consider all their disk used).
+-- storage (we consider all their disk unused).
 computePDsk :: Int -> Double -> Double
 computePDsk _    0     = 1
-computePDsk used total = fromIntegral used / total
+computePDsk free total = fromIntegral free / total
+
+-- | Computes the new 'pDsk' value, handling the exclusive storage state.
+computeNewPDsk :: Node -> Int -> Int -> Double
+computeNewPDsk node new_free_sp new_free_dsk =
+  if exclStorage node
+  then computePDsk new_free_sp . fromIntegral $ tSpindles node
+  else computePDsk new_free_dsk $ tDsk node
 
 -- * Update functions
 
@@ -425,7 +434,7 @@ removePri t inst =
       new_free_sp = calcNewFreeSpindles False t inst
       new_inst_sp = calcSpindleUse False t inst
       new_mp = fromIntegral new_mem / tMem t
-      new_dp = computePDsk new_dsk (tDsk t)
+      new_dp = computeNewPDsk t new_free_sp new_dsk
       new_failn1 = new_mem <= rMem t
       new_ucpu = decIf i_online (uCpu t) (Instance.vcpus inst)
       new_rcpu = fromIntegral new_ucpu / tCpu t
@@ -460,7 +469,7 @@ removeSec t inst =
                    else computeMaxRes new_peers
       new_prem = fromIntegral new_rmem / tMem t
       new_failn1 = fMem t <= new_rmem
-      new_dp = computePDsk new_dsk (tDsk t)
+      new_dp = computeNewPDsk t new_free_sp new_dsk
       old_load = utilLoad t
       new_load = old_load { T.dskWeight = T.dskWeight old_load -
                                           T.dskWeight (Instance.util inst) }
@@ -496,7 +505,7 @@ addPriEx force t inst =
       new_failn1 = new_mem <= rMem t
       new_ucpu = incIf i_online (uCpu t) (Instance.vcpus inst)
       new_pcpu = fromIntegral new_ucpu / tCpu t
-      new_dp = computePDsk new_dsk (tDsk t)
+      new_dp = computeNewPDsk t new_free_sp new_dsk
       l_cpu = T.iPolicyVcpuRatio $ iPolicy t
       new_load = utilLoad t `T.addUtil` Instance.util inst
       inst_tags = Instance.exclTags inst
@@ -505,7 +514,7 @@ addPriEx force t inst =
   in case () of
        _ | new_mem <= 0 -> Bad T.FailMem
          | uses_disk && new_dsk <= 0 -> Bad T.FailDisk
-         | uses_disk && mDsk t > new_dp && strict -> Bad T.FailDisk
+         | uses_disk && new_dsk < loDsk t && strict -> Bad T.FailDisk
          | uses_disk && exclStorage t && new_free_sp < 0 -> Bad T.FailSpindles
          | uses_disk && new_inst_sp > hiSpindles t && strict -> Bad T.FailDisk
          | new_failn1 && not (failN1 t) && strict -> Bad T.FailMem
@@ -545,7 +554,7 @@ addSecEx force t inst pdx =
       new_rmem = max (rMem t) new_peem
       new_prem = fromIntegral new_rmem / tMem t
       new_failn1 = old_mem <= new_rmem
-      new_dp = computePDsk new_dsk (tDsk t)
+      new_dp = computeNewPDsk t new_free_sp new_dsk
       old_load = utilLoad t
       new_load = old_load { T.dskWeight = T.dskWeight old_load +
                                           T.dskWeight (Instance.util inst) }
@@ -553,7 +562,7 @@ addSecEx force t inst pdx =
   in case () of
        _ | not (Instance.hasSecondary inst) -> Bad T.FailDisk
          | new_dsk <= 0 -> Bad T.FailDisk
-         | mDsk t > new_dp && strict -> Bad T.FailDisk
+         | new_dsk < loDsk t && strict -> Bad T.FailDisk
          | exclStorage t && new_free_sp < 0 -> Bad T.FailSpindles
          | new_inst_sp > hiSpindles t && strict -> Bad T.FailDisk
          | secondary_needed_mem >= old_mem && strict -> Bad T.FailMem

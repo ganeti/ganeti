@@ -113,8 +113,10 @@ genExclStorNode :: Gen Node.Node
 genExclStorNode = do
   n <- genOnlineNode
   fs <- choose (Types.unitSpindle, Node.tSpindles n)
+  let pd = fromIntegral fs / fromIntegral (Node.tSpindles n)::Double
   return n { Node.exclStorage = True
            , Node.fSpindles = fs
+           , Node.pDsk = pd
            }
 
 -- | Generate a node with exclusive storage possibly enabled.
