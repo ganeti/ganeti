@@ -128,6 +128,10 @@ dskEff = effFn Cluster.csIdsk Cluster.csTdsk
 cpuEff :: Cluster.CStats -> Double
 cpuEff = effFn Cluster.csIcpu (fromIntegral . Cluster.csVcpu)
 
+-- | Spindles efficiency.
+spnEff :: Cluster.CStats -> Double
+spnEff = effFn Cluster.csIspn Cluster.csTspn
+
 -- | Holds data for converting a 'Cluster.CStats' structure into
 -- detailed statistics.
 statsData :: [(String, Cluster.CStats -> String)]
@@ -147,6 +151,9 @@ statsData = [ ("SCORE", printf "%.8f" . Cluster.csScore)
                \cs -> printf "%d" (Cluster.csFdsk cs - Cluster.csAdsk cs))
             , ("DSK_INST", printf "%d" . Cluster.csIdsk)
             , ("DSK_EFF", printf "%.8f" . dskEff)
+            , ("SPN_FREE", printf "%d" . Cluster.csFspn)
+            , ("SPN_INST", printf "%d" . Cluster.csIspn)
+            , ("SPN_EFF", printf "%.8f" . spnEff)
             , ("CPU_INST", printf "%d" . Cluster.csIcpu)
             , ("CPU_EFF", printf "%.8f" . cpuEff)
             , ("MNODE_MEM_AVAIL", printf "%d" . Cluster.csMmem)
@@ -160,6 +167,10 @@ specData = [ ("MEM", printf "%d" . rspecMem)
            , ("CPU", printf "%d" . rspecCpu)
            ]
 
+-- | 'RSpec' formatting information including spindles.
+specDataSpn :: [(String, RSpec -> String)]
+specDataSpn = specData ++ [("SPN", printf "%d" . rspecSpn)]
+
 -- | List holding 'Cluster.CStats' formatting information.
 clusterData :: [(String, Cluster.CStats -> String)]
 clusterData = [ ("MEM", printf "%.0f" . Cluster.csTmem)
@@ -167,6 +178,10 @@ clusterData = [ ("MEM", printf "%.0f" . Cluster.csTmem)
               , ("CPU", printf "%.0f" . Cluster.csTcpu)
               , ("VCPU", printf "%d" . Cluster.csVcpu)
               ]
+
+-- | 'Cluster.CStats' formatting information including spindles
+clusterDataSpn :: [(String, Cluster.CStats -> String)]
+clusterDataSpn = clusterData ++ [("SPN", printf "%.0f" . Cluster.csTspn)]
 
 -- | Function to print stats for a given phase.
 printStats :: Phase -> Cluster.CStats -> [(String, String)]
@@ -182,7 +197,7 @@ printFRScores :: Node.List -> Node.List -> [(FailMode, Int)] -> IO ()
 printFRScores ini_nl fin_nl sreason = do
   printf "  - most likely failure reason: %s\n" $ failureReason sreason::IO ()
   printClusterScores ini_nl fin_nl
-  printClusterEff (Cluster.totalResources fin_nl)
+  printClusterEff (Cluster.totalResources fin_nl) (Node.haveExclStorage fin_nl)
 
 -- | Print final stats and related metrics.
 printResults :: Bool -> Node.List -> Node.List -> Int -> Int
@@ -233,8 +248,8 @@ tieredSpecMap trl_ixes =
 -- | Formats a spec map to strings.
 formatSpecMap :: [(RSpec, Int)] -> [String]
 formatSpecMap =
-  map (\(spec, cnt) -> printf "%d,%d,%d=%d" (rspecMem spec)
-                       (rspecDsk spec) (rspecCpu spec) cnt)
+  map (\(spec, cnt) -> printf "%d,%d,%d,%d=%d" (rspecMem spec)
+                       (rspecDsk spec) (rspecCpu spec) (rspecSpn spec) cnt)
 
 -- | Formats \"key-metrics\" values.
 formatRSpec :: String -> AllocInfo -> [(String, String)]
@@ -243,6 +258,7 @@ formatRSpec s r =
   , ("KM_" ++ s ++ "_NPU", show $ allocInfoNCpus r)
   , ("KM_" ++ s ++ "_MEM", show $ allocInfoMem r)
   , ("KM_" ++ s ++ "_DSK", show $ allocInfoDisk r)
+  , ("KM_" ++ s ++ "_SPN", show $ allocInfoSpn r)
   ]
 
 -- | Shows allocations stats.
@@ -269,6 +285,11 @@ printInstance nl i = [ Instance.name i
                      , show (Instance.mem i)
                      , show (Instance.dsk i)
                      , show (Instance.vcpus i)
+                     , if Node.haveExclStorage nl
+                       then case Instance.getTotalSpindles i of
+                              Nothing -> "?"
+                              Just sp -> show sp
+                       else ""
                      ]
 
 -- | Optionally print the allocation map.
@@ -282,7 +303,7 @@ printAllocationMap verbose msg nl ixes =
                         -- This is the numberic-or-not field
                         -- specification; the first three fields are
                         -- strings, whereas the rest are numeric
-                       [False, False, False, True, True, True]
+                       [False, False, False, True, True, True, True]
 
 -- | Formats nicely a list of resources.
 formatResources :: a -> [(String, a->String)] -> String
@@ -290,34 +311,37 @@ formatResources res =
     intercalate ", " . map (\(a, fn) -> a ++ " " ++ fn res)
 
 -- | Print the cluster resources.
-printCluster :: Bool -> Cluster.CStats -> Int -> IO ()
-printCluster True ini_stats node_count = do
-  printKeysHTS $ map (\(a, fn) -> ("CLUSTER_" ++ a, fn ini_stats)) clusterData
+printCluster :: Bool -> Cluster.CStats -> Int -> Bool -> IO ()
+printCluster True ini_stats node_count _ = do
+  printKeysHTS $ map (\(a, fn) -> ("CLUSTER_" ++ a, fn ini_stats))
+    clusterDataSpn
   printKeysHTS [("CLUSTER_NODES", printf "%d" node_count)]
   printKeysHTS $ printStats PInitial ini_stats
 
-printCluster False ini_stats node_count = do
+printCluster False ini_stats node_count print_spn = do
+  let cldata = if print_spn then clusterDataSpn else clusterData
   printf "The cluster has %d nodes and the following resources:\n  %s.\n"
-         node_count (formatResources ini_stats clusterData)::IO ()
+         node_count (formatResources ini_stats cldata)::IO ()
   printf "There are %s initial instances on the cluster.\n"
              (if inst_count > 0 then show inst_count else "no" )
       where inst_count = Cluster.csNinst ini_stats
 
 -- | Prints the normal instance spec.
-printISpec :: Bool -> RSpec -> SpecType -> DiskTemplate -> IO ()
-printISpec True ispec spec disk_template = do
-  printKeysHTS $ map (\(a, fn) -> (prefix ++ "_" ++ a, fn ispec)) specData
+printISpec :: Bool -> RSpec -> SpecType -> DiskTemplate -> Bool -> IO ()
+printISpec True ispec spec disk_template _ = do
+  printKeysHTS $ map (\(a, fn) -> (prefix ++ "_" ++ a, fn ispec)) specDataSpn
   printKeysHTS [ (prefix ++ "_RQN", printf "%d" req_nodes) ]
   printKeysHTS [ (prefix ++ "_DISK_TEMPLATE",
                   diskTemplateToRaw disk_template) ]
       where req_nodes = Instance.requiredNodes disk_template
             prefix = specPrefix spec
 
-printISpec False ispec spec disk_template =
-  printf "%s instance spec is:\n  %s, using disk\
-         \ template '%s'.\n"
-         (specDescription spec)
-         (formatResources ispec specData) (diskTemplateToRaw disk_template)
+printISpec False ispec spec disk_template print_spn =
+  let spdata = if print_spn then specDataSpn else specData
+  in printf "%s instance spec is:\n  %s, using disk\
+            \ template '%s'.\n"
+            (specDescription spec)
+            (formatResources ispec spdata) (diskTemplateToRaw disk_template)
 
 -- | Prints the tiered results.
 printTiered :: Bool -> [(RSpec, Int)]
@@ -329,11 +353,12 @@ printTiered True spec_map nl trl_nl _ = do
 
 printTiered False spec_map ini_nl fin_nl sreason = do
   _ <- printf "Tiered allocation results:\n"
+  let spdata = if Node.haveExclStorage ini_nl then specDataSpn else specData
   if null spec_map
     then putStrLn "  - no instances allocated"
     else mapM_ (\(ispec, cnt) ->
                   printf "  - %3d instances of spec %s\n" cnt
-                           (formatResources ispec specData)) spec_map
+                           (formatResources ispec spdata)) spec_map
   printFRScores ini_nl fin_nl sreason
 
 -- | Displays the initial/final cluster scores.
@@ -343,13 +368,16 @@ printClusterScores ini_nl fin_nl = do
   printf "  -   final cluster score: %.8f\n" $ Cluster.compCV fin_nl
 
 -- | Displays the cluster efficiency.
-printClusterEff :: Cluster.CStats -> IO ()
-printClusterEff cs =
+printClusterEff :: Cluster.CStats -> Bool -> IO ()
+printClusterEff cs print_spn = do
+  let format = [("memory", memEff),
+                ("disk", dskEff),
+                ("vcpu", cpuEff)] ++
+               [("spindles", spnEff) | print_spn]
+      len = maximum $ map (length . fst) format
   mapM_ (\(s, fn) ->
-           printf "  - %s usage efficiency: %5.2f%%\n" s (fn cs * 100))
-          [("memory", memEff),
-           ("  disk", dskEff),
-           ("  vcpu", cpuEff)]
+          printf "  - %*s usage efficiency: %5.2f%%\n" len s (fn cs * 100))
+    format
 
 -- | Computes the most likely failure reason.
 failureReason :: [(FailMode, Int)] -> String
@@ -377,8 +405,9 @@ runAllocation cdata stop_allocation actual_result spec dt mode opts = do
   let name = specName mode
       descr = name ++ " allocation"
       ldescr = "after " ++ map toLower descr
+      excstor = Node.haveExclStorage new_nl
 
-  printISpec (optMachineReadable opts) spec mode dt
+  printISpec (optMachineReadable opts) spec mode dt excstor
 
   printAllocationMap (optVerbose opts) descr new_nl new_ixes
 
@@ -446,6 +475,7 @@ main opts args = do
                  (Cluster.compCV nl) (Cluster.printStats "  " nl)
 
   printCluster machine_r (Cluster.totalResources nl) (length all_nodes)
+    (Node.haveExclStorage nl)
 
   let stop_allocation = case Cluster.computeBadItems nl il of
                           ([], _) -> Nothing

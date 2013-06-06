@@ -74,6 +74,7 @@ module Ganeti.HTools.Node
   , computeGroups
   , mkNodeGraph
   , mkRebootNodeGraph
+  , haveExclStorage
   ) where
 
 import Control.Monad (liftM, liftM2)
@@ -221,6 +222,11 @@ incIf False base _     = base
 decIf :: (Num a) => Bool -> a -> a -> a
 decIf True  base delta = base - delta
 decIf False base _     = base
+
+-- | Is exclusive storage enabled on any node?
+haveExclStorage :: List -> Bool
+haveExclStorage nl =
+  any exclStorage $ Container.elems nl
 
 -- * Initialization functions
 

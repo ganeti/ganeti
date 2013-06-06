@@ -155,6 +155,7 @@ data AllocInfo = AllocInfo
   , allocInfoNCpus :: Double -- ^ Normalised CPUs
   , allocInfoMem   :: Int    -- ^ Memory
   , allocInfoDisk  :: Int    -- ^ Disk
+  , allocInfoSpn   :: Int    -- ^ Spindles
   } deriving (Show, Eq)
 
 -- | Currently used, possibly to allocate, unallocable.
