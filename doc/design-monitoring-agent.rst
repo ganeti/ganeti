@@ -391,6 +391,82 @@ the following fields:
   this field. This can provide an easy measure of both I/O completion time
   and the backlog that may be accumulating.
 
+Logical Volume collector
+************************
+
+This data collector will gather information about the attributes of logical
+volumes present in the system.
+
+Its ``kind`` in the report will be ``0`` (`Performance reporting collectors`_).
+
+Its ``category`` field in the report will contain the value ``storage``.
+
+The ``data`` section of the report of this collector will be a list of items,
+each representing one logical volume and providing the following fields:
+
+``uuid``
+  The UUID of the logical volume.
+
+``name``
+  The name of the logical volume.
+
+``attr``
+  The attributes of the logical volume.
+
+``major``
+  Persistent major number or -1 if not persistent.
+
+``minor``
+  Persistent minor number or -1 if not persistent.
+
+``kernel_major``
+  Currently assigned major number or -1 if LV is not active.
+
+``kernel_minor``
+  Currently assigned minor number or -1 if LV is not active.
+
+``size``
+  Size of LV in bytes.
+
+``seg_count``
+  Number of segments in LV.
+
+``tags``
+  Tags, if any.
+
+``modules``
+  Kernel device-mapper modules required for this LV, if any.
+
+``vg_uuid``
+  Unique identifier of the volume group.
+
+``vg_name``
+  Name of the volume group.
+
+``segtype``
+  Type of LV segment.
+
+``seg_start``
+  Offset within the LVto the start of the segment in bytes.
+
+``seg_start_pe``
+  Offset within the LV to the start of the segment in physical extents.
+
+``seg_size``
+  Size of the segment in bytes.
+
+``seg_tags``
+  Tags for the segment, if any.
+
+``seg_pe_ranges``
+  Ranges of Physical Extents of underlying devices in lvs command line format.
+
+``devices``
+  Underlying devices used with starting extent numbers.
+
+``instance``
+  The name of the instance this LV is used by.
+
 DRBD status
 ***********
 
