@@ -290,7 +290,8 @@ class LUNodeAdd(LogicalUnit):
       vparams = {constants.NV_PVLIST: [vg_name]}
       excl_stor = IsExclusiveStorageEnabledNode(cfg, self.new_node)
       cname = self.cfg.GetClusterName()
-      result = rpcrunner.call_node_verify_light([node], vparams, cname)[node]
+      result = rpcrunner.call_node_verify_light(
+          [node], vparams, cname, cfg.GetClusterInfo().hvparams)[node]
       (errmsgs, _) = CheckNodePVs(result.payload, excl_stor)
       if errmsgs:
         raise errors.OpPrereqError("Checks on node PVs failed: %s" %
@@ -360,7 +361,8 @@ class LUNodeAdd(LogicalUnit):
     }
 
     result = self.rpc.call_node_verify(node_verify_list, node_verify_param,
-                                       self.cfg.GetClusterName())
+                                       self.cfg.GetClusterName(),
+                                       self.cfg.GetClusterInfo().hvparams)
     for verifier in node_verify_list:
       result[verifier].Raise("Cannot communicate with node %s" % verifier)
       nl_payload = result[verifier].payload[constants.NV_NODELIST]

@@ -474,8 +474,9 @@ _NODE_CALLS = [
      "Whether exclusive storage is enabled"),
     ], _NodeInfoPreProc, None, "Return node information"),
   ("node_verify", MULTI, None, constants.RPC_TMO_NORMAL, [
-    ("checkdict", None, None),
-    ("cluster_name", None, None),
+    ("checkdict", None, "What to verify"),
+    ("cluster_name", None, "Cluster name"),
+    ("all_hvparams", None, "Dictionary mapping hypervisor names to hvparams"),
     ], None, None, "Request verification of given parameters"),
   ("node_volumes", MULTI, None, constants.RPC_TMO_FAST, [], None, None,
    "Gets all volumes on node(s)"),
@@ -590,8 +591,9 @@ CALLS = {
     ("version", MULTI, ACCEPT_OFFLINE_NODE, constants.RPC_TMO_URGENT, [], None,
      None, "Query node version"),
     ("node_verify_light", MULTI, None, constants.RPC_TMO_NORMAL, [
-      ("checkdict", None, None),
-      ("cluster_name", None, None),
+      ("checkdict", None, "What to verify"),
+      ("cluster_name", None, "Cluster name"),
+      ("hvparams", None, "Dictionary mapping hypervisor names to hvparams"),
       ], None, None, "Request verification of given parameters"),
     ]),
   "RpcClientConfig": _Prepare([

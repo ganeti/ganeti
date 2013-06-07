@@ -2726,14 +2726,16 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     nvinfo_starttime = time.time()
     all_nvinfo = self.rpc.call_node_verify(self.my_node_names,
                                            node_verify_param,
-                                           self.cfg.GetClusterName())
+                                           self.cfg.GetClusterName(),
+                                           self.cfg.GetClusterInfo().hvparams)
     nvinfo_endtime = time.time()
 
     if self.extra_lv_nodes and vg_name is not None:
       extra_lv_nvinfo = \
           self.rpc.call_node_verify(self.extra_lv_nodes,
                                     {constants.NV_LVLIST: vg_name},
-                                    self.cfg.GetClusterName())
+                                    self.cfg.GetClusterName(),
+                                    self.cfg.GetClusterInfo().hvparams)
     else:
       extra_lv_nvinfo = {}
 
@@ -2766,9 +2768,9 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
           vf_node_info.append(self.all_node_info[node])
           break
       key = constants.NV_FILELIST
-      vf_nvinfo.update(self.rpc.call_node_verify(additional_nodes,
-                                                 {key: node_verify_param[key]},
-                                                 self.cfg.GetClusterName()))
+      vf_nvinfo.update(self.rpc.call_node_verify(
+         additional_nodes, {key: node_verify_param[key]},
+         self.cfg.GetClusterName(), self.cfg.GetClusterInfo().hvparams))
     else:
       vf_nvinfo = all_nvinfo
       vf_node_info = self.my_node_info.values()

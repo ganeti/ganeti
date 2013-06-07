@@ -733,7 +733,7 @@ def _VerifyHypervisors(what, vm_capable, result, all_hvparams,
   @type what: C{dict}
   @param what: a dictionary of things to check
   @type vm_capable: boolean
-  @param vm_capable: whether or not this not is vm capable
+  @param vm_capable: whether or not this node is vm capable
   @type result: dict
   @param result: dictionary of verification results; results of the
     verifications in this function will be added here
@@ -764,7 +764,7 @@ def _VerifyHvparams(what, vm_capable, result,
   @type what: C{dict}
   @param what: a dictionary of things to check
   @type vm_capable: boolean
-  @param vm_capable: whether or not this not is vm capable
+  @param vm_capable: whether or not this node is vm capable
   @type result: dict
   @param result: dictionary of verification results; results of the
     verifications in this function will be added here
@@ -785,7 +785,52 @@ def _VerifyHvparams(what, vm_capable, result,
         result[constants.NV_HVPARAMS].append((source, hv_name, str(err)))
 
 
-def VerifyNode(what, cluster_name):
+def _VerifyInstanceList(what, vm_capable, result, all_hvparams):
+  """Verifies the instance list.
+
+  @type what: C{dict}
+  @param what: a dictionary of things to check
+  @type vm_capable: boolean
+  @param vm_capable: whether or not this node is vm capable
+  @type result: dict
+  @param result: dictionary of verification results; results of the
+    verifications in this function will be added here
+  @type all_hvparams: dict of dict of string
+  @param all_hvparams: dictionary mapping hypervisor names to hvparams
+
+  """
+  if constants.NV_INSTANCELIST in what and vm_capable:
+    # GetInstanceList can fail
+    try:
+      val = GetInstanceList(what[constants.NV_INSTANCELIST],
+                            all_hvparams=all_hvparams)
+    except RPCFail, err:
+      val = str(err)
+    result[constants.NV_INSTANCELIST] = val
+
+
+def _VerifyNodeInfo(what, vm_capable, result, all_hvparams):
+  """Verifies the node info.
+
+  @type what: C{dict}
+  @param what: a dictionary of things to check
+  @type vm_capable: boolean
+  @param vm_capable: whether or not this node is vm capable
+  @type result: dict
+  @param result: dictionary of verification results; results of the
+    verifications in this function will be added here
+  @type all_hvparams: dict of dict of string
+  @param all_hvparams: dictionary mapping hypervisor names to hvparams
+
+  """
+  if constants.NV_HVINFO in what and vm_capable:
+    hvname = what[constants.NV_HVINFO]
+    hyper = hypervisor.GetHypervisor(hvname)
+    hvparams = all_hvparams[hvname]
+    result[constants.NV_HVINFO] = hyper.GetNodeInfo(hvparams=hvparams)
+
+
+def VerifyNode(what, cluster_name, all_hvparams):
   """Verify the status of the local node.
 
   Based on the input L{what} parameter, various checks are done on the
@@ -809,7 +854,10 @@ def VerifyNode(what, cluster_name):
       - node-net-test: list of nodes we should check node daemon port
         connectivity with
       - hypervisor: list with hypervisors to run the verify for
-
+  @type cluster_name: string
+  @param cluster_name: the cluster's name
+  @type all_hvparams: dict of dict of strings
+  @param all_hvparams: a dictionary mapping hypervisor names to hvparams
   @rtype: dict
   @return: a dictionary with the same keys as the input dict, and
       values representing the result of the checks
@@ -913,13 +961,7 @@ def VerifyNode(what, cluster_name):
       val = str(err)
     result[constants.NV_LVLIST] = val
 
-  if constants.NV_INSTANCELIST in what and vm_capable:
-    # GetInstanceList can fail
-    try:
-      val = GetInstanceList(what[constants.NV_INSTANCELIST])
-    except RPCFail, err:
-      val = str(err)
-    result[constants.NV_INSTANCELIST] = val
+  _VerifyInstanceList(what, vm_capable, result, all_hvparams)
 
   if constants.NV_VGLIST in what and vm_capable:
     result[constants.NV_VGLIST] = utils.ListVolumeGroups()
@@ -940,9 +982,7 @@ def VerifyNode(what, cluster_name):
     result[constants.NV_VERSION] = (constants.PROTOCOL_VERSION,
                                     constants.RELEASE_VERSION)
 
-  if constants.NV_HVINFO in what and vm_capable:
-    hyper = hypervisor.GetHypervisor(what[constants.NV_HVINFO])
-    result[constants.NV_HVINFO] = hyper.GetNodeInfo()
+  _VerifyNodeInfo(what, vm_capable, result, all_hvparams)
 
   if constants.NV_DRBDVERSION in what and vm_capable:
     try:
@@ -1178,7 +1218,7 @@ def GetInstanceListForHypervisor(hname, hvparams=None,
   results = []
   try:
     hv = get_hv_fn(hname)
-    names = hv.ListInstances(hvparams)
+    names = hv.ListInstances(hvparams=hvparams)
     results.extend(names)
   except errors.HypervisorError, err:
     _Fail("Error enumerating instances (hypervisor %s): %s",
@@ -1207,10 +1247,8 @@ def GetInstanceList(hypervisor_list, all_hvparams=None,
   """
   results = []
   for hname in hypervisor_list:
-    hvparams = None
-    if all_hvparams is not None:
-      hvparams = all_hvparams[hname]
-    results.extend(GetInstanceListForHypervisor(hname, hvparams,
+    hvparams = all_hvparams[hname]
+    results.extend(GetInstanceListForHypervisor(hname, hvparams=hvparams,
                                                 get_hv_fn=get_hv_fn))
   return results
 
