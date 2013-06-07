@@ -501,14 +501,13 @@ class LUInstanceCreate(LogicalUnit):
     """
     self.needed_locks = {}
 
-    instance_name = self.op.instance_name
     # this is just a preventive check, but someone might still add this
     # instance in the meantime, and creation will fail at lock-add time
-    if instance_name in self.cfg.GetInstanceList():
+    if self.op.instance_name in self.cfg.GetInstanceList():
       raise errors.OpPrereqError("Instance '%s' is already in the cluster" %
-                                 instance_name, errors.ECODE_EXISTS)
+                                 self.op.instance_name, errors.ECODE_EXISTS)
 
-    self.add_locks[locking.LEVEL_INSTANCE] = instance_name
+    self.add_locks[locking.LEVEL_INSTANCE] = self.op.instance_name
 
     if self.op.iallocator:
       # TODO: Find a solution to not lock all nodes in the cluster, e.g. by
@@ -654,31 +653,28 @@ class LUInstanceCreate(LogicalUnit):
     """
     assert self.op.mode == constants.INSTANCE_IMPORT
 
-    src_node_uuid = self.op.src_node_uuid
-    src_path = self.op.src_path
-
-    if src_node_uuid is None:
+    if self.op.src_node_uuid is None:
       locked_nodes = self.owned_locks(locking.LEVEL_NODE)
       exp_list = self.rpc.call_export_list(locked_nodes)
       found = False
       for node in exp_list:
         if exp_list[node].fail_msg:
           continue
-        if src_path in exp_list[node].payload:
+        if self.op.src_path in exp_list[node].payload:
           found = True
           self.op.src_node = node
-          self.op.src_node_uuid = src_node_uuid = \
-            self.cfg.GetNodeInfoByName(node).uuid
-          self.op.src_path = src_path = utils.PathJoin(pathutils.EXPORT_DIR,
-                                                       src_path)
+          self.op.src_node_uuid = self.cfg.GetNodeInfoByName(node).uuid
+          self.op.src_path = utils.PathJoin(pathutils.EXPORT_DIR,
+                                            self.op.src_path)
           break
       if not found:
         raise errors.OpPrereqError("No export found for relative path %s" %
-                                   src_path, errors.ECODE_INVAL)
+                                   self.op.src_path, errors.ECODE_INVAL)
 
-    CheckNodeOnline(self, src_node_uuid)
-    result = self.rpc.call_export_info(src_node_uuid, src_path)
-    result.Raise("No export or invalid export found in dir %s" % src_path)
+    CheckNodeOnline(self, self.op.src_node_uuid)
+    result = self.rpc.call_export_info(self.op.src_node_uuid, self.op.src_path)
+    result.Raise("No export or invalid export found in dir %s" %
+                 self.op.src_path)
 
     export_info = objects.SerializableConfigParser.Loads(str(result.payload))
     if not export_info.has_section(constants.INISECT_EXP):
@@ -1179,9 +1175,6 @@ class LUInstanceCreate(LogicalUnit):
     """Create and add the instance to the cluster.
 
     """
-    instance = self.op.instance_name
-    pnode_name = self.pnode.name
-
     assert not (self.owned_locks(locking.LEVEL_NODE_RES) -
                 self.owned_locks(locking.LEVEL_NODE)), \
       "Node locks differ from node resource locks"
@@ -1199,7 +1192,7 @@ class LUInstanceCreate(LogicalUnit):
     nodegroup = self.cfg.GetNodeGroup(self.pnode.group)
     disks = GenerateDiskTemplate(self,
                                  self.op.disk_template,
-                                 instance, self.pnode.uuid,
+                                 self.op.instance_name, self.pnode.uuid,
                                  self.secondaries,
                                  self.disks,
                                  self.instance_file_storage_dir,
@@ -1208,7 +1201,7 @@ class LUInstanceCreate(LogicalUnit):
                                  feedback_fn,
                                  self.cfg.GetGroupDiskParams(nodegroup))
 
-    iobj = objects.Instance(name=instance, os=self.op.os_type,
+    iobj = objects.Instance(name=self.op.instance_name, os=self.op.os_type,
                             primary_node=self.pnode.uuid,
                             nics=self.nics, disks=disks,
                             disk_template=self.op.disk_template,
@@ -1244,10 +1237,10 @@ class LUInstanceCreate(LogicalUnit):
         CreateDisks(self, iobj)
       except errors.OpExecError:
         self.LogWarning("Device creation failed")
-        self.cfg.ReleaseDRBDMinors(instance)
+        self.cfg.ReleaseDRBDMinors(self.op.instance_name)
         raise
 
-    feedback_fn("adding instance %s to cluster config" % instance)
+    feedback_fn("adding instance %s to cluster config" % self.op.instance_name)
 
     self.cfg.AddInstance(iobj, self.proc.GetECId())
 
@@ -1316,7 +1309,7 @@ class LUInstanceCreate(LogicalUnit):
             for idx, success in enumerate(result.payload):
               if not success:
                 logging.warn("pause-sync of instance %s for disk %d failed",
-                             instance, idx)
+                             self.op.instance_name, idx)
 
           feedback_fn("* running the instance OS create scripts...")
           # FIXME: pass debug option from opcode to backend
@@ -1331,10 +1324,11 @@ class LUInstanceCreate(LogicalUnit):
             for idx, success in enumerate(result.payload):
               if not success:
                 logging.warn("resume-sync of instance %s for disk %d failed",
-                             instance, idx)
+                             self.op.instance_name, idx)
 
           os_add_result.Raise("Could not add os for instance %s"
-                              " on node %s" % (instance, pnode_name))
+                              " on node %s" % (self.op.instance_name,
+                                               self.pnode.name))
 
       else:
         if self.op.mode == constants.INSTANCE_IMPORT:
@@ -1362,7 +1356,8 @@ class LUInstanceCreate(LogicalUnit):
                                                   iobj, transfers)
           if not compat.all(import_result):
             self.LogWarning("Some disks for instance %s on node %s were not"
-                            " imported successfully" % (instance, pnode_name))
+                            " imported successfully" % (self.op.instance_name,
+                                                        self.pnode.name))
 
           rename_from = self._old_instance_name
 
@@ -1385,7 +1380,8 @@ class LUInstanceCreate(LogicalUnit):
             # TODO: Should the instance still be started, even if some disks
             # failed to import (valid for local imports, too)?
             self.LogWarning("Some disks for instance %s on node %s were not"
-                            " imported successfully" % (instance, pnode_name))
+                            " imported successfully" % (self.op.instance_name,
+                                                        self.pnode.name))
 
           rename_from = self.source_instance_name
 
@@ -1395,20 +1391,21 @@ class LUInstanceCreate(LogicalUnit):
                                        % self.op.mode)
 
         # Run rename script on newly imported instance
-        assert iobj.name == instance
-        feedback_fn("Running rename script for %s" % instance)
+        assert iobj.name == self.op.instance_name
+        feedback_fn("Running rename script for %s" % self.op.instance_name)
         result = self.rpc.call_instance_run_rename(self.pnode.uuid, iobj,
                                                    rename_from,
                                                    self.op.debug_level)
         result.Warn("Failed to run rename script for %s on node %s" %
-                    (instance, pnode_name), self.LogWarning)
+                    (self.op.instance_name, self.pnode.name), self.LogWarning)
 
     assert not self.owned_locks(locking.LEVEL_NODE_RES)
 
     if self.op.start:
       iobj.admin_state = constants.ADMINST_UP
       self.cfg.Update(iobj, feedback_fn)
-      logging.info("Starting instance %s on node %s", instance, pnode_name)
+      logging.info("Starting instance %s on node %s", self.op.instance_name,
+                   self.pnode.name)
       feedback_fn("* starting instance...")
       result = self.rpc.call_instance_start(self.pnode.uuid, (iobj, None, None),
                                             False, self.op.reason)
@@ -1484,16 +1481,16 @@ class LUInstanceRename(LogicalUnit):
     """Rename the instance.
 
     """
-    inst = self.instance
-    old_name = inst.name
+    old_name = self.instance.name
 
     rename_file_storage = False
-    if (inst.disk_template in constants.DTS_FILEBASED and
-        self.op.new_name != inst.name):
-      old_file_storage_dir = os.path.dirname(inst.disks[0].logical_id[1])
+    if (self.instance.disk_template in constants.DTS_FILEBASED and
+        self.op.new_name != self.instance.name):
+      old_file_storage_dir = os.path.dirname(
+                               self.instance.disks[0].logical_id[1])
       rename_file_storage = True
 
-    self.cfg.RenameInstance(inst.name, self.op.new_name)
+    self.cfg.RenameInstance(self.instance.name, self.op.new_name)
     # Change the instance lock. This is definitely safe while we hold the BGL.
     # Otherwise the new lock would have to be added in acquired mode.
     assert self.REQ_BGL
@@ -1502,38 +1499,41 @@ class LUInstanceRename(LogicalUnit):
     self.glm.add(locking.LEVEL_INSTANCE, self.op.new_name)
 
     # re-read the instance from the configuration after rename
-    inst = self.cfg.GetInstanceInfo(self.op.new_name)
+    renamed_inst = self.cfg.GetInstanceInfo(self.op.new_name)
 
     if rename_file_storage:
-      new_file_storage_dir = os.path.dirname(inst.disks[0].logical_id[1])
-      result = self.rpc.call_file_storage_dir_rename(inst.primary_node,
+      new_file_storage_dir = os.path.dirname(
+                               renamed_inst.disks[0].logical_id[1])
+      result = self.rpc.call_file_storage_dir_rename(renamed_inst.primary_node,
                                                      old_file_storage_dir,
                                                      new_file_storage_dir)
       result.Raise("Could not rename on node %s directory '%s' to '%s'"
                    " (but the instance has been renamed in Ganeti)" %
-                   (self.cfg.GetNodeName(inst.primary_node),
+                   (self.cfg.GetNodeName(renamed_inst.primary_node),
                     old_file_storage_dir, new_file_storage_dir))
 
-    StartInstanceDisks(self, inst, None)
+    StartInstanceDisks(self, renamed_inst, None)
     # update info on disks
-    info = GetInstanceInfoText(inst)
-    for (idx, disk) in enumerate(inst.disks):
-      for node_uuid in inst.all_nodes:
+    info = GetInstanceInfoText(renamed_inst)
+    for (idx, disk) in enumerate(renamed_inst.disks):
+      for node_uuid in renamed_inst.all_nodes:
         self.cfg.SetDiskID(disk, node_uuid)
         result = self.rpc.call_blockdev_setinfo(node_uuid, disk, info)
         result.Warn("Error setting info on node %s for disk %s" %
                     (self.cfg.GetNodeName(node_uuid), idx), self.LogWarning)
     try:
-      result = self.rpc.call_instance_run_rename(inst.primary_node, inst,
-                                                 old_name, self.op.debug_level)
+      result = self.rpc.call_instance_run_rename(renamed_inst.primary_node,
+                                                 renamed_inst, old_name,
+                                                 self.op.debug_level)
       result.Warn("Could not run OS rename script for instance %s on node %s"
                   " (but the instance has been renamed in Ganeti)" %
-                  (inst.name, self.cfg.GetNodeName(inst.primary_node)),
+                  (renamed_inst.name,
+                   self.cfg.GetNodeName(renamed_inst.primary_node)),
                   self.LogWarning)
     finally:
-      ShutdownInstanceDisks(self, inst)
+      ShutdownInstanceDisks(self, renamed_inst)
 
-    return inst.name
+    return renamed_inst.name
 
 
 class LUInstanceRemove(LogicalUnit):
@@ -1590,26 +1590,27 @@ class LUInstanceRemove(LogicalUnit):
     """Remove the instance.
 
     """
-    instance = self.instance
-    logging.info("Shutting down instance %s on node %s",
-                 instance.name, self.cfg.GetNodeName(instance.primary_node))
+    logging.info("Shutting down instance %s on node %s", self.instance.name,
+                 self.cfg.GetNodeName(self.instance.primary_node))
 
-    result = self.rpc.call_instance_shutdown(instance.primary_node, instance,
+    result = self.rpc.call_instance_shutdown(self.instance.primary_node,
+                                             self.instance,
                                              self.op.shutdown_timeout,
                                              self.op.reason)
     if self.op.ignore_failures:
       result.Warn("Warning: can't shutdown instance", feedback_fn)
     else:
       result.Raise("Could not shutdown instance %s on node %s" %
-                   (instance.name, self.cfg.GetNodeName(instance.primary_node)))
+                   (self.instance.name,
+                    self.cfg.GetNodeName(self.instance.primary_node)))
 
     assert (self.owned_locks(locking.LEVEL_NODE) ==
             self.owned_locks(locking.LEVEL_NODE_RES))
-    assert not (set(instance.all_nodes) -
+    assert not (set(self.instance.all_nodes) -
                 self.owned_locks(locking.LEVEL_NODE)), \
       "Not owning correct locks"
 
-    RemoveInstance(self, feedback_fn, instance, self.op.ignore_failures)
+    RemoveInstance(self, feedback_fn, self.instance, self.op.ignore_failures)
 
 
 class LUInstanceMove(LogicalUnit):
@@ -1667,27 +1668,28 @@ class LUInstanceMove(LogicalUnit):
     This checks that the instance is in the cluster.
 
     """
-    self.instance = instance = self.cfg.GetInstanceInfo(self.op.instance_name)
+    self.instance = self.cfg.GetInstanceInfo(self.op.instance_name)
     assert self.instance is not None, \
       "Cannot retrieve locked instance %s" % self.op.instance_name
 
-    if instance.disk_template not in constants.DTS_COPYABLE:
+    if self.instance.disk_template not in constants.DTS_COPYABLE:
       raise errors.OpPrereqError("Disk template %s not suitable for copying" %
-                                 instance.disk_template, errors.ECODE_STATE)
+                                 self.instance.disk_template,
+                                 errors.ECODE_STATE)
 
     target_node = self.cfg.GetNodeInfo(self.op.target_node_uuid)
     assert target_node is not None, \
       "Cannot retrieve locked node %s" % self.op.target_node
 
     self.target_node_uuid = target_node.uuid
-    if target_node.uuid == instance.primary_node:
+    if target_node.uuid == self.instance.primary_node:
       raise errors.OpPrereqError("Instance %s is already on the node %s" %
-                                 (instance.name, target_node.name),
+                                 (self.instance.name, target_node.name),
                                  errors.ECODE_STATE)
 
-    bep = self.cfg.GetClusterInfo().FillBE(instance)
+    bep = self.cfg.GetClusterInfo().FillBE(self.instance)
 
-    for idx, dsk in enumerate(instance.disks):
+    for idx, dsk in enumerate(self.instance.disks):
       if dsk.dev_type not in (constants.LD_LV, constants.LD_FILE):
         raise errors.OpPrereqError("Instance disk %d has a complex layout,"
                                    " cannot copy" % idx, errors.ECODE_STATE)
@@ -1698,21 +1700,22 @@ class LUInstanceMove(LogicalUnit):
     cluster = self.cfg.GetClusterInfo()
     group_info = self.cfg.GetNodeGroup(target_node.group)
     ipolicy = ganeti.masterd.instance.CalculateGroupIPolicy(cluster, group_info)
-    CheckTargetNodeIPolicy(self, ipolicy, instance, target_node, self.cfg,
+    CheckTargetNodeIPolicy(self, ipolicy, self.instance, target_node, self.cfg,
                            ignore=self.op.ignore_ipolicy)
 
-    if instance.admin_state == constants.ADMINST_UP:
+    if self.instance.admin_state == constants.ADMINST_UP:
       # check memory requirements on the secondary node
       CheckNodeFreeMemory(
           self, target_node.uuid, "failing over instance %s" %
-          instance.name, bep[constants.BE_MAXMEM], instance.hypervisor,
-          self.cfg.GetClusterInfo().hvparams[instance.hypervisor])
+          self.instance.name, bep[constants.BE_MAXMEM],
+          self.instance.hypervisor,
+          self.cfg.GetClusterInfo().hvparams[self.instance.hypervisor])
     else:
       self.LogInfo("Not checking memory on the secondary node as"
                    " instance will not be started")
 
     # check bridge existance
-    CheckInstanceBridgesExist(self, instance, node_uuid=target_node.uuid)
+    CheckInstanceBridgesExist(self, self.instance, node_uuid=target_node.uuid)
 
   def Exec(self, feedback_fn):
     """Move an instance.
@@ -1721,53 +1724,52 @@ class LUInstanceMove(LogicalUnit):
     the data over (slow) and starting it on the new node.
 
     """
-    instance = self.instance
-
-    source_node = self.cfg.GetNodeInfo(instance.primary_node)
+    source_node = self.cfg.GetNodeInfo(self.instance.primary_node)
     target_node = self.cfg.GetNodeInfo(self.target_node_uuid)
 
     self.LogInfo("Shutting down instance %s on source node %s",
-                 instance.name, source_node.name)
+                 self.instance.name, source_node.name)
 
     assert (self.owned_locks(locking.LEVEL_NODE) ==
             self.owned_locks(locking.LEVEL_NODE_RES))
 
-    result = self.rpc.call_instance_shutdown(source_node.uuid, instance,
+    result = self.rpc.call_instance_shutdown(source_node.uuid, self.instance,
                                              self.op.shutdown_timeout,
                                              self.op.reason)
     if self.op.ignore_consistency:
       result.Warn("Could not shutdown instance %s on node %s. Proceeding"
                   " anyway. Please make sure node %s is down. Error details" %
-                  (instance.name, source_node.name, source_node.name),
+                  (self.instance.name, source_node.name, source_node.name),
                   self.LogWarning)
     else:
       result.Raise("Could not shutdown instance %s on node %s" %
-                   (instance.name, source_node.name))
+                   (self.instance.name, source_node.name))
 
     # create the target disks
     try:
-      CreateDisks(self, instance, target_node_uuid=target_node.uuid)
+      CreateDisks(self, self.instance, target_node_uuid=target_node.uuid)
     except errors.OpExecError:
       self.LogWarning("Device creation failed")
-      self.cfg.ReleaseDRBDMinors(instance.name)
+      self.cfg.ReleaseDRBDMinors(self.instance.name)
       raise
 
     cluster_name = self.cfg.GetClusterInfo().cluster_name
 
     errs = []
     # activate, get path, copy the data over
-    for idx, disk in enumerate(instance.disks):
+    for idx, disk in enumerate(self.instance.disks):
       self.LogInfo("Copying data for disk %d", idx)
-      result = self.rpc.call_blockdev_assemble(target_node.uuid,
-                                               (disk, instance), instance.name,
-                                               True, idx)
+      result = self.rpc.call_blockdev_assemble(
+                 target_node.uuid, (disk, self.instance), self.instance.name,
+                 True, idx)
       if result.fail_msg:
         self.LogWarning("Can't assemble newly created disk %d: %s",
                         idx, result.fail_msg)
         errs.append(result.fail_msg)
         break
       dev_path = result.payload
-      result = self.rpc.call_blockdev_export(source_node.uuid, (disk, instance),
+      result = self.rpc.call_blockdev_export(source_node.uuid, (disk,
+                                                                self.instance),
                                              target_node.name, dev_path,
                                              cluster_name)
       if result.fail_msg:
@@ -1779,37 +1781,37 @@ class LUInstanceMove(LogicalUnit):
     if errs:
       self.LogWarning("Some disks failed to copy, aborting")
       try:
-        RemoveDisks(self, instance, target_node_uuid=target_node.uuid)
+        RemoveDisks(self, self.instance, target_node_uuid=target_node.uuid)
       finally:
-        self.cfg.ReleaseDRBDMinors(instance.name)
+        self.cfg.ReleaseDRBDMinors(self.instance.name)
         raise errors.OpExecError("Errors during disk copy: %s" %
                                  (",".join(errs),))
 
-    instance.primary_node = target_node.uuid
-    self.cfg.Update(instance, feedback_fn)
+    self.instance.primary_node = target_node.uuid
+    self.cfg.Update(self.instance, feedback_fn)
 
     self.LogInfo("Removing the disks on the original node")
-    RemoveDisks(self, instance, target_node_uuid=source_node.uuid)
+    RemoveDisks(self, self.instance, target_node_uuid=source_node.uuid)
 
     # Only start the instance if it's marked as up
-    if instance.admin_state == constants.ADMINST_UP:
+    if self.instance.admin_state == constants.ADMINST_UP:
       self.LogInfo("Starting instance %s on node %s",
-                   instance.name, target_node.name)
+                   self.instance.name, target_node.name)
 
-      disks_ok, _ = AssembleInstanceDisks(self, instance,
+      disks_ok, _ = AssembleInstanceDisks(self, self.instance,
                                           ignore_secondaries=True)
       if not disks_ok:
-        ShutdownInstanceDisks(self, instance)
+        ShutdownInstanceDisks(self, self.instance)
         raise errors.OpExecError("Can't activate the instance's disks")
 
       result = self.rpc.call_instance_start(target_node.uuid,
-                                            (instance, None, None), False,
+                                            (self.instance, None, None), False,
                                             self.op.reason)
       msg = result.fail_msg
       if msg:
-        ShutdownInstanceDisks(self, instance)
+        ShutdownInstanceDisks(self, self.instance)
         raise errors.OpExecError("Could not start instance %s on node %s: %s" %
-                                 (instance.name, target_node.name, msg))
+                                 (self.instance.name, target_node.name, msg))
 
 
 class LUInstanceMultiAlloc(NoHooksLU):
@@ -2571,20 +2573,19 @@ class LUInstanceSetParams(LogicalUnit):
   def _PreCheckDiskTemplate(self, pnode_info):
     """CheckPrereq checks related to a new disk template."""
     # Arguments are passed to avoid configuration lookups
-    instance = self.instance
-    pnode_uuid = instance.primary_node
-    cluster = self.cluster
-    if instance.disk_template == self.op.disk_template:
+    pnode_uuid = self.instance.primary_node
+    if self.instance.disk_template == self.op.disk_template:
       raise errors.OpPrereqError("Instance already has disk template %s" %
-                                 instance.disk_template, errors.ECODE_INVAL)
+                                 self.instance.disk_template,
+                                 errors.ECODE_INVAL)
 
-    if (instance.disk_template,
+    if (self.instance.disk_template,
         self.op.disk_template) not in self._DISK_CONVERSIONS:
       raise errors.OpPrereqError("Unsupported disk template conversion from"
-                                 " %s to %s" % (instance.disk_template,
+                                 " %s to %s" % (self.instance.disk_template,
                                                 self.op.disk_template),
                                  errors.ECODE_INVAL)
-    CheckInstanceState(self, instance, INSTANCE_DOWN,
+    CheckInstanceState(self, self.instance, INSTANCE_DOWN,
                        msg="cannot change disk template")
     if self.op.disk_template in constants.DTS_INT_MIRROR:
       if self.op.remote_node_uuid == pnode_uuid:
@@ -2594,18 +2595,18 @@ class LUInstanceSetParams(LogicalUnit):
       CheckNodeOnline(self, self.op.remote_node_uuid)
       CheckNodeNotDrained(self, self.op.remote_node_uuid)
       # FIXME: here we assume that the old instance type is DT_PLAIN
-      assert instance.disk_template == constants.DT_PLAIN
+      assert self.instance.disk_template == constants.DT_PLAIN
       disks = [{constants.IDISK_SIZE: d.size,
                 constants.IDISK_VG: d.logical_id[0]}
-               for d in instance.disks]
+               for d in self.instance.disks]
       required = ComputeDiskSizePerVG(self.op.disk_template, disks)
       CheckNodesFreeDiskPerVG(self, [self.op.remote_node_uuid], required)
 
       snode_info = self.cfg.GetNodeInfo(self.op.remote_node_uuid)
       snode_group = self.cfg.GetNodeGroup(snode_info.group)
-      ipolicy = ganeti.masterd.instance.CalculateGroupIPolicy(cluster,
+      ipolicy = ganeti.masterd.instance.CalculateGroupIPolicy(self.cluster,
                                                               snode_group)
-      CheckTargetNodeIPolicy(self, ipolicy, instance, snode_info, self.cfg,
+      CheckTargetNodeIPolicy(self, ipolicy, self.instance, snode_info, self.cfg,
                              ignore=self.op.ignore_ipolicy)
       if pnode_info.group != snode_info.group:
         self.LogWarning("The primary and secondary nodes are in two"
@@ -2622,7 +2623,7 @@ class LUInstanceSetParams(LogicalUnit):
       has_es = lambda n: IsExclusiveStorageEnabledNode(self.cfg, n)
       if compat.any(map(has_es, nodes)):
         errmsg = ("Cannot convert disk template from %s to %s when exclusive"
-                  " storage is enabled" % (instance.disk_template,
+                  " storage is enabled" % (self.instance.disk_template,
                                            self.op.disk_template))
         raise errors.OpPrereqError(errmsg, errors.ECODE_STATE)
 
@@ -2633,17 +2634,17 @@ class LUInstanceSetParams(LogicalUnit):
     @param ispec: instance specs to be updated with the new disks
 
     """
-    instance = self.instance
-    self.diskparams = self.cfg.GetInstanceDiskParams(instance)
+    self.diskparams = self.cfg.GetInstanceDiskParams(self.instance)
 
     excl_stor = compat.any(
-      rpc.GetExclusiveStorageForNodes(self.cfg, instance.all_nodes).values()
+      rpc.GetExclusiveStorageForNodes(self.cfg,
+                                      self.instance.all_nodes).values()
       )
 
     # Check disk modifications. This is done here and not in CheckArguments
     # (as with NICs), because we need to know the instance's disk template
     ver_fn = lambda op, par: self._VerifyDiskModification(op, par, excl_stor)
-    if instance.disk_template == constants.DT_EXT:
+    if self.instance.disk_template == constants.DT_EXT:
       self._CheckMods("disk", self.op.disks, {}, ver_fn)
     else:
       self._CheckMods("disk", self.op.disks, constants.IDISK_PARAMS_TYPES,
@@ -2652,7 +2653,7 @@ class LUInstanceSetParams(LogicalUnit):
     self.diskmod = _PrepareContainerMods(self.op.disks, None)
 
     # Check the validity of the `provider' parameter
-    if instance.disk_template in constants.DT_EXT:
+    if self.instance.disk_template in constants.DT_EXT:
       for mod in self.diskmod:
         ext_provider = mod[2].get(constants.IDISK_PROVIDER, None)
         if mod[0] == constants.DDM_ADD:
@@ -2678,7 +2679,7 @@ class LUInstanceSetParams(LogicalUnit):
                                       constants.DT_EXT),
                                      errors.ECODE_INVAL)
 
-    if self.op.disks and instance.disk_template == constants.DT_DISKLESS:
+    if self.op.disks and self.instance.disk_template == constants.DT_DISKLESS:
       raise errors.OpPrereqError("Disk operations not supported for"
                                  " diskless instances", errors.ECODE_INVAL)
 
@@ -2686,7 +2687,7 @@ class LUInstanceSetParams(LogicalUnit):
       disk.name = params.get(constants.IDISK_NAME, None)
 
     # Verify disk changes (operating on a copy)
-    disks = copy.deepcopy(instance.disks)
+    disks = copy.deepcopy(self.instance.disks)
     _ApplyContainerMods("disk", disks, None, self.diskmod, None,
                         _PrepareDiskMod, None)
     utils.ValidateDeviceNames("disk", disks)
@@ -2694,14 +2695,14 @@ class LUInstanceSetParams(LogicalUnit):
       raise errors.OpPrereqError("Instance has too many disks (%d), cannot add"
                                  " more" % constants.MAX_DISKS,
                                  errors.ECODE_STATE)
-    disk_sizes = [disk.size for disk in instance.disks]
+    disk_sizes = [disk.size for disk in self.instance.disks]
     disk_sizes.extend(params["size"] for (op, idx, params, private) in
                       self.diskmod if op == constants.DDM_ADD)
     ispec[constants.ISPEC_DISK_COUNT] = len(disk_sizes)
     ispec[constants.ISPEC_DISK_SIZE] = disk_sizes
 
     if self.op.offline is not None and self.op.offline:
-      CheckInstanceState(self, instance, CAN_CHANGE_INSTANCE_OFFLINE,
+      CheckInstanceState(self, self.instance, CAN_CHANGE_INSTANCE_OFFLINE,
                          msg="can't change to offline")
 
   def CheckPrereq(self):
@@ -2711,13 +2712,13 @@ class LUInstanceSetParams(LogicalUnit):
 
     """
     assert self.op.instance_name in self.owned_locks(locking.LEVEL_INSTANCE)
-    instance = self.instance = self.cfg.GetInstanceInfo(self.op.instance_name)
+    self.instance = self.cfg.GetInstanceInfo(self.op.instance_name)
+    self.cluster = self.cfg.GetClusterInfo()
 
-    cluster = self.cluster = self.cfg.GetClusterInfo()
     assert self.instance is not None, \
       "Cannot retrieve locked instance %s" % self.op.instance_name
 
-    pnode_uuid = instance.primary_node
+    pnode_uuid = self.instance.primary_node
 
     self.warn = []
 
@@ -2725,7 +2726,8 @@ class LUInstanceSetParams(LogicalUnit):
         not self.op.force):
       # verify that the instance is not up
       instance_info = self.rpc.call_instance_info(
-          pnode_uuid, instance.name, instance.hypervisor, instance.hvparams)
+          pnode_uuid, self.instance.name, self.instance.hypervisor,
+          self.instance.hvparams)
       if instance_info.fail_msg:
         self.warn.append("Can't get instance runtime information: %s" %
                          instance_info.fail_msg)
@@ -2735,7 +2737,7 @@ class LUInstanceSetParams(LogicalUnit):
                                    errors.ECODE_STATE)
 
     assert pnode_uuid in self.owned_locks(locking.LEVEL_NODE)
-    node_uuids = list(instance.all_nodes)
+    node_uuids = list(self.instance.all_nodes)
     pnode_info = self.cfg.GetNodeInfo(pnode_uuid)
 
     #_CheckInstanceNodeGroups(self.cfg, self.op.instance_name, owned_groups)
@@ -2750,11 +2752,11 @@ class LUInstanceSetParams(LogicalUnit):
 
     # OS change
     if self.op.os_name and not self.op.force:
-      CheckNodeHasOS(self, instance.primary_node, self.op.os_name,
+      CheckNodeHasOS(self, self.instance.primary_node, self.op.os_name,
                      self.op.force_variant)
       instance_os = self.op.os_name
     else:
-      instance_os = instance.os
+      instance_os = self.instance.os
 
     assert not (self.op.disk_template and self.op.disks), \
       "Can't modify disk template and apply disk changes at the same time"
@@ -2766,34 +2768,35 @@ class LUInstanceSetParams(LogicalUnit):
 
     # hvparams processing
     if self.op.hvparams:
-      hv_type = instance.hypervisor
-      i_hvdict = GetUpdatedParams(instance.hvparams, self.op.hvparams)
+      hv_type = self.instance.hypervisor
+      i_hvdict = GetUpdatedParams(self.instance.hvparams, self.op.hvparams)
       utils.ForceDictType(i_hvdict, constants.HVS_PARAMETER_TYPES)
-      hv_new = cluster.SimpleFillHV(hv_type, instance.os, i_hvdict)
+      hv_new = self.cluster.SimpleFillHV(hv_type, self.instance.os, i_hvdict)
 
       # local check
       hypervisor.GetHypervisorClass(hv_type).CheckParameterSyntax(hv_new)
-      CheckHVParams(self, node_uuids, instance.hypervisor, hv_new)
+      CheckHVParams(self, node_uuids, self.instance.hypervisor, hv_new)
       self.hv_proposed = self.hv_new = hv_new # the new actual values
       self.hv_inst = i_hvdict # the new dict (without defaults)
     else:
-      self.hv_proposed = cluster.SimpleFillHV(instance.hypervisor, instance.os,
-                                              instance.hvparams)
+      self.hv_proposed = self.cluster.SimpleFillHV(self.instance.hypervisor,
+                                                   self.instance.os,
+                                                   self.instance.hvparams)
       self.hv_new = self.hv_inst = {}
 
     # beparams processing
     if self.op.beparams:
-      i_bedict = GetUpdatedParams(instance.beparams, self.op.beparams,
+      i_bedict = GetUpdatedParams(self.instance.beparams, self.op.beparams,
                                   use_none=True)
       objects.UpgradeBeParams(i_bedict)
       utils.ForceDictType(i_bedict, constants.BES_PARAMETER_TYPES)
-      be_new = cluster.SimpleFillBE(i_bedict)
+      be_new = self.cluster.SimpleFillBE(i_bedict)
       self.be_proposed = self.be_new = be_new # the new actual values
       self.be_inst = i_bedict # the new dict (without defaults)
     else:
       self.be_new = self.be_inst = {}
-      self.be_proposed = cluster.SimpleFillBE(instance.beparams)
-    be_old = cluster.FillBE(instance)
+      self.be_proposed = self.cluster.SimpleFillBE(self.instance.beparams)
+    be_old = self.cluster.FillBE(self.instance)
 
     # CPU param validation -- checking every time a parameter is
     # changed to cover all cases where either CPU mask or vcpus have
@@ -2819,15 +2822,16 @@ class LUInstanceSetParams(LogicalUnit):
         max_requested_cpu = max(map(max, cpu_list))
         # Check that all of the instance's nodes have enough physical CPUs to
         # satisfy the requested CPU mask
-        hvspecs = [(instance.hypervisor,
-                    self.cfg.GetClusterInfo().hvparams[instance.hypervisor])]
-        _CheckNodesPhysicalCPUs(self, instance.all_nodes,
+        hvspecs = [(self.instance.hypervisor,
+                    self.cfg.GetClusterInfo()
+                      .hvparams[self.instance.hypervisor])]
+        _CheckNodesPhysicalCPUs(self, self.instance.all_nodes,
                                 max_requested_cpu + 1,
                                 hvspecs)
 
     # osparams processing
     if self.op.osparams:
-      i_osdict = GetUpdatedParams(instance.osparams, self.op.osparams)
+      i_osdict = GetUpdatedParams(self.instance.osparams, self.op.osparams)
       CheckOSParams(self, True, node_uuids, instance_os, i_osdict)
       self.os_inst = i_osdict # the new dict (without defaults)
     else:
@@ -2839,10 +2843,12 @@ class LUInstanceSetParams(LogicalUnit):
       mem_check_list = [pnode_uuid]
       if be_new[constants.BE_AUTO_BALANCE]:
         # either we changed auto_balance to yes or it was from before
-        mem_check_list.extend(instance.secondary_nodes)
+        mem_check_list.extend(self.instance.secondary_nodes)
       instance_info = self.rpc.call_instance_info(
-          pnode_uuid, instance.name, instance.hypervisor, instance.hvparams)
-      hvspecs = [(instance.hypervisor, cluster.hvparams[instance.hypervisor])]
+          pnode_uuid, self.instance.name, self.instance.hypervisor,
+          self.instance.hvparams)
+      hvspecs = [(self.instance.hypervisor,
+                  self.cluster.hvparams[self.instance.hypervisor])]
       nodeinfo = self.rpc.call_node_info(mem_check_list, None,
                                          hvspecs, False)
       pninfo = nodeinfo[pnode_uuid]
@@ -2880,7 +2886,7 @@ class LUInstanceSetParams(LogicalUnit):
 
       if be_new[constants.BE_AUTO_BALANCE]:
         for node_uuid, nres in nodeinfo.items():
-          if node_uuid not in instance.secondary_nodes:
+          if node_uuid not in self.instance.secondary_nodes:
             continue
           nres.Raise("Can't get info from secondary node %s" %
                      self.cfg.GetNodeName(node_uuid), prereq=True,
@@ -2901,13 +2907,13 @@ class LUInstanceSetParams(LogicalUnit):
 
     if self.op.runtime_mem:
       remote_info = self.rpc.call_instance_info(
-         instance.primary_node, instance.name, instance.hypervisor,
-         instance.hvparams)
+         self.instance.primary_node, self.instance.name,
+         self.instance.hypervisor, self.instance.hvparams)
       remote_info.Raise("Error checking node %s" %
-                        self.cfg.GetNodeName(instance.primary_node))
+                        self.cfg.GetNodeName(self.instance.primary_node))
       if not remote_info.payload: # not running already
         raise errors.OpPrereqError("Instance %s is not running" %
-                                   instance.name, errors.ECODE_STATE)
+                                   self.instance.name, errors.ECODE_STATE)
 
       current_memory = remote_info.payload["memory"]
       if (not self.op.force and
@@ -2916,7 +2922,7 @@ class LUInstanceSetParams(LogicalUnit):
         raise errors.OpPrereqError("Instance %s must have memory between %d"
                                    " and %d MB of memory unless --force is"
                                    " given" %
-                                   (instance.name,
+                                   (self.instance.name,
                                     self.be_proposed[constants.BE_MINMEM],
                                     self.be_proposed[constants.BE_MAXMEM]),
                                    errors.ECODE_INVAL)
@@ -2924,9 +2930,13 @@ class LUInstanceSetParams(LogicalUnit):
       delta = self.op.runtime_mem - current_memory
       if delta > 0:
         CheckNodeFreeMemory(
-            self, instance.primary_node, "ballooning memory for instance %s" %
-            instance.name, delta, instance.hypervisor,
-            self.cfg.GetClusterInfo().hvparams[instance.hypervisor])
+            self, self.instance.primary_node,
+            "ballooning memory for instance %s" % self.instance.name, delta,
+            self.instance.hypervisor,
+            self.cfg.GetClusterInfo().hvparams[self.instance.hypervisor])
+
+    # make self.cluster visible in the functions below
+    cluster = self.cluster
 
     def _PrepareNicCreate(_, params, private):
       self._PrepareNicModification(params, private, None, None,
@@ -2945,7 +2955,7 @@ class LUInstanceSetParams(LogicalUnit):
         self.cfg.ReleaseIp(net, ip, self.proc.GetECId())
 
     # Verify NIC changes (operating on copy)
-    nics = instance.nics[:]
+    nics = self.instance.nics[:]
     _ApplyContainerMods("NIC", nics, None, self.nicmod,
                         _PrepareNicCreate, _PrepareNicMod, _PrepareNicRemove)
     if len(nics) > constants.MAX_NICS:
@@ -2957,7 +2967,7 @@ class LUInstanceSetParams(LogicalUnit):
     self._nic_chgdesc = []
     if self.nicmod:
       # Operate on copies as this is still in prereq
-      nics = [nic.Copy() for nic in instance.nics]
+      nics = [nic.Copy() for nic in self.instance.nics]
       _ApplyContainerMods("NIC", nics, self._nic_chgdesc, self.nicmod,
                           self._CreateNewNic, self._ApplyNicMods, None)
       # Verify that NIC names are unique and valid
@@ -2966,10 +2976,10 @@ class LUInstanceSetParams(LogicalUnit):
       ispec[constants.ISPEC_NIC_COUNT] = len(self._new_nics)
     else:
       self._new_nics = None
-      ispec[constants.ISPEC_NIC_COUNT] = len(instance.nics)
+      ispec[constants.ISPEC_NIC_COUNT] = len(self.instance.nics)
 
     if not self.op.ignore_ipolicy:
-      ipolicy = ganeti.masterd.instance.CalculateGroupIPolicy(cluster,
+      ipolicy = ganeti.masterd.instance.CalculateGroupIPolicy(self.cluster,
                                                               group_info)
 
       # Fill ispec with backend parameters
@@ -2982,7 +2992,7 @@ class LUInstanceSetParams(LogicalUnit):
       if self.op.disk_template:
         new_disk_template = self.op.disk_template
       else:
-        new_disk_template = instance.disk_template
+        new_disk_template = self.instance.disk_template
       ispec_max = ispec.copy()
       ispec_max[constants.ISPEC_MEM_SIZE] = \
         self.be_new.get(constants.BE_MAXMEM, None)
@@ -3007,40 +3017,39 @@ class LUInstanceSetParams(LogicalUnit):
 
     """
     feedback_fn("Converting template to drbd")
-    instance = self.instance
-    pnode_uuid = instance.primary_node
+    pnode_uuid = self.instance.primary_node
     snode_uuid = self.op.remote_node_uuid
 
-    assert instance.disk_template == constants.DT_PLAIN
+    assert self.instance.disk_template == constants.DT_PLAIN
 
     # create a fake disk info for _GenerateDiskTemplate
     disk_info = [{constants.IDISK_SIZE: d.size, constants.IDISK_MODE: d.mode,
                   constants.IDISK_VG: d.logical_id[0],
                   constants.IDISK_NAME: d.name}
-                 for d in instance.disks]
+                 for d in self.instance.disks]
     new_disks = GenerateDiskTemplate(self, self.op.disk_template,
-                                     instance.name, pnode_uuid, [snode_uuid],
-                                     disk_info, None, None, 0, feedback_fn,
-                                     self.diskparams)
+                                     self.instance.name, pnode_uuid,
+                                     [snode_uuid], disk_info, None, None, 0,
+                                     feedback_fn, self.diskparams)
     anno_disks = rpc.AnnotateDiskParams(constants.DT_DRBD8, new_disks,
                                         self.diskparams)
     p_excl_stor = IsExclusiveStorageEnabledNodeUuid(self.cfg, pnode_uuid)
     s_excl_stor = IsExclusiveStorageEnabledNodeUuid(self.cfg, snode_uuid)
-    info = GetInstanceInfoText(instance)
+    info = GetInstanceInfoText(self.instance)
     feedback_fn("Creating additional volumes...")
     # first, create the missing data and meta devices
     for disk in anno_disks:
       # unfortunately this is... not too nice
-      CreateSingleBlockDev(self, pnode_uuid, instance, disk.children[1],
+      CreateSingleBlockDev(self, pnode_uuid, self.instance, disk.children[1],
                            info, True, p_excl_stor)
       for child in disk.children:
-        CreateSingleBlockDev(self, snode_uuid, instance, child, info, True,
+        CreateSingleBlockDev(self, snode_uuid, self.instance, child, info, True,
                              s_excl_stor)
     # at this stage, all new LVs have been created, we can rename the
     # old ones
     feedback_fn("Renaming original volumes...")
     rename_list = [(o, n.children[0].logical_id)
-                   for (o, n) in zip(instance.disks, new_disks)]
+                   for (o, n) in zip(self.instance.disks, new_disks)]
     result = self.rpc.call_blockdev_rename(pnode_uuid, rename_list)
     result.Raise("Failed to rename original LVs")
 
@@ -3051,29 +3060,29 @@ class LUInstanceSetParams(LogicalUnit):
         for (node_uuid, excl_stor) in [(pnode_uuid, p_excl_stor),
                                        (snode_uuid, s_excl_stor)]:
           f_create = node_uuid == pnode_uuid
-          CreateSingleBlockDev(self, node_uuid, instance, disk, info, f_create,
-                               excl_stor)
+          CreateSingleBlockDev(self, node_uuid, self.instance, disk, info,
+                               f_create, excl_stor)
     except errors.GenericError, e:
       feedback_fn("Initializing of DRBD devices failed;"
                   " renaming back original volumes...")
       for disk in new_disks:
         self.cfg.SetDiskID(disk, pnode_uuid)
       rename_back_list = [(n.children[0], o.logical_id)
-                          for (n, o) in zip(new_disks, instance.disks)]
+                          for (n, o) in zip(new_disks, self.instance.disks)]
       result = self.rpc.call_blockdev_rename(pnode_uuid, rename_back_list)
       result.Raise("Failed to rename LVs back after error %s" % str(e))
       raise
 
     # at this point, the instance has been modified
-    instance.disk_template = constants.DT_DRBD8
-    instance.disks = new_disks
-    self.cfg.Update(instance, feedback_fn)
+    self.instance.disk_template = constants.DT_DRBD8
+    self.instance.disks = new_disks
+    self.cfg.Update(self.instance, feedback_fn)
 
     # Release node locks while waiting for sync
     ReleaseLocks(self, locking.LEVEL_NODE)
 
     # disks are created, waiting for sync
-    disk_abort = not WaitForSync(self, instance,
+    disk_abort = not WaitForSync(self, self.instance,
                                  oneshot=not self.op.wait_for_sync)
     if disk_abort:
       raise errors.OpExecError("There are some degraded disks for"
@@ -3085,17 +3094,15 @@ class LUInstanceSetParams(LogicalUnit):
     """Converts an instance from drbd to plain.
 
     """
-    instance = self.instance
+    assert len(self.instance.secondary_nodes) == 1
+    assert self.instance.disk_template == constants.DT_DRBD8
 
-    assert len(instance.secondary_nodes) == 1
-    assert instance.disk_template == constants.DT_DRBD8
-
-    pnode_uuid = instance.primary_node
-    snode_uuid = instance.secondary_nodes[0]
+    pnode_uuid = self.instance.primary_node
+    snode_uuid = self.instance.secondary_nodes[0]
     feedback_fn("Converting template to plain")
 
-    old_disks = AnnotateDiskParams(instance, instance.disks, self.cfg)
-    new_disks = [d.children[0] for d in instance.disks]
+    old_disks = AnnotateDiskParams(self.instance, self.instance.disks, self.cfg)
+    new_disks = [d.children[0] for d in self.instance.disks]
 
     # copy over size, mode and name
     for parent, child in zip(old_disks, new_disks):
@@ -3110,10 +3117,10 @@ class LUInstanceSetParams(LogicalUnit):
       self.cfg.AddTcpUdpPort(tcp_port)
 
     # update instance structure
-    instance.disks = new_disks
-    instance.disk_template = constants.DT_PLAIN
-    _UpdateIvNames(0, instance.disks)
-    self.cfg.Update(instance, feedback_fn)
+    self.instance.disks = new_disks
+    self.instance.disk_template = constants.DT_PLAIN
+    _UpdateIvNames(0, self.instance.disks)
+    self.cfg.Update(self.instance, feedback_fn)
 
     # Release locks in case removing disks takes a while
     ReleaseLocks(self, locking.LEVEL_NODE)
@@ -3141,26 +3148,24 @@ class LUInstanceSetParams(LogicalUnit):
     """Creates a new disk.
 
     """
-    instance = self.instance
-
     # add a new disk
-    if instance.disk_template in constants.DTS_FILEBASED:
-      (file_driver, file_path) = instance.disks[0].logical_id
+    if self.instance.disk_template in constants.DTS_FILEBASED:
+      (file_driver, file_path) = self.instance.disks[0].logical_id
       file_path = os.path.dirname(file_path)
     else:
       file_driver = file_path = None
 
     disk = \
-      GenerateDiskTemplate(self, instance.disk_template, instance.name,
-                           instance.primary_node, instance.secondary_nodes,
-                           [params], file_path, file_driver, idx,
-                           self.Log, self.diskparams)[0]
+      GenerateDiskTemplate(self, self.instance.disk_template,
+                           self.instance.name, self.instance.primary_node,
+                           self.instance.secondary_nodes, [params], file_path,
+                           file_driver, idx, self.Log, self.diskparams)[0]
 
-    new_disks = CreateDisks(self, instance, disks=[disk])
+    new_disks = CreateDisks(self, self.instance, disks=[disk])
 
     if self.cluster.prealloc_wipe_disks:
       # Wipe new disk
-      WipeOrCleanupDisks(self, instance,
+      WipeOrCleanupDisks(self, self.instance,
                          disks=[(idx, disk, 0)],
                          cleanup=new_disks)
 
@@ -3268,29 +3273,28 @@ class LUInstanceSetParams(LogicalUnit):
       "Not owning any node resource locks"
 
     result = []
-    instance = self.instance
 
     # New primary node
     if self.op.pnode_uuid:
-      instance.primary_node = self.op.pnode_uuid
+      self.instance.primary_node = self.op.pnode_uuid
 
     # runtime memory
     if self.op.runtime_mem:
-      rpcres = self.rpc.call_instance_balloon_memory(instance.primary_node,
-                                                     instance,
+      rpcres = self.rpc.call_instance_balloon_memory(self.instance.primary_node,
+                                                     self.instance,
                                                      self.op.runtime_mem)
       rpcres.Raise("Cannot modify instance runtime memory")
       result.append(("runtime_memory", self.op.runtime_mem))
 
     # Apply disk changes
-    _ApplyContainerMods("disk", instance.disks, result, self.diskmod,
+    _ApplyContainerMods("disk", self.instance.disks, result, self.diskmod,
                         self._CreateNewDisk, self._ModifyDisk,
                         self._RemoveDisk)
-    _UpdateIvNames(0, instance.disks)
+    _UpdateIvNames(0, self.instance.disks)
 
     if self.op.disk_template:
       if __debug__:
-        check_nodes = set(instance.all_nodes)
+        check_nodes = set(self.instance.all_nodes)
         if self.op.remote_node_uuid:
           check_nodes.add(self.op.remote_node_uuid)
         for level in [locking.LEVEL_NODE, locking.LEVEL_NODE_RES]:
@@ -3299,21 +3303,21 @@ class LUInstanceSetParams(LogicalUnit):
             ("Not owning the correct locks, owning %r, expected at least %r" %
              (owned, check_nodes))
 
-      r_shut = ShutdownInstanceDisks(self, instance)
+      r_shut = ShutdownInstanceDisks(self, self.instance)
       if not r_shut:
         raise errors.OpExecError("Cannot shutdown instance disks, unable to"
                                  " proceed with disk template conversion")
-      mode = (instance.disk_template, self.op.disk_template)
+      mode = (self.instance.disk_template, self.op.disk_template)
       try:
         self._DISK_CONVERSIONS[mode](self, feedback_fn)
       except:
-        self.cfg.ReleaseDRBDMinors(instance.name)
+        self.cfg.ReleaseDRBDMinors(self.instance.name)
         raise
       result.append(("disk_template", self.op.disk_template))
 
-      assert instance.disk_template == self.op.disk_template, \
+      assert self.instance.disk_template == self.op.disk_template, \
         ("Expected disk template '%s', found '%s'" %
-         (self.op.disk_template, instance.disk_template))
+         (self.op.disk_template, self.instance.disk_template))
 
     # Release node and resource locks if there are any (they might already have
     # been released during disk conversion)
@@ -3322,28 +3326,28 @@ class LUInstanceSetParams(LogicalUnit):
 
     # Apply NIC changes
     if self._new_nics is not None:
-      instance.nics = self._new_nics
+      self.instance.nics = self._new_nics
       result.extend(self._nic_chgdesc)
 
     # hvparams changes
     if self.op.hvparams:
-      instance.hvparams = self.hv_inst
+      self.instance.hvparams = self.hv_inst
       for key, val in self.op.hvparams.iteritems():
         result.append(("hv/%s" % key, val))
 
     # beparams changes
     if self.op.beparams:
-      instance.beparams = self.be_inst
+      self.instance.beparams = self.be_inst
       for key, val in self.op.beparams.iteritems():
         result.append(("be/%s" % key, val))
 
     # OS change
     if self.op.os_name:
-      instance.os = self.op.os_name
+      self.instance.os = self.op.os_name
 
     # osparams changes
     if self.op.osparams:
-      instance.osparams = self.os_inst
+      self.instance.osparams = self.os_inst
       for key, val in self.op.osparams.iteritems():
         result.append(("os/%s" % key, val))
 
@@ -3352,14 +3356,14 @@ class LUInstanceSetParams(LogicalUnit):
       pass
     elif self.op.offline:
       # Mark instance as offline
-      self.cfg.MarkInstanceOffline(instance.name)
+      self.cfg.MarkInstanceOffline(self.instance.name)
       result.append(("admin_state", constants.ADMINST_OFFLINE))
     else:
       # Mark instance as online, but stopped
-      self.cfg.MarkInstanceDown(instance.name)
+      self.cfg.MarkInstanceDown(self.instance.name)
       result.append(("admin_state", constants.ADMINST_DOWN))
 
-    self.cfg.Update(instance, feedback_fn, self.proc.GetECId())
+    self.cfg.Update(self.instance, feedback_fn, self.proc.GetECId())
 
     assert not (self.owned_locks(locking.LEVEL_NODE_RES) or
                 self.owned_locks(locking.LEVEL_NODE)), \

@@ -929,10 +929,12 @@ class DRBD8Dev(base.BlockDev):
     if self.minor is None and not self.Attach():
       logging.info("drbd%d: not attached during Shutdown()", self._aminor)
       return
-    minor = self.minor
-    self.minor = None
-    self.dev_path = None
-    DRBD8.ShutdownAll(minor)
+
+    try:
+      DRBD8.ShutdownAll(self.minor)
+    finally:
+      self.minor = None
+      self.dev_path = None
 
   def Remove(self):
     """Stub remove for DRBD devices.

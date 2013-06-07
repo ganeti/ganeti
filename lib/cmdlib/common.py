@@ -170,8 +170,7 @@ def RunPostHook(lu, node_name):
   """
   hm = lu.proc.BuildHooksManager(lu)
   try:
-    node_names = [node_name]
-    hm.RunPhase(constants.HOOKS_PHASE_POST, node_names=node_names)
+    hm.RunPhase(constants.HOOKS_PHASE_POST, node_names=[node_name])
   except Exception, err: # pylint: disable=W0703
     lu.LogWarning("Errors occurred running hooks on %s: %s",
                   node_name, err)

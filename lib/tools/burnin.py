@@ -1053,16 +1053,14 @@ class Burner(object):
 
     """
 
-    opts = self.opts
-
     Log("Testing global parameters")
 
     if (len(self.nodes) == 1 and
-        opts.disk_template not in _SINGLE_NODE_DISK_TEMPLATES):
+        self.opts.disk_template not in _SINGLE_NODE_DISK_TEMPLATES):
       Err("When one node is available/selected the disk template must"
           " be one of %s" % utils.CommaJoin(_SINGLE_NODE_DISK_TEMPLATES))
 
-    if opts.do_confd_tests and not constants.ENABLE_CONFD:
+    if self.opts.do_confd_tests and not constants.ENABLE_CONFD:
       Err("You selected confd tests but confd was disabled at configure time")
 
     has_err = True
@@ -1072,68 +1070,70 @@ class Burner(object):
       if self.bep[constants.BE_MINMEM] < self.bep[constants.BE_MAXMEM]:
         self.BurnModifyRuntimeMemory()
 
-      if opts.do_replace1 and opts.disk_template in constants.DTS_INT_MIRROR:
+      if self.opts.do_replace1 and \
+           self.opts.disk_template in constants.DTS_INT_MIRROR:
         self.BurnReplaceDisks1D8()
-      if (opts.do_replace2 and len(self.nodes) > 2 and
-          opts.disk_template in constants.DTS_INT_MIRROR):
+      if (self.opts.do_replace2 and len(self.nodes) > 2 and
+          self.opts.disk_template in constants.DTS_INT_MIRROR):
         self.BurnReplaceDisks2()
 
-      if (opts.disk_template in constants.DTS_GROWABLE and
+      if (self.opts.disk_template in constants.DTS_GROWABLE and
           compat.any(n > 0 for n in self.disk_growth)):
         self.BurnGrowDisks()
 
-      if opts.do_failover and opts.disk_template in constants.DTS_MIRRORED:
+      if self.opts.do_failover and \
+           self.opts.disk_template in constants.DTS_MIRRORED:
         self.BurnFailover()
 
-      if opts.do_migrate:
-        if opts.disk_template not in constants.DTS_MIRRORED:
+      if self.opts.do_migrate:
+        if self.opts.disk_template not in constants.DTS_MIRRORED:
           Log("Skipping migration (disk template %s does not support it)",
-              opts.disk_template)
+              self.opts.disk_template)
         elif not self.hv_can_migrate:
           Log("Skipping migration (hypervisor %s does not support it)",
               self.hypervisor)
         else:
           self.BurnMigrate()
 
-      if (opts.do_move and len(self.nodes) > 1 and
-          opts.disk_template in [constants.DT_PLAIN, constants.DT_FILE]):
+      if (self.opts.do_move and len(self.nodes) > 1 and
+          self.opts.disk_template in [constants.DT_PLAIN, constants.DT_FILE]):
         self.BurnMove()
 
-      if (opts.do_importexport and
-          opts.disk_template in _IMPEXP_DISK_TEMPLATES):
+      if (self.opts.do_importexport and
+          self.opts.disk_template in _IMPEXP_DISK_TEMPLATES):
         self.BurnImportExport()
 
-      if opts.do_reinstall:
+      if self.opts.do_reinstall:
         self.BurnReinstall()
 
-      if opts.do_reboot:
+      if self.opts.do_reboot:
         self.BurnReboot()
 
-      if opts.do_renamesame:
+      if self.opts.do_renamesame:
         self.BurnRenameSame()
 
-      if opts.do_addremove_disks:
+      if self.opts.do_addremove_disks:
         self.BurnAddRemoveDisks()
 
       default_nic_mode = self.cluster_default_nicparams[constants.NIC_MODE]
       # Don't add/remove nics in routed mode, as we would need an ip to add
       # them with
-      if opts.do_addremove_nics:
+      if self.opts.do_addremove_nics:
         if default_nic_mode == constants.NIC_MODE_BRIDGED:
           self.BurnAddRemoveNICs()
         else:
           Log("Skipping nic add/remove as the cluster is not in bridged mode")
 
-      if opts.do_activate_disks:
+      if self.opts.do_activate_disks:
         self.BurnActivateDisks()
 
-      if opts.rename:
+      if self.opts.rename:
         self.BurnRename()
 
-      if opts.do_confd_tests:
+      if self.opts.do_confd_tests:
         self.BurnConfd()
 
-      if opts.do_startstop:
+      if self.opts.do_startstop:
         self.BurnStopStart()
 
       has_err = False

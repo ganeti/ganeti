@@ -136,9 +136,7 @@ class LUBackupPrepare(NoHooksLU):
     """Check prerequisites.
 
     """
-    instance_name = self.op.instance_name
-
-    self.instance = self.cfg.GetInstanceInfo(instance_name)
+    self.instance = self.cfg.GetInstanceInfo(self.op.instance_name)
     assert self.instance is not None, \
           "Cannot retrieve locked instance %s" % self.op.instance_name
     CheckNodeOnline(self, self.instance.primary_node)
@@ -149,14 +147,12 @@ class LUBackupPrepare(NoHooksLU):
     """Prepares an instance for an export.
 
     """
-    instance = self.instance
-
     if self.op.mode == constants.EXPORT_MODE_REMOTE:
       salt = utils.GenerateSecret(8)
 
       feedback_fn("Generating X509 certificate on %s" %
-                  self.cfg.GetNodeName(instance.primary_node))
-      result = self.rpc.call_x509_cert_create(instance.primary_node,
+                  self.cfg.GetNodeName(self.instance.primary_node))
+      result = self.rpc.call_x509_cert_create(self.instance.primary_node,
                                               constants.RIE_CERT_VALIDITY)
       result.Raise("Can't create X509 key and certificate on %s" %
                    self.cfg.GetNodeName(result.node))
@@ -263,9 +259,7 @@ class LUBackupExport(LogicalUnit):
     This checks that the instance and node names are valid.
 
     """
-    instance_name = self.op.instance_name
-
-    self.instance = self.cfg.GetInstanceInfo(instance_name)
+    self.instance = self.cfg.GetInstanceInfo(self.op.instance_name)
     assert self.instance is not None, \
           "Cannot retrieve locked instance %s" % self.op.instance_name
     CheckNodeOnline(self, self.instance.primary_node)
@@ -293,7 +287,8 @@ class LUBackupExport(LogicalUnit):
       if len(self.op.target_node) != len(self.instance.disks):
         raise errors.OpPrereqError(("Received destination information for %s"
                                     " disks, but instance %s has %s disks") %
-                                   (len(self.op.target_node), instance_name,
+                                   (len(self.op.target_node),
+                                    self.op.instance_name,
                                     len(self.instance.disks)),
                                    errors.ECODE_INVAL)
 
@@ -385,50 +380,49 @@ class LUBackupExport(LogicalUnit):
     """
     assert self.op.mode in constants.EXPORT_MODES
 
-    instance = self.instance
-    src_node_uuid = instance.primary_node
+    src_node_uuid = self.instance.primary_node
 
     if self.op.shutdown:
       # shutdown the instance, but not the disks
-      feedback_fn("Shutting down instance %s" % instance.name)
-      result = self.rpc.call_instance_shutdown(src_node_uuid, instance,
+      feedback_fn("Shutting down instance %s" % self.instance.name)
+      result = self.rpc.call_instance_shutdown(src_node_uuid, self.instance,
                                                self.op.shutdown_timeout,
                                                self.op.reason)
       # TODO: Maybe ignore failures if ignore_remove_failures is set
       result.Raise("Could not shutdown instance %s on"
-                   " node %s" % (instance.name,
+                   " node %s" % (self.instance.name,
                                  self.cfg.GetNodeName(src_node_uuid)))
 
     # set the disks ID correctly since call_instance_start needs the
     # correct drbd minor to create the symlinks
-    for disk in instance.disks:
+    for disk in self.instance.disks:
       self.cfg.SetDiskID(disk, src_node_uuid)
 
-    activate_disks = not instance.disks_active
+    activate_disks = not self.instance.disks_active
 
     if activate_disks:
       # Activate the instance disks if we'exporting a stopped instance
-      feedback_fn("Activating disks for %s" % instance.name)
-      StartInstanceDisks(self, instance, None)
+      feedback_fn("Activating disks for %s" % self.instance.name)
+      StartInstanceDisks(self, self.instance, None)
 
     try:
       helper = masterd.instance.ExportInstanceHelper(self, feedback_fn,
-                                                     instance)
+                                                     self.instance)
 
       helper.CreateSnapshots()
       try:
         if (self.op.shutdown and
-            instance.admin_state == constants.ADMINST_UP and
+            self.instance.admin_state == constants.ADMINST_UP and
             not self.op.remove_instance):
           assert not activate_disks
-          feedback_fn("Starting instance %s" % instance.name)
+          feedback_fn("Starting instance %s" % self.instance.name)
           result = self.rpc.call_instance_start(src_node_uuid,
-                                                (instance, None, None), False,
-                                                 self.op.reason)
+                                                (self.instance, None, None),
+                                                False, self.op.reason)
           msg = result.fail_msg
           if msg:
             feedback_fn("Failed to start instance: %s" % msg)
-            ShutdownInstanceDisks(self, instance)
+            ShutdownInstanceDisks(self, self.instance)
             raise errors.OpExecError("Could not start instance: %s" % msg)
 
         if self.op.mode == constants.EXPORT_MODE_LOCAL:
@@ -450,14 +444,14 @@ class LUBackupExport(LogicalUnit):
         helper.Cleanup()
 
       # Check for backwards compatibility
-      assert len(dresults) == len(instance.disks)
+      assert len(dresults) == len(self.instance.disks)
       assert compat.all(isinstance(i, bool) for i in dresults), \
              "Not all results are boolean: %r" % dresults
 
     finally:
       if activate_disks:
-        feedback_fn("Deactivating disks for %s" % instance.name)
-        ShutdownInstanceDisks(self, instance)
+        feedback_fn("Deactivating disks for %s" % self.instance.name)
+        ShutdownInstanceDisks(self, self.instance)
 
     if not (compat.all(dresults) and fin_resu):
       failures = []
@@ -475,8 +469,8 @@ class LUBackupExport(LogicalUnit):
 
     # Remove instance if requested
     if self.op.remove_instance:
-      feedback_fn("Removing instance %s" % instance.name)
-      RemoveInstance(self, feedback_fn, instance,
+      feedback_fn("Removing instance %s" % self.instance.name)
+      RemoveInstance(self, feedback_fn, self.instance,
                      self.op.ignore_remove_failures)
 
     if self.op.mode == constants.EXPORT_MODE_LOCAL:

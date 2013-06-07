@@ -281,28 +281,27 @@ class TLMigrateInstance(Tasklet):
 
     """
     instance_name = ExpandInstanceName(self.lu.cfg, self.instance_name)
-    instance = self.cfg.GetInstanceInfo(instance_name)
-    assert instance is not None
-    self.instance = instance
+    self.instance = self.cfg.GetInstanceInfo(instance_name)
+    assert self.instance is not None
     cluster = self.cfg.GetClusterInfo()
 
     if (not self.cleanup and
-        not instance.admin_state == constants.ADMINST_UP and
+        not self.instance.admin_state == constants.ADMINST_UP and
         not self.failover and self.fallback):
       self.lu.LogInfo("Instance is marked down or offline, fallback allowed,"
                       " switching to failover")
       self.failover = True
 
-    if instance.disk_template not in constants.DTS_MIRRORED:
+    if self.instance.disk_template not in constants.DTS_MIRRORED:
       if self.failover:
         text = "failovers"
       else:
         text = "migrations"
       raise errors.OpPrereqError("Instance's disk layout '%s' does not allow"
-                                 " %s" % (instance.disk_template, text),
+                                 " %s" % (self.instance.disk_template, text),
                                  errors.ECODE_STATE)
 
-    if instance.disk_template in constants.DTS_EXT_MIRROR:
+    if self.instance.disk_template in constants.DTS_EXT_MIRROR:
       CheckIAllocatorOrNode(self.lu, "iallocator", "target_node")
 
       if self.lu.op.iallocator:
@@ -318,33 +317,34 @@ class TLMigrateInstance(Tasklet):
       group_info = self.cfg.GetNodeGroup(nodeinfo.group)
       ipolicy = ganeti.masterd.instance.CalculateGroupIPolicy(cluster,
                                                               group_info)
-      CheckTargetNodeIPolicy(self.lu, ipolicy, instance, nodeinfo, self.cfg,
-                             ignore=self.ignore_ipolicy)
+      CheckTargetNodeIPolicy(self.lu, ipolicy, self.instance, nodeinfo,
+                             self.cfg, ignore=self.ignore_ipolicy)
 
       # self.target_node is already populated, either directly or by the
       # iallocator run
       target_node_uuid = self.target_node_uuid
-      if self.target_node_uuid == instance.primary_node:
+      if self.target_node_uuid == self.instance.primary_node:
         raise errors.OpPrereqError(
           "Cannot migrate instance %s to its primary (%s)" %
-          (instance.name, self.cfg.GetNodeName(instance.primary_node)),
+          (self.instance.name,
+           self.cfg.GetNodeName(self.instance.primary_node)),
           errors.ECODE_STATE)
 
       if len(self.lu.tasklets) == 1:
         # It is safe to release locks only when we're the only tasklet
         # in the LU
         ReleaseLocks(self.lu, locking.LEVEL_NODE,
-                     keep=[instance.primary_node, self.target_node_uuid])
+                     keep=[self.instance.primary_node, self.target_node_uuid])
         ReleaseLocks(self.lu, locking.LEVEL_NODE_ALLOC)
 
     else:
       assert not self.lu.glm.is_owned(locking.LEVEL_NODE_ALLOC)
 
-      secondary_node_uuids = instance.secondary_nodes
+      secondary_node_uuids = self.instance.secondary_nodes
       if not secondary_node_uuids:
         raise errors.ConfigurationError("No secondary node but using"
                                         " %s disk template" %
-                                        instance.disk_template)
+                                        self.instance.disk_template)
       target_node_uuid = secondary_node_uuids[0]
       if self.lu.op.iallocator or \
         (self.lu.op.target_node_uuid and
@@ -357,24 +357,26 @@ class TLMigrateInstance(Tasklet):
                                    " be %s to arbitrary nodes"
                                    " (neither an iallocator nor a target"
                                    " node can be passed)" %
-                                   (instance.disk_template, text),
+                                   (self.instance.disk_template, text),
                                    errors.ECODE_INVAL)
       nodeinfo = self.cfg.GetNodeInfo(target_node_uuid)
       group_info = self.cfg.GetNodeGroup(nodeinfo.group)
       ipolicy = ganeti.masterd.instance.CalculateGroupIPolicy(cluster,
                                                               group_info)
-      CheckTargetNodeIPolicy(self.lu, ipolicy, instance, nodeinfo, self.cfg,
-                             ignore=self.ignore_ipolicy)
+      CheckTargetNodeIPolicy(self.lu, ipolicy, self.instance, nodeinfo,
+                             self.cfg, ignore=self.ignore_ipolicy)
 
-    i_be = cluster.FillBE(instance)
+    i_be = cluster.FillBE(self.instance)
 
     # check memory requirements on the secondary node
     if (not self.cleanup and
-         (not self.failover or instance.admin_state == constants.ADMINST_UP)):
+         (not self.failover or
+           self.instance.admin_state == constants.ADMINST_UP)):
       self.tgt_free_mem = CheckNodeFreeMemory(
-          self.lu, target_node_uuid, "migrating instance %s" % instance.name,
-          i_be[constants.BE_MINMEM], instance.hypervisor,
-          self.cfg.GetClusterInfo().hvparams[instance.hypervisor])
+          self.lu, target_node_uuid,
+          "migrating instance %s" % self.instance.name,
+          i_be[constants.BE_MINMEM], self.instance.hypervisor,
+          self.cfg.GetClusterInfo().hvparams[self.instance.hypervisor])
     else:
       self.lu.LogInfo("Not checking memory on the secondary node as"
                       " instance will not be started")
@@ -387,13 +389,14 @@ class TLMigrateInstance(Tasklet):
       self.failover = True
 
     # check bridge existance
-    CheckInstanceBridgesExist(self.lu, instance, node_uuid=target_node_uuid)
+    CheckInstanceBridgesExist(self.lu, self.instance,
+                              node_uuid=target_node_uuid)
 
     if not self.cleanup:
       CheckNodeNotDrained(self.lu, target_node_uuid)
       if not self.failover:
-        result = self.rpc.call_instance_migratable(instance.primary_node,
-                                                   instance)
+        result = self.rpc.call_instance_migratable(self.instance.primary_node,
+                                                   self.instance)
         if result.fail_msg and self.fallback:
           self.lu.LogInfo("Can't migrate, instance offline, fallback to"
                           " failover")
@@ -429,10 +432,10 @@ class TLMigrateInstance(Tasklet):
 
     if not (self.failover or self.cleanup):
       remote_info = self.rpc.call_instance_info(
-          instance.primary_node, instance.name, instance.hypervisor,
-          cluster.hvparams[instance.hypervisor])
+          self.instance.primary_node, self.instance.name,
+          self.instance.hypervisor, cluster.hvparams[self.instance.hypervisor])
       remote_info.Raise("Error checking instance on node %s" %
-                        self.cfg.GetNodeName(instance.primary_node))
+                        self.cfg.GetNodeName(self.instance.primary_node))
       instance_running = bool(remote_info.payload)
       if instance_running:
         self.current_mem = int(remote_info.payload["memory"])
@@ -544,23 +547,21 @@ class TLMigrateInstance(Tasklet):
       - wait again until disks are fully synchronized
 
     """
-    instance = self.instance
-    target_node_uuid = self.target_node_uuid
-    source_node_uuid = self.source_node_uuid
-
     # check running on only one node
     self.feedback_fn("* checking where the instance actually runs"
                      " (if this hangs, the hypervisor might be in"
                      " a bad state)")
     cluster_hvparams = self.cfg.GetClusterInfo().hvparams
     ins_l = self.rpc.call_instance_list(self.all_node_uuids,
-                                        [instance.hypervisor],
+                                        [self.instance.hypervisor],
                                         cluster_hvparams)
     for node_uuid, result in ins_l.items():
       result.Raise("Can't contact node %s" % node_uuid)
 
-    runningon_source = instance.name in ins_l[source_node_uuid].payload
-    runningon_target = instance.name in ins_l[target_node_uuid].payload
+    runningon_source = self.instance.name in \
+                         ins_l[self.source_node_uuid].payload
+    runningon_target = self.instance.name in \
+                         ins_l[self.target_node_uuid].payload
 
     if runningon_source and runningon_target:
       raise errors.OpExecError("Instance seems to be running on two nodes,"
@@ -578,17 +579,17 @@ class TLMigrateInstance(Tasklet):
       # the migration has actually succeeded, we need to update the config
       self.feedback_fn("* instance running on secondary node (%s),"
                        " updating config" %
-                       self.cfg.GetNodeName(target_node_uuid))
-      instance.primary_node = target_node_uuid
-      self.cfg.Update(instance, self.feedback_fn)
-      demoted_node_uuid = source_node_uuid
+                       self.cfg.GetNodeName(self.target_node_uuid))
+      self.instance.primary_node = self.target_node_uuid
+      self.cfg.Update(self.instance, self.feedback_fn)
+      demoted_node_uuid = self.source_node_uuid
     else:
       self.feedback_fn("* instance confirmed to be running on its"
                        " primary node (%s)" %
-                       self.cfg.GetNodeName(source_node_uuid))
-      demoted_node_uuid = target_node_uuid
+                       self.cfg.GetNodeName(self.source_node_uuid))
+      demoted_node_uuid = self.target_node_uuid
 
-    if instance.disk_template in constants.DTS_INT_MIRROR:
+    if self.instance.disk_template in constants.DTS_INT_MIRROR:
       self._EnsureSecondary(demoted_node_uuid)
       try:
         self._WaitUntilSync()
@@ -623,11 +624,9 @@ class TLMigrateInstance(Tasklet):
     """Call the hypervisor code to abort a started migration.
 
     """
-    instance = self.instance
-    migration_info = self.migration_info
-
     abort_result = self.rpc.call_instance_finalize_migration_dst(
-                     self.target_node_uuid, instance, migration_info, False)
+                     self.target_node_uuid, self.instance, self.migration_info,
+                     False)
     abort_msg = abort_result.fail_msg
     if abort_msg:
       logging.error("Aborting migration failed on target node %s: %s",
@@ -636,7 +635,7 @@ class TLMigrateInstance(Tasklet):
       # disk status, even if this step failed.
 
     abort_result = self.rpc.call_instance_finalize_migration_src(
-      self.source_node_uuid, instance, False, self.live)
+      self.source_node_uuid, self.instance, False, self.live)
     abort_msg = abort_result.fail_msg
     if abort_msg:
       logging.error("Aborting migration failed on source node %s: %s",
@@ -654,20 +653,17 @@ class TLMigrateInstance(Tasklet):
       - change disks into single-master mode
 
     """
-    instance = self.instance
-    target_node_uuid = self.target_node_uuid
-    source_node_uuid = self.source_node_uuid
-
     # Check for hypervisor version mismatch and warn the user.
-    hvspecs = [(instance.hypervisor,
-                self.cfg.GetClusterInfo().hvparams[instance.hypervisor])]
-    nodeinfo = self.rpc.call_node_info([source_node_uuid, target_node_uuid],
-                                       None, hvspecs, False)
+    hvspecs = [(self.instance.hypervisor,
+                self.cfg.GetClusterInfo().hvparams[self.instance.hypervisor])]
+    nodeinfo = self.rpc.call_node_info(
+                 [self.source_node_uuid, self.target_node_uuid], None, hvspecs,
+                 False)
     for ninfo in nodeinfo.values():
       ninfo.Raise("Unable to retrieve node information from node '%s'" %
                   ninfo.node)
-    (_, _, (src_info, )) = nodeinfo[source_node_uuid].payload
-    (_, _, (dst_info, )) = nodeinfo[target_node_uuid].payload
+    (_, _, (src_info, )) = nodeinfo[self.source_node_uuid].payload
+    (_, _, (dst_info, )) = nodeinfo[self.target_node_uuid].payload
 
     if ((constants.HV_NODEINFO_KEY_VERSION in src_info) and
         (constants.HV_NODEINFO_KEY_VERSION in dst_info)):
@@ -679,8 +675,9 @@ class TLMigrateInstance(Tasklet):
                          (src_version, dst_version))
 
     self.feedback_fn("* checking disk consistency between source and target")
-    for (idx, dev) in enumerate(instance.disks):
-      if not CheckDiskConsistency(self.lu, instance, dev, target_node_uuid,
+    for (idx, dev) in enumerate(self.instance.disks):
+      if not CheckDiskConsistency(self.lu, self.instance, dev,
+                                  self.target_node_uuid,
                                   False):
         raise errors.OpExecError("Disk %s is degraded or not fully"
                                  " synchronized on target node,"
@@ -691,21 +688,21 @@ class TLMigrateInstance(Tasklet):
         raise errors.OpExecError("Memory ballooning not allowed and not enough"
                                  " free memory to fit instance %s on target"
                                  " node %s (have %dMB, need %dMB)" %
-                                 (instance.name,
-                                  self.cfg.GetNodeName(target_node_uuid),
+                                 (self.instance.name,
+                                  self.cfg.GetNodeName(self.target_node_uuid),
                                   self.tgt_free_mem, self.current_mem))
       self.feedback_fn("* setting instance memory to %s" % self.tgt_free_mem)
-      rpcres = self.rpc.call_instance_balloon_memory(instance.primary_node,
-                                                     instance,
+      rpcres = self.rpc.call_instance_balloon_memory(self.instance.primary_node,
+                                                     self.instance,
                                                      self.tgt_free_mem)
       rpcres.Raise("Cannot modify instance runtime memory")
 
     # First get the migration information from the remote node
-    result = self.rpc.call_migration_info(source_node_uuid, instance)
+    result = self.rpc.call_migration_info(self.source_node_uuid, self.instance)
     msg = result.fail_msg
     if msg:
       log_err = ("Failed fetching source migration information from %s: %s" %
-                 (self.cfg.GetNodeName(source_node_uuid), msg))
+                 (self.cfg.GetNodeName(self.source_node_uuid), msg))
       logging.error(log_err)
       raise errors.OpExecError(log_err)
 
@@ -713,17 +710,17 @@ class TLMigrateInstance(Tasklet):
 
     if self.instance.disk_template not in constants.DTS_EXT_MIRROR:
       # Then switch the disks to master/master mode
-      self._EnsureSecondary(target_node_uuid)
+      self._EnsureSecondary(self.target_node_uuid)
       self._GoStandalone()
       self._GoReconnect(True)
       self._WaitUntilSync()
 
     self.feedback_fn("* preparing %s to accept the instance" %
-                     self.cfg.GetNodeName(target_node_uuid))
-    result = self.rpc.call_accept_instance(target_node_uuid,
-                                           instance,
+                     self.cfg.GetNodeName(self.target_node_uuid))
+    result = self.rpc.call_accept_instance(self.target_node_uuid,
+                                           self.instance,
                                            migration_info,
-                                           self.nodes_ip[target_node_uuid])
+                                           self.nodes_ip[self.target_node_uuid])
 
     msg = result.fail_msg
     if msg:
@@ -733,14 +730,14 @@ class TLMigrateInstance(Tasklet):
       self._AbortMigration()
       self._RevertDiskStatus()
       raise errors.OpExecError("Could not pre-migrate instance %s: %s" %
-                               (instance.name, msg))
+                               (self.instance.name, msg))
 
     self.feedback_fn("* migrating instance to %s" %
-                     self.cfg.GetNodeName(target_node_uuid))
+                     self.cfg.GetNodeName(self.target_node_uuid))
     cluster = self.cfg.GetClusterInfo()
     result = self.rpc.call_instance_migrate(
-        source_node_uuid, cluster.cluster_name, instance,
-        self.nodes_ip[target_node_uuid], self.live)
+        self.source_node_uuid, cluster.cluster_name, self.instance,
+        self.nodes_ip[self.target_node_uuid], self.live)
     msg = result.fail_msg
     if msg:
       logging.error("Instance migration failed, trying to revert"
@@ -749,13 +746,13 @@ class TLMigrateInstance(Tasklet):
       self._AbortMigration()
       self._RevertDiskStatus()
       raise errors.OpExecError("Could not migrate instance %s: %s" %
-                               (instance.name, msg))
+                               (self.instance.name, msg))
 
     self.feedback_fn("* starting memory transfer")
     last_feedback = time.time()
     while True:
-      result = self.rpc.call_instance_get_migration_status(source_node_uuid,
-                                                           instance)
+      result = self.rpc.call_instance_get_migration_status(
+                 self.source_node_uuid, self.instance)
       msg = result.fail_msg
       ms = result.payload   # MigrationStatus instance
       if msg or (ms.status in constants.HV_MIGRATION_FAILED_STATUSES):
@@ -767,7 +764,7 @@ class TLMigrateInstance(Tasklet):
         if not msg:
           msg = "hypervisor returned failure"
         raise errors.OpExecError("Could not migrate instance %s: %s" %
-                                 (instance.name, msg))
+                                 (self.instance.name, msg))
 
       if result.payload.status != constants.HV_MIGRATION_ACTIVE:
         self.feedback_fn("* memory transfer complete")
@@ -782,10 +779,8 @@ class TLMigrateInstance(Tasklet):
 
       time.sleep(self._MIGRATION_POLL_INTERVAL)
 
-    result = self.rpc.call_instance_finalize_migration_src(source_node_uuid,
-                                                           instance,
-                                                           True,
-                                                           self.live)
+    result = self.rpc.call_instance_finalize_migration_src(
+               self.source_node_uuid, self.instance, True, self.live)
     msg = result.fail_msg
     if msg:
       logging.error("Instance migration succeeded, but finalization failed"
@@ -793,15 +788,13 @@ class TLMigrateInstance(Tasklet):
       raise errors.OpExecError("Could not finalize instance migration: %s" %
                                msg)
 
-    instance.primary_node = target_node_uuid
+    self.instance.primary_node = self.target_node_uuid
 
     # distribute new instance config to the other nodes
-    self.cfg.Update(instance, self.feedback_fn)
+    self.cfg.Update(self.instance, self.feedback_fn)
 
-    result = self.rpc.call_instance_finalize_migration_dst(target_node_uuid,
-                                                           instance,
-                                                           migration_info,
-                                                           True)
+    result = self.rpc.call_instance_finalize_migration_dst(
+               self.target_node_uuid, self.instance, migration_info, True)
     msg = result.fail_msg
     if msg:
       logging.error("Instance migration succeeded, but finalization failed"
@@ -810,7 +803,7 @@ class TLMigrateInstance(Tasklet):
                                msg)
 
     if self.instance.disk_template not in constants.DTS_EXT_MIRROR:
-      self._EnsureSecondary(source_node_uuid)
+      self._EnsureSecondary(self.source_node_uuid)
       self._WaitUntilSync()
       self._GoStandalone()
       self._GoReconnect(False)
@@ -819,20 +812,21 @@ class TLMigrateInstance(Tasklet):
     # If the instance's disk template is `rbd' or `ext' and there was a
     # successful migration, unmap the device from the source node.
     if self.instance.disk_template in (constants.DT_RBD, constants.DT_EXT):
-      disks = ExpandCheckDisks(instance, instance.disks)
+      disks = ExpandCheckDisks(self.instance, self.instance.disks)
       self.feedback_fn("* unmapping instance's disks from %s" %
-                       self.cfg.GetNodeName(source_node_uuid))
+                       self.cfg.GetNodeName(self.source_node_uuid))
       for disk in disks:
-        result = self.rpc.call_blockdev_shutdown(source_node_uuid,
-                                                 (disk, instance))
+        result = self.rpc.call_blockdev_shutdown(self.source_node_uuid,
+                                                 (disk, self.instance))
         msg = result.fail_msg
         if msg:
           logging.error("Migration was successful, but couldn't unmap the"
                         " block device %s on source node %s: %s",
-                        disk.iv_name, self.cfg.GetNodeName(source_node_uuid),
-                        msg)
+                        disk.iv_name,
+                        self.cfg.GetNodeName(self.source_node_uuid), msg)
           logging.error("You need to unmap the device %s manually on %s",
-                        disk.iv_name, self.cfg.GetNodeName(source_node_uuid))
+                        disk.iv_name,
+                        self.cfg.GetNodeName(self.source_node_uuid))
 
     self.feedback_fn("* done")
 
@@ -843,23 +837,21 @@ class TLMigrateInstance(Tasklet):
     starting it on the secondary.
 
     """
-    instance = self.instance
-    primary_node = self.cfg.GetNodeInfo(instance.primary_node)
+    primary_node = self.cfg.GetNodeInfo(self.instance.primary_node)
 
-    source_node_uuid = instance.primary_node
-    target_node_uuid = self.target_node_uuid
+    source_node_uuid = self.instance.primary_node
 
-    if instance.disks_active:
+    if self.instance.disks_active:
       self.feedback_fn("* checking disk consistency between source and target")
-      for (idx, dev) in enumerate(instance.disks):
+      for (idx, dev) in enumerate(self.instance.disks):
         # for drbd, these are drbd over lvm
-        if not CheckDiskConsistency(self.lu, instance, dev, target_node_uuid,
-                                    False):
+        if not CheckDiskConsistency(self.lu, self.instance, dev,
+                                    self.target_node_uuid, False):
           if primary_node.offline:
             self.feedback_fn("Node %s is offline, ignoring degraded disk %s on"
                              " target node %s" %
                              (primary_node.name, idx,
-                              self.cfg.GetNodeName(target_node_uuid)))
+                              self.cfg.GetNodeName(self.target_node_uuid)))
           elif not self.ignore_consistency:
             raise errors.OpExecError("Disk %s is degraded on target node,"
                                      " aborting failover" % idx)
@@ -869,9 +861,9 @@ class TLMigrateInstance(Tasklet):
 
     self.feedback_fn("* shutting down instance on source node")
     logging.info("Shutting down instance %s on node %s",
-                 instance.name, self.cfg.GetNodeName(source_node_uuid))
+                 self.instance.name, self.cfg.GetNodeName(source_node_uuid))
 
-    result = self.rpc.call_instance_shutdown(source_node_uuid, instance,
+    result = self.rpc.call_instance_shutdown(source_node_uuid, self.instance,
                                              self.shutdown_timeout,
                                              self.lu.op.reason)
     msg = result.fail_msg
@@ -880,47 +872,48 @@ class TLMigrateInstance(Tasklet):
         self.lu.LogWarning("Could not shutdown instance %s on node %s,"
                            " proceeding anyway; please make sure node"
                            " %s is down; error details: %s",
-                           instance.name,
+                           self.instance.name,
                            self.cfg.GetNodeName(source_node_uuid),
                            self.cfg.GetNodeName(source_node_uuid), msg)
       else:
         raise errors.OpExecError("Could not shutdown instance %s on"
                                  " node %s: %s" %
-                                 (instance.name,
+                                 (self.instance.name,
                                   self.cfg.GetNodeName(source_node_uuid), msg))
 
     self.feedback_fn("* deactivating the instance's disks on source node")
-    if not ShutdownInstanceDisks(self.lu, instance, ignore_primary=True):
+    if not ShutdownInstanceDisks(self.lu, self.instance, ignore_primary=True):
       raise errors.OpExecError("Can't shut down the instance's disks")
 
-    instance.primary_node = target_node_uuid
+    self.instance.primary_node = self.target_node_uuid
     # distribute new instance config to the other nodes
-    self.cfg.Update(instance, self.feedback_fn)
+    self.cfg.Update(self.instance, self.feedback_fn)
 
     # Only start the instance if it's marked as up
-    if instance.admin_state == constants.ADMINST_UP:
+    if self.instance.admin_state == constants.ADMINST_UP:
       self.feedback_fn("* activating the instance's disks on target node %s" %
-                       self.cfg.GetNodeName(target_node_uuid))
-      logging.info("Starting instance %s on node %s",
-                   instance.name, self.cfg.GetNodeName(target_node_uuid))
+                       self.cfg.GetNodeName(self.target_node_uuid))
+      logging.info("Starting instance %s on node %s", self.instance.name,
+                   self.cfg.GetNodeName(self.target_node_uuid))
 
-      disks_ok, _ = AssembleInstanceDisks(self.lu, instance,
+      disks_ok, _ = AssembleInstanceDisks(self.lu, self.instance,
                                           ignore_secondaries=True)
       if not disks_ok:
-        ShutdownInstanceDisks(self.lu, instance)
+        ShutdownInstanceDisks(self.lu, self.instance)
         raise errors.OpExecError("Can't activate the instance's disks")
 
       self.feedback_fn("* starting the instance on the target node %s" %
-                       self.cfg.GetNodeName(target_node_uuid))
-      result = self.rpc.call_instance_start(target_node_uuid,
-                                            (instance, None, None), False,
+                       self.cfg.GetNodeName(self.target_node_uuid))
+      result = self.rpc.call_instance_start(self.target_node_uuid,
+                                            (self.instance, None, None), False,
                                             self.lu.op.reason)
       msg = result.fail_msg
       if msg:
-        ShutdownInstanceDisks(self.lu, instance)
+        ShutdownInstanceDisks(self.lu, self.instance)
         raise errors.OpExecError("Could not start instance %s on node %s: %s" %
-                                 (instance.name,
-                                  self.cfg.GetNodeName(target_node_uuid), msg))
+                                 (self.instance.name,
+                                  self.cfg.GetNodeName(self.target_node_uuid),
+                                  msg))
 
   def Exec(self, feedback_fn):
     """Perform the migration.

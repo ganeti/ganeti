@@ -133,14 +133,13 @@ class LUTagsSearch(NoHooksLU):
     """Returns the tag list.
 
     """
-    cfg = self.cfg
-    tgts = [("/cluster", cfg.GetClusterInfo())]
-    ilist = cfg.GetAllInstancesInfo().values()
+    tgts = [("/cluster", self.cfg.GetClusterInfo())]
+    ilist = self.cfg.GetAllInstancesInfo().values()
     tgts.extend([("/instances/%s" % i.name, i) for i in ilist])
-    nlist = cfg.GetAllNodesInfo().values()
+    nlist = self.cfg.GetAllNodesInfo().values()
     tgts.extend([("/nodes/%s" % n.name, n) for n in nlist])
     tgts.extend(("/nodegroup/%s" % n.name, n)
-                for n in cfg.GetAllNodeGroupsInfo().values())
+                for n in self.cfg.GetAllNodeGroupsInfo().values())
     results = []
     for path, target in tgts:
       for tag in target.GetTags():

@@ -404,18 +404,17 @@ class IAllocator(object):
     This is the data that is independent of the actual operation.
 
     """
-    cfg = self.cfg
-    cluster_info = cfg.GetClusterInfo()
+    cluster_info = self.cfg.GetClusterInfo()
     # cluster data
     data = {
       "version": constants.IALLOCATOR_VERSION,
-      "cluster_name": cfg.GetClusterName(),
+      "cluster_name": self.cfg.GetClusterName(),
       "cluster_tags": list(cluster_info.GetTags()),
       "enabled_hypervisors": list(cluster_info.enabled_hypervisors),
       "ipolicy": cluster_info.ipolicy,
       }
-    ninfo = cfg.GetAllNodesInfo()
-    iinfo = cfg.GetAllInstancesInfo().values()
+    ninfo = self.cfg.GetAllNodesInfo()
+    iinfo = self.cfg.GetAllInstancesInfo().values()
     i_list = [(inst, cluster_info.FillBE(inst)) for inst in iinfo]
 
     # node data
@@ -425,14 +424,14 @@ class IAllocator(object):
       hypervisor_name = self.req.hypervisor
       node_whitelist = self.req.node_whitelist
     elif isinstance(self.req, IAReqRelocate):
-      hypervisor_name = cfg.GetInstanceInfo(self.req.name).hypervisor
+      hypervisor_name = self.cfg.GetInstanceInfo(self.req.name).hypervisor
       node_whitelist = None
     else:
       hypervisor_name = cluster_info.primary_hypervisor
       node_whitelist = None
 
-    es_flags = rpc.GetExclusiveStorageForNodes(cfg, node_list)
-    vg_req = rpc.BuildVgInfoQuery(cfg)
+    es_flags = rpc.GetExclusiveStorageForNodes(self.cfg, node_list)
+    vg_req = rpc.BuildVgInfoQuery(self.cfg)
     has_lvm = bool(vg_req)
     hvspecs = [(hypervisor_name, cluster_info.hvparams[hypervisor_name])]
     node_data = self.rpc.call_node_info(node_list, vg_req,
@@ -442,15 +441,16 @@ class IAllocator(object):
                                        cluster_info.enabled_hypervisors,
                                        cluster_info.hvparams)
 
-    data["nodegroups"] = self._ComputeNodeGroupData(cfg)
+    data["nodegroups"] = self._ComputeNodeGroupData(self.cfg)
 
-    config_ndata = self._ComputeBasicNodeData(cfg, ninfo, node_whitelist)
+    config_ndata = self._ComputeBasicNodeData(self.cfg, ninfo, node_whitelist)
     data["nodes"] = self._ComputeDynamicNodeData(ninfo, node_data, node_iinfo,
                                                  i_list, config_ndata, has_lvm)
     assert len(data["nodes"]) == len(ninfo), \
         "Incomplete node data computed"
 
-    data["instances"] = self._ComputeInstanceData(cfg, cluster_info, i_list)
+    data["instances"] = self._ComputeInstanceData(self.cfg, cluster_info,
+                                                  i_list)
 
     self.in_data = data
 

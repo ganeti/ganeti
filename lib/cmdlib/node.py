@@ -151,23 +151,21 @@ class LUNodeAdd(LogicalUnit):
     Any errors are signaled by raising errors.OpPrereqError.
 
     """
-    cfg = self.cfg
-    hostname = self.hostname
-    node_name = hostname.name
-    primary_ip = self.op.primary_ip = hostname.ip
+    node_name = self.hostname.name
+    self.op.primary_ip = self.hostname.ip
     if self.op.secondary_ip is None:
       if self.primary_ip_family == netutils.IP6Address.family:
         raise errors.OpPrereqError("When using a IPv6 primary address, a valid"
                                    " IPv4 address must be given as secondary",
                                    errors.ECODE_INVAL)
-      self.op.secondary_ip = primary_ip
+      self.op.secondary_ip = self.op.primary_ip
 
     secondary_ip = self.op.secondary_ip
     if not netutils.IP4Address.IsValid(secondary_ip):
       raise errors.OpPrereqError("Secondary IP (%s) needs to be a valid IPv4"
                                  " address" % secondary_ip, errors.ECODE_INVAL)
 
-    existing_node_info = cfg.GetNodeInfoByName(node_name)
+    existing_node_info = self.cfg.GetNodeInfoByName(node_name)
     if not self.op.readd and existing_node_info is not None:
       raise errors.OpPrereqError("Node %s is already in the configuration" %
                                  node_name, errors.ECODE_EXISTS)
@@ -177,19 +175,19 @@ class LUNodeAdd(LogicalUnit):
 
     self.changed_primary_ip = False
 
-    for existing_node in cfg.GetAllNodesInfo().values():
+    for existing_node in self.cfg.GetAllNodesInfo().values():
       if self.op.readd and node_name == existing_node.name:
         if existing_node.secondary_ip != secondary_ip:
           raise errors.OpPrereqError("Readded node doesn't have the same IP"
                                      " address configuration as before",
                                      errors.ECODE_INVAL)
-        if existing_node.primary_ip != primary_ip:
+        if existing_node.primary_ip != self.op.primary_ip:
           self.changed_primary_ip = True
 
         continue
 
-      if (existing_node.primary_ip == primary_ip or
-          existing_node.secondary_ip == primary_ip or
+      if (existing_node.primary_ip == self.op.primary_ip or
+          existing_node.secondary_ip == self.op.primary_ip or
           existing_node.primary_ip == secondary_ip or
           existing_node.secondary_ip == secondary_ip):
         raise errors.OpPrereqError("New node ip address(es) conflict with"
@@ -210,7 +208,7 @@ class LUNodeAdd(LogicalUnit):
           setattr(self.op, attr, True)
 
     if self.op.readd and not self.op.vm_capable:
-      pri, sec = cfg.GetNodeInstances(existing_node_info.uuid)
+      pri, sec = self.cfg.GetNodeInstances(existing_node_info.uuid)
       if pri or sec:
         raise errors.OpPrereqError("Node %s being re-added with vm_capable"
                                    " flag set to false, but it already holds"
@@ -219,9 +217,9 @@ class LUNodeAdd(LogicalUnit):
 
     # check that the type of the node (single versus dual homed) is the
     # same as for the master
-    myself = cfg.GetNodeInfo(self.cfg.GetMasterNode())
+    myself = self.cfg.GetNodeInfo(self.cfg.GetMasterNode())
     master_singlehomed = myself.secondary_ip == myself.primary_ip
-    newbie_singlehomed = secondary_ip == primary_ip
+    newbie_singlehomed = secondary_ip == self.op.primary_ip
     if master_singlehomed != newbie_singlehomed:
       if master_singlehomed:
         raise errors.OpPrereqError("The master has no secondary ip but the"
@@ -233,7 +231,7 @@ class LUNodeAdd(LogicalUnit):
                                    errors.ECODE_INVAL)
 
     # checks reachability
-    if not netutils.TcpPing(primary_ip, constants.DEFAULT_NODED_PORT):
+    if not netutils.TcpPing(self.op.primary_ip, constants.DEFAULT_NODED_PORT):
       raise errors.OpPrereqError("Node not reachable by ping",
                                  errors.ECODE_ENVIRON)
 
@@ -258,9 +256,9 @@ class LUNodeAdd(LogicalUnit):
     if self.op.readd:
       self.new_node = existing_node_info
     else:
-      node_group = cfg.LookupNodeGroup(self.op.group)
+      node_group = self.cfg.LookupNodeGroup(self.op.group)
       self.new_node = objects.Node(name=node_name,
-                                   primary_ip=primary_ip,
+                                   primary_ip=self.op.primary_ip,
                                    secondary_ip=secondary_ip,
                                    master_candidate=self.master_candidate,
                                    offline=False, drained=False,
@@ -291,13 +289,14 @@ class LUNodeAdd(LogicalUnit):
                                  (constants.PROTOCOL_VERSION, result.payload),
                                  errors.ECODE_ENVIRON)
 
-    vg_name = cfg.GetVGName()
+    vg_name = self.cfg.GetVGName()
     if vg_name is not None:
       vparams = {constants.NV_PVLIST: [vg_name]}
-      excl_stor = IsExclusiveStorageEnabledNode(cfg, self.new_node)
+      excl_stor = IsExclusiveStorageEnabledNode(self.cfg, self.new_node)
       cname = self.cfg.GetClusterName()
       result = rpcrunner.call_node_verify_light(
-          [node_name], vparams, cname, cfg.GetClusterInfo().hvparams)[node_name]
+          [node_name], vparams, cname,
+          self.cfg.GetClusterInfo().hvparams)[node_name]
       (errmsgs, _) = CheckNodePVs(result.payload, excl_stor)
       if errmsgs:
         raise errors.OpPrereqError("Checks on node PVs failed: %s" %
@@ -307,45 +306,42 @@ class LUNodeAdd(LogicalUnit):
     """Adds the new node to the cluster.
 
     """
-    new_node = self.new_node
-    node_name = new_node.name
-
     assert locking.BGL in self.owned_locks(locking.LEVEL_CLUSTER), \
       "Not owning BGL"
 
     # We adding a new node so we assume it's powered
-    new_node.powered = True
+    self.new_node.powered = True
 
     # for re-adds, reset the offline/drained/master-candidate flags;
     # we need to reset here, otherwise offline would prevent RPC calls
     # later in the procedure; this also means that if the re-add
     # fails, we are left with a non-offlined, broken node
     if self.op.readd:
-      new_node.drained = new_node.offline = False # pylint: disable=W0201
+      self.new_node.drained = False
       self.LogInfo("Readding a node, the offline/drained flags were reset")
       # if we demote the node, we do cleanup later in the procedure
-      new_node.master_candidate = self.master_candidate
+      self.new_node.master_candidate = self.master_candidate
       if self.changed_primary_ip:
-        new_node.primary_ip = self.op.primary_ip
+        self.new_node.primary_ip = self.op.primary_ip
 
     # copy the master/vm_capable flags
     for attr in self._NFLAGS:
-      setattr(new_node, attr, getattr(self.op, attr))
+      setattr(self.new_node, attr, getattr(self.op, attr))
 
     # notify the user about any possible mc promotion
-    if new_node.master_candidate:
+    if self.new_node.master_candidate:
       self.LogInfo("Node will be a master candidate")
 
     if self.op.ndparams:
-      new_node.ndparams = self.op.ndparams
+      self.new_node.ndparams = self.op.ndparams
     else:
-      new_node.ndparams = {}
+      self.new_node.ndparams = {}
 
     if self.op.hv_state:
-      new_node.hv_state_static = self.new_hv_state
+      self.new_node.hv_state_static = self.new_hv_state
 
     if self.op.disk_state:
-      new_node.disk_state_static = self.new_disk_state
+      self.new_node.disk_state_static = self.new_disk_state
 
     # Add node to our /etc/hosts, and add key to known_hosts
     if self.cfg.GetClusterInfo().modify_etc_hosts:
@@ -355,12 +351,13 @@ class LUNodeAdd(LogicalUnit):
                  self.hostname.ip)
       result.Raise("Can't update hosts file with new host data")
 
-    if new_node.secondary_ip != new_node.primary_ip:
-      _CheckNodeHasSecondaryIP(self, new_node, new_node.secondary_ip, False)
+    if self.new_node.secondary_ip != self.new_node.primary_ip:
+      _CheckNodeHasSecondaryIP(self, self.new_node, self.new_node.secondary_ip,
+                               False)
 
     node_verifier_uuids = [self.cfg.GetMasterNode()]
     node_verify_param = {
-      constants.NV_NODELIST: ([node_name], {}),
+      constants.NV_NODELIST: ([self.new_node.name], {}),
       # TODO: do a node-net-test as well?
     }
 
@@ -379,17 +376,17 @@ class LUNodeAdd(LogicalUnit):
         raise errors.OpExecError("ssh/hostname verification failed")
 
     if self.op.readd:
-      self.context.ReaddNode(new_node)
+      self.context.ReaddNode(self.new_node)
       RedistributeAncillaryFiles(self)
       # make sure we redistribute the config
-      self.cfg.Update(new_node, feedback_fn)
+      self.cfg.Update(self.new_node, feedback_fn)
       # and make sure the new node will not have old files around
-      if not new_node.master_candidate:
-        result = self.rpc.call_node_demote_from_mc(new_node.uuid)
+      if not self.new_node.master_candidate:
+        result = self.rpc.call_node_demote_from_mc(self.new_node.uuid)
         result.Warn("Node failed to demote itself from master candidate status",
                     self.LogWarning)
     else:
-      self.context.AddNode(new_node, self.proc.GetECId())
+      self.context.AddNode(self.new_node, self.proc.GetECId())
       RedistributeAncillaryFiles(self)
 
 
@@ -707,9 +704,6 @@ class LUNodeSetParams(LogicalUnit):
 
     """
     node = self.cfg.GetNodeInfo(self.op.node_uuid)
-    old_role = self.old_role
-    new_role = self.new_role
-
     result = []
 
     if self.op.ndparams:
@@ -730,14 +724,15 @@ class LUNodeSetParams(LogicalUnit):
         setattr(node, attr, val)
         result.append((attr, str(val)))
 
-    if new_role != old_role:
+    if self.new_role != self.old_role:
       # Tell the node to demote itself, if no longer MC and not offline
-      if old_role == self._ROLE_CANDIDATE and new_role != self._ROLE_OFFLINE:
+      if self.old_role == self._ROLE_CANDIDATE and \
+          self.new_role != self._ROLE_OFFLINE:
         msg = self.rpc.call_node_demote_from_mc(node.name).fail_msg
         if msg:
           self.LogWarning("Node failed to demote itself: %s", msg)
 
-      new_flags = self._R2F[new_role]
+      new_flags = self._R2F[self.new_role]
       for of, nf, desc in zip(self.old_flags, new_flags, self._FLAGS):
         if of != nf:
           result.append((desc, str(nf)))
@@ -756,7 +751,7 @@ class LUNodeSetParams(LogicalUnit):
 
     # this will trigger job queue propagation or cleanup if the mc
     # flag changed
-    if [old_role, new_role].count(self._ROLE_CANDIDATE) == 1:
+    if [self.old_role, self.new_role].count(self._ROLE_CANDIDATE) == 1:
       self.context.ReaddNode(node)
 
     return result
@@ -1072,15 +1067,15 @@ class LUNodeMigrate(LogicalUnit):
 
   def Exec(self, feedback_fn):
     # Prepare jobs for migration instances
-    allow_runtime_changes = self.op.allow_runtime_changes
     jobs = [
-      [opcodes.OpInstanceMigrate(instance_name=inst.name,
-                                 mode=self.op.mode,
-                                 live=self.op.live,
-                                 iallocator=self.op.iallocator,
-                                 target_node=self.op.target_node,
-                                 allow_runtime_changes=allow_runtime_changes,
-                                 ignore_ipolicy=self.op.ignore_ipolicy)]
+      [opcodes.OpInstanceMigrate(
+        instance_name=inst.name,
+        mode=self.op.mode,
+        live=self.op.live,
+        iallocator=self.op.iallocator,
+        target_node=self.op.target_node,
+        allow_runtime_changes=self.op.allow_runtime_changes,
+        ignore_ipolicy=self.op.ignore_ipolicy)]
       for inst in _GetNodePrimaryInstances(self.cfg, self.op.node_uuid)]
 
     # TODO: Run iallocator in this opcode and pass correct placement options to
@@ -1499,9 +1494,8 @@ class LUNodeRemove(LogicalUnit):
     """Removes the node from the cluster.
 
     """
-    node = self.node
     logging.info("Stopping the node daemon and removing configs from node %s",
-                 node.name)
+                 self.node.name)
 
     modify_ssh_setup = self.cfg.GetClusterInfo().modify_ssh_setup
 
@@ -1509,15 +1503,15 @@ class LUNodeRemove(LogicalUnit):
       "Not owning BGL"
 
     # Promote nodes to master candidate as needed
-    AdjustCandidatePool(self, exceptions=[node.uuid])
-    self.context.RemoveNode(node)
+    AdjustCandidatePool(self, exceptions=[self.node.uuid])
+    self.context.RemoveNode(self.node)
 
     # Run post hooks on the node before it's removed
-    RunPostHook(self, node.name)
+    RunPostHook(self, self.node.name)
 
     # we have to call this by name rather than by UUID, as the node is no longer
     # in the config
-    result = self.rpc.call_node_leave_cluster(node.name, modify_ssh_setup)
+    result = self.rpc.call_node_leave_cluster(self.node.name, modify_ssh_setup)
     msg = result.fail_msg
     if msg:
       self.LogWarning("Errors encountered on the remote node while leaving"
@@ -1528,7 +1522,7 @@ class LUNodeRemove(LogicalUnit):
       master_node_uuid = self.cfg.GetMasterNode()
       result = self.rpc.call_etc_hosts_modify(master_node_uuid,
                                               constants.ETC_HOSTS_REMOVE,
-                                              node.name, None)
+                                              self.node.name, None)
       result.Raise("Can't update hosts file with new host data")
       RedistributeAncillaryFiles(self)
 
