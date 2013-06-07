@@ -76,6 +76,7 @@ HS_DIRS = \
 	src/Ganeti/Storage \
 	src/Ganeti/Storage/Diskstats \
 	src/Ganeti/Storage/Drbd \
+	src/Ganeti/Storage/Lvm \
 	test/hs \
 	test/hs/Test \
 	test/hs/Test/Ganeti \
@@ -614,6 +615,8 @@ HS_LIB_SRCS = \
 	src/Ganeti/Storage/Diskstats/Types.hs \
 	src/Ganeti/Storage/Drbd/Parser.hs \
 	src/Ganeti/Storage/Drbd/Types.hs \
+	src/Ganeti/Storage/Lvm/LVParser.hs \
+	src/Ganeti/Storage/Lvm/Types.hs \
 	src/Ganeti/Storage/Utils.hs \
 	src/Ganeti/THH.hs \
 	src/Ganeti/Types.hs \
