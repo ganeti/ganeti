@@ -315,11 +315,9 @@ The ``kind`` field will depend on the specific collector.
 Each ``storage`` collector's ``data`` section will provide collector-specific
 fields.
 
-In case of error, the ``message`` subfield of the ``status`` field of the
-report of the instance status collector will disclose the nature of the error
-as a type specific information. Examples of these are "backend pv unavailable"
-for lvm storage, "unreachable" for network based storage or "filesystem error"
-for filesystem based implementations.
+The various storage collectors will provide keys to join the data they provide,
+in order to allow the user to get a better understanding of the system. E.g.:
+through device names, or instance names.
 
 Diskstats collector
 *******************
@@ -374,7 +372,7 @@ the following fields:
   This is the total number of sectors written successfully.
 
 ``timeWrite``
-  This is the total number of milliseconds spent by all writes
+  This is the total number of milliseconds spent by all writes.
 
 ``ios``
   The number of I/Os currently in progress.
