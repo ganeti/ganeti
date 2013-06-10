@@ -460,11 +460,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     constants.HV_ACPI: hv_base.NO_CHECK,
     constants.HV_SERIAL_CONSOLE: hv_base.NO_CHECK,
     constants.HV_SERIAL_SPEED: hv_base.NO_CHECK,
-    constants.HV_VNC_BIND_ADDRESS:
-      (False, lambda x: (netutils.IP4Address.IsValid(x) or
-                         utils.IsNormAbsPath(x)),
-       "The VNC bind address must be either a valid IP address or an absolute"
-       " pathname", None, None),
+    constants.HV_VNC_BIND_ADDRESS: hv_base.NO_CHECK, # will be checked later
     constants.HV_VNC_TLS: hv_base.NO_CHECK,
     constants.HV_VNC_X509: hv_base.OPT_DIR_CHECK,
     constants.HV_VNC_X509_VERIFY: hv_base.NO_CHECK,
@@ -1230,6 +1226,14 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       kvm_cmd.extend(["-usbdevice", constants.HT_MOUSE_TABLET])
 
     if vnc_bind_address:
+      if netutils.IsValidInterface(vnc_bind_address):
+        if_addresses = netutils.GetInterfaceIpAddresses(vnc_bind_address)
+        if_ip4_addresses = if_addresses[constants.IP4_VERSION]
+        if len(if_ip4_addresses) < 1:
+          logging.error("Could not determine IPv4 address of interface %s",
+                        vnc_bind_address)
+        else:
+          vnc_bind_address = if_ip4_addresses[0]
       if netutils.IP4Address.IsValid(vnc_bind_address):
         if instance.network_port > constants.VNC_BASE_PORT:
           display = instance.network_port - constants.VNC_BASE_PORT
@@ -2168,6 +2172,16 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       except KeyError:
         raise errors.HypervisorError("Unknown security domain user %s"
                                      % username)
+    vnc_bind_address = hvparams[constants.HV_VNC_BIND_ADDRESS]
+    if vnc_bind_address:
+      bound_to_addr = netutils.IP4Address.IsValid(vnc_bind_address)
+      is_interface = netutils.IsValidInterface(vnc_bind_address)
+      is_path = utils.IsNormAbsPath(vnc_bind_address)
+      if not bound_to_addr and not is_interface and not is_path:
+        raise errors.HypervisorError("VNC: The %s parameter must be either"
+                                     " a valid IP address, an interface name,"
+                                     " or an absolute path" %
+                                     constants.HV_KVM_SPICE_BIND)
 
     spice_bind = hvparams[constants.HV_KVM_SPICE_BIND]
     if spice_bind:
