@@ -277,6 +277,7 @@ main opts args = do
   let showGroup = if optOneStepOnly opts
                     then mapM_ putStrLn
                     else putStrLn . commaJoin
+      showMoves :: [(String, String)] -> IO ()
       showMoves = if optPrintMoves opts
                     then mapM_ $ putStrLn . uncurry (printf "  %s %s")
                     else const $ return ()
