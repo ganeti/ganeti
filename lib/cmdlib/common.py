@@ -141,7 +141,7 @@ def GetWantedNodes(lu, short_node_names):
   else:
     node_uuids = lu.cfg.GetNodeList()
 
-  return (node_uuids, [lu.cfg.GetNodeInfo(uuid).name for uuid in node_uuids])
+  return (node_uuids, [lu.cfg.GetNodeName(uuid) for uuid in node_uuids])
 
 
 def GetWantedInstances(lu, instances):

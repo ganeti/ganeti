@@ -968,27 +968,31 @@ class ConfigWriter:
         should raise an exception
 
     """
-    def _AppendUsedPorts(instance_name, disk, used):
+    def _AppendUsedPorts(get_node_name_fn, instance_name, disk, used):
       duplicates = []
       if disk.dev_type == constants.LD_DRBD8 and len(disk.logical_id) >= 5:
         node_a, node_b, _, minor_a, minor_b = disk.logical_id[:5]
-        for node, port in ((node_a, minor_a), (node_b, minor_b)):
-          assert node in used, ("Node '%s' of instance '%s' not found"
-                                " in node list" % (node, instance_name))
-          if port in used[node]:
-            duplicates.append((node, port, instance_name, used[node][port]))
+        for node_uuid, port in ((node_a, minor_a), (node_b, minor_b)):
+          assert node_uuid in used, \
+            ("Node '%s' of instance '%s' not found in node list" %
+             (get_node_name_fn(node_uuid), instance_name))
+          if port in used[node_uuid]:
+            duplicates.append((node_uuid, port, instance_name,
+                               used[node_uuid][port]))
           else:
-            used[node][port] = instance_name
+            used[node_uuid][port] = instance_name
       if disk.children:
         for child in disk.children:
-          duplicates.extend(_AppendUsedPorts(instance_name, child, used))
+          duplicates.extend(_AppendUsedPorts(get_node_name_fn, instance_name,
+                                             child, used))
       return duplicates
 
     duplicates = []
     my_dict = dict((node, {}) for node in self._config_data.nodes)
     for instance in self._config_data.instances.itervalues():
       for disk in instance.disks:
-        duplicates.extend(_AppendUsedPorts(instance.name, disk, my_dict))
+        duplicates.extend(_AppendUsedPorts(self._UnlockedGetNodeName,
+                                           instance.name, disk, my_dict))
     for (node, minor), instance in self._temporary_drbds.iteritems():
       if minor in my_dict[node] and my_dict[node][minor] != instance:
         duplicates.append((node, minor, instance, my_dict[node][minor]))
