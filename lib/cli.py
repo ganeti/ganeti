@@ -2263,7 +2263,7 @@ def SubmitOpCode(op, cl=None, feedback_fn=None, opts=None, reporter=None):
   SetGenericOpcodeOpts([op], opts)
 
   job_id = SendJob([op], cl=cl)
-  if opts.print_jobid:
+  if hasattr(opts, "print_jobid") and opts.print_jobid:
     ToStdout("%d" % job_id)
 
   op_results = PollJob(job_id, cl=cl, feedback_fn=feedback_fn,
