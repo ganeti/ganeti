@@ -58,6 +58,7 @@ _NEVAC_RESULT = ht.TAnd(ht.TIsLength(3),
                         ht.TItems([_NEVAC_MOVED, _NEVAC_FAILED, _JOB_LIST]))
 
 _INST_NAME = ("name", ht.TNonEmptyString)
+_INST_UUID = ("inst_uuid", ht.TNonEmptyString)
 
 
 class _AutoReqParam(outils.AutoSlots):
@@ -233,7 +234,7 @@ class IAReqRelocate(IARequestBase):
   # pylint: disable=E1101
   MODE = constants.IALLOCATOR_MODE_RELOC
   REQ_PARAMS = [
-    _INST_NAME,
+    _INST_UUID,
     ("relocate_from_node_uuids", _STRING_LIST),
     ]
   REQ_RESULT = ht.TList
@@ -245,10 +246,10 @@ class IAReqRelocate(IARequestBase):
     done.
 
     """
-    instance = cfg.GetInstanceInfo(self.name)
+    instance = cfg.GetInstanceInfo(self.inst_uuid)
     if instance is None:
       raise errors.ProgrammerError("Unknown instance '%s' passed to"
-                                   " IAllocator" % self.name)
+                                   " IAllocator" % self.inst_uuid)
 
     if instance.disk_template not in constants.DTS_MIRRORED:
       raise errors.OpPrereqError("Can't relocate non-mirrored instances",
@@ -263,7 +264,7 @@ class IAReqRelocate(IARequestBase):
     disk_space = gmi.ComputeDiskSize(instance.disk_template, disk_sizes)
 
     return {
-      "name": self.name,
+      "name": instance.name,
       "disk_space_total": disk_space,
       "required_nodes": 1,
       "relocate_from": cfg.GetNodeNames(self.relocate_from_node_uuids),
@@ -281,7 +282,7 @@ class IAReqRelocate(IARequestBase):
     fn = compat.partial(self._NodesToGroups, node2group,
                         ia.in_data["nodegroups"])
 
-    instance = ia.cfg.GetInstanceInfo(self.name)
+    instance = ia.cfg.GetInstanceInfo(self.inst_uuid)
     request_groups = fn(ia.cfg.GetNodeNames(self.relocate_from_node_uuids) +
                         ia.cfg.GetNodeNames([instance.primary_node]))
     result_groups = fn(result + ia.cfg.GetNodeNames([instance.primary_node]))
@@ -424,7 +425,7 @@ class IAllocator(object):
       hypervisor_name = self.req.hypervisor
       node_whitelist = self.req.node_whitelist
     elif isinstance(self.req, IAReqRelocate):
-      hypervisor_name = self.cfg.GetInstanceInfo(self.req.name).hypervisor
+      hypervisor_name = self.cfg.GetInstanceInfo(self.req.inst_uuid).hypervisor
       node_whitelist = None
     else:
       hypervisor_name = cluster_info.primary_hypervisor

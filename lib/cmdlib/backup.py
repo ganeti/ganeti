@@ -136,7 +136,7 @@ class LUBackupPrepare(NoHooksLU):
     """Check prerequisites.
 
     """
-    self.instance = self.cfg.GetInstanceInfo(self.op.instance_name)
+    self.instance = self.cfg.GetInstanceInfoByName(self.op.instance_name)
     assert self.instance is not None, \
           "Cannot retrieve locked instance %s" % self.op.instance_name
     CheckNodeOnline(self, self.instance.primary_node)
@@ -259,7 +259,7 @@ class LUBackupExport(LogicalUnit):
     This checks that the instance and node names are valid.
 
     """
-    self.instance = self.cfg.GetInstanceInfo(self.op.instance_name)
+    self.instance = self.cfg.GetInstanceInfoByName(self.op.instance_name)
     assert self.instance is not None, \
           "Cannot retrieve locked instance %s" % self.op.instance_name
     CheckNodeOnline(self, self.instance.primary_node)
@@ -504,13 +504,13 @@ class LUBackupRemove(NoHooksLU):
     """Remove any export.
 
     """
-    instance_name = self.cfg.ExpandInstanceName(self.op.instance_name)
+    (_, inst_name) = self.cfg.ExpandInstanceName(self.op.instance_name)
     # If the instance was not found we'll try with the name that was passed in.
     # This will only work if it was an FQDN, though.
     fqdn_warn = False
-    if not instance_name:
+    if not inst_name:
       fqdn_warn = True
-      instance_name = self.op.instance_name
+      inst_name = self.op.instance_name
 
     locked_nodes = self.owned_locks(locking.LEVEL_NODE)
     exportlist = self.rpc.call_export_list(locked_nodes)
@@ -521,13 +521,13 @@ class LUBackupRemove(NoHooksLU):
         self.LogWarning("Failed to query node %s (continuing): %s",
                         self.cfg.GetNodeName(node_uuid), msg)
         continue
-      if instance_name in exportlist[node_uuid].payload:
+      if inst_name in exportlist[node_uuid].payload:
         found = True
-        result = self.rpc.call_export_remove(node_uuid, instance_name)
+        result = self.rpc.call_export_remove(node_uuid, inst_name)
         msg = result.fail_msg
         if msg:
           logging.error("Could not remove export for instance %s"
-                        " on node %s: %s", instance_name,
+                        " on node %s: %s", inst_name,
                         self.cfg.GetNodeName(node_uuid), msg)
 
     if fqdn_warn and not found:

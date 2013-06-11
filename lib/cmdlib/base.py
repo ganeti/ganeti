@@ -28,7 +28,7 @@ from ganeti import constants
 from ganeti import locking
 from ganeti import query
 from ganeti import utils
-from ganeti.cmdlib.common import ExpandInstanceName
+from ganeti.cmdlib.common import ExpandInstanceUuidAndName
 
 
 class ResultWithJobs:
@@ -322,8 +322,9 @@ class LogicalUnit(object):
     else:
       assert locking.LEVEL_INSTANCE not in self.needed_locks, \
         "_ExpandAndLockInstance called with instance-level locks set"
-    self.op.instance_name = ExpandInstanceName(self.cfg,
-                                               self.op.instance_name)
+    (self.op.instance_uuid, self.op.instance_name) = \
+      ExpandInstanceUuidAndName(self.cfg, self.op.instance_uuid,
+                                self.op.instance_name)
     self.needed_locks[locking.LEVEL_INSTANCE] = self.op.instance_name
 
   def _LockInstancesNodes(self, primary_only=False,
@@ -361,7 +362,7 @@ class LogicalUnit(object):
     # of self.recalculate_locks[locking.LEVEL_NODE]
     wanted_node_uuids = []
     locked_i = self.owned_locks(locking.LEVEL_INSTANCE)
-    for _, instance in self.cfg.GetMultiInstanceInfo(locked_i):
+    for _, instance in self.cfg.GetMultiInstanceInfoByName(locked_i):
       wanted_node_uuids.append(instance.primary_node)
       if not primary_only:
         wanted_node_uuids.extend(instance.secondary_nodes)

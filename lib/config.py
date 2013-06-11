@@ -665,22 +665,22 @@ class ConfigWriter:
     _helper_ipolicy("cluster", cluster.ipolicy, True)
 
     # per-instance checks
-    for instance_name in data.instances:
-      instance = data.instances[instance_name]
-      if instance.name != instance_name:
-        result.append("instance '%s' is indexed by wrong name '%s'" %
-                      (instance.name, instance_name))
+    for instance_uuid in data.instances:
+      instance = data.instances[instance_uuid]
+      if instance.uuid != instance_uuid:
+        result.append("instance '%s' is indexed by wrong UUID '%s'" %
+                      (instance.name, instance_uuid))
       if instance.primary_node not in data.nodes:
         result.append("instance '%s' has invalid primary node '%s'" %
-                      (instance_name, instance.primary_node))
+                      (instance.name, instance.primary_node))
       for snode in instance.secondary_nodes:
         if snode not in data.nodes:
           result.append("instance '%s' has invalid secondary node '%s'" %
-                        (instance_name, snode))
+                        (instance.name, snode))
       for idx, nic in enumerate(instance.nics):
         if nic.mac in seen_macs:
           result.append("instance '%s' has NIC %d mac %s duplicate" %
-                        (instance_name, idx, nic.mac))
+                        (instance.name, idx, nic.mac))
         else:
           seen_macs.append(nic.mac)
         if nic.nicparams:
@@ -693,7 +693,7 @@ class ConfigWriter:
       # disk template checks
       if not instance.disk_template in data.cluster.enabled_disk_templates:
         result.append("instance '%s' uses the disabled disk template '%s'." %
-                      (instance_name, instance.disk_template))
+                      (instance.name, instance.disk_template))
 
       # parameter checks
       if instance.beparams:
@@ -961,43 +961,44 @@ class ConfigWriter:
     """Compute the used DRBD minor/nodes.
 
     @rtype: (dict, list)
-    @return: dictionary of node_uuid: dict of minor: instance_name;
+    @return: dictionary of node_uuid: dict of minor: instance_uuid;
         the returned dict will have all the nodes in it (even if with
         an empty list), and a list of duplicates; if the duplicates
         list is not empty, the configuration is corrupted and its caller
         should raise an exception
 
     """
-    def _AppendUsedPorts(get_node_name_fn, instance_name, disk, used):
+    def _AppendUsedMinors(get_node_name_fn, instance, disk, used):
       duplicates = []
       if disk.dev_type == constants.LD_DRBD8 and len(disk.logical_id) >= 5:
         node_a, node_b, _, minor_a, minor_b = disk.logical_id[:5]
-        for node_uuid, port in ((node_a, minor_a), (node_b, minor_b)):
+        for node_uuid, minor in ((node_a, minor_a), (node_b, minor_b)):
           assert node_uuid in used, \
             ("Node '%s' of instance '%s' not found in node list" %
-             (get_node_name_fn(node_uuid), instance_name))
-          if port in used[node_uuid]:
-            duplicates.append((node_uuid, port, instance_name,
-                               used[node_uuid][port]))
+             (get_node_name_fn(node_uuid), instance.name))
+          if minor in used[node_uuid]:
+            duplicates.append((node_uuid, minor, instance.uuid,
+                               used[node_uuid][minor]))
           else:
-            used[node_uuid][port] = instance_name
+            used[node_uuid][minor] = instance.uuid
       if disk.children:
         for child in disk.children:
-          duplicates.extend(_AppendUsedPorts(get_node_name_fn, instance_name,
-                                             child, used))
+          duplicates.extend(_AppendUsedMinors(get_node_name_fn, instance, child,
+                                              used))
       return duplicates
 
     duplicates = []
-    my_dict = dict((node, {}) for node in self._config_data.nodes)
+    my_dict = dict((node_uuid, {}) for node_uuid in self._config_data.nodes)
     for instance in self._config_data.instances.itervalues():
       for disk in instance.disks:
-        duplicates.extend(_AppendUsedPorts(self._UnlockedGetNodeName,
-                                           instance.name, disk, my_dict))
-    for (node, minor), instance in self._temporary_drbds.iteritems():
-      if minor in my_dict[node] and my_dict[node][minor] != instance:
-        duplicates.append((node, minor, instance, my_dict[node][minor]))
+        duplicates.extend(_AppendUsedMinors(self._UnlockedGetNodeName,
+                                            instance, disk, my_dict))
+    for (node_uuid, minor), inst_uuid in self._temporary_drbds.iteritems():
+      if minor in my_dict[node_uuid] and my_dict[node_uuid][minor] != inst_uuid:
+        duplicates.append((node_uuid, minor, inst_uuid,
+                           my_dict[node_uuid][minor]))
       else:
-        my_dict[node][minor] = instance
+        my_dict[node_uuid][minor] = inst_uuid
     return my_dict, duplicates
 
   @locking.ssynchronized(_config_lock)
@@ -1006,7 +1007,7 @@ class ConfigWriter:
 
     This is just a wrapper over L{_UnlockedComputeDRBDMap}.
 
-    @return: dictionary of node_uuid: dict of minor: instance_name;
+    @return: dictionary of node_uuid: dict of minor: instance_uuid;
         the returned dict will have all the nodes in it (even if with
         an empty list).
 
@@ -1018,7 +1019,7 @@ class ConfigWriter:
     return d_map
 
   @locking.ssynchronized(_config_lock)
-  def AllocateDRBDMinor(self, node_uuids, instance):
+  def AllocateDRBDMinor(self, node_uuids, inst_uuid):
     """Allocate a drbd minor.
 
     The free minor will be automatically computed from the existing
@@ -1026,12 +1027,12 @@ class ConfigWriter:
     multiple minors. The result is the list of minors, in the same
     order as the passed nodes.
 
-    @type instance: string
-    @param instance: the instance for which we allocate minors
+    @type inst_uuid: string
+    @param inst_uuid: the instance for which we allocate minors
 
     """
-    assert isinstance(instance, basestring), \
-           "Invalid argument '%s' passed to AllocateDRBDMinor" % instance
+    assert isinstance(inst_uuid, basestring), \
+           "Invalid argument '%s' passed to AllocateDRBDMinor" % inst_uuid
 
     d_map, duplicates = self._UnlockedComputeDRBDMap()
     if duplicates:
@@ -1043,8 +1044,8 @@ class ConfigWriter:
       if not ndata:
         # no minors used, we can start at 0
         result.append(0)
-        ndata[0] = instance
-        self._temporary_drbds[(nuuid, 0)] = instance
+        ndata[0] = inst_uuid
+        self._temporary_drbds[(nuuid, 0)] = inst_uuid
         continue
       keys = ndata.keys()
       keys.sort()
@@ -1060,35 +1061,35 @@ class ConfigWriter:
              ("Attempt to reuse allocated DRBD minor %d on node %s,"
               " already allocated to instance %s" %
               (minor, nuuid, d_map[nuuid][minor]))
-      ndata[minor] = instance
+      ndata[minor] = inst_uuid
       # double-check minor against reservation
       r_key = (nuuid, minor)
       assert r_key not in self._temporary_drbds, \
              ("Attempt to reuse reserved DRBD minor %d on node %s,"
               " reserved for instance %s" %
               (minor, nuuid, self._temporary_drbds[r_key]))
-      self._temporary_drbds[r_key] = instance
+      self._temporary_drbds[r_key] = inst_uuid
       result.append(minor)
     logging.debug("Request to allocate drbd minors, input: %s, returning %s",
                   node_uuids, result)
     return result
 
-  def _UnlockedReleaseDRBDMinors(self, instance):
+  def _UnlockedReleaseDRBDMinors(self, inst_uuid):
     """Release temporary drbd minors allocated for a given instance.
 
-    @type instance: string
-    @param instance: the instance for which temporary minors should be
-                     released
+    @type inst_uuid: string
+    @param inst_uuid: the instance for which temporary minors should be
+                      released
 
     """
-    assert isinstance(instance, basestring), \
+    assert isinstance(inst_uuid, basestring), \
            "Invalid argument passed to ReleaseDRBDMinors"
-    for key, name in self._temporary_drbds.items():
-      if name == instance:
+    for key, uuid in self._temporary_drbds.items():
+      if uuid == inst_uuid:
         del self._temporary_drbds[key]
 
   @locking.ssynchronized(_config_lock)
-  def ReleaseDRBDMinors(self, instance):
+  def ReleaseDRBDMinors(self, inst_uuid):
     """Release temporary drbd minors allocated for a given instance.
 
     This should be called on the error paths, on the success paths
@@ -1097,12 +1098,12 @@ class ConfigWriter:
 
     This function is just a wrapper over L{_UnlockedReleaseDRBDMinors}.
 
-    @type instance: string
-    @param instance: the instance for which temporary minors should be
-                     released
+    @type inst_uuid: string
+    @param inst_uuid: the instance for which temporary minors should be
+                      released
 
     """
-    self._UnlockedReleaseDRBDMinors(instance)
+    self._UnlockedReleaseDRBDMinors(inst_uuid)
 
   @locking.ssynchronized(_config_lock, shared=1)
   def GetConfigVersion(self):
@@ -1426,13 +1427,13 @@ class ConfigWriter:
                                         " MAC address '%s' already in use." %
                                         (instance.name, nic.mac))
 
-    self._EnsureUUID(instance, ec_id)
+    self._CheckUniqueUUID(instance, include_temporary=False)
 
     instance.serial_no = 1
     instance.ctime = instance.mtime = time.time()
-    self._config_data.instances[instance.name] = instance
+    self._config_data.instances[instance.uuid] = instance
     self._config_data.cluster.serial_no += 1
-    self._UnlockedReleaseDRBDMinors(instance.name)
+    self._UnlockedReleaseDRBDMinors(instance.uuid)
     self._UnlockedCommitTemporaryIps(ec_id)
     self._WriteConfig()
 
@@ -1445,18 +1446,32 @@ class ConfigWriter:
     """
     if not item.uuid:
       item.uuid = self._GenerateUniqueID(ec_id)
-    elif item.uuid in self._AllIDs(include_temporary=True):
+    else:
+      self._CheckUniqueUUID(item, include_temporary=True)
+
+  def _CheckUniqueUUID(self, item, include_temporary):
+    """Checks that the UUID of the given object is unique.
+
+    @param item: the instance or node to be checked
+    @param include_temporary: whether temporarily generated UUID's should be
+              included in the check. If the UUID of the item to be checked is
+              a temporarily generated one, this has to be C{False}.
+
+    """
+    if not item.uuid:
+      raise errors.ConfigurationError("'%s' must have an UUID" % (item.name,))
+    if item.uuid in self._AllIDs(include_temporary=include_temporary):
       raise errors.ConfigurationError("Cannot add '%s': UUID %s already"
                                       " in use" % (item.name, item.uuid))
 
-  def _SetInstanceStatus(self, instance_name, status, disks_active):
+  def _SetInstanceStatus(self, inst_uuid, status, disks_active):
     """Set the instance's status to a given value.
 
     """
-    if instance_name not in self._config_data.instances:
+    if inst_uuid not in self._config_data.instances:
       raise errors.ConfigurationError("Unknown instance '%s'" %
-                                      instance_name)
-    instance = self._config_data.instances[instance_name]
+                                      inst_uuid)
+    instance = self._config_data.instances[inst_uuid]
 
     if status is None:
       status = instance.admin_state
@@ -1475,51 +1490,51 @@ class ConfigWriter:
       self._WriteConfig()
 
   @locking.ssynchronized(_config_lock)
-  def MarkInstanceUp(self, instance_name):
+  def MarkInstanceUp(self, inst_uuid):
     """Mark the instance status to up in the config.
 
     This also sets the instance disks active flag.
 
     """
-    self._SetInstanceStatus(instance_name, constants.ADMINST_UP, True)
+    self._SetInstanceStatus(inst_uuid, constants.ADMINST_UP, True)
 
   @locking.ssynchronized(_config_lock)
-  def MarkInstanceOffline(self, instance_name):
+  def MarkInstanceOffline(self, inst_uuid):
     """Mark the instance status to down in the config.
 
     This also clears the instance disks active flag.
 
     """
-    self._SetInstanceStatus(instance_name, constants.ADMINST_OFFLINE, False)
+    self._SetInstanceStatus(inst_uuid, constants.ADMINST_OFFLINE, False)
 
   @locking.ssynchronized(_config_lock)
-  def RemoveInstance(self, instance_name):
+  def RemoveInstance(self, inst_uuid):
     """Remove the instance from the configuration.
 
     """
-    if instance_name not in self._config_data.instances:
-      raise errors.ConfigurationError("Unknown instance '%s'" % instance_name)
+    if inst_uuid not in self._config_data.instances:
+      raise errors.ConfigurationError("Unknown instance '%s'" % inst_uuid)
 
     # If a network port has been allocated to the instance,
     # return it to the pool of free ports.
-    inst = self._config_data.instances[instance_name]
+    inst = self._config_data.instances[inst_uuid]
     network_port = getattr(inst, "network_port", None)
     if network_port is not None:
       self._config_data.cluster.tcpudp_port_pool.add(network_port)
 
-    instance = self._UnlockedGetInstanceInfo(instance_name)
+    instance = self._UnlockedGetInstanceInfo(inst_uuid)
 
     for nic in instance.nics:
       if nic.network and nic.ip:
         # Return all IP addresses to the respective address pools
         self._UnlockedCommitIp(constants.RELEASE_ACTION, nic.network, nic.ip)
 
-    del self._config_data.instances[instance_name]
+    del self._config_data.instances[inst_uuid]
     self._config_data.cluster.serial_no += 1
     self._WriteConfig()
 
   @locking.ssynchronized(_config_lock)
-  def RenameInstance(self, old_name, new_name):
+  def RenameInstance(self, inst_uuid, new_name):
     """Rename an instance.
 
     This needs to be done in ConfigWriter and not by RemoveInstance
@@ -1527,11 +1542,10 @@ class ConfigWriter:
     rename.
 
     """
-    if old_name not in self._config_data.instances:
-      raise errors.ConfigurationError("Unknown instance '%s'" % old_name)
+    if inst_uuid not in self._config_data.instances:
+      raise errors.ConfigurationError("Unknown instance '%s'" % inst_uuid)
 
-    # Operate on a copy to not loose instance object in case of a failure
-    inst = self._config_data.instances[old_name].Copy()
+    inst = self._config_data.instances[inst_uuid]
     inst.name = new_name
 
     for (idx, disk) in enumerate(inst.disks):
@@ -1543,38 +1557,34 @@ class ConfigWriter:
                                           "disk%s" % idx))
         disk.physical_id = disk.logical_id
 
-    # Actually replace instance object
-    del self._config_data.instances[old_name]
-    self._config_data.instances[inst.name] = inst
-
     # Force update of ssconf files
     self._config_data.cluster.serial_no += 1
 
     self._WriteConfig()
 
   @locking.ssynchronized(_config_lock)
-  def MarkInstanceDown(self, instance_name):
+  def MarkInstanceDown(self, inst_uuid):
     """Mark the status of an instance to down in the configuration.
 
     This does not touch the instance disks active flag, as shut down instances
     can still have active disks.
 
     """
-    self._SetInstanceStatus(instance_name, constants.ADMINST_DOWN, None)
+    self._SetInstanceStatus(inst_uuid, constants.ADMINST_DOWN, None)
 
   @locking.ssynchronized(_config_lock)
-  def MarkInstanceDisksActive(self, instance_name):
+  def MarkInstanceDisksActive(self, inst_uuid):
     """Mark the status of instance disks active.
 
     """
-    self._SetInstanceStatus(instance_name, None, True)
+    self._SetInstanceStatus(inst_uuid, None, True)
 
   @locking.ssynchronized(_config_lock)
-  def MarkInstanceDisksInactive(self, instance_name):
+  def MarkInstanceDisksInactive(self, inst_uuid):
     """Mark the status of instance disks inactive.
 
     """
-    self._SetInstanceStatus(instance_name, None, False)
+    self._SetInstanceStatus(inst_uuid, None, False)
 
   def _UnlockedGetInstanceList(self):
     """Get the list of instances.
@@ -1588,8 +1598,7 @@ class ConfigWriter:
   def GetInstanceList(self):
     """Get the list of instances.
 
-    @return: array of instances, ex. ['instance2.example.com',
-        'instance1.example.com']
+    @return: array of instances, ex. ['instance2-uuid', 'instance1-uuid']
 
     """
     return self._UnlockedGetInstanceList()
@@ -1598,46 +1607,54 @@ class ConfigWriter:
     """Attempt to expand an incomplete instance name.
 
     """
-    # Locking is done in L{ConfigWriter.GetInstanceList}
-    return _MatchNameComponentIgnoreCase(short_name, self.GetInstanceList())
+    # Locking is done in L{ConfigWriter.GetAllInstancesInfo}
+    all_insts = self.GetAllInstancesInfo().values()
+    expanded_name = _MatchNameComponentIgnoreCase(
+                      short_name, [inst.name for inst in all_insts])
 
-  def _UnlockedGetInstanceInfo(self, instance_name):
+    if expanded_name is not None:
+      # there has to be exactly one instance with that name
+      inst = (filter(lambda n: n.name == expanded_name, all_insts)[0])
+      return (inst.uuid, inst.name)
+    else:
+      return None
+
+  def _UnlockedGetInstanceInfo(self, inst_uuid):
     """Returns information about an instance.
 
     This function is for internal use, when the config lock is already held.
 
     """
-    if instance_name not in self._config_data.instances:
+    if inst_uuid not in self._config_data.instances:
       return None
 
-    return self._config_data.instances[instance_name]
+    return self._config_data.instances[inst_uuid]
 
   @locking.ssynchronized(_config_lock, shared=1)
-  def GetInstanceInfo(self, instance_name):
+  def GetInstanceInfo(self, inst_uuid):
     """Returns information about an instance.
 
     It takes the information from the configuration file. Other information of
     an instance are taken from the live systems.
 
-    @param instance_name: name of the instance, e.g.
-        I{instance1.example.com}
+    @param inst_uuid: UUID of the instance
 
     @rtype: L{objects.Instance}
     @return: the instance object
 
     """
-    return self._UnlockedGetInstanceInfo(instance_name)
+    return self._UnlockedGetInstanceInfo(inst_uuid)
 
   @locking.ssynchronized(_config_lock, shared=1)
-  def GetInstanceNodeGroups(self, instance_name, primary_only=False):
+  def GetInstanceNodeGroups(self, inst_uuid, primary_only=False):
     """Returns set of node group UUIDs for instance's nodes.
 
     @rtype: frozenset
 
     """
-    instance = self._UnlockedGetInstanceInfo(instance_name)
+    instance = self._UnlockedGetInstanceInfo(inst_uuid)
     if not instance:
-      raise errors.ConfigurationError("Unknown instance '%s'" % instance_name)
+      raise errors.ConfigurationError("Unknown instance '%s'" % inst_uuid)
 
     if primary_only:
       nodes = [instance.primary_node]
@@ -1648,15 +1665,15 @@ class ConfigWriter:
                      for node_uuid in nodes)
 
   @locking.ssynchronized(_config_lock, shared=1)
-  def GetInstanceNetworks(self, instance_name):
+  def GetInstanceNetworks(self, inst_uuid):
     """Returns set of network UUIDs for instance's nics.
 
     @rtype: frozenset
 
     """
-    instance = self._UnlockedGetInstanceInfo(instance_name)
+    instance = self._UnlockedGetInstanceInfo(inst_uuid)
     if not instance:
-      raise errors.ConfigurationError("Unknown instance '%s'" % instance_name)
+      raise errors.ConfigurationError("Unknown instance '%s'" % inst_uuid)
 
     networks = set()
     for nic in instance.nics:
@@ -1666,17 +1683,34 @@ class ConfigWriter:
     return frozenset(networks)
 
   @locking.ssynchronized(_config_lock, shared=1)
-  def GetMultiInstanceInfo(self, instances):
+  def GetMultiInstanceInfo(self, inst_uuids):
     """Get the configuration of multiple instances.
 
-    @param instances: list of instance names
+    @param inst_uuids: list of instance UUIDs
+    @rtype: list
+    @return: list of tuples (instance UUID, instance_info), where
+        instance_info is what would GetInstanceInfo return for the
+        node, while keeping the original order
+
+    """
+    return [(uuid, self._UnlockedGetInstanceInfo(uuid)) for uuid in inst_uuids]
+
+  @locking.ssynchronized(_config_lock, shared=1)
+  def GetMultiInstanceInfoByName(self, inst_names):
+    """Get the configuration of multiple instances.
+
+    @param inst_names: list of instance names
     @rtype: list
     @return: list of tuples (instance, instance_info), where
         instance_info is what would GetInstanceInfo return for the
         node, while keeping the original order
 
     """
-    return [(name, self._UnlockedGetInstanceInfo(name)) for name in instances]
+    result = []
+    for name in inst_names:
+      instance = self._UnlockedGetInstanceInfoByName(name)
+      result.append((instance.uuid, instance))
+    return result
 
   @locking.ssynchronized(_config_lock, shared=1)
   def GetAllInstancesInfo(self):
@@ -1687,8 +1721,11 @@ class ConfigWriter:
               would GetInstanceInfo return for the node
 
     """
-    my_dict = dict([(instance, self._UnlockedGetInstanceInfo(instance))
-                    for instance in self._UnlockedGetInstanceList()])
+    return self._UnlockedGetAllInstancesInfo()
+
+  def _UnlockedGetAllInstancesInfo(self):
+    my_dict = dict([(inst_uuid, self._UnlockedGetInstanceInfo(inst_uuid))
+                    for inst_uuid in self._UnlockedGetInstanceList()])
     return my_dict
 
   @locking.ssynchronized(_config_lock, shared=1)
@@ -1703,9 +1740,60 @@ class ConfigWriter:
       other functions and just compares instance attributes.
 
     """
-    return dict((name, inst)
-                for (name, inst) in self._config_data.instances.items()
+    return dict((uuid, inst)
+                for (uuid, inst) in self._config_data.instances.items()
                 if filter_fn(inst))
+
+  @locking.ssynchronized(_config_lock, shared=1)
+  def GetInstanceInfoByName(self, inst_name):
+    """Get the L{objects.Instance} object for a named instance.
+
+    @param inst_name: name of the instance to get information for
+    @type inst_name: string
+    @return: the corresponding L{objects.Instance} instance or None if no
+          information is available
+
+    """
+    return self._UnlockedGetInstanceInfoByName(inst_name)
+
+  def _UnlockedGetInstanceInfoByName(self, inst_name):
+    for inst in self._UnlockedGetAllInstancesInfo().values():
+      if inst.name == inst_name:
+        return inst
+    return None
+
+  def _UnlockedGetInstanceName(self, inst_uuid):
+    inst_info = self._UnlockedGetInstanceInfo(inst_uuid)
+    if inst_info is None:
+      raise errors.OpExecError("Unknown instance: %s" % inst_uuid)
+    return inst_info.name
+
+  @locking.ssynchronized(_config_lock, shared=1)
+  def GetInstanceName(self, inst_uuid):
+    """Gets the instance name for the passed instance.
+
+    @param inst_uuid: instance UUID to get name for
+    @type inst_uuid: string
+    @rtype: string
+    @return: instance name
+
+    """
+    return self._UnlockedGetInstanceName(inst_uuid)
+
+  @locking.ssynchronized(_config_lock, shared=1)
+  def GetInstanceNames(self, inst_uuids):
+    """Gets the instance names for the passed list of nodes.
+
+    @param inst_uuids: list of instance UUIDs to get names for
+    @type inst_uuids: list of strings
+    @rtype: list of strings
+    @return: list of instance names
+
+    """
+    return self._UnlockedGetInstanceNames(inst_uuids)
+
+  def _UnlockedGetInstanceNames(self, inst_uuids):
+    return [self._UnlockedGetInstanceName(uuid) for uuid in inst_uuids]
 
   @locking.ssynchronized(_config_lock)
   def AddNode(self, node, ec_id):
@@ -1751,7 +1839,7 @@ class ConfigWriter:
                       short_name, [node.name for node in all_nodes])
 
     if expanded_name is not None:
-      # there has to be exactly one node whith that name
+      # there has to be exactly one node with that name
       node = (filter(lambda n: n.name == expanded_name, all_nodes)[0])
       return (node.uuid, node.name)
     else:
@@ -1802,9 +1890,9 @@ class ConfigWriter:
     sec = []
     for inst in self._config_data.instances.values():
       if inst.primary_node == node_uuid:
-        pri.append(inst.name)
+        pri.append(inst.uuid)
       if node_uuid in inst.secondary_nodes:
-        sec.append(inst.name)
+        sec.append(inst.uuid)
     return (pri, sec)
 
   @locking.ssynchronized(_config_lock, shared=1)
@@ -1814,7 +1902,7 @@ class ConfigWriter:
     @param uuid: Node group UUID
     @param primary_only: Whether to only consider primary nodes
     @rtype: frozenset
-    @return: List of instance names in node group
+    @return: List of instance UUIDs in node group
 
     """
     if primary_only:
@@ -1822,7 +1910,7 @@ class ConfigWriter:
     else:
       nodes_fn = lambda inst: inst.all_nodes
 
-    return frozenset(inst.name
+    return frozenset(inst.uuid
                      for inst in self._config_data.instances.values()
                      for node_uuid in nodes_fn(inst)
                      if self._UnlockedGetNodeInfo(node_uuid).group == uuid)
@@ -2436,7 +2524,9 @@ class ConfigWriter:
 
     """
     fn = "\n".join
-    instance_names = utils.NiceSort(self._UnlockedGetInstanceList())
+    instance_names = utils.NiceSort(
+                       [inst.name for inst in
+                        self._UnlockedGetAllInstancesInfo().values()])
     node_infos = self._UnlockedGetAllNodesInfo().values()
     node_names = [node.name for node in node_infos]
     node_pri_ips = ["%s %s" % (ninfo.name, ninfo.primary_ip)
@@ -2613,7 +2703,7 @@ class ConfigWriter:
       self._config_data.cluster.mtime = now
 
     if isinstance(target, objects.Instance):
-      self._UnlockedReleaseDRBDMinors(target.name)
+      self._UnlockedReleaseDRBDMinors(target.uuid)
 
     if ec_id is not None:
       # Commit all ips reserved by OpInstanceSetParams and OpGroupSetParams

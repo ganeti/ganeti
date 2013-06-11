@@ -94,7 +94,7 @@ class LUInstanceStartup(LogicalUnit):
     This checks that the instance is in the cluster.
 
     """
-    self.instance = self.cfg.GetInstanceInfo(self.op.instance_name)
+    self.instance = self.cfg.GetInstanceInfo(self.op.instance_uuid)
     assert self.instance is not None, \
       "Cannot retrieve locked instance %s" % self.op.instance_name
 
@@ -147,7 +147,7 @@ class LUInstanceStartup(LogicalUnit):
 
     """
     if not self.op.no_remember:
-      self.cfg.MarkInstanceUp(self.instance.name)
+      self.cfg.MarkInstanceUp(self.instance.uuid)
 
     if self.primary_offline:
       assert self.op.ignore_offline_nodes
@@ -200,7 +200,7 @@ class LUInstanceShutdown(LogicalUnit):
     This checks that the instance is in the cluster.
 
     """
-    self.instance = self.cfg.GetInstanceInfo(self.op.instance_name)
+    self.instance = self.cfg.GetInstanceInfo(self.op.instance_uuid)
     assert self.instance is not None, \
       "Cannot retrieve locked instance %s" % self.op.instance_name
 
@@ -224,7 +224,7 @@ class LUInstanceShutdown(LogicalUnit):
     # If the instance is offline we shouldn't mark it as down, as that
     # resets the offline flag.
     if not self.op.no_remember and self.instance.admin_state in INSTANCE_ONLINE:
-      self.cfg.MarkInstanceDown(self.instance.name)
+      self.cfg.MarkInstanceDown(self.instance.uuid)
 
     if self.primary_offline:
       assert self.op.ignore_offline_nodes
@@ -272,7 +272,7 @@ class LUInstanceReinstall(LogicalUnit):
     This checks that the instance is in the cluster and is not running.
 
     """
-    instance = self.cfg.GetInstanceInfo(self.op.instance_name)
+    instance = self.cfg.GetInstanceInfo(self.op.instance_uuid)
     assert instance is not None, \
       "Cannot retrieve locked instance %s" % self.op.instance_name
     CheckNodeOnline(self, instance.primary_node, "Instance primary node"
@@ -367,7 +367,7 @@ class LUInstanceReboot(LogicalUnit):
     This checks that the instance is in the cluster.
 
     """
-    self.instance = self.cfg.GetInstanceInfo(self.op.instance_name)
+    self.instance = self.cfg.GetInstanceInfo(self.op.instance_uuid)
     assert self.instance is not None, \
       "Cannot retrieve locked instance %s" % self.op.instance_name
     CheckInstanceState(self, self.instance, INSTANCE_ONLINE)
@@ -421,7 +421,7 @@ class LUInstanceReboot(LogicalUnit):
         raise errors.OpExecError("Could not start instance for"
                                  " full reboot: %s" % msg)
 
-    self.cfg.MarkInstanceUp(self.instance.name)
+    self.cfg.MarkInstanceUp(self.instance.uuid)
 
 
 def GetInstanceConsole(cluster, instance, primary_node):
@@ -466,7 +466,7 @@ class LUInstanceConsole(NoHooksLU):
     This checks that the instance is in the cluster.
 
     """
-    self.instance = self.cfg.GetInstanceInfo(self.op.instance_name)
+    self.instance = self.cfg.GetInstanceInfo(self.op.instance_uuid)
     assert self.instance is not None, \
       "Cannot retrieve locked instance %s" % self.op.instance_name
     CheckNodeOnline(self, self.instance.primary_node)

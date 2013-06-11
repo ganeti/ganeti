@@ -476,7 +476,8 @@ class LUNodeSetParams(LogicalUnit):
 
     if self.lock_instances:
       self.needed_locks[locking.LEVEL_INSTANCE] = \
-        frozenset(self.cfg.GetInstancesInfoByFilter(self._InstanceFilter))
+        self.cfg.GetInstanceNames(
+          self.cfg.GetInstancesInfoByFilter(self._InstanceFilter).keys())
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -512,16 +513,17 @@ class LUNodeSetParams(LogicalUnit):
         self.cfg.GetInstancesInfoByFilter(self._InstanceFilter)
 
       # Verify instance locks
-      owned_instances = self.owned_locks(locking.LEVEL_INSTANCE)
-      wanted_instances = frozenset(affected_instances.keys())
-      if wanted_instances - owned_instances:
+      owned_instance_names = self.owned_locks(locking.LEVEL_INSTANCE)
+      wanted_instance_names = frozenset([inst.name for inst in
+                                         affected_instances.values()])
+      if wanted_instance_names - owned_instance_names:
         raise errors.OpPrereqError("Instances affected by changing node %s's"
                                    " secondary IP address have changed since"
                                    " locks were acquired, wanted '%s', have"
                                    " '%s'; retry the operation" %
                                    (node.name,
-                                    utils.CommaJoin(wanted_instances),
-                                    utils.CommaJoin(owned_instances)),
+                                    utils.CommaJoin(wanted_instance_names),
+                                    utils.CommaJoin(owned_instance_names)),
                                    errors.ECODE_STATE)
     else:
       affected_instances = None
@@ -658,14 +660,15 @@ class LUNodeSetParams(LogicalUnit):
                                      " passed, and the target node is the"
                                      " master", errors.ECODE_INVAL)
 
-      assert not (frozenset(affected_instances) -
+      assert not (set([inst.name for inst in affected_instances.values()]) -
                   self.owned_locks(locking.LEVEL_INSTANCE))
 
       if node.offline:
         if affected_instances:
           msg = ("Cannot change secondary IP address: offline node has"
                  " instances (%s) configured to use it" %
-                 utils.CommaJoin(affected_instances.keys()))
+                 utils.CommaJoin(
+                   [inst.name for inst in affected_instances.values()]))
           raise errors.OpPrereqError(msg, errors.ECODE_STATE)
       else:
         # On online nodes, check that no instances are running, and that
@@ -931,7 +934,7 @@ class LUNodeEvacuate(NoHooksLU):
 
   def CheckPrereq(self):
     # Verify locks
-    owned_instances = self.owned_locks(locking.LEVEL_INSTANCE)
+    owned_instance_names = self.owned_locks(locking.LEVEL_INSTANCE)
     owned_nodes = self.owned_locks(locking.LEVEL_NODE)
     owned_groups = self.owned_locks(locking.LEVEL_NODEGROUP)
 
@@ -959,13 +962,13 @@ class LUNodeEvacuate(NoHooksLU):
     self.instances = self._DetermineInstances()
     self.instance_names = [i.name for i in self.instances]
 
-    if set(self.instance_names) != owned_instances:
+    if set(self.instance_names) != owned_instance_names:
       raise errors.OpExecError("Instances on node '%s' changed since locks"
                                " were acquired, current instances are '%s',"
                                " used to be '%s'; retry the operation" %
                                (self.op.node_name,
                                 utils.CommaJoin(self.instance_names),
-                                utils.CommaJoin(owned_instances)))
+                                utils.CommaJoin(owned_instance_names)))
 
     if self.instance_names:
       self.LogInfo("Evacuating instances from node '%s': %s",
@@ -1206,16 +1209,19 @@ class NodeQuery(QueryBase):
       node_to_secondary = dict([(uuid, set()) for uuid in node_uuids])
 
       inst_data = lu.cfg.GetAllInstancesInfo()
+      inst_uuid_to_inst_name = {}
 
       for inst in inst_data.values():
+        inst_uuid_to_inst_name[inst.uuid] = inst.name
         if inst.primary_node in node_to_primary:
-          node_to_primary[inst.primary_node].add(inst.name)
+          node_to_primary[inst.primary_node].add(inst.uuid)
         for secnode in inst.secondary_nodes:
           if secnode in node_to_secondary:
-            node_to_secondary[secnode].add(inst.name)
+            node_to_secondary[secnode].add(inst.uuid)
     else:
       node_to_primary = None
       node_to_secondary = None
+      inst_uuid_to_inst_name = None
 
     if query.NQ_OOB in self.requested_data:
       oob_support = dict((uuid, bool(SupportsOob(lu.cfg, node)))
@@ -1230,8 +1236,9 @@ class NodeQuery(QueryBase):
 
     return query.NodeQueryData([all_info[uuid] for uuid in node_uuids],
                                live_data, lu.cfg.GetMasterNode(),
-                               node_to_primary, node_to_secondary, groups,
-                               oob_support, lu.cfg.GetClusterInfo())
+                               node_to_primary, node_to_secondary,
+                               inst_uuid_to_inst_name, groups, oob_support,
+                               lu.cfg.GetClusterInfo())
 
 
 class LUNodeQuery(NoHooksLU):
@@ -1487,10 +1494,10 @@ class LUNodeRemove(LogicalUnit):
       raise errors.OpPrereqError("Node is the master node, failover to another"
                                  " node is required", errors.ECODE_INVAL)
 
-    for instance_name, instance in self.cfg.GetAllInstancesInfo().items():
+    for _, instance in self.cfg.GetAllInstancesInfo().items():
       if node.uuid in instance.all_nodes:
         raise errors.OpPrereqError("Instance %s is still running on the node,"
-                                   " please remove first" % instance_name,
+                                   " please remove first" % instance.name,
                                    errors.ECODE_INVAL)
     self.op.node_name = node.name
     self.node = node

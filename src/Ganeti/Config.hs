@@ -171,13 +171,18 @@ getNode cfg name =
                               (nodeName . (M.!) nodes) nodes
                 in getItem "Node" name by_name
 
--- | Looks up an instance.
+-- | Looks up an instance by name or uuid.
 getInstance :: ConfigData -> String -> ErrorResult Instance
 getInstance cfg name =
-  getItem "Instance" name (fromContainer $ configInstances cfg)
+  let instances = fromContainer (configInstances cfg)
+  in case getItem "Instance" name instances of
+       -- if not found by uuid, we need to look it up by name
+       Ok inst -> Ok inst
+       Bad _ -> let by_name = M.mapKeys
+                              (instName . (M.!) instances) instances
+                in getItem "Instance" name by_name
 
--- | Looks up a node group. This is more tricky than for
--- node/instances since the groups map is indexed by uuid, not name.
+-- | Looks up a node group by name or uuid.
 getGroup :: ConfigData -> String -> ErrorResult NodeGroup
 getGroup cfg name =
   let groups = fromContainer (configNodegroups cfg)
@@ -214,7 +219,7 @@ getGroupNodes cfg gname =
 -- | Get (primary, secondary) instances of a given node group.
 getGroupInstances :: ConfigData -> String -> ([Instance], [Instance])
 getGroupInstances cfg gname =
-  let gnodes = map nodeName (getGroupNodes cfg gname)
+  let gnodes = map nodeUuid (getGroupNodes cfg gname)
       ginsts = map (getNodeInstances cfg) gnodes in
   (concatMap fst ginsts, concatMap snd ginsts)
 

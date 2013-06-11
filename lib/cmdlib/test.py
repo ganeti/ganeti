@@ -33,7 +33,7 @@ from ganeti import locking
 from ganeti import utils
 from ganeti.masterd import iallocator
 from ganeti.cmdlib.base import NoHooksLU
-from ganeti.cmdlib.common import ExpandInstanceName, GetWantedNodes, \
+from ganeti.cmdlib.common import ExpandInstanceUuidAndName, GetWantedNodes, \
   GetWantedInstances
 
 
@@ -242,7 +242,7 @@ class LUTestAllocator(NoHooksLU):
         if not hasattr(self.op, attr):
           raise errors.OpPrereqError("Missing attribute '%s' on opcode input" %
                                      attr, errors.ECODE_INVAL)
-      iname = self.cfg.ExpandInstanceName(self.op.name)
+      (self.inst_uuid, iname) = self.cfg.ExpandInstanceName(self.op.name)
       if iname is not None:
         raise errors.OpPrereqError("Instance '%s' already in the cluster" %
                                    iname, errors.ECODE_EXISTS)
@@ -263,15 +263,15 @@ class LUTestAllocator(NoHooksLU):
       if self.op.hypervisor is None:
         self.op.hypervisor = self.cfg.GetHypervisorType()
     elif self.op.mode == constants.IALLOCATOR_MODE_RELOC:
-      fname = ExpandInstanceName(self.cfg, self.op.name)
+      (fuuid, fname) = ExpandInstanceUuidAndName(self.cfg, None, self.op.name)
       self.op.name = fname
       self.relocate_from_node_uuids = \
-          list(self.cfg.GetInstanceInfo(fname).secondary_nodes)
+          list(self.cfg.GetInstanceInfo(fuuid).secondary_nodes)
     elif self.op.mode in (constants.IALLOCATOR_MODE_CHG_GROUP,
                           constants.IALLOCATOR_MODE_NODE_EVAC):
       if not self.op.instances:
         raise errors.OpPrereqError("Missing instances", errors.ECODE_INVAL)
-      self.op.instances = GetWantedInstances(self, self.op.instances)
+      (_, self.op.instances) = GetWantedInstances(self, self.op.instances)
     else:
       raise errors.OpPrereqError("Invalid test allocator mode '%s'" %
                                  self.op.mode, errors.ECODE_INVAL)
@@ -302,7 +302,7 @@ class LUTestAllocator(NoHooksLU):
                                           node_whitelist=None)
     elif self.op.mode == constants.IALLOCATOR_MODE_RELOC:
       req = iallocator.IAReqRelocate(
-            name=self.op.name,
+            inst_uuid=self.inst_uuid,
             relocate_from_node_uuids=list(self.relocate_from_node_uuids))
     elif self.op.mode == constants.IALLOCATOR_MODE_CHG_GROUP:
       req = iallocator.IAReqGroupChange(instances=self.op.instances,

@@ -203,7 +203,8 @@ class LUGroupAssignNodes(NoHooksLU):
                                             self.node_data, instance_data)
 
     if new_splits:
-      fmt_new_splits = utils.CommaJoin(utils.NiceSort(new_splits))
+      fmt_new_splits = utils.CommaJoin(utils.NiceSort(
+                         self.cfg.GetInstanceNames(new_splits)))
 
       if not self.op.force:
         raise errors.OpExecError("The following instances get split by this"
@@ -216,7 +217,8 @@ class LUGroupAssignNodes(NoHooksLU):
         if previous_splits:
           self.LogWarning("In addition, these already-split instances continue"
                           " to be split across groups: %s",
-                          utils.CommaJoin(utils.NiceSort(previous_splits)))
+                          utils.CommaJoin(utils.NiceSort(
+                            self.cfg.GetInstanceNames(previous_splits))))
 
   def Exec(self, feedback_fn):
     """Assign nodes to a new group.
@@ -262,11 +264,11 @@ class LUGroupAssignNodes(NoHooksLU):
 
       if len(set(node_data[node_uuid].group
                  for node_uuid in inst.all_nodes)) > 1:
-        previously_split_instances.add(inst.name)
+        previously_split_instances.add(inst.uuid)
 
       if len(set(changed_nodes.get(node_uuid, node_data[node_uuid].group)
                  for node_uuid in inst.all_nodes)) > 1:
-        all_split_instances.add(inst.name)
+        all_split_instances.add(inst.uuid)
 
     return (list(all_split_instances - previously_split_instances),
             list(previously_split_instances & all_split_instances))
@@ -339,7 +341,7 @@ class GroupQuery(QueryBase):
         for instance in all_instances.values():
           node = instance.primary_node
           if node in node_to_group:
-            group_to_instances[node_to_group[node]].append(instance.name)
+            group_to_instances[node_to_group[node]].append(instance.uuid)
 
         if not do_nodes:
           # Do not pass on node information if it was not requested.
@@ -412,7 +414,8 @@ class LUGroupSetParams(LogicalUnit):
       # Lock instances optimistically, needs verification once group lock has
       # been acquired
       self.needed_locks[locking.LEVEL_INSTANCE] = \
-          self.cfg.GetNodeGroupInstances(self.group_uuid)
+        self.cfg.GetInstanceNames(
+          self.cfg.GetNodeGroupInstances(self.group_uuid))
 
   @staticmethod
   def _UpdateAndVerifyDiskParams(old, new):
@@ -427,10 +430,10 @@ class LUGroupSetParams(LogicalUnit):
     """Check prerequisites.
 
     """
-    owned_instances = frozenset(self.owned_locks(locking.LEVEL_INSTANCE))
+    owned_instance_names = frozenset(self.owned_locks(locking.LEVEL_INSTANCE))
 
     # Check if locked instances are still correct
-    CheckNodeGroupInstances(self.cfg, self.group_uuid, owned_instances)
+    CheckNodeGroupInstances(self.cfg, self.group_uuid, owned_instance_names)
 
     self.group = self.cfg.GetNodeGroup(self.group_uuid)
     cluster = self.cfg.GetClusterInfo()
@@ -477,8 +480,7 @@ class LUGroupSetParams(LogicalUnit):
                                            group_policy=True)
 
       new_ipolicy = cluster.SimpleFillIPolicy(self.new_ipolicy)
-      inst_filter = lambda inst: inst.name in owned_instances
-      instances = self.cfg.GetInstancesInfoByFilter(inst_filter).values()
+      instances = self.cfg.GetMultiInstanceInfoByName(owned_instance_names)
       gmi = ganeti.masterd.instance
       violations = \
           ComputeNewInstanceViolations(gmi.CalculateGroupIPolicy(cluster,
@@ -709,7 +711,8 @@ class LUGroupEvacuate(LogicalUnit):
       # Lock instances optimistically, needs verification once node and group
       # locks have been acquired
       self.needed_locks[locking.LEVEL_INSTANCE] = \
-        self.cfg.GetNodeGroupInstances(self.group_uuid)
+        self.cfg.GetInstanceNames(
+          self.cfg.GetNodeGroupInstances(self.group_uuid))
 
     elif level == locking.LEVEL_NODEGROUP:
       assert not self.needed_locks[locking.LEVEL_NODEGROUP]
@@ -723,7 +726,9 @@ class LUGroupEvacuate(LogicalUnit):
                            for instance_name in
                              self.owned_locks(locking.LEVEL_INSTANCE)
                            for group_uuid in
-                             self.cfg.GetInstanceNodeGroups(instance_name))
+                             self.cfg.GetInstanceNodeGroups(
+                               self.cfg.GetInstanceInfoByName(instance_name)
+                                 .uuid))
       else:
         # No target groups, need to lock all of them
         lock_groups = locking.ALL_SET
@@ -746,7 +751,7 @@ class LUGroupEvacuate(LogicalUnit):
       self.needed_locks[locking.LEVEL_NODE].extend(member_node_uuids)
 
   def CheckPrereq(self):
-    owned_instances = frozenset(self.owned_locks(locking.LEVEL_INSTANCE))
+    owned_instance_names = frozenset(self.owned_locks(locking.LEVEL_INSTANCE))
     owned_groups = frozenset(self.owned_locks(locking.LEVEL_NODEGROUP))
     owned_node_uuids = frozenset(self.owned_locks(locking.LEVEL_NODE))
 
@@ -754,10 +759,11 @@ class LUGroupEvacuate(LogicalUnit):
     assert self.group_uuid in owned_groups
 
     # Check if locked instances are still correct
-    CheckNodeGroupInstances(self.cfg, self.group_uuid, owned_instances)
+    CheckNodeGroupInstances(self.cfg, self.group_uuid, owned_instance_names)
 
     # Get instance information
-    self.instances = dict(self.cfg.GetMultiInstanceInfo(owned_instances))
+    self.instances = \
+      dict(self.cfg.GetMultiInstanceInfoByName(owned_instance_names))
 
     # Check if node groups for locked instances are still correct
     CheckInstancesNodeGroups(self.cfg, self.instances,
@@ -797,11 +803,11 @@ class LUGroupEvacuate(LogicalUnit):
     return (run_nodes, run_nodes)
 
   def Exec(self, feedback_fn):
-    instances = list(self.owned_locks(locking.LEVEL_INSTANCE))
+    inst_names = list(self.owned_locks(locking.LEVEL_INSTANCE))
 
     assert self.group_uuid not in self.target_uuids
 
-    req = iallocator.IAReqGroupChange(instances=instances,
+    req = iallocator.IAReqGroupChange(instances=inst_names,
                                       target_groups=self.target_uuids)
     ial = iallocator.IAllocator(self.cfg, self.rpc, req)
 
@@ -851,7 +857,8 @@ class LUGroupVerifyDisks(NoHooksLU):
       # Lock instances optimistically, needs verification once node and group
       # locks have been acquired
       self.needed_locks[locking.LEVEL_INSTANCE] = \
-        self.cfg.GetNodeGroupInstances(self.group_uuid)
+        self.cfg.GetInstanceNames(
+          self.cfg.GetNodeGroupInstances(self.group_uuid))
 
     elif level == locking.LEVEL_NODEGROUP:
       assert not self.needed_locks[locking.LEVEL_NODEGROUP]
@@ -863,7 +870,9 @@ class LUGroupVerifyDisks(NoHooksLU):
             # later on
             [group_uuid
              for instance_name in self.owned_locks(locking.LEVEL_INSTANCE)
-             for group_uuid in self.cfg.GetInstanceNodeGroups(instance_name)])
+             for group_uuid in
+               self.cfg.GetInstanceNodeGroups(
+                 self.cfg.GetInstanceInfoByName(instance_name).uuid)])
 
     elif level == locking.LEVEL_NODE:
       # This will only lock the nodes in the group to be verified which contain
@@ -877,17 +886,17 @@ class LUGroupVerifyDisks(NoHooksLU):
       self.needed_locks[locking.LEVEL_NODE].extend(member_node_uuids)
 
   def CheckPrereq(self):
-    owned_instances = frozenset(self.owned_locks(locking.LEVEL_INSTANCE))
+    owned_inst_names = frozenset(self.owned_locks(locking.LEVEL_INSTANCE))
     owned_groups = frozenset(self.owned_locks(locking.LEVEL_NODEGROUP))
     owned_node_uuids = frozenset(self.owned_locks(locking.LEVEL_NODE))
 
     assert self.group_uuid in owned_groups
 
     # Check if locked instances are still correct
-    CheckNodeGroupInstances(self.cfg, self.group_uuid, owned_instances)
+    CheckNodeGroupInstances(self.cfg, self.group_uuid, owned_inst_names)
 
     # Get instance information
-    self.instances = dict(self.cfg.GetMultiInstanceInfo(owned_instances))
+    self.instances = dict(self.cfg.GetMultiInstanceInfoByName(owned_inst_names))
 
     # Check if node groups for locked instances are still correct
     CheckInstancesNodeGroups(self.cfg, self.instances,

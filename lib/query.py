@@ -1092,7 +1092,8 @@ class NodeQueryData:
 
   """
   def __init__(self, nodes, live_data, master_uuid, node_to_primary,
-               node_to_secondary, groups, oob_support, cluster):
+               node_to_secondary, inst_uuid_to_inst_name, groups, oob_support,
+               cluster):
     """Initializes this class.
 
     """
@@ -1101,6 +1102,7 @@ class NodeQueryData:
     self.master_uuid = master_uuid
     self.node_to_primary = node_to_primary
     self.node_to_secondary = node_to_secondary
+    self.inst_uuid_to_inst_name = inst_uuid_to_inst_name
     self.groups = groups
     self.oob_support = oob_support
     self.cluster = cluster
@@ -1366,7 +1368,9 @@ def _BuildNodeFields():
     return lambda ctx, node: len(getter(ctx)[node.uuid])
 
   def _GetList(getter):
-    return lambda ctx, node: utils.NiceSort(list(getter(ctx)[node.uuid]))
+    return lambda ctx, node: utils.NiceSort(
+                               [ctx.inst_uuid_to_inst_name[uuid]
+                                for uuid in getter(ctx)[node.uuid]])
 
   # Add fields operating on instance lists
   for prefix, titleprefix, docword, getter in \
@@ -1411,17 +1415,17 @@ class InstanceQueryData:
 
     @param instances: List of instance objects
     @param cluster: Cluster object
-    @type disk_usage: dict; instance name as key
+    @type disk_usage: dict; instance UUID as key
     @param disk_usage: Per-instance disk usage
     @type offline_node_uuids: list of strings
     @param offline_node_uuids: List of offline nodes
     @type bad_node_uuids: list of strings
     @param bad_node_uuids: List of faulty nodes
-    @type live_data: dict; instance name as key
+    @type live_data: dict; instance UUID as key
     @param live_data: Per-instance live data
     @type wrongnode_inst: set
     @param wrongnode_inst: Set of instances running on wrong node(s)
-    @type console: dict; instance name as key
+    @type console: dict; instance UUID as key
     @param console: Per-instance console information
     @type nodes: dict; node UUID as key
     @param nodes: Node objects
@@ -1483,7 +1487,7 @@ def _GetInstOperState(ctx, inst):
   if inst.primary_node in ctx.bad_nodes:
     return _FS_NODATA
   else:
-    return bool(ctx.live_data.get(inst.name))
+    return bool(ctx.live_data.get(inst.uuid))
 
 
 def _GetInstLiveData(name):
@@ -1507,8 +1511,8 @@ def _GetInstLiveData(name):
       # offline when we actually don't know due to missing data
       return _FS_NODATA
 
-    if inst.name in ctx.live_data:
-      data = ctx.live_data[inst.name]
+    if inst.uuid in ctx.live_data:
+      data = ctx.live_data[inst.uuid]
       if name in data:
         return data[name]
 
@@ -1531,8 +1535,8 @@ def _GetInstStatus(ctx, inst):
   if inst.primary_node in ctx.bad_nodes:
     return constants.INSTST_NODEDOWN
 
-  if bool(ctx.live_data.get(inst.name)):
-    if inst.name in ctx.wrongnode_inst:
+  if bool(ctx.live_data.get(inst.uuid)):
+    if inst.uuid in ctx.wrongnode_inst:
       return constants.INSTST_WRONGNODE
     elif inst.admin_state == constants.ADMINST_UP:
       return constants.INSTST_RUNNING
@@ -1884,7 +1888,7 @@ def _GetInstDiskUsage(ctx, inst):
   @param inst: Instance object
 
   """
-  usage = ctx.disk_usage[inst.name]
+  usage = ctx.disk_usage[inst.uuid]
 
   if usage is None:
     usage = 0
@@ -1900,7 +1904,7 @@ def _GetInstanceConsole(ctx, inst):
   @param inst: Instance object
 
   """
-  consinfo = ctx.console[inst.name]
+  consinfo = ctx.console[inst.uuid]
 
   if consinfo is None:
     return _FS_UNAVAIL

@@ -48,7 +48,7 @@ from ganeti.cmdlib.common import INSTANCE_DOWN, \
   ShareAll, GetDefaultIAllocator, CheckInstanceNodeGroups, \
   LoadNodeEvacResult, CheckIAllocatorOrNode, CheckParamsNotGlobal, \
   IsExclusiveStorageEnabledNode, CheckHVParams, CheckOSParams, \
-  AnnotateDiskParams, GetUpdatedParams, ExpandInstanceName, \
+  AnnotateDiskParams, GetUpdatedParams, ExpandInstanceUuidAndName, \
   ComputeIPolicySpecViolation, CheckInstanceState, ExpandNodeUuidAndName
 from ganeti.cmdlib.instance_storage import CreateDisks, \
   CheckNodesFreeDiskPerVG, WipeDisks, WipeOrCleanupDisks, WaitForSync, \
@@ -392,10 +392,10 @@ class LUInstanceCreate(LogicalUnit):
 
     # instance name verification
     if self.op.name_check:
-      self.hostname1 = _CheckHostnameSane(self, self.op.instance_name)
-      self.op.instance_name = self.hostname1.name
+      self.hostname = _CheckHostnameSane(self, self.op.instance_name)
+      self.op.instance_name = self.hostname.name
       # used in CheckPrereq for ip ping check
-      self.check_ip = self.hostname1.ip
+      self.check_ip = self.hostname.ip
     else:
       self.check_ip = None
 
@@ -503,7 +503,8 @@ class LUInstanceCreate(LogicalUnit):
 
     # this is just a preventive check, but someone might still add this
     # instance in the meantime, and creation will fail at lock-add time
-    if self.op.instance_name in self.cfg.GetInstanceList():
+    if self.op.instance_name in\
+      [inst.name for inst in self.cfg.GetAllInstancesInfo().values()]:
       raise errors.OpPrereqError("Instance '%s' is already in the cluster" %
                                  self.op.instance_name, errors.ECODE_EXISTS)
 
@@ -1188,13 +1189,15 @@ class LUInstanceCreate(LogicalUnit):
     else:
       network_port = None
 
+    instance_uuid = self.cfg.GenerateUniqueID(self.proc.GetECId())
+
     # This is ugly but we got a chicken-egg problem here
     # We can only take the group disk parameters, as the instance
     # has no disks yet (we are generating them right here).
     nodegroup = self.cfg.GetNodeGroup(self.pnode.group)
     disks = GenerateDiskTemplate(self,
                                  self.op.disk_template,
-                                 self.op.instance_name, self.pnode.uuid,
+                                 instance_uuid, self.pnode.uuid,
                                  self.secondaries,
                                  self.disks,
                                  self.instance_file_storage_dir,
@@ -1203,7 +1206,9 @@ class LUInstanceCreate(LogicalUnit):
                                  feedback_fn,
                                  self.cfg.GetGroupDiskParams(nodegroup))
 
-    iobj = objects.Instance(name=self.op.instance_name, os=self.op.os_type,
+    iobj = objects.Instance(name=self.op.instance_name,
+                            uuid=instance_uuid,
+                            os=self.op.os_type,
                             primary_node=self.pnode.uuid,
                             nics=self.nics, disks=disks,
                             disk_template=self.op.disk_template,
@@ -1281,7 +1286,7 @@ class LUInstanceCreate(LogicalUnit):
 
     if disk_abort:
       RemoveDisks(self, iobj)
-      self.cfg.RemoveInstance(iobj.name)
+      self.cfg.RemoveInstance(iobj.uuid)
       # Make sure the instance lock gets removed
       self.remove_locks[locking.LEVEL_INSTANCE] = iobj.name
       raise errors.OpExecError("There are some degraded disks for"
@@ -1455,9 +1460,10 @@ class LUInstanceRename(LogicalUnit):
     This checks that the instance is in the cluster and is not running.
 
     """
-    self.op.instance_name = ExpandInstanceName(self.cfg,
-                                               self.op.instance_name)
-    instance = self.cfg.GetInstanceInfo(self.op.instance_name)
+    (self.op.instance_uuid, self.op.instance_name) = \
+      ExpandInstanceUuidAndName(self.cfg, self.op.instance_uuid,
+                                self.op.instance_name)
+    instance = self.cfg.GetInstanceInfo(self.op.instance_uuid)
     assert instance is not None
     CheckNodeOnline(self, instance.primary_node)
     CheckInstanceState(self, instance, INSTANCE_NOT_RUNNING,
@@ -1474,8 +1480,9 @@ class LUInstanceRename(LogicalUnit):
                                    (hostname.ip, new_name),
                                    errors.ECODE_NOTUNIQUE)
 
-    instance_list = self.cfg.GetInstanceList()
-    if new_name in instance_list and new_name != instance.name:
+    instance_names = [inst.name for
+                      inst in self.cfg.GetAllInstancesInfo().values()]
+    if new_name in instance_names and new_name != instance.name:
       raise errors.OpPrereqError("Instance '%s' is already in the cluster" %
                                  new_name, errors.ECODE_EXISTS)
 
@@ -1492,7 +1499,7 @@ class LUInstanceRename(LogicalUnit):
                                self.instance.disks[0].logical_id[1])
       rename_file_storage = True
 
-    self.cfg.RenameInstance(self.instance.name, self.op.new_name)
+    self.cfg.RenameInstance(self.instance.uuid, self.op.new_name)
     # Change the instance lock. This is definitely safe while we hold the BGL.
     # Otherwise the new lock would have to be added in acquired mode.
     assert self.REQ_BGL
@@ -1501,7 +1508,7 @@ class LUInstanceRename(LogicalUnit):
     self.glm.add(locking.LEVEL_INSTANCE, self.op.new_name)
 
     # re-read the instance from the configuration after rename
-    renamed_inst = self.cfg.GetInstanceInfo(self.op.new_name)
+    renamed_inst = self.cfg.GetInstanceInfo(self.instance.uuid)
 
     if rename_file_storage:
       new_file_storage_dir = os.path.dirname(
@@ -1584,7 +1591,7 @@ class LUInstanceRemove(LogicalUnit):
     This checks that the instance is in the cluster.
 
     """
-    self.instance = self.cfg.GetInstanceInfo(self.op.instance_name)
+    self.instance = self.cfg.GetInstanceInfo(self.op.instance_uuid)
     assert self.instance is not None, \
       "Cannot retrieve locked instance %s" % self.op.instance_name
 
@@ -1670,7 +1677,7 @@ class LUInstanceMove(LogicalUnit):
     This checks that the instance is in the cluster.
 
     """
-    self.instance = self.cfg.GetInstanceInfo(self.op.instance_name)
+    self.instance = self.cfg.GetInstanceInfo(self.op.instance_uuid)
     assert self.instance is not None, \
       "Cannot retrieve locked instance %s" % self.op.instance_name
 
@@ -1752,7 +1759,7 @@ class LUInstanceMove(LogicalUnit):
       CreateDisks(self, self.instance, target_node_uuid=target_node.uuid)
     except errors.OpExecError:
       self.LogWarning("Device creation failed")
-      self.cfg.ReleaseDRBDMinors(self.instance.name)
+      self.cfg.ReleaseDRBDMinors(self.instance.uuid)
       raise
 
     cluster_name = self.cfg.GetClusterInfo().cluster_name
@@ -1785,7 +1792,7 @@ class LUInstanceMove(LogicalUnit):
       try:
         RemoveDisks(self, self.instance, target_node_uuid=target_node.uuid)
       finally:
-        self.cfg.ReleaseDRBDMinors(self.instance.name)
+        self.cfg.ReleaseDRBDMinors(self.instance.uuid)
         raise errors.OpExecError("Errors during disk copy: %s" %
                                  (",".join(errs),))
 
@@ -2376,7 +2383,7 @@ class LUInstanceSetParams(LogicalUnit):
       # Acquire locks for the instance's nodegroups optimistically. Needs
       # to be verified in CheckPrereq
       self.needed_locks[locking.LEVEL_NODEGROUP] = \
-        self.cfg.GetInstanceNodeGroups(self.op.instance_name)
+        self.cfg.GetInstanceNodeGroups(self.op.instance_uuid)
     elif level == locking.LEVEL_NODE:
       self._LockInstancesNodes()
       if self.op.disk_template and self.op.remote_node:
@@ -2714,7 +2721,7 @@ class LUInstanceSetParams(LogicalUnit):
 
     """
     assert self.op.instance_name in self.owned_locks(locking.LEVEL_INSTANCE)
-    self.instance = self.cfg.GetInstanceInfo(self.op.instance_name)
+    self.instance = self.cfg.GetInstanceInfo(self.op.instance_uuid)
     self.cluster = self.cfg.GetClusterInfo()
 
     assert self.instance is not None, \
@@ -3031,7 +3038,7 @@ class LUInstanceSetParams(LogicalUnit):
                   constants.IDISK_NAME: d.name}
                  for d in self.instance.disks]
     new_disks = GenerateDiskTemplate(self, self.op.disk_template,
-                                     self.instance.name, pnode_uuid,
+                                     self.instance.uuid, pnode_uuid,
                                      [snode_uuid], disk_info, None, None, 0,
                                      feedback_fn, self.diskparams)
     anno_disks = rpc.AnnotateDiskParams(constants.DT_DRBD8, new_disks,
@@ -3160,7 +3167,7 @@ class LUInstanceSetParams(LogicalUnit):
 
     disk = \
       GenerateDiskTemplate(self, self.instance.disk_template,
-                           self.instance.name, self.instance.primary_node,
+                           self.instance.uuid, self.instance.primary_node,
                            self.instance.secondary_nodes, [params], file_path,
                            file_driver, idx, self.Log, self.diskparams)[0]
 
@@ -3314,7 +3321,7 @@ class LUInstanceSetParams(LogicalUnit):
       try:
         self._DISK_CONVERSIONS[mode](self, feedback_fn)
       except:
-        self.cfg.ReleaseDRBDMinors(self.instance.name)
+        self.cfg.ReleaseDRBDMinors(self.instance.uuid)
         raise
       result.append(("disk_template", self.op.disk_template))
 
@@ -3359,11 +3366,11 @@ class LUInstanceSetParams(LogicalUnit):
       pass
     elif self.op.offline:
       # Mark instance as offline
-      self.cfg.MarkInstanceOffline(self.instance.name)
+      self.cfg.MarkInstanceOffline(self.instance.uuid)
       result.append(("admin_state", constants.ADMINST_OFFLINE))
     else:
       # Mark instance as online, but stopped
-      self.cfg.MarkInstanceDown(self.instance.name)
+      self.cfg.MarkInstanceDown(self.instance.uuid)
       result.append(("admin_state", constants.ADMINST_DOWN))
 
     self.cfg.Update(self.instance, feedback_fn, self.proc.GetECId())
@@ -3413,7 +3420,7 @@ class LUInstanceChangeGroup(LogicalUnit):
 
         # Lock all groups used by instance optimistically; this requires going
         # via the node before it's locked, requiring verification later on
-        instance_groups = self.cfg.GetInstanceNodeGroups(self.op.instance_name)
+        instance_groups = self.cfg.GetInstanceNodeGroups(self.op.instance_uuid)
         lock_groups.update(instance_groups)
       else:
         # No target groups, need to lock all of them
@@ -3429,7 +3436,7 @@ class LUInstanceChangeGroup(LogicalUnit):
 
         # Lock all nodes in all potential target groups
         lock_groups = (frozenset(self.owned_locks(locking.LEVEL_NODEGROUP)) -
-                       self.cfg.GetInstanceNodeGroups(self.op.instance_name))
+                       self.cfg.GetInstanceNodeGroups(self.op.instance_uuid))
         member_nodes = [node_uuid
                         for group in lock_groups
                         for node_uuid in self.cfg.GetNodeGroup(group).members]
@@ -3439,23 +3446,23 @@ class LUInstanceChangeGroup(LogicalUnit):
         self.needed_locks[locking.LEVEL_NODE] = locking.ALL_SET
 
   def CheckPrereq(self):
-    owned_instances = frozenset(self.owned_locks(locking.LEVEL_INSTANCE))
+    owned_instance_names = frozenset(self.owned_locks(locking.LEVEL_INSTANCE))
     owned_groups = frozenset(self.owned_locks(locking.LEVEL_NODEGROUP))
     owned_nodes = frozenset(self.owned_locks(locking.LEVEL_NODE))
 
     assert (self.req_target_uuids is None or
             owned_groups.issuperset(self.req_target_uuids))
-    assert owned_instances == set([self.op.instance_name])
+    assert owned_instance_names == set([self.op.instance_name])
 
     # Get instance information
-    self.instance = self.cfg.GetInstanceInfo(self.op.instance_name)
+    self.instance = self.cfg.GetInstanceInfo(self.op.instance_uuid)
 
     # Check if node groups for locked instance are still correct
     assert owned_nodes.issuperset(self.instance.all_nodes), \
       ("Instance %s's nodes changed while we kept the lock" %
        self.op.instance_name)
 
-    inst_groups = CheckInstanceNodeGroups(self.cfg, self.op.instance_name,
+    inst_groups = CheckInstanceNodeGroups(self.cfg, self.op.instance_uuid,
                                           owned_groups)
 
     if self.req_target_uuids:

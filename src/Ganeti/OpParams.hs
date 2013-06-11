@@ -50,6 +50,7 @@ module Ganeti.OpParams
   , SetParamsMods(..)
   , ExportTarget(..)
   , pInstanceName
+  , pInstanceUuid
   , pInstances
   , pName
   , pTagsList
@@ -521,6 +522,10 @@ instance JSON ExportTarget where
 -- | A required instance name (for single-instance LUs).
 pInstanceName :: Field
 pInstanceName = simpleField "instance_name" [t| String |]
+
+-- | An instance UUID (for single-instance LUs).
+pInstanceUuid :: Field
+pInstanceUuid = optionalField $ simpleField "instance_uuid" [t| String |]
 
 -- | A list of instances.
 pInstances :: Field

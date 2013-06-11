@@ -30,7 +30,7 @@ from ganeti import locking
 from ganeti.masterd import iallocator
 from ganeti import utils
 from ganeti.cmdlib.base import LogicalUnit, Tasklet
-from ganeti.cmdlib.common import ExpandInstanceName, \
+from ganeti.cmdlib.common import ExpandInstanceUuidAndName, \
   CheckIAllocatorOrNode, ExpandNodeUuidAndName
 from ganeti.cmdlib.instance_storage import CheckDiskConsistency, \
   ExpandCheckDisks, ShutdownInstanceDisks, AssembleInstanceDisks
@@ -72,7 +72,7 @@ def _DeclareLocksForMigration(lu, level):
   if level == locking.LEVEL_NODE_ALLOC:
     assert lu.op.instance_name in lu.owned_locks(locking.LEVEL_INSTANCE)
 
-    instance = lu.cfg.GetInstanceInfo(lu.op.instance_name)
+    instance = lu.cfg.GetInstanceInfo(lu.op.instance_uuid)
 
     # Node locks are already declared here rather than at LEVEL_NODE as we need
     # the instance object anyway to declare the node allocation lock.
@@ -118,8 +118,8 @@ class LUInstanceFailover(LogicalUnit):
     _ExpandNamesForMigration(self)
 
     self._migrater = \
-      TLMigrateInstance(self, self.op.instance_name, False, True, False,
-                        self.op.ignore_consistency, True,
+      TLMigrateInstance(self, self.op.instance_uuid, self.op.instance_name,
+                        False, True, False, self.op.ignore_consistency, True,
                         self.op.shutdown_timeout, self.op.ignore_ipolicy)
 
     self.tasklets = [self._migrater]
@@ -177,8 +177,8 @@ class LUInstanceMigrate(LogicalUnit):
     _ExpandNamesForMigration(self)
 
     self._migrater = \
-      TLMigrateInstance(self, self.op.instance_name, self.op.cleanup,
-                        False, self.op.allow_failover, False,
+      TLMigrateInstance(self, self.op.instance_uuid, self.op.instance_name,
+                        self.op.cleanup, False, self.op.allow_failover, False,
                         self.op.allow_runtime_changes,
                         constants.DEFAULT_SHUTDOWN_TIMEOUT,
                         self.op.ignore_ipolicy)
@@ -255,15 +255,16 @@ class TLMigrateInstance(Tasklet):
   _MIGRATION_POLL_INTERVAL = 1      # seconds
   _MIGRATION_FEEDBACK_INTERVAL = 10 # seconds
 
-  def __init__(self, lu, instance_name, cleanup, failover, fallback,
-               ignore_consistency, allow_runtime_changes, shutdown_timeout,
-               ignore_ipolicy):
+  def __init__(self, lu, instance_uuid, instance_name, cleanup, failover,
+               fallback, ignore_consistency, allow_runtime_changes,
+               shutdown_timeout, ignore_ipolicy):
     """Initializes this class.
 
     """
     Tasklet.__init__(self, lu)
 
     # Parameters
+    self.instance_uuid = instance_uuid
     self.instance_name = instance_name
     self.cleanup = cleanup
     self.live = False # will be overridden later
@@ -280,8 +281,10 @@ class TLMigrateInstance(Tasklet):
     This checks that the instance is in the cluster.
 
     """
-    instance_name = ExpandInstanceName(self.lu.cfg, self.instance_name)
-    self.instance = self.cfg.GetInstanceInfo(instance_name)
+    (self.instance_uuid, self.instance_name) = \
+      ExpandInstanceUuidAndName(self.lu.cfg, self.instance_uuid,
+                                self.instance_name)
+    self.instance = self.cfg.GetInstanceInfo(self.instance_uuid)
     assert self.instance is not None
     cluster = self.cfg.GetClusterInfo()
 
@@ -448,7 +451,7 @@ class TLMigrateInstance(Tasklet):
 
     # FIXME: add a self.ignore_ipolicy option
     req = iallocator.IAReqRelocate(
-          name=self.instance_name,
+          inst_uuid=self.instance_uuid,
           relocate_from_node_uuids=[self.instance.primary_node])
     ial = iallocator.IAllocator(self.cfg, self.rpc, req)
 

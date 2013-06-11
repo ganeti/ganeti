@@ -192,7 +192,7 @@ class TestLUGroupAssignNodes(unittest.TestCase):
                                     ("n3c", "g3"),
                                     ])
 
-    def Instance(name, pnode, snode):
+    def Instance(uuid, pnode, snode):
       if snode is None:
         disks = []
         disk_template = constants.DT_DISKLESS
@@ -201,11 +201,12 @@ class TestLUGroupAssignNodes(unittest.TestCase):
                               logical_id=[pnode, snode, 1, 17, 17])]
         disk_template = constants.DT_DRBD8
 
-      return objects.Instance(name=name, primary_node=pnode, disks=disks,
+      return objects.Instance(name="%s-name" % uuid, uuid="%s" % uuid,
+                              primary_node=pnode, disks=disks,
                               disk_template=disk_template)
 
-    instance_data = dict((name, Instance(name, pnode, snode))
-                         for name, pnode, snode in [("inst1a", "n1a", "n1b"),
+    instance_data = dict((uuid, Instance(uuid, pnode, snode))
+                         for uuid, pnode, snode in [("inst1a", "n1a", "n1b"),
                                                     ("inst1b", "n1b", "n1a"),
                                                     ("inst2a", "n2a", "n2b"),
                                                     ("inst3a", "n3a", None),

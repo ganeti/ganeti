@@ -184,21 +184,21 @@ nodeFields =
   , (FieldDefinition "pinst_cnt" "Pinst" QFTNumber
        "Number of instances with this node as primary",
      FieldConfig (\cfg ->
-                    rsNormal . length . fst . getNodeInstances cfg . nodeName),
+                    rsNormal . length . fst . getNodeInstances cfg . nodeUuid),
      QffNormal)
   , (FieldDefinition "sinst_cnt" "Sinst" QFTNumber
        "Number of instances with this node as secondary",
      FieldConfig (\cfg ->
-                    rsNormal . length . snd . getNodeInstances cfg . nodeName),
+                    rsNormal . length . snd . getNodeInstances cfg . nodeUuid),
      QffNormal)
   , (FieldDefinition "pinst_list" "PriInstances" QFTOther
        "List of instances with this node as primary",
      FieldConfig (\cfg -> rsNormal . niceSort . map instName . fst .
-                          getNodeInstances cfg . nodeName), QffNormal)
+                          getNodeInstances cfg . nodeUuid), QffNormal)
   , (FieldDefinition "sinst_list" "SecInstances" QFTOther
        "List of instances with this node as secondary",
      FieldConfig (\cfg -> rsNormal . niceSort . map instName . snd .
-                          getNodeInstances cfg . nodeName), QffNormal)
+                          getNodeInstances cfg . nodeUuid), QffNormal)
   , (FieldDefinition "role" "Role" QFTText nodeRoleDoc,
      FieldConfig ((rsNormal .) . getNodeRole), QffNormal)
   , (FieldDefinition "powered" "Powered" QFTBool

@@ -292,6 +292,7 @@ detectBroken nl inst =
          Just (
            ArReinstall,
            [ OpInstanceRecreateDisks { opInstanceName = iname
+                                     , opInstanceUuid = Nothing
                                      , opRecreateDisksInfo = RecreateDisksAll
                                      , opNodes = []
                                        -- FIXME: there should be a better way to
@@ -303,6 +304,7 @@ detectBroken nl inst =
                                      , opIallocator = mkNonEmpty "hail"
                                      }
            , OpInstanceReinstall { opInstanceName = iname
+                                 , opInstanceUuid = Nothing
                                  , opOsType = Nothing
                                  , opTempOsParams = Nothing
                                  , opForceVariant = False
@@ -312,6 +314,7 @@ detectBroken nl inst =
          Just (
            ArFailover,
            [ OpInstanceFailover { opInstanceName = iname
+                                , opInstanceUuid = Nothing
                                   -- FIXME: ditto, see above.
                                 , opShutdownTimeout = fromJust $ mkNonNegative
                                                       C.defaultShutdownTimeout
@@ -326,6 +329,7 @@ detectBroken nl inst =
          Just (
            ArFixStorage,
            [ OpInstanceReplaceDisks { opInstanceName = iname
+                                    , opInstanceUuid = Nothing
                                     , opReplaceDisksMode = ReplaceNewSecondary
                                     , opReplaceDisksList = []
                                     , opRemoteNode = Nothing
@@ -343,6 +347,7 @@ detectBroken nl inst =
          Just (
            ArReinstall,
            [ OpInstanceRecreateDisks { opInstanceName = iname
+                                     , opInstanceUuid = Nothing
                                      , opRecreateDisksInfo = RecreateDisksAll
                                      , opNodes = []
                                        -- FIXME: ditto, see above.
@@ -350,6 +355,7 @@ detectBroken nl inst =
                                      , opIallocator = mkNonEmpty "hail"
                                      }
            , OpInstanceReinstall { opInstanceName = iname
+                                 , opInstanceUuid = Nothing
                                  , opOsType = Nothing
                                  , opTempOsParams = Nothing
                                  , opForceVariant = False

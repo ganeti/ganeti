@@ -408,7 +408,7 @@ def _GenerateDRBD8Branch(lu, primary_uuid, secondary_uuid, size, vgnames, names,
 
 
 def GenerateDiskTemplate(
-  lu, template_name, instance_name, primary_node_uuid, secondary_node_uuids,
+  lu, template_name, instance_uuid, primary_node_uuid, secondary_node_uuids,
   disk_info, file_storage_dir, file_driver, base_index,
   feedback_fn, full_disk_params, _req_file_storage=opcodes.RequireFileStorage,
   _req_shr_file_storage=opcodes.RequireSharedFileStorage):
@@ -426,7 +426,7 @@ def GenerateDiskTemplate(
       raise errors.ProgrammerError("Wrong template configuration")
     remote_node_uuid = secondary_node_uuids[0]
     minors = lu.cfg.AllocateDRBDMinor(
-      [primary_node_uuid, remote_node_uuid] * len(disk_info), instance_name)
+      [primary_node_uuid, remote_node_uuid] * len(disk_info), instance_uuid)
 
     (drbd_params, _, _) = objects.Disk.ComputeLDParams(template_name,
                                                        full_disk_params)
@@ -679,7 +679,7 @@ class LUInstanceRecreateDisks(LogicalUnit):
       # requires going via the node before it's locked, requiring
       # verification later on
       self.needed_locks[locking.LEVEL_NODEGROUP] = \
-        self.cfg.GetInstanceNodeGroups(self.op.instance_name, primary_only=True)
+        self.cfg.GetInstanceNodeGroups(self.op.instance_uuid, primary_only=True)
 
     elif level == locking.LEVEL_NODE:
       # If an allocator is used, then we lock all the nodes in the current
@@ -726,7 +726,7 @@ class LUInstanceRecreateDisks(LogicalUnit):
     This checks that the instance is in the cluster and is not running.
 
     """
-    instance = self.cfg.GetInstanceInfo(self.op.instance_name)
+    instance = self.cfg.GetInstanceInfo(self.op.instance_uuid)
     assert instance is not None, \
       "Cannot retrieve locked instance %s" % self.op.instance_name
     if self.op.node_uuids:
@@ -755,7 +755,7 @@ class LUInstanceRecreateDisks(LogicalUnit):
     if owned_groups:
       # Node group locks are acquired only for the primary node (and only
       # when the allocator is used)
-      CheckInstanceNodeGroups(self.cfg, self.op.instance_name, owned_groups,
+      CheckInstanceNodeGroups(self.cfg, instance.uuid, owned_groups,
                               primary_only=True)
 
     # if we replace nodes *and* the old primary is offline, we don't
@@ -828,7 +828,7 @@ class LUInstanceRecreateDisks(LogicalUnit):
                                          # have changed
         (_, _, old_port, _, _, old_secret) = disk.logical_id
         new_minors = self.cfg.AllocateDRBDMinor(self.op.node_uuids,
-                                                self.instance.name)
+                                                self.instance.uuid)
         new_id = (self.op.node_uuids[0], self.op.node_uuids[1], old_port,
                   new_minors[0], new_minors[1], old_secret)
         assert len(disk.logical_id) == len(new_id)
@@ -1193,7 +1193,7 @@ def ShutdownInstanceDisks(lu, instance, disks=None, ignore_primary=False):
   ignored.
 
   """
-  lu.cfg.MarkInstanceDisksInactive(instance.name)
+  lu.cfg.MarkInstanceDisksInactive(instance.uuid)
   all_result = True
   disks = ExpandCheckDisks(instance, disks)
 
@@ -1248,7 +1248,6 @@ def AssembleInstanceDisks(lu, instance, disks=None, ignore_secondaries=False,
   """
   device_info = []
   disks_ok = True
-  iname = instance.name
   disks = ExpandCheckDisks(instance, disks)
 
   # With the two passes mechanism we try to reduce the window of
@@ -1262,7 +1261,7 @@ def AssembleInstanceDisks(lu, instance, disks=None, ignore_secondaries=False,
 
   # mark instance disks as active before doing actual work, so watcher does
   # not try to shut them down erroneously
-  lu.cfg.MarkInstanceDisksActive(iname)
+  lu.cfg.MarkInstanceDisksActive(instance.uuid)
 
   # 1st pass, assemble on all nodes in secondary mode
   for idx, inst_disk in enumerate(disks):
@@ -1273,7 +1272,7 @@ def AssembleInstanceDisks(lu, instance, disks=None, ignore_secondaries=False,
         node_disk.UnsetSize()
       lu.cfg.SetDiskID(node_disk, node_uuid)
       result = lu.rpc.call_blockdev_assemble(node_uuid, (node_disk, instance),
-                                             iname, False, idx)
+                                             instance.name, False, idx)
       msg = result.fail_msg
       if msg:
         is_offline_secondary = (node_uuid in instance.secondary_nodes and
@@ -1299,7 +1298,7 @@ def AssembleInstanceDisks(lu, instance, disks=None, ignore_secondaries=False,
         node_disk.UnsetSize()
       lu.cfg.SetDiskID(node_disk, node_uuid)
       result = lu.rpc.call_blockdev_assemble(node_uuid, (node_disk, instance),
-                                             iname, True, idx)
+                                             instance.name, True, idx)
       msg = result.fail_msg
       if msg:
         lu.LogWarning("Could not prepare block device %s on node %s"
@@ -1319,7 +1318,7 @@ def AssembleInstanceDisks(lu, instance, disks=None, ignore_secondaries=False,
     lu.cfg.SetDiskID(disk, instance.primary_node)
 
   if not disks_ok:
-    lu.cfg.MarkInstanceDisksInactive(iname)
+    lu.cfg.MarkInstanceDisksInactive(instance.uuid)
 
   return disks_ok, device_info
 
@@ -1389,20 +1388,18 @@ class LUInstanceGrowDisk(LogicalUnit):
     This checks that the instance is in the cluster.
 
     """
-    instance = self.cfg.GetInstanceInfo(self.op.instance_name)
-    assert instance is not None, \
+    self.instance = self.cfg.GetInstanceInfo(self.op.instance_uuid)
+    assert self.instance is not None, \
       "Cannot retrieve locked instance %s" % self.op.instance_name
-    node_uuids = list(instance.all_nodes)
+    node_uuids = list(self.instance.all_nodes)
     for node_uuid in node_uuids:
       CheckNodeOnline(self, node_uuid)
 
-    self.instance = instance
-
-    if instance.disk_template not in constants.DTS_GROWABLE:
+    if self.instance.disk_template not in constants.DTS_GROWABLE:
       raise errors.OpPrereqError("Instance's disk layout does not support"
                                  " growing", errors.ECODE_INVAL)
 
-    self.disk = instance.FindDisk(self.op.disk)
+    self.disk = self.instance.FindDisk(self.op.disk)
 
     if self.op.absolute:
       self.target = self.op.amount
@@ -1598,7 +1595,8 @@ class LUInstanceReplaceDisks(LogicalUnit):
 
     self.needed_locks[locking.LEVEL_NODE_RES] = []
 
-    self.replacer = TLReplaceDisks(self, self.op.instance_name, self.op.mode,
+    self.replacer = TLReplaceDisks(self, self.op.instance_uuid,
+                                   self.op.instance_name, self.op.mode,
                                    self.op.iallocator, self.op.remote_node_uuid,
                                    self.op.disks, self.op.early_release,
                                    self.op.ignore_ipolicy)
@@ -1615,7 +1613,7 @@ class LUInstanceReplaceDisks(LogicalUnit):
       # Lock all groups used by instance optimistically; this requires going
       # via the node before it's locked, requiring verification later on
       self.needed_locks[locking.LEVEL_NODEGROUP] = \
-        self.cfg.GetInstanceNodeGroups(self.op.instance_name)
+        self.cfg.GetInstanceNodeGroups(self.op.instance_uuid)
 
     elif level == locking.LEVEL_NODE:
       if self.op.iallocator is not None:
@@ -1676,7 +1674,7 @@ class LUInstanceReplaceDisks(LogicalUnit):
     # Verify if node group locks are still correct
     owned_groups = self.owned_locks(locking.LEVEL_NODEGROUP)
     if owned_groups:
-      CheckInstanceNodeGroups(self.cfg, self.op.instance_name, owned_groups)
+      CheckInstanceNodeGroups(self.cfg, self.op.instance_uuid, owned_groups)
 
     return LogicalUnit.CheckPrereq(self)
 
@@ -1702,7 +1700,7 @@ class LUInstanceActivateDisks(NoHooksLU):
     This checks that the instance is in the cluster.
 
     """
-    self.instance = self.cfg.GetInstanceInfo(self.op.instance_name)
+    self.instance = self.cfg.GetInstanceInfo(self.op.instance_uuid)
     assert self.instance is not None, \
       "Cannot retrieve locked instance %s" % self.op.instance_name
     CheckNodeOnline(self, self.instance.primary_node)
@@ -1719,7 +1717,7 @@ class LUInstanceActivateDisks(NoHooksLU):
 
     if self.op.wait_for_sync:
       if not WaitForSync(self, self.instance):
-        self.cfg.MarkInstanceDisksInactive(self.instance.name)
+        self.cfg.MarkInstanceDisksInactive(self.instance.uuid)
         raise errors.OpExecError("Some disks of the instance are degraded!")
 
     return disks_info
@@ -1746,7 +1744,7 @@ class LUInstanceDeactivateDisks(NoHooksLU):
     This checks that the instance is in the cluster.
 
     """
-    self.instance = self.cfg.GetInstanceInfo(self.op.instance_name)
+    self.instance = self.cfg.GetInstanceInfo(self.op.instance_uuid)
     assert self.instance is not None, \
       "Cannot retrieve locked instance %s" % self.op.instance_name
 
@@ -1841,14 +1839,15 @@ class TLReplaceDisks(Tasklet):
   Note: Locking is not within the scope of this class.
 
   """
-  def __init__(self, lu, instance_name, mode, iallocator_name, remote_node_uuid,
-               disks, early_release, ignore_ipolicy):
+  def __init__(self, lu, instance_uuid, instance_name, mode, iallocator_name,
+               remote_node_uuid, disks, early_release, ignore_ipolicy):
     """Initializes this class.
 
     """
     Tasklet.__init__(self, lu)
 
     # Parameters
+    self.instance_uuid = instance_uuid
     self.instance_name = instance_name
     self.mode = mode
     self.iallocator_name = iallocator_name
@@ -1866,13 +1865,13 @@ class TLReplaceDisks(Tasklet):
     self.node_secondary_ip = None
 
   @staticmethod
-  def _RunAllocator(lu, iallocator_name, instance_name,
+  def _RunAllocator(lu, iallocator_name, instance_uuid,
                     relocate_from_node_uuids):
     """Compute a new secondary node using an IAllocator.
 
     """
     req = iallocator.IAReqRelocate(
-          name=instance_name,
+          inst_uuid=instance_uuid,
           relocate_from_node_uuids=list(relocate_from_node_uuids))
     ial = iallocator.IAllocator(lu.cfg, lu.rpc, req)
 
@@ -1891,7 +1890,7 @@ class TLReplaceDisks(Tasklet):
                                  remote_node_name, errors.ECODE_NOENT)
 
     lu.LogInfo("Selected new secondary for instance '%s': %s",
-               instance_name, remote_node_name)
+               instance_uuid, remote_node_name)
 
     return remote_node.uuid
 
@@ -1932,7 +1931,7 @@ class TLReplaceDisks(Tasklet):
     This checks that the instance is in the cluster.
 
     """
-    self.instance = self.cfg.GetInstanceInfo(self.instance_name)
+    self.instance = self.cfg.GetInstanceInfo(self.instance_uuid)
     assert self.instance is not None, \
       "Cannot retrieve locked instance %s" % self.instance_name
 
@@ -1952,7 +1951,7 @@ class TLReplaceDisks(Tasklet):
       remote_node_uuid = self.remote_node_uuid
     else:
       remote_node_uuid = self._RunAllocator(self.lu, self.iallocator_name,
-                                            self.instance.name,
+                                            self.instance.uuid,
                                             self.instance.secondary_nodes)
 
     if remote_node_uuid is None:
@@ -2473,7 +2472,7 @@ class TLReplaceDisks(Tasklet):
     self.lu.LogStep(4, steps_total, "Changing drbd configuration")
     minors = self.cfg.AllocateDRBDMinor([self.new_node_uuid
                                          for _ in self.instance.disks],
-                                        self.instance.name)
+                                        self.instance.uuid)
     logging.debug("Allocated minors %r", minors)
 
     iv_names = {}
@@ -2512,7 +2511,7 @@ class TLReplaceDisks(Tasklet):
                              GetInstanceInfoText(self.instance), False,
                              excl_stor)
       except errors.GenericError:
-        self.cfg.ReleaseDRBDMinors(self.instance.name)
+        self.cfg.ReleaseDRBDMinors(self.instance.uuid)
         raise
 
     # We have new devices, shutdown the drbd on the old secondary
@@ -2534,7 +2533,7 @@ class TLReplaceDisks(Tasklet):
     msg = result.fail_msg
     if msg:
       # detaches didn't succeed (unlikely)
-      self.cfg.ReleaseDRBDMinors(self.instance.name)
+      self.cfg.ReleaseDRBDMinors(self.instance.uuid)
       raise errors.OpExecError("Can't detach the disks from the network on"
                                " old node: %s" % (msg,))
 

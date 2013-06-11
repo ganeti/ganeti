@@ -443,7 +443,7 @@ class LUClusterRepairDiskSizes(NoHooksLU):
 
   def ExpandNames(self):
     if self.op.instances:
-      self.wanted_names = GetWantedInstances(self, self.op.instances)
+      (_, self.wanted_names) = GetWantedInstances(self, self.op.instances)
       # Not getting the node allocation lock as only a specific set of
       # instances (and their nodes) is going to be acquired
       self.needed_locks = {
@@ -481,7 +481,7 @@ class LUClusterRepairDiskSizes(NoHooksLU):
       self.wanted_names = self.owned_locks(locking.LEVEL_INSTANCE)
 
     self.wanted_instances = \
-        map(compat.snd, self.cfg.GetMultiInstanceInfo(self.wanted_names))
+        map(compat.snd, self.cfg.GetMultiInstanceInfoByName(self.wanted_names))
 
   def _EnsureChildSizes(self, disk):
     """Ensure children of the disk have the needed disk size.
@@ -812,8 +812,8 @@ class LUClusterSetParams(LogicalUnit):
                                              for nuuid in inst.all_nodes)])
         new_ipolicy = objects.FillIPolicy(self.new_ipolicy, group.ipolicy)
         ipol = masterd.instance.CalculateGroupIPolicy(cluster, group)
-        new = ComputeNewInstanceViolations(ipol,
-                                           new_ipolicy, instances, self.cfg)
+        new = ComputeNewInstanceViolations(ipol, new_ipolicy, instances,
+                                           self.cfg)
         if new:
           violations.update(new)
 
@@ -1373,15 +1373,16 @@ class LUClusterVerifyConfig(NoHooksLU, _VerifyErrors):
 
     for inst in self.all_inst_info.values():
       if inst.primary_node in [node.uuid for node in dangling_nodes]:
-        dangling_instances.setdefault(inst.primary_node, []).append(inst.name)
+        dangling_instances.setdefault(inst.primary_node, []).append(inst)
       elif inst.primary_node not in self.all_node_info:
-        no_node_instances.append(inst.name)
+        no_node_instances.append(inst)
 
     pretty_dangling = [
         "%s (%s)" %
         (node.name,
-         utils.CommaJoin(dangling_instances.get(node.uuid,
-                                                ["no instances"])))
+         utils.CommaJoin(
+           self.cfg.GetInstanceNames(
+             dangling_instances.get(node.uuid, ["no instances"]))))
         for node in dangling_nodes]
 
     self._ErrorIf(bool(dangling_nodes), constants.CV_ECLUSTERDANGLINGNODES,
@@ -1392,7 +1393,8 @@ class LUClusterVerifyConfig(NoHooksLU, _VerifyErrors):
     self._ErrorIf(bool(no_node_instances), constants.CV_ECLUSTERDANGLINGINST,
                   None,
                   "the following instances have a non-existing primary-node:"
-                  " %s", utils.CommaJoin(no_node_instances))
+                  " %s", utils.CommaJoin(
+                           self.cfg.GetInstanceNames(no_node_instances)))
 
     return not self.bad
 
@@ -1468,11 +1470,11 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     self.group_uuid = self.cfg.LookupNodeGroup(self.op.group_name)
 
     # Get instances in node group; this is unsafe and needs verification later
-    inst_names = \
+    inst_uuids = \
       self.cfg.GetNodeGroupInstances(self.group_uuid, primary_only=True)
 
     self.needed_locks = {
-      locking.LEVEL_INSTANCE: inst_names,
+      locking.LEVEL_INSTANCE: self.cfg.GetInstanceNames(inst_uuids),
       locking.LEVEL_NODEGROUP: [self.group_uuid],
       locking.LEVEL_NODE: [],
 
@@ -1489,17 +1491,16 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       # Get members of node group; this is unsafe and needs verification later
       nodes = set(self.cfg.GetNodeGroup(self.group_uuid).members)
 
-      all_inst_info = self.cfg.GetAllInstancesInfo()
-
       # In Exec(), we warn about mirrored instances that have primary and
       # secondary living in separate node groups. To fully verify that
       # volumes for these instances are healthy, we will need to do an
       # extra call to their secondaries. We ensure here those nodes will
       # be locked.
-      for inst in self.owned_locks(locking.LEVEL_INSTANCE):
+      for inst_name in self.owned_locks(locking.LEVEL_INSTANCE):
         # Important: access only the instances whose lock is owned
-        if all_inst_info[inst].disk_template in constants.DTS_INT_MIRROR:
-          nodes.update(all_inst_info[inst].secondary_nodes)
+        instance = self.cfg.GetInstanceInfoByName(inst_name)
+        if instance.disk_template in constants.DTS_INT_MIRROR:
+          nodes.update(instance.secondary_nodes)
 
       self.needed_locks[locking.LEVEL_NODE] = nodes
 
@@ -1508,14 +1509,16 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     self.group_info = self.cfg.GetNodeGroup(self.group_uuid)
 
     group_node_uuids = set(self.group_info.members)
-    group_instances = \
+    group_inst_uuids = \
       self.cfg.GetNodeGroupInstances(self.group_uuid, primary_only=True)
 
     unlocked_node_uuids = \
         group_node_uuids.difference(self.owned_locks(locking.LEVEL_NODE))
 
-    unlocked_instances = \
-        group_instances.difference(self.owned_locks(locking.LEVEL_INSTANCE))
+    unlocked_inst_uuids = \
+        group_inst_uuids.difference(
+          [self.cfg.GetInstanceInfoByName(name).uuid
+           for name in self.owned_locks(locking.LEVEL_INSTANCE)])
 
     if unlocked_node_uuids:
       raise errors.OpPrereqError(
@@ -1523,10 +1526,11 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
         utils.CommaJoin(self.cfg.GetNodeNames(unlocked_node_uuids)),
         errors.ECODE_STATE)
 
-    if unlocked_instances:
-      raise errors.OpPrereqError("Missing lock for instances: %s" %
-                                 utils.CommaJoin(unlocked_instances),
-                                 errors.ECODE_STATE)
+    if unlocked_inst_uuids:
+      raise errors.OpPrereqError(
+        "Missing lock for instances: %s" %
+        utils.CommaJoin(self.cfg.GetInstanceNames(unlocked_inst_uuids)),
+        errors.ECODE_STATE)
 
     self.all_node_info = self.cfg.GetAllNodesInfo()
     self.all_inst_info = self.cfg.GetAllInstancesInfo()
@@ -1535,9 +1539,9 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     self.my_node_info = dict((node_uuid, self.all_node_info[node_uuid])
                              for node_uuid in group_node_uuids)
 
-    self.my_inst_names = utils.NiceSort(group_instances)
-    self.my_inst_info = dict((name, self.all_inst_info[name])
-                             for name in self.my_inst_names)
+    self.my_inst_uuids = group_inst_uuids
+    self.my_inst_info = dict((inst_uuid, self.all_inst_info[inst_uuid])
+                             for inst_uuid in group_inst_uuids)
 
     # We detect here the nodes that will need the extra RPC calls for verifying
     # split LV volumes; they should be locked.
@@ -1817,8 +1821,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
           msg = "cannot reach the master IP"
         self._ErrorIf(True, constants.CV_ENODENET, ninfo.name, msg)
 
-  def _VerifyInstance(self, instance, inst_config, node_image,
-                      diskstatus):
+  def _VerifyInstance(self, instance, node_image, diskstatus):
     """Verify an instance.
 
     This function checks to see if the required block devices are
@@ -1826,39 +1829,39 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     state.
 
     """
-    pnode = inst_config.primary_node
-    pnode_img = node_image[pnode]
+    pnode_uuid = instance.primary_node
+    pnode_img = node_image[pnode_uuid]
     groupinfo = self.cfg.GetAllNodeGroupsInfo()
 
     node_vol_should = {}
-    inst_config.MapLVsByNode(node_vol_should)
+    instance.MapLVsByNode(node_vol_should)
 
     cluster = self.cfg.GetClusterInfo()
     ipolicy = ganeti.masterd.instance.CalculateGroupIPolicy(cluster,
                                                             self.group_info)
-    err = ComputeIPolicyInstanceViolation(ipolicy, inst_config, self.cfg)
-    self._ErrorIf(err, constants.CV_EINSTANCEPOLICY, instance,
+    err = ComputeIPolicyInstanceViolation(ipolicy, instance, self.cfg)
+    self._ErrorIf(err, constants.CV_EINSTANCEPOLICY, instance.name,
                   utils.CommaJoin(err), code=self.ETYPE_WARNING)
 
-    for node in node_vol_should:
-      n_img = node_image[node]
+    for node_uuid in node_vol_should:
+      n_img = node_image[node_uuid]
       if n_img.offline or n_img.rpc_fail or n_img.lvm_fail:
         # ignore missing volumes on offline or broken nodes
         continue
-      for volume in node_vol_should[node]:
+      for volume in node_vol_should[node_uuid]:
         test = volume not in n_img.volumes
-        self._ErrorIf(test, constants.CV_EINSTANCEMISSINGDISK, instance,
+        self._ErrorIf(test, constants.CV_EINSTANCEMISSINGDISK, instance.name,
                       "volume %s missing on node %s", volume,
-                      self.cfg.GetNodeName(node))
+                      self.cfg.GetNodeName(node_uuid))
 
-    if inst_config.admin_state == constants.ADMINST_UP:
-      test = instance not in pnode_img.instances and not pnode_img.offline
-      self._ErrorIf(test, constants.CV_EINSTANCEDOWN, instance,
+    if instance.admin_state == constants.ADMINST_UP:
+      test = instance.uuid not in pnode_img.instances and not pnode_img.offline
+      self._ErrorIf(test, constants.CV_EINSTANCEDOWN, instance.name,
                     "instance not running on its primary node %s",
-                     self.cfg.GetNodeName(pnode))
-      self._ErrorIf(pnode_img.offline, constants.CV_EINSTANCEBADNODE, instance,
-                    "instance is marked as running and lives on"
-                    " offline node %s", self.cfg.GetNodeName(pnode))
+                     self.cfg.GetNodeName(pnode_uuid))
+      self._ErrorIf(pnode_img.offline, constants.CV_EINSTANCEBADNODE,
+                    instance.name, "instance is marked as running and lives on"
+                    " offline node %s", self.cfg.GetNodeName(pnode_uuid))
 
     diskdata = [(nname, success, status, idx)
                 for (nname, disks) in diskstatus.items()
@@ -1869,13 +1872,13 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       # node here
       snode = node_image[nname]
       bad_snode = snode.ghost or snode.offline
-      self._ErrorIf(inst_config.disks_active and
+      self._ErrorIf(instance.disks_active and
                     not success and not bad_snode,
-                    constants.CV_EINSTANCEFAULTYDISK, instance,
+                    constants.CV_EINSTANCEFAULTYDISK, instance.name,
                     "couldn't retrieve status for disk/%s on %s: %s",
                     idx, self.cfg.GetNodeName(nname), bdev_status)
 
-      if inst_config.disks_active and success and \
+      if instance.disks_active and success and \
          (bdev_status.is_degraded or
           bdev_status.ldisk_status != constants.LDS_OKAY):
         msg = "disk/%s on %s" % (idx, self.cfg.GetNodeName(nname))
@@ -1885,84 +1888,85 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
           msg += "; state is '%s'" % \
                  constants.LDS_NAMES[bdev_status.ldisk_status]
 
-        self._Error(constants.CV_EINSTANCEFAULTYDISK, instance, msg)
+        self._Error(constants.CV_EINSTANCEFAULTYDISK, instance.name, msg)
 
     self._ErrorIf(pnode_img.rpc_fail and not pnode_img.offline,
-                  constants.CV_ENODERPC, pnode, "instance %s, connection to"
-                  " primary node failed", instance)
+                  constants.CV_ENODERPC, self.cfg.GetNodeName(pnode_uuid),
+                  "instance %s, connection to primary node failed",
+                  instance.name)
 
-    self._ErrorIf(len(inst_config.secondary_nodes) > 1,
-                  constants.CV_EINSTANCELAYOUT,
-                  instance, "instance has multiple secondary nodes: %s",
-                  utils.CommaJoin(inst_config.secondary_nodes),
+    self._ErrorIf(len(instance.secondary_nodes) > 1,
+                  constants.CV_EINSTANCELAYOUT, instance.name,
+                  "instance has multiple secondary nodes: %s",
+                  utils.CommaJoin(instance.secondary_nodes),
                   code=self.ETYPE_WARNING)
 
-    es_flags = rpc.GetExclusiveStorageForNodes(self.cfg,
-                                               inst_config.all_nodes)
+    es_flags = rpc.GetExclusiveStorageForNodes(self.cfg, instance.all_nodes)
     if any(es_flags.values()):
-      if inst_config.disk_template not in constants.DTS_EXCL_STORAGE:
+      if instance.disk_template not in constants.DTS_EXCL_STORAGE:
         # Disk template not compatible with exclusive_storage: no instance
         # node should have the flag set
         es_nodes = [n
                     for (n, es) in es_flags.items()
                     if es]
-        self._Error(constants.CV_EINSTANCEUNSUITABLENODE, instance,
+        self._Error(constants.CV_EINSTANCEUNSUITABLENODE, instance.name,
                     "instance has template %s, which is not supported on nodes"
                     " that have exclusive storage set: %s",
-                    inst_config.disk_template,
+                    instance.disk_template,
                     utils.CommaJoin(self.cfg.GetNodeNames(es_nodes)))
-      for (idx, disk) in enumerate(inst_config.disks):
+      for (idx, disk) in enumerate(instance.disks):
         self._ErrorIf(disk.spindles is None,
-                      constants.CV_EINSTANCEMISSINGCFGPARAMETER, instance,
+                      constants.CV_EINSTANCEMISSINGCFGPARAMETER, instance.name,
                       "number of spindles not configured for disk %s while"
                       " exclusive storage is enabled, try running"
                       " gnt-cluster repair-disk-sizes", idx)
 
-    if inst_config.disk_template in constants.DTS_INT_MIRROR:
-      instance_nodes = utils.NiceSort(inst_config.all_nodes)
+    if instance.disk_template in constants.DTS_INT_MIRROR:
+      instance_nodes = utils.NiceSort(instance.all_nodes)
       instance_groups = {}
 
-      for node in instance_nodes:
-        instance_groups.setdefault(self.all_node_info[node].group,
-                                   []).append(node)
+      for node_uuid in instance_nodes:
+        instance_groups.setdefault(self.all_node_info[node_uuid].group,
+                                   []).append(node_uuid)
 
       pretty_list = [
         "%s (group %s)" % (utils.CommaJoin(self.cfg.GetNodeNames(nodes)),
                            groupinfo[group].name)
         # Sort so that we always list the primary node first.
         for group, nodes in sorted(instance_groups.items(),
-                                   key=lambda (_, nodes): pnode in nodes,
+                                   key=lambda (_, nodes): pnode_uuid in nodes,
                                    reverse=True)]
 
       self._ErrorIf(len(instance_groups) > 1,
                     constants.CV_EINSTANCESPLITGROUPS,
-                    instance, "instance has primary and secondary nodes in"
+                    instance.name, "instance has primary and secondary nodes in"
                     " different groups: %s", utils.CommaJoin(pretty_list),
                     code=self.ETYPE_WARNING)
 
     inst_nodes_offline = []
-    for snode in inst_config.secondary_nodes:
+    for snode in instance.secondary_nodes:
       s_img = node_image[snode]
       self._ErrorIf(s_img.rpc_fail and not s_img.offline, constants.CV_ENODERPC,
-                    snode, "instance %s, connection to secondary node failed",
-                    instance)
+                    self.cfg.GetNodeName(snode),
+                    "instance %s, connection to secondary node failed",
+                    instance.name)
 
       if s_img.offline:
         inst_nodes_offline.append(snode)
 
     # warn that the instance lives on offline nodes
-    self._ErrorIf(inst_nodes_offline, constants.CV_EINSTANCEBADNODE, instance,
-                  "instance has offline secondary node(s) %s",
+    self._ErrorIf(inst_nodes_offline, constants.CV_EINSTANCEBADNODE,
+                  instance.name, "instance has offline secondary node(s) %s",
                   utils.CommaJoin(self.cfg.GetNodeNames(inst_nodes_offline)))
     # ... or ghost/non-vm_capable nodes
-    for node in inst_config.all_nodes:
-      self._ErrorIf(node_image[node].ghost, constants.CV_EINSTANCEBADNODE,
-                    instance, "instance lives on ghost node %s",
-                    self.cfg.GetNodeName(node))
-      self._ErrorIf(not node_image[node].vm_capable,
-                    constants.CV_EINSTANCEBADNODE, instance,
+    for node_uuid in instance.all_nodes:
+      self._ErrorIf(node_image[node_uuid].ghost, constants.CV_EINSTANCEBADNODE,
+                    instance.name, "instance lives on ghost node %s",
+                    self.cfg.GetNodeName(node_uuid))
+      self._ErrorIf(not node_image[node_uuid].vm_capable,
+                    constants.CV_EINSTANCEBADNODE, instance.name,
                     "instance lives on non-vm_capable node %s",
-                    self.cfg.GetNodeName(node))
+                    self.cfg.GetNodeName(node_uuid))
 
   def _VerifyOrphanVolumes(self, node_vol_should, node_image, reserved):
     """Verify if there are any unknown volumes in the cluster.
@@ -1987,7 +1991,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
                       self.cfg.GetNodeName(node_uuid),
                       "volume %s is unknown", volume)
 
-  def _VerifyNPlusOneMemory(self, node_image, instance_cfg):
+  def _VerifyNPlusOneMemory(self, node_image, all_insts):
     """Verify N+1 Memory Resilience.
 
     Check that if one single node dies we can still start all the
@@ -2012,10 +2016,10 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
         # nodes, and that's enough warning
         continue
       #TODO(dynmem): also consider ballooning out other instances
-      for prinode, instances in n_img.sbp.items():
+      for prinode, inst_uuids in n_img.sbp.items():
         needed_mem = 0
-        for instance in instances:
-          bep = cluster_info.FillBE(instance_cfg[instance])
+        for inst_uuid in inst_uuids:
+          bep = cluster_info.FillBE(all_insts[inst_uuid])
           if bep[constants.BE_AUTO_BALANCE]:
             needed_mem += bep[constants.BE_MINMEM]
         test = n_img.mfree < needed_mem
@@ -2168,18 +2172,18 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
     # compute the DRBD minors
     node_drbd = {}
-    for minor, instance in drbd_map[ninfo.uuid].items():
-      test = instance not in instanceinfo
+    for minor, inst_uuid in drbd_map[ninfo.uuid].items():
+      test = inst_uuid not in instanceinfo
       self._ErrorIf(test, constants.CV_ECLUSTERCFG, None,
-                    "ghost instance '%s' in temporary DRBD map", instance)
+                    "ghost instance '%s' in temporary DRBD map", inst_uuid)
         # ghost instance should not be running, but otherwise we
         # don't give double warnings (both ghost instance and
         # unallocated minor in use)
       if test:
-        node_drbd[minor] = (instance, False)
+        node_drbd[minor] = (inst_uuid, False)
       else:
-        instance = instanceinfo[instance]
-        node_drbd[minor] = (instance.name, instance.disks_active)
+        instance = instanceinfo[inst_uuid]
+        node_drbd[minor] = (inst_uuid, instance.disks_active)
 
     # and now check them
     used_minors = nresult.get(constants.NV_DRBDLIST, [])
@@ -2190,10 +2194,11 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       # we cannot check drbd status
       return
 
-    for minor, (iname, must_exist) in node_drbd.items():
+    for minor, (inst_uuid, must_exist) in node_drbd.items():
       test = minor not in used_minors and must_exist
       self._ErrorIf(test, constants.CV_ENODEDRBD, ninfo.name,
-                    "drbd minor %d of instance %s is not active", minor, iname)
+                    "drbd minor %d of instance %s is not active", minor,
+                    self.cfg.GetInstanceName(inst_uuid))
     for minor in used_minors:
       test = minor not in node_drbd
       self._ErrorIf(test, constants.CV_ENODEDRBD, ninfo.name,
@@ -2381,7 +2386,8 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     if test:
       nimg.hyp_fail = True
     else:
-      nimg.instances = idata
+      nimg.instances = [inst.uuid for (_, inst) in
+                        self.cfg.GetMultiInstanceInfoByName(idata)]
 
   def _UpdateNodeInfo(self, ninfo, nresult, nimg, vg_name):
     """Verifies and computes a node information map
@@ -2424,9 +2430,9 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
     @type node_uuids: list of strings
     @param node_uuids: Node UUIDs
-    @type node_image: dict of (name, L{objects.Node})
+    @type node_image: dict of (UUID, L{objects.Node})
     @param node_image: Node objects
-    @type instanceinfo: dict of (name, L{objects.Instance})
+    @type instanceinfo: dict of (UUID, L{objects.Instance})
     @param instanceinfo: Instance objects
     @rtype: {instance: {node: [(succes, payload)]}}
     @return: a dictionary of per-instance dictionaries with nodes as
@@ -2440,13 +2446,13 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     diskless = constants.DT_DISKLESS
 
     for nuuid in node_uuids:
-      node_instances = list(itertools.chain(node_image[nuuid].pinst,
-                                            node_image[nuuid].sinst))
-      diskless_instances.update(inst for inst in node_instances
-                                if instanceinfo[inst].disk_template == diskless)
-      disks = [(inst, disk)
-               for inst in node_instances
-               for disk in instanceinfo[inst].disks]
+      node_inst_uuids = list(itertools.chain(node_image[nuuid].pinst,
+                                             node_image[nuuid].sinst))
+      diskless_instances.update(uuid for uuid in node_inst_uuids
+                                if instanceinfo[uuid].disk_template == diskless)
+      disks = [(inst_uuid, disk)
+               for inst_uuid in node_inst_uuids
+               for disk in instanceinfo[inst_uuid].disks]
 
       if not disks:
         # No need to collect data
@@ -2456,8 +2462,9 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
       # _AnnotateDiskParams makes already copies of the disks
       devonly = []
-      for (inst, dev) in disks:
-        (anno_disk,) = AnnotateDiskParams(instanceinfo[inst], [dev], self.cfg)
+      for (inst_uuid, dev) in disks:
+        (anno_disk,) = AnnotateDiskParams(instanceinfo[inst_uuid], [dev],
+                                          self.cfg)
         self.cfg.SetDiskID(anno_disk, nuuid)
         devonly.append(anno_disk)
 
@@ -2497,13 +2504,14 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
                               node.name, idx, i)
               data.append((False, "Invalid result from the remote node"))
 
-      for ((inst, _), status) in zip(disks, data):
-        instdisk.setdefault(inst, {}).setdefault(node.uuid, []).append(status)
+      for ((inst_uuid, _), status) in zip(disks, data):
+        instdisk.setdefault(inst_uuid, {}).setdefault(node.uuid, []) \
+          .append(status)
 
     # Add empty entries for diskless instances.
-    for inst in diskless_instances:
-      assert inst not in instdisk
-      instdisk[inst] = {}
+    for inst_uuid in diskless_instances:
+      assert inst_uuid not in instdisk
+      instdisk[inst_uuid] = {}
 
     assert compat.all(len(statuses) == len(instanceinfo[inst].disks) and
                       len(nuuids) <= len(instanceinfo[inst].all_nodes) and
@@ -2667,8 +2675,8 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     default_nicpp = cluster.nicparams[constants.PP_DEFAULT]
     if default_nicpp[constants.NIC_MODE] == constants.NIC_MODE_BRIDGED:
       bridges.add(default_nicpp[constants.NIC_LINK])
-    for instance in self.my_inst_info.values():
-      for nic in instance.nics:
+    for inst_uuid in self.my_inst_info.values():
+      for nic in inst_uuid.nics:
         full_nic = cluster.SimpleFillNIC(nic.nicparams)
         if full_nic[constants.NIC_MODE] == constants.NIC_MODE_BRIDGED:
           bridges.add(full_nic[constants.NIC_LINK])
@@ -2692,28 +2700,28 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     if oob_paths:
       node_verify_param[constants.NV_OOB_PATHS] = oob_paths
 
-    for instance in self.my_inst_names:
-      inst_config = self.my_inst_info[instance]
-      if inst_config.admin_state == constants.ADMINST_OFFLINE:
+    for inst_uuid in self.my_inst_uuids:
+      instance = self.my_inst_info[inst_uuid]
+      if instance.admin_state == constants.ADMINST_OFFLINE:
         i_offline += 1
 
-      for nuuid in inst_config.all_nodes:
+      for nuuid in instance.all_nodes:
         if nuuid not in node_image:
           gnode = self.NodeImage(uuid=nuuid)
           gnode.ghost = (nuuid not in self.all_node_info)
           node_image[nuuid] = gnode
 
-      inst_config.MapLVsByNode(node_vol_should)
+      instance.MapLVsByNode(node_vol_should)
 
-      pnode = inst_config.primary_node
-      node_image[pnode].pinst.append(instance)
+      pnode = instance.primary_node
+      node_image[pnode].pinst.append(instance.uuid)
 
-      for snode in inst_config.secondary_nodes:
+      for snode in instance.secondary_nodes:
         nimg = node_image[snode]
-        nimg.sinst.append(instance)
+        nimg.sinst.append(instance.uuid)
         if pnode not in nimg.sbp:
           nimg.sbp[pnode] = []
-        nimg.sbp[pnode].append(instance)
+        nimg.sbp[pnode].append(instance.uuid)
 
     es_flags = rpc.GetExclusiveStorageForNodes(self.cfg,
                                                self.my_node_info.keys())
@@ -2842,17 +2850,18 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
           self._VerifyNodeOS(node_i, nimg, refos_img)
         self._VerifyNodeBridges(node_i, nresult, bridges)
 
-        # Check whether all running instancies are primary for the node. (This
+        # Check whether all running instances are primary for the node. (This
         # can no longer be done from _VerifyInstance below, since some of the
         # wrong instances could be from other node groups.)
-        non_primary_inst = set(nimg.instances).difference(nimg.pinst)
+        non_primary_inst_uuids = set(nimg.instances).difference(nimg.pinst)
 
-        for inst in non_primary_inst:
-          test = inst in self.all_inst_info
-          self._ErrorIf(test, constants.CV_EINSTANCEWRONGNODE, inst,
+        for inst_uuid in non_primary_inst_uuids:
+          test = inst_uuid in self.all_inst_info
+          self._ErrorIf(test, constants.CV_EINSTANCEWRONGNODE,
+                        self.cfg.GetInstanceName(inst_uuid),
                         "instance should not run on node %s", node_i.name)
           self._ErrorIf(not test, constants.CV_ENODEORPHANINSTANCE, node_i.name,
-                        "node is running unknown instance %s", inst)
+                        "node is running unknown instance %s", inst_uuid)
 
     self._VerifyGroupDRBDVersion(all_nvinfo)
     self._VerifyGroupLVM(node_image, vg_name)
@@ -2862,19 +2871,18 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
                               node_image[node_uuid], vg_name)
 
     feedback_fn("* Verifying instance status")
-    for instance in self.my_inst_names:
+    for inst_uuid in self.my_inst_uuids:
+      instance = self.my_inst_info[inst_uuid]
       if verbose:
-        feedback_fn("* Verifying instance %s" % instance)
-      inst_config = self.my_inst_info[instance]
-      self._VerifyInstance(instance, inst_config, node_image,
-                           instdisk[instance])
+        feedback_fn("* Verifying instance %s" % instance.name)
+      self._VerifyInstance(instance, node_image, instdisk[inst_uuid])
 
       # If the instance is non-redundant we cannot survive losing its primary
       # node, so we are not N+1 compliant.
-      if inst_config.disk_template not in constants.DTS_MIRRORED:
+      if instance.disk_template not in constants.DTS_MIRRORED:
         i_non_redundant.append(instance)
 
-      if not cluster.FillBE(inst_config)[constants.BE_AUTO_BALANCE]:
+      if not cluster.FillBE(instance)[constants.BE_AUTO_BALANCE]:
         i_non_a_balanced.append(instance)
 
     feedback_fn("* Verifying orphan volumes")
@@ -2883,11 +2891,11 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     # We will get spurious "unknown volume" warnings if any node of this group
     # is secondary for an instance whose primary is in another group. To avoid
     # them, we find these instances and add their volumes to node_vol_should.
-    for inst in self.all_inst_info.values():
-      for secondary in inst.secondary_nodes:
+    for instance in self.all_inst_info.values():
+      for secondary in instance.secondary_nodes:
         if (secondary in self.my_node_info
-            and inst.name not in self.my_inst_info):
-          inst.MapLVsByNode(node_vol_should)
+            and instance.name not in self.my_inst_info):
+          instance.MapLVsByNode(node_vol_should)
           break
 
     self._VerifyOrphanVolumes(node_vol_should, node_image, reserved)

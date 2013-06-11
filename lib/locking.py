@@ -1636,15 +1636,15 @@ class GanetiLockManager:
   """
   _instance = None
 
-  def __init__(self, nodes, nodegroups, instances, networks):
+  def __init__(self, node_uuids, nodegroups, instance_names, networks):
     """Constructs a new GanetiLockManager object.
 
     There should be only a GanetiLockManager object at any time, so this
     function raises an error if this is not the case.
 
-    @param nodes: list of node names
+    @param node_uuids: list of node UUIDs
     @param nodegroups: list of nodegroup uuids
-    @param instances: list of instance names
+    @param instance_names: list of instance names
 
     """
     assert self.__class__._instance is None, \
@@ -1658,10 +1658,11 @@ class GanetiLockManager:
     # locking order.
     self.__keyring = {
       LEVEL_CLUSTER: LockSet([BGL], "cluster", monitor=self._monitor),
-      LEVEL_NODE: LockSet(nodes, "node", monitor=self._monitor),
-      LEVEL_NODE_RES: LockSet(nodes, "node-res", monitor=self._monitor),
+      LEVEL_NODE: LockSet(node_uuids, "node", monitor=self._monitor),
+      LEVEL_NODE_RES: LockSet(node_uuids, "node-res", monitor=self._monitor),
       LEVEL_NODEGROUP: LockSet(nodegroups, "nodegroup", monitor=self._monitor),
-      LEVEL_INSTANCE: LockSet(instances, "instance", monitor=self._monitor),
+      LEVEL_INSTANCE: LockSet(instance_names, "instance",
+                              monitor=self._monitor),
       LEVEL_NETWORK: LockSet(networks, "network", monitor=self._monitor),
       LEVEL_NODE_ALLOC: LockSet([NAL], "node-alloc", monitor=self._monitor),
       }

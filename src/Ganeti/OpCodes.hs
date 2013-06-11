@@ -71,6 +71,7 @@ $(genOpCode "OpCode"
      ])
   , ("OpInstanceReplaceDisks",
      [ pInstanceName
+     , pInstanceUuid
      , pEarlyRelease
      , pIgnoreIpolicy
      , pReplaceDisksMode
@@ -81,6 +82,7 @@ $(genOpCode "OpCode"
      ])
   , ("OpInstanceFailover",
      [ pInstanceName
+     , pInstanceUuid
      , pShutdownTimeout
      , pIgnoreConsistency
      , pMigrationTargetNode
@@ -90,6 +92,7 @@ $(genOpCode "OpCode"
      ])
   , ("OpInstanceMigrate",
      [ pInstanceName
+     , pInstanceUuid
      , pMigrationMode
      , pMigrationLive
      , pMigrationTargetNode
@@ -329,23 +332,27 @@ $(genOpCode "OpCode"
      ])
   , ("OpInstanceReinstall",
      [ pInstanceName
+     , pInstanceUuid
      , pForceVariant
      , pInstOs
      , pTempOsParams
      ])
   , ("OpInstanceRemove",
      [ pInstanceName
+     , pInstanceUuid
      , pShutdownTimeout
      , pIgnoreFailures
      ])
   , ("OpInstanceRename",
      [ pInstanceName
+     , pInstanceUuid
      , pNewName
      , pNameCheck
      , pIpCheck
      ])
   , ("OpInstanceStartup",
      [ pInstanceName
+     , pInstanceUuid
      , pForce
      , pIgnoreOfflineNodes
      , pTempHvParams
@@ -355,6 +362,7 @@ $(genOpCode "OpCode"
      ])
   , ("OpInstanceShutdown",
      [ pInstanceName
+     , pInstanceUuid
      , pForce
      , pIgnoreOfflineNodes
      , pShutdownTimeout'
@@ -362,12 +370,14 @@ $(genOpCode "OpCode"
      ])
   , ("OpInstanceReboot",
      [ pInstanceName
+     , pInstanceUuid
      , pShutdownTimeout
      , pIgnoreSecondaries
      , pRebootType
      ])
   , ("OpInstanceMove",
      [ pInstanceName
+     , pInstanceUuid
      , pShutdownTimeout
      , pIgnoreIpolicy
      , pMoveTargetNode
@@ -375,18 +385,23 @@ $(genOpCode "OpCode"
      , pIgnoreConsistency
      ])
   , ("OpInstanceConsole",
-     [ pInstanceName ])
+     [ pInstanceName
+     , pInstanceUuid
+     ])
   , ("OpInstanceActivateDisks",
      [ pInstanceName
+     , pInstanceUuid
      , pIgnoreDiskSize
      , pWaitForSyncFalse
      ])
   , ("OpInstanceDeactivateDisks",
      [ pInstanceName
+     , pInstanceUuid
      , pForce
      ])
   , ("OpInstanceRecreateDisks",
      [ pInstanceName
+     , pInstanceUuid
      , pRecreateDisksInfo
      , pNodes
      , pNodeUuids
@@ -400,6 +415,7 @@ $(genOpCode "OpCode"
      ])
   , ("OpInstanceSetParams",
      [ pInstanceName
+     , pInstanceUuid
      , pForce
      , pForceVariant
      , pIgnoreIpolicy
@@ -421,6 +437,7 @@ $(genOpCode "OpCode"
      ])
   , ("OpInstanceGrowDisk",
      [ pInstanceName
+     , pInstanceUuid
      , pWaitForSync
      , pDiskIndex
      , pDiskChgAmount
@@ -428,6 +445,7 @@ $(genOpCode "OpCode"
      ])
   , ("OpInstanceChangeGroup",
      [ pInstanceName
+     , pInstanceUuid
      , pEarlyRelease
      , pIallocator
      , pTargetGroups
@@ -481,10 +499,12 @@ $(genOpCode "OpCode"
      ])
   , ("OpBackupPrepare",
      [ pInstanceName
+     , pInstanceUuid
      , pExportMode
      ])
   , ("OpBackupExport",
      [ pInstanceName
+     , pInstanceUuid
      , pShutdownTimeout
      , pExportTargetNode
      , pExportTargetNodeUuid
@@ -496,7 +516,9 @@ $(genOpCode "OpCode"
      , pX509DestCA
      ])
   , ("OpBackupRemove",
-     [ pInstanceName ])
+     [ pInstanceName
+     , pInstanceUuid
+     ])
   , ("OpTestAllocator",
      [ pIAllocatorDirection
      , pIAllocatorMode

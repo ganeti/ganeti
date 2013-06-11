@@ -65,9 +65,15 @@ def _ExpandItemName(expand_fn, name, kind):
   return full_name
 
 
-def ExpandInstanceName(cfg, name):
+def ExpandInstanceUuidAndName(cfg, expected_uuid, name):
   """Wrapper over L{_ExpandItemName} for instance."""
-  return _ExpandItemName(cfg.ExpandInstanceName, name, "Instance")
+  (uuid, full_name) = _ExpandItemName(cfg.ExpandInstanceName, name, "Instance")
+  if expected_uuid is not None and uuid != expected_uuid:
+    raise errors.OpPrereqError(
+      "The instances UUID '%s' does not match the expected UUID '%s' for"
+      " instance '%s'. Maybe the instance changed since you submitted this"
+      " job." % (uuid, expected_uuid, full_name), errors.ECODE_NOTUNIQUE)
+  return (uuid, full_name)
 
 
 def ExpandNodeUuidAndName(cfg, expected_uuid, name):
@@ -99,25 +105,26 @@ def ShareAll():
   return dict.fromkeys(locking.LEVELS, 1)
 
 
-def CheckNodeGroupInstances(cfg, group_uuid, owned_instances):
+def CheckNodeGroupInstances(cfg, group_uuid, owned_instance_names):
   """Checks if the instances in a node group are still correct.
 
   @type cfg: L{config.ConfigWriter}
   @param cfg: The cluster configuration
   @type group_uuid: string
   @param group_uuid: Node group UUID
-  @type owned_instances: set or frozenset
-  @param owned_instances: List of currently owned instances
+  @type owned_instance_names: set or frozenset
+  @param owned_instance_names: List of currently owned instances
 
   """
-  wanted_instances = cfg.GetNodeGroupInstances(group_uuid)
-  if owned_instances != wanted_instances:
+  wanted_instances = frozenset(cfg.GetInstanceNames(
+                                 cfg.GetNodeGroupInstances(group_uuid)))
+  if owned_instance_names != wanted_instances:
     raise errors.OpPrereqError("Instances in node group '%s' changed since"
                                " locks were acquired, wanted '%s', have '%s';"
                                " retry the operation" %
                                (group_uuid,
                                 utils.CommaJoin(wanted_instances),
-                                utils.CommaJoin(owned_instances)),
+                                utils.CommaJoin(owned_instance_names)),
                                errors.ECODE_STATE)
 
   return wanted_instances
@@ -144,24 +151,25 @@ def GetWantedNodes(lu, short_node_names):
   return (node_uuids, [lu.cfg.GetNodeName(uuid) for uuid in node_uuids])
 
 
-def GetWantedInstances(lu, instances):
+def GetWantedInstances(lu, short_inst_names):
   """Returns list of checked and expanded instance names.
 
   @type lu: L{LogicalUnit}
   @param lu: the logical unit on whose behalf we execute
-  @type instances: list
-  @param instances: list of instance names or None for all instances
-  @rtype: list
-  @return: the list of instances, sorted
+  @type short_inst_names: list
+  @param short_inst_names: list of instance names or None for all instances
+  @rtype: tuple of lists
+  @return: tuple of (instance UUIDs, instance names)
   @raise errors.OpPrereqError: if the instances parameter is wrong type
   @raise errors.OpPrereqError: if any of the passed instances is not found
 
   """
-  if instances:
-    wanted = [ExpandInstanceName(lu.cfg, name) for name in instances]
+  if short_inst_names:
+    inst_uuids = [ExpandInstanceUuidAndName(lu.cfg, None, name)[0]
+                  for name in short_inst_names]
   else:
-    wanted = utils.NiceSort(lu.cfg.GetInstanceList())
-  return wanted
+    inst_uuids = lu.cfg.GetInstanceList()
+  return (inst_uuids, [lu.cfg.GetInstanceName(uuid) for uuid in inst_uuids])
 
 
 def RunPostHook(lu, node_name):
@@ -794,7 +802,7 @@ def CheckInstancesNodeGroups(cfg, instances, owned_groups, owned_node_uuids,
   @type cfg: L{config.ConfigWriter}
   @param cfg: Cluster configuration
   @type instances: dict; string as key, L{objects.Instance} as value
-  @param instances: Dictionary, instance name as key, instance object as value
+  @param instances: Dictionary, instance UUID as key, instance object as value
   @type owned_groups: iterable of string
   @param owned_groups: List of owned groups
   @type owned_node_uuids: iterable of string
@@ -803,38 +811,37 @@ def CheckInstancesNodeGroups(cfg, instances, owned_groups, owned_node_uuids,
   @param cur_group_uuid: Optional group UUID to check against instance's groups
 
   """
-  for (name, inst) in instances.items():
+  for (uuid, inst) in instances.items():
     assert owned_node_uuids.issuperset(inst.all_nodes), \
-      "Instance %s's nodes changed while we kept the lock" % name
+      "Instance %s's nodes changed while we kept the lock" % inst.name
 
-    inst_groups = CheckInstanceNodeGroups(cfg, name, owned_groups)
+    inst_groups = CheckInstanceNodeGroups(cfg, uuid, owned_groups)
 
     assert cur_group_uuid is None or cur_group_uuid in inst_groups, \
-      "Instance %s has no node in group %s" % (name, cur_group_uuid)
+      "Instance %s has no node in group %s" % (inst.name, cur_group_uuid)
 
 
-def CheckInstanceNodeGroups(cfg, instance_name, owned_groups,
-                            primary_only=False):
+def CheckInstanceNodeGroups(cfg, inst_uuid, owned_groups, primary_only=False):
   """Checks if the owned node groups are still correct for an instance.
 
   @type cfg: L{config.ConfigWriter}
   @param cfg: The cluster configuration
-  @type instance_name: string
-  @param instance_name: Instance name
+  @type inst_uuid: string
+  @param inst_uuid: Instance UUID
   @type owned_groups: set or frozenset
   @param owned_groups: List of currently owned node groups
   @type primary_only: boolean
   @param primary_only: Whether to check node groups for only the primary node
 
   """
-  inst_groups = cfg.GetInstanceNodeGroups(instance_name, primary_only)
+  inst_groups = cfg.GetInstanceNodeGroups(inst_uuid, primary_only)
 
   if not owned_groups.issuperset(inst_groups):
     raise errors.OpPrereqError("Instance %s's node groups changed since"
                                " locks were acquired, current groups are"
                                " are '%s', owning groups '%s'; retry the"
                                " operation" %
-                               (instance_name,
+                               (cfg.GetInstanceName(inst_uuid),
                                 utils.CommaJoin(inst_groups),
                                 utils.CommaJoin(owned_groups)),
                                errors.ECODE_STATE)

@@ -1512,6 +1512,7 @@ iMoveToJob nl il idx move =
                       Ok ne -> Just ne
       opF = OpCodes.OpInstanceMigrate
               { OpCodes.opInstanceName        = iname
+              , OpCodes.opInstanceUuid        = Nothing
               , OpCodes.opMigrationMode       = Nothing -- default
               , OpCodes.opOldLiveMode         = Nothing -- default as well
               , OpCodes.opTargetNode          = Nothing -- this is drbd
@@ -1524,6 +1525,7 @@ iMoveToJob nl il idx move =
       opFA n = opF { OpCodes.opTargetNode = lookNode n } -- not drbd
       opR n = OpCodes.OpInstanceReplaceDisks
                 { OpCodes.opInstanceName     = iname
+                , OpCodes.opInstanceUuid     = Nothing
                 , OpCodes.opEarlyRelease     = False
                 , OpCodes.opIgnoreIpolicy    = False
                 , OpCodes.opReplaceDisksMode = OpCodes.ReplaceNewSecondary

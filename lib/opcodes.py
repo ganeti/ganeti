@@ -62,6 +62,10 @@ _PForce = ("force", False, ht.TBool, "Whether to force the operation")
 _PInstanceName = ("instance_name", ht.NoDefault, ht.TNonEmptyString,
                   "Instance name")
 
+#: a instance UUID (for single-instance LUs)
+_PInstanceUuid = ("instance_uuid", None, ht.TMaybeString,
+                  "Instance UUID")
+
 #: Whether to ignore offline nodes
 _PIgnoreOfflineNodes = ("ignore_offline_nodes", False, ht.TBool,
                         "Whether to ignore offline nodes")
@@ -1439,6 +1443,7 @@ class OpInstanceReinstall(OpCode):
   OP_DSC_FIELD = "instance_name"
   OP_PARAMS = [
     _PInstanceName,
+    _PInstanceUuid,
     _PForceVariant,
     ("os_type", None, ht.TMaybeString, "Instance operating system"),
     ("osparams", None, ht.TMaybeDict, "Temporary OS parameters"),
@@ -1451,6 +1456,7 @@ class OpInstanceRemove(OpCode):
   OP_DSC_FIELD = "instance_name"
   OP_PARAMS = [
     _PInstanceName,
+    _PInstanceUuid,
     _PShutdownTimeout,
     ("ignore_failures", False, ht.TBool,
      "Whether to ignore failures during removal"),
@@ -1462,6 +1468,7 @@ class OpInstanceRename(OpCode):
   """Rename an instance."""
   OP_PARAMS = [
     _PInstanceName,
+    _PInstanceUuid,
     _PNameCheck,
     ("new_name", ht.NoDefault, ht.TNonEmptyString, "New instance name"),
     ("ip_check", False, ht.TBool, _PIpCheckDoc),
@@ -1474,6 +1481,7 @@ class OpInstanceStartup(OpCode):
   OP_DSC_FIELD = "instance_name"
   OP_PARAMS = [
     _PInstanceName,
+    _PInstanceUuid,
     _PForce,
     _PIgnoreOfflineNodes,
     ("hvparams", ht.EmptyDict, ht.TDict,
@@ -1490,6 +1498,7 @@ class OpInstanceShutdown(OpCode):
   OP_DSC_FIELD = "instance_name"
   OP_PARAMS = [
     _PInstanceName,
+    _PInstanceUuid,
     _PForce,
     _PIgnoreOfflineNodes,
     ("timeout", constants.DEFAULT_SHUTDOWN_TIMEOUT, ht.TNonNegativeInt,
@@ -1504,6 +1513,7 @@ class OpInstanceReboot(OpCode):
   OP_DSC_FIELD = "instance_name"
   OP_PARAMS = [
     _PInstanceName,
+    _PInstanceUuid,
     _PShutdownTimeout,
     ("ignore_secondaries", False, ht.TBool,
      "Whether to start the instance even if secondary disks are failing"),
@@ -1518,6 +1528,7 @@ class OpInstanceReplaceDisks(OpCode):
   OP_DSC_FIELD = "instance_name"
   OP_PARAMS = [
     _PInstanceName,
+    _PInstanceUuid,
     _PEarlyRelease,
     _PIgnoreIpolicy,
     ("mode", ht.NoDefault, ht.TElemOf(constants.REPLACE_MODES),
@@ -1536,6 +1547,7 @@ class OpInstanceFailover(OpCode):
   OP_DSC_FIELD = "instance_name"
   OP_PARAMS = [
     _PInstanceName,
+    _PInstanceUuid,
     _PShutdownTimeout,
     _PIgnoreConsistency,
     _PMigrationTargetNode,
@@ -1560,6 +1572,7 @@ class OpInstanceMigrate(OpCode):
   OP_DSC_FIELD = "instance_name"
   OP_PARAMS = [
     _PInstanceName,
+    _PInstanceUuid,
     _PMigrationMode,
     _PMigrationLive,
     _PMigrationTargetNode,
@@ -1589,6 +1602,7 @@ class OpInstanceMove(OpCode):
   OP_DSC_FIELD = "instance_name"
   OP_PARAMS = [
     _PInstanceName,
+    _PInstanceUuid,
     _PShutdownTimeout,
     _PIgnoreIpolicy,
     ("target_node", ht.NoDefault, ht.TNonEmptyString, "Target node"),
@@ -1603,6 +1617,7 @@ class OpInstanceConsole(OpCode):
   OP_DSC_FIELD = "instance_name"
   OP_PARAMS = [
     _PInstanceName,
+    _PInstanceUuid,
     ]
   OP_RESULT = ht.TDict
 
@@ -1612,6 +1627,7 @@ class OpInstanceActivateDisks(OpCode):
   OP_DSC_FIELD = "instance_name"
   OP_PARAMS = [
     _PInstanceName,
+    _PInstanceUuid,
     ("ignore_size", False, ht.TBool, "Whether to ignore recorded size"),
     _PWaitForSyncFalse,
     ]
@@ -1626,6 +1642,7 @@ class OpInstanceDeactivateDisks(OpCode):
   OP_DSC_FIELD = "instance_name"
   OP_PARAMS = [
     _PInstanceName,
+    _PInstanceUuid,
     _PForce,
     ]
   OP_RESULT = ht.TNone
@@ -1641,6 +1658,7 @@ class OpInstanceRecreateDisks(OpCode):
   OP_DSC_FIELD = "instance_name"
   OP_PARAMS = [
     _PInstanceName,
+    _PInstanceUuid,
     ("disks", ht.EmptyList,
      ht.TOr(ht.TListOf(ht.TNonNegativeInt), ht.TListOf(_TDiskChanges)),
      "List of disk indexes (deprecated) or a list of tuples containing a disk"
@@ -1713,6 +1731,7 @@ class OpInstanceSetParams(OpCode):
   OP_DSC_FIELD = "instance_name"
   OP_PARAMS = [
     _PInstanceName,
+    _PInstanceUuid,
     _PForce,
     _PForceVariant,
     _PIgnoreIpolicy,
@@ -1757,6 +1776,7 @@ class OpInstanceGrowDisk(OpCode):
   OP_DSC_FIELD = "instance_name"
   OP_PARAMS = [
     _PInstanceName,
+    _PInstanceUuid,
     _PWaitForSync,
     ("disk", ht.NoDefault, ht.TInt, "Disk index"),
     ("amount", ht.NoDefault, ht.TNonNegativeInt,
@@ -1772,6 +1792,7 @@ class OpInstanceChangeGroup(OpCode):
   OP_DSC_FIELD = "instance_name"
   OP_PARAMS = [
     _PInstanceName,
+    _PInstanceUuid,
     _PEarlyRelease,
     _PIAllocFromDesc("Iallocator for computing solution"),
     _PTargetGroups,
@@ -1911,6 +1932,7 @@ class OpBackupPrepare(OpCode):
   OP_DSC_FIELD = "instance_name"
   OP_PARAMS = [
     _PInstanceName,
+    _PInstanceUuid,
     ("mode", ht.NoDefault, ht.TElemOf(constants.EXPORT_MODES),
      "Export mode"),
     ]
@@ -1937,6 +1959,7 @@ class OpBackupExport(OpCode):
   OP_DSC_FIELD = "instance_name"
   OP_PARAMS = [
     _PInstanceName,
+    _PInstanceUuid,
     _PShutdownTimeout,
     # TODO: Rename target_node as it changes meaning for different export modes
     # (e.g. "destination")
@@ -1968,6 +1991,7 @@ class OpBackupRemove(OpCode):
   OP_DSC_FIELD = "instance_name"
   OP_PARAMS = [
     _PInstanceName,
+    _PInstanceUuid,
     ]
   OP_RESULT = ht.TNone
 

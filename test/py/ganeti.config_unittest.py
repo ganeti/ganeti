@@ -104,7 +104,9 @@ class TestConfigRunner(unittest.TestCase):
 
   def _create_instance(self):
     """Create and return an instance object"""
-    inst = objects.Instance(name="test.example.com", disks=[], nics=[],
+    inst = objects.Instance(name="test.example.com",
+                            uuid="test-uuid",
+                            disks=[], nics=[],
                             disk_template=constants.DT_DISKLESS,
                             primary_node=self._get_object().GetMasterNode())
     return inst
