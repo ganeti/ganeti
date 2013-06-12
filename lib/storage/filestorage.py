@@ -25,6 +25,7 @@
 
 import os
 
+from ganeti import constants
 from ganeti import errors
 
 
@@ -42,7 +43,10 @@ def GetFileStorageSpaceInfo(path):
     result = os.statvfs(path)
     free = (result.f_frsize * result.f_bavail) / (1024 * 1024)
     size = (result.f_frsize * result.f_blocks) / (1024 * 1024)
-    return {"vg_size": size, "vg_free": free}
+    return {"type": constants.ST_FILE,
+            "name": path,
+            "vg_size": size,
+            "vg_free": free}
   except OSError, e:
     raise errors.CommandError("Failed to retrieve file system information about"
                               " path: %s - %s" % (path, e.strerror))

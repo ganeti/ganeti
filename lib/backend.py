@@ -56,6 +56,7 @@ from ganeti import hypervisor
 from ganeti import constants
 from ganeti.storage import bdev
 from ganeti.storage import drbd
+from ganeti.storage import filestorage
 from ganeti import objects
 from ganeti import ssconf
 from ganeti import serializer
@@ -693,12 +694,27 @@ def GetNodeInfo(storage_units, hv_specs, excl_stor):
   return (bootid, storage_info, hv_info)
 
 
+# pylint: disable=W0613
+def _GetFileStorageSpaceInfo(path, *args):
+  """Wrapper around filestorage.GetSpaceInfo.
+
+  The purpose of this wrapper is to call filestorage.GetFileStorageSpaceInfo
+  and ignore the *args parameter to not leak it into the filestorage
+  module's code.
+
+  @see: C{filestorage.GetFileStorageSpaceInfo} for description of the
+    parameters.
+
+  """
+  return filestorage.GetFileStorageSpaceInfo(path)
+
+
 # FIXME: implement storage reporting for all missing storage types.
 _STORAGE_TYPE_INFO_FN = {
   constants.ST_BLOCK: None,
   constants.ST_DISKLESS: None,
   constants.ST_EXT: None,
-  constants.ST_FILE: None,
+  constants.ST_FILE: _GetFileStorageSpaceInfo,
   constants.ST_LVM_PV: _GetVgSpindlesInfo,
   constants.ST_LVM_VG: _GetVgInfo,
   constants.ST_RADOS: None,
