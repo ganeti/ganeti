@@ -33,17 +33,17 @@ import testutils
 class TestFileStorageSpaceInfo(unittest.TestCase):
 
   def testSpaceInfoPathInvalid(self):
-    """Tests that an error is raised when the given file is not existing.
+    """Tests that an error is raised when the given path is not existing.
 
     """
-    self.assertRaises(errors.CommandError, filestorage.GetSpaceInfo,
+    self.assertRaises(errors.CommandError, filestorage.GetFileStorageSpaceInfo,
                       "/path/does/not/exist/")
 
   def testSpaceInfoPathValid(self):
-    """Tests that the 'df' command is run if the file is valid.
+    """Smoke test run on a directory that exists for sure.
 
     """
-    info = filestorage.GetSpaceInfo("/")
+    info = filestorage.GetFileStorageSpaceInfo("/")
 
 
 if __name__ == "__main__":

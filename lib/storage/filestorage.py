@@ -28,7 +28,7 @@ import os
 from ganeti import errors
 
 
-def GetSpaceInfo(path):
+def GetFileStorageSpaceInfo(path):
   """Retrieves the free and total space of the device where the file is
      located.
 
