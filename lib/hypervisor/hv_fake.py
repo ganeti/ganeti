@@ -283,9 +283,11 @@ class FakeHypervisor(hv_base.BaseHypervisor):
     if self._IsAlive(instance.name):
       raise errors.HypervisorError("Can't accept instance, already running")
 
-  def MigrateInstance(self, instance, target, live):
+  def MigrateInstance(self, cluster_name, instance, target, live):
     """Migrate an instance.
 
+    @type cluster_name: string
+    @param cluster_name: name of the cluster
     @type instance: L{objects.Instance}
     @param instance: the instance to be migrated
     @type target: string

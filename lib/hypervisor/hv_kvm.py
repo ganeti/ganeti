@@ -1894,12 +1894,14 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     else:
       self.StopInstance(instance, force=True)
 
-  def MigrateInstance(self, instance, target, live):
+  def MigrateInstance(self, cluster_name, instance, target, live):
     """Migrate an instance to a target node.
 
     The migration will not be attempted if the instance is not
     currently running.
 
+    @type cluster_name: string
+    @param cluster_name: name of the cluster
     @type instance: L{objects.Instance}
     @param instance: the instance to be migrated
     @type target: string

@@ -727,9 +727,10 @@ class TLMigrateInstance(Tasklet):
                                (instance.name, msg))
 
     self.feedback_fn("* migrating instance to %s" % target_node)
-    result = self.rpc.call_instance_migrate(source_node, instance,
-                                            self.nodes_ip[target_node],
-                                            self.live)
+    cluster = self.cfg.GetClusterInfo()
+    result = self.rpc.call_instance_migrate(
+        source_node, cluster.cluster_name, instance, self.nodes_ip[target_node],
+        self.live)
     msg = result.fail_msg
     if msg:
       logging.error("Instance migration failed, trying to revert"

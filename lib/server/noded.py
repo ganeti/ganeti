@@ -634,9 +634,9 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     """Migrates an instance.
 
     """
-    instance, target, live = params
+    cluster_name, instance, target, live = params
     instance = objects.Instance.FromDict(instance)
-    return backend.MigrateInstance(instance, target, live)
+    return backend.MigrateInstance(cluster_name, instance, target, live)
 
   @staticmethod
   def perspective_instance_finalize_migration_src(params):

@@ -34,7 +34,6 @@ from ganeti.hypervisor import hv_base
 from ganeti import netutils
 from ganeti import objects
 from ganeti import pathutils
-from ganeti import ssconf
 
 
 XEND_CONFIG_FILE = utils.PathJoin(pathutils.XEN_CONFIG_DIR, "xend-config.sxp")
@@ -711,7 +710,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
     if success:
       self._WriteConfigFile(instance.name, info)
 
-  def MigrateInstance(self, instance, target, live):
+  def MigrateInstance(self, cluster_name, instance, target, live):
     """Migrate an instance to a target node.
 
     The migration will not be attempted if the instance is not
@@ -726,9 +725,6 @@ class XenHypervisor(hv_base.BaseHypervisor):
 
     """
     port = instance.hvparams[constants.HV_MIGRATION_PORT]
-
-    # TODO: Pass cluster name via RPC
-    cluster_name = ssconf.SimpleStore().GetClusterName()
 
     return self._MigrateInstance(cluster_name, instance.name, target, port,
                                  live, instance.hvparams)

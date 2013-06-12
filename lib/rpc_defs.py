@@ -267,6 +267,7 @@ _INSTANCE_CALLS = [
     ("success", None, "Whether the migration was a success or failure"),
     ], None, None, "Finalize any target-node migration specific operation"),
   ("instance_migrate", SINGLE, None, constants.RPC_TMO_SLOW, [
+    ("cluster_name", None, "Cluster name"),
     ("instance", ED_INST_DICT, "Instance object"),
     ("target", None, "Target node name"),
     ("live", None, "Whether the migration should be done live or not"),

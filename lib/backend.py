@@ -1789,9 +1789,11 @@ def FinalizeMigrationDst(instance, info, success):
     _Fail("Failed to finalize migration on the target node: %s", err, exc=True)
 
 
-def MigrateInstance(instance, target, live):
+def MigrateInstance(cluster_name, instance, target, live):
   """Migrates an instance to another node.
 
+  @type cluster_name: string
+  @param cluster_name: name of the cluster
   @type instance: L{objects.Instance}
   @param instance: the instance definition
   @type target: string
@@ -1805,7 +1807,7 @@ def MigrateInstance(instance, target, live):
   hyper = hypervisor.GetHypervisor(instance.hypervisor)
 
   try:
-    hyper.MigrateInstance(instance, target, live)
+    hyper.MigrateInstance(cluster_name, instance, target, live)
   except errors.HypervisorError, err:
     _Fail("Failed to migrate instance: %s", err, exc=True)
 
