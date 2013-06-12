@@ -96,13 +96,13 @@ move idx new_ndx (nl, il) = do
       il' = Container.add idx inst' il
   return (nl', il')
 
--- | Move an instance to one of the candidate nodes mentioned.
+-- | Move a non-redundant instance to one of the candidate nodes mentioned.
 locateInstance :: Idx -> [Ndx] -> (Node.List, Instance.List)
                   -> Result (Node.List, Instance.List)
 locateInstance idx ndxs conf =
   msum $ map (opToResult . flip (move idx) conf) ndxs
 
--- | Move a list of instances to some of the candidate nodes mentioned.
+-- | Move a list of non-redundant instances to some of the nodes mentioned.
 locateInstances :: [Idx] -> [Ndx] -> (Node.List, Instance.List)
                    -> Result (Node.List, Instance.List)
 locateInstances idxs ndxs conf =
