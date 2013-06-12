@@ -619,5 +619,61 @@ class TestGetHvInfo(unittest.TestCase):
     self._test_hv.GetNodeInfo.assert_called_with(hvparams=hvparams)
 
 
+class TestApplyStorageInfoFunction(unittest.TestCase):
+
+  _STORAGE_KEY = "some_key"
+  _SOME_ARGS = "some_args"
+
+  def setUp(self):
+    self.mock_storage_fn = mock.Mock()
+
+  def testApplyValidStorageType(self):
+    storage_type = constants.ST_LVM_VG
+    backend._STORAGE_TYPE_INFO_FN = {
+        storage_type: self.mock_storage_fn
+      }
+
+    backend._ApplyStorageInfoFunction(
+        storage_type, self._STORAGE_KEY, self._SOME_ARGS)
+
+    self.mock_storage_fn.assert_called_with(self._STORAGE_KEY, self._SOME_ARGS)
+
+  def testApplyInValidStorageType(self):
+    storage_type = "invalid_storage_type"
+    backend._STORAGE_TYPE_INFO_FN = {}
+
+    self.assertRaises(KeyError, backend._ApplyStorageInfoFunction,
+                      storage_type, self._STORAGE_KEY, self._SOME_ARGS)
+
+  def testApplyNotImplementedStorageType(self):
+    storage_type = "not_implemented_storage_type"
+    backend._STORAGE_TYPE_INFO_FN = {storage_type: None}
+
+    self.assertRaises(NotImplementedError,
+                      backend._ApplyStorageInfoFunction,
+                      storage_type, self._STORAGE_KEY, self._SOME_ARGS)
+
+
+class TestGetNodeInfo(unittest.TestCase):
+
+  _SOME_RESULT = None
+
+  def testApplyStorageInfoFunction(self):
+    excl_storage_flag = False
+    backend._ApplyStorageInfoFunction = mock.Mock(
+        return_value=self._SOME_RESULT)
+    storage_units = [(st, st + "_key") for st in
+                     constants.VALID_STORAGE_TYPES]
+
+    backend.GetNodeInfo(storage_units, None, excl_storage_flag)
+
+    call_args_list = backend._ApplyStorageInfoFunction.call_args_list
+    self.assertEqual(len(constants.VALID_STORAGE_TYPES), len(call_args_list))
+    for call in call_args_list:
+      storage_type, storage_key, excl_storage = call[0]
+      self.assertEqual(storage_type + "_key", storage_key)
+      self.assertTrue(storage_type in constants.VALID_STORAGE_TYPES)
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
