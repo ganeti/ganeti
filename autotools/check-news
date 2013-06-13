@@ -55,7 +55,7 @@ def Error(msg):
 
 
 def ReqNLines(req, count_empty, lineno, line):
-  """Check if we have N empty lines.
+  """Check if we have N empty lines before the current one.
 
   """
   if count_empty < req:
