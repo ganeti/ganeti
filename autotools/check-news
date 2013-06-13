@@ -39,7 +39,7 @@ DASHES_RE = re.compile(r"^\s*-+\s*$")
 RELEASED_RE = re.compile(r"^\*\(Released (?P<day>[A-Z][a-z]{2}),"
                          r" (?P<date>.+)\)\*$")
 UNRELEASED_RE = re.compile(r"^\*\(unreleased\)\*$")
-VERSION_RE = re.compile(r"^Version (\d+(\.\d+)+( (beta|rc)\d+)?)$")
+VERSION_RE = re.compile(r"^Version (\d+(\.\d+)+( (alpha|beta|rc)\d+)?)$")
 
 #: How many days release timestamps may be in the future
 TIMESTAMP_FUTURE_DAYS_MAX = 3
@@ -66,6 +66,21 @@ def ReqNLines(req, count_empty, lineno, line):
     Error("Line %s: Too many empty lines before %s,"
           " %d needed but got %d" %
           (lineno, line, req, count_empty))
+
+
+def IsAlphaVersion(version):
+  return "alpha" in version
+
+
+def UpdateAllowUnreleased(allow_unreleased, version_match, release):
+  if not allow_unreleased:
+    return False
+  if IsAlphaVersion(release):
+    return True
+  version = version_match.group(1)
+  if version == release:
+    return False
+  return True
 
 
 def main():
@@ -95,8 +110,8 @@ def main():
         Error("Line %s: Duplicate release %s found" %
               (fileinput.filelineno(), version))
       found_versions.add(version)
-      if version == release:
-        allow_unreleased = False
+      allow_unreleased = UpdateAllowUnreleased(allow_unreleased, version_match,
+                                               release)
 
     unreleased_match = UNRELEASED_RE.match(line)
     if unreleased_match and not allow_unreleased:
