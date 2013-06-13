@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 
-# Copyright (C) 2010 Google Inc.
+# Copyright (C) 2010,2013 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -31,8 +31,8 @@ case "$version" in
   # Format "x.y.z"
   $numpat.$numpat.$numpat) : ;;
 
-  # Format "x.y.z~rcN" or "x.y.z~betaN" for N > 0
-  $numpat.$numpat.$numpat~@(rc|beta)[1-9]*([0-9])) : ;;
+  # Format "x.y.z~rcN" or "x.y.z~betaN" or "x.y.z~alphaN" for N > 0
+  $numpat.$numpat.$numpat~@(rc|beta|alpha)[1-9]*([0-9])) : ;;
 
   *)
     echo "Invalid version format: $version" >&2
@@ -42,10 +42,17 @@ esac
 
 readonly newsver="Version ${version/\~/ }"
 
-if ! grep -q -x "$newsver" $newsfile
+# Only alpha versions are allowed not to have their own NEWS section yet
+set +e
+FOUND=x`echo $version | grep "alpha[1-9]*[0-9]$"`
+set -e
+if [ $FOUND == "x" ]
 then
-  echo "Unable to find heading '$newsver' in NEWS" >&2
-  exit 1
+  if ! grep -q -x "$newsver" $newsfile
+  then
+    echo "Unable to find heading '$newsver' in NEWS" >&2
+    exit 1
+  fi
 fi
 
 exit 0
