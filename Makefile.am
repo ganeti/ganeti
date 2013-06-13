@@ -103,6 +103,7 @@ DIRS = \
 	test/data/htools \
 	test/data/htools/rapi \
 	test/hs/shelltests \
+	test/autotools \
 	lib \
 	lib/build \
 	lib/client \
@@ -1020,6 +1021,7 @@ maninput = \
 	$(mangen)
 
 TEST_FILES = \
+	test/autotools/autotools-check-news.test \
 	test/data/htools/clean-nonzero-score.data \
 	test/data/htools/common-suffix.data \
 	test/data/htools/empty-cluster.data \
@@ -1095,6 +1097,8 @@ TEST_FILES = \
 	test/data/kvm_0.9.1_help_boot_test.txt \
 	test/data/kvm_1.0_help.txt \
 	test/data/kvm_1.1.2_help.txt \
+	test/data/NEWS_OK.txt \
+	test/data/NEWS_previous_unreleased.txt \
 	test/data/ovfdata/compr_disk.vmdk.gz \
 	test/data/ovfdata/config.ini \
 	test/data/ovfdata/corrupted_resources.ovf \
@@ -1141,6 +1145,7 @@ TEST_FILES = \
 	test/py/ganeti-cli.test \
 	test/py/gnt-cli.test \
 	test/py/import-export_unittest-helper
+
 
 python_tests = \
 	doc/examples/rapi_testutils.py \
@@ -1996,7 +2001,12 @@ live-test: all
 	  --srcdir=.. $(HPCEXCL) ; \
 	hpc report --srcdir=.. live-test $(HPCEXCL)
 
-commit-check: distcheck lint apidoc
+commit-check: autotools-check distcheck lint apidoc
+
+autotools-check:
+	TESTDATA_DIR=./test/data shelltest $(SHELLTESTARGS) \
+  $(abs_top_srcdir)/test/autotools/*-*.test \
+  -- --hide-successes
 
 .PHONY: gitignore-check
 gitignore-check:

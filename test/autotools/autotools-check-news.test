@@ -1,0 +1,16 @@
+# Test a correct NEWS file against a stable release
+RELEASE=2.6.2 ./autotools/check-news < $TESTDATA_DIR/NEWS_OK.txt
+>>>= 0
+
+# Test a correct NEWS file against an alpha release
+RELEASE=2.8.0~alpha ./autotools/check-news < $TESTDATA_DIR/NEWS_OK.txt
+>>>= 0
+
+# Test a NEWS file with previous unreleased versions against a stable release
+RELEASE=2.6.2 ./autotools/check-news < $TESTDATA_DIR/NEWS_previous_unreleased.txt
+>>>2/Unreleased version after current release 2.6.2/
+>>>= !0
+
+# Test a NEWS file with previous unreleased versions against an alpha release
+RELEASE=2.8.0~alpha ./autotools/check-news < $TESTDATA_DIR/NEWS_previous_unreleased.txt
+>>>= 0

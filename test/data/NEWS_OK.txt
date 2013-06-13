@@ -1,0 +1,80 @@
+News
+====
+
+
+Version 2.8.0 beta1
+-------------------
+
+*(unreleased)*
+
+Incompatible/important changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Stuff
+
+New features
+~~~~~~~~~~~~
+
+- More stuff
+
+
+Version 2.7.0 rc2
+-----------------
+
+*(Released Fri, 24 May 2013)*
+
+Incompatible/important changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Other stuff
+
+Since rc1:
+
+- Many bugfixes
+
+
+Version 2.7.0 rc1
+-----------------
+
+*(Released Fri, 3 May 2013)*
+
+- Things
+
+
+Version 2.7.0 beta1
+-------------------
+
+*(Released Wed, 6 Feb 2013)*
+
+This was the first beta release of the 2.7 series. All important changes
+are listed in the latest 2.7 entry.
+
+
+Version 2.6.2
+-------------
+
+*(Released Fri, 21 Dec 2012)*
+
+Hic sunt pink bunnies.
+
+
+Version 2.6.1
+-------------
+
+*(Released Fri, 12 Oct 2012)*
+
+Team members come, team members go.
+
+
+Version 2.6.0
+-------------
+
+*(Released Fri, 27 Jul 2012)*
+
+Many things happened before this point.
+
+.. vim: set textwidth=72 syntax=rst :
+.. Local Variables:
+.. mode: rst
+.. fill-column: 72
+.. End:
