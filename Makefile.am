@@ -831,7 +831,7 @@ test/hs/hpc-htools: HEXTRA_INT=-fhpc
 test/hs/hpc-mon-collector: HEXTRA_INT=-fhpc
 
 # test dependency
-test/hs/offline-tests.sh: test/hs/hpc-htools test/hs/hpc-mon-collector
+test/hs/offline-test.sh: test/hs/hpc-htools test/hs/hpc-mon-collector
 
 # rules for building profiling-enabled versions of the haskell
 # programs: hs-prof does the full two-step build, whereas
