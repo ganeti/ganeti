@@ -260,5 +260,5 @@ getDefaultHypervisorSpec cfg = (hv, getHvParamsFromCluster cfg hv)
 getHvParamsFromCluster :: ConfigData -> Hypervisor -> HvParams
 getHvParamsFromCluster cfg hv =
   fromMaybe (GenericContainer (Map.fromList []))
-    (Map.lookup (show hv)
+    (Map.lookup (hypervisorToRaw hv)
        (fromContainer (clusterHvparams (configCluster cfg))))

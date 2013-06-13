@@ -60,6 +60,7 @@ module Ganeti.Types
   , CVErrorCode(..)
   , cVErrorCodeToRaw
   , Hypervisor(..)
+  , hypervisorToRaw
   , OobCommand(..)
   , StorageType(..)
   , NodeEvacMode(..)
