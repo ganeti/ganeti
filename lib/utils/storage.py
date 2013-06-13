@@ -22,7 +22,10 @@
 
 """
 
+import logging
+
 from ganeti import constants
+from ganeti import pathutils
 
 
 def GetDiskTemplatesOfStorageType(storage_type):
@@ -52,3 +55,108 @@ def LvmGetsEnabled(enabled_disk_templates, new_enabled_disk_templates):
     return False
   return set(GetLvmDiskTemplates()).intersection(
       set(new_enabled_disk_templates))
+
+
+def _GetDefaultStorageUnitForDiskTemplate(cfg, disk_template):
+  """Retrieves the identifier of the default storage entity for the given
+  storage type.
+
+  @type disk_template: string
+  @param disk_template: a disk template, for example 'drbd'
+  @rtype: string
+  @return: identifier for a storage unit, for example the vg_name for lvm
+     storage
+
+  """
+  storage_type = constants.DISK_TEMPLATES_STORAGE_TYPE[disk_template]
+  if disk_template in GetLvmDiskTemplates():
+    return (storage_type, cfg.GetVGName())
+  # FIXME: Adjust this, once FILE_STORAGE_DIR and SHARED_FILE_STORAGE_DIR
+  # are not in autoconf anymore.
+  elif disk_template == constants.DT_FILE:
+    return (storage_type, pathutils.DEFAULT_FILE_STORAGE_DIR)
+  elif disk_template == constants.DT_SHARED_FILE:
+    return (storage_type, pathutils.DEFAULT_SHARED_FILE_STORAGE_DIR)
+  else:
+    return (storage_type, None)
+
+
+def _GetDefaultStorageUnitForSpindles(cfg):
+  """Creates a 'spindle' storage unit, by retrieving the volume group
+  name and associating it to the lvm-pv storage type.
+
+  @rtype: (string, string)
+  @return: tuple (storage_type, storage_key), where storage type is
+    'lvm-pv' and storage_key the name of the default volume group
+
+  """
+  return (constants.ST_LVM_PV, cfg.GetVGName())
+
+
+# List of storage type for which space reporting is implemented.
+# FIXME: Remove this, once the backend is capable to do this for all
+# storage types.
+_DISK_TEMPLATES_SPACE_QUERYABLE = GetLvmDiskTemplates() \
+    + GetDiskTemplatesOfStorageType(constants.ST_FILE)
+
+
+def GetStorageUnitsOfCluster(cfg, include_spindles=False):
+  """Examines the cluster's configuration and returns a list of storage
+  units and their storage keys, ordered by the order in which they
+  are enabled.
+
+  @type cfg: L{config.ConfigWriter}
+  @param cfg: Cluster configuration
+  @type include_spindles: boolean
+  @param include_spindles: flag to include an extra storage unit for physical
+    volumes
+  @rtype: list of tuples (string, string)
+  @return: list of storage units, each storage unit being a tuple of
+    (storage_type, storage_key); storage_type is in
+    C{constants.VALID_STORAGE_TYPES} and the storage_key a string to
+    identify an entity of that storage type, for example a volume group
+    name for LVM storage or a file for file storage.
+
+  """
+  cluster_config = cfg.GetClusterInfo()
+  storage_units = []
+  for disk_template in cluster_config.enabled_disk_templates:
+    if disk_template in _DISK_TEMPLATES_SPACE_QUERYABLE:
+      storage_units.append(
+          _GetDefaultStorageUnitForDiskTemplate(cfg, disk_template))
+  if include_spindles:
+    included_storage_types = set([st for (st, _) in storage_units])
+    if not constants.ST_LVM_PV in included_storage_types:
+      storage_units.append(
+          _GetDefaultStorageUnitForSpindles(cfg))
+
+  return storage_units
+
+
+def LookupSpaceInfoByStorageType(storage_space_info, storage_type):
+  """Looks up the storage space info for a given storage type.
+
+  Note that this lookup can be ambiguous if storage space reporting for several
+  units of the same storage type was requested. This function is only supposed
+  to be used for legacy code in situations where it actually is unambiguous.
+
+  @type storage_space_info: list of dicts
+  @param storage_space_info: result of C{GetNodeInfo}
+  @type storage_type: string
+  @param storage_type: a storage type, which is included in the storage_units
+    list
+  @rtype: tuple
+  @return: returns the element of storage_space_info that matches the given
+    storage type
+
+  """
+  result = None
+  for unit_info in storage_space_info:
+    if unit_info["type"] == storage_type:
+      if result is None:
+        result = unit_info
+      else:
+        # There is more than one storage type in the query, log a warning
+        logging.warning("Storage space information requested for"
+                        " ambiguous storage type '%s'.", storage_type)
+  return result
