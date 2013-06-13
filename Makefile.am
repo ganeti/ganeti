@@ -1720,28 +1720,30 @@ check-local: check-dirs $(GENERATED_FILES)
 	$(CHECK_VERSION) $(VERSION) $(top_srcdir)/NEWS
 	RELEASE=$(PACKAGE_VERSION) $(CHECK_NEWS) < $(top_srcdir)/NEWS
 	PYTHONPATH=. $(RUN_IN_TEMPDIR) $(CURDIR)/$(CHECK_IMPORTS) . $(standalone_python_modules)
-	@expver=$(VERSION_MAJOR).$(VERSION_MINOR); \
 	error= ; \
-	if test "`head -n 1 $(top_srcdir)/README`" != "Ganeti $$expver"; then \
-	  echo "Incorrect version in README, expected $$expver" >&2; \
-	  error=1; \
-	fi; \
-	for file in doc/iallocator.rst doc/hooks.rst doc/virtual-cluster.rst \
-	    doc/security.rst; do \
-	  if test "`sed -ne '4 p' $(top_srcdir)/$$file`" != \
-	    "Documents Ganeti version $$expver"; then \
-	    echo "Incorrect version in $$file, expected $$expver" >&2; \
+	if [ "x`echo $(VERSION_SUFFIX)|grep 'alpha'`" == "x" ]; then \
+	  expver=$(VERSION_MAJOR).$(VERSION_MINOR); \
+	  if test "`head -n 1 $(top_srcdir)/README`" != "Ganeti $$expver"; then \
+	    echo "Incorrect version in README, expected $$expver" >&2; \
 	    error=1; \
 	  fi; \
-	done; \
-	if ! test -f $(top_srcdir)/doc/design-$$expver.rst; then \
-	  echo "File $(top_srcdir)/doc/design-$$expver.rst not found" >&2; \
-	  error=1; \
-	fi; \
-	if test "`sed -ne '5 p' $(top_srcdir)/doc/design-draft.rst`" != \
-	  ".. Last updated for Ganeti $$expver"; then \
-	  echo "doc/design-draft.rst was not updated for version $$expver" >&2; \
-	  error=1; \
+	  for file in doc/iallocator.rst doc/hooks.rst doc/virtual-cluster.rst \
+	      doc/security.rst; do \
+	    if test "`sed -ne '4 p' $(top_srcdir)/$$file`" != \
+	      "Documents Ganeti version $$expver"; then \
+	      echo "Incorrect version in $$file, expected $$expver" >&2; \
+	      error=1; \
+	    fi; \
+	  done; \
+	  if ! test -f $(top_srcdir)/doc/design-$$expver.rst; then \
+	    echo "File $(top_srcdir)/doc/design-$$expver.rst not found" >&2; \
+	    error=1; \
+	  fi; \
+	  if test "`sed -ne '5 p' $(top_srcdir)/doc/design-draft.rst`" != \
+	    ".. Last updated for Ganeti $$expver"; then \
+	    echo "doc/design-draft.rst was not updated for version $$expver" >&2; \
+	    error=1; \
+	  fi; \
 	fi; \
 	for file in configure.ac $(HS_LIBTEST_SRCS) $(HS_PROG_SRCS); do \
 	  if test $$(wc --max-line-length < $(top_srcdir)/$$file) -gt 80; then \
