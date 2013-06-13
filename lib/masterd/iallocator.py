@@ -431,10 +431,11 @@ class IAllocator(object):
       node_whitelist = None
 
     es_flags = rpc.GetExclusiveStorageForNodes(self.cfg, node_list)
-    vg_req = rpc.BuildVgInfoQuery(self.cfg)
-    has_lvm = bool(vg_req)
+    storage_units = utils.storage.GetStorageUnitsOfCluster(
+        self.cfg, include_spindles=True)
+    has_lvm = utils.storage.IsLvmEnabled(cluster_info.enabled_disk_templates)
     hvspecs = [(hypervisor_name, cluster_info.hvparams[hypervisor_name])]
-    node_data = self.rpc.call_node_info(node_list, vg_req,
+    node_data = self.rpc.call_node_info(node_list, storage_units,
                                         hvspecs, es_flags)
     node_iinfo = \
       self.rpc.call_all_instances_info(node_list,
@@ -551,8 +552,8 @@ class IAllocator(object):
 
         # TODO: replace this with proper storage reporting
         if has_lvm:
-          total_disk = get_attr("vg_size")
-          free_disk = get_attr("vg_free")
+          total_disk = get_attr("storage_size")
+          free_disk = get_attr("storage_free")
           total_spindles = get_attr("spindles_total")
           free_spindles = get_attr("spindles_free")
         else:

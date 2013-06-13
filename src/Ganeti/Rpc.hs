@@ -52,7 +52,7 @@ module Ganeti.Rpc
   , RpcResultInstanceList(..)
 
   , HvInfo(..)
-  , VgInfo(..)
+  , StorageInfo(..)
   , RpcCallNodeInfo(..)
   , RpcResultNodeInfo(..)
 
@@ -342,11 +342,11 @@ $(buildObject "RpcCallNodeInfo" "rpcCallNodeInfo"
   , simpleField "exclusive_storage" [t| Map.Map String Bool |]
   ])
 
-$(buildObject "VgInfo" "vgInfo"
+$(buildObject "StorageInfo" "storageInfo"
   [ simpleField "name" [t| String |]
   , simpleField "type" [t| String |]
-  , optionalField $ simpleField "vg_free" [t| Int |]
-  , optionalField $ simpleField "vg_size" [t| Int |]
+  , optionalField $ simpleField "storage_free" [t| Int |]
+  , optionalField $ simpleField "storage_size" [t| Int |]
   ])
 
 -- | We only provide common fields as described in hv_base.py.
@@ -361,7 +361,7 @@ $(buildObject "HvInfo" "hvInfo"
 
 $(buildObject "RpcResultNodeInfo" "rpcResNodeInfo"
   [ simpleField "boot_id" [t| String |]
-  , simpleField "vg_info" [t| [VgInfo] |]
+  , simpleField "storage_info" [t| [StorageInfo] |]
   , simpleField "hv_info" [t| [HvInfo] |]
   ])
 

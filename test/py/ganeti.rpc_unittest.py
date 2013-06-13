@@ -900,26 +900,31 @@ class TestRpcRunner(unittest.TestCase):
 class TestLegacyNodeInfo(unittest.TestCase):
   KEY_BOOT = "bootid"
   KEY_VG0 = "name"
-  KEY_VG1 = "vg_free"
-  KEY_VG2 = "vg_size"
+  KEY_VG1 = "storage_free"
+  KEY_VG2 = "storage_size"
   KEY_HV = "cpu_count"
   KEY_SP1 = "spindles_free"
   KEY_SP2 = "spindles_total"
+  KEY_ST = "type" # key for storage type
   VAL_BOOT = 0
   VAL_VG0 = "xy"
   VAL_VG1 = 11
   VAL_VG2 = 12
+  VAL_VG3 = "lvm-vg"
   VAL_HV = 2
   VAL_SP0 = "ab"
   VAL_SP1 = 31
   VAL_SP2 = 32
+  VAL_SP3 = "lvm-pv"
   DICT_VG = {
     KEY_VG0: VAL_VG0,
     KEY_VG1: VAL_VG1,
     KEY_VG2: VAL_VG2,
+    KEY_ST: VAL_VG3,
     }
   DICT_HV = {KEY_HV: VAL_HV}
   DICT_SP = {
+    KEY_ST: VAL_SP3,
     KEY_VG0: VAL_SP0,
     KEY_VG1: VAL_SP1,
     KEY_VG2: VAL_SP2,
@@ -941,7 +946,7 @@ class TestLegacyNodeInfo(unittest.TestCase):
 
   def testReqVg(self):
     my_lst = [self.VAL_BOOT, [], [self.DICT_HV]]
-    self.assertRaises(ValueError, rpc.MakeLegacyNodeInfo, my_lst)
+    self.assertRaises(errors.OpExecError, rpc.MakeLegacyNodeInfo, my_lst)
 
   def testNoReqVg(self):
     my_lst = [self.VAL_BOOT, [], [self.DICT_HV]]

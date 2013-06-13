@@ -893,8 +893,6 @@ def _CheckNodesFreeDiskOnVG(lu, node_uuids, vg, requested):
 
   """
   es_flags = rpc.GetExclusiveStorageForNodes(lu.cfg, node_uuids)
-  # FIXME: This maps everything to storage type 'lvm-vg' to maintain
-  # the current functionality. Refactor to make it more flexible.
   hvname = lu.cfg.GetHypervisorType()
   hvparams = lu.cfg.GetClusterInfo().hvparams
   nodeinfo = lu.rpc.call_node_info(node_uuids, [(constants.ST_LVM_VG, vg)],
@@ -906,7 +904,7 @@ def _CheckNodesFreeDiskOnVG(lu, node_uuids, vg, requested):
     info.Raise("Cannot get current information from node %s" % node_name,
                prereq=True, ecode=errors.ECODE_ENVIRON)
     (_, (vg_info, ), _) = info.payload
-    vg_free = vg_info.get("vg_free", None)
+    vg_free = vg_info.get("storage_free", None)
     if not isinstance(vg_free, int):
       raise errors.OpPrereqError("Can't compute free disk space on node"
                                  " %s for vg %s, result was '%s'" %

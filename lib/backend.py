@@ -589,8 +589,8 @@ def _GetVgInfo(name, excl_stor):
   return {
     "type": constants.ST_LVM_VG,
     "name": name,
-    "vg_free": vg_free,
-    "vg_size": vg_size,
+    "storage_free": vg_free,
+    "storage_size": vg_size,
     }
 
 
@@ -614,8 +614,8 @@ def _GetVgSpindlesInfo(name, excl_stor):
   return {
     "type": constants.ST_LVM_PV,
     "name": name,
-    "vg_free": vg_free,
-    "vg_size": vg_size,
+    "storage_free": vg_free,
+    "storage_size": vg_size,
     }
 
 

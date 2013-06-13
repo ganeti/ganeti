@@ -1155,10 +1155,10 @@ _NODE_LIVE_FIELDS = {
   "csockets": ("CSockets", QFT_NUMBER, "cpu_sockets",
                "Number of physical CPU sockets (if exported by hypervisor)"),
   "ctotal": ("CTotal", QFT_NUMBER, "cpu_total", "Number of logical processors"),
-  "dfree": ("DFree", QFT_UNIT, "vg_free",
-            "Available disk space in volume group"),
-  "dtotal": ("DTotal", QFT_UNIT, "vg_size",
-             "Total disk space in volume group used for instance disk"
+  "dfree": ("DFree", QFT_UNIT, "storage_free",
+            "Available storage space in storage unit"),
+  "dtotal": ("DTotal", QFT_UNIT, "storage_size",
+             "Total storage space in storage unit used for instance disk"
              " allocation"),
   "spfree": ("SpFree", QFT_NUMBER, "spindles_free",
              "Available spindles in volume group (exclusive storage only)"),

@@ -61,10 +61,10 @@ nodeLiveFieldsDefs =
      "Number of physical CPU sockets (if exported by hypervisor)")
   , ("ctotal", "CTotal", QFTNumber, "cpu_total",
      "Number of logical processors")
-  , ("dfree", "DFree", QFTUnit, "vg_free",
-     "Available disk space in volume group")
-  , ("dtotal", "DTotal", QFTUnit, "vg_size",
-     "Total disk space in volume group used for instance disk allocation")
+  , ("dfree", "DFree", QFTUnit, "storage_free",
+     "Available storage space on storage unit")
+  , ("dtotal", "DTotal", QFTUnit, "storage_size",
+     "Total storage space on storage unit for instance disk allocation")
   , ("spfree", "SpFree", QFTNumber, "spindles_free",
      "Available spindles in volume group (exclusive storage only)")
   , ("sptotal", "SpTotal", QFTNumber, "spindles_total",
@@ -89,13 +89,13 @@ nodeLiveFieldExtract "csockets" res =
 nodeLiveFieldExtract "ctotal" res =
   jsonHead (rpcResNodeInfoHvInfo res) hvInfoCpuTotal
 nodeLiveFieldExtract "dfree" res =
-  getMaybeJsonHead (rpcResNodeInfoVgInfo res) vgInfoVgFree
+  getMaybeJsonHead (rpcResNodeInfoStorageInfo res) storageInfoStorageFree
 nodeLiveFieldExtract "dtotal" res =
-  getMaybeJsonHead (rpcResNodeInfoVgInfo res) vgInfoVgSize
+  getMaybeJsonHead (rpcResNodeInfoStorageInfo res) storageInfoStorageSize
 nodeLiveFieldExtract "spfree" res =
-  getMaybeJsonElem (rpcResNodeInfoVgInfo res) 1 vgInfoVgFree
+  getMaybeJsonElem (rpcResNodeInfoStorageInfo res) 1 storageInfoStorageFree
 nodeLiveFieldExtract "sptotal" res =
-  getMaybeJsonElem (rpcResNodeInfoVgInfo res) 1 vgInfoVgSize
+  getMaybeJsonElem (rpcResNodeInfoStorageInfo res) 1 storageInfoStorageSize
 nodeLiveFieldExtract "mfree" res =
   jsonHead (rpcResNodeInfoHvInfo res) hvInfoMemoryFree
 nodeLiveFieldExtract "mnode" res =

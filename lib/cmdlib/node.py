@@ -1184,15 +1184,20 @@ class NodeQuery(QueryBase):
       es_flags = rpc.GetExclusiveStorageForNodes(lu.cfg, toquery_node_uuids)
       # FIXME: This currently maps everything to lvm, this should be more
       # flexible
-      vg_req = rpc.BuildVgInfoQuery(lu.cfg)
+      lvm_enabled = utils.storage.IsLvmEnabled(
+          lu.cfg.GetClusterInfo().enabled_disk_templates)
+      storage_units = utils.storage.GetStorageUnitsOfCluster(
+          lu.cfg, include_spindles=True)
       default_hypervisor = lu.cfg.GetHypervisorType()
       hvparams = lu.cfg.GetClusterInfo().hvparams[default_hypervisor]
       hvspecs = [(default_hypervisor, hvparams)]
-      node_data = lu.rpc.call_node_info(toquery_node_uuids, vg_req,
+      node_data = lu.rpc.call_node_info(toquery_node_uuids, storage_units,
                                         hvspecs, es_flags)
-      live_data = dict((uuid, rpc.MakeLegacyNodeInfo(nresult.payload))
-                       for (uuid, nresult) in node_data.items()
-                       if not nresult.fail_msg and nresult.payload)
+      live_data = dict(
+          (uuid, rpc.MakeLegacyNodeInfo(nresult.payload,
+                                        require_vg_info=lvm_enabled))
+          for (uuid, nresult) in node_data.items()
+          if not nresult.fail_msg and nresult.payload)
     else:
       live_data = None
 

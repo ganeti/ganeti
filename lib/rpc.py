@@ -592,26 +592,56 @@ def _EncodeBlockdevRename(value):
   return [(d.ToDict(), uid) for d, uid in value]
 
 
-def BuildVgInfoQuery(cfg):
-  """Build a query about the default VG for C{node_info}.
+def _AddSpindlesToLegacyNodeInfo(result, space_info):
+  """Extracts the spindle information from the space info and adds
+  it to the result dictionary.
 
-  The result of the RPC can be parsed with L{MakeLegacyNodeInfo}.
-
-  @type cfg: L{config.ConfigWriter}
-  @param cfg: Cluster configuration
-  @rtype: list
-  @return: argument suitable for L{rpc.RpcRunner.call_node_info}
+  @type result: dict of strings
+  @param result: dictionary holding the result of the legacy node info
+  @type space_info: list of dicts of strings
+  @param space_info: list, each row holding space information of one storage
+    unit
+  @rtype: None
+  @return: does not return anything, manipulates the C{result} variable
 
   """
-  vg_name = cfg.GetVGName()
-  if vg_name:
-    ret = [
-      (constants.ST_LVM_VG, vg_name),
-      (constants.ST_LVM_PV, vg_name),
-      ]
+  lvm_pv_info = utils.storage.LookupSpaceInfoByStorageType(
+      space_info, constants.ST_LVM_PV)
+  if lvm_pv_info:
+    result["spindles_free"] = lvm_pv_info["storage_free"]
+    result["spindles_total"] = lvm_pv_info["storage_size"]
+
+
+def _AddDefaultStorageInfoToLegacyNodeInfo(result, space_info,
+                                           require_vg_info=True):
+  """Extracts the storage space information of the default storage type from
+  the space info and adds it to the result dictionary.
+
+  @see: C{_AddSpindlesToLegacyNodeInfo} for parameter information.
+  @type require_vg_info: boolean
+  @param require_vg_info: indicates whether volume group information is
+    required or not
+
+  """
+  # Check if there is at least one row for non-spindle storage info.
+  no_defaults = (len(space_info) < 1) or \
+      (space_info[0]["type"] == constants.ST_LVM_PV and len(space_info) == 1)
+
+  default_space_info = None
+  if no_defaults:
+    logging.warning("No storage info provided for default storage type.")
   else:
-    ret = []
-  return ret
+    default_space_info = space_info[0]
+
+  if require_vg_info:
+    if no_defaults or not default_space_info["type"] == constants.ST_LVM_VG:
+      raise errors.OpExecError("LVM volume group info required, but not"
+                               " provided.")
+
+  if default_space_info:
+    result["name"] = default_space_info["name"]
+    result["storage_free"] = default_space_info["storage_free"]
+    result["storage_size"] = default_space_info["storage_size"]
 
 
 def MakeLegacyNodeInfo(data, require_vg_info=True):
@@ -624,15 +654,13 @@ def MakeLegacyNodeInfo(data, require_vg_info=True):
       doesn't have any values
 
   """
-  (bootid, vgs_info, (hv_info, )) = data
+  (bootid, space_info, (hv_info, )) = data
 
   ret = utils.JoinDisjointDicts(hv_info, {"bootid": bootid})
 
-  if require_vg_info or vgs_info:
-    (vg0_info, vg0_spindles) = vgs_info
-    ret = utils.JoinDisjointDicts(vg0_info, ret)
-    ret["spindles_free"] = vg0_spindles["vg_free"]
-    ret["spindles_total"] = vg0_spindles["vg_size"]
+  _AddSpindlesToLegacyNodeInfo(ret, space_info)
+  _AddDefaultStorageInfoToLegacyNodeInfo(ret, space_info,
+                                         require_vg_info=require_vg_info)
 
   return ret
 
