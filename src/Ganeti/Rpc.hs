@@ -344,6 +344,7 @@ $(buildObject "RpcCallNodeInfo" "rpcCallNodeInfo"
 
 $(buildObject "VgInfo" "vgInfo"
   [ simpleField "name" [t| String |]
+  , simpleField "type" [t| String |]
   , optionalField $ simpleField "vg_free" [t| Int |]
   , optionalField $ simpleField "vg_size" [t| Int |]
   ])
