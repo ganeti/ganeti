@@ -972,6 +972,7 @@ TEST_FILES = \
 	test/data/htools/hail-reloc-drbd.json \
 	test/data/htools/hbal-excl-tags.data \
 	test/data/htools/hbal-split-insts.data \
+	test/data/htools/hspace-tiered-ipolicy.data \
 	test/data/htools/invalid-node.data \
 	test/data/htools/missing-resources.data \
 	test/data/htools/n1-failure.data \
