@@ -23,6 +23,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Ganeti.BasicTypes
   ( GenericResult(..)
+  , genericResult
   , Result
   , ResultT(..)
   , resultT
@@ -52,6 +53,11 @@ data GenericResult a b
   = Bad a
   | Ok b
     deriving (Show, Eq)
+
+-- | Sum type structure of GenericResult.
+genericResult :: (a -> c) -> (b -> c) -> GenericResult a b -> c
+genericResult f _ (Bad a) = f a
+genericResult _ g (Ok b) = g b
 
 -- | Type alias for a string Result.
 type Result = GenericResult String
