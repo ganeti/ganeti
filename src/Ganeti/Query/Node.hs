@@ -43,7 +43,7 @@ import Ganeti.Types
 import Ganeti.Query.Language
 import Ganeti.Query.Common
 import Ganeti.Query.Types
-import qualified Ganeti.Types as T
+import Ganeti.Storage.Utils
 import Ganeti.Utils (niceSort)
 
 -- | Runtime is the resulting type for NodeInfo call.
@@ -233,10 +233,7 @@ collectLiveData:: Bool -> ConfigData -> [Node] -> IO [(Node, Runtime)]
 collectLiveData False _ nodes =
   return $ zip nodes (repeat $ Left (RpcResultError "Live data disabled"))
 collectLiveData True cfg nodes = do
-  let vgs = maybeToList . clusterVolumeGroupName $ configCluster cfg
-      -- FIXME: This currently sets every storage unit to LVM
-      storage_units = zip (repeat T.StorageLvmVg) vgs ++
-                      zip (repeat T.StorageLvmPv) vgs
+  let storage_units = getClusterStorageUnits cfg
       hvs = [getDefaultHypervisorSpec cfg]
       step n (bn, gn, em) =
         let ndp' = getNodeNdParams cfg n
