@@ -318,8 +318,22 @@ def ChangeNodeIndices(config_data, old_key_field, new_key_field):
       ChangeDiskNodeIndices(disk)
 
 
+def ChangeInstanceIndices(config_data, old_key_field, new_key_field):
+  insts_by_old_key = {}
+  insts_by_new_key = {}
+  for (_, inst) in config_data["instances"].items():
+    insts_by_old_key[inst[old_key_field]] = inst
+    insts_by_new_key[inst[new_key_field]] = inst
+
+  config_data["instances"] = insts_by_new_key
+
+
 def UpgradeNodeIndices(config_data):
   ChangeNodeIndices(config_data, "name", "uuid")
+
+
+def UpgradeInstanceIndices(config_data):
+  ChangeInstanceIndices(config_data, "name", "uuid")
 
 
 def UpgradeAll(config_data):
@@ -333,6 +347,7 @@ def UpgradeAll(config_data):
   UpgradeGroups(config_data)
   UpgradeInstances(config_data)
   UpgradeNodeIndices(config_data)
+  UpgradeInstanceIndices(config_data)
 
 
 def DowngradeDisks(disks, owner):
@@ -358,6 +373,10 @@ def DowngradeNodeIndices(config_data):
   ChangeNodeIndices(config_data, "uuid", "name")
 
 
+def DowngradeInstanceIndices(config_data):
+  ChangeInstanceIndices(config_data, "uuid", "name")
+
+
 def DowngradeAll(config_data):
   # Any code specific to a particular version should be labeled that way, so
   # it can be removed when updating to the next version.
@@ -365,6 +384,7 @@ def DowngradeAll(config_data):
                                                   DOWNGRADE_MINOR, 0)
   DowngradeInstances(config_data)
   DowngradeNodeIndices(config_data)
+  DowngradeInstanceIndices(config_data)
 
 
 def main():
