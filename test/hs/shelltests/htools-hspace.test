@@ -15,3 +15,18 @@
 ./test/hs/hspace --machine-readable -t $TESTDATA_DIR/hspace-tiered-dualspec.data > $T/capacity && sh -c ". $T/capacity && test \"\${HTS_TSPEC}\" = '131072,1048576,4=4 129984,1048320,4=2 65472,524288,2=2' && test \"\${HTS_ALLOC_INSTANCES}\" = 14"
 >>>2
 >>>=0
+
+# Verify that instance policy for disks is adhered to
+./test/hs/hspace --machine-readable -t $TESTDATA_DIR/hspace-tiered-ipolicy.data
+>>>/HTS_TRL_INST_CNT=4/
+>>>=0
+
+# ...and instance positioning in human-readable form
+./test/hs/hspace -pname,pcnt -t $TESTDATA_DIR/hspace-tiered-ipolicy.data
+>>>2/Tiered allocation status:
+ Name        pcnt
+ node-01-001    1
+ node-01-002    1
+ node-01-003    1
+ node-01-004    1/
+>>>=0

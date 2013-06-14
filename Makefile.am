@@ -1035,6 +1035,7 @@ TEST_FILES = \
 	test/data/htools/hbal-excl-tags.data \
 	test/data/htools/hbal-split-insts.data \
 	test/data/htools/hspace-tiered-dualspec.data \
+	test/data/htools/hspace-tiered-ipolicy.data \
 	test/data/htools/hspace-tiered.data \
 	test/data/htools/invalid-node.data \
 	test/data/htools/missing-resources.data \
