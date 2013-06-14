@@ -2908,7 +2908,8 @@ class LUInstanceSetParams(LogicalUnit):
     if self.op.runtime_mem:
       remote_info = self.rpc.call_instance_info(
          self.instance.primary_node, self.instance.name,
-         self.instance.hypervisor, self.instance.hvparams)
+         self.instance.hypervisor,
+         self.cluster.hvparams[self.instance.hypervisor])
       remote_info.Raise("Error checking node %s" %
                         self.cfg.GetNodeName(self.instance.primary_node))
       if not remote_info.payload: # not running already
