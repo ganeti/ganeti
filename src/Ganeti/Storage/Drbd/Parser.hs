@@ -25,7 +25,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 02110-1301, USA.
 
 -}
-module Ganeti.Block.Drbd.Parser (drbdStatusParser, commaIntParser) where
+module Ganeti.Storage.Drbd.Parser (drbdStatusParser, commaIntParser) where
 
 import Control.Applicative ((<*>), (*>), (<*), (<$>), (<|>), pure)
 import qualified Data.Attoparsec.Text as A
@@ -35,7 +35,7 @@ import Data.List
 import Data.Maybe
 import Data.Text (Text, unpack)
 
-import Ganeti.Block.Drbd.Types
+import Ganeti.Storage.Drbd.Types
 
 -- | Our own space-skipping function, because A.skipSpace also skips
 -- newline characters. It skips ZERO or more spaces, so it does not

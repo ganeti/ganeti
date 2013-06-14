@@ -23,7 +23,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 -}
 
-module Test.Ganeti.Block.Drbd.Parser (testBlock_Drbd_Parser) where
+module Test.Ganeti.Storage.Drbd.Parser (testBlock_Drbd_Parser) where
 
 import Test.QuickCheck as QuickCheck hiding (Result)
 import Test.HUnit
@@ -35,8 +35,8 @@ import qualified Data.Attoparsec.Text as A
 import Data.List (intercalate)
 import Data.Text (pack)
 
-import Ganeti.Block.Drbd.Parser (drbdStatusParser, commaIntParser)
-import Ganeti.Block.Drbd.Types
+import Ganeti.Storage.Drbd.Parser (drbdStatusParser, commaIntParser)
+import Ganeti.Storage.Drbd.Types
 
 {-# ANN module "HLint: ignore Use camelCase" #-}
 

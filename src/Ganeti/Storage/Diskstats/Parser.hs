@@ -25,7 +25,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 02110-1301, USA.
 
 -}
-module Ganeti.Block.Diskstats.Parser (diskstatsParser) where
+module Ganeti.Storage.Diskstats.Parser (diskstatsParser) where
 
 import Control.Applicative ((<*>), (*>), (<*), (<$>))
 import qualified Data.Attoparsec.Text as A
@@ -33,7 +33,7 @@ import qualified Data.Attoparsec.Combinator as AC
 import Data.Attoparsec.Text (Parser)
 import Data.Text (unpack)
 
-import Ganeti.Block.Diskstats.Types
+import Ganeti.Storage.Diskstats.Types
 
 -- * Utility functions
 

@@ -24,7 +24,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 -}
 
-module Test.Ganeti.Block.Diskstats.Parser (testBlock_Diskstats_Parser) where
+module Test.Ganeti.Storage.Diskstats.Parser (testBlock_Diskstats_Parser) where
 
 import Test.QuickCheck as QuickCheck hiding (Result)
 import Test.HUnit
@@ -37,8 +37,8 @@ import qualified Data.Attoparsec.Text as A
 import Data.Text (pack)
 import Text.Printf
 
-import Ganeti.Block.Diskstats.Parser (diskstatsParser)
-import Ganeti.Block.Diskstats.Types
+import Ganeti.Storage.Diskstats.Parser (diskstatsParser)
+import Ganeti.Storage.Diskstats.Types
 
 {-# ANN module "HLint: ignore Use camelCase" #-}
 

@@ -47,8 +47,8 @@ import qualified Text.JSON as J
 
 import qualified Ganeti.BasicTypes as BT
 import qualified Ganeti.Constants as C
-import Ganeti.Block.Drbd.Parser(drbdStatusParser)
-import Ganeti.Block.Drbd.Types
+import Ganeti.Storage.Drbd.Parser(drbdStatusParser)
+import Ganeti.Storage.Drbd.Types
 import Ganeti.Common
 import Ganeti.Confd.Client
 import Ganeti.Confd.Types

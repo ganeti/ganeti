@@ -45,7 +45,7 @@ import qualified Text.JSON as J
 
 import qualified Ganeti.BasicTypes as BT
 import qualified Ganeti.Constants as C
-import Ganeti.Block.Diskstats.Parser(diskstatsParser)
+import Ganeti.Storage.Diskstats.Parser(diskstatsParser)
 import Ganeti.Common
 import Ganeti.DataCollectors.CLI
 import Ganeti.DataCollectors.Types

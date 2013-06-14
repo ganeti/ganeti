@@ -33,9 +33,9 @@ import System.Log.Logger
 import Test.Ganeti.TestImports ()
 import Test.Ganeti.Attoparsec
 import Test.Ganeti.BasicTypes
-import Test.Ganeti.Block.Diskstats.Parser
-import Test.Ganeti.Block.Drbd.Parser
-import Test.Ganeti.Block.Drbd.Types
+import Test.Ganeti.Storage.Diskstats.Parser
+import Test.Ganeti.Storage.Drbd.Parser
+import Test.Ganeti.Storage.Drbd.Types
 import Test.Ganeti.Common
 import Test.Ganeti.Confd.Utils
 import Test.Ganeti.Confd.Types

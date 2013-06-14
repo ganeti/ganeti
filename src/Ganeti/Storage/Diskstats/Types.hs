@@ -25,7 +25,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 02110-1301, USA.
 
 -}
-module Ganeti.Block.Diskstats.Types
+module Ganeti.Storage.Diskstats.Types
   ( Diskstats(..)
   ) where
 

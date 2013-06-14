@@ -63,9 +63,6 @@ myexeclibdir = $(pkglibdir)
 HS_DIRS = \
 	src \
 	src/Ganeti \
-	src/Ganeti/Block \
-	src/Ganeti/Block/Diskstats \
-	src/Ganeti/Block/Drbd \
 	src/Ganeti/Confd \
 	src/Ganeti/Curl \
 	src/Ganeti/DataCollectors \
@@ -76,12 +73,15 @@ HS_DIRS = \
 	src/Ganeti/Hypervisor/Xen \
 	src/Ganeti/Monitoring \
 	src/Ganeti/Query \
+	src/Ganeti/Storage \
+	src/Ganeti/Storage/Diskstats \
+	src/Ganeti/Storage/Drbd \
 	test/hs \
 	test/hs/Test \
 	test/hs/Test/Ganeti \
-	test/hs/Test/Ganeti/Block \
-	test/hs/Test/Ganeti/Block/Diskstats \
-	test/hs/Test/Ganeti/Block/Drbd \
+	test/hs/Test/Ganeti/Storage \
+	test/hs/Test/Ganeti/Storage/Diskstats \
+	test/hs/Test/Ganeti/Storage/Drbd \
 	test/hs/Test/Ganeti/Confd \
 	test/hs/Test/Ganeti/HTools \
 	test/hs/Test/Ganeti/HTools/Backend \
@@ -533,10 +533,6 @@ HPCEXCL = --exclude Main \
 	$(patsubst src.%,--exclude Test.%,$(subst /,.,$(patsubst %.hs,%, $(HS_LIB_SRCS))))
 
 HS_LIB_SRCS = \
-	src/Ganeti/Block/Diskstats/Parser.hs \
-	src/Ganeti/Block/Diskstats/Types.hs \
-	src/Ganeti/Block/Drbd/Parser.hs \
-	src/Ganeti/Block/Drbd/Types.hs \
 	src/Ganeti/BasicTypes.hs \
 	src/Ganeti/Common.hs \
 	src/Ganeti/Compat.hs \
@@ -611,6 +607,10 @@ HS_LIB_SRCS = \
 	src/Ganeti/Rpc.hs \
 	src/Ganeti/Runtime.hs \
 	src/Ganeti/Ssconf.hs \
+	src/Ganeti/Storage/Diskstats/Parser.hs \
+	src/Ganeti/Storage/Diskstats/Types.hs \
+	src/Ganeti/Storage/Drbd/Parser.hs \
+	src/Ganeti/Storage/Drbd/Types.hs \
 	src/Ganeti/THH.hs \
 	src/Ganeti/Types.hs \
 	src/Ganeti/Utils.hs
@@ -618,9 +618,6 @@ HS_LIB_SRCS = \
 HS_TEST_SRCS = \
 	test/hs/Test/Ganeti/Attoparsec.hs \
 	test/hs/Test/Ganeti/BasicTypes.hs \
-	test/hs/Test/Ganeti/Block/Diskstats/Parser.hs \
-	test/hs/Test/Ganeti/Block/Drbd/Parser.hs \
-	test/hs/Test/Ganeti/Block/Drbd/Types.hs \
 	test/hs/Test/Ganeti/Common.hs \
 	test/hs/Test/Ganeti/Confd/Types.hs \
 	test/hs/Test/Ganeti/Confd/Utils.hs \
@@ -652,6 +649,9 @@ HS_TEST_SRCS = \
 	test/hs/Test/Ganeti/Rpc.hs \
 	test/hs/Test/Ganeti/Runtime.hs \
 	test/hs/Test/Ganeti/Ssconf.hs \
+	test/hs/Test/Ganeti/Storage/Diskstats/Parser.hs \
+	test/hs/Test/Ganeti/Storage/Drbd/Parser.hs \
+	test/hs/Test/Ganeti/Storage/Drbd/Types.hs \
 	test/hs/Test/Ganeti/THH.hs \
 	test/hs/Test/Ganeti/TestCommon.hs \
 	test/hs/Test/Ganeti/TestHTools.hs \

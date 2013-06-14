@@ -24,7 +24,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 -}
 
-module Test.Ganeti.Block.Drbd.Types (testBlock_Drbd_Types) where
+module Test.Ganeti.Storage.Drbd.Types (testBlock_Drbd_Types) where
 
 import Test.QuickCheck
 
@@ -36,7 +36,7 @@ import Text.Printf
 
 import Ganeti.JSON
 
-import Ganeti.Block.Drbd.Types
+import Ganeti.Storage.Drbd.Types
 
 {-# ANN module "HLint: ignore Use camelCase" #-}
 {-# ANN module "HLint: ignore Use string literal" #-}

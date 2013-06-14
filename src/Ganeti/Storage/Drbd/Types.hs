@@ -24,7 +24,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 02110-1301, USA.
 
 -}
-module Ganeti.Block.Drbd.Types
+module Ganeti.Storage.Drbd.Types
   ( DRBDStatus(..)
   , VersionInfo(..)
   , DeviceInfo(..)
