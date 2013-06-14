@@ -30,3 +30,13 @@
  node-01-003    1
  node-01-004    1/
 >>>=0
+
+./test/hs/hspace -pname,pcnt -t $TESTDATA_DIR/hspace-tiered-resourcetypes.data
+>>>2/Tiered allocation status:
+ Name        pcnt
+ node-01-001    1
+ node-01-002    2
+ node-01-003    2
+ node-01-004    2/
+>>>=0
+
