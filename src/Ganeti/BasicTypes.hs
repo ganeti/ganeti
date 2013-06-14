@@ -32,6 +32,7 @@ module Ganeti.BasicTypes
   , isBad
   , eitherToResult
   , annotateResult
+  , iterateOk
   , select
   , LookupResult(..)
   , MatchPriority(..)
@@ -137,6 +138,10 @@ eitherToResult (Right v) = Ok  v
 annotateResult :: String -> Result a -> Result a
 annotateResult owner (Bad s) = Bad $ owner ++ ": " ++ s
 annotateResult _ v = v
+
+-- | Iterate while Ok.
+iterateOk :: (a -> GenericResult b a) -> a -> [a]
+iterateOk f a = genericResult (const []) ((:) a . iterateOk f) (f a)
 
 -- * Misc functionality
 
