@@ -428,6 +428,12 @@ VALID_STORAGE_OPERATIONS = {
  LDS_UNKNOWN,
  LDS_FAULTY) = range(1, 4)
 
+LDS_NAMES = {
+  LDS_OKAY: "ok",
+  LDS_UNKNOWN: "unknown",
+  LDS_FAULTY: "faulty",
+}
+
 # disk template types
 DT_BLOCK = "blockdev"
 DT_DISKLESS = "diskless"

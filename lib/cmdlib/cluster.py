@@ -1874,11 +1874,18 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
                     constants.CV_EINSTANCEFAULTYDISK, instance,
                     "couldn't retrieve status for disk/%s on %s: %s",
                     idx, self.cfg.GetNodeName(nname), bdev_status)
-      self._ErrorIf((inst_config.disks_active and
-                     success and
-                     bdev_status.ldisk_status == constants.LDS_FAULTY),
-                    constants.CV_EINSTANCEFAULTYDISK, instance,
-                    "disk/%s on %s is faulty", idx, self.cfg.GetNodeName(nname))
+
+      if inst_config.disks_active and success and \
+         (bdev_status.is_degraded or
+          bdev_status.ldisk_status != constants.LDS_OKAY):
+        msg = "disk/%s on %s" % (idx, self.cfg.GetNodeName(nname))
+        if bdev_status.is_degraded:
+          msg += " is degraded"
+        if bdev_status.ldisk_status != constants.LDS_OKAY:
+          msg += "; state is '%s'" % \
+                 constants.LDS_NAMES[bdev_status.ldisk_status]
+
+        self._Error(constants.CV_EINSTANCEFAULTYDISK, instance, msg)
 
     self._ErrorIf(pnode_img.rpc_fail and not pnode_img.offline,
                   constants.CV_ENODERPC, pnode, "instance %s, connection to"
