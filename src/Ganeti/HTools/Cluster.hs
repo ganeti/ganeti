@@ -78,7 +78,7 @@ module Ganeti.HTools.Cluster
 
 import qualified Data.IntSet as IntSet
 import Data.List
-import Data.Maybe (fromJust, isNothing)
+import Data.Maybe (fromJust, fromMaybe, isJust, isNothing)
 import Data.Ord (comparing)
 import Text.Printf (printf)
 
@@ -1292,6 +1292,13 @@ iterateAlloc nl il limit newinst allocnodes ixes cstats =
                       newlimit newinst allocnodes (xi:ixes)
                       (totalResources xnl:cstats)
 
+-- | Predicate whether shrinking a single resource can lead to a valid
+-- allocation.
+sufficesShrinking :: (Instance.Instance -> AllocSolution) -> Instance.Instance
+                     -> FailMode  -> Bool
+sufficesShrinking allocFn inst fm = any isJust . map (asSolution . allocFn) $
+                                    iterateOk (`Instance.shrinkByType` fm) inst
+
 -- | Tiered allocation method.
 --
 -- This places instances on the cluster, and decreases the spec until
@@ -1307,10 +1314,14 @@ tieredAlloc nl il limit newinst allocnodes ixes cstats =
           (stop, newlimit) = case limit of
                                Nothing -> (False, Nothing)
                                Just n -> (n <= ixes_cnt,
-                                            Just (n - ixes_cnt)) in
-      if stop then newsol else
-          case Instance.shrinkByType newinst . fst . last $
-               sortBy (comparing snd) errs of
+                                            Just (n - ixes_cnt))
+          sortedErrs = map fst $ sortBy (comparing snd) errs
+          suffShrink = sufficesShrinking (fromMaybe emptyAllocSolution
+                                          . flip (tryAlloc nl' il') allocnodes)
+                       newinst
+      in if stop then newsol else
+          case Instance.shrinkByType newinst . last $
+               sortedErrs ++ filter suffShrink sortedErrs of
             Bad _ -> newsol
             Ok newinst' -> tieredAlloc nl' il' newlimit
                            newinst' allocnodes ixes' cstats'

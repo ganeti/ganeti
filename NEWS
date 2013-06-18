@@ -26,7 +26,24 @@ Version 2.8.0 beta1
 
 *(unreleased)*
 
-- The minimum Python version needed to run Ganeti is now 2.6.
+Incompatible/important changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Instance policy can contain multiple instance specs, as described in
+  the “Constrained instance sizes” section of :doc:`Partitioned Ganeti
+  <design-partitioned>`. As a consequence, it's not possible to partially change
+  or override instance specs. Bounding specs (min and max) can be specified as a
+  whole using the new option ``--ipolicy-bounds-specs``, while standard
+  specs use the new option ``--ipolicy-std-specs``.
+- The output of the info command of gnt-cluster, gnt-group, gnt-node,
+  gnt-instance is a valid YAML object.
+- hail now honors network restrictions when allocating nodes. This led to an
+  update of the IAllocator protocol. See the IAllocator documentation for
+  details.
+
+New features
+~~~~~~~~~~~~
+
 - The :doc:`Remote API <rapi>` daemon now supports a command line flag
   to always require authentication, ``--require-authentication``. It can
   be specified in ``$sysconfdir/default/ganeti``.
@@ -41,9 +58,39 @@ Version 2.8.0 beta1
   creation.
 - ``cfgupgrade`` now supports a ``--downgrade`` option to bring the
   configuration back to the previous stable version.
-- hail now honors network restrictions when allocating nodes. This led to an
-  update of the IAllocator protocol. See the IAllocator documentation for
-  details.
+- Disk templates in group ipolicy can be restored to the default value.
+- Initial support for diskless instances and virtual clusters in QA.
+- More QA and unit tests for instance policies.
+- Every opcode now contains a reason trail (visible through ``gnt-job info``)
+  describing why the opcode itself was executed.
+- The monitoring daemon is now available. It allows users to query the cluster
+  for obtaining information about the status of the system. The daemon is only
+  responsible for providing the information over the network: the actual data
+  gathering is performed by data collectors (currently, only the DRBD status
+  collector is available).
+- In order to help developers work on Ganeti, a new script
+  (``devel/build_chroot``) is provided, for building a chroot that contains all
+  the required development libraries and tools for compiling Ganeti on a Debian
+  Squeeze system.
+- A new tool, ``harep``, for performing self-repair and recreation of instances
+  in Ganeti has been added.
+- Split queries are enabled for tags, network, exports, cluster info, groups,
+  jobs, nodes.
+- New command ``show-ispecs-cmd`` for ``gnt-cluster`` and ``gnt-group``.
+  It prints the command line to set the current policies, to ease
+  changing them.
+
+New dependencies
+~~~~~~~~~~~~~~~~
+The following new dependencies have been added:
+
+For Haskell:
+- The ``curl`` library is not optional anymore for compiling the Haskell code.
+- ``snap-server`` library (if monitoring is enabled).
+
+For Python:
+- The minimum Python version needed to run Ganeti is now 2.6.
+- ``yaml`` library (only for running the QA).
 
 
 Version 2.7.0 rc2

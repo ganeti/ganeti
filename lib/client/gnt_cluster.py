@@ -433,6 +433,10 @@ def ShowClusterConfig(opts, args):
   else:
     reserved_lvs = "(none)"
 
+  enabled_hv = result["enabled_hypervisors"]
+  hvparams = dict((k, v) for k, v in result["hvparams"].iteritems()
+                  if k in enabled_hv)
+
   info = [
     ("Cluster name", result["name"]),
     ("Cluster UUID", result["uuid"]),
@@ -448,10 +452,9 @@ def ShowClusterConfig(opts, args):
     ("Tags", tags),
 
     ("Default hypervisor", result["default_hypervisor"]),
-    ("Enabled hypervisors",
-     utils.CommaJoin(result["enabled_hypervisors"])),
+    ("Enabled hypervisors", utils.CommaJoin(enabled_hv)),
 
-    ("Hypervisor parameters", _FormatGroupedParams(result["hvparams"])),
+    ("Hypervisor parameters", _FormatGroupedParams(hvparams)),
 
     ("OS-specific hypervisor parameters",
      _FormatGroupedParams(result["os_hvp"])),
@@ -1114,6 +1117,7 @@ def SetClusterParams(opts, args):
     hv_state=hv_state,
     disk_state=disk_state,
     enabled_disk_templates=enabled_disk_templates,
+    force=opts.force,
     )
   SubmitOrSend(op, opts)
   return 0
@@ -1611,7 +1615,8 @@ commands = {
     "{pause <timespec>|continue|info}", "Change watcher properties"),
   "modify": (
     SetClusterParams, ARGS_NONE,
-    [BACKEND_OPT, CP_SIZE_OPT, ENABLED_HV_OPT, HVLIST_OPT, MASTER_NETDEV_OPT,
+    [FORCE_OPT,
+     BACKEND_OPT, CP_SIZE_OPT, ENABLED_HV_OPT, HVLIST_OPT, MASTER_NETDEV_OPT,
      MASTER_NETMASK_OPT, NIC_PARAMS_OPT, NOLVM_STORAGE_OPT, VG_NAME_OPT,
      MAINTAIN_NODE_HEALTH_OPT, UIDPOOL_OPT, ADD_UIDS_OPT, REMOVE_UIDS_OPT,
      DRBD_HELPER_OPT, NODRBD_STORAGE_OPT, DEFAULT_IALLOCATOR_OPT,

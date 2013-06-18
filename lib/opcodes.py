@@ -925,6 +925,7 @@ class OpClusterSetParams(OpCode):
 
   """
   OP_PARAMS = [
+    _PForce,
     _PHvState,
     _PDiskState,
     ("vg_name", None, ht.TMaybe(ht.TString), "Volume group name"),

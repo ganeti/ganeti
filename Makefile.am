@@ -106,6 +106,7 @@ DIRS = \
 	test/data/htools \
 	test/data/htools/rapi \
 	test/hs/shelltests \
+	test/autotools \
 	lib \
 	lib/build \
 	lib/client \
@@ -855,7 +856,7 @@ test/hs/hpc-htools: HEXTRA_INT=-fhpc
 test/hs/hpc-mon-collector: HEXTRA_INT=-fhpc
 
 # test dependency
-test/hs/offline-tests.sh: test/hs/hpc-htools test/hs/hpc-mon-collector
+test/hs/offline-test.sh: test/hs/hpc-htools test/hs/hpc-mon-collector
 
 # rules for building profiling-enabled versions of the haskell
 # programs: hs-prof does the full two-step build, whereas
@@ -1044,6 +1045,7 @@ maninput = \
 	$(mangen)
 
 TEST_FILES = \
+	test/autotools/autotools-check-news.test \
 	test/data/htools/clean-nonzero-score.data \
 	test/data/htools/common-suffix.data \
 	test/data/htools/empty-cluster.data \
@@ -1062,7 +1064,9 @@ TEST_FILES = \
 	test/data/htools/hspace-tiered-dualspec-exclusive.data \
 	test/data/htools/hspace-tiered-dualspec.data \
 	test/data/htools/hspace-tiered-exclusive.data \
+	test/data/htools/hspace-tiered-ipolicy.data \
 	test/data/htools/hspace-tiered-mixed.data \
+	test/data/htools/hspace-tiered-resourcetypes.data \
 	test/data/htools/hspace-tiered.data \
 	test/data/htools/invalid-node.data \
 	test/data/htools/missing-resources.data \
@@ -1127,6 +1131,8 @@ TEST_FILES = \
 	test/data/kvm_0.9.1_help_boot_test.txt \
 	test/data/kvm_1.0_help.txt \
 	test/data/kvm_1.1.2_help.txt \
+	test/data/NEWS_OK.txt \
+	test/data/NEWS_previous_unreleased.txt \
 	test/data/ovfdata/compr_disk.vmdk.gz \
 	test/data/ovfdata/config.ini \
 	test/data/ovfdata/corrupted_resources.ovf \
@@ -1177,6 +1183,7 @@ TEST_FILES = \
 	test/py/ganeti-cli.test \
 	test/py/gnt-cli.test \
 	test/py/import-export_unittest-helper
+
 
 python_tests = \
 	doc/examples/rapi_testutils.py \
@@ -1755,28 +1762,30 @@ check-local: check-dirs $(GENERATED_FILES)
 	$(CHECK_VERSION) $(VERSION) $(top_srcdir)/NEWS
 	RELEASE=$(PACKAGE_VERSION) $(CHECK_NEWS) < $(top_srcdir)/NEWS
 	PYTHONPATH=. $(RUN_IN_TEMPDIR) $(CURDIR)/$(CHECK_IMPORTS) . $(standalone_python_modules)
-	@expver=$(VERSION_MAJOR).$(VERSION_MINOR); \
 	error= ; \
-	if test "`head -n 1 $(top_srcdir)/README`" != "Ganeti $$expver"; then \
-	  echo "Incorrect version in README, expected $$expver" >&2; \
-	  error=1; \
-	fi; \
-	for file in doc/iallocator.rst doc/hooks.rst doc/virtual-cluster.rst \
-	    doc/security.rst; do \
-	  if test "`sed -ne '4 p' $(top_srcdir)/$$file`" != \
-	    "Documents Ganeti version $$expver"; then \
-	    echo "Incorrect version in $$file, expected $$expver" >&2; \
+	if [ "x`echo $(VERSION_SUFFIX)|grep 'alpha'`" == "x" ]; then \
+	  expver=$(VERSION_MAJOR).$(VERSION_MINOR); \
+	  if test "`head -n 1 $(top_srcdir)/README`" != "Ganeti $$expver"; then \
+	    echo "Incorrect version in README, expected $$expver" >&2; \
 	    error=1; \
 	  fi; \
-	done; \
-	if ! test -f $(top_srcdir)/doc/design-$$expver.rst; then \
-	  echo "File $(top_srcdir)/doc/design-$$expver.rst not found" >&2; \
-	  error=1; \
-	fi; \
-	if test "`sed -ne '5 p' $(top_srcdir)/doc/design-draft.rst`" != \
-	  ".. Last updated for Ganeti $$expver"; then \
-	  echo "doc/design-draft.rst was not updated for version $$expver" >&2; \
-	  error=1; \
+	  for file in doc/iallocator.rst doc/hooks.rst doc/virtual-cluster.rst \
+	      doc/security.rst; do \
+	    if test "`sed -ne '4 p' $(top_srcdir)/$$file`" != \
+	      "Documents Ganeti version $$expver"; then \
+	      echo "Incorrect version in $$file, expected $$expver" >&2; \
+	      error=1; \
+	    fi; \
+	  done; \
+	  if ! test -f $(top_srcdir)/doc/design-$$expver.rst; then \
+	    echo "File $(top_srcdir)/doc/design-$$expver.rst not found" >&2; \
+	    error=1; \
+	  fi; \
+	  if test "`sed -ne '5 p' $(top_srcdir)/doc/design-draft.rst`" != \
+	    ".. Last updated for Ganeti $$expver"; then \
+	    echo "doc/design-draft.rst was not updated for version $$expver" >&2; \
+	    error=1; \
+	  fi; \
 	fi; \
 	for file in configure.ac $(HS_LIBTEST_SRCS) $(HS_PROG_SRCS); do \
 	  if test $$(wc --max-line-length < $(top_srcdir)/$$file) -gt 80; then \
@@ -2036,7 +2045,12 @@ live-test: all
 	  --srcdir=.. $(HPCEXCL) ; \
 	hpc report --srcdir=.. live-test $(HPCEXCL)
 
-commit-check: distcheck lint apidoc
+commit-check: autotools-check distcheck lint apidoc
+
+autotools-check:
+	TESTDATA_DIR=./test/data shelltest $(SHELLTESTARGS) \
+  $(abs_top_srcdir)/test/autotools/*-*.test \
+  -- --hide-successes
 
 .PHONY: gitignore-check
 gitignore-check:

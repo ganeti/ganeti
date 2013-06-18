@@ -23,6 +23,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Ganeti.BasicTypes
   ( GenericResult(..)
+  , genericResult
   , Result
   , ResultT(..)
   , resultT
@@ -31,6 +32,7 @@ module Ganeti.BasicTypes
   , isBad
   , eitherToResult
   , annotateResult
+  , iterateOk
   , select
   , LookupResult(..)
   , MatchPriority(..)
@@ -52,6 +54,11 @@ data GenericResult a b
   = Bad a
   | Ok b
     deriving (Show, Eq)
+
+-- | Sum type structure of GenericResult.
+genericResult :: (a -> c) -> (b -> c) -> GenericResult a b -> c
+genericResult f _ (Bad a) = f a
+genericResult _ g (Ok b) = g b
 
 -- | Type alias for a string Result.
 type Result = GenericResult String
@@ -131,6 +138,10 @@ eitherToResult (Right v) = Ok  v
 annotateResult :: String -> Result a -> Result a
 annotateResult owner (Bad s) = Bad $ owner ++ ": " ++ s
 annotateResult _ v = v
+
+-- | Iterate while Ok.
+iterateOk :: (a -> GenericResult b a) -> a -> [a]
+iterateOk f a = genericResult (const []) ((:) a . iterateOk f) (f a)
 
 -- * Misc functionality
 

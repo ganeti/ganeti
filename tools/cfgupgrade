@@ -52,7 +52,7 @@ args = None
 #: Target major version we will upgrade to
 TARGET_MAJOR = 2
 #: Target minor version we will upgrade to
-TARGET_MINOR = 7
+TARGET_MINOR = 8
 #: Target major version for downgrade
 DOWNGRADE_MAJOR = 2
 #: Target minor version for downgrade
@@ -361,6 +361,8 @@ def DowngradeNodeIndices(config_data):
 def DowngradeAll(config_data):
   # Any code specific to a particular version should be labeled that way, so
   # it can be removed when updating to the next version.
+  config_data["version"] = constants.BuildVersion(DOWNGRADE_MAJOR,
+                                                  DOWNGRADE_MINOR, 0)
   DowngradeInstances(config_data)
   DowngradeNodeIndices(config_data)
 
@@ -474,15 +476,17 @@ def main():
 
   # Downgrade to the previous stable version
   if options.downgrade:
-    if config_major != TARGET_MAJOR or config_minor != TARGET_MINOR:
+    if not ((config_major == TARGET_MAJOR and config_minor == TARGET_MINOR) or
+            (config_major == DOWNGRADE_MAJOR and
+             config_minor == DOWNGRADE_MINOR)):
       raise Error("Downgrade supported only from the latest version (%s.%s),"
                   " found %s (%s.%s.%s) instead" %
                   (TARGET_MAJOR, TARGET_MINOR, config_version, config_major,
                    config_minor, config_revision))
     DowngradeAll(config_data)
 
-  # Upgrade from 2.{0..7} to 2.7
-  elif config_major == 2 and config_minor in range(0, 8):
+  # Upgrade from 2.{0..7} to 2.8
+  elif config_major == 2 and config_minor in range(0, 9):
     if config_revision != 0:
       logging.warning("Config revision is %s, not 0", config_revision)
     UpgradeAll(config_data)

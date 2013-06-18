@@ -191,7 +191,8 @@ prop_shrinkDG inst =
 prop_shrinkDF :: Instance.Instance -> Property
 prop_shrinkDF inst =
   forAll (choose (0, 2 * Types.unitDsk - 1)) $ \dsk ->
-    let inst' = inst { Instance.dsk = dsk }
+    let inst' = inst { Instance.dsk = dsk
+                     , Instance.disks = [Instance.Disk dsk Nothing] }
     in isBad $ Instance.shrinkByType inst' Types.FailDisk
 
 prop_setMovable :: Instance.Instance -> Bool -> Property

@@ -593,6 +593,7 @@ MODIFY
 ~~~~~~
 
 | **modify** [\--submit] [\--print-job-id]
+| [\--force]
 | [\--vg-name *vg-name*]
 | [\--enabled-hypervisors *hypervisors*]
 | [{-H|\--hypervisor-parameters} *hypervisor*:*hv-param*=*value*[,*hv-param*=*value*...]]

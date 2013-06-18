@@ -405,7 +405,7 @@ oMachineReadable =
               return $ opts { optMachineReadable = flag }) "CHOICE")
    "enable machine readable output (pass either 'yes' or 'no' to\
    \ explicitly control the flag, or without an argument defaults to\
-   \ yes",
+   \ yes)",
    optComplYesNo)
 
 oMaxCpu :: OptType

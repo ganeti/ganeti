@@ -2768,6 +2768,9 @@ def OSEnvironment(instance, inst_os, debug=0):
     real_disk = _OpenRealBD(disk)
     result["DISK_%d_PATH" % idx] = real_disk.dev_path
     result["DISK_%d_ACCESS" % idx] = disk.mode
+    result["DISK_%d_UUID" % idx] = disk.uuid
+    if disk.name:
+      result["DISK_%d_NAME" % idx] = disk.name
     if constants.HV_DISK_TYPE in instance.hvparams:
       result["DISK_%d_FRONTEND_TYPE" % idx] = \
         instance.hvparams[constants.HV_DISK_TYPE]
@@ -2780,6 +2783,9 @@ def OSEnvironment(instance, inst_os, debug=0):
   # NICs
   for idx, nic in enumerate(instance.nics):
     result["NIC_%d_MAC" % idx] = nic.mac
+    result["NIC_%d_UUID" % idx] = nic.uuid
+    if nic.name:
+      result["NIC_%d_NAME" % idx] = nic.name
     if nic.ip:
       result["NIC_%d_IP" % idx] = nic.ip
     result["NIC_%d_MODE" % idx] = nic.nicparams[constants.NIC_MODE]

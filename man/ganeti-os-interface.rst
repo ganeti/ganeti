@@ -76,6 +76,12 @@ DISK_%N_ACCESS
     This is how the hypervisor will export the instance disks: either
     read-write (``rw``) or read-only (``ro``).
 
+DISK_%N_UUID
+    The uuid associated with the N-th disk of the instance.
+
+DISK_%N_NAME
+    (Optional) The name, if any, associated with the N-th disk of the instance.
+
 DISK_%N_FRONTEND_TYPE
     (Optional) If applicable to the current hypervisor type: the type
     of the device exported by the hypervisor. For example, the Xen HVM
@@ -95,6 +101,12 @@ NIC_COUNT
 
 NIC_%N_MAC
     The MAC address associated with this interface.
+
+NIC_%N_UUID
+    The uuid associated with the N-th NIC of the instance.
+
+NIC_%N_NAME
+    (Optional) The name, if any, associated with the N-th NIC of the instance.
 
 NIC_%N_IP
     The IP address, if any, associated with the N-th NIC of the

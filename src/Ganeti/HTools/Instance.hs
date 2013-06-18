@@ -257,10 +257,12 @@ shrinkByType inst T.FailMem = let v = mem inst - T.unitMem
                               in if v < T.unitMem
                                  then Bad "out of memory"
                                  else Ok inst { mem = v }
-shrinkByType inst T.FailDisk = let v = dsk inst - T.unitDsk
-                               in if v < T.unitDsk
-                                  then Bad "out of disk"
-                                  else Ok inst { dsk = v }
+shrinkByType inst T.FailDisk =
+  let newdisks = [d {dskSize = dskSize d - T.unitDsk}| d <- disks inst]
+      v = dsk inst - (length . disks $ inst) * T.unitDsk
+  in if any (< T.unitDsk) $ map dskSize newdisks
+     then Bad "out of disk"
+     else Ok inst { dsk = v, disks = newdisks }
 shrinkByType inst T.FailCPU = let v = vcpus inst - T.unitCpu
                               in if v < T.unitCpu
                                  then Bad "out of vcpus"

@@ -153,7 +153,8 @@ $(genOpCode "OpCode"
      [ pName
      ])
   , ("OpClusterSetParams",
-     [ pHvState
+     [ pForce
+     , pHvState
      , pDiskState
      , pVgName
      , pEnabledHypervisors

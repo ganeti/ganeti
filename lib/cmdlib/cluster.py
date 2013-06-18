@@ -1105,7 +1105,13 @@ class LUClusterSetParams(LogicalUnit):
                   self.cluster.master_netdev)
       result = self.rpc.call_node_deactivate_master_ip(master_params.uuid,
                                                        master_params, ems)
-      result.Raise("Could not disable the master ip")
+      if not self.op.force:
+        result.Raise("Could not disable the master ip")
+      else:
+        if result.fail_msg:
+          msg = ("Could not disable the master ip (continuing anyway): %s" %
+                 result.fail_msg)
+          feedback_fn(msg)
       feedback_fn("Changing master_netdev from %s to %s" %
                   (master_params.netdev, self.op.master_netdev))
       self.cluster.master_netdev = self.op.master_netdev
