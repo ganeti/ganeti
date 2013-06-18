@@ -437,7 +437,9 @@ def main():
 
   # Downgrade to the previous stable version
   if options.downgrade:
-    if config_major != TARGET_MAJOR or config_minor != TARGET_MINOR:
+    if not ((config_major == TARGET_MAJOR and config_minor == TARGET_MINOR) or
+            (config_major == DOWNGRADE_MAJOR and
+             config_minor == DOWNGRADE_MINOR)):
       raise Error("Downgrade supported only from the latest version (%s.%s),"
                   " found %s (%s.%s.%s) instead" %
                   (TARGET_MAJOR, TARGET_MINOR, config_version, config_major,
