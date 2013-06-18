@@ -611,7 +611,6 @@ HS_LIB_SRCS = \
 	src/Ganeti/Storage/Diskstats/Types.hs \
 	src/Ganeti/Storage/Drbd/Parser.hs \
 	src/Ganeti/Storage/Drbd/Types.hs \
-	src/Ganeti/Storage/Utils.hs \
 	src/Ganeti/THH.hs \
 	src/Ganeti/Types.hs \
 	src/Ganeti/Utils.hs
