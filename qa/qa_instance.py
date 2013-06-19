@@ -280,7 +280,7 @@ def TestInstanceAddFile(nodes):
 def TestInstanceAddDiskless(nodes):
   """gnt-instance add -t diskless"""
   assert len(nodes) == 1
-  if constants.DT_FILE in qa_config.GetEnabledDiskTemplates():
+  if constants.DT_DISKLESS in qa_config.GetEnabledDiskTemplates():
     return CreateInstanceByDiskTemplateOneNode(nodes, constants.DT_DISKLESS)
 
 

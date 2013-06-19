@@ -290,12 +290,10 @@ EOF
 
 Initialize cluster:
   cd $rootdir && node1/cmd gnt-cluster init --no-etc-hosts \\
-    --no-ssh-init --no-lvm-storage --no-drbd-storage $cluster_name
-
-Change cluster settings:
-  cd $rootdir && node1/cmd gnt-cluster modify \\
-    --enabled-hypervisors=fake --specs-nic-count=min=0 \\
-    --specs-disk-size=min=0 --specs-disk-count=min=0
+    --no-ssh-init --master-netdev=lo \\
+    --enabled-disk-templates=diskless --enabled-hypervisors=fake \\
+    --ipolicy-bounds-specs=min:disk-size=0,cpu-count=1,disk-count=0,memory-size=1,nic-count=0,spindle-use=0/max:disk-size=1048576,cpu-count=8,disk-count=16,memory-size=32768,nic-count=8,spindle-use=12 \\
+    $cluster_name
 
 Add node:
   cd $rootdir && node1/cmd gnt-node add --no-ssh-key-check node2
