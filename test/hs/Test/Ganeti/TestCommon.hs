@@ -62,6 +62,7 @@ module Test.Ganeti.TestCommon
   , readTestData
   , genSample
   , testParser
+  , genPropParser
   , genNonNegative
   ) where
 
@@ -376,6 +377,13 @@ testParser parser fileName expectedContent = do
   case parseOnly parser $ pack fileContent of
     Left msg -> HUnit.assertFailure $ "Parsing failed: " ++ msg
     Right obtained -> HUnit.assertEqual fileName expectedContent obtained
+
+-- | Generate a property test for parsers.
+genPropParser :: (Show a, Eq a) => Parser a -> String -> a -> Property
+genPropParser parser s expected =
+  case parseOnly parser $ pack s of
+    Left msg -> failTest $ "Parsing failed: " ++ msg
+    Right obtained -> expected ==? obtained
 
 -- | Generate an arbitrary non negative integer number
 genNonNegative :: Gen Int
