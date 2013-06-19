@@ -42,7 +42,8 @@ CANCEL
 ~~~~~~
 
 | **cancel**
-| {[\--force] {\--pending | \--queued | \--waiting} | *job-id* ...}
+| {[\--force] {\--pending | \--queued | \--waiting} |
+|  *job-id* ...}
 
 Cancel the job(s) identified by the given *job id*. Only jobs that have
 not yet started to run can be canceled; that is, jobs in either the
@@ -54,7 +55,8 @@ CHANGE-PRIORITY
 ~~~~~~~~~~~~~~~
 
 | **change-priority** \--priority {low | normal | high}
-| {[\--force] {\--pending | \--queued | \--waiting} | *job-id* ...}
+| {[\--force] {\--pending | \--queued | \--waiting} |
+|  *job-id* ...}
 
 Changes the priority of one or multiple pending jobs. Jobs currently
 running have only the priority of remaining opcodes changed.
