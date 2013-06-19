@@ -1721,7 +1721,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     if vg_name is None:
       return
 
-    # Only exlcusive storage needs this kind of checks
+    # Only exclusive storage needs this kind of checks
     if not self._exclusive_storage:
       return
 
@@ -1731,13 +1731,14 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     vals = filter((lambda ni: ni.pv_min is not None), node_image.values())
     if not vals:
       return
-    (pvmin, minnode) = min((ni.pv_min, ni.name) for ni in vals)
-    (pvmax, maxnode) = max((ni.pv_max, ni.name) for ni in vals)
+    (pvmin, minnode_uuid) = min((ni.pv_min, ni.uuid) for ni in vals)
+    (pvmax, maxnode_uuid) = max((ni.pv_max, ni.uuid) for ni in vals)
     bad = utils.LvmExclusiveTestBadPvSizes(pvmin, pvmax)
     self._ErrorIf(bad, constants.CV_EGROUPDIFFERENTPVSIZE, self.group_info.name,
                   "PV sizes differ too much in the group; smallest (%s MB) is"
                   " on %s, biggest (%s MB) is on %s",
-                  pvmin, minnode, pvmax, maxnode)
+                  pvmin, self.cfg.GetNodeName(minnode_uuid),
+                  pvmax, self.cfg.GetNodeName(maxnode_uuid))
 
   def _VerifyNodeBridges(self, ninfo, nresult, bridges):
     """Check the node bridges.
