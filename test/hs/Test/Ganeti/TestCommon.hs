@@ -42,6 +42,7 @@ module Test.Ganeti.TestCommon
   , DNSChar(..)
   , genName
   , genFQDN
+  , genUUID
   , genMaybe
   , genTags
   , genFields
@@ -192,6 +193,24 @@ genFQDN = do
   ncomps <- choose (1, 4)
   names <- vectorOf ncomps genName
   return $ intercalate "." names
+
+-- | Generates a UUID-like string.
+--
+-- Only to be used for QuickCheck testing. For obtaining actual UUIDs use
+-- the newUUID function in Ganeti.Utils
+genUUID :: Gen String
+genUUID = do
+  c1 <- vector 6
+  c2 <- vector 4
+  c3 <- vector 4
+  c4 <- vector 4
+  c5 <- vector 4
+  c6 <- vector 4
+  c7 <- vector 6
+  return $ map dnsGetChar c1 ++ "-" ++ map dnsGetChar c2 ++ "-" ++
+    map dnsGetChar c3 ++ "-" ++ map dnsGetChar c4 ++ "-" ++
+    map dnsGetChar c5 ++ "-" ++ map dnsGetChar c6 ++ "-" ++
+    map dnsGetChar c7
 
 -- | Combinator that generates a 'Maybe' using a sub-combinator.
 genMaybe :: Gen a -> Gen (Maybe a)
