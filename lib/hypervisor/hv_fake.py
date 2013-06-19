@@ -42,6 +42,10 @@ class FakeHypervisor(hv_base.BaseHypervisor):
   a real virtualisation software installed.
 
   """
+  PARAMETERS = {
+    constants.HV_MIGRATION_MODE: hv_base.MIGRATION_MODE_CHECK,
+    }
+
   CAN_MIGRATE = True
 
   _ROOT_DIR = pathutils.RUN_DIR + "/fake-hypervisor"

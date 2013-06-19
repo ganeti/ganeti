@@ -2135,7 +2135,9 @@ HVC_DEFAULTS = {
     HV_KVM_EXTRA: "",
     HV_KVM_MACHINE_VERSION: "",
     },
-  HT_FAKE: {},
+  HT_FAKE: {
+    HV_MIGRATION_MODE: HT_MIGRATION_LIVE,
+  },
   HT_CHROOT: {
     HV_INIT_SCRIPT: "/ganeti-chroot",
     },
