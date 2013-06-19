@@ -76,6 +76,7 @@ module Ganeti.HTools.Cluster
   , splitCluster
   ) where
 
+import Control.Applicative (liftA2)
 import qualified Data.IntSet as IntSet
 import Data.List
 import Data.Maybe (fromJust, fromMaybe, isJust, isNothing)
@@ -1283,8 +1284,12 @@ iterateAlloc nl il limit newinst allocnodes ixes cstats =
 -- allocation.
 sufficesShrinking :: (Instance.Instance -> AllocSolution) -> Instance.Instance
                      -> FailMode  -> Bool
-sufficesShrinking allocFn inst fm = any isJust . map (asSolution . allocFn) $
-                                    iterateOk (`Instance.shrinkByType` fm) inst
+sufficesShrinking allocFn inst fm =
+  any isJust 
+  . map asSolution 
+  . takeWhile (liftA2 (||) (elem fm . asFailures) (isJust . asSolution))
+  . map allocFn $
+  iterateOk (`Instance.shrinkByType` fm) inst
 
 -- | Tiered allocation method.
 --
