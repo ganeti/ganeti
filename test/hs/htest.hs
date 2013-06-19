@@ -33,9 +33,6 @@ import System.Log.Logger
 import Test.Ganeti.TestImports ()
 import Test.Ganeti.Attoparsec
 import Test.Ganeti.BasicTypes
-import Test.Ganeti.Storage.Diskstats.Parser
-import Test.Ganeti.Storage.Drbd.Parser
-import Test.Ganeti.Storage.Drbd.Types
 import Test.Ganeti.Common
 import Test.Ganeti.Confd.Utils
 import Test.Ganeti.Confd.Types
@@ -67,6 +64,10 @@ import Test.Ganeti.Query.Query
 import Test.Ganeti.Rpc
 import Test.Ganeti.Runtime
 import Test.Ganeti.Ssconf
+import Test.Ganeti.Storage.Diskstats.Parser
+import Test.Ganeti.Storage.Drbd.Parser
+import Test.Ganeti.Storage.Drbd.Types
+import Test.Ganeti.Storage.Lvm.LVParser
 import Test.Ganeti.THH
 import Test.Ganeti.Types
 import Test.Ganeti.Utils
@@ -122,6 +123,7 @@ allTests =
   , testRpc
   , testRuntime
   , testSsconf
+  , testStorage_Lvm_LVParser
   , testTHH
   , testTypes
   , testUtils

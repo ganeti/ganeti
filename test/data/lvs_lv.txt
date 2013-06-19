@@ -1,0 +1,2 @@
+  nhasjL-cnZi-uqLS-WRLj-tkXI-nvCB-n0o2lj;df9ff3f6-a833-48ff-8bd5-bff2eaeab759.disk0_data;-wi-ao;-1;-1;253;0;1073741824B;1;originstname+instance1.example.com;;uZgXit-eiRr-vRqe-xpEo-e9nU-mTuR-9nfVIU;xenvg;linear;0B;0;1073741824B;;/dev/sda5:0-15;/dev/sda5(0)
+  5fW5mE-SBSs-GSU0-KZDg-hnwb-sZOC-zZt736;df9ff3f6-a833-48ff-8bd5-bff2eaeab759.disk0_meta;-wi-ao;-1;-1;253;1;134217728B;1;originstname+instance1.example.com;;uZgXit-eiRr-vRqe-xpEo-e9nU-mTuR-9nfVIU;xenvg;linear;0B;0;134217728B;;/dev/sda5:16-17;/dev/sda5(16)

@@ -83,6 +83,7 @@ HS_DIRS = \
 	test/hs/Test/Ganeti/Storage \
 	test/hs/Test/Ganeti/Storage/Diskstats \
 	test/hs/Test/Ganeti/Storage/Drbd \
+	test/hs/Test/Ganeti/Storage/Lvm \
 	test/hs/Test/Ganeti/Confd \
 	test/hs/Test/Ganeti/HTools \
 	test/hs/Test/Ganeti/HTools/Backend \
@@ -659,6 +660,7 @@ HS_TEST_SRCS = \
 	test/hs/Test/Ganeti/Storage/Diskstats/Parser.hs \
 	test/hs/Test/Ganeti/Storage/Drbd/Parser.hs \
 	test/hs/Test/Ganeti/Storage/Drbd/Types.hs \
+	test/hs/Test/Ganeti/Storage/Lvm/LVParser.hs \
 	test/hs/Test/Ganeti/THH.hs \
 	test/hs/Test/Ganeti/TestCommon.hs \
 	test/hs/Test/Ganeti/TestHTools.hs \
@@ -1142,6 +1144,7 @@ TEST_FILES = \
 	test/data/kvm_0.9.1_help_boot_test.txt \
 	test/data/kvm_1.0_help.txt \
 	test/data/kvm_1.1.2_help.txt \
+	test/data/lvs_lv.txt \
 	test/data/NEWS_OK.txt \
 	test/data/NEWS_previous_unreleased.txt \
 	test/data/ovfdata/compr_disk.vmdk.gz \
