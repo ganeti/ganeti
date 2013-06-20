@@ -127,7 +127,7 @@ non-Linux system at the moment.
 Conf daemon
 -----------
 
-In Ganeti 2.7, the ``confd`` daemon (if enabled at build time), serves
+In Ganeti 2.8, the ``confd`` daemon (if enabled at build time), serves
 both network-originated queries (about the static configuration) and
 local (UNIX socket) queries (about the run-time configuration; answering
 these means talking to other cluster nodes, which makes use of the
@@ -138,10 +138,13 @@ RPC), so to harden security it's recommended to:
 - disable confd at build time if it's not needed in your setup
 - otherwise, configure Ganeti (at build time) to use separate users, so
   that the confd daemon doesn't also have access to the server SSL/TLS
-  certificates
+  certificates.
 
-It is planned to split the two functionalities (local/remote querying)
-of confd into two separate daemons in a future Ganeti version.
+NB: the second suggestion is not valid since Ganeti 2.8.0~beta1, because confd
+needs access to the certificate in order to communicate on the network.
+This will be fixed when the planned split of the two functionalities
+(local/remote querying) of confd into two separate daemons will take place,
+in a future Ganeti version.
 
 Monitoring daemon
 -----------------
