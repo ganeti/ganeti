@@ -325,6 +325,7 @@ class LUClusterQuery(NoHooksLU):
       "prealloc_wipe_disks": cluster.prealloc_wipe_disks,
       "hidden_os": cluster.hidden_os,
       "blacklisted_os": cluster.blacklisted_os,
+      "enabled_disk_templates": cluster.enabled_disk_templates,
       }
 
     return result
