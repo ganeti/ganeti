@@ -563,15 +563,16 @@ class LUInstanceCreate(LogicalUnit):
     """
     if self.op.opportunistic_locking:
       # Only consider nodes for which a lock is held
-      node_whitelist = list(self.owned_locks(locking.LEVEL_NODE))
+      node_name_whitelist = self.cfg.GetNodeNames(
+        self.owned_locks(locking.LEVEL_NODE))
     else:
-      node_whitelist = None
+      node_name_whitelist = None
 
     #TODO Export network to iallocator so that it chooses a pnode
     #     in a nodegroup that has the desired network connected to
     req = _CreateInstanceAllocRequest(self.op, self.disks,
                                       self.nics, self.be_full,
-                                      self.cfg.GetNodeNames(node_whitelist))
+                                      node_name_whitelist)
     ial = iallocator.IAllocator(self.cfg, self.rpc, req)
 
     ial.Run(self.op.iallocator)
