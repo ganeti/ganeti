@@ -203,6 +203,10 @@ in_chroot -- \
 in_chroot -- \
   cabal install --global shelltestrunner
 
+#Tools for creating debian packages
+in_chroot -- \
+  apt-get install python-docutils debhelper quilt
+
 #Set default editor
 in_chroot -- \
   update-alternatives --set editor $ALTERNATIVE_EDITOR
