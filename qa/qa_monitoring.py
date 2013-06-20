@@ -40,12 +40,14 @@ def TestInstStatusCollector():
 
   """
   enabled_hypervisors = qa_config.GetEnabledHypervisors()
+
   is_xen = (constants.HT_XEN_PVM in enabled_hypervisors or
             constants.HT_XEN_HVM in enabled_hypervisors)
-  fail = not is_xen
+  if not is_xen:
+    return
 
   # Execute on master on an empty cluster
-  AssertCommand([MON_COLLECTOR, "inst-status-xen"], fail=fail)
+  AssertCommand([MON_COLLECTOR, "inst-status-xen"])
 
   #Execute on cluster with instances
   node1 = qa_config.AcquireNode()
@@ -53,8 +55,8 @@ def TestInstStatusCollector():
   template = qa_config.GetDefaultDiskTemplate()
 
   instance = CreateInstanceByDiskTemplate([node1, node2], template)
-  AssertCommand([MON_COLLECTOR, "inst-status-xen"], node=node1, fail=fail)
-  AssertCommand([MON_COLLECTOR, "inst-status-xen"], node=node2, fail=fail)
+  AssertCommand([MON_COLLECTOR, "inst-status-xen"], node=node1)
+  AssertCommand([MON_COLLECTOR, "inst-status-xen"], node=node2)
   RemoveInstance(instance)
 
   node1.Release()
