@@ -97,19 +97,19 @@ class TestClusterObject(unittest.TestCase):
                                           os_name="lenny-image"),
                          cl.os_hvp["lenny-image"][constants.HT_XEN_PVM])
 
-
   def testFillHvFullMerge(self):
     inst_hvparams = {
       "blah": "blubb",
       }
 
-    fake_dict = {
+    fake_dict = constants.HVC_DEFAULTS[constants.HT_FAKE].copy()
+    fake_dict.update({
       "foo": "baz",
       "bar": "foo",
       "foobar": "foobar",
       "blah": "blubb",
       "blubb": "blah",
-      }
+      })
     fake_inst = objects.Instance(name="foobar",
                                  os="lenny-image",
                                  hypervisor=constants.HT_FAKE,
