@@ -1084,7 +1084,7 @@ class LUNodeMigrate(LogicalUnit):
     # will have to be found.
 
     assert (frozenset(self.owned_locks(locking.LEVEL_NODE)) ==
-            frozenset([self.op.node_name]))
+            frozenset([self.op.node_uuid]))
 
     return ResultWithJobs(jobs)
 
