@@ -201,6 +201,20 @@ def TestNodeFailover(node, node2):
   AssertCommand(["gnt-node", "failover", "-f", node2.primary])
 
 
+def TestNodeMigrate(node, node2):
+  """gnt-node migrate"""
+  if qa_utils.GetNodeInstances(node2, secondaries=False):
+    raise qa_error.UnusableNodeError("Secondary node has at least one"
+                                     " primary instance. This test requires"
+                                     " it to have no primary instances.")
+
+  # Migrate to secondary node
+  AssertCommand(["gnt-node", "migrate", "-f", node.primary])
+
+  # ... and back again.
+  AssertCommand(["gnt-node", "migrate", "-f", node2.primary])
+
+
 def TestNodeEvacuate(node, node2):
   """gnt-node evacuate"""
   node3 = qa_config.AcquireNode(exclude=[node, node2])

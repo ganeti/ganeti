@@ -503,6 +503,7 @@ def RunHardwareFailureTests(instance, inodes):
   if len(inodes) >= 2:
     RunTestIf("node-evacuate", qa_node.TestNodeEvacuate, inodes[0], inodes[1])
     RunTestIf("node-failover", qa_node.TestNodeFailover, inodes[0], inodes[1])
+    RunTestIf("node-migrate", qa_node.TestNodeMigrate, inodes[0], inodes[1])
 
 
 def RunExclusiveStorageTests():

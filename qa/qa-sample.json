@@ -183,8 +183,9 @@
     "node-modify": true,
     "node-oob": true,
 
-    "# This test needs at least three nodes": null,
+    "# These tests need at least three nodes": null,
     "node-evacuate": false,
+    "node-migrate": false,
 
     "# This test needs at least two nodes": null,
     "node-failover": false,
