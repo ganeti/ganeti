@@ -212,8 +212,13 @@ echo "Creating compressed schroot image..."
 cd $CHDIR
 tar czf $COMP_FILEPATH ./*
 cd $ROOT
-echo "Done"
 
 rm -rf $CHDIR
 rm -f $TEMP_CHROOT_CONF
 rm -rf $TEMP_DATA_DIR
+
+echo "Chroot created. In order to run it:"
+echo " * Copy the file $FINAL_CHROOT_CONF to $CONF_DIR/$FINAL_CHROOT_CONF"
+echo " * Copy the file $COMP_FILEPATH to $CHROOT_DIR/$COMP_FILENAME"
+
+echo "Then run \"schroot -c $CHROOTNAME\""
