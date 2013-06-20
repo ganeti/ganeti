@@ -170,7 +170,7 @@ def GetPaths():
      getent.masterd_uid, getent.daemons_gid, False),
     (pathutils.JOB_QUEUE_VERSION_FILE, FILE, constants.JOB_QUEUE_FILES_PERMS,
      getent.masterd_uid, getent.daemons_gid, False),
-    (pathutils.JOB_QUEUE_ARCHIVE_DIR, DIR, 0740,
+    (pathutils.JOB_QUEUE_ARCHIVE_DIR, DIR, 0750,
      getent.masterd_uid, getent.daemons_gid),
     (rapi_dir, DIR, 0750, getent.rapi_uid, getent.masterd_gid),
     (pathutils.RAPI_USERS_FILE, FILE, 0640,
