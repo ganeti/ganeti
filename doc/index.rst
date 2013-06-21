@@ -38,15 +38,15 @@ A more example-oriended guide is available in :doc:`walkthrough`.
 The various tool that are part of Ganeti are described one by one in the
 :doc:`manpages`.
 
-A description of the security model underlying a Ganeti cluster can be find in
+A description of the security model underlying a Ganeti cluster can be found in
 the :doc:`security` document.
 
-Ganeti functionalities can be extended be hooking scripts automatically
+Ganeti functionalities can be extended by hooking scripts automatically
 activated when certain events happen. Information on this mechanism is provided
 in the :doc:`hooks` document.
 
 While using Ganeti, the allocation of instances can happen manually or
-automatically, through some external tool making decisions about this. The API
+automatically, through some external tools making decisions about this. The API
 for such tools is described in :doc:`iallocator`.
 
 Most of the functionalities of Ganeti can be programmatically accessed through
