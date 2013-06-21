@@ -20,7 +20,7 @@ Installing Ganeti
 In order to install Ganeti, follow the instructions contained in the
 :doc:`install`.
 
-If you are an experience user, the content of the :doc:`install-quick` should
+If you are an experienced user, the content of the :doc:`install-quick` should
 be enough.
 
 Instructions for upgrading an existing installation to the latest version of
