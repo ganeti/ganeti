@@ -12817,6 +12817,7 @@ class LUInstanceGrowDisk(LogicalUnit):
 
     if wipe_disks:
       # Get disk size from primary node for wiping
+      self.cfg.SetDiskID(disk, instance.primary_node)
       result = self.rpc.call_blockdev_getsize(instance.primary_node, [disk])
       result.Raise("Failed to retrieve disk size from node '%s'" %
                    instance.primary_node)
