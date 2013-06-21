@@ -1148,9 +1148,6 @@ TEST_FILES = \
 	test/py/import-export_unittest-helper
 
 
-if PY_NODEV
-python_tests=
-else
 python_tests = \
 	doc/examples/rapi_testutils.py \
 	test/py/cfgupgrade_unittest.py \
@@ -1231,7 +1228,6 @@ python_tests = \
 	test/py/pycurl_reset_unittest.py \
 	test/py/qa.qa_config_unittest.py \
 	test/py/tempfile_fork_unittest.py
-endif
 
 haskell_tests = test/hs/htest
 
@@ -1241,8 +1237,11 @@ dist_TESTS = \
 	test/py/ganeti-cleaner_unittest.bash \
 	test/py/import-export_unittest.bash \
 	test/py/cli-test.bash \
-	test/py/bash_completion.bash \
-	$(python_tests)
+	test/py/bash_completion.bash
+
+if !PY_NODEV
+	dist_TESTS += $(python_tests)
+endif
 
 nodist_TESTS =
 check_SCRIPTS =
@@ -1275,7 +1274,6 @@ all_python_code = \
 	$(pkglib_python_scripts) \
 	$(nodist_pkglib_python_scripts) \
 	$(nodist_tools_python_scripts) \
-	$(python_tests) \
 	$(pkgpython_PYTHON) \
 	$(client_PYTHON) \
 	$(cmdlib_PYTHON) \
@@ -1291,6 +1289,10 @@ all_python_code = \
 	$(watcher_PYTHON) \
 	$(noinst_PYTHON) \
 	$(qa_scripts)
+
+if !PY_NODEV
+	all_python_code += $(python_tests)
+endif
 
 srclink_files = \
 	man/footer.rst \
@@ -1962,11 +1964,16 @@ TAGS: $(GENERATED_FILES)
 	  etags -l python -a -
 
 .PHONY: coverage
+
+COVERAGE_TESTS=
 if WANT_HTOOLS
-coverage: py-coverage hs-coverage
-else
-coverage: py-coverage
+COVERAGE_TESTS += hs-coverage
 endif
+if !PY_NODEV
+COVERAGE_TESTS += py-coverage
+endif
+
+coverage: $(COVERAGE_TESTS)
 
 .PHONY: py-coverage
 py-coverage: $(GENERATED_FILES) $(python_tests)
