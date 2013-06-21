@@ -61,6 +61,18 @@ def _ShutdownInstance(name):
     raise qa_error.Error("instance shutdown failed")
 
 
+def _StartInstance(name):
+  """Starts instance and waits for completion.
+
+  @param name: full name of the instance
+
+  """
+  AssertCommand(["gnt-instance", "start", name])
+
+  if not bool(_InstanceRunning(name)):
+    raise qa_error.Error("instance start failed")
+
+
 def _ResetWatcherDaemon():
   """Removes the watcher daemon's state file.
 
@@ -129,6 +141,7 @@ def TestInstanceConsecutiveFailures(instance):
 
   """
   inst_name = qa_utils.ResolveInstanceName(instance["name"])
+  inst_was_running = bool(_InstanceRunning(inst_name))
 
   _ResetWatcherDaemon()
 
@@ -145,3 +158,6 @@ def TestInstanceConsecutiveFailures(instance):
       raise qa_error.Error(msg)
 
   AssertCommand(["gnt-instance", "info", inst_name])
+
+  if inst_was_running:
+    _StartInstance(inst_name)
