@@ -22,12 +22,14 @@
 """Script for testing ganeti.masterd.iallocator"""
 
 import unittest
+import mock
 
 from ganeti import compat
 from ganeti import constants
 from ganeti import errors
 from ganeti import objects
 from ganeti import ht
+from ganeti import rpc
 from ganeti.masterd import iallocator
 
 import testutils
@@ -176,6 +178,49 @@ class TestComputeBasicNodeData(unittest.TestCase):
         self.assertFalse(result["node1"]["offline"])
       else:
         self.assertTrue(result["node1"]["offline"])
+
+class TestProcessStorageInfo(unittest.TestCase):
+
+  def setUp(self):
+    self.free_storage_file = 23
+    self.total_storage_file = 42
+    self.free_storage_lvm = 69
+    self.total_storage_lvm = 666
+    self.space_info = [{"name": "mynode",
+                       "type": constants.ST_FILE,
+                       "storage_free": self.free_storage_file,
+                       "storage_size": self.total_storage_file},
+                      {"name": "mynode",
+                       "type": constants.ST_LVM_VG,
+                       "storage_free": self.free_storage_lvm,
+                       "storage_size": self.total_storage_lvm},
+                      {"name": "mynode",
+                       "type": constants.ST_LVM_PV,
+                       "storage_free": 33,
+                       "storage_size": 44}]
+    self.node_info = ("123", self.space_info, ({},))
+
+  def testComputeStorageDataLvm(self):
+    has_lvm = True
+    node_name = "mynode"
+    remote_info = rpc.MakeLegacyNodeInfo(self.node_info,
+                                         require_vg_info=has_lvm)
+    (total_disk, free_disk, total_spindles, free_spindles) = \
+      iallocator.IAllocator._ComputeStorageData(remote_info, node_name, has_lvm)
+    self.assertEqual(self.free_storage_lvm, free_disk)
+    self.assertEqual(self.total_storage_lvm, total_disk)
+
+  def testComputeStorageDataDefault(self):
+    has_lvm = False
+    node_name = "mynode"
+    remote_info = rpc.MakeLegacyNodeInfo(self.node_info,
+                                         require_vg_info=has_lvm)
+    (total_disk, free_disk, total_spindles, free_spindles) = \
+      iallocator.IAllocator._ComputeStorageData(remote_info, node_name, has_lvm)
+    # FIXME: right now, iallocator ignores anything else than LVM, adjust
+    # this test once that arbitrary storage is supported
+    self.assertEqual(0, free_disk)
+    self.assertEqual(0, total_disk)
 
 
 if __name__ == "__main__":

@@ -543,6 +543,37 @@ class IAllocator(object):
                                (node_name, attr, value))
     return value
 
+  @staticmethod
+  def _ComputeStorageData(node_info, node_name, has_lvm):
+    """Extract storage data from the node info.
+
+    @type node_info: see result of RPC call 'node info'
+    @param node_info: the node's live information
+    @type node_name: string
+    @param node_name: the node's name
+    @type has_lvm: boolean
+    @param has_lvm: whether or not lvm storage info was requested
+    @rtype: 4-tuple of integers
+    @return: tuple of storage info (total_disk, free_disk, total_spindles,
+       free_spindles)
+
+    """
+    # TODO: replace this with proper storage reporting
+    if has_lvm:
+      total_disk = IAllocator._GetAttributeFromNodeData(node_info, node_name,
+                                                        "storage_size")
+      free_disk = IAllocator._GetAttributeFromNodeData(node_info, node_name,
+                                                       "storage_free")
+      total_spindles = IAllocator._GetAttributeFromNodeData(
+          node_info, node_name, "spindles_total")
+      free_spindles = IAllocator._GetAttributeFromNodeData(
+          node_info, node_name, "spindles_free")
+    else:
+      # we didn't even ask the node for VG status, so use zeros
+      total_disk = free_disk = 0
+      total_spindles = free_spindles = 0
+    return (total_disk, free_disk, total_spindles, free_spindles)
+
   def _ComputeDynamicNodeData(self, node_cfg, node_data, node_iinfo, i_list,
                               node_results, has_lvm):
     """Compute global node data.
@@ -583,20 +614,8 @@ class IAllocator(object):
             if iinfo.admin_state == constants.ADMINST_UP:
               i_p_up_mem += beinfo[constants.BE_MAXMEM]
 
-        # TODO: replace this with proper storage reporting
-        if has_lvm:
-          total_disk = self._GetAttributeFromNodeData(remote_info, ninfo.name,
-                                                      "storage_size")
-          free_disk = self._GetAttributeFromNodeData(remote_info, ninfo.name,
-                                                     "storage_free")
-          total_spindles = self._GetAttributeFromNodeData(
-              remote_info, ninfo.name, "spindles_total")
-          free_spindles = self._GetAttributeFromNodeData(
-              remote_info, ninfo.name, "spindles_free")
-        else:
-          # we didn't even ask the node for VG status, so use zeros
-          total_disk = free_disk = 0
-          total_spindles = free_spindles = 0
+        (total_disk, free_disk, total_spindles, free_spindles) = \
+            self._ComputeStorageData(remote_info, ninfo.name, has_lvm)
 
         # compute memory used by instances
         pnr_dyn = {
