@@ -544,30 +544,37 @@ class IAllocator(object):
     return value
 
   @staticmethod
-  def _ComputeStorageData(node_info, node_name, has_lvm):
-    """Extract storage data from the node info.
+  def _ComputeStorageDataFromNodeInfo(node_info, node_name, has_lvm):
+    """Extract storage data from node info (_not_ legacy node info).
 
-    @type node_info: see result of RPC call 'node info'
-    @param node_info: the node's live information
+    @type node_info: see result of the RPC call node info
+    @param node_info: the result of the RPC call node info
     @type node_name: string
     @param node_name: the node's name
     @type has_lvm: boolean
-    @param has_lvm: whether or not lvm storage info was requested
+    @param has_lvm: whether or not LVM storage information is requested
     @rtype: 4-tuple of integers
     @return: tuple of storage info (total_disk, free_disk, total_spindles,
        free_spindles)
 
     """
+    (_, space_info, _) = node_info
     # TODO: replace this with proper storage reporting
     if has_lvm:
-      total_disk = IAllocator._GetAttributeFromNodeData(node_info, node_name,
-                                                        "storage_size")
-      free_disk = IAllocator._GetAttributeFromNodeData(node_info, node_name,
-                                                       "storage_free")
-      total_spindles = IAllocator._GetAttributeFromNodeData(
-          node_info, node_name, "spindles_total")
-      free_spindles = IAllocator._GetAttributeFromNodeData(
-          node_info, node_name, "spindles_free")
+      lvm_vg_info = utils.storage.LookupSpaceInfoByStorageType(
+         space_info, constants.ST_LVM_VG)
+      if not lvm_vg_info:
+        raise errors.OpExecError("Node '%s' didn't return LVM vg space info."
+                                 % (node_name))
+      total_disk = lvm_vg_info["storage_size"]
+      free_disk = lvm_vg_info["storage_free"]
+      lvm_pv_info = utils.storage.LookupSpaceInfoByStorageType(
+         space_info, constants.ST_LVM_PV)
+      if not lvm_vg_info:
+        raise errors.OpExecError("Node '%s' didn't return LVM pv space info."
+                                 % (node_name))
+      total_spindles = lvm_pv_info["storage_size"]
+      free_spindles = lvm_pv_info["storage_free"]
     else:
       # we didn't even ask the node for VG status, so use zeros
       total_disk = free_disk = 0
@@ -615,7 +622,8 @@ class IAllocator(object):
               i_p_up_mem += beinfo[constants.BE_MAXMEM]
 
         (total_disk, free_disk, total_spindles, free_spindles) = \
-            self._ComputeStorageData(remote_info, ninfo.name, has_lvm)
+            self._ComputeStorageDataFromNodeInfo(nresult.payload, ninfo.name,
+                                                 has_lvm)
 
         # compute memory used by instances
         pnr_dyn = {
