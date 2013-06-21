@@ -53,7 +53,8 @@ import Ganeti.Luxi
 import Ganeti.OpCodes (TagObject(..))
 import qualified Ganeti.Query.Language as Qlang
 import Ganeti.Query.Query
-import Ganeti.Query.Filter (makeSimpleFilter)
+import Ganeti.Query.Filter (FilterConstructor, makeSimpleFilter
+                           , makeHostnameFilter)
 
 -- | A type for functions that can return the configuration when
 -- executed.
@@ -65,12 +66,16 @@ handleClassicQuery :: ConfigData      -- ^ Cluster config
                    -> [Either String Integer] -- ^ Requested names
                                               -- (empty means all)
                    -> [String]        -- ^ Requested fields
+                   -> Maybe FilterConstructor -- ^ the filter algorithm
+                                              -- to be used, defaults to
+                                              -- makeSimpleFilter
                    -> Bool            -- ^ Whether to do sync queries or not
                    -> IO (GenericResult GanetiException JSValue)
-handleClassicQuery _ _ _ _ True =
+handleClassicQuery _ _ _ _ _ True =
   return . Bad $ OpPrereqError "Sync queries are not allowed" ECodeInval
-handleClassicQuery cfg qkind names fields _ = do
-  let flt = makeSimpleFilter (nameField qkind) names
+handleClassicQuery cfg qkind names fields filterconstr _ = do
+  let fltcon = fromMaybe makeSimpleFilter filterconstr
+      flt = fltcon (nameField qkind) names
   qr <- query cfg True (Qlang.Query qkind fields flt)
   return $ showJSON <$> (qr >>= queryCompat)
 
@@ -161,15 +166,15 @@ handleCall _ (QueryFields qkind qfields) = do
 
 handleCall cfg (QueryNodes names fields lock) =
   handleClassicQuery cfg (Qlang.ItemTypeOpCode Qlang.QRNode)
-    (map Left names) fields lock
+    (map Left names) fields (Just makeHostnameFilter) lock
 
 handleCall cfg (QueryGroups names fields lock) =
   handleClassicQuery cfg (Qlang.ItemTypeOpCode Qlang.QRGroup)
-    (map Left names) fields lock
+    (map Left names) fields Nothing lock
 
 handleCall cfg (QueryJobs names fields) =
   handleClassicQuery cfg (Qlang.ItemTypeLuxi Qlang.QRJob)
-    (map (Right . fromIntegral . fromJobId) names)  fields False
+    (map (Right . fromIntegral . fromJobId) names)  fields Nothing False
 
 handleCall _ op =
   return . Bad $
