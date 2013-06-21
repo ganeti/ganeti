@@ -518,7 +518,32 @@ class IAllocator(object):
     return node_results
 
   @staticmethod
-  def _ComputeDynamicNodeData(node_cfg, node_data, node_iinfo, i_list,
+  def _GetAttributeFromNodeData(node_data, node_name, attr):
+    """Helper function to extract an attribute from the node data dictionary.
+
+    @type node_data: dict of strings
+    @param node_data: result of C{rpc.MakeLegacyNodeInfo}
+    @type node_name: string
+    @param node_name: name of the node
+    @type attr: string
+    @param attr: key of the attribute in the node_data dictionary
+    @rtype: integer
+    @return: the value of the attribute
+    @raises errors.OpExecError: if key not in dictionary or value not
+      integer
+
+    """
+    if attr not in node_data:
+      raise errors.OpExecError("Node '%s' didn't return attribute"
+                               " '%s'" % (node_name, attr))
+    value = node_data[attr]
+    if not isinstance(value, int):
+      raise errors.OpExecError("Node '%s' returned invalid value"
+                               " for '%s': %s" %
+                               (node_name, attr, value))
+    return value
+
+  def _ComputeDynamicNodeData(self, node_cfg, node_data, node_iinfo, i_list,
                               node_results, has_lvm):
     """Compute global node data.
 
@@ -540,18 +565,8 @@ class IAllocator(object):
         remote_info = rpc.MakeLegacyNodeInfo(nresult.payload,
                                              require_vg_info=has_lvm)
 
-        def get_attr(attr):
-          if attr not in remote_info:
-            raise errors.OpExecError("Node '%s' didn't return attribute"
-                                     " '%s'" % (ninfo.name, attr))
-          value = remote_info[attr]
-          if not isinstance(value, int):
-            raise errors.OpExecError("Node '%s' returned invalid value"
-                                     " for '%s': %s" %
-                                     (ninfo.name, attr, value))
-          return value
-
-        mem_free = get_attr("memory_free")
+        mem_free = self._GetAttributeFromNodeData(remote_info, ninfo.name,
+                                                  "memory_free")
 
         # compute memory used by primary instances
         i_p_mem = i_p_up_mem = 0
@@ -570,10 +585,14 @@ class IAllocator(object):
 
         # TODO: replace this with proper storage reporting
         if has_lvm:
-          total_disk = get_attr("storage_size")
-          free_disk = get_attr("storage_free")
-          total_spindles = get_attr("spindles_total")
-          free_spindles = get_attr("spindles_free")
+          total_disk = self._GetAttributeFromNodeData(remote_info, ninfo.name,
+                                                      "storage_size")
+          free_disk = self._GetAttributeFromNodeData(remote_info, ninfo.name,
+                                                     "storage_free")
+          total_spindles = self._GetAttributeFromNodeData(
+              remote_info, ninfo.name, "spindles_total")
+          free_spindles = self._GetAttributeFromNodeData(
+              remote_info, ninfo.name, "spindles_free")
         else:
           # we didn't even ask the node for VG status, so use zeros
           total_disk = free_disk = 0
@@ -581,14 +600,17 @@ class IAllocator(object):
 
         # compute memory used by instances
         pnr_dyn = {
-          "total_memory": get_attr("memory_total"),
-          "reserved_memory": get_attr("memory_dom0"),
+          "total_memory": self._GetAttributeFromNodeData(
+              remote_info, ninfo.name, "memory_total"),
+          "reserved_memory": self._GetAttributeFromNodeData(
+              remote_info, ninfo.name, "memory_dom0"),
           "free_memory": mem_free,
           "total_disk": total_disk,
           "free_disk": free_disk,
           "total_spindles": total_spindles,
           "free_spindles": free_spindles,
-          "total_cpus": get_attr("cpu_total"),
+          "total_cpus": self._GetAttributeFromNodeData(
+              remote_info, ninfo.name, "cpu_total"),
           "i_pri_memory": i_p_mem,
           "i_pri_up_memory": i_p_up_mem,
           }
