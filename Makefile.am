@@ -1148,6 +1148,9 @@ TEST_FILES = \
 	test/py/import-export_unittest-helper
 
 
+if PY_NODEV
+python_tests=
+else
 python_tests = \
 	doc/examples/rapi_testutils.py \
 	test/py/cfgupgrade_unittest.py \
@@ -1228,6 +1231,7 @@ python_tests = \
 	test/py/pycurl_reset_unittest.py \
 	test/py/qa.qa_config_unittest.py \
 	test/py/tempfile_fork_unittest.py
+endif
 
 haskell_tests = test/hs/htest
 
