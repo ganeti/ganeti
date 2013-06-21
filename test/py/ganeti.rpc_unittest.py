@@ -957,5 +957,55 @@ class TestLegacyNodeInfo(unittest.TestCase):
     self.assertEqual(result, self.STD_DICT)
 
 
+class TestAddDefaultStorageInfoToLegacyNodeInfo(unittest.TestCase):
+
+  def setUp(self):
+    self.free_storage_file = 23
+    self.total_storage_file = 42
+    self.free_storage_lvm = 69
+    self.total_storage_lvm = 666
+    self.node_info = [{"name": "mynode",
+                       "type": constants.ST_FILE,
+                       "storage_free": self.free_storage_file,
+                       "storage_size": self.total_storage_file},
+                      {"name": "mynode",
+                       "type": constants.ST_LVM_VG,
+                       "storage_free": self.free_storage_lvm,
+                       "storage_size": self.total_storage_lvm},
+                      {"name": "mynode",
+                       "type": constants.ST_LVM_PV,
+                       "storage_free": 33,
+                       "storage_size": 44}]
+
+  def testAddDefaultStorageInfoToLegacyNodeInfo(self):
+    result = {}
+    has_lvm = False
+    rpc._AddDefaultStorageInfoToLegacyNodeInfo(result, self.node_info, has_lvm)
+    self.assertEqual(self.free_storage_file, result["storage_free"])
+    self.assertEqual(self.total_storage_file, result["storage_size"])
+
+  def testAddDefaultStorageInfoToLegacyNodeInfoOverrideDefault(self):
+    result = {}
+    has_lvm = True
+    rpc._AddDefaultStorageInfoToLegacyNodeInfo(result, self.node_info, has_lvm)
+    self.assertEqual(self.free_storage_lvm, result["storage_free"])
+    self.assertEqual(self.total_storage_lvm, result["storage_size"])
+
+  def testAddDefaultStorageInfoToLegacyNodeInfoNoDefaults(self):
+    result = {}
+    has_lvm = False
+    rpc._AddDefaultStorageInfoToLegacyNodeInfo(result, self.node_info[-1:],
+                                               has_lvm)
+    self.assertFalse("storage_free" in result)
+    self.assertFalse("storage_size" in result)
+
+  def testAddDefaultStorageInfoToLegacyNodeInfoNoLvm(self):
+    result = {}
+    has_lvm = True
+    self.assertRaises(errors.OpExecError,
+                      rpc._AddDefaultStorageInfoToLegacyNodeInfo,
+                      result, self.node_info[-1:], has_lvm)
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()

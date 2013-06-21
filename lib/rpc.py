@@ -634,7 +634,14 @@ def _AddDefaultStorageInfoToLegacyNodeInfo(result, space_info,
     default_space_info = space_info[0]
 
   if require_vg_info:
-    if no_defaults or not default_space_info["type"] == constants.ST_LVM_VG:
+    # if lvm storage is required, ignore the actual default and look for LVM
+    lvm_info_found = False
+    for space_entry in space_info:
+      if space_entry["type"] == constants.ST_LVM_VG:
+        default_space_info = space_entry
+        lvm_info_found = True
+        continue
+    if not lvm_info_found:
       raise errors.OpExecError("LVM volume group info required, but not"
                                " provided.")
 
