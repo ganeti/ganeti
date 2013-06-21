@@ -1412,6 +1412,7 @@ class LUInstanceGrowDisk(LogicalUnit):
 
     if wipe_disks:
       # Get disk size from primary node for wiping
+      self.cfg.SetDiskID(disk, instance.primary_node)
       result = self.rpc.call_blockdev_getsize(instance.primary_node, [disk])
       result.Raise("Failed to retrieve disk size from node '%s'" %
                    instance.primary_node)
@@ -2166,9 +2167,12 @@ class TLReplaceDisks(Tasklet):
 
       # we pass force_create=True to force the LVM creation
       for new_lv in new_lvs:
-        _CreateBlockDevInner(self.lu, node_name, self.instance, new_lv, True,
-                             GetInstanceInfoText(self.instance), False,
-                             excl_stor)
+        try:
+          _CreateBlockDevInner(self.lu, node_name, self.instance, new_lv, True,
+                               GetInstanceInfoText(self.instance), False,
+                               excl_stor)
+        except errors.DeviceCreationError, e:
+          raise errors.OpExecError("Can't create block device: %s" % e.message)
 
     return iv_names
 
@@ -2383,9 +2387,12 @@ class TLReplaceDisks(Tasklet):
                       (self.new_node, idx))
       # we pass force_create=True to force LVM creation
       for new_lv in dev.children:
-        _CreateBlockDevInner(self.lu, self.new_node, self.instance, new_lv,
-                             True, GetInstanceInfoText(self.instance), False,
-                             excl_stor)
+        try:
+          _CreateBlockDevInner(self.lu, self.new_node, self.instance, new_lv,
+                               True, GetInstanceInfoText(self.instance), False,
+                               excl_stor)
+        except errors.DeviceCreationError, e:
+          raise errors.OpExecError("Can't create block device: %s" % e.message)
 
     # Step 4: dbrd minors and drbd setups changes
     # after this, we must manually remove the drbd minors on both the
