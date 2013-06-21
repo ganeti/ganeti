@@ -399,6 +399,26 @@ class IAllocator(object):
 
     self._BuildInputData(req)
 
+  def _ComputerClusterDataNodeInfo(self, node_list, cluster_info,
+                                   hypervisor_name):
+    """Prepare and execute node info call.
+
+    @type node_list: list of strings
+    @param node_list: list of nodes' UUIDs
+    @type cluster_info: L{objects.Cluster}
+    @param cluster_info: the cluster's information from the config
+    @type hypervisor_name: string
+    @param hypervisor_name: the hypervisor name
+    @rtype: same as the result of the node info RPC call
+    @return: the result of the node info RPC call
+
+    """
+    es_flags = rpc.GetExclusiveStorageForNodes(self.cfg, node_list)
+    storage_units = utils.storage.GetStorageUnitsOfCluster(
+        self.cfg, include_spindles=True)
+    hvspecs = [(hypervisor_name, cluster_info.hvparams[hypervisor_name])]
+    return self.rpc.call_node_info(node_list, storage_units, hvspecs, es_flags)
+
   def _ComputeClusterData(self):
     """Compute the generic allocator input data.
 
@@ -431,13 +451,10 @@ class IAllocator(object):
       hypervisor_name = cluster_info.primary_hypervisor
       node_whitelist = None
 
-    es_flags = rpc.GetExclusiveStorageForNodes(self.cfg, node_list)
-    storage_units = utils.storage.GetStorageUnitsOfCluster(
-        self.cfg, include_spindles=True)
     has_lvm = utils.storage.IsLvmEnabled(cluster_info.enabled_disk_templates)
-    hvspecs = [(hypervisor_name, cluster_info.hvparams[hypervisor_name])]
-    node_data = self.rpc.call_node_info(node_list, storage_units,
-                                        hvspecs, es_flags)
+    node_data = self._ComputerClusterDataNodeInfo(node_list, cluster_info,
+                                                  hypervisor_name)
+
     node_iinfo = \
       self.rpc.call_all_instances_info(node_list,
                                        cluster_info.enabled_hypervisors,
