@@ -44,7 +44,7 @@ Command line interface changes
 The node selection options in instance add and instance replace disks
 can be replace by the new ``--iallocator=NAME`` option (shortened to
 ``-I``), which will cause the auto-assignement of nodes with the
-passed iallocator. The selected node(s) will be show as part of the
+passed iallocator. The selected node(s) will be shown as part of the
 command output.
 
 IAllocator API
