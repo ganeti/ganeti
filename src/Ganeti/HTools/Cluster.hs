@@ -77,6 +77,7 @@ module Ganeti.HTools.Cluster
   ) where
 
 import Control.Applicative (liftA2)
+import Control.Arrow ((&&&))
 import qualified Data.IntSet as IntSet
 import Data.List
 import Data.Maybe (fromJust, fromMaybe, isJust, isNothing)
@@ -1283,13 +1284,15 @@ iterateAlloc nl il limit newinst allocnodes ixes cstats =
 -- | Predicate whether shrinking a single resource can lead to a valid
 -- allocation.
 sufficesShrinking :: (Instance.Instance -> AllocSolution) -> Instance.Instance
-                     -> FailMode  -> Bool
+                     -> FailMode  -> Maybe Instance.Instance
 sufficesShrinking allocFn inst fm =
-  any isJust 
-  . map asSolution 
-  . takeWhile (liftA2 (||) (elem fm . asFailures) (isJust . asSolution))
-  . map allocFn $
-  iterateOk (`Instance.shrinkByType` fm) inst
+  case dropWhile (isNothing . asSolution . fst)
+       . takeWhile (liftA2 (||) (elem fm . asFailures . fst)
+                                (isJust . asSolution . fst))
+       . map (allocFn &&& id) $
+       iterateOk (`Instance.shrinkByType` fm) inst
+  of x:_ -> Just . snd $ x
+     _ -> Nothing
 
 -- | Tiered allocation method.
 --
@@ -1311,12 +1314,15 @@ tieredAlloc nl il limit newinst allocnodes ixes cstats =
           suffShrink = sufficesShrinking (fromMaybe emptyAllocSolution
                                           . flip (tryAlloc nl' il') allocnodes)
                        newinst
+          bigSteps = filter isJust . map suffShrink . reverse $ sortedErrs
       in if stop then newsol else
-          case Instance.shrinkByType newinst . last $
-               sortedErrs ++ filter suffShrink sortedErrs of
-            Bad _ -> newsol
-            Ok newinst' -> tieredAlloc nl' il' newlimit
-                           newinst' allocnodes ixes' cstats'
+          case bigSteps of
+            Just newinst':_ -> tieredAlloc nl' il' newlimit
+                               newinst' allocnodes ixes' cstats'
+            _ -> case Instance.shrinkByType newinst . last $ sortedErrs of
+                   Bad _ -> newsol
+                   Ok newinst' -> tieredAlloc nl' il' newlimit
+                                  newinst' allocnodes ixes' cstats'
 
 -- * Formatting functions
 
