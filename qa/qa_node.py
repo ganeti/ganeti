@@ -237,13 +237,19 @@ def TestNodeEvacuate(node, node2):
 
 def TestNodeModify(node):
   """gnt-node modify"""
+
+  # make sure enough master candidates will be available by disabling the
+  # master candidate role first with --auto-promote
+  AssertCommand(["gnt-node", "modify", "--master-candidate=no",
+                "--auto-promote", node.primary])
+
+  # now it's save to force-remove the master candidate role
   for flag in ["master-candidate", "drained", "offline"]:
     for value in ["yes", "no"]:
       AssertCommand(["gnt-node", "modify", "--force",
                      "--%s=%s" % (flag, value), node.primary])
 
-  AssertCommand(["gnt-node", "modify", "--master-candidate=yes",
-                 "--auto-promote", node.primary])
+  AssertCommand(["gnt-node", "modify", "--master-candidate=yes", node.primary])
 
   # Test setting secondary IP address
   AssertCommand(["gnt-node", "modify", "--secondary-ip=%s" % node.secondary,
