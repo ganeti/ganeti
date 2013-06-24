@@ -2,10 +2,10 @@ News
 ====
 
 
-Version 2.7.0 rc2
+Version 2.7.0 rc3
 -----------------
 
-*(Released Fri, 24 May 2013)*
+*(Released Tue, 25 Jun 2013)*
 
 Incompatible/important changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -110,7 +110,22 @@ Misc changes
 - The functionality for allocating multiple instances at once has been
   overhauled and is now also available through :doc:`RAPI <rapi>`.
 
-Since rc1:
+Since rc2:
+
+- Fix permissions on the confd query socket (Issue 477)
+- Fix permissions on the job archive dir (Issue 498)
+- Fix handling of an internal exception in replace-disks (Issue 472)
+- Fix gnt-node info handling of shortened names (Issue 497)
+- Fix gnt-instance grow-disk when wiping is enabled
+- Documentation improvements, and support for newer pandoc
+- Fix hspace honoring ipolicy for disks (Issue 484)
+- Improve handling of the ``kvm_extra`` HV parameter
+
+
+Version 2.7.0 rc2
+-----------------
+
+*(Released Fri, 24 May 2013)*
 
 - ``devel/upload`` now works when ``/var/run`` on the target nodes is a
   symlink.
