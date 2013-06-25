@@ -718,12 +718,37 @@ def AnnotateDiskParams(template, disks, disk_params):
   return [annotation_fn(disk.Copy(), ld_params) for disk in disks]
 
 
-def _GetESFlag(cfg, node_uuid):
+def _GetExclusiveStorageFlag(cfg, node_uuid):
   ni = cfg.GetNodeInfo(node_uuid)
   if ni is None:
     raise errors.OpPrereqError("Invalid node name %s" % node_uuid,
                                errors.ECODE_NOENT)
   return cfg.GetNdParams(ni)[constants.ND_EXCLUSIVE_STORAGE]
+
+
+def _AddExclusiveStorageFlagToLvmStorageUnits(storage_units, es_flag):
+  """Adds the exclusive storage flag to lvm units.
+
+  This function creates a copy of the storage_units lists, with the
+  es_flag being added to all lvm storage units.
+
+  @type storage_units: list of pairs (string, string)
+  @param storage_units: list of 'raw' storage units, consisting only of
+    (storage_type, storage_key)
+  @type es_flag: boolean
+  @param es_flag: exclusive storage flag
+  @rtype: list of tuples (string, string, list)
+  @return: list of storage units (storage_type, storage_key, params) with
+    the params containing the es_flag for lvm-vg storage units
+
+  """
+  result = []
+  for (storage_type, storage_key) in storage_units:
+    if storage_type == constants.ST_LVM_VG:
+      result.append((storage_type, storage_key, es_flag))
+    else:
+      result.append((storage_type, storage_key, []))
+  return result
 
 
 def GetExclusiveStorageForNodes(cfg, node_uuids):
@@ -734,13 +759,39 @@ def GetExclusiveStorageForNodes(cfg, node_uuids):
   @type node_uuids: list or tuple
   @param node_uuids: node UUIDs for which to read the flag
   @rtype: dict
-  @return: mapping from node names to exclusive storage flags
+  @return: mapping from node uuids to exclusive storage flags
   @raise errors.OpPrereqError: if any given node name has no corresponding
   node
 
   """
-  getflag = lambda n: _GetESFlag(cfg, n)
+  getflag = lambda n: _GetExclusiveStorageFlag(cfg, n)
   flags = map(getflag, node_uuids)
+  return dict(zip(node_uuids, flags))
+
+
+def PrepareStorageUnitsForNodes(cfg, storage_units, node_uuids):
+  """Return the lvm storage unit for all the given nodes.
+
+  Main purpose of this function is to map the exclusive storage flag, which
+  can be different for each node, to the default LVM storage unit.
+
+  @type cfg: L{config.ConfigWriter}
+  @param cfg: cluster configuration
+  @type storage_units: list of pairs (string, string)
+  @param storage_units: list of 'raw' storage units, e.g. pairs of
+    (storage_type, storage_key)
+  @type node_uuids: list or tuple
+  @param node_uuids: node UUIDs for which to read the flag
+  @rtype: dict
+  @return: mapping from node uuids to a list of storage units which include
+    the exclusive storage flag for lvm storage
+  @raise errors.OpPrereqError: if any given node name has no corresponding
+  node
+
+  """
+  getunit = lambda n: _AddExclusiveStorageFlagToLvmStorageUnits(
+      storage_units, _GetExclusiveStorageFlag(cfg, n))
+  flags = map(getunit, node_uuids)
   return dict(zip(node_uuids, flags))
 
 

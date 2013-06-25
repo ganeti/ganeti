@@ -892,11 +892,13 @@ def _CheckNodesFreeDiskOnVG(lu, node_uuids, vg, requested):
       or we cannot check the node
 
   """
-  es_flags = rpc.GetExclusiveStorageForNodes(lu.cfg, node_uuids)
+  lvm_storage_units = [(constants.ST_LVM_VG, vg)]
+  storage_units = rpc.PrepareStorageUnitsForNodes(lu.cfg, lvm_storage_units,
+                                                  node_uuids)
   hvname = lu.cfg.GetHypervisorType()
   hvparams = lu.cfg.GetClusterInfo().hvparams
-  nodeinfo = lu.rpc.call_node_info(node_uuids, [(constants.ST_LVM_VG, vg)],
-                                   [(hvname, hvparams[hvname])], es_flags)
+  nodeinfo = lu.rpc.call_node_info(node_uuids, storage_units,
+                                   [(hvname, hvparams[hvname])])
   for node in node_uuids:
     node_name = lu.cfg.GetNodeName(node)
 

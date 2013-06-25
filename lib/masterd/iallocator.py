@@ -413,11 +413,12 @@ class IAllocator(object):
     @return: the result of the node info RPC call
 
     """
-    es_flags = rpc.GetExclusiveStorageForNodes(self.cfg, node_list)
-    storage_units = utils.storage.GetStorageUnitsOfCluster(
+    storage_units_raw = utils.storage.GetStorageUnitsOfCluster(
         self.cfg, include_spindles=True)
+    storage_units = rpc.PrepareStorageUnitsForNodes(self.cfg, storage_units_raw,
+                                                    node_list)
     hvspecs = [(hypervisor_name, cluster_info.hvparams[hypervisor_name])]
-    return self.rpc.call_node_info(node_list, storage_units, hvspecs, es_flags)
+    return self.rpc.call_node_info(node_list, storage_units, hvspecs)
 
   def _ComputeClusterData(self):
     """Compute the generic allocator input data.

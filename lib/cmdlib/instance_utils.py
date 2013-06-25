@@ -483,8 +483,7 @@ def CheckNodeFreeMemory(lu, node_uuid, reason, requested, hvname, hvparams):
 
   """
   node_name = lu.cfg.GetNodeName(node_uuid)
-  nodeinfo = lu.rpc.call_node_info([node_uuid], None, [(hvname, hvparams)],
-                                   False)
+  nodeinfo = lu.rpc.call_node_info([node_uuid], None, [(hvname, hvparams)])
   nodeinfo[node_uuid].Raise("Can't get data from node %s" % node_name,
                             prereq=True, ecode=errors.ECODE_ENVIRON)
   (_, _, (hv_info, )) = nodeinfo[node_uuid].payload

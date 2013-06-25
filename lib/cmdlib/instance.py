@@ -2029,7 +2029,7 @@ def _CheckNodesPhysicalCPUs(lu, node_uuids, requested, hypervisor_specs):
       or we cannot check the node
 
   """
-  nodeinfo = lu.rpc.call_node_info(node_uuids, None, hypervisor_specs, None)
+  nodeinfo = lu.rpc.call_node_info(node_uuids, None, hypervisor_specs)
   for node_uuid in node_uuids:
     info = nodeinfo[node_uuid]
     node_name = lu.cfg.GetNodeName(node_uuid)
@@ -2859,7 +2859,7 @@ class LUInstanceSetParams(LogicalUnit):
       hvspecs = [(self.instance.hypervisor,
                   self.cluster.hvparams[self.instance.hypervisor])]
       nodeinfo = self.rpc.call_node_info(mem_check_list, None,
-                                         hvspecs, False)
+                                         hvspecs)
       pninfo = nodeinfo[pnode_uuid]
       msg = pninfo.fail_msg
       if msg:

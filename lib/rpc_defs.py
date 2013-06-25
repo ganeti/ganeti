@@ -132,12 +132,12 @@ def _BlockdevGetMirrorStatusMultiPostProc(result):
 
 
 def _NodeInfoPreProc(node, args):
-  """Prepare the exclusive_storage argument for node_info calls."""
-  assert len(args) == 3
-  # The third argument is either a dictionary with one value for each node, or
-  # a fixed value to be used for all the nodes
-  if type(args[2]) is dict:
-    return [args[0], args[1], args[2][node]]
+  """Prepare the storage_units argument for node_info calls."""
+  assert len(args) == 2
+  # The storage_units argument is either a dictionary with one value for each
+  # node, or a fixed value to be used for all the nodes
+  if type(args[0]) is dict:
+    return [args[0][node], args[1]]
   else:
     return args
 
@@ -476,13 +476,11 @@ _NODE_CALLS = [
     ], None, None, "Checks if a node has the given IP address"),
   ("node_info", MULTI, None, constants.RPC_TMO_URGENT, [
     ("storage_units", None,
-     "List of tuples '<storage_type>,<key>' to ask for disk space"
-     " information"),
+     "List of tuples '<storage_type>,<key>,[<param>]' to ask for disk space"
+     " information; the parameter list varies depending on the storage_type"),
     ("hv_specs", None,
      "List of hypervisor specification (name, hvparams) to ask for node "
      "information"),
-    ("exclusive_storage", None,
-     "Whether exclusive storage is enabled"),
     ], _NodeInfoPreProc, None, "Return node information"),
   ("node_verify", MULTI, None, constants.RPC_TMO_NORMAL, [
     ("checkdict", None, "What to verify"),

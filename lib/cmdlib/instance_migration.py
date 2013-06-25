@@ -660,8 +660,7 @@ class TLMigrateInstance(Tasklet):
     hvspecs = [(self.instance.hypervisor,
                 self.cfg.GetClusterInfo().hvparams[self.instance.hypervisor])]
     nodeinfo = self.rpc.call_node_info(
-                 [self.source_node_uuid, self.target_node_uuid], None, hvspecs,
-                 False)
+                 [self.source_node_uuid, self.target_node_uuid], None, hvspecs)
     for ninfo in nodeinfo.values():
       ninfo.Raise("Unable to retrieve node information from node '%s'" %
                   ninfo.node)
