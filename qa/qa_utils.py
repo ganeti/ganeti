@@ -370,7 +370,8 @@ def UploadFile(node, src):
   # Make sure nobody else has access to it while preserving local permissions
   mode = os.stat(src).st_mode & 0700
 
-  cmd = ('tmp=$(tempfile --mode %o --prefix gnt) && '
+  cmd = ('tmp=$(mktemp --tmpdir gnt.XXXXXX) && '
+         'chmod %o "${tmp}" && '
          '[[ -f "${tmp}" ]] && '
          'cat > "${tmp}" && '
          'echo "${tmp}"') % mode
@@ -397,7 +398,8 @@ def UploadData(node, data, mode=0600, filename=None):
   if filename:
     tmp = "tmp=%s" % utils.ShellQuote(filename)
   else:
-    tmp = "tmp=$(tempfile --mode %o --prefix gnt)" % mode
+    tmp = ('tmp=$(mktemp --tmpdir gnt.XXXXXX) && '
+           'chmod %o "${tmp}"') % mode
   cmd = ("%s && "
          "[[ -f \"${tmp}\" ]] && "
          "cat > \"${tmp}\" && "
@@ -422,7 +424,7 @@ def BackupFile(node, path):
   """
   vpath = MakeNodePath(node, path)
 
-  cmd = ("tmp=$(tempfile --prefix .gnt --directory=$(dirname %s)) && "
+  cmd = ("tmp=$(mktemp .gnt.XXXXXX --tmpdir=$(dirname %s)) && "
          "[[ -f \"$tmp\" ]] && "
          "cp %s $tmp && "
          "echo $tmp") % (utils.ShellQuote(vpath), utils.ShellQuote(vpath))
