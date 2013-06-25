@@ -655,19 +655,19 @@ class TestGetNodeInfo(unittest.TestCase):
   _SOME_RESULT = None
 
   def testApplyStorageInfoFunction(self):
-    excl_storage_flag = False
     backend._ApplyStorageInfoFunction = mock.Mock(
         return_value=self._SOME_RESULT)
-    storage_units = [(st, st + "_key") for st in
+    storage_units = [(st, st + "_key", [st + "_params"]) for st in
                      constants.VALID_STORAGE_TYPES]
 
-    backend.GetNodeInfo(storage_units, None, excl_storage_flag)
+    backend.GetNodeInfo(storage_units, None)
 
     call_args_list = backend._ApplyStorageInfoFunction.call_args_list
     self.assertEqual(len(constants.VALID_STORAGE_TYPES), len(call_args_list))
     for call in call_args_list:
-      storage_type, storage_key, excl_storage = call[0]
+      storage_type, storage_key, storage_params = call[0]
       self.assertEqual(storage_type + "_key", storage_key)
+      self.assertEqual([storage_type + "_params"], storage_params)
       self.assertTrue(storage_type in constants.VALID_STORAGE_TYPES)
 
 

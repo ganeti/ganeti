@@ -668,17 +668,16 @@ def _GetNamedNodeInfo(names, fn):
     return map(fn, names)
 
 
-def GetNodeInfo(storage_units, hv_specs, excl_stor):
+def GetNodeInfo(storage_units, hv_specs):
   """Gives back a hash with different information about the node.
 
-  @type storage_units: list of pairs (string, string)
-  @param storage_units: List of pairs (storage unit, identifier) to ask for disk
-                        space information. In case of lvm-vg, the identifier is
-                        the VG name.
+  @type storage_units: list of tuples (string, string, list)
+  @param storage_units: List of tuples (storage unit, identifier, parameters) to
+    ask for disk space information. In case of lvm-vg, the identifier is
+    the VG name. The parameters can contain additional, storage-type-specific
+    parameters, for example exclusive storage for lvm storage.
   @type hv_specs: list of pairs (string, dict of strings)
   @param hv_specs: list of pairs of a hypervisor's name and its hvparams
-  @type excl_stor: boolean
-  @param excl_stor: Whether exclusive_storage is active
   @rtype: tuple; (string, None/dict, None/dict)
   @return: Tuple containing boot ID, volume group information and hypervisor
     information
@@ -687,9 +686,8 @@ def GetNodeInfo(storage_units, hv_specs, excl_stor):
   bootid = utils.ReadFile(_BOOT_ID_PATH, size=128).rstrip("\n")
   storage_info = _GetNamedNodeInfo(
     storage_units,
-    (lambda storage_unit: _ApplyStorageInfoFunction(storage_unit[0],
-                                                    storage_unit[1],
-                                                    excl_stor)))
+    (lambda (storage_type, storage_key, storage_params):
+        _ApplyStorageInfoFunction(storage_type, storage_key, storage_params)))
   hv_info = _GetHvInfoAll(hv_specs)
   return (bootid, storage_info, hv_info)
 
