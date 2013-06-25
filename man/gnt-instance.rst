@@ -715,7 +715,9 @@ kvm\_extra
     Valid for the KVM hypervisor.
 
     Any other option to the KVM hypervisor, useful tweaking anything
-    that Ganeti doesn't support.
+    that Ganeti doesn't support. Note that values set with this
+    parameter are split on a space character and currently don't support
+    quoting.
 
 machine\_version
     Valid for the KVM hypervisor.
