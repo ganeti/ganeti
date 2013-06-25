@@ -1,8 +1,8 @@
-# 1. Test that mon-collector won't run without specifying a personality
+# Test that mon-collector won't run without specifying a personality
 ./test/hs/hpc-mon-collector
 >>>= !0
 
-# 2. Test that standard options are accepted, both at top level
+# Test that standard options are accepted, both at top level
 # and subcommands level
 ./test/hs/hpc-mon-collector --help
 >>>= 0
@@ -22,26 +22,26 @@
 ./test/hs/hpc-mon-collector drbd --version
 >>>= 0
 
-# 3. Test that the drbd collector fails parsing /dev/null
+# Test that the drbd collector fails parsing /dev/null
 ./test/hs/hpc-mon-collector drbd --drbd-status=/dev/null --drbd-pairing=/dev/null
 >>>2/Malformed JSON/
 >>>= !0
 
-# 4. Test that a non-existent file is correctly reported
+# Test that a non-existent file is correctly reported
 ./test/hs/hpc-mon-collector drbd --drbd-status=/dev/no-such-file --drbd-pairing=/dev/no-such-file
 >>>2/Error: reading from file: .* does not exist/
 >>>= !0
 
-# 5. Test that arguments are rejected
+# Test that arguments are rejected
 ./test/hs/hpc-mon-collector drbd /dev/null
 >>>2/takes exactly zero arguments/
 >>>= !0
 
-# 6. Test that a standard test file is parsed correctly
+# Test that a standard test file is parsed correctly
 ./test/hs/hpc-mon-collector drbd --drbd-status=$PYTESTDATA_DIR/proc_drbd83.txt --drbd-pairing=$PYTESTDATA_DIR/instance-minor-pairing.txt
 >>>=0
 
-# 7. Test that the drbd collector fails parsing /dev/zero, but is not
+# Test that the drbd collector fails parsing /dev/zero, but is not
 # stuck forever printing \NUL chars
 ./test/hs/hpc-mon-collector drbd --drbd-status=/dev/zero --drbd-pairing=$PYTESTDATA_DIR/instance-minor-pairing.txt
 >>>2
@@ -78,3 +78,31 @@ Failed reading: versionInfo
 # Test that a standard test file is parsed correctly
 ./test/hs/hpc-mon-collector diskstats -f $PYTESTDATA_DIR/proc_diskstats.txt
 >>>=0
+
+# Tests for lv
+./test/hs/hpc-mon-collector lv --help
+>>>= 0
+
+./test/hs/hpc-mon-collector lv --help-completion
+>>>= 0
+
+./test/hs/hpc-mon-collector lv --version
+>>>= 0
+
+# Test that the lv collector fails parsing a non-lv data
+./test/hs/hpc-mon-collector lv -f $PYTESTDATA_DIR/proc_diskstats.txt
+>>>= !0
+
+# Test that lv correctly reports a non-existent file
+./test/hs/hpc-mon-collector lv --file=/proc/no-such-file
+>>>2/Error: reading from file: .* does not exist/
+>>>= !0
+
+# Test that lv rejects arguments
+./test/hs/hpc-mon-collector lv /dev/null
+>>>2/takes exactly zero arguments/
+>>>= !0
+
+# Test that lv parses correctly a standard test file
+./test/hs/hpc-mon-collector lv -f $PYTESTDATA_DIR/lvs_lv.txt
+>>>= 0
