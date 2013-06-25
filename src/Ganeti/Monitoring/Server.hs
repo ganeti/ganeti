@@ -45,6 +45,7 @@ import Ganeti.Daemon
 import qualified Ganeti.DataCollectors.Diskstats as Diskstats
 import qualified Ganeti.DataCollectors.Drbd as Drbd
 import qualified Ganeti.DataCollectors.InstStatus as InstStatus
+import qualified Ganeti.DataCollectors.Lv as Lv
 import Ganeti.DataCollectors.Types
 import qualified Ganeti.Constants as C
 
@@ -78,6 +79,7 @@ collectors =
   , DataCollector Drbd.dcName Drbd.dcCategory Drbd.dcKind Drbd.dcReport
   , DataCollector InstStatus.dcName InstStatus.dcCategory InstStatus.dcKind
       InstStatus.dcReport
+  , DataCollector Lv.dcName Lv.dcCategory Lv.dcKind Lv.dcReport
   ]
 
 -- * Configuration handling
