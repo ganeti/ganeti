@@ -22,7 +22,6 @@
 """Script for testing ganeti.backend"""
 
 import os
-import sys
 import shutil
 import tempfile
 import unittest
@@ -32,12 +31,9 @@ from ganeti import utils
 from ganeti import constants
 from ganeti import backend
 from ganeti import netutils
-from ganeti import errors
-from ganeti import serializer
 from ganeti import hypervisor
 
 import testutils
-import mocks
 
 
 class TestX509Certificates(unittest.TestCase):
@@ -615,7 +611,7 @@ class TestGetHvInfo(unittest.TestCase):
     hvparams = {constants.HV_XEN_CMD: constants.XEN_CMD_XL}
     hv_specs = [(hvname, hvparams)]
 
-    result = backend._GetHvInfoAll(hv_specs, self._GetHypervisor)
+    backend._GetHvInfoAll(hv_specs, self._GetHypervisor)
     self._test_hv.GetNodeInfo.assert_called_with(hvparams=hvparams)
 
 
