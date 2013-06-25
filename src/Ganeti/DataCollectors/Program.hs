@@ -31,6 +31,7 @@ import Ganeti.DataCollectors.CLI (Options)
 import qualified Ganeti.DataCollectors.Diskstats as Diskstats
 import qualified Ganeti.DataCollectors.Drbd as Drbd
 import qualified Ganeti.DataCollectors.InstStatus as InstStatus
+import qualified Ganeti.DataCollectors.Lv as Lv
 
 -- | Supported binaries.
 personalities :: PersonalityList Options
@@ -45,4 +46,6 @@ personalities = [ (Drbd.dcName, (Drbd.main, Drbd.options, Drbd.arguments,
                                       Diskstats.arguments,
                                       "gathers and displays the disk usage\
                                       \ statistics in JSON format"))
+                , (Lv.dcName, (Lv.main, Lv.options, Lv.arguments, "gathers and\
+                               \ displays info about logical volumes"))
                 ]

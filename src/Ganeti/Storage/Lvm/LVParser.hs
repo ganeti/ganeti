@@ -74,9 +74,9 @@ lvCommand :: [String]
 lvCommand =
   [ "lvs"
   , "--noheadings"
-  , "--units B"
-  , "-- separator ;"
-  , "-o lv_uuid,lv_name,lv_attr,lv_major,lv_minor,lv_kernel_major\
+  , "--units", "B"
+  , "--separator", ";"
+  , "-o", "lv_uuid,lv_name,lv_attr,lv_major,lv_minor,lv_kernel_major\
     \,lv_kernel_minor,lv_size,seg_count,lv_tags,modules,vg_uuid,vg_name,segtype\
     \,seg_start,seg_start_pe,seg_size,seg_tags,seg_pe_ranges,devices"
   ]
