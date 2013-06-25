@@ -518,25 +518,28 @@ class IAllocator(object):
     return node_results
 
   @staticmethod
-  def _GetAttributeFromNodeData(node_data, node_name, attr):
-    """Helper function to extract an attribute from the node data dictionary.
+  def _GetAttributeFromHypervisorNodeData(hv_info, node_name, attr):
+    """Extract an attribute from the hypervisor's node information.
 
-    @type node_data: dict of strings
-    @param node_data: result of C{rpc.MakeLegacyNodeInfo}
+    This is a helper function to extract data from the hypervisor's information
+    about the node, as part of the result of a node_info query.
+
+    @type hv_info: dict of strings
+    @param hv_info: dictionary of node information from the hypervisor
     @type node_name: string
     @param node_name: name of the node
     @type attr: string
-    @param attr: key of the attribute in the node_data dictionary
+    @param attr: key of the attribute in the hv_info dictionary
     @rtype: integer
     @return: the value of the attribute
     @raises errors.OpExecError: if key not in dictionary or value not
       integer
 
     """
-    if attr not in node_data:
+    if attr not in hv_info:
       raise errors.OpExecError("Node '%s' didn't return attribute"
                                " '%s'" % (node_name, attr))
-    value = node_data[attr]
+    value = hv_info[attr]
     if not isinstance(value, int):
       raise errors.OpExecError("Node '%s' returned invalid value"
                                " for '%s': %s" %
@@ -630,11 +633,10 @@ class IAllocator(object):
         nresult.Raise("Can't get data for node %s" % ninfo.name)
         node_iinfo[nuuid].Raise("Can't get node instance info from node %s" %
                                 ninfo.name)
-        remote_info = rpc.MakeLegacyNodeInfo(nresult.payload,
-                                             require_vg_info=has_lvm)
+        (_, _, (hv_info, )) = nresult.payload
 
-        mem_free = self._GetAttributeFromNodeData(remote_info, ninfo.name,
-                                                  "memory_free")
+        mem_free = self._GetAttributeFromHypervisorNodeData(hv_info, ninfo.name,
+                                                            "memory_free")
 
         (i_p_mem, i_p_up_mem, mem_free) = self._ComputeInstanceMemory(
              i_list, node_iinfo, nuuid, mem_free)
@@ -644,17 +646,17 @@ class IAllocator(object):
 
         # compute memory used by instances
         pnr_dyn = {
-          "total_memory": self._GetAttributeFromNodeData(
-              remote_info, ninfo.name, "memory_total"),
-          "reserved_memory": self._GetAttributeFromNodeData(
-              remote_info, ninfo.name, "memory_dom0"),
+          "total_memory": self._GetAttributeFromHypervisorNodeData(
+              hv_info, ninfo.name, "memory_total"),
+          "reserved_memory": self._GetAttributeFromHypervisorNodeData(
+              hv_info, ninfo.name, "memory_dom0"),
           "free_memory": mem_free,
           "total_disk": total_disk,
           "free_disk": free_disk,
           "total_spindles": total_spindles,
           "free_spindles": free_spindles,
-          "total_cpus": self._GetAttributeFromNodeData(
-              remote_info, ninfo.name, "cpu_total"),
+          "total_cpus": self._GetAttributeFromHypervisorNodeData(
+              hv_info, ninfo.name, "cpu_total"),
           "i_pri_memory": i_p_mem,
           "i_pri_up_memory": i_p_up_mem,
           }
