@@ -581,6 +581,36 @@ class IAllocator(object):
       total_spindles = free_spindles = 0
     return (total_disk, free_disk, total_spindles, free_spindles)
 
+  @staticmethod
+  def _ComputeInstanceMemory(instance_list, node_instances_info, node_uuid,
+                             input_mem_free):
+    """Compute memory used by primary instances.
+
+    @rtype: tuple (int, int, int)
+    @returns: A tuple of three integers: 1. the sum of memory used by primary
+      instances on the node (including the ones that are currently down), 2.
+      the sum of memory used by primary instances of the node that are up, 3.
+      the amount of memory that is free on the node considering the current
+      usage of the instances.
+
+    """
+    i_p_mem = i_p_up_mem = 0
+    mem_free = input_mem_free
+    for iinfo, beinfo in instance_list:
+      if iinfo.primary_node == node_uuid:
+        i_p_mem += beinfo[constants.BE_MAXMEM]
+        if iinfo.name not in node_instances_info[node_uuid].payload:
+          i_used_mem = 0
+        else:
+          i_used_mem = int(node_instances_info[node_uuid]
+                           .payload[iinfo.name]["memory"])
+        i_mem_diff = beinfo[constants.BE_MAXMEM] - i_used_mem
+        mem_free -= max(0, i_mem_diff)
+
+        if iinfo.admin_state == constants.ADMINST_UP:
+          i_p_up_mem += beinfo[constants.BE_MAXMEM]
+    return (i_p_mem, i_p_up_mem, mem_free)
+
   def _ComputeDynamicNodeData(self, node_cfg, node_data, node_iinfo, i_list,
                               node_results, has_lvm):
     """Compute global node data.
@@ -606,21 +636,8 @@ class IAllocator(object):
         mem_free = self._GetAttributeFromNodeData(remote_info, ninfo.name,
                                                   "memory_free")
 
-        # compute memory used by primary instances
-        i_p_mem = i_p_up_mem = 0
-        for iinfo, beinfo in i_list:
-          if iinfo.primary_node == nuuid:
-            i_p_mem += beinfo[constants.BE_MAXMEM]
-            if iinfo.name not in node_iinfo[nuuid].payload:
-              i_used_mem = 0
-            else:
-              i_used_mem = int(node_iinfo[nuuid].payload[iinfo.name]["memory"])
-            i_mem_diff = beinfo[constants.BE_MAXMEM] - i_used_mem
-            mem_free -= max(0, i_mem_diff)
-
-            if iinfo.admin_state == constants.ADMINST_UP:
-              i_p_up_mem += beinfo[constants.BE_MAXMEM]
-
+        (i_p_mem, i_p_up_mem, mem_free) = self._ComputeInstanceMemory(
+             i_list, node_iinfo, nuuid, mem_free)
         (total_disk, free_disk, total_spindles, free_spindles) = \
             self._ComputeStorageDataFromNodeInfo(nresult.payload, ninfo.name,
                                                  has_lvm)
