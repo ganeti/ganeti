@@ -547,11 +547,12 @@ class IAllocator(object):
     return value
 
   @staticmethod
-  def _ComputeStorageDataFromNodeInfo(node_info, node_name, has_lvm):
-    """Extract storage data from node info (_not_ legacy node info).
+  def _ComputeStorageDataFromSpaceInfo(space_info, node_name, has_lvm):
+    """Extract storage data from node info.
 
-    @type node_info: see result of the RPC call node info
-    @param node_info: the result of the RPC call node info
+    @type space_info: see result of the RPC call node info
+    @param space_info: the storage reporting part of the result of the RPC call
+      node info
     @type node_name: string
     @param node_name: the node's name
     @type has_lvm: boolean
@@ -561,7 +562,6 @@ class IAllocator(object):
        free_spindles)
 
     """
-    (_, space_info, _) = node_info
     # TODO: replace this with proper storage reporting
     if has_lvm:
       lvm_vg_info = utils.storage.LookupSpaceInfoByStorageType(
@@ -633,7 +633,7 @@ class IAllocator(object):
         nresult.Raise("Can't get data for node %s" % ninfo.name)
         node_iinfo[nuuid].Raise("Can't get node instance info from node %s" %
                                 ninfo.name)
-        (_, _, (hv_info, )) = nresult.payload
+        (_, space_info, (hv_info, )) = nresult.payload
 
         mem_free = self._GetAttributeFromHypervisorNodeData(hv_info, ninfo.name,
                                                             "memory_free")
@@ -641,8 +641,8 @@ class IAllocator(object):
         (i_p_mem, i_p_up_mem, mem_free) = self._ComputeInstanceMemory(
              i_list, node_iinfo, nuuid, mem_free)
         (total_disk, free_disk, total_spindles, free_spindles) = \
-            self._ComputeStorageDataFromNodeInfo(nresult.payload, ninfo.name,
-                                                 has_lvm)
+            self._ComputeStorageDataFromSpaceInfo(space_info, ninfo.name,
+                                                  has_lvm)
 
         # compute memory used by instances
         pnr_dyn = {
