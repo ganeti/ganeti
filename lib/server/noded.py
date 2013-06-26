@@ -724,25 +724,8 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     """Query node information.
 
     """
-    # FIXME: remove the fallback to excl_stor once all callers are
-    # adjusted
-    if (len(params) == 3):
-      (legacy_storage_units, hv_specs, excl_stor) = params
-      storage_units = NodeRequestHandler._ConvertExclStorage(
-          legacy_storage_units, excl_stor)
-    else:
-      (storage_units, hv_specs) = params
+    (storage_units, hv_specs) = params
     return backend.GetNodeInfo(storage_units, hv_specs)
-
-  @staticmethod
-  def _ConvertExclStorage(storage_units, excl_stor):
-    result_units = []
-    for (storage_type, storage_key) in storage_units:
-      if storage_type in [constants.ST_LVM_VG, constants.ST_LVM_PV]:
-        result_units.append((storage_type, storage_key, [excl_stor]))
-      else:
-        result_units.append((storage_type, storage_key, []))
-    return result_units
 
   @staticmethod
   def perspective_etc_hosts_modify(params):
