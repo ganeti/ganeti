@@ -1050,8 +1050,8 @@ def TestInstanceCreationRestrictedByDiskTemplates():
     # some other templates in order to test if the disabling the only enabled
     # disk template prohibits creating instances of that template.
     other_disk_templates = list(
-                            set([constants.DT_DISKLESS, constants.DT_BLOCK]) -
-                            set(enabled_disk_templates))
+                             set([constants.DT_DISKLESS, constants.DT_BLOCK]) -
+                             set(enabled_disk_templates))
     AssertCommand(["gnt-cluster", "modify",
                    "--enabled-disk-template=%s" %
                      ",".join(other_disk_templates)],
