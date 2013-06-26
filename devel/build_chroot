@@ -1,11 +1,11 @@
 #!/bin/bash
 #Configuration
-: ${DATA_DIR=`dirname $0`/data}
-: ${ARCH=amd64}
-: ${DIST_RELEASE=squeeze}
+: ${ARCH:=amd64}
+: ${DIST_RELEASE:=squeeze}
 : ${CONF_DIR:=/etc/schroot/chroot.d}
 : ${CHROOT_DIR:=/srv/chroot}
 : ${ALTERNATIVE_EDITOR:=/usr/bin/vim.basic}
+# The value of DATA_DIR is read as well from the environment.
 
 #Automatically generated variables
 CHROOTNAME=$DIST_RELEASE-$ARCH
@@ -17,6 +17,9 @@ CHDIR=$ROOT/$CHNAME
 USER=`whoami`
 COMP_FILENAME=$CHROOTNAME.tar.gz
 COMP_FILEPATH=$ROOT/$COMP_FILENAME
+TEMP_DATA_DIR=`mktemp -d`
+ACTUAL_DATA_DIR=$DATA_DIR
+ACTUAL_DATA_DIR=${ACTUAL_DATA_DIR:-$TEMP_DATA_DIR}
 
 #Runnability checks
 if [ $USER != 'root' ]
@@ -34,16 +37,46 @@ then
   exit
 fi
 
-if [ ! -d $DATA_DIR ]
+#Create configuration dir and files if they do not exist
+if [ ! -d $ACTUAL_DATA_DIR ]
 then
+  mkdir $ACTUAL_DATA_DIR
   echo "The data directory"
-  echo "  $DATA_DIR"
-  echo "does not exist."
-  echo "Please, set the DATA_DIR environment variable so that it points to the"
-  echo "data directory."
-  exit
+  echo "  $ACTUAL_DATA_DIR"
+  echo "has been created."
 fi
 
+if [ ! -f $ACTUAL_DATA_DIR/final.schroot.conf.in ]
+then
+  cat <<END >$ACTUAL_DATA_DIR/final.schroot.conf.in
+[${CHROOTNAME}]
+description=Debian ${DIST_RELEASE} ${ARCH}
+groups=src
+source-root-groups=root
+type=file
+file=${CHROOT_DIR}/${COMP_FILENAME}
+END
+  echo "The file"
+  echo " $ACTUAL_DATA_DIR/final.schroot.conf.in"
+  echo "has been created with default configurations."
+fi
+
+if [ ! -f $ACTUAL_DATA_DIR/temp.schroot.conf.in ]
+then
+  cat <<END >$ACTUAL_DATA_DIR/temp.schroot.conf.in
+[${CHNAME}]
+description=Debian ${DIST_RELEASE} ${ARCH}
+directory=${CHDIR}
+groups=src
+users=root
+type=directory
+END
+  echo "The file"
+  echo " $ACTUAL_DATA_DIR/temp.schroot.conf.in"
+  echo "has been created with default configurations."
+fi
+
+#Stop on errors
 set -e
 
 #Cleanup
@@ -65,8 +98,8 @@ alias subst_variables='sed \
   -e "s/\${DIST_RELEASE}/$DIST_RELEASE/"'
 
 #Generate chroot configurations
-cat $DATA_DIR/temp.schroot.conf.in | subst_variables > $TEMP_CHROOT_CONF
-cat $DATA_DIR/final.schroot.conf.in | subst_variables > $FINAL_CHROOT_CONF
+cat $ACTUAL_DATA_DIR/temp.schroot.conf.in | subst_variables > $TEMP_CHROOT_CONF
+cat $ACTUAL_DATA_DIR/final.schroot.conf.in | subst_variables > $FINAL_CHROOT_CONF
 
 #Install the base system
 debootstrap --arch $ARCH $DIST_RELEASE $CHDIR
@@ -172,6 +205,10 @@ in_chroot -- \
 in_chroot -- \
   cabal install --global shelltestrunner
 
+#Tools for creating debian packages
+in_chroot -- \
+  apt-get install python-docutils debhelper quilt
+
 #Set default editor
 in_chroot -- \
   update-alternatives --set editor $ALTERNATIVE_EDITOR
@@ -181,7 +218,13 @@ echo "Creating compressed schroot image..."
 cd $CHDIR
 tar czf $COMP_FILEPATH ./*
 cd $ROOT
-echo "Done"
 
 rm -rf $CHDIR
 rm -f $TEMP_CHROOT_CONF
+rm -rf $TEMP_DATA_DIR
+
+echo "Chroot created. In order to run it:"
+echo " * Copy the file $FINAL_CHROOT_CONF to $CONF_DIR/$FINAL_CHROOT_CONF"
+echo " * Copy the file $COMP_FILEPATH to $CHROOT_DIR/$COMP_FILENAME"
+
+echo "Then run \"schroot -c $CHROOTNAME\""

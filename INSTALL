@@ -166,9 +166,10 @@ If using a distribution which does not provide them, first install
 the Haskell platform. You can also install ``cabal`` manually::
 
   $ apt-get install cabal-install
+  $ cabal update
 
-Then install the additional libraries via
-``cabal``::
+Then install the additional libraries (only the ones not available in your
+distribution packages) via ``cabal``::
 
   $ cabal install json network parallel utf8-string curl
 

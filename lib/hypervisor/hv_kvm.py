@@ -1400,7 +1400,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       kvm_cmd.extend(["-uuid", instance.uuid])
 
     if hvp[constants.HV_KVM_EXTRA]:
-      kvm_cmd.extend([hvp[constants.HV_KVM_EXTRA]])
+      kvm_cmd.extend(hvp[constants.HV_KVM_EXTRA].split(" "))
 
     # Save the current instance nics, but defer their expansion as parameters,
     # as we'll need to generate executable temp files for them.

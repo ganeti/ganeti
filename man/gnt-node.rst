@@ -131,6 +131,15 @@ Example::
 
     # gnt-node evacuate -I hail node3.example.com
 
+Note that, due to an issue with the iallocator interface, evacuation of
+all instances at once is not yet implemented. Full evacuation can
+currently be achieved by sequentially evacuating primaries and
+secondaries.
+::
+
+    # gnt-node evacuate -p node3.example.com
+    # gnt-node evacuate -s node3.example.com
+
 
 FAILOVER
 ~~~~~~~~

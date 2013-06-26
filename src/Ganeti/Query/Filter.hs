@@ -48,12 +48,15 @@ module Ganeti.Query.Filter
   ( compileFilter
   , evaluateFilter
   , requestedNames
+  , FilterConstructor
   , makeSimpleFilter
+  , makeHostnameFilter
   ) where
 
 import Control.Applicative
 import Control.Monad (liftM)
 import qualified Data.Map as Map
+import Data.Maybe (fromJust)
 import Data.Traversable (traverse)
 import Text.JSON (JSValue(..), fromJSString)
 import Text.JSON.Pretty (pp_value)
@@ -239,8 +242,30 @@ requestedNames namefield (EQFilter fld val) =
     else Nothing
 requestedNames _ _ = Nothing
 
+
+type FilterConstructor = String -> [Either String Integer] -> Filter FilterField
+  
 -- | Builds a simple filter from a list of names.
 makeSimpleFilter :: String -> [Either String Integer] -> Filter FilterField
 makeSimpleFilter _ [] = EmptyFilter
 makeSimpleFilter namefield vals =
   OrFilter $ map (EQFilter namefield . either QuotedString NumericValue) vals
+
+-- | List of symbols with a special meaning for regular expressions.
+reSpecialSymbols :: String
+reSpecialSymbols = "\\.|()[]"
+
+-- | Quote symbols that have special meaning in regular expressions.
+quoteForRegex :: String -> String
+quoteForRegex s = s >>= \x ->
+  if x `elem` reSpecialSymbols then ['\\', x] else [x]
+
+-- | Builds a filter for hostnames from a list of names.
+makeHostnameFilter :: String -> [Either String Integer] -> Filter FilterField
+makeHostnameFilter _ [] = EmptyFilter
+makeHostnameFilter namefield vals = 
+  OrFilter . flip map vals
+  $ either  (RegexpFilter namefield . fromJust . mkRegex
+             . (\ s -> "^(" ++ s ++ "|" ++ s ++ "\\..*)$")
+             . quoteForRegex)
+            (EQFilter namefield  . NumericValue)
