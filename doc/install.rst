@@ -498,6 +498,21 @@ commands::
   bridge name     bridge id               STP enabled     interfaces
   xen-br0         8000.0020fc1ed55d       no              eth0
 
+In order to have a custom and more advanced networking configuration in Xen
+which can vary among instances, after having successfully installed Ganeti
+you have to create a symbolic link to the vif-script provided by Ganeti
+inside /etc/xen/scripts (assuming you installed Ganeti under /usr/lib)::
+
+  $ ln -s /usr/lib/ganeti/vif-ganeti /etc/xen/scripts/vif-ganeti
+
+This has to be done on all nodes. Afterwards you can set the ``vif_script``
+hypervisor parameter to point to that script by::
+
+  $ gnt-cluster modify -H xen-pvm:vif_script=/etc/xen/scripts/vif-ganeti
+
+Having this hypervisor parameter you are able to create your own scripts
+and create instances with different networking configurations.
+
 .. _configure-lvm-label:
 
 Configuring LVM
