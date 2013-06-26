@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 
-# Copyright (C) 2011, 2012 Google Inc.
+# Copyright (C) 2011, 2012, 2013 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,14 +18,31 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 # 02110-1301, USA.
 
-source @PKGLIBDIR@/net-common
 
-# Execute the user-supplied network script, if applicable
-if [ -x "$CONF_DIR/kvm-vif-bridge" ]; then
-  exec $CONF_DIR/kvm-vif-bridge
+if [ -x "@XEN_CONFIG_DIR@/scripts/vif-custom" ]; then
+	exec @XEN_CONFIG_DIR@/scripts/vif-custom $*
 fi
 
-check
+source @PKGLIBDIR@/net-common
+
+dir=$(dirname "$0")
+. "$dir"/vif-common.sh
+
+# taken from older vif-common.sh
+dev=$vif
+dev_=${dev#vif}
+domid=${dev_%.*}
+devid=${dev_#*.}
+domname=$(xm domname $domid)
+
+NIC_DIR=$RUN_DIR/xen-hypervisor/nic
+INTERFACE=$dev
+INSTANCE=$domname
+
+source $NIC_DIR/$domname/$devid
+
 setup_bridge
 setup_ovs
 setup_route
+
+success
