@@ -5,7 +5,7 @@ Ganeti 2.8 design
 The following design documents have been implemented in Ganeti 2.8:
 
 - :doc:`design-reason-trail`
-- :doc"`design-autorepair`
+- :doc:`design-autorepair`
 
 The following designs have been partially implemented in Ganeti 2.8:
 
