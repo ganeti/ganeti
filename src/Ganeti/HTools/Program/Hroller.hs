@@ -252,7 +252,8 @@ main opts args = do
       colorings = map (\(v,a) -> (v,(colorVertMap.a) nodeGraph)) colorAlgorithms
       smallestColoring = IntMap.elems $
         (snd . minimumBy (comparing (IntMap.size . snd))) colorings
-      allNdx = map Node.idx $ Container.elems nlf
+      allNdx = map Node.idx . filter (not . Node.offline) . Container.elems
+               $ nlf
       splitted = mapM (\ grp -> partitionNonRedundant grp allNdx (nlf,ilf))
                  smallestColoring
   rebootGroups <- if optIgnoreNonRedundant opts
