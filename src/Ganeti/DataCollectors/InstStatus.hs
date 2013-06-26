@@ -43,9 +43,7 @@ import qualified Data.Map as Map
 import Network.BSD (getHostName)
 import qualified Text.JSON as J
 
-import qualified Ganeti.BasicTypes as BT
-import Ganeti.Confd.Client
-import Ganeti.Confd.Types
+import Ganeti.Confd.ClientFunctions
 import Ganeti.Common
 import Ganeti.DataCollectors.CLI
 import Ganeti.DataCollectors.InstStatusTypes
@@ -94,26 +92,6 @@ options = return
 -- | The list of arguments supported by the program.
 arguments :: [ArgCompletion]
 arguments = []
-
--- | Get the list of instances ([primary], [secondary]) on the given node.
--- Implemented as a function, even if used a single time, to specify in a
--- convenient and elegant way the return data type, required in order to
--- prevent incurring in the monomorphism restriction.
--- The server address and the server port parameters are mainly intended
--- for testing purposes. If they are Nothing, the default values will be used.
-getInstances
-  :: String
-  -> Maybe String
-  -> Maybe Int
-  -> IO (BT.Result ([Ganeti.Objects.Instance], [Ganeti.Objects.Instance]))
-getInstances node srvAddr srvPort = do
-  client <- getConfdClient srvAddr srvPort
-  reply <- query client ReqNodeInstances $ PlainQuery node
-  return $
-    case fmap (J.readJSON . confdReplyAnswer) reply of
-      Just (J.Ok instances) -> BT.Ok instances
-      Just (J.Error msg) -> BT.Bad msg
-      Nothing -> BT.Bad "No answer from the Confd server"
 
 -- | Try to get the reason trail for an instance. In case it is not possible,
 -- log the failure and return an empty list instead.

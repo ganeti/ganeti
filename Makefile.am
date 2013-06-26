@@ -542,6 +542,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/Common.hs \
 	src/Ganeti/Compat.hs \
 	src/Ganeti/Confd/Client.hs \
+	src/Ganeti/Confd/ClientFunctions.hs \
 	src/Ganeti/Confd/Server.hs \
 	src/Ganeti/Confd/Types.hs \
 	src/Ganeti/Confd/Utils.hs \
