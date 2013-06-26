@@ -91,7 +91,9 @@ For a description of the standard options check **htools**\(7) and
 
 \--print-moves
   After each group list for each affected non-redundant instance a node
-  where it can be evacuated to.
+  where it can be evacuated to. The moves are computed under the assumption
+  that after each reboot group, all instances are moved back to their
+  initial position.
 
 
 BUGS
