@@ -1084,6 +1084,7 @@ TEST_FILES = \
 	test/data/htools/rapi/info.json \
 	test/data/htools/rapi/instances.json \
 	test/data/htools/rapi/nodes.json \
+	test/data/htools/hroller-full.data \
 	test/data/htools/hroller-nodegroups.data \
 	test/data/htools/hroller-nonredundant.data \
 	test/data/htools/hroller-online.data \

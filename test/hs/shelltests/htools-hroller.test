@@ -66,3 +66,29 @@ Error: Cannot create node graph
 node-01-00.
 node-01-00.,node-02-000$/
 >>>= 0
+
+./test/hs/hroller --no-headers -t $TESTDATA_DIR/hroller-full.data
+>>>/^node-..,node-..,node-..,node-..
+node-..,node-..,node-..,node-31$/
+>>>= 0
+
+./test/hs/hroller --no-headers --full-evacuation -t $TESTDATA_DIR/hroller-full.data
+>>>/^node-..,node-..
+node-..,node-..
+node-..,node-..
+node-..,node-31$/
+>>>= 0
+
+./test/hs/hroller --no-headers --full-evacuation --one-step-only --print-moves -t $TESTDATA_DIR/hroller-full.data
+>>>/^node-..
+node-..
+  inst-.. node-.. node-..
+  inst-.. node-.. node-..
+  inst-.. node-.. node-..
+  inst-.. node-.. node-..$/
+>>>= 0
+
+./test/hs/hroller --full-evacuation -t $TESTDATA_DIR/unique-reboot-order.data
+>>>2
+Error: Not enough capacity to move secondaries
+>>>=1
