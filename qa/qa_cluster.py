@@ -455,17 +455,18 @@ def _TestClusterModifyDiskTemplatesArguments(default_disk_template,
       (default_disk_template, default_disk_template)],
     fail=False)
 
-  # interaction with --drbd-usermode-helper option
-  drbd_usermode_helper = qa_config.get("drbd-usermode-helper", None)
-  if not drbd_usermode_helper:
-    drbd_usermode_helper = "/bin/true"
-  # specifying a helper when drbd gets disabled
-  AssertCommand(["gnt-cluster", "modify",
-                 "--drbd-usermode-helper=%s" % drbd_usermode_helper,
-                 "--enabled-disk-templates=%s" % constants.DT_DISKLESS],
-                 fail=False)
   if constants.DT_DRBD8 in enabled_disk_templates:
-    # specifying a vg name when lvm is enabled
+    # interaction with --drbd-usermode-helper option
+    drbd_usermode_helper = qa_config.get("drbd-usermode-helper", None)
+    if not drbd_usermode_helper:
+      drbd_usermode_helper = "/bin/true"
+    # specifying a helper when drbd gets disabled is ok. Note that drbd still
+    # has to be installed on the nodes in this case
+    AssertCommand(["gnt-cluster", "modify",
+                   "--drbd-usermode-helper=%s" % drbd_usermode_helper,
+                   "--enabled-disk-templates=%s" % constants.DT_DISKLESS],
+                   fail=False)
+    # specifying a helper when drbd is re-enabled
     AssertCommand(["gnt-cluster", "modify",
                    "--drbd-usermode-helper=%s" % drbd_usermode_helper,
                    "--enabled-disk-templates=%s" %
