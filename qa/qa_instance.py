@@ -1047,11 +1047,14 @@ def TestInstanceCreationRestrictedByDiskTemplates():
         CreateInstanceByDiskTemplate(nodes, disk_template, fail=True)
   elif (len(enabled_disk_templates) == 1):
     # If only one disk template is enabled in the QA config, we have to enable
-    # some of the disabled disk templates in order to test if the disabling the
-    # only enabled disk template prohibits creating instances of that template.
+    # some other templates in order to test if the disabling the only enabled
+    # disk template prohibits creating instances of that template.
+    other_disk_templates = list(
+                            set([constants.DT_DISKLESS, constants.DT_BLOCK]) -
+                            set(enabled_disk_templates))
     AssertCommand(["gnt-cluster", "modify",
                    "--enabled-disk-template=%s" %
-                     ",".join(disabled_disk_templates)],
+                     ",".join(other_disk_templates)],
                   fail=False)
     CreateInstanceByDiskTemplate(nodes, enabled_disk_templates[0], fail=True)
   else:

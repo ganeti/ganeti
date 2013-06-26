@@ -425,13 +425,14 @@ def _RestoreEnabledDiskTemplates():
      other tests.
 
   """
-  vgname = qa_config.get("vg-name", constants.DEFAULT_VG)
-  AssertCommand(
-    ["gnt-cluster", "modify",
-     "--enabled-disk-templates=%s" %
-       ",".join(qa_config.GetEnabledDiskTemplates()),
-     "--vg-name=%s" % vgname],
-    fail=False)
+  cmd = ["gnt-cluster", "modify", "--enabled-disk-templates=%s" %
+         ",".join(qa_config.GetEnabledDiskTemplates())]
+
+  if utils.IsLvmEnabled(qa_config.GetEnabledDiskTemplates()):
+    vgname = qa_config.get("vg-name", constants.DEFAULT_VG)
+    cmd.append("--vg-name=%s" % vgname)
+
+  AssertCommand(cmd, fail=False)
 
 
 def _TestClusterModifyDiskTemplatesArguments(default_disk_template,
@@ -568,7 +569,7 @@ def _TestClusterModifyUsedDiskTemplate(instance_template,
   new_disk_templates = list(set(enabled_disk_templates)
                               - set([instance_template]))
   if not new_disk_templates:
-    new_disk_templates = list(set(constants.DISK_TEMPLATES)
+    new_disk_templates = list(set([constants.DT_DISKLESS, constants.DT_BLOCK])
                                 - set([instance_template]))
   AssertCommand(
     ["gnt-cluster", "modify",
@@ -580,6 +581,10 @@ def _TestClusterModifyUsedDiskTemplate(instance_template,
 def _TestClusterModifyUnusedDiskTemplate(instance_template):
   """Tests that unused disk templates can be disabled safely."""
   all_disk_templates = constants.DISK_TEMPLATES
+  if not utils.IsLvmEnabled(qa_config.GetEnabledDiskTemplates()):
+    all_disk_templates = list(set(all_disk_templates) -
+                              set(utils.GetLvmDiskTemplates()))
+
   AssertCommand(
     ["gnt-cluster", "modify",
      "--enabled-disk-templates=%s" %
