@@ -2853,7 +2853,7 @@ def DiagnoseExtStorage(top_dirs=None):
   return result
 
 
-def BlockdevGrow(disk, amount, dryrun, backingstore):
+def BlockdevGrow(disk, amount, dryrun, backingstore, excl_stor):
   """Grow a stack of block devices.
 
   This function is called recursively, with the childrens being the
@@ -2870,6 +2870,8 @@ def BlockdevGrow(disk, amount, dryrun, backingstore):
       only, or on "logical" storage only; e.g. DRBD is logical storage,
       whereas LVM, file, RBD are backing storage
   @rtype: (status, result)
+  @type excl_stor: boolean
+  @param excl_stor: Whether exclusive_storage is active
   @return: a tuple with the status of the operation (True/False), and
       the errors message if status is False
 
@@ -2879,7 +2881,7 @@ def BlockdevGrow(disk, amount, dryrun, backingstore):
     _Fail("Cannot find block device %s", disk)
 
   try:
-    r_dev.Grow(amount, dryrun, backingstore)
+    r_dev.Grow(amount, dryrun, backingstore, excl_stor)
   except errors.BlockDeviceError, err:
     _Fail("Failed to grow block device: %s", err, exc=True)
 

@@ -298,7 +298,7 @@ class BlockDev(object):
     for child in self._children:
       child.SetInfo(text)
 
-  def Grow(self, amount, dryrun, backingstore):
+  def Grow(self, amount, dryrun, backingstore, excl_stor):
     """Grow the block device.
 
     @type amount: integer
@@ -309,6 +309,8 @@ class BlockDev(object):
     @param backingstore: whether to execute the operation on backing storage
         only, or on "logical" storage only; e.g. DRBD is logical storage,
         whereas LVM, file, RBD are backing storage
+    @type excl_stor: boolean
+    @param excl_stor: Whether exclusive_storage is active
 
     """
     raise NotImplementedError

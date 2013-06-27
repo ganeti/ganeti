@@ -950,7 +950,7 @@ class DRBD8Dev(base.BlockDev):
     """
     raise errors.ProgrammerError("Can't rename a drbd device")
 
-  def Grow(self, amount, dryrun, backingstore):
+  def Grow(self, amount, dryrun, backingstore, excl_stor):
     """Resize the DRBD device and its backing storage.
 
     See L{BlockDev.Grow} for parameter description.
@@ -960,7 +960,7 @@ class DRBD8Dev(base.BlockDev):
       base.ThrowError("drbd%d: Grow called while not attached", self._aminor)
     if len(self._children) != 2 or None in self._children:
       base.ThrowError("drbd%d: cannot grow diskless device", self.minor)
-    self._children[0].Grow(amount, dryrun, backingstore)
+    self._children[0].Grow(amount, dryrun, backingstore, excl_stor)
     if dryrun or backingstore:
       # DRBD does not support dry-run mode and is not backing storage,
       # so we'll return here

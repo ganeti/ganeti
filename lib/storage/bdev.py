@@ -753,7 +753,7 @@ class LogicalVolume(base.BlockDev):
 
     _CheckResult(utils.RunCmd(["lvchange", "--addtag", text, self.dev_path]))
 
-  def Grow(self, amount, dryrun, backingstore):
+  def Grow(self, amount, dryrun, backingstore, excl_stor):
     """Grow the logical volume.
 
     """
@@ -771,12 +771,19 @@ class LogicalVolume(base.BlockDev):
     cmd = ["lvextend", "-L", "+%dk" % amount]
     if dryrun:
       cmd.append("--test")
+    if excl_stor:
+      # Disk growth doesn't grow the number of spindles, so we must stay within
+      # our assigned volumes
+      pvlist = list(self.pv_names)
+    else:
+      pvlist = []
     # we try multiple algorithms since the 'best' ones might not have
     # space available in the right place, but later ones might (since
     # they have less constraints); also note that only recent LVM
     # supports 'cling'
     for alloc_policy in "contiguous", "cling", "normal":
-      result = utils.RunCmd(cmd + ["--alloc", alloc_policy, self.dev_path])
+      result = utils.RunCmd(cmd + ["--alloc", alloc_policy, self.dev_path] +
+                            pvlist)
       if not result.failed:
         return
     base.ThrowError("Can't grow LV %s: %s", self.dev_path, result.output)
@@ -867,7 +874,7 @@ class FileStorage(base.BlockDev):
     # TODO: implement rename for file-based storage
     base.ThrowError("Rename is not supported for file-based storage")
 
-  def Grow(self, amount, dryrun, backingstore):
+  def Grow(self, amount, dryrun, backingstore, excl_stor):
     """Grow the file
 
     @param amount: the amount (in mebibytes) to grow with
@@ -1055,7 +1062,7 @@ class PersistentBlockDevice(base.BlockDev):
     """
     pass
 
-  def Grow(self, amount, dryrun, backingstore):
+  def Grow(self, amount, dryrun, backingstore, excl_stor):
     """Grow the logical volume.
 
     """
@@ -1382,7 +1389,7 @@ class RADOSBlockDevice(base.BlockDev):
     """
     pass
 
-  def Grow(self, amount, dryrun, backingstore):
+  def Grow(self, amount, dryrun, backingstore, excl_stor):
     """Grow the Volume.
 
     @type amount: integer
@@ -1545,7 +1552,7 @@ class ExtStorageDevice(base.BlockDev):
     """
     pass
 
-  def Grow(self, amount, dryrun, backingstore):
+  def Grow(self, amount, dryrun, backingstore, excl_stor):
     """Grow the Volume.
 
     @type amount: integer

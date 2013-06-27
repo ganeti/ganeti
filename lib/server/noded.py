@@ -368,7 +368,8 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     amount = params[1]
     dryrun = params[2]
     backingstore = params[3]
-    return backend.BlockdevGrow(cfbd, amount, dryrun, backingstore)
+    excl_stor = params[4]
+    return backend.BlockdevGrow(cfbd, amount, dryrun, backingstore, excl_stor)
 
   @staticmethod
   def perspective_blockdev_close(params):
