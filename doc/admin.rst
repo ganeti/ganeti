@@ -1410,6 +1410,110 @@ hierarchical kind of way)::
   /cluster foo
   /instances/instance1 owner:bar
 
+Autorepair
+----------
+
+The tool ``harep`` can be used to automatically fix some problems that are
+present in the cluster.
+
+It is mainly meant to be regularly and automatically executed
+as a cron job. This is quite evident by considering that, when executed, it does
+not immediately fix all the issues of the instances of the cluster, but it
+cycles the instances through a series of states, one at every ``harep``
+execution. Every state performs a step towards the resolution of the problem.
+This process goes on until the instance is brought back to the healthy state,
+or the tool realizes that it is not able to fix the instance, and
+therefore marks it as in failure state.
+
+Allowing harep to act on the cluster
+++++++++++++++++++++++++++++++++++++
+
+By default, ``harep`` checks the status of the cluster but it is not allowed to
+perform any modification. Modification must be explicitly allowed by an
+appropriate use of tags. Tagging can be applied at various levels, and can
+enable different kinds of autorepair, as hereafter described.
+
+All the tags that authorize ``harep`` to perform modifications follow this
+syntax::
+
+  ganeti:watcher:autorepair:<type>
+
+where ``<type>`` indicates the kind of intervention that can be performed. Every
+possible value of ``<type>`` includes at least all the authorization of the
+previous one, plus its own. The possible values, in increasing order of
+severity, are:
+
+- ``fix-storage`` allows a disk replacement or another operation that
+  fixes the instance backend storage without affecting the instance
+  itself. This can for example recover from a broken drbd secondary, but
+  risks data loss if something is wrong on the primary but the secondary
+  was somehow recoverable.
+- ``migrate`` allows an instance migration. This can recover from a
+  drained primary, but can cause an instance crash in some cases (bugs).
+- ``failover`` allows instance reboot on the secondary. This can recover
+  from an offline primary, but the instance will lose its running state.
+- ``reinstall`` allows disks to be recreated and an instance to be
+  reinstalled. This can recover from primary&secondary both being
+  offline, or from an offline primary in the case of non-redundant
+  instances. It causes data loss.
+
+These autorepair tags can be applied to a cluster, a nodegroup or an instance,
+and will act where they are applied and to everything in the entities sub-tree
+(e.g. a tag applied to a nodegroup will apply to all the instances contained in
+that nodegroup, but not to the rest of the cluster).
+
+If there are multiple ``ganeti:watcher:autorepair:<type>`` tags in an
+object (cluster, node group or instance), the least destructive tag
+takes precedence. When multiplicity happens across objects, the nearest
+tag wins. For example, if in a cluster with two instances, *I1* and
+*I2*, *I1* has ``failover``, and the cluster itself has both
+``fix-storage`` and ``reinstall``, *I1* will end up with ``failover``
+and *I2* with ``fix-storage``.
+
+Limiting harep
+++++++++++++++
+
+Sometimes it is useful to stop harep from performing its task temporarily,
+and it is useful to be able to do so without distrupting its configuration, that
+is, without removing the authorization tags. In order to do this, suspend tags
+are provided.
+
+Suspend tags can be added to cluster, nodegroup or instances, and act on the
+entire entities sub-tree. No operation will be performed by ``harep`` on the
+instances protected by a suspend tag. Their syntax is as follows::
+
+  ganeti:watcher:autorepair:suspend[:<timestamp>]
+
+If there are multiple suspend tags in an object, the form without timestamp
+takes precedence (permanent suspension); or, if all object tags have a
+timestamp, the one with the highest timestamp.
+
+Tags with a timestamp will be automatically removed when the time indicated by
+the timestamp is passed. Indefinite suspension tags have to be removed manually.
+
+Result reporting
+++++++++++++++++
+
+Harep will report about the result of its actions both through its CLI, and by
+adding tags to the instances it operated on. Such tags will follow the syntax
+hereby described::
+
+  ganeti:watcher:autorepair:result:<type>:<id>:<timestamp>:<result>:<jobs>
+
+If this tag is present a repair of type ``type`` has been performed on
+the instance and has been completed by ``timestamp``. The result is
+either ``success``, ``failure`` or ``enoperm``, and jobs is a
+*+*-separated list of jobs that were executed for this repair.
+
+An ``enoperm`` result is an error state due to permission problems. It
+is returned when the repair cannot proceed because it would require to perform
+an operation that is not allowed by the ``ganeti:watcher:autorepair:<type>`` tag
+that is defining the instance autorepair permissions.
+
+NB: if an instance repair ends up in a failure state, it will not be touched
+again by ``harep`` until it has been manually fixed by the system administrator
+and the ``ganeti:watcher:autorepair:result:failure:*`` tag has been manually
+removed.
 
 Job operations
 --------------
