@@ -53,6 +53,7 @@ module Ganeti.HTools.CLI
   , oExTags
   , oExecJobs
   , oForce
+  , oFullEvacuation
   , oGroup
   , oIAllocSrc
   , oIgnoreNonRedundant
@@ -125,6 +126,7 @@ data Options = Options
   , optExTags      :: Maybe [String] -- ^ Tags to use for exclusion
   , optExecJobs    :: Bool           -- ^ Execute the commands via Luxi
   , optForce       :: Bool           -- ^ Force the execution
+  , optFullEvacuation :: Bool        -- ^ Fully evacuate nodes to be rebooted
   , optGroup       :: Maybe GroupID  -- ^ The UUID of the group to process
   , optIAllocSrc   :: Maybe FilePath -- ^ The iallocation spec
   , optIgnoreNonRedundant :: Bool    -- ^ Ignore non-redundant instances
@@ -178,6 +180,7 @@ defaultOptions  = Options
   , optExTags      = Nothing
   , optExecJobs    = False
   , optForce       = False
+  , optFullEvacuation = False
   , optGroup       = Nothing
   , optIAllocSrc   = Nothing
   , optIgnoreNonRedundant = False
@@ -353,6 +356,13 @@ oForce =
    (NoArg (\ opts -> Ok opts {optForce = True}))
    "force the execution of this program, even if warnings would\
    \ otherwise prevent it",
+   OptComplNone)
+
+oFullEvacuation :: OptType
+oFullEvacuation =
+  (Option "" ["full-evacuation"]
+   (NoArg (\ opts -> Ok opts { optFullEvacuation = True}))
+   "fully evacuate the nodes to be rebooted",
    OptComplNone)
 
 oGroup :: OptType

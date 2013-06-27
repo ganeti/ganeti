@@ -71,6 +71,7 @@ options = do
     , oSaveCluster
     , oGroup
     , oPrintMoves
+    , oFullEvacuation
     , oSkipNonRedundant
     , oIgnoreNonRedundant
     , oForce
@@ -163,6 +164,86 @@ partitionNonRedundant :: [Ndx] -> [Ndx] -> (Node.List, Instance.List)
                          -> Result [([Ndx], (Node.List, Instance.List))]
 partitionNonRedundant = partitionNodes clearNodes
 
+-- | Compute the result of migrating an instance.
+migrate :: Idx -> (Node.List, Instance.List)
+           -> OpResult (Node.List, Instance.List)
+migrate idx (nl, il) = do
+  let inst = Container.find idx il
+      pdx = Instance.pNode inst
+      sdx = Instance.sNode inst
+      pNode = Container.find pdx nl
+      sNode = Container.find sdx nl
+      pNode' = Node.removePri pNode inst
+      sNode' = Node.removeSec sNode inst
+  sNode'' <- Node.addPriEx True sNode' inst
+  pNode'' <- Node.addSecEx True pNode' inst sdx
+  let inst' = Instance.setBoth inst sdx pdx
+      nl' = Container.addTwo pdx pNode'' sdx sNode'' nl
+      il' = Container.add idx inst' il
+  return (nl', il')
+
+-- | Obtain the list of primaries for a given node.
+-- This restricts to those instances that have a secondary node.
+primaries :: (Node.List, Instance.List) -> Ndx -> [Idx]
+primaries (nl, il) = 
+  filter (Instance.hasSecondary . flip Container.find  il) 
+  . Node.pList . flip Container.find nl
+
+-- | Migrate all instances of a given list of nodes.
+-- The list of nodes is repeated as first argument in the result.
+migrateOffNodes :: ([Ndx], (Node.List, Instance.List))
+                   -> OpResult ([Ndx], (Node.List, Instance.List))
+migrateOffNodes (ndxs, conf) = do
+  let instances = ndxs >>= primaries conf
+  conf' <- foldM (flip migrate) conf instances
+  return (ndxs, conf')
+
+-- | Compute the result of replacing the secondary node of an instance.
+replaceSecondary :: Idx -> Ndx -> (Node.List, Instance.List)
+        -> OpResult (Node.List, Instance.List)
+replaceSecondary idx new_ndx (nl, il) = do
+  let  new_secondary = Container.find new_ndx nl
+       inst = Container.find idx il
+       old_ndx = Instance.sNode inst
+       pdx = Instance.pNode inst
+       old_secondary = Container.find pdx nl
+  if pdx == new_ndx then Bad FailInternal else Ok ()
+  new_secondary' <- Node.addSecEx True new_secondary inst pdx
+  let old_secondary' = Node.removeSec old_secondary inst
+      inst' = Instance.setSec inst new_ndx
+      nl' = Container.addTwo old_ndx old_secondary' new_ndx new_secondary' nl
+      il' = Container.add idx inst' il
+  return (nl', il')
+
+-- | Find a suitable secondary node for the given instance from a list of nodes.
+findSecondary :: Idx -> [Ndx] -> (Node.List, Instance.List)
+                 -> Result (Node.List, Instance.List)
+findSecondary idx ndxs conf =
+  msum $ map (opToResult . flip (replaceSecondary idx) conf) ndxs
+
+-- | Find suitable secondary nodes from the given nodes for a list of instances.
+findSecondaries :: [Idx] -> [Ndx] -> (Node.List, Instance.List) 
+                   -> Result (Node.List, Instance.List)
+findSecondaries idxs ndxs conf =
+  foldM (\ cf idx -> findSecondary idx ndxs cf) conf idxs
+
+-- | Obtain the list of secondaries for a given node.
+secondaries :: (Node.List, Instance.List) -> Ndx -> [Idx]
+secondaries (nl, _) = Node.sList . flip Container.find nl
+
+-- | Greedily move secondaries away from a list of nodes.
+-- Returns a list of nodes that can be cleared simultaneously, 
+-- and the configuration after these nodes are cleared.
+clearSecondaries :: [Ndx] -> [Ndx] -> (Node.List, Instance.List)
+                    -> Result ([Ndx], (Node.List, Instance.List))
+clearSecondaries = greedyClearNodes secondaries findSecondaries
+
+-- | Partition a list of nodes into chunks according to the ability to find
+-- suitable replacement secondary nodes.
+partitionSecondaries :: [Ndx] -> [Ndx] -> (Node.List, Instance.List)
+                        -> Result [([Ndx], (Node.List, Instance.List))]
+partitionSecondaries = partitionNodes clearSecondaries
+
 -- | Gather statistics for the coloring algorithms.
 -- Returns a string with a summary on how each algorithm has performed,
 -- in order of non-decreasing effectiveness, and whether it tied or lost
@@ -212,14 +293,23 @@ masterLast rebootgroups =
   map (first $ partition (not . Node.isMaster)) rebootgroups
 
 -- | From two configurations compute the list of moved instances.
+-- Do not show instances where only primary and secondary switched their
+-- role, as here the instance is not moved in a proper sense.
 getMoves :: (Node.List, Instance.List) -> (Node.List, Instance.List)
-            -> [(Instance.Instance, Node.Node)]
+            -> [(Instance.Instance, (Node.Node, Maybe Node.Node))]
 getMoves (_, il) (nl', il') = do
   ix <- Container.keys il
   let inst = Container.find ix il
       inst' = Container.find ix il'
+      hasSec = Instance.hasSecondary inst
   guard $ Instance.pNode inst /= Instance.pNode inst'
-  return (inst', Container.find (Instance.pNode inst') nl')
+          || (hasSec && Instance.sNode inst /= Instance.sNode inst')
+  guard . not $ Instance.pNode inst' == Instance.sNode inst
+                && Instance.sNode inst' == Instance.pNode inst
+  return (inst', (Container.find (Instance.pNode inst') nl', 
+                  if hasSec
+                     then Just $ Container.find (Instance.sNode inst') nl'
+                     else Nothing))
 
 -- | Main function.
 main :: Options -> [String] -> IO ()
@@ -286,13 +376,32 @@ main opts args = do
                             Ok splitgroups -> return $ concat splitgroups
                             Bad _ -> exitErr "Not enough capacity to move\ 
                                              \ non-redundant instances"
+  
+  let migrated = mapM migrateOffNodes rebootGroups
+  rebootGroups' <- if not . optFullEvacuation $ opts
+                      then return rebootGroups
+                      else case migrated of
+                             Ok migratedGroup -> return migratedGroup
+                             Bad _ -> exitErr "Failed to migrate instances\ 
+                                              \ off nodes"
+  let splitted' = mapM (\(grp, conf) -> partitionSecondaries grp allNdx conf)
+                  rebootGroups'
+  rebootGroups'' <- if optFullEvacuation opts
+                      then case splitted' of
+                             Ok splitgroups -> return $ concat splitgroups
+                             Bad _ -> exitErr "Not enough capacity to move\
+                                              \ secondaries"
+                      else return rebootGroups'
   let idToNode = (`Container.find` nodes)
-      nodesRebootGroups =
-        map (first $ map idToNode . filter (`IntMap.member` nodes)) rebootGroups
+      nodesRebootGroups = map (first $ map idToNode
+                                       . filter (`IntMap.member` nodes))
+                          rebootGroups''
       outputRebootGroups = masterLast .
                            sortBy (flip compare `on` length . fst) $
                            nodesRebootGroups
-      confToMoveNames = map (Instance.name *** Node.name) . getMoves (nlf, ilf)
+      confToMoveNames =
+        map (Instance.name *** (Node.name *** flip (>>=) (return . Node.name)))
+        . getMoves (nlf, ilf)
       namesAndMoves = map (map Node.name *** confToMoveNames) outputRebootGroups
 
   when (verbose > 1) . putStrLn $ getStats colorings
@@ -300,9 +409,12 @@ main opts args = do
   let showGroup = if optOneStepOnly opts
                     then mapM_ putStrLn
                     else putStrLn . commaJoin
-      showMoves :: [(String, String)] -> IO ()
+      showMoves :: [(String, (String, Maybe String))] -> IO ()
       showMoves = if optPrintMoves opts
-                    then mapM_ $ putStrLn . uncurry (printf "  %s %s")
+                    then mapM_ $ putStrLn . \(a,(b,c)) ->
+                                                maybe (printf "  %s %s" a b)
+                                                      (printf "  %s %s %s" a b)
+                                                      c
                     else const $ return ()
       showBoth = liftM2 (>>) (showGroup . fst) (showMoves . snd)
 

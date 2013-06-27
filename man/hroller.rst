@@ -74,6 +74,11 @@ For a description of the standard options check **htools**\(7) and
 \--node-tags *tag,...*
   Restrict to nodes having at least one of the given tags.
 
+\--full-evacuation
+  Also plan moving secondaries out of the nodes to be rebooted. For
+  each instance the move is at most a migrate (if it was primary
+  on that node) followed by a replace secondary.
+
 \--skip-non-redundant
   Restrict to nodes not hosting any non-redundant instance.
 
@@ -90,7 +95,7 @@ For a description of the standard options check **htools**\(7) and
   Restrict to the first reboot group. Output the group one node per line.
 
 \--print-moves
-  After each group list for each affected non-redundant instance a node
+  After each group list for each affected instance a node
   where it can be evacuated to. The moves are computed under the assumption
   that after each reboot group, all instances are moved back to their
   initial position.
