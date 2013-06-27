@@ -141,16 +141,27 @@ clearNodes :: [Ndx] -> [Ndx] -> (Node.List, Instance.List)
               -> Result ([Ndx], (Node.List, Instance.List))
 clearNodes = greedyClearNodes nonRedundant locateInstances
 
+-- | Partition nodes according to some clearing strategy.
+-- Arguments are the clearing strategy, the list of nodes to be cleared,
+-- the list of nodes that instances can be moved to, and the initial
+-- configuration. Returned is a partion of the nodes to be cleared with the
+-- configuration in that clearing situation.
+partitionNodes :: ([Ndx] -> [Ndx] -> (Node.List, Instance.List)
+                   -> Result ([Ndx], (Node.List, Instance.List)))
+                  -> [Ndx] -> [Ndx] -> (Node.List, Instance.List)
+                  -> Result [([Ndx], (Node.List, Instance.List))]
+partitionNodes _ [] _  _ = return []
+partitionNodes clear ndxs targets conf = do
+  (grp, conf') <- clear ndxs targets conf
+  guard . not . null $ grp
+  let remaining = ndxs \\ grp
+  part <- partitionNodes clear remaining targets conf
+  return $ (grp, conf') : part
+
 -- | Parition a list of nodes into chunks according cluster capacity.
 partitionNonRedundant :: [Ndx] -> [Ndx] -> (Node.List, Instance.List)
                          -> Result [([Ndx], (Node.List, Instance.List))]
-partitionNonRedundant [] _ _ = return []
-partitionNonRedundant ndxs targets conf = do
-  (grp, conf') <- clearNodes ndxs targets conf
-  guard . not . null $ grp
-  let remaining = ndxs \\ grp
-  part <- partitionNonRedundant remaining targets conf
-  return $ (grp, conf') : part
+partitionNonRedundant = partitionNodes clearNodes
 
 -- | Gather statistics for the coloring algorithms.
 -- Returns a string with a summary on how each algorithm has performed,
