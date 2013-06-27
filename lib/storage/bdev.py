@@ -753,6 +753,22 @@ class LogicalVolume(base.BlockDev):
 
     _CheckResult(utils.RunCmd(["lvchange", "--addtag", text, self.dev_path]))
 
+  def _GetGrowthAvaliabilityExclStor(self):
+    """Return how much the disk can grow with exclusive storage.
+
+    @rtype: float
+    @return: available space in Mib
+
+    """
+    pvs_info = self.GetPVInfo([self._vg_name])
+    if not pvs_info:
+      base.ThrowError("Cannot get information about PVs for %s", self.dev_path)
+    std_pv_size = self._GetStdPvSize(pvs_info)
+    free_space = sum(pvi.free - (pvi.size - std_pv_size)
+                        for pvi in pvs_info
+                        if pvi.name in self.pv_names)
+    return free_space
+
   def Grow(self, amount, dryrun, backingstore, excl_stor):
     """Grow the logical volume.
 
@@ -772,6 +788,12 @@ class LogicalVolume(base.BlockDev):
     if dryrun:
       cmd.append("--test")
     if excl_stor:
+      free_space = self._GetGrowthAvaliabilityExclStor()
+      # amount is in KiB, free_space in MiB
+      if amount > free_space * 1024:
+        base.ThrowError("Not enough free space to grow %s: %d MiB required,"
+                        " %d available", self.dev_path, amount / 1024,
+                        free_space)
       # Disk growth doesn't grow the number of spindles, so we must stay within
       # our assigned volumes
       pvlist = list(self.pv_names)
