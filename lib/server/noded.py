@@ -361,9 +361,9 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     """Grow a stack of devices.
 
     """
-    if len(params) < 4:
-      raise ValueError("Received only 3 parameters in blockdev_grow,"
-                       " old master?")
+    if len(params) < 5:
+      raise ValueError("Received only %s parameters in blockdev_grow,"
+                       " old master?" % len(params))
     cfbd = objects.Disk.FromDict(params[0])
     amount = params[1]
     dryrun = params[2]

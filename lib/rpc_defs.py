@@ -417,6 +417,7 @@ _BLOCKDEV_CALLS = [
     ("amount", None, None),
     ("dryrun", None, None),
     ("backingstore", None, None),
+    ("es_flag", None, None),
     ], None, None, "Request growing of the given block device by a"
    " given amount"),
   ("blockdev_export", SINGLE, None, constants.RPC_TMO_1DAY, [

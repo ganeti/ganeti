@@ -1394,6 +1394,7 @@ class LUInstanceGrowDisk(LogicalUnit):
     node_uuids = list(self.instance.all_nodes)
     for node_uuid in node_uuids:
       CheckNodeOnline(self, node_uuid)
+    self.node_es_flags = rpc.GetExclusiveStorageForNodes(self.cfg, node_uuids)
 
     if self.instance.disk_template not in constants.DTS_GROWABLE:
       raise errors.OpPrereqError("Instance's disk layout does not support"
@@ -1425,10 +1426,7 @@ class LUInstanceGrowDisk(LogicalUnit):
     if template not in (constants.DTS_NO_FREE_SPACE_CHECK):
       # TODO: check the free disk space for file, when that feature will be
       # supported
-      nodes = map(self.cfg.GetNodeInfo, node_uuids)
-      es_nodes = filter(lambda n: IsExclusiveStorageEnabledNode(self.cfg, n),
-                        nodes)
-      if es_nodes:
+      if any(self.node_es_flags.values()):
         # With exclusive storage we need to something smarter than just looking
         # at free space; for now, let's simply abort the operation.
         raise errors.OpPrereqError("Cannot grow disks when exclusive_storage"
@@ -1459,7 +1457,8 @@ class LUInstanceGrowDisk(LogicalUnit):
       self.cfg.SetDiskID(self.disk, node_uuid)
       result = self.rpc.call_blockdev_grow(node_uuid,
                                            (self.disk, self.instance),
-                                           self.delta, True, True)
+                                           self.delta, True, True,
+                                           self.node_es_flags[node_uuid])
       result.Raise("Dry-run grow request failed to node %s" %
                    self.cfg.GetNodeName(node_uuid))
 
@@ -1492,7 +1491,8 @@ class LUInstanceGrowDisk(LogicalUnit):
       self.cfg.SetDiskID(self.disk, node_uuid)
       result = self.rpc.call_blockdev_grow(node_uuid,
                                            (self.disk, self.instance),
-                                           self.delta, False, True)
+                                           self.delta, False, True,
+                                           self.node_es_flags[node_uuid])
       result.Raise("Grow request failed to node %s" %
                    self.cfg.GetNodeName(node_uuid))
 
@@ -1500,7 +1500,8 @@ class LUInstanceGrowDisk(LogicalUnit):
     node_uuid = self.instance.primary_node
     self.cfg.SetDiskID(self.disk, node_uuid)
     result = self.rpc.call_blockdev_grow(node_uuid, (self.disk, self.instance),
-                                         self.delta, False, False)
+                                         self.delta, False, False,
+                                         self.node_es_flags[node_uuid])
     result.Raise("Grow request failed to node %s" %
                  self.cfg.GetNodeName(node_uuid))
 
