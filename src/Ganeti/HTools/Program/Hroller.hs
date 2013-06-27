@@ -239,8 +239,6 @@ main opts args = do
                    then Node.mkNodeGraph
                    else Node.mkRebootNodeGraph nlf
 
-  -- TODO: fail if instances are running (with option to warn only)
-
   nodeGraph <- case mkGraph nodes ilf of
                      Nothing -> exitErr "Cannot create node graph"
                      Just g -> return g
