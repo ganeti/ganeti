@@ -652,10 +652,6 @@ def TestInstanceModifyDisks(instance):
 @InstanceCheck(INST_DOWN, INST_DOWN, FIRST_ARG)
 def TestInstanceGrowDisk(instance):
   """gnt-instance grow-disk"""
-  if qa_config.GetExclusiveStorage():
-    print qa_utils.FormatInfo("Test not supported with exclusive_storage")
-    return
-
   if instance.disk_template == constants.DT_DISKLESS:
     print qa_utils.FormatInfo("Test not supported for diskless instances")
     return

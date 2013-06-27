@@ -1423,14 +1423,13 @@ class LUInstanceGrowDisk(LogicalUnit):
 
   def _CheckDiskSpace(self, node_uuids, req_vgspace):
     template = self.instance.disk_template
-    if template not in (constants.DTS_NO_FREE_SPACE_CHECK):
+    if (template not in (constants.DTS_NO_FREE_SPACE_CHECK) and
+        not any(self.node_es_flags.values())):
       # TODO: check the free disk space for file, when that feature will be
       # supported
-      if any(self.node_es_flags.values()):
-        # With exclusive storage we need to something smarter than just looking
-        # at free space; for now, let's simply abort the operation.
-        raise errors.OpPrereqError("Cannot grow disks when exclusive_storage"
-                                   " is enabled", errors.ECODE_STATE)
+      # With exclusive storage we need to do something smarter than just looking
+      # at free space, which, in the end, is basically a dry run. So we rely on
+      # the dry run performed in Exec() instead.
       CheckNodesFreeDiskPerVG(self, node_uuids, req_vgspace)
 
   def Exec(self, feedback_fn):
