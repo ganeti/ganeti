@@ -63,6 +63,7 @@ module Ganeti.Types
   , hypervisorToRaw
   , OobCommand(..)
   , StorageType(..)
+  , storageTypeToRaw
   , NodeEvacMode(..)
   , FileDriver(..)
   , InstCreateMode(..)
@@ -95,6 +96,11 @@ module Ganeti.Types
   , ELogType(..)
   , ReasonElem
   , ReasonTrail
+  , StorageUnit(..)
+  , StorageUnitRaw(..)
+  , StorageKey
+  , addParamsToStorageUnit
+  , diskTemplateToStorageType
   ) where
 
 import Control.Monad (liftM)
@@ -310,6 +316,80 @@ $(THH.declareSADT "StorageType"
   , ("StorageExt", 'C.stExt)
   ])
 $(THH.makeJSONInstance ''StorageType)
+
+-- | Storage keys are identifiers for storage units. Their content varies
+-- depending on the storage type, for example a storage key for LVM storage
+-- is the volume group name.
+type StorageKey = String
+
+-- | Storage parameters
+type SPExclusiveStorage = Bool
+
+-- | Storage units without storage-type-specific parameters
+data StorageUnitRaw = SURaw StorageType StorageKey
+
+-- | Full storage unit with storage-type-specific parameters
+data StorageUnit = SUFile StorageKey
+                 | SULvmPv StorageKey SPExclusiveStorage
+                 | SULvmVg StorageKey SPExclusiveStorage
+                 | SUDiskless StorageKey
+                 | SUBlock StorageKey
+                 | SURados StorageKey
+                 | SUExt StorageKey
+                 deriving (Eq)
+
+instance Show StorageUnit where
+  show (SUFile key) = showSUSimple StorageFile key
+  show (SULvmPv key es) = showSULvm StorageLvmPv key es
+  show (SULvmVg key es) = showSULvm StorageLvmVg key es
+  show (SUDiskless key) = showSUSimple StorageDiskless key
+  show (SUBlock key) = showSUSimple StorageBlock key
+  show (SURados key) = showSUSimple StorageRados key
+  show (SUExt key) = showSUSimple StorageExt key
+
+instance JSON StorageUnit where
+  showJSON (SUFile key) = showJSON (StorageFile, key, []::[String])
+  showJSON (SULvmPv key es) = showJSON (StorageLvmPv, key, [es])
+  showJSON (SULvmVg key es) = showJSON (StorageLvmVg, key, [es])
+  showJSON (SUDiskless key) = showJSON (StorageDiskless, key, []::[String])
+  showJSON (SUBlock key) = showJSON (StorageBlock, key, []::[String])
+  showJSON (SURados key) = showJSON (StorageRados, key, []::[String])
+  showJSON (SUExt key) = showJSON (StorageExt, key, []::[String])
+-- FIXME: add readJSON implementation
+  readJSON = fail "Not implemented"
+
+-- | Composes a string representation of storage types without
+-- storage parameters
+showSUSimple :: StorageType -> StorageKey -> String
+showSUSimple st sk = show (storageTypeToRaw st, sk, []::[String])
+
+-- | Composes a string representation of the LVM storage types
+showSULvm :: StorageType -> StorageKey -> SPExclusiveStorage -> String
+showSULvm st sk es = show (storageTypeToRaw st, sk, [es])
+
+-- | Mapping fo disk templates to storage type
+-- FIXME: This is semantically the same as the constant
+-- C.diskTemplatesStorageType, remove this when python constants
+-- are generated from haskell constants
+diskTemplateToStorageType :: DiskTemplate -> StorageType
+diskTemplateToStorageType DTExt = StorageExt
+diskTemplateToStorageType DTFile = StorageFile
+diskTemplateToStorageType DTSharedFile = StorageFile
+diskTemplateToStorageType DTDrbd8 = StorageLvmVg
+diskTemplateToStorageType DTPlain = StorageLvmVg
+diskTemplateToStorageType DTRbd = StorageRados
+diskTemplateToStorageType DTDiskless = StorageDiskless
+diskTemplateToStorageType DTBlock = StorageBlock
+
+-- | Equips a raw storage unit with its parameters
+addParamsToStorageUnit :: SPExclusiveStorage -> StorageUnitRaw -> StorageUnit
+addParamsToStorageUnit _ (SURaw StorageBlock key) = SUBlock key
+addParamsToStorageUnit _ (SURaw StorageDiskless key) = SUDiskless key
+addParamsToStorageUnit _ (SURaw StorageExt key) = SUExt key
+addParamsToStorageUnit _ (SURaw StorageFile key) = SUFile key
+addParamsToStorageUnit es (SURaw StorageLvmPv key) = SULvmPv key es
+addParamsToStorageUnit es (SURaw StorageLvmVg key) = SULvmVg key es
+addParamsToStorageUnit _ (SURaw StorageRados key) = SURados key
 
 -- | Node evac modes.
 $(THH.declareSADT "NodeEvacMode"

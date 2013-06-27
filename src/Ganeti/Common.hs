@@ -45,6 +45,9 @@ module Ganeti.Common
   , parseOptsInner
   , parseOptsCmds
   , genericMainCmds
+  , fillUpList
+  , fillPairFromMaybe
+  , pickPairUnique
   ) where
 
 import Control.Monad (foldM)
@@ -341,3 +344,28 @@ genericMainCmds defaults personalities genopts = do
   (opts, args, fn) <-
     parseOptsCmds defaults cmd_args prog personalities genopts
   fn opts args
+
+-- | Order a list of pairs in the order of the given list and fill up
+-- the list for elements that don't have a matching pair
+fillUpList :: ([(a, b)] -> a -> (a, b)) -> [a] -> [(a, b)] -> [(a, b)]
+fillUpList fill_fn inputs pairs =
+  map (fill_fn pairs) inputs
+
+-- | Fill up a pair with fillup element if no matching pair is present
+fillPairFromMaybe :: (a -> (a, b)) -> (a -> [(a, b)] -> Maybe (a, b))
+                  -> [(a, b)] -> a -> (a, b)
+fillPairFromMaybe fill_fn pick_fn pairs element = fromMaybe (fill_fn element)
+    (pick_fn element pairs)
+
+-- | Check if the given element matches the given pair
+isMatchingPair :: (Eq a) => a -> (a, b) -> Bool
+isMatchingPair element (pair_element, _) = element == pair_element
+
+-- | Pick a specific element's pair from the list
+pickPairUnique :: (Eq a) => a -> [(a, b)] -> Maybe (a, b)
+pickPairUnique element pairs =
+  let res = filter (isMatchingPair element) pairs
+  in case res of
+    [x] -> Just x
+    -- if we have more than one result, we should get suspcious
+    _ -> Nothing

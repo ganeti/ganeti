@@ -36,6 +36,7 @@ import qualified Data.Map as Map
 import qualified Text.JSON as J
 
 import Ganeti.Config
+import Ganeti.Common
 import Ganeti.Objects
 import Ganeti.JSON
 import Ganeti.Rpc
@@ -228,6 +229,10 @@ fieldsMap :: FieldMap Node Runtime
 fieldsMap =
   Map.fromList $ map (\v@(f, _, _) -> (fdefName f, v)) nodeFields
 
+-- | Create an RPC result for a broken node
+rpcResultNodeBroken :: Node -> (Node, Runtime)
+rpcResultNodeBroken node = (node, Left (RpcResultError "Broken configuration"))
+
 -- | Collect live data from RPC query if enabled.
 --
 -- FIXME: Check which fields we actually need and possibly send empty
@@ -237,20 +242,12 @@ collectLiveData:: Bool -> ConfigData -> [Node] -> IO [(Node, Runtime)]
 collectLiveData False _ nodes =
   return $ zip nodes (repeat $ Left (RpcResultError "Live data disabled"))
 collectLiveData True cfg nodes = do
-  let storage_units = getClusterStorageUnits cfg
-      hvs = [getDefaultHypervisorSpec cfg]
-      step n (bn, gn, em) =
-        let ndp' = getNodeNdParams cfg n
-        in case ndp' of
-             Just ndp -> (bn, n : gn,
-                          (nodeName n, ndpExclusiveStorage ndp) : em)
-             Nothing -> (n : bn, gn, em)
-      (bnodes, gnodes, emap) = foldr step ([], [], []) nodes
-  rpcres <- executeRpcCall gnodes (RpcCallNodeInfo storage_units hvs
-    (Map.fromList emap))
-  -- FIXME: The order of nodes in the result could be different from the input
-  return $ zip bnodes (repeat $ Left (RpcResultError "Broken configuration"))
-           ++ rpcres
+  let hvs = [getDefaultHypervisorSpec cfg]
+      good_nodes = nodesWithValidConfig cfg nodes
+      storage_units = getStorageUnitsOfNodes cfg good_nodes
+  rpcres <- executeRpcCall good_nodes (RpcCallNodeInfo storage_units hvs)
+  return $ fillUpList (fillPairFromMaybe rpcResultNodeBroken pickPairUnique)
+      nodes rpcres
 
 -- | Looks up the default hypervisor and it's hvparams
 getDefaultHypervisorSpec :: ConfigData -> (Hypervisor, HvParams)

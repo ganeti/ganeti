@@ -42,6 +42,7 @@ import qualified Ganeti.Rpc as Rpc
 import qualified Ganeti.Objects as Objects
 import qualified Ganeti.Types as Types
 import qualified Ganeti.JSON as JSON
+import Ganeti.Types
 
 instance Arbitrary Rpc.RpcCallAllInstancesInfo where
   arbitrary = Rpc.RpcCallAllInstancesInfo <$> arbitrary
@@ -50,8 +51,26 @@ instance Arbitrary Rpc.RpcCallInstanceList where
   arbitrary = Rpc.RpcCallInstanceList <$> arbitrary
 
 instance Arbitrary Rpc.RpcCallNodeInfo where
-  arbitrary = Rpc.RpcCallNodeInfo <$> arbitrary <*> genHvSpecs <*>
-                pure Map.empty
+  arbitrary = Rpc.RpcCallNodeInfo <$> genStorageUnitMap <*> genHvSpecs
+
+genStorageUnit :: Gen StorageUnit
+genStorageUnit = do
+  storage_type <- arbitrary
+  storage_key <- genName
+  storage_es <- arbitrary
+  return $ addParamsToStorageUnit storage_es (SURaw storage_type storage_key)
+
+genStorageUnits :: Gen [StorageUnit]
+genStorageUnits = do
+  num_storage_units <- choose (0, 5)
+  vectorOf num_storage_units genStorageUnit
+
+genStorageUnitMap :: Gen (Map.Map String [StorageUnit])
+genStorageUnitMap = do
+  num_nodes <- choose (0,5)
+  node_uuids <- vectorOf num_nodes genName
+  storage_units_list <- vectorOf num_nodes genStorageUnits
+  return $ Map.fromList (zip node_uuids storage_units_list)
 
 -- | Generate hypervisor specifications to be used for the NodeInfo call
 genHvSpecs :: Gen [ (Types.Hypervisor, Objects.HvParams) ]

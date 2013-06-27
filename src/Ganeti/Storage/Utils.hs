@@ -24,17 +24,21 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 
 module Ganeti.Storage.Utils
-  ( getClusterStorageUnits
+  ( getStorageUnitsOfNodes
+  , nodesWithValidConfig
   ) where
 
+import Ganeti.Config
 import Ganeti.Objects
 import Ganeti.Types
 import qualified Ganeti.Types as T
 
-type StorageUnit = (StorageType, String)
+import Control.Monad
+import Data.Maybe
+import qualified Data.Map as M
 
 -- | Get the cluster's default storage unit for a given disk template
-getDefaultStorageKey :: ConfigData -> DiskTemplate -> Maybe String
+getDefaultStorageKey :: ConfigData -> DiskTemplate -> Maybe StorageKey
 getDefaultStorageKey cfg T.DTDrbd8 = clusterVolumeGroupName $ configCluster cfg
 getDefaultStorageKey cfg T.DTPlain = clusterVolumeGroupName $ configCluster cfg
 getDefaultStorageKey cfg T.DTFile =
@@ -44,13 +48,13 @@ getDefaultStorageKey cfg T.DTSharedFile =
 getDefaultStorageKey _ _ = Nothing
 
 -- | Get the cluster's default spindle storage unit
-getDefaultSpindleSU :: ConfigData -> (StorageType, Maybe String)
+getDefaultSpindleSU :: ConfigData -> (StorageType, Maybe StorageKey)
 getDefaultSpindleSU cfg =
     (T.StorageLvmPv, clusterVolumeGroupName $ configCluster cfg)
 
 -- | Get the cluster's storage units from the configuration
-getClusterStorageUnits :: ConfigData -> [StorageUnit]
-getClusterStorageUnits cfg = foldSUs (maybe_units ++ [spindle_unit])
+getClusterStorageUnitRaws :: ConfigData -> [StorageUnitRaw]
+getClusterStorageUnitRaws cfg = foldSUs (maybe_units ++ [spindle_unit])
   where disk_templates = clusterEnabledDiskTemplates $ configCluster cfg
         storage_types = map diskTemplateToStorageType disk_templates
         maybe_units = zip storage_types (map (getDefaultStorageKey cfg)
@@ -58,20 +62,31 @@ getClusterStorageUnits cfg = foldSUs (maybe_units ++ [spindle_unit])
         spindle_unit = getDefaultSpindleSU cfg
 
 -- | fold the storage unit list by sorting out the ones without keys
-foldSUs :: [(StorageType, Maybe String)] -> [StorageUnit]
+foldSUs :: [(StorageType, Maybe StorageKey)] -> [StorageUnitRaw]
 foldSUs = foldr ff []
-  where ff (st, Just sk) acc = (st, sk) : acc
+  where ff (st, Just sk) acc = SURaw st sk : acc
         ff (_, Nothing) acc = acc
 
--- | Mapping fo disk templates to storage type
--- FIXME: This is semantically the same as the constant
--- C.diskTemplatesStorageType
-diskTemplateToStorageType :: DiskTemplate -> StorageType
-diskTemplateToStorageType T.DTExt = T.StorageExt
-diskTemplateToStorageType T.DTFile = T.StorageFile
-diskTemplateToStorageType T.DTSharedFile = T.StorageFile
-diskTemplateToStorageType T.DTDrbd8 = T.StorageLvmVg
-diskTemplateToStorageType T.DTPlain = T.StorageLvmVg
-diskTemplateToStorageType T.DTRbd = T.StorageRados
-diskTemplateToStorageType T.DTDiskless = T.StorageDiskless
-diskTemplateToStorageType T.DTBlock = T.StorageBlock
+-- | Gets the value of the 'exclusive storage' flag of the node
+getExclusiveStorage :: ConfigData -> Node -> Maybe Bool
+getExclusiveStorage cfg n = liftM ndpExclusiveStorage (getNodeNdParams cfg n)
+
+-- | Determines whether a node's config contains an 'exclusive storage' flag
+hasExclusiveStorageFlag :: ConfigData -> Node -> Bool
+hasExclusiveStorageFlag cfg = isJust . getExclusiveStorage cfg
+
+-- | Filter for nodes with a valid config
+nodesWithValidConfig :: ConfigData -> [Node] -> [Node]
+nodesWithValidConfig cfg = filter (hasExclusiveStorageFlag cfg)
+
+-- | Get the storage units of the node
+getStorageUnitsOfNode :: ConfigData -> Node -> [StorageUnit]
+getStorageUnitsOfNode cfg n =
+  let clusterSUs = getClusterStorageUnitRaws cfg
+      es = fromJust (getExclusiveStorage cfg n)
+  in  map (addParamsToStorageUnit es) clusterSUs
+
+-- | Get the storage unit map for all nodes
+getStorageUnitsOfNodes :: ConfigData -> [Node] -> M.Map String [StorageUnit]
+getStorageUnitsOfNodes cfg ns =
+  M.fromList (map (\n -> (nodeUuid n, getStorageUnitsOfNode cfg n)) ns)
