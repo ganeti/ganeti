@@ -108,25 +108,38 @@ locateInstances :: [Idx] -> [Ndx] -> (Node.List, Instance.List)
 locateInstances idxs ndxs conf =
   foldM (\ cf idx -> locateInstance idx ndxs cf) conf idxs
 
--- | Greedily move the non-redundant instances away from a list of nodes.
--- The arguments are the list of nodes to be cleared, a list of nodes the
--- instances can be moved to, and an initial configuration. Returned is a
--- list of nodes that can be cleared simultaneously and the configuration
--- after these nodes are cleared.
-clearNodes :: [Ndx] -> [Ndx] -> (Node.List, Instance.List)
-              -> Result ([Ndx], (Node.List, Instance.List))
-clearNodes [] _ conf = return ([], conf)
-clearNodes (ndx:ndxs) targets conf@(nl, _) =
+
+-- | Greedily clear a node of a kind of instances by a given relocation method.
+-- The arguments are a function providing the list of instances to be cleared,
+-- the relocation function, the list of nodes to be cleared, a list of nodes
+-- that can be relocated to, and the initial configuration. Returned is a list
+-- of nodes that can be cleared simultaneously and the configuration after
+-- clearing these nodes.
+greedyClearNodes :: ((Node.List, Instance.List) -> Ndx -> [Idx])
+                    -> ([Idx] -> [Ndx] -> (Node.List, Instance.List)
+                        -> Result (Node.List, Instance.List))
+                    -> [Ndx] -> [Ndx] -> (Node.List, Instance.List)
+                    -> Result ([Ndx], (Node.List, Instance.List))
+greedyClearNodes  _ _ [] _ conf = return ([], conf)
+greedyClearNodes getInstances relocate (ndx:ndxs) targets conf@(nl, _) =
   withFirst `mplus` withoutFirst where
   withFirst = do
      let othernodes = delete ndx targets
          grp = Node.group $ Container.find ndx nl
          othernodesSameGroup =
            filter ((==) grp . Node.group . flip Container.find nl) othernodes
-     conf' <- locateInstances (nonRedundant conf ndx) othernodesSameGroup conf
-     (ndxs', conf'') <- clearNodes ndxs othernodes conf'
+     conf' <- relocate (getInstances conf ndx) othernodesSameGroup conf
+     (ndxs', conf'') <- greedyClearNodes getInstances relocate
+                        ndxs othernodes conf'
      return (ndx:ndxs', conf'')
-  withoutFirst = clearNodes ndxs targets conf
+  withoutFirst = greedyClearNodes getInstances relocate ndxs targets conf
+                    
+-- | Greedily move the non-redundant instances away from a list of nodes.
+-- Returns a list of ndoes that can be cleared simultaneously and the
+-- configuration after clearing these nodes.
+clearNodes :: [Ndx] -> [Ndx] -> (Node.List, Instance.List)
+              -> Result ([Ndx], (Node.List, Instance.List))
+clearNodes = greedyClearNodes nonRedundant locateInstances
 
 -- | Parition a list of nodes into chunks according cluster capacity.
 partitionNonRedundant :: [Ndx] -> [Ndx] -> (Node.List, Instance.List)
