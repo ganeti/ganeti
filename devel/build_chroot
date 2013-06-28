@@ -5,7 +5,10 @@
 : ${CONF_DIR:=/etc/schroot/chroot.d}
 : ${CHROOT_DIR:=/srv/chroot}
 : ${ALTERNATIVE_EDITOR:=/usr/bin/vim.basic}
-# The value of DATA_DIR is read as well from the environment.
+: ${CHROOT_FINAL_HOOK:=/bin/true}
+# Additional Variables taken from the environmen
+# DATA_DIR
+# CHROOT_EXTRA_DEBIAN_PACKAGES    
 
 #Automatically generated variables
 CHROOTNAME=$DIST_RELEASE-$ARCH
@@ -209,9 +212,20 @@ in_chroot -- \
 in_chroot -- \
   $APT_INSTALL python-docutils debhelper quilt
 
+# extra debian packages
+
+for package in $CHROOT_EXTRA_DEBIAN_PACKAGES
+do in_chroot -- \
+  $APT_INSTALL $package
+done
+
 #Set default editor
 in_chroot -- \
   update-alternatives --set editor $ALTERNATIVE_EDITOR
+
+# Final user hook
+
+in_chroot -- $CHROOT_FINAL_HOOK
 
 rm -f $COMP_FILEPATH
 echo "Creating compressed schroot image..."
