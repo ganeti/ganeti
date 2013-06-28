@@ -116,7 +116,7 @@ in_chroot -- \
 
 #Install selected packages from backports
 in_chroot -- \
-  apt-get -y --no-install-recommends -t squeeze-backports install \
+  $APT_INSTALL -t squeeze-backports install \
     git \
     vim
 
@@ -207,7 +207,7 @@ in_chroot -- \
 
 #Tools for creating debian packages
 in_chroot -- \
-  apt-get install python-docutils debhelper quilt
+  $APT_INSTALL python-docutils debhelper quilt
 
 #Set default editor
 in_chroot -- \
