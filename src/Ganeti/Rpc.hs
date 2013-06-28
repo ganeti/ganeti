@@ -357,6 +357,7 @@ $(buildObject "HvInfo" "hvInfo"
   , simpleField "cpu_total" [t| Int |]
   , simpleField "cpu_nodes" [t| Int |]
   , simpleField "cpu_sockets" [t| Int |]
+  , simpleField "cpu_dom0" [t| Int |]
   ])
 
 $(buildObject "RpcResultNodeInfo" "rpcResNodeInfo"

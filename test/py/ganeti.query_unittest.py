@@ -429,6 +429,7 @@ class TestNodeQuery(unittest.TestCase):
     fake_live_data = {
       "bootid": "a2504766-498e-4b25-b21e-d23098dc3af4",
       "cnodes": 4,
+      "cnos": 3,
       "csockets": 4,
       "ctotal": 8,
       "mnode": 128,

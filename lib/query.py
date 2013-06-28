@@ -1154,6 +1154,8 @@ _NODE_LIVE_FIELDS = {
              " for detecting reboots by tracking changes"),
   "cnodes": ("CNodes", QFT_NUMBER, "cpu_nodes",
              "Number of NUMA domains on node (if exported by hypervisor)"),
+  "cnos": ("CNOs", QFT_NUMBER, "cpu_dom0",
+            "Number of logical processors used by the node OS (dom0 for Xen)"),
   "csockets": ("CSockets", QFT_NUMBER, "cpu_sockets",
                "Number of physical CPU sockets (if exported by hypervisor)"),
   "ctotal": ("CTotal", QFT_NUMBER, "cpu_total", "Number of logical processors"),

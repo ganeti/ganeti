@@ -57,6 +57,8 @@ nodeLiveFieldsDefs =
      \ for detecting reboots by tracking changes")
   , ("cnodes", "CNodes", QFTNumber, "cpu_nodes",
      "Number of NUMA domains on node (if exported by hypervisor)")
+  , ("cnos", "CNOs", QFTNumber, "cpu_dom0",
+     "Number of logical processors used by the node OS (dom0 for Xen)")
   , ("csockets", "CSockets", QFTNumber, "cpu_sockets",
      "Number of physical CPU sockets (if exported by hypervisor)")
   , ("ctotal", "CTotal", QFTNumber, "cpu_total",
@@ -84,6 +86,8 @@ nodeLiveFieldExtract "bootid" res =
   J.showJSON $ rpcResNodeInfoBootId res
 nodeLiveFieldExtract "cnodes" res =
   jsonHead (rpcResNodeInfoHvInfo res) hvInfoCpuNodes
+nodeLiveFieldExtract "cnos" res =
+  jsonHead (rpcResNodeInfoHvInfo res) hvInfoCpuDom0
 nodeLiveFieldExtract "csockets" res =
   jsonHead (rpcResNodeInfoHvInfo res) hvInfoCpuSockets
 nodeLiveFieldExtract "ctotal" res =

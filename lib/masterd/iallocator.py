@@ -657,6 +657,8 @@ class IAllocator(object):
           "free_spindles": free_spindles,
           "total_cpus": self._GetAttributeFromHypervisorNodeData(
               hv_info, ninfo.name, "cpu_total"),
+          "reserved_cpus": self._GetAttributeFromHypervisorNodeData(
+            hv_info, ninfo.name, "cpu_dom0"),
           "i_pri_memory": i_p_mem,
           "i_pri_up_memory": i_p_up_mem,
           }
