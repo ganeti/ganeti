@@ -117,7 +117,7 @@ queryNodesMsg :: L.LuxiOp
 queryNodesMsg =
   L.Query (Qlang.ItemTypeOpCode Qlang.QRNode)
      ["name", "mtotal", "mnode", "mfree", "dtotal", "dfree",
-      "ctotal", "offline", "drained", "vm_capable",
+      "ctotal", "cnos", "offline", "drained", "vm_capable",
       "ndp/spindle_count", "group.uuid", "tags",
       "ndp/exclusive_storage", "sptotal", "spfree"] Qlang.EmptyFilter
 
@@ -204,7 +204,7 @@ getNodes ktg arr = extractArray arr >>= mapM (parseNode ktg)
 -- | Construct a node from a JSON object.
 parseNode :: NameAssoc -> [(JSValue, JSValue)] -> Result (String, Node.Node)
 parseNode ktg [ name, mtotal, mnode, mfree, dtotal, dfree
-              , ctotal, offline, drained, vm_capable, spindles, g_uuid
+              , ctotal, cnos, offline, drained, vm_capable, spindles, g_uuid
               , tags, excl_stor, sptotal, spfree ]
     = do
   xname <- annotateResult "Parsing new node" (fromJValWithStatus name)
@@ -227,9 +227,10 @@ parseNode ktg [ name, mtotal, mnode, mfree, dtotal, dfree
   xdtotal <- lvconvert 0.0 "dtotal" dtotal
   xdfree <- lvconvert 0 "dfree" dfree
   xctotal <- lvconvert 0.0 "ctotal" ctotal
+  xcnos <- lvconvert 0 "cnos" cnos
   let node = flip Node.setNodeTags xtags $
              Node.create xname xmtotal xmnode xmfree xdtotal xdfree
-             xctotal (not live) xsptotal xspfree xgdx xexcl_stor
+             xctotal xcnos (not live) xsptotal xspfree xgdx xexcl_stor
   return (xname, node)
 
 parseNode _ v = fail ("Invalid node query result: " ++ show v)

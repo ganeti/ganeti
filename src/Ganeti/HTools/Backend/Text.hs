@@ -84,7 +84,7 @@ serializeNode :: Group.List -- ^ The list of groups (needed for group uuid)
               -> Node.Node  -- ^ The node to be serialised
               -> String
 serializeNode gl node =
-  printf "%s|%.0f|%d|%d|%.0f|%d|%.0f|%c|%s|%d|%s|%s|%d" (Node.name node)
+  printf "%s|%.0f|%d|%d|%.0f|%d|%.0f|%c|%s|%d|%s|%s|%d|%d" (Node.name node)
            (Node.tMem node) (Node.nMem node) (Node.fMem node)
            (Node.tDsk node) (Node.fDsk node) (Node.tCpu node)
            (if Node.offline node then 'Y' else
@@ -94,6 +94,7 @@ serializeNode gl node =
            (intercalate "," (Node.nTags node))
            (if Node.exclStorage node then "Y" else "N")
            (Node.fSpindles node)
+           (Node.nCpu node)
     where grp = Container.find (Node.group node) gl
 
 -- | Generate node file data from node objects.
@@ -206,11 +207,11 @@ loadNode :: (Monad m) =>
          -> m (String, Node.Node) -- ^ The result, a tuple o node name
                                   -- and node object
 loadNode ktg [name, tm, nm, fm, td, fd, tc, fo, gu, spindles, tags,
-              excl_stor, free_spindles] = do
+              excl_stor, free_spindles, nos_cpu] = do
   gdx <- lookupGroup ktg name gu
   new_node <-
       if "?" `elem` [tm,nm,fm,td,fd,tc] || fo == "Y" then
-          return $ Node.create name 0 0 0 0 0 0 True 0 0 gdx False
+          return $ Node.create name 0 0 0 0 0 0 0 True 0 0 gdx False
       else do
         let vtags = commaSplit tags
         vtm <- tryRead name tm
@@ -219,6 +220,7 @@ loadNode ktg [name, tm, nm, fm, td, fd, tc, fo, gu, spindles, tags,
         vtd <- tryRead name td
         vfd <- tryRead name fd
         vtc <- tryRead name tc
+        vnc <- tryRead name nos_cpu
         vspindles <- tryRead name spindles
         vfree_spindles <- tryRead name free_spindles
         vexcl_stor <- case excl_stor of
@@ -228,7 +230,7 @@ loadNode ktg [name, tm, nm, fm, td, fd, tc, fo, gu, spindles, tags,
                              "Invalid exclusive_storage value for node '" ++
                              name ++ "': " ++ excl_stor
         return . flip Node.setMaster (fo == "M") . flip Node.setNodeTags vtags $
-          Node.create name vtm vnm vfm vtd vfd vtc False vspindles
+          Node.create name vtm vnm vfm vtd vfd vtc vnc False vspindles
           vfree_spindles gdx vexcl_stor
   return (name, new_node)
 
@@ -245,6 +247,11 @@ loadNode ktg [name, tm, nm, fm, td, fd, tc, fo, gu, spindles, tags,
               excl_stor] =
   loadNode ktg [name, tm, nm, fm, td, fd, tc, fo, gu, spindles, tags,
                 excl_stor, "0"]
+
+loadNode ktg [name, tm, nm, fm, td, fd, tc, fo, gu, spindles, tags,
+              excl_stor, free_spindles] =
+  loadNode ktg [name, tm, nm, fm, td, fd, tc, fo, gu, spindles, tags,
+                excl_stor, free_spindles, "1"]
 
 loadNode _ s = fail $ "Invalid/incomplete node data: '" ++ show s ++ "'"
 

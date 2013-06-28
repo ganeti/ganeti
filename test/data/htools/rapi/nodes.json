@@ -1,6 +1,7 @@
 [
   {
     "cnodes": 2,
+    "cnos": 1,
     "csockets": 2,
     "ctime": 1324472016.2968869,
     "ctotal": 4,
@@ -37,6 +38,7 @@
   },
   {
     "cnodes": 2,
+    "cnos": 1,
     "csockets": 2,
     "ctime": 1324472016.2968869,
     "ctotal": 4,
@@ -73,6 +75,7 @@
   },
   {
     "cnodes": 2,
+    "cnos": 1,
     "dfree": 1373336,
     "drained": false,
     "dtotal": 1377304,
@@ -117,6 +120,7 @@
   },
   {
     "cnodes": 2,
+    "cnos": 1,
     "dfree": 1371520,
     "drained": false,
     "dtotal": 1377280,

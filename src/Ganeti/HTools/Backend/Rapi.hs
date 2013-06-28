@@ -171,10 +171,11 @@ parseNode ktg a = do
   dtotal <- lvextract 0.0 "dtotal"
   dfree <- lvextract 0 "dfree"
   ctotal <- lvextract 0.0 "ctotal"
+  cnos <- lvextract 0 "cnos"
   tags <- extract "tags"
   let node = flip Node.setNodeTags tags $
-             Node.create name mtotal mnode mfree dtotal dfree ctotal (not live)
-             sptotal spfree guuid' excl_stor
+             Node.create name mtotal mnode mfree dtotal dfree ctotal cnos
+             (not live) sptotal spfree guuid' excl_stor
   return (name, node)
 
 -- | Construct a group from a JSON object.

@@ -65,6 +65,7 @@
       },
       "offline": false,
       "reserved_memory": 1017,
+      "reserved_cpus": 1,
       "total_cpus": 4,
       "total_disk": 1377280,
       "total_memory": 32763,

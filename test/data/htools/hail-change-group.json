@@ -476,6 +476,7 @@
         "exclusive_storage": false
       },
       "reserved_memory": 1017,
+      "reserved_cpus": 1,
       "master_capable": true,
       "free_disk": 1377280,
       "drained": false,
@@ -502,6 +503,7 @@
         "exclusive_storage": false
       },
       "reserved_memory": 1017,
+      "reserved_cpus": 1,
       "master_capable": true,
       "free_disk": 1373336,
       "drained": false,
@@ -528,6 +530,7 @@
         "exclusive_storage": false
       },
       "reserved_memory": 1017,
+      "reserved_cpus": 1,
       "master_capable": true,
       "free_disk": 1371520,
       "drained": false,
@@ -554,6 +557,7 @@
         "exclusive_storage": false
       },
       "reserved_memory": 1017,
+      "reserved_cpus": 1,
       "master_capable": true,
       "free_disk": 1376640,
       "drained": false,
@@ -580,6 +584,7 @@
         "exclusive_storage": false
       },
       "reserved_memory": 1017,
+      "reserved_cpus": 1,
       "master_capable": true,
       "free_disk": 1376640,
       "drained": false,

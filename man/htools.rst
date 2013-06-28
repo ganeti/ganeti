@@ -181,6 +181,7 @@ support all options. Some common options are:
   - node tags
   - exclusive storage value (``Y`` if active, ``N`` otherwise)
   - node free spindles
+  - virtual CPUs used by the node OS
 
   The third section contains instance data, with the fields:
 

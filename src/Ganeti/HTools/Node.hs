@@ -111,6 +111,7 @@ data Node = Node
   , tDsk     :: Double    -- ^ Total disk space (MiB)
   , fDsk     :: Int       -- ^ Free disk space (MiB)
   , tCpu     :: Double    -- ^ Total CPU count
+  , nCpu     :: Int       -- ^ VCPUs used by the node OS
   , uCpu     :: Int       -- ^ Used VCPU count
   , tSpindles :: Int      -- ^ Node spindles (spindle_count node parameter,
                           -- or actual spindles, see note below)
@@ -234,11 +235,13 @@ haveExclStorage nl =
 --
 -- The index and the peers maps are empty, and will be need to be
 -- update later via the 'setIdx' and 'buildPeers' functions.
-create :: String -> Double -> Int -> Int -> Double
-       -> Int -> Double -> Bool -> Int -> Int -> T.Gdx -> Bool -> Node
+create :: String -> Double -> Int -> Int
+       -> Double -> Int -> Double -> Int -> Bool
+       -> Int -> Int -> T.Gdx -> Bool
+       -> Node
 create name_init mem_t_init mem_n_init mem_f_init
-       dsk_t_init dsk_f_init cpu_t_init offline_init spindles_t_init
-       spindles_f_init group_init excl_stor =
+       dsk_t_init dsk_f_init cpu_t_init cpu_n_init offline_init
+       spindles_t_init spindles_f_init group_init excl_stor =
   Node { name = name_init
        , alias = name_init
        , tMem = mem_t_init
@@ -247,9 +250,10 @@ create name_init mem_t_init mem_n_init mem_f_init
        , tDsk = dsk_t_init
        , fDsk = dsk_f_init
        , tCpu = cpu_t_init
+       , nCpu = cpu_n_init
+       , uCpu = cpu_n_init
        , tSpindles = spindles_t_init
        , fSpindles = spindles_f_init
-       , uCpu = 0
        , pList = []
        , sList = []
        , failN1 = True
@@ -261,7 +265,7 @@ create name_init mem_t_init mem_n_init mem_f_init
                 then computePDsk spindles_f_init $ fromIntegral spindles_t_init
                 else computePDsk dsk_f_init dsk_t_init
        , pRem = 0
-       , pCpu = 0
+       , pCpu = fromIntegral cpu_n_init / cpu_t_init
        , offline = offline_init
        , isMaster = False
        , nTags = []

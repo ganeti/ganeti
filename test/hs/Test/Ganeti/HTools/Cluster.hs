@@ -107,7 +107,7 @@ prop_Score_Zero node =
   forAll (choose (1, 1024)) $ \count ->
     (not (Node.offline node) && not (Node.failN1 node) && (count > 0) &&
      (Node.tDsk node > 0) && (Node.tMem node > 0) &&
-     (Node.tSpindles node > 0)) ==>
+     (Node.tSpindles node > 0) && (Node.tCpu node > 0)) ==>
   let fn = Node.buildPeers node Container.empty
       nlst = replicate count fn
       score = Cluster.compCVNodes nlst
