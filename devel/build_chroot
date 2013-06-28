@@ -116,7 +116,7 @@ in_chroot -- \
 
 #Install selected packages from backports
 in_chroot -- \
-  $APT_INSTALL -t squeeze-backports install \
+  $APT_INSTALL -t squeeze-backports \
     git \
     vim
 
