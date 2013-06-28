@@ -19,6 +19,7 @@ Design document drafts
    design-device-uuid-name.rst
    design-internal-shutdown.rst
    design-glusterfs-ganeti-support.rst
+   design-openvswitch.rst
 
 .. vim: set textwidth=72 :
 .. Local Variables:
