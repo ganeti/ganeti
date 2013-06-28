@@ -2003,10 +2003,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     @type hvparams: dict of strings
     @param hvparams: hypervisor parameters, not used in this class
 
-    @return: a dict with the following keys (values in MiB):
-          - memory_total: the total memory size on the node
-          - memory_free: the available memory on the node for instances
-          - memory_dom0: the memory used by the node itself, if available
+    @return: a dict as returned by L{BaseHypervisor.GetLinuxNodeInfo} plus
+        the following keys:
           - hv_version: the hypervisor version in the form (major, minor,
                         revision)
 

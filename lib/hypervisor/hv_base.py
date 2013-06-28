@@ -239,10 +239,13 @@ class BaseHypervisor(object):
     @type hvparams: dict of strings
     @param hvparams: hypervisor parameters
 
-    @return: a dict with the following keys (values in MiB):
+    @return: a dict with at least the following keys (memory values in MiB):
           - memory_total: the total memory size on the node
           - memory_free: the available memory on the node for instances
           - memory_dom0: the memory used by the node itself, if available
+          - cpu_total: total number of CPUs
+          - cpu_nodes: number of NUMA domains
+          - cpu_sockets: number of physical CPU sockets
 
     """
     raise NotImplementedError
@@ -463,7 +466,7 @@ class BaseHypervisor(object):
 
   @staticmethod
   def GetLinuxNodeInfo():
-    """For linux systems, return actual OS information.
+    """For Linux systems, return actual OS information.
 
     This is an abstraction for all non-hypervisor-based classes, where
     the node actually sees all the memory and CPUs via the /proc
@@ -471,10 +474,13 @@ class BaseHypervisor(object):
     xen, where you only see the hardware resources via xen-specific
     tools.
 
-    @return: a dict with the following keys (values in MiB):
+    @return: a dict with the following keys (memory values in MiB):
           - memory_total: the total memory size on the node
           - memory_free: the available memory on the node for instances
           - memory_dom0: the memory used by the node itself, if available
+          - cpu_total: total number of CPUs
+          - cpu_nodes: number of NUMA domains
+          - cpu_sockets: number of physical CPU sockets
 
     """
     try:

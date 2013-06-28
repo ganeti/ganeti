@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008, 2009 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2013 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -253,15 +253,7 @@ class ChrootManager(hv_base.BaseHypervisor):
   def GetNodeInfo(self, hvparams=None):
     """Return information about the node.
 
-    This is just a wrapper over the base GetLinuxNodeInfo method.
-
-    @type hvparams: dict of strings
-    @param hvparams: hypervisor parameters, not used in this class
-
-    @return: a dict with the following keys (values in MiB):
-          - memory_total: the total memory size on the node
-          - memory_free: the available memory on the node for instances
-          - memory_dom0: the memory used by the node itself, if available
+    See L{BaseHypervisor.GetLinuxNodeInfo}.
 
     """
     return self.GetLinuxNodeInfo()
