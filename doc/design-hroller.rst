@@ -123,6 +123,17 @@ algorithm might be safe. This perhaps would be a good reason to consider
 managing better RBD pools, if those are implemented on top of nodes
 storage, rather than on dedicated storage machines.
 
+Full-Evacuation
++++++++++++++++
+
+If full evacuation of the nodes to be rebooted is desired, a simple
+migration is not enough for the DRBD instances. To keep the number of
+disk operations small, we restrict moves to ``migrate, replace-secondary``.
+That is, after migrating instances out of the nodes to be rebooted,
+replacement secondaries are searched for, for all instances that have
+their then secondary on one of the rebooted nodes. This is done by a
+greedy algorithm, refining the initial reboot partition, if necessary.
+
 Future work
 ===========
 
