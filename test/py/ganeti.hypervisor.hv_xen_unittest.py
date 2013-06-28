@@ -240,7 +240,7 @@ class TestMergeInstanceInfo(testutils.GanetiTestCase):
     result = hv_xen._MergeInstanceInfo({}, instance_list)
     self.assertEqual(result, {
       "memory_dom0": 4096,
-      "dom0_cpus": 7,
+      "cpu_dom0": 7,
       })
 
   def testWithNodeInfo(self):
@@ -251,7 +251,7 @@ class TestMergeInstanceInfo(testutils.GanetiTestCase):
       "cpu_nodes": 1,
       "cpu_sockets": 2,
       "cpu_total": 4,
-      "dom0_cpus": 7,
+      "cpu_dom0": 7,
       "hv_version": (4, 0),
       "memory_dom0": 4096,
       "memory_free": 8004,

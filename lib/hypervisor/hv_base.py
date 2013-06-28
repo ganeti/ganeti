@@ -244,6 +244,7 @@ class BaseHypervisor(object):
           - memory_free: the available memory on the node for instances
           - memory_dom0: the memory used by the node itself, if available
           - cpu_total: total number of CPUs
+          - cpu_dom0: number of CPUs used by the node OS
           - cpu_nodes: number of NUMA domains
           - cpu_sockets: number of physical CPU sockets
 
@@ -479,6 +480,7 @@ class BaseHypervisor(object):
           - memory_free: the available memory on the node for instances
           - memory_dom0: the memory used by the node itself, if available
           - cpu_total: total number of CPUs
+          - cpu_dom0: number of CPUs used by the node OS
           - cpu_nodes: number of NUMA domains
           - cpu_sockets: number of physical CPU sockets
 
@@ -519,6 +521,8 @@ class BaseHypervisor(object):
     except EnvironmentError, err:
       raise errors.HypervisorError("Failed to list node info: %s" % (err,))
     result["cpu_total"] = cpu_total
+    # We assume that the node OS can access all the CPUs
+    result["cpu_dom0"] = cpu_total
     # FIXME: export correct data here
     result["cpu_nodes"] = 1
     result["cpu_sockets"] = 1

@@ -241,7 +241,7 @@ def _MergeInstanceInfo(info, instance_list):
   for (name, _, mem, vcpus, _, _) in instance_list:
     if name == _DOM0_NAME:
       info["memory_dom0"] = mem
-      info["dom0_cpus"] = vcpus
+      info["cpu_dom0"] = vcpus
 
     # Include Dom0 in total memory usage
     total_instmem += mem
