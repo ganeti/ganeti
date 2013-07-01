@@ -52,3 +52,7 @@
  node-01-003    2
  node-01-004    2/
 >>>=0
+
+# VCPU-dominated allocation
+./test/hs/hspace --machine-readable -t $TESTDATA_DIR/hspace-tiered-vcpu.data > $T/capacity && sh -c ". $T/capacity && test \"\${HTS_TSPEC}\" = '32768,65536,4,12=4 32768,65536,2,12=2' && test \"\${HTS_ALLOC_INSTANCES}\" = 10"
+>>>=0

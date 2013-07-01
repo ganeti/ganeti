@@ -1080,6 +1080,7 @@ TEST_FILES = \
 	test/data/htools/hspace-tiered-ipolicy.data \
 	test/data/htools/hspace-tiered-mixed.data \
 	test/data/htools/hspace-tiered-resourcetypes.data \
+	test/data/htools/hspace-tiered-vcpu.data \
 	test/data/htools/hspace-tiered.data \
 	test/data/htools/invalid-node.data \
 	test/data/htools/missing-resources.data \
