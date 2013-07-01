@@ -907,14 +907,15 @@ def _SetOpEarlyRelease(early_release, op):
   return op
 
 
-def MapInstanceDisksToNodes(instances):
+def MapInstanceLvsToNodes(instances):
   """Creates a map from (node, volume) to instance name.
 
   @type instances: list of L{objects.Instance}
-  @rtype: dict; tuple of (node uuid, volume name) as key, instance name as value
+  @rtype: dict; tuple of (node uuid, volume name) as key, L{objects.Instance}
+          object as value
 
   """
-  return dict(((node_uuid, vol), inst.name)
+  return dict(((node_uuid, vol), inst)
               for inst in instances
               for (node_uuid, vols) in inst.MapLVsByNode().items()
               for vol in vols)

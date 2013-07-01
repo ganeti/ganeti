@@ -37,7 +37,7 @@ from ganeti.cmdlib.common import MergeAndVerifyHvState, \
   MergeAndVerifyDiskState, GetWantedNodes, GetUpdatedParams, \
   CheckNodeGroupInstances, GetUpdatedIPolicy, \
   ComputeNewInstanceViolations, GetDefaultIAllocator, ShareAll, \
-  CheckInstancesNodeGroups, LoadNodeEvacResult, MapInstanceDisksToNodes
+  CheckInstancesNodeGroups, LoadNodeEvacResult, MapInstanceLvsToNodes
 
 import ganeti.masterd.instance
 
@@ -911,14 +911,14 @@ class LUGroupVerifyDisks(NoHooksLU):
         missing volumes
 
     """
-    res_nodes = {}
-    res_instances = set()
-    res_missing = {}
+    node_errors = {}
+    offline_lv_instance_names = set()
+    missing_lvs = {}
 
-    nv_dict = MapInstanceDisksToNodes(
+    node_lv_to_inst = MapInstanceLvsToNodes(
       [inst for inst in self.instances.values() if inst.disks_active])
 
-    if nv_dict:
+    if node_lv_to_inst:
       node_uuids = utils.NiceSort(set(self.owned_locks(locking.LEVEL_NODE)) &
                                   set(self.cfg.GetVmCapableNodeList()))
 
@@ -932,17 +932,17 @@ class LUGroupVerifyDisks(NoHooksLU):
         if msg:
           logging.warning("Error enumerating LVs on node %s: %s",
                           self.cfg.GetNodeName(node_uuid), msg)
-          res_nodes[node_uuid] = msg
+          node_errors[node_uuid] = msg
           continue
 
         for lv_name, (_, _, lv_online) in node_res.payload.items():
-          inst = nv_dict.pop((node_uuid, lv_name), None)
-          if not (lv_online or inst is None):
-            res_instances.add(inst)
+          inst = node_lv_to_inst.pop((node_uuid, lv_name), None)
+          if not lv_online and inst is not None:
+            offline_lv_instance_names.add(inst.name)
 
       # any leftover items in nv_dict are missing LVs, let's arrange the data
       # better
-      for key, inst in nv_dict.iteritems():
-        res_missing.setdefault(inst, []).append(list(key))
+      for key, inst in node_lv_to_inst.iteritems():
+        missing_lvs.setdefault(inst.name, []).append(list(key))
 
-    return (res_nodes, list(res_instances), res_missing)
+    return (node_errors, list(offline_lv_instance_names), missing_lvs)

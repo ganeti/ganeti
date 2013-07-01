@@ -44,7 +44,7 @@ from ganeti.cmdlib.common import CheckParamsNotGlobal, \
   RedistributeAncillaryFiles, ExpandNodeUuidAndName, ShareAll, SupportsOob, \
   CheckInstanceState, INSTANCE_DOWN, GetUpdatedParams, \
   AdjustCandidatePool, CheckIAllocatorOrNode, LoadNodeEvacResult, \
-  GetWantedNodes, MapInstanceDisksToNodes, RunPostHook, \
+  GetWantedNodes, MapInstanceLvsToNodes, RunPostHook, \
   FindFaultyInstanceDisks
 
 
@@ -1316,7 +1316,7 @@ class LUNodeQueryvols(NoHooksLU):
     volumes = self.rpc.call_node_volumes(node_uuids)
 
     ilist = self.cfg.GetAllInstancesInfo()
-    vol2inst = MapInstanceDisksToNodes(ilist.values())
+    vol2inst = MapInstanceLvsToNodes(ilist.values())
 
     output = []
     for node_uuid in node_uuids:
@@ -1346,7 +1346,12 @@ class LUNodeQueryvols(NoHooksLU):
           elif field == "size":
             val = int(float(vol["size"]))
           elif field == "instance":
-            val = vol2inst.get((node_uuid, vol["vg"] + "/" + vol["name"]), "-")
+            inst = vol2inst.get((node_uuid, vol["vg"] + "/" + vol["name"]),
+                                None)
+            if inst is not None:
+              val = inst.name
+            else:
+              val = "-"
           else:
             raise errors.ParameterError(field)
           node_output.append(str(val))

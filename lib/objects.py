@@ -1108,32 +1108,38 @@ class Instance(TaggableObject):
   all_nodes = property(_ComputeAllNodes, None, None,
                        "List of names of all the nodes of the instance")
 
-  def MapLVsByNode(self, lvmap=None, devs=None, node=None):
+  def MapLVsByNode(self, lvmap=None, devs=None, node_uuid=None):
     """Provide a mapping of nodes to LVs this instance owns.
 
     This function figures out what logical volumes should belong on
     which nodes, recursing through a device tree.
 
+    @type lvmap: dict
     @param lvmap: optional dictionary to receive the
         'node' : ['lv', ...] data.
-
+    @type devs: list of L{Disk}
+    @param devs: disks to get the LV name for. If None, all disk of this
+        instance are used.
+    @type node_uuid: string
+    @param node_uuid: UUID of the node to get the LV names for. If None, the
+        primary node of this instance is used.
     @return: None if lvmap arg is given, otherwise, a dictionary of
         the form { 'node_uuid' : ['volume1', 'volume2', ...], ... };
         volumeN is of the form "vg_name/lv_name", compatible with
         GetVolumeList()
 
     """
-    if node is None:
-      node = self.primary_node
+    if node_uuid is None:
+      node_uuid = self.primary_node
 
     if lvmap is None:
       lvmap = {
-        node: [],
+        node_uuid: [],
         }
       ret = lvmap
     else:
-      if not node in lvmap:
-        lvmap[node] = []
+      if not node_uuid in lvmap:
+        lvmap[node_uuid] = []
       ret = None
 
     if not devs:
@@ -1141,7 +1147,7 @@ class Instance(TaggableObject):
 
     for dev in devs:
       if dev.dev_type == constants.LD_LV:
-        lvmap[node].append(dev.logical_id[0] + "/" + dev.logical_id[1])
+        lvmap[node_uuid].append(dev.logical_id[0] + "/" + dev.logical_id[1])
 
       elif dev.dev_type in constants.LDS_DRBD:
         if dev.children:
@@ -1149,7 +1155,7 @@ class Instance(TaggableObject):
           self.MapLVsByNode(lvmap, dev.children, dev.logical_id[1])
 
       elif dev.children:
-        self.MapLVsByNode(lvmap, dev.children, node)
+        self.MapLVsByNode(lvmap, dev.children, node_uuid)
 
     return ret
 
