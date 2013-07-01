@@ -322,33 +322,10 @@ class LUInstanceCreate(LogicalUnit):
   HTYPE = constants.HTYPE_INSTANCE
   REQ_BGL = False
 
-  def CheckArguments(self):
-    """Check arguments.
+  def _CheckDiskTemplateValid(self):
+    """Checks validity of disk template.
 
     """
-    # do not require name_check to ease forward/backward compatibility
-    # for tools
-    if self.op.no_install and self.op.start:
-      self.LogInfo("No-installation mode selected, disabling startup")
-      self.op.start = False
-    # validate/normalize the instance name
-    self.op.instance_name = \
-      netutils.Hostname.GetNormalizedName(self.op.instance_name)
-
-    if self.op.ip_check and not self.op.name_check:
-      # TODO: make the ip check more flexible and not depend on the name check
-      raise errors.OpPrereqError("Cannot do IP address check without a name"
-                                 " check", errors.ECODE_INVAL)
-
-    # check nics' parameter names
-    for nic in self.op.nics:
-      utils.ForceDictType(nic, constants.INIC_PARAMS_TYPES)
-    # check that NIC's parameters names are unique and valid
-    utils.ValidateDeviceNames("NIC", self.op.nics)
-
-    # check that disk's names are unique and valid
-    utils.ValidateDeviceNames("disk", self.op.disks)
-
     cluster = self.cfg.GetClusterInfo()
     if not self.op.disk_template in cluster.enabled_disk_templates:
       raise errors.OpPrereqError("Cannot create an instance with disk template"
@@ -356,6 +333,15 @@ class LUInstanceCreate(LogicalUnit):
                                  " cluster. Enabled disk templates are: %s." %
                                  (self.op.disk_template,
                                   ",".join(cluster.enabled_disk_templates)))
+
+  def _CheckDiskArguments(self):
+    """Checks validity of disk-related arguments.
+
+    """
+    # check that disk's names are unique and valid
+    utils.ValidateDeviceNames("disk", self.op.disks)
+
+    self._CheckDiskTemplateValid()
 
     # check disks. parameter names and consistent adopt/no-adopt strategy
     has_adopt = has_no_adopt = False
@@ -389,6 +375,32 @@ class LUInstanceCreate(LogicalUnit):
                                    errors.ECODE_INVAL)
 
     self.adopt_disks = has_adopt
+
+  def CheckArguments(self):
+    """Check arguments.
+
+    """
+    # do not require name_check to ease forward/backward compatibility
+    # for tools
+    if self.op.no_install and self.op.start:
+      self.LogInfo("No-installation mode selected, disabling startup")
+      self.op.start = False
+    # validate/normalize the instance name
+    self.op.instance_name = \
+      netutils.Hostname.GetNormalizedName(self.op.instance_name)
+
+    if self.op.ip_check and not self.op.name_check:
+      # TODO: make the ip check more flexible and not depend on the name check
+      raise errors.OpPrereqError("Cannot do IP address check without a name"
+                                 " check", errors.ECODE_INVAL)
+
+    # check nics' parameter names
+    for nic in self.op.nics:
+      utils.ForceDictType(nic, constants.INIC_PARAMS_TYPES)
+    # check that NIC's parameters names are unique and valid
+    utils.ValidateDeviceNames("NIC", self.op.nics)
+
+    self._CheckDiskArguments()
 
     # instance name verification
     if self.op.name_check:
