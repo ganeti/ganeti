@@ -83,7 +83,7 @@ For example::
   $ cd / && sudo easy_install \
             affinity \
             bitarray \
-            ipaddr \
+            ipaddr
 
 
 On Fedora to install all required packages except RBD, DRBD and Xen::
