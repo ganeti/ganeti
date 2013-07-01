@@ -21,6 +21,7 @@
 
 """Logical units dealing with node groups."""
 
+import itertools
 import logging
 
 from ganeti import constants
@@ -902,22 +903,10 @@ class LUGroupVerifyDisks(NoHooksLU):
     CheckInstancesNodeGroups(self.cfg, self.instances,
                              owned_groups, owned_node_uuids, self.group_uuid)
 
-  def Exec(self, feedback_fn):
-    """Verify integrity of cluster disks.
-
-    @rtype: tuple of three items
-    @return: a tuple of (dict of node-to-node_error, list of instances
-        which need activate-disks, dict of instance: (node, volume) for
-        missing volumes
-
-    """
-    node_errors = {}
-    offline_lv_instance_names = set()
-    missing_lvs = {}
-
+  def _VerifyInstanceLvs(self, node_errors, offline_disk_instance_names,
+                         missing_disks):
     node_lv_to_inst = MapInstanceLvsToNodes(
       [inst for inst in self.instances.values() if inst.disks_active])
-
     if node_lv_to_inst:
       node_uuids = utils.NiceSort(set(self.owned_locks(locking.LEVEL_NODE)) &
                                   set(self.cfg.GetVmCapableNodeList()))
@@ -938,11 +927,57 @@ class LUGroupVerifyDisks(NoHooksLU):
         for lv_name, (_, _, lv_online) in node_res.payload.items():
           inst = node_lv_to_inst.pop((node_uuid, lv_name), None)
           if not lv_online and inst is not None:
-            offline_lv_instance_names.add(inst.name)
+            offline_disk_instance_names.add(inst.name)
 
       # any leftover items in nv_dict are missing LVs, let's arrange the data
       # better
       for key, inst in node_lv_to_inst.iteritems():
-        missing_lvs.setdefault(inst.name, []).append(list(key))
+        missing_disks.setdefault(inst.name, []).append(list(key))
 
-    return (node_errors, list(offline_lv_instance_names), missing_lvs)
+  def _VerifyDrbdStates(self, node_errors, offline_disk_instance_names):
+    node_to_inst = {}
+    for inst in self.instances.values():
+      if not inst.disks_active or inst.disk_template != constants.DT_DRBD8:
+        continue
+
+      for node_uuid in itertools.chain([inst.primary_node],
+                                       inst.secondary_nodes):
+        node_to_inst.setdefault(node_uuid, []).append(inst)
+
+    nodes_ip = dict((uuid, node.secondary_ip) for (uuid, node)
+                    in self.cfg.GetMultiNodeInfo(node_to_inst.keys()))
+    for (node_uuid, insts) in node_to_inst.items():
+      node_disks = [(inst.disks, inst) for inst in insts]
+      node_res = self.rpc.call_drbd_needs_activation(node_uuid, nodes_ip,
+                                                     node_disks)
+      msg = node_res.fail_msg
+      if msg:
+        logging.warning("Error getting DRBD status on node %s: %s",
+                        self.cfg.GetNodeName(node_uuid), msg)
+        node_errors[node_uuid] = msg
+        continue
+
+      faulty_disk_uuids = set(node_res.payload)
+      for inst in self.instances.values():
+        inst_disk_uuids = set([disk.uuid for disk in inst.disks])
+        if inst_disk_uuids.intersection(faulty_disk_uuids):
+          offline_disk_instance_names.add(inst.name)
+
+  def Exec(self, feedback_fn):
+    """Verify integrity of cluster disks.
+
+    @rtype: tuple of three items
+    @return: a tuple of (dict of node-to-node_error, list of instances
+        which need activate-disks, dict of instance: (node, volume) for
+        missing volumes
+
+    """
+    node_errors = {}
+    offline_disk_instance_names = set()
+    missing_disks = {}
+
+    self._VerifyInstanceLvs(node_errors, offline_disk_instance_names,
+                            missing_disks)
+    self._VerifyDrbdStates(node_errors, offline_disk_instance_names)
+
+    return (node_errors, list(offline_disk_instance_names), missing_disks)

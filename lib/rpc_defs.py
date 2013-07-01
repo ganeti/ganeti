@@ -70,8 +70,9 @@ ACCEPT_OFFLINE_NODE = object()
  ED_COMPRESS,
  ED_BLOCKDEV_RENAME,
  ED_DISKS_DICT_DP,
+ ED_MULTI_DISKS_DICT_DP,
  ED_SINGLE_DISK_DICT_DP,
- ED_NIC_DICT) = range(1, 15)
+ ED_NIC_DICT) = range(1, 16)
 
 
 def _Prepare(calls):
@@ -412,6 +413,11 @@ _BLOCKDEV_CALLS = [
     ("disks", ED_DISKS_DICT_DP, None),
     ], _DrbdCallsPreProc, None,
    "Waits for the synchronization of drbd devices is complete"),
+  ("drbd_needs_activation", SINGLE, None, constants.RPC_TMO_NORMAL, [
+    ("nodes_ip", None, None),
+    ("disks", ED_MULTI_DISKS_DICT_DP, None),
+    ], _DrbdCallsPreProc, None,
+   "Returns the drbd disks which need activation"),
   ("blockdev_grow", SINGLE, None, constants.RPC_TMO_NORMAL, [
     ("cf_bdev", ED_SINGLE_DISK_DICT_DP, None),
     ("amount", None, None),

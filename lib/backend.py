@@ -3801,13 +3801,19 @@ def CleanupImportExport(name):
   shutil.rmtree(status_dir, ignore_errors=True)
 
 
+def _SetPhysicalId(target_node_uuid, nodes_ip, disks):
+  """Sets the correct physical ID on all passed disks.
+
+  """
+  for cf in disks:
+    cf.SetPhysicalID(target_node_uuid, nodes_ip)
+
+
 def _FindDisks(target_node_uuid, nodes_ip, disks):
   """Sets the physical ID on disks and returns the block devices.
 
   """
-  # set the correct physical ID
-  for cf in disks:
-    cf.SetPhysicalID(target_node_uuid, nodes_ip)
+  _SetPhysicalId(target_node_uuid, nodes_ip, disks)
 
   bdevs = []
 
@@ -3925,6 +3931,26 @@ def DrbdWaitSync(target_node_uuid, nodes_ip, disks):
       min_resync = min(min_resync, stats.sync_percent)
 
   return (alldone, min_resync)
+
+
+def DrbdNeedsActivation(target_node_uuid, nodes_ip, disks):
+  """Checks which of the passed disks needs activation and returns their UUIDs.
+
+  """
+  _SetPhysicalId(target_node_uuid, nodes_ip, disks)
+  faulty_disks = []
+
+  for disk in disks:
+    rd = _RecursiveFindBD(disk)
+    if rd is None:
+      faulty_disks.append(disk)
+      continue
+
+    stats = rd.GetProcStatus()
+    if stats.is_standalone or stats.is_diskless:
+      faulty_disks.append(disk)
+
+  return [disk.uuid for disk in faulty_disks]
 
 
 def GetDrbdUsermodeHelper():

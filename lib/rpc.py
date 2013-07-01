@@ -837,6 +837,7 @@ class RpcRunner(_RpcClientBase,
 
       # Encoders annotating disk parameters
       rpc_defs.ED_DISKS_DICT_DP: self._DisksDictDP,
+      rpc_defs.ED_MULTI_DISKS_DICT_DP: self._MultiDiskDictDP,
       rpc_defs.ED_SINGLE_DISK_DICT_DP: self._SingleDiskDictDP,
 
       # Encoders with special requirements
@@ -934,6 +935,14 @@ class RpcRunner(_RpcClientBase,
     return [disk.ToDict()
             for disk in AnnotateDiskParams(instance.disk_template,
                                            disks, diskparams)]
+
+  def _MultiDiskDictDP(self, disks_insts):
+    """Wrapper for L{AnnotateDiskParams}.
+
+    Supports a list of (disk, instance) tuples.
+    """
+    return [disk for disk_inst in disks_insts
+            for disk in self._DisksDictDP(disk_inst)]
 
   def _SingleDiskDictDP(self, (disk, instance)):
     """Wrapper for L{AnnotateDiskParams}.

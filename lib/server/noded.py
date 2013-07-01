@@ -445,6 +445,18 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     return backend.DrbdWaitSync(target_node_uuid, nodes_ip, disks)
 
   @staticmethod
+  def perspective_drbd_needs_activation(params):
+    """Checks if the drbd devices need activation
+
+    Note that this is only valid for drbd disks, so the members of the
+    disk list must all be drbd devices.
+
+    """
+    nodes_ip, disks, target_node_uuid = params
+    disks = [objects.Disk.FromDict(cf) for cf in disks]
+    return backend.DrbdNeedsActivation(target_node_uuid, nodes_ip, disks)
+
+  @staticmethod
   def perspective_drbd_helper(params):
     """Query drbd helper.
 
