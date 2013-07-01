@@ -327,6 +327,13 @@ class LUInstanceCreate(LogicalUnit):
 
     """
     cluster = self.cfg.GetClusterInfo()
+    if self.op.disk_template is None:
+      # FIXME: It would be better to take the default disk template from the
+      # ipolicy, but for the ipolicy we need the primary node, which we get from
+      # the iallocator, which wants the disk template as input. To solve this
+      # chicken-and-egg problem, it should be possible to specify just a node
+      # group from the iallocator and take the ipolicy from that.
+      self.op.disk_template = cluster.enabled_disk_templates[0]
     if not self.op.disk_template in cluster.enabled_disk_templates:
       raise errors.OpPrereqError("Cannot create an instance with disk template"
                                  " '%s', because it is not enabled in the"
@@ -712,21 +719,6 @@ class LUInstanceCreate(LogicalUnit):
 
     """
     self.op.os_type = einfo.get(constants.INISECT_EXP, "os")
-
-    if self.op.disk_template is None:
-      if einfo.has_option(constants.INISECT_INS, "disk_template"):
-        self.op.disk_template = einfo.get(constants.INISECT_INS,
-                                          "disk_template")
-        if self.op.disk_template not in constants.DISK_TEMPLATES:
-          raise errors.OpPrereqError("Disk template specified in configuration"
-                                     " file is not one of the allowed values:"
-                                     " %s" %
-                                     " ".join(constants.DISK_TEMPLATES),
-                                     errors.ECODE_INVAL)
-      else:
-        raise errors.OpPrereqError("No disk template specified and the export"
-                                   " is missing the disk_template information",
-                                   errors.ECODE_INVAL)
 
     if not self.op.disks:
       disks = []
