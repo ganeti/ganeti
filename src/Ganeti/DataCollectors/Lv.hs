@@ -97,7 +97,8 @@ arguments = [ArgCompletion OptComplFile 0 (Just 0)]
 -- | This function computes the JSON representation of the LV status
 buildJsonReport :: Maybe FilePath -> IO J.JSValue
 buildJsonReport inputFile = do
-  let (cmd:params) = lvCommand
+  let cmd = lvCommand
+      params = lvParams
       fromLvs =
         ((E.try $ readProcess cmd params "") :: IO (Either IOError String)) >>=
           exitIfBad "running command" . either (BT.Bad . show) BT.Ok

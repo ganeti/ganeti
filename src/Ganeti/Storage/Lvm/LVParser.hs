@@ -26,7 +26,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 02110-1301, USA.
 
 -}
-module Ganeti.Storage.Lvm.LVParser (lvParser, lvCommand) where
+module Ganeti.Storage.Lvm.LVParser (lvParser, lvCommand, lvParams) where
 
 import Control.Applicative ((<*>), (*>), (<*), (<$>), Applicative, )
 import qualified Data.Attoparsec.Text as A
@@ -70,10 +70,13 @@ stringP =
 -- * Parser implementation
 
 -- | The command providing the data, in the format the parser expects
-lvCommand :: [String]
-lvCommand =
-  [ "lvs"
-  , "--noheadings"
+lvCommand :: String
+lvCommand = "lvs"
+
+-- | The parameters for getting the data in the format the parser expects
+lvParams :: [String]
+lvParams =
+  [ "--noheadings"
   , "--units", "B"
   , "--separator", ";"
   , "-o", "lv_uuid,lv_name,lv_attr,lv_major,lv_minor,lv_kernel_major\
