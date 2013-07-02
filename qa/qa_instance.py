@@ -48,7 +48,7 @@ def _GetDiskStatePath(disk):
   return "/sys/block/%s/device/state" % disk
 
 
-def _GetInstanceInfo(instance):
+def GetInstanceInfo(instance):
   """Return information about the actual state of an instance.
 
   @type instance: string
@@ -129,7 +129,7 @@ def _DestroyInstanceDisks(instance):
   @param instance: the instance
 
   """
-  info = _GetInstanceInfo(instance.name)
+  info = GetInstanceInfo(instance.name)
   # FIXME: destruction/removal should be part of the disk class
   if info["storage-type"] == constants.ST_LVM_VG:
     vols = info["volumes"]
@@ -357,7 +357,7 @@ def TestInstanceRenameAndBack(rename_source, rename_target):
   finally:
     qa_utils.RemoveFromEtcHosts(["meeeeh-not-exists", rename_target])
 
-  info = _GetInstanceInfo(rename_source)
+  info = GetInstanceInfo(rename_source)
 
   # Check instance volume tags correctly updated. Note that this check is lvm
   # specific, so we skip it for non-lvm-based instances.
@@ -972,7 +972,7 @@ def TestRemoveInstanceOfflineNode(instance, snode, set_offline, set_online):
   @param set_online: function to call to set the node on-line
 
   """
-  info = _GetInstanceInfo(instance.name)
+  info = GetInstanceInfo(instance.name)
   set_offline(snode)
   try:
     TestInstanceRemove(instance)
@@ -991,7 +991,8 @@ def TestRemoveInstanceOfflineNode(instance, snode, set_offline, set_online):
         # syntax), we always have to perform both commands and ignore the
         # output.
         drbd_shutdown_cmd = \
-          "(drbdsetup %d down && drbdsetup down resource%d) || /bin/true" % \
+          "(drbdsetup %d down >/dev/null 2>&1;" \
+          " drbdsetup down resource%d >/dev/null 2>&1) || /bin/true" % \
             (minor, minor)
         AssertCommand(drbd_shutdown_cmd, node=snode)
       AssertCommand(["lvremove", "-f"] + info["volumes"], node=snode)

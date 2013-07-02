@@ -273,7 +273,7 @@ def RunOsTests():
     RunTestIf(os_enabled, fn)
 
 
-def RunCommonInstanceTests(instance):
+def RunCommonInstanceTests(instance, inst_nodes):
   """Runs a few tests that are common to all disk types.
 
   """
@@ -346,6 +346,9 @@ def RunCommonInstanceTests(instance):
 
   RunTestIf("tags", qa_tags.TestInstanceTags, instance)
 
+  if instance.disk_template == constants.DT_DRBD8:
+    RunTestIf("cluster-verify",
+              qa_cluster.TestClusterVerifyDisksBrokenDRBD, instance, inst_nodes)
   RunTestIf("cluster-verify", qa_cluster.TestClusterVerify)
 
   RunTestIf(qa_rapi.Enabled, qa_rapi.TestInstance, instance)
@@ -729,7 +732,7 @@ def RunInstanceTests():
             RunTest(qa_instance.TestInstanceStartup, instance)
           RunTestIf("instance-modify-disks",
                     qa_instance.TestInstanceModifyDisks, instance)
-          RunCommonInstanceTests(instance)
+          RunCommonInstanceTests(instance, inodes)
           if qa_config.TestEnabled("instance-modify-primary"):
             othernode = qa_config.AcquireNode()
             RunTest(qa_instance.TestInstanceModifyPrimaryAndBack,
@@ -802,7 +805,7 @@ def RunQa():
                                   use_client)
           try:
             if qa_config.TestEnabled("instance-plain-rapi-common-tests"):
-              RunCommonInstanceTests(rapi_instance)
+              RunCommonInstanceTests(rapi_instance, [pnode])
             RunTest(qa_rapi.TestRapiInstanceRemove, rapi_instance, use_client)
           finally:
             rapi_instance.Release()
