@@ -48,6 +48,7 @@ import Ganeti.Common
 import Ganeti.DataCollectors.CLI
 import Ganeti.DataCollectors.Types
 import Ganeti.Storage.Lvm.LVParser
+import Ganeti.Storage.Lvm.Types
 import Ganeti.Utils
 
 
@@ -94,9 +95,10 @@ options =
 arguments :: [ArgCompletion]
 arguments = [ArgCompletion OptComplFile 0 (Just 0)]
 
--- | This function computes the JSON representation of the LV status
-buildJsonReport :: Maybe FilePath -> IO J.JSValue
-buildJsonReport inputFile = do
+-- | Get information about logical volumes from file (if specified) or
+-- by actually running the command to get it from a live cluster.
+getLvInfo :: Maybe FilePath -> IO [LVInfo]
+getLvInfo inputFile = do
   let cmd = lvCommand
       params = lvParams
       fromLvs =
@@ -106,12 +108,16 @@ buildJsonReport inputFile = do
     maybe fromLvs (\fn -> ((E.try $ readFile fn) :: IO (Either IOError String))
       >>= exitIfBad "reading from file" . either (BT.Bad . show) BT.Ok)
       inputFile
-  lvInfo <-
-    case A.parse lvParser $ pack contents of
-      A.Fail unparsedText contexts errorMessage -> exitErr $
-        show (Prelude.take defaultCharNum $ unpack unparsedText) ++ "\n"
-          ++ show contexts ++ "\n" ++ errorMessage
-      A.Done _ lvinfoD -> return lvinfoD
+  case A.parse lvParser $ pack contents of
+    A.Fail unparsedText contexts errorMessage -> exitErr $
+      show (Prelude.take defaultCharNum $ unpack unparsedText) ++ "\n"
+        ++ show contexts ++ "\n" ++ errorMessage
+    A.Done _ lvinfoD -> return lvinfoD
+
+-- | This function computes the JSON representation of the LV status
+buildJsonReport :: Maybe FilePath -> IO J.JSValue
+buildJsonReport inputFile = do
+  lvInfo <- getLvInfo inputFile
   return $ J.showJSON lvInfo
 
 -- | This function computes the DCReport for the logical volumes.
