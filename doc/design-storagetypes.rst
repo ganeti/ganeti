@@ -57,7 +57,13 @@ a warning.
 
 We consider the first disk template in the list to be the default template for
 instance creation and storage reporting. This will remove the need to specify
-the disk template with ``-t`` on instance creation.
+the disk template with ``-t`` on instance creation. Note: It would be
+better to take the default disk template from the node-group-specific
+ipolicy. However, when using the iallocator, the nodegroup can only be
+determined from the node which is determined by the iallocator, which in
+turn needs the disk-template first. To solve this
+chicken-and-egg-problem we first need to extend 'gnt-instance add' to
+accept a nodegroup in the first place.
 
 Currently, cluster-wide dis/enabling of disk templates is not implemented
 consistently. ``lvm`` based disk templates are enabled by specifying a volume
