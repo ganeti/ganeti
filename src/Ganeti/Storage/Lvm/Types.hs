@@ -54,4 +54,6 @@ $(buildObject "LVInfo" "lvi"
   , simpleField "seg_tags"          [t| String |]
   , simpleField "seg_pe_ranges"     [t| String |]
   , simpleField "devices"           [t| String |]
+  , optionalNullSerField $
+    simpleField "instance"          [t| String |]
   ])

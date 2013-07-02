@@ -112,7 +112,8 @@ oneLvParser =
         <$> uuidP <*> nameP <*> attrP <*> majorP <*> minorP <*> kernelMajorP
         <*> kernelMinorP <*> sizeP <*> segCountP <*> tagsP <*> modulesP
         <*> vgUuidP <*> vgNameP <*> segtypeP <*> segStartP <*> segStartPeP
-        <*> segSizeP <*> segTagsP <*> segPeRangesP <*> devicesP <* A.endOfLine
+        <*> segSizeP <*> segTagsP <*> segPeRangesP <*> devicesP 
+        <*> return Nothing <* A.endOfLine
 
 -- | The parser for a whole diskstatus file.
 lvParser :: Parser [LVInfo]

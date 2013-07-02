@@ -49,16 +49,18 @@ case_lvs_lv = testParser lvParser "lvs_lv.txt"
       (negate 1) 253 0 1073741824 1
       "originstname+instance1.example.com" ""
       "uZgXit-eiRr-vRqe-xpEo-e9nU-mTuR-9nfVIU" "xenvg" "linear" 0 0 1073741824
-      "" "/dev/sda5:0-15" "/dev/sda5(0)"
+      "" "/dev/sda5:0-15" "/dev/sda5(0)" Nothing
   , LVInfo "5fW5mE-SBSs-GSU0-KZDg-hnwb-sZOC-zZt736"
       "df9ff3f6-a833-48ff-8bd5-bff2eaeab759.disk0_meta" "-wi-ao" (negate 1)
       (negate 1) 253 1 134217728 1
       "originstname+instance1.example.com" ""
       "uZgXit-eiRr-vRqe-xpEo-e9nU-mTuR-9nfVIU" "xenvg" "linear" 0 0 134217728 ""
-      "/dev/sda5:16-17" "/dev/sda5(16)"
+      "/dev/sda5:16-17" "/dev/sda5(16)" Nothing
   ]
 
 -- | Serialize a LVInfo in the same format that is output by @lvs@.
+-- The "instance" field is not serialized because it's not provided by @lvs@
+-- so it is not part of this test.
 serializeLVInfo :: LVInfo -> String
 serializeLVInfo l = intercalate ";"
   [ lviUuid l
@@ -88,6 +90,8 @@ serializeLVInfos :: [LVInfo] -> String
 serializeLVInfos = concatMap serializeLVInfo
 
 -- | Arbitrary instance for LVInfo.
+-- The instance is always Nothing because it is not part of the parsed data:
+-- it is added afterwards from a different source.
 instance Arbitrary LVInfo where
   arbitrary =
     LVInfo
@@ -111,6 +115,7 @@ instance Arbitrary LVInfo where
       <*> genName        -- seg_tags
       <*> genName        -- seg_pe_ranges
       <*> genName        -- devices
+      <*> return Nothing -- instance
 
 -- | Test if a randomly generated LV lvs output is properly parsed.
 prop_parse_lvs_lv :: [LVInfo] -> Property
