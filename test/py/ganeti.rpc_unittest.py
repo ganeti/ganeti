@@ -936,24 +936,23 @@ class TestLegacyNodeInfo(unittest.TestCase):
     KEY_VG1: VAL_VG1,
     KEY_VG2: VAL_VG2,
     KEY_HV: VAL_HV,
-    KEY_SP1: VAL_SP1,
-    KEY_SP2: VAL_SP2,
     }
 
   def testStandard(self):
     result = rpc.MakeLegacyNodeInfo(self.STD_LST)
     self.assertEqual(result, self.STD_DICT)
 
-  def testReqVg(self):
+  def testSpindlesRequired(self):
     my_lst = [self.VAL_BOOT, [], [self.DICT_HV]]
-    self.assertRaises(errors.OpExecError, rpc.MakeLegacyNodeInfo, my_lst)
+    self.assertRaises(errors.OpExecError, rpc.MakeLegacyNodeInfo, my_lst,
+        require_spindles=True)
 
-  def testNoReqVg(self):
+  def testNoSpindlesRequired(self):
     my_lst = [self.VAL_BOOT, [], [self.DICT_HV]]
-    result = rpc.MakeLegacyNodeInfo(my_lst, require_vg_info = False)
+    result = rpc.MakeLegacyNodeInfo(my_lst, require_spindles = False)
     self.assertEqual(result, {self.KEY_BOOT: self.VAL_BOOT,
                               self.KEY_HV: self.VAL_HV})
-    result = rpc.MakeLegacyNodeInfo(self.STD_LST, require_vg_info = False)
+    result = rpc.MakeLegacyNodeInfo(self.STD_LST, require_spindles = False)
     self.assertEqual(result, self.STD_DICT)
 
 
@@ -964,47 +963,30 @@ class TestAddDefaultStorageInfoToLegacyNodeInfo(unittest.TestCase):
     self.total_storage_file = 42
     self.free_storage_lvm = 69
     self.total_storage_lvm = 666
-    self.node_info = [{"name": "mynode",
+    self.node_info = [{"name": "myfile",
                        "type": constants.ST_FILE,
                        "storage_free": self.free_storage_file,
                        "storage_size": self.total_storage_file},
-                      {"name": "mynode",
+                      {"name": "myvg",
                        "type": constants.ST_LVM_VG,
                        "storage_free": self.free_storage_lvm,
                        "storage_size": self.total_storage_lvm},
-                      {"name": "mynode",
+                      {"name": "myspindle",
                        "type": constants.ST_LVM_PV,
                        "storage_free": 33,
                        "storage_size": 44}]
 
   def testAddDefaultStorageInfoToLegacyNodeInfo(self):
     result = {}
-    has_lvm = False
-    rpc._AddDefaultStorageInfoToLegacyNodeInfo(result, self.node_info, has_lvm)
+    rpc._AddDefaultStorageInfoToLegacyNodeInfo(result, self.node_info)
     self.assertEqual(self.free_storage_file, result["storage_free"])
     self.assertEqual(self.total_storage_file, result["storage_size"])
 
-  def testAddDefaultStorageInfoToLegacyNodeInfoOverrideDefault(self):
-    result = {}
-    has_lvm = True
-    rpc._AddDefaultStorageInfoToLegacyNodeInfo(result, self.node_info, has_lvm)
-    self.assertEqual(self.free_storage_lvm, result["storage_free"])
-    self.assertEqual(self.total_storage_lvm, result["storage_size"])
-
   def testAddDefaultStorageInfoToLegacyNodeInfoNoDefaults(self):
     result = {}
-    has_lvm = False
-    rpc._AddDefaultStorageInfoToLegacyNodeInfo(result, self.node_info[-1:],
-                                               has_lvm)
+    rpc._AddDefaultStorageInfoToLegacyNodeInfo(result, self.node_info[-1:])
     self.assertFalse("storage_free" in result)
     self.assertFalse("storage_size" in result)
-
-  def testAddDefaultStorageInfoToLegacyNodeInfoNoLvm(self):
-    result = {}
-    has_lvm = True
-    self.assertRaises(errors.OpExecError,
-                      rpc._AddDefaultStorageInfoToLegacyNodeInfo,
-                      result, self.node_info[-1:], has_lvm)
 
 
 if __name__ == "__main__":

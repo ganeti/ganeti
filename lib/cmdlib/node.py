@@ -1183,15 +1183,15 @@ class NodeQuery(QueryBase):
       # filter out non-vm_capable nodes
       toquery_node_uuids = [node.uuid for node in all_info.values()
                             if node.vm_capable and node.uuid in node_uuids]
+      lvm_enabled = utils.storage.IsLvmEnabled(
+          lu.cfg.GetClusterInfo().enabled_disk_templates)
       # FIXME: this per default asks for storage space information for all
       # enabled disk templates. Fix this by making it possible to specify
       # space report fields for specific disk templates.
       raw_storage_units = utils.storage.GetStorageUnitsOfCluster(
-          lu.cfg, include_spindles=True)
+          lu.cfg, include_spindles=lvm_enabled)
       storage_units = rpc.PrepareStorageUnitsForNodes(
           lu.cfg, raw_storage_units, toquery_node_uuids)
-      lvm_enabled = utils.storage.IsLvmEnabled(
-          lu.cfg.GetClusterInfo().enabled_disk_templates)
       default_hypervisor = lu.cfg.GetHypervisorType()
       hvparams = lu.cfg.GetClusterInfo().hvparams[default_hypervisor]
       hvspecs = [(default_hypervisor, hvparams)]
@@ -1199,7 +1199,7 @@ class NodeQuery(QueryBase):
                                         hvspecs)
       live_data = dict(
           (uuid, rpc.MakeLegacyNodeInfo(nresult.payload,
-                                        require_vg_info=lvm_enabled))
+                                        require_spindles=lvm_enabled))
           for (uuid, nresult) in node_data.items()
           if not nresult.fail_msg and nresult.payload)
     else:
