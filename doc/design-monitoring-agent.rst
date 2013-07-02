@@ -465,7 +465,8 @@ each representing one logical volume and providing the following fields:
   Underlying devices used with starting extent numbers.
 
 ``instance``
-  The name of the instance this LV is used by.
+  The name of the instance this LV is used by, or ``null`` if it was not
+  possible to determine it.
 
 DRBD status
 ***********
