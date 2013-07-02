@@ -19,6 +19,9 @@ Version 2.9.0 beta1
   option.
 - The cluster option '--no-lvm-storage' was removed in favor of the new option
   '--enabled-disk-templates'.
+- On instance creation, disk templates no longer need to be specified
+  with '-t'. The default disk template will be taken from the list of
+  enabled disk templates.
 
 
 Version 2.8.0 beta1
