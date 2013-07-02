@@ -80,6 +80,32 @@ nodeLiveFieldsDefs =
      "Total amount of memory of physical machine")
   ]
 
+-- | Helper function to extract an attribute from a maybe StorageType
+getAttrFromStorageInfo :: (J.JSON a) => (StorageInfo -> Maybe a)
+                       -> Maybe StorageInfo -> J.JSValue
+getAttrFromStorageInfo attr_fn (Just info) =
+  case attr_fn info of
+    Just val -> J.showJSON val
+    Nothing -> J.JSNull
+getAttrFromStorageInfo _ Nothing = J.JSNull
+
+-- | Check whether the given storage info fits to the given storage type
+isStorageInfoOfType :: StorageType -> StorageInfo -> Bool
+isStorageInfoOfType stype sinfo = storageInfoType sinfo ==
+    storageTypeToRaw stype
+
+-- | Get storage info for the default storage unit
+getStorageInfoForDefault :: [StorageInfo] -> Maybe StorageInfo
+getStorageInfoForDefault sinfos = listToMaybe $ filter
+    (not . isStorageInfoOfType StorageLvmPv) sinfos
+
+-- | Gets the storage info for a storage type
+-- FIXME: This needs to be extended when storage pools are implemented,
+-- because storage types are not necessarily unique then
+getStorageInfoForType :: [StorageInfo] -> StorageType -> Maybe StorageInfo
+getStorageInfoForType sinfos stype = listToMaybe $ filter
+    (isStorageInfoOfType stype) sinfos
+
 -- | Map each name to a function that extracts that value from
 -- the RPC result.
 nodeLiveFieldExtract :: FieldName -> RpcResultNodeInfo -> J.JSValue
@@ -94,13 +120,17 @@ nodeLiveFieldExtract "csockets" res =
 nodeLiveFieldExtract "ctotal" res =
   jsonHead (rpcResNodeInfoHvInfo res) hvInfoCpuTotal
 nodeLiveFieldExtract "dfree" res =
-  getMaybeJsonHead (rpcResNodeInfoStorageInfo res) storageInfoStorageFree
+  getAttrFromStorageInfo storageInfoStorageFree (getStorageInfoForDefault
+      (rpcResNodeInfoStorageInfo res))
 nodeLiveFieldExtract "dtotal" res =
-  getMaybeJsonHead (rpcResNodeInfoStorageInfo res) storageInfoStorageSize
+  getAttrFromStorageInfo storageInfoStorageSize (getStorageInfoForDefault
+      (rpcResNodeInfoStorageInfo res))
 nodeLiveFieldExtract "spfree" res =
-  getMaybeJsonElem (rpcResNodeInfoStorageInfo res) 1 storageInfoStorageFree
+  getAttrFromStorageInfo storageInfoStorageFree (getStorageInfoForType
+      (rpcResNodeInfoStorageInfo res) StorageLvmPv)
 nodeLiveFieldExtract "sptotal" res =
-  getMaybeJsonElem (rpcResNodeInfoStorageInfo res) 1 storageInfoStorageSize
+  getAttrFromStorageInfo storageInfoStorageSize (getStorageInfoForType
+      (rpcResNodeInfoStorageInfo res) StorageLvmPv)
 nodeLiveFieldExtract "mfree" res =
   jsonHead (rpcResNodeInfoHvInfo res) hvInfoMemoryFree
 nodeLiveFieldExtract "mnode" res =
@@ -244,6 +274,7 @@ collectLiveData False _ nodes =
 collectLiveData True cfg nodes = do
   let hvs = [getDefaultHypervisorSpec cfg]
       good_nodes = nodesWithValidConfig cfg nodes
+      -- FIXME: use storage units from calling code
       storage_units = getStorageUnitsOfNodes cfg good_nodes
   rpcres <- executeRpcCall good_nodes (RpcCallNodeInfo storage_units hvs)
   return $ fillUpList (fillPairFromMaybe rpcResultNodeBroken pickPairUnique)
