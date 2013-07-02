@@ -420,6 +420,11 @@ net-custom
     String containing additional parameters to be appended to the
     arguments list of ``drbdsetup net``.
 
+protocol
+    Replication protocol for the DRBD device. Has to be either "A", "B"
+    or "C". Refer to the DRBD documentation for further information
+    about the differences between the protocols.
+
 dynamic-resync
     Boolean indicating whether to use the dynamic resync speed
     controller or not. If enabled, c-plan-ahead must be non-zero and all
