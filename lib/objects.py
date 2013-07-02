@@ -865,6 +865,7 @@ class Disk(ConfigObject):
         constants.LDP_DEFAULT_METAVG: dt_params[constants.DRBD_DEFAULT_METAVG],
         constants.LDP_DISK_CUSTOM: dt_params[constants.DRBD_DISK_CUSTOM],
         constants.LDP_NET_CUSTOM: dt_params[constants.DRBD_NET_CUSTOM],
+        constants.LDP_PROTOCOL: dt_params[constants.DRBD_PROTOCOL],
         constants.LDP_DYNAMIC_RESYNC: dt_params[constants.DRBD_DYNAMIC_RESYNC],
         constants.LDP_PLAN_AHEAD: dt_params[constants.DRBD_PLAN_AHEAD],
         constants.LDP_FILL_TARGET: dt_params[constants.DRBD_FILL_TARGET],

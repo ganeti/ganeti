@@ -377,8 +377,8 @@ class DRBD8Dev(base.BlockDev):
         base.ThrowError("drbd%d: can't attach local disk: %s",
                         minor, result.output)
 
-  def _AssembleNet(self, minor, net_info, protocol,
-                   dual_pri=False, hmac=None, secret=None):
+  def _AssembleNet(self, minor, net_info, dual_pri=False, hmac=None,
+                   secret=None):
     """Configure the network part of the device.
 
     @type minor: int
@@ -386,8 +386,6 @@ class DRBD8Dev(base.BlockDev):
     @type net_info: (string, int, string, int)
     @param net_info: tuple containing the local address, local port, remote
       address and remote port
-    @type protocol: string
-    @param protocol: either "ipv4" or "ipv6"
     @type dual_pri: boolean
     @param dual_pri: whether two primaries should be allowed or not
     @type hmac: string
@@ -402,6 +400,11 @@ class DRBD8Dev(base.BlockDev):
       # sure its shutdown
       self._ShutdownNet(minor)
       return
+
+    if dual_pri:
+      protocol = constants.DRBD_MIGRATION_NET_PROTOCOL
+    else:
+      protocol = self.params[constants.LDP_PROTOCOL]
 
     # Workaround for a race condition. When DRBD is doing its dance to
     # establish a connection with its peer, it also sends the
@@ -747,8 +750,8 @@ class DRBD8Dev(base.BlockDev):
 
     self._AssembleNet(self.minor,
                       (self._lhost, self._lport, self._rhost, self._rport),
-                      constants.DRBD_NET_PROTOCOL, dual_pri=multimaster,
-                      hmac=constants.DRBD_HMAC_ALG, secret=self._secret)
+                      dual_pri=multimaster, hmac=constants.DRBD_HMAC_ALG,
+                      secret=self._secret)
 
   def Attach(self):
     """Check if our minor is configured.
@@ -818,8 +821,8 @@ class DRBD8Dev(base.BlockDev):
 
       if match_l and not match_r and "local_addr" not in info:
         # disk matches, but not attached to network, attach and recheck
-        self._AssembleNet(minor, net_data, constants.DRBD_NET_PROTOCOL,
-                          hmac=constants.DRBD_HMAC_ALG, secret=self._secret)
+        self._AssembleNet(minor, net_data, hmac=constants.DRBD_HMAC_ALG,
+                          secret=self._secret)
         if self._MatchesNet(self._GetShowInfo(minor)):
           break
         else:
@@ -855,8 +858,8 @@ class DRBD8Dev(base.BlockDev):
         # note: _AssembleNet also handles the case when we don't want
         # local storage (i.e. one or more of the _[lr](host|port) is
         # None)
-        self._AssembleNet(minor, net_data, constants.DRBD_NET_PROTOCOL,
-                          hmac=constants.DRBD_HMAC_ALG, secret=self._secret)
+        self._AssembleNet(minor, net_data, hmac=constants.DRBD_HMAC_ALG,
+                          secret=self._secret)
         if self._MatchesNet(self._GetShowInfo(minor)):
           break
         else:
@@ -884,7 +887,6 @@ class DRBD8Dev(base.BlockDev):
     if self._lhost and self._lport and self._rhost and self._rport:
       self._AssembleNet(minor,
                         (self._lhost, self._lport, self._rhost, self._rport),
-                        constants.DRBD_NET_PROTOCOL,
                         hmac=constants.DRBD_HMAC_ALG, secret=self._secret)
     self._SetFromMinor(minor)
 
