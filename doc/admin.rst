@@ -802,13 +802,13 @@ nodes ``(C, D)`` in a single move, it is possible to do so in a few
 steps::
 
   # instance is located on A, B
-  $ gnt-instance replace -n %nodeC% %instance1%
+  $ gnt-instance replace-disks -n %nodeC% %instance1%
   # instance has moved from (A, B) to (A, C)
   # we now flip the primary/secondary nodes
   $ gnt-instance migrate %instance1%
   # instance lives on (C, A)
   # we can then change A to D via:
-  $ gnt-instance replace -n %nodeD% %instance1%
+  $ gnt-instance replace-disks -n %nodeD% %instance1%
 
 Which brings it into the final configuration of ``(C, D)``. Note that we
 needed to do two replace-disks operation (two copies of the instance
