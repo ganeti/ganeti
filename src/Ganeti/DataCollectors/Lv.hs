@@ -39,14 +39,19 @@ module Ganeti.DataCollectors.Lv
 import qualified Control.Exception as E
 import Control.Monad
 import Data.Attoparsec.Text.Lazy as A
+import Data.List
 import Data.Text.Lazy (pack, unpack)
+import Network.BSD (getHostName)
 import System.Process
 import qualified Text.JSON as J
 
 import qualified Ganeti.BasicTypes as BT
 import Ganeti.Common
+import Ganeti.Confd.ClientFunctions
 import Ganeti.DataCollectors.CLI
 import Ganeti.DataCollectors.Types
+import Ganeti.JSON
+import Ganeti.Objects
 import Ganeti.Storage.Lvm.LVParser
 import Ganeti.Storage.Lvm.Types
 import Ganeti.Utils
@@ -81,7 +86,7 @@ dcKind = DCKPerf
 
 -- | The data exported by the data collector, taken from the default location.
 dcReport :: IO DCReport
-dcReport = buildDCReport Nothing
+dcReport = buildDCReport defaultOptions
 
 -- * Command line options
 
@@ -89,6 +94,9 @@ options :: IO [OptType]
 options =
   return
     [ oInputFile
+    , oConfdAddr
+    , oConfdPort
+    , oInstances
     ]
 
 -- | The list of arguments supported by the program.
@@ -103,7 +111,7 @@ getLvInfo inputFile = do
       params = lvParams
       fromLvs =
         ((E.try $ readProcess cmd params "") :: IO (Either IOError String)) >>=
-          exitIfBad "running command" . either (BT.Bad . show) BT.Ok
+        exitIfBad "running command" . either (BT.Bad . show) BT.Ok
   contents <-
     maybe fromLvs (\fn -> ((E.try $ readFile fn) :: IO (Either IOError String))
       >>= exitIfBad "reading from file" . either (BT.Bad . show) BT.Ok)
@@ -114,16 +122,56 @@ getLvInfo inputFile = do
         ++ show contexts ++ "\n" ++ errorMessage
     A.Done _ lvinfoD -> return lvinfoD
 
--- | This function computes the JSON representation of the LV status
-buildJsonReport :: Maybe FilePath -> IO J.JSValue
-buildJsonReport inputFile = do
+-- | Get the list of instances on the current node (both primary and secondary)
+-- either from a provided file or by querying Confd.
+getInstanceList :: Options -> IO ([Instance], [Instance])
+getInstanceList opts = do
+  let srvAddr = optConfdAddr opts
+      srvPort = optConfdPort opts
+      instFile = optInstances opts
+      fromConfdUnchecked :: IO (BT.Result ([Instance], [Instance]))
+      fromConfdUnchecked = getHostName >>= \n -> getInstances n srvAddr srvPort
+      fromConfd :: IO (BT.Result ([Instance], [Instance]))
+      fromConfd =
+        liftM (either (BT.Bad . show) id) (E.try fromConfdUnchecked :: 
+          IO (Either IOError (BT.Result ([Instance], [Instance]))))
+      fromFile :: FilePath -> IO (BT.Result ([Instance], [Instance]))
+      fromFile inputFile = do
+        contents <-
+          ((E.try $ readFile inputFile) :: IO (Either IOError String))
+            >>= exitIfBad "reading from file" . either (BT.Bad . show) BT.Ok
+        return . fromJResult "Not a list of instances" $ J.decode contents
+  instances <- maybe fromConfd fromFile instFile
+  exitIfBad "Unable to obtain the list of instances" instances
+
+-- | Adds the name of the instance to the information about one logical volume.
+addInstNameToOneLv :: [Instance] -> LVInfo -> LVInfo
+addInstNameToOneLv instances lvInfo =
+  let vg_name = lviVgName lvInfo
+      lv_name = lviName lvInfo
+      instanceHasDisk = any (includesLogicalId vg_name lv_name) . instDisks
+      rightInstance = find instanceHasDisk instances
+    in 
+      case rightInstance of
+        Nothing -> lvInfo
+        Just i -> lvInfo { lviInstance = Just $ instName i }
+
+-- | Adds the name of the instance to the information about logical volumes.
+addInstNameToLv :: [Instance] -> [LVInfo] -> [LVInfo]
+addInstNameToLv instances = map (addInstNameToOneLv instances)
+
+-- | This function computes the JSON representation of the LV status.
+buildJsonReport :: Options -> IO J.JSValue
+buildJsonReport opts = do
+  let inputFile = optInputFile opts
   lvInfo <- getLvInfo inputFile
-  return $ J.showJSON lvInfo
+  (prim, sec) <- getInstanceList opts
+  return . J.showJSON $ addInstNameToLv (prim ++ sec) lvInfo
 
 -- | This function computes the DCReport for the logical volumes.
-buildDCReport :: Maybe FilePath -> IO DCReport
-buildDCReport inputFile =
-  buildJsonReport inputFile >>=
+buildDCReport :: Options -> IO DCReport
+buildDCReport opts =
+  buildJsonReport opts >>=
     buildReport dcName dcVersion dcFormatVersion dcCategory dcKind
 
 -- | Main function.
@@ -131,6 +179,6 @@ main :: Options -> [String] -> IO ()
 main opts args = do
   unless (null args) . exitErr $ "This program takes exactly zero" ++
                                  " arguments, got '" ++ unwords args ++ "'"
-  report <- buildDCReport $ optInputFile opts
 
+  report <- buildDCReport opts
   putStrLn $ J.encode report

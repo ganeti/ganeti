@@ -104,5 +104,6 @@ Failed reading: versionInfo
 >>>= !0
 
 # Test that lv parses correctly a standard test file
-./test/hs/hpc-mon-collector lv -f $PYTESTDATA_DIR/lvs_lv.txt
+./test/hs/hpc-mon-collector lv -f $PYTESTDATA_DIR/lvs_lv.txt -i $PYTESTDATA_DIR/instance-prim-sec.txt
+>>>/"instance":"instance1.example.com"/
 >>>= 0

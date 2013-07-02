@@ -1134,6 +1134,7 @@ TEST_FILES = \
 	test/data/cluster_config_2.7.json \
 	test/data/cluster_config_2.8.json \
 	test/data/instance-minor-pairing.txt \
+	test/data/instance-prim-sec.txt \
 	test/data/ip-addr-show-dummy0.txt \
 	test/data/ip-addr-show-lo-ipv4.txt \
 	test/data/ip-addr-show-lo-ipv6.txt \
