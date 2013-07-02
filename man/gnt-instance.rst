@@ -763,7 +763,10 @@ don't need to pass them with the ``-n`` option. For more information
 please refer to the instance allocator documentation.
 
 The ``-t (--disk-template)`` options specifies the disk layout type
-for the instance.  The available choices are:
+for the instance. If no disk template is specified, the default disk
+template is used. The default disk template is the first in the list
+of enabled disk templates, which can be adjusted cluster-wide with
+``gnt-cluster modify``. The available choices for disk templates are:
 
 diskless
     This creates an instance with no disks. Its useful for testing only

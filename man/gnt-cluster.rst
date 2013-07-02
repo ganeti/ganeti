@@ -557,7 +557,9 @@ this list, see **gnt-instance**\(8). Note that in contrast to the list of
 disk templates in the ipolicy, this list is a hard restriction. It is not
 possible to create instances with disk templates that are not enabled in
 the cluster. It is also not possible to disable a disk template when there
-are still instances using it.
+are still instances using it. The first disk template in the list of
+enabled disk template is the default disk template. It will be used for
+instance creation, if no disk template is requested explicitely.
 
 MASTER-FAILOVER
 ~~~~~~~~~~~~~~~
