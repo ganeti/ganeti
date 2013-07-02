@@ -514,22 +514,7 @@ def _List(listcmd, fields, names):
                           utils.ShellQuoteArgs(cmd)).splitlines()
 
 
-def _AssertListNoUnknownValues(listcmd, fields):
-  """Assert that the list command does not output unknown values.
-
-  """
-  master = qa_config.GetMasterNode()
-
-  cmd = [listcmd, "list", "--output", ",".join(fields)]
-
-  output = GetCommandOutput(master.primary,
-                            utils.ShellQuoteArgs(cmd)).splitlines()
-  for line in output:
-    AssertNotIn('?', line)
-
-
-def GenericQueryTest(cmd, fields, namefield="name", test_unknown=True,
-                     test_values_unknown=True):
+def GenericQueryTest(cmd, fields, namefield="name", test_unknown=True):
   """Runs a number of tests on query commands.
 
   @param cmd: Command name
@@ -564,9 +549,6 @@ def GenericQueryTest(cmd, fields, namefield="name", test_unknown=True,
     # Listing unknown items must fail
     AssertCommand([cmd, "list", "this.name.certainly.does.not.exist"],
                   fail=True)
-
-  if test_values_unknown:
-    _AssertListNoUnknownValues(cmd, fields)
 
   # Check exit code for listing unknown field
   AssertEqual(AssertRedirectedCommand([cmd, "list",
