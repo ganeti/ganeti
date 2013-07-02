@@ -40,6 +40,7 @@ module Ganeti.DataCollectors.CLI
   , oConfdAddr
   , oConfdPort
   , oInputFile
+  , oInstances
   , genericOptions
   ) where
 
@@ -67,6 +68,9 @@ data Options = Options
                                      -- connect to
   , optInputFile   :: Maybe FilePath -- ^ Path to the file containing the
                                      -- information to be parsed
+  , optInstances   :: Maybe FilePath -- ^ Path to the file contained a
+                                     -- serialized list of instances as in:
+                                     -- ([Primary], [Secondary])
   } deriving Show
 
 -- | Default values for the command line options.
@@ -81,6 +85,7 @@ defaultOptions  = Options
   , optConfdAddr   = Nothing
   , optConfdPort   = Nothing
   , optInputFile   = Nothing
+  , optInstances   = Nothing
   }
 
 -- | Abbreviation for the option type.
@@ -136,6 +141,13 @@ oInputFile =
   ( Option "f" ["file"]
       (ReqArg (\ f o -> Ok o { optInputFile = Just f }) "FILE")
       "the input FILE",
+    OptComplFile)
+
+oInstances :: OptType
+oInstances =
+  ( Option "i" ["instances"]
+      (ReqArg (\ f o -> Ok o { optInstances = Just f}) "FILE")
+      "the FILE containing serialized instances",
     OptComplFile)
 
 -- | Generic options.
