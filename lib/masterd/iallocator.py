@@ -399,7 +399,7 @@ class IAllocator(object):
 
     self._BuildInputData(req)
 
-  def _ComputerClusterDataNodeInfo(self, node_list, cluster_info,
+  def _ComputeClusterDataNodeInfo(self, node_list, cluster_info,
                                    hypervisor_name):
     """Prepare and execute node info call.
 
@@ -453,8 +453,8 @@ class IAllocator(object):
       node_whitelist = None
 
     has_lvm = utils.storage.IsLvmEnabled(cluster_info.enabled_disk_templates)
-    node_data = self._ComputerClusterDataNodeInfo(node_list, cluster_info,
-                                                  hypervisor_name)
+    node_data = self._ComputeClusterDataNodeInfo(node_list, cluster_info,
+                                                 hypervisor_name)
 
     node_iinfo = \
       self.rpc.call_all_instances_info(node_list,
