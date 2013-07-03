@@ -1004,6 +1004,10 @@ def TestRemoveInstanceOfflineNode(instance, snode, set_offline, set_online):
 
 def TestInstanceCreationRestrictedByDiskTemplates():
   """Test adding instances for disabled disk templates."""
+  if qa_config.TestEnabled("cluster-exclusive-storage"):
+    # These tests are valid only for non-exclusive storage
+    return
+
   enabled_disk_templates = qa_config.GetEnabledDiskTemplates()
   nodes = qa_config.AcquireManyNodes(2)
 
