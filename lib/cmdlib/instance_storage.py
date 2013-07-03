@@ -905,8 +905,12 @@ def _CheckNodesFreeDiskOnVG(lu, node_uuids, vg, requested):
     info = nodeinfo[node]
     info.Raise("Cannot get current information from node %s" % node_name,
                prereq=True, ecode=errors.ECODE_ENVIRON)
-    (_, (vg_info, ), _) = info.payload
-    vg_free = vg_info.get("storage_free", None)
+    (_, space_info, _) = info.payload
+    lvm_vg_info = utils.storage.LookupSpaceInfoByStorageType(
+        space_info, constants.ST_LVM_VG)
+    if not lvm_vg_info:
+      raise errors.OpPrereqError("Can't retrieve storage information for LVM")
+    vg_free = lvm_vg_info.get("storage_free", None)
     if not isinstance(vg_free, int):
       raise errors.OpPrereqError("Can't compute free disk space on node"
                                  " %s for vg %s, result was '%s'" %

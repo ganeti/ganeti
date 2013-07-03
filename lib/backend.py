@@ -573,6 +573,29 @@ def LeaveCluster(modify_ssh_setup):
   raise errors.QuitGanetiException(True, "Shutdown scheduled")
 
 
+def _GetLvmVgSpaceInfo(name, params):
+  """Wrapper around C{_GetVgInfo} which checks the storage parameters.
+
+  @type name: string
+  @param name: name of the volume group
+  @type params: list
+  @param params: list of storage parameters, which in this case should be
+    containing only one for exclusive storage
+
+  """
+  if params is None:
+    raise errors.ProgrammerError("No storage parameter for LVM vg storage"
+                                 " reporting is provided.")
+  if not isinstance(params, list):
+    raise errors.ProgrammerError("The storage parameters are not of type"
+                                 " list: '%s'" % params)
+  if not len(params) == 1:
+    raise errors.ProgrammerError("Received more than one storage parameter:"
+                                 " '%s'" % params)
+  excl_stor = bool(params[0])
+  return _GetVgInfo(name, excl_stor)
+
+
 def _GetVgInfo(name, excl_stor):
   """Retrieves information about a LVM volume group.
 
@@ -714,7 +737,7 @@ _STORAGE_TYPE_INFO_FN = {
   constants.ST_EXT: None,
   constants.ST_FILE: _GetFileStorageSpaceInfo,
   constants.ST_LVM_PV: _GetVgSpindlesInfo,
-  constants.ST_LVM_VG: _GetVgInfo,
+  constants.ST_LVM_VG: _GetLvmVgSpaceInfo,
   constants.ST_RADOS: None,
 }
 
