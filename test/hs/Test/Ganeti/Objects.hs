@@ -530,6 +530,48 @@ casePyCompatInstances = do
   mapM_ (uncurry (HUnit.assertEqual "Different result after encoding/decoding")
         ) $ zip decoded instances
 
+-- | Tests that the logical ID is correctly found in a plain disk
+caseIncludeLogicalIdPlain :: HUnit.Assertion
+caseIncludeLogicalIdPlain =
+  let vg_name = "xenvg" :: String
+      lv_name = "1234sdf-qwef-2134-asff-asd2-23145d.data" :: String
+      d =
+        Disk (LIDPlain vg_name lv_name) [] "diskname" 1000 DiskRdWr
+          Nothing Nothing "asdfgr-1234-5123-daf3-sdfw-134f43"
+  in
+    HUnit.assertBool "Unable to detect that plain Disk includes logical ID" $
+      includesLogicalId vg_name lv_name d
+
+-- | Tests that the logical ID is correctly found in a DRBD disk
+caseIncludeLogicalIdDrbd :: HUnit.Assertion
+caseIncludeLogicalIdDrbd =
+  let vg_name = "xenvg" :: String
+      lv_name = "1234sdf-qwef-2134-asff-asd2-23145d.data" :: String
+      d = 
+        Disk
+          (LIDDrbd8 "node1.example.com" "node2.example.com" 2000 1 5 "secret")
+          [ Disk (LIDPlain "onevg" "onelv") [] "disk1" 1000 DiskRdWr Nothing
+              Nothing "145145-asdf-sdf2-2134-asfd-534g2x"
+          , Disk (LIDPlain vg_name lv_name) [] "disk2" 1000 DiskRdWr Nothing
+              Nothing "6gd3sd-423f-ag2j-563b-dg34-gj3fse"
+          ] "diskname" 1000 DiskRdWr Nothing Nothing
+          "asdfgr-1234-5123-daf3-sdfw-134f43"
+  in
+    HUnit.assertBool "Unable to detect that plain Disk includes logical ID" $
+      includesLogicalId vg_name lv_name d
+
+-- | Tests that the logical ID is correctly NOT found in a plain disk
+caseNotIncludeLogicalIdPlain :: HUnit.Assertion
+caseNotIncludeLogicalIdPlain =
+  let vg_name = "xenvg" :: String
+      lv_name = "1234sdf-qwef-2134-asff-asd2-23145d.data" :: String
+      d =
+        Disk (LIDPlain "othervg" "otherlv") [] "diskname" 1000 DiskRdWr
+          Nothing Nothing "asdfgr-1234-5123-daf3-sdfw-134f43"
+  in
+    HUnit.assertBool "Unable to detect that plain Disk includes logical ID" $
+      not (includesLogicalId vg_name lv_name d)
+
 testSuite "Objects"
   [ 'prop_fillDict
   , 'prop_Disk_serialisation
@@ -542,4 +584,7 @@ testSuite "Objects"
   , 'casePyCompatInstances
   , 'prop_nextIp4Address
   , 'caseNextIp4Address
+  , 'caseIncludeLogicalIdPlain
+  , 'caseIncludeLogicalIdDrbd
+  , 'caseNotIncludeLogicalIdPlain
   ]

@@ -44,6 +44,7 @@ module Ganeti.Objects
   , DiskType(..)
   , DiskLogicalId(..)
   , Disk(..)
+  , includesLogicalId
   , DiskTemplate(..)
   , PartialBeParams(..)
   , FilledBeParams(..)
@@ -445,6 +446,18 @@ $(buildObjectSerialisation "Disk" $
 
 instance UuidObject Disk where
   uuidOf = diskUuid
+
+-- | Determines whether a disk or one of his children has the given logical id
+-- (determined by the volume group name and by the logical volume name).
+-- This can be true only for DRBD or LVM disks.
+includesLogicalId :: String -> String -> Disk -> Bool
+includesLogicalId vg_name lv_name disk =
+  case diskLogicalId disk of
+    LIDPlain vg lv -> vg_name == vg && lv_name == lv
+    LIDDrbd8 {} ->
+      any (includesLogicalId vg_name lv_name) $ diskChildren disk
+    _ -> False
+
 
 -- * Instance definitions
 
