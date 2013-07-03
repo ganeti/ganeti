@@ -530,6 +530,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/Confd/Types.hs \
 	src/Ganeti/Confd/Utils.hs \
 	src/Ganeti/Config.hs \
+	src/Ganeti/ConfigReader.hs \
 	src/Ganeti/Curl/Multi.hs \
 	src/Ganeti/Daemon.hs \
 	src/Ganeti/DataCollectors/CLI.hs \

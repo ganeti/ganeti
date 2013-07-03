@@ -26,8 +26,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 
 module Ganeti.Query.Server
-  ( ConfigReader
-  , prepQueryD
+  ( prepQueryD
   , runQueryD
   ) where
 
@@ -47,6 +46,7 @@ import qualified Ganeti.Path as Path
 import Ganeti.Daemon
 import Ganeti.Objects
 import qualified Ganeti.Config as Config
+import Ganeti.ConfigReader
 import Ganeti.BasicTypes
 import Ganeti.Logging
 import Ganeti.Luxi
@@ -54,10 +54,6 @@ import Ganeti.OpCodes (TagObject(..))
 import qualified Ganeti.Query.Language as Qlang
 import Ganeti.Query.Query
 import Ganeti.Query.Filter (makeSimpleFilter)
-
--- | A type for functions that can return the configuration when
--- executed.
-type ConfigReader = IO (Result ConfigData)
 
 -- | Helper for classic queries.
 handleClassicQuery :: ConfigData      -- ^ Cluster config
