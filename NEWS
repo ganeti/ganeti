@@ -2,10 +2,10 @@ News
 ====
 
 
-Version 2.7.0 rc3
------------------
+Version 2.7.0
+-------------
 
-*(Released Tue, 25 Jun 2013)*
+*(Released Thu, 04 Jul 2013)*
 
 Incompatible/important changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -110,7 +110,13 @@ Misc changes
 - The functionality for allocating multiple instances at once has been
   overhauled and is now also available through :doc:`RAPI <rapi>`.
 
-Since rc2:
+There are no significant changes from version 2.7.0~rc3.
+
+
+Version 2.7.0 rc3
+-----------------
+
+*(Released Tue, 25 Jun 2013)*
 
 - Fix permissions on the confd query socket (Issue 477)
 - Fix permissions on the job archive dir (Issue 498)
