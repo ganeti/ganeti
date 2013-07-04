@@ -52,7 +52,6 @@ import Ganeti.ConfigReader
 import Ganeti.Hash
 import Ganeti.Logging
 import qualified Ganeti.Constants as C
-import Ganeti.Query.Server (prepQueryD, runQueryD)
 import Ganeti.Utils
 
 -- * Types and constants definitions
@@ -250,15 +249,8 @@ listener s hmac resp = do
     else logDebug "Invalid magic code!" >> return ()
   return ()
 
--- | Extract the configuration from our IORef.
-configReader :: CRef -> ConfigReader
-configReader cref = do
-  cdata <- readIORef cref
-  return $ liftM fst cdata
-
 -- | Type alias for prepMain results
-type PrepResult = (S.Socket, (FilePath, S.Socket),
-                   IORef (Result (ConfigData, LinkIpMap)))
+type PrepResult = (S.Socket, IORef (Result (ConfigData, LinkIpMap)))
 
 -- | Check function for confd.
 checkMain :: CheckFn (S.Family, S.SockAddr)
@@ -275,20 +267,16 @@ prepMain :: PrepFn (S.Family, S.SockAddr) PrepResult
 prepMain _ (af_family, bindaddr) = do
   s <- S.socket af_family S.Datagram S.defaultProtocol
   S.bindSocket s bindaddr
-  -- prepare the queryd listener
-  query_data <- prepQueryD Nothing
   cref <- newIORef (Bad "Configuration not yet loaded")
-  return (s, query_data, cref)
+  return (s, cref)
 
 -- | Main function.
 main :: MainFn (S.Family, S.SockAddr) PrepResult
-main _ _ (s, query_data, cref) = do
+main _ _ (s, cref) = do
   let cfg_transform :: Result ConfigData -> Result (ConfigData, LinkIpMap)
       cfg_transform = liftM (\cfg -> (cfg, buildLinkIpInstnameMap cfg))
   initConfigReader cfg_transform cref
 
   hmac <- getClusterHmac
-  -- launch the queryd listener
-  _ <- forkIO $ runQueryD query_data (configReader cref)
-  -- and finally enter the responder loop
+  -- enter the responder loop
   forever $ listener s hmac (responder cref)

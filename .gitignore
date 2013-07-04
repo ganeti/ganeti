@@ -124,7 +124,9 @@
 /src/mon-collector
 /src/htools
 /src/hconfd
+/src/hqueryd
 /src/ganeti-confd
+/src/ganeti-queryd
 /src/ganeti-mond
 /src/rpc-test
 

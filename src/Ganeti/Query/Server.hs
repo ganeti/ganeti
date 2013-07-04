@@ -26,15 +26,17 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 
 module Ganeti.Query.Server
-  ( prepQueryD
-  , runQueryD
+  ( main
+  , checkMain
+  , prepMain
   ) where
 
 import Control.Applicative
 import Control.Concurrent
 import Control.Exception
+import Control.Monad (forever)
 import Data.Bits (bitSize)
-import Data.Maybe
+import Data.IORef
 import qualified Network.Socket as S
 import qualified Text.JSON as J
 import Text.JSON (showJSON, JSValue(..))
@@ -226,27 +228,37 @@ clientLoop client creader = do
     then clientLoop client creader
     else closeClient client
 
--- | Main loop: accepts clients, forks an I/O thread to handle that
--- client, and then restarts.
-mainLoop :: ConfigReader -> S.Socket -> IO ()
-mainLoop creader socket = do
+-- | Main listener loop: accepts clients, forks an I/O thread to handle
+-- that client.
+listener :: ConfigReader -> S.Socket -> IO ()
+listener creader socket = do
   client <- acceptClient socket
   _ <- forkIO $ clientLoop client creader
-  mainLoop creader socket
+  return ()
 
--- | Function that prepares the server socket.
-prepQueryD :: Maybe FilePath -> IO (FilePath, S.Socket)
-prepQueryD fpath = do
-  def_socket <- Path.defaultQuerySocket
-  let socket_path = fromMaybe def_socket fpath
+-- | Type alias for prepMain results
+type PrepResult = (FilePath, S.Socket, IORef (Result ConfigData))
+
+-- | Check function for queryd.
+checkMain :: CheckFn ()
+checkMain _ = return $ Right ()
+
+-- | Prepare function for queryd.
+prepMain :: PrepFn () PrepResult
+prepMain _ _ = do
+  socket_path <- Path.defaultQuerySocket
   cleanupSocket socket_path
   s <- describeError "binding to the Luxi socket"
          Nothing (Just socket_path) $ getServer socket_path
-  return (socket_path, s)
+  cref <- newIORef (Bad "Configuration not yet loaded")
+  return (socket_path, s, cref)
 
--- | Main function that runs the query endpoint.
-runQueryD :: (FilePath, S.Socket) -> ConfigReader -> IO ()
-runQueryD (socket_path, server) creader =
+-- | Main function.
+main :: MainFn () PrepResult
+main _ _ (socket_path, server, cref) = do
+  initConfigReader id cref
+  let creader = readIORef cref
+
   finally
-    (mainLoop creader server)
+    (forever $ listener creader server)
     (closeServer socket_path server)

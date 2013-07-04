@@ -50,6 +50,7 @@ import Control.Monad
 import Data.Maybe (fromMaybe)
 import Data.Word
 import GHC.IO.Handle (hDuplicateTo)
+import Network.BSD (getHostName)
 import qualified Network.Socket as Socket
 import System.Console.GetOpt
 import System.Exit
@@ -291,6 +292,36 @@ parseAddress opts defport = do
                     (resolveAddr port saddr)
                     (ioErrorToResult $ "Invalid address " ++ saddr)
 
+-- | Environment variable to override the assumed host name of the
+-- current node.
+vClusterHostNameEnvVar :: String
+vClusterHostNameEnvVar = "GANETI_HOSTNAME"
+
+-- | Returns if the current node is the master node.
+isMaster :: IO Bool
+isMaster = do
+  let ioErrorToNothing :: IOError -> IO (Maybe String)
+      ioErrorToNothing _ = return Nothing
+  vcluster_node <- Control.Exception.catch
+                     (liftM Just (getEnv vClusterHostNameEnvVar))
+                     ioErrorToNothing
+  curNode <- case vcluster_node of
+    Just node_name -> return node_name
+    Nothing -> getHostName
+  masterNode <- Ssconf.getMasterNode Nothing
+  case masterNode of
+    Ok n -> return (curNode == n)
+    Bad _ -> return False
+
+-- | Ensures that the daemon runs on the right node (and exits
+-- gracefully if it doesnt)
+ensureNode :: GanetiDaemon -> IO ()
+ensureNode daemon = do
+  is_master <- isMaster
+  when (daemonOnlyOnMaster daemon && not is_master) $ do
+    putStrLn "Not master, exiting."
+    exitWith (ExitFailure C.exitNotmaster)
+
 -- | Run an I\/O action that might throw an I\/O error, under a
 -- handler that will simply annotate and re-throw the exception.
 describeError :: String -> Maybe Handle -> Maybe FilePath -> IO a -> IO a
@@ -337,7 +368,10 @@ genericMain :: GanetiDaemon -- ^ The daemon we're running
             -> IO ()
 genericMain daemon options check_fn prep_fn exec_fn = do
   let progname = daemonName daemon
+
   (opts, args) <- parseArgs progname options
+
+  ensureNode daemon
 
   exitUnless (null args) "This program doesn't take any arguments"
 

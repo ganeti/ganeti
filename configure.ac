@@ -243,16 +243,19 @@ AC_ARG_WITH([user-prefix],
   [user_masterd="${withval}masterd";
    user_rapi="${withval}rapi";
    user_confd="${withval}confd";
+   user_queryd="${withval}queryd";
    user_noded="$user_default";
    user_mond="${withval}mond"],
   [user_masterd="$user_default";
    user_rapi="$user_default";
    user_confd="$user_default";
+   user_queryd="$user_default";
    user_noded="$user_default";
    user_mond="$user_default"])
 AC_SUBST(MASTERD_USER, $user_masterd)
 AC_SUBST(RAPI_USER, $user_rapi)
 AC_SUBST(CONFD_USER, $user_confd)
+AC_SUBST(QUERYD_USER, $user_queryd)
 AC_SUBST(NODED_USER, $user_noded)
 AC_SUBST(MOND_USER, $user_mond)
 
@@ -266,6 +269,7 @@ AC_ARG_WITH([group-prefix],
   [group_rapi="${withval}rapi";
    group_admin="${withval}admin";
    group_confd="${withval}confd";
+   group_queryd="${withval}queryd";
    group_masterd="${withval}masterd";
    group_noded="$group_default";
    group_daemons="${withval}daemons";
@@ -273,6 +277,7 @@ AC_ARG_WITH([group-prefix],
   [group_rapi="$group_default";
    group_admin="$group_default";
    group_confd="$group_default";
+   group_queryd="$group_default";
    group_masterd="$group_default";
    group_noded="$group_default";
    group_daemons="$group_default";
@@ -280,6 +285,7 @@ AC_ARG_WITH([group-prefix],
 AC_SUBST(RAPI_GROUP, $group_rapi)
 AC_SUBST(ADMIN_GROUP, $group_admin)
 AC_SUBST(CONFD_GROUP, $group_confd)
+AC_SUBST(QUERYD_GROUP, $group_queryd)
 AC_SUBST(MASTERD_GROUP, $group_masterd)
 AC_SUBST(NODED_GROUP, $group_noded)
 AC_SUBST(DAEMONS_GROUP, $group_daemons)
@@ -289,6 +295,7 @@ AC_SUBST(MOND_GROUP, $group_mond)
 AC_MSG_NOTICE([Running ganeti-masterd as $group_masterd:$group_masterd])
 AC_MSG_NOTICE([Running ganeti-rapi as $user_rapi:$group_rapi])
 AC_MSG_NOTICE([Running ganeti-confd as $user_confd:$group_confd])
+AC_MSG_NOTICE([Running ganeti-queryd as $user_queryd:$group_queryd])
 AC_MSG_NOTICE([Group for daemons is $group_daemons])
 AC_MSG_NOTICE([Group for clients is $group_admin])
 
