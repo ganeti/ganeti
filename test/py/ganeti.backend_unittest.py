@@ -676,9 +676,11 @@ class TestGetLvmPvSpaceInfo(unittest.TestCase):
   def testValid(self):
     path = "somepath"
     excl_stor = True
+    orig_fn = backend._GetVgSpindlesInfo
     backend._GetVgSpindlesInfo = mock.Mock()
     backend._GetLvmPvSpaceInfo(path, [excl_stor])
     backend._GetVgSpindlesInfo.assert_called_with(path, excl_stor)
+    backend._GetVgSpindlesInfo = orig_fn
 
 
 class TestCheckStorageParams(unittest.TestCase):
@@ -700,6 +702,34 @@ class TestCheckStorageParams(unittest.TestCase):
   def testParamsInvalidNumber(self):
     self.assertRaises(errors.ProgrammerError, backend._CheckStorageParams,
                       ["b", False], 3)
+
+
+class TestGetVgSpindlesInfo(unittest.TestCase):
+
+  def setUp(self):
+    self.vg_free = 13
+    self.vg_size = 31
+    self.mock_fn = mock.Mock(return_value=(self.vg_free, self.vg_size))
+
+  def testValidInput(self):
+    name = "myvg"
+    excl_stor = True
+    result = backend._GetVgSpindlesInfo(name, excl_stor, info_fn=self.mock_fn)
+    self.mock_fn.assert_called_with(name)
+    self.assertEqual(name, result["name"])
+    self.assertEqual(constants.ST_LVM_PV, result["type"])
+    self.assertEqual(self.vg_free, result["storage_free"])
+    self.assertEqual(self.vg_size, result["storage_size"])
+
+  def testNoExclStor(self):
+    name = "myvg"
+    excl_stor = False
+    result = backend._GetVgSpindlesInfo(name, excl_stor, info_fn=self.mock_fn)
+    self.mock_fn.assert_not_called()
+    self.assertEqual(name, result["name"])
+    self.assertEqual(constants.ST_LVM_PV, result["type"])
+    self.assertEqual(0, result["storage_free"])
+    self.assertEqual(0, result["storage_size"])
 
 
 class TestGetNodeInfo(unittest.TestCase):

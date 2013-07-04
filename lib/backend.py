@@ -646,14 +646,15 @@ def _GetVgInfo(name, excl_stor):
 def _GetLvmPvSpaceInfo(name, params):
   """Wrapper around C{_GetVgSpindlesInfo} with sanity checks.
 
-  @see C{_GetLvmVgSpaceInfo}
+  @see: C{_GetLvmVgSpaceInfo}
 
   """
   excl_stor = _CheckLvmStorageParams(params)
   return _GetVgSpindlesInfo(name, excl_stor)
  
 
-def _GetVgSpindlesInfo(name, excl_stor):
+def _GetVgSpindlesInfo(
+    name, excl_stor, info_fn=bdev.LogicalVolume.GetVgSpindlesInfo):
   """Retrieves information about spindles in an LVM volume group.
 
   @type name: string
@@ -666,7 +667,7 @@ def _GetVgSpindlesInfo(name, excl_stor):
 
   """
   if excl_stor:
-    (vg_free, vg_size) = bdev.LogicalVolume.GetVgSpindlesInfo(name)
+    (vg_free, vg_size) = info_fn(name)
   else:
     vg_free = 0
     vg_size = 0
