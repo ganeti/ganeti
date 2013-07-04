@@ -454,6 +454,7 @@ docinput = \
 	doc/design-oob.rst \
 	doc/design-ovf-support.rst \
 	doc/design-opportunistic-locking.rst \
+	doc/design-optables.rst \
 	doc/design-partitioned.rst \
 	doc/design-query-splitting.rst \
 	doc/design-query2.rst \
