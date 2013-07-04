@@ -372,7 +372,6 @@ testSuite "HTools/Cluster"
             [ 'prop_Score_Zero
             , 'prop_CStats_sane
             , 'prop_Alloc_sane
-            , 'prop_IterateAlloc_sane
             , 'prop_CanTieredAlloc
             , 'prop_AllocRelocate
             , 'prop_AllocEvacuate
