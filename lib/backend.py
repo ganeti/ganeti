@@ -594,6 +594,20 @@ def _CheckStorageParams(params, num_params):
                                  " received '%s'" % (num_params, len(params)))
 
 
+def _CheckLvmStorageParams(params):
+  """Performs sanity check for the 'exclusive storage' flag.
+
+  @see: C{_CheckStorageParams}
+
+  """
+  _CheckStorageParams(params, 1)
+  excl_stor = params[0]
+  if not isinstance(params[0], bool):
+    raise errors.ProgrammerError("Exclusive storage parameter is not"
+                                 " boolean: '%s'." % excl_stor)
+  return excl_stor
+
+
 def _GetLvmVgSpaceInfo(name, params):
   """Wrapper around C{_GetVgInfo} which checks the storage parameters.
 
@@ -604,11 +618,7 @@ def _GetLvmVgSpaceInfo(name, params):
     containing only one for exclusive storage
 
   """
-  _CheckStorageParams(params, 1)
-  excl_stor = params[0]
-  if not isinstance(params[0], bool):
-    raise errors.ProgrammerError("Exclusive storage parameter is not"
-                                 " boolean: '%s'." % excl_stor)
+  excl_stor = _CheckLvmStorageParams(params)
   return _GetVgInfo(name, excl_stor)
 
 
@@ -632,6 +642,16 @@ def _GetVgInfo(name, excl_stor):
     "storage_size": vg_size,
     }
 
+
+def _GetLvmPvSpaceInfo(name, params):
+  """Wrapper around C{_GetVgSpindlesInfo} with sanity checks.
+
+  @see C{_GetLvmVgSpaceInfo}
+
+  """
+  excl_stor = _CheckLvmStorageParams(params)
+  return _GetVgSpindlesInfo(name, excl_stor)
+ 
 
 def _GetVgSpindlesInfo(name, excl_stor):
   """Retrieves information about spindles in an LVM volume group.
@@ -752,7 +772,7 @@ _STORAGE_TYPE_INFO_FN = {
   constants.ST_DISKLESS: None,
   constants.ST_EXT: None,
   constants.ST_FILE: _GetFileStorageSpaceInfo,
-  constants.ST_LVM_PV: _GetVgSpindlesInfo,
+  constants.ST_LVM_PV: _GetLvmPvSpaceInfo,
   constants.ST_LVM_VG: _GetLvmVgSpaceInfo,
   constants.ST_RADOS: None,
 }

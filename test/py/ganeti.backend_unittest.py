@@ -671,6 +671,15 @@ class TestGetLvmVgSpaceInfo(unittest.TestCase):
     self.assertRaises(errors.ProgrammerError, backend._GetLvmVgSpaceInfo,
                       path, excl_stor)
 
+class TestGetLvmPvSpaceInfo(unittest.TestCase):
+
+  def testValid(self):
+    path = "somepath"
+    excl_stor = True
+    backend._GetVgSpindlesInfo = mock.Mock()
+    backend._GetLvmPvSpaceInfo(path, [excl_stor])
+    backend._GetVgSpindlesInfo.assert_called_with(path, excl_stor)
+
 
 class TestCheckStorageParams(unittest.TestCase):
 
