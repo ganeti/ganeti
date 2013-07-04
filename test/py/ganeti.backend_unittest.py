@@ -734,6 +734,33 @@ class TestGetVgSpindlesInfo(unittest.TestCase):
     self.assertEqual(0, result["storage_size"])
 
 
+class TestGetVgSpindlesInfo(unittest.TestCase):
+
+  def testValidInput(self):
+    self.vg_free = 13
+    self.vg_size = 31
+    self.mock_fn = mock.Mock(return_value=[(self.vg_free, self.vg_size)])
+    name = "myvg"
+    excl_stor = True
+    result = backend._GetVgInfo(name, excl_stor, info_fn=self.mock_fn)
+    self.mock_fn.assert_called_with([name], excl_stor)
+    self.assertEqual(name, result["name"])
+    self.assertEqual(constants.ST_LVM_VG, result["type"])
+    self.assertEqual(self.vg_free, result["storage_free"])
+    self.assertEqual(self.vg_size, result["storage_size"])
+
+  def testNoExclStor(self):
+    name = "myvg"
+    excl_stor = True
+    self.mock_fn = mock.Mock(return_value=None)
+    result = backend._GetVgInfo(name, excl_stor, info_fn=self.mock_fn)
+    self.mock_fn.assert_called_with([name], excl_stor)
+    self.assertEqual(name, result["name"])
+    self.assertEqual(constants.ST_LVM_VG, result["type"])
+    self.assertEqual(None, result["storage_free"])
+    self.assertEqual(None, result["storage_size"])
+
+
 class TestGetNodeInfo(unittest.TestCase):
 
   _SOME_RESULT = None

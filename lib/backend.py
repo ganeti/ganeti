@@ -622,12 +622,13 @@ def _GetLvmVgSpaceInfo(name, params):
   return _GetVgInfo(name, excl_stor)
 
 
-def _GetVgInfo(name, excl_stor):
+def _GetVgInfo(
+    name, excl_stor, info_fn=bdev.LogicalVolume.GetVGInfo):
   """Retrieves information about a LVM volume group.
 
   """
   # TODO: GetVGInfo supports returning information for multiple VGs at once
-  vginfo = bdev.LogicalVolume.GetVGInfo([name], excl_stor)
+  vginfo = info_fn([name], excl_stor)
   if vginfo:
     vg_free = int(round(vginfo[0][0], 0))
     vg_size = int(round(vginfo[0][1], 0))
@@ -651,7 +652,7 @@ def _GetLvmPvSpaceInfo(name, params):
   """
   excl_stor = _CheckLvmStorageParams(params)
   return _GetVgSpindlesInfo(name, excl_stor)
- 
+
 
 def _GetVgSpindlesInfo(
     name, excl_stor, info_fn=bdev.LogicalVolume.GetVgSpindlesInfo):
