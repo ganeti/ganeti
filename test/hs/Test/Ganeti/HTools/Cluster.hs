@@ -126,8 +126,8 @@ prop_CStats_sane =
   in Cluster.csAdsk cstats >= 0 &&
      Cluster.csAdsk cstats <= Cluster.csFdsk cstats
 
--- | Check that one instance is allocated correctly, without
--- rebalances needed.
+-- | Check that one instance is allocated correctly on an empty cluster,
+-- without rebalances needed.
 prop_Alloc_sane :: Instance.Instance -> Property
 prop_Alloc_sane inst =
   forAll (choose (5, 20)) $ \count ->
