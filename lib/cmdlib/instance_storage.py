@@ -872,6 +872,59 @@ class LUInstanceRecreateDisks(LogicalUnit):
                          cleanup=new_disks)
 
 
+def _PerformNodeInfoCall(lu, node_uuids, vg):
+  """Prepares the input and performs a node info call.
+
+  @type lu: C{LogicalUnit}
+  @param lu: a logical unit from which we get configuration data
+  @type node_uuids: list of string
+  @param node_uuids: list of node UUIDs to perform the call for
+  @type vg: string
+  @param vg: the volume group's name
+
+  """
+  lvm_storage_units = [(constants.ST_LVM_VG, vg)]
+  storage_units = rpc.PrepareStorageUnitsForNodes(lu.cfg, lvm_storage_units,
+                                                  node_uuids)
+  hvname = lu.cfg.GetHypervisorType()
+  hvparams = lu.cfg.GetClusterInfo().hvparams
+  nodeinfo = lu.rpc.call_node_info(node_uuids, storage_units,
+                                   [(hvname, hvparams[hvname])])
+  return nodeinfo
+
+
+def _CheckVgCapacityForNode(node_name, node_info, vg, requested):
+  """Checks the vg capacity for a given node.
+
+  @type node_info: tuple (_, list of dicts, _)
+  @param node_info: the result of the node info call for one node
+  @type node_name: string
+  @param node_name: the name of the node
+  @type vg: string
+  @param vg: volume group name
+  @type requested: int
+  @param requested: the amount of disk in MiB to check for
+  @raise errors.OpPrereqError: if the node doesn't have enough disk,
+      or we cannot check the node
+
+  """
+  (_, space_info, _) = node_info
+  lvm_vg_info = utils.storage.LookupSpaceInfoByStorageType(
+      space_info, constants.ST_LVM_VG)
+  if not lvm_vg_info:
+    raise errors.OpPrereqError("Can't retrieve storage information for LVM")
+  vg_free = lvm_vg_info.get("storage_free", None)
+  if not isinstance(vg_free, int):
+    raise errors.OpPrereqError("Can't compute free disk space on node"
+                               " %s for vg %s, result was '%s'" %
+                               (node_name, vg, vg_free), errors.ECODE_ENVIRON)
+  if requested > vg_free:
+    raise errors.OpPrereqError("Not enough disk space on target node %s"
+                               " vg %s: required %d MiB, available %d MiB" %
+                               (node_name, vg, requested, vg_free),
+                               errors.ECODE_NORES)
+
+
 def _CheckNodesFreeDiskOnVG(lu, node_uuids, vg, requested):
   """Checks if nodes have enough free disk space in the specified VG.
 
@@ -892,34 +945,13 @@ def _CheckNodesFreeDiskOnVG(lu, node_uuids, vg, requested):
       or we cannot check the node
 
   """
-  lvm_storage_units = [(constants.ST_LVM_VG, vg)]
-  storage_units = rpc.PrepareStorageUnitsForNodes(lu.cfg, lvm_storage_units,
-                                                  node_uuids)
-  hvname = lu.cfg.GetHypervisorType()
-  hvparams = lu.cfg.GetClusterInfo().hvparams
-  nodeinfo = lu.rpc.call_node_info(node_uuids, storage_units,
-                                   [(hvname, hvparams[hvname])])
+  nodeinfo = _PerformNodeInfoCall(lu, node_uuids, vg)
   for node in node_uuids:
     node_name = lu.cfg.GetNodeName(node)
-
     info = nodeinfo[node]
     info.Raise("Cannot get current information from node %s" % node_name,
                prereq=True, ecode=errors.ECODE_ENVIRON)
-    (_, space_info, _) = info.payload
-    lvm_vg_info = utils.storage.LookupSpaceInfoByStorageType(
-        space_info, constants.ST_LVM_VG)
-    if not lvm_vg_info:
-      raise errors.OpPrereqError("Can't retrieve storage information for LVM")
-    vg_free = lvm_vg_info.get("storage_free", None)
-    if not isinstance(vg_free, int):
-      raise errors.OpPrereqError("Can't compute free disk space on node"
-                                 " %s for vg %s, result was '%s'" %
-                                 (node_name, vg, vg_free), errors.ECODE_ENVIRON)
-    if requested > vg_free:
-      raise errors.OpPrereqError("Not enough disk space on target node %s"
-                                 " vg %s: required %d MiB, available %d MiB" %
-                                 (node_name, vg, requested, vg_free),
-                                 errors.ECODE_NORES)
+    _CheckVgCapacityForNode(node_name, info.payload, vg, requested)
 
 
 def CheckNodesFreeDiskPerVG(lu, node_uuids, req_sizes):
