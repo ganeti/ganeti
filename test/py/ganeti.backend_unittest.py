@@ -655,9 +655,11 @@ class TestGetLvmVgSpaceInfo(unittest.TestCase):
   def testValid(self):
     path = "somepath"
     excl_stor = True
+    orig_fn = backend._GetVgInfo
     backend._GetVgInfo = mock.Mock()
     backend._GetLvmVgSpaceInfo(path, [excl_stor])
     backend._GetVgInfo.assert_called_with(path, excl_stor)
+    backend._GetVgInfo = orig_fn
 
   def testNoExclStorageNotBool(self):
     path = "somepath"
@@ -737,6 +739,7 @@ class TestGetNodeInfo(unittest.TestCase):
   _SOME_RESULT = None
 
   def testApplyStorageInfoFunction(self):
+    orig_fn = backend._ApplyStorageInfoFunction
     backend._ApplyStorageInfoFunction = mock.Mock(
         return_value=self._SOME_RESULT)
     storage_units = [(st, st + "_key", [st + "_params"]) for st in
@@ -751,6 +754,7 @@ class TestGetNodeInfo(unittest.TestCase):
       self.assertEqual(storage_type + "_key", storage_key)
       self.assertEqual([storage_type + "_params"], storage_params)
       self.assertTrue(storage_type in constants.VALID_STORAGE_TYPES)
+    backend._ApplyStorageInfoFunction = orig_fn
 
 
 if __name__ == "__main__":
