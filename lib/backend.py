@@ -605,7 +605,10 @@ def _GetLvmVgSpaceInfo(name, params):
 
   """
   _CheckStorageParams(params, 1)
-  excl_stor = bool(params[0])
+  excl_stor = params[0]
+  if not isinstance(params[0], bool):
+    raise errors.ProgrammerError("Exclusive storage parameter is not"
+                                 " boolean: '%s'." % excl_stor)
   return _GetVgInfo(name, excl_stor)
 
 

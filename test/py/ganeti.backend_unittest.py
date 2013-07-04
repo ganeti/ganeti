@@ -650,6 +650,28 @@ class TestApplyStorageInfoFunction(unittest.TestCase):
                       storage_type, self._STORAGE_KEY, self._SOME_ARGS)
 
 
+class TestGetLvmVgSpaceInfo(unittest.TestCase):
+
+  def testValid(self):
+    path = "somepath"
+    excl_stor = True
+    backend._GetVgInfo = mock.Mock()
+    backend._GetLvmVgSpaceInfo(path, [excl_stor])
+    backend._GetVgInfo.assert_called_with(path, excl_stor)
+
+  def testNoExclStorageNotBool(self):
+    path = "somepath"
+    excl_stor = "123"
+    self.assertRaises(errors.ProgrammerError, backend._GetLvmVgSpaceInfo,
+                      path, [excl_stor])
+
+  def testNoExclStorageNotInList(self):
+    path = "somepath"
+    excl_stor = "123"
+    self.assertRaises(errors.ProgrammerError, backend._GetLvmVgSpaceInfo,
+                      path, excl_stor)
+
+
 class TestCheckStorageParams(unittest.TestCase):
 
   def testParamsNone(self):
