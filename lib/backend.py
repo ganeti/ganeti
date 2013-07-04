@@ -573,6 +573,27 @@ def LeaveCluster(modify_ssh_setup):
   raise errors.QuitGanetiException(True, "Shutdown scheduled")
 
 
+def _CheckStorageParams(params, num_params):
+  """Performs sanity checks for storage parameters.
+
+  @type params: list
+  @param params: list of storage parameters
+  @type num_params: int
+  @param num_params: expected number of parameters
+
+  """
+  if params is None:
+    raise errors.ProgrammerError("No storage parameters for storage"
+                                 " reporting is provided.")
+  if not isinstance(params, list):
+    raise errors.ProgrammerError("The storage parameters are not of type"
+                                 " list: '%s'" % params)
+  if not len(params) == num_params:
+    raise errors.ProgrammerError("Did not receive the expected number of"
+                                 "storage parameters: expected %s,"
+                                 " received '%s'" % (num_params, len(params)))
+
+
 def _GetLvmVgSpaceInfo(name, params):
   """Wrapper around C{_GetVgInfo} which checks the storage parameters.
 
@@ -583,15 +604,7 @@ def _GetLvmVgSpaceInfo(name, params):
     containing only one for exclusive storage
 
   """
-  if params is None:
-    raise errors.ProgrammerError("No storage parameter for LVM vg storage"
-                                 " reporting is provided.")
-  if not isinstance(params, list):
-    raise errors.ProgrammerError("The storage parameters are not of type"
-                                 " list: '%s'" % params)
-  if not len(params) == 1:
-    raise errors.ProgrammerError("Received more than one storage parameter:"
-                                 " '%s'" % params)
+  _CheckStorageParams(params, 1)
   excl_stor = bool(params[0])
   return _GetVgInfo(name, excl_stor)
 
@@ -715,8 +728,7 @@ def GetNodeInfo(storage_units, hv_specs):
   return (bootid, storage_info, hv_info)
 
 
-# pylint: disable=W0613
-def _GetFileStorageSpaceInfo(path, *args):
+def _GetFileStorageSpaceInfo(path, params):
   """Wrapper around filestorage.GetSpaceInfo.
 
   The purpose of this wrapper is to call filestorage.GetFileStorageSpaceInfo
@@ -727,6 +739,7 @@ def _GetFileStorageSpaceInfo(path, *args):
     parameters.
 
   """
+  _CheckStorageParams(params, 0)
   return filestorage.GetFileStorageSpaceInfo(path)
 
 

@@ -21,19 +21,19 @@
 
 """Script for testing ganeti.backend"""
 
+import mock
 import os
 import shutil
 import tempfile
-import unittest
-import mock
-
-from ganeti import utils
-from ganeti import constants
-from ganeti import backend
-from ganeti import netutils
-from ganeti import hypervisor
-
 import testutils
+import unittest
+
+from ganeti import backend
+from ganeti import constants
+from ganeti import errors
+from ganeti import hypervisor
+from ganeti import netutils
+from ganeti import utils
 
 
 class TestX509Certificates(unittest.TestCase):
@@ -618,7 +618,7 @@ class TestGetHvInfo(unittest.TestCase):
 class TestApplyStorageInfoFunction(unittest.TestCase):
 
   _STORAGE_KEY = "some_key"
-  _SOME_ARGS = "some_args"
+  _SOME_ARGS = ["some_args"]
 
   def setUp(self):
     self.mock_storage_fn = mock.Mock()
@@ -648,6 +648,27 @@ class TestApplyStorageInfoFunction(unittest.TestCase):
     self.assertRaises(NotImplementedError,
                       backend._ApplyStorageInfoFunction,
                       storage_type, self._STORAGE_KEY, self._SOME_ARGS)
+
+
+class TestCheckStorageParams(unittest.TestCase):
+
+  def testParamsNone(self):
+    self.assertRaises(errors.ProgrammerError, backend._CheckStorageParams,
+                      None, NotImplemented)
+
+  def testParamsWrongType(self):
+    self.assertRaises(errors.ProgrammerError, backend._CheckStorageParams,
+                      "string", NotImplemented)
+
+  def testParamsEmpty(self):
+    backend._CheckStorageParams([], 0)
+
+  def testParamsValidNumber(self):
+    backend._CheckStorageParams(["a", True], 2)
+
+  def testParamsInvalidNumber(self):
+    self.assertRaises(errors.ProgrammerError, backend._CheckStorageParams,
+                      ["b", False], 3)
 
 
 class TestGetNodeInfo(unittest.TestCase):
