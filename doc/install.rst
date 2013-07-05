@@ -594,7 +594,7 @@ distribution mechanisms, will install on the system:
   the python version this can be located in either
   ``lib/python-$ver/site-packages`` or various other locations)
 - a set of programs under ``/usr/local/sbin`` or ``/usr/sbin``
-- if the htools component was enabled, a set of programs unde
+- if the htools component was enabled, a set of programs under
   ``/usr/local/bin`` or ``/usr/bin/``
 - man pages for the above programs
 - a set of tools under the ``lib/ganeti/tools`` directory
