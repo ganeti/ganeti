@@ -54,6 +54,7 @@ _STRUCT_UCRED_SIZE = struct.calcsize(_STRUCT_UCRED)
 
 # Workaround a bug in some linux distributions that don't define SO_PEERCRED
 try:
+  # pylint: disable=E1101
   _SO_PEERCRED = IN.SO_PEERCRED
 except AttributeError:
   _SO_PEERCRED = 17
