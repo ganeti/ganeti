@@ -46,6 +46,7 @@ The monitoring agent system will report on the following basic information:
 - Ganeti daemons status, CPU usage, memory footprint
 - Hypervisor resources report (memory, CPU, network interfaces)
 - Node OS resources report (memory, CPU, network interfaces)
+- Node OS CPU load average report
 - Information from a plugin system
 
 Format of the report
@@ -692,6 +693,42 @@ node RAID is outside the scope of this, and can be implemented as a
 plugin) but we can easily just report the information above, since it's
 standard enough across all systems.
 
+Node OS CPU load average report
++++++++++++++++++++++++++++++++
+
+This data collector will export CPU load statistics as seen by the host
+system. Apart from using the data from an external monitoring system we
+can also use the data to improve instance allocation and/or the Ganeti
+cluster balance. To compute the CPU load average we will use a number of
+values collected inside a time window. The collection process will be
+done by an independent thread (see `Mode of Operation`_).
+
+This report is a subset of the previous report (`Node OS resources
+report`_) and they might eventually get merged, once reporting for the
+other fields (memory, filesystem, NICs) gets implemented too.
+
+Specifically:
+
+The ``category`` field of the report will be ``null``.
+
+The ``kind`` field will be ``0`` (`Performance reporting collectors`_).
+
+The ``data`` section will include:
+
+``cpu_number``
+  The number of available cpus.
+
+``cpus``
+  A list with one element per cpu, showing its average load.
+
+``cpu_total``
+  The total CPU load average as a sum of the all separate cpus.
+
+The CPU load report function will get N values, collected by the
+CPU load collection function and calculate the above averages. Please
+see the section `Mode of Operation`_  for more information one how the
+two functions of the data collector interact.
+
 Format of the query
 -------------------
 
@@ -763,6 +800,26 @@ depending on those two parameters.
 
 When run as stand-alone binaries, the data collector will not using any
 caching system, and just fetch and return the data immediately.
+
+Since some performance collectors have to operate on a number of values
+collected in previous times, we need a mechanism independent of the data
+collector which will trigger the collection of those values and also
+store them, so that they are available for calculation by the data
+collectors.
+
+To collect data periodically, a thread will be created by the monitoring
+agent which will run the collection function of every data collector
+that provides one. The values returned by the collection function of
+the data collector will be saved in an appropriate map, associating each
+value to the corresponding collector, using the collector's name as the
+key of the map. This map will be stored in mond's memory.
+
+For example: the collection function of the CPU load collector will
+collect a CPU load value and save it in the map mentioned above. The
+collection function will be called by the collector thread every t
+milliseconds. When the report function of the collector is called, it
+will process the last N values of the map and calculate the
+corresponding average.
 
 Implementation place
 --------------------
