@@ -205,7 +205,7 @@ in_chroot -- \
 
 #Tools for creating debian packages
 in_chroot -- \
-  apt-get install python-docutils debhelper quilt
+  $APT_INSTALL python-docutils debhelper quilt
 
 #Set default editor
 in_chroot -- \
