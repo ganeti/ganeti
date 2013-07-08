@@ -147,15 +147,15 @@ in_chroot -- \
 
 in_chroot -- \
   easy_install \
-    logilab-astng==0.20.1 \
-    logilab-common==0.50.3 \
+    logilab-astng==0.24.1 \
+    logilab-common==0.58.3 \
     mock==1.0.1 \
-    pylint==0.25.1
+    pylint==0.26.0
 
 in_chroot -- \
   easy_install \
     sphinx==1.1.3 \
-    pep8==1.2 \
+    pep8==1.3.3 \
     coverage==3.4 \
     bitarray==0.8.0
 
@@ -184,7 +184,7 @@ in_chroot -- \
   cabal install --global \
     hunit==1.2.5.2 \
     happy==1.18.10 \
-    hlint==1.8.34 \
+    hlint==1.8.43 \
     hscolour==1.20.3 \
     temporary==1.1.2.3 \
     test-framework==0.6.1 \
@@ -226,7 +226,7 @@ in_chroot -- \
 
 #Python development tools
 in_chroot -- \
-  $APT_INSTALL pandoc python-epydoc
+  $APT_INSTALL python-epydoc
 
 #Tools for creating debian packages
 in_chroot -- \
