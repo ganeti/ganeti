@@ -334,7 +334,18 @@ def RunNodeSetupCmd(cluster_name, node, basecmd, debug, verbose,
   _WaitForSshDaemon(node, netutils.GetDaemonPort(constants.SSH), family)
 
 
-def _InitFileStorage(file_storage_dir):
+def _PrepareFileStorage(enabled_disk_templates, file_storage_dir):
+  """Checks if file storage is enabled and inits the dir.
+
+  """
+  if utils.storage.IsFileStorageEnabled(enabled_disk_templates):
+    file_storage_dir = _InitFileStorageDir(file_storage_dir)
+  else:
+    file_storage_dir = ""
+  return file_storage_dir
+
+
+def _InitFileStorageDir(file_storage_dir):
   """Initialize if needed the file storage.
 
   @param file_storage_dir: the user-supplied value
@@ -360,7 +371,24 @@ def _InitFileStorage(file_storage_dir):
     raise errors.OpPrereqError("The file storage directory '%s' is not"
                                " a directory." % file_storage_dir,
                                errors.ECODE_ENVIRON)
+
+  # FIXME: check here if the file_storage_dir is in the set of allowed dirs
   return file_storage_dir
+
+
+def _InitCheckEnabledDiskTemplates(enabled_disk_templates):
+  """Checks the sanity of the enabled disk templates.
+
+  """
+  if not enabled_disk_templates:
+    raise errors.OpPrereqError("Enabled disk templates list must contain at"
+                               " least one member", errors.ECODE_INVAL)
+  invalid_disk_templates = \
+    set(enabled_disk_templates) - constants.DISK_TEMPLATES
+  if invalid_disk_templates:
+    raise errors.OpPrereqError("Enabled disk templates list contains invalid"
+                               " entries: %s" % invalid_disk_templates,
+                               errors.ECODE_INVAL)
 
 
 def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
@@ -396,15 +424,7 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
                                " entries: %s" % invalid_hvs,
                                errors.ECODE_INVAL)
 
-  if not enabled_disk_templates:
-    raise errors.OpPrereqError("Enabled disk templates list must contain at"
-                               " least one member", errors.ECODE_INVAL)
-  invalid_disk_templates = \
-    set(enabled_disk_templates) - constants.DISK_TEMPLATES
-  if invalid_disk_templates:
-    raise errors.OpPrereqError("Enabled disk templates list contains invalid"
-                               " entries: %s" % invalid_disk_templates,
-                               errors.ECODE_INVAL)
+  _InitCheckEnabledDiskTemplates(enabled_disk_templates)
 
   try:
     ipcls = netutils.IPAddress.GetClassFromIpVersion(primary_ip_version)
@@ -489,13 +509,11 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
                              " had exitcode %s and error '%s'" %
                              (result.cmd, result.exit_code, result.output))
 
-  if constants.ENABLE_FILE_STORAGE:
-    file_storage_dir = _InitFileStorage(file_storage_dir)
-  else:
-    file_storage_dir = ""
+  file_storage_dir = _PrepareFileStorage(enabled_disk_templates,
+                                         file_storage_dir)
 
   if constants.ENABLE_SHARED_FILE_STORAGE:
-    shared_file_storage_dir = _InitFileStorage(shared_file_storage_dir)
+    shared_file_storage_dir = _InitFileStorageDir(shared_file_storage_dir)
   else:
     shared_file_storage_dir = ""
 
