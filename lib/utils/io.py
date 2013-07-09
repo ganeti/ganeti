@@ -29,6 +29,8 @@ import tempfile
 import errno
 import time
 import stat
+import grp
+import pwd
 
 from ganeti import errors
 from ganeti import constants
@@ -1063,3 +1065,38 @@ class TemporaryFileManager(object):
     """
     while self._files:
       RemoveFile(self._files.pop())
+
+
+def IsUserInGroup(uid, gid):
+  """Returns True if the user belongs to the group.
+
+  @type uid: int
+  @param uid: the user id
+  @type gid: int
+  @param gid: the group id
+  @rtype: bool
+
+  """
+  user = pwd.getpwuid(uid)
+  group = grp.getgrgid(gid)
+  return user.pw_gid == gid or user.pw_name in group.gr_mem
+
+
+def CanRead(username, filename):
+  """Returns True if the user can access (read) the file.
+
+  @type username: string
+  @param username: the name of the user
+  @type filename: string
+  @param filename: the name of the file
+  @rtype: bool
+
+  """
+  filestats = os.stat(filename)
+  user = pwd.getpwnam(username)
+  uid = user.pw_uid
+  user_readable = filestats.st_mode & stat.S_IRUSR != 0
+  group_readable = filestats.st_mode & stat.S_IRGRP != 0
+  return ((filestats.st_uid == uid and user_readable)
+          or (filestats.st_uid != uid and
+              IsUserInGroup(uid, filestats.st_gid) and group_readable))
