@@ -2294,7 +2294,8 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
                   " but missing on this node: %s",
                   self.cfg.GetNodeName(base.uuid), utils.CommaJoin(missing))
 
-  def _VerifyFileStoragePaths(self, ninfo, nresult, is_master):
+  def _VerifyFileStoragePaths(self, ninfo, nresult, is_master,
+                              enabled_disk_templates):
     """Verifies paths in L{pathutils.FILE_STORAGE_PATHS_FILE}.
 
     @type ninfo: L{objects.Node}
@@ -2305,8 +2306,8 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
     """
     if (is_master and
-        (constants.ENABLE_FILE_STORAGE or
-         constants.ENABLE_SHARED_FILE_STORAGE)):
+        (utils.storage.IsFileStorageEnabled(enabled_disk_templates) or
+         utils.storage.IsSharedFileStorageEnabled(enabled_disk_templates))):
       try:
         fspaths = nresult[constants.NV_FILE_STORAGE_PATHS]
       except KeyError:
@@ -2833,7 +2834,8 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       self._VerifyNodeUserScripts(node_i, nresult)
       self._VerifyOob(node_i, nresult)
       self._VerifyFileStoragePaths(node_i, nresult,
-                                   node_i.uuid == master_node_uuid)
+                                   node_i.uuid == master_node_uuid,
+                                   cluster.enabled_disk_templates)
 
       if nimg.vm_capable:
         self._UpdateVerifyNodeLVM(node_i, nresult, vg_name, nimg)
