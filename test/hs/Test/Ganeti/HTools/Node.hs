@@ -112,7 +112,9 @@ instance Arbitrary Node.Node where
 -- lists here.
 genNodeList :: Gen Node.Node -> Gen Node.List
 genNodeList ngen = fmap (snd . Loader.assignIndices) names_nodes
-    where names_nodes = (fmap . map) (\n -> (Node.name n, n)) $ listOf1 ngen
+    where names_nodes = (fmap . map) (\n -> (Node.name n, n)) nodes
+          nodes = listOf1 ngen `suchThat`
+                  ((\ns -> ns == nub ns) . map Node.name)
 
 -- | Generate a node list, an instance list, and a node graph.
 -- We choose instances with nodes contained in the node list.
