@@ -1086,3 +1086,29 @@ def CheckDiskTemplateEnabled(cluster, disk_template):
                                (disk_template,
                                 ",".join(cluster.enabled_disk_templates)))
 
+
+def CheckStorageTypeEnabled(cluster, storage_type):
+  """Helper function to check if a storage type is enabled.
+
+  @type cluster: C{objects.Cluster}
+  @param cluster: the cluster's configuration
+  @type storage_type: str
+  @param storage_type: the storage type to be checked
+
+  """
+  assert storage_type is not None
+  assert storage_type in constants.VALID_STORAGE_TYPES
+  # special case for lvm-pv, because it cannot be enabled
+  # via disk templates
+  if storage_type == constants.ST_LVM_PV:
+    CheckStorageTypeEnabled(cluster, constants.ST_LVM_VG)
+  else:
+    possible_disk_templates = \
+        utils.storage.GetDiskTemplatesOfStorageType(storage_type)
+    for disk_template in possible_disk_templates:
+      if disk_template in cluster.enabled_disk_templates:
+        return
+    raise errors.OpPrereqError("No disk template of storage type '%s' is"
+                               " enabled in this cluster. Enabled disk"
+                               " templates are: %s" % (storage_type,
+                               ",".join(cluster.enabled_disk_templates)))

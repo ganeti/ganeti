@@ -326,20 +326,6 @@ _TQueryFieldDef = \
     })
 
 
-def RequireFileStorage():
-  """Checks that file storage is enabled.
-
-  While it doesn't really fit into this module, L{utils} was deemed too large
-  of a dependency to be imported for just one or two functions.
-
-  @raise errors.OpPrereqError: when file storage is disabled
-
-  """
-  if not constants.ENABLE_FILE_STORAGE:
-    raise errors.OpPrereqError("File storage disabled at configure time",
-                               errors.ECODE_INVAL)
-
-
 def RequireSharedFileStorage():
   """Checks that shared file storage is enabled.
 
@@ -352,18 +338,6 @@ def RequireSharedFileStorage():
   if not constants.ENABLE_SHARED_FILE_STORAGE:
     raise errors.OpPrereqError("Shared file storage disabled at"
                                " configure time", errors.ECODE_INVAL)
-
-
-@ht.WithDesc("CheckFileStorage")
-def _CheckFileStorage(value):
-  """Ensures file storage is enabled if used.
-
-  """
-  if value == constants.DT_FILE:
-    RequireFileStorage()
-  elif value == constants.DT_SHARED_FILE:
-    RequireSharedFileStorage()
-  return True
 
 
 def _BuildDiskTemplateCheck(accept_none):
@@ -379,7 +353,7 @@ def _BuildDiskTemplateCheck(accept_none):
   if accept_none:
     template_check = ht.TMaybe(template_check)
 
-  return ht.TAnd(template_check, _CheckFileStorage)
+  return template_check
 
 
 def _CheckStorageType(storage_type):
@@ -389,9 +363,6 @@ def _CheckStorageType(storage_type):
   if storage_type not in constants.VALID_STORAGE_TYPES:
     raise errors.OpPrereqError("Unknown storage type: %s" % storage_type,
                                errors.ECODE_INVAL)
-  if storage_type == constants.ST_FILE:
-    # TODO: What about shared file storage?
-    RequireFileStorage()
   return True
 
 

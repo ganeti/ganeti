@@ -34,7 +34,6 @@ from ganeti import locking
 from ganeti.masterd import iallocator
 from ganeti import objects
 from ganeti import utils
-from ganeti import opcodes
 from ganeti import rpc
 from ganeti.cmdlib.base import LogicalUnit, NoHooksLU, Tasklet
 from ganeti.cmdlib.common import INSTANCE_DOWN, INSTANCE_NOT_RUNNING, \

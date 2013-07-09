@@ -45,7 +45,7 @@ from ganeti.cmdlib.common import CheckParamsNotGlobal, \
   CheckInstanceState, INSTANCE_DOWN, GetUpdatedParams, \
   AdjustCandidatePool, CheckIAllocatorOrNode, LoadNodeEvacResult, \
   GetWantedNodes, MapInstanceLvsToNodes, RunPostHook, \
-  FindFaultyInstanceDisks
+  FindFaultyInstanceDisks, CheckStorageTypeEnabled
 
 
 def _DecideSelfPromotion(lu, exceptions=None):
@@ -1130,6 +1130,12 @@ class LUNodeModifyStorage(NoHooksLU):
                                  (storage_type, list(diff)),
                                  errors.ECODE_INVAL)
 
+  def CheckPrereq(self):
+    """Check prerequisites.
+
+    """
+    CheckStorageTypeEnabled(self.cfg.GetClusterInfo(), self.op.storage_type)
+
   def ExpandNames(self):
     self.needed_locks = {
       locking.LEVEL_NODE: self.op.node_uuid,
@@ -1386,6 +1392,12 @@ class LUNodeQueryStorage(NoHooksLU):
         locking.LEVEL_NODE_ALLOC: locking.ALL_SET,
         }
 
+  def CheckPrereq(self):
+    """Check prerequisites.
+
+    """
+    CheckStorageTypeEnabled(self.cfg.GetClusterInfo(), self.op.storage_type)
+
   def Exec(self, feedback_fn):
     """Computes the list of nodes and their attributes.
 
@@ -1588,6 +1600,8 @@ class LURepairNodeStorage(NoHooksLU):
     """Check prerequisites.
 
     """
+    CheckStorageTypeEnabled(self.cfg.GetClusterInfo(), self.op.storage_type)
+
     # Check whether any instance on this node has faulty disks
     for inst in _GetNodeInstances(self.cfg, self.op.node_uuid):
       if not inst.disks_active:
