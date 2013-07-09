@@ -28,6 +28,9 @@ from ganeti import compat
 from ganeti import vcluster
 
 
+# FIXME: remove autoconf override
+DEFAULT_FILE_STORAGE_DIR = "/srv/ganeti/file-storage"
+
 # Build-time constants
 if _autoconf.ENABLE_FILE_STORAGE:
   DEFAULT_FILE_STORAGE_DIR = vcluster.AddNodePrefix(_autoconf.FILE_STORAGE_DIR)
