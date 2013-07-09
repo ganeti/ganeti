@@ -1277,6 +1277,13 @@ class LUClusterVerifyConfig(NoHooksLU, _VerifyErrors):
       (errcode, msg) = _VerifyCertificate(cert_filename)
       self._ErrorIf(errcode, constants.CV_ECLUSTERCERT, None, msg, code=errcode)
 
+    self._ErrorIf(not utils.CanRead(constants.CONFD_USER,
+                                    pathutils.NODED_CERT_FILE),
+                  constants.CV_ECLUSTERCERT,
+                  None,
+                  pathutils.NODED_CERT_FILE + " must be accessible by the " +
+                    constants.CONFD_USER + " user")
+
     feedback_fn("* Verifying hypervisor parameters")
 
     self._VerifyHVP(_GetAllHypervisorParameters(self.cfg.GetClusterInfo(),
