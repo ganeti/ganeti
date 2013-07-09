@@ -134,17 +134,8 @@ AC_ARG_WITH([file-storage-dir],
     [directory to store files for file-based backend]
     [ (default is /srv/ganeti/file-storage)]
   )],
-  [[file_storage_dir="$withval";
-    if test "$withval" != no; then
-      enable_file_storage=True
-    else
-      enable_file_storage=False
-    fi
-  ]],
-  [[file_storage_dir="/srv/ganeti/file-storage";
-    enable_file_storage=True]])
+  [[file_storage_dir="/srv/ganeti/file-storage"]])
 AC_SUBST(FILE_STORAGE_DIR, $file_storage_dir)
-AC_SUBST(ENABLE_FILE_STORAGE, $enable_file_storage)
 
 # --with-shared-file-storage-dir=...
 AC_ARG_WITH([shared-file-storage-dir],

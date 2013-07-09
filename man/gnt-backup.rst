@@ -180,10 +180,10 @@ drbd
     Disk devices will be drbd (version 8.x) on top of lvm volumes.
 
 file
-    Disk devices will be backed up by files, under the directory
-    ``@RPL_FILE_STORAGE_DIR@``. By default, each instance will get a
-    directory (as its own name) under this path, and each disk is
-    stored as individual files in this (instance-specific) directory.
+    Disk devices will be backed up by files, under the cluster's
+    default file storage directory. By default, each instance will
+    get a directory (as its own name) under this path, and each disk
+    is stored as individual files in this (instance-specific) directory.
 
 
 The ``--iallocator`` option specifies the instance allocator plugin

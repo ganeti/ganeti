@@ -470,10 +470,8 @@ class ConfigData(ConfigObject):
         template_set.add(constants.DT_DRBD8)
         template_set.add(constants.DT_PLAIN)
       # FIXME: Adapt this when dis/enabling at configure time is removed.
-      # Enable 'file' and 'sharedfile', if they are enabled, even though they
-      # might currently not be used.
-      if constants.ENABLE_FILE_STORAGE:
-        template_set.add(constants.DT_FILE)
+      # Enable 'sharedfile', if they are enabled, even though they might
+      # currently not be used.
       if constants.ENABLE_SHARED_FILE_STORAGE:
         template_set.add(constants.DT_SHARED_FILE)
       # Set enabled_disk_templates to the inferred disk templates. Order them

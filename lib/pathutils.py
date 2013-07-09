@@ -32,10 +32,11 @@ from ganeti import vcluster
 DEFAULT_FILE_STORAGE_DIR = "/srv/ganeti/file-storage"
 
 # Build-time constants
-if _autoconf.ENABLE_FILE_STORAGE:
-  DEFAULT_FILE_STORAGE_DIR = vcluster.AddNodePrefix(_autoconf.FILE_STORAGE_DIR)
-else:
+# FIXME: remove autoconf storage dir
+if _autoconf.FILE_STORAGE_DIR:
   DEFAULT_FILE_STORAGE_DIR = _autoconf.FILE_STORAGE_DIR
+DEFAULT_FILE_STORAGE_DIR = vcluster.AddNodePrefix(DEFAULT_FILE_STORAGE_DIR)
+
 if _autoconf.ENABLE_SHARED_FILE_STORAGE:
   DEFAULT_SHARED_FILE_STORAGE_DIR = \
     vcluster.AddNodePrefix(_autoconf.SHARED_FILE_STORAGE_DIR)
