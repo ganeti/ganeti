@@ -40,7 +40,8 @@ from ganeti.cmdlib.base import LogicalUnit, NoHooksLU, Tasklet
 from ganeti.cmdlib.common import INSTANCE_DOWN, INSTANCE_NOT_RUNNING, \
   AnnotateDiskParams, CheckIAllocatorOrNode, ExpandNodeUuidAndName, \
   CheckNodeOnline, CheckInstanceNodeGroups, CheckInstanceState, \
-  IsExclusiveStorageEnabledNode, FindFaultyInstanceDisks, GetWantedNodes
+  IsExclusiveStorageEnabledNode, FindFaultyInstanceDisks, GetWantedNodes, \
+  CheckDiskTemplateEnabled
 from ganeti.cmdlib.instance_utils import GetInstanceInfoText, \
   CopyLockList, ReleaseLocks, CheckNodeVmCapable, \
   BuildInstanceHookEnvByObject, CheckNodeNotDrained, CheckTargetNodeIPolicy
@@ -243,6 +244,8 @@ def CreateDisks(lu, instance, to_skip=None, target_node_uuid=None, disks=None):
 
   if disks is None:
     disks = instance.disks
+
+  CheckDiskTemplateEnabled(lu.cfg.GetClusterInfo(), instance.disk_template)
 
   if instance.disk_template in constants.DTS_FILEBASED:
     file_storage_dir = os.path.dirname(instance.disks[0].logical_id[1])

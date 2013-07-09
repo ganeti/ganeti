@@ -1067,3 +1067,22 @@ def CheckNodeOnline(lu, node_uuid, msg=None):
   if lu.cfg.GetNodeInfo(node_uuid).offline:
     raise errors.OpPrereqError("%s: %s" % (msg, lu.cfg.GetNodeName(node_uuid)),
                                errors.ECODE_STATE)
+
+
+def CheckDiskTemplateEnabled(cluster, disk_template):
+  """Helper function to check if a disk template is enabled.
+
+  @type cluster: C{objects.Cluster}
+  @param cluster: the cluster's configuration
+  @type disk_template: str
+  @param disk_template: the disk template to be checked
+
+  """
+  assert disk_template is not None
+  assert disk_template in constants.DISK_TEMPLATES
+  if not disk_template in cluster.enabled_disk_templates:
+    raise errors.OpPrereqError("Disk template '%s' is not enabled in cluster."
+                               " Enabled disk templates are: %s" %
+                               (disk_template,
+                                ",".join(cluster.enabled_disk_templates)))
+

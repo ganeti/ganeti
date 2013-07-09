@@ -3195,10 +3195,6 @@ def _TransformFileStorageDir(fs_dir):
   @return: the normalized path if valid, None otherwise
 
   """
-  if not (constants.ENABLE_FILE_STORAGE or
-          constants.ENABLE_SHARED_FILE_STORAGE):
-    _Fail("File storage disabled at configure time")
-
   bdev.CheckFileStoragePath(fs_dir)
 
   return os.path.normpath(fs_dir)

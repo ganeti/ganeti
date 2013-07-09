@@ -1832,10 +1832,8 @@ DEV_MAP = {
   constants.LD_BLOCKDEV: PersistentBlockDevice,
   constants.LD_RBD: RADOSBlockDevice,
   constants.LD_EXT: ExtStorageDevice,
+  constants.LD_FILE: FileStorage,
   }
-
-if constants.ENABLE_FILE_STORAGE or constants.ENABLE_SHARED_FILE_STORAGE:
-  DEV_MAP[constants.LD_FILE] = FileStorage
 
 
 def _VerifyDiskType(dev_type):

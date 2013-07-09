@@ -32,7 +32,7 @@ from ganeti import objects
 from ganeti import pathutils
 from ganeti import utils
 from ganeti.cmdlib.common import AnnotateDiskParams, \
-  ComputeIPolicyInstanceViolation
+  ComputeIPolicyInstanceViolation, CheckDiskTemplateEnabled
 
 
 def BuildInstanceHookEnv(name, primary_node_name, secondary_node_names, os_type,
@@ -286,6 +286,8 @@ def RemoveDisks(lu, instance, target_node_uuid=None, ignore_failures=False):
   if all_result or ignore_failures:
     for port in ports_to_release:
       lu.cfg.AddTcpUdpPort(port)
+
+  CheckDiskTemplateEnabled(lu.cfg.GetClusterInfo(), instance.disk_template)
 
   if instance.disk_template in constants.DTS_FILEBASED:
     file_storage_dir = os.path.dirname(instance.disks[0].logical_id[1])

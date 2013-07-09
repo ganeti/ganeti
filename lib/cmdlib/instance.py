@@ -49,7 +49,8 @@ from ganeti.cmdlib.common import INSTANCE_DOWN, \
   LoadNodeEvacResult, CheckIAllocatorOrNode, CheckParamsNotGlobal, \
   IsExclusiveStorageEnabledNode, CheckHVParams, CheckOSParams, \
   AnnotateDiskParams, GetUpdatedParams, ExpandInstanceUuidAndName, \
-  ComputeIPolicySpecViolation, CheckInstanceState, ExpandNodeUuidAndName
+  ComputeIPolicySpecViolation, CheckInstanceState, ExpandNodeUuidAndName, \
+  CheckDiskTemplateEnabled
 from ganeti.cmdlib.instance_storage import CreateDisks, \
   CheckNodesFreeDiskPerVG, WipeDisks, WipeOrCleanupDisks, WaitForSync, \
   IsExclusiveStorageEnabledNodeUuid, CreateSingleBlockDev, ComputeDisks, \
@@ -334,12 +335,7 @@ class LUInstanceCreate(LogicalUnit):
       # chicken-and-egg problem, it should be possible to specify just a node
       # group from the iallocator and take the ipolicy from that.
       self.op.disk_template = cluster.enabled_disk_templates[0]
-    if not self.op.disk_template in cluster.enabled_disk_templates:
-      raise errors.OpPrereqError("Cannot create an instance with disk template"
-                                 " '%s', because it is not enabled in the"
-                                 " cluster. Enabled disk templates are: %s." %
-                                 (self.op.disk_template,
-                                  ",".join(cluster.enabled_disk_templates)))
+    CheckDiskTemplateEnabled(cluster, self.op.disk_template)
 
   def _CheckDiskArguments(self):
     """Checks validity of disk-related arguments.
@@ -1469,6 +1465,15 @@ class LUInstanceRename(LogicalUnit):
                                 self.op.instance_name)
     instance = self.cfg.GetInstanceInfo(self.op.instance_uuid)
     assert instance is not None
+
+    # It should actually not happen that an instance is running with a disabled
+    # disk template, but in case it does, the renaming of file-based instances
+    # will fail horribly. Thus, we test it before.
+    if (instance.disk_template in constants.DTS_FILEBASED and
+        self.op.new_name != instance.name):
+      CheckDiskTemplateEnabled(self.cfg.GetClusterInfo(),
+                               instance.disk_template)
+
     CheckNodeOnline(self, instance.primary_node)
     CheckInstanceState(self, instance, INSTANCE_NOT_RUNNING,
                        msg="cannot rename")
