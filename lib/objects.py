@@ -1899,6 +1899,26 @@ class Cluster(TaggableObject):
     """
     return FillIPolicy(self.ipolicy, ipolicy)
 
+  def IsDiskTemplateEnabled(self, disk_template):
+    """Checks if a particular disk template is enabled.
+
+    """
+    return utils.storage.IsDiskTemplateEnabled(
+        disk_template, self.enabled_disk_templates)
+
+  def IsFileStorageEnabled(self):
+    """Checks if file storage is enabled.
+
+    """
+    return utils.storage.IsFileStorageEnabled(self.enabled_disk_templates)
+
+  def IsSharedFileStorageEnabled(self):
+    """Checks if shared file storage is enabled.
+
+    """
+    return utils.storage.IsSharedFileStorageEnabled(
+        self.enabled_disk_templates)
+
 
 class BlockDevStatus(ConfigObject):
   """Config object representing the status of a block device."""

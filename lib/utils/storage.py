@@ -40,6 +40,27 @@ def GetLvmDiskTemplates():
   return GetDiskTemplatesOfStorageType(constants.ST_LVM_VG)
 
 
+def IsDiskTemplateEnabled(disk_template, enabled_disk_templates):
+  """Checks if a particular disk template is enabled.
+
+  """
+  return disk_template in enabled_disk_templates
+
+
+def IsFileStorageEnabled(enabled_disk_templates):
+  """Checks if file storage is enabled.
+
+  """
+  return IsDiskTemplateEnabled(constants.DT_FILE, enabled_disk_templates)
+
+
+def IsSharedFileStorageEnabled(enabled_disk_templates):
+  """Checks if shared file storage is enabled.
+
+  """
+  return IsDiskTemplateEnabled(constants.DT_SHARED_FILE, enabled_disk_templates)
+
+
 def IsLvmEnabled(enabled_disk_templates):
   """Check whether or not any lvm-based disk templates are enabled."""
   return len(set(GetLvmDiskTemplates())
