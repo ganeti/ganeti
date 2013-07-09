@@ -2666,7 +2666,8 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       node_verify_param[constants.NV_DRBDLIST] = None
       node_verify_param[constants.NV_DRBDHELPER] = drbd_helper
 
-    if constants.ENABLE_FILE_STORAGE or constants.ENABLE_SHARED_FILE_STORAGE:
+    if cluster.IsFileStorageEnabled() or \
+        cluster.IsSharedFileStorageEnabled():
       # Load file storage paths only from master node
       node_verify_param[constants.NV_FILE_STORAGE_PATHS] = \
         self.cfg.GetMasterNodeName()

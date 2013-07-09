@@ -1166,11 +1166,12 @@ class TestApplyContainerMods(unittest.TestCase):
 
 
 class _FakeConfigForGenDiskTemplate:
-  def __init__(self):
+  def __init__(self, enabled_disk_templates):
     self._unique_id = itertools.count()
     self._drbd_minor = itertools.count(20)
     self._port = itertools.count(constants.FIRST_DRBD_PORT)
     self._secret = itertools.count()
+    self._enabled_disk_templates = enabled_disk_templates
 
   def GetVGName(self):
     return "testvg"
@@ -1191,6 +1192,11 @@ class _FakeConfigForGenDiskTemplate:
   def GetInstanceInfo(self, _):
     return "foobar"
 
+  def GetClusterInfo(self):
+    cluster = objects.Cluster()
+    cluster.enabled_disk_templates = self._enabled_disk_templates
+    return cluster
+
 
 class _FakeProcForGenDiskTemplate:
   def GetECId(self):
@@ -1198,14 +1204,20 @@ class _FakeProcForGenDiskTemplate:
 
 
 class TestGenerateDiskTemplate(unittest.TestCase):
+
+  def _SetUpLUWithTemplates(self, enabled_disk_templates):
+    self._enabled_disk_templates = enabled_disk_templates
+    cfg = _FakeConfigForGenDiskTemplate(self._enabled_disk_templates)
+    proc = _FakeProcForGenDiskTemplate()
+
+    self.lu = _FakeLU(cfg=cfg, proc=proc)
+
   def setUp(self):
     nodegroup = objects.NodeGroup(name="ng")
     nodegroup.UpgradeConfig()
 
-    cfg = _FakeConfigForGenDiskTemplate()
-    proc = _FakeProcForGenDiskTemplate()
-
-    self.lu = _FakeLU(cfg=cfg, proc=proc)
+    self._enabled_disk_templates = list(constants.DISK_TEMPLATES)
+    self._SetUpLUWithTemplates(self._enabled_disk_templates)
     self.nodegroup = nodegroup
 
   @staticmethod
@@ -1218,7 +1230,7 @@ class TestGenerateDiskTemplate(unittest.TestCase):
 
     assert disk_template not in constants.DISK_TEMPLATES
 
-    self.assertRaises(errors.ProgrammerError, gdt, self.lu, disk_template,
+    self.assertRaises(errors.OpPrereqError, gdt, self.lu, disk_template,
                       "inst26831.example.com", "node30113.example.com", [], [],
                       NotImplemented, NotImplemented, 0, self.lu.LogInfo,
                       self.GetDiskParams())
@@ -1234,9 +1246,7 @@ class TestGenerateDiskTemplate(unittest.TestCase):
 
   def _TestTrivialDisk(self, template, disk_info, base_index, exp_dev_type,
                        file_storage_dir=NotImplemented,
-                       file_driver=NotImplemented,
-                       req_file_storage=NotImplemented,
-                       req_shr_file_storage=NotImplemented):
+                       file_driver=NotImplemented):
     gdt = instance.GenerateDiskTemplate
 
     map(lambda params: utils.ForceDictType(params,
@@ -1248,16 +1258,12 @@ class TestGenerateDiskTemplate(unittest.TestCase):
                       template, "inst25088.example.com",
                       "node185.example.com", ["node323.example.com"], [],
                       NotImplemented, NotImplemented, base_index,
-                      self.lu.LogInfo, self.GetDiskParams(),
-                      _req_file_storage=req_file_storage,
-                      _req_shr_file_storage=req_shr_file_storage)
+                      self.lu.LogInfo, self.GetDiskParams())
 
     result = gdt(self.lu, template, "inst21662.example.com",
                  "node21741.example.com", [],
                  disk_info, file_storage_dir, file_driver, base_index,
-                 self.lu.LogInfo, self.GetDiskParams(),
-                 _req_file_storage=req_file_storage,
-                 _req_shr_file_storage=req_shr_file_storage)
+                 self.lu.LogInfo, self.GetDiskParams())
 
     for (idx, disk) in enumerate(result):
       self.assertTrue(isinstance(disk, objects.Disk))
@@ -1294,21 +1300,13 @@ class TestGenerateDiskTemplate(unittest.TestCase):
       ("othervg", "ec0-uq1.disk4"),
       ])
 
-  @staticmethod
-  def _AllowFileStorage():
-    pass
-
-  @staticmethod
-  def _ForbidFileStorage():
-    raise errors.OpPrereqError("Disallowed in test")
-
   def testFile(self):
+    # anything != DT_FILE would do here
+    self._SetUpLUWithTemplates([constants.DT_PLAIN])
     self.assertRaises(errors.OpPrereqError, self._TestTrivialDisk,
-                      constants.DT_FILE, [], 0, NotImplemented,
-                      req_file_storage=self._ForbidFileStorage)
+                      constants.DT_FILE, [], 0, NotImplemented)
     self.assertRaises(errors.OpPrereqError, self._TestTrivialDisk,
-                      constants.DT_SHARED_FILE, [], 0, NotImplemented,
-                      req_shr_file_storage=self._ForbidFileStorage)
+                      constants.DT_SHARED_FILE, [], 0, NotImplemented)
 
     for disk_template in [constants.DT_FILE, constants.DT_SHARED_FILE]:
       disk_info = [{
@@ -1322,11 +1320,10 @@ class TestGenerateDiskTemplate(unittest.TestCase):
         constants.IDISK_MODE: constants.DISK_RDWR,
         }]
 
+      self._SetUpLUWithTemplates([disk_template])
       result = self._TestTrivialDisk(disk_template, disk_info, 2,
         constants.LD_FILE, file_storage_dir="/tmp",
-        file_driver=constants.FD_BLKTAP,
-        req_file_storage=self._AllowFileStorage,
-        req_shr_file_storage=self._AllowFileStorage)
+        file_driver=constants.FD_BLKTAP)
 
       self.assertEqual(map(operator.attrgetter("logical_id"), result), [
         (constants.FD_BLKTAP, "/tmp/disk2"),

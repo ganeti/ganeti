@@ -420,11 +420,6 @@ class LUInstanceCreate(LogicalUnit):
       raise errors.OpPrereqError("Invalid file driver name '%s'" %
                                  self.op.file_driver, errors.ECODE_INVAL)
 
-    if self.op.disk_template == constants.DT_FILE:
-      opcodes.RequireFileStorage()
-    elif self.op.disk_template == constants.DT_SHARED_FILE:
-      opcodes.RequireSharedFileStorage()
-
     ### Node/iallocator related checks
     CheckIAllocatorOrNode(self, "iallocator", "pnode")
 

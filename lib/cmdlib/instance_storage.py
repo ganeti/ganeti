@@ -413,14 +413,15 @@ def _GenerateDRBD8Branch(lu, primary_uuid, secondary_uuid, size, vgnames, names,
 def GenerateDiskTemplate(
   lu, template_name, instance_uuid, primary_node_uuid, secondary_node_uuids,
   disk_info, file_storage_dir, file_driver, base_index,
-  feedback_fn, full_disk_params, _req_file_storage=opcodes.RequireFileStorage,
-  _req_shr_file_storage=opcodes.RequireSharedFileStorage):
+  feedback_fn, full_disk_params):
   """Generate the entire disk layout for a given template type.
 
   """
   vgname = lu.cfg.GetVGName()
   disk_count = len(disk_info)
   disks = []
+
+  CheckDiskTemplateEnabled(lu.cfg.GetClusterInfo(), template_name)
 
   if template_name == constants.DT_DISKLESS:
     pass
@@ -456,11 +457,6 @@ def GenerateDiskTemplate(
   else:
     if secondary_node_uuids:
       raise errors.ProgrammerError("Wrong template configuration")
-
-    if template_name == constants.DT_FILE:
-      _req_file_storage()
-    elif template_name == constants.DT_SHARED_FILE:
-      _req_shr_file_storage()
 
     name_prefix = _DISK_TEMPLATE_NAME_PREFIX.get(template_name, None)
     if name_prefix is None:

@@ -270,8 +270,8 @@ def ComputeAncillaryFiles(cluster, redist):
     files_mc.add(pathutils.CLUSTER_CONF_FILE)
 
   # File storage
-  if (not redist and (constants.ENABLE_FILE_STORAGE or
-                        constants.ENABLE_SHARED_FILE_STORAGE)):
+  if (not redist and (cluster.IsFileStorageEnabled() or
+                        cluster.IsSharedFileStorageEnabled())):
     files_all.add(pathutils.FILE_STORAGE_PATHS_FILE)
     files_opt.add(pathutils.FILE_STORAGE_PATHS_FILE)
 
