@@ -10,7 +10,7 @@ Open vSwitch in the Ganeti tool chain.
 Current state and shortcomings
 ==============================
 
-At the moment Ganeti's support for Open vSwitch is very basic and 
+At the moment Ganeti's support for Open vSwitch is very basic and
 limited to connecting instances to an existing vSwitch.
 
 The shortcomings of this approach are:
@@ -21,8 +21,8 @@ The shortcomings of this approach are:
 
 Proposed changes
 ----------------
-1. Implement functions into gnt-network to manage Open vSwitch through Ganeti gnt-network 
-   should be able to create, modify and delete vSwitches. The resulting configuration shall 
+1. Implement functions into gnt-network to manage Open vSwitch through Ganeti gnt-network
+   should be able to create, modify and delete vSwitches. The resulting configuration shall
    automatically be done on all members of the node group. Connecting Ethernet devices to
    vSwitches should be managed through this interface as well.
 
@@ -30,21 +30,52 @@ Proposed changes
    and port type. These are used to determine their type of connection to Open vSwitch. This will
    require modifying the methods for instance creation and modification
 
-3. Implement NIC bonding: Functions to bond NICs for performance improvement, load-balancing and 
-   failover should be added. It is preferable to have a configuration option to determine the 
-   type of the trunk, as there are different types of trunks (LACP dynamic and static, different 
+3. Implement NIC bonding: Functions to bond NICs for performance improvement, load-balancing and
+   failover should be added. It is preferable to have a configuration option to determine the
+   type of the trunk, as there are different types of trunks (LACP dynamic and static, different
    failover and load-balancing mechanisms)
 
-4. Set QoS level on per instance basis: Instances shall have an additional information: maximum 
-   bandwidth and maximum burst. This helps to balance the bandwidth needs between the VMs and to 
+4. Set QoS level on per instance basis: Instances shall have an additional information: maximum
+   bandwidth and maximum burst. This helps to balance the bandwidth needs between the VMs and to
    ensure fair sharing of the bandwidth.
 
-Configuration changes
-+++++++++++++++++++++
+Configuration changes for VLANs
++++++++++++++++++++++++++++++++
+nicparams shall be extended by a value "vlan" that will store the VLAN information for each NIC.
+This parameter will only be used if nicparams[constants.NIC_MODE] == constants.NIC_MODE_OVS,
+since it doesn't make sense in other modes.
+
+Each VLAN the NIC belongs to shall be stored in this single value. The format of storing this information
+is the same as the one which is used in Xen 4.3, since Xen 4.3 comes with functionality to support
+OpenvSwitch.
+
+This parameter will, at first, only be implemented for Xen and will have no effects on other hypervisors.
+Support for KVM will be added in the future.
+
+Example:
+switch1 will connect the VM to the default VLAN of the switch1.
+switch1.3 means that the VM is connected to an access port of VLAN 3.
+switch1.2:10:20 means that the VM is connected to a trunk port on switch1, carrying VLANs 2, 10 and 20.
+
+This configuration string is split at the dot and stored in nicparams[constants.NIC_LINK] and
+nicparams[constants.NIC_VLAN] respectively.
+
+For Xen hypervisors, this information can be concatenated again and stored in the vif config as
+the bridge parameter and will be fully compatible with vif-openvswitch as of Xen 4.3.
+
+Users of older Xen versions should be able to grab vif-openvswitch from the Xen repo and use it
+(tested in 4.2).
+
+The differentiation between access port and trunk port is given by the number of VLANs that are
+specified.
+
+gnt-instance modify shall be able to add or remove single VLANs from the vlan string without users needing
+to specify the complete new string.
+
+Configuration changes for QoS
++++++++++++++++++++++++++++++
 Instances shall be extended with configuration options for
 
-- VLAN-ID
-- port type (access port, trunk, hybrid)
 - maximum bandwidth
 - maximum burst rate
 
