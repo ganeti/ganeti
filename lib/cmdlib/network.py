@@ -536,6 +536,8 @@ def _NetworkConflictCheck(lu, check_fn, action, instances):
   @param check_fn: Function checking for conflict
   @type action: string
   @param action: Part of error message (see code)
+  @param instances: the instances to check
+  @type instances: list of instance objects
   @raise errors.OpPrereqError: If conflicting IP addresses are found.
 
   """
@@ -643,7 +645,8 @@ class LUNetworkConnect(LogicalUnit):
 
       _NetworkConflictCheck(
         self, lambda nic: pool.Contains(nic.ip), "connect to",
-        self.cfg.GetMultiInstanceInfoByName(owned_instance_names))
+        [instance_info for (_, instance_info) in
+         self.cfg.GetMultiInstanceInfoByName(owned_instance_names)])
 
   def Exec(self, feedback_fn):
     # Connect the network and update the group only if not already connected
