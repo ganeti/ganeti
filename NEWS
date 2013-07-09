@@ -31,7 +31,7 @@ Version 2.9.0 beta1
   presenting them over the monitoring daemon interface.
 - The monitoring daemon is now running as root, in order to be able to collect
   information only available to root (such as the state of Xen instances).
-
+- The ConfD client is now IPv6 compatible.
 
 Version 2.8.0 beta1
 -------------------
