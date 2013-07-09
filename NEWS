@@ -22,6 +22,15 @@ Version 2.9.0 beta1
 - On instance creation, disk templates no longer need to be specified
   with '-t'. The default disk template will be taken from the list of
   enabled disk templates.
+- New "inst-status-xen" data collector for the monitoring daemon, providing
+  information about the state of the xen instances on the nodes.
+- New "lv" data collector for the monitoring daemon, collecting data about the
+  logical volumes on the nodes, and pairing them with the name of the instances
+  they belong to.
+- New "diskstats" data collector, collecting the data from /proc/diskstats and
+  presenting them over the monitoring daemon interface.
+- The monitoring daemon is now running as root, in order to be able to collect
+  information only available to root (such as the state of Xen instances).
 
 
 Version 2.8.0 beta1
