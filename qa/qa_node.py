@@ -113,6 +113,7 @@ def TestNodeVolumes():
 def TestNodeStorage():
   """gnt-node storage"""
   master = qa_config.GetMasterNode()
+  enabled_disk_templates = qa_config.GetEnabledDiskTemplates()
 
   # FIXME: test all storage_types in constants.VALID_STORAGE_TYPES
   # as soon as they are implemented.
@@ -124,7 +125,9 @@ def TestNodeStorage():
     # Skip file storage if not enabled, otherwise QA will fail; we
     # just test for basic failure, but otherwise skip the rest of the
     # tests
-    if storage_type == constants.ST_FILE and not constants.ENABLE_FILE_STORAGE:
+    if storage_type == constants.ST_FILE and not \
+        ((constants.DT_FILE in enabled_disk_templates) or
+         (constants.DT_SHARED_FILE in enabled_disk_templates)):
       AssertCommand(cmd, fail=True)
       continue
 
