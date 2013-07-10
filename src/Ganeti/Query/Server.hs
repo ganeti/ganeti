@@ -203,6 +203,7 @@ handleClientMsg client creader args = do
 handleClient :: Client -> ConfigReader -> IO Bool
 handleClient client creader = do
   !msg <- recvMsgExt client
+  logDebug $ "Received message: " ++ show msg
   case msg of
     RecvConnClosed -> logDebug "Connection closed" >> return False
     RecvError err -> logWarning ("Error during message receiving: " ++ err) >>
