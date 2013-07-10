@@ -82,6 +82,8 @@ def _GetDefaultStorageUnitForDiskTemplate(cfg, disk_template):
   """Retrieves the identifier of the default storage entity for the given
   storage type.
 
+  @type cfg: C{objects.ConfigData}
+  @param cfg: the configuration data
   @type disk_template: string
   @param disk_template: a disk template, for example 'drbd'
   @rtype: string
@@ -90,12 +92,13 @@ def _GetDefaultStorageUnitForDiskTemplate(cfg, disk_template):
 
   """
   storage_type = constants.DISK_TEMPLATES_STORAGE_TYPE[disk_template]
+  cluster = cfg.GetClusterInfo()
   if disk_template in GetLvmDiskTemplates():
     return (storage_type, cfg.GetVGName())
-  # FIXME: Adjust this, once FILE_STORAGE_DIR and SHARED_FILE_STORAGE_DIR
-  # are not in autoconf anymore.
   elif disk_template == constants.DT_FILE:
-    return (storage_type, pathutils.DEFAULT_FILE_STORAGE_DIR)
+    return (storage_type, cluster.file_storage_dir)
+  # FIXME: Adjust this, once SHARED_FILE_STORAGE_DIR
+  # is not in autoconf anymore.
   elif disk_template == constants.DT_SHARED_FILE:
     return (storage_type, pathutils.DEFAULT_SHARED_FILE_STORAGE_DIR)
   else:
