@@ -72,7 +72,7 @@ I_FIELDS = ["name", "admin_state", "os",
             "pnode", "snodes",
             "disk_template",
             "nic.ips", "nic.macs", "nic.modes",
-            "nic.links", "nic.networks", "nic.bridges",
+            "nic.links", "nic.networks", "nic.networks.names", "nic.bridges",
             "network_port",
             "disk.sizes", "disk_usage",
             "beparams", "hvparams",
@@ -97,8 +97,8 @@ NET_FIELDS = ["name", "network", "gateway",
               "mac_prefix",
               "free_count", "reserved_count",
               "map", "group_list", "inst_list",
-              "external_reservations", "tags",
-              ]
+              "external_reservations",
+              ] + _COMMON_FIELDS
 
 G_FIELDS = [
   "alloc_policy",
