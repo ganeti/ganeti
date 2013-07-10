@@ -83,13 +83,10 @@ $(genArbitrary ''AllocPolicy)
 allDiskTemplates :: [DiskTemplate]
 allDiskTemplates =
   let all_vals = [minBound..maxBound]::[DiskTemplate]
-      sel1 = if C.enableFileStorage
+      sel1 = if C.enableSharedFileStorage
                then all_vals
-               else delete DTFile all_vals
-      sel2 = if C.enableSharedFileStorage
-               then sel1
-               else delete DTSharedFile sel1
-  in sel2
+               else delete DTSharedFile all_vals
+  in sel1
 
 -- | Custom 'Arbitrary' instance for 'DiskTemplate', which needs to
 -- handle the case of file storage being disabled at configure time.
@@ -114,11 +111,7 @@ $(genArbitrary ''OobCommand)
 
 -- | Valid storage types.
 allStorageTypes :: [StorageType]
-allStorageTypes =
-  let all_vals = [minBound..maxBound]::[StorageType]
-  in if C.enableFileStorage
-       then all_vals
-       else delete StorageFile all_vals
+allStorageTypes = [minBound..maxBound]::[StorageType]
 
 -- | Custom 'Arbitrary' instance for 'StorageType', which needs to
 -- handle the case of file storage being disabled at configure time.

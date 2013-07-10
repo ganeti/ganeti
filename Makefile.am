@@ -1576,7 +1576,6 @@ lib/_autoconf.py: Makefile | stamp-directories
 	  echo "XEN_KERNEL = '$(XEN_KERNEL)'"; \
 	  echo "XEN_INITRD = '$(XEN_INITRD)'"; \
 	  echo "KVM_KERNEL = '$(KVM_KERNEL)'"; \
-	  echo "FILE_STORAGE_DIR = '$(FILE_STORAGE_DIR)'"; \
 	  echo "SHARED_FILE_STORAGE_DIR = '$(SHARED_FILE_STORAGE_DIR)'"; \
 	  echo "ENABLE_SHARED_FILE_STORAGE = $(ENABLE_SHARED_FILE_STORAGE)"; \
 	  echo "IALLOCATOR_SEARCH_PATH = [$(IALLOCATOR_SEARCH_PATH)]"; \
