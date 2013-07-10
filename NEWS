@@ -33,6 +33,7 @@ Version 2.9.0 beta1
   information only available to root (such as the state of Xen instances).
 - The ConfD client is now IPv6 compatible.
 
+
 Version 2.8.0 beta1
 -------------------
 
