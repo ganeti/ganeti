@@ -1130,9 +1130,9 @@ def VerifyNode(what, cluster_name, all_hvparams):
                                     for bridge in what[constants.NV_BRIDGES]
                                     if not utils.BridgeExists(bridge)]
 
-  if what.get(constants.NV_FILE_STORAGE_PATHS) == my_name:
-    result[constants.NV_FILE_STORAGE_PATHS] = \
-      bdev.ComputeWrongFileStoragePaths()
+  if what.get(constants.NV_ACCEPTED_STORAGE_PATHS) == my_name:
+    result[constants.NV_ACCEPTED_STORAGE_PATHS] = \
+        filestorage.ComputeWrongFileStoragePaths()
 
   return result
 
@@ -3195,7 +3195,7 @@ def _TransformFileStorageDir(fs_dir):
   @return: the normalized path if valid, None otherwise
 
   """
-  bdev.CheckFileStoragePath(fs_dir)
+  filestorage.CheckFileStoragePath(fs_dir)
 
   return os.path.normpath(fs_dir)
 

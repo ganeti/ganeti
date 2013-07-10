@@ -35,8 +35,9 @@ from ganeti import objects
 from ganeti import compat
 from ganeti import pathutils
 from ganeti import serializer
-from ganeti.storage import drbd
 from ganeti.storage import base
+from ganeti.storage import drbd
+from ganeti.storage import filestorage
 
 
 class RbdShowmappedJsonError(Exception):
@@ -55,116 +56,6 @@ def _CheckResult(result):
   if result.failed:
     base.ThrowError("Command: %s error: %s - %s",
                     result.cmd, result.fail_reason, result.output)
-
-
-def _GetForbiddenFileStoragePaths():
-  """Builds a list of path prefixes which shouldn't be used for file storage.
-
-  @rtype: frozenset
-
-  """
-  paths = set([
-    "/boot",
-    "/dev",
-    "/etc",
-    "/home",
-    "/proc",
-    "/root",
-    "/sys",
-    ])
-
-  for prefix in ["", "/usr", "/usr/local"]:
-    paths.update(map(lambda s: "%s/%s" % (prefix, s),
-                     ["bin", "lib", "lib32", "lib64", "sbin"]))
-
-  return compat.UniqueFrozenset(map(os.path.normpath, paths))
-
-
-def _ComputeWrongFileStoragePaths(paths,
-                                  _forbidden=_GetForbiddenFileStoragePaths()):
-  """Cross-checks a list of paths for prefixes considered bad.
-
-  Some paths, e.g. "/bin", should not be used for file storage.
-
-  @type paths: list
-  @param paths: List of paths to be checked
-  @rtype: list
-  @return: Sorted list of paths for which the user should be warned
-
-  """
-  def _Check(path):
-    return (not os.path.isabs(path) or
-            path in _forbidden or
-            filter(lambda p: utils.IsBelowDir(p, path), _forbidden))
-
-  return utils.NiceSort(filter(_Check, map(os.path.normpath, paths)))
-
-
-def ComputeWrongFileStoragePaths(_filename=pathutils.FILE_STORAGE_PATHS_FILE):
-  """Returns a list of file storage paths whose prefix is considered bad.
-
-  See L{_ComputeWrongFileStoragePaths}.
-
-  """
-  return _ComputeWrongFileStoragePaths(_LoadAllowedFileStoragePaths(_filename))
-
-
-def _CheckFileStoragePath(path, allowed):
-  """Checks if a path is in a list of allowed paths for file storage.
-
-  @type path: string
-  @param path: Path to check
-  @type allowed: list
-  @param allowed: List of allowed paths
-  @raise errors.FileStoragePathError: If the path is not allowed
-
-  """
-  if not os.path.isabs(path):
-    raise errors.FileStoragePathError("File storage path must be absolute,"
-                                      " got '%s'" % path)
-
-  for i in allowed:
-    if not os.path.isabs(i):
-      logging.info("Ignoring relative path '%s' for file storage", i)
-      continue
-
-    if utils.IsBelowDir(i, path):
-      break
-  else:
-    raise errors.FileStoragePathError("Path '%s' is not acceptable for file"
-                                      " storage" % path)
-
-
-def _LoadAllowedFileStoragePaths(filename):
-  """Loads file containing allowed file storage paths.
-
-  @rtype: list
-  @return: List of allowed paths (can be an empty list)
-
-  """
-  try:
-    contents = utils.ReadFile(filename)
-  except EnvironmentError:
-    return []
-  else:
-    return utils.FilterEmptyLinesAndComments(contents)
-
-
-def CheckFileStoragePath(path, _filename=pathutils.FILE_STORAGE_PATHS_FILE):
-  """Checks if a path is allowed for file storage.
-
-  @type path: string
-  @param path: Path to check
-  @raise errors.FileStoragePathError: If the path is not allowed
-
-  """
-  allowed = _LoadAllowedFileStoragePaths(_filename)
-
-  if _ComputeWrongFileStoragePaths([path]):
-    raise errors.FileStoragePathError("Path '%s' uses a forbidden prefix" %
-                                      path)
-
-  _CheckFileStoragePath(path, allowed)
 
 
 class LogicalVolume(base.BlockDev):
@@ -838,7 +729,7 @@ class FileStorage(base.BlockDev):
     self.driver = unique_id[0]
     self.dev_path = unique_id[1]
 
-    CheckFileStoragePath(self.dev_path)
+    filestorage.CheckFileStoragePathAcceptance(self.dev_path)
 
     self.Attach()
 
@@ -962,7 +853,7 @@ class FileStorage(base.BlockDev):
 
     dev_path = unique_id[1]
 
-    CheckFileStoragePath(dev_path)
+    filestorage.CheckFileStoragePathAcceptance(dev_path)
 
     try:
       fd = os.open(dev_path, os.O_RDWR | os.O_CREAT | os.O_EXCL)

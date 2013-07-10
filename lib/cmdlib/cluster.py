@@ -2294,8 +2294,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
                   " but missing on this node: %s",
                   self.cfg.GetNodeName(base.uuid), utils.CommaJoin(missing))
 
-  def _VerifyFileStoragePaths(self, ninfo, nresult, is_master,
-                              enabled_disk_templates):
+  def _VerifyAcceptedFileStoragePaths(self, ninfo, nresult, is_master):
     """Verifies paths in L{pathutils.FILE_STORAGE_PATHS_FILE}.
 
     @type ninfo: L{objects.Node}
@@ -2305,11 +2304,12 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     @param is_master: Whether node is the master node
 
     """
+    cluster = self.cfg.GetClusterInfo()
     if (is_master and
-        (utils.storage.IsFileStorageEnabled(enabled_disk_templates) or
-         utils.storage.IsSharedFileStorageEnabled(enabled_disk_templates))):
+        (cluster.IsFileStorageEnabled() or
+         cluster.IsSharedFileStorageEnabled())):
       try:
-        fspaths = nresult[constants.NV_FILE_STORAGE_PATHS]
+        fspaths = nresult[constants.NV_ACCEPTED_STORAGE_PATHS]
       except KeyError:
         # This should never happen
         self._ErrorIf(True, constants.CV_ENODEFILESTORAGEPATHS, ninfo.name,
@@ -2319,7 +2319,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
                       "Found forbidden file storage paths: %s",
                       utils.CommaJoin(fspaths))
     else:
-      self._ErrorIf(constants.NV_FILE_STORAGE_PATHS in nresult,
+      self._ErrorIf(constants.NV_ACCEPTED_STORAGE_PATHS in nresult,
                     constants.CV_ENODEFILESTORAGEPATHS, ninfo.name,
                     "Node should not have returned forbidden file storage"
                     " paths")
@@ -2669,8 +2669,11 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     if cluster.IsFileStorageEnabled() or \
         cluster.IsSharedFileStorageEnabled():
       # Load file storage paths only from master node
-      node_verify_param[constants.NV_FILE_STORAGE_PATHS] = \
+      node_verify_param[constants.NV_ACCEPTED_STORAGE_PATHS] = \
         self.cfg.GetMasterNodeName()
+      if cluster.IsFileStorageEnabled():
+        node_verify_param[constants.NV_FILE_STORAGE_PATH] = \
+          cluster.file_storage_dir
 
     # bridge checks
     # FIXME: this needs to be changed per node-group, not cluster-wide
@@ -2834,9 +2837,8 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       self._VerifyNodeNetwork(node_i, nresult)
       self._VerifyNodeUserScripts(node_i, nresult)
       self._VerifyOob(node_i, nresult)
-      self._VerifyFileStoragePaths(node_i, nresult,
-                                   node_i.uuid == master_node_uuid,
-                                   cluster.enabled_disk_templates)
+      self._VerifyAcceptedFileStoragePaths(node_i, nresult,
+                                           node_i.uuid == master_node_uuid)
 
       if nimg.vm_capable:
         self._UpdateVerifyNodeLVM(node_i, nresult, vg_name, nimg)
