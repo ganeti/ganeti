@@ -837,6 +837,14 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
     self.assertEqual([123, 124], self.client.GetJobs())
     self.assertHandler(rlib2.R_2_jobs)
 
+    self.rapi.AddResponse('[ { "id": "123", "uri": "\\/2\\/jobs\\/123" },'
+                          '  { "id": "124", "uri": "\\/2\\/jobs\\/124" } ]')
+    self.assertEqual([{"id": "123", "uri": "/2/jobs/123"},
+                      {"id": "124", "uri": "/2/jobs/124"}],
+                      self.client.GetJobs(bulk=True))
+    self.assertHandler(rlib2.R_2_jobs)
+    self.assertBulk()
+
   def testGetJobStatus(self):
     self.rapi.AddResponse("{\"foo\": \"bar\"}")
     self.assertEqual({"foo": "bar"}, self.client.GetJobStatus(1234))
