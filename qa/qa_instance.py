@@ -136,10 +136,10 @@ def _DestroyInstanceDisks(instance):
     for node in info["nodes"]:
       AssertCommand(["lvremove", "-f"] + vols, node=node)
   elif info["storage-type"] == constants.ST_FILE:
-    # FIXME: file storage dir not configurable in qa
     # Note that this works for both file and sharedfile, and this is intended.
-    filestorage = pathutils.DEFAULT_FILE_STORAGE_DIR
-    idir = os.path.join(filestorage, instance.name)
+    storage_dir = qa_config.get("file-storage-dir",
+                                pathutils.DEFAULT_FILE_STORAGE_DIR)
+    idir = os.path.join(storage_dir, instance.name)
     for node in info["nodes"]:
       AssertCommand(["rm", "-rf", idir], node=node)
   elif info["storage-type"] == constants.ST_DISKLESS:
@@ -558,9 +558,8 @@ def TestInstanceModifyPrimaryAndBack(instance, currentnode, othernode):
   current = currentnode.primary
   other = othernode.primary
 
-  # FIXME: the qa doesn't have a customizable file storage dir parameter. As
-  # such for now we use the default.
-  filestorage = pathutils.DEFAULT_FILE_STORAGE_DIR
+  filestorage = qa_config.get("file-storage-dir",
+                              pathutils.DEFAULT_FILE_STORAGE_DIR)
   disk = os.path.join(filestorage, name)
 
   AssertCommand(["gnt-instance", "modify", "--new-primary=%s" % other, name],
@@ -997,7 +996,8 @@ def TestRemoveInstanceOfflineNode(instance, snode, set_offline, set_online):
         AssertCommand(drbd_shutdown_cmd, node=snode)
       AssertCommand(["lvremove", "-f"] + info["volumes"], node=snode)
     elif info["storage-type"] == constants.ST_FILE:
-      filestorage = pathutils.DEFAULT_FILE_STORAGE_DIR
+      filestorage = qa_config.get("file-storage-dir",
+                                  pathutils.DEFAULT_FILE_STORAGE_DIR)
       disk = os.path.join(filestorage, instance.name)
       AssertCommand(["rm", "-rf", disk], node=snode)
 

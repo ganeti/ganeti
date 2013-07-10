@@ -178,7 +178,9 @@ def TestClusterInit(rapi_user, rapi_secret):
     "--primary-ip-version=%d" % qa_config.get("primary_ip_version", 4),
     "--enabled-hypervisors=%s" % ",".join(qa_config.GetEnabledHypervisors()),
     "--enabled-disk-templates=%s" %
-      ",".join(qa_config.GetEnabledDiskTemplates())
+      ",".join(qa_config.GetEnabledDiskTemplates()),
+    "--file-storage-dir=%s" %
+      qa_config.get("file-storage-dir", pathutils.DEFAULT_FILE_STORAGE_DIR),
     ]
 
   for spec_type in ("mem-size", "disk-size", "disk-count", "cpu-count",

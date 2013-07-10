@@ -35,6 +35,9 @@
     "diskless"
   ],
 
+  "# Default file storage dir (used also for shared storage)": null,
+  "default-file-storage-dir": "/srv/ganeti/file-storage",
+
   "# Additional arguments for initializing cluster": null,
   "cluster-init-args": [],
 

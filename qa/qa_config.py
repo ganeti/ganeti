@@ -372,6 +372,22 @@ class _QaConfig(object):
       _ENABLED_DISK_TEMPLATES_KEY,
       constants.DEFAULT_ENABLED_DISK_TEMPLATES)
 
+  def GetEnabledStorageTypes(self):
+    """Returns the list of enabled storage types.
+
+    @rtype: list
+    @returns: the list of storage types enabled for QA
+
+    """
+    enabled_disk_templates = self.GetEnabledDiskTemplates()
+    enabled_storage_types = list(set([constants.DISK_TEMPLATES_STORAGE_TYPE[dt]
+                                      for dt in enabled_disk_templates]))
+    # Storage type 'lvm-pv' cannot be activated via a disk template,
+    # therefore we add it if 'lvm-vg' is present.
+    if constants.ST_LVM_VG in enabled_storage_types:
+      enabled_storage_types.append(constants.ST_LVM_PV)
+    return enabled_storage_types
+
   def GetDefaultDiskTemplate(self):
     """Returns the default disk template to be used.
 
@@ -591,6 +607,13 @@ def GetEnabledDiskTemplates(*args):
 
   """
   return GetConfig().GetEnabledDiskTemplates(*args)
+
+
+def GetEnabledStorageTypes(*args):
+  """Wrapper for L{_QaConfig.GetEnabledStorageTypes}.
+
+  """
+  return GetConfig().GetEnabledStorageTypes(*args)
 
 
 def GetDefaultDiskTemplate(*args):
