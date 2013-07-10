@@ -118,6 +118,7 @@ in_chroot -- \
 in_chroot -- \
   apt-get -y --no-install-recommends -t squeeze-backports install \
     git \
+    git-email \
     vim
 
 in_chroot -- \
