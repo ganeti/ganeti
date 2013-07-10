@@ -2490,6 +2490,7 @@ class ConfigWriter:
       self._EnsureUUID(net, ec_id)
 
     net.serial_no = 1
+    net.ctime = net.mtime = time.time()
     self._config_data.networks[net.uuid] = net
     self._config_data.cluster.serial_no += 1
 

@@ -174,8 +174,10 @@ genValidNetwork = do
   gateway6 <- genMaybe genIp6Addr
   res <- liftM Just (genBitString $ netmask2NumHosts netmask)
   ext_res <- liftM Just (genBitString $ netmask2NumHosts netmask)
+  ctime <- arbitrary
+  mtime <- arbitrary
   let n = Network name mac_prefix net net6 gateway
-          gateway6 res ext_res 0 Set.empty
+          gateway6 res ext_res ctime mtime 0 Set.empty
   return n
 
 -- | Generate an arbitrary string consisting of '0' and '1' of the given length.

@@ -186,6 +186,7 @@ $(buildObject "Network" "network" $
   , optionalField $
     simpleField "ext_reservations" [t| String |]
   ]
+  ++ timeStampFields
   ++ serialFields
   ++ tagsFields)
 
@@ -194,6 +195,10 @@ instance SerialNoObject Network where
 
 instance TagsObject Network where
   tagsOf = networkTags
+
+instance TimeStampObject Network where
+  cTimeOf = networkCtime
+  mTimeOf = networkMtime
 
 -- * NIC definitions
 
