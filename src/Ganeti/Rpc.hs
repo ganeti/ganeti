@@ -231,7 +231,9 @@ executeRpcCall nodes call = do
                 Ok r -> return r
   -- now parse the replies
   let results'' = map (parseHttpReply call) results'
-  return $ zip nodes results''
+      pairedList = zip nodes results''
+  logRpcErrors pairedList
+  return pairedList
 
 -- | Helper function that is used to read dictionaries of values.
 sanitizeDictResults :: [(String, J.Result a)] -> ERpcError [(String, a)]

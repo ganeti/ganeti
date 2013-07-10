@@ -233,7 +233,6 @@ collectLiveData True cfg nodes = do
              Nothing -> (n : bn, gn, em)
       (bnodes, gnodes, emap) = foldr step ([], [], []) nodes
   rpcres <- executeRpcCall gnodes (RpcCallNodeInfo vgs hvs (Map.fromList emap))
-  logRpcErrors rpcres
   -- FIXME: The order of nodes in the result could be different from the input
   return $ zip bnodes (repeat $ Left (RpcResultError "Broken configuration"))
            ++ rpcres
