@@ -36,7 +36,6 @@ import qualified Data.Map as Map
 import qualified Text.JSON as J
 
 import Ganeti.Config
-import Ganeti.Logging
 import Ganeti.Objects
 import Ganeti.JSON
 import Ganeti.Rpc
@@ -214,15 +213,6 @@ nodeFields =
 fieldsMap :: FieldMap Node Runtime
 fieldsMap =
   Map.fromList $ map (\v@(f, _, _) -> (fdefName f, v)) nodeFields
-
--- | Scan the list of results produced by executeRpcCall and log all the RPC
--- errors.
-logRpcErrors :: [(Node, Runtime)] -> IO ()
-logRpcErrors allElems =
-  let logOneRpcErr (_, Right _) = return ()
-      logOneRpcErr (_, Left err) =
-        logError $ "Error in the RPC HTTP reply: " ++ show err
-  in mapM_ logOneRpcErr allElems
 
 -- | Collect live data from RPC query if enabled.
 --
