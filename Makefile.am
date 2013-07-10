@@ -20,6 +20,9 @@ strip_hsroot = $(patsubst src/%,%,$(patsubst test/hs/%,%,$(1)))
 # Use bash in order to be able to use pipefail
 SHELL=/bin/bash
 
+# Enable colors in shelltest
+SHELLTESTARGS = "-c"
+
 ACLOCAL_AMFLAGS = -I autotools
 BUILD_BASH_COMPLETION = $(top_srcdir)/autotools/build-bash-completion
 RUN_IN_TEMPDIR = $(top_srcdir)/autotools/run-in-tempdir
@@ -1827,15 +1830,30 @@ check-local: check-dirs $(GENERATED_FILES)
 	done; \
 	test -z "$$error"
 
+.PHONY: hs-test-%
+hs-test-%: test/hs/htest | $(BUILT_PYTHON_SOURCES)
+	@rm -f htest.tix
+	test/hs/htest -t $*
+
 .PHONY: hs-tests
 hs-tests: test/hs/htest | $(BUILT_PYTHON_SOURCES)
 	@rm -f htest.tix
 	./test/hs/htest
 
+.PHONY: hs-shell-%
+hs-shell-%: test/hs/hpc-htools test/hs/hpc-mon-collector \
+            $(HS_BUILT_TEST_HELPERS)
+	@rm -f hpc-htools.tix hpc-mon-collector.tix
+	HBINARY="./test/hs/hpc-htools" \
+	SHELLTESTARGS=$(SHELLTESTARGS) \
+	./test/hs/offline-test.sh $*
+
 .PHONY: hs-shell
 hs-shell: test/hs/hpc-htools test/hs/hpc-mon-collector $(HS_BUILT_TEST_HELPERS)
 	@rm -f hpc-htools.tix hpc-mon-collector.tix
-	HBINARY="./test/hs/hpc-htools" ./test/hs/offline-test.sh
+	HBINARY="./test/hs/hpc-htools" \
+	SHELLTESTARGS=$(SHELLTESTARGS) \
+	./test/hs/offline-test.sh
 
 .PHONY: hs-check
 hs-check: hs-tests hs-shell

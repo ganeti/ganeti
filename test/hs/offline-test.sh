@@ -20,6 +20,14 @@
 # This is an offline testing script for most/all of the htools
 # programs, checking basic command line functionality.
 
+# Optional argument that specifies the test files to run. If not
+# specified, then all tests are run.
+#
+# For example, a value of 'balancing' runs the file
+# 'shelltests/htools-balancing.test'.  Multiple files can be specified
+# using shell notation, for example, '{balancing,basic}'.
+TESTS=${1:-*}
+
 set -e
 set -o pipefail
 
@@ -97,7 +105,4 @@ echo OK
 echo Running shelltest...
 
 shelltest $SHELLTESTARGS \
-  ${TOP_SRCDIR:-.}/test/hs/shelltests/htools-*.test \
-  -- --hide-successes
-
-echo All OK
+  ${TOP_SRCDIR:-.}/test/hs/shelltests/htools-$TESTS.test

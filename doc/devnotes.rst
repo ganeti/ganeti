@@ -24,7 +24,7 @@ Most dependencies from :doc:`install-quick`, including ``qemu-img``
 - `pep8 <https://github.com/jcrocholl/pep8/>`_
 - `PyYAML <http://pyyaml.org/>`_
 
-For older developement (Ganeti < 2.4) ``docbook`` was used instead
+For older developement (Ganeti < 2.4) ``docbook`` was used instead of
 ``pandoc``.
 
 Note that for pylint, at the current moment the following versions
@@ -175,8 +175,8 @@ Running individual tests
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 When developing code, running the entire test suite can be
-slow. Running individual tests is possible easily for unit-tests, less
-so for shell-tests (but these are faster, so it shouldn't be needed).
+slow. Running individual tests is possible. There are different
+Makefile targets for running individual Python and Haskell tests.
 
 For Python tests::
 
@@ -185,14 +185,32 @@ For Python tests::
 
 For Haskell tests::
 
-  $ make test/hs/htest && ./test/hs/htest -t %pattern%
+  $ make hs-test-%pattern%
 
 Where ``pattern`` can be a simple test pattern (e.g. ``comma``,
 matching any test whose name contains ``comma``), a test pattern
 denoting a group (ending with a slash, e.g. ``Utils/``), or more
-complex glob pattern. For more details, see the documentation (on the
-`test-framework homepage
+complex glob pattern. For more details, search for glob patterns in
+the documentation of `test-framework
 <http://batterseapower.github.com/test-framework/>`_).
+
+For individual Haskell shelltests::
+
+  $ make hs-shell-%name%
+
+which runs the test ``test/hs/shelltests/htools-%name%.test``. For
+example, to run the test ``test/hs/shelltests/htools-balancing.test``,
+use::
+
+  $ make hs-shell-balancing
+
+For combined Haskell shelltests::
+
+  $ make hs-shell-{%name1%,%name2%,...}
+
+for example::
+
+  $ make hs-shell-{balancing,basic}
 
 Packaging notes
 ===============
