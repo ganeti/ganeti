@@ -119,6 +119,11 @@ $(genLuxiOp "LuxiOp"
      , simpleField "fields" [t| [String] |]
      , simpleField "lock"   [t| Bool     |]
      ])
+  , (luxiReqQueryNetworks,
+     [ simpleField "names"  [t| [String] |]
+     , simpleField "fields" [t| [String] |]
+     , simpleField "lock"   [t| Bool     |]
+     ])
   , (luxiReqQueryInstances,
      [ simpleField "names"  [t| [String] |]
      , simpleField "fields" [t| [String] |]
@@ -341,6 +346,9 @@ decodeCall (LuxiCall call args) =
               return $ QueryGroups names fields locking
     ReqQueryClusterInfo ->
               return QueryClusterInfo
+    ReqQueryNetworks -> do
+              (names, fields, locking) <- fromJVal args
+              return $ QueryNetworks names fields locking
     ReqQuery -> do
               (what, fields, qfilter) <- fromJVal args
               return $ Query what fields qfilter
