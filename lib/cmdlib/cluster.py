@@ -2324,6 +2324,22 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
                     "Node should not have returned forbidden file storage"
                     " paths")
 
+  def _VerifyStoragePaths(self, ninfo, nresult):
+    """Verifies (file) storage paths.
+
+    @type ninfo: L{objects.Node}
+    @param ninfo: the node to check
+    @param nresult: the remote results for the node
+
+    """
+    cluster = self.cfg.GetClusterInfo()
+    if cluster.IsFileStorageEnabled():
+      self._ErrorIf(
+          constants.NV_FILE_STORAGE_PATH in nresult,
+          constants.CV_ENODEFILESTORAGEPATHUNUSABLE, ninfo.name,
+          "The configured file storage path is unusable: %s" %
+          nresult.get(constants.NV_FILE_STORAGE_PATH))
+
   def _VerifyOob(self, ninfo, nresult):
     """Verifies out of band functionality of a node.
 
@@ -2839,6 +2855,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       self._VerifyOob(node_i, nresult)
       self._VerifyAcceptedFileStoragePaths(node_i, nresult,
                                            node_i.uuid == master_node_uuid)
+      self._VerifyStoragePaths(node_i, nresult)
 
       if nimg.vm_capable:
         self._UpdateVerifyNodeLVM(node_i, nresult, vg_name, nimg)

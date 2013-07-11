@@ -1134,6 +1134,12 @@ def VerifyNode(what, cluster_name, all_hvparams):
     result[constants.NV_ACCEPTED_STORAGE_PATHS] = \
         filestorage.ComputeWrongFileStoragePaths()
 
+  if what.get(constants.NV_FILE_STORAGE_PATH):
+    pathresult = filestorage.CheckFileStoragePath(
+        what[constants.NV_FILE_STORAGE_PATH])
+    if pathresult:
+      result[constants.NV_FILE_STORAGE_PATH] = pathresult
+
   return result
 
 

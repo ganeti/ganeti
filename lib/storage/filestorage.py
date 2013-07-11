@@ -108,13 +108,16 @@ def ComputeWrongFileStoragePaths(_filename=pathutils.FILE_STORAGE_PATHS_FILE):
   return _ComputeWrongFileStoragePaths(_LoadAllowedFileStoragePaths(_filename))
 
 
-def _CheckFileStoragePath(path, allowed):
+def _CheckFileStoragePath(path, allowed, exact_match_ok=False):
   """Checks if a path is in a list of allowed paths for file storage.
 
   @type path: string
   @param path: Path to check
   @type allowed: list
   @param allowed: List of allowed paths
+  @type exact_match_ok: bool
+  @param exact_match_ok: whether or not it is okay when the path is exactly
+      equal to an allowed path and not a subdir of it
   @raise errors.FileStoragePathError: If the path is not allowed
 
   """
@@ -126,6 +129,10 @@ def _CheckFileStoragePath(path, allowed):
     if not os.path.isabs(i):
       logging.info("Ignoring relative path '%s' for file storage", i)
       continue
+
+    if exact_match_ok:
+      if os.path.normpath(i) == os.path.normpath(path):
+        break
 
     if utils.IsBelowDir(i, path):
       break
@@ -150,7 +157,8 @@ def _LoadAllowedFileStoragePaths(filename):
 
 
 def CheckFileStoragePathAcceptance(
-    path, _filename=pathutils.FILE_STORAGE_PATHS_FILE):
+    path, _filename=pathutils.FILE_STORAGE_PATHS_FILE,
+    exact_match_ok=False):
   """Checks if a path is allowed for file storage.
 
   @type path: string
@@ -164,4 +172,41 @@ def CheckFileStoragePathAcceptance(
     raise errors.FileStoragePathError("Path '%s' uses a forbidden prefix" %
                                       path)
 
-  _CheckFileStoragePath(path, allowed)
+  _CheckFileStoragePath(path, allowed, exact_match_ok=exact_match_ok)
+
+
+def _CheckFileStoragePathExistance(path):
+  """Checks whether the given path is usable on the file system.
+
+  This checks wether the path is existing, a directory and writable.
+
+  @type path: string
+  @param path: path to check
+
+  """
+  if not os.path.isdir(path):
+    raise errors.FileStoragePathError("Path '%s' is not exisiting or not a"
+                                      " directory." % path)
+  if not os.access(path, os.W_OK):
+    raise errors.FileStoragePathError("Path '%s' is not writable" % path)
+
+
+def CheckFileStoragePath(
+    path, _allowed_paths_file=pathutils.FILE_STORAGE_PATHS_FILE):
+  """Checks whether the path exists and is acceptable to use.
+
+  @type path: string
+  @param path: path to check
+  @rtype: string
+  @returns: error message if the path is not ready to use
+
+  """
+  try:
+    CheckFileStoragePathAcceptance(path, _filename=_allowed_paths_file,
+                                   exact_match_ok=True)
+  except errors.FileStoragePathError, e:
+    return e.message
+  if not os.path.isdir(path):
+    return "Path '%s' is not exisiting or not a directory." % path
+  if not os.access(path, os.W_OK):
+    return "Path '%s' is not writable" % path
