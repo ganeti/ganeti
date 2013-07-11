@@ -268,7 +268,10 @@ without creating or distributing SSH key pairs.
 
 The ``--file-storage-dir`` option allows you set the directory to
 use for storing the instance disk files when using file storage as
-backend for instance disks.
+backend for instance disks. Note that the file storage dir must be
+an allowed directory for file storage. Those directories are specified
+in the ``@SYSCONFDIR@/ganeti/file-storage-paths`` file. The file storage
+directory can also be a subdirectory of an allowed one.
 
 The ``--prealloc-wipe-disks`` sets a cluster wide configuration value
 for wiping disks prior to allocation and size changes (``gnt-instance
