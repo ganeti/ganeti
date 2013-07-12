@@ -971,6 +971,9 @@ class LUClusterSetParams(LogicalUnit):
                     " maintenance is not useful (still enabling it)")
       self.cluster.maintain_node_health = self.op.maintain_node_health
 
+    if self.op.modify_etc_hosts is not None:
+      self.cluster.modify_etc_hosts = self.op.modify_etc_hosts
+
     if self.op.prealloc_wipe_disks is not None:
       self.cluster.prealloc_wipe_disks = self.op.prealloc_wipe_disks
 
