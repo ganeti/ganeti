@@ -56,19 +56,23 @@ module Ganeti.Utils
   , exitIfEmpty
   , splitEithers
   , recombineEithers
+  , setOwnerAndGroupFromNames
   ) where
 
 import Data.Char (toUpper, isAlphaNum, isDigit, isSpace)
 import Data.Function (on)
 import Data.List
+import qualified Data.Map as M
 import Control.Monad (foldM)
 
 import Debug.Trace
 
 import Ganeti.BasicTypes
 import qualified Ganeti.Constants as C
+import Ganeti.Runtime
 import System.IO
 import System.Exit
+import System.Posix.Files
 import System.Time
 
 -- * Debug functions
@@ -431,3 +435,16 @@ recombineEithers lefts rights trail =
           recombiner (_,  ls, rs) t = Bad $ "Inconsistent trail log: l=" ++
                                       show ls ++ ", r=" ++ show rs ++ ",t=" ++
                                       show t
+
+-- | Set the owner and the group of a file (given as names, not numeric id).
+setOwnerAndGroupFromNames :: FilePath -> GanetiDaemon -> GanetiGroup -> IO ()
+setOwnerAndGroupFromNames filename daemon dGroup = do
+  -- TODO: it would be nice to rework this (or getEnts) so that runtimeEnts
+  -- is read only once per daemon startup, and then cached for further usage.
+  runtimeEnts <- getEnts
+  ents <- exitIfBad "Can't find required user/groups" runtimeEnts
+  -- note: we use directly ! as lookup failures shouldn't happen, due
+  -- to the map construction
+  let uid = fst ents M.! daemon
+  let gid = snd ents M.! dGroup
+  setOwnerAndGroup filename uid gid
