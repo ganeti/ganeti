@@ -259,6 +259,7 @@ $(buildObject "Network" "network" $
     simpleField "ext_reservations" [t| String |]
   ]
   ++ uuidFields
+  ++ timeStampFields
   ++ serialFields
   ++ tagsFields)
 
@@ -270,6 +271,10 @@ instance TagsObject Network where
 
 instance UuidObject Network where
   uuidOf = networkUuid
+
+instance TimeStampObject Network where
+  cTimeOf = networkCtime
+  mTimeOf = networkMtime
 
 -- * NIC definitions
 
