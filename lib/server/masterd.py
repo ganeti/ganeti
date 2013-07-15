@@ -279,6 +279,10 @@ class ClientOps:
       logging.info("Received invalid arguments of type '%s'", type(args))
       raise ValueError("Invalid arguments type '%s'" % type(args))
 
+    if method not in luxi.REQ_ALL:
+      logging.info("Received invalid request '%s'", method)
+      raise ValueError("Invalid operation '%s'" % method)
+
     # TODO: Rewrite to not exit in each 'if/elif' branch
 
     if method == luxi.REQ_SUBMIT_JOB:
@@ -446,8 +450,9 @@ class ClientOps:
       return _SetWatcherPause(context, until)
 
     else:
-      logging.info("Received invalid request '%s'", method)
-      raise ValueError("Invalid operation '%s'" % method)
+      logging.critical("Request '%s' in luxi.REQ_ALL, but not known", method)
+      raise errors.ProgrammerError("Operation '%s' in luxi.REQ_ALL,"
+                                   " but not implemented" % method)
 
   def _Query(self, op):
     """Runs the specified opcode and returns the result.
