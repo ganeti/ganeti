@@ -1294,17 +1294,28 @@ class GanetiRapiClient(object): # pylint: disable=R0904
                              ("/%s/instances/%s/console" %
                               (GANETI_RAPI_VERSION, instance)), None, None)
 
-  def GetJobs(self):
+  def GetJobs(self, bulk=False):
     """Gets all jobs for the cluster.
 
+    @type bulk: bool
+    @param bulk: Whether to return detailed information about jobs.
     @rtype: list of int
-    @return: job ids for the cluster
+    @return: List of job ids for the cluster or list of dicts with detailed
+             information about the jobs if bulk parameter was true.
 
     """
-    return [int(j["id"])
-            for j in self._SendRequest(HTTP_GET,
-                                       "/%s/jobs" % GANETI_RAPI_VERSION,
-                                       None, None)]
+    query = []
+    _AppendIf(query, bulk, ("bulk", 1))
+
+    if bulk:
+      return self._SendRequest(HTTP_GET,
+                               "/%s/jobs" % GANETI_RAPI_VERSION,
+                               query, None)
+    else:
+      return [int(j["id"])
+              for j in self._SendRequest(HTTP_GET,
+                                         "/%s/jobs" % GANETI_RAPI_VERSION,
+                                         None, None)]
 
   def GetJobStatus(self, job_id):
     """Gets the status of a job.

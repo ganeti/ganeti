@@ -184,6 +184,7 @@ $(genOpCode "OpCode"
      , pBlacklistedOs
      , pUseExternalMipScript
      , pEnabledDiskTemplates
+     , pModifyEtcHosts
      ])
   , ("OpClusterRedistConf", [])
   , ("OpClusterActivateMasterIp", [])

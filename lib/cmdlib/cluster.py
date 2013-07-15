@@ -1055,6 +1055,9 @@ class LUClusterSetParams(LogicalUnit):
                     " maintenance is not useful (still enabling it)")
       self.cluster.maintain_node_health = self.op.maintain_node_health
 
+    if self.op.modify_etc_hosts is not None:
+      self.cluster.modify_etc_hosts = self.op.modify_etc_hosts
+
     if self.op.prealloc_wipe_disks is not None:
       self.cluster.prealloc_wipe_disks = self.op.prealloc_wipe_disks
 
@@ -1354,6 +1357,13 @@ class LUClusterVerifyConfig(NoHooksLU, _VerifyErrors):
     for cert_filename in pathutils.ALL_CERT_FILES:
       (errcode, msg) = _VerifyCertificate(cert_filename)
       self._ErrorIf(errcode, constants.CV_ECLUSTERCERT, None, msg, code=errcode)
+
+    self._ErrorIf(not utils.CanRead(constants.CONFD_USER,
+                                    pathutils.NODED_CERT_FILE),
+                  constants.CV_ECLUSTERCERT,
+                  None,
+                  pathutils.NODED_CERT_FILE + " must be accessible by the " +
+                    constants.CONFD_USER + " user")
 
     feedback_fn("* Verifying hypervisor parameters")
 

@@ -2795,6 +2795,9 @@ def _BuildNetworkFields():
     compat.partial(_GetNetworkStatsField, name, kind))
     for (name, (title, kind, _, doc)) in _NETWORK_STATS_FIELDS.items()])
 
+  # Add timestamps
+  fields.extend(_GetItemTimestampFields(IQ_NETWORKS))
+
   return _PrepareFieldList(fields, [])
 
 #: Fields for cluster information

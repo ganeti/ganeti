@@ -961,6 +961,8 @@ class OpClusterSetParams(OpCode):
      ht.TMaybe(ht.TAnd(ht.TListOf(ht.TElemOf(constants.DISK_TEMPLATES)),
                        ht.TTrue)),
      "List of enabled disk templates"),
+    ("modify_etc_hosts", None, ht.TMaybeBool,
+     "Whether the cluster can modify and keep in sync the /etc/hosts files"),
     ]
   OP_RESULT = ht.TNone
 

@@ -64,6 +64,8 @@ instance Arbitrary Luxi.LuxiOp where
                             genFields <*> arbitrary
       Luxi.ReqQueryGroups -> Luxi.QueryGroups <$> arbitrary <*>
                              arbitrary <*> arbitrary
+      Luxi.ReqQueryNetworks -> Luxi.QueryNetworks <$> arbitrary <*>
+                             arbitrary <*> arbitrary
       Luxi.ReqQueryInstances -> Luxi.QueryInstances <$> listOf genFQDN <*>
                                 genFields <*> arbitrary
       Luxi.ReqQueryJobs -> Luxi.QueryJobs <$> arbitrary <*> genFields

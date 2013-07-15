@@ -121,6 +121,7 @@ module Ganeti.OpParams
   , pAddUids
   , pRemoveUids
   , pMaintainNodeHealth
+  , pModifyEtcHosts
   , pPreallocWipeDisks
   , pNicParams
   , pInstNics
@@ -899,6 +900,10 @@ pRemoveUids = optionalField $ simpleField "remove_uids" [t| [[(Int, Int)]] |]
 -- | Whether to automatically maintain node health.
 pMaintainNodeHealth :: Field
 pMaintainNodeHealth = optionalField $ booleanField "maintain_node_health"
+
+-- | Whether to modify and keep in sync the @/etc/hosts@ files of nodes.
+pModifyEtcHosts :: Field
+pModifyEtcHosts = optionalField $ booleanField "modify_etc_hosts"
 
 -- | Whether to wipe disks before allocating them to instances.
 pPreallocWipeDisks :: Field

@@ -116,6 +116,7 @@ __all__ = [
   "MASTER_NETMASK_OPT",
   "MC_OPT",
   "MIGRATION_MODE_OPT",
+  "MODIFY_ETCHOSTS_OPT",
   "NET_OPT",
   "NETWORK_OPT",
   "NETWORK6_OPT",
@@ -1312,6 +1313,12 @@ GLOBAL_SHARED_FILEDIR_OPT = cli_option(
 NOMODIFY_ETCHOSTS_OPT = cli_option("--no-etc-hosts", dest="modify_etc_hosts",
                                    help="Don't modify %s" % pathutils.ETC_HOSTS,
                                    action="store_false", default=True)
+
+MODIFY_ETCHOSTS_OPT = \
+ cli_option("--modify-etc-hosts", dest="modify_etc_hosts", metavar=_YORNO,
+            default=None, type="bool",
+            help="Defines whether the cluster should autonomously modify"
+            " and keep in sync the /etc/hosts file of the nodes")
 
 NOMODIFY_SSH_SETUP_OPT = cli_option("--no-ssh-init", dest="modify_ssh_setup",
                                     help="Don't initialize SSH keys",

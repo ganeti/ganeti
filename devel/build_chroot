@@ -121,6 +121,7 @@ in_chroot -- \
 in_chroot -- \
   $APT_INSTALL -t squeeze-backports \
     git \
+    git-email \
     vim
 
 in_chroot -- \

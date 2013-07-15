@@ -33,6 +33,7 @@ module Ganeti.Rpc
   , ERpcError
   , explainRpcError
   , executeRpcCall
+  , logRpcErrors
 
   , rpcCallName
   , rpcCallTimeout
@@ -83,6 +84,7 @@ import qualified Ganeti.Path as P
 
 import Ganeti.BasicTypes
 import qualified Ganeti.Constants as C
+import Ganeti.Logging
 import Ganeti.Objects
 import Ganeti.THH
 import Ganeti.Types
@@ -194,6 +196,15 @@ parseHttpResponse call res =
        J.JSString msg -> Left $ RpcResultError (J.fromJSString msg)
        _ -> Left . JsonDecodeError $ show (pp_value jerr)
 
+-- | Scan the list of results produced by executeRpcCall and log all the RPC
+-- errors.
+logRpcErrors :: [(a, ERpcError b)] -> IO ()
+logRpcErrors allElems =
+  let logOneRpcErr (_, Right _) = return ()
+      logOneRpcErr (_, Left err) =
+        logError $ "Error in the RPC HTTP reply: " ++ show err
+  in mapM_ logOneRpcErr allElems
+
 -- | Execute RPC call for many nodes in parallel.
 executeRpcCall :: (Rpc a b) => [Node] -> a -> IO [(Node, ERpcError b)]
 executeRpcCall nodes call = do
@@ -220,7 +231,9 @@ executeRpcCall nodes call = do
                 Ok r -> return r
   -- now parse the replies
   let results'' = map (parseHttpReply call) results'
-  return $ zip nodes results''
+      pairedList = zip nodes results''
+  logRpcErrors pairedList
+  return pairedList
 
 -- | Helper function that is used to read dictionaries of values.
 sanitizeDictResults :: [(String, J.Result a)] -> ERpcError [(String, a)]

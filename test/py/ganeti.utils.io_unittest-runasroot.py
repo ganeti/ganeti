@@ -25,6 +25,9 @@ import os
 import tempfile
 import shutil
 import errno
+import grp
+import pwd
+import stat
 
 from ganeti import constants
 from ganeti import utils
@@ -91,6 +94,43 @@ class TestWriteFile(testutils.GanetiTestCase):
     utils.WriteFile(target, data="data", gid=tgid,
                     keep_perms=utils.KP_IF_EXISTS)
     self.assertFileGid(target, tgid)
+
+class TestCanRead(testutils.GanetiTestCase):
+  def setUp(self):
+    testutils.GanetiTestCase.setUp(self)
+    self.tmpdir = tempfile.mkdtemp()
+    self.confdUid = pwd.getpwnam(constants.CONFD_USER).pw_uid
+    self.masterdUid = pwd.getpwnam(constants.MASTERD_USER).pw_uid
+    self.masterdGid = grp.getgrnam(constants.MASTERD_GROUP).gr_gid
+
+  def tearDown(self):
+    testutils.GanetiTestCase.tearDown(self)
+    if self.tmpdir:
+      shutil.rmtree(self.tmpdir)
+
+  def testUserCanRead(self):
+    target = utils.PathJoin(self.tmpdir, "target1")
+    f=open(target, "w")
+    f.close()
+    utils.EnforcePermission(target, 0400, uid=self.confdUid,
+                            gid=self.masterdGid)
+    self.assertTrue(utils.CanRead(constants.CONFD_USER, target))
+    if constants.CONFD_USER != constants.MASTERD_USER:
+      self.assertFalse(utils.CanRead(constants.MASTERD_USER, target))
+
+  def testGroupCanRead(self):
+    target = utils.PathJoin(self.tmpdir, "target2")
+    f=open(target, "w")
+    f.close()
+    utils.EnforcePermission(target, 0040, uid=self.confdUid,
+                            gid=self.masterdGid)
+    self.assertFalse(utils.CanRead(constants.CONFD_USER, target))
+    if constants.CONFD_USER != constants.MASTERD_USER:
+      self.assertTrue(utils.CanRead(constants.MASTERD_USER, target))
+
+    utils.EnforcePermission(target, 0040, uid=self.masterdUid+1,
+                            gid=self.masterdGid)
+    self.assertTrue(utils.CanRead(constants.MASTERD_USER, target))
 
 
 if __name__ == "__main__":

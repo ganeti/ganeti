@@ -995,7 +995,8 @@ def SetClusterParams(opts, args):
           opts.ipolicy_std_specs is not None or
           opts.ipolicy_disk_templates is not None or
           opts.ipolicy_vcpu_ratio is not None or
-          opts.ipolicy_spindle_ratio is not None):
+          opts.ipolicy_spindle_ratio is not None or
+          opts.modify_etc_hosts is not None):
     ToStderr("Please give at least one of the parameters.")
     return 1
 
@@ -1105,6 +1106,7 @@ def SetClusterParams(opts, args):
     ipolicy=ipolicy,
     candidate_pool_size=opts.candidate_pool_size,
     maintain_node_health=mnh,
+    modify_etc_hosts=opts.modify_etc_hosts,
     uid_pool=uid_pool,
     add_uids=add_uids,
     remove_uids=remove_uids,
@@ -1623,7 +1625,8 @@ commands = {
      RESERVED_LVS_OPT, DRY_RUN_OPT, PRIORITY_OPT, PREALLOC_WIPE_DISKS_OPT,
      NODE_PARAMS_OPT, USE_EXTERNAL_MIP_SCRIPT, DISK_PARAMS_OPT, HV_STATE_OPT,
      DISK_STATE_OPT] + SUBMIT_OPTS +
-    [ENABLED_DISK_TEMPLATES_OPT, IPOLICY_STD_SPECS_OPT] + INSTANCE_POLICY_OPTS,
+     [ENABLED_DISK_TEMPLATES_OPT, IPOLICY_STD_SPECS_OPT, MODIFY_ETCHOSTS_OPT] +
+     INSTANCE_POLICY_OPTS,
     "[opts...]",
     "Alters the parameters of the cluster"),
   "renew-crypto": (

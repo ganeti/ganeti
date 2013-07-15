@@ -179,6 +179,10 @@ handleCall cfg (QueryJobs names fields) =
   handleClassicQuery cfg (Qlang.ItemTypeLuxi Qlang.QRJob)
     (map (Right . fromIntegral . fromJobId) names)  fields False
 
+handleCall cfg (QueryNetworks names fields lock) =
+  handleClassicQuery cfg (Qlang.ItemTypeOpCode Qlang.QRNetwork)
+    (map Left names) fields lock
+
 handleCall _ op =
   return . Bad $
     GenericError ("Luxi call '" ++ strOfOp op ++ "' not implemented")
@@ -209,6 +213,7 @@ handleClientMsg client creader args = do
 handleClient :: Client -> ConfigReader -> IO Bool
 handleClient client creader = do
   !msg <- recvMsgExt client
+  logDebug $ "Received message: " ++ show msg
   case msg of
     RecvConnClosed -> logDebug "Connection closed" >> return False
     RecvError err -> logWarning ("Error during message receiving: " ++ err) >>
