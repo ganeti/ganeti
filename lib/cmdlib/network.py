@@ -716,7 +716,8 @@ class LUNetworkDisconnect(LogicalUnit):
     else:
       _NetworkConflictCheck(
         self, lambda nic: nic.network == self.network_uuid, "disconnect from",
-        self.cfg.GetMultiInstanceInfoByName(owned_instances))
+        [instance_info for (_, instance_info) in
+        self.cfg.GetMultiInstanceInfoByName(owned_instances)])
 
   def Exec(self, feedback_fn):
     # Disconnect the network and update the group only if network is connected
