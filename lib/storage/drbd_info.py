@@ -430,6 +430,18 @@ class DRBD84ShowInfo(BaseShowInfo):
     return resource
 
   @classmethod
+  def _TransformVolumeSection(cls, vol_content, retval):
+    for entry in vol_content:
+      if entry[0] == "disk" and len(entry) == 2 and \
+          isinstance(entry[1], basestring):
+        retval["local_dev"] = entry[1]
+      elif entry[0] == "meta-disk":
+        if len(entry) > 1:
+          retval["meta_dev"] = entry[1]
+        if len(entry) > 2:
+          retval["meta_index"] = entry[2]
+
+  @classmethod
   def _TransformParseResult(cls, parse_result):
     retval = {}
     for section in parse_result:
@@ -439,14 +451,7 @@ class DRBD84ShowInfo(BaseShowInfo):
           if lst[0] == "address":
             retval["local_addr"] = tuple(lst[1:])
           elif lst[0] == "volume":
-            for inner in lst[1:]:
-              if inner[0] == "disk" and len(inner) == 2:
-                retval["local_dev"] = inner[1]
-              elif inner[0] == "meta-disk":
-                if len(inner) > 1:
-                  retval["meta_dev"] = inner[1]
-                if len(inner) > 2:
-                  retval["meta_index"] = inner[2]
+            cls._TransformVolumeSection(lst[1:], retval)
       elif sname == "_remote_host":
         for lst in section[1:]:
           if lst[0] == "address":
