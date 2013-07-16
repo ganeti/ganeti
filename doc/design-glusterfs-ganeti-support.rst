@@ -73,13 +73,24 @@ Now, there are two specific enhancements:
   uses libgfapi and hence there is no FUSE overhead any longer when QEMU/KVM
   works with VM images on Gluster volumes.
 
-There are two possible ways to implement "GlusterFS Ganeti Support" inside
-Ganeti. One is based on libgfapi, which call APIs by libgfapi to realize
-GlusterFS interfaces in bdev.py. The other way is based on QEMU/KVM. Since
-QEMU/KVM has supported for GlusterFS and Ganeti could support for GlusterFS
-by QEMU/KVM. However, the latter way can just let VMs of QEMU/KVM use GlusterFS
-backend storage but other VMs like XEN and such. So the first way is more
-suitable for us.
+Proposed implementation
+-----------------------
+
+QEMU/KVM includes support for GlusterFS and Ganeti could support GlusterFS
+through QEMU/KVM. However, this way could just let VMs of QEMU/KVM use GlusterFS
+backend storage but not other VMs like XEN and such. There are two parts that need
+to be implemented for supporting GlusterFS inside Ganeti so that it can not only
+support QEMU/KVM VMs, but also XEN and other VMs. One part is GlusterFS for XEN VM,
+which is similar to sharedfile disk template. The other part is GlusterFS for
+QEMU/KVM VM, which is supported by the GlusterFS driver for QEMU/KVM. After
+``gnt-instance add -t gluster instance.example.com`` command is executed, the added
+instance should be checked. If the instance is a XEN VM, it would run the GlusterFS
+sharedfile way. However, if the instance is a QEMU/KVM VM, it would run the
+QEMU/KVM + GlusterFS way. For the first part (GlusterFS for XEN VMs), sharedfile
+disk template would be a good reference. For the second part (GlusterFS for QEMU/KVM
+VMs), RBD disk template would be a good reference. The first part would be finished
+at first and then the second part would be completed, which is based on the first
+part.
 
 .. vim: set textwidth=72 :
 .. Local Variables:
