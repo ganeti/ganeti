@@ -52,11 +52,11 @@ args = None
 #: Target major version we will upgrade to
 TARGET_MAJOR = 2
 #: Target minor version we will upgrade to
-TARGET_MINOR = 9
+TARGET_MINOR = 10
 #: Target major version for downgrade
 DOWNGRADE_MAJOR = 2
 #: Target minor version for downgrade
-DOWNGRADE_MINOR = 8
+DOWNGRADE_MINOR = 9
 
 
 class Error(Exception):
@@ -350,41 +350,11 @@ def UpgradeAll(config_data):
   UpgradeInstanceIndices(config_data)
 
 
-def DowngradeDisks(disks, owner):
-  for disk in disks:
-    # Remove spindles to downgrade to 2.8
-    if "spindles" in disk:
-      logging.warning("Removing spindles (value=%s) from disk %s (%s) of"
-                      " instance %s",
-                      disk["spindles"], disk["iv_name"], disk["uuid"], owner)
-      del disk["spindles"]
-
-
-def DowngradeInstances(config_data):
-  if "instances" not in config_data:
-    raise Error("Cannot find the 'instances' key in the configuration!")
-  for (iname, iobj) in config_data["instances"].items():
-    if "disks" not in iobj:
-      raise Error("Cannot find 'disks' key for instance %s" % iname)
-    DowngradeDisks(iobj["disks"], iname)
-
-
-def DowngradeNodeIndices(config_data):
-  ChangeNodeIndices(config_data, "uuid", "name")
-
-
-def DowngradeInstanceIndices(config_data):
-  ChangeInstanceIndices(config_data, "uuid", "name")
-
-
 def DowngradeAll(config_data):
   # Any code specific to a particular version should be labeled that way, so
   # it can be removed when updating to the next version.
   config_data["version"] = constants.BuildVersion(DOWNGRADE_MAJOR,
                                                   DOWNGRADE_MINOR, 0)
-  DowngradeInstances(config_data)
-  DowngradeNodeIndices(config_data)
-  DowngradeInstanceIndices(config_data)
 
 
 def main():
