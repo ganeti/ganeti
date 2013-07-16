@@ -986,6 +986,7 @@ EXTRA_DIST = \
 man_MANS = \
 	man/ganeti-cleaner.8 \
 	man/ganeti-confd.8 \
+	man/ganeti-queryd.8 \
 	man/ganeti-listrunner.8 \
 	man/ganeti-masterd.8 \
 	man/ganeti-mond.8 \

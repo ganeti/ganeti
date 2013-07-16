@@ -177,8 +177,8 @@ Haskell optional features
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Optionally, more functionality can be enabled if your build machine has
-a few more Haskell libraries enabled: the ``ganeti-confd`` daemon
-(``--enable-confd``) and the monitoring daemon
+a few more Haskell libraries enabled: the ``ganeti-confd`` and
+``ganeti-queryd`` daemon (``--enable-confd``) and the monitoring daemon
 (``--enable-mond``). The list of extra dependencies for these is:
 
 - `hslogger <http://software.complete.org/hslogger>`_, version 1.1 and
