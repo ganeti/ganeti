@@ -141,6 +141,11 @@ class DRBD8Status(object): # pylint: disable=R0902
         self.sync_percent = None
       self.est_time = None
 
+  def __repr__(self):
+    return ("<%s: cstatus=%s, lrole=%s, rrole=%s, ldisk=%s, rdisk=%s>" %
+            (self.__class__, self.cstatus, self.lrole, self.rrole,
+             self.ldisk, self.rdisk))
+
 
 class DRBD8Info(object):
   """Represents information DRBD exports (usually via /proc/drbd).
