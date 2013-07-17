@@ -203,6 +203,7 @@ NODED_ARGS='--no-mlock $daemon_args'
 MASTERD_ARGS=''
 RAPI_ARGS='$daemon_args'
 CONFD_ARGS='$daemon_args'
+LUXID_ARGS=''
 
 export GANETI_ROOTDIR='$nodedir'
 export GANETI_HOSTNAME='$(node_hostname $number)'

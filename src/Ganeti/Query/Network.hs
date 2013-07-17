@@ -92,6 +92,7 @@ networkFields =
      "External reservations",
      FieldSimple getExtReservationsString, QffNormal)
   ] ++
+  timeStampFields ++
   uuidFields "Network" ++
   serialFields "Network" ++
   tagsFields

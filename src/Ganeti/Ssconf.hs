@@ -31,6 +31,7 @@ module Ganeti.Ssconf
   , sSKeyFromRaw
   , getPrimaryIPFamily
   , getMasterCandidatesIps
+  , getMasterNode
   , keyToFilename
   , sSFilePrefix
   ) where
@@ -134,3 +135,9 @@ getMasterCandidatesIps :: Maybe FilePath -> IO (Result [String])
 getMasterCandidatesIps optPath = do
   result <- readSSConfFile optPath Nothing SSMasterCandidatesIps
   return $ liftM lines result
+
+-- | Read the name of the master node.
+getMasterNode :: Maybe FilePath -> IO (Result String)
+getMasterNode optPath = do
+  result <- readSSConfFile optPath Nothing SSMasterNode
+  return (liftM rStripSpace result)

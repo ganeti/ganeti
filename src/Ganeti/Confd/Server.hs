@@ -1,5 +1,3 @@
-{-# LANGUAGE BangPatterns #-}
-
 {-| Implementation of the Ganeti confd server functionality.
 
 -}
@@ -32,8 +30,7 @@ module Ganeti.Confd.Server
   ) where
 
 import Control.Concurrent
-import Control.Exception
-import Control.Monad (forever, liftM, unless)
+import Control.Monad (forever, liftM)
 import Data.IORef
 import Data.List
 import qualified Data.Map as M
@@ -41,10 +38,7 @@ import Data.Maybe (fromMaybe)
 import qualified Network.Socket as S
 import System.Exit
 import System.IO
-import System.Posix.Files
-import System.Posix.Types
 import qualified Text.JSON as J
-import System.INotify
 
 import Ganeti.BasicTypes
 import Ganeti.Errors
@@ -54,11 +48,10 @@ import Ganeti.Objects
 import Ganeti.Confd.Types
 import Ganeti.Confd.Utils
 import Ganeti.Config
+import Ganeti.ConfigReader
 import Ganeti.Hash
 import Ganeti.Logging
 import qualified Ganeti.Constants as C
-import qualified Ganeti.Path as Path
-import Ganeti.Query.Server (prepQueryD, runQueryD)
 import qualified Ganeti.Query.Cluster as QCluster
 import Ganeti.Utils
 
@@ -67,53 +60,8 @@ import Ganeti.Utils
 -- | What we store as configuration.
 type CRef = IORef (Result (ConfigData, LinkIpMap))
 
--- | File stat identifier.
-type FStat = (EpochTime, FileID, FileOffset)
-
--- | Null 'FStat' value.
-nullFStat :: FStat
-nullFStat = (-1, -1, -1)
-
 -- | A small type alias for readability.
 type StatusAnswer = (ConfdReplyStatus, J.JSValue)
-
--- | Reload model data type.
-data ReloadModel = ReloadNotify      -- ^ We are using notifications
-                 | ReloadPoll Int    -- ^ We are using polling
-                   deriving (Eq, Show)
-
--- | Server state data type.
-data ServerState = ServerState
-  { reloadModel  :: ReloadModel
-  , reloadTime   :: Integer      -- ^ Reload time (epoch) in microseconds
-  , reloadFStat  :: FStat
-  }
-
--- | Maximum no-reload poll rounds before reverting to inotify.
-maxIdlePollRounds :: Int
-maxIdlePollRounds = 3
-
--- | Reload timeout in microseconds.
-watchInterval :: Int
-watchInterval = C.confdConfigReloadTimeout * 1000000
-
--- | Ratelimit timeout in microseconds.
-pollInterval :: Int
-pollInterval = C.confdConfigReloadRatelimit
-
--- | Ratelimit timeout in microseconds, as an 'Integer'.
-reloadRatelimit :: Integer
-reloadRatelimit = fromIntegral C.confdConfigReloadRatelimit
-
--- | Initial poll round.
-initialPoll :: ReloadModel
-initialPoll = ReloadPoll 0
-
--- | Reload status data type.
-data ConfigReload = ConfigToDate    -- ^ No need to reload
-                  | ConfigReloaded  -- ^ Configuration reloaded
-                  | ConfigIOError   -- ^ Error during configuration reload
-                    deriving (Eq)
 
 -- | Unknown entry standard response.
 queryUnknownEntry :: StatusAnswer
@@ -264,205 +212,6 @@ serializeResponse r =
                   , confdReplyAnswer   = result
                   , confdReplySerial   = 0 }
 
--- * Configuration handling
-
--- ** Helper functions
-
--- | Helper function for logging transition into polling mode.
-moveToPolling :: String -> INotify -> FilePath -> CRef -> MVar ServerState
-              -> IO ReloadModel
-moveToPolling msg inotify path cref mstate = do
-  logInfo $ "Moving to polling mode: " ++ msg
-  let inotiaction = addNotifier inotify path cref mstate
-  _ <- forkIO $ onPollTimer inotiaction path cref mstate
-  return initialPoll
-
--- | Helper function for logging transition into inotify mode.
-moveToNotify :: IO ReloadModel
-moveToNotify = do
-  logInfo "Moving to inotify mode"
-  return ReloadNotify
-
--- ** Configuration loading
-
--- | (Re)loads the configuration.
-updateConfig :: FilePath -> CRef -> IO ()
-updateConfig path r = do
-  newcfg <- loadConfig path
-  let !newdata = case newcfg of
-                   Ok !cfg -> Ok (cfg, buildLinkIpInstnameMap cfg)
-                   Bad _ -> Bad "Cannot load configuration"
-  writeIORef r newdata
-  case newcfg of
-    Ok cfg -> logInfo ("Loaded new config, serial " ++
-                       show (configSerial cfg))
-    Bad msg -> logError $ "Failed to load config: " ++ msg
-  return ()
-
--- | Wrapper over 'updateConfig' that handles IO errors.
-safeUpdateConfig :: FilePath -> FStat -> CRef -> IO (FStat, ConfigReload)
-safeUpdateConfig path oldfstat cref =
-  Control.Exception.catch
-        (do
-          nt <- needsReload oldfstat path
-          case nt of
-            Nothing -> return (oldfstat, ConfigToDate)
-            Just nt' -> do
-                    updateConfig path cref
-                    return (nt', ConfigReloaded)
-        ) (\e -> do
-             let msg = "Failure during configuration update: " ++
-                       show (e::IOError)
-             writeIORef cref (Bad msg)
-             return (nullFStat, ConfigIOError)
-          )
-
--- | Computes the file cache data from a FileStatus structure.
-buildFileStatus :: FileStatus -> FStat
-buildFileStatus ofs =
-    let modt = modificationTime ofs
-        inum = fileID ofs
-        fsize = fileSize ofs
-    in (modt, inum, fsize)
-
--- | Wrapper over 'buildFileStatus'. This reads the data from the
--- filesystem and then builds our cache structure.
-getFStat :: FilePath -> IO FStat
-getFStat p = liftM buildFileStatus (getFileStatus p)
-
--- | Check if the file needs reloading
-needsReload :: FStat -> FilePath -> IO (Maybe FStat)
-needsReload oldstat path = do
-  newstat <- getFStat path
-  return $ if newstat /= oldstat
-             then Just newstat
-             else Nothing
-
--- ** Watcher threads
-
--- $watcher
--- We have three threads/functions that can mutate the server state:
---
--- 1. the long-interval watcher ('onWatcherTimer')
---
--- 2. the polling watcher ('onPollTimer')
---
--- 3. the inotify event handler ('onInotify')
---
--- All of these will mutate the server state under 'modifyMVar' or
--- 'modifyMVar_', so that server transitions are more or less
--- atomic. The inotify handler remains active during polling mode, but
--- checks for polling mode and doesn't do anything in this case (this
--- check is needed even if we would unregister the event handler due
--- to how events are serialised).
-
--- | Long-interval reload watcher.
---
--- This is on top of the inotify-based triggered reload.
-onWatcherTimer :: IO Bool -> FilePath -> CRef -> MVar ServerState -> IO ()
-onWatcherTimer inotiaction path cref state = do
-  threadDelay watchInterval
-  logDebug "Watcher timer fired"
-  modifyMVar_ state (onWatcherInner path cref)
-  _ <- inotiaction
-  onWatcherTimer inotiaction path cref state
-
--- | Inner onWatcher handler.
---
--- This mutates the server state under a modifyMVar_ call. It never
--- changes the reload model, just does a safety reload and tried to
--- re-establish the inotify watcher.
-onWatcherInner :: FilePath -> CRef -> ServerState -> IO ServerState
-onWatcherInner path cref state  = do
-  (newfstat, _) <- safeUpdateConfig path (reloadFStat state) cref
-  return state { reloadFStat = newfstat }
-
--- | Short-interval (polling) reload watcher.
---
--- This is only active when we're in polling mode; it will
--- automatically exit when it detects that the state has changed to
--- notification.
-onPollTimer :: IO Bool -> FilePath -> CRef -> MVar ServerState -> IO ()
-onPollTimer inotiaction path cref state = do
-  threadDelay pollInterval
-  logDebug "Poll timer fired"
-  continue <- modifyMVar state (onPollInner inotiaction path cref)
-  if continue
-    then onPollTimer inotiaction path cref state
-    else logDebug "Inotify watch active, polling thread exiting"
-
--- | Inner onPoll handler.
---
--- This again mutates the state under a modifyMVar call, and also
--- returns whether the thread should continue or not.
-onPollInner :: IO Bool -> FilePath -> CRef -> ServerState
-              -> IO (ServerState, Bool)
-onPollInner _ _ _ state@(ServerState { reloadModel = ReloadNotify } ) =
-  return (state, False)
-onPollInner inotiaction path cref
-            state@(ServerState { reloadModel = ReloadPoll pround } ) = do
-  (newfstat, reload) <- safeUpdateConfig path (reloadFStat state) cref
-  let state' = state { reloadFStat = newfstat }
-  -- compute new poll model based on reload data; however, failure to
-  -- re-establish the inotifier means we stay on polling
-  newmode <- case reload of
-               ConfigToDate ->
-                 if pround >= maxIdlePollRounds
-                   then do -- try to switch to notify
-                     result <- inotiaction
-                     if result
-                       then moveToNotify
-                       else return initialPoll
-                   else return (ReloadPoll (pround + 1))
-               _ -> return initialPoll
-  let continue = case newmode of
-                   ReloadNotify -> False
-                   _            -> True
-  return (state' { reloadModel = newmode }, continue)
-
--- the following hint is because hlint doesn't understand our const
--- (return False) is so that we can give a signature to 'e'
-{-# ANN addNotifier "HLint: ignore Evaluate" #-}
--- | Setup inotify watcher.
---
--- This tries to setup the watch descriptor; in case of any IO errors,
--- it will return False.
-addNotifier :: INotify -> FilePath -> CRef -> MVar ServerState -> IO Bool
-addNotifier inotify path cref mstate =
-  Control.Exception.catch
-        (addWatch inotify [CloseWrite] path
-                    (onInotify inotify path cref mstate) >> return True)
-        (\e -> const (return False) (e::IOError))
-
--- | Inotify event handler.
-onInotify :: INotify -> String -> CRef -> MVar ServerState -> Event -> IO ()
-onInotify inotify path cref mstate Ignored = do
-  logDebug "File lost, trying to re-establish notifier"
-  modifyMVar_ mstate $ \state -> do
-    result <- addNotifier inotify path cref mstate
-    (newfstat, _) <- safeUpdateConfig path (reloadFStat state) cref
-    let state' = state { reloadFStat = newfstat }
-    if result
-      then return state' -- keep notify
-      else do
-        mode <- moveToPolling "cannot re-establish inotify watch" inotify
-                  path cref mstate
-        return state' { reloadModel = mode }
-
-onInotify inotify path cref mstate _ =
-  modifyMVar_ mstate $ \state ->
-    if reloadModel state == ReloadNotify
-       then do
-         ctime <- getCurrentTimeUSec
-         (newfstat, _) <- safeUpdateConfig path (reloadFStat state) cref
-         let state' = state { reloadFStat = newfstat, reloadTime = ctime }
-         if abs (reloadTime state - ctime) < reloadRatelimit
-           then do
-             mode <- moveToPolling "too many reloads" inotify path cref mstate
-             return state' { reloadModel = mode }
-           else return state'
-      else return state
-
 -- ** Client input/output handlers
 
 -- | Main loop for a given client.
@@ -503,15 +252,8 @@ listener s hmac resp = do
     else logDebug "Invalid magic code!" >> return ()
   return ()
 
--- | Extract the configuration from our IORef.
-configReader :: CRef -> IO (Result ConfigData)
-configReader cref = do
-  cdata <- readIORef cref
-  return $ liftM fst cdata
-
 -- | Type alias for prepMain results
-type PrepResult = (S.Socket, (FilePath, S.Socket),
-                   IORef (Result (ConfigData, LinkIpMap)))
+type PrepResult = (S.Socket, IORef (Result (ConfigData, LinkIpMap)))
 
 -- | Check function for confd.
 checkMain :: CheckFn (S.Family, S.SockAddr)
@@ -528,40 +270,16 @@ prepMain :: PrepFn (S.Family, S.SockAddr) PrepResult
 prepMain _ (af_family, bindaddr) = do
   s <- S.socket af_family S.Datagram S.defaultProtocol
   S.bindSocket s bindaddr
-  -- prepare the queryd listener
-  query_data <- prepQueryD Nothing
   cref <- newIORef (Bad "Configuration not yet loaded")
-  return (s, query_data, cref)
+  return (s, cref)
 
 -- | Main function.
 main :: MainFn (S.Family, S.SockAddr) PrepResult
-main _ _ (s, query_data, cref) = do
-  -- Inotify setup
-  inotify <- initINotify
-  -- try to load the configuration, if possible
-  conf_file <- Path.clusterConfFile
-  (fstat, reloaded) <- safeUpdateConfig conf_file nullFStat cref
-  ctime <- getCurrentTime
-  statemvar <- newMVar $ ServerState ReloadNotify ctime fstat
-  let inotiaction = addNotifier inotify conf_file cref statemvar
-  has_inotify <- if reloaded == ConfigReloaded
-                   then inotiaction
-                   else return False
-  if has_inotify
-    then logInfo "Starting up in inotify mode"
-    else do
-      -- inotify was not enabled, we need to update the reload model
-      logInfo "Starting up in polling mode"
-      modifyMVar_ statemvar
-        (\state -> return state { reloadModel = initialPoll })
+main _ _ (s, cref) = do
+  let cfg_transform :: Result ConfigData -> Result (ConfigData, LinkIpMap)
+      cfg_transform = liftM (\cfg -> (cfg, buildLinkIpInstnameMap cfg))
+  initConfigReader cfg_transform cref
+
   hmac <- getClusterHmac
-  -- fork the timeout timer
-  _ <- forkIO $ onWatcherTimer inotiaction conf_file cref statemvar
-  -- fork the polling timer
-  unless has_inotify $ do
-    _ <- forkIO $ onPollTimer inotiaction conf_file cref statemvar
-    return ()
-  -- launch the queryd listener
-  _ <- forkIO $ runQueryD query_data (configReader cref)
-  -- and finally enter the responder loop
+  -- enter the responder loop
   forever $ listener s hmac (responder cref)

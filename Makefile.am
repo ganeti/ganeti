@@ -212,6 +212,7 @@ CLEANFILES = \
 	$(HS_ALL_PROGS) $(HS_BUILT_SRCS) \
 	$(HS_BUILT_TEST_HELPERS) \
 	src/ganeti-confd \
+	src/ganeti-luxid \
 	src/ganeti-mond \
 	.hpc/*.mix src/*.tix test/hs/*.tix \
 	doc/hs-lint.html
@@ -225,7 +226,7 @@ HS_GENERATED_FILES =
 if WANT_HTOOLS
 HS_GENERATED_FILES += $(HS_PROGS)
 if ENABLE_CONFD
-HS_GENERATED_FILES += src/hconfd src/ganeti-confd
+HS_GENERATED_FILES += src/hconfd src/ganeti-confd src/hluxid src/ganeti-luxid
 endif
 
 if ENABLE_MOND
@@ -499,6 +500,7 @@ endif
 HS_COMPILE_PROGS= \
 	src/ganeti-mond \
 	src/hconfd \
+	src/hluxid \
 	src/rpc-test
 
 # All Haskell non-test programs to be compiled but not automatically installed
@@ -550,6 +552,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/Confd/Types.hs \
 	src/Ganeti/Confd/Utils.hs \
 	src/Ganeti/Config.hs \
+	src/Ganeti/ConfigReader.hs \
 	src/Ganeti/Curl/Multi.hs \
 	src/Ganeti/Daemon.hs \
 	src/Ganeti/DataCollectors/CLI.hs \
@@ -904,7 +907,11 @@ if ENABLE_CONFD
 src/ganeti-confd: src/hconfd
 	cp -f $< $@
 
+src/ganeti-luxid: src/hluxid
+	cp -f $< $@
+
 nodist_sbin_SCRIPTS += src/ganeti-confd
+nodist_sbin_SCRIPTS += src/ganeti-luxid
 endif
 
 if ENABLE_MOND
@@ -1020,6 +1027,7 @@ EXTRA_DIST = \
 man_MANS = \
 	man/ganeti-cleaner.8 \
 	man/ganeti-confd.8 \
+	man/ganeti-luxid.8 \
 	man/ganeti-listrunner.8 \
 	man/ganeti-masterd.8 \
 	man/ganeti-mond.8 \
@@ -1302,8 +1310,8 @@ dist_TESTS = \
 	test/py/cli-test.bash \
 	test/py/bash_completion.bash
 
-if !PY_NODEV
-	dist_TESTS += $(python_tests)
+if PY_UNIT
+dist_TESTS += $(python_tests)
 endif
 
 nodist_TESTS =
@@ -1354,8 +1362,8 @@ all_python_code = \
 	$(noinst_PYTHON) \
 	$(qa_scripts)
 
-if !PY_NODEV
-	all_python_code += $(python_tests)
+if PY_UNIT
+all_python_code += $(python_tests)
 endif
 
 srclink_files = \
@@ -1601,6 +1609,8 @@ lib/_autoconf.py: Makefile | stamp-directories
 	  echo "RAPI_GROUP = '$(RAPI_GROUP)'"; \
 	  echo "CONFD_USER = '$(CONFD_USER)'"; \
 	  echo "CONFD_GROUP = '$(CONFD_GROUP)'"; \
+	  echo "LUXID_USER = '$(LUXID_USER)'"; \
+	  echo "LUXID_GROUP = '$(LUXID_GROUP)'"; \
 	  echo "NODED_USER = '$(NODED_USER)'"; \
 	  echo "NODED_GROUP = '$(NODED_GROUP)'"; \
 	  echo "MOND_USER = '$(MOND_USER)'"; \
@@ -1681,11 +1691,13 @@ $(REPLACE_VARS_SED): $(SHELL_ENV_INIT) Makefile stamp-directories
 	  echo 's#@''GNTMASTERUSER@#$(MASTERD_USER)#g'; \
 	  echo 's#@''GNTRAPIUSER@#$(RAPI_USER)#g'; \
 	  echo 's#@''GNTCONFDUSER@#$(CONFD_USER)#g'; \
+	  echo 's#@''GNTLUXIDUSER@#$(LUXID_USER)#g'; \
 	  echo 's#@''GNTNODEDUSER@#$(NODED_USER)#g'; \
 	  echo 's#@''GNTMONDUSER@#$(MOND_USER)#g'; \
 	  echo 's#@''GNTRAPIGROUP@#$(RAPI_GROUP)#g'; \
 	  echo 's#@''GNTADMINGROUP@#$(ADMIN_GROUP)#g'; \
 	  echo 's#@''GNTCONFDGROUP@#$(CONFD_GROUP)#g'; \
+	  echo 's#@''GNTLUXIDGROUP@#$(LUXID_GROUP)#g'; \
 	  echo 's#@''GNTMASTERDGROUP@#$(MASTERD_GROUP)#g'; \
 	  echo 's#@''GNTMONDGROUP@#$(MOND_GROUP)#g'; \
 	  echo 's#@''GNTDAEMONSGROUP@#$(DAEMONS_GROUP)#g'; \
@@ -2053,7 +2065,7 @@ COVERAGE_TESTS=
 if WANT_HTOOLS
 COVERAGE_TESTS += hs-coverage
 endif
-if !PY_NODEV
+if PY_UNIT
 COVERAGE_TESTS += py-coverage
 endif
 

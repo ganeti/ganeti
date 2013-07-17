@@ -126,7 +126,9 @@
 /src/mon-collector
 /src/htools
 /src/hconfd
+/src/hluxid
 /src/ganeti-confd
+/src/ganeti-luxid
 /src/ganeti-mond
 /src/rpc-test
 

@@ -77,7 +77,7 @@ the instance console), to a split model:
 - if just masterd is stopped, then other cluster functionality remains
   available: listing instances, connecting to the console of an
   instance, etc.
-- if just "queryd" is stopped, masterd can still process jobs, and one
+- if just "luxid" is stopped, masterd can still process jobs, and one
   can furthermore run queries from other nodes (MCs)
 - only if both are stopped, we end up with the previous state
 
@@ -141,12 +141,12 @@ configuration queries.
 The redirection of Luxi requests can be easily done based on the
 request type, if we have both sockets open, or if we open on demand.
 
-We don't want the masterd to talk to the queryd itself (hidden
+We don't want the masterd to talk to the luxid itself (hidden
 redirection), since we want to be able to run queries while masterd is
 down.
 
 During the 2.7 release cycle, we can test all queries against both
-masterd and queryd in QA, so we know we have exactly the same
+masterd and luxid in QA, so we know we have exactly the same
 interface and it is consistent.
 
 .. vim: set textwidth=72 :
