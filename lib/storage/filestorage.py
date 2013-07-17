@@ -167,6 +167,9 @@ def CheckFileStoragePathAcceptance(
 
   """
   allowed = _LoadAllowedFileStoragePaths(_filename)
+  if not allowed:
+    raise errors.FileStoragePathError("No paths are valid or path file '%s'"
+                                      " was not accessible." % _filename)
 
   if _ComputeWrongFileStoragePaths([path]):
     raise errors.FileStoragePathError("Path '%s' uses a forbidden prefix" %
@@ -185,7 +188,7 @@ def _CheckFileStoragePathExistance(path):
 
   """
   if not os.path.isdir(path):
-    raise errors.FileStoragePathError("Path '%s' is not exisiting or not a"
+    raise errors.FileStoragePathError("Path '%s' is not existing or not a"
                                       " directory." % path)
   if not os.access(path, os.W_OK):
     raise errors.FileStoragePathError("Path '%s' is not writable" % path)
