@@ -41,7 +41,7 @@ options =
 -- | Main function.
 main :: IO ()
 main =
-  genericMain GanetiQueryd options
+  genericMain GanetiLuxid options
     Ganeti.Query.Server.checkMain
     Ganeti.Query.Server.prepMain
     Ganeti.Query.Server.main

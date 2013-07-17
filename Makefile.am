@@ -201,7 +201,7 @@ CLEANFILES = \
 	$(HS_ALL_PROGS) $(HS_BUILT_SRCS) \
 	$(HS_BUILT_TEST_HELPERS) \
 	src/ganeti-confd \
-	src/ganeti-queryd \
+	src/ganeti-luxid \
 	src/ganeti-mond \
 	.hpc/*.mix src/*.tix test/hs/*.tix \
 	doc/hs-lint.html
@@ -215,7 +215,7 @@ HS_GENERATED_FILES =
 if WANT_HTOOLS
 HS_GENERATED_FILES += $(HS_PROGS)
 if ENABLE_CONFD
-HS_GENERATED_FILES += src/hconfd src/ganeti-confd src/hqueryd src/ganeti-queryd
+HS_GENERATED_FILES += src/hconfd src/ganeti-confd src/hluxid src/ganeti-luxid
 endif
 
 if ENABLE_MOND
@@ -479,7 +479,7 @@ endif
 HS_COMPILE_PROGS= \
 	src/ganeti-mond \
 	src/hconfd \
-	src/hqueryd \
+	src/hluxid \
 	src/rpc-test
 
 # All Haskell non-test programs to be compiled but not automatically installed
@@ -870,11 +870,11 @@ if ENABLE_CONFD
 src/ganeti-confd: src/hconfd
 	cp -f $< $@
 
-src/ganeti-queryd: src/hqueryd
+src/ganeti-luxid: src/hluxid
 	cp -f $< $@
 
 nodist_sbin_SCRIPTS += src/ganeti-confd
-nodist_sbin_SCRIPTS += src/ganeti-queryd
+nodist_sbin_SCRIPTS += src/ganeti-luxid
 endif
 
 if ENABLE_MOND
@@ -986,7 +986,7 @@ EXTRA_DIST = \
 man_MANS = \
 	man/ganeti-cleaner.8 \
 	man/ganeti-confd.8 \
-	man/ganeti-queryd.8 \
+	man/ganeti-luxid.8 \
 	man/ganeti-listrunner.8 \
 	man/ganeti-masterd.8 \
 	man/ganeti-mond.8 \
@@ -1539,8 +1539,8 @@ lib/_autoconf.py: Makefile | stamp-directories
 	  echo "RAPI_GROUP = '$(RAPI_GROUP)'"; \
 	  echo "CONFD_USER = '$(CONFD_USER)'"; \
 	  echo "CONFD_GROUP = '$(CONFD_GROUP)'"; \
-	  echo "QUERYD_USER = '$(QUERYD_USER)'"; \
-	  echo "QUERYD_GROUP = '$(QUERYD_GROUP)'"; \
+	  echo "LUXID_USER = '$(LUXID_USER)'"; \
+	  echo "LUXID_GROUP = '$(LUXID_GROUP)'"; \
 	  echo "NODED_USER = '$(NODED_USER)'"; \
 	  echo "NODED_GROUP = '$(NODED_GROUP)'"; \
 	  echo "MOND_USER = '$(MOND_USER)'"; \
@@ -1622,13 +1622,13 @@ $(REPLACE_VARS_SED): $(SHELL_ENV_INIT) Makefile stamp-directories
 	  echo 's#@''GNTMASTERUSER@#$(MASTERD_USER)#g'; \
 	  echo 's#@''GNTRAPIUSER@#$(RAPI_USER)#g'; \
 	  echo 's#@''GNTCONFDUSER@#$(CONFD_USER)#g'; \
-	  echo 's#@''GNTQUERYDUSER@#$(QUERY_USER)#g'; \
+	  echo 's#@''GNTLUXIDUSER@#$(LUXID_USER)#g'; \
 	  echo 's#@''GNTNODEDUSER@#$(NODED_USER)#g'; \
 	  echo 's#@''GNTMONDUSER@#$(MOND_USER)#g'; \
 	  echo 's#@''GNTRAPIGROUP@#$(RAPI_GROUP)#g'; \
 	  echo 's#@''GNTADMINGROUP@#$(ADMIN_GROUP)#g'; \
 	  echo 's#@''GNTCONFDGROUP@#$(CONFD_GROUP)#g'; \
-	  echo 's#@''GNTQUERYDGROUP@#$(QUERYD_GROUP)#g'; \
+	  echo 's#@''GNTLUXIDGROUP@#$(LUXID_GROUP)#g'; \
 	  echo 's#@''GNTMASTERDGROUP@#$(MASTERD_GROUP)#g'; \
 	  echo 's#@''GNTMONDGROUP@#$(MOND_GROUP)#g'; \
 	  echo 's#@''GNTDAEMONSGROUP@#$(DAEMONS_GROUP)#g'; \

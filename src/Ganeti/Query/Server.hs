@@ -239,11 +239,11 @@ listener creader socket = do
 -- | Type alias for prepMain results
 type PrepResult = (FilePath, S.Socket, IORef (Result ConfigData))
 
--- | Check function for queryd.
+-- | Check function for luxid.
 checkMain :: CheckFn ()
 checkMain _ = return $ Right ()
 
--- | Prepare function for queryd.
+-- | Prepare function for luxid.
 prepMain :: PrepFn () PrepResult
 prepMain _ _ = do
   socket_path <- Path.defaultQuerySocket

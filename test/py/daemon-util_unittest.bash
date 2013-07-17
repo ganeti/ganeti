@@ -40,8 +40,8 @@ DAEMONS_LIST="noded masterd rapi"
 STOPDAEMONS_LIST="rapi masterd noded"
 
 if grep -q '^ENABLE_CONFD = True' lib/_autoconf.py; then
-  DAEMONS_LIST="$DAEMONS_LIST confd queryd"
-  STOPDAEMONS_LIST="queryd confd $STOPDAEMONS_LIST"
+  DAEMONS_LIST="$DAEMONS_LIST confd luxid"
+  STOPDAEMONS_LIST="luxid confd $STOPDAEMONS_LIST"
 fi
 
 if grep -q '^ENABLE_MOND = True' lib/_autoconf.py; then

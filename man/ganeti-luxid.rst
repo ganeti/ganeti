@@ -1,20 +1,20 @@
-ganeti-queryd(8) Ganeti | Version @GANETI_VERSION@
-==================================================
+ganeti-luxid(8) Ganeti | Version @GANETI_VERSION@
+=================================================
 
 Name
 ----
 
-ganeti-queryd - Ganeti query daemon
+ganeti-luxid - Ganeti query daemon
 
 Synopsis
 --------
 
-**ganeti-queryd** [-f] [-d]
+**ganeti-luxid** [-f] [-d]
 
 DESCRIPTION
 -----------
 
-**ganeti-queryd** is a daemon used to answer queries related to the
+**ganeti-luxid** is a daemon used to answer queries related to the
 configuration and the current live state of a Ganeti cluster.
 
 For testing purposes, you can give the ``-f`` option and the
@@ -25,7 +25,7 @@ Debug-level message can be activated by giving the ``-d`` option.
 Logging to syslog, rather than its own log file, can be enabled by
 passing in the ``--syslog`` option.
 
-The **ganeti-queryd** daemon listens on a Unix socket
+The **ganeti-luxid** daemon listens on a Unix socket
 (``@LOCALSTATEDIR@/run/ganeti/socket/ganeti-query``) on which it exports
 a ``Luxi`` endpoint, serving query operations only. Commands and tools
 use this socket if the build-time option for split queries has been

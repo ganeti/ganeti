@@ -104,8 +104,8 @@ RAPI_USER = _autoconf.RAPI_USER
 RAPI_GROUP = _autoconf.RAPI_GROUP
 CONFD_USER = _autoconf.CONFD_USER
 CONFD_GROUP = _autoconf.CONFD_GROUP
-QUERYD_USER = _autoconf.QUERYD_USER
-QUERYD_GROUP = _autoconf.QUERYD_GROUP
+LUXID_USER = _autoconf.LUXID_USER
+LUXID_GROUP = _autoconf.LUXID_GROUP
 NODED_USER = _autoconf.NODED_USER
 NODED_GROUP = _autoconf.NODED_GROUP
 MOND_USER = _autoconf.MOND_USER
@@ -158,7 +158,7 @@ SCP = "scp"
 
 NODED = "ganeti-noded"
 CONFD = "ganeti-confd"
-QUERYD = "ganeti-queryd"
+LUXID = "ganeti-luxid"
 RAPI = "ganeti-rapi"
 MASTERD = "ganeti-masterd"
 MOND = "ganeti-mond"
@@ -166,7 +166,7 @@ MOND = "ganeti-mond"
 DAEMONS = compat.UniqueFrozenset([
   NODED,
   CONFD,
-  QUERYD,
+  LUXID,
   RAPI,
   MASTERD,
   MOND,
@@ -192,7 +192,7 @@ LAST_DRBD_PORT = 14999
 DAEMONS_LOGBASE = {
   NODED: "node-daemon",
   CONFD: "conf-daemon",
-  QUERYD: "query-daemon",
+  LUXID: "query-daemon",
   RAPI: "rapi-daemon",
   MASTERD: "master-daemon",
   MOND: "monitoring-daemon",
