@@ -85,15 +85,18 @@ class TestDRBD8Runner(testutils.GanetiTestCase):
   """Testing case for drbd.DRBD8Dev"""
 
   @staticmethod
-  def _has_disk(data, dname, mname):
+  def _has_disk(data, dname, mname, meta_index=0):
     """Check local disk corectness"""
     retval = (
       "local_dev" in data and
       data["local_dev"] == dname and
       "meta_dev" in data and
       data["meta_dev"] == mname and
-      "meta_index" in data and
-      data["meta_index"] == 0
+      ((meta_index is None and
+        "meta_index" not in data) or
+       ("meta_index" in data and
+        data["meta_index"] == meta_index)
+      )
       )
     return retval
 
@@ -144,6 +147,22 @@ class TestDRBD8Runner(testutils.GanetiTestCase):
     result = drbd_info.DRBD84ShowInfo.GetDevInfo(data)
     self.failUnless(self._has_disk(result, "/dev/xenvg/test.data",
                                    "/dev/xenvg/test.meta"),
+                    "Wrong local disk info")
+    self.failUnless(self._has_net(result, ("192.0.2.1", 11000),
+                                  ("192.0.2.2", 11000)),
+                    "Wrong network info (8.4.x)")
+
+  def testParser84NoDiskParams(self):
+    """Test drbdsetup show parser for 8.4 without disk params
+
+    The missing disk parameters occur after re-attaching a local disk but
+    before setting the disk params.
+
+    """
+    data = testutils.ReadTestData("bdev-drbd-8.4-no-disk-params.txt")
+    result = drbd_info.DRBD84ShowInfo.GetDevInfo(data)
+    self.failUnless(self._has_disk(result, "/dev/xenvg/test.data",
+                                   "/dev/xenvg/test.meta", meta_index=None),
                     "Wrong local disk info")
     self.failUnless(self._has_net(result, ("192.0.2.1", 11000),
                                   ("192.0.2.2", 11000)),
