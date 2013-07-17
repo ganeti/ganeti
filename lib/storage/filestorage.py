@@ -207,8 +207,8 @@ def CheckFileStoragePath(
   try:
     CheckFileStoragePathAcceptance(path, _filename=_allowed_paths_file,
                                    exact_match_ok=True)
-  except errors.FileStoragePathError, e:
-    return e.message
+  except errors.FileStoragePathError as e:
+    return str(e)
   if not os.path.isdir(path):
     return "Path '%s' is not exisiting or not a directory." % path
   if not os.access(path, os.W_OK):
