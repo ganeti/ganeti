@@ -21,6 +21,7 @@ Design document drafts
    design-glusterfs-ganeti-support.rst
    design-openvswitch.rst
    design-hugepages-support.rst
+   design-cmdlib-unittests.rst
 
 .. vim: set textwidth=72 :
 .. Local Variables:
