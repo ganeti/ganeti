@@ -1247,8 +1247,8 @@ dist_TESTS = \
 	test/py/cli-test.bash \
 	test/py/bash_completion.bash
 
-if !PY_NODEV
-	dist_TESTS += $(python_tests)
+if PY_UNIT
+dist_TESTS += $(python_tests)
 endif
 
 nodist_TESTS =
@@ -1298,8 +1298,8 @@ all_python_code = \
 	$(noinst_PYTHON) \
 	$(qa_scripts)
 
-if !PY_NODEV
-	all_python_code += $(python_tests)
+if PY_UNIT
+all_python_code += $(python_tests)
 endif
 
 srclink_files = \
@@ -1981,7 +1981,7 @@ COVERAGE_TESTS=
 if WANT_HTOOLS
 COVERAGE_TESTS += hs-coverage
 endif
-if !PY_NODEV
+if PY_UNIT
 COVERAGE_TESTS += py-coverage
 endif
 

@@ -797,10 +797,10 @@ if test -n "$PY_NODEV"; then
   AC_MSG_WARN(m4_normalize([Required development modules ($PY_NODEV) were not
                             found, you won't be able to run Python unittests]))
 else
-   AC_MSG_NOTICE([Python development modules found, unittests enabled])
+  AC_MSG_NOTICE([Python development modules found, unittests enabled])
 fi
 AC_SUBST(PY_NODEV)
-AM_CONDITIONAL([PY_NODEV], [test -n $PY_NODEV])
+AM_CONDITIONAL([PY_UNIT], [test -n $PY_NODEV])
 
 AC_CONFIG_FILES([ Makefile ])
 
