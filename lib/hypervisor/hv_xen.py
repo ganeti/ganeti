@@ -1018,6 +1018,10 @@ class XenPvmHypervisor(XenHypervisor):
         nic_str += ", ip=%s" % ip
       if nic.nicparams[constants.NIC_MODE] == constants.NIC_MODE_BRIDGED:
         nic_str += ", bridge=%s" % nic.nicparams[constants.NIC_LINK]
+      if nic.nicparams[constants.NIC_MODE] == constants.NIC_MODE_OVS:
+        nic_str += ", bridge=%s" % nic.nicparams[constants.NIC_LINK]
+        if nic.nicparams[constants.NIC_VLAN]:
+          nic_str += "%s" % nic.nicparams[constants.NIC_VLAN]
       if hvp[constants.HV_VIF_SCRIPT]:
         nic_str += ", script=%s" % hvp[constants.HV_VIF_SCRIPT]
       vif_data.append("'%s'" % nic_str)
