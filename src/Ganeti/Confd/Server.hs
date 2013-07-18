@@ -193,12 +193,19 @@ buildResponse cdata req@(ConfdRequest { confdRqType = ReqNodeDrbd }) = do
                  (a, b, c, d, e, f) <- minors]
   return (ReplyStatusOk, J.showJSON encoded)
 
+-- | Return the list of instances for a node (as ([primary], [secondary])) given
+-- the node name.
 buildResponse cdata req@(ConfdRequest { confdRqType = ReqNodeInstances }) = do
   let cfg = fst cdata
   node_name <- case confdRqQuery req of
                 PlainQuery str -> return str
                 _ -> fail $ "Invalid query type " ++ show (confdRqQuery req)
-  let instances = getNodeInstances cfg node_name
+  node <-
+    case getNode cfg node_name of
+      Ok n -> return n
+      Bad e -> fail $ "Node not found in the configuration: " ++ show e
+  let node_uuid = nodeUuid node
+      instances = getNodeInstances cfg node_uuid
   return (ReplyStatusOk, J.showJSON instances)
 
 -- | Creates a ConfdReply from a given answer.
