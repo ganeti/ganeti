@@ -55,19 +55,18 @@ Support for KVM will be added in the future.
 Example:
 switch1 will connect the VM to the default VLAN of the switch1.
 switch1.3 means that the VM is connected to an access port of VLAN 3.
-switch1.2:10:20 means that the VM is connected to a trunk port on switch1, carrying VLANs 2, 10 and 20.
+switch1.2:10:20 means that the VM is connected to a hybrid port on switch1, carrying VLANs 2 untagged and 
+VLANs 10 and 20 tagged.
+switch1:44:55 means that the VM is connected to a trunk port on switch1, carrying VLANS 44 and 55
 
-This configuration string is split at the dot and stored in nicparams[constants.NIC_LINK] and
-nicparams[constants.NIC_VLAN] respectively.
+This configuration string is split at the dot or colon respectively and stored in nicparams[constants.NIC_LINK] 
+and nicparams[constants.NIC_VLAN] respectively. Dot or colon are stored as well in nicparams[constants.NIC_VLAN].
 
 For Xen hypervisors, this information can be concatenated again and stored in the vif config as
 the bridge parameter and will be fully compatible with vif-openvswitch as of Xen 4.3.
 
 Users of older Xen versions should be able to grab vif-openvswitch from the Xen repo and use it
 (tested in 4.2).
-
-The differentiation between access port and trunk port is given by the number of VLANs that are
-specified.
 
 gnt-instance modify shall be able to add or remove single VLANs from the vlan string without users needing
 to specify the complete new string.
