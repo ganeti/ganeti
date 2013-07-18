@@ -82,7 +82,7 @@ _daemon_usergroup() {
       echo "@GNTMASTERUSER@:@GNTMASTERDGROUP@"
       ;;
     confd)
-      echo "@GNTCONFDUSER@:@GNTDAEMONSGROUP@"
+      echo "@GNTCONFDUSER@:@GNTCONFDGROUP@"
       ;;
     luxid)
       echo "@GNTLUXIDUSER@:@GNTLUXIDGROUP@"

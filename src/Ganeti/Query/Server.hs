@@ -255,7 +255,7 @@ prepMain _ _ = do
   socket_path <- Path.defaultQuerySocket
   cleanupSocket socket_path
   s <- describeError "binding to the Luxi socket"
-         Nothing (Just socket_path) $ getServer socket_path
+         Nothing (Just socket_path) $ getServer True socket_path
   cref <- newIORef (Bad "Configuration not yet loaded")
   return (socket_path, s, cref)
 
