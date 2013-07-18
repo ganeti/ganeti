@@ -224,6 +224,7 @@ responder cfgref socket hmac msg peer = do
               mcfg <- readIORef cfgref
               let response = respondInner mcfg hmac rq
               _ <- S.sendTo socket response peer
+              logDebug $ "Response sent: " ++ response
               return ()
     Bad err -> logInfo $ "Failed to parse incoming message: " ++ err
   return ()
