@@ -350,11 +350,28 @@ def UpgradeAll(config_data):
   UpgradeInstanceIndices(config_data)
 
 
+def DowngradeInstances(config_data):
+  if "instances" not in config_data:
+    raise Error("Cannot find the 'instances' key in the configuration!")
+  for (iname, iobj) in config_data["instances"].items():
+    DowngradeNicParamsVLAN(iobj["nics"], iname)
+
+
+def DowngradeNicParamsVLAN(nics, owner):
+  for nic in nics:
+    vlan = nic["nicparams"].get("vlan", None)
+    if vlan:
+      logging.warning("Instance with name %s found. Removing VLAN information"
+                      " %s.", owner, vlan)
+      del nic["nicparams"]["vlan"]
+
+
 def DowngradeAll(config_data):
   # Any code specific to a particular version should be labeled that way, so
   # it can be removed when updating to the next version.
   config_data["version"] = constants.BuildVersion(DOWNGRADE_MAJOR,
                                                   DOWNGRADE_MINOR, 0)
+  DowngradeInstances(config_data)
 
 
 def main():
