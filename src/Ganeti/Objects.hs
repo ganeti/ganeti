@@ -282,6 +282,7 @@ instance TimeStampObject Network where
 $(buildParam "Nic" "nicp"
   [ simpleField "mode" [t| NICMode |]
   , simpleField "link" [t| String  |]
+  , simpleField "vlan" [t| Maybe String  |]
   ])
 
 $(buildObject "PartialNic" "nic" $

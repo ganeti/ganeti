@@ -1314,6 +1314,7 @@ PP_DEFAULT = "default"
 # NIC_* constants are used inside the ganeti config
 NIC_MODE = "mode"
 NIC_LINK = "link"
+NIC_VLAN = "vlan"
 
 NIC_MODE_BRIDGED = "bridged"
 NIC_MODE_ROUTED = "routed"
@@ -1332,6 +1333,7 @@ RELEASE_ACTION = "release"
 NICS_PARAMETER_TYPES = {
   NIC_MODE: VTYPE_STRING,
   NIC_LINK: VTYPE_STRING,
+  NIC_VLAN: VTYPE_MAYBE_STRING,
   }
 
 NICS_PARAMETERS = frozenset(NICS_PARAMETER_TYPES.keys())
@@ -1364,6 +1366,7 @@ INIC_MODE = "mode"
 INIC_LINK = "link"
 INIC_NETWORK = "network"
 INIC_NAME = "name"
+INIC_VLAN = "vlan"
 INIC_PARAMS_TYPES = {
   INIC_IP: VTYPE_MAYBE_STRING,
   INIC_LINK: VTYPE_STRING,
@@ -1371,6 +1374,7 @@ INIC_PARAMS_TYPES = {
   INIC_MODE: VTYPE_STRING,
   INIC_NETWORK: VTYPE_MAYBE_STRING,
   INIC_NAME: VTYPE_MAYBE_STRING,
+  INIC_VLAN: VTYPE_MAYBE_STRING,
   }
 INIC_PARAMS = frozenset(INIC_PARAMS_TYPES.keys())
 
@@ -2259,6 +2263,7 @@ del _LV_DEFAULTS, _DRBD_DEFAULTS
 NICC_DEFAULTS = {
   NIC_MODE: NIC_MODE_BRIDGED,
   NIC_LINK: DEFAULT_BRIDGE,
+  NIC_VLAN: None,
   }
 
 # All of the following values are quite arbitrarily - there are no
