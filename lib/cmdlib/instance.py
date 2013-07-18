@@ -174,6 +174,7 @@ def _ComputeNics(op, cluster, default_ip, cfg, ec_id):
     net = nic.get(constants.INIC_NETWORK, None)
     link = nic.get(constants.NIC_LINK, None)
     ip = nic.get(constants.INIC_IP, None)
+    vlan = nic.get(constants.INIC_VLAN, None)
 
     if net is None or net.lower() == constants.VALUE_NONE:
       net = None
@@ -182,6 +183,10 @@ def _ComputeNics(op, cluster, default_ip, cfg, ec_id):
         raise errors.OpPrereqError("If network is given, no mode or link"
                                    " is allowed to be passed",
                                    errors.ECODE_INVAL)
+
+    if vlan is not None and nic_mode != constants.NIC_MODE_OVS:
+      raise errors.OpPrereqError("VLAN is given, but network mode is not"
+                                 " openvswitch", errors.ECODE_INVAL)
 
     # ip validity checks
     if ip is None or ip.lower() == constants.VALUE_NONE:
@@ -231,6 +236,8 @@ def _ComputeNics(op, cluster, default_ip, cfg, ec_id):
       nicparams[constants.NIC_MODE] = nic_mode
     if link:
       nicparams[constants.NIC_LINK] = link
+    if vlan:
+      nicparams[constants.NIC_VLAN] = vlan
 
     check_params = cluster.SimpleFillNIC(nicparams)
     objects.NIC.CheckParameterSyntax(check_params)
@@ -379,6 +386,38 @@ class LUInstanceCreate(LogicalUnit):
 
     self.adopt_disks = has_adopt
 
+  def _CheckVLANArguments(self):
+    """ Check validity of VLANs if given
+
+    """
+    for nic in self.op.nics:
+      if nic[constants.INIC_VLAN]:
+        vlan = nic[constants.INIC_VLAN]
+        if vlan[0] == ".":
+          # vlan starting with dot means single untagged vlan,
+          # might be followed by trunk (:)
+          if not vlan[1:].isdigit():
+            vlanlist = vlan[1:].split(':')
+            for vl in vlanlist:
+              if not vl.isdigit():
+                raise errors.OpPrereqError("Specified VLAN parameter is "
+                                           "invalid : %s" % vlan,
+                                             errors.ECODE_INVAL)
+        elif vlan[0] == ":":
+          # Trunk - tagged only
+          vlanlist = vlan[1:].split(':')
+          for vl in vlanlist:
+            if not vl.isdigit():
+              raise errors.OpPrereqError("Specified VLAN parameter is invalid"
+                                           " : %s" % vlan, errors.ECODE_INVAL)
+        elif vlan.isdigit():
+          # This is the simplest case. No dots, only single digit
+          # -> Create untagged access port, dot needs to be added
+          nic[constants.INIC_VLAN] = "." + vlan
+        else:
+          raise errors.OpPrereqError("Specified VLAN parameter is invalid"
+                                       " : %s" % vlan, errors.ECODE_INVAL)
+
   def CheckArguments(self):
     """Check arguments.
 
@@ -402,6 +441,8 @@ class LUInstanceCreate(LogicalUnit):
       utils.ForceDictType(nic, constants.INIC_PARAMS_TYPES)
     # check that NIC's parameters names are unique and valid
     utils.ValidateDeviceNames("NIC", self.op.nics)
+
+    self._CheckVLANArguments()
 
     self._CheckDiskArguments()
 
