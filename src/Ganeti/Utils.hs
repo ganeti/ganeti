@@ -57,11 +57,13 @@ module Ganeti.Utils
   , splitEithers
   , recombineEithers
   , resolveAddr
+  , setOwnerAndGroupFromNames
   ) where
 
 import Data.Char (toUpper, isAlphaNum, isDigit, isSpace)
 import Data.Function (on)
 import Data.List
+import qualified Data.Map as M
 import Control.Monad (foldM)
 
 import Debug.Trace
@@ -69,8 +71,10 @@ import Network.Socket
 
 import Ganeti.BasicTypes
 import qualified Ganeti.Constants as C
+import Ganeti.Runtime
 import System.IO
 import System.Exit
+import System.Posix.Files
 import System.Time
 
 -- * Debug functions
@@ -446,3 +450,16 @@ resolveAddr port str = do
   return $ case resolved of
              [] -> Bad "Invalid results from lookup?"
              best:_ -> Ok (addrFamily best, addrAddress best)
+
+-- | Set the owner and the group of a file (given as names, not numeric id).
+setOwnerAndGroupFromNames :: FilePath -> GanetiDaemon -> GanetiGroup -> IO ()
+setOwnerAndGroupFromNames filename daemon dGroup = do
+  -- TODO: it would be nice to rework this (or getEnts) so that runtimeEnts
+  -- is read only once per daemon startup, and then cached for further usage.
+  runtimeEnts <- getEnts
+  ents <- exitIfBad "Can't find required user/groups" runtimeEnts
+  -- note: we use directly ! as lookup failures shouldn't happen, due
+  -- to the map construction
+  let uid = fst ents M.! daemon
+  let gid = snd ents M.! dGroup
+  setOwnerAndGroup filename uid gid

@@ -39,6 +39,7 @@ _confd_enabled() {
 
 if _confd_enabled; then
   DAEMONS+=( ganeti-confd )
+  DAEMONS+=( ganeti-luxid )
 fi
 
 _mond_enabled() {
@@ -52,6 +53,7 @@ fi
 NODED_ARGS=
 MASTERD_ARGS=
 CONFD_ARGS=
+LUXID_ARGS=
 RAPI_ARGS=
 MOND_ARGS=
 
@@ -80,7 +82,10 @@ _daemon_usergroup() {
       echo "@GNTMASTERUSER@:@GNTMASTERDGROUP@"
       ;;
     confd)
-      echo "@GNTCONFDUSER@:@GNTDAEMONSGROUP@"
+      echo "@GNTCONFDUSER@:@GNTCONFDGROUP@"
+      ;;
+    luxid)
+      echo "@GNTLUXIDUSER@:@GNTLUXIDGROUP@"
       ;;
     rapi)
       echo "@GNTRAPIUSER@:@GNTRAPIGROUP@"
@@ -228,7 +233,8 @@ start() {
   local usergroup=$(_daemon_usergroup $plain_name)
   local daemonexec=$(_daemon_executable $name)
 
-  if [[ "$name" == ganeti-confd ]] && ! _confd_enabled; then
+  if ( [[ "$name" == ganeti-confd ]] || [[ "$name" == ganeti-luxid ]] ) \
+      && ! _confd_enabled; then
     echo 'ganeti-confd disabled at build time' >&2
     return 1
   fi

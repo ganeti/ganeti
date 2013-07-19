@@ -108,6 +108,7 @@ instSecondaryNodes inst =
   instPrimaryNode inst `S.delete` instDiskNodes inst
 
 -- | Get instances of a given node.
+-- The node is specified through its UUID.
 getNodeInstances :: ConfigData -> String -> ([Instance], [Instance])
 getNodeInstances cfg nname =
     let all_inst = M.elems . fromContainer . configInstances $ cfg

@@ -76,9 +76,11 @@ import Ganeti.Errors
 import Ganeti.JSON
 import Ganeti.OpParams (pTagsObject)
 import Ganeti.OpCodes
+import Ganeti.Runtime
 import qualified Ganeti.Query.Language as Qlang
 import Ganeti.THH
 import Ganeti.Types
+import Ganeti.Utils
 
 -- * Utility functions
 
@@ -222,10 +224,12 @@ getClient path = do
   return Client { socket=h, rbuf=rf }
 
 -- | Creates and returns a server endpoint.
-getServer :: FilePath -> IO S.Socket
-getServer path = do
+getServer :: Bool -> FilePath -> IO S.Socket
+getServer setOwner path = do
   s <- S.socket S.AF_UNIX S.Stream S.defaultProtocol
   S.bindSocket s (S.SockAddrUnix path)
+  when setOwner . setOwnerAndGroupFromNames path GanetiConfd $
+    ExtraGroup DaemonsGroup
   S.listen s 5 -- 5 is the max backlog
   return s
 

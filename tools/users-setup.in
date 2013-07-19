@@ -7,17 +7,19 @@ addgroup --system @GNTADMINGROUP@
 addgroup --system @GNTMASTERUSER@
 addgroup --system @GNTRAPIUSER@
 addgroup --system @GNTCONFDUSER@
+addgroup --system @GNTLUXIDUSER@
 addgroup --system @GNTMONDUSER@
 
 #Create users
 adduser --system --ingroup @GNTMASTERDGROUP@ @GNTMASTERUSER@
 adduser --system --ingroup @GNTRAPIGROUP@ @GNTRAPIUSER@
 adduser --system --ingroup @GNTCONFDGROUP@ @GNTCONFDUSER@
+adduser --system --ingroup @GNTLUXIDGROUP@ @GNTLUXIDUSER@
 adduser --system --ingroup @GNTMONDGROUP@ @GNTMONDUSER@
 adduser --system @GNTNODEDUSER@
 
 #Add users to extra groups
-for u in @GNTMASTERUSER@ @GNTCONFDUSER@ @GNTRAPIUSER@ @GNTMONDUSER@
+for u in @GNTMASTERUSER@ @GNTCONFDUSER@ @GNTLUXIDUSER@ @GNTRAPIUSER@ @GNTMONDUSER@
 do
   adduser $u @GNTDAEMONSGROUP@
 done
@@ -29,4 +31,5 @@ done
 
 adduser @GNTMASTERUSER@ @GNTCONFDGROUP@
 adduser @GNTMONDUSER@ @GNTMASTERDGROUP@
-adduser @GNTCONFDUSER@ @GNTMASTERDGROUP@
+adduser @GNTLUXIDUSER@ @GNTMASTERDGROUP@
+adduser @GNTLUXIDUSER@ @GNTCONFDGROUP@

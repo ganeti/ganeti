@@ -1079,7 +1079,11 @@ def CheckDiskTemplateEnabled(cluster, disk_template):
 
   """
   assert disk_template is not None
-  assert disk_template in constants.DISK_TEMPLATES
+  if disk_template not in constants.DISK_TEMPLATES:
+    raise errors.OpPrereqError("'%s' is not a valid disk template."
+                               " Valid disk templates are: %s" %
+                               (disk_template,
+                                ",".join(constants.DISK_TEMPLATES)))
   if not disk_template in cluster.enabled_disk_templates:
     raise errors.OpPrereqError("Disk template '%s' is not enabled in cluster."
                                " Enabled disk templates are: %s" %

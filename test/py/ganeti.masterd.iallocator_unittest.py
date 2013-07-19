@@ -201,7 +201,7 @@ class TestProcessStorageInfo(unittest.TestCase):
     has_lvm = False
     node_name = "mynode"
     (total_disk, free_disk, total_spindles, free_spindles) = \
-        iallocator.IAllocator._ComputeStorageDataFromNodeInfo(
+        iallocator.IAllocator._ComputeStorageDataFromSpaceInfo(
             self.space_info, node_name, has_lvm)
     # FIXME: right now, iallocator ignores anything else than LVM, adjust
     # this test once that arbitrary storage is supported
@@ -212,7 +212,7 @@ class TestProcessStorageInfo(unittest.TestCase):
     has_lvm = True
     node_name = "mynode"
     (total_disk, free_disk, total_spindles, free_spindles) = \
-        iallocator.IAllocator._ComputeStorageDataFromNodeInfo(
+        iallocator.IAllocator._ComputeStorageDataFromSpaceInfo(
             self.space_info, node_name, has_lvm)
     self.assertEqual(self.free_storage_lvm, free_disk)
     self.assertEqual(self.total_storage_lvm, total_disk)

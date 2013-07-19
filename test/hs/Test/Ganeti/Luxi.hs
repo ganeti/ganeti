@@ -126,7 +126,7 @@ prop_ClientServer dnschars = monadicIO $ do
   -- we need to create the server first, otherwise (if we do it in the
   -- forked thread) the client could try to connect to it before it's
   -- ready
-  server <- run $ Luxi.getServer fpath
+  server <- run $ Luxi.getServer False fpath
   -- fork the server responder
   _ <- run . forkIO $
     bracket

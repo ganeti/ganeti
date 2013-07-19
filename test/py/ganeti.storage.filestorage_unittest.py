@@ -28,6 +28,7 @@ import unittest
 
 from ganeti import errors
 from ganeti.storage import filestorage
+from ganeti import utils
 
 import testutils
 
@@ -93,6 +94,129 @@ class TestCheckFileStoragePath(unittest.TestCase):
     result = filestorage.CheckFileStoragePath(
         path, _allowed_paths_file=self.allowed_paths_filename)
     self.assertTrue("not acceptable" in result)
+
+
+class TestLoadAllowedFileStoragePaths(testutils.GanetiTestCase):
+  def testDevNull(self):
+    self.assertEqual(filestorage._LoadAllowedFileStoragePaths("/dev/null"), [])
+
+  def testNonExistantFile(self):
+    filename = "/tmp/this/file/does/not/exist"
+    assert not os.path.exists(filename)
+    self.assertEqual(filestorage._LoadAllowedFileStoragePaths(filename), [])
+
+  def test(self):
+    tmpfile = self._CreateTempFile()
+
+    utils.WriteFile(tmpfile, data="""
+      # This is a test file
+      /tmp
+      /srv/storage
+      relative/path
+      """)
+
+    self.assertEqual(filestorage._LoadAllowedFileStoragePaths(tmpfile), [
+      "/tmp",
+      "/srv/storage",
+      "relative/path",
+      ])
+
+
+class TestComputeWrongFileStoragePathsInternal(unittest.TestCase):
+  def testPaths(self):
+    paths = filestorage._GetForbiddenFileStoragePaths()
+
+    for path in ["/bin", "/usr/local/sbin", "/lib64", "/etc", "/sys"]:
+      self.assertTrue(path in paths)
+
+    self.assertEqual(set(map(os.path.normpath, paths)), paths)
+
+  def test(self):
+    vfsp = filestorage._ComputeWrongFileStoragePaths
+    self.assertEqual(vfsp([]), [])
+    self.assertEqual(vfsp(["/tmp"]), [])
+    self.assertEqual(vfsp(["/bin/ls"]), ["/bin/ls"])
+    self.assertEqual(vfsp(["/bin"]), ["/bin"])
+    self.assertEqual(vfsp(["/usr/sbin/vim", "/srv/file-storage"]),
+                     ["/usr/sbin/vim"])
+
+
+class TestComputeWrongFileStoragePaths(testutils.GanetiTestCase):
+  def test(self):
+    tmpfile = self._CreateTempFile()
+
+    utils.WriteFile(tmpfile, data="""
+      /tmp
+      x/y///z/relative
+      # This is a test file
+      /srv/storage
+      /bin
+      /usr/local/lib32/
+      relative/path
+      """)
+
+    self.assertEqual(
+        filestorage.ComputeWrongFileStoragePaths(_filename=tmpfile),
+        ["/bin",
+         "/usr/local/lib32",
+         "relative/path",
+         "x/y/z/relative",
+        ])
+
+
+class TestCheckFileStoragePathInternal(unittest.TestCase):
+  def testNonAbsolute(self):
+    for i in ["", "tmp", "foo/bar/baz"]:
+      self.assertRaises(errors.FileStoragePathError,
+                        filestorage._CheckFileStoragePath, i, ["/tmp"])
+
+    self.assertRaises(errors.FileStoragePathError,
+                      filestorage._CheckFileStoragePath, "/tmp", ["tmp", "xyz"])
+
+  def testNoAllowed(self):
+    self.assertRaises(errors.FileStoragePathError,
+                      filestorage._CheckFileStoragePath, "/tmp", [])
+
+  def testNoAdditionalPathComponent(self):
+    self.assertRaises(errors.FileStoragePathError,
+                      filestorage._CheckFileStoragePath, "/tmp/foo",
+                      ["/tmp/foo"])
+
+  def testAllowed(self):
+    filestorage._CheckFileStoragePath("/tmp/foo/a", ["/tmp/foo"])
+    filestorage._CheckFileStoragePath("/tmp/foo/a/x", ["/tmp/foo"])
+
+
+class TestCheckFileStoragePathExistance(testutils.GanetiTestCase):
+  def testNonExistantFile(self):
+    filename = "/tmp/this/file/does/not/exist"
+    assert not os.path.exists(filename)
+    self.assertRaises(errors.FileStoragePathError,
+                      filestorage.CheckFileStoragePathAcceptance, "/bin/",
+                      _filename=filename)
+    self.assertRaises(errors.FileStoragePathError,
+                      filestorage.CheckFileStoragePathAcceptance,
+                      "/srv/file-storage", _filename=filename)
+
+  def testAllowedPath(self):
+    tmpfile = self._CreateTempFile()
+
+    utils.WriteFile(tmpfile, data="""
+      /srv/storage
+      """)
+
+    filestorage.CheckFileStoragePathAcceptance(
+        "/srv/storage/inst1", _filename=tmpfile)
+
+    # No additional path component
+    self.assertRaises(errors.FileStoragePathError,
+                      filestorage.CheckFileStoragePathAcceptance,
+                      "/srv/storage", _filename=tmpfile)
+
+    # Forbidden path
+    self.assertRaises(errors.FileStoragePathError,
+                      filestorage.CheckFileStoragePathAcceptance,
+                      "/usr/lib64/xyz", _filename=tmpfile)
 
 
 if __name__ == "__main__":
