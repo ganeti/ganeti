@@ -41,6 +41,7 @@ def _StubGetpwnam(user):
     constants.CONFD_USER: _EntStub(uid=1),
     constants.RAPI_USER: _EntStub(uid=2),
     constants.NODED_USER: _EntStub(uid=3),
+    constants.LUXID_USER: _EntStub(uid=4),
     }
   return users[user]
 
@@ -53,6 +54,7 @@ def _StubGetgrnam(group):
     constants.DAEMONS_GROUP: _EntStub(gid=3),
     constants.ADMIN_GROUP: _EntStub(gid=4),
     constants.NODED_GROUP: _EntStub(gid=5),
+    constants.LUXID_GROUP: _EntStub(gid=6),
     }
   return groups[group]
 
