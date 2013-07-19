@@ -41,9 +41,11 @@ def GetMinimalConfig():
   return {
     "version": constants.CONFIG_VERSION,
     "cluster": {
-      "master_node": "node1-uuid"
+      "master_node": "node1-uuid",
+      "ipolicy": None
     },
     "instances": {},
+    "networks": {},
     "nodegroups": {},
     "nodes": {
       "node1-uuid": {
