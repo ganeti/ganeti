@@ -391,8 +391,8 @@ class LUInstanceCreate(LogicalUnit):
 
     """
     for nic in self.op.nics:
-      if nic[constants.INIC_VLAN]:
-        vlan = nic[constants.INIC_VLAN]
+      vlan = nic.get(constants.INIC_VLAN, None)
+      if vlan:
         if vlan[0] == ".":
           # vlan starting with dot means single untagged vlan,
           # might be followed by trunk (:)
