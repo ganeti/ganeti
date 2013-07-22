@@ -58,11 +58,11 @@ def _ExpandItemName(expand_fn, name, kind):
   @raise errors.OpPrereqError: if the item is not found
 
   """
-  full_name = expand_fn(name)
-  if full_name is None:
+  (uuid, full_name) = expand_fn(name)
+  if uuid is None or full_name is None:
     raise errors.OpPrereqError("%s '%s' not known" % (kind, name),
                                errors.ECODE_NOENT)
-  return full_name
+  return (uuid, full_name)
 
 
 def ExpandInstanceUuidAndName(cfg, expected_uuid, name):

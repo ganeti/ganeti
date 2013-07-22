@@ -1617,7 +1617,7 @@ class ConfigWriter:
       inst = (filter(lambda n: n.name == expanded_name, all_insts)[0])
       return (inst.uuid, inst.name)
     else:
-      return None
+      return (None, None)
 
   def _UnlockedGetInstanceInfo(self, inst_uuid):
     """Returns information about an instance.
@@ -1843,7 +1843,7 @@ class ConfigWriter:
       node = (filter(lambda n: n.name == expanded_name, all_nodes)[0])
       return (node.uuid, node.name)
     else:
-      return None
+      return (None, None)
 
   def _UnlockedGetNodeInfo(self, node_uuid):
     """Get the configuration of a node, as stored in the config.
