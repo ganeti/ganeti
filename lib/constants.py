@@ -352,6 +352,8 @@ VALUE_GENERATE = "generate"
 VALUE_NONE = "none"
 VALUE_TRUE = "true"
 VALUE_FALSE = "false"
+VALUE_HS_NOTHING = {"Nothing": None}
+
 
 # External script validation mask
 EXT_PLUGIN_MASK = re.compile("^[a-zA-Z0-9_-]+$")
