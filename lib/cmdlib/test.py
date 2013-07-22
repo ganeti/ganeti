@@ -237,21 +237,10 @@ class LUTestAllocator(NoHooksLU):
     """
     if self.op.mode in (constants.IALLOCATOR_MODE_ALLOC,
                         constants.IALLOCATOR_MODE_MULTI_ALLOC):
-      for attr in ["memory", "disks", "disk_template",
-                   "os", "tags", "nics", "vcpus"]:
-        if not hasattr(self.op, attr):
-          raise errors.OpPrereqError("Missing attribute '%s' on opcode input" %
-                                     attr, errors.ECODE_INVAL)
       (self.inst_uuid, iname) = self.cfg.ExpandInstanceName(self.op.name)
       if iname is not None:
         raise errors.OpPrereqError("Instance '%s' already in the cluster" %
                                    iname, errors.ECODE_EXISTS)
-      if not isinstance(self.op.nics, list):
-        raise errors.OpPrereqError("Invalid parameter 'nics'",
-                                   errors.ECODE_INVAL)
-      if not isinstance(self.op.disks, list):
-        raise errors.OpPrereqError("Invalid parameter 'disks'",
-                                   errors.ECODE_INVAL)
       for row in self.op.disks:
         if (not isinstance(row, dict) or
             constants.IDISK_SIZE not in row or
@@ -280,9 +269,6 @@ class LUTestAllocator(NoHooksLU):
       if self.op.iallocator is None:
         raise errors.OpPrereqError("Missing allocator name",
                                    errors.ECODE_INVAL)
-    elif self.op.direction != constants.IALLOCATOR_DIR_IN:
-      raise errors.OpPrereqError("Wrong allocator test '%s'" %
-                                 self.op.direction, errors.ECODE_INVAL)
 
   def Exec(self, feedback_fn):
     """Run the allocator test.
