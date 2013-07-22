@@ -1228,6 +1228,8 @@ python_tests = \
 	test/py/ganeti.client.gnt_instance_unittest.py \
 	test/py/ganeti.client.gnt_job_unittest.py \
 	test/py/ganeti.cmdlib_unittest.py \
+	test/py/ganeti.cmdlib.cluster_unittest.py \
+	test/py/ganeti.cmdlib.instance_storage_unittest.py \
 	test/py/ganeti.compat_unittest.py \
 	test/py/ganeti.confd.client_unittest.py \
 	test/py/ganeti.config_unittest.py \

@@ -1300,7 +1300,7 @@ GLOBAL_FILEDIR_OPT = cli_option("--file-storage-dir", dest="file_storage_dir",
                                 "wide) for storing the file-based disks [%s]" %
                                 pathutils.DEFAULT_FILE_STORAGE_DIR,
                                 metavar="DIR",
-                                default=pathutils.DEFAULT_FILE_STORAGE_DIR)
+                                default=None)
 
 GLOBAL_SHARED_FILEDIR_OPT = cli_option(
   "--shared-file-storage-dir",

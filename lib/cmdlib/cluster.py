@@ -609,6 +609,35 @@ def _ValidateNetmask(cfg, netmask):
                                (netmask), errors.ECODE_INVAL)
 
 
+def CheckFileStoragePathVsEnabledDiskTemplates(
+    logging_warn_fn, file_storage_dir, enabled_disk_templates):
+  """Checks whether the given file storage directory is acceptable.
+
+  @type logging_warn_fn: function
+  @param logging_warn_fn: function which accepts a string and logs it
+  @type file_storage_dir: string
+  @param file_storage_dir: the directory to be used for file-based instances
+  @type enabled_disk_templates: list of string
+  @param enabled_disk_templates: the list of enabled disk templates
+
+  Note: This function is public, because it is also used in bootstrap.py.
+  """
+  file_storage_enabled = constants.DT_FILE in enabled_disk_templates
+  if file_storage_dir is not None:
+    if file_storage_dir == "":
+      if file_storage_enabled:
+        raise errors.OpPrereqError("Unsetting the file storage directory"
+                                   " while having file storage enabled"
+                                   " is not permitted.")
+    else:
+      if not file_storage_enabled:
+        logging_warn_fn("Specified a file storage directory, although file"
+                        " storage is not enabled.")
+  else:
+    raise errors.ProgrammerError("Received file storage dir with value"
+                                 " 'None'.")
+
+
 class LUClusterSetParams(LogicalUnit):
   """Change the parameters of the cluster.
 
@@ -751,6 +780,10 @@ class LUClusterSetParams(LogicalUnit):
 
     self._CheckVgName(vm_capable_node_uuids, enabled_disk_templates,
                       new_enabled_disk_templates)
+
+    if self.op.file_storage_dir is not None:
+      CheckFileStoragePathVsEnabledDiskTemplates(
+          self.LogWarning, self.op.file_storage_dir, enabled_disk_templates)
 
     if self.op.drbd_helper:
       # checks given drbd helper on all nodes
@@ -998,6 +1031,17 @@ class LUClusterSetParams(LogicalUnit):
         raise errors.OpPrereqError("Please specify a volume group when"
                                    " enabling lvm-based disk-templates.")
 
+  def _SetFileStorageDir(self, feedback_fn):
+    """Set the file storage directory.
+
+    """
+    if self.op.file_storage_dir is not None:
+      if self.cluster.file_storage_dir == self.op.file_storage_dir:
+        feedback_fn("Global file storage dir already set to value '%s'"
+                    % self.cluster.file_storage_dir)
+      else:
+        self.cluster.file_storage_dir = self.op.file_storage_dir
+
   def Exec(self, feedback_fn):
     """Change the parameters of the cluster.
 
@@ -1007,6 +1051,7 @@ class LUClusterSetParams(LogicalUnit):
         list(set(self.op.enabled_disk_templates))
 
     self._SetVgName(feedback_fn)
+    self._SetFileStorageDir(feedback_fn)
 
     if self.op.drbd_helper is not None:
       if not constants.DT_DRBD8 in self.cluster.enabled_disk_templates:

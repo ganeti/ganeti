@@ -963,6 +963,8 @@ class OpClusterSetParams(OpCode):
      "List of enabled disk templates"),
     ("modify_etc_hosts", None, ht.TMaybeBool,
      "Whether the cluster can modify and keep in sync the /etc/hosts files"),
+    ("file_storage_dir", None, ht.TMaybeString,
+     "Default directory for storing file-backed disks"),
     ]
   OP_RESULT = ht.TNone
 

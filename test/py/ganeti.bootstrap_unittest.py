@@ -28,29 +28,71 @@ import unittest
 from ganeti import bootstrap
 from ganeti import constants
 from ganeti import errors
+from ganeti import pathutils
 
 import testutils
+import mock
 
 
 class TestPrepareFileStorage(unittest.TestCase):
   def setUp(self):
+    unittest.TestCase.setUp(self)
     self.tmpdir = tempfile.mkdtemp()
 
   def tearDown(self):
     shutil.rmtree(self.tmpdir)
 
-  def testFileStorageEnabled(self):
-    enabled_disk_templates = [constants.DT_FILE]
-    file_storage_dir = bootstrap._PrepareFileStorage(
-        enabled_disk_templates, self.tmpdir)
-    self.assertEqual(self.tmpdir, file_storage_dir)
+  def enableFileStorage(self, enable):
+    self.enabled_disk_templates = []
+    if enable:
+      self.enabled_disk_templates.append(constants.DT_FILE)
+    else:
+      # anything != DT_FILE would do here
+      self.enabled_disk_templates.append(constants.DT_DISKLESS)
 
-  def testFileStorageDisabled(self):
-    # anything != DT_FILE would do here
-    enabled_disk_templates = [constants.DT_PLAIN]
+  def testFallBackToDefaultPathAcceptedFileStorageEnabled(self):
+    expected_file_storage_dir = pathutils.DEFAULT_FILE_STORAGE_DIR
+    acceptance_fn = mock.Mock()
+    init_fn = mock.Mock(return_value=expected_file_storage_dir)
+    self.enableFileStorage(True)
     file_storage_dir = bootstrap._PrepareFileStorage(
-        enabled_disk_templates, self.tmpdir)
-    self.assertEqual('', file_storage_dir)
+        self.enabled_disk_templates, None, acceptance_fn=acceptance_fn,
+        init_fn=init_fn)
+    self.assertEqual(expected_file_storage_dir, file_storage_dir)
+    acceptance_fn.assert_called_with(expected_file_storage_dir)
+    init_fn.assert_called_with(expected_file_storage_dir)
+
+  def testPathAcceptedFileStorageEnabled(self):
+    acceptance_fn = mock.Mock()
+    init_fn = mock.Mock(return_value=self.tmpdir)
+    self.enableFileStorage(True)
+    file_storage_dir = bootstrap._PrepareFileStorage(
+        self.enabled_disk_templates, self.tmpdir, acceptance_fn=acceptance_fn,
+        init_fn=init_fn)
+    self.assertEqual(self.tmpdir, file_storage_dir)
+    acceptance_fn.assert_called_with(self.tmpdir)
+    init_fn.assert_called_with(self.tmpdir)
+
+  def testPathAcceptedFileStorageDisabled(self):
+    acceptance_fn = mock.Mock()
+    init_fn = mock.Mock()
+    self.enableFileStorage(False)
+    file_storage_dir = bootstrap._PrepareFileStorage(
+        self.enabled_disk_templates, self.tmpdir, acceptance_fn=acceptance_fn,
+        init_fn=init_fn)
+    self.assertEqual(self.tmpdir, file_storage_dir)
+    self.assertFalse(init_fn.called)
+    self.assertFalse(acceptance_fn.called)
+
+  def testPathNotAccepted(self):
+    acceptance_fn = mock.Mock()
+    acceptance_fn.side_effect = errors.FileStoragePathError
+    init_fn = mock.Mock()
+    self.enableFileStorage(True)
+    self.assertRaises(errors.OpPrereqError, bootstrap._PrepareFileStorage,
+        self.enabled_disk_templates, self.tmpdir, acceptance_fn=acceptance_fn,
+        init_fn=init_fn)
+    acceptance_fn.assert_called_with(self.tmpdir)
 
 
 class TestInitCheckEnabledDiskTemplates(unittest.TestCase):
