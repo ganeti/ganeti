@@ -2271,7 +2271,7 @@ del _LV_DEFAULTS, _DRBD_DEFAULTS
 NICC_DEFAULTS = {
   NIC_MODE: NIC_MODE_BRIDGED,
   NIC_LINK: DEFAULT_BRIDGE,
-  NIC_VLAN: None,
+  NIC_VLAN: VALUE_HS_NOTHING,
   }
 
 # All of the following values are quite arbitrarily - there are no
