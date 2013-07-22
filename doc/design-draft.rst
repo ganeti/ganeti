@@ -22,6 +22,7 @@ Design document drafts
    design-openvswitch.rst
    design-hugepages-support.rst
    design-cmdlib-unittests.rst
+   design-hotplug.rst
 
 .. vim: set textwidth=72 :
 .. Local Variables:
