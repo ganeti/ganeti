@@ -22,6 +22,7 @@
 """Support for mocking the cluster configuration"""
 
 
+import time
 import uuid as uuid_module
 
 from ganeti import config
@@ -78,7 +79,7 @@ class ConfigMock(config.ConfigWriter):
     if name is None:
       name = "mock_group_%d" % group_id
     if networks is None:
-      networks = []
+      networks = {}
 
     group = objects.NodeGroup(uuid=uuid,
                               name=name,
@@ -135,6 +136,8 @@ class ConfigMock(config.ConfigWriter):
       group = self._default_group.uuid
     if isinstance(group, objects.NodeGroup):
       group = group.uuid
+    if ndparams is None:
+      ndparams = {}
 
     node = objects.Node(uuid=uuid,
                         name=name,
@@ -233,20 +236,42 @@ class ConfigMock(config.ConfigWriter):
       serial_no=1,
       rsahostkeypub="",
       highest_used_port=(constants.FIRST_DRBD_PORT - 1),
+      tcpudp_port_pool=set(),
       mac_prefix="aa:00:00",
       volume_group_name="xenvg",
+      reserved_lvs=None,
       drbd_usermode_helper="/bin/true",
-      nicparams={constants.PP_DEFAULT: constants.NICC_DEFAULTS},
-      ndparams=constants.NDC_DEFAULTS,
-      tcpudp_port_pool=set(),
-      enabled_hypervisors=[constants.HT_FAKE],
       master_node=master_node_uuid,
       master_ip="192.168.0.254",
       master_netdev=constants.DEFAULT_BRIDGE,
+      master_netmask=None,
+      use_external_mip_script=None,
       cluster_name="cluster.example.com",
       file_storage_dir="/tmp",
-      uid_pool=[],
+      shared_file_storage_dir=None,
+      enabled_hypervisors=list(constants.HYPER_TYPES),
+      hvparams=None,
+      ipolicy=None,
+      os_hvp=None,
+      beparams=None,
+      osparams=None,
+      nicparams=None,
+      ndparams=None,
+      diskparams=None,
+      candidate_pool_size=3,
+      modify_etc_hosts=False,
+      modify_ssh_setup=False,
+      maintain_node_health=False,
+      uid_pool=None,
+      default_iallocator=None,
+      hidden_os=None,
+      blacklisted_os=None,
+      primary_ip_family=None,
+      prealloc_wipe_disks=None,
+      enabled_disk_templates=list(constants.DISK_TEMPLATES),
       )
+    self._cluster.ctime = self._cluster.mtime = time.time()
+    self._cluster.UpgradeConfig()
     self._config_data.cluster = self._cluster
 
     self._default_group = self.AddNewNodeGroup(name="default")

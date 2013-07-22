@@ -252,10 +252,10 @@ class LUTestAllocator(NoHooksLU):
       if self.op.hypervisor is None:
         self.op.hypervisor = self.cfg.GetHypervisorType()
     elif self.op.mode == constants.IALLOCATOR_MODE_RELOC:
-      (fuuid, fname) = ExpandInstanceUuidAndName(self.cfg, None, self.op.name)
-      self.op.name = fname
+      (self.inst_uuid, self.op.name) = ExpandInstanceUuidAndName(self.cfg, None,
+                                                                 self.op.name)
       self.relocate_from_node_uuids = \
-          list(self.cfg.GetInstanceInfo(fuuid).secondary_nodes)
+          list(self.cfg.GetInstanceInfo(self.inst_uuid).secondary_nodes)
     elif self.op.mode in (constants.IALLOCATOR_MODE_CHG_GROUP,
                           constants.IALLOCATOR_MODE_NODE_EVAC):
       if not self.op.instances:
@@ -307,7 +307,8 @@ class LUTestAllocator(NoHooksLU):
                                              nics=self.op.nics,
                                              vcpus=self.op.vcpus,
                                              spindle_use=self.op.spindle_use,
-                                             hypervisor=self.op.hypervisor)
+                                             hypervisor=self.op.hypervisor,
+                                             node_whitelist=None)
                for idx in range(self.op.count)]
       req = iallocator.IAReqMultiInstanceAlloc(instances=insts)
     else:

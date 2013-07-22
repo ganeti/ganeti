@@ -24,12 +24,18 @@
 
 import mock
 
-from ganeti.masterd import iallocator
 
+# pylint: disable=C0103
+def patchIAllocator(module_under_test):
+  """Patches the L{ganeti.masterd.iallocator.IAllocator} class for tests.
 
-def CreateIAllocatorMock():
-  """Creates a new L{mock.MagicMock} tailored for L{iallocator.IAllocator}
+  This function is meant to be used as a decorator for test methods.
+
+  @type module_under_test: string
+  @param module_under_test: the module within cmdlib which is tested. The
+        "ganeti.cmdlib" prefix is optional.
 
   """
-  ret = mock.MagicMock(spec=iallocator.IAllocator)
-  return ret
+  if not module_under_test.startswith("ganeti.cmdlib"):
+    module_under_test = "ganeti.cmdlib." + module_under_test
+  return mock.patch("%s.iallocator.IAllocator" % module_under_test)
