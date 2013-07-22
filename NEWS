@@ -37,7 +37,7 @@ Version 2.9.0 beta1
   modification.
 - The default directory for file storage is not anymore specified at
   configure time, but taken from the cluster's configuration. It can be
-  set at cluster initialization with '--file-storage-dir'.
+  set at cluster initialization and modification with '--file-storage-dir'.
 - Cluster verification now includes stricter checks regarding the
   default file storage dir. It now checks that the file storage
   directory is explicitely allowed in the 'file-storage-paths' file and
