@@ -192,7 +192,7 @@ LAST_DRBD_PORT = 14999
 DAEMONS_LOGBASE = {
   NODED: "node-daemon",
   CONFD: "conf-daemon",
-  LUXID: "query-daemon",
+  LUXID: "luxi-daemon",
   RAPI: "rapi-daemon",
   MASTERD: "master-daemon",
   MOND: "monitoring-daemon",

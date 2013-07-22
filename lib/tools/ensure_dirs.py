@@ -122,7 +122,9 @@ def GetPaths():
   masterd_log = constants.DAEMONS_LOGFILES[constants.MASTERD]
   noded_log = constants.DAEMONS_LOGFILES[constants.NODED]
   confd_log = constants.DAEMONS_LOGFILES[constants.CONFD]
+  luxid_log = constants.DAEMONS_LOGFILES[constants.LUXID]
   rapi_log = constants.DAEMONS_LOGFILES[constants.RAPI]
+  mond_log = constants.DAEMONS_LOGFILES[constants.MOND]
 
   rapi_dir = os.path.join(pathutils.DATA_DIR, "rapi")
   cleaner_log_dir = os.path.join(pathutils.LOG_DIR, "cleaner")
@@ -194,8 +196,10 @@ def GetPaths():
     (pathutils.LOG_DIR, DIR, 0770, getent.masterd_uid, getent.daemons_gid),
     (masterd_log, FILE, 0600, getent.masterd_uid, getent.masterd_gid, False),
     (confd_log, FILE, 0600, getent.confd_uid, getent.masterd_gid, False),
+    (luxid_log, FILE, 0600, getent.luxid_uid, getent.masterd_gid, False),
     (noded_log, FILE, 0600, getent.noded_uid, getent.masterd_gid, False),
     (rapi_log, FILE, 0600, getent.rapi_uid, getent.masterd_gid, False),
+    (mond_log, FILE, 0600, getent.mond_uid, getent.masterd_gid, False),
     (pathutils.LOG_OS_DIR, DIR, 0750, getent.noded_uid, getent.daemons_gid),
     (pathutils.LOG_XEN_DIR, DIR, 0750, getent.noded_uid, getent.daemons_gid),
     (cleaner_log_dir, DIR, 0750, getent.noded_uid, getent.noded_gid),
