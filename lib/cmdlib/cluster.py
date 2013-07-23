@@ -609,9 +609,12 @@ def _ValidateNetmask(cfg, netmask):
                                (netmask), errors.ECODE_INVAL)
 
 
-def CheckFileStoragePathVsEnabledDiskTemplates(
-    logging_warn_fn, file_storage_dir, enabled_disk_templates):
-  """Checks whether the given file storage directory is acceptable.
+def CheckFileBasedStoragePathVsEnabledDiskTemplates(
+    logging_warn_fn, file_storage_dir, enabled_disk_templates,
+    file_disk_template):
+  """Checks whether the given file-based storage directory is acceptable.
+
+  Note: This function is public, because it is also used in bootstrap.py.
 
   @type logging_warn_fn: function
   @param logging_warn_fn: function which accepts a string and logs it
@@ -619,23 +622,53 @@ def CheckFileStoragePathVsEnabledDiskTemplates(
   @param file_storage_dir: the directory to be used for file-based instances
   @type enabled_disk_templates: list of string
   @param enabled_disk_templates: the list of enabled disk templates
+  @type file_disk_template: string
+  @param file_disk_template: the file-based disk template for which the
+      path should be checked
 
-  Note: This function is public, because it is also used in bootstrap.py.
   """
-  file_storage_enabled = constants.DT_FILE in enabled_disk_templates
+  assert (file_disk_template in
+          utils.storage.GetDiskTemplatesOfStorageType(constants.ST_FILE))
+  file_storage_enabled = file_disk_template in enabled_disk_templates
   if file_storage_dir is not None:
     if file_storage_dir == "":
       if file_storage_enabled:
-        raise errors.OpPrereqError("Unsetting the file storage directory"
-                                   " while having file storage enabled"
-                                   " is not permitted.")
+        raise errors.OpPrereqError(
+            "Unsetting the '%s' storage directory while having '%s' storage"
+            " enabled is not permitted." %
+            (file_disk_template, file_disk_template))
     else:
       if not file_storage_enabled:
-        logging_warn_fn("Specified a file storage directory, although file"
-                        " storage is not enabled.")
+        logging_warn_fn(
+            "Specified a %s storage directory, although %s storage is not"
+            " enabled." % (file_disk_template, file_disk_template))
   else:
-    raise errors.ProgrammerError("Received file storage dir with value"
-                                 " 'None'.")
+    raise errors.ProgrammerError("Received %s storage dir with value"
+                                 " 'None'." % file_disk_template)
+
+
+def CheckFileStoragePathVsEnabledDiskTemplates(
+    logging_warn_fn, file_storage_dir, enabled_disk_templates):
+  """Checks whether the given file storage directory is acceptable.
+
+  @see: C{CheckFileBasedStoragePathVsEnabledDiskTemplates}
+
+  """
+  CheckFileBasedStoragePathVsEnabledDiskTemplates(
+      logging_warn_fn, file_storage_dir, enabled_disk_templates,
+      constants.DT_FILE)
+
+
+def CheckSharedFileStoragePathVsEnabledDiskTemplates(
+    logging_warn_fn, file_storage_dir, enabled_disk_templates):
+  """Checks whether the given shared file storage directory is acceptable.
+
+  @see: C{CheckFileBasedStoragePathVsEnabledDiskTemplates}
+
+  """
+  CheckFileBasedStoragePathVsEnabledDiskTemplates(
+      logging_warn_fn, file_storage_dir, enabled_disk_templates,
+      constants.DT_SHARED_FILE)
 
 
 class LUClusterSetParams(LogicalUnit):
