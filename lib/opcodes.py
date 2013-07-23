@@ -326,20 +326,6 @@ _TQueryFieldDef = \
     })
 
 
-def RequireSharedFileStorage():
-  """Checks that shared file storage is enabled.
-
-  While it doesn't really fit into this module, L{utils} was deemed too large
-  of a dependency to be imported for just one or two functions.
-
-  @raise errors.OpPrereqError: when shared file storage is disabled
-
-  """
-  if not constants.ENABLE_SHARED_FILE_STORAGE:
-    raise errors.OpPrereqError("Shared file storage disabled at"
-                               " configure time", errors.ECODE_INVAL)
-
-
 def _BuildDiskTemplateCheck(accept_none):
   """Builds check for disk template.
 
