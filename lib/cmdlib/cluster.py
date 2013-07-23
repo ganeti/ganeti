@@ -818,6 +818,11 @@ class LUClusterSetParams(LogicalUnit):
       CheckFileStoragePathVsEnabledDiskTemplates(
           self.LogWarning, self.op.file_storage_dir, enabled_disk_templates)
 
+    if self.op.shared_file_storage_dir is not None:
+      CheckSharedFileStoragePathVsEnabledDiskTemplates(
+          self.LogWarning, self.op.shared_file_storage_dir,
+          enabled_disk_templates)
+
     if self.op.drbd_helper:
       # checks given drbd helper on all nodes
       helpers = self.rpc.call_drbd_helper(node_uuids)

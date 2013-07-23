@@ -1308,7 +1308,7 @@ GLOBAL_SHARED_FILEDIR_OPT = cli_option(
   help="Specify the default directory (cluster-wide) for storing the"
   " shared file-based disks [%s]" %
   pathutils.DEFAULT_SHARED_FILE_STORAGE_DIR,
-  metavar="SHAREDDIR", default=pathutils.DEFAULT_SHARED_FILE_STORAGE_DIR)
+  metavar="SHAREDDIR", default=None)
 
 NOMODIFY_ETCHOSTS_OPT = cli_option("--no-etc-hosts", dest="modify_etc_hosts",
                                    help="Don't modify %s" % pathutils.ETC_HOSTS,

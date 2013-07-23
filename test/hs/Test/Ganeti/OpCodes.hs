@@ -164,6 +164,7 @@ instance Arbitrary OpCodes.OpCode where
           emptyMUD <*> emptyMUD <*> arbitrary <*>
           arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*>
           arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*>
+          genMaybe (genName >>= mkNonEmpty) <*>
           genMaybe (genName >>= mkNonEmpty)
       "OP_CLUSTER_REDIST_CONF" -> pure OpCodes.OpClusterRedistConf
       "OP_CLUSTER_ACTIVATE_MASTER_IP" ->

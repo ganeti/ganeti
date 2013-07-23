@@ -186,6 +186,7 @@ $(genOpCode "OpCode"
      , pEnabledDiskTemplates
      , pModifyEtcHosts
      , pGlobalFileStorageDir
+     , pGlobalSharedFileStorageDir
      ])
   , ("OpClusterRedistConf", [])
   , ("OpClusterActivateMasterIp", [])

@@ -106,6 +106,7 @@ module Ganeti.OpParams
   , pFileDriver
   , pFileStorageDir
   , pGlobalFileStorageDir
+  , pGlobalSharedFileStorageDir
   , pVgName
   , pEnabledHypervisors
   , pHypervisor
@@ -791,6 +792,10 @@ pFileStorageDir = optionalNEStringField "file_storage_dir"
 -- | Global directory for storing file-backed disks.
 pGlobalFileStorageDir :: Field
 pGlobalFileStorageDir = optionalNEStringField "file_storage_dir"
+
+-- | Global directory for storing shared-file-backed disks.
+pGlobalSharedFileStorageDir :: Field
+pGlobalSharedFileStorageDir = optionalNEStringField "shared_file_storage_dir"
 
 -- | Volume group name.
 pVgName :: Field

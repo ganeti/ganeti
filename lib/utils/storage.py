@@ -25,7 +25,6 @@
 import logging
 
 from ganeti import constants
-from ganeti import pathutils
 
 
 def GetDiskTemplatesOfStorageType(storage_type):
