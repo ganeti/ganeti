@@ -2417,21 +2417,54 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
                     "Node should not have returned forbidden file storage"
                     " paths")
 
-  def _VerifyStoragePaths(self, ninfo, nresult):
+  def _VerifyStoragePaths(self, ninfo, nresult, file_disk_template,
+                          verify_key, error_key):
     """Verifies (file) storage paths.
 
     @type ninfo: L{objects.Node}
     @param ninfo: the node to check
     @param nresult: the remote results for the node
+    @type file_disk_template: string
+    @param file_disk_template: file-based disk template, whose directory
+        is supposed to be verified
+    @type verify_key: string
+    @param verify_key: key for the verification map of this file
+        verification step
+    @param error_key: error key to be added to the verification results
+        in case something goes wrong in this verification step
 
     """
+    assert (file_disk_template in
+            utils.storage.GetDiskTemplatesOfStorageType(constants.ST_FILE))
     cluster = self.cfg.GetClusterInfo()
-    if cluster.IsFileStorageEnabled():
+    if cluster.IsDiskTemplateEnabled(file_disk_template):
       self._ErrorIf(
-          constants.NV_FILE_STORAGE_PATH in nresult,
-          constants.CV_ENODEFILESTORAGEPATHUNUSABLE, ninfo.name,
-          "The configured file storage path is unusable: %s" %
-          nresult.get(constants.NV_FILE_STORAGE_PATH))
+          verify_key in nresult,
+          error_key, ninfo.name,
+          "The configured %s storage path is unusable: %s" %
+          (file_disk_template, nresult.get(verify_key)))
+
+  def _VerifyFileStoragePaths(self, ninfo, nresult):
+    """Verifies (file) storage paths.
+
+    @see: C{_VerifyStoragePaths}
+
+    """
+    self._VerifyStoragePaths(
+        ninfo, nresult, constants.DT_FILE,
+        constants.NV_FILE_STORAGE_PATH,
+        constants.CV_ENODEFILESTORAGEPATHUNUSABLE)
+
+  def _VerifySharedFileStoragePaths(self, ninfo, nresult):
+    """Verifies (file) storage paths.
+
+    @see: C{_VerifyStoragePaths}
+
+    """
+    self._VerifyStoragePaths(
+        ninfo, nresult, constants.DT_SHARED_FILE,
+        constants.NV_SHARED_FILE_STORAGE_PATH,
+        constants.CV_ENODESHAREDFILESTORAGEPATHUNUSABLE)
 
   def _VerifyOob(self, ninfo, nresult):
     """Verifies out of band functionality of a node.
@@ -2948,7 +2981,8 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       self._VerifyOob(node_i, nresult)
       self._VerifyAcceptedFileStoragePaths(node_i, nresult,
                                            node_i.uuid == master_node_uuid)
-      self._VerifyStoragePaths(node_i, nresult)
+      self._VerifyFileStoragePaths(node_i, nresult)
+      self._VerifySharedFileStoragePaths(node_i, nresult)
 
       if nimg.vm_capable:
         self._UpdateVerifyNodeLVM(node_i, nresult, vg_name, nimg)

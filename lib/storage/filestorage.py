@@ -198,6 +198,8 @@ def CheckFileStoragePath(
     path, _allowed_paths_file=pathutils.FILE_STORAGE_PATHS_FILE):
   """Checks whether the path exists and is acceptable to use.
 
+  Can be used for any file-based storage, for example shared-file storage.
+
   @type path: string
   @param path: path to check
   @rtype: string
