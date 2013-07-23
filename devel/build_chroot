@@ -139,14 +139,14 @@ in_chroot -- \
   $APT_INSTALL lvm2 ssh bridge-utils iproute iputils-arping \
                ndisc6 python python-pyopenssl openssl \
                python-pyparsing python-simplejson \
-               python-pyinotify python-pycurl python-yaml python-mock \
+               python-pyinotify python-pycurl python-yaml \
                socat fping
 
 in_chroot -- \
   $APT_INSTALL python-paramiko qemu-utils
 
 in_chroot -- \
-  easy_install affinity bitarray ipaddr
+  easy_install affinity bitarray ipaddr mock==1.0.1
 
 #Haskell packages
 in_chroot -- \
