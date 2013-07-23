@@ -138,7 +138,7 @@ def GetStorageUnitsOfCluster(cfg, include_spindles=False):
   cluster_config = cfg.GetClusterInfo()
   storage_units = []
   for disk_template in cluster_config.enabled_disk_templates:
-    if constants.DISK_TEMPLATES_STORAGE_TYPE[disk_template]\
+    if constants.MAP_DISK_TEMPLATE_STORAGE_TYPE[disk_template]\
         in constants.STS_REPORT:
       storage_units.append(
           _GetDefaultStorageUnitForDiskTemplate(cfg, disk_template))
