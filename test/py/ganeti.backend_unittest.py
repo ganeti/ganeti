@@ -804,7 +804,7 @@ class TestSpaceReportingConstants(unittest.TestCase):
       self.assertTrue(backend._STORAGE_TYPE_INFO_FN[storage_type] is not None)
 
   def testAllNotReportingTypesDoneHaveFunction(self):
-    non_reporting_types = set(constants.VALID_STORAGE_TYPES)\
+    non_reporting_types = set(constants.STORAGE_TYPES)\
         - set(constants.STS_REPORT)
     for storage_type in non_reporting_types:
       self.assertEqual(None, backend._STORAGE_TYPE_INFO_FN[storage_type])
