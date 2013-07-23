@@ -111,7 +111,7 @@ class TestLookupSpaceInfoByStorageType(unittest.TestCase):
   def setUp(self):
     self._space_info = [
         {"type": st, "name": st + "_key", "storage_size": 0, "storage_free": 0}
-        for st in constants.VALID_STORAGE_TYPES]
+        for st in constants.STORAGE_TYPES]
 
   def testValidLookup(self):
     query_type = constants.ST_LVM_PV

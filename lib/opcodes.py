@@ -360,7 +360,7 @@ def _CheckStorageType(storage_type):
   """Ensure a given storage type is valid.
 
   """
-  if storage_type not in constants.VALID_STORAGE_TYPES:
+  if storage_type not in constants.STORAGE_TYPES:
     raise errors.OpPrereqError("Unknown storage type: %s" % storage_type,
                                errors.ECODE_INVAL)
   return True

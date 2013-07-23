@@ -130,7 +130,7 @@ def GetStorageUnitsOfCluster(cfg, include_spindles=False):
   @rtype: list of tuples (string, string)
   @return: list of storage units, each storage unit being a tuple of
     (storage_type, storage_key); storage_type is in
-    C{constants.VALID_STORAGE_TYPES} and the storage_key a string to
+    C{constants.STORAGE_TYPES} and the storage_key a string to
     identify an entity of that storage type, for example a volume group
     name for LVM storage or a file for file storage.
 

@@ -1101,7 +1101,7 @@ def CheckStorageTypeEnabled(cluster, storage_type):
 
   """
   assert storage_type is not None
-  assert storage_type in constants.VALID_STORAGE_TYPES
+  assert storage_type in constants.STORAGE_TYPES
   # special case for lvm-pv, because it cannot be enabled
   # via disk templates
   if storage_type == constants.ST_LVM_PV:

@@ -384,7 +384,7 @@ ST_LVM_PV = "lvm-pv"
 ST_LVM_VG = "lvm-vg"
 ST_RADOS = "rados"
 
-VALID_STORAGE_TYPES = compat.UniqueFrozenset([
+STORAGE_TYPES = compat.UniqueFrozenset([
   ST_BLOCK,
   ST_DISKLESS,
   ST_EXT,
