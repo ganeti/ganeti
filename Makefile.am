@@ -137,6 +137,8 @@ DIRS = \
 	test/data/ovfdata \
 	test/data/ovfdata/other \
 	test/py \
+	test/py/cmdlib \
+	test/py/cmdlib/testsupport \
 	tools
 
 ALL_APIDOC_HS_DIRS = \
@@ -1026,11 +1028,9 @@ EXTRA_DIST = \
 	doc/examples/gnt-debug/README \
 	doc/examples/gnt-debug/delay0.json \
 	doc/examples/gnt-debug/delay50.json \
-	test/py/lockperf.py \
-	test/py/testutils.py \
-	test/py/mocks.py \
 	$(dist_TESTS) \
 	$(TEST_FILES) \
+	$(python_test_support) \
 	man/footer.rst \
 	$(manrst) \
 	$(maninput) \
@@ -1237,6 +1237,7 @@ TEST_FILES = \
 
 python_tests = \
 	doc/examples/rapi_testutils.py \
+	test/py/cmdlib/test_unittest.py \
 	test/py/cfgupgrade_unittest.py \
 	test/py/docs_unittest.py \
 	test/py/ganeti.asyncnotifier_unittest.py \
@@ -1322,6 +1323,20 @@ python_tests = \
 	test/py/qa.qa_config_unittest.py \
 	test/py/tempfile_fork_unittest.py
 
+python_test_support = \
+	test/py/__init__.py \
+	test/py/lockperf.py \
+	test/py/testutils.py \
+	test/py/mocks.py \
+	test/py/cmdlib/__init__.py \
+	test/py/cmdlib/testsupport/__init__.py \
+	test/py/cmdlib/testsupport/cmdlib_testcase.py \
+	test/py/cmdlib/testsupport/config_mock.py \
+	test/py/cmdlib/testsupport/iallocator_mock.py \
+	test/py/cmdlib/testsupport/lock_manager_mock.py \
+	test/py/cmdlib/testsupport/processor_mock.py \
+	test/py/cmdlib/testsupport/rpc_runner_mock.py
+
 haskell_tests = test/hs/htest
 
 dist_TESTS = \
@@ -1352,7 +1367,7 @@ TESTS = $(dist_TESTS) $(nodist_TESTS)
 
 # Environment for all tests
 PLAIN_TESTS_ENVIRONMENT = \
-	PYTHONPATH=. \
+	PYTHONPATH=.:./test/py \
 	TOP_SRCDIR=$(abs_top_srcdir) TOP_BUILDDIR=$(abs_top_builddir) \
 	PYTHON=$(PYTHON) FAKEROOT=$(FAKEROOT_PATH) \
 	$(RUN_IN_TEMPDIR)
@@ -1386,6 +1401,7 @@ all_python_code = \
 
 if PY_UNIT
 all_python_code += $(python_tests)
+all_python_code += $(python_test_support)
 endif
 
 srclink_files = \

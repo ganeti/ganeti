@@ -167,7 +167,7 @@ def _CheckInstanceDiskIvNames(disks):
   return result
 
 
-class ConfigWriter:
+class ConfigWriter(object):
   """The interface to the cluster configuration.
 
   @ivar _temporary_lvs: reservation manager for temporary LVs

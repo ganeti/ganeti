@@ -66,7 +66,7 @@ class LUTestDelay(NoHooksLU):
 
     """
     if self.op.on_master:
-      if not utils.TestDelay(self.op.duration):
+      if not utils.TestDelay(self.op.duration)[0]:
         raise errors.OpExecError("Error during master delay test")
     if self.op.on_node_uuids:
       result = self.rpc.call_test_delay(self.op.on_node_uuids, self.op.duration)

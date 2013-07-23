@@ -1625,7 +1625,7 @@ BGL = "BGL"
 NAL = "NAL"
 
 
-class GanetiLockManager:
+class GanetiLockManager(object):
   """The Ganeti Locking Library
 
   The purpose of this small library is to manage locking for ganeti clusters
