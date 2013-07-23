@@ -949,9 +949,9 @@ class OpClusterSetParams(OpCode):
      "List of enabled disk templates"),
     ("modify_etc_hosts", None, ht.TMaybeBool,
      "Whether the cluster can modify and keep in sync the /etc/hosts files"),
-    ("file_storage_dir", None, ht.TMaybeString,
+    ("file_storage_dir", None, ht.TMaybe(ht.TString),
      "Default directory for storing file-backed disks"),
-    ("shared_file_storage_dir", None, ht.TMaybeString,
+    ("shared_file_storage_dir", None, ht.TMaybe(ht.TString),
      "Default directory for storing shared-file-backed disks"),
     ]
   OP_RESULT = ht.TNone
