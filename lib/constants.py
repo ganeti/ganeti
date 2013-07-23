@@ -457,14 +457,14 @@ DT_SHARED_FILE = "sharedfile"
 # This only happens on an upgrade from a version of Ganeti that did not
 # support the 'enabled_disk_templates' so far.
 DISK_TEMPLATE_PREFERENCE = [
-  DT_DRBD8,
-  DT_PLAIN,
-  DT_FILE,
-  DT_SHARED_FILE,
-  DT_RBD,
   DT_BLOCK,
   DT_DISKLESS,
-  DT_EXT
+  DT_DRBD8,
+  DT_EXT,
+  DT_FILE,
+  DT_PLAIN,
+  DT_RBD,
+  DT_SHARED_FILE,
   ]
 
 DISK_TEMPLATES = compat.UniqueFrozenset([
@@ -485,7 +485,7 @@ DEFAULT_ENABLED_DISK_TEMPLATES = [
   ]
 
 # mapping of disk templates to storage types
-DISK_TEMPLATES_STORAGE_TYPE = {
+MAP_DISK_TEMPLATE_STORAGE_TYPE = {
   DT_BLOCK: ST_BLOCK,
   DT_DISKLESS: ST_DISKLESS,
   DT_DRBD8: ST_LVM_VG,

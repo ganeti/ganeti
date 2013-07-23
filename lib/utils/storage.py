@@ -32,7 +32,7 @@ def GetDiskTemplatesOfStorageType(storage_type):
   """Given the storage type, returns a list of disk templates based on that
      storage type."""
   return [dt for dt in constants.DISK_TEMPLATES
-          if constants.DISK_TEMPLATES_STORAGE_TYPE[dt] == storage_type]
+          if constants.MAP_DISK_TEMPLATE_STORAGE_TYPE[dt] == storage_type]
 
 
 def GetLvmDiskTemplates():
@@ -91,7 +91,7 @@ def _GetDefaultStorageUnitForDiskTemplate(cfg, disk_template):
      storage
 
   """
-  storage_type = constants.DISK_TEMPLATES_STORAGE_TYPE[disk_template]
+  storage_type = constants.MAP_DISK_TEMPLATE_STORAGE_TYPE[disk_template]
   cluster = cfg.GetClusterInfo()
   if disk_template in GetLvmDiskTemplates():
     return (storage_type, cfg.GetVGName())

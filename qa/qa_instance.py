@@ -88,7 +88,7 @@ def GetInstanceInfo(instance):
   disk_template = info["Disk template"]
   if not disk_template:
     raise qa_error.Error("Can't get instance disk template")
-  storage_type = constants.DISK_TEMPLATES_STORAGE_TYPE[disk_template]
+  storage_type = constants.MAP_DISK_TEMPLATE_STORAGE_TYPE[disk_template]
 
   re_drbdnode = re.compile(r"^([^\s,]+),\s+minor=([0-9]+)$")
   vols = []
