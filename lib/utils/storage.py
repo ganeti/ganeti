@@ -117,13 +117,6 @@ def _GetDefaultStorageUnitForSpindles(cfg):
   return (constants.ST_LVM_PV, cfg.GetVGName())
 
 
-# List of storage type for which space reporting is implemented.
-# FIXME: Remove this, once the backend is capable to do this for all
-# storage types.
-_DISK_TEMPLATES_SPACE_QUERYABLE = GetLvmDiskTemplates() \
-    + GetDiskTemplatesOfStorageType(constants.ST_FILE)
-
-
 def GetStorageUnitsOfCluster(cfg, include_spindles=False):
   """Examines the cluster's configuration and returns a list of storage
   units and their storage keys, ordered by the order in which they
@@ -145,7 +138,8 @@ def GetStorageUnitsOfCluster(cfg, include_spindles=False):
   cluster_config = cfg.GetClusterInfo()
   storage_units = []
   for disk_template in cluster_config.enabled_disk_templates:
-    if disk_template in _DISK_TEMPLATES_SPACE_QUERYABLE:
+    if constants.DISK_TEMPLATES_STORAGE_TYPE[disk_template]\
+        in constants.STS_REPORT:
       storage_units.append(
           _GetDefaultStorageUnitForDiskTemplate(cfg, disk_template))
   if include_spindles:

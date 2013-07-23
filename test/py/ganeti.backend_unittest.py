@@ -625,6 +625,7 @@ class TestApplyStorageInfoFunction(unittest.TestCase):
 
   def testApplyValidStorageType(self):
     storage_type = constants.ST_LVM_VG
+    info_fn_orig = backend._STORAGE_TYPE_INFO_FN
     backend._STORAGE_TYPE_INFO_FN = {
         storage_type: self.mock_storage_fn
       }
@@ -633,21 +634,26 @@ class TestApplyStorageInfoFunction(unittest.TestCase):
         storage_type, self._STORAGE_KEY, self._SOME_ARGS)
 
     self.mock_storage_fn.assert_called_with(self._STORAGE_KEY, self._SOME_ARGS)
+    backend._STORAGE_TYPE_INFO_FN = info_fn_orig
 
   def testApplyInValidStorageType(self):
     storage_type = "invalid_storage_type"
+    info_fn_orig = backend._STORAGE_TYPE_INFO_FN
     backend._STORAGE_TYPE_INFO_FN = {}
 
     self.assertRaises(KeyError, backend._ApplyStorageInfoFunction,
                       storage_type, self._STORAGE_KEY, self._SOME_ARGS)
+    backend._STORAGE_TYPE_INFO_FN = info_fn_orig
 
   def testApplyNotImplementedStorageType(self):
     storage_type = "not_implemented_storage_type"
+    info_fn_orig = backend._STORAGE_TYPE_INFO_FN
     backend._STORAGE_TYPE_INFO_FN = {storage_type: None}
 
     self.assertRaises(NotImplementedError,
                       backend._ApplyStorageInfoFunction,
                       storage_type, self._STORAGE_KEY, self._SOME_ARGS)
+    backend._STORAGE_TYPE_INFO_FN = info_fn_orig
 
 
 class TestGetLvmVgSpaceInfo(unittest.TestCase):
@@ -782,6 +788,26 @@ class TestGetNodeInfo(unittest.TestCase):
       self.assertEqual([storage_type + "_params"], storage_params)
       self.assertTrue(storage_type in constants.VALID_STORAGE_TYPES)
     backend._ApplyStorageInfoFunction = orig_fn
+
+
+class TestSpaceReportingConstants(unittest.TestCase):
+  """Ensures consistency between STS_REPORT and backend.
+
+  These tests ensure, that the constant 'STS_REPORT' is consitent
+  with the implementation of invoking space reporting functions
+  in backend.py. Once space reporting is available for all types,
+  the constant can be removed and these tests as well.
+
+  """
+  def testAllReportingTypesHaveAReportingFunction(self):
+    for storage_type in constants.STS_REPORT:
+      self.assertTrue(backend._STORAGE_TYPE_INFO_FN[storage_type] is not None)
+
+  def testAllNotReportingTypesDoneHaveFunction(self):
+    non_reporting_types = set(constants.VALID_STORAGE_TYPES)\
+        - set(constants.STS_REPORT)
+    for storage_type in non_reporting_types:
+      self.assertEqual(None, backend._STORAGE_TYPE_INFO_FN[storage_type])
 
 
 if __name__ == "__main__":

@@ -394,6 +394,10 @@ VALID_STORAGE_TYPES = compat.UniqueFrozenset([
   ST_RADOS,
   ])
 
+# the set of storage types for which storage reporting is available
+# FIXME: Remove this, once storage reporting is available for all types.
+STS_REPORT = compat.UniqueFrozenset([ST_FILE, ST_LVM_PV, ST_LVM_VG])
+
 # Storage fields
 # first two are valid in LU context only, not passed to backend
 SF_NODE = "node"
