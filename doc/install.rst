@@ -566,7 +566,10 @@ distribution's startup scripts, for example in Debian::
 In order to automatically restart failed instances, you need to setup a
 cron job run the *ganeti-watcher* command. A sample cron file is
 provided in the source at ``doc/examples/ganeti.cron`` and you can copy
-that (eventually altering the path) to ``/etc/cron.d/ganeti``.
+that (eventually altering the path) to ``/etc/cron.d/ganeti``. Finally,
+a sample logrotate snippet is provided in the source at
+``doc/examples/ganeti.logrotate`` and you can copy it to
+``/etc/logrotate.d/ganeti`` to have Ganeti's logs rotated automatically.
 
 What gets installed
 ~~~~~~~~~~~~~~~~~~~
