@@ -97,10 +97,8 @@ def _GetDefaultStorageUnitForDiskTemplate(cfg, disk_template):
     return (storage_type, cfg.GetVGName())
   elif disk_template == constants.DT_FILE:
     return (storage_type, cluster.file_storage_dir)
-  # FIXME: Adjust this, once SHARED_FILE_STORAGE_DIR
-  # is not in autoconf anymore.
   elif disk_template == constants.DT_SHARED_FILE:
-    return (storage_type, pathutils.DEFAULT_SHARED_FILE_STORAGE_DIR)
+    return (storage_type, cluster.shared_file_storage_dir)
   else:
     return (storage_type, None)
 

@@ -27,7 +27,6 @@ import unittest
 
 from ganeti import constants
 from ganeti import objects
-from ganeti import pathutils
 from ganeti.utils import storage
 
 import testutils
@@ -39,6 +38,7 @@ class TestGetStorageUnitForDiskTemplate(unittest.TestCase):
     self._default_vg_name = "some_vg_name"
     self._cluster = mock.Mock()
     self._cluster.file_storage_dir = "my/file/storage/dir"
+    self._cluster.shared_file_storage_dir = "my/shared/file/storage/dir"
     self._cfg = mock.Mock()
     self._cfg.GetVGName = mock.Mock(return_value=self._default_vg_name)
     self._cfg.GetClusterInfo = mock.Mock(return_value=self._cluster)
@@ -63,7 +63,7 @@ class TestGetStorageUnitForDiskTemplate(unittest.TestCase):
         storage._GetDefaultStorageUnitForDiskTemplate(self._cfg,
                                                       constants.DT_SHARED_FILE)
     self.assertEqual(storage_type, constants.ST_FILE)
-    self.assertEqual(storage_key, pathutils.DEFAULT_SHARED_FILE_STORAGE_DIR)
+    self.assertEqual(storage_key, self._cluster.shared_file_storage_dir)
 
   def testGetDefaultStorageUnitForDiskTemplateDiskless(self):
     (storage_type, storage_key) = \

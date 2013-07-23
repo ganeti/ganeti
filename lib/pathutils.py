@@ -31,13 +31,9 @@ from ganeti import vcluster
 # Build-time constants
 DEFAULT_FILE_STORAGE_DIR = "/srv/ganeti/file-storage"
 DEFAULT_FILE_STORAGE_DIR = vcluster.AddNodePrefix(DEFAULT_FILE_STORAGE_DIR)
-
 DEFAULT_SHARED_FILE_STORAGE_DIR = "/srv/ganeti/shared-file-storage"
-if _autoconf.ENABLE_SHARED_FILE_STORAGE:
-  DEFAULT_SHARED_FILE_STORAGE_DIR = \
-    vcluster.AddNodePrefix(_autoconf.SHARED_FILE_STORAGE_DIR)
-else:
-  DEFAULT_SHARED_FILE_STORAGE_DIR = _autoconf.SHARED_FILE_STORAGE_DIR
+DEFAULT_SHARED_FILE_STORAGE_DIR = \
+    vcluster.AddNodePrefix(DEFAULT_SHARED_FILE_STORAGE_DIR)
 EXPORT_DIR = vcluster.AddNodePrefix(_autoconf.EXPORT_DIR)
 OS_SEARCH_PATH = _autoconf.OS_SEARCH_PATH
 ES_SEARCH_PATH = _autoconf.ES_SEARCH_PATH

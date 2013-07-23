@@ -134,17 +134,8 @@ AC_ARG_WITH([shared-file-storage-dir],
     [directory to store files for shared file-based backend]
     [ (default is /srv/ganeti/shared-file-storage)]
   )],
-  [[shared_file_storage_dir="$withval";
-    if test "$withval" != no; then
-      enable_shared_file_storage=True
-    else
-      enable_shared_file_storage=False
-    fi
-  ]],
-  [[shared_file_storage_dir="/srv/ganeti/shared-file-storage";
-    enable_shared_file_storage=True]])
+  [[shared_file_storage_dir="/srv/ganeti/shared-file-storage"]])
 AC_SUBST(SHARED_FILE_STORAGE_DIR, $shared_file_storage_dir)
-AC_SUBST(ENABLE_SHARED_FILE_STORAGE, $enable_shared_file_storage)
 
 # --with-kvm-path=...
 AC_ARG_WITH([kvm-path],
