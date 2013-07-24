@@ -34,6 +34,7 @@ from cmdlib.testsupport.rpc_runner_mock import CreateRpcRunnerMock
 
 from ganeti import errors
 from ganeti import opcodes
+from ganeti import runtime
 
 import testutils
 
@@ -67,6 +68,12 @@ class CmdlibTestCase(testutils.GanetiTestCase):
   def setUp(self):
     super(CmdlibTestCase, self).setUp()
     self._iallocator_patcher = None
+
+    try:
+      runtime.InitArchInfo()
+    except errors.ProgrammerError:
+      # during tests, the arch info can be initialized multiple times
+      pass
 
     self.ResetMocks()
 

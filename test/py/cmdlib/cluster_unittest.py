@@ -37,6 +37,7 @@ from ganeti import opcodes
 from ganeti import utils
 from ganeti import pathutils
 from ganeti import rpc
+from ganeti import query
 from ganeti.cmdlib import cluster
 from ganeti.hypervisor import hv_xen
 
@@ -313,6 +314,32 @@ class TestLUClusterDeactivateMasterIp(CmdlibTestCase):
         .CreateFailedNodeResult(self.cfg.GetMasterNode()) \
 
     self.ExecOpCodeExpectOpExecError(op)
+
+
+class TestLUClusterConfigQuery(CmdlibTestCase):
+  def testInvalidField(self):
+    op = opcodes.OpClusterConfigQuery(output_fields=["pinky_bunny"])
+
+    self.ExecOpCodeExpectOpPrereqError(op, "pinky_bunny")
+
+  def testAllFields(self):
+    op = opcodes.OpClusterConfigQuery(output_fields=query.CLUSTER_FIELDS.keys())
+
+    self.rpc.call_get_watcher_pause.return_value = \
+      RpcResultsBuilder(self.cfg) \
+        .CreateSuccessfulNodeResult(self.cfg.GetMasterNode(), -1)
+
+    ret = self.ExecOpCode(op)
+
+    self.assertEqual(1, self.rpc.call_get_watcher_pause.call_count)
+    self.assertEqual(len(ret), len(query.CLUSTER_FIELDS))
+
+  def testEmpytFields(self):
+    op = opcodes.OpClusterConfigQuery(output_fields=[])
+
+    self.ExecOpCode(op)
+
+    self.assertFalse(self.rpc.call_get_watcher_pause.called)
 
 
 if __name__ == "__main__":
