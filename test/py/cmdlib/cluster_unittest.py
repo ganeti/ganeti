@@ -55,5 +55,30 @@ class TestLUClusterActivateMasterIp(CmdlibTestCase):
     self.ExecOpCodeExpectOpExecError(op)
 
 
+class TestLUClusterDeactivateMasterIp(CmdlibTestCase):
+  def testSuccess(self):
+    op = opcodes.OpClusterDeactivateMasterIp()
+
+    self.rpc.call_node_deactivate_master_ip.return_value = \
+      RpcResultsBuilder(cfg=self.cfg) \
+        .CreateSuccessfulNodeResult(self.cfg.GetMasterNode())
+
+    self.ExecOpCode(op)
+
+    self.rpc.call_node_deactivate_master_ip.assert_called_once_with(
+      self.cfg.GetMasterNode(),
+      self.cfg.GetMasterNetworkParameters(),
+      False)
+
+  def testFailure(self):
+    op = opcodes.OpClusterDeactivateMasterIp()
+
+    self.rpc.call_node_deactivate_master_ip.return_value = \
+      RpcResultsBuilder(cfg=self.cfg) \
+        .CreateFailedNodeResult(self.cfg.GetMasterNode()) \
+
+    self.ExecOpCodeExpectOpExecError(op)
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
