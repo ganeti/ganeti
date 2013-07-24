@@ -1240,6 +1240,8 @@ python_tests = \
 	doc/examples/rapi_testutils.py \
 	test/py/cmdlib/cluster_unittest.py \
 	test/py/cmdlib/test_unittest.py \
+	test/py/cmdlib/cmdlib_unittest.py \
+	test/py/cmdlib/instance_storage_unittest.py \
 	test/py/cfgupgrade_unittest.py \
 	test/py/docs_unittest.py \
 	test/py/ganeti.asyncnotifier_unittest.py \
@@ -1250,9 +1252,6 @@ python_tests = \
 	test/py/ganeti.client.gnt_cluster_unittest.py \
 	test/py/ganeti.client.gnt_instance_unittest.py \
 	test/py/ganeti.client.gnt_job_unittest.py \
-	test/py/ganeti.cmdlib_unittest.py \
-	test/py/ganeti.cmdlib.cluster_unittest.py \
-	test/py/ganeti.cmdlib.instance_storage_unittest.py \
 	test/py/ganeti.compat_unittest.py \
 	test/py/ganeti.confd.client_unittest.py \
 	test/py/ganeti.config_unittest.py \
