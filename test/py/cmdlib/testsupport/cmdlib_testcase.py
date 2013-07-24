@@ -186,6 +186,46 @@ class CmdlibTestCase(testutils.GanetiTestCase):
     """
     self.mcpu.assertLogContainsRegex(expected_regex)
 
+  def assertHooksCall(self, nodes, hook_path, phase,
+                      environment=None, count=None, index=0):
+    """Asserts a call to C{rpc.call_hooks_runner}
+
+    @type nodes: list of string
+    @param nodes: node UUID's or names hooks run on
+    @type hook_path: string
+    @param hook_path: path (or name) of the hook run
+    @type phase: string
+    @param phase: phase in which the hook runs in
+    @type environment: dict
+    @param environment: the environment passed to the hooks. C{None} to skip
+            asserting it
+    @type count: int
+    @param count: the number of hook invocations. C{None} to skip asserting it
+    @type index: int
+    @param index: the index of the hook invocation to assert
+
+    """
+    if count is not None:
+      self.assertEqual(count, self.rpc.call_hooks_runner.call_count)
+
+    args = self.rpc.call_hooks_runner.call_args[index]
+
+    self.assertEqual(set(nodes), set(args[0]))
+    self.assertEqual(hook_path, args[1])
+    self.assertEqual(phase, args[2])
+    if environment is not None:
+      self.assertEqual(environment, args[3])
+
+  def assertSingleHooksCall(self, nodes, hook_path, phase,
+                            environment=None):
+    """Asserts a single call to C{rpc.call_hooks_runner}
+
+    @see L{assertHooksCall} for parameter description.
+
+    """
+    self.assertHooksCall(nodes, hook_path, phase,
+                         environment=environment, count=1)
+
   def CopyOpCode(self, opcode, **kwargs):
     """Creates a copy of the given opcode and applies modifications to it
 

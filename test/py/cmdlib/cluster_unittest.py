@@ -364,12 +364,20 @@ class TestLUClusterDestroy(CmdlibTestCase):
 
     self.ExecOpCode(op)
 
-    self.assertEqual(1, self.rpc.call_hooks_runner.call_count)
-    args = self.rpc.call_hooks_runner.call_args[0]
-    self.assertEqual([self.cfg.GetMasterNodeName()], args[0])
-    self.assertEqual("cluster-destroy", args[1])
-    self.assertEqual(constants.HOOKS_PHASE_POST, args[2])
+    self.assertSingleHooksCall([self.cfg.GetMasterNodeName()],
+                               "cluster-destroy",
+                               constants.HOOKS_PHASE_POST)
 
+
+class TestLUClusterPostInit(CmdlibTestCase):
+  def testExecuion(self):
+    op = opcodes.OpClusterPostInit()
+
+    self.ExecOpCode(op)
+
+    self.assertSingleHooksCall([self.cfg.GetMasterNodeName()],
+                               "cluster-init",
+                               constants.HOOKS_PHASE_POST)
 
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
