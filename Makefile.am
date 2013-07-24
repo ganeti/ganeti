@@ -1238,6 +1238,7 @@ TEST_FILES = \
 
 python_tests = \
 	doc/examples/rapi_testutils.py \
+	test/py/cmdlib/cluster_unittest.py \
 	test/py/cmdlib/test_unittest.py \
 	test/py/cfgupgrade_unittest.py \
 	test/py/docs_unittest.py \
