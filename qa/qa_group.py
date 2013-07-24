@@ -225,6 +225,10 @@ def _TestGroupModifyIPolicy(groupname):
 
 def TestGroupModify():
   """gnt-group modify"""
+  # This tests assumes LVM to be enabled, thus it should skip if
+  # this is not the case
+  if not qa_config.IsStorageTypeSupported(constants.ST_LVM_VG):
+    return
   (group1, ) = qa_utils.GetNonexistentGroups(1)
 
   AssertCommand(["gnt-group", "add", group1])

@@ -407,6 +407,9 @@ def TestDelay(node):
 
 def TestClusterReservedLvs():
   """gnt-cluster reserved lvs"""
+  # if no lvm-based templates are supported, skip the test
+  if not qa_config.IsStorageTypeSupported(constants.ST_LVM_VG):
+    return
   vgname = qa_config.get("vg-name", constants.DEFAULT_VG)
   lvname = _QA_LV_PREFIX + "test"
   lvfullname = "/".join([vgname, lvname])

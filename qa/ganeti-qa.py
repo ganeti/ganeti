@@ -437,7 +437,8 @@ def RunExportImportTests(instance, inodes):
   # FIXME: inter-cluster-instance-move crashes on file based instances :/
   # See Issue 414.
   if (qa_config.TestEnabled([qa_rapi.Enabled, "inter-cluster-instance-move"])
-      and instance.disk_template != constants.DT_FILE):
+      and (instance.disk_template not in
+           [constants.DT_FILE, constants.DT_SHARED_FILE])):
     newinst = qa_config.AcquireInstance()
     try:
       tnode = qa_config.AcquireNode(exclude=inodes)
@@ -804,7 +805,8 @@ def RunQa():
     if qa_rapi.Enabled():
       RunTest(qa_rapi.TestNode, pnode)
 
-      if qa_config.TestEnabled("instance-add-plain-disk"):
+      if (qa_config.TestEnabled("instance-add-plain-disk")
+          and qa_config.IsTemplateSupported(constants.DT_PLAIN)):
         for use_client in [True, False]:
           rapi_instance = RunTest(qa_rapi.TestRapiInstanceAdd, pnode,
                                   use_client)
