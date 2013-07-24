@@ -1153,6 +1153,16 @@ class ConfigWriter(object):
     return self._UnlockedGetNodeName(self._config_data.cluster.master_node)
 
   @locking.ssynchronized(_config_lock, shared=1)
+  def GetMasterNodeInfo(self):
+    """Get the master node information for this cluster.
+
+    @rtype: objects.Node
+    @return: Master node L{objects.Node} object
+
+    """
+    return self._UnlockedGetNodeInfo(self._config_data.cluster.master_node)
+
+  @locking.ssynchronized(_config_lock, shared=1)
   def GetMasterIP(self):
     """Get the IP of the master node for this cluster.
 

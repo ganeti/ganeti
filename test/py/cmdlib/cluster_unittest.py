@@ -32,6 +32,7 @@ import shutil
 from ganeti import constants
 from ganeti import compat
 from ganeti import ht
+from ganeti import netutils
 from ganeti import objects
 from ganeti import opcodes
 from ganeti import utils
@@ -378,6 +379,21 @@ class TestLUClusterPostInit(CmdlibTestCase):
     self.assertSingleHooksCall([self.cfg.GetMasterNodeName()],
                                "cluster-init",
                                constants.HOOKS_PHASE_POST)
+
+
+class TestLUClusterQuery(CmdlibTestCase):
+  def testSimpleInvocation(self):
+    op = opcodes.OpClusterQuery()
+
+    self.ExecOpCode(op)
+
+  def testIPv6Cluster(self):
+    op = opcodes.OpClusterQuery()
+
+    self.cfg.GetClusterInfo().primary_ip_family = netutils.IP6Address.family
+
+    self.ExecOpCode(op)
+
 
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
