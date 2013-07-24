@@ -324,7 +324,7 @@ rotate_logs() {
 
   if type -p start-stop-daemon >/dev/null; then
     start-stop-daemon --stop --signal HUP --quiet \
-      --pidfile $pidfile
+      --oknodo --pidfile $pidfile
   else
     _ignore_error killproc \
       -p $pidfile \
