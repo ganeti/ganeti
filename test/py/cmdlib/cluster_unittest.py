@@ -395,5 +395,12 @@ class TestLUClusterQuery(CmdlibTestCase):
     self.ExecOpCode(op)
 
 
+class TestLUClusterRedistConf(CmdlibTestCase):
+  def testSimpleInvocation(self):
+    op = opcodes.OpClusterRedistConf()
+
+    self.ExecOpCode(op)
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
