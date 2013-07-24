@@ -21,16 +21,18 @@ Incompatible/important changes
   enabled disk templates.
 - The monitoring daemon is now running as root, in order to be able to collect
   information only available to root (such as the state of Xen instances).
-- File storage is no longer dis/enabled at configure time, but using the
-  option '--enabled-disk-templates' at cluster initialization and
+- The ConfD client is now IPv6 compatible.
+- File and shared file storage is no longer dis/enabled at configure time,
+  but using the option '--enabled-disk-templates' at cluster initialization and
   modification.
-- The default directory for file storage is not anymore specified at
-  configure time, but taken from the cluster's configuration. It can be
-  set at cluster initialization and modification with '--file-storage-dir'.
+- The default directories for file and shared file storage are not anymore
+  specified at configure time, but taken from the cluster's configuration.
+  They can be set at cluster initialization and modification with
+  '--file-storage-dir' and '--shared-file-storage-dir'.
 - Cluster verification now includes stricter checks regarding the
-  default file storage dir. It now checks that the file storage
-  directory is explicitely allowed in the 'file-storage-paths' file and
-  that the directory exists on all nodes.
+  default file and shared file storage directories. It now checks that
+  the directories are explicitely allowed in the 'file-storage-paths' file and
+  that the directories exist on all nodes.
 
 New features
 ~~~~~~~~~~~~
