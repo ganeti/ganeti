@@ -217,7 +217,7 @@ class LUNodeAdd(LogicalUnit):
 
     # check that the type of the node (single versus dual homed) is the
     # same as for the master
-    myself = self.cfg.GetNodeInfo(self.cfg.GetMasterNode())
+    myself = self.cfg.GetMasterNodeInfo()
     master_singlehomed = myself.secondary_ip == myself.primary_ip
     newbie_singlehomed = secondary_ip == self.op.primary_ip
     if master_singlehomed != newbie_singlehomed:
@@ -635,7 +635,7 @@ class LUNodeSetParams(LogicalUnit):
     # restrictions.
     if self.op.secondary_ip:
       # Ok even without locking, because this can't be changed by any LU
-      master = self.cfg.GetNodeInfo(self.cfg.GetMasterNode())
+      master = self.cfg.GetMasterNodeInfo()
       master_singlehomed = master.secondary_ip == master.primary_ip
       if master_singlehomed and self.op.secondary_ip != node.primary_ip:
         if self.op.force and node.uuid == master.uuid:

@@ -194,7 +194,7 @@ def RedistributeAncillaryFiles(lu):
   """
   # Gather target nodes
   cluster = lu.cfg.GetClusterInfo()
-  master_info = lu.cfg.GetNodeInfo(lu.cfg.GetMasterNode())
+  master_info = lu.cfg.GetMasterNodeInfo()
 
   online_node_uuids = lu.cfg.GetOnlineNodeList()
   online_node_uuid_set = frozenset(online_node_uuids)
