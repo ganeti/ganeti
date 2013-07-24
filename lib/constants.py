@@ -949,6 +949,7 @@ HV_KVM_EXTRA = "kvm_extra"
 HV_KVM_MACHINE_VERSION = "machine_version"
 HV_KVM_PATH = "kvm_path"
 HV_VIF_TYPE = "vif_type"
+HV_VNET_HDR = "vnet_hdr"
 
 
 HVS_PARAMETER_TYPES = {
@@ -1019,6 +1020,7 @@ HVS_PARAMETER_TYPES = {
   HV_KVM_EXTRA: VTYPE_STRING,
   HV_KVM_MACHINE_VERSION: VTYPE_STRING,
   HV_VIF_TYPE: VTYPE_STRING,
+  HV_VNET_HDR: VTYPE_BOOL,
   }
 
 HVS_PARAMETERS = frozenset(HVS_PARAMETER_TYPES.keys())
@@ -2103,6 +2105,7 @@ HVC_DEFAULTS = {
     HV_VGA: "",
     HV_KVM_EXTRA: "",
     HV_KVM_MACHINE_VERSION: "",
+    HV_VNET_HDR: True,
     },
   HT_FAKE: {},
   HT_CHROOT: {
