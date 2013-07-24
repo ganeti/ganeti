@@ -342,5 +342,34 @@ class TestLUClusterConfigQuery(CmdlibTestCase):
     self.assertFalse(self.rpc.call_get_watcher_pause.called)
 
 
+class TestLUClusterDestroy(CmdlibTestCase):
+  def testExistingNodes(self):
+    op = opcodes.OpClusterDestroy()
+
+    self.cfg.AddNewNode()
+    self.cfg.AddNewNode()
+
+    self.ExecOpCodeExpectOpPrereqError(op, "still 2 node\(s\)")
+
+  def testExistingInstances(self):
+    op = opcodes.OpClusterDestroy()
+
+    self.cfg.AddNewInstance()
+    self.cfg.AddNewInstance()
+
+    self.ExecOpCodeExpectOpPrereqError(op, "still 2 instance\(s\)")
+
+  def testEmptyCluster(self):
+    op = opcodes.OpClusterDestroy()
+
+    self.ExecOpCode(op)
+
+    self.assertEqual(1, self.rpc.call_hooks_runner.call_count)
+    args = self.rpc.call_hooks_runner.call_args[0]
+    self.assertEqual([self.cfg.GetMasterNodeName()], args[0])
+    self.assertEqual("cluster-destroy", args[1])
+    self.assertEqual(constants.HOOKS_PHASE_POST, args[2])
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
