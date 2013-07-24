@@ -417,6 +417,7 @@ $(buildObject "INicParams" "inic"
   , optionalField $ simpleField C.inicMode [t| NonEmptyString |]
   , optionalField $ simpleField C.inicLink [t| NonEmptyString |]
   , optionalField $ simpleField C.inicName [t| NonEmptyString |]
+  , optionalField $ simpleField C.inicVlan [t| NonEmptyString |]
   ])
 
 -- | Disk modification definition. FIXME: disksize should be VTYPE_UNIT.

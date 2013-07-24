@@ -59,8 +59,8 @@ def BuildInstanceHookEnv(name, primary_node_name, secondary_node_names, os_type,
   @type vcpus: string
   @param vcpus: the count of VCPUs the instance has
   @type nics: list
-  @param nics: list of tuples (name, uuid, ip, mac, mode, link, net, netinfo)
-      representing the NICs the instance has
+  @param nics: list of tuples (name, uuid, ip, mac, mode, link, vlan, net,
+      netinfo) representing the NICs the instance has
   @type disk_template: string
   @param disk_template: the disk template of the instance
   @type disks: list
@@ -94,7 +94,8 @@ def BuildInstanceHookEnv(name, primary_node_name, secondary_node_names, os_type,
     }
   if nics:
     nic_count = len(nics)
-    for idx, (name, uuid, ip, mac, mode, link, net, netinfo) in enumerate(nics):
+    for idx, (name, uuid, ip, mac, mode, link, vlan, net, netinfo) \
+        in enumerate(nics):
       if ip is None:
         ip = ""
       if name:
@@ -104,6 +105,7 @@ def BuildInstanceHookEnv(name, primary_node_name, secondary_node_names, os_type,
       env["INSTANCE_NIC%d_MAC" % idx] = mac
       env["INSTANCE_NIC%d_MODE" % idx] = mode
       env["INSTANCE_NIC%d_LINK" % idx] = link
+      env["INSTANCE_NIC%d_VLAN" % idx] = vlan
       if netinfo:
         nobj = objects.Network.FromDict(netinfo)
         env.update(nobj.HooksDict("INSTANCE_NIC%d_" % idx))
@@ -112,7 +114,8 @@ def BuildInstanceHookEnv(name, primary_node_name, secondary_node_names, os_type,
         # network, but the relevant network entry was not in the config. This
         # should be made impossible.
         env["INSTANCE_NIC%d_NETWORK_NAME" % idx] = net
-      if mode == constants.NIC_MODE_BRIDGED:
+      if mode == constants.NIC_MODE_BRIDGED or \
+         mode == constants.NIC_MODE_OVS:
         env["INSTANCE_NIC%d_BRIDGE" % idx] = link
   else:
     nic_count = 0
@@ -317,11 +320,13 @@ def NICToTuple(lu, nic):
   filled_params = cluster.SimpleFillNIC(nic.nicparams)
   mode = filled_params[constants.NIC_MODE]
   link = filled_params[constants.NIC_LINK]
+  vlan = filled_params[constants.NIC_VLAN]
   netinfo = None
   if nic.network:
     nobj = lu.cfg.GetNetwork(nic.network)
     netinfo = objects.Network.ToDict(nobj)
-  return (nic.name, nic.uuid, nic.ip, nic.mac, mode, link, nic.network, netinfo)
+  return (nic.name, nic.uuid, nic.ip, nic.mac, mode, link, vlan,
+          nic.network, netinfo)
 
 
 def NICListToTuple(lu, nics):
