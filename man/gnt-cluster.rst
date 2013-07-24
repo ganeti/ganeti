@@ -173,6 +173,7 @@ INIT
 | [\--no-etc-hosts]
 | [\--no-ssh-init]
 | [\--file-storage-dir *dir*]
+| [\--shared-file-storage-dir *dir*]
 | [\--enabled-hypervisors *hypervisors*]
 | [{-H|\--hypervisor-parameters} *hypervisor*:*hv-param*=*value*[,*hv-param*=*value*...]]
 | [{-B|\--backend-parameters} *be-param*=*value*[,*be-param*=*value*...]]
@@ -266,13 +267,14 @@ without modifying the /etc/hosts file.
 The ``--no-ssh-init`` option allows you to initialize the cluster
 without creating or distributing SSH key pairs.
 
-The ``--file-storage-dir`` option allows you set the directory to
-use for storing the instance disk files when using file storage as
-backend for instance disks. Note that the file storage dir must be
-an allowed directory for file storage. Those directories are specified
-in the ``@SYSCONFDIR@/ganeti/file-storage-paths`` file. The file storage
-directory can also be a subdirectory of an allowed one. The file storage
-directory should be present on all nodes.
+The ``--file-storage-dir`` and ``--shared-file-storage-dir`` options
+allow you set the directory to use for storing the instance disk files
+when using file storage backend, respectively shared file storage
+backend,  for instance disks. Note that the file and shared file storage
+dir must be an allowed directory for file storage. Those directories
+are specified in the ``@SYSCONFDIR@/ganeti/file-storage-paths`` file.
+The file storage directory can also be a subdirectory of an allowed one.
+The file storage directory should be present on all nodes.
 
 The ``--prealloc-wipe-disks`` sets a cluster wide configuration value
 for wiping disks prior to allocation and size changes (``gnt-instance
@@ -633,6 +635,7 @@ MODIFY
 | [\--enabled-disk-templates *template* [,*template*...]]
 | [\--drbd-usermode-helper *helper*]
 | [\--file-storage-dir *dir*]
+| [\--shared-file-storage-dir *dir*]
 
 
 Modify the options for the cluster.
@@ -642,8 +645,9 @@ The ``--vg-name``, ``--enabled-hypervisors``, ``-H (--hypervisor-parameters)``,
 ``-C (--candidate-pool-size)``, ``--maintain-node-health``,
 ``--prealloc-wipe-disks``, ``--uid-pool``, ``--node-parameters``,
 ``--master-netdev``, ``--master-netmask``, ``--use-external-mip-script``,
-``--drbd-usermode-helper``, ``--file-storage-dir``, and
-``--enabled-disk-templates`` options are described in the **init** command.
+``--drbd-usermode-helper``, ``--file-storage-dir``,
+``--shared-file-storage-dir``, and ``--enabled-disk-templates`` options are
+described in the **init** command.
 
 The ``--hypervisor-state`` and ``--disk-state`` options are described in
 detail in **ganeti**\(7).
