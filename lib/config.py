@@ -446,12 +446,23 @@ class ConfigWriter:
     return lvnames
 
   def _AllDisks(self):
-    """Compute the list of all Disks.
+    """Compute the list of all Disks (recursively, including children).
 
     """
+    def DiskAndAllChildren(disk):
+      """Returns a list containing the given disk and all of his children.
+
+      """
+      disks = [disk]
+      if disk.children:
+        for child_disk in disk.children:
+          disks.extend(DiskAndAllChildren(child_disk))
+      return disks
+
     disks = []
     for instance in self._config_data.instances.values():
-      disks.extend(instance.disks)
+      for disk in instance.disks:
+        disks.extend(DiskAndAllChildren(disk))
     return disks
 
   def _AllNICs(self):
