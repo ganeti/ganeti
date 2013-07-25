@@ -116,6 +116,20 @@ For Python:
 - ``yaml`` library (only for running the QA).
 
 
+Version 2.7.1
+-------------
+
+*(Released Thu, 25 Jul 2013)*
+
+- Add logrotate functionality in daemon-util
+- Add logrotate example file
+- Add missing fields to network queries over rapi
+- Fix network object timestamps
+- Add support for querying network timestamps
+- Fix a typo in the example crontab
+- Fix a documentation typo
+
+
 Version 2.7.0
 -------------
 

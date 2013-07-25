@@ -191,7 +191,7 @@ LAST_DRBD_PORT = 14999
 DAEMONS_LOGBASE = {
   NODED: "node-daemon",
   CONFD: "conf-daemon",
-  LUXID: "query-daemon",
+  LUXID: "luxi-daemon",
   RAPI: "rapi-daemon",
   MASTERD: "master-daemon",
   MOND: "monitoring-daemon",
@@ -959,6 +959,7 @@ HV_KVM_PATH = "kvm_path"
 HV_VIF_TYPE = "vif_type"
 HV_VIF_SCRIPT = "vif_script"
 HV_XEN_CMD = "xen_cmd"
+HV_VNET_HDR = "vnet_hdr"
 
 
 HVS_PARAMETER_TYPES = {
@@ -1031,6 +1032,7 @@ HVS_PARAMETER_TYPES = {
   HV_VIF_TYPE: VTYPE_STRING,
   HV_VIF_SCRIPT: VTYPE_STRING,
   HV_XEN_CMD: VTYPE_STRING,
+  HV_VNET_HDR: VTYPE_BOOL,
   }
 
 HVS_PARAMETERS = frozenset(HVS_PARAMETER_TYPES.keys())
@@ -2156,6 +2158,7 @@ HVC_DEFAULTS = {
     HV_VGA: "",
     HV_KVM_EXTRA: "",
     HV_KVM_MACHINE_VERSION: "",
+    HV_VNET_HDR: True,
     },
   HT_FAKE: {
     HV_MIGRATION_MODE: HT_MIGRATION_LIVE,

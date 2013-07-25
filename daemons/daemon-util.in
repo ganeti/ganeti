@@ -324,6 +324,34 @@ stop_all() {
   done
 }
 
+# SIGHUP a process to force re-opening its logfiles
+rotate_logs() {
+  if [[ "$#" -lt 1 ]]; then
+    echo 'Missing daemon name.' >&2
+    return 1
+  fi
+
+  local name="$1"; shift
+  local pidfile=$(_daemon_pidfile $name)
+  local daemonexec=$(_daemon_executable $name)
+
+  if type -p start-stop-daemon >/dev/null; then
+    start-stop-daemon --stop --signal HUP --quiet \
+      --oknodo --pidfile $pidfile
+  else
+    _ignore_error killproc \
+      -p $pidfile \
+      $daemonexec -HUP
+  fi
+}
+
+# SIGHUP all processes
+rotate_all_logs() {
+  for i in $(list_stop_daemons); do
+    rotate_logs $i
+  done
+}
+
 # Reloads the SSH keys
 reload_ssh_keys() {
   @RPL_SSH_INITD_SCRIPT@ restart

@@ -100,6 +100,10 @@ PKGLIBDIR="$(echo @PKGLIBDIR@ | $SED)"
 install -D --mode=0755 doc/examples/ganeti.initd \
   "$TXD/$SYSCONFDIR/init.d/ganeti"
 
+[ -f doc/examples/ganeti.logrotate ] && \
+install -D --mode=0755 doc/examples/ganeti.logrotate \
+  "$TXD/$SYSCONFDIR/logrotate.d/ganeti"
+
 [ -f doc/examples/ganeti-master-role.ocf ] && \
 install -D --mode=0755 doc/examples/ganeti-master-role.ocf \
   "$TXD/$LIBDIR/ocf/resource.d/ganeti/ganeti-master-role"

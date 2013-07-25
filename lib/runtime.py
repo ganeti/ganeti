@@ -104,6 +104,9 @@ class GetentResolver:
     self.noded_uid = GetUid(constants.NODED_USER, _getpwnam)
     self.noded_gid = GetGid(constants.NODED_GROUP, _getgrnam)
 
+    self.mond_uid = GetUid(constants.MOND_USER, _getpwnam)
+    self.mond_gid = GetGid(constants.MOND_GROUP, _getgrnam)
+
     # Misc Ganeti groups
     self.daemons_gid = GetGid(constants.DAEMONS_GROUP, _getgrnam)
     self.admin_gid = GetGid(constants.ADMIN_GROUP, _getgrnam)
@@ -114,6 +117,7 @@ class GetentResolver:
       self.luxid_uid: constants.LUXID_USER,
       self.rapi_uid: constants.RAPI_USER,
       self.noded_uid: constants.NODED_USER,
+      self.mond_uid: constants.MOND_USER,
       }
 
     self._gid2group = {
@@ -122,6 +126,7 @@ class GetentResolver:
       self.luxid_gid: constants.LUXID_GROUP,
       self.rapi_gid: constants.RAPI_GROUP,
       self.noded_gid: constants.NODED_GROUP,
+      self.mond_gid: constants.MOND_GROUP,
       self.daemons_gid: constants.DAEMONS_GROUP,
       self.admin_gid: constants.ADMIN_GROUP,
       }
