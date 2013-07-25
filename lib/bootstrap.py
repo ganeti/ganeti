@@ -30,6 +30,7 @@ import logging
 import time
 import tempfile
 
+from ganeti.cmdlib import cluster
 from ganeti import rpc
 from ganeti import ssh
 from ganeti import utils
@@ -41,6 +42,7 @@ from ganeti import ssconf
 from ganeti import serializer
 from ganeti import hypervisor
 from ganeti.storage import drbd
+from ganeti.storage import filestorage
 from ganeti import netutils
 from ganeti import luxi
 from ganeti import jstore
@@ -334,17 +336,6 @@ def RunNodeSetupCmd(cluster_name, node, basecmd, debug, verbose,
   _WaitForSshDaemon(node, netutils.GetDaemonPort(constants.SSH), family)
 
 
-def _PrepareFileStorage(enabled_disk_templates, file_storage_dir):
-  """Checks if file storage is enabled and inits the dir.
-
-  """
-  if utils.storage.IsFileStorageEnabled(enabled_disk_templates):
-    file_storage_dir = _InitFileStorageDir(file_storage_dir)
-  else:
-    file_storage_dir = ""
-  return file_storage_dir
-
-
 def _InitFileStorageDir(file_storage_dir):
   """Initialize if needed the file storage.
 
@@ -372,8 +363,35 @@ def _InitFileStorageDir(file_storage_dir):
                                " a directory." % file_storage_dir,
                                errors.ECODE_ENVIRON)
 
-  # FIXME: check here if the file_storage_dir is in the set of allowed dirs
   return file_storage_dir
+
+
+def _PrepareFileStorage(
+    enabled_disk_templates, file_storage_dir, init_fn=_InitFileStorageDir,
+    acceptance_fn=None):
+  """Checks if file storage is enabled and inits the dir.
+
+  """
+  if file_storage_dir is None:
+    file_storage_dir = pathutils.DEFAULT_FILE_STORAGE_DIR
+  if not acceptance_fn:
+    acceptance_fn = \
+        lambda path: filestorage.CheckFileStoragePathAcceptance(
+            path, exact_match_ok=True)
+
+  cluster.CheckFileStoragePathVsEnabledDiskTemplates(
+      logging.warning, file_storage_dir, enabled_disk_templates)
+
+  file_storage_enabled = constants.DT_FILE in enabled_disk_templates
+  if file_storage_enabled:
+    try:
+      acceptance_fn(file_storage_dir)
+    except errors.FileStoragePathError as e:
+      raise errors.OpPrereqError(str(e))
+    result_file_storage_dir = init_fn(file_storage_dir)
+  else:
+    result_file_storage_dir = file_storage_dir
+  return result_file_storage_dir
 
 
 def _InitCheckEnabledDiskTemplates(enabled_disk_templates):

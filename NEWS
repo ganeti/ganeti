@@ -37,7 +37,7 @@ Version 2.9.0 beta1
   modification.
 - The default directory for file storage is not anymore specified at
   configure time, but taken from the cluster's configuration. It can be
-  set at cluster initialization with '--file-storage-dir'.
+  set at cluster initialization and modification with '--file-storage-dir'.
 - Cluster verification now includes stricter checks regarding the
   default file storage dir. It now checks that the file storage
   directory is explicitely allowed in the 'file-storage-paths' file and
@@ -114,6 +114,20 @@ For Haskell:
 For Python:
 - The minimum Python version needed to run Ganeti is now 2.6.
 - ``yaml`` library (only for running the QA).
+
+
+Version 2.7.1
+-------------
+
+*(Released Thu, 25 Jul 2013)*
+
+- Add logrotate functionality in daemon-util
+- Add logrotate example file
+- Add missing fields to network queries over rapi
+- Fix network object timestamps
+- Add support for querying network timestamps
+- Fix a typo in the example crontab
+- Fix a documentation typo
 
 
 Version 2.7.0

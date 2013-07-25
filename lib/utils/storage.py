@@ -32,7 +32,7 @@ def GetDiskTemplatesOfStorageType(storage_type):
   """Given the storage type, returns a list of disk templates based on that
      storage type."""
   return [dt for dt in constants.DISK_TEMPLATES
-          if constants.DISK_TEMPLATES_STORAGE_TYPE[dt] == storage_type]
+          if constants.MAP_DISK_TEMPLATE_STORAGE_TYPE[dt] == storage_type]
 
 
 def GetLvmDiskTemplates():
@@ -91,7 +91,7 @@ def _GetDefaultStorageUnitForDiskTemplate(cfg, disk_template):
      storage
 
   """
-  storage_type = constants.DISK_TEMPLATES_STORAGE_TYPE[disk_template]
+  storage_type = constants.MAP_DISK_TEMPLATE_STORAGE_TYPE[disk_template]
   cluster = cfg.GetClusterInfo()
   if disk_template in GetLvmDiskTemplates():
     return (storage_type, cfg.GetVGName())
@@ -117,13 +117,6 @@ def _GetDefaultStorageUnitForSpindles(cfg):
   return (constants.ST_LVM_PV, cfg.GetVGName())
 
 
-# List of storage type for which space reporting is implemented.
-# FIXME: Remove this, once the backend is capable to do this for all
-# storage types.
-_DISK_TEMPLATES_SPACE_QUERYABLE = GetLvmDiskTemplates() \
-    + GetDiskTemplatesOfStorageType(constants.ST_FILE)
-
-
 def GetStorageUnitsOfCluster(cfg, include_spindles=False):
   """Examines the cluster's configuration and returns a list of storage
   units and their storage keys, ordered by the order in which they
@@ -137,7 +130,7 @@ def GetStorageUnitsOfCluster(cfg, include_spindles=False):
   @rtype: list of tuples (string, string)
   @return: list of storage units, each storage unit being a tuple of
     (storage_type, storage_key); storage_type is in
-    C{constants.VALID_STORAGE_TYPES} and the storage_key a string to
+    C{constants.STORAGE_TYPES} and the storage_key a string to
     identify an entity of that storage type, for example a volume group
     name for LVM storage or a file for file storage.
 
@@ -145,7 +138,8 @@ def GetStorageUnitsOfCluster(cfg, include_spindles=False):
   cluster_config = cfg.GetClusterInfo()
   storage_units = []
   for disk_template in cluster_config.enabled_disk_templates:
-    if disk_template in _DISK_TEMPLATES_SPACE_QUERYABLE:
+    if constants.MAP_DISK_TEMPLATE_STORAGE_TYPE[disk_template]\
+        in constants.STS_REPORT:
       storage_units.append(
           _GetDefaultStorageUnitForDiskTemplate(cfg, disk_template))
   if include_spindles:

@@ -529,6 +529,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     constants.HV_VGA: hv_base.NO_CHECK,
     constants.HV_KVM_EXTRA: hv_base.NO_CHECK,
     constants.HV_KVM_MACHINE_VERSION: hv_base.NO_CHECK,
+    constants.HV_VNET_HDR: hv_base.NO_CHECK,
     }
 
   _VIRTIO = "virtio"
@@ -1533,7 +1534,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
           devlist = self._GetKVMOutput(kvm_path, self._KVMOPT_DEVICELIST)
           if self._NEW_VIRTIO_RE.search(devlist):
             nic_model = self._VIRTIO_NET_PCI
-            vnet_hdr = True
+            vnet_hdr = up_hvp[constants.HV_VNET_HDR]
         except errors.HypervisorError, _:
           # Older versions of kvm don't support DEVICE_LIST, but they don't
           # have new virtio syntax either.

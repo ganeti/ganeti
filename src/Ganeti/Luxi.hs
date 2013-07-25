@@ -228,7 +228,7 @@ getServer :: Bool -> FilePath -> IO S.Socket
 getServer setOwner path = do
   s <- S.socket S.AF_UNIX S.Stream S.defaultProtocol
   S.bindSocket s (S.SockAddrUnix path)
-  when setOwner . setOwnerAndGroupFromNames path GanetiConfd $
+  when setOwner . setOwnerAndGroupFromNames path GanetiLuxid $
     ExtraGroup DaemonsGroup
   S.listen s 5 -- 5 is the max backlog
   return s

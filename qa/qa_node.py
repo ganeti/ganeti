@@ -114,7 +114,7 @@ def TestNodeStorage():
   """gnt-node storage"""
   master = qa_config.GetMasterNode()
 
-  # FIXME: test all storage_types in constants.VALID_STORAGE_TYPES
+  # FIXME: test all storage_types in constants.STORAGE_TYPES
   # as soon as they are implemented.
   enabled_storage_types = qa_config.GetEnabledStorageTypes()
   testable_storage_types = list(set(enabled_storage_types).intersection(

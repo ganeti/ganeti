@@ -408,7 +408,8 @@ def RunExportImportTests(instance, inodes):
   # based storage types are untested, though. Also note that import could still
   # work, but is deeply embedded into the "export" case.
   if (qa_config.TestEnabled("instance-export") and
-      instance.disk_template != constants.DT_FILE):
+      instance.disk_template not in [constants.DT_FILE,
+                                     constants.DT_SHARED_FILE]):
     RunTest(qa_instance.TestInstanceExportNoTarget, instance)
 
     pnode = inodes[0]
@@ -707,7 +708,9 @@ def RunInstanceTests():
     ("instance-add-diskless", constants.DT_DISKLESS,
      qa_instance.TestInstanceAddDiskless, 1),
     ("instance-add-file", constants.DT_FILE,
-     qa_instance.TestInstanceAddFile, 1)
+     qa_instance.TestInstanceAddFile, 1),
+    ("instance-add-shared-file", constants.DT_SHARED_FILE,
+     qa_instance.TestInstanceAddSharedFile, 1),
     ]
 
   for (test_name, templ, create_fun, num_nodes) in instance_tests:

@@ -88,7 +88,7 @@ def GetInstanceInfo(instance):
   disk_template = info["Disk template"]
   if not disk_template:
     raise qa_error.Error("Can't get instance disk template")
-  storage_type = constants.DISK_TEMPLATES_STORAGE_TYPE[disk_template]
+  storage_type = constants.MAP_DISK_TEMPLATE_STORAGE_TYPE[disk_template]
 
   re_drbdnode = re.compile(r"^([^\s,]+),\s+minor=([0-9]+)$")
   vols = []
@@ -274,6 +274,14 @@ def TestInstanceAddFile(nodes):
   assert len(nodes) == 1
   if constants.DT_FILE in qa_config.GetEnabledDiskTemplates():
     return CreateInstanceByDiskTemplateOneNode(nodes, constants.DT_FILE)
+
+
+@InstanceCheck(None, INST_UP, RETURN_VALUE)
+def TestInstanceAddSharedFile(nodes):
+  """gnt-instance add -t sharedfile"""
+  assert len(nodes) == 1
+  if constants.DT_SHARED_FILE in qa_config.GetEnabledDiskTemplates():
+    return CreateInstanceByDiskTemplateOneNode(nodes, constants.DT_SHARED_FILE)
 
 
 @InstanceCheck(None, INST_UP, RETURN_VALUE)
@@ -915,6 +923,9 @@ def TestRecreateDisks(instance, inodes, othernodes):
 def TestInstanceExport(instance, node):
   """gnt-backup export -n ..."""
   name = instance.name
+  # Export does not work for file-based templates, thus we skip the test
+  if instance.disk_template in [constants.DT_FILE, constants.DT_SHARED_FILE]:
+    return
   AssertCommand(["gnt-backup", "export", "-n", node.primary, name])
   return qa_utils.ResolveInstanceName(name)
 
@@ -936,6 +947,8 @@ def TestInstanceExportNoTarget(instance):
 def TestInstanceImport(newinst, node, expnode, name):
   """gnt-backup import"""
   templ = constants.DT_PLAIN
+  if not qa_config.IsTemplateSupported(templ):
+    return
   cmd = (["gnt-backup", "import",
           "--disk-template=%s" % templ,
           "--no-ip-check",

@@ -105,6 +105,7 @@ module Ganeti.OpParams
   , pOptDiskTemplate
   , pFileDriver
   , pFileStorageDir
+  , pGlobalFileStorageDir
   , pVgName
   , pEnabledHypervisors
   , pHypervisor
@@ -787,6 +788,10 @@ pFileDriver = optionalField $ simpleField "file_driver" [t| FileDriver |]
 -- | Directory for storing file-backed disks.
 pFileStorageDir :: Field
 pFileStorageDir = optionalNEStringField "file_storage_dir"
+
+-- | Global directory for storing file-backed disks.
+pGlobalFileStorageDir :: Field
+pGlobalFileStorageDir = optionalNEStringField "file_storage_dir"
 
 -- | Volume group name.
 pVgName :: Field

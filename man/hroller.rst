@@ -104,16 +104,10 @@ For a description of the standard options check **htools**\(7) and
 BUGS
 ----
 
-Offline nodes should be ignored.
-
 If instances are online the tool should refuse to do offline rolling
 maintenances, unless explicitly requested.
 
 End-to-end shelltests should be provided.
-
-Online rolling maintenances (where instance need not be shut down, but
-are migrated from node to node) are not supported yet. Hroller by design
-should support them both with and without secondary node replacement.
 
 EXAMPLES
 --------

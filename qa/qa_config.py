@@ -380,8 +380,9 @@ class _QaConfig(object):
 
     """
     enabled_disk_templates = self.GetEnabledDiskTemplates()
-    enabled_storage_types = list(set([constants.DISK_TEMPLATES_STORAGE_TYPE[dt]
-                                      for dt in enabled_disk_templates]))
+    enabled_storage_types = list(
+        set([constants.MAP_DISK_TEMPLATE_STORAGE_TYPE[dt]
+             for dt in enabled_disk_templates]))
     # Storage type 'lvm-pv' cannot be activated via a disk template,
     # therefore we add it if 'lvm-vg' is present.
     if constants.ST_LVM_VG in enabled_storage_types:

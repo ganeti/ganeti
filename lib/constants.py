@@ -191,7 +191,7 @@ LAST_DRBD_PORT = 14999
 DAEMONS_LOGBASE = {
   NODED: "node-daemon",
   CONFD: "conf-daemon",
-  LUXID: "query-daemon",
+  LUXID: "luxi-daemon",
   RAPI: "rapi-daemon",
   MASTERD: "master-daemon",
   MOND: "monitoring-daemon",
@@ -386,7 +386,7 @@ ST_LVM_PV = "lvm-pv"
 ST_LVM_VG = "lvm-vg"
 ST_RADOS = "rados"
 
-VALID_STORAGE_TYPES = compat.UniqueFrozenset([
+STORAGE_TYPES = compat.UniqueFrozenset([
   ST_BLOCK,
   ST_DISKLESS,
   ST_EXT,
@@ -395,6 +395,10 @@ VALID_STORAGE_TYPES = compat.UniqueFrozenset([
   ST_LVM_VG,
   ST_RADOS,
   ])
+
+# the set of storage types for which storage reporting is available
+# FIXME: Remove this, once storage reporting is available for all types.
+STS_REPORT = compat.UniqueFrozenset([ST_FILE, ST_LVM_PV, ST_LVM_VG])
 
 # Storage fields
 # first two are valid in LU context only, not passed to backend
@@ -455,14 +459,14 @@ DT_SHARED_FILE = "sharedfile"
 # This only happens on an upgrade from a version of Ganeti that did not
 # support the 'enabled_disk_templates' so far.
 DISK_TEMPLATE_PREFERENCE = [
-  DT_DRBD8,
-  DT_PLAIN,
-  DT_FILE,
-  DT_SHARED_FILE,
-  DT_RBD,
   DT_BLOCK,
   DT_DISKLESS,
-  DT_EXT
+  DT_DRBD8,
+  DT_EXT,
+  DT_FILE,
+  DT_PLAIN,
+  DT_RBD,
+  DT_SHARED_FILE,
   ]
 
 DISK_TEMPLATES = compat.UniqueFrozenset([
@@ -483,7 +487,7 @@ DEFAULT_ENABLED_DISK_TEMPLATES = [
   ]
 
 # mapping of disk templates to storage types
-DISK_TEMPLATES_STORAGE_TYPE = {
+MAP_DISK_TEMPLATE_STORAGE_TYPE = {
   DT_BLOCK: ST_BLOCK,
   DT_DISKLESS: ST_DISKLESS,
   DT_DRBD8: ST_LVM_VG,
@@ -958,6 +962,7 @@ HV_KVM_PATH = "kvm_path"
 HV_VIF_TYPE = "vif_type"
 HV_VIF_SCRIPT = "vif_script"
 HV_XEN_CMD = "xen_cmd"
+HV_VNET_HDR = "vnet_hdr"
 
 
 HVS_PARAMETER_TYPES = {
@@ -1030,6 +1035,7 @@ HVS_PARAMETER_TYPES = {
   HV_VIF_TYPE: VTYPE_STRING,
   HV_VIF_SCRIPT: VTYPE_STRING,
   HV_XEN_CMD: VTYPE_STRING,
+  HV_VNET_HDR: VTYPE_BOOL,
   }
 
 HVS_PARAMETERS = frozenset(HVS_PARAMETER_TYPES.keys())
@@ -2159,6 +2165,7 @@ HVC_DEFAULTS = {
     HV_VGA: "",
     HV_KVM_EXTRA: "",
     HV_KVM_MACHINE_VERSION: "",
+    HV_VNET_HDR: True,
     },
   HT_FAKE: {
     HV_MIGRATION_MODE: HT_MIGRATION_LIVE,
