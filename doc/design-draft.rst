@@ -21,6 +21,7 @@ Design document drafts
    design-hotplug.rst
    design-optables.rst
    design-ceph-ganeti-support.rst
+   design-upgrade.rst
 
 .. vim: set textwidth=72 :
 .. Local Variables:
