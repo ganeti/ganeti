@@ -1,0 +1,13 @@
+/var/log/ganeti/*.log {
+        weekly
+        missingok
+        rotate 52
+        notifempty
+        compress
+        delaycompress
+        create 640 root root
+        sharedscripts
+        postrotate
+		@PKGLIBDIR@/daemon-util rotate-all-logs
+        endscript
+}
