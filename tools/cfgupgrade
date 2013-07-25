@@ -309,6 +309,14 @@ def DowngradeCluster(config_data):
     DowngradeIPolicy(ipolicy, "cluster")
 
 
+def DowngradeDisk(disk):
+  if "uuid" in disk:
+    del disk["uuid"]
+  if "children" in disk:
+    for child_disk in disk["children"]:
+      DowngradeDisk(child_disk)
+
+
 def DowngradeInstances(config_data):
   if "instances" not in config_data:
     raise Error("Can't find the 'instances' key in the configuration!")
@@ -316,6 +324,15 @@ def DowngradeInstances(config_data):
   for _, iobj in config_data["instances"].items():
     if "disks_active" in iobj:
       del iobj["disks_active"]
+
+    # Remove the NICs UUIDs
+    for nic in iobj["nics"]:
+      if "uuid" in nic:
+        del nic["uuid"]
+
+    # Downgrade the disks
+    for disk in iobj["disks"]:
+      DowngradeDisk(disk)
 
 
 def DowngradeAll(config_data):
