@@ -61,7 +61,7 @@ HYPERVISOR
     The hypervisor of this instance.
 
 DISK_COUNT
-    The number of disks the instance has. The actual disk defitions are
+    The number of disks the instance has. The actual disk definitions are
     in a set of additional variables. The instance's disk will be
     numbered from 0 to this value minus one.
 
@@ -190,7 +190,7 @@ environment.
 
 The ``INSTANCE_REINSTALL`` variable is set to ``1`` when this create
 request is reinstalling an existing instance, rather than creating
-one anew. This can be used, for example, to preserve some data in the
+a new one. This can be used, for example, to preserve some data in the
 old instance in an OS-specific way.
 
 export
