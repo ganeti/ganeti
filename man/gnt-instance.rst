@@ -746,6 +746,19 @@ kvm\_path
 
     Path to the userspace KVM (or qemu) program.
 
+vnet\_hdr
+    Valid for the KVM hypervisor.
+
+    This boolean option determines whether the tap devices used by the
+    KVM paravirtual nics (virtio-net) will get created with VNET_HDR
+    (IFF_VNET_HDR) support.
+
+    If set to false, it effectively disables offloading on the virio-net
+    interfaces, which prevents host kernel tainting and log flooding,
+    when dealing with broken or malicious virtio-net drivers.
+
+    It is set to ``true`` by default.
+
 The ``-O (--os-parameters)`` option allows customisation of the OS
 parameters. The actual parameter names and values depends on the OS
 being used, but the syntax is the same key=value. For example, setting
