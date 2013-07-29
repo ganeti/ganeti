@@ -24,7 +24,6 @@
 
 import os
 
-from ganeti import utils
 from ganeti import netutils
 
 
@@ -37,7 +36,7 @@ FAKE_CLUSTER_KEY = ("AAAAB3NzaC1yc2EAAAABIwAAAQEAsuGLw70et3eApJ/ZEJkAVZogIrm"
                     "vYdB2nQds7/+Bf40C/OpbvnAxna1kVtgFHAo18cQ==")
 
 
-class FakeConfig:
+class FakeConfig(object):
   """Fake configuration object"""
 
   def IsCluster(self):
@@ -61,7 +60,7 @@ class FakeConfig:
   def GetMasterNodeName(self):
     return netutils.Hostname.GetSysName()
 
-  def GetDefaultIAllocator(Self):
+  def GetDefaultIAllocator(self):
     return "testallocator"
 
   def GetNodeName(self, node_uuid):
@@ -74,7 +73,7 @@ class FakeConfig:
     return map(self.GetNodeName, node_uuids)
 
 
-class FakeProc:
+class FakeProc(object):
   """Fake processor object"""
 
   def Log(self, msg, *args, **kwargs):
@@ -90,14 +89,14 @@ class FakeProc:
     pass
 
 
-class FakeGLM:
+class FakeGLM(object):
   """Fake global lock manager object"""
 
-  def list_owned(self, level):
+  def list_owned(self, _):
     return set()
 
 
-class FakeContext:
+class FakeContext(object):
   """Fake context object"""
 
   def __init__(self):

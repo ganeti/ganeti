@@ -18,6 +18,10 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 # 02110-1301, USA.
 
+
+"""Support for mocking the lock manager"""
+
+
 from ganeti import locking
 
 

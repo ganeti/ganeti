@@ -23,12 +23,13 @@
 
 """
 
-from cmdlib_testcase import CmdlibTestCase
-from config_mock import ConfigMock
-from iallocator_mock import CreateIAllocatorMock
-from lock_manager_mock import LockManagerMock
-from processor_mock import ProcessorMock
-from rpc_runner_mock import CreateRpcRunnerMock, RpcResultsBuilder
+from cmdlib.testsupport.cmdlib_testcase import CmdlibTestCase
+from cmdlib.testsupport.config_mock import ConfigMock
+from cmdlib.testsupport.iallocator_mock import CreateIAllocatorMock
+from cmdlib.testsupport.lock_manager_mock import LockManagerMock
+from cmdlib.testsupport.processor_mock import ProcessorMock
+from cmdlib.testsupport.rpc_runner_mock import CreateRpcRunnerMock, \
+  RpcResultsBuilder
 
 __all__ = ["CmdlibTestCase",
            "ConfigMock",
@@ -37,4 +38,4 @@ __all__ = ["CmdlibTestCase",
            "LockManagerMock",
            "ProcessorMock",
            "RpcResultsBuilder",
-          ]
+           ]

@@ -18,11 +18,15 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 # 02110-1301, USA.
 
-from config_mock import *
-from iallocator_mock import *
-from lock_manager_mock import *
-from processor_mock import *
-from rpc_runner_mock import *
+
+"""Main module of the cmdlib test framework"""
+
+
+from cmdlib.testsupport.config_mock import ConfigMock
+from cmdlib.testsupport.iallocator_mock import CreateIAllocatorMock
+from cmdlib.testsupport.lock_manager_mock import LockManagerMock
+from cmdlib.testsupport.processor_mock import ProcessorMock
+from cmdlib.testsupport.rpc_runner_mock import CreateRpcRunnerMock
 
 import testutils
 
@@ -34,6 +38,7 @@ class GanetiContextMock(object):
     self.rpc = rpc
 
 
+# pylint: disable=R0904
 class CmdlibTestCase(testutils.GanetiTestCase):
   """Base class for cmdlib tests.
 
@@ -83,3 +88,4 @@ class CmdlibTestCase(testutils.GanetiTestCase):
 
     """
     self.mcpu.assertLogContainsRegex(expected_regex)
+

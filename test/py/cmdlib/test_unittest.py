@@ -19,9 +19,7 @@
 # 02110-1301, USA.
 
 
-"""Tests for LUTest*
-
-"""
+"""Tests for LUTest*"""
 
 
 from ganeti import constants

@@ -27,7 +27,6 @@ import stat
 import tempfile
 import unittest
 import logging
-import types
 
 from ganeti import utils
 
@@ -120,7 +119,7 @@ class GanetiTestCase(unittest.TestCase):
     while self._temp_files:
       try:
         utils.RemoveFile(self._temp_files.pop())
-      except EnvironmentError, err:
+      except EnvironmentError:
         pass
 
   def assertFileContent(self, file_name, expected_content):
@@ -207,8 +206,10 @@ def patch_object(*args, **kwargs):
   """
   import mock
   try:
+    # pylint: disable=W0212
     return mock._patch_object(*args, **kwargs)
   except AttributeError:
+    # pylint: disable=E1101
     return mock.patch_object(*args, **kwargs)
 
 

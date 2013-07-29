@@ -18,6 +18,10 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 # 02110-1301, USA.
 
+
+"""Support for mocking the RPC runner"""
+
+
 import mock
 
 from ganeti import objects
@@ -91,7 +95,7 @@ class RpcResultsBuilder(object):
     else:
       return node.uuid
 
-  def CreateSuccessfulNodeResult(self, node, data={}):
+  def CreateSuccessfulNodeResult(self, node, data=None):
     """@see L{RpcResultsBuilder}
 
     @param node: @see L{RpcResultsBuilder}.
@@ -99,6 +103,8 @@ class RpcResultsBuilder(object):
     @param data: the data as returned by the RPC
     @rtype: L{rpc.RpcResult}
     """
+    if data is None:
+      data = {}
     return rpc.RpcResult(data=(True, data), node=self._GetNodeId(node))
 
   def CreateFailedNodeResult(self, node):
@@ -127,7 +133,7 @@ class RpcResultsBuilder(object):
     """
     return rpc.RpcResult(data=(False, error_msg), node=self._GetNodeId(node))
 
-  def AddSuccessfulNode(self, node, data={}):
+  def AddSuccessfulNode(self, node, data=None):
     """@see L{CreateSuccessfulNode}"""
     self._results.append(self.CreateSuccessfulNodeResult(node, data))
     return self

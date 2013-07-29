@@ -1,8 +1,7 @@
-# Configuration file for pylint (http://www.logilab.org/project/pylint). See
-# http://www.logilab.org/card/pylintfeatures for more detailed variable
-# descriptions.
+# pylint configuration file tailored to test code.
 #
-# NOTE: Keep this file in sync (as much as possible) with pylintrc-test!
+# NOTE: Keep in sync as much as possible with the standard pylintrc file.
+# Only a few settings had to be adapted for the test code.
 
 [MASTER]
 profile = no
@@ -30,9 +29,9 @@ module-rgx = (([a-z_][a-z0-9_]*)|([A-Z][a-zA-Z0-9]+))$
 const-rgx = ((_{0,2}[A-Za-z][A-Za-z0-9_]*)|(__.*__))$
 class-rgx = _?[A-Z][a-zA-Z0-9]+$
 # added lower-case names
-function-rgx = (_?([A-Z]+[a-z0-9]+([A-Z]+[a-z0-9]*)*)|main|([a-z_][a-z0-9_]*))$
+function-rgx = (_?((([A-Z]+[a-z0-9]+)|test|assert)([A-Z]+[a-z0-9]*)*)|main|([a-z_][a-z0-9_]*))$
 # add lower-case names, since derived classes must obey method names
-method-rgx = (_{0,2}[A-Z]+[a-z0-9]+([A-Z]+[a-z0-9]*)*|__.*__|([a-z_][a-z0-9_]*))$
+method-rgx = (_{0,2}(([A-Z]+[a-z0-9]+)|test|assert)([A-Z]+[a-z0-9]*)*|__.*__|runTests|setUp|tearDown|([a-z_][a-z0-9_]*))$
 attr-rgx = [a-z_][a-z0-9_]{1,30}$
 argument-rgx = [a-z_][a-z0-9_]*$
 variable-rgx = (_?([a-z_][a-z0-9_]*)|(_?[A-Z0-9_]+))$
@@ -111,4 +110,4 @@ disable-msg=W0511,R0922,W0201
 
 # The new pylint 0.21+ style (plus the similarities checker, which is no longer
 # a separate opiton, but a generic disable control)
-disable=W0511,R0922,W0201,R0922,R0801,I0011
+disable=W0511,R0922,W0201,R0922,R0801,I0011,R0201

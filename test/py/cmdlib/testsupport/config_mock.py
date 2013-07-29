@@ -18,7 +18,11 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 # 02110-1301, USA.
 
-import uuid
+
+"""Support for mocking the cluster configuration"""
+
+
+import uuid as uuid_module
 
 from ganeti import config
 from ganeti import constants
@@ -31,6 +35,7 @@ def _StubGetEntResolver():
   return mocks.FakeGetentResolver()
 
 
+# pylint: disable=R0904
 class ConfigMock(config.ConfigWriter):
   """A mocked cluster configuration with added methods for easy customization.
 
@@ -45,7 +50,7 @@ class ConfigMock(config.ConfigWriter):
                                      _getents=_StubGetEntResolver())
 
   def _GetUuid(self):
-    return str(uuid.uuid4())
+    return str(uuid_module.uuid4())
 
   def AddNewNodeGroup(self,
                       uuid=None,
@@ -56,7 +61,7 @@ class ConfigMock(config.ConfigWriter):
                       hv_state_static=None,
                       disk_state_static=None,
                       alloc_policy=None,
-                      networks=[]):
+                      networks=None):
     """Add a new L{objects.NodeGroup} to the cluster configuration
 
     See L{objects.NodeGroup} for parameter documentation.
@@ -72,6 +77,8 @@ class ConfigMock(config.ConfigWriter):
       uuid = self._GetUuid()
     if name is None:
       name = "mock_group_%d" % group_id
+    if networks is None:
+      networks = []
 
     group = objects.NodeGroup(uuid=uuid,
                               name=name,
@@ -87,6 +94,7 @@ class ConfigMock(config.ConfigWriter):
     self.AddNodeGroup(group, None)
     return group
 
+  # pylint: disable=R0913
   def AddNewNode(self,
                  uuid=None,
                  name=None,
@@ -154,12 +162,12 @@ class ConfigMock(config.ConfigWriter):
                      primary_node=None,
                      os="mocked_os",
                      hypervisor=constants.HT_FAKE,
-                     hvparams={},
-                     beparams={},
-                     osparams={},
+                     hvparams=None,
+                     beparams=None,
+                     osparams=None,
                      admin_state=constants.ADMINST_DOWN,
-                     nics=[],
-                     disks=[],
+                     nics=None,
+                     disks=None,
                      disk_template=constants.DT_DISKLESS,
                      disks_active=False,
                      network_port=None):
@@ -182,6 +190,16 @@ class ConfigMock(config.ConfigWriter):
       primary_node = self._master_node.uuid
     if isinstance(primary_node, objects.Node):
       primary_node = self._master_node.uuid
+    if hvparams is None:
+      hvparams = {}
+    if beparams is None:
+      beparams = {}
+    if osparams is None:
+      osparams = {}
+    if nics is None:
+      nics = []
+    if disks is None:
+      disks = []
 
     inst = objects.Instance(uuid=uuid,
                             name=name,
@@ -241,4 +259,4 @@ class ConfigMock(config.ConfigWriter):
     pass
 
   def _GetRpc(self, address_list):
-    raise NotImplementedError
+    raise AssertionError("This should not be used during tests!")

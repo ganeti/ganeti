@@ -18,6 +18,10 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 # 02110-1301, USA.
 
+
+"""Support for mocking the opcode processor"""
+
+
 import re
 
 from ganeti import constants
@@ -41,6 +45,9 @@ class LogRecordingCallback(mcpu.OpExecCbBase):
       (log_type, log_msg) = args
 
     self.processor.log_entries.append((log_type, log_msg))
+
+  def SubmitManyJobs(self, jobs):
+    return mcpu.OpExecCbBase.SubmitManyJobs(self, jobs)
 
 
 class ProcessorMock(mcpu.Processor):
@@ -89,8 +96,8 @@ class ProcessorMock(mcpu.Processor):
     """Return a string with all log entries separated by a newline.
 
     """
-    return "\n".join("%s: %s" % (type, msg)
-                     for type, msg in self.GetLogEntries())
+    return "\n".join("%s: %s" % (log_type, msg)
+                     for log_type, msg in self.GetLogEntries())
 
   def GetLogMessagesString(self):
     """Return a string with all log messages separated by a newline.
@@ -107,8 +114,8 @@ class ProcessorMock(mcpu.Processor):
     @param expected_msg: the expected message
 
     """
-    for type, msg in self.log_entries:
-      if type == expected_type and msg == expected_msg:
+    for log_type, msg in self.log_entries:
+      if log_type == expected_type and msg == expected_msg:
         return
 
     raise AssertionError(

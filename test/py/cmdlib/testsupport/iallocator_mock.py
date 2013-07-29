@@ -18,6 +18,10 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 # 02110-1301, USA.
 
+
+"""Support for mocking the IAllocator interface"""
+
+
 import mock
 
 from ganeti.masterd import iallocator

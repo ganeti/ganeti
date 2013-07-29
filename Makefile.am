@@ -991,6 +991,7 @@ EXTRA_DIST = \
 	UPGRADE \
 	epydoc.conf.in \
 	pylintrc \
+	pylintrc-test \
 	autotools/build-bash-completion \
 	autotools/build-rpc \
 	autotools/check-header \
@@ -1451,7 +1452,8 @@ pep8_python_code = \
 	$(CHECK_HEADER) \
 	$(DOCPP) \
 	$(PYTHON_BOOTSTRAP) \
-	qa
+	qa \
+	$(python_test_support)
 
 test/py/daemon-util_unittest.bash: daemons/daemon-util
 
@@ -1931,7 +1933,7 @@ PEP8_IGNORE = E111,E121,E125,E127,E261,E501
 # For excluding pep8 expects filenames only, not whole paths
 PEP8_EXCLUDE = $(subst $(space),$(comma),$(strip $(notdir $(BUILT_PYTHON_SOURCES))))
 
-LINT_TARGETS = pylint pylint-qa
+LINT_TARGETS = pylint pylint-qa pylint-test
 if HAS_PEP8
 LINT_TARGETS += pep8
 endif
@@ -1953,6 +1955,12 @@ pylint-qa: $(GENERATED_FILES)
 	cd $(top_srcdir)/qa && \
 	  PYTHONPATH=$(abs_top_srcdir) $(PYLINT) $(LINT_OPTS) \
 	  --rcfile  ../pylintrc $(patsubst qa/%.py,%,$(qa_scripts))
+# FIXME: lint all test code, not just the newly added test support
+pylint-test: $(GENERATED_FILES)
+	@test -n "$(PYLINT)" || { echo 'pylint' not found during configure; exit 1; }
+	cd $(top_srcdir) && \
+		PYTHONPATH=.:./test/py $(PYLINT) $(LINT_OPTS) \
+		--rcfile=pylintrc-test  $(python_test_support)
 
 .PHONY: pep8
 pep8: $(GENERATED_FILES)
