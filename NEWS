@@ -2,10 +2,10 @@ News
 ====
 
 
-Version 2.8.0 beta1
+Version 2.8.0 beta2
 -------------------
 
-*(Released Mon, 24 Jun 2013)*
+*(unreleased)*
 
 Incompatible/important changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -72,6 +72,32 @@ For Haskell:
 For Python:
 - The minimum Python version needed to run Ganeti is now 2.6.
 - ``yaml`` library (only for running the QA).
+
+Since 2.8.0 beta1
+~~~~~~~~~~~~~~~~~
+
+- Fix upgrading/downgrading from 2.7
+- Increase maximum RAPI message size
+- Documentation updates
+- Split ``confd`` between ``luxid`` and ``confd``
+- Merge 2.7 series up to the 2.7.1 release
+- Allow the ``modify_etc_hosts`` option to be changed
+- Add better debugging for ``luxid`` queries
+- Expose bulk parameter for GetJobs in RAPI client
+- Expose missing ``network`` fields in RAPI
+- Add some ``cluster verify`` tests
+- Some unittest fixes
+- Fix a malfunction in ``hspace``'s tiered allocation
+- Fix query compatibility between haskell and python implementations
+
+
+Version 2.8.0 beta1
+-------------------
+
+*(Released Mon, 24 Jun 2013)*
+
+This was the first beta release of the 2.8 series. All important changes
+are listed in the latest 2.8 entry.
 
 
 Version 2.7.1
