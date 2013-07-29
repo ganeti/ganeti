@@ -19,21 +19,23 @@
 # 02110-1301, USA.
 
 
-"""Support for mocking the IAllocator interface"""
+"""Utility functions or the cmdlib test framework"""
 
 
-from cmdlib.testsupport.util import patchModule
+import mock
 
 
 # pylint: disable=C0103
-def patchIAllocator(module_under_test):
-  """Patches the L{ganeti.masterd.iallocator.IAllocator} class for tests.
-
-  This function is meant to be used as a decorator for test methods.
+def patchModule(module_under_test, mock_module):
+  """Computes the module prefix required to mock parts of the Ganeti code.
 
   @type module_under_test: string
   @param module_under_test: the module within cmdlib which is tested. The
         "ganeti.cmdlib" prefix is optional.
+  @type mock_module
+  @param mock_module: the module which should be mocked.
 
   """
-  return patchModule(module_under_test, "iallocator.IAllocator")
+  if not module_under_test.startswith("ganeti.cmdlib"):
+    module_under_test = "ganeti.cmdlib." + module_under_test
+  return mock.patch("%s.%s" % (module_under_test, mock_module))

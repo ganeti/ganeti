@@ -19,15 +19,15 @@
 # 02110-1301, USA.
 
 
-"""Support for mocking the IAllocator interface"""
+"""Support for mocking the ssh module"""
 
 
 from cmdlib.testsupport.util import patchModule
 
 
 # pylint: disable=C0103
-def patchIAllocator(module_under_test):
-  """Patches the L{ganeti.masterd.iallocator.IAllocator} class for tests.
+def patchSsh(module_under_test):
+  """Patches the L{ganeti.ssh} module for tests.
 
   This function is meant to be used as a decorator for test methods.
 
@@ -36,4 +36,4 @@ def patchIAllocator(module_under_test):
         "ganeti.cmdlib" prefix is optional.
 
   """
-  return patchModule(module_under_test, "iallocator.IAllocator")
+  return patchModule(module_under_test, "ssh")

@@ -402,5 +402,51 @@ class TestLUClusterRedistConf(CmdlibTestCase):
     self.ExecOpCode(op)
 
 
+class TestLUClusterRename(CmdlibTestCase):
+  NEW_NAME = "new-name.example.com"
+  NEW_IP = "1.2.3.4"
+
+  def testNoChanges(self):
+    op = opcodes.OpClusterRename(name=self.cfg.GetClusterName())
+
+    self.ExecOpCodeExpectOpPrereqError(op, "name nor the IP address")
+
+  def testReachableIp(self):
+    op = opcodes.OpClusterRename(name=self.NEW_NAME)
+
+    self.netutils_mod.GetHostname.return_value = \
+      HostnameMock(self.NEW_NAME, self.NEW_IP)
+    self.netutils_mod.TcpPing.return_value = True
+
+    self.ExecOpCodeExpectOpPrereqError(op, "is reachable on the network")
+
+  def testValidRename(self):
+    op = opcodes.OpClusterRename(name=self.NEW_NAME)
+
+    self.netutils_mod.GetHostname.return_value = \
+      HostnameMock(self.NEW_NAME, self.NEW_IP)
+
+    self.ExecOpCode(op)
+
+    self.assertEqual(1, self.ssh_mod.WriteKnownHostsFile.call_count)
+    self.rpc.call_node_deactivate_master_ip.assert_called_once_with(
+      self.cfg.GetMasterNode(),
+      self.cfg.GetMasterNetworkParameters(),
+      False)
+    self.rpc.call_node_activate_master_ip.assert_called_once_with(
+      self.cfg.GetMasterNode(),
+      self.cfg.GetMasterNetworkParameters(),
+      False)
+
+  def testRenameOfflineMaster(self):
+    op = opcodes.OpClusterRename(name=self.NEW_NAME)
+
+    self.cfg.GetMasterNodeInfo().offline = True
+    self.netutils_mod.GetHostname.return_value = \
+      HostnameMock(self.NEW_NAME, self.NEW_IP)
+
+    self.ExecOpCode(op)
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()

@@ -29,8 +29,11 @@ import traceback
 from cmdlib.testsupport.config_mock import ConfigMock
 from cmdlib.testsupport.iallocator_mock import patchIAllocator
 from cmdlib.testsupport.lock_manager_mock import LockManagerMock
+from cmdlib.testsupport.netutils_mock import patchNetutils, \
+  SetupDefaultNetutilsMock
 from cmdlib.testsupport.processor_mock import ProcessorMock
 from cmdlib.testsupport.rpc_runner_mock import CreateRpcRunnerMock
+from cmdlib.testsupport.ssh_mock import patchSsh
 
 from ganeti import errors
 from ganeti import opcodes
@@ -60,6 +63,8 @@ class CmdlibTestCase(testutils.GanetiTestCase):
     * C{rpc}: @see L{CreateRpcRunnerMock}
     * C{iallocator_cls}: @see L{patchIAllocator}
     * C{mcpu}: @see L{ProcessorMock}
+    * C{netutils_mod}: @see L{patchNetutils}
+    * C{ssh_mod}: @see L{patchSsh}
 
   """
 
@@ -68,6 +73,8 @@ class CmdlibTestCase(testutils.GanetiTestCase):
   def setUp(self):
     super(CmdlibTestCase, self).setUp()
     self._iallocator_patcher = None
+    self._netutils_patcher = None
+    self._ssh_patcher = None
 
     try:
       runtime.InitArchInfo()
@@ -81,6 +88,12 @@ class CmdlibTestCase(testutils.GanetiTestCase):
     if self._iallocator_patcher is not None:
       self._iallocator_patcher.stop()
       self._iallocator_patcher = None
+    if self._netutils_patcher is not None:
+      self._netutils_patcher.stop()
+      self._netutils_patcher = None
+    if self._ssh_patcher is not None:
+      self._ssh_patcher.stop()
+      self._ssh_patcher = None
 
   def tearDown(self):
     super(CmdlibTestCase, self).tearDown()
@@ -105,17 +118,31 @@ class CmdlibTestCase(testutils.GanetiTestCase):
     self.cfg = ConfigMock()
     self.glm = LockManagerMock()
     self.rpc = CreateRpcRunnerMock()
+    ctx = GanetiContextMock(self.cfg, self.glm, self.rpc)
+    self.mcpu = ProcessorMock(ctx)
 
     self._StopPatchers()
     try:
       self._iallocator_patcher = patchIAllocator(self._GetTestModule())
       self.iallocator_cls = self._iallocator_patcher.start()
-    except ImportError:
+    except (ImportError, AttributeError):
       # this test module does not use iallocator, no patching performed
       self._iallocator_patcher = None
 
-    ctx = GanetiContextMock(self.cfg, self.glm, self.rpc)
-    self.mcpu = ProcessorMock(ctx)
+    try:
+      self._netutils_patcher = patchNetutils(self._GetTestModule())
+      self.netutils_mod = self._netutils_patcher.start()
+      SetupDefaultNetutilsMock(self.netutils_mod, self.cfg)
+    except (ImportError, AttributeError):
+      # this test module does not use netutils, no patching performed
+      self._netutils_patcher = None
+
+    try:
+      self._ssh_patcher = patchSsh(self._GetTestModule())
+      self.ssh_mod = self._ssh_patcher.start()
+    except (ImportError, AttributeError):
+      # this test module does not use ssh, no patching performed
+      self._ssh_patcher = None
 
   def ExecOpCode(self, opcode):
     """Executes the given opcode.
