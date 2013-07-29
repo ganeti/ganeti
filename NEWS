@@ -7,6 +7,9 @@ Version 2.7.2
 
 *(unreleased)*
 
+- Change the connected groups format in ``gnt-network info`` output; it
+  was previously displayed as a raw list by mistake.
+
 
 Version 2.7.1
 -------------

@@ -236,8 +236,8 @@ def ShowNetworkConfig(_, args):
 
     if group_list:
       ToStdout("  connected to node groups:")
-      for group in group_list:
-        ToStdout("    %s", group)
+      for group, nic_mode, nic_link in group_list:
+        ToStdout("    %s (%s on %s)", group, nic_mode, nic_link)
     else:
       ToStdout("  not connected to any node group")
 
