@@ -60,6 +60,12 @@ New features
 - New command ``show-ispecs-cmd`` for ``gnt-cluster`` and ``gnt-group``.
   It prints the command line to set the current policies, to ease
   changing them.
+- Add the ``vnet_hdr`` HV parameter for KVM, to control whether the tap
+  devices for KVM virtio-net interfaces will get created with VNET_HDR
+  (IFF_VNET_HDR) support. If set to false, it disables offloading on the
+  virtio-net interfaces, which prevents host kernel tainting and log
+  flooding, when dealing with broken or malicious virtio-net drivers.
+  It's set to true by default.
 
 New dependencies
 ~~~~~~~~~~~~~~~~
@@ -89,6 +95,7 @@ Since 2.8.0 beta1
 - Some unittest fixes
 - Fix a malfunction in ``hspace``'s tiered allocation
 - Fix query compatibility between haskell and python implementations
+- Add the ``vnet_hdr`` HV parameter for KVM
 
 
 Version 2.8.0 beta1
