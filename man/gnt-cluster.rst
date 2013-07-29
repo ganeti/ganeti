@@ -236,7 +236,7 @@ the cluster creation and DRBD support is enabled you might have to
 manually modify the metavg as well.
 
 If you don't want to use lvm storage at all use
-the ``--enabled-disk-template`` option to restrict the set of enabled
+the ``--enabled-disk-templates`` option to restrict the set of enabled
 disk templates. Once the cluster is initialized
 you can change this setup with the **modify** command.
 
