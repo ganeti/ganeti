@@ -205,7 +205,7 @@ the exception of curl), so you can use either apt::
 
 or ``cabal``::
 
-  $ apt-get install libprcre3-dev libcurl4-openssl-dev
+  $ apt-get install libpcre3-dev libcurl4-openssl-dev
   $ cabal install hslogger Crypto text hinotify==0.3.2 regex-pcre curl \
                   attoparsec vector
 
