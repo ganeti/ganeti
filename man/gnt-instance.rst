@@ -1673,7 +1673,7 @@ FAILOVER
 | **failover** [-f] [\--ignore-consistency] [\--ignore-ipolicy]
 | [\--shutdown-timeout=*N*]
 | [{-n|\--target-node} *node* \| {-I|\--iallocator} *name*]
-| [\--submit]
+| [\--submit] [\--cleanup]
 | {*instance*}
 
 Failover will stop the instance (if running), change its primary node,
@@ -1709,6 +1709,12 @@ to stop.
 
 If ``--ignore-ipolicy`` is given any instance policy violations occuring
 during this operation are ignored.
+
+If the ``--cleanup`` option is passed, the operation changes from
+performin a failover to attempting recovery from a failed previous failover.
+In this mode, Ganeti checks if the instance runs on the correct node (and
+updates its configuration if not) and ensures the instances' disks
+are configured correctly.
 
 See **ganeti**\(7) for a description of ``--submit`` and other common
 options.
