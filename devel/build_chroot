@@ -88,14 +88,16 @@ apt-get install -y schroot debootstrap
 
 shopt -s expand_aliases
 alias in_chroot='schroot -c $CHNAME -d / '
-alias subst_variables='sed \
-  -e "s/\${ARCH}/$ARCH/" \
-  -e "s*\${CHDIR}*$CHDIR*" \
-  -e "s/\${CHNAME}/$CHNAME/" \
-  -e "s/\${CHROOTNAME}/$CHROOTNAME/" \
-  -e "s*\${CHROOT_DIR}*$CHROOT_DIR*" \
-  -e "s/\${COMP_FILENAME}/$COMP_FILENAME/" \
-  -e "s/\${DIST_RELEASE}/$DIST_RELEASE/"'
+function subst_variables {
+  sed \
+    -e "s/\${ARCH}/$ARCH/" \
+    -e "s*\${CHDIR}*$CHDIR*" \
+    -e "s/\${CHNAME}/$CHNAME/" \
+    -e "s/\${CHROOTNAME}/$CHROOTNAME/" \
+    -e "s*\${CHROOT_DIR}*$CHROOT_DIR*" \
+    -e "s/\${COMP_FILENAME}/$COMP_FILENAME/" \
+    -e "s/\${DIST_RELEASE}/$DIST_RELEASE/" $@
+}
 
 #Generate chroot configurations
 cat $ACTUAL_DATA_DIR/temp.schroot.conf.in | subst_variables > $TEMP_CHROOT_CONF
