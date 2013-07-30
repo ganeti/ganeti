@@ -441,8 +441,20 @@ prop_serialization = testSerialisation
 -- | Check that Python and Haskell defined the same opcode list.
 case_AllDefined :: HUnit.Assertion
 case_AllDefined = do
-  let py_ops = sort C.opcodesOpIds
-      hs_ops = sort OpCodes.allOpIDs
+  py_stdout <-
+     runPython "from ganeti import opcodes\n\
+               \from ganeti import serializer\n\
+               \import sys\n\
+               \print serializer.Dump([opid for opid in opcodes.OP_MAPPING])\n" ""
+     >>= checkPythonResult
+  py_ops <- case J.decode py_stdout::J.Result [String] of
+               J.Ok ops -> return ops
+               J.Error msg ->
+                 HUnit.assertFailure ("Unable to decode opcode names: " ++ msg)
+                 -- this already raised an expection, but we need it
+                 -- for proper types
+                 >> fail "Unable to decode opcode names"
+  let hs_ops = sort OpCodes.allOpIDs
       extra_py = py_ops \\ hs_ops
       extra_hs = hs_ops \\ py_ops
   HUnit.assertBool ("Missing OpCodes from the Haskell code:\n" ++
