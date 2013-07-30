@@ -21,6 +21,9 @@ Incompatible/important changes
 - hail now honors network restrictions when allocating nodes. This led to an
   update of the IAllocator protocol. See the IAllocator documentation for
   details.
+- confd now only answers static configuration request over the network. luxid
+  was extracted, listens on the local LUXI socket and responds to live queries.
+  This allows finer grained permissions if using separate users.
 
 New features
 ~~~~~~~~~~~~
