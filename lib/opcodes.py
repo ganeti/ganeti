@@ -2085,7 +2085,7 @@ class OpTestAllocator(OpCode):
     ("nics", ht.NoDefault,
      ht.TMaybeListOf(ht.TDictOf(ht.TElemOf([constants.INIC_MAC,
                                             constants.INIC_IP,
-                                            "bridge"]),
+                                            constants.INIC_BRIDGE]),
                                 ht.TMaybeString)),
      None),
     ("disks", ht.NoDefault, ht.TMaybe(ht.TList), None),
