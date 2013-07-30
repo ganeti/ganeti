@@ -107,6 +107,8 @@ $(genArbitrary ''CVErrorCode)
 
 $(genArbitrary ''Hypervisor)
 
+$(genArbitrary ''TagKind)
+
 $(genArbitrary ''OobCommand)
 
 -- | Valid storage types.

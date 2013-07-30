@@ -40,6 +40,9 @@ module Ganeti.Types
   , DiskTemplate(..)
   , diskTemplateToRaw
   , diskTemplateFromRaw
+  , TagKind(..)
+  , tagKindToRaw
+  , tagKindFromRaw
   , NonNegative
   , fromNonNegative
   , mkNonNegative
@@ -53,8 +56,18 @@ module Ganeti.Types
   , fromNonEmpty
   , mkNonEmpty
   , NonEmptyString
+  , QueryResultCode
+  , IPv4Address
+  , mkIPv4Address
+  , IPv4Network
+  , mkIPv4Network
+  , IPv6Address
+  , mkIPv6Address
+  , IPv6Network
+  , mkIPv6Network
   , MigrationMode(..)
   , VerifyOptionalChecks(..)
+  , verifyOptionalChecksToRaw
   , DdmSimple(..)
   , DdmFull(..)
   , CVErrorCode(..)
@@ -166,12 +179,66 @@ mkNonEmpty :: (Monad m) => [a] -> m (NonEmpty a)
 mkNonEmpty [] = fail "Received empty value for non-empty list"
 mkNonEmpty xs = return (NonEmpty xs)
 
+instance (Eq a, Ord a) => Ord (NonEmpty a) where
+  NonEmpty { fromNonEmpty = x1 } `compare` NonEmpty { fromNonEmpty = x2 } =
+    x1 `compare` x2
+
 instance (JSON.JSON a) => JSON.JSON (NonEmpty a) where
   showJSON = JSON.showJSON . fromNonEmpty
   readJSON v = JSON.readJSON v >>= mkNonEmpty
 
 -- | A simple type alias for non-empty strings.
 type NonEmptyString = NonEmpty Char
+
+type QueryResultCode = Int
+
+newtype IPv4Address = IPv4Address { fromIPv4Address :: String }
+  deriving (Show, Eq)
+
+-- FIXME: this should check that 'address' is a valid ip
+mkIPv4Address :: Monad m => String -> m IPv4Address
+mkIPv4Address address =
+  return IPv4Address { fromIPv4Address = address }
+
+instance JSON.JSON IPv4Address where
+  showJSON = JSON.showJSON . fromIPv4Address
+  readJSON v = JSON.readJSON v >>= mkIPv4Address
+
+newtype IPv4Network = IPv4Network { fromIPv4Network :: String }
+  deriving (Show, Eq)
+
+-- FIXME: this should check that 'address' is a valid ip
+mkIPv4Network :: Monad m => String -> m IPv4Network
+mkIPv4Network address =
+  return IPv4Network { fromIPv4Network = address }
+
+instance JSON.JSON IPv4Network where
+  showJSON = JSON.showJSON . fromIPv4Network
+  readJSON v = JSON.readJSON v >>= mkIPv4Network
+
+newtype IPv6Address = IPv6Address { fromIPv6Address :: String }
+  deriving (Show, Eq)
+
+-- FIXME: this should check that 'address' is a valid ip
+mkIPv6Address :: Monad m => String -> m IPv6Address
+mkIPv6Address address =
+  return IPv6Address { fromIPv6Address = address }
+
+instance JSON.JSON IPv6Address where
+  showJSON = JSON.showJSON . fromIPv6Address
+  readJSON v = JSON.readJSON v >>= mkIPv6Address
+
+newtype IPv6Network = IPv6Network { fromIPv6Network :: String }
+  deriving (Show, Eq)
+
+-- FIXME: this should check that 'address' is a valid ip
+mkIPv6Network :: Monad m => String -> m IPv6Network
+mkIPv6Network address =
+  return IPv6Network { fromIPv6Network = address }
+
+instance JSON.JSON IPv6Network where
+  showJSON = JSON.showJSON . fromIPv6Network
+  readJSON v = JSON.readJSON v >>= mkIPv6Network
 
 -- * Ganeti types
 
@@ -191,6 +258,15 @@ $(THH.makeJSONInstance ''DiskTemplate)
 instance HasStringRepr DiskTemplate where
   fromStringRepr = diskTemplateFromRaw
   toStringRepr = diskTemplateToRaw
+
+-- | Data type representing what items the tag operations apply to.
+$(THH.declareSADT "TagKind"
+  [ ("TagKindInstance", 'C.tagInstance)
+  , ("TagKindNode",     'C.tagNode)
+  , ("TagKindGroup",    'C.tagNodegroup)
+  , ("TagKindCluster",  'C.tagCluster)
+  ])
+$(THH.makeJSONInstance ''TagKind)
 
 -- | The Group allocation policy type.
 --
