@@ -66,6 +66,8 @@ New features
   virtio-net interfaces, which prevents host kernel tainting and log
   flooding, when dealing with broken or malicious virtio-net drivers.
   It's set to true by default.
+- Instance failover now supports a ``--cleanup`` parameter for fixing previous
+  failures.
 
 New dependencies
 ~~~~~~~~~~~~~~~~
@@ -96,6 +98,7 @@ Since 2.8.0 beta1
 - Fix a malfunction in ``hspace``'s tiered allocation
 - Fix query compatibility between haskell and python implementations
 - Add the ``vnet_hdr`` HV parameter for KVM
+- Add ``--cleanup`` to instance failover
 
 
 Version 2.8.0 beta1
