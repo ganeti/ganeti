@@ -79,6 +79,7 @@
 /lib/_autoconf.py
 /lib/_vcsversion.py
 /lib/_generated_rpc.py
+/lib/opcodes.py
 
 # man
 /man/*.[0-9]
@@ -128,6 +129,7 @@
 /src/htools
 /src/hconfd
 /src/hluxid
+/src/hs2py
 /src/ganeti-confd
 /src/ganeti-luxid
 /src/ganeti-mond
