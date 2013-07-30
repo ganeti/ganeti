@@ -362,30 +362,30 @@ class TestResultChecks(unittest.TestCase):
   def testJobIdList(self):
     for i in [[], [(False, "error")], [(False, "")],
               [(True, 123), (True, "999")]]:
-      self.assertTrue(opcodes.TJobIdList(i))
+      self.assertTrue(ht.TJobIdList(i))
 
     for i in ["", [("x", 1)], [[], []], [[False, "", None], [True, 123]]]:
-      self.assertFalse(opcodes.TJobIdList(i))
+      self.assertFalse(ht.TJobIdList(i))
 
   def testJobIdListOnly(self):
-    self.assertTrue(opcodes.TJobIdListOnly({
+    self.assertTrue(ht.TJobIdListOnly({
       constants.JOB_IDS_KEY: [],
       }))
-    self.assertTrue(opcodes.TJobIdListOnly({
+    self.assertTrue(ht.TJobIdListOnly({
       constants.JOB_IDS_KEY: [(True, "9282")],
       }))
 
-    self.assertFalse(opcodes.TJobIdListOnly({
+    self.assertFalse(ht.TJobIdListOnly({
       "x": None,
       }))
-    self.assertFalse(opcodes.TJobIdListOnly({
+    self.assertFalse(ht.TJobIdListOnly({
       constants.JOB_IDS_KEY: [],
       "x": None,
       }))
-    self.assertFalse(opcodes.TJobIdListOnly({
+    self.assertFalse(ht.TJobIdListOnly({
       constants.JOB_IDS_KEY: [("foo", "bar")],
       }))
-    self.assertFalse(opcodes.TJobIdListOnly({
+    self.assertFalse(ht.TJobIdListOnly({
       constants.JOB_IDS_KEY: [("one", "two", "three")],
       }))
 
@@ -433,7 +433,7 @@ class TestOpInstanceSetParams(unittest.TestCase):
     self.assertFalse(fn([[constants.DDM_ADD]]))
 
   def testNicModifications(self):
-    fn = opcodes.OpInstanceSetParams.TestNicModifications
+    fn = ht.TSetParamsMods(ht.TINicParams)
     self._GenericTests(fn)
 
     for param in constants.INIC_PARAMS:
@@ -441,7 +441,7 @@ class TestOpInstanceSetParams(unittest.TestCase):
       self.assertTrue(fn([[constants.DDM_ADD, {param: param}]]))
 
   def testDiskModifications(self):
-    fn = opcodes.OpInstanceSetParams.TestDiskModifications
+    fn = ht.TSetParamsMods(ht.TIDiskParams)
     self._GenericTests(fn)
 
     for param in constants.IDISK_PARAMS:

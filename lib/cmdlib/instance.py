@@ -2387,9 +2387,9 @@ class LUInstanceSetParams(LogicalUnit):
                            "hypervisor", "instance", "cluster")
 
     self.op.disks = self._UpgradeDiskNicMods(
-      "disk", self.op.disks, opcodes.OpInstanceSetParams.TestDiskModifications)
+      "disk", self.op.disks, ht.TSetParamsMods(ht.TIDiskParams))
     self.op.nics = self._UpgradeDiskNicMods(
-      "NIC", self.op.nics, opcodes.OpInstanceSetParams.TestNicModifications)
+      "NIC", self.op.nics, ht.TSetParamsMods(ht.TINicParams))
 
     if self.op.disks and self.op.disk_template is not None:
       raise errors.OpPrereqError("Disk template conversion and other disk"

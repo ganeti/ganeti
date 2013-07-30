@@ -23,10 +23,12 @@
 
 import re
 import operator
+import ipaddr
 
 from ganeti import compat
 from ganeti import utils
 from ganeti import constants
+from ganeti import objects
 
 
 _PAREN_RE = re.compile("^[a-zA-Z0-9_-]+$")
@@ -359,13 +361,24 @@ TMaybeDict = TMaybe(TDict)
 #: Maybe a list (list or None)
 TMaybeList = TMaybe(TList)
 
+
+#: a non-negative number (value > 0)
+# val_type should be TInt, TDouble (== TFloat), or TNumber
+def TNonNegative(val_type):
+  return WithDesc("EqualOrGreaterThanZero")(TAnd(val_type, lambda v: v >= 0))
+
+
+#: a positive number (value >= 0)
+# val_type should be TInt, TDouble (== TFloat), or TNumber
+def TPositive(val_type):
+  return WithDesc("GreaterThanZero")(TAnd(val_type, lambda v: v > 0))
+
+
 #: a non-negative integer (value >= 0)
-TNonNegativeInt = \
-  TAnd(TInt, WithDesc("EqualOrGreaterThanZero")(lambda v: v >= 0))
+TNonNegativeInt = TNonNegative(TInt)
 
 #: a positive integer (value > 0)
-TPositiveInt = \
-  TAnd(TInt, WithDesc("GreaterThanZero")(lambda v: v > 0))
+TPositiveInt = TPositive(TInt)
 
 #: a maybe positive integer (positive integer or None)
 TMaybePositiveInt = TMaybe(TPositiveInt)
@@ -382,6 +395,9 @@ TNonNegativeFloat = \
 TJobId = WithDesc("JobId")(TOr(TNonNegativeInt,
                                TRegex(re.compile("^%s$" %
                                                  constants.JOB_ID_TEMPLATE))))
+
+#: Double (== Float)
+TDouble = TFloat
 
 #: Number
 TNumber = TOr(TInt, TFloat)
@@ -413,6 +429,24 @@ def TListOf(my_type):
 
 
 TMaybeListOf = lambda item_type: TMaybe(TListOf(item_type))
+
+
+def TTupleOf(*val_types):
+  """Checks if a given value is a list with the proper size and its
+     elements match the given types.
+
+  """
+  desc = WithDesc("Tuple of %s" % (Parens(val_types), ))
+  return desc(TAnd(TIsLength(len(val_types)), TItems(val_types)))
+
+
+def TSetOf(val_type):
+  """Checks if a given value is a list with all elements of the same
+     type and eliminates duplicated elements.
+
+  """
+  desc = WithDesc("Set of %s" % (Parens(val_type), ))
+  return desc(lambda st: TListOf(val_type)(list(set(st))))
 
 
 def TDictOf(key_type, val_type):
@@ -497,3 +531,197 @@ def TItems(items):
 
   return desc(lambda value: compat.all(check(i)
                                        for (check, i) in zip(items, value)))
+
+
+TAllocPolicy = TElemOf(constants.VALID_ALLOC_POLICIES)
+TCVErrorCode = TElemOf(constants.CV_ALL_ECODES_STRINGS)
+TQueryResultCode = TElemOf(constants.RS_ALL)
+TExportTarget = TOr(TNonEmptyString, TList)
+TExportMode = TElemOf(constants.EXPORT_MODES)
+TDiskIndex = TAnd(TNonNegativeInt, lambda val: val < constants.MAX_DISKS)
+TReplaceDisksMode = TElemOf(constants.REPLACE_MODES)
+TDiskTemplate = TElemOf(constants.DISK_TEMPLATES)
+TNodeEvacMode = TElemOf(constants.IALLOCATOR_NEVAC_MODES)
+TIAllocatorTestDir = TElemOf(constants.VALID_IALLOCATOR_DIRECTIONS)
+TIAllocatorMode = TElemOf(constants.VALID_IALLOCATOR_MODES)
+
+
+def TSetParamsMods(fn):
+  """Generates a check for modification lists.
+
+  """
+  # Old format
+  # TODO: Remove in version 2.11 including support in LUInstanceSetParams
+  old_mod_item_fn = \
+    TAnd(TIsLength(2),
+         TItems([TOr(TElemOf(constants.DDMS_VALUES), TNonNegativeInt), fn]))
+
+  # New format, supporting adding/removing disks/NICs at arbitrary indices
+  mod_item_fn = \
+      TAnd(TIsLength(3), TItems([
+        TElemOf(constants.DDMS_VALUES_WITH_MODIFY),
+        Comment("Device index, can be negative, e.g. -1 for last disk")
+                 (TOr(TInt, TString)),
+        fn,
+        ]))
+
+  return TOr(Comment("Recommended")(TListOf(mod_item_fn)),
+             Comment("Deprecated")(TListOf(old_mod_item_fn)))
+
+
+TINicParams = \
+    Comment("NIC parameters")(TDictOf(TElemOf(constants.INIC_PARAMS),
+                                      TMaybeString))
+
+TIDiskParams = \
+    Comment("Disk parameters")(TDictOf(TElemOf(constants.IDISK_PARAMS),
+                                       TOr(TNonEmptyString, TInt)))
+
+THypervisor = TElemOf(constants.HYPER_TYPES)
+TMigrationMode = TElemOf(constants.HT_MIGRATION_MODES)
+TNICMode = TElemOf(constants.NIC_VALID_MODES)
+TInstCreateMode = TElemOf(constants.INSTANCE_CREATE_MODES)
+TRebootType = TElemOf(constants.REBOOT_TYPES)
+TFileDriver = TElemOf(constants.FILE_DRIVER)
+TOobCommand = TElemOf(constants.OOB_COMMANDS)
+TQueryTypeOp = TElemOf(constants.QR_VIA_OP)
+
+TDiskParams = \
+    Comment("Disk parameters")(TDictOf(TNonEmptyString,
+                                       TOr(TNonEmptyString, TInt)))
+
+TDiskChanges = \
+    TAnd(TIsLength(2),
+         TItems([Comment("Disk index")(TNonNegativeInt),
+                 Comment("Parameters")(TDiskParams)]))
+
+TRecreateDisksInfo = TOr(TListOf(TNonNegativeInt), TListOf(TDiskChanges))
+
+
+def TStorageType(val):
+  """Builds a function that checks if a given value is a valid storage
+  type.
+
+  """
+  return (val in constants.STORAGE_TYPES)
+
+
+TTagKind = TElemOf(constants.VALID_TAG_TYPES)
+TDdmSimple = TElemOf(constants.DDMS_VALUES)
+TVerifyOptionalChecks = TElemOf(constants.VERIFY_OPTIONAL_CHECKS)
+
+
+@WithDesc("IPv4 network")
+def _CheckCIDRNetNotation(value):
+  """Ensure a given CIDR notation type is valid.
+
+  """
+  try:
+    ipaddr.IPv4Network(value)
+  except ipaddr.AddressValueError:
+    return False
+  return True
+
+
+@WithDesc("IPv4 address")
+def _CheckCIDRAddrNotation(value):
+  """Ensure a given CIDR notation type is valid.
+
+  """
+  try:
+    ipaddr.IPv4Address(value)
+  except ipaddr.AddressValueError:
+    return False
+  return True
+
+
+@WithDesc("IPv6 address")
+def _CheckCIDR6AddrNotation(value):
+  """Ensure a given CIDR notation type is valid.
+
+  """
+  try:
+    ipaddr.IPv6Address(value)
+  except ipaddr.AddressValueError:
+    return False
+  return True
+
+
+@WithDesc("IPv6 network")
+def _CheckCIDR6NetNotation(value):
+  """Ensure a given CIDR notation type is valid.
+
+  """
+  try:
+    ipaddr.IPv6Network(value)
+  except ipaddr.AddressValueError:
+    return False
+  return True
+
+
+TIPv4Address = TAnd(TString, _CheckCIDRAddrNotation)
+TIPv6Address = TAnd(TString, _CheckCIDR6AddrNotation)
+TIPv4Network = TAnd(TString, _CheckCIDRNetNotation)
+TIPv6Network = TAnd(TString, _CheckCIDR6NetNotation)
+
+
+def TObject(val_type):
+  return TDictOf(TAny, val_type)
+
+
+def TObjectCheck(obj, fields_types):
+  """Helper to generate type checks for objects.
+
+  @param obj: The object to generate type checks
+  @param fields_types: The fields and their types as a dict
+  @return: A ht type check function
+
+  """
+  assert set(obj.GetAllSlots()) == set(fields_types.keys()), \
+    "%s != %s" % (set(obj.GetAllSlots()), set(fields_types.keys()))
+  return TStrictDict(True, True, fields_types)
+
+
+TQueryFieldDef = \
+    TObjectCheck(objects.QueryFieldDefinition, {
+        "name": TNonEmptyString,
+        "title": TNonEmptyString,
+        "kind": TElemOf(constants.QFT_ALL),
+        "doc": TNonEmptyString
+    })
+
+TQueryRow = \
+    TListOf(TAnd(TIsLength(2),
+                 TItems([TElemOf(constants.RS_ALL), TAny])))
+
+TQueryResult = TListOf(TQueryRow)
+
+TQueryResponse = \
+    TObjectCheck(objects.QueryResponse, {
+        "fields": TListOf(TQueryFieldDef),
+        "data": TQueryResult
+    })
+
+TQueryFieldsResponse = \
+    TObjectCheck(objects.QueryFieldsResponse, {
+        "fields": TListOf(TQueryFieldDef)
+    })
+
+TJobIdListItem = \
+    TAnd(TIsLength(2),
+         TItems([Comment("success")(TBool),
+                 Comment("Job ID if successful, error message"
+                         " otherwise")(TOr(TString, TJobId))]))
+
+TJobIdList = TListOf(TJobIdListItem)
+
+TJobIdListOnly = TStrictDict(True, True, {
+  constants.JOB_IDS_KEY: Comment("List of submitted jobs")(TJobIdList)
+  })
+
+TInstanceMultiAllocResponse = \
+    TStrictDict(True, True, {
+      constants.JOB_IDS_KEY: Comment("List of submitted jobs")(TJobIdList),
+      ALLOCATABLE_KEY: TListOf(TNonEmptyString),
+      FAILED_KEY: TListOf(TNonEmptyString)
+    })
