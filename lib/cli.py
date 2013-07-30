@@ -1088,12 +1088,12 @@ SHOWCMD_OPT = cli_option("--show-cmd", dest="show_command",
 
 CLEANUP_OPT = cli_option("--cleanup", dest="cleanup",
                          default=False, action="store_true",
-                         help="Instead of performing the migration, try to"
-                         " recover from a failed cleanup. This is safe"
+                         help="Instead of performing the migration/failover,"
+                         " try to recover from a failed cleanup. This is safe"
                          " to run even if the instance is healthy, but it"
                          " will create extra replication traffic and "
                          " disrupt briefly the replication (like during the"
-                         " migration")
+                         " migration/failover")
 
 STATIC_OPT = cli_option("-s", "--static", dest="static",
                         action="store_true", default=False,

@@ -1520,6 +1520,8 @@ class OpInstanceFailover(OpCode):
     _PIgnoreIpolicy,
     _PIAllocFromDesc("Iallocator for deciding the target node for"
                      " shared-storage instances"),
+    ("cleanup", False, ht.TBool,
+     "Whether a previously failed failover should be cleaned up"),
     ]
   OP_RESULT = ht.TNone
 

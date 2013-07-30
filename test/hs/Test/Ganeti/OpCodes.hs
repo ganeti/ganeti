@@ -116,7 +116,8 @@ instance Arbitrary OpCodes.OpCode where
           genMaybe genNodeNameNE <*> genMaybe genNameNE
       "OP_INSTANCE_FAILOVER" ->
         OpCodes.OpInstanceFailover <$> genFQDN <*> arbitrary <*> arbitrary <*>
-          genMaybe genNodeNameNE <*> arbitrary <*> genMaybe genNameNE
+          genMaybe genNodeNameNE <*> arbitrary <*> genMaybe genNameNE <*>
+          arbitrary
       "OP_INSTANCE_MIGRATE" ->
         OpCodes.OpInstanceMigrate <$> genFQDN <*> arbitrary <*> arbitrary <*>
           genMaybe genNodeNameNE <*> arbitrary <*>
