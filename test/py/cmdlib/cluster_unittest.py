@@ -448,5 +448,99 @@ class TestLUClusterRename(CmdlibTestCase):
     self.ExecOpCode(op)
 
 
+class TestLUClusterRepairDiskSizes(CmdlibTestCase):
+  def testNoInstances(self):
+    op = opcodes.OpClusterRepairDiskSizes()
+
+    self.ExecOpCode(op)
+
+  def _SetUpInstanceSingleDisk(self, dev_type=constants.LD_LV):
+    pnode = self.cfg.GetMasterNodeInfo()
+    snode = self.cfg.AddNewNode()
+
+    inst = self.cfg.AddNewInstance()
+    disk = self.cfg.CreateDisk(dev_type=dev_type,
+                               primary_node=pnode,
+                               secondary_node=snode)
+    inst.disks.append(disk)
+
+    return (inst, disk)
+
+  def testSingleInstanceOnFailingNode(self):
+    (inst, _) = self._SetUpInstanceSingleDisk()
+    op = opcodes.OpClusterRepairDiskSizes(instances=[inst.name])
+
+    self.rpc.call_blockdev_getdimensions.return_value = \
+      RpcResultsBuilder(cfg=self.cfg) \
+        .CreateFailedNodeResult(self.cfg.GetMasterNode())
+
+    self.ExecOpCode(op)
+
+    self.mcpu.assertLogContainsRegex("Failure in blockdev_getdimensions")
+
+  def _ExecOpClusterRepairDiskSizes(self, node_data):
+    # not specifying instances repairs all
+    op = opcodes.OpClusterRepairDiskSizes()
+
+    self.rpc.call_blockdev_getdimensions.return_value = \
+      RpcResultsBuilder(cfg=self.cfg) \
+        .CreateSuccessfulNodeResult(self.cfg.GetMasterNode(), node_data)
+
+    return self.ExecOpCode(op)
+
+  def testInvalidResultData(self):
+    for data in [[], [None], ["invalid"], [("still", "invalid")]]:
+      self.ResetMocks()
+
+      self._SetUpInstanceSingleDisk()
+      self._ExecOpClusterRepairDiskSizes(data)
+
+      self.mcpu.assertLogContainsRegex("ignoring")
+
+  def testCorrectSize(self):
+    self._SetUpInstanceSingleDisk()
+    changed = self._ExecOpClusterRepairDiskSizes([(1024 * 1024 * 1024, None)])
+    self.mcpu.assertLogIsEmpty()
+    self.assertEqual(0, len(changed))
+
+  def testWrongSize(self):
+    self._SetUpInstanceSingleDisk()
+    changed = self._ExecOpClusterRepairDiskSizes([(512 * 1024 * 1024, None)])
+    self.assertEqual(1, len(changed))
+
+  def testCorrectDRBD(self):
+    self._SetUpInstanceSingleDisk(dev_type=constants.LD_DRBD8)
+    changed = self._ExecOpClusterRepairDiskSizes([(1024 * 1024 * 1024, None)])
+    self.mcpu.assertLogIsEmpty()
+    self.assertEqual(0, len(changed))
+
+  def testWrongDRBDChild(self):
+    (_, disk) = self._SetUpInstanceSingleDisk(dev_type=constants.LD_DRBD8)
+    disk.children[0].size = 512
+    changed = self._ExecOpClusterRepairDiskSizes([(1024 * 1024 * 1024, None)])
+    self.assertEqual(1, len(changed))
+
+  def testExclusiveStorageInvalidResultData(self):
+    self._SetUpInstanceSingleDisk()
+    self.cfg.GetMasterNodeInfo().ndparams[constants.ND_EXCLUSIVE_STORAGE] = True
+    self._ExecOpClusterRepairDiskSizes([(1024 * 1024 * 1024, None)])
+
+    self.mcpu.assertLogContainsRegex(
+      "did not return valid spindles information")
+
+  def testExclusiveStorageCorrectSpindles(self):
+    (_, disk) = self._SetUpInstanceSingleDisk()
+    disk.spindles = 1
+    self.cfg.GetMasterNodeInfo().ndparams[constants.ND_EXCLUSIVE_STORAGE] = True
+    changed = self._ExecOpClusterRepairDiskSizes([(1024 * 1024 * 1024, 1)])
+    self.assertEqual(0, len(changed))
+
+  def testExclusiveStorageWrongSpindles(self):
+    self._SetUpInstanceSingleDisk()
+    self.cfg.GetMasterNodeInfo().ndparams[constants.ND_EXCLUSIVE_STORAGE] = True
+    changed = self._ExecOpClusterRepairDiskSizes([(1024 * 1024 * 1024, 1)])
+    self.assertEqual(1, len(changed))
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()

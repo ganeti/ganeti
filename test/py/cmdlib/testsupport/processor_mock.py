@@ -152,3 +152,11 @@ class ProcessorMock(mcpu.Processor):
       "Could not find '%s' in LU log messages. Log is:\n%s" %
       (expected_regex, self.GetLogMessagesString())
     )
+
+  def assertLogIsEmpty(self):
+    """Asserts that the log does not contain any message.
+
+    """
+    if len(self.GetLogMessages()) > 0:
+      raise AssertionError("Log is not empty. Log is:\n%s" %
+                           self.GetLogMessagesString())

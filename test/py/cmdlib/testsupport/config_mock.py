@@ -46,12 +46,21 @@ class ConfigMock(config.ConfigWriter):
     self._cur_group_id = 1
     self._cur_node_id = 1
     self._cur_inst_id = 1
+    self._cur_disk_id = 1
 
     super(ConfigMock, self).__init__(cfg_file="/dev/null",
                                      _getents=_StubGetEntResolver())
 
   def _GetUuid(self):
     return str(uuid_module.uuid4())
+
+  def _GetObjUuid(self, obj):
+    if obj is None:
+      return None
+    elif isinstance(obj, objects.ConfigObject):
+      return obj.uuid
+    else:
+      return obj
 
   def AddNewNodeGroup(self,
                       uuid=None,
@@ -134,8 +143,7 @@ class ConfigMock(config.ConfigWriter):
       secondary_ip = "192.168.1.%d" % node_id
     if group is None:
       group = self._default_group.uuid
-    if isinstance(group, objects.NodeGroup):
-      group = group.uuid
+    group = self._GetObjUuid(group)
     if ndparams is None:
       ndparams = {}
 
@@ -191,8 +199,7 @@ class ConfigMock(config.ConfigWriter):
       name = "mock_inst_%d.example.com" % inst_id
     if primary_node is None:
       primary_node = self._master_node.uuid
-    if isinstance(primary_node, objects.Node):
-      primary_node = self._master_node.uuid
+    primary_node = self._GetObjUuid(primary_node)
     if hvparams is None:
       hvparams = {}
     if beparams is None:
@@ -220,6 +227,78 @@ class ConfigMock(config.ConfigWriter):
                             network_port=network_port)
     self.AddInstance(inst, None)
     return inst
+
+  def CreateDisk(self,
+                 uuid=None,
+                 name=None,
+                 dev_type=constants.LD_LV,
+                 logical_id=None,
+                 physical_id=None,
+                 children=None,
+                 iv_name=None,
+                 size=1024,
+                 mode=constants.DISK_RDWR,
+                 params=None,
+                 spindles=None,
+                 primary_node=None,
+                 secondary_node=None):
+    """Create a new L{objecs.Disk} object
+
+    @rtype: L{objects.Disk}
+    @return: the newly create disk object
+
+    """
+    disk_id = self._cur_disk_id
+    self._cur_disk_id += 1
+
+    if uuid is None:
+      uuid = self._GetUuid()
+    if name is None:
+      name = "mock_disk_%d" % disk_id
+
+    if dev_type == constants.LD_DRBD8:
+      pnode_uuid = self._GetObjUuid(primary_node)
+      snode_uuid = self._GetObjUuid(secondary_node)
+      if logical_id is not None:
+        pnode_uuid = logical_id[0]
+        snode_uuid = logical_id[1]
+
+      if pnode_uuid is None or snode_uuid is None:
+        raise AssertionError("Trying to create DRBD disk without nodes!")
+
+      if logical_id is None:
+        logical_id = (pnode_uuid, snode_uuid,
+                      constants.FIRST_DRBD_PORT + disk_id,
+                      disk_id, disk_id, "mock_secret")
+      if children is None:
+        data_child = self.CreateDisk(dev_type=constants.LD_LV,
+                                     size=size)
+        meta_child = self.CreateDisk(dev_type=constants.LD_LV,
+                                     size=constants.DRBD_META_SIZE)
+        children = [data_child, meta_child]
+    elif dev_type == constants.LD_LV:
+      if logical_id is None:
+        logical_id = ("mockvg", "mock_disk_%d" % disk_id)
+    elif logical_id is None:
+      raise NotImplementedError
+    if children is None:
+      children = []
+    if iv_name is None:
+      iv_name = "mock_disk/%d" % disk_id
+    if params is None:
+      params = {}
+
+    return objects.Disk(uuid=uuid,
+                        name=name,
+                        dev_type=dev_type,
+                        logical_id=logical_id,
+                        physical_id=physical_id,
+                        children=children,
+                        iv_name=iv_name,
+                        size=size,
+                        mode=mode,
+                        params=params,
+                        spindles=spindles)
 
   def _OpenConfig(self, accept_foreign):
     self._config_data = objects.ConfigData(
