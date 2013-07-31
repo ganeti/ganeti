@@ -56,7 +56,7 @@ To run commands on all nodes, the `distributed shell (dsh)
     $ /usr/lib/ganeti/ensure-dirs --full-run
 
 #. Create the (missing) required users and make users part of the required
-groups on all nodes::
+   groups on all nodes::
 
     $ /usr/lib/ganeti/tools/users-setup
 
