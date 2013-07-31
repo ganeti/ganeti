@@ -110,6 +110,7 @@ Draft designs
    design-bulk-create.rst
    design-chained-jobs.rst
    design-cpu-pinning.rst
+   design-device-uuid-name.rst
    design-linuxha.rst
    design-lu-generated-jobs.rst
    design-multi-reloc.rst
