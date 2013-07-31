@@ -167,6 +167,7 @@ class TestVerifyRestrictedCmdDirectory(unittest.TestCase):
   def testNormal(self):
     tmpname = utils.PathJoin(self.tmpdir, "foobar")
     os.mkdir(tmpname)
+    os.chmod(tmpname, 0755)
     self.assertTrue(os.path.isdir(tmpname))
     (status, msg) = \
       backend._VerifyRestrictedCmdDirectory(tmpname,
