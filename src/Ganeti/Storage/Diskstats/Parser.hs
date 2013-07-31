@@ -27,38 +27,37 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 module Ganeti.Storage.Diskstats.Parser (diskstatsParser) where
 
-import Control.Applicative ((<*>), (*>), (<*), (<$>))
+import Control.Applicative ((<*>), (<*), (<$>))
 import qualified Data.Attoparsec.Text as A
 import qualified Data.Attoparsec.Combinator as AC
 import Data.Attoparsec.Text (Parser)
-import Data.Text (unpack)
 
+import Ganeti.Parsers
 import Ganeti.Storage.Diskstats.Types
-
--- * Utility functions
-
--- | Our own space-skipping function, because A.skipSpace also skips
--- newline characters. It skips ZERO or more spaces, so it does not
--- fail if there are no spaces.
-skipSpaces :: Parser ()
-skipSpaces = A.skipWhile A.isHorizontalSpace
-
--- | A parser recognizing a number preceeded by spaces.
-numberP :: Parser Int
-numberP = skipSpaces *> A.decimal
-
--- | A parser recognizing a word preceded by spaces, and closed by a space.
-stringP :: Parser String
-stringP = skipSpaces *> fmap unpack (A.takeWhile $ not . A.isHorizontalSpace)
 
 -- * Parser implementation
 
 -- | The parser for one line of the diskstatus file.
 oneDiskstatsParser :: Parser Diskstats
 oneDiskstatsParser =
-  Diskstats <$> numberP <*> numberP <*> stringP <*> numberP <*> numberP
-    <*> numberP <*> numberP <*> numberP <*> numberP <*> numberP <*> numberP
-    <*> numberP <*> numberP <*> numberP <* A.endOfLine
+  let majorP = numberP
+      minorP = numberP
+      nameP = stringP
+      readsNumP = numberP
+      mergedReadsP = numberP
+      secReadP = numberP
+      timeReadP = numberP
+      writesP = numberP
+      mergedWritesP = numberP
+      secWrittenP = numberP
+      timeWriteP = numberP
+      iosP = numberP
+      timeIOP = numberP
+      wIOmillisP = numberP
+  in
+    Diskstats <$> majorP <*> minorP <*> nameP <*> readsNumP <*> mergedReadsP
+      <*> secReadP <*> timeReadP <*> writesP <*> mergedWritesP <*> secWrittenP
+      <*> timeWriteP <*> iosP <*> timeIOP <*> wIOmillisP <* A.endOfLine
 
 -- | The parser for a whole diskstatus file.
 diskstatsParser :: Parser [Diskstats]
