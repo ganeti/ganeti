@@ -1676,7 +1676,7 @@ def _TestInstSetParamsModList(fn):
 
   """
   # Old format
-  # TODO: Remove in version 2.8 including support in LUInstanceSetParams
+  # TODO: Remove in version 2.11 including support in LUInstanceSetParams
   old_mod_item_fn = \
     ht.TAnd(ht.TIsLength(2), ht.TItems([
       ht.TOr(ht.TElemOf(constants.DDMS_VALUES), ht.TNonNegativeInt),
