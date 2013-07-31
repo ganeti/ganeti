@@ -1,4 +1,5 @@
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE ExistentialQuantification, TemplateHaskell #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 {-| Implementation of the opcodes.
 
@@ -26,7 +27,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 
 module Ganeti.OpCodes
-  ( OpCode(..)
+  ( pyClasses
+  , OpCode(..)
   , TagObject(..)
   , tagObjectFrom
   , encodeTagObject
@@ -47,115 +49,185 @@ module Ganeti.OpCodes
   , setOpPriority
   ) where
 
-import Data.Maybe (fromMaybe)
-import Text.JSON (readJSON, JSON, JSValue, makeObj)
+import Text.JSON (readJSON, JSObject, JSON, JSValue(..), makeObj, fromJSObject)
 import qualified Text.JSON
 
 import Ganeti.THH
 
+import qualified Ganeti.Hs2Py.OpDoc as OpDoc
 import Ganeti.OpParams
-import Ganeti.Types (OpSubmitPriority(..), fromNonEmpty)
+import Ganeti.Types
 import Ganeti.Query.Language (queryTypeOpToRaw)
+
+import Data.List (intercalate)
+import Data.Map (Map)
+import qualified Data.Map as Map
+import Data.Set (Set)
+import qualified Data.Set as Set
+
+import qualified Ganeti.Constants as C
+
+instance PyValue Bool
+instance PyValue Int
+instance PyValue Double
+instance PyValue Char
+
+instance (PyValue a, PyValue b) => PyValue (a, b) where
+  showValue (x, y) = show (showValue x, showValue y)
+
+instance PyValue a => PyValue [a] where
+  showValue xs = show (map showValue xs)
+
+instance PyValue a => PyValue (Set a) where
+  showValue s = showValue (Set.toList s)
+
+instance (PyValue k, PyValue a) => PyValue (Map k a) where
+  showValue mp =
+    "{" ++ intercalate ", " (map showPair (Map.assocs mp)) ++ "}"
+    where showPair (k, x) = show k ++ ":" ++ show x
+
+instance PyValue DiskIndex where
+  showValue = showValue . unDiskIndex
+
+instance PyValue IDiskParams where
+  showValue _ = error "OpCodes.showValue(IDiskParams): unhandled case"
+
+instance PyValue RecreateDisksInfo where
+  showValue RecreateDisksAll = "[]"
+  showValue (RecreateDisksIndices is) = showValue is
+  showValue (RecreateDisksParams is) = showValue is
+
+instance PyValue a => PyValue (SetParamsMods a) where
+  showValue SetParamsEmpty = "[]"
+  showValue _ = error "OpCodes.showValue(SetParamsMods): unhandled case"
+
+instance PyValue a => PyValue (NonNegative a) where
+  showValue = showValue . fromNonNegative
+  
+instance PyValue a => PyValue (NonEmpty a) where
+  showValue = showValue . fromNonEmpty
+  
+-- FIXME: should use the 'toRaw' function instead of being harcoded or
+-- perhaps use something similar to the NonNegative type instead of
+-- using the declareSADT
+instance PyValue ExportMode where
+  showValue ExportModeLocal = show C.exportModeLocal
+  showValue ExportModeRemove = show C.exportModeLocal
+
+instance PyValue CVErrorCode where
+  showValue = cVErrorCodeToRaw
+  
+instance PyValue VerifyOptionalChecks where
+  showValue = verifyOptionalChecksToRaw
+
+instance PyValue INicParams where
+  showValue = error "instance PyValue INicParams: not implemented"
+
+instance PyValue a => PyValue (JSObject a) where
+  showValue obj =
+    "{" ++ intercalate ", " (map showPair (fromJSObject obj)) ++ "}"
+    where showPair (k, v) = show k ++ ":" ++ showValue v
+
+instance PyValue JSValue where
+  showValue (JSObject obj) = showValue obj
+  showValue x = show x
+
+type JobIdListOnly = [(Bool, Either String JobId)]
+
+type InstanceMultiAllocResponse =
+  ([(Bool, Either String JobId)], NonEmptyString)
+
+type QueryFieldDef =
+  (NonEmptyString, NonEmptyString, TagKind, NonEmptyString)
+
+type QueryResponse =
+  ([QueryFieldDef], [[(QueryResultCode, JSValue)]])
+
+type QueryFieldsResponse = [QueryFieldDef]
 
 -- | OpCode representation.
 --
 -- We only implement a subset of Ganeti opcodes: those which are actually used
 -- in the htools codebase.
 $(genOpCode "OpCode"
-  [ ("OpTestDelay",
-     [ pDelayDuration
-     , pDelayOnMaster
-     , pDelayOnNodes
-     , pDelayOnNodeUuids
-     , pDelayRepeat
-     ])
-  , ("OpInstanceReplaceDisks",
-     [ pInstanceName
-     , pInstanceUuid
-     , pEarlyRelease
-     , pIgnoreIpolicy
-     , pReplaceDisksMode
-     , pReplaceDisksList
-     , pRemoteNode
-     , pRemoteNodeUuid
-     , pIallocator
-     ])
-  , ("OpInstanceFailover",
-     [ pInstanceName
-     , pInstanceUuid
-     , pShutdownTimeout
-     , pIgnoreConsistency
-     , pMigrationTargetNode
-     , pMigrationTargetNodeUuid
-     , pIgnoreIpolicy
-     , pIallocator
-     ])
-  , ("OpInstanceMigrate",
-     [ pInstanceName
-     , pInstanceUuid
-     , pMigrationMode
-     , pMigrationLive
-     , pMigrationTargetNode
-     , pMigrationTargetNodeUuid
-     , pAllowRuntimeChgs
-     , pIgnoreIpolicy
-     , pMigrationCleanup
-     , pIallocator
-     , pAllowFailover
-     ])
-  , ("OpTagsGet",
-     [ pTagsObject
-     , pUseLocking
-     ])
-  , ("OpTagsSearch",
-     [ pTagSearchPattern ])
-  , ("OpTagsSet",
-     [ pTagsObject
-     , pTagsList
-     ])
-  , ("OpTagsDel",
-     [ pTagsObject
-     , pTagsList
-     ])
-  , ("OpClusterPostInit", [])
-  , ("OpClusterDestroy", [])
-  , ("OpClusterQuery", [])
+  [ ("OpClusterPostInit",
+     [t| Bool |],
+     OpDoc.opClusterPostInit,
+     [],
+     [])
+  , ("OpClusterDestroy",
+     [t| NonEmptyString |],
+     OpDoc.opClusterDestroy,
+     [],
+     [])
+  , ("OpClusterQuery",
+     [t| JSObject JSValue |],
+     OpDoc.opClusterQuery,
+     [],
+     [])
   , ("OpClusterVerify",
+     [t| JobIdListOnly |],
+     OpDoc.opClusterVerify,
      [ pDebugSimulateErrors
      , pErrorCodes
      , pSkipChecks
      , pIgnoreErrors
      , pVerbose
      , pOptGroupName
-     ])
+     ],
+     [])
   , ("OpClusterVerifyConfig",
+     [t| Bool |],
+     OpDoc.opClusterVerifyConfig,
      [ pDebugSimulateErrors
      , pErrorCodes
      , pIgnoreErrors
      , pVerbose
-     ])
+     ],
+     [])
   , ("OpClusterVerifyGroup",
+     [t| Bool |],
+     OpDoc.opClusterVerifyGroup,
      [ pGroupName
      , pDebugSimulateErrors
      , pErrorCodes
      , pSkipChecks
      , pIgnoreErrors
      , pVerbose
-     ])
-  , ("OpClusterVerifyDisks", [])
+     ],
+     "group_name")
+  , ("OpClusterVerifyDisks",
+     [t| JobIdListOnly |],
+     OpDoc.opClusterVerifyDisks,
+     [],
+     [])
   , ("OpGroupVerifyDisks",
+     [t| (Map String String, [String], Map String [[String]]) |],
+     OpDoc.opGroupVerifyDisks,
      [ pGroupName
-     ])
+     ],
+     "group_name")
   , ("OpClusterRepairDiskSizes",
+     [t| [(NonEmptyString, NonNegative Int, NonEmptyString, NonNegative Int)]|],
+     OpDoc.opClusterRepairDiskSizes,
      [ pInstances
-     ])
+     ],
+     [])
   , ("OpClusterConfigQuery",
+     [t| [JSValue] |],
+     OpDoc.opClusterConfigQuery,
      [ pOutputFields
-     ])
+     ],
+     [])
   , ("OpClusterRename",
+      [t| NonEmptyString |],
+      OpDoc.opClusterRename,
      [ pName
-     ])
+     ],
+     "name")
   , ("OpClusterSetParams",
+     [t| () |],
+     OpDoc.opClusterSetParams,
      [ pForce
      , pHvState
      , pDiskState
@@ -173,8 +245,8 @@ $(genOpCode "OpCode"
      , pMaintainNodeHealth
      , pPreallocWipeDisks
      , pNicParams
-     , pNdParams
-     , pIpolicy
+     , withDoc "Cluster-wide node parameter defaults" pNdParams
+     , withDoc "Cluster-wide ipolicy specs" pIpolicy
      , pDrbdHelper
      , pDefaultIAllocator
      , pMasterNetdev
@@ -186,33 +258,73 @@ $(genOpCode "OpCode"
      , pEnabledDiskTemplates
      , pModifyEtcHosts
      , pGlobalFileStorageDir
-     ])
-  , ("OpClusterRedistConf", [])
-  , ("OpClusterActivateMasterIp", [])
-  , ("OpClusterDeactivateMasterIp", [])
+     ],
+     [])
+  , ("OpClusterRedistConf",
+     [t| () |],
+     OpDoc.opClusterRedistConf,
+     [],
+     [])
+  , ("OpClusterActivateMasterIp",
+     [t| () |],
+     OpDoc.opClusterActivateMasterIp,
+     [],
+     [])
+  , ("OpClusterDeactivateMasterIp",
+     [t| () |],
+     OpDoc.opClusterDeactivateMasterIp,
+     [],
+     [])
   , ("OpQuery",
+     [t| QueryResponse |],
+     OpDoc.opQuery,
      [ pQueryWhat
      , pUseLocking
      , pQueryFields
      , pQueryFilter
-     ])
+     ],
+     "what")
   , ("OpQueryFields",
+     [t| QueryFieldsResponse |],
+     OpDoc.opQueryFields,
      [ pQueryWhat
-     , pQueryFields
-     ])
+     , pQueryFieldsFields
+     ],
+     "what")
   , ("OpOobCommand",
+     [t| [[(QueryResultCode, JSValue)]] |],
+     OpDoc.opOobCommand,
      [ pNodeNames
-     , pNodeUuids
+     , withDoc "List of node UUIDs to run the OOB command against" pNodeUuids
      , pOobCommand
      , pOobTimeout
      , pIgnoreStatus
      , pPowerDelay
-     ])
+     ],
+     [])
+  , ("OpRestrictedCommand",
+     [t| [(Bool, String)] |],
+     OpDoc.opRestrictedCommand,
+     [ pUseLocking
+     , withDoc
+       "Nodes on which the command should be run (at least one)"
+       pRequiredNodes
+     , withDoc
+       "Node UUIDs on which the command should be run (at least one)"
+       pRequiredNodeUuids
+     , pRestrictedCommand
+     ],
+     [])
   , ("OpNodeRemove",
+     [t| () |],
+      OpDoc.opNodeRemove,
      [ pNodeName
      , pNodeUuid
-     ])
+     ],
+     "node_name")
   , ("OpNodeAdd",
+     [t| () |],
+      OpDoc.opNodeAdd,
      [ pNodeName
      , pHvState
      , pDiskState
@@ -223,40 +335,64 @@ $(genOpCode "OpCode"
      , pMasterCapable
      , pVmCapable
      , pNdParams
-    ])
-  , ("OpNodeQuery", dOldQuery)
-  , ("OpNodeQueryvols",
+     ],
+     "node_name")
+  , ("OpNodeQuery",
+     [t| [[JSValue]] |],
+     OpDoc.opNodeQuery,
      [ pOutputFields
-     , pNodes
-     ])
+     , withDoc "Empty list to query all nodes, node names otherwise" pNames
+     , pUseLocking
+     ],
+     [])
+  , ("OpNodeQueryvols",
+     [t| [JSValue] |],
+     OpDoc.opNodeQueryvols,
+     [ pOutputFields
+     , withDoc "Empty list to query all nodes, node names otherwise" pNodes
+     ],
+     [])
   , ("OpNodeQueryStorage",
+     [t| [[JSValue]] |],
+     OpDoc.opNodeQueryStorage,
      [ pOutputFields
      , pStorageType
-     , pNodes
+     , withDoc
+       "Empty list to query all, list of names to query otherwise"
+       pNodes
      , pStorageName
-     ])
+     ],
+     [])
   , ("OpNodeModifyStorage",
+     [t| () |],
+     OpDoc.opNodeModifyStorage,
      [ pNodeName
      , pNodeUuid
      , pStorageType
      , pStorageName
      , pStorageChanges
-     ])
+     ],
+     "node_name")
   , ("OpRepairNodeStorage",
+      [t| () |],
+      OpDoc.opRepairNodeStorage,
      [ pNodeName
      , pNodeUuid
      , pStorageType
      , pStorageName
      , pIgnoreConsistency
-     ])
+     ],
+     "node_name")
   , ("OpNodeSetParams",
+     [t| [(NonEmptyString, JSValue)] |],
+     OpDoc.opNodeSetParams,
      [ pNodeName
      , pNodeUuid
      , pForce
      , pHvState
      , pDiskState
      , pMasterCandidate
-     , pOffline
+     , withDoc "Whether to mark the node offline" pOffline
      , pDrained
      , pAutoPromote
      , pMasterCapable
@@ -264,13 +400,19 @@ $(genOpCode "OpCode"
      , pSecondaryIp
      , pNdParams
      , pPowered
-     ])
+     ],
+     "node_name")
   , ("OpNodePowercycle",
+     [t| Maybe NonEmptyString |],
+     OpDoc.opNodePowercycle,
      [ pNodeName
      , pNodeUuid
      , pForce
-     ])
+     ],
+     "node_name")
   , ("OpNodeMigrate",
+     [t| JobIdListOnly |],
+     OpDoc.opNodeMigrate,
      [ pNodeName
      , pNodeUuid
      , pMigrationMode
@@ -280,8 +422,11 @@ $(genOpCode "OpCode"
      , pAllowRuntimeChgs
      , pIgnoreIpolicy
      , pIallocator
-     ])
+     ],
+     "node_name")
   , ("OpNodeEvacuate",
+     [t| JobIdListOnly |],
+     OpDoc.opNodeEvacuate,
      [ pEarlyRelease
      , pNodeName
      , pNodeUuid
@@ -289,13 +434,17 @@ $(genOpCode "OpCode"
      , pRemoteNodeUuid
      , pIallocator
      , pEvacMode
-     ])
+     ],
+     "node_name")
   , ("OpInstanceCreate",
+     [t| [NonEmptyString] |],
+     OpDoc.opInstanceCreate,
      [ pInstanceName
      , pForceVariant
      , pWaitForSync
      , pNameCheck
      , pIgnoreIpolicy
+     , pOpportunisticLocking
      , pInstBeParams
      , pInstDisks
      , pDiskTemplate
@@ -324,35 +473,49 @@ $(genOpCode "OpCode"
      , pSrcNodeUuid
      , pSrcPath
      , pStartInstance
-     , pOpportunisticLocking
      , pInstTags
-     ])
+     ],
+     "instance_name")
   , ("OpInstanceMultiAlloc",
-     [ pIallocator
+     [t| InstanceMultiAllocResponse |],
+     OpDoc.opInstanceMultiAlloc,
+     [ pOpportunisticLocking
+     , pIallocator
      , pMultiAllocInstances
-     , pOpportunisticLocking
-     ])
+     ],
+     [])
   , ("OpInstanceReinstall",
+     [t| () |],
+     OpDoc.opInstanceReinstall,
      [ pInstanceName
      , pInstanceUuid
      , pForceVariant
      , pInstOs
      , pTempOsParams
-     ])
+     ],
+     "instance_name")
   , ("OpInstanceRemove",
+     [t| () |],
+     OpDoc.opInstanceRemove,
      [ pInstanceName
      , pInstanceUuid
      , pShutdownTimeout
      , pIgnoreFailures
-     ])
+     ],
+     "instance_name")
   , ("OpInstanceRename",
+     [t| NonEmptyString |],
+     OpDoc.opInstanceRename,
      [ pInstanceName
      , pInstanceUuid
-     , pNewName
+     , withDoc "New instance name" pNewName
      , pNameCheck
      , pIpCheck
-     ])
+     ],
+     [])
   , ("OpInstanceStartup",
+     [t| () |],
+     OpDoc.opInstanceStartup,
      [ pInstanceName
      , pInstanceUuid
      , pForce
@@ -361,23 +524,75 @@ $(genOpCode "OpCode"
      , pTempBeParams
      , pNoRemember
      , pStartupPaused
-     ])
+     ],
+     "instance_name")
   , ("OpInstanceShutdown",
+     [t| () |],
+     OpDoc.opInstanceShutdown,
      [ pInstanceName
      , pInstanceUuid
      , pForce
      , pIgnoreOfflineNodes
-     , pShutdownTimeout'
+     , pShutdownTimeout
      , pNoRemember
-     ])
+     ],
+     "instance_name")
   , ("OpInstanceReboot",
+     [t| () |],
+     OpDoc.opInstanceReboot,
      [ pInstanceName
      , pInstanceUuid
      , pShutdownTimeout
      , pIgnoreSecondaries
      , pRebootType
-     ])
+     ],
+     "instance_name")
+  , ("OpInstanceReplaceDisks",
+     [t| () |],
+     OpDoc.opInstanceReplaceDisks,
+     [ pInstanceName
+     , pInstanceUuid
+     , pEarlyRelease
+     , pIgnoreIpolicy
+     , pReplaceDisksMode
+     , pReplaceDisksList
+     , pRemoteNode
+     , pRemoteNodeUuid
+     , pIallocator
+     ],
+     "instance_name")
+  , ("OpInstanceFailover",
+     [t| () |],
+     OpDoc.opInstanceFailover,
+     [ pInstanceName
+     , pInstanceUuid
+     , pShutdownTimeout
+     , pIgnoreConsistency
+     , pMigrationTargetNode
+     , pMigrationTargetNodeUuid
+     , pIgnoreIpolicy
+     , pIallocator
+     ],
+     "instance_name")
+  , ("OpInstanceMigrate",
+     [t| () |],
+     OpDoc.opInstanceMigrate,
+     [ pInstanceName
+     , pInstanceUuid
+     , pMigrationMode
+     , pMigrationLive
+     , pMigrationTargetNode
+     , pMigrationTargetNodeUuid
+     , pAllowRuntimeChgs
+     , pIgnoreIpolicy
+     , pMigrationCleanup
+     , pIallocator
+     , pAllowFailover
+     ],
+     "instance_name")
   , ("OpInstanceMove",
+     [t| () |],
+     OpDoc.opInstanceMove,
      [ pInstanceName
      , pInstanceUuid
      , pShutdownTimeout
@@ -385,37 +600,64 @@ $(genOpCode "OpCode"
      , pMoveTargetNode
      , pMoveTargetNodeUuid
      , pIgnoreConsistency
-     ])
+     ],
+     "instance_name")
   , ("OpInstanceConsole",
+     [t| JSObject JSValue |],
+     OpDoc.opInstanceConsole,
      [ pInstanceName
      , pInstanceUuid
-     ])
+     ],
+     "instance_name")
   , ("OpInstanceActivateDisks",
+     [t| [(NonEmptyString, NonEmptyString, NonEmptyString)] |],
+     OpDoc.opInstanceActivateDisks,
      [ pInstanceName
      , pInstanceUuid
      , pIgnoreDiskSize
      , pWaitForSyncFalse
-     ])
+     ],
+     "instance_name")
   , ("OpInstanceDeactivateDisks",
+     [t| () |],
+     OpDoc.opInstanceDeactivateDisks,
      [ pInstanceName
      , pInstanceUuid
      , pForce
-     ])
+     ],
+     "instance_name")
   , ("OpInstanceRecreateDisks",
+     [t| () |],
+     OpDoc.opInstanceRecreateDisks,
      [ pInstanceName
      , pInstanceUuid
      , pRecreateDisksInfo
-     , pNodes
-     , pNodeUuids
+     , withDoc "New instance nodes, if relocation is desired" pNodes
+     , withDoc "New instance node UUIDs, if relocation is desired" pNodeUuids
      , pIallocator
-     ])
-  , ("OpInstanceQuery", dOldQuery)
+     ],
+     "instance_name")
+  , ("OpInstanceQuery",
+     [t| [[JSValue]] |],
+     OpDoc.opInstanceQuery,
+     [ pOutputFields
+     , pUseLocking
+     , withDoc
+       "Empty list to query all instances, instance names otherwise"
+       pNames
+     ],
+     [])
   , ("OpInstanceQueryData",
+     [t| JSObject (JSObject JSValue) |],
+     OpDoc.opInstanceQueryData,
      [ pUseLocking
      , pInstances
      , pStatic
-     ])
+     ],
+     [])
   , ("OpInstanceSetParams",
+      [t| [(NonEmptyString, JSValue)] |],
+      OpDoc.opInstanceSetParams,
      [ pInstanceName
      , pInstanceUuid
      , pForce
@@ -429,82 +671,132 @@ $(genOpCode "OpCode"
      , pOptDiskTemplate
      , pPrimaryNode
      , pPrimaryNodeUuid
-     , pRemoteNode
-     , pRemoteNodeUuid
+     , withDoc "Secondary node (used when changing disk template)" pRemoteNode
+     , withDoc
+       "Secondary node UUID (used when changing disk template)"
+       pRemoteNodeUuid
      , pOsNameChange
      , pInstOsParams
      , pWaitForSync
-     , pOffline
+     , withDoc "Whether to mark the instance as offline" pOffline
      , pIpConflictsCheck
-     ])
+     ],
+     "instance_name")
   , ("OpInstanceGrowDisk",
+     [t| () |],
+     OpDoc.opInstanceGrowDisk,
      [ pInstanceName
      , pInstanceUuid
      , pWaitForSync
      , pDiskIndex
      , pDiskChgAmount
      , pDiskChgAbsolute
-     ])
+     ],
+     "instance_name")
   , ("OpInstanceChangeGroup",
+     [t| JobIdListOnly |],
+     OpDoc.opInstanceChangeGroup,
      [ pInstanceName
      , pInstanceUuid
      , pEarlyRelease
      , pIallocator
      , pTargetGroups
-     ])
+     ],
+     "instance_name")
   , ("OpGroupAdd",
+     [t| () |],
+     OpDoc.opGroupAdd,
      [ pGroupName
      , pNodeGroupAllocPolicy
      , pGroupNodeParams
      , pDiskParams
      , pHvState
      , pDiskState
-     , pIpolicy
-     ])
+     , withDoc "Group-wide ipolicy specs" pIpolicy
+     ],
+     "group_name")
   , ("OpGroupAssignNodes",
+     [t| () |],
+     OpDoc.opGroupAssignNodes,
      [ pGroupName
      , pForce
-     , pRequiredNodes
-     , pRequiredNodeUuids
-     ])
-  , ("OpGroupQuery", dOldQueryNoLocking)
+     , withDoc "List of nodes to assign" pRequiredNodes
+     , withDoc "List of node UUIDs to assign" pRequiredNodeUuids
+     ],
+     "group_name")
+  , ("OpGroupQuery",
+     [t| [[JSValue]] |],
+     OpDoc.opGroupQuery,
+     [ pOutputFields
+     , withDoc "Empty list to query all groups, group names otherwise" pNames
+     ],
+     [])
   , ("OpGroupSetParams",
+     [t| [(NonEmptyString, JSValue)] |],
+     OpDoc.opGroupSetParams,
      [ pGroupName
      , pNodeGroupAllocPolicy
      , pGroupNodeParams
      , pDiskParams
      , pHvState
      , pDiskState
-     , pIpolicy
-     ])
+     , withDoc "Group-wide ipolicy specs" pIpolicy
+     ],
+     "group_name")
   , ("OpGroupRemove",
-     [ pGroupName ])
-  , ("OpGroupRename",
+     [t| () |],
+     OpDoc.opGroupRemove,
      [ pGroupName
-     , pNewName
-     ])
+     ],
+     "group_name")
+  , ("OpGroupRename",
+     [t| NonEmptyString |],
+     OpDoc.opGroupRename,
+     [ pGroupName
+     , withDoc "New group name" pNewName
+     ],
+     [])
   , ("OpGroupEvacuate",
+     [t| JobIdListOnly |],
+     OpDoc.opGroupEvacuate,
      [ pGroupName
      , pEarlyRelease
      , pIallocator
      , pTargetGroups
-     ])
+     ],
+     "group_name")
   , ("OpOsDiagnose",
+     [t| [[JSValue]] |],
+     OpDoc.opOsDiagnose,
      [ pOutputFields
-     , pNames ])
+     , withDoc "Which operating systems to diagnose" pNames
+     ],
+     [])
   , ("OpExtStorageDiagnose",
+     [t| [[JSValue]] |],
+     OpDoc.opExtStorageDiagnose,
      [ pOutputFields
-     , pNames ])
+     , withDoc "Which ExtStorage Provider to diagnose" pNames
+     ],
+     [])
   , ("OpBackupQuery",
+     [t| JSObject (Either Bool [NonEmptyString]) |],
+     OpDoc.opBackupQuery,
      [ pUseLocking
-     , pNodes
-     ])
+     , withDoc "Empty list to query all nodes, node names otherwise" pNodes
+     ],
+     [])
   , ("OpBackupPrepare",
+     [t| Maybe (JSObject JSValue) |],
+     OpDoc.opBackupPrepare,
      [ pInstanceName
      , pInstanceUuid
      , pExportMode
-     ])
+     ],
+     "instance_name")
   , ("OpBackupExport",
+     [t| (Bool, [Bool]) |],
+     OpDoc.opBackupExport,
      [ pInstanceName
      , pInstanceUuid
      , pShutdownTimeout
@@ -513,15 +805,61 @@ $(genOpCode "OpCode"
      , pShutdownInstance
      , pRemoveInstance
      , pIgnoreRemoveFailures
-     , pExportMode
+     , defaultField [| ExportModeLocal |] pExportMode
      , pX509KeyName
      , pX509DestCA
-     ])
+     ],
+     "instance_name")
   , ("OpBackupRemove",
+     [t| () |],
+     OpDoc.opBackupRemove,
      [ pInstanceName
      , pInstanceUuid
-     ])
+     ],
+     "instance_name")
+  , ("OpTagsGet",
+     [t| [NonEmptyString] |],
+     OpDoc.opTagsGet,
+     [ pTagsObject
+     , pUseLocking
+     , withDoc "Name of object to retrieve tags from" pTagsName
+     ],
+     "name")
+  , ("OpTagsSearch",
+     [t| [(NonEmptyString, NonEmptyString)] |],
+     OpDoc.opTagsSearch,
+     [ pTagSearchPattern
+     ],
+     "pattern")
+  , ("OpTagsSet",
+     [t| () |],
+     OpDoc.opTagsSet,
+     [ pTagsObject
+     , pTagsList
+     , withDoc "Name of object where tag(s) should be added" pTagsName
+     ],
+     [])
+  , ("OpTagsDel",
+     [t| () |],
+     OpDoc.opTagsDel,
+     [ pTagsObject
+     , pTagsList
+     , withDoc "Name of object where tag(s) should be deleted" pTagsName
+     ],
+     [])
+  , ("OpTestDelay",
+     [t| () |],
+     OpDoc.opTestDelay,
+     [ pDelayDuration
+     , pDelayOnMaster
+     , pDelayOnNodes
+     , pDelayOnNodeUuids
+     , pDelayRepeat
+     ],
+     "duration")
   , ("OpTestAllocator",
+     [t| () |],
+     OpDoc.opTestAllocator,
      [ pIAllocatorDirection
      , pIAllocatorMode
      , pIAllocatorReqName
@@ -539,20 +877,29 @@ $(genOpCode "OpCode"
      , pTargetGroups
      , pIAllocatorSpindleUse
      , pIAllocatorCount
-     ])
+     ],
+     "iallocator")
   , ("OpTestJqueue",
+     [t| () |],
+     OpDoc.opTestJqueue,
      [ pJQueueNotifyWaitLock
      , pJQueueNotifyExec
      , pJQueueLogMessages
      , pJQueueFail
-     ])
+     ],
+     [])
   , ("OpTestDummy",
+     [t| () |],
+     OpDoc.opTestDummy,
      [ pTestDummyResult
      , pTestDummyMessages
      , pTestDummyFail
      , pTestDummySubmitJobs
-     ])
+     ],
+     [])
   , ("OpNetworkAdd",
+     [t| () |],
+     OpDoc.opNetworkAdd,
      [ pNetworkName
      , pNetworkAddress4
      , pNetworkGateway4
@@ -561,39 +908,53 @@ $(genOpCode "OpCode"
      , pNetworkMacPrefix
      , pNetworkAddRsvdIps
      , pIpConflictsCheck
-     , pInstTags
-     ])
+     , withDoc "Network tags" pInstTags
+     ],
+     "network_name")
   , ("OpNetworkRemove",
+     [t| () |],
+     OpDoc.opNetworkRemove,
      [ pNetworkName
      , pForce
-     ])
+     ],
+     "network_name")
   , ("OpNetworkSetParams",
+     [t| () |],
+     OpDoc.opNetworkSetParams,
      [ pNetworkName
      , pNetworkGateway4
      , pNetworkAddress6
      , pNetworkGateway6
      , pNetworkMacPrefix
-     , pNetworkAddRsvdIps
+     , withDoc "Which external IP addresses to reserve" pNetworkAddRsvdIps
      , pNetworkRemoveRsvdIps
-     ])
+     ],
+     "network_name")
   , ("OpNetworkConnect",
+     [t| () |],
+     OpDoc.opNetworkConnect,
      [ pGroupName
      , pNetworkName
      , pNetworkMode
      , pNetworkLink
      , pIpConflictsCheck
-     ])
+     ],
+     "network_name")
   , ("OpNetworkDisconnect",
+     [t| () |],
+     OpDoc.opNetworkDisconnect,
      [ pGroupName
      , pNetworkName
-     ])
-  , ("OpNetworkQuery", dOldQuery)
-  , ("OpRestrictedCommand",
-     [ pUseLocking
-     , pRequiredNodes
-     , pRequiredNodeUuids
-     , pRestrictedCommand
-     ])
+     ],
+     "network_name")
+  , ("OpNetworkQuery",
+     [t| [[JSValue]] |],
+     OpDoc.opNetworkQuery,
+     [ pOutputFields
+     , pUseLocking
+     , withDoc "Empty list to query all groups, group names otherwise" pNames
+     ],
+     [])
   ])
 
 -- | Returns the OP_ID for a given opcode value.
@@ -648,8 +1009,7 @@ opSummaryVal OpGroupEvacuate { opGroupName = s } = Just (fromNonEmpty s)
 opSummaryVal OpBackupPrepare { opInstanceName = s } = Just s
 opSummaryVal OpBackupExport { opInstanceName = s } = Just s
 opSummaryVal OpBackupRemove { opInstanceName = s } = Just s
-opSummaryVal OpTagsGet { opKind = k } =
-  Just . fromMaybe "None" $ tagNameOf k
+opSummaryVal OpTagsGet { opKind = s } = Just (show s)
 opSummaryVal OpTagsSearch { opTagSearchPattern = s } = Just (fromNonEmpty s)
 opSummaryVal OpTestDelay { opDelayDuration = d } = Just (show d)
 opSummaryVal OpTestAllocator { opIallocator = s } =

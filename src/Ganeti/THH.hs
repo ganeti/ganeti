@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE ExistentialQuantification, TemplateHaskell #-}
 
 {-| TemplateHaskell helper for Ganeti Haskell code.
 
@@ -35,12 +35,16 @@ module Ganeti.THH ( declareSADT
                   , genOpID
                   , genAllConstr
                   , genAllOpIDs
+                  , PyValue(..)
+                  , PyValueEx(..)
+                  , OpCodeDescriptor
                   , genOpCode
                   , genStrOfOp
                   , genStrOfKey
                   , genLuxiOp
-                  , Field
+                  , Field (..)
                   , simpleField
+                  , withDoc
                   , defaultField
                   , optionalField
                   , optionalNullSerField
@@ -62,7 +66,6 @@ module Ganeti.THH ( declareSADT
 import Control.Monad (liftM)
 import Data.Char
 import Data.List
-import Data.Maybe (fromMaybe)
 import qualified Data.Set as Set
 import Language.Haskell.TH
 
@@ -70,6 +73,9 @@ import qualified Text.JSON as JSON
 import Text.JSON.Pretty (pp_value)
 
 import Ganeti.JSON
+
+import Data.Maybe
+import Data.Functor ((<$>))
 
 -- * Exported types
 
@@ -94,6 +100,7 @@ data Field = Field { fieldName        :: String
                    , fieldDefault     :: Maybe (Q Exp)
                    , fieldConstr      :: Maybe String
                    , fieldIsOptional  :: OptionalType
+                   , fieldDoc         :: String
                    }
 
 -- | Generates a simple field.
@@ -107,7 +114,12 @@ simpleField fname ftype =
         , fieldDefault     = Nothing
         , fieldConstr      = Nothing
         , fieldIsOptional  = NotOptional
+        , fieldDoc         = ""
         }
+
+withDoc :: String -> Field -> Field
+withDoc doc field =
+  field { fieldDoc = doc }
 
 -- | Sets the renamed constructor field.
 renameField :: String -> Field -> Field
@@ -222,8 +234,11 @@ type SimpleConstructor = (String, [SimpleField])
 -- | A definition for ADTs with simple fields.
 type SimpleObject = [SimpleConstructor]
 
--- | A type alias for a constructor of a regular object.
-type Constructor = (String, [Field])
+-- | A type alias for an opcode constructor of a regular object.
+type OpCodeConstructor = (String, Q Type, String, [Field], String)
+
+-- | A type alias for a Luxi constructor of a regular object.
+type LuxiConstructor = (String, [Field])
 
 -- * Helper functions
 
@@ -520,42 +535,203 @@ genAllOpIDs = genAllConstr deCamelCase
 -- | OpCode parameter (field) type.
 type OpParam = (String, Q Type, Q Exp)
 
+-- * Python code generation
+
+-- | Converts Haskell values into Python values
+--
+-- This is necessary for the default values of opcode parameters and
+-- return values.  For example, if a default value or return type is a
+-- Data.Map, then it must be shown as a Python dictioanry.
+class Show a => PyValue a where
+  showValue :: a -> String
+  showValue = show
+
+-- | Encapsulates Python default values
+data PyValueEx = forall a. PyValue a => PyValueEx a
+
+-- | Transfers opcode data between the opcode description (through
+-- @genOpCode@) and the Python code generation functions.
+type OpCodeDescriptor =
+  (String, String, String, [String],
+   [String], [Maybe PyValueEx], [String], String)
+
+-- | Strips out the module name
+--
+-- @
+-- pyBaseName "Data.Map" = "Map"
+-- @
+pyBaseName :: String -> String
+pyBaseName str =
+  case span (/= '.') str of
+    (x, []) -> x
+    (_, _:x) -> pyBaseName x
+
+-- | Converts a Haskell type name into a Python type name.
+--
+-- @
+-- pyTypename "Bool" = "ht.TBool"
+-- @
+pyTypeName :: Show a => a -> String
+pyTypeName name =
+  "ht.T" ++ (case pyBaseName (show name) of
+                "()" -> "None"
+                "Map" -> "DictOf"
+                "Set" -> "SetOf"
+                "Either" -> "Or"
+                "GenericContainer" -> "DictOf"
+                "JSValue" -> "Any"
+                "JSObject" -> "Object"
+                str -> str)
+
+-- | Converts a Haskell type into a Python type.
+--
+-- @
+-- pyType [Int] = "ht.TListOf(ht.TInt)"
+-- @
+pyType :: Type -> Q String
+pyType (AppT typ1 typ2) =
+  do t <- pyCall typ1 typ2
+     return $ t ++ ")"
+
+pyType (ConT name) = return (pyTypeName name)
+pyType ListT = return "ht.TListOf"
+pyType (TupleT _) = return "ht.TTupleOf"
+pyType typ = error $ "unhandled case for type " ++ show typ
+        
+-- | Converts a Haskell type application into a Python type.
+--
+-- @
+-- Maybe Int = "ht.TMaybe(ht.TInt)"
+-- @
+pyCall :: Type -> Type -> Q String
+pyCall (AppT typ1 typ2) arg =
+  do t <- pyCall typ1 typ2
+     targ <- pyType arg
+     return $ t ++ ", " ++ targ
+
+pyCall typ1 typ2 =
+  do t1 <- pyType typ1
+     t2 <- pyType typ2
+     return $ t1 ++ "(" ++ t2
+
+-- | @pyType opt typ@ converts Haskell type @typ@ into a Python type,
+-- where @opt@ determines if the converted type is optional (i.e.,
+-- Maybe).
+--
+-- @
+-- pyType False [Int] = "ht.TListOf(ht.TInt)" (mandatory)
+-- pyType True [Int] = "ht.TMaybe(ht.TListOf(ht.TInt))" (optional)
+-- @
+pyOptionalType :: Bool -> Type -> Q String
+pyOptionalType opt typ
+  | opt = do t <- pyType typ
+             return $ "ht.TMaybe(" ++ t ++ ")"
+  | otherwise = pyType typ
+
+-- | Optionally encapsulates default values in @PyValueEx@.
+--
+-- @maybeApp exp typ@ returns a quoted expression that encapsulates
+-- the default value @exp@ of an opcode parameter cast to @typ@ in a
+-- @PyValueEx@, if @exp@ is @Just@.  Otherwise, it returns a quoted
+-- expression with @Nothing@.
+maybeApp :: Maybe (Q Exp) -> Q Type -> Q Exp
+maybeApp Nothing _ =
+  [| Nothing |]
+
+maybeApp (Just expr) typ =
+  [| Just ($(conE (mkName "PyValueEx")) ($expr :: $typ)) |]
+
+
+-- | Generates a Python type according to whether the field is
+-- optional
+genPyType :: OptionalType -> Q Type -> Q ExpQ
+genPyType opt typ =
+  do t <- typ
+     stringE <$> pyOptionalType (opt /= NotOptional) t
+
+-- | Generates Python types from opcode parameters.
+genPyTypes :: [Field] -> Q ExpQ
+genPyTypes fs =
+  listE <$> mapM (\f -> genPyType (fieldIsOptional f) (fieldType f)) fs
+
+-- | Generates Python default values from opcode parameters.
+genPyDefaults :: [Field] -> ExpQ
+genPyDefaults fs =
+  listE $ map (\f -> maybeApp (fieldDefault f) (fieldType f)) fs
+
+-- | Generates a Haskell function call to "showPyClass" with the
+-- necessary information on how to build the Python class string.
+pyClass :: OpCodeConstructor -> ExpQ
+pyClass (consName, consType, consDoc, consFields, consDscField) =
+  do let pyClassVar = varNameE "showPyClass"
+         consName' = stringE consName
+     consType' <- genPyType NotOptional consType
+     let consDoc' = stringE consDoc
+         consFieldNames = listE $ map (stringE . fieldName) consFields
+         consFieldDocs = listE $ map (stringE . fieldDoc) consFields
+     consFieldTypes <- genPyTypes consFields
+     let consFieldDefaults = genPyDefaults consFields
+     [| ($consName',
+         $consType',
+         $consDoc',
+         $consFieldNames,
+         $consFieldTypes,
+         $consFieldDefaults,
+         $consFieldDocs,
+         consDscField) |]
+
+-- | Generates a function called "pyClasses" that holds the list of
+-- all the opcode descriptors necessary for generating the Python
+-- opcodes.
+pyClasses :: [OpCodeConstructor] -> Q [Dec]
+pyClasses cons =
+  do let name = mkName "pyClasses"
+         sig = SigD name (AppT ListT (ConT ''OpCodeDescriptor))
+     fn <- FunD name <$> (:[]) <$> declClause cons
+     return [sig, fn]
+  where declClause c =
+          clause [] (normalB (ListE <$> mapM pyClass c)) []
+
+-- | Converts from an opcode constructor to a Luxi constructor.
+opcodeConsToLuxiCons :: (a, b, c, d, e) -> (a, d)
+opcodeConsToLuxiCons (x, _, _, y, _) = (x, y)
+
 -- | Generates the OpCode data type.
 --
 -- This takes an opcode logical definition, and builds both the
 -- datatype and the JSON serialisation out of it. We can't use a
 -- generic serialisation since we need to be compatible with Ganeti's
 -- own, so we have a few quirks to work around.
-genOpCode :: String        -- ^ Type name to use
-          -> [Constructor] -- ^ Constructor name and parameters
+genOpCode :: String              -- ^ Type name to use
+          -> [OpCodeConstructor] -- ^ Constructor name and parameters
           -> Q [Dec]
 genOpCode name cons = do
   let tname = mkName name
-  decl_d <- mapM (\(cname, fields) -> do
+  decl_d <- mapM (\(cname, _, _, fields, _) -> do
                     -- we only need the type of the field, without Q
                     fields' <- mapM (fieldTypeInfo "op") fields
                     return $ RecC (mkName cname) fields')
             cons
   let declD = DataD [] tname [] decl_d [''Show, ''Eq]
-
   let (allfsig, allffn) = genAllOpFields "allOpFields" cons
   save_decs <- genSaveOpCode tname "saveOpCode" "toDictOpCode"
-               cons (uncurry saveConstructor) True
+               (map opcodeConsToLuxiCons cons) saveConstructor True
   (loadsig, loadfn) <- genLoadOpCode cons
-  return $ [declD, allfsig, allffn, loadsig, loadfn] ++ save_decs
+  pyDecls <- pyClasses cons
+  return $ [declD, allfsig, allffn, loadsig, loadfn] ++ save_decs ++ pyDecls
 
 -- | Generates the function pattern returning the list of fields for a
 -- given constructor.
-genOpConsFields :: Constructor -> Clause
-genOpConsFields (cname, fields) =
+genOpConsFields :: OpCodeConstructor -> Clause
+genOpConsFields (cname, _, _, fields, _) =
   let op_id = deCamelCase cname
       fvals = map (LitE . StringL) . sort . nub $
               concatMap (\f -> fieldName f:fieldExtraKeys f) fields
   in Clause [LitP (StringL op_id)] (NormalB $ ListE fvals) []
 
 -- | Generates a list of all fields of an opcode constructor.
-genAllOpFields  :: String        -- ^ Function name
-                -> [Constructor] -- ^ Object definition
+genAllOpFields  :: String              -- ^ Function name
+                -> [OpCodeConstructor] -- ^ Object definition
                 -> (Dec, Dec)
 genAllOpFields sname opdefs =
   let cclauses = map genOpConsFields opdefs
@@ -569,11 +745,9 @@ genAllOpFields sname opdefs =
 -- This matches the opcode with variables named the same as the
 -- constructor fields (just so that the spliced in code looks nicer),
 -- and passes those name plus the parameter definition to 'saveObjectField'.
-saveConstructor :: String    -- ^ The constructor name
-                -> [Field]   -- ^ The parameter definitions for this
-                             -- constructor
-                -> Q Clause  -- ^ Resulting clause
-saveConstructor sname fields = do
+saveConstructor :: LuxiConstructor -- ^ The constructor
+                -> Q Clause        -- ^ Resulting clause
+saveConstructor (sname, fields) = do
   let cname = mkName sname
   fnames <- mapM (newName . fieldVariable) fields
   let pat = conP cname (map varP fnames)
@@ -590,14 +764,14 @@ saveConstructor sname fields = do
 --
 -- This builds a per-constructor match clause that contains the
 -- respective constructor-serialisation code.
-genSaveOpCode :: Name                      -- ^ Object ype
-              -> String                    -- ^ To 'JSValue' function name
-              -> String                    -- ^ To 'JSObject' function name
-              -> [Constructor]             -- ^ Object definition
-              -> (Constructor -> Q Clause) -- ^ Constructor save fn
-              -> Bool                      -- ^ Whether to generate
-                                           -- obj or just a
-                                           -- list\/tuple of values
+genSaveOpCode :: Name                          -- ^ Object ype
+              -> String                        -- ^ To 'JSValue' function name
+              -> String                        -- ^ To 'JSObject' function name
+              -> [LuxiConstructor]             -- ^ Object definition
+              -> (LuxiConstructor -> Q Clause) -- ^ Constructor save fn
+              -> Bool                          -- ^ Whether to generate
+                                               -- obj or just a
+                                               -- list\/tuple of values
               -> Q [Dec]
 genSaveOpCode tname jvalstr tdstr opdefs fn gen_object = do
   tdclauses <- mapM fn opdefs
@@ -615,8 +789,8 @@ genSaveOpCode tname jvalstr tdstr opdefs fn gen_object = do
          , ValD (VarP jvalname) (NormalB jvalclause) []]
 
 -- | Generates load code for a single constructor of the opcode data type.
-loadConstructor :: String -> [Field] -> Q Exp
-loadConstructor sname fields = do
+loadConstructor :: OpCodeConstructor -> Q Exp
+loadConstructor (sname, _, _, fields, _) = do
   let name = mkName sname
   fbinds <- mapM loadObjectField fields
   let (fnames, fstmts) = unzip fbinds
@@ -625,7 +799,7 @@ loadConstructor sname fields = do
   return $ DoE fstmts'
 
 -- | Generates the loadOpCode function.
-genLoadOpCode :: [Constructor] -> Q (Dec, Dec)
+genLoadOpCode :: [OpCodeConstructor] -> Q (Dec, Dec)
 genLoadOpCode opdefs = do
   let fname = mkName "loadOpCode"
       arg1 = mkName "v"
@@ -635,10 +809,10 @@ genLoadOpCode opdefs = do
                                  (JSON.readJSON $(varE arg1)) |]
   st2 <- bindS (varP opid) [| $fromObjE $(varE objname) $(stringE "OP_ID") |]
   -- the match results (per-constructor blocks)
-  mexps <- mapM (uncurry loadConstructor) opdefs
+  mexps <- mapM loadConstructor opdefs
   fails <- [| fail $ "Unknown opcode " ++ $(varE opid) |]
-  let mpats = map (\(me, c) ->
-                       let mp = LitP . StringL . deCamelCase . fst $ c
+  let mpats = map (\(me, (consName, _, _, _, _)) ->
+                       let mp = LitP . StringL . deCamelCase $ consName
                        in Match mp (NormalB me) []
                   ) $ zip mexps opdefs
       defmatch = Match WildP (NormalB fails) []
@@ -670,7 +844,7 @@ genStrOfKey = genConstrToStr ensureLower
 --
 -- * type
 --
-genLuxiOp :: String -> [Constructor] -> Q [Dec]
+genLuxiOp :: String -> [LuxiConstructor] -> Q [Dec]
 genLuxiOp name cons = do
   let tname = mkName name
   decl_d <- mapM (\(cname, fields) -> do
@@ -688,7 +862,7 @@ genLuxiOp name cons = do
   return $ declD:save_decs ++ req_defs
 
 -- | Generates the \"save\" clause for entire LuxiOp constructor.
-saveLuxiConstructor :: Constructor -> Q Clause
+saveLuxiConstructor :: LuxiConstructor -> Q Clause
 saveLuxiConstructor (sname, fields) = do
   let cname = mkName sname
   fnames <- mapM (newName . fieldVariable) fields

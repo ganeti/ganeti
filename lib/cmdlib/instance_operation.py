@@ -184,7 +184,7 @@ class LUInstanceShutdown(LogicalUnit):
 
     """
     env = BuildInstanceHookEnvByObject(self, self.instance)
-    env["TIMEOUT"] = self.op.timeout
+    env["SHUTDOWN_TIMEOUT"] = self.op.shutdown_timeout
     return env
 
   def BuildHooksNodes(self):
@@ -230,9 +230,10 @@ class LUInstanceShutdown(LogicalUnit):
       assert self.op.ignore_offline_nodes
       self.LogInfo("Primary node offline, marked instance as stopped")
     else:
-      result = self.rpc.call_instance_shutdown(self.instance.primary_node,
-                                               self.instance,
-                                               self.op.timeout, self.op.reason)
+      result = self.rpc.call_instance_shutdown(
+        self.instance.primary_node,
+        self.instance,
+        self.op.shutdown_timeout, self.op.reason)
       msg = result.fail_msg
       if msg:
         self.LogWarning("Could not shutdown instance: %s", msg)

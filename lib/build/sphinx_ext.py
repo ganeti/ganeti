@@ -164,8 +164,8 @@ def _BuildOpcodeParams(op_id, include, exclude, alias):
     if include is not None and name not in include:
       continue
 
-    has_default = default is not ht.NoDefault
-    has_test = not (test is None or test is ht.NoType)
+    has_default = default is not None or default is not ht.NoDefault
+    has_test = test is not None or test is not ht.NoType
 
     buf = StringIO()
     buf.write("``%s``" % (rapi_name,))

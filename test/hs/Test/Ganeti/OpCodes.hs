@@ -556,18 +556,6 @@ prop_setOpComment op comment =
   let (OpCodes.MetaOpCode common _) = OpCodes.setOpComment comment op
   in OpCodes.opComment common ==? Just comment
 
--- | Tests wrong tag object building (cluster takes only jsnull, the
--- other take a string, so we test the opposites).
-case_TagObject_fail :: Assertion
-case_TagObject_fail =
-  mapM_ (\(t, j) -> assertEqual (show t ++ "/" ++ J.encode j) Nothing $
-                    tagObjectFrom t j)
-    [ (TagTypeCluster,  J.showJSON "abc")
-    , (TagTypeInstance, J.JSNull)
-    , (TagTypeNode,     J.JSNull)
-    , (TagTypeGroup,    J.JSNull)
-    ]
-
 -- | Tests wrong (negative) disk index.
 prop_mkDiskIndex_fail :: QuickCheck.Positive Int -> Property
 prop_mkDiskIndex_fail (Positive i) =
@@ -607,7 +595,6 @@ testSuite "OpCodes"
             , 'case_py_compat_types
             , 'case_py_compat_fields
             , 'prop_setOpComment
-            , 'case_TagObject_fail
             , 'prop_mkDiskIndex_fail
             , 'case_readRecreateDisks_fail
             , 'case_readDdmOldChanges_fail
