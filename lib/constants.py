@@ -2554,3 +2554,7 @@ MOND_TIME_INTERVAL = 5
 
 # Do not re-export imported modules
 del re, _vcsversion, _autoconf, socket, pathutils, compat
+
+
+ALLOCATABLE_KEY = "allocatable"
+FAILED_KEY = "failed"

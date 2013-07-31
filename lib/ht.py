@@ -722,6 +722,6 @@ TJobIdListOnly = TStrictDict(True, True, {
 TInstanceMultiAllocResponse = \
     TStrictDict(True, True, {
       constants.JOB_IDS_KEY: Comment("List of submitted jobs")(TJobIdList),
-      ALLOCATABLE_KEY: TListOf(TNonEmptyString),
-      FAILED_KEY: TListOf(TNonEmptyString)
+      constants.ALLOCATABLE_KEY: TListOf(TNonEmptyString),
+      constants.FAILED_KEY: TListOf(TNonEmptyString)
     })

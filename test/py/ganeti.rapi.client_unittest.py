@@ -503,8 +503,8 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
   def testInstancesMultiAlloc(self):
     response = {
       constants.JOB_IDS_KEY: ["23423"],
-      opcodes.OpInstanceMultiAlloc.ALLOCATABLE_KEY: ["foobar"],
-      opcodes.OpInstanceMultiAlloc.FAILED_KEY: ["foobar2"],
+      constants.ALLOCATABLE_KEY: ["foobar"],
+      constants.FAILED_KEY: ["foobar2"],
       }
     self.rapi.AddResponse(serializer.DumpJson(response))
     insts = [self.client.InstanceAllocation("create", "foobar",

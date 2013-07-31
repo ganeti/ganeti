@@ -36,7 +36,6 @@ from ganeti.masterd import iallocator
 from ganeti import masterd
 from ganeti import netutils
 from ganeti import objects
-from ganeti import opcodes
 from ganeti import pathutils
 from ganeti import rpc
 from ganeti import utils
@@ -1992,9 +1991,8 @@ class LUInstanceMultiAlloc(NoHooksLU):
     """
     (allocatable, failed) = self.ia_result
     return {
-      opcodes.OpInstanceMultiAlloc.ALLOCATABLE_KEY:
-        map(compat.fst, allocatable),
-      opcodes.OpInstanceMultiAlloc.FAILED_KEY: failed,
+      constants.ALLOCATABLE_KEY: map(compat.fst, allocatable),
+      constants.FAILED_KEY: failed,
       }
 
   def Exec(self, feedback_fn):

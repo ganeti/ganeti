@@ -1364,12 +1364,10 @@ class OpInstanceMultiAlloc(OpCode):
      "List of instance create opcodes describing the instances to allocate"),
     ]
   _JOB_LIST = ht.Comment("List of submitted jobs")(TJobIdList)
-  ALLOCATABLE_KEY = "allocatable"
-  FAILED_KEY = "allocatable"
   OP_RESULT = ht.TStrictDict(True, True, {
     constants.JOB_IDS_KEY: _JOB_LIST,
-    ALLOCATABLE_KEY: ht.TListOf(ht.TNonEmptyString),
-    FAILED_KEY: ht.TListOf(ht.TNonEmptyString),
+    constants.ALLOCATABLE_KEY: ht.TListOf(ht.TNonEmptyString),
+    constants.FAILED_KEY: ht.TListOf(ht.TNonEmptyString),
     })
 
   def __getstate__(self):
