@@ -31,6 +31,7 @@ import shutil
 
 from ganeti import constants
 from ganeti import compat
+from ganeti import errors
 from ganeti import ht
 from ganeti import netutils
 from ganeti import objects
@@ -272,7 +273,7 @@ class TestLUClusterActivateMasterIp(CmdlibTestCase):
     op = opcodes.OpClusterActivateMasterIp()
 
     self.rpc.call_node_activate_master_ip.return_value = \
-      RpcResultsBuilder(cfg=self.cfg) \
+      self.RpcResultsBuilder() \
         .CreateSuccessfulNodeResult(self.master)
 
     self.ExecOpCode(op)
@@ -284,7 +285,7 @@ class TestLUClusterActivateMasterIp(CmdlibTestCase):
     op = opcodes.OpClusterActivateMasterIp()
 
     self.rpc.call_node_activate_master_ip.return_value = \
-      RpcResultsBuilder(cfg=self.cfg) \
+      self.RpcResultsBuilder() \
         .CreateFailedNodeResult(self.master) \
 
     self.ExecOpCodeExpectOpExecError(op)
@@ -295,7 +296,7 @@ class TestLUClusterDeactivateMasterIp(CmdlibTestCase):
     op = opcodes.OpClusterDeactivateMasterIp()
 
     self.rpc.call_node_deactivate_master_ip.return_value = \
-      RpcResultsBuilder(cfg=self.cfg) \
+      self.RpcResultsBuilder() \
         .CreateSuccessfulNodeResult(self.master)
 
     self.ExecOpCode(op)
@@ -307,7 +308,7 @@ class TestLUClusterDeactivateMasterIp(CmdlibTestCase):
     op = opcodes.OpClusterDeactivateMasterIp()
 
     self.rpc.call_node_deactivate_master_ip.return_value = \
-      RpcResultsBuilder(cfg=self.cfg) \
+      self.RpcResultsBuilder() \
         .CreateFailedNodeResult(self.master) \
 
     self.ExecOpCodeExpectOpExecError(op)
@@ -323,7 +324,7 @@ class TestLUClusterConfigQuery(CmdlibTestCase):
     op = opcodes.OpClusterConfigQuery(output_fields=query.CLUSTER_FIELDS.keys())
 
     self.rpc.call_get_watcher_pause.return_value = \
-      RpcResultsBuilder(self.cfg) \
+      self.RpcResultsBuilder() \
         .CreateSuccessfulNodeResult(self.master, -1)
 
     ret = self.ExecOpCode(op)
@@ -450,11 +451,10 @@ class TestLUClusterRepairDiskSizes(CmdlibTestCase):
     pnode = self.master
     snode = self.cfg.AddNewNode()
 
-    inst = self.cfg.AddNewInstance()
     disk = self.cfg.CreateDisk(dev_type=dev_type,
                                primary_node=pnode,
                                secondary_node=snode)
-    inst.disks.append(disk)
+    inst = self.cfg.AddNewInstance(disks=[disk])
 
     return (inst, disk)
 
@@ -463,7 +463,7 @@ class TestLUClusterRepairDiskSizes(CmdlibTestCase):
     op = opcodes.OpClusterRepairDiskSizes(instances=[inst.name])
 
     self.rpc.call_blockdev_getdimensions.return_value = \
-      RpcResultsBuilder(cfg=self.cfg) \
+      self.RpcResultsBuilder() \
         .CreateFailedNodeResult(self.master)
 
     self.ExecOpCode(op)
@@ -475,7 +475,7 @@ class TestLUClusterRepairDiskSizes(CmdlibTestCase):
     op = opcodes.OpClusterRepairDiskSizes()
 
     self.rpc.call_blockdev_getdimensions.return_value = \
-      RpcResultsBuilder(cfg=self.cfg) \
+      self.RpcResultsBuilder() \
         .CreateSuccessfulNodeResult(self.master, node_data)
 
     return self.ExecOpCode(op)
@@ -532,6 +532,474 @@ class TestLUClusterRepairDiskSizes(CmdlibTestCase):
     self.master.ndparams[constants.ND_EXCLUSIVE_STORAGE] = True
     changed = self._ExecOpClusterRepairDiskSizes([(1024 * 1024 * 1024, 1)])
     self.assertEqual(1, len(changed))
+
+
+class TestLUClusterSetParams(CmdlibTestCase):
+  UID_POOL = [(10, 1000)]
+
+  def testUidPool(self):
+    op = opcodes.OpClusterSetParams(uid_pool=self.UID_POOL)
+    self.ExecOpCode(op)
+    self.assertEqual(self.UID_POOL, self.cluster.uid_pool)
+
+  def testAddUids(self):
+    old_pool = [(1, 9)]
+    self.cluster.uid_pool = list(old_pool)
+    op = opcodes.OpClusterSetParams(add_uids=self.UID_POOL)
+    self.ExecOpCode(op)
+    self.assertEqual(set(self.UID_POOL + old_pool),
+                     set(self.cluster.uid_pool))
+
+  def testRemoveUids(self):
+    additional_pool = [(1, 9)]
+    self.cluster.uid_pool = self.UID_POOL + additional_pool
+    op = opcodes.OpClusterSetParams(remove_uids=self.UID_POOL)
+    self.ExecOpCode(op)
+    self.assertEqual(additional_pool, self.cluster.uid_pool)
+
+  def testMasterNetmask(self):
+    op = opcodes.OpClusterSetParams(master_netmask=0xFFFF0000)
+    self.ExecOpCode(op)
+    self.assertEqual(0xFFFF0000, self.cluster.master_netmask)
+
+  def testInvalidDiskparams(self):
+    for diskparams in [{constants.DT_DISKLESS: {constants.LV_STRIPES: 0}},
+                       {constants.DT_DRBD8: {constants.RBD_POOL: "pool"}}]:
+      self.ResetMocks()
+      op = opcodes.OpClusterSetParams(diskparams=diskparams)
+      self.ExecOpCodeExpectOpPrereqError(op, "verify diskparams")
+
+  def testValidDiskparams(self):
+    diskparams = {constants.DT_RBD: {constants.RBD_POOL: "mock_pool"}}
+    op = opcodes.OpClusterSetParams(diskparams=diskparams)
+    self.ExecOpCode(op)
+    self.assertEqual(diskparams[constants.DT_RBD],
+                     self.cluster.diskparams[constants.DT_RBD])
+
+  def testMinimalDiskparams(self):
+    diskparams = {constants.DT_RBD: {constants.RBD_POOL: "mock_pool"}}
+    self.cluster.diskparams = {}
+    op = opcodes.OpClusterSetParams(diskparams=diskparams)
+    self.ExecOpCode(op)
+    self.assertEqual(diskparams, self.cluster.diskparams)
+
+  def testUnsetDrbdHelperWithDrbdDisks(self):
+    self.cfg.AddNewInstance(disks=[
+      self.cfg.CreateDisk(dev_type=constants.LD_DRBD8, create_nodes=True)])
+    op = opcodes.OpClusterSetParams(drbd_helper="")
+    self.ExecOpCodeExpectOpPrereqError(op, "Cannot disable drbd helper")
+
+  def testFileStorageDir(self):
+    op = opcodes.OpClusterSetParams(file_storage_dir="/random/path")
+    self.ExecOpCode(op)
+
+  def testSetFileStorageDirToCurrentValue(self):
+    op = opcodes.OpClusterSetParams(
+           file_storage_dir=self.cluster.file_storage_dir)
+    self.ExecOpCode(op)
+
+    self.mcpu.assertLogContainsRegex("file storage dir already set to value")
+
+  def testValidDrbdHelper(self):
+    node1 = self.cfg.AddNewNode()
+    node1.offline = True
+    self.rpc.call_drbd_helper.return_value = \
+      self.RpcResultsBuilder() \
+        .AddSuccessfulNode(self.master, "/bin/true") \
+        .AddOfflineNode(node1) \
+        .Build()
+    op = opcodes.OpClusterSetParams(drbd_helper="/bin/true")
+    self.ExecOpCode(op)
+    self.mcpu.assertLogContainsRegex("Not checking drbd helper on offline node")
+
+  def testDrbdHelperFailingNode(self):
+    self.rpc.call_drbd_helper.return_value = \
+      self.RpcResultsBuilder() \
+        .AddFailedNode(self.master) \
+        .Build()
+    op = opcodes.OpClusterSetParams(drbd_helper="/bin/true")
+    self.ExecOpCodeExpectOpPrereqError(op, "Error checking drbd helper")
+
+  def testInvalidDrbdHelper(self):
+    self.rpc.call_drbd_helper.return_value = \
+      self.RpcResultsBuilder() \
+        .AddSuccessfulNode(self.master, "/bin/false") \
+        .Build()
+    op = opcodes.OpClusterSetParams(drbd_helper="/bin/true")
+    self.ExecOpCodeExpectOpPrereqError(op, "drbd helper is /bin/false")
+
+  def testDrbdHelperWithoutDrbdDiskTemplate(self):
+    drbd_helper = "/bin/random_helper"
+    self.cluster.enabled_disk_templates = [constants.DT_DISKLESS]
+    self.rpc.call_drbd_helper.return_value = \
+      self.RpcResultsBuilder() \
+        .AddSuccessfulNode(self.master, drbd_helper) \
+        .Build()
+    op = opcodes.OpClusterSetParams(drbd_helper=drbd_helper)
+    self.ExecOpCode(op)
+
+    self.mcpu.assertLogContainsRegex("but did not enable")
+
+  def testResetDrbdHelper(self):
+    drbd_helper = ""
+    self.cluster.enabled_disk_templates = [constants.DT_DISKLESS]
+    op = opcodes.OpClusterSetParams(drbd_helper=drbd_helper)
+    self.ExecOpCode(op)
+
+    self.assertEqual(None, self.cluster.drbd_usermode_helper)
+
+  def testBeparams(self):
+    beparams = {constants.BE_VCPUS: 32}
+    op = opcodes.OpClusterSetParams(beparams=beparams)
+    self.ExecOpCode(op)
+    self.assertEqual(32, self.cluster
+                           .beparams[constants.PP_DEFAULT][constants.BE_VCPUS])
+
+  def testNdparams(self):
+    ndparams = {constants.ND_EXCLUSIVE_STORAGE: True}
+    op = opcodes.OpClusterSetParams(ndparams=ndparams)
+    self.ExecOpCode(op)
+    self.assertEqual(True, self.cluster
+                             .ndparams[constants.ND_EXCLUSIVE_STORAGE])
+
+  def testNdparamsResetOobProgram(self):
+    ndparams = {constants.ND_OOB_PROGRAM: ""}
+    op = opcodes.OpClusterSetParams(ndparams=ndparams)
+    self.ExecOpCode(op)
+    self.assertEqual(constants.NDC_DEFAULTS[constants.ND_OOB_PROGRAM],
+                     self.cluster.ndparams[constants.ND_OOB_PROGRAM])
+
+  def testHvState(self):
+    hv_state = {constants.HT_FAKE: {constants.HVST_CPU_TOTAL: 8}}
+    op = opcodes.OpClusterSetParams(hv_state=hv_state)
+    self.ExecOpCode(op)
+    self.assertEqual(8, self.cluster.hv_state_static
+                          [constants.HT_FAKE][constants.HVST_CPU_TOTAL])
+
+  def testDiskState(self):
+    disk_state = {
+      constants.LD_LV: {
+        "mock_vg": {constants.DS_DISK_TOTAL: 10}
+      }
+    }
+    op = opcodes.OpClusterSetParams(disk_state=disk_state)
+    self.ExecOpCode(op)
+    self.assertEqual(10, self.cluster
+                           .disk_state_static[constants.LD_LV]["mock_vg"]
+                             [constants.DS_DISK_TOTAL])
+
+  def testDefaultIPolicy(self):
+    ipolicy = constants.IPOLICY_DEFAULTS
+    op = opcodes.OpClusterSetParams(ipolicy=ipolicy)
+    self.ExecOpCode(op)
+
+  def testIPolicyNewViolation(self):
+    import ganeti.constants as C
+    ipolicy = C.IPOLICY_DEFAULTS
+    ipolicy[C.ISPECS_MINMAX][0][C.ISPECS_MIN][C.ISPEC_MEM_SIZE] = 128
+    ipolicy[C.ISPECS_MINMAX][0][C.ISPECS_MAX][C.ISPEC_MEM_SIZE] = 128
+
+    self.cfg.AddNewInstance(beparams={C.BE_MINMEM: 512, C.BE_MAXMEM: 512})
+    op = opcodes.OpClusterSetParams(ipolicy=ipolicy)
+    self.ExecOpCode(op)
+
+    self.mcpu.assertLogContainsRegex("instances violate them")
+
+  def testNicparamsNoInstance(self):
+    nicparams = {
+      constants.NIC_LINK: "mock_bridge"
+    }
+    op = opcodes.OpClusterSetParams(nicparams=nicparams)
+    self.ExecOpCode(op)
+
+    self.assertEqual("mock_bridge",
+                     self.cluster.nicparams
+                       [constants.PP_DEFAULT][constants.NIC_LINK])
+
+  def testNicparamsInvalidConf(self):
+    nicparams = {
+      constants.NIC_MODE: constants.NIC_MODE_BRIDGED
+    }
+    op = opcodes.OpClusterSetParams(nicparams=nicparams)
+    self.ExecOpCodeExpectException(op, errors.ConfigurationError, "NIC link")
+
+  def testNicparamsInvalidInstanceConf(self):
+    nicparams = {
+      constants.NIC_MODE: constants.NIC_MODE_BRIDGED,
+      constants.NIC_LINK: "mock_bridge"
+    }
+    self.cfg.AddNewInstance(nics=[
+      self.cfg.CreateNic(nicparams={constants.NIC_LINK: None})])
+    op = opcodes.OpClusterSetParams(nicparams=nicparams)
+    self.ExecOpCodeExpectOpPrereqError(op, "Missing bridged NIC link")
+
+  def testNicparamsMissingIp(self):
+    nicparams = {
+      constants.NIC_MODE: constants.NIC_MODE_ROUTED
+    }
+    self.cfg.AddNewInstance()
+    op = opcodes.OpClusterSetParams(nicparams=nicparams)
+    self.ExecOpCodeExpectOpPrereqError(op, "routed NIC with no ip address")
+
+  def testNicparamsWithInstance(self):
+    nicparams = {
+      constants.NIC_LINK: "mock_bridge"
+    }
+    self.cfg.AddNewInstance()
+    op = opcodes.OpClusterSetParams(nicparams=nicparams)
+    self.ExecOpCode(op)
+
+  def testDefaultHvparams(self):
+    hvparams = constants.HVC_DEFAULTS
+    op = opcodes.OpClusterSetParams(hvparams=hvparams)
+    self.ExecOpCode(op)
+
+    self.assertEqual(hvparams, self.cluster.hvparams)
+
+  def testMinimalHvparams(self):
+    hvparams = {
+      constants.HT_FAKE: {
+        constants.HV_MIGRATION_MODE: constants.HT_MIGRATION_NONLIVE
+      }
+    }
+    self.cluster.hvparams = {}
+    op = opcodes.OpClusterSetParams(hvparams=hvparams)
+    self.ExecOpCode(op)
+
+    self.assertEqual(hvparams, self.cluster.hvparams)
+
+  def testOsHvp(self):
+    os_hvp = {
+      "mocked_os": {
+        constants.HT_FAKE: {
+          constants.HV_MIGRATION_MODE: constants.HT_MIGRATION_NONLIVE
+        }
+      },
+      "other_os": constants.HVC_DEFAULTS
+    }
+    op = opcodes.OpClusterSetParams(os_hvp=os_hvp)
+    self.ExecOpCode(op)
+
+    self.assertEqual(constants.HT_MIGRATION_NONLIVE,
+                     self.cluster.os_hvp["mocked_os"][constants.HT_FAKE]
+                       [constants.HV_MIGRATION_MODE])
+    self.assertEqual(constants.HVC_DEFAULTS, self.cluster.os_hvp["other_os"])
+
+  def testRemoveOsHvp(self):
+    os_hvp = {"mocked_os": {constants.HT_FAKE: None}}
+    op = opcodes.OpClusterSetParams(os_hvp=os_hvp)
+    self.ExecOpCode(op)
+
+    assert constants.HT_FAKE not in self.cluster.os_hvp["mocked_os"]
+
+  def testDefaultOsHvp(self):
+    os_hvp = {"mocked_os": constants.HVC_DEFAULTS.copy()}
+    self.cluster.os_hvp = {"mocked_os": {}}
+    op = opcodes.OpClusterSetParams(os_hvp=os_hvp)
+    self.ExecOpCode(op)
+
+    self.assertEqual(os_hvp, self.cluster.os_hvp)
+
+  def testOsparams(self):
+    osparams = {
+      "mocked_os": {
+        "param1": "value1",
+        "param2": None
+      },
+      "other_os": {
+        "param1": None
+      }
+    }
+    self.cluster.osparams = {"other_os": {"param1": "value1"}}
+    op = opcodes.OpClusterSetParams(osparams=osparams)
+    self.ExecOpCode(op)
+
+    self.assertEqual({"mocked_os": {"param1": "value1"}}, self.cluster.osparams)
+
+  def testEnabledHypervisors(self):
+    enabled_hypervisors = [constants.HT_XEN_HVM, constants.HT_XEN_PVM]
+    op = opcodes.OpClusterSetParams(enabled_hypervisors=enabled_hypervisors)
+    self.ExecOpCode(op)
+
+    self.assertEqual(enabled_hypervisors, self.cluster.enabled_hypervisors)
+
+  def testEnabledHypervisorsWithoutHypervisorParams(self):
+    enabled_hypervisors = [constants.HT_FAKE]
+    self.cluster.hvparams = {}
+    op = opcodes.OpClusterSetParams(enabled_hypervisors=enabled_hypervisors)
+    self.ExecOpCode(op)
+
+    self.assertEqual(enabled_hypervisors, self.cluster.enabled_hypervisors)
+    self.assertEqual(constants.HVC_DEFAULTS[constants.HT_FAKE],
+                     self.cluster.hvparams[constants.HT_FAKE])
+
+  @testutils.patch_object(utils, "FindFile")
+  def testValidDefaultIallocator(self, find_file_mock):
+    find_file_mock.return_value = "/random/path"
+    default_iallocator = "/random/path"
+    op = opcodes.OpClusterSetParams(default_iallocator=default_iallocator)
+    self.ExecOpCode(op)
+
+    self.assertEqual(default_iallocator, self.cluster.default_iallocator)
+
+  @testutils.patch_object(utils, "FindFile")
+  def testInvalidDefaultIallocator(self, find_file_mock):
+    find_file_mock.return_value = None
+    default_iallocator = "/random/path"
+    op = opcodes.OpClusterSetParams(default_iallocator=default_iallocator)
+    self.ExecOpCodeExpectOpPrereqError(op, "Invalid default iallocator script")
+
+  def testEnabledDiskTemplates(self):
+    enabled_disk_templates = [constants.DT_DISKLESS, constants.DT_PLAIN]
+    op = opcodes.OpClusterSetParams(
+           enabled_disk_templates=enabled_disk_templates)
+    self.ExecOpCode(op)
+
+    self.assertEqual(enabled_disk_templates,
+                     self.cluster.enabled_disk_templates)
+
+  def testEnabledDiskTemplatesWithoutVgName(self):
+    enabled_disk_templates = [constants.DT_PLAIN]
+    self.cluster.volume_group_name = None
+    op = opcodes.OpClusterSetParams(
+           enabled_disk_templates=enabled_disk_templates)
+    self.ExecOpCodeExpectOpPrereqError(op, "specify a volume group")
+
+  def testDisableDiskTemplateWithExistingInstance(self):
+    enabled_disk_templates = [constants.DT_DISKLESS]
+    self.cfg.AddNewInstance(
+      disks=[self.cfg.CreateDisk(dev_type=constants.LD_LV)])
+    op = opcodes.OpClusterSetParams(
+           enabled_disk_templates=enabled_disk_templates)
+    self.ExecOpCodeExpectOpPrereqError(op, "Cannot disable disk template")
+
+  def testVgNameNoLvmDiskTemplateEnabled(self):
+    vg_name = "test_vg"
+    self.cluster.enabled_disk_templates = [constants.DT_DISKLESS]
+    op = opcodes.OpClusterSetParams(vg_name=vg_name)
+    self.ExecOpCode(op)
+
+    self.assertEqual(vg_name, self.cluster.volume_group_name)
+    self.mcpu.assertLogContainsRegex("enable any lvm disk template")
+
+  def testUnsetVgNameWithLvmDiskTemplateEnabled(self):
+    vg_name = ""
+    self.cluster.enabled_disk_templates = [constants.DT_PLAIN]
+    op = opcodes.OpClusterSetParams(vg_name=vg_name)
+    self.ExecOpCodeExpectOpPrereqError(op, "Cannot unset volume group")
+
+  def testUnsetVgNameWithLvmInstance(self):
+    vg_name = ""
+    self.cfg.AddNewInstance(
+      disks=[self.cfg.CreateDisk(dev_type=constants.LD_LV)])
+    op = opcodes.OpClusterSetParams(vg_name=vg_name)
+    self.ExecOpCodeExpectOpPrereqError(op, "Cannot disable lvm storage")
+
+  def testUnsetVgNameWithNoLvmDiskTemplateEnabled(self):
+    vg_name = ""
+    self.cluster.enabled_disk_templates = [constants.DT_DISKLESS]
+    op = opcodes.OpClusterSetParams(vg_name=vg_name)
+    self.ExecOpCode(op)
+
+    self.assertEqual(None, self.cluster.volume_group_name)
+
+  def testVgNameToOldName(self):
+    vg_name = self.cluster.volume_group_name
+    op = opcodes.OpClusterSetParams(vg_name=vg_name)
+    self.ExecOpCode(op)
+
+    self.mcpu.assertLogContainsRegex("already in desired state")
+
+  def testVgNameWithFailingNode(self):
+    vg_name = "test_vg"
+    op = opcodes.OpClusterSetParams(vg_name=vg_name)
+    self.rpc.call_vg_list.return_value = \
+      self.RpcResultsBuilder() \
+        .AddFailedNode(self.master) \
+        .Build()
+    self.ExecOpCode(op)
+
+    self.mcpu.assertLogContainsRegex("Error while gathering data on node")
+
+  def testVgNameWithValidNode(self):
+    vg_name = "test_vg"
+    op = opcodes.OpClusterSetParams(vg_name=vg_name)
+    self.rpc.call_vg_list.return_value = \
+      self.RpcResultsBuilder() \
+        .AddSuccessfulNode(self.master, {vg_name: 1024 * 1024}) \
+        .Build()
+    self.ExecOpCode(op)
+
+  def testVgNameWithTooSmallNode(self):
+    vg_name = "test_vg"
+    op = opcodes.OpClusterSetParams(vg_name=vg_name)
+    self.rpc.call_vg_list.return_value = \
+      self.RpcResultsBuilder() \
+        .AddSuccessfulNode(self.master, {vg_name: 1}) \
+        .Build()
+    self.ExecOpCodeExpectOpPrereqError(op, "too small")
+
+  def testMiscParameters(self):
+    op = opcodes.OpClusterSetParams(candidate_pool_size=123,
+                                    maintain_node_health=True,
+                                    modify_etc_hosts=True,
+                                    prealloc_wipe_disks=True,
+                                    reserved_lvs=["/dev/mock_lv"],
+                                    use_external_mip_script=True)
+    self.ExecOpCode(op)
+
+    self.mcpu.assertLogIsEmpty()
+    self.assertEqual(123, self.cluster.candidate_pool_size)
+    self.assertEqual(True, self.cluster.maintain_node_health)
+    self.assertEqual(True, self.cluster.modify_etc_hosts)
+    self.assertEqual(True, self.cluster.prealloc_wipe_disks)
+    self.assertEqual(["/dev/mock_lv"], self.cluster.reserved_lvs)
+    self.assertEqual(True, self.cluster.use_external_mip_script)
+
+  def testAddHiddenOs(self):
+    self.cluster.hidden_os = ["hidden1", "hidden2"]
+    op = opcodes.OpClusterSetParams(hidden_os=[(constants.DDM_ADD, "hidden2"),
+                                               (constants.DDM_ADD, "hidden3")])
+    self.ExecOpCode(op)
+
+    self.assertEqual(["hidden1", "hidden2", "hidden3"], self.cluster.hidden_os)
+    self.mcpu.assertLogContainsRegex("OS hidden2 already")
+
+  def testRemoveBlacklistedOs(self):
+    self.cluster.blacklisted_os = ["blisted1", "blisted2"]
+    op = opcodes.OpClusterSetParams(blacklisted_os=[
+                                      (constants.DDM_REMOVE, "blisted2"),
+                                      (constants.DDM_REMOVE, "blisted3")])
+    self.ExecOpCode(op)
+
+    self.assertEqual(["blisted1"], self.cluster.blacklisted_os)
+    self.mcpu.assertLogContainsRegex("OS blisted3 not found")
+
+  def testMasterNetdev(self):
+    master_netdev = "test_dev"
+    op = opcodes.OpClusterSetParams(master_netdev=master_netdev)
+    self.ExecOpCode(op)
+
+    self.assertEqual(master_netdev, self.cluster.master_netdev)
+
+  def testMasterNetdevFailNoForce(self):
+    master_netdev = "test_dev"
+    op = opcodes.OpClusterSetParams(master_netdev=master_netdev)
+    self.rpc.call_node_deactivate_master_ip.return_value = \
+      self.RpcResultsBuilder() \
+        .CreateFailedNodeResult(self.master)
+    self.ExecOpCodeExpectOpExecError(op, "Could not disable the master ip")
+
+  def testMasterNetdevFailForce(self):
+    master_netdev = "test_dev"
+    op = opcodes.OpClusterSetParams(master_netdev=master_netdev,
+                                    force=True)
+    self.rpc.call_node_deactivate_master_ip.return_value = \
+      self.RpcResultsBuilder() \
+        .CreateFailedNodeResult(self.master)
+    self.ExecOpCode(op)
+
+    self.mcpu.assertLogContainsRegex("Could not disable the master ip")
 
 
 if __name__ == "__main__":

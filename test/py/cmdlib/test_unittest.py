@@ -70,7 +70,7 @@ class TestLUTestDelay(CmdlibTestCase):
                              on_nodes=[self.master.name])
 
     self.rpc.call_test_delay.return_value = \
-      RpcResultsBuilder(cfg=self.cfg) \
+      self.RpcResultsBuilder() \
         .AddSuccessfulNode(self.master) \
         .Build()
 
@@ -83,7 +83,7 @@ class TestLUTestDelay(CmdlibTestCase):
                              on_nodes=[self.master.name])
 
     self.rpc.call_test_delay.return_value = \
-      RpcResultsBuilder(cfg=self.cfg) \
+      self.RpcResultsBuilder() \
         .AddFailedNode(self.master) \
         .Build()
 
@@ -96,7 +96,7 @@ class TestLUTestDelay(CmdlibTestCase):
                              on_nodes=[node1.name, node2.name])
 
     self.rpc.call_test_delay.return_value = \
-      RpcResultsBuilder(cfg=self.cfg) \
+      self.RpcResultsBuilder() \
         .AddSuccessfulNode(node1) \
         .AddSuccessfulNode(node2) \
         .Build()

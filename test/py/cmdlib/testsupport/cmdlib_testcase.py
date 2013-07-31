@@ -32,7 +32,8 @@ from cmdlib.testsupport.lock_manager_mock import LockManagerMock
 from cmdlib.testsupport.netutils_mock import patchNetutils, \
   SetupDefaultNetutilsMock
 from cmdlib.testsupport.processor_mock import ProcessorMock
-from cmdlib.testsupport.rpc_runner_mock import CreateRpcRunnerMock
+from cmdlib.testsupport.rpc_runner_mock import CreateRpcRunnerMock, \
+  RpcResultsBuilder
 from cmdlib.testsupport.ssh_mock import patchSsh
 
 from ganeti import errors
@@ -150,6 +151,17 @@ class CmdlibTestCase(testutils.GanetiTestCase):
     except (ImportError, AttributeError):
       # this test module does not use ssh, no patching performed
       self._ssh_patcher = None
+
+  def RpcResultsBuilder(self, use_node_names=False):
+    """Creates a pre-configured L{RpcResultBuilder}
+
+    @type use_node_names: bool
+    @param use_node_names: @see L{RpcResultBuilder}
+    @rtype: L{RpcResultBuilder}
+    @return: a pre-configured builder for RPC results
+
+    """
+    return RpcResultsBuilder(cfg=self.cfg, use_node_names=use_node_names)
 
   def ExecOpCode(self, opcode):
     """Executes the given opcode.

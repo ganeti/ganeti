@@ -47,6 +47,7 @@ class ConfigMock(config.ConfigWriter):
     self._cur_node_id = 1
     self._cur_inst_id = 1
     self._cur_disk_id = 1
+    self._cur_nic_id = 1
 
     super(ConfigMock, self).__init__(cfg_file="/dev/null",
                                      _getents=_StubGetEntResolver())
@@ -179,7 +180,7 @@ class ConfigMock(config.ConfigWriter):
                      admin_state=constants.ADMINST_DOWN,
                      nics=None,
                      disks=None,
-                     disk_template=constants.DT_DISKLESS,
+                     disk_template=None,
                      disks_active=False,
                      network_port=None):
     """Add a new L{objects.Instance} to the cluster configuration
@@ -207,9 +208,23 @@ class ConfigMock(config.ConfigWriter):
     if osparams is None:
       osparams = {}
     if nics is None:
-      nics = []
+      nics = [self.CreateNic()]
     if disks is None:
-      disks = []
+      disks = [self.CreateDisk()]
+    if disk_template is None:
+      if len(disks) == 0:
+        disk_template = constants.DT_DISKLESS
+      else:
+        dt_guess_dict = {
+          constants.LD_LV: constants.DT_PLAIN,
+          constants.LD_FILE: constants.DT_FILE,
+          constants.LD_DRBD8: constants.DT_DRBD8,
+          constants.LD_RBD: constants.DT_RBD,
+          constants.LD_BLOCKDEV: constants.DT_BLOCK,
+          constants.LD_EXT: constants.DT_EXT
+        }
+        assert constants.LOGICAL_DISK_TYPES == set(dt_guess_dict.keys())
+        disk_template = dt_guess_dict[disks[0].dev_type]
 
     inst = objects.Instance(uuid=uuid,
                             name=name,
@@ -241,7 +256,8 @@ class ConfigMock(config.ConfigWriter):
                  params=None,
                  spindles=None,
                  primary_node=None,
-                 secondary_node=None):
+                 secondary_node=None,
+                 create_nodes=False):
     """Create a new L{objecs.Disk} object
 
     @rtype: L{objects.Disk}
@@ -262,6 +278,11 @@ class ConfigMock(config.ConfigWriter):
       if logical_id is not None:
         pnode_uuid = logical_id[0]
         snode_uuid = logical_id[1]
+
+      if pnode_uuid is None and create_nodes:
+        pnode_uuid = self.AddNewNode().uuid
+      if snode_uuid is None and create_nodes:
+        snode_uuid = self.AddNewNode().uuid
 
       if pnode_uuid is None or snode_uuid is None:
         raise AssertionError("Trying to create DRBD disk without nodes!")
@@ -300,6 +321,40 @@ class ConfigMock(config.ConfigWriter):
                         params=params,
                         spindles=spindles)
 
+  def CreateNic(self,
+                uuid=None,
+                name=None,
+                mac=None,
+                ip=None,
+                network=None,
+                nicparams=None,
+                netinfo=None):
+    """Create a new L{objecs.NIC} object
+
+    @rtype: L{objects.NIC}
+    @return: the newly create NIC object
+
+    """
+    nic_id = self._cur_nic_id
+    self._cur_nic_id += 1
+
+    if uuid is None:
+      uuid = self._GetUuid()
+    if name is None:
+      name = "mock_nic_%d" % nic_id
+    if mac is None:
+      mac = "aa:00:00:aa:%02x:%02x" % (nic_id / 0xff, nic_id % 0xff)
+    if nicparams is None:
+      nicparams = {}
+
+    return objects.NIC(uuid=uuid,
+                       name=name,
+                       mac=mac,
+                       ip=ip,
+                       network=network,
+                       nicparams=nicparams,
+                       netinfo=netinfo)
+
   def _OpenConfig(self, accept_foreign):
     self._config_data = objects.ConfigData(
       version=constants.CONFIG_VERSION,
@@ -329,9 +384,9 @@ class ConfigMock(config.ConfigWriter):
       file_storage_dir="/tmp",
       shared_file_storage_dir=None,
       enabled_hypervisors=list(constants.HYPER_TYPES),
-      hvparams=constants.HVC_DEFAULTS,
+      hvparams=constants.HVC_DEFAULTS.copy(),
       ipolicy=None,
-      os_hvp={"mocked_os": constants.HVC_DEFAULTS},
+      os_hvp={"mocked_os": constants.HVC_DEFAULTS.copy()},
       beparams=None,
       osparams=None,
       nicparams=None,
@@ -347,7 +402,7 @@ class ConfigMock(config.ConfigWriter):
       blacklisted_os=None,
       primary_ip_family=None,
       prealloc_wipe_disks=None,
-      enabled_disk_templates=list(constants.DISK_TEMPLATES),
+      enabled_disk_templates=constants.DISK_TEMPLATES.copy(),
       )
     self._cluster.ctime = self._cluster.mtime = time.time()
     self._cluster.UpgradeConfig()

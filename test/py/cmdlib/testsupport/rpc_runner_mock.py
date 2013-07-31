@@ -121,7 +121,7 @@ class RpcResultsBuilder(object):
     @param node: @see L{RpcResultsBuilder}.
     @rtype: L{rpc.RpcResult}
     """
-    return rpc.RpcResult(failed=True, node=self._GetNodeId(node))
+    return rpc.RpcResult(failed=True, offline=True, node=self._GetNodeId(node))
 
   def CreateErrorNodeResult(self, node, error_msg=None):
     """@see L{RpcResultsBuilder}
@@ -134,22 +134,44 @@ class RpcResultsBuilder(object):
     return rpc.RpcResult(data=(False, error_msg), node=self._GetNodeId(node))
 
   def AddSuccessfulNode(self, node, data=None):
-    """@see L{CreateSuccessfulNode}"""
+    """@see L{CreateSuccessfulNode}
+
+    @rtype: L{RpcResultsBuilder}
+    @return: self for chaining
+
+    """
     self._results.append(self.CreateSuccessfulNodeResult(node, data))
     return self
 
   def AddFailedNode(self, node):
-    """@see L{CreateFailedNode}"""
+    """@see L{CreateFailedNode}
+
+    @rtype: L{RpcResultsBuilder}
+    @return: self for chaining
+
+    """
     self._results.append(self.CreateFailedNodeResult(node))
     return self
 
   def AddOfflineNode(self, node):
-    """@see L{CreateOfflineNode}"""
+    """@see L{CreateOfflineNode}
+
+    @rtype: L{RpcResultsBuilder}
+    @return: self for chaining
+
+    """
     self._results.append(self.CreateOfflineNodeResult(node))
+    return self
 
   def AddErrorNode(self, node, error_msg=None):
-    """@see L{CreateErrorNode}"""
+    """@see L{CreateErrorNode}
+
+    @rtype: L{RpcResultsBuilder}
+    @return: self for chaining
+
+    """
     self._results.append(self.CreateErrorNodeResult(node, error_msg=error_msg))
+    return self
 
   def Build(self):
     """Creates a dictionary holding multi-node results

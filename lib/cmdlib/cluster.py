@@ -1094,8 +1094,8 @@ class LUClusterSetParams(LogicalUnit):
 
     if self.op.drbd_helper is not None:
       if not constants.DT_DRBD8 in self.cluster.enabled_disk_templates:
-        feedback_fn("Note that you specified a drbd user helper, but did"
-                    " enabled the drbd disk template.")
+        feedback_fn("Note that you specified a drbd user helper, but did not"
+                    " enable the drbd disk template.")
       new_helper = self.op.drbd_helper
       if not new_helper:
         new_helper = None
