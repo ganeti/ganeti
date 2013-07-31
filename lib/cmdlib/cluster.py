@@ -803,7 +803,7 @@ class LUClusterSetParams(LogicalUnit):
     self.new_diskparams = objects.FillDict(cluster.diskparams, {})
     if self.op.diskparams:
       for dt_name, dt_params in self.op.diskparams.items():
-        if dt_name not in self.op.diskparams:
+        if dt_name not in self.new_diskparams:
           self.new_diskparams[dt_name] = dt_params
         else:
           self.new_diskparams[dt_name].update(dt_params)
