@@ -814,6 +814,13 @@ the data collector will be saved in an appropriate map, associating each
 value to the corresponding collector, using the collector's name as the
 key of the map. This map will be stored in mond's memory.
 
+The collectors are divided in two categories:
+
+- stateless collectors, collectors who have immediate access to the
+  reported information
+- stateful collectors, collectors whose report is based on data collected
+  in a previous time window
+
 For example: the collection function of the CPU load collector will
 collect a CPU load value and save it in the map mentioned above. The
 collection function will be called by the collector thread every t
