@@ -161,7 +161,7 @@ case_JobStatusPri_py_equiv = do
                Text.JSON.Ok jobs' -> return jobs'
                Error msg ->
                  assertFailure ("Unable to decode jobs: " ++ msg)
-                 -- this already raised an expection, but we need it
+                 -- this already raised an exception, but we need it
                  -- for proper types
                  >> fail "Unable to decode jobs"
   assertEqual "Mismatch in number of returned jobs"

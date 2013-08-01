@@ -45,7 +45,7 @@ import Text.Printf (printf)
 import Test.Ganeti.TestHelper
 import Test.Ganeti.TestCommon
 import Test.Ganeti.Types ()
-import Test.Ganeti.Query.Language
+import Test.Ganeti.Query.Language ()
 
 import Ganeti.BasicTypes
 import qualified Ganeti.Constants as C
@@ -65,6 +65,21 @@ instance Arbitrary OpCodes.TagObject where
                     , pure OpCodes.TagCluster
                     ]
 
+arbitraryOpTagsGet :: Gen OpCodes.OpCode
+arbitraryOpTagsGet = do
+  kind <- arbitrary
+  OpCodes.OpTagsSet kind <$> arbitrary <*> genOpCodesTagName kind
+
+arbitraryOpTagsSet :: Gen OpCodes.OpCode
+arbitraryOpTagsSet = do
+  kind <- arbitrary
+  OpCodes.OpTagsSet kind <$> genTags <*> genOpCodesTagName kind
+
+arbitraryOpTagsDel :: Gen OpCodes.OpCode
+arbitraryOpTagsDel = do
+  kind <- arbitrary
+  OpCodes.OpTagsDel kind <$> genTags <*> genOpCodesTagName kind
+
 $(genArbitrary ''OpCodes.ReplaceDisksMode)
 
 $(genArbitrary ''DiskAccess)
@@ -74,8 +89,9 @@ instance Arbitrary OpCodes.DiskIndex where
 
 instance Arbitrary INicParams where
   arbitrary = INicParams <$> genMaybe genNameNE <*> genMaybe genName <*>
-              genMaybe genNameNE <*> genMaybe genNameNE <*> genMaybe genNameNE
-              <*> genMaybe genNameNE
+              genMaybe genNameNE <*> genMaybe genNameNE <*>
+              genMaybe genNameNE <*> genMaybe genNameNE <*>
+              genMaybe genNameNE
 
 instance Arbitrary IDiskParams where
   arbitrary = IDiskParams <$> arbitrary <*> arbitrary <*>
@@ -125,13 +141,13 @@ instance Arbitrary OpCodes.OpCode where
           return Nothing <*> arbitrary <*> arbitrary <*> arbitrary <*>
           genMaybe genNameNE <*> arbitrary
       "OP_TAGS_GET" ->
-        OpCodes.OpTagsGet <$> arbitrary <*> arbitrary
+        arbitraryOpTagsGet
       "OP_TAGS_SEARCH" ->
         OpCodes.OpTagsSearch <$> genNameNE
       "OP_TAGS_SET" ->
-        OpCodes.OpTagsSet <$> arbitrary <*> genTags
+        arbitraryOpTagsSet
       "OP_TAGS_DEL" ->
-        OpCodes.OpTagsSet <$> arbitrary <*> genTags
+        arbitraryOpTagsDel
       "OP_CLUSTER_POST_INIT" -> pure OpCodes.OpClusterPostInit
       "OP_CLUSTER_DESTROY" -> pure OpCodes.OpClusterDestroy
       "OP_CLUSTER_QUERY" -> pure OpCodes.OpClusterQuery
@@ -156,7 +172,7 @@ instance Arbitrary OpCodes.OpCode where
         OpCodes.OpClusterRename <$> genNameNE
       "OP_CLUSTER_SET_PARAMS" ->
         OpCodes.OpClusterSetParams <$> arbitrary <*> emptyMUD <*> emptyMUD <*>
-          arbitrary <*> genMaybe (listOf1 arbitrary >>= mkNonEmpty) <*>
+          arbitrary <*> genMaybe arbitrary <*>
           genMaybe genEmptyContainer <*> emptyMUD <*>
           genMaybe genEmptyContainer <*> genMaybe genEmptyContainer <*>
           genMaybe genEmptyContainer <*> genMaybe arbitrary <*>
@@ -172,7 +188,8 @@ instance Arbitrary OpCodes.OpCode where
       "OP_CLUSTER_DEACTIVATE_MASTER_IP" ->
         pure OpCodes.OpClusterDeactivateMasterIp
       "OP_QUERY" ->
-        OpCodes.OpQuery <$> arbitrary <*> arbitrary <*> arbitrary <*> genFilter
+        OpCodes.OpQuery <$> arbitrary <*> arbitrary <*> arbitrary <*>
+        pure Nothing
       "OP_QUERY_FIELDS" ->
         OpCodes.OpQueryFields <$> arbitrary <*> arbitrary
       "OP_OOB_COMMAND" ->
@@ -183,7 +200,7 @@ instance Arbitrary OpCodes.OpCode where
         OpCodes.OpNodeRemove <$> genNodeNameNE <*> return Nothing
       "OP_NODE_ADD" ->
         OpCodes.OpNodeAdd <$> genNodeNameNE <*> emptyMUD <*> emptyMUD <*>
-          genMaybe genName <*> genMaybe genNameNE <*> arbitrary <*>
+          genNameNE <*> genMaybe genNameNE <*> arbitrary <*>
           genMaybe genNameNE <*> arbitrary <*> arbitrary <*> emptyMUD
       "OP_NODE_QUERY" ->
         OpCodes.OpNodeQuery <$> genFieldsNE <*> genNamesNE <*> arbitrary
@@ -191,13 +208,13 @@ instance Arbitrary OpCodes.OpCode where
         OpCodes.OpNodeQueryvols <$> arbitrary <*> genNodeNamesNE
       "OP_NODE_QUERY_STORAGE" ->
         OpCodes.OpNodeQueryStorage <$> arbitrary <*> arbitrary <*>
-          genNodeNamesNE <*> genNameNE
+          genNodeNamesNE <*> genMaybe genNameNE
       "OP_NODE_MODIFY_STORAGE" ->
         OpCodes.OpNodeModifyStorage <$> genNodeNameNE <*> return Nothing <*>
-          arbitrary <*> genNameNE <*> pure emptyJSObject
+          arbitrary <*> genMaybe genNameNE <*> pure emptyJSObject
       "OP_REPAIR_NODE_STORAGE" ->
         OpCodes.OpRepairNodeStorage <$> genNodeNameNE <*> return Nothing <*>
-          arbitrary <*> genNameNE <*> arbitrary
+          arbitrary <*> genMaybe genNameNE <*> arbitrary
       "OP_NODE_SET_PARAMS" ->
         OpCodes.OpNodeSetParams <$> genNodeNameNE <*> return Nothing <*>
           arbitrary <*> emptyMUD <*> emptyMUD <*> arbitrary <*> arbitrary <*>
@@ -216,21 +233,19 @@ instance Arbitrary OpCodes.OpCode where
           genMaybe genNameNE <*> arbitrary
       "OP_INSTANCE_CREATE" ->
         OpCodes.OpInstanceCreate <$> genFQDN <*> arbitrary <*>
-          arbitrary <*> arbitrary <*> arbitrary <*> pure emptyJSObject <*>
-          arbitrary <*> arbitrary <*> arbitrary <*> genMaybe genNameNE <*>
-          pure emptyJSObject <*> arbitrary <*> genMaybe genNameNE <*>
           arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*>
-          arbitrary <*> arbitrary <*> pure emptyJSObject <*>
-          genMaybe genNameNE <*>
-          genMaybe genNodeNameNE <*> return Nothing <*>
-          genMaybe genNodeNameNE <*> return Nothing <*>
-          genMaybe (pure []) <*> genMaybe genNodeNameNE <*>
-          arbitrary <*> genMaybe genNodeNameNE <*> return Nothing <*>
-          genMaybe genNodeNameNE <*> genMaybe genNameNE <*>
-          arbitrary <*> arbitrary <*> (genTags >>= mapM mkNonEmpty)
+          pure emptyJSObject <*> arbitrary <*> arbitrary <*> arbitrary <*>
+          genMaybe genNameNE <*> pure emptyJSObject <*> arbitrary <*>
+          genMaybe genNameNE <*> arbitrary <*> arbitrary <*> arbitrary <*>
+          arbitrary <*> arbitrary <*> arbitrary <*> pure emptyJSObject <*>
+          genMaybe genNameNE <*> genMaybe genNodeNameNE <*> return Nothing <*>
+          genMaybe genNodeNameNE <*> return Nothing <*> genMaybe (pure []) <*>
+          genMaybe genNodeNameNE <*> arbitrary <*> genMaybe genNodeNameNE <*>
+          return Nothing <*> genMaybe genNodeNameNE <*> genMaybe genNameNE <*>
+          arbitrary <*> (genTags >>= mapM mkNonEmpty)
       "OP_INSTANCE_MULTI_ALLOC" ->
-        OpCodes.OpInstanceMultiAlloc <$> genMaybe genNameNE <*> pure [] <*>
-          arbitrary
+        OpCodes.OpInstanceMultiAlloc <$> arbitrary <*> genMaybe genNameNE <*>
+        pure []
       "OP_INSTANCE_REINSTALL" ->
         OpCodes.OpInstanceReinstall <$> genFQDN <*> return Nothing <*>
           arbitrary <*> genMaybe genNameNE <*> genMaybe (pure emptyJSObject)
@@ -267,7 +282,7 @@ instance Arbitrary OpCodes.OpCode where
           arbitrary <*> genNodeNamesNE <*> return Nothing <*>
           genMaybe genNameNE
       "OP_INSTANCE_QUERY" ->
-        OpCodes.OpInstanceQuery <$> genFieldsNE <*> genNamesNE <*> arbitrary
+        OpCodes.OpInstanceQuery <$> genFieldsNE <*> arbitrary <*> genNamesNE
       "OP_INSTANCE_QUERY_DATA" ->
         OpCodes.OpInstanceQueryData <$> arbitrary <*>
           genNodeNamesNE <*> arbitrary
@@ -323,7 +338,7 @@ instance Arbitrary OpCodes.OpCode where
         OpCodes.OpBackupRemove <$> genFQDN <*> return Nothing
       "OP_TEST_ALLOCATOR" ->
         OpCodes.OpTestAllocator <$> arbitrary <*> arbitrary <*>
-          genNameNE <*> pure [] <*> pure [] <*>
+          genNameNE <*> genMaybe (pure []) <*> genMaybe (pure []) <*>
           arbitrary <*> genMaybe genNameNE <*>
           (genTags >>= mapM mkNonEmpty) <*>
           arbitrary <*> arbitrary <*> genMaybe genNameNE <*>
@@ -336,24 +351,24 @@ instance Arbitrary OpCodes.OpCode where
         OpCodes.OpTestDummy <$> pure J.JSNull <*> pure J.JSNull <*>
           pure J.JSNull <*> pure J.JSNull
       "OP_NETWORK_ADD" ->
-        OpCodes.OpNetworkAdd <$> genNameNE <*> genIp4Net <*>
-          genMaybe genIp4Addr <*> pure Nothing <*> pure Nothing <*>
-          genMaybe genMacPrefix <*> genMaybe (listOf genIp4Addr) <*>
+        OpCodes.OpNetworkAdd <$> genNameNE <*> genIPv4Network <*>
+          genMaybe genIPv4Address <*> pure Nothing <*> pure Nothing <*>
+          genMaybe genMacPrefix <*> genMaybe (listOf genIPv4Address) <*>
           arbitrary <*> (genTags >>= mapM mkNonEmpty)
       "OP_NETWORK_REMOVE" ->
         OpCodes.OpNetworkRemove <$> genNameNE <*> arbitrary
       "OP_NETWORK_SET_PARAMS" ->
         OpCodes.OpNetworkSetParams <$> genNameNE <*>
-          genMaybe genIp4Addr <*> pure Nothing <*> pure Nothing <*>
-          genMaybe genMacPrefix <*> genMaybe (listOf genIp4Addr) <*>
-          genMaybe (listOf genIp4Addr)
+          genMaybe genIPv4Address <*> pure Nothing <*> pure Nothing <*>
+          genMaybe genMacPrefix <*> genMaybe (listOf genIPv4Address) <*>
+          genMaybe (listOf genIPv4Address)
       "OP_NETWORK_CONNECT" ->
         OpCodes.OpNetworkConnect <$> genNameNE <*> genNameNE <*>
           arbitrary <*> genNameNE <*> arbitrary
       "OP_NETWORK_DISCONNECT" ->
         OpCodes.OpNetworkDisconnect <$> genNameNE <*> genNameNE
       "OP_NETWORK_QUERY" ->
-        OpCodes.OpNetworkQuery <$> genFieldsNE <*> genNamesNE <*> arbitrary
+        OpCodes.OpNetworkQuery <$> genFieldsNE <*> arbitrary <*> genNamesNE
       "OP_RESTRICTED_COMMAND" ->
         OpCodes.OpRestrictedCommand <$> arbitrary <*> genNodeNamesNE <*>
           return Nothing <*> genNameNE
@@ -445,7 +460,8 @@ case_AllDefined = do
      runPython "from ganeti import opcodes\n\
                \from ganeti import serializer\n\
                \import sys\n\
-               \print serializer.Dump([opid for opid in opcodes.OP_MAPPING])\n" ""
+               \print serializer.Dump([opid for opid in opcodes.OP_MAPPING])\n"
+               ""
      >>= checkPythonResult
   py_ops <- case J.decode py_stdout::J.Result [String] of
                J.Ok ops -> return ops
@@ -493,8 +509,8 @@ case_py_compat_types = do
         ) opcodes
   py_stdout <-
      runPython "from ganeti import opcodes\n\
-               \import sys\n\
                \from ganeti import serializer\n\
+               \import sys\n\
                \op_data = serializer.Load(sys.stdin.read())\n\
                \decoded = [opcodes.OpCode.LoadOpCode(o) for o in op_data]\n\
                \for op in decoded:\n\

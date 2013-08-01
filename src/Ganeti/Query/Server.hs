@@ -52,11 +52,11 @@ import Ganeti.ConfigReader
 import Ganeti.BasicTypes
 import Ganeti.Logging
 import Ganeti.Luxi
-import Ganeti.OpCodes (TagObject(..))
 import qualified Ganeti.Query.Language as Qlang
 import qualified Ganeti.Query.Cluster as QCluster
 import Ganeti.Query.Query
 import Ganeti.Query.Filter (makeSimpleFilter)
+import Ganeti.Types
 
 -- | Helper for classic queries.
 handleClassicQuery :: ConfigData      -- ^ Cluster config
@@ -149,13 +149,13 @@ handleCall cdata QueryClusterInfo =
     Ok _ -> return . Ok . J.makeObj $ obj
     Bad ex -> return $ Bad ex
 
-handleCall cfg (QueryTags kind) =
+handleCall cfg (QueryTags kind name) = do
   let tags = case kind of
-               TagCluster       -> Ok . clusterTags $ configCluster cfg
-               TagGroup    name -> groupTags <$> Config.getGroup    cfg name
-               TagNode     name -> nodeTags  <$> Config.getNode     cfg name
-               TagInstance name -> instTags  <$> Config.getInstance cfg name
-  in return (J.showJSON <$> tags)
+               TagKindCluster  -> Ok . clusterTags $ configCluster cfg
+               TagKindGroup    -> groupTags <$> Config.getGroup    cfg name
+               TagKindNode     -> nodeTags  <$> Config.getNode     cfg name
+               TagKindInstance -> instTags  <$> Config.getInstance cfg name
+  return (J.showJSON <$> tags)
 
 handleCall cfg (Query qkind qfields qfilter) = do
   result <- query cfg True (Qlang.Query qkind qfields qfilter)
