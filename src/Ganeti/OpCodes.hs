@@ -29,10 +29,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 module Ganeti.OpCodes
   ( pyClasses
   , OpCode(..)
-  , TagObject(..)
-  , tagObjectFrom
-  , encodeTagObject
-  , decodeTagObject
   , ReplaceDisksMode(..)
   , DiskIndex
   , mkDiskIndex

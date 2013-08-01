@@ -58,12 +58,8 @@ import Ganeti.JSON
 
 -- * Arbitrary instances
 
-instance Arbitrary OpCodes.TagObject where
-  arbitrary = oneof [ OpCodes.TagInstance <$> genFQDN
-                    , OpCodes.TagNode     <$> genFQDN
-                    , OpCodes.TagGroup    <$> genFQDN
-                    , pure OpCodes.TagCluster
-                    ]
+instance (Ord k, Arbitrary k, Arbitrary a) => Arbitrary (Map.Map k a) where
+  arbitrary = Map.fromList <$> arbitrary
 
 arbitraryOpTagsGet :: Gen OpCodes.OpCode
 arbitraryOpTagsGet = do
