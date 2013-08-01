@@ -222,7 +222,10 @@ class OpcodeParams(s_compat.Directive):
     alias = self.options.get("alias", {})
 
     path = op_id
-    include_text = "\n".join(_BuildOpcodeParams(op_id, include, exclude, alias))
+    include_text = "\n\n".join(_BuildOpcodeParams(op_id,
+                                                  include,
+                                                  exclude,
+                                                  alias))
 
     # Inject into state machine
     include_lines = docutils.statemachine.string2lines(include_text, _TAB_WIDTH,
