@@ -32,8 +32,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 
 module Ganeti.OpParams
-  ( TagType(..)
-  , ReplaceDisksMode(..)
+  ( ReplaceDisksMode(..)
   , DiskIndex
   , mkDiskIndex
   , unDiskIndex
@@ -300,17 +299,6 @@ forceNonNeg :: (Num a, Ord a, Show a) => a -> NonNegative a
 forceNonNeg i = case mkNonNegative i of
                   Ok n -> n
                   Bad msg -> error msg
-
--- ** Tags
-
--- | Data type representing what items do the tag operations apply to.
-$(declareSADT "TagType"
-  [ ("TagTypeInstance", 'C.tagInstance)
-  , ("TagTypeNode",     'C.tagNode)
-  , ("TagTypeGroup",    'C.tagNodegroup)
-  , ("TagTypeCluster",  'C.tagCluster)
-  ])
-$(makeJSONInstance ''TagType)
 
 -- ** Disks
 
