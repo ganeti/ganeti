@@ -70,6 +70,7 @@ HS_DIRS = \
 	src/Ganeti/Curl \
 	src/Ganeti/Cpu \
 	src/Ganeti/DataCollectors \
+	src/Ganeti/Hs2Py \
 	src/Ganeti/HTools \
 	src/Ganeti/HTools/Backend \
 	src/Ganeti/HTools/Program \
@@ -601,6 +602,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/Hypervisor/Xen/XmParser.hs \
 	src/Ganeti/Hypervisor/Xen/Types.hs \
 	src/Ganeti/Hash.hs \
+	src/Ganeti/Hs2Py/GenOpCodes.hs \
 	src/Ganeti/JQueue.hs \
 	src/Ganeti/JSON.hs \
 	src/Ganeti/Jobs.hs \
