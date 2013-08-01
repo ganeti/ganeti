@@ -454,6 +454,7 @@ docinput = \
 	doc/install.rst \
 	doc/locking.rst \
 	doc/manpages-disabled.rst \
+	doc/monitoring-query-format.rst \
 	doc/move-instance.rst \
 	doc/news.rst \
 	doc/ovfconverter.rst \
