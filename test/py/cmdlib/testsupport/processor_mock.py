@@ -47,7 +47,10 @@ class LogRecordingCallback(mcpu.OpExecCbBase):
     self.processor.log_entries.append((log_type, log_msg))
 
   def SubmitManyJobs(self, jobs):
-    return mcpu.OpExecCbBase.SubmitManyJobs(self, jobs)
+    results = []
+    for idx, _ in enumerate(jobs):
+      results.append((True, idx))
+    return results
 
 
 class ProcessorMock(mcpu.Processor):

@@ -1002,5 +1002,18 @@ class TestLUClusterSetParams(CmdlibTestCase):
     self.mcpu.assertLogContainsRegex("Could not disable the master ip")
 
 
+class TestLUClusterVerify(CmdlibTestCase):
+  def testVerifyAllGroups(self):
+    op = opcodes.OpClusterVerify()
+    result = self.ExecOpCode(op)
+
+    self.assertEqual(2, len(result["jobs"]))
+
+  def testVerifyDefaultGroups(self):
+    op = opcodes.OpClusterVerify(group_name="default")
+    result = self.ExecOpCode(op)
+
+    self.assertEqual(1, len(result["jobs"]))
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
