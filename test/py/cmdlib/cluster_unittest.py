@@ -273,21 +273,19 @@ class TestLUClusterActivateMasterIp(CmdlibTestCase):
 
     self.rpc.call_node_activate_master_ip.return_value = \
       RpcResultsBuilder(cfg=self.cfg) \
-        .CreateSuccessfulNodeResult(self.cfg.GetMasterNode())
+        .CreateSuccessfulNodeResult(self.master)
 
     self.ExecOpCode(op)
 
     self.rpc.call_node_activate_master_ip.assert_called_once_with(
-      self.cfg.GetMasterNode(),
-      self.cfg.GetMasterNetworkParameters(),
-      False)
+      self.master_uuid, self.cfg.GetMasterNetworkParameters(), False)
 
   def testFailure(self):
     op = opcodes.OpClusterActivateMasterIp()
 
     self.rpc.call_node_activate_master_ip.return_value = \
       RpcResultsBuilder(cfg=self.cfg) \
-        .CreateFailedNodeResult(self.cfg.GetMasterNode()) \
+        .CreateFailedNodeResult(self.master) \
 
     self.ExecOpCodeExpectOpExecError(op)
 
@@ -298,21 +296,19 @@ class TestLUClusterDeactivateMasterIp(CmdlibTestCase):
 
     self.rpc.call_node_deactivate_master_ip.return_value = \
       RpcResultsBuilder(cfg=self.cfg) \
-        .CreateSuccessfulNodeResult(self.cfg.GetMasterNode())
+        .CreateSuccessfulNodeResult(self.master)
 
     self.ExecOpCode(op)
 
     self.rpc.call_node_deactivate_master_ip.assert_called_once_with(
-      self.cfg.GetMasterNode(),
-      self.cfg.GetMasterNetworkParameters(),
-      False)
+      self.master_uuid, self.cfg.GetMasterNetworkParameters(), False)
 
   def testFailure(self):
     op = opcodes.OpClusterDeactivateMasterIp()
 
     self.rpc.call_node_deactivate_master_ip.return_value = \
       RpcResultsBuilder(cfg=self.cfg) \
-        .CreateFailedNodeResult(self.cfg.GetMasterNode()) \
+        .CreateFailedNodeResult(self.master) \
 
     self.ExecOpCodeExpectOpExecError(op)
 
@@ -328,7 +324,7 @@ class TestLUClusterConfigQuery(CmdlibTestCase):
 
     self.rpc.call_get_watcher_pause.return_value = \
       RpcResultsBuilder(self.cfg) \
-        .CreateSuccessfulNodeResult(self.cfg.GetMasterNode(), -1)
+        .CreateSuccessfulNodeResult(self.master, -1)
 
     ret = self.ExecOpCode(op)
 
@@ -365,7 +361,7 @@ class TestLUClusterDestroy(CmdlibTestCase):
 
     self.ExecOpCode(op)
 
-    self.assertSingleHooksCall([self.cfg.GetMasterNodeName()],
+    self.assertSingleHooksCall([self.master.name],
                                "cluster-destroy",
                                constants.HOOKS_PHASE_POST)
 
@@ -376,7 +372,7 @@ class TestLUClusterPostInit(CmdlibTestCase):
 
     self.ExecOpCode(op)
 
-    self.assertSingleHooksCall([self.cfg.GetMasterNodeName()],
+    self.assertSingleHooksCall([self.master.name],
                                "cluster-init",
                                constants.HOOKS_PHASE_POST)
 
@@ -390,7 +386,7 @@ class TestLUClusterQuery(CmdlibTestCase):
   def testIPv6Cluster(self):
     op = opcodes.OpClusterQuery()
 
-    self.cfg.GetClusterInfo().primary_ip_family = netutils.IP6Address.family
+    self.cluster.primary_ip_family = netutils.IP6Address.family
 
     self.ExecOpCode(op)
 
@@ -430,18 +426,14 @@ class TestLUClusterRename(CmdlibTestCase):
 
     self.assertEqual(1, self.ssh_mod.WriteKnownHostsFile.call_count)
     self.rpc.call_node_deactivate_master_ip.assert_called_once_with(
-      self.cfg.GetMasterNode(),
-      self.cfg.GetMasterNetworkParameters(),
-      False)
+      self.master_uuid, self.cfg.GetMasterNetworkParameters(), False)
     self.rpc.call_node_activate_master_ip.assert_called_once_with(
-      self.cfg.GetMasterNode(),
-      self.cfg.GetMasterNetworkParameters(),
-      False)
+      self.master_uuid, self.cfg.GetMasterNetworkParameters(), False)
 
   def testRenameOfflineMaster(self):
     op = opcodes.OpClusterRename(name=self.NEW_NAME)
 
-    self.cfg.GetMasterNodeInfo().offline = True
+    self.master.offline = True
     self.netutils_mod.GetHostname.return_value = \
       HostnameMock(self.NEW_NAME, self.NEW_IP)
 
@@ -455,7 +447,7 @@ class TestLUClusterRepairDiskSizes(CmdlibTestCase):
     self.ExecOpCode(op)
 
   def _SetUpInstanceSingleDisk(self, dev_type=constants.LD_LV):
-    pnode = self.cfg.GetMasterNodeInfo()
+    pnode = self.master
     snode = self.cfg.AddNewNode()
 
     inst = self.cfg.AddNewInstance()
@@ -472,7 +464,7 @@ class TestLUClusterRepairDiskSizes(CmdlibTestCase):
 
     self.rpc.call_blockdev_getdimensions.return_value = \
       RpcResultsBuilder(cfg=self.cfg) \
-        .CreateFailedNodeResult(self.cfg.GetMasterNode())
+        .CreateFailedNodeResult(self.master)
 
     self.ExecOpCode(op)
 
@@ -484,7 +476,7 @@ class TestLUClusterRepairDiskSizes(CmdlibTestCase):
 
     self.rpc.call_blockdev_getdimensions.return_value = \
       RpcResultsBuilder(cfg=self.cfg) \
-        .CreateSuccessfulNodeResult(self.cfg.GetMasterNode(), node_data)
+        .CreateSuccessfulNodeResult(self.master, node_data)
 
     return self.ExecOpCode(op)
 
@@ -522,7 +514,7 @@ class TestLUClusterRepairDiskSizes(CmdlibTestCase):
 
   def testExclusiveStorageInvalidResultData(self):
     self._SetUpInstanceSingleDisk()
-    self.cfg.GetMasterNodeInfo().ndparams[constants.ND_EXCLUSIVE_STORAGE] = True
+    self.master.ndparams[constants.ND_EXCLUSIVE_STORAGE] = True
     self._ExecOpClusterRepairDiskSizes([(1024 * 1024 * 1024, None)])
 
     self.mcpu.assertLogContainsRegex(
@@ -531,13 +523,13 @@ class TestLUClusterRepairDiskSizes(CmdlibTestCase):
   def testExclusiveStorageCorrectSpindles(self):
     (_, disk) = self._SetUpInstanceSingleDisk()
     disk.spindles = 1
-    self.cfg.GetMasterNodeInfo().ndparams[constants.ND_EXCLUSIVE_STORAGE] = True
+    self.master.ndparams[constants.ND_EXCLUSIVE_STORAGE] = True
     changed = self._ExecOpClusterRepairDiskSizes([(1024 * 1024 * 1024, 1)])
     self.assertEqual(0, len(changed))
 
   def testExclusiveStorageWrongSpindles(self):
     self._SetUpInstanceSingleDisk()
-    self.cfg.GetMasterNodeInfo().ndparams[constants.ND_EXCLUSIVE_STORAGE] = True
+    self.master.ndparams[constants.ND_EXCLUSIVE_STORAGE] = True
     changed = self._ExecOpClusterRepairDiskSizes([(1024 * 1024 * 1024, 1)])
     self.assertEqual(1, len(changed))
 

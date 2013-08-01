@@ -70,6 +70,13 @@ class CmdlibTestCase(testutils.GanetiTestCase):
 
   REMOVE = object()
 
+  cluster = property(fget=lambda self: self.cfg.GetClusterInfo(),
+                     doc="Cluster configuration object")
+  master = property(fget=lambda self: self.cfg.GetMasterNodeInfo(),
+                    doc="Master node")
+  master_uuid = property(fget=lambda self: self.cfg.GetMasterNode(),
+                         doc="Master node UUID")
+
   def setUp(self):
     super(CmdlibTestCase, self).setUp()
     self._iallocator_patcher = None

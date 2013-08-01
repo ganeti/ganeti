@@ -50,7 +50,7 @@ class TestLUTestDelay(CmdlibTestCase):
     self.ExecOpCodeExpectOpExecError(op)
 
   def testOnNodeUuid(self):
-    node_uuids = [self.cfg.GetMasterNode()]
+    node_uuids = [self.master_uuid]
     op = opcodes.OpTestDelay(duration=DELAY_DURATION,
                              on_node_uuids=node_uuids)
     self.ExecOpCode(op)
@@ -59,19 +59,19 @@ class TestLUTestDelay(CmdlibTestCase):
 
   def testOnNodeName(self):
     op = opcodes.OpTestDelay(duration=DELAY_DURATION,
-                             on_nodes=[self.cfg.GetMasterNodeName()])
+                             on_nodes=[self.master.name])
     self.ExecOpCode(op)
 
-    self.rpc.call_test_delay.assert_called_once_with([self.cfg.GetMasterNode()],
+    self.rpc.call_test_delay.assert_called_once_with([self.master_uuid],
                                                      DELAY_DURATION)
 
   def testSuccessfulRpc(self):
     op = opcodes.OpTestDelay(duration=DELAY_DURATION,
-                             on_nodes=[self.cfg.GetMasterNodeName()])
+                             on_nodes=[self.master.name])
 
     self.rpc.call_test_delay.return_value = \
       RpcResultsBuilder(cfg=self.cfg) \
-        .AddSuccessfulNode(self.cfg.GetMasterNode()) \
+        .AddSuccessfulNode(self.master) \
         .Build()
 
     self.ExecOpCode(op)
@@ -80,11 +80,11 @@ class TestLUTestDelay(CmdlibTestCase):
 
   def testFailingRpc(self):
     op = opcodes.OpTestDelay(duration=DELAY_DURATION,
-                             on_nodes=[self.cfg.GetMasterNodeName()])
+                             on_nodes=[self.master.name])
 
     self.rpc.call_test_delay.return_value = \
       RpcResultsBuilder(cfg=self.cfg) \
-        .AddFailedNode(self.cfg.GetMasterNode()) \
+        .AddFailedNode(self.master) \
         .Build()
 
     self.ExecOpCodeExpectOpExecError(op)
