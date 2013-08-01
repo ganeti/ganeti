@@ -257,7 +257,8 @@ class ConfigMock(config.ConfigWriter):
                  spindles=None,
                  primary_node=None,
                  secondary_node=None,
-                 create_nodes=False):
+                 create_nodes=False,
+                 instance_disk_index=0):
     """Create a new L{objecs.Disk} object
 
     @rtype: L{objects.Disk}
@@ -305,7 +306,7 @@ class ConfigMock(config.ConfigWriter):
     if children is None:
       children = []
     if iv_name is None:
-      iv_name = "mock_disk/%d" % disk_id
+      iv_name = "disk/%d" % instance_disk_index
     if params is None:
       params = {}
 
@@ -389,7 +390,7 @@ class ConfigMock(config.ConfigWriter):
       os_hvp={"mocked_os": constants.HVC_DEFAULTS.copy()},
       beparams=None,
       osparams=None,
-      nicparams=None,
+      nicparams={constants.PP_DEFAULT: constants.NICC_DEFAULTS},
       ndparams=None,
       diskparams=None,
       candidate_pool_size=3,

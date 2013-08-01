@@ -23,6 +23,8 @@
 
 """
 
+import OpenSSL
+
 import unittest
 import operator
 import os
@@ -718,7 +720,8 @@ class TestLUClusterSetParams(CmdlibTestCase):
 
   def testNicparamsInvalidConf(self):
     nicparams = {
-      constants.NIC_MODE: constants.NIC_MODE_BRIDGED
+      constants.NIC_MODE: constants.NIC_MODE_BRIDGED,
+      constants.NIC_LINK: ""
     }
     op = opcodes.OpClusterSetParams(nicparams=nicparams)
     self.ExecOpCodeExpectException(op, errors.ConfigurationError, "NIC link")
@@ -1014,6 +1017,65 @@ class TestLUClusterVerify(CmdlibTestCase):
     result = self.ExecOpCode(op)
 
     self.assertEqual(1, len(result["jobs"]))
+
+
+class TestLUClusterVerifyConfig(CmdlibTestCase):
+
+  def setUp(self):
+    super(TestLUClusterVerifyConfig, self).setUp()
+
+    self._load_cert_patcher = testutils \
+      .patch_object(OpenSSL.crypto, "load_certificate")
+    self._load_cert_mock = self._load_cert_patcher.start()
+    self._verify_cert_patcher = testutils \
+      .patch_object(utils, "VerifyX509Certificate")
+    self._verify_cert_mock = self._verify_cert_patcher.start()
+    self._read_file_patcher = testutils.patch_object(utils, "ReadFile")
+    self._read_file_mock = self._read_file_patcher.start()
+    self._can_read_patcher = testutils.patch_object(utils, "CanRead")
+    self._can_read_mock = self._can_read_patcher.start()
+
+    self._can_read_mock.return_value = True
+    self._read_file_mock.return_value = True
+    self._verify_cert_mock.return_value = (None, "")
+    self._load_cert_mock.return_value = True
+
+  def tearDown(self):
+    super(TestLUClusterVerifyConfig, self).tearDown()
+
+    self._can_read_patcher.stop()
+    self._read_file_patcher.stop()
+    self._verify_cert_patcher.stop()
+    self._load_cert_patcher.stop()
+
+  def testSuccessfulRun(self):
+    self.cfg.AddNewInstance()
+    op = opcodes.OpClusterVerifyConfig()
+    result = self.ExecOpCode(op)
+
+    self.assertTrue(result)
+
+  def testDanglingNode(self):
+    node = self.cfg.AddNewNode()
+    self.cfg.AddNewInstance(primary_node=node)
+    node.group = "invalid"
+    op = opcodes.OpClusterVerifyConfig()
+    result = self.ExecOpCode(op)
+
+    self.mcpu.assertLogContainsRegex(
+      "following nodes \(and their instances\) belong to a non existing group")
+    self.assertFalse(result)
+
+  def testDanglingInstance(self):
+    inst = self.cfg.AddNewInstance()
+    inst.primary_node = "invalid"
+    op = opcodes.OpClusterVerifyConfig()
+    result = self.ExecOpCode(op)
+
+    self.mcpu.assertLogContainsRegex(
+      "following instances have a non-existing primary-node")
+    self.assertFalse(result)
+
 
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
