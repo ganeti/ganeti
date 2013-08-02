@@ -166,7 +166,7 @@ def _BuildOpcodeParams(op_id, include, exclude, alias):
       continue
 
     has_default = default is not None or default is not ht.NoDefault
-    has_test = test is not None or test is not ht.NoType
+    has_test = test is not None
 
     buf = StringIO()
     buf.write("``%s``" % (rapi_name,))

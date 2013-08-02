@@ -160,10 +160,6 @@ def EmptyDict():
 NoDefault = object()
 
 
-#: The no-type (value too complex to check it in the type system)
-NoType = object()
-
-
 # Some basic types
 @WithDesc("Anything")
 def TAny(_):

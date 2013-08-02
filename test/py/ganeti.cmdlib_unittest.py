@@ -102,8 +102,8 @@ class TestIAllocatorChecks(testutils.GanetiTestCase):
 
     class OpTest(opcodes.OpCode):
        OP_PARAMS = [
-        ("iallocator", None, ht.NoType, None),
-        ("node", None, ht.NoType, None),
+        ("iallocator", None, ht.TAny, None),
+        ("node", None, ht.TAny, None),
         ]
 
     default_iallocator = mocks.FakeConfig().GetDefaultIAllocator()

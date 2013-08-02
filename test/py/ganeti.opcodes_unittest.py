@@ -197,7 +197,7 @@ class TestOpcodes(unittest.TestCase):
       # Check parameter definitions
       for attr_name, aval, test, doc in cls.GetAllParams():
         self.assert_(attr_name)
-        self.assert_(test is None or test is ht.NoType or callable(test),
+        self.assertTrue(callable(test),
                      msg=("Invalid type check for %s.%s" %
                           (cls.OP_ID, attr_name)))
         self.assertTrue(doc is None or isinstance(doc, basestring))
@@ -214,7 +214,7 @@ class TestOpcodes(unittest.TestCase):
 
           default_value = aval
 
-        if aval is not ht.NoDefault and test is not ht.NoType:
+        if aval is not ht.NoDefault and aval is not None:
           self.assertTrue(test(default_value),
                           msg=("Default value of %s.%s does not verify" %
                                (cls.OP_ID, attr_name)))
@@ -230,7 +230,7 @@ class TestOpcodes(unittest.TestCase):
         ("nodef", ht.NoDefault, ht.TMaybeString, None),
         ("wdef", "default", ht.TMaybeString, None),
         ("number", 0, ht.TInt, None),
-        ("notype", None, ht.NoType, None),
+        ("notype", None, ht.TAny, None),
         ]
 
     # Missing required parameter "nodef"
