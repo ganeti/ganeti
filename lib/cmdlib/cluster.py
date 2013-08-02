@@ -1474,9 +1474,8 @@ class LUClusterVerifyConfig(NoHooksLU, _VerifyErrors):
     pretty_dangling = [
         "%s (%s)" %
         (node.name,
-         utils.CommaJoin(
-           self.cfg.GetInstanceNames(
-             dangling_instances.get(node.uuid, []))))
+         utils.CommaJoin(inst.name for
+                         inst in dangling_instances.get(node.uuid, [])))
         for node in dangling_nodes]
 
     self._ErrorIf(bool(dangling_nodes), constants.CV_ECLUSTERDANGLINGNODES,
@@ -1487,8 +1486,8 @@ class LUClusterVerifyConfig(NoHooksLU, _VerifyErrors):
     self._ErrorIf(bool(no_node_instances), constants.CV_ECLUSTERDANGLINGINST,
                   None,
                   "the following instances have a non-existing primary-node:"
-                  " %s", utils.CommaJoin(
-                           self.cfg.GetInstanceNames(no_node_instances)))
+                  " %s", utils.CommaJoin(inst.name for
+                                         inst in no_node_instances))
 
     return not self.bad
 
