@@ -1699,8 +1699,8 @@ class TestCopyLockList(unittest.TestCase):
 class TestCheckOpportunisticLocking(unittest.TestCase):
   class OpTest(opcodes.OpCode):
     OP_PARAMS = [
-      opcodes._POpportunisticLocking,
-      opcodes._PIAllocFromDesc(""),
+      ("opportunistic_locking", False, ht.TBool, None),
+      ("iallocator", None, ht.TMaybe(ht.TNonEmptyString), "")
       ]
 
   @classmethod
@@ -1731,9 +1731,12 @@ class TestCheckOpportunisticLocking(unittest.TestCase):
 
 class _OpTestVerifyErrors(opcodes.OpCode):
   OP_PARAMS = [
-    opcodes._PDebugSimulateErrors,
-    opcodes._PErrorCodes,
-    opcodes._PIgnoreErrors,
+    ("debug_simulate_errors", False, ht.TBool, ""),
+    ("error_codes", False, ht.TBool, ""),
+    ("ignore_errors",
+     [],
+     ht.TListOf(ht.TElemOf(constants.CV_ALL_ECODES_STRINGS)),
+     "")
     ]
 
 
