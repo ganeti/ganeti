@@ -1476,7 +1476,7 @@ class LUClusterVerifyConfig(NoHooksLU, _VerifyErrors):
         (node.name,
          utils.CommaJoin(
            self.cfg.GetInstanceNames(
-             dangling_instances.get(node.uuid, ["no instances"]))))
+             dangling_instances.get(node.uuid, []))))
         for node in dangling_nodes]
 
     self._ErrorIf(bool(dangling_nodes), constants.CV_ECLUSTERDANGLINGNODES,
