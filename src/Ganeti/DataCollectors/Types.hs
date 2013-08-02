@@ -33,11 +33,15 @@ module Ganeti.DataCollectors.Types
   , DCStatus(..)
   , DCStatusCode(..)
   , DCVersion(..)
+  , CollectorData(..)
+  , CollectorMap
   , buildReport
   , mergeStatuses
   ) where
 
 import Data.Char
+import qualified Data.Map as Map
+import qualified Data.Sequence as Seq
 import Text.JSON
 
 import Ganeti.Constants as C
@@ -94,6 +98,12 @@ instance JSON DCVersion where
   showJSON DCVerBuiltin = showJSON C.builtinDataCollectorVersion
   showJSON (DCVersion v) = showJSON v
   readJSON = error "JSON read instance not implemented for type DCVersion"
+
+-- | Type for the value field of the above map.
+data CollectorData = CPULoadData (Seq.Seq (Integer, [Int]))
+
+-- | Type for the map storing the data of the statefull DataCollectors.
+type CollectorMap = Map.Map String CollectorData
 
 -- | This is the format of the report produced by each data collector.
 $(buildObject "DCReport" "dcReport"

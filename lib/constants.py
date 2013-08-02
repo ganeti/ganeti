@@ -2542,5 +2542,10 @@ OPCODE_REASON_SOURCES = compat.UniqueFrozenset([
 
 DISKSTATS_FILE = "/proc/diskstats"
 
+# CPU load collector variables
+STAT_FILE = "/proc/stat"
+CPUAVGLOAD_BUFFER_SIZE = 150
+CPUAVGLOAD_WINDOW_SIZE = 600
+
 # Do not re-export imported modules
 del re, _vcsversion, _autoconf, socket, pathutils, compat
