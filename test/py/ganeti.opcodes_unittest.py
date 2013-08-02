@@ -194,10 +194,6 @@ class TestOpcodes(unittest.TestCase):
                            msg=("Default value of %s.%s returned by function"
                                 " is callable" % (cls.OP_ID, attr_name)))
         else:
-          self.assertFalse(isinstance(aval, (list, dict, set)),
-                           msg=("Default value of %s.%s is mutable (%s)" %
-                                (cls.OP_ID, attr_name, repr(aval))))
-
           default_value = aval
 
         if aval is not ht.NoDefault and aval is not None:
@@ -213,7 +209,7 @@ class TestOpcodes(unittest.TestCase):
   def testValidateNoModification(self):
     class OpTest(opcodes.OpCode):
       OP_PARAMS = [
-        ("nodef", ht.NoDefault, ht.TMaybeString, None),
+        ("nodef", None, ht.TString, None),
         ("wdef", "default", ht.TMaybeString, None),
         ("number", 0, ht.TInt, None),
         ("notype", None, ht.TAny, None),
@@ -273,11 +269,8 @@ class TestOpcodes(unittest.TestCase):
   def testValidateSetDefaults(self):
     class OpTest(opcodes.OpCode):
       OP_PARAMS = [
-        # Static default value
         ("value1", "default", ht.TMaybeString, None),
-
-        # Default value callback
-        ("value2", lambda: "result", ht.TMaybeString, None),
+        ("value2", "result", ht.TMaybeString, None),
         ]
 
     op = OpTest()
