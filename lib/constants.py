@@ -2547,5 +2547,8 @@ STAT_FILE = "/proc/stat"
 CPUAVGLOAD_BUFFER_SIZE = 150
 CPUAVGLOAD_WINDOW_SIZE = 600
 
+# Mond's variable for periodical data collection
+MOND_TIME_INTERVAL = 5
+
 # Do not re-export imported modules
 del re, _vcsversion, _autoconf, socket, pathutils, compat
