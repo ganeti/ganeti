@@ -112,8 +112,6 @@ class TestVerifyOpResult(unittest.TestCase):
   def testNoResultCheck(self):
     vor = rapi.testutils.VerifyOpResult
 
-    assert opcodes.OpTestDummy.OP_RESULT is None
-
     vor(opcodes.OpTestDummy.OP_ID, None)
 
 

@@ -36,16 +36,6 @@ from ganeti import compat
 import testutils
 
 
-#: Unless an opcode is included in the following list it must have a result
-#: check of some sort
-MISSING_RESULT_CHECK = compat.UniqueFrozenset([
-  opcodes.OpTestAllocator,
-  opcodes.OpTestDelay,
-  opcodes.OpTestDummy,
-  opcodes.OpTestJqueue,
-  ])
-
-
 class TestOpcodes(unittest.TestCase):
   def test(self):
     self.assertRaises(ValueError, opcodes.OpCode.LoadOpCode, None)
@@ -58,15 +48,11 @@ class TestOpcodes(unittest.TestCase):
       self.assert_(len(cls.OP_ID) > 3)
       self.assertEqual(cls.OP_ID, cls.OP_ID.upper())
       self.assertEqual(cls.OP_ID, opcodes_base._NameToId(cls.__name__))
-      self.assertFalse(compat.any(cls.OP_ID.startswith(prefix)
-                                  for prefix in opcodes_base.SUMMARY_PREFIX.keys()))
-      if cls in MISSING_RESULT_CHECK:
-        self.assertTrue(cls.OP_RESULT is None,
-                        msg=("%s is listed to not have a result check" %
-                             cls.OP_ID))
-      else:
-        self.assertTrue(callable(cls.OP_RESULT),
-                        msg=("%s should have a result check" % cls.OP_ID))
+      self.assertFalse(
+        compat.any(cls.OP_ID.startswith(prefix)
+                   for prefix in opcodes_base.SUMMARY_PREFIX.keys()))
+      self.assertTrue(callable(cls.OP_RESULT),
+                      msg=("%s should have a result check" % cls.OP_ID))
 
       self.assertRaises(TypeError, cls, unsupported_parameter="some value")
 
