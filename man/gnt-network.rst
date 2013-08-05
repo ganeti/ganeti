@@ -41,6 +41,7 @@ ADD
 | [\--gateway6=*GATEWAY6*]
 | [\--mac-prefix=*MACPREFIX*]
 | [\--submit]
+| [\--no-conflicts-check]
 | {*network*}
 
 Creates a new network with the given name. The network will be unused
@@ -56,6 +57,9 @@ this network.
 IPv6 semantics can be assigned to the network via the ``--network6`` and
 ``--gateway6`` options. IP pool is meaningless for IPV6 so those two
 values can be used for EUI64 generation from a NIC's MAC address.
+
+The ``--no-conflicts-check`` option can be used to skip the check for
+conflicting IP addresses.
 
 Note that a when connecting a network to a node group (see below) you
 can specify also the NIC mode and link that will be used by instances on
@@ -141,11 +145,16 @@ Displays information about a given network.
 CONNECT
 ~~~~~~~
 
-| **connect** {*network*} {*mode*} {*link*} [*groups*...]
+| **connect**
+| [\--no-conflicts-check]
+| {*network*} {*mode*} {*link*} [*groups*...]
 
 Connect a network to given node groups (all if not specified) with the
 network parameters *mode* and *link*. Every network interface will
 inherit those parameters if assigned in a network.
+
+The ``--no-conflicts-check`` option can be used to skip the check for
+conflicting IP addresses.
 
 DISCONNECT
 ~~~~~~~~~~
