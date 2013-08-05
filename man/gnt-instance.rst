@@ -837,36 +837,42 @@ Example::
 BATCH-CREATE
 ^^^^^^^^^^^^
 
-**batch-create** {instances\_file.json}
+| **batch-create**
+| [{-I|\--iallocator} *instance allocator*]
+| {instances\_file.json}
 
 This command (similar to the Ganeti 1.2 **batcher** tool) submits
-multiple instance creation jobs based on a definition file. The
-instance configurations do not encompass all the possible options for
-the **add** command, but only a subset.
+multiple instance creation jobs based on a definition file. This
+file can contain all options which are valid when adding an instance
+with the exception of the ``iallocator`` field. The IAllocator is,
+for optimization purposes, only allowed to be set for the whole batch
+operation using the ``--iallocator`` parameter.
 
-The instance file should be a valid-formed JSON file, containing a
-dictionary with instance name and instance parameters. The accepted
-parameters are:
+The instance file must be a valid-formed JSON file, containing an
+array of dictionaries with instance creation parameters. All parameters
+(except ``iallocator``) which are valid for the instance creation
+OP code are allowed. The most important ones are:
 
-disk\_size
-    The size of the disks of the instance.
+instance\_name
+    The FQDN of the new instance.
 
 disk\_template
     The disk template to use for the instance, the same as in the
     **add** command.
 
-backend
+disks
+    Array of disk specifications. Each entry describes one disk as a
+    dictionary of disk parameters.
+
+beparams
     A dictionary of backend parameters.
 
 hypervisor
-    A dictionary with a single key (the hypervisor name), and as value
-    the hypervisor options. If not passed, the default hypervisor and
-    hypervisor options will be inherited.
+    The hypervisor for the instance.
 
-mac, ip, mode, link
-    Specifications for the one NIC that will be created for the
-    instance. 'bridge' is also accepted as a backwards compatible
-    key.
+hvparams
+    A dictionary with the hypervisor options. If not passed, the default
+    hypervisor options will be inherited.
 
 nics
     List of NICs that will be created for the instance. Each entry
@@ -874,13 +880,11 @@ nics
     Please don't provide the "mac, ip, mode, link" parent keys if you
     use this method for specifying NICs.
 
-primary\_node, secondary\_node
+pnode, snode
     The primary and optionally the secondary node to use for the
-    instance (in case an iallocator script is not used).
-
-iallocator
-    Instead of specifying the nodes, an iallocator script can be used
-    to automatically compute them.
+    instance (in case an iallocator script is not used). If those
+    parameters are given, they have to be given consistently for all
+    instances in the batch operation.
 
 start
     whether to start the instance
@@ -901,30 +905,34 @@ file\_storage\_dir, file\_driver
 A simple definition for one instance can be (with most of the
 parameters taken from the cluster defaults)::
 
-    {
-      "instance3": {
-        "template": "drbd",
-        "os": "debootstrap",
-        "disk_size": ["25G"],
-        "iallocator": "dumb"
+    [
+      {
+        "mode": "create",
+        "instance_name": "instance1.example.com",
+        "disk_template": "drbd",
+        "os_type": "debootstrap",
+        "disks": [{"size":"1024"}],
+        "nics": [{}],
+        "hypervisor": "xen-pvm"
       },
-      "instance5": {
-        "template": "drbd",
-        "os": "debootstrap",
-        "disk_size": ["25G"],
-        "iallocator": "dumb",
+      {
+        "mode": "create",
+        "instance_name": "instance2.example.com",
+        "disk_template": "drbd",
+        "os_type": "debootstrap",
+        "disks": [{"size":"4096", "mode": "rw", "vg": "xenvg"}],
+        "nics": [{}],
         "hypervisor": "xen-hvm",
         "hvparams": {"acpi": true},
-        "backend": {"maxmem": 512, "minmem": 256}
+        "beparams": {"maxmem": 512, "minmem": 256}
       }
-    }
+    ]
 
 The command will display the job id for each submitted instance, as
 follows::
 
     # gnt-instance batch-create instances.json
-    instance3: 11224
-    instance5: 11225
+    Submitted jobs 37, 38
 
 REMOVE
 ^^^^^^
