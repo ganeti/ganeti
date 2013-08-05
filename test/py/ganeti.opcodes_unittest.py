@@ -27,6 +27,7 @@ import unittest
 
 from ganeti import utils
 from ganeti import opcodes
+from ganeti import opcodes_base
 from ganeti import ht
 from ganeti import constants
 from ganeti import errors
@@ -56,9 +57,9 @@ class TestOpcodes(unittest.TestCase):
       self.assert_(cls.OP_ID.startswith("OP_"))
       self.assert_(len(cls.OP_ID) > 3)
       self.assertEqual(cls.OP_ID, cls.OP_ID.upper())
-      self.assertEqual(cls.OP_ID, opcodes._NameToId(cls.__name__))
+      self.assertEqual(cls.OP_ID, opcodes_base._NameToId(cls.__name__))
       self.assertFalse(compat.any(cls.OP_ID.startswith(prefix)
-                                  for prefix in opcodes._SUMMARY_PREFIX.keys()))
+                                  for prefix in opcodes_base.SUMMARY_PREFIX.keys()))
       if cls in MISSING_RESULT_CHECK:
         self.assertTrue(cls.OP_RESULT is None,
                         msg=("%s is listed to not have a result check" %
@@ -132,10 +133,11 @@ class TestOpcodes(unittest.TestCase):
     self.assertEqual(OpTest(data="b").Summary(), "TEST(a)")
 
   def testTinySummary(self):
-    self.assertFalse(utils.FindDuplicates(opcodes._SUMMARY_PREFIX.values()))
+    self.assertFalse(
+      utils.FindDuplicates(opcodes_base.SUMMARY_PREFIX.values()))
     self.assertTrue(compat.all(prefix.endswith("_") and supplement.endswith("_")
                                for (prefix, supplement) in
-                                 opcodes._SUMMARY_PREFIX.items()))
+                                 opcodes_base.SUMMARY_PREFIX.items()))
 
     self.assertEqual(opcodes.OpClusterPostInit().TinySummary(), "C_POST_INIT")
     self.assertEqual(opcodes.OpNodeRemove().TinySummary(), "N_REMOVE")
@@ -164,7 +166,7 @@ class TestOpcodes(unittest.TestCase):
   def testParams(self):
     supported_by_all = set(["debug_level", "dry_run", "priority"])
 
-    self.assertTrue(opcodes.BaseOpCode not in opcodes.OP_MAPPING.values())
+    self.assertTrue(opcodes_base.BaseOpCode not in opcodes.OP_MAPPING.values())
     self.assertTrue(opcodes.OpCode not in opcodes.OP_MAPPING.values())
 
     for cls in opcodes.OP_MAPPING.values() + [opcodes.OpCode]:
@@ -328,8 +330,8 @@ class TestOpcodes(unittest.TestCase):
 
 class TestOpcodeDepends(unittest.TestCase):
   def test(self):
-    check_relative = opcodes._BuildJobDepCheck(True)
-    check_norelative = opcodes.TNoRelativeJobDependencies
+    check_relative = opcodes_base.BuildJobDepCheck(True)
+    check_norelative = opcodes_base.TNoRelativeJobDependencies
 
     for fn in [check_relative, check_norelative]:
       self.assertTrue(fn(None))

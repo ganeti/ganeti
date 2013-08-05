@@ -242,7 +242,8 @@ built_base_sources = \
 
 built_python_base_sources = \
 	lib/_autoconf.py \
-	lib/_vcsversion.py
+	lib/_vcsversion.py \
+	lib/opcodes.py
 
 BUILT_PYTHON_SOURCES = \
 	$(built_python_base_sources) \
@@ -291,7 +292,7 @@ pkgpython_PYTHON = \
 	lib/mcpu.py \
 	lib/netutils.py \
 	lib/objects.py \
-	lib/opcodes.py \
+	lib/opcodes_base.py \
 	lib/outils.py \
 	lib/ovf.py \
 	lib/pathutils.py \
@@ -506,6 +507,7 @@ HS_COMPILE_PROGS= \
 	src/ganeti-mond \
 	src/hconfd \
 	src/hluxid \
+	src/hs2py \
 	src/rpc-test
 
 # All Haskell non-test programs to be compiled but not automatically installed
@@ -603,6 +605,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/Hypervisor/Xen/Types.hs \
 	src/Ganeti/Hash.hs \
 	src/Ganeti/Hs2Py/GenOpCodes.hs \
+	src/Ganeti/Hs2Py/OpDoc.hs \
 	src/Ganeti/JQueue.hs \
 	src/Ganeti/JSON.hs \
 	src/Ganeti/Jobs.hs \
@@ -695,7 +698,9 @@ HS_BUILT_SRCS = \
 	src/Ganeti/Version.hs
 HS_BUILT_SRCS_IN = \
 	$(patsubst %,%.in,$(filter-out src/Ganeti/Curl/Internal.hs,$(HS_BUILT_SRCS))) \
-	src/Ganeti/Curl/Internal.hsc
+	src/Ganeti/Curl/Internal.hsc \
+	lib/opcodes.py.in_after \
+	lib/opcodes.py.in_before
 
 HS_LIBTESTBUILT_SRCS = $(HS_LIBTEST_SRCS) $(HS_BUILT_SRCS)
 
@@ -712,7 +717,7 @@ doc/man-html/index.html: doc/manpages-enabled.rst $(mandocrst)
 # it changes
 doc/html/index.html doc/man-html/index.html: $(docinput) doc/conf.py \
 	configure.ac $(RUN_IN_TEMPDIR) lib/build/sphinx_ext.py \
-	lib/build/shell_example_lexer.py lib/opcodes.py lib/ht.py \
+	lib/build/shell_example_lexer.py lib/ht.py \
 	doc/css/style.css lib/rapi/connector.py lib/rapi/rlib2.py \
 	autotools/sphinx-wrapper | $(BUILT_PYTHON_SOURCES)
 	@test -n "$(SPHINX)" || \
@@ -1665,6 +1670,13 @@ lib/_vcsversion.py: Makefile vcs-version | stamp-directories
 	  echo ''; \
 	  echo "VCS_VERSION = '$$VCSVER'"; \
 	} > $@
+
+lib/opcodes.py: Makefile src/hs2py src/Ganeti/Constants.hs \
+		lib/opcodes.py.in_before lib/opcodes.py.in_after \
+		| stamp-directories
+	cat $(abs_top_srcdir)/lib/opcodes.py.in_before > $@
+	src/hs2py >> $@
+	cat $(abs_top_srcdir)/lib/opcodes.py.in_after >> $@
 
 lib/_generated_rpc.py: lib/rpc_defs.py $(BUILD_RPC)
 	PYTHONPATH=. $(RUN_IN_TEMPDIR) $(CURDIR)/$(BUILD_RPC) lib/rpc_defs.py > $@

@@ -49,6 +49,7 @@ from ganeti import serializer
 from ganeti import workerpool
 from ganeti import locking
 from ganeti import opcodes
+from ganeti import opcodes_base
 from ganeti import errors
 from ganeti import mcpu
 from ganeti import utils
@@ -231,7 +232,7 @@ class _QueuedJob(object):
     count = 0
     for queued_op in self.ops:
       op = queued_op.input
-      reason_src = opcodes.NameToReasonSrc(op.__class__.__name__)
+      reason_src = opcodes_base.NameToReasonSrc(op.__class__.__name__)
       reason_text = "job=%d;index=%d" % (self.id, count)
       reason = getattr(op, "reason", [])
       reason.append((reason_src, reason_text, utils.EpochNano()))
@@ -910,7 +911,7 @@ class _OpExecContext:
     self.summary = op.input.Summary()
 
     # Create local copy to modify
-    if getattr(op.input, opcodes.DEPEND_ATTR, None):
+    if getattr(op.input, opcodes_base.DEPEND_ATTR, None):
       self.jobdeps = op.input.depends[:]
     else:
       self.jobdeps = None
@@ -2196,11 +2197,11 @@ class JobQueue(object):
                                   " are %s" % (idx, op.priority, allowed))
 
       # Check job dependencies
-      dependencies = getattr(op.input, opcodes.DEPEND_ATTR, None)
-      if not opcodes.TNoRelativeJobDependencies(dependencies):
+      dependencies = getattr(op.input, opcodes_base.DEPEND_ATTR, None)
+      if not opcodes_base.TNoRelativeJobDependencies(dependencies):
         raise errors.GenericError("Opcode %s has invalid dependencies, must"
                                   " match %s: %s" %
-                                  (idx, opcodes.TNoRelativeJobDependencies,
+                                  (idx, opcodes_base.TNoRelativeJobDependencies,
                                    dependencies))
 
     # Write to disk
@@ -2298,7 +2299,7 @@ class JobQueue(object):
 
     for (idx, (job_id, ops)) in enumerate(zip(job_ids, jobs)):
       for op in ops:
-        if getattr(op, opcodes.DEPEND_ATTR, None):
+        if getattr(op, opcodes_base.DEPEND_ATTR, None):
           (status, data) = \
             self._ResolveJobDependencies(compat.partial(resolve_fn, idx),
                                          op.depends)

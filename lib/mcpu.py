@@ -36,6 +36,7 @@ import itertools
 import traceback
 
 from ganeti import opcodes
+from ganeti import opcodes_base
 from ganeti import constants
 from ganeti import errors
 from ganeti import hooksmaster
@@ -207,7 +208,7 @@ def _SetBaseOpParams(src, defcomment, dst):
       hasattr(src, "priority")):
     dst.priority = src.priority
 
-  if not getattr(dst, opcodes.COMMENT_ATTR, None):
+  if not getattr(dst, opcodes_base.COMMENT_ATTR, None):
     dst.comment = defcomment
 
 

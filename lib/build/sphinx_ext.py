@@ -51,6 +51,7 @@ from ganeti import compat
 from ganeti import errors
 from ganeti import utils
 from ganeti import opcodes
+from ganeti import opcodes_base
 from ganeti import ht
 from ganeti import rapi
 from ganeti import luxi
@@ -83,7 +84,7 @@ def _GetCommonParamNames():
   names = set(map(compat.fst, opcodes.OpCode.OP_PARAMS))
 
   # The "depends" attribute should be listed
-  names.remove(opcodes.DEPEND_ATTR)
+  names.remove(opcodes_base.DEPEND_ATTR)
 
   return names
 
