@@ -659,7 +659,7 @@ class OpCode(BaseOpCode):
      " for details"),
     (COMMENT_ATTR, None, ht.TMaybeString,
      "Comment describing the purpose of the opcode"),
-    (constants.OPCODE_REASON, None, ht.TMaybeList,
+    (constants.OPCODE_REASON, ht.EmptyList, ht.TMaybeList,
      "The reason trail, describing why the OpCode is executed"),
     ]
   OP_RESULT = None
