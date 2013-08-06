@@ -577,8 +577,17 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
                                errors.ECODE_INVAL)
 
   # set up ssh config and /etc/hosts
-  sshline = utils.ReadFile(pathutils.SSH_HOST_RSA_PUB)
-  sshkey = sshline.split(" ")[1]
+  rsa_sshkey = ""
+  dsa_sshkey = ""
+  if os.path.isfile(pathutils.SSH_HOST_RSA_PUB):
+    sshline = utils.ReadFile(pathutils.SSH_HOST_RSA_PUB)
+    rsa_sshkey = sshline.split(" ")[1]
+  if os.path.isfile(pathutils.SSH_HOST_DSA_PUB):
+    sshline = utils.ReadFile(pathutils.SSH_HOST_DSA_PUB)
+    dsa_sshkey = sshline.split(" ")[1]
+  if not rsa_sshkey and not dsa_sshkey:
+    raise errors.OpPrereqError("Failed to find SSH public keys",
+                               errors.ECODE_ENVIRON)
 
   if modify_etc_hosts:
     utils.AddHostToEtcHosts(hostname.name, hostname.ip)
@@ -606,7 +615,8 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
   # init of cluster config file
   cluster_config = objects.Cluster(
     serial_no=1,
-    rsahostkeypub=sshkey,
+    rsahostkeypub=rsa_sshkey,
+    dsahostkeypub=dsa_sshkey,
     highest_used_port=(constants.FIRST_DRBD_PORT - 1),
     mac_prefix=mac_prefix,
     volume_group_name=vg_name,

@@ -1190,7 +1190,7 @@ class ConfigWriter:
     return self._config_data.cluster.enabled_hypervisors[0]
 
   @locking.ssynchronized(_config_lock, shared=1)
-  def GetHostKey(self):
+  def GetRsaHostKey(self):
     """Return the rsa hostkey from the config.
 
     @rtype: string
@@ -1198,6 +1198,16 @@ class ConfigWriter:
 
     """
     return self._config_data.cluster.rsahostkeypub
+
+  @locking.ssynchronized(_config_lock, shared=1)
+  def GetDsaHostKey(self):
+    """Return the dsa hostkey from the config.
+
+    @rtype: string
+    @return: the dsa hostkey
+
+    """
+    return self._config_data.cluster.dsahostkeypub
 
   @locking.ssynchronized(_config_lock, shared=1)
   def GetDefaultIAllocator(self):
