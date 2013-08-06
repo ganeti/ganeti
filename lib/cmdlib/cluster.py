@@ -291,6 +291,7 @@ class LUClusterQuery(NoHooksLU):
       "config_version": constants.CONFIG_VERSION,
       "os_api_version": max(constants.OS_API_VERSIONS),
       "export_version": constants.EXPORT_VERSION,
+      "vcs_version": constants.VCS_VERSION,
       "architecture": runtime.GetArchInfo(),
       "name": cluster.cluster_name,
       "master": cluster.master_node,
