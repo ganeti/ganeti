@@ -926,6 +926,7 @@ class XenHvmHypervisor(XenHypervisor):
       (False, lambda x: 0 < x < 65535, "invalid weight", None, None),
     constants.HV_VIF_TYPE:
       hv_base.ParamInSet(False, constants.HT_HVM_VALID_VIF_TYPES),
+    constants.HV_VIRIDIAN: hv_base.NO_CHECK,
     }
 
   def _GetConfig(self, instance, startup_memory, block_devices):
@@ -963,6 +964,11 @@ class XenHvmHypervisor(XenHypervisor):
       config.write("acpi = 1\n")
     else:
       config.write("acpi = 0\n")
+    if hvp[constants.HV_VIRIDIAN]:
+      config.write("viridian = 1\n")
+    else:
+      config.write("viridian = 0\n")
+
     config.write("apic = 1\n")
     config.write("device_model = '%s'\n" % hvp[constants.HV_DEVICE_MODEL])
     config.write("boot = '%s'\n" % hvp[constants.HV_BOOT_ORDER])
