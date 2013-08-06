@@ -466,9 +466,16 @@ acpi
 pae
     Valid for the Xen HVM and KVM hypervisors.
 
-    A boolean option that specifies if the hypervisor should enabled
+    A boolean option that specifies if the hypervisor should enable
     PAE support for this instance. The default is false, disabling PAE
     support.
+
+viridian
+    Valid for the Xen HVM hypervisor.
+
+    A boolean option that specifies if the hypervisor should enable
+    viridian (Hyper-V) for this instance. The default is false,
+    disabling viridian support.
 
 use\_localtime
     Valid for the Xen HVM and KVM hypervisors.
