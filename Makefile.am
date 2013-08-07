@@ -2147,7 +2147,7 @@ hs-coverage: $(haskell_tests) test/hs/hpc-htools test/hs/hpc-mon-collector
 	hpc sum --union $(HPCEXCL) \
 	  htest.tix hpc-htools.tix hpc-mon-collector.tix > coverage-hs.tix
 	hpc markup --destdir=$(COVERAGE_HS_DIR) coverage-hs.tix
-	hpc report coverage-hs.tix
+	hpc report coverage-hs.tix | tee $(COVERAGE_HS_DIR)/report.txt
 	$(LN_S) -f hpc_index.html $(COVERAGE_HS_DIR)/index.html
 
 # Special "kind-of-QA" target for htools, needs special setup (all
