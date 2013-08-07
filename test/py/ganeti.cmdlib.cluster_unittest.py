@@ -32,28 +32,6 @@ import testutils
 import mock
 
 
-class TestCheckIpolicy(unittest.TestCase):
-
-  def setUp(self):
-    unittest.TestCase.setUp(self)
-
-  def testAllTemplatesEnabled(self):
-    allowed_disk_templates = [constants.DT_PLAIN]
-    ipolicy = {constants.IPOLICY_DTS: allowed_disk_templates}
-    enabled_disk_templates = [constants.DT_PLAIN, constants.DT_DRBD8]
-    cluster.LUClusterSetParams._CheckIpolicyVsDiskTemplates(
-        ipolicy, enabled_disk_templates)
-
-  def testSomeTemplatesUnenabled(self):
-    allowed_disk_templates = [constants.DT_PLAIN, constants.DT_DISKLESS]
-    ipolicy = {constants.IPOLICY_DTS: allowed_disk_templates}
-    enabled_disk_templates = [constants.DT_PLAIN, constants.DT_DRBD8]
-    self.assertRaises(
-        errors.OpPrereqError, 
-        cluster.LUClusterSetParams._CheckIpolicyVsDiskTemplates,
-        ipolicy, enabled_disk_templates)
-
-
 class TestCheckFileStoragePath(unittest.TestCase):
 
   def setUp(self):

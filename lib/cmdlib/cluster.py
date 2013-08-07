@@ -56,7 +56,8 @@ from ganeti.cmdlib.common import ShareAll, RunPostHook, \
   GetWantedInstances, MergeAndVerifyHvState, MergeAndVerifyDiskState, \
   GetUpdatedIPolicy, ComputeNewInstanceViolations, GetUpdatedParams, \
   CheckOSParams, CheckHVParams, AdjustCandidatePool, CheckNodePVs, \
-  ComputeIPolicyInstanceViolation, AnnotateDiskParams, SupportsOob
+  ComputeIPolicyInstanceViolation, AnnotateDiskParams, SupportsOob, \
+  CheckIpolicyVsDiskTemplates
 
 import ganeti.masterd.instance
 
@@ -789,31 +790,6 @@ class LUClusterSetParams(LogicalUnit):
       enabled_disk_templates = cluster.enabled_disk_templates
     return (enabled_disk_templates, new_enabled_disk_templates)
 
-  @staticmethod
-  def _CheckIpolicyVsDiskTemplates(ipolicy, enabled_disk_templates):
-    """Checks ipolicy disk templates against enabled disk tempaltes.
-
-    @type ipolicy: dict
-    @param ipolicy: the new ipolicy
-    @type enabled_disk_templates: list of string
-    @param enabled_disk_templates: list of enabled disk templates on the
-      cluster
-    @rtype: errors.OpPrereqError
-    @raises: exception if there is at least one allowed disk template that
-      is not also enabled.
-
-    """
-    assert constants.IPOLICY_DTS in ipolicy
-    allowed_disk_templates = ipolicy[constants.IPOLICY_DTS]
-    not_enabled = []
-    for allowed_disk_template in allowed_disk_templates:
-      if not allowed_disk_template in enabled_disk_templates:
-        not_enabled.append(allowed_disk_template)
-    if not_enabled:
-      raise errors.OpPrereqError("The following disk template are allowed"
-                                 " by the ipolicy, but not enabled on the"
-                                 " cluster: %s" % utils.CommaJoin(not_enabled))
-
   def _CheckIpolicy(self, cluster, enabled_disk_templates):
     """Checks the ipolicy.
 
@@ -829,8 +805,8 @@ class LUClusterSetParams(LogicalUnit):
       self.new_ipolicy = GetUpdatedIPolicy(cluster.ipolicy, self.op.ipolicy,
                                            group_policy=False)
 
-      self._CheckIpolicyVsDiskTemplates(self.new_ipolicy,
-                                        enabled_disk_templates)
+      CheckIpolicyVsDiskTemplates(self.new_ipolicy,
+                                  enabled_disk_templates)
 
       all_instances = self.cfg.GetAllInstancesInfo().values()
       violations = set()
@@ -850,8 +826,8 @@ class LUClusterSetParams(LogicalUnit):
                         " violate them: %s",
                         utils.CommaJoin(utils.NiceSort(violations)))
     else:
-      self._CheckIpolicyVsDiskTemplates(cluster.ipolicy,
-                                        enabled_disk_templates)
+      CheckIpolicyVsDiskTemplates(cluster.ipolicy,
+                                  enabled_disk_templates)
 
   def CheckPrereq(self):
     """Check prerequisites.

@@ -1116,3 +1116,24 @@ def CheckStorageTypeEnabled(cluster, storage_type):
                                " enabled in this cluster. Enabled disk"
                                " templates are: %s" % (storage_type,
                                ",".join(cluster.enabled_disk_templates)))
+
+
+def CheckIpolicyVsDiskTemplates(ipolicy, enabled_disk_templates):
+  """Checks ipolicy disk templates against enabled disk tempaltes.
+
+  @type ipolicy: dict
+  @param ipolicy: the new ipolicy
+  @type enabled_disk_templates: list of string
+  @param enabled_disk_templates: list of enabled disk templates on the
+    cluster
+  @raises errors.OpPrereqError: if there is at least one allowed disk
+    template that is not also enabled.
+
+  """
+  assert constants.IPOLICY_DTS in ipolicy
+  allowed_disk_templates = ipolicy[constants.IPOLICY_DTS]
+  not_enabled = set(allowed_disk_templates) - set(enabled_disk_templates)
+  if not_enabled:
+    raise errors.OpPrereqError("The following disk template are allowed"
+                               " by the ipolicy, but not enabled on the"
+                               " cluster: %s" % utils.CommaJoin(not_enabled))
