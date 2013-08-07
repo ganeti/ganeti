@@ -290,6 +290,7 @@ class LUClusterQuery(NoHooksLU):
       "config_version": constants.CONFIG_VERSION,
       "os_api_version": max(constants.OS_API_VERSIONS),
       "export_version": constants.EXPORT_VERSION,
+      "vcs_version": constants.VCS_VERSION,
       "architecture": runtime.GetArchInfo(),
       "name": cluster.cluster_name,
       "master": self.cfg.GetMasterNodeName(),
@@ -935,7 +936,7 @@ class LUClusterSetParams(LogicalUnit):
     self.new_diskparams = objects.FillDict(cluster.diskparams, {})
     if self.op.diskparams:
       for dt_name, dt_params in self.op.diskparams.items():
-        if dt_name not in self.op.diskparams:
+        if dt_name not in self.new_diskparams:
           self.new_diskparams[dt_name] = dt_params
         else:
           self.new_diskparams[dt_name].update(dt_params)
@@ -1441,12 +1442,12 @@ class LUClusterVerifyConfig(NoHooksLU, _VerifyErrors):
       (errcode, msg) = _VerifyCertificate(cert_filename)
       self._ErrorIf(errcode, constants.CV_ECLUSTERCERT, None, msg, code=errcode)
 
-    self._ErrorIf(not utils.CanRead(constants.CONFD_USER,
+    self._ErrorIf(not utils.CanRead(constants.LUXID_USER,
                                     pathutils.NODED_CERT_FILE),
                   constants.CV_ECLUSTERCERT,
                   None,
                   pathutils.NODED_CERT_FILE + " must be accessible by the " +
-                    constants.CONFD_USER + " user")
+                    constants.LUXID_USER + " user")
 
     feedback_fn("* Verifying hypervisor parameters")
 

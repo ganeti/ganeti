@@ -85,6 +85,7 @@ def SanitizeSecrets(opts, cfg): # pylint: disable=W0613
 
   """
   cfg["cluster"]["rsahostkeypub"] = ""
+  cfg["cluster"]["dsahostkeypub"] = ""
   for instance in cfg["instances"].values():
     for disk in instance["disks"]:
       RandomizeDiskSecrets(disk)

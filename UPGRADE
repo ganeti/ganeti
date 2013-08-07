@@ -56,7 +56,7 @@ To run commands on all nodes, the `distributed shell (dsh)
     $ /usr/lib/ganeti/ensure-dirs --full-run
 
 #. Create the (missing) required users and make users part of the required
-groups on all nodes::
+   groups on all nodes::
 
     $ /usr/lib/ganeti/tools/users-setup
 
@@ -131,6 +131,16 @@ revert the configuration **before** installing the old version.
    upgrading again.
 
 #. Install the old Ganeti version on all nodes
+
+   NB: in Ganeti 2.8, the ``cmdlib.py`` file was split into a series of files
+   contained in the ``cmdlib`` directory. If Ganeti is installed from sources
+   and not from a package, while downgrading Ganeti to a pre-2.8
+   version it is important to remember to remove the ``cmdlib`` directory
+   from the directory containing the Ganeti python files (which usually is
+   ``${PREFIX}/lib/python${VERSION}/dist-packages/ganeti``).
+   A simpler upgrade/downgrade procedure will be made available in future
+   versions of Ganeti.
+
 #. Restart daemons on all nodes::
 
     $ /etc/init.d/ganeti restart

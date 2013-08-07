@@ -98,6 +98,7 @@ handleCall cdata QueryClusterInfo =
             , ("config_version", showJSON C.configVersion)
             , ("os_api_version", showJSON $ maximum C.osApiVersions)
             , ("export_version", showJSON C.exportVersion)
+            , ("vcs_version", showJSON C.vcsVersion)
             , ("architecture", showJSON arch_tuple)
             , ("name", showJSON $ clusterClusterName cluster)
             , ("master", showJSON (case master of

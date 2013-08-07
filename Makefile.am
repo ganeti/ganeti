@@ -475,6 +475,7 @@ docinput = \
 	doc/install.rst \
 	doc/locking.rst \
 	doc/manpages-disabled.rst \
+	doc/monitoring-query-format.rst \
 	doc/move-instance.rst \
 	doc/news.rst \
 	doc/ovfconverter.rst \
@@ -780,14 +781,17 @@ endif
 # Things to build but not to install (add it to EXTRA_DIST if it should be
 # distributed)
 noinst_DATA = \
-	doc/html \
 	$(BUILT_EXAMPLES) \
 	doc/examples/bash_completion \
 	doc/examples/bash_completion-debug \
 	$(manhtml)
 
+if HAS_SPHINX
 if MANPAGES_IN_DOC
 noinst_DATA += doc/man-html
+else
+noinst_DATA += doc/html
+endif
 endif
 
 gnt_scripts = \

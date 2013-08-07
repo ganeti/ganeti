@@ -62,10 +62,10 @@ Python
   for the unit tests (and only used for testing).
 
 
-Version 2.8.0 beta1
--------------------
+Version 2.8.0 rc1
+-----------------
 
-*(Released Mon, 24 Jun 2013)*
+*(Released Fri, 2 Aug 2013)*
 
 Incompatible/important changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -81,6 +81,9 @@ Incompatible/important changes
 - hail now honors network restrictions when allocating nodes. This led to an
   update of the IAllocator protocol. See the IAllocator documentation for
   details.
+- confd now only answers static configuration request over the network. luxid
+  was extracted, listens on the local LUXI socket and responds to live queries.
+  This allows finer grained permissions if using separate users.
 
 New features
 ~~~~~~~~~~~~
@@ -120,6 +123,14 @@ New features
 - New command ``show-ispecs-cmd`` for ``gnt-cluster`` and ``gnt-group``.
   It prints the command line to set the current policies, to ease
   changing them.
+- Add the ``vnet_hdr`` HV parameter for KVM, to control whether the tap
+  devices for KVM virtio-net interfaces will get created with VNET_HDR
+  (IFF_VNET_HDR) support. If set to false, it disables offloading on the
+  virtio-net interfaces, which prevents host kernel tainting and log
+  flooding, when dealing with broken or malicious virtio-net drivers.
+  It's set to true by default.
+- Instance failover now supports a ``--cleanup`` parameter for fixing previous
+  failures.
 
 New dependencies
 ~~~~~~~~~~~~~~~~
@@ -132,6 +143,36 @@ For Haskell:
 For Python:
 - The minimum Python version needed to run Ganeti is now 2.6.
 - ``yaml`` library (only for running the QA).
+
+Since 2.8.0 beta1
+~~~~~~~~~~~~~~~~~
+
+- Fix upgrading/downgrading from 2.7
+- Increase maximum RAPI message size
+- Documentation updates
+- Split ``confd`` between ``luxid`` and ``confd``
+- Merge 2.7 series up to the 2.7.1 release
+- Allow the ``modify_etc_hosts`` option to be changed
+- Add better debugging for ``luxid`` queries
+- Expose bulk parameter for GetJobs in RAPI client
+- Expose missing ``network`` fields in RAPI
+- Add some ``cluster verify`` tests
+- Some unittest fixes
+- Fix a malfunction in ``hspace``'s tiered allocation
+- Fix query compatibility between haskell and python implementations
+- Add the ``vnet_hdr`` HV parameter for KVM
+- Add ``--cleanup`` to instance failover
+- Change the connected groups format in ``gnt-network info`` output; it
+  was previously displayed as a raw list by mistake. (Merged from 2.7)
+
+
+Version 2.8.0 beta1
+-------------------
+
+*(Released Mon, 24 Jun 2013)*
+
+This was the first beta release of the 2.8 series. All important changes
+are listed in the latest 2.8 entry.
 
 
 Version 2.7.1

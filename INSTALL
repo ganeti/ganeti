@@ -48,6 +48,7 @@ Before installing, please verify that you have the following programs:
 - `Python IP address manipulation library
   <http://code.google.com/p/ipaddr-py/>`_
 - `Bitarray Python library <http://pypi.python.org/pypi/bitarray/>`_
+- `GNU Make <http://www.gnu.org/software/make/>`_
 
 These programs are supplied as part of most Linux distributions, so
 usually they can be installed via the standard package manager. Also
@@ -55,7 +56,7 @@ many of them will already be installed on a standard machine. On
 Debian/Ubuntu, you can use this command line to install all required
 packages, except for RBD, DRBD and Xen::
 
-  $ apt-get install lvm2 ssh bridge-utils iproute iputils-arping \
+  $ apt-get install lvm2 ssh bridge-utils iproute iputils-arping make \
                     ndisc6 python python-pyopenssl openssl \
                     python-pyparsing python-simplejson python-bitarray \
                     python-pyinotify python-pycurl python-ipaddr socat fping
@@ -66,7 +67,7 @@ If bitarray is missing it can be installed from easy-install::
 
 Or on newer distributions (eg. Debian Wheezy) the above becomes::
 
-  $ apt-get install lvm2 ssh bridge-utils iproute iputils-arping \
+  $ apt-get install lvm2 ssh bridge-utils iproute iputils-arping make \
                     ndisc6 python python-openssl openssl \
                     python-pyparsing python-simplejson python-bitarray \
                     python-pyinotify python-pycurl python-ipaddr socat fping
@@ -88,7 +89,7 @@ For example::
 
 On Fedora to install all required packages except RBD, DRBD and Xen::
 
-  $ yum install openssh openssh-clients bridge-utils iproute ndisc6 \
+  $ yum install openssh openssh-clients bridge-utils iproute ndisc6 make \
                 pyOpenSSL pyparsing python-simplejson python-inotify \
                 python-lxm socat fping python-bitarray python-ipaddr
 
@@ -207,7 +208,7 @@ can use either apt::
 
 or ``cabal``, after installing a required non-Haskell dependency::
 
-  $ apt-get install libpcre3-dev
+  $ apt-get install libpcre3-dev libcurl4-openssl-dev
   $ cabal install hslogger Crypto text hinotify==0.3.2 regex-pcre \
                   attoparsec vector snap-server
 

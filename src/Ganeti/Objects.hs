@@ -684,6 +684,7 @@ type UidPool = [(Int, Int)]
 -- * Cluster definitions
 $(buildObject "Cluster" "cluster" $
   [ simpleField "rsahostkeypub"           [t| String           |]
+  , simpleField "dsahostkeypub"           [t| String           |]
   , simpleField "highest_used_port"       [t| Int              |]
   , simpleField "tcpudp_port_pool"        [t| [Int]            |]
   , simpleField "mac_prefix"              [t| String           |]

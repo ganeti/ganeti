@@ -373,6 +373,7 @@ def ShowClusterVersion(opts, args):
   ToStdout("Configuration format: %s", result["config_version"])
   ToStdout("OS api version: %s", result["os_api_version"])
   ToStdout("Export interface: %s", result["export_version"])
+  ToStdout("VCS version: %s", result["vcs_version"])
   return 0
 
 

@@ -1524,6 +1524,7 @@ class Cluster(TaggableObject):
   __slots__ = [
     "serial_no",
     "rsahostkeypub",
+    "dsahostkeypub",
     "highest_used_port",
     "tcpudp_port_pool",
     "mac_prefix",

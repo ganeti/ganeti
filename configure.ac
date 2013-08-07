@@ -368,6 +368,7 @@ else
     AC_MSG_ERROR([Sphinx 1.0 or higher is required])
   fi
 fi
+AM_CONDITIONAL([HAS_SPHINX], [test -n "$SPHINX"])
 
 AC_ARG_ENABLE([manpages-in-doc],
   [AS_HELP_STRING([--enable-manpages-in-doc],

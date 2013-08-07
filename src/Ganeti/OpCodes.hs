@@ -89,6 +89,7 @@ $(genOpCode "OpCode"
      , pMigrationTargetNodeUuid
      , pIgnoreIpolicy
      , pIallocator
+     , pMigrationCleanup
      ])
   , ("OpInstanceMigrate",
      [ pInstanceName

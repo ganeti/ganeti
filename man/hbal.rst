@@ -91,7 +91,8 @@ At each step, we prevent an instance move if it would cause:
 
 - a node to go into N+1 failure state
 - an instance to move onto an offline node (offline nodes are either
-  read from the cluster or declared with *-O*)
+  read from the cluster or declared with *-O*; drained nodes are
+  considered offline)
 - an exclusion-tag based conflict (exclusion tags are read from the
   cluster and/or defined via the *\--exclusion-tags* option)
 - a max vcpu/pcpu ratio to be exceeded (configured via *\--max-cpu*)
@@ -102,15 +103,16 @@ CLUSTER SCORING
 ~~~~~~~~~~~~~~~
 
 As said before, the algorithm tries to minimise the cluster score at
-each step. Currently this score is computed as a sum of the following
-components:
+each step. Currently this score is computed as a weighted sum of the
+following components:
 
 - standard deviation of the percent of free memory
 - standard deviation of the percent of reserved memory
 - standard deviation of the percent of free disk
 - count of nodes failing N+1 check
 - count of instances living (either as primary or secondary) on
-  offline nodes
+  offline nodes; in the sense of hbal (and the other htools) drained
+  nodes are considered offline
 - count of instances living (as primary) on offline nodes; this
   differs from the above metric by helping failover of such instances
   in 2-node clusters

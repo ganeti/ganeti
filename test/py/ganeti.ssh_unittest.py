@@ -46,8 +46,9 @@ class TestKnownHosts(testutils.GanetiTestCase):
     cfg = mocks.FakeConfig()
     ssh.WriteKnownHostsFile(cfg, self.tmpfile)
     self.assertFileContent(self.tmpfile,
-        "%s ssh-rsa %s\n" % (cfg.GetClusterName(),
-                             mocks.FAKE_CLUSTER_KEY))
+        "%s ssh-rsa %s\n%s ssh-dss %s\n" %
+        (cfg.GetClusterName(), mocks.FAKE_CLUSTER_KEY,
+         cfg.GetClusterName(), mocks.FAKE_CLUSTER_KEY))
 
 
 class TestGetUserFiles(unittest.TestCase):

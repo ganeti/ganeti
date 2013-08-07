@@ -1086,6 +1086,7 @@ class XenHvmHypervisor(XenHypervisor):
     constants.HV_VIF_TYPE:
       hv_base.ParamInSet(False, constants.HT_HVM_VALID_VIF_TYPES),
     constants.HV_VIF_SCRIPT: hv_base.OPT_FILE_CHECK,
+    constants.HV_VIRIDIAN: hv_base.NO_CHECK,
     constants.HV_XEN_CMD:
       hv_base.ParamInSet(True, constants.KNOWN_XEN_COMMANDS),
     }
@@ -1125,6 +1126,11 @@ class XenHvmHypervisor(XenHypervisor):
       config.write("acpi = 1\n")
     else:
       config.write("acpi = 0\n")
+    if hvp[constants.HV_VIRIDIAN]:
+      config.write("viridian = 1\n")
+    else:
+      config.write("viridian = 0\n")
+
     config.write("apic = 1\n")
     config.write("device_model = '%s'\n" % hvp[constants.HV_DEVICE_MODEL])
     config.write("boot = '%s'\n" % hvp[constants.HV_BOOT_ORDER])

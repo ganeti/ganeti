@@ -323,6 +323,7 @@ detectBroken nl inst =
                                 , opTargetNodeUuid = Nothing
                                 , opIgnoreIpolicy = False
                                 , opIallocator = Nothing
+                                , opMigrationCleanup = False
                                 }
            ])
        | offSec ->
