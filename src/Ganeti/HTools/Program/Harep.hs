@@ -268,14 +268,12 @@ commitChange client instData = do
   when (isJust arData) $ do
     let tag = arTag $ fromJust arData
     putStrLn (">>> Adding the following tag to " ++ iname ++ ":\n" ++ show tag)
-    tagName <- mkNonEmpty iname
-    execJobsWaitOk' [OpTagsSet TagKindInstance [tag] (Just tagName)]
+    execJobsWaitOk' [OpTagsSet TagKindInstance [tag] (Just iname)]
 
   unless (null rmTags) $ do
     putStr (">>> Removing the following tags from " ++ iname ++ ":\n" ++
             unlines (map show rmTags))
-    tagName <- mkNonEmpty iname
-    execJobsWaitOk' [OpTagsDel TagKindInstance rmTags (Just tagName)]
+    execJobsWaitOk' [OpTagsDel TagKindInstance rmTags (Just iname)]
 
   return instData { tagsToRemove = [] }
 

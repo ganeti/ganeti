@@ -197,7 +197,7 @@ instance Arbitrary OpCodes.OpCode where
         OpCodes.OpNodeRemove <$> genNodeNameNE <*> return Nothing
       "OP_NODE_ADD" ->
         OpCodes.OpNodeAdd <$> genNodeNameNE <*> emptyMUD <*> emptyMUD <*>
-          genNameNE <*> genMaybe genNameNE <*> arbitrary <*>
+          genMaybe genNameNE <*> genMaybe genNameNE <*> arbitrary <*>
           genMaybe genNameNE <*> arbitrary <*> arbitrary <*> emptyMUD
       "OP_NODE_QUERY" ->
         OpCodes.OpNodeQuery <$> genFieldsNE <*> genNamesNE <*> arbitrary

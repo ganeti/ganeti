@@ -530,7 +530,7 @@ $(genOpCode "OpCode"
      , pInstanceUuid
      , pForce
      , pIgnoreOfflineNodes
-     , pShutdownTimeout
+     , pShutdownTimeout'
      , pNoRemember
      ],
      "instance_name")
@@ -856,7 +856,7 @@ $(genOpCode "OpCode"
      ],
      "duration")
   , ("OpTestAllocator",
-     [t| () |],
+     [t| String |],
      OpDoc.opTestAllocator,
      [ pIAllocatorDirection
      , pIAllocatorMode
@@ -878,7 +878,7 @@ $(genOpCode "OpCode"
      ],
      "iallocator")
   , ("OpTestJqueue",
-     [t| () |],
+     [t| Bool |],
      OpDoc.opTestJqueue,
      [ pJQueueNotifyWaitLock
      , pJQueueNotifyExec

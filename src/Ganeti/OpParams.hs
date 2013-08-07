@@ -52,6 +52,7 @@ module Ganeti.OpParams
   , pTagsName
   , pOutputFields
   , pShutdownTimeout
+  , pShutdownTimeout'
   , pShutdownInstance
   , pForce
   , pIgnoreOfflineNodes
@@ -572,7 +573,7 @@ pEnabledHypervisors :: Field
 pEnabledHypervisors =
   withDoc "List of enabled hypervisors" .
   optionalField $
-  simpleField "enabled_hypervisors" [t| Hypervisor |]
+  simpleField "enabled_hypervisors" [t| [Hypervisor] |]
 
 pClusterHvParams :: Field
 pClusterHvParams =
@@ -616,19 +617,19 @@ pUidPool :: Field
 pUidPool =
   withDoc "Set UID pool, must be list of lists describing UID ranges\
           \ (two items, start and end inclusive)" .
-  optionalField $ simpleField "uid_pool" [t| [[(Int, Int)]] |]
+  optionalField $ simpleField "uid_pool" [t| [(Int, Int)] |]
 
 pAddUids :: Field
 pAddUids =
   withDoc "Extend UID pool, must be list of lists describing UID\
           \ ranges (two items, start and end inclusive)" .
-  optionalField $ simpleField "add_uids" [t| [[(Int, Int)]] |]
+  optionalField $ simpleField "add_uids" [t| [(Int, Int)] |]
 
 pRemoveUids :: Field
 pRemoveUids =
   withDoc "Shrink UID pool, must be list of lists describing UID\
           \ ranges (two items, start and end inclusive) to be removed" .
-  optionalField $ simpleField "remove_uids" [t| [[(Int, Int)]] |]
+  optionalField $ simpleField "remove_uids" [t| [(Int, Int)] |]
 
 pMaintainNodeHealth :: Field
 pMaintainNodeHealth =
@@ -704,7 +705,7 @@ pEnabledDiskTemplates :: Field
 pEnabledDiskTemplates =
   withDoc "List of enabled disk templates" .
   optionalField $
-  simpleField "enabled_disk_templates" [t| DiskTemplate |]
+  simpleField "enabled_disk_templates" [t| [DiskTemplate] |]
 
 pQueryWhat :: Field
 pQueryWhat =
@@ -796,7 +797,8 @@ pNodeUuid =
 
 pPrimaryIp :: Field
 pPrimaryIp =
-  withDoc "Primary IP address" $
+  withDoc "Primary IP address" .
+  optionalField $
   simpleField "primary_ip" [t| NonEmptyString |]
 
 pSecondaryIp :: Field
@@ -979,7 +981,7 @@ pInstDisks =
 
 pDiskTemplate :: Field
 pDiskTemplate =
-  withDoc "List of instance disks" $
+  withDoc "Disk template" $
   simpleField "disk_template" [t| DiskTemplate |]
 
 pFileDriver :: Field
@@ -1150,6 +1152,15 @@ pShutdownTimeout =
   withDoc "How long to wait for instance to shut down" .
   defaultField [| forceNonNeg C.defaultShutdownTimeout |] $
   simpleField "shutdown_timeout" [t| NonNegative Int |]
+
+-- | Another name for the shutdown timeout, because we like to be
+-- inconsistent.
+pShutdownTimeout' :: Field
+pShutdownTimeout' =
+  withDoc "How long to wait for instance to shut down" .
+  renameField "InstShutdownTimeout" .
+  defaultField [| forceNonNeg C.defaultShutdownTimeout |] $
+  simpleField "timeout" [t| NonNegative Int |]
 
 pIgnoreFailures :: Field
 pIgnoreFailures =
@@ -1373,7 +1384,7 @@ pTagsName :: Field
 pTagsName =
   withDoc "Name of object" .
   renameField "TagsGetName" .
-  optionalField $ simpleField "name" [t| NonEmptyString |]
+  optionalField $ simpleField "name" [t| String |]
 
 pTagsList :: Field
 pTagsList =

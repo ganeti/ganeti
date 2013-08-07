@@ -184,7 +184,7 @@ class LUInstanceShutdown(LogicalUnit):
 
     """
     env = BuildInstanceHookEnvByObject(self, self.instance)
-    env["SHUTDOWN_TIMEOUT"] = self.op.shutdown_timeout
+    env["TIMEOUT"] = self.op.timeout
     return env
 
   def BuildHooksNodes(self):
@@ -233,7 +233,7 @@ class LUInstanceShutdown(LogicalUnit):
       result = self.rpc.call_instance_shutdown(
         self.instance.primary_node,
         self.instance,
-        self.op.shutdown_timeout, self.op.reason)
+        self.op.timeout, self.op.reason)
       msg = result.fail_msg
       if msg:
         self.LogWarning("Could not shutdown instance: %s", msg)

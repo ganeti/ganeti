@@ -328,9 +328,9 @@ genIp6Net = do
 
 -- | Generates a valid, arbitrary tag name with respect to the given
 -- 'TagKind' for opcodes.
-genOpCodesTagName :: TagKind -> Gen (Maybe NonEmptyString)
+genOpCodesTagName :: TagKind -> Gen (Maybe String)
 genOpCodesTagName TagKindCluster = return Nothing
-genOpCodesTagName _ = Just <$> (mkNonEmpty =<< genFQDN)
+genOpCodesTagName _ = Just <$> genFQDN
 
 -- | Generates a valid, arbitrary tag name with respect to the given
 -- 'TagKind' for Luxi.
