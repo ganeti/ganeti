@@ -38,7 +38,8 @@ from ganeti.cmdlib.common import MergeAndVerifyHvState, \
   MergeAndVerifyDiskState, GetWantedNodes, GetUpdatedParams, \
   CheckNodeGroupInstances, GetUpdatedIPolicy, \
   ComputeNewInstanceViolations, GetDefaultIAllocator, ShareAll, \
-  CheckInstancesNodeGroups, LoadNodeEvacResult, MapInstanceLvsToNodes
+  CheckInstancesNodeGroups, LoadNodeEvacResult, MapInstanceLvsToNodes, \
+  CheckIpolicyVsDiskTemplates
 
 import ganeti.masterd.instance
 
@@ -58,6 +59,21 @@ class LUGroupAdd(LogicalUnit):
     self.group_uuid = self.cfg.GenerateUniqueID(self.proc.GetECId())
     self.needed_locks = {}
     self.add_locks[locking.LEVEL_NODEGROUP] = self.group_uuid
+
+  def _CheckIpolicy(self):
+    """Checks the group's ipolicy for consistency and validity.
+
+    """
+    if self.op.ipolicy:
+      cluster = self.cfg.GetClusterInfo()
+      full_ipolicy = cluster.SimpleFillIPolicy(self.op.ipolicy)
+      try:
+        objects.InstancePolicy.CheckParameterSyntax(full_ipolicy, False)
+      except errors.ConfigurationError, err:
+        raise errors.OpPrereqError("Invalid instance policy: %s" % err,
+                                   errors.ECODE_INVAL)
+      CheckIpolicyVsDiskTemplates(full_ipolicy,
+                                  cluster.enabled_disk_templates)
 
   def CheckPrereq(self):
     """Check prerequisites.
@@ -103,14 +119,7 @@ class LUGroupAdd(LogicalUnit):
     else:
       self.new_diskparams = {}
 
-    if self.op.ipolicy:
-      cluster = self.cfg.GetClusterInfo()
-      full_ipolicy = cluster.SimpleFillIPolicy(self.op.ipolicy)
-      try:
-        objects.InstancePolicy.CheckParameterSyntax(full_ipolicy, False)
-      except errors.ConfigurationError, err:
-        raise errors.OpPrereqError("Invalid instance policy: %s" % err,
-                                   errors.ECODE_INVAL)
+    self._CheckIpolicy()
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -427,6 +436,35 @@ class LUGroupSetParams(LogicalUnit):
     utils.ForceDictType(new_params, constants.DISK_DT_TYPES)
     return new_params
 
+  def _CheckIpolicy(self, cluster, owned_instance_names):
+    """Sanity checks for the ipolicy.
+
+    @type cluster: C{objects.Cluster}
+    @param cluster: the cluster's configuration
+    @type owned_instance_names: list of string
+    @param owned_instance_names: list of instances
+
+    """
+    if self.op.ipolicy:
+      self.new_ipolicy = GetUpdatedIPolicy(self.group.ipolicy,
+                                           self.op.ipolicy,
+                                           group_policy=True)
+
+      new_ipolicy = cluster.SimpleFillIPolicy(self.new_ipolicy)
+      CheckIpolicyVsDiskTemplates(new_ipolicy,
+                                  cluster.enabled_disk_templates)
+      instances = self.cfg.GetMultiInstanceInfoByName(owned_instance_names)
+      gmi = ganeti.masterd.instance
+      violations = \
+          ComputeNewInstanceViolations(gmi.CalculateGroupIPolicy(cluster,
+                                                                 self.group),
+                                       new_ipolicy, instances, self.cfg)
+
+      if violations:
+        self.LogWarning("After the ipolicy change the following instances"
+                        " violate them: %s",
+                        utils.CommaJoin(violations))
+
   def CheckPrereq(self):
     """Check prerequisites.
 
@@ -475,23 +513,7 @@ class LUGroupSetParams(LogicalUnit):
         MergeAndVerifyDiskState(self.op.disk_state,
                                 self.group.disk_state_static)
 
-    if self.op.ipolicy:
-      self.new_ipolicy = GetUpdatedIPolicy(self.group.ipolicy,
-                                           self.op.ipolicy,
-                                           group_policy=True)
-
-      new_ipolicy = cluster.SimpleFillIPolicy(self.new_ipolicy)
-      instances = self.cfg.GetMultiInstanceInfoByName(owned_instance_names)
-      gmi = ganeti.masterd.instance
-      violations = \
-          ComputeNewInstanceViolations(gmi.CalculateGroupIPolicy(cluster,
-                                                                 self.group),
-                                       new_ipolicy, instances, self.cfg)
-
-      if violations:
-        self.LogWarning("After the ipolicy change the following instances"
-                        " violate them: %s",
-                        utils.CommaJoin(violations))
+    self._CheckIpolicy(cluster, owned_instance_names)
 
   def BuildHooksEnv(self):
     """Build hooks env.
