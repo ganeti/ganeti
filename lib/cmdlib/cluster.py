@@ -789,6 +789,35 @@ class LUClusterSetParams(LogicalUnit):
       enabled_disk_templates = cluster.enabled_disk_templates
     return (enabled_disk_templates, new_enabled_disk_templates)
 
+  def _CheckIpolicy(self, cluster):
+    """Checks the ipolicy.
+
+    @type cluster: C{objects.Cluster}
+    @param cluster: the cluster's configuration
+
+    """
+    if self.op.ipolicy:
+      self.new_ipolicy = GetUpdatedIPolicy(cluster.ipolicy, self.op.ipolicy,
+                                           group_policy=False)
+
+      all_instances = self.cfg.GetAllInstancesInfo().values()
+      violations = set()
+      for group in self.cfg.GetAllNodeGroupsInfo().values():
+        instances = frozenset([inst for inst in all_instances
+                               if compat.any(nuuid in group.members
+                                             for nuuid in inst.all_nodes)])
+        new_ipolicy = objects.FillIPolicy(self.new_ipolicy, group.ipolicy)
+        ipol = masterd.instance.CalculateGroupIPolicy(cluster, group)
+        new = ComputeNewInstanceViolations(ipol, new_ipolicy, instances,
+                                           self.cfg)
+        if new:
+          violations.update(new)
+
+      if violations:
+        self.LogWarning("After the ipolicy change the following instances"
+                        " violate them: %s",
+                        utils.CommaJoin(utils.NiceSort(violations)))
+
   def CheckPrereq(self):
     """Check prerequisites.
 
@@ -873,27 +902,7 @@ class LUClusterSetParams(LogicalUnit):
                             for name, values in svalues.items()))
              for storage, svalues in new_disk_state.items())
 
-    if self.op.ipolicy:
-      self.new_ipolicy = GetUpdatedIPolicy(cluster.ipolicy, self.op.ipolicy,
-                                           group_policy=False)
-
-      all_instances = self.cfg.GetAllInstancesInfo().values()
-      violations = set()
-      for group in self.cfg.GetAllNodeGroupsInfo().values():
-        instances = frozenset([inst for inst in all_instances
-                               if compat.any(nuuid in group.members
-                                             for nuuid in inst.all_nodes)])
-        new_ipolicy = objects.FillIPolicy(self.new_ipolicy, group.ipolicy)
-        ipol = masterd.instance.CalculateGroupIPolicy(cluster, group)
-        new = ComputeNewInstanceViolations(ipol, new_ipolicy, instances,
-                                           self.cfg)
-        if new:
-          violations.update(new)
-
-      if violations:
-        self.LogWarning("After the ipolicy change the following instances"
-                        " violate them: %s",
-                        utils.CommaJoin(utils.NiceSort(violations)))
+    self._CheckIpolicy(cluster)
 
     if self.op.nicparams:
       utils.ForceDictType(self.op.nicparams, constants.NICS_PARAMETER_TYPES)
