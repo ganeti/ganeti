@@ -102,6 +102,8 @@ Since 2.8.0 beta1
 - Fix query compatibility between haskell and python implementations
 - Add the ``vnet_hdr`` HV parameter for KVM
 - Add ``--cleanup`` to instance failover
+- Change the connected groups format in ``gnt-network info`` output; it
+  was previously displayed as a raw list by mistake. (Merged from 2.7)
 
 
 Version 2.8.0 beta1

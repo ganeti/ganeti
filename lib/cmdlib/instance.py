@@ -1831,9 +1831,9 @@ class LUInstanceMultiAlloc(NoHooksLU):
                                  " pnode/snode while others do not",
                                  errors.ECODE_INVAL)
 
-    if self.op.iallocator is None:
+    if not has_nodes and self.op.iallocator is None:
       default_iallocator = self.cfg.GetDefaultIAllocator()
-      if default_iallocator and has_nodes:
+      if default_iallocator:
         self.op.iallocator = default_iallocator
       else:
         raise errors.OpPrereqError("No iallocator or nodes on the instances"
@@ -1886,35 +1886,36 @@ class LUInstanceMultiAlloc(NoHooksLU):
     """Check prerequisite.
 
     """
-    cluster = self.cfg.GetClusterInfo()
-    default_vg = self.cfg.GetVGName()
-    ec_id = self.proc.GetECId()
+    if self.op.iallocator:
+      cluster = self.cfg.GetClusterInfo()
+      default_vg = self.cfg.GetVGName()
+      ec_id = self.proc.GetECId()
 
-    if self.op.opportunistic_locking:
-      # Only consider nodes for which a lock is held
-      node_whitelist = list(self.owned_locks(locking.LEVEL_NODE))
-    else:
-      node_whitelist = None
+      if self.op.opportunistic_locking:
+        # Only consider nodes for which a lock is held
+        node_whitelist = list(self.owned_locks(locking.LEVEL_NODE))
+      else:
+        node_whitelist = None
 
-    insts = [_CreateInstanceAllocRequest(op, ComputeDisks(op, default_vg),
-                                         _ComputeNics(op, cluster, None,
-                                                      self.cfg, ec_id),
-                                         _ComputeFullBeParams(op, cluster),
-                                         node_whitelist)
-             for op in self.op.instances]
+      insts = [_CreateInstanceAllocRequest(op, ComputeDisks(op, default_vg),
+                                           _ComputeNics(op, cluster, None,
+                                                        self.cfg, ec_id),
+                                           _ComputeFullBeParams(op, cluster),
+                                           node_whitelist)
+               for op in self.op.instances]
 
-    req = iallocator.IAReqMultiInstanceAlloc(instances=insts)
-    ial = iallocator.IAllocator(self.cfg, self.rpc, req)
+      req = iallocator.IAReqMultiInstanceAlloc(instances=insts)
+      ial = iallocator.IAllocator(self.cfg, self.rpc, req)
 
-    ial.Run(self.op.iallocator)
+      ial.Run(self.op.iallocator)
 
-    if not ial.success:
-      raise errors.OpPrereqError("Can't compute nodes using"
-                                 " iallocator '%s': %s" %
-                                 (self.op.iallocator, ial.info),
-                                 errors.ECODE_NORES)
+      if not ial.success:
+        raise errors.OpPrereqError("Can't compute nodes using"
+                                   " iallocator '%s': %s" %
+                                   (self.op.iallocator, ial.info),
+                                   errors.ECODE_NORES)
 
-    self.ia_result = ial.result
+      self.ia_result = ial.result
 
     if self.op.dry_run:
       self.dry_run_result = objects.FillDict(self._ConstructPartialResult(), {
@@ -1925,34 +1926,43 @@ class LUInstanceMultiAlloc(NoHooksLU):
     """Contructs the partial result.
 
     """
-    (allocatable, failed) = self.ia_result
+    if self.op.iallocator:
+      (allocatable, failed_insts) = self.ia_result
+      allocatable_insts = map(compat.fst, allocatable)
+    else:
+      allocatable_insts = [op.instance_name for op in self.op.instances]
+      failed_insts = []
+
     return {
-      opcodes.OpInstanceMultiAlloc.ALLOCATABLE_KEY:
-        map(compat.fst, allocatable),
-      opcodes.OpInstanceMultiAlloc.FAILED_KEY: failed,
+      opcodes.OpInstanceMultiAlloc.ALLOCATABLE_KEY: allocatable_insts,
+      opcodes.OpInstanceMultiAlloc.FAILED_KEY: failed_insts,
       }
 
   def Exec(self, feedback_fn):
     """Executes the opcode.
 
     """
-    op2inst = dict((op.instance_name, op) for op in self.op.instances)
-    (allocatable, failed) = self.ia_result
-
     jobs = []
-    for (name, nodes) in allocatable:
-      op = op2inst.pop(name)
+    if self.op.iallocator:
+      op2inst = dict((op.instance_name, op) for op in self.op.instances)
+      (allocatable, failed) = self.ia_result
 
-      if len(nodes) > 1:
-        (op.pnode, op.snode) = nodes
-      else:
-        (op.pnode,) = nodes
+      for (name, nodes) in allocatable:
+        op = op2inst.pop(name)
 
-      jobs.append([op])
+        if len(nodes) > 1:
+          (op.pnode, op.snode) = nodes
+        else:
+          (op.pnode,) = nodes
 
-    missing = set(op2inst.keys()) - set(failed)
-    assert not missing, \
-      "Iallocator did return incomplete result: %s" % utils.CommaJoin(missing)
+        jobs.append([op])
+
+      missing = set(op2inst.keys()) - set(failed)
+      assert not missing, \
+        "Iallocator did return incomplete result: %s" % \
+        utils.CommaJoin(missing)
+    else:
+      jobs.extend([op] for op in self.op.instances)
 
     return ResultWithJobs(jobs, **self._ConstructPartialResult())
 

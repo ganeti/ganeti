@@ -206,7 +206,7 @@ can use either apt::
 
 or ``cabal``, after installing a required non-Haskell dependency::
 
-  $ apt-get install libpcre3-dev
+  $ apt-get install libpcre3-dev libcurl4-openssl-dev
   $ cabal install hslogger Crypto text hinotify==0.3.2 regex-pcre \
                   attoparsec vector snap-server
 

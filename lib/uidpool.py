@@ -111,7 +111,7 @@ def RemoveFromUidPool(uid_pool, remove_uids):
     if uid_range not in uid_pool:
       raise errors.OpPrereqError(
           "User-id range to be removed is not found in the current"
-          " user-id pool: %s" % uid_range, errors.ECODE_INVAL)
+          " user-id pool: %s" % str(uid_range), errors.ECODE_INVAL)
     uid_pool.remove(uid_range)
 
 
