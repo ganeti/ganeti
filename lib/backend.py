@@ -1140,6 +1140,12 @@ def VerifyNode(what, cluster_name, all_hvparams):
     if pathresult:
       result[constants.NV_FILE_STORAGE_PATH] = pathresult
 
+  if what.get(constants.NV_SHARED_FILE_STORAGE_PATH):
+    pathresult = filestorage.CheckFileStoragePath(
+        what[constants.NV_SHARED_FILE_STORAGE_PATH])
+    if pathresult:
+      result[constants.NV_SHARED_FILE_STORAGE_PATH] = pathresult
+
   return result
 
 

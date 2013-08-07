@@ -480,6 +480,7 @@ docinput = \
 	doc/install.rst \
 	doc/locking.rst \
 	doc/manpages-disabled.rst \
+	doc/monitoring-query-format.rst \
 	doc/move-instance.rst \
 	doc/news.rst \
 	doc/ovfconverter.rst \
@@ -794,14 +795,17 @@ endif
 # Things to build but not to install (add it to EXTRA_DIST if it should be
 # distributed)
 noinst_DATA = \
-	doc/html \
 	$(BUILT_EXAMPLES) \
 	doc/examples/bash_completion \
 	doc/examples/bash_completion-debug \
 	$(manhtml)
 
+if HAS_SPHINX
 if MANPAGES_IN_DOC
 noinst_DATA += doc/man-html
+else
+noinst_DATA += doc/html
+endif
 endif
 
 gnt_scripts = \
@@ -1604,7 +1608,6 @@ lib/_autoconf.py: Makefile | stamp-directories
 	  echo "XEN_INITRD = '$(XEN_INITRD)'"; \
 	  echo "KVM_KERNEL = '$(KVM_KERNEL)'"; \
 	  echo "SHARED_FILE_STORAGE_DIR = '$(SHARED_FILE_STORAGE_DIR)'"; \
-	  echo "ENABLE_SHARED_FILE_STORAGE = $(ENABLE_SHARED_FILE_STORAGE)"; \
 	  echo "IALLOCATOR_SEARCH_PATH = [$(IALLOCATOR_SEARCH_PATH)]"; \
 	  echo "KVM_PATH = '$(KVM_PATH)'"; \
 	  echo "IP_PATH = '$(IP_PATH)'"; \

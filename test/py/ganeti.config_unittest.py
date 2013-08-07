@@ -77,6 +77,7 @@ class TestConfigRunner(unittest.TestCase):
     cluster_config = objects.Cluster(
       serial_no=1,
       rsahostkeypub="",
+      dsahostkeypub="",
       highest_used_port=(constants.FIRST_DRBD_PORT - 1),
       mac_prefix="aa:00:00",
       volume_group_name="xenvg",

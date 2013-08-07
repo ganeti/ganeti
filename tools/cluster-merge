@@ -438,7 +438,8 @@ class Merger(object):
     if my_cluster.IsFileStorageEnabled() or \
         other_cluster.IsFileStorageEnabled():
       check_params_strict.append("file_storage_dir")
-    if constants.ENABLE_SHARED_FILE_STORAGE:
+    if my_cluster.IsSharedFileStorageEnabled() or \
+        other_cluster.IsSharedFileStorageEnabled():
       check_params_strict.append("shared_file_storage_dir")
     check_params.extend(check_params_strict)
 

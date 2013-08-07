@@ -93,6 +93,7 @@ Implemented designs
    design-2.6.rst
    design-2.7.rst
    design-2.8.rst
+   design-2.9.rst
 
 Draft designs
 -------------
@@ -110,14 +111,18 @@ Draft designs
    design-bulk-create.rst
    design-chained-jobs.rst
    design-cpu-pinning.rst
+   design-device-uuid-name.rst
+   design-hroller.rst
    design-linuxha.rst
    design-lu-generated-jobs.rst
+   design-monitoring-agent.rst
    design-multi-reloc.rst
    design-network.rst
    design-node-add.rst
    design-oob.rst
    design-opportunistic-locking.rst
    design-ovf-support.rst
+   design-partitioned
    design-query2.rst
    design-reason-trail.rst
    design-restricted-commands.rst

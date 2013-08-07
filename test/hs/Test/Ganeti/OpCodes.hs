@@ -130,7 +130,7 @@ instance Arbitrary OpCodes.OpCode where
       "OP_INSTANCE_FAILOVER" ->
         OpCodes.OpInstanceFailover <$> genFQDN <*> return Nothing <*>
         arbitrary <*> arbitrary <*> genMaybe genNodeNameNE <*>
-        return Nothing <*> arbitrary <*> genMaybe genNameNE
+        return Nothing <*> arbitrary <*> arbitrary <*> genMaybe genNameNE
       "OP_INSTANCE_MIGRATE" ->
         OpCodes.OpInstanceMigrate <$> genFQDN <*> return Nothing <*>
           arbitrary <*> arbitrary <*> genMaybe genNodeNameNE <*>
@@ -177,6 +177,7 @@ instance Arbitrary OpCodes.OpCode where
           emptyMUD <*> emptyMUD <*> arbitrary <*>
           arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*>
           arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*>
+          genMaybe (genName >>= mkNonEmpty) <*>
           genMaybe (genName >>= mkNonEmpty)
       "OP_CLUSTER_REDIST_CONF" -> pure OpCodes.OpClusterRedistConf
       "OP_CLUSTER_ACTIVATE_MASTER_IP" ->

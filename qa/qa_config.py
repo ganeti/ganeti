@@ -435,6 +435,20 @@ class _QaConfig(object):
     return enabled and (not self.GetExclusiveStorage() or
                         templ in constants.DTS_EXCL_STORAGE)
 
+  def IsStorageTypeSupported(self, storage_type):
+    """Is the given storage type supported by the current configuration?
+
+    This is determined by looking if at least one of the disk templates
+    which is associated with the storage type is enabled in the configuration.
+
+    """
+    enabled_disk_templates = self.GetEnabledDiskTemplates()
+    if storage_type == constants.ST_LVM_PV:
+      disk_templates = utils.GetDiskTemplatesOfStorageType(constants.ST_LVM_VG)
+    else:
+      disk_templates = utils.GetDiskTemplatesOfStorageType(storage_type)
+    return bool(set(enabled_disk_templates).intersection(set(disk_templates)))
+
   def AreSpindlesSupported(self):
     """Are spindles supported by the current configuration?
 
@@ -671,6 +685,13 @@ def IsTemplateSupported(templ):
 
   """
   return GetConfig().IsTemplateSupported(templ)
+
+
+def IsStorageTypeSupported(storage_type):
+  """Wrapper for L{_QaConfig.IsTemplateSupported}.
+
+  """
+  return GetConfig().IsStorageTypeSupported(storage_type)
 
 
 def AreSpindlesSupported():

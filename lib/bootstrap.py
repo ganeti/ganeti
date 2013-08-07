@@ -366,14 +366,29 @@ def _InitFileStorageDir(file_storage_dir):
   return file_storage_dir
 
 
-def _PrepareFileStorage(
-    enabled_disk_templates, file_storage_dir, init_fn=_InitFileStorageDir,
-    acceptance_fn=None):
-  """Checks if file storage is enabled and inits the dir.
+def _PrepareFileBasedStorage(
+    enabled_disk_templates, file_storage_dir,
+    default_dir, file_disk_template,
+    init_fn=_InitFileStorageDir, acceptance_fn=None):
+  """Checks if a file-base storage type is enabled and inits the dir.
+
+  @type enabled_disk_templates: list of string
+  @param enabled_disk_templates: list of enabled disk templates
+  @type file_storage_dir: string
+  @param file_storage_dir: the file storage directory
+  @type default_dir: string
+  @param default_dir: default file storage directory when C{file_storage_dir}
+      is 'None'
+  @type file_disk_template: string
+  @param file_disk_template: a disk template whose storage type is 'ST_FILE'
+  @rtype: string
+  @returns: the name of the actual file storage directory
 
   """
+  assert (file_disk_template in
+          utils.storage.GetDiskTemplatesOfStorageType(constants.ST_FILE))
   if file_storage_dir is None:
-    file_storage_dir = pathutils.DEFAULT_FILE_STORAGE_DIR
+    file_storage_dir = default_dir
   if not acceptance_fn:
     acceptance_fn = \
         lambda path: filestorage.CheckFileStoragePathAcceptance(
@@ -382,7 +397,7 @@ def _PrepareFileStorage(
   cluster.CheckFileStoragePathVsEnabledDiskTemplates(
       logging.warning, file_storage_dir, enabled_disk_templates)
 
-  file_storage_enabled = constants.DT_FILE in enabled_disk_templates
+  file_storage_enabled = file_disk_template in enabled_disk_templates
   if file_storage_enabled:
     try:
       acceptance_fn(file_storage_dir)
@@ -392,6 +407,34 @@ def _PrepareFileStorage(
   else:
     result_file_storage_dir = file_storage_dir
   return result_file_storage_dir
+
+
+def _PrepareFileStorage(
+    enabled_disk_templates, file_storage_dir, init_fn=_InitFileStorageDir,
+    acceptance_fn=None):
+  """Checks if file storage is enabled and inits the dir.
+
+  @see: C{_PrepareFileBasedStorage}
+
+  """
+  return _PrepareFileBasedStorage(
+      enabled_disk_templates, file_storage_dir,
+      pathutils.DEFAULT_FILE_STORAGE_DIR, constants.DT_FILE,
+      init_fn=init_fn, acceptance_fn=acceptance_fn)
+
+
+def _PrepareSharedFileStorage(
+    enabled_disk_templates, file_storage_dir, init_fn=_InitFileStorageDir,
+    acceptance_fn=None):
+  """Checks if shared file storage is enabled and inits the dir.
+
+  @see: C{_PrepareFileBasedStorage}
+
+  """
+  return _PrepareFileBasedStorage(
+      enabled_disk_templates, file_storage_dir,
+      pathutils.DEFAULT_SHARED_FILE_STORAGE_DIR, constants.DT_SHARED_FILE,
+      init_fn=init_fn, acceptance_fn=acceptance_fn)
 
 
 def _InitCheckEnabledDiskTemplates(enabled_disk_templates):
@@ -529,11 +572,8 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
 
   file_storage_dir = _PrepareFileStorage(enabled_disk_templates,
                                          file_storage_dir)
-
-  if constants.ENABLE_SHARED_FILE_STORAGE:
-    shared_file_storage_dir = _InitFileStorageDir(shared_file_storage_dir)
-  else:
-    shared_file_storage_dir = ""
+  shared_file_storage_dir = _PrepareSharedFileStorage(enabled_disk_templates,
+                                                      shared_file_storage_dir)
 
   if not re.match("^[0-9a-z]{2}:[0-9a-z]{2}:[0-9a-z]{2}$", mac_prefix):
     raise errors.OpPrereqError("Invalid mac prefix given '%s'" % mac_prefix,
@@ -611,8 +651,17 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
                                errors.ECODE_INVAL)
 
   # set up ssh config and /etc/hosts
-  sshline = utils.ReadFile(pathutils.SSH_HOST_RSA_PUB)
-  sshkey = sshline.split(" ")[1]
+  rsa_sshkey = ""
+  dsa_sshkey = ""
+  if os.path.isfile(pathutils.SSH_HOST_RSA_PUB):
+    sshline = utils.ReadFile(pathutils.SSH_HOST_RSA_PUB)
+    rsa_sshkey = sshline.split(" ")[1]
+  if os.path.isfile(pathutils.SSH_HOST_DSA_PUB):
+    sshline = utils.ReadFile(pathutils.SSH_HOST_DSA_PUB)
+    dsa_sshkey = sshline.split(" ")[1]
+  if not rsa_sshkey and not dsa_sshkey:
+    raise errors.OpPrereqError("Failed to find SSH public keys",
+                               errors.ECODE_ENVIRON)
 
   if modify_etc_hosts:
     utils.AddHostToEtcHosts(hostname.name, hostname.ip)
@@ -640,7 +689,8 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
   # init of cluster config file
   cluster_config = objects.Cluster(
     serial_no=1,
-    rsahostkeypub=sshkey,
+    rsahostkeypub=rsa_sshkey,
+    dsahostkeypub=dsa_sshkey,
     highest_used_port=(constants.FIRST_DRBD_PORT - 1),
     mac_prefix=mac_prefix,
     volume_group_name=vg_name,

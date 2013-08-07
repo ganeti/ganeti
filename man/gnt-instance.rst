@@ -474,9 +474,16 @@ acpi
 pae
     Valid for the Xen HVM and KVM hypervisors.
 
-    A boolean option that specifies if the hypervisor should enabled
+    A boolean option that specifies if the hypervisor should enable
     PAE support for this instance. The default is false, disabling PAE
     support.
+
+viridian
+    Valid for the Xen HVM hypervisor.
+
+    A boolean option that specifies if the hypervisor should enable
+    viridian (Hyper-V) for this instance. The default is false,
+    disabling viridian support.
 
 use\_localtime
     Valid for the Xen HVM and KVM hypervisors.
@@ -754,6 +761,19 @@ kvm\_path
 
     Path to the userspace KVM (or qemu) program.
 
+vnet\_hdr
+    Valid for the KVM hypervisor.
+
+    This boolean option determines whether the tap devices used by the
+    KVM paravirtual nics (virtio-net) will get created with VNET_HDR
+    (IFF_VNET_HDR) support.
+
+    If set to false, it effectively disables offloading on the virio-net
+    interfaces, which prevents host kernel tainting and log flooding,
+    when dealing with broken or malicious virtio-net drivers.
+
+    It is set to ``true`` by default.
+
 The ``-O (--os-parameters)`` option allows customisation of the OS
 parameters. The actual parameter names and values depends on the OS
 being used, but the syntax is the same key=value. For example, setting
@@ -862,36 +882,42 @@ Example::
 BATCH-CREATE
 ^^^^^^^^^^^^
 
-**batch-create** {instances\_file.json}
+| **batch-create**
+| [{-I|\--iallocator} *instance allocator*]
+| {instances\_file.json}
 
 This command (similar to the Ganeti 1.2 **batcher** tool) submits
-multiple instance creation jobs based on a definition file. The
-instance configurations do not encompass all the possible options for
-the **add** command, but only a subset.
+multiple instance creation jobs based on a definition file. This
+file can contain all options which are valid when adding an instance
+with the exception of the ``iallocator`` field. The IAllocator is,
+for optimization purposes, only allowed to be set for the whole batch
+operation using the ``--iallocator`` parameter.
 
-The instance file should be a valid-formed JSON file, containing a
-dictionary with instance name and instance parameters. The accepted
-parameters are:
+The instance file must be a valid-formed JSON file, containing an
+array of dictionaries with instance creation parameters. All parameters
+(except ``iallocator``) which are valid for the instance creation
+OP code are allowed. The most important ones are:
 
-disk\_size
-    The size of the disks of the instance.
+instance\_name
+    The FQDN of the new instance.
 
 disk\_template
     The disk template to use for the instance, the same as in the
     **add** command.
 
-backend
+disks
+    Array of disk specifications. Each entry describes one disk as a
+    dictionary of disk parameters.
+
+beparams
     A dictionary of backend parameters.
 
 hypervisor
-    A dictionary with a single key (the hypervisor name), and as value
-    the hypervisor options. If not passed, the default hypervisor and
-    hypervisor options will be inherited.
+    The hypervisor for the instance.
 
-mac, ip, mode, link
-    Specifications for the one NIC that will be created for the
-    instance. 'bridge' is also accepted as a backwards compatible
-    key.
+hvparams
+    A dictionary with the hypervisor options. If not passed, the default
+    hypervisor options will be inherited.
 
 nics
     List of NICs that will be created for the instance. Each entry
@@ -899,13 +925,11 @@ nics
     Please don't provide the "mac, ip, mode, link" parent keys if you
     use this method for specifying NICs.
 
-primary\_node, secondary\_node
+pnode, snode
     The primary and optionally the secondary node to use for the
-    instance (in case an iallocator script is not used).
-
-iallocator
-    Instead of specifying the nodes, an iallocator script can be used
-    to automatically compute them.
+    instance (in case an iallocator script is not used). If those
+    parameters are given, they have to be given consistently for all
+    instances in the batch operation.
 
 start
     whether to start the instance
@@ -926,30 +950,34 @@ file\_storage\_dir, file\_driver
 A simple definition for one instance can be (with most of the
 parameters taken from the cluster defaults)::
 
-    {
-      "instance3": {
-        "template": "drbd",
-        "os": "debootstrap",
-        "disk_size": ["25G"],
-        "iallocator": "dumb"
+    [
+      {
+        "mode": "create",
+        "instance_name": "instance1.example.com",
+        "disk_template": "drbd",
+        "os_type": "debootstrap",
+        "disks": [{"size":"1024"}],
+        "nics": [{}],
+        "hypervisor": "xen-pvm"
       },
-      "instance5": {
-        "template": "drbd",
-        "os": "debootstrap",
-        "disk_size": ["25G"],
-        "iallocator": "dumb",
+      {
+        "mode": "create",
+        "instance_name": "instance2.example.com",
+        "disk_template": "drbd",
+        "os_type": "debootstrap",
+        "disks": [{"size":"4096", "mode": "rw", "vg": "xenvg"}],
+        "nics": [{}],
         "hypervisor": "xen-hvm",
         "hvparams": {"acpi": true},
-        "backend": {"maxmem": 512, "minmem": 256}
+        "beparams": {"maxmem": 512, "minmem": 256}
       }
-    }
+    ]
 
 The command will display the job id for each submitted instance, as
 follows::
 
     # gnt-instance batch-create instances.json
-    instance3: 11224
-    instance5: 11225
+    Submitted jobs 37, 38
 
 REMOVE
 ^^^^^^
@@ -1674,6 +1702,7 @@ FAILOVER
 | **failover** [-f] [\--ignore-consistency] [\--ignore-ipolicy]
 | [\--shutdown-timeout=*N*]
 | [{-n|\--target-node} *node* \| {-I|\--iallocator} *name*]
+| [\--cleanup]
 | [\--submit] [\--print-job-id]
 | {*instance*}
 
@@ -1710,6 +1739,12 @@ to stop.
 
 If ``--ignore-ipolicy`` is given any instance policy violations occuring
 during this operation are ignored.
+
+If the ``--cleanup`` option is passed, the operation changes from
+performin a failover to attempting recovery from a failed previous failover.
+In this mode, Ganeti checks if the instance runs on the correct node (and
+updates its configuration if not) and ensures the instances' disks
+are configured correctly.
 
 See **ganeti**\(7) for a description of ``--submit`` and other common
 options.

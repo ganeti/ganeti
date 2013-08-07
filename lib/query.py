@@ -2600,6 +2600,8 @@ _CLUSTER_VERSION_FIELDS = {
                      "API version for OS template scripts"),
   "export_version": ("ExportVersion", QFT_NUMBER, constants.EXPORT_VERSION,
                      "Import/export file format version"),
+  "vcs_version": ("VCSVersion", QFT_TEXT, constants.VCS_VERSION,
+                     "VCS version"),
   }
 
 

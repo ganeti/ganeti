@@ -343,6 +343,8 @@ $(THH.declareSADT "CVErrorCode"
   , ("CvENODEUSERSCRIPTS",             'C.cvEnodeuserscriptsCode)
   , ("CvENODEFILESTORAGEPATHS",        'C.cvEnodefilestoragepathsCode)
   , ("CvENODEFILESTORAGEPATHUNUSABLE", 'C.cvEnodefilestoragepathunusableCode)
+  , ("CvENODESHAREDFILESTORAGEPATHUNUSABLE",
+     'C.cvEnodesharedfilestoragepathunusableCode)
   ])
 $(THH.makeJSONInstance ''CVErrorCode)
 

@@ -1475,7 +1475,7 @@ commands = {
     [FORCE_OPT, IGNORE_CONSIST_OPT] + SUBMIT_OPTS +
     [SHUTDOWN_TIMEOUT_OPT,
      DRY_RUN_OPT, PRIORITY_OPT, DST_NODE_OPT, IALLOCATOR_OPT,
-     IGNORE_IPOLICY_OPT],
+     IGNORE_IPOLICY_OPT, CLEANUP_OPT],
     "[-f] <instance>", "Stops the instance, changes its primary node and"
     " (if it was originally running) starts it on the new node"
     " (the secondary for mirrored instances or any node"

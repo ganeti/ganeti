@@ -254,6 +254,7 @@ $(genOpCode "OpCode"
      , pEnabledDiskTemplates
      , pModifyEtcHosts
      , pGlobalFileStorageDir
+     , pGlobalSharedFileStorageDir
      ],
      [])
   , ("OpClusterRedistConf",
@@ -567,6 +568,7 @@ $(genOpCode "OpCode"
      , pMigrationTargetNode
      , pMigrationTargetNodeUuid
      , pIgnoreIpolicy
+     , pMigrationCleanup
      , pIallocator
      ],
      "instance_name")

@@ -469,11 +469,6 @@ class ConfigData(ConfigObject):
       if self.cluster.volume_group_name:
         template_set.add(constants.DT_DRBD8)
         template_set.add(constants.DT_PLAIN)
-      # FIXME: Adapt this when dis/enabling at configure time is removed.
-      # Enable 'sharedfile', if they are enabled, even though they might
-      # currently not be used.
-      if constants.ENABLE_SHARED_FILE_STORAGE:
-        template_set.add(constants.DT_SHARED_FILE)
       # Set enabled_disk_templates to the inferred disk templates. Order them
       # according to a preference list that is based on Ganeti's history of
       # supported disk templates.
@@ -1529,6 +1524,7 @@ class Cluster(TaggableObject):
   __slots__ = [
     "serial_no",
     "rsahostkeypub",
+    "dsahostkeypub",
     "highest_used_port",
     "tcpudp_port_pool",
     "mac_prefix",

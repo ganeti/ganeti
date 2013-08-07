@@ -46,7 +46,10 @@ class FakeConfig:
   def GetNodeList(self):
     return ["a", "b", "c"]
 
-  def GetHostKey(self):
+  def GetRsaHostKey(self):
+    return FAKE_CLUSTER_KEY
+
+  def GetDsaHostKey(self):
     return FAKE_CLUSTER_KEY
 
   def GetClusterName(self):

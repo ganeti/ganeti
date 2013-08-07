@@ -37,7 +37,7 @@ module Test.Ganeti.Types
   , JobId(..)
   ) where
 
-import Data.List (delete, sort)
+import Data.List (sort)
 import Test.QuickCheck as QuickCheck hiding (Result)
 import Test.HUnit
 import qualified Text.JSON as J
@@ -81,12 +81,7 @@ $(genArbitrary ''AllocPolicy)
 
 -- | Valid disk templates (depending on configure options).
 allDiskTemplates :: [DiskTemplate]
-allDiskTemplates =
-  let all_vals = [minBound..maxBound]::[DiskTemplate]
-      sel1 = if C.enableSharedFileStorage
-               then all_vals
-               else delete DTSharedFile all_vals
-  in sel1
+allDiskTemplates = [minBound..maxBound]::[DiskTemplate]
 
 -- | Custom 'Arbitrary' instance for 'DiskTemplate', which needs to
 -- handle the case of file storage being disabled at configure time.

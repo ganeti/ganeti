@@ -6,6 +6,7 @@ The following design documents have been implemented in Ganeti 2.8:
 
 - :doc:`design-reason-trail`
 - :doc:`design-autorepair`
+- :doc:`design-device-uuid-name`
 
 The following designs have been partially implemented in Ganeti 2.8:
 

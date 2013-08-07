@@ -290,6 +290,7 @@ class LUClusterQuery(NoHooksLU):
       "config_version": constants.CONFIG_VERSION,
       "os_api_version": max(constants.OS_API_VERSIONS),
       "export_version": constants.EXPORT_VERSION,
+      "vcs_version": constants.VCS_VERSION,
       "architecture": runtime.GetArchInfo(),
       "name": cluster.cluster_name,
       "master": self.cfg.GetMasterNodeName(),
@@ -609,9 +610,12 @@ def _ValidateNetmask(cfg, netmask):
                                (netmask), errors.ECODE_INVAL)
 
 
-def CheckFileStoragePathVsEnabledDiskTemplates(
-    logging_warn_fn, file_storage_dir, enabled_disk_templates):
-  """Checks whether the given file storage directory is acceptable.
+def CheckFileBasedStoragePathVsEnabledDiskTemplates(
+    logging_warn_fn, file_storage_dir, enabled_disk_templates,
+    file_disk_template):
+  """Checks whether the given file-based storage directory is acceptable.
+
+  Note: This function is public, because it is also used in bootstrap.py.
 
   @type logging_warn_fn: function
   @param logging_warn_fn: function which accepts a string and logs it
@@ -619,23 +623,53 @@ def CheckFileStoragePathVsEnabledDiskTemplates(
   @param file_storage_dir: the directory to be used for file-based instances
   @type enabled_disk_templates: list of string
   @param enabled_disk_templates: the list of enabled disk templates
+  @type file_disk_template: string
+  @param file_disk_template: the file-based disk template for which the
+      path should be checked
 
-  Note: This function is public, because it is also used in bootstrap.py.
   """
-  file_storage_enabled = constants.DT_FILE in enabled_disk_templates
+  assert (file_disk_template in
+          utils.storage.GetDiskTemplatesOfStorageType(constants.ST_FILE))
+  file_storage_enabled = file_disk_template in enabled_disk_templates
   if file_storage_dir is not None:
     if file_storage_dir == "":
       if file_storage_enabled:
-        raise errors.OpPrereqError("Unsetting the file storage directory"
-                                   " while having file storage enabled"
-                                   " is not permitted.")
+        raise errors.OpPrereqError(
+            "Unsetting the '%s' storage directory while having '%s' storage"
+            " enabled is not permitted." %
+            (file_disk_template, file_disk_template))
     else:
       if not file_storage_enabled:
-        logging_warn_fn("Specified a file storage directory, although file"
-                        " storage is not enabled.")
+        logging_warn_fn(
+            "Specified a %s storage directory, although %s storage is not"
+            " enabled." % (file_disk_template, file_disk_template))
   else:
-    raise errors.ProgrammerError("Received file storage dir with value"
-                                 " 'None'.")
+    raise errors.ProgrammerError("Received %s storage dir with value"
+                                 " 'None'." % file_disk_template)
+
+
+def CheckFileStoragePathVsEnabledDiskTemplates(
+    logging_warn_fn, file_storage_dir, enabled_disk_templates):
+  """Checks whether the given file storage directory is acceptable.
+
+  @see: C{CheckFileBasedStoragePathVsEnabledDiskTemplates}
+
+  """
+  CheckFileBasedStoragePathVsEnabledDiskTemplates(
+      logging_warn_fn, file_storage_dir, enabled_disk_templates,
+      constants.DT_FILE)
+
+
+def CheckSharedFileStoragePathVsEnabledDiskTemplates(
+    logging_warn_fn, file_storage_dir, enabled_disk_templates):
+  """Checks whether the given shared file storage directory is acceptable.
+
+  @see: C{CheckFileBasedStoragePathVsEnabledDiskTemplates}
+
+  """
+  CheckFileBasedStoragePathVsEnabledDiskTemplates(
+      logging_warn_fn, file_storage_dir, enabled_disk_templates,
+      constants.DT_SHARED_FILE)
 
 
 class LUClusterSetParams(LogicalUnit):
@@ -785,6 +819,11 @@ class LUClusterSetParams(LogicalUnit):
       CheckFileStoragePathVsEnabledDiskTemplates(
           self.LogWarning, self.op.file_storage_dir, enabled_disk_templates)
 
+    if self.op.shared_file_storage_dir is not None:
+      CheckSharedFileStoragePathVsEnabledDiskTemplates(
+          self.LogWarning, self.op.shared_file_storage_dir,
+          enabled_disk_templates)
+
     if self.op.drbd_helper:
       # checks given drbd helper on all nodes
       helpers = self.rpc.call_drbd_helper(node_uuids)
@@ -897,7 +936,7 @@ class LUClusterSetParams(LogicalUnit):
     self.new_diskparams = objects.FillDict(cluster.diskparams, {})
     if self.op.diskparams:
       for dt_name, dt_params in self.op.diskparams.items():
-        if dt_name not in self.op.diskparams:
+        if dt_name not in self.new_diskparams:
           self.new_diskparams[dt_name] = dt_params
         else:
           self.new_diskparams[dt_name].update(dt_params)
@@ -1403,12 +1442,12 @@ class LUClusterVerifyConfig(NoHooksLU, _VerifyErrors):
       (errcode, msg) = _VerifyCertificate(cert_filename)
       self._ErrorIf(errcode, constants.CV_ECLUSTERCERT, None, msg, code=errcode)
 
-    self._ErrorIf(not utils.CanRead(constants.CONFD_USER,
+    self._ErrorIf(not utils.CanRead(constants.LUXID_USER,
                                     pathutils.NODED_CERT_FILE),
                   constants.CV_ECLUSTERCERT,
                   None,
                   pathutils.NODED_CERT_FILE + " must be accessible by the " +
-                    constants.CONFD_USER + " user")
+                    constants.LUXID_USER + " user")
 
     feedback_fn("* Verifying hypervisor parameters")
 
@@ -1436,9 +1475,8 @@ class LUClusterVerifyConfig(NoHooksLU, _VerifyErrors):
     pretty_dangling = [
         "%s (%s)" %
         (node.name,
-         utils.CommaJoin(
-           self.cfg.GetInstanceNames(
-             dangling_instances.get(node.uuid, ["no instances"]))))
+         utils.CommaJoin(inst.name for
+                         inst in dangling_instances.get(node.uuid, [])))
         for node in dangling_nodes]
 
     self._ErrorIf(bool(dangling_nodes), constants.CV_ECLUSTERDANGLINGNODES,
@@ -1449,8 +1487,8 @@ class LUClusterVerifyConfig(NoHooksLU, _VerifyErrors):
     self._ErrorIf(bool(no_node_instances), constants.CV_ECLUSTERDANGLINGINST,
                   None,
                   "the following instances have a non-existing primary-node:"
-                  " %s", utils.CommaJoin(
-                           self.cfg.GetInstanceNames(no_node_instances)))
+                  " %s", utils.CommaJoin(inst.name for
+                                         inst in no_node_instances))
 
     return not self.bad
 
@@ -2379,21 +2417,54 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
                     "Node should not have returned forbidden file storage"
                     " paths")
 
-  def _VerifyStoragePaths(self, ninfo, nresult):
+  def _VerifyStoragePaths(self, ninfo, nresult, file_disk_template,
+                          verify_key, error_key):
     """Verifies (file) storage paths.
 
     @type ninfo: L{objects.Node}
     @param ninfo: the node to check
     @param nresult: the remote results for the node
+    @type file_disk_template: string
+    @param file_disk_template: file-based disk template, whose directory
+        is supposed to be verified
+    @type verify_key: string
+    @param verify_key: key for the verification map of this file
+        verification step
+    @param error_key: error key to be added to the verification results
+        in case something goes wrong in this verification step
 
     """
+    assert (file_disk_template in
+            utils.storage.GetDiskTemplatesOfStorageType(constants.ST_FILE))
     cluster = self.cfg.GetClusterInfo()
-    if cluster.IsFileStorageEnabled():
+    if cluster.IsDiskTemplateEnabled(file_disk_template):
       self._ErrorIf(
-          constants.NV_FILE_STORAGE_PATH in nresult,
-          constants.CV_ENODEFILESTORAGEPATHUNUSABLE, ninfo.name,
-          "The configured file storage path is unusable: %s" %
-          nresult.get(constants.NV_FILE_STORAGE_PATH))
+          verify_key in nresult,
+          error_key, ninfo.name,
+          "The configured %s storage path is unusable: %s" %
+          (file_disk_template, nresult.get(verify_key)))
+
+  def _VerifyFileStoragePaths(self, ninfo, nresult):
+    """Verifies (file) storage paths.
+
+    @see: C{_VerifyStoragePaths}
+
+    """
+    self._VerifyStoragePaths(
+        ninfo, nresult, constants.DT_FILE,
+        constants.NV_FILE_STORAGE_PATH,
+        constants.CV_ENODEFILESTORAGEPATHUNUSABLE)
+
+  def _VerifySharedFileStoragePaths(self, ninfo, nresult):
+    """Verifies (file) storage paths.
+
+    @see: C{_VerifyStoragePaths}
+
+    """
+    self._VerifyStoragePaths(
+        ninfo, nresult, constants.DT_SHARED_FILE,
+        constants.NV_SHARED_FILE_STORAGE_PATH,
+        constants.CV_ENODESHAREDFILESTORAGEPATHUNUSABLE)
 
   def _VerifyOob(self, ninfo, nresult):
     """Verifies out of band functionality of a node.
@@ -2910,7 +2981,8 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       self._VerifyOob(node_i, nresult)
       self._VerifyAcceptedFileStoragePaths(node_i, nresult,
                                            node_i.uuid == master_node_uuid)
-      self._VerifyStoragePaths(node_i, nresult)
+      self._VerifyFileStoragePaths(node_i, nresult)
+      self._VerifySharedFileStoragePaths(node_i, nresult)
 
       if nimg.vm_capable:
         self._UpdateVerifyNodeLVM(node_i, nresult, vg_name, nimg)

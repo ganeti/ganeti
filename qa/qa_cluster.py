@@ -185,7 +185,8 @@ def TestClusterInit(rapi_user, rapi_secret):
   if constants.DT_FILE in enabled_disk_templates:
     cmd.append(
         "--file-storage-dir=%s" %
-        qa_config.get("file-storage-dir", pathutils.DEFAULT_FILE_STORAGE_DIR))
+        qa_config.get("default-file-storage-dir",
+                      pathutils.DEFAULT_FILE_STORAGE_DIR))
 
   for spec_type in ("mem-size", "disk-size", "disk-count", "cpu-count",
                     "nic-count"):
@@ -406,6 +407,9 @@ def TestDelay(node):
 
 def TestClusterReservedLvs():
   """gnt-cluster reserved lvs"""
+  # if no lvm-based templates are supported, skip the test
+  if not qa_config.IsStorageTypeSupported(constants.ST_LVM_VG):
+    return
   vgname = qa_config.get("vg-name", constants.DEFAULT_VG)
   lvname = _QA_LV_PREFIX + "test"
   lvfullname = "/".join([vgname, lvname])
@@ -437,6 +441,111 @@ def TestClusterModifyDisk():
   """gnt-cluster modify -D"""
   for param in _FAIL_PARAMS:
     AssertCommand(["gnt-cluster", "modify", "-D", param], fail=True)
+
+
+def _GetOtherEnabledDiskTemplate(undesired_disk_templates,
+                                 enabled_disk_templates):
+  """Returns one template that is not in the undesired set.
+
+  @type undesired_disk_templates: list of string
+  @param undesired_disk_templates: a list of disk templates that we want to
+      exclude when drawing one disk template from the list of enabled
+      disk templates
+  @type enabled_disk_templates: list of string
+  @param enabled_disk_templates: list of enabled disk templates (in QA)
+
+  """
+  desired_templates = list(set(enabled_disk_templates)
+                                - set(undesired_disk_templates))
+  if desired_templates:
+    template = desired_templates[0]
+  else:
+    # If no desired disk template is available for QA, choose 'diskless' and
+    # hope for the best.
+    template = constants.ST_DISKLESS
+
+  return template
+
+
+def TestClusterModifyFileBasedStorageDir(
+    file_disk_template, dir_config_key, default_dir, option_name):
+  """Tests gnt-cluster modify wrt to file-based directory options.
+
+  @type file_disk_template: string
+  @param file_disk_template: file-based disk template
+  @type dir_config_key: string
+  @param dir_config_key: key for the QA config to retrieve the default
+     directory value
+  @type default_dir: string
+  @param default_dir: default directory, if the QA config does not specify
+     it
+  @type option_name: string
+  @param option_name: name of the option of 'gnt-cluster modify' to
+     change the directory
+
+  """
+  enabled_disk_templates = qa_config.GetEnabledDiskTemplates()
+  assert file_disk_template in [constants.DT_FILE, constants.DT_SHARED_FILE]
+  if not qa_config.IsTemplateSupported(file_disk_template):
+    return
+
+  # Get some non-file-based disk template to disable file storage
+  other_disk_template = _GetOtherEnabledDiskTemplate(
+      utils.storage.GetDiskTemplatesOfStorageType(constants.ST_FILE),
+      enabled_disk_templates)
+
+  file_storage_dir = qa_config.get(dir_config_key, default_dir)
+  invalid_file_storage_dir = "/boot/"
+
+  for fail, cmd in [
+    (False, ["gnt-cluster", "modify",
+            "--enabled-disk-templates=%s" % file_disk_template]),
+    (False, ["gnt-cluster", "modify",
+            "--%s=%s" % (option_name, file_storage_dir)]),
+    (False, ["gnt-cluster", "modify",
+            "--%s=%s" % (option_name, invalid_file_storage_dir)]),
+    # file storage dir is set to an inacceptable path, thus verify
+    # should fail
+    (True, ["gnt-cluster", "verify"]),
+    # unsetting the storage dir while file storage is enabled
+    # should fail
+    (True, ["gnt-cluster", "modify",
+            "--%s=" % option_name]),
+    (False, ["gnt-cluster", "modify",
+            "--%s=%s" % (option_name, file_storage_dir)]),
+    (False, ["gnt-cluster", "modify",
+            "--enabled-disk-templates=%s" % other_disk_template]),
+    (False, ["gnt-cluster", "modify",
+            "--%s=%s" % (option_name, invalid_file_storage_dir)]),
+    # file storage is set to an inacceptable path, but file storage
+    # is disabled, thus verify should not fail
+    (False, ["gnt-cluster", "verify"]),
+    # unsetting the file storage dir while file storage is not enabled
+    # should be fine
+    (False, ["gnt-cluster", "modify",
+            "--%s=" % option_name]),
+    # resetting everything to sane values
+    (False, ["gnt-cluster", "modify",
+            "--%s=%s" % (option_name, file_storage_dir),
+            "--enabled-disk-templates=%s" % ",".join(enabled_disk_templates)])
+    ]:
+    AssertCommand(cmd, fail=fail)
+
+
+def TestClusterModifyFileStorageDir():
+  """gnt-cluster modify --file-storage-dir=..."""
+  TestClusterModifyFileBasedStorageDir(
+      constants.DT_FILE, "default-file-storage-dir",
+      pathutils.DEFAULT_FILE_STORAGE_DIR,
+      "file-storage-dir")
+
+
+def TestClusterModifySharedFileStorageDir():
+  """gnt-cluster modify --shared-file-storage-dir=..."""
+  TestClusterModifyFileBasedStorageDir(
+      constants.DT_SHARED_FILE, "default-shared-file-storage-dir",
+      pathutils.DEFAULT_SHARED_FILE_STORAGE_DIR,
+      "shared-file-storage-dir")
 
 
 def TestClusterModifyDiskTemplates():
@@ -530,17 +639,10 @@ def _TestClusterModifyDiskTemplatesVgName(enabled_disk_templates):
     return
 
   # determine an LVM and a non-LVM disk template for the tests
-  non_lvm_templates = list(set(enabled_disk_templates)
-                           - set(utils.GetLvmDiskTemplates()))
+  non_lvm_template = _GetOtherEnabledDiskTemplate(utils.GetLvmDiskTemplates(),
+                                                  enabled_disk_templates)
   lvm_template = list(set(enabled_disk_templates)
                       .intersection(set(utils.GetLvmDiskTemplates())))[0]
-  non_lvm_template = None
-  if non_lvm_templates:
-    non_lvm_template = non_lvm_templates[0]
-  else:
-    # If no non-lvm disk template is available for QA, choose 'diskless' and
-    # hope for the best.
-    non_lvm_template = constants.ST_DISKLESS
 
   vgname = qa_config.get("vg-name", constants.DEFAULT_VG)
 

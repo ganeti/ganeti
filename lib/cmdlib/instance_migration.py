@@ -119,7 +119,8 @@ class LUInstanceFailover(LogicalUnit):
 
     self._migrater = \
       TLMigrateInstance(self, self.op.instance_uuid, self.op.instance_name,
-                        False, True, False, self.op.ignore_consistency, True,
+                        self.op.cleanup, True, False,
+                        self.op.ignore_consistency, True,
                         self.op.shutdown_timeout, self.op.ignore_ipolicy)
 
     self.tasklets = [self._migrater]
@@ -140,6 +141,7 @@ class LUInstanceFailover(LogicalUnit):
       "SHUTDOWN_TIMEOUT": self.op.shutdown_timeout,
       "OLD_PRIMARY": self.cfg.GetNodeName(source_node_uuid),
       "NEW_PRIMARY": self.op.target_node,
+      "FAILOVER_CLEANUP": self.op.cleanup,
       }
 
     if instance.disk_template in constants.DTS_INT_MIRROR:
