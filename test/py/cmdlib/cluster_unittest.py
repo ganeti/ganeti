@@ -1077,5 +1077,106 @@ class TestLUClusterVerifyConfig(CmdlibTestCase):
     self.assertFalse(result)
 
 
+class TestLUClusterVerifyGroup(CmdlibTestCase):
+  def testEmptyNodeGroup(self):
+    group = self.cfg.AddNewNodeGroup()
+    op = opcodes.OpClusterVerifyGroup(group_name=group.name)
+
+    result = self.ExecOpCode(op)
+
+    self.assertTrue(result)
+    self.mcpu.assertLogContainsRegex("Empty node group, skipping verification")
+
+  def testSimpleInvocation(self):
+    op = opcodes.OpClusterVerifyGroup(group_name="default")
+
+    self.ExecOpCode(op)
+
+
+class TestLUClusterVerifyGroupMethods(CmdlibTestCase):
+  """Base class for testing individual methods in LUClusterVerifyGroup.
+
+  """
+  def setUp(self):
+    super(TestLUClusterVerifyGroupMethods, self).setUp()
+    self.op = opcodes.OpClusterVerifyGroup(group_name="default")
+
+
+class TestLUClusterVerifyGroupVerifyNode(TestLUClusterVerifyGroupMethods):
+  @withLockedLU
+  def testInvalidNodeResult(self, lu):
+    self.assertFalse(lu._VerifyNode(self.master, None))
+    self.assertFalse(lu._VerifyNode(self.master, ""))
+
+  @withLockedLU
+  def testInvalidVersion(self, lu):
+    self.assertFalse(lu._VerifyNode(self.master, {"version": None}))
+    self.assertFalse(lu._VerifyNode(self.master, {"version": ""}))
+    self.assertFalse(lu._VerifyNode(self.master, {
+      "version": (constants.PROTOCOL_VERSION - 1, constants.RELEASE_VERSION)
+    }))
+
+    self.mcpu.ClearLogMessages()
+    self.assertTrue(lu._VerifyNode(self.master, {
+      "version": (constants.PROTOCOL_VERSION, constants.RELEASE_VERSION + "x")
+    }))
+    self.mcpu.assertLogContainsRegex("software version mismatch")
+
+  def _GetValidNodeResult(self, additional_fields):
+    ret = {
+      "version": (constants.PROTOCOL_VERSION, constants.RELEASE_VERSION),
+      constants.NV_NODESETUP: []
+    }
+    ret.update(additional_fields)
+    return ret
+
+  @withLockedLU
+  def testHypervisor(self, lu):
+    lu._VerifyNode(self.master, self._GetValidNodeResult({
+      constants.NV_HYPERVISOR: {
+        constants.HT_XEN_PVM: None,
+        constants.HT_XEN_HVM: "mock error"
+      }
+    }))
+    self.mcpu.assertLogContainsRegex(constants.HT_XEN_HVM)
+    self.mcpu.assertLogContainsRegex("mock error")
+
+  @withLockedLU
+  def testHvParams(self, lu):
+    lu._VerifyNode(self.master, self._GetValidNodeResult({
+      constants.NV_HVPARAMS: [("mock item", constants.HT_XEN_HVM, "mock error")]
+    }))
+    self.mcpu.assertLogContainsRegex(constants.HT_XEN_HVM)
+    self.mcpu.assertLogContainsRegex("mock item")
+    self.mcpu.assertLogContainsRegex("mock error")
+
+  @withLockedLU
+  def testSuccessfulResult(self, lu):
+    self.assertTrue(lu._VerifyNode(self.master, self._GetValidNodeResult({})))
+    self.mcpu.assertLogIsEmpty()
+
+
+class TestLUClusterVerifyGroupVerifyNodeTime(TestLUClusterVerifyGroupMethods):
+  @withLockedLU
+  def testInvalidNodeResult(self, lu):
+    for ndata in [{}, {constants.NV_TIME: "invalid"}]:
+      self.mcpu.ClearLogMessages()
+      lu._VerifyNodeTime(self.master, ndata, None, None)
+
+      self.mcpu.assertLogContainsRegex("Node returned invalid time")
+
+  @withLockedLU
+  def testNodeDiverges(self, lu):
+    for ntime in [(0, 0), (2000, 0)]:
+      self.mcpu.ClearLogMessages()
+      lu._VerifyNodeTime(self.master, {constants.NV_TIME: ntime}, 1000, 1005)
+
+      self.mcpu.assertLogContainsRegex("Node time diverges")
+
+  @withLockedLU
+  def testSuccessfulResult(self, lu):
+    lu._VerifyNodeTime(self.master, {constants.NV_TIME: (0, 0)}, 0, 5)
+    self.mcpu.assertLogIsEmpty()
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()

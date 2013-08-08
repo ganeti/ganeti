@@ -220,6 +220,21 @@ class CmdlibTestCase(testutils.GanetiTestCase):
     """
     self.ExecOpCodeExpectException(opcode, errors.OpExecError, expected_regex)
 
+  def RunWithLockedLU(self, opcode, test_func):
+    """Takes the given opcode, creates a LU and runs func on it.
+
+    The passed LU did already perform locking, but no methods which actually
+    require locking are executed on the LU.
+
+    @param opcode: the opcode to get the LU for.
+    @param test_func: the function to execute with the LU as parameter.
+    @return: the result of test_func
+
+    """
+    self.glm.AddLocksFromConfig(self.cfg)
+
+    return self.mcpu.RunWithLockedLU(opcode, test_func)
+
   def assertLogContainsMessage(self, expected_msg):
     """Shortcut for L{ProcessorMock.assertLogContainsMessage}
 
@@ -292,3 +307,33 @@ class CmdlibTestCase(testutils.GanetiTestCase):
         state[key] = value
 
     return opcodes.OpCode.LoadOpCode(state)
+
+
+# pylint: disable=C0103
+def withLockedLU(func):
+  """Convenience decorator which runs the decorated method with the LU.
+
+  This uses L{CmdlibTestCase.RunWithLockedLU} to run the decorated method.
+  For this to work, the opcode to run has to be an instance field named "op",
+  "_op", "opcode" or "_opcode".
+
+  """
+  def wrapper(*args, **kwargs):
+    test = args[0]
+    assert isinstance(test, CmdlibTestCase)
+
+    op = None
+    for attr_name in ["op", "_op", "opcode", "_opcode"]:
+      if hasattr(test, attr_name):
+        op = getattr(test, attr_name)
+        break
+    assert op is not None
+
+    # pylint: disable=W0142
+    def callWithLU(lu):
+      new_args = list(args)
+      new_args.append(lu)
+      func(*new_args, **kwargs)
+
+    return test.RunWithLockedLU(op, callWithLU)
+  return wrapper

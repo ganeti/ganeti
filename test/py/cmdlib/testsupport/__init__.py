@@ -23,7 +23,8 @@
 
 """
 
-from cmdlib.testsupport.cmdlib_testcase import CmdlibTestCase
+from cmdlib.testsupport.cmdlib_testcase import CmdlibTestCase, \
+  withLockedLU
 from cmdlib.testsupport.config_mock import ConfigMock
 from cmdlib.testsupport.iallocator_mock import patchIAllocator
 from cmdlib.testsupport.lock_manager_mock import LockManagerMock
@@ -34,6 +35,7 @@ from cmdlib.testsupport.rpc_runner_mock import CreateRpcRunnerMock, \
 from cmdlib.testsupport.ssh_mock import patchSsh
 
 __all__ = ["CmdlibTestCase",
+           "withLockedLU",
            "ConfigMock",
            "CreateRpcRunnerMock",
            "HostnameMock",

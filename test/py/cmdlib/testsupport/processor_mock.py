@@ -67,6 +67,7 @@ class ProcessorMock(mcpu.Processor):
   def __init__(self, context):
     super(ProcessorMock, self).__init__(context, 0, True)
     self.log_entries = []
+    self._lu_test_func = None
 
   def ExecOpCodeAndRecordOutput(self, op):
     """Executes the given opcode and records the output for further inspection.
@@ -76,6 +77,34 @@ class ProcessorMock(mcpu.Processor):
 
     """
     return self.ExecOpCode(op, LogRecordingCallback(self))
+
+  def _ExecLU(self, lu):
+    if not self._lu_test_func:
+      return super(ProcessorMock, self)._ExecLU(lu)
+    else:
+      # required by a lot LU's, and usually passed in Exec
+      lu._feedback_fn = self.Log
+      return self._lu_test_func(lu)
+
+  def _CheckLUResult(self, op, result):
+    if not self._lu_test_func:
+      return super(ProcessorMock, self)._CheckLUResult(op, result)
+    else:
+      pass
+
+  def RunWithLockedLU(self, op, func):
+    """Takes the given opcode, creates a LU and runs func with it.
+
+    @param op: the opcode to get the LU for.
+    @param func: the function to run with the created and locked LU.
+    @return: the result of func.
+
+    """
+    self._lu_test_func = func
+    try:
+      return self.ExecOpCodeAndRecordOutput(op)
+    finally:
+      self._lu_test_func = None
 
   def GetLogEntries(self):
     """Return the list of recorded log entries.
@@ -163,3 +192,12 @@ class ProcessorMock(mcpu.Processor):
     if len(self.GetLogMessages()) > 0:
       raise AssertionError("Log is not empty. Log is:\n%s" %
                            self.GetLogMessagesString())
+
+  def ClearLogMessages(self):
+    """Clears all recorded log messages.
+
+    This is useful if you use L{GetLockedLU} and want to test multiple calls
+    on it.
+
+    """
+    self.log_entries = []
