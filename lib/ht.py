@@ -567,7 +567,7 @@ def TSetParamsMods(fn):
 
 TINicParams = \
     Comment("NIC parameters")(TDictOf(TElemOf(constants.INIC_PARAMS),
-                                      TMaybeString))
+                                      TMaybe(TString)))
 
 TIDiskParams = \
     Comment("Disk parameters")(TDictOf(TElemOf(constants.IDISK_PARAMS),
