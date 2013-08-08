@@ -846,6 +846,11 @@ def TestClusterModifyIPolicy():
           continue
         AssertEqual(eff_policy[p], old_policy[p])
 
+  # Allowing disk templates via ipolicy requires them to be
+  # enabled on the cluster.
+  if not (qa_config.IsTemplateSupported(constants.DT_PLAIN)
+          and qa_config.IsTemplateSupported(constants.DT_DRBD8)):
+    return
   # Disk templates are treated slightly differently
   par = "disk-templates"
   disp_str = "allowed disk templates"
