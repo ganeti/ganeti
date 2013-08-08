@@ -2282,17 +2282,8 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
                     "File %s found with %s different checksums (%s)",
                     filename, len(checksums), "; ".join(variants))
 
-  def _VerifyNodeDrbd(self, ninfo, nresult, instanceinfo, drbd_helper,
-                      drbd_map):
-    """Verifies and the node DRBD status.
-
-    @type ninfo: L{objects.Node}
-    @param ninfo: the node to check
-    @param nresult: the remote results for the node
-    @param instanceinfo: the dict of instances
-    @param drbd_helper: the configured DRBD usermode helper
-    @param drbd_map: the DRBD map as returned by
-        L{ganeti.config.ConfigWriter.ComputeDRBDMap}
+  def _VerifyNodeDrbdHelper(self, ninfo, nresult, drbd_helper):
+    """Verify the drbd helper.
 
     """
     if drbd_helper:
@@ -2308,6 +2299,21 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
         test = status and (payload != drbd_helper)
         self._ErrorIf(test, constants.CV_ENODEDRBDHELPER, ninfo.name,
                       "wrong drbd usermode helper: %s", payload)
+
+  def _VerifyNodeDrbd(self, ninfo, nresult, instanceinfo, drbd_helper,
+                      drbd_map):
+    """Verifies and the node DRBD status.
+
+    @type ninfo: L{objects.Node}
+    @param ninfo: the node to check
+    @param nresult: the remote results for the node
+    @param instanceinfo: the dict of instances
+    @param drbd_helper: the configured DRBD usermode helper
+    @param drbd_map: the DRBD map as returned by
+        L{ganeti.config.ConfigWriter.ComputeDRBDMap}
+
+    """
+    self._VerifyNodeDrbdHelper(ninfo, nresult, drbd_helper)
 
     # compute the DRBD minors
     node_drbd = {}
@@ -2848,10 +2854,11 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       node_verify_param[constants.NV_LVLIST] = vg_name
       node_verify_param[constants.NV_PVLIST] = [vg_name]
 
-    if drbd_helper:
-      node_verify_param[constants.NV_DRBDVERSION] = None
-      node_verify_param[constants.NV_DRBDLIST] = None
-      node_verify_param[constants.NV_DRBDHELPER] = drbd_helper
+    if cluster.IsDiskTemplateEnabled(constants.DT_DRBD8):
+      if drbd_helper:
+        node_verify_param[constants.NV_DRBDVERSION] = None
+        node_verify_param[constants.NV_DRBDLIST] = None
+        node_verify_param[constants.NV_DRBDHELPER] = drbd_helper
 
     if cluster.IsFileStorageEnabled() or \
         cluster.IsSharedFileStorageEnabled():
