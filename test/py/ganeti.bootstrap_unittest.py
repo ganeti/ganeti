@@ -27,6 +27,7 @@ import unittest
 
 from ganeti import bootstrap
 from ganeti import constants
+from ganeti.storage import drbd
 from ganeti import errors
 from ganeti import pathutils
 
@@ -128,6 +129,38 @@ class TestRestrictIpolicyToEnabledDiskTemplates(unittest.TestCase):
     bootstrap._RestrictIpolicyToEnabledDiskTemplates(
         ipolicy, enabled_disk_templates)
     self.assertEqual(ipolicy[constants.IPOLICY_DTS], [constants.DT_PLAIN])
+
+
+class TestInitCheckDrbdHelper(unittest.TestCase):
+
+  @testutils.patch_object(drbd.DRBD8, "GetUsermodeHelper")
+  def testHelperNone(self, drbd_mock_get_usermode_helper):
+    current_helper = "/bin/helper"
+    drbd_helper = None
+    drbd_mock_get_usermode_helper.return_value = current_helper
+    bootstrap._InitCheckDrbdHelper(drbd_helper)
+
+  @testutils.patch_object(drbd.DRBD8, "GetUsermodeHelper")
+  def testHelperOk(self, drbd_mock_get_usermode_helper):
+    current_helper = "/bin/helper"
+    drbd_helper = "/bin/helper"
+    drbd_mock_get_usermode_helper.return_value = current_helper
+    bootstrap._InitCheckDrbdHelper(drbd_helper)
+
+  @testutils.patch_object(drbd.DRBD8, "GetUsermodeHelper")
+  def testWrongHelper(self, drbd_mock_get_usermode_helper):
+    current_helper = "/bin/otherhelper"
+    drbd_helper = "/bin/helper"
+    drbd_mock_get_usermode_helper.return_value = current_helper
+    self.assertRaises(errors.OpPrereqError,
+        bootstrap._InitCheckDrbdHelper, drbd_helper)
+
+  @testutils.patch_object(drbd.DRBD8, "GetUsermodeHelper")
+  def testHelperCheckFails(self, drbd_mock_get_usermode_helper):
+    drbd_helper = "/bin/helper"
+    drbd_mock_get_usermode_helper.side_effect=errors.BlockDeviceError
+    self.assertRaises(errors.OpPrereqError,
+        bootstrap._InitCheckDrbdHelper, drbd_helper)
 
 
 if __name__ == "__main__":

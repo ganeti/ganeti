@@ -472,6 +472,29 @@ def _RestrictIpolicyToEnabledDiskTemplates(ipolicy, enabled_disk_templates):
   ipolicy[constants.IPOLICY_DTS] = restricted_disk_templates
 
 
+def _InitCheckDrbdHelper(drbd_helper):
+  """Checks the DRBD usermode helper.
+
+  @type drbd_helper: string
+  @param drbd_helper: name of the DRBD usermode helper that the system should
+    use
+
+  """
+  if drbd_helper is not None:
+    try:
+      curr_helper = drbd.DRBD8.GetUsermodeHelper()
+    except errors.BlockDeviceError, err:
+      raise errors.OpPrereqError("Error while checking drbd helper"
+                                 " (specify --no-drbd-storage if you are not"
+                                 " using drbd): %s" % str(err),
+                                 errors.ECODE_ENVIRON)
+    if drbd_helper != curr_helper:
+      raise errors.OpPrereqError("Error: requiring %s as drbd helper but %s"
+                                 " is the current helper" % (drbd_helper,
+                                                             curr_helper),
+                                 errors.ECODE_INVAL)
+
+
 def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
                 master_netmask, master_netdev, file_storage_dir,
                 shared_file_storage_dir, candidate_pool_size, secondary_ip=None,
@@ -569,19 +592,7 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
     if vgstatus:
       raise errors.OpPrereqError("Error: %s" % vgstatus, errors.ECODE_INVAL)
 
-  if drbd_helper is not None:
-    try:
-      curr_helper = drbd.DRBD8.GetUsermodeHelper()
-    except errors.BlockDeviceError, err:
-      raise errors.OpPrereqError("Error while checking drbd helper"
-                                 " (specify --no-drbd-storage if you are not"
-                                 " using drbd): %s" % str(err),
-                                 errors.ECODE_ENVIRON)
-    if drbd_helper != curr_helper:
-      raise errors.OpPrereqError("Error: requiring %s as drbd helper but %s"
-                                 " is the current helper" % (drbd_helper,
-                                                             curr_helper),
-                                 errors.ECODE_INVAL)
+  _InitCheckDrbdHelper(drbd_helper)
 
   logging.debug("Stopping daemons (if any are running)")
   result = utils.RunCmd([pathutils.DAEMON_UTIL, "stop-all"])
