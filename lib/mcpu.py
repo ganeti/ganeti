@@ -470,6 +470,7 @@ class Processor(object):
 
     return result
 
+  # pylint: disable=R0201
   def _CheckLUResult(self, op, result):
     """Check the LU result against the contract in the opcode.
 
