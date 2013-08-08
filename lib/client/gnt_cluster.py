@@ -76,6 +76,52 @@ def _CheckNoLvmStorageOptDeprecated(opts):
     return 1
 
 
+def _InitEnabledDiskTemplates(opts):
+  """Initialize the list of enabled disk templates.
+
+  """
+  if opts.enabled_disk_templates:
+    return opts.enabled_disk_templates.split(",")
+  else:
+    return constants.DEFAULT_ENABLED_DISK_TEMPLATES
+
+
+def _InitVgName(opts, enabled_disk_templates):
+  """Initialize the volume group name.
+
+  @type enabled_disk_templates: list of strings
+  @param enabled_disk_templates: cluster-wide enabled disk templates
+
+  """
+  vg_name = None
+  if opts.vg_name is not None:
+    vg_name = opts.vg_name
+    if vg_name:
+      if not utils.IsLvmEnabled(enabled_disk_templates):
+        ToStdout("You specified a volume group with --vg-name, but you did not"
+                 " enable any disk template that uses lvm.")
+    elif utils.IsLvmEnabled(enabled_disk_templates):
+      raise errors.OpPrereqError(
+          "LVM disk templates are enabled, but vg name not set.")
+  elif utils.IsLvmEnabled(enabled_disk_templates):
+    vg_name = constants.DEFAULT_VG
+  return vg_name
+
+
+def _InitDrbdHelper(opts):
+  """Initialize the DRBD usermode helper.
+
+  """
+  if not opts.drbd_storage and opts.drbd_helper:
+    raise errors.OpPrereqError(
+        "Options --no-drbd-storage and --drbd-usermode-helper conflict.")
+
+  if opts.drbd_storage and not opts.drbd_helper:
+    return constants.DEFAULT_DRBD_HELPER
+
+  return opts.drbd_helper
+
+
 @UsesRPC
 def InitCluster(opts, args):
   """Initialize the cluster.
@@ -90,34 +136,15 @@ def InitCluster(opts, args):
   """
   if _CheckNoLvmStorageOptDeprecated(opts):
     return 1
-  enabled_disk_templates = opts.enabled_disk_templates
-  if enabled_disk_templates:
-    enabled_disk_templates = enabled_disk_templates.split(",")
-  else:
-    enabled_disk_templates = constants.DEFAULT_ENABLED_DISK_TEMPLATES
 
-  vg_name = None
-  if opts.vg_name is not None:
-    vg_name = opts.vg_name
-    if vg_name:
-      if not utils.IsLvmEnabled(enabled_disk_templates):
-        ToStdout("You specified a volume group with --vg-name, but you did not"
-                 " enable any disk template that uses lvm.")
-    else:
-      if utils.IsLvmEnabled(enabled_disk_templates):
-        ToStderr("LVM disk templates are enabled, but vg name not set.")
-        return 1
-  else:
-    if utils.IsLvmEnabled(enabled_disk_templates):
-      vg_name = constants.DEFAULT_VG
+  enabled_disk_templates = _InitEnabledDiskTemplates(opts)
 
-  if not opts.drbd_storage and opts.drbd_helper:
-    ToStderr("Options --no-drbd-storage and --drbd-usermode-helper conflict.")
+  try:
+    vg_name = _InitVgName(opts, enabled_disk_templates)
+    drbd_helper = _InitDrbdHelper(opts)
+  except errors.OpPrereqError, e:
+    ToStderr(str(e))
     return 1
-
-  drbd_helper = opts.drbd_helper
-  if opts.drbd_storage and not opts.drbd_helper:
-    drbd_helper = constants.DEFAULT_DRBD_HELPER
 
   master_netdev = opts.master_netdev
   if master_netdev is None:
@@ -971,6 +998,49 @@ def RenewCrypto(opts, args):
                       opts.force)
 
 
+def _GetEnabledDiskTemplates(opts):
+  """Determine the list of enabled disk templates.
+
+  """
+  if opts.enabled_disk_templates:
+    return opts.enabled_disk_templates.split(",")
+  else:
+    return None
+
+
+def _GetVgName(opts, enabled_disk_templates):
+  """Determine the volume group name.
+
+  @type enabled_disk_templates: list of strings
+  @param enabled_disk_templates: cluster-wide enabled disk-templates
+
+  """
+  # consistency between vg name and enabled disk templates
+  vg_name = None
+  if opts.vg_name is not None:
+    vg_name = opts.vg_name
+  if enabled_disk_templates:
+    if vg_name and not utils.IsLvmEnabled(enabled_disk_templates):
+      ToStdout("You specified a volume group with --vg-name, but you did not"
+               " enable any of the following lvm-based disk templates: %s" %
+               utils.CommaJoin(utils.GetLvmDiskTemplates()))
+  return vg_name
+
+
+def _GetDrbdHelper(opts):
+  """Determine the DRBD usermode helper.
+
+  """
+  drbd_helper = opts.drbd_helper
+  if not opts.drbd_storage and opts.drbd_helper:
+    raise errors.OpPrereqError(
+        "Options --no-drbd-storage and --drbd-usermode-helper conflict.")
+
+  if not opts.drbd_storage:
+    drbd_helper = ""
+  return drbd_helper
+
+
 def SetClusterParams(opts, args):
   """Modify the cluster.
 
@@ -1012,27 +1082,14 @@ def SetClusterParams(opts, args):
   if _CheckNoLvmStorageOptDeprecated(opts):
     return 1
 
-  enabled_disk_templates = None
-  if opts.enabled_disk_templates:
-    enabled_disk_templates = opts.enabled_disk_templates.split(",")
+  enabled_disk_templates = _GetEnabledDiskTemplates(opts)
+  vg_name = _GetVgName(opts, enabled_disk_templates)
 
-  # consistency between vg name and enabled disk templates
-  vg_name = None
-  if opts.vg_name is not None:
-    vg_name = opts.vg_name
-  if enabled_disk_templates:
-    if vg_name and not utils.IsLvmEnabled(enabled_disk_templates):
-      ToStdout("You specified a volume group with --vg-name, but you did not"
-               " enable any of the following lvm-based disk templates: %s" %
-               utils.CommaJoin(utils.GetLvmDiskTemplates()))
-
-  drbd_helper = opts.drbd_helper
-  if not opts.drbd_storage and opts.drbd_helper:
-    ToStderr("Options --no-drbd-storage and --drbd-usermode-helper conflict.")
+  try:
+    drbd_helper = _GetDrbdHelper(opts)
+  except errors.OpPrereqError, e:
+    ToStderr(str(e))
     return 1
-
-  if not opts.drbd_storage:
-    drbd_helper = ""
 
   hvlist = opts.enabled_hypervisors
   if hvlist is not None:

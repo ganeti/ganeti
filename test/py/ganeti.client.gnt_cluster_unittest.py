@@ -24,11 +24,13 @@
 import unittest
 import optparse
 
+from ganeti import errors
 from ganeti.client import gnt_cluster
 from ganeti import utils
 from ganeti import compat
 from ganeti import constants
 
+import mock
 import testutils
 
 
@@ -256,6 +258,66 @@ class TestEpo(unittest.TestCase):
       ])
     result = self._Test(opts, [], cl=client, _confirm_fn=self._ConfirmForce)
     self.assertEqual(result, constants.EXIT_FAILURE)
+
+
+class InitDrbdHelper(unittest.TestCase):
+
+  def testNoDrbdNoHelper(self):
+    opts = mock.Mock()
+    opts.drbd_storage = False
+    opts.drbd_helper = None
+    helper = gnt_cluster._InitDrbdHelper(opts)
+    self.assertEquals(None, helper)
+
+  def testNoDrbdHelper(self):
+    opts = mock.Mock()
+    opts.drbd_storage = None
+    opts.drbd_helper = "/bin/true"
+    self.assertRaises(errors.OpPrereqError, gnt_cluster._InitDrbdHelper, opts)
+
+  def testDrbdNoHelper(self):
+    opts = mock.Mock()
+    opts.drbd_storage = True
+    opts.drbd_helper = None
+    helper = gnt_cluster._InitDrbdHelper(opts)
+    self.assertEquals(constants.DEFAULT_DRBD_HELPER, helper)
+
+  def testDrbdHelper(self):
+    opts = mock.Mock()
+    opts.drbd_storage = True
+    opts.drbd_helper = "/bin/true"
+    helper = gnt_cluster._InitDrbdHelper(opts)
+    self.assertEquals(opts.drbd_helper, helper)
+
+
+class GetDrbdHelper(unittest.TestCase):
+
+  def testNoDrbdNoHelper(self):
+    opts = mock.Mock()
+    opts.drbd_storage = False
+    opts.drbd_helper = None
+    helper = gnt_cluster._GetDrbdHelper(opts)
+    self.assertEquals("", helper)
+
+  def testNoDrbdHelper(self):
+    opts = mock.Mock()
+    opts.drbd_storage = None
+    opts.drbd_helper = "/bin/true"
+    self.assertRaises(errors.OpPrereqError, gnt_cluster._GetDrbdHelper, opts)
+
+  def testDrbdNoHelper(self):
+    opts = mock.Mock()
+    opts.drbd_storage = True
+    opts.drbd_helper = None
+    helper = gnt_cluster._GetDrbdHelper(opts)
+    self.assertEquals(None, helper)
+
+  def testDrbdHelper(self):
+    opts = mock.Mock()
+    opts.drbd_storage = True
+    opts.drbd_helper = "/bin/true"
+    helper = gnt_cluster._GetDrbdHelper(opts)
+    self.assertEquals(opts.drbd_helper, helper)
 
 
 if __name__ == "__main__":
