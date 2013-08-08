@@ -166,7 +166,7 @@ in_chroot -- \
 in_chroot -- \
   cabal install --global \
     network==2.3 \
-    regex-pcre==0.94.2 \
+    regex-pcre==0.94.4 \
     hinotify==0.3.2 \
     hslogger==1.1.4 \
     attoparsec==0.10.1.1\
