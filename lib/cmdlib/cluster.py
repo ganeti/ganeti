@@ -851,11 +851,11 @@ class LUClusterSetParams(LogicalUnit):
       CheckIpolicyVsDiskTemplates(cluster.ipolicy,
                                   enabled_disk_templates)
 
-  def CheckPrereq(self):
-    """Check prerequisites.
+  def _CheckDrbdHelper(self, node_uuids):
+    """Check the DRBD usermode helper.
 
-    This checks whether the given params don't conflict and
-    if the given volume group is valid.
+    @type node_uuids: list of strings
+    @param node_uuids: a list of nodes' UUIDs
 
     """
     if self.op.drbd_helper is not None and not self.op.drbd_helper:
@@ -864,6 +864,32 @@ class LUClusterSetParams(LogicalUnit):
                                    " drbd-based instances exist",
                                    errors.ECODE_INVAL)
 
+    if self.op.drbd_helper:
+      # checks given drbd helper on all nodes
+      helpers = self.rpc.call_drbd_helper(node_uuids)
+      for (_, ninfo) in self.cfg.GetMultiNodeInfo(node_uuids):
+        if ninfo.offline:
+          self.LogInfo("Not checking drbd helper on offline node %s",
+                       ninfo.name)
+          continue
+        msg = helpers[ninfo.uuid].fail_msg
+        if msg:
+          raise errors.OpPrereqError("Error checking drbd helper on node"
+                                     " '%s': %s" % (ninfo.name, msg),
+                                     errors.ECODE_ENVIRON)
+        node_helper = helpers[ninfo.uuid].payload
+        if node_helper != self.op.drbd_helper:
+          raise errors.OpPrereqError("Error on node '%s': drbd helper is %s" %
+                                     (ninfo.name, node_helper),
+                                     errors.ECODE_ENVIRON)
+
+  def CheckPrereq(self):
+    """Check prerequisites.
+
+    This checks whether the given params don't conflict and
+    if the given volume group is valid.
+
+    """
     node_uuids = self.owned_locks(locking.LEVEL_NODE)
     self.cluster = cluster = self.cfg.GetClusterInfo()
 
@@ -886,24 +912,7 @@ class LUClusterSetParams(LogicalUnit):
           self.LogWarning, self.op.shared_file_storage_dir,
           enabled_disk_templates)
 
-    if self.op.drbd_helper:
-      # checks given drbd helper on all nodes
-      helpers = self.rpc.call_drbd_helper(node_uuids)
-      for (_, ninfo) in self.cfg.GetMultiNodeInfo(node_uuids):
-        if ninfo.offline:
-          self.LogInfo("Not checking drbd helper on offline node %s",
-                       ninfo.name)
-          continue
-        msg = helpers[ninfo.uuid].fail_msg
-        if msg:
-          raise errors.OpPrereqError("Error checking drbd helper on node"
-                                     " '%s': %s" % (ninfo.name, msg),
-                                     errors.ECODE_ENVIRON)
-        node_helper = helpers[ninfo.uuid].payload
-        if node_helper != self.op.drbd_helper:
-          raise errors.OpPrereqError("Error on node '%s': drbd helper is %s" %
-                                     (ninfo.name, node_helper),
-                                     errors.ECODE_ENVIRON)
+    self._CheckDrbdHelper(node_uuids)
 
     # validate params changes
     if self.op.beparams:
@@ -1111,17 +1120,10 @@ class LUClusterSetParams(LogicalUnit):
       else:
         self.cluster.file_storage_dir = self.op.file_storage_dir
 
-  def Exec(self, feedback_fn):
-    """Change the parameters of the cluster.
+  def _SetDrbdHelper(self, feedback_fn):
+    """Set the DRBD usermode helper.
 
     """
-    if self.op.enabled_disk_templates:
-      self.cluster.enabled_disk_templates = \
-        list(set(self.op.enabled_disk_templates))
-
-    self._SetVgName(feedback_fn)
-    self._SetFileStorageDir(feedback_fn)
-
     if self.op.drbd_helper is not None:
       if not constants.DT_DRBD8 in self.cluster.enabled_disk_templates:
         feedback_fn("Note that you specified a drbd user helper, but did not"
@@ -1134,6 +1136,19 @@ class LUClusterSetParams(LogicalUnit):
       else:
         feedback_fn("Cluster DRBD helper already in desired state,"
                     " not changing")
+
+  def Exec(self, feedback_fn):
+    """Change the parameters of the cluster.
+
+    """
+    if self.op.enabled_disk_templates:
+      self.cluster.enabled_disk_templates = \
+        list(set(self.op.enabled_disk_templates))
+
+    self._SetVgName(feedback_fn)
+    self._SetFileStorageDir(feedback_fn)
+    self._SetDrbdHelper(feedback_fn)
+
     if self.op.hvparams:
       self.cluster.hvparams = self.new_hvparams
     if self.op.os_hvp:

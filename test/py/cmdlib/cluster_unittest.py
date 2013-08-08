@@ -509,6 +509,32 @@ class TestLUClusterSetParams(CmdlibTestCase):
 
     self.assertEqual(None, self.cluster.drbd_usermode_helper)
 
+  def testDrbdHelperAlreadySet(self):
+    drbd_helper = "/bin/true"
+    self.rpc.call_drbd_helper.return_value = \
+      self.RpcResultsBuilder() \
+        .AddSuccessfulNode(self.master, "/bin/true") \
+        .Build()
+    self.cluster.enabled_disk_templates = [constants.DT_DISKLESS]
+    op = opcodes.OpClusterSetParams(drbd_helper=drbd_helper)
+    self.ExecOpCode(op)
+
+    self.assertEqual(drbd_helper, self.cluster.drbd_usermode_helper)
+    self.mcpu.assertLogContainsRegex("DRBD helper already in desired state")
+
+  def testSetDrbdHelper(self):
+    drbd_helper = "/bin/true"
+    self.rpc.call_drbd_helper.return_value = \
+      self.RpcResultsBuilder() \
+        .AddSuccessfulNode(self.master, "/bin/true") \
+        .Build()
+    self.cluster.drbd_usermode_helper = "/bin/false"
+    self.cluster.enabled_disk_templates = [constants.DT_DRBD8]
+    op = opcodes.OpClusterSetParams(drbd_helper=drbd_helper)
+    self.ExecOpCode(op)
+
+    self.assertEqual(drbd_helper, self.cluster.drbd_usermode_helper)
+
   def testBeparams(self):
     beparams = {constants.BE_VCPUS: 32}
     op = opcodes.OpClusterSetParams(beparams=beparams)
