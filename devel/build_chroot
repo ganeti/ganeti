@@ -177,7 +177,6 @@ in_chroot -- \
     hashable==1.1.2.0 \
     case-insensitive==0.3 \
     parsec==3.0.1 \
-    network==2.3 \
     snap-server==0.8.1 \
     text==0.11.3.0 \
     vector==0.9.1 \
