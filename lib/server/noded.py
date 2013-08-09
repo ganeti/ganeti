@@ -825,7 +825,7 @@ class NodeRequestHandler(http.server.HttpServerHandler):
 
   @staticmethod
   def perspective_node_powercycle(params):
-    """Tries to powercycle the nod.
+    """Tries to powercycle the node.
 
     """
     (hypervisor_type, hvparams) = params
