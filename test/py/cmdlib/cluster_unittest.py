@@ -32,15 +32,12 @@ import tempfile
 import shutil
 
 from ganeti import constants
-from ganeti import compat
 from ganeti import errors
-from ganeti import ht
 from ganeti import netutils
 from ganeti import objects
 from ganeti import opcodes
 from ganeti import utils
 from ganeti import pathutils
-from ganeti import rpc
 from ganeti import query
 from ganeti.cmdlib import cluster
 from ganeti.hypervisor import hv_xen
@@ -48,7 +45,6 @@ from ganeti.hypervisor import hv_xen
 from testsupport import *
 
 import testutils
-import mocks
 
 
 class TestCertVerification(testutils.GanetiTestCase):
@@ -131,143 +127,6 @@ class TestClusterVerifySsh(unittest.TestCase):
       "node2": [],
       "node3": [],
       })
-
-
-class TestClusterVerifyFiles(unittest.TestCase):
-  @staticmethod
-  def _FakeErrorIf(errors, cond, ecode, item, msg, *args, **kwargs):
-    assert ((ecode == constants.CV_ENODEFILECHECK and
-             ht.TNonEmptyString(item)) or
-            (ecode == constants.CV_ECLUSTERFILECHECK and
-             item is None))
-
-    if args:
-      msg = msg % args
-
-    if cond:
-      errors.append((item, msg))
-
-  def test(self):
-    errors = []
-    nodeinfo = [
-      objects.Node(name="master.example.com",
-                   uuid="master-uuid",
-                   offline=False,
-                   vm_capable=True),
-      objects.Node(name="node2.example.com",
-                   uuid="node2-uuid",
-                   offline=False,
-                   vm_capable=True),
-      objects.Node(name="node3.example.com",
-                   uuid="node3-uuid",
-                   master_candidate=True,
-                   vm_capable=False),
-      objects.Node(name="node4.example.com",
-                   uuid="node4-uuid",
-                   offline=False,
-                   vm_capable=True),
-      objects.Node(name="nodata.example.com",
-                   uuid="nodata-uuid",
-                   offline=False,
-                   vm_capable=True),
-      objects.Node(name="offline.example.com",
-                   uuid="offline-uuid",
-                   offline=True),
-      ]
-    files_all = set([
-      pathutils.CLUSTER_DOMAIN_SECRET_FILE,
-      pathutils.RAPI_CERT_FILE,
-      pathutils.RAPI_USERS_FILE,
-      ])
-    files_opt = set([
-      pathutils.RAPI_USERS_FILE,
-      hv_xen.XL_CONFIG_FILE,
-      pathutils.VNC_PASSWORD_FILE,
-      ])
-    files_mc = set([
-      pathutils.CLUSTER_CONF_FILE,
-      ])
-    files_vm = set([
-      hv_xen.XEND_CONFIG_FILE,
-      hv_xen.XL_CONFIG_FILE,
-      pathutils.VNC_PASSWORD_FILE,
-      ])
-    nvinfo = {
-      "master-uuid": rpc.RpcResult(data=(True, {
-        constants.NV_FILELIST: {
-          pathutils.CLUSTER_CONF_FILE: "82314f897f38b35f9dab2f7c6b1593e0",
-          pathutils.RAPI_CERT_FILE: "babbce8f387bc082228e544a2146fee4",
-          pathutils.CLUSTER_DOMAIN_SECRET_FILE: "cds-47b5b3f19202936bb4",
-          hv_xen.XEND_CONFIG_FILE: "b4a8a824ab3cac3d88839a9adeadf310",
-          hv_xen.XL_CONFIG_FILE: "77935cee92afd26d162f9e525e3d49b9"
-        }})),
-      "node2-uuid": rpc.RpcResult(data=(True, {
-        constants.NV_FILELIST: {
-          pathutils.RAPI_CERT_FILE: "97f0356500e866387f4b84233848cc4a",
-          hv_xen.XEND_CONFIG_FILE: "b4a8a824ab3cac3d88839a9adeadf310",
-          }
-        })),
-      "node3-uuid": rpc.RpcResult(data=(True, {
-        constants.NV_FILELIST: {
-          pathutils.RAPI_CERT_FILE: "97f0356500e866387f4b84233848cc4a",
-          pathutils.CLUSTER_DOMAIN_SECRET_FILE: "cds-47b5b3f19202936bb4",
-          }
-        })),
-      "node4-uuid": rpc.RpcResult(data=(True, {
-        constants.NV_FILELIST: {
-          pathutils.RAPI_CERT_FILE: "97f0356500e866387f4b84233848cc4a",
-          pathutils.CLUSTER_CONF_FILE: "conf-a6d4b13e407867f7a7b4f0f232a8f527",
-          pathutils.CLUSTER_DOMAIN_SECRET_FILE: "cds-47b5b3f19202936bb4",
-          pathutils.RAPI_USERS_FILE: "rapiusers-ea3271e8d810ef3",
-          hv_xen.XL_CONFIG_FILE: "77935cee92afd26d162f9e525e3d49b9"
-          }
-        })),
-      "nodata-uuid": rpc.RpcResult(data=(True, {})),
-      "offline-uuid": rpc.RpcResult(offline=True),
-      }
-    assert set(nvinfo.keys()) == set(map(operator.attrgetter("uuid"), nodeinfo))
-
-    verify_lu = cluster.LUClusterVerifyGroup(mocks.FakeProc(),
-                                             opcodes.OpClusterVerify(),
-                                             mocks.FakeContext(),
-                                             None)
-
-    verify_lu._ErrorIf = compat.partial(self._FakeErrorIf, errors)
-
-    # TODO: That's a bit hackish to mock only this single method. We should
-    # build a better FakeConfig which provides such a feature already.
-    def GetNodeName(node_uuid):
-      for node in nodeinfo:
-        if node.uuid == node_uuid:
-          return node.name
-      return None
-
-    verify_lu.cfg.GetNodeName = GetNodeName
-
-    verify_lu._VerifyFiles(nodeinfo, "master-uuid", nvinfo,
-                           (files_all, files_opt, files_mc, files_vm))
-    self.assertEqual(sorted(errors), sorted([
-      (None, ("File %s found with 2 different checksums (variant 1 on"
-              " node2.example.com, node3.example.com, node4.example.com;"
-              " variant 2 on master.example.com)" % pathutils.RAPI_CERT_FILE)),
-      (None, ("File %s is missing from node(s) node2.example.com" %
-              pathutils.CLUSTER_DOMAIN_SECRET_FILE)),
-      (None, ("File %s should not exist on node(s) node4.example.com" %
-              pathutils.CLUSTER_CONF_FILE)),
-      (None, ("File %s is missing from node(s) node4.example.com" %
-              hv_xen.XEND_CONFIG_FILE)),
-      (None, ("File %s is missing from node(s) node3.example.com" %
-              pathutils.CLUSTER_CONF_FILE)),
-      (None, ("File %s found with 2 different checksums (variant 1 on"
-              " master.example.com; variant 2 on node4.example.com)" %
-              pathutils.CLUSTER_CONF_FILE)),
-      (None, ("File %s is optional, but it must exist on all or no nodes (not"
-              " found on master.example.com, node2.example.com,"
-              " node3.example.com)" % pathutils.RAPI_USERS_FILE)),
-      (None, ("File %s is optional, but it must exist on all or no nodes (not"
-              " found on node2.example.com)" % hv_xen.XL_CONFIG_FILE)),
-      ("nodata.example.com", "Node did not return file checksum data"),
-      ]))
 
 
 class TestLUClusterActivateMasterIp(CmdlibTestCase):
@@ -1080,7 +939,7 @@ class TestLUClusterVerifyConfig(CmdlibTestCase):
 class TestLUClusterVerifyGroup(CmdlibTestCase):
   def testEmptyNodeGroup(self):
     group = self.cfg.AddNewNodeGroup()
-    op = opcodes.OpClusterVerifyGroup(group_name=group.name)
+    op = opcodes.OpClusterVerifyGroup(group_name=group.name, verbose=True)
 
     result = self.ExecOpCode(op)
 
@@ -1088,7 +947,42 @@ class TestLUClusterVerifyGroup(CmdlibTestCase):
     self.mcpu.assertLogContainsRegex("Empty node group, skipping verification")
 
   def testSimpleInvocation(self):
-    op = opcodes.OpClusterVerifyGroup(group_name="default")
+    op = opcodes.OpClusterVerifyGroup(group_name="default", verbose=True)
+
+    self.ExecOpCode(op)
+
+  def testSimpleInvocationWithInstance(self):
+    self.cfg.AddNewInstance(disks=[])
+    op = opcodes.OpClusterVerifyGroup(group_name="default", verbose=True)
+
+    self.ExecOpCode(op)
+
+  def testGhostNode(self):
+    group = self.cfg.AddNewNodeGroup()
+    node = self.cfg.AddNewNode(group=group.uuid, offline=True)
+    self.master.offline = True
+    self.cfg.AddNewInstance(disk_template=constants.DT_DRBD8,
+                            primary_node=self.master,
+                            secondary_node=node)
+
+    self.rpc.call_blockdev_getmirrorstatus_multi.return_value = \
+      RpcResultsBuilder() \
+        .AddOfflineNode(self.master) \
+        .Build()
+
+    op = opcodes.OpClusterVerifyGroup(group_name="default", verbose=True)
+
+    self.ExecOpCode(op)
+
+  def testValidRpcResult(self):
+    self.cfg.AddNewInstance(disks=[])
+
+    self.rpc.call_node_verify.return_value = \
+      RpcResultsBuilder() \
+        .AddSuccessfulNode(self.master, {}) \
+        .Build()
+
+    op = opcodes.OpClusterVerifyGroup(group_name="default", verbose=True)
 
     self.ExecOpCode(op)
 
@@ -1100,6 +994,13 @@ class TestLUClusterVerifyGroupMethods(CmdlibTestCase):
   def setUp(self):
     super(TestLUClusterVerifyGroupMethods, self).setUp()
     self.op = opcodes.OpClusterVerifyGroup(group_name="default")
+
+  def PrepareLU(self, lu):
+    lu._exclusive_storage = False
+    lu.master_node = self.master_uuid
+    lu.group_info = self.group
+    cluster.LUClusterVerifyGroup.all_node_info = \
+      property(fget=lambda _: self.cfg.GetAllNodesInfo())
 
 
 class TestLUClusterVerifyGroupVerifyNode(TestLUClusterVerifyGroupMethods):
@@ -1177,6 +1078,942 @@ class TestLUClusterVerifyGroupVerifyNodeTime(TestLUClusterVerifyGroupMethods):
   def testSuccessfulResult(self, lu):
     lu._VerifyNodeTime(self.master, {constants.NV_TIME: (0, 0)}, 0, 5)
     self.mcpu.assertLogIsEmpty()
+
+
+class TestLUClusterVerifyGroupUpdateVerifyNodeLVM(
+        TestLUClusterVerifyGroupMethods):
+  def setUp(self):
+    super(TestLUClusterVerifyGroupUpdateVerifyNodeLVM, self).setUp()
+    self.VALID_NRESULT = {
+      constants.NV_VGLIST: {"mock_vg": 30000},
+      constants.NV_PVLIST: [
+        {
+          "name": "mock_pv",
+          "vg_name": "mock_vg",
+          "size": 5000,
+          "free": 2500,
+          "attributes": [],
+          "lv_list": []
+        }
+      ]
+    }
+
+  @withLockedLU
+  def testNoVgName(self, lu):
+    lu._UpdateVerifyNodeLVM(self.master, {}, None, None)
+    self.mcpu.assertLogIsEmpty()
+
+  @withLockedLU
+  def testEmptyNodeResult(self, lu):
+    lu._UpdateVerifyNodeLVM(self.master, {}, "mock_vg", None)
+    self.mcpu.assertLogContainsRegex("unable to check volume groups")
+    self.mcpu.assertLogContainsRegex("Can't get PV list from node")
+
+  @withLockedLU
+  def testValidNodeResult(self, lu):
+    lu._UpdateVerifyNodeLVM(self.master, self.VALID_NRESULT, "mock_vg", None)
+    self.mcpu.assertLogIsEmpty()
+
+  @withLockedLU
+  def testValidNodeResultExclusiveStorage(self, lu):
+    lu._exclusive_storage = True
+    lu._UpdateVerifyNodeLVM(self.master, self.VALID_NRESULT, "mock_vg",
+                            cluster.LUClusterVerifyGroup.NodeImage())
+    self.mcpu.assertLogIsEmpty()
+
+
+class TestLUClusterVerifyGroupVerifyGroupDRBDVersion(
+        TestLUClusterVerifyGroupMethods):
+  @withLockedLU
+  def testEmptyNodeResult(self, lu):
+    lu._VerifyGroupDRBDVersion({})
+    self.mcpu.assertLogIsEmpty()
+
+  @withLockedLU
+  def testValidNodeResult(self, lu):
+    lu._VerifyGroupDRBDVersion(
+      RpcResultsBuilder()
+        .AddSuccessfulNode(self.master, {
+          constants.NV_DRBDVERSION: "8.3.0"
+        })
+        .Build())
+    self.mcpu.assertLogIsEmpty()
+
+  @withLockedLU
+  def testDifferentVersions(self, lu):
+    node1 = self.cfg.AddNewNode()
+    lu._VerifyGroupDRBDVersion(
+      RpcResultsBuilder()
+        .AddSuccessfulNode(self.master, {
+          constants.NV_DRBDVERSION: "8.3.0"
+        })
+        .AddSuccessfulNode(node1, {
+          constants.NV_DRBDVERSION: "8.4.0"
+        })
+        .Build())
+    self.mcpu.assertLogContainsRegex("DRBD version mismatch: 8.3.0")
+    self.mcpu.assertLogContainsRegex("DRBD version mismatch: 8.4.0")
+
+
+class TestLUClusterVerifyGroupVerifyGroupLVM(TestLUClusterVerifyGroupMethods):
+  @withLockedLU
+  def testNoVgName(self, lu):
+    lu._VerifyGroupLVM(None, None)
+    self.mcpu.assertLogIsEmpty()
+
+  @withLockedLU
+  def testNoExclusiveStorage(self, lu):
+    lu._VerifyGroupLVM(None, "mock_vg")
+    self.mcpu.assertLogIsEmpty()
+
+  @withLockedLU
+  def testNoPvInfo(self, lu):
+    lu._exclusive_storage = True
+    nimg = cluster.LUClusterVerifyGroup.NodeImage()
+    lu._VerifyGroupLVM({self.master.uuid: nimg}, "mock_vg")
+    self.mcpu.assertLogIsEmpty()
+
+  @withLockedLU
+  def testValidPvInfos(self, lu):
+    lu._exclusive_storage = True
+    node2 = self.cfg.AddNewNode()
+    nimg1 = cluster.LUClusterVerifyGroup.NodeImage(uuid=self.master.uuid)
+    nimg1.pv_min = 10000
+    nimg1.pv_max = 10010
+    nimg2 = cluster.LUClusterVerifyGroup.NodeImage(uuid=node2.uuid)
+    nimg2.pv_min = 9998
+    nimg2.pv_max = 10005
+    lu._VerifyGroupLVM({self.master.uuid: nimg1, node2.uuid: nimg2}, "mock_vg")
+    self.mcpu.assertLogIsEmpty()
+
+
+class TestLUClusterVerifyGroupVerifyNodeBridges(
+        TestLUClusterVerifyGroupMethods):
+  @withLockedLU
+  def testNoBridges(self, lu):
+    lu._VerifyNodeBridges(None, None, None)
+    self.mcpu.assertLogIsEmpty()
+
+  @withLockedLU
+  def testInvalidBridges(self, lu):
+    for ndata in [{}, {constants.NV_BRIDGES: ""}]:
+      self.mcpu.ClearLogMessages()
+      lu._VerifyNodeBridges(self.master, ndata, ["mock_bridge"])
+      self.mcpu.assertLogContainsRegex("not return valid bridge information")
+
+    self.mcpu.ClearLogMessages()
+    lu._VerifyNodeBridges(self.master, {constants.NV_BRIDGES: ["mock_bridge"]},
+                          ["mock_bridge"])
+    self.mcpu.assertLogContainsRegex("missing bridge")
+
+
+class TestLUClusterVerifyGroupVerifyNodeUserScripts(
+        TestLUClusterVerifyGroupMethods):
+  @withLockedLU
+  def testNoUserScripts(self, lu):
+    lu._VerifyNodeUserScripts(self.master, {})
+    self.mcpu.assertLogContainsRegex("did not return user scripts information")
+
+  @withLockedLU
+  def testBrokenUserScripts(self, lu):
+    lu._VerifyNodeUserScripts(self.master,
+                              {constants.NV_USERSCRIPTS: ["script"]})
+    self.mcpu.assertLogContainsRegex("scripts not present or not executable")
+
+
+class TestLUClusterVerifyGroupVerifyNodeNetwork(
+        TestLUClusterVerifyGroupMethods):
+
+  def setUp(self):
+    super(TestLUClusterVerifyGroupVerifyNodeNetwork, self).setUp()
+    self.VALID_NRESULT = {
+      constants.NV_NODELIST: {},
+      constants.NV_NODENETTEST: {},
+      constants.NV_MASTERIP: True
+    }
+
+  @withLockedLU
+  def testEmptyNodeResult(self, lu):
+    lu._VerifyNodeNetwork(self.master, {})
+    self.mcpu.assertLogContainsRegex(
+      "node hasn't returned node ssh connectivity data")
+    self.mcpu.assertLogContainsRegex(
+      "node hasn't returned node tcp connectivity data")
+    self.mcpu.assertLogContainsRegex(
+      "node hasn't returned node master IP reachability data")
+
+  @withLockedLU
+  def testValidResult(self, lu):
+    lu._VerifyNodeNetwork(self.master, self.VALID_NRESULT)
+    self.mcpu.assertLogIsEmpty()
+
+  @withLockedLU
+  def testSshProblem(self, lu):
+    self.VALID_NRESULT.update({
+      constants.NV_NODELIST: {
+        "mock_node": "mock_error"
+      }
+    })
+    lu._VerifyNodeNetwork(self.master, self.VALID_NRESULT)
+    self.mcpu.assertLogContainsRegex("ssh communication with node 'mock_node'")
+
+  @withLockedLU
+  def testTcpProblem(self, lu):
+    self.VALID_NRESULT.update({
+      constants.NV_NODENETTEST: {
+        "mock_node": "mock_error"
+      }
+    })
+    lu._VerifyNodeNetwork(self.master, self.VALID_NRESULT)
+    self.mcpu.assertLogContainsRegex("tcp communication with node 'mock_node'")
+
+  @withLockedLU
+  def testMasterIpNotReachable(self, lu):
+    self.VALID_NRESULT.update({
+      constants.NV_MASTERIP: False
+    })
+    node1 = self.cfg.AddNewNode()
+    lu._VerifyNodeNetwork(self.master, self.VALID_NRESULT)
+    self.mcpu.assertLogContainsRegex(
+      "the master node cannot reach the master IP")
+
+    self.mcpu.ClearLogMessages()
+    lu._VerifyNodeNetwork(node1, self.VALID_NRESULT)
+    self.mcpu.assertLogContainsRegex("cannot reach the master IP")
+
+
+class TestLUClusterVerifyGroupVerifyInstance(TestLUClusterVerifyGroupMethods):
+  def setUp(self):
+    super(TestLUClusterVerifyGroupVerifyInstance, self).setUp()
+
+    self.node1 = self.cfg.AddNewNode()
+    self.drbd_inst = self.cfg.AddNewInstance(
+      disks=[self.cfg.CreateDisk(dev_type=constants.LD_DRBD8,
+                                 primary_node=self.master,
+                                 secondary_node=self.node1)])
+    self.running_inst = self.cfg.AddNewInstance(
+      admin_state=constants.ADMINST_UP, disks_active=True)
+    self.diskless_inst = self.cfg.AddNewInstance(disks=[])
+
+    self.master_img = \
+      cluster.LUClusterVerifyGroup.NodeImage(uuid=self.master_uuid)
+    self.master_img.volumes = ["/".join(disk.logical_id)
+                               for inst in [self.running_inst,
+                                            self.diskless_inst]
+                               for disk in inst.disks]
+    self.master_img.volumes.extend(
+      ["/".join(disk.logical_id) for disk in self.drbd_inst.disks[0].children])
+    self.master_img.instances = [self.running_inst.uuid]
+    self.node1_img = \
+      cluster.LUClusterVerifyGroup.NodeImage(uuid=self.node1.uuid)
+    self.node1_img.volumes = \
+      ["/".join(disk.logical_id) for disk in self.drbd_inst.disks[0].children]
+    self.node_imgs = {
+      self.master_uuid: self.master_img,
+      self.node1.uuid: self.node1_img
+    }
+    self.diskstatus = {
+      self.master_uuid: [
+        (True, objects.BlockDevStatus(ldisk_status=constants.LDS_OKAY))
+        for _ in self.running_inst.disks
+      ]
+    }
+
+  @withLockedLU
+  def testDisklessInst(self, lu):
+    lu._VerifyInstance(self.diskless_inst, self.node_imgs, {})
+    self.mcpu.assertLogIsEmpty()
+
+  @withLockedLU
+  def testOfflineNode(self, lu):
+    self.master_img.offline = True
+    lu._VerifyInstance(self.drbd_inst, self.node_imgs, {})
+    self.mcpu.assertLogIsEmpty()
+
+  @withLockedLU
+  def testRunningOnOfflineNode(self, lu):
+    self.master_img.offline = True
+    lu._VerifyInstance(self.running_inst, self.node_imgs, {})
+    self.mcpu.assertLogContainsRegex(
+      "instance is marked as running and lives on offline node")
+
+  @withLockedLU
+  def testMissingVolume(self, lu):
+    self.master_img.volumes = []
+    lu._VerifyInstance(self.running_inst, self.node_imgs, {})
+    self.mcpu.assertLogContainsRegex("volume .* missing")
+
+  @withLockedLU
+  def testRunningInstanceOnWrongNode(self, lu):
+    self.master_img.instances = []
+    self.diskless_inst.admin_state = constants.ADMINST_UP
+    lu._VerifyInstance(self.running_inst, self.node_imgs, {})
+    self.mcpu.assertLogContainsRegex("instance not running on its primary node")
+
+  @withLockedLU
+  def testRunningInstanceOnRightNode(self, lu):
+    self.master_img.instances = [self.running_inst.uuid]
+    lu._VerifyInstance(self.running_inst, self.node_imgs, {})
+    self.mcpu.assertLogIsEmpty()
+
+  @withLockedLU
+  def testValidDiskStatus(self, lu):
+    lu._VerifyInstance(self.running_inst, self.node_imgs, self.diskstatus)
+    self.mcpu.assertLogIsEmpty()
+
+  @withLockedLU
+  def testDegradedDiskStatus(self, lu):
+    self.diskstatus[self.master_uuid][0][1].is_degraded = True
+    lu._VerifyInstance(self.running_inst, self.node_imgs, self.diskstatus)
+    self.mcpu.assertLogContainsRegex("instance .* is degraded")
+
+  @withLockedLU
+  def testNotOkayDiskStatus(self, lu):
+    self.diskstatus[self.master_uuid][0][1].ldisk_status = constants.LDS_FAULTY
+    lu._VerifyInstance(self.running_inst, self.node_imgs, self.diskstatus)
+    self.mcpu.assertLogContainsRegex("instance .* state is 'faulty'")
+
+  @withLockedLU
+  def testExclusiveStorageWithInvalidInstance(self, lu):
+    self.master.ndparams[constants.ND_EXCLUSIVE_STORAGE] = True
+    lu._VerifyInstance(self.drbd_inst, self.node_imgs, self.diskstatus)
+    self.mcpu.assertLogContainsRegex(
+      "instance has template drbd, which is not supported")
+
+  @withLockedLU
+  def testExclusiveStorageWithValidInstance(self, lu):
+    self.master.ndparams[constants.ND_EXCLUSIVE_STORAGE] = True
+    self.running_inst.disks[0].spindles = 1
+    lu._VerifyInstance(self.running_inst, self.node_imgs, self.diskstatus)
+    self.mcpu.assertLogIsEmpty()
+
+  @withLockedLU
+  def testDrbdInTwoGroups(self, lu):
+    group = self.cfg.AddNewNodeGroup()
+    self.node1.group = group.uuid
+    lu._VerifyInstance(self.drbd_inst, self.node_imgs, self.diskstatus)
+    self.mcpu.assertLogContainsRegex(
+      "instance has primary and secondary nodes in different groups")
+
+  @withLockedLU
+  def testOfflineSecondary(self, lu):
+    self.node1_img.offline = True
+    lu._VerifyInstance(self.drbd_inst, self.node_imgs, self.diskstatus)
+    self.mcpu.assertLogContainsRegex("instance has offline secondary node\(s\)")
+
+
+class TestLUClusterVerifyGroupVerifyOrphanVolumes(
+        TestLUClusterVerifyGroupMethods):
+  @withLockedLU
+  def testOrphanedVolume(self, lu):
+    master_img = cluster.LUClusterVerifyGroup.NodeImage(uuid=self.master_uuid)
+    master_img.volumes = ["mock_vg/disk_0", "mock_vg/disk_1", "mock_vg/disk_2"]
+    node_imgs = {
+      self.master_uuid: master_img
+    }
+    node_vol_should = {
+      self.master_uuid: ["mock_vg/disk_0"]
+    }
+
+    lu._VerifyOrphanVolumes(node_vol_should, node_imgs,
+                            utils.FieldSet("mock_vg/disk_2"))
+    self.mcpu.assertLogContainsRegex("volume mock_vg/disk_1 is unknown")
+    self.mcpu.assertLogDoesNotContainRegex("volume mock_vg/disk_0 is unknown")
+    self.mcpu.assertLogDoesNotContainRegex("volume mock_vg/disk_2 is unknown")
+
+
+class TestLUClusterVerifyGroupVerifyNPlusOneMemory(
+        TestLUClusterVerifyGroupMethods):
+  @withLockedLU
+  def testN1Failure(self, lu):
+    group1 = self.cfg.AddNewNodeGroup()
+
+    node1 = self.cfg.AddNewNode()
+    node2 = self.cfg.AddNewNode(group=group1)
+    node3 = self.cfg.AddNewNode()
+
+    inst1 = self.cfg.AddNewInstance()
+    inst2 = self.cfg.AddNewInstance()
+    inst3 = self.cfg.AddNewInstance()
+
+    node1_img = cluster.LUClusterVerifyGroup.NodeImage(uuid=node1.uuid)
+    node1_img.sbp = {
+      self.master_uuid: [inst1.uuid, inst2.uuid, inst3.uuid]
+    }
+
+    node2_img = cluster.LUClusterVerifyGroup.NodeImage(uuid=node2.uuid)
+
+    node3_img = cluster.LUClusterVerifyGroup.NodeImage(uuid=node3.uuid)
+    node3_img.offline = True
+
+    node_imgs = {
+      node1.uuid: node1_img,
+      node2.uuid: node2_img,
+      node3.uuid: node3_img
+    }
+
+    lu._VerifyNPlusOneMemory(node_imgs, self.cfg.GetAllInstancesInfo())
+    self.mcpu.assertLogContainsRegex(
+      "not enough memory to accomodate instance failovers")
+
+    self.mcpu.ClearLogMessages()
+    node1_img.mfree = 1000
+    lu._VerifyNPlusOneMemory(node_imgs, self.cfg.GetAllInstancesInfo())
+    self.mcpu.assertLogIsEmpty()
+
+
+class TestLUClusterVerifyGroupVerifyFiles(TestLUClusterVerifyGroupMethods):
+  @withLockedLU
+  def test(self, lu):
+    node1 = self.cfg.AddNewNode(master_candidate=False, offline=False,
+                                vm_capable=True)
+    node2 = self.cfg.AddNewNode(master_candidate=True, vm_capable=False)
+    node3 = self.cfg.AddNewNode(master_candidate=False, offline=False,
+                                vm_capable=True)
+    node4 = self.cfg.AddNewNode(master_candidate=False, offline=False,
+                                vm_capable=True)
+    node5 = self.cfg.AddNewNode(master_candidate=False, offline=True)
+
+    nodeinfo = [self.master, node1, node2, node3, node4, node5]
+    files_all = set([
+      pathutils.CLUSTER_DOMAIN_SECRET_FILE,
+      pathutils.RAPI_CERT_FILE,
+      pathutils.RAPI_USERS_FILE,
+      ])
+    files_opt = set([
+      pathutils.RAPI_USERS_FILE,
+      hv_xen.XL_CONFIG_FILE,
+      pathutils.VNC_PASSWORD_FILE,
+      ])
+    files_mc = set([
+      pathutils.CLUSTER_CONF_FILE,
+      ])
+    files_vm = set([
+      hv_xen.XEND_CONFIG_FILE,
+      hv_xen.XL_CONFIG_FILE,
+      pathutils.VNC_PASSWORD_FILE,
+      ])
+    nvinfo = RpcResultsBuilder() \
+      .AddSuccessfulNode(self.master, {
+        constants.NV_FILELIST: {
+          pathutils.CLUSTER_CONF_FILE: "82314f897f38b35f9dab2f7c6b1593e0",
+          pathutils.RAPI_CERT_FILE: "babbce8f387bc082228e544a2146fee4",
+          pathutils.CLUSTER_DOMAIN_SECRET_FILE: "cds-47b5b3f19202936bb4",
+          hv_xen.XEND_CONFIG_FILE: "b4a8a824ab3cac3d88839a9adeadf310",
+          hv_xen.XL_CONFIG_FILE: "77935cee92afd26d162f9e525e3d49b9"
+        }}) \
+      .AddSuccessfulNode(node1, {
+        constants.NV_FILELIST: {
+          pathutils.RAPI_CERT_FILE: "97f0356500e866387f4b84233848cc4a",
+          hv_xen.XEND_CONFIG_FILE: "b4a8a824ab3cac3d88839a9adeadf310",
+          }
+        }) \
+      .AddSuccessfulNode(node2, {
+        constants.NV_FILELIST: {
+          pathutils.RAPI_CERT_FILE: "97f0356500e866387f4b84233848cc4a",
+          pathutils.CLUSTER_DOMAIN_SECRET_FILE: "cds-47b5b3f19202936bb4",
+          }
+        }) \
+      .AddSuccessfulNode(node3, {
+        constants.NV_FILELIST: {
+          pathutils.RAPI_CERT_FILE: "97f0356500e866387f4b84233848cc4a",
+          pathutils.CLUSTER_CONF_FILE: "conf-a6d4b13e407867f7a7b4f0f232a8f527",
+          pathutils.CLUSTER_DOMAIN_SECRET_FILE: "cds-47b5b3f19202936bb4",
+          pathutils.RAPI_USERS_FILE: "rapiusers-ea3271e8d810ef3",
+          hv_xen.XL_CONFIG_FILE: "77935cee92afd26d162f9e525e3d49b9"
+          }
+        }) \
+      .AddSuccessfulNode(node4, {}) \
+      .AddOfflineNode(node5) \
+      .Build()
+    assert set(nvinfo.keys()) == set(map(operator.attrgetter("uuid"), nodeinfo))
+
+    lu._VerifyFiles(nodeinfo, self.master_uuid, nvinfo,
+                    (files_all, files_opt, files_mc, files_vm))
+
+    expected_msgs = [
+      "File %s found with 2 different checksums (variant 1 on"
+        " %s, %s, %s; variant 2 on %s)" %
+        (pathutils.RAPI_CERT_FILE, node1.name, node2.name, node3.name,
+         self.master.name),
+      "File %s is missing from node(s) %s" %
+        (pathutils.CLUSTER_DOMAIN_SECRET_FILE, node1.name),
+      "File %s should not exist on node(s) %s" %
+        (pathutils.CLUSTER_CONF_FILE, node3.name),
+      "File %s is missing from node(s) %s" %
+        (hv_xen.XEND_CONFIG_FILE, node3.name),
+      "File %s is missing from node(s) %s" %
+        (pathutils.CLUSTER_CONF_FILE, node2.name),
+      "File %s found with 2 different checksums (variant 1 on"
+        " %s; variant 2 on %s)" %
+        (pathutils.CLUSTER_CONF_FILE, self.master.name, node3.name),
+      "File %s is optional, but it must exist on all or no nodes (not"
+        " found on %s, %s, %s)" %
+        (pathutils.RAPI_USERS_FILE, self.master.name, node1.name, node2.name),
+      "File %s is optional, but it must exist on all or no nodes (not"
+        " found on %s)" % (hv_xen.XL_CONFIG_FILE, node1.name),
+      "Node did not return file checksum data",
+      ]
+
+    self.assertEqual(len(self.mcpu.GetLogMessages()), len(expected_msgs))
+    for expected_msg in expected_msgs:
+      self.mcpu.assertLogContainsInLine(expected_msg)
+
+
+class TestLUClusterVerifyGroupVerifyNodeDrbd(TestLUClusterVerifyGroupMethods):
+  def setUp(self):
+    super(TestLUClusterVerifyGroupVerifyNodeDrbd, self).setUp()
+
+    self.node1 = self.cfg.AddNewNode()
+    self.node2 = self.cfg.AddNewNode()
+    self.inst = self.cfg.AddNewInstance(
+      disks=[self.cfg.CreateDisk(dev_type=constants.LD_DRBD8,
+                                 primary_node=self.node1,
+                                 secondary_node=self.node2)],
+      admin_state=constants.ADMINST_UP)
+
+  @withLockedLU
+  def testNoDrbdHelper(self, lu):
+    lu._VerifyNodeDrbd(self.master, {}, self.cfg.GetAllInstancesInfo(), None,
+                       self.cfg.ComputeDRBDMap())
+    self.mcpu.assertLogIsEmpty()
+
+  @withLockedLU
+  def testDrbdHelperInvalidNodeResult(self, lu):
+    for ndata, expected in [({}, "no drbd usermode helper returned"),
+                            ({constants.NV_DRBDHELPER: (False, "")},
+                             "drbd usermode helper check unsuccessful"),
+                            ({constants.NV_DRBDHELPER: (True, "/bin/false")},
+                             "wrong drbd usermode helper")]:
+      self.mcpu.ClearLogMessages()
+      lu._VerifyNodeDrbd(self.master, ndata, self.cfg.GetAllInstancesInfo(),
+                         "/bin/true", self.cfg.ComputeDRBDMap())
+      self.mcpu.assertLogContainsRegex(expected)
+
+  @withLockedLU
+  def testNoNodeResult(self, lu):
+    lu._VerifyNodeDrbd(self.node1, {}, self.cfg.GetAllInstancesInfo(),
+                         None, self.cfg.ComputeDRBDMap())
+    self.mcpu.assertLogContainsRegex("drbd minor 1 of .* is not active")
+
+  @withLockedLU
+  def testInvalidNodeResult(self, lu):
+    lu._VerifyNodeDrbd(self.node1, {constants.NV_DRBDLIST: ""},
+                       self.cfg.GetAllInstancesInfo(), None,
+                       self.cfg.ComputeDRBDMap())
+    self.mcpu.assertLogContainsRegex("cannot parse drbd status file")
+
+  @withLockedLU
+  def testWrongMinorInUse(self, lu):
+    lu._VerifyNodeDrbd(self.node1, {constants.NV_DRBDLIST: [2]},
+                       self.cfg.GetAllInstancesInfo(), None,
+                       self.cfg.ComputeDRBDMap())
+    self.mcpu.assertLogContainsRegex("drbd minor 1 of .* is not active")
+    self.mcpu.assertLogContainsRegex("unallocated drbd minor 2 is in use")
+
+  @withLockedLU
+  def testValidResult(self, lu):
+    lu._VerifyNodeDrbd(self.node1, {constants.NV_DRBDLIST: [1]},
+                       self.cfg.GetAllInstancesInfo(), None,
+                       self.cfg.ComputeDRBDMap())
+    self.mcpu.assertLogIsEmpty()
+
+
+class TestLUClusterVerifyGroupVerifyNodeOs(TestLUClusterVerifyGroupMethods):
+  @withLockedLU
+  def testUpdateNodeOsInvalidNodeResult(self, lu):
+    for ndata in [{}, {constants.NV_OSLIST: ""}, {constants.NV_OSLIST: [""]},
+                  {constants.NV_OSLIST: [["1", "2"]]}]:
+      self.mcpu.ClearLogMessages()
+      nimage = cluster.LUClusterVerifyGroup.NodeImage(uuid=self.master_uuid)
+      lu._UpdateNodeOS(self.master, ndata, nimage)
+      self.mcpu.assertLogContainsRegex("node hasn't returned valid OS data")
+
+  @withLockedLU
+  def testUpdateNodeOsValidNodeResult(self, lu):
+    ndata = {
+      constants.NV_OSLIST: [
+        ["mock_OS", "/mocked/path", True, "", ["default"], [],
+         [constants.OS_API_V20]],
+        ["Another_Mock", "/random", True, "", ["var1", "var2"],
+         [{"param1": "val1"}, {"param2": "val2"}], constants.OS_API_VERSIONS]
+      ]
+    }
+    nimage = cluster.LUClusterVerifyGroup.NodeImage(uuid=self.master_uuid)
+    lu._UpdateNodeOS(self.master, ndata, nimage)
+    self.mcpu.assertLogIsEmpty()
+
+  @withLockedLU
+  def testVerifyNodeOs(self, lu):
+    node = self.cfg.AddNewNode()
+    nimg_root = cluster.LUClusterVerifyGroup.NodeImage(uuid=self.master_uuid)
+    nimg = cluster.LUClusterVerifyGroup.NodeImage(uuid=node.uuid)
+
+    nimg_root.os_fail = False
+    nimg_root.oslist = {
+      "mock_os": [("/mocked/path", True, "", set(["default"]), set(),
+                   set([constants.OS_API_V20]))],
+      "broken_base_os": [("/broken", False, "", set(), set(),
+                         set([constants.OS_API_V20]))],
+      "only_on_root": [("/random", True, "", set(), set(), set())],
+      "diffing_os": [("/pinky", True, "", set(["var1", "var2"]),
+                      set([("param1", "val1"), ("param2", "val2")]),
+                      set([constants.OS_API_V20]))]
+    }
+    nimg.os_fail = False
+    nimg.oslist = {
+      "mock_os": [("/mocked/path", True, "", set(["default"]), set(),
+                   set([constants.OS_API_V20]))],
+      "only_on_test": [("/random", True, "", set(), set(), set())],
+      "diffing_os": [("/bunny", True, "", set(["var1", "var3"]),
+                      set([("param1", "val1"), ("param3", "val3")]),
+                      set([constants.OS_API_V15]))],
+      "broken_os": [("/broken", False, "", set(), set(),
+                     set([constants.OS_API_V20]))],
+      "multi_entries": [
+        ("/multi1", True, "", set(), set(), set([constants.OS_API_V20])),
+        ("/multi2", True, "", set(), set(), set([constants.OS_API_V20]))]
+    }
+
+    lu._VerifyNodeOS(node, nimg, nimg_root)
+
+    expected_msgs = [
+      "Extra OS only_on_test not present on reference node",
+      "OSes present on reference node .* but missing on this node:" +
+        " only_on_root",
+      "OS API version for diffing_os differs",
+      "OS variants list for diffing_os differs",
+      "OS parameters for diffing_os differs",
+      "Invalid OS broken_os",
+      "Extra OS broken_os not present on reference node",
+      "OS 'multi_entries' has multiple entries",
+      "Extra OS multi_entries not present on reference node"
+    ]
+
+    self.assertEqual(len(expected_msgs), len(self.mcpu.GetLogMessages()))
+    for expected_msg in expected_msgs:
+      self.mcpu.assertLogContainsRegex(expected_msg)
+
+
+class TestLUClusterVerifyGroupVerifyAcceptedFileStoragePaths(
+  TestLUClusterVerifyGroupMethods):
+  @withLockedLU
+  def testNotMaster(self, lu):
+    lu._VerifyAcceptedFileStoragePaths(self.master, {}, False)
+    self.mcpu.assertLogIsEmpty()
+
+  @withLockedLU
+  def testNotMasterButRetunedValue(self, lu):
+    lu._VerifyAcceptedFileStoragePaths(
+      self.master, {constants.NV_ACCEPTED_STORAGE_PATHS: []}, False)
+    self.mcpu.assertLogContainsRegex(
+      "Node should not have returned forbidden file storage paths")
+
+  @withLockedLU
+  def testMasterInvalidNodeResult(self, lu):
+    lu._VerifyAcceptedFileStoragePaths(self.master, {}, True)
+    self.mcpu.assertLogContainsRegex(
+      "Node did not return forbidden file storage paths")
+
+  @withLockedLU
+  def testMasterForbiddenPaths(self, lu):
+    lu._VerifyAcceptedFileStoragePaths(
+      self.master, {constants.NV_ACCEPTED_STORAGE_PATHS: ["/forbidden"]}, True)
+    self.mcpu.assertLogContainsRegex("Found forbidden file storage paths")
+
+  @withLockedLU
+  def testMasterSuccess(self, lu):
+    lu._VerifyAcceptedFileStoragePaths(
+      self.master, {constants.NV_ACCEPTED_STORAGE_PATHS: []}, True)
+    self.mcpu.assertLogIsEmpty()
+
+
+class TestLUClusterVerifyGroupVerifyStoragePaths(
+  TestLUClusterVerifyGroupMethods):
+  @withLockedLU
+  def testVerifyFileStoragePathsSuccess(self, lu):
+    lu._VerifyFileStoragePaths(self.master, {})
+    self.mcpu.assertLogIsEmpty()
+
+  @withLockedLU
+  def testVerifyFileStoragePathsFailure(self, lu):
+    lu._VerifyFileStoragePaths(self.master,
+                               {constants.NV_FILE_STORAGE_PATH: "/fail/path"})
+    self.mcpu.assertLogContainsRegex(
+      "The configured file storage path is unusable")
+
+  @withLockedLU
+  def testVerifySharedFileStoragePathsSuccess(self, lu):
+    lu._VerifySharedFileStoragePaths(self.master, {})
+    self.mcpu.assertLogIsEmpty()
+
+  @withLockedLU
+  def testVerifySharedFileStoragePathsFailure(self, lu):
+    lu._VerifySharedFileStoragePaths(
+      self.master, {constants.NV_SHARED_FILE_STORAGE_PATH: "/fail/path"})
+    self.mcpu.assertLogContainsRegex(
+      "The configured sharedfile storage path is unusable")
+
+
+class TestLUClusterVerifyGroupVerifyOob(TestLUClusterVerifyGroupMethods):
+  @withLockedLU
+  def testEmptyResult(self, lu):
+    lu._VerifyOob(self.master, {})
+    self.mcpu.assertLogIsEmpty()
+
+  @withLockedLU
+  def testErrorResults(self, lu):
+    lu._VerifyOob(self.master, {constants.NV_OOB_PATHS: ["path1", "path2"]})
+    self.mcpu.assertLogContainsRegex("path1")
+    self.mcpu.assertLogContainsRegex("path2")
+
+
+class TestLUClusterVerifyGroupUpdateNodeVolumes(
+  TestLUClusterVerifyGroupMethods):
+  def setUp(self):
+    super(TestLUClusterVerifyGroupUpdateNodeVolumes, self).setUp()
+    self.nimg = cluster.LUClusterVerifyGroup.NodeImage(uuid=self.master_uuid)
+
+  @withLockedLU
+  def testNoVgName(self, lu):
+    lu._UpdateNodeVolumes(self.master, {}, self.nimg, None)
+    self.mcpu.assertLogIsEmpty()
+    self.assertTrue(self.nimg.lvm_fail)
+
+  @withLockedLU
+  def testErrorMessage(self, lu):
+    lu._UpdateNodeVolumes(self.master, {constants.NV_LVLIST: "mock error"},
+                          self.nimg, "mock_vg")
+    self.mcpu.assertLogContainsRegex("LVM problem on node: mock error")
+    self.assertTrue(self.nimg.lvm_fail)
+
+  @withLockedLU
+  def testInvalidNodeResult(self, lu):
+    lu._UpdateNodeVolumes(self.master, {constants.NV_LVLIST: [1, 2, 3]},
+                          self.nimg, "mock_vg")
+    self.mcpu.assertLogContainsRegex("rpc call to node failed")
+    self.assertTrue(self.nimg.lvm_fail)
+
+  @withLockedLU
+  def testValidNodeResult(self, lu):
+    lu._UpdateNodeVolumes(self.master, {constants.NV_LVLIST: {}},
+                          self.nimg, "mock_vg")
+    self.mcpu.assertLogIsEmpty()
+    self.assertFalse(self.nimg.lvm_fail)
+
+
+class TestLUClusterVerifyGroupUpdateNodeInstances(
+  TestLUClusterVerifyGroupMethods):
+  def setUp(self):
+    super(TestLUClusterVerifyGroupUpdateNodeInstances, self).setUp()
+    self.nimg = cluster.LUClusterVerifyGroup.NodeImage(uuid=self.master_uuid)
+
+  @withLockedLU
+  def testInvalidNodeResult(self, lu):
+    lu._UpdateNodeInstances(self.master, {}, self.nimg)
+    self.mcpu.assertLogContainsRegex("rpc call to node failed")
+
+  @withLockedLU
+  def testValidNodeResult(self, lu):
+    inst = self.cfg.AddNewInstance()
+    lu._UpdateNodeInstances(self.master,
+                            {constants.NV_INSTANCELIST: [inst.name]},
+                            self.nimg)
+    self.mcpu.assertLogIsEmpty()
+
+
+class TestLUClusterVerifyGroupUpdateNodeInfo(TestLUClusterVerifyGroupMethods):
+  def setUp(self):
+    super(TestLUClusterVerifyGroupUpdateNodeInfo, self).setUp()
+    self.nimg = cluster.LUClusterVerifyGroup.NodeImage(uuid=self.master_uuid)
+    self.valid_hvresult = {constants.NV_HVINFO: {"memory_free": 1024}}
+
+  @withLockedLU
+  def testInvalidHvNodeResult(self, lu):
+    for ndata in [{}, {constants.NV_HVINFO: ""}]:
+      self.mcpu.ClearLogMessages()
+      lu._UpdateNodeInfo(self.master, ndata, self.nimg, None)
+      self.mcpu.assertLogContainsRegex("rpc call to node failed")
+
+  @withLockedLU
+  def testInvalidMemoryFreeHvNodeResult(self, lu):
+    lu._UpdateNodeInfo(self.master,
+                       {constants.NV_HVINFO: {"memory_free": "abc"}},
+                       self.nimg, None)
+    self.mcpu.assertLogContainsRegex(
+      "node returned invalid nodeinfo, check hypervisor")
+
+  @withLockedLU
+  def testValidHvNodeResult(self, lu):
+    lu._UpdateNodeInfo(self.master, self.valid_hvresult, self.nimg, None)
+    self.mcpu.assertLogIsEmpty()
+
+  @withLockedLU
+  def testInvalidVgNodeResult(self, lu):
+    for vgdata in [[], ""]:
+      self.mcpu.ClearLogMessages()
+      ndata = {constants.NV_VGLIST: vgdata}
+      ndata.update(self.valid_hvresult)
+      lu._UpdateNodeInfo(self.master, ndata, self.nimg, "mock_vg")
+      self.mcpu.assertLogContainsRegex(
+        "node didn't return data for the volume group 'mock_vg'")
+
+  @withLockedLU
+  def testInvalidDiskFreeVgNodeResult(self, lu):
+    self.valid_hvresult.update({
+      constants.NV_VGLIST: {"mock_vg": "abc"}
+    })
+    lu._UpdateNodeInfo(self.master, self.valid_hvresult, self.nimg, "mock_vg")
+    self.mcpu.assertLogContainsRegex(
+      "node returned invalid LVM info, check LVM status")
+
+  @withLockedLU
+  def testValidVgNodeResult(self, lu):
+    self.valid_hvresult.update({
+      constants.NV_VGLIST: {"mock_vg": 10000}
+    })
+    lu._UpdateNodeInfo(self.master, self.valid_hvresult, self.nimg, "mock_vg")
+    self.mcpu.assertLogIsEmpty()
+
+
+class TestLUClusterVerifyGroupCollectDiskInfo(TestLUClusterVerifyGroupMethods):
+  def setUp(self):
+    super(TestLUClusterVerifyGroupCollectDiskInfo, self).setUp()
+
+    self.node1 = self.cfg.AddNewNode()
+    self.node2 = self.cfg.AddNewNode()
+    self.node3 = self.cfg.AddNewNode()
+
+    self.diskless_inst = \
+      self.cfg.AddNewInstance(primary_node=self.node1,
+                              disk_template=constants.DT_DISKLESS)
+    self.plain_inst = \
+      self.cfg.AddNewInstance(primary_node=self.node2,
+                              disk_template=constants.DT_PLAIN)
+    self.drbd_inst = \
+      self.cfg.AddNewInstance(primary_node=self.node3,
+                              secondary_node=self.node2,
+                              disk_template=constants.DT_DRBD8)
+
+    self.node1_img = cluster.LUClusterVerifyGroup.NodeImage(
+                       uuid=self.node1.uuid)
+    self.node1_img.pinst = [self.diskless_inst.uuid]
+    self.node1_img.sinst = []
+    self.node2_img = cluster.LUClusterVerifyGroup.NodeImage(
+                       uuid=self.node2.uuid)
+    self.node2_img.pinst = [self.plain_inst.uuid]
+    self.node2_img.sinst = [self.drbd_inst.uuid]
+    self.node3_img = cluster.LUClusterVerifyGroup.NodeImage(
+                       uuid=self.node3.uuid)
+    self.node3_img.pinst = [self.drbd_inst.uuid]
+    self.node3_img.sinst = []
+
+    self.node_images = {
+      self.node1.uuid: self.node1_img,
+      self.node2.uuid: self.node2_img,
+      self.node3.uuid: self.node3_img
+    }
+
+    self.node_uuids = [self.node1.uuid, self.node2.uuid, self.node3.uuid]
+
+  @withLockedLU
+  def testSuccessfulRun(self, lu):
+    self.rpc.call_blockdev_getmirrorstatus_multi.return_value = \
+      RpcResultsBuilder() \
+        .AddSuccessfulNode(self.node2, [(True, ""), (True, "")]) \
+        .AddSuccessfulNode(self.node3, [(True, "")]) \
+        .Build()
+
+    lu._CollectDiskInfo(self.node_uuids, self.node_images,
+                        self.cfg.GetAllInstancesInfo())
+
+    self.mcpu.assertLogIsEmpty()
+
+  @withLockedLU
+  def testOfflineAndFailingNodes(self, lu):
+    self.rpc.call_blockdev_getmirrorstatus_multi.return_value = \
+      RpcResultsBuilder() \
+        .AddOfflineNode(self.node2) \
+        .AddFailedNode(self.node3) \
+        .Build()
+
+    lu._CollectDiskInfo(self.node_uuids, self.node_images,
+                        self.cfg.GetAllInstancesInfo())
+
+    self.mcpu.assertLogContainsRegex("while getting disk information")
+
+  @withLockedLU
+  def testInvalidNodeResult(self, lu):
+    self.rpc.call_blockdev_getmirrorstatus_multi.return_value = \
+      RpcResultsBuilder() \
+        .AddSuccessfulNode(self.node2, [(True,), (False,)]) \
+        .AddSuccessfulNode(self.node3, [""]) \
+        .Build()
+
+    lu._CollectDiskInfo(self.node_uuids, self.node_images,
+                        self.cfg.GetAllInstancesInfo())
+    # logging is not performed through mcpu
+    self.mcpu.assertLogIsEmpty()
+
+
+class TestLUClusterVerifyGroupHooksCallBack(TestLUClusterVerifyGroupMethods):
+  def setUp(self):
+    super(TestLUClusterVerifyGroupHooksCallBack, self).setUp()
+
+    self.feedback_fn = lambda _: None
+
+  def PrepareLU(self, lu):
+    super(TestLUClusterVerifyGroupHooksCallBack, self).PrepareLU(lu)
+
+    lu.my_node_uuids = list(self.cfg.GetAllNodesInfo().keys())
+
+  @withLockedLU
+  def testEmptyGroup(self, lu):
+    lu.my_node_uuids = []
+    lu.HooksCallBack(constants.HOOKS_PHASE_POST, None, self.feedback_fn, None)
+
+  @withLockedLU
+  def testFailedResult(self, lu):
+    lu.HooksCallBack(constants.HOOKS_PHASE_POST,
+                     RpcResultsBuilder(use_node_names=True)
+                       .AddFailedNode(self.master).Build(),
+                     self.feedback_fn,
+                     None)
+    self.mcpu.assertLogContainsRegex("Communication failure in hooks execution")
+
+  @withLockedLU
+  def testOfflineNode(self, lu):
+    lu.HooksCallBack(constants.HOOKS_PHASE_POST,
+                     RpcResultsBuilder(use_node_names=True)
+                       .AddOfflineNode(self.master).Build(),
+                     self.feedback_fn,
+                     None)
+
+  @withLockedLU
+  def testValidResult(self, lu):
+    lu.HooksCallBack(constants.HOOKS_PHASE_POST,
+                     RpcResultsBuilder(use_node_names=True)
+                       .AddSuccessfulNode(self.master,
+                                          [("mock_script",
+                                            constants.HKR_SUCCESS,
+                                            "mock output")])
+                       .Build(),
+                     self.feedback_fn,
+                     None)
+
+  @withLockedLU
+  def testFailedScriptResult(self, lu):
+    lu.HooksCallBack(constants.HOOKS_PHASE_POST,
+                     RpcResultsBuilder(use_node_names=True)
+                       .AddSuccessfulNode(self.master,
+                                          [("mock_script",
+                                            constants.HKR_FAIL,
+                                            "mock output")])
+                       .Build(),
+                     self.feedback_fn,
+                     None)
+    self.mcpu.assertLogContainsRegex("Script mock_script failed")
+
 
 if __name__ == "__main__":
   testutils.GanetiTestProgram()

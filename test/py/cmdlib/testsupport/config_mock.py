@@ -177,12 +177,13 @@ class ConfigMock(config.ConfigWriter):
                      hvparams=None,
                      beparams=None,
                      osparams=None,
-                     admin_state=constants.ADMINST_DOWN,
+                     admin_state=None,
                      nics=None,
                      disks=None,
                      disk_template=None,
-                     disks_active=False,
-                     network_port=None):
+                     disks_active=None,
+                     network_port=None,
+                     secondary_node=None):
     """Add a new L{objects.Instance} to the cluster configuration
 
     See L{objects.Instance} for parameter documentation.
@@ -207,12 +208,15 @@ class ConfigMock(config.ConfigWriter):
       beparams = {}
     if osparams is None:
       osparams = {}
+    if admin_state is None:
+      admin_state = constants.ADMINST_DOWN
     if nics is None:
       nics = [self.CreateNic()]
-    if disks is None:
-      disks = [self.CreateDisk()]
     if disk_template is None:
-      if len(disks) == 0:
+      if disks is None:
+        # user chose nothing, so create a plain disk for him
+        disk_template = constants.DT_PLAIN
+      elif len(disks) == 0:
         disk_template = constants.DT_DISKLESS
       else:
         dt_guess_dict = {
@@ -225,6 +229,26 @@ class ConfigMock(config.ConfigWriter):
         }
         assert constants.LOGICAL_DISK_TYPES == set(dt_guess_dict.keys())
         disk_template = dt_guess_dict[disks[0].dev_type]
+    if disks is None:
+      if disk_template == constants.DT_DISKLESS:
+        disks = []
+      else:
+        ld_guess_dict = {
+          constants.DT_PLAIN: constants.LD_LV,
+          constants.DT_FILE: constants.LD_FILE,
+          constants.DT_SHARED_FILE: constants.LD_FILE,
+          constants.DT_DRBD8: constants.LD_DRBD8,
+          constants.DT_RBD: constants.LD_RBD,
+          constants.DT_BLOCK: constants.LD_BLOCKDEV,
+          constants.DT_EXT: constants.LD_EXT
+        }
+        assert constants.DISK_TEMPLATES == \
+                set(ld_guess_dict.keys() + [constants.DT_DISKLESS])
+        disks = [self.CreateDisk(dev_type=ld_guess_dict[disk_template],
+                                 primary_node=primary_node,
+                                 secondary_node=secondary_node)]
+    if disks_active is None:
+      disks_active = admin_state == constants.ADMINST_UP
 
     inst = objects.Instance(uuid=uuid,
                             name=name,

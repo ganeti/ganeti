@@ -2106,7 +2106,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
          self.all_node_info[node_uuid].group != self.group_uuid:
         # we're skipping nodes marked offline and nodes in other groups from
         # the N+1 warning, since most likely we don't have good memory
-        # infromation from them; we already list instances living on such
+        # information from them; we already list instances living on such
         # nodes, and that's enough warning
         continue
       #TODO(dynmem): also consider ballooning out other instances

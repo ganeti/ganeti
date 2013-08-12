@@ -185,6 +185,29 @@ class ProcessorMock(mcpu.Processor):
       (expected_regex, self.GetLogMessagesString())
     )
 
+  def assertLogContainsInLine(self, expected):
+    """Asserts that the log contains a message which contains a string.
+
+    @type expected: string
+    @param expected: string to search in messages.
+
+    """
+    self.assertLogContainsRegex(re.escape(expected))
+
+  def assertLogDoesNotContainRegex(self, expected_regex):
+    """Asserts that the log does not contain a message which matches the regex.
+
+    @type expected_regex: string
+    @param expected_regex: regular expression to match messages with.
+
+    """
+    for msg in self.GetLogMessages():
+      if re.search(expected_regex, msg) is not None:
+        raise AssertionError(
+          "Found '%s' in LU log messages. Log is:\n%s" %
+          (expected_regex, self.GetLogMessagesString())
+        )
+
   def assertLogIsEmpty(self):
     """Asserts that the log does not contain any message.
 

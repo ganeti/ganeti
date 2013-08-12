@@ -77,6 +77,9 @@ class CmdlibTestCase(testutils.GanetiTestCase):
                     doc="Master node")
   master_uuid = property(fget=lambda self: self.cfg.GetMasterNode(),
                          doc="Master node UUID")
+  # pylint: disable=W0212
+  group = property(fget=lambda self: self._GetDefaultGroup(),
+                   doc="Default node group")
 
   def setUp(self):
     super(CmdlibTestCase, self).setUp()
@@ -308,6 +311,12 @@ class CmdlibTestCase(testutils.GanetiTestCase):
 
     return opcodes.OpCode.LoadOpCode(state)
 
+  def _GetDefaultGroup(self):
+    for group in self.cfg.GetAllNodeGroupsInfo().values():
+      if group.name == "default":
+        return group
+    assert False
+
 
 # pylint: disable=C0103
 def withLockedLU(func):
@@ -316,6 +325,9 @@ def withLockedLU(func):
   This uses L{CmdlibTestCase.RunWithLockedLU} to run the decorated method.
   For this to work, the opcode to run has to be an instance field named "op",
   "_op", "opcode" or "_opcode".
+
+  If the instance has a method called "PrepareLU", this method is invoked with
+  the LU right before the test method is called.
 
   """
   def wrapper(*args, **kwargs):
@@ -329,8 +341,16 @@ def withLockedLU(func):
         break
     assert op is not None
 
+    prepare_fn = None
+    if hasattr(test, "PrepareLU"):
+      prepare_fn = getattr(test, "PrepareLU")
+      assert callable(prepare_fn)
+
     # pylint: disable=W0142
     def callWithLU(lu):
+      if prepare_fn:
+        prepare_fn(lu)
+
       new_args = list(args)
       new_args.append(lu)
       func(*new_args, **kwargs)
