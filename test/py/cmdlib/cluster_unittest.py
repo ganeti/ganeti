@@ -2015,5 +2015,13 @@ class TestLUClusterVerifyGroupHooksCallBack(TestLUClusterVerifyGroupMethods):
     self.mcpu.assertLogContainsRegex("Script mock_script failed")
 
 
+class TestLUClusterVerifyDisks(CmdlibTestCase):
+  def testVerifyDisks(self):
+    op = opcodes.OpClusterVerifyDisks()
+    result = self.ExecOpCode(op)
+
+    self.assertEqual(1, len(result["jobs"]))
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
