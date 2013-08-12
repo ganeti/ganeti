@@ -154,58 +154,6 @@ class TestLUQuery(unittest.TestCase):
                       "xyz")
 
 
-class TestLUGroupAssignNodes(unittest.TestCase):
-
-  def testCheckAssignmentForSplitInstances(self):
-    node_data = dict((n, objects.Node(name=n, group=g))
-                     for (n, g) in [("n1a", "g1"), ("n1b", "g1"),
-                                    ("n2a", "g2"), ("n2b", "g2"),
-                                    ("n3a", "g3"), ("n3b", "g3"),
-                                    ("n3c", "g3"),
-                                    ])
-
-    def Instance(uuid, pnode, snode):
-      if snode is None:
-        disks = []
-        disk_template = constants.DT_DISKLESS
-      else:
-        disks = [objects.Disk(dev_type=constants.LD_DRBD8,
-                              logical_id=[pnode, snode, 1, 17, 17])]
-        disk_template = constants.DT_DRBD8
-
-      return objects.Instance(name="%s-name" % uuid, uuid="%s" % uuid,
-                              primary_node=pnode, disks=disks,
-                              disk_template=disk_template)
-
-    instance_data = dict((uuid, Instance(uuid, pnode, snode))
-                         for uuid, pnode, snode in [("inst1a", "n1a", "n1b"),
-                                                    ("inst1b", "n1b", "n1a"),
-                                                    ("inst2a", "n2a", "n2b"),
-                                                    ("inst3a", "n3a", None),
-                                                    ("inst3b", "n3b", "n1b"),
-                                                    ("inst3c", "n3b", "n2b"),
-                                                    ])
-
-    # Test first with the existing state.
-    (new, prev) = \
-      group.LUGroupAssignNodes.CheckAssignmentForSplitInstances([],
-                                                                node_data,
-                                                                instance_data)
-
-    self.assertEqual([], new)
-    self.assertEqual(set(["inst3b", "inst3c"]), set(prev))
-
-    # And now some changes.
-    (new, prev) = \
-      group.LUGroupAssignNodes.CheckAssignmentForSplitInstances([("n1b",
-                                                                  "g3")],
-                                                                node_data,
-                                                                instance_data)
-
-    self.assertEqual(set(["inst1a", "inst1b"]), set(new))
-    self.assertEqual(set(["inst3c"]), set(prev))
-
-
 class _FakeLU:
   def __init__(self, cfg=NotImplemented, proc=NotImplemented,
                rpc=NotImplemented):

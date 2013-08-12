@@ -1239,6 +1239,7 @@ TEST_FILES = \
 python_tests = \
 	doc/examples/rapi_testutils.py \
 	test/py/cmdlib/cluster_unittest.py \
+	test/py/cmdlib/group_unittest.py \
 	test/py/cmdlib/test_unittest.py \
 	test/py/cmdlib/cmdlib_unittest.py \
 	test/py/cmdlib/instance_storage_unittest.py \
