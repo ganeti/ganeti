@@ -201,8 +201,9 @@ def CheckNodeNotDrained(lu, node_uuid):
   @raise errors.OpPrereqError: if the node is drained
 
   """
-  if lu.cfg.GetNodeInfo(node_uuid).drained:
-    raise errors.OpPrereqError("Can't use drained node %s" % node_uuid,
+  node = lu.cfg.GetNodeInfo(node_uuid)
+  if node.drained:
+    raise errors.OpPrereqError("Can't use drained node %s" % node.name,
                                errors.ECODE_STATE)
 
 
