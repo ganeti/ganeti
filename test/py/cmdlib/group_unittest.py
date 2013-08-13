@@ -304,5 +304,46 @@ class TestLUGroupRename(CmdlibTestCase):
 
     self.mcpu.assertLogIsEmpty()
 
+
+class TestLUGroupEvacuate(CmdlibTestCase):
+  def testEvacuateEmptyGroup(self):
+    group = self.cfg.AddNewNodeGroup()
+    op = opcodes.OpGroupEvacuate(group_name=group.name)
+
+    self.iallocator_cls.return_value.result = ([], [], [])
+
+    self.ExecOpCode(op)
+
+  def testEvacuateOnlyGroup(self):
+    op = opcodes.OpGroupEvacuate(group_name=self.group.name)
+
+    self.ExecOpCodeExpectOpPrereqError(
+      op, "There are no possible target groups")
+
+  def testEvacuateWithTargetGroups(self):
+    group = self.cfg.AddNewNodeGroup()
+    self.cfg.AddNewNode(group=group)
+    self.cfg.AddNewNode(group=group)
+
+    target_group1 = self.cfg.AddNewNodeGroup()
+    target_group2 = self.cfg.AddNewNodeGroup()
+    op = opcodes.OpGroupEvacuate(group_name=group.name,
+                                 target_groups=[target_group1.name,
+                                                target_group2.name])
+
+    self.iallocator_cls.return_value.result = ([], [], [])
+
+    self.ExecOpCode(op)
+
+  def testFailingIAllocator(self):
+    group = self.cfg.AddNewNodeGroup()
+    op = opcodes.OpGroupEvacuate(group_name=group.name)
+
+    self.iallocator_cls.return_value.success = False
+
+    self.ExecOpCodeExpectOpPrereqError(
+      op, "Can't compute group evacuation using iallocator")
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()

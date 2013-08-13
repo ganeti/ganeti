@@ -422,7 +422,7 @@ class ConfigMock(config.ConfigWriter):
       modify_ssh_setup=False,
       maintain_node_health=False,
       uid_pool=None,
-      default_iallocator=None,
+      default_iallocator="mock_iallocator",
       hidden_os=None,
       blacklisted_os=None,
       primary_ip_family=None,
