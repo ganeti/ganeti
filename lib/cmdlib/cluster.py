@@ -3129,12 +3129,11 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       feedback_fn("* Hooks Results")
       assert hooks_results, "invalid result from hooks"
 
-      for node_uuid in hooks_results:
-        res = hooks_results[node_uuid]
-        node = self.cfg.GetNodeInfo(node_uuid)
+      for node_name in hooks_results:
+        res = hooks_results[node_name]
         msg = res.fail_msg
         test = msg and not res.offline
-        self._ErrorIf(test, constants.CV_ENODEHOOKS, node.name,
+        self._ErrorIf(test, constants.CV_ENODEHOOKS, node_name,
                       "Communication failure in hooks execution: %s", msg)
         if res.offline or msg:
           # No need to investigate payload if node is offline or gave
@@ -3142,7 +3141,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
           continue
         for script, hkr, output in res.payload:
           test = hkr == constants.HKR_FAIL
-          self._ErrorIf(test, constants.CV_ENODEHOOKS, node.name,
+          self._ErrorIf(test, constants.CV_ENODEHOOKS, node_name,
                         "Script %s failed, output:", script)
           if test:
             output = self._HOOKS_INDENT_RE.sub("      ", output)
