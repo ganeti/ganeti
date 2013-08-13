@@ -23,6 +23,8 @@
 
 """
 
+import itertools
+
 from ganeti import constants
 from ganeti import opcodes
 from ganeti import query
@@ -343,6 +345,112 @@ class TestLUGroupEvacuate(CmdlibTestCase):
 
     self.ExecOpCodeExpectOpPrereqError(
       op, "Can't compute group evacuation using iallocator")
+
+
+class TestLUGroupVerifyDisks(CmdlibTestCase):
+  def testNoInstances(self):
+    op = opcodes.OpGroupVerifyDisks(group_name=self.group.name)
+
+    self.ExecOpCode(op)
+
+    self.mcpu.assertLogIsEmpty()
+
+  def testOfflineAndFailingNode(self):
+    node = self.cfg.AddNewNode(offline=True)
+    self.cfg.AddNewInstance(primary_node=node,
+                            admin_state=constants.ADMINST_UP)
+    self.cfg.AddNewInstance(admin_state=constants.ADMINST_UP)
+    self.rpc.call_lv_list.return_value = \
+      self.RpcResultsBuilder() \
+        .AddFailedNode(self.master) \
+        .AddOfflineNode(node) \
+        .Build()
+
+    op = opcodes.OpGroupVerifyDisks(group_name=self.group.name)
+
+    (nerrors, offline, missing) = self.ExecOpCode(op)
+
+    self.assertEqual(1, len(nerrors))
+    self.assertEqual(0, len(offline))
+    self.assertEqual(2, len(missing))
+
+  def testValidNodeResult(self):
+    self.cfg.AddNewInstance(
+      disks=[self.cfg.CreateDisk(dev_type=constants.LD_LV),
+             self.cfg.CreateDisk(dev_type=constants.LD_LV)
+             ],
+      admin_state=constants.ADMINST_UP)
+    self.rpc.call_lv_list.return_value = \
+      self.RpcResultsBuilder() \
+        .AddSuccessfulNode(self.master, {
+          "mockvg/mock_disk_1": (None, None, True),
+          "mockvg/mock_disk_2": (None, None, False)
+        }) \
+        .Build()
+
+    op = opcodes.OpGroupVerifyDisks(group_name=self.group.name)
+
+    (nerrors, offline, missing) = self.ExecOpCode(op)
+
+    self.assertEqual(0, len(nerrors))
+    self.assertEqual(1, len(offline))
+    self.assertEqual(0, len(missing))
+
+  def testDrbdDisk(self):
+    node1 = self.cfg.AddNewNode()
+    node2 = self.cfg.AddNewNode()
+    node3 = self.cfg.AddNewNode()
+    node4 = self.cfg.AddNewNode()
+
+    valid_disk = self.cfg.CreateDisk(dev_type=constants.LD_DRBD8,
+                                     primary_node=node1,
+                                     secondary_node=node2)
+    broken_disk = self.cfg.CreateDisk(dev_type=constants.LD_DRBD8,
+                                      primary_node=node1,
+                                      secondary_node=node2)
+    failing_node_disk = self.cfg.CreateDisk(dev_type=constants.LD_DRBD8,
+                                            primary_node=node3,
+                                            secondary_node=node4)
+
+    self.cfg.AddNewInstance(disks=[valid_disk, broken_disk],
+                            primary_node=node1,
+                            admin_state=constants.ADMINST_UP)
+    self.cfg.AddNewInstance(disks=[failing_node_disk],
+                            primary_node=node3,
+                            admin_state=constants.ADMINST_UP)
+
+    lv_list_result = dict(("/".join(disk.logical_id), (None, None, True))
+                          for disk in itertools.chain(valid_disk.children,
+                                                      broken_disk.children))
+    self.rpc.call_lv_list.return_value = \
+      self.RpcResultsBuilder() \
+        .AddSuccessfulNode(node1, lv_list_result) \
+        .AddSuccessfulNode(node2, lv_list_result) \
+        .AddFailedNode(node3) \
+        .AddFailedNode(node4) \
+        .Build()
+
+    def GetDrbdNeedsActivationResult(node_uuid, *_):
+      if node_uuid == node1.uuid:
+        return self.RpcResultsBuilder() \
+                 .CreateSuccessfulNodeResult(node1, [])
+      elif node_uuid == node2.uuid:
+        return self.RpcResultsBuilder() \
+                 .CreateSuccessfulNodeResult(node2, [broken_disk.uuid])
+      elif node_uuid == node3.uuid or node_uuid == node4.uuid:
+        return self.RpcResultsBuilder() \
+                 .CreateFailedNodeResult(node_uuid)
+
+    self.rpc.call_drbd_needs_activation.side_effect = \
+      GetDrbdNeedsActivationResult
+
+    op = opcodes.OpGroupVerifyDisks(group_name=self.group.name)
+
+    (nerrors, offline, missing) = self.ExecOpCode(op)
+
+    self.assertEqual(2, len(nerrors))
+    self.assertEqual(1, len(offline))
+    self.assertEqual(1, len(missing))
 
 
 if __name__ == "__main__":
