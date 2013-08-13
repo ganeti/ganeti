@@ -211,5 +211,56 @@ class TestLUGroupQuery(CmdlibTestCase):
     self.mcpu.assertLogIsEmpty()
 
 
+class TestLUGroupSetParams(CmdlibTestCase):
+  def testNoModifications(self):
+    op = opcodes.OpGroupSetParams(group_name=self.group.name)
+
+    self.ExecOpCodeExpectOpPrereqError(op,
+                                       "Please pass at least one modification")
+
+  def testModifyingAll(self):
+    ndparams = {constants.ND_EXCLUSIVE_STORAGE: True}
+    hv_state = {constants.HT_FAKE: {constants.HVST_CPU_TOTAL: 8}}
+    disk_state = {
+      constants.LD_LV: {
+        "mock_vg": {constants.DS_DISK_TOTAL: 10}
+      }
+    }
+    diskparams = {constants.DT_RBD: {constants.RBD_POOL: "mock_pool"}}
+    ipolicy = {constants.IPOLICY_DTS: [constants.DT_DRBD8]}
+    op = opcodes.OpGroupSetParams(group_name=self.group.name,
+                                  ndparams=ndparams,
+                                  hv_state=hv_state,
+                                  disk_state=disk_state,
+                                  diskparams=diskparams,
+                                  ipolicy=ipolicy)
+
+    self.ExecOpCode(op)
+
+    self.mcpu.assertLogIsEmpty()
+
+  def testInvalidDiskparams(self):
+    diskparams = {constants.DT_RBD: {constants.LV_STRIPES: 1}}
+    op = opcodes.OpGroupSetParams(group_name=self.group.name,
+                                  diskparams=diskparams)
+
+    self.ExecOpCodeExpectOpPrereqError(
+      op, "Provided option keys not supported")
+
+  def testIPolicyNewViolations(self):
+    self.cfg.AddNewInstance(beparams={constants.BE_VCPUS: 8})
+
+    min_max = dict(constants.ISPECS_MINMAX_DEFAULTS)
+    min_max[constants.ISPECS_MAX].update({constants.ISPEC_CPU_COUNT: 2})
+    ipolicy = {constants.ISPECS_MINMAX: [min_max]}
+    op = opcodes.OpGroupSetParams(group_name=self.group.name,
+                                  ipolicy=ipolicy)
+
+    self.ExecOpCode(op)
+
+    self.assertLogContainsRegex(
+      "After the ipolicy change the following instances violate them")
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
