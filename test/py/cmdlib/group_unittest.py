@@ -262,5 +262,29 @@ class TestLUGroupSetParams(CmdlibTestCase):
       "After the ipolicy change the following instances violate them")
 
 
+class TestLUGroupRemove(CmdlibTestCase):
+  def testNonEmptyGroup(self):
+    group = self.cfg.AddNewNodeGroup()
+    self.cfg.AddNewNode(group=group)
+    op = opcodes.OpGroupRemove(group_name=group.name)
+
+    self.ExecOpCodeExpectOpPrereqError(op, "Group .* not empty")
+
+  def testRemoveLastGroup(self):
+    self.master.group = "invalid_group"
+    op = opcodes.OpGroupRemove(group_name=self.group.name)
+
+    self.ExecOpCodeExpectOpPrereqError(
+      op, "Group .* is the only group, cannot be removed")
+
+  def testRemoveGroup(self):
+    group = self.cfg.AddNewNodeGroup()
+    op = opcodes.OpGroupRemove(group_name=group.name)
+
+    self.ExecOpCode(op)
+
+    self.mcpu.assertLogIsEmpty()
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
