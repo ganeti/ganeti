@@ -286,5 +286,23 @@ class TestLUGroupRemove(CmdlibTestCase):
     self.mcpu.assertLogIsEmpty()
 
 
+class TestLUGroupRename(CmdlibTestCase):
+  def testRenameToExistingName(self):
+    group = self.cfg.AddNewNodeGroup()
+    op = opcodes.OpGroupRename(group_name=group.name,
+                               new_name=self.group.name)
+
+    self.ExecOpCodeExpectOpPrereqError(
+      op, "Desired new name .* clashes with existing node group")
+
+  def testRename(self):
+    group = self.cfg.AddNewNodeGroup()
+    op = opcodes.OpGroupRename(group_name=group.name,
+                               new_name="new_group_name")
+
+    self.ExecOpCode(op)
+
+    self.mcpu.assertLogIsEmpty()
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
