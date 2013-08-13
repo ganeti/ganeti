@@ -453,12 +453,14 @@ class LUGroupSetParams(LogicalUnit):
       new_ipolicy = cluster.SimpleFillIPolicy(self.new_ipolicy)
       CheckIpolicyVsDiskTemplates(new_ipolicy,
                                   cluster.enabled_disk_templates)
-      instances = self.cfg.GetMultiInstanceInfoByName(owned_instance_names)
+      instances = \
+        dict(self.cfg.GetMultiInstanceInfoByName(owned_instance_names))
       gmi = ganeti.masterd.instance
       violations = \
           ComputeNewInstanceViolations(gmi.CalculateGroupIPolicy(cluster,
                                                                  self.group),
-                                       new_ipolicy, instances, self.cfg)
+                                       new_ipolicy, instances.values(),
+                                       self.cfg)
 
       if violations:
         self.LogWarning("After the ipolicy change the following instances"
