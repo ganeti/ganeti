@@ -65,7 +65,7 @@ class ProcessorMock(mcpu.Processor):
   """
 
   def __init__(self, context):
-    super(ProcessorMock, self).__init__(context, 0, True)
+    super(ProcessorMock, self).__init__(context, 1, True)
     self.log_entries = []
     self._lu_test_func = None
 

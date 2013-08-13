@@ -31,6 +31,58 @@ from testsupport import *
 import testutils
 
 
+class TestLUGroupAdd(CmdlibTestCase):
+  def testAddExistingGroup(self):
+    self.cfg.AddNewNodeGroup(name="existing_group")
+
+    op = opcodes.OpGroupAdd(group_name="existing_group")
+    self.ExecOpCodeExpectOpPrereqError(
+      op, "Desired group name 'existing_group' already exists")
+
+  def testAddNewGroup(self):
+    op = opcodes.OpGroupAdd(group_name="new_group")
+
+    self.ExecOpCode(op)
+
+    self.mcpu.assertLogIsEmpty()
+
+  def testAddNewGroupParams(self):
+    ndparams = {constants.ND_EXCLUSIVE_STORAGE: True}
+    hv_state = {constants.HT_FAKE: {constants.HVST_CPU_TOTAL: 8}}
+    disk_state = {
+      constants.LD_LV: {
+        "mock_vg": {constants.DS_DISK_TOTAL: 10}
+      }
+    }
+    diskparams = {constants.DT_RBD: {constants.RBD_POOL: "mock_pool"}}
+    ipolicy = constants.IPOLICY_DEFAULTS
+    op = opcodes.OpGroupAdd(group_name="new_group",
+                            ndparams=ndparams,
+                            hv_state=hv_state,
+                            disk_state=disk_state,
+                            diskparams=diskparams,
+                            ipolicy=ipolicy)
+
+    self.ExecOpCode(op)
+
+    self.mcpu.assertLogIsEmpty()
+
+  def testAddNewGroupInvalidDiskparams(self):
+    diskparams = {constants.DT_RBD: {constants.LV_STRIPES: 1}}
+    op = opcodes.OpGroupAdd(group_name="new_group",
+                            diskparams=diskparams)
+
+    self.ExecOpCodeExpectOpPrereqError(
+      op, "Provided option keys not supported")
+
+  def testAddNewGroupInvalidIPolic(self):
+    ipolicy = {"invalid_key": "value"}
+    op = opcodes.OpGroupAdd(group_name="new_group",
+                            ipolicy=ipolicy)
+
+    self.ExecOpCodeExpectOpPrereqError(op, "Invalid keys in ipolicy")
+
+
 class TestLUGroupAssignNodes(CmdlibTestCase):
   def __init__(self, methodName='runTest'):
     super(TestLUGroupAssignNodes, self).__init__(methodName)
@@ -69,7 +121,9 @@ class TestLUGroupAssignNodes(CmdlibTestCase):
 
     # And now some changes.
     (new, prev) = lu.CheckAssignmentForSplitInstances(
-      [("n1b", g3.uuid)], self.cfg.GetAllNodesInfo(), self.cfg.GetAllInstancesInfo())
+      [("n1b", g3.uuid)],
+      self.cfg.GetAllNodesInfo(),
+      self.cfg.GetAllInstancesInfo())
 
     self.assertEqual(set(["inst1a", "inst1b"]), set(new))
     self.assertEqual(set(["inst3c"]), set(prev))
