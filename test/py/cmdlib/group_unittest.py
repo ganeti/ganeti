@@ -90,6 +90,50 @@ class TestLUGroupAssignNodes(CmdlibTestCase):
     self.op = opcodes.OpGroupAssignNodes(group_name="default",
                                          nodes=[])
 
+  def testAssignSingleNode(self):
+    node = self.cfg.AddNewNode()
+    op = self.CopyOpCode(self.op, nodes=[node.name])
+
+    self.ExecOpCode(op)
+
+    self.mcpu.assertLogIsEmpty()
+
+  def _BuildSplitInstanceSituation(self):
+    node = self.cfg.AddNewNode()
+    self.cfg.AddNewInstance(disk_template=constants.DT_DRBD8,
+                            primary_node=self.master,
+                            secondary_node=node)
+    group = self.cfg.AddNewNodeGroup()
+
+    return (node, group)
+
+  def testSplitInstanceNoForce(self):
+    (node, group) = self._BuildSplitInstanceSituation()
+    op = opcodes.OpGroupAssignNodes(group_name=group.name,
+                                    nodes=[node.name])
+
+    self.ExecOpCodeExpectOpExecError(
+      op, "instances get split by this change and --force was not given")
+
+  def testSplitInstanceForce(self):
+    (node, group) = self._BuildSplitInstanceSituation()
+
+    node2 = self.cfg.AddNewNode(group=group)
+    self.cfg.AddNewInstance(disk_template=constants.DT_DRBD8,
+                            primary_node=self.master,
+                            secondary_node=node2)
+
+    op = opcodes.OpGroupAssignNodes(group_name=group.name,
+                                    nodes=[node.name],
+                                    force=True)
+
+    self.ExecOpCode(op)
+
+    self.mcpu.assertLogContainsRegex("will split the following instances")
+    self.mcpu.assertLogContainsRegex(
+      "instances continue to be split across groups")
+
+
   @withLockedLU
   def testCheckAssignmentForSplitInstances(self, lu):
     g1 = self.cfg.AddNewNodeGroup()
