@@ -37,6 +37,7 @@ from cmdlib.testsupport.rpc_runner_mock import CreateRpcRunnerMock, \
 from cmdlib.testsupport.ssh_mock import patchSsh
 
 from ganeti import errors
+from ganeti import objects
 from ganeti import opcodes
 from ganeti import runtime
 
@@ -80,6 +81,13 @@ class CmdlibTestCase(testutils.GanetiTestCase):
   # pylint: disable=W0212
   group = property(fget=lambda self: self._GetDefaultGroup(),
                    doc="Default node group")
+
+  os = property(fget=lambda self: self.cfg.GetDefaultOs(),
+                doc="Default OS")
+  os_name_variant = property(
+    fget=lambda self: self.os.name + objects.OS.VARIANT_DELIM +
+                      self.os.supported_variants[0],
+    doc="OS name and variant string")
 
   def setUp(self):
     super(CmdlibTestCase, self).setUp()
@@ -304,7 +312,7 @@ class CmdlibTestCase(testutils.GanetiTestCase):
     state = opcode.__getstate__()
 
     for key, value in kwargs.items():
-      if value == self.REMOVE:
+      if value == self.REMOVE and key in state:
         del state[key]
       else:
         state[key] = value

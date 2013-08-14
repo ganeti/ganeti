@@ -47,7 +47,10 @@ class ConfigMock(config.ConfigWriter):
     self._cur_node_id = 1
     self._cur_inst_id = 1
     self._cur_disk_id = 1
+    self._cur_os_id = 1
     self._cur_nic_id = 1
+    self._cur_net_id = 1
+    self._default_os = None
 
     super(ConfigMock, self).__init__(cfg_file="/dev/null",
                                      _getents=_StubGetEntResolver())
@@ -172,7 +175,7 @@ class ConfigMock(config.ConfigWriter):
                      uuid=None,
                      name=None,
                      primary_node=None,
-                     os="mocked_os",
+                     os=None,
                      hypervisor=constants.HT_FAKE,
                      hvparams=None,
                      beparams=None,
@@ -202,6 +205,9 @@ class ConfigMock(config.ConfigWriter):
     if primary_node is None:
       primary_node = self._master_node.uuid
     primary_node = self._GetObjUuid(primary_node)
+    if os is None:
+      os = self.GetDefaultOs().name + objects.OS.VARIANT_DELIM +\
+           self.GetDefaultOs().supported_variants[0]
     if hvparams is None:
       hvparams = {}
     if beparams is None:
@@ -266,6 +272,90 @@ class ConfigMock(config.ConfigWriter):
                             network_port=network_port)
     self.AddInstance(inst, None)
     return inst
+
+  def AddNewNetwork(self,
+                    uuid=None,
+                    name=None,
+                    mac_prefix=None,
+                    network=None,
+                    network6=None,
+                    gateway=None,
+                    gateway6=None,
+                    reservations=None,
+                    ext_reservations=None):
+    """Add a new L{objects.Network} to the cluster configuration
+
+    See L{objects.Network} for parameter documentation.
+
+    @rtype: L{objects.Network}
+    @return: the newly added network
+
+    """
+    net_id = self._cur_net_id
+    self._cur_net_id += 1
+
+    if uuid is None:
+      uuid = self._GetUuid()
+    if name is None:
+      name = "mock_net_%d" % net_id
+    if network is None:
+      network = "192.168.123.0/24"
+    if gateway is None:
+      gateway = "192.168.123.1"
+    if network[-3:] == "/24" and gateway == network[:-4] + "1":
+      if reservations is None:
+        reservations = "0" * 256
+      if ext_reservations:
+        ext_reservations = "11" + ("0" * 253) + "1"
+    elif reservations is None or ext_reservations is None:
+      raise AssertionError("You have to specify 'reservations' and"
+                           " 'ext_reservations'!")
+
+    net = objects.Network(uuid=uuid,
+                          name=name,
+                          mac_prefix=mac_prefix,
+                          network=network,
+                          network6=network6,
+                          gateway=gateway,
+                          gateway6=gateway6,
+                          reservations=reservations,
+                          ext_reservations=ext_reservations)
+    self.AddNetwork(net, None)
+    return net
+
+  def ConnectNetworkToGroup(self, net, group, netparams=None):
+    """Connect the given network to the group.
+
+    @type net: string or L{objects.Network}
+    @param net: network object or UUID
+    @type group: string of L{objects.NodeGroup}
+    @param group: node group object of UUID
+    @type netparams: dict
+    @param netparams: network parameters for this connection
+
+    """
+    net_obj = None
+    if isinstance(net, objects.Network):
+      net_obj = net
+    else:
+      net_obj = self.GetNetwork(net)
+
+    group_obj = None
+    if isinstance(group, objects.NodeGroup):
+      group_obj = group
+    else:
+      group_obj = self.GetNodeGroup(group)
+
+    if net_obj is None or group_obj is None:
+      raise AssertionError("Failed to get network or node group")
+
+    if netparams is None:
+      netparams = {
+        constants.NIC_MODE: constants.NIC_MODE_BRIDGED,
+        constants.NIC_LINK: "br_mock"
+      }
+
+    group_obj.networks[net_obj.uuid] = netparams
 
   def CreateDisk(self,
                  uuid=None,
@@ -346,6 +436,63 @@ class ConfigMock(config.ConfigWriter):
                         params=params,
                         spindles=spindles)
 
+  def GetDefaultOs(self):
+    if self._default_os is None:
+      self._default_os = self.CreateOs(name="mocked_os")
+    return self._default_os
+
+  def CreateOs(self,
+               name=None,
+               path=None,
+               api_versions=None,
+               create_script=None,
+               export_script=None,
+               import_script=None,
+               rename_script=None,
+               verify_script=None,
+               supported_variants=None,
+               supported_parameters=None):
+    """Create a new L{objects.OS} object
+
+    @rtype: L{object.OS}
+    @return: the newly create OS objects
+
+    """
+    os_id = self._cur_os_id
+    self._cur_os_id += 1
+
+    if name is None:
+      name = "mock_os_%d" % os_id
+    if path is None:
+      path = "/mocked/path/%d" % os_id
+    if api_versions is None:
+      api_versions = [constants.OS_API_V20]
+    if create_script is None:
+      create_script = "mock_create.sh"
+    if export_script is None:
+      export_script = "mock_export.sh"
+    if import_script is None:
+      import_script = "mock_import.sh"
+    if rename_script is None:
+      rename_script = "mock_rename.sh"
+    if verify_script is None:
+      verify_script = "mock_verify.sh"
+    if supported_variants is None:
+      supported_variants = ["default"]
+    if supported_parameters is None:
+      supported_parameters = ["mock_param"]
+
+    return objects.OS(name=name,
+                      path=path,
+                      api_versions=api_versions,
+                      create_script=create_script,
+                      export_script=export_script,
+                      import_script=import_script,
+                      rename_script=rename_script,
+                      verify_script=verify_script,
+                      supported_variants=supported_variants,
+                      supported_parameters=supported_parameters)
+
   def CreateNic(self,
                 uuid=None,
                 name=None,
@@ -408,10 +555,11 @@ class ConfigMock(config.ConfigWriter):
       cluster_name="cluster.example.com",
       file_storage_dir="/tmp",
       shared_file_storage_dir=None,
-      enabled_hypervisors=list(constants.HYPER_TYPES),
+      enabled_hypervisors=[constants.HT_XEN_HVM, constants.HT_XEN_PVM,
+                           constants.HT_KVM],
       hvparams=constants.HVC_DEFAULTS.copy(),
       ipolicy=None,
-      os_hvp={"mocked_os": constants.HVC_DEFAULTS.copy()},
+      os_hvp={self.GetDefaultOs().name: constants.HVC_DEFAULTS.copy()},
       beparams=None,
       osparams=None,
       nicparams={constants.PP_DEFAULT: constants.NICC_DEFAULTS},
@@ -427,7 +575,7 @@ class ConfigMock(config.ConfigWriter):
       blacklisted_os=None,
       primary_ip_family=None,
       prealloc_wipe_disks=None,
-      enabled_disk_templates=constants.DISK_TEMPLATES.copy(),
+      enabled_disk_templates=list(constants.DISK_TEMPLATE_PREFERENCE),
       )
     self._cluster.ctime = self._cluster.mtime = time.time()
     self._cluster.UpgradeConfig()

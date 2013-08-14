@@ -444,6 +444,7 @@ class LUInstanceCreate(LogicalUnit):
     self._CheckVLANArguments()
 
     self._CheckDiskArguments()
+    assert self.op.disk_template is not None
 
     # instance name verification
     if self.op.name_check:
@@ -453,12 +454,6 @@ class LUInstanceCreate(LogicalUnit):
       self.check_ip = self.hostname.ip
     else:
       self.check_ip = None
-
-    # file storage checks
-    if (self.op.file_driver and
-        not self.op.file_driver in constants.FILE_DRIVER):
-      raise errors.OpPrereqError("Invalid file driver name '%s'" %
-                                 self.op.file_driver, errors.ECODE_INVAL)
 
     ### Node/iallocator related checks
     CheckIAllocatorOrNode(self, "iallocator", "pnode")
@@ -474,8 +469,6 @@ class LUInstanceCreate(LogicalUnit):
         self.op.snode = None
 
     _CheckOpportunisticLocking(self.op)
-
-    self._cds = GetClusterDomainSecret()
 
     if self.op.mode == constants.INSTANCE_IMPORT:
       # On import force_variant must be True, because if we forced it at
@@ -494,11 +487,9 @@ class LUInstanceCreate(LogicalUnit):
         raise errors.OpPrereqError("Guest OS '%s' is not allowed for"
                                    " installation" % self.op.os_type,
                                    errors.ECODE_STATE)
-      if self.op.disk_template is None:
-        raise errors.OpPrereqError("No disk template specified",
-                                   errors.ECODE_INVAL)
-
     elif self.op.mode == constants.INSTANCE_REMOTE_IMPORT:
+      self._cds = GetClusterDomainSecret()
+
       # Check handshake to ensure both clusters have the same domain secret
       src_handshake = self.op.source_handshake
       if not src_handshake:
@@ -619,8 +610,6 @@ class LUInstanceCreate(LogicalUnit):
     else:
       node_name_whitelist = None
 
-    #TODO Export network to iallocator so that it chooses a pnode
-    #     in a nodegroup that has the desired network connected to
     req = _CreateInstanceAllocRequest(self.op, self.disks,
                                       self.nics, self.be_full,
                                       node_name_whitelist)
@@ -1020,7 +1009,7 @@ class LUInstanceCreate(LogicalUnit):
         netparams = self.cfg.GetGroupNetParams(net_uuid, self.pnode.uuid)
         if netparams is None:
           raise errors.OpPrereqError("No netparams found for network"
-                                     " %s. Propably not connected to"
+                                     " %s. Probably not connected to"
                                      " node's %s nodegroup" %
                                      (nobj.name, self.pnode.name),
                                      errors.ECODE_INVAL)

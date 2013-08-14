@@ -1011,7 +1011,6 @@ class TestInstanceCreation(testutils.GanetiTestCase):
       "disks": [],
       "nics": [],
       "mode": constants.INSTANCE_CREATE,
-      "disk_template": constants.DT_PLAIN,
       }
 
     for name in reqfields.keys():

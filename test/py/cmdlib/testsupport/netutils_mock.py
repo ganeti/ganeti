@@ -23,9 +23,7 @@
 
 import mock
 
-
 from ganeti import compat
-from ganeti import errors
 from ganeti import netutils
 from cmdlib.testsupport.util import patchModule
 
@@ -71,13 +69,10 @@ def _GetHostnameMock(cfg, mock_fct, name=None, family=None):
     return HostnameMock(cluster.cluster_name, cluster.master_ip)
 
   node = cfg.GetNodeInfoByName(name)
-  if node is None:
+  if node is not None:
+    return HostnameMock(node.name, node.primary_ip)
 
-    raise errors.OpPrereqError(
-      "Mock error: The given name '%s' is not in the config" % name,
-      errors.ECODE_RESOLVER)
-
-  return HostnameMock(node.name, node.primary_ip)
+  return HostnameMock(name, "1.2.3.4")
 
 
 # pylint: disable=W0613
@@ -114,3 +109,5 @@ def SetupDefaultNetutilsMock(netutils_mod, cfg):
     compat.partial(_TcpPingMock, cfg, netutils_mod.TcpPing)
   netutils_mod.GetDaemonPort.side_effect = netutils.GetDaemonPort
   netutils_mod.FormatAddress.side_effect = netutils.FormatAddress
+  netutils_mod.Hostname.GetNormalizedName.side_effect = \
+    netutils.Hostname.GetNormalizedName
