@@ -444,7 +444,7 @@ $(genOpCode "OpCode"
      , pOpportunisticLocking
      , pInstBeParams
      , pInstDisks
-     , pDiskTemplate
+     , pOptDiskTemplate
      , pFileDriver
      , pFileStorageDir
      , pInstHvParams
