@@ -415,6 +415,13 @@ class ConfigMock(config.ConfigWriter):
     elif dev_type == constants.LD_LV:
       if logical_id is None:
         logical_id = ("mockvg", "mock_disk_%d" % disk_id)
+    elif dev_type == constants.LD_FILE:
+      if logical_id is None:
+        logical_id = (constants.FD_LOOP, "/file/storage/disk%d" % disk_id)
+    elif dev_type == constants.LD_BLOCKDEV:
+      if logical_id is None:
+        logical_id = (constants.BLOCKDEV_DRIVER_MANUAL,
+                      "/dev/disk/disk%d" % disk_id)
     elif logical_id is None:
       raise NotImplementedError
     if children is None:

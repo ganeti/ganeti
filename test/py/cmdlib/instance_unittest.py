@@ -1355,5 +1355,109 @@ class TestCheckOpportunisticLocking(unittest.TestCase):
           instance._CheckOpportunisticLocking(op)
 
 
+class TestLUInstanceRemove(CmdlibTestCase):
+  def testRemoveMissingInstance(self):
+    op = opcodes.OpInstanceRemove(instance_name="missing.inst")
+    self.ExecOpCodeExpectOpPrereqError(op, "Instance 'missing.inst' not known")
+
+  def testRemoveInst(self):
+    inst = self.cfg.AddNewInstance(disks=[])
+    op = opcodes.OpInstanceRemove(instance_name=inst.name)
+    self.ExecOpCode(op)
+
+
+class TestLUInstanceMove(CmdlibTestCase):
+  def setUp(self):
+    super(TestLUInstanceMove, self).setUp()
+
+    self.node = self.cfg.AddNewNode()
+
+    self.rpc.call_blockdev_assemble.return_value = \
+      self.RpcResultsBuilder() \
+        .CreateSuccessfulNodeResult(self.node, "/dev/mocked_path")
+    self.rpc.call_blockdev_export.return_value = \
+      self.RpcResultsBuilder() \
+        .CreateSuccessfulNodeResult(self.master, "")
+    self.rpc.call_blockdev_remove.return_value = \
+      self.RpcResultsBuilder() \
+        .CreateSuccessfulNodeResult(self.master, "")
+
+  def testMissingInstance(self):
+    op = opcodes.OpInstanceMove(instance_name="missing.inst",
+                                target_node=self.node.name)
+    self.ExecOpCodeExpectOpPrereqError(op, "Instance 'missing.inst' not known")
+
+  def testUncopyableDiskTemplate(self):
+    inst = self.cfg.AddNewInstance(disk_template=constants.DT_SHARED_FILE)
+    op = opcodes.OpInstanceMove(instance_name=inst.name,
+                                target_node=self.node.name)
+    self.ExecOpCodeExpectOpPrereqError(
+      op, "Disk template sharedfile not suitable for copying")
+
+  def testAlreadyOnTargetNode(self):
+    inst = self.cfg.AddNewInstance()
+    op = opcodes.OpInstanceMove(instance_name=inst.name,
+                                target_node=self.master.name)
+    self.ExecOpCodeExpectOpPrereqError(
+      op, "Instance .* is already on the node .*")
+
+  def testMoveStoppedInstance(self):
+    inst = self.cfg.AddNewInstance()
+    op = opcodes.OpInstanceMove(instance_name=inst.name,
+                                target_node=self.node.name)
+    self.ExecOpCode(op)
+
+  def testMoveRunningInstance(self):
+    self.rpc.call_node_info.return_value = \
+      self.RpcResultsBuilder() \
+        .AddSuccessfulNode(self.node,
+                           (NotImplemented, NotImplemented,
+                            ({"memory_free": 10000}, ))) \
+        .Build()
+    self.rpc.call_instance_start.return_value = \
+      self.RpcResultsBuilder() \
+        .CreateSuccessfulNodeResult(self.node, "")
+
+    inst = self.cfg.AddNewInstance(admin_state=constants.ADMINST_UP)
+    op = opcodes.OpInstanceMove(instance_name=inst.name,
+                                target_node=self.node.name)
+    self.ExecOpCode(op)
+
+  def testMoveFailingStart(self):
+    self.rpc.call_node_info.return_value = \
+      self.RpcResultsBuilder() \
+        .AddSuccessfulNode(self.node,
+                           (NotImplemented, NotImplemented,
+                            ({"memory_free": 10000}, ))) \
+        .Build()
+    self.rpc.call_instance_start.return_value = \
+      self.RpcResultsBuilder() \
+        .CreateFailedNodeResult(self.node)
+
+    inst = self.cfg.AddNewInstance(admin_state=constants.ADMINST_UP)
+    op = opcodes.OpInstanceMove(instance_name=inst.name,
+                                target_node=self.node.name)
+    self.ExecOpCodeExpectOpExecError(
+      op, "Could not start instance .* on node .*")
+
+  def testMoveFailingBlockdevAssemble(self):
+    inst = self.cfg.AddNewInstance()
+    self.rpc.call_blockdev_assemble.return_value = \
+      self.RpcResultsBuilder() \
+        .CreateFailedNodeResult(self.node)
+    op = opcodes.OpInstanceMove(instance_name=inst.name,
+                                target_node=self.node.name)
+    self.ExecOpCodeExpectOpExecError(op, "Errors during disk copy")
+
+  def testMoveFailingBlockdevExport(self):
+    inst = self.cfg.AddNewInstance()
+    self.rpc.call_blockdev_export.return_value = \
+      self.RpcResultsBuilder() \
+        .CreateFailedNodeResult(self.node)
+    op = opcodes.OpInstanceMove(instance_name=inst.name,
+                                target_node=self.node.name)
+    self.ExecOpCodeExpectOpExecError(op, "Errors during disk copy")
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
