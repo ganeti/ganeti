@@ -1639,7 +1639,7 @@ class LUInstanceMove(LogicalUnit):
     (self.op.target_node_uuid, self.op.target_node) = \
       ExpandNodeUuidAndName(self.cfg, self.op.target_node_uuid,
                             self.op.target_node)
-    self.needed_locks[locking.LEVEL_NODE] = [self.op.target_node]
+    self.needed_locks[locking.LEVEL_NODE] = [self.op.target_node_uuid]
     self.needed_locks[locking.LEVEL_NODE_RES] = []
     self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_APPEND
 
