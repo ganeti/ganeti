@@ -1896,11 +1896,11 @@ class LUInstanceMultiAlloc(NoHooksLU):
       for inst in self.op.instances:
         (inst.pnode_uuid, inst.pnode) = \
           ExpandNodeUuidAndName(self.cfg, inst.pnode_uuid, inst.pnode)
-        nodeslist.append(inst.pnode)
+        nodeslist.append(inst.pnode_uuid)
         if inst.snode is not None:
           (inst.snode_uuid, inst.snode) = \
             ExpandNodeUuidAndName(self.cfg, inst.snode_uuid, inst.snode)
-          nodeslist.append(inst.snode)
+          nodeslist.append(inst.snode_uuid)
 
       self.needed_locks[locking.LEVEL_NODE] = nodeslist
       # Lock resources of instance's primary and secondary nodes (copy to
