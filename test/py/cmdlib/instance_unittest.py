@@ -887,7 +887,7 @@ class TestGenerateDiskTemplate(CmdlibTestCase):
 
     self.nodegroup = self.cfg.AddNewNodeGroup(name="ng")
 
-    self.lu = _FakeLU(cfg=self.cfg, proc=self.mcpu)
+    self.lu = self.GetMockLU()
 
   @staticmethod
   def GetDiskParams():

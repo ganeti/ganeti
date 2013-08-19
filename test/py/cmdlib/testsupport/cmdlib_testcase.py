@@ -23,6 +23,7 @@
 
 
 import inspect
+import mock
 import re
 import traceback
 
@@ -36,6 +37,7 @@ from cmdlib.testsupport.rpc_runner_mock import CreateRpcRunnerMock, \
   RpcResultsBuilder
 from cmdlib.testsupport.ssh_mock import patchSsh
 
+from ganeti.cmdlib.base import LogicalUnit
 from ganeti import errors
 from ganeti import objects
 from ganeti import opcodes
@@ -45,10 +47,23 @@ import testutils
 
 
 class GanetiContextMock(object):
-  def __init__(self, cfg, glm, rpc):
-    self.cfg = cfg
-    self.glm = glm
-    self.rpc = rpc
+  # pylint: disable=W0212
+  cfg = property(fget=lambda self: self._test_case.cfg)
+  # pylint: disable=W0212
+  glm = property(fget=lambda self: self._test_case.glm)
+  # pylint: disable=W0212
+  rpc = property(fget=lambda self: self._test_case.rpc)
+
+  def __init__(self, test_case):
+    self._test_case = test_case
+
+
+class MockLU(LogicalUnit):
+  def BuildHooksNodes(self):
+    pass
+
+  def BuildHooksEnv(self):
+    pass
 
 
 # pylint: disable=R0904
@@ -137,8 +152,8 @@ class CmdlibTestCase(testutils.GanetiTestCase):
     self.cfg = ConfigMock()
     self.glm = LockManagerMock()
     self.rpc = CreateRpcRunnerMock()
-    ctx = GanetiContextMock(self.cfg, self.glm, self.rpc)
-    self.mcpu = ProcessorMock(ctx)
+    self.ctx = GanetiContextMock(self)
+    self.mcpu = ProcessorMock(self.ctx)
 
     self._StopPatchers()
     try:
@@ -162,6 +177,15 @@ class CmdlibTestCase(testutils.GanetiTestCase):
     except (ImportError, AttributeError):
       # this test module does not use ssh, no patching performed
       self._ssh_patcher = None
+
+  def GetMockLU(self):
+    """Creates a mock L{LogialUnit} with access to the mocked config etc.
+
+    @rtype: L{LogialUnit}
+    @return: A mock LU
+
+    """
+    return MockLU(self.mcpu, mock.MagicMock(), self.ctx, self.rpc)
 
   def RpcResultsBuilder(self, use_node_names=False):
     """Creates a pre-configured L{RpcResultBuilder}
