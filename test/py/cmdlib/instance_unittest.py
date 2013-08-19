@@ -1580,5 +1580,47 @@ class TestLUInstanceMove(CmdlibTestCase):
     self.ExecOpCodeExpectOpExecError(op, "Errors during disk copy")
 
 
+class TestLUInstanceRename(CmdlibTestCase):
+  def setUp(self):
+    super(TestLUInstanceRename, self).setUp()
+
+    self.inst = self.cfg.AddNewInstance()
+
+    self.op = opcodes.OpInstanceRename(instance_name=self.inst.name,
+                                       new_name="new_name.example.com")
+
+  def testIpCheckWithoutNameCheck(self):
+    op = self.CopyOpCode(self.op,
+                         ip_check=True,
+                         name_check=False)
+    self.ExecOpCodeExpectOpPrereqError(
+      op, "IP address check requires a name check")
+
+  def testIpAlreadyInUse(self):
+    self.netutils_mod.TcpPing.return_value = True
+    op = self.CopyOpCode(self.op)
+    self.ExecOpCodeExpectOpPrereqError(
+      op, "IP .* of instance .* already in use")
+
+  def testExistingInstanceName(self):
+    self.cfg.AddNewInstance(name="new_name.example.com")
+    op = self.CopyOpCode(self.op)
+    self.ExecOpCodeExpectOpPrereqError(
+      op, "Instance .* is already in the cluster")
+
+  def testFileInstance(self):
+    self.rpc.call_blockdev_assemble.return_value = \
+      self.RpcResultsBuilder() \
+        .CreateSuccessfulNodeResult(self.master, None)
+    self.rpc.call_blockdev_shutdown.return_value = \
+      self.RpcResultsBuilder() \
+        .CreateSuccessfulNodeResult(self.master, None)
+
+    inst = self.cfg.AddNewInstance(disk_template=constants.DT_FILE)
+    op = self.CopyOpCode(self.op,
+                         instance_name=inst.name)
+    self.ExecOpCode(op)
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
