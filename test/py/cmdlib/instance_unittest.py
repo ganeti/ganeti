@@ -626,6 +626,127 @@ class TestLUInstanceCreate(CmdlibTestCase):
                          wait_for_sync=False)
     self.ExecOpCode(op)
 
+  def testImportPlainFromGivenSrcNode(self):
+    exp_info = """
+[export]
+version=0
+os=mock_os
+[instance]
+name=old_name.example.com
+"""
+
+    self.rpc.call_export_info.return_value = \
+      self.RpcResultsBuilder() \
+        .CreateSuccessfulNodeResult(self.master, exp_info)
+    op = self.CopyOpCode(self.plain_op,
+                         mode=constants.INSTANCE_IMPORT,
+                         src_node=self.master.name)
+    self.ExecOpCode(op)
+
+  def testImportPlainWithoutSrcNodeNotFound(self):
+    op = self.CopyOpCode(self.plain_op,
+                         mode=constants.INSTANCE_IMPORT)
+    self.ExecOpCodeExpectOpPrereqError(
+      op, "No export found for relative path")
+
+  def testImportPlainWithoutSrcNode(self):
+    exp_info = """
+[export]
+version=0
+os=mock_os
+[instance]
+name=old_name.example.com
+"""
+
+    self.rpc.call_export_list.return_value = \
+      self.RpcResultsBuilder() \
+        .AddSuccessfulNode(self.master, {"mock_path": {}}) \
+        .Build()
+    self.rpc.call_export_info.return_value = \
+      self.RpcResultsBuilder() \
+        .CreateSuccessfulNodeResult(self.master, exp_info)
+
+    op = self.CopyOpCode(self.plain_op,
+                         mode=constants.INSTANCE_IMPORT,
+                         src_path="mock_path")
+    self.ExecOpCode(op)
+
+  def testImportPlainCorruptExportInfo(self):
+    exp_info = ""
+    self.rpc.call_export_info.return_value = \
+      self.RpcResultsBuilder() \
+        .CreateSuccessfulNodeResult(self.master, exp_info)
+    op = self.CopyOpCode(self.plain_op,
+                         mode=constants.INSTANCE_IMPORT,
+                         src_node=self.master.name)
+    self.ExecOpCodeExpectException(op, errors.ProgrammerError,
+                                   "Corrupted export config")
+
+  def testImportPlainWrongExportInfoVersion(self):
+    exp_info = """
+[export]
+version=1
+"""
+    self.rpc.call_export_info.return_value = \
+      self.RpcResultsBuilder() \
+        .CreateSuccessfulNodeResult(self.master, exp_info)
+    op = self.CopyOpCode(self.plain_op,
+                         mode=constants.INSTANCE_IMPORT,
+                         src_node=self.master.name)
+    self.ExecOpCodeExpectOpPrereqError(op, "Wrong export version")
+
+  def testImportPlainWithParametersAndImport(self):
+    exp_info = """
+[export]
+version=0
+os=mock_os
+[instance]
+name=old_name.example.com
+disk0_size=1024
+disk1_size=1500
+disk1_dump=mock_path
+nic0_mode=bridged
+nic0_link=br_mock
+nic0_mac=f6:ab:f4:45:d1:af
+nic0_ip=123.123.123.1
+tags=tag1 tag2
+hypervisor=xen-hvm
+[hypervisor]
+boot_order=cd
+[backend]
+memory=1024
+vcpus=8
+[os]
+param1=val1
+"""
+
+    self.rpc.call_export_info.return_value = \
+      self.RpcResultsBuilder() \
+        .CreateSuccessfulNodeResult(self.master, exp_info)
+    self.rpc.call_import_start.return_value = \
+      self.RpcResultsBuilder() \
+        .CreateSuccessfulNodeResult(self.master, "daemon_name")
+    self.rpc.call_impexp_status.return_value = \
+      self.RpcResultsBuilder() \
+        .CreateSuccessfulNodeResult(self.master,
+                                    [
+                                      objects.ImportExportStatus(exit_status=0)
+                                    ])
+    self.rpc.call_impexp_cleanup.return_value = \
+      self.RpcResultsBuilder() \
+        .CreateSuccessfulNodeResult(self.master, True)
+
+    op = self.CopyOpCode(self.plain_op,
+                         disks=[],
+                         nics=[],
+                         tags=[],
+                         hypervisor=None,
+                         hvparams={},
+                         mode=constants.INSTANCE_IMPORT,
+                         src_node=self.master.name)
+    self.ExecOpCode(op)
+
+
 class TestCheckOSVariant(CmdlibTestCase):
   def testNoVariantsSupported(self):
     os = self.cfg.CreateOs(supported_variants=[])
