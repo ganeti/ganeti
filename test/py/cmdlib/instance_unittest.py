@@ -1622,5 +1622,96 @@ class TestLUInstanceRename(CmdlibTestCase):
     self.ExecOpCode(op)
 
 
+class TestLUInstanceMultiAlloc(CmdlibTestCase):
+  def setUp(self):
+    super(TestLUInstanceMultiAlloc, self).setUp()
+
+    self.inst_op = opcodes.OpInstanceCreate(instance_name="inst.example.com",
+                                            disk_template=constants.DT_DRBD8,
+                                            disks=[],
+                                            nics=[],
+                                            os_type="mock_os",
+                                            hypervisor=constants.HT_XEN_HVM,
+                                            mode=constants.INSTANCE_CREATE)
+
+  def testInstanceWithIAllocator(self):
+    inst = self.CopyOpCode(self.inst_op,
+                           iallocator="mock")
+    op = opcodes.OpInstanceMultiAlloc(instances=[inst])
+    self.ExecOpCodeExpectOpPrereqError(
+      op, "iallocator are not allowed to be set on instance objects")
+
+  def testOnlySomeNodesGiven(self):
+    inst1 = self.CopyOpCode(self.inst_op,
+                            pnode=self.master.name)
+    inst2 = self.CopyOpCode(self.inst_op)
+    op = opcodes.OpInstanceMultiAlloc(instances=[inst1, inst2])
+    self.ExecOpCodeExpectOpPrereqError(
+      op, "There are instance objects providing pnode/snode while others"
+          " do not")
+
+  def testMissingIAllocator(self):
+    self.cluster.default_iallocator = None
+    inst = self.CopyOpCode(self.inst_op)
+    op = opcodes.OpInstanceMultiAlloc(instances=[inst])
+    self.ExecOpCodeExpectOpPrereqError(
+      op, "No iallocator or nodes on the instances given and no cluster-wide"
+          " default iallocator found")
+
+  def testDuplicateInstanceNames(self):
+    inst1 = self.CopyOpCode(self.inst_op)
+    inst2 = self.CopyOpCode(self.inst_op)
+    op = opcodes.OpInstanceMultiAlloc(instances=[inst1, inst2])
+    self.ExecOpCodeExpectOpPrereqError(
+      op, "There are duplicate instance names")
+
+  def testWithGivenNodes(self):
+    snode = self.cfg.AddNewNode()
+    inst = self.CopyOpCode(self.inst_op,
+                           pnode=self.master.name,
+                           snode=snode.name)
+    op = opcodes.OpInstanceMultiAlloc(instances=[inst])
+    self.ExecOpCode(op)
+
+  def testDryRun(self):
+    snode = self.cfg.AddNewNode()
+    inst = self.CopyOpCode(self.inst_op,
+                           pnode=self.master.name,
+                           snode=snode.name)
+    op = opcodes.OpInstanceMultiAlloc(instances=[inst],
+                                      dry_run=True)
+    self.ExecOpCode(op)
+
+  def testWithIAllocator(self):
+    snode = self.cfg.AddNewNode()
+    self.iallocator_cls.return_value.result = \
+      ([("inst.example.com", [self.master.name, snode.name])], [])
+
+    inst = self.CopyOpCode(self.inst_op)
+    op = opcodes.OpInstanceMultiAlloc(instances=[inst],
+                                      iallocator="mock_ialloc")
+    self.ExecOpCode(op)
+
+  def testWithIAllocatorOpportunisticLocking(self):
+    snode = self.cfg.AddNewNode()
+    self.iallocator_cls.return_value.result = \
+      ([("inst.example.com", [self.master.name, snode.name])], [])
+
+    inst = self.CopyOpCode(self.inst_op)
+    op = opcodes.OpInstanceMultiAlloc(instances=[inst],
+                                      iallocator="mock_ialloc",
+                                      opportunistic_locking=True)
+    self.ExecOpCode(op)
+
+  def testFailingIAllocator(self):
+    self.iallocator_cls.return_value.success = False
+
+    inst = self.CopyOpCode(self.inst_op)
+    op = opcodes.OpInstanceMultiAlloc(instances=[inst],
+                                      iallocator="mock_ialloc")
+    self.ExecOpCodeExpectOpPrereqError(
+      op, "Can't compute nodes using iallocator")
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
