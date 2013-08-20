@@ -39,7 +39,7 @@ the node in the cluster. The command needs to be run on the Ganeti
 master.
 
 Note that the command is potentially destructive, as it will
-forcibly join the specified host the cluster, not paying attention
+forcibly join the specified host to the cluster, not paying attention
 to its current status (it could be already in a cluster, etc.)
 
 The ``-s (--secondary-ip)`` is used in dual-home clusters and
@@ -48,7 +48,7 @@ discussion in **gnt-cluster**\(8) for more information.
 
 In case you're readding a node after hardware failure, you can use
 the ``--readd`` parameter. In this case, you don't need to pass the
-secondary IP again, it will reused from the cluster. Also, the
+secondary IP again, it will be reused from the cluster. Also, the
 drained and offline flags of the node will be cleared before
 re-adding it.
 
