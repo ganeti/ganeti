@@ -40,8 +40,19 @@ CONVERT_CONSTANTS = $(top_srcdir)/autotools/convert-constants
 BUILD_RPC = $(top_srcdir)/autotools/build-rpc
 SHELL_ENV_INIT = autotools/shell-env-init
 
+# starting as of Ganeti 2.10, all files are stored in a single directory,
+# with only symbolic links added at other places.
+versiondir = $(prefix)/opt/ganeti-$(VERSION)
+
 # Note: these are automake-specific variables, and must be named after
 # the directory + 'dir' suffix
+pkglibdir = $(versiondir)$(libdir)/ganeti
+myexeclibdir = $(pkglibdir)
+bindir = $(versiondir)$(exec_prefix)/bin
+sbindir = $(versiondir)$(exec_prefix)/sbin
+mandir = $(versiondir)$(datarootdir)/man
+pkgpythondir = $(versiondir)$(pythondir)/ganeti
+
 clientdir = $(pkgpythondir)/client
 cmdlibdir = $(pkgpythondir)/cmdlib
 hypervisordir = $(pkgpythondir)/hypervisor
@@ -57,8 +68,8 @@ utilsdir = $(pkgpythondir)/utils
 toolsdir = $(pkglibdir)/tools
 iallocatorsdir = $(pkglibdir)/iallocators
 pytoolsdir = $(pkgpythondir)/tools
-docdir = $(datadir)/doc/$(PACKAGE)
-myexeclibdir = $(pkglibdir)
+docdir = $(versiondir)$(datadir)/doc/$(PACKAGE)
+
 
 # Delete output file if an error occurred while building it
 .DELETE_ON_ERROR:
