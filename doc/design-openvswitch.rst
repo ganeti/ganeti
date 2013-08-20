@@ -21,10 +21,10 @@ The shortcomings of this approach are:
 
 Proposed changes
 ----------------
-1. Implement functions into gnt-network to manage Open vSwitch through Ganeti gnt-network
-   should be able to create, modify and delete vSwitches. The resulting configuration shall
-   automatically be done on all members of the node group. Connecting Ethernet devices to
-   vSwitches should be managed through this interface as well.
+1. Implement functions into gnt-cluster and gnt-node to manage Open vSwitch through Ganeti.
+   It should be possible to create, modify and delete vSwitches. The resulting configuration
+   shall automatically be done on all members of the node group, if possible. Connecting Ethernet 
+   devices to vSwitches should be managed through this interface as well.
 
 2. Implement VLAN-capabilities: Instances shall have additional information for every NIC: VLAN-ID
    and port type. These are used to determine their type of connection to Open vSwitch. This will
@@ -38,6 +38,29 @@ Proposed changes
 4. Set QoS level on per instance basis: Instances shall have an additional information: maximum
    bandwidth and maximum burst. This helps to balance the bandwidth needs between the VMs and to
    ensure fair sharing of the bandwidth.
+
+Automatic configuration of OpenvSwitches
+++++++++++++++++++++++++++++++++++++++++
+Ideally, the OpenvSwitch configuration should be done automatically.
+
+This needs to be done on node level, since each node can be individual and a setting on cluster / node group
+level would be too global is thus not wanted. 
+
+The task that each node needs to do is:
+  ``ovs-vsctl addbr <switchname>`` with <switchname> defaulting to constants.DEFAULT_OVS
+  ``ovs-vsctl add-port <switchname> <ethernet device>`` optional: connection to the outside
+
+This will give us 2 parameters, that are needed for the OpenvSwitch Setup:
+  switchname: Which will default to constants.DEFAULT_OVS when not given
+  ethernet device: Which will default to None when not given, might be more than one (NIC bonding)
+
+These parameters should be set at node level for individuality, _but_ can have defined defaults on cluster
+and node group level, which can be inherited and thus allow a cluster or node group wide configuration.
+If a node is setup without parameters, it should use the settings from the parent node group or cluster. If none
+are given there, defaults should be used.
+
+As a first step, this will be implemented for using 1 ethernet device only. Functions for nic bonding will be added
+later on.
 
 Configuration changes for VLANs
 +++++++++++++++++++++++++++++++
@@ -70,6 +93,10 @@ Users of older Xen versions should be able to grab vif-openvswitch from the Xen 
 
 gnt-instance modify shall be able to add or remove single VLANs from the vlan string without users needing
 to specify the complete new string.
+
+NIC bonding
++++++++++++
+To be done
 
 Configuration changes for QoS
 +++++++++++++++++++++++++++++
