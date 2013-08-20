@@ -831,6 +831,14 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     (hypervisor_type, hvparams) = params
     return backend.PowercycleNode(hypervisor_type, hvparams)
 
+  @staticmethod
+  def perspective_node_configure_ovs(params):
+    """Sets up OpenvSwitch on the node.
+
+    """
+    (ovs_name, ovs_link) = params
+    return backend.ConfigureOVS(ovs_name, ovs_link)
+
   # cluster --------------------------
 
   @staticmethod

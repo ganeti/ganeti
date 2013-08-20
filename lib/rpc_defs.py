@@ -501,6 +501,10 @@ _NODE_CALLS = [
     ("hypervisor", None, "Hypervisor type"),
     ("hvparams", None, "Hypervisor parameters"),
     ], None, None, "Tries to powercycle a node"),
+  ("node_configure_ovs", SINGLE, None, constants.RPC_TMO_NORMAL, [
+    ("ovs_name", None, "Name of the OpenvSwitch to create"),
+    ("ovs_link", None, "Link of the OpenvSwitch to the outside"),
+    ], None, None, "This will create and setup the OpenvSwitch"),
   ]
 
 _MISC_CALLS = [
