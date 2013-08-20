@@ -28,11 +28,13 @@
 
 """
 
-# pylint: disable=E1103
+# pylint: disable=E1103,C0302
 
 # E1103: %s %r has no %r member (but some types could not be
 # inferred), because the _TryOSFromDisk returns either (True, os_obj)
 # or (False, "string") which confuses pylint
+
+# C0302: This module has become too big and should be split up
 
 
 import os
@@ -4257,6 +4259,33 @@ def SetWatcherPause(until, _filename=pathutils.WATCHER_PAUSEFILE):
       _Fail("Duration must be numeric")
 
     utils.WriteFile(_filename, data="%d\n" % (until, ), mode=0644)
+
+
+def ConfigureOVS(ovs_name, ovs_link):
+  """Creates a OpenvSwitch on the node.
+
+  This function sets up a OpenvSwitch on the node with given name nad
+  connects it via a given eth device.
+
+  @type ovs_name: string
+  @param ovs_name: Name of the OpenvSwitch to create.
+  @type ovs_link: None or string
+  @param ovs_link: Ethernet device for outside connection (can be missing)
+
+  """
+  # Initialize the OpenvSwitch
+  result = utils.RunCmd(["ovs-vsctl", "add-br", ovs_name])
+  if result.failed:
+    _Fail("Failed to create openvswitch %s. Script return value: %s, output:"
+          " '%s'" % result.exit_code, result.output, log=True)
+
+  # And connect it to a physical interface, if given
+  if ovs_link:
+    result = utils.RunCmd(["ovs-vsctl", "add-port", ovs_name, ovs_link])
+    if result.failed:
+      _Fail("Failed to connect openvswitch to  interface %s. Script return"
+            " value: %s, output: '%s'" % ovs_link, result.exit_code,
+            result.output, log=True)
 
 
 class HooksRunner(object):
