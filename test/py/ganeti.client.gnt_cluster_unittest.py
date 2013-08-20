@@ -262,31 +262,49 @@ class TestEpo(unittest.TestCase):
 
 class InitDrbdHelper(unittest.TestCase):
 
+  def setUp(self):
+    unittest.TestCase.setUp(self)
+    self.enabled_disk_templates = []
+
+  def enableDrbd(self):
+    self.enabled_disk_templates = [constants.DT_DRBD8]
+
+  def disableDrbd(self):
+    self.enabled_disk_templates = [constants.DT_DISKLESS]
+
   def testNoDrbdNoHelper(self):
     opts = mock.Mock()
-    opts.drbd_storage = False
     opts.drbd_helper = None
-    helper = gnt_cluster._InitDrbdHelper(opts)
+    self.disableDrbd()
+    helper = gnt_cluster._InitDrbdHelper(opts, self.enabled_disk_templates)
     self.assertEquals(None, helper)
 
   def testNoDrbdHelper(self):
     opts = mock.Mock()
-    opts.drbd_storage = None
+    self.disableDrbd()
     opts.drbd_helper = "/bin/true"
-    self.assertRaises(errors.OpPrereqError, gnt_cluster._InitDrbdHelper, opts)
+    self.assertRaises(errors.OpPrereqError, gnt_cluster._InitDrbdHelper, opts,
+        self.enabled_disk_templates)
 
-  def testDrbdNoHelper(self):
+  def testDrbdHelperNone(self):
     opts = mock.Mock()
-    opts.drbd_storage = True
+    self.enableDrbd()
     opts.drbd_helper = None
-    helper = gnt_cluster._InitDrbdHelper(opts)
+    helper = gnt_cluster._InitDrbdHelper(opts, self.enabled_disk_templates)
     self.assertEquals(constants.DEFAULT_DRBD_HELPER, helper)
+
+  def testDrbdHelperEmpty(self):
+    opts = mock.Mock()
+    self.enableDrbd()
+    opts.drbd_helper = ''
+    self.assertRaises(errors.OpPrereqError, gnt_cluster._InitDrbdHelper, opts,
+        self.enabled_disk_templates)
 
   def testDrbdHelper(self):
     opts = mock.Mock()
-    opts.drbd_storage = True
+    self.enableDrbd()
     opts.drbd_helper = "/bin/true"
-    helper = gnt_cluster._InitDrbdHelper(opts)
+    helper = gnt_cluster._InitDrbdHelper(opts, self.enabled_disk_templates)
     self.assertEquals(opts.drbd_helper, helper)
 
 

@@ -134,33 +134,43 @@ class TestRestrictIpolicyToEnabledDiskTemplates(unittest.TestCase):
 class TestInitCheckDrbdHelper(unittest.TestCase):
 
   @testutils.patch_object(drbd.DRBD8, "GetUsermodeHelper")
+  def testNoDrbd(self, drbd_mock_get_usermode_helper):
+    drbd_enabled = False
+    drbd_helper = None
+    bootstrap._InitCheckDrbdHelper(drbd_helper, drbd_enabled)
+
+  @testutils.patch_object(drbd.DRBD8, "GetUsermodeHelper")
   def testHelperNone(self, drbd_mock_get_usermode_helper):
+    drbd_enabled = True
     current_helper = "/bin/helper"
     drbd_helper = None
     drbd_mock_get_usermode_helper.return_value = current_helper
-    bootstrap._InitCheckDrbdHelper(drbd_helper)
+    bootstrap._InitCheckDrbdHelper(drbd_helper, drbd_enabled)
 
   @testutils.patch_object(drbd.DRBD8, "GetUsermodeHelper")
   def testHelperOk(self, drbd_mock_get_usermode_helper):
+    drbd_enabled = True
     current_helper = "/bin/helper"
     drbd_helper = "/bin/helper"
     drbd_mock_get_usermode_helper.return_value = current_helper
-    bootstrap._InitCheckDrbdHelper(drbd_helper)
+    bootstrap._InitCheckDrbdHelper(drbd_helper, drbd_enabled)
 
   @testutils.patch_object(drbd.DRBD8, "GetUsermodeHelper")
   def testWrongHelper(self, drbd_mock_get_usermode_helper):
+    drbd_enabled = True
     current_helper = "/bin/otherhelper"
     drbd_helper = "/bin/helper"
     drbd_mock_get_usermode_helper.return_value = current_helper
     self.assertRaises(errors.OpPrereqError,
-        bootstrap._InitCheckDrbdHelper, drbd_helper)
+        bootstrap._InitCheckDrbdHelper, drbd_helper, drbd_enabled)
 
   @testutils.patch_object(drbd.DRBD8, "GetUsermodeHelper")
   def testHelperCheckFails(self, drbd_mock_get_usermode_helper):
+    drbd_enabled = True
     drbd_helper = "/bin/helper"
     drbd_mock_get_usermode_helper.side_effect=errors.BlockDeviceError
     self.assertRaises(errors.OpPrereqError,
-        bootstrap._InitCheckDrbdHelper, drbd_helper)
+        bootstrap._InitCheckDrbdHelper, drbd_helper, drbd_enabled)
 
 
 if __name__ == "__main__":

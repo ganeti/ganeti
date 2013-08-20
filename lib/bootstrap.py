@@ -472,7 +472,7 @@ def _RestrictIpolicyToEnabledDiskTemplates(ipolicy, enabled_disk_templates):
   ipolicy[constants.IPOLICY_DTS] = restricted_disk_templates
 
 
-def _InitCheckDrbdHelper(drbd_helper):
+def _InitCheckDrbdHelper(drbd_helper, drbd_enabled):
   """Checks the DRBD usermode helper.
 
   @type drbd_helper: string
@@ -480,13 +480,16 @@ def _InitCheckDrbdHelper(drbd_helper):
     use
 
   """
+  if not drbd_enabled:
+    return
+
   if drbd_helper is not None:
     try:
       curr_helper = drbd.DRBD8.GetUsermodeHelper()
     except errors.BlockDeviceError, err:
       raise errors.OpPrereqError("Error while checking drbd helper"
-                                 " (specify --no-drbd-storage if you are not"
-                                 " using drbd): %s" % str(err),
+                                 " (disable drbd with --enabled-disk-templates"
+                                 " if you are not using drbd): %s" % str(err),
                                  errors.ECODE_ENVIRON)
     if drbd_helper != curr_helper:
       raise errors.OpPrereqError("Error: requiring %s as drbd helper but %s"
@@ -592,7 +595,8 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
     if vgstatus:
       raise errors.OpPrereqError("Error: %s" % vgstatus, errors.ECODE_INVAL)
 
-  _InitCheckDrbdHelper(drbd_helper)
+  drbd_enabled = constants.DT_DRBD8 in enabled_disk_templates
+  _InitCheckDrbdHelper(drbd_helper, drbd_enabled)
 
   logging.debug("Stopping daemons (if any are running)")
   result = utils.RunCmd([pathutils.DAEMON_UTIL, "stop-all"])

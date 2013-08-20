@@ -108,16 +108,26 @@ def _InitVgName(opts, enabled_disk_templates):
   return vg_name
 
 
-def _InitDrbdHelper(opts):
+def _InitDrbdHelper(opts, enabled_disk_templates):
   """Initialize the DRBD usermode helper.
 
   """
-  if not opts.drbd_storage and opts.drbd_helper:
-    raise errors.OpPrereqError(
-        "Options --no-drbd-storage and --drbd-usermode-helper conflict.")
+  drbd_enabled = constants.DT_DRBD8 in enabled_disk_templates
 
-  if opts.drbd_storage and not opts.drbd_helper:
-    return constants.DEFAULT_DRBD_HELPER
+  # This raises an exception due to historical reasons, one might consider
+  # letting the user set a helper without having DRBD enabled.
+  if not drbd_enabled and opts.drbd_helper:
+    raise errors.OpPrereqError(
+        "Enabling the DRBD disk template and setting a drbd usermode helper"
+        " with --drbd-usermode-helper conflict.")
+
+  if drbd_enabled:
+    if opts.drbd_helper is None:
+      return constants.DEFAULT_DRBD_HELPER
+    if opts.drbd_helper == '':
+      raise errors.OpPrereqError(
+          "Unsetting the drbd usermode helper while enabling DRBD is not"
+          " allowed.")
 
   return opts.drbd_helper
 
@@ -141,7 +151,7 @@ def InitCluster(opts, args):
 
   try:
     vg_name = _InitVgName(opts, enabled_disk_templates)
-    drbd_helper = _InitDrbdHelper(opts)
+    drbd_helper = _InitDrbdHelper(opts, enabled_disk_templates)
   except errors.OpPrereqError, e:
     ToStderr(str(e))
     return 1
