@@ -491,7 +491,7 @@ class TestLUClusterSetParams(CmdlibTestCase):
 
   def testDrbdHelperWithoutDrbdDiskTemplate(self):
     drbd_helper = "/bin/random_helper"
-    self.cluster.enabled_disk_templates = [constants.DT_DISKLESS]
+    self.cfg.SetEnabledDiskTemplates([constants.DT_DISKLESS])
     self.rpc.call_drbd_helper.return_value = \
       self.RpcResultsBuilder() \
         .AddSuccessfulNode(self.master, drbd_helper) \
@@ -503,7 +503,7 @@ class TestLUClusterSetParams(CmdlibTestCase):
 
   def testResetDrbdHelper(self):
     drbd_helper = ""
-    self.cluster.enabled_disk_templates = [constants.DT_DISKLESS]
+    self.cfg.SetEnabledDiskTemplates([constants.DT_DISKLESS])
     op = opcodes.OpClusterSetParams(drbd_helper=drbd_helper)
     self.ExecOpCode(op)
 
@@ -714,7 +714,8 @@ class TestLUClusterSetParams(CmdlibTestCase):
   def testEnabledDiskTemplates(self):
     enabled_disk_templates = [constants.DT_DISKLESS, constants.DT_PLAIN]
     op = opcodes.OpClusterSetParams(
-           enabled_disk_templates=enabled_disk_templates)
+           enabled_disk_templates=enabled_disk_templates,
+           ipolicy={constants.IPOLICY_DTS: enabled_disk_templates})
     self.ExecOpCode(op)
 
     self.assertEqual(enabled_disk_templates,
@@ -732,17 +733,18 @@ class TestLUClusterSetParams(CmdlibTestCase):
     self.cfg.AddNewInstance(
       disks=[self.cfg.CreateDisk(dev_type=constants.LD_LV)])
     op = opcodes.OpClusterSetParams(
-           enabled_disk_templates=enabled_disk_templates)
+           enabled_disk_templates=enabled_disk_templates,
+           ipolicy={constants.IPOLICY_DTS: enabled_disk_templates})
     self.ExecOpCodeExpectOpPrereqError(op, "Cannot disable disk template")
 
   def testVgNameNoLvmDiskTemplateEnabled(self):
     vg_name = "test_vg"
-    self.cluster.enabled_disk_templates = [constants.DT_DISKLESS]
+    self.cfg.SetEnabledDiskTemplates([constants.DT_DISKLESS])
     op = opcodes.OpClusterSetParams(vg_name=vg_name)
     self.ExecOpCode(op)
 
     self.assertEqual(vg_name, self.cluster.volume_group_name)
-    self.mcpu.assertLogContainsRegex("enable any lvm disk template")
+    self.mcpu.assertLogIsEmpty()
 
   def testUnsetVgNameWithLvmDiskTemplateEnabled(self):
     vg_name = ""
@@ -755,11 +757,11 @@ class TestLUClusterSetParams(CmdlibTestCase):
     self.cfg.AddNewInstance(
       disks=[self.cfg.CreateDisk(dev_type=constants.LD_LV)])
     op = opcodes.OpClusterSetParams(vg_name=vg_name)
-    self.ExecOpCodeExpectOpPrereqError(op, "Cannot disable lvm storage")
+    self.ExecOpCodeExpectOpPrereqError(op, "Cannot unset volume group")
 
   def testUnsetVgNameWithNoLvmDiskTemplateEnabled(self):
     vg_name = ""
-    self.cluster.enabled_disk_templates = [constants.DT_DISKLESS]
+    self.cfg.SetEnabledDiskTemplates([constants.DT_DISKLESS])
     op = opcodes.OpClusterSetParams(vg_name=vg_name)
     self.ExecOpCode(op)
 

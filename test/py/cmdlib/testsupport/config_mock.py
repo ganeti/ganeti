@@ -534,6 +534,19 @@ class ConfigMock(config.ConfigWriter):
                        nicparams=nicparams,
                        netinfo=netinfo)
 
+  def SetEnabledDiskTemplates(self, enabled_disk_templates):
+    """Set the enabled disk templates in the cluster.
+
+    This also takes care of required IPolicy updates.
+
+    @type enabled_disk_templates: list of string
+    @param enabled_disk_templates: list of disk templates to enable
+
+    """
+    cluster = self.GetClusterInfo()
+    cluster.enabled_disk_templates = list(enabled_disk_templates)
+    cluster.ipolicy[constants.IPOLICY_DTS] = list(enabled_disk_templates)
+
   def _OpenConfig(self, accept_foreign):
     self._config_data = objects.ConfigData(
       version=constants.CONFIG_VERSION,
