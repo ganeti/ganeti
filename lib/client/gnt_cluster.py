@@ -1037,17 +1037,19 @@ def _GetVgName(opts, enabled_disk_templates):
   return vg_name
 
 
-def _GetDrbdHelper(opts):
+def _GetDrbdHelper(opts, enabled_disk_templates):
   """Determine the DRBD usermode helper.
 
   """
   drbd_helper = opts.drbd_helper
-  if not opts.drbd_storage and opts.drbd_helper:
-    raise errors.OpPrereqError(
-        "Options --no-drbd-storage and --drbd-usermode-helper conflict.")
-
-  if not opts.drbd_storage:
-    drbd_helper = ""
+  if enabled_disk_templates:
+    drbd_enabled = constants.DT_DRBD8 in enabled_disk_templates
+    # This raises an exception for historic reasons. It might be a good idea
+    # to allow users to set a DRBD helper when DRBD storage is not enabled.
+    if not drbd_enabled and opts.drbd_helper:
+      raise errors.OpPrereqError(
+          "Setting a DRBD usermode helper when DRBD is not enabled is"
+          " not allowed.")
   return drbd_helper
 
 
@@ -1061,7 +1063,8 @@ def SetClusterParams(opts, args):
   @return: the desired exit code
 
   """
-  if not (opts.vg_name is not None or opts.drbd_helper or
+  if not (opts.vg_name is not None or
+          opts.drbd_helper is not None or
           opts.enabled_hypervisors or opts.hvparams or
           opts.beparams or opts.nicparams or
           opts.ndparams or opts.diskparams or
@@ -1096,7 +1099,7 @@ def SetClusterParams(opts, args):
   vg_name = _GetVgName(opts, enabled_disk_templates)
 
   try:
-    drbd_helper = _GetDrbdHelper(opts)
+    drbd_helper = _GetDrbdHelper(opts, enabled_disk_templates)
   except errors.OpPrereqError, e:
     ToStderr(str(e))
     return 1

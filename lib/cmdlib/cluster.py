@@ -851,37 +851,66 @@ class LUClusterSetParams(LogicalUnit):
       CheckIpolicyVsDiskTemplates(cluster.ipolicy,
                                   enabled_disk_templates)
 
-  def _CheckDrbdHelper(self, node_uuids):
+  def _CheckDrbdHelperOnNodes(self, drbd_helper, node_uuids):
+    """Checks whether the set DRBD helper actually exists on the nodes.
+
+    @type drbd_helper: string
+    @param drbd_helper: path of the drbd usermode helper binary
+    @type node_uuids: list of strings
+    @param node_uuids: list of node UUIDs to check for the helper
+
+    """
+    # checks given drbd helper on all nodes
+    helpers = self.rpc.call_drbd_helper(node_uuids)
+    for (_, ninfo) in self.cfg.GetMultiNodeInfo(node_uuids):
+      if ninfo.offline:
+        self.LogInfo("Not checking drbd helper on offline node %s",
+                     ninfo.name)
+        continue
+      msg = helpers[ninfo.uuid].fail_msg
+      if msg:
+        raise errors.OpPrereqError("Error checking drbd helper on node"
+                                   " '%s': %s" % (ninfo.name, msg),
+                                   errors.ECODE_ENVIRON)
+      node_helper = helpers[ninfo.uuid].payload
+      if node_helper != drbd_helper:
+        raise errors.OpPrereqError("Error on node '%s': drbd helper is %s" %
+                                   (ninfo.name, node_helper),
+                                   errors.ECODE_ENVIRON)
+
+  def _CheckDrbdHelper(self, node_uuids, drbd_enabled, drbd_gets_enabled):
     """Check the DRBD usermode helper.
 
     @type node_uuids: list of strings
     @param node_uuids: a list of nodes' UUIDs
+    @type drbd_enabled: boolean
+    @param drbd_enabled: whether DRBD will be enabled after this operation
+      (no matter if it was disabled before or not)
+    @type drbd_gets_enabled: boolen
+    @param drbd_gets_enabled: true if DRBD was disabled before this
+      operation, but will be enabled afterwards
 
     """
-    if self.op.drbd_helper is not None and not self.op.drbd_helper:
+    if self.op.drbd_helper == '':
+      if drbd_enabled:
+        raise errors.OpPrereqError("Cannot disable drbd helper while"
+                                   " DRBD is enabled.")
       if self.cfg.HasAnyDiskOfType(constants.LD_DRBD8):
         raise errors.OpPrereqError("Cannot disable drbd helper while"
                                    " drbd-based instances exist",
                                    errors.ECODE_INVAL)
 
-    if self.op.drbd_helper:
-      # checks given drbd helper on all nodes
-      helpers = self.rpc.call_drbd_helper(node_uuids)
-      for (_, ninfo) in self.cfg.GetMultiNodeInfo(node_uuids):
-        if ninfo.offline:
-          self.LogInfo("Not checking drbd helper on offline node %s",
-                       ninfo.name)
-          continue
-        msg = helpers[ninfo.uuid].fail_msg
-        if msg:
-          raise errors.OpPrereqError("Error checking drbd helper on node"
-                                     " '%s': %s" % (ninfo.name, msg),
-                                     errors.ECODE_ENVIRON)
-        node_helper = helpers[ninfo.uuid].payload
-        if node_helper != self.op.drbd_helper:
-          raise errors.OpPrereqError("Error on node '%s': drbd helper is %s" %
-                                     (ninfo.name, node_helper),
-                                     errors.ECODE_ENVIRON)
+    else:
+      if self.op.drbd_helper is not None and drbd_enabled:
+        self._CheckDrbdHelperOnNodes(self.op.drbd_helper, node_uuids)
+      else:
+        if drbd_gets_enabled:
+          current_drbd_helper = self.cfg.GetClusterInfo().drbd_usermode_helper
+          if current_drbd_helper is not None:
+            self._CheckDrbdHelperOnNodes(current_drbd_helper, node_uuids)
+          else:
+            raise errors.OpPrereqError("Cannot enable DRBD without a"
+                                       " DRBD usermode helper set.")
 
   def CheckPrereq(self):
     """Check prerequisites.
@@ -912,7 +941,9 @@ class LUClusterSetParams(LogicalUnit):
           self.LogWarning, self.op.shared_file_storage_dir,
           enabled_disk_templates)
 
-    self._CheckDrbdHelper(node_uuids)
+    drbd_enabled = constants.DT_DRBD8 in enabled_disk_templates
+    drbd_gets_enabled = constants.DT_DRBD8 in new_enabled_disk_templates
+    self._CheckDrbdHelper(node_uuids, drbd_enabled, drbd_gets_enabled)
 
     # validate params changes
     if self.op.beparams:

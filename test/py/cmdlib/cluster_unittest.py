@@ -501,7 +501,7 @@ class TestLUClusterSetParams(CmdlibTestCase):
 
     self.mcpu.assertLogContainsRegex("but did not enable")
 
-  def testResetDrbdHelper(self):
+  def testResetDrbdHelperDrbdDisabled(self):
     drbd_helper = ""
     self.cfg.SetEnabledDiskTemplates([constants.DT_DISKLESS])
     op = opcodes.OpClusterSetParams(drbd_helper=drbd_helper)
@@ -509,13 +509,45 @@ class TestLUClusterSetParams(CmdlibTestCase):
 
     self.assertEqual(None, self.cluster.drbd_usermode_helper)
 
+  def testResetDrbdHelperDrbdEnabled(self):
+    drbd_helper = ""
+    self.cluster.enabled_disk_templates = [constants.DT_DRBD8]
+    op = opcodes.OpClusterSetParams(drbd_helper=drbd_helper)
+    self.ExecOpCodeExpectOpPrereqError(
+        op, "Cannot disable drbd helper while DRBD is enabled.")
+
+  def testEnableDrbdNoHelper(self):
+    self.cluster.enabled_disk_templates = [constants.DT_DISKLESS]
+    self.cluster.drbd_usermode_helper = None
+    enabled_disk_templates = [constants.DT_DRBD8]
+    op = opcodes.OpClusterSetParams(
+        enabled_disk_templates=enabled_disk_templates)
+    self.ExecOpCodeExpectOpPrereqError(
+        op, "Cannot enable DRBD without a DRBD usermode helper set")
+
+  def testEnableDrbdHelperSet(self):
+    drbd_helper = "/bin/random_helper"
+    self.rpc.call_drbd_helper.return_value = \
+      self.RpcResultsBuilder() \
+        .AddSuccessfulNode(self.master, drbd_helper) \
+        .Build()
+    self.cfg.SetEnabledDiskTemplates([constants.DT_DISKLESS])
+    self.cluster.drbd_usermode_helper = drbd_helper
+    enabled_disk_templates = [constants.DT_DRBD8]
+    op = opcodes.OpClusterSetParams(
+        enabled_disk_templates=enabled_disk_templates,
+        ipolicy={constants.IPOLICY_DTS: enabled_disk_templates})
+    self.ExecOpCode(op)
+
+    self.assertEqual(drbd_helper, self.cluster.drbd_usermode_helper)
+
   def testDrbdHelperAlreadySet(self):
     drbd_helper = "/bin/true"
     self.rpc.call_drbd_helper.return_value = \
       self.RpcResultsBuilder() \
         .AddSuccessfulNode(self.master, "/bin/true") \
         .Build()
-    self.cluster.enabled_disk_templates = [constants.DT_DISKLESS]
+    self.cfg.SetEnabledDiskTemplates([constants.DT_DISKLESS])
     op = opcodes.OpClusterSetParams(drbd_helper=drbd_helper)
     self.ExecOpCode(op)
 
@@ -529,7 +561,7 @@ class TestLUClusterSetParams(CmdlibTestCase):
         .AddSuccessfulNode(self.master, "/bin/true") \
         .Build()
     self.cluster.drbd_usermode_helper = "/bin/false"
-    self.cluster.enabled_disk_templates = [constants.DT_DRBD8]
+    self.cfg.SetEnabledDiskTemplates([constants.DT_DRBD8])
     op = opcodes.OpClusterSetParams(drbd_helper=drbd_helper)
     self.ExecOpCode(op)
 
