@@ -124,6 +124,21 @@ exclusive_storage
     parameter cannot be set on individual nodes, as its value must be
     the same within each node group.
 
+ovs
+    When this Boolean flag is enabled, OpenvSwitch will be used as the
+    network layer. This will cause the initialization of OpenvSwitch on
+    the nodes when added to the cluster. Per default this is not enabled.
+
+ovs_name
+    When ovs is enabled, this parameter will represent the name of the
+    OpenvSwitch to generate and use. This will default to `switch1`.
+
+ovs_link
+    When ovs is enabled, a OpenvSwitch will be initialized on new nodes
+    and will have this as its connection to the outside. This parameter
+    is not set per default, as it depends very much on the specific
+    setup.
+
 
 Hypervisor State Parameters
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
