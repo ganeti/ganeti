@@ -123,6 +123,18 @@ IGNORE_STATUS_OPT = cli_option("--ignore-status", default=False,
                                help=("Ignore the Node(s) offline status"
                                      " (potentially DANGEROUS)"))
 
+OVS_OPT = cli_option("--ovs", default=False, action="store_true", dest="ovs",
+                     help=("Enable OpenvSwitch on the new node. This will"
+                           " initialize OpenvSwitch during gnt-node add"))
+
+OVS_NAME_OPT = cli_option("--ovs-name", action="store", dest="ovs_name",
+                          type="string", default=None,
+                          help=("Set name of OpenvSwitch to connect instances"))
+
+OVS_LINK_OPT = cli_option("--ovs-link", action="store", dest="ovs_link",
+                          type="string", default=None,
+                          help=("Physical trunk interface for OpenvSwitch"))
+
 
 def ConvertStorageType(user_storage_type):
   """Converts a user storage type to its internal name.
@@ -278,9 +290,19 @@ def AddNode(opts, args):
 
   hv_state = dict(opts.hv_state)
 
+  if not opts.ndparams:
+    ndparams = {constants.ND_OVS: opts.ovs,
+                constants.ND_OVS_NAME: opts.ovs_name,
+                constants.ND_OVS_LINK: opts.ovs_link}
+  else:
+    ndparams = opts.ndparams
+    ndparams[constants.ND_OVS] = opts.ovs
+    ndparams[constants.ND_OVS_NAME] = opts.ovs_name
+    ndparams[constants.ND_OVS_LINK] = opts.ovs_link
+
   op = opcodes.OpNodeAdd(node_name=args[0], secondary_ip=sip,
                          readd=opts.readd, group=opts.nodegroup,
-                         vm_capable=opts.vm_capable, ndparams=opts.ndparams,
+                         vm_capable=opts.vm_capable, ndparams=ndparams,
                          master_capable=opts.master_capable,
                          disk_state=disk_state,
                          hv_state=hv_state)
@@ -1080,12 +1102,12 @@ commands = {
   "add": (
     AddNode, [ArgHost(min=1, max=1)],
     [SECONDARY_IP_OPT, READD_OPT, NOSSH_KEYCHECK_OPT, NODE_FORCE_JOIN_OPT,
-     NONODE_SETUP_OPT, VERBOSE_OPT, NODEGROUP_OPT, PRIORITY_OPT,
-     CAPAB_MASTER_OPT, CAPAB_VM_OPT, NODE_PARAMS_OPT, HV_STATE_OPT,
-     DISK_STATE_OPT],
+     NONODE_SETUP_OPT, VERBOSE_OPT, OVS_OPT, OVS_NAME_OPT, OVS_LINK_OPT,
+     NODEGROUP_OPT, PRIORITY_OPT, CAPAB_MASTER_OPT, CAPAB_VM_OPT,
+     NODE_PARAMS_OPT, HV_STATE_OPT, DISK_STATE_OPT],
     "[-s ip] [--readd] [--no-ssh-key-check] [--force-join]"
-    " [--no-node-setup] [--verbose]"
-    " <node_name>",
+    " [--no-node-setup] [--verbose] [--network] [--ovs] [--ovs-name <vswitch>]"
+    " [--ovs-link <phys. if>] <node_name>",
     "Add a node to the cluster"),
   "evacuate": (
     EvacuateNode, ARGS_ONE_NODE,
