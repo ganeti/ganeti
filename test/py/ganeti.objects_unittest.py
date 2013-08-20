@@ -167,6 +167,9 @@ class TestClusterObject(unittest.TestCase):
         constants.ND_OOB_PROGRAM: "/bin/group-oob",
         constants.ND_SPINDLE_COUNT: 10,
         constants.ND_EXCLUSIVE_STORAGE: True,
+        constants.ND_OVS: True,
+        constants.ND_OVS_LINK: "eth2",
+        constants.ND_OVS_NAME: "openvswitch",
         }
     fake_group = objects.NodeGroup(name="testgroup",
                                    ndparams=group_ndparams)
@@ -178,6 +181,9 @@ class TestClusterObject(unittest.TestCase):
         constants.ND_OOB_PROGRAM: "/bin/node-oob",
         constants.ND_SPINDLE_COUNT: 2,
         constants.ND_EXCLUSIVE_STORAGE: True,
+        constants.ND_OVS: True,
+        constants.ND_OVS_LINK: "eth2",
+        constants.ND_OVS_NAME: "openvswitch",
         }
     fake_node = objects.Node(name="test",
                              ndparams=node_ndparams,
@@ -192,6 +198,9 @@ class TestClusterObject(unittest.TestCase):
         constants.ND_OOB_PROGRAM: "/bin/node-oob",
         constants.ND_SPINDLE_COUNT: 5,
         constants.ND_EXCLUSIVE_STORAGE: True,
+        constants.ND_OVS: True,
+        constants.ND_OVS_LINK: "eth2",
+        constants.ND_OVS_NAME: "openvswitch",
         }
     fake_node = objects.Node(name="test",
                              ndparams=node_ndparams,

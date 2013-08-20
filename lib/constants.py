@@ -1200,11 +1200,17 @@ IPOLICY_ALL_KEYS = (IPOLICY_PARAMETERS |
 ND_OOB_PROGRAM = "oob_program"
 ND_SPINDLE_COUNT = "spindle_count"
 ND_EXCLUSIVE_STORAGE = "exclusive_storage"
+ND_OVS = "ovs"
+ND_OVS_NAME = "ovs_name"
+ND_OVS_LINK = "ovs_link"
 
 NDS_PARAMETER_TYPES = {
   ND_OOB_PROGRAM: VTYPE_STRING,
   ND_SPINDLE_COUNT: VTYPE_INT,
   ND_EXCLUSIVE_STORAGE: VTYPE_BOOL,
+  ND_OVS: VTYPE_BOOL,
+  ND_OVS_NAME: VTYPE_MAYBE_STRING,
+  ND_OVS_LINK: VTYPE_MAYBE_STRING,
   }
 
 NDS_PARAMETERS = frozenset(NDS_PARAMETER_TYPES.keys())
@@ -1213,6 +1219,8 @@ NDS_PARAMETER_TITLES = {
   ND_OOB_PROGRAM: "OutOfBandProgram",
   ND_SPINDLE_COUNT: "SpindleCount",
   ND_EXCLUSIVE_STORAGE: "ExclusiveStorage",
+  ND_OVS_NAME: "OpenvSwitchName",
+  ND_OVS_LINK: "OpenvSwitchLink",
   }
 
 # Logical Disks parameters
@@ -2206,6 +2214,9 @@ NDC_DEFAULTS = {
   ND_OOB_PROGRAM: "",
   ND_SPINDLE_COUNT: 1,
   ND_EXCLUSIVE_STORAGE: False,
+  ND_OVS: False,
+  ND_OVS_NAME: DEFAULT_OVS,
+  ND_OVS_LINK: ""
   }
 
 NDC_GLOBALS = compat.UniqueFrozenset([
