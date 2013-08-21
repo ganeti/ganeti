@@ -20,6 +20,22 @@ AC_SUBST([VERSION_REVISION], gnt_version_revision)
 AC_SUBST([VERSION_SUFFIX], gnt_version_suffix)
 AC_SUBST([VERSION_FULL], gnt_version_full)
 
+# --enable-symlinks
+AC_ARG_ENABLE([symlinks],
+  [AS_HELP_STRING([--enable-symlinks],
+                  m4_normalize([also install symlinks under $PREFIX pointing
+                  into the Ganeti package directory (default: enabled)]))],
+  [[if test "$enableval" != no; then
+      INSTALL_SYMLINKS=yes
+    else
+      INSTALL_SYMLINKS=no
+    fi
+  ]],
+  [INSTALL_SYMLINKS=yes
+  ])
+AC_SUBST(INSTALL_SYMLINKS, $INSTALL_SYMLINKS)
+AM_CONDITIONAL([INSTALL_SYMLINKS], [test "$INSTALL_SYMLINKS" = yes])
+
 # --with-ssh-initscript=...
 AC_ARG_WITH([ssh-initscript],
   [AS_HELP_STRING([--with-ssh-initscript=SCRIPT],

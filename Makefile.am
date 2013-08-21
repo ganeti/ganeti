@@ -70,6 +70,17 @@ iallocatorsdir = $(pkglibdir)/iallocators
 pytoolsdir = $(pkgpythondir)/tools
 docdir = $(versiondir)$(datadir)/doc/$(PACKAGE)
 
+SYMLINK_TARGET_DIRS = \
+	$(pythondir) \
+	$(libdir)/ganeti/iallocators \
+	$(exec_prefix)/bin \
+	$(exec_prefix)/sbin \
+	$(datarootdir)/man/man1 \
+	$(datarootdir)/man/man7 \
+	$(datarootdir)/man/man8
+SYMLINK_DIRS = \
+	$(pythondir)/ganeti \
+	$(libdir)/ganeti/tools
 
 # Delete output file if an error occurred while building it
 .DELETE_ON_ERROR:
@@ -936,6 +947,11 @@ nodist_sbin_SCRIPTS = \
 	$(PYTHON_BOOTSTRAP_SBIN) \
 	daemons/ganeti-cleaner
 
+# strip path prefixes off the sbin scripts
+all_sbin_scripts = \
+	$(patsubst tools/%,%,$(patsubst daemons/%,%,$(patsubst scripts/%,%,\
+	$(patsubst src/%,%,$(dist_sbin_SCRIPTS) $(nodist_sbin_SCRIPTS)))))
+
 if ENABLE_CONFD
 src/ganeti-confd: src/hconfd
 	cp -f $< $@
@@ -994,6 +1010,11 @@ myexeclib_SCRIPTS = \
 	tools/net-common \
 	$(pkglib_python_scripts) \
 	$(HS_MYEXECLIB_PROGS)
+
+# strip path prefixes off the sbin scripts
+all_myexeclib_scripts = \
+	$(patsubst tools/%,%,$(patsubst daemons/%,%,\
+	$(patsubst src/%,%,$(myexeclib_SCRIPTS))))
 
 nodist_myexeclib_SCRIPTS = \
 	$(nodist_pkglib_python_scripts)
@@ -1100,6 +1121,10 @@ maninput = \
 	$(patsubst %.1,%.1.in,$(patsubst %.7,%.7.in,$(patsubst %.8,%.8.in,$(man_MANS)))) \
 	$(patsubst %.html,%.html.in,$(manhtml)) \
 	$(mangen)
+
+manfullpath = $(patsubst man/%.1,man1/%.1,\
+	$(patsubst man/%.7,man7/%.7,\
+	$(patsubst man/%.8,man8/%.8,$(man_MANS))))
 
 TEST_FILES = \
 	test/autotools/autotools-check-news.test \
@@ -2066,6 +2091,29 @@ install-exec-local:
 	@mkdir_p@ "$(DESTDIR)${localstatedir}/lib/ganeti" \
 	  "$(DESTDIR)${localstatedir}/log/ganeti" \
 	  "$(DESTDIR)${localstatedir}/run/ganeti"
+if INSTALL_SYMLINKS
+	for dir in $(SYMLINK_TARGET_DIRS); do \
+	  @mkdir_p@  $(DESTDIR)$$dir; \
+	done
+	for prog in $(HS_HTOOLS_PROGS); do \
+	  $(LN_S) $(bindir)/$$prog $(DESTDIR)$(exec_prefix)/bin/$$prog; \
+	done
+	$(LN_S) $(bindir)/htools $(DESTDIR)$(libdir)/ganeti/iallocators/hail
+	for prog in $(all_sbin_scripts); do \
+	  $(LN_S) $(sbindir)/$$prog $(DESTDIR)$(exec_prefix)/sbin/$$prog; \
+	done
+	for link in $(SYMLINK_DIRS); do \
+	  $(LN_S) $(versiondir)$$link $(DESTDIR)$$link; \
+	done
+	for prog in $(all_myexeclib_scripts); do \
+	  $(LN_S) $(pkglibdir)/$$prog $(DESTDIR)$(libdir)/ganeti/$$prog; \
+	done
+	if ! test -n '$(ENABLE_MANPAGES)'; then \
+	  for man in $(manfullpath); do \
+	    $(LN_S) $(versiondir)$(datarootdir)/man/$$man $(DESTDIR)$(datarootdir)/man/$$man; \
+	  done; \
+	fi
+endif
 
 .PHONY: apidoc
 if WANT_HSAPIDOC
