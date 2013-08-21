@@ -726,6 +726,7 @@ HS_LIBTEST_SRCS = $(HS_LIB_SRCS) $(HS_TEST_SRCS)
 
 HS_BUILT_SRCS = \
 	test/hs/Test/Ganeti/TestImports.hs \
+	src/AutoConf.hs \
 	src/Ganeti/Hs2Py/ListConstants.hs \
 	src/Ganeti/PyConstants.hs \
 	src/Ganeti/Curl/Internal.hs \
@@ -1761,6 +1762,69 @@ lib/_constants.py: Makefile lib/_constants.py.in src/hs2py-constants \
 	src/hs2py-constants >> $@
 
 lib/constants.py: lib/_constants.py
+
+src/AutoConf.hs: Makefile src/AutoConf.hs.in | stamp-directories
+	@echo "m4 ... >" $@
+	@m4 -DPACKAGE_VERSION="$(PACKAGE_VERSION)" \
+	    -DVERSION_MAJOR="$(VERSION_MAJOR)" \
+	    -DVERSION_MINOR="$(VERSION_MINOR)" \
+	    -DVERSION_REVISION="$(VERSION_REVISION)" \
+	    -DVERSION_SUFFIX="$(VERSION_SUFFIX)" \
+	    -DVERSION_FULL="$(VERSION_FULL)" \
+	    -DLOCALSTATEDIR="$(localstatedir)" \
+	    -DSYSCONFDIR="$(sysconfdir)" \
+	    -DSSH_CONFIG_DIR="$(SSH_CONFIG_DIR)" \
+	    -DSSH_LOGIN_USER="$(SSH_LOGIN_USER)" \
+	    -DSSH_CONSOLE_USER="$(SSH_CONSOLE_USER)" \
+	    -DEXPORT_DIR="$(EXPORT_DIR)" \
+	    -DOS_SEARCH_PATH="$(foreach i,$(OS_SEARCH_PATH),\"$(i)\":)" \
+	    -DES_SEARCH_PATH="$(foreach i,$(ES_SEARCH_PATH),\"$(i)\":)" \
+	    -DXEN_BOOTLOADER="$(XEN_BOOTLOADER)" \
+	    -DXEN_CONFIG_DIR="$(XEN_CONFIG_DIR)" \
+	    -DXEN_KERNEL="$(XEN_KERNEL)" \
+	    -DXEN_INITRD="$(XEN_INITRD)" \
+	    -DKVM_KERNEL="$(KVM_KERNEL)" \
+	    -DSHARED_FILE_STORAGE_DIR="$(SHARED_FILE_STORAGE_DIR)" \
+	    -DIALLOCATOR_SEARCH_PATH="$(foreach i,$(IALLOCATOR_SEARCH_PATH),\"$(i)\":)" \
+	    -DKVM_PATH="$(KVM_PATH)" \
+	    -DIP_PATH="$(IP_PATH)" \
+	    -DSOCAT_PATH="$(SOCAT)" \
+	    -DSOCAT_USE_ESCAPE="$(SOCAT_USE_ESCAPE)" \
+	    -DSOCAT_USE_COMPRESS="$(SOCAT_USE_COMPRESS)" \
+	    -DLVM_STRIPECOUNT="$(LVM_STRIPECOUNT)" \
+	    -DTOOLSDIR="$(toolsdir)" \
+	    -DGNT_SCRIPTS="$(foreach i,$(notdir $(gnt_scripts)),\"$(i)\":)" \
+	    -DHS_HTOOLS_PROGS="$(foreach i,$(HS_HTOOLS_PROGS),\"$(i)\":)" \
+	    -DPKGLIBDIR="$(pkglibdir)" \
+	    -DDRBD_BARRIERS="$(DRBD_BARRIERS)" \
+	    -DDRBD_NO_META_FLUSH="$(DRBD_NO_META_FLUSH)" \
+	    -DSYSLOG_USAGE="$(SYSLOG_USAGE)" \
+	    -DDAEMONS_GROUP="$(DAEMONS_GROUP)" \
+	    -DADMIN_GROUP="$(ADMIN_GROUP)" \
+	    -DMASTERD_USER="$(MASTERD_USER)" \
+	    -DMASTERD_GROUP="$(MASTERD_GROUP)" \
+	    -DRAPI_USER="$(RAPI_USER)" \
+	    -DRAPI_GROUP="$(RAPI_GROUP)" \
+	    -DCONFD_USER="$(CONFD_USER)" \
+	    -DCONFD_GROUP="$(CONFD_GROUP)" \
+	    -DLUXID_USER="$(LUXID_USER)" \
+	    -DLUXID_GROUP="$(LUXID_GROUP)" \
+	    -DNODED_USER="$(NODED_USER)" \
+	    -DNODED_GROUP="$(NODED_GROUP)" \
+	    -DMOND_USER="$(MOND_USER)" \
+	    -DMOND_GROUP="$(MOND_GROUP)" \
+	    -DDISK_SEPARATOR="$(DISK_SEPARATOR)" \
+	    -DQEMUIMG_PATH="$(QEMUIMG_PATH)" \
+	    -DHTOOLS="True" \
+	    -DENABLE_CONFD="$(ENABLE_CONFD)" \
+	    -DXEN_CMD="$(XEN_CMD)" \
+	    -DENABLE_SPLIT_QUERY="$(ENABLE_SPLIT_QUERY)" \
+	    -DENABLE_RESTRICTED_COMMANDS="$(ENABLE_RESTRICTED_COMMANDS)" \
+	    -DENABLE_MOND="$(ENABLE_MOND)" \
+	    -DMAN_PAGES="$$(for i in $(notdir $(man_MANS)); do \
+	                    echo -n "$$i" | sed -re 's/^(.*)\.([0-9]+)$$/("\1",\2):/g'; \
+	                    done)" \
+	$(abs_top_srcdir)/src/AutoConf.hs.in > $@
 
 lib/_vcsversion.py: Makefile vcs-version | stamp-directories
 	set -e; \

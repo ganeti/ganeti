@@ -138,6 +138,7 @@
 /src/rpc-test
 
 # automatically-built Haskell files
+/src/AutoConf.hs
 /src/Ganeti/Curl/Internal.hs
 /src/Ganeti/Hs2Py/ListConstants.hs
 /src/Ganeti/PyConstants.hs
