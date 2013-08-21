@@ -43,6 +43,7 @@ module Ganeti.Utils
   , exitErr
   , exitWhen
   , exitUnless
+  , logWarningIfBad
   , rStripSpace
   , newUUID
   , getCurrentTime
@@ -69,6 +70,7 @@ import Debug.Trace
 
 import Ganeti.BasicTypes
 import qualified Ganeti.Constants as C
+import Ganeti.Logging
 import Ganeti.Runtime
 import System.IO
 import System.Exit
@@ -251,6 +253,14 @@ exitWhen False _  = return ()
 -- if true, the opposite of 'exitWhen'.
 exitUnless :: Bool -> String -> IO ()
 exitUnless cond = exitWhen (not cond)
+
+-- | Unwraps a 'Result', logging a warning message and then returning a default
+-- value if it is a 'Bad' value, otherwise returning the actual contained value.
+logWarningIfBad :: String -> a -> Result a -> IO a
+logWarningIfBad msg defVal (Bad s) = do
+  logWarning $ msg ++ ": " ++ s
+  return defVal
+logWarningIfBad _ _ (Ok v) = return v
 
 -- | Print a warning, but do not exit.
 warn :: String -> IO ()
