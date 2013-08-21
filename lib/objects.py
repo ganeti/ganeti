@@ -448,10 +448,7 @@ class ConfigData(ConfigObject):
     for nodegroup in self.nodegroups.values():
       nodegroup.UpgradeConfig()
     if self.cluster.drbd_usermode_helper is None:
-      # To decide if we set an helper let's check if at least one instance has
-      # a DRBD disk. This does not cover all the possible scenarios but it
-      # gives a good approximation.
-      if self.HasAnyDiskOfType(constants.LD_DRBD8):
+      if self.cluster.IsDiskTemplateEnabled(constants.DT_DRBD8):
         self.cluster.drbd_usermode_helper = constants.DEFAULT_DRBD_HELPER
     if self.networks is None:
       self.networks = {}
