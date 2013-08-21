@@ -195,7 +195,7 @@ buildJsonReport statusFile pairingFile = do
     ((E.try $ readFile statusFile) :: IO (Either IOError String)) >>=
       exitIfBad "reading from file" . either (BT.Bad . show) BT.Ok
   pairingResult <- getPairingInfo pairingFile
-  pairing <- exitIfBad "Can't get pairing info" pairingResult
+  pairing <- logWarningIfBad "Can't get pairing info" [] pairingResult
   drbdData <-
     case A.parse (drbdStatusParser pairing) $ pack contents of
       A.Fail unparsedText contexts errorMessage -> exitErr $
