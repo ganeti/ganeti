@@ -63,7 +63,7 @@ class LogicalVolume(base.BlockDev):
 
   """
   _VALID_NAME_RE = re.compile("^[a-zA-Z0-9+_.-]*$")
-  _PARSE_PV_DEV_RE = re.compile("^([^ ()]+)\([0-9]+\)$")
+  _PARSE_PV_DEV_RE = re.compile(r"^([^ ()]+)\([0-9]+\)$")
   _INVALID_NAMES = compat.UniqueFrozenset([".", "..", "snapshot", "pvmove"])
   _INVALID_SUBSTRINGS = compat.UniqueFrozenset(["_mlog", "_mimage"])
 

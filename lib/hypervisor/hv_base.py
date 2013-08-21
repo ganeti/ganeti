@@ -514,7 +514,7 @@ class BaseHypervisor(object):
     try:
       fh = open("/proc/cpuinfo")
       try:
-        cpu_total = len(re.findall("(?m)^processor\s*:\s*[0-9]+\s*$",
+        cpu_total = len(re.findall(r"(?m)^processor\s*:\s*[0-9]+\s*$",
                                    fh.read()))
       finally:
         fh.close()

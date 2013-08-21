@@ -281,7 +281,7 @@ class TaggableObject(ConfigObject):
 
   """
   __slots__ = ["tags"]
-  VALID_TAG_RE = re.compile("^[\w.+*/:@-]+$")
+  VALID_TAG_RE = re.compile(r"^[\w.+*/:@-]+$")
 
   @classmethod
   def ValidateTag(cls, tag):

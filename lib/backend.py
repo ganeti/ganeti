@@ -86,7 +86,7 @@ _IES_PID_FILE = "pid"
 _IES_CA_FILE = "ca"
 
 #: Valid LVS output line regex
-_LVSLINE_REGEX = re.compile("^ *([^|]+)\|([^|]+)\|([0-9.]+)\|([^|]{6,})\|?$")
+_LVSLINE_REGEX = re.compile(r"^ *([^|]+)\|([^|]+)\|([0-9.]+)\|([^|]{6,})\|?$")
 
 # Actions for the master setup script
 _MASTER_START = "start"
