@@ -553,8 +553,8 @@ def TestClusterModifyDiskTemplates():
   enabled_disk_templates = qa_config.GetEnabledDiskTemplates()
   default_disk_template = qa_config.GetDefaultDiskTemplate()
 
-  _TestClusterModifyDiskTemplatesArguments(default_disk_template,
-                                           enabled_disk_templates)
+  _TestClusterModifyDiskTemplatesArguments(default_disk_template)
+  _TestClusterModifyDiskTemplatesDrbdHelper(enabled_disk_templates)
   _TestClusterModifyDiskTemplatesVgName(enabled_disk_templates)
 
   _RestoreEnabledDiskTemplates()
@@ -591,8 +591,57 @@ def _RestoreEnabledDiskTemplates():
   AssertCommand(cmd, fail=False)
 
 
-def _TestClusterModifyDiskTemplatesArguments(default_disk_template,
-                                             enabled_disk_templates):
+def _TestClusterModifyDiskTemplatesDrbdHelper(enabled_disk_templates):
+  """Tests argument handling of 'gnt-cluster modify' with respect to
+     the parameter '--drbd-usermode-helper'. This test is independent
+     of instances.
+
+  """
+  _RestoreEnabledDiskTemplates()
+
+  if constants.DT_DRBD8 not in enabled_disk_templates:
+    return
+  if constants.DT_PLAIN not in enabled_disk_templates:
+    return
+
+  drbd_usermode_helper = qa_config.get("drbd-usermode-helper", "/bin/true")
+  bogus_usermode_helper = "/tmp/pinkbunny"
+  for command, fail in \
+      [(["gnt-cluster", "modify",
+         "--enabled-disk-templates=%s" % constants.DT_DRBD8,
+         "--ipolicy-disk-templates=%s" % constants.DT_DRBD8], False),
+       (["gnt-cluster", "modify",
+         "--drbd-usermode-helper=%s" % drbd_usermode_helper], False),
+       (["gnt-cluster", "modify",
+         "--drbd-usermode-helper=%s" % bogus_usermode_helper], True),
+       # unsetting helper when DRBD is enabled should not work
+       (["gnt-cluster", "modify",
+         "--drbd-usermode-helper="], True),
+       (["gnt-cluster", "modify",
+         "--enabled-disk-templates=%s" % constants.DT_PLAIN,
+         "--ipolicy-disk-templates=%s" % constants.DT_PLAIN], False),
+       (["gnt-cluster", "modify",
+         "--drbd-usermode-helper="], True),
+       (["gnt-cluster", "modify",
+         "--drbd-usermode-helper=%s" % drbd_usermode_helper], False),
+       (["gnt-cluster", "modify",
+         "--drbd-usermode-helper=%s" % drbd_usermode_helper,
+         "--enabled-disk-templates=%s" % constants.DT_DRBD8,
+         "--ipolicy-disk-templates=%s" % constants.DT_DRBD8], False),
+       (["gnt-cluster", "modify",
+         "--drbd-usermode-helper=",
+         "--enabled-disk-templates=%s" % constants.DT_PLAIN,
+         "--ipolicy-disk-templates=%s" % constants.DT_PLAIN], False),
+       (["gnt-cluster", "modify",
+         "--drbd-usermode-helper=%s" % drbd_usermode_helper,
+         "--enabled-disk-templates=%s" % constants.DT_DRBD8,
+         "--ipolicy-disk-templates=%s" % constants.DT_DRBD8], False),
+      ]:
+    AssertCommand(command, fail=fail)
+  _RestoreEnabledDiskTemplates()
+
+
+def _TestClusterModifyDiskTemplatesArguments(default_disk_template):
   """Tests argument handling of 'gnt-cluster modify' with respect to
      the parameter '--enabled-disk-templates'. This test is independent
      of instances.
@@ -612,27 +661,6 @@ def _TestClusterModifyDiskTemplatesArguments(default_disk_template,
       (default_disk_template, default_disk_template),
      "--ipolicy-disk-templates=%s" % default_disk_template],
     fail=False)
-
-  if constants.DT_DRBD8 in enabled_disk_templates:
-    # interaction with --drbd-usermode-helper option
-    drbd_usermode_helper = qa_config.get("drbd-usermode-helper", None)
-    if not drbd_usermode_helper:
-      drbd_usermode_helper = "/bin/true"
-    # specifying a helper when drbd gets disabled is ok. Note that drbd still
-    # has to be installed on the nodes in this case
-    AssertCommand(["gnt-cluster", "modify",
-                   "--drbd-usermode-helper=%s" % drbd_usermode_helper,
-                   "--enabled-disk-templates=%s" % constants.DT_DISKLESS,
-                   "--ipolicy-disk-templates=%s" % constants.DT_DISKLESS],
-                   fail=False)
-    # specifying a helper when drbd is re-enabled
-    AssertCommand(["gnt-cluster", "modify",
-                   "--drbd-usermode-helper=%s" % drbd_usermode_helper,
-                   "--enabled-disk-templates=%s" %
-                     ",".join(enabled_disk_templates),
-                   "--ipolicy-disk-templates=%s" %
-                     ",".join(enabled_disk_templates)],
-                  fail=False)
 
 
 def _TestClusterModifyDiskTemplatesVgName(enabled_disk_templates):
