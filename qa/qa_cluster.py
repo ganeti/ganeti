@@ -225,7 +225,13 @@ def TestClusterInit(rapi_user, rapi_secret):
   qa_config.SetExclusiveStorage(e_s)
 
   extra_args = qa_config.get("cluster-init-args")
+
   if extra_args:
+    # This option was removed in 2.10, but in order to not break QA of older
+    # branches we remove it from the extra_args if it is in there.
+    opt_drbd_storage = "--no-drbd-storage"
+    if opt_drbd_storage in extra_args:
+      extra_args.remove(opt_drbd_storage)
     cmd.extend(extra_args)
 
   cmd.append(qa_config.get("name"))

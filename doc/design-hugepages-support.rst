@@ -30,7 +30,7 @@ Hypervisor Parameters:
 Currently, It is possible to set or modify huge pages mount point at
 cluster level via the hypervisor parameter ``mem_path`` as::
 
-	$ gnt-cluster init --no-lvm-storage --no-drbd-storage \
+	$ gnt-cluster init \
 	>--enabled-hypervisors=kvm -nic-parameters link=br100 \
 	> -H kvm:mem_path=/mount/point/for/hugepages
 

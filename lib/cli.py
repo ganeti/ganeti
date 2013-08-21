@@ -135,7 +135,6 @@ __all__ = [
   "NODEGROUP_OPT",
   "NODE_PARAMS_OPT",
   "NODE_POWERED_OPT",
-  "NODRBD_STORAGE_OPT",
   "NOHDR_OPT",
   "NOIPCHECK_OPT",
   "NO_INSTALL_OPT",
@@ -1466,10 +1465,6 @@ ROMAN_OPT = cli_option("--roman",
 DRBD_HELPER_OPT = cli_option("--drbd-usermode-helper", dest="drbd_helper",
                              action="store", default=None,
                              help="Specifies usermode helper for DRBD")
-
-NODRBD_STORAGE_OPT = cli_option("--no-drbd-storage", dest="drbd_storage",
-                                action="store_false", default=True,
-                                help="Disable support for DRBD")
 
 PRIMARY_IP_VERSION_OPT = \
     cli_option("--primary-ip-version", default=constants.IP4_VERSION,
