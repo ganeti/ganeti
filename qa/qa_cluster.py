@@ -621,7 +621,7 @@ def _TestClusterModifyDiskTemplatesDrbdHelper(enabled_disk_templates):
          "--enabled-disk-templates=%s" % constants.DT_PLAIN,
          "--ipolicy-disk-templates=%s" % constants.DT_PLAIN], False),
        (["gnt-cluster", "modify",
-         "--drbd-usermode-helper="], True),
+         "--drbd-usermode-helper="], False),
        (["gnt-cluster", "modify",
          "--drbd-usermode-helper=%s" % drbd_usermode_helper], False),
        (["gnt-cluster", "modify",

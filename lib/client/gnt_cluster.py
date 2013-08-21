@@ -114,12 +114,9 @@ def _InitDrbdHelper(opts, enabled_disk_templates):
   """
   drbd_enabled = constants.DT_DRBD8 in enabled_disk_templates
 
-  # This raises an exception due to historical reasons, one might consider
-  # letting the user set a helper without having DRBD enabled.
-  if not drbd_enabled and opts.drbd_helper:
-    raise errors.OpPrereqError(
-        "Enabling the DRBD disk template and setting a drbd usermode helper"
-        " with --drbd-usermode-helper conflict.")
+  if not drbd_enabled and opts.drbd_helper is not None:
+    ToStdout("Note: You specified a DRBD usermode helper, while DRBD storage"
+             " is not enabled.")
 
   if drbd_enabled:
     if opts.drbd_helper is None:
@@ -1044,12 +1041,9 @@ def _GetDrbdHelper(opts, enabled_disk_templates):
   drbd_helper = opts.drbd_helper
   if enabled_disk_templates:
     drbd_enabled = constants.DT_DRBD8 in enabled_disk_templates
-    # This raises an exception for historic reasons. It might be a good idea
-    # to allow users to set a DRBD helper when DRBD storage is not enabled.
     if not drbd_enabled and opts.drbd_helper:
-      raise errors.OpPrereqError(
-          "Setting a DRBD usermode helper when DRBD is not enabled is"
-          " not allowed.")
+      ToStdout("You specified a DRBD usermode helper with "
+               " --drbd-usermode-helper while DRBD is not enabled.")
   return drbd_helper
 
 

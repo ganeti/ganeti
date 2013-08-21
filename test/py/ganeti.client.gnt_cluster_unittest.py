@@ -286,8 +286,8 @@ class InitDrbdHelper(DrbdHelperTestCase):
     opts = mock.Mock()
     self.disableDrbd()
     opts.drbd_helper = "/bin/true"
-    self.assertRaises(errors.OpPrereqError, gnt_cluster._InitDrbdHelper, opts,
-        self.enabled_disk_templates)
+    helper = gnt_cluster._InitDrbdHelper(opts, self.enabled_disk_templates)
+    self.assertEquals(opts.drbd_helper, helper)
 
   def testDrbdHelperNone(self):
     opts = mock.Mock()
@@ -336,8 +336,8 @@ class GetDrbdHelper(DrbdHelperTestCase):
     opts = mock.Mock()
     self.disableDrbd()
     opts.drbd_helper = "/bin/true"
-    self.assertRaises(errors.OpPrereqError, gnt_cluster._GetDrbdHelper, opts,
-        self.enabled_disk_templates)
+    helper = gnt_cluster._GetDrbdHelper(opts, None)
+    self.assertEquals(opts.drbd_helper, helper)
 
   def testDrbdNoHelper(self):
     opts = mock.Mock()
