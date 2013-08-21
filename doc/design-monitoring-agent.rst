@@ -49,6 +49,8 @@ The monitoring agent system will report on the following basic information:
 - Node OS CPU load average report
 - Information from a plugin system
 
+.. _monitoring-agent-format-of-the-report:
+
 Format of the report
 --------------------
 
