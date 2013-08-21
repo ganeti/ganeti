@@ -47,7 +47,7 @@ module Ganeti.Daemon
 
 import Control.Exception
 import Control.Monad
-import Data.Maybe (fromMaybe)
+import Data.Maybe (fromMaybe, listToMaybe)
 import Data.Word
 import GHC.IO.Handle (hDuplicateTo)
 import Network.BSD (getHostName)
@@ -283,6 +283,17 @@ parseAddress opts defport = do
 vClusterHostNameEnvVar :: String
 vClusterHostNameEnvVar = "GANETI_HOSTNAME"
 
+getFQDN :: IO String
+getFQDN = do
+  hostname <- getHostName
+  addrInfos <- Socket.getAddrInfo Nothing (Just hostname) Nothing
+  let address = listToMaybe addrInfos >>= (Just . Socket.addrAddress)
+  case address of
+    Just a -> do
+      fqdn <- liftM fst $ Socket.getNameInfo [] True False a
+      return (fromMaybe hostname fqdn)
+    Nothing -> return hostname
+
 -- | Returns if the current node is the master node.
 isMaster :: IO Bool
 isMaster = do
@@ -293,7 +304,7 @@ isMaster = do
                      ioErrorToNothing
   curNode <- case vcluster_node of
     Just node_name -> return node_name
-    Nothing -> getHostName
+    Nothing -> getFQDN
   masterNode <- Ssconf.getMasterNode Nothing
   case masterNode of
     Ok n -> return (curNode == n)

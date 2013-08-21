@@ -452,6 +452,26 @@ def _InitCheckEnabledDiskTemplates(enabled_disk_templates):
                                errors.ECODE_INVAL)
 
 
+def _RestrictIpolicyToEnabledDiskTemplates(ipolicy, enabled_disk_templates):
+  """Restricts the ipolicy's disk templates to the enabled ones.
+
+  This function clears the ipolicy's list of allowed disk templates from the
+  ones that are not enabled by the cluster.
+
+  @type ipolicy: dict
+  @param ipolicy: the instance policy
+  @type enabled_disk_templates: list of string
+  @param enabled_disk_templates: the list of cluster-wide enabled disk
+    templates
+
+  """
+  assert constants.IPOLICY_DTS in ipolicy
+  allowed_disk_templates = ipolicy[constants.IPOLICY_DTS]
+  restricted_disk_templates = list(set(allowed_disk_templates)
+                                   .intersection(set(enabled_disk_templates)))
+  ipolicy[constants.IPOLICY_DTS] = restricted_disk_templates
+
+
 def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
                 master_netmask, master_netdev, file_storage_dir,
                 shared_file_storage_dir, candidate_pool_size, secondary_ip=None,
@@ -595,6 +615,7 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
   objects.NIC.CheckParameterSyntax(nicparams)
 
   full_ipolicy = objects.FillIPolicy(constants.IPOLICY_DEFAULTS, ipolicy)
+  _RestrictIpolicyToEnabledDiskTemplates(full_ipolicy, enabled_disk_templates)
 
   if ndparams is not None:
     utils.ForceDictType(ndparams, constants.NDS_PARAMETER_TYPES)

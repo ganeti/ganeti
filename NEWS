@@ -33,6 +33,11 @@ Incompatible/important changes
   default file and shared file storage directories. It now checks that
   the directories are explicitely allowed in the 'file-storage-paths' file and
   that the directories exist on all nodes.
+- The list of allowed disk templates in the instance policy and the list
+  of cluster-wide enabled disk templates is now checked for consistency
+  on cluster or group modification. On cluster initialization, the ipolicy
+  disk templates are ensured to be a subset of the cluster-wide enabled
+  disk templates.
 
 New features
 ~~~~~~~~~~~~

@@ -578,8 +578,11 @@ def _RestoreEnabledDiskTemplates():
      other tests.
 
   """
-  cmd = ["gnt-cluster", "modify", "--enabled-disk-templates=%s" %
-         ",".join(qa_config.GetEnabledDiskTemplates())]
+  enabled_disk_templates = qa_config.GetEnabledDiskTemplates()
+  cmd = ["gnt-cluster", "modify",
+         "--enabled-disk-templates=%s" % ",".join(enabled_disk_templates),
+         "--ipolicy-disk-templates=%s" % ",".join(enabled_disk_templates),
+         ]
 
   if utils.IsLvmEnabled(qa_config.GetEnabledDiskTemplates()):
     vgname = qa_config.get("vg-name", constants.DEFAULT_VG)
@@ -606,7 +609,8 @@ def _TestClusterModifyDiskTemplatesArguments(default_disk_template,
   AssertCommand(
     ["gnt-cluster", "modify",
      "--enabled-disk-templates=%s,%s" %
-      (default_disk_template, default_disk_template)],
+      (default_disk_template, default_disk_template),
+     "--ipolicy-disk-templates=%s" % default_disk_template],
     fail=False)
 
   if constants.DT_DRBD8 in enabled_disk_templates:
@@ -618,12 +622,15 @@ def _TestClusterModifyDiskTemplatesArguments(default_disk_template,
     # has to be installed on the nodes in this case
     AssertCommand(["gnt-cluster", "modify",
                    "--drbd-usermode-helper=%s" % drbd_usermode_helper,
-                   "--enabled-disk-templates=%s" % constants.DT_DISKLESS],
+                   "--enabled-disk-templates=%s" % constants.DT_DISKLESS,
+                   "--ipolicy-disk-templates=%s" % constants.DT_DISKLESS],
                    fail=False)
     # specifying a helper when drbd is re-enabled
     AssertCommand(["gnt-cluster", "modify",
                    "--drbd-usermode-helper=%s" % drbd_usermode_helper,
                    "--enabled-disk-templates=%s" %
+                     ",".join(enabled_disk_templates),
+                   "--ipolicy-disk-templates=%s" %
                      ",".join(enabled_disk_templates)],
                   fail=False)
 
@@ -650,13 +657,15 @@ def _TestClusterModifyDiskTemplatesVgName(enabled_disk_templates):
   AssertCommand(
     ["gnt-cluster", "modify",
      "--enabled-disk-templates=%s" % non_lvm_template,
+     "--ipolicy-disk-templates=%s" % non_lvm_template,
      "--vg-name="],
     fail=False)
 
   # Try to enable lvm, when no volume group is given
   AssertCommand(
     ["gnt-cluster", "modify",
-     "--enabled-disk-templates=%s" % lvm_template],
+     "--enabled-disk-templates=%s" % lvm_template,
+     "--ipolicy-disk-templates=%s" % lvm_template],
     fail=True)
 
   # Set volume group, with lvm still disabled: just a warning
@@ -666,13 +675,15 @@ def _TestClusterModifyDiskTemplatesVgName(enabled_disk_templates):
   AssertCommand(
     ["gnt-cluster", "modify",
      "--enabled-disk-templates=%s" % lvm_template,
+     "--ipolicy-disk-templates=%s" % lvm_template,
      "--vg-name="],
     fail=True)
 
   # Enable lvm with vg name present
   AssertCommand(
     ["gnt-cluster", "modify",
-     "--enabled-disk-templates=%s" % lvm_template],
+     "--enabled-disk-templates=%s" % lvm_template,
+     "--ipolicy-disk-templates=%s" % lvm_template],
     fail=False)
 
   # Try unsetting vg name with lvm still enabled
@@ -680,7 +691,10 @@ def _TestClusterModifyDiskTemplatesVgName(enabled_disk_templates):
 
   # Disable lvm with vg name still set
   AssertCommand(
-    ["gnt-cluster", "modify", "--enabled-disk-templates=%s" % non_lvm_template],
+    ["gnt-cluster", "modify",
+     "--enabled-disk-templates=%s" % non_lvm_template,
+     "--ipolicy-disk-templates=%s" % non_lvm_template,
+     ],
     fail=False)
 
   # Try unsetting vg name with lvm disabled
@@ -690,6 +704,7 @@ def _TestClusterModifyDiskTemplatesVgName(enabled_disk_templates):
   AssertCommand(
     ["gnt-cluster", "modify",
      "--enabled-disk-templates=%s" % lvm_template,
+     "--ipolicy-disk-templates=%s" % lvm_template,
      "--vg-name=%s" % vgname],
     fail=False)
 
@@ -697,6 +712,7 @@ def _TestClusterModifyDiskTemplatesVgName(enabled_disk_templates):
   AssertCommand(
     ["gnt-cluster", "modify",
      "--enabled-disk-templates=%s" % non_lvm_template,
+     "--ipolicy-disk-templates=%s" % non_lvm_template,
      "--vg-name="],
     fail=False)
 
@@ -719,8 +735,8 @@ def _TestClusterModifyUsedDiskTemplate(instance_template,
                                 - set([instance_template]))
   AssertCommand(
     ["gnt-cluster", "modify",
-     "--enabled-disk-templates=%s" %
-       ",".join(new_disk_templates)],
+     "--enabled-disk-templates=%s" % ",".join(new_disk_templates),
+     "--ipolicy-disk-templates=%s" % ",".join(new_disk_templates)],
     fail=True)
 
 
@@ -733,14 +749,14 @@ def _TestClusterModifyUnusedDiskTemplate(instance_template):
 
   AssertCommand(
     ["gnt-cluster", "modify",
-     "--enabled-disk-templates=%s" %
-       ",".join(all_disk_templates)],
+     "--enabled-disk-templates=%s" % ",".join(all_disk_templates),
+     "--ipolicy-disk-templates=%s" % ",".join(all_disk_templates)],
     fail=False)
   new_disk_templates = [instance_template]
   AssertCommand(
     ["gnt-cluster", "modify",
-     "--enabled-disk-templates=%s" %
-       ",".join(new_disk_templates)],
+     "--enabled-disk-templates=%s" % ",".join(new_disk_templates),
+     "--ipolicy-disk-templates=%s" % ",".join(new_disk_templates)],
     fail=False)
 
 
@@ -830,6 +846,11 @@ def TestClusterModifyIPolicy():
           continue
         AssertEqual(eff_policy[p], old_policy[p])
 
+  # Allowing disk templates via ipolicy requires them to be
+  # enabled on the cluster.
+  if not (qa_config.IsTemplateSupported(constants.DT_PLAIN)
+          and qa_config.IsTemplateSupported(constants.DT_DRBD8)):
+    return
   # Disk templates are treated slightly differently
   par = "disk-templates"
   disp_str = "allowed disk templates"

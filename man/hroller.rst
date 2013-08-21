@@ -45,7 +45,7 @@ hroller is a cluster maintenance reboot scheduler. It can calculate
 which set of nodes can be rebooted at the same time while avoiding
 having both primary and secondary nodes being rebooted at the same time.
 
-For backends that support identifying the master node (currenlty
+For backends that support identifying the master node (currently
 RAPI and LUXI), the master node is scheduled as the last node
 in the last reboot group. Apart from this restriction, larger reboot
 groups are put first.

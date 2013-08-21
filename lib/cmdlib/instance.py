@@ -602,7 +602,7 @@ class LUInstanceCreate(LogicalUnit):
         if self.needed_locks[locking.LEVEL_NODE] is not locking.ALL_SET:
           self.needed_locks[locking.LEVEL_NODE].append(self.op.src_node_uuid)
         if not os.path.isabs(src_path):
-          self.op.src_path = src_path = \
+          self.op.src_path = \
             utils.PathJoin(pathutils.EXPORT_DIR, src_path)
 
     self.needed_locks[locking.LEVEL_NODE_RES] = \
@@ -710,13 +710,13 @@ class LUInstanceCreate(LogicalUnit):
       locked_nodes = self.owned_locks(locking.LEVEL_NODE)
       exp_list = self.rpc.call_export_list(locked_nodes)
       found = False
-      for node in exp_list:
-        if exp_list[node].fail_msg:
+      for node_uuid in exp_list:
+        if exp_list[node_uuid].fail_msg:
           continue
-        if self.op.src_path in exp_list[node].payload:
+        if self.op.src_path in exp_list[node_uuid].payload:
           found = True
-          self.op.src_node = node
-          self.op.src_node_uuid = self.cfg.GetNodeInfoByName(node).uuid
+          self.op.src_node = self.cfg.GetNodeInfo(node_uuid).name
+          self.op.src_node_uuid = node_uuid
           self.op.src_path = utils.PathJoin(pathutils.EXPORT_DIR,
                                             self.op.src_path)
           break
@@ -770,8 +770,10 @@ class LUInstanceCreate(LogicalUnit):
         if einfo.has_option(constants.INISECT_INS, "nic%d_mac" % idx):
           ndict = {}
           for name in list(constants.NICS_PARAMETERS) + ["ip", "mac"]:
-            v = einfo.get(constants.INISECT_INS, "nic%d_%s" % (idx, name))
-            ndict[name] = v
+            nic_param_name = "nic%d_%s" % (idx, name)
+            if einfo.has_option(constants.INISECT_INS, nic_param_name):
+              v = einfo.get(constants.INISECT_INS, nic_param_name)
+              ndict[name] = v
           nics.append(ndict)
         else:
           break
@@ -1679,7 +1681,7 @@ class LUInstanceMove(LogicalUnit):
     (self.op.target_node_uuid, self.op.target_node) = \
       ExpandNodeUuidAndName(self.cfg, self.op.target_node_uuid,
                             self.op.target_node)
-    self.needed_locks[locking.LEVEL_NODE] = [self.op.target_node]
+    self.needed_locks[locking.LEVEL_NODE] = [self.op.target_node_uuid]
     self.needed_locks[locking.LEVEL_NODE_RES] = []
     self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_APPEND
 
@@ -1934,11 +1936,11 @@ class LUInstanceMultiAlloc(NoHooksLU):
       for inst in self.op.instances:
         (inst.pnode_uuid, inst.pnode) = \
           ExpandNodeUuidAndName(self.cfg, inst.pnode_uuid, inst.pnode)
-        nodeslist.append(inst.pnode)
+        nodeslist.append(inst.pnode_uuid)
         if inst.snode is not None:
           (inst.snode_uuid, inst.snode) = \
             ExpandNodeUuidAndName(self.cfg, inst.snode_uuid, inst.snode)
-          nodeslist.append(inst.snode)
+          nodeslist.append(inst.snode_uuid)
 
       self.needed_locks[locking.LEVEL_NODE] = nodeslist
       # Lock resources of instance's primary and secondary nodes (copy to
@@ -2387,8 +2389,8 @@ class LUInstanceSetParams(LogicalUnit):
   def CheckArguments(self):
     if not (self.op.nics or self.op.disks or self.op.disk_template or
             self.op.hvparams or self.op.beparams or self.op.os_name or
-            self.op.offline is not None or self.op.runtime_mem or
-            self.op.pnode):
+            self.op.osparams or self.op.offline is not None or
+            self.op.runtime_mem or self.op.pnode):
       raise errors.OpPrereqError("No changes submitted", errors.ECODE_INVAL)
 
     if self.op.hvparams:

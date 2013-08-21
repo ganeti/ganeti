@@ -1027,8 +1027,8 @@ def TestInstanceCreationRestrictedByDiskTemplates():
   # Setup the cluster with the enabled_disk_templates
   AssertCommand(
     ["gnt-cluster", "modify",
-     "--enabled-disk-templates=%s" %
-       ",".join(enabled_disk_templates)],
+     "--enabled-disk-templates=%s" % ",".join(enabled_disk_templates),
+     "--ipolicy-disk-templates=%s" % ",".join(enabled_disk_templates)],
     fail=False)
 
   # Test instance creation for enabled disk templates
@@ -1054,8 +1054,8 @@ def TestInstanceCreationRestrictedByDiskTemplates():
     for (enabled, disabled) in [(templates1, templates2),
                                 (templates2, templates1)]:
       AssertCommand(["gnt-cluster", "modify",
-                     "--enabled-disk-templates=%s" %
-                       ",".join(enabled)],
+                     "--enabled-disk-templates=%s" % ",".join(enabled),
+                     "--ipolicy-disk-templates=%s" % ",".join(enabled)],
                     fail=False)
       for disk_template in disabled:
         CreateInstanceByDiskTemplate(nodes, disk_template, fail=True)
@@ -1068,6 +1068,8 @@ def TestInstanceCreationRestrictedByDiskTemplates():
                              set(enabled_disk_templates))
     AssertCommand(["gnt-cluster", "modify",
                    "--enabled-disk-templates=%s" %
+                     ",".join(other_disk_templates),
+                   "--ipolicy-disk-templates=%s" %
                      ",".join(other_disk_templates)],
                   fail=False)
     CreateInstanceByDiskTemplate(nodes, enabled_disk_templates[0], fail=True)
@@ -1078,5 +1080,7 @@ def TestInstanceCreationRestrictedByDiskTemplates():
   # Restore initially enabled disk templates
   AssertCommand(["gnt-cluster", "modify",
                  "--enabled-disk-templates=%s" %
+                   ",".join(enabled_disk_templates),
+                 "--ipolicy-disk-templates=%s" %
                    ",".join(enabled_disk_templates)],
                  fail=False)

@@ -76,5 +76,17 @@ class TestCheckFileStoragePath(unittest.TestCase):
         NotImplemented, "", self.enabled_disk_templates)
 
 
+class TestGetEnabledDiskTemplates(unittest.TestCase):
+
+  def testNoNew(self):
+    op_dts = [constants.DT_DISKLESS]
+    old_dts = [constants.DT_DISKLESS]
+    (enabled_dts, new_dts) =\
+        cluster.LUClusterSetParams._GetEnabledDiskTemplatesInner(
+            op_dts, old_dts)
+    self.assertEqual(enabled_dts, old_dts)
+    self.assertEqual(new_dts, [])
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()

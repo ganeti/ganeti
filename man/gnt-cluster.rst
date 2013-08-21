@@ -539,11 +539,12 @@ Please note, that ``std`` values are not the same as defaults set by
 - ``--specs-mem-size`` limits the amount of memory available
 - ``--specs-nic-count`` sets limits on the number of NICs used
 
-The ``--ipolicy-disk-templates`` and ``--ipolicy-spindle-ratio`` options
-take a decimal number. The ``--ipolicy-disk-templates`` option takes a
-comma-separated list of disk templates.
+The ``--ipolicy-spindle-ratio`` option takes a decimal number. The
+``--ipolicy-disk-templates`` option takes a comma-separated list of disk
+templates. This list of disk templates must be a subset of the list
+of cluster-wide enabled disk templates (which can be set with
+``--enabled-disk-templates``).
 
-- ``--ipolicy-disk-templates`` limits the allowed disk templates
 - ``--ipolicy-spindle-ratio`` limits the instances-spindles ratio
 - ``--ipolicy-vcpu-ratio`` limits the vcpu-cpu ratio
 

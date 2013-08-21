@@ -56,7 +56,8 @@ from ganeti.cmdlib.common import ShareAll, RunPostHook, \
   GetWantedInstances, MergeAndVerifyHvState, MergeAndVerifyDiskState, \
   GetUpdatedIPolicy, ComputeNewInstanceViolations, GetUpdatedParams, \
   CheckOSParams, CheckHVParams, AdjustCandidatePool, CheckNodePVs, \
-  ComputeIPolicyInstanceViolation, AnnotateDiskParams, SupportsOob
+  ComputeIPolicyInstanceViolation, AnnotateDiskParams, SupportsOob, \
+  CheckIpolicyVsDiskTemplates
 
 import ganeti.masterd.instance
 
@@ -740,16 +741,28 @@ class LUClusterSetParams(LogicalUnit):
        unset whether there are instances still using it.
 
     """
+    lvm_is_enabled = utils.IsLvmEnabled(enabled_disk_templates)
+    lvm_gets_enabled = utils.LvmGetsEnabled(enabled_disk_templates,
+                                            new_enabled_disk_templates)
+    current_vg_name = self.cfg.GetVGName()
+
+    if self.op.vg_name == '':
+      if lvm_is_enabled:
+        raise errors.OpPrereqError("Cannot unset volume group if lvm-based"
+                                   " disk templates are or get enabled.")
+
+    if self.op.vg_name is None:
+      if current_vg_name is None and lvm_is_enabled:
+        raise errors.OpPrereqError("Please specify a volume group when"
+                                   " enabling lvm-based disk-templates.")
+
     if self.op.vg_name is not None and not self.op.vg_name:
       if self.cfg.HasAnyDiskOfType(constants.LD_LV):
         raise errors.OpPrereqError("Cannot disable lvm storage while lvm-based"
                                    " instances exist", errors.ECODE_INVAL)
 
-    if (self.op.vg_name is not None and
-        utils.IsLvmEnabled(enabled_disk_templates)) or \
-           (self.cfg.GetVGName() is not None and
-            utils.LvmGetsEnabled(enabled_disk_templates,
-                                 new_enabled_disk_templates)):
+    if (self.op.vg_name is not None and lvm_is_enabled) or \
+        (self.cfg.GetVGName() is not None and lvm_gets_enabled):
       self._CheckVgNameOnNodes(node_uuids)
 
   def _CheckVgNameOnNodes(self, node_uuids):
@@ -773,21 +786,70 @@ class LUClusterSetParams(LogicalUnit):
                                    (self.cfg.GetNodeName(node_uuid), vgstatus),
                                    errors.ECODE_ENVIRON)
 
-  def _GetEnabledDiskTemplates(self, cluster):
+  @staticmethod
+  def _GetEnabledDiskTemplatesInner(op_enabled_disk_templates,
+                                    old_enabled_disk_templates):
     """Determines the enabled disk templates and the subset of disk templates
        that are newly enabled by this operation.
 
     """
     enabled_disk_templates = None
     new_enabled_disk_templates = []
-    if self.op.enabled_disk_templates:
-      enabled_disk_templates = self.op.enabled_disk_templates
+    if op_enabled_disk_templates:
+      enabled_disk_templates = op_enabled_disk_templates
       new_enabled_disk_templates = \
         list(set(enabled_disk_templates)
-             - set(cluster.enabled_disk_templates))
+             - set(old_enabled_disk_templates))
     else:
-      enabled_disk_templates = cluster.enabled_disk_templates
+      enabled_disk_templates = old_enabled_disk_templates
     return (enabled_disk_templates, new_enabled_disk_templates)
+
+  def _GetEnabledDiskTemplates(self, cluster):
+    """Determines the enabled disk templates and the subset of disk templates
+       that are newly enabled by this operation.
+
+    """
+    return self._GetEnabledDiskTemplatesInner(self.op.enabled_disk_templates,
+                                              cluster.enabled_disk_templates)
+
+  def _CheckIpolicy(self, cluster, enabled_disk_templates):
+    """Checks the ipolicy.
+
+    @type cluster: C{objects.Cluster}
+    @param cluster: the cluster's configuration
+    @type enabled_disk_templates: list of string
+    @param enabled_disk_templates: list of (possibly newly) enabled disk
+      templates
+
+    """
+    # FIXME: write unit tests for this
+    if self.op.ipolicy:
+      self.new_ipolicy = GetUpdatedIPolicy(cluster.ipolicy, self.op.ipolicy,
+                                           group_policy=False)
+
+      CheckIpolicyVsDiskTemplates(self.new_ipolicy,
+                                  enabled_disk_templates)
+
+      all_instances = self.cfg.GetAllInstancesInfo().values()
+      violations = set()
+      for group in self.cfg.GetAllNodeGroupsInfo().values():
+        instances = frozenset([inst for inst in all_instances
+                               if compat.any(nuuid in group.members
+                                             for nuuid in inst.all_nodes)])
+        new_ipolicy = objects.FillIPolicy(self.new_ipolicy, group.ipolicy)
+        ipol = masterd.instance.CalculateGroupIPolicy(cluster, group)
+        new = ComputeNewInstanceViolations(ipol, new_ipolicy, instances,
+                                           self.cfg)
+        if new:
+          violations.update(new)
+
+      if violations:
+        self.LogWarning("After the ipolicy change the following instances"
+                        " violate them: %s",
+                        utils.CommaJoin(utils.NiceSort(violations)))
+    else:
+      CheckIpolicyVsDiskTemplates(cluster.ipolicy,
+                                  enabled_disk_templates)
 
   def CheckPrereq(self):
     """Check prerequisites.
@@ -873,27 +935,7 @@ class LUClusterSetParams(LogicalUnit):
                             for name, values in svalues.items()))
              for storage, svalues in new_disk_state.items())
 
-    if self.op.ipolicy:
-      self.new_ipolicy = GetUpdatedIPolicy(cluster.ipolicy, self.op.ipolicy,
-                                           group_policy=False)
-
-      all_instances = self.cfg.GetAllInstancesInfo().values()
-      violations = set()
-      for group in self.cfg.GetAllNodeGroupsInfo().values():
-        instances = frozenset([inst for inst in all_instances
-                               if compat.any(nuuid in group.members
-                                             for nuuid in inst.all_nodes)])
-        new_ipolicy = objects.FillIPolicy(self.new_ipolicy, group.ipolicy)
-        ipol = masterd.instance.CalculateGroupIPolicy(cluster, group)
-        new = ComputeNewInstanceViolations(ipol, new_ipolicy, instances,
-                                           self.cfg)
-        if new:
-          violations.update(new)
-
-      if violations:
-        self.LogWarning("After the ipolicy change the following instances"
-                        " violate them: %s",
-                        utils.CommaJoin(utils.NiceSort(violations)))
+    self._CheckIpolicy(cluster, enabled_disk_templates)
 
     if self.op.nicparams:
       utils.ForceDictType(self.op.nicparams, constants.NICS_PARAMETER_TYPES)
@@ -1049,26 +1091,14 @@ class LUClusterSetParams(LogicalUnit):
 
     """
     if self.op.vg_name is not None:
-      if self.op.vg_name and not \
-           utils.IsLvmEnabled(self.cluster.enabled_disk_templates):
-        feedback_fn("Note that you specified a volume group, but did not"
-                    " enable any lvm disk template.")
       new_volume = self.op.vg_name
       if not new_volume:
-        if utils.IsLvmEnabled(self.cluster.enabled_disk_templates):
-          raise errors.OpPrereqError("Cannot unset volume group if lvm-based"
-                                     " disk templates are enabled.")
         new_volume = None
       if new_volume != self.cfg.GetVGName():
         self.cfg.SetVGName(new_volume)
       else:
         feedback_fn("Cluster LVM configuration already in desired"
                     " state, not changing")
-    else:
-      if utils.IsLvmEnabled(self.cluster.enabled_disk_templates) and \
-          not self.cfg.GetVGName():
-        raise errors.OpPrereqError("Please specify a volume group when"
-                                   " enabling lvm-based disk-templates.")
 
   def _SetFileStorageDir(self, feedback_fn):
     """Set the file storage directory.

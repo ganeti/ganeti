@@ -111,5 +111,24 @@ class TestInitCheckEnabledDiskTemplates(unittest.TestCase):
         bootstrap._InitCheckEnabledDiskTemplates, enabled_disk_templates)
 
 
+class TestRestrictIpolicyToEnabledDiskTemplates(unittest.TestCase):
+
+  def testNoRestriction(self):
+    allowed_disk_templates = list(constants.DISK_TEMPLATES)
+    ipolicy = {constants.IPOLICY_DTS: allowed_disk_templates}
+    enabled_disk_templates = list(constants.DISK_TEMPLATES)
+    bootstrap._RestrictIpolicyToEnabledDiskTemplates(
+        ipolicy, enabled_disk_templates)
+    self.assertEqual(ipolicy[constants.IPOLICY_DTS], allowed_disk_templates)
+
+  def testRestriction(self):
+    allowed_disk_templates = [constants.DT_DRBD8, constants.DT_PLAIN]
+    ipolicy = {constants.IPOLICY_DTS: allowed_disk_templates}
+    enabled_disk_templates = [constants.DT_PLAIN, constants.DT_FILE]
+    bootstrap._RestrictIpolicyToEnabledDiskTemplates(
+        ipolicy, enabled_disk_templates)
+    self.assertEqual(ipolicy[constants.IPOLICY_DTS], [constants.DT_PLAIN])
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
