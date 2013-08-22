@@ -52,35 +52,14 @@ import Ganeti.THH
 
 import qualified Ganeti.Hs2Py.OpDoc as OpDoc
 import Ganeti.OpParams
+import Ganeti.PyValueInstances ()
 import Ganeti.Types
 import Ganeti.Query.Language (queryTypeOpToRaw)
 
 import Data.List (intercalate)
 import Data.Map (Map)
-import qualified Data.Map as Map
-import Data.Set (Set)
-import qualified Data.Set as Set
 
 import qualified Ganeti.Constants as C
-
-instance PyValue Bool
-instance PyValue Int
-instance PyValue Double
-instance PyValue Char
-
-instance (PyValue a, PyValue b) => PyValue (a, b) where
-  showValue (x, y) = show (showValue x, showValue y)
-
-instance PyValue a => PyValue [a] where
-  showValue xs = show (map showValue xs)
-
-instance PyValue a => PyValue (Set a) where
-  showValue s = showValue (Set.toList s)
-
-instance (PyValue k, PyValue a) => PyValue (Map k a) where
-  showValue mp =
-    "{" ++ intercalate ", " (map showPair (Map.assocs mp)) ++ "}"
-    where showPair (k, x) = show k ++ ":" ++ show x
 
 instance PyValue DiskIndex where
   showValue = showValue . unDiskIndex
