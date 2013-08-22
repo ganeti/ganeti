@@ -583,6 +583,9 @@ $(buildParam "ND" "ndp"
   [ simpleField "oob_program"   [t| String |]
   , simpleField "spindle_count" [t| Int    |]
   , simpleField "exclusive_storage" [t| Bool |]
+  , simpleField "ovs"           [t| Bool |]
+  , simpleField "ovs_name"       [t| String |]
+  , simpleField "ovs_link"       [t| String |]
   ])
 
 $(buildObject "Node" "node" $
