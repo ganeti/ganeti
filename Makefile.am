@@ -630,6 +630,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/Hypervisor/Xen/XmParser.hs \
 	src/Ganeti/Hypervisor/Xen/Types.hs \
 	src/Ganeti/Hash.hs \
+	src/Ganeti/Hs2Py/GenConstants.hs \
 	src/Ganeti/Hs2Py/GenOpCodes.hs \
 	src/Ganeti/Hs2Py/OpDoc.hs \
 	src/Ganeti/JQueue.hs \

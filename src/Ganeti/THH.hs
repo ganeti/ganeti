@@ -32,6 +32,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 module Ganeti.THH ( declareSADT
                   , declareIADT
                   , makeJSONInstance
+                  , deCamelCase
                   , genOpID
                   , genAllConstr
                   , genAllOpIDs
