@@ -1219,6 +1219,7 @@ NDS_PARAMETER_TITLES = {
   ND_OOB_PROGRAM: "OutOfBandProgram",
   ND_SPINDLE_COUNT: "SpindleCount",
   ND_EXCLUSIVE_STORAGE: "ExclusiveStorage",
+  ND_OVS: "OpenvSwitch",
   ND_OVS_NAME: "OpenvSwitchName",
   ND_OVS_LINK: "OpenvSwitchLink",
   }
