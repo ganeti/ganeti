@@ -2604,9 +2604,9 @@ class LUInstanceSetParams(LogicalUnit):
                                  self.instance.disk_template,
                                  errors.ECODE_INVAL)
 
-    if not self.cluster.IsDiskTemplateEnabled(self.instance.disk_template):
+    if not self.cluster.IsDiskTemplateEnabled(self.op.disk_template):
       raise errors.OpPrereqError("Disk template '%s' is not enabled for this"
-                                 " cluster." % self.instance.disk_template)
+                                 " cluster." % self.op.disk_template)
 
     if (self.instance.disk_template,
         self.op.disk_template) not in self._DISK_CONVERSIONS:
