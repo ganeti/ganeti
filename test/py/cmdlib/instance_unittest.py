@@ -2201,5 +2201,46 @@ class TestLUInstanceSetParams(CmdlibTestCase):
     self.ExecOpCode(op)
 
 
+class TestLUInstanceChangeGroup(CmdlibTestCase):
+  def setUp(self):
+    super(TestLUInstanceChangeGroup, self).setUp()
+
+    self.group2 = self.cfg.AddNewNodeGroup()
+    self.node2 = self.cfg.AddNewNode(group=self.group2)
+    self.inst = self.cfg.AddNewInstance()
+    self.op = opcodes.OpInstanceChangeGroup(instance_name=self.inst.name)
+
+  def testTargetGroupIsInstanceGroup(self):
+    op = self.CopyOpCode(self.op,
+                         target_groups=[self.group.name])
+    self.ExecOpCodeExpectOpPrereqError(
+      op, "Can't use group\(s\) .* as targets, they are used by the"
+          " instance .*")
+
+  def testNoTargetGroups(self):
+    inst = self.cfg.AddNewInstance(disk_template=constants.DT_DRBD8,
+                                   primary_node=self.master,
+                                   secondary_node=self.node2)
+    op = self.CopyOpCode(self.op,
+                         instance_name=inst.name)
+    self.ExecOpCodeExpectOpPrereqError(
+      op, "There are no possible target groups")
+
+  def testFailingIAllocator(self):
+    self.iallocator_cls.return_value.success = False
+    op = self.CopyOpCode(self.op)
+
+    self.ExecOpCodeExpectOpPrereqError(
+      op, "Can't compute solution for changing group of instance .*"
+          " using iallocator .*")
+
+  def testChangeGroup(self):
+    self.iallocator_cls.return_value.success = True
+    self.iallocator_cls.return_value.result = ([], [], [])
+    op = self.CopyOpCode(self.op)
+
+    self.ExecOpCode(op)
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
