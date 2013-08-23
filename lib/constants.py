@@ -25,6 +25,7 @@ import re
 import socket
 
 from ganeti import _autoconf
+from ganeti import _constants
 from ganeti import _vcsversion
 from ganeti import compat
 from ganeti import pathutils
@@ -1773,9 +1774,9 @@ INSTST_ALL = compat.UniqueFrozenset([
   ])
 
 # Admin states
-ADMINST_UP = "up"
-ADMINST_DOWN = "down"
-ADMINST_OFFLINE = "offline"
+ADMINST_UP = _constants.ADMINST_UP
+ADMINST_DOWN = _constants.ADMINST_DOWN
+ADMINST_OFFLINE = _constants.ADMINST_OFFLINE
 ADMINST_ALL = compat.UniqueFrozenset([
   ADMINST_UP,
   ADMINST_DOWN,
@@ -2572,7 +2573,7 @@ CPUAVGLOAD_WINDOW_SIZE = 600
 MOND_TIME_INTERVAL = 5
 
 # Do not re-export imported modules
-del re, _vcsversion, _autoconf, socket, pathutils, compat
+del re, _vcsversion, _autoconf, _constants, socket, pathutils, compat
 
 
 ALLOCATABLE_KEY = "allocatable"
