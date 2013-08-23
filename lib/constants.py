@@ -415,6 +415,7 @@ SO_FIX_CONSISTENCY = "fix-consistency"
 
 # Available fields per storage type
 VALID_STORAGE_FIELDS = compat.UniqueFrozenset([
+  SF_NODE,
   SF_NAME,
   SF_TYPE,
   SF_SIZE,

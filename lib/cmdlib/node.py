@@ -1392,11 +1392,10 @@ class LUNodeQueryStorage(NoHooksLU):
   """Logical unit for getting information on storage units on node(s).
 
   """
-  _FIELDS_STATIC = utils.FieldSet(constants.SF_NODE)
   REQ_BGL = False
 
   def CheckArguments(self):
-    _CheckOutputFields(static=self._FIELDS_STATIC,
+    _CheckOutputFields(static=utils.FieldSet(),
                        dynamic=utils.FieldSet(*constants.VALID_STORAGE_FIELDS),
                        selected=self.op.output_fields)
 

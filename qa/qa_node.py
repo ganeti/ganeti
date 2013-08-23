@@ -129,8 +129,7 @@ def TestNodeStorage():
 
     # Test all storage fields
     cmd = ["gnt-node", "list-storage", "--storage-type", storage_type,
-           "--output=%s" % ",".join(list(constants.VALID_STORAGE_FIELDS) +
-                                    [constants.SF_NODE])]
+           "--output=%s" % ",".join(list(constants.VALID_STORAGE_FIELDS))]
     AssertCommand(cmd)
 
     # Get list of valid storage devices
