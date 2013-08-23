@@ -1290,20 +1290,16 @@ class LUNodeQuery(NoHooksLU):
     return self.nq.OldStyleQuery(self)
 
 
-def _CheckOutputFields(static, dynamic, selected):
-  """Checks whether all selected fields are valid.
+def _CheckOutputFields(fields, selected):
+  """Checks whether all selected fields are valid according to fields.
 
-  @type static: L{utils.FieldSet}
-  @param static: static fields set
-  @type dynamic: L{utils.FieldSet}
-  @param dynamic: dynamic fields set
+  @type fields: L{utils.FieldSet}
+  @param fields: fields set
+  @type selected: L{utils.FieldSet}
+  @param selected: fields set
 
   """
-  f = utils.FieldSet()
-  f.Extend(static)
-  f.Extend(dynamic)
-
-  delta = f.NonMatching(selected)
+  delta = fields.NonMatching(selected)
   if delta:
     raise errors.OpPrereqError("Unknown output fields selected: %s"
                                % ",".join(delta), errors.ECODE_INVAL)
@@ -1314,13 +1310,11 @@ class LUNodeQueryvols(NoHooksLU):
 
   """
   REQ_BGL = False
-  _FIELDS_DYNAMIC = utils.FieldSet("phys", "vg", "name", "size", "instance")
-  _FIELDS_STATIC = utils.FieldSet("node")
 
   def CheckArguments(self):
-    _CheckOutputFields(static=self._FIELDS_STATIC,
-                       dynamic=self._FIELDS_DYNAMIC,
-                       selected=self.op.output_fields)
+    _CheckOutputFields(utils.FieldSet("node", "phys", "vg", "name", "size",
+                                      "instance"),
+                       self.op.output_fields)
 
   def ExpandNames(self):
     self.share_locks = ShareAll()
@@ -1395,9 +1389,8 @@ class LUNodeQueryStorage(NoHooksLU):
   REQ_BGL = False
 
   def CheckArguments(self):
-    _CheckOutputFields(static=utils.FieldSet(),
-                       dynamic=utils.FieldSet(*constants.VALID_STORAGE_FIELDS),
-                       selected=self.op.output_fields)
+    _CheckOutputFields(utils.FieldSet(*constants.VALID_STORAGE_FIELDS),
+                       self.op.output_fields)
 
   def ExpandNames(self):
     self.share_locks = ShareAll()
