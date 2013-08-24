@@ -112,19 +112,21 @@ class LUNodeAdd(LogicalUnit):
       raise errors.OpPrereqError("Cannot pass a node group when a node is"
                                  " being readded", errors.ECODE_INVAL)
 
-    # OpenvSwitch: Warn user if link is missing
-    if (self.op.ndparams[constants.ND_OVS] and not
-        self.op.ndparams[constants.ND_OVS_LINK]):
-      self.LogInfo("No physical interface for OpenvSwitch was given."
-                   " OpenvSwitch will not have an outside connection. This"
-                   " might not be what you want.")
-    # OpenvSwitch: Fail if parameters are given, but OVS is not enabled.
-    if (not self.op.ndparams[constants.ND_OVS] and
-        (self.op.ndparams[constants.ND_OVS_NAME] or
-         self.op.ndparams[constants.ND_OVS_LINK])):
-      raise errors.OpPrereqError("OpenvSwitch name or link were given, but"
-                                 " OpenvSwitch is not enabled. Please enable"
-                                 " OpenvSwitch with --ovs", errors.ECODE_INVAL)
+    if self.op.ndparams:
+      ovs = self.op.ndparams.get(constants.ND_OVS, None)
+      ovs_name = self.op.ndparams.get(constants.ND_OVS_NAME, None)
+      ovs_link = self.op.ndparams.get(constants.ND_OVS_LINK, None)
+
+      # OpenvSwitch: Warn user if link is missing
+      if ovs and not ovs_link:
+        self.LogInfo("No physical interface for OpenvSwitch was given."
+                     " OpenvSwitch will not have an outside connection. This"
+                     " might not be what you want.")
+      # OpenvSwitch: Fail if parameters are given, but OVS is not enabled.
+      if not ovs and (ovs_name or ovs_link):
+        raise errors.OpPrereqError("OpenvSwitch name or link were given, but"
+                                   " OpenvSwitch is not enabled. Please enable"
+                                   " OpenvSwitch with --ovs", errors.ECODE_INVAL)
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -390,11 +392,13 @@ class LUNodeAdd(LogicalUnit):
         raise errors.OpExecError("ssh/hostname verification failed")
 
     # OpenvSwitch initialization on the node
-    if self.new_node.ndparams[constants.ND_OVS]:
+    ovs = self.new_node.ndparams.get(constants.ND_OVS, None)
+    ovs_name = self.new_node.ndparams.get(constants.ND_OVS_NAME, None)
+    ovs_link = self.new_node.ndparams.get(constants.ND_OVS_LINK, None)
+
+    if ovs:
       result = self.rpc.call_node_configure_ovs(
-                 self.new_node.name,
-                 self.new_node.ndparams[constants.ND_OVS_NAME],
-                 self.new_node.ndparams[constants.ND_OVS_LINK])
+                 self.new_node.name, ovs_name, ovs_link)
 
     if self.op.readd:
       self.context.ReaddNode(self.new_node)
