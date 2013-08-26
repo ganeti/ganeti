@@ -26,6 +26,7 @@ import re
 import types
 
 from ganeti import _autoconf
+from ganeti import _constants
 from ganeti import compat
 from ganeti import constants
 from ganeti import errors
@@ -287,7 +288,9 @@ def Convert(module, prefix):
   """
   lines = [""]
 
-  all_items = dict((name, getattr(module, name)) for name in dir(module))
+  all_items = dict((name, getattr(module, name))
+                   for name in dir(module)
+                   if name not in dir(_constants))
 
   for name in sorted(all_items.keys()):
     value = all_items[name]

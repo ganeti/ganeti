@@ -1,6 +1,7 @@
 {-| Ganeti constants.
 
-This module reexports the Haskell constants generated from Python.
+This module reexports the Haskell constants and those generated from
+Python.
 
 -}
 
@@ -25,6 +26,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 -}
 
-module Ganeti.Constants (module Ganeti.PyConstants) where
+module Ganeti.Constants (module Ganeti.HsConstants,
+                         module Ganeti.PyConstants) where
 
+import Ganeti.HsConstants
 import Ganeti.PyConstants
