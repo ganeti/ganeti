@@ -564,28 +564,12 @@ DTS_NO_FREE_SPACE_CHECK = compat.UniqueFrozenset([
   DT_EXT,
   ])
 
-# logical disk types
-LD_LV = "lvm"
-LD_DRBD8 = "drbd8"
-LD_FILE = "file"
-LD_BLOCKDEV = "blockdev"
-LD_RBD = "rbd"
-LD_EXT = "ext"
-LOGICAL_DISK_TYPES = compat.UniqueFrozenset([
-  LD_LV,
-  LD_DRBD8,
-  LD_FILE,
-  LD_BLOCKDEV,
-  LD_RBD,
-  LD_EXT,
-  ])
-
-LDS_BLOCK = compat.UniqueFrozenset([
-  LD_LV,
-  LD_DRBD8,
-  LD_BLOCKDEV,
-  LD_RBD,
-  LD_EXT,
+DTS_BLOCK = compat.UniqueFrozenset([
+  DT_PLAIN,
+  DT_DRBD8,
+  DT_BLOCK,
+  DT_RBD,
+  DT_EXT,
   ])
 
 # drbd constants
@@ -623,7 +607,7 @@ FD_LOOP = "loop"
 FD_BLKTAP = "blktap"
 
 # the set of drbd-like disk types
-LDS_DRBD = compat.UniqueFrozenset([LD_DRBD8])
+LDS_DRBD = compat.UniqueFrozenset([DT_DRBD8])
 
 # disk access mode
 DISK_RDONLY = "ro"
@@ -1119,7 +1103,7 @@ DSS_PARAMETER_TYPES = {
   }
 
 DSS_PARAMETERS = frozenset(DSS_PARAMETER_TYPES.keys())
-DS_VALID_TYPES = compat.UniqueFrozenset([LD_LV])
+DS_VALID_TYPES = compat.UniqueFrozenset([DT_PLAIN])
 
 # Backend parameter names
 BE_MEMORY = "memory" # deprecated and replaced by max and min mem
@@ -2203,8 +2187,8 @@ NDC_GLOBALS = compat.UniqueFrozenset([
   ND_EXCLUSIVE_STORAGE,
   ])
 
-DISK_LD_DEFAULTS = {
-  LD_DRBD8: {
+DISK_DT_DEFAULTS = {
+  DT_DRBD8: {
     LDP_RESYNC_RATE: CLASSIC_DRBD_SYNC_SPEED,
     LDP_BARRIERS: _autoconf.DRBD_BARRIERS,
     LDP_NO_META_FLUSH: _autoconf.DRBD_NO_META_FLUSH,
@@ -2225,24 +2209,25 @@ DISK_LD_DEFAULTS = {
     LDP_MAX_RATE: CLASSIC_DRBD_SYNC_SPEED, # KiB/s
     LDP_MIN_RATE: 4 * 1024, # KiB/s
     },
-  LD_LV: {
+  DT_PLAIN: {
     LDP_STRIPES: _autoconf.LVM_STRIPECOUNT
     },
-  LD_FILE: {},
-  LD_BLOCKDEV: {},
-  LD_RBD: {
+  DT_FILE: {},
+  DT_SHARED_FILE: {},
+  DT_BLOCK: {},
+  DT_RBD: {
     LDP_POOL: "rbd"
     },
-  LD_EXT: {},
+  DT_EXT: {},
   }
 
 # readability shortcuts
-_LV_DEFAULTS = DISK_LD_DEFAULTS[LD_LV]
-_DRBD_DEFAULTS = DISK_LD_DEFAULTS[LD_DRBD8]
+_LV_DEFAULTS = DISK_DT_DEFAULTS[DT_PLAIN]
+_DRBD_DEFAULTS = DISK_DT_DEFAULTS[DT_DRBD8]
 
 DISK_DT_DEFAULTS = {
   DT_PLAIN: {
-    LV_STRIPES: DISK_LD_DEFAULTS[LD_LV][LDP_STRIPES],
+    LV_STRIPES: DISK_DT_DEFAULTS[DT_PLAIN][LDP_STRIPES],
     },
   DT_DRBD8: {
     DRBD_RESYNC_RATE: _DRBD_DEFAULTS[LDP_RESYNC_RATE],
@@ -2266,7 +2251,7 @@ DISK_DT_DEFAULTS = {
   DT_SHARED_FILE: {},
   DT_BLOCK: {},
   DT_RBD: {
-    RBD_POOL: DISK_LD_DEFAULTS[LD_RBD][LDP_POOL]
+    RBD_POOL: DISK_DT_DEFAULTS[DT_RBD][LDP_POOL]
     },
   DT_EXT: {},
   }

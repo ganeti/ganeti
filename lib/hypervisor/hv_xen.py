@@ -295,7 +295,7 @@ def _GetConfigFileDiskData(block_devices, blockdev_prefix,
     else:
       mode = "r"
 
-    if cfdev.dev_type == constants.LD_FILE:
+    if cfdev.dev_type in [constants.DT_FILE, constants.DT_SHARED_FILE]:
       driver = _FILE_DRIVER_MAP[cfdev.physical_id[0]]
     else:
       driver = "phy"

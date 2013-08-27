@@ -1705,7 +1705,8 @@ class LUInstanceMove(LogicalUnit):
     bep = self.cfg.GetClusterInfo().FillBE(self.instance)
 
     for idx, dsk in enumerate(self.instance.disks):
-      if dsk.dev_type not in (constants.LD_LV, constants.LD_FILE):
+      if dsk.dev_type not in (constants.DT_PLAIN, constants.DT_FILE,
+                              constants.DT_SHARED_FILE):
         raise errors.OpPrereqError("Instance disk %d has a complex layout,"
                                    " cannot copy" % idx, errors.ECODE_STATE)
 

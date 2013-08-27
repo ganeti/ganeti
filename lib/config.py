@@ -891,7 +891,7 @@ class ConfigWriter:
 
     if disk.logical_id is None and disk.physical_id is not None:
       return
-    if disk.dev_type == constants.LD_DRBD8:
+    if disk.dev_type == constants.DT_DRBD8:
       pnode, snode, port, pminor, sminor, secret = disk.logical_id
       if node_uuid not in (pnode, snode):
         raise errors.ConfigurationError("DRBD device not knowing node %s" %
@@ -981,7 +981,7 @@ class ConfigWriter:
     """
     def _AppendUsedMinors(get_node_name_fn, instance, disk, used):
       duplicates = []
-      if disk.dev_type == constants.LD_DRBD8 and len(disk.logical_id) >= 5:
+      if disk.dev_type == constants.DT_DRBD8 and len(disk.logical_id) >= 5:
         node_a, node_b, _, minor_a, minor_b = disk.logical_id[:5]
         for node_uuid, minor in ((node_a, minor_a), (node_b, minor_b)):
           assert node_uuid in used, \
@@ -1570,7 +1570,7 @@ class ConfigWriter:
     inst.name = new_name
 
     for (idx, disk) in enumerate(inst.disks):
-      if disk.dev_type == constants.LD_FILE:
+      if disk.dev_type in [constants.DT_FILE, constants.DT_SHARED_FILE]:
         # rename the file paths in logical and physical id
         file_storage_dir = os.path.dirname(os.path.dirname(disk.logical_id[1]))
         disk.logical_id = (disk.logical_id[0],

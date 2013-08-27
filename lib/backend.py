@@ -2845,9 +2845,9 @@ def OSEnvironment(instance, inst_os, debug=0):
     if constants.HV_DISK_TYPE in instance.hvparams:
       result["DISK_%d_FRONTEND_TYPE" % idx] = \
         instance.hvparams[constants.HV_DISK_TYPE]
-    if disk.dev_type in constants.LDS_BLOCK:
+    if disk.dev_type in constants.DTS_BLOCK:
       result["DISK_%d_BACKEND_TYPE" % idx] = "block"
-    elif disk.dev_type == constants.LD_FILE:
+    elif disk.dev_type in [constants.DT_FILE, constants.DT_SHARED_FILE]:
       result["DISK_%d_BACKEND_TYPE" % idx] = \
         "file:%s" % disk.physical_id[0]
 
@@ -2969,12 +2969,12 @@ def BlockdevSnapshot(disk):
   @return: snapshot disk ID as (vg, lv)
 
   """
-  if disk.dev_type == constants.LD_DRBD8:
+  if disk.dev_type == constants.DT_DRBD8:
     if not disk.children:
       _Fail("DRBD device '%s' without backing storage cannot be snapshotted",
             disk.unique_id)
     return BlockdevSnapshot(disk.children[0])
-  elif disk.dev_type == constants.LD_LV:
+  elif disk.dev_type == constants.DT_PLAIN:
     r_dev = _RecursiveFindBD(disk)
     if r_dev is not None:
       # FIXME: choose a saner value for the snapshot size

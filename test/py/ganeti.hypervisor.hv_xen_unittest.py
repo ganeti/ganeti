@@ -269,7 +269,7 @@ class TestGetConfigFileDiskData(unittest.TestCase):
 
   def testManyDisks(self):
     for offset in [0, 1, 10]:
-      disks = [(objects.Disk(dev_type=constants.LD_LV), "/tmp/disk/%s" % idx)
+      disks = [(objects.Disk(dev_type=constants.DT_PLAIN), "/tmp/disk/%s" % idx)
                for idx in range(len(hv_xen._DISK_LETTERS) + offset)]
 
       if offset == 0:
@@ -288,9 +288,9 @@ class TestGetConfigFileDiskData(unittest.TestCase):
 
   def testTwoLvDisksWithMode(self):
     disks = [
-      (objects.Disk(dev_type=constants.LD_LV, mode=constants.DISK_RDWR),
+      (objects.Disk(dev_type=constants.DT_PLAIN, mode=constants.DISK_RDWR),
        "/tmp/diskFirst"),
-      (objects.Disk(dev_type=constants.LD_LV, mode=constants.DISK_RDONLY),
+      (objects.Disk(dev_type=constants.DT_PLAIN, mode=constants.DISK_RDONLY),
        "/tmp/diskLast"),
       ]
 
@@ -302,16 +302,16 @@ class TestGetConfigFileDiskData(unittest.TestCase):
 
   def testFileDisks(self):
     disks = [
-      (objects.Disk(dev_type=constants.LD_FILE, mode=constants.DISK_RDWR,
+      (objects.Disk(dev_type=constants.DT_FILE, mode=constants.DISK_RDWR,
                     physical_id=[constants.FD_LOOP]),
        "/tmp/diskFirst"),
-      (objects.Disk(dev_type=constants.LD_FILE, mode=constants.DISK_RDONLY,
+      (objects.Disk(dev_type=constants.DT_FILE, mode=constants.DISK_RDONLY,
                     physical_id=[constants.FD_BLKTAP]),
        "/tmp/diskTwo"),
-      (objects.Disk(dev_type=constants.LD_FILE, mode=constants.DISK_RDWR,
+      (objects.Disk(dev_type=constants.DT_FILE, mode=constants.DISK_RDWR,
                     physical_id=[constants.FD_LOOP]),
        "/tmp/diskThree"),
-      (objects.Disk(dev_type=constants.LD_FILE, mode=constants.DISK_RDWR,
+      (objects.Disk(dev_type=constants.DT_FILE, mode=constants.DISK_RDWR,
                     physical_id=[constants.FD_BLKTAP]),
        "/tmp/diskLast"),
       ]
@@ -326,7 +326,7 @@ class TestGetConfigFileDiskData(unittest.TestCase):
 
   def testInvalidFileDisk(self):
     disks = [
-      (objects.Disk(dev_type=constants.LD_FILE, mode=constants.DISK_RDWR,
+      (objects.Disk(dev_type=constants.DT_FILE, mode=constants.DISK_RDWR,
                     physical_id=["#unknown#"]),
        "/tmp/diskinvalid"),
       ]
@@ -678,9 +678,9 @@ class _TestXenHypervisor(object):
       hvp[constants.HV_VNC_PASSWORD_FILE] = self.vncpw_path
 
     disks = [
-      (objects.Disk(dev_type=constants.LD_LV, mode=constants.DISK_RDWR),
+      (objects.Disk(dev_type=constants.DT_PLAIN, mode=constants.DISK_RDWR),
        utils.PathJoin(self.tmpdir, "disk0")),
-      (objects.Disk(dev_type=constants.LD_LV, mode=constants.DISK_RDONLY),
+      (objects.Disk(dev_type=constants.DT_PLAIN, mode=constants.DISK_RDONLY),
        utils.PathJoin(self.tmpdir, "disk1")),
       ]
 

@@ -95,7 +95,7 @@ def GetInstanceInfo(instance):
   drbd_min = {}
   for (count, diskinfo) in enumerate(info["Disks"]):
     (dtype, _) = diskinfo["disk/%s" % count].split(",", 1)
-    if dtype == constants.LD_DRBD8:
+    if dtype == constants.DT_DRBD8:
       for child in diskinfo["child devices"]:
         vols.append(child["logical_id"])
       for key in ["nodeA", "nodeB"]:
@@ -106,7 +106,7 @@ def GetInstanceInfo(instance):
         minor = int(m.group(2))
         minorlist = drbd_min.setdefault(node, [])
         minorlist.append(minor)
-    elif dtype == constants.LD_LV:
+    elif dtype == constants.DT_PLAIN:
       vols.append(diskinfo["logical_id"])
 
   assert nodes

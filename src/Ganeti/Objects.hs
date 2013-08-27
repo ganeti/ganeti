@@ -41,7 +41,6 @@ module Ganeti.Objects
   , FileDriver(..)
   , BlockDriver(..)
   , DiskMode(..)
-  , DiskType(..)
   , DiskLogicalId(..)
   , Disk(..)
   , includesLogicalId
@@ -303,16 +302,6 @@ $(declareSADT "DiskMode"
   ])
 $(makeJSONInstance ''DiskMode)
 
-$(declareSADT "DiskType"
-  [ ("LD_LV",       'C.ldLv)
-  , ("LD_DRBD8",    'C.ldDrbd8)
-  , ("LD_FILE",     'C.ldFile)
-  , ("LD_BLOCKDEV", 'C.ldBlockdev)
-  , ("LD_RADOS",    'C.ldRbd)
-  , ("LD_EXT",      'C.ldExt)
-  ])
-$(makeJSONInstance ''DiskType)
-
 -- | The persistent block driver type. Currently only one type is allowed.
 $(declareSADT "BlockDriver"
   [ ("BlockDrvManual", 'C.blockdevDriverManual)
@@ -332,19 +321,21 @@ data DiskLogicalId
   | LIDDrbd8 String String Int Int Int String
   -- ^ NodeA, NodeB, Port, MinorA, MinorB, Secret
   | LIDFile FileDriver String -- ^ Driver, path
+  | LIDSharedFile FileDriver String -- ^ Driver, path
   | LIDBlockDev BlockDriver String -- ^ Driver, path (must be under /dev)
   | LIDRados String String -- ^ Unused, path
   | LIDExt String String -- ^ ExtProvider, unique name
     deriving (Show, Eq)
 
 -- | Mapping from a logical id to a disk type.
-lidDiskType :: DiskLogicalId -> DiskType
-lidDiskType (LIDPlain {}) = LD_LV
-lidDiskType (LIDDrbd8 {}) = LD_DRBD8
-lidDiskType (LIDFile  {}) = LD_FILE
-lidDiskType (LIDBlockDev {}) = LD_BLOCKDEV
-lidDiskType (LIDRados {}) = LD_RADOS
-lidDiskType (LIDExt {}) = LD_EXT
+lidDiskType :: DiskLogicalId -> DiskTemplate
+lidDiskType (LIDPlain {}) = DTPlain
+lidDiskType (LIDDrbd8 {}) = DTDrbd8
+lidDiskType (LIDFile  {}) = DTFile
+lidDiskType (LIDSharedFile  {}) = DTSharedFile
+lidDiskType (LIDBlockDev {}) = DTBlock
+lidDiskType (LIDRados {}) = DTRbd
+lidDiskType (LIDExt {}) = DTExt
 
 -- | Builds the extra disk_type field for a given logical id.
 lidEncodeType :: DiskLogicalId -> [(String, JSValue)]
@@ -358,6 +349,8 @@ encodeDLId (LIDDrbd8 nodeA nodeB port minorA minorB key) =
           , showJSON minorA, showJSON minorB, showJSON key ]
 encodeDLId (LIDRados pool name) = JSArray [showJSON pool, showJSON name]
 encodeDLId (LIDFile driver name) = JSArray [showJSON driver, showJSON name]
+encodeDLId (LIDSharedFile driver name) =
+  JSArray [showJSON driver, showJSON name]
 encodeDLId (LIDBlockDev driver name) = JSArray [showJSON driver, showJSON name]
 encodeDLId (LIDExt extprovider name) =
   JSArray [showJSON extprovider, showJSON name]
@@ -373,7 +366,7 @@ decodeDLId :: [(String, JSValue)] -> JSValue -> J.Result DiskLogicalId
 decodeDLId obj lid = do
   dtype <- fromObj obj devType
   case dtype of
-    LD_DRBD8 ->
+    DTDrbd8 ->
       case lid of
         JSArray [nA, nB, p, mA, mB, k] -> do
           nA' <- readJSON nA
@@ -384,41 +377,50 @@ decodeDLId obj lid = do
           k'  <- readJSON k
           return $ LIDDrbd8 nA' nB' p' mA' mB' k'
         _ -> fail "Can't read logical_id for DRBD8 type"
-    LD_LV ->
+    DTPlain ->
       case lid of
         JSArray [vg, lv] -> do
           vg' <- readJSON vg
           lv' <- readJSON lv
           return $ LIDPlain vg' lv'
         _ -> fail "Can't read logical_id for plain type"
-    LD_FILE ->
+    DTFile ->
       case lid of
         JSArray [driver, path] -> do
           driver' <- readJSON driver
           path'   <- readJSON path
           return $ LIDFile driver' path'
         _ -> fail "Can't read logical_id for file type"
-    LD_BLOCKDEV ->
+    DTSharedFile ->
+      case lid of
+        JSArray [driver, path] -> do
+          driver' <- readJSON driver
+          path'   <- readJSON path
+          return $ LIDSharedFile driver' path'
+        _ -> fail "Can't read logical_id for shared file type"
+    DTBlock ->
       case lid of
         JSArray [driver, path] -> do
           driver' <- readJSON driver
           path'   <- readJSON path
           return $ LIDBlockDev driver' path'
         _ -> fail "Can't read logical_id for blockdev type"
-    LD_RADOS ->
+    DTRbd ->
       case lid of
         JSArray [driver, path] -> do
           driver' <- readJSON driver
           path'   <- readJSON path
           return $ LIDRados driver' path'
         _ -> fail "Can't read logical_id for rdb type"
-    LD_EXT ->
+    DTExt ->
       case lid of
         JSArray [extprovider, name] -> do
           extprovider' <- readJSON extprovider
           name'   <- readJSON name
           return $ LIDExt extprovider' name'
         _ -> fail "Can't read logical_id for extstorage type"
+    DTDiskless ->
+      fail "Retrieved 'diskless' disk."
 
 -- | Disk data structure.
 --

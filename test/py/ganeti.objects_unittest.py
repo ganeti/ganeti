@@ -298,9 +298,9 @@ class TestInstance(unittest.TestCase):
     inst = objects.Instance(name="fakeinstplain.example.com",
       primary_node="node3.example.com",
       disks=[
-        objects.Disk(dev_type=constants.LD_LV, size=128,
+        objects.Disk(dev_type=constants.DT_PLAIN, size=128,
                      logical_id=("myxenvg", "disk25494")),
-        objects.Disk(dev_type=constants.LD_LV, size=512,
+        objects.Disk(dev_type=constants.DT_PLAIN, size=512,
                      logical_id=("myxenvg", "disk29071")),
         ])
 
@@ -315,13 +315,13 @@ class TestInstance(unittest.TestCase):
     inst = objects.Instance(name="fakeinstdrbd.example.com",
       primary_node="node10.example.com",
       disks=[
-        objects.Disk(dev_type=constants.LD_DRBD8, size=786432,
+        objects.Disk(dev_type=constants.DT_DRBD8, size=786432,
           logical_id=("node10.example.com", "node15.example.com",
                       12300, 0, 0, "secret"),
           children=[
-            objects.Disk(dev_type=constants.LD_LV, size=786432,
+            objects.Disk(dev_type=constants.DT_PLAIN, size=786432,
                          logical_id=("myxenvg", "disk0")),
-            objects.Disk(dev_type=constants.LD_LV, size=128,
+            objects.Disk(dev_type=constants.DT_PLAIN, size=128,
                          logical_id=("myxenvg", "meta0"))
           ],
           iv_name="disk/0")
@@ -368,7 +368,7 @@ class TestNode(unittest.TestCase):
 
   def testDiskState(self):
     node = objects.Node(name="node32087.example.com", disk_state={
-      constants.LD_LV: {
+      constants.DT_PLAIN: {
         "lv32352": objects.NodeDiskState(total=128),
         "lv2082": objects.NodeDiskState(total=512),
         },
@@ -381,14 +381,12 @@ class TestNode(unittest.TestCase):
 
     self.assertEqual(node2.name, "node32087.example.com")
     self.assertEqual(frozenset(node2.disk_state), frozenset([
-      constants.LD_LV,
+      constants.DT_PLAIN,
       ]))
-    self.assertEqual(frozenset(node2.disk_state[constants.LD_LV]), frozenset([
-      "lv32352",
-      "lv2082",
-      ]))
-    self.assertEqual(node2.disk_state[constants.LD_LV]["lv2082"].total, 512)
-    self.assertEqual(node2.disk_state[constants.LD_LV]["lv32352"].total, 128)
+    self.assertEqual(frozenset(node2.disk_state[constants.DT_PLAIN]),
+                     frozenset(["lv32352", "lv2082"]))
+    self.assertEqual(node2.disk_state[constants.DT_PLAIN]["lv2082"].total, 512)
+    self.assertEqual(node2.disk_state[constants.DT_PLAIN]["lv32352"].total, 128)
 
   def testFilterEsNdp(self):
     node1 = objects.Node(name="node11673.example.com", ndparams={

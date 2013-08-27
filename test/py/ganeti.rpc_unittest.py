@@ -810,9 +810,9 @@ class TestRpcRunner(unittest.TestCase):
         ],
       disk_template=constants.DT_PLAIN,
       disks=[
-        objects.Disk(dev_type=constants.LD_LV, size=4096,
+        objects.Disk(dev_type=constants.DT_PLAIN, size=4096,
                      logical_id=("vg", "disk6120")),
-        objects.Disk(dev_type=constants.LD_LV, size=1024,
+        objects.Disk(dev_type=constants.DT_PLAIN, size=1024,
                      logical_id=("vg", "disk8508")),
         ])
     inst.UpgradeConfig()
@@ -882,12 +882,12 @@ class TestRpcRunner(unittest.TestCase):
       constants.HV_BOOT_ORDER: "xyz",
       })
     self.assertEqual(result["disks"], [{
-      "dev_type": constants.LD_LV,
+      "dev_type": constants.DT_PLAIN,
       "size": 4096,
       "logical_id": ("vg", "disk6120"),
       "params": constants.DISK_DT_DEFAULTS[inst.disk_template],
       }, {
-      "dev_type": constants.LD_LV,
+      "dev_type": constants.DT_PLAIN,
       "size": 1024,
       "logical_id": ("vg", "disk8508"),
       "params": constants.DISK_DT_DEFAULTS[inst.disk_template],

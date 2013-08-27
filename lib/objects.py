@@ -418,7 +418,7 @@ class ConfigData(ConfigObject):
   def HasAnyDiskOfType(self, dev_type):
     """Check if in there is at disk of the given type in the configuration.
 
-    @type dev_type: L{constants.LDS_BLOCK}
+    @type dev_type: L{constants.DTS_BLOCK}
     @param dev_type: the type to look for
     @rtype: boolean
     @return: boolean indicating if a disk of the given type was found or not
@@ -447,7 +447,7 @@ class ConfigData(ConfigObject):
       # To decide if we set an helper let's check if at least one instance has
       # a DRBD disk. This does not cover all the possible scenarios but it
       # gives a good approximation.
-      if self.HasAnyDiskOfType(constants.LD_DRBD8):
+      if self.HasAnyDiskOfType(constants.DT_DRBD8):
         self.cluster.drbd_usermode_helper = constants.DEFAULT_DRBD_HELPER
     if self.networks is None:
       self.networks = {}
@@ -511,15 +511,15 @@ class Disk(ConfigObject):
 
   def CreateOnSecondary(self):
     """Test if this device needs to be created on a secondary node."""
-    return self.dev_type in (constants.LD_DRBD8, constants.LD_LV)
+    return self.dev_type in (constants.DT_DRBD8, constants.DT_PLAIN)
 
   def AssembleOnSecondary(self):
     """Test if this device needs to be assembled on a secondary node."""
-    return self.dev_type in (constants.LD_DRBD8, constants.LD_LV)
+    return self.dev_type in (constants.DT_DRBD8, constants.DT_PLAIN)
 
   def OpenOnSecondary(self):
     """Test if this device needs to be opened on a secondary node."""
-    return self.dev_type in (constants.LD_LV,)
+    return self.dev_type in (constants.DT_PLAIN,)
 
   def StaticDevPath(self):
     """Return the device path if this device type has a static one.
@@ -532,11 +532,11 @@ class Disk(ConfigObject):
         should check that it is a valid path.
 
     """
-    if self.dev_type == constants.LD_LV:
+    if self.dev_type == constants.DT_PLAIN:
       return "/dev/%s/%s" % (self.logical_id[0], self.logical_id[1])
-    elif self.dev_type == constants.LD_BLOCKDEV:
+    elif self.dev_type == constants.DT_BLOCK:
       return self.logical_id[1]
-    elif self.dev_type == constants.LD_RBD:
+    elif self.dev_type == constants.DT_RBD:
       return "/dev/%s/%s" % (self.logical_id[0], self.logical_id[1])
     return None
 
@@ -552,14 +552,14 @@ class Disk(ConfigObject):
     -1.
 
     """
-    if self.dev_type == constants.LD_DRBD8:
+    if self.dev_type == constants.DT_DRBD8:
       return 0
     return -1
 
   def IsBasedOnDiskType(self, dev_type):
     """Check if the disk or its children are based on the given type.
 
-    @type dev_type: L{constants.LDS_BLOCK}
+    @type dev_type: L{constants.DTS_BLOCK}
     @param dev_type: the type to look for
     @rtype: boolean
     @return: boolean indicating if a device of the given type was found or not
@@ -580,9 +580,9 @@ class Disk(ConfigObject):
     devices needs to (or can) be assembled.
 
     """
-    if self.dev_type in [constants.LD_LV, constants.LD_FILE,
-                         constants.LD_BLOCKDEV, constants.LD_RBD,
-                         constants.LD_EXT]:
+    if self.dev_type in [constants.DT_PLAIN, constants.DT_FILE,
+                         constants.DT_BLOCK, constants.DT_RBD,
+                         constants.DT_EXT, constants.DT_SHARED_FILE]:
       result = [node_uuid]
     elif self.dev_type in constants.LDS_DRBD:
       result = [self.logical_id[0], self.logical_id[1]]
@@ -638,9 +638,9 @@ class Disk(ConfigObject):
     @return: a dictionary of volume-groups and the required size
 
     """
-    if self.dev_type == constants.LD_LV:
+    if self.dev_type == constants.DT_PLAIN:
       return {self.logical_id[0]: amount}
-    elif self.dev_type == constants.LD_DRBD8:
+    elif self.dev_type == constants.DT_DRBD8:
       if self.children:
         return self.children[0].ComputeGrowth(amount)
       else:
@@ -657,10 +657,11 @@ class Disk(ConfigObject):
     actual algorithms from bdev.
 
     """
-    if self.dev_type in (constants.LD_LV, constants.LD_FILE,
-                         constants.LD_RBD, constants.LD_EXT):
+    if self.dev_type in (constants.DT_PLAIN, constants.DT_FILE,
+                         constants.DT_RBD, constants.DT_EXT,
+                         constants.DT_SHARED_FILE):
       self.size += amount
-    elif self.dev_type == constants.LD_DRBD8:
+    elif self.dev_type == constants.DT_DRBD8:
       if self.children:
         self.children[0].RecordGrow(amount)
       self.size += amount
@@ -672,7 +673,7 @@ class Disk(ConfigObject):
     """Apply changes to size, spindles and mode.
 
     """
-    if self.dev_type == constants.LD_DRBD8:
+    if self.dev_type == constants.DT_DRBD8:
       if self.children:
         self.children[0].Update(size=size, mode=mode)
     else:
@@ -775,7 +776,7 @@ class Disk(ConfigObject):
     """Custom str() formatter for disks.
 
     """
-    if self.dev_type == constants.LD_LV:
+    if self.dev_type == constants.DT_PLAIN:
       val = "<LogicalVolume(/dev/%s/%s" % self.logical_id
     elif self.dev_type in constants.LDS_DRBD:
       node_a, node_b, port, minor_a, minor_b = self.logical_id[:5]
@@ -851,7 +852,7 @@ class Disk(ConfigObject):
     result = list()
     dt_params = disk_params[disk_template]
     if disk_template == constants.DT_DRBD8:
-      result.append(FillDict(constants.DISK_LD_DEFAULTS[constants.LD_DRBD8], {
+      result.append(FillDict(constants.DISK_DT_DEFAULTS[constants.DT_DRBD8], {
         constants.LDP_RESYNC_RATE: dt_params[constants.DRBD_RESYNC_RATE],
         constants.LDP_BARRIERS: dt_params[constants.DRBD_DISK_BARRIERS],
         constants.LDP_NO_META_FLUSH: dt_params[constants.DRBD_META_BARRIERS],
@@ -868,33 +869,33 @@ class Disk(ConfigObject):
         }))
 
       # data LV
-      result.append(FillDict(constants.DISK_LD_DEFAULTS[constants.LD_LV], {
+      result.append(FillDict(constants.DISK_DT_DEFAULTS[constants.DT_PLAIN], {
         constants.LDP_STRIPES: dt_params[constants.DRBD_DATA_STRIPES],
         }))
 
       # metadata LV
-      result.append(FillDict(constants.DISK_LD_DEFAULTS[constants.LD_LV], {
+      result.append(FillDict(constants.DISK_DT_DEFAULTS[constants.DT_PLAIN], {
         constants.LDP_STRIPES: dt_params[constants.DRBD_META_STRIPES],
         }))
 
     elif disk_template in (constants.DT_FILE, constants.DT_SHARED_FILE):
-      result.append(constants.DISK_LD_DEFAULTS[constants.LD_FILE])
+      result.append(constants.DISK_DT_DEFAULTS[disk_template])
 
     elif disk_template == constants.DT_PLAIN:
-      result.append(FillDict(constants.DISK_LD_DEFAULTS[constants.LD_LV], {
+      result.append(FillDict(constants.DISK_DT_DEFAULTS[constants.DT_PLAIN], {
         constants.LDP_STRIPES: dt_params[constants.LV_STRIPES],
         }))
 
     elif disk_template == constants.DT_BLOCK:
-      result.append(constants.DISK_LD_DEFAULTS[constants.LD_BLOCKDEV])
+      result.append(constants.DISK_DT_DEFAULTS[constants.DT_BLOCK])
 
     elif disk_template == constants.DT_RBD:
-      result.append(FillDict(constants.DISK_LD_DEFAULTS[constants.LD_RBD], {
+      result.append(FillDict(constants.DISK_DT_DEFAULTS[constants.DT_RBD], {
         constants.LDP_POOL: dt_params[constants.RBD_POOL],
         }))
 
     elif disk_template == constants.DT_EXT:
-      result.append(constants.DISK_LD_DEFAULTS[constants.LD_EXT])
+      result.append(constants.DISK_DT_DEFAULTS[constants.DT_EXT])
 
     return result
 
@@ -1140,7 +1141,7 @@ class Instance(TaggableObject):
       devs = self.disks
 
     for dev in devs:
-      if dev.dev_type == constants.LD_LV:
+      if dev.dev_type == constants.DT_PLAIN:
         lvmap[node_uuid].append(dev.logical_id[0] + "/" + dev.logical_id[1])
 
       elif dev.dev_type in constants.LDS_DRBD:

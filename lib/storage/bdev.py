@@ -1718,12 +1718,13 @@ def _VolumeLogName(kind, es_name, volume):
 
 
 DEV_MAP = {
-  constants.LD_LV: LogicalVolume,
-  constants.LD_DRBD8: drbd.DRBD8Dev,
-  constants.LD_BLOCKDEV: PersistentBlockDevice,
-  constants.LD_RBD: RADOSBlockDevice,
-  constants.LD_EXT: ExtStorageDevice,
-  constants.LD_FILE: FileStorage,
+  constants.DT_PLAIN: LogicalVolume,
+  constants.DT_DRBD8: drbd.DRBD8Dev,
+  constants.DT_BLOCK: PersistentBlockDevice,
+  constants.DT_RBD: RADOSBlockDevice,
+  constants.DT_EXT: ExtStorageDevice,
+  constants.DT_FILE: FileStorage,
+  constants.DT_SHARED_FILE: FileStorage,
   }
 
 
@@ -1736,7 +1737,7 @@ def _VerifyDiskParams(disk):
   """Verifies if all disk parameters are set.
 
   """
-  missing = set(constants.DISK_LD_DEFAULTS[disk.dev_type]) - set(disk.params)
+  missing = set(constants.DISK_DT_DEFAULTS[disk.dev_type]) - set(disk.params)
   if missing:
     raise errors.ProgrammerError("Block device is missing disk parameters: %s" %
                                  missing)

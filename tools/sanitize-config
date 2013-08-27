@@ -199,11 +199,11 @@ def SanitizeDisks(opts, cfg): # pylint: disable=W0613
       for child in disk["children"]:
         helper(child)
 
-    if disk["dev_type"] == constants.LD_DRBD8:
+    if disk["dev_type"] == constants.DT_DRBD8:
       if "physical_id" in disk:
         del disk["physical_id"]
 
-    if disk["dev_type"] == constants.LD_LV and opts.sanitize_lvs:
+    if disk["dev_type"] == constants.DT_PLAIN and opts.sanitize_lvs:
       disk["logical_id"][1] = _Get(disk["logical_id"][1])
       disk["physical_id"][1] = disk["logical_id"][1]
 
@@ -223,7 +223,7 @@ def RandomizeDiskSecrets(disk):
       RandomizeDiskSecrets(child)
 
   # only disk type to contain secrets is the drbd one
-  if disk["dev_type"] == constants.LD_DRBD8:
+  if disk["dev_type"] == constants.DT_DRBD8:
     disk["logical_id"][5] = utils.GenerateSecret()
 
 
@@ -236,7 +236,7 @@ def RenameDiskNodes(disk, node_map):
       RenameDiskNodes(child, node_map)
 
   # only disk type to contain nodes is the drbd one
-  if disk["dev_type"] == constants.LD_DRBD8:
+  if disk["dev_type"] == constants.DT_DRBD8:
     lid = disk["logical_id"]
     lid[0] = node_map[lid[0]]
     lid[1] = node_map[lid[1]]
