@@ -1011,13 +1011,13 @@ myexeclib_SCRIPTS = \
 	$(pkglib_python_scripts) \
 	$(HS_MYEXECLIB_PROGS)
 
-# strip path prefixes off the sbin scripts
-all_myexeclib_scripts = \
-	$(patsubst tools/%,%,$(patsubst daemons/%,%,\
-	$(patsubst src/%,%,$(myexeclib_SCRIPTS))))
-
 nodist_myexeclib_SCRIPTS = \
 	$(nodist_pkglib_python_scripts)
+
+# strip path prefixes off the lib python scripts
+all_myexeclib_scripts = \
+	$(patsubst tools/%,%,$(patsubst daemons/%,%,\
+	$(patsubst src/%,%,$(myexeclib_SCRIPTS) $(nodist_myexeclib_SCRIPTS))))
 
 EXTRA_DIST = \
 	NEWS \
