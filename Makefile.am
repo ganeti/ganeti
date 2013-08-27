@@ -1765,8 +1765,8 @@ $(REPLACE_VARS_SED): $(SHELL_ENV_INIT) Makefile stamp-directories
 	{ echo 's#@''PREFIX@#$(prefix)#g'; \
 	  echo 's#@''SYSCONFDIR@#$(sysconfdir)#g'; \
 	  echo 's#@''LOCALSTATEDIR@#$(localstatedir)#g'; \
-	  echo 's#@''BINDIR@#$(bindir)#g'; \
-	  echo 's#@''SBINDIR@#$(sbindir)#g'; \
+	  echo 's#@''BINDIR@#$(execprefix)/bin#g'; \
+	  echo 's#@''SBINDIR@#$(execprefix)/sbin#g'; \
 	  echo 's#@''LIBDIR@#$(libdir)#g'; \
 	  echo 's#@''GANETI_VERSION@#$(PACKAGE_VERSION)#g'; \
 	  echo 's#@''CUSTOM_XEN_BOOTLOADER@#$(XEN_BOOTLOADER)#g'; \
@@ -1775,7 +1775,7 @@ $(REPLACE_VARS_SED): $(SHELL_ENV_INIT) Makefile stamp-directories
 	  echo 's#@''CUSTOM_IALLOCATOR_SEARCH_PATH@#$(IALLOCATOR_SEARCH_PATH)#g'; \
 	  echo 's#@''CUSTOM_EXPORT_DIR@#$(EXPORT_DIR)#g'; \
 	  echo 's#@''RPL_SSH_INITD_SCRIPT@#$(SSH_INITD_SCRIPT)#g'; \
-	  echo 's#@''PKGLIBDIR@#$(pkglibdir)#g'; \
+	  echo 's#@''PKGLIBDIR@#$(libdir)/ganeti#g'; \
 	  echo 's#@''GNTMASTERUSER@#$(MASTERD_USER)#g'; \
 	  echo 's#@''GNTRAPIUSER@#$(RAPI_USER)#g'; \
 	  echo 's#@''GNTCONFDUSER@#$(CONFD_USER)#g'; \
