@@ -77,6 +77,7 @@
 
 # lib
 /lib/_autoconf.py
+/lib/_constants.py
 /lib/_vcsversion.py
 /lib/_generated_rpc.py
 /lib/opcodes.py
@@ -130,6 +131,7 @@
 /src/hconfd
 /src/hluxid
 /src/hs2py
+/src/hs2py-constants
 /src/ganeti-confd
 /src/ganeti-luxid
 /src/ganeti-mond
@@ -137,6 +139,7 @@
 
 # automatically-built Haskell files
 /src/Ganeti/Curl/Internal.hs
+/src/Ganeti/Hs2Py/ListConstants.hs
 /src/Ganeti/PyConstants.hs
 /src/Ganeti/Version.hs
 /test/hs/Test/Ganeti/TestImports.hs
