@@ -43,8 +43,9 @@ These paths will be changed in the following way.
   to import the correct version of the ganeti package.
 
 - All other files will be installed to the corresponding path under
-  ``${PREFIX}/opt/ganeti-${VERSION}`` instead of under ``${PREFIX}``
-  directly. Symbolic links to these files will be added under ``${PREFIX}/bin``,
+  ``${libdir}/ganeti-${VERSION}`` instead of under ``${PREFIX}``
+  directly, where ${libdir} defaults to ${PREFIX}/lib. Symbolic links
+  to these files will be added under ``${PREFIX}/bin``,
   ``${PREFIX}/sbin``, and so on.
 
 As only each version itself has the authoritative knowledge of which
