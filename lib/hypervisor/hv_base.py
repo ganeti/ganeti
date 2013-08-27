@@ -466,8 +466,8 @@ class BaseHypervisor(object):
     raise NotImplementedError
 
   @staticmethod
-  def GetLinuxNodeInfo():
-    """For Linux systems, return actual OS information.
+  def GetLinuxNodeInfo(meminfo="/proc/meminfo", cpuinfo="/proc/cpuinfo"):
+    """For linux systems, return actual OS information.
 
     This is an abstraction for all non-hypervisor-based classes, where
     the node actually sees all the memory and CPUs via the /proc
@@ -475,7 +475,11 @@ class BaseHypervisor(object):
     xen, where you only see the hardware resources via xen-specific
     tools.
 
-    @return: a dict with the following keys (memory values in MiB):
+    @param meminfo: name of the file containing meminfo
+    @type meminfo: string
+    @param cpuinfo: name of the file containing cpuinfo
+    @type cpuinfo: string
+    @return: a dict with the following keys (values in MiB):
           - memory_total: the total memory size on the node
           - memory_free: the available memory on the node for instances
           - memory_dom0: the memory used by the node itself, if available
@@ -486,7 +490,7 @@ class BaseHypervisor(object):
 
     """
     try:
-      data = utils.ReadFile("/proc/meminfo").splitlines()
+      data = utils.ReadFile(meminfo).splitlines()
     except EnvironmentError, err:
       raise errors.HypervisorError("Failed to list node info: %s" % (err,))
 
@@ -512,7 +516,7 @@ class BaseHypervisor(object):
 
     cpu_total = 0
     try:
-      fh = open("/proc/cpuinfo")
+      fh = open(cpuinfo)
       try:
         cpu_total = len(re.findall(r"(?m)^processor\s*:\s*[0-9]+\s*$",
                                    fh.read()))

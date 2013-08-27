@@ -67,10 +67,10 @@ Python
   for the unit tests (and only used for testing).
 
 
-Version 2.8.0 rc1
+Version 2.8.0 rc2
 -----------------
 
-*(Released Fri, 2 Aug 2013)*
+*(Released Tue, 27 Aug 2013)*
 
 Incompatible/important changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -136,6 +136,8 @@ New features
   It's set to true by default.
 - Instance failover now supports a ``--cleanup`` parameter for fixing previous
   failures.
+- Support 'viridian' parameter in Xen HVM
+- Support DSA SSH keys in bootstrap
 
 New dependencies
 ~~~~~~~~~~~~~~~~
@@ -149,8 +151,23 @@ For Python:
 - The minimum Python version needed to run Ganeti is now 2.6.
 - ``yaml`` library (only for running the QA).
 
-Since 2.8.0 beta1
-~~~~~~~~~~~~~~~~~
+Since 2.8.0 rc1
+~~~~~~~~~~~~~~~
+
+- Support 'viridian' parameter in Xen HVM (Issue 233)
+- Include VCS version in ``gnt-cluster version``
+- Support DSA SSH keys in bootstrap (Issue 338)
+- Fix batch creation of instances
+- Use FQDN to check master node status (Issue 551)
+- Make the DRBD collector more failure-resilient
+
+
+Version 2.8.0 rc1
+-----------------
+
+*(Released Fri, 2 Aug 2013)*
+
+The first release candidate of the 2.8 series. Since 2.8.0 beta1:
 
 - Fix upgrading/downgrading from 2.7
 - Increase maximum RAPI message size
