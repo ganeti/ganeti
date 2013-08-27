@@ -42,7 +42,7 @@ SHELL_ENV_INIT = autotools/shell-env-init
 
 # starting as of Ganeti 2.10, all files are stored in a single directory,
 # with only symbolic links added at other places.
-versiondir = $(prefix)/opt/ganeti-$(VERSION)
+versiondir = $(libdir)/ganeti-$(VERSION)
 
 # Note: these are automake-specific variables, and must be named after
 # the directory + 'dir' suffix
