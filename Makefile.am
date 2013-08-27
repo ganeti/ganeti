@@ -586,6 +586,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/Confd/Utils.hs \
 	src/Ganeti/Config.hs \
 	src/Ganeti/ConfigReader.hs \
+	src/Ganeti/Constants.hs \
 	src/Ganeti/Cpu/LoadParser.hs \
 	src/Ganeti/Cpu/Types.hs \
 	src/Ganeti/Curl/Multi.hs \
@@ -721,7 +722,7 @@ HS_LIBTEST_SRCS = $(HS_LIB_SRCS) $(HS_TEST_SRCS)
 
 HS_BUILT_SRCS = \
 	test/hs/Test/Ganeti/TestImports.hs \
-	src/Ganeti/Constants.hs \
+	src/Ganeti/PyConstants.hs \
 	src/Ganeti/Curl/Internal.hs \
 	src/Ganeti/Version.hs
 HS_BUILT_SRCS_IN = \
@@ -1610,7 +1611,7 @@ src/Ganeti/Version.hs: src/Ganeti/Version.hs.in \
 	VCSVER=`cat $(abs_top_srcdir)/vcs-version`; \
 	sed -e "s/%ver%/$$VCSVER/" < $< > $@
 
-src/Ganeti/Constants.hs: src/Ganeti/Constants.hs.in \
+src/Ganeti/PyConstants.hs: src/Ganeti/PyConstants.hs.in \
 	lib/constants.py lib/_autoconf.py lib/luxi.py lib/errors.py \
 	lib/jstore.py $(RUN_IN_TEMPDIR) \
 	$(CONVERT_CONSTANTS) $(built_base_sources) \
@@ -1736,7 +1737,7 @@ lib/_vcsversion.py: Makefile vcs-version | stamp-directories
 	  echo "VCS_VERSION = '$$VCSVER'"; \
 	} > $@
 
-lib/opcodes.py: Makefile src/hs2py src/Ganeti/Constants.hs \
+lib/opcodes.py: Makefile src/hs2py src/Ganeti/PyConstants.hs \
 		lib/opcodes.py.in_before lib/opcodes.py.in_after \
 		| stamp-directories
 	cat $(abs_top_srcdir)/lib/opcodes.py.in_before > $@
