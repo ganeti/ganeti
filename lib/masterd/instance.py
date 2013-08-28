@@ -1184,7 +1184,7 @@ class ExportInstanceHelper:
                             " result '%s'", idx, src_node, result.payload)
       else:
         disk_id = tuple(result.payload)
-        disk_params = constants.DISK_DT_DEFAULTS[constants.DT_PLAIN].copy()
+        disk_params = constants.DISK_LD_DEFAULTS[constants.DT_PLAIN].copy()
         new_dev = objects.Disk(dev_type=constants.DT_PLAIN, size=disk.size,
                                logical_id=disk_id, physical_id=disk_id,
                                iv_name=disk.iv_name,

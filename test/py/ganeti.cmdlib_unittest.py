@@ -1322,7 +1322,7 @@ class TestGenerateDiskTemplate(unittest.TestCase):
 
       self._SetUpLUWithTemplates([disk_template])
       result = self._TestTrivialDisk(disk_template, disk_info, 2,
-        constants.DT_FILE, file_storage_dir="/tmp",
+        disk_template, file_storage_dir="/tmp",
         file_driver=constants.FD_BLKTAP)
 
       self.assertEqual(map(operator.attrgetter("logical_id"), result), [
@@ -1364,7 +1364,7 @@ class TestGenerateDiskTemplate(unittest.TestCase):
 
   def testDrbd8(self):
     gdt = instance.GenerateDiskTemplate
-    drbd8_defaults = constants.DISK_DT_DEFAULTS[constants.DT_DRBD8]
+    drbd8_defaults = constants.DISK_LD_DEFAULTS[constants.DT_DRBD8]
     drbd8_default_metavg = drbd8_defaults[constants.LDP_DEFAULT_METAVG]
 
     disk_info = [{

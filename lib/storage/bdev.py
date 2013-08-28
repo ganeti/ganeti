@@ -1737,7 +1737,7 @@ def _VerifyDiskParams(disk):
   """Verifies if all disk parameters are set.
 
   """
-  missing = set(constants.DISK_DT_DEFAULTS[disk.dev_type]) - set(disk.params)
+  missing = set(constants.DISK_LD_DEFAULTS[disk.dev_type]) - set(disk.params)
   if missing:
     raise errors.ProgrammerError("Block device is missing disk parameters: %s" %
                                  missing)

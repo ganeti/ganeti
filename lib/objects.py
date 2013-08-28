@@ -852,7 +852,7 @@ class Disk(ConfigObject):
     result = list()
     dt_params = disk_params[disk_template]
     if disk_template == constants.DT_DRBD8:
-      result.append(FillDict(constants.DISK_DT_DEFAULTS[constants.DT_DRBD8], {
+      result.append(FillDict(constants.DISK_LD_DEFAULTS[constants.DT_DRBD8], {
         constants.LDP_RESYNC_RATE: dt_params[constants.DRBD_RESYNC_RATE],
         constants.LDP_BARRIERS: dt_params[constants.DRBD_DISK_BARRIERS],
         constants.LDP_NO_META_FLUSH: dt_params[constants.DRBD_META_BARRIERS],
@@ -869,33 +869,33 @@ class Disk(ConfigObject):
         }))
 
       # data LV
-      result.append(FillDict(constants.DISK_DT_DEFAULTS[constants.DT_PLAIN], {
+      result.append(FillDict(constants.DISK_LD_DEFAULTS[constants.DT_PLAIN], {
         constants.LDP_STRIPES: dt_params[constants.DRBD_DATA_STRIPES],
         }))
 
       # metadata LV
-      result.append(FillDict(constants.DISK_DT_DEFAULTS[constants.DT_PLAIN], {
+      result.append(FillDict(constants.DISK_LD_DEFAULTS[constants.DT_PLAIN], {
         constants.LDP_STRIPES: dt_params[constants.DRBD_META_STRIPES],
         }))
 
     elif disk_template in (constants.DT_FILE, constants.DT_SHARED_FILE):
-      result.append(constants.DISK_DT_DEFAULTS[disk_template])
+      result.append(constants.DISK_LD_DEFAULTS[disk_template])
 
     elif disk_template == constants.DT_PLAIN:
-      result.append(FillDict(constants.DISK_DT_DEFAULTS[constants.DT_PLAIN], {
+      result.append(FillDict(constants.DISK_LD_DEFAULTS[constants.DT_PLAIN], {
         constants.LDP_STRIPES: dt_params[constants.LV_STRIPES],
         }))
 
     elif disk_template == constants.DT_BLOCK:
-      result.append(constants.DISK_DT_DEFAULTS[constants.DT_BLOCK])
+      result.append(constants.DISK_LD_DEFAULTS[constants.DT_BLOCK])
 
     elif disk_template == constants.DT_RBD:
-      result.append(FillDict(constants.DISK_DT_DEFAULTS[constants.DT_RBD], {
+      result.append(FillDict(constants.DISK_LD_DEFAULTS[constants.DT_RBD], {
         constants.LDP_POOL: dt_params[constants.RBD_POOL],
         }))
 
     elif disk_template == constants.DT_EXT:
-      result.append(constants.DISK_DT_DEFAULTS[constants.DT_EXT])
+      result.append(constants.DISK_LD_DEFAULTS[constants.DT_EXT])
 
     return result
 
