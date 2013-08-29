@@ -1801,6 +1801,7 @@ HVC_DEFAULTS = {
     HV_VIF_SCRIPT: "",
     HV_XEN_CMD: XEN_CMD_XM,
     HV_XEN_CPUID: "",
+    HV_SOUNDHW: "",
     },
   HT_XEN_HVM: {
     HV_BOOT_ORDER: "cd",
@@ -1827,6 +1828,7 @@ HVC_DEFAULTS = {
     HV_VIRIDIAN: False,
     HV_XEN_CMD: XEN_CMD_XM,
     HV_XEN_CPUID: "",
+    HV_SOUNDHW: "",
     },
   HT_KVM: {
     HV_KVM_PATH: KVM_PATH,

@@ -974,6 +974,7 @@ class XenPvmHypervisor(XenHypervisor):
     constants.HV_XEN_CMD:
       hv_base.ParamInSet(True, constants.KNOWN_XEN_COMMANDS),
     constants.HV_XEN_CPUID: hv_base.NO_CHECK,
+    constants.HV_SOUNDHW: hv_base.NO_CHECK,
     }
 
   def _GetConfig(self, instance, startup_memory, block_devices):
@@ -1061,6 +1062,9 @@ class XenPvmHypervisor(XenHypervisor):
     if cpuid:
       config.write("cpuid = %s\n" % _QuoteCpuidField(cpuid))
 
+    if hvp[constants.HV_SOUNDHW]:
+      config.write("soundhw = '%s'\n" % hvp[constants.HV_SOUNDHW])
+
     return config.getvalue()
 
 
@@ -1112,6 +1116,7 @@ class XenHvmHypervisor(XenHypervisor):
     constants.HV_XEN_CMD:
       hv_base.ParamInSet(True, constants.KNOWN_XEN_COMMANDS),
     constants.HV_XEN_CPUID: hv_base.NO_CHECK,
+    constants.HV_SOUNDHW: hv_base.NO_CHECK,
     }
 
   def _GetConfig(self, instance, startup_memory, block_devices):
@@ -1244,5 +1249,8 @@ class XenHvmHypervisor(XenHypervisor):
     cpuid = hvp[constants.HV_XEN_CPUID]
     if cpuid:
       config.write("cpuid = %s\n" % _QuoteCpuidField(cpuid))
+
+    if hvp[constants.HV_SOUNDHW]:
+      config.write("soundhw = '%s'\n" % hvp[constants.HV_SOUNDHW])
 
     return config.getvalue()

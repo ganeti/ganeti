@@ -723,7 +723,7 @@ cpu\_sockets
     Number of emulated CPU sockets.
 
 soundhw
-    Valid for the KVM hypervisor.
+    Valid for the KVM and XEN hypervisors.
 
     Comma separated list of emulated sounds cards, or "all" to enable
     all the available ones.
