@@ -52,7 +52,7 @@ instance PyValue String where
   showValue = show
 
 instance PyValue a => PyValue [a] where
-  showValue xs = show (map showValue xs)
+  showValue xs = "[" ++ intercalate "," (map showValue xs) ++ "]"
 
 instance (PyValue k, PyValue a) => PyValue (Map k a) where
   showValue mp =
