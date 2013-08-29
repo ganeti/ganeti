@@ -80,8 +80,9 @@ class TestConstants(unittest.TestCase):
     self.failUnless(constants.OP_PRIO_HIGH > constants.OP_PRIO_HIGHEST)
 
   def testDiskDefaults(self):
-    self.failUnless(set(constants.DISK_LD_DEFAULTS.keys()) ==
-                    constants.DISK_TEMPLATES)
+    self.failUnless(
+        set(constants.DISK_LD_DEFAULTS.keys()) ==
+        set(constants.DISK_TEMPLATES) - set([constants.DT_DISKLESS]))
     self.failUnless(set(constants.DISK_DT_DEFAULTS.keys()) ==
                     constants.DISK_TEMPLATES)
 
