@@ -589,6 +589,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/Config.hs \
 	src/Ganeti/ConfigReader.hs \
 	src/Ganeti/Constants.hs \
+	src/Ganeti/ConstantUtils.hs \
 	src/Ganeti/Cpu/LoadParser.hs \
 	src/Ganeti/Cpu/Types.hs \
 	src/Ganeti/Curl/Multi.hs \
