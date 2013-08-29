@@ -36,14 +36,18 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 module Ganeti.HsConstants where
 
--- | Admin states
+import Ganeti.ConstantUtils
+
+-- * Admin states
+
 adminstDown :: String
 adminstDown = "down"
 
--- | Admin states
 adminstOffline :: String
 adminstOffline = "offline"
 
--- | Admin states
 adminstUp :: String
 adminstUp = "up"
+
+adminstAll :: FrozenSet String
+adminstAll = mkSet [adminstDown, adminstOffline, adminstUp]
