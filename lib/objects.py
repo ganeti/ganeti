@@ -830,6 +830,12 @@ class Disk(ConfigObject):
     self.params = {}
     # add here config upgrade for this disk
 
+    # map of legacy device types (mapping differing LD constants to new
+    # DT constants)
+    LEG_DEV_TYPE_MAP = {"lvm": constants.DT_PLAIN, "drbd8": constants.DT_DRBD8}
+    if self.dev_type in LEG_DEV_TYPE_MAP:
+      self.dev_type = LEG_DEV_TYPE_MAP[self.dev_type]
+
   @staticmethod
   def ComputeLDParams(disk_template, disk_params):
     """Computes Logical Disk parameters from Disk Template parameters.

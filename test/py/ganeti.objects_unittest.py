@@ -685,5 +685,36 @@ class TestInstancePolicy(unittest.TestCase):
     self.assertTrue(INVALID_KEY in policy)
 
 
+class TestDisk(unittest.TestCase):
+  def addChild(self, disk):
+    """Adds a child of the same device type as the parent."""
+    disk.children = []
+    child = objects.Disk()
+    child.dev_type = disk.dev_type
+    disk.children.append(child)
+
+  def testUpgradeConfigDevTypeLegacy(self):
+    for old, new in [("drbd8", constants.DT_DRBD8),
+                     ("lvm", constants.DT_PLAIN)]:
+      disk = objects.Disk()
+      disk.dev_type = old
+      self.addChild(disk)
+      disk.UpgradeConfig()
+      self.assertEqual(new, disk.dev_type)
+      self.assertEqual(new, disk.children[0].dev_type)
+
+  def testUpgradeConfigDevTypeLegacyUnchanged(self):
+    dev_types = [constants.DT_FILE, constants.DT_SHARED_FILE,
+                 constants.DT_BLOCK, constants.DT_EXT,
+                 constants.DT_RBD]
+    for dev_type in dev_types:
+      disk = objects.Disk()
+      disk.dev_type = dev_type
+      self.addChild(disk)
+      disk.UpgradeConfig()
+      self.assertEqual(dev_type, disk.dev_type)
+      self.assertEqual(dev_type, disk.children[0].dev_type)
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
