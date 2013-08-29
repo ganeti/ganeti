@@ -4,6 +4,14 @@ This is a transitional module complementary to 'Ganeti.Constants'.  It
 is intended to contain the Haskell constants that are meant to be
 generated in Python.
 
+Do not write any definitions in this file other than constants.  Do
+not even write helper functions.  The definitions in this module are
+automatically stripped to build the Makefile.am target
+'ListConstants.hs'.  If there are helper functions in this module,
+they will also be dragged and it will cause compilation to fail.
+Therefore, all helper functions should go to a separate module and
+imported.
+
 -}
 
 {-
