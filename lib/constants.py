@@ -1786,11 +1786,7 @@ INSTST_ALL = compat.UniqueFrozenset([
 ADMINST_UP = _constants.ADMINST_UP
 ADMINST_DOWN = _constants.ADMINST_DOWN
 ADMINST_OFFLINE = _constants.ADMINST_OFFLINE
-ADMINST_ALL = compat.UniqueFrozenset([
-  ADMINST_UP,
-  ADMINST_DOWN,
-  ADMINST_OFFLINE,
-  ])
+ADMINST_ALL = _constants.ADMINST_ALL
 
 # Node roles
 NR_REGULAR = "R"
