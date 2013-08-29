@@ -596,6 +596,7 @@ pyType (AppT typ1 typ2) =
 
 pyType (ConT name) = return (pyTypeName name)
 pyType ListT = return "ht.TListOf"
+pyType (TupleT 0) = return "ht.TNone"
 pyType (TupleT _) = return "ht.TTupleOf"
 pyType typ = error $ "unhandled case for type " ++ show typ
         
