@@ -433,6 +433,15 @@ VALID_STORAGE_OPERATIONS = {
   ST_LVM_VG: frozenset([SO_FIX_CONSISTENCY]),
   }
 
+# Volume fields
+VF_DEV = "dev"
+VF_INSTANCE = "instance"
+VF_NAME = "name"
+VF_NODE = "node"
+VF_PHYS = "phys"
+VF_SIZE = "size"
+VF_VG = "vg"
+
 # Local disk status
 # Note: Code depends on LDS_OKAY < LDS_UNKNOWN < LDS_FAULTY
 (LDS_OKAY,

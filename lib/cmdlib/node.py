@@ -1312,8 +1312,9 @@ class LUNodeQueryvols(NoHooksLU):
   REQ_BGL = False
 
   def CheckArguments(self):
-    _CheckOutputFields(utils.FieldSet("node", "phys", "vg", "name", "size",
-                                      "instance"),
+    _CheckOutputFields(utils.FieldSet(constants.VF_NODE, constants.VF_PHYS,
+                                      constants.VF_VG, constants.VF_NAME,
+                                      constants.VF_SIZE, constants.VF_INSTANCE),
                        self.op.output_fields)
 
   def ExpandNames(self):
@@ -1351,24 +1352,24 @@ class LUNodeQueryvols(NoHooksLU):
         continue
 
       node_vols = sorted(nresult.payload,
-                         key=operator.itemgetter("dev"))
+                         key=operator.itemgetter(constants.VF_DEV))
 
       for vol in node_vols:
         node_output = []
         for field in self.op.output_fields:
-          if field == "node":
+          if field == constants.VF_NODE:
             val = self.cfg.GetNodeName(node_uuid)
-          elif field == "phys":
-            val = vol["dev"]
-          elif field == "vg":
-            val = vol["vg"]
-          elif field == "name":
-            val = vol["name"]
-          elif field == "size":
-            val = int(float(vol["size"]))
-          elif field == "instance":
-            inst = vol2inst.get((node_uuid, vol["vg"] + "/" + vol["name"]),
-                                None)
+          elif field == constants.VF_PHYS:
+            val = vol[constants.VF_DEV]
+          elif field == constants.VF_VG:
+            val = vol[constants.VF_VG]
+          elif field == constants.VF_NAME:
+            val = vol[constants.VF_NAME]
+          elif field == constants.VF_SIZE:
+            val = int(float(vol[constants.VF_SIZE]))
+          elif field == constants.VF_INSTANCE:
+            inst = vol2inst.get((node_uuid, vol[constants.VF_VG] + "/" +
+                                 vol[constants.VF_NAME]), None)
             if inst is not None:
               val = inst.name
             else:
