@@ -252,8 +252,6 @@ module Ganeti.OpParams
   ) where
 
 import Control.Monad (liftM)
-import Data.Set (Set)
-import qualified Data.Set as Set
 import Text.JSON (JSON, JSValue(..), JSObject (..), readJSON, showJSON,
                   fromJSString, toJSObject)
 import qualified Text.JSON
@@ -265,7 +263,6 @@ import Ganeti.THH
 import Ganeti.JSON
 import Ganeti.Types
 import qualified Ganeti.Query.Language as Qlang
-
 
 -- * Helper functions and types
 
@@ -448,7 +445,6 @@ instance JSON ExportTarget where
   showJSON (ExportTargetRemote l) = showJSON l
   readJSON = readExportTarget
 
-
 -- * Common opcode parameters
 
 pDryRun :: Field
@@ -483,7 +479,6 @@ pReason =
   withDoc "Reason trail field" $
   simpleField C.opcodeReason [t| ReasonTrail |]
 
-
 -- * Parameters
 
 pDebugSimulateErrors :: Field
@@ -499,14 +494,14 @@ pErrorCodes =
 pSkipChecks :: Field
 pSkipChecks = 
   withDoc "Which checks to skip" .
-  defaultField [| Set.empty |] $
-  simpleField "skip_checks" [t| Set VerifyOptionalChecks |]
+  defaultField [| emptyListSet |] $
+  simpleField "skip_checks" [t| ListSet VerifyOptionalChecks |]
 
 pIgnoreErrors :: Field
 pIgnoreErrors =
   withDoc "List of error codes that should be treated as warnings" .
-  defaultField [| Set.empty |] $
-  simpleField "ignore_errors" [t| Set CVErrorCode |]
+  defaultField [| emptyListSet |] $
+  simpleField "ignore_errors" [t| ListSet CVErrorCode |]
 
 pVerbose :: Field
 pVerbose =

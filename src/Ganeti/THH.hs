@@ -578,6 +578,7 @@ pyTypeName name =
                 "()" -> "None"
                 "Map" -> "DictOf"
                 "Set" -> "SetOf"
+                "ListSet" -> "SetOf"
                 "Either" -> "Or"
                 "GenericContainer" -> "DictOf"
                 "JSValue" -> "Any"

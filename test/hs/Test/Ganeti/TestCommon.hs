@@ -50,6 +50,7 @@ module Test.Ganeti.TestCommon
   , SmallRatio(..)
   , genSetHelper
   , genSet
+  , genListSet
   , genIPv4Address
   , genIPv4Network
   , genIp6Addr
@@ -279,9 +280,14 @@ genSetHelper candidates size = do
            newelem <- elements candidates `suchThat` (`Set.notMember` set)
            return (Set.insert newelem set)) Set.empty [1..size']
 
--- | Generates a set of arbitrary elements.
+-- | Generates a 'Set' of arbitrary elements.
 genSet :: (Ord a, Bounded a, Enum a) => Maybe Int -> Gen (Set.Set a)
 genSet = genSetHelper [minBound..maxBound]
+
+-- | Generates a 'Set' of arbitrary elements wrapped in a 'ListSet'
+genListSet :: (Ord a, Bounded a, Enum a) => Maybe Int
+              -> Gen (BasicTypes.ListSet a)
+genListSet is = BasicTypes.ListSet <$> genSet is
 
 -- | Generate an arbitrary IPv4 address in textual form.
 genIPv4 :: Gen String

@@ -41,6 +41,8 @@ module Ganeti.BasicTypes
   , goodMatchPriority
   , prefixMatch
   , compareNameComponent
+  , ListSet(..)
+  , emptyListSet
   ) where
 
 import Control.Applicative
@@ -48,6 +50,10 @@ import Control.Monad
 import Control.Monad.Trans
 import Data.Function
 import Data.List
+import Data.Set (Set)
+import qualified Data.Set as Set (empty)
+import Text.JSON (JSON)
+import qualified Text.JSON as JSON (readJSON, showJSON)
 
 -- | Generic monad for our error handling mechanisms.
 data GenericResult a b
@@ -224,3 +230,18 @@ lookupName :: [String]      -- ^ List of keys
            -> LookupResult  -- ^ Result of the lookup
 lookupName l s = foldr (chooseLookupResult s)
                        (LookupResult FailMatch s) l
+
+-- | Wrapper for a Haskell 'Set'
+--
+-- This type wraps a 'Set' and it is used in the Haskell to Python
+-- opcode generation to transform a Haskell 'Set' into a Python 'list'
+-- without duplicate elements.
+newtype ListSet a = ListSet { unListSet :: Set a }
+  deriving (Eq, Show)
+
+instance (Ord a, JSON a) => JSON (ListSet a) where
+  showJSON = JSON.showJSON . unListSet
+  readJSON = liftM ListSet . JSON.readJSON
+
+emptyListSet :: ListSet a
+emptyListSet = ListSet Set.empty

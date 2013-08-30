@@ -35,9 +35,9 @@ module Ganeti.PyValueInstances where
 import Data.List (intercalate)
 import Data.Map (Map)
 import qualified Data.Map as Map
-import Data.Set (Set)
-import qualified Data.Set as Set
+import qualified Data.Set as Set (toList)
 
+import Ganeti.BasicTypes
 import Ganeti.THH
 
 instance PyValue Bool
@@ -59,5 +59,5 @@ instance (PyValue k, PyValue a) => PyValue (Map k a) where
     "{" ++ intercalate ", " (map showPair (Map.assocs mp)) ++ "}"
     where showPair (k, x) = show k ++ ":" ++ show x
 
-instance PyValue a => PyValue (Set a) where
-  showValue s = showValue (Set.toList s)
+instance PyValue a => PyValue (ListSet a) where
+  showValue = showValue . Set.toList . unListSet
