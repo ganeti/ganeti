@@ -2143,7 +2143,7 @@ if INSTALL_SYMLINKS
 	for dir in $(SYMLINK_TARGET_DIRS); do \
 	  @mkdir_p@  $(DESTDIR)$$dir; \
 	done
-	for prog in $(HS_HTOOLS_PROGS); do \
+	for prog in $(HS_BIN_ROLES); do \
 	  $(LN_S) $(bindir)/$$prog $(DESTDIR)$(exec_prefix)/bin/$$prog; \
 	done
 	$(LN_S) $(bindir)/htools $(DESTDIR)$(libdir)/ganeti/iallocators/hail
