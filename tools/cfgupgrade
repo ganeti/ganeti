@@ -307,6 +307,8 @@ def DowngradeCluster(config_data):
   ipolicy = cluster.get("ipolicy", None)
   if ipolicy:
     DowngradeIPolicy(ipolicy, "cluster")
+  if "dsahostkeypub" in cluster:
+    del cluster["dsahostkeypub"]
 
 
 def DowngradeDisk(disk):
