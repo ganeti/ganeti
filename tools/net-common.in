@@ -50,10 +50,10 @@ function setup_bridge {
   if [ "$MODE" = "bridged" ]; then
     fix_mac
     ip link set $INTERFACE up
-    ip link set $INTERFACE mtu $(</sys/class/net/${BRIDGE}/mtu)
+    ip link set $INTERFACE mtu $(</sys/class/net/${LINK}/mtu)
 
     # Connect the interface to the bridge
-    brctl addif $BRIDGE $INTERFACE
+    brctl addif $LINK $INTERFACE
   fi
 
 }
