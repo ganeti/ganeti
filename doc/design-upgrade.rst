@@ -29,6 +29,11 @@ to the other will be made more automatic. It will be possible
 to install new binaries ahead of time, and the actual switch
 between versions will be a single command.
 
+While changing the file layout anyway, we install the python
+code, which is architecture independent, under ``${prefix}/share``,
+in a way that properly separates the Ganeti libraries of the
+various versions. 
+
 Path changes to allow multiple versions installed
 -------------------------------------------------
 
@@ -37,25 +42,117 @@ and so on, as well as to ``${pythondir}/ganeti``.
 
 These paths will be changed in the following way.
 
-- The python package will be installed to ``${pythondir}/ganeti-${VERSION}``.
-  Here ${VERSION} is the full qualified version number, consisting of
-  major, minor, revision, and suffix. All python executables will be changed
-  to import the correct version of the ganeti package.
+- The python package will be installed to
+  ``${PREFIX}/share/ganeti/${VERSION}/ganeti``.
+  Here ${VERSION} is, depending on configure options, either the full qualified
+  version number, consisting of major, minor, revision, and suffix, or it is
+  just a major.minor pair. All python executables will be installed under
+  ``${PREFIX}/share/ganeti/${VERSION}`` so that they see their respective
+  Ganeti library. ``${PREFIX}/share/ganeti/default`` is a symbolic link to
+  ``${sysconfdir}/ganeti/share`` which, in turn, is a symbolic link to
+  ``${PREFIX}/share/ganeti/${VERSION}``. For all python executatables (like
+  ``gnt-cluster``, ``gnt-node``, etc) symbolic links going through
+  ``${PREFIX}/share/ganeti/default`` are added under ``${PREFIX}/sbin``.
 
 - All other files will be installed to the corresponding path under
-  ``${libdir}/ganeti-${VERSION}`` instead of under ``${PREFIX}``
-  directly, where ${libdir} defaults to ${PREFIX}/lib. Symbolic links
-  to these files will be added under ``${PREFIX}/bin``,
-  ``${PREFIX}/sbin``, and so on.
+  ``${libdir}/ganeti/${VERSION}`` instead of under ``${PREFIX}``
+  directly, where ``${libdir}`` defaults to ``${PREFIX}/lib``.
+  ``${libdir}/ganeti/default`` will be a symlink to ``${sysconfdir}/ganeti/lib``
+  which, in turn, is a symlink to ``${libdir}/ganeti/${VERSION}``.
+  Symbolic links to the files installed under ``${libdir}/ganeti/${VERSION}``
+  will be added under ``${PREFIX}/bin``, ``${PREFIX}/sbin``, and so on. These
+  symbolic links will go through ``${libdir}/ganeti/default`` so that the
+  version can easily be changed by updating the symbolic link in
+  ``${sysconfdir}``.
 
-As only each version itself has the authoritative knowledge of which
-files belong to it, each version provides two executables ``install``
-and ``uninstall`` that add and remove the symbolic links,
-respectively. Both executables will be idempotent and only touch
-symbolic links that are outside the directory for their version of
-Ganeti and point into this directory. In particular, an ``uninstall``
-of one version will not interfere with an ``install`` of a different
-version.
+The set of links for ganeti binaries might change between the versions.
+However, as the file structure under ``${libdir}/ganeti/${VERSION}`` reflects
+that of ``/``, two links of differnt versions will never conflict. Similarly,
+the symbolic links for the python executables will never conflict, as they
+always point to a file with the same basename directly under
+``${PREFIX}/share/ganeti/default``. Therefore, each version will make sure that
+enough symbolic links are present in ``${PREFIX}/bin``, ``${PREFIX}/sbin`` and
+so on, even though some might be dangling, if a differnt version of ganeti is
+currently active.
+
+The extra indirection through ``${sysconfdir}`` allows installations that choose
+to have ``${sysconfdir}`` and ``${localstatedir}`` outside ``${PREFIX}`` to
+mount ``${PREFIX}`` read-only. The latter is important for systems that choose
+``/usr`` as ``${PREFIX}`` and are following the Filesystem Hierarchy Standard.
+For example, choosing ``/usr`` as ``${PREFIX}`` and ``/etc`` as ``${sysconfdir}``,
+the layout for version 2.10 will look as follows.
+::
+
+   /
+   |
+   +-- etc
+   |   |
+   |   +-- ganeti 
+   |         |
+   |         +-- lib -> /usr/lib/ganeti/2.10
+   |         |
+   |         +-- share  -> /usr/share/ganeti/2.10
+   +-- usr
+        |
+        +-- bin
+        |   |
+        |   +-- harep -> /usr/lib/ganeti/default/usr/bin/harep
+        |   |
+        |   ...  
+        |
+        +-- sbin
+        |   |
+        |   +-- gnt-cluster -> /usr/share/ganeti/default/gnt-cluster
+        |   |
+        |   ...  
+        |
+        +-- ...
+        |
+        +-- lib
+        |   |
+        |   +-- ganeti
+        |       |
+        |       +-- default -> /etc/ganeti/lib
+        |       |
+        |       +-- 2.10
+        |           |
+        |           +-- usr
+        |               |
+        |               +-- bin
+        |               |    |
+        |               |    +-- htools
+        |               |    |
+        |               |    +-- harep -> htools
+        |               |    |
+        |               |    ...
+        |               ...
+        |
+        +-- share
+             |
+             +-- ganeti
+                 |
+                 +-- default -> /etc/ganeti/share
+                 |
+                 +-- 2.10
+                     |
+                     + -- gnt-cluster
+                     |
+                     + -- gnt-node
+                     |
+                     + -- ...
+                     |
+                     + -- ganeti
+                          |
+                          +-- backend.py
+                          |
+                          +-- ...
+                          |
+                          +-- cmdlib
+                          |   |
+                          |   ...
+                          ...
+
+
 
 gnt-upgrade
 -----------
@@ -110,11 +207,8 @@ When executed, ``gnt-upgrade`` will perform the following actions.
 - If the action is a downgrade to the previous minor version, the
   configuration is downgraded now, using ``cfgupgrade --downgrade``.
 
-- The current version of ganeti is deactivated on all nodes, using the
-  ``uninstall`` executable described earlier.
-
-- The new version of ganeti is activated on all nodes, using the
-  ``install`` executable described earlier.
+- The ``${sysconfdir}/ganeti/lib`` and ``${sysconfdir}/ganeti/share``
+  symbolic links are updated.
 
 - If the action is an upgrade to a higher minor version, the configuration
   is upgraded now, using ``cfgupgrade``.
