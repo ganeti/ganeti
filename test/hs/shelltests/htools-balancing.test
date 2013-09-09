@@ -127,3 +127,13 @@ diff -u $T/simu-rebal-merged.tiered $T/simu-rebal.tiered.original
 ./test/hs/hbal -t$TESTDATA_DIR/n1-failure.data -G group-02
 >>>/Group size 0 nodes, 0 instances/
 >>>= 0
+
+# By default, hbal should assume equal, non-zero utilisation
+./test/hs/hbal -t$TESTDATA_DIR/hbal-dyn.data
+>>>/Solution length=1/
+>>>=0
+
+# ...but the --ignore-dynu option should be honored
+./test/hs/hbal -t$TESTDATA_DIR/hbal-dyn.data --ignore-dynu
+>>>/Cluster is already well balanced/
+>>>=0

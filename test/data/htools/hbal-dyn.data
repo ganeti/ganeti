@@ -1,0 +1,14 @@
+group-01|fake-uuid-01|preferred||
+
+node-01-000|91552|0|91040|3100|3100|32|M|fake-uuid-01|1
+node-01-001|91552|0|91040|3100|3100|32|N|fake-uuid-01|1
+
+inst-00|128|0|1|running|Y|node-01-000||ext||1
+inst-01|128|0|1|running|Y|node-01-000||ext||1
+inst-02|128|0|1|running|Y|node-01-000||ext||1
+inst-03|128|0|1|running|Y|node-01-000||ext||1
+inst-10|256|0|2|running|Y|node-01-001||ext||1
+inst-11|256|0|2|running|Y|node-01-001||ext||1
+
+|128,1,1024,1,1,1|128,1,1024,1,1,1;32768,8,1048576,16,8,12|diskless,file,sharedfile,plain,blockdev,drbd,rbd,ext|4.0|32.0
+group-01|128,1,1024,1,1,1|128,1,1024,1,1,1;32768,8,1048576,16,8,12|diskless,file,sharedfile,plain,blockdev,drbd,rbd,ext|4.0|32.0
