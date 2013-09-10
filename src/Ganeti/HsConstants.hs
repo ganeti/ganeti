@@ -36,6 +36,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 module Ganeti.HsConstants where
 
+import AutoConf
 import Ganeti.ConstantUtils
 
 -- * Admin states
@@ -51,3 +52,53 @@ adminstUp = "up"
 
 adminstAll :: FrozenSet String
 adminstAll = mkSet [adminstDown, adminstOffline, adminstUp]
+
+-- * User separation
+
+daemonsGroup :: String
+daemonsGroup = AutoConf.daemonsGroup
+
+adminGroup :: String
+adminGroup = AutoConf.adminGroup
+
+masterdUser :: String
+masterdUser = AutoConf.masterdUser
+
+masterdGroup :: String
+masterdGroup = AutoConf.masterdGroup
+
+rapiUser :: String
+rapiUser = AutoConf.rapiUser
+
+rapiGroup :: String
+rapiGroup = AutoConf.rapiGroup
+
+confdUser :: String
+confdUser = AutoConf.confdUser
+
+confdGroup :: String
+confdGroup = AutoConf.confdGroup
+
+luxidUser :: String
+luxidUser = AutoConf.luxidUser
+
+luxidGroup :: String
+luxidGroup = AutoConf.luxidGroup
+
+nodedUser :: String
+nodedUser = AutoConf.nodedUser
+
+nodedGroup :: String
+nodedGroup = AutoConf.nodedGroup
+
+mondUser :: String
+mondUser = AutoConf.mondUser
+
+mondGroup :: String
+mondGroup = AutoConf.mondGroup
+
+sshLoginUser :: String
+sshLoginUser = AutoConf.sshLoginUser
+
+sshConsoleUser :: String
+sshConsoleUser = AutoConf.sshConsoleUser
