@@ -102,3 +102,118 @@ sshLoginUser = AutoConf.sshLoginUser
 
 sshConsoleUser :: String
 sshConsoleUser = AutoConf.sshConsoleUser
+
+-- * SSH constants
+
+ssh :: String
+ssh = "ssh"
+
+scp :: String
+scp = "scp"
+
+-- * Daemons
+
+confd :: String
+confd = "ganeti-confd"
+
+masterd :: String
+masterd = "ganeti-masterd"
+
+mond :: String
+mond = "ganeti-mond"
+
+noded :: String
+noded = "ganeti-noded"
+
+luxid :: String
+luxid = "ganeti-luxid"
+
+rapi :: String
+rapi = "ganeti-rapi"
+
+daemons :: FrozenSet String
+daemons =
+  mkSet [confd,
+         luxid,
+         masterd,
+         mond,
+         noded,
+         rapi]
+
+-- * Possible values for NodeGroup.alloc_policy
+
+allocPolicyLastResort :: String
+allocPolicyLastResort = "last_resort"
+
+allocPolicyPreferred :: String
+allocPolicyPreferred = "preferred"
+
+allocPolicyUnallocable :: String
+allocPolicyUnallocable = "unallocable"
+
+validAllocPolicies :: [String]
+validAllocPolicies =
+  [allocPolicyLastResort,
+   allocPolicyPreferred,
+   allocPolicyUnallocable]
+
+-- | Temporary external/shared storage parameters
+blockdevDriverManual :: String
+blockdevDriverManual = "manual"
+
+-- * Auto-repair tag prefixes
+
+autoRepairTagPrefix :: String
+autoRepairTagPrefix = "ganeti:watcher:autorepair:"
+
+autoRepairTagEnabled :: String
+autoRepairTagEnabled = autoRepairTagPrefix
+
+autoRepairTagPending :: String
+autoRepairTagPending = autoRepairTagPrefix ++ "pending:"
+
+autoRepairTagResult :: String
+autoRepairTagResult = autoRepairTagPrefix ++ "result:"
+
+autoRepairTagSuspended :: String
+autoRepairTagSuspended = autoRepairTagPrefix ++ "suspend:"
+
+-- * Auto-repair levels
+
+autoRepairFailover :: String
+autoRepairFailover = "failover"
+
+autoRepairFixStorage :: String
+autoRepairFixStorage = "fix-storage"
+
+autoRepairMigrate :: String
+autoRepairMigrate = "migrate"
+
+autoRepairReinstall :: String
+autoRepairReinstall = "reinstall"
+
+autoRepairAllTypes :: FrozenSet String
+autoRepairAllTypes =
+  mkSet [autoRepairFailover,
+         autoRepairFixStorage,
+         autoRepairMigrate,
+         autoRepairReinstall]
+
+-- * Auto-repair results
+
+autoRepairEnoperm :: String
+autoRepairEnoperm = "enoperm"
+
+autoRepairFailure :: String
+autoRepairFailure = "failure"
+
+autoRepairSuccess :: String
+autoRepairSuccess = "success"
+
+autoRepairAllResults :: FrozenSet String
+autoRepairAllResults =
+  mkSet [autoRepairEnoperm, autoRepairFailure, autoRepairSuccess]
+
+-- | The version identifier for builtin data collectors
+builtinDataCollectorVersion :: String
+builtinDataCollectorVersion = "B"

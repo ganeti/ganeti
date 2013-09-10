@@ -38,7 +38,7 @@ import Ganeti.PyValueInstances ()
 --
 -- See 'PyValue' instance for 'FrozenSet'.
 newtype FrozenSet a = FrozenSet { unFrozenSet :: Set a }
-  deriving (Show)
+  deriving (Eq, Show)
 
 -- | Converts a Haskell 'Set' into a Python 'frozenset'
 --
