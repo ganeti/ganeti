@@ -28,6 +28,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Ganeti.HTools.Loader
   ( mergeData
+  , clearDynU
   , checkData
   , assignIndices
   , setMaster
@@ -287,6 +288,12 @@ mergeData um extags selinsts exinsts time cdata@(ClusterData gl nl il ctags _) =
   in if' (null lkp_unknown)
          (Ok cdata { cdNodes = nl3, cdInstances = il5 })
          (Bad $ "Unknown instance(s): " ++ show(map lrContent lkp_unknown))
+
+-- | In a cluster description, clear dynamic utilisation information.
+clearDynU :: ClusterData -> Result ClusterData
+clearDynU cdata@(ClusterData _ _ il _ _) =
+  let il2 = Container.map (\ inst -> inst {Instance.util = zeroUtil }) il
+  in Ok cdata { cdInstances = il2 }
 
 -- | Checks the cluster data for consistency.
 checkData :: Node.List -> Instance.List
