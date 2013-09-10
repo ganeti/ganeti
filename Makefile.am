@@ -100,6 +100,7 @@ DIRS = \
 	doc/examples \
 	doc/examples/gnt-debug \
 	doc/examples/hooks \
+	doc/users \
 	test/data/htools \
 	test/data/htools/rapi \
 	test/hs/shelltests \
@@ -189,6 +190,7 @@ CLEANFILES = \
 	$(BUILT_EXAMPLES) \
 	doc/examples/bash_completion \
 	doc/examples/bash_completion-debug \
+	$(userspecs) \
 	lib/_generated_rpc.py \
 	$(man_MANS) \
 	$(manhtml) \
@@ -743,12 +745,21 @@ else
 	exit 1;
 endif
 
+doc/users/%: doc/users/%.in Makefile $(REPLACE_VARS_SED)
+	cat $< | sed -f $(REPLACE_VARS_SED) | LC_ALL=C sort | uniq | (grep -v '^root' || true) > $@
+
+userspecs = \
+	doc/users/users \
+	doc/users/groups \
+	doc/users/groupmemberships
+
 # Things to build but not to install (add it to EXTRA_DIST if it should be
 # distributed)
 noinst_DATA = \
 	$(BUILT_EXAMPLES) \
 	doc/examples/bash_completion \
 	doc/examples/bash_completion-debug \
+	$(userspecs) \
 	$(manhtml)
 
 if HAS_SPHINX
@@ -971,6 +982,9 @@ EXTRA_DIST = \
 	doc/examples/gnt-debug/README \
 	doc/examples/gnt-debug/delay0.json \
 	doc/examples/gnt-debug/delay50.json \
+	doc/users/groupmemberships.in \
+	doc/users/groups.in \
+	doc/users/users.in \
 	test/py/lockperf.py \
 	test/py/testutils.py \
 	test/py/mocks.py \

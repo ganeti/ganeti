@@ -62,6 +62,9 @@
 /doc/hs-lint.html
 /doc/manpages-enabled.rst
 /doc/man-*.rst
+/doc/users/groupmemberships
+/doc/users/groups
+/doc/users/users
 
 # doc/examples
 /doc/examples/bash_completion
