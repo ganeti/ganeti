@@ -56,6 +56,7 @@ module Ganeti.HTools.CLI
   , oFullEvacuation
   , oGroup
   , oIAllocSrc
+  , oIgnoreDyn 
   , oIgnoreNonRedundant
   , oInstMoves
   , oJobDelay
@@ -121,6 +122,7 @@ data Options = Options
   , optDiskTemplate :: Maybe DiskTemplate  -- ^ Override for the disk template
   , optSpindleUse  :: Maybe Int      -- ^ Override for the spindle usage
   , optDynuFile    :: Maybe FilePath -- ^ Optional file with dynamic use data
+  , optIgnoreDynu  :: Bool           -- ^ Do not use dynamic use data
   , optEvacMode    :: Bool           -- ^ Enable evacuation mode
   , optExInst      :: [String]       -- ^ Instances to be excluded
   , optExTags      :: Maybe [String] -- ^ Tags to use for exclusion
@@ -174,6 +176,7 @@ defaultOptions  = Options
   , optInstMoves   = True
   , optDiskTemplate = Nothing
   , optSpindleUse  = Nothing
+  , optIgnoreDynu  = False
   , optDynuFile    = Nothing
   , optEvacMode    = False
   , optExInst      = []
@@ -319,6 +322,13 @@ oDynuFile =
    (ReqArg (\ f opts -> Ok opts { optDynuFile = Just f }) "FILE")
    "Import dynamic utilisation data from the given FILE",
    OptComplFile)
+
+oIgnoreDyn :: OptType
+oIgnoreDyn =
+  (Option "" ["ignore-dynu"]
+   (NoArg (\ opts -> Ok opts {optIgnoreDynu = True}))
+   "Ignore any dynamic utilisation information",
+   OptComplNone)
 
 oEvacMode :: OptType
 oEvacMode =
