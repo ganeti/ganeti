@@ -47,7 +47,7 @@ import qualified Ganeti.HTools.Backend.Simu as Simu
 import qualified Ganeti.HTools.Backend.Text as Text
 import qualified Ganeti.HTools.Backend.IAlloc as IAlloc
 import Ganeti.HTools.Loader (mergeData, checkData, ClusterData(..)
-                            , commonSuffix)
+                            , commonSuffix, clearDynU)
 
 import Ganeti.BasicTypes
 import Ganeti.HTools.Types
@@ -110,7 +110,10 @@ loadExternalData opts = do
         | otherwise -> return $ Bad "No backend selected! Exiting."
   now <- getClockTime
 
-  let ldresult = input_data >>= mergeData util_data exTags selInsts exInsts now
+  let ignoreDynU = optIgnoreDynu opts
+      eff_u = if ignoreDynU then [] else util_data
+      ldresult = input_data >>= (if ignoreDynU then clearDynU else return)
+                            >>= mergeData eff_u exTags selInsts exInsts now
   cdata <- exitIfBad "failed to load data, aborting" ldresult
   let (fix_msgs, nl) = checkData (cdNodes cdata) (cdInstances cdata)
 
