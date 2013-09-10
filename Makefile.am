@@ -241,7 +241,7 @@ CLEANFILES = \
 	src/ganeti-luxid \
 	src/ganeti-mond \
 	src/hs2py-constants \
-	.hpc/*.mix src/*.tix test/hs/*.tix \
+	.hpc/*.mix src/*.tix test/hs/*.tix *.tix \
 	doc/hs-lint.html
 
 GENERATED_FILES = \
