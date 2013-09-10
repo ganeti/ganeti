@@ -38,6 +38,7 @@ import Data.Attoparsec.Text.Lazy as A
 import Data.Text.Lazy (pack, unpack)
 import qualified Text.JSON as J
 import qualified Data.Sequence as Seq
+import System.Posix.Unistd (getSysVar, SysVar(ClockTick))
 
 import qualified Ganeti.BasicTypes as BT
 import qualified Ganeti.Constants as C
@@ -155,8 +156,8 @@ dcUpdate mcd = do
 
 -- | Computes the average load for every CPU and the overall from data read
 -- from the map.
-computeAverage :: Buffer -> Integer -> [Double]
-computeAverage s w =
+computeAverage :: Buffer -> Integer -> Integer -> [Double]
+computeAverage s w ticks =
   let window = Seq.takeWhileL ((> w) . fst) s
       go Seq.EmptyL          _                    = []
       go _                   Seq.EmptyR           = []
@@ -164,15 +165,16 @@ computeAverage s w =
         let (timestampL, listL) = leftmost
             (timestampR, listR) = rightmost
             work = zipWith (-) listL listR
-            overall = (timestampL - timestampR) * 100
+            overall = (timestampL - timestampR) * ticks
         map (\x -> fromIntegral x / fromIntegral overall) work
   in go (Seq.viewl window) (Seq.viewr window)
 
 -- | This function computes the JSON representation of the CPU load.
 buildJsonReport :: Buffer -> IO J.JSValue
-buildJsonReport v =
-  let res = computeAverage v windowSize
-  in return . J.showJSON $ formatData res
+buildJsonReport v = do
+  ticks <- getSysVar ClockTick
+  let res = computeAverage v windowSize ticks
+  return . J.showJSON $ formatData res
 
 -- | This function computes the DCReport for the CPU load.
 buildDCReport :: Buffer -> IO DCReport
