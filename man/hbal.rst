@@ -30,6 +30,7 @@ Algorithm options:
 **[ \--no-disk-moves ]**
 **[ \--no-instance-moves ]**
 **[ -U *util-file* ]**
+**[ \--ignore-dynu ]**
 **[ \--evac-mode ]**
 **[ \--select-instances *inst...* ]**
 **[ \--exclude-instances *inst...* ]**
@@ -315,6 +316,11 @@ The options that can be passed to the program are as follows:
   the primary instance count, but that is already tracked via other
   metrics and thus the influence of the dynamic utilisation will be
   practically insignificant.
+
+\--ignore-dynu
+  If given, all dynamic utilisation information will be ignored by
+  assuming it to be 0. This option will take precedence over any data
+  passed by the ``-U`` option.
 
 -S *filename*, \--save-cluster=*filename*
   If given, the state of the cluster before the balancing is saved to

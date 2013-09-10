@@ -91,6 +91,7 @@ options = do
     , oSelInst
     , oInstMoves
     , oDynuFile
+    , oIgnoreDyn 
     , oExTags
     , oExInst
     , oSaveCluster
