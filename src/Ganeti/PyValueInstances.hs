@@ -46,7 +46,7 @@ instance PyValue Double
 instance PyValue Char
 
 instance (PyValue a, PyValue b) => PyValue (a, b) where
-  showValue (x, y) = show (showValue x, showValue y)
+  showValue (x, y) = "(" ++ showValue x ++ "," ++ showValue y ++ ")"
 
 instance PyValue String where
   showValue = show
@@ -57,7 +57,7 @@ instance PyValue a => PyValue [a] where
 instance (PyValue k, PyValue a) => PyValue (Map k a) where
   showValue mp =
     "{" ++ intercalate ", " (map showPair (Map.assocs mp)) ++ "}"
-    where showPair (k, x) = show k ++ ":" ++ show x
+    where showPair (k, x) = showValue k ++ ":" ++ showValue x
 
 instance PyValue a => PyValue (ListSet a) where
   showValue = showValue . Set.toList . unListSet
