@@ -934,9 +934,9 @@ def _CheckNodesFreeDiskOnVG(lu, node_uuids, vg, requested):
 
   """
   nodeinfo = _PerformNodeInfoCall(lu, node_uuids, vg)
-  for node in node_uuids:
-    node_name = lu.cfg.GetNodeName(node)
-    info = nodeinfo[node]
+  for node_uuid in node_uuids:
+    node_name = lu.cfg.GetNodeName(node_uuid)
+    info = nodeinfo[node_uuid]
     info.Raise("Cannot get current information from node %s" % node_name,
                prereq=True, ecode=errors.ECODE_ENVIRON)
     _CheckVgCapacityForNode(node_name, info.payload, vg, requested)
