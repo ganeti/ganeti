@@ -419,9 +419,9 @@ class TestLUClusterSetParams(CmdlibTestCase):
     self.assertEqual(additional_pool, self.cluster.uid_pool)
 
   def testMasterNetmask(self):
-    op = opcodes.OpClusterSetParams(master_netmask=0xFFFF0000)
+    op = opcodes.OpClusterSetParams(master_netmask=26)
     self.ExecOpCode(op)
-    self.assertEqual(0xFFFF0000, self.cluster.master_netmask)
+    self.assertEqual(26, self.cluster.master_netmask)
 
   def testInvalidDiskparams(self):
     for diskparams in [{constants.DT_DISKLESS: {constants.LV_STRIPES: 0}},
