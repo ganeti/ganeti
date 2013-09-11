@@ -971,7 +971,6 @@ EXTRA_DIST = \
 	devel/upload \
 	devel/webserver \
 	tools/kvm-ifup.in \
-	tools/users-setup.in \
 	tools/vcluster-setup.in \
 	$(docinput) \
 	doc/html \
@@ -1382,8 +1381,13 @@ tools/kvm-ifup: tools/kvm-ifup.in $(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@
 	chmod +x $@
 
-tools/users-setup: tools/users-setup.in $(REPLACE_VARS_SED)
-	sed -f $(REPLACE_VARS_SED) < $< > $@
+tools/users-setup: Makefile $(userspecs)
+	set -e; \
+	{ echo '#!/bin/sh'; \
+	  $(AWK) -- '{print "addgroup --system",$$1}' doc/users/groups; \
+	  $(AWK) -- '{if (NF > 1) {print "adduser --system --ingroup",$$2,$$1} else {print "adduser --system",$$1}}' doc/users/users; \
+	  $(AWK) -- '{print "adduser",$$1,$$2}' doc/users/groupmemberships; \
+	} > $@
 	chmod +x $@
 
 tools/vcluster-setup: tools/vcluster-setup.in $(REPLACE_VARS_SED)
