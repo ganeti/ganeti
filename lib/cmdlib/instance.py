@@ -2299,12 +2299,7 @@ class LUInstanceSetParams(LogicalUnit):
       if size is None:
         raise errors.OpPrereqError("Required disk parameter '%s' missing" %
                                    constants.IDISK_SIZE, errors.ECODE_INVAL)
-
-      try:
-        size = int(size)
-      except (TypeError, ValueError), err:
-        raise errors.OpPrereqError("Invalid disk size parameter: %s" % err,
-                                   errors.ECODE_INVAL)
+      size = int(size)
 
       params[constants.IDISK_SIZE] = size
       name = params.get(constants.IDISK_NAME, None)
