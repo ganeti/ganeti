@@ -1713,5 +1713,493 @@ class TestLUInstanceMultiAlloc(CmdlibTestCase):
       op, "Can't compute nodes using iallocator")
 
 
+class TestLUInstanceSetParams(CmdlibTestCase):
+  def setUp(self):
+    super(TestLUInstanceSetParams, self).setUp()
+
+    self.inst = self.cfg.AddNewInstance()
+    self.op = opcodes.OpInstanceSetParams(instance_name=self.inst.name)
+
+    self.running_inst = \
+      self.cfg.AddNewInstance(admin_state=constants.ADMINST_UP)
+    self.running_op = \
+      opcodes.OpInstanceSetParams(instance_name=self.running_inst.name)
+
+    self.snode = self.cfg.AddNewNode()
+
+    self.mocked_storage_type = constants.ST_LVM_VG
+    self.mocked_storage_free = 10000
+    self.mocked_master_cpu_total = 16
+    self.mocked_master_memory_free = 2048
+    self.mocked_snode_cpu_total = 16
+    self.mocked_snode_memory_free = 512
+
+    self.mocked_running_inst_memory = 1024
+    self.mocked_running_inst_vcpus = 8
+    self.mocked_running_inst_state = "running"
+    self.mocked_running_inst_time = 10938474
+
+    bootid = "mock_bootid"
+    storage_info = [
+      {
+        "type": self.mocked_storage_type,
+        "storage_free": self.mocked_storage_free
+      }
+    ]
+    hv_info_master = {
+      "cpu_total": self.mocked_master_cpu_total,
+      "memory_free": self.mocked_master_memory_free
+    }
+    hv_info_snode = {
+      "cpu_total": self.mocked_snode_cpu_total,
+      "memory_free": self.mocked_snode_memory_free
+    }
+
+    self.rpc.call_node_info.return_value = \
+      self.RpcResultsBuilder() \
+        .AddSuccessfulNode(self.master,
+                           (bootid, storage_info, (hv_info_master, ))) \
+        .AddSuccessfulNode(self.snode,
+                           (bootid, storage_info, (hv_info_snode, ))) \
+        .Build()
+
+    def _InstanceInfo(_, instance, __, ___):
+      if instance == self.inst.name:
+        return self.RpcResultsBuilder() \
+          .CreateSuccessfulNodeResult(self.master, None)
+      elif instance == self.running_inst.name:
+        return self.RpcResultsBuilder() \
+          .CreateSuccessfulNodeResult(
+            self.master, {
+              "memory": self.mocked_running_inst_memory,
+              "vcpus": self.mocked_running_inst_vcpus,
+              "state": self.mocked_running_inst_state,
+              "time": self.mocked_running_inst_time
+            })
+      else:
+        raise AssertionError()
+    self.rpc.call_instance_info.side_effect = _InstanceInfo
+
+    self.rpc.call_bridges_exist.return_value = \
+      self.RpcResultsBuilder() \
+        .CreateSuccessfulNodeResult(self.master, True)
+
+  def testNoChanges(self):
+    op = self.CopyOpCode(self.op)
+    self.ExecOpCodeExpectOpPrereqError(op, "No changes submitted")
+
+  def testGlobalHvparams(self):
+    op = self.CopyOpCode(self.op,
+                         hvparams={constants.HV_MIGRATION_PORT: 1234})
+    self.ExecOpCodeExpectOpPrereqError(
+      op, "hypervisor parameters are global and cannot be customized")
+
+  def testHvparams(self):
+    op = self.CopyOpCode(self.op,
+                         hvparams={constants.HV_BOOT_ORDER: "cd"})
+    self.ExecOpCode(op)
+
+  def testDisksAndDiskTemplate(self):
+    op = self.CopyOpCode(self.op,
+                         disk_template=constants.DT_PLAIN,
+                         disks=[[constants.DDM_ADD, -1, {}]])
+    self.ExecOpCodeExpectOpPrereqError(
+      op, "Disk template conversion and other disk changes not supported at"
+          " the same time")
+
+  def testDiskTemplateToMirroredNoRemoteNode(self):
+    op = self.CopyOpCode(self.op,
+                         disk_template=constants.DT_DRBD8)
+    self.ExecOpCodeExpectOpPrereqError(
+      op, "Changing the disk template to a mirrored one requires specifying"
+          " a secondary node")
+
+  def testPrimaryNodeToOldPrimaryNode(self):
+    op = self.CopyOpCode(self.op,
+                         pnode=self.master.name)
+    self.ExecOpCode(op)
+
+  def testPrimaryNodeChange(self):
+    node = self.cfg.AddNewNode()
+    op = self.CopyOpCode(self.op,
+                         pnode=node.name)
+    self.ExecOpCode(op)
+
+  def testPrimaryNodeChangeRunningInstance(self):
+    node = self.cfg.AddNewNode()
+    op = self.CopyOpCode(self.running_op,
+                         pnode=node.name)
+    self.ExecOpCodeExpectOpPrereqError(op, "Instance is still running")
+
+  def testOsChange(self):
+    os = self.cfg.CreateOs(supported_variants=[])
+    self.rpc.call_os_get.return_value = \
+      self.RpcResultsBuilder() \
+        .CreateSuccessfulNodeResult(self.master, os)
+    op = self.CopyOpCode(self.op,
+                         os_name=os.name)
+    self.ExecOpCode(op)
+
+  def testVCpuChange(self):
+    op = self.CopyOpCode(self.op,
+                         beparams={
+                           constants.BE_VCPUS: 4
+                         })
+    self.ExecOpCode(op)
+
+  def testWrongCpuMask(self):
+    op = self.CopyOpCode(self.op,
+                         beparams={
+                           constants.BE_VCPUS: 4
+                         },
+                         hvparams={
+                           constants.HV_CPU_MASK: "1,2:3,4"
+                         })
+    self.ExecOpCodeExpectOpPrereqError(
+      op, "Number of vCPUs .* does not match the CPU mask .*")
+
+  def testCorrectCpuMask(self):
+    op = self.CopyOpCode(self.op,
+                         beparams={
+                           constants.BE_VCPUS: 4
+                         },
+                         hvparams={
+                           constants.HV_CPU_MASK: "1,2:3,4:all:1,4"
+                         })
+    self.ExecOpCode(op)
+
+  def testOsParams(self):
+    op = self.CopyOpCode(self.op,
+                         osparams={
+                           self.os.supported_parameters[0]: "test_param_val"
+                         })
+    self.ExecOpCode(op)
+
+  def testIncreaseMemoryTooMuch(self):
+    op = self.CopyOpCode(self.running_op,
+                         beparams={
+                           constants.BE_MAXMEM:
+                             self.mocked_master_memory_free * 2
+                         })
+    self.ExecOpCodeExpectOpPrereqError(
+      op, "This change will prevent the instance from starting")
+
+  def testIncreaseMemory(self):
+    op = self.CopyOpCode(self.running_op,
+                         beparams={
+                           constants.BE_MAXMEM: self.mocked_master_memory_free
+                         })
+    self.ExecOpCode(op)
+
+  def testIncreaseMemoryTooMuchForSecondary(self):
+    inst = self.cfg.AddNewInstance(admin_state=constants.ADMINST_UP,
+                                   disk_template=constants.DT_DRBD8,
+                                   secondary_node=self.snode)
+    self.rpc.call_instance_info.side_effect = [
+      self.RpcResultsBuilder()
+        .CreateSuccessfulNodeResult(self.master,
+                                    {
+                                      "memory":
+                                        self.mocked_snode_memory_free * 2,
+                                      "vcpus": self.mocked_running_inst_vcpus,
+                                      "state": self.mocked_running_inst_state,
+                                      "time": self.mocked_running_inst_time
+                                    })]
+
+    op = self.CopyOpCode(self.op,
+                         instance_name=inst.name,
+                         beparams={
+                           constants.BE_MAXMEM:
+                             self.mocked_snode_memory_free * 2,
+                           constants.BE_AUTO_BALANCE: True
+                         })
+    self.ExecOpCodeExpectOpPrereqError(
+      op, "This change will prevent the instance from failover to its"
+          " secondary node")
+
+  def testInvalidRuntimeMemory(self):
+    op = self.CopyOpCode(self.running_op,
+                         runtime_mem=self.mocked_master_memory_free * 2)
+    self.ExecOpCodeExpectOpPrereqError(
+      op, "Instance .* must have memory between .* and .* of memory")
+
+  def testIncreaseRuntimeMemory(self):
+    op = self.CopyOpCode(self.running_op,
+                         runtime_mem=self.mocked_master_memory_free,
+                         beparams={
+                           constants.BE_MAXMEM: self.mocked_master_memory_free
+                         })
+    self.ExecOpCode(op)
+
+  def testAddNicWithPoolIpNoNetwork(self):
+    op = self.CopyOpCode(self.op,
+                         nics=[(constants.DDM_ADD, -1,
+                                {
+                                  constants.INIC_IP: constants.NIC_IP_POOL
+                                })])
+    self.ExecOpCodeExpectOpPrereqError(
+      op, "If ip=pool, parameter network cannot be none")
+
+  def testAddNicWithPoolIp(self):
+    net = self.cfg.AddNewNetwork()
+    self.cfg.ConnectNetworkToGroup(net, self.group)
+    op = self.CopyOpCode(self.op,
+                         nics=[(constants.DDM_ADD, -1,
+                                {
+                                  constants.INIC_IP: constants.NIC_IP_POOL,
+                                  constants.INIC_NETWORK: net.name
+                                })])
+    self.ExecOpCode(op)
+
+  def testAddNicWithInvalidIp(self):
+    op = self.CopyOpCode(self.op,
+                         nics=[(constants.DDM_ADD, -1,
+                                {
+                                  constants.INIC_IP: "invalid"
+                                })])
+    self.ExecOpCodeExpectOpPrereqError(
+      op, "Invalid IP address")
+
+  def testAddNic(self):
+    op = self.CopyOpCode(self.op,
+                         nics=[(constants.DDM_ADD, -1, {})])
+    self.ExecOpCode(op)
+
+  def testAddNicWithIp(self):
+    op = self.CopyOpCode(self.op,
+                         nics=[(constants.DDM_ADD, -1,
+                                {
+                                  constants.INIC_IP: "2.3.1.4"
+                                })])
+    self.ExecOpCode(op)
+
+  def testModifyNicRoutedWithoutIp(self):
+    op = self.CopyOpCode(self.op,
+                         nics=[(constants.DDM_MODIFY, 0,
+                                {
+                                  constants.INIC_MODE: constants.NIC_MODE_ROUTED
+                                })])
+    self.ExecOpCodeExpectOpPrereqError(
+      op, "Cannot set the NIC IP address to None on a routed NIC")
+
+  def testModifyNicSetMac(self):
+    op = self.CopyOpCode(self.op,
+                         nics=[(constants.DDM_MODIFY, 0,
+                                {
+                                  constants.INIC_MAC: "0a:12:95:15:bf:75"
+                                })])
+    self.ExecOpCode(op)
+
+  def testModifyNicWithPoolIpNoNetwork(self):
+    op = self.CopyOpCode(self.op,
+                         nics=[(constants.DDM_MODIFY, -1,
+                                {
+                                  constants.INIC_IP: constants.NIC_IP_POOL
+                                })])
+    self.ExecOpCodeExpectOpPrereqError(
+      op, "ip=pool, but no network found")
+
+  def testModifyNicSetNet(self):
+    old_net = self.cfg.AddNewNetwork()
+    self.cfg.ConnectNetworkToGroup(old_net, self.group)
+    inst = self.cfg.AddNewInstance(nics=[
+      self.cfg.CreateNic(network=old_net,
+                         ip="192.168.123.2")])
+
+    new_net = self.cfg.AddNewNetwork(mac_prefix="be")
+    self.cfg.ConnectNetworkToGroup(new_net, self.group)
+    op = self.CopyOpCode(self.op,
+                         instance_name=inst.name,
+                         nics=[(constants.DDM_MODIFY, 0,
+                                {
+                                  constants.INIC_NETWORK: new_net.name
+                                })])
+    self.ExecOpCode(op)
+
+  def testModifyNicSetLinkWhileConnected(self):
+    old_net = self.cfg.AddNewNetwork()
+    self.cfg.ConnectNetworkToGroup(old_net, self.group)
+    inst = self.cfg.AddNewInstance(nics=[
+      self.cfg.CreateNic(network=old_net)])
+
+    op = self.CopyOpCode(self.op,
+                         instance_name=inst.name,
+                         nics=[(constants.DDM_MODIFY, 0,
+                                {
+                                  constants.INIC_LINK: "mock_link"
+                                })])
+    self.ExecOpCodeExpectOpPrereqError(
+      op, "Not allowed to change link or mode of a NIC that is connected"
+          " to a network")
+
+  def testModifyNicSetNetAndIp(self):
+    net = self.cfg.AddNewNetwork(mac_prefix="be", network="123.123.123.0/24")
+    self.cfg.ConnectNetworkToGroup(net, self.group)
+    op = self.CopyOpCode(self.op,
+                         nics=[(constants.DDM_MODIFY, 0,
+                                {
+                                  constants.INIC_NETWORK: net.name,
+                                  constants.INIC_IP: "123.123.123.1"
+                                })])
+    self.ExecOpCode(op)
+
+  def testModifyNic(self):
+    op = self.CopyOpCode(self.op,
+                         nics=[(constants.DDM_MODIFY, 0, {})])
+    self.ExecOpCode(op)
+
+  def testRemoveLastNic(self):
+    op = self.CopyOpCode(self.op,
+                         nics=[(constants.DDM_REMOVE, 0, {})])
+    self.ExecOpCodeExpectOpPrereqError(
+      op, "violates policy")
+
+  def testRemoveNic(self):
+    inst = self.cfg.AddNewInstance(nics=[self.cfg.CreateNic(),
+                                         self.cfg.CreateNic()])
+    op = self.CopyOpCode(self.op,
+                         instance_name=inst.name,
+                         nics=[(constants.DDM_REMOVE, 0, {})])
+    self.ExecOpCode(op)
+
+  def testSetOffline(self):
+    op = self.CopyOpCode(self.op,
+                         offline=True)
+    self.ExecOpCode(op)
+
+  def testUnsetOffline(self):
+    op = self.CopyOpCode(self.op,
+                         offline=False)
+    self.ExecOpCode(op)
+
+  def testAddDiskInvalidMode(self):
+    op = self.CopyOpCode(self.op,
+                         disks=[[constants.DDM_ADD, -1,
+                                 {
+                                   constants.IDISK_MODE: "invalid"
+                                 }]])
+    self.ExecOpCodeExpectOpPrereqError(
+      op, "Invalid disk access mode 'invalid'")
+
+  def testAddDiskMissingSize(self):
+    op = self.CopyOpCode(self.op,
+                         disks=[[constants.DDM_ADD, -1, {}]])
+    self.ExecOpCodeExpectOpPrereqError(
+      op, "Required disk parameter 'size' missing")
+
+  def testAddDiskInvalidSize(self):
+    op = self.CopyOpCode(self.op,
+                         disks=[[constants.DDM_ADD, -1,
+                                 {
+                                   constants.IDISK_SIZE: "invalid"
+                                 }]])
+    self.ExecOpCodeExpectException(
+      op, errors.TypeEnforcementError, "is not a valid size")
+
+  def testAddDisk(self):
+    op = self.CopyOpCode(self.op,
+                         disks=[[constants.DDM_ADD, -1,
+                                 {
+                                   constants.IDISK_SIZE: 1024
+                                 }]])
+    self.ExecOpCode(op)
+
+  def testAddDiskNoneName(self):
+    op = self.CopyOpCode(self.op,
+                         disks=[[constants.DDM_ADD, -1,
+                                 {
+                                   constants.IDISK_SIZE: 1024,
+                                   constants.IDISK_NAME: constants.VALUE_NONE
+                                 }]])
+    self.ExecOpCode(op)
+
+  def testModifyDiskWithSize(self):
+    op = self.CopyOpCode(self.op,
+                         disks=[[constants.DDM_MODIFY, 0,
+                                 {
+                                   constants.IDISK_SIZE: 1024
+                                 }]])
+    self.ExecOpCodeExpectOpPrereqError(
+      op, "Disk size change not possible, use grow-disk")
+
+  def testModifyDiskWithRandomParams(self):
+    op = self.CopyOpCode(self.op,
+                         disks=[[constants.DDM_MODIFY, 0,
+                                 {
+                                   constants.IDISK_METAVG: "new_meta_vg",
+                                   constants.IDISK_MODE: "invalid",
+                                   constants.IDISK_NAME: "new_name"
+                                 }]])
+    self.ExecOpCodeExpectOpPrereqError(
+      op, "Disk modification doesn't support additional arbitrary parameters")
+
+  def testModifyDiskUnsetName(self):
+    op = self.CopyOpCode(self.op,
+                         disks=[[constants.DDM_MODIFY, 0,
+                                  {
+                                    constants.IDISK_NAME: constants.VALUE_NONE
+                                  }]])
+    self.ExecOpCode(op)
+
+  def testSetOldDiskTemplate(self):
+    op = self.CopyOpCode(self.op,
+                         disk_template=self.inst.disk_template)
+    self.ExecOpCodeExpectOpPrereqError(
+      op, "Instance already has disk template")
+
+  def testSetDisabledDiskTemplate(self):
+    self.cfg.SetEnabledDiskTemplates([self.inst.disk_template])
+    op = self.CopyOpCode(self.op,
+                         disk_template=constants.DT_EXT)
+    self.ExecOpCodeExpectOpPrereqError(
+      op, "Disk template .* is not enabled for this cluster")
+
+  def testInvalidDiskTemplateConversion(self):
+    op = self.CopyOpCode(self.op,
+                         disk_template=constants.DT_EXT)
+    self.ExecOpCodeExpectOpPrereqError(
+      op, "Unsupported disk template conversion from .* to .*")
+
+  def testConvertToDRBDWithSecondarySameAsPrimary(self):
+    op = self.CopyOpCode(self.op,
+                         disk_template=constants.DT_DRBD8,
+                         remote_node=self.master.name)
+    self.ExecOpCodeExpectOpPrereqError(
+      op, "Given new secondary node .* is the same as the primary node"
+          " of the instance")
+
+  def testConvertPlainToDRBD(self):
+    self.rpc.call_blockdev_shutdown.return_value = \
+      self.RpcResultsBuilder() \
+        .CreateSuccessfulNodeResult(self.master, True)
+    self.rpc.call_blockdev_getmirrorstatus.return_value = \
+      self.RpcResultsBuilder() \
+        .CreateSuccessfulNodeResult(self.master, [objects.BlockDevStatus()])
+
+    op = self.CopyOpCode(self.op,
+                         disk_template=constants.DT_DRBD8,
+                         remote_node=self.snode.name)
+    self.ExecOpCode(op)
+
+  def testConvertDRBDToPlain(self):
+    self.inst.disks = [self.cfg.CreateDisk(dev_type=constants.DT_DRBD8,
+                                           primary_node=self.master,
+                                           secondary_node=self.snode)]
+    self.inst.disk_template = constants.DT_DRBD8
+    self.rpc.call_blockdev_shutdown.return_value = \
+      self.RpcResultsBuilder() \
+        .CreateSuccessfulNodeResult(self.master, True)
+    self.rpc.call_blockdev_remove.return_value = \
+      self.RpcResultsBuilder() \
+        .CreateSuccessfulNodeResult(self.master)
+    self.rpc.call_blockdev_getmirrorstatus.return_value = \
+      self.RpcResultsBuilder() \
+        .CreateSuccessfulNodeResult(self.master, [objects.BlockDevStatus()])
+
+    op = self.CopyOpCode(self.op,
+                         disk_template=constants.DT_PLAIN)
+    self.ExecOpCode(op)
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()

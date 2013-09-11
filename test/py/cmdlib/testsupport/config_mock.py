@@ -176,7 +176,7 @@ class ConfigMock(config.ConfigWriter):
                      name=None,
                      primary_node=None,
                      os=None,
-                     hypervisor=constants.HT_FAKE,
+                     hypervisor=None,
                      hvparams=None,
                      beparams=None,
                      osparams=None,
@@ -208,6 +208,8 @@ class ConfigMock(config.ConfigWriter):
     if os is None:
       os = self.GetDefaultOs().name + objects.OS.VARIANT_DELIM +\
            self.GetDefaultOs().supported_variants[0]
+    if hypervisor is None:
+      hypervisor = self.GetClusterInfo().enabled_hypervisors[0]
     if hvparams is None:
       hvparams = {}
     if beparams is None:
@@ -281,7 +283,10 @@ class ConfigMock(config.ConfigWriter):
     if network is None:
       network = "192.168.123.0/24"
     if gateway is None:
-      gateway = "192.168.123.1"
+      if network[-3:] == "/24":
+        gateway = network[:-4] + "1"
+      else:
+        gateway = "192.168.123.1"
     if network[-3:] == "/24" and gateway == network[:-4] + "1":
       if reservations is None:
         reservations = "0" * 256
@@ -503,6 +508,8 @@ class ConfigMock(config.ConfigWriter):
       name = "mock_nic_%d" % nic_id
     if mac is None:
       mac = "aa:00:00:aa:%02x:%02x" % (nic_id / 0xff, nic_id % 0xff)
+    if isinstance(network, objects.Network):
+      network = network.uuid
     if nicparams is None:
       nicparams = {}
 

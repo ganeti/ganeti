@@ -111,3 +111,6 @@ def SetupDefaultNetutilsMock(netutils_mod, cfg):
   netutils_mod.FormatAddress.side_effect = netutils.FormatAddress
   netutils_mod.Hostname.GetNormalizedName.side_effect = \
     netutils.Hostname.GetNormalizedName
+  netutils_mod.IPAddress = netutils.IPAddress
+  netutils_mod.IP4Address = netutils.IP4Address
+  netutils_mod.IP6Address = netutils.IP6Address
