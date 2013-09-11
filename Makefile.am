@@ -1384,6 +1384,19 @@ tools/kvm-ifup: tools/kvm-ifup.in $(REPLACE_VARS_SED)
 tools/users-setup: Makefile $(userspecs)
 	set -e; \
 	{ echo '#!/bin/sh'; \
+	  echo 'if [ "x$$1" != "x--yes-do-it" ];'; \
+	  echo 'then echo "This will do the following changes"'; \
+	  $(AWK) -- '{print "echo + Will add group ",$$1; count++}\
+	             END {if (count == 0) {print "echo + No groups to add"}}' doc/users/groups; \
+	  $(AWK) -- '{if (NF > 1) {print "echo + Will add user",$$1,"with primary group",$$2} \
+	                          else {print "echo + Will add user",$$1}; count++}\
+	             END {if (count == 0) {print "echo + No users to add"}}' doc/users/users; \
+	  $(AWK) -- '{print "echo + Will add user",$$1,"to group",$$2}' doc/users/groupmemberships; \
+	  echo 'echo'; \
+	  echo 'echo "OK? (y/n)"'; \
+	  echo 'read confirm'; \
+	  echo 'if [ "x$$confirm" != "xy" ]; then exit 0; fi'; \
+	  echo 'fi'; \
 	  $(AWK) -- '{print "addgroup --system",$$1}' doc/users/groups; \
 	  $(AWK) -- '{if (NF > 1) {print "adduser --system --ingroup",$$2,$$1} else {print "adduser --system",$$1}}' doc/users/users; \
 	  $(AWK) -- '{print "adduser",$$1,$$2}' doc/users/groupmemberships; \
