@@ -52,3 +52,14 @@ instance PyValue a => PyValue (FrozenSet a) where
 
 mkSet :: Ord a => [a] -> FrozenSet a
 mkSet = FrozenSet . Set.fromList
+
+-- | 'Protocol' represents the protocols used by the daemons
+data Protocol = Tcp | Udp
+  deriving (Show)
+
+-- | 'PyValue' instance of 'Protocol'
+--
+-- This instance is used by the Haskell to Python constants
+instance PyValue Protocol where
+  showValue Tcp = "\"tcp\""
+  showValue Udp = "\"udp\""
