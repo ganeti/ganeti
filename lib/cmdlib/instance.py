@@ -3183,21 +3183,21 @@ class LUInstanceSetParams(LogicalUnit):
     feedback_fn("Removing volumes on the secondary node...")
     for disk in old_disks:
       self.cfg.SetDiskID(disk, snode_uuid)
-      msg = self.rpc.call_blockdev_remove(snode_uuid, disk).fail_msg
-      if msg:
-        self.LogWarning("Could not remove block device %s on node %s,"
-                        " continuing anyway: %s", disk.iv_name,
-                        self.cfg.GetNodeName(snode_uuid), msg)
+      result = self.rpc.call_blockdev_remove(snode_uuid, disk)
+      result.Warn("Could not remove block device %s on node %s,"
+                  " continuing anyway" %
+                  (disk.iv_name, self.cfg.GetNodeName(snode_uuid)),
+                  self.LogWarning)
 
     feedback_fn("Removing unneeded volumes on the primary node...")
     for idx, disk in enumerate(old_disks):
       meta = disk.children[1]
       self.cfg.SetDiskID(meta, pnode_uuid)
-      msg = self.rpc.call_blockdev_remove(pnode_uuid, meta).fail_msg
-      if msg:
-        self.LogWarning("Could not remove metadata for disk %d on node %s,"
-                        " continuing anyway: %s", idx,
-                        self.cfg.GetNodeName(pnode_uuid), msg)
+      result = self.rpc.call_blockdev_remove(pnode_uuid, meta)
+      result.Warn("Could not remove metadata for disk %d on node %s,"
+                  " continuing anyway" %
+                  (idx, self.cfg.GetNodeName(pnode_uuid)),
+                  self.LogWarning)
 
   def _CreateNewDisk(self, idx, params, _):
     """Creates a new disk.
