@@ -162,7 +162,7 @@ data HttpClientRequest = HttpClientRequest
 prepareUrl :: (RpcCall a) => Node -> a -> String
 prepareUrl node call =
   let node_ip = nodePrimaryIp node
-      port = snd C.daemonsPortsGanetiNoded
+      port = C.defaultNodedPort
       path_prefix = "https://" ++ node_ip ++ ":" ++ show port
   in path_prefix ++ "/" ++ rpcCallName call
 

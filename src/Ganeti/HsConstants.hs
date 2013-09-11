@@ -36,6 +36,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 module Ganeti.HsConstants where
 
+import Data.Map (Map)
+import qualified Data.Map as Map (fromList)
+
 import AutoConf
 import Ganeti.ConstantUtils
 
@@ -139,6 +142,26 @@ daemons =
          mond,
          noded,
          rapi]
+
+defaultConfdPort :: Int
+defaultConfdPort = 1814
+
+defaultMondPort :: Int
+defaultMondPort = 1815
+
+defaultNodedPort :: Int
+defaultNodedPort = 1811
+
+defaultRapiPort :: Int
+defaultRapiPort = 5080
+
+daemonsPorts :: Map String (Protocol, Int)
+daemonsPorts =
+  Map.fromList [(confd, (Udp, defaultConfdPort)),
+                (mond, (Tcp, defaultMondPort)),
+                (noded, (Tcp, defaultNodedPort)),
+                (rapi, (Tcp, defaultRapiPort)),
+                (ssh, (Tcp, 22))]
 
 -- * Possible values for NodeGroup.alloc_policy
 
