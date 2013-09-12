@@ -662,7 +662,7 @@ def _AnnotateDParamsDRBD(disk, (drbd_params, data_params, meta_params)):
   """Annotates just DRBD disks layouts.
 
   """
-  assert disk.dev_type == constants.LD_DRBD8
+  assert disk.dev_type == constants.DT_DRBD8
 
   disk.params = objects.FillDict(drbd_params, disk.params)
   (dev_data, dev_meta) = disk.children
@@ -676,7 +676,7 @@ def _AnnotateDParamsGeneric(disk, (params, )):
   """Generic disk parameter annotation routine.
 
   """
-  assert disk.dev_type != constants.LD_DRBD8
+  assert disk.dev_type != constants.DT_DRBD8
 
   disk.params = objects.FillDict(params, disk.params)
 

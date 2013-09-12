@@ -1083,7 +1083,7 @@ class TestGenerateDiskTemplate(CmdlibTestCase):
       }]
 
     result = self._TestTrivialDisk(constants.DT_PLAIN, disk_info, 3,
-                                   constants.LD_LV)
+                                   constants.DT_PLAIN)
 
     self.assertEqual(map(operator.attrgetter("logical_id"), result), [
       ("xenvg", "ec1-uq0.disk3"),
@@ -1112,7 +1112,7 @@ class TestGenerateDiskTemplate(CmdlibTestCase):
 
       self.cluster.enabled_disk_templates = [disk_template]
       result = self._TestTrivialDisk(
-        disk_template, disk_info, 2, constants.LD_FILE,
+        disk_template, disk_info, 2, disk_template,
         file_storage_dir="/tmp", file_driver=constants.FD_BLKTAP)
 
       self.assertEqual(map(operator.attrgetter("logical_id"), result), [
@@ -1129,7 +1129,7 @@ class TestGenerateDiskTemplate(CmdlibTestCase):
       }]
 
     result = self._TestTrivialDisk(constants.DT_BLOCK, disk_info, 10,
-                                   constants.LD_BLOCKDEV)
+                                   constants.DT_BLOCK)
 
     self.assertEqual(map(operator.attrgetter("logical_id"), result), [
       (constants.BLOCKDEV_DRIVER_MANUAL, "/tmp/some/block/dev"),
@@ -1145,7 +1145,7 @@ class TestGenerateDiskTemplate(CmdlibTestCase):
       }]
 
     result = self._TestTrivialDisk(constants.DT_RBD, disk_info, 0,
-                                   constants.LD_RBD)
+                                   constants.DT_RBD)
 
     self.assertEqual(map(operator.attrgetter("logical_id"), result), [
       ("rbd", "ec1-uq0.rbd.disk0"),
@@ -1154,7 +1154,7 @@ class TestGenerateDiskTemplate(CmdlibTestCase):
 
   def testDrbd8(self):
     gdt = instance.GenerateDiskTemplate
-    drbd8_defaults = constants.DISK_LD_DEFAULTS[constants.LD_DRBD8]
+    drbd8_defaults = constants.DISK_LD_DEFAULTS[constants.DT_DRBD8]
     drbd8_default_metavg = drbd8_defaults[constants.LDP_DEFAULT_METAVG]
 
     disk_info = [{
@@ -1202,13 +1202,13 @@ class TestGenerateDiskTemplate(CmdlibTestCase):
 
     for (idx, disk) in enumerate(result):
       self.assertTrue(isinstance(disk, objects.Disk))
-      self.assertEqual(disk.dev_type, constants.LD_DRBD8)
+      self.assertEqual(disk.dev_type, constants.DT_DRBD8)
       self.assertEqual(disk.size, disk_info[idx][constants.IDISK_SIZE])
       self.assertEqual(disk.mode, disk_info[idx][constants.IDISK_MODE])
 
       for child in disk.children:
         self.assertTrue(isinstance(disk, objects.Disk))
-        self.assertEqual(child.dev_type, constants.LD_LV)
+        self.assertEqual(child.dev_type, constants.DT_PLAIN)
         self.assertTrue(child.children is None)
 
       self.assertEqual(map(operator.attrgetter("logical_id"), disk.children),
@@ -1319,9 +1319,9 @@ class TestWipeDisks(unittest.TestCase):
                  cfg=_ConfigForDiskWipe(node_name))
 
     disks = [
-      objects.Disk(dev_type=constants.LD_LV),
-      objects.Disk(dev_type=constants.LD_LV),
-      objects.Disk(dev_type=constants.LD_LV),
+      objects.Disk(dev_type=constants.DT_PLAIN),
+      objects.Disk(dev_type=constants.DT_PLAIN),
+      objects.Disk(dev_type=constants.DT_PLAIN),
       ]
 
     inst = objects.Instance(name="inst21201",
@@ -1344,11 +1344,11 @@ class TestWipeDisks(unittest.TestCase):
                  cfg=_ConfigForDiskWipe(node_uuid))
 
     disks = [
-      objects.Disk(dev_type=constants.LD_LV, logical_id="disk0",
+      objects.Disk(dev_type=constants.DT_PLAIN, logical_id="disk0",
                    size=100 * 1024),
-      objects.Disk(dev_type=constants.LD_LV, logical_id="disk1",
+      objects.Disk(dev_type=constants.DT_PLAIN, logical_id="disk1",
                    size=500 * 1024),
-      objects.Disk(dev_type=constants.LD_LV, logical_id="disk2", size=256),
+      objects.Disk(dev_type=constants.DT_PLAIN, logical_id="disk2", size=256),
       ]
 
     inst = objects.Instance(name="inst562",
@@ -1390,11 +1390,11 @@ class TestWipeDisks(unittest.TestCase):
 
   def testNormalWipe(self):
     disks = [
-      objects.Disk(dev_type=constants.LD_LV, logical_id="disk0", size=1024),
-      objects.Disk(dev_type=constants.LD_LV, logical_id="disk1",
+      objects.Disk(dev_type=constants.DT_PLAIN, logical_id="disk0", size=1024),
+      objects.Disk(dev_type=constants.DT_PLAIN, logical_id="disk1",
                    size=500 * 1024),
-      objects.Disk(dev_type=constants.LD_LV, logical_id="disk2", size=128),
-      objects.Disk(dev_type=constants.LD_LV, logical_id="disk3",
+      objects.Disk(dev_type=constants.DT_PLAIN, logical_id="disk2", size=128),
+      objects.Disk(dev_type=constants.DT_PLAIN, logical_id="disk3",
                    size=constants.MAX_WIPE_CHUNK),
       ]
 
@@ -1420,9 +1420,9 @@ class TestWipeDisks(unittest.TestCase):
   def testWipeWithStartOffset(self):
     for start_offset in [0, 280, 8895, 1563204]:
       disks = [
-        objects.Disk(dev_type=constants.LD_LV, logical_id="disk0",
+        objects.Disk(dev_type=constants.DT_PLAIN, logical_id="disk0",
                      size=128),
-        objects.Disk(dev_type=constants.LD_LV, logical_id="disk1",
+        objects.Disk(dev_type=constants.DT_PLAIN, logical_id="disk1",
                      size=start_offset + (100 * 1024)),
         ]
 

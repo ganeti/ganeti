@@ -63,7 +63,7 @@ class LogicalVolume(base.BlockDev):
 
   """
   _VALID_NAME_RE = re.compile("^[a-zA-Z0-9+_.-]*$")
-  _PARSE_PV_DEV_RE = re.compile("^([^ ()]+)\([0-9]+\)$")
+  _PARSE_PV_DEV_RE = re.compile(r"^([^ ()]+)\([0-9]+\)$")
   _INVALID_NAMES = compat.UniqueFrozenset([".", "..", "snapshot", "pvmove"])
   _INVALID_SUBSTRINGS = compat.UniqueFrozenset(["_mlog", "_mimage"])
 
@@ -1718,12 +1718,13 @@ def _VolumeLogName(kind, es_name, volume):
 
 
 DEV_MAP = {
-  constants.LD_LV: LogicalVolume,
-  constants.LD_DRBD8: drbd.DRBD8Dev,
-  constants.LD_BLOCKDEV: PersistentBlockDevice,
-  constants.LD_RBD: RADOSBlockDevice,
-  constants.LD_EXT: ExtStorageDevice,
-  constants.LD_FILE: FileStorage,
+  constants.DT_PLAIN: LogicalVolume,
+  constants.DT_DRBD8: drbd.DRBD8Dev,
+  constants.DT_BLOCK: PersistentBlockDevice,
+  constants.DT_RBD: RADOSBlockDevice,
+  constants.DT_EXT: ExtStorageDevice,
+  constants.DT_FILE: FileStorage,
+  constants.DT_SHARED_FILE: FileStorage,
   }
 
 

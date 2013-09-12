@@ -55,16 +55,6 @@ _DISK_TEMPLATE_NAME_PREFIX = {
   }
 
 
-_DISK_TEMPLATE_DEVICE_TYPE = {
-  constants.DT_PLAIN: constants.LD_LV,
-  constants.DT_FILE: constants.LD_FILE,
-  constants.DT_SHARED_FILE: constants.LD_FILE,
-  constants.DT_BLOCK: constants.LD_BLOCKDEV,
-  constants.DT_RBD: constants.LD_RBD,
-  constants.DT_EXT: constants.LD_EXT,
-  }
-
-
 def CreateSingleBlockDev(lu, node_uuid, instance, device, info, force_open,
                          excl_stor):
   """Create a single block device on a given node.
@@ -390,16 +380,16 @@ def _GenerateDRBD8Branch(lu, primary_uuid, secondary_uuid, size, vgnames, names,
   port = lu.cfg.AllocatePort()
   shared_secret = lu.cfg.GenerateDRBDSecret(lu.proc.GetECId())
 
-  dev_data = objects.Disk(dev_type=constants.LD_LV, size=size,
+  dev_data = objects.Disk(dev_type=constants.DT_PLAIN, size=size,
                           logical_id=(vgnames[0], names[0]),
                           params={})
   dev_data.uuid = lu.cfg.GenerateUniqueID(lu.proc.GetECId())
-  dev_meta = objects.Disk(dev_type=constants.LD_LV,
+  dev_meta = objects.Disk(dev_type=constants.DT_PLAIN,
                           size=constants.DRBD_META_SIZE,
                           logical_id=(vgnames[1], names[1]),
                           params={})
   dev_meta.uuid = lu.cfg.GenerateUniqueID(lu.proc.GetECId())
-  drbd_dev = objects.Disk(dev_type=constants.LD_DRBD8, size=size,
+  drbd_dev = objects.Disk(dev_type=constants.DT_DRBD8, size=size,
                           logical_id=(primary_uuid, secondary_uuid, port,
                                       p_minor, s_minor,
                                       shared_secret),
@@ -493,7 +483,7 @@ def GenerateDiskTemplate(
     else:
       raise errors.ProgrammerError("Unknown disk template '%s'" % template_name)
 
-    dev_type = _DISK_TEMPLATE_DEVICE_TYPE[template_name]
+    dev_type = template_name
 
     for idx, disk in enumerate(disk_info):
       params = {}
@@ -819,7 +809,7 @@ class LUInstanceRecreateDisks(LogicalUnit):
         continue
 
       # update secondaries for disks, if needed
-      if self.op.node_uuids and disk.dev_type == constants.LD_DRBD8:
+      if self.op.node_uuids and disk.dev_type == constants.DT_DRBD8:
         # need to update the nodes and minors
         assert len(self.op.node_uuids) == 2
         assert len(disk.logical_id) == 6 # otherwise disk internals
@@ -840,7 +830,7 @@ class LUInstanceRecreateDisks(LogicalUnit):
     for idx, new_id, changes in mods:
       disk = self.instance.disks[idx]
       if new_id is not None:
-        assert disk.dev_type == constants.LD_DRBD8
+        assert disk.dev_type == constants.DT_DRBD8
         disk.logical_id = new_id
       if changes:
         disk.Update(size=changes.get(constants.IDISK_SIZE, None),
@@ -2261,11 +2251,11 @@ class TLReplaceDisks(Tasklet):
 
       (data_disk, meta_disk) = dev.children
       vg_data = data_disk.logical_id[0]
-      lv_data = objects.Disk(dev_type=constants.LD_LV, size=dev.size,
+      lv_data = objects.Disk(dev_type=constants.DT_PLAIN, size=dev.size,
                              logical_id=(vg_data, names[0]),
                              params=data_disk.params)
       vg_meta = meta_disk.logical_id[0]
-      lv_meta = objects.Disk(dev_type=constants.LD_LV,
+      lv_meta = objects.Disk(dev_type=constants.DT_PLAIN,
                              size=constants.DRBD_META_SIZE,
                              logical_id=(vg_meta, names[1]),
                              params=meta_disk.params)
@@ -2541,7 +2531,7 @@ class TLReplaceDisks(Tasklet):
       iv_names[idx] = (dev, dev.children, new_net_id)
       logging.debug("Allocated new_minor: %s, new_logical_id: %s", new_minor,
                     new_net_id)
-      new_drbd = objects.Disk(dev_type=constants.LD_DRBD8,
+      new_drbd = objects.Disk(dev_type=constants.DT_DRBD8,
                               logical_id=new_alone_id,
                               children=dev.children,
                               size=dev.size,

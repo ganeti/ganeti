@@ -132,6 +132,7 @@ DIRS = \
 	doc/examples \
 	doc/examples/gnt-debug \
 	doc/examples/hooks \
+	doc/users \
 	test/data/htools \
 	test/data/htools/rapi \
 	test/hs/shelltests \
@@ -224,6 +225,7 @@ CLEANFILES = \
 	$(BUILT_EXAMPLES) \
 	doc/examples/bash_completion \
 	doc/examples/bash_completion-debug \
+	$(userspecs) \
 	lib/_generated_rpc.py \
 	$(man_MANS) \
 	$(manhtml) \
@@ -465,6 +467,7 @@ docinput = \
 	doc/design-2.6.rst \
 	doc/design-2.7.rst \
 	doc/design-2.8.rst \
+	doc/design-2.9.rst \
 	doc/design-autorepair.rst \
 	doc/design-bulk-create.rst \
 	doc/design-chained-jobs.rst \
@@ -827,12 +830,21 @@ else
 	exit 1;
 endif
 
+doc/users/%: doc/users/%.in Makefile $(REPLACE_VARS_SED)
+	cat $< | sed -f $(REPLACE_VARS_SED) | LC_ALL=C sort | uniq | (grep -v '^root' || true) > $@
+
+userspecs = \
+	doc/users/users \
+	doc/users/groups \
+	doc/users/groupmemberships
+
 # Things to build but not to install (add it to EXTRA_DIST if it should be
 # distributed)
 noinst_DATA = \
 	$(BUILT_EXAMPLES) \
 	doc/examples/bash_completion \
 	doc/examples/bash_completion-debug \
+	$(userspecs) \
 	$(manhtml)
 
 if HAS_SPHINX
@@ -1077,7 +1089,6 @@ EXTRA_DIST = \
 	tools/kvm-ifup.in \
 	tools/vif-ganeti.in \
 	tools/net-common.in \
-	tools/users-setup.in \
 	tools/vcluster-setup.in \
 	$(docinput) \
 	doc/html \
@@ -1088,6 +1099,9 @@ EXTRA_DIST = \
 	doc/examples/gnt-debug/README \
 	doc/examples/gnt-debug/delay0.json \
 	doc/examples/gnt-debug/delay50.json \
+	doc/users/groupmemberships.in \
+	doc/users/groups.in \
+	doc/users/users.in \
 	$(dist_TESTS) \
 	$(TEST_FILES) \
 	$(python_test_support) \
@@ -1282,6 +1296,8 @@ TEST_FILES = \
 	test/data/proc_drbd83_sync_krnl2.6.39.txt \
 	test/data/proc_drbd84.txt \
 	test/data/proc_drbd84_sync.txt \
+	test/data/proc_meminfo.txt \
+	test/data/proc_cpuinfo.txt \
 	test/data/qa-minimal-nodes-instances-only.json \
 	test/data/sys_drbd_usermode_helper.txt \
 	test/data/vgreduce-removemissing-2.02.02.txt \
@@ -1541,8 +1557,26 @@ tools/net-common: tools/net-common.in $(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@
 	chmod +x $@
 
-tools/users-setup: tools/users-setup.in $(REPLACE_VARS_SED)
-	sed -f $(REPLACE_VARS_SED) < $< > $@
+tools/users-setup: Makefile $(userspecs)
+	set -e; \
+	{ echo '#!/bin/sh'; \
+	  echo 'if [ "x$$1" != "x--yes-do-it" ];'; \
+	  echo 'then echo "This will do the following changes"'; \
+	  $(AWK) -- '{print "echo + Will add group ",$$1; count++}\
+	             END {if (count == 0) {print "echo + No groups to add"}}' doc/users/groups; \
+	  $(AWK) -- '{if (NF > 1) {print "echo + Will add user",$$1,"with primary group",$$2} \
+	                          else {print "echo + Will add user",$$1}; count++}\
+	             END {if (count == 0) {print "echo + No users to add"}}' doc/users/users; \
+	  $(AWK) -- '{print "echo + Will add user",$$1,"to group",$$2}' doc/users/groupmemberships; \
+	  echo 'echo'; \
+	  echo 'echo "OK? (y/n)"'; \
+	  echo 'read confirm'; \
+	  echo 'if [ "x$$confirm" != "xy" ]; then exit 0; fi'; \
+	  echo 'fi'; \
+	  $(AWK) -- '{print "addgroup --system",$$1}' doc/users/groups; \
+	  $(AWK) -- '{if (NF > 1) {print "adduser --system --ingroup",$$2,$$1} else {print "adduser --system",$$1}}' doc/users/users; \
+	  $(AWK) -- '{print "adduser",$$1,$$2}' doc/users/groupmemberships; \
+	} > $@
 	chmod +x $@
 
 tools/vcluster-setup: tools/vcluster-setup.in $(REPLACE_VARS_SED)

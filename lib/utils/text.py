@@ -410,7 +410,7 @@ def SafeEncode(text):
 
 
 def UnescapeAndSplit(text, sep=","):
-  """Split and unescape a string based on a given separator.
+  r"""Split and unescape a string based on a given separator.
 
   This function splits a string based on a separator where the
   separator itself can be escape in order to be an element of the

@@ -295,7 +295,7 @@ def _GetConfigFileDiskData(block_devices, blockdev_prefix,
     else:
       mode = "r"
 
-    if cfdev.dev_type == constants.LD_FILE:
+    if cfdev.dev_type in [constants.DT_FILE, constants.DT_SHARED_FILE]:
       driver = _FILE_DRIVER_MAP[cfdev.physical_id[0]]
     else:
       driver = "phy"
@@ -415,7 +415,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
       if netinfo.mac_prefix:
         data.write("NETWORK_MAC_PREFIX=%s\n" % netinfo.mac_prefix)
       if netinfo.tags:
-        data.write("NETWORK_TAGS=%s\n" % "\ ".join(netinfo.tags))
+        data.write("NETWORK_TAGS=%s\n" % r"\ ".join(netinfo.tags))
 
     data.write("MAC=%s\n" % nic.mac)
     data.write("IP=%s\n" % nic.ip)

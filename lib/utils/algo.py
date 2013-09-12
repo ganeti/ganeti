@@ -31,7 +31,7 @@ from ganeti.utils import text
 
 
 _SORTER_GROUPS = 8
-_SORTER_RE = re.compile("^%s(.*)$" % (_SORTER_GROUPS * "(\D+|\d+)?"))
+_SORTER_RE = re.compile("^%s(.*)$" % (_SORTER_GROUPS * r"(\D+|\d+)?"))
 
 
 def UniqueSequence(seq):

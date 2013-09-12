@@ -919,7 +919,7 @@ def _FormatDiskDetails(dev_type, dev, roman):
   """Formats the logical_id of a disk.
 
   """
-  if dev_type == constants.LD_DRBD8:
+  if dev_type == constants.DT_DRBD8:
     drbd_info = dev["drbd_info"]
     data = [
       ("nodeA", "%s, minor=%s" %
@@ -933,7 +933,7 @@ def _FormatDiskDetails(dev_type, dev, roman):
       ("port", str(compat.TryToRoman(drbd_info["port"], convert=roman))),
       ("auth key", str(drbd_info["secret"])),
       ]
-  elif dev_type == constants.LD_LV:
+  elif dev_type == constants.DT_PLAIN:
     vg_name, lv_name = dev["logical_id"]
     data = ["%s/%s" % (vg_name, lv_name)]
   else:
@@ -968,7 +968,7 @@ def _FormatBlockDevInfo(idx, top_level, dev, roman):
     """Format one line for physical device status.
 
     @type dtype: str
-    @param dtype: a constant from the L{constants.LDS_BLOCK} set
+    @param dtype: a constant from the L{constants.DTS_BLOCK} set
     @type status: tuple
     @param status: a tuple as returned from L{backend.FindBlockDevice}
     @return: the string representing the status
@@ -989,7 +989,7 @@ def _FormatBlockDevInfo(idx, top_level, dev, roman):
       minor_string = str(compat.TryToRoman(minor, convert=roman))
 
     txt += ("%s (%s:%s)" % (path, major_string, minor_string))
-    if dtype in (constants.LD_DRBD8, ):
+    if dtype in (constants.DT_DRBD8, ):
       if syncp is not None:
         sync_text = "*RECOVERING* %5.2f%%," % syncp
         if estt:
@@ -1009,7 +1009,7 @@ def _FormatBlockDevInfo(idx, top_level, dev, roman):
       else:
         ldisk_text = ""
       txt += (" %s, status %s%s" % (sync_text, degr_text, ldisk_text))
-    elif dtype == constants.LD_LV:
+    elif dtype == constants.DT_PLAIN:
       if ldisk_status == constants.LDS_FAULTY:
         ldisk_text = " *FAILED* (failed drive?)"
       else:

@@ -1734,7 +1734,8 @@ class LUInstanceMove(LogicalUnit):
     bep = self.cfg.GetClusterInfo().FillBE(self.instance)
 
     for idx, dsk in enumerate(self.instance.disks):
-      if dsk.dev_type not in (constants.LD_LV, constants.LD_FILE):
+      if dsk.dev_type not in (constants.DT_PLAIN, constants.DT_FILE,
+                              constants.DT_SHARED_FILE):
         raise errors.OpPrereqError("Instance disk %d has a complex layout,"
                                    " cannot copy" % idx, errors.ECODE_STATE)
 
@@ -2633,9 +2634,9 @@ class LUInstanceSetParams(LogicalUnit):
                                  self.instance.disk_template,
                                  errors.ECODE_INVAL)
 
-    if not self.cluster.IsDiskTemplateEnabled(self.instance.disk_template):
+    if not self.cluster.IsDiskTemplateEnabled(self.op.disk_template):
       raise errors.OpPrereqError("Disk template '%s' is not enabled for this"
-                                 " cluster." % self.instance.disk_template)
+                                 " cluster." % self.op.disk_template)
 
     if (self.instance.disk_template,
         self.op.disk_template) not in self._DISK_CONVERSIONS:

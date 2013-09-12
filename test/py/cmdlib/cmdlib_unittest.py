@@ -327,7 +327,7 @@ class TestDiskStateHelper(unittest.TestCase):
 
   def testWithoutOldData(self):
     new = {
-      constants.LD_LV: {
+      constants.DT_PLAIN: {
         "xenvg": {
           constants.DS_DISK_RESERVED: 1024,
           },

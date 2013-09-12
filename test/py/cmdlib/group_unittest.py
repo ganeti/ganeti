@@ -53,7 +53,7 @@ class TestLUGroupAdd(CmdlibTestCase):
     ndparams = {constants.ND_EXCLUSIVE_STORAGE: True}
     hv_state = {constants.HT_FAKE: {constants.HVST_CPU_TOTAL: 8}}
     disk_state = {
-      constants.LD_LV: {
+      constants.DT_PLAIN: {
         "mock_vg": {constants.DS_DISK_TOTAL: 10}
       }
     }
@@ -224,7 +224,7 @@ class TestLUGroupSetParams(CmdlibTestCase):
     ndparams = {constants.ND_EXCLUSIVE_STORAGE: True}
     hv_state = {constants.HT_FAKE: {constants.HVST_CPU_TOTAL: 8}}
     disk_state = {
-      constants.LD_LV: {
+      constants.DT_PLAIN: {
         "mock_vg": {constants.DS_DISK_TOTAL: 10}
       }
     }
@@ -376,8 +376,8 @@ class TestLUGroupVerifyDisks(CmdlibTestCase):
 
   def testValidNodeResult(self):
     self.cfg.AddNewInstance(
-      disks=[self.cfg.CreateDisk(dev_type=constants.LD_LV),
-             self.cfg.CreateDisk(dev_type=constants.LD_LV)
+      disks=[self.cfg.CreateDisk(dev_type=constants.DT_PLAIN),
+             self.cfg.CreateDisk(dev_type=constants.DT_PLAIN)
              ],
       admin_state=constants.ADMINST_UP)
     self.rpc.call_lv_list.return_value = \
@@ -402,13 +402,13 @@ class TestLUGroupVerifyDisks(CmdlibTestCase):
     node3 = self.cfg.AddNewNode()
     node4 = self.cfg.AddNewNode()
 
-    valid_disk = self.cfg.CreateDisk(dev_type=constants.LD_DRBD8,
+    valid_disk = self.cfg.CreateDisk(dev_type=constants.DT_DRBD8,
                                      primary_node=node1,
                                      secondary_node=node2)
-    broken_disk = self.cfg.CreateDisk(dev_type=constants.LD_DRBD8,
+    broken_disk = self.cfg.CreateDisk(dev_type=constants.DT_DRBD8,
                                       primary_node=node1,
                                       secondary_node=node2)
-    failing_node_disk = self.cfg.CreateDisk(dev_type=constants.LD_DRBD8,
+    failing_node_disk = self.cfg.CreateDisk(dev_type=constants.DT_DRBD8,
                                             primary_node=node3,
                                             secondary_node=node4)
 

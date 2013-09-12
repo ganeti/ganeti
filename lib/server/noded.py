@@ -1202,8 +1202,8 @@ def Main():
 
   """
   parser = OptionParser(description="Ganeti node daemon",
-                        usage="%prog [-f] [-d] [-p port] [-b ADDRESS]\
-                              \ [-i INTERFACE]",
+                        usage=("%prog [-f] [-d] [-p port] [-b ADDRESS]"
+                               " [-i INTERFACE]"),
                         version="%%prog (ganeti) %s" %
                         constants.RELEASE_VERSION)
   parser.add_option("--no-mlock", dest="mlock",

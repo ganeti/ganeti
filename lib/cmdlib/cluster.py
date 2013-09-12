@@ -495,7 +495,7 @@ class LUClusterRepairDiskSizes(NoHooksLU):
     @param disk: an L{ganeti.objects.Disk} object
 
     """
-    if disk.dev_type == constants.LD_DRBD8:
+    if disk.dev_type == constants.DT_DRBD8:
       assert disk.children, "Empty children for DRBD8?"
       fchild = disk.children[0]
       mismatch = fchild.size < disk.size
@@ -757,7 +757,7 @@ class LUClusterSetParams(LogicalUnit):
                                    " enabling lvm-based disk-templates.")
 
     if self.op.vg_name is not None and not self.op.vg_name:
-      if self.cfg.HasAnyDiskOfType(constants.LD_LV):
+      if self.cfg.HasAnyDiskOfType(constants.DT_PLAIN):
         raise errors.OpPrereqError("Cannot disable lvm storage while lvm-based"
                                    " instances exist", errors.ECODE_INVAL)
 
@@ -895,7 +895,7 @@ class LUClusterSetParams(LogicalUnit):
       if drbd_enabled:
         raise errors.OpPrereqError("Cannot disable drbd helper while"
                                    " DRBD is enabled.")
-      if self.cfg.HasAnyDiskOfType(constants.LD_DRBD8):
+      if self.cfg.HasAnyDiskOfType(constants.DT_DRBD8):
         raise errors.OpPrereqError("Cannot disable drbd helper while"
                                    " drbd-based instances exist",
                                    errors.ECODE_INVAL)

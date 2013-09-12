@@ -263,7 +263,7 @@ def Disk12To20(drbd_minors, secrets, disk):
   """
   if "mode" not in disk:
     disk["mode"] = constants.DISK_RDWR
-  if disk["dev_type"] == constants.LD_DRBD8:
+  if disk["dev_type"] == constants.DT_DRBD8:
     old_lid = disk["logical_id"]
     for node in old_lid[:2]:
       if node not in drbd_minors:

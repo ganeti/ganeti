@@ -505,7 +505,8 @@ def TestClusterModifyFileBasedStorageDir(
 
   for fail, cmd in [
     (False, ["gnt-cluster", "modify",
-            "--enabled-disk-templates=%s" % file_disk_template]),
+            "--enabled-disk-templates=%s" % file_disk_template,
+            "--ipolicy-disk-templates=%s" % file_disk_template]),
     (False, ["gnt-cluster", "modify",
             "--%s=%s" % (option_name, file_storage_dir)]),
     (False, ["gnt-cluster", "modify",
@@ -520,7 +521,8 @@ def TestClusterModifyFileBasedStorageDir(
     (False, ["gnt-cluster", "modify",
             "--%s=%s" % (option_name, file_storage_dir)]),
     (False, ["gnt-cluster", "modify",
-            "--enabled-disk-templates=%s" % other_disk_template]),
+            "--enabled-disk-templates=%s" % other_disk_template,
+            "--ipolicy-disk-templates=%s" % other_disk_template]),
     (False, ["gnt-cluster", "modify",
             "--%s=%s" % (option_name, invalid_file_storage_dir)]),
     # file storage is set to an inacceptable path, but file storage
@@ -533,7 +535,8 @@ def TestClusterModifyFileBasedStorageDir(
     # resetting everything to sane values
     (False, ["gnt-cluster", "modify",
             "--%s=%s" % (option_name, file_storage_dir),
-            "--enabled-disk-templates=%s" % ",".join(enabled_disk_templates)])
+            "--enabled-disk-templates=%s" % ",".join(enabled_disk_templates),
+            "--ipolicy-disk-templates=%s" % ",".join(enabled_disk_templates)])
     ]:
     AssertCommand(cmd, fail=fail)
 

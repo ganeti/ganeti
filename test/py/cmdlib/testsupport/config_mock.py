@@ -225,32 +225,12 @@ class ConfigMock(config.ConfigWriter):
       elif len(disks) == 0:
         disk_template = constants.DT_DISKLESS
       else:
-        dt_guess_dict = {
-          constants.LD_LV: constants.DT_PLAIN,
-          constants.LD_FILE: constants.DT_FILE,
-          constants.LD_DRBD8: constants.DT_DRBD8,
-          constants.LD_RBD: constants.DT_RBD,
-          constants.LD_BLOCKDEV: constants.DT_BLOCK,
-          constants.LD_EXT: constants.DT_EXT
-        }
-        assert constants.LOGICAL_DISK_TYPES == set(dt_guess_dict.keys())
-        disk_template = dt_guess_dict[disks[0].dev_type]
+        disk_template = disks[0].dev_type
     if disks is None:
       if disk_template == constants.DT_DISKLESS:
         disks = []
       else:
-        ld_guess_dict = {
-          constants.DT_PLAIN: constants.LD_LV,
-          constants.DT_FILE: constants.LD_FILE,
-          constants.DT_SHARED_FILE: constants.LD_FILE,
-          constants.DT_DRBD8: constants.LD_DRBD8,
-          constants.DT_RBD: constants.LD_RBD,
-          constants.DT_BLOCK: constants.LD_BLOCKDEV,
-          constants.DT_EXT: constants.LD_EXT
-        }
-        assert constants.DISK_TEMPLATES == \
-                set(ld_guess_dict.keys() + [constants.DT_DISKLESS])
-        disks = [self.CreateDisk(dev_type=ld_guess_dict[disk_template],
+        disks = [self.CreateDisk(dev_type=disk_template,
                                  primary_node=primary_node,
                                  secondary_node=secondary_node)]
     if disks_active is None:
@@ -360,7 +340,7 @@ class ConfigMock(config.ConfigWriter):
   def CreateDisk(self,
                  uuid=None,
                  name=None,
-                 dev_type=constants.LD_LV,
+                 dev_type=constants.DT_PLAIN,
                  logical_id=None,
                  physical_id=None,
                  children=None,
@@ -387,7 +367,7 @@ class ConfigMock(config.ConfigWriter):
     if name is None:
       name = "mock_disk_%d" % disk_id
 
-    if dev_type == constants.LD_DRBD8:
+    if dev_type == constants.DT_DRBD8:
       pnode_uuid = self._GetObjUuid(primary_node)
       snode_uuid = self._GetObjUuid(secondary_node)
       if logical_id is not None:
@@ -407,18 +387,18 @@ class ConfigMock(config.ConfigWriter):
                       constants.FIRST_DRBD_PORT + disk_id,
                       disk_id, disk_id, "mock_secret")
       if children is None:
-        data_child = self.CreateDisk(dev_type=constants.LD_LV,
+        data_child = self.CreateDisk(dev_type=constants.DT_PLAIN,
                                      size=size)
-        meta_child = self.CreateDisk(dev_type=constants.LD_LV,
+        meta_child = self.CreateDisk(dev_type=constants.DT_PLAIN,
                                      size=constants.DRBD_META_SIZE)
         children = [data_child, meta_child]
-    elif dev_type == constants.LD_LV:
+    elif dev_type == constants.DT_PLAIN:
       if logical_id is None:
         logical_id = ("mockvg", "mock_disk_%d" % disk_id)
-    elif dev_type == constants.LD_FILE:
+    elif dev_type in (constants.DT_FILE, constants.DT_SHARED_FILE):
       if logical_id is None:
         logical_id = (constants.FD_LOOP, "/file/storage/disk%d" % disk_id)
-    elif dev_type == constants.LD_BLOCKDEV:
+    elif dev_type == constants.DT_BLOCK:
       if logical_id is None:
         logical_id = (constants.BLOCKDEV_DRIVER_MANUAL,
                       "/dev/disk/disk%d" % disk_id)

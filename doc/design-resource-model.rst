@@ -895,7 +895,7 @@ Beside the per-hypervisor attributes, we also have disk attributes,
 which are queried directly on the node (without hypervisor
 involvment). The are stored in a separate attribute (``disk_state``),
 which is indexed per storage type and name; currently this will be just
-``LD_LV`` and the volume name as key.
+``DT_PLAIN`` and the volume name as key.
 
 +-------------+-------------------------+--------------------+--------+
 |Name         |Description              |Current state       |Type    |

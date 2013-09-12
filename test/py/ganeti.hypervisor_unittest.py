@@ -57,6 +57,18 @@ class TestBase(unittest.TestCase):
     self.assertEqual(fn(["a"]), "a")
     self.assertEqual(fn(["a", "b"]), "a; b")
 
+  def testGetLinuxNodeInfo(self):
+    meminfo = testutils.TestDataFilename("proc_meminfo.txt")
+    cpuinfo = testutils.TestDataFilename("proc_cpuinfo.txt")
+    result = hv_base.BaseHypervisor.GetLinuxNodeInfo(meminfo, cpuinfo)
+
+    self.assertEqual(result["memory_total"], 7686)
+    self.assertEqual(result["memory_free"], 6272)
+    self.assertEqual(result["memory_dom0"], 2722)
+    self.assertEqual(result["cpu_total"], 4)
+    self.assertEqual(result["cpu_nodes"], 1)
+    self.assertEqual(result["cpu_sockets"], 1)
+
 
 if __name__ == "__main__":
   testutils.GanetiTestProgram()

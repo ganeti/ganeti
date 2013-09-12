@@ -41,12 +41,12 @@ class DRBD8Status(object): # pylint: disable=R0902
   """
   UNCONF_RE = re.compile(r"\s*[0-9]+:\s*cs:Unconfigured$")
   LINE_RE = re.compile(r"\s*[0-9]+:\s*cs:(\S+)\s+(?:st|ro):([^/]+)/(\S+)"
-                       "\s+ds:([^/]+)/(\S+)\s+.*$")
+                       r"\s+ds:([^/]+)/(\S+)\s+.*$")
   SYNC_RE = re.compile(r"^.*\ssync'ed:\s*([0-9.]+)%.*"
                        # Due to a bug in drbd in the kernel, introduced in
                        # commit 4b0715f096 (still unfixed as of 2011-08-22)
-                       "(?:\s|M)"
-                       "finish: ([0-9]+):([0-9]+):([0-9]+)\s.*$")
+                       r"(?:\s|M)"
+                       r"finish: ([0-9]+):([0-9]+):([0-9]+)\s.*$")
 
   CS_UNCONFIGURED = "Unconfigured"
   CS_STANDALONE = "StandAlone"

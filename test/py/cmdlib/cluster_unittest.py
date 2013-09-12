@@ -308,7 +308,7 @@ class TestLUClusterRepairDiskSizes(CmdlibTestCase):
 
     self.ExecOpCode(op)
 
-  def _SetUpInstanceSingleDisk(self, dev_type=constants.LD_LV):
+  def _SetUpInstanceSingleDisk(self, dev_type=constants.DT_PLAIN):
     pnode = self.master
     snode = self.cfg.AddNewNode()
 
@@ -362,13 +362,13 @@ class TestLUClusterRepairDiskSizes(CmdlibTestCase):
     self.assertEqual(1, len(changed))
 
   def testCorrectDRBD(self):
-    self._SetUpInstanceSingleDisk(dev_type=constants.LD_DRBD8)
+    self._SetUpInstanceSingleDisk(dev_type=constants.DT_DRBD8)
     changed = self._ExecOpClusterRepairDiskSizes([(1024 * 1024 * 1024, None)])
     self.mcpu.assertLogIsEmpty()
     self.assertEqual(0, len(changed))
 
   def testWrongDRBDChild(self):
-    (_, disk) = self._SetUpInstanceSingleDisk(dev_type=constants.LD_DRBD8)
+    (_, disk) = self._SetUpInstanceSingleDisk(dev_type=constants.DT_DRBD8)
     disk.children[0].size = 512
     changed = self._ExecOpClusterRepairDiskSizes([(1024 * 1024 * 1024, None)])
     self.assertEqual(1, len(changed))
@@ -446,7 +446,7 @@ class TestLUClusterSetParams(CmdlibTestCase):
 
   def testUnsetDrbdHelperWithDrbdDisks(self):
     self.cfg.AddNewInstance(disks=[
-      self.cfg.CreateDisk(dev_type=constants.LD_DRBD8, create_nodes=True)])
+      self.cfg.CreateDisk(dev_type=constants.DT_DRBD8, create_nodes=True)])
     op = opcodes.OpClusterSetParams(drbd_helper="")
     self.ExecOpCodeExpectOpPrereqError(op, "Cannot disable drbd helper")
 
@@ -597,14 +597,14 @@ class TestLUClusterSetParams(CmdlibTestCase):
 
   def testDiskState(self):
     disk_state = {
-      constants.LD_LV: {
+      constants.DT_PLAIN: {
         "mock_vg": {constants.DS_DISK_TOTAL: 10}
       }
     }
     op = opcodes.OpClusterSetParams(disk_state=disk_state)
     self.ExecOpCode(op)
     self.assertEqual(10, self.cluster
-                           .disk_state_static[constants.LD_LV]["mock_vg"]
+                           .disk_state_static[constants.DT_PLAIN]["mock_vg"]
                              [constants.DS_DISK_TOTAL])
 
   def testDefaultIPolicy(self):
@@ -789,7 +789,7 @@ class TestLUClusterSetParams(CmdlibTestCase):
   def testDisableDiskTemplateWithExistingInstance(self):
     enabled_disk_templates = [constants.DT_DISKLESS]
     self.cfg.AddNewInstance(
-      disks=[self.cfg.CreateDisk(dev_type=constants.LD_LV)])
+      disks=[self.cfg.CreateDisk(dev_type=constants.DT_PLAIN)])
     op = opcodes.OpClusterSetParams(
            enabled_disk_templates=enabled_disk_templates,
            ipolicy={constants.IPOLICY_DTS: enabled_disk_templates})
@@ -813,7 +813,7 @@ class TestLUClusterSetParams(CmdlibTestCase):
   def testUnsetVgNameWithLvmInstance(self):
     vg_name = ""
     self.cfg.AddNewInstance(
-      disks=[self.cfg.CreateDisk(dev_type=constants.LD_LV)])
+      disks=[self.cfg.CreateDisk(dev_type=constants.DT_PLAIN)])
     op = opcodes.OpClusterSetParams(vg_name=vg_name)
     self.ExecOpCodeExpectOpPrereqError(op, "Cannot unset volume group")
 
@@ -1348,7 +1348,7 @@ class TestLUClusterVerifyGroupVerifyInstance(TestLUClusterVerifyGroupMethods):
 
     self.node1 = self.cfg.AddNewNode()
     self.drbd_inst = self.cfg.AddNewInstance(
-      disks=[self.cfg.CreateDisk(dev_type=constants.LD_DRBD8,
+      disks=[self.cfg.CreateDisk(dev_type=constants.DT_DRBD8,
                                  primary_node=self.master,
                                  secondary_node=self.node1)])
     self.running_inst = self.cfg.AddNewInstance(
@@ -1627,7 +1627,7 @@ class TestLUClusterVerifyGroupVerifyNodeDrbd(TestLUClusterVerifyGroupMethods):
     self.node1 = self.cfg.AddNewNode()
     self.node2 = self.cfg.AddNewNode()
     self.inst = self.cfg.AddNewInstance(
-      disks=[self.cfg.CreateDisk(dev_type=constants.LD_DRBD8,
+      disks=[self.cfg.CreateDisk(dev_type=constants.DT_DRBD8,
                                  primary_node=self.node1,
                                  secondary_node=self.node2)],
       admin_state=constants.ADMINST_UP)

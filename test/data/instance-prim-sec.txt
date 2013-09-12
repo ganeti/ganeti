@@ -6,7 +6,7 @@
      {
        "children": [
          {
-           "dev_type": "lvm",
+           "dev_type": "plain",
            "logical_id": [
              "xenvg",
              "df9ff3f6-a833-48ff-8bd5-bff2eaeab759.disk0_data"
@@ -20,7 +20,7 @@
            "uuid": "eaff6322-1bfb-4d59-b306-4535730917cc"
          },
          {
-           "dev_type": "lvm",
+           "dev_type": "plain",
            "logical_id": [
              "xenvg",
              "df9ff3f6-a833-48ff-8bd5-bff2eaeab759.disk0_meta"
@@ -34,7 +34,7 @@
            "uuid": "bf512e95-2a49-4cb3-8d1f-30a503f6bf1b"
          }
        ],
-       "dev_type": "drbd8",
+       "dev_type": "drbd",
        "iv_name": "disk/0",
        "logical_id": [
          "60e687a0-21fc-4577-997f-ccd08925fa65",

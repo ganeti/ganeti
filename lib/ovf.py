@@ -833,8 +833,8 @@ class OVFWriter(object):
     raw_string = ET.tostring(self.tree)
     parsed_xml = xml.dom.minidom.parseString(raw_string)
     xml_string = parsed_xml.toprettyxml(indent="  ")
-    text_re = re.compile(">\n\s+([^<>\s].*?)\n\s+</", re.DOTALL)
-    return text_re.sub(">\g<1></", xml_string)
+    text_re = re.compile(r">\n\s+([^<>\s].*?)\n\s+</", re.DOTALL)
+    return text_re.sub(r">\g<1></", xml_string)
 
 
 class Converter(object):
@@ -1408,7 +1408,7 @@ class OVFImporter(Converter):
         _, disk_path = self._CompressDisk(disk_path, disk_compression,
                                           DECOMPRESS)
         disk, _ = os.path.splitext(disk)
-      if self._GetDiskQemuInfo(disk_path, "file format: (\S+)") != "raw":
+      if self._GetDiskQemuInfo(disk_path, r"file format: (\S+)") != "raw":
         logging.info("Conversion to raw format is required")
       ext, new_disk_path = self._ConvertDisk("raw", disk_path)
 
@@ -1710,7 +1710,7 @@ class OVFExporter(Converter):
     ext, new_disk_path = self._ConvertDisk(self.options.disk_format, disk_path)
     results["format"] = self.options.disk_format
     results["virt-size"] = self._GetDiskQemuInfo(
-      new_disk_path, "virtual size: \S+ \((\d+) bytes\)")
+      new_disk_path, r"virtual size: \S+ \((\d+) bytes\)")
     if compression:
       ext2, new_disk_path = self._CompressDisk(new_disk_path, "gzip",
                                                COMPRESS)
