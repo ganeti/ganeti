@@ -40,9 +40,23 @@ CONVERT_CONSTANTS = $(top_srcdir)/autotools/convert-constants
 BUILD_RPC = $(top_srcdir)/autotools/build-rpc
 SHELL_ENV_INIT = autotools/shell-env-init
 
-# starting as of Ganeti 2.10, all files are stored in a single directory,
+# starting as of Ganeti 2.10, all files are stored in two directories,
 # with only symbolic links added at other places.
-versiondir = $(libdir)/ganeti-$(VERSION)
+#
+# $(versiondir) contains most of Ganeti and all architecture-dependent files
+# $(versionedsharedir) contains only architecture-independent files; all python
+# executables need to go directly to $(versionedsharedir), as all ganeti python
+# mdules are installed outside the usual python path, i.e., as private modules.
+#
+# $(defaultversiondir) and $(defaultversionedsharedir) are the corresponding
+# directories for "the currently running" version of Ganeti. We never install
+# there, but all symbolic links go there, rather than directory to $(versiondir)
+# or $(versionedsharedir). Note that all links to $(default*dir) need to be stable;
+# so, if some currently architecture-independent executable is replaced by an
+# architecture-dependent one (and hence has to go under $(versiondir)), add a link
+# under $(versionedsharedir) but do not change the external links.
+versiondir = $(libdir)/ganeti/$(VERSION)
+versionedsharedir = $(prefix)/share/ganeti/$(VERSION)
 
 # Note: these are automake-specific variables, and must be named after
 # the directory + 'dir' suffix
@@ -50,8 +64,12 @@ pkglibdir = $(versiondir)$(libdir)/ganeti
 myexeclibdir = $(pkglibdir)
 bindir = $(versiondir)$(exec_prefix)/bin
 sbindir = $(versiondir)$(exec_prefix)/sbin
-mandir = $(versiondir)$(datarootdir)/man
-pkgpythondir = $(versiondir)$(pythondir)/ganeti
+mandir = $(versionedsharedir)$(datarootdir)/man
+pkgpythondir = $(versionedsharedir)/ganeti
+gntpythondir = $(versionedsharedir)
+pkgpython_bindir = $(versionedsharedir)
+gnt_python_sbindir = $(versionedsharedir)
+tools_pythondir = $(versionedsharedir)
 
 clientdir = $(pkgpythondir)/client
 cmdlibdir = $(pkgpythondir)/cmdlib
@@ -213,6 +231,7 @@ CLEANFILES = \
 	$(addsuffix /*.hi,$(HS_DIRS)) \
 	$(addsuffix /*.o,$(HS_DIRS)) \
 	$(PYTHON_BOOTSTRAP) \
+	$(gnt_python_sbin_SCRIPTS) \
 	epydoc.conf \
 	$(REPLACE_VARS_SED) \
 	$(SHELL_ENV_INIT) \
@@ -237,6 +256,7 @@ CLEANFILES = \
 	stamp-directories \
 	stamp-srclinks \
 	$(nodist_pkgpython_PYTHON) \
+	$(gnt_scripts) \
 	$(HS_ALL_PROGS) $(HS_BUILT_SRCS) \
 	$(HS_BUILT_TEST_HELPERS) \
 	src/ganeti-confd \
@@ -294,6 +314,12 @@ BUILT_EXAMPLES = \
 
 nodist_pkgpython_PYTHON = \
 	$(BUILT_PYTHON_SOURCES)
+
+nodist_pkgpython_bin_SCRIPTS = \
+	$(nodist_pkglib_python_scripts)
+
+pkgpython_bin_SCRIPTS = \
+	$(pkglib_python_scripts)
 
 noinst_PYTHON = \
 	lib/build/__init__.py \
@@ -867,15 +893,21 @@ gnt_scripts = \
 	scripts/gnt-os \
 	scripts/gnt-storage
 
+gnt_scripts_basenames = \
+	$(patsubst scripts/%,%,$(gnt_scripts))
+
+gnt_python_sbin_SCRIPTS = \
+	$(PYTHON_BOOTSTRAP_SBIN)
+
+gntpython_SCRIPTS = $(gnt_scripts)
+
 PYTHON_BOOTSTRAP_SBIN = \
 	daemons/ganeti-masterd \
 	daemons/ganeti-noded \
 	daemons/ganeti-rapi \
-	daemons/ganeti-watcher \
-	$(gnt_scripts)
+	daemons/ganeti-watcher
 
 PYTHON_BOOTSTRAP = \
-	$(PYTHON_BOOTSTRAP_SBIN) \
 	tools/burnin \
 	tools/ensure-dirs \
 	tools/node-cleanup \
@@ -983,7 +1015,6 @@ dist_sbin_SCRIPTS = \
 	tools/ganeti-listrunner
 
 nodist_sbin_SCRIPTS = \
-	$(PYTHON_BOOTSTRAP_SBIN) \
 	daemons/ganeti-cleaner
 
 # strip path prefixes off the sbin scripts
@@ -1025,11 +1056,10 @@ dist_tools_SCRIPTS = \
 	tools/master-ip-setup \
 	tools/xen-console-wrapper
 
-nodist_tools_python_scripts = \
+nodist_tools_python_SCRIPTS = \
 	tools/node-cleanup
 
 nodist_tools_SCRIPTS = \
-	$(nodist_tools_python_scripts) \
 	tools/users-setup \
 	tools/vcluster-setup
 
@@ -1047,11 +1077,7 @@ myexeclib_SCRIPTS = \
 	tools/kvm-ifup \
 	tools/vif-ganeti \
 	tools/net-common \
-	$(pkglib_python_scripts) \
 	$(HS_MYEXECLIB_PROGS)
-
-nodist_myexeclib_SCRIPTS = \
-	$(nodist_pkglib_python_scripts)
 
 # strip path prefixes off the lib python scripts
 all_myexeclib_scripts = \
@@ -1525,6 +1551,7 @@ lint_python_code = \
 	$(CHECK_IMPORTS) \
 	$(CHECK_HEADER) \
 	$(DOCPP) \
+	$(gnt_python_sbin_SCRIPTS) \
 	$(PYTHON_BOOTSTRAP)
 
 standalone_python_modules = \
@@ -1541,6 +1568,7 @@ pep8_python_code = \
 	$(CHECK_HEADER) \
 	$(DOCPP) \
 	$(PYTHON_BOOTSTRAP) \
+	$(gnt_python_sbin_SCRIPTS) \
 	qa \
 	$(python_test_support)
 
@@ -1963,7 +1991,7 @@ tools/prepare-node-join: MODULE = ganeti.tools.prepare_node_join
 tools/node-cleanup: MODULE = ganeti.tools.node_cleanup
 $(HS_BUILT_TEST_HELPERS): TESTROLE = $(patsubst test/hs/%,%,$@)
 
-$(PYTHON_BOOTSTRAP): Makefile | stamp-directories
+$(PYTHON_BOOTSTRAP) $(gnt_scripts) $(gnt_python_sbin_SCRIPTS): Makefile | stamp-directories
 	test -n "$(MODULE)" || { echo Missing module; exit 1; }
 	set -e; \
 	{ echo '#!/usr/bin/python'; \
