@@ -174,14 +174,7 @@ DEFAULT_RAPI_PORT = _constants.DEFAULT_RAPI_PORT
 FIRST_DRBD_PORT = 11000
 LAST_DRBD_PORT = 14999
 
-DAEMONS_LOGBASE = {
-  NODED: "node-daemon",
-  CONFD: "conf-daemon",
-  LUXID: "luxi-daemon",
-  RAPI: "rapi-daemon",
-  MASTERD: "master-daemon",
-  MOND: "monitoring-daemon",
-  }
+DAEMONS_LOGBASE = _constants.DAEMONS_LOGBASE
 
 DAEMONS_LOGFILES = \
     dict((daemon, pathutils.GetLogFilename(DAEMONS_LOGBASE[daemon]))
