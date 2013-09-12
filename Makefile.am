@@ -55,8 +55,13 @@ SHELL_ENV_INIT = autotools/shell-env-init
 # so, if some currently architecture-independent executable is replaced by an
 # architecture-dependent one (and hence has to go under $(versiondir)), add a link
 # under $(versionedsharedir) but do not change the external links.
-versiondir = $(libdir)/ganeti/$(VERSION)
-versionedsharedir = $(prefix)/share/ganeti/$(VERSION)
+if USE_VERSION_FULL
+DIRVERSION=VERSION_FULL
+else
+DIRVERSION=$(VERSION_MAJOR).$(VERSION_MINOR)
+endif
+versiondir = $(libdir)/ganeti/$(DIRVERSION)
+versionedsharedir = $(prefix)/share/ganeti/$(DIRVERSION)
 
 # Note: these are automake-specific variables, and must be named after
 # the directory + 'dir' suffix

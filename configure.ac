@@ -20,6 +20,22 @@ AC_SUBST([VERSION_REVISION], gnt_version_revision)
 AC_SUBST([VERSION_SUFFIX], gnt_version_suffix)
 AC_SUBST([VERSION_FULL], gnt_version_full)
 
+# --enable-versionfull
+AC_ARG_ENABLE([versionfull],
+  [AS_HELP_STRING([--enable-versionfull],
+                  m4_normalize([use the full version string rather
+                  than major.minor for version directories]))],
+  [[if test "$enableval" != yes; then
+      USE_VERSION_FULL=yes
+    else
+      USER_VERSION_FULL=no
+    fi
+  ]],
+  [USE_VERSION_FULL=no
+  ])
+AC_SUBST(USE_VERSION_FULL, $USE_VERSION_FULL)
+AM_CONDITIONAL([USE_VERSION_FULL], [test "$USE_VERSION_FULL" = yes])
+
 # --enable-symlinks
 AC_ARG_ENABLE([symlinks],
   [AS_HELP_STRING([--enable-symlinks],
