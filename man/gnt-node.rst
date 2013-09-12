@@ -114,14 +114,13 @@ potential recovery).
 Note that this command is equivalent to using per-instance commands for
 each affected instance individually:
 
-- ``--primary-only`` is equivalent to ``gnt-instance
-  failover/migration`` for non-DRBD instances, but for DRBD instances
-  it's different, and usually is a slow process (it will change the
-  primary to another node while keeping the secondary, this requiring
-  data copies, whereas failover/migrate will only toggle the
-  primary/secondary roles, a fast process)
+- ``--primary-only`` is equivalent to performing ``gnt-instance
+  migrate`` for every primary instance running on the node that can be
+  migrated and ``gnt-instance failover`` for every primary instance that
+  cannot be migrated.
 - ``--secondary-only`` is equivalent to ``gnt-instance replace-disks``
-  in the secondary node change mode (only valid for DRBD instances)
+  in secondary node change mode (``--new-secondary``) for every DRBD
+  instance that the node is a secondary for.
 - when neither of the above is done a combination of the two cases is run
 
 See **ganeti**\(7) for a description of ``--submit`` and other common
