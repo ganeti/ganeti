@@ -2,10 +2,11 @@ News
 ====
 
 
-Version 2.8.0 rc2
+Version 2.8.0 rc3
 -----------------
 
-*(Released Tue, 27 Aug 2013)*
+*(unreleased)*
+
 
 Incompatible/important changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -73,6 +74,15 @@ New features
   failures.
 - Support 'viridian' parameter in Xen HVM
 - Support DSA SSH keys in bootstrap
+- To simplify the work of packaging frameworks that want to add the needed users
+  and groups in a split-user setup themselves, at build time three files in
+  ``doc/users`` will be generated. The ``groups`` files contains, one per line,
+  the groups to be generated, the ``users`` file contains, one per line, the
+  users to be generated, optionally followed by their primary group, where
+  important. The ``groupmemberships`` file contains, one per line, additional
+  user-group membership relations that need to be established. The syntax of
+  these files will remain stable in all future versions.
+
 
 New dependencies
 ~~~~~~~~~~~~~~~~
@@ -86,8 +96,25 @@ For Python:
 - The minimum Python version needed to run Ganeti is now 2.6.
 - ``yaml`` library (only for running the QA).
 
-Since 2.8.0 rc1
+Since 2.8.0 rc2
 ~~~~~~~~~~~~~~~
+
+- To simplify the work of packaging frameworks that want to add the needed users
+  and groups in a split-user setup themselves, at build time three files in
+  ``doc/users`` will be generated. The ``groups`` files contains, one per line,
+  the groups to be generated, the ``users`` file contains, one per line, the
+  users to be generated, optionally followed by their primary group, where
+  important. The ``groupmemberships`` file contains, one per line, additional
+  user-group membership relations that need to be established. The syntax of
+  these files will remain stable in all future versions.
+
+
+Version 2.8.0 rc2
+-----------------
+
+*(Released Tue, 27 Aug 2013)*
+
+The second release candidate of the 2.8 series. Since 2.8.0. rc1:
 
 - Support 'viridian' parameter in Xen HVM (Issue 233)
 - Include VCS version in ``gnt-cluster version``
