@@ -262,7 +262,7 @@ class TestLUClusterRedistConf(CmdlibTestCase):
 
 class TestLUClusterRename(CmdlibTestCase):
   NEW_NAME = "new-name.example.com"
-  NEW_IP = "1.2.3.4"
+  NEW_IP = "203.0.113.1"
 
   def testNoChanges(self):
     op = opcodes.OpClusterRename(name=self.cfg.GetClusterName())

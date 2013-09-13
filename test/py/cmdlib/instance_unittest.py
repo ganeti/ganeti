@@ -159,7 +159,7 @@ class TestLUInstanceCreate(CmdlibTestCase):
   def testStrangeHostnameResolve(self):
     op = self.CopyOpCode(self.diskless_op)
     self.netutils_mod.GetHostname.return_value = \
-      HostnameMock("random.host.com", "1.2.3.4")
+      HostnameMock("random.host.example.com", "203.0.113.1")
     self.ExecOpCodeExpectOpPrereqError(
       op, "Resolved hostname .* does not look the same as given hostname")
 
@@ -217,7 +217,7 @@ class TestLUInstanceCreate(CmdlibTestCase):
   def testValidIp(self):
     op = self.CopyOpCode(self.diskless_op,
                          nics=[{
-                           constants.INIC_IP: "1.2.3.4"
+                           constants.INIC_IP: "203.0.113.1"
                          }])
     self.ExecOpCode(op)
 
@@ -299,7 +299,7 @@ class TestLUInstanceCreate(CmdlibTestCase):
   def testIpNotInNetwork(self):
     op = self.CopyOpCode(self.diskless_op,
                          nics=[{
-                           constants.INIC_IP: "1.2.3.4",
+                           constants.INIC_IP: "203.0.113.1",
                            constants.INIC_NETWORK: self.net.name
                          }])
     self.ExecOpCodeExpectOpPrereqError(
@@ -708,7 +708,7 @@ disk1_dump=mock_path
 nic0_mode=bridged
 nic0_link=br_mock
 nic0_mac=f6:ab:f4:45:d1:af
-nic0_ip=123.123.123.1
+nic0_ip=198.51.100.1
 tags=tag1 tag2
 hypervisor=xen-hvm
 [hypervisor]
