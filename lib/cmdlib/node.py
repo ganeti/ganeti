@@ -126,7 +126,8 @@ class LUNodeAdd(LogicalUnit):
       if not ovs and (ovs_name or ovs_link):
         raise errors.OpPrereqError("OpenvSwitch name or link were given, but"
                                    " OpenvSwitch is not enabled. Please enable"
-                                   " OpenvSwitch with --ovs", errors.ECODE_INVAL)
+                                   " OpenvSwitch with --ovs",
+                                   errors.ECODE_INVAL)
 
   def BuildHooksEnv(self):
     """Build hooks env.
