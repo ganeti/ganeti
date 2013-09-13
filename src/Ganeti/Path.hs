@@ -43,7 +43,7 @@ module Ganeti.Path
 import System.FilePath
 import System.Posix.Env (getEnvDefault)
 
-import qualified Ganeti.Constants as C
+import AutoConf
 
 -- | Simple helper to concat two paths.
 pjoin :: IO String -> String -> IO String
@@ -64,7 +64,7 @@ addNodePrefix path = do
 
 -- | Directory for data.
 dataDir :: IO FilePath
-dataDir = addNodePrefix $ C.autoconfLocalstatedir </> "lib" </> "ganeti"
+dataDir = addNodePrefix $ AutoConf.localstatedir </> "lib" </> "ganeti"
 
 -- | Helper for building on top of dataDir (internal).
 dataDirP :: FilePath -> IO FilePath
@@ -72,11 +72,11 @@ dataDirP = (dataDir `pjoin`)
 
 -- | Directory for runtime files.
 runDir :: IO FilePath
-runDir = addNodePrefix $ C.autoconfLocalstatedir </> "run" </> "ganeti"
+runDir = addNodePrefix $ AutoConf.localstatedir </> "run" </> "ganeti"
 
 -- | Directory for log files.
 logDir :: IO FilePath
-logDir = addNodePrefix $ C.autoconfLocalstatedir </> "log" </> "ganeti"
+logDir = addNodePrefix $ AutoConf.localstatedir </> "log" </> "ganeti"
 
 -- | Directory for Unix sockets.
 socketDir :: IO FilePath
