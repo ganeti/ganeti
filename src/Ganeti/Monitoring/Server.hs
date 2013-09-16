@@ -117,15 +117,12 @@ checkMain _ = return $ Right ()
 -- | Prepare function for monitoring agent.
 prepMain :: PrepFn CheckResult PrepResult
 prepMain opts _ = do
-  mAccessLog <- daemonsExtraLogFile GanetiMond AccessLog
-  mErrorLog <- daemonsExtraLogFile GanetiMond ErrorLog
-  case (mAccessLog, mErrorLog) of
-    (Just accessLog, Just errorLog) ->
-      return $
-        setPort
-          (maybe C.defaultMondPort fromIntegral (optPort opts))
-          (defaultHttpConf accessLog errorLog)
-    _ -> fail "Failed to retrieve extra log filepaths for the monitoring daemon"
+  accessLog <- daemonsExtraLogFile GanetiMond AccessLog
+  errorLog <- daemonsExtraLogFile GanetiMond ErrorLog
+  return $
+    setPort
+      (maybe C.defaultMondPort fromIntegral (optPort opts))
+      (defaultHttpConf accessLog errorLog)
 
 -- * Query answers
 

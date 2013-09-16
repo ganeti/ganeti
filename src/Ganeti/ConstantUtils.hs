@@ -63,3 +63,11 @@ data Protocol = Tcp | Udp
 instance PyValue Protocol where
   showValue Tcp = "\"tcp\""
   showValue Udp = "\"udp\""
+
+-- | Failure exit code
+--
+-- This is defined here and not in 'Ganeti.HsConstants' together with
+-- the other exit codes in order to avoid a circular dependency
+-- between 'Ganeti.HsConstants' and 'Ganeti.Runtime'
+exitFailure :: Int
+exitFailure = 1

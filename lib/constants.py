@@ -203,8 +203,8 @@ VALID_EXTRA_LOGREASONS = compat.UniqueFrozenset([
 # These are the extra logfiles, grouped by daemon
 DAEMONS_EXTRA_LOGBASE = {
   MOND: {
-    EXTRA_LOGREASON_ACCESS: "monitoring-daemon-access",
-    EXTRA_LOGREASON_ERROR: "monitoring-daemon-error",
+    EXTRA_LOGREASON_ACCESS: _constants.EXTRA_LOGREASON_ACCESS,
+    EXTRA_LOGREASON_ERROR: _constants.EXTRA_LOGREASON_ERROR,
     }
   }
 

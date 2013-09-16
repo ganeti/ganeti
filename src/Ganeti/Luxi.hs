@@ -76,8 +76,8 @@ import Ganeti.Errors
 import Ganeti.JSON
 import Ganeti.OpParams (pTagsObject)
 import Ganeti.OpCodes
-import Ganeti.Runtime
 import qualified Ganeti.Query.Language as Qlang
+import Ganeti.Runtime (GanetiDaemon(..), MiscGroup(..), GanetiGroup(..))
 import Ganeti.THH
 import Ganeti.Types
 import Ganeti.Utils

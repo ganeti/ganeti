@@ -40,7 +40,11 @@ import Data.Map (Map)
 import qualified Data.Map as Map (fromList)
 
 import AutoConf
-import Ganeti.ConstantUtils
+import Ganeti.ConstantUtils (FrozenSet, Protocol(..))
+import qualified Ganeti.ConstantUtils as ConstantUtils (mkSet, exitFailure)
+import Ganeti.Runtime (GanetiDaemon(..), MiscGroup(..), GanetiGroup(..),
+                       ExtraLogReason(..))
+import qualified Ganeti.Runtime as Runtime
 
 -- * Admin states
 
@@ -59,46 +63,46 @@ adminstAll = mkSet [adminstDown, adminstOffline, adminstUp]
 -- * User separation
 
 daemonsGroup :: String
-daemonsGroup = AutoConf.daemonsGroup
+daemonsGroup = Runtime.daemonGroup (ExtraGroup DaemonsGroup)
 
 adminGroup :: String
-adminGroup = AutoConf.adminGroup
+adminGroup = Runtime.daemonGroup (ExtraGroup AdminGroup)
 
 masterdUser :: String
-masterdUser = AutoConf.masterdUser
+masterdUser = Runtime.daemonUser GanetiMasterd
 
 masterdGroup :: String
-masterdGroup = AutoConf.masterdGroup
+masterdGroup = Runtime.daemonGroup (DaemonGroup GanetiMasterd)
 
 rapiUser :: String
-rapiUser = AutoConf.rapiUser
+rapiUser = Runtime.daemonUser GanetiRapi
 
 rapiGroup :: String
-rapiGroup = AutoConf.rapiGroup
+rapiGroup = Runtime.daemonGroup (DaemonGroup GanetiRapi)
 
 confdUser :: String
-confdUser = AutoConf.confdUser
+confdUser = Runtime.daemonUser GanetiConfd
 
 confdGroup :: String
-confdGroup = AutoConf.confdGroup
+confdGroup = Runtime.daemonGroup (DaemonGroup GanetiConfd)
 
 luxidUser :: String
-luxidUser = AutoConf.luxidUser
+luxidUser = Runtime.daemonUser GanetiLuxid
 
 luxidGroup :: String
-luxidGroup = AutoConf.luxidGroup
+luxidGroup = Runtime.daemonGroup (DaemonGroup GanetiLuxid)
 
 nodedUser :: String
-nodedUser = AutoConf.nodedUser
+nodedUser = Runtime.daemonUser GanetiNoded
 
 nodedGroup :: String
-nodedGroup = AutoConf.nodedGroup
+nodedGroup = Runtime.daemonGroup (DaemonGroup GanetiNoded)
 
 mondUser :: String
-mondUser = AutoConf.mondUser
+mondUser = Runtime.daemonUser GanetiMond
 
 mondGroup :: String
-mondGroup = AutoConf.mondGroup
+mondGroup = Runtime.daemonGroup (DaemonGroup GanetiMond)
 
 sshLoginUser :: String
 sshLoginUser = AutoConf.sshLoginUser
@@ -117,22 +121,22 @@ scp = "scp"
 -- * Daemons
 
 confd :: String
-confd = "ganeti-confd"
+confd = Runtime.daemonName GanetiConfd
 
 masterd :: String
-masterd = "ganeti-masterd"
+masterd = Runtime.daemonName GanetiMasterd
 
 mond :: String
-mond = "ganeti-mond"
+mond = Runtime.daemonName GanetiMond
 
 noded :: String
-noded = "ganeti-noded"
+noded = Runtime.daemonName GanetiNoded
 
 luxid :: String
-luxid = "ganeti-luxid"
+luxid = Runtime.daemonName GanetiLuxid
 
 rapi :: String
-rapi = "ganeti-rapi"
+rapi = Runtime.daemonName GanetiRapi
 
 daemons :: FrozenSet String
 daemons =
@@ -162,6 +166,12 @@ daemonsPorts =
                 (noded, (Tcp, defaultNodedPort)),
                 (rapi, (Tcp, defaultRapiPort)),
                 (ssh, (Tcp, 22))]
+
+extraLogreasonAccess :: String
+extraLogreasonAccess = Runtime.daemonsExtraLogbase GanetiMond AccessLog
+
+extraLogreasonError :: String
+extraLogreasonError = Runtime.daemonsExtraLogbase GanetiMond ErrorLog
 
 -- * Possible values for NodeGroup.alloc_policy
 
