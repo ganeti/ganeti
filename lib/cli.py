@@ -886,7 +886,7 @@ FILESTORE_DIR_OPT = cli_option("--file-storage-dir", dest="file_storage_dir",
 
 FILESTORE_DRIVER_OPT = cli_option("--file-driver", dest="file_driver",
                                   help="Driver to use for image files",
-                                  default="loop", metavar="<DRIVER>",
+                                  default=None, metavar="<DRIVER>",
                                   choices=list(constants.FILE_DRIVER))
 
 IALLOCATOR_OPT = cli_option("-I", "--iallocator", metavar="<NAME>",
