@@ -207,7 +207,7 @@ DAEMONS_EXTRA_LOGFILES = \
        for extra in DAEMONS_EXTRA_LOGBASE[daemon]))
          for daemon in DAEMONS_EXTRA_LOGBASE)
 
-DEV_CONSOLE = "/dev/console"
+DEV_CONSOLE = _constants.DEV_CONSOLE
 
 PROC_MOUNTS = "/proc/mounts"
 
@@ -220,11 +220,11 @@ LUXI_OVERRIDE_MASTER = "master"
 LUXI_OVERRIDE_QUERY = "query"
 
 # one of "no", "yes", "only"
-SYSLOG_USAGE = _autoconf.SYSLOG_USAGE
-SYSLOG_NO = "no"
-SYSLOG_YES = "yes"
-SYSLOG_ONLY = "only"
-SYSLOG_SOCKET = "/dev/log"
+SYSLOG_USAGE = _constants.SYSLOG_USAGE
+SYSLOG_NO = _constants.SYSLOG_NO
+SYSLOG_YES = _constants.SYSLOG_YES
+SYSLOG_ONLY = _constants.SYSLOG_ONLY
+SYSLOG_SOCKET = _constants.SYSLOG_SOCKET
 
 EXPORT_CONF_FILE = "config.ini"
 

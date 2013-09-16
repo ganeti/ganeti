@@ -71,3 +71,11 @@ instance PyValue Protocol where
 -- between 'Ganeti.HsConstants' and 'Ganeti.Runtime'
 exitFailure :: Int
 exitFailure = 1
+
+-- | Console device
+--
+-- This is defined here and not in 'Ganeti.HsConstants' order to avoid
+-- a circular dependency between 'Ganeti.HsConstants' and
+-- 'Ganeti.Logging'
+devConsole :: String
+devConsole = "/dev/console"

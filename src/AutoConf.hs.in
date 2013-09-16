@@ -127,28 +127,8 @@ drbdBarriers = "DRBD_BARRIERS"
 drbdNoMetaFlush :: Bool
 drbdNoMetaFlush = DRBD_NO_META_FLUSH
 
-data SyslogUsageT
-  = SyslogNo
-  | SyslogYes
-  | SyslogOnly
-  deriving (Bounded, Enum)
-
-instance Read SyslogUsageT where
-  readsPrec _ r = do
-    (s, r') <- lex r
-    case s of
-      "no" -> [(SyslogNo, r')]
-      "yes" -> [(SyslogYes, r')]
-      "only" -> [(SyslogOnly, r')]
-      _ -> []
-
-instance Show SyslogUsageT where
-  show SyslogNo = "no"
-  show SyslogYes = "yes"
-  show SyslogOnly = "only"
-
-syslogUsage :: SyslogUsageT
-syslogUsage = read "SYSLOG_USAGE" :: SyslogUsageT
+syslogUsage :: String
+syslogUsage = "SYSLOG_USAGE"
 
 daemonsGroup :: String
 daemonsGroup = "DAEMONS_GROUP"

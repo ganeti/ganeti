@@ -41,9 +41,11 @@ import qualified Data.Map as Map (fromList)
 
 import AutoConf
 import Ganeti.ConstantUtils (FrozenSet, Protocol(..))
-import qualified Ganeti.ConstantUtils as ConstantUtils (mkSet, exitFailure)
+import qualified Ganeti.ConstantUtils as ConstantUtils
 import Ganeti.Runtime (GanetiDaemon(..), MiscGroup(..), GanetiGroup(..),
                        ExtraLogReason(..))
+import Ganeti.Logging (SyslogUsage(..))
+import qualified Ganeti.Logging as Logging (syslogUsageToRaw)
 import qualified Ganeti.Runtime as Runtime
 
 -- * Admin states
@@ -177,6 +179,26 @@ extraLogreasonAccess = Runtime.daemonsExtraLogbase GanetiMond AccessLog
 
 extraLogreasonError :: String
 extraLogreasonError = Runtime.daemonsExtraLogbase GanetiMond ErrorLog
+
+devConsole :: String
+devConsole = ConstantUtils.devConsole
+
+-- * Syslog
+
+syslogUsage :: String
+syslogUsage = AutoConf.syslogUsage
+
+syslogNo :: String
+syslogNo = Logging.syslogUsageToRaw SyslogNo
+
+syslogYes :: String
+syslogYes = Logging.syslogUsageToRaw SyslogYes
+
+syslogOnly :: String
+syslogOnly = Logging.syslogUsageToRaw SyslogOnly
+
+syslogSocket :: String
+syslogSocket = "/dev/log"
 
 -- * Common exit codes
 

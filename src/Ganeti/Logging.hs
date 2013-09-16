@@ -55,13 +55,13 @@ import System.Log.Formatter
 import System.IO
 
 import Ganeti.THH
-import qualified Ganeti.Constants as C
+import qualified Ganeti.ConstantUtils as ConstantUtils
 
 -- | Syslog usage type.
-$(declareSADT "SyslogUsage"
-  [ ("SyslogNo",   'C.syslogNo)
-  , ("SyslogYes",  'C.syslogYes)
-  , ("SyslogOnly", 'C.syslogOnly)
+$(declareLADT ''String "SyslogUsage"
+  [ ("SyslogNo",   "no")
+  , ("SyslogYes",  "yes")
+  , ("SyslogOnly", "only")
   ])
 
 -- | Builds the log formatter.
@@ -98,7 +98,7 @@ setupLogging :: Maybe String    -- ^ Log file
              -> IO ()
 setupLogging logf program debug stderr_logging console syslog = do
   let level = if debug then DEBUG else INFO
-      destf = if console then Just C.devConsole else logf
+      destf = if console then Just ConstantUtils.devConsole else logf
       fmt = logFormatter program False False
       file_logging = syslog /= SyslogOnly
 
