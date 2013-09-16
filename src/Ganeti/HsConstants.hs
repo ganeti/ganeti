@@ -167,6 +167,11 @@ daemonsPorts =
                 (rapi, (Tcp, defaultRapiPort)),
                 (ssh, (Tcp, 22))]
 
+daemonsLogbase :: Map String String
+daemonsLogbase =
+  Map.fromList
+  [ (Runtime.daemonName d, Runtime.daemonLogBase d) | d <- [minBound..] ]
+
 extraLogreasonAccess :: String
 extraLogreasonAccess = Runtime.daemonsExtraLogbase GanetiMond AccessLog
 
