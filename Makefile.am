@@ -61,7 +61,10 @@ else
 DIRVERSION=$(VERSION_MAJOR).$(VERSION_MINOR)
 endif
 versiondir = $(libdir)/ganeti/$(DIRVERSION)
+defaultversiondir = $(libdir)/ganeti/default
 versionedsharedir = $(prefix)/share/ganeti/$(DIRVERSION)
+defaultversionedsharedir = $(prefix)/share/ganeti/default
+
 
 # Note: these are automake-specific variables, and must be named after
 # the directory + 'dir' suffix
@@ -94,16 +97,15 @@ pytoolsdir = $(pkgpythondir)/tools
 docdir = $(versiondir)$(datadir)/doc/$(PACKAGE)
 
 SYMLINK_TARGET_DIRS = \
-	$(pythondir) \
+	$(sysconfdir)/ganeti \
 	$(libdir)/ganeti/iallocators \
+	$(libdir)/ganeti/tools \
+	$(prefix)/share/ganeti \
 	$(exec_prefix)/bin \
 	$(exec_prefix)/sbin \
 	$(datarootdir)/man/man1 \
 	$(datarootdir)/man/man7 \
 	$(datarootdir)/man/man8
-SYMLINK_DIRS = \
-	$(pythondir)/ganeti \
-	$(libdir)/ganeti/tools
 
 # Delete output file if an error occurred while building it
 .DELETE_ON_ERROR:
@@ -899,7 +901,7 @@ gnt_scripts = \
 	scripts/gnt-storage
 
 gnt_scripts_basenames = \
-	$(patsubst scripts/%,%,$(gnt_scripts))
+	$(patsubst scripts/%,%,$(patsubst daemons/%,%,$(gnt_scripts) $(gnt_python_sbin_SCRIPTS)))
 
 gnt_python_sbin_SCRIPTS = \
 	$(PYTHON_BOOTSTRAP_SBIN)
@@ -1064,9 +1066,13 @@ dist_tools_SCRIPTS = \
 nodist_tools_python_SCRIPTS = \
 	tools/node-cleanup
 
+tools_python_basenames = $(patsubst tools/%,%,$(nodist_tools_python_SCRIPTS))
+
 nodist_tools_SCRIPTS = \
 	tools/users-setup \
 	tools/vcluster-setup
+
+tools_basenames = $(patsubst tools/%,%,$(nodist_tools_SCRIPTS) $(dist_tools_SCRIPTS))
 
 pkglib_python_scripts = \
 	daemons/import-export \
@@ -1077,6 +1083,10 @@ nodist_pkglib_python_scripts = \
 	tools/node-daemon-setup \
 	tools/prepare-node-join
 
+pkglib_python_basenames = \
+	$(patsubst daemons/%,%,$(patsubst tools/%,%,\
+	$(pkglib_python_scripts) $(nodist_pkglib_python_scripts)))
+
 myexeclib_SCRIPTS = \
 	daemons/daemon-util \
 	tools/kvm-ifup \
@@ -1084,10 +1094,9 @@ myexeclib_SCRIPTS = \
 	tools/net-common \
 	$(HS_MYEXECLIB_PROGS)
 
-# strip path prefixes off the lib python scripts
-all_myexeclib_scripts = \
-	$(patsubst tools/%,%,$(patsubst daemons/%,%,\
-	$(patsubst src/%,%,$(myexeclib_SCRIPTS) $(nodist_myexeclib_SCRIPTS))))
+# compute the basenames of the myexeclib_scripts
+myexeclib_scripts_basenames = \
+	$(patsubst tools/%,%,$(patsubst daemons/%,%,$(patsubst src/%,%,$(myexeclib_SCRIPTS))))
 
 EXTRA_DIST = \
 	NEWS \
@@ -2276,28 +2285,39 @@ install-exec-local:
 	@mkdir_p@ "$(DESTDIR)${localstatedir}/lib/ganeti" \
 	  "$(DESTDIR)${localstatedir}/log/ganeti" \
 	  "$(DESTDIR)${localstatedir}/run/ganeti"
-if INSTALL_SYMLINKS
 	for dir in $(SYMLINK_TARGET_DIRS); do \
 	  @mkdir_p@  $(DESTDIR)$$dir; \
 	done
+	$(LN_S) -f $(sysconfdir)/ganeti/lib $(DESTDIR)$(defaultversiondir)
+	$(LN_S) -f $(sysconfdir)/ganeti/share $(DESTDIR)$(defaultversionedsharedir)
 	for prog in $(HS_BIN_ROLES); do \
-	  $(LN_S) $(bindir)/$$prog $(DESTDIR)$(exec_prefix)/bin/$$prog; \
+	  $(LN_S) -f $(defaultversiondir)$(exec_prefix)/bin/$$prog $(DESTDIR)$(exec_prefix)/bin/$$prog; \
 	done
-	$(LN_S) $(bindir)/htools $(DESTDIR)$(libdir)/ganeti/iallocators/hail
+	$(LN_S) -f $(defaultversiondir)$(libdir)/ganeti/iallocators/hail $(DESTDIR)$(libdir)/ganeti/iallocators/hail
 	for prog in $(all_sbin_scripts); do \
-	  $(LN_S) $(sbindir)/$$prog $(DESTDIR)$(exec_prefix)/sbin/$$prog; \
+	  $(LN_S) -f $(defaultversiondir)$(exec_prefix)/sbin/$$prog $(DESTDIR)$(exec_prefix)/sbin/$$prog; \
 	done
-	for link in $(SYMLINK_DIRS); do \
-	  $(LN_S) $(versiondir)$$link $(DESTDIR)$$link; \
+	for prog in $(gnt_scripts_basenames); do \
+	  $(LN_S) -f $(defaultversionedsharedir)/$$prog $(DESTDIR)$(exec_prefix)/sbin/$$prog; \
 	done
-	for prog in $(all_myexeclib_scripts); do \
-	  $(LN_S) $(pkglibdir)/$$prog $(DESTDIR)$(libdir)/ganeti/$$prog; \
+	for prog in $(pkglib_python_basenames); do \
+	  $(LN_S) -f $(defaultversionedsharedir)/$$prog $(DESTDIR)$(libdir)/ganeti/$$prog; \
+	done
+	for prog in $(tools_python_basenames); do \
+	  $(LN_S) -f $(defaultversionedsharedir)/$$prog $(DESTDIR)$(libdir)/ganeti/tools/$$prog; \
+	done
+	for prog in $(tools_basenames); do \
+	  $(LN_S) -f $(defaultversiondir)/$(libdir)/ganeti/tools/$$prog $(DESTDIR)$(libdir)/ganeti/tools/$$prog; \
 	done
 	if ! test -n '$(ENABLE_MANPAGES)'; then \
 	  for man in $(manfullpath); do \
-	    $(LN_S) $(versiondir)$(datarootdir)/man/$$man $(DESTDIR)$(datarootdir)/man/$$man; \
+	    $(LN_S) -f $(defaultversionedsharedir)$(datarootdir)/man/$$man $(DESTDIR)$(datarootdir)/man/$$man; \
 	  done; \
 	fi
+	for prog in $(myexeclib_scripts_basenames); do \
+	  $(LN_S) -f $(defaultversiondir)$(libdir)/ganeti/$$prog $(DESTDIR)$(libdir)/ganeti/$$prog; \
+	done
+if INSTALL_SYMLINKS
 endif
 
 .PHONY: apidoc
