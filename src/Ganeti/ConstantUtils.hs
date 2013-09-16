@@ -79,3 +79,17 @@ exitFailure = 1
 -- 'Ganeti.Logging'
 devConsole :: String
 devConsole = "/dev/console"
+
+-- | Priority levels
+--
+-- This is defined here and not in 'Ganeti.Types' order to avoid a GHC
+-- stage restriction and because there is no suitable 'declareADT'
+-- variant that handles integer values directly.
+priorityLow :: Int
+priorityLow = 10
+
+priorityNormal :: Int
+priorityNormal = 0
+
+priorityHigh :: Int
+priorityHigh = -10

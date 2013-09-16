@@ -131,9 +131,9 @@ import qualified Text.JSON as JSON
 import Text.JSON (JSON, readJSON, showJSON)
 import Data.Ratio (numerator, denominator)
 
-import qualified Ganeti.Constants as C
-import qualified Ganeti.THH as THH
+import qualified Ganeti.ConstantUtils as ConstantUtils
 import Ganeti.JSON
+import qualified Ganeti.THH as THH
 import Ganeti.Utils
 
 -- * Generic types
@@ -253,15 +253,15 @@ instance JSON.JSON IPv6Network where
 -- * Ganeti types
 
 -- | Instance disk template type.
-$(THH.declareSADT "DiskTemplate"
-       [ ("DTDiskless",   'C.dtDiskless)
-       , ("DTFile",       'C.dtFile)
-       , ("DTSharedFile", 'C.dtSharedFile)
-       , ("DTPlain",      'C.dtPlain)
-       , ("DTBlock",      'C.dtBlock)
-       , ("DTDrbd8",      'C.dtDrbd8)
-       , ("DTRbd",        'C.dtRbd)
-       , ("DTExt",        'C.dtExt)
+$(THH.declareLADT ''String "DiskTemplate"
+       [ ("DTDiskless",   "diskless")
+       , ("DTFile",       "file")
+       , ("DTSharedFile", "sharedfile")
+       , ("DTPlain",      "plain")
+       , ("DTBlock",      "blockdev")
+       , ("DTDrbd8",      "drbd")
+       , ("DTRbd",        "rbd")
+       , ("DTExt",        "ext")
        ])
 $(THH.makeJSONInstance ''DiskTemplate)
 
@@ -270,11 +270,11 @@ instance HasStringRepr DiskTemplate where
   toStringRepr = diskTemplateToRaw
 
 -- | Data type representing what items the tag operations apply to.
-$(THH.declareSADT "TagKind"
-  [ ("TagKindInstance", 'C.tagInstance)
-  , ("TagKindNode",     'C.tagNode)
-  , ("TagKindGroup",    'C.tagNodegroup)
-  , ("TagKindCluster",  'C.tagCluster)
+$(THH.declareLADT ''String "TagKind"
+  [ ("TagKindInstance", "instance")
+  , ("TagKindNode",     "node")
+  , ("TagKindGroup",    "nodegroup")
+  , ("TagKindCluster",  "cluster")
   ])
 $(THH.makeJSONInstance ''TagKind)
 
@@ -284,125 +284,125 @@ $(THH.makeJSONInstance ''TagKind)
 -- Ord instance will order them in the order they are defined, so when
 -- changing this data type be careful about the interaction with the
 -- desired sorting order.
-$(THH.declareSADT "AllocPolicy"
-       [ ("AllocPreferred",   'C.allocPolicyPreferred)
-       , ("AllocLastResort",  'C.allocPolicyLastResort)
-       , ("AllocUnallocable", 'C.allocPolicyUnallocable)
+$(THH.declareLADT ''String "AllocPolicy"
+       [ ("AllocPreferred",   "preferred")
+       , ("AllocLastResort",  "last_resort")
+       , ("AllocUnallocable", "unallocable")
        ])
 $(THH.makeJSONInstance ''AllocPolicy)
 
 -- | The Instance real state type. FIXME: this could be improved to
 -- just wrap a /NormalState AdminStatus | ErrorState ErrorCondition/.
-$(THH.declareSADT "InstanceStatus"
-       [ ("StatusDown",    'C.inststAdmindown)
-       , ("StatusOffline", 'C.inststAdminoffline)
-       , ("ErrorDown",     'C.inststErrordown)
-       , ("ErrorUp",       'C.inststErrorup)
-       , ("NodeDown",      'C.inststNodedown)
-       , ("NodeOffline",   'C.inststNodeoffline)
-       , ("Running",       'C.inststRunning)
-       , ("WrongNode",     'C.inststWrongnode)
+$(THH.declareLADT ''String "InstanceStatus"
+       [ ("StatusDown",    "ADMIN_down")
+       , ("StatusOffline", "ADMIN_offline")
+       , ("ErrorDown",     "ERROR_down")
+       , ("ErrorUp",       "ERROR_up")
+       , ("NodeDown",      "ERROR_nodedown")
+       , ("NodeOffline",   "ERROR_nodeoffline")
+       , ("Running",       "running")
+       , ("WrongNode",     "ERROR_wrongnode")
        ])
 $(THH.makeJSONInstance ''InstanceStatus)
 
 -- | Migration mode.
-$(THH.declareSADT "MigrationMode"
-     [ ("MigrationLive",    'C.htMigrationLive)
-     , ("MigrationNonLive", 'C.htMigrationNonlive)
+$(THH.declareLADT ''String "MigrationMode"
+     [ ("MigrationLive",    "live")
+     , ("MigrationNonLive", "non-live")
      ])
 $(THH.makeJSONInstance ''MigrationMode)
 
 -- | Verify optional checks.
-$(THH.declareSADT "VerifyOptionalChecks"
-     [ ("VerifyNPlusOneMem", 'C.verifyNplusoneMem)
+$(THH.declareLADT ''String "VerifyOptionalChecks"
+     [ ("VerifyNPlusOneMem", "nplusone_mem")
      ])
 $(THH.makeJSONInstance ''VerifyOptionalChecks)
 
 -- | Cluster verify error codes.
-$(THH.declareSADT "CVErrorCode"
-  [ ("CvECLUSTERCFG",                  'C.cvEclustercfgCode)
-  , ("CvECLUSTERCERT",                 'C.cvEclustercertCode)
-  , ("CvECLUSTERFILECHECK",            'C.cvEclusterfilecheckCode)
-  , ("CvECLUSTERDANGLINGNODES",        'C.cvEclusterdanglingnodesCode)
-  , ("CvECLUSTERDANGLINGINST",         'C.cvEclusterdanglinginstCode)
-  , ("CvEINSTANCEBADNODE",             'C.cvEinstancebadnodeCode)
-  , ("CvEINSTANCEDOWN",                'C.cvEinstancedownCode)
-  , ("CvEINSTANCELAYOUT",              'C.cvEinstancelayoutCode)
-  , ("CvEINSTANCEMISSINGDISK",         'C.cvEinstancemissingdiskCode)
-  , ("CvEINSTANCEFAULTYDISK",          'C.cvEinstancefaultydiskCode)
-  , ("CvEINSTANCEWRONGNODE",           'C.cvEinstancewrongnodeCode)
-  , ("CvEINSTANCESPLITGROUPS",         'C.cvEinstancesplitgroupsCode)
-  , ("CvEINSTANCEPOLICY",              'C.cvEinstancepolicyCode)
-  , ("CvENODEDRBD",                    'C.cvEnodedrbdCode)
-  , ("CvENODEDRBDHELPER",              'C.cvEnodedrbdhelperCode)
-  , ("CvENODEFILECHECK",               'C.cvEnodefilecheckCode)
-  , ("CvENODEHOOKS",                   'C.cvEnodehooksCode)
-  , ("CvENODEHV",                      'C.cvEnodehvCode)
-  , ("CvENODELVM",                     'C.cvEnodelvmCode)
-  , ("CvENODEN1",                      'C.cvEnoden1Code)
-  , ("CvENODENET",                     'C.cvEnodenetCode)
-  , ("CvENODEOS",                      'C.cvEnodeosCode)
-  , ("CvENODEORPHANINSTANCE",          'C.cvEnodeorphaninstanceCode)
-  , ("CvENODEORPHANLV",                'C.cvEnodeorphanlvCode)
-  , ("CvENODERPC",                     'C.cvEnoderpcCode)
-  , ("CvENODESSH",                     'C.cvEnodesshCode)
-  , ("CvENODEVERSION",                 'C.cvEnodeversionCode)
-  , ("CvENODESETUP",                   'C.cvEnodesetupCode)
-  , ("CvENODETIME",                    'C.cvEnodetimeCode)
-  , ("CvENODEOOBPATH",                 'C.cvEnodeoobpathCode)
-  , ("CvENODEUSERSCRIPTS",             'C.cvEnodeuserscriptsCode)
-  , ("CvENODEFILESTORAGEPATHS",        'C.cvEnodefilestoragepathsCode)
-  , ("CvENODEFILESTORAGEPATHUNUSABLE", 'C.cvEnodefilestoragepathunusableCode)
+$(THH.declareLADT ''String "CVErrorCode"
+  [ ("CvECLUSTERCFG",                  "ECLUSTERCFG")
+  , ("CvECLUSTERCERT",                 "ECLUSTERCERT")
+  , ("CvECLUSTERFILECHECK",            "ECLUSTERFILECHECK")
+  , ("CvECLUSTERDANGLINGNODES",        "ECLUSTERDANGLINGNODES")
+  , ("CvECLUSTERDANGLINGINST",         "ECLUSTERDANGLINGINST")
+  , ("CvEINSTANCEBADNODE",             "EINSTANCEBADNODE")
+  , ("CvEINSTANCEDOWN",                "EINSTANCEDOWN")
+  , ("CvEINSTANCELAYOUT",              "EINSTANCELAYOUT")
+  , ("CvEINSTANCEMISSINGDISK",         "EINSTANCEMISSINGDISK")
+  , ("CvEINSTANCEFAULTYDISK",          "EINSTANCEFAULTYDISK")
+  , ("CvEINSTANCEWRONGNODE",           "EINSTANCEWRONGNODE")
+  , ("CvEINSTANCESPLITGROUPS",         "EINSTANCESPLITGROUPS")
+  , ("CvEINSTANCEPOLICY",              "EINSTANCEPOLICY")
+  , ("CvENODEDRBD",                    "ENODEDRBD")
+  , ("CvENODEDRBDHELPER",              "ENODEDRBDHELPER")
+  , ("CvENODEFILECHECK",               "ENODEFILECHECK")
+  , ("CvENODEHOOKS",                   "ENODEHOOKS")
+  , ("CvENODEHV",                      "ENODEHV")
+  , ("CvENODELVM",                     "ENODELVM")
+  , ("CvENODEN1",                      "ENODEN1")
+  , ("CvENODENET",                     "ENODENET")
+  , ("CvENODEOS",                      "ENODEOS")
+  , ("CvENODEORPHANINSTANCE",          "ENODEORPHANINSTANCE")
+  , ("CvENODEORPHANLV",                "ENODEORPHANLV")
+  , ("CvENODERPC",                     "ENODERPC")
+  , ("CvENODESSH",                     "ENODESSH")
+  , ("CvENODEVERSION",                 "ENODEVERSION")
+  , ("CvENODESETUP",                   "ENODESETUP")
+  , ("CvENODETIME",                    "ENODETIME")
+  , ("CvENODEOOBPATH",                 "ENODEOOBPATH")
+  , ("CvENODEUSERSCRIPTS",             "ENODEUSERSCRIPTS")
+  , ("CvENODEFILESTORAGEPATHS",        "ENODEFILESTORAGEPATHS")
+  , ("CvENODEFILESTORAGEPATHUNUSABLE", "ENODEFILESTORAGEPATHUNUSABLE")
   , ("CvENODESHAREDFILESTORAGEPATHUNUSABLE",
-     'C.cvEnodesharedfilestoragepathunusableCode)
+     "ENODESHAREDFILESTORAGEPATHUNUSABLE")
   ])
 $(THH.makeJSONInstance ''CVErrorCode)
 
 -- | Dynamic device modification, just add\/remove version.
-$(THH.declareSADT "DdmSimple"
-     [ ("DdmSimpleAdd",    'C.ddmAdd)
-     , ("DdmSimpleRemove", 'C.ddmRemove)
+$(THH.declareLADT ''String "DdmSimple"
+     [ ("DdmSimpleAdd",    "add")
+     , ("DdmSimpleRemove", "remove")
      ])
 $(THH.makeJSONInstance ''DdmSimple)
 
 -- | Dynamic device modification, all operations version.
-$(THH.declareSADT "DdmFull"
-     [ ("DdmFullAdd",    'C.ddmAdd)
-     , ("DdmFullRemove", 'C.ddmRemove)
-     , ("DdmFullModify", 'C.ddmModify)
+$(THH.declareLADT ''String "DdmFull"
+     [ ("DdmFullAdd",    "add")
+     , ("DdmFullRemove", "remove")
+     , ("DdmFullModify", "modify")
      ])
 $(THH.makeJSONInstance ''DdmFull)
 
 -- | Hypervisor type definitions.
-$(THH.declareSADT "Hypervisor"
-  [ ( "Kvm",    'C.htKvm )
-  , ( "XenPvm", 'C.htXenPvm )
-  , ( "Chroot", 'C.htChroot )
-  , ( "XenHvm", 'C.htXenHvm )
-  , ( "Lxc",    'C.htLxc )
-  , ( "Fake",   'C.htFake )
+$(THH.declareLADT ''String "Hypervisor"
+  [ ("Kvm",    "kvm")
+  , ("XenPvm", "xen-pvm")
+  , ("Chroot", "chroot")
+  , ("XenHvm", "xen-hvm")
+  , ("Lxc",    "lxc")
+  , ("Fake",   "fake")
   ])
 $(THH.makeJSONInstance ''Hypervisor)
 
 -- | Oob command type.
-$(THH.declareSADT "OobCommand"
-  [ ("OobHealth",      'C.oobHealth)
-  , ("OobPowerCycle",  'C.oobPowerCycle)
-  , ("OobPowerOff",    'C.oobPowerOff)
-  , ("OobPowerOn",     'C.oobPowerOn)
-  , ("OobPowerStatus", 'C.oobPowerStatus)
+$(THH.declareLADT ''String "OobCommand"
+  [ ("OobHealth",      "health")
+  , ("OobPowerCycle",  "power-cycle")
+  , ("OobPowerOff",    "power-off")
+  , ("OobPowerOn",     "power-on")
+  , ("OobPowerStatus", "power-status")
   ])
 $(THH.makeJSONInstance ''OobCommand)
 
 -- | Storage type.
-$(THH.declareSADT "StorageType"
-  [ ("StorageFile", 'C.stFile)
-  , ("StorageLvmPv", 'C.stLvmPv)
-  , ("StorageLvmVg", 'C.stLvmVg)
-  , ("StorageDiskless", 'C.stDiskless)
-  , ("StorageBlock", 'C.stBlock)
-  , ("StorageRados", 'C.stRados)
-  , ("StorageExt", 'C.stExt)
+$(THH.declareLADT ''String "StorageType"
+  [ ("StorageFile", "file")
+  , ("StorageLvmPv", "lvm-pv")
+  , ("StorageLvmVg", "lvm-vg")
+  , ("StorageDiskless", "diskless")
+  , ("StorageBlock", "blockdev")
+  , ("StorageRados", "rados")
+  , ("StorageExt", "ext")
   ])
 $(THH.makeJSONInstance ''StorageType)
 
@@ -456,7 +456,7 @@ showSUSimple st sk = show (storageTypeToRaw st, sk, []::[String])
 showSULvm :: StorageType -> StorageKey -> SPExclusiveStorage -> String
 showSULvm st sk es = show (storageTypeToRaw st, sk, [es])
 
--- | Mapping fo disk templates to storage type
+-- | Mapping from disk templates to storage types
 -- FIXME: This is semantically the same as the constant
 -- C.diskTemplatesStorageType, remove this when python constants
 -- are generated from haskell constants
@@ -481,87 +481,87 @@ addParamsToStorageUnit es (SURaw StorageLvmVg key) = SULvmVg key es
 addParamsToStorageUnit _ (SURaw StorageRados key) = SURados key
 
 -- | Node evac modes.
-$(THH.declareSADT "NodeEvacMode"
-  [ ("NEvacPrimary",   'C.iallocatorNevacPri)
-  , ("NEvacSecondary", 'C.iallocatorNevacSec)
-  , ("NEvacAll",       'C.iallocatorNevacAll)
+$(THH.declareLADT ''String "NodeEvacMode"
+  [ ("NEvacPrimary",   "primary-only")
+  , ("NEvacSecondary", "secondary-only")
+  , ("NEvacAll",       "all")
   ])
 $(THH.makeJSONInstance ''NodeEvacMode)
 
 -- | The file driver type.
-$(THH.declareSADT "FileDriver"
-  [ ("FileLoop",   'C.fdLoop)
-  , ("FileBlktap", 'C.fdBlktap)
+$(THH.declareLADT ''String "FileDriver"
+  [ ("FileLoop",   "loop")
+  , ("FileBlktap", "blktap")
   ])
 $(THH.makeJSONInstance ''FileDriver)
 
 -- | The instance create mode.
-$(THH.declareSADT "InstCreateMode"
-  [ ("InstCreate",       'C.instanceCreate)
-  , ("InstImport",       'C.instanceImport)
-  , ("InstRemoteImport", 'C.instanceRemoteImport)
+$(THH.declareLADT ''String "InstCreateMode"
+  [ ("InstCreate",       "create")
+  , ("InstImport",       "import")
+  , ("InstRemoteImport", "remote-import")
   ])
 $(THH.makeJSONInstance ''InstCreateMode)
 
 -- | Reboot type.
-$(THH.declareSADT "RebootType"
-  [ ("RebootSoft", 'C.instanceRebootSoft)
-  , ("RebootHard", 'C.instanceRebootHard)
-  , ("RebootFull", 'C.instanceRebootFull)
+$(THH.declareLADT ''String "RebootType"
+  [ ("RebootSoft", "soft")
+  , ("RebootHard", "hard")
+  , ("RebootFull", "full")
   ])
 $(THH.makeJSONInstance ''RebootType)
 
 -- | Export modes.
-$(THH.declareSADT "ExportMode"
-  [ ("ExportModeLocal",  'C.exportModeLocal)
-  , ("ExportModeRemove", 'C.exportModeRemote)
+$(THH.declareLADT ''String "ExportMode"
+  [ ("ExportModeLocal",  "local")
+  , ("ExportModeRemove", "remote")
   ])
 $(THH.makeJSONInstance ''ExportMode)
 
 -- | IAllocator run types (OpTestIAllocator).
-$(THH.declareSADT "IAllocatorTestDir"
-  [ ("IAllocatorDirIn",  'C.iallocatorDirIn)
-  , ("IAllocatorDirOut", 'C.iallocatorDirOut)
+$(THH.declareLADT ''String "IAllocatorTestDir"
+  [ ("IAllocatorDirIn",  "in")
+  , ("IAllocatorDirOut", "out")
   ])
 $(THH.makeJSONInstance ''IAllocatorTestDir)
 
 -- | IAllocator mode. FIXME: use this in "HTools.Backend.IAlloc".
-$(THH.declareSADT "IAllocatorMode"
-  [ ("IAllocatorAlloc",       'C.iallocatorModeAlloc)
-  , ("IAllocatorMultiAlloc",  'C.iallocatorModeMultiAlloc)
-  , ("IAllocatorReloc",       'C.iallocatorModeReloc)
-  , ("IAllocatorNodeEvac",    'C.iallocatorModeNodeEvac)
-  , ("IAllocatorChangeGroup", 'C.iallocatorModeChgGroup)
+$(THH.declareLADT ''String "IAllocatorMode"
+  [ ("IAllocatorAlloc",       "allocate")
+  , ("IAllocatorMultiAlloc",  "multi-allocate")
+  , ("IAllocatorReloc",       "relocate")
+  , ("IAllocatorNodeEvac",    "node-evacuate")
+  , ("IAllocatorChangeGroup", "change-group")
   ])
 $(THH.makeJSONInstance ''IAllocatorMode)
 
 -- | Network mode.
-$(THH.declareSADT "NICMode"
-  [ ("NMBridged", 'C.nicModeBridged)
-  , ("NMRouted",  'C.nicModeRouted)
-  , ("NMOvs",     'C.nicModeOvs)
+$(THH.declareLADT ''String "NICMode"
+  [ ("NMBridged", "bridged")
+  , ("NMRouted",  "routed")
+  , ("NMOvs",     "openvswitch")
   ])
 $(THH.makeJSONInstance ''NICMode)
 
 -- | The JobStatus data type. Note that this is ordered especially
 -- such that greater\/lesser comparison on values of this type makes
 -- sense.
-$(THH.declareSADT "JobStatus"
-       [ ("JOB_STATUS_QUEUED",    'C.jobStatusQueued)
-       , ("JOB_STATUS_WAITING",   'C.jobStatusWaiting)
-       , ("JOB_STATUS_CANCELING", 'C.jobStatusCanceling)
-       , ("JOB_STATUS_RUNNING",   'C.jobStatusRunning)
-       , ("JOB_STATUS_CANCELED",  'C.jobStatusCanceled)
-       , ("JOB_STATUS_SUCCESS",   'C.jobStatusSuccess)
-       , ("JOB_STATUS_ERROR",     'C.jobStatusError)
+$(THH.declareLADT ''String "JobStatus"
+       [ ("JOB_STATUS_QUEUED",    "queued")
+       , ("JOB_STATUS_WAITING",   "waiting")
+       , ("JOB_STATUS_CANCELING", "canceling")
+       , ("JOB_STATUS_RUNNING",   "running")
+       , ("JOB_STATUS_CANCELED",  "canceled")
+       , ("JOB_STATUS_SUCCESS",   "success")
+       , ("JOB_STATUS_ERROR",     "error")
        ])
 $(THH.makeJSONInstance ''JobStatus)
 
 -- | Finalized job status.
-$(THH.declareSADT "FinalizedJobStatus"
-  [ ("JobStatusCanceled",   'C.jobStatusCanceled)
-  , ("JobStatusSuccessful", 'C.jobStatusSuccess)
-  , ("JobStatusFailed",     'C.jobStatusError)
+$(THH.declareLADT ''String "FinalizedJobStatus"
+  [ ("JobStatusCanceled",   "canceled")
+  , ("JobStatusSuccessful", "success")
+  , ("JobStatusFailed",     "error")
   ])
 $(THH.makeJSONInstance ''FinalizedJobStatus)
 
@@ -619,9 +619,9 @@ instance JSON JobDependency where
 
 -- | Valid opcode priorities for submit.
 $(THH.declareIADT "OpSubmitPriority"
-  [ ("OpPrioLow",    'C.opPrioLow)
-  , ("OpPrioNormal", 'C.opPrioNormal)
-  , ("OpPrioHigh",   'C.opPrioHigh)
+  [ ("OpPrioLow",    'ConstantUtils.priorityLow)
+  , ("OpPrioNormal", 'ConstantUtils.priorityNormal)
+  , ("OpPrioHigh",   'ConstantUtils.priorityHigh)
   ])
 $(THH.makeJSONInstance ''OpSubmitPriority)
 
@@ -639,22 +639,22 @@ fmtSubmitPriority OpPrioNormal = "normal"
 fmtSubmitPriority OpPrioHigh   = "high"
 
 -- | Our ADT for the OpCode status at runtime (while in a job).
-$(THH.declareSADT "OpStatus"
-  [ ("OP_STATUS_QUEUED",    'C.opStatusQueued)
-  , ("OP_STATUS_WAITING",   'C.opStatusWaiting)
-  , ("OP_STATUS_CANCELING", 'C.opStatusCanceling)
-  , ("OP_STATUS_RUNNING",   'C.opStatusRunning)
-  , ("OP_STATUS_CANCELED",  'C.opStatusCanceled)
-  , ("OP_STATUS_SUCCESS",   'C.opStatusSuccess)
-  , ("OP_STATUS_ERROR",     'C.opStatusError)
+$(THH.declareLADT ''String "OpStatus"
+  [ ("OP_STATUS_QUEUED",    "queued")
+  , ("OP_STATUS_WAITING",   "waiting")
+  , ("OP_STATUS_CANCELING", "canceling")
+  , ("OP_STATUS_RUNNING",   "running")
+  , ("OP_STATUS_CANCELED",  "canceled")
+  , ("OP_STATUS_SUCCESS",   "success")
+  , ("OP_STATUS_ERROR",     "error")
   ])
 $(THH.makeJSONInstance ''OpStatus)
 
 -- | Type for the job message type.
-$(THH.declareSADT "ELogType"
-  [ ("ELogMessage",      'C.elogMessage)
-  , ("ELogRemoteImport", 'C.elogRemoteImport)
-  , ("ELogJqueueTest",   'C.elogJqueueTest)
+$(THH.declareLADT ''String "ELogType"
+  [ ("ELogMessage",      "message")
+  , ("ELogRemoteImport", "remote-import")
+  , ("ELogJqueueTest",   "jqueue-test")
   ])
 $(THH.makeJSONInstance ''ELogType)
 
