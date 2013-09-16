@@ -228,16 +228,12 @@ SYSLOG_SOCKET = _constants.SYSLOG_SOCKET
 
 EXPORT_CONF_FILE = "config.ini"
 
-XEN_BOOTLOADER = _autoconf.XEN_BOOTLOADER
-XEN_KERNEL = _autoconf.XEN_KERNEL
-XEN_INITRD = _autoconf.XEN_INITRD
-XEN_CMD_XM = "xm"
-XEN_CMD_XL = "xl"
-
-KNOWN_XEN_COMMANDS = compat.UniqueFrozenset([
-  XEN_CMD_XM,
-  XEN_CMD_XL,
-  ])
+XEN_BOOTLOADER = _constants.XEN_BOOTLOADER
+XEN_KERNEL = _constants.XEN_KERNEL
+XEN_INITRD = _constants.XEN_INITRD
+XEN_CMD_XM = _constants.XEN_CMD_XM
+XEN_CMD_XL = _constants.XEN_CMD_XL
+KNOWN_XEN_COMMANDS = _constants.KNOWN_XEN_COMMANDS
 
 # When the Xen toolstack used is "xl", live migration requires the source host
 # to connect to the target host via ssh (xl runs this command). We need to pass

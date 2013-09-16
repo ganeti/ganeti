@@ -200,6 +200,28 @@ syslogOnly = Logging.syslogUsageToRaw SyslogOnly
 syslogSocket :: String
 syslogSocket = "/dev/log"
 
+-- * Xen
+
+xenBootloader :: String
+xenBootloader = AutoConf.xenBootloader
+
+xenCmdXl :: String
+xenCmdXl = "xl"
+
+xenCmdXm :: String
+xenCmdXm = "xm"
+
+xenInitrd :: String
+xenInitrd = AutoConf.xenInitrd
+
+xenKernel :: String
+xenKernel = AutoConf.xenKernel
+
+-- FIXME: perhaps rename to 'validXenCommands' for consistency with
+-- other constants
+knownXenCommands :: FrozenSet String
+knownXenCommands = ConstantUtils.mkSet [xenCmdXl, xenCmdXm]
+
 -- * Common exit codes
 
 exitSuccess :: Int
