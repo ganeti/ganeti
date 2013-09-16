@@ -58,7 +58,7 @@ adminstUp :: String
 adminstUp = "up"
 
 adminstAll :: FrozenSet String
-adminstAll = mkSet [adminstDown, adminstOffline, adminstUp]
+adminstAll = ConstantUtils.mkSet [adminstDown, adminstOffline, adminstUp]
 
 -- * User separation
 
@@ -140,12 +140,12 @@ rapi = Runtime.daemonName GanetiRapi
 
 daemons :: FrozenSet String
 daemons =
-  mkSet [confd,
-         luxid,
-         masterd,
-         mond,
-         noded,
-         rapi]
+  ConstantUtils.mkSet [confd,
+                       luxid,
+                       masterd,
+                       mond,
+                       noded,
+                       rapi]
 
 defaultConfdPort :: Int
 defaultConfdPort = 1814
@@ -177,6 +177,31 @@ extraLogreasonAccess = Runtime.daemonsExtraLogbase GanetiMond AccessLog
 
 extraLogreasonError :: String
 extraLogreasonError = Runtime.daemonsExtraLogbase GanetiMond ErrorLog
+
+-- * Common exit codes
+
+exitSuccess :: Int
+exitSuccess = 0
+
+exitFailure :: Int
+exitFailure = ConstantUtils.exitFailure
+
+exitNotcluster :: Int
+exitNotcluster = 5
+
+exitNotmaster :: Int
+exitNotmaster = 11
+
+exitNodesetupError :: Int
+exitNodesetupError = 12
+
+-- | Need user confirmation
+exitConfirmation :: Int
+exitConfirmation = 13
+
+-- | Exit code for query operations with unknown fields
+exitUnknownField :: Int
+exitUnknownField = 14
 
 -- * Possible values for NodeGroup.alloc_policy
 
@@ -232,10 +257,10 @@ autoRepairReinstall = "reinstall"
 
 autoRepairAllTypes :: FrozenSet String
 autoRepairAllTypes =
-  mkSet [autoRepairFailover,
-         autoRepairFixStorage,
-         autoRepairMigrate,
-         autoRepairReinstall]
+  ConstantUtils.mkSet [autoRepairFailover,
+                       autoRepairFixStorage,
+                       autoRepairMigrate,
+                       autoRepairReinstall]
 
 -- * Auto-repair results
 
@@ -250,7 +275,7 @@ autoRepairSuccess = "success"
 
 autoRepairAllResults :: FrozenSet String
 autoRepairAllResults =
-  mkSet [autoRepairEnoperm, autoRepairFailure, autoRepairSuccess]
+  ConstantUtils.mkSet [autoRepairEnoperm, autoRepairFailure, autoRepairSuccess]
 
 -- | The version identifier for builtin data collectors
 builtinDataCollectorVersion :: String
