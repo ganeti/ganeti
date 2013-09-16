@@ -51,6 +51,7 @@ import qualified Ganeti.DataCollectors.InstStatus as InstStatus
 import qualified Ganeti.DataCollectors.Lv as Lv
 import Ganeti.DataCollectors.Types
 import qualified Ganeti.Constants as C
+import Ganeti.Runtime
 
 -- * Types and constants definitions
 
@@ -99,11 +100,11 @@ collectors =
 -- * Configuration handling
 
 -- | The default configuration for the HTTP server.
-defaultHttpConf :: Config Snap ()
-defaultHttpConf =
-  setAccessLog (ConfigFileLog C.daemonsExtraLogfilesGanetiMondAccess) .
+defaultHttpConf :: FilePath -> FilePath -> Config Snap ()
+defaultHttpConf accessLog errorLog =
+  setAccessLog (ConfigFileLog accessLog) .
   setCompression False .
-  setErrorLog (ConfigFileLog C.daemonsExtraLogfilesGanetiMondError) $
+  setErrorLog (ConfigFileLog errorLog) $
   setVerbose False
   emptyConfig
 
@@ -115,10 +116,16 @@ checkMain _ = return $ Right ()
 
 -- | Prepare function for monitoring agent.
 prepMain :: PrepFn CheckResult PrepResult
-prepMain opts _ =
-  return $
-    setPort (maybe C.defaultMondPort fromIntegral (optPort opts))
-      defaultHttpConf
+prepMain opts _ = do
+  mAccessLog <- daemonsExtraLogFile GanetiMond AccessLog
+  mErrorLog <- daemonsExtraLogFile GanetiMond ErrorLog
+  case (mAccessLog, mErrorLog) of
+    (Just accessLog, Just errorLog) ->
+      return $
+        setPort
+          (maybe C.defaultMondPort fromIntegral (optPort opts))
+          (defaultHttpConf accessLog errorLog)
+    _ -> fail "Failed to retrieve extra log filepaths for the monitoring daemon"
 
 -- * Query answers
 

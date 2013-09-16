@@ -32,7 +32,9 @@ module Ganeti.Runtime
   , daemonOnlyOnMaster
   , daemonUser
   , daemonGroup
+  , ExtraLogReason(..)
   , daemonLogFile
+  , daemonsExtraLogFile
   , daemonPidFile
   , getEnts
   , verifyDaemonUser
@@ -118,11 +120,29 @@ daemonGroup (DaemonGroup GanetiMond)    = C.mondGroup
 daemonGroup (ExtraGroup  DaemonsGroup)  = C.daemonsGroup
 daemonGroup (ExtraGroup  AdminGroup)    = C.adminGroup
 
+data ExtraLogReason = AccessLog | ErrorLog
+
+daemonsExtraLogbase :: GanetiDaemon -> ExtraLogReason -> Maybe String
+daemonsExtraLogbase GanetiMond AccessLog =
+  Just C.daemonsExtraLogbaseGanetiMondAccess
+
+daemonsExtraLogbase GanetiMond ErrorLog =
+  Just C.daemonsExtraLogbaseGanetiMondError
+
+daemonsExtraLogbase _ _ = Nothing
+
 -- | Returns the log file for a daemon.
 daemonLogFile :: GanetiDaemon -> IO FilePath
 daemonLogFile daemon = do
   logDir <- Path.logDir
   return $ logDir </> daemonLogBase daemon <.> "log"
+
+daemonsExtraLogFile :: GanetiDaemon -> ExtraLogReason -> IO (Maybe FilePath)
+daemonsExtraLogFile daemon logreason = do
+  logDir <- Path.logDir
+  case daemonsExtraLogbase daemon logreason of
+    Nothing -> return Nothing
+    Just logbase -> return . Just $ logDir </> logbase <.> "log"
 
 -- | Returns the pid file name for a daemon.
 daemonPidFile :: GanetiDaemon -> IO FilePath
