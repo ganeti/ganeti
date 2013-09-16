@@ -65,7 +65,7 @@ OPTIONS
   to simulate rebalancing.
 
 For a detailed description about the options listed above have a look at
-**htools**\(7), **hspace**\(1) and **hbal**\(1).
+**htools**\(1), **hspace**\(1) and **hbal**\(1).
 
 .. vim: set textwidth=72 :
 .. Local Variables:
