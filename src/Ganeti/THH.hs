@@ -30,6 +30,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 
 module Ganeti.THH ( declareSADT
+                  , declareLADT
                   , declareIADT
                   , makeJSONInstance
                   , deCamelCase
@@ -360,7 +361,7 @@ genToRaw traw fname tname constructors = do
 --               | s == \"value2\" = Cons2
 --               | otherwise = fail /.../
 -- @
-genFromRaw :: Name -> Name -> Name -> [(String, Name)] -> Q [Dec]
+genFromRaw :: Name -> Name -> Name -> [(String, Either String Name)] -> Q [Dec]
 genFromRaw traw fname tname constructors = do
   -- signature of form (Monad m) => String -> m $name
   sigt <- [t| (Monad m) => $(conT traw) -> m $(conT tname) |]
@@ -369,7 +370,7 @@ genFromRaw traw fname tname constructors = do
       varpe = varE varp
   clauses <- mapM (\(c, v) -> do
                      -- the clause match condition
-                     g <- normalG [| $varpe == $(varE v) |]
+                     g <- normalG [| $varpe == $(reprE v) |]
                      -- the clause result
                      r <- [| return $(conE (mkName c)) |]
                      return (g, r)) constructors
@@ -399,21 +400,25 @@ genFromRaw traw fname tname constructors = do
 --
 -- Note that this is basically just a custom show\/read instance,
 -- nothing else.
-declareADT :: Name -> String -> [(String, Name)] -> Q [Dec]
-declareADT traw sname cons = do
+declareADT
+  :: (a -> Either String Name) -> Name -> String -> [(String, a)] -> Q [Dec]
+declareADT fn traw sname cons = do
   let name = mkName sname
       ddecl = strADTDecl name (map fst cons)
       -- process cons in the format expected by genToRaw
-      cons' = map (\(a, b) -> (a, Right b)) cons
+      cons' = map (\(a, b) -> (a, fn b)) cons
   toraw <- genToRaw traw (toRawName sname) name cons'
-  fromraw <- genFromRaw traw (fromRawName sname) name cons
+  fromraw <- genFromRaw traw (fromRawName sname) name cons'
   return $ ddecl:toraw ++ fromraw
 
+declareLADT :: Name -> String -> [(String, String)] -> Q [Dec]
+declareLADT = declareADT Left
+
 declareIADT :: String -> [(String, Name)] -> Q [Dec]
-declareIADT = declareADT ''Int
+declareIADT = declareADT Right ''Int
 
 declareSADT :: String -> [(String, Name)] -> Q [Dec]
-declareSADT = declareADT ''String
+declareSADT = declareADT Right ''String
 
 -- | Creates the showJSON member of a JSON instance declaration.
 --
