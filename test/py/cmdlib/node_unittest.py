@@ -25,14 +25,22 @@
 
 from collections import defaultdict
 
+from ganeti import compat
 from ganeti import constants
 from ganeti import objects
 from ganeti import opcodes
+from ganeti import errors
 
 from testsupport import *
 
 import testutils
 
+# pylint: disable=W0613
+def _TcpPingFailSecondary(cfg, mock_fct, target, port, timeout=None,
+                          live_port_needed=None, source=None):
+  # This will return True if target is in 192.0.2.0/24 (primary range)
+  # and False if not.
+  return "192.0.2." in target
 
 class TestLUNodeAdd(CmdlibTestCase):
   def setUp(self):
@@ -130,6 +138,121 @@ class TestLUNodeAdd(CmdlibTestCase):
                      created_node.ndparams.get(constants.ND_OVS, None))
     self.assertEqual(ndparams[constants.ND_OVS_LINK],
                      created_node.ndparams.get(constants.ND_OVS_LINK, None))
+
+  def testReaddingMaster(self):
+    op = opcodes.OpNodeAdd(node_name=self.cfg.GetMasterNodeName(),
+                           readd=True)
+
+    self.ExecOpCodeExpectOpPrereqError(op, "Cannot readd the master node")
+
+  def testReaddNotVmCapableNode(self):
+    self.cfg.AddNewInstance(primary_node=self.node_readd)
+    self.netutils_mod.GetHostname.return_value = \
+      HostnameMock(self.node_readd.name, self.node_readd.primary_ip)
+
+    op = self.CopyOpCode(self.op_readd, vm_capable=False)
+
+    self.ExecOpCodeExpectOpPrereqError(op, "Node .* being re-added with"
+                                       " vm_capable flag set to false, but it"
+                                       " already holds instances")
+
+  def testReaddAndPassNodeGroup(self):
+    op = self.CopyOpCode(self.op_readd,group="groupname")
+
+    self.ExecOpCodeExpectOpPrereqError(op, "Cannot pass a node group when a"
+                                       " node is being readded")
+
+  def testPrimaryIPv6(self):
+    self.master.secondary_ip = self.master.primary_ip
+
+    op = self.CopyOpCode(self.op_add, primary_ip="2001:DB8::1",
+                         secondary_ip=self.REMOVE)
+
+    self.ExecOpCode(op)
+
+  def testInvalidSecondaryIP(self):
+    op = self.CopyOpCode(self.op_add, secondary_ip="333.444.555.777")
+
+    self.ExecOpCodeExpectOpPrereqError(op, "Secondary IP .* needs to be a valid"
+                                       " IPv4 address")
+
+  def testNodeAlreadyInCluster(self):
+    op = self.CopyOpCode(self.op_readd, readd=False)
+
+    self.ExecOpCodeExpectOpPrereqError(op, "Node %s is already in the"
+                                       " configuration" % self.node_readd.name)
+
+  def testReaddNodeNotInConfiguration(self):
+    op = self.CopyOpCode(self.op_add, readd=True)
+
+    self.ExecOpCodeExpectOpPrereqError(op, "Node %s is not in the"
+                                       " configuration" % self.node_add.name)
+
+  def testPrimaryIpConflict(self):
+    # In LUNodeAdd, DNS will resolve the node name to an IP address, that is
+    # used to overwrite any given primary_ip value!
+    # Thus we need to mock this DNS resolver here!
+    self.netutils_mod.GetHostname.return_value = \
+      HostnameMock(self.node_add.name, self.node_readd.primary_ip)
+
+    op = self.CopyOpCode(self.op_add)
+
+    self.ExecOpCodeExpectOpPrereqError(op, "New node ip address.* conflict with"
+                                       " existing node")
+
+  def testSecondaryIpConflict(self):
+    op = self.CopyOpCode(self.op_add, secondary_ip=self.node_readd.secondary_ip)
+
+    self.ExecOpCodeExpectOpPrereqError(op, "New node ip address.* conflict with"
+                                       " existing node")
+
+  def testReaddWithDifferentIP(self):
+    op = self.CopyOpCode(self.op_readd, primary_ip="192.0.2.100",
+                         secondary_ip="230.0.113.100")
+
+    self.ExecOpCodeExpectOpPrereqError(op, "Readded node doesn't have the same"
+                                       " IP address configuration as before")
+
+
+  def testNodeHasSecondaryIpButNotMaster(self):
+    self.master.secondary_ip = self.master.primary_ip
+
+    self.ExecOpCodeExpectOpPrereqError(self.op_add, "The master has no"
+                                       " secondary ip but the new node has one")
+
+  def testMasterHasSecondaryIpButNotNode(self):
+    op = self.CopyOpCode(self.op_add, secondary_ip=None)
+
+    self.ExecOpCodeExpectOpPrereqError(op, "The master has a secondary ip but"
+                                       " the new node doesn't have one")
+
+  def testNodeNotReachableByPing(self):
+    self.netutils_mod.TcpPing.return_value = False
+
+    op = self.CopyOpCode(self.op_add)
+
+    self.ExecOpCodeExpectOpPrereqError(op, "Node not reachable by ping")
+
+  def testNodeNotReachableByPingOnSecondary(self):
+    self.netutils_mod.GetHostname.return_value = \
+      HostnameMock(self.node_add.name, self.node_add.primary_ip)
+    self.netutils_mod.TcpPing.side_effect = \
+      compat.partial(_TcpPingFailSecondary, self.cfg, self.netutils_mod.TcpPing)
+
+    op = self.CopyOpCode(self.op_add)
+
+    self.ExecOpCodeExpectOpPrereqError(op, "Node secondary ip not reachable by"
+                                       " TCP based ping to node daemon port")
+
+  def testCantGetVersion(self):
+    self.mocked_dns_rpc.call_version.return_value = \
+      self.RpcResultsBuilder(use_node_names=True) \
+        .AddErrorNode(self.node_add) \
+        .Build()
+
+    op = self.CopyOpCode(self.op_add)
+    self.ExecOpCodeExpectOpExecError(op, "Can't get version information from"
+                                     " node %s" % self.node_add.name)
 
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
