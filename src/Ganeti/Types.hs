@@ -66,23 +66,32 @@ module Ganeti.Types
   , IPv6Network
   , mkIPv6Network
   , MigrationMode(..)
+  , migrationModeToRaw
   , VerifyOptionalChecks(..)
   , verifyOptionalChecksToRaw
   , DdmSimple(..)
   , DdmFull(..)
+  , ddmFullToRaw
   , CVErrorCode(..)
   , cVErrorCodeToRaw
   , Hypervisor(..)
   , hypervisorToRaw
   , OobCommand(..)
+  , oobCommandToRaw
   , StorageType(..)
   , storageTypeToRaw
   , NodeEvacMode(..)
+  , nodeEvacModeToRaw
   , FileDriver(..)
+  , fileDriverToRaw
   , InstCreateMode(..)
+  , instCreateModeToRaw
   , RebootType(..)
+  , rebootTypeToRaw
   , ExportMode(..)
+  , exportModeToRaw
   , IAllocatorTestDir(..)
+  , iAllocatorTestDirToRaw
   , IAllocatorMode(..)
   , iAllocatorModeToRaw
   , NICMode(..)
@@ -107,6 +116,7 @@ module Ganeti.Types
   , opStatusToRaw
   , opStatusFromRaw
   , ELogType(..)
+  , eLogTypeToRaw
   , ReasonElem
   , ReasonTrail
   , StorageUnit(..)
