@@ -553,14 +553,14 @@ $(THH.makeJSONInstance ''NICMode)
 -- such that greater\/lesser comparison on values of this type makes
 -- sense.
 $(THH.declareLADT ''String "JobStatus"
-       [ ("JOB_STATUS_QUEUED",    "queued")
-       , ("JOB_STATUS_WAITING",   "waiting")
-       , ("JOB_STATUS_CANCELING", "canceling")
-       , ("JOB_STATUS_RUNNING",   "running")
-       , ("JOB_STATUS_CANCELED",  "canceled")
-       , ("JOB_STATUS_SUCCESS",   "success")
-       , ("JOB_STATUS_ERROR",     "error")
-       ])
+  [ ("JOB_STATUS_QUEUED",    "queued")
+  , ("JOB_STATUS_WAITING",   "waiting")
+  , ("JOB_STATUS_CANCELING", "canceling")
+  , ("JOB_STATUS_RUNNING",   "running")
+  , ("JOB_STATUS_CANCELED",  "canceled")
+  , ("JOB_STATUS_SUCCESS",   "success")
+  , ("JOB_STATUS_ERROR",     "error")
+  ])
 $(THH.makeJSONInstance ''JobStatus)
 
 -- | Finalized job status.
