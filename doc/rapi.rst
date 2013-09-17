@@ -96,7 +96,7 @@ by using the standard HTTP basic access authentication. This means that
 for accessing the protected URL ``https://cluster.example.com/resource``,
 the address ``https://username:password@cluster.example.com/resource`` should
 be used instead.
-be used instead. Alternatively, the appropriate parameter of your HTTP client
+Alternatively, the appropriate parameter of your HTTP client
 (such as ``-u`` for ``curl``) can be used.
 
 .. [#pwhash] Using the MD5 hash of username, realm and password is
