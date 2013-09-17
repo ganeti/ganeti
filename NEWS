@@ -5,7 +5,7 @@ News
 Version 2.8.0 rc3
 -----------------
 
-*(unreleased)*
+*(Released Tue, 17 Sep 2013)*
 
 
 Incompatible/important changes
@@ -107,6 +107,10 @@ Since 2.8.0 rc2
   important. The ``groupmemberships`` file contains, one per line, additional
   user-group membership relations that need to be established. The syntax of
   these files will remain stable in all future versions.
+- Add a default to file-driver when unspecified over RAPI (Issue 571)
+- Mark the DSA host pubkey as optional, and remove it during config downgrade
+  (Issue 560)
+- Some documentation fixes
 
 
 Version 2.8.0 rc2
