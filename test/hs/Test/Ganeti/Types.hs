@@ -37,7 +37,6 @@ module Test.Ganeti.Types
   , JobId(..)
   ) where
 
-import Data.List (sort)
 import Test.QuickCheck as QuickCheck hiding (Result)
 import Test.HUnit
 import qualified Text.JSON as J
@@ -47,6 +46,7 @@ import Test.Ganeti.TestCommon
 
 import Ganeti.BasicTypes
 import qualified Ganeti.Constants as C
+import qualified Ganeti.ConstantUtils as ConstantUtils
 import Ganeti.Types as Types
 import Ganeti.JSON
 
@@ -251,8 +251,9 @@ prop_CVErrorCode_serialisation = testSerialisation
 -- | Tests equivalence with Python, based on Constants.hs code.
 case_CVErrorCode_pyequiv :: Assertion
 case_CVErrorCode_pyequiv = do
-  let all_py_codes = sort C.cvAllEcodesStrings
-      all_hs_codes = sort $ map Types.cVErrorCodeToRaw [minBound..maxBound]
+  let all_py_codes = C.cvAllEcodesStrings
+      all_hs_codes = ConstantUtils.mkSet $
+                     map Types.cVErrorCodeToRaw [minBound..maxBound]
   assertEqual "for CVErrorCode equivalence" all_py_codes all_hs_codes
 
 -- | Test 'Hypervisor' serialisation.
@@ -298,8 +299,9 @@ prop_IAllocatorMode_serialisation = testSerialisation
 -- | Tests equivalence with Python, based on Constants.hs code.
 case_IAllocatorMode_pyequiv :: Assertion
 case_IAllocatorMode_pyequiv = do
-  let all_py_codes = sort C.validIallocatorModes
-      all_hs_codes = sort $ map Types.iAllocatorModeToRaw [minBound..maxBound]
+  let all_py_codes = C.validIallocatorModes
+      all_hs_codes = ConstantUtils.mkSet $
+                     map Types.iAllocatorModeToRaw [minBound..maxBound]
   assertEqual "for IAllocatorMode equivalence" all_py_codes all_hs_codes
 
 -- | Test 'NICMode' serialisation.
@@ -329,8 +331,9 @@ case_JobStatus_order =
 -- | Tests equivalence with Python, based on Constants.hs code.
 case_NICMode_pyequiv :: Assertion
 case_NICMode_pyequiv = do
-  let all_py_codes = sort C.nicValidModes
-      all_hs_codes = sort $ map Types.nICModeToRaw [minBound..maxBound]
+  let all_py_codes = C.nicValidModes
+      all_hs_codes = ConstantUtils.mkSet $
+                     map Types.nICModeToRaw [minBound..maxBound]
   assertEqual "for NICMode equivalence" all_py_codes all_hs_codes
 
 -- | Test 'FinalizedJobStatus' serialisation.
@@ -340,9 +343,9 @@ prop_FinalizedJobStatus_serialisation = testSerialisation
 -- | Tests equivalence with Python, based on Constants.hs code.
 case_FinalizedJobStatus_pyequiv :: Assertion
 case_FinalizedJobStatus_pyequiv = do
-  let all_py_codes = sort C.jobsFinalized
-      all_hs_codes = sort $ map Types.finalizedJobStatusToRaw
-                            [minBound..maxBound]
+  let all_py_codes = C.jobsFinalized
+      all_hs_codes = ConstantUtils.mkSet $
+                     map Types.finalizedJobStatusToRaw [minBound..maxBound]
   assertEqual "for FinalizedJobStatus equivalence" all_py_codes all_hs_codes
 
 -- | Tests JobId serialisation (both from string and ints).
