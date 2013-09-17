@@ -275,6 +275,7 @@ $(THH.declareLADT ''String "TagKind"
   , ("TagKindNode",     "node")
   , ("TagKindGroup",    "nodegroup")
   , ("TagKindCluster",  "cluster")
+  , ("TagKindNetwork",  "network")
   ])
 $(THH.makeJSONInstance ''TagKind)
 

@@ -156,6 +156,9 @@ handleCall cfg (QueryTags kind name) = do
                TagKindGroup    -> groupTags <$> Config.getGroup    cfg name
                TagKindNode     -> nodeTags  <$> Config.getNode     cfg name
                TagKindInstance -> instTags  <$> Config.getInstance cfg name
+               TagKindNetwork  -> Bad $ OpPrereqError
+                                        "Network tag is not allowed"
+                                        ECodeInval
   return (J.showJSON <$> tags)
 
 handleCall cfg (Query qkind qfields qfilter) = do
