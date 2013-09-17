@@ -39,8 +39,8 @@ AM_CONDITIONAL([USE_VERSION_FULL], [test "$USE_VERSION_FULL" = yes])
 # --enable-symlinks
 AC_ARG_ENABLE([symlinks],
   [AS_HELP_STRING([--enable-symlinks],
-                  m4_normalize([also install symlinks under $PREFIX pointing
-                  into the Ganeti package directory (default: enabled)]))],
+                  m4_normalize([also install version-dependent symlinks under
+                  $sysconfdir (default: enabled)]))],
   [[if test "$enableval" != no; then
       INSTALL_SYMLINKS=yes
     else
