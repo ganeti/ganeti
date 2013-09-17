@@ -48,6 +48,14 @@ instance PyValue Char
 instance (PyValue a, PyValue b) => PyValue (a, b) where
   showValue (x, y) = "(" ++ showValue x ++ "," ++ showValue y ++ ")"
 
+instance (PyValue a, PyValue b, PyValue c) => PyValue (a, b, c) where
+  showValue (x, y, z) =
+    "(" ++
+    showValue x ++ "," ++
+    showValue y ++ "," ++
+    showValue z ++
+    ")"
+
 instance PyValue String where
   showValue = show
 
