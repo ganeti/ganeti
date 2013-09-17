@@ -250,19 +250,16 @@ exitUnknownField = 14
 -- * Possible values for NodeGroup.alloc_policy
 
 allocPolicyLastResort :: String
-allocPolicyLastResort = "last_resort"
+allocPolicyLastResort = Types.allocPolicyToRaw AllocLastResort
 
 allocPolicyPreferred :: String
-allocPolicyPreferred = "preferred"
+allocPolicyPreferred = Types.allocPolicyToRaw AllocPreferred
 
 allocPolicyUnallocable :: String
-allocPolicyUnallocable = "unallocable"
+allocPolicyUnallocable = Types.allocPolicyToRaw AllocUnallocable
 
 validAllocPolicies :: [String]
-validAllocPolicies =
-  [allocPolicyLastResort,
-   allocPolicyPreferred,
-   allocPolicyUnallocable]
+validAllocPolicies = map Types.allocPolicyToRaw [minBound..]
 
 -- | Temporary external/shared storage parameters
 blockdevDriverManual :: String
