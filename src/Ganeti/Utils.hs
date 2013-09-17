@@ -71,7 +71,7 @@ import Debug.Trace
 import Network.Socket
 
 import Ganeti.BasicTypes
-import qualified Ganeti.Constants as C
+import qualified Ganeti.ConstantUtils as ConstantUtils
 import Ganeti.Logging
 import Ganeti.Runtime
 import System.IO
@@ -317,7 +317,7 @@ rStripSpace = reverse . dropWhile isSpace . reverse
 -- This is a Linux-specific method as it uses the /proc filesystem.
 newUUID :: IO String
 newUUID = do
-  contents <- readFile C.randomUuidFile
+  contents <- readFile ConstantUtils.randomUuidFile
   return $! rStripSpace $ take 128 contents
 
 -- | Returns the current time as an 'Integer' representing the number

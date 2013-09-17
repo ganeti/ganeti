@@ -268,6 +268,10 @@ validAllocPolicies =
 blockdevDriverManual :: String
 blockdevDriverManual = "manual"
 
+-- | Path generating random UUID
+randomUuidFile :: String
+randomUuidFile = ConstantUtils.randomUuidFile
+
 -- * Auto-repair tag prefixes
 
 autoRepairTagPrefix :: String

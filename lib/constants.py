@@ -2468,7 +2468,7 @@ NDS_SSCONF = "ssconf"
 NDS_START_NODE_DAEMON = "start_node_daemon"
 
 # Path generating random UUID
-RANDOM_UUID_FILE = "/proc/sys/kernel/random/uuid"
+RANDOM_UUID_FILE = _constants.RANDOM_UUID_FILE
 
 # Regex string for verifying a UUID
 UUID_REGEX = "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"

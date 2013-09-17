@@ -80,6 +80,14 @@ exitFailure = 1
 devConsole :: String
 devConsole = "/dev/console"
 
+-- | Random uuid generator
+--
+-- This is defined here and not in 'Ganeti.HsConstants' order to avoid
+-- a circular dependendy between 'Ganeti.HsConstants' and
+-- 'Ganeti.Types'
+randomUuidFile :: String
+randomUuidFile = "/proc/sys/kernel/random/uuid"
+
 -- | Priority levels
 --
 -- This is defined here and not in 'Ganeti.Types' order to avoid a GHC
