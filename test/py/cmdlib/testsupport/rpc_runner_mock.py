@@ -27,6 +27,8 @@ import mock
 from ganeti import objects
 from ganeti import rpc
 
+from cmdlib.testsupport.util import patchModule
+
 
 def CreateRpcRunnerMock():
   """Creates a new L{mock.MagicMock} tailored for L{rpc.RpcRunner}
@@ -179,3 +181,28 @@ class RpcResultsBuilder(object):
     @rtype: dict
     """
     return dict((result.node, result) for result in self._results)
+
+
+# pylint: disable=C0103
+def patchRpc(module_under_test):
+  """Patches the L{ganeti.rpc} module for tests.
+
+  This function is meant to be used as a decorator for test methods.
+
+  @type module_under_test: string
+  @param module_under_test: the module within cmdlib which is tested. The
+        "ganeti.cmdlib" prefix is optional.
+
+  """
+  return patchModule(module_under_test, "rpc", wraps=rpc)
+
+
+def SetupDefaultRpcModuleMock(rpc_mod):
+  """Configures the given rpc_mod.
+
+  All relevant functions in rpc_mod are stubbed in a sensible way.
+
+  @param rpc_mod: the mock module to configure
+
+  """
+  rpc_mod.DnsOnlyRunner.return_value = CreateRpcRunnerMock()

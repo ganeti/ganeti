@@ -34,11 +34,12 @@ from cmdlib.testsupport.netutils_mock import patchNetutils, \
   SetupDefaultNetutilsMock
 from cmdlib.testsupport.processor_mock import ProcessorMock
 from cmdlib.testsupport.rpc_runner_mock import CreateRpcRunnerMock, \
-  RpcResultsBuilder
+  RpcResultsBuilder, patchRpc, SetupDefaultRpcModuleMock
 from cmdlib.testsupport.ssh_mock import patchSsh
 
 from ganeti.cmdlib.base import LogicalUnit
 from ganeti import errors
+from ganeti import locking
 from ganeti import objects
 from ganeti import opcodes
 from ganeti import runtime
@@ -56,6 +57,19 @@ class GanetiContextMock(object):
 
   def __init__(self, test_case):
     self._test_case = test_case
+
+  def AddNode(self, node, ec_id):
+    self._test_case.cfg.AddNode(node, ec_id)
+    self._test_case.glm.add(locking.LEVEL_NODE, node.uuid)
+    self._test_case.glm.add(locking.LEVEL_NODE_RES, node.uuid)
+
+  def ReaddNode(self, node):
+    pass
+
+  def RemoveNode(self, node):
+    self._test_case.cfg.RemoveNode(node.uuid)
+    self._test_case.glm.remove(locking.LEVEL_NODE, node.uuid)
+    self._test_case.glm.remove(locking.LEVEL_NODE_RES, node.uuid)
 
 
 class MockLU(LogicalUnit):
@@ -109,6 +123,7 @@ class CmdlibTestCase(testutils.GanetiTestCase):
     self._iallocator_patcher = None
     self._netutils_patcher = None
     self._ssh_patcher = None
+    self._rpc_patcher = None
 
     try:
       runtime.InitArchInfo()
@@ -128,6 +143,9 @@ class CmdlibTestCase(testutils.GanetiTestCase):
     if self._ssh_patcher is not None:
       self._ssh_patcher.stop()
       self._ssh_patcher = None
+    if self._rpc_patcher is not None:
+      self._rpc_patcher.stop()
+      self._rpc_patcher = None
 
   def tearDown(self):
     super(CmdlibTestCase, self).tearDown()
@@ -177,6 +195,14 @@ class CmdlibTestCase(testutils.GanetiTestCase):
     except (ImportError, AttributeError):
       # this test module does not use ssh, no patching performed
       self._ssh_patcher = None
+
+    try:
+      self._rpc_patcher = patchRpc(self._GetTestModule())
+      self.rpc_mod = self._rpc_patcher.start()
+      SetupDefaultRpcModuleMock(self.rpc_mod)
+    except (ImportError, AttributeError):
+      # this test module does not use rpc, no patching performed
+      self._rpc_patcher = None
 
   def GetMockLU(self):
     """Creates a mock L{LogialUnit} with access to the mocked config etc.

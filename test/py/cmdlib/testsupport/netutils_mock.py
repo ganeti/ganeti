@@ -72,7 +72,7 @@ def _GetHostnameMock(cfg, mock_fct, name=None, family=None):
   if node is not None:
     return HostnameMock(node.name, node.primary_ip)
 
-  return HostnameMock(name, "203.0.113.1")
+  return HostnameMock(name, "203.0.113.253")
 
 
 # pylint: disable=W0613

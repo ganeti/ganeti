@@ -26,7 +26,7 @@ import mock
 
 
 # pylint: disable=C0103
-def patchModule(module_under_test, mock_module):
+def patchModule(module_under_test, mock_module, **kwargs):
   """Computes the module prefix required to mock parts of the Ganeti code.
 
   @type module_under_test: string
@@ -38,4 +38,4 @@ def patchModule(module_under_test, mock_module):
   """
   if not module_under_test.startswith("ganeti.cmdlib"):
     module_under_test = "ganeti.cmdlib." + module_under_test
-  return mock.patch("%s.%s" % (module_under_test, mock_module))
+  return mock.patch("%s.%s" % (module_under_test, mock_module), **kwargs)
