@@ -426,11 +426,6 @@ class LUInstanceCreate(LogicalUnit):
                                   constants.DT_SHARED_FILE]):
       self.op.file_driver = constants.FD_LOOP
 
-    if self.op.disk_template == constants.DT_FILE:
-      opcodes.RequireFileStorage()
-    elif self.op.disk_template == constants.DT_SHARED_FILE:
-      opcodes.RequireSharedFileStorage()
-
     ### Node/iallocator related checks
     CheckIAllocatorOrNode(self, "iallocator", "pnode")
 
