@@ -353,23 +353,14 @@ HKR_FAIL = 1
 HKR_SUCCESS = 2
 
 # Storage types
-ST_BLOCK = "blockdev"
-ST_DISKLESS = "diskless"
-ST_EXT = "ext"
-ST_FILE = "file"
-ST_LVM_PV = "lvm-pv"
-ST_LVM_VG = "lvm-vg"
-ST_RADOS = "rados"
-
-STORAGE_TYPES = compat.UniqueFrozenset([
-  ST_BLOCK,
-  ST_DISKLESS,
-  ST_EXT,
-  ST_FILE,
-  ST_LVM_PV,
-  ST_LVM_VG,
-  ST_RADOS,
-  ])
+ST_BLOCK = _constants.ST_BLOCK
+ST_DISKLESS = _constants.ST_DISKLESS
+ST_EXT = _constants.ST_EXT
+ST_FILE = _constants.ST_FILE
+ST_LVM_PV = _constants.ST_LVM_PV
+ST_LVM_VG = _constants.ST_LVM_VG
+ST_RADOS = _constants.ST_RADOS
+STORAGE_TYPES = _constants.STORAGE_TYPES
 
 # the set of storage types for which storage reporting is available
 # FIXME: Remove this, once storage reporting is available for all types.
@@ -430,46 +421,17 @@ LDS_NAMES = {
 }
 
 # disk template types
-DT_BLOCK = "blockdev"
-DT_DISKLESS = "diskless"
-DT_DRBD8 = "drbd"
-DT_EXT = "ext"
-DT_FILE = "file"
-DT_PLAIN = "plain"
-DT_RBD = "rbd"
-DT_SHARED_FILE = "sharedfile"
-
-# This is used to order determine the default disk template when the list
-# of enabled disk templates is inferred from the current state of the cluster.
-# This only happens on an upgrade from a version of Ganeti that did not
-# support the 'enabled_disk_templates' so far.
-DISK_TEMPLATE_PREFERENCE = [
-  DT_BLOCK,
-  DT_DISKLESS,
-  DT_DRBD8,
-  DT_EXT,
-  DT_FILE,
-  DT_PLAIN,
-  DT_RBD,
-  DT_SHARED_FILE,
-  ]
-
-DISK_TEMPLATES = compat.UniqueFrozenset([
-  DT_DISKLESS,
-  DT_PLAIN,
-  DT_DRBD8,
-  DT_FILE,
-  DT_SHARED_FILE,
-  DT_BLOCK,
-  DT_RBD,
-  DT_EXT
-  ])
-
-# disk templates that are enabled by default
-DEFAULT_ENABLED_DISK_TEMPLATES = [
-  DT_DRBD8,
-  DT_PLAIN,
-  ]
+DT_BLOCK = _constants.DT_BLOCK
+DT_DISKLESS = _constants.DT_DISKLESS
+DT_DRBD8 = _constants.DT_DRBD8
+DT_EXT = _constants.DT_EXT
+DT_FILE = _constants.DT_FILE
+DT_PLAIN = _constants.DT_PLAIN
+DT_RBD = _constants.DT_RBD
+DT_SHARED_FILE = _constants.DT_SHARED_FILE
+DISK_TEMPLATE_PREFERENCE = _constants.DISK_TEMPLATE_PREFERENCE
+DISK_TEMPLATES = _constants.DISK_TEMPLATES
+DEFAULT_ENABLED_DISK_TEMPLATES = _constants.DEFAULT_ENABLED_DISK_TEMPLATES
 
 # mapping of disk templates to storage types
 MAP_DISK_TEMPLATE_STORAGE_TYPE = {
@@ -591,8 +553,8 @@ DRBD_VALID_BARRIER_OPT = compat.UniqueFrozenset([
 RBD_CMD = "rbd"
 
 # file backend driver
-FD_LOOP = "loop"
-FD_BLKTAP = "blktap"
+FD_BLKTAP = _constants.FD_BLKTAP
+FD_LOOP = _constants.FD_LOOP
 
 # the set of drbd-like disk types
 LDS_DRBD = compat.UniqueFrozenset([DT_DRBD8])
@@ -615,22 +577,15 @@ REPLACE_MODES = compat.UniqueFrozenset([
   ])
 
 # Instance export mode
-EXPORT_MODE_LOCAL = "local"
-EXPORT_MODE_REMOTE = "remote"
-EXPORT_MODES = compat.UniqueFrozenset([
-  EXPORT_MODE_LOCAL,
-  EXPORT_MODE_REMOTE,
-  ])
+EXPORT_MODE_LOCAL = _constants.EXPORT_MODE_LOCAL
+EXPORT_MODE_REMOTE = _constants.EXPORT_MODE_REMOTE
+EXPORT_MODES = _constants.EXPORT_MODES
 
 # instance creation modes
-INSTANCE_CREATE = "create"
-INSTANCE_IMPORT = "import"
-INSTANCE_REMOTE_IMPORT = "remote-import"
-INSTANCE_CREATE_MODES = compat.UniqueFrozenset([
-  INSTANCE_CREATE,
-  INSTANCE_IMPORT,
-  INSTANCE_REMOTE_IMPORT,
-  ])
+INSTANCE_CREATE = _constants.INSTANCE_CREATE
+INSTANCE_IMPORT = _constants.INSTANCE_IMPORT
+INSTANCE_REMOTE_IMPORT = _constants.INSTANCE_REMOTE_IMPORT
+INSTANCE_CREATE_MODES = _constants.INSTANCE_CREATE_MODES
 
 # Remote import/export handshake message and version
 RIE_VERSION = 0
@@ -661,13 +616,11 @@ INISECT_BEP = "backend"
 INISECT_OSP = "os"
 
 # dynamic device modification
-DDM_ADD = "add"
-DDM_MODIFY = "modify"
-DDM_REMOVE = "remove"
-DDMS_VALUES = compat.UniqueFrozenset([DDM_ADD, DDM_REMOVE])
-DDMS_VALUES_WITH_MODIFY = (DDMS_VALUES | frozenset([
-  DDM_MODIFY,
-  ]))
+DDM_ADD = _constants.DDM_ADD
+DDM_MODIFY = _constants.DDM_MODIFY
+DDM_REMOVE = _constants.DDM_REMOVE
+DDMS_VALUES = _constants.DDMS_VALUES
+DDMS_VALUES_WITH_MODIFY = _constants.DDMS_VALUES_WITH_MODIFY
 # TODO: DDM_SWAP, DDM_MOVE?
 
 # common exit codes
@@ -682,20 +635,15 @@ EXIT_CONFIRMATION = _constants.EXIT_CONFIRMATION # need user confirmation
 EXIT_UNKNOWN_FIELD = _constants.EXIT_UNKNOWN_FIELD
 
 # tags
-TAG_CLUSTER = "cluster"
-TAG_NODEGROUP = "nodegroup"
-TAG_NODE = "node"
-TAG_INSTANCE = "instance"
-TAG_NETWORK = "network"
-VALID_TAG_TYPES = compat.UniqueFrozenset([
-  TAG_CLUSTER,
-  TAG_NODEGROUP,
-  TAG_NODE,
-  TAG_INSTANCE,
-  TAG_NETWORK,
-  ])
-MAX_TAG_LEN = 128
-MAX_TAGS_PER_OBJ = 4096
+TAG_CLUSTER = _constants.TAG_CLUSTER
+TAG_NODEGROUP = _constants.TAG_NODEGROUP
+TAG_NODE = _constants.TAG_NODE
+TAG_INSTANCE = _constants.TAG_INSTANCE
+TAG_NETWORK = _constants.TAG_NETWORK
+VALID_TAG_TYPES = _constants.VALID_TAG_TYPES
+
+MAX_TAG_LEN = _constants.MAX_TAG_LEN
+MAX_TAGS_PER_OBJ = _constants.MAX_TAGS_PER_OBJ
 
 # others
 DEFAULT_BRIDGE = "xen-br0"
@@ -805,15 +753,10 @@ ES_SCRIPTS = frozenset([
 ES_PARAMETERS_FILE = "parameters.list"
 
 # reboot types
-INSTANCE_REBOOT_SOFT = "soft"
-INSTANCE_REBOOT_HARD = "hard"
-INSTANCE_REBOOT_FULL = "full"
-
-REBOOT_TYPES = compat.UniqueFrozenset([
-  INSTANCE_REBOOT_SOFT,
-  INSTANCE_REBOOT_HARD,
-  INSTANCE_REBOOT_FULL,
-  ])
+INSTANCE_REBOOT_SOFT = _constants.INSTANCE_REBOOT_SOFT
+INSTANCE_REBOOT_HARD = _constants.INSTANCE_REBOOT_HARD
+INSTANCE_REBOOT_FULL = _constants.INSTANCE_REBOOT_FULL
+REBOOT_TYPES = _constants.REBOOT_TYPES
 
 # instance reboot behaviors
 INSTANCE_REBOOT_ALLOWED = "reboot"
@@ -1271,55 +1214,37 @@ DISK_DT_TYPES = {
 DISK_DT_PARAMETERS = frozenset(DISK_DT_TYPES.keys())
 
 # OOB supported commands
-OOB_POWER_ON = "power-on"
-OOB_POWER_OFF = "power-off"
-OOB_POWER_CYCLE = "power-cycle"
-OOB_POWER_STATUS = "power-status"
-OOB_HEALTH = "health"
+OOB_POWER_ON = _constants.OOB_POWER_ON
+OOB_POWER_OFF = _constants.OOB_POWER_OFF
+OOB_POWER_CYCLE = _constants.OOB_POWER_CYCLE
+OOB_POWER_STATUS = _constants.OOB_POWER_STATUS
+OOB_HEALTH = _constants.OOB_HEALTH
+OOB_COMMANDS = _constants.OOB_COMMANDS
 
-OOB_COMMANDS = compat.UniqueFrozenset([
-  OOB_POWER_ON,
-  OOB_POWER_OFF,
-  OOB_POWER_CYCLE,
-  OOB_POWER_STATUS,
-  OOB_HEALTH,
-  ])
+OOB_POWER_STATUS_POWERED = _constants.OOB_POWER_STATUS_POWERED
 
-OOB_POWER_STATUS_POWERED = "powered"
+OOB_TIMEOUT = _constants.OOB_TIMEOUT
+OOB_POWER_DELAY = _constants.OOB_POWER_DELAY
 
-OOB_TIMEOUT = 60 # 60 seconds
-OOB_POWER_DELAY = 2.0 # 2 seconds
-
-OOB_STATUS_OK = "OK"
-OOB_STATUS_WARNING = "WARNING"
-OOB_STATUS_CRITICAL = "CRITICAL"
-OOB_STATUS_UNKNOWN = "UNKNOWN"
-
-OOB_STATUSES = compat.UniqueFrozenset([
-  OOB_STATUS_OK,
-  OOB_STATUS_WARNING,
-  OOB_STATUS_CRITICAL,
-  OOB_STATUS_UNKNOWN,
-  ])
+OOB_STATUS_OK = _constants.OOB_STATUS_OK
+OOB_STATUS_WARNING = _constants.OOB_STATUS_WARNING
+OOB_STATUS_CRITICAL = _constants.OOB_STATUS_CRITICAL
+OOB_STATUS_UNKNOWN = _constants.OOB_STATUS_UNKNOWN
+OOB_STATUSES = _constants.OOB_STATUSES
 
 # Instance Parameters Profile
 PP_DEFAULT = "default"
 
 # NIC_* constants are used inside the ganeti config
-NIC_MODE = "mode"
-NIC_LINK = "link"
-NIC_VLAN = "vlan"
+NIC_MODE = _constants.NIC_MODE
+NIC_LINK = _constants.NIC_LINK
+NIC_VLAN = _constants.NIC_VLAN
 
-NIC_MODE_BRIDGED = "bridged"
-NIC_MODE_ROUTED = "routed"
-NIC_MODE_OVS = "openvswitch"
-NIC_IP_POOL = "pool"
-
-NIC_VALID_MODES = compat.UniqueFrozenset([
-  NIC_MODE_BRIDGED,
-  NIC_MODE_ROUTED,
-  NIC_MODE_OVS,
-  ])
+NIC_MODE_BRIDGED = _constants.NIC_MODE_BRIDGED
+NIC_MODE_ROUTED = _constants.NIC_MODE_ROUTED
+NIC_MODE_OVS = _constants.NIC_MODE_OVS
+NIC_IP_POOL = _constants.NIC_IP_POOL
+NIC_VALID_MODES = _constants.NIC_VALID_MODES
 
 RESERVE_ACTION = "reserve"
 RELEASE_ACTION = "release"
@@ -1375,21 +1300,14 @@ INIC_PARAMS_TYPES = {
 INIC_PARAMS = frozenset(INIC_PARAMS_TYPES.keys())
 
 # Hypervisor constants
-HT_XEN_PVM = "xen-pvm"
-HT_FAKE = "fake"
-HT_XEN_HVM = "xen-hvm"
-HT_KVM = "kvm"
-HT_CHROOT = "chroot"
-HT_LXC = "lxc"
-HYPER_TYPES = compat.UniqueFrozenset([
-  HT_XEN_PVM,
-  HT_FAKE,
-  HT_XEN_HVM,
-  HT_KVM,
-  HT_CHROOT,
-  HT_LXC,
-  ])
-HTS_REQ_PORT = compat.UniqueFrozenset([HT_XEN_HVM, HT_KVM])
+HT_XEN_PVM = _constants.HT_XEN_PVM
+HT_FAKE = _constants.HT_FAKE
+HT_XEN_HVM = _constants.HT_XEN_HVM
+HT_KVM = _constants.HT_KVM
+HT_CHROOT = _constants.HT_CHROOT
+HT_LXC = _constants.HT_LXC
+HYPER_TYPES = _constants.HYPER_TYPES
+HTS_REQ_PORT = _constants.HTS_REQ_PORT
 
 VNC_BASE_PORT = 5900
 VNC_DEFAULT_BIND_ADDRESS = IP4_ADDRESS_ANY
@@ -1544,154 +1462,63 @@ HT_KVM_DISABLED = "disabled"
 HT_KVM_FLAG_VALUES = compat.UniqueFrozenset([HT_KVM_ENABLED, HT_KVM_DISABLED])
 
 # Migration type
-HT_MIGRATION_LIVE = "live"
-HT_MIGRATION_NONLIVE = "non-live"
-HT_MIGRATION_MODES = compat.UniqueFrozenset([
-  HT_MIGRATION_LIVE,
-  HT_MIGRATION_NONLIVE,
-  ])
+HT_MIGRATION_LIVE = _constants.HT_MIGRATION_LIVE
+HT_MIGRATION_NONLIVE = _constants.HT_MIGRATION_NONLIVE
+HT_MIGRATION_MODES = _constants.HT_MIGRATION_MODES
 
 # Cluster Verify steps
-VERIFY_NPLUSONE_MEM = "nplusone_mem"
-VERIFY_OPTIONAL_CHECKS = compat.UniqueFrozenset([VERIFY_NPLUSONE_MEM])
+VERIFY_NPLUSONE_MEM = _constants.VERIFY_NPLUSONE_MEM
+VERIFY_OPTIONAL_CHECKS = _constants.VERIFY_OPTIONAL_CHECKS
 
 # Cluster Verify error classes
-CV_TCLUSTER = "cluster"
-CV_TGROUP = "group"
-CV_TNODE = "node"
-CV_TINSTANCE = "instance"
+CV_TCLUSTER = _constants.CV_TCLUSTER
+CV_TGROUP = _constants.CV_TGROUP
+CV_TNODE = _constants.CV_TNODE
+CV_TINSTANCE = _constants.CV_TINSTANCE
 
 # Cluster Verify error codes and documentation
-CV_ECLUSTERCFG = \
-  (CV_TCLUSTER, "ECLUSTERCFG", "Cluster configuration verification failure")
-CV_ECLUSTERCERT = \
-  (CV_TCLUSTER, "ECLUSTERCERT",
-   "Cluster certificate files verification failure")
-CV_ECLUSTERFILECHECK = \
-  (CV_TCLUSTER, "ECLUSTERFILECHECK",
-   "Cluster configuration verification failure")
-CV_ECLUSTERDANGLINGNODES = \
-  (CV_TNODE, "ECLUSTERDANGLINGNODES",
-   "Some nodes belong to non-existing groups")
-CV_ECLUSTERDANGLINGINST = \
-  (CV_TNODE, "ECLUSTERDANGLINGINST",
-   "Some instances have a non-existing primary node")
-CV_EGROUPDIFFERENTPVSIZE = \
-  (CV_TGROUP, "EGROUPDIFFERENTPVSIZE", "PVs in the group have different sizes")
-CV_EINSTANCEBADNODE = \
-  (CV_TINSTANCE, "EINSTANCEBADNODE",
-   "Instance marked as running lives on an offline node")
-CV_EINSTANCEDOWN = \
-  (CV_TINSTANCE, "EINSTANCEDOWN", "Instance not running on its primary node")
-CV_EINSTANCELAYOUT = \
-  (CV_TINSTANCE, "EINSTANCELAYOUT", "Instance has multiple secondary nodes")
-CV_EINSTANCEMISSINGDISK = \
-  (CV_TINSTANCE, "EINSTANCEMISSINGDISK", "Missing volume on an instance")
-CV_EINSTANCEFAULTYDISK = \
-  (CV_TINSTANCE, "EINSTANCEFAULTYDISK",
-   "Impossible to retrieve status for a disk")
-CV_EINSTANCEWRONGNODE = \
-  (CV_TINSTANCE, "EINSTANCEWRONGNODE", "Instance running on the wrong node")
-CV_EINSTANCESPLITGROUPS = \
-  (CV_TINSTANCE, "EINSTANCESPLITGROUPS",
-   "Instance with primary and secondary nodes in different groups")
-CV_EINSTANCEPOLICY = \
-  (CV_TINSTANCE, "EINSTANCEPOLICY",
-   "Instance does not meet policy")
-CV_EINSTANCEUNSUITABLENODE = \
-  (CV_TINSTANCE, "EINSTANCEUNSUITABLENODE",
-   "Instance running on nodes that are not suitable for it")
-CV_EINSTANCEMISSINGCFGPARAMETER = \
-  (CV_TINSTANCE, "EINSTANCEMISSINGCFGPARAMETER",
-   "A configuration parameter for an instance is missing")
-CV_ENODEDRBD = \
-  (CV_TNODE, "ENODEDRBD", "Error parsing the DRBD status file")
-CV_ENODEDRBDVERSION = \
-  (CV_TNODE, "ENODEDRBDVERSION", "DRBD version mismatch within a node group")
-CV_ENODEDRBDHELPER = \
-  (CV_TNODE, "ENODEDRBDHELPER", "Error caused by the DRBD helper")
-CV_ENODEFILECHECK = \
-  (CV_TNODE, "ENODEFILECHECK",
-   "Error retrieving the checksum of the node files")
-CV_ENODEHOOKS = \
-  (CV_TNODE, "ENODEHOOKS", "Communication failure in hooks execution")
-CV_ENODEHV = \
-  (CV_TNODE, "ENODEHV", "Hypervisor parameters verification failure")
-CV_ENODELVM = \
-  (CV_TNODE, "ENODELVM", "LVM-related node error")
-CV_ENODEN1 = \
-  (CV_TNODE, "ENODEN1", "Not enough memory to accommodate instance failovers")
-CV_ENODENET = \
-  (CV_TNODE, "ENODENET", "Network-related node error")
-CV_ENODEOS = \
-  (CV_TNODE, "ENODEOS", "OS-related node error")
-CV_ENODEORPHANINSTANCE = \
-  (CV_TNODE, "ENODEORPHANINSTANCE", "Unknown intance running on a node")
-CV_ENODEORPHANLV = \
-  (CV_TNODE, "ENODEORPHANLV", "Unknown LVM logical volume")
-CV_ENODERPC = \
-  (CV_TNODE, "ENODERPC",
-   "Error during connection to the primary node of an instance")
-CV_ENODESSH = \
-  (CV_TNODE, "ENODESSH", "SSH-related node error")
-CV_ENODEVERSION = \
-  (CV_TNODE, "ENODEVERSION",
-   "Protocol version mismatch or Ganeti version mismatch")
-CV_ENODESETUP = \
-  (CV_TNODE, "ENODESETUP", "Node setup error")
-CV_ENODETIME = \
-  (CV_TNODE, "ENODETIME", "Node returned invalid time")
-CV_ENODEOOBPATH = \
-  (CV_TNODE, "ENODEOOBPATH", "Invalid Out Of Band path")
-CV_ENODEUSERSCRIPTS = \
-  (CV_TNODE, "ENODEUSERSCRIPTS", "User scripts not present or not executable")
-CV_ENODEFILESTORAGEPATHS = \
-  (CV_TNODE, "ENODEFILESTORAGEPATHS", "Detected bad file storage paths")
-CV_ENODEFILESTORAGEPATHUNUSABLE = \
-  (CV_TNODE, "ENODEFILESTORAGEPATHUNUSABLE", "File storage path unusable")
+CV_ECLUSTERCFG = _constants.CV_ECLUSTERCFG
+CV_ECLUSTERCERT = _constants.CV_ECLUSTERCERT
+CV_ECLUSTERFILECHECK = _constants.CV_ECLUSTERFILECHECK
+CV_ECLUSTERDANGLINGNODES = _constants.CV_ECLUSTERDANGLINGNODES
+CV_ECLUSTERDANGLINGINST = _constants.CV_ECLUSTERDANGLINGINST
+CV_EGROUPDIFFERENTPVSIZE = _constants.CV_EGROUPDIFFERENTPVSIZE
+CV_EINSTANCEBADNODE = _constants.CV_EINSTANCEBADNODE
+CV_EINSTANCEDOWN = _constants.CV_EINSTANCEDOWN
+CV_EINSTANCELAYOUT = _constants.CV_EINSTANCELAYOUT
+CV_EINSTANCEMISSINGDISK = _constants.CV_EINSTANCEMISSINGDISK
+CV_EINSTANCEFAULTYDISK = _constants.CV_EINSTANCEFAULTYDISK
+CV_EINSTANCEWRONGNODE = _constants.CV_EINSTANCEWRONGNODE
+CV_EINSTANCESPLITGROUPS = _constants.CV_EINSTANCESPLITGROUPS
+CV_EINSTANCEPOLICY = _constants.CV_EINSTANCEPOLICY
+CV_EINSTANCEUNSUITABLENODE = _constants.CV_EINSTANCEUNSUITABLENODE
+CV_EINSTANCEMISSINGCFGPARAMETER = _constants.CV_EINSTANCEMISSINGCFGPARAMETER
+CV_ENODEDRBD = _constants.CV_ENODEDRBD
+CV_ENODEDRBDVERSION = _constants.CV_ENODEDRBDVERSION
+CV_ENODEDRBDHELPER = _constants.CV_ENODEDRBDHELPER
+CV_ENODEFILECHECK = _constants.CV_ENODEFILECHECK
+CV_ENODEHOOKS = _constants.CV_ENODEHOOKS
+CV_ENODEHV = _constants.CV_ENODEHV
+CV_ENODELVM = _constants.CV_ENODELVM
+CV_ENODEN1 = _constants.CV_ENODEN1
+CV_ENODENET = _constants.CV_ENODENET
+CV_ENODEOS = _constants.CV_ENODEOS
+CV_ENODEORPHANINSTANCE = _constants.CV_ENODEORPHANINSTANCE
+CV_ENODEORPHANLV = _constants.CV_ENODEORPHANLV
+CV_ENODERPC = _constants.CV_ENODERPC
+CV_ENODESSH = _constants.CV_ENODESSH
+CV_ENODEVERSION = _constants.CV_ENODEVERSION
+CV_ENODESETUP = _constants.CV_ENODESETUP
+CV_ENODETIME = _constants.CV_ENODETIME
+CV_ENODEOOBPATH = _constants.CV_ENODEOOBPATH
+CV_ENODEUSERSCRIPTS = _constants.CV_ENODEUSERSCRIPTS
+CV_ENODEFILESTORAGEPATHS = _constants.CV_ENODEFILESTORAGEPATHS
+CV_ENODEFILESTORAGEPATHUNUSABLE = _constants.CV_ENODEFILESTORAGEPATHUNUSABLE
 CV_ENODESHAREDFILESTORAGEPATHUNUSABLE = \
-  (CV_TNODE, "ENODESHAREDFILESTORAGEPATHUNUSABLE",
-      "Shared file storage path unusable")
+  _constants.CV_ENODESHAREDFILESTORAGEPATHUNUSABLE
 
-CV_ALL_ECODES = compat.UniqueFrozenset([
-  CV_ECLUSTERCFG,
-  CV_ECLUSTERCERT,
-  CV_ECLUSTERFILECHECK,
-  CV_ECLUSTERDANGLINGNODES,
-  CV_ECLUSTERDANGLINGINST,
-  CV_EINSTANCEBADNODE,
-  CV_EINSTANCEDOWN,
-  CV_EINSTANCELAYOUT,
-  CV_EINSTANCEMISSINGDISK,
-  CV_EINSTANCEFAULTYDISK,
-  CV_EINSTANCEWRONGNODE,
-  CV_EINSTANCESPLITGROUPS,
-  CV_EINSTANCEPOLICY,
-  CV_ENODEDRBD,
-  CV_ENODEDRBDHELPER,
-  CV_ENODEFILECHECK,
-  CV_ENODEHOOKS,
-  CV_ENODEHV,
-  CV_ENODELVM,
-  CV_ENODEN1,
-  CV_ENODENET,
-  CV_ENODEOS,
-  CV_ENODEORPHANINSTANCE,
-  CV_ENODEORPHANLV,
-  CV_ENODERPC,
-  CV_ENODESSH,
-  CV_ENODEVERSION,
-  CV_ENODESETUP,
-  CV_ENODETIME,
-  CV_ENODEOOBPATH,
-  CV_ENODEUSERSCRIPTS,
-  CV_ENODEFILESTORAGEPATHS,
-  CV_ENODEFILESTORAGEPATHUNUSABLE,
-  CV_ENODESHAREDFILESTORAGEPATHUNUSABLE,
-  ])
-
-CV_ALL_ECODES_STRINGS = \
-  compat.UniqueFrozenset(estr for (_, estr, _) in CV_ALL_ECODES)
+CV_ALL_ECODES = _constants.CV_ALL_ECODES
+CV_ALL_ECODES_STRINGS = _constants.CV_ALL_ECODES_STRINGS
 
 # Node verify constants
 NV_BRIDGES = "bridges"
@@ -1722,24 +1549,15 @@ NV_VGLIST = "vglist"
 NV_VMNODES = "vmnodes"
 
 # Instance status
-INSTST_RUNNING = "running"
-INSTST_ADMINDOWN = "ADMIN_down"
-INSTST_ADMINOFFLINE = "ADMIN_offline"
-INSTST_NODEOFFLINE = "ERROR_nodeoffline"
-INSTST_NODEDOWN = "ERROR_nodedown"
-INSTST_WRONGNODE = "ERROR_wrongnode"
-INSTST_ERRORUP = "ERROR_up"
-INSTST_ERRORDOWN = "ERROR_down"
-INSTST_ALL = compat.UniqueFrozenset([
-  INSTST_RUNNING,
-  INSTST_ADMINDOWN,
-  INSTST_ADMINOFFLINE,
-  INSTST_NODEOFFLINE,
-  INSTST_NODEDOWN,
-  INSTST_WRONGNODE,
-  INSTST_ERRORUP,
-  INSTST_ERRORDOWN,
-  ])
+INSTST_RUNNING = _constants.INSTST_RUNNING
+INSTST_ADMINDOWN = _constants.INSTST_ADMINDOWN
+INSTST_ADMINOFFLINE = _constants.INSTST_ADMINOFFLINE
+INSTST_NODEOFFLINE = _constants.INSTST_NODEOFFLINE
+INSTST_NODEDOWN = _constants.INSTST_NODEDOWN
+INSTST_WRONGNODE = _constants.INSTST_WRONGNODE
+INSTST_ERRORUP = _constants.INSTST_ERRORUP
+INSTST_ERRORDOWN = _constants.INSTST_ERRORDOWN
+INSTST_ALL = _constants.INSTST_ALL
 
 # Admin states
 ADMINST_UP = _constants.ADMINST_UP
@@ -1766,46 +1584,31 @@ SSL_CERT_EXPIRATION_WARN = 30
 SSL_CERT_EXPIRATION_ERROR = 7
 
 # Allocator framework constants
-IALLOCATOR_VERSION = 2
-IALLOCATOR_DIR_IN = "in"
-IALLOCATOR_DIR_OUT = "out"
-VALID_IALLOCATOR_DIRECTIONS = compat.UniqueFrozenset([
-  IALLOCATOR_DIR_IN,
-  IALLOCATOR_DIR_OUT,
-  ])
-IALLOCATOR_MODE_ALLOC = "allocate"
-IALLOCATOR_MODE_RELOC = "relocate"
-IALLOCATOR_MODE_CHG_GROUP = "change-group"
-IALLOCATOR_MODE_NODE_EVAC = "node-evacuate"
-IALLOCATOR_MODE_MULTI_ALLOC = "multi-allocate"
-VALID_IALLOCATOR_MODES = compat.UniqueFrozenset([
-  IALLOCATOR_MODE_ALLOC,
-  IALLOCATOR_MODE_RELOC,
-  IALLOCATOR_MODE_CHG_GROUP,
-  IALLOCATOR_MODE_NODE_EVAC,
-  IALLOCATOR_MODE_MULTI_ALLOC,
-  ])
-IALLOCATOR_SEARCH_PATH = _autoconf.IALLOCATOR_SEARCH_PATH
-DEFAULT_IALLOCATOR_SHORTCUT = "."
+IALLOCATOR_VERSION = _constants.IALLOCATOR_VERSION
+IALLOCATOR_DIR_IN = _constants.IALLOCATOR_DIR_IN
+IALLOCATOR_DIR_OUT = _constants.IALLOCATOR_DIR_OUT
+VALID_IALLOCATOR_DIRECTIONS = _constants.VALID_IALLOCATOR_DIRECTIONS
 
-IALLOCATOR_NEVAC_PRI = "primary-only"
-IALLOCATOR_NEVAC_SEC = "secondary-only"
-IALLOCATOR_NEVAC_ALL = "all"
-IALLOCATOR_NEVAC_MODES = compat.UniqueFrozenset([
-  IALLOCATOR_NEVAC_PRI,
-  IALLOCATOR_NEVAC_SEC,
-  IALLOCATOR_NEVAC_ALL,
-  ])
+IALLOCATOR_MODE_ALLOC = _constants.IALLOCATOR_MODE_ALLOC
+IALLOCATOR_MODE_RELOC = _constants.IALLOCATOR_MODE_RELOC
+IALLOCATOR_MODE_CHG_GROUP = _constants.IALLOCATOR_MODE_CHG_GROUP
+IALLOCATOR_MODE_NODE_EVAC = _constants.IALLOCATOR_MODE_NODE_EVAC
+IALLOCATOR_MODE_MULTI_ALLOC = _constants.IALLOCATOR_MODE_MULTI_ALLOC
+VALID_IALLOCATOR_MODES = _constants.VALID_IALLOCATOR_MODES
+
+IALLOCATOR_SEARCH_PATH = _constants.IALLOCATOR_SEARCH_PATH
+DEFAULT_IALLOCATOR_SHORTCUT = _constants.DEFAULT_IALLOCATOR_SHORTCUT
+
+IALLOCATOR_NEVAC_PRI = _constants.IALLOCATOR_NEVAC_PRI
+IALLOCATOR_NEVAC_SEC = _constants.IALLOCATOR_NEVAC_SEC
+IALLOCATOR_NEVAC_ALL = _constants.IALLOCATOR_NEVAC_ALL
+IALLOCATOR_NEVAC_MODES = _constants.IALLOCATOR_NEVAC_MODES
 
 # Node evacuation
-NODE_EVAC_PRI = "primary-only"
-NODE_EVAC_SEC = "secondary-only"
-NODE_EVAC_ALL = "all"
-NODE_EVAC_MODES = compat.UniqueFrozenset([
-  NODE_EVAC_PRI,
-  NODE_EVAC_SEC,
-  NODE_EVAC_ALL,
-  ])
+NODE_EVAC_PRI = _constants.NODE_EVAC_PRI
+NODE_EVAC_SEC = _constants.NODE_EVAC_SEC
+NODE_EVAC_ALL = _constants.NODE_EVAC_ALL
+NODE_EVAC_MODES = _constants.NODE_EVAC_MODES
 
 # Job queue
 JOB_QUEUE_VERSION = 1
@@ -1819,58 +1622,37 @@ JOB_FILE_RE = re.compile(r"^job-(%s)$" % JOB_ID_TEMPLATE)
 JOB_NOTCHANGED = "nochange"
 
 # Job status
-JOB_STATUS_QUEUED = "queued"
-JOB_STATUS_WAITING = "waiting"
-JOB_STATUS_CANCELING = "canceling"
-JOB_STATUS_RUNNING = "running"
-JOB_STATUS_CANCELED = "canceled"
-JOB_STATUS_SUCCESS = "success"
-JOB_STATUS_ERROR = "error"
-JOBS_PENDING = compat.UniqueFrozenset([
-  JOB_STATUS_QUEUED,
-  JOB_STATUS_WAITING,
-  JOB_STATUS_CANCELING,
-  ])
-JOBS_FINALIZED = compat.UniqueFrozenset([
-  JOB_STATUS_CANCELED,
-  JOB_STATUS_SUCCESS,
-  JOB_STATUS_ERROR,
-  ])
-JOB_STATUS_ALL = compat.UniqueFrozenset([
-  JOB_STATUS_RUNNING,
-  ]) | JOBS_PENDING | JOBS_FINALIZED
+JOB_STATUS_QUEUED = _constants.JOB_STATUS_QUEUED
+JOB_STATUS_WAITING = _constants.JOB_STATUS_WAITING
+JOB_STATUS_CANCELING = _constants.JOB_STATUS_CANCELING
+JOB_STATUS_RUNNING = _constants.JOB_STATUS_RUNNING
+JOB_STATUS_CANCELED = _constants.JOB_STATUS_CANCELED
+JOB_STATUS_SUCCESS = _constants.JOB_STATUS_SUCCESS
+JOB_STATUS_ERROR = _constants.JOB_STATUS_ERROR
+JOBS_PENDING = _constants.JOBS_PENDING
+JOBS_FINALIZED = _constants.JOBS_FINALIZED
+JOB_STATUS_ALL = _constants.JOB_STATUS_ALL
 
 # OpCode status
 # not yet finalized
-OP_STATUS_QUEUED = "queued"
-OP_STATUS_WAITING = "waiting"
-OP_STATUS_CANCELING = "canceling"
-OP_STATUS_RUNNING = "running"
+OP_STATUS_QUEUED = _constants.OP_STATUS_QUEUED
+OP_STATUS_WAITING = _constants.OP_STATUS_WAITING
+OP_STATUS_CANCELING = _constants.OP_STATUS_CANCELING
+OP_STATUS_RUNNING = _constants.OP_STATUS_RUNNING
 # finalized
-OP_STATUS_CANCELED = "canceled"
-OP_STATUS_SUCCESS = "success"
-OP_STATUS_ERROR = "error"
-OPS_FINALIZED = compat.UniqueFrozenset([
-  OP_STATUS_CANCELED,
-  OP_STATUS_SUCCESS,
-  OP_STATUS_ERROR,
-  ])
+OP_STATUS_CANCELED = _constants.OP_STATUS_CANCELED
+OP_STATUS_SUCCESS = _constants.OP_STATUS_SUCCESS
+OP_STATUS_ERROR = _constants.OP_STATUS_ERROR
+OPS_FINALIZED = _constants.OPS_FINALIZED
 
 # OpCode priority
-OP_PRIO_LOWEST = +19
-OP_PRIO_HIGHEST = -20
-
-OP_PRIO_LOW = +10
-OP_PRIO_NORMAL = 0
-OP_PRIO_HIGH = -10
-
-OP_PRIO_SUBMIT_VALID = compat.UniqueFrozenset([
-  OP_PRIO_LOW,
-  OP_PRIO_NORMAL,
-  OP_PRIO_HIGH,
-  ])
-
-OP_PRIO_DEFAULT = OP_PRIO_NORMAL
+OP_PRIO_LOWEST = _constants.OP_PRIO_LOWEST
+OP_PRIO_HIGHEST = _constants.OP_PRIO_HIGHEST
+OP_PRIO_LOW = _constants.OP_PRIO_LOW
+OP_PRIO_NORMAL = _constants.OP_PRIO_NORMAL
+OP_PRIO_HIGH = _constants.OP_PRIO_HIGH
+OP_PRIO_SUBMIT_VALID = _constants.OP_PRIO_SUBMIT_VALID
+OP_PRIO_DEFAULT = _constants.OP_PRIO_DEFAULT
 
 # Lock recalculate mode
 LOCKS_REPLACE = "replace"
@@ -1886,9 +1668,9 @@ LOCK_ATTEMPTS_MAXWAIT = 15.0
 LOCK_ATTEMPTS_MINWAIT = 1.0
 
 # Execution log types
-ELOG_MESSAGE = "message"
-ELOG_REMOTE_IMPORT = "remote-import"
-ELOG_JQUEUE_TEST = "jqueue-test"
+ELOG_MESSAGE = _constants.ELOG_MESSAGE
+ELOG_REMOTE_IMPORT = _constants.ELOG_REMOTE_IMPORT
+ELOG_JQUEUE_TEST = _constants.ELOG_JQUEUE_TEST
 
 # /etc/hosts modification
 ETC_HOSTS_ADD = "add"
