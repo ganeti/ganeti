@@ -78,6 +78,8 @@ module Ganeti.Types
   , hypervisorToRaw
   , OobCommand(..)
   , oobCommandToRaw
+  , OobStatus(..)
+  , oobStatusToRaw
   , StorageType(..)
   , storageTypeToRaw
   , NodeEvacMode(..)
@@ -398,6 +400,15 @@ $(THH.declareLADT ''String "OobCommand"
   , ("OobPowerStatus", "power-status")
   ])
 $(THH.makeJSONInstance ''OobCommand)
+
+-- | Oob command status
+$(THH.declareLADT ''String "OobStatus"
+  [ ("OobStatusCritical", "CRITICAL")
+  , ("OobStatusOk",       "OK")
+  , ("OobStatusUnknown",  "UNKNOWN")
+  , ("OobStatusWarning",  "WARNING")
+  ])
+$(THH.makeJSONInstance ''OobStatus)
 
 -- | Storage type.
 $(THH.declareLADT ''String "StorageType"
