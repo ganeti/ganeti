@@ -142,9 +142,9 @@ class ConfigMock(config.ConfigWriter):
     if name is None:
       name = "mock_node_%d.example.com" % node_id
     if primary_ip is None:
-      primary_ip = "192.168.0.%d" % node_id
+      primary_ip = "192.0.2.%d" % node_id
     if secondary_ip is None:
-      secondary_ip = "192.168.1.%d" % node_id
+      secondary_ip = "203.0.113.%d" % node_id
     if group is None:
       group = self._default_group.uuid
     group = self._GetObjUuid(group)
@@ -281,12 +281,12 @@ class ConfigMock(config.ConfigWriter):
     if name is None:
       name = "mock_net_%d" % net_id
     if network is None:
-      network = "192.168.123.0/24"
+      network = "198.51.100.0/24"
     if gateway is None:
       if network[-3:] == "/24":
         gateway = network[:-4] + "1"
       else:
-        gateway = "192.168.123.1"
+        gateway = "198.51.100.1"
     if network[-3:] == "/24" and gateway == network[:-4] + "1":
       if reservations is None:
         reservations = "0" * 256
@@ -555,7 +555,7 @@ class ConfigMock(config.ConfigWriter):
       reserved_lvs=None,
       drbd_usermode_helper="/bin/true",
       master_node=master_node_uuid,
-      master_ip="192.168.0.254",
+      master_ip="192.0.2.254",
       master_netdev=constants.DEFAULT_BRIDGE,
       master_netmask=None,
       use_external_mip_script=None,

@@ -708,7 +708,7 @@ disk1_dump=mock_path
 nic0_mode=bridged
 nic0_link=br_mock
 nic0_mac=f6:ab:f4:45:d1:af
-nic0_ip=198.51.100.1
+nic0_ip=192.0.2.1
 tags=tag1 tag2
 hypervisor=xen-hvm
 [hypervisor]
@@ -2004,7 +2004,7 @@ class TestLUInstanceSetParams(CmdlibTestCase):
     self.cfg.ConnectNetworkToGroup(old_net, self.group)
     inst = self.cfg.AddNewInstance(nics=[
       self.cfg.CreateNic(network=old_net,
-                         ip="192.168.123.2")])
+                         ip="198.51.100.2")])
 
     new_net = self.cfg.AddNewNetwork(mac_prefix="be")
     self.cfg.ConnectNetworkToGroup(new_net, self.group)
