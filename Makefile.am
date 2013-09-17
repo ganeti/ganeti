@@ -1799,10 +1799,10 @@ lib/_autoconf.py: Makefile | stamp-directories
 	  echo "SOCAT_USE_ESCAPE = $(SOCAT_USE_ESCAPE)"; \
 	  echo "SOCAT_USE_COMPRESS = $(SOCAT_USE_COMPRESS)"; \
 	  echo "LVM_STRIPECOUNT = $(LVM_STRIPECOUNT)"; \
-	  echo "TOOLSDIR = '$(toolsdir)'"; \
+	  echo "TOOLSDIR = '$(libdir)/ganeti/tools'"; \
 	  echo "GNT_SCRIPTS = [$(foreach i,$(notdir $(gnt_scripts)),'$(i)',)]"; \
 	  echo "HTOOLS_PROGS = [$(foreach i,$(HS_HTOOLS_PROGS),'$(i)',)]"; \
-	  echo "PKGLIBDIR = '$(pkglibdir)'"; \
+	  echo "PKGLIBDIR = '$(libdir)/ganeti'"; \
 	  echo "DRBD_BARRIERS = '$(DRBD_BARRIERS)'"; \
 	  echo "DRBD_NO_META_FLUSH = $(DRBD_NO_META_FLUSH)"; \
 	  echo "SYSLOG_USAGE = '$(SYSLOG_USAGE)'"; \
@@ -1873,10 +1873,10 @@ src/AutoConf.hs: Makefile src/AutoConf.hs.in | stamp-directories
 	    -DSOCAT_USE_ESCAPE="$(SOCAT_USE_ESCAPE)" \
 	    -DSOCAT_USE_COMPRESS="$(SOCAT_USE_COMPRESS)" \
 	    -DLVM_STRIPECOUNT="$(LVM_STRIPECOUNT)" \
-	    -DTOOLSDIR="$(toolsdir)" \
+	    -DTOOLSDIR="$(libdir)/ganeti/tools)" \
 	    -DGNT_SCRIPTS="$(foreach i,$(notdir $(gnt_scripts)),\"$(i)\":)" \
 	    -DHS_HTOOLS_PROGS="$(foreach i,$(HS_HTOOLS_PROGS),\"$(i)\":)" \
-	    -DPKGLIBDIR="$(pkglibdir)" \
+	    -DPKGLIBDIR="$(libdir)/ganeti" \
 	    -DDRBD_BARRIERS="$(DRBD_BARRIERS)" \
 	    -DDRBD_NO_META_FLUSH="$(DRBD_NO_META_FLUSH)" \
 	    -DSYSLOG_USAGE="$(SYSLOG_USAGE)" \
@@ -1944,7 +1944,7 @@ $(SHELL_ENV_INIT): Makefile stamp-directories
 	  echo 'readonly LOCALSTATEDIR=$${LOCALSTATEDIR:-$${GANETI_ROOTDIR:-}$(localstatedir)}'; \
 	  echo 'readonly SYSCONFDIR=$${SYSCONFDIR:-$${GANETI_ROOTDIR:-}$(sysconfdir)}'; \
 	  echo; \
-	  echo 'readonly PKGLIBDIR=$(pkglibdir)'; \
+	  echo 'readonly PKGLIBDIR=$(libdir)/ganeti'; \
 	  echo 'readonly LOG_DIR="$$LOCALSTATEDIR/log/ganeti"'; \
 	  echo 'readonly RUN_DIR="$$LOCALSTATEDIR/run/ganeti"'; \
 	  echo 'readonly DATA_DIR="$$LOCALSTATEDIR/lib/ganeti"'; \
