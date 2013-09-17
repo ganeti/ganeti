@@ -2318,6 +2318,8 @@ install-exec-local:
 	  $(LN_S) -f $(defaultversiondir)$(libdir)/ganeti/$$prog $(DESTDIR)$(libdir)/ganeti/$$prog; \
 	done
 if INSTALL_SYMLINKS
+	$(LN_S) $(versionedsharedir) $(DESTDIR)$(sysconfdir)/ganeti/share
+	$(LN_S) $(versiondir) $(DESTDIR)$(sysconfdir)/ganeti/lib
 endif
 
 .PHONY: apidoc
