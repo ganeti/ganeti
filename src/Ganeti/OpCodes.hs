@@ -87,7 +87,7 @@ instance PyValue a => PyValue (NonEmpty a) where
 -- using the declareSADT
 instance PyValue ExportMode where
   showValue ExportModeLocal = show C.exportModeLocal
-  showValue ExportModeRemove = show C.exportModeLocal
+  showValue ExportModeRemote = show C.exportModeLocal
 
 instance PyValue CVErrorCode where
   showValue = cVErrorCodeToRaw

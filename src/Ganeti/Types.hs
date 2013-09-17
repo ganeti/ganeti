@@ -514,7 +514,7 @@ $(THH.makeJSONInstance ''RebootType)
 -- | Export modes.
 $(THH.declareLADT ''String "ExportMode"
   [ ("ExportModeLocal",  "local")
-  , ("ExportModeRemove", "remote")
+  , ("ExportModeRemote", "remote")
   ])
 $(THH.makeJSONInstance ''ExportMode)
 
