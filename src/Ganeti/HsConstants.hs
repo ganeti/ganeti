@@ -499,16 +499,36 @@ inststAll = ConstantUtils.mkSet $ map Types.instanceStatusToRaw [minBound..]
 -- * Admin states
 
 adminstDown :: String
-adminstDown = "down"
+adminstDown = Types.adminStateToRaw AdminDown
 
 adminstOffline :: String
-adminstOffline = "offline"
+adminstOffline = Types.adminStateToRaw AdminOffline
 
 adminstUp :: String
-adminstUp = "up"
+adminstUp = Types.adminStateToRaw AdminUp
 
 adminstAll :: FrozenSet String
-adminstAll = ConstantUtils.mkSet [adminstDown, adminstOffline, adminstUp]
+adminstAll = ConstantUtils.mkSet $ map Types.adminStateToRaw [minBound..]
+
+-- * Node roles
+
+nrDrained :: String
+nrDrained = Types.nodeRoleToRaw NRDrained
+
+nrMaster :: String
+nrMaster = Types.nodeRoleToRaw NRMaster
+
+nrMcandidate :: String
+nrMcandidate = Types.nodeRoleToRaw NRCandidate
+
+nrOffline :: String
+nrOffline = Types.nodeRoleToRaw NROffline
+
+nrRegular :: String
+nrRegular = Types.nodeRoleToRaw NRRegular
+
+nrAll :: FrozenSet String
+nrAll = ConstantUtils.mkSet $ map Types.nodeRoleToRaw [minBound..]
 
 -- * Allocator framework constants
 
@@ -913,6 +933,17 @@ fdBlktap = Types.fileDriverToRaw FileBlktap
 fdLoop :: String
 fdLoop = Types.fileDriverToRaw FileLoop
 
+-- * Disk access mode
+
+diskRdonly :: String
+diskRdonly = Types.diskModeToRaw DiskRdOnly
+
+diskRdwr :: String
+diskRdwr = Types.diskModeToRaw DiskRdWr
+
+diskAccessSet :: FrozenSet String
+diskAccessSet = ConstantUtils.mkSet $ map Types.diskModeToRaw [minBound..]
+
 -- * Instance export mode
 
 exportModeLocal :: String
@@ -1021,6 +1052,27 @@ instanceRebootFull = Types.rebootTypeToRaw RebootFull
 rebootTypes :: FrozenSet String
 rebootTypes = ConstantUtils.mkSet $ map Types.rebootTypeToRaw [minBound..]
 
+-- * VTypes
+
+vtypeBool :: String
+vtypeBool = Types.vTypeToRaw VTypeBool
+
+vtypeInt :: String
+vtypeInt = Types.vTypeToRaw VTypeInt
+
+vtypeMaybeString :: String
+vtypeMaybeString = Types.vTypeToRaw VTypeMaybeString
+
+-- | Size in MiBs
+vtypeSize :: String
+vtypeSize = Types.vTypeToRaw VTypeSize
+
+vtypeString :: String
+vtypeString = Types.vTypeToRaw VTypeString
+
+enforceableTypes :: FrozenSet String
+enforceableTypes = ConstantUtils.mkSet $ map Types.vTypeToRaw [minBound..]
+
 -- * Possible values for NodeGroup.alloc_policy
 
 allocPolicyLastResort :: String
@@ -1037,7 +1089,7 @@ validAllocPolicies = map Types.allocPolicyToRaw [minBound..]
 
 -- | Temporary external/shared storage parameters
 blockdevDriverManual :: String
-blockdevDriverManual = "manual"
+blockdevDriverManual = Types.blockDriverToRaw BlockDrvManual
 
 -- | Path generating random UUID
 randomUuidFile :: String
