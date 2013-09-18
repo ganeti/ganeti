@@ -560,9 +560,9 @@ FD_LOOP = _constants.FD_LOOP
 LDS_DRBD = compat.UniqueFrozenset([DT_DRBD8])
 
 # disk access mode
-DISK_RDONLY = "ro"
-DISK_RDWR = "rw"
-DISK_ACCESS_SET = compat.UniqueFrozenset([DISK_RDONLY, DISK_RDWR])
+DISK_RDONLY = _constants.DISK_RDONLY
+DISK_RDWR = _constants.DISK_RDWR
+DISK_ACCESS_SET = _constants.DISK_ACCESS_SET
 
 # disk replacement mode
 REPLACE_DISK_PRI = "replace_on_primary"    # replace disks on primary
@@ -767,18 +767,12 @@ REBOOT_BEHAVIORS = compat.UniqueFrozenset([
   INSTANCE_REBOOT_EXIT,
   ])
 
-VTYPE_STRING = "string"
-VTYPE_MAYBE_STRING = "maybe-string"
-VTYPE_BOOL = "bool"
-VTYPE_SIZE = "size" # size, in MiBs
-VTYPE_INT = "int"
-ENFORCEABLE_TYPES = compat.UniqueFrozenset([
-  VTYPE_STRING,
-  VTYPE_MAYBE_STRING,
-  VTYPE_BOOL,
-  VTYPE_SIZE,
-  VTYPE_INT,
-  ])
+VTYPE_STRING = _constants.VTYPE_STRING
+VTYPE_MAYBE_STRING = _constants.VTYPE_MAYBE_STRING
+VTYPE_BOOL = _constants.VTYPE_BOOL
+VTYPE_SIZE = _constants.VTYPE_SIZE
+VTYPE_INT = _constants.VTYPE_INT
+ENFORCEABLE_TYPES = _constants.ENFORCEABLE_TYPES
 
 # Constant representing that the user does not specify any IP version
 IFACE_NO_IP_VERSION_SPECIFIED = 0
@@ -1566,18 +1560,12 @@ ADMINST_OFFLINE = _constants.ADMINST_OFFLINE
 ADMINST_ALL = _constants.ADMINST_ALL
 
 # Node roles
-NR_REGULAR = "R"
-NR_MASTER = "M"
-NR_MCANDIDATE = "C"
-NR_DRAINED = "D"
-NR_OFFLINE = "O"
-NR_ALL = compat.UniqueFrozenset([
-  NR_REGULAR,
-  NR_MASTER,
-  NR_MCANDIDATE,
-  NR_DRAINED,
-  NR_OFFLINE,
-  ])
+NR_REGULAR = _constants.NR_REGULAR
+NR_MASTER = _constants.NR_MASTER
+NR_MCANDIDATE = _constants.NR_MCANDIDATE
+NR_DRAINED = _constants.NR_DRAINED
+NR_OFFLINE = _constants.NR_OFFLINE
+NR_ALL = _constants.NR_ALL
 
 # SSL certificate check constants (in days)
 SSL_CERT_EXPIRATION_WARN = 30
