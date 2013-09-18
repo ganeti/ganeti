@@ -368,14 +368,14 @@ STS_REPORT = compat.UniqueFrozenset([ST_FILE, ST_LVM_PV, ST_LVM_VG])
 
 # Storage fields
 # first two are valid in LU context only, not passed to backend
-SF_NODE = "node"
-SF_TYPE = "type"
+SF_NODE = _constants.SF_NODE
+SF_TYPE = _constants.SF_TYPE
 # and the rest are valid in backend
-SF_NAME = "name"
-SF_SIZE = "size"
-SF_FREE = "free"
-SF_USED = "used"
-SF_ALLOCATABLE = "allocatable"
+SF_NAME = _constants.SF_NAME
+SF_SIZE = _constants.SF_SIZE
+SF_FREE = _constants.SF_FREE
+SF_USED = _constants.SF_USED
+SF_ALLOCATABLE = _constants.SF_ALLOCATABLE
 
 # Storage operations
 SO_FIX_CONSISTENCY = "fix-consistency"
