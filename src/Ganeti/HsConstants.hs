@@ -882,6 +882,32 @@ stRados = Types.storageTypeToRaw StorageRados
 storageTypes :: FrozenSet String
 storageTypes = ConstantUtils.mkSet $ map Types.storageTypeToRaw [minBound..]
 
+-- * Storage fields
+-- ** First two are valid in LU context only, not passed to backend
+
+sfNode :: String
+sfNode = "node"
+
+sfType :: String
+sfType = "type"
+
+-- ** and the rest are valid in backend
+
+sfAllocatable :: String
+sfAllocatable = Types.storageFieldToRaw SFAllocatable
+
+sfFree :: String
+sfFree = Types.storageFieldToRaw SFFree
+
+sfName :: String
+sfName = Types.storageFieldToRaw SFName
+
+sfSize :: String
+sfSize = Types.storageFieldToRaw SFSize
+
+sfUsed :: String
+sfUsed = Types.storageFieldToRaw SFUsed
+
 -- * Disk template types
 
 dtDiskless :: String
