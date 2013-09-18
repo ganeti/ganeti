@@ -139,6 +139,8 @@ module Ganeti.Types
   , AdminState(..)
   , adminStateFromRaw
   , adminStateToRaw
+  , StorageField(..)
+  , storageFieldToRaw
   ) where
 
 import Control.Monad (liftM)
@@ -745,3 +747,14 @@ $(THH.declareLADT ''String "AdminState"
   , ("AdminUp",      "up")
   ])
 $(THH.makeJSONInstance ''AdminState)
+
+-- * Storage field type
+
+$(THH.declareLADT ''String "StorageField"
+  [ ( "SFUsed",        "used")
+  , ( "SFName",        "name")
+  , ( "SFAllocatable", "allocatable")
+  , ( "SFFree",        "free")
+  , ( "SFSize",        "size")
+  ])
+$(THH.makeJSONInstance ''StorageField)

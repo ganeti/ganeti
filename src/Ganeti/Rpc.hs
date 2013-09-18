@@ -60,7 +60,6 @@ module Ganeti.Rpc
   , RpcCallVersion(..)
   , RpcResultVersion(..)
 
-  , StorageField(..)
   , RpcCallStorageList(..)
   , RpcResultStorageList(..)
 
@@ -413,18 +412,6 @@ instance Rpc RpcCallVersion RpcResultVersion where
   rpcResultFill _ res = fromJSValueToRes res RpcResultVersion
 
 -- ** StorageList
-
--- | StorageList
-
--- FIXME: This may be moved to Objects
-$(declareSADT "StorageField"
-  [ ( "SFUsed",        'C.sfUsed)
-  , ( "SFName",        'C.sfName)
-  , ( "SFAllocatable", 'C.sfAllocatable)
-  , ( "SFFree",        'C.sfFree)
-  , ( "SFSize",        'C.sfSize)
-  ])
-$(makeJSONInstance ''StorageField)
 
 $(buildObject "RpcCallStorageList" "rpcCallStorageList"
   [ simpleField "su_name" [t| StorageType |]
