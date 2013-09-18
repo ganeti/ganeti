@@ -32,7 +32,6 @@ module Ganeti.DataCollectors.InstStatusTypes
 
 import Ganeti.DataCollectors.Types
 import Ganeti.Hypervisor.Xen.Types
-import Ganeti.Objects
 import Ganeti.THH
 import Ganeti.Types
 

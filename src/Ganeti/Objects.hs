@@ -29,9 +29,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 
 module Ganeti.Objects
-  ( VType(..)
-  , vTypeFromRaw
-  , HvParams
+  ( HvParams
   , OsParams
   , PartialNicParams(..)
   , FilledNicParams(..)
@@ -39,8 +37,6 @@ module Ganeti.Objects
   , allNicParamFields
   , PartialNic(..)
   , FileDriver(..)
-  , BlockDriver(..)
-  , DiskMode(..)
   , DiskLogicalId(..)
   , Disk(..)
   , includesLogicalId
@@ -49,8 +45,6 @@ module Ganeti.Objects
   , FilledBeParams(..)
   , fillBeParams
   , allBeParamFields
-  , AdminState(..)
-  , adminStateFromRaw
   , Instance(..)
   , toDictInstance
   , PartialNDParams(..)
@@ -58,9 +52,6 @@ module Ganeti.Objects
   , fillNDParams
   , allNDParamFields
   , Node(..)
-  , NodeRole(..)
-  , nodeRoleToRaw
-  , roleDescription
   , AllocPolicy(..)
   , FilledISpecParams(..)
   , PartialISpecParams(..)
@@ -119,16 +110,6 @@ fillDict defaults custom skip_keys =
   let updated = Map.union custom defaults
   in foldl' (flip Map.delete) updated skip_keys
 
--- | The VTYPES, a mini-type system in Python.
-$(declareSADT "VType"
-  [ ("VTypeString",      'C.vtypeString)
-  , ("VTypeMaybeString", 'C.vtypeMaybeString)
-  , ("VTypeBool",        'C.vtypeBool)
-  , ("VTypeSize",        'C.vtypeSize)
-  , ("VTypeInt",         'C.vtypeInt)
-  ])
-$(makeJSONInstance ''VType)
-
 -- | The hypervisor parameter type. This is currently a simple map,
 -- without type checking on key/value pairs.
 type HvParams = Container JSValue
@@ -154,25 +135,6 @@ class SerialNoObject a where
 -- | Class of objects that have tags.
 class TagsObject a where
   tagsOf :: a -> Set.Set String
-
--- * Node role object
-
-$(declareSADT "NodeRole"
-  [ ("NROffline",   'C.nrOffline)
-  , ("NRDrained",   'C.nrDrained)
-  , ("NRRegular",   'C.nrRegular)
-  , ("NRCandidate", 'C.nrMcandidate)
-  , ("NRMaster",    'C.nrMaster)
-  ])
-$(makeJSONInstance ''NodeRole)
-
--- | The description of the node role.
-roleDescription :: NodeRole -> String
-roleDescription NROffline   = "offline"
-roleDescription NRDrained   = "drained"
-roleDescription NRRegular   = "regular"
-roleDescription NRCandidate = "master candidate"
-roleDescription NRMaster    = "master"
 
 -- * Network definitions
 
@@ -296,18 +258,6 @@ instance UuidObject PartialNic where
   uuidOf = nicUuid
 
 -- * Disk definitions
-
-$(declareSADT "DiskMode"
-  [ ("DiskRdOnly", 'C.diskRdonly)
-  , ("DiskRdWr",   'C.diskRdwr)
-  ])
-$(makeJSONInstance ''DiskMode)
-
--- | The persistent block driver type. Currently only one type is allowed.
-$(declareSADT "BlockDriver"
-  [ ("BlockDrvManual", 'C.blockdevDriverManual)
-  ])
-$(makeJSONInstance ''BlockDriver)
 
 -- | Constant for the dev_type key entry in the disk config.
 devType :: String
@@ -466,15 +416,7 @@ includesLogicalId vg_name lv_name disk =
       any (includesLogicalId vg_name lv_name) $ diskChildren disk
     _ -> False
 
-
 -- * Instance definitions
-
-$(declareSADT "AdminState"
-  [ ("AdminOffline", 'C.adminstOffline)
-  , ("AdminDown",    'C.adminstDown)
-  , ("AdminUp",      'C.adminstUp)
-  ])
-$(makeJSONInstance ''AdminState)
 
 $(buildParam "Be" "bep"
   [ simpleField "minmem"       [t| Int  |]

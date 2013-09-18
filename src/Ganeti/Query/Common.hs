@@ -51,6 +51,7 @@ import Ganeti.Objects
 import Ganeti.Rpc
 import Ganeti.Query.Language
 import Ganeti.Query.Types
+import Ganeti.Types
 
 -- * Generic functions
 

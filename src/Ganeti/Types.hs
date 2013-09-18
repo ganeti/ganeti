@@ -126,6 +126,19 @@ module Ganeti.Types
   , StorageKey
   , addParamsToStorageUnit
   , diskTemplateToStorageType
+  , VType(..)
+  , vTypeFromRaw
+  , vTypeToRaw
+  , NodeRole(..)
+  , nodeRoleToRaw
+  , roleDescription
+  , DiskMode(..)
+  , diskModeToRaw
+  , BlockDriver(..)
+  , blockDriverToRaw
+  , AdminState(..)
+  , adminStateFromRaw
+  , adminStateToRaw
   ) where
 
 import Control.Monad (liftM)
@@ -680,3 +693,55 @@ type ReasonElem = (String, String, Integer)
 
 -- | Type representing a reason trail.
 type ReasonTrail = [ReasonElem]
+
+-- | The VTYPES, a mini-type system in Python.
+$(THH.declareLADT ''String "VType"
+  [ ("VTypeString",      "string")
+  , ("VTypeMaybeString", "maybe-string")
+  , ("VTypeBool",        "bool")
+  , ("VTypeSize",        "size")
+  , ("VTypeInt",         "int")
+  ])
+$(THH.makeJSONInstance ''VType)
+
+-- * Node role type
+
+$(THH.declareLADT ''String "NodeRole"
+  [ ("NROffline",   "O")
+  , ("NRDrained",   "D")
+  , ("NRRegular",   "R")
+  , ("NRCandidate", "C")
+  , ("NRMaster",    "M")
+  ])
+$(THH.makeJSONInstance ''NodeRole)
+
+-- | The description of the node role.
+roleDescription :: NodeRole -> String
+roleDescription NROffline   = "offline"
+roleDescription NRDrained   = "drained"
+roleDescription NRRegular   = "regular"
+roleDescription NRCandidate = "master candidate"
+roleDescription NRMaster    = "master"
+
+-- * Disk types
+
+$(THH.declareLADT ''String "DiskMode"
+  [ ("DiskRdOnly", "ro")
+  , ("DiskRdWr",   "rw")
+  ])
+$(THH.makeJSONInstance ''DiskMode)
+
+-- | The persistent block driver type. Currently only one type is allowed.
+$(THH.declareLADT ''String "BlockDriver"
+  [ ("BlockDrvManual", "manual")
+  ])
+$(THH.makeJSONInstance ''BlockDriver)
+
+-- * Instance types
+
+$(THH.declareLADT ''String "AdminState"
+  [ ("AdminOffline", "offline")
+  , ("AdminDown",    "down")
+  , ("AdminUp",      "up")
+  ])
+$(THH.makeJSONInstance ''AdminState)
