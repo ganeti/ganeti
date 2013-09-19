@@ -667,7 +667,7 @@ MIN_VG_SIZE = 20480
 DEFAULT_MAC_PREFIX = "aa:00:00"
 # default maximum instance wait time, in seconds.
 DEFAULT_SHUTDOWN_TIMEOUT = 120
-NODE_MAX_CLOCK_SKEW = 150
+NODE_MAX_CLOCK_SKEW = _constants.NODE_MAX_CLOCK_SKEW
 # Time for an intra-cluster disk transfer to wait for a connection
 DISK_TRANSFER_CONNECT_TIMEOUT = 60
 # Disk index separator
@@ -2141,41 +2141,41 @@ CONFD_REPL_STATUSES = compat.UniqueFrozenset([
  ) = range(5)
 
 # A few common errors for confd
-CONFD_ERROR_UNKNOWN_ENTRY = 1
-CONFD_ERROR_INTERNAL = 2
-CONFD_ERROR_ARGUMENT = 3
+CONFD_ERROR_UNKNOWN_ENTRY = _constants.CONFD_ERROR_UNKNOWN_ENTRY
+CONFD_ERROR_INTERNAL = _constants.CONFD_ERROR_INTERNAL
+CONFD_ERROR_ARGUMENT = _constants.CONFD_ERROR_ARGUMENT
 
 # Each request is "salted" by the current timestamp.
 # This constants decides how many seconds of skew to accept.
 # TODO: make this a default and allow the value to be more configurable
-CONFD_MAX_CLOCK_SKEW = 2 * NODE_MAX_CLOCK_SKEW
+CONFD_MAX_CLOCK_SKEW = _constants.CONFD_MAX_CLOCK_SKEW
 
 # When we haven't reloaded the config for more than this amount of
 # seconds, we force a test to see if inotify is betraying us. Using a
 # prime number to ensure we get less chance of 'same wakeup' with
 # other processes.
-CONFD_CONFIG_RELOAD_TIMEOUT = 17
+CONFD_CONFIG_RELOAD_TIMEOUT = _constants.CONFD_CONFIG_RELOAD_TIMEOUT
 
 # If we receive more than one update in this amount of microseconds,
 # we move to polling every RATELIMIT seconds, rather than relying on
 # inotify, to be able to serve more requests.
-CONFD_CONFIG_RELOAD_RATELIMIT = 250000
+CONFD_CONFIG_RELOAD_RATELIMIT = _constants.CONFD_CONFIG_RELOAD_RATELIMIT
 
 # Magic number prepended to all confd queries.
 # This allows us to distinguish different types of confd protocols and handle
 # them. For example by changing this we can move the whole payload to be
 # compressed, or move away from json.
-CONFD_MAGIC_FOURCC = "plj0"
+CONFD_MAGIC_FOURCC = _constants.CONFD_MAGIC_FOURCC
 
 # By default a confd request is sent to the minimum between this number and all
 # MCs. 6 was chosen because even in the case of a disastrous 50% response rate,
 # we should have enough answers to be able to compare more than one.
-CONFD_DEFAULT_REQ_COVERAGE = 6
+CONFD_DEFAULT_REQ_COVERAGE = _constants.CONFD_DEFAULT_REQ_COVERAGE
 
 # Timeout in seconds to expire pending query request in the confd client
 # library. We don't actually expect any answer more than 10 seconds after we
 # sent a request.
-CONFD_CLIENT_EXPIRE_TIMEOUT = 10
+CONFD_CLIENT_EXPIRE_TIMEOUT = _constants.CONFD_CLIENT_EXPIRE_TIMEOUT
 
 # Maximum UDP datagram size.
 # On IPv4: 64K - 20 (ip header size) - 8 (udp header size) = 65507
