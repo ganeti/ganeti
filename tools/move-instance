@@ -805,17 +805,12 @@ def CheckOptions(parser, options, args):
   if options.parallel < 1:
     parser.error("Number of simultaneous moves must be >= 1")
 
-  if not (bool(options.iallocator) ^
-          bool(options.dest_primary_node or options.dest_secondary_node)):
+  if (bool(options.iallocator) and
+      bool(options.dest_primary_node or options.dest_secondary_node)):
     parser.error("Destination node and iallocator options exclude each other")
 
   if len(instance_names) == 1:
     # Moving one instance only
-    if not (options.iallocator or
-            options.dest_primary_node or
-            options.dest_secondary_node):
-      parser.error("An iallocator or the destination node is required")
-
     if options.hvparams:
       utils.ForceDictType(options.hvparams, constants.HVS_PARAMETER_TYPES)
 
@@ -834,11 +829,24 @@ def CheckOptions(parser, options, args):
                    " --backend-parameters, --os-parameters and --net can"
                    " only be used when moving exactly one instance")
 
-    if not options.iallocator:
-      parser.error("An iallocator must be specified for moving more than one"
-                   " instance")
-
   return (src_cluster_name, dest_cluster_name, instance_names)
+
+
+def DestClusterHasDefaultIAllocator(rapi_factory):
+  """Determines if a given cluster has a default iallocator.
+
+  """
+  result = rapi_factory.GetDestClient().GetInfo()
+  ia_name = "default_iallocator"
+  return ia_name in result and result[ia_name]
+
+
+def ExitWithError(message):
+  """Exits after an error and shows a message.
+
+  """
+  sys.stderr.write("move-instance: error: " + message + "\n")
+  sys.exit(constants.EXIT_FAILURE)
 
 
 @UsesRapiClient
@@ -861,14 +869,17 @@ def main():
 
   CheckRapiSetup(rapi_factory)
 
-  assert (len(instance_names) == 1 or
-          not (options.dest_primary_node or options.dest_secondary_node))
-  assert len(instance_names) == 1 or options.iallocator
-  assert (len(instance_names) > 1 or options.iallocator or
-          options.dest_primary_node or options.dest_secondary_node)
-  assert (len(instance_names) == 1 or
-          not (options.hvparams or options.beparams or options.osparams or
-               options.nics))
+  has_iallocator = options.iallocator or \
+                   DestClusterHasDefaultIAllocator(rapi_factory)
+
+  if len(instance_names) > 1 and not has_iallocator:
+    ExitWithError("When moving multiple nodes, an iallocator must be used. "
+                  "None was provided and the target cluster does not have "
+                  "a default iallocator.")
+  if (len(instance_names) == 1 and not (has_iallocator or
+      options.dest_primary_node or options.dest_secondary_node)):
+    ExitWithError("Target cluster does not have a default iallocator, "
+                  "please specify either destination nodes or an iallocator.")
 
   # Prepare list of instance moves
   moves = []
