@@ -502,9 +502,6 @@ class TLMigrateInstance(Tasklet):
     self.feedback_fn("* switching node %s to secondary mode" %
                      self.cfg.GetNodeName(node_uuid))
 
-    for dev in self.instance.disks:
-      self.cfg.SetDiskID(dev, node_uuid)
-
     result = self.rpc.call_blockdev_close(node_uuid, self.instance.name,
                                           (self.instance.disks, self.instance))
     result.Raise("Cannot change disk to secondary on node %s" %

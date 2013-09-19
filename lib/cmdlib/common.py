@@ -1036,9 +1036,6 @@ def CheckIAllocatorOrNode(lu, iallocator_slot, node_slot):
 def FindFaultyInstanceDisks(cfg, rpc_runner, instance, node_uuid, prereq):
   faulty = []
 
-  for dev in instance.disks:
-    cfg.SetDiskID(dev, node_uuid)
-
   result = rpc_runner.call_blockdev_getmirrorstatus(
              node_uuid, (instance.disks, instance))
   result.Raise("Failed to get disk status from node %s" %

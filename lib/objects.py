@@ -506,7 +506,7 @@ class NIC(ConfigObject):
 
 class Disk(ConfigObject):
   """Config object representing a block device."""
-  __slots__ = (["name", "dev_type", "logical_id", "physical_id", "children", "iv_name",
+  __slots__ = (["name", "dev_type", "logical_id", "children", "iv_name",
                 "size", "mode", "params", "spindles"] + _UUID +
                # dynamic_params is special. It depends on the node this instance
                # is sent to, and should not be persisted.
@@ -768,8 +768,6 @@ class Disk(ConfigObject):
       obj.children = outils.ContainerFromDicts(obj.children, list, Disk)
     if obj.logical_id and isinstance(obj.logical_id, list):
       obj.logical_id = tuple(obj.logical_id)
-    if obj.physical_id and isinstance(obj.physical_id, list):
-      obj.physical_id = tuple(obj.physical_id)
     if obj.dev_type in constants.LDS_DRBD:
       # we need a tuple of length six here
       if len(obj.logical_id) < 6:
@@ -785,22 +783,16 @@ class Disk(ConfigObject):
     elif self.dev_type in constants.LDS_DRBD:
       node_a, node_b, port, minor_a, minor_b = self.logical_id[:5]
       val = "<DRBD8("
-      if self.physical_id is None:
-        phy = "unconfigured"
-      else:
-        phy = ("configured as %s:%s %s:%s" %
-               (self.physical_id[0], self.physical_id[1],
-                self.physical_id[2], self.physical_id[3]))
 
-      val += ("hosts=%s/%d-%s/%d, port=%s, %s, " %
-              (node_a, minor_a, node_b, minor_b, port, phy))
+      val += ("hosts=%s/%d-%s/%d, port=%s, " %
+              (node_a, minor_a, node_b, minor_b, port))
       if self.children and self.children.count(None) == 0:
         val += "backend=%s, metadev=%s" % (self.children[0], self.children[1])
       else:
         val += "no local storage"
     else:
-      val = ("<Disk(type=%s, logical_id=%s, physical_id=%s, children=%s" %
-             (self.dev_type, self.logical_id, self.physical_id, self.children))
+      val = ("<Disk(type=%s, logical_id=%s, children=%s" %
+             (self.dev_type, self.logical_id, self.children))
     if self.iv_name is None:
       val += ", not visible"
     else:

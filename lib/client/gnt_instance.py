@@ -942,10 +942,6 @@ def _FormatDiskDetails(dev_type, dev, roman):
   return data
 
 
-def _FormatListInfo(data):
-  return list(str(i) for i in data)
-
-
 def _FormatBlockDevInfo(idx, top_level, dev, roman):
   """Show block device information.
 
@@ -1043,8 +1039,6 @@ def _FormatBlockDevInfo(idx, top_level, dev, roman):
       data.append(("logical_id", l_id[0]))
     else:
       data.extend(l_id)
-  elif dev["physical_id"] is not None:
-    data.append(("physical_id:", _FormatListInfo(dev["physical_id"])))
 
   if dev["pstatus"]:
     data.append(("on primary", helper(dev["dev_type"], dev["pstatus"])))

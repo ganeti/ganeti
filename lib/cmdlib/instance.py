@@ -1272,7 +1272,6 @@ class LUInstanceCreate(LogicalUnit):
         for t_dsk, a_dsk in zip(tmp_disks, self.disks):
           rename_to.append(t_dsk.logical_id)
           t_dsk.logical_id = (t_dsk.logical_id[0], a_dsk[constants.IDISK_ADOPT])
-          self.cfg.SetDiskID(t_dsk, self.pnode.uuid)
         result = self.rpc.call_blockdev_rename(self.pnode.uuid,
                                                zip(tmp_disks, rename_to))
         result.Raise("Failed to rename adoped LVs")
@@ -1337,11 +1336,6 @@ class LUInstanceCreate(LogicalUnit):
     ReleaseLocks(self, locking.LEVEL_NODE_RES)
 
     if iobj.disk_template != constants.DT_DISKLESS and not self.adopt_disks:
-      # we need to set the disks ID to the primary node, since the
-      # preceding code might or might have not done it, depending on
-      # disk template and other options
-      for disk in iobj.disks:
-        self.cfg.SetDiskID(disk, self.pnode.uuid)
       if self.op.mode == constants.INSTANCE_CREATE:
         if not self.op.no_install:
           pause_sync = (iobj.disk_template in constants.DTS_INT_MIRROR and
@@ -1573,7 +1567,6 @@ class LUInstanceRename(LogicalUnit):
     info = GetInstanceInfoText(renamed_inst)
     for (idx, disk) in enumerate(renamed_inst.disks):
       for node_uuid in renamed_inst.all_nodes:
-        self.cfg.SetDiskID(disk, node_uuid)
         result = self.rpc.call_blockdev_setinfo(node_uuid,
                                                 (disk, renamed_inst), info)
         result.Warn("Error setting info on node %s for disk %s" %
@@ -3132,8 +3125,6 @@ class LUInstanceSetParams(LogicalUnit):
     except errors.GenericError, e:
       feedback_fn("Initializing of DRBD devices failed;"
                   " renaming back original volumes...")
-      for disk in new_disks:
-        self.cfg.SetDiskID(disk, pnode_uuid)
       rename_back_list = [(n.children[0], o.logical_id)
                           for (n, o) in zip(new_disks, self.instance.disks)]
       result = self.rpc.call_blockdev_rename(pnode_uuid, rename_back_list)
@@ -3194,7 +3185,6 @@ class LUInstanceSetParams(LogicalUnit):
 
     feedback_fn("Removing volumes on the secondary node...")
     for disk in old_disks:
-      self.cfg.SetDiskID(disk, snode_uuid)
       result = self.rpc.call_blockdev_remove(snode_uuid, (disk, self.instance))
       result.Warn("Could not remove block device %s on node %s,"
                   " continuing anyway" %
@@ -3204,7 +3194,6 @@ class LUInstanceSetParams(LogicalUnit):
     feedback_fn("Removing unneeded volumes on the primary node...")
     for idx, disk in enumerate(old_disks):
       meta = disk.children[1]
-      self.cfg.SetDiskID(meta, pnode_uuid)
       result = self.rpc.call_blockdev_remove(pnode_uuid, (meta, self.instance))
       result.Warn("Could not remove metadata for disk %d on node %s,"
                   " continuing anyway" %
@@ -3264,7 +3253,6 @@ class LUInstanceSetParams(LogicalUnit):
     (anno_disk,) = AnnotateDiskParams(self.instance, [root], self.cfg)
     for node_uuid, disk in anno_disk.ComputeNodeTree(
                              self.instance.primary_node):
-      self.cfg.SetDiskID(disk, node_uuid)
       msg = self.rpc.call_blockdev_remove(node_uuid, (disk, self.instance)) \
               .fail_msg
       if msg:

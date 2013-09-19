@@ -553,15 +553,13 @@ class ConfigWriter(object):
 
     return result
 
-  def _CheckDiskIDs(self, disk, l_ids, p_ids):
+  def _CheckDiskIDs(self, disk, l_ids):
     """Compute duplicate disk IDs
 
     @type disk: L{objects.Disk}
     @param disk: the disk at which to start searching
     @type l_ids: list
     @param l_ids: list of current logical ids
-    @type p_ids: list
-    @param p_ids: list of current physical ids
     @rtype: list
     @return: a list of error messages
 
@@ -572,15 +570,10 @@ class ConfigWriter(object):
         result.append("duplicate logical id %s" % str(disk.logical_id))
       else:
         l_ids.append(disk.logical_id)
-    if disk.physical_id is not None:
-      if disk.physical_id in p_ids:
-        result.append("duplicate physical id %s" % str(disk.physical_id))
-      else:
-        p_ids.append(disk.physical_id)
 
     if disk.children:
       for child in disk.children:
-        result.extend(self._CheckDiskIDs(child, l_ids, p_ids))
+        result.extend(self._CheckDiskIDs(child, l_ids))
     return result
 
   def _UnlockedVerifyConfig(self):
@@ -598,7 +591,6 @@ class ConfigWriter(object):
     data = self._config_data
     cluster = data.cluster
     seen_lids = []
-    seen_pids = []
 
     # global cluster checks
     if not cluster.enabled_hypervisors:
@@ -729,7 +721,7 @@ class ConfigWriter(object):
       for idx, disk in enumerate(instance.disks):
         result.extend(["instance '%s' disk %d error: %s" %
                        (instance.name, idx, msg) for msg in disk.Verify()])
-        result.extend(self._CheckDiskIDs(disk, seen_lids, seen_pids))
+        result.extend(self._CheckDiskIDs(disk, seen_lids))
 
       wrong_names = _CheckInstanceDiskIvNames(instance.disks)
       if wrong_names:
@@ -872,57 +864,6 @@ class ConfigWriter(object):
 
     """
     return self._UnlockedVerifyConfig()
-
-  def _UnlockedSetDiskID(self, disk, node_uuid):
-    """Convert the unique ID to the ID needed on the target nodes.
-
-    This is used only for drbd, which needs ip/port configuration.
-
-    The routine descends down and updates its children also, because
-    this helps when the only the top device is passed to the remote
-    node.
-
-    This function is for internal use, when the config lock is already held.
-
-    """
-    if disk.children:
-      for child in disk.children:
-        self._UnlockedSetDiskID(child, node_uuid)
-
-    if disk.logical_id is None and disk.physical_id is not None:
-      return
-    if disk.dev_type == constants.DT_DRBD8:
-      pnode, snode, port, pminor, sminor, secret = disk.logical_id
-      if node_uuid not in (pnode, snode):
-        raise errors.ConfigurationError("DRBD device not knowing node %s" %
-                                        node_uuid)
-      pnode_info = self._UnlockedGetNodeInfo(pnode)
-      snode_info = self._UnlockedGetNodeInfo(snode)
-      if pnode_info is None or snode_info is None:
-        raise errors.ConfigurationError("Can't find primary or secondary node"
-                                        " for %s" % str(disk))
-      p_data = (pnode_info.secondary_ip, port)
-      s_data = (snode_info.secondary_ip, port)
-      if pnode == node_uuid:
-        disk.physical_id = p_data + s_data + (pminor, secret)
-      else: # it must be secondary, we tested above
-        disk.physical_id = s_data + p_data + (sminor, secret)
-    else:
-      disk.physical_id = disk.logical_id
-    return
-
-  @locking.ssynchronized(_config_lock)
-  def SetDiskID(self, disk, node_uuid):
-    """Convert the unique ID to the ID needed on the target nodes.
-
-    This is used only for drbd, which needs ip/port configuration.
-
-    The routine descends down and updates its children also, because
-    this helps when the only the top device is passed to the remote
-    node.
-
-    """
-    return self._UnlockedSetDiskID(disk, node_uuid)
 
   @locking.ssynchronized(_config_lock)
   def AddTcpUdpPort(self, port):
@@ -1586,7 +1527,6 @@ class ConfigWriter(object):
         disk.logical_id = (disk.logical_id[0],
                            utils.PathJoin(file_storage_dir, inst.name,
                                           "disk%s" % idx))
-        disk.physical_id = disk.logical_id
 
     # Force update of ssconf files
     self._config_data.cluster.serial_no += 1

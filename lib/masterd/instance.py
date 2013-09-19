@@ -1186,8 +1186,7 @@ class ExportInstanceHelper:
         disk_id = tuple(result.payload)
         disk_params = constants.DISK_LD_DEFAULTS[constants.DT_PLAIN].copy()
         new_dev = objects.Disk(dev_type=constants.DT_PLAIN, size=disk.size,
-                               logical_id=disk_id, physical_id=disk_id,
-                               iv_name=disk.iv_name,
+                               logical_id=disk_id, iv_name=disk.iv_name,
                                params=disk_params)
 
       self._snap_disks.append(new_dev)
@@ -1237,7 +1236,7 @@ class ExportInstanceHelper:
         continue
 
       path = utils.PathJoin(pathutils.EXPORT_DIR, "%s.new" % instance.name,
-                            dev.physical_id[1])
+                            dev.logical_id[1])
 
       finished_fn = compat.partial(self._TransferFinished, idx)
 

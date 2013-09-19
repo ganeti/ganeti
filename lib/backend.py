@@ -2851,7 +2851,7 @@ def OSEnvironment(instance, inst_os, debug=0):
       result["DISK_%d_BACKEND_TYPE" % idx] = "block"
     elif disk.dev_type in [constants.DT_FILE, constants.DT_SHARED_FILE]:
       result["DISK_%d_BACKEND_TYPE" % idx] = \
-        "file:%s" % disk.physical_id[0]
+        "file:%s" % disk.logical_id[0]
 
   # NICs
   for idx, nic in enumerate(instance.nics):
@@ -3076,7 +3076,7 @@ def FinalizeExport(instance, snap_disks):
       config.set(constants.INISECT_INS, "disk%d_ivname" % disk_count,
                  ("%s" % disk.iv_name))
       config.set(constants.INISECT_INS, "disk%d_dump" % disk_count,
-                 ("%s" % disk.physical_id[1]))
+                 ("%s" % disk.logical_id[1]))
       config.set(constants.INISECT_INS, "disk%d_size" % disk_count,
                  ("%d" % disk.size))
 
@@ -3159,11 +3159,9 @@ def BlockdevRename(devlist):
   """Rename a list of block devices.
 
   @type devlist: list of tuples
-  @param devlist: list of tuples of the form  (disk,
-      new_logical_id, new_physical_id); disk is an
-      L{objects.Disk} object describing the current disk,
-      and new logical_id/physical_id is the name we
-      rename it to
+  @param devlist: list of tuples of the form  (disk, new_unique_id); disk is
+      an L{objects.Disk} object describing the current disk, and new
+      unique_id is the name we rename it to
   @rtype: boolean
   @return: True if all renames succeeded, False otherwise
 

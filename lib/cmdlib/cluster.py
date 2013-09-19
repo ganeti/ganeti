@@ -538,8 +538,6 @@ class LUClusterRepairDiskSizes(NoHooksLU):
         continue
 
       newl = [(v[2].Copy(), v[0]) for v in dskl]
-      for (dsk, _) in newl:
-        self.cfg.SetDiskID(dsk, node_uuid)
       node_name = self.cfg.GetNodeName(node_uuid)
       result = self.rpc.call_blockdev_getdimensions(node_uuid, newl)
       if result.fail_msg:
@@ -2695,7 +2693,6 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       for (inst_uuid, dev) in disks:
         (anno_disk,) = AnnotateDiskParams(instanceinfo[inst_uuid], [dev],
                                           self.cfg)
-        self.cfg.SetDiskID(anno_disk, nuuid)
         dev_inst_only.append((anno_disk, instanceinfo[inst_uuid]))
 
       node_disks_dev_inst_only[nuuid] = dev_inst_only

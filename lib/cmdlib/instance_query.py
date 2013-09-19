@@ -308,7 +308,6 @@ class LUInstanceQueryData(NoHooksLU):
     if self.op.static or not node_uuid:
       return None
 
-    self.cfg.SetDiskID(dev, node_uuid)
     result = self.rpc.call_blockdev_find(node_uuid, (dev, instance))
     if result.offline:
       return None
@@ -372,7 +371,6 @@ class LUInstanceQueryData(NoHooksLU):
       "dev_type": dev.dev_type,
       "logical_id": dev.logical_id,
       "drbd_info": drbd_info,
-      "physical_id": dev.physical_id,
       "pstatus": dev_pstatus,
       "sstatus": dev_sstatus,
       "children": dev_children,

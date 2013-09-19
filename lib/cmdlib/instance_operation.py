@@ -394,8 +394,6 @@ class LUInstanceReboot(LogicalUnit):
     if instance_running and \
         self.op.reboot_type in [constants.INSTANCE_REBOOT_SOFT,
                                 constants.INSTANCE_REBOOT_HARD]:
-      for disk in self.instance.disks:
-        self.cfg.SetDiskID(disk, current_node_uuid)
       result = self.rpc.call_instance_reboot(current_node_uuid, self.instance,
                                              self.op.reboot_type,
                                              self.op.shutdown_timeout,

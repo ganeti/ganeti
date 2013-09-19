@@ -393,11 +393,6 @@ class LUBackupExport(LogicalUnit):
                    " node %s" % (self.instance.name,
                                  self.cfg.GetNodeName(src_node_uuid)))
 
-    # set the disks ID correctly since call_instance_start needs the
-    # correct drbd minor to create the symlinks
-    for disk in self.instance.disks:
-      self.cfg.SetDiskID(disk, src_node_uuid)
-
     activate_disks = not self.instance.disks_active
 
     if activate_disks:
