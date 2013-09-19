@@ -58,6 +58,408 @@ osSearchPath = AutoConf.osSearchPath
 esSearchPath :: [String]
 esSearchPath = AutoConf.esSearchPath
 
+-- * User separation
+daemonsGroup :: String
+daemonsGroup = Runtime.daemonGroup (ExtraGroup DaemonsGroup)
+
+adminGroup :: String
+adminGroup = Runtime.daemonGroup (ExtraGroup AdminGroup)
+
+masterdUser :: String
+masterdUser = Runtime.daemonUser GanetiMasterd
+
+masterdGroup :: String
+masterdGroup = Runtime.daemonGroup (DaemonGroup GanetiMasterd)
+
+rapiUser :: String
+rapiUser = Runtime.daemonUser GanetiRapi
+
+rapiGroup :: String
+rapiGroup = Runtime.daemonGroup (DaemonGroup GanetiRapi)
+
+confdUser :: String
+confdUser = Runtime.daemonUser GanetiConfd
+
+confdGroup :: String
+confdGroup = Runtime.daemonGroup (DaemonGroup GanetiConfd)
+
+luxidUser :: String
+luxidUser = Runtime.daemonUser GanetiLuxid
+
+luxidGroup :: String
+luxidGroup = Runtime.daemonGroup (DaemonGroup GanetiLuxid)
+
+nodedUser :: String
+nodedUser = Runtime.daemonUser GanetiNoded
+
+nodedGroup :: String
+nodedGroup = Runtime.daemonGroup (DaemonGroup GanetiNoded)
+
+mondUser :: String
+mondUser = Runtime.daemonUser GanetiMond
+
+mondGroup :: String
+mondGroup = Runtime.daemonGroup (DaemonGroup GanetiMond)
+
+sshLoginUser :: String
+sshLoginUser = AutoConf.sshLoginUser
+
+sshConsoleUser :: String
+sshConsoleUser = AutoConf.sshConsoleUser
+
+-- * SSH constants
+
+ssh :: String
+ssh = "ssh"
+
+scp :: String
+scp = "scp"
+
+-- * Daemons
+
+confd :: String
+confd = Runtime.daemonName GanetiConfd
+
+masterd :: String
+masterd = Runtime.daemonName GanetiMasterd
+
+mond :: String
+mond = Runtime.daemonName GanetiMond
+
+noded :: String
+noded = Runtime.daemonName GanetiNoded
+
+luxid :: String
+luxid = Runtime.daemonName GanetiLuxid
+
+rapi :: String
+rapi = Runtime.daemonName GanetiRapi
+
+daemons :: FrozenSet String
+daemons =
+  ConstantUtils.mkSet [confd,
+                       luxid,
+                       masterd,
+                       mond,
+                       noded,
+                       rapi]
+
+defaultConfdPort :: Int
+defaultConfdPort = 1814
+
+defaultMondPort :: Int
+defaultMondPort = 1815
+
+defaultNodedPort :: Int
+defaultNodedPort = 1811
+
+defaultRapiPort :: Int
+defaultRapiPort = 5080
+
+daemonsPorts :: Map String (Protocol, Int)
+daemonsPorts =
+  Map.fromList [(confd, (Udp, defaultConfdPort)),
+                (mond, (Tcp, defaultMondPort)),
+                (noded, (Tcp, defaultNodedPort)),
+                (rapi, (Tcp, defaultRapiPort)),
+                (ssh, (Tcp, 22))]
+
+daemonsLogbase :: Map String String
+daemonsLogbase =
+  Map.fromList
+  [ (Runtime.daemonName d, Runtime.daemonLogBase d) | d <- [minBound..] ]
+
+extraLogreasonAccess :: String
+extraLogreasonAccess = Runtime.daemonsExtraLogbase GanetiMond AccessLog
+
+extraLogreasonError :: String
+extraLogreasonError = Runtime.daemonsExtraLogbase GanetiMond ErrorLog
+
+devConsole :: String
+devConsole = ConstantUtils.devConsole
+
+-- * Syslog
+
+syslogUsage :: String
+syslogUsage = AutoConf.syslogUsage
+
+syslogNo :: String
+syslogNo = Logging.syslogUsageToRaw SyslogNo
+
+syslogYes :: String
+syslogYes = Logging.syslogUsageToRaw SyslogYes
+
+syslogOnly :: String
+syslogOnly = Logging.syslogUsageToRaw SyslogOnly
+
+syslogSocket :: String
+syslogSocket = "/dev/log"
+
+-- * Xen
+
+xenBootloader :: String
+xenBootloader = AutoConf.xenBootloader
+
+xenCmdXl :: String
+xenCmdXl = "xl"
+
+xenCmdXm :: String
+xenCmdXm = "xm"
+
+xenInitrd :: String
+xenInitrd = AutoConf.xenInitrd
+
+xenKernel :: String
+xenKernel = AutoConf.xenKernel
+
+-- FIXME: perhaps rename to 'validXenCommands' for consistency with
+-- other constants
+knownXenCommands :: FrozenSet String
+knownXenCommands = ConstantUtils.mkSet [xenCmdXl, xenCmdXm]
+
+-- * Storage types
+
+stBlock :: String
+stBlock = Types.storageTypeToRaw StorageBlock
+
+stDiskless :: String
+stDiskless = Types.storageTypeToRaw StorageDiskless
+
+stExt :: String
+stExt = Types.storageTypeToRaw StorageExt
+
+stFile :: String
+stFile = Types.storageTypeToRaw StorageFile
+
+stLvmPv :: String
+stLvmPv = Types.storageTypeToRaw StorageLvmPv
+
+stLvmVg :: String
+stLvmVg = Types.storageTypeToRaw StorageLvmVg
+
+stRados :: String
+stRados = Types.storageTypeToRaw StorageRados
+
+storageTypes :: FrozenSet String
+storageTypes = ConstantUtils.mkSet $ map Types.storageTypeToRaw [minBound..]
+
+-- * Storage fields
+-- ** First two are valid in LU context only, not passed to backend
+
+sfNode :: String
+sfNode = "node"
+
+sfType :: String
+sfType = "type"
+
+-- ** and the rest are valid in backend
+
+sfAllocatable :: String
+sfAllocatable = Types.storageFieldToRaw SFAllocatable
+
+sfFree :: String
+sfFree = Types.storageFieldToRaw SFFree
+
+sfName :: String
+sfName = Types.storageFieldToRaw SFName
+
+sfSize :: String
+sfSize = Types.storageFieldToRaw SFSize
+
+sfUsed :: String
+sfUsed = Types.storageFieldToRaw SFUsed
+
+-- * Disk template types
+
+dtDiskless :: String
+dtDiskless = Types.diskTemplateToRaw DTDiskless
+
+dtFile :: String
+dtFile = Types.diskTemplateToRaw DTFile
+
+dtSharedFile :: String
+dtSharedFile = Types.diskTemplateToRaw DTSharedFile
+
+dtPlain :: String
+dtPlain = Types.diskTemplateToRaw DTPlain
+
+dtBlock :: String
+dtBlock = Types.diskTemplateToRaw DTBlock
+
+dtDrbd8 :: String
+dtDrbd8 = Types.diskTemplateToRaw DTDrbd8
+
+dtRbd :: String
+dtRbd = Types.diskTemplateToRaw DTRbd
+
+dtExt :: String
+dtExt = Types.diskTemplateToRaw DTExt
+
+-- | This is used to order determine the default disk template when
+-- the list of enabled disk templates is inferred from the current
+-- state of the cluster.  This only happens on an upgrade from a
+-- version of Ganeti that did not support the 'enabled_disk_templates'
+-- so far.
+diskTemplatePreference :: [String]
+diskTemplatePreference =
+  map Types.diskTemplateToRaw
+  [DTBlock, DTDiskless, DTDrbd8, DTExt, DTFile, DTPlain, DTRbd, DTSharedFile]
+
+diskTemplates :: FrozenSet String
+diskTemplates = ConstantUtils.mkSet $ map Types.diskTemplateToRaw [minBound..]
+
+-- | Disk templates that are enabled by default
+defaultEnabledDiskTemplates :: [String]
+defaultEnabledDiskTemplates = map Types.diskTemplateToRaw [DTDrbd8, DTPlain]
+
+-- * File backend driver
+
+fdBlktap :: String
+fdBlktap = Types.fileDriverToRaw FileBlktap
+
+fdLoop :: String
+fdLoop = Types.fileDriverToRaw FileLoop
+
+-- * Disk access mode
+
+diskRdonly :: String
+diskRdonly = Types.diskModeToRaw DiskRdOnly
+
+diskRdwr :: String
+diskRdwr = Types.diskModeToRaw DiskRdWr
+
+diskAccessSet :: FrozenSet String
+diskAccessSet = ConstantUtils.mkSet $ map Types.diskModeToRaw [minBound..]
+
+-- * Instance export mode
+
+exportModeLocal :: String
+exportModeLocal = Types.exportModeToRaw ExportModeLocal
+
+exportModeRemote :: String
+exportModeRemote = Types.exportModeToRaw ExportModeRemote
+
+exportModes :: FrozenSet String
+exportModes = ConstantUtils.mkSet $ map Types.exportModeToRaw [minBound..]
+
+-- * Instance creation modes
+
+instanceCreate :: String
+instanceCreate = Types.instCreateModeToRaw InstCreate
+
+instanceImport :: String
+instanceImport = Types.instCreateModeToRaw InstImport
+
+instanceRemoteImport :: String
+instanceRemoteImport = Types.instCreateModeToRaw InstRemoteImport
+
+instanceCreateModes :: FrozenSet String
+instanceCreateModes =
+  ConstantUtils.mkSet $ map Types.instCreateModeToRaw [minBound..]
+
+-- * Dynamic device modification
+
+ddmAdd :: String
+ddmAdd = Types.ddmFullToRaw DdmFullAdd
+
+ddmModify :: String
+ddmModify = Types.ddmFullToRaw DdmFullModify
+
+ddmRemove :: String
+ddmRemove = Types.ddmFullToRaw DdmFullRemove
+
+ddmsValues :: FrozenSet String
+ddmsValues = ConstantUtils.mkSet [ddmAdd, ddmRemove]
+
+ddmsValuesWithModify :: FrozenSet String
+ddmsValuesWithModify = ConstantUtils.mkSet $ map Types.ddmFullToRaw [minBound..]
+
+-- * Common exit codes
+
+exitSuccess :: Int
+exitSuccess = 0
+
+exitFailure :: Int
+exitFailure = ConstantUtils.exitFailure
+
+exitNotcluster :: Int
+exitNotcluster = 5
+
+exitNotmaster :: Int
+exitNotmaster = 11
+
+exitNodesetupError :: Int
+exitNodesetupError = 12
+
+-- | Need user confirmation
+exitConfirmation :: Int
+exitConfirmation = 13
+
+-- | Exit code for query operations with unknown fields
+exitUnknownField :: Int
+exitUnknownField = 14
+
+-- * Tags
+
+tagCluster :: String
+tagCluster = Types.tagKindToRaw TagKindCluster
+
+tagInstance :: String
+tagInstance = Types.tagKindToRaw TagKindInstance
+
+tagNetwork :: String
+tagNetwork = Types.tagKindToRaw TagKindNetwork
+
+tagNode :: String
+tagNode = Types.tagKindToRaw TagKindNode
+
+tagNodegroup :: String
+tagNodegroup = Types.tagKindToRaw TagKindGroup
+
+validTagTypes :: FrozenSet String
+validTagTypes = ConstantUtils.mkSet $ map Types.tagKindToRaw [minBound..]
+
+maxTagLen :: Int
+maxTagLen = 128
+
+maxTagsPerObj :: Int
+maxTagsPerObj = 4096
+
+-- * Reboot types
+
+instanceRebootSoft :: String
+instanceRebootSoft = Types.rebootTypeToRaw RebootSoft
+
+instanceRebootHard :: String
+instanceRebootHard = Types.rebootTypeToRaw RebootHard
+
+instanceRebootFull :: String
+instanceRebootFull = Types.rebootTypeToRaw RebootFull
+
+rebootTypes :: FrozenSet String
+rebootTypes = ConstantUtils.mkSet $ map Types.rebootTypeToRaw [minBound..]
+
+-- * VTypes
+
+vtypeBool :: String
+vtypeBool = Types.vTypeToRaw VTypeBool
+
+vtypeInt :: String
+vtypeInt = Types.vTypeToRaw VTypeInt
+
+vtypeMaybeString :: String
+vtypeMaybeString = Types.vTypeToRaw VTypeMaybeString
+
+-- | Size in MiBs
+vtypeSize :: String
+vtypeSize = Types.vTypeToRaw VTypeSize
+
+vtypeString :: String
+vtypeString = Types.vTypeToRaw VTypeString
+
+enforceableTypes :: FrozenSet String
+enforceableTypes = ConstantUtils.mkSet $ map Types.vTypeToRaw [minBound..]
+
 -- * OOB supported commands
 
 oobPowerOn :: String
@@ -695,409 +1097,6 @@ elogRemoteImport = Types.eLogTypeToRaw ELogRemoteImport
 
 elogJqueueTest :: String
 elogJqueueTest = Types.eLogTypeToRaw ELogJqueueTest
-
--- * User separation
-
-daemonsGroup :: String
-daemonsGroup = Runtime.daemonGroup (ExtraGroup DaemonsGroup)
-
-adminGroup :: String
-adminGroup = Runtime.daemonGroup (ExtraGroup AdminGroup)
-
-masterdUser :: String
-masterdUser = Runtime.daemonUser GanetiMasterd
-
-masterdGroup :: String
-masterdGroup = Runtime.daemonGroup (DaemonGroup GanetiMasterd)
-
-rapiUser :: String
-rapiUser = Runtime.daemonUser GanetiRapi
-
-rapiGroup :: String
-rapiGroup = Runtime.daemonGroup (DaemonGroup GanetiRapi)
-
-confdUser :: String
-confdUser = Runtime.daemonUser GanetiConfd
-
-confdGroup :: String
-confdGroup = Runtime.daemonGroup (DaemonGroup GanetiConfd)
-
-luxidUser :: String
-luxidUser = Runtime.daemonUser GanetiLuxid
-
-luxidGroup :: String
-luxidGroup = Runtime.daemonGroup (DaemonGroup GanetiLuxid)
-
-nodedUser :: String
-nodedUser = Runtime.daemonUser GanetiNoded
-
-nodedGroup :: String
-nodedGroup = Runtime.daemonGroup (DaemonGroup GanetiNoded)
-
-mondUser :: String
-mondUser = Runtime.daemonUser GanetiMond
-
-mondGroup :: String
-mondGroup = Runtime.daemonGroup (DaemonGroup GanetiMond)
-
-sshLoginUser :: String
-sshLoginUser = AutoConf.sshLoginUser
-
-sshConsoleUser :: String
-sshConsoleUser = AutoConf.sshConsoleUser
-
--- * SSH constants
-
-ssh :: String
-ssh = "ssh"
-
-scp :: String
-scp = "scp"
-
--- * Daemons
-
-confd :: String
-confd = Runtime.daemonName GanetiConfd
-
-masterd :: String
-masterd = Runtime.daemonName GanetiMasterd
-
-mond :: String
-mond = Runtime.daemonName GanetiMond
-
-noded :: String
-noded = Runtime.daemonName GanetiNoded
-
-luxid :: String
-luxid = Runtime.daemonName GanetiLuxid
-
-rapi :: String
-rapi = Runtime.daemonName GanetiRapi
-
-daemons :: FrozenSet String
-daemons =
-  ConstantUtils.mkSet [confd,
-                       luxid,
-                       masterd,
-                       mond,
-                       noded,
-                       rapi]
-
-defaultConfdPort :: Int
-defaultConfdPort = 1814
-
-defaultMondPort :: Int
-defaultMondPort = 1815
-
-defaultNodedPort :: Int
-defaultNodedPort = 1811
-
-defaultRapiPort :: Int
-defaultRapiPort = 5080
-
-daemonsPorts :: Map String (Protocol, Int)
-daemonsPorts =
-  Map.fromList [(confd, (Udp, defaultConfdPort)),
-                (mond, (Tcp, defaultMondPort)),
-                (noded, (Tcp, defaultNodedPort)),
-                (rapi, (Tcp, defaultRapiPort)),
-                (ssh, (Tcp, 22))]
-
-daemonsLogbase :: Map String String
-daemonsLogbase =
-  Map.fromList
-  [ (Runtime.daemonName d, Runtime.daemonLogBase d) | d <- [minBound..] ]
-
-extraLogreasonAccess :: String
-extraLogreasonAccess = Runtime.daemonsExtraLogbase GanetiMond AccessLog
-
-extraLogreasonError :: String
-extraLogreasonError = Runtime.daemonsExtraLogbase GanetiMond ErrorLog
-
-devConsole :: String
-devConsole = ConstantUtils.devConsole
-
--- * Syslog
-
-syslogUsage :: String
-syslogUsage = AutoConf.syslogUsage
-
-syslogNo :: String
-syslogNo = Logging.syslogUsageToRaw SyslogNo
-
-syslogYes :: String
-syslogYes = Logging.syslogUsageToRaw SyslogYes
-
-syslogOnly :: String
-syslogOnly = Logging.syslogUsageToRaw SyslogOnly
-
-syslogSocket :: String
-syslogSocket = "/dev/log"
-
--- * Xen
-
-xenBootloader :: String
-xenBootloader = AutoConf.xenBootloader
-
-xenCmdXl :: String
-xenCmdXl = "xl"
-
-xenCmdXm :: String
-xenCmdXm = "xm"
-
-xenInitrd :: String
-xenInitrd = AutoConf.xenInitrd
-
-xenKernel :: String
-xenKernel = AutoConf.xenKernel
-
--- FIXME: perhaps rename to 'validXenCommands' for consistency with
--- other constants
-knownXenCommands :: FrozenSet String
-knownXenCommands = ConstantUtils.mkSet [xenCmdXl, xenCmdXm]
-
--- * Storage types
-
-stBlock :: String
-stBlock = Types.storageTypeToRaw StorageBlock
-
-stDiskless :: String
-stDiskless = Types.storageTypeToRaw StorageDiskless
-
-stExt :: String
-stExt = Types.storageTypeToRaw StorageExt
-
-stFile :: String
-stFile = Types.storageTypeToRaw StorageFile
-
-stLvmPv :: String
-stLvmPv = Types.storageTypeToRaw StorageLvmPv
-
-stLvmVg :: String
-stLvmVg = Types.storageTypeToRaw StorageLvmVg
-
-stRados :: String
-stRados = Types.storageTypeToRaw StorageRados
-
-storageTypes :: FrozenSet String
-storageTypes = ConstantUtils.mkSet $ map Types.storageTypeToRaw [minBound..]
-
--- * Storage fields
--- ** First two are valid in LU context only, not passed to backend
-
-sfNode :: String
-sfNode = "node"
-
-sfType :: String
-sfType = "type"
-
--- ** and the rest are valid in backend
-
-sfAllocatable :: String
-sfAllocatable = Types.storageFieldToRaw SFAllocatable
-
-sfFree :: String
-sfFree = Types.storageFieldToRaw SFFree
-
-sfName :: String
-sfName = Types.storageFieldToRaw SFName
-
-sfSize :: String
-sfSize = Types.storageFieldToRaw SFSize
-
-sfUsed :: String
-sfUsed = Types.storageFieldToRaw SFUsed
-
--- * Disk template types
-
-dtDiskless :: String
-dtDiskless = Types.diskTemplateToRaw DTDiskless
-
-dtFile :: String
-dtFile = Types.diskTemplateToRaw DTFile
-
-dtSharedFile :: String
-dtSharedFile = Types.diskTemplateToRaw DTSharedFile
-
-dtPlain :: String
-dtPlain = Types.diskTemplateToRaw DTPlain
-
-dtBlock :: String
-dtBlock = Types.diskTemplateToRaw DTBlock
-
-dtDrbd8 :: String
-dtDrbd8 = Types.diskTemplateToRaw DTDrbd8
-
-dtRbd :: String
-dtRbd = Types.diskTemplateToRaw DTRbd
-
-dtExt :: String
-dtExt = Types.diskTemplateToRaw DTExt
-
--- | This is used to order determine the default disk template when
--- the list of enabled disk templates is inferred from the current
--- state of the cluster.  This only happens on an upgrade from a
--- version of Ganeti that did not support the 'enabled_disk_templates'
--- so far.
-diskTemplatePreference :: [String]
-diskTemplatePreference =
-  map Types.diskTemplateToRaw
-  [DTBlock, DTDiskless, DTDrbd8, DTExt, DTFile, DTPlain, DTRbd, DTSharedFile]
-
-diskTemplates :: FrozenSet String
-diskTemplates = ConstantUtils.mkSet $ map Types.diskTemplateToRaw [minBound..]
-
--- | Disk templates that are enabled by default
-defaultEnabledDiskTemplates :: [String]
-defaultEnabledDiskTemplates = map Types.diskTemplateToRaw [DTDrbd8, DTPlain]
-
--- * File backend driver
-
-fdBlktap :: String
-fdBlktap = Types.fileDriverToRaw FileBlktap
-
-fdLoop :: String
-fdLoop = Types.fileDriverToRaw FileLoop
-
--- * Disk access mode
-
-diskRdonly :: String
-diskRdonly = Types.diskModeToRaw DiskRdOnly
-
-diskRdwr :: String
-diskRdwr = Types.diskModeToRaw DiskRdWr
-
-diskAccessSet :: FrozenSet String
-diskAccessSet = ConstantUtils.mkSet $ map Types.diskModeToRaw [minBound..]
-
--- * Instance export mode
-
-exportModeLocal :: String
-exportModeLocal = Types.exportModeToRaw ExportModeLocal
-
-exportModeRemote :: String
-exportModeRemote = Types.exportModeToRaw ExportModeRemote
-
-exportModes :: FrozenSet String
-exportModes = ConstantUtils.mkSet $ map Types.exportModeToRaw [minBound..]
-
--- * Instance creation modes
-
-instanceCreate :: String
-instanceCreate = Types.instCreateModeToRaw InstCreate
-
-instanceImport :: String
-instanceImport = Types.instCreateModeToRaw InstImport
-
-instanceRemoteImport :: String
-instanceRemoteImport = Types.instCreateModeToRaw InstRemoteImport
-
-instanceCreateModes :: FrozenSet String
-instanceCreateModes =
-  ConstantUtils.mkSet $ map Types.instCreateModeToRaw [minBound..]
-
--- * Dynamic device modification
-
-ddmAdd :: String
-ddmAdd = Types.ddmFullToRaw DdmFullAdd
-
-ddmModify :: String
-ddmModify = Types.ddmFullToRaw DdmFullModify
-
-ddmRemove :: String
-ddmRemove = Types.ddmFullToRaw DdmFullRemove
-
-ddmsValues :: FrozenSet String
-ddmsValues = ConstantUtils.mkSet [ddmAdd, ddmRemove]
-
-ddmsValuesWithModify :: FrozenSet String
-ddmsValuesWithModify = ConstantUtils.mkSet $ map Types.ddmFullToRaw [minBound..]
-
--- * Common exit codes
-
-exitSuccess :: Int
-exitSuccess = 0
-
-exitFailure :: Int
-exitFailure = ConstantUtils.exitFailure
-
-exitNotcluster :: Int
-exitNotcluster = 5
-
-exitNotmaster :: Int
-exitNotmaster = 11
-
-exitNodesetupError :: Int
-exitNodesetupError = 12
-
--- | Need user confirmation
-exitConfirmation :: Int
-exitConfirmation = 13
-
--- | Exit code for query operations with unknown fields
-exitUnknownField :: Int
-exitUnknownField = 14
-
--- * Tags
-
-tagCluster :: String
-tagCluster = Types.tagKindToRaw TagKindCluster
-
-tagInstance :: String
-tagInstance = Types.tagKindToRaw TagKindInstance
-
-tagNetwork :: String
-tagNetwork = Types.tagKindToRaw TagKindNetwork
-
-tagNode :: String
-tagNode = Types.tagKindToRaw TagKindNode
-
-tagNodegroup :: String
-tagNodegroup = Types.tagKindToRaw TagKindGroup
-
-validTagTypes :: FrozenSet String
-validTagTypes = ConstantUtils.mkSet $ map Types.tagKindToRaw [minBound..]
-
-maxTagLen :: Int
-maxTagLen = 128
-
-maxTagsPerObj :: Int
-maxTagsPerObj = 4096
-
--- * Reboot types
-
-instanceRebootSoft :: String
-instanceRebootSoft = Types.rebootTypeToRaw RebootSoft
-
-instanceRebootHard :: String
-instanceRebootHard = Types.rebootTypeToRaw RebootHard
-
-instanceRebootFull :: String
-instanceRebootFull = Types.rebootTypeToRaw RebootFull
-
-rebootTypes :: FrozenSet String
-rebootTypes = ConstantUtils.mkSet $ map Types.rebootTypeToRaw [minBound..]
-
--- * VTypes
-
-vtypeBool :: String
-vtypeBool = Types.vTypeToRaw VTypeBool
-
-vtypeInt :: String
-vtypeInt = Types.vTypeToRaw VTypeInt
-
-vtypeMaybeString :: String
-vtypeMaybeString = Types.vTypeToRaw VTypeMaybeString
-
--- | Size in MiBs
-vtypeSize :: String
-vtypeSize = Types.vTypeToRaw VTypeSize
-
-vtypeString :: String
-vtypeString = Types.vTypeToRaw VTypeString
-
-enforceableTypes :: FrozenSet String
-enforceableTypes = ConstantUtils.mkSet $ map Types.vTypeToRaw [minBound..]
 
 -- * Possible values for NodeGroup.alloc_policy
 
