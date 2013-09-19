@@ -173,6 +173,14 @@ def GetExclusiveStorageValue(config_data):
   return ret
 
 
+def RemovePhysicalId(disk):
+  if "children" in disk:
+    for d in disk["children"]:
+      RemovePhysicalId(d)
+  if "physical_id" in disk:
+    del disk["physical_id"]
+
+
 def UpgradeInstances(config_data):
   network2uuid = dict((n["name"], n["uuid"])
                       for n in config_data["networks"].values())
@@ -194,6 +202,8 @@ def UpgradeInstances(config_data):
       raise Error("Instance '%s' doesn't have a disks entry?!" % instance)
     disks = iobj["disks"]
     for idx, dobj in enumerate(disks):
+      RemovePhysicalId(dobj)
+
       expected = "disk/%s" % idx
       current = dobj.get("iv_name", "")
       if current != expected:

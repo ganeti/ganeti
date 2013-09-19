@@ -392,6 +392,12 @@ class TestCfgupgrade(unittest.TestCase):
     _RunUpgrade(self.tmpdir, False, True, downgrade=True)
     oldconf = self._LoadTestDataConfig(oldconfname)
     newconf = self._LoadConfig()
+
+    # downgrade from 2.10 to 2.9 does not add physical_id to disks, which is ok
+    for inst in oldconf["instances"].values():
+      for disk in inst["disks"]:
+        del disk["physical_id"]
+
     self.assertEqual(oldconf, newconf)
 
   def testDowngradeFullConfigBackwardFrom_2_7(self):
