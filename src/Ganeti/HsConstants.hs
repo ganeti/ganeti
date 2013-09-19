@@ -53,13 +53,13 @@ import qualified Ganeti.Types as Types
 -- * OOB supported commands
 
 oobPowerOn :: String
-oobPowerOn = Types.oobCommandToRaw OobHealth
+oobPowerOn = Types.oobCommandToRaw OobPowerOn
 
 oobPowerOff :: String
 oobPowerOff = Types.oobCommandToRaw OobPowerOff
 
 oobPowerCycle :: String
-oobPowerCycle = Types.oobCommandToRaw OobPowerOn
+oobPowerCycle = Types.oobCommandToRaw OobPowerCycle
 
 oobPowerStatus :: String
 oobPowerStatus = Types.oobCommandToRaw OobPowerStatus
