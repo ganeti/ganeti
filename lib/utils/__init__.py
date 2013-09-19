@@ -676,7 +676,7 @@ class SignalWakeupFd(object):
     """Notifies the wakeup file descriptor.
 
     """
-    self._write_fh.write("\0")
+    self._write_fh.write(chr(0))
 
   def __del__(self):
     """Called before object deletion.

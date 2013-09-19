@@ -60,6 +60,9 @@ To run commands on all nodes, the `distributed shell (dsh)
 
     $ /usr/lib/ganeti/tools/users-setup
 
+   This will ask for confirmation. To execute directly, add the ``--yes-do-it``
+   option.
+
 #. Restart daemons on all nodes::
 
     $ /etc/init.d/ganeti restart

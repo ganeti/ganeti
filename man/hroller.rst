@@ -65,7 +65,7 @@ secondary nodes, and it is safe to reboot them simultaneously.
 OPTIONS
 -------
 
-For a description of the standard options check **htools**\(7) and
+For a description of the standard options check **htools**\(1) and
 **hbal**\(1).
 
 \--force
@@ -99,7 +99,6 @@ For a description of the standard options check **htools**\(7) and
   where it can be evacuated to. The moves are computed under the assumption
   that after each reboot group, all instances are moved back to their
   initial position.
-
 
 BUGS
 ----

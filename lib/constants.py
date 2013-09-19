@@ -212,7 +212,7 @@ DEV_CONSOLE = _constants.DEV_CONSOLE
 PROC_MOUNTS = "/proc/mounts"
 
 # Local UniX Interface related constants
-LUXI_EOM = "\3"
+LUXI_EOM = chr(3)
 LUXI_VERSION = CONFIG_VERSION
 #: Environment variable for the luxi override socket
 LUXI_OVERRIDE = "FORCE_LUXI_SOCKET"

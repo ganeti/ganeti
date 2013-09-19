@@ -455,6 +455,18 @@ class LUInstanceCreate(LogicalUnit):
     else:
       self.check_ip = None
 
+    # file storage checks
+    if (self.op.file_driver and
+        not self.op.file_driver in constants.FILE_DRIVER):
+      raise errors.OpPrereqError("Invalid file driver name '%s'" %
+                                 self.op.file_driver, errors.ECODE_INVAL)
+
+    # set default file_driver if unset and required
+    if (not self.op.file_driver and
+        self.op.disk_template in [constants.DT_FILE,
+                                  constants.DT_SHARED_FILE]):
+      self.op.file_driver = constants.FD_LOOP
+
     ### Node/iallocator related checks
     CheckIAllocatorOrNode(self, "iallocator", "pnode")
 
