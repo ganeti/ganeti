@@ -425,6 +425,10 @@ maxTagLen = 128
 maxTagsPerObj :: Int
 maxTagsPerObj = 4096
 
+-- | Node clock skew in seconds
+nodeMaxClockSkew :: Int
+nodeMaxClockSkew = 150
+
 -- * Reboot types
 
 instanceRebootSoft :: String
@@ -1097,6 +1101,60 @@ elogRemoteImport = Types.eLogTypeToRaw ELogRemoteImport
 
 elogJqueueTest :: String
 elogJqueueTest = Types.eLogTypeToRaw ELogJqueueTest
+
+-- * A few common errors for confd
+
+confdErrorArgument :: Int
+confdErrorArgument = 3
+
+confdErrorInternal :: Int
+confdErrorInternal = 2
+
+confdErrorUnknownEntry :: Int
+confdErrorUnknownEntry = 1
+
+-- | Each request is "salted" by the current timestamp.
+--
+-- This constant decides how many seconds of skew to accept.
+--
+-- TODO: make this a default and allow the value to be more
+-- configurable
+confdMaxClockSkew :: Int
+confdMaxClockSkew = 2 * nodeMaxClockSkew
+
+-- | When we haven't reloaded the config for more than this amount of
+-- seconds, we force a test to see if inotify is betraying us. Using a
+-- prime number to ensure we get less chance of 'same wakeup' with
+-- other processes.
+confdConfigReloadTimeout :: Int
+confdConfigReloadTimeout = 17
+
+-- | If we receive more than one update in this amount of
+-- microseconds, we move to polling every RATELIMIT seconds, rather
+-- than relying on inotify, to be able to serve more requests.
+confdConfigReloadRatelimit :: Int
+confdConfigReloadRatelimit = 250000
+
+-- | Magic number prepended to all confd queries.
+--
+-- This allows us to distinguish different types of confd protocols
+-- and handle them. For example by changing this we can move the whole
+-- payload to be compressed, or move away from json.
+confdMagicFourcc :: String
+confdMagicFourcc = "plj0"
+
+-- | By default a confd request is sent to the minimum between this
+-- number and all MCs. 6 was chosen because even in the case of a
+-- disastrous 50% response rate, we should have enough answers to be
+-- able to compare more than one.
+confdDefaultReqCoverage :: Int
+confdDefaultReqCoverage = 6
+
+-- | Timeout in seconds to expire pending query request in the confd
+-- client library. We don't actually expect any answer more than 10
+-- seconds after we sent a request.
+confdClientExpireTimeout :: Int
+confdClientExpireTimeout = 10
 
 -- * Possible values for NodeGroup.alloc_policy
 
