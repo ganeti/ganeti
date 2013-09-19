@@ -1618,7 +1618,7 @@ def _GatherAndLinkBlockDevs(instance):
   devices must be already assembled.
 
   @type instance: L{objects.Instance}
-  @param instance: the instance whose disks we shoul assemble
+  @param instance: the instance whose disks we should assemble
   @rtype: list
   @return: list of (disk_object, device_path)
 
