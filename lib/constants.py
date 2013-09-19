@@ -24,7 +24,6 @@
 import re
 import socket
 
-from ganeti import _autoconf
 from ganeti import _constants
 from ganeti import _vcsversion
 from ganeti import compat
@@ -32,7 +31,7 @@ from ganeti import pathutils
 
 
 # various versions
-RELEASE_VERSION = _autoconf.PACKAGE_VERSION
+RELEASE_VERSION = _constants.RELEASE_VERSION
 OS_API_V10 = 10
 OS_API_V15 = 15
 OS_API_V20 = 20
@@ -88,13 +87,13 @@ def SplitVersion(version):
   return (major, minor, revision)
 
 
-CONFIG_MAJOR = int(_autoconf.VERSION_MAJOR)
-CONFIG_MINOR = int(_autoconf.VERSION_MINOR)
-CONFIG_REVISION = 0
-CONFIG_VERSION = BuildVersion(CONFIG_MAJOR, CONFIG_MINOR, CONFIG_REVISION)
+CONFIG_MAJOR = _constants.CONFIG_MAJOR
+CONFIG_MINOR = _constants.CONFIG_MINOR
+CONFIG_REVISION = _constants.CONFIG_REVISION
+CONFIG_VERSION = _constants.CONFIG_VERSION
 
 #: RPC protocol version
-PROTOCOL_VERSION = BuildVersion(CONFIG_MAJOR, CONFIG_MINOR, 0)
+PROTOCOL_VERSION = _constants.PROTOCOL_VERSION
 
 # user separation
 DAEMONS_GROUP = _constants.DAEMONS_GROUP
@@ -146,10 +145,10 @@ RUN_DIRS_MODE = 0775
 SECURE_DIR_MODE = 0700
 SECURE_FILE_MODE = 0600
 ADOPTABLE_BLOCKDEV_ROOT = "/dev/disk/"
-ENABLE_CONFD = _autoconf.ENABLE_CONFD
-ENABLE_MOND = _autoconf.ENABLE_MOND
-ENABLE_SPLIT_QUERY = _autoconf.ENABLE_SPLIT_QUERY
-ENABLE_RESTRICTED_COMMANDS = _autoconf.ENABLE_RESTRICTED_COMMANDS
+ENABLE_CONFD = _constants.ENABLE_CONFD
+ENABLE_MOND = _constants.ENABLE_MOND
+ENABLE_SPLIT_QUERY = _constants.ENABLE_SPLIT_QUERY
+ENABLE_RESTRICTED_COMMANDS = _constants.ENABLE_RESTRICTED_COMMANDS
 
 # SSH constants
 SSH = _constants.SSH
@@ -246,11 +245,11 @@ XL_SSH_CMD = ("ssh -l %s -oGlobalKnownHostsFile=%s"
               " -oHostKeyAlias=%%s") % (SSH_LOGIN_USER,
                                         pathutils.SSH_KNOWN_HOSTS_FILE)
 
-KVM_PATH = _autoconf.KVM_PATH
-KVM_KERNEL = _autoconf.KVM_KERNEL
-SOCAT_PATH = _autoconf.SOCAT_PATH
-SOCAT_USE_ESCAPE = _autoconf.SOCAT_USE_ESCAPE
-SOCAT_USE_COMPRESS = _autoconf.SOCAT_USE_COMPRESS
+KVM_PATH = _constants.KVM_PATH
+KVM_KERNEL = _constants.KVM_KERNEL
+SOCAT_PATH = _constants.SOCAT_PATH
+SOCAT_USE_ESCAPE = _constants.SOCAT_USE_ESCAPE
+SOCAT_USE_COMPRESS = _constants.SOCAT_USE_COMPRESS
 SOCAT_ESCAPE_CODE = "0x1d"
 
 #: Console as SSH command
@@ -671,8 +670,8 @@ NODE_MAX_CLOCK_SKEW = _constants.NODE_MAX_CLOCK_SKEW
 # Time for an intra-cluster disk transfer to wait for a connection
 DISK_TRANSFER_CONNECT_TIMEOUT = 60
 # Disk index separator
-DISK_SEPARATOR = _autoconf.DISK_SEPARATOR
-IP_COMMAND_PATH = _autoconf.IP_PATH
+DISK_SEPARATOR = _constants.DISK_SEPARATOR
+IP_COMMAND_PATH = _constants.IP_COMMAND_PATH
 
 #: Key for job IDs in opcode result
 JOB_IDS_KEY = "jobs"
@@ -1970,8 +1969,8 @@ NDC_GLOBALS = compat.UniqueFrozenset([
 DISK_LD_DEFAULTS = {
   DT_DRBD8: {
     LDP_RESYNC_RATE: CLASSIC_DRBD_SYNC_SPEED,
-    LDP_BARRIERS: _autoconf.DRBD_BARRIERS,
-    LDP_NO_META_FLUSH: _autoconf.DRBD_NO_META_FLUSH,
+    LDP_BARRIERS: _constants.DRBD_BARRIERS,
+    LDP_NO_META_FLUSH: _constants.DRBD_NO_META_FLUSH,
     LDP_DEFAULT_METAVG: DEFAULT_VG,
     LDP_DISK_CUSTOM: "",
     LDP_NET_CUSTOM: "",
@@ -1990,7 +1989,7 @@ DISK_LD_DEFAULTS = {
     LDP_MIN_RATE: 4 * 1024, # KiB/s
     },
   DT_PLAIN: {
-    LDP_STRIPES: _autoconf.LVM_STRIPECOUNT
+    LDP_STRIPES: _constants.LVM_STRIPECOUNT
     },
   DT_FILE: {},
   DT_SHARED_FILE: {},
@@ -2204,10 +2203,10 @@ VALID_ALLOC_POLICIES = _constants.VALID_ALLOC_POLICIES
 BLOCKDEV_DRIVER_MANUAL = _constants.BLOCKDEV_DRIVER_MANUAL
 
 # qemu-img path, required for ovfconverter
-QEMUIMG_PATH = _autoconf.QEMUIMG_PATH
+QEMUIMG_PATH = _constants.QEMUIMG_PATH
 
 # Whether htools was enabled at compilation time
-HTOOLS = _autoconf.HTOOLS
+HTOOLS = _constants.HTOOLS
 # The hail iallocator
 IALLOC_HAIL = "hail"
 
@@ -2302,7 +2301,7 @@ CPUAVGLOAD_WINDOW_SIZE = 600
 MOND_TIME_INTERVAL = _constants.MOND_TIME_INTERVAL
 
 # Do not re-export imported modules
-del re, _vcsversion, _autoconf, _constants, socket, pathutils, compat
+del re, _vcsversion, _constants, socket, pathutils, compat
 
 
 ALLOCATABLE_KEY = "allocatable"
