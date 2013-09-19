@@ -743,7 +743,8 @@ class Disk(ConfigObject):
 
     self.dynamic_params = dyn_disk_params
 
-  def ToDict(self):
+  # pylint: disable=W0221
+  def ToDict(self, include_dynamic_params=False):
     """Disk-specific conversion to standard python types.
 
     This replaces the children lists of objects with lists of
@@ -751,6 +752,8 @@ class Disk(ConfigObject):
 
     """
     bo = super(Disk, self).ToDict()
+    if not include_dynamic_params and "dynamic_params" in bo:
+      del bo["dynamic_params"]
 
     for attr in ("children",):
       alist = bo.get(attr, None)

@@ -903,7 +903,7 @@ class RpcRunner(_RpcClientBase,
 
       disk.UpdateDynamicDiskParams(node, node_ips)
 
-      ret.append(disk.ToDict())
+      ret.append(disk.ToDict(include_dynamic_params=True))
 
     return ret
 
