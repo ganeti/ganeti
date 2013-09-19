@@ -24,6 +24,7 @@
 """
 
 from ganeti import _autoconf
+from ganeti import _constants
 from ganeti import compat
 from ganeti import vcluster
 
@@ -35,8 +36,8 @@ DEFAULT_SHARED_FILE_STORAGE_DIR = "/srv/ganeti/shared-file-storage"
 DEFAULT_SHARED_FILE_STORAGE_DIR = \
     vcluster.AddNodePrefix(DEFAULT_SHARED_FILE_STORAGE_DIR)
 EXPORT_DIR = vcluster.AddNodePrefix(_autoconf.EXPORT_DIR)
-OS_SEARCH_PATH = _autoconf.OS_SEARCH_PATH
-ES_SEARCH_PATH = _autoconf.ES_SEARCH_PATH
+OS_SEARCH_PATH = _constants.OS_SEARCH_PATH
+ES_SEARCH_PATH = _constants.ES_SEARCH_PATH
 SSH_CONFIG_DIR = _autoconf.SSH_CONFIG_DIR
 XEN_CONFIG_DIR = vcluster.AddNodePrefix(_autoconf.XEN_CONFIG_DIR)
 SYSCONFDIR = vcluster.AddNodePrefix(_autoconf.SYSCONFDIR)

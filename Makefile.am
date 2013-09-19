@@ -1785,15 +1785,12 @@ lib/_autoconf.py: Makefile | stamp-directories
 	  echo "SSH_LOGIN_USER = '$(SSH_LOGIN_USER)'"; \
 	  echo "SSH_CONSOLE_USER = '$(SSH_CONSOLE_USER)'"; \
 	  echo "EXPORT_DIR = '$(EXPORT_DIR)'"; \
-	  echo "OS_SEARCH_PATH = [$(OS_SEARCH_PATH)]"; \
-	  echo "ES_SEARCH_PATH = [$(ES_SEARCH_PATH)]"; \
 	  echo "XEN_BOOTLOADER = '$(XEN_BOOTLOADER)'"; \
 	  echo "XEN_CONFIG_DIR = '$(XEN_CONFIG_DIR)'"; \
 	  echo "XEN_KERNEL = '$(XEN_KERNEL)'"; \
 	  echo "XEN_INITRD = '$(XEN_INITRD)'"; \
 	  echo "KVM_KERNEL = '$(KVM_KERNEL)'"; \
 	  echo "SHARED_FILE_STORAGE_DIR = '$(SHARED_FILE_STORAGE_DIR)'"; \
-	  echo "IALLOCATOR_SEARCH_PATH = [$(IALLOCATOR_SEARCH_PATH)]"; \
 	  echo "KVM_PATH = '$(KVM_PATH)'"; \
 	  echo "IP_PATH = '$(IP_PATH)'"; \
 	  echo "SOCAT_PATH = '$(SOCAT)'"; \

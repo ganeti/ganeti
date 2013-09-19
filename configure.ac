@@ -97,8 +97,8 @@ AC_ARG_WITH([os-search-path],
     [comma separated list of directories to]
     [ search for OS images (default is /srv/ganeti/os)]
   )],
-  [os_search_path=`echo -n "$withval" | sed -e "s/\([[^,]]*\)/'\1'/g"`],
-  [os_search_path="'/srv/ganeti/os'"])
+  [os_search_path=`echo -n "$withval" | sed -e "s/\([[^,]]*\)/\1/g"`],
+  [os_search_path="/srv/ganeti/os"])
 AC_SUBST(OS_SEARCH_PATH, $os_search_path)
 
 # --with-extstorage-search-path=...
@@ -109,8 +109,8 @@ AC_ARG_WITH([extstorage-search-path],
     [ search for External Storage Providers]
     [ (default is /srv/ganeti/extstorage)]
   )],
-  [es_search_path=`echo -n "$withval" | sed -e "s/\([[^,]]*\)/'\1'/g"`],
-  [es_search_path="'/srv/ganeti/extstorage'"])
+  [es_search_path=`echo -n "$withval" | sed -e "s/\([[^,]]*\)/\1/g"`],
+  [es_search_path="/srv/ganeti/extstorage"])
 AC_SUBST(ES_SEARCH_PATH, $es_search_path)
 
 # --with-iallocator-search-path=...
@@ -120,8 +120,8 @@ AC_ARG_WITH([iallocator-search-path],
     [comma separated list of directories to]
     [ search for instance allocators (default is $libdir/ganeti/iallocators)]
   )],
-  [iallocator_search_path=`echo -n "$withval" | sed -e "s/\([[^,]]*\)/'\1'/g"`],
-  [iallocator_search_path="'$libdir/$PACKAGE_NAME/iallocators'"])
+  [iallocator_search_path=`echo -n "$withval" | sed -e "s/\([[^,]]*\)/\1/g"`],
+  [iallocator_search_path="$libdir/$PACKAGE_NAME/iallocators"])
 AC_SUBST(IALLOCATOR_SEARCH_PATH, $iallocator_search_path)
 
 # --with-xen-bootloader=...

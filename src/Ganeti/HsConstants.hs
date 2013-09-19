@@ -50,6 +50,14 @@ import qualified Ganeti.Runtime as Runtime
 import Ganeti.Types
 import qualified Ganeti.Types as Types
 
+-- * Constants for 'lib/pathutils.py'
+
+osSearchPath :: [String]
+osSearchPath = AutoConf.osSearchPath
+
+esSearchPath :: [String]
+esSearchPath = AutoConf.esSearchPath
+
 -- * OOB supported commands
 
 oobPowerOn :: String
