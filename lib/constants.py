@@ -2274,7 +2274,7 @@ AUTO_REPAIR_ALL_RESULTS = _constants.AUTO_REPAIR_ALL_RESULTS
 BUILTIN_DATA_COLLECTOR_VERSION = _constants.BUILTIN_DATA_COLLECTOR_VERSION
 
 # The reason trail opcode parameter name
-OPCODE_REASON = "reason"
+OPCODE_REASON = _constants.OPCODE_REASON
 
 # The source reasons for the execution of an OpCode
 OPCODE_REASON_SRC_CLIENT = "gnt:client"
@@ -2291,15 +2291,15 @@ OPCODE_REASON_SOURCES = compat.UniqueFrozenset([
   OPCODE_REASON_SRC_USER,
   ])
 
-DISKSTATS_FILE = "/proc/diskstats"
+DISKSTATS_FILE = _constants.DISKSTATS_FILE
 
 # CPU load collector variables
-STAT_FILE = "/proc/stat"
+STAT_FILE = _constants.STAT_FILE
 CPUAVGLOAD_BUFFER_SIZE = 150
 CPUAVGLOAD_WINDOW_SIZE = 600
 
 # Mond's variable for periodical data collection
-MOND_TIME_INTERVAL = 5
+MOND_TIME_INTERVAL = _constants.MOND_TIME_INTERVAL
 
 # Do not re-export imported modules
 del re, _vcsversion, _autoconf, _constants, socket, pathutils, compat
