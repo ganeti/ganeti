@@ -199,13 +199,8 @@ def SanitizeDisks(opts, cfg): # pylint: disable=W0613
       for child in disk["children"]:
         helper(child)
 
-    if disk["dev_type"] == constants.DT_DRBD8:
-      if "physical_id" in disk:
-        del disk["physical_id"]
-
     if disk["dev_type"] == constants.DT_PLAIN and opts.sanitize_lvs:
       disk["logical_id"][1] = _Get(disk["logical_id"][1])
-      disk["physical_id"][1] = disk["logical_id"][1]
 
   lv_map = {}
 
@@ -279,9 +274,7 @@ def main():
 
   config_data = serializer.LoadJson(utils.ReadFile(opts.CONFIG_DATA_PATH))
 
-  # first, do some disk cleanup: remove DRBD physical_ids, since it
-  # contains both IPs (which we want changed) and the DRBD secret, and
-  # it's not needed for normal functioning, and randomize LVM names
+  # Randomize LVM names
   SanitizeDisks(opts, config_data)
 
   SanitizeSecrets(opts, config_data)

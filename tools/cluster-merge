@@ -400,10 +400,6 @@ class Merger(object):
             logical_id[2] = port
             dsk.logical_id = tuple(logical_id)
 
-            physical_id = list(dsk.physical_id)
-            physical_id[1] = physical_id[3] = port
-            dsk.physical_id = tuple(physical_id)
-
         my_config.AddInstance(instance_info,
                               _CLUSTERMERGE_ECID + str(fake_ec_id))
         fake_ec_id += 1
