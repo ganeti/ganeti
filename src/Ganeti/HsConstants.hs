@@ -1176,3 +1176,18 @@ autoRepairAllResults =
 -- | The version identifier for builtin data collectors
 builtinDataCollectorVersion :: String
 builtinDataCollectorVersion = "B"
+
+-- | The reason trail opcode parameter name
+opcodeReason :: String
+opcodeReason = "reason"
+
+diskstatsFile :: String
+diskstatsFile = "/proc/diskstats"
+
+-- | CPU load collector
+statFile :: String
+statFile = "/proc/stat"
+
+-- | Mond's variable for periodical data collection
+mondTimeInterval :: Int
+mondTimeInterval = 5
