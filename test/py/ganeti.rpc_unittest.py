@@ -481,11 +481,11 @@ class TestNodeConfigResolver(unittest.TestCase):
 class TestCompress(unittest.TestCase):
   def test(self):
     for data in ["", "Hello", "Hello World!\nnew\nlines"]:
-      self.assertEqual(rpc._Compress(data),
+      self.assertEqual(rpc._Compress(NotImplemented, data),
                        (constants.RPC_ENCODING_NONE, data))
 
     for data in [512 * " ", 5242 * "Hello World!\n"]:
-      compressed = rpc._Compress(data)
+      compressed = rpc._Compress(NotImplemented, data)
       self.assertEqual(len(compressed), 2)
       self.assertEqual(backend._Decompress(compressed), data)
 
@@ -566,8 +566,8 @@ class TestRpcClientBase(unittest.TestCase):
       ]
 
     encoders = {
-      AT1: hex,
-      AT2: hash,
+      AT1: lambda _, value: hex(value),
+      AT2: lambda _, value: hash(value),
       }
 
     cdef = ("test_call", NotImplemented, None, constants.RPC_TMO_NORMAL, [
@@ -720,6 +720,9 @@ class _FakeConfigForRpcRunner:
   def GetNodeInfo(self, name):
     return objects.Node(name=name)
 
+  def GetMultiNodeInfo(self, names):
+    return [(name, self.GetNodeInfo(name)) for name in names]
+
   def GetClusterInfo(self):
     return self._cluster
 
@@ -736,11 +739,15 @@ class TestRpcRunner(unittest.TestCase):
     tmpfile.flush()
     st = os.stat(tmpfile.name)
 
+    nodes = [
+      "node1.example.com",
+      ]
+
     def _VerifyRequest(req):
       (uldata, ) = serializer.LoadJson(req.post_data)
       self.assertEqual(len(uldata), 7)
       self.assertEqual(uldata[0], tmpfile.name)
-      self.assertEqual(list(uldata[1]), list(rpc._Compress(data)))
+      self.assertEqual(list(uldata[1]), list(rpc._Compress(nodes[0], data)))
       self.assertEqual(uldata[2], st.st_mode)
       self.assertEqual(uldata[3], "user%s" % os.getuid())
       self.assertEqual(uldata[4], "group%s" % os.getgid())
@@ -760,10 +767,6 @@ class TestRpcRunner(unittest.TestCase):
     cfg_runner = rpc.ConfigRunner(None, ["192.0.2.13"],
                                   _req_process_fn=http_proc,
                                   _getents=mocks.FakeGetentResolver)
-
-    nodes = [
-      "node1.example.com",
-      ]
 
     for runner in [std_runner, cfg_runner]:
       result = runner.call_upload_file(nodes, tmpfile.name)
@@ -832,14 +835,15 @@ class TestRpcRunner(unittest.TestCase):
                        "mymode")
 
     # Generic object serialization
-    result = runner._encoder((rpc_defs.ED_OBJECT_DICT, inst))
+    result = runner._encoder(NotImplemented, (rpc_defs.ED_OBJECT_DICT, inst))
     _CheckBasics(result)
 
-    result = runner._encoder((rpc_defs.ED_OBJECT_DICT_LIST, 5 * [inst]))
+    result = runner._encoder(NotImplemented,
+                             (rpc_defs.ED_OBJECT_DICT_LIST, 5 * [inst]))
     map(_CheckBasics, result)
 
     # Just an instance
-    result = runner._encoder((rpc_defs.ED_INST_DICT, inst))
+    result = runner._encoder(NotImplemented, (rpc_defs.ED_INST_DICT, inst))
     _CheckBasics(result)
     self.assertEqual(result["beparams"][constants.BE_MAXMEM], 256)
     self.assertEqual(result["hvparams"][constants.HT_KVM], {
@@ -851,10 +855,11 @@ class TestRpcRunner(unittest.TestCase):
       })
 
     # Instance with OS parameters
-    result = runner._encoder((rpc_defs.ED_INST_DICT_OSP_DP, (inst, {
-      "role": "webserver",
-      "other": "field",
-      })))
+    result = runner._encoder(NotImplemented,
+                             (rpc_defs.ED_INST_DICT_OSP_DP, (inst, {
+                               "role": "webserver",
+                               "other": "field",
+                             })))
     _CheckBasics(result)
     self.assertEqual(result["beparams"][constants.BE_MAXMEM], 256)
     self.assertEqual(result["hvparams"][constants.HT_KVM], {
@@ -867,7 +872,8 @@ class TestRpcRunner(unittest.TestCase):
       })
 
     # Instance with hypervisor and backend parameters
-    result = runner._encoder((rpc_defs.ED_INST_DICT_HVP_BEP_DP, (inst, {
+    result = runner._encoder(NotImplemented,
+                             (rpc_defs.ED_INST_DICT_HVP_BEP_DP, (inst, {
       constants.HT_KVM: {
         constants.HV_BOOT_ORDER: "xyz",
         },
@@ -883,11 +889,13 @@ class TestRpcRunner(unittest.TestCase):
       })
     self.assertEqual(result["disks"], [{
       "dev_type": constants.DT_PLAIN,
+      "dynamic_params": {},
       "size": 4096,
       "logical_id": ("vg", "disk6120"),
       "params": constants.DISK_DT_DEFAULTS[inst.disk_template],
       }, {
       "dev_type": constants.DT_PLAIN,
+      "dynamic_params": {},
       "size": 1024,
       "logical_id": ("vg", "disk8508"),
       "params": constants.DISK_DT_DEFAULTS[inst.disk_template],

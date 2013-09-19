@@ -419,12 +419,18 @@ class TestDRBD8Construction(testutils.GanetiTestCase):
         filename=testutils.TestDataFilename("proc_drbd84.txt"))
 
     self.test_unique_id = ("hosta.com", 123, "host2.com", 123, 0, "secret")
+    self.test_dyn_params = {
+      constants.DDP_LOCAL_IP: "192.0.2.1",
+      constants.DDP_LOCAL_MINOR: 0,
+      constants.DDP_REMOTE_IP: "192.0.2.2",
+      constants.DDP_REMOTE_MINOR: 0,
+    }
 
   @testutils.patch_object(drbd.DRBD8, "GetProcInfo")
   def testConstructionWith80Data(self, mock_create_from_file):
     mock_create_from_file.return_value = self.proc80_info
 
-    inst = drbd.DRBD8Dev(self.test_unique_id, [], 123, {})
+    inst = drbd.DRBD8Dev(self.test_unique_id, [], 123, {}, self.test_dyn_params)
     self.assertEqual(inst._show_info_cls, drbd_info.DRBD83ShowInfo)
     self.assertTrue(isinstance(inst._cmd_gen, drbd_cmdgen.DRBD83CmdGenerator))
 
@@ -432,7 +438,7 @@ class TestDRBD8Construction(testutils.GanetiTestCase):
   def testConstructionWith83Data(self, mock_create_from_file):
     mock_create_from_file.return_value = self.proc83_info
 
-    inst = drbd.DRBD8Dev(self.test_unique_id, [], 123, {})
+    inst = drbd.DRBD8Dev(self.test_unique_id, [], 123, {}, self.test_dyn_params)
     self.assertEqual(inst._show_info_cls, drbd_info.DRBD83ShowInfo)
     self.assertTrue(isinstance(inst._cmd_gen, drbd_cmdgen.DRBD83CmdGenerator))
 
@@ -440,7 +446,7 @@ class TestDRBD8Construction(testutils.GanetiTestCase):
   def testConstructionWith84Data(self, mock_create_from_file):
     mock_create_from_file.return_value = self.proc84_info
 
-    inst = drbd.DRBD8Dev(self.test_unique_id, [], 123, {})
+    inst = drbd.DRBD8Dev(self.test_unique_id, [], 123, {}, self.test_dyn_params)
     self.assertEqual(inst._show_info_cls, drbd_info.DRBD84ShowInfo)
     self.assertTrue(isinstance(inst._cmd_gen, drbd_cmdgen.DRBD84CmdGenerator))
 

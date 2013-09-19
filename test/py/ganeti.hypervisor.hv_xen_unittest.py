@@ -303,16 +303,16 @@ class TestGetConfigFileDiskData(unittest.TestCase):
   def testFileDisks(self):
     disks = [
       (objects.Disk(dev_type=constants.DT_FILE, mode=constants.DISK_RDWR,
-                    physical_id=[constants.FD_LOOP]),
+                    logical_id=[constants.FD_LOOP]),
        "/tmp/diskFirst"),
       (objects.Disk(dev_type=constants.DT_FILE, mode=constants.DISK_RDONLY,
-                    physical_id=[constants.FD_BLKTAP]),
+                    logical_id=[constants.FD_BLKTAP]),
        "/tmp/diskTwo"),
       (objects.Disk(dev_type=constants.DT_FILE, mode=constants.DISK_RDWR,
-                    physical_id=[constants.FD_LOOP]),
+                    logical_id=[constants.FD_LOOP]),
        "/tmp/diskThree"),
       (objects.Disk(dev_type=constants.DT_FILE, mode=constants.DISK_RDWR,
-                    physical_id=[constants.FD_BLKTAP]),
+                    logical_id=[constants.FD_BLKTAP]),
        "/tmp/diskLast"),
       ]
 
@@ -327,7 +327,7 @@ class TestGetConfigFileDiskData(unittest.TestCase):
   def testInvalidFileDisk(self):
     disks = [
       (objects.Disk(dev_type=constants.DT_FILE, mode=constants.DISK_RDWR,
-                    physical_id=["#unknown#"]),
+                    logical_id=["#unknown#"]),
        "/tmp/diskinvalid"),
       ]
 

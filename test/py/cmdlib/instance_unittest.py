@@ -1249,10 +1249,6 @@ class _ConfigForDiskWipe:
   def __init__(self, exp_node_uuid):
     self._exp_node_uuid = exp_node_uuid
 
-  def SetDiskID(self, device, node_uuid):
-    assert isinstance(device, objects.Disk)
-    assert node_uuid == self._exp_node_uuid
-
   def GetNodeName(self, node_uuid):
     assert node_uuid == self._exp_node_uuid
     return "name.of.expected.node"
