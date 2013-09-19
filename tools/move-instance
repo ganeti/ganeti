@@ -110,6 +110,11 @@ DEST_SECONDARY_NODE_OPT = \
                  help=("Secondary node on destination cluster (only"
                        " when moving exactly one instance)"))
 
+DEST_DISK_TEMPLATE_OPT = \
+  cli.cli_option("--dest-disk-template", action="store", type="string",
+                 dest="dest_disk_template", default=None,
+                 help="Disk template to use on destination cluster")
+
 PARALLEL_OPT = \
   cli.cli_option("-p", "--parallel", action="store", type="int", default=1,
                  dest="parallel", metavar="<number>",
@@ -272,7 +277,8 @@ class InstanceMove(object):
   """
   def __init__(self, src_instance_name, dest_instance_name,
                dest_pnode, dest_snode, dest_iallocator,
-               hvparams, beparams, osparams, nics):
+               dest_disk_template, hvparams,
+               beparams, osparams, nics):
     """Initializes this class.
 
     @type src_instance_name: string
@@ -285,6 +291,8 @@ class InstanceMove(object):
     @param dest_snode: Name of secondary node on destination cluster
     @type dest_iallocator: string or None
     @param dest_iallocator: Name of iallocator to use
+    @type dest_disk_template: string or None
+    @param dest_disk_template: Disk template to use instead of the original one
     @type hvparams: dict or None
     @param hvparams: Hypervisor parameters to override
     @type beparams: dict or None
@@ -300,6 +308,7 @@ class InstanceMove(object):
     self.dest_pnode = dest_pnode
     self.dest_snode = dest_snode
     self.dest_iallocator = dest_iallocator
+    self.dest_disk_template = dest_disk_template
     self.hvparams = hvparams
     self.beparams = beparams
     self.osparams = osparams
@@ -429,6 +438,7 @@ class MoveDestExecutor(object):
     job_id = self._CreateInstance(dest_client, mrt.move.dest_instance_name,
                                   mrt.move.dest_pnode, mrt.move.dest_snode,
                                   mrt.move.dest_iallocator,
+                                  mrt.move.dest_disk_template,
                                   mrt.src_instinfo, mrt.src_expinfo,
                                   mrt.move.hvparams, mrt.move.beparams,
                                   mrt.move.beparams, mrt.move.nics)
@@ -454,9 +464,9 @@ class MoveDestExecutor(object):
       mrt.dest_to_source.release()
 
   @staticmethod
-  def _CreateInstance(cl, name, pnode, snode, iallocator, instance, expinfo,
-                      override_hvparams, override_beparams, override_osparams,
-                      override_nics):
+  def _CreateInstance(cl, name, pnode, snode, iallocator, dest_disk_template,
+                      instance, expinfo, override_hvparams, override_beparams,
+                      override_osparams, override_nics):
     """Starts the instance creation in remote import mode.
 
     @type cl: L{rapi.client.GanetiRapiClient}
@@ -469,6 +479,8 @@ class MoveDestExecutor(object):
     @param snode: Name of secondary node on destination cluster
     @type iallocator: string or None
     @param iallocator: Name of iallocator to use
+    @type dest_disk_template: string or None
+    @param dest_disk_template: Disk template to use instead of the original one
     @type instance: dict
     @param instance: Instance details from source cluster
     @type expinfo: dict
@@ -484,7 +496,10 @@ class MoveDestExecutor(object):
     @return: Job ID
 
     """
-    disk_template = instance["disk_template"]
+    if dest_disk_template:
+      disk_template = dest_disk_template
+    else:
+      disk_template = instance["disk_template"]
 
     disks = []
     for idisk in instance["disks"]:
@@ -761,6 +776,7 @@ def ParseOptions():
   parser.add_option(DEST_INSTANCE_NAME_OPT)
   parser.add_option(DEST_PRIMARY_NODE_OPT)
   parser.add_option(DEST_SECONDARY_NODE_OPT)
+  parser.add_option(DEST_DISK_TEMPLATE_OPT)
   parser.add_option(PARALLEL_OPT)
 
   (options, args) = parser.parse_args()
@@ -867,8 +883,11 @@ def main():
     moves.append(InstanceMove(src_instance_name, dest_instance_name,
                               options.dest_primary_node,
                               options.dest_secondary_node,
-                              options.iallocator, options.hvparams,
-                              options.beparams, options.osparams,
+                              options.iallocator,
+                              options.dest_disk_template,
+                              options.hvparams,
+                              options.beparams,
+                              options.osparams,
                               options.nics))
 
   assert len(moves) == len(instance_names)

@@ -85,6 +85,8 @@ destination-related options default to the source value (e.g. setting
   When moving a single instance: Primary node on destination cluster.
 ``--dest-secondary-node``
   When moving a single instance: Secondary node on destination cluster.
+``--dest-disk-template``
+  Disk template to use after the move. Can be used to change disk templates.
 ``--iallocator``
   Iallocator for creating instance on destination cluster.
 ``--hypervisor-parameters``/``--backend-parameters``/``--os-parameters``/``--net``
