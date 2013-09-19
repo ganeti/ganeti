@@ -1209,7 +1209,8 @@ class ExportInstanceHelper:
       self._feedback_fn("Removing snapshot of disk/%s on node %s" %
                         (disk_index, src_node))
 
-      result = self._lu.rpc.call_blockdev_remove(src_node, disk)
+      result = self._lu.rpc.call_blockdev_remove(src_node,
+                                                 (disk, self._instance))
       if result.fail_msg:
         self._lu.LogWarning("Could not remove snapshot for disk/%d from node"
                             " %s: %s", disk_index, src_node, result.fail_msg)
@@ -1242,7 +1243,7 @@ class ExportInstanceHelper:
 
       # FIXME: pass debug option from opcode to backend
       dt = DiskTransfer("snapshot/%s" % idx,
-                        constants.IEIO_SCRIPT, (dev, idx),
+                        constants.IEIO_SCRIPT, ((dev, instance), idx),
                         constants.IEIO_FILE, (path, ),
                         finished_fn)
       transfers.append(dt)
@@ -1300,7 +1301,7 @@ class ExportInstanceHelper:
         finished_fn = compat.partial(self._TransferFinished, idx)
         ieloop.Add(DiskExport(self._lu, instance.primary_node,
                               opts, host, port, instance, "disk%d" % idx,
-                              constants.IEIO_SCRIPT, (dev, idx),
+                              constants.IEIO_SCRIPT, ((dev, instance), idx),
                               timeouts, cbs, private=(idx, finished_fn)))
 
       ieloop.Run()
@@ -1482,7 +1483,7 @@ def RemoteImport(lu, feedback_fn, instance, pnode, source_x509_ca,
 
         ieloop.Add(DiskImport(lu, instance.primary_node, opts, instance,
                               "disk%d" % idx,
-                              constants.IEIO_SCRIPT, (dev, idx),
+                              constants.IEIO_SCRIPT, ((dev, instance), idx),
                               timeouts, cbs, private=(idx, )))
 
       ieloop.Run()

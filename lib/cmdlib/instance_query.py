@@ -309,8 +309,7 @@ class LUInstanceQueryData(NoHooksLU):
       return None
 
     self.cfg.SetDiskID(dev, node_uuid)
-
-    result = self.rpc.call_blockdev_find(node_uuid, dev)
+    result = self.rpc.call_blockdev_find(node_uuid, (dev, instance))
     if result.offline:
       return None
 

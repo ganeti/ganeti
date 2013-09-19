@@ -3634,8 +3634,6 @@ def _GetImportExportIoCommand(instance, mode, ieio, ieargs):
 
     assert isinstance(disk_index, (int, long))
 
-    real_disk = _OpenRealBD(disk)
-
     inst_os = OSFromDisk(instance.os)
     env = OSEnvironment(instance, inst_os)
 
@@ -3645,6 +3643,7 @@ def _GetImportExportIoCommand(instance, mode, ieio, ieargs):
       script = inst_os.import_script
 
     elif mode == constants.IEM_EXPORT:
+      real_disk = _OpenRealBD(disk)
       env["EXPORT_DEVICE"] = real_disk.dev_path
       env["EXPORT_INDEX"] = str(disk_index)
       script = inst_os.export_script
@@ -3872,35 +3871,31 @@ def CleanupImportExport(name):
   shutil.rmtree(status_dir, ignore_errors=True)
 
 
-def _SetPhysicalId(target_node_uuid, nodes_ip, disks):
-  """Sets the correct physical ID on all passed disks.
+def _FindDisks(disks):
+  """Finds attached L{BlockDev}s for the given disks.
+
+  @type disks: list of L{objects.Disk}
+  @param disks: the disk objects we need to find
+
+  @return: list of L{BlockDev} objects or C{None} if a given disk
+           was not found or was no attached.
 
   """
-  for cf in disks:
-    cf.SetPhysicalID(target_node_uuid, nodes_ip)
-
-
-def _FindDisks(target_node_uuid, nodes_ip, disks):
-  """Sets the physical ID on disks and returns the block devices.
-
-  """
-  _SetPhysicalId(target_node_uuid, nodes_ip, disks)
-
   bdevs = []
 
-  for cf in disks:
-    rd = _RecursiveFindBD(cf)
+  for disk in disks:
+    rd = _RecursiveFindBD(disk)
     if rd is None:
-      _Fail("Can't find device %s", cf)
+      _Fail("Can't find device %s", disk)
     bdevs.append(rd)
   return bdevs
 
 
-def DrbdDisconnectNet(target_node_uuid, nodes_ip, disks):
+def DrbdDisconnectNet(disks):
   """Disconnects the network on a list of drbd devices.
 
   """
-  bdevs = _FindDisks(target_node_uuid, nodes_ip, disks)
+  bdevs = _FindDisks(disks)
 
   # disconnect disks
   for rd in bdevs:
@@ -3911,12 +3906,11 @@ def DrbdDisconnectNet(target_node_uuid, nodes_ip, disks):
             err, exc=True)
 
 
-def DrbdAttachNet(target_node_uuid, nodes_ip, disks, instance_name,
-                  multimaster):
+def DrbdAttachNet(disks, instance_name, multimaster):
   """Attaches the network on a list of drbd devices.
 
   """
-  bdevs = _FindDisks(target_node_uuid, nodes_ip, disks)
+  bdevs = _FindDisks(disks)
 
   if multimaster:
     for idx, rd in enumerate(bdevs):
@@ -3974,7 +3968,7 @@ def DrbdAttachNet(target_node_uuid, nodes_ip, disks, instance_name,
         _Fail("Can't change to primary mode: %s", err)
 
 
-def DrbdWaitSync(target_node_uuid, nodes_ip, disks):
+def DrbdWaitSync(disks):
   """Wait until DRBDs have synchronized.
 
   """
@@ -3984,7 +3978,7 @@ def DrbdWaitSync(target_node_uuid, nodes_ip, disks):
       raise utils.RetryAgain()
     return stats
 
-  bdevs = _FindDisks(target_node_uuid, nodes_ip, disks)
+  bdevs = _FindDisks(disks)
 
   min_resync = 100
   alldone = True
@@ -4004,11 +3998,10 @@ def DrbdWaitSync(target_node_uuid, nodes_ip, disks):
   return (alldone, min_resync)
 
 
-def DrbdNeedsActivation(target_node_uuid, nodes_ip, disks):
+def DrbdNeedsActivation(disks):
   """Checks which of the passed disks needs activation and returns their UUIDs.
 
   """
-  _SetPhysicalId(target_node_uuid, nodes_ip, disks)
   faulty_disks = []
 
   for disk in disks:

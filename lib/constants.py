@@ -1207,6 +1207,13 @@ DISK_DT_TYPES = {
 
 DISK_DT_PARAMETERS = frozenset(DISK_DT_TYPES.keys())
 
+# dynamic disk parameters
+DDP_LOCAL_IP = "local-ip"
+DDP_REMOTE_IP = "remote-ip"
+DDP_PORT = "port"
+DDP_LOCAL_MINOR = "local-minor"
+DDP_REMOTE_MINOR = "remote-minor"
+
 # OOB supported commands
 OOB_POWER_ON = _constants.OOB_POWER_ON
 OOB_POWER_OFF = _constants.OOB_POWER_OFF

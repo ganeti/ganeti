@@ -1389,7 +1389,7 @@ class LUInstanceCreate(LogicalUnit):
             dt = masterd.instance.DiskTransfer("disk/%s" % idx,
                                                constants.IEIO_FILE, (image, ),
                                                constants.IEIO_SCRIPT,
-                                               (iobj.disks[idx], idx),
+                                               ((iobj.disks[idx], iobj), idx),
                                                None)
             transfers.append(dt)
 
@@ -1574,7 +1574,8 @@ class LUInstanceRename(LogicalUnit):
     for (idx, disk) in enumerate(renamed_inst.disks):
       for node_uuid in renamed_inst.all_nodes:
         self.cfg.SetDiskID(disk, node_uuid)
-        result = self.rpc.call_blockdev_setinfo(node_uuid, disk, info)
+        result = self.rpc.call_blockdev_setinfo(node_uuid,
+                                                (disk, renamed_inst), info)
         result.Warn("Error setting info on node %s for disk %s" %
                     (self.cfg.GetNodeName(node_uuid), idx), self.LogWarning)
     try:
@@ -3098,8 +3099,7 @@ class LUInstanceSetParams(LogicalUnit):
                                      self.instance.uuid, pnode_uuid,
                                      [snode_uuid], disk_info, None, None, 0,
                                      feedback_fn, self.diskparams)
-    anno_disks = rpc.AnnotateDiskParams(constants.DT_DRBD8, new_disks,
-                                        self.diskparams)
+    anno_disks = rpc.AnnotateDiskParams(new_disks, self.diskparams)
     p_excl_stor = IsExclusiveStorageEnabledNodeUuid(self.cfg, pnode_uuid)
     s_excl_stor = IsExclusiveStorageEnabledNodeUuid(self.cfg, snode_uuid)
     info = GetInstanceInfoText(self.instance)
@@ -3195,7 +3195,7 @@ class LUInstanceSetParams(LogicalUnit):
     feedback_fn("Removing volumes on the secondary node...")
     for disk in old_disks:
       self.cfg.SetDiskID(disk, snode_uuid)
-      result = self.rpc.call_blockdev_remove(snode_uuid, disk)
+      result = self.rpc.call_blockdev_remove(snode_uuid, (disk, self.instance))
       result.Warn("Could not remove block device %s on node %s,"
                   " continuing anyway" %
                   (disk.iv_name, self.cfg.GetNodeName(snode_uuid)),
@@ -3205,7 +3205,7 @@ class LUInstanceSetParams(LogicalUnit):
     for idx, disk in enumerate(old_disks):
       meta = disk.children[1]
       self.cfg.SetDiskID(meta, pnode_uuid)
-      result = self.rpc.call_blockdev_remove(pnode_uuid, meta)
+      result = self.rpc.call_blockdev_remove(pnode_uuid, (meta, self.instance))
       result.Warn("Could not remove metadata for disk %d on node %s,"
                   " continuing anyway" %
                   (idx, self.cfg.GetNodeName(pnode_uuid)),
@@ -3265,7 +3265,8 @@ class LUInstanceSetParams(LogicalUnit):
     for node_uuid, disk in anno_disk.ComputeNodeTree(
                              self.instance.primary_node):
       self.cfg.SetDiskID(disk, node_uuid)
-      msg = self.rpc.call_blockdev_remove(node_uuid, disk).fail_msg
+      msg = self.rpc.call_blockdev_remove(node_uuid, (disk, self.instance)) \
+              .fail_msg
       if msg:
         self.LogWarning("Could not remove disk/%d on node '%s': %s,"
                         " continuing anyway", idx,

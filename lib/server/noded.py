@@ -415,9 +415,9 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     disk list must all be drbd devices.
 
     """
-    nodes_ip, disks, target_node_uuid = params
-    disks = [objects.Disk.FromDict(cf) for cf in disks]
-    return backend.DrbdDisconnectNet(target_node_uuid, nodes_ip, disks)
+    (disks,) = params
+    disks = [objects.Disk.FromDict(disk) for disk in disks]
+    return backend.DrbdDisconnectNet(disks)
 
   @staticmethod
   def perspective_drbd_attach_net(params):
@@ -427,10 +427,9 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     disk list must all be drbd devices.
 
     """
-    nodes_ip, disks, instance_name, multimaster, target_node_uuid = params
-    disks = [objects.Disk.FromDict(cf) for cf in disks]
-    return backend.DrbdAttachNet(target_node_uuid, nodes_ip, disks,
-                                 instance_name, multimaster)
+    disks, instance_name, multimaster = params
+    disks = [objects.Disk.FromDict(disk) for disk in disks]
+    return backend.DrbdAttachNet(disks, instance_name, multimaster)
 
   @staticmethod
   def perspective_drbd_wait_sync(params):
@@ -440,9 +439,9 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     disk list must all be drbd devices.
 
     """
-    nodes_ip, disks, target_node_uuid = params
-    disks = [objects.Disk.FromDict(cf) for cf in disks]
-    return backend.DrbdWaitSync(target_node_uuid, nodes_ip, disks)
+    (disks,) = params
+    disks = [objects.Disk.FromDict(disk) for disk in disks]
+    return backend.DrbdWaitSync(disks)
 
   @staticmethod
   def perspective_drbd_needs_activation(params):
@@ -452,12 +451,12 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     disk list must all be drbd devices.
 
     """
-    nodes_ip, disks, target_node_uuid = params
-    disks = [objects.Disk.FromDict(cf) for cf in disks]
-    return backend.DrbdNeedsActivation(target_node_uuid, nodes_ip, disks)
+    (disks,) = params
+    disks = [objects.Disk.FromDict(disk) for disk in disks]
+    return backend.DrbdNeedsActivation(disks)
 
   @staticmethod
-  def perspective_drbd_helper(params):
+  def perspective_drbd_helper(_):
     """Query drbd helper.
 
     """

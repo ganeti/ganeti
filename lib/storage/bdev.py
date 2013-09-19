@@ -67,13 +67,14 @@ class LogicalVolume(base.BlockDev):
   _INVALID_NAMES = compat.UniqueFrozenset([".", "..", "snapshot", "pvmove"])
   _INVALID_SUBSTRINGS = compat.UniqueFrozenset(["_mlog", "_mimage"])
 
-  def __init__(self, unique_id, children, size, params):
+  def __init__(self, unique_id, children, size, params, dyn_params):
     """Attaches to a LV device.
 
     The unique_id is a tuple (vg_name, lv_name)
 
     """
-    super(LogicalVolume, self).__init__(unique_id, children, size, params)
+    super(LogicalVolume, self).__init__(unique_id, children, size, params,
+                                        dyn_params)
     if not isinstance(unique_id, (tuple, list)) or len(unique_id) != 2:
       raise ValueError("Invalid configuration data %s" % str(unique_id))
     self._vg_name, self._lv_name = unique_id
@@ -123,7 +124,8 @@ class LogicalVolume(base.BlockDev):
     return map((lambda pv: pv.name), empty_pvs)
 
   @classmethod
-  def Create(cls, unique_id, children, size, spindles, params, excl_stor):
+  def Create(cls, unique_id, children, size, spindles, params, excl_stor,
+             dyn_params):
     """Create a new logical volume.
 
     """
@@ -205,7 +207,7 @@ class LogicalVolume(base.BlockDev):
     if result.failed:
       base.ThrowError("LV create failed (%s): %s",
                       result.fail_reason, result.output)
-    return LogicalVolume(unique_id, children, size, params)
+    return LogicalVolume(unique_id, children, size, params, dyn_params)
 
   @staticmethod
   def _GetVolumeInfo(lvm_cmd, fields):
@@ -597,7 +599,8 @@ class LogicalVolume(base.BlockDev):
     snap_name = self._lv_name + ".snap"
 
     # remove existing snapshot if found
-    snap = LogicalVolume((self._vg_name, snap_name), None, size, self.params)
+    snap = LogicalVolume((self._vg_name, snap_name), None, size, self.params,
+                         self.dyn_params)
     base.IgnoreError(snap.Remove)
 
     vg_info = self.GetVGInfo([self._vg_name], False)
@@ -717,13 +720,14 @@ class FileStorage(base.BlockDev):
   The unique_id for the file device is a (file_driver, file_path) tuple.
 
   """
-  def __init__(self, unique_id, children, size, params):
+  def __init__(self, unique_id, children, size, params, dyn_params):
     """Initalizes a file device backend.
 
     """
     if children:
       raise errors.BlockDeviceError("Invalid setup for file device")
-    super(FileStorage, self).__init__(unique_id, children, size, params)
+    super(FileStorage, self).__init__(unique_id, children, size, params,
+                                      dyn_params)
     if not isinstance(unique_id, (tuple, list)) or len(unique_id) != 2:
       raise ValueError("Invalid configuration data %s" % str(unique_id))
     self.driver = unique_id[0]
@@ -836,7 +840,8 @@ class FileStorage(base.BlockDev):
       base.ThrowError("Can't stat %s: %s", self.dev_path, err)
 
   @classmethod
-  def Create(cls, unique_id, children, size, spindles, params, excl_stor):
+  def Create(cls, unique_id, children, size, spindles, params, excl_stor,
+             dyn_params):
     """Create a new file.
 
     @param size: the size of file in MiB
@@ -865,7 +870,7 @@ class FileStorage(base.BlockDev):
         base.ThrowError("File already existing: %s", dev_path)
       base.ThrowError("Error in file creation: %", str(err))
 
-    return FileStorage(unique_id, children, size, params)
+    return FileStorage(unique_id, children, size, params, dyn_params)
 
 
 class PersistentBlockDevice(base.BlockDev):
@@ -878,14 +883,14 @@ class PersistentBlockDevice(base.BlockDev):
   For the time being, pathnames are required to lie under /dev.
 
   """
-  def __init__(self, unique_id, children, size, params):
+  def __init__(self, unique_id, children, size, params, dyn_params):
     """Attaches to a static block device.
 
     The unique_id is a path under /dev.
 
     """
     super(PersistentBlockDevice, self).__init__(unique_id, children, size,
-                                                params)
+                                                params, dyn_params)
     if not isinstance(unique_id, (tuple, list)) or len(unique_id) != 2:
       raise ValueError("Invalid configuration data %s" % str(unique_id))
     self.dev_path = unique_id[1]
@@ -904,7 +909,8 @@ class PersistentBlockDevice(base.BlockDev):
     self.Attach()
 
   @classmethod
-  def Create(cls, unique_id, children, size, spindles, params, excl_stor):
+  def Create(cls, unique_id, children, size, spindles, params, excl_stor,
+             dyn_params):
     """Create a new device
 
     This is a noop, we only return a PersistentBlockDevice instance
@@ -913,7 +919,7 @@ class PersistentBlockDevice(base.BlockDev):
     if excl_stor:
       raise errors.ProgrammerError("Persistent block device requested with"
                                    " exclusive_storage")
-    return PersistentBlockDevice(unique_id, children, 0, params)
+    return PersistentBlockDevice(unique_id, children, 0, params, dyn_params)
 
   def Remove(self):
     """Remove a device
@@ -990,11 +996,12 @@ class RADOSBlockDevice(base.BlockDev):
   this to be functional.
 
   """
-  def __init__(self, unique_id, children, size, params):
+  def __init__(self, unique_id, children, size, params, dyn_params):
     """Attaches to an rbd device.
 
     """
-    super(RADOSBlockDevice, self).__init__(unique_id, children, size, params)
+    super(RADOSBlockDevice, self).__init__(unique_id, children, size, params,
+                                           dyn_params)
     if not isinstance(unique_id, (tuple, list)) or len(unique_id) != 2:
       raise ValueError("Invalid configuration data %s" % str(unique_id))
 
@@ -1004,7 +1011,8 @@ class RADOSBlockDevice(base.BlockDev):
     self.Attach()
 
   @classmethod
-  def Create(cls, unique_id, children, size, spindles, params, excl_stor):
+  def Create(cls, unique_id, children, size, spindles, params, excl_stor,
+             dyn_params):
     """Create a new rbd device.
 
     Provision a new rbd volume inside a RADOS pool.
@@ -1027,7 +1035,7 @@ class RADOSBlockDevice(base.BlockDev):
       base.ThrowError("rbd creation failed (%s): %s",
                       result.fail_reason, result.output)
 
-    return RADOSBlockDevice(unique_id, children, size, params)
+    return RADOSBlockDevice(unique_id, children, size, params, dyn_params)
 
   def Remove(self):
     """Remove the rbd device.
@@ -1343,11 +1351,12 @@ class ExtStorageDevice(base.BlockDev):
   handling of the externally provided block devices.
 
   """
-  def __init__(self, unique_id, children, size, params):
+  def __init__(self, unique_id, children, size, params, dyn_params):
     """Attaches to an extstorage block device.
 
     """
-    super(ExtStorageDevice, self).__init__(unique_id, children, size, params)
+    super(ExtStorageDevice, self).__init__(unique_id, children, size, params,
+                                           dyn_params)
     if not isinstance(unique_id, (tuple, list)) or len(unique_id) != 2:
       raise ValueError("Invalid configuration data %s" % str(unique_id))
 
@@ -1358,7 +1367,8 @@ class ExtStorageDevice(base.BlockDev):
     self.Attach()
 
   @classmethod
-  def Create(cls, unique_id, children, size, spindles, params, excl_stor):
+  def Create(cls, unique_id, children, size, spindles, params, excl_stor,
+             dyn_params):
     """Create a new extstorage device.
 
     Provision a new volume using an extstorage provider, which will
@@ -1377,7 +1387,7 @@ class ExtStorageDevice(base.BlockDev):
     _ExtStorageAction(constants.ES_ACTION_CREATE, unique_id,
                       params, str(size))
 
-    return ExtStorageDevice(unique_id, children, size, params)
+    return ExtStorageDevice(unique_id, children, size, params, dyn_params)
 
   def Remove(self):
     """Remove the extstorage device.
@@ -1757,8 +1767,8 @@ def FindDevice(disk, children):
 
   """
   _VerifyDiskType(disk.dev_type)
-  device = DEV_MAP[disk.dev_type](disk.physical_id, children, disk.size,
-                                  disk.params)
+  device = DEV_MAP[disk.dev_type](disk.logical_id, children, disk.size,
+                                  disk.params, disk.dynamic_params)
   if not device.attached:
     return None
   return device
@@ -1779,8 +1789,8 @@ def Assemble(disk, children):
   """
   _VerifyDiskType(disk.dev_type)
   _VerifyDiskParams(disk)
-  device = DEV_MAP[disk.dev_type](disk.physical_id, children, disk.size,
-                                  disk.params)
+  device = DEV_MAP[disk.dev_type](disk.logical_id, children, disk.size,
+                                  disk.params, disk.dynamic_params)
   device.Assemble()
   return device
 
@@ -1801,6 +1811,7 @@ def Create(disk, children, excl_stor):
   """
   _VerifyDiskType(disk.dev_type)
   _VerifyDiskParams(disk)
-  device = DEV_MAP[disk.dev_type].Create(disk.physical_id, children, disk.size,
-                                         disk.spindles, disk.params, excl_stor)
+  device = DEV_MAP[disk.dev_type].Create(disk.logical_id, children, disk.size,
+                                         disk.spindles, disk.params, excl_stor,
+                                         disk.dynamic_params)
   return device

@@ -80,9 +80,9 @@ def CreateSingleBlockDev(lu, node_uuid, instance, device, info, force_open,
 
   """
   lu.cfg.SetDiskID(device, node_uuid)
-  result = lu.rpc.call_blockdev_create(node_uuid, device, device.size,
-                                       instance.name, force_open, info,
-                                       excl_stor)
+  result = lu.rpc.call_blockdev_create(node_uuid, (device, instance),
+                                       device.size, instance.name, force_open,
+                                       info, excl_stor)
   result.Raise("Can't create block device %s on"
                " node %s for instance %s" % (device,
                                              lu.cfg.GetNodeName(node_uuid),
@@ -184,7 +184,7 @@ def _CreateBlockDev(lu, node_uuid, instance, device, force_create, info,
                               force_open, excl_stor)
 
 
-def _UndoCreateDisks(lu, disks_created):
+def _UndoCreateDisks(lu, disks_created, instance):
   """Undo the work performed by L{CreateDisks}.
 
   This function is called in case of an error to undo the work of
@@ -193,11 +193,13 @@ def _UndoCreateDisks(lu, disks_created):
   @type lu: L{LogicalUnit}
   @param lu: the logical unit on whose behalf we execute
   @param disks_created: the result returned by L{CreateDisks}
+  @type instance: L{objects.Instance}
+  @param instance: the instance for which disks were created
 
   """
   for (node_uuid, disk) in disks_created:
     lu.cfg.SetDiskID(disk, node_uuid)
-    result = lu.rpc.call_blockdev_remove(node_uuid, disk)
+    result = lu.rpc.call_blockdev_remove(node_uuid, (disk, instance))
     result.Warn("Failed to remove newly-created disk %s on node %s" %
                 (disk, lu.cfg.GetNodeName(node_uuid)), logging.warning)
 
@@ -259,7 +261,7 @@ def CreateDisks(lu, instance, to_skip=None, target_node_uuid=None, disks=None):
         logging.warning("Creating disk %s for instance '%s' failed",
                         idx, instance.name)
         disks_created.extend(e.created_devices)
-        _UndoCreateDisks(lu, disks_created)
+        _UndoCreateDisks(lu, disks_created, instance)
         raise errors.OpExecError(e.message)
   return disks_created
 
@@ -1110,7 +1112,7 @@ def WipeOrCleanupDisks(lu, instance, disks=None, cleanup=None):
   except errors.OpExecError:
     logging.warning("Wiping disks for instance '%s' failed",
                     instance.name)
-    _UndoCreateDisks(lu, cleanup)
+    _UndoCreateDisks(lu, cleanup, instance)
     raise
 
 
@@ -1490,8 +1492,8 @@ class LUInstanceGrowDisk(LogicalUnit):
     if wipe_disks:
       # Get disk size from primary node for wiping
       self.cfg.SetDiskID(self.disk, self.instance.primary_node)
-      result = self.rpc.call_blockdev_getdimensions(self.instance.primary_node,
-                                                    [self.disk])
+      result = self.rpc.call_blockdev_getdimensions(
+                 self.instance.primary_node, ([self.disk], self.instance))
       result.Raise("Failed to retrieve disk size from node '%s'" %
                    self.instance.primary_node)
 
@@ -1801,7 +1803,7 @@ def _CheckDiskConsistencyInner(lu, instance, dev, node_uuid, on_primary,
   result = True
 
   if on_primary or dev.AssembleOnSecondary():
-    rstats = lu.rpc.call_blockdev_find(node_uuid, dev)
+    rstats = lu.rpc.call_blockdev_find(node_uuid, (dev, instance))
     msg = rstats.fail_msg
     if msg:
       lu.LogWarning("Can't find disk on node %s: %s",
@@ -1844,7 +1846,7 @@ def _BlockdevFind(lu, node_uuid, dev, instance):
 
   """
   (disk,) = AnnotateDiskParams(instance, [dev], lu.cfg)
-  return lu.rpc.call_blockdev_find(node_uuid, disk)
+  return lu.rpc.call_blockdev_find(node_uuid, (disk, instance))
 
 
 def _GenerateUniqueNames(lu, exts):
@@ -2298,8 +2300,8 @@ class TLReplaceDisks(Tasklet):
 
       for lv in old_lvs:
         self.cfg.SetDiskID(lv, node_uuid)
-
-        msg = self.rpc.call_blockdev_remove(node_uuid, lv).fail_msg
+        msg = self.rpc.call_blockdev_remove(node_uuid, (lv, self.instance)) \
+                .fail_msg
         if msg:
           self.lu.LogWarning("Can't remove old LV: %s", msg,
                              hint="remove unused LVs manually")
@@ -2348,8 +2350,9 @@ class TLReplaceDisks(Tasklet):
     for dev, old_lvs, new_lvs in iv_names.itervalues():
       self.lu.LogInfo("Detaching %s drbd from local storage", dev.iv_name)
 
-      result = self.rpc.call_blockdev_removechildren(self.target_node_uuid, dev,
-                                                     old_lvs)
+      result = self.rpc.call_blockdev_removechildren(self.target_node_uuid,
+                                                     (dev, self.instance),
+                                                     (old_lvs, self.instance))
       result.Raise("Can't detach drbd from local storage on node"
                    " %s for device %s" %
                    (self.cfg.GetNodeName(self.target_node_uuid), dev.iv_name))
@@ -2370,7 +2373,8 @@ class TLReplaceDisks(Tasklet):
       # Build the rename list based on what LVs exist on the node
       rename_old_to_new = []
       for to_ren in old_lvs:
-        result = self.rpc.call_blockdev_find(self.target_node_uuid, to_ren)
+        result = self.rpc.call_blockdev_find(self.target_node_uuid,
+                                             (to_ren, self.instance))
         if not result.fail_msg and result.payload:
           # device exists
           rename_old_to_new.append((to_ren, ren_fn(to_ren, temp_suffix)))
@@ -2393,25 +2397,24 @@ class TLReplaceDisks(Tasklet):
       # Intermediate steps of in memory modifications
       for old, new in zip(old_lvs, new_lvs):
         new.logical_id = old.logical_id
-        self.cfg.SetDiskID(new, self.target_node_uuid)
 
       # We need to modify old_lvs so that removal later removes the
       # right LVs, not the newly added ones; note that old_lvs is a
       # copy here
       for disk in old_lvs:
         disk.logical_id = ren_fn(disk, temp_suffix)
-        self.cfg.SetDiskID(disk, self.target_node_uuid)
 
       # Now that the new lvs have the old name, we can add them to the device
       self.lu.LogInfo("Adding new mirror component on %s",
                       self.cfg.GetNodeName(self.target_node_uuid))
       result = self.rpc.call_blockdev_addchildren(self.target_node_uuid,
-                                                  (dev, self.instance), new_lvs)
+                                                  (dev, self.instance),
+                                                  (new_lvs, self.instance))
       msg = result.fail_msg
       if msg:
         for new_lv in new_lvs:
           msg2 = self.rpc.call_blockdev_remove(self.target_node_uuid,
-                                               new_lv).fail_msg
+                                               (new_lv, self.instance)).fail_msg
           if msg2:
             self.lu.LogWarning("Can't rollback device %s: %s", dev, msg2,
                                hint=("cleanup manually the unused logical"
@@ -2560,8 +2563,8 @@ class TLReplaceDisks(Tasklet):
                                  " soon as possible"))
 
     self.lu.LogInfo("Detaching primary drbds from the network (=> standalone)")
-    result = self.rpc.call_drbd_disconnect_net([pnode], self.node_secondary_ip,
-                                               self.instance.disks)[pnode]
+    result = self.rpc.call_drbd_disconnect_net(
+               [pnode], (self.instance.disks, self.instance))[pnode]
 
     msg = result.fail_msg
     if msg:
@@ -2587,7 +2590,6 @@ class TLReplaceDisks(Tasklet):
                     " (standalone => connected)")
     result = self.rpc.call_drbd_attach_net([self.instance.primary_node,
                                             self.new_node_uuid],
-                                           self.node_secondary_ip,
                                            (self.instance.disks, self.instance),
                                            self.instance.name,
                                            False)

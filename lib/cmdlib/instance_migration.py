@@ -480,7 +480,6 @@ class TLMigrateInstance(Tasklet):
     while not all_done:
       all_done = True
       result = self.rpc.call_drbd_wait_sync(self.all_node_uuids,
-                                            self.nodes_ip,
                                             (self.instance.disks,
                                              self.instance))
       min_percent = 100
@@ -507,7 +506,7 @@ class TLMigrateInstance(Tasklet):
       self.cfg.SetDiskID(dev, node_uuid)
 
     result = self.rpc.call_blockdev_close(node_uuid, self.instance.name,
-                                          self.instance.disks)
+                                          (self.instance.disks, self.instance))
     result.Raise("Cannot change disk to secondary on node %s" %
                  self.cfg.GetNodeName(node_uuid))
 
@@ -516,9 +515,8 @@ class TLMigrateInstance(Tasklet):
 
     """
     self.feedback_fn("* changing into standalone mode")
-    result = self.rpc.call_drbd_disconnect_net(self.all_node_uuids,
-                                               self.nodes_ip,
-                                               self.instance.disks)
+    result = self.rpc.call_drbd_disconnect_net(
+               self.all_node_uuids, (self.instance.disks, self.instance))
     for node_uuid, nres in result.items():
       nres.Raise("Cannot disconnect disks node %s" %
                  self.cfg.GetNodeName(node_uuid))
@@ -532,7 +530,7 @@ class TLMigrateInstance(Tasklet):
     else:
       msg = "single-master"
     self.feedback_fn("* changing disks into %s mode" % msg)
-    result = self.rpc.call_drbd_attach_net(self.all_node_uuids, self.nodes_ip,
+    result = self.rpc.call_drbd_attach_net(self.all_node_uuids,
                                            (self.instance.disks, self.instance),
                                            self.instance.name, multimaster)
     for node_uuid, nres in result.items():

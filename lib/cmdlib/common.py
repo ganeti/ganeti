@@ -720,8 +720,7 @@ def AnnotateDiskParams(instance, devs, cfg):
   @see L{rpc.AnnotateDiskParams}
 
   """
-  return rpc.AnnotateDiskParams(instance.disk_template, devs,
-                                cfg.GetInstanceDiskParams(instance))
+  return rpc.AnnotateDiskParams(devs, cfg.GetInstanceDiskParams(instance))
 
 
 def SupportsOob(cfg, node):

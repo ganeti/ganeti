@@ -506,9 +506,11 @@ class NIC(ConfigObject):
 
 class Disk(ConfigObject):
   """Config object representing a block device."""
-  __slots__ = (["name", "dev_type", "logical_id", "physical_id",
-                "children", "iv_name", "size", "mode", "params", "spindles"] +
-               _UUID)
+  __slots__ = (["name", "dev_type", "logical_id", "physical_id", "children", "iv_name",
+                "size", "mode", "params", "spindles"] + _UUID +
+               # dynamic_params is special. It depends on the node this instance
+               # is sent to, and should not be persisted.
+               ["dynamic_params"])
 
   def CreateOnSecondary(self):
     """Test if this device needs to be created on a secondary node."""
@@ -696,49 +698,50 @@ class Disk(ConfigObject):
         child.UnsetSize()
     self.size = 0
 
-  def SetPhysicalID(self, target_node_uuid, nodes_ip):
-    """Convert the logical ID to the physical ID.
+  def UpdateDynamicDiskParams(self, target_node_uuid, nodes_ip):
+    """Updates the dynamic disk params for the given node.
 
-    This is used only for drbd, which needs ip/port configuration.
-
-    The routine descends down and updates its children also, because
-    this helps when the only the top device is passed to the remote
-    node.
+    This is mainly used for drbd, which needs ip/port configuration.
 
     Arguments:
       - target_node_uuid: the node UUID we wish to configure for
       - nodes_ip: a mapping of node name to ip
 
-    The target_node must exist in in nodes_ip, and must be one of the
-    nodes in the logical ID for each of the DRBD devices encountered
-    in the disk tree.
+    The target_node must exist in nodes_ip, and should be one of the
+    nodes in the logical ID if this device is a DRBD device.
 
     """
     if self.children:
       for child in self.children:
-        child.SetPhysicalID(target_node_uuid, nodes_ip)
+        child.UpdateDynamicDiskParams(target_node_uuid, nodes_ip)
 
-    if self.logical_id is None and self.physical_id is not None:
-      return
-    if self.dev_type in constants.LDS_DRBD:
-      pnode_uuid, snode_uuid, port, pminor, sminor, secret = self.logical_id
+    dyn_disk_params = {}
+    if self.logical_id is not None and self.dev_type in constants.LDS_DRBD:
+      pnode_uuid, snode_uuid, _, pminor, sminor, _ = self.logical_id
       if target_node_uuid not in (pnode_uuid, snode_uuid):
-        raise errors.ConfigurationError("DRBD device not knowing node %s" %
-                                        target_node_uuid)
+        # disk object is being sent to neither the primary nor the secondary
+        # node. reset the dynamic parameters, the target node is not
+        # supposed to use them.
+        self.dynamic_params = dyn_disk_params
+        return
+
       pnode_ip = nodes_ip.get(pnode_uuid, None)
       snode_ip = nodes_ip.get(snode_uuid, None)
       if pnode_ip is None or snode_ip is None:
         raise errors.ConfigurationError("Can't find primary or secondary node"
                                         " for %s" % str(self))
-      p_data = (pnode_ip, port)
-      s_data = (snode_ip, port)
       if pnode_uuid == target_node_uuid:
-        self.physical_id = p_data + s_data + (pminor, secret)
+        dyn_disk_params[constants.DDP_LOCAL_IP] = pnode_ip
+        dyn_disk_params[constants.DDP_REMOTE_IP] = snode_ip
+        dyn_disk_params[constants.DDP_LOCAL_MINOR] = pminor
+        dyn_disk_params[constants.DDP_REMOTE_MINOR] = sminor
       else: # it must be secondary, we tested above
-        self.physical_id = s_data + p_data + (sminor, secret)
-    else:
-      self.physical_id = self.logical_id
-    return
+        dyn_disk_params[constants.DDP_LOCAL_IP] = snode_ip
+        dyn_disk_params[constants.DDP_REMOTE_IP] = pnode_ip
+        dyn_disk_params[constants.DDP_LOCAL_MINOR] = sminor
+        dyn_disk_params[constants.DDP_REMOTE_MINOR] = pminor
+
+    self.dynamic_params = dyn_disk_params
 
   def ToDict(self):
     """Disk-specific conversion to standard python types.

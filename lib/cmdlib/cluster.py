@@ -533,8 +533,12 @@ class LUClusterRepairDiskSizes(NoHooksLU):
 
     changed = []
     for node_uuid, dskl in per_node_disks.items():
-      newl = [v[2].Copy() for v in dskl]
-      for dsk in newl:
+      if not dskl:
+        # no disks on the node
+        continue
+
+      newl = [(v[2].Copy(), v[0]) for v in dskl]
+      for (dsk, _) in newl:
         self.cfg.SetDiskID(dsk, node_uuid)
       node_name = self.cfg.GetNodeName(node_uuid)
       result = self.rpc.call_blockdev_getdimensions(node_uuid, newl)
@@ -2667,7 +2671,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
     """
     node_disks = {}
-    node_disks_devonly = {}
+    node_disks_dev_inst_only = {}
     diskless_instances = set()
     diskless = constants.DT_DISKLESS
 
@@ -2687,20 +2691,20 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       node_disks[nuuid] = disks
 
       # _AnnotateDiskParams makes already copies of the disks
-      devonly = []
+      dev_inst_only = []
       for (inst_uuid, dev) in disks:
         (anno_disk,) = AnnotateDiskParams(instanceinfo[inst_uuid], [dev],
                                           self.cfg)
         self.cfg.SetDiskID(anno_disk, nuuid)
-        devonly.append(anno_disk)
+        dev_inst_only.append((anno_disk, instanceinfo[inst_uuid]))
 
-      node_disks_devonly[nuuid] = devonly
+      node_disks_dev_inst_only[nuuid] = dev_inst_only
 
-    assert len(node_disks) == len(node_disks_devonly)
+    assert len(node_disks) == len(node_disks_dev_inst_only)
 
     # Collect data from all nodes with disks
-    result = self.rpc.call_blockdev_getmirrorstatus_multi(node_disks.keys(),
-                                                          node_disks_devonly)
+    result = self.rpc.call_blockdev_getmirrorstatus_multi(
+               node_disks.keys(), node_disks_dev_inst_only)
 
     assert len(result) == len(node_disks)
 

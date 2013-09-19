@@ -62,7 +62,7 @@ ACCEPT_OFFLINE_NODE = object()
  ED_OBJECT_DICT_LIST,
  ED_INST_DICT,
  ED_INST_DICT_HVP_BEP_DP,
- ED_NODE_TO_DISK_DICT,
+ ED_NODE_TO_DISK_DICT_DP,
  ED_INST_DICT_OSP_DP,
  ED_IMPEXP_IO,
  ED_FILE_DETAILS,
@@ -141,11 +141,6 @@ def _NodeInfoPreProc(node, args):
     return [args[0][node], args[1]]
   else:
     return args
-
-
-def _DrbdCallsPreProc(node, args):
-  """Add the target node UUID as additional field for DRBD related calls."""
-  return args + [node]
 
 
 def _OsGetPostProc(result):
@@ -351,7 +346,7 @@ _BLOCKDEV_CALLS = [
     ], None, None,
    "Gets the sizes of requested block devices present on a node"),
   ("blockdev_create", SINGLE, None, constants.RPC_TMO_NORMAL, [
-    ("bdev", ED_OBJECT_DICT, None),
+    ("bdev", ED_SINGLE_DISK_DICT_DP, None),
     ("size", None, None),
     ("owner", None, None),
     ("on_primary", None, None),
@@ -365,7 +360,7 @@ _BLOCKDEV_CALLS = [
     ], None, None,
     "Request wipe at given offset with given size of a block device"),
   ("blockdev_remove", SINGLE, None, constants.RPC_TMO_NORMAL, [
-    ("bdev", ED_OBJECT_DICT, None),
+    ("bdev", ED_SINGLE_DISK_DICT_DP, None),
     ], None, None, "Request removal of a given block device"),
   ("blockdev_pause_resume_sync", SINGLE, None, constants.RPC_TMO_NORMAL, [
     ("disks", ED_DISKS_DICT_DP, None),
@@ -382,41 +377,37 @@ _BLOCKDEV_CALLS = [
     ], None, None, "Request shutdown of a given block device"),
   ("blockdev_addchildren", SINGLE, None, constants.RPC_TMO_NORMAL, [
     ("bdev", ED_SINGLE_DISK_DICT_DP, None),
-    ("ndevs", ED_OBJECT_DICT_LIST, None),
+    ("ndevs", ED_DISKS_DICT_DP, None),
     ], None, None,
    "Request adding a list of children to a (mirroring) device"),
   ("blockdev_removechildren", SINGLE, None, constants.RPC_TMO_NORMAL, [
-    ("bdev", ED_OBJECT_DICT, None),
-    ("ndevs", ED_OBJECT_DICT_LIST, None),
+    ("bdev", ED_SINGLE_DISK_DICT_DP, None),
+    ("ndevs", ED_DISKS_DICT_DP, None),
     ], None, None,
    "Request removing a list of children from a (mirroring) device"),
   ("blockdev_close", SINGLE, None, constants.RPC_TMO_NORMAL, [
     ("instance_name", None, None),
-    ("disks", ED_OBJECT_DICT_LIST, None),
+    ("disks", ED_DISKS_DICT_DP, None),
     ], None, None, "Closes the given block devices"),
   ("blockdev_getdimensions", SINGLE, None, constants.RPC_TMO_NORMAL, [
-    ("disks", ED_OBJECT_DICT_LIST, None),
+    ("disks", ED_MULTI_DISKS_DICT_DP, None),
     ], None, None, "Returns size and spindles of the given disks"),
   ("drbd_disconnect_net", MULTI, None, constants.RPC_TMO_NORMAL, [
-    ("nodes_ip", None, None),
-    ("disks", ED_OBJECT_DICT_LIST, None),
-    ], _DrbdCallsPreProc, None,
+    ("disks", ED_DISKS_DICT_DP, None),
+    ], None, None,
    "Disconnects the network of the given drbd devices"),
   ("drbd_attach_net", MULTI, None, constants.RPC_TMO_NORMAL, [
-    ("nodes_ip", None, None),
     ("disks", ED_DISKS_DICT_DP, None),
     ("instance_name", None, None),
     ("multimaster", None, None),
-    ], _DrbdCallsPreProc, None, "Connects the given DRBD devices"),
+    ], None, None, "Connects the given DRBD devices"),
   ("drbd_wait_sync", MULTI, None, constants.RPC_TMO_SLOW, [
-    ("nodes_ip", None, None),
     ("disks", ED_DISKS_DICT_DP, None),
-    ], _DrbdCallsPreProc, None,
+    ], None, None,
    "Waits for the synchronization of drbd devices is complete"),
   ("drbd_needs_activation", SINGLE, None, constants.RPC_TMO_NORMAL, [
-    ("nodes_ip", None, None),
     ("disks", ED_MULTI_DISKS_DICT_DP, None),
-    ], _DrbdCallsPreProc, None,
+    ], None, None,
    "Returns the drbd disks which need activation"),
   ("blockdev_grow", SINGLE, None, constants.RPC_TMO_NORMAL, [
     ("cf_bdev", ED_SINGLE_DISK_DICT_DP, None),
@@ -439,7 +430,7 @@ _BLOCKDEV_CALLS = [
     ("devlist", ED_BLOCKDEV_RENAME, None),
     ], None, None, "Request rename of the given block devices"),
   ("blockdev_find", SINGLE, None, constants.RPC_TMO_NORMAL, [
-    ("disk", ED_OBJECT_DICT, None),
+    ("disk", ED_SINGLE_DISK_DICT_DP, None),
     ], None, _BlockdevFindPostProc,
     "Request identification of a given block device"),
   ("blockdev_getmirrorstatus", SINGLE, None, constants.RPC_TMO_NORMAL, [
@@ -447,12 +438,12 @@ _BLOCKDEV_CALLS = [
     ], None, _BlockdevGetMirrorStatusPostProc,
     "Request status of a (mirroring) device"),
   ("blockdev_getmirrorstatus_multi", MULTI, None, constants.RPC_TMO_NORMAL, [
-    ("node_disks", ED_NODE_TO_DISK_DICT, None),
+    ("node_disks", ED_NODE_TO_DISK_DICT_DP, None),
     ], _BlockdevGetMirrorStatusMultiPreProc,
    _BlockdevGetMirrorStatusMultiPostProc,
     "Request status of (mirroring) devices from multiple nodes"),
   ("blockdev_setinfo", SINGLE, None, constants.RPC_TMO_NORMAL, [
-    ("disk", ED_OBJECT_DICT, None),
+    ("disk", ED_SINGLE_DISK_DICT_DP, None),
     ("info", None, None),
     ], None, None, "Sets metadata information on a given block device"),
   ]

@@ -968,12 +968,9 @@ class LUGroupVerifyDisks(NoHooksLU):
                                        inst.secondary_nodes):
         node_to_inst.setdefault(node_uuid, []).append(inst)
 
-    nodes_ip = dict((uuid, node.secondary_ip) for (uuid, node)
-                    in self.cfg.GetMultiNodeInfo(node_to_inst.keys()))
     for (node_uuid, insts) in node_to_inst.items():
       node_disks = [(inst.disks, inst) for inst in insts]
-      node_res = self.rpc.call_drbd_needs_activation(node_uuid, nodes_ip,
-                                                     node_disks)
+      node_res = self.rpc.call_drbd_needs_activation(node_uuid, node_disks)
       msg = node_res.fail_msg
       if msg:
         logging.warning("Error getting DRBD status on node %s: %s",

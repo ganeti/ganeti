@@ -72,7 +72,7 @@ class BlockDev(object):
   after assembly we'll have our correct major/minor.
 
   """
-  def __init__(self, unique_id, children, size, params):
+  def __init__(self, unique_id, children, size, params, dyn_params):
     self._children = children
     self.dev_path = None
     self.unique_id = unique_id
@@ -81,6 +81,7 @@ class BlockDev(object):
     self.attached = False
     self.size = size
     self.params = params
+    self.dyn_params = dyn_params
 
   def Assemble(self):
     """Assemble the device from its components.
@@ -109,7 +110,8 @@ class BlockDev(object):
     raise NotImplementedError
 
   @classmethod
-  def Create(cls, unique_id, children, size, spindles, params, excl_stor):
+  def Create(cls, unique_id, children, size, spindles, params, excl_stor,
+             dyn_params):
     """Create the device.
 
     If the device cannot be created, it will return None
@@ -132,6 +134,9 @@ class BlockDev(object):
     @param params: device-specific options/parameters
     @type excl_stor: bool
     @param excl_stor: whether exclusive_storage is active
+    @type dyn_params: dict
+    @param dyn_params: dynamic parameters of the disk only valid for this node.
+        As set by L{objects.Disk.UpdateDynamicDiskParams}.
     @rtype: L{BlockDev}
     @return: the created device, or C{None} in case of an error
 
