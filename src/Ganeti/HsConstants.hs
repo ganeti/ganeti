@@ -50,7 +50,12 @@ import qualified Ganeti.Runtime as Runtime
 import Ganeti.Types
 import qualified Ganeti.Types as Types
 
--- * 'autoconf' constants for Python only
+-- * 'autoconf' constants for Python only ('autotools/build-bash-completion')
+
+htoolsProgs :: [String]
+htoolsProgs = AutoConf.htoolsProgs
+
+-- * 'autoconf' constants for Python only ('lib/constants.py')
 
 drbdBarriers :: String
 drbdBarriers = AutoConf.drbdBarriers
@@ -60,6 +65,54 @@ drbdNoMetaFlush = AutoConf.drbdNoMetaFlush
 
 lvmStripecount :: Int
 lvmStripecount = AutoConf.lvmStripecount
+
+-- * 'autoconf' constants for Python only ('lib/pathutils.py')
+
+-- ** Build-time constants
+
+exportDir :: String
+exportDir = AutoConf.exportDir
+
+osSearchPath :: [String]
+osSearchPath = AutoConf.osSearchPath
+
+esSearchPath :: [String]
+esSearchPath = AutoConf.esSearchPath
+
+sshConfigDir :: String
+sshConfigDir = AutoConf.sshConfigDir
+
+xenConfigDir :: String
+xenConfigDir = AutoConf.xenConfigDir
+
+sysconfdir :: String
+sysconfdir = AutoConf.sysconfdir
+
+toolsdir :: String
+toolsdir = AutoConf.toolsdir
+
+localstatedir :: String
+localstatedir = AutoConf.localstatedir
+
+-- ** Paths which don't change for a virtual cluster
+
+pkglibdir :: String
+pkglibdir = AutoConf.pkglibdir
+
+-- * 'autoconf' constants for Python only ('lib/build/sphinx_ext.py')
+
+manPages :: Map String Int
+manPages = Map.fromList AutoConf.manPages
+
+-- * 'autoconf' constants for QA cluster only ('qa/qa_cluster.py')
+
+versionedsharedir :: String
+versionedsharedir = AutoConf.versionedsharedir
+
+-- * 'autoconf' constants for Python only ('tests/py/docs_unittest.py')
+
+gntScripts :: [String]
+gntScripts = AutoConf.gntScripts
 
 -- * Various versions
 
@@ -84,14 +137,6 @@ configVersion = buildVersion configMajor configMinor configRevision
 -- protocols are supposed to remain stable across revisions.
 protocolVersion :: Int
 protocolVersion = buildVersion configMajor configMinor configRevision
-
--- * Constants for 'lib/pathutils.py'
-
-osSearchPath :: [String]
-osSearchPath = AutoConf.osSearchPath
-
-esSearchPath :: [String]
-esSearchPath = AutoConf.esSearchPath
 
 -- * User separation
 daemonsGroup :: String
