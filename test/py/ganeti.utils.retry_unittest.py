@@ -36,8 +36,11 @@ class TestRetry(testutils.GanetiTestCase):
     self.retries = 0
     self.called = 0
     self.time = 1379601882.0
+    self.time_for_time_fn = 0
+    self.time_for_retry_and_succeed = 0
 
   def _time_fn(self):
+    self.time += self.time_for_time_fn
     return self.time
 
   def _wait_fn(self, delay):
@@ -55,6 +58,7 @@ class TestRetry(testutils.GanetiTestCase):
     return utils.Retry(self._RaiseRetryAgain, 0.01, 0.02)
 
   def _RetryAndSucceed(self, retries):
+    self.time += self.time_for_retry_and_succeed
     if self.retries < retries:
       self.retries += 1
       raise utils.RetryAgain()
@@ -89,6 +93,15 @@ class TestRetry(testutils.GanetiTestCase):
                          True)
     self.failUnlessEqual(self.retries, 2)
 
+  def testCompleteNontrivialTimes(self):
+    self.time_for_time_fn = 0.01
+    self.time_for_retry_and_succeed = 0.1
+    self.failUnlessEqual(utils.Retry(self._RetryAndSucceed, 0, 1, args=[2],
+                                     wait_fn = self._wait_fn,
+                                     _time_fn = self._time_fn),
+                         True)
+    self.failUnlessEqual(self.retries, 2)
+
   def testNestedLoop(self):
     try:
       self.failUnlessRaises(errors.ProgrammerError, utils.Retry,
@@ -106,6 +119,25 @@ class TestRetry(testutils.GanetiTestCase):
       self.failUnlessEqual(err.args, (retry_arg, ))
     else:
       self.fail("Expected timeout didn't happen")
+
+  def testTimeout(self):
+    self.time_for_time_fn = 0.01
+    self.time_for_retry_and_succeed = 10
+    try:
+      utils.Retry(self._RetryAndSucceed, 1, 18, args=[2],
+                  wait_fn = self._wait_fn, _time_fn = self._time_fn)
+    except utils.RetryTimeout, err:
+      self.failUnlessEqual(err.args, ())
+    else:
+      self.fail("Expected timeout didn't happen")
+
+  def testNoTimeout(self):
+    self.time_for_time_fn = 0.01
+    self.time_for_retry_and_succeed = 8
+    self.failUnlessEqual(
+      utils.Retry(self._RetryAndSucceed, 1, 18, args=[2],
+                  wait_fn = self._wait_fn, _time_fn = self._time_fn),
+      True)
 
   def testRaiseInnerWithExc(self):
     retry_arg="my_important_debugging_message"
