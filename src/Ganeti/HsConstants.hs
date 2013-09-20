@@ -40,7 +40,7 @@ import Data.Map (Map)
 import qualified Data.Map as Map (fromList)
 
 import AutoConf
-import Ganeti.ConstantUtils (FrozenSet, Protocol(..))
+import Ganeti.ConstantUtils (FrozenSet, Protocol(..), buildVersion)
 import qualified Ganeti.ConstantUtils as ConstantUtils
 import Ganeti.Runtime (GanetiDaemon(..), MiscGroup(..), GanetiGroup(..),
                        ExtraLogReason(..))
@@ -49,6 +49,41 @@ import qualified Ganeti.Logging as Logging (syslogUsageToRaw)
 import qualified Ganeti.Runtime as Runtime
 import Ganeti.Types
 import qualified Ganeti.Types as Types
+
+-- * 'autoconf' constants for Python only
+
+drbdBarriers :: String
+drbdBarriers = AutoConf.drbdBarriers
+
+drbdNoMetaFlush :: Bool
+drbdNoMetaFlush = AutoConf.drbdNoMetaFlush
+
+lvmStripecount :: Int
+lvmStripecount = AutoConf.lvmStripecount
+
+-- * Various versions
+
+releaseVersion :: String
+releaseVersion = AutoConf.packageVersion
+
+configMajor :: Int
+configMajor = AutoConf.versionMajor
+
+configMinor :: Int
+configMinor = AutoConf.versionMinor
+
+-- | The configuration is supposed to remain stable across
+-- revisions. Therefore, the revision number is cleared to '0'.
+configRevision :: Int
+configRevision = 0
+
+configVersion :: Int
+configVersion = buildVersion configMajor configMinor configRevision
+
+-- | Similarly to the configuration (see 'configRevision'), the
+-- protocols are supposed to remain stable across revisions.
+protocolVersion :: Int
+protocolVersion = buildVersion configMajor configMinor configRevision
 
 -- * Constants for 'lib/pathutils.py'
 
@@ -106,6 +141,20 @@ sshLoginUser = AutoConf.sshLoginUser
 
 sshConsoleUser :: String
 sshConsoleUser = AutoConf.sshConsoleUser
+
+-- * 'autoconf' enable/disable
+
+enableConfd :: Bool
+enableConfd = AutoConf.enableConfd
+
+enableMond :: Bool
+enableMond = AutoConf.enableMond
+
+enableRestrictedCommands :: Bool
+enableRestrictedCommands = AutoConf.enableRestrictedCommands
+
+enableSplitQuery :: Bool
+enableSplitQuery = AutoConf.enableSplitQuery
 
 -- * SSH constants
 
@@ -216,6 +265,26 @@ xenKernel = AutoConf.xenKernel
 -- other constants
 knownXenCommands :: FrozenSet String
 knownXenCommands = ConstantUtils.mkSet [xenCmdXl, xenCmdXm]
+
+-- * KVM and socat
+
+kvmPath :: String
+kvmPath = AutoConf.kvmPath
+
+kvmKernel :: String
+kvmKernel = AutoConf.kvmKernel
+
+socatEscapeCode :: String
+socatEscapeCode = "0x1d"
+
+socatPath :: String
+socatPath = AutoConf.socatPath
+
+socatUseCompress :: Bool
+socatUseCompress = AutoConf.socatUseCompress
+
+socatUseEscape :: Bool
+socatUseEscape = AutoConf.socatUseEscape
 
 -- * Storage types
 
@@ -428,6 +497,13 @@ maxTagsPerObj = 4096
 -- | Node clock skew in seconds
 nodeMaxClockSkew :: Int
 nodeMaxClockSkew = 150
+
+-- | Disk index separator
+diskSeparator :: String
+diskSeparator = AutoConf.diskSeparator
+
+ipCommandPath :: String
+ipCommandPath = AutoConf.ipPath
 
 -- * Reboot types
 
@@ -1173,6 +1249,17 @@ validAllocPolicies = map Types.allocPolicyToRaw [minBound..]
 -- | Temporary external/shared storage parameters
 blockdevDriverManual :: String
 blockdevDriverManual = Types.blockDriverToRaw BlockDrvManual
+
+-- | 'qemu-img' path, required for 'ovfconverter'
+qemuimgPath :: String
+qemuimgPath = AutoConf.qemuimgPath
+
+-- | Whether htools was enabled at compilation time
+--
+-- FIXME: this should be moved next to the other enable constants,
+-- such as, 'enableConfd', and renamed to 'enableHtools'.
+htools :: Bool
+htools = AutoConf.htools
 
 -- | Path generating random UUID
 randomUuidFile :: String
