@@ -1165,10 +1165,11 @@ class ExportInstanceHelper:
 
     instance = self._instance
     src_node = instance.primary_node
+    src_node_name = self._lu.cfg.GetNodeName(src_node)
 
     for idx, disk in enumerate(instance.disks):
       self._feedback_fn("Creating a snapshot of disk/%s on node %s" %
-                        (idx, src_node))
+                        (idx, src_node_name))
 
       # result.payload will be a snapshot of an lvm leaf of the one we
       # passed
@@ -1177,11 +1178,11 @@ class ExportInstanceHelper:
       msg = result.fail_msg
       if msg:
         self._lu.LogWarning("Could not snapshot disk/%s on node %s: %s",
-                            idx, src_node, msg)
+                            idx, src_node_name, msg)
       elif (not isinstance(result.payload, (tuple, list)) or
             len(result.payload) != 2):
         self._lu.LogWarning("Could not snapshot disk/%s on node %s: invalid"
-                            " result '%s'", idx, src_node, result.payload)
+                            " result '%s'", idx, src_node_name, result.payload)
       else:
         disk_id = tuple(result.payload)
         disk_params = constants.DISK_LD_DEFAULTS[constants.DT_PLAIN].copy()
@@ -1204,15 +1205,17 @@ class ExportInstanceHelper:
     disk = self._snap_disks[disk_index]
     if disk and not self._removed_snaps[disk_index]:
       src_node = self._instance.primary_node
+      src_node_name = self._lu.cfg.GetNodeName(src_node)
 
       self._feedback_fn("Removing snapshot of disk/%s on node %s" %
-                        (disk_index, src_node))
+                        (disk_index, src_node_name))
 
       result = self._lu.rpc.call_blockdev_remove(src_node,
                                                  (disk, self._instance))
       if result.fail_msg:
         self._lu.LogWarning("Could not remove snapshot for disk/%d from node"
-                            " %s: %s", disk_index, src_node, result.fail_msg)
+                            " %s: %s", disk_index, src_node_name,
+                            result.fail_msg)
       else:
         self._removed_snaps[disk_index] = True
 
