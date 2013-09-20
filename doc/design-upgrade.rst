@@ -154,18 +154,20 @@ the layout for version 2.10 will look as follows.
 
 
 
-gnt-upgrade
------------
+gnt-cluster upgrade
+-------------------
 
-The actual upgrade process will be done by a new binary,
-``gnt-upgrade``. It will take precisely one argument, the version to
+The actual upgrade process will be done by a new command ``upgrade`` to
+``gnt-cluster``. If called with the option ``--to`` which take precisely
+one argument, the version to
 upgrade (or downgrade) to, given as full string with major, minor, suffix,
 and suffix. To be compatible with current configuration upgrade and downgrade
 procedures, the new version must be of the same major version and
 either an equal or higher minor version, or precisely the previous
 minor version.
 
-When executed, ``gnt-upgrade`` will perform the following actions.
+When executed, ``gnt-cluster upgrade --to=<version>`` will perform the
+following actions.
 
 - It verifies that the version to change to is installed on all nodes
   of the cluster that are not marked as offline. If this is not the
@@ -174,7 +176,7 @@ When executed, ``gnt-upgrade`` will perform the following actions.
 
 - An intent-to-upgrade file is created that contains the current
   version of ganeti, the version to change to, and the process ID of
-  the ``gnt-upgrade`` process. The latter is not used automatically,
+  the ``gnt-cluster upgrade`` process. The latter is not used automatically,
   but allows manual detection if the upgrade process died
   unintentionally. The intend-to-upgrade file is persisted to disk
   before continuing.
@@ -199,7 +201,7 @@ When executed, ``gnt-upgrade`` will perform the following actions.
 
 - A backup of all Ganeti-related status information is created for
   manual rollbacks. While the normal way of rolling back after an
-  upgrade should be calling ``gnt-upgrade`` from the newer version
+  upgrade should be calling ``gnt-clsuter upgrade`` from the newer version
   with the older version as argument, a full backup provides an
   additional safety net, especially for jump-upgrades (skipping
   intermediate minor versions).
@@ -232,7 +234,7 @@ Considerations on unintended reboots of the master node
 =======================================================
  
 During the upgrade procedure, the only ganeti process still running is
-the one instance of ``gnt-upgrade``. This process is also responsible
+the one instance of ``gnt-cluster upgrade``. This process is also responsible
 for eventually removing the queue drain. Therefore, we have to provide
 means to resume this process, if it dies unintentionally. The process
 itself will handle SIGTERM gracefully by either undoing all changes
@@ -242,10 +244,10 @@ of the configuration has already started (in which case it goes
 through to the end), or not (in which case the actions done so far are
 rolled back).
 
-To achieve this, ``gnt-upgrade`` will support a ``--resume``
-option. It is recommended to have ``gnt-upgrade --resume`` as an
-at-reboot task in the crontab. If started with this option,
-``gnt-upgrade`` does not accept any arguments. It first verifies that
+To achieve this, ``gnt-cluster upgrade`` will support a ``--resume``
+option. It is recommended
+to have ``gnt-cluster upgrade --resume`` as an at-reboot task in the crontab.
+The ``gnt-cluster upgrade --resume`` comand first verifies that
 it is running on the master node, using the same requirement as for
 starting the master daemon, i.e., confirmed by a majority of all
 nodes. If it is not the master node, it will remove any possibly
@@ -255,7 +257,7 @@ file. If no such file is found, it will simply exit. If found, it will
 resume at the appropriate stage.
 
 - If the configuration file still is at the initial version,
-  ``gnt-upgrade`` is resumed at the step immediately following the
+  ``gnt-cluster upgrade`` is resumed at the step immediately following the
   writing of the intend-to-upgrade file. It should be noted that
   all steps before changing the configuration are idempotent, so
   redoing them does not do any harm.
@@ -271,7 +273,7 @@ resume at the appropriate stage.
 Caveats
 =======
 
-Since ``gnt-upgrade`` drains the queue and undrains it later, so any
+Since ``gnt-cluster upgrade`` drains the queue and undrains it later, so any
 information about a previous drain gets lost. This problem will
 disappear, once :doc:`design-optables` is implemented, as then the
 undrain will then be restricted to filters by gnt-upgrade.
