@@ -101,3 +101,9 @@ priorityNormal = 0
 
 priorityHigh :: Int
 priorityHigh = -10
+
+-- | Calculates int version number from major, minor and revision
+-- numbers.
+buildVersion :: Int -> Int -> Int -> Int
+buildVersion major minor revision =
+  1000000 * major + 10000 * minor + 1 * revision
