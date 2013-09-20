@@ -46,6 +46,7 @@ except (AttributeError, ValueError, KeyError), err:
   # Normally the "manpage" role is registered by sphinx/roles.py
   raise Exception("Can't find reST role named 'manpage': %s" % err)
 
+from ganeti import _constants
 from ganeti import constants
 from ganeti import compat
 from ganeti import errors
@@ -57,7 +58,6 @@ from ganeti import rapi
 from ganeti import luxi
 from ganeti import objects
 from ganeti import http
-from ganeti import _autoconf
 
 import ganeti.rapi.rlib2 # pylint: disable=W0611
 import ganeti.rapi.connector # pylint: disable=W0611
@@ -385,7 +385,7 @@ class _ManPageXRefRole(sphinx.roles.XRefRole):
     name = m.group("name")
     section = int(m.group("section"))
 
-    wanted_section = _autoconf.MAN_PAGES.get(name, None)
+    wanted_section = _constants.MAN_PAGES.get(name, None)
 
     if not (wanted_section is None or wanted_section == section):
       raise ReSTError("Referenced man page '%s' has section number %s, but the"

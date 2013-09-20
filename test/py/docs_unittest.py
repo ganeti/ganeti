@@ -26,7 +26,7 @@ import re
 import itertools
 import operator
 
-from ganeti import _autoconf
+from ganeti import _constants
 from ganeti import utils
 from ganeti import cmdlib
 from ganeti import build
@@ -314,7 +314,7 @@ class TestManpages(unittest.TestCase):
     return build.LoadModule("scripts/%s" % name)
 
   def test(self):
-    for script in _autoconf.GNT_SCRIPTS:
+    for script in _constants.GNT_SCRIPTS:
       self._CheckManpage(script,
                          self._ReadManFile(script),
                          self._LoadScript(script).commands.keys())

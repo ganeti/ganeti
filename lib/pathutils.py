@@ -23,7 +23,6 @@
 
 """
 
-from ganeti import _autoconf
 from ganeti import _constants
 from ganeti import compat
 from ganeti import vcluster
@@ -35,23 +34,23 @@ DEFAULT_FILE_STORAGE_DIR = vcluster.AddNodePrefix(DEFAULT_FILE_STORAGE_DIR)
 DEFAULT_SHARED_FILE_STORAGE_DIR = "/srv/ganeti/shared-file-storage"
 DEFAULT_SHARED_FILE_STORAGE_DIR = \
     vcluster.AddNodePrefix(DEFAULT_SHARED_FILE_STORAGE_DIR)
-EXPORT_DIR = vcluster.AddNodePrefix(_autoconf.EXPORT_DIR)
+EXPORT_DIR = vcluster.AddNodePrefix(_constants.EXPORT_DIR)
 OS_SEARCH_PATH = _constants.OS_SEARCH_PATH
 ES_SEARCH_PATH = _constants.ES_SEARCH_PATH
-SSH_CONFIG_DIR = _autoconf.SSH_CONFIG_DIR
-XEN_CONFIG_DIR = vcluster.AddNodePrefix(_autoconf.XEN_CONFIG_DIR)
-SYSCONFDIR = vcluster.AddNodePrefix(_autoconf.SYSCONFDIR)
-TOOLSDIR = _autoconf.TOOLSDIR
-LOCALSTATEDIR = vcluster.AddNodePrefix(_autoconf.LOCALSTATEDIR)
+SSH_CONFIG_DIR = _constants.SSH_CONFIG_DIR
+XEN_CONFIG_DIR = vcluster.AddNodePrefix(_constants.XEN_CONFIG_DIR)
+SYSCONFDIR = vcluster.AddNodePrefix(_constants.SYSCONFDIR)
+TOOLSDIR = _constants.TOOLSDIR
+LOCALSTATEDIR = vcluster.AddNodePrefix(_constants.LOCALSTATEDIR)
 
 # Paths which don't change for a virtual cluster
-DAEMON_UTIL = _autoconf.PKGLIBDIR + "/daemon-util"
-IMPORT_EXPORT_DAEMON = _autoconf.PKGLIBDIR + "/import-export"
-KVM_CONSOLE_WRAPPER = _autoconf.PKGLIBDIR + "/tools/kvm-console-wrapper"
-KVM_IFUP = _autoconf.PKGLIBDIR + "/kvm-ifup"
-PREPARE_NODE_JOIN = _autoconf.PKGLIBDIR + "/prepare-node-join"
-NODE_DAEMON_SETUP = _autoconf.PKGLIBDIR + "/node-daemon-setup"
-XEN_CONSOLE_WRAPPER = _autoconf.PKGLIBDIR + "/tools/xen-console-wrapper"
+DAEMON_UTIL = _constants.PKGLIBDIR + "/daemon-util"
+IMPORT_EXPORT_DAEMON = _constants.PKGLIBDIR + "/import-export"
+KVM_CONSOLE_WRAPPER = _constants.PKGLIBDIR + "/tools/kvm-console-wrapper"
+KVM_IFUP = _constants.PKGLIBDIR + "/kvm-ifup"
+PREPARE_NODE_JOIN = _constants.PKGLIBDIR + "/prepare-node-join"
+NODE_DAEMON_SETUP = _constants.PKGLIBDIR + "/node-daemon-setup"
+XEN_CONSOLE_WRAPPER = _constants.PKGLIBDIR + "/tools/xen-console-wrapper"
 ETC_HOSTS = vcluster.ETC_HOSTS
 
 # Top-level paths

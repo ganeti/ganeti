@@ -33,6 +33,10 @@ import itertools
 import optparse
 from cStringIO import StringIO
 
+# _constants shouldn't be imported from anywhere except constants.py, but we're
+# making an exception here because this script is only used at build time.
+from ganeti import _constants
+
 from ganeti import constants
 from ganeti import cli
 from ganeti import utils
@@ -40,10 +44,6 @@ from ganeti import build
 from ganeti import pathutils
 
 from ganeti.tools import burnin
-
-# _autoconf shouldn't be imported from anywhere except constants.py, but we're
-# making an exception here because this script is only used at build time.
-from ganeti import _autoconf
 
 #: Regular expression describing desired format of option names. Long names can
 #: contain lowercase characters, numbers and dashes only.
@@ -832,7 +832,7 @@ def main():
   WritePreamble(sw, debug)
 
   # gnt-* scripts
-  for scriptname in _autoconf.GNT_SCRIPTS:
+  for scriptname in _constants.GNT_SCRIPTS:
     filename = "scripts/%s" % scriptname
 
     WriteCompletion(sw, scriptname, GetFunctionName(scriptname), debug,
@@ -849,17 +849,17 @@ def main():
                          debug=not options.compact)
 
   # htools, if enabled
-  if _autoconf.HTOOLS:
-    for script in _autoconf.HTOOLS_PROGS:
+  if _constants.HTOOLS:
+    for script in _constants.HTOOLS_PROGS:
       WriteHaskellCompletion(sw, script, htools=True, debug=debug)
 
   # ganeti-confd, if enabled
-  if _autoconf.ENABLE_CONFD:
+  if _constants.ENABLE_CONFD:
     WriteHaskellCompletion(sw, "src/ganeti-confd", htools=False,
                            debug=debug)
 
   # mon-collector, if monitoring is enabled
-  if _autoconf.ENABLE_MOND:
+  if _constants.ENABLE_MOND:
     WriteHaskellCmdCompletion(sw, "src/mon-collector", debug=debug)
 
   # Reset extglob to original value

@@ -28,23 +28,23 @@ err() {
   exit 1
 }
 
-if ! grep -q '^ENABLE_CONFD = ' lib/_autoconf.py; then
+if ! grep -q '^ENABLE_CONFD = ' lib/_constants.py; then
   err "Please update $0, confd enable feature is missing"
 fi
 
-if ! grep -q '^ENABLE_MOND = ' lib/_autoconf.py; then
+if ! grep -q '^ENABLE_MOND = ' lib/_constants.py; then
   err "Please update $0, mond enable feature is missing"
 fi
 
 DAEMONS_LIST="noded masterd rapi"
 STOPDAEMONS_LIST="rapi masterd noded"
 
-if grep -q '^ENABLE_CONFD = True' lib/_autoconf.py; then
+if grep -q '^ENABLE_CONFD = True' lib/_constants.py; then
   DAEMONS_LIST="$DAEMONS_LIST confd luxid"
   STOPDAEMONS_LIST="luxid confd $STOPDAEMONS_LIST"
 fi
 
-if grep -q '^ENABLE_MOND = True' lib/_autoconf.py; then
+if grep -q '^ENABLE_MOND = True' lib/_constants.py; then
   DAEMONS_LIST="$DAEMONS_LIST mond"
   STOPDAEMONS_LIST="mond $STOPDAEMONS_LIST"
 fi
