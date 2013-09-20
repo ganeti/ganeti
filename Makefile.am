@@ -1871,7 +1871,7 @@ src/AutoConf.hs: Makefile src/AutoConf.hs.in | stamp-directories
 	    -DSOCAT_USE_ESCAPE="$(SOCAT_USE_ESCAPE)" \
 	    -DSOCAT_USE_COMPRESS="$(SOCAT_USE_COMPRESS)" \
 	    -DLVM_STRIPECOUNT="$(LVM_STRIPECOUNT)" \
-	    -DTOOLSDIR="$(libdir)/ganeti/tools)" \
+	    -DTOOLSDIR="$(libdir)/ganeti/tools" \
 	    -DGNT_SCRIPTS="$(foreach i,$(notdir $(gnt_scripts)),\"$(i)\":)" \
 	    -DHS_HTOOLS_PROGS="$(foreach i,$(HS_HTOOLS_PROGS),\"$(i)\":)" \
 	    -DPKGLIBDIR="$(libdir)/ganeti" \
