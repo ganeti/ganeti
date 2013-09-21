@@ -445,6 +445,7 @@ docinput = \
 	doc/design-cpu-pinning.rst \
 	doc/design-device-uuid-name.rst \
 	doc/design-draft.rst \
+	doc/design-glusterfs-ganeti-support.rst \
 	doc/design-htools-2.3.rst \
 	doc/design-http-server.rst \
 	doc/design-impexp2.rst \
@@ -455,6 +456,7 @@ docinput = \
 	doc/design-network.rst \
 	doc/design-node-add.rst \
 	doc/design-oob.rst \
+	doc/design-openvswitch.rst \
 	doc/design-ovf-support.rst \
 	doc/design-opportunistic-locking.rst \
 	doc/design-partitioned.rst \
