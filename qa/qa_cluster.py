@@ -27,6 +27,7 @@ import re
 import tempfile
 import os.path
 
+from ganeti import _autoconf
 from ganeti import constants
 from ganeti import compat
 from ganeti import utils
@@ -1110,7 +1111,9 @@ def TestClusterBurnin():
     try:
       disks = qa_config.GetDiskOptions()
       # Run burnin
-      cmd = [script,
+      cmd = ["env",
+             "PYTHONPATH=%s" % _autoconf.VERSIONEDSHAREDIR,
+             script,
              "--os=%s" % qa_config.get("os"),
              "--minmem-size=%s" % qa_config.get(constants.BE_MINMEM),
              "--maxmem-size=%s" % qa_config.get(constants.BE_MAXMEM),
