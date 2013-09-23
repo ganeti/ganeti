@@ -1801,6 +1801,7 @@ lib/_autoconf.py: Makefile | stamp-directories
 	  echo "GNT_SCRIPTS = [$(foreach i,$(notdir $(gnt_scripts)),'$(i)',)]"; \
 	  echo "HTOOLS_PROGS = [$(foreach i,$(HS_HTOOLS_PROGS),'$(i)',)]"; \
 	  echo "PKGLIBDIR = '$(libdir)/ganeti'"; \
+	  echo "VERSIONEDSHAREDIR = '$(versionedsharedir)'"; \
 	  echo "DRBD_BARRIERS = '$(DRBD_BARRIERS)'"; \
 	  echo "DRBD_NO_META_FLUSH = $(DRBD_NO_META_FLUSH)"; \
 	  echo "SYSLOG_USAGE = '$(SYSLOG_USAGE)'"; \
@@ -1875,6 +1876,7 @@ src/AutoConf.hs: Makefile src/AutoConf.hs.in | stamp-directories
 	    -DGNT_SCRIPTS="$(foreach i,$(notdir $(gnt_scripts)),\"$(i)\":)" \
 	    -DHS_HTOOLS_PROGS="$(foreach i,$(HS_HTOOLS_PROGS),\"$(i)\":)" \
 	    -DPKGLIBDIR="$(libdir)/ganeti" \
+	    -DVERSIONEDSHAREDIR="$(versionedsharedir)" \
 	    -DDRBD_BARRIERS="$(DRBD_BARRIERS)" \
 	    -DDRBD_NO_META_FLUSH="$(DRBD_NO_META_FLUSH)" \
 	    -DSYSLOG_USAGE="$(SYSLOG_USAGE)" \
