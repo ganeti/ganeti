@@ -1058,16 +1058,19 @@ python_scripts = \
 	tools/sanitize-config
 
 dist_tools_SCRIPTS = \
-	$(python_scripts) \
-	tools/burnin \
 	tools/kvm-console-wrapper \
 	tools/master-ip-setup \
 	tools/xen-console-wrapper
 
+dist_tools_python_SCRIPTS = \
+	$(python_scripts) \
+	tools/burnin
+
 nodist_tools_python_SCRIPTS = \
 	tools/node-cleanup
 
-tools_python_basenames = $(patsubst tools/%,%,$(nodist_tools_python_SCRIPTS))
+tools_python_basenames = $(patsubst tools/%,%,\
+	$(dist_tools_python_SCRIPTS) $(nodist_tools_python_SCRIPTS))
 
 nodist_tools_SCRIPTS = \
 	tools/users-setup \
