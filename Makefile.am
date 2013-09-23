@@ -581,14 +581,20 @@ HS_PROGS = $(HS_BIN_PROGS) $(HS_MYEXECLIB_PROGS)
 HS_BIN_ROLES = harep hbal hscan hspace hinfo hcheck hroller
 HS_HTOOLS_PROGS = $(HS_BIN_ROLES) hail
 
-HS_ALL_PROGS = \
-	$(HS_PROGS) \
+# Haskell programs that cannot be disabled at configure (e.g., unlike
+# 'mon-collector')
+HS_DEFAULT_PROGS = \
+	$(HS_BIN_PROGS) \
 	test/hs/hpc-htools \
 	test/hs/hpc-mon-collector \
 	test/hs/htest \
 	$(HS_COMPILE_PROGS)
 
-HS_PROG_SRCS = $(patsubst %,%.hs,$(HS_ALL_PROGS)) src/hs2py-constants.hs
+HS_ALL_PROGS = $(HS_DEFAULT_PROGS) $(HS_MYEXECLIB_PROGS)
+
+HS_PROG_SRCS = $(patsubst %,%.hs,$(HS_DEFAULT_PROGS)) \
+	       src/mon-collector.hs \
+	       src/hs2py-constants.hs
 HS_BUILT_TEST_HELPERS = $(HS_BIN_ROLES:%=test/hs/%) test/hs/hail
 
 HFLAGS = \
