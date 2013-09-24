@@ -394,9 +394,18 @@ class TestCfgupgrade(unittest.TestCase):
     newconf = self._LoadConfig()
 
     # downgrade from 2.10 to 2.9 does not add physical_id to disks, which is ok
+    # TODO (2.11): Remove this code, it's not required to downgrade from 2.11
+    #              to 2.10
+    def RemovePhysicalId(disk):
+      if "children" in disk:
+        for d in disk["children"]:
+          RemovePhysicalId(d)
+      if "physical_id" in disk:
+        del disk["physical_id"]
+
     for inst in oldconf["instances"].values():
       for disk in inst["disks"]:
-        del disk["physical_id"]
+        RemovePhysicalId(disk)
 
     self.assertEqual(oldconf, newconf)
 
