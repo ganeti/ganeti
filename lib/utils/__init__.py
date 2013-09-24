@@ -56,6 +56,7 @@ from ganeti.utils.retry import *
 from ganeti.utils.storage import *
 from ganeti.utils.text import *
 from ganeti.utils.wrapper import *
+from ganeti.utils.version import *
 from ganeti.utils.x509 import *
 
 

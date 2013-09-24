@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#
 #
 
 # Copyright (C) 2013 Google Inc.
@@ -21,6 +21,10 @@
 
 """Version utilities."""
 
+import re
+
+_FULL_VERSION_RE = re.compile(r"(\d+)\.(\d+)\.(\d+)")
+_SHORT_VERSION_RE = re.compile(r"(\d+)\.(\d+)")
 
 # Format for CONFIG_VERSION:
 #   01 03 0123 = 01030123
@@ -35,6 +39,7 @@
 # modules. The cfgupgrade tool must be able to read and write version numbers
 # and thus requires these functions. To avoid code duplication, they're kept in
 # here.
+
 
 def BuildVersion(major, minor, revision):
   """Calculates int version number from major, minor and revision numbers.
@@ -62,3 +67,23 @@ def SplitVersion(version):
   (minor, revision) = divmod(remainder, 10000)
 
   return (major, minor, revision)
+
+
+def ParseVersion(versionstring):
+  """Parses a version string.
+
+  @param versionstring: the version string to parse
+  @type versionstring: string
+  @rtype: tuple or None
+  @return: (major, minor, revision) if parsable, None otherwise.
+
+  """
+  m = _FULL_VERSION_RE.match(versionstring)
+  if m is not None:
+    return (int(m.group(1)), int(m.group(2)), int(m.group(3)))
+
+  m = _SHORT_VERSION_RE.match(versionstring)
+  if m is not None:
+    return (int(m.group(1)), int(m.group(2)), 0)
+
+  return None

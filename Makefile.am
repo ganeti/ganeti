@@ -1456,6 +1456,7 @@ python_tests = \
 	test/py/ganeti.utils.retry_unittest.py \
 	test/py/ganeti.utils.storage_unittest.py \
 	test/py/ganeti.utils.text_unittest.py \
+	test/py/ganeti.utils.version_unittest.py \
 	test/py/ganeti.utils.wrapper_unittest.py \
 	test/py/ganeti.utils.x509_unittest.py \
 	test/py/ganeti.utils_unittest.py \
