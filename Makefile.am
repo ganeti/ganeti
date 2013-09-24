@@ -719,6 +719,7 @@ HS_TEST_SRCS = \
 	test/hs/Test/Ganeti/Common.hs \
 	test/hs/Test/Ganeti/Confd/Types.hs \
 	test/hs/Test/Ganeti/Confd/Utils.hs \
+	test/hs/Test/Ganeti/Constants.hs \
 	test/hs/Test/Ganeti/Daemon.hs \
 	test/hs/Test/Ganeti/Errors.hs \
 	test/hs/Test/Ganeti/HTools/Backend/Simu.hs \

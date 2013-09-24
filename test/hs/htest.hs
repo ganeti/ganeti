@@ -34,6 +34,7 @@ import Test.Ganeti.TestImports ()
 import Test.Ganeti.Attoparsec
 import Test.Ganeti.BasicTypes
 import Test.Ganeti.Common
+import Test.Ganeti.Constants
 import Test.Ganeti.Confd.Utils
 import Test.Ganeti.Confd.Types
 import Test.Ganeti.Daemon
@@ -90,6 +91,7 @@ allTests =
   [ testBasicTypes
   , testAttoparsec
   , testCommon
+  , testConstants
   , testConfd_Types
   , testConfd_Utils
   , testDaemon
