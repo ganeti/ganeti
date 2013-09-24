@@ -52,6 +52,7 @@ additional-builtins =
 [CLASSES]
 ignore-iface-methods =
 defining-attr-methods = __init__,__new__,setUp
+valid-classmethod-first-arg = cls,mcs
 
 [DESIGN]
 max-args = 15
