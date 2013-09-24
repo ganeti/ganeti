@@ -337,6 +337,7 @@ then
 fi
 AC_SUBST(SYSLOG_USAGE, $SYSLOG)
 
+# --enable-restricted-commands[=no/yes]
 AC_ARG_ENABLE([restricted-commands],
   [AS_HELP_STRING([--enable-restricted-commands],
                   m4_normalize([enable restricted commands in the node daemon
