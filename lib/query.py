@@ -1945,16 +1945,16 @@ def _GetInstanceDiskFields():
     fields.extend([
         (_MakeField("disk.size/%s" % i, "Disk/%s" % i, QFT_UNIT,
                     "Disk size of %s disk" % numtext),
-        IQ_CONFIG, 0, _GetInstDisk(i, _GetInstDiskSize)),
+         IQ_CONFIG, 0, _GetInstDisk(i, _GetInstDiskSize)),
         (_MakeField("disk.spindles/%s" % i, "DiskSpindles/%s" % i, QFT_NUMBER,
                     "Spindles of %s disk" % numtext),
          IQ_CONFIG, 0, _GetInstDisk(i, _GetInstDiskSpindles)),
         (_MakeField("disk.name/%s" % i, "DiskName/%s" % i, QFT_TEXT,
                     "Name of %s disk" % numtext),
-        IQ_CONFIG, 0, _GetInstDisk(i, _GetInstDeviceName)),
+         IQ_CONFIG, 0, _GetInstDisk(i, _GetInstDeviceName)),
         (_MakeField("disk.uuid/%s" % i, "DiskUUID/%s" % i, QFT_TEXT,
                     "UUID of %s disk" % numtext),
-        IQ_CONFIG, 0, _GetInstDisk(i, _GetInstDeviceUUID))])
+         IQ_CONFIG, 0, _GetInstDisk(i, _GetInstDeviceUUID))])
 
   return fields
 
@@ -2794,7 +2794,7 @@ def _BuildNetworkFields():
   # Add fields for usage statistics
   fields.extend([
     (_MakeField(name, title, kind, doc), NETQ_STATS, 0,
-    compat.partial(_GetNetworkStatsField, name, kind))
+     compat.partial(_GetNetworkStatsField, name, kind))
     for (name, (title, kind, _, doc)) in _NETWORK_STATS_FIELDS.items()])
 
   # Add timestamps

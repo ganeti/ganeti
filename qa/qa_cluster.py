@@ -499,12 +499,12 @@ def TestClusterModifyFileBasedStorageDir(
 
   for fail, cmd in [
     (False, ["gnt-cluster", "modify",
-            "--enabled-disk-templates=%s" % file_disk_template,
-            "--ipolicy-disk-templates=%s" % file_disk_template]),
+             "--enabled-disk-templates=%s" % file_disk_template,
+             "--ipolicy-disk-templates=%s" % file_disk_template]),
     (False, ["gnt-cluster", "modify",
-            "--%s=%s" % (option_name, file_storage_dir)]),
+             "--%s=%s" % (option_name, file_storage_dir)]),
     (False, ["gnt-cluster", "modify",
-            "--%s=%s" % (option_name, invalid_file_storage_dir)]),
+             "--%s=%s" % (option_name, invalid_file_storage_dir)]),
     # file storage dir is set to an inacceptable path, thus verify
     # should fail
     (True, ["gnt-cluster", "verify"]),
@@ -513,24 +513,24 @@ def TestClusterModifyFileBasedStorageDir(
     (True, ["gnt-cluster", "modify",
             "--%s=" % option_name]),
     (False, ["gnt-cluster", "modify",
-            "--%s=%s" % (option_name, file_storage_dir)]),
+             "--%s=%s" % (option_name, file_storage_dir)]),
     (False, ["gnt-cluster", "modify",
-            "--enabled-disk-templates=%s" % other_disk_template,
-            "--ipolicy-disk-templates=%s" % other_disk_template]),
+             "--enabled-disk-templates=%s" % other_disk_template,
+             "--ipolicy-disk-templates=%s" % other_disk_template]),
     (False, ["gnt-cluster", "modify",
-            "--%s=%s" % (option_name, invalid_file_storage_dir)]),
+             "--%s=%s" % (option_name, invalid_file_storage_dir)]),
     # file storage is set to an inacceptable path, but file storage
     # is disabled, thus verify should not fail
     (False, ["gnt-cluster", "verify"]),
     # unsetting the file storage dir while file storage is not enabled
     # should be fine
     (False, ["gnt-cluster", "modify",
-            "--%s=" % option_name]),
+             "--%s=" % option_name]),
     # resetting everything to sane values
     (False, ["gnt-cluster", "modify",
-            "--%s=%s" % (option_name, file_storage_dir),
-            "--enabled-disk-templates=%s" % ",".join(enabled_disk_templates),
-            "--ipolicy-disk-templates=%s" % ",".join(enabled_disk_templates)])
+             "--%s=%s" % (option_name, file_storage_dir),
+             "--enabled-disk-templates=%s" % ",".join(enabled_disk_templates),
+             "--ipolicy-disk-templates=%s" % ",".join(enabled_disk_templates)])
     ]:
     AssertCommand(cmd, fail=fail)
 

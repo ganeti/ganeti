@@ -343,8 +343,9 @@ commands = {
     "Lists all available fields for node groups"),
   "modify": (
     SetGroupParams, ARGS_ONE_GROUP,
-    [DRY_RUN_OPT] + SUBMIT_OPTS + [ALLOC_POLICY_OPT, NODE_PARAMS_OPT,
-    HV_STATE_OPT, DISK_STATE_OPT, DISK_PARAMS_OPT, PRIORITY_OPT]
+    [DRY_RUN_OPT] + SUBMIT_OPTS +
+    [ALLOC_POLICY_OPT, NODE_PARAMS_OPT, HV_STATE_OPT, DISK_STATE_OPT,
+     DISK_PARAMS_OPT, PRIORITY_OPT]
     + INSTANCE_POLICY_OPTS,
     "<group_name>", "Alters the parameters of a node group"),
   "remove": (
