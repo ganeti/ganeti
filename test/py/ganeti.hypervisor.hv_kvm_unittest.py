@@ -135,6 +135,20 @@ class TestQmpMessage(testutils.GanetiTestCase):
 
     rebuilt_message = hv_kvm.QmpMessage.BuildFromJsonString(serialized)
     self.assertEqual(rebuilt_message, message)
+    self.assertEqual(len(rebuilt_message), len(test_data))
+
+  def testDelete(self):
+    toDelete = "execute"
+    test_data = {
+      toDelete: "command",
+      "arguments": ["a", "b", "c"],
+      }
+    message = hv_kvm.QmpMessage(test_data)
+
+    oldLen = len(message)
+    del(message[toDelete])
+    newLen = len(message)
+    self.assertEqual(oldLen - 1, newLen)
 
 
 class TestQmp(testutils.GanetiTestCase):
