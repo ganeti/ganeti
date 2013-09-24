@@ -35,6 +35,27 @@ class ParseVersionTest(unittest.TestCase):
         self.assertEquals(version.ParseVersion("2"), None)
         self.assertEquals(version.ParseVersion("pink bunny"), None)
 
+class UpgradeRangeTest(unittest.TestCase):
+    def testUpgradeRange(self):
+        self.assertEquals(version.UpgradeRange((2,11,0), current=(2,10,0)),
+                          None)
+        self.assertEquals(version.UpgradeRange((2,10,0), current=(2,10,0)),
+                          None)
+        self.assertEquals(version.UpgradeRange((2,11,3), current=(2,12,0)),
+                          None)
+        self.assertEquals(version.UpgradeRange((2,11,3), current=(2,12,99)),
+                          None)
+        self.assertEquals(version.UpgradeRange((3,0,0), current=(2,12,0)),
+                          "different major versions")
+        self.assertEquals(version.UpgradeRange((2,12,0), current=(3,0,0)),
+                          "different major versions")
+        self.assertEquals(version.UpgradeRange((2,10,0), current=(2,12,0)),
+                          "can only downgrade one minor version at a time")
+        self.assertEquals(version.UpgradeRange((2,9,0), current=(2,10,0)),
+                          "automatic upgrades only supported from 2.10 onwards")
+        self.assertEquals(version.UpgradeRange((2,10,0), current=(2,9,0)),
+                          "automatic upgrades only supported from 2.10 onwards")
+
 
 if __name__ == "__main__":
   testutils.GanetiTestProgram()

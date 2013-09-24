@@ -23,8 +23,16 @@
 
 import re
 
+from ganeti import constants
+
 _FULL_VERSION_RE = re.compile(r"(\d+)\.(\d+)\.(\d+)")
 _SHORT_VERSION_RE = re.compile(r"(\d+)\.(\d+)")
+
+# The first Ganeti version that supports automatic upgrades
+FIRST_UPGRADE_VERSION = (2, 10, 0)
+
+CURRENT_VERSION = (constants.VERSION_MAJOR, constants.VERSION_MINOR,
+                   constants.VERSION_REVISION)
 
 # Format for CONFIG_VERSION:
 #   01 03 0123 = 01030123
@@ -85,5 +93,29 @@ def ParseVersion(versionstring):
   m = _SHORT_VERSION_RE.match(versionstring)
   if m is not None:
     return (int(m.group(1)), int(m.group(2)), 0)
+
+  return None
+
+
+def UpgradeRange(target, current=CURRENT_VERSION):
+  """Verify whether a version is within the range of automatic upgrades.
+
+  @param target: The version to upgrade to as (major, minor, revision)
+  @type target: tuple
+  @param current: The version to upgrade from as (major, minor, revision)
+  @type current: tuple
+  @rtype: string or None
+  @return: None, if within the range, and a human-readable error message
+      otherwise
+
+  """
+  if target < FIRST_UPGRADE_VERSION or current < FIRST_UPGRADE_VERSION:
+    return "automatic upgrades only supported from 2.10 onwards"
+
+  if target[0] != current[0]:
+    return "different major versions"
+
+  if target[1] < current[1] - 1:
+    return "can only downgrade one minor version at a time"
 
   return None
