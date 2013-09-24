@@ -537,7 +537,7 @@ class LUClusterRepairDiskSizes(NoHooksLU):
         # no disks on the node
         continue
 
-      newl = [(v[2].Copy(), v[0]) for v in dskl]
+      newl = [([v[2].Copy()], v[0]) for v in dskl]
       node_name = self.cfg.GetNodeName(node_uuid)
       result = self.rpc.call_blockdev_getdimensions(node_uuid, newl)
       if result.fail_msg:
