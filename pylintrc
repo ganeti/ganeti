@@ -43,6 +43,7 @@ bad-functions = xrange
 ignore-mixin-members = yes
 zope = no
 acquired-members =
+ignored-classes = sha1,md5,Popen,ChildProcess
 
 [VARIABLES]
 init-import = no
