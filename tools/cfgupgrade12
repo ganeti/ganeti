@@ -49,6 +49,8 @@ from ganeti import utils
 from ganeti import cli
 from ganeti import pathutils
 
+from ganeti.utils import version
+
 
 options = None
 args = None
@@ -345,7 +347,7 @@ def main():
       raise Error("Unsupported configuration version: %s" %
                   old_config_version)
     if "version" not in config_data:
-      config_data["version"] = constants.BuildVersion(2, 0, 0)
+      config_data["version"] = version.BuildVersion(2, 0, 0)
     if F_SERIAL not in config_data:
       config_data[F_SERIAL] = 1
 

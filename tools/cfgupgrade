@@ -44,6 +44,8 @@ from ganeti import config
 from ganeti import netutils
 from ganeti import pathutils
 
+from ganeti.utils import version
+
 
 options = None
 args = None
@@ -347,8 +349,7 @@ def UpgradeInstanceIndices(config_data):
 
 
 def UpgradeAll(config_data):
-  config_data["version"] = constants.BuildVersion(TARGET_MAJOR,
-                                                  TARGET_MINOR, 0)
+  config_data["version"] = version.BuildVersion(TARGET_MAJOR, TARGET_MINOR, 0)
   UpgradeRapiUsers()
   UpgradeWatcher()
   UpgradeFileStoragePaths(config_data)
@@ -379,8 +380,8 @@ def DowngradeNicParamsVLAN(nics, owner):
 def DowngradeAll(config_data):
   # Any code specific to a particular version should be labeled that way, so
   # it can be removed when updating to the next version.
-  config_data["version"] = constants.BuildVersion(DOWNGRADE_MAJOR,
-                                                  DOWNGRADE_MINOR, 0)
+  config_data["version"] = version.BuildVersion(DOWNGRADE_MAJOR,
+                                                DOWNGRADE_MINOR, 0)
   DowngradeInstances(config_data)
 
 
@@ -482,7 +483,7 @@ def main():
     raise Error("Unable to determine configuration version")
 
   (config_major, config_minor, config_revision) = \
-    constants.SplitVersion(config_version)
+    version.SplitVersion(config_version)
 
   logging.info("Found configuration version %s (%d.%d.%d)",
                config_version, config_major, config_minor, config_revision)

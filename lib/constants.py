@@ -44,49 +44,6 @@ VCS_VERSION = _vcsversion.VCS_VERSION
 EXPORT_VERSION = 0
 RAPI_VERSION = 2
 
-
-# Format for CONFIG_VERSION:
-#   01 03 0123 = 01030123
-#   ^^ ^^ ^^^^
-#   |  |  + Configuration version/revision
-#   |  + Minor version
-#   + Major version
-#
-# It is stored as an integer. Make sure not to write an octal number.
-
-# BuildVersion and SplitVersion must be in here because we can't import other
-# modules. The cfgupgrade tool must be able to read and write version numbers
-# and thus requires these functions. To avoid code duplication, they're kept in
-# here.
-
-def BuildVersion(major, minor, revision):
-  """Calculates int version number from major, minor and revision numbers.
-
-  Returns: int representing version number
-
-  """
-  assert isinstance(major, int)
-  assert isinstance(minor, int)
-  assert isinstance(revision, int)
-  return (1000000 * major +
-            10000 * minor +
-                1 * revision)
-
-
-def SplitVersion(version):
-  """Splits version number stored in an int.
-
-  Returns: tuple; (major, minor, revision)
-
-  """
-  assert isinstance(version, int)
-
-  (major, remainder) = divmod(version, 1000000)
-  (minor, revision) = divmod(remainder, 10000)
-
-  return (major, minor, revision)
-
-
 CONFIG_MAJOR = _constants.CONFIG_MAJOR
 CONFIG_MINOR = _constants.CONFIG_MINOR
 CONFIG_REVISION = _constants.CONFIG_REVISION

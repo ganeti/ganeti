@@ -34,6 +34,8 @@ from ganeti import errors
 from ganeti import serializer
 from ganeti import netutils
 
+from ganeti.utils import version
+
 import testutils
 
 
@@ -199,7 +201,7 @@ class TestCfgupgrade(unittest.TestCase):
     self.assertFalse(os.path.exists(os.path.dirname(self.rapi_users_path)))
 
     utils.WriteFile(self.rapi_users_path_pre24, data="some user\n")
-    self._TestSimpleUpgrade(constants.BuildVersion(2, 3, 0), False)
+    self._TestSimpleUpgrade(version.BuildVersion(2, 3, 0), False)
 
     self.assertTrue(os.path.isdir(os.path.dirname(self.rapi_users_path)))
     self.assert_(os.path.islink(self.rapi_users_path_pre24))
@@ -215,7 +217,7 @@ class TestCfgupgrade(unittest.TestCase):
 
     os.mkdir(os.path.dirname(self.rapi_users_path))
     utils.WriteFile(self.rapi_users_path, data="other user\n")
-    self._TestSimpleUpgrade(constants.BuildVersion(2, 3, 0), False)
+    self._TestSimpleUpgrade(version.BuildVersion(2, 3, 0), False)
 
     self.assert_(os.path.islink(self.rapi_users_path_pre24))
     self.assert_(os.path.isfile(self.rapi_users_path))
@@ -232,7 +234,7 @@ class TestCfgupgrade(unittest.TestCase):
     os.symlink(self.rapi_users_path, self.rapi_users_path_pre24)
     utils.WriteFile(self.rapi_users_path, data="hello world\n")
 
-    self._TestSimpleUpgrade(constants.BuildVersion(2, 2, 0), False)
+    self._TestSimpleUpgrade(version.BuildVersion(2, 2, 0), False)
 
     self.assert_(os.path.isfile(self.rapi_users_path) and
                  not os.path.islink(self.rapi_users_path))
@@ -251,7 +253,7 @@ class TestCfgupgrade(unittest.TestCase):
     utils.WriteFile(self.rapi_users_path_pre24, data="hello world\n")
 
     self.assertRaises(Exception, self._TestSimpleUpgrade,
-                      constants.BuildVersion(2, 2, 0), False)
+                      version.BuildVersion(2, 2, 0), False)
 
     for path in [self.rapi_users_path, self.rapi_users_path_pre24]:
       self.assert_(os.path.isfile(path) and not os.path.islink(path))
@@ -264,7 +266,7 @@ class TestCfgupgrade(unittest.TestCase):
     self.assertFalse(os.path.exists(self.rapi_users_path_pre24))
 
     utils.WriteFile(self.rapi_users_path_pre24, data="some user\n")
-    self._TestSimpleUpgrade(constants.BuildVersion(2, 3, 0), True)
+    self._TestSimpleUpgrade(version.BuildVersion(2, 3, 0), True)
 
     self.assertFalse(os.path.isdir(os.path.dirname(self.rapi_users_path)))
     self.assertTrue(os.path.isfile(self.rapi_users_path_pre24) and
@@ -277,7 +279,7 @@ class TestCfgupgrade(unittest.TestCase):
 
     os.mkdir(os.path.dirname(self.rapi_users_path))
     utils.WriteFile(self.rapi_users_path, data="other user\n")
-    self._TestSimpleUpgrade(constants.BuildVersion(2, 3, 0), True)
+    self._TestSimpleUpgrade(version.BuildVersion(2, 3, 0), True)
 
     self.assertTrue(os.path.isfile(self.rapi_users_path) and
                     not os.path.islink(self.rapi_users_path))
@@ -292,7 +294,7 @@ class TestCfgupgrade(unittest.TestCase):
     os.symlink(self.rapi_users_path, self.rapi_users_path_pre24)
     utils.WriteFile(self.rapi_users_path, data="hello world\n")
 
-    self._TestSimpleUpgrade(constants.BuildVersion(2, 2, 0), True)
+    self._TestSimpleUpgrade(version.BuildVersion(2, 2, 0), True)
 
     self.assertTrue(os.path.islink(self.rapi_users_path_pre24))
     self.assertTrue(os.path.isfile(self.rapi_users_path) and
@@ -305,7 +307,7 @@ class TestCfgupgrade(unittest.TestCase):
   def testFileStoragePathsDryRun(self):
     self.assertFalse(os.path.exists(self.file_storage_paths))
 
-    self._TestSimpleUpgrade(constants.BuildVersion(2, 6, 0), True,
+    self._TestSimpleUpgrade(version.BuildVersion(2, 6, 0), True,
                             file_storage_dir=self.tmpdir,
                             shared_file_storage_dir="/tmp")
 
@@ -314,7 +316,7 @@ class TestCfgupgrade(unittest.TestCase):
   def testFileStoragePathsBoth(self):
     self.assertFalse(os.path.exists(self.file_storage_paths))
 
-    self._TestSimpleUpgrade(constants.BuildVersion(2, 6, 0), False,
+    self._TestSimpleUpgrade(version.BuildVersion(2, 6, 0), False,
                             file_storage_dir=self.tmpdir,
                             shared_file_storage_dir="/tmp")
 
@@ -330,7 +332,7 @@ class TestCfgupgrade(unittest.TestCase):
   def testFileStoragePathsSharedOnly(self):
     self.assertFalse(os.path.exists(self.file_storage_paths))
 
-    self._TestSimpleUpgrade(constants.BuildVersion(2, 5, 0), False,
+    self._TestSimpleUpgrade(version.BuildVersion(2, 5, 0), False,
                             file_storage_dir=None,
                             shared_file_storage_dir=self.tmpdir)
 
@@ -341,28 +343,28 @@ class TestCfgupgrade(unittest.TestCase):
     self.assertFalse(lines)
 
   def testUpgradeFrom_2_0(self):
-    self._TestSimpleUpgrade(constants.BuildVersion(2, 0, 0), False)
+    self._TestSimpleUpgrade(version.BuildVersion(2, 0, 0), False)
 
   def testUpgradeFrom_2_1(self):
-    self._TestSimpleUpgrade(constants.BuildVersion(2, 1, 0), False)
+    self._TestSimpleUpgrade(version.BuildVersion(2, 1, 0), False)
 
   def testUpgradeFrom_2_2(self):
-    self._TestSimpleUpgrade(constants.BuildVersion(2, 2, 0), False)
+    self._TestSimpleUpgrade(version.BuildVersion(2, 2, 0), False)
 
   def testUpgradeFrom_2_3(self):
-    self._TestSimpleUpgrade(constants.BuildVersion(2, 3, 0), False)
+    self._TestSimpleUpgrade(version.BuildVersion(2, 3, 0), False)
 
   def testUpgradeFrom_2_4(self):
-    self._TestSimpleUpgrade(constants.BuildVersion(2, 4, 0), False)
+    self._TestSimpleUpgrade(version.BuildVersion(2, 4, 0), False)
 
   def testUpgradeFrom_2_5(self):
-    self._TestSimpleUpgrade(constants.BuildVersion(2, 5, 0), False)
+    self._TestSimpleUpgrade(version.BuildVersion(2, 5, 0), False)
 
   def testUpgradeFrom_2_6(self):
-    self._TestSimpleUpgrade(constants.BuildVersion(2, 6, 0), False)
+    self._TestSimpleUpgrade(version.BuildVersion(2, 6, 0), False)
 
   def testUpgradeFrom_2_7(self):
-    self._TestSimpleUpgrade(constants.BuildVersion(2, 7, 0), False)
+    self._TestSimpleUpgrade(version.BuildVersion(2, 7, 0), False)
 
   def testUpgradeFullConfigFrom_2_7(self):
     self._TestUpgradeFromFile("cluster_config_2.7.json", False)
@@ -431,25 +433,25 @@ class TestCfgupgrade(unittest.TestCase):
     self._RunDowngradeTwice()
 
   def testUpgradeDryRunFrom_2_0(self):
-    self._TestSimpleUpgrade(constants.BuildVersion(2, 0, 0), True)
+    self._TestSimpleUpgrade(version.BuildVersion(2, 0, 0), True)
 
   def testUpgradeDryRunFrom_2_1(self):
-    self._TestSimpleUpgrade(constants.BuildVersion(2, 1, 0), True)
+    self._TestSimpleUpgrade(version.BuildVersion(2, 1, 0), True)
 
   def testUpgradeDryRunFrom_2_2(self):
-    self._TestSimpleUpgrade(constants.BuildVersion(2, 2, 0), True)
+    self._TestSimpleUpgrade(version.BuildVersion(2, 2, 0), True)
 
   def testUpgradeDryRunFrom_2_3(self):
-    self._TestSimpleUpgrade(constants.BuildVersion(2, 3, 0), True)
+    self._TestSimpleUpgrade(version.BuildVersion(2, 3, 0), True)
 
   def testUpgradeDryRunFrom_2_4(self):
-    self._TestSimpleUpgrade(constants.BuildVersion(2, 4, 0), True)
+    self._TestSimpleUpgrade(version.BuildVersion(2, 4, 0), True)
 
   def testUpgradeDryRunFrom_2_5(self):
-    self._TestSimpleUpgrade(constants.BuildVersion(2, 5, 0), True)
+    self._TestSimpleUpgrade(version.BuildVersion(2, 5, 0), True)
 
   def testUpgradeDryRunFrom_2_6(self):
-    self._TestSimpleUpgrade(constants.BuildVersion(2, 6, 0), True)
+    self._TestSimpleUpgrade(version.BuildVersion(2, 6, 0), True)
 
   def testUpgradeCurrentDryRun(self):
     self._TestSimpleUpgrade(constants.CONFIG_VERSION, True)

@@ -61,6 +61,8 @@ from ganeti import runtime
 from ganeti import pathutils
 from ganeti import ht
 
+from ganeti.utils import version
+
 
 CLIENT_REQUEST_WORKERS = 16
 
@@ -90,7 +92,7 @@ class ClientRequestWorker(workerpool.BaseWorker):
     client_ops = ClientOps(server)
 
     try:
-      (method, args, version) = luxi.ParseRequest(message)
+      (method, args, ver) = luxi.ParseRequest(message)
     except luxi.ProtocolError, err:
       logging.error("Protocol Error: %s", err)
       client.close_log()
@@ -99,9 +101,9 @@ class ClientRequestWorker(workerpool.BaseWorker):
     success = False
     try:
       # Verify client's version if there was one in the request
-      if version is not None and version != constants.LUXI_VERSION:
+      if ver is not None and ver != constants.LUXI_VERSION:
         raise errors.LuxiError("LUXI version mismatch, server %s, request %s" %
-                               (constants.LUXI_VERSION, version))
+                               (constants.LUXI_VERSION, ver))
 
       result = client_ops.handle_request(method, args)
       success = True
@@ -685,8 +687,8 @@ def CheckMasterd(options, args):
   try:
     config.ConfigWriter()
   except errors.ConfigVersionMismatch, err:
-    v1 = "%s.%s.%s" % constants.SplitVersion(err.args[0])
-    v2 = "%s.%s.%s" % constants.SplitVersion(err.args[1])
+    v1 = "%s.%s.%s" % version.SplitVersion(err.args[0])
+    v2 = "%s.%s.%s" % version.SplitVersion(err.args[1])
     print >> sys.stderr,  \
         ("Configuration version mismatch. The current Ganeti software"
          " expects version %s, but the on-disk configuration file has"

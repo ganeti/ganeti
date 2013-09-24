@@ -30,6 +30,8 @@ from ganeti import constants
 from ganeti import locking
 from ganeti import utils
 
+from ganeti.utils import version
+
 import testutils
 
 
@@ -46,16 +48,16 @@ class TestConstants(unittest.TestCase):
     self.failUnless(constants.CONFIG_VERSION >= 0 and
                     constants.CONFIG_VERSION <= 99999999)
 
-    self.failUnless(constants.BuildVersion(0, 0, 0) == 0)
-    self.failUnless(constants.BuildVersion(10, 10, 1010) == 10101010)
-    self.failUnless(constants.BuildVersion(12, 34, 5678) == 12345678)
-    self.failUnless(constants.BuildVersion(99, 99, 9999) == 99999999)
+    self.failUnless(version.BuildVersion(0, 0, 0) == 0)
+    self.failUnless(version.BuildVersion(10, 10, 1010) == 10101010)
+    self.failUnless(version.BuildVersion(12, 34, 5678) == 12345678)
+    self.failUnless(version.BuildVersion(99, 99, 9999) == 99999999)
 
-    self.failUnless(constants.SplitVersion(00000000) == (0, 0, 0))
-    self.failUnless(constants.SplitVersion(10101010) == (10, 10, 1010))
-    self.failUnless(constants.SplitVersion(12345678) == (12, 34, 5678))
-    self.failUnless(constants.SplitVersion(99999999) == (99, 99, 9999))
-    self.failUnless(constants.SplitVersion(constants.CONFIG_VERSION) ==
+    self.failUnless(version.SplitVersion(00000000) == (0, 0, 0))
+    self.failUnless(version.SplitVersion(10101010) == (10, 10, 1010))
+    self.failUnless(version.SplitVersion(12345678) == (12, 34, 5678))
+    self.failUnless(version.SplitVersion(99999999) == (99, 99, 9999))
+    self.failUnless(version.SplitVersion(constants.CONFIG_VERSION) ==
                     (constants.CONFIG_MAJOR, constants.CONFIG_MINOR,
                      constants.CONFIG_REVISION))
 
