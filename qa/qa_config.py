@@ -324,6 +324,24 @@ class _QaConfig(object):
     """
     return self._data[name]
 
+  def __setitem__(self, key, value):
+    """Sets a configuration value.
+
+    """
+    self._data[key] = value
+
+  def __delitem__(self, key):
+    """Deletes a value from the configuration.
+
+    """
+    del(self._data[key])
+
+  def __len__(self):
+    """Return the number of configuration items.
+
+    """
+    return len(self._data)
+
   def get(self, name, default=None):
     """Returns configuration value.
 
