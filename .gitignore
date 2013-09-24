@@ -79,7 +79,6 @@
 /doc/examples/hooks/ipsec
 
 # lib
-/lib/_autoconf.py
 /lib/_constants.py
 /lib/_vcsversion.py
 /lib/_generated_rpc.py
