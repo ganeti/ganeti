@@ -41,6 +41,7 @@ SSH_CONFIG_DIR = _constants.SSH_CONFIG_DIR
 XEN_CONFIG_DIR = vcluster.AddNodePrefix(_constants.XEN_CONFIG_DIR)
 SYSCONFDIR = vcluster.AddNodePrefix(_constants.SYSCONFDIR)
 TOOLSDIR = _constants.TOOLSDIR
+PKGLIBDIR = _constants.PKGLIBDIR
 LOCALSTATEDIR = vcluster.AddNodePrefix(_constants.LOCALSTATEDIR)
 
 # Paths which don't change for a virtual cluster
