@@ -2136,7 +2136,8 @@ def GetItemFromContainer(identifier, kind, container):
 
 
 def _ApplyContainerMods(kind, container, chgdesc, mods,
-                        create_fn, modify_fn, remove_fn):
+                        create_fn, modify_fn, remove_fn,
+                        post_add_fn=None):
   """Applies descriptions in C{mods} to C{container}.
 
   @type kind: string
@@ -2160,6 +2161,10 @@ def _ApplyContainerMods(kind, container, chgdesc, mods,
   @type remove_fn: callable
   @param remove_fn: Callback on removing item; receives absolute item index,
     item and private data object as added by L{_PrepareContainerMods}
+  @type post_add_fn: callable
+  @param post_add_fn: Callable for post-processing a newly created item after
+    it has been put into the container. It receives the index of the new item
+    and the new item as parameters.
 
   """
   for (op, identifier, params, private) in mods:
@@ -2196,6 +2201,10 @@ def _ApplyContainerMods(kind, container, chgdesc, mods,
         assert idx <= len(container)
         # list.insert does so before the specified index
         container.insert(idx, item)
+
+      if post_add_fn is not None:
+        post_add_fn(addidx, item)
+
     else:
       # Retrieve existing item
       (absidx, item) = GetItemFromContainer(identifier, kind, container)
@@ -3229,6 +3238,12 @@ class LUInstanceSetParams(LogicalUnit):
       ("disk/%d" % idx, "add:size=%s,mode=%s" % (disk.size, disk.mode)),
       ])
 
+  def _PostAddDisk(self, _, disk):
+    if not WaitForSync(self, self.instance, disks=[disk],
+                       oneshot=not self.op.wait_for_sync):
+      raise errors.OpExecError("Failed to sync disks of %s" %
+                               self.instance.name)
+
   @staticmethod
   def _ModifyDisk(idx, disk, params, _):
     """Modifies a disk.
@@ -3345,7 +3360,7 @@ class LUInstanceSetParams(LogicalUnit):
     # Apply disk changes
     _ApplyContainerMods("disk", self.instance.disks, result, self.diskmod,
                         self._CreateNewDisk, self._ModifyDisk,
-                        self._RemoveDisk)
+                        self._RemoveDisk, post_add_fn=self._PostAddDisk)
     _UpdateIvNames(0, self.instance.disks)
 
     if self.op.disk_template:

@@ -1780,6 +1780,10 @@ class TestLUInstanceSetParams(CmdlibTestCase):
       self.RpcResultsBuilder() \
         .CreateSuccessfulNodeResult(self.master, True)
 
+    self.rpc.call_blockdev_getmirrorstatus.side_effect = \
+      lambda node, _: self.RpcResultsBuilder() \
+                        .CreateSuccessfulNodeResult(node, [])
+
   def testNoChanges(self):
     op = self.CopyOpCode(self.op)
     self.ExecOpCodeExpectOpPrereqError(op, "No changes submitted")
