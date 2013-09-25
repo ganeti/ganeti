@@ -25,7 +25,7 @@ AC_ARG_ENABLE([versionfull],
   [AS_HELP_STRING([--enable-versionfull],
                   m4_normalize([use the full version string rather
                   than major.minor for version directories]))],
-  [[if test "$enableval" != yes; then
+  [[if test "$enableval" != no; then
       USE_VERSION_FULL=yes
     else
       USER_VERSION_FULL=no
