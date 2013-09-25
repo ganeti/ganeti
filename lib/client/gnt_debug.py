@@ -673,10 +673,10 @@ commands = {
                 help="Select number of VCPUs for the instance"),
      cli_option("--tags", default=None,
                 help="Comma separated list of tags"),
-     cli_option("--evac-mode", default=constants.IALLOCATOR_NEVAC_ALL,
-                choices=list(constants.IALLOCATOR_NEVAC_MODES),
+     cli_option("--evac-mode", default=constants.NODE_EVAC_ALL,
+                choices=list(constants.NODE_EVAC_MODES),
                 help=("Node evacuation mode (one of %s)" %
-                      utils.CommaJoin(constants.IALLOCATOR_NEVAC_MODES))),
+                      utils.CommaJoin(constants.NODE_EVAC_MODES))),
      cli_option("--target-groups", help="Target groups for relocation",
                 default=[], action="append"),
      cli_option("--spindle-use", help="How many spindles to use",

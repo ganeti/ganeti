@@ -261,7 +261,7 @@ class TestNodeEvacuate(unittest.TestCase):
     handler = _CreateHandler(rlib2.R_2_nodes_name_evacuate, ["node92"], {
       "dry-run": ["1"],
       }, {
-      "mode": constants.IALLOCATOR_NEVAC_SEC,
+      "mode": constants.NODE_EVAC_SEC,
       }, clfactory)
     job_id = handler.POST()
 
@@ -272,7 +272,7 @@ class TestNodeEvacuate(unittest.TestCase):
     self.assertEqual(job_id, exp_job_id)
     self.assertTrue(isinstance(op, opcodes.OpNodeEvacuate))
     self.assertEqual(op.node_name, "node92")
-    self.assertEqual(op.mode, constants.IALLOCATOR_NEVAC_SEC)
+    self.assertEqual(op.mode, constants.NODE_EVAC_SEC)
     self.assertTrue(op.dry_run)
 
     self.assertRaises(IndexError, cl.GetNextSubmittedJob)

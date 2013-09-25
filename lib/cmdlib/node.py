@@ -857,15 +857,6 @@ class LUNodeEvacuate(NoHooksLU):
   """
   REQ_BGL = False
 
-  _MODE2IALLOCATOR = {
-    constants.NODE_EVAC_PRI: constants.IALLOCATOR_NEVAC_PRI,
-    constants.NODE_EVAC_SEC: constants.IALLOCATOR_NEVAC_SEC,
-    constants.NODE_EVAC_ALL: constants.IALLOCATOR_NEVAC_ALL,
-    }
-  assert frozenset(_MODE2IALLOCATOR.keys()) == constants.NODE_EVAC_MODES
-  assert (frozenset(_MODE2IALLOCATOR.values()) ==
-          constants.IALLOCATOR_NEVAC_MODES)
-
   def CheckArguments(self):
     CheckIAllocatorOrNode(self, "iallocator", "remote_node")
 
@@ -1022,8 +1013,7 @@ class LUNodeEvacuate(NoHooksLU):
 
     elif self.op.iallocator is not None:
       # TODO: Implement relocation to other group
-      evac_mode = self._MODE2IALLOCATOR[self.op.mode]
-      req = iallocator.IAReqNodeEvac(evac_mode=evac_mode,
+      req = iallocator.IAReqNodeEvac(evac_mode=self.op.mode,
                                      instances=list(self.instance_names))
       ial = iallocator.IAllocator(self.cfg, self.rpc, req)
 

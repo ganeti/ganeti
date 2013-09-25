@@ -146,7 +146,7 @@ class TestLUTestAllocator(CmdlibTestCase):
       self.CopyOpCode(self.base_op,
                       mode=constants.IALLOCATOR_MODE_NODE_EVAC,
                       instances=["new-instance.example.com"],
-                      evac_mode=constants.IALLOCATOR_NEVAC_PRI)
+                      evac_mode=constants.NODE_EVAC_PRI)
 
     self.iallocator_cls.return_value.in_text = "mock in text"
     self.iallocator_cls.return_value.out_text = "mock out text"
