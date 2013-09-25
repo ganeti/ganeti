@@ -336,7 +336,7 @@ class IAReqNodeEvac(IARequestBase):
   MODE = constants.IALLOCATOR_MODE_NODE_EVAC
   REQ_PARAMS = [
     ("instances", _STRING_LIST),
-    ("evac_mode", ht.TNodeEvacMode),
+    ("evac_mode", ht.TEvacMode),
     ]
   REQ_RESULT = _NEVAC_RESULT
 

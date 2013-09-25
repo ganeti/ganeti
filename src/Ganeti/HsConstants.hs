@@ -1100,16 +1100,16 @@ defaultIallocatorShortcut = "."
 -- * Node evacuation
 
 nodeEvacPri :: String
-nodeEvacPri = Types.nodeEvacModeToRaw NEvacPrimary
+nodeEvacPri = Types.evacModeToRaw ChangePrimary
 
 nodeEvacSec :: String
-nodeEvacSec = Types.nodeEvacModeToRaw NEvacSecondary
+nodeEvacSec = Types.evacModeToRaw ChangeSecondary
 
 nodeEvacAll :: String
-nodeEvacAll = Types.nodeEvacModeToRaw NEvacAll
+nodeEvacAll = Types.evacModeToRaw ChangeAll
 
 nodeEvacModes :: FrozenSet String
-nodeEvacModes = ConstantUtils.mkSet $ map Types.nodeEvacModeToRaw [minBound..]
+nodeEvacModes = ConstantUtils.mkSet $ map Types.evacModeToRaw [minBound..]
 
 -- * Job status
 

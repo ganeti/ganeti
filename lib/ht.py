@@ -537,7 +537,7 @@ TExportMode = TElemOf(constants.EXPORT_MODES)
 TDiskIndex = TAnd(TNonNegativeInt, lambda val: val < constants.MAX_DISKS)
 TReplaceDisksMode = TElemOf(constants.REPLACE_MODES)
 TDiskTemplate = TElemOf(constants.DISK_TEMPLATES)
-TNodeEvacMode = TElemOf(constants.NODE_EVAC_MODES)
+TEvacMode = TElemOf(constants.NODE_EVAC_MODES)
 TIAllocatorTestDir = TElemOf(constants.VALID_IALLOCATOR_DIRECTIONS)
 TIAllocatorMode = TElemOf(constants.VALID_IALLOCATOR_MODES)
 

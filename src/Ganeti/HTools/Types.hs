@@ -69,7 +69,6 @@ module Ganeti.HTools.Types
   , FailStats
   , OpResult
   , opToResult
-  , EvacMode(..)
   , ISpec(..)
   , MinMaxISpecs(..)
   , IPolicy(..)
@@ -377,14 +376,6 @@ class Element a where
           name = nameOf e
   -- | Updates the index of the element
   setIdx  :: a -> Int -> a
-
--- | The iallocator node-evacuate evac_mode type.
-$(THH.declareSADT "EvacMode"
-       [ ("ChangePrimary",   'C.iallocatorNevacPri)
-       , ("ChangeSecondary", 'C.iallocatorNevacSec)
-       , ("ChangeAll",       'C.iallocatorNevacAll)
-       ])
-$(THH.makeJSONInstance ''EvacMode)
 
 -- | The repair modes for the auto-repair tool.
 $(THH.declareSADT "AutoRepairType"

@@ -48,6 +48,7 @@ import qualified Ganeti.HTools.Group as Group
 import qualified Ganeti.HTools.Instance as Instance
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Types as Types
+import qualified Ganeti.Types as Types (EvacMode(..))
 
 {-# ANN module "HLint: ignore Use camelCase" #-}
 

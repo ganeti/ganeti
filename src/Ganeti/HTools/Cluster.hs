@@ -94,7 +94,7 @@ import Ganeti.HTools.Types
 import Ganeti.Compat
 import qualified Ganeti.OpCodes as OpCodes
 import Ganeti.Utils
-import Ganeti.Types (mkNonEmpty)
+import Ganeti.Types (EvacMode(..), mkNonEmpty)
 
 -- * Types
 

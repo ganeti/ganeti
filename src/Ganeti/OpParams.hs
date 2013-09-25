@@ -940,7 +940,7 @@ pRemoteNodeUuid =
 pEvacMode :: Field
 pEvacMode =
   withDoc "Node evacuation mode" .
-  renameField "EvacMode" $ simpleField "mode" [t| NodeEvacMode |]
+  renameField "EvacMode" $ simpleField "mode" [t| EvacMode |]
 
 pInstanceName :: Field
 pInstanceName =
@@ -1485,7 +1485,7 @@ pIAllocatorEvacMode =
   withDoc "IAllocator evac mode" .
   renameField "IAllocatorEvacMode" .
   optionalField $
-  simpleField "evac_mode" [t| NodeEvacMode |]
+  simpleField "evac_mode" [t| EvacMode |]
 
 pIAllocatorSpindleUse :: Field
 pIAllocatorSpindleUse =

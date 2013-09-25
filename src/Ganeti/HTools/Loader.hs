@@ -60,6 +60,7 @@ import Ganeti.BasicTypes
 import qualified Ganeti.Constants as C
 import Ganeti.HTools.Types
 import Ganeti.Utils
+import Ganeti.Types (EvacMode)
 
 -- * Constants
 

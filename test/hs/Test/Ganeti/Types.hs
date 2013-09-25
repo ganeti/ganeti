@@ -115,7 +115,7 @@ allStorageTypes = [minBound..maxBound]::[StorageType]
 instance Arbitrary StorageType where
   arbitrary = elements allStorageTypes
 
-$(genArbitrary ''NodeEvacMode)
+$(genArbitrary ''EvacMode)
 
 $(genArbitrary ''FileDriver)
 
@@ -269,7 +269,7 @@ prop_StorageType_serialisation :: StorageType -> Property
 prop_StorageType_serialisation = testSerialisation
 
 -- | Test 'NodeEvacMode' serialisation.
-prop_NodeEvacMode_serialisation :: NodeEvacMode -> Property
+prop_NodeEvacMode_serialisation :: EvacMode -> Property
 prop_NodeEvacMode_serialisation = testSerialisation
 
 -- | Test 'FileDriver' serialisation.

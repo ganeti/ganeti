@@ -82,8 +82,8 @@ module Ganeti.Types
   , oobStatusToRaw
   , StorageType(..)
   , storageTypeToRaw
-  , NodeEvacMode(..)
-  , nodeEvacModeToRaw
+  , EvacMode(..)
+  , evacModeToRaw
   , FileDriver(..)
   , fileDriverToRaw
   , InstCreateMode(..)
@@ -512,12 +512,17 @@ addParamsToStorageUnit es (SURaw StorageLvmVg key) = SULvmVg key es
 addParamsToStorageUnit _ (SURaw StorageRados key) = SURados key
 
 -- | Node evac modes.
-$(THH.declareLADT ''String "NodeEvacMode"
-  [ ("NEvacPrimary",   "primary-only")
-  , ("NEvacSecondary", "secondary-only")
-  , ("NEvacAll",       "all")
+--
+-- This is part of the 'IAllocator' interface and it is used, for
+-- example, in 'Ganeti.HTools.Loader.RqType'.  However, it must reside
+-- in this module, and not in 'Ganeti.HTools.Types', because it is
+-- also used by 'Ganeti.HsConstants'.
+$(THH.declareLADT ''String "EvacMode"
+  [ ("ChangePrimary",   "primary-only")
+  , ("ChangeSecondary", "secondary-only")
+  , ("ChangeAll",       "all")
   ])
-$(THH.makeJSONInstance ''NodeEvacMode)
+$(THH.makeJSONInstance ''EvacMode)
 
 -- | The file driver type.
 $(THH.declareLADT ''String "FileDriver"

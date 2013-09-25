@@ -50,6 +50,7 @@ import Ganeti.HTools.CLI
 import Ganeti.HTools.Loader
 import Ganeti.HTools.Types
 import Ganeti.JSON
+import Ganeti.Types (EvacMode(ChangePrimary, ChangeSecondary))
 import Ganeti.Utils
 
 {-# ANN module "HLint: ignore Eta reduce" #-}

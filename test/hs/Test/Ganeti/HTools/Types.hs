@@ -31,7 +31,6 @@ module Test.Ganeti.HTools.Types
   , Types.AllocPolicy(..)
   , Types.DiskTemplate(..)
   , Types.FailMode(..)
-  , Types.EvacMode(..)
   , Types.ISpec(..)
   , Types.IPolicy(..)
   , nullIPolicy
@@ -60,8 +59,6 @@ import qualified Ganeti.HTools.Types as Types
 -- * Arbitrary instance
 
 $(genArbitrary ''Types.FailMode)
-
-$(genArbitrary ''Types.EvacMode)
 
 instance Arbitrary a => Arbitrary (Types.OpResult a) where
   arbitrary = arbitrary >>= \c ->
@@ -155,9 +152,6 @@ prop_ISpec_serialisation = testSerialisation
 prop_IPolicy_serialisation :: Types.IPolicy -> Property
 prop_IPolicy_serialisation = testSerialisation
 
-prop_EvacMode_serialisation :: Types.EvacMode -> Property
-prop_EvacMode_serialisation = testSerialisation
-
 prop_opToResult :: Types.OpResult Int -> Property
 prop_opToResult op =
   case op of
@@ -200,7 +194,6 @@ case_AutoRepairResult_pyequiv = do
 testSuite "HTools/Types"
             [ 'prop_ISpec_serialisation
             , 'prop_IPolicy_serialisation
-            , 'prop_EvacMode_serialisation
             , 'prop_opToResult
             , 'prop_eitherToResult
             , 'case_AutoRepairType_sort
