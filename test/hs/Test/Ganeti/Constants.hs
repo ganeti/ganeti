@@ -33,6 +33,8 @@ import qualified Ganeti.Constants as Constants
 import qualified Ganeti.ConstantUtils as ConstantUtils
 import qualified Test.Ganeti.TestHelper as TestHelper
 
+{-# ANN module "HLint: ignore Use camelCase" #-}
+
 case_buildVersion :: Assertion
 case_buildVersion = do
   HUnit.assertBool "Config major lower-bound violation"
