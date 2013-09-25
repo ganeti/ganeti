@@ -56,7 +56,7 @@ SHELL_ENV_INIT = autotools/shell-env-init
 # architecture-dependent one (and hence has to go under $(versiondir)), add a link
 # under $(versionedsharedir) but do not change the external links.
 if USE_VERSION_FULL
-DIRVERSION=VERSION_FULL
+DIRVERSION=$(VERSION_FULL)
 else
 DIRVERSION=$(VERSION_MAJOR).$(VERSION_MINOR)
 endif
