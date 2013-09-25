@@ -273,6 +273,14 @@ class SimpleStore(object):
     nl = data.splitlines(False)
     return nl
 
+  def GetOnlineNodeList(self):
+    """Return the list of online cluster nodes.
+
+    """
+    data = self._ReadFile(constants.SS_ONLINE_NODES)
+    nl = data.splitlines(False)
+    return nl
+
   def GetNodePrimaryIPList(self):
     """Return the list of cluster nodes' primary IP.
 
