@@ -2748,6 +2748,14 @@ class LUInstanceSetParams(LogicalUnit):
                                       constants.DT_EXT),
                                      errors.ECODE_INVAL)
 
+    if not self.op.wait_for_sync and self.instance.disks_active:
+      for mod in self.diskmod:
+        if mod[0] == constants.DDM_ADD:
+          raise errors.OpPrereqError("Can't add a disk to an instance with"
+                                     " activated disks and"
+                                     " --no-wait-for-sync given.",
+                                     errors.ECODE_INVAL)
+
     if self.op.disks and self.instance.disk_template == constants.DT_DISKLESS:
       raise errors.OpPrereqError("Disk operations not supported for"
                                  " diskless instances", errors.ECODE_INVAL)
@@ -3243,6 +3251,11 @@ class LUInstanceSetParams(LogicalUnit):
                        oneshot=not self.op.wait_for_sync):
       raise errors.OpExecError("Failed to sync disks of %s" %
                                self.instance.name)
+
+    # the disk is active at this point, so deactivate it if the instance disks
+    # are supposed to be inactive
+    if not self.instance.disks_active:
+      ShutdownInstanceDisks(self, self.instance, disks=[disk])
 
   @staticmethod
   def _ModifyDisk(idx, disk, params, _):

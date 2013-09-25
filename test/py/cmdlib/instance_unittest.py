@@ -1784,6 +1784,10 @@ class TestLUInstanceSetParams(CmdlibTestCase):
       lambda node, _: self.RpcResultsBuilder() \
                         .CreateSuccessfulNodeResult(node, [])
 
+    self.rpc.call_blockdev_shutdown.side_effect = \
+      lambda node, _: self.RpcResultsBuilder() \
+                        .CreateSuccessfulNodeResult(node, [])
+
   def testNoChanges(self):
     op = self.CopyOpCode(self.op)
     self.ExecOpCodeExpectOpPrereqError(op, "No changes submitted")
@@ -2096,13 +2100,36 @@ class TestLUInstanceSetParams(CmdlibTestCase):
     self.ExecOpCodeExpectException(
       op, errors.TypeEnforcementError, "is not a valid size")
 
-  def testAddDisk(self):
+  def testAddDiskRunningInstanceNoWaitForSync(self):
+    op = self.CopyOpCode(self.running_op,
+                         disks=[[constants.DDM_ADD, -1,
+                                 {
+                                   constants.IDISK_SIZE: 1024
+                                 }]],
+                         wait_for_sync=False)
+    self.ExecOpCodeExpectOpPrereqError(
+      op, "Can't add a disk to an instance with activated disks"
+          " and --no-wait-for-sync given.")
+
+  def testAddDiskDownInstance(self):
     op = self.CopyOpCode(self.op,
                          disks=[[constants.DDM_ADD, -1,
                                  {
                                    constants.IDISK_SIZE: 1024
                                  }]])
     self.ExecOpCode(op)
+
+    self.assertTrue(self.rpc.call_blockdev_shutdown.called)
+
+  def testAddDiskRunningInstance(self):
+    op = self.CopyOpCode(self.running_op,
+                         disks=[[constants.DDM_ADD, -1,
+                                 {
+                                   constants.IDISK_SIZE: 1024
+                                 }]])
+    self.ExecOpCode(op)
+
+    self.assertFalse(self.rpc.call_blockdev_shutdown.called)
 
   def testAddDiskNoneName(self):
     op = self.CopyOpCode(self.op,
