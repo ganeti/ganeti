@@ -625,8 +625,8 @@ def RemoveFromEtcHosts(hostnames):
 
   sed_data = " ".join(hostnames)
   try:
-    AssertCommand(("sed -e '/^\(::1\|127\.0\.0\.1\)\s\+%s/d' %s > %s"
-                   " && mv %s %s") %
+    AssertCommand((r"sed -e '/^\(::1\|127\.0\.0\.1\)\s\+%s/d' %s > %s"
+                   r" && mv %s %s") %
                    (sed_data, utils.ShellQuote(pathutils.ETC_HOSTS),
                     quoted_tmp_hosts, quoted_tmp_hosts,
                     utils.ShellQuote(pathutils.ETC_HOSTS)))

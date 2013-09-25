@@ -170,11 +170,11 @@ def Retry(fn, delay, timeout, args=None, wait_fn=time.sleep,
 
     remaining_time = end_time - _time_fn()
 
-    if remaining_time < 0.0:
+    if remaining_time <= 0.0:
       # pylint: disable=W0142
       raise RetryTimeout(*retry_args)
 
-    assert remaining_time >= 0.0
+    assert remaining_time > 0.0
 
     if calc_delay is None:
       wait_fn(remaining_time)

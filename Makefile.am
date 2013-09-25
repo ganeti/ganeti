@@ -509,6 +509,7 @@ docinput = \
 	doc/design-device-uuid-name.rst \
 	doc/design-draft.rst \
 	doc/design-hotplug.rst \
+	doc/design-glusterfs-ganeti-support.rst \
 	doc/design-htools-2.3.rst \
 	doc/design-http-server.rst \
 	doc/design-impexp2.rst \
@@ -519,6 +520,7 @@ docinput = \
 	doc/design-network.rst \
 	doc/design-node-add.rst \
 	doc/design-oob.rst \
+	doc/design-openvswitch.rst \
 	doc/design-ovf-support.rst \
 	doc/design-opportunistic-locking.rst \
 	doc/design-optables.rst \
@@ -2086,6 +2088,7 @@ hs-check: hs-tests hs-shell
 #       (since our indent level is not 4)
 # E125: continuation line does not distinguish itself from next logical line
 #       (since our indent level is not 4)
+# E123: closing bracket does not match indentation of opening bracket's line
 # E127: continuation line over-indented for visual indent
 #       (since our indent level is not 4)
 # note: do NOT add E128 here; it's a valid style error in most cases!
@@ -2094,7 +2097,7 @@ hs-check: hs-tests hs-shell
 # instead of silencing it
 # E261: at least two spaces before inline comment
 # E501: line too long (80 characters)
-PEP8_IGNORE = E111,E121,E125,E127,E261,E501
+PEP8_IGNORE = E111,E121,E123,E125,E127,E261,E501
 
 # For excluding pep8 expects filenames only, not whole paths
 PEP8_EXCLUDE = $(subst $(space),$(comma),$(strip $(notdir $(BUILT_PYTHON_SOURCES))))

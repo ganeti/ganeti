@@ -194,6 +194,18 @@ class QmpMessage:
     """
     self.data[field_name] = field_value
 
+  def __len__(self):
+    """Return the number of fields stored in this QmpMessage.
+
+    """
+    return len(self.data)
+
+  def __delitem__(self, key):
+    """Delete the specified element from the QmpMessage.
+
+    """
+    del(self.data[key])
+
   @staticmethod
   def BuildFromJsonString(json_string):
     """Build a QmpMessage from a JSON encoded string.

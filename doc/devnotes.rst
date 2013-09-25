@@ -32,15 +32,15 @@ Note that for pylint, at the current moment the following versions
 must be used::
 
     $ pylint --version
-    pylint 0.25.1,
-    astng 0.23.1, common 0.58.0
+    pylint 0.26.0,
+    astng 0.24.1, common 0.58.3
 
 The same with pep8, other versions may give you errors::
 
      $ pep8 --version
-     1.2
+     1.3.3
 
-Both these versions are the ones shipped with Debian Wheezy.
+Both these versions are the ones shipped with Ubuntu 13.04.
 
 To generate unittest coverage reports (``make coverage``), `coverage
 <http://pypi.python.org/pypi/coverage>`_ needs to be installed.
@@ -52,10 +52,10 @@ Installation of all dependencies listed here::
      $ apt-get install python-yaml
      $ cd / && sudo easy_install \
                sphinx \
-               logilab-astng==0.23.1 \
-               logilab-common==0.58.0 \
-               pylint==0.25.1 \
-               pep8==1.2 \
+               logilab-astng==0.24.1 \
+               logilab-common==0.58.3 \
+               pylint==0.26.0 \
+               pep8==1.3.3 \
                mock==1.0.1 \
                coverage
 
@@ -68,7 +68,7 @@ document, plus:
   used for documentation (it's source-code pretty-printing)
 - `hlint <http://community.haskell.org/~ndm/hlint/>`_, a source code
   linter (equivalent to pylint for Python), recommended version 1.8 or
-  above (tested with 1.8.15)
+  above (tested with 1.8.43)
 - the `QuickCheck <http://hackage.haskell.org/package/QuickCheck>`_
   library, version 2.x
 - the `HUnit <http://hunit.sourceforge.net/>`_ library (tested with
