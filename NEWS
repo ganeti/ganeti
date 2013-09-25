@@ -2,6 +2,18 @@ News
 ====
 
 
+Version 2.10.0 alpha1
+---------------------
+
+*(unreleased)*
+
+Incompatible/important changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Adding disks with 'gnt-instance modify' now waits for the disks to sync per
+  default. Specify --no-wait-for-sync to override this behavior.
+
+
 Version 2.9.0 beta1
 -------------------
 
