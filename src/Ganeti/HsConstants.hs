@@ -1097,19 +1097,6 @@ iallocatorSearchPath = AutoConf.iallocatorSearchPath
 defaultIallocatorShortcut :: String
 defaultIallocatorShortcut = "."
 
-iallocatorNevacPri :: String
-iallocatorNevacPri = Types.nodeEvacModeToRaw NEvacPrimary
-
-iallocatorNevacSec :: String
-iallocatorNevacSec = Types.nodeEvacModeToRaw NEvacSecondary
-
-iallocatorNevacAll :: String
-iallocatorNevacAll = Types.nodeEvacModeToRaw NEvacAll
-
-iallocatorNevacModes :: FrozenSet String
-iallocatorNevacModes =
-  ConstantUtils.mkSet $ map Types.nodeEvacModeToRaw [minBound..]
-
 -- * Node evacuation
 
 nodeEvacPri :: String
