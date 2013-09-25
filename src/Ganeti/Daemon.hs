@@ -45,6 +45,7 @@ module Ganeti.Daemon
   , genericMain
   ) where
 
+import Control.Concurrent
 import Control.Exception
 import Control.Monad
 import Data.Maybe (fromMaybe, listToMaybe)
@@ -53,6 +54,7 @@ import GHC.IO.Handle (hDuplicateTo)
 import Network.BSD (getHostName)
 import qualified Network.Socket as Socket
 import System.Console.GetOpt
+import System.Directory
 import System.Exit
 import System.Environment
 import System.IO
@@ -235,6 +237,19 @@ setupDaemonEnv cwd umask = do
   _ <- createSession
   return ()
 
+-- | Cleanup function, performing all the operations that need to be done prior
+-- to shutting down a daemon.
+finalCleanup :: FilePath -> IO ()
+finalCleanup = removeFile
+
+-- | Signal handler for the termination signal.
+handleSigTerm :: ThreadId -> IO ()
+handleSigTerm mainTID =
+  -- Throw termination exception to the main thread, so that the daemon is
+  -- actually stopped in the proper way, executing all the functions waiting on
+  -- "finally" statement.
+  Control.Exception.throwTo mainTID ExitSuccess
+
 -- | Signal handler for reopening log files.
 handleSigHup :: FilePath -> IO ()
 handleSigHup path = do
@@ -404,7 +419,7 @@ fullPrep :: GanetiDaemon  -- ^ The daemon we're running
          -> SyslogUsage   -- ^ Syslog mode
          -> a             -- ^ Check results
          -> PrepFn a b    -- ^ Prepare function
-         -> IO b
+         -> IO (FilePath, b)
 fullPrep daemon opts syslog check_result prep_fn = do
   logfile <- if optDaemonize opts
                then return Nothing
@@ -415,7 +430,10 @@ fullPrep daemon opts syslog check_result prep_fn = do
   _ <- describeError "writing PID file; already locked?"
          Nothing (Just pidfile) $ writePidFile pidfile
   logNotice $ dname ++ " daemon startup"
-  prep_fn opts check_result
+  prep_res <- prep_fn opts check_result
+  tid <- myThreadId
+  _ <- installHandler sigTERM (Catch $ handleSigTerm tid) Nothing
+  return (pidfile, prep_res)
 
 -- | Inner daemon function.
 --
@@ -429,11 +447,11 @@ innerMain :: GanetiDaemon  -- ^ The daemon we're running
           -> Maybe Fd      -- ^ Error reporting function
           -> IO ()
 innerMain daemon opts syslog check_result prep_fn exec_fn fd = do
-  prep_result <- fullPrep daemon opts syslog check_result prep_fn
+  (pidFile, prep_result) <- fullPrep daemon opts syslog check_result prep_fn
                  `Control.Exception.catch` handlePrepErr True fd
   -- no error reported, we should now close the fd
   maybeCloseFd fd
-  exec_fn opts check_result prep_result
+  finally (exec_fn opts check_result prep_result) (finalCleanup pidFile)
 
 -- | Daemon prepare error handling function.
 handlePrepErr :: Bool -> Maybe Fd -> IOError -> IO a
