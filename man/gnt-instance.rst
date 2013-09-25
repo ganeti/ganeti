@@ -1144,14 +1144,16 @@ The ``--disk add:size=*SIZE*,[options..]`` option adds a disk to the
 instance, and ``--disk *N*:add:size=*SIZE*,[options..]`` will add a disk
 to the the instance at a specific index. The available options are the
 same as in the **add** command(``spindles``, ``mode``, ``name``, ``vg``,
-``metavg``). When adding an ExtStorage disk the ``provider=*PROVIDER*``
-option is also mandatory and specifies the ExtStorage provider. Also,
-for ExtStorage disks arbitrary parameters can be passed as additional
-comma separated options, same as in the **add** command. -The ``--disk
-remove`` option will remove the last disk of the instance. Use ``--disk
-`` *ID*``:remove`` to remove a disk by its identifier. *ID* can be the
-index of the disk, the disks's name or the disks's UUID. The ``--disk
-*ID*:modify[,options...]`` will change the options of the disk.
+``metavg``). Per default, gnt-instance waits for the disk mirror to sync.
+If you do not want this behavior, use the ``--no-wait-for-sync`` option.
+When adding an ExtStorage disk, the ``provider=*PROVIDER*`` option is
+also mandatory and specifies the ExtStorage provider. Also, for
+ExtStorage disks arbitrary parameters can be passed as additional comma
+separated options, same as in the **add** command. The ``--disk remove``
+option will remove the last disk of the instance. Use
+``--disk `` *ID*``:remove`` to remove a disk by its identifier. *ID*
+can be the index of the disk, the disks's name or the disks's UUID. The
+``--disk *ID*:modify[,options...]`` will change the options of the disk.
 Available options are:
 
 mode
