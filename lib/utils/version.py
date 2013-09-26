@@ -119,3 +119,21 @@ def UpgradeRange(target, current=CURRENT_VERSION):
     return "can only downgrade one minor version at a time"
 
   return None
+
+
+def ShouldCfgdowngrade(version, current=CURRENT_VERSION):
+  """Decide whether cfgupgrade --downgrade should be called.
+
+  Given the current version and the version to change to, decide
+  if in the transition process cfgupgrade --downgrade should
+  be called
+
+  @param version: The version to upgrade to as (major, minor, revision)
+  @type version: tuple
+  @param current: The versino to upgrade from as (major, minor, revision)
+  @type current: tuple
+  @rtype: bool
+  @return: True, if cfgupgrade --downgrade should be called.
+
+  """
+  return version[0] == current[0] and version[1] == current[1] - 1

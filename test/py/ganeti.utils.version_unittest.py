@@ -56,6 +56,14 @@ class UpgradeRangeTest(unittest.TestCase):
         self.assertEquals(version.UpgradeRange((2,10,0), current=(2,9,0)),
                           "automatic upgrades only supported from 2.10 onwards")
 
+class ShouldCfgdowngradeTest(unittest.TestCase):
+    def testShouldCfgDowngrade(self):
+        self.assertTrue(version.ShouldCfgdowngrade((2,9,3), current=(2,10,0)))
+        self.assertTrue(version.ShouldCfgdowngrade((2,9,0), current=(2,10,4)))
+        self.assertFalse(version.ShouldCfgdowngrade((2,9,0), current=(2,11,0)))
+        self.assertFalse(version.ShouldCfgdowngrade((2,9,0), current=(3,10,0)))
+        self.assertFalse(version.ShouldCfgdowngrade((2,10,0), current=(3,10,0)))
+
 
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
