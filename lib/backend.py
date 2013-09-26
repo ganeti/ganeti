@@ -2437,13 +2437,13 @@ def BlockdevGetdimensions(disks):
   return result
 
 
-def BlockdevExport(disk, dest_node, dest_path, cluster_name):
+def BlockdevExport(disk, dest_node_ip, dest_path, cluster_name):
   """Export a block device to a remote node.
 
   @type disk: L{objects.Disk}
   @param disk: the description of the disk to export
-  @type dest_node: str
-  @param dest_node: the destination node to export to
+  @type dest_node_ip: str
+  @param dest_node_ip: the destination node IP to export to
   @type dest_path: str
   @param dest_path: the destination path on the target node
   @type cluster_name: str
@@ -2467,7 +2467,7 @@ def BlockdevExport(disk, dest_node, dest_path, cluster_name):
   destcmd = utils.BuildShellCmd("dd of=%s conv=nocreat,notrunc bs=65536"
                                 " oflag=dsync", dest_path)
 
-  remotecmd = _GetSshRunner(cluster_name).BuildCmd(dest_node,
+  remotecmd = _GetSshRunner(cluster_name).BuildCmd(dest_node_ip,
                                                    constants.SSH_LOGIN_USER,
                                                    destcmd)
 

@@ -393,8 +393,8 @@ class NodeRequestHandler(http.server.HttpServerHandler):
 
     """
     disk = objects.Disk.FromDict(params[0])
-    dest_node, dest_path, cluster_name = params[1:]
-    return backend.BlockdevExport(disk, dest_node, dest_path, cluster_name)
+    dest_node_ip, dest_path, cluster_name = params[1:]
+    return backend.BlockdevExport(disk, dest_node_ip, dest_path, cluster_name)
 
   @staticmethod
   def perspective_blockdev_setinfo(params):
