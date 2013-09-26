@@ -119,6 +119,15 @@ gntScripts = AutoConf.gntScripts
 releaseVersion :: String
 releaseVersion = AutoConf.packageVersion
 
+versionMajor :: Int
+versionMajor = AutoConf.versionMajor
+
+versionMinor :: Int
+versionMinor = AutoConf.versionMinor
+
+versionRevision :: Int
+versionRevision = AutoConf.versionRevision
+
 configMajor :: Int
 configMajor = AutoConf.versionMajor
 
