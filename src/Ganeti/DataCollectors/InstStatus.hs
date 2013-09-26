@@ -43,6 +43,7 @@ import qualified Data.Map as Map
 import Network.BSD (getHostName)
 import qualified Text.JSON as J
 
+import Ganeti.BasicTypes as BT
 import Ganeti.Confd.ClientFunctions
 import Ganeti.Common
 import Ganeti.DataCollectors.CLI
@@ -181,12 +182,19 @@ buildInstStatusReport srvAddr srvPort = do
   node <- getHostName
   answer <- getInstances node srvAddr srvPort
   inst <- exitIfBad "Can't get instance info from ConfD" answer
-  domains <- getInferredDomInfo
-  uptimes <- getUptimeInfo
-  let primaryInst =  fst inst
-  iStatus <- mapM (buildStatus domains uptimes) primaryInst
-  let globalStatus = computeGlobalStatus iStatus
-      jsonReport = J.showJSON $ ReportData iStatus globalStatus
+  d <- getInferredDomInfo
+  reportData <-
+    case d of
+      BT.Ok domains -> do
+        uptimes <- getUptimeInfo
+        let primaryInst =  fst inst
+        iStatus <- mapM (buildStatus domains uptimes) primaryInst
+        let globalStatus = computeGlobalStatus iStatus
+        return $ ReportData iStatus globalStatus
+      BT.Bad m ->
+        return . ReportData [] . DCStatus DCSCBad $
+          "Unable to receive the list of instances: " ++ m
+  let jsonReport = J.showJSON reportData
   buildReport dcName dcVersion dcFormatVersion dcCategory dcKind jsonReport
 
 -- | Main function.
