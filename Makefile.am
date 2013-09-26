@@ -704,6 +704,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/Query/Export.hs \
 	src/Ganeti/Query/Filter.hs \
 	src/Ganeti/Query/Group.hs \
+	src/Ganeti/Query/Instance.hs \
 	src/Ganeti/Query/Job.hs \
 	src/Ganeti/Query/Language.hs \
 	src/Ganeti/Query/Network.hs \

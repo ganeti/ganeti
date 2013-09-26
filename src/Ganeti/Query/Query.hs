@@ -69,6 +69,7 @@ import Ganeti.Objects
 import Ganeti.Query.Common
 import qualified Ganeti.Query.Export as Export
 import Ganeti.Query.Filter
+import qualified Ganeti.Query.Instance as Instance
 import qualified Ganeti.Query.Job as Query.Job
 import qualified Ganeti.Query.Group as Group
 import Ganeti.Query.Language
@@ -218,6 +219,10 @@ queryInner :: ConfigData   -- ^ The current configuration
 queryInner cfg live (Query (ItemTypeOpCode QRNode) fields qfilter) wanted =
   genericQuery Node.fieldsMap Node.collectLiveData nodeName configNodes getNode
                cfg live fields qfilter wanted
+
+queryInner cfg live (Query (ItemTypeOpCode QRInstance) fields qfilter) wanted =
+  genericQuery Instance.fieldsMap Instance.collectLiveData instName
+               configInstances getInstance cfg live fields qfilter wanted
 
 queryInner cfg live (Query (ItemTypeOpCode QRGroup) fields qfilter) wanted =
   genericQuery Group.fieldsMap Group.collectLiveData groupName configNodegroups
