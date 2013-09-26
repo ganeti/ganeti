@@ -2075,10 +2075,10 @@ CONFD_REQ_NODE_INSTANCES = 8
 # Confd request query fields. These are used to narrow down queries.
 # These must be strings rather than integers, because json-encoding
 # converts them to strings anyway, as they're used as dict-keys.
-CONFD_REQQ_LINK = "0"
-CONFD_REQQ_IP = "1"
-CONFD_REQQ_IPLIST = "2"
-CONFD_REQQ_FIELDS = "3"
+CONFD_REQQ_LINK = _constants.CONFD_REQQ_LINK
+CONFD_REQQ_IP = _constants.CONFD_REQQ_IP
+CONFD_REQQ_IPLIST = _constants.CONFD_REQQ_IPLIST
+CONFD_REQQ_FIELDS = _constants.CONFD_REQQ_FIELDS
 
 CONFD_REQFIELD_NAME = "0"
 CONFD_REQFIELD_IP = "1"

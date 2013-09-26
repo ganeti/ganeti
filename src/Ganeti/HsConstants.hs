@@ -1236,6 +1236,20 @@ confdErrorInternal = 2
 confdErrorUnknownEntry :: Int
 confdErrorUnknownEntry = 1
 
+-- Confd request query fields
+
+confdReqqLink :: String
+confdReqqLink = ConstantUtils.confdReqqLink
+
+confdReqqIp :: String
+confdReqqIp = ConstantUtils.confdReqqIp
+
+confdReqqIplist :: String
+confdReqqIplist = ConstantUtils.confdReqqIplist
+
+confdReqqFields :: String
+confdReqqFields = ConstantUtils.confdReqqFields
+
 -- | Each request is "salted" by the current timestamp.
 --
 -- This constant decides how many seconds of skew to accept.
