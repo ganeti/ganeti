@@ -52,6 +52,7 @@ KVM_IFUP = _constants.PKGLIBDIR + "/kvm-ifup"
 PREPARE_NODE_JOIN = _constants.PKGLIBDIR + "/prepare-node-join"
 NODE_DAEMON_SETUP = _constants.PKGLIBDIR + "/node-daemon-setup"
 XEN_CONSOLE_WRAPPER = _constants.PKGLIBDIR + "/tools/xen-console-wrapper"
+CFGUPGRADE = _constants.PKGLIBDIR + "/tools/cfgupgrade"
 ETC_HOSTS = vcluster.ETC_HOSTS
 
 # Top-level paths
