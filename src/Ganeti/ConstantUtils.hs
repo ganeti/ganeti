@@ -66,7 +66,7 @@ instance PyValue Protocol where
 
 -- | Failure exit code
 --
--- This is defined here and not in 'Ganeti.HsConstants' together with
+-- These are defined here and not in 'Ganeti.HsConstants' together with
 -- the other exit codes in order to avoid a circular dependency
 -- between 'Ganeti.HsConstants' and 'Ganeti.Runtime'
 exitFailure :: Int
@@ -88,11 +88,12 @@ devConsole = "/dev/console"
 randomUuidFile :: String
 randomUuidFile = "/proc/sys/kernel/random/uuid"
 
--- | Priority levels
+-- * Priority levels
 --
--- This is defined here and not in 'Ganeti.Types' order to avoid a GHC
--- stage restriction and because there is no suitable 'declareADT'
+-- This is defined here and not in 'Ganeti.Types' in order to avoid a
+-- GHC stage restriction and because there is no suitable 'declareADT'
 -- variant that handles integer values directly.
+
 priorityLow :: Int
 priorityLow = 10
 
@@ -107,3 +108,22 @@ priorityHigh = -10
 buildVersion :: Int -> Int -> Int -> Int
 buildVersion major minor revision =
   1000000 * major + 10000 * minor + 1 * revision
+
+-- * Confd request query fields.
+--
+-- These are defined here and not in 'Ganeti.Types' due to GHC stage
+-- restrictions concerning Template Haskell.  They are also not
+-- defined in 'Ganeti.HsConstants' in order to avoid a circular
+-- dependency between that module and 'Ganeti.Types'.
+
+confdReqqLink :: String
+confdReqqLink = "0"
+
+confdReqqIp :: String
+confdReqqIp = "1"
+
+confdReqqIplist :: String
+confdReqqIplist = "2"
+
+confdReqqFields :: String
+confdReqqFields = "3"

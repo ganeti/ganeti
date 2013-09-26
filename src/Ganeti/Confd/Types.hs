@@ -52,6 +52,7 @@ import Text.JSON
 import qualified Network.Socket as S
 
 import qualified Ganeti.Constants as C
+import qualified Ganeti.ConstantUtils as ConstantUtils
 import Ganeti.Hash
 import Ganeti.THH
 import Ganeti.Utils (newUUID)
@@ -95,14 +96,17 @@ $(makeJSONInstance ''ConfdReqField)
 
 $(buildObject "ConfdReqQ" "confdReqQ"
   [ renameField "Ip" .
-                optionalField $ simpleField C.confdReqqIp [t| String   |]
+    optionalField $
+    simpleField ConstantUtils.confdReqqIp [t| String |]
   , renameField "IpList" .
-                defaultField [| [] |] $
-                simpleField C.confdReqqIplist [t| [String] |]
-  , renameField "Link" . optionalField $
-                simpleField C.confdReqqLink [t| String   |]
-  , renameField "Fields" . defaultField [| [] |] $
-                simpleField C.confdReqqFields [t| [ConfdReqField] |]
+    defaultField [| [] |] $
+    simpleField ConstantUtils.confdReqqIplist [t| [String] |]
+  , renameField "Link" .
+    optionalField $
+    simpleField ConstantUtils.confdReqqLink [t| String |]
+  , renameField "Fields" .
+    defaultField [| [] |] $
+    simpleField ConstantUtils.confdReqqFields [t| [ConfdReqField] |]
   ])
 
 -- | Confd query type. This is complex enough that we can't
