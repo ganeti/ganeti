@@ -5,10 +5,14 @@ News
 Version 2.7.2
 -------------
 
-*(unreleased)*
+*(Released Thu, 26 Sep 2013)*
 
 - Change the connected groups format in ``gnt-network info`` output; it
-  was previously displayed as a raw list by mistake.
+  was previously displayed as a raw list by mistake
+- Check disk template in right dict when copying
+- Support multi-instance allocs without iallocator
+- Fix some errors in the documentation
+- Fix formatting of tuple in an error message
 
 
 Version 2.7.1
