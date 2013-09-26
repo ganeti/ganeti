@@ -419,7 +419,7 @@ _BLOCKDEV_CALLS = [
    " given amount"),
   ("blockdev_export", SINGLE, None, constants.RPC_TMO_1DAY, [
     ("cf_bdev", ED_SINGLE_DISK_DICT_DP, None),
-    ("dest_node", None, None),
+    ("dest_node_ip", None, None),
     ("dest_path", None, None),
     ("cluster_name", None, None),
     ], None, None, "Export a given disk to another node"),

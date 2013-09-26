@@ -1821,8 +1821,8 @@ class LUInstanceMove(LogicalUnit):
       dev_path = result.payload
       result = self.rpc.call_blockdev_export(source_node.uuid, (disk,
                                                                 self.instance),
-                                             target_node.name, dev_path,
-                                             cluster_name)
+                                             target_node.secondary_ip,
+                                             dev_path, cluster_name)
       if result.fail_msg:
         self.LogWarning("Can't copy data over for disk %d: %s",
                         idx, result.fail_msg)
