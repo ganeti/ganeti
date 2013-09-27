@@ -79,6 +79,7 @@ class ProcessorMock(mcpu.Processor):
     return self.ExecOpCode(op, LogRecordingCallback(self))
 
   def _ExecLU(self, lu):
+    # pylint: disable=W0212
     if not self._lu_test_func:
       return super(ProcessorMock, self)._ExecLU(lu)
     else:
@@ -87,6 +88,7 @@ class ProcessorMock(mcpu.Processor):
       return self._lu_test_func(lu)
 
   def _CheckLUResult(self, op, result):
+    # pylint: disable=W0212
     if not self._lu_test_func:
       return super(ProcessorMock, self)._CheckLUResult(op, result)
     else:

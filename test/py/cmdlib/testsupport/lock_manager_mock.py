@@ -31,6 +31,7 @@ class LockManagerMock(locking.GanetiLockManager):
   """
   def __init__(self):
     # reset singleton instance, there is a separate lock manager for every test
+    # pylint: disable=W0212
     self.__class__._instance = None
 
     super(LockManagerMock, self).__init__([], [], [], [])
