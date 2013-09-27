@@ -2257,6 +2257,9 @@ CPUAVGLOAD_WINDOW_SIZE = 600
 # Mond's variable for periodical data collection
 MOND_TIME_INTERVAL = _constants.MOND_TIME_INTERVAL
 
+# MonD's latest API version
+MOND_LATEST_API_VERSION = 1
+
 # Do not re-export imported modules
 del re, _vcsversion, _constants, socket, pathutils, compat
 

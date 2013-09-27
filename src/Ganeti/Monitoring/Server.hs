@@ -63,7 +63,7 @@ type PrepResult = Config Snap ()
 
 -- | Version of the latest supported http API.
 latestAPIVersion :: Int
-latestAPIVersion = 1
+latestAPIVersion = C.mondLatestApiVersion
 
 -- | A report of a data collector might be stateful or stateless.
 data Report = StatelessR (IO DCReport)
