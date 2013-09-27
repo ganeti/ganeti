@@ -51,6 +51,7 @@ KEY_RESULT = "result"
 KEY_VERSION = "version"
 
 REQ_SUBMIT_JOB = "SubmitJob"
+REQ_SUBMIT_JOB_TO_DRAINED_QUEUE = "SubmitJobToDrainedQueue"
 REQ_SUBMIT_MANY_JOBS = "SubmitManyJobs"
 REQ_WAIT_FOR_JOB_CHANGE = "WaitForJobChange"
 REQ_CANCEL_JOB = "CancelJob"
@@ -91,6 +92,7 @@ REQ_ALL = compat.UniqueFrozenset([
   REQ_SET_DRAIN_FLAG,
   REQ_SET_WATCHER_PAUSE,
   REQ_SUBMIT_JOB,
+  REQ_SUBMIT_JOB_TO_DRAINED_QUEUE,
   REQ_SUBMIT_MANY_JOBS,
   REQ_WAIT_FOR_JOB_CHANGE,
   ])
@@ -480,6 +482,10 @@ class Client(object):
   def SubmitJob(self, ops):
     ops_state = map(lambda op: op.__getstate__(), ops)
     return self.CallMethod(REQ_SUBMIT_JOB, (ops_state, ))
+
+  def SubmitJobToDrainedQueue(self, ops):
+    ops_state = map(lambda op: op.__getstate__(), ops)
+    return self.CallMethod(REQ_SUBMIT_JOB_TO_DRAINED_QUEUE, (ops_state, ))
 
   def SubmitManyJobs(self, jobs):
     jobs_state = []

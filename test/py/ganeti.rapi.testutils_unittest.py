@@ -39,6 +39,7 @@ import testutils
 
 KNOWN_UNUSED_LUXI = compat.UniqueFrozenset([
   luxi.REQ_SUBMIT_MANY_JOBS,
+  luxi.REQ_SUBMIT_JOB_TO_DRAINED_QUEUE,
   luxi.REQ_ARCHIVE_JOB,
   luxi.REQ_AUTO_ARCHIVE_JOBS,
   luxi.REQ_CHANGE_JOB_PRIORITY,

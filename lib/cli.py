@@ -233,6 +233,7 @@ __all__ = [
   "ParseTimespec",
   "RunWhileClusterStopped",
   "SubmitOpCode",
+  "SubmitOpCodeToDrainedQueue",
   "SubmitOrSend",
   "UsesRPC",
   # Formatting functions
@@ -2271,6 +2272,16 @@ def SubmitOpCode(op, cl=None, feedback_fn=None, opts=None, reporter=None):
   op_results = PollJob(job_id, cl=cl, feedback_fn=feedback_fn,
                        reporter=reporter)
 
+  return op_results[0]
+
+
+def SubmitOpCodeToDrainedQueue(op):
+  """Forcefully insert a job in the queue, even if it is drained.
+
+  """
+  cl = GetClient()
+  job_id = cl.SubmitJobToDrainedQueue([op])
+  op_results = PollJob(job_id, cl=cl)
   return op_results[0]
 
 

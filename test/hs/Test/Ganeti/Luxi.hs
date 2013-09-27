@@ -77,6 +77,8 @@ instance Arbitrary Luxi.LuxiOp where
         kind <- arbitrary
         Luxi.QueryTags kind <$> genLuxiTagName kind
       Luxi.ReqSubmitJob -> Luxi.SubmitJob <$> resize maxOpCodes arbitrary
+      Luxi.ReqSubmitJobToDrainedQueue -> Luxi.SubmitJobToDrainedQueue <$>
+                                         resize maxOpCodes arbitrary
       Luxi.ReqSubmitManyJobs -> Luxi.SubmitManyJobs <$>
                                 resize maxOpCodes arbitrary
       Luxi.ReqWaitForJobChange -> Luxi.WaitForJobChange <$> arbitrary <*>

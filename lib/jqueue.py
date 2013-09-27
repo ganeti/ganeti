@@ -2229,6 +2229,19 @@ class JobQueue(object):
 
   @locking.ssynchronized(_LOCK)
   @_RequireOpenQueue
+  def SubmitJobToDrainedQueue(self, ops):
+    """Forcefully create and store a new job.
+
+    Do so, even if the job queue is drained.
+    @see: L{_SubmitJobUnlocked}
+
+    """
+    (job_id, ) = self._NewSerialsUnlocked(1)
+    self._EnqueueJobsUnlocked([self._SubmitJobUnlocked(job_id, ops)])
+    return job_id
+
+  @locking.ssynchronized(_LOCK)
+  @_RequireOpenQueue
   @_RequireNonDrainedQueue
   def SubmitManyJobs(self, jobs):
     """Create and store multiple jobs.

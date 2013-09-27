@@ -150,6 +150,9 @@ $(genLuxiOp "LuxiOp"
   , (luxiReqSubmitJob,
      [ simpleField "job" [t| [MetaOpCode] |] ]
     )
+  , (luxiReqSubmitJobToDrainedQueue,
+     [ simpleField "job" [t| [MetaOpCode] |] ]
+    )
   , (luxiReqSubmitManyJobs,
      [ simpleField "ops" [t| [[MetaOpCode]] |] ]
     )
@@ -368,6 +371,10 @@ decodeCall (LuxiCall call args) =
               [ops1] <- fromJVal args
               ops2 <- mapM (fromJResult (luxiReqToRaw call) . J.readJSON) ops1
               return $ SubmitJob ops2
+    ReqSubmitJobToDrainedQueue -> do
+              [ops1] <- fromJVal args
+              ops2 <- mapM (fromJResult (luxiReqToRaw call) . J.readJSON) ops1
+              return $ SubmitJobToDrainedQueue ops2
     ReqSubmitManyJobs -> do
               [ops1] <- fromJVal args
               ops2 <- mapM (fromJResult (luxiReqToRaw call) . J.readJSON) ops1

@@ -295,6 +295,14 @@ class ClientOps:
       _LogNewJob(True, job_id, ops)
       return job_id
 
+    elif method == luxi.REQ_SUBMIT_JOB_TO_DRAINED_QUEUE:
+      logging.info("Forcefully receiving new job")
+      (job_def, ) = args
+      ops = [opcodes.OpCode.LoadOpCode(state) for state in job_def]
+      job_id = queue.SubmitJobToDrainedQueue(ops)
+      _LogNewJob(True, job_id, ops)
+      return job_id
+
     elif method == luxi.REQ_SUBMIT_MANY_JOBS:
       logging.info("Receiving multiple jobs")
       (job_defs, ) = args
