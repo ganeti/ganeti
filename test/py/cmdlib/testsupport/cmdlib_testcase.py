@@ -115,7 +115,7 @@ class CmdlibTestCase(testutils.GanetiTestCase):
                 doc="Default OS")
   os_name_variant = property(
     fget=lambda self: self.os.name + objects.OS.VARIANT_DELIM +
-                      self.os.supported_variants[0],
+      self.os.supported_variants[0],
     doc="OS name and variant string")
 
   def setUp(self):

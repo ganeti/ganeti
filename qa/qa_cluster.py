@@ -616,37 +616,37 @@ def _TestClusterModifyDiskTemplatesDrbdHelper(enabled_disk_templates):
 
   drbd_usermode_helper = qa_config.get("drbd-usermode-helper", "/bin/true")
   bogus_usermode_helper = "/tmp/pinkbunny"
-  for command, fail in \
-      [(["gnt-cluster", "modify",
-         "--enabled-disk-templates=%s" % constants.DT_DRBD8,
-         "--ipolicy-disk-templates=%s" % constants.DT_DRBD8], False),
-       (["gnt-cluster", "modify",
-         "--drbd-usermode-helper=%s" % drbd_usermode_helper], False),
-       (["gnt-cluster", "modify",
-         "--drbd-usermode-helper=%s" % bogus_usermode_helper], True),
-       # unsetting helper when DRBD is enabled should not work
-       (["gnt-cluster", "modify",
-         "--drbd-usermode-helper="], True),
-       (["gnt-cluster", "modify",
-         "--enabled-disk-templates=%s" % constants.DT_PLAIN,
-         "--ipolicy-disk-templates=%s" % constants.DT_PLAIN], False),
-       (["gnt-cluster", "modify",
-         "--drbd-usermode-helper="], False),
-       (["gnt-cluster", "modify",
-         "--drbd-usermode-helper=%s" % drbd_usermode_helper], False),
-       (["gnt-cluster", "modify",
-         "--drbd-usermode-helper=%s" % drbd_usermode_helper,
-         "--enabled-disk-templates=%s" % constants.DT_DRBD8,
-         "--ipolicy-disk-templates=%s" % constants.DT_DRBD8], False),
-       (["gnt-cluster", "modify",
-         "--drbd-usermode-helper=",
-         "--enabled-disk-templates=%s" % constants.DT_PLAIN,
-         "--ipolicy-disk-templates=%s" % constants.DT_PLAIN], False),
-       (["gnt-cluster", "modify",
-         "--drbd-usermode-helper=%s" % drbd_usermode_helper,
-         "--enabled-disk-templates=%s" % constants.DT_DRBD8,
-         "--ipolicy-disk-templates=%s" % constants.DT_DRBD8], False),
-      ]:
+  for command, fail in [
+    (["gnt-cluster", "modify",
+      "--enabled-disk-templates=%s" % constants.DT_DRBD8,
+      "--ipolicy-disk-templates=%s" % constants.DT_DRBD8], False),
+    (["gnt-cluster", "modify",
+      "--drbd-usermode-helper=%s" % drbd_usermode_helper], False),
+    (["gnt-cluster", "modify",
+      "--drbd-usermode-helper=%s" % bogus_usermode_helper], True),
+    # unsetting helper when DRBD is enabled should not work
+    (["gnt-cluster", "modify",
+      "--drbd-usermode-helper="], True),
+    (["gnt-cluster", "modify",
+      "--enabled-disk-templates=%s" % constants.DT_PLAIN,
+      "--ipolicy-disk-templates=%s" % constants.DT_PLAIN], False),
+    (["gnt-cluster", "modify",
+      "--drbd-usermode-helper="], False),
+    (["gnt-cluster", "modify",
+      "--drbd-usermode-helper=%s" % drbd_usermode_helper], False),
+    (["gnt-cluster", "modify",
+      "--drbd-usermode-helper=%s" % drbd_usermode_helper,
+      "--enabled-disk-templates=%s" % constants.DT_DRBD8,
+      "--ipolicy-disk-templates=%s" % constants.DT_DRBD8], False),
+    (["gnt-cluster", "modify",
+      "--drbd-usermode-helper=",
+      "--enabled-disk-templates=%s" % constants.DT_PLAIN,
+      "--ipolicy-disk-templates=%s" % constants.DT_PLAIN], False),
+    (["gnt-cluster", "modify",
+      "--drbd-usermode-helper=%s" % drbd_usermode_helper,
+      "--enabled-disk-templates=%s" % constants.DT_DRBD8,
+      "--ipolicy-disk-templates=%s" % constants.DT_DRBD8], False),
+    ]:
     AssertCommand(command, fail=fail)
   _RestoreEnabledDiskTemplates()
 
