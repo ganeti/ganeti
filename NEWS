@@ -2,11 +2,10 @@ News
 ====
 
 
-Version 2.8.0 rc3
------------------
+Version 2.8.0
+-------------
 
-*(Released Tue, 17 Sep 2013)*
-
+*(Released Mon, 17 Sep 2013)*
 
 Incompatible/important changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -96,8 +95,16 @@ For Python:
 - The minimum Python version needed to run Ganeti is now 2.6.
 - ``yaml`` library (only for running the QA).
 
-Since 2.8.0 rc2
+Since 2.8.0 rc3
 ~~~~~~~~~~~~~~~
+- Perform proper cleanup on termination of Haskell daemons
+- Fix corner-case in handling of remaining retry time
+
+
+Version 2.8.0 rc3
+-----------------
+
+*(Released Tue, 17 Sep 2013)*
 
 - To simplify the work of packaging frameworks that want to add the needed users
   and groups in a split-user setup themselves, at build time three files in
