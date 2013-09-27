@@ -121,6 +121,9 @@ htoolsProgs = HS_HTOOLS_PROGS[]
 pkglibdir :: String
 pkglibdir = "PKGLIBDIR"
 
+sharedir :: String
+sharedir = "SHAREDIR"
+
 versionedsharedir :: String
 versionedsharedir = "VERSIONEDSHAREDIR"
 

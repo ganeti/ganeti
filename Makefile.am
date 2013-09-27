@@ -1811,6 +1811,7 @@ src/AutoConf.hs: Makefile src/AutoConf.hs.in | stamp-directories
 	    -DGNT_SCRIPTS="$(foreach i,$(notdir $(gnt_scripts)),\"$(i)\":)" \
 	    -DHS_HTOOLS_PROGS="$(foreach i,$(HS_HTOOLS_PROGS),\"$(i)\":)" \
 	    -DPKGLIBDIR="$(libdir)/ganeti" \
+	    -DSHAREDIR="$(prefix)/share/ganeti" \
 	    -DVERSIONEDSHAREDIR="$(versionedsharedir)" \
 	    -DDRBD_BARRIERS="$(DRBD_BARRIERS)" \
 	    -DDRBD_NO_META_FLUSH="$(DRBD_NO_META_FLUSH)" \

@@ -99,6 +99,9 @@ localstatedir = AutoConf.localstatedir
 pkglibdir :: String
 pkglibdir = AutoConf.pkglibdir
 
+sharedir :: String
+sharedir = AutoConf.sharedir
+
 -- * 'autoconf' constants for Python only ('lib/build/sphinx_ext.py')
 
 manPages :: Map String Int
