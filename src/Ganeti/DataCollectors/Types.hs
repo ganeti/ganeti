@@ -41,6 +41,7 @@ module Ganeti.DataCollectors.Types
   ) where
 
 import Data.Char
+import Data.Ratio
 import qualified Data.Map as Map
 import qualified Data.Sequence as Seq
 import Text.JSON
@@ -51,17 +52,27 @@ import Ganeti.Utils (getCurrentTime)
 
 -- | The possible classes a data collector can belong to.
 data DCCategory = DCInstance | DCStorage | DCDaemon | DCHypervisor
-  deriving (Show, Eq)
+  deriving (Show, Eq, Read)
 
 -- | Get the category name and return it as a string.
 getCategoryName :: DCCategory -> String
 getCategoryName dcc = map toLower . drop 2 . show $ dcc
 
+categoryNames :: Map.Map String DCCategory
+categoryNames =
+  let l = [DCInstance, DCStorage, DCDaemon, DCHypervisor]
+  in Map.fromList $ zip (map getCategoryName l) l
+
 -- | The JSON instance for DCCategory.
 instance JSON DCCategory where
   showJSON = showJSON . getCategoryName
-  readJSON =
-    error "JSON read instance not implemented for type DCCategory"
+  readJSON (JSString s) =
+    let s' = fromJSString s
+    in case Map.lookup s' categoryNames of
+         Just category -> Ok category
+         Nothing -> fail $ "Invalid category name " ++ s' ++ " for type\
+                           \ DCCategory"
+  readJSON v = fail $ "Invalid JSON value " ++ show v ++ " for type DCCategory"
 
 -- | The possible status codes of a data collector.
 data DCStatusCode = DCSCOk      -- ^ Everything is OK
@@ -93,7 +104,15 @@ data DCKind = DCKPerf   -- ^ Performance reporting collector
 instance JSON DCKind where
   showJSON DCKPerf   = showJSON (0 :: Int)
   showJSON DCKStatus = showJSON (1 :: Int)
-  readJSON = error "JSON read instance not implemented for type DCKind"
+  readJSON (JSRational _ x) =
+    if denominator x /= 1
+    then fail $ "Invalid JSON value " ++ show x ++ " for type DCKind"
+    else
+      let x' = (fromIntegral . numerator $ x) :: Int
+      in if x' == 0 then Ok DCKPerf
+         else if x' == 1 then Ok DCKStatus
+         else fail $ "Invalid JSON value " ++ show x' ++ " for type DCKind"
+  readJSON v = fail $ "Invalid JSON value " ++ show v ++ " for type DCKind"
 
 -- | Type representing the version number of a data collector.
 data DCVersion = DCVerBuiltin | DCVersion String deriving (Show, Eq)
@@ -102,7 +121,10 @@ data DCVersion = DCVerBuiltin | DCVersion String deriving (Show, Eq)
 instance JSON DCVersion where
   showJSON DCVerBuiltin = showJSON C.builtinDataCollectorVersion
   showJSON (DCVersion v) = showJSON v
-  readJSON = error "JSON read instance not implemented for type DCVersion"
+  readJSON (JSString s) =
+    if fromJSString s == C.builtinDataCollectorVersion
+    then Ok DCVerBuiltin else Ok . DCVersion $ fromJSString s
+  readJSON v = fail $ "Invalid JSON value " ++ show v ++ " for type DCVersion"
 
 -- | Type for the value field of the above map.
 data CollectorData = CPULoadData (Seq.Seq (Integer, [Int]))
