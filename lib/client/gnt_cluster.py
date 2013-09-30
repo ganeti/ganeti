@@ -58,6 +58,12 @@ FORCE_FAILOVER = cli_option("--yes-do-it", dest="yes_do_it",
                             help="Override interactive check for --no-voting",
                             default=False, action="store_true")
 
+FORCE_DISTRIBUTION = cli_option("--yes-do-it", dest="yes_do_it",
+                                help="Unconditionally distribute the"
+                                " configuration, even if the queue"
+                                " is drained",
+                                default=False, action="store_true")
+
 _EPO_PING_INTERVAL = 30 # 30 seconds between pings
 _EPO_PING_TIMEOUT = 1 # 1 second
 _EPO_REACHABLE_TIMEOUT = 15 * 60 # 15 minutes
@@ -393,7 +399,10 @@ def RedistributeConfig(opts, args):
 
   """
   op = opcodes.OpClusterRedistConf()
-  SubmitOrSend(op, opts)
+  if opts.yes_do_it:
+    SubmitOpCodeToDrainedQueue(op)
+  else:
+    SubmitOrSend(op, opts)
   return 0
 
 
@@ -1630,7 +1639,8 @@ commands = {
     "<new_name>",
     "Renames the cluster"),
   "redist-conf": (
-    RedistributeConfig, ARGS_NONE, SUBMIT_OPTS + [DRY_RUN_OPT, PRIORITY_OPT],
+    RedistributeConfig, ARGS_NONE, SUBMIT_OPTS +
+    [DRY_RUN_OPT, PRIORITY_OPT, FORCE_DISTRIBUTION],
     "", "Forces a push of the configuration file and ssconf files"
     " to the nodes in the cluster"),
   "verify": (
