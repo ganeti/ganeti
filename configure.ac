@@ -495,6 +495,7 @@ AC_GHC_PKG_REQUIRE(network)
 AC_GHC_PKG_REQUIRE(mtl)
 AC_GHC_PKG_REQUIRE(bytestring)
 AC_GHC_PKG_REQUIRE(utf8-string)
+AC_GHC_PKG_REQUIRE(hslogger)
 
 # extra modules for confd functionality
 HS_REGEX_PCRE=-DNO_REGEX_PCRE
@@ -503,7 +504,6 @@ if test "$enable_confd" != no; then
   CONFD_PKG=
   AC_GHC_PKG_CHECK([regex-pcre], [HS_REGEX_PCRE=],
                    [CONFD_PKG="$CONFD_PKG regex-pcre"])
-  AC_GHC_PKG_CHECK([hslogger], [], [CONFD_PKG="$CONFD_PKG hslogger"])
   AC_GHC_PKG_CHECK([Crypto], [], [CONFD_PKG="$CONFD_PKG Crypto"])
   AC_GHC_PKG_CHECK([text], [], [CONFD_PKG="$CONFD_PKG text"])
   AC_GHC_PKG_CHECK([hinotify], [], [CONFD_PKG="$CONFD_PKG hinotify"])
