@@ -61,6 +61,8 @@ options = do
     , oVerbose
     , oQuiet
     , oOfflineNode
+    , oIgnoreDyn
+    , oMonD
     ]
 
 -- | The list of arguments supported by the program.

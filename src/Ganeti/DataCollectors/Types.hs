@@ -37,6 +37,7 @@ module Ganeti.DataCollectors.Types
   , CollectorMap
   , buildReport
   , mergeStatuses
+  , getCategoryName
   ) where
 
 import Data.Char
@@ -52,9 +53,13 @@ import Ganeti.Utils (getCurrentTime)
 data DCCategory = DCInstance | DCStorage | DCDaemon | DCHypervisor
   deriving (Show, Eq)
 
+-- | Get the category name and return it as a string.
+getCategoryName :: DCCategory -> String
+getCategoryName dcc = map toLower . drop 2 . show $ dcc
+
 -- | The JSON instance for DCCategory.
 instance JSON DCCategory where
-  showJSON = showJSON . map toLower . drop 2 . show
+  showJSON = showJSON . getCategoryName
   readJSON =
     error "JSON read instance not implemented for type DCCategory"
 

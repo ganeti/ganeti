@@ -48,6 +48,7 @@ module Ganeti.HTools.CLI
   , oDiskTemplate
   , oSpindleUse
   , oDynuFile
+  , oMonD
   , oEvacMode
   , oExInst
   , oExTags
@@ -123,6 +124,7 @@ data Options = Options
   , optSpindleUse  :: Maybe Int      -- ^ Override for the spindle usage
   , optDynuFile    :: Maybe FilePath -- ^ Optional file with dynamic use data
   , optIgnoreDynu  :: Bool           -- ^ Do not use dynamic use data
+  , optMonD        :: Bool           -- ^ Query MonDs
   , optEvacMode    :: Bool           -- ^ Enable evacuation mode
   , optExInst      :: [String]       -- ^ Instances to be excluded
   , optExTags      :: Maybe [String] -- ^ Tags to use for exclusion
@@ -178,6 +180,7 @@ defaultOptions  = Options
   , optSpindleUse  = Nothing
   , optIgnoreDynu  = False
   , optDynuFile    = Nothing
+  , optMonD        = False
   , optEvacMode    = False
   , optExInst      = []
   , optExTags      = Nothing
@@ -278,6 +281,13 @@ oDiskMoves =
    (NoArg (\ opts -> Ok opts { optDiskMoves = False}))
    "disallow disk moves from the list of allowed instance changes,\
    \ thus allowing only the 'cheap' failover/migrate operations",
+   OptComplNone)
+
+oMonD :: OptType
+oMonD =
+  (Option "" ["mond"]
+   (NoArg (\ opts -> Ok opts {optMonD = True}))
+   "Query MonDs",
    OptComplNone)
 
 oDiskTemplate :: OptType

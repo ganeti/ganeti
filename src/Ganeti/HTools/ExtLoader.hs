@@ -1,3 +1,5 @@
+{-# LANGUAGE BangPatterns #-}
+
 {-| External data loader.
 
 This module holds the external data loading, and thus is the only one
@@ -31,27 +33,40 @@ module Ganeti.HTools.ExtLoader
   ( loadExternalData
   , commonSuffix
   , maybeSaveData
+  , queryAllMonDDCs
   ) where
 
 import Control.Monad
 import Control.Exception
-import Data.Maybe (isJust, fromJust)
+import Data.Maybe (isJust, fromJust, catMaybes)
+import Network.Curl
 import System.FilePath
 import System.IO
 import System.Time (getClockTime)
 import Text.Printf (hPrintf)
 
+import qualified Text.JSON as J
+
+import qualified Ganeti.Constants as C
+import qualified Ganeti.DataCollectors.CPUload as CPUload
+import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Backend.Luxi as Luxi
 import qualified Ganeti.HTools.Backend.Rapi as Rapi
 import qualified Ganeti.HTools.Backend.Simu as Simu
 import qualified Ganeti.HTools.Backend.Text as Text
 import qualified Ganeti.HTools.Backend.IAlloc as IAlloc
+import qualified Ganeti.HTools.Node as Node
+import qualified Ganeti.HTools.Instance as Instance
 import Ganeti.HTools.Loader (mergeData, checkData, ClusterData(..)
                             , commonSuffix, clearDynU)
 
 import Ganeti.BasicTypes
+import Ganeti.Cpu.Types
+import Ganeti.DataCollectors.Types
 import Ganeti.HTools.Types
 import Ganeti.HTools.CLI
+import Ganeti.JSON
+import Ganeti.Logging (logWarning)
 import Ganeti.Utils (sepSplit, tryRead, exitIfBad, exitWhen)
 
 -- | Error beautifier.
@@ -115,11 +130,12 @@ loadExternalData opts = do
       ldresult = input_data >>= (if ignoreDynU then clearDynU else return)
                             >>= mergeData eff_u exTags selInsts exInsts now
   cdata <- exitIfBad "failed to load data, aborting" ldresult
-  let (fix_msgs, nl) = checkData (cdNodes cdata) (cdInstances cdata)
+  cdata' <- if optMonD opts then queryAllMonDDCs cdata opts else return cdata
+  let (fix_msgs, nl) = checkData (cdNodes cdata') (cdInstances cdata')
 
   unless (optVerbose opts == 0) $ maybeShowWarnings fix_msgs
 
-  return cdata {cdNodes = nl}
+  return cdata' {cdNodes = nl}
 
 -- | Function to save the cluster data to a file.
 maybeSaveData :: Maybe FilePath -- ^ The file prefix to save to
@@ -134,3 +150,114 @@ maybeSaveData (Just path) ext msg cdata = do
   writeFile out_path adata
   hPrintf stderr "The cluster state %s has been written to file '%s'\n"
           msg out_path
+
+-- | Type describing a data collector basic information.
+data DataCollector = DataCollector
+  { dName     :: String           -- ^ Name of the data collector
+  , dCategory :: Maybe DCCategory -- ^ The name of the category
+  }
+
+-- | The actual data types for MonD's Data Collectors.
+data Report = CPUavgloadReport CPUavgload
+
+-- | The list of Data Collectors used by hail and hbal.
+collectors :: Options -> [DataCollector]
+collectors opts =
+  if optIgnoreDynu opts
+    then []
+    else [ DataCollector CPUload.dcName CPUload.dcCategory ]
+
+-- | Query all MonDs for all Data Collector.
+queryAllMonDDCs :: ClusterData -> IO ClusterData
+queryAllMonDDCs cdata = do
+  let (ClusterData _ nl il _ _) = cdata
+  (nl', il') <- foldM queryAllMonDs (nl, il) (collectors opts)
+  return $ cdata {cdNodes = nl', cdInstances = il'}
+
+-- | Query all MonDs for a single Data Collector.
+queryAllMonDs :: (Node.List, Instance.List) -> DataCollector
+                 -> IO (Node.List, Instance.List)
+queryAllMonDs (nl, il) dc = do
+  elems <- mapM (queryAMonD dc) (Container.elems nl)
+  let elems' = catMaybes elems
+  if length elems == length elems'
+    then
+      let il' = foldl updateUtilData il elems'
+          nl' = zip (Container.keys nl) elems'
+      in return (Container.fromList nl', il')
+    else do
+      logWarning $ "Didn't receive an answer by all MonDs, " ++ dName dc
+                   ++ "'s data will be ignored."
+      return (nl,il)
+
+-- | Query a specified MonD for a Data Collector.
+fromCurl :: DataCollector -> Node.Node -> IO (Maybe DCReport)
+fromCurl dc node = do
+  (code, !body) <-  curlGetString (prepareUrl dc node) []
+  case code of
+    CurlOK ->
+      case J.decodeStrict body :: J.Result DCReport of
+        J.Ok r -> return $ Just r
+        J.Error _ -> return Nothing
+    _ -> do
+      logWarning $ "Failed to contact node's " ++ Node.name node
+                   ++ " MonD for DC " ++ dName dc
+      return Nothing
+
+-- | Return the data from correct combination of a Data Collector
+-- and a DCReport.
+mkReport :: DataCollector -> Maybe DCReport -> Maybe Report
+mkReport dc dcr =
+  case dcr of
+    Nothing -> Nothing
+    Just dcr' ->
+      case () of
+           _ | CPUload.dcName == dName dc ->
+                 case fromJVal (dcReportData dcr') :: Result CPUavgload of
+                   Ok cav -> Just $ CPUavgloadReport cav
+                   Bad _ -> Nothing
+             | otherwise -> Nothing
+
+-- | Query a MonD for a single Data Collector.
+queryAMonD :: DataCollector -> Node.Node -> IO (Maybe Node.Node)
+queryAMonD dc node = do
+  dcReport <- fromCurl dc node
+  case mkReport dc dcReport of
+    Nothing -> return Nothing
+    Just report ->
+      case report of
+        CPUavgloadReport cav ->
+          let ct = cavCpuTotal cav
+              du = Node.utilLoad node
+              du' = du {cpuWeight = ct}
+          in return $ Just node {Node.utilLoad = du'}
+
+-- | Update utilization data.
+updateUtilData :: Instance.List -> Node.Node -> Instance.List
+updateUtilData il node =
+  let ct = cpuWeight (Node.utilLoad node)
+      n_uCpu = Node.uCpu node
+      upd inst =
+        if Node.idx node == Instance.pNode inst
+          then
+            let i_vcpus = Instance.vcpus inst
+                i_util = ct / fromIntegral n_uCpu * fromIntegral i_vcpus
+                i_du = Instance.util inst
+                i_du' = i_du {cpuWeight = i_util}
+            in inst {Instance.util = i_du'}
+          else inst
+  in Container.map upd il
+
+-- | Prepare url to query a single collector.
+prepareUrl :: DataCollector -> Node.Node -> URLString
+prepareUrl dc node =
+  Node.name node ++ ":" ++ show C.defaultMondPort ++ "/"
+  ++ show C.mondLatestApiVersion ++ "/report/" ++
+  getDCCName (dCategory dc) ++ "/" ++ dName dc
+
+-- | Get Category Name.
+getDCCName :: Maybe DCCategory -> String
+getDCCName dcc =
+  case dcc of
+    Nothing -> "default"
+    Just c -> getCategoryName c

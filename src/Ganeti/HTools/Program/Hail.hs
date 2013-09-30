@@ -39,7 +39,8 @@ import Ganeti.Common
 import Ganeti.HTools.CLI
 import Ganeti.HTools.Backend.IAlloc
 import Ganeti.HTools.Loader (Request(..), ClusterData(..))
-import Ganeti.HTools.ExtLoader (maybeSaveData, loadExternalData)
+import Ganeti.HTools.ExtLoader (maybeSaveData, loadExternalData
+                               , queryAllMonDDCs)
 import Ganeti.Utils
 
 -- | Options list and functions.
@@ -51,6 +52,8 @@ options =
     , oDataFile
     , oNodeSim
     , oVerbose
+    , oIgnoreDyn
+    , oMonD
     ]
 
 -- | The list of arguments supported by the program.
@@ -69,8 +72,11 @@ wrapReadRequest opts args = do
       cdata <- loadExternalData opts
       let Request rqt _ = r1
       return $ Request rqt cdata
-    else return r1
-
+    else do
+      let Request rqt cdata = r1
+      cdata' <-
+        if optMonD opts then queryAllMonDDCs cdata opts else return cdata
+      return $ Request rqt cdata'
 
 -- | Main function.
 main :: Options -> [String] -> IO ()
