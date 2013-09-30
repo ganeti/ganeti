@@ -67,10 +67,10 @@ Python
   for the unit tests (and only used for testing).
 
 
-Version 2.8.0 rc3
------------------
+Version 2.8.0
+-------------
 
-*(Released Tue, 17 Sep 2013)*
+*(Released Mon, 30 Sep 2013)*
 
 Incompatible/important changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -160,8 +160,16 @@ For Python:
 - The minimum Python version needed to run Ganeti is now 2.6.
 - ``yaml`` library (only for running the QA).
 
-Since 2.8.0 rc2
+Since 2.8.0 rc3
 ~~~~~~~~~~~~~~~
+- Perform proper cleanup on termination of Haskell daemons
+- Fix corner-case in handling of remaining retry time
+
+
+Version 2.8.0 rc3
+-----------------
+
+*(Released Tue, 17 Sep 2013)*
 
 - To simplify the work of packaging frameworks that want to add the needed users
   and groups in a split-user setup themselves, at build time three files in
@@ -225,6 +233,19 @@ Version 2.8.0 beta1
 
 This was the first beta release of the 2.8 series. All important changes
 are listed in the latest 2.8 entry.
+
+
+Version 2.7.2
+-------------
+
+*(Released Thu, 26 Sep 2013)*
+
+- Change the connected groups format in ``gnt-network info`` output; it
+  was previously displayed as a raw list by mistake
+- Check disk template in right dict when copying
+- Support multi-instance allocs without iallocator
+- Fix some errors in the documentation
+- Fix formatting of tuple in an error message
 
 
 Version 2.7.1
