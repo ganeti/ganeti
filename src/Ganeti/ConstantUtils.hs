@@ -109,6 +109,13 @@ buildVersion :: Int -> Int -> Int -> Int
 buildVersion major minor revision =
   1000000 * major + 10000 * minor + 1 * revision
 
+-- | Confd protocol version
+--
+-- This is defined here in order to avoid a circular dependency
+-- between 'Ganeti.Confd.Types' and 'Ganeti.HsConstants'.
+confdProtocolVersion :: Int
+confdProtocolVersion = 1
+
 -- * Confd request query fields.
 --
 -- These are defined here and not in 'Ganeti.Types' due to GHC stage

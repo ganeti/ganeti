@@ -36,6 +36,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 module Ganeti.HsConstants where
 
+import Data.List ((\\))
 import Data.Map (Map)
 import qualified Data.Map as Map (fromList)
 
@@ -49,6 +50,10 @@ import qualified Ganeti.Logging as Logging (syslogUsageToRaw)
 import qualified Ganeti.Runtime as Runtime
 import Ganeti.Types
 import qualified Ganeti.Types as Types
+import Ganeti.Confd.Types (ConfdRequestType(..), ConfdReqField(..),
+                           ConfdReplyStatus(..), ConfdNodeRole(..),
+                           ConfdErrorType(..))
+import qualified Ganeti.Confd.Types as Types
 
 -- * 'autoconf' constants for Python only ('autotools/build-bash-completion')
 
@@ -154,6 +159,7 @@ protocolVersion :: Int
 protocolVersion = buildVersion configMajor configMinor configRevision
 
 -- * User separation
+
 daemonsGroup :: String
 daemonsGroup = Runtime.daemonGroup (ExtraGroup DaemonsGroup)
 
@@ -1225,18 +1231,101 @@ elogRemoteImport = Types.eLogTypeToRaw ELogRemoteImport
 elogJqueueTest :: String
 elogJqueueTest = Types.eLogTypeToRaw ELogJqueueTest
 
+-- * Confd
+
+confdProtocolVersion :: Int
+confdProtocolVersion = ConstantUtils.confdProtocolVersion
+
+-- Confd request type
+
+confdReqPing :: Int
+confdReqPing = Types.confdRequestTypeToRaw ReqPing
+
+confdReqNodeRoleByname :: Int
+confdReqNodeRoleByname = Types.confdRequestTypeToRaw ReqNodeRoleByName
+
+confdReqNodePipByInstanceIp :: Int
+confdReqNodePipByInstanceIp = Types.confdRequestTypeToRaw ReqNodePipByInstPip
+
+confdReqClusterMaster :: Int
+confdReqClusterMaster = Types.confdRequestTypeToRaw ReqClusterMaster
+
+confdReqNodePipList :: Int
+confdReqNodePipList = Types.confdRequestTypeToRaw ReqNodePipList
+
+confdReqMcPipList :: Int
+confdReqMcPipList = Types.confdRequestTypeToRaw ReqMcPipList
+
+confdReqInstancesIpsList :: Int
+confdReqInstancesIpsList = Types.confdRequestTypeToRaw ReqInstIpsList
+
+confdReqNodeDrbd :: Int
+confdReqNodeDrbd = Types.confdRequestTypeToRaw ReqNodeDrbd
+
+confdReqNodeInstances :: Int
+confdReqNodeInstances = Types.confdRequestTypeToRaw ReqNodeInstances
+
+confdReqs :: FrozenSet Int
+confdReqs =
+  ConstantUtils.mkSet .
+  map Types.confdRequestTypeToRaw $
+  [minBound..] \\ [ReqNodeInstances]
+
+-- * Confd request type
+
+confdReqfieldName :: Int
+confdReqfieldName = Types.confdReqFieldToRaw ReqFieldName
+
+confdReqfieldIp :: Int
+confdReqfieldIp = Types.confdReqFieldToRaw ReqFieldIp
+
+confdReqfieldMnodePip :: Int
+confdReqfieldMnodePip = Types.confdReqFieldToRaw ReqFieldMNodePip
+
+-- * Confd repl status
+
+confdReplStatusOk :: Int
+confdReplStatusOk = Types.confdReplyStatusToRaw ReplyStatusOk
+
+confdReplStatusError :: Int
+confdReplStatusError = Types.confdReplyStatusToRaw ReplyStatusError
+
+confdReplStatusNotimplemented :: Int
+confdReplStatusNotimplemented = Types.confdReplyStatusToRaw ReplyStatusNotImpl
+
+confdReplStatuses :: FrozenSet Int
+confdReplStatuses =
+  ConstantUtils.mkSet $ map Types.confdReplyStatusToRaw [minBound..]
+
+-- * Confd node role
+
+confdNodeRoleMaster :: Int
+confdNodeRoleMaster = Types.confdNodeRoleToRaw NodeRoleMaster
+
+confdNodeRoleCandidate :: Int
+confdNodeRoleCandidate = Types.confdNodeRoleToRaw NodeRoleCandidate
+
+confdNodeRoleOffline :: Int
+confdNodeRoleOffline = Types.confdNodeRoleToRaw NodeRoleOffline
+
+confdNodeRoleDrained :: Int
+confdNodeRoleDrained = Types.confdNodeRoleToRaw NodeRoleDrained
+
+confdNodeRoleRegular :: Int
+confdNodeRoleRegular = Types.confdNodeRoleToRaw NodeRoleRegular
+
 -- * A few common errors for confd
 
-confdErrorArgument :: Int
-confdErrorArgument = 3
+confdErrorUnknownEntry :: Int
+confdErrorUnknownEntry = Types.confdErrorTypeToRaw ConfdErrorUnknownEntry
 
 confdErrorInternal :: Int
-confdErrorInternal = 2
+confdErrorInternal = Types.confdErrorTypeToRaw ConfdErrorInternal
 
-confdErrorUnknownEntry :: Int
-confdErrorUnknownEntry = 1
+confdErrorArgument :: Int
+confdErrorArgument = Types.confdErrorTypeToRaw ConfdErrorArgument
 
--- Confd request query fields
+-- * Confd request query fields
 
 confdReqqLink :: String
 confdReqqLink = ConstantUtils.confdReqqLink

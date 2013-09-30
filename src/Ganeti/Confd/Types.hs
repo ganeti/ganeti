@@ -26,21 +26,18 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 
 module Ganeti.Confd.Types
-  ( C.confdProtocolVersion
-  , C.confdMaxClockSkew
-  , C.confdConfigReloadTimeout
-  , C.confdConfigReloadRatelimit
-  , C.confdMagicFourcc
-  , C.confdDefaultReqCoverage
-  , C.confdClientExpireTimeout
-  , C.maxUdpDataSize
-  , ConfdClient(..)
+  ( ConfdClient(..)
   , ConfdRequestType(..)
-  , ConfdReqQ(..)
+  , confdRequestTypeToRaw
   , ConfdReqField(..)
+  , confdReqFieldToRaw
+  , ConfdReqQ(..)
   , ConfdReplyStatus(..)
+  , confdReplyStatusToRaw
   , ConfdNodeRole(..)
+  , confdNodeRoleToRaw
   , ConfdErrorType(..)
+  , confdErrorTypeToRaw
   , ConfdRequest(..)
   , newConfdRequest
   , ConfdReply(..)
@@ -51,42 +48,28 @@ module Ganeti.Confd.Types
 import Text.JSON
 import qualified Network.Socket as S
 
-import qualified Ganeti.Constants as C
 import qualified Ganeti.ConstantUtils as ConstantUtils
 import Ganeti.Hash
 import Ganeti.THH
 import Ganeti.Utils (newUUID)
 
-{-
-   Note that we re-export as is from Constants the following simple items:
-   - confdProtocolVersion
-   - confdMaxClockSkew
-   - confdConfigReloadTimeout
-   - confdConfigReloadRatelimit
-   - confdMagicFourcc
-   - confdDefaultReqCoverage
-   - confdClientExpireTimeout
-   - maxUdpDataSize
-
--}
-
-$(declareIADT "ConfdRequestType"
-  [ ("ReqPing",             'C.confdReqPing )
-  , ("ReqNodeRoleByName",   'C.confdReqNodeRoleByname )
-  , ("ReqNodePipList",      'C.confdReqNodePipList )
-  , ("ReqNodePipByInstPip", 'C.confdReqNodePipByInstanceIp )
-  , ("ReqClusterMaster",    'C.confdReqClusterMaster )
-  , ("ReqMcPipList",        'C.confdReqMcPipList )
-  , ("ReqInstIpsList",      'C.confdReqInstancesIpsList )
-  , ("ReqNodeDrbd",         'C.confdReqNodeDrbd )
-  , ("ReqNodeInstances",    'C.confdReqNodeInstances)
+$(declareILADT "ConfdRequestType"
+  [ ("ReqPing",             0)
+  , ("ReqNodeRoleByName",   1)
+  , ("ReqNodePipByInstPip", 2)
+  , ("ReqClusterMaster",    3)
+  , ("ReqNodePipList",      4)
+  , ("ReqMcPipList",        5)
+  , ("ReqInstIpsList",      6)
+  , ("ReqNodeDrbd",         7)
+  , ("ReqNodeInstances",    8)
   ])
 $(makeJSONInstance ''ConfdRequestType)
 
-$(declareSADT "ConfdReqField"
-  [ ("ReqFieldName",     'C.confdReqfieldName )
-  , ("ReqFieldIp",       'C.confdReqfieldIp )
-  , ("ReqFieldMNodePip", 'C.confdReqfieldMnodePip )
+$(declareILADT "ConfdReqField"
+  [ ("ReqFieldName",     0)
+  , ("ReqFieldIp",       1)
+  , ("ReqFieldMNodePip", 2)
   ])
 $(makeJSONInstance ''ConfdReqField)
 
@@ -128,30 +111,29 @@ instance JSON ConfdQuery where
                   PlainQuery s -> showJSON s
                   DictQuery drq -> showJSON drq
 
-$(declareIADT "ConfdReplyStatus"
-  [ ( "ReplyStatusOk",      'C.confdReplStatusOk )
-  , ( "ReplyStatusError",   'C.confdReplStatusError )
-  , ( "ReplyStatusNotImpl", 'C.confdReplStatusNotimplemented )
+$(declareILADT "ConfdReplyStatus"
+  [ ("ReplyStatusOk",      0)
+  , ("ReplyStatusError",   1)
+  , ("ReplyStatusNotImpl", 2)
   ])
 $(makeJSONInstance ''ConfdReplyStatus)
 
-$(declareIADT "ConfdNodeRole"
-  [ ( "NodeRoleMaster",    'C.confdNodeRoleMaster )
-  , ( "NodeRoleCandidate", 'C.confdNodeRoleCandidate )
-  , ( "NodeRoleOffline",   'C.confdNodeRoleOffline )
-  , ( "NodeRoleDrained",   'C.confdNodeRoleDrained )
-  , ( "NodeRoleRegular",   'C.confdNodeRoleRegular )
+$(declareILADT "ConfdNodeRole"
+  [ ("NodeRoleMaster",    0)
+  , ("NodeRoleCandidate", 1)
+  , ("NodeRoleOffline",   2)
+  , ("NodeRoleDrained",   3)
+  , ("NodeRoleRegular",   4)
   ])
 $(makeJSONInstance ''ConfdNodeRole)
-
 
 -- Note that the next item is not a frozenset in Python, but we make
 -- it a separate type for safety
 
-$(declareIADT "ConfdErrorType"
-  [ ( "ConfdErrorUnknownEntry", 'C.confdErrorUnknownEntry )
-  , ( "ConfdErrorInternal",     'C.confdErrorInternal )
-  , ( "ConfdErrorArgument",     'C.confdErrorArgument )
+$(declareILADT "ConfdErrorType"
+  [ ("ConfdErrorUnknownEntry", 0)
+  , ("ConfdErrorInternal",     1)
+  , ("ConfdErrorArgument",     2)
   ])
 $(makeJSONInstance ''ConfdErrorType)
 
@@ -167,7 +149,7 @@ $(buildObject "ConfdRequest" "confdRq"
 newConfdRequest :: ConfdRequestType -> ConfdQuery -> IO ConfdRequest
 newConfdRequest reqType query = do
   rsalt <- newUUID
-  return $ ConfdRequest C.confdProtocolVersion reqType query rsalt
+  return $ ConfdRequest ConstantUtils.confdProtocolVersion reqType query rsalt
 
 $(buildObject "ConfdReply" "confdReply"
   [ simpleField "protocol" [t| Int              |]
