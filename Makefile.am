@@ -736,6 +736,7 @@ HS_TEST_SRCS = \
 	test/hs/Test/Ganeti/HTools/CLI.hs \
 	test/hs/Test/Ganeti/HTools/Cluster.hs \
 	test/hs/Test/Ganeti/HTools/Container.hs \
+	test/hs/Test/Ganeti/HTools/ExtLoader.hs \
 	test/hs/Test/Ganeti/HTools/Graph.hs \
 	test/hs/Test/Ganeti/HTools/Instance.hs \
 	test/hs/Test/Ganeti/HTools/Loader.hs \

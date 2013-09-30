@@ -120,22 +120,6 @@ testUptimeInfo fileName expectedContent = do
     Left msg -> assertFailure $ "Parsing failed: " ++ msg
     Right obtained -> assertEqual fileName expectedContent obtained
 
--- | Computes the relative error of two 'Double' numbers.
---
--- This is the \"relative error\" algorithm in
--- http:\/\/randomascii.wordpress.com\/2012\/02\/25\/
--- comparing-floating-point-numbers-2012-edition (URL split due to too
--- long line).
-relativeError :: Double -> Double -> Double
-relativeError d1 d2 =
-  let delta = abs $ d1 - d2
-      a1 = abs d1
-      a2 = abs d2
-      greatest = max a1 a2
-  in if delta == 0
-       then 0
-       else delta / greatest
-
 -- | Determines whether two LispConfig are equal, with the exception of Double
 -- values, that just need to be \"almost equal\".
 --

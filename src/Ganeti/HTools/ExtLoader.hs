@@ -34,6 +34,7 @@ module Ganeti.HTools.ExtLoader
   , commonSuffix
   , maybeSaveData
   , queryAllMonDDCs
+  , pMonDData
   ) where
 
 import Control.Monad

@@ -65,6 +65,7 @@ module Test.Ganeti.TestCommon
   , testParser
   , genPropParser
   , genNonNegative
+  , relativeError
   ) where
 
 import Control.Applicative
@@ -404,3 +405,19 @@ genPropParser parser s expected =
 genNonNegative :: Gen Int
 genNonNegative =
   fmap fromIntegral (arbitrary::Gen (Test.QuickCheck.NonNegative Int))
+
+-- | Computes the relative error of two 'Double' numbers.
+--
+-- This is the \"relative error\" algorithm in
+-- http:\/\/randomascii.wordpress.com\/2012\/02\/25\/
+-- comparing-floating-point-numbers-2012-edition (URL split due to too
+-- long line).
+relativeError :: Double -> Double -> Double
+relativeError d1 d2 =
+  let delta = abs $ d1 - d2
+      a1 = abs d1
+      a2 = abs d2
+      greatest = max a1 a2
+  in if delta == 0
+       then 0
+       else delta / greatest
