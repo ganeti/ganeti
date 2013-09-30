@@ -219,6 +219,25 @@ support all options. Some common options are:
   - vcpu ratio
   - spindle ratio
 
+\--mond
+  If given the program will query all MonDs to fetch data from the
+  supported data collectors over the network.
+
+\--mond-data *datafile*
+  The name of the file holding the data provided by MonD, to override
+  quering MonDs over the network. This is mostly used for debugging. The
+  file must be in JSON format and present an array of JSON objects ,
+  one for every node, with two members. The first member named ``node``
+  is the name of the node and the second member named ``reports`` is an
+  array of report objects. The report objects must be in the same format
+  as produced by the monitoring agent.
+
+\--ignore-dynu
+  If given, all dynamic utilisation information will be ignored by
+  assuming it to be 0. This option will take precedence over any data
+  passed by the ``-U`` option (available with hbal) or by the MonDs with
+  the ``--mond`` and the ``--mond-data`` option.
+
 -m *cluster*
   Backend specification: collect data directly from the *cluster* given
   as an argument via RAPI. If the argument doesn't contain a colon (:),

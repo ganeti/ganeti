@@ -27,6 +27,10 @@ on stderr and the exit code is changed to show failure.
 If the input file name is ``-`` (a single minus sign), then the request
 data will be read from *stdin*.
 
+Apart from input data, hail collects data over the network from all
+MonDs with the --mond option. Currently it uses only data produced by
+the CPUload collector.
+
 ALGORITHM
 ~~~~~~~~~
 
@@ -74,6 +78,25 @@ The options that can be passed to the program are as follows:
   The name of the file holding cluster information, to override the data
   in the JSON request itself. This is mostly used for debugging. The
   format of the file is described in the man page **htools**\(1).
+
+\--mond
+  If given the program will query all MonDs to fetch data from the
+  supported data collectors over the network.
+
+\--mond-data *datafile*
+  The name of the file holding the data provided by MonD, to override
+  quering MonDs over the network. This is mostly used for debugging. The
+  file must be in JSON format and present an array of JSON objects ,
+  one for every node, with two members. The first member named ``node``
+  is the name of the node and the second member named ``reports`` is an
+  array of report objects. The report objects must be in the same format
+  as produced by the monitoring agent.
+
+\--ignore-dynu
+  If given, all dynamic utilisation information will be ignored by
+  assuming it to be 0. This option will take precedence over any data
+  passed by the MonDs with the ``--mond`` and the ``--mond-data``
+  option.
 
 \--simulate *description*
   Backend specification: similar to the **-t** option, this allows

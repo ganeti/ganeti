@@ -58,6 +58,10 @@ reasonably fast. It is not, however, designed to be a perfect algorithm:
 it is possible to make it go into a corner from which it can find no
 improvement, because it looks only one "step" ahead.
 
+The program accesses the cluster state via Rapi or Luxi. It also
+requests data over the network from all MonDs with the --mond option.
+Currently it uses only data produced by CPUload collector.
+
 By default, the program will show the solution incrementally as it is
 computed, in a somewhat cryptic format; for getting the actual Ganeti
 command list, use the **-C** option.
@@ -121,6 +125,7 @@ following components:
   primary instances of the node)
 - standard deviation of the dynamic load on the nodes, for cpus,
   memory, disk and network
+- standard deviation of the CPU load provided by MonD
 
 The free memory and free disk values help ensure that all nodes are
 somewhat balanced in their resource usage. The reserved memory helps
@@ -158,6 +163,13 @@ something related to number of CPU seconds used if the CPUs are
 different), and that they are normalised to between zero and one. Note
 that it's recommended to not have zero as the load value for any
 instance metric since then secondary instances are not well balanced.
+
+The CPUload from MonD's data collector will be used only if all MonDs
+are running, otherwise it won't affect the cluster score. Since we can't
+find the CPU load of each instance, we can assume that the CPU load of
+an instance is proportional to the number of its vcpus. With this
+heuristic, instances from nodes with high CPU load will tend to move to
+nodes with less CPU load.
 
 On a perfectly balanced cluster (all nodes the same size, all
 instances the same size and spread across the nodes equally), the
@@ -320,7 +332,8 @@ The options that can be passed to the program are as follows:
 \--ignore-dynu
   If given, all dynamic utilisation information will be ignored by
   assuming it to be 0. This option will take precedence over any data
-  passed by the ``-U`` option.
+  passed by the ``-U`` option or by the MonDs with the ``--mond`` and
+  the ``--mond-data`` option.
 
 -S *filename*, \--save-cluster=*filename*
   If given, the state of the cluster before the balancing is saved to
@@ -335,6 +348,19 @@ The options that can be passed to the program are as follows:
   information (if not collecting via RAPI or LUXI). This or one of the
   other backends must be selected. The option is described in the man
   page **htools**\(1).
+
+\--mond
+  If given the program will query all MonDs to fetch data from the
+  supported data collectors over the network.
+
+\--mond-data *datafile*
+  The name of the file holding the data provided by MonD, to override
+  quering MonDs over the network. This is mostly used for debugging. The
+  file must be in JSON format and present an array of JSON objects ,
+  one for every node, with two members. The first member named ``node``
+  is the name of the node and the second member named ``reports`` is an
+  array of report objects. The report objects must be in the same format
+  as produced by the monitoring agent.
 
 -m *cluster*
   Backend specification: collect data directly from the *cluster* given
