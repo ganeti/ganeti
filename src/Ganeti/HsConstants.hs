@@ -208,6 +208,32 @@ sshLoginUser = AutoConf.sshLoginUser
 sshConsoleUser :: String
 sshConsoleUser = AutoConf.sshConsoleUser
 
+-- * Wipe
+
+ddCmd :: String
+ddCmd = "dd"
+
+-- | 1GB
+maxWipeChunk :: Int
+maxWipeChunk = 1024
+
+minWipeChunkPercent :: Int
+minWipeChunkPercent = 10
+
+-- * Directories
+
+runDirsMode :: Int
+runDirsMode = 0o775
+
+secureDirMode :: Int
+secureDirMode = 0o700
+
+secureFileMode :: Int
+secureFileMode = 0o600
+
+adoptableBlockdevRoot :: String
+adoptableBlockdevRoot = "/dev/disk/"
+
 -- * 'autoconf' enable/disable
 
 enableConfd :: Bool
@@ -278,6 +304,12 @@ daemonsPorts =
                 (noded, (Tcp, defaultNodedPort)),
                 (rapi, (Tcp, defaultRapiPort)),
                 (ssh, (Tcp, 22))]
+
+firstDrbdPort :: Int
+firstDrbdPort = 11000
+
+lastDrbdPort :: Int
+lastDrbdPort = 14999
 
 daemonsLogbase :: Map String String
 daemonsLogbase =
@@ -1479,9 +1511,16 @@ opcodeReason = "reason"
 diskstatsFile :: String
 diskstatsFile = "/proc/diskstats"
 
--- | CPU load collector
+-- *  CPU load collector
+
 statFile :: String
 statFile = "/proc/stat"
+
+cpuavgloadBufferSize :: Int
+cpuavgloadBufferSize = 150
+
+cpuavgloadWindowSize :: Int
+cpuavgloadWindowSize = 600
 
 -- | Mond's variable for periodical data collection
 mondTimeInterval :: Int
