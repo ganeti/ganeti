@@ -246,7 +246,7 @@ respondInner cfg hmac rq =
       innermsg = serializeResponse (cfg >>= flip buildResponse rq)
       innerserialised = J.encodeStrict innermsg
       outermsg = signMessage hmac rsalt innerserialised
-      outerserialised = confdMagicFourcc ++ J.encodeStrict outermsg
+      outerserialised = C.confdMagicFourcc ++ J.encodeStrict outermsg
   in outerserialised
 
 -- | Main listener loop.
@@ -255,7 +255,7 @@ listener :: S.Socket -> HashKey
          -> IO ()
 listener s hmac resp = do
   (msg, _, peer) <- S.recvFrom s 4096
-  if confdMagicFourcc `isPrefixOf` msg
+  if C.confdMagicFourcc `isPrefixOf` msg
     then forkIO (resp s hmac (drop 4 msg) peer) >> return ()
     else logDebug "Invalid magic code!" >> return ()
   return ()
