@@ -93,6 +93,7 @@ options = do
     , oDynuFile
     , oIgnoreDyn 
     , oMonD
+    , oMonDDataFile
     , oExTags
     , oExInst
     , oSaveCluster

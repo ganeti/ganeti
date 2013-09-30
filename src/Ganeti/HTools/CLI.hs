@@ -49,6 +49,7 @@ module Ganeti.HTools.CLI
   , oSpindleUse
   , oDynuFile
   , oMonD
+  , oMonDDataFile
   , oEvacMode
   , oExInst
   , oExTags
@@ -125,6 +126,8 @@ data Options = Options
   , optDynuFile    :: Maybe FilePath -- ^ Optional file with dynamic use data
   , optIgnoreDynu  :: Bool           -- ^ Do not use dynamic use data
   , optMonD        :: Bool           -- ^ Query MonDs
+  , optMonDFile    :: Maybe FilePath -- ^ Optional file with data provided
+                                     -- ^ by MonDs
   , optEvacMode    :: Bool           -- ^ Enable evacuation mode
   , optExInst      :: [String]       -- ^ Instances to be excluded
   , optExTags      :: Maybe [String] -- ^ Tags to use for exclusion
@@ -181,6 +184,7 @@ defaultOptions  = Options
   , optIgnoreDynu  = False
   , optDynuFile    = Nothing
   , optMonD        = False
+  , optMonDFile = Nothing
   , optEvacMode    = False
   , optExInst      = []
   , optExTags      = Nothing
@@ -289,6 +293,13 @@ oMonD =
    (NoArg (\ opts -> Ok opts {optMonD = True}))
    "Query MonDs",
    OptComplNone)
+
+oMonDDataFile :: OptType
+oMonDDataFile =
+  (Option "" ["mond-data"]
+   (ReqArg (\ f opts -> Ok opts { optMonDFile = Just f }) "FILE")
+   "Import data provided by MonDs from the given FILE",
+   OptComplFile)
 
 oDiskTemplate :: OptType
 oDiskTemplate =

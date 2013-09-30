@@ -46,6 +46,8 @@ import System.Time (getClockTime)
 import Text.Printf (hPrintf)
 
 import qualified Text.JSON as J
+import qualified Data.Map as Map
+import qualified Data.List as L
 
 import qualified Ganeti.Constants as C
 import qualified Ganeti.DataCollectors.CPUload as CPUload
@@ -167,18 +169,46 @@ collectors opts =
     then []
     else [ DataCollector CPUload.dcName CPUload.dcCategory ]
 
+-- | MonDs Data parsed by a mock file. Representing (node name, list of reports
+-- produced by MonDs Data Collectors).
+type MonDData = (String, [DCReport])
+
+-- | A map storing MonDs data.
+type MapMonDData = Map.Map String [DCReport]
+
+-- | Parse MonD data file contents.
+pMonDData :: String -> Result [MonDData]
+pMonDData input =
+  loadJSArray "Parsing MonD's answer" input >>=
+  mapM (pMonDN . J.fromJSObject)
+
+-- | Parse a node's JSON record.
+pMonDN :: JSRecord -> Result MonDData
+pMonDN a = do
+  node <- tryFromObj "Parsing node's name" a "node"
+  reports <- tryFromObj "Parsing node's reports" a "reports"
+  return (node, reports)
+
 -- | Query all MonDs for all Data Collector.
-queryAllMonDDCs :: ClusterData -> IO ClusterData
-queryAllMonDDCs cdata = do
+queryAllMonDDCs :: ClusterData -> Options -> IO ClusterData
+queryAllMonDDCs cdata opts = do
+  map_mDD <-
+    case optMonDFile opts of
+      Nothing -> return Nothing
+      Just fp -> do
+        monDData_contents <- readFile fp
+        monDData <- exitIfBad "can't parse MonD data"
+                    . pMonDData $ monDData_contents
+        return . Just $ Map.fromList monDData
   let (ClusterData _ nl il _ _) = cdata
-  (nl', il') <- foldM queryAllMonDs (nl, il) (collectors opts)
+  (nl', il') <- foldM (queryAllMonDs map_mDD) (nl, il) (collectors opts)
   return $ cdata {cdNodes = nl', cdInstances = il'}
 
 -- | Query all MonDs for a single Data Collector.
-queryAllMonDs :: (Node.List, Instance.List) -> DataCollector
-                 -> IO (Node.List, Instance.List)
-queryAllMonDs (nl, il) dc = do
-  elems <- mapM (queryAMonD dc) (Container.elems nl)
+queryAllMonDs :: Maybe MapMonDData -> (Node.List, Instance.List)
+                 -> DataCollector -> IO (Node.List, Instance.List)
+queryAllMonDs m (nl, il) dc = do
+  elems <- mapM (queryAMonD m dc) (Container.elems nl)
   let elems' = catMaybes elems
   if length elems == length elems'
     then
@@ -218,10 +248,20 @@ mkReport dc dcr =
                    Bad _ -> Nothing
              | otherwise -> Nothing
 
+-- | Get data report for the specified Data Collector and Node from the map.
+fromFile :: DataCollector -> Node.Node -> MapMonDData -> Maybe DCReport
+fromFile dc node m =
+  let matchDCName dcr = dName dc == dcReportName dcr
+  in maybe Nothing (L.find matchDCName) $ Map.lookup (Node.name node) m
+
 -- | Query a MonD for a single Data Collector.
-queryAMonD :: DataCollector -> Node.Node -> IO (Maybe Node.Node)
-queryAMonD dc node = do
-  dcReport <- fromCurl dc node
+queryAMonD :: Maybe MapMonDData -> DataCollector -> Node.Node
+              -> IO (Maybe Node.Node)
+queryAMonD m dc node = do
+  dcReport <-
+    case m of
+      Nothing -> fromCurl dc node
+      Just m' -> return $ fromFile dc node m'
   case mkReport dc dcReport of
     Nothing -> return Nothing
     Just report ->

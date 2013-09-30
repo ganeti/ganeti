@@ -63,6 +63,7 @@ options = do
     , oOfflineNode
     , oIgnoreDyn
     , oMonD
+    , oMonDDataFile
     ]
 
 -- | The list of arguments supported by the program.
