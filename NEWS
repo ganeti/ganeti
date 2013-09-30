@@ -2,10 +2,10 @@ News
 ====
 
 
-Version 2.9.0 beta1
--------------------
+Version 2.9.0 rc1
+-----------------
 
-*(Released Thu, 29 Aug 2013)*
+*(Released Tue, 1 Oct 2013)*
 
 Incompatible/important changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -70,6 +70,23 @@ Haskell
 
 - ``hslogger`` (http://software.complete.org/hslogger) is now always
   required, even if confd is not enabled.
+
+Since 2.9.0 beta1
+~~~~~~~~~~~~~~~~~
+
+- various bug fixes
+- update of the documentation, in particular installation instructions
+- merging of LD_* constants into DT_* constants
+- python style changes to be compatible with newer versions of pylint
+
+
+Version 2.9.0 beta1
+-------------------
+
+*(Released Thu, 29 Aug 2013)*
+
+This was the first beta release of the 2.9 series. All important changes
+are listed in the latest 2.9 entry.
 
 
 Version 2.8.0
