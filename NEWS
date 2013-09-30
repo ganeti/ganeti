@@ -66,6 +66,11 @@ Python
 - ``python-mock`` (http://www.voidspace.org.uk/python/mock/) is now a required
   for the unit tests (and only used for testing).
 
+Haskell
+
+- ``hslogger`` (http://software.complete.org/hslogger) is now always
+  required, even if confd is not enabled.
+
 
 Version 2.8.0
 -------------
