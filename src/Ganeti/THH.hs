@@ -1,4 +1,4 @@
-{-# LANGUAGE ExistentialQuantification, TemplateHaskell #-}
+{-# LANGUAGE ExistentialQuantification, ParallelListComp, TemplateHaskell #-}
 
 {-| TemplateHaskell helper for Ganeti Haskell code.
 
@@ -31,6 +31,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Ganeti.THH ( declareSADT
                   , declareLADT
+                  , declareILADT
                   , declareIADT
                   , makeJSONInstance
                   , deCamelCase
@@ -413,6 +414,19 @@ declareADT fn traw sname cons = do
 
 declareLADT :: Name -> String -> [(String, String)] -> Q [Dec]
 declareLADT = declareADT Left
+
+declareILADT :: String -> [(String, Int)] -> Q [Dec]
+declareILADT sname cons = do
+  consNames <- sequence [ newName ('_':n) | (n, _) <- cons ]
+  consFns <- concat <$> sequence
+             [ do sig <- sigD n [t| Int |]
+                  let expr = litE (IntegerL (toInteger i))
+                  fn <- funD n [clause [] (normalB expr) []]
+                  return [sig, fn]
+             | n <- consNames
+             | (_, i) <- cons ]
+  let cons' = [ (n, n') | (n, _) <- cons | n' <- consNames ]
+  (consFns ++) <$> declareADT Right ''Int sname cons'
 
 declareIADT :: String -> [(String, Name)] -> Q [Dec]
 declareIADT = declareADT Right ''Int
