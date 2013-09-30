@@ -57,6 +57,14 @@ Debian/Ubuntu, you can use this command line to install all required
 packages, except for RBD, DRBD and Xen::
 
   $ apt-get install lvm2 ssh bridge-utils iproute iputils-arping make \
+                    ndisc6 python python-openssl openssl \
+                    python-pyparsing python-simplejson python-bitarray \
+                    python-pyinotify python-pycurl python-ipaddr socat fping
+
+For older distributions (eg. Debian  Squeeze) the package names are
+different.::
+
+  $ apt-get install lvm2 ssh bridge-utils iproute iputils-arping make \
                     ndisc6 python python-pyopenssl openssl \
                     python-pyparsing python-simplejson python-bitarray \
                     python-pyinotify python-pycurl python-ipaddr socat fping
@@ -64,13 +72,6 @@ packages, except for RBD, DRBD and Xen::
 If bitarray is missing it can be installed from easy-install::
 
   $ easy_install bitarray
-
-Or on newer distributions (eg. Debian Wheezy) the above becomes::
-
-  $ apt-get install lvm2 ssh bridge-utils iproute iputils-arping make \
-                    ndisc6 python python-openssl openssl \
-                    python-pyparsing python-simplejson python-bitarray \
-                    python-pyinotify python-pycurl python-ipaddr socat fping
 
 Note that this does not install optional packages::
 
@@ -148,15 +149,15 @@ deploy Ganeti on production machines). More specifically:
 
 Some of these are also available as package in Debian/Ubuntu::
 
-  $ apt-get install ghc6 libghc6-json-dev libghc6-network-dev \
-                    libghc6-parallel-dev libghc6-deepseq-dev \
-                    libghc6-curl-dev
-
-Or in newer versions of these distributions (using GHC 7.x)::
-
   $ apt-get install ghc libghc-json-dev libghc-network-dev \
                     libghc-parallel-dev libghc-deepseq-dev \
                     libghc-utf8-string-dev libghc-curl-dev
+
+Or in older versions of these distributions (using GHC 6.x)::
+
+  $ apt-get install ghc6 libghc6-json-dev libghc6-network-dev \
+                    libghc6-parallel-dev libghc6-deepseq-dev \
+                    libghc6-curl-dev
 
 In Fedora, some of them are available via packages as well::
 
