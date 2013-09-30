@@ -37,6 +37,8 @@ import Ganeti.HTools.ExtLoader
 import Ganeti.JSON
 import Test.Ganeti.TestCommon
 
+{-# ANN module "HLint: ignore Use camelCase" #-}
+
 -- | Test a MonD data file.
 case_parseMonDData :: HUnit.Assertion
 case_parseMonDData = do
