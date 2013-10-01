@@ -1786,6 +1786,7 @@ src/AutoConf.hs: Makefile src/AutoConf.hs.in | stamp-directories
 	    -DVERSION_REVISION="$(VERSION_REVISION)" \
 	    -DVERSION_SUFFIX="$(VERSION_SUFFIX)" \
 	    -DVERSION_FULL="$(VERSION_FULL)" \
+	    -DDIRVERSION="$(DIRVERSION)" \
 	    -DLOCALSTATEDIR="$(localstatedir)" \
 	    -DSYSCONFDIR="$(sysconfdir)" \
 	    -DSSH_CONFIG_DIR="$(SSH_CONFIG_DIR)" \

@@ -131,6 +131,9 @@ versionMinor = AutoConf.versionMinor
 versionRevision :: Int
 versionRevision = AutoConf.versionRevision
 
+dirVersion :: String
+dirVersion = AutoConf.dirVersion
+
 configMajor :: Int
 configMajor = AutoConf.versionMajor
 

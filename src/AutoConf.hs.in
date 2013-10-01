@@ -46,6 +46,9 @@ versionSuffix = "VERSION_SUFFIX"
 versionFull :: String
 versionFull = "VERSION_FULL"
 
+dirVersion :: String
+dirVersion = "DIRVERSION"
+
 localstatedir :: String
 localstatedir = "LOCALSTATEDIR"
 
