@@ -57,6 +57,14 @@ Debian/Ubuntu, you can use this command line to install all required
 packages, except for RBD, DRBD and Xen::
 
   $ apt-get install lvm2 ssh bridge-utils iproute iputils-arping make \
+                    ndisc6 python python-openssl openssl \
+                    python-pyparsing python-simplejson python-bitarray \
+                    python-pyinotify python-pycurl python-ipaddr socat fping
+
+For older distributions (eg. Debian  Squeeze) the package names are
+different.::
+
+  $ apt-get install lvm2 ssh bridge-utils iproute iputils-arping make \
                     ndisc6 python python-pyopenssl openssl \
                     python-pyparsing python-simplejson python-bitarray \
                     python-pyinotify python-pycurl python-ipaddr socat fping
@@ -64,13 +72,6 @@ packages, except for RBD, DRBD and Xen::
 If bitarray is missing it can be installed from easy-install::
 
   $ easy_install bitarray
-
-Or on newer distributions (eg. Debian Wheezy) the above becomes::
-
-  $ apt-get install lvm2 ssh bridge-utils iproute iputils-arping make \
-                    ndisc6 python python-openssl openssl \
-                    python-pyparsing python-simplejson python-bitarray \
-                    python-pyinotify python-pycurl python-ipaddr socat fping
 
 Note that this does not install optional packages::
 
@@ -145,18 +146,21 @@ deploy Ganeti on production machines). More specifically:
 - `deepseq <http://hackage.haskell.org/package/deepseq>`_
 - `curl <http://hackage.haskell.org/package/curl>`_, tested with
   versions 1.3.4 and above
+- `hslogger <http://software.complete.org/hslogger>`_, version 1.1 and
+  above (note that Debian Squeeze only has version 1.0.9)
 
 Some of these are also available as package in Debian/Ubuntu::
+
+  $ apt-get install ghc libghc-json-dev libghc-network-dev \
+                    libghc-parallel-dev libghc-deepseq-dev \
+                    libghc-utf8-string-dev libghc-curl-dev \
+                    libghc-hslogger-dev 
+
+Or in older versions of these distributions (using GHC 6.x)::
 
   $ apt-get install ghc6 libghc6-json-dev libghc6-network-dev \
                     libghc6-parallel-dev libghc6-deepseq-dev \
                     libghc6-curl-dev
-
-Or in newer versions of these distributions (using GHC 7.x)::
-
-  $ apt-get install ghc libghc-json-dev libghc-network-dev \
-                    libghc-parallel-dev libghc-deepseq-dev \
-                    libghc-utf8-string-dev libghc-curl-dev
 
 In Fedora, some of them are available via packages as well::
 
@@ -172,7 +176,7 @@ the Haskell platform. You can also install ``cabal`` manually::
 Then install the additional libraries (only the ones not available in your
 distribution packages) via ``cabal``::
 
-  $ cabal install json network parallel utf8-string curl
+  $ cabal install json network parallel utf8-string curl hslogger
 
 Haskell optional features
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -182,8 +186,6 @@ a few more Haskell libraries enabled: the ``ganeti-confd`` and
 ``ganeti-luxid`` daemon (``--enable-confd``) and the monitoring daemon
 (``--enable-mond``). The list of extra dependencies for these is:
 
-- `hslogger <http://software.complete.org/hslogger>`_, version 1.1 and
-  above (note that Debian Squeeze only has version 1.0.9)
 - `Crypto <http://hackage.haskell.org/package/Crypto>`_, tested with
   version 4.2.4
 - `text <http://hackage.haskell.org/package/text>`_
@@ -201,7 +203,7 @@ a few more Haskell libraries enabled: the ``ganeti-confd`` and
 These libraries are available in Debian Wheezy (but not in Squeeze), so you
 can use either apt::
 
-  $ apt-get install libghc-hslogger-dev libghc-crypto-dev libghc-text-dev \
+  $ apt-get install libghc-crypto-dev libghc-text-dev \
                     libghc-hinotify-dev libghc-regex-pcre-dev \
                     libghc-attoparsec-dev libghc-vector-dev \
                     libghc-snap-server-dev
@@ -209,7 +211,7 @@ can use either apt::
 or ``cabal``, after installing a required non-Haskell dependency::
 
   $ apt-get install libpcre3-dev libcurl4-openssl-dev
-  $ cabal install hslogger Crypto text hinotify==0.3.2 regex-pcre \
+  $ cabal install Crypto text hinotify==0.3.2 regex-pcre \
                   attoparsec vector snap-server
 
 to install them.

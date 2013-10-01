@@ -40,21 +40,25 @@ import qualified Ganeti.BasicTypes as BT
 import qualified Ganeti.Constants as C
 import Ganeti.Hypervisor.Xen.Types
 import Ganeti.Hypervisor.Xen.XmParser
+import Ganeti.Logging
 import Ganeti.Utils
 
 
 -- | Get information about the current Xen domains as a map where the domain
 -- name is the key. This only includes the information made available by Xen
 -- itself.
-getDomainsInfo :: IO (Map.Map String Domain)
+getDomainsInfo :: IO (BT.Result (Map.Map String Domain))
 getDomainsInfo = do
   contents <-
-    ((E.try $ readProcess C.xenCmdXm ["list", "--long"] "")
-      :: IO (Either IOError String)) >>=
-      exitIfBad "running command" . either (BT.Bad . show) BT.Ok
-  case A.parseOnly xmListParser $ pack contents of
-    Left msg -> exitErr msg
-    Right dom -> return dom
+        (E.try $ readProcess C.xenCmdXm ["list", "--long"] "")
+          :: IO (Either IOError String)
+  return $
+    either (BT.Bad . show) (
+      \c ->
+        case A.parseOnly xmListParser $ pack c of
+          Left msg -> BT.Bad msg
+          Right dom -> BT.Ok dom
+      ) contents
 
 -- | Given a domain and a map containing information about multiple domains,
 -- infer additional information about that domain (specifically, whether it is
@@ -70,11 +74,19 @@ inferDomInfos domMap dom1 =
 -- name is the key. This includes information made available by Xen itself as
 -- well as further information that can be inferred by querying Xen multiple
 -- times and comparing the results.
-getInferredDomInfo :: IO (Map.Map String Domain)
+getInferredDomInfo :: IO (BT.Result (Map.Map String Domain))
 getInferredDomInfo = do
   domMap1 <- getDomainsInfo
   domMap2 <- getDomainsInfo
-  return $ fmap (inferDomInfos domMap2) domMap1
+  case (domMap1, domMap2) of
+    (BT.Bad m1, BT.Bad m2) -> return . BT.Bad $ m1 ++ "\n" ++ m2
+    (BT.Bad m, BT.Ok d) -> do
+      logWarning $ "Unable to retrieve domains info the first time" ++ m
+      return $ BT.Ok d
+    (BT.Ok d, BT.Bad m) -> do
+      logWarning $ "Unable to retrieve domains info the second time" ++ m
+      return $ BT.Ok d
+    (BT.Ok d1, BT.Ok d2) -> return . BT.Ok $ fmap (inferDomInfos d2) d1
 
 -- | Get information about the uptime of domains, as a map where the domain ID
 -- is the key.

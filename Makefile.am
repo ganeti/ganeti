@@ -510,6 +510,7 @@ docinput = \
 	doc/design-draft.rst \
 	doc/design-hotplug.rst \
 	doc/design-glusterfs-ganeti-support.rst \
+	doc/design-daemons.rst \
 	doc/design-htools-2.3.rst \
 	doc/design-http-server.rst \
 	doc/design-impexp2.rst \

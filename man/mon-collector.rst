@@ -27,6 +27,20 @@ print its output to stdout, in JSON format.
 COLLECTORS
 ----------
 
+DISKSTATS
+~~~~~~~~~
+
+| diskstats [ [ **-f** | **\--file** ] = *input-file* ]
+
+Collects the information about the status of the disks of the system, as listed
+by /proc/diskstats, or by an alternate file with the same syntax specified on
+the command line.
+
+The options that can be passed to the DRBD collector are as follows:
+
+-f *input-file*, \--file=*input-file*
+  Where to read the data from. Default if not specified: /proc/diskstats
+
 DRBD
 ~~~~
 
@@ -71,8 +85,8 @@ one:
 LOGICAL VOLUMES
 ~~~~~~~~~~~~~~~
 
-| lv [ [ **-a** | **\--address** ] = *ip-address* ] [ [ **-p** | **\--port** ] 
-  = *port-number* ] [ [ **-f** | **\--file** ] = *input-file* ] 
+| lv [ [ **-a** | **\--address** ] = *ip-address* ] [ [ **-p** | **\--port** ]
+  = *port-number* ] [ [ **-f** | **\--file** ] = *input-file* ]
   [ [ **-i** | **\--instances** ] = *instances-file* ]
 
 Collects the information about the logical volumes of the current node.
@@ -95,10 +109,10 @@ serialized on files (mainly for testing purposes). Namely:
   The name of the file containing a recorded output of the ``lvs`` tool.
 
 -i *instances-file*, \--instances=*instances-file*
-  The name of the file containing a JSON serialization of instances the 
+  The name of the file containing a JSON serialization of instances the
   current node is primary and secondary for, listed as::
 
     ([Instance], [Instance])
 
-  where the first list contains the instances the node is primary for, the 
+  where the first list contains the instances the node is primary for, the
   second list those the node is secondary for.
