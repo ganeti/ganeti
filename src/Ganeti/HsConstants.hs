@@ -1392,3 +1392,11 @@ diskKernelspace = Types.diskAccessModeToRaw DiskKernelspace
 diskValidAccessModes :: FrozenSet String
 diskValidAccessModes =
   ConstantUtils.mkSet $ map Types.diskAccessModeToRaw [minBound..]
+
+-- | Timeout for queue draining in upgrades
+upgradeQueueDrainTimeout :: Int
+upgradeQueueDrainTimeout = 36 * 60 * 60 -- 1.5 days
+
+-- | Intervall at which the queue is polled during upgrades
+upgradeQueuePollInterval :: Int
+upgradeQueuePollInterval  = 10
