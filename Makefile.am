@@ -1744,8 +1744,8 @@ src/Ganeti/Hs2Py/ListConstants.hs: src/Ganeti/Hs2Py/ListConstants.hs.in \
 ##   adminstDown = ...
 ## becomes
 ##   'adminstDown
-	NAMES=$$(sed -n -e "/=/ s/\(.*\) =.*/    '\1:/g p" \
-		 $(abs_top_srcdir)/src/Ganeti/HsConstants.hs); \
+	NAMES=$$(sed -e "/^--/ d" $(abs_top_srcdir)/src/Ganeti/HsConstants.hs |\
+		 sed -n -e "/=/ s/\(.*\) =.*/    '\1:/g p"); \
 	m4 -DPY_CONSTANT_NAMES="$$NAMES" $(abs_top_srcdir)/$< > $@
 
 src/Ganeti/PyConstants.hs: src/Ganeti/PyConstants.hs.in \
