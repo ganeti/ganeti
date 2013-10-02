@@ -359,6 +359,18 @@ class BlockDev(object):
     """
     return (self.GetActualSize(), self.GetActualSpindles())
 
+  def GetUserspaceAccessUri(self, hypervisor):
+    """Return URIs hypervisors can use to access disks in userspace mode.
+
+    @rtype: string
+    @return: userspace device URI
+    @raise errors.BlockDeviceError if userspace access is not supported
+
+    """
+    ThrowError("Userspace access with %s block device and %s hypervisor is not "
+               "supported." % (self.__class__.__name__,
+                               hypervisor))
+
   def __repr__(self):
     return ("<%s: unique_id: %s, children: %s, %s:%s, %s>" %
             (self.__class__, self.unique_id, self._children,
