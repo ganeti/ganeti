@@ -446,6 +446,24 @@ class TestLUClusterSetParams(CmdlibTestCase):
     self.ExecOpCode(op)
     self.assertEqual(diskparams, self.cluster.diskparams)
 
+  def testValidDiskparamsAccess(self):
+    for value in constants.DISK_VALID_ACCESS_MODES:
+      self.ResetMocks()
+      op = opcodes.OpClusterSetParams(diskparams={
+        constants.DT_RBD: {constants.RBD_ACCESS: value}
+      })
+      self.ExecOpCode(op)
+      got = self.cluster.diskparams[constants.DT_RBD][constants.RBD_ACCESS]
+      self.assertEqual(value, got)
+
+  def testInvalidDiskparamsAccess(self):
+    for value in ["default", "pinky_bunny"]:
+      self.ResetMocks()
+      op = opcodes.OpClusterSetParams(diskparams={
+        constants.DT_RBD: {constants.RBD_ACCESS: value}
+      })
+      self.ExecOpCodeExpectOpPrereqError(op, "Invalid value of 'rbd:access'")
+
   def testUnsetDrbdHelperWithDrbdDisks(self):
     self.cfg.AddNewInstance(disks=[
       self.cfg.CreateDisk(dev_type=constants.DT_DRBD8, create_nodes=True)])
