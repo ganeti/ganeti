@@ -824,6 +824,7 @@ HV_KVM_PATH = "kvm_path"
 HV_VIF_TYPE = "vif_type"
 HV_VIF_SCRIPT = "vif_script"
 HV_XEN_CMD = "xen_cmd"
+HV_XEN_CPUID = "cpuid"
 HV_VNET_HDR = "vnet_hdr"
 HV_VIRIDIAN = "viridian"
 
@@ -898,6 +899,7 @@ HVS_PARAMETER_TYPES = {
   HV_VIF_TYPE: VTYPE_STRING,
   HV_VIF_SCRIPT: VTYPE_STRING,
   HV_XEN_CMD: VTYPE_STRING,
+  HV_XEN_CPUID: VTYPE_STRING,
   HV_VNET_HDR: VTYPE_BOOL,
   HV_VIRIDIAN: VTYPE_BOOL,
   }
@@ -1798,6 +1800,7 @@ HVC_DEFAULTS = {
     HV_CPU_WEIGHT: 256,
     HV_VIF_SCRIPT: "",
     HV_XEN_CMD: XEN_CMD_XM,
+    HV_XEN_CPUID: "",
     },
   HT_XEN_HVM: {
     HV_BOOT_ORDER: "cd",
@@ -1823,6 +1826,7 @@ HVC_DEFAULTS = {
     HV_VIF_SCRIPT: "",
     HV_VIRIDIAN: False,
     HV_XEN_CMD: XEN_CMD_XM,
+    HV_XEN_CPUID: "",
     },
   HT_KVM: {
     HV_KVM_PATH: KVM_PATH,

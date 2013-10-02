@@ -305,6 +305,19 @@ def _GetConfigFileDiskData(block_devices, blockdev_prefix,
   return disk_data
 
 
+def _QuoteCpuidField(data):
+  """Add quotes around the CPUID field only if necessary.
+
+  Xen CPUID fields come in two shapes: LIBXL strings, which need quotes around
+  them, and lists of XEND strings, which don't.
+
+  @param data: Either type of parameter.
+  @return: The quoted version thereof.
+
+  """
+  return "'%s'" % data if data.startswith("host") else data
+
+
 class XenHypervisor(hv_base.BaseHypervisor):
   """Xen generic hypervisor interface
 
@@ -960,6 +973,7 @@ class XenPvmHypervisor(XenHypervisor):
     constants.HV_VIF_SCRIPT: hv_base.OPT_FILE_CHECK,
     constants.HV_XEN_CMD:
       hv_base.ParamInSet(True, constants.KNOWN_XEN_COMMANDS),
+    constants.HV_XEN_CPUID: hv_base.NO_CHECK,
     }
 
   def _GetConfig(self, instance, startup_memory, block_devices):
@@ -1043,6 +1057,10 @@ class XenPvmHypervisor(XenHypervisor):
     config.write("on_crash = 'restart'\n")
     config.write("extra = '%s'\n" % hvp[constants.HV_KERNEL_ARGS])
 
+    cpuid = hvp[constants.HV_XEN_CPUID]
+    if cpuid:
+      config.write("cpuid = %s\n" % _QuoteCpuidField(cpuid))
+
     return config.getvalue()
 
 
@@ -1093,6 +1111,7 @@ class XenHvmHypervisor(XenHypervisor):
     constants.HV_VIRIDIAN: hv_base.NO_CHECK,
     constants.HV_XEN_CMD:
       hv_base.ParamInSet(True, constants.KNOWN_XEN_COMMANDS),
+    constants.HV_XEN_CPUID: hv_base.NO_CHECK,
     }
 
   def _GetConfig(self, instance, startup_memory, block_devices):
@@ -1221,5 +1240,9 @@ class XenHvmHypervisor(XenHypervisor):
     else:
       config.write("on_reboot = 'destroy'\n")
     config.write("on_crash = 'restart'\n")
+
+    cpuid = hvp[constants.HV_XEN_CPUID]
+    if cpuid:
+      config.write("cpuid = %s\n" % _QuoteCpuidField(cpuid))
 
     return config.getvalue()

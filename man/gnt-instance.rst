@@ -728,6 +728,19 @@ soundhw
     Comma separated list of emulated sounds cards, or "all" to enable
     all the available ones.
 
+cpuid
+    Valid for the XEN hypervisor.
+
+    Modify the values returned by CPUID_ instructions run within instances.
+
+    This allows you to enable migration between nodes with different CPU
+    attributes like cores, threads, hyperthreading or SS4 support by hiding
+    the extra features where needed.
+
+    See the XEN documentation for syntax and more information.
+
+.. _CPUID: http://en.wikipedia.org/wiki/CPUID
+
 usb\_devices
     Valid for the KVM hypervisor.
 
