@@ -510,6 +510,24 @@ diskRdwr = Types.diskModeToRaw DiskRdWr
 diskAccessSet :: FrozenSet String
 diskAccessSet = ConstantUtils.mkSet $ map Types.diskModeToRaw [minBound..]
 
+-- * Disk replacement mode
+
+replaceDiskAuto :: String
+replaceDiskAuto = Types.replaceDisksModeToRaw ReplaceAuto
+
+replaceDiskChg :: String
+replaceDiskChg = Types.replaceDisksModeToRaw ReplaceNewSecondary
+
+replaceDiskPri :: String
+replaceDiskPri = Types.replaceDisksModeToRaw ReplaceOnPrimary
+
+replaceDiskSec :: String
+replaceDiskSec = Types.replaceDisksModeToRaw ReplaceOnSecondary
+
+replaceModes :: FrozenSet String
+replaceModes =
+  ConstantUtils.mkSet $ map Types.replaceDisksModeToRaw [minBound..]
+
 -- * Instance export mode
 
 exportModeLocal :: String

@@ -525,17 +525,11 @@ DISK_USERSPACE = _constants.DISK_USERSPACE
 DISK_KERNELSPACE = _constants.DISK_KERNELSPACE
 DISK_VALID_ACCESS_MODES = _constants.DISK_VALID_ACCESS_MODES
 
-# disk replacement mode
-REPLACE_DISK_PRI = "replace_on_primary"    # replace disks on primary
-REPLACE_DISK_SEC = "replace_on_secondary"  # replace disks on secondary
-REPLACE_DISK_CHG = "replace_new_secondary" # change secondary node
-REPLACE_DISK_AUTO = "replace_auto"
-REPLACE_MODES = compat.UniqueFrozenset([
-  REPLACE_DISK_PRI,
-  REPLACE_DISK_SEC,
-  REPLACE_DISK_CHG,
-  REPLACE_DISK_AUTO,
-  ])
+REPLACE_DISK_PRI = _constants.REPLACE_DISK_PRI
+REPLACE_DISK_SEC = _constants.REPLACE_DISK_SEC
+REPLACE_DISK_CHG = _constants.REPLACE_DISK_CHG
+REPLACE_DISK_AUTO = _constants.REPLACE_DISK_AUTO
+REPLACE_MODES = _constants.REPLACE_MODES
 
 # Instance export mode
 EXPORT_MODE_LOCAL = _constants.EXPORT_MODE_LOCAL

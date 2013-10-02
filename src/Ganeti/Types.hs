@@ -143,6 +143,8 @@ module Ganeti.Types
   , storageFieldToRaw
   , DiskAccessMode(..)
   , diskAccessModeToRaw
+  , ReplaceDisksMode(..)
+  , replaceDisksModeToRaw
   ) where
 
 import Control.Monad (liftM)
@@ -779,3 +781,15 @@ $(THH.declareLADT ''String "DiskAccessMode"
   , ( "DiskKernelspace", "kernelspace")
   ])
 $(THH.makeJSONInstance ''DiskAccessMode)
+
+-- | Replace disks type.
+$(THH.declareLADT ''String "ReplaceDisksMode"
+  [ -- Replace disks on primary
+    ("ReplaceOnPrimary",    "replace_on_primary")
+    -- Replace disks on secondary
+  , ("ReplaceOnSecondary",  "replace_on_secondary")
+    -- Change secondary node
+  , ("ReplaceNewSecondary", "replace_new_secondary")
+  , ("ReplaceAuto",         "replace_auto")
+  ])
+$(THH.makeJSONInstance ''ReplaceDisksMode)

@@ -301,15 +301,6 @@ forceNonNeg i = case mkNonNegative i of
 
 -- ** Disks
 
--- | Replace disks type.
-$(declareSADT "ReplaceDisksMode"
-  [ ("ReplaceOnPrimary",    'C.replaceDiskPri)
-  , ("ReplaceOnSecondary",  'C.replaceDiskSec)
-  , ("ReplaceNewSecondary", 'C.replaceDiskChg)
-  , ("ReplaceAuto",         'C.replaceDiskAuto)
-  ])
-$(makeJSONInstance ''ReplaceDisksMode)
-
 -- | Disk index type (embedding constraints on the index value via a
 -- smart constructor).
 newtype DiskIndex = DiskIndex { unDiskIndex :: Int }
