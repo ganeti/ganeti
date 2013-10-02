@@ -37,7 +37,6 @@ module Ganeti.Query.Common
   , serialFields
   , tagsFields
   , dictFieldGetter
-  , buildQFTLookup
   , buildNdParamField
   ) where
 
@@ -147,20 +146,13 @@ tagsFields =
 dictFieldGetter :: (DictObject a) => String -> Maybe a -> ResultEntry
 dictFieldGetter k = maybe rsNoData (rsMaybeNoData . lookup k . toDict)
 
--- | Build an optimised lookup map from a Python _PARAMETER_TYPES
--- association list.
-buildQFTLookup :: [(String, String)] -> Map.Map String FieldType
-buildQFTLookup =
-  Map.fromList .
-  map (\(k, v) -> (k, maybe QFTOther vTypeToQFT (vTypeFromRaw v)))
-
 -- | Ndparams optimised lookup map.
 ndParamTypes :: Map.Map String FieldType
-ndParamTypes = buildQFTLookup C.ndsParameterTypes
+ndParamTypes = Map.map vTypeToQFT C.ndsParameterTypes
 
 -- | Ndparams title map.
 ndParamTitles :: Map.Map String FieldTitle
-ndParamTitles = Map.fromList C.ndsParameterTitles
+ndParamTitles = C.ndsParameterTitles
 
 -- | Ndparam getter builder: given a field, it returns a FieldConfig
 -- getter, that is a function that takes the config and the object and

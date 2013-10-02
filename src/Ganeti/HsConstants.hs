@@ -38,7 +38,7 @@ module Ganeti.HsConstants where
 
 import Data.List ((\\))
 import Data.Map (Map)
-import qualified Data.Map as Map (fromList)
+import qualified Data.Map as Map (fromList, keys, insert)
 
 import AutoConf
 import Ganeti.ConstantUtils (FrozenSet, Protocol(..), buildVersion)
@@ -663,6 +663,49 @@ rpcTmo_1day = Types.rpcTimeoutToRaw OneDay
 -- | Timeout for connecting to nodes (seconds)
 rpcConnectTimeout :: Int
 rpcConnectTimeout = 5
+
+-- | Node parameter names
+
+ndExclusiveStorage :: String
+ndExclusiveStorage = "exclusive_storage"
+
+ndOobProgram :: String
+ndOobProgram = "oob_program"
+
+ndSpindleCount :: String
+ndSpindleCount = "spindle_count"
+
+ndOvs :: String
+ndOvs = "ovs"
+
+ndOvsLink :: String
+ndOvsLink = "ovs_link"
+
+ndOvsName :: String
+ndOvsName = "ovs_name"
+
+ndsParameterTypes :: Map String VType
+ndsParameterTypes =
+  Map.fromList
+  [(ndExclusiveStorage, VTypeBool),
+   (ndOobProgram, VTypeString),
+   (ndOvs, VTypeBool),
+   (ndOvsLink, VTypeMaybeString),
+   (ndOvsName, VTypeMaybeString),
+   (ndSpindleCount, VTypeInt)]
+
+ndsParameters :: FrozenSet String
+ndsParameters = ConstantUtils.mkSet (Map.keys ndsParameterTypes)
+
+ndsParameterTitles :: Map String String
+ndsParameterTitles =
+  Map.fromList
+  [(ndExclusiveStorage, "ExclusiveStorage"),
+   (ndOobProgram, "OutOfBandProgram"),
+   (ndOvs, "OpenvSwitch"),
+   (ndOvsLink, "OpenvSwitchLink"),
+   (ndOvsName, "OpenvSwitchName"),
+   (ndSpindleCount, "SpindleCount")]
 
 ipCommandPath :: String
 ipCommandPath = AutoConf.ipPath
