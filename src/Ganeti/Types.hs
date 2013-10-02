@@ -145,6 +145,9 @@ module Ganeti.Types
   , diskAccessModeToRaw
   , ReplaceDisksMode(..)
   , replaceDisksModeToRaw
+  , RpcTimeout(..)
+  , rpcTimeoutFromRaw -- FIXME: no used anywhere
+  , rpcTimeoutToRaw
   ) where
 
 import Control.Monad (liftM)
@@ -793,3 +796,13 @@ $(THH.declareLADT ''String "ReplaceDisksMode"
   , ("ReplaceAuto",         "replace_auto")
   ])
 $(THH.makeJSONInstance ''ReplaceDisksMode)
+
+-- | Basic timeouts for RPC calls.
+$(THH.declareILADT "RpcTimeout"
+  [ ("Urgent",    60)       -- 1 minute
+  , ("Fast",      5 * 60)   -- 5 minutes
+  , ("Normal",    15 * 60)  -- 15 minutes
+  , ("Slow",      3600)     -- 1 hour
+  , ("FourHours", 4 * 3600) -- 4 hours
+  , ("OneDay",    86400)    -- 1 day
+  ])

@@ -68,8 +68,6 @@ module Ganeti.Rpc
 
   , RpcCallExportList(..)
   , RpcResultExportList(..)
-
-  , rpcTimeoutFromRaw -- FIXME: Not used anywhere
   ) where
 
 import Control.Arrow (second)
@@ -122,16 +120,6 @@ explainRpcError OfflineNodeError =
     "Node is marked offline"
 
 type ERpcError = Either RpcError
-
--- | Basic timeouts for RPC calls.
-$(declareIADT "RpcTimeout"
-  [ ( "Urgent",    'C.rpcTmoUrgent )
-  , ( "Fast",      'C.rpcTmoFast )
-  , ( "Normal",    'C.rpcTmoNormal )
-  , ( "Slow",      'C.rpcTmoSlow )
-  , ( "FourHours", 'C.rpcTmo4hrs )
-  , ( "OneDay",    'C.rpcTmo1day )
-  ])
 
 -- | A generic class for RPC calls.
 class (J.JSON a) => RpcCall a where

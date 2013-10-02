@@ -55,6 +55,8 @@ import Ganeti.Confd.Types (ConfdRequestType(..), ConfdReqField(..),
                            ConfdErrorType(..))
 import qualified Ganeti.Confd.Types as Types
 
+{-# ANN module "HLint: ignore Use camelCase" #-}
+
 -- * 'autoconf' constants for Python only ('autotools/build-bash-completion')
 
 htoolsProgs :: [String]
@@ -629,6 +631,38 @@ nodeMaxClockSkew = 150
 -- | Disk index separator
 diskSeparator :: String
 diskSeparator = AutoConf.diskSeparator
+
+-- * Timeout table
+--
+-- Various time constants for the timeout table
+
+rpcTmoUrgent :: Int
+rpcTmoUrgent = Types.rpcTimeoutToRaw Urgent
+
+rpcTmoFast :: Int
+rpcTmoFast = Types.rpcTimeoutToRaw Fast
+
+rpcTmoNormal :: Int
+rpcTmoNormal = Types.rpcTimeoutToRaw Normal
+
+rpcTmoSlow :: Int
+rpcTmoSlow = Types.rpcTimeoutToRaw Slow
+
+-- | 'rpcTmo_4hrs' contains an underscore to circumvent a limitation
+-- in the 'Ganeti.THH.deCamelCase' function and generate the correct
+-- Python name.
+rpcTmo_4hrs :: Int
+rpcTmo_4hrs = Types.rpcTimeoutToRaw FourHours
+
+-- | 'rpcTmo_1day' contains an underscore to circumvent a limitation
+-- in the 'Ganeti.THH.deCamelCase' function and generate the correct
+-- Python name.
+rpcTmo_1day :: Int
+rpcTmo_1day = Types.rpcTimeoutToRaw OneDay
+
+-- | Timeout for connecting to nodes (seconds)
+rpcConnectTimeout :: Int
+rpcConnectTimeout = 5
 
 ipCommandPath :: String
 ipCommandPath = AutoConf.ipPath
