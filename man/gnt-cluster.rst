@@ -803,6 +803,21 @@ When all the disk sizes are consistent, the command will return no
 output. Otherwise it will log details about the inconsistencies in
 the configuration.
 
+UPGRADE
+~~~~~~~
+
+**upgrade** {--to *version* | --resume}
+
+This command safely switches all nodes of the cluster to a new Ganeti
+version. It is a prerequisite that the new version is already installed,
+albeit not activated, on all nodes; this requisite is checked before any
+actions are done.
+
+If called with the ``--resume`` option, any pending upgrade is
+continued, that was interrupted by a power failure or similar on
+master. (This option is not yet implemented.)
+
+
 VERIFY
 ~~~~~~
 
