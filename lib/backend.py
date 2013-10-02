@@ -1636,7 +1636,7 @@ def _GatherAndLinkBlockDevs(instance):
       raise errors.BlockDeviceError("Cannot create block device symlink: %s" %
                                     e.strerror)
 
-    block_devices.append((disk, link_name))
+    block_devices.append((disk, link_name, device))
 
   return block_devices
 
