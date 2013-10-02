@@ -39,7 +39,8 @@ from ganeti.cmdlib.common import MergeAndVerifyHvState, \
   CheckNodeGroupInstances, GetUpdatedIPolicy, \
   ComputeNewInstanceViolations, GetDefaultIAllocator, ShareAll, \
   CheckInstancesNodeGroups, LoadNodeEvacResult, MapInstanceLvsToNodes, \
-  CheckIpolicyVsDiskTemplates
+  CheckIpolicyVsDiskTemplates, CheckDiskAccessModeValidity, \
+  CheckDiskAccessModeConsistency
 
 import ganeti.masterd.instance
 
@@ -406,6 +407,9 @@ class LUGroupSetParams(LogicalUnit):
       raise errors.OpPrereqError("Please pass at least one modification",
                                  errors.ECODE_INVAL)
 
+    if self.op.diskparams:
+      CheckDiskAccessModeValidity(self.op.diskparams)
+
   def ExpandNames(self):
     # This raises errors.OpPrereqError on its own:
     self.group_uuid = self.cfg.LookupNodeGroup(self.op.group_name)
@@ -500,8 +504,11 @@ class LUGroupSetParams(LogicalUnit):
       # As we've all subdicts of diskparams ready, lets merge the actual
       # dict with all updated subdicts
       self.new_diskparams = objects.FillDict(diskparams, new_diskparams)
+
       try:
         utils.VerifyDictOptions(self.new_diskparams, constants.DISK_DT_DEFAULTS)
+        CheckDiskAccessModeConsistency(self.new_diskparams, self.cfg,
+                                       group=self.group)
       except errors.OpPrereqError, err:
         raise errors.OpPrereqError("While verify diskparams options: %s" % err,
                                    errors.ECODE_INVAL)

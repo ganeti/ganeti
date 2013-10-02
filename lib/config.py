@@ -667,6 +667,16 @@ class ConfigWriter(object):
             constants.NDS_PARAMETER_TYPES)
     _helper_ipolicy("cluster", cluster.ipolicy, True)
 
+    if constants.DT_RBD in cluster.diskparams:
+      access = cluster.diskparams[constants.DT_RBD][constants.RBD_ACCESS]
+      if access not in constants.DISK_VALID_ACCESS_MODES:
+        result.append(
+          "Invalid value of '%s:%s': '%s' (expected one of %s)" % (
+            constants.DT_RBD, constants.RBD_ACCESS, access,
+            utils.CommaJoin(constants.DISK_VALID_ACCESS_MODES)
+          )
+        )
+
     # per-instance checks
     for instance_uuid in data.instances:
       instance = data.instances[instance_uuid]

@@ -49,7 +49,7 @@ from ganeti.cmdlib.common import INSTANCE_DOWN, \
   IsExclusiveStorageEnabledNode, CheckHVParams, CheckOSParams, \
   AnnotateDiskParams, GetUpdatedParams, ExpandInstanceUuidAndName, \
   ComputeIPolicySpecViolation, CheckInstanceState, ExpandNodeUuidAndName, \
-  CheckDiskTemplateEnabled
+  CheckDiskTemplateEnabled, IsValidDiskAccessModeCombination
 from ganeti.cmdlib.instance_storage import CreateDisks, \
   CheckNodesFreeDiskPerVG, WipeDisks, WipeOrCleanupDisks, WaitForSync, \
   IsExclusiveStorageEnabledNodeUuid, CreateSingleBlockDev, ComputeDisks, \
@@ -1167,6 +1167,22 @@ class LUInstanceCreate(LogicalUnit):
       for dsk in self.disks:
         dsk[constants.IDISK_SIZE] = \
           int(float(node_disks[dsk[constants.IDISK_ADOPT]]))
+
+    # Check disk access param to be compatible with specified hypervisor
+    node_info = self.cfg.GetNodeInfo(self.op.pnode_uuid)
+    node_group = self.cfg.GetNodeGroup(node_info.group)
+    disk_params = self.cfg.GetGroupDiskParams(node_group)
+    access_type = disk_params[self.op.disk_template].get(
+      constants.RBD_ACCESS, constants.DISK_KERNELSPACE
+    )
+
+    if not IsValidDiskAccessModeCombination(self.op.hypervisor,
+                                            self.op.disk_template,
+                                            access_type):
+      raise errors.OpPrereqError("Selected hypervisor (%s) cannot be"
+                                 " used with %s disk access param" %
+                                 (self.op.hypervisor, access_type),
+                                  errors.ECODE_STATE)
 
     # Verify instance specs
     spindle_use = self.be_full.get(constants.BE_SPINDLE_USE, None)

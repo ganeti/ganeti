@@ -57,7 +57,8 @@ from ganeti.cmdlib.common import ShareAll, RunPostHook, \
   GetUpdatedIPolicy, ComputeNewInstanceViolations, GetUpdatedParams, \
   CheckOSParams, CheckHVParams, AdjustCandidatePool, CheckNodePVs, \
   ComputeIPolicyInstanceViolation, AnnotateDiskParams, SupportsOob, \
-  CheckIpolicyVsDiskTemplates
+  CheckIpolicyVsDiskTemplates, CheckDiskAccessModeValidity, \
+  CheckDiskAccessModeConsistency
 
 import ganeti.masterd.instance
 
@@ -704,6 +705,7 @@ class LUClusterSetParams(LogicalUnit):
         utils.ForceDictType(dt_params, constants.DISK_DT_TYPES)
       try:
         utils.VerifyDictOptions(self.op.diskparams, constants.DISK_DT_DEFAULTS)
+        CheckDiskAccessModeValidity(self.op.diskparams)
       except errors.OpPrereqError, err:
         raise errors.OpPrereqError("While verify diskparams options: %s" % err,
                                    errors.ECODE_INVAL)
@@ -1024,6 +1026,7 @@ class LUClusterSetParams(LogicalUnit):
           self.new_diskparams[dt_name] = dt_params
         else:
           self.new_diskparams[dt_name].update(dt_params)
+      CheckDiskAccessModeConsistency(self.op.diskparams, self.cfg)
 
     # os hypervisor parameters
     self.new_os_hvp = objects.FillDict(cluster.os_hvp, {})
