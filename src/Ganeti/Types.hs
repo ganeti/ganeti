@@ -141,6 +141,8 @@ module Ganeti.Types
   , adminStateToRaw
   , StorageField(..)
   , storageFieldToRaw
+  , DiskAccessMode(..)
+  , diskAccessModeToRaw
   ) where
 
 import Control.Monad (liftM)
@@ -282,6 +284,9 @@ $(THH.declareLADT ''String "DiskTemplate"
        ])
 $(THH.makeJSONInstance ''DiskTemplate)
 
+instance THH.PyValue DiskTemplate where
+  showValue = show . diskTemplateToRaw
+
 instance HasStringRepr DiskTemplate where
   fromStringRepr = diskTemplateFromRaw
   toStringRepr = diskTemplateToRaw
@@ -405,6 +410,9 @@ $(THH.declareLADT ''String "Hypervisor"
   , ("Fake",   "fake")
   ])
 $(THH.makeJSONInstance ''Hypervisor)
+
+instance THH.PyValue Hypervisor where
+  showValue = show . hypervisorToRaw
 
 -- | Oob command type.
 $(THH.declareLADT ''String "OobCommand"
@@ -763,3 +771,11 @@ $(THH.declareLADT ''String "StorageField"
   , ( "SFSize",        "size")
   ])
 $(THH.makeJSONInstance ''StorageField)
+
+-- * Disk access protocol
+
+$(THH.declareLADT ''String "DiskAccessMode"
+  [ ( "DiskUserspace",   "userspace")
+  , ( "DiskKernelspace", "kernelspace")
+  ])
+$(THH.makeJSONInstance ''DiskAccessMode)

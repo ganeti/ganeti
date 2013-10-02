@@ -425,13 +425,15 @@ class TestLUClusterSetParams(CmdlibTestCase):
 
   def testInvalidDiskparams(self):
     for diskparams in [{constants.DT_DISKLESS: {constants.LV_STRIPES: 0}},
-                       {constants.DT_DRBD8: {constants.RBD_POOL: "pool"}}]:
+                       {constants.DT_DRBD8: {constants.RBD_POOL: "pool"}},
+                       {constants.DT_DRBD8: {constants.RBD_ACCESS: "bunny"}}]:
       self.ResetMocks()
       op = opcodes.OpClusterSetParams(diskparams=diskparams)
       self.ExecOpCodeExpectOpPrereqError(op, "verify diskparams")
 
   def testValidDiskparams(self):
-    diskparams = {constants.DT_RBD: {constants.RBD_POOL: "mock_pool"}}
+    diskparams = {constants.DT_RBD: {constants.RBD_POOL: "mock_pool",
+                                     constants.RBD_ACCESS: "kernelspace"}}
     op = opcodes.OpClusterSetParams(diskparams=diskparams)
     self.ExecOpCode(op)
     self.assertEqual(diskparams[constants.DT_RBD],

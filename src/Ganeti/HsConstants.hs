@@ -1368,3 +1368,15 @@ statFile = "/proc/stat"
 -- | Mond's variable for periodical data collection
 mondTimeInterval :: Int
 mondTimeInterval = 5
+
+-- * Disk access modes
+
+diskUserspace :: String
+diskUserspace = Types.diskAccessModeToRaw DiskUserspace
+
+diskKernelspace :: String
+diskKernelspace = Types.diskAccessModeToRaw DiskKernelspace
+
+diskValidAccessModes :: FrozenSet String
+diskValidAccessModes =
+  ConstantUtils.mkSet $ map Types.diskAccessModeToRaw [minBound..]
