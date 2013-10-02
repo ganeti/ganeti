@@ -91,7 +91,7 @@ instance PyValue ExportMode where
 
 instance PyValue CVErrorCode where
   showValue = cVErrorCodeToRaw
-  
+
 instance PyValue VerifyOptionalChecks where
   showValue = verifyOptionalChecksToRaw
 
