@@ -469,6 +469,21 @@ pool
     When a new RADOS cluster is deployed, the default pool to put rbd
     volumes (Images in RADOS terminology) is 'rbd'.
 
+access
+    If 'userspace', instances will access their disks directly without
+    going through a block device, avoiding expensive context switches
+    with kernel space and the potential for deadlocks_ in low memory
+    scenarios.
+
+    The default value is 'kernelspace' and it disables this behaviour.
+    This setting may only be changed to 'userspace' if all instance
+    disks in the affected group or cluster can be accessed in userspace.
+
+    Attempts to use this feature without rbd support compiled in KVM
+    result in a "no such file or directory" error messages.
+
+.. _deadlocks: http://tracker.ceph.com/issues/3076
+
 The option ``--maintain-node-health`` allows one to enable/disable
 automatic maintenance actions on nodes. Currently these include
 automatic shutdown of instances and deactivation of DRBD devices on

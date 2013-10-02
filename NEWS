@@ -7,6 +7,11 @@ Version 2.10.0 alpha1
 
 *(unreleased)*
 
+New features
+~~~~~~~~~~~~
+- KVM hypervisors can now access RBD storage directly without having to
+  go through a block device.
+
 Incompatible/important changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

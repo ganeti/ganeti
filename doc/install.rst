@@ -367,6 +367,31 @@ above. We recommend using the latest version of ``ceph-common``.
 
       $ apt-get install ceph-common
 
+KVM userspace access
+~~~~~~~~~~~~~~~~~~~~
+
+If your cluster uses a sufficiently new version of KVM (you will need at
+least QEMU 0.14 with RBD support compiled in), you can take advantage of
+KVM's native support for ceph in order to have better performance and
+avoid potential deadlocks_ in low memory scenarios.
+
+.. _deadlocks: http://tracker.ceph.com/issues/3076
+
+To initialize a cluster with support for this feature, use a command
+such as::
+
+  $ gnt-cluster init \
+      --enabled-disk-templates rbd \
+      --ipolicy-disk-templates rbd \
+      --enabled-hypervisors=kvm \
+      -D rbd:access=userspace
+
+(You may want to enable more templates than just ``rbd``.)
+
+You can also change this setting on a live cluster by giving the same
+switches to ``gnt-cluster modify``, or change those settings at the node
+group level with ``gnt-group modify``.
+
 Configuration file
 ~~~~~~~~~~~~~~~~~~
 
