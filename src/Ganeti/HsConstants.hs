@@ -139,6 +139,18 @@ versionRevision = AutoConf.versionRevision
 dirVersion :: String
 dirVersion = AutoConf.dirVersion
 
+osApiV10 :: Int
+osApiV10 = 10
+
+osApiV15 :: Int
+osApiV15 = 15
+
+osApiV20 :: Int
+osApiV20 = 20
+
+osApiVersions :: FrozenSet Int
+osApiVersions = ConstantUtils.mkSet [osApiV10, osApiV15, osApiV20]
+
 configMajor :: Int
 configMajor = AutoConf.versionMajor
 

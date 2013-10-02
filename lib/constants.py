@@ -32,14 +32,10 @@ from ganeti import pathutils
 
 # various versions
 RELEASE_VERSION = _constants.RELEASE_VERSION
-OS_API_V10 = 10
-OS_API_V15 = 15
-OS_API_V20 = 20
-OS_API_VERSIONS = compat.UniqueFrozenset([
-  OS_API_V10,
-  OS_API_V15,
-  OS_API_V20,
-  ])
+OS_API_V10 = _constants.OS_API_V10
+OS_API_V15 = _constants.OS_API_V15
+OS_API_V20 = _constants.OS_API_V20
+OS_API_VERSIONS = _constants.OS_API_VERSIONS
 VCS_VERSION = _vcsversion.VCS_VERSION
 EXPORT_VERSION = 0
 RAPI_VERSION = 2

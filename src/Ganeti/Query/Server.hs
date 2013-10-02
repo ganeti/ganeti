@@ -36,6 +36,7 @@ import Control.Concurrent
 import Control.Exception
 import Control.Monad (forever)
 import Data.Bits (bitSize)
+import qualified Data.Set as Set (toList)
 import Data.IORef
 import qualified Network.Socket as S
 import qualified Text.JSON as J
@@ -43,6 +44,7 @@ import Text.JSON (showJSON, JSValue(..))
 import System.Info (arch)
 
 import qualified Ganeti.Constants as C
+import qualified Ganeti.ConstantUtils as ConstantUtils (unFrozenSet)
 import Ganeti.Errors
 import qualified Ganeti.Path as Path
 import Ganeti.Daemon
@@ -96,7 +98,9 @@ handleCall cdata QueryClusterInfo =
       obj = [ ("software_version", showJSON C.releaseVersion)
             , ("protocol_version", showJSON C.protocolVersion)
             , ("config_version", showJSON C.configVersion)
-            , ("os_api_version", showJSON $ maximum C.osApiVersions)
+            , ("os_api_version", showJSON . maximum .
+                                 Set.toList . ConstantUtils.unFrozenSet $
+                                 C.osApiVersions)
             , ("export_version", showJSON C.exportVersion)
             , ("vcs_version", showJSON C.vcsVersion)
             , ("architecture", showJSON arch_tuple)
