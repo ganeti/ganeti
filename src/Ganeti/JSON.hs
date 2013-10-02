@@ -138,7 +138,7 @@ maybeFromObj o k =
 
 -- | Reads the value of a key in a JSON object with a default if
 -- missing. Note that both missing keys and keys with value \'null\'
--- will case the default value to be returned.
+-- will cause the default value to be returned.
 fromObjWithDefault :: (J.JSON a, Monad m) =>
                       JSRecord -> String -> a -> m a
 fromObjWithDefault o k d = liftM (fromMaybe d) $ maybeFromObj o k
