@@ -854,6 +854,42 @@ dtsBlock =
   ConstantUtils.mkSet $
   map Types.diskTemplateToRaw [DTPlain, DTDrbd8, DTBlock, DTRbd, DTExt]
 
+-- * Drbd
+
+drbdHmacAlg :: String
+drbdHmacAlg = "md5"
+
+drbdDefaultNetProtocol :: String
+drbdDefaultNetProtocol = "C"
+
+drbdMigrationNetProtocol :: String
+drbdMigrationNetProtocol = "C"
+
+drbdStatusFile :: String
+drbdStatusFile = "/proc/drbd"
+
+-- | Size of DRBD meta block device
+drbdMetaSize :: Int
+drbdMetaSize = 128
+
+-- * Drbd barrier types
+
+drbdBDiskBarriers :: String
+drbdBDiskBarriers = "b"
+
+drbdBDiskDrain :: String
+drbdBDiskDrain = "d"
+
+drbdBDiskFlush :: String
+drbdBDiskFlush = "f"
+
+drbdBNone :: String
+drbdBNone = "n"
+
+-- | Rbd tool command
+rbdCmd :: String
+rbdCmd = "rbd"
+
 -- * File backend driver
 
 fdBlktap :: String
