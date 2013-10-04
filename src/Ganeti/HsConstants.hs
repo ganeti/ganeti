@@ -3301,6 +3301,118 @@ maxDisks = Types.maxDisks
 maxNics :: Int
 maxNics = Types.maxNics
 
+-- | SSCONF file prefix
+ssconfFileprefix :: String
+ssconfFileprefix = "ssconf_"
+
+-- * SSCONF keys
+
+ssClusterName :: String
+ssClusterName = "cluster_name"
+
+ssClusterTags :: String
+ssClusterTags = "cluster_tags"
+
+ssFileStorageDir :: String
+ssFileStorageDir = "file_storage_dir"
+
+ssSharedFileStorageDir :: String
+ssSharedFileStorageDir = "shared_file_storage_dir"
+
+ssMasterCandidates :: String
+ssMasterCandidates = "master_candidates"
+
+ssMasterCandidatesIps :: String
+ssMasterCandidatesIps = "master_candidates_ips"
+
+ssMasterIp :: String
+ssMasterIp = "master_ip"
+
+ssMasterNetdev :: String
+ssMasterNetdev = "master_netdev"
+
+ssMasterNetmask :: String
+ssMasterNetmask = "master_netmask"
+
+ssMasterNode :: String
+ssMasterNode = "master_node"
+
+ssNodeList :: String
+ssNodeList = "node_list"
+
+ssNodePrimaryIps :: String
+ssNodePrimaryIps = "node_primary_ips"
+
+ssNodeSecondaryIps :: String
+ssNodeSecondaryIps = "node_secondary_ips"
+
+ssOfflineNodes :: String
+ssOfflineNodes = "offline_nodes"
+
+ssOnlineNodes :: String
+ssOnlineNodes = "online_nodes"
+
+ssPrimaryIpFamily :: String
+ssPrimaryIpFamily = "primary_ip_family"
+
+ssInstanceList :: String
+ssInstanceList = "instance_list"
+
+ssReleaseVersion :: String
+ssReleaseVersion = "release_version"
+
+ssHypervisorList :: String
+ssHypervisorList = "hypervisor_list"
+
+ssMaintainNodeHealth :: String
+ssMaintainNodeHealth = "maintain_node_health"
+
+ssUidPool :: String
+ssUidPool = "uid_pool"
+
+ssNodegroups :: String
+ssNodegroups = "nodegroups"
+
+ssNetworks :: String
+ssNetworks = "networks"
+
+-- | This is not a complete SSCONF key, but the prefix for the
+-- hypervisor keys
+ssHvparamsPref :: String
+ssHvparamsPref = "hvparams_"
+
+-- * Hvparams keys
+
+ssHvparamsXenChroot :: String
+ssHvparamsXenChroot = ssHvparamsPref ++ htChroot
+
+ssHvparamsXenFake :: String
+ssHvparamsXenFake = ssHvparamsPref ++ htFake
+
+ssHvparamsXenHvm :: String
+ssHvparamsXenHvm = ssHvparamsPref ++ htXenHvm
+
+ssHvparamsXenKvm :: String
+ssHvparamsXenKvm = ssHvparamsPref ++ htKvm
+
+ssHvparamsXenLxc :: String
+ssHvparamsXenLxc = ssHvparamsPref ++ htLxc
+
+ssHvparamsXenPvm :: String
+ssHvparamsXenPvm = ssHvparamsPref ++ htXenPvm
+
+validSsHvparamsKeys :: FrozenSet String
+validSsHvparamsKeys =
+  ConstantUtils.mkSet [ssHvparamsXenChroot,
+                       ssHvparamsXenLxc,
+                       ssHvparamsXenFake,
+                       ssHvparamsXenHvm,
+                       ssHvparamsXenKvm,
+                       ssHvparamsXenPvm]
+
+ssFilePerms :: Int
+ssFilePerms = 0o444
+
 -- * Confd
 
 confdProtocolVersion :: Int
