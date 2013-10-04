@@ -3427,6 +3427,28 @@ hvcGlobals =
 ndcGlobals :: FrozenSet String
 ndcGlobals = ConstantUtils.mkSet [ndExclusiveStorage]
 
+-- | All of the following values are quite arbitrary - there are no
+-- "good" defaults, these must be customised per-site
+ispecsMinmaxDefaults :: Map String (Map String Int)
+ispecsMinmaxDefaults =
+  Map.fromList
+  [(ispecsMin,
+    Map.fromList
+    [(ConstantUtils.ispecMemSize, Types.iSpecMemorySize Types.defMinISpec),
+     (ConstantUtils.ispecCpuCount, Types.iSpecCpuCount Types.defMinISpec),
+     (ConstantUtils.ispecDiskCount, Types.iSpecDiskCount Types.defMinISpec),
+     (ConstantUtils.ispecDiskSize, Types.iSpecDiskSize Types.defMinISpec),
+     (ConstantUtils.ispecNicCount, Types.iSpecNicCount Types.defMinISpec),
+     (ConstantUtils.ispecSpindleUse, Types.iSpecSpindleUse Types.defMinISpec)]),
+   (ispecsMax,
+    Map.fromList
+    [(ConstantUtils.ispecMemSize, Types.iSpecMemorySize Types.defMaxISpec),
+     (ConstantUtils.ispecCpuCount, Types.iSpecCpuCount Types.defMaxISpec),
+     (ConstantUtils.ispecDiskCount, Types.iSpecDiskCount Types.defMaxISpec),
+     (ConstantUtils.ispecDiskSize, Types.iSpecDiskSize Types.defMaxISpec),
+     (ConstantUtils.ispecNicCount, Types.iSpecNicCount Types.defMaxISpec),
+     (ConstantUtils.ispecSpindleUse, Types.iSpecSpindleUse Types.defMaxISpec)])]
+
 -- * Confd
 
 confdProtocolVersion :: Int

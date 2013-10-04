@@ -1435,26 +1435,8 @@ NICC_DEFAULTS = {
   NIC_VLAN: VALUE_HS_NOTHING,
   }
 
-# All of the following values are quite arbitrarily - there are no
-# "good" defaults, these must be customised per-site
-ISPECS_MINMAX_DEFAULTS = {
-  ISPECS_MIN: {
-    ISPEC_MEM_SIZE: 128,
-    ISPEC_CPU_COUNT: 1,
-    ISPEC_DISK_COUNT: 1,
-    ISPEC_DISK_SIZE: 1024,
-    ISPEC_NIC_COUNT: 1,
-    ISPEC_SPINDLE_USE: 1,
-    },
-  ISPECS_MAX: {
-    ISPEC_MEM_SIZE: 32768,
-    ISPEC_CPU_COUNT: 8,
-    ISPEC_DISK_COUNT: MAX_DISKS,
-    ISPEC_DISK_SIZE: 1024 * 1024,
-    ISPEC_NIC_COUNT: MAX_NICS,
-    ISPEC_SPINDLE_USE: 12,
-    },
-  }
+ISPECS_MINMAX_DEFAULTS = _constants.ISPECS_MINMAX_DEFAULTS
+
 IPOLICY_DEFAULTS = {
   ISPECS_MINMAX: [ISPECS_MINMAX_DEFAULTS],
   ISPECS_STD: {
