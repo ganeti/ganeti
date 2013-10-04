@@ -808,10 +808,11 @@ OOB_STATUSES = _constants.OOB_STATUSES
 # Instance Parameters Profile
 PP_DEFAULT = "default"
 
-# NIC_* constants are used inside the ganeti config
 NIC_MODE = _constants.NIC_MODE
 NIC_LINK = _constants.NIC_LINK
 NIC_VLAN = _constants.NIC_VLAN
+NICS_PARAMETER_TYPES = _constants.NICS_PARAMETER_TYPES
+NICS_PARAMETERS = _constants.NICS_PARAMETERS
 
 NIC_MODE_BRIDGED = _constants.NIC_MODE_BRIDGED
 NIC_MODE_ROUTED = _constants.NIC_MODE_ROUTED
@@ -821,14 +822,6 @@ NIC_VALID_MODES = _constants.NIC_VALID_MODES
 
 RESERVE_ACTION = "reserve"
 RELEASE_ACTION = "release"
-
-NICS_PARAMETER_TYPES = {
-  NIC_MODE: VTYPE_STRING,
-  NIC_LINK: VTYPE_STRING,
-  NIC_VLAN: VTYPE_MAYBE_STRING,
-  }
-
-NICS_PARAMETERS = frozenset(NICS_PARAMETER_TYPES.keys())
 
 # IDISK_* constants are used in opcodes, to create/change disks
 IDISK_SIZE = "size"

@@ -2096,7 +2096,7 @@ oobStatusWarning = Types.oobStatusToRaw OobStatusWarning
 oobStatuses :: FrozenSet String
 oobStatuses = ConstantUtils.mkSet $ map Types.oobStatusToRaw [minBound..]
 
--- * NIC_* constants are used inside the ganeti config
+-- * nic* constants are used inside the ganeti config
 
 nicLink :: String
 nicLink = "link"
@@ -2106,6 +2106,15 @@ nicMode = "mode"
 
 nicVlan :: String
 nicVlan = "vlan"
+
+nicsParameterTypes :: Map String VType
+nicsParameterTypes =
+  Map.fromList [(nicMode, vtypeString),
+                (nicLink, vtypeString),
+                (nicVlan, vtypeMaybeString)]
+
+nicsParameters :: FrozenSet String
+nicsParameters = ConstantUtils.mkSet (Map.keys nicsParameterTypes)
 
 nicModeBridged :: String
 nicModeBridged = Types.nICModeToRaw NMBridged
