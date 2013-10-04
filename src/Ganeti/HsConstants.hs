@@ -1293,6 +1293,17 @@ esScripts =
 esParametersFile :: String
 esParametersFile = "parameters.list"
 
+-- * Instance reboot behaviors
+
+instanceRebootAllowed :: String
+instanceRebootAllowed = "reboot"
+
+instanceRebootExit :: String
+instanceRebootExit = "exit"
+
+rebootBehaviors :: [String]
+rebootBehaviors = [instanceRebootAllowed, instanceRebootExit]
+
 -- * VTypes
 
 vtypeBool :: VType
