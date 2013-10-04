@@ -3747,6 +3747,31 @@ ndsSsconf = "ssconf"
 ndsStartNodeDaemon :: String
 ndsStartNodeDaemon = "start_node_daemon"
 
+-- * The source reasons for the execution of an OpCode
+
+opcodeReasonSrcClient :: String
+opcodeReasonSrcClient = "gnt:client"
+
+opcodeReasonSrcNoded :: String
+opcodeReasonSrcNoded = "gnt:daemon:noded"
+
+opcodeReasonSrcOpcode :: String
+opcodeReasonSrcOpcode = "gnt:opcode"
+
+opcodeReasonSrcRlib2 :: String
+opcodeReasonSrcRlib2 = "gnt:library:rlib2"
+
+opcodeReasonSrcUser :: String
+opcodeReasonSrcUser = "gnt:user"
+
+opcodeReasonSources :: FrozenSet String
+opcodeReasonSources =
+  ConstantUtils.mkSet [opcodeReasonSrcClient,
+                       opcodeReasonSrcNoded,
+                       opcodeReasonSrcOpcode,
+                       opcodeReasonSrcRlib2,
+                       opcodeReasonSrcUser]
+
 -- | Path generating random UUID
 randomUuidFile :: String
 randomUuidFile = ConstantUtils.randomUuidFile
