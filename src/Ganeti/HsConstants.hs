@@ -775,6 +775,26 @@ rpcTmo_1day = Types.rpcTimeoutToRaw OneDay
 rpcConnectTimeout :: Int
 rpcConnectTimeout = 5
 
+-- * VTypes
+
+vtypeBool :: VType
+vtypeBool = VTypeBool
+
+vtypeInt :: VType
+vtypeInt = VTypeInt
+
+vtypeMaybeString :: VType
+vtypeMaybeString = VTypeMaybeString
+
+-- | Size in MiBs
+vtypeSize :: VType
+vtypeSize = VTypeSize
+
+vtypeString :: VType
+vtypeString = VTypeString
+
+enforceableTypes :: FrozenSet VType
+enforceableTypes = ConstantUtils.mkSet [minBound..]
 
 -- | Instance specs
 --
@@ -913,26 +933,12 @@ instanceRebootFull = Types.rebootTypeToRaw RebootFull
 rebootTypes :: FrozenSet String
 rebootTypes = ConstantUtils.mkSet $ map Types.rebootTypeToRaw [minBound..]
 
--- * VTypes
 
-vtypeBool :: String
-vtypeBool = Types.vTypeToRaw VTypeBool
 
-vtypeInt :: String
-vtypeInt = Types.vTypeToRaw VTypeInt
 
-vtypeMaybeString :: String
-vtypeMaybeString = Types.vTypeToRaw VTypeMaybeString
 
--- | Size in MiBs
-vtypeSize :: String
-vtypeSize = Types.vTypeToRaw VTypeSize
 
-vtypeString :: String
-vtypeString = Types.vTypeToRaw VTypeString
 
-enforceableTypes :: FrozenSet String
-enforceableTypes = ConstantUtils.mkSet $ map Types.vTypeToRaw [minBound..]
 
 -- * OOB supported commands
 
