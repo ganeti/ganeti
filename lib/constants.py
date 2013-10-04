@@ -378,25 +378,13 @@ INSTANCE_IMPORT = _constants.INSTANCE_IMPORT
 INSTANCE_REMOTE_IMPORT = _constants.INSTANCE_REMOTE_IMPORT
 INSTANCE_CREATE_MODES = _constants.INSTANCE_CREATE_MODES
 
-# Remote import/export handshake message and version
-RIE_VERSION = 0
-RIE_HANDSHAKE = "Hi, I'm Ganeti"
-
-# Remote import/export certificate validity in seconds
-RIE_CERT_VALIDITY = 24 * 60 * 60
-
-# Overall timeout for establishing connection
-RIE_CONNECT_TIMEOUT = 180
-
-# Export only: how long to wait per connection attempt (seconds)
-RIE_CONNECT_ATTEMPT_TIMEOUT = 20
-
-# Export only: number of attempts to connect
-RIE_CONNECT_RETRIES = 10
-
-#: Give child process up to 5 seconds to exit after sending a signal
-CHILD_LINGER_TIMEOUT = 5.0
-
+RIE_VERSION = _constants.RIE_VERSION
+RIE_HANDSHAKE = _constants.RIE_HANDSHAKE
+RIE_CERT_VALIDITY = _constants.RIE_CERT_VALIDITY
+RIE_CONNECT_TIMEOUT = _constants.RIE_CONNECT_TIMEOUT
+RIE_CONNECT_ATTEMPT_TIMEOUT = _constants.RIE_CONNECT_ATTEMPT_TIMEOUT
+RIE_CONNECT_RETRIES = _constants.RIE_CONNECT_RETRIES
+CHILD_LINGER_TIMEOUT = _constants.CHILD_LINGER_TIMEOUT
 
 # import/export config options
 INISECT_EXP = "export"

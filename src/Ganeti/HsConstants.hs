@@ -962,6 +962,34 @@ instanceCreateModes :: FrozenSet String
 instanceCreateModes =
   ConstantUtils.mkSet $ map Types.instCreateModeToRaw [minBound..]
 
+-- * Remote import/export handshake message and version
+
+rieHandshake :: String
+rieHandshake = "Hi, I'm Ganeti"
+
+rieVersion :: Int
+rieVersion = 0
+
+-- | Remote import/export certificate validity in seconds
+rieCertValidity :: Int
+rieCertValidity = 24 * 60 * 60
+
+-- | Export only: how long to wait per connection attempt (seconds)
+rieConnectAttemptTimeout :: Int
+rieConnectAttemptTimeout = 20
+
+-- | Export only: number of attempts to connect
+rieConnectRetries :: Int
+rieConnectRetries = 10
+
+-- | Overall timeout for establishing connection
+rieConnectTimeout :: Int
+rieConnectTimeout = 180
+
+-- | Give child process up to 5 seconds to exit after sending a signal
+childLingerTimeout :: Double
+childLingerTimeout = 5.0
+
 -- * Dynamic device modification
 
 ddmAdd :: String
