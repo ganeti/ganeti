@@ -2558,6 +2558,86 @@ cvAllEcodesStrings :: FrozenSet String
 cvAllEcodesStrings =
   ConstantUtils.mkSet $ map Types.cVErrorCodeToRaw [minBound..]
 
+-- * Node verify constants
+
+nvBridges :: String
+nvBridges = "bridges"
+
+nvDrbdhelper :: String
+nvDrbdhelper = "drbd-helper"
+
+nvDrbdversion :: String
+nvDrbdversion = "drbd-version"
+
+nvDrbdlist :: String
+nvDrbdlist = "drbd-list"
+
+nvExclusivepvs :: String
+nvExclusivepvs = "exclusive-pvs"
+
+nvFilelist :: String
+nvFilelist = "filelist"
+
+nvAcceptedStoragePaths :: String
+nvAcceptedStoragePaths = "allowed-file-storage-paths"
+
+nvFileStoragePath :: String
+nvFileStoragePath = "file-storage-path"
+
+nvSharedFileStoragePath :: String
+nvSharedFileStoragePath = "shared-file-storage-path"
+
+nvHvinfo :: String
+nvHvinfo = "hvinfo"
+
+nvHvparams :: String
+nvHvparams = "hvparms"
+
+nvHypervisor :: String
+nvHypervisor = "hypervisor"
+
+nvInstancelist :: String
+nvInstancelist = "instancelist"
+
+nvLvlist :: String
+nvLvlist = "lvlist"
+
+nvMasterip :: String
+nvMasterip = "master-ip"
+
+nvNodelist :: String
+nvNodelist = "nodelist"
+
+nvNodenettest :: String
+nvNodenettest = "node-net-test"
+
+nvNodesetup :: String
+nvNodesetup = "nodesetup"
+
+nvOobPaths :: String
+nvOobPaths = "oob-paths"
+
+nvOslist :: String
+nvOslist = "oslist"
+
+nvPvlist :: String
+nvPvlist = "pvlist"
+
+nvTime :: String
+nvTime = "time"
+
+nvUserscripts :: String
+nvUserscripts = "user-scripts"
+
+nvVersion :: String
+nvVersion = "version"
+
+nvVglist :: String
+nvVglist = "vglist"
+
+nvVmnodes :: String
+nvVmnodes = "vmnodes"
+
 -- * Instance status
 
 inststAdmindown :: String
