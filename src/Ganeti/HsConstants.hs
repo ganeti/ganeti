@@ -471,6 +471,148 @@ socatUseCompress = AutoConf.socatUseCompress
 socatUseEscape :: Bool
 socatUseEscape = AutoConf.socatUseEscape
 
+-- * Console types
+
+-- | Display a message for console access
+consMessage :: String
+consMessage = "msg"
+
+-- | Console as SPICE server
+consSpice :: String
+consSpice = "spice"
+
+-- | Console as SSH command
+consSsh :: String
+consSsh = "ssh"
+
+-- | Console as VNC server
+consVnc :: String
+consVnc = "vnc"
+
+consAll :: FrozenSet String
+consAll = ConstantUtils.mkSet [consMessage, consSpice, consSsh, consVnc]
+
+-- | RSA key bit length
+--
+-- For RSA keys more bits are better, but they also make operations
+-- more expensive. NIST SP 800-131 recommends a minimum of 2048 bits
+-- from the year 2010 on.
+rsaKeyBits :: Int
+rsaKeyBits = 2048
+
+-- | Ciphers allowed for SSL connections.
+--
+-- For the format, see ciphers(1). A better way to disable ciphers
+-- would be to use the exclamation mark (!), but socat versions below
+-- 1.5 can't parse exclamation marks in options properly. When
+-- modifying the ciphers, ensure not to accidentially add something
+-- after it's been removed. Use the "openssl" utility to check the
+-- allowed ciphers, e.g.  "openssl ciphers -v HIGH:-DES".
+opensslCiphers :: String
+opensslCiphers = "HIGH:-DES:-3DES:-EXPORT:-ADH"
+
+-- * X509
+
+-- | commonName (CN) used in certificates
+x509CertCn :: String
+x509CertCn = "ganeti.example.com"
+
+-- | Default validity of certificates in days
+x509CertDefaultValidity :: Int
+x509CertDefaultValidity = 365 * 5
+
+x509CertSignatureHeader :: String
+x509CertSignatureHeader = "X-Ganeti-Signature"
+
+-- | Digest used to sign certificates ("openssl x509" uses SHA1 by default)
+x509CertSignDigest :: String
+x509CertSignDigest = "SHA1"
+
+-- * Import/export daemon mode
+
+iemExport :: String
+iemExport = "export"
+
+iemImport :: String
+iemImport = "import"
+
+-- * Import/export transport compression
+
+iecGzip :: String
+iecGzip = "gzip"
+
+iecNone :: String
+iecNone = "none"
+
+iecAll :: [String]
+iecAll = [iecGzip, iecNone]
+
+ieCustomSize :: String
+ieCustomSize = "fd"
+
+-- * Import/export I/O
+
+-- | Direct file I/O, equivalent to a shell's I/O redirection using
+-- '<' or '>'
+ieioFile :: String
+ieioFile = "file"
+
+-- | Raw block device I/O using "dd"
+ieioRawDisk :: String
+ieioRawDisk = "raw"
+
+-- | OS definition import/export script
+ieioScript :: String
+ieioScript = "script"
+
+-- * Hooks
+
+hooksNameCfgupdate :: String
+hooksNameCfgupdate = "config-update"
+
+hooksNameWatcher :: String
+hooksNameWatcher = "watcher"
+
+hooksPath :: String
+hooksPath = "/sbin:/bin:/usr/sbin:/usr/bin"
+
+hooksPhasePost :: String
+hooksPhasePost = "post"
+
+hooksPhasePre :: String
+hooksPhasePre = "pre"
+
+hooksVersion :: Int
+hooksVersion = 2
+
+-- * Hooks subject type (what object type does the LU deal with)
+
+htypeCluster :: String
+htypeCluster = "CLUSTER"
+
+htypeGroup :: String
+htypeGroup = "GROUP"
+
+htypeInstance :: String
+htypeInstance = "INSTANCE"
+
+htypeNetwork :: String
+htypeNetwork = "NETWORK"
+
+htypeNode :: String
+htypeNode = "NODE"
+
+-- * Hkr
+
+hkrSkip :: Int
+hkrSkip = 0
+
+hkrFail :: Int
+hkrFail = 1
+
+hkrSuccess :: Int
+hkrSuccess = 2
+
 -- * Storage types
 
 stBlock :: String

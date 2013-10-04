@@ -193,73 +193,37 @@ SOCAT_USE_ESCAPE = _constants.SOCAT_USE_ESCAPE
 SOCAT_USE_COMPRESS = _constants.SOCAT_USE_COMPRESS
 SOCAT_ESCAPE_CODE = _constants.SOCAT_ESCAPE_CODE
 
-#: Console as SSH command
-CONS_SSH = "ssh"
 
-#: Console as VNC server
-CONS_VNC = "vnc"
+CONS_SSH = _constants.CONS_SSH
+CONS_VNC = _constants.CONS_VNC
+CONS_SPICE = _constants.CONS_SPICE
+CONS_MESSAGE = _constants.CONS_MESSAGE
+CONS_ALL = _constants.CONS_ALL
 
-#: Console as SPICE server
-CONS_SPICE = "spice"
+RSA_KEY_BITS = _constants.RSA_KEY_BITS
+OPENSSL_CIPHERS = _constants.OPENSSL_CIPHERS
 
-#: Display a message for console access
-CONS_MESSAGE = "msg"
-
-#: All console types
-CONS_ALL = compat.UniqueFrozenset([
-  CONS_SSH,
-  CONS_VNC,
-  CONS_SPICE,
-  CONS_MESSAGE,
-  ])
-
-# For RSA keys more bits are better, but they also make operations more
-# expensive. NIST SP 800-131 recommends a minimum of 2048 bits from the year
-# 2010 on.
-RSA_KEY_BITS = 2048
-
-# Ciphers allowed for SSL connections. For the format, see ciphers(1). A better
-# way to disable ciphers would be to use the exclamation mark (!), but socat
-# versions below 1.5 can't parse exclamation marks in options properly. When
-# modifying the ciphers, ensure not to accidentially add something after it's
-# been removed. Use the "openssl" utility to check the allowed ciphers, e.g.
-# "openssl ciphers -v HIGH:-DES".
-OPENSSL_CIPHERS = "HIGH:-DES:-3DES:-EXPORT:-ADH"
-
-# Digest used to sign certificates ("openssl x509" uses SHA1 by default)
-X509_CERT_SIGN_DIGEST = "SHA1"
-
-# Default validity of certificates in days
-X509_CERT_DEFAULT_VALIDITY = 365 * 5
-
-# commonName (CN) used in certificates
-X509_CERT_CN = "ganeti.example.com"
-
-X509_CERT_SIGNATURE_HEADER = "X-Ganeti-Signature"
+X509_CERT_SIGN_DIGEST = _constants.X509_CERT_SIGN_DIGEST
+X509_CERT_DEFAULT_VALIDITY = _constants.X509_CERT_DEFAULT_VALIDITY
+X509_CERT_CN = _constants.X509_CERT_CN
+X509_CERT_SIGNATURE_HEADER = _constants.X509_CERT_SIGNATURE_HEADER
 
 # Import/export daemon mode
-IEM_IMPORT = "import"
-IEM_EXPORT = "export"
+IEM_IMPORT = _constants.IEM_IMPORT
+IEM_EXPORT = _constants.IEM_EXPORT
 
 # Import/export transport compression
-IEC_NONE = "none"
-IEC_GZIP = "gzip"
-IEC_ALL = compat.UniqueFrozenset([
-  IEC_NONE,
-  IEC_GZIP,
-  ])
+IEC_NONE = _constants.IEC_NONE
+IEC_GZIP = _constants.IEC_GZIP
+IEC_ALL = _constants.IEC_ALL
 
-IE_CUSTOM_SIZE = "fd"
+IE_CUSTOM_SIZE = _constants.IE_CUSTOM_SIZE
 
 IE_MAGIC_RE = re.compile(r"^[-_.a-zA-Z0-9]{5,100}$")
 
-# Import/export I/O
-# Direct file I/O, equivalent to a shell's I/O redirection using '<' or '>'
-IEIO_FILE = "file"
-# Raw block device I/O using "dd"
-IEIO_RAW_DISK = "raw"
-# OS definition import/export script
-IEIO_SCRIPT = "script"
+IEIO_FILE = _constants.IEIO_FILE
+IEIO_RAW_DISK = _constants.IEIO_RAW_DISK
+IEIO_SCRIPT = _constants.IEIO_SCRIPT
 
 VALUE_DEFAULT = "default"
 VALUE_AUTO = "auto"
@@ -273,24 +237,22 @@ VALUE_HS_NOTHING = {"Nothing": None}
 # External script validation mask
 EXT_PLUGIN_MASK = re.compile("^[a-zA-Z0-9_-]+$")
 
-# hooks-related constants
-HOOKS_PHASE_PRE = "pre"
-HOOKS_PHASE_POST = "post"
-HOOKS_NAME_CFGUPDATE = "config-update"
-HOOKS_NAME_WATCHER = "watcher"
-HOOKS_VERSION = 2
-HOOKS_PATH = "/sbin:/bin:/usr/sbin:/usr/bin"
+HOOKS_PHASE_PRE = _constants.HOOKS_PHASE_PRE
+HOOKS_PHASE_POST = _constants.HOOKS_PHASE_POST
+HOOKS_NAME_CFGUPDATE = _constants.HOOKS_NAME_CFGUPDATE
+HOOKS_NAME_WATCHER = _constants.HOOKS_NAME_WATCHER
+HOOKS_VERSION = _constants.HOOKS_VERSION
+HOOKS_PATH = _constants.HOOKS_PATH
 
-# hooks subject type (what object type does the LU deal with)
-HTYPE_CLUSTER = "CLUSTER"
-HTYPE_NODE = "NODE"
-HTYPE_GROUP = "GROUP"
-HTYPE_INSTANCE = "INSTANCE"
-HTYPE_NETWORK = "NETWORK"
+HTYPE_CLUSTER = _constants.HTYPE_CLUSTER
+HTYPE_NODE = _constants.HTYPE_NODE
+HTYPE_GROUP = _constants.HTYPE_GROUP
+HTYPE_INSTANCE = _constants.HTYPE_INSTANCE
+HTYPE_NETWORK = _constants.HTYPE_NETWORK
 
-HKR_SKIP = 0
-HKR_FAIL = 1
-HKR_SUCCESS = 2
+HKR_SKIP = _constants.HKR_SKIP
+HKR_FAIL = _constants.HKR_FAIL
+HKR_SUCCESS = _constants.HKR_SUCCESS
 
 # Storage types
 ST_BLOCK = _constants.ST_BLOCK
