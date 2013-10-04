@@ -1204,89 +1204,36 @@ JQT_LOGMSG = _constants.JQT_LOGMSG
 JQT_STARTMSG = _constants.JQT_STARTMSG
 JQT_ALL = _constants.JQT_ALL
 
-# Query resources
-QR_CLUSTER = "cluster"
-QR_INSTANCE = "instance"
-QR_NODE = "node"
-QR_LOCK = "lock"
-QR_GROUP = "group"
-QR_OS = "os"
-QR_JOB = "job"
-QR_EXPORT = "export"
-QR_NETWORK = "network"
-QR_EXTSTORAGE = "extstorage"
+QR_CLUSTER = _constants.QR_CLUSTER
+QR_INSTANCE = _constants.QR_INSTANCE
+QR_NODE = _constants.QR_NODE
+QR_LOCK = _constants.QR_LOCK
+QR_GROUP = _constants.QR_GROUP
+QR_OS = _constants.QR_OS
+QR_JOB = _constants.QR_JOB
+QR_EXPORT = _constants.QR_EXPORT
+QR_NETWORK = _constants.QR_NETWORK
+QR_EXTSTORAGE = _constants.QR_EXTSTORAGE
+QR_VIA_OP = _constants.QR_VIA_OP
+QR_VIA_LUXI = _constants.QR_VIA_LUXI
+QR_VIA_RAPI = _constants.QR_VIA_RAPI
 
-#: List of resources which can be queried using L{opcodes.OpQuery}
-QR_VIA_OP = compat.UniqueFrozenset([
-  QR_CLUSTER,
-  QR_INSTANCE,
-  QR_NODE,
-  QR_GROUP,
-  QR_OS,
-  QR_EXPORT,
-  QR_NETWORK,
-  QR_EXTSTORAGE,
-  ])
+QFT_UNKNOWN = _constants.QFT_UNKNOWN
+QFT_TEXT = _constants.QFT_TEXT
+QFT_BOOL = _constants.QFT_BOOL
+QFT_NUMBER = _constants.QFT_NUMBER
+QFT_UNIT = _constants.QFT_UNIT
+QFT_TIMESTAMP = _constants.QFT_TIMESTAMP
+QFT_OTHER = _constants.QFT_OTHER
+QFT_ALL = _constants.QFT_ALL
 
-#: List of resources which can be queried using Local UniX Interface
-QR_VIA_LUXI = QR_VIA_OP.union([
-  QR_LOCK,
-  QR_JOB,
-  ])
-
-#: List of resources which can be queried using RAPI
-QR_VIA_RAPI = QR_VIA_LUXI
-
-# Query field types
-QFT_UNKNOWN = "unknown"
-QFT_TEXT = "text"
-QFT_BOOL = "bool"
-QFT_NUMBER = "number"
-QFT_UNIT = "unit"
-QFT_TIMESTAMP = "timestamp"
-QFT_OTHER = "other"
-
-#: All query field types
-QFT_ALL = compat.UniqueFrozenset([
-  QFT_UNKNOWN,
-  QFT_TEXT,
-  QFT_BOOL,
-  QFT_NUMBER,
-  QFT_UNIT,
-  QFT_TIMESTAMP,
-  QFT_OTHER,
-  ])
-
-# Query result field status (don't change or reuse values as they're used by
-# clients)
-#: Normal field status
-RS_NORMAL = 0
-#: Unknown field
-RS_UNKNOWN = 1
-#: No data (e.g. RPC error), can be used instead of L{RS_OFFLINE}
-RS_NODATA = 2
-#: Value unavailable/unsupported for item; if this field is supported
-#: but we cannot get the data for the moment, RS_NODATA or
-#: RS_OFFLINE should be used
-RS_UNAVAIL = 3
-#: Resource marked offline
-RS_OFFLINE = 4
-
-RS_ALL = compat.UniqueFrozenset([
-  RS_NORMAL,
-  RS_UNKNOWN,
-  RS_NODATA,
-  RS_UNAVAIL,
-  RS_OFFLINE,
-  ])
-
-#: Dictionary with special field cases and their verbose/terse formatting
-RSS_DESCRIPTION = {
-  RS_UNKNOWN: ("(unknown)", "??"),
-  RS_NODATA: ("(nodata)", "?"),
-  RS_OFFLINE: ("(offline)", "*"),
-  RS_UNAVAIL: ("(unavail)", "-"),
-  }
+RS_NORMAL = _constants.RS_NORMAL
+RS_UNKNOWN = _constants.RS_UNKNOWN
+RS_NODATA = _constants.RS_NODATA
+RS_UNAVAIL = _constants.RS_UNAVAIL
+RS_OFFLINE = _constants.RS_OFFLINE
+RS_ALL = _constants.RS_ALL
+RSS_DESCRIPTION = _constants.RSS_DESCRIPTION
 
 # max dynamic devices
 MAX_NICS = 8

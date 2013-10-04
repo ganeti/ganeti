@@ -2936,6 +2936,133 @@ jqtStartmsg = "startmsg"
 jqtAll :: FrozenSet String
 jqtAll = ConstantUtils.mkSet [jqtExec, jqtExpandnames, jqtLogmsg, jqtStartmsg]
 
+-- * Query resources
+
+qrCluster :: String
+qrCluster = "cluster"
+
+qrExport :: String
+qrExport = "export"
+
+qrExtstorage :: String
+qrExtstorage = "extstorage"
+
+qrGroup :: String
+qrGroup = "group"
+
+qrInstance :: String
+qrInstance = "instance"
+
+qrJob :: String
+qrJob = "job"
+
+qrLock :: String
+qrLock = "lock"
+
+qrNetwork :: String
+qrNetwork = "network"
+
+qrNode :: String
+qrNode = "node"
+
+qrOs :: String
+qrOs = "os"
+
+-- | List of resources which can be queried using 'Ganeti.OpCodes.OpQuery'
+qrViaOp :: FrozenSet String
+qrViaOp =
+  ConstantUtils.mkSet [qrCluster,
+                       qrInstance,
+                       qrNode,
+                       qrGroup,
+                       qrOs,
+                       qrExport,
+                       qrNetwork,
+                       qrExtstorage]
+
+-- | List of resources which can be queried using Local UniX Interface
+qrViaLuxi :: FrozenSet String
+qrViaLuxi = ConstantUtils.mkSet [qrLock, qrJob]
+
+-- | List of resources which can be queried using RAPI
+qrViaRapi :: FrozenSet String
+qrViaRapi = qrViaLuxi
+
+-- * Query field types
+
+qftBool :: String
+qftBool = "bool"
+
+qftNumber :: String
+qftNumber = "number"
+
+qftOther :: String
+qftOther = "other"
+
+qftText :: String
+qftText = "text"
+
+qftTimestamp :: String
+qftTimestamp = "timestamp"
+
+qftUnit :: String
+qftUnit = "unit"
+
+qftUnknown :: String
+qftUnknown = "unknown"
+
+qftAll :: FrozenSet String
+qftAll =
+  ConstantUtils.mkSet [qftBool,
+                       qftNumber,
+                       qftOther,
+                       qftText,
+                       qftTimestamp,
+                       qftUnit,
+                       qftUnknown]
+
+-- * Query result field status
+--
+-- Don't change or reuse values as they're used by clients.
+--
+-- FIXME: link with 'Ganeti.Query.Language.ResultStatus'
+
+-- | No data (e.g. RPC error), can be used instead of 'rsOffline'
+rsNodata :: Int
+rsNodata = 2
+
+rsNormal :: Int
+rsNormal = 0
+
+-- | Resource marked offline
+rsOffline :: Int
+rsOffline = 4
+
+-- | Value unavailable/unsupported for item; if this field is
+-- supported but we cannot get the data for the moment, 'rsNodata' or
+-- 'rsOffline' should be used
+rsUnavail :: Int
+rsUnavail = 3
+
+rsUnknown :: Int
+rsUnknown = 1
+
+rsAll :: FrozenSet Int
+rsAll =
+  ConstantUtils.mkSet [rsNodata,
+                       rsNormal,
+                       rsOffline,
+                       rsUnavail,
+                       rsUnknown]
+
+-- | Special field cases and their verbose/terse formatting
+rssDescription :: Map Int (String, String)
+rssDescription =
+  Map.fromList [(rsUnknown, ("(unknown)", "??")),
+                (rsNodata, ("(nodata)", "?")),
+                (rsOffline, ("(offline)", "*")),
+                (rsUnavail, ("(unavail)", "-"))]
+
 -- * Confd
 
 confdProtocolVersion :: Int
