@@ -3796,16 +3796,16 @@ autoRepairTagSuspended = autoRepairTagPrefix ++ "suspend:"
 -- * Auto-repair levels
 
 autoRepairFailover :: String
-autoRepairFailover = "failover"
+autoRepairFailover = Types.autoRepairTypeToRaw ArFailover
 
 autoRepairFixStorage :: String
-autoRepairFixStorage = "fix-storage"
+autoRepairFixStorage = Types.autoRepairTypeToRaw ArFixStorage
 
 autoRepairMigrate :: String
-autoRepairMigrate = "migrate"
+autoRepairMigrate = Types.autoRepairTypeToRaw ArMigrate
 
 autoRepairReinstall :: String
-autoRepairReinstall = "reinstall"
+autoRepairReinstall = Types.autoRepairTypeToRaw ArReinstall
 
 autoRepairAllTypes :: FrozenSet String
 autoRepairAllTypes =
@@ -3817,13 +3817,13 @@ autoRepairAllTypes =
 -- * Auto-repair results
 
 autoRepairEnoperm :: String
-autoRepairEnoperm = "enoperm"
+autoRepairEnoperm = Types.autoRepairResultToRaw ArEnoperm
 
 autoRepairFailure :: String
-autoRepairFailure = "failure"
+autoRepairFailure = Types.autoRepairResultToRaw ArFailure
 
 autoRepairSuccess :: String
-autoRepairSuccess = "success"
+autoRepairSuccess = Types.autoRepairResultToRaw ArSuccess
 
 autoRepairAllResults :: FrozenSet String
 autoRepairAllResults =
