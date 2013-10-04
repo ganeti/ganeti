@@ -1333,12 +1333,7 @@ HVC_DEFAULTS = {
     },
   }
 
-HVC_GLOBALS = compat.UniqueFrozenset([
-  HV_MIGRATION_PORT,
-  HV_MIGRATION_BANDWIDTH,
-  HV_MIGRATION_MODE,
-  HV_XEN_CMD,
-  ])
+HVC_GLOBALS = _constants.HVC_GLOBALS
 
 BEC_DEFAULTS = {
   BE_MINMEM: 128,
@@ -1358,9 +1353,7 @@ NDC_DEFAULTS = {
   ND_OVS_LINK: ""
   }
 
-NDC_GLOBALS = compat.UniqueFrozenset([
-  ND_EXCLUSIVE_STORAGE,
-  ])
+NDC_GLOBALS = _constants.NDC_GLOBALS
 
 DISK_LD_DEFAULTS = {
   DT_DRBD8: {

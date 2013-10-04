@@ -3417,6 +3417,16 @@ ssFilePerms = 0o444
 defaultEnabledHypervisor :: String
 defaultEnabledHypervisor = htXenPvm
 
+hvcGlobals :: FrozenSet String
+hvcGlobals =
+  ConstantUtils.mkSet [hvMigrationBandwidth,
+                       hvMigrationMode,
+                       hvMigrationPort,
+                       hvXenCmd]
+
+ndcGlobals :: FrozenSet String
+ndcGlobals = ConstantUtils.mkSet [ndExclusiveStorage]
+
 -- * Confd
 
 confdProtocolVersion :: Int
