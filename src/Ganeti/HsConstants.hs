@@ -1139,6 +1139,32 @@ diskTransferConnectTimeout = 60
 diskSeparator :: String
 diskSeparator = AutoConf.diskSeparator
 
+-- | Key for job IDs in opcode result
+jobIdsKey :: String
+jobIdsKey = "jobs"
+
+-- * Runparts results
+
+runpartsErr :: Int
+runpartsErr = 2
+
+runpartsRun :: Int
+runpartsRun = 1
+
+runpartsSkip :: Int
+runpartsSkip = 0
+
+runpartsStatus :: [Int]
+runpartsStatus = [runpartsErr, runpartsRun, runpartsSkip]
+
+-- * RPC
+
+rpcEncodingNone :: Int
+rpcEncodingNone = 0
+
+rpcEncodingZlibBase64 :: Int
+rpcEncodingZlibBase64 = 1
+
 -- * Timeout table
 --
 -- Various time constants for the timeout table
