@@ -386,12 +386,11 @@ RIE_CONNECT_ATTEMPT_TIMEOUT = _constants.RIE_CONNECT_ATTEMPT_TIMEOUT
 RIE_CONNECT_RETRIES = _constants.RIE_CONNECT_RETRIES
 CHILD_LINGER_TIMEOUT = _constants.CHILD_LINGER_TIMEOUT
 
-# import/export config options
-INISECT_EXP = "export"
-INISECT_INS = "instance"
-INISECT_HYP = "hypervisor"
-INISECT_BEP = "backend"
-INISECT_OSP = "os"
+INISECT_EXP = _constants.INISECT_EXP
+INISECT_INS = _constants.INISECT_INS
+INISECT_HYP = _constants.INISECT_HYP
+INISECT_BEP = _constants.INISECT_BEP
+INISECT_OSP = _constants.INISECT_OSP
 
 # dynamic device modification
 DDM_ADD = _constants.DDM_ADD

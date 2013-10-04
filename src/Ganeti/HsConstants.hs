@@ -990,6 +990,23 @@ rieConnectTimeout = 180
 childLingerTimeout :: Double
 childLingerTimeout = 5.0
 
+-- * Import/export config options
+
+inisectBep :: String
+inisectBep = "backend"
+
+inisectExp :: String
+inisectExp = "export"
+
+inisectHyp :: String
+inisectHyp = "hypervisor"
+
+inisectIns :: String
+inisectIns = "instance"
+
+inisectOsp :: String
+inisectOsp = "os"
+
 -- * Dynamic device modification
 
 ddmAdd :: String
