@@ -28,11 +28,19 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 module Ganeti.ConstantUtils where
 
+import Data.Char (ord)
 import Data.Set (Set)
 import qualified Data.Set as Set (fromList, toList)
 
 import Ganeti.THH (PyValue(..))
 import Ganeti.PyValueInstances ()
+
+-- | PythonChar wraps a Python 'char'
+newtype PythonChar = PythonChar { unPythonChar :: Char }
+  deriving (Show)
+
+instance PyValue PythonChar where
+  showValue c = "chr(" ++ show (ord (unPythonChar c)) ++ ")"
 
 -- | FrozenSet wraps a Haskell 'Set'
 --

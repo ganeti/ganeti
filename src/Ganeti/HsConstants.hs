@@ -41,7 +41,8 @@ import Data.Map (Map)
 import qualified Data.Map as Map (fromList, keys, insert)
 
 import AutoConf
-import Ganeti.ConstantUtils (FrozenSet, Protocol(..), buildVersion)
+import Ganeti.ConstantUtils (PythonChar(..), FrozenSet, Protocol(..),
+                             buildVersion)
 import qualified Ganeti.ConstantUtils as ConstantUtils
 import Ganeti.Runtime (GanetiDaemon(..), MiscGroup(..), GanetiGroup(..),
                        ExtraLogReason(..))
@@ -340,6 +341,24 @@ extraLogreasonError = Runtime.daemonsExtraLogbase GanetiMond ErrorLog
 
 devConsole :: String
 devConsole = ConstantUtils.devConsole
+
+-- * Luxi (Local UniX Interface) related constants
+
+luxiEom :: PythonChar
+luxiEom = PythonChar '\x03'
+
+-- | Environment variable for the luxi override socket
+luxiOverride :: String
+luxiOverride = "FORCE_LUXI_SOCKET"
+
+luxiOverrideMaster :: String
+luxiOverrideMaster = "master"
+
+luxiOverrideQuery :: String
+luxiOverrideQuery = "query"
+
+luxiVersion :: Int
+luxiVersion = configVersion
 
 -- * Syslog
 

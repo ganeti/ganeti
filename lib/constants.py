@@ -169,14 +169,11 @@ DEV_CONSOLE = _constants.DEV_CONSOLE
 
 PROC_MOUNTS = "/proc/mounts"
 
-# Local UniX Interface related constants
-LUXI_EOM = chr(3)
-LUXI_VERSION = CONFIG_VERSION
-#: Environment variable for the luxi override socket
-LUXI_OVERRIDE = "FORCE_LUXI_SOCKET"
-LUXI_OVERRIDE_MASTER = "master"
-LUXI_OVERRIDE_QUERY = "query"
-
+LUXI_EOM = _constants.LUXI_EOM
+LUXI_VERSION = _constants.LUXI_VERSION
+LUXI_OVERRIDE = _constants.LUXI_OVERRIDE
+LUXI_OVERRIDE_MASTER = _constants.LUXI_OVERRIDE_MASTER
+LUXI_OVERRIDE_QUERY = _constants.LUXI_OVERRIDE_QUERY
 # one of "no", "yes", "only"
 SYSLOG_USAGE = _constants.SYSLOG_USAGE
 SYSLOG_NO = _constants.SYSLOG_NO
