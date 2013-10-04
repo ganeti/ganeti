@@ -1139,6 +1139,9 @@ diskTransferConnectTimeout = 60
 diskSeparator :: String
 diskSeparator = AutoConf.diskSeparator
 
+ipCommandPath :: String
+ipCommandPath = AutoConf.ipPath
+
 -- | Key for job IDs in opcode result
 jobIdsKey :: String
 jobIdsKey = "jobs"
@@ -1338,8 +1341,6 @@ ndsParameterTitles =
    (ndOvsName, "OpenvSwitchName"),
    (ndSpindleCount, "SpindleCount")]
 
-ipCommandPath :: String
-ipCommandPath = AutoConf.ipPath
 
 -- * Reboot types
 
@@ -1354,13 +1355,6 @@ instanceRebootFull = Types.rebootTypeToRaw RebootFull
 
 rebootTypes :: FrozenSet String
 rebootTypes = ConstantUtils.mkSet $ map Types.rebootTypeToRaw [minBound..]
-
-
-
-
-
-
-
 
 -- * OOB supported commands
 
