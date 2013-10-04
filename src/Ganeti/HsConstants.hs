@@ -388,6 +388,9 @@ extraLogreasonError = Runtime.daemonsExtraLogbase GanetiMond ErrorLog
 devConsole :: String
 devConsole = ConstantUtils.devConsole
 
+procMounts :: String
+procMounts = "/proc/mounts"
+
 -- * Luxi (Local UniX Interface) related constants
 
 luxiEom :: PythonChar
@@ -422,6 +425,9 @@ syslogOnly = Logging.syslogUsageToRaw SyslogOnly
 
 syslogSocket :: String
 syslogSocket = "/dev/log"
+
+exportConfFile :: String
+exportConfFile = "config.ini"
 
 -- * Xen
 
