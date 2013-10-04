@@ -1496,31 +1496,24 @@ BLOCKDEV_DRIVER_MANUAL = _constants.BLOCKDEV_DRIVER_MANUAL
 QEMUIMG_PATH = _constants.QEMUIMG_PATH
 
 HTOOLS = _constants.HTOOLS
-# The hail iallocator
-IALLOC_HAIL = "hail"
+IALLOC_HAIL = _constants.IALLOC_HAIL
 
-# Fake opcodes for functions that have hooks attached to them via
-# backend.RunLocalHooks
-FAKE_OP_MASTER_TURNUP = "OP_CLUSTER_IP_TURNUP"
-FAKE_OP_MASTER_TURNDOWN = "OP_CLUSTER_IP_TURNDOWN"
+FAKE_OP_MASTER_TURNUP = _constants.FAKE_OP_MASTER_TURNUP
+FAKE_OP_MASTER_TURNDOWN = _constants.FAKE_OP_MASTER_TURNDOWN
 
-# SSH key types
-SSHK_RSA = "rsa"
-SSHK_DSA = "dsa"
-SSHK_ALL = compat.UniqueFrozenset([SSHK_RSA, SSHK_DSA])
+SSHK_RSA = _constants.SSHK_RSA
+SSHK_DSA = _constants.SSHK_DSA
+SSHK_ALL = _constants.SSHK_ALL
 
-# SSH authorized key types
-SSHAK_RSA = "ssh-rsa"
-SSHAK_DSS = "ssh-dss"
-SSHAK_ALL = compat.UniqueFrozenset([SSHAK_RSA, SSHAK_DSS])
+SSHAK_RSA = _constants.SSHAK_RSA
+SSHAK_DSS = _constants.SSHAK_DSS
+SSHAK_ALL = _constants.SSHAK_ALL
 
-# SSH setup
-SSHS_CLUSTER_NAME = "cluster_name"
-SSHS_SSH_HOST_KEY = "ssh_host_key"
-SSHS_SSH_ROOT_KEY = "ssh_root_key"
-SSHS_NODE_DAEMON_CERTIFICATE = "node_daemon_certificate"
+SSHS_CLUSTER_NAME = _constants.SSHS_CLUSTER_NAME
+SSHS_SSH_HOST_KEY = _constants.SSHS_SSH_HOST_KEY
+SSHS_SSH_ROOT_KEY = _constants.SSHS_SSH_ROOT_KEY
+SSHS_NODE_DAEMON_CERTIFICATE = _constants.SSHS_NODE_DAEMON_CERTIFICATE
 
-#: Key files for SSH daemon
 SSH_DAEMON_KEYFILES = {
   SSHK_RSA: (pathutils.SSH_HOST_RSA_PRIV, pathutils.SSH_HOST_RSA_PUB),
   SSHK_DSA: (pathutils.SSH_HOST_DSA_PRIV, pathutils.SSH_HOST_DSA_PUB),

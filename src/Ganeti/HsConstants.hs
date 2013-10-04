@@ -3670,6 +3670,55 @@ qemuimgPath = AutoConf.qemuimgPath
 htools :: Bool
 htools = AutoConf.htools
 
+-- | The hail iallocator
+iallocHail :: String
+iallocHail = "hail"
+
+-- * Fake opcodes for functions that have hooks attached to them via
+-- backend.RunLocalHooks
+
+fakeOpMasterTurndown :: String
+fakeOpMasterTurndown = "OP_CLUSTER_IP_TURNDOWN"
+
+fakeOpMasterTurnup :: String
+fakeOpMasterTurnup = "OP_CLUSTER_IP_TURNUP"
+
+-- * SSH key types
+
+sshkDsa :: String
+sshkDsa = "dsa"
+
+sshkRsa :: String
+sshkRsa = "rsa"
+
+sshkAll :: FrozenSet String
+sshkAll = ConstantUtils.mkSet [sshkRsa, sshkDsa]
+
+-- * SSH authorized key types
+
+sshakDss :: String
+sshakDss = "ssh-dss"
+
+sshakRsa :: String
+sshakRsa = "ssh-rsa"
+
+sshakAll :: FrozenSet String
+sshakAll = ConstantUtils.mkSet [sshakDss, sshakRsa]
+
+-- * SSH setup
+
+sshsClusterName :: String
+sshsClusterName = "cluster_name"
+
+sshsSshHostKey :: String
+sshsSshHostKey = "ssh_host_key"
+
+sshsSshRootKey :: String
+sshsSshRootKey = "ssh_root_key"
+
+sshsNodeDaemonCertificate :: String
+sshsNodeDaemonCertificate = "node_daemon_certificate"
+
 -- * Key files for SSH daemon
 
 sshHostDsaPriv :: String
