@@ -42,7 +42,7 @@ import Data.List ((\\))
 import Data.Map (Map)
 import qualified Data.Map as Map (fromList, keys, insert)
 
-import AutoConf
+import qualified AutoConf
 import Ganeti.ConstantUtils (PythonChar(..), FrozenSet, Protocol(..),
                              buildVersion)
 import qualified Ganeti.ConstantUtils as ConstantUtils
