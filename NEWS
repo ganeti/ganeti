@@ -7,16 +7,16 @@ Version 2.10.0 alpha1
 
 *(unreleased)*
 
-New features
-~~~~~~~~~~~~
-- KVM hypervisors can now access RBD storage directly without having to
-  go through a block device.
-
 Incompatible/important changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Adding disks with 'gnt-instance modify' now waits for the disks to sync per
   default. Specify --no-wait-for-sync to override this behavior.
+
+New features
+~~~~~~~~~~~~
+- KVM hypervisors can now access RBD storage directly without having to
+  go through a block device.
 
 
 Version 2.9.0 rc1
