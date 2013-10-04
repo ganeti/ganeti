@@ -1482,11 +1482,9 @@ MAX_UDP_DATA_SIZE = _constants.MAX_UDP_DATA_SIZE
 UIDPOOL_UID_MIN = _constants.UIDPOOL_UID_MIN
 UIDPOOL_UID_MAX = _constants.UIDPOOL_UID_MAX
 
-# Name or path of the pgrep command
-PGREP = "pgrep"
+PGREP = _constants.PGREP
 
-# Name of the node group that gets created at cluster init or upgrade
-INITIAL_NODE_GROUP_NAME = "default"
+INITIAL_NODE_GROUP_NAME = _constants.INITIAL_NODE_GROUP_NAME
 
 ALLOC_POLICY_PREFERRED = _constants.ALLOC_POLICY_PREFERRED
 ALLOC_POLICY_LAST_RESORT = _constants.ALLOC_POLICY_LAST_RESORT

@@ -3632,6 +3632,15 @@ uidpoolUidMin = 0
 uidpoolUidMax :: Integer
 uidpoolUidMax = 2 ^ 32 - 1
 
+-- | Name or path of the pgrep command
+pgrep :: String
+pgrep = "pgrep"
+
+-- | Name of the node group that gets created at cluster init or
+-- upgrade
+initialNodeGroupName :: String
+initialNodeGroupName = "default"
+
 -- * Possible values for NodeGroup.alloc_policy
 
 allocPolicyLastResort :: String
