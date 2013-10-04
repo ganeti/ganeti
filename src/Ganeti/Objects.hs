@@ -418,10 +418,12 @@ includesLogicalId vg_name lv_name disk =
 -- * Instance definitions
 
 $(buildParam "Be" "bep"
-  [ simpleField "minmem"       [t| Int  |]
-  , simpleField "maxmem"       [t| Int  |]
-  , simpleField "vcpus"        [t| Int  |]
-  , simpleField "auto_balance" [t| Bool |]
+  [ simpleField "minmem"          [t| Int  |]
+  , simpleField "maxmem"          [t| Int  |]
+  , simpleField "vcpus"           [t| Int  |]
+  , simpleField "auto_balance"    [t| Bool |]
+  , simpleField "always_failover" [t| Bool |]
+  , simpleField "spindle_use"     [t| Int  |]
   ])
 
 $(buildObject "Instance" "inst" $

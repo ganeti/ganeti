@@ -39,7 +39,10 @@ import qualified Text.JSON as J
 import Ganeti.BasicTypes
 import Ganeti.Common
 import Ganeti.Config
+import qualified Ganeti.Constants as C
+import qualified Ganeti.ConstantUtils as C
 import Ganeti.Errors
+import Ganeti.JSON
 import Ganeti.Objects
 import Ganeti.Query.Common
 import Ganeti.Query.Language
@@ -106,6 +109,31 @@ instanceFields =
      FieldConfig (getSecondaryNodeGroupAttribute groupUuid), QffNormal)
   ] ++
 
+  -- Instance parameter fields, whole
+  [ (FieldDefinition "hvparams" "HypervisorParameters" QFTOther
+     "Hypervisor parameters (merged)",
+     FieldConfig ((rsNormal .) . getFilledInstHvParams), QffNormal)
+  , (FieldDefinition "beparams" "BackendParameters" QFTOther
+     "Backend parameters (merged)",
+     FieldConfig ((rsErrorNoData .) . getFilledInstBeParams), QffNormal)
+  , (FieldDefinition "osparams" "OpSysParameters" QFTOther
+     "Operating system parameters (merged)",
+     FieldConfig ((rsNormal .) . getFilledInstOsParams), QffNormal)
+  , (FieldDefinition "custom_hvparams" "CustomHypervisorParameters" QFTOther
+     "Custom hypervisor parameters",
+     FieldSimple (rsNormal . instHvparams), QffNormal)
+  , (FieldDefinition "custom_beparams" "CustomBackendParameters" QFTOther
+     "Custom backend parameters",
+     FieldSimple (rsNormal . instBeparams), QffNormal)
+  , (FieldDefinition "custom_osparams" "CustomOpSysParameters" QFTOther
+     "Custom operating system parameters",
+     FieldSimple (rsNormal . instOsparams), QffNormal)
+  ] ++
+
+  -- Instance parameter fields, generated
+  map (buildBeParamField beParamGetter) allBeParamFields ++
+  map (buildHvParamField hvParamGetter) (C.toList C.hvsParameters) ++
+
   -- Live fields using special getters
   [ (FieldDefinition "status" "Status" QFTText
      statusDocText,
@@ -132,7 +160,7 @@ getPrimaryNode cfg = getInstPrimaryNode cfg . instName
 -- | Get primary node hostname
 getPrimaryNodeName :: ConfigData -> Instance -> ResultEntry
 getPrimaryNodeName cfg inst =
-  rsErrorNoData $ (J.showJSON . nodeName) <$> getPrimaryNode cfg inst
+  rsErrorNoData $ nodeName <$> getPrimaryNode cfg inst
 
 -- | Get primary node hostname
 getPrimaryNodeGroup :: ConfigData -> Instance -> ResultEntry
@@ -171,6 +199,27 @@ getSecondaryNodeGroupAttribute :: (J.JSON a)
                                -> ResultEntry
 getSecondaryNodeGroupAttribute getter cfg inst =
   rsErrorNoData $ map (J.showJSON . getter) <$> getSecondaryNodeGroups cfg inst
+
+-- | Beparam getter builder: given a field, it returns a FieldConfig
+-- getter, that is a function that takes the config and the object and
+-- returns the Beparam field specified when the getter was built.
+beParamGetter :: String       -- ^ The field we are building the getter for
+              -> ConfigData   -- ^ The configuration object
+              -> Instance     -- ^ The instance configuration object
+              -> ResultEntry  -- ^ The result
+beParamGetter field config inst =
+  case getFilledInstBeParams config inst of
+    Ok beParams -> dictFieldGetter field $ Just beParams
+    Bad       _ -> rsNoData
+
+-- | Hvparam getter builder: given a field, it returns a FieldConfig
+-- getter, that is a function that takes the config and the object and
+-- returns the Hvparam field specified when the getter was built.
+hvParamGetter :: String -- ^ The field we're building the getter for
+              -> ConfigData -> Instance -> ResultEntry
+hvParamGetter field cfg inst =
+  rsMaybeUnavail . Map.lookup field . fromContainer $
+                                        getFilledInstHvParams cfg inst
 
 -- * Live fields functionality
 

@@ -40,6 +40,8 @@ module Ganeti.Query.Common
   , tagsFields
   , dictFieldGetter
   , buildNdParamField
+  , buildBeParamField
+  , buildHvParamField
   , getDefaultHypervisorSpec
   , getHvParamsFromCluster
   ) where
@@ -183,13 +185,47 @@ ndParamGetter field config =
 
 -- | Builds the ndparam fields for an object.
 buildNdParamField :: (NdParamObject a) => String -> FieldData a b
-buildNdParamField field =
-  let full_name = "ndp/" ++ field
-      title = fromMaybe field $ field `Map.lookup` ndParamTitles
-      qft = fromMaybe QFTOther $ field `Map.lookup` ndParamTypes
-      desc = "The \"" ++ field ++ "\" node parameter"
-  in (FieldDefinition full_name title qft desc,
-      FieldConfig (ndParamGetter field), QffNormal)
+buildNdParamField =
+  buildParamField "ndp" "node" ndParamTitles ndParamTypes ndParamGetter
+
+-- | Beparams optimised lookup map.
+beParamTypes :: Map.Map String FieldType
+beParamTypes = Map.map vTypeToQFT C.besParameterTypes
+
+-- | Builds the beparam fields for an object.
+buildBeParamField :: (String -> ConfigData -> a -> ResultEntry)
+                  -> String
+                  -> FieldData a b
+buildBeParamField =
+  buildParamField "be" "backend" C.besParameterTitles beParamTypes
+
+-- | Hvparams optimised lookup map.
+hvParamTypes :: Map.Map String FieldType
+hvParamTypes = Map.map vTypeToQFT C.hvsParameterTypes
+
+-- | Builds the beparam fields for an object.
+buildHvParamField :: (String -> ConfigData -> a -> ResultEntry)
+                  -> String
+                  -> FieldData a b
+buildHvParamField =
+  buildParamField "hv" "hypervisor" C.hvsParameterTitles hvParamTypes
+
+-- | Builds a param field for a certain getter class
+buildParamField :: String -- ^ Prefix
+                -> String -- ^ Parameter group name
+                -> Map.Map String String -- ^ Parameter title map
+                -> Map.Map String FieldType -- ^ Parameter type map
+                -> (String -> ConfigData -> a -> ResultEntry)
+                -> String -- ^ The parameter name
+                -> FieldData a b
+buildParamField prefix paramGroupName titleMap typeMap getter field =
+  let full_name = prefix ++ "/" ++ field
+      title = fromMaybe full_name $ field `Map.lookup` titleMap
+      qft = fromMaybe QFTOther $ field `Map.lookup` typeMap
+      desc = "The \"" ++ field ++ "\" " ++ paramGroupName ++ " parameter"
+  in ( FieldDefinition full_name title qft desc
+     , FieldConfig (getter field), QffNormal
+     )
 
 -- | Looks up the default hypervisor and its hvparams
 getDefaultHypervisorSpec :: ConfigData -> (Hypervisor, HvParams)

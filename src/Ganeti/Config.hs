@@ -45,6 +45,9 @@ module Ganeti.Config
     , getInstPrimaryNode
     , getInstMinorsForNode
     , getInstAllNodes
+    , getFilledInstHvParams
+    , getFilledInstBeParams
+    , getFilledInstOsParams
     , getNetwork
     , buildLinkIpInstnameMap
     , instNodes
@@ -57,6 +60,7 @@ import qualified Data.Set as S
 import qualified Text.JSON as J
 
 import Ganeti.BasicTypes
+import qualified Ganeti.ConstantUtils as C
 import qualified Ganeti.Constants as C
 import Ganeti.Errors
 import Ganeti.JSON
@@ -236,6 +240,46 @@ getNetwork cfg name =
                               (fromNonEmpty . networkName . (M.!) networks)
                               networks
                 in getItem "Network" name by_name
+
+-- | Retrieves the instance hypervisor params, missing values filled with
+-- cluster defaults.
+getFilledInstHvParams :: ConfigData -> Instance -> HvParams
+getFilledInstHvParams cfg inst =
+  -- First get the defaults of the parent
+  let hvName = hypervisorToRaw . instHypervisor $ inst
+      hvParamMap = fromContainer . clusterHvparams $ configCluster cfg
+      parentHvParams = maybe M.empty fromContainer $ M.lookup hvName hvParamMap
+  -- Then the os defaults for the given hypervisor
+      osName = instOs inst
+      osParamMap = fromContainer . clusterOsHvp $ configCluster cfg
+      osHvParamMap = maybe M.empty fromContainer $ M.lookup osName osParamMap
+      osHvParams = maybe M.empty fromContainer $ M.lookup hvName osHvParamMap
+  -- Then the child
+      childHvParams = fromContainer . instHvparams $ inst
+  -- Helper function
+      fillFn con val = fillDict con val $ C.toList C.hvcGlobals
+  in GenericContainer $ fillFn (fillFn parentHvParams osHvParams) childHvParams
+
+-- | Retrieves the instance backend params, missing values filled with cluster
+-- defaults.
+getFilledInstBeParams :: ConfigData -> Instance -> ErrorResult FilledBeParams
+getFilledInstBeParams cfg inst = do
+  let beParamMap = fromContainer . clusterBeparams . configCluster $ cfg
+  parentParams <- getItem "FilledBeParams" C.ppDefault beParamMap
+  return $ fillBeParams parentParams (instBeparams inst)
+
+-- | Retrieves the instance os params, missing values filled with cluster
+-- defaults.
+getFilledInstOsParams :: ConfigData -> Instance -> OsParams
+getFilledInstOsParams cfg inst =
+  let osLookupName = takeWhile (/= '+') (instOs inst)
+      osParamMap = fromContainer . clusterOsparams $ configCluster cfg
+      childOsParams = instOsparams inst
+  in case getItem "OsParams" osLookupName osParamMap of
+       Ok parentOsParams -> GenericContainer $
+                              fillDict (fromContainer parentOsParams)
+                                       (fromContainer childOsParams) []
+       Bad _             -> childOsParams
 
 -- | Looks up an instance's primary node.
 getInstPrimaryNode :: ConfigData -> String -> ErrorResult Node
