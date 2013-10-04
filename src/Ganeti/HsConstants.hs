@@ -1075,6 +1075,58 @@ maxTagLen = 128
 maxTagsPerObj :: Int
 maxTagsPerObj = 4096
 
+-- * Others
+
+defaultBridge :: String
+defaultBridge = "xen-br0"
+
+defaultOvs :: String
+defaultOvs = "switch1"
+
+-- | 60 MiB, expressed in KiB
+classicDrbdSyncSpeed :: Int
+classicDrbdSyncSpeed = 60 * 1024
+
+ip4AddressAny :: String
+ip4AddressAny = "0.0.0.0"
+
+ip4AddressLocalhost :: String
+ip4AddressLocalhost = "127.0.0.1"
+
+ip6AddressAny :: String
+ip6AddressAny = "::"
+
+ip6AddressLocalhost :: String
+ip6AddressLocalhost = "::1"
+
+ip4Version :: Int
+ip4Version = 4
+
+ip6Version :: Int
+ip6Version = 6
+
+validIpVersions :: FrozenSet Int
+validIpVersions = ConstantUtils.mkSet [ip4Version, ip6Version]
+
+tcpPingTimeout :: Int
+tcpPingTimeout = 10
+
+defaultVg :: String
+defaultVg = "xenvg"
+
+defaultDrbdHelper :: String
+defaultDrbdHelper = "/bin/true"
+
+minVgSize :: Int
+minVgSize = 20480
+
+defaultMacPrefix :: String
+defaultMacPrefix = "aa:00:00"
+
+-- | Default maximum instance wait time, in seconds.
+defaultShutdownTimeout :: Int
+defaultShutdownTimeout = 120
+
 -- | Node clock skew in seconds
 nodeMaxClockSkew :: Int
 nodeMaxClockSkew = 150
