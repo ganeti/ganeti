@@ -1479,9 +1479,8 @@ CONFD_CLIENT_EXPIRE_TIMEOUT = _constants.CONFD_CLIENT_EXPIRE_TIMEOUT
 
 MAX_UDP_DATA_SIZE = _constants.MAX_UDP_DATA_SIZE
 
-# User-id pool minimum/maximum acceptable user-ids.
-UIDPOOL_UID_MIN = 0
-UIDPOOL_UID_MAX = 2 ** 32 - 1 # Assuming 32 bit user-ids
+UIDPOOL_UID_MIN = _constants.UIDPOOL_UID_MIN
+UIDPOOL_UID_MAX = _constants.UIDPOOL_UID_MAX
 
 # Name or path of the pgrep command
 PGREP = "pgrep"

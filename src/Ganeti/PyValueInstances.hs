@@ -42,6 +42,7 @@ import Ganeti.THH
 
 instance PyValue Bool
 instance PyValue Int
+instance PyValue Integer
 instance PyValue Double
 instance PyValue Char
 

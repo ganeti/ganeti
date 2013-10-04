@@ -1,3 +1,4 @@
+{-# OPTIONS -fno-warn-type-defaults #-}
 {-| HsConstants contains the Haskell constants
 
 This is a transitional module complementary to 'Ganeti.Constants'.  It
@@ -3621,6 +3622,15 @@ confdClientExpireTimeout = 10
 -- We just set this to 60K, which should be enough
 maxUdpDataSize :: Int
 maxUdpDataSize = 61440
+
+-- * User-id pool minimum/maximum acceptable user-ids
+
+uidpoolUidMin :: Int
+uidpoolUidMin = 0
+
+-- | Assuming 32 bit user-ids
+uidpoolUidMax :: Integer
+uidpoolUidMax = 2 ^ 32 - 1
 
 -- * Possible values for NodeGroup.alloc_policy
 
