@@ -70,6 +70,11 @@ module Ganeti.HTools.Types
   , OpResult
   , opToResult
   , ISpec(..)
+  , defMinISpec
+  , defStdISpec
+  , maxDisks
+  , maxNics
+  , defMaxISpec
   , MinMaxISpecs(..)
   , IPolicy(..)
   , defIPolicy
@@ -89,7 +94,7 @@ module Ganeti.HTools.Types
 import qualified Data.Map as M
 import System.Time (ClockTime)
 
-import qualified Ganeti.Constants as C
+import qualified Ganeti.ConstantUtils as ConstantUtils
 import qualified Ganeti.THH as THH
 import Ganeti.BasicTypes
 import Ganeti.Types
@@ -165,42 +170,54 @@ type NetworkID = String
 
 -- | Instance specification type.
 $(THH.buildObject "ISpec" "iSpec"
-  [ THH.renameField "MemorySize" $ THH.simpleField C.ispecMemSize    [t| Int |]
-  , THH.renameField "CpuCount"   $ THH.simpleField C.ispecCpuCount   [t| Int |]
-  , THH.renameField "DiskSize"   $ THH.simpleField C.ispecDiskSize   [t| Int |]
-  , THH.renameField "DiskCount"  $ THH.simpleField C.ispecDiskCount  [t| Int |]
-  , THH.renameField "NicCount"   $ THH.simpleField C.ispecNicCount   [t| Int |]
-  , THH.renameField "SpindleUse" $ THH.simpleField C.ispecSpindleUse [t| Int |]
+  [ THH.renameField "MemorySize" $
+    THH.simpleField ConstantUtils.ispecMemSize    [t| Int |]
+  , THH.renameField "CpuCount"   $
+    THH.simpleField ConstantUtils.ispecCpuCount   [t| Int |]
+  , THH.renameField "DiskSize"   $
+    THH.simpleField ConstantUtils.ispecDiskSize   [t| Int |]
+  , THH.renameField "DiskCount"  $
+    THH.simpleField ConstantUtils.ispecDiskCount  [t| Int |]
+  , THH.renameField "NicCount"   $
+    THH.simpleField ConstantUtils.ispecNicCount   [t| Int |]
+  , THH.renameField "SpindleUse" $
+    THH.simpleField ConstantUtils.ispecSpindleUse [t| Int |]
   ])
 
 -- | The default minimum ispec.
 defMinISpec :: ISpec
-defMinISpec = ISpec { iSpecMemorySize = C.ispecsMinmaxDefaultsMinMemorySize
-                    , iSpecCpuCount   = C.ispecsMinmaxDefaultsMinCpuCount
-                    , iSpecDiskSize   = C.ispecsMinmaxDefaultsMinDiskSize
-                    , iSpecDiskCount  = C.ispecsMinmaxDefaultsMinDiskCount
-                    , iSpecNicCount   = C.ispecsMinmaxDefaultsMinNicCount
-                    , iSpecSpindleUse = C.ispecsMinmaxDefaultsMinSpindleUse
+defMinISpec = ISpec { iSpecMemorySize = 128
+                    , iSpecCpuCount   = 1
+                    , iSpecDiskCount  = 1
+                    , iSpecDiskSize   = 1024
+                    , iSpecNicCount   = 1
+                    , iSpecSpindleUse = 1
                     }
 
 -- | The default standard ispec.
 defStdISpec :: ISpec
-defStdISpec = ISpec { iSpecMemorySize = C.ipolicyDefaultsStdMemorySize
-                    , iSpecCpuCount   = C.ipolicyDefaultsStdCpuCount
-                    , iSpecDiskSize   = C.ipolicyDefaultsStdDiskSize
-                    , iSpecDiskCount  = C.ipolicyDefaultsStdDiskCount
-                    , iSpecNicCount   = C.ipolicyDefaultsStdNicCount
-                    , iSpecSpindleUse = C.ipolicyDefaultsStdSpindleUse
+defStdISpec = ISpec { iSpecMemorySize = 128
+                    , iSpecCpuCount   = 1
+                    , iSpecDiskCount  = 1
+                    , iSpecDiskSize   = 1024
+                    , iSpecNicCount   = 1
+                    , iSpecSpindleUse = 1
                     }
+
+maxDisks :: Int
+maxDisks = 16
+
+maxNics :: Int
+maxNics = 8
 
 -- | The default max ispec.
 defMaxISpec :: ISpec
-defMaxISpec = ISpec { iSpecMemorySize = C.ispecsMinmaxDefaultsMaxMemorySize
-                    , iSpecCpuCount   = C.ispecsMinmaxDefaultsMaxCpuCount
-                    , iSpecDiskSize   = C.ispecsMinmaxDefaultsMaxDiskSize
-                    , iSpecDiskCount  = C.ispecsMinmaxDefaultsMaxDiskCount
-                    , iSpecNicCount   = C.ispecsMinmaxDefaultsMaxNicCount
-                    , iSpecSpindleUse = C.ispecsMinmaxDefaultsMaxSpindleUse
+defMaxISpec = ISpec { iSpecMemorySize = 32768
+                    , iSpecCpuCount   = 8
+                    , iSpecDiskCount  = maxDisks
+                    , iSpecDiskSize   = 1024 * 1024
+                    , iSpecNicCount   = maxNics
+                    , iSpecSpindleUse = 12
                     }
 
 -- | Minimum and maximum instance specs type.
@@ -218,14 +235,15 @@ defMinMaxISpecs = [MinMaxISpecs { minMaxISpecsMinSpec = defMinISpec
 -- | Instance policy type.
 $(THH.buildObject "IPolicy" "iPolicy"
   [ THH.renameField "MinMaxISpecs" $
-      THH.simpleField C.ispecsMinmax [t| [MinMaxISpecs] |]
-  , THH.renameField "StdSpec" $ THH.simpleField C.ispecsStd [t| ISpec |]
+      THH.simpleField ConstantUtils.ispecsMinmax [t| [MinMaxISpecs] |]
+  , THH.renameField "StdSpec" $
+      THH.simpleField ConstantUtils.ispecsStd [t| ISpec |]
   , THH.renameField "DiskTemplates" $
-      THH.simpleField C.ipolicyDts [t| [DiskTemplate] |]
+      THH.simpleField ConstantUtils.ipolicyDts [t| [DiskTemplate] |]
   , THH.renameField "VcpuRatio" $
-      THH.simpleField C.ipolicyVcpuRatio [t| Double |]
+      THH.simpleField ConstantUtils.ipolicyVcpuRatio [t| Double |]
   , THH.renameField "SpindleRatio" $
-      THH.simpleField C.ipolicySpindleRatio [t| Double |]
+      THH.simpleField ConstantUtils.ipolicySpindleRatio [t| Double |]
   ])
 
 -- | Converts an ISpec type to a RSpec one.
@@ -238,15 +256,16 @@ rspecFromISpec ispec = RSpec { rspecCpu = iSpecCpuCount ispec
 
 -- | The default instance policy.
 defIPolicy :: IPolicy
-defIPolicy = IPolicy { iPolicyMinMaxISpecs = defMinMaxISpecs
-                     , iPolicyStdSpec = defStdISpec
-                     -- hardcoding here since Constants.hs exports the
-                     -- string values, not the actual type; and in
-                     -- htools, we are mostly looking at DRBD
-                     , iPolicyDiskTemplates = [minBound..maxBound]
-                     , iPolicyVcpuRatio = C.ipolicyDefaultsVcpuRatio
-                     , iPolicySpindleRatio = C.ipolicyDefaultsSpindleRatio
-                     }
+defIPolicy =
+  IPolicy { iPolicyMinMaxISpecs = defMinMaxISpecs
+          , iPolicyStdSpec = defStdISpec
+          -- hardcoding here since Constants.hs exports the
+          -- string values, not the actual type; and in
+          -- htools, we are mostly looking at DRBD
+          , iPolicyDiskTemplates = [minBound..maxBound]
+          , iPolicyVcpuRatio = ConstantUtils.ipolicyDefaultsVcpuRatio
+          , iPolicySpindleRatio = ConstantUtils.ipolicyDefaultsSpindleRatio
+          }
 
 -- | The dynamic resource specs of a machine (i.e. load or load
 -- capacity, as opposed to size).
@@ -378,22 +397,22 @@ class Element a where
   setIdx  :: a -> Int -> a
 
 -- | The repair modes for the auto-repair tool.
-$(THH.declareSADT "AutoRepairType"
-       -- Order is important here: from least destructive to most.
-       [ ("ArFixStorage", 'C.autoRepairFixStorage)
-       , ("ArMigrate",    'C.autoRepairMigrate)
-       , ("ArFailover",   'C.autoRepairFailover)
-       , ("ArReinstall",  'C.autoRepairReinstall)
-       ])
+$(THH.declareLADT ''String "AutoRepairType"
+  -- Order is important here: from least destructive to most.
+  [ ("ArFixStorage", "fix-storage")
+  , ("ArMigrate",    "migrate")
+  , ("ArFailover",   "failover")
+  , ("ArReinstall",  "reinstall")
+  ])
 
 -- | The possible auto-repair results.
-$(THH.declareSADT "AutoRepairResult"
-       -- Order is important here: higher results take precedence when an object
-       -- has several result annotations attached.
-       [ ("ArEnoperm", 'C.autoRepairEnoperm)
-       , ("ArSuccess", 'C.autoRepairSuccess)
-       , ("ArFailure", 'C.autoRepairFailure)
-       ])
+$(THH.declareLADT ''String "AutoRepairResult"
+  -- Order is important here: higher results take precedence when an object
+  -- has several result annotations attached.
+  [ ("ArEnoperm", "enoperm")
+  , ("ArSuccess", "success")
+  , ("ArFailure", "failure")
+  ])
 
 -- | The possible auto-repair policy for a given instance.
 data AutoRepairPolicy

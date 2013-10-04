@@ -45,6 +45,8 @@ import Ganeti.ConstantUtils (FrozenSet, Protocol(..), buildVersion)
 import qualified Ganeti.ConstantUtils as ConstantUtils
 import Ganeti.Runtime (GanetiDaemon(..), MiscGroup(..), GanetiGroup(..),
                        ExtraLogReason(..))
+import Ganeti.HTools.Types (AutoRepairResult(..), AutoRepairType(..))
+import qualified Ganeti.HTools.Types as Types
 import Ganeti.Logging (SyslogUsage(..))
 import qualified Ganeti.Logging as Logging (syslogUsageToRaw)
 import qualified Ganeti.Runtime as Runtime
@@ -663,6 +665,84 @@ rpcTmo_1day = Types.rpcTimeoutToRaw OneDay
 -- | Timeout for connecting to nodes (seconds)
 rpcConnectTimeout :: Int
 rpcConnectTimeout = 5
+
+
+-- | Instance specs
+--
+-- FIXME: these should be associated with 'Ganeti.HTools.Types.ISpec'
+
+ispecMemSize :: String
+ispecMemSize = ConstantUtils.ispecMemSize
+
+ispecCpuCount :: String
+ispecCpuCount = ConstantUtils.ispecCpuCount
+
+ispecDiskCount :: String
+ispecDiskCount = ConstantUtils.ispecDiskCount
+
+ispecDiskSize :: String
+ispecDiskSize = ConstantUtils.ispecDiskSize
+
+ispecNicCount :: String
+ispecNicCount = ConstantUtils.ispecNicCount
+
+ispecSpindleUse :: String
+ispecSpindleUse = ConstantUtils.ispecSpindleUse
+
+ispecsParameterTypes :: Map String VType
+ispecsParameterTypes =
+  Map.fromList
+  [(ConstantUtils.ispecDiskSize, VTypeInt),
+   (ConstantUtils.ispecCpuCount, VTypeInt),
+   (ConstantUtils.ispecSpindleUse, VTypeInt),
+   (ConstantUtils.ispecMemSize, VTypeInt),
+   (ConstantUtils.ispecNicCount, VTypeInt),
+   (ConstantUtils.ispecDiskCount, VTypeInt)]
+
+ispecsParameters :: FrozenSet String
+ispecsParameters =
+  ConstantUtils.mkSet [ConstantUtils.ispecCpuCount,
+                       ConstantUtils.ispecDiskCount,
+                       ConstantUtils.ispecDiskSize,
+                       ConstantUtils.ispecMemSize,
+                       ConstantUtils.ispecNicCount,
+                       ConstantUtils.ispecSpindleUse]
+
+ispecsMinmax :: String
+ispecsMinmax = ConstantUtils.ispecsMinmax
+
+ispecsMax :: String
+ispecsMax = "max"
+
+ispecsMin :: String
+ispecsMin = "min"
+
+ispecsStd :: String
+ispecsStd = ConstantUtils.ispecsStd
+
+ipolicyDts :: String
+ipolicyDts = ConstantUtils.ipolicyDts
+
+ipolicyVcpuRatio :: String
+ipolicyVcpuRatio = ConstantUtils.ipolicyVcpuRatio
+
+ipolicySpindleRatio :: String
+ipolicySpindleRatio = ConstantUtils.ipolicySpindleRatio
+
+ispecsMinmaxKeys :: FrozenSet String
+ispecsMinmaxKeys = ConstantUtils.mkSet [ispecsMax, ispecsMin]
+
+ipolicyParameters :: FrozenSet String
+ipolicyParameters =
+  ConstantUtils.mkSet [ConstantUtils.ipolicyVcpuRatio,
+                       ConstantUtils.ipolicySpindleRatio]
+
+ipolicyAllKeys :: FrozenSet String
+ipolicyAllKeys =
+  ConstantUtils.union ipolicyParameters $
+  ConstantUtils.mkSet [ConstantUtils.ipolicyDts,
+                       ConstantUtils.ispecsMinmax,
+                       ispecsStd]
 
 -- | Node parameter names
 

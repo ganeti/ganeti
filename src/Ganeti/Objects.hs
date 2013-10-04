@@ -96,6 +96,7 @@ import Text.JSON (showJSON, readJSON, JSON, JSValue(..), fromJSString)
 import qualified Text.JSON as J
 
 import qualified Ganeti.Constants as C
+import qualified Ganeti.ConstantUtils as ConstantUtils
 import Ganeti.JSON
 import Ganeti.Types
 import Ganeti.THH
@@ -459,12 +460,12 @@ instance TagsObject Instance where
 -- * IPolicy definitions
 
 $(buildParam "ISpec" "ispec"
-  [ simpleField C.ispecMemSize     [t| Int |]
-  , simpleField C.ispecDiskSize    [t| Int |]
-  , simpleField C.ispecDiskCount   [t| Int |]
-  , simpleField C.ispecCpuCount    [t| Int |]
-  , simpleField C.ispecNicCount    [t| Int |]
-  , simpleField C.ispecSpindleUse  [t| Int |]
+  [ simpleField ConstantUtils.ispecMemSize     [t| Int |]
+  , simpleField ConstantUtils.ispecDiskSize    [t| Int |]
+  , simpleField ConstantUtils.ispecDiskCount   [t| Int |]
+  , simpleField ConstantUtils.ispecCpuCount    [t| Int |]
+  , simpleField ConstantUtils.ispecNicCount    [t| Int |]
+  , simpleField ConstantUtils.ispecSpindleUse  [t| Int |]
   ])
 
 $(buildObject "MinMaxISpecs" "mmis"
@@ -475,23 +476,23 @@ $(buildObject "MinMaxISpecs" "mmis"
 -- | Custom partial ipolicy. This is not built via buildParam since it
 -- has a special 2-level inheritance mode.
 $(buildObject "PartialIPolicy" "ipolicy"
-  [ optionalField . renameField "MinMaxISpecsP"
-                    $ simpleField C.ispecsMinmax   [t| [MinMaxISpecs] |]
-  , optionalField . renameField "StdSpecP"
-                    $ simpleField "std"            [t| PartialISpecParams |]
-  , optionalField . renameField "SpindleRatioP"
-                    $ simpleField "spindle-ratio"  [t| Double |]
-  , optionalField . renameField "VcpuRatioP"
-                    $ simpleField "vcpu-ratio"     [t| Double |]
-  , optionalField . renameField "DiskTemplatesP"
-                    $ simpleField "disk-templates" [t| [DiskTemplate] |]
+  [ optionalField . renameField "MinMaxISpecsP" $
+    simpleField ConstantUtils.ispecsMinmax [t| [MinMaxISpecs] |]
+  , optionalField . renameField "StdSpecP" $
+    simpleField "std" [t| PartialISpecParams |]
+  , optionalField . renameField "SpindleRatioP" $
+    simpleField "spindle-ratio" [t| Double |]
+  , optionalField . renameField "VcpuRatioP" $
+    simpleField "vcpu-ratio" [t| Double |]
+  , optionalField . renameField "DiskTemplatesP" $
+    simpleField "disk-templates" [t| [DiskTemplate] |]
   ])
 
 -- | Custom filled ipolicy. This is not built via buildParam since it
 -- has a special 2-level inheritance mode.
 $(buildObject "FilledIPolicy" "ipolicy"
-  [ renameField "MinMaxISpecs"
-    $ simpleField C.ispecsMinmax [t| [MinMaxISpecs] |]
+  [ renameField "MinMaxISpecs" $
+    simpleField ConstantUtils.ispecsMinmax [t| [MinMaxISpecs] |]
   , renameField "StdSpec" $ simpleField "std" [t| FilledISpecParams |]
   , simpleField "spindle-ratio"  [t| Double |]
   , simpleField "vcpu-ratio"     [t| Double |]

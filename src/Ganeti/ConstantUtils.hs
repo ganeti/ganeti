@@ -134,3 +134,44 @@ confdReqqIplist = "2"
 
 confdReqqFields :: String
 confdReqqFields = "3"
+
+-- * ISpec
+
+ispecMemSize :: String
+ispecMemSize = "memory-size"
+
+ispecCpuCount :: String
+ispecCpuCount = "cpu-count"
+
+ispecDiskCount :: String
+ispecDiskCount = "disk-count"
+
+ispecDiskSize :: String
+ispecDiskSize = "disk-size"
+
+ispecNicCount :: String
+ispecNicCount = "nic-count"
+
+ispecSpindleUse :: String
+ispecSpindleUse = "spindle-use"
+
+ispecsMinmax :: String
+ispecsMinmax = "minmax"
+
+ispecsStd :: String
+ispecsStd = "std"
+
+ipolicyDts :: String
+ipolicyDts = "disk-templates"
+
+ipolicyVcpuRatio :: String
+ipolicyVcpuRatio = "vcpu-ratio"
+
+ipolicySpindleRatio :: String
+ipolicySpindleRatio = "spindle-ratio"
+
+ipolicyDefaultsVcpuRatio :: Double
+ipolicyDefaultsVcpuRatio = 4.0
+
+ipolicyDefaultsSpindleRatio :: Double
+ipolicyDefaultsSpindleRatio = 32.0
