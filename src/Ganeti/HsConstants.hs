@@ -156,6 +156,12 @@ osApiV20 = 20
 osApiVersions :: FrozenSet Int
 osApiVersions = ConstantUtils.mkSet [osApiV10, osApiV15, osApiV20]
 
+exportVersion :: Int
+exportVersion = 0
+
+rapiVersion :: Int
+rapiVersion = 2
+
 configMajor :: Int
 configMajor = AutoConf.versionMajor
 
