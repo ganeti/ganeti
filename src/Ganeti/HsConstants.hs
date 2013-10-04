@@ -2253,6 +2253,236 @@ vncBasePort = 5900
 vncDefaultBindAddress :: String
 vncDefaultBindAddress = ip4AddressAny
 
+-- * NIC types
+
+htNicE1000 :: String
+htNicE1000 = "e1000"
+
+htNicI82551 :: String
+htNicI82551 = "i82551"
+
+htNicI8259er :: String
+htNicI8259er = "i82559er"
+
+htNicI85557b :: String
+htNicI85557b = "i82557b"
+
+htNicNe2kIsa :: String
+htNicNe2kIsa = "ne2k_isa"
+
+htNicNe2kPci :: String
+htNicNe2kPci = "ne2k_pci"
+
+htNicParavirtual :: String
+htNicParavirtual = "paravirtual"
+
+htNicPcnet :: String
+htNicPcnet = "pcnet"
+
+htNicRtl8139 :: String
+htNicRtl8139 = "rtl8139"
+
+htHvmValidNicTypes :: FrozenSet String
+htHvmValidNicTypes =
+  ConstantUtils.mkSet [htNicE1000,
+                       htNicNe2kIsa,
+                       htNicNe2kPci,
+                       htNicParavirtual,
+                       htNicRtl8139]
+
+htKvmValidNicTypes :: FrozenSet String
+htKvmValidNicTypes =
+  ConstantUtils.mkSet [htNicE1000,
+                       htNicI82551,
+                       htNicI8259er,
+                       htNicI85557b,
+                       htNicNe2kIsa,
+                       htNicNe2kPci,
+                       htNicParavirtual,
+                       htNicPcnet,
+                       htNicRtl8139]
+
+-- * Vif types
+
+-- | Default vif type in xen-hvm
+htHvmVifIoemu :: String
+htHvmVifIoemu = "ioemu"
+
+htHvmVifVif :: String
+htHvmVifVif = "vif"
+
+htHvmValidVifTypes :: FrozenSet String
+htHvmValidVifTypes = ConstantUtils.mkSet [htHvmVifIoemu, htHvmVifVif]
+
+-- * Disk types
+
+htDiskIde :: String
+htDiskIde = "ide"
+
+htDiskIoemu :: String
+htDiskIoemu = "ioemu"
+
+htDiskMtd :: String
+htDiskMtd = "mtd"
+
+htDiskParavirtual :: String
+htDiskParavirtual = "paravirtual"
+
+htDiskPflash :: String
+htDiskPflash = "pflash"
+
+htDiskScsi :: String
+htDiskScsi = "scsi"
+
+htDiskSd :: String
+htDiskSd = "sd"
+
+htHvmValidDiskTypes :: FrozenSet String
+htHvmValidDiskTypes = ConstantUtils.mkSet [htDiskIoemu, htDiskParavirtual]
+
+htKvmValidDiskTypes :: FrozenSet String
+htKvmValidDiskTypes =
+  ConstantUtils.mkSet [htDiskIde,
+                       htDiskMtd,
+                       htDiskParavirtual,
+                       htDiskPflash,
+                       htDiskScsi,
+                       htDiskSd]
+
+htCacheDefault :: String
+htCacheDefault = "default"
+
+htCacheNone :: String
+htCacheNone = "none"
+
+htCacheWback :: String
+htCacheWback = "writeback"
+
+htCacheWthrough :: String
+htCacheWthrough = "writethrough"
+
+htValidCacheTypes :: FrozenSet String
+htValidCacheTypes =
+  ConstantUtils.mkSet [htCacheDefault,
+                       htCacheNone,
+                       htCacheWback,
+                       htCacheWthrough]
+
+-- * Mouse types
+
+htMouseMouse :: String
+htMouseMouse = "mouse"
+
+htMouseTablet :: String
+htMouseTablet = "tablet"
+
+htKvmValidMouseTypes :: FrozenSet String
+htKvmValidMouseTypes = ConstantUtils.mkSet [htMouseMouse, htMouseTablet]
+
+-- * Boot order
+
+htBoCdrom :: String
+htBoCdrom = "cdrom"
+
+htBoDisk :: String
+htBoDisk = "disk"
+
+htBoFloppy :: String
+htBoFloppy = "floppy"
+
+htBoNetwork :: String
+htBoNetwork = "network"
+
+htKvmValidBoTypes :: FrozenSet String
+htKvmValidBoTypes =
+  ConstantUtils.mkSet [htBoCdrom, htBoDisk, htBoFloppy, htBoNetwork]
+
+-- * SPICE lossless image compression options
+
+htKvmSpiceLosslessImgComprAutoGlz :: String
+htKvmSpiceLosslessImgComprAutoGlz = "auto_glz"
+
+htKvmSpiceLosslessImgComprAutoLz :: String
+htKvmSpiceLosslessImgComprAutoLz = "auto_lz"
+
+htKvmSpiceLosslessImgComprGlz :: String
+htKvmSpiceLosslessImgComprGlz = "glz"
+
+htKvmSpiceLosslessImgComprLz :: String
+htKvmSpiceLosslessImgComprLz = "lz"
+
+htKvmSpiceLosslessImgComprOff :: String
+htKvmSpiceLosslessImgComprOff = "off"
+
+htKvmSpiceLosslessImgComprQuic :: String
+htKvmSpiceLosslessImgComprQuic = "quic"
+
+htKvmSpiceValidLosslessImgComprOptions :: FrozenSet String
+htKvmSpiceValidLosslessImgComprOptions =
+  ConstantUtils.mkSet [htKvmSpiceLosslessImgComprAutoGlz,
+                       htKvmSpiceLosslessImgComprAutoLz,
+                       htKvmSpiceLosslessImgComprGlz,
+                       htKvmSpiceLosslessImgComprLz,
+                       htKvmSpiceLosslessImgComprOff,
+                       htKvmSpiceLosslessImgComprQuic]
+
+htKvmSpiceLossyImgComprAlways :: String
+htKvmSpiceLossyImgComprAlways = "always"
+
+htKvmSpiceLossyImgComprAuto :: String
+htKvmSpiceLossyImgComprAuto = "auto"
+
+htKvmSpiceLossyImgComprNever :: String
+htKvmSpiceLossyImgComprNever = "never"
+
+htKvmSpiceValidLossyImgComprOptions :: FrozenSet String
+htKvmSpiceValidLossyImgComprOptions =
+  ConstantUtils.mkSet [htKvmSpiceLossyImgComprAlways,
+                       htKvmSpiceLossyImgComprAuto,
+                       htKvmSpiceLossyImgComprNever]
+
+-- * SPICE video stream detection
+
+htKvmSpiceVideoStreamDetectionAll :: String
+htKvmSpiceVideoStreamDetectionAll = "all"
+
+htKvmSpiceVideoStreamDetectionFilter :: String
+htKvmSpiceVideoStreamDetectionFilter = "filter"
+
+htKvmSpiceVideoStreamDetectionOff :: String
+htKvmSpiceVideoStreamDetectionOff = "off"
+
+htKvmSpiceValidVideoStreamDetectionOptions :: FrozenSet String
+htKvmSpiceValidVideoStreamDetectionOptions =
+  ConstantUtils.mkSet [htKvmSpiceVideoStreamDetectionAll,
+                       htKvmSpiceVideoStreamDetectionFilter,
+                       htKvmSpiceVideoStreamDetectionOff]
+
+-- * Security models
+
+htSmNone :: String
+htSmNone = "none"
+
+htSmPool :: String
+htSmPool = "pool"
+
+htSmUser :: String
+htSmUser = "user"
+
+htKvmValidSmTypes :: FrozenSet String
+htKvmValidSmTypes = ConstantUtils.mkSet [htSmNone, htSmPool, htSmUser]
+
+-- * Kvm flag values
+
+htKvmDisabled :: String
+htKvmDisabled = "disabled"
+
+htKvmEnabled :: String
+htKvmEnabled = "enabled"
+
+htKvmFlagValues :: FrozenSet String
+htKvmFlagValues = ConstantUtils.mkSet [htKvmDisabled, htKvmEnabled]
+
 -- * Migration type
 
 htMigrationLive :: String
