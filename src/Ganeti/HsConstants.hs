@@ -1293,6 +1293,20 @@ esScripts =
 esParametersFile :: String
 esParametersFile = "parameters.list"
 
+-- * Reboot types
+
+instanceRebootSoft :: String
+instanceRebootSoft = Types.rebootTypeToRaw RebootSoft
+
+instanceRebootHard :: String
+instanceRebootHard = Types.rebootTypeToRaw RebootHard
+
+instanceRebootFull :: String
+instanceRebootFull = Types.rebootTypeToRaw RebootFull
+
+rebootTypes :: FrozenSet String
+rebootTypes = ConstantUtils.mkSet $ map Types.rebootTypeToRaw [minBound..]
+
 -- * Instance reboot behaviors
 
 instanceRebootAllowed :: String
@@ -1446,19 +1460,10 @@ ndsParameterTitles =
    (ndSpindleCount, "SpindleCount")]
 
 
--- * Reboot types
 
-instanceRebootSoft :: String
-instanceRebootSoft = Types.rebootTypeToRaw RebootSoft
 
-instanceRebootHard :: String
-instanceRebootHard = Types.rebootTypeToRaw RebootHard
 
-instanceRebootFull :: String
-instanceRebootFull = Types.rebootTypeToRaw RebootFull
 
-rebootTypes :: FrozenSet String
-rebootTypes = ConstantUtils.mkSet $ map Types.rebootTypeToRaw [minBound..]
 
 -- * OOB supported commands
 
