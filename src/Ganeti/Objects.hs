@@ -47,6 +47,7 @@ module Ganeti.Objects
   , allBeParamFields
   , Instance(..)
   , toDictInstance
+  , getDiskSizeRequirements
   , PartialNDParams(..)
   , FilledNDParams(..)
   , fillNDParams
@@ -458,6 +459,19 @@ instance SerialNoObject Instance where
 
 instance TagsObject Instance where
   tagsOf = instTags
+
+-- | Retrieves the real disk size requirements for all the disks of the
+-- instance. This includes the metadata etc. and is different from the values
+-- visible to the instance.
+getDiskSizeRequirements :: Instance -> Int
+getDiskSizeRequirements inst =
+  sum . map
+    (\disk -> case instDiskTemplate inst of
+                DTDrbd8    -> diskSize disk + C.drbdMetaSize
+                DTDiskless -> 0
+                DTBlock    -> 0
+                _          -> diskSize disk )
+    $ instDisks inst
 
 -- * IPolicy definitions
 

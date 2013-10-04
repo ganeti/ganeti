@@ -35,6 +35,7 @@ import Data.Maybe
 import Data.Monoid
 import qualified Data.Map as Map
 import qualified Text.JSON as J
+import Text.Printf
 
 import Ganeti.BasicTypes
 import Ganeti.Common
@@ -50,6 +51,7 @@ import Ganeti.Query.Types
 import Ganeti.Rpc
 import Ganeti.Storage.Utils
 import Ganeti.Types
+import Ganeti.Utils (formatOrdinal)
 
 -- | The LiveInfo structure packs additional information beside the
 -- 'InstanceInfo'. We also need to know whether the instance information was
@@ -134,6 +136,56 @@ instanceFields =
   map (buildBeParamField beParamGetter) allBeParamFields ++
   map (buildHvParamField hvParamGetter) (C.toList C.hvsParameters) ++
 
+  -- Aggregate disk parameter fields
+  [ (FieldDefinition "disk_usage" "DiskUsage" QFTUnit
+     "Total disk space used by instance on each of its nodes; this is not the\
+     \ disk size visible to the instance, but the usage on the node",
+     FieldSimple (rsNormal . getDiskSizeRequirements), QffNormal),
+
+    (FieldDefinition "disk.count" "Disks" QFTNumber
+     "Number of disks",
+     FieldSimple (rsNormal . length . instDisks), QffNormal),
+
+    (FieldDefinition "disk.sizes" "Disk_sizes" QFTOther
+     "List of disk sizes",
+     FieldSimple (rsNormal . map diskSize . instDisks), QffNormal),
+
+    (FieldDefinition "disk.spindles" "Disk_spindles" QFTOther
+     "List of disk spindles",
+     FieldSimple (rsNormal . map (MaybeForJSON . diskSpindles) .
+                  instDisks),
+     QffNormal),
+
+    (FieldDefinition "disk.names" "Disk_names" QFTOther
+     "List of disk names",
+     FieldSimple (rsNormal . map (MaybeForJSON . diskName) .
+                  instDisks),
+     QffNormal),
+
+    (FieldDefinition "disk.uuids" "Disk_UUIDs" QFTOther
+     "List of disk UUIDs",
+     FieldSimple (rsNormal . map diskUuid . instDisks), QffNormal)
+  ] ++
+
+  -- Per-disk parameter fields
+  fillNumberFields C.maxDisks
+  [ (fieldDefinitionCompleter "disk.size/%d" "Disk/%d" QFTUnit
+     "Disk size of %s disk",
+     getFillableField instDisks diskSize, QffNormal),
+
+    (fieldDefinitionCompleter "disk.spindles/%d" "DiskSpindles/%d" QFTNumber
+     "Spindles of %s disk",
+     getFillableOptionalField instDisks diskSpindles, QffNormal),
+
+    (fieldDefinitionCompleter "disk.name/%d" "DiskName/%d" QFTText
+     "Name of %s disk",
+     getFillableOptionalField instDisks diskName, QffNormal),
+
+    (fieldDefinitionCompleter "disk.uuid/%d" "DiskUUID/%d" QFTText
+     "UUID of %s disk",
+     getFillableField instDisks diskUuid, QffNormal)
+  ] ++
+
   -- Live fields using special getters
   [ (FieldDefinition "status" "Status" QFTText
      statusDocText,
@@ -152,6 +204,81 @@ instanceFields =
   tagsFields
 
 -- * Helper functions for node property retrieval
+
+-- | Creates a function which produces a FieldGetter when fed an index. Works
+-- for fields that may not return a value, expressed through the Maybe monad.
+getFillableOptionalField :: (J.JSON b)
+                         => (Instance -> [a]) -- ^ Extracts a list of objects
+                         -> (a -> Maybe b)    -- ^ Possibly gets a property
+                                              -- from an object
+                         -> Int               -- ^ Index in list to use
+                         -> FieldGetter Instance Runtime -- ^ Result
+getFillableOptionalField extractor optPropertyGetter index =
+  FieldSimple(\inst -> rsMaybeUnavail $ do
+                         obj <- maybeAt index $ extractor inst
+                         optPropertyGetter obj)
+
+-- | Creates a function which produces a FieldGetter when fed an index.
+-- Works only for fields that surely return a value.
+getFillableField :: (J.JSON b)
+                    => (Instance -> [a]) -- ^ Extracts a list of objects
+                    -> (a -> b)          -- ^ Gets a property from an object
+                    -> Int               -- ^ Index in list to use
+                    -> FieldGetter Instance Runtime -- ^ Result
+getFillableField extractor propertyGetter index =
+  let optPropertyGetter = Just . propertyGetter
+  in getFillableOptionalField extractor optPropertyGetter index
+
+-- | Retrieves a value from an array at an index, using the Maybe monad to
+-- indicate failure.
+maybeAt :: Int -> [a] -> Maybe a
+maybeAt index list
+  | index >= length list = Nothing
+  | otherwise            = Just $ list !! index
+
+-- | Primed with format strings for everything but the type, it consumes two
+-- values and uses them to complete the FieldDefinition.
+-- Warning: a bit unsafe as it uses printf. Handle with care.
+fieldDefinitionCompleter :: (PrintfArg t1) => (PrintfArg t2)
+                         => FieldName
+                         -> FieldTitle
+                         -> FieldType
+                         -> FieldDoc
+                         -> t1
+                         -> t2
+                         -> FieldDefinition
+fieldDefinitionCompleter fName fTitle fType fDoc firstVal secondVal =
+  FieldDefinition (printf fName firstVal)
+                  (printf fTitle firstVal)
+                  fType
+                  (printf fDoc secondVal)
+
+-- | Given an incomplete field definition and values that can complete it,
+-- return a fully functional FieldData. Cannot work for all cases, should be
+-- extended as necessary.
+fillIncompleteFields :: (t1 -> t2 -> FieldDefinition,
+                         t1 -> FieldGetter a b,
+                         QffMode)
+                     -> t1
+                     -> t2
+                     -> FieldData a b
+fillIncompleteFields (iDef, iGet, mode) firstVal secondVal =
+  (iDef firstVal secondVal, iGet firstVal, mode)
+
+-- | Given fields that describe lists, fill their definitions with appropriate
+-- index representations.
+fillNumberFields :: (Integral t1)
+                 => Int
+                 -> [(t1 -> String -> FieldDefinition,
+                      t1 -> FieldGetter a b,
+                      QffMode)]
+                 -> FieldList a b
+fillNumberFields numFills fieldsToFill = do
+  index <- take numFills [0..]
+  field <- fieldsToFill
+  return . fillIncompleteFields field index . formatOrdinal $ index + 1
+
+-- * Various helper functions for property retrieval
 
 -- | Helper function for primary node retrieval
 getPrimaryNode :: ConfigData -> Instance -> ErrorResult Node

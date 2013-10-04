@@ -48,6 +48,7 @@ module Ganeti.JSON
   , HasStringRepr(..)
   , GenericContainer(..)
   , Container
+  , MaybeForJSON(..)
   )
   where
 
@@ -288,3 +289,12 @@ instance (HasStringRepr a, Ord a, J.JSON b) =>
   readJSON (J.JSObject o) = readContainer o
   readJSON v = fail $ "Failed to load container, expected object but got "
                ++ show (pp_value v)
+
+-- | A Maybe newtype that allows for serialization more appropriate to the
+-- semantics of Maybe and JSON in our calls. Does not produce needless
+-- and confusing dictionaries.
+newtype MaybeForJSON a = MaybeForJSON { unMaybeForJSON :: Maybe a }
+instance (J.JSON a) => J.JSON (MaybeForJSON a) where
+  readJSON = J.readJSON
+  showJSON (MaybeForJSON (Just x)) = J.showJSON x
+  showJSON (MaybeForJSON Nothing)  = J.JSNull

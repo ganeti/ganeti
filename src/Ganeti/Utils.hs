@@ -59,6 +59,7 @@ module Ganeti.Utils
   , recombineEithers
   , resolveAddr
   , setOwnerAndGroupFromNames
+  , formatOrdinal
   ) where
 
 import Data.Char (toUpper, isAlphaNum, isDigit, isSpace)
@@ -473,3 +474,14 @@ setOwnerAndGroupFromNames filename daemon dGroup = do
   let uid = fst ents M.! daemon
   let gid = snd ents M.! dGroup
   setOwnerAndGroup filename uid gid
+
+-- | Formats an integral number, appending a suffix.
+formatOrdinal :: (Integral a, Show a) => a -> String
+formatOrdinal num
+  | num > 10 && num < 20 = suffix "th"
+  | tens == 1            = suffix "st"
+  | tens == 2            = suffix "nd"
+  | tens == 3            = suffix "rd"
+  | otherwise            = suffix "th"
+  where tens     = num `mod` 10
+        suffix s = show num ++ s
