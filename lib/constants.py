@@ -1172,9 +1172,8 @@ RS_OFFLINE = _constants.RS_OFFLINE
 RS_ALL = _constants.RS_ALL
 RSS_DESCRIPTION = _constants.RSS_DESCRIPTION
 
-# max dynamic devices
-MAX_NICS = 8
-MAX_DISKS = 16
+MAX_NICS = _constants.MAX_NICS
+MAX_DISKS = _constants.MAX_DISKS
 
 # SSCONF file prefix
 SSCONF_FILEPREFIX = "ssconf_"

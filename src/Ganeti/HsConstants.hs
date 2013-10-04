@@ -3293,6 +3293,14 @@ rssDescription =
                 (rsOffline, ("(offline)", "*")),
                 (rsUnavail, ("(unavail)", "-"))]
 
+-- * Max dynamic devices
+
+maxDisks :: Int
+maxDisks = Types.maxDisks
+
+maxNics :: Int
+maxNics = Types.maxNics
+
 -- * Confd
 
 confdProtocolVersion :: Int
