@@ -36,6 +36,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 module Ganeti.HsConstants where
 
+import Control.Arrow ((***))
 import Data.List ((\\))
 import Data.Map (Map)
 import qualified Data.Map as Map (fromList, keys, insert)
@@ -639,6 +640,13 @@ stRados = Types.storageTypeToRaw StorageRados
 storageTypes :: FrozenSet String
 storageTypes = ConstantUtils.mkSet $ map Types.storageTypeToRaw [minBound..]
 
+-- | The set of storage types for which storage reporting is available
+--
+-- FIXME: Remove this, once storage reporting is available for all
+-- types.
+stsReport :: FrozenSet String
+stsReport = ConstantUtils.mkSet [stFile, stLvmPv, stLvmVg]
+
 -- * Storage fields
 -- ** First two are valid in LU context only, not passed to backend
 
@@ -664,6 +672,49 @@ sfSize = Types.storageFieldToRaw SFSize
 
 sfUsed :: String
 sfUsed = Types.storageFieldToRaw SFUsed
+
+validStorageFields :: FrozenSet String
+validStorageFields =
+  ConstantUtils.mkSet $ map Types.storageFieldToRaw [minBound..] ++
+                        [sfNode, sfType]
+
+modifiableStorageFields :: Map String (FrozenSet String)
+modifiableStorageFields =
+  Map.fromList [(Types.storageTypeToRaw StorageLvmPv,
+                 ConstantUtils.mkSet [sfAllocatable])]
+
+-- * Storage operations
+
+soFixConsistency :: String
+soFixConsistency = "fix-consistency"
+
+validStorageOperations :: Map String (FrozenSet String)
+validStorageOperations =
+  Map.fromList [(Types.storageTypeToRaw StorageLvmVg,
+                 ConstantUtils.mkSet [soFixConsistency])]
+
+-- * Volume fields
+
+vfDev :: String
+vfDev = "dev"
+
+vfInstance :: String
+vfInstance = "instance"
+
+vfName :: String
+vfName = "name"
+
+vfNode :: String
+vfNode = "node"
+
+vfPhys :: String
+vfPhys = "phys"
+
+vfSize :: String
+vfSize = "size"
+
+vfVg :: String
+vfVg = "vg"
 
 -- * Local disk status
 
@@ -723,6 +774,20 @@ diskTemplates = ConstantUtils.mkSet $ map Types.diskTemplateToRaw [minBound..]
 -- | Disk templates that are enabled by default
 defaultEnabledDiskTemplates :: [String]
 defaultEnabledDiskTemplates = map Types.diskTemplateToRaw [DTDrbd8, DTPlain]
+
+-- | Mapping of disk templates to storage types
+mapDiskTemplateStorageType :: Map String String
+mapDiskTemplateStorageType =
+  Map.fromList $
+  map (Types.diskTemplateToRaw *** Types.storageTypeToRaw)
+  [(DTBlock, StorageBlock),
+   (DTDrbd8, StorageLvmVg),
+   (DTExt, StorageExt),
+   (DTSharedFile, StorageFile),
+   (DTFile, StorageFile),
+   (DTDiskless, StorageDiskless),
+   (DTPlain, StorageLvmVg),
+   (DTRbd, StorageRados)]
 
 -- | The set of network-mirrored disk templates
 dtsIntMirror :: FrozenSet String

@@ -263,10 +263,7 @@ ST_LVM_PV = _constants.ST_LVM_PV
 ST_LVM_VG = _constants.ST_LVM_VG
 ST_RADOS = _constants.ST_RADOS
 STORAGE_TYPES = _constants.STORAGE_TYPES
-
-# the set of storage types for which storage reporting is available
-# FIXME: Remove this, once storage reporting is available for all types.
-STS_REPORT = compat.UniqueFrozenset([ST_FILE, ST_LVM_PV, ST_LVM_VG])
+STS_REPORT = _constants.STS_REPORT
 
 # Storage fields
 # first two are valid in LU context only, not passed to backend
@@ -278,41 +275,24 @@ SF_SIZE = _constants.SF_SIZE
 SF_FREE = _constants.SF_FREE
 SF_USED = _constants.SF_USED
 SF_ALLOCATABLE = _constants.SF_ALLOCATABLE
+VALID_STORAGE_FIELDS = _constants.VALID_STORAGE_FIELDS
+MODIFIABLE_STORAGE_FIELDS = _constants.MODIFIABLE_STORAGE_FIELDS
 
-# Storage operations
-SO_FIX_CONSISTENCY = "fix-consistency"
+SO_FIX_CONSISTENCY = _constants.SO_FIX_CONSISTENCY
+VALID_STORAGE_OPERATIONS = _constants.VALID_STORAGE_OPERATIONS
 
-# Available fields per storage type
-VALID_STORAGE_FIELDS = compat.UniqueFrozenset([
-  SF_NODE,
-  SF_NAME,
-  SF_TYPE,
-  SF_SIZE,
-  SF_USED,
-  SF_FREE,
-  SF_ALLOCATABLE,
-  ])
-
-MODIFIABLE_STORAGE_FIELDS = {
-  ST_LVM_PV: frozenset([SF_ALLOCATABLE]),
-  }
+VF_DEV = _constants.VF_DEV
+VF_INSTANCE = _constants.VF_INSTANCE
+VF_NAME = _constants.VF_NAME
+VF_NODE = _constants.VF_NODE
+VF_PHYS = _constants.VF_PHYS
+VF_SIZE = _constants.VF_SIZE
+VF_VG = _constants.VF_VG
 
 LDS_OKAY = _constants.LDS_OKAY
 LDS_UNKNOWN = _constants.LDS_UNKNOWN
 LDS_FAULTY = _constants.LDS_FAULTY
 LDS_NAMES = _constants.LDS_NAMES
-VALID_STORAGE_OPERATIONS = {
-  ST_LVM_VG: frozenset([SO_FIX_CONSISTENCY]),
-  }
-
-# Volume fields
-VF_DEV = "dev"
-VF_INSTANCE = "instance"
-VF_NAME = "name"
-VF_NODE = "node"
-VF_PHYS = "phys"
-VF_SIZE = "size"
-VF_VG = "vg"
 
 # disk template types
 DT_BLOCK = _constants.DT_BLOCK
@@ -327,19 +307,7 @@ DISK_TEMPLATE_PREFERENCE = _constants.DISK_TEMPLATE_PREFERENCE
 DISK_TEMPLATES = _constants.DISK_TEMPLATES
 DEFAULT_ENABLED_DISK_TEMPLATES = _constants.DEFAULT_ENABLED_DISK_TEMPLATES
 
-# mapping of disk templates to storage types
-MAP_DISK_TEMPLATE_STORAGE_TYPE = {
-  DT_BLOCK: ST_BLOCK,
-  DT_DISKLESS: ST_DISKLESS,
-  DT_DRBD8: ST_LVM_VG,
-  DT_EXT: ST_EXT,
-  DT_FILE: ST_FILE,
-  DT_PLAIN: ST_LVM_VG,
-  DT_RBD: ST_RADOS,
-  DT_SHARED_FILE: ST_FILE,
-  }
-
-
+MAP_DISK_TEMPLATE_STORAGE_TYPE = _constants.MAP_DISK_TEMPLATE_STORAGE_TYPE
 # drbd constants
 DRBD_HMAC_ALG = "md5"
 DRBD_DEFAULT_NET_PROTOCOL = "C"
