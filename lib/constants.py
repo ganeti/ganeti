@@ -353,6 +353,10 @@ MODIFIABLE_STORAGE_FIELDS = {
   ST_LVM_PV: frozenset([SF_ALLOCATABLE]),
   }
 
+LDS_OKAY = _constants.LDS_OKAY
+LDS_UNKNOWN = _constants.LDS_UNKNOWN
+LDS_FAULTY = _constants.LDS_FAULTY
+LDS_NAMES = _constants.LDS_NAMES
 VALID_STORAGE_OPERATIONS = {
   ST_LVM_VG: frozenset([SO_FIX_CONSISTENCY]),
   }
@@ -365,18 +369,6 @@ VF_NODE = "node"
 VF_PHYS = "phys"
 VF_SIZE = "size"
 VF_VG = "vg"
-
-# Local disk status
-# Note: Code depends on LDS_OKAY < LDS_UNKNOWN < LDS_FAULTY
-(LDS_OKAY,
- LDS_UNKNOWN,
- LDS_FAULTY) = range(1, 4)
-
-LDS_NAMES = {
-  LDS_OKAY: "ok",
-  LDS_UNKNOWN: "unknown",
-  LDS_FAULTY: "faulty",
-}
 
 # disk template types
 DT_BLOCK = _constants.DT_BLOCK
@@ -514,8 +506,7 @@ RBD_CMD = "rbd"
 FD_BLKTAP = _constants.FD_BLKTAP
 FD_LOOP = _constants.FD_LOOP
 
-# the set of drbd-like disk types
-LDS_DRBD = compat.UniqueFrozenset([DT_DRBD8])
+LDS_DRBD = _constants.LDS_DRBD
 
 # disk access mode
 DISK_RDONLY = _constants.DISK_RDONLY

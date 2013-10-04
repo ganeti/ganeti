@@ -143,6 +143,10 @@ module Ganeti.Types
   , storageFieldToRaw
   , DiskAccessMode(..)
   , diskAccessModeToRaw
+  , LocalDiskStatus(..)
+  , localDiskStatusFromRaw
+  , localDiskStatusToRaw
+  , localDiskStatusName
   , ReplaceDisksMode(..)
   , replaceDisksModeToRaw
   , RpcTimeout(..)
@@ -398,6 +402,8 @@ $(THH.declareLADT ''String "DdmSimple"
 $(THH.makeJSONInstance ''DdmSimple)
 
 -- | Dynamic device modification, all operations version.
+--
+-- TODO: DDM_SWAP, DDM_MOVE?
 $(THH.declareLADT ''String "DdmFull"
      [ ("DdmFullAdd",    "add")
      , ("DdmFullRemove", "remove")
@@ -724,6 +730,9 @@ $(THH.declareLADT ''String "VType"
   ])
 $(THH.makeJSONInstance ''VType)
 
+instance THH.PyValue VType where
+  showValue = THH.showValue . vTypeToRaw
+
 -- * Node role type
 
 $(THH.declareLADT ''String "NodeRole"
@@ -784,6 +793,21 @@ $(THH.declareLADT ''String "DiskAccessMode"
   , ( "DiskKernelspace", "kernelspace")
   ])
 $(THH.makeJSONInstance ''DiskAccessMode)
+
+-- | Local disk status
+--
+-- Python code depends on:
+--   DiskStatusOk < DiskStatusUnknown < DiskStatusFaulty
+$(THH.declareILADT "LocalDiskStatus"
+  [ ("DiskStatusFaulty",  3)
+  , ("DiskStatusOk",      1)
+  , ("DiskStatusUnknown", 2)
+  ])
+
+localDiskStatusName :: LocalDiskStatus -> String
+localDiskStatusName DiskStatusFaulty = "faulty"
+localDiskStatusName DiskStatusOk = "ok"
+localDiskStatusName DiskStatusUnknown = "unknown"
 
 -- | Replace disks type.
 $(THH.declareLADT ''String "ReplaceDisksMode"

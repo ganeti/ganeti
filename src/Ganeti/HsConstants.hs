@@ -452,6 +452,22 @@ sfSize = Types.storageFieldToRaw SFSize
 sfUsed :: String
 sfUsed = Types.storageFieldToRaw SFUsed
 
+-- * Local disk status
+
+ldsFaulty :: Int
+ldsFaulty = Types.localDiskStatusToRaw DiskStatusFaulty
+
+ldsOkay :: Int
+ldsOkay = Types.localDiskStatusToRaw DiskStatusOk
+
+ldsUnknown :: Int
+ldsUnknown = Types.localDiskStatusToRaw DiskStatusUnknown
+
+ldsNames :: Map Int String
+ldsNames =
+  Map.fromList [ (Types.localDiskStatusToRaw ds,
+                  localDiskStatusName ds) | ds <- [minBound..] ]
+
 -- * Disk template types
 
 dtDiskless :: String
@@ -502,6 +518,10 @@ fdBlktap = Types.fileDriverToRaw FileBlktap
 
 fdLoop :: String
 fdLoop = Types.fileDriverToRaw FileLoop
+
+-- | The set of drbd-like disk types
+ldsDrbd :: FrozenSet String
+ldsDrbd = ConstantUtils.mkSet [Types.diskTemplateToRaw DTDrbd8]
 
 -- * Disk access mode
 
