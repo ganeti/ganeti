@@ -1131,6 +1131,10 @@ defaultShutdownTimeout = 120
 nodeMaxClockSkew :: Int
 nodeMaxClockSkew = 150
 
+-- | Time for an intra-cluster disk transfer to wait for a connection
+diskTransferConnectTimeout :: Int
+diskTransferConnectTimeout = 60
+
 -- | Disk index separator
 diskSeparator :: String
 diskSeparator = AutoConf.diskSeparator
