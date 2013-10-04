@@ -124,7 +124,7 @@ buildVersion major minor revision =
 confdProtocolVersion :: Int
 confdProtocolVersion = 1
 
--- * Confd request query fields.
+-- * Confd request query fields
 --
 -- These are defined here and not in 'Ganeti.Types' due to GHC stage
 -- restrictions concerning Template Haskell.  They are also not
