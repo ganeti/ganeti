@@ -1116,9 +1116,8 @@ NR_DRAINED = _constants.NR_DRAINED
 NR_OFFLINE = _constants.NR_OFFLINE
 NR_ALL = _constants.NR_ALL
 
-# SSL certificate check constants (in days)
-SSL_CERT_EXPIRATION_WARN = 30
-SSL_CERT_EXPIRATION_ERROR = 7
+SSL_CERT_EXPIRATION_WARN = _constants.SSL_CERT_EXPIRATION_WARN
+SSL_CERT_EXPIRATION_ERROR = _constants.SSL_CERT_EXPIRATION_ERROR
 
 # Allocator framework constants
 IALLOCATOR_VERSION = _constants.IALLOCATOR_VERSION
@@ -1142,16 +1141,14 @@ NODE_EVAC_SEC = _constants.NODE_EVAC_SEC
 NODE_EVAC_ALL = _constants.NODE_EVAC_ALL
 NODE_EVAC_MODES = _constants.NODE_EVAC_MODES
 
-# Job queue
-JOB_QUEUE_VERSION = 1
-JOB_QUEUE_SIZE_HARD_LIMIT = 5000
-JOB_QUEUE_FILES_PERMS = 0640
+JOB_QUEUE_VERSION = _constants.JOB_QUEUE_VERSION
+JOB_QUEUE_SIZE_HARD_LIMIT = _constants.JOB_QUEUE_SIZE_HARD_LIMIT
+JOB_QUEUE_FILES_PERMS = _constants.JOB_QUEUE_FILES_PERMS
 
 JOB_ID_TEMPLATE = r"\d+"
 JOB_FILE_RE = re.compile(r"^job-(%s)$" % JOB_ID_TEMPLATE)
 
-# unchanged job return
-JOB_NOTCHANGED = "nochange"
+JOB_NOTCHANGED = _constants.JOB_NOTCHANGED
 
 # Job status
 JOB_STATUS_QUEUED = _constants.JOB_STATUS_QUEUED
@@ -1186,18 +1183,12 @@ OP_PRIO_HIGH = _constants.OP_PRIO_HIGH
 OP_PRIO_SUBMIT_VALID = _constants.OP_PRIO_SUBMIT_VALID
 OP_PRIO_DEFAULT = _constants.OP_PRIO_DEFAULT
 
-# Lock recalculate mode
-LOCKS_REPLACE = "replace"
-LOCKS_APPEND = "append"
+LOCKS_REPLACE = _constants.LOCKS_REPLACE
+LOCKS_APPEND = _constants.LOCKS_APPEND
 
-# Lock timeout (sum) before we should go into blocking acquire (still
-# can be reset by priority change); computed as max time (10 hours)
-# before we should actually go into blocking acquire given that we
-# start from default priority level; in seconds
-# TODO
-LOCK_ATTEMPTS_TIMEOUT = 10 * 3600 / (OP_PRIO_DEFAULT - OP_PRIO_HIGHEST)
-LOCK_ATTEMPTS_MAXWAIT = 15.0
-LOCK_ATTEMPTS_MINWAIT = 1.0
+LOCK_ATTEMPTS_TIMEOUT = _constants.LOCK_ATTEMPTS_TIMEOUT
+LOCK_ATTEMPTS_MAXWAIT = _constants.LOCK_ATTEMPTS_MAXWAIT
+LOCK_ATTEMPTS_MINWAIT = _constants.LOCK_ATTEMPTS_MINWAIT
 
 # Execution log types
 ELOG_MESSAGE = _constants.ELOG_MESSAGE

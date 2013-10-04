@@ -2701,6 +2701,14 @@ nrRegular = Types.nodeRoleToRaw NRRegular
 nrAll :: FrozenSet String
 nrAll = ConstantUtils.mkSet $ map Types.nodeRoleToRaw [minBound..]
 
+-- * SSL certificate check constants (in days)
+
+sslCertExpirationError :: Int
+sslCertExpirationError = 7
+
+sslCertExpirationWarn :: Int
+sslCertExpirationWarn = 30
+
 -- * Allocator framework constants
 
 iallocatorVersion :: Int
@@ -2754,6 +2762,22 @@ nodeEvacAll = Types.evacModeToRaw ChangeAll
 
 nodeEvacModes :: FrozenSet String
 nodeEvacModes = ConstantUtils.mkSet $ map Types.evacModeToRaw [minBound..]
+
+-- * Job queue
+
+jobQueueVersion :: Int
+jobQueueVersion = 1
+
+jobQueueSizeHardLimit :: Int
+jobQueueSizeHardLimit = 5000
+
+jobQueueFilesPerms :: Int
+jobQueueFilesPerms = 0o640
+
+-- * Unchanged job return
+
+jobNotchanged :: String
+jobNotchanged = "nochange"
 
 -- * Job status
 
@@ -2842,6 +2866,30 @@ opPrioSubmitValid = ConstantUtils.mkSet [opPrioLow, opPrioNormal, opPrioHigh]
 
 opPrioDefault :: Int
 opPrioDefault = opPrioNormal
+
+-- * Lock recalculate mode
+
+locksAppend :: String
+locksAppend = "append"
+
+locksReplace :: String
+locksReplace = "replace"
+
+-- * Lock timeout
+--
+-- The lock timeout (sum) before we transition into blocking acquire
+-- (this can still be reset by priority change).  Computed as max time
+-- (10 hours) before we should actually go into blocking acquire,
+-- given that we start from the default priority level.
+
+lockAttemptsMaxwait :: Double
+lockAttemptsMaxwait = 15.0
+
+lockAttemptsMinwait :: Double
+lockAttemptsMinwait = 1.0
+
+lockAttemptsTimeout :: Int
+lockAttemptsTimeout = (10 * 3600) `div` (opPrioDefault - opPrioHighest)
 
 -- * Execution log types
 
