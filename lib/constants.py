@@ -72,30 +72,15 @@ MOND_GROUP = _constants.MOND_GROUP
 SSH_LOGIN_USER = _constants.SSH_LOGIN_USER
 SSH_CONSOLE_USER = _constants.SSH_CONSOLE_USER
 
-# cpu pinning separators and constants
-CPU_PINNING_SEP = ":"
-CPU_PINNING_ALL = "all"
-# internal representation of "all"
-CPU_PINNING_ALL_VAL = -1
-# one "all" entry in a CPU list means CPU pinning is off
-CPU_PINNING_OFF = [CPU_PINNING_ALL_VAL]
+CPU_PINNING_SEP = _constants.CPU_PINNING_SEP
+CPU_PINNING_ALL = _constants.CPU_PINNING_ALL
+CPU_PINNING_ALL_VAL = _constants.CPU_PINNING_ALL_VAL
+CPU_PINNING_OFF = _constants.CPU_PINNING_OFF
 
-# A Xen-specific implementation detail - there is no way to actually say
-# "use any cpu for pinning" in a Xen configuration file, as opposed to the
-# command line, where you can say "xm vcpu-pin <domain> <vcpu> all".
-# The workaround used in Xen is "0-63" (see source code function
-# xm_vcpu_pin in <xen-source>/tools/python/xen/xm/main.py).
-# To support future changes, the following constant is treated as a
-# blackbox string that simply means use-any-cpu-for-pinning-under-xen.
-CPU_PINNING_ALL_XEN = "0-63"
+CPU_PINNING_ALL_XEN = _constants.CPU_PINNING_ALL_XEN
 
-# A KVM-specific implementation detail - the following value is used
-# to set CPU affinity to all processors (#0 through #31), per taskset
-# man page.
-# FIXME: This only works for machines with up to 32 CPU cores
-CPU_PINNING_ALL_KVM = 0xFFFFFFFF
+CPU_PINNING_ALL_KVM = _constants.CPU_PINNING_ALL_KVM
 
-# Wipe
 DD_CMD = _constants.DD_CMD
 MAX_WIPE_CHUNK = _constants.MAX_WIPE_CHUNK
 MIN_WIPE_CHUNK_PERCENT = _constants.MIN_WIPE_CHUNK_PERCENT

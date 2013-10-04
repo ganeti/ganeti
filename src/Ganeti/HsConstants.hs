@@ -231,6 +231,46 @@ sshLoginUser = AutoConf.sshLoginUser
 sshConsoleUser :: String
 sshConsoleUser = AutoConf.sshConsoleUser
 
+-- * Cpu pinning separators and constants
+
+cpuPinningSep :: String
+cpuPinningSep = ":"
+
+cpuPinningAll :: String
+cpuPinningAll = "all"
+
+-- | Internal representation of "all"
+cpuPinningAllVal :: Int
+cpuPinningAllVal = -1
+
+-- | One "all" entry in a CPU list means CPU pinning is off
+cpuPinningOff :: [Int]
+cpuPinningOff = [cpuPinningAllVal]
+
+-- | A Xen-specific implementation detail is that there is no way to
+-- actually say "use any cpu for pinning" in a Xen configuration file,
+-- as opposed to the command line, where you can say
+-- @
+-- xm vcpu-pin <domain> <vcpu> all
+-- @
+--
+-- The workaround used in Xen is "0-63" (see source code function
+-- "xm_vcpu_pin" in @<xen-source>/tools/python/xen/xm/main.py@).
+--
+-- To support future changes, the following constant is treated as a
+-- blackbox string that simply means "use any cpu for pinning under
+-- xen".
+cpuPinningAllXen :: String
+cpuPinningAllXen = "0-63"
+
+-- | A KVM-specific implementation detail - the following value is
+-- used to set CPU affinity to all processors (--0 through --31), per
+-- taskset man page.
+--
+-- FIXME: This only works for machines with up to 32 CPU cores
+cpuPinningAllKvm :: Int
+cpuPinningAllKvm = 0xFFFFFFFF
+
 -- * Wipe
 
 ddCmd :: String
