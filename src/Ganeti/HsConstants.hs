@@ -3613,6 +3613,15 @@ confdDefaultReqCoverage = 6
 confdClientExpireTimeout :: Int
 confdClientExpireTimeout = 10
 
+-- | Maximum UDP datagram size.
+--
+-- On IPv4: 64K - 20 (ip header size) - 8 (udp header size) = 65507
+-- On IPv6: 64K - 40 (ip6 header size) - 8 (udp header size) = 65487
+--   (assuming we can't use jumbo frames)
+-- We just set this to 60K, which should be enough
+maxUdpDataSize :: Int
+maxUdpDataSize = 61440
+
 -- * Possible values for NodeGroup.alloc_policy
 
 allocPolicyLastResort :: String

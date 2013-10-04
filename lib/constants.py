@@ -1477,12 +1477,7 @@ CONFD_DEFAULT_REQ_COVERAGE = _constants.CONFD_DEFAULT_REQ_COVERAGE
 
 CONFD_CLIENT_EXPIRE_TIMEOUT = _constants.CONFD_CLIENT_EXPIRE_TIMEOUT
 
-# Maximum UDP datagram size.
-# On IPv4: 64K - 20 (ip header size) - 8 (udp header size) = 65507
-# On IPv6: 64K - 40 (ip6 header size) - 8 (udp header size) = 65487
-#   (assuming we can't use jumbo frames)
-# We just set this to 60K, which should be enough
-MAX_UDP_DATA_SIZE = 61440
+MAX_UDP_DATA_SIZE = _constants.MAX_UDP_DATA_SIZE
 
 # User-id pool minimum/maximum acceptable user-ids.
 UIDPOOL_UID_MIN = 0
