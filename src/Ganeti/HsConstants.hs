@@ -3413,6 +3413,10 @@ validSsHvparamsKeys =
 ssFilePerms :: Int
 ssFilePerms = 0o444
 
+-- | Cluster wide default parameters
+defaultEnabledHypervisor :: String
+defaultEnabledHypervisor = htXenPvm
+
 -- * Confd
 
 confdProtocolVersion :: Int
