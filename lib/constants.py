@@ -406,9 +406,7 @@ EXIT_FAILURE = _constants.EXIT_FAILURE
 EXIT_NOTCLUSTER = _constants.EXIT_NOTCLUSTER
 EXIT_NOTMASTER = _constants.EXIT_NOTMASTER
 EXIT_NODESETUP_ERROR = _constants.EXIT_NODESETUP_ERROR
-EXIT_CONFIRMATION = _constants.EXIT_CONFIRMATION # need user confirmation
-
-#: Exit code for query operations with unknown fields
+EXIT_CONFIRMATION = _constants.EXIT_CONFIRMATION
 EXIT_UNKNOWN_FIELD = _constants.EXIT_UNKNOWN_FIELD
 
 # tags
