@@ -1194,22 +1194,15 @@ ELOG_MESSAGE = _constants.ELOG_MESSAGE
 ELOG_REMOTE_IMPORT = _constants.ELOG_REMOTE_IMPORT
 ELOG_JQUEUE_TEST = _constants.ELOG_JQUEUE_TEST
 
-# /etc/hosts modification
-ETC_HOSTS_ADD = "add"
-ETC_HOSTS_REMOVE = "remove"
+ETC_HOSTS_ADD = _constants.ETC_HOSTS_ADD
+ETC_HOSTS_REMOVE = _constants.ETC_HOSTS_REMOVE
 
-# Job queue test
-JQT_MSGPREFIX = "TESTMSG="
-JQT_EXPANDNAMES = "expandnames"
-JQT_EXEC = "exec"
-JQT_LOGMSG = "logmsg"
-JQT_STARTMSG = "startmsg"
-JQT_ALL = compat.UniqueFrozenset([
-  JQT_EXPANDNAMES,
-  JQT_EXEC,
-  JQT_LOGMSG,
-  JQT_STARTMSG,
-  ])
+JQT_MSGPREFIX = _constants.JQT_MSGPREFIX
+JQT_EXPANDNAMES = _constants.JQT_EXPANDNAMES
+JQT_EXEC = _constants.JQT_EXEC
+JQT_LOGMSG = _constants.JQT_LOGMSG
+JQT_STARTMSG = _constants.JQT_STARTMSG
+JQT_ALL = _constants.JQT_ALL
 
 # Query resources
 QR_CLUSTER = "cluster"

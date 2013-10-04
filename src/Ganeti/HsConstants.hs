@@ -2908,6 +2908,34 @@ elogRemoteImport = Types.eLogTypeToRaw ELogRemoteImport
 elogJqueueTest :: String
 elogJqueueTest = Types.eLogTypeToRaw ELogJqueueTest
 
+-- * /etc/hosts modification
+
+etcHostsAdd :: String
+etcHostsAdd = "add"
+
+etcHostsRemove :: String
+etcHostsRemove = "remove"
+
+-- * Job queue test
+
+jqtMsgprefix :: String
+jqtMsgprefix = "TESTMSG="
+
+jqtExec :: String
+jqtExec = "exec"
+
+jqtExpandnames :: String
+jqtExpandnames = "expandnames"
+
+jqtLogmsg :: String
+jqtLogmsg = "logmsg"
+
+jqtStartmsg :: String
+jqtStartmsg = "startmsg"
+
+jqtAll :: FrozenSet String
+jqtAll = ConstantUtils.mkSet [jqtExec, jqtExpandnames, jqtLogmsg, jqtStartmsg]
+
 -- * Confd
 
 confdProtocolVersion :: Int
