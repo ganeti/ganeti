@@ -66,10 +66,10 @@ RUN_DIR = LOCALSTATEDIR + "/run/ganeti"
 #: Script to configure master IP address
 DEFAULT_MASTER_SETUP_SCRIPT = TOOLSDIR + "/master-ip-setup"
 
-SSH_HOST_DSA_PRIV = SSH_CONFIG_DIR + "/ssh_host_dsa_key"
-SSH_HOST_DSA_PUB = SSH_HOST_DSA_PRIV + ".pub"
-SSH_HOST_RSA_PRIV = SSH_CONFIG_DIR + "/ssh_host_rsa_key"
-SSH_HOST_RSA_PUB = SSH_HOST_RSA_PRIV + ".pub"
+SSH_HOST_DSA_PRIV = _constants.SSH_HOST_DSA_PRIV
+SSH_HOST_DSA_PUB = _constants.SSH_HOST_DSA_PUB
+SSH_HOST_RSA_PRIV = _constants.SSH_HOST_RSA_PRIV
+SSH_HOST_RSA_PUB = _constants.SSH_HOST_RSA_PUB
 
 BDEV_CACHE_DIR = RUN_DIR + "/bdev-cache"
 DISK_LINKS_DIR = RUN_DIR + "/instance-disks"

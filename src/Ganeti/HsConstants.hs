@@ -1739,6 +1739,20 @@ qemuimgPath = AutoConf.qemuimgPath
 htools :: Bool
 htools = AutoConf.htools
 
+-- * Key files for SSH daemon
+
+sshHostDsaPriv :: String
+sshHostDsaPriv = sshConfigDir ++ "/ssh_host_dsa_key"
+
+sshHostDsaPub :: String
+sshHostDsaPub = sshHostDsaPriv ++ ".pub"
+
+sshHostRsaPriv :: String
+sshHostRsaPriv = sshConfigDir ++ "/ssh_host_rsa_key"
+
+sshHostRsaPub :: String
+sshHostRsaPub = sshHostRsaPriv ++ ".pub"
+
 -- | Path generating random UUID
 randomUuidFile :: String
 randomUuidFile = ConstantUtils.randomUuidFile
