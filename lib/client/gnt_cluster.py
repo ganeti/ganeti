@@ -27,7 +27,7 @@
 # C0103: Invalid name gnt-cluster
 
 from cStringIO import StringIO
-import os.path
+import os
 import time
 import OpenSSL
 import itertools
@@ -1746,6 +1746,17 @@ def _ExecuteCommands(fns):
     fn()
 
 
+def _WriteIntentToUpgrade(version):
+  """Write file documenting the intent to upgrade the cluster.
+
+  @type version: string
+  @param version: the version we intent to upgrade to
+
+  """
+  utils.WriteFile(pathutils.INTENT_TO_UPGRADE,
+                  data=utils.EscapeAndJoin([version, "%d" % os.getpid()]))
+
+
 # pylint: disable=R0911
 def UpgradeGanetiCommand(opts, args):
   """Upgrade a cluster to a new ganeti version.
@@ -1786,7 +1797,9 @@ def UpgradeGanetiCommand(opts, args):
   if not _VerifyVersionInstalled(versionstring):
     return 1
 
-  # TODO: write intent-to-upgrade file
+  _WriteIntentToUpgrade(versionstring)
+  rollback.append(
+    lambda: utils.RunCmd(["rm", "-f", pathutils.INTENT_TO_UPGRADE]))
 
   ToStdout("Draining queue")
   client = GetClient()
@@ -1888,7 +1901,7 @@ def UpgradeGanetiCommand(opts, args):
   if not _RunCommandAndReport(["gnt-cluster", "queue", "undrain"]):
     returnvalue = 1
 
-  # TODO: write intent-to-upgrade file
+  _RunCommandAndReport(["rm", "-f", pathutils.INTENT_TO_UPGRADE])
 
   ToStdout("Verifying cluster.")
   if not _RunCommandAndReport(["gnt-cluster", "verify"]):
