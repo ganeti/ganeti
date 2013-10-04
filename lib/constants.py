@@ -392,82 +392,6 @@ MAP_DISK_TEMPLATE_STORAGE_TYPE = {
   DT_SHARED_FILE: ST_FILE,
   }
 
-# the set of network-mirrored disk templates
-DTS_INT_MIRROR = compat.UniqueFrozenset([DT_DRBD8])
-
-# the set of externally-mirrored disk templates (e.g. SAN, NAS)
-DTS_EXT_MIRROR = compat.UniqueFrozenset([
-  DT_DISKLESS, # 'trivially' externally mirrored
-  DT_SHARED_FILE,
-  DT_BLOCK,
-  DT_RBD,
-  DT_EXT,
-  ])
-
-# the set of non-lvm-based disk templates
-DTS_NOT_LVM = compat.UniqueFrozenset([
-  DT_DISKLESS,
-  DT_FILE,
-  DT_SHARED_FILE,
-  DT_BLOCK,
-  DT_RBD,
-  DT_EXT,
-  ])
-
-# the set of disk templates which can be grown
-DTS_GROWABLE = compat.UniqueFrozenset([
-  DT_PLAIN,
-  DT_DRBD8,
-  DT_FILE,
-  DT_SHARED_FILE,
-  DT_RBD,
-  DT_EXT,
-  ])
-
-# the set of disk templates that allow adoption
-DTS_MAY_ADOPT = compat.UniqueFrozenset([
-  DT_PLAIN,
-  DT_BLOCK,
-  ])
-
-# the set of disk templates that *must* use adoption
-DTS_MUST_ADOPT = compat.UniqueFrozenset([DT_BLOCK])
-
-# the set of disk templates that allow migrations
-DTS_MIRRORED = frozenset.union(DTS_INT_MIRROR, DTS_EXT_MIRROR)
-
-# the set of file based disk templates
-DTS_FILEBASED = compat.UniqueFrozenset([
-  DT_FILE,
-  DT_SHARED_FILE,
-  ])
-
-# the set of disk templates that can be moved by copying
-# Note: a requirement is that they're not accessed externally or shared between
-# nodes; in particular, sharedfile is not suitable.
-DTS_COPYABLE = compat.UniqueFrozenset([
-  DT_FILE,
-  DT_PLAIN,
-  ])
-
-# the set of disk templates that are supported by exclusive_storage
-DTS_EXCL_STORAGE = compat.UniqueFrozenset([DT_PLAIN])
-
-# templates for which we don't perform checks on free space
-DTS_NO_FREE_SPACE_CHECK = compat.UniqueFrozenset([
-  DT_FILE,
-  DT_SHARED_FILE,
-  DT_RBD,
-  DT_EXT,
-  ])
-
-DTS_BLOCK = compat.UniqueFrozenset([
-  DT_PLAIN,
-  DT_DRBD8,
-  DT_BLOCK,
-  DT_RBD,
-  DT_EXT,
-  ])
 
 # drbd constants
 DRBD_HMAC_ALG = "md5"
@@ -478,6 +402,18 @@ DRBD_STATUS_FILE = "/proc/drbd"
 #: Size of DRBD meta block device
 DRBD_META_SIZE = 128
 
+DTS_INT_MIRROR = _constants.DTS_INT_MIRROR
+DTS_EXT_MIRROR = _constants.DTS_EXT_MIRROR
+DTS_NOT_LVM = _constants.DTS_NOT_LVM
+DTS_GROWABLE = _constants.DTS_GROWABLE
+DTS_MAY_ADOPT = _constants.DTS_MAY_ADOPT
+DTS_MUST_ADOPT = _constants.DTS_MUST_ADOPT
+DTS_MIRRORED = _constants.DTS_MIRRORED
+DTS_FILEBASED = _constants.DTS_FILEBASED
+DTS_COPYABLE = _constants.DTS_COPYABLE
+DTS_EXCL_STORAGE = _constants.DTS_EXCL_STORAGE
+DTS_NO_FREE_SPACE_CHECK = _constants.DTS_NO_FREE_SPACE_CHECK
+DTS_BLOCK = _constants.DTS_BLOCK
 # drbd barrier types
 DRBD_B_NONE = "n"
 DRBD_B_DISK_BARRIERS = "b"

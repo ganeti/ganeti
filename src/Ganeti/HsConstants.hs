@@ -530,6 +530,71 @@ diskTemplates = ConstantUtils.mkSet $ map Types.diskTemplateToRaw [minBound..]
 defaultEnabledDiskTemplates :: [String]
 defaultEnabledDiskTemplates = map Types.diskTemplateToRaw [DTDrbd8, DTPlain]
 
+-- | The set of network-mirrored disk templates
+dtsIntMirror :: FrozenSet String
+dtsIntMirror = ConstantUtils.mkSet [dtDrbd8]
+
+-- | 'DTDiskless' is 'trivially' externally mirrored
+dtsExtMirror :: FrozenSet String
+dtsExtMirror =
+  ConstantUtils.mkSet $
+  map Types.diskTemplateToRaw [DTDiskless, DTBlock, DTExt, DTSharedFile, DTRbd]
+
+-- | The set of non-lvm-based disk templates
+dtsNotLvm :: FrozenSet String
+dtsNotLvm =
+  ConstantUtils.mkSet $
+  map Types.diskTemplateToRaw
+  [DTSharedFile, DTDiskless, DTBlock, DTExt, DTFile, DTRbd]
+
+-- | The set of disk templates which can be grown
+dtsGrowable :: FrozenSet String
+dtsGrowable =
+  ConstantUtils.mkSet $
+  map Types.diskTemplateToRaw
+  [DTSharedFile, DTDrbd8, DTPlain, DTExt, DTFile, DTRbd]
+
+-- | The set of disk templates that allow adoption
+dtsMayAdopt :: FrozenSet String
+dtsMayAdopt =
+  ConstantUtils.mkSet $ map Types.diskTemplateToRaw [DTBlock, DTPlain]
+
+-- | The set of disk templates that *must* use adoption
+dtsMustAdopt :: FrozenSet String
+dtsMustAdopt = ConstantUtils.mkSet [Types.diskTemplateToRaw DTBlock]
+
+-- | The set of disk templates that allow migrations
+dtsMirrored :: FrozenSet String
+dtsMirrored = dtsIntMirror `ConstantUtils.union` dtsExtMirror
+
+-- | The set of file based disk templates
+dtsFilebased :: FrozenSet String
+dtsFilebased =
+  ConstantUtils.mkSet $ map Types.diskTemplateToRaw [DTSharedFile, DTFile]
+
+-- | The set of disk templates that can be moved by copying
+--
+-- Note: a requirement is that they're not accessed externally or
+-- shared between nodes; in particular, sharedfile is not suitable.
+dtsCopyable :: FrozenSet String
+dtsCopyable =
+  ConstantUtils.mkSet $ map Types.diskTemplateToRaw [DTPlain, DTFile]
+
+-- | The set of disk templates that are supported by exclusive_storage
+dtsExclStorage :: FrozenSet String
+dtsExclStorage = ConstantUtils.mkSet $ map Types.diskTemplateToRaw [DTPlain]
+
+-- | Templates for which we don't perform checks on free space
+dtsNoFreeSpaceCheck :: FrozenSet String
+dtsNoFreeSpaceCheck =
+  ConstantUtils.mkSet $
+  map Types.diskTemplateToRaw [DTExt, DTSharedFile, DTFile, DTRbd]
+
+dtsBlock :: FrozenSet String
+dtsBlock =
+  ConstantUtils.mkSet $
+  map Types.diskTemplateToRaw [DTPlain, DTDrbd8, DTBlock, DTRbd, DTExt]
+
 -- * File backend driver
 
 fdBlktap :: String

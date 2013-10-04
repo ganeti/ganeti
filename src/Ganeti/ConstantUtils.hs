@@ -30,7 +30,7 @@ module Ganeti.ConstantUtils where
 
 import Data.Char (ord)
 import Data.Set (Set)
-import qualified Data.Set as Set (fromList, toList)
+import qualified Data.Set as Set (fromList, toList, union)
 
 import Ganeti.THH (PyValue(..))
 import Ganeti.PyValueInstances ()
@@ -60,6 +60,9 @@ instance PyValue a => PyValue (FrozenSet a) where
 
 mkSet :: Ord a => [a] -> FrozenSet a
 mkSet = FrozenSet . Set.fromList
+
+union :: Ord a => FrozenSet a -> FrozenSet a -> FrozenSet a
+union x y = FrozenSet (unFrozenSet x `Set.union` unFrozenSet y)
 
 -- | 'Protocol' represents the protocols used by the daemons
 data Protocol = Tcp | Udp
