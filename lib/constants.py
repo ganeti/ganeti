@@ -51,10 +51,8 @@ CONFIG_MINOR = _constants.CONFIG_MINOR
 CONFIG_REVISION = _constants.CONFIG_REVISION
 CONFIG_VERSION = _constants.CONFIG_VERSION
 
-#: RPC protocol version
 PROTOCOL_VERSION = _constants.PROTOCOL_VERSION
 
-# user separation
 DAEMONS_GROUP = _constants.DAEMONS_GROUP
 ADMIN_GROUP = _constants.ADMIN_GROUP
 MASTERD_USER = _constants.MASTERD_USER
@@ -94,7 +92,6 @@ ENABLE_MOND = _constants.ENABLE_MOND
 ENABLE_SPLIT_QUERY = _constants.ENABLE_SPLIT_QUERY
 ENABLE_RESTRICTED_COMMANDS = _constants.ENABLE_RESTRICTED_COMMANDS
 
-# SSH constants
 SSH = _constants.SSH
 SCP = _constants.SCP
 
@@ -159,7 +156,7 @@ LUXI_VERSION = _constants.LUXI_VERSION
 LUXI_OVERRIDE = _constants.LUXI_OVERRIDE
 LUXI_OVERRIDE_MASTER = _constants.LUXI_OVERRIDE_MASTER
 LUXI_OVERRIDE_QUERY = _constants.LUXI_OVERRIDE_QUERY
-# one of "no", "yes", "only"
+
 SYSLOG_USAGE = _constants.SYSLOG_USAGE
 SYSLOG_NO = _constants.SYSLOG_NO
 SYSLOG_YES = _constants.SYSLOG_YES
@@ -254,7 +251,6 @@ HKR_SKIP = _constants.HKR_SKIP
 HKR_FAIL = _constants.HKR_FAIL
 HKR_SUCCESS = _constants.HKR_SUCCESS
 
-# Storage types
 ST_BLOCK = _constants.ST_BLOCK
 ST_DISKLESS = _constants.ST_DISKLESS
 ST_EXT = _constants.ST_EXT
@@ -294,7 +290,6 @@ LDS_UNKNOWN = _constants.LDS_UNKNOWN
 LDS_FAULTY = _constants.LDS_FAULTY
 LDS_NAMES = _constants.LDS_NAMES
 
-# disk template types
 DT_BLOCK = _constants.DT_BLOCK
 DT_DISKLESS = _constants.DT_DISKLESS
 DT_DRBD8 = _constants.DT_DRBD8
@@ -353,7 +348,6 @@ FILE_DRIVER = _constants.FILE_DRIVER
 
 LDS_DRBD = _constants.LDS_DRBD
 
-# disk access mode
 DISK_RDONLY = _constants.DISK_RDONLY
 DISK_RDWR = _constants.DISK_RDWR
 DISK_ACCESS_SET = _constants.DISK_ACCESS_SET
@@ -367,12 +361,10 @@ REPLACE_DISK_CHG = _constants.REPLACE_DISK_CHG
 REPLACE_DISK_AUTO = _constants.REPLACE_DISK_AUTO
 REPLACE_MODES = _constants.REPLACE_MODES
 
-# Instance export mode
 EXPORT_MODE_LOCAL = _constants.EXPORT_MODE_LOCAL
 EXPORT_MODE_REMOTE = _constants.EXPORT_MODE_REMOTE
 EXPORT_MODES = _constants.EXPORT_MODES
 
-# instance creation modes
 INSTANCE_CREATE = _constants.INSTANCE_CREATE
 INSTANCE_IMPORT = _constants.INSTANCE_IMPORT
 INSTANCE_REMOTE_IMPORT = _constants.INSTANCE_REMOTE_IMPORT
@@ -392,15 +384,12 @@ INISECT_HYP = _constants.INISECT_HYP
 INISECT_BEP = _constants.INISECT_BEP
 INISECT_OSP = _constants.INISECT_OSP
 
-# dynamic device modification
 DDM_ADD = _constants.DDM_ADD
 DDM_MODIFY = _constants.DDM_MODIFY
 DDM_REMOVE = _constants.DDM_REMOVE
 DDMS_VALUES = _constants.DDMS_VALUES
 DDMS_VALUES_WITH_MODIFY = _constants.DDMS_VALUES_WITH_MODIFY
-# TODO: DDM_SWAP, DDM_MOVE?
 
-# common exit codes
 EXIT_SUCCESS = _constants.EXIT_SUCCESS
 EXIT_FAILURE = _constants.EXIT_FAILURE
 EXIT_NOTCLUSTER = _constants.EXIT_NOTCLUSTER
@@ -409,7 +398,6 @@ EXIT_NODESETUP_ERROR = _constants.EXIT_NODESETUP_ERROR
 EXIT_CONFIRMATION = _constants.EXIT_CONFIRMATION
 EXIT_UNKNOWN_FIELD = _constants.EXIT_UNKNOWN_FIELD
 
-# tags
 TAG_CLUSTER = _constants.TAG_CLUSTER
 TAG_NODEGROUP = _constants.TAG_NODEGROUP
 TAG_NODE = _constants.TAG_NODE
@@ -496,7 +484,6 @@ ES_SCRIPTS = _constants.ES_SCRIPTS
 
 ES_PARAMETERS_FILE = _constants.ES_PARAMETERS_FILE
 
-# reboot types
 INSTANCE_REBOOT_SOFT = _constants.INSTANCE_REBOOT_SOFT
 INSTANCE_REBOOT_HARD = _constants.INSTANCE_REBOOT_HARD
 INSTANCE_REBOOT_FULL = _constants.INSTANCE_REBOOT_FULL
@@ -786,7 +773,6 @@ DDP_PORT = _constants.DDP_PORT
 DDP_LOCAL_MINOR = _constants.DDP_LOCAL_MINOR
 DDP_REMOTE_MINOR = _constants.DDP_REMOTE_MINOR
 
-# OOB supported commands
 OOB_POWER_ON = _constants.OOB_POWER_ON
 OOB_POWER_OFF = _constants.OOB_POWER_OFF
 OOB_POWER_CYCLE = _constants.OOB_POWER_CYCLE
@@ -844,7 +830,6 @@ INIC_BRIDGE = _constants.INIC_BRIDGE
 INIC_PARAMS_TYPES = _constants.INIC_PARAMS_TYPES
 INIC_PARAMS = _constants.INIC_PARAMS
 
-# Hypervisor constants
 HT_XEN_PVM = _constants.HT_XEN_PVM
 HT_FAKE = _constants.HT_FAKE
 HT_XEN_HVM = _constants.HT_XEN_HVM
@@ -856,7 +841,6 @@ HTS_REQ_PORT = _constants.HTS_REQ_PORT
 
 VNC_BASE_PORT = _constants.VNC_BASE_PORT
 VNC_DEFAULT_BIND_ADDRESS = _constants.VNC_DEFAULT_BIND_ADDRESS
-# NIC types
 
 HT_NIC_RTL8139 = _constants.HT_NIC_RTL8139
 HT_NIC_NE2K_PCI = _constants.HT_NIC_NE2K_PCI
@@ -942,22 +926,18 @@ HT_KVM_ENABLED = _constants.HT_KVM_ENABLED
 HT_KVM_DISABLED = _constants.HT_KVM_DISABLED
 HT_KVM_FLAG_VALUES = _constants.HT_KVM_FLAG_VALUES
 
-# Migration type
 HT_MIGRATION_LIVE = _constants.HT_MIGRATION_LIVE
 HT_MIGRATION_NONLIVE = _constants.HT_MIGRATION_NONLIVE
 HT_MIGRATION_MODES = _constants.HT_MIGRATION_MODES
 
-# Cluster Verify steps
 VERIFY_NPLUSONE_MEM = _constants.VERIFY_NPLUSONE_MEM
 VERIFY_OPTIONAL_CHECKS = _constants.VERIFY_OPTIONAL_CHECKS
 
-# Cluster Verify error classes
 CV_TCLUSTER = _constants.CV_TCLUSTER
 CV_TGROUP = _constants.CV_TGROUP
 CV_TNODE = _constants.CV_TNODE
 CV_TINSTANCE = _constants.CV_TINSTANCE
 
-# Cluster Verify error codes and documentation
 CV_ECLUSTERCFG = _constants.CV_ECLUSTERCFG
 CV_ECLUSTERCERT = _constants.CV_ECLUSTERCERT
 CV_ECLUSTERFILECHECK = _constants.CV_ECLUSTERFILECHECK
@@ -1038,13 +1018,11 @@ INSTST_ERRORUP = _constants.INSTST_ERRORUP
 INSTST_ERRORDOWN = _constants.INSTST_ERRORDOWN
 INSTST_ALL = _constants.INSTST_ALL
 
-# Admin states
 ADMINST_UP = _constants.ADMINST_UP
 ADMINST_DOWN = _constants.ADMINST_DOWN
 ADMINST_OFFLINE = _constants.ADMINST_OFFLINE
 ADMINST_ALL = _constants.ADMINST_ALL
 
-# Node roles
 NR_REGULAR = _constants.NR_REGULAR
 NR_MASTER = _constants.NR_MASTER
 NR_MCANDIDATE = _constants.NR_MCANDIDATE
@@ -1055,7 +1033,6 @@ NR_ALL = _constants.NR_ALL
 SSL_CERT_EXPIRATION_WARN = _constants.SSL_CERT_EXPIRATION_WARN
 SSL_CERT_EXPIRATION_ERROR = _constants.SSL_CERT_EXPIRATION_ERROR
 
-# Allocator framework constants
 IALLOCATOR_VERSION = _constants.IALLOCATOR_VERSION
 IALLOCATOR_DIR_IN = _constants.IALLOCATOR_DIR_IN
 IALLOCATOR_DIR_OUT = _constants.IALLOCATOR_DIR_OUT
@@ -1071,7 +1048,6 @@ VALID_IALLOCATOR_MODES = _constants.VALID_IALLOCATOR_MODES
 IALLOCATOR_SEARCH_PATH = _constants.IALLOCATOR_SEARCH_PATH
 DEFAULT_IALLOCATOR_SHORTCUT = _constants.DEFAULT_IALLOCATOR_SHORTCUT
 
-# Node evacuation
 NODE_EVAC_PRI = _constants.NODE_EVAC_PRI
 NODE_EVAC_SEC = _constants.NODE_EVAC_SEC
 NODE_EVAC_ALL = _constants.NODE_EVAC_ALL
@@ -1086,7 +1062,6 @@ JOB_FILE_RE = re.compile(r"^job-(%s)$" % JOB_ID_TEMPLATE)
 
 JOB_NOTCHANGED = _constants.JOB_NOTCHANGED
 
-# Job status
 JOB_STATUS_QUEUED = _constants.JOB_STATUS_QUEUED
 JOB_STATUS_WAITING = _constants.JOB_STATUS_WAITING
 JOB_STATUS_CANCELING = _constants.JOB_STATUS_CANCELING
@@ -1098,19 +1073,15 @@ JOBS_PENDING = _constants.JOBS_PENDING
 JOBS_FINALIZED = _constants.JOBS_FINALIZED
 JOB_STATUS_ALL = _constants.JOB_STATUS_ALL
 
-# OpCode status
-# not yet finalized
 OP_STATUS_QUEUED = _constants.OP_STATUS_QUEUED
 OP_STATUS_WAITING = _constants.OP_STATUS_WAITING
 OP_STATUS_CANCELING = _constants.OP_STATUS_CANCELING
 OP_STATUS_RUNNING = _constants.OP_STATUS_RUNNING
-# finalized
 OP_STATUS_CANCELED = _constants.OP_STATUS_CANCELED
 OP_STATUS_SUCCESS = _constants.OP_STATUS_SUCCESS
 OP_STATUS_ERROR = _constants.OP_STATUS_ERROR
 OPS_FINALIZED = _constants.OPS_FINALIZED
 
-# OpCode priority
 OP_PRIO_LOWEST = _constants.OP_PRIO_LOWEST
 OP_PRIO_HIGHEST = _constants.OP_PRIO_HIGHEST
 OP_PRIO_LOW = _constants.OP_PRIO_LOW
@@ -1126,7 +1097,6 @@ LOCK_ATTEMPTS_TIMEOUT = _constants.LOCK_ATTEMPTS_TIMEOUT
 LOCK_ATTEMPTS_MAXWAIT = _constants.LOCK_ATTEMPTS_MAXWAIT
 LOCK_ATTEMPTS_MINWAIT = _constants.LOCK_ATTEMPTS_MINWAIT
 
-# Execution log types
 ELOG_MESSAGE = _constants.ELOG_MESSAGE
 ELOG_REMOTE_IMPORT = _constants.ELOG_REMOTE_IMPORT
 ELOG_JQUEUE_TEST = _constants.ELOG_JQUEUE_TEST
@@ -1470,9 +1440,6 @@ CONFD_REQ_NODE_DRBD = _constants.CONFD_REQ_NODE_DRBD
 CONFD_REQ_NODE_INSTANCES = _constants.CONFD_REQ_NODE_INSTANCES
 CONFD_REQS = _constants.CONFD_REQS
 
-# Confd request query fields. These are used to narrow down queries.
-# These must be strings rather than integers, because json-encoding
-# converts them to strings anyway, as they're used as dict-keys.
 CONFD_REQQ_LINK = _constants.CONFD_REQQ_LINK
 CONFD_REQQ_IP = _constants.CONFD_REQQ_IP
 CONFD_REQQ_IPLIST = _constants.CONFD_REQQ_IPLIST
@@ -1499,36 +1466,15 @@ CONFD_ERROR_UNKNOWN_ENTRY = _constants.CONFD_ERROR_UNKNOWN_ENTRY
 CONFD_ERROR_INTERNAL = _constants.CONFD_ERROR_INTERNAL
 CONFD_ERROR_ARGUMENT = _constants.CONFD_ERROR_ARGUMENT
 
-# Each request is "salted" by the current timestamp.
-# This constants decides how many seconds of skew to accept.
-# TODO: make this a default and allow the value to be more configurable
 CONFD_MAX_CLOCK_SKEW = _constants.CONFD_MAX_CLOCK_SKEW
 
-# When we haven't reloaded the config for more than this amount of
-# seconds, we force a test to see if inotify is betraying us. Using a
-# prime number to ensure we get less chance of 'same wakeup' with
-# other processes.
 CONFD_CONFIG_RELOAD_TIMEOUT = _constants.CONFD_CONFIG_RELOAD_TIMEOUT
-
-# If we receive more than one update in this amount of microseconds,
-# we move to polling every RATELIMIT seconds, rather than relying on
-# inotify, to be able to serve more requests.
 CONFD_CONFIG_RELOAD_RATELIMIT = _constants.CONFD_CONFIG_RELOAD_RATELIMIT
 
-# Magic number prepended to all confd queries.
-# This allows us to distinguish different types of confd protocols and handle
-# them. For example by changing this we can move the whole payload to be
-# compressed, or move away from json.
 CONFD_MAGIC_FOURCC = _constants.CONFD_MAGIC_FOURCC
 
-# By default a confd request is sent to the minimum between this number and all
-# MCs. 6 was chosen because even in the case of a disastrous 50% response rate,
-# we should have enough answers to be able to compare more than one.
 CONFD_DEFAULT_REQ_COVERAGE = _constants.CONFD_DEFAULT_REQ_COVERAGE
 
-# Timeout in seconds to expire pending query request in the confd client
-# library. We don't actually expect any answer more than 10 seconds after we
-# sent a request.
 CONFD_CLIENT_EXPIRE_TIMEOUT = _constants.CONFD_CLIENT_EXPIRE_TIMEOUT
 
 # Maximum UDP datagram size.
@@ -1548,19 +1494,15 @@ PGREP = "pgrep"
 # Name of the node group that gets created at cluster init or upgrade
 INITIAL_NODE_GROUP_NAME = "default"
 
-# Possible values for NodeGroup.alloc_policy
 ALLOC_POLICY_PREFERRED = _constants.ALLOC_POLICY_PREFERRED
 ALLOC_POLICY_LAST_RESORT = _constants.ALLOC_POLICY_LAST_RESORT
 ALLOC_POLICY_UNALLOCABLE = _constants.ALLOC_POLICY_UNALLOCABLE
 VALID_ALLOC_POLICIES = _constants.VALID_ALLOC_POLICIES
 
-# Temporary external/shared storage parameters
 BLOCKDEV_DRIVER_MANUAL = _constants.BLOCKDEV_DRIVER_MANUAL
 
-# qemu-img path, required for ovfconverter
 QEMUIMG_PATH = _constants.QEMUIMG_PATH
 
-# Whether htools was enabled at compilation time
 HTOOLS = _constants.HTOOLS
 # The hail iallocator
 IALLOC_HAIL = "hail"
@@ -1598,36 +1540,30 @@ NDS_NODE_DAEMON_CERTIFICATE = "node_daemon_certificate"
 NDS_SSCONF = "ssconf"
 NDS_START_NODE_DAEMON = "start_node_daemon"
 
-# Path generating random UUID
 RANDOM_UUID_FILE = _constants.RANDOM_UUID_FILE
 
 # Regex string for verifying a UUID
 UUID_REGEX = "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"
 
-# Auto-repair tag prefixes
 AUTO_REPAIR_TAG_PREFIX = _constants.AUTO_REPAIR_TAG_PREFIX
 AUTO_REPAIR_TAG_ENABLED = _constants.AUTO_REPAIR_TAG_ENABLED
 AUTO_REPAIR_TAG_SUSPENDED = _constants.AUTO_REPAIR_TAG_SUSPENDED
 AUTO_REPAIR_TAG_PENDING = _constants.AUTO_REPAIR_TAG_PENDING
 AUTO_REPAIR_TAG_RESULT = _constants.AUTO_REPAIR_TAG_RESULT
 
-# Auto-repair levels
 AUTO_REPAIR_FIX_STORAGE = _constants.AUTO_REPAIR_FIX_STORAGE
 AUTO_REPAIR_MIGRATE = _constants.AUTO_REPAIR_MIGRATE
 AUTO_REPAIR_FAILOVER = _constants.AUTO_REPAIR_FAILOVER
 AUTO_REPAIR_REINSTALL = _constants.AUTO_REPAIR_REINSTALL
 AUTO_REPAIR_ALL_TYPES = _constants.AUTO_REPAIR_ALL_TYPES
 
-# Auto-repair results
 AUTO_REPAIR_SUCCESS = _constants.AUTO_REPAIR_SUCCESS
 AUTO_REPAIR_FAILURE = _constants.AUTO_REPAIR_FAILURE
 AUTO_REPAIR_ENOPERM = _constants.AUTO_REPAIR_ENOPERM
 AUTO_REPAIR_ALL_RESULTS = _constants.AUTO_REPAIR_ALL_RESULTS
 
-# The version identifier for builtin data collectors
 BUILTIN_DATA_COLLECTOR_VERSION = _constants.BUILTIN_DATA_COLLECTOR_VERSION
 
-# The reason trail opcode parameter name
 OPCODE_REASON = _constants.OPCODE_REASON
 
 # The source reasons for the execution of an OpCode
@@ -1647,12 +1583,10 @@ OPCODE_REASON_SOURCES = compat.UniqueFrozenset([
 
 DISKSTATS_FILE = _constants.DISKSTATS_FILE
 
-# CPU load collector variables
 STAT_FILE = _constants.STAT_FILE
 CPUAVGLOAD_BUFFER_SIZE = _constants.CPUAVGLOAD_BUFFER_SIZE
 CPUAVGLOAD_WINDOW_SIZE = _constants.CPUAVGLOAD_WINDOW_SIZE
 
-# Mond's variable for periodical data collection
 MOND_TIME_INTERVAL = _constants.MOND_TIME_INTERVAL
 
 # MonD's latest API version
