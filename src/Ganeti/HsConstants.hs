@@ -3733,6 +3733,20 @@ sshHostRsaPriv = sshConfigDir ++ "/ssh_host_rsa_key"
 sshHostRsaPub :: String
 sshHostRsaPub = sshHostRsaPriv ++ ".pub"
 
+-- * Node daemon setup
+
+ndsClusterName :: String
+ndsClusterName = "cluster_name"
+
+ndsNodeDaemonCertificate :: String
+ndsNodeDaemonCertificate = "node_daemon_certificate"
+
+ndsSsconf :: String
+ndsSsconf = "ssconf"
+
+ndsStartNodeDaemon :: String
+ndsStartNodeDaemon = "start_node_daemon"
+
 -- | Path generating random UUID
 randomUuidFile :: String
 randomUuidFile = ConstantUtils.randomUuidFile
