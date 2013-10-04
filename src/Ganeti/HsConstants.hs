@@ -2247,6 +2247,12 @@ hyperTypes = ConstantUtils.mkSet $ map Types.hypervisorToRaw [minBound..]
 htsReqPort :: FrozenSet String
 htsReqPort = ConstantUtils.mkSet [htXenHvm, htKvm]
 
+vncBasePort :: Int
+vncBasePort = 5900
+
+vncDefaultBindAddress :: String
+vncDefaultBindAddress = ip4AddressAny
+
 -- * Migration type
 
 htMigrationLive :: String
