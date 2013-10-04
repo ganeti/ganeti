@@ -3449,6 +3449,19 @@ ispecsMinmaxDefaults =
      (ConstantUtils.ispecNicCount, Types.iSpecNicCount Types.defMaxISpec),
      (ConstantUtils.ispecSpindleUse, Types.iSpecSpindleUse Types.defMaxISpec)])]
 
+masterPoolSizeDefault :: Int
+masterPoolSizeDefault = 10
+
+-- * Exclusive storage
+
+-- | Error margin used to compare physical disks
+partMargin :: Double
+partMargin = 0.01
+
+-- | Space reserved when creating instance disks
+partReserved :: Double
+partReserved = 0.02
+
 -- * Confd
 
 confdProtocolVersion :: Int

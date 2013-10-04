@@ -1452,13 +1452,10 @@ IPOLICY_DEFAULTS = {
   IPOLICY_SPINDLE_RATIO: 32.0,
   }
 
-MASTER_POOL_SIZE_DEFAULT = 10
+MASTER_POOL_SIZE_DEFAULT = _constants.MASTER_POOL_SIZE_DEFAULT
 
-# Exclusive storage:
-# Error margin used to compare physical disks
-PART_MARGIN = .01
-# Space reserved when creating instance disks
-PART_RESERVED = .02
+PART_MARGIN = _constants.PART_MARGIN
+PART_RESERVED = _constants.PART_RESERVED
 
 CONFD_PROTOCOL_VERSION = _constants.CONFD_PROTOCOL_VERSION
 
