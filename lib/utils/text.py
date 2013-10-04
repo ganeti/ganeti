@@ -453,6 +453,19 @@ def UnescapeAndSplit(text, sep=","):
   return rlist
 
 
+def EscapeAndJoin(slist, sep=","):
+  """Encode a list in a way parsable by UnescapeAndSplit.
+
+  @type slist: list of strings
+  @param slist: the strings to be encoded
+  @rtype: string
+  @return: the encoding of the list oas a string
+
+  """
+  return sep.join([re.sub("\\" + sep, "\\\\" + sep,
+                          re.sub(r"\\", r"\\\\", v)) for v in slist])
+
+
 def CommaJoin(names):
   """Nicely join a set of identifiers.
 

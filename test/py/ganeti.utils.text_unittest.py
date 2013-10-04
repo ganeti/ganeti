@@ -445,6 +445,24 @@ class TestUnescapeAndSplit(unittest.TestCase):
       b = ["a", "b" + sep + "c", "d" + sep + "e" + sep + "f", "g"]
       self.failUnlessEqual(utils.UnescapeAndSplit(sep.join(a), sep=sep), b)
 
+class TestEscapeAndJoin(unittest.TestCase):
+  def verifyParsesCorrect(self, args):
+    for sep in [",", "+", ".", ":"]:
+      self.assertEqual(utils.UnescapeAndSplit(
+          utils.EscapeAndJoin(args, sep=sep),
+          sep=sep), args)
+
+  def test(self):
+    self.verifyParsesCorrect(["a", "b", "c"])
+    self.verifyParsesCorrect(["2.10.0", "12345"])
+    self.verifyParsesCorrect(["2.10.0~alpha1", "12345"])
+    self.verifyParsesCorrect(["..:", ",,+"])
+    self.verifyParsesCorrect(["a\\", "b\\\\", "c"])
+    self.verifyParsesCorrect(["a"])
+    self.verifyParsesCorrect(["+"])
+    self.verifyParsesCorrect(["\\"])
+    self.verifyParsesCorrect(["\\\\"])
+
 
 class TestCommaJoin(unittest.TestCase):
   def test(self):
