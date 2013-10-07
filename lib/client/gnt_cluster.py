@@ -1793,45 +1793,21 @@ def _WriteIntentToUpgrade(version):
                   data=utils.EscapeAndJoin([version, "%d" % os.getpid()]))
 
 
-# pylint: disable=R0911
-def UpgradeGanetiCommand(opts, args):
-  """Upgrade a cluster to a new ganeti version.
+def _UpgradeBeforeConfigurationChange(versionstring):
+  """
+  Carry out all the tasks necessary for an upgrade that happen before
+  the configuration file, or Ganeti version, changes.
 
-  @param opts: the command line options selected by the user
-  @type args: list
-  @param args: should be an empty list
-  @rtype: int
-  @return: the desired exit code
+  @type versionstring: string
+  @param versionstring: the version to upgrade to
+  @rtype: (bool, list)
+  @return: tuple of a bool indicating success and a list of rollback tasks
 
   """
-  if ((not opts.resume and opts.to is None)
-      or (opts.resume and opts.to is not None)):
-    ToStderr("Precisely one of the options --to and --resume"
-             " has to be given")
-    return 1
-
-  if opts.resume:
-    # TODO: implement
-    ToStderr("The --resume mode is not yet implemented")
-    return 1
-
   rollback = []
 
-  versionstring = opts.to
-  version = utils.version.ParseVersion(versionstring)
-  if version is None:
-    ToStderr("Could not parse version string %s" % versionstring)
-    return 1
-
-  msg = utils.version.UpgradeRange(version)
-  if msg is not None:
-    ToStderr("Cannot upgrade to %s: %s" % (versionstring, msg))
-    return 1
-
-  downgrade = utils.version.ShouldCfgdowngrade(version)
-
   if not _VerifyVersionInstalled(versionstring):
-    return 1
+    return (False, rollback)
 
   _WriteIntentToUpgrade(versionstring)
   rollback.append(
@@ -1847,45 +1823,55 @@ def UpgradeGanetiCommand(opts, args):
                        constants.UPGRADE_QUEUE_POLL_INTERVAL,
                        constants.UPGRADE_QUEUE_DRAIN_TIMEOUT):
     ToStderr("Failed to completely empty the queue.")
-    _ExecuteCommands(rollback)
-    return 1
+    return (False, rollback)
 
   ToStdout("Stopping daemons on master node.")
   if not _RunCommandAndReport([pathutils.DAEMON_UTIL, "stop-all"]):
-    _ExecuteCommands(rollback)
-    return 1
+    return (False, rollback)
 
   if not _VerifyVersionInstalled(versionstring):
     utils.RunCmd([pathutils.DAEMON_UTIL, "start-all"])
-    _ExecuteCommands(rollback)
-    return 1
+    return (False, rollback)
 
   ToStdout("Stopping daemons everywhere.")
   rollback.append(lambda: _VerifyCommand([pathutils.DAEMON_UTIL, "start-all"]))
   badnodes = _VerifyCommand([pathutils.DAEMON_UTIL, "stop-all"])
   if badnodes:
     ToStderr("Failed to stop daemons on %s." % (", ".join(badnodes),))
-    _ExecuteCommands(rollback)
-    return 1
+    return (False, rollback)
 
   backuptar = os.path.join(pathutils.LOCALSTATEDIR,
                            "lib/ganeti%d.tar" % time.time())
   ToStdout("Backing up configuration as %s" % backuptar)
   if not _RunCommandAndReport(["tar", "cf", backuptar,
                                pathutils.DATA_DIR]):
-    _ExecuteCommands(rollback)
-    return 1
+    return (False, rollback)
 
+  return (True, rollback)
+
+
+def _SwitchVersionAndConfig(versionstring, downgrade):
+  """
+  Switch to the new Ganeti version and change the configuration,
+  in correct order.
+
+  @type versionstring: string
+  @param versionstring: the version to change to
+  @type downgrade: bool
+  @param downgrade: True, if the configuration should be downgraded
+  @rtype: (bool, list)
+  @return: tupe of a bool indicating success, and a list of
+      additional rollback tasks
+
+  """
+  rollback = []
   if downgrade:
     ToStdout("Downgrading configuration")
     if not _RunCommandAndReport([pathutils.CFGUPGRADE, "--downgrade", "-f"]):
-      _ExecuteCommands(rollback)
-      return 1
+      return (False, rollback)
 
   # Configuration change is the point of no return. From then onwards, it is
   # safer to push through the up/dowgrade than to try to roll it back.
-
-  returnvalue = 0
 
   ToStdout("Switching to version %s on all nodes" % versionstring)
   rollback.append(lambda: _SetGanetiVersion(constants.DIR_VERSION))
@@ -1894,8 +1880,7 @@ def UpgradeGanetiCommand(opts, args):
     ToStderr("Failed to switch to Ganeti version %s on nodes %s"
              % (versionstring, ", ".join(badnodes)))
     if not downgrade:
-      _ExecuteCommands(rollback)
-      return 1
+      return (False, rollback)
 
   # Now that we have changed to the new version of Ganeti we should
   # not communicate over luxi any more, as luxi might have changed in
@@ -1905,8 +1890,26 @@ def UpgradeGanetiCommand(opts, args):
   if not downgrade:
     ToStdout("Upgrading configuration")
     if not _RunCommandAndReport([pathutils.CFGUPGRADE, "-f"]):
-      _ExecuteCommands(rollback)
-      return 1
+      return (False, rollback)
+
+  return (True, rollback)
+
+
+def _UpgradeAfterConfigurationChange():
+  """
+  Carry out the upgrade actions necessary after switching to the new
+  Ganeti version and updating the configuration.
+
+  As this part is run at a time where the new version of Ganeti is already
+  running, no communication should happen via luxi, as this is not a stable
+  interface. Also, as the configuration change is the point of no return,
+  all actions are pushed trough, even if some of them fail.
+
+  @rtype: int
+  @return: the intended return value
+
+  """
+  returnvalue = 0
 
   ToStdout("Starting daemons everywhere.")
   badnodes = _VerifyCommand([pathutils.DAEMON_UTIL, "start-all"])
@@ -1944,6 +1947,82 @@ def UpgradeGanetiCommand(opts, args):
     returnvalue = 1
 
   return returnvalue
+
+
+def UpgradeGanetiCommand(opts, args):
+  """Upgrade a cluster to a new ganeti version.
+
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: should be an empty list
+  @rtype: int
+  @return: the desired exit code
+
+  """
+  if ((not opts.resume and opts.to is None)
+      or (opts.resume and opts.to is not None)):
+    ToStderr("Precisely one of the options --to and --resume"
+             " has to be given")
+    return 1
+
+  if opts.resume:
+    ssconf.CheckMaster(False)
+    versionstring = _ReadIntentToUpgrade()
+    if versionstring is None:
+      return 0
+    version = utils.version.ParseVersion(versionstring)
+    if version is None:
+      return 1
+    configversion = _GetConfigVersion()
+    if configversion is None:
+      return 1
+    # If the upgrade we resume was an upgrade between compatible
+    # versions (like 2.10.0 to 2.10.1), the correct configversion
+    # does not guarantee that the config has been updated.
+    # However, in the case of a compatible update with the configuration
+    # not touched, we are running a different dirversion with the same
+    # config version.
+    config_already_modified = \
+      (utils.IsCorrectConfigVersion(version, configversion) and
+       not (versionstring != constants.DIR_VERSION and
+            configversion == (constants.CONFIG_MAJOR, constants.CONFIG_MINOR,
+                              constants.CONFIG_REVISION)))
+    if not config_already_modified:
+      # We have to start from the beginning; however, some daemons might have
+      # already been stopped, so the only way to get into a well-defined state
+      # is by starting all daemons again.
+      _VerifyCommand([pathutils.DAEMON_UTIL, "start-all"])
+  else:
+    versionstring = opts.to
+    config_already_modified = False
+    version = utils.version.ParseVersion(versionstring)
+    if version is None:
+      ToStderr("Could not parse version string %s" % versionstring)
+      return 1
+
+  msg = utils.version.UpgradeRange(version)
+  if msg is not None:
+    ToStderr("Cannot upgrade to %s: %s" % (versionstring, msg))
+    return 1
+
+  if not config_already_modified:
+    success, rollback = _UpgradeBeforeConfigurationChange(versionstring)
+    if not success:
+      _ExecuteCommands(rollback)
+      return 1
+  else:
+    rollback = []
+
+  downgrade = utils.version.ShouldCfgdowngrade(version)
+
+  success, additionalrollback =  \
+      _SwitchVersionAndConfig(versionstring, downgrade)
+  if not success:
+    rollback.extend(additionalrollback)
+    _ExecuteCommands(rollback)
+    return 1
+
+  return _UpgradeAfterConfigurationChange()
 
 
 commands = {
