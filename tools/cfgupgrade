@@ -62,7 +62,7 @@ DOWNGRADE_MINOR = 8
 # (mapping differing old LD_* constants to new DT_* constants)
 DEV_TYPE_OLD_NEW = {"lvm": constants.DT_PLAIN, "drbd8": constants.DT_DRBD8}
 # (mapping differing new DT_* constants to old LD_* constants)
-DEV_TYPE_NEW_OLD = {v:k for k,v in DEV_TYPE_OLD_NEW.items()}
+DEV_TYPE_NEW_OLD = dict((v, k) for k, v in DEV_TYPE_OLD_NEW.items())
 
 
 class Error(Exception):
@@ -386,6 +386,7 @@ def UpgradeAll(config_data):
 def DowngradeDiskDevType(disk):
   """Downgrades the disks' device type."""
   ChangeDiskDevType(disk, DEV_TYPE_NEW_OLD)
+
 
 def DowngradeDisks(disks, owner):
   for disk in disks:
