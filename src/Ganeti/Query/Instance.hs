@@ -163,19 +163,19 @@ instanceFields =
   ] ++
 
   -- Per-disk parameter fields
-  fillNumberFields C.maxDisks
+  instantiateIndexedFields C.maxDisks
   [ (fieldDefinitionCompleter "disk.size/%d" "Disk/%d" QFTUnit
      "Disk size of %s disk",
-     getFillableField instDisks diskSize, QffNormal)
+     getIndexedField instDisks diskSize, QffNormal)
   , (fieldDefinitionCompleter "disk.spindles/%d" "DiskSpindles/%d" QFTNumber
      "Spindles of %s disk",
-     getFillableOptionalField instDisks diskSpindles, QffNormal)
+     getIndexedOptionalField instDisks diskSpindles, QffNormal)
   , (fieldDefinitionCompleter "disk.name/%d" "DiskName/%d" QFTText
      "Name of %s disk",
-     getFillableOptionalField instDisks diskName, QffNormal)
+     getIndexedOptionalField instDisks diskName, QffNormal)
   , (fieldDefinitionCompleter "disk.uuid/%d" "DiskUUID/%d" QFTText
      "UUID of %s disk",
-     getFillableField instDisks diskUuid, QffNormal)
+     getIndexedField instDisks diskUuid, QffNormal)
   ] ++
 
   -- Aggregate nic parameter fields
@@ -226,34 +226,34 @@ instanceFields =
   ] ++
 
   -- Per-nic parameter fields
-  fillNumberFields C.maxNics
+  instantiateIndexedFields C.maxNics
   [ (fieldDefinitionCompleter "nic.ip/%d" "NicIP/%d" QFTText
      ("IP address" ++ nicDescSuffix),
-     getFillableOptionalField instNics nicIp, QffNormal)
+     getIndexedOptionalField instNics nicIp, QffNormal)
   , (fieldDefinitionCompleter "nic.uuid/%d" "NicUUID/%d" QFTText
      ("UUID address" ++ nicDescSuffix),
-     getFillableField instNics nicUuid, QffNormal)
+     getIndexedField instNics nicUuid, QffNormal)
   , (fieldDefinitionCompleter "nic.mac/%d" "NicMAC/%d" QFTText
      ("MAC address" ++ nicDescSuffix),
-     getFillableField instNics nicMac, QffNormal)
+     getIndexedField instNics nicMac, QffNormal)
   , (fieldDefinitionCompleter "nic.name/%d" "NicName/%d" QFTText
      ("Name address" ++ nicDescSuffix),
-     getFillableOptionalField instNics nicName, QffNormal)
+     getIndexedOptionalField instNics nicName, QffNormal)
   , (fieldDefinitionCompleter "nic.network/%d" "NicNetwork/%d" QFTText
      ("Network" ++ nicDescSuffix),
-     getFillableOptionalField instNics nicNetwork, QffNormal)
+     getIndexedOptionalField instNics nicNetwork, QffNormal)
   , (fieldDefinitionCompleter "nic.mode/%d" "NicMode/%d" QFTText
      ("Mode" ++ nicDescSuffix),
-     getFillableNicField nicpMode, QffNormal)
+     getIndexedNicField nicpMode, QffNormal)
   , (fieldDefinitionCompleter "nic.link/%d" "NicLink/%d" QFTText
      ("Link" ++ nicDescSuffix),
-     getFillableNicField nicpLink, QffNormal)
+     getIndexedNicField nicpLink, QffNormal)
   , (fieldDefinitionCompleter "nic.network.name/%d" "NicNetworkName/%d" QFTText
      ("Network name" ++ nicDescSuffix),
-     getFillableNicNetworkNameField, QffNormal)
+     getIndexedNicNetworkNameField, QffNormal)
   , (fieldDefinitionCompleter "nic.bridge/%d" "NicBridge/%d" QFTText
      ("Bridge" ++ nicDescSuffix),
-     getOptionalFillableNicField getNicBridge, QffNormal)
+     getOptionalIndexedNicField getNicBridge, QffNormal)
   ] ++
 
   -- Live fields using special getters
@@ -303,40 +303,40 @@ getDefaultNicParams cfg =
   (Map.!) (fromContainer . clusterNicparams . configCluster $ cfg) C.ppDefault
 
 -- | Returns a field that retrieves a given NIC's network name.
-getFillableNicNetworkNameField :: Int -> FieldGetter Instance Runtime
-getFillableNicNetworkNameField index =
+getIndexedNicNetworkNameField :: Int -> FieldGetter Instance Runtime
+getIndexedNicNetworkNameField index =
   FieldConfig (\cfg inst -> rsMaybeUnavail $ do
     nicObj <- maybeAt index $ instNics inst
     nicNetworkId <- nicNetwork nicObj
     return $ getNetworkName cfg nicNetworkId)
 
 -- | Gets a fillable NIC field.
-getFillableNicField :: (J.JSON a)
-                    => (FilledNicParams -> a)
-                    -> Int
-                    -> FieldGetter Instance Runtime
-getFillableNicField getter =
-  getOptionalFillableNicField (\x -> Just . getter $ x)
+getIndexedNicField :: (J.JSON a)
+                   => (FilledNicParams -> a)
+                   -> Int
+                   -> FieldGetter Instance Runtime
+getIndexedNicField getter =
+  getOptionalIndexedNicField (\x -> Just . getter $ x)
 
 -- | Gets an optional fillable NIC field.
-getOptionalFillableNicField :: (J.JSON a)
-                            => (FilledNicParams -> Maybe a)
-                            -> Int
-                            -> FieldGetter Instance Runtime
-getOptionalFillableNicField =
-  getFillableFieldWithDefault
+getOptionalIndexedNicField :: (J.JSON a)
+                           => (FilledNicParams -> Maybe a)
+                           -> Int
+                           -> FieldGetter Instance Runtime
+getOptionalIndexedNicField =
+  getIndexedFieldWithDefault
     (map nicNicparams . instNics) (\x _ -> getDefaultNicParams x) fillNicParams
 
 -- | Creates a function which produces a 'FieldGetter' when fed an index. Works
 -- for fields that should be filled out through the use of a default.
-getFillableFieldWithDefault :: (J.JSON c)
+getIndexedFieldWithDefault :: (J.JSON c)
   => (Instance -> [a])             -- ^ Extracts a list of incomplete objects
   -> (ConfigData -> Instance -> b) -- ^ Extracts the default object
   -> (b -> a -> b)                 -- ^ Fills the default object
   -> (b -> Maybe c)                -- ^ Extracts an obj property
   -> Int                           -- ^ Index in list to use
   -> FieldGetter Instance Runtime  -- ^ Result
-getFillableFieldWithDefault
+getIndexedFieldWithDefault
   listGetter defaultGetter fillFn propertyGetter index =
   FieldConfig (\cfg inst -> rsMaybeUnavail $ do
                               incompleteObj <- maybeAt index $ listGetter inst
@@ -346,27 +346,27 @@ getFillableFieldWithDefault
 
 -- | Creates a function which produces a 'FieldGetter' when fed an index. Works
 -- for fields that may not return a value, expressed through the Maybe monad.
-getFillableOptionalField :: (J.JSON b)
-                         => (Instance -> [a]) -- ^ Extracts a list of objects
-                         -> (a -> Maybe b)    -- ^ Possibly gets a property
-                                              -- from an object
-                         -> Int               -- ^ Index in list to use
-                         -> FieldGetter Instance Runtime -- ^ Result
-getFillableOptionalField extractor optPropertyGetter index =
+getIndexedOptionalField :: (J.JSON b)
+                        => (Instance -> [a]) -- ^ Extracts a list of objects
+                        -> (a -> Maybe b)    -- ^ Possibly gets a property
+                                             -- from an object
+                        -> Int               -- ^ Index in list to use
+                        -> FieldGetter Instance Runtime -- ^ Result
+getIndexedOptionalField extractor optPropertyGetter index =
   FieldSimple(\inst -> rsMaybeUnavail $ do
                          obj <- maybeAt index $ extractor inst
                          optPropertyGetter obj)
 
 -- | Creates a function which produces a 'FieldGetter' when fed an index.
 -- Works only for fields that surely return a value.
-getFillableField :: (J.JSON b)
-                 => (Instance -> [a]) -- ^ Extracts a list of objects
-                 -> (a -> b)          -- ^ Gets a property from an object
-                 -> Int               -- ^ Index in list to use
-                 -> FieldGetter Instance Runtime -- ^ Result
-getFillableField extractor propertyGetter index =
+getIndexedField :: (J.JSON b)
+                => (Instance -> [a]) -- ^ Extracts a list of objects
+                -> (a -> b)          -- ^ Gets a property from an object
+                -> Int               -- ^ Index in list to use
+                -> FieldGetter Instance Runtime -- ^ Result
+getIndexedField extractor propertyGetter index =
   let optPropertyGetter = Just . propertyGetter
-  in getFillableOptionalField extractor optPropertyGetter index
+  in getIndexedOptionalField extractor optPropertyGetter index
 
 -- | Retrieves a value from an array at an index, using the Maybe monad to
 -- indicate failure.
@@ -404,17 +404,17 @@ fillIncompleteFields :: (t1 -> t2 -> FieldDefinition,
 fillIncompleteFields (iDef, iGet, mode) firstVal secondVal =
   (iDef firstVal secondVal, iGet firstVal, mode)
 
--- | Given fields that describe lists, fill their definitions with appropriate
--- index representations.
-fillNumberFields :: (Integral t1)
-                 => Int
-                 -> [(t1 -> String -> FieldDefinition,
-                      t1 -> FieldGetter a b,
-                      QffMode)]
-                 -> FieldList a b
-fillNumberFields numFills fieldsToFill = do
-  index <- take numFills [0..]
-  field <- fieldsToFill
+-- | Given indexed fields that describe lists, complete / instantiate them for
+-- a given list size.
+instantiateIndexedFields :: (Show t1, Integral t1)
+                         => Int            -- ^ The size of the list
+                         -> [(t1 -> String -> FieldDefinition,
+                              t1 -> FieldGetter a b,
+                              QffMode)]    -- ^ The indexed fields
+                         -> FieldList a b  -- ^ A list of complete fields
+instantiateIndexedFields listSize fields = do
+  index <- take listSize [0..]
+  field <- fields
   return . fillIncompleteFields field index . formatOrdinal $ index + 1
 
 -- * Various helper functions for property retrieval
