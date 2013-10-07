@@ -137,3 +137,18 @@ def ShouldCfgdowngrade(version, current=CURRENT_VERSION):
 
   """
   return version[0] == current[0] and version[1] == current[1] - 1
+
+
+def IsCorrectConfigVersion(targetversion, configversion):
+  """Decide whether configuration version is compatible with the target.
+
+  @param targetversion: The version to upgrade to as (major, minor, revision)
+  @type targetversion: tuple
+  @param configversion: The version of the current configuration
+  @type configversion: tuple
+  @rtype: bool
+  @return: True, if the configversion fits with the target version.
+
+  """
+  return (configversion[0] == targetversion[0] and
+          configversion[1] == targetversion[1])

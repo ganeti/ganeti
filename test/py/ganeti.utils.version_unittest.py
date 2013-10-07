@@ -65,5 +65,12 @@ class ShouldCfgdowngradeTest(unittest.TestCase):
         self.assertFalse(version.ShouldCfgdowngrade((2,10,0), current=(3,10,0)))
 
 
+class IsCorrectConfigVersionTest(unittest.TestCase):
+    def testIsCorrectConfigVersion(self):
+        self.assertTrue(version.IsCorrectConfigVersion((2,10,1), (2,10,0)))
+        self.assertFalse(version.IsCorrectConfigVersion((2,11,0), (2,10,0)))
+        self.assertFalse(version.IsCorrectConfigVersion((3,10,0), (2,10,0)))
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
