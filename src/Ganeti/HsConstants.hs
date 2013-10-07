@@ -46,13 +46,13 @@ import AutoConf
 import Ganeti.ConstantUtils (PythonChar(..), FrozenSet, Protocol(..),
                              buildVersion)
 import qualified Ganeti.ConstantUtils as ConstantUtils
-import Ganeti.Runtime (GanetiDaemon(..), MiscGroup(..), GanetiGroup(..),
-                       ExtraLogReason(..))
 import Ganeti.HTools.Types (AutoRepairResult(..), AutoRepairType(..))
 import qualified Ganeti.HTools.Types as Types
 import Ganeti.Logging (SyslogUsage(..))
 import qualified Ganeti.Logging as Logging (syslogUsageToRaw)
 import qualified Ganeti.Runtime as Runtime
+import Ganeti.Runtime (GanetiDaemon(..), MiscGroup(..), GanetiGroup(..),
+                       ExtraLogReason(..))
 import Ganeti.Types
 import qualified Ganeti.Types as Types
 import Ganeti.Confd.Types (ConfdRequestType(..), ConfdReqField(..),
