@@ -1705,6 +1705,58 @@ dssParameters =
 dsValidTypes :: FrozenSet String
 dsValidTypes = ConstantUtils.mkSet [Types.diskTemplateToRaw DTPlain]
 
+-- Backend parameter names
+
+beAlwaysFailover :: String
+beAlwaysFailover = "always_failover"
+
+beAutoBalance :: String
+beAutoBalance = "auto_balance"
+
+beMaxmem :: String
+beMaxmem = "maxmem"
+
+-- | Deprecated and replaced by max and min mem
+beMemory :: String
+beMemory = "memory"
+
+beMinmem :: String
+beMinmem = "minmem"
+
+beSpindleUse :: String
+beSpindleUse = "spindle_use"
+
+beVcpus :: String
+beVcpus = "vcpus"
+
+besParameterTypes :: Map String VType
+besParameterTypes =
+  Map.fromList [(beAlwaysFailover, VTypeBool),
+                (beAutoBalance, VTypeBool),
+                (beMaxmem, VTypeSize),
+                (beMinmem, VTypeSize),
+                (beSpindleUse, VTypeInt),
+                (beVcpus, VTypeInt)]
+
+besParameterTitles :: Map String String
+besParameterTitles =
+  Map.fromList [(beAutoBalance, "Auto_balance"),
+                (beMinmem, "ConfigMinMem"),
+                (beVcpus, "ConfigVCPUs"),
+                (beMaxmem, "ConfigMaxMem")]
+
+besParameterCompat :: Map String VType
+besParameterCompat = Map.insert beMemory VTypeSize besParameterTypes
+
+besParameters :: FrozenSet String
+besParameters =
+  ConstantUtils.mkSet [beAlwaysFailover,
+                       beAutoBalance,
+                       beMaxmem,
+                       beMinmem,
+                       beSpindleUse,
+                       beVcpus]
+
 -- | Instance specs
 --
 -- FIXME: these should be associated with 'Ganeti.HTools.Types.ISpec'
@@ -1825,11 +1877,78 @@ ndsParameterTitles =
    (ndOvsName, "OpenvSwitchName"),
    (ndSpindleCount, "SpindleCount")]
 
+-- * Logical Disks parameters
 
+ldpAccess :: String
+ldpAccess = "access"
 
+ldpBarriers :: String
+ldpBarriers = "disabled-barriers"
 
+ldpDefaultMetavg :: String
+ldpDefaultMetavg = "default-metavg"
 
+ldpDelayTarget :: String
+ldpDelayTarget = "c-delay-target"
 
+ldpDiskCustom :: String
+ldpDiskCustom = "disk-custom"
+
+ldpDynamicResync :: String
+ldpDynamicResync = "dynamic-resync"
+
+ldpFillTarget :: String
+ldpFillTarget = "c-fill-target"
+
+ldpMaxRate :: String
+ldpMaxRate = "c-max-rate"
+
+ldpMinRate :: String
+ldpMinRate = "c-min-rate"
+
+ldpNetCustom :: String
+ldpNetCustom = "net-custom"
+
+ldpNoMetaFlush :: String
+ldpNoMetaFlush = "disable-meta-flush"
+
+ldpPlanAhead :: String
+ldpPlanAhead = "c-plan-ahead"
+
+ldpPool :: String
+ldpPool = "pool"
+
+ldpProtocol :: String
+ldpProtocol = "protocol"
+
+ldpResyncRate :: String
+ldpResyncRate = "resync-rate"
+
+ldpStripes :: String
+ldpStripes = "stripes"
+
+diskLdTypes :: Map String VType
+diskLdTypes =
+  Map.fromList
+  [(ldpAccess, VTypeString),
+   (ldpResyncRate, VTypeInt),
+   (ldpStripes, VTypeInt),
+   (ldpBarriers, VTypeString),
+   (ldpNoMetaFlush, VTypeBool),
+   (ldpDefaultMetavg, VTypeString),
+   (ldpDiskCustom, VTypeString),
+   (ldpNetCustom, VTypeString),
+   (ldpProtocol, VTypeString),
+   (ldpDynamicResync, VTypeBool),
+   (ldpPlanAhead, VTypeInt),
+   (ldpFillTarget, VTypeInt),
+   (ldpDelayTarget, VTypeInt),
+   (ldpMaxRate, VTypeInt),
+   (ldpMinRate, VTypeInt),
+   (ldpPool, VTypeString)]
+
+diskLdParameters :: FrozenSet String
+diskLdParameters = ConstantUtils.mkSet (Map.keys diskLdTypes)
 
 -- * OOB supported commands
 
