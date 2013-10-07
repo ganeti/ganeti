@@ -1950,6 +1950,106 @@ diskLdTypes =
 diskLdParameters :: FrozenSet String
 diskLdParameters = ConstantUtils.mkSet (Map.keys diskLdTypes)
 
+-- * Disk template parameters
+--
+-- Disk template parameters can be set/changed by the user via
+-- gnt-cluster and gnt-group)
+
+drbdResyncRate :: String
+drbdResyncRate = "resync-rate"
+
+drbdDataStripes :: String
+drbdDataStripes = "data-stripes"
+
+drbdMetaStripes :: String
+drbdMetaStripes = "meta-stripes"
+
+drbdDiskBarriers :: String
+drbdDiskBarriers = "disk-barriers"
+
+drbdMetaBarriers :: String
+drbdMetaBarriers = "meta-barriers"
+
+drbdDefaultMetavg :: String
+drbdDefaultMetavg = "metavg"
+
+drbdDiskCustom :: String
+drbdDiskCustom = "disk-custom"
+
+drbdNetCustom :: String
+drbdNetCustom = "net-custom"
+
+drbdProtocol :: String
+drbdProtocol = "protocol"
+
+drbdDynamicResync :: String
+drbdDynamicResync = "dynamic-resync"
+
+drbdPlanAhead :: String
+drbdPlanAhead = "c-plan-ahead"
+
+drbdFillTarget :: String
+drbdFillTarget = "c-fill-target"
+
+drbdDelayTarget :: String
+drbdDelayTarget = "c-delay-target"
+
+drbdMaxRate :: String
+drbdMaxRate = "c-max-rate"
+
+drbdMinRate :: String
+drbdMinRate = "c-min-rate"
+
+lvStripes :: String
+lvStripes = "stripes"
+
+rbdAccess :: String
+rbdAccess = "access"
+
+rbdPool :: String
+rbdPool = "pool"
+
+diskDtTypes :: Map String VType
+diskDtTypes =
+  Map.fromList [(drbdResyncRate, VTypeInt),
+                (drbdDataStripes, VTypeInt),
+                (drbdMetaStripes, VTypeInt),
+                (drbdDiskBarriers, VTypeString),
+                (drbdMetaBarriers, VTypeBool),
+                (drbdDefaultMetavg, VTypeString),
+                (drbdDiskCustom, VTypeString),
+                (drbdNetCustom, VTypeString),
+                (drbdProtocol, VTypeString),
+                (drbdDynamicResync, VTypeBool),
+                (drbdPlanAhead, VTypeInt),
+                (drbdFillTarget, VTypeInt),
+                (drbdDelayTarget, VTypeInt),
+                (drbdMaxRate, VTypeInt),
+                (drbdMinRate, VTypeInt),
+                (lvStripes, VTypeInt),
+                (rbdAccess, VTypeString),
+                (rbdPool, VTypeString)]
+
+diskDtParameters :: FrozenSet String
+diskDtParameters = ConstantUtils.mkSet (Map.keys diskDtTypes)
+
+-- * Dynamic disk parameters
+
+ddpLocalIp :: String
+ddpLocalIp = "local-ip"
+
+ddpRemoteIp :: String
+ddpRemoteIp = "remote-ip"
+
+ddpPort :: String
+ddpPort = "port"
+
+ddpLocalMinor :: String
+ddpLocalMinor = "local-minor"
+
+ddpRemoteMinor :: String
+ddpRemoteMinor = "remote-minor"
+
 -- * OOB supported commands
 
 oobPowerOn :: String
