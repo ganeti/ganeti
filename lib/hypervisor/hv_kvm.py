@@ -1149,10 +1149,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         if needs_boot_flag and disk_type != constants.HT_DISK_IDE:
           boot_val = ",boot=on"
 
-      access_mode = cfdev.params.get(
-        constants.LDP_ACCESS,
-        constants.DISK_LD_DEFAULTS[constants.DT_RBD][constants.LDP_ACCESS]
-      )
+      access_mode = cfdev.params.get(constants.LDP_ACCESS,
+                                     constants.DISK_KERNELSPACE)
       if access_mode == constants.DISK_USERSPACE:
         drive_uri = device.GetUserspaceAccessUri(constants.HT_KVM)
       else:
