@@ -1746,6 +1746,25 @@ def _ExecuteCommands(fns):
     fn()
 
 
+def _ReadIntentToUpgrade():
+  """Read the file documenting the intent to upgrade the cluster.
+
+  @rtype: string or None
+  @return: the version to upgrade to, if the file exists, and None
+      otherwise.
+
+  """
+  if not os.path.isfile(pathutils.INTENT_TO_UPGRADE):
+    return None
+
+  contentstring = utils.ReadFile(pathutils.INTENT_TO_UPGRADE)
+  contents = utils.UnescapeAndSplit(contentstring)
+  if len(contents) != 2:
+    # file syntactically mal-formed
+    return None
+  return contents[0]
+
+
 def _WriteIntentToUpgrade(version):
   """Write file documenting the intent to upgrade the cluster.
 
