@@ -1597,6 +1597,114 @@ hvsParameterTitles =
    (hvPassthrough, "pci_pass"),
    (hvVncBindAddress, "VNC_bind_address")]
 
+-- * Migration statuses
+
+hvMigrationActive :: String
+hvMigrationActive = "active"
+
+hvMigrationCancelled :: String
+hvMigrationCancelled = "cancelled"
+
+hvMigrationCompleted :: String
+hvMigrationCompleted = "completed"
+
+hvMigrationFailed :: String
+hvMigrationFailed = "failed"
+
+hvMigrationValidStatuses :: FrozenSet String
+hvMigrationValidStatuses =
+  ConstantUtils.mkSet [hvMigrationActive,
+                       hvMigrationCancelled,
+                       hvMigrationCompleted,
+                       hvMigrationFailed]
+
+hvMigrationFailedStatuses :: FrozenSet String
+hvMigrationFailedStatuses =
+  ConstantUtils.mkSet [hvMigrationFailed, hvMigrationCancelled]
+
+-- | KVM-specific statuses
+--
+-- FIXME: this constant seems unnecessary
+hvKvmMigrationValidStatuses :: FrozenSet String
+hvKvmMigrationValidStatuses = hvMigrationValidStatuses
+
+-- | Node info keys
+hvNodeinfoKeyVersion :: String
+hvNodeinfoKeyVersion = "hv_version"
+
+-- * Hypervisor state
+
+hvstCpuNode :: String
+hvstCpuNode = "cpu_node"
+
+hvstCpuTotal :: String
+hvstCpuTotal = "cpu_total"
+
+hvstMemoryHv :: String
+hvstMemoryHv = "mem_hv"
+
+hvstMemoryNode :: String
+hvstMemoryNode = "mem_node"
+
+hvstMemoryTotal :: String
+hvstMemoryTotal = "mem_total"
+
+hvstsParameters :: FrozenSet String
+hvstsParameters =
+  ConstantUtils.mkSet [hvstCpuNode,
+                       hvstCpuTotal,
+                       hvstMemoryHv,
+                       hvstMemoryNode,
+                       hvstMemoryTotal]
+
+hvstDefaults :: Map String Int
+hvstDefaults =
+  Map.fromList
+  [(hvstCpuNode, 1),
+   (hvstCpuTotal, 1),
+   (hvstMemoryHv, 0),
+   (hvstMemoryTotal, 0),
+   (hvstMemoryNode, 0)]
+
+hvstsParameterTypes :: Map String VType
+hvstsParameterTypes =
+  Map.fromList [(hvstMemoryTotal, VTypeInt),
+                (hvstMemoryNode, VTypeInt),
+                (hvstMemoryHv, VTypeInt),
+                (hvstCpuTotal, VTypeInt),
+                (hvstCpuNode, VTypeInt)]
+
+-- * Disk state
+
+dsDiskOverhead :: String
+dsDiskOverhead = "disk_overhead"
+
+dsDiskReserved :: String
+dsDiskReserved = "disk_reserved"
+
+dsDiskTotal :: String
+dsDiskTotal = "disk_total"
+
+dsDefaults :: Map String Int
+dsDefaults =
+  Map.fromList
+  [(dsDiskTotal, 0),
+   (dsDiskReserved, 0),
+   (dsDiskOverhead, 0)]
+
+dssParameterTypes :: Map String VType
+dssParameterTypes =
+  Map.fromList [(dsDiskTotal, VTypeInt),
+                (dsDiskReserved, VTypeInt),
+                (dsDiskOverhead, VTypeInt)]
+
+dssParameters :: FrozenSet String
+dssParameters =
+  ConstantUtils.mkSet [dsDiskTotal, dsDiskReserved, dsDiskOverhead]
+
+dsValidTypes :: FrozenSet String
+dsValidTypes = ConstantUtils.mkSet [Types.diskTemplateToRaw DTPlain]
+
 -- | Instance specs
 --
 -- FIXME: these should be associated with 'Ganeti.HTools.Types.ISpec'
