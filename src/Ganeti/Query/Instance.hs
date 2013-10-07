@@ -120,7 +120,10 @@ instanceFields =
      FieldConfig getPrimaryNodeName, QffHostname)
   , (FieldDefinition "pnode.group" "PrimaryNodeGroup" QFTText
      "Primary node's group",
-     FieldConfig getPrimaryNodeGroup, QffNormal)
+     FieldConfig getPrimaryNodeGroupName, QffNormal)
+  , (FieldDefinition "pnode.group.uuid" "PrimaryNodeGroupUUID" QFTText
+     "Primary node's group UUID",
+     FieldConfig getPrimaryNodeGroupUuid, QffNormal)
   , (FieldDefinition "snodes" "Secondary_Nodes" QFTOther
      "Secondary nodes; usually this will just be one node",
      FieldConfig (getSecondaryNodeAttribute nodeName), QffNormal)
@@ -151,6 +154,9 @@ instanceFields =
   , (FieldDefinition "custom_osparams" "CustomOpSysParameters" QFTOther
      "Custom operating system parameters",
      FieldSimple (rsNormal . instOsparams), QffNormal)
+  , (FieldDefinition "custom_nicparams" "CustomNicParameters" QFTOther
+     "Custom network interface parameters",
+     FieldSimple (rsNormal . map nicNicparams . instNics), QffNormal)
   ] ++
 
   -- Instance parameter fields, generated
@@ -289,7 +295,8 @@ instanceFields =
   -- Simple live fields
   map instanceLiveFieldBuilder instanceLiveFieldsDefs ++
 
-  -- Generated fields
+  -- Common fields
+  timeStampFields ++
   serialFields "Instance" ++
   uuidFields "Instance" ++
   tagsFields
@@ -449,12 +456,21 @@ getPrimaryNodeName :: ConfigData -> Instance -> ResultEntry
 getPrimaryNodeName cfg inst =
   rsErrorNoData $ nodeName <$> getPrimaryNode cfg inst
 
--- | Get primary node hostname
-getPrimaryNodeGroup :: ConfigData -> Instance -> ResultEntry
-getPrimaryNodeGroup cfg inst =
-  rsErrorNoData $ (J.showJSON . groupName) <$>
-    (getPrimaryNode cfg inst >>=
-    maybeToError "Configuration missing" . getGroupOfNode cfg)
+-- | Get primary node group
+getPrimaryNodeGroup :: ConfigData -> Instance -> ErrorResult NodeGroup
+getPrimaryNodeGroup cfg inst = do
+  pNode <- getPrimaryNode cfg inst
+  maybeToError "Configuration missing" $ getGroupOfNode cfg pNode
+
+-- | Get primary node group name
+getPrimaryNodeGroupName :: ConfigData -> Instance -> ResultEntry
+getPrimaryNodeGroupName cfg inst =
+  rsErrorNoData $ groupName <$> getPrimaryNodeGroup cfg inst
+
+-- | Get primary node group uuid
+getPrimaryNodeGroupUuid :: ConfigData -> Instance -> ResultEntry
+getPrimaryNodeGroupUuid cfg inst =
+  rsErrorNoData $ groupUuid <$> getPrimaryNodeGroup cfg inst
 
 -- | Get secondary nodes - the configuration objects themselves
 getSecondaryNodes :: ConfigData -> Instance -> ErrorResult [Node]
