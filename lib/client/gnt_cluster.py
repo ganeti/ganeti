@@ -45,6 +45,7 @@ from ganeti import compat
 from ganeti import netutils
 from ganeti import ssconf
 from ganeti import pathutils
+from ganeti import serializer
 from ganeti import qlang
 
 
@@ -1744,6 +1745,22 @@ def _ExecuteCommands(fns):
   """
   for fn in reversed(fns):
     fn()
+
+
+def _GetConfigVersion():
+  """Determine the version the configuration file currently has.
+
+  @rtype: tuple or None
+  @return: (major, minor, revision) if the version can be determined,
+      None otherwise
+
+  """
+  config_data = serializer.LoadJson(utils.ReadFile(pathutils.CLUSTER_CONF_FILE))
+  try:
+    config_version = config_data["version"]
+  except KeyError:
+    return None
+  return utils.SplitVersion(config_version)
 
 
 def _ReadIntentToUpgrade():
