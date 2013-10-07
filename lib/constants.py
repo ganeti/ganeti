@@ -502,9 +502,9 @@ DRBD_VALID_BARRIER_OPT = compat.UniqueFrozenset([
 # rbd tool command
 RBD_CMD = "rbd"
 
-# file backend driver
 FD_BLKTAP = _constants.FD_BLKTAP
 FD_LOOP = _constants.FD_LOOP
+FILE_DRIVER = _constants.FILE_DRIVER
 
 LDS_DRBD = _constants.LDS_DRBD
 
@@ -552,7 +552,6 @@ RIE_CONNECT_RETRIES = 10
 #: Give child process up to 5 seconds to exit after sending a signal
 CHILD_LINGER_TIMEOUT = 5.0
 
-FILE_DRIVER = compat.UniqueFrozenset([FD_LOOP, FD_BLKTAP])
 
 # import/export config options
 INISECT_EXP = "export"

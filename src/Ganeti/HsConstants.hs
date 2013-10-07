@@ -519,6 +519,11 @@ fdBlktap = Types.fileDriverToRaw FileBlktap
 fdLoop :: String
 fdLoop = Types.fileDriverToRaw FileLoop
 
+fileDriver :: FrozenSet String
+fileDriver =
+  ConstantUtils.mkSet $
+  map Types.fileDriverToRaw [minBound..]
+
 -- | The set of drbd-like disk types
 ldsDrbd :: FrozenSet String
 ldsDrbd = ConstantUtils.mkSet [Types.diskTemplateToRaw DTDrbd8]
