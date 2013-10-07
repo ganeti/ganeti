@@ -1339,6 +1339,264 @@ vtypeString = VTypeString
 enforceableTypes :: FrozenSet VType
 enforceableTypes = ConstantUtils.mkSet [minBound..]
 
+-- | Constant representing that the user does not specify any IP version
+ifaceNoIpVersionSpecified :: Int
+ifaceNoIpVersionSpecified = 0
+
+validSerialSpeeds :: [Int]
+validSerialSpeeds =
+  [75,
+   110,
+   300,
+   600,
+   1200,
+   1800,
+   2400,
+   4800,
+   9600,
+   14400,
+   19200,
+   28800,
+   38400,
+   57600,
+   115200,
+   230400,
+   345600,
+   460800]
+
+-- * HV parameter names (global namespace)
+
+hvAcpi :: String
+hvAcpi = "acpi"
+
+hvBlockdevPrefix :: String
+hvBlockdevPrefix = "blockdev_prefix"
+
+hvBootloaderArgs :: String
+hvBootloaderArgs = "bootloader_args"
+
+hvBootloaderPath :: String
+hvBootloaderPath = "bootloader_path"
+
+hvBootOrder :: String
+hvBootOrder = "boot_order"
+
+hvCdromImagePath :: String
+hvCdromImagePath = "cdrom_image_path"
+
+hvCpuCap :: String
+hvCpuCap = "cpu_cap"
+
+hvCpuCores :: String
+hvCpuCores = "cpu_cores"
+
+hvCpuMask :: String
+hvCpuMask = "cpu_mask"
+
+hvCpuSockets :: String
+hvCpuSockets = "cpu_sockets"
+
+hvCpuThreads :: String
+hvCpuThreads = "cpu_threads"
+
+hvCpuType :: String
+hvCpuType = "cpu_type"
+
+hvCpuWeight :: String
+hvCpuWeight = "cpu_weight"
+
+hvDeviceModel :: String
+hvDeviceModel = "device_model"
+
+hvDiskCache :: String
+hvDiskCache = "disk_cache"
+
+hvDiskType :: String
+hvDiskType = "disk_type"
+
+hvInitrdPath :: String
+hvInitrdPath = "initrd_path"
+
+hvInitScript :: String
+hvInitScript = "init_script"
+
+hvKernelArgs :: String
+hvKernelArgs = "kernel_args"
+
+hvKernelPath :: String
+hvKernelPath = "kernel_path"
+
+hvKeymap :: String
+hvKeymap = "keymap"
+
+hvKvmCdrom2ImagePath :: String
+hvKvmCdrom2ImagePath = "cdrom2_image_path"
+
+hvKvmCdromDiskType :: String
+hvKvmCdromDiskType = "cdrom_disk_type"
+
+hvKvmExtra :: String
+hvKvmExtra = "kvm_extra"
+
+hvKvmFlag :: String
+hvKvmFlag = "kvm_flag"
+
+hvKvmFloppyImagePath :: String
+hvKvmFloppyImagePath = "floppy_image_path"
+
+hvKvmMachineVersion :: String
+hvKvmMachineVersion = "machine_version"
+
+hvKvmPath :: String
+hvKvmPath = "kvm_path"
+
+hvKvmSpiceAudioCompr :: String
+hvKvmSpiceAudioCompr = "spice_playback_compression"
+
+hvKvmSpiceBind :: String
+hvKvmSpiceBind = "spice_bind"
+
+hvKvmSpiceIpVersion :: String
+hvKvmSpiceIpVersion = "spice_ip_version"
+
+hvKvmSpiceJpegImgCompr :: String
+hvKvmSpiceJpegImgCompr = "spice_jpeg_wan_compression"
+
+hvKvmSpiceLosslessImgCompr :: String
+hvKvmSpiceLosslessImgCompr = "spice_image_compression"
+
+hvKvmSpicePasswordFile :: String
+hvKvmSpicePasswordFile = "spice_password_file"
+
+hvKvmSpiceStreamingVideoDetection :: String
+hvKvmSpiceStreamingVideoDetection = "spice_streaming_video"
+
+hvKvmSpiceTlsCiphers :: String
+hvKvmSpiceTlsCiphers = "spice_tls_ciphers"
+
+hvKvmSpiceUseTls :: String
+hvKvmSpiceUseTls = "spice_use_tls"
+
+hvKvmSpiceUseVdagent :: String
+hvKvmSpiceUseVdagent = "spice_use_vdagent"
+
+hvKvmSpiceZlibGlzImgCompr :: String
+hvKvmSpiceZlibGlzImgCompr = "spice_zlib_glz_wan_compression"
+
+hvKvmUseChroot :: String
+hvKvmUseChroot = "use_chroot"
+
+hvMemPath :: String
+hvMemPath = "mem_path"
+
+hvMigrationBandwidth :: String
+hvMigrationBandwidth = "migration_bandwidth"
+
+hvMigrationDowntime :: String
+hvMigrationDowntime = "migration_downtime"
+
+hvMigrationMode :: String
+hvMigrationMode = "migration_mode"
+
+hvMigrationPort :: String
+hvMigrationPort = "migration_port"
+
+hvNicType :: String
+hvNicType = "nic_type"
+
+hvPae :: String
+hvPae = "pae"
+
+hvPassthrough :: String
+hvPassthrough = "pci_pass"
+
+hvRebootBehavior :: String
+hvRebootBehavior = "reboot_behavior"
+
+hvRootPath :: String
+hvRootPath = "root_path"
+
+hvSecurityDomain :: String
+hvSecurityDomain = "security_domain"
+
+hvSecurityModel :: String
+hvSecurityModel = "security_model"
+
+hvSerialConsole :: String
+hvSerialConsole = "serial_console"
+
+hvSerialSpeed :: String
+hvSerialSpeed = "serial_speed"
+
+hvSoundhw :: String
+hvSoundhw = "soundhw"
+
+hvUsbDevices :: String
+hvUsbDevices = "usb_devices"
+
+hvUsbMouse :: String
+hvUsbMouse = "usb_mouse"
+
+hvUseBootloader :: String
+hvUseBootloader = "use_bootloader"
+
+hvUseLocaltime :: String
+hvUseLocaltime = "use_localtime"
+
+hvVga :: String
+hvVga = "vga"
+
+hvVhostNet :: String
+hvVhostNet = "vhost_net"
+
+hvVifScript :: String
+hvVifScript = "vif_script"
+
+hvVifType :: String
+hvVifType = "vif_type"
+
+hvViridian :: String
+hvViridian = "viridian"
+
+hvVncBindAddress :: String
+hvVncBindAddress = "vnc_bind_address"
+
+hvVncPasswordFile :: String
+hvVncPasswordFile = "vnc_password_file"
+
+hvVncTls :: String
+hvVncTls = "vnc_tls"
+
+hvVncX509 :: String
+hvVncX509 = "vnc_x509_path"
+
+hvVncX509Verify :: String
+hvVncX509Verify = "vnc_x509_verify"
+
+hvVnetHdr :: String
+hvVnetHdr = "vnet_hdr"
+
+hvXenCmd :: String
+hvXenCmd = "xen_cmd"
+
+hvXenCpuid :: String
+hvXenCpuid = "cpuid"
+
+hvsParameterTitles :: Map String String
+hvsParameterTitles =
+  Map.fromList
+  [(hvAcpi, "ACPI"),
+   (hvBootOrder, "Boot_order"),
+   (hvCdromImagePath, "CDROM_image_path"),
+   (hvCpuType, "cpu_type"),
+   (hvDiskType, "Disk_type"),
+   (hvInitrdPath, "Initrd_path"),
+   (hvKernelPath, "Kernel_path"),
+   (hvNicType, "NIC_type"),
+   (hvPae, "PAE"),
+   (hvPassthrough, "pci_pass"),
+   (hvVncBindAddress, "VNC_bind_address")]
+
 -- | Instance specs
 --
 -- FIXME: these should be associated with 'Ganeti.HTools.Types.ISpec'

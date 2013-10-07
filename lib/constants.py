@@ -513,104 +513,83 @@ VTYPE_SIZE = _constants.VTYPE_SIZE
 VTYPE_INT = _constants.VTYPE_INT
 ENFORCEABLE_TYPES = _constants.ENFORCEABLE_TYPES
 
-# Constant representing that the user does not specify any IP version
-IFACE_NO_IP_VERSION_SPECIFIED = 0
+IFACE_NO_IP_VERSION_SPECIFIED = _constants.IFACE_NO_IP_VERSION_SPECIFIED
 
-VALID_SERIAL_SPEEDS = compat.UniqueFrozenset([
-  75,
-  110,
-  300,
-  600,
-  1200,
-  1800,
-  2400,
-  4800,
-  9600,
-  14400,
-  19200,
-  28800,
-  38400,
-  57600,
-  115200,
-  230400,
-  345600,
-  460800,
-  ])
+VALID_SERIAL_SPEEDS = _constants.VALID_SERIAL_SPEEDS
 
-# HV parameter names (global namespace)
-HV_BOOT_ORDER = "boot_order"
-HV_CDROM_IMAGE_PATH = "cdrom_image_path"
-HV_KVM_CDROM2_IMAGE_PATH = "cdrom2_image_path"
-HV_KVM_FLOPPY_IMAGE_PATH = "floppy_image_path"
-HV_NIC_TYPE = "nic_type"
-HV_DISK_TYPE = "disk_type"
-HV_KVM_CDROM_DISK_TYPE = "cdrom_disk_type"
-HV_VNC_BIND_ADDRESS = "vnc_bind_address"
-HV_VNC_PASSWORD_FILE = "vnc_password_file"
-HV_VNC_TLS = "vnc_tls"
-HV_VNC_X509 = "vnc_x509_path"
-HV_VNC_X509_VERIFY = "vnc_x509_verify"
-HV_KVM_SPICE_BIND = "spice_bind"
-HV_KVM_SPICE_IP_VERSION = "spice_ip_version"
-HV_KVM_SPICE_PASSWORD_FILE = "spice_password_file"
-HV_KVM_SPICE_LOSSLESS_IMG_COMPR = "spice_image_compression"
-HV_KVM_SPICE_JPEG_IMG_COMPR = "spice_jpeg_wan_compression"
-HV_KVM_SPICE_ZLIB_GLZ_IMG_COMPR = "spice_zlib_glz_wan_compression"
-HV_KVM_SPICE_STREAMING_VIDEO_DETECTION = "spice_streaming_video"
-HV_KVM_SPICE_AUDIO_COMPR = "spice_playback_compression"
-HV_KVM_SPICE_USE_TLS = "spice_use_tls"
-HV_KVM_SPICE_TLS_CIPHERS = "spice_tls_ciphers"
-HV_KVM_SPICE_USE_VDAGENT = "spice_use_vdagent"
-HV_ACPI = "acpi"
-HV_PAE = "pae"
-HV_USE_BOOTLOADER = "use_bootloader"
-HV_BOOTLOADER_ARGS = "bootloader_args"
-HV_BOOTLOADER_PATH = "bootloader_path"
-HV_KERNEL_ARGS = "kernel_args"
-HV_KERNEL_PATH = "kernel_path"
-HV_INITRD_PATH = "initrd_path"
-HV_ROOT_PATH = "root_path"
-HV_SERIAL_CONSOLE = "serial_console"
-HV_SERIAL_SPEED = "serial_speed"
-HV_USB_MOUSE = "usb_mouse"
-HV_KEYMAP = "keymap"
-HV_DEVICE_MODEL = "device_model"
-HV_INIT_SCRIPT = "init_script"
-HV_MIGRATION_PORT = "migration_port"
-HV_MIGRATION_BANDWIDTH = "migration_bandwidth"
-HV_MIGRATION_DOWNTIME = "migration_downtime"
-HV_MIGRATION_MODE = "migration_mode"
-HV_USE_LOCALTIME = "use_localtime"
-HV_DISK_CACHE = "disk_cache"
-HV_SECURITY_MODEL = "security_model"
-HV_SECURITY_DOMAIN = "security_domain"
-HV_KVM_FLAG = "kvm_flag"
-HV_VHOST_NET = "vhost_net"
-HV_KVM_USE_CHROOT = "use_chroot"
-HV_CPU_MASK = "cpu_mask"
-HV_MEM_PATH = "mem_path"
-HV_PASSTHROUGH = "pci_pass"
-HV_BLOCKDEV_PREFIX = "blockdev_prefix"
-HV_REBOOT_BEHAVIOR = "reboot_behavior"
-HV_CPU_TYPE = "cpu_type"
-HV_CPU_CAP = "cpu_cap"
-HV_CPU_WEIGHT = "cpu_weight"
-HV_CPU_CORES = "cpu_cores"
-HV_CPU_THREADS = "cpu_threads"
-HV_CPU_SOCKETS = "cpu_sockets"
-HV_SOUNDHW = "soundhw"
-HV_USB_DEVICES = "usb_devices"
-HV_VGA = "vga"
-HV_KVM_EXTRA = "kvm_extra"
-HV_KVM_MACHINE_VERSION = "machine_version"
-HV_KVM_PATH = "kvm_path"
-HV_VIF_TYPE = "vif_type"
-HV_VIF_SCRIPT = "vif_script"
-HV_XEN_CMD = "xen_cmd"
-HV_XEN_CPUID = "cpuid"
-HV_VNET_HDR = "vnet_hdr"
-HV_VIRIDIAN = "viridian"
-
+HV_BOOT_ORDER = _constants.HV_BOOT_ORDER
+HV_CDROM_IMAGE_PATH = _constants.HV_CDROM_IMAGE_PATH
+HV_KVM_CDROM2_IMAGE_PATH = _constants.HV_KVM_CDROM2_IMAGE_PATH
+HV_KVM_FLOPPY_IMAGE_PATH = _constants.HV_KVM_FLOPPY_IMAGE_PATH
+HV_NIC_TYPE = _constants.HV_NIC_TYPE
+HV_DISK_TYPE = _constants.HV_DISK_TYPE
+HV_KVM_CDROM_DISK_TYPE = _constants.HV_KVM_CDROM_DISK_TYPE
+HV_VNC_BIND_ADDRESS = _constants.HV_VNC_BIND_ADDRESS
+HV_VNC_PASSWORD_FILE = _constants.HV_VNC_PASSWORD_FILE
+HV_VNC_TLS = _constants.HV_VNC_TLS
+HV_VNC_X509 = _constants.HV_VNC_X509
+HV_VNC_X509_VERIFY = _constants.HV_VNC_X509_VERIFY
+HV_KVM_SPICE_BIND = _constants.HV_KVM_SPICE_BIND
+HV_KVM_SPICE_IP_VERSION = _constants.HV_KVM_SPICE_IP_VERSION
+HV_KVM_SPICE_PASSWORD_FILE = _constants.HV_KVM_SPICE_PASSWORD_FILE
+HV_KVM_SPICE_LOSSLESS_IMG_COMPR = _constants.HV_KVM_SPICE_LOSSLESS_IMG_COMPR
+HV_KVM_SPICE_JPEG_IMG_COMPR = _constants.HV_KVM_SPICE_JPEG_IMG_COMPR
+HV_KVM_SPICE_ZLIB_GLZ_IMG_COMPR = _constants.HV_KVM_SPICE_ZLIB_GLZ_IMG_COMPR
+HV_KVM_SPICE_STREAMING_VIDEO_DETECTION = \
+  _constants.HV_KVM_SPICE_STREAMING_VIDEO_DETECTION
+HV_KVM_SPICE_AUDIO_COMPR = _constants.HV_KVM_SPICE_AUDIO_COMPR
+HV_KVM_SPICE_USE_TLS = _constants.HV_KVM_SPICE_USE_TLS
+HV_KVM_SPICE_TLS_CIPHERS = _constants.HV_KVM_SPICE_TLS_CIPHERS
+HV_KVM_SPICE_USE_VDAGENT = _constants.HV_KVM_SPICE_USE_VDAGENT
+HV_ACPI = _constants.HV_ACPI
+HV_PAE = _constants.HV_PAE
+HV_USE_BOOTLOADER = _constants.HV_USE_BOOTLOADER
+HV_BOOTLOADER_ARGS = _constants.HV_BOOTLOADER_ARGS
+HV_BOOTLOADER_PATH = _constants.HV_BOOTLOADER_PATH
+HV_KERNEL_ARGS = _constants.HV_KERNEL_ARGS
+HV_KERNEL_PATH = _constants.HV_KERNEL_PATH
+HV_INITRD_PATH = _constants.HV_INITRD_PATH
+HV_ROOT_PATH = _constants.HV_ROOT_PATH
+HV_SERIAL_CONSOLE = _constants.HV_SERIAL_CONSOLE
+HV_SERIAL_SPEED = _constants.HV_SERIAL_SPEED
+HV_USB_MOUSE = _constants.HV_USB_MOUSE
+HV_KEYMAP = _constants.HV_KEYMAP
+HV_DEVICE_MODEL = _constants.HV_DEVICE_MODEL
+HV_INIT_SCRIPT = _constants.HV_INIT_SCRIPT
+HV_MIGRATION_PORT = _constants.HV_MIGRATION_PORT
+HV_MIGRATION_BANDWIDTH = _constants.HV_MIGRATION_BANDWIDTH
+HV_MIGRATION_DOWNTIME = _constants.HV_MIGRATION_DOWNTIME
+HV_MIGRATION_MODE = _constants.HV_MIGRATION_MODE
+HV_USE_LOCALTIME = _constants.HV_USE_LOCALTIME
+HV_DISK_CACHE = _constants.HV_DISK_CACHE
+HV_SECURITY_MODEL = _constants.HV_SECURITY_MODEL
+HV_SECURITY_DOMAIN = _constants.HV_SECURITY_DOMAIN
+HV_KVM_FLAG = _constants.HV_KVM_FLAG
+HV_VHOST_NET = _constants.HV_VHOST_NET
+HV_KVM_USE_CHROOT = _constants.HV_KVM_USE_CHROOT
+HV_CPU_MASK = _constants.HV_CPU_MASK
+HV_MEM_PATH = _constants.HV_MEM_PATH
+HV_PASSTHROUGH = _constants.HV_PASSTHROUGH
+HV_BLOCKDEV_PREFIX = _constants.HV_BLOCKDEV_PREFIX
+HV_REBOOT_BEHAVIOR = _constants.HV_REBOOT_BEHAVIOR
+HV_CPU_TYPE = _constants.HV_CPU_TYPE
+HV_CPU_CAP = _constants.HV_CPU_CAP
+HV_CPU_WEIGHT = _constants.HV_CPU_WEIGHT
+HV_CPU_CORES = _constants.HV_CPU_CORES
+HV_CPU_THREADS = _constants.HV_CPU_THREADS
+HV_CPU_SOCKETS = _constants.HV_CPU_SOCKETS
+HV_SOUNDHW = _constants.HV_SOUNDHW
+HV_USB_DEVICES = _constants.HV_USB_DEVICES
+HV_VGA = _constants.HV_VGA
+HV_KVM_EXTRA = _constants.HV_KVM_EXTRA
+HV_KVM_MACHINE_VERSION = _constants.HV_KVM_MACHINE_VERSION
+HV_KVM_PATH = _constants.HV_KVM_PATH
+HV_VIF_TYPE = _constants.HV_VIF_TYPE
+HV_VIF_SCRIPT = _constants.HV_VIF_SCRIPT
+HV_XEN_CMD = _constants.HV_XEN_CMD
+HV_XEN_CPUID = _constants.HV_XEN_CPUID
+HV_VNET_HDR = _constants.HV_VNET_HDR
+HV_VIRIDIAN = _constants.HV_VIRIDIAN
 
 HVS_PARAMETER_TYPES = {
   HV_KVM_PATH: VTYPE_STRING,
@@ -689,20 +668,7 @@ HVS_PARAMETER_TYPES = {
 
 HVS_PARAMETERS = frozenset(HVS_PARAMETER_TYPES.keys())
 
-HVS_PARAMETER_TITLES = {
-  HV_ACPI: "ACPI",
-  HV_BOOT_ORDER: "Boot_order",
-  HV_CDROM_IMAGE_PATH: "CDROM_image_path",
-  HV_DISK_TYPE: "Disk_type",
-  HV_INITRD_PATH: "Initrd_path",
-  HV_KERNEL_PATH: "Kernel_path",
-  HV_NIC_TYPE: "NIC_type",
-  HV_PAE: "PAE",
-  HV_VNC_BIND_ADDRESS: "VNC_bind_address",
-  HV_PASSTHROUGH: "pci_pass",
-  HV_CPU_TYPE: "cpu_type",
-  }
-
+HVS_PARAMETER_TITLES = _constants.HVS_PARAMETER_TITLES
 # Migration statuses
 HV_MIGRATION_COMPLETED = "completed"
 HV_MIGRATION_ACTIVE = "active"
