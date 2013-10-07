@@ -140,29 +140,24 @@ instanceFields =
   [ (FieldDefinition "disk_usage" "DiskUsage" QFTUnit
      "Total disk space used by instance on each of its nodes; this is not the\
      \ disk size visible to the instance, but the usage on the node",
-     FieldSimple (rsNormal . getDiskSizeRequirements), QffNormal),
-
-    (FieldDefinition "disk.count" "Disks" QFTNumber
+     FieldSimple (rsNormal . getDiskSizeRequirements), QffNormal)
+  , (FieldDefinition "disk.count" "Disks" QFTNumber
      "Number of disks",
-     FieldSimple (rsNormal . length . instDisks), QffNormal),
-
-    (FieldDefinition "disk.sizes" "Disk_sizes" QFTOther
+     FieldSimple (rsNormal . length . instDisks), QffNormal)
+  , (FieldDefinition "disk.sizes" "Disk_sizes" QFTOther
      "List of disk sizes",
-     FieldSimple (rsNormal . map diskSize . instDisks), QffNormal),
-
-    (FieldDefinition "disk.spindles" "Disk_spindles" QFTOther
+     FieldSimple (rsNormal . map diskSize . instDisks), QffNormal)
+  , (FieldDefinition "disk.spindles" "Disk_spindles" QFTOther
      "List of disk spindles",
      FieldSimple (rsNormal . map (MaybeForJSON . diskSpindles) .
                   instDisks),
-     QffNormal),
-
-    (FieldDefinition "disk.names" "Disk_names" QFTOther
+     QffNormal)
+  , (FieldDefinition "disk.names" "Disk_names" QFTOther
      "List of disk names",
      FieldSimple (rsNormal . map (MaybeForJSON . diskName) .
                   instDisks),
-     QffNormal),
-
-    (FieldDefinition "disk.uuids" "Disk_UUIDs" QFTOther
+     QffNormal)
+  , (FieldDefinition "disk.uuids" "Disk_UUIDs" QFTOther
      "List of disk UUIDs",
      FieldSimple (rsNormal . map diskUuid . instDisks), QffNormal)
   ] ++
@@ -171,19 +166,94 @@ instanceFields =
   fillNumberFields C.maxDisks
   [ (fieldDefinitionCompleter "disk.size/%d" "Disk/%d" QFTUnit
      "Disk size of %s disk",
-     getFillableField instDisks diskSize, QffNormal),
-
-    (fieldDefinitionCompleter "disk.spindles/%d" "DiskSpindles/%d" QFTNumber
+     getFillableField instDisks diskSize, QffNormal)
+  , (fieldDefinitionCompleter "disk.spindles/%d" "DiskSpindles/%d" QFTNumber
      "Spindles of %s disk",
-     getFillableOptionalField instDisks diskSpindles, QffNormal),
-
-    (fieldDefinitionCompleter "disk.name/%d" "DiskName/%d" QFTText
+     getFillableOptionalField instDisks diskSpindles, QffNormal)
+  , (fieldDefinitionCompleter "disk.name/%d" "DiskName/%d" QFTText
      "Name of %s disk",
-     getFillableOptionalField instDisks diskName, QffNormal),
-
-    (fieldDefinitionCompleter "disk.uuid/%d" "DiskUUID/%d" QFTText
+     getFillableOptionalField instDisks diskName, QffNormal)
+  , (fieldDefinitionCompleter "disk.uuid/%d" "DiskUUID/%d" QFTText
      "UUID of %s disk",
      getFillableField instDisks diskUuid, QffNormal)
+  ] ++
+
+  -- Aggregate nic parameter fields
+  [ (FieldDefinition "nic.count" "NICs" QFTNumber
+     "Number of network interfaces",
+     FieldSimple (rsNormal . length . instNics), QffNormal)
+  , (FieldDefinition "nic.macs" "NIC_MACs" QFTOther
+     (nicAggDescPrefix ++ "MAC address"),
+     FieldSimple (rsNormal . map nicMac . instNics), QffNormal)
+  , (FieldDefinition "nic.ips" "NIC_IPs" QFTOther
+     (nicAggDescPrefix ++ "IP address"),
+     FieldSimple (rsNormal . map (MaybeForJSON . nicIp) . instNics),
+     QffNormal)
+  , (FieldDefinition "nic.names" "NIC_Names" QFTOther
+     (nicAggDescPrefix ++ "name"),
+     FieldSimple (rsNormal . map (MaybeForJSON . nicName) . instNics),
+     QffNormal)
+  , (FieldDefinition "nic.uuids" "NIC_UUIDs" QFTOther
+     (nicAggDescPrefix ++ "UUID"),
+     FieldSimple (rsNormal . map nicUuid . instNics), QffNormal)
+  , (FieldDefinition "nic.modes" "NIC_modes" QFTOther
+     (nicAggDescPrefix ++ "mode"),
+     FieldConfig (\cfg -> rsNormal . map
+       (nicpMode . fillNicParamsFromConfig cfg . nicNicparams)
+       . instNics),
+     QffNormal)
+  , (FieldDefinition "nic.bridges" "NIC_bridges" QFTOther
+     (nicAggDescPrefix ++ "bridge"),
+     FieldConfig (\cfg -> rsNormal . map (MaybeForJSON . getNicBridge .
+       fillNicParamsFromConfig cfg . nicNicparams) . instNics),
+     QffNormal)
+  , (FieldDefinition "nic.links" "NIC_links" QFTOther
+     (nicAggDescPrefix ++ "link"),
+     FieldConfig (\cfg -> rsNormal . map
+       (nicpLink . fillNicParamsFromConfig cfg . nicNicparams)
+       . instNics),
+     QffNormal)
+  , (FieldDefinition "nic.networks" "NIC_networks" QFTOther
+     "List containing each interface's network",
+     FieldSimple (rsNormal . map (MaybeForJSON . nicNetwork) . instNics),
+     QffNormal)
+  , (FieldDefinition "nic.networks.names" "NIC_networks_names" QFTOther
+     "List containing the name of each interface's network",
+     FieldConfig (\cfg -> rsNormal . map
+       (\x -> MaybeForJSON (getNetworkName cfg <$> nicNetwork x))
+       . instNics),
+     QffNormal)
+  ] ++
+
+  -- Per-nic parameter fields
+  fillNumberFields C.maxNics
+  [ (fieldDefinitionCompleter "nic.ip/%d" "NicIP/%d" QFTText
+     ("IP address" ++ nicDescSuffix),
+     getFillableOptionalField instNics nicIp, QffNormal)
+  , (fieldDefinitionCompleter "nic.uuid/%d" "NicUUID/%d" QFTText
+     ("UUID address" ++ nicDescSuffix),
+     getFillableField instNics nicUuid, QffNormal)
+  , (fieldDefinitionCompleter "nic.mac/%d" "NicMAC/%d" QFTText
+     ("MAC address" ++ nicDescSuffix),
+     getFillableField instNics nicMac, QffNormal)
+  , (fieldDefinitionCompleter "nic.name/%d" "NicName/%d" QFTText
+     ("Name address" ++ nicDescSuffix),
+     getFillableOptionalField instNics nicName, QffNormal)
+  , (fieldDefinitionCompleter "nic.network/%d" "NicNetwork/%d" QFTText
+     ("Network" ++ nicDescSuffix),
+     getFillableOptionalField instNics nicNetwork, QffNormal)
+  , (fieldDefinitionCompleter "nic.mode/%d" "NicMode/%d" QFTText
+     ("Mode" ++ nicDescSuffix),
+     getFillableNicField nicpMode, QffNormal)
+  , (fieldDefinitionCompleter "nic.link/%d" "NicLink/%d" QFTText
+     ("Link" ++ nicDescSuffix),
+     getFillableNicField nicpLink, QffNormal)
+  , (fieldDefinitionCompleter "nic.network.name/%d" "NicNetworkName/%d" QFTText
+     ("Network name" ++ nicDescSuffix),
+     getFillableNicNetworkNameField, QffNormal)
+  , (fieldDefinitionCompleter "nic.bridge/%d" "NicBridge/%d" QFTText
+     ("Bridge" ++ nicDescSuffix),
+     getOptionalFillableNicField getNicBridge, QffNormal)
   ] ++
 
   -- Live fields using special getters
@@ -205,7 +275,76 @@ instanceFields =
 
 -- * Helper functions for node property retrieval
 
--- | Creates a function which produces a FieldGetter when fed an index. Works
+-- | Constant suffix of network interface field descriptions.
+nicDescSuffix ::String
+nicDescSuffix = " of %s network interface"
+
+-- | Almost-constant suffix of aggregate network interface field descriptions.
+nicAggDescPrefix ::String
+nicAggDescPrefix = "List containing each network interface's "
+
+-- | Given a network name id, returns the network's name.
+getNetworkName :: ConfigData -> String -> NonEmptyString
+getNetworkName cfg = networkName . (Map.!) (fromContainer $ configNetworks cfg)
+
+-- | Gets the bridge of a NIC.
+getNicBridge :: FilledNicParams -> Maybe String
+getNicBridge nicParams
+  | nicpMode nicParams == NMBridged = Just $ nicpLink nicParams
+  | otherwise                       = Nothing
+
+-- | Fill partial NIC params by using the defaults from the configuration.
+fillNicParamsFromConfig :: ConfigData -> PartialNicParams -> FilledNicParams
+fillNicParamsFromConfig cfg = fillNicParams (getDefaultNicParams cfg)
+
+-- | Retrieves the default network interface parameters.
+getDefaultNicParams :: ConfigData -> FilledNicParams
+getDefaultNicParams cfg =
+  (Map.!) (fromContainer . clusterNicparams . configCluster $ cfg) C.ppDefault
+
+-- | Returns a field that retrieves a given NIC's network name.
+getFillableNicNetworkNameField :: Int -> FieldGetter Instance Runtime
+getFillableNicNetworkNameField index =
+  FieldConfig (\cfg inst -> rsMaybeUnavail $ do
+    nicObj <- maybeAt index $ instNics inst
+    nicNetworkId <- nicNetwork nicObj
+    return $ getNetworkName cfg nicNetworkId)
+
+-- | Gets a fillable NIC field.
+getFillableNicField :: (J.JSON a)
+                    => (FilledNicParams -> a)
+                    -> Int
+                    -> FieldGetter Instance Runtime
+getFillableNicField getter =
+  getOptionalFillableNicField (\x -> Just . getter $ x)
+
+-- | Gets an optional fillable NIC field.
+getOptionalFillableNicField :: (J.JSON a)
+                            => (FilledNicParams -> Maybe a)
+                            -> Int
+                            -> FieldGetter Instance Runtime
+getOptionalFillableNicField =
+  getFillableFieldWithDefault
+    (map nicNicparams . instNics) (\x _ -> getDefaultNicParams x) fillNicParams
+
+-- | Creates a function which produces a 'FieldGetter' when fed an index. Works
+-- for fields that should be filled out through the use of a default.
+getFillableFieldWithDefault :: (J.JSON c)
+  => (Instance -> [a])             -- ^ Extracts a list of incomplete objects
+  -> (ConfigData -> Instance -> b) -- ^ Extracts the default object
+  -> (b -> a -> b)                 -- ^ Fills the default object
+  -> (b -> Maybe c)                -- ^ Extracts an obj property
+  -> Int                           -- ^ Index in list to use
+  -> FieldGetter Instance Runtime  -- ^ Result
+getFillableFieldWithDefault
+  listGetter defaultGetter fillFn propertyGetter index =
+  FieldConfig (\cfg inst -> rsMaybeUnavail $ do
+                              incompleteObj <- maybeAt index $ listGetter inst
+                              let defaultObj = defaultGetter cfg inst
+                                  completeObj = fillFn defaultObj incompleteObj
+                              propertyGetter completeObj)
+
+-- | Creates a function which produces a 'FieldGetter' when fed an index. Works
 -- for fields that may not return a value, expressed through the Maybe monad.
 getFillableOptionalField :: (J.JSON b)
                          => (Instance -> [a]) -- ^ Extracts a list of objects
@@ -218,13 +357,13 @@ getFillableOptionalField extractor optPropertyGetter index =
                          obj <- maybeAt index $ extractor inst
                          optPropertyGetter obj)
 
--- | Creates a function which produces a FieldGetter when fed an index.
+-- | Creates a function which produces a 'FieldGetter' when fed an index.
 -- Works only for fields that surely return a value.
 getFillableField :: (J.JSON b)
-                    => (Instance -> [a]) -- ^ Extracts a list of objects
-                    -> (a -> b)          -- ^ Gets a property from an object
-                    -> Int               -- ^ Index in list to use
-                    -> FieldGetter Instance Runtime -- ^ Result
+                 => (Instance -> [a]) -- ^ Extracts a list of objects
+                 -> (a -> b)          -- ^ Gets a property from an object
+                 -> Int               -- ^ Index in list to use
+                 -> FieldGetter Instance Runtime -- ^ Result
 getFillableField extractor propertyGetter index =
   let optPropertyGetter = Just . propertyGetter
   in getFillableOptionalField extractor optPropertyGetter index
