@@ -1791,7 +1791,11 @@ permissions to files and programs to be correct.
 The ``users-setup`` tool, when run, takes care of setting up the proper
 users and groups.
 
-The tool does not accept any parameter, and requires root permissions to run.
+When invoked without parameters, the tool runs in interactive mode, showing the
+list of actions it will perform and asking for confirmation before proceeding.
+
+Providing the ``--yes-do-it`` parameter to the tool prevents the confirmation
+from being asked, and the users and groups will be created immediately.
 
 .. TODO: document cluster-merge tool
 
