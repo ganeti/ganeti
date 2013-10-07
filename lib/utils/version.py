@@ -130,7 +130,7 @@ def ShouldCfgdowngrade(version, current=CURRENT_VERSION):
 
   @param version: The version to upgrade to as (major, minor, revision)
   @type version: tuple
-  @param current: The versino to upgrade from as (major, minor, revision)
+  @param current: The version to upgrade from as (major, minor, revision)
   @type current: tuple
   @rtype: bool
   @return: True, if cfgupgrade --downgrade should be called.
