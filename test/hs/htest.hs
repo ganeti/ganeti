@@ -59,6 +59,7 @@ import Test.Ganeti.Luxi
 import Test.Ganeti.Network
 import Test.Ganeti.Objects
 import Test.Ganeti.OpCodes
+import Test.Ganeti.Query.Aliases
 import Test.Ganeti.Query.Filter
 import Test.Ganeti.Query.Language
 import Test.Ganeti.Query.Network
@@ -120,6 +121,7 @@ allTests =
   , testNetwork
   , testObjects
   , testOpCodes
+  , testQuery_Aliases
   , testQuery_Filter
   , testQuery_Language
   , testQuery_Network

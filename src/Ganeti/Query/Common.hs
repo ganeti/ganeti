@@ -44,8 +44,10 @@ module Ganeti.Query.Common
   , buildHvParamField
   , getDefaultHypervisorSpec
   , getHvParamsFromCluster
+  , aliasFields
   ) where
 
+import Control.Monad (guard)
 import qualified Data.Map as Map
 import Data.Maybe (fromMaybe)
 import Text.JSON (JSON, showJSON)
@@ -238,3 +240,13 @@ getHvParamsFromCluster cfg hv =
   fromMaybe (GenericContainer Map.empty) .
     Map.lookup (hypervisorToRaw hv) .
       fromContainer . clusterHvparams $ configCluster cfg
+
+-- | Given an alias list and a field list, copies field definitions under a
+-- new field name. Aliases should be tested - see the test module
+-- 'Test.Ganeti.Query.Aliases'!
+aliasFields :: [(FieldName, FieldName)] -> FieldList a b -> FieldList a b
+aliasFields aliases fieldList = fieldList ++ do
+  alias <- aliases
+  (FieldDefinition name d1 d2 d3, v1, v2) <- fieldList
+  guard (snd alias == name)
+  return (FieldDefinition (fst alias) d1 d2 d3, v1, v2)

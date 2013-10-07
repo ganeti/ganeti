@@ -756,6 +756,7 @@ HS_TEST_SRCS = \
 	test/hs/Test/Ganeti/Network.hs \
 	test/hs/Test/Ganeti/Objects.hs \
 	test/hs/Test/Ganeti/OpCodes.hs \
+	test/hs/Test/Ganeti/Query/Aliases.hs \
 	test/hs/Test/Ganeti/Query/Filter.hs \
 	test/hs/Test/Ganeti/Query/Language.hs \
 	test/hs/Test/Ganeti/Query/Network.hs \

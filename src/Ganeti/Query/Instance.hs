@@ -27,6 +27,8 @@ module Ganeti.Query.Instance
   ( Runtime
   , fieldsMap
   , collectLiveData
+  , instanceFields
+  , instanceAliases
   ) where
 
 import Control.Applicative
@@ -64,9 +66,28 @@ type Runtime = Either RpcError (Maybe LiveInfo)
 
 -- | The instance fields map.
 fieldsMap :: FieldMap Instance Runtime
-fieldsMap = Map.fromList [(fdefName f, v) | v@(f, _, _) <- instanceFields]
+fieldsMap = Map.fromList [(fdefName f, v) | v@(f, _, _) <- aliasedFields]
 
--- | The instance fields
+-- | The instance aliases.
+instanceAliases :: [(FieldName, FieldName)]
+instanceAliases =
+  [ ("vcpus", "be/vcpus")
+  , ("be/memory", "be/maxmem")
+  , ("sda_size", "disk.size/0")
+  , ("sdb_size", "disk.size/1")
+  , ("ip", "nic.ip/0")
+  , ("mac", "nic.mac/0")
+  , ("bridge", "nic.bridge/0")
+  , ("nic_mode", "nic.mode/0")
+  , ("nic_link", "nic.link/0")
+  , ("nic_network", "nic.network/0")
+  ]
+
+-- | The aliased instance fields.
+aliasedFields :: FieldList Instance Runtime
+aliasedFields = aliasFields instanceAliases instanceFields
+
+-- | The instance fields.
 instanceFields :: FieldList Instance Runtime
 instanceFields =
   -- Simple fields
