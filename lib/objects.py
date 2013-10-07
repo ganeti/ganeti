@@ -584,7 +584,7 @@ class Disk(ConfigObject):
                          constants.DT_BLOCK, constants.DT_RBD,
                          constants.DT_EXT, constants.DT_SHARED_FILE]:
       result = [node_uuid]
-    elif self.dev_type in constants.LDS_DRBD:
+    elif self.dev_type in constants.DTS_DRBD:
       result = [self.logical_id[0], self.logical_id[1]]
       if node_uuid not in result:
         raise errors.ConfigurationError("DRBD device passed unknown node")
@@ -719,7 +719,7 @@ class Disk(ConfigObject):
 
     if self.logical_id is None and self.physical_id is not None:
       return
-    if self.dev_type in constants.LDS_DRBD:
+    if self.dev_type in constants.DTS_DRBD:
       pnode_uuid, snode_uuid, port, pminor, sminor, secret = self.logical_id
       if target_node_uuid not in (pnode_uuid, snode_uuid):
         raise errors.ConfigurationError("DRBD device not knowing node %s" %
@@ -766,7 +766,7 @@ class Disk(ConfigObject):
       obj.logical_id = tuple(obj.logical_id)
     if obj.physical_id and isinstance(obj.physical_id, list):
       obj.physical_id = tuple(obj.physical_id)
-    if obj.dev_type in constants.LDS_DRBD:
+    if obj.dev_type in constants.DTS_DRBD:
       # we need a tuple of length six here
       if len(obj.logical_id) < 6:
         obj.logical_id += (None,) * (6 - len(obj.logical_id))
@@ -778,7 +778,7 @@ class Disk(ConfigObject):
     """
     if self.dev_type == constants.DT_PLAIN:
       val = "<LogicalVolume(/dev/%s/%s" % self.logical_id
-    elif self.dev_type in constants.LDS_DRBD:
+    elif self.dev_type in constants.DTS_DRBD:
       node_a, node_b, port, minor_a, minor_b = self.logical_id[:5]
       val = "<DRBD8("
       if self.physical_id is None:
@@ -1092,7 +1092,7 @@ class Instance(TaggableObject):
     """
     def _Helper(nodes, device):
       """Recursively computes nodes given a top device."""
-      if device.dev_type in constants.LDS_DRBD:
+      if device.dev_type in constants.DTS_DRBD:
         nodea, nodeb = device.logical_id[:2]
         nodes.add(nodea)
         nodes.add(nodeb)
@@ -1150,7 +1150,7 @@ class Instance(TaggableObject):
       if dev.dev_type == constants.DT_PLAIN:
         lvmap[node_uuid].append(dev.logical_id[0] + "/" + dev.logical_id[1])
 
-      elif dev.dev_type in constants.LDS_DRBD:
+      elif dev.dev_type in constants.DTS_DRBD:
         if dev.children:
           self.MapLVsByNode(lvmap, dev.children, dev.logical_id[0])
           self.MapLVsByNode(lvmap, dev.children, dev.logical_id[1])

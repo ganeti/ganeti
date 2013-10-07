@@ -572,6 +572,9 @@ DTS_BLOCK = compat.UniqueFrozenset([
   DT_EXT,
   ])
 
+# the set of drbd-like disk types
+DTS_DRBD = compat.UniqueFrozenset([DT_DRBD8])
+
 # drbd constants
 DRBD_HMAC_ALG = "md5"
 DRBD_DEFAULT_NET_PROTOCOL = "C"
@@ -605,9 +608,6 @@ RBD_CMD = "rbd"
 # file backend driver
 FD_LOOP = "loop"
 FD_BLKTAP = "blktap"
-
-# the set of drbd-like disk types
-LDS_DRBD = compat.UniqueFrozenset([DT_DRBD8])
 
 # disk access mode
 DISK_RDONLY = "ro"
