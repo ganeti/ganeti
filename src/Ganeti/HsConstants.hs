@@ -2096,6 +2096,10 @@ oobStatusWarning = Types.oobStatusToRaw OobStatusWarning
 oobStatuses :: FrozenSet String
 oobStatuses = ConstantUtils.mkSet $ map Types.oobStatusToRaw [minBound..]
 
+-- | Instance Parameters Profile
+ppDefault :: String
+ppDefault = "default"
+
 -- * nic* constants are used inside the ganeti config
 
 nicLink :: String
@@ -2130,6 +2134,92 @@ nicIpPool = Types.nICModeToRaw NMPool
 
 nicValidModes :: FrozenSet String
 nicValidModes = ConstantUtils.mkSet $ map Types.nICModeToRaw [minBound..]
+
+releaseAction :: String
+releaseAction = "release"
+
+reserveAction :: String
+reserveAction = "reserve"
+
+-- * idisk* constants are used in opcodes, to create/change disks
+
+idiskAdopt :: String
+idiskAdopt = "adopt"
+
+idiskMetavg :: String
+idiskMetavg = "metavg"
+
+idiskMode :: String
+idiskMode = "mode"
+
+idiskName :: String
+idiskName = "name"
+
+idiskSize :: String
+idiskSize = "size"
+
+idiskSpindles :: String
+idiskSpindles = "spindles"
+
+idiskVg :: String
+idiskVg = "vg"
+
+idiskProvider :: String
+idiskProvider = "provider"
+
+idiskParamsTypes :: Map String VType
+idiskParamsTypes =
+  Map.fromList [(idiskSize, VTypeSize),
+                (idiskSpindles, VTypeInt),
+                (idiskMode, VTypeString),
+                (idiskAdopt, VTypeString),
+                (idiskVg, VTypeString),
+                (idiskMetavg, VTypeString),
+                (idiskProvider, VTypeString),
+                (idiskName, VTypeMaybeString)]
+
+idiskParams :: FrozenSet String
+idiskParams = ConstantUtils.mkSet (Map.keys idiskParamsTypes)
+
+-- * inic* constants are used in opcodes, to create/change nics
+
+inicBridge :: String
+inicBridge = "bridge"
+
+inicIp :: String
+inicIp = "ip"
+
+inicLink :: String
+inicLink = "link"
+
+inicMac :: String
+inicMac = "mac"
+
+inicMode :: String
+inicMode = "mode"
+
+inicName :: String
+inicName = "name"
+
+inicNetwork :: String
+inicNetwork = "network"
+
+inicVlan :: String
+inicVlan = "vlan"
+
+inicParamsTypes :: Map String VType
+inicParamsTypes =
+  Map.fromList [(inicBridge, VTypeMaybeString),
+                (inicIp, VTypeMaybeString),
+                (inicLink, VTypeString),
+                (inicMac, VTypeString),
+                (inicMode, VTypeString),
+                (inicName, VTypeMaybeString),
+                (inicNetwork, VTypeMaybeString),
+                (inicVlan, VTypeMaybeString)]
+
+inicParams :: FrozenSet String
+inicParams = ConstantUtils.mkSet (Map.keys inicParamsTypes)
 
 -- * Hypervisor constants
 
