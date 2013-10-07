@@ -1200,6 +1200,99 @@ rpcTmo_1day = Types.rpcTimeoutToRaw OneDay
 rpcConnectTimeout :: Int
 rpcConnectTimeout = 5
 
+-- OS
+
+osScriptCreate :: String
+osScriptCreate = "create"
+
+osScriptExport :: String
+osScriptExport = "export"
+
+osScriptImport :: String
+osScriptImport = "import"
+
+osScriptRename :: String
+osScriptRename = "rename"
+
+osScriptVerify :: String
+osScriptVerify = "verify"
+
+osScripts :: [String]
+osScripts = [osScriptCreate, osScriptExport, osScriptImport, osScriptRename,
+             osScriptVerify]
+
+osApiFile :: String
+osApiFile = "ganeti_api_version"
+
+osVariantsFile :: String
+osVariantsFile = "variants.list"
+
+osParametersFile :: String
+osParametersFile = "parameters.list"
+
+osValidateParameters :: String
+osValidateParameters = "parameters"
+
+osValidateCalls :: FrozenSet String
+osValidateCalls = ConstantUtils.mkSet [osValidateParameters]
+
+-- | External Storage (ES) related constants
+
+esActionAttach :: String
+esActionAttach = "attach"
+
+esActionCreate :: String
+esActionCreate = "create"
+
+esActionDetach :: String
+esActionDetach = "detach"
+
+esActionGrow :: String
+esActionGrow = "grow"
+
+esActionRemove :: String
+esActionRemove = "remove"
+
+esActionSetinfo :: String
+esActionSetinfo = "setinfo"
+
+esActionVerify :: String
+esActionVerify = "verify"
+
+esScriptCreate :: String
+esScriptCreate = esActionCreate
+
+esScriptRemove :: String
+esScriptRemove = esActionRemove
+
+esScriptGrow :: String
+esScriptGrow = esActionGrow
+
+esScriptAttach :: String
+esScriptAttach = esActionAttach
+
+esScriptDetach :: String
+esScriptDetach = esActionDetach
+
+esScriptSetinfo :: String
+esScriptSetinfo = esActionSetinfo
+
+esScriptVerify :: String
+esScriptVerify = esActionVerify
+
+esScripts :: FrozenSet String
+esScripts =
+  ConstantUtils.mkSet [esScriptAttach,
+                       esScriptCreate,
+                       esScriptDetach,
+                       esScriptGrow,
+                       esScriptRemove,
+                       esScriptSetinfo,
+                       esScriptVerify]
+
+esParametersFile :: String
+esParametersFile = "parameters.list"
+
 -- * VTypes
 
 vtypeBool :: VType
