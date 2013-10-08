@@ -403,6 +403,7 @@ class TestCfgupgrade(unittest.TestCase):
     for xen_variant in [constants.HT_XEN_PVM, constants.HT_XEN_HVM]:
       xen_params = hvparams[xen_variant]
       self.assertTrue(constants.HV_XEN_CMD not in xen_params)
+      self.assertTrue(constants.HV_VIF_SCRIPT not in xen_params)
 
   def testDowngradeFullConfigBackwardFrom_2_7(self):
     """Test for upgrade + downgrade + upgrade combination."""

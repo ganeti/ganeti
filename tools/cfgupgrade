@@ -429,6 +429,9 @@ def DowngradeHvparams(config_data):
         # 'xen_cmd' was introduced in 2.9
         if constants.HV_XEN_CMD in xen_params:
           del xen_params[constants.HV_XEN_CMD]
+        # 'vif_script' was introducted in 2.9
+        if constants.HV_VIF_SCRIPT in xen_params:
+          del xen_params[constants.HV_VIF_SCRIPT]
 
 
 def DowngradeAll(config_data):
