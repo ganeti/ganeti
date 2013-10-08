@@ -365,6 +365,14 @@ AC_SUBST(DISK_SEPARATOR, $disk_separator)
 AC_PROG_INSTALL
 AC_PROG_LN_S
 
+# check if ln is the GNU version of ln (and hence supports -T)
+if ln --version 2> /dev/null | head -1 | grep -q GNU
+then
+  AC_SUBST(HAS_GNU_LN, True)
+else
+  AC_SUBST(HAS_GNU_LN, False)
+fi
+
 # Check for the ip command
 AC_ARG_VAR(IP_PATH, [ip path])
 AC_PATH_PROG(IP_PATH, [ip], [])
