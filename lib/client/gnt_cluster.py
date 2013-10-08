@@ -1723,16 +1723,26 @@ def _SetGanetiVersion(versionstring):
 
   """
   failed = []
-  failed.extend(_VerifyCommand(
-      ["rm", "-f", os.path.join(pathutils.SYSCONFDIR, "ganeti/lib")]))
-  failed.extend(_VerifyCommand(
-      ["ln", "-s", "-f", os.path.join(pathutils.PKGLIBDIR, versionstring),
-       os.path.join(pathutils.SYSCONFDIR, "ganeti/lib")]))
-  failed.extend(_VerifyCommand(
-      ["rm", "-f", os.path.join(pathutils.SYSCONFDIR, "ganeti/share")]))
-  failed.extend(_VerifyCommand(
-      ["ln", "-s", "-f", os.path.join(pathutils.SHAREDIR, versionstring),
-       os.path.join(pathutils.SYSCONFDIR, "ganeti/share")]))
+  if constants.HAS_GNU_LN:
+    failed.extend(_VerifyCommand(
+        ["ln", "-s", "-f", "-T",
+         os.path.join(pathutils.PKGLIBDIR, versionstring),
+         os.path.join(pathutils.SYSCONFDIR, "ganeti/lib")]))
+    failed.extend(_VerifyCommand(
+        ["ln", "-s", "-f", "-T",
+         os.path.join(pathutils.SHAREDIR, versionstring),
+         os.path.join(pathutils.SYSCONFDIR, "ganeti/share")]))
+  else:
+    failed.extend(_VerifyCommand(
+        ["rm", "-f", os.path.join(pathutils.SYSCONFDIR, "ganeti/lib")]))
+    failed.extend(_VerifyCommand(
+        ["ln", "-s", "-f", os.path.join(pathutils.PKGLIBDIR, versionstring),
+         os.path.join(pathutils.SYSCONFDIR, "ganeti/lib")]))
+    failed.extend(_VerifyCommand(
+        ["rm", "-f", os.path.join(pathutils.SYSCONFDIR, "ganeti/share")]))
+    failed.extend(_VerifyCommand(
+        ["ln", "-s", "-f", os.path.join(pathutils.SHAREDIR, versionstring),
+         os.path.join(pathutils.SYSCONFDIR, "ganeti/share")]))
   return list(set(failed))
 
 
