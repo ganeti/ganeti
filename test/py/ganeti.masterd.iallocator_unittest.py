@@ -217,6 +217,32 @@ class TestProcessStorageInfo(unittest.TestCase):
     self.assertEqual(self.free_storage_lvm, free_disk)
     self.assertEqual(self.total_storage_lvm, total_disk)
 
+  def testComputeStorageDataFromSpaceInfoByTemplate(self):
+    disk_template = constants.DT_FILE
+    node_name = "mynode"
+    (total_disk, free_disk, total_spindles, free_spindles) = \
+        iallocator.IAllocator._ComputeStorageDataFromSpaceInfoByTemplate(
+            self.space_info, node_name, disk_template)
+    self.assertEqual(self.free_storage_file, free_disk)
+    self.assertEqual(self.total_storage_file, total_disk)
+
+  def testComputeStorageDataFromSpaceInfoByTemplateLvm(self):
+    disk_template = constants.DT_PLAIN
+    node_name = "mynode"
+    (total_disk, free_disk, total_spindles, free_spindles) = \
+        iallocator.IAllocator._ComputeStorageDataFromSpaceInfoByTemplate(
+            self.space_info, node_name, disk_template)
+    self.assertEqual(self.free_storage_lvm, free_disk)
+    self.assertEqual(self.total_storage_lvm, total_disk)
+
+  def testComputeStorageDataFromSpaceInfoByTemplateNoReport(self):
+    disk_template = constants.DT_DISKLESS
+    node_name = "mynode"
+    (total_disk, free_disk, total_spindles, free_spindles) = \
+        iallocator.IAllocator._ComputeStorageDataFromSpaceInfoByTemplate(
+            self.space_info, node_name, disk_template)
+    self.assertEqual(0, free_disk)
+    self.assertEqual(0, total_disk)
 
 if __name__ == "__main__":
   testutils.GanetiTestProgram()

@@ -399,10 +399,12 @@ class IAllocator(object):
 
     self._BuildInputData(req)
 
-  def _ComputeClusterDataNodeInfo(self, node_list, cluster_info,
-                                   hypervisor_name):
+  def _ComputeClusterDataNodeInfo(self, disk_templates, node_list,
+                                  cluster_info, hypervisor_name):
     """Prepare and execute node info call.
 
+    @type disk_templates: list of string
+    @param disk_templates: the disk templates of the instances to be allocated
     @type node_list: list of strings
     @param node_list: list of nodes' UUIDs
     @type cluster_info: L{objects.Cluster}
@@ -413,17 +415,23 @@ class IAllocator(object):
     @return: the result of the node info RPC call
 
     """
-    storage_units_raw = utils.storage.GetStorageUnitsOfCluster(
-        self.cfg, include_spindles=True)
+    if disk_templates:
+      storage_units_raw = utils.storage.GetStorageUnits(self.cfg,
+                                                        disk_templates)
+    else:
+      # FIXME: eliminate this case
+      storage_units_raw = utils.storage.GetStorageUnitsOfCluster(
+         self.cfg, include_spindles=True)
     storage_units = rpc.PrepareStorageUnitsForNodes(self.cfg, storage_units_raw,
                                                     node_list)
     hvspecs = [(hypervisor_name, cluster_info.hvparams[hypervisor_name])]
     return self.rpc.call_node_info(node_list, storage_units, hvspecs)
 
-  def _ComputeClusterData(self):
+  def _ComputeClusterData(self, disk_template=None):
     """Compute the generic allocator input data.
 
-    This is the data that is independent of the actual operation.
+    @type disk_template: list of string
+    @param disk_template: the disk templates of the instances to be allocated
 
     """
     cluster_info = self.cfg.GetClusterInfo()
@@ -452,9 +460,11 @@ class IAllocator(object):
       hypervisor_name = cluster_info.primary_hypervisor
       node_whitelist = None
 
-    has_lvm = utils.storage.IsLvmEnabled(cluster_info.enabled_disk_templates)
-    node_data = self._ComputeClusterDataNodeInfo(node_list, cluster_info,
-                                                 hypervisor_name)
+    if not disk_template:
+      disk_template = cluster_info.enabled_disk_templates[0]
+
+    node_data = self._ComputeClusterDataNodeInfo([disk_template], node_list,
+                                                 cluster_info, hypervisor_name)
 
     node_iinfo = \
       self.rpc.call_all_instances_info(node_list,
@@ -464,8 +474,8 @@ class IAllocator(object):
     data["nodegroups"] = self._ComputeNodeGroupData(self.cfg)
 
     config_ndata = self._ComputeBasicNodeData(self.cfg, ninfo, node_whitelist)
-    data["nodes"] = self._ComputeDynamicNodeData(ninfo, node_data, node_iinfo,
-                                                 i_list, config_ndata, has_lvm)
+    data["nodes"] = self._ComputeDynamicNodeData(
+        ninfo, node_data, node_iinfo, i_list, config_ndata, disk_template)
     assert len(data["nodes"]) == len(ninfo), \
         "Incomplete node data computed"
 
@@ -548,6 +558,49 @@ class IAllocator(object):
     return value
 
   @staticmethod
+  def _ComputeStorageDataFromSpaceInfoByTemplate(
+      space_info, node_name, disk_template):
+    """Extract storage data from node info.
+
+    @type space_info: see result of the RPC call node info
+    @param space_info: the storage reporting part of the result of the RPC call
+      node info
+    @type node_name: string
+    @param node_name: the node's name
+    @type disk_template: string
+    @param disk_template: the disk template to report space for
+    @rtype: 4-tuple of integers
+    @return: tuple of storage info (total_disk, free_disk, total_spindles,
+       free_spindles)
+
+    """
+    storage_type = constants.MAP_DISK_TEMPLATE_STORAGE_TYPE[disk_template]
+    if storage_type not in constants.STS_REPORT:
+      total_disk = total_spindles = 0
+      free_disk = free_spindles = 0
+    else:
+      template_space_info = utils.storage.LookupSpaceInfoByDiskTemplate(
+          space_info, disk_template)
+      if not template_space_info:
+        raise errors.OpExecError("Node '%s' didn't return space info for disk"
+                                   "template '%s'" % (node_name, disk_template))
+      total_disk = template_space_info["storage_size"]
+      free_disk = template_space_info["storage_free"]
+
+      if disk_template in constants.DTS_LVM:
+        lvm_pv_info = utils.storage.LookupSpaceInfoByStorageType(
+           space_info, constants.ST_LVM_PV)
+        if not lvm_pv_info:
+          raise errors.OpExecError("Node '%s' didn't return LVM pv space info."
+                                   % (node_name))
+        total_spindles = lvm_pv_info["storage_size"]
+        free_spindles = lvm_pv_info["storage_free"]
+      else:
+        total_spindles = 0
+        free_spindles = 0
+    return (total_disk, free_disk, total_spindles, free_spindles)
+
+  @staticmethod
   def _ComputeStorageDataFromSpaceInfo(space_info, node_name, has_lvm):
     """Extract storage data from node info.
 
@@ -574,7 +627,7 @@ class IAllocator(object):
       free_disk = lvm_vg_info["storage_free"]
       lvm_pv_info = utils.storage.LookupSpaceInfoByStorageType(
          space_info, constants.ST_LVM_PV)
-      if not lvm_vg_info:
+      if not lvm_pv_info:
         raise errors.OpExecError("Node '%s' didn't return LVM pv space info."
                                  % (node_name))
       total_spindles = lvm_pv_info["storage_size"]
@@ -616,7 +669,7 @@ class IAllocator(object):
     return (i_p_mem, i_p_up_mem, mem_free)
 
   def _ComputeDynamicNodeData(self, node_cfg, node_data, node_iinfo, i_list,
-                              node_results, has_lvm):
+                              node_results, disk_template):
     """Compute global node data.
 
     @param node_results: the basic node structures as filled from the config
@@ -642,8 +695,8 @@ class IAllocator(object):
         (i_p_mem, i_p_up_mem, mem_free) = self._ComputeInstanceMemory(
              i_list, node_iinfo, nuuid, mem_free)
         (total_disk, free_disk, total_spindles, free_spindles) = \
-            self._ComputeStorageDataFromSpaceInfo(space_info, ninfo.name,
-                                                  has_lvm)
+            self._ComputeStorageDataFromSpaceInfoByTemplate(
+                space_info, ninfo.name, disk_template)
 
         # compute memory used by instances
         pnr_dyn = {
@@ -715,9 +768,13 @@ class IAllocator(object):
     """Build input data structures.
 
     """
-    self._ComputeClusterData()
-
     request = req.GetRequest(self.cfg)
+    disk_template = None
+    # FIXME: decide this based on request mode
+    if "disk_template" in request:
+      disk_template = request["disk_template"]
+    self._ComputeClusterData(disk_template=disk_template)
+
     request["type"] = req.MODE
     self.in_data["request"] = request
 
