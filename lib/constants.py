@@ -328,6 +328,9 @@ DRBD_B_DISK_BARRIERS = _constants.DRBD_B_DISK_BARRIERS
 DRBD_B_DISK_DRAIN = _constants.DRBD_B_DISK_DRAIN
 DRBD_B_DISK_FLUSH = _constants.DRBD_B_DISK_FLUSH
 
+# the set of lvm-based disk templates
+DTS_LVM = DISK_TEMPLATES - DTS_NOT_LVM
+
 # Valid barrier combinations: "n" or any non-null subset of "bfd"
 DRBD_VALID_BARRIER_OPT = compat.UniqueFrozenset([
   frozenset([DRBD_B_NONE]),
