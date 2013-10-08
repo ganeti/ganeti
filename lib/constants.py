@@ -1573,6 +1573,10 @@ MOND_LATEST_API_VERSION = 1
 UPGRADE_QUEUE_DRAIN_TIMEOUT = _constants.UPGRADE_QUEUE_DRAIN_TIMEOUT
 UPGRADE_QUEUE_POLL_INTERVAL = _constants.UPGRADE_QUEUE_POLL_INTERVAL
 
+# other constants
+
+HAS_GNU_LN = _constants.HAS_GNU_LN
+
 # Do not re-export imported modules
 del re, _vcsversion, _constants, socket, pathutils, compat
 

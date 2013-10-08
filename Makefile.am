@@ -1839,6 +1839,7 @@ src/AutoConf.hs: Makefile src/AutoConf.hs.in | stamp-directories
 	    -DENABLE_SPLIT_QUERY="$(ENABLE_SPLIT_QUERY)" \
 	    -DENABLE_RESTRICTED_COMMANDS="$(ENABLE_RESTRICTED_COMMANDS)" \
 	    -DENABLE_MOND="$(ENABLE_MOND)" \
+	    -DHAS_GNU_LN="$(HAS_GNU_LN)" \
 	    -DMAN_PAGES="$$(for i in $(notdir $(man_MANS)); do \
 	                    echo -n "$$i" | sed -re 's/^(.*)\.([0-9]+)$$/("\1",\2):/g'; \
 	                    done)" \

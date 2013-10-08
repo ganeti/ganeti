@@ -205,6 +205,9 @@ enableRestrictedCommands = ENABLE_RESTRICTED_COMMANDS
 enableMond :: Bool
 enableMond = ENABLE_MOND
 
+hasGnuLn :: Bool
+hasGnuLn = HAS_GNU_LN
+
 -- Write dictionary with man page name as the key and the section
 -- number as the value
 manPages :: [(String, Int)]

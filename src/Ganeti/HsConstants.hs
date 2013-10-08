@@ -78,6 +78,9 @@ drbdNoMetaFlush = AutoConf.drbdNoMetaFlush
 lvmStripecount :: Int
 lvmStripecount = AutoConf.lvmStripecount
 
+hasGnuLn :: Bool
+hasGnuLn = AutoConf.hasGnuLn
+
 -- * 'autoconf' constants for Python only ('lib/pathutils.py')
 
 -- ** Build-time constants
