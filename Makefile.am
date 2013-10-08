@@ -1167,6 +1167,7 @@ TEST_FILES = \
 	test/data/cert2.pem \
 	test/data/cluster_config_2.7.json \
 	test/data/cluster_config_2.8.json \
+	test/data/cluster_config_2.9.json \
 	test/data/instance-minor-pairing.txt \
 	test/data/instance-prim-sec.txt \
 	test/data/ip-addr-show-dummy0.txt \
