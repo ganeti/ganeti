@@ -391,6 +391,19 @@ class TestCfgupgrade(unittest.TestCase):
     newconf = self._LoadConfig()
     self.assertEqual(oldconf, newconf)
 
+  def testDowngradeFrom_2_9(self):
+    cfg29_name = "cluster_config_2.9.json"
+    cfg29 = self._LoadTestDataConfig(cfg29_name)
+    self._CreateValidConfigDir()
+    utils.WriteFile(self.config_path, data=serializer.DumpJson(cfg29))
+    _RunUpgrade(self.tmpdir, False, True, downgrade=True)
+    cfg28 = self._LoadConfig()
+
+    hvparams = cfg28["cluster"]["hvparams"]
+    for xen_variant in [constants.HT_XEN_PVM, constants.HT_XEN_HVM]:
+      xen_params = hvparams[xen_variant]
+      self.assertTrue(constants.HV_XEN_CMD not in xen_params)
+
   def testDowngradeFullConfigBackwardFrom_2_7(self):
     """Test for upgrade + downgrade + upgrade combination."""
     self._TestUpgradeFromFile("cluster_config_2.7.json", False)

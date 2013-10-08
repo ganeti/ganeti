@@ -417,6 +417,20 @@ def DowngradeInstanceIndices(config_data):
   ChangeInstanceIndices(config_data, "uuid", "name")
 
 
+def DowngradeHvparams(config_data):
+  """Downgrade the cluster's hypervisor parameters."""
+  cluster = config_data["cluster"]
+  if "hvparams" in cluster:
+    hvparams = cluster["hvparams"]
+    xen_params = None
+    for xen_variant in [constants.HT_XEN_PVM, constants.HT_XEN_HVM]:
+      if xen_variant in hvparams:
+        xen_params = hvparams[xen_variant]
+        # 'xen_cmd' was introduced in 2.9
+        if constants.HV_XEN_CMD in xen_params:
+          del xen_params[constants.HV_XEN_CMD]
+
+
 def DowngradeAll(config_data):
   # Any code specific to a particular version should be labeled that way, so
   # it can be removed when updating to the next version.
@@ -425,6 +439,7 @@ def DowngradeAll(config_data):
   DowngradeInstances(config_data)
   DowngradeNodeIndices(config_data)
   DowngradeInstanceIndices(config_data)
+  DowngradeHvparams(config_data)
 
 
 def main():
