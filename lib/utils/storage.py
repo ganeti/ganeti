@@ -148,6 +148,54 @@ def GetStorageUnitsOfCluster(cfg, include_spindles=False):
   return storage_units
 
 
+def GetStorageUnits(cfg, disk_templates):
+  """Get the cluster's storage units for the given disk templates.
+
+  If any lvm-based disk template is requested, spindle information
+  is added to the request.
+
+  @type cfg: L{config.ConfigWriter}
+  @param cfg: Cluster configuration
+  @type disk_templates: list of string
+  @param disk_templates: list of disk templates for which the storage
+    units will be computed
+  @rtype: list of tuples (string, string)
+  @return: list of storage units, each storage unit being a tuple of
+    (storage_type, storage_key); storage_type is in
+    C{constants.STORAGE_TYPES} and the storage_key a string to
+    identify an entity of that storage type, for example a volume group
+    name for LVM storage or a file for file storage.
+
+  """
+  storage_units = []
+  for disk_template in disk_templates:
+    if constants.MAP_DISK_TEMPLATE_STORAGE_TYPE[disk_template]\
+        in constants.STS_REPORT:
+      storage_units.append(
+          _GetDefaultStorageUnitForDiskTemplate(cfg, disk_template))
+  if len(set(disk_templates) & constants.DTS_LVM) > 0:
+    storage_units.append(
+        _GetDefaultStorageUnitForSpindles(cfg))
+
+  return storage_units
+
+
+def LookupSpaceInfoByDiskTemplate(storage_space_info, disk_template):
+  """Looks up the storage space info for a given disk template.
+
+  @type storage_space_info: list of dicts
+  @param storage_space_info: result of C{GetNodeInfo}
+  @type disk_template: string
+  @param disk_template: disk template to get storage space info
+  @rtype: tuple
+  @return: returns the element of storage_space_info that matches the given
+    disk template
+
+  """
+  storage_type = constants.MAP_DISK_TEMPLATE_STORAGE_TYPE[disk_template]
+  return LookupSpaceInfoByStorageType(storage_space_info, storage_type)
+
+
 def LookupSpaceInfoByStorageType(storage_space_info, storage_type):
   """Looks up the storage space info for a given storage type.
 

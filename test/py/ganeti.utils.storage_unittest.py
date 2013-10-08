@@ -106,6 +106,24 @@ class TestGetStorageUnitsOfCluster(unittest.TestCase):
     self.assertTrue(constants.ST_LVM_PV in [st for (st, sk) in storage_units])
 
 
+class TestGetStorageUnits(unittest.TestCase):
+
+  def setUp(self):
+    storage._GetDefaultStorageUnitForDiskTemplate = \
+        mock.Mock(return_value=("foo", "bar"))
+    self._cfg = mock.Mock()
+
+  def testGetStorageUnits(self):
+    disk_templates = [constants.DT_FILE, constants.DT_SHARED_FILE]
+    storage_units = storage.GetStorageUnits(self._cfg, disk_templates)
+    self.assertEqual(len(storage_units), len(disk_templates))
+
+  def testGetStorageUnitsLvm(self):
+    disk_templates = [constants.DT_PLAIN, constants.DT_DRBD8]
+    storage_units = storage.GetStorageUnits(self._cfg, disk_templates)
+    self.assertEqual(len(storage_units), len(disk_templates) + 1)
+
+
 class TestLookupSpaceInfoByStorageType(unittest.TestCase):
 
   def setUp(self):
