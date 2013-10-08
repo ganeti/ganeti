@@ -23,6 +23,7 @@ Design document drafts
    design-ceph-ganeti-support.rst
    design-upgrade.rst
    design-daemons.rst
+   design-hsqueeze.rst
 
 .. vim: set textwidth=72 :
 .. Local Variables:

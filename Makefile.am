@@ -538,6 +538,7 @@ docinput = \
 	doc/design-hroller.rst \
 	doc/design-storagetypes.rst \
         doc/design-upgrade.rst \
+	doc/design-hsqueeze.rst \
 	doc/devnotes.rst \
 	doc/glossary.rst \
 	doc/hooks.rst \
