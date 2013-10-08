@@ -5,7 +5,7 @@ News
 Version 2.9.0 rc2
 -----------------
 
-*(unreleased)*
+*(Released Wed, 9 Oct 2013)*
 
 Incompatible/important changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -76,6 +76,8 @@ Since 2.9.0 rc1
 
 - Fix bug in cfgupgrade that led to failure when upgrading from 2.8 with
   at least one DRBD instance.
+- Fix bug in cfgupgrade that led to an invalid 2.8 configuration after
+  downgrading.
 
 
 Version 2.9.0 rc1
