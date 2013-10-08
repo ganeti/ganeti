@@ -684,10 +684,9 @@ def _TestClusterModifyDiskTemplatesVgName(enabled_disk_templates):
     return
 
   # determine an LVM and a non-LVM disk template for the tests
-  non_lvm_template = _GetOtherEnabledDiskTemplate(utils.GetLvmDiskTemplates(),
+  non_lvm_template = _GetOtherEnabledDiskTemplate(constants.DTS_LVM,
                                                   enabled_disk_templates)
-  lvm_template = list(set(enabled_disk_templates)
-                      .intersection(set(utils.GetLvmDiskTemplates())))[0]
+  lvm_template = list(set(enabled_disk_templates) & constants.DTS_LVM)[0]
 
   vgname = qa_config.get("vg-name", constants.DEFAULT_VG)
 
@@ -783,7 +782,7 @@ def _TestClusterModifyUnusedDiskTemplate(instance_template):
   all_disk_templates = constants.DISK_TEMPLATES
   if not utils.IsLvmEnabled(qa_config.GetEnabledDiskTemplates()):
     all_disk_templates = list(set(all_disk_templates) -
-                              set(utils.GetLvmDiskTemplates()))
+                              constants.DTS_LVM)
 
   AssertCommand(
     ["gnt-cluster", "modify",

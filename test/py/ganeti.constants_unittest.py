@@ -170,6 +170,12 @@ class TestDiskTemplateConstants(unittest.TestCase):
       self.assertTrue(
           constants.MAP_DISK_TEMPLATE_STORAGE_TYPE[disk_template] is not None)
 
+  def testLvmDiskTemplates(self):
+    lvm_by_storage_type = [
+        dt for dt in constants.DISK_TEMPLATES
+        if constants.ST_LVM_VG == constants.MAP_DISK_TEMPLATE_STORAGE_TYPE[dt]]
+    self.assertEqual(set(lvm_by_storage_type), set(constants.DTS_LVM))
+
 
 if __name__ == "__main__":
   testutils.GanetiTestProgram()

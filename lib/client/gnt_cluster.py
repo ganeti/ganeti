@@ -87,7 +87,7 @@ def _CheckNoLvmStorageOptDeprecated(opts):
              " to disable lvm-based storage cluster-wide, use the option"
              " --enabled-disk-templates to disable all of these lvm-base disk "
              "  templates: %s" %
-             utils.CommaJoin(utils.GetLvmDiskTemplates()))
+             utils.CommaJoin(constants.DTS_LVM))
     return 1
 
 
@@ -1048,7 +1048,7 @@ def _GetVgName(opts, enabled_disk_templates):
     if vg_name and not utils.IsLvmEnabled(enabled_disk_templates):
       ToStdout("You specified a volume group with --vg-name, but you did not"
                " enable any of the following lvm-based disk templates: %s" %
-               utils.CommaJoin(utils.GetLvmDiskTemplates()))
+               utils.CommaJoin(constants.DTS_LVM))
   return vg_name
 
 

@@ -34,11 +34,6 @@ def GetDiskTemplatesOfStorageType(storage_type):
           if constants.MAP_DISK_TEMPLATE_STORAGE_TYPE[dt] == storage_type]
 
 
-def GetLvmDiskTemplates():
-  """Returns all disk templates that use LVM."""
-  return GetDiskTemplatesOfStorageType(constants.ST_LVM_VG)
-
-
 def IsDiskTemplateEnabled(disk_template, enabled_disk_templates):
   """Checks if a particular disk template is enabled.
 
@@ -62,8 +57,7 @@ def IsSharedFileStorageEnabled(enabled_disk_templates):
 
 def IsLvmEnabled(enabled_disk_templates):
   """Check whether or not any lvm-based disk templates are enabled."""
-  return len(set(GetLvmDiskTemplates())
-             .intersection(set(enabled_disk_templates))) != 0
+  return len(constants.DTS_LVM & set(enabled_disk_templates)) != 0
 
 
 def LvmGetsEnabled(enabled_disk_templates, new_enabled_disk_templates):
@@ -73,8 +67,7 @@ def LvmGetsEnabled(enabled_disk_templates, new_enabled_disk_templates):
   """
   if IsLvmEnabled(enabled_disk_templates):
     return False
-  return set(GetLvmDiskTemplates()).intersection(
-      set(new_enabled_disk_templates))
+  return len(constants.DTS_LVM & set(new_enabled_disk_templates)) != 0
 
 
 def _GetDefaultStorageUnitForDiskTemplate(cfg, disk_template):
@@ -92,7 +85,7 @@ def _GetDefaultStorageUnitForDiskTemplate(cfg, disk_template):
   """
   storage_type = constants.MAP_DISK_TEMPLATE_STORAGE_TYPE[disk_template]
   cluster = cfg.GetClusterInfo()
-  if disk_template in GetLvmDiskTemplates():
+  if disk_template in constants.DTS_LVM:
     return (storage_type, cfg.GetVGName())
   elif disk_template == constants.DT_FILE:
     return (storage_type, cluster.file_storage_dir)
