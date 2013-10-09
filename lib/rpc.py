@@ -934,8 +934,8 @@ class RpcRunner(_RpcClientBase,
 
     """
     if ieio == constants.IEIO_RAW_DISK:
-      assert len(ieioargs) == 1
-      return (ieio, (self._SingleDiskDictDP(node, ieioargs[0]), ))
+      assert len(ieioargs) == 2
+      return (ieio, (self._SingleDiskDictDP(node, ieioargs), ))
 
     if ieio == constants.IEIO_SCRIPT:
       assert len(ieioargs) == 2

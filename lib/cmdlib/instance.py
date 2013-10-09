@@ -1820,30 +1820,27 @@ class LUInstanceMove(LogicalUnit):
       self.cfg.ReleaseDRBDMinors(self.instance.uuid)
       raise
 
-    cluster_name = self.cfg.GetClusterInfo().cluster_name
-
     errs = []
-    # activate, get path, copy the data over
+    transfers = []
+    # activate, get path, create transfer jobs
     for idx, disk in enumerate(self.instance.disks):
-      self.LogInfo("Copying data for disk %d", idx)
-      result = self.rpc.call_blockdev_assemble(
-                 target_node.uuid, (disk, self.instance), self.instance.name,
-                 True, idx)
-      if result.fail_msg:
-        self.LogWarning("Can't assemble newly created disk %d: %s",
-                        idx, result.fail_msg)
-        errs.append(result.fail_msg)
-        break
-      dev_path = result.payload
-      result = self.rpc.call_blockdev_export(source_node.uuid, (disk,
-                                                                self.instance),
-                                             target_node.secondary_ip,
-                                             dev_path, cluster_name)
-      if result.fail_msg:
-        self.LogWarning("Can't copy data over for disk %d: %s",
-                        idx, result.fail_msg)
-        errs.append(result.fail_msg)
-        break
+      # FIXME: pass debug option from opcode to backend
+      dt = masterd.instance.DiskTransfer("disk/%s" % idx,
+                                         constants.IEIO_RAW_DISK,
+                                         (disk, self.instance),
+                                         constants.IEIO_RAW_DISK,
+                                         (disk, self.instance),
+                                         None)
+      transfers.append(dt)
+
+    import_result = \
+      masterd.instance.TransferInstanceData(self, feedback_fn,
+                                            source_node.uuid,
+                                            target_node.uuid,
+                                            target_node.secondary_ip,
+                                            self.instance, transfers)
+    if not compat.all(import_result):
+      errs.append("Failed to transfer instance data")
 
     if errs:
       self.LogWarning("Some disks failed to copy, aborting")

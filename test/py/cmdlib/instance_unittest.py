@@ -1492,12 +1492,28 @@ class TestLUInstanceMove(CmdlibTestCase):
     self.rpc.call_blockdev_assemble.return_value = \
       self.RpcResultsBuilder() \
         .CreateSuccessfulNodeResult(self.node, "/dev/mocked_path")
-    self.rpc.call_blockdev_export.return_value = \
-      self.RpcResultsBuilder() \
-        .CreateSuccessfulNodeResult(self.master, "")
     self.rpc.call_blockdev_remove.return_value = \
       self.RpcResultsBuilder() \
         .CreateSuccessfulNodeResult(self.master, "")
+
+    def ImportStart(node_uuid, opt, inst, component, args):
+      return self.RpcResultsBuilder() \
+               .CreateSuccessfulNodeResult(node_uuid,
+                                           "deamon_on_%s" % node_uuid)
+    self.rpc.call_import_start.side_effect = ImportStart
+
+    def ImpExpStatus(node_uuid, name):
+      return self.RpcResultsBuilder() \
+               .CreateSuccessfulNodeResult(node_uuid,
+                                           [objects.ImportExportStatus(
+                                             exit_status=0
+                                           )])
+    self.rpc.call_impexp_status.side_effect = ImpExpStatus
+
+    def ImpExpCleanup(node_uuid, name):
+      return self.RpcResultsBuilder() \
+               .CreateSuccessfulNodeResult(node_uuid)
+    self.rpc.call_impexp_cleanup.side_effect = ImpExpCleanup
 
   def testMissingInstance(self):
     op = opcodes.OpInstanceMove(instance_name="missing.inst",
@@ -1540,7 +1556,7 @@ class TestLUInstanceMove(CmdlibTestCase):
                                 target_node=self.node.name)
     self.ExecOpCode(op)
 
-  def testMoveFailingStart(self):
+  def testMoveFailingStartInstance(self):
     self.rpc.call_node_info.return_value = \
       self.RpcResultsBuilder() \
         .AddSuccessfulNode(self.node,
@@ -1557,18 +1573,24 @@ class TestLUInstanceMove(CmdlibTestCase):
     self.ExecOpCodeExpectOpExecError(
       op, "Could not start instance .* on node .*")
 
-  def testMoveFailingBlockdevAssemble(self):
+  def testMoveFailingImpExpDaemonExitCode(self):
     inst = self.cfg.AddNewInstance()
-    self.rpc.call_blockdev_assemble.return_value = \
+    self.rpc.call_impexp_status.side_effect = None
+    self.rpc.call_impexp_status.return_value = \
       self.RpcResultsBuilder() \
-        .CreateFailedNodeResult(self.node)
+        .CreateSuccessfulNodeResult(self.node,
+                                    [objects.ImportExportStatus(
+                                      exit_status=1,
+                                      recent_output=["mock output"]
+                                    )])
     op = opcodes.OpInstanceMove(instance_name=inst.name,
                                 target_node=self.node.name)
     self.ExecOpCodeExpectOpExecError(op, "Errors during disk copy")
 
-  def testMoveFailingBlockdevExport(self):
+  def testMoveFailingStartImpExpDaemon(self):
     inst = self.cfg.AddNewInstance()
-    self.rpc.call_blockdev_export.return_value = \
+    self.rpc.call_import_start.side_effect = None
+    self.rpc.call_import_start.return_value = \
       self.RpcResultsBuilder() \
         .CreateFailedNodeResult(self.node)
     op = opcodes.OpInstanceMove(instance_name=inst.name,
