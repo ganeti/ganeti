@@ -1062,7 +1062,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       cache_val = ",cache=%s" % disk_cache
     else:
       cache_val = ""
-    for cfdev, dev_path, device in block_devices:
+    for cfdev, link_name, uri in block_devices:
       if cfdev.mode != constants.DISK_RDWR:
         raise errors.HypervisorError("Instance has read-only disks which"
                                      " are not supported by KVM")
@@ -1076,10 +1076,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
       access_mode = cfdev.params.get(constants.LDP_ACCESS,
                                      constants.DISK_KERNELSPACE)
-      if access_mode == constants.DISK_USERSPACE:
-        drive_uri = device.GetUserspaceAccessUri(constants.HT_KVM)
+      if (uri and access_mode == constants.DISK_USERSPACE):
+        drive_uri = uri
       else:
-        drive_uri = dev_path
+        drive_uri = link_name
 
       drive_val = "file=%s,format=raw%s%s%s" % \
                   (drive_uri, if_val, boot_val, cache_val)

@@ -1611,6 +1611,28 @@ def _RemoveBlockDevLinks(instance_name, disks):
         logging.exception("Can't remove symlink '%s'", link_name)
 
 
+def _CalculateDeviceURI(instance, disk, device):
+  """Get the URI for the device.
+
+  @type instance: L{objects.Instance}
+  @param instance: the instance which disk belongs to
+  @type disk: L{objects.Disk}
+  @param disk: the target disk object
+  @type device: L{bdev.BlockDev}
+  @param device: the corresponding BlockDevice
+  @rtype: string
+  @return: the device uri if any else None
+
+  """
+  access_mode = disk.params.get(constants.LDP_ACCESS,
+                                constants.DISK_KERNELSPACE)
+  if access_mode == constants.DISK_USERSPACE:
+    # This can raise errors.BlockDeviceError
+    return device.GetUserspaceAccessUri(instance.hypervisor)
+  else:
+    return None
+
+
 def _GatherAndLinkBlockDevs(instance):
   """Set up an instance's block device(s).
 
@@ -1620,7 +1642,7 @@ def _GatherAndLinkBlockDevs(instance):
   @type instance: L{objects.Instance}
   @param instance: the instance whose disks we should assemble
   @rtype: list
-  @return: list of (disk_object, device_path)
+  @return: list of (disk_object, link_name, drive_uri)
 
   """
   block_devices = []
@@ -1635,8 +1657,9 @@ def _GatherAndLinkBlockDevs(instance):
     except OSError, e:
       raise errors.BlockDeviceError("Cannot create block device symlink: %s" %
                                     e.strerror)
+    uri = _CalculateDeviceURI(instance, disk, device)
 
-    block_devices.append((disk, link_name, device))
+    block_devices.append((disk, link_name, uri))
 
   return block_devices
 
