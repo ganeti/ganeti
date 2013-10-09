@@ -1314,6 +1314,14 @@ def SetInstanceParams(opts, args):
                       allowed_values=[constants.VALUE_DEFAULT])
 
   nics = _ConvertNicDiskModifications(opts.nics)
+  for action, _, __ in nics:
+    if action == constants.DDM_MODIFY and opts.hotplug:
+      usertext = ("You are about to hot-modify a NIC. This will be done"
+                  " by removing the exisiting and then adding a new one."
+                  " Network connection might be lost. Continue?")
+      if not AskUser(usertext):
+        return 1
+
   disks = _ParseDiskSizes(_ConvertNicDiskModifications(opts.disks))
 
   if (opts.disk_template and
@@ -1333,6 +1341,7 @@ def SetInstanceParams(opts, args):
   op = opcodes.OpInstanceSetParams(instance_name=args[0],
                                    nics=nics,
                                    disks=disks,
+                                   hotplug=opts.hotplug,
                                    disk_template=opts.disk_template,
                                    remote_node=opts.node,
                                    pnode=opts.new_primary_node,
@@ -1355,10 +1364,11 @@ def SetInstanceParams(opts, args):
     ToStdout("Modified instance %s", args[0])
     for param, data in result:
       ToStdout(" - %-5s -> %s", param, data)
-    ToStdout("Please don't forget that most parameters take effect"
-             " only at the next (re)start of the instance initiated by"
-             " ganeti; restarting from within the instance will"
-             " not be enough.")
+    if not opts.hotplug:
+      ToStdout("Please don't forget that most parameters take effect"
+               " only at the next (re)start of the instance initiated by"
+               " ganeti; restarting from within the instance will"
+               " not be enough.")
   return 0
 
 
@@ -1540,7 +1550,7 @@ commands = {
     [DISK_TEMPLATE_OPT, SINGLE_NODE_OPT, OS_OPT, FORCE_VARIANT_OPT,
      OSPARAMS_OPT, DRY_RUN_OPT, PRIORITY_OPT, NWSYNC_OPT, OFFLINE_INST_OPT,
      ONLINE_INST_OPT, IGNORE_IPOLICY_OPT, RUNTIME_MEM_OPT,
-     NOCONFLICTSCHECK_OPT, NEW_PRIMARY_OPT],
+     NOCONFLICTSCHECK_OPT, NEW_PRIMARY_OPT, HOTPLUG_OPT],
     "<instance>", "Alters the parameters of an instance"),
   "shutdown": (
     GenericManyOps("shutdown", _ShutdownInstance), [ArgInstance()],

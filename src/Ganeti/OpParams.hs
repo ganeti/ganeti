@@ -94,6 +94,7 @@ module Ganeti.OpParams
   , pHvState
   , pDiskState
   , pIgnoreIpolicy
+  , pHotplug
   , pAllowRuntimeChgs
   , pInstDisks
   , pDiskTemplate
@@ -510,6 +511,10 @@ pGroupName :: Field
 pGroupName =
   withDoc "Group name" $
   simpleField "group_name" [t| NonEmptyString |]
+
+-- | Whether to hotplug device.
+pHotplug :: Field
+pHotplug = defaultFalse "hotplug"
 
 pInstances :: Field
 pInstances =

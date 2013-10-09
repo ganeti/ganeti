@@ -657,6 +657,7 @@ $(genOpCode "OpCode"
      , pWaitForSync
      , withDoc "Whether to mark the instance as offline" pOffline
      , pIpConflictsCheck
+     , pHotplug
      ],
      "instance_name")
   , ("OpInstanceGrowDisk",
