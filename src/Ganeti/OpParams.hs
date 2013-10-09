@@ -100,8 +100,8 @@ module Ganeti.OpParams
   , pOptDiskTemplate
   , pFileDriver
   , pFileStorageDir
-  , pGlobalFileStorageDir
-  , pGlobalSharedFileStorageDir
+  , pClusterFileStorageDir
+  , pClusterSharedFileStorageDir
   , pVgName
   , pEnabledHypervisors
   , pHypervisor
@@ -541,13 +541,17 @@ pDiskState =
   withDoc "Set disk states" .
   optionalField $ simpleField "disk_state" [t| JSObject JSValue |]
 
--- | Global directory for storing file-backed disks.
-pGlobalFileStorageDir :: Field
-pGlobalFileStorageDir = optionalNEStringField "file_storage_dir"
+-- | Cluster-wide default directory for storing file-backed disks.
+pClusterFileStorageDir :: Field
+pClusterFileStorageDir =
+  renameField "ClusterFileStorageDir" $
+  optionalStringField "file_storage_dir"
 
--- | Global directory for storing shared-file-backed disks.
-pGlobalSharedFileStorageDir :: Field
-pGlobalSharedFileStorageDir = optionalNEStringField "shared_file_storage_dir"
+-- | Cluster-wide default directory for storing shared-file-backed disks.
+pClusterSharedFileStorageDir :: Field
+pClusterSharedFileStorageDir =
+  renameField "ClusterSharedFileStorageDir" $
+  optionalStringField "shared_file_storage_dir"
 
 -- | Volume group name.
 pVgName :: Field

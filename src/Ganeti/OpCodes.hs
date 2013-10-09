@@ -232,8 +232,8 @@ $(genOpCode "OpCode"
      , pUseExternalMipScript
      , pEnabledDiskTemplates
      , pModifyEtcHosts
-     , pGlobalFileStorageDir
-     , pGlobalSharedFileStorageDir
+     , pClusterFileStorageDir
+     , pClusterSharedFileStorageDir
      ],
      [])
   , ("OpClusterRedistConf",
