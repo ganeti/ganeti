@@ -546,6 +546,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
   _VIRTIO = "virtio"
   _VIRTIO_NET_PCI = "virtio-net-pci"
+  _VIRTIO_BLK_PCI = "virtio-blk-pci"
 
   _MIGRATION_STATUS_RE = re.compile(r"Migration\s+status:\s+(\w+)",
                                     re.M | re.I)
@@ -575,7 +576,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   _NETDEV_RE = re.compile(r"^-netdev\s", re.M)
   _DISPLAY_RE = re.compile(r"^-display\s", re.M)
   _MACHINE_RE = re.compile(r"^-machine\s", re.M)
-  _NEW_VIRTIO_RE = re.compile(r"^name \"%s\"" % _VIRTIO_NET_PCI, re.M)
+  _VIRTIO_NET_RE = re.compile(r"^name \"%s\"" % _VIRTIO_NET_PCI, re.M)
+  _VIRTIO_BLK_RE = re.compile(r"^name \"%s\"" % _VIRTIO_BLK_PCI, re.M)
   # match  -drive.*boot=on|off on different lines, but in between accept only
   # dashes not preceeded by a new line (which would mean another option
   # different than -drive is starting)
@@ -1038,15 +1040,26 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     hvp = instance.hvparams
     boot_disk = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_DISK
+    kvm_path = hvp[constants.HV_KVM_PATH]
 
     # whether this is an older KVM version that uses the boot=on flag
     # on devices
     needs_boot_flag = self._BOOT_RE.search(kvmhelp)
 
     dev_opts = []
+    device_driver = None
     disk_type = hvp[constants.HV_DISK_TYPE]
     if disk_type == constants.HT_DISK_PARAVIRTUAL:
       if_val = ",if=%s" % self._VIRTIO
+      try:
+        devlist = self._GetKVMOutput(kvm_path, self._KVMOPT_DEVICELIST)
+        if self._VIRTIO_BLK_RE.search(devlist):
+          # TODO: uncomment when -device is used
+          # if_val = ",if=none"
+          # will be passed in -device option as driver
+          device_driver = self._VIRTIO_BLK_PCI
+      except errors.HypervisorError, _:
+        pass
     else:
       if_val = ",if=%s" % disk_type
     # Cache mode
@@ -1084,6 +1097,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       drive_val = "file=%s,format=raw%s%s%s" % \
                   (drive_uri, if_val, boot_val, cache_val)
 
+      if device_driver:
+        pass
       dev_opts.extend(["-drive", drive_val])
 
     return dev_opts
@@ -1569,7 +1584,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         nic_model = self._VIRTIO
         try:
           devlist = self._GetKVMOutput(kvm_path, self._KVMOPT_DEVICELIST)
-          if self._NEW_VIRTIO_RE.search(devlist):
+          if self._VIRTIO_NET_RE.search(devlist):
             nic_model = self._VIRTIO_NET_PCI
             vnet_hdr = up_hvp[constants.HV_VNET_HDR]
         except errors.HypervisorError, _:
