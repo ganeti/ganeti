@@ -907,43 +907,43 @@ class TestRpcRunner(unittest.TestCase):
 
 class TestLegacyNodeInfo(unittest.TestCase):
   KEY_BOOT = "bootid"
-  KEY_VG0 = "name"
-  KEY_VG1 = "storage_free"
-  KEY_VG2 = "storage_size"
-  KEY_HV = "cpu_count"
-  KEY_SP1 = "spindles_free"
-  KEY_SP2 = "spindles_total"
-  KEY_ST = "type" # key for storage type
+  KEY_NAME = "name"
+  KEY_STORAGE_FREE = "storage_free"
+  KEY_STORAGE_TOTAL = "storage_size"
+  KEY_CPU_COUNT = "cpu_count"
+  KEY_SPINDLES_FREE = "spindles_free"
+  KEY_SPINDLES_TOTAL = "spindles_total"
+  KEY_STORAGE_TYPE = "type" # key for storage type
   VAL_BOOT = 0
-  VAL_VG0 = "xy"
-  VAL_VG1 = 11
-  VAL_VG2 = 12
-  VAL_VG3 = "lvm-vg"
-  VAL_HV = 2
-  VAL_SP0 = "ab"
-  VAL_SP1 = 31
-  VAL_SP2 = 32
-  VAL_SP3 = "lvm-pv"
+  VAL_VG_NAME = "xy"
+  VAL_VG_FREE = 11
+  VAL_VG_TOTAL = 12
+  VAL_VG_TYPE = "lvm-vg"
+  VAL_CPU_COUNT = 2
+  VAL_PV_NAME = "ab"
+  VAL_PV_FREE = 31
+  VAL_PV_TOTAL = 32
+  VAL_PV_TYPE = "lvm-pv"
   DICT_VG = {
-    KEY_VG0: VAL_VG0,
-    KEY_VG1: VAL_VG1,
-    KEY_VG2: VAL_VG2,
-    KEY_ST: VAL_VG3,
+    KEY_NAME: VAL_VG_NAME,
+    KEY_STORAGE_FREE: VAL_VG_FREE,
+    KEY_STORAGE_TOTAL: VAL_VG_TOTAL,
+    KEY_STORAGE_TYPE: VAL_VG_TYPE,
     }
-  DICT_HV = {KEY_HV: VAL_HV}
+  DICT_HV = {KEY_CPU_COUNT: VAL_CPU_COUNT}
   DICT_SP = {
-    KEY_ST: VAL_SP3,
-    KEY_VG0: VAL_SP0,
-    KEY_VG1: VAL_SP1,
-    KEY_VG2: VAL_SP2,
+    KEY_STORAGE_TYPE: VAL_PV_TYPE,
+    KEY_NAME: VAL_PV_NAME,
+    KEY_STORAGE_FREE: VAL_PV_FREE,
+    KEY_STORAGE_TOTAL: VAL_PV_TOTAL,
     }
   STD_LST = [VAL_BOOT, [DICT_VG, DICT_SP], [DICT_HV]]
   STD_DICT = {
     KEY_BOOT: VAL_BOOT,
-    KEY_VG0: VAL_VG0,
-    KEY_VG1: VAL_VG1,
-    KEY_VG2: VAL_VG2,
-    KEY_HV: VAL_HV,
+    KEY_NAME: VAL_VG_NAME,
+    KEY_STORAGE_FREE: VAL_VG_FREE,
+    KEY_STORAGE_TOTAL: VAL_VG_TOTAL,
+    KEY_CPU_COUNT: VAL_CPU_COUNT,
     }
 
   def testStandard(self):
@@ -959,7 +959,7 @@ class TestLegacyNodeInfo(unittest.TestCase):
     my_lst = [self.VAL_BOOT, [], [self.DICT_HV]]
     result = rpc.MakeLegacyNodeInfo(my_lst, require_spindles = False)
     self.assertEqual(result, {self.KEY_BOOT: self.VAL_BOOT,
-                              self.KEY_HV: self.VAL_HV})
+                              self.KEY_CPU_COUNT: self.VAL_CPU_COUNT})
     result = rpc.MakeLegacyNodeInfo(self.STD_LST, require_spindles = False)
     self.assertEqual(result, self.STD_DICT)
 
