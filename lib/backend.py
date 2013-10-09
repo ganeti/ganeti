@@ -1966,6 +1966,43 @@ def GetMigrationStatus(instance):
     _Fail("Failed to get migration status: %s", err, exc=True)
 
 
+def HotplugDevice(instance, action, dev_type, device, extra, seq):
+  """Hotplug a device
+
+  Hotplug is currently supported only for KVM Hypervisor.
+  @type instance: L{objects.Instance}
+  @param instance: the instance to which we hotplug a device
+  @type action: string
+  @param action: the hotplug action to perform
+  @type dev_type: string
+  @param dev_type: the device type to hotplug
+  @type device: either L{objects.NIC} or L{objects.Disk}
+  @param device: the device object to hotplug
+  @type extra: string
+  @param extra: extra info used by hotplug code (e.g. disk link)
+  @type seq: int
+  @param seq: the index of the device from master perspective
+  @raise RPCFail: in case instance does not have KVM hypervisor
+
+  """
+  hyper = hypervisor.GetHypervisor(instance.hypervisor)
+  try:
+    hyper.HotplugSupported(instance, action, dev_type)
+  except (errors.HotplugError, errors.HypervisorError), err:
+    _Fail("Hotplug is not supported: %s", err)
+
+  if action == constants.HOTPLUG_ACTION_ADD:
+    fn = hyper.HotAddDevice
+  elif action == constants.HOTPLUG_ACTION_REMOVE:
+    fn = hyper.HotDelDevice
+  elif action == constants.HOTPLUG_ACTION_MODIFY:
+    fn = hyper.HotModDevice
+  else:
+    assert action in constants.HOTPLUG_ALL_ACTIONS
+
+  return fn(instance, dev_type, device, extra, seq)
+
+
 def BlockdevCreate(disk, size, owner, on_primary, info, excl_stor):
   """Creates a block device for an instance.
 

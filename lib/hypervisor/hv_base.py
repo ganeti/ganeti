@@ -563,3 +563,28 @@ class BaseHypervisor(object):
       return "; ".join(msgs)
     else:
       return None
+
+  def HotAddDevice(self, instance, dev_type, device, extra, seq):
+    """Hot-add a device.
+
+    """
+    pass
+
+  def HotDelDevice(self, instance, dev_type, device, extra, seq):
+    """Hot-del a device.
+
+    """
+    pass
+
+  def HotModDevice(self, instance, dev_type, device, extra, seq):
+    """Hot-mod a device.
+
+    """
+    pass
+
+  def HotplugSupported(self, instance, action, dev_type):
+    """Whether hotplug is supported.
+
+    Depends on instance's hvparam, the action. and the dev_type
+    """
+    raise NotImplementedError
