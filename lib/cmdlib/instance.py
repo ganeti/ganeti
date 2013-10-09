@@ -1753,7 +1753,8 @@ class LUInstanceMove(LogicalUnit):
                                  (self.instance.name, target_node.name),
                                  errors.ECODE_STATE)
 
-    bep = self.cfg.GetClusterInfo().FillBE(self.instance)
+    cluster = self.cfg.GetClusterInfo()
+    bep = cluster.FillBE(self.instance)
 
     for idx, dsk in enumerate(self.instance.disks):
       if dsk.dev_type not in (constants.DT_PLAIN, constants.DT_FILE,
@@ -1764,7 +1765,6 @@ class LUInstanceMove(LogicalUnit):
     CheckNodeOnline(self, target_node.uuid)
     CheckNodeNotDrained(self, target_node.uuid)
     CheckNodeVmCapable(self, target_node.uuid)
-    cluster = self.cfg.GetClusterInfo()
     group_info = self.cfg.GetNodeGroup(target_node.group)
     ipolicy = ganeti.masterd.instance.CalculateGroupIPolicy(cluster, group_info)
     CheckTargetNodeIPolicy(self, ipolicy, self.instance, target_node, self.cfg,
@@ -1776,7 +1776,7 @@ class LUInstanceMove(LogicalUnit):
           self, target_node.uuid, "failing over instance %s" %
           self.instance.name, bep[constants.BE_MAXMEM],
           self.instance.hypervisor,
-          self.cfg.GetClusterInfo().hvparams[self.instance.hypervisor])
+          cluster.hvparams[self.instance.hypervisor])
     else:
       self.LogInfo("Not checking memory on the secondary node as"
                    " instance will not be started")
