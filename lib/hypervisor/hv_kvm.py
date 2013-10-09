@@ -37,6 +37,7 @@ import shutil
 import socket
 import stat
 import StringIO
+from bitarray import bitarray
 try:
   import affinity   # pylint: disable=F0401
 except ImportError:
@@ -79,6 +80,10 @@ _SPICE_ADDITIONAL_PARAMS = frozenset([
   constants.HV_KVM_SPICE_USE_TLS,
   ])
 
+# Constant bitarray that reflects to a free pci slot
+# Use it with bitarray.search()
+_AVAILABLE_PCI_SLOT = bitarray("0")
+
 # below constants show the format of runtime file
 # the nics are in second possition, while the disks in 4th (last)
 # moreover disk entries are stored in tupples of L{objects.Disk}, dev_path
@@ -103,6 +108,53 @@ _RUNTIME_ENTRY = {
   constants.HOTPLUG_TARGET_NIC: lambda d, e: d,
   constants.HOTPLUG_TARGET_DISK: lambda d, e: (d, e, None)
   }
+
+
+def _GenerateDeviceKVMId(dev_type, dev):
+  """Helper function to generate a unique device name used by KVM
+
+  QEMU monitor commands use names to identify devices. Here we use their pci
+  slot and a part of their UUID to name them. dev.pci might be None for old
+  devices in the cluster.
+
+  @type dev_type: sting
+  @param dev_type: device type of param dev
+  @type dev: L{objects.Disk} or L{objects.NIC}
+  @param dev: the device object for which we generate a kvm name
+  @raise errors.HotplugError: in case a device has no pci slot (old devices)
+
+  """
+
+  if not dev.pci:
+    raise errors.HotplugError("Hotplug is not supported for %s with UUID %s" %
+                              (dev_type, dev.uuid))
+
+  return "%s-%s-pci-%d" % (dev_type.lower(), dev.uuid.split("-")[0], dev.pci)
+
+
+def _UpdatePCISlots(dev, pci_reservations):
+  """Update pci configuration for a stopped instance
+
+  If dev has a pci slot then reserve it, else find first available
+  in pci_reservations bitarray. It acts on the same objects passed
+  as params so there is no need to return anything.
+
+  @type dev: L{objects.Disk} or L{objects.NIC}
+  @param dev: the device object for which we update its pci slot
+  @type pci_reservations: bitarray
+  @param pci_reservations: existing pci reservations for an instance
+  @raise errors.HotplugError: in case an instance has all its slot occupied
+
+  """
+  if dev.pci:
+    free = dev.pci
+  else: # pylint: disable=E1103
+    [free] = pci_reservations.search(_AVAILABLE_PCI_SLOT, 1)
+    if not free:
+      raise errors.HypervisorError("All PCI slots occupied")
+    dev.pci = int(free)
+
+  pci_reservations[free] = True
 
 
 def _GetExistingDeviceInfo(dev_type, device, runtime):
@@ -657,6 +709,14 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   # different than -drive is starting)
   _BOOT_RE = re.compile(r"^-drive\s([^-]|(?<!^)-)*,boot=on\|off", re.M | re.S)
   _UUID_RE = re.compile(r"^-uuid\s", re.M)
+
+  _INFO_PCI_RE = re.compile(r'Bus.*device[ ]*(\d+).*')
+  _INFO_PCI_CMD = "info pci"
+  _INFO_VERSION_RE = \
+    re.compile(r'^QEMU (\d+)\.(\d+)(\.(\d+))?.*monitor.*', re.M)
+  _INFO_VERSION_CMD = "info version"
+
+  _DEFAULT_PCI_RESERVATIONS = "11110000000000000000000000000000"
 
   ANCILLARY_FILES = [
     _KVM_NETWORK_SCRIPT,
@@ -1852,6 +1912,25 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       raise errors.HypervisorError(msg)
 
     return result
+
+  def _GetFreePCISlot(self, instance, dev):
+    """Get the first available pci slot of a runnung instance.
+
+    """
+    slots = bitarray(32)
+    slots.setall(False) # pylint: disable=E1101
+    output = self._CallMonitorCommand(instance.name, self._INFO_PCI_CMD)
+    for line in output.stdout.splitlines():
+      match = self._INFO_PCI_RE.search(line)
+      if match:
+        slot = int(match.group(1))
+        slots[slot] = True
+
+    [free] = slots.search(_AVAILABLE_PCI_SLOT, 1) # pylint: disable=E1101
+    if not free:
+      raise errors.HypervisorError("All PCI slots occupied")
+
+    dev.pci = int(free)
 
   @classmethod
   def _ParseKVMVersion(cls, text):
