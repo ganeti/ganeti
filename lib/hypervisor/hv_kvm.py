@@ -1188,8 +1188,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       try:
         devlist = self._GetKVMOutput(kvm_path, self._KVMOPT_DEVICELIST)
         if self._VIRTIO_BLK_RE.search(devlist):
-          # TODO: uncomment when -device is used
-          # if_val = ",if=none"
+          if_val = ",if=none"
           # will be passed in -device option as driver
           device_driver = self._VIRTIO_BLK_PCI
       except errors.HypervisorError, _:
@@ -1232,7 +1231,17 @@ class KVMHypervisor(hv_base.BaseHypervisor):
                   (drive_uri, if_val, boot_val, cache_val)
 
       if device_driver:
-        pass
+        # block_devices are the 4th entry of runtime file that did not exist in
+        # the past. That means that cfdev should always have pci slot and
+        # _GenerateDeviceKVMId() will not raise a exception.
+        kvm_devid = _GenerateDeviceKVMId(constants.HOTPLUG_TARGET_DISK, cfdev)
+        drive_val += (",id=%s" % kvm_devid)
+        drive_val += (",bus=0,unit=%d" % cfdev.pci)
+        dev_val = ("%s,drive=%s,id=%s" %
+                   (device_driver, kvm_devid, kvm_devid))
+        dev_val += ",bus=pci.0,addr=%s" % hex(cfdev.pci)
+        dev_opts.extend(["-device", dev_val])
+
       dev_opts.extend(["-drive", drive_val])
 
     return dev_opts
@@ -1585,12 +1594,15 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if hvp[constants.HV_KVM_EXTRA]:
       kvm_cmd.extend(hvp[constants.HV_KVM_EXTRA].split(" "))
 
+    pci_reservations = bitarray(self._DEFAULT_PCI_RESERVATIONS)
     kvm_disks = []
-    for disk, dev_path in block_devices:
-      kvm_disks.append((disk, dev_path))
+    for disk, link_name, uri in block_devices:
+      _UpdatePCISlots(disk, pci_reservations)
+      kvm_disks.append((disk, link_name, uri))
 
     kvm_nics = []
     for nic in instance.nics:
+      _UpdatePCISlots(nic, pci_reservations)
       kvm_nics.append(nic)
 
     hvparams = hvp
@@ -1749,8 +1761,18 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         tapfds.append(tapfd)
         taps.append(tapname)
         if kvm_supports_netdev:
-          nic_val = "%s,mac=%s,netdev=netdev%s" % (nic_model, nic.mac, nic_seq)
-          tap_val = "type=tap,id=netdev%s,fd=%d%s" % (nic_seq, tapfd, tap_extra)
+          nic_val = "%s,mac=%s" % (nic_model, nic.mac)
+          try:
+            # kvm_nics already exist in old runtime files and thus there might
+            # be some entries without pci slot (therefore try: except:)
+            kvm_devid = _GenerateDeviceKVMId(constants.HOTPLUG_TARGET_NIC, nic)
+            netdev = kvm_devid
+            nic_val += (",id=%s,bus=pci.0,addr=%s" % (kvm_devid, hex(nic.pci)))
+          except errors.HotplugError:
+            netdev = "netdev%d" % nic_seq
+          nic_val += (",netdev=%s" % netdev)
+          tap_val = ("type=tap,id=%s,fd=%d%s" %
+                     (netdev, tapfd, tap_extra))
           kvm_cmd.extend(["-netdev", tap_val, "-device", nic_val])
         else:
           nic_val = "nic,vlan=%s,macaddr=%s,model=%s" % (nic_seq,
