@@ -1034,6 +1034,60 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         data.append(info)
     return data
 
+  def _GenerateKVMBlockDevicesOptions(self, instance, block_devices, kvmhelp):
+
+    hvp = instance.hvparams
+    boot_disk = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_DISK
+
+    # whether this is an older KVM version that uses the boot=on flag
+    # on devices
+    needs_boot_flag = self._BOOT_RE.search(kvmhelp)
+
+    dev_opts = []
+    disk_type = hvp[constants.HV_DISK_TYPE]
+    if disk_type == constants.HT_DISK_PARAVIRTUAL:
+      if_val = ",if=%s" % self._VIRTIO
+    else:
+      if_val = ",if=%s" % disk_type
+    # Cache mode
+    disk_cache = hvp[constants.HV_DISK_CACHE]
+    if instance.disk_template in constants.DTS_EXT_MIRROR:
+      if disk_cache != "none":
+        # TODO: make this a hard error, instead of a silent overwrite
+        logging.warning("KVM: overriding disk_cache setting '%s' with 'none'"
+                        " to prevent shared storage corruption on migration",
+                        disk_cache)
+      cache_val = ",cache=none"
+    elif disk_cache != constants.HT_CACHE_DEFAULT:
+      cache_val = ",cache=%s" % disk_cache
+    else:
+      cache_val = ""
+    for cfdev, dev_path, device in block_devices:
+      if cfdev.mode != constants.DISK_RDWR:
+        raise errors.HypervisorError("Instance has read-only disks which"
+                                     " are not supported by KVM")
+      # TODO: handle FD_LOOP and FD_BLKTAP (?)
+      boot_val = ""
+      if boot_disk:
+        dev_opts.extend(["-boot", "c"])
+        boot_disk = False
+        if needs_boot_flag and disk_type != constants.HT_DISK_IDE:
+          boot_val = ",boot=on"
+
+      access_mode = cfdev.params.get(constants.LDP_ACCESS,
+                                     constants.DISK_KERNELSPACE)
+      if access_mode == constants.DISK_USERSPACE:
+        drive_uri = device.GetUserspaceAccessUri(constants.HT_KVM)
+      else:
+        drive_uri = dev_path
+
+      drive_val = "file=%s,format=raw%s%s%s" % \
+                  (drive_uri, if_val, boot_val, cache_val)
+
+      dev_opts.extend(["-drive", drive_val])
+
+    return dev_opts
+
   def _GenerateKVMRuntime(self, instance, block_devices, startup_paused,
                           kvmhelp):
     """Generate KVM information to start an instance.
@@ -1102,9 +1156,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     kernel_path = hvp[constants.HV_KERNEL_PATH]
     if kernel_path:
-      boot_disk = boot_cdrom = boot_floppy = boot_network = False
+      boot_cdrom = boot_floppy = boot_network = False
     else:
-      boot_disk = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_DISK
       boot_cdrom = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_CDROM
       boot_floppy = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_FLOPPY
       boot_network = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_NETWORK
@@ -1120,45 +1173,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     needs_boot_flag = self._BOOT_RE.search(kvmhelp)
 
     disk_type = hvp[constants.HV_DISK_TYPE]
-    if disk_type == constants.HT_DISK_PARAVIRTUAL:
-      if_val = ",if=virtio"
-    else:
-      if_val = ",if=%s" % disk_type
-    # Cache mode
-    disk_cache = hvp[constants.HV_DISK_CACHE]
-    if instance.disk_template in constants.DTS_EXT_MIRROR:
-      if disk_cache != "none":
-        # TODO: make this a hard error, instead of a silent overwrite
-        logging.warning("KVM: overriding disk_cache setting '%s' with 'none'"
-                        " to prevent shared storage corruption on migration",
-                        disk_cache)
-      cache_val = ",cache=none"
-    elif disk_cache != constants.HT_CACHE_DEFAULT:
-      cache_val = ",cache=%s" % disk_cache
-    else:
-      cache_val = ""
-    for cfdev, dev_path, device in block_devices:
-      if cfdev.mode != constants.DISK_RDWR:
-        raise errors.HypervisorError("Instance has read-only disks which"
-                                     " are not supported by KVM")
-      # TODO: handle FD_LOOP and FD_BLKTAP (?)
-      boot_val = ""
-      if boot_disk:
-        kvm_cmd.extend(["-boot", "c"])
-        boot_disk = False
-        if needs_boot_flag and disk_type != constants.HT_DISK_IDE:
-          boot_val = ",boot=on"
-
-      access_mode = cfdev.params.get(constants.LDP_ACCESS,
-                                     constants.DISK_KERNELSPACE)
-      if access_mode == constants.DISK_USERSPACE:
-        drive_uri = device.GetUserspaceAccessUri(constants.HT_KVM)
-      else:
-        drive_uri = dev_path
-
-      drive_val = "file=%s,format=raw%s%s%s" % (drive_uri, if_val,
-                                                boot_val, cache_val)
-      kvm_cmd.extend(["-drive", drive_val])
 
     #Now we can specify a different device type for CDROM devices.
     cdrom_disk_type = hvp[constants.HV_KVM_CDROM_DISK_TYPE]
@@ -1422,6 +1436,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if hvp[constants.HV_KVM_EXTRA]:
       kvm_cmd.extend(hvp[constants.HV_KVM_EXTRA].split(" "))
 
+    bdev_opts = self._GenerateKVMBlockDevicesOptions(instance,
+                                                     block_devices,
+                                                     kvmhelp)
+    kvm_cmd.extend(bdev_opts)
     # Save the current instance nics, but defer their expansion as parameters,
     # as we'll need to generate executable temp files for them.
     kvm_nics = instance.nics
