@@ -799,6 +799,17 @@ class TestLUClusterSetParams(CmdlibTestCase):
     self.assertEqual(enabled_disk_templates,
                      self.cluster.enabled_disk_templates)
 
+  def testDisablingDiskTemplatesOfInstances(self):
+    old_disk_templates = [constants.DT_DISKLESS, constants.DT_PLAIN]
+    self.cfg.SetEnabledDiskTemplates(old_disk_templates)
+    self.cfg.AddNewInstance(
+      disks=[self.cfg.CreateDisk(dev_type=constants.DT_PLAIN)])
+    new_disk_templates = [constants.DT_DISKLESS, constants.DT_DRBD8]
+    op = opcodes.OpClusterSetParams(
+           enabled_disk_templates=new_disk_templates,
+           ipolicy={constants.IPOLICY_DTS: new_disk_templates})
+    self.ExecOpCodeExpectOpPrereqError(op, "least one instance using it")
+
   def testEnabledDiskTemplatesWithoutVgName(self):
     enabled_disk_templates = [constants.DT_PLAIN]
     self.cluster.volume_group_name = None
