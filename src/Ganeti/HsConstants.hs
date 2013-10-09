@@ -3877,3 +3877,30 @@ upgradeQueueDrainTimeout = 36 * 60 * 60 -- 1.5 days
 -- | Intervall at which the queue is polled during upgrades
 upgradeQueuePollInterval :: Int
 upgradeQueuePollInterval  = 10
+
+-- * Hotplug Actions
+
+hotplugActionAdd :: String
+hotplugActionAdd = Types.hotplugActionToRaw HAAdd
+
+hotplugActionRemove :: String
+hotplugActionRemove = Types.hotplugActionToRaw HARemove
+
+hotplugActionModify :: String
+hotplugActionModify = Types.hotplugActionToRaw HAMod
+
+hotplugAllActions :: FrozenSet String
+hotplugAllActions =
+  ConstantUtils.mkSet $ map Types.hotplugActionToRaw [minBound..]
+
+-- * Hotplug Device Targets
+
+hotplugTargetNic :: String
+hotplugTargetNic = Types.hotplugTargetToRaw HTNic
+
+hotplugTargetDisk :: String
+hotplugTargetDisk = Types.hotplugTargetToRaw HTDisk
+
+hotplugAllTargets :: FrozenSet String
+hotplugAllTargets =
+  ConstantUtils.mkSet $ map Types.hotplugTargetToRaw [minBound..]

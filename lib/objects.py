@@ -485,7 +485,8 @@ class ConfigData(ConfigObject):
 
 class NIC(ConfigObject):
   """Config object representing a network card."""
-  __slots__ = ["name", "mac", "ip", "network", "nicparams", "netinfo"] + _UUID
+  __slots__ = ["name", "mac", "ip", "network",
+               "nicparams", "netinfo", "pci"] + _UUID
 
   @classmethod
   def CheckParameterSyntax(cls, nicparams):
@@ -509,7 +510,7 @@ class NIC(ConfigObject):
 class Disk(ConfigObject):
   """Config object representing a block device."""
   __slots__ = (["name", "dev_type", "logical_id", "children", "iv_name",
-                "size", "mode", "params", "spindles"] + _UUID +
+                "size", "mode", "params", "spindles", "pci"] + _UUID +
                # dynamic_params is special. It depends on the node this instance
                # is sent to, and should not be persisted.
                ["dynamic_params"])

@@ -152,6 +152,10 @@ module Ganeti.Types
   , RpcTimeout(..)
   , rpcTimeoutFromRaw -- FIXME: no used anywhere
   , rpcTimeoutToRaw
+  , HotplugTarget(..)
+  , hotplugTargetToRaw
+  , HotplugAction(..)
+  , hotplugActionToRaw
   ) where
 
 import Control.Monad (liftM)
@@ -830,3 +834,20 @@ $(THH.declareILADT "RpcTimeout"
   , ("FourHours", 4 * 3600) -- 4 hours
   , ("OneDay",    86400)    -- 1 day
   ])
+
+-- | Hotplug action.
+
+$(THH.declareLADT ''String "HotplugAction"
+  [ ("HAAdd", "hotadd")
+  , ("HARemove",  "hotremove")
+  , ("HAMod",     "hotmod")
+  ])
+$(THH.makeJSONInstance ''HotplugAction)
+
+-- | Hotplug Device Target.
+
+$(THH.declareLADT ''String "HotplugTarget"
+  [ ("HTDisk", "hotdisk")
+  , ("HTNic",  "hotnic")
+  ])
+$(THH.makeJSONInstance ''HotplugTarget)
