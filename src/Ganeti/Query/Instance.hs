@@ -27,6 +27,7 @@ module Ganeti.Query.Instance
   ( Runtime
   , fieldsMap
   , collectLiveData
+  , getInstanceInfo
   , instanceFields
   , instanceAliases
   ) where
