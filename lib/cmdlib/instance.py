@@ -1707,7 +1707,7 @@ class LUInstanceMove(LogicalUnit):
   def BuildHooksEnv(self):
     """Build hooks env.
 
-    This runs on master, primary and secondary nodes of the instance.
+    This runs on master, primary and target nodes of the instance.
 
     """
     env = {
@@ -1771,7 +1771,7 @@ class LUInstanceMove(LogicalUnit):
                            ignore=self.op.ignore_ipolicy)
 
     if self.instance.admin_state == constants.ADMINST_UP:
-      # check memory requirements on the secondary node
+      # check memory requirements on the target node
       CheckNodeFreeMemory(
           self, target_node.uuid, "failing over instance %s" %
           self.instance.name, bep[constants.BE_MAXMEM],
