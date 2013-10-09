@@ -22,6 +22,8 @@ New features
 ~~~~~~~~~~~~
 - KVM hypervisors can now access RBD storage directly without having to
   go through a block device.
+- A new command 'gnt-cluster upgrade' was added that automates the upgrade
+  procedure between two Ganeti versions that are both 2.10 or higher.
 
 
 Version 2.9.0 rc1
