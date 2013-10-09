@@ -793,24 +793,36 @@ class LUClusterSetParams(LogicalUnit):
   @staticmethod
   def _GetDiskTemplateSetsInner(op_enabled_disk_templates,
                                 old_enabled_disk_templates):
-    """Determines the enabled disk templates and the subset of disk templates
-       that are newly enabled by this operation.
+    """Computes three sets of disk templates.
+
+    @see: C{_GetDiskTemplateSets} for more details.
 
     """
     enabled_disk_templates = None
     new_enabled_disk_templates = []
+    disabled_disk_templates = []
     if op_enabled_disk_templates:
       enabled_disk_templates = op_enabled_disk_templates
       new_enabled_disk_templates = \
-        list(set(enabled_disk_templates)
-             - set(old_enabled_disk_templates))
+          list(set(enabled_disk_templates)
+               - set(old_enabled_disk_templates))
+      disabled_disk_templates = \
+          list(set(old_enabled_disk_templates)
+               - set(enabled_disk_templates))
     else:
       enabled_disk_templates = old_enabled_disk_templates
-    return (enabled_disk_templates, new_enabled_disk_templates)
+    return (enabled_disk_templates, new_enabled_disk_templates,
+            disabled_disk_templates)
 
   def _GetDiskTemplateSets(self, cluster):
-    """Determines the enabled disk templates and the subset of disk templates
-       that are newly enabled by this operation.
+    """Computes three sets of disk templates.
+
+    The three sets are:
+      - disk templates that will be enabled after this operation (no matter if
+        they were enabled before or not)
+      - disk templates that get enabled by this operation (thus haven't been
+        enabled before.)
+      - disk templates that get disabled by this operation
 
     """
     return self._GetDiskTemplateSetsInner(self.op.enabled_disk_templates,
@@ -945,8 +957,9 @@ class LUClusterSetParams(LogicalUnit):
                              for node in self.cfg.GetAllNodesInfo().values()
                              if node.uuid in node_uuids and node.vm_capable]
 
-    (enabled_disk_templates, new_enabled_disk_templates) = \
-      self._GetDiskTemplateSets(cluster)
+    (enabled_disk_templates, new_enabled_disk_templates,
+        disabled_disk_templates) = self._GetDiskTemplateSets(cluster)
+    self._CheckInstancesOfDisabledDiskTemplates(disabled_disk_templates)
 
     self._CheckVgName(vm_capable_node_uuids, enabled_disk_templates,
                       new_enabled_disk_templates)
