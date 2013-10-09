@@ -1,5 +1,8 @@
 PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin
 
+# On reboot, continue a Ganeti upgrade, if one was in progress
+@reboot root @SBINDIR@/gnt-cluster upgrade --resume
+
 # Restart failed instances (every 5 minutes)
 */5 * * * * root [ -x @SBINDIR@/ganeti-watcher ] && @SBINDIR@/ganeti-watcher
 
