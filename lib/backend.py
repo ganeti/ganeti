@@ -3658,16 +3658,11 @@ def _GetImportExportIoCommand(instance, mode, ieio, ieargs):
     real_disk = _OpenRealBD(disk)
 
     if mode == constants.IEM_IMPORT:
-      # we set here a smaller block size as, due to transport buffering, more
-      # than 64-128k will mostly ignored; we use nocreat to fail if the device
-      # is not already there or we pass a wrong path; we use notrunc to no
-      # attempt truncate on an LV device; we use oflag=dsync to not buffer too
-      # much memory; this means that at best, we flush every 64k, which will
-      # not be very fast
-      suffix = utils.BuildShellCmd(("| dd of=%s conv=nocreat,notrunc"
-                                    " bs=%s oflag=dsync"),
-                                    real_disk.dev_path,
-                                    str(64 * 1024))
+      # we use nocreat to fail if the device is not already there or we pass a
+      # wrong path; we use notrunc to no attempt truncate on an LV device
+      suffix = utils.BuildShellCmd("| dd of=%s conv=nocreat,notrunc bs=%s",
+                                   real_disk.dev_path,
+                                   str(1024 * 1024)) # 1 MB
 
     elif mode == constants.IEM_EXPORT:
       # the block size on the read dd is 1MiB to match our units
