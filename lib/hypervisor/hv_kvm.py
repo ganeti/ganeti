@@ -360,7 +360,75 @@ class QmpMessage:
     return self.data == other.data
 
 
-class QmpConnection:
+class MonitorSocket(object):
+  _SOCKET_TIMEOUT = 5
+
+  def __init__(self, monitor_filename):
+    """Instantiates the MonitorSocket object.
+
+    @type monitor_filename: string
+    @param monitor_filename: the filename of the UNIX raw socket on which the
+                             monitor (QMP or simple one) is listening
+
+    """
+    self.monitor_filename = monitor_filename
+    self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    # We want to fail if the server doesn't send a complete message
+    # in a reasonable amount of time
+    self.sock.settimeout(self._SOCKET_TIMEOUT)
+    self._connected = False
+
+  def _check_socket(self):
+    sock_stat = None
+    try:
+      sock_stat = os.stat(self.monitor_filename)
+    except EnvironmentError, err:
+      if err.errno == errno.ENOENT:
+        raise errors.HypervisorError("No monitor socket found")
+      else:
+        raise errors.HypervisorError("Error checking monitor socket: %s",
+                                     utils.ErrnoOrStr(err))
+    if not stat.S_ISSOCK(sock_stat.st_mode):
+      raise errors.HypervisorError("Monitor socket is not a socket")
+
+  def _check_connection(self):
+    """Make sure that the connection is established.
+
+    """
+    if not self._connected:
+      raise errors.ProgrammerError("To use a MonitorSocket you need to first"
+                                   " invoke connect() on it")
+
+  def connect(self):
+    """Connects to the monitor.
+
+    Connects to the UNIX socket
+
+    @raise errors.HypervisorError: when there are communication errors
+
+    """
+    if self._connected:
+      raise errors.ProgrammerError("Cannot connect twice")
+
+    self._check_socket()
+
+    # Check file existance/stuff
+    try:
+      self.sock.connect(self.monitor_filename)
+    except EnvironmentError:
+      raise errors.HypervisorError("Can't connect to qmp socket")
+    self._connected = True
+
+  def close(self):
+    """Closes the socket
+
+    It cannot be used after this call.
+
+    """
+    self.sock.close()
+
+
+class QmpConnection(MonitorSocket):
   """Connection to the QEMU Monitor using the QEMU Monitor Protocol (QMP).
 
   """
@@ -376,44 +444,10 @@ class QmpConnection:
   _ARGUMENTS_KEY = "arguments"
   _CAPABILITIES_COMMAND = "qmp_capabilities"
   _MESSAGE_END_TOKEN = "\r\n"
-  _SOCKET_TIMEOUT = 5
 
   def __init__(self, monitor_filename):
-    """Instantiates the QmpConnection object.
-
-    @type monitor_filename: string
-    @param monitor_filename: the filename of the UNIX raw socket on which the
-                             QMP monitor is listening
-
-    """
-    self.monitor_filename = monitor_filename
-    self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    # We want to fail if the server doesn't send a complete message
-    # in a reasonable amount of time
-    self.sock.settimeout(self._SOCKET_TIMEOUT)
-    self._connected = False
+    super(QmpConnection, self).__init__(monitor_filename)
     self._buf = ""
-
-  def _check_socket(self):
-    sock_stat = None
-    try:
-      sock_stat = os.stat(self.monitor_filename)
-    except EnvironmentError, err:
-      if err.errno == errno.ENOENT:
-        raise errors.HypervisorError("No qmp socket found")
-      else:
-        raise errors.HypervisorError("Error checking qmp socket: %s",
-                                     utils.ErrnoOrStr(err))
-    if not stat.S_ISSOCK(sock_stat.st_mode):
-      raise errors.HypervisorError("Qmp socket is not a socket")
-
-  def _check_connection(self):
-    """Make sure that the connection is established.
-
-    """
-    if not self._connected:
-      raise errors.ProgrammerError("To use a QmpConnection you need to first"
-                                   " invoke connect() on it")
 
   def connect(self):
     """Connects to the QMP monitor.
@@ -425,18 +459,7 @@ class QmpConnection:
     @raise errors.ProgrammerError: when there are data serialization errors
 
     """
-    if self._connected:
-      raise errors.ProgrammerError("Cannot connect twice")
-
-    self._check_socket()
-
-    # Check file existance/stuff
-    try:
-      self.sock.connect(self.monitor_filename)
-    except EnvironmentError:
-      raise errors.HypervisorError("Can't connect to qmp socket")
-    self._connected = True
-
+    super(QmpConnection, self).connect()
     # Check if we receive a correct greeting message from the server
     # (As per the QEMU Protocol Specification 0.1 - section 2.2)
     greeting = self._Recv()
