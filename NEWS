@@ -14,6 +14,9 @@ Incompatible/important changes
   default. Specify --no-wait-for-sync to override this behavior.
 - The Ganeti python code now adheres to a private-module layout. In particular,
   the module 'ganeti' is no longer in the python search path.
+- On instance allocation, the iallocator now considers non-LVM storage
+  properly. In particular, actual file storage space information is used
+  when allocating space for a file/sharedfile instance. 
 
 New features
 ~~~~~~~~~~~~
