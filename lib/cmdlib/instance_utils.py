@@ -283,7 +283,7 @@ def RemoveDisks(lu, instance, target_node_uuid=None, ignore_failures=False):
           all_result = False
 
     # if this is a DRBD disk, return its port to the pool
-    if device.dev_type in constants.LDS_DRBD:
+    if device.dev_type in constants.DTS_DRBD:
       ports_to_release.add(device.logical_id[2])
 
   if all_result or ignore_failures:

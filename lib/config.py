@@ -715,7 +715,7 @@ class ConfigWriter(object):
 
       # gather the drbd ports for duplicate checks
       for (idx, dsk) in enumerate(instance.disks):
-        if dsk.dev_type in constants.LDS_DRBD:
+        if dsk.dev_type in constants.DTS_DRBD:
           tcp_port = dsk.logical_id[2]
           if tcp_port not in ports:
             ports[tcp_port] = []

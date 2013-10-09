@@ -339,7 +339,7 @@ class LUInstanceQueryData(NoHooksLU):
 
     """
     drbd_info = None
-    if dev.dev_type in constants.LDS_DRBD:
+    if dev.dev_type in constants.DTS_DRBD:
       # we change the snode then (otherwise we use the one passed in)
       if dev.logical_id[0] == instance.primary_node:
         snode_uuid = dev.logical_id[1]

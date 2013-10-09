@@ -393,7 +393,7 @@ class Merger(object):
         # Update the DRBD port assignments
         # This is a little bit hackish
         for dsk in instance_info.disks:
-          if dsk.dev_type in constants.LDS_DRBD:
+          if dsk.dev_type in constants.DTS_DRBD:
             port = my_config.AllocatePort()
 
             logical_id = list(dsk.logical_id)

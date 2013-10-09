@@ -183,6 +183,8 @@ class SshRunner:
 
     if self.ipv6:
       options.append("-6")
+    else:
+      options.append("-4")
 
     return options
 

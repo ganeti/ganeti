@@ -60,6 +60,12 @@ DOWNGRADE_MAJOR = 2
 #: Target minor version for downgrade
 DOWNGRADE_MINOR = 9
 
+# map of legacy device types
+# (mapping differing old LD_* constants to new DT_* constants)
+DEV_TYPE_OLD_NEW = {"lvm": constants.DT_PLAIN, "drbd8": constants.DT_DRBD8}
+# (mapping differing new DT_* constants to old LD_* constants)
+DEV_TYPE_NEW_OLD = dict((v, k) for k, v in DEV_TYPE_OLD_NEW.items())
+
 
 class Error(Exception):
   """Generic exception"""
@@ -183,7 +189,26 @@ def RemovePhysicalId(disk):
     del disk["physical_id"]
 
 
+def ChangeDiskDevType(disk, dev_type_map):
+  """Replaces disk's dev_type attributes according to the given map.
+
+  This can be used for both, up or downgrading the disks.
+  """
+  if disk["dev_type"] in dev_type_map:
+    disk["dev_type"] = dev_type_map[disk["dev_type"]]
+  if "children" in disk:
+    for child in disk["children"]:
+      ChangeDiskDevType(child, dev_type_map)
+
+
+def UpgradeDiskDevType(disk):
+  """Upgrades the disks' device type."""
+  ChangeDiskDevType(disk, DEV_TYPE_OLD_NEW)
+
+
 def UpgradeInstances(config_data):
+  """Upgrades the instances' configuration."""
+
   network2uuid = dict((n["name"], n["uuid"])
                       for n in config_data["networks"].values())
   if "instances" not in config_data:
@@ -213,6 +238,10 @@ def UpgradeInstances(config_data):
                         " from '%s' to '%s'",
                         instance, idx, current, expected)
         dobj["iv_name"] = expected
+
+      if "dev_type" in dobj:
+        UpgradeDiskDevType(dobj)
+
       if not "spindles" in dobj:
         missing_spindles = True
 
@@ -300,7 +329,11 @@ def GetNewNodeIndex(nodes_by_old_key, old_key, new_key_field):
 
 def ChangeNodeIndices(config_data, old_key_field, new_key_field):
   def ChangeDiskNodeIndices(disk):
-    if disk["dev_type"] in constants.LDS_DRBD:
+    # Note: 'drbd8' is a legacy device type from pre 2.9 and needs to be
+    # considered when up/downgrading from/to any versions touching 2.9 on the
+    # way.
+    drbd_disk_types = set(["drbd8"]) | constants.DTS_DRBD
+    if disk["dev_type"] in drbd_disk_types:
       for i in range(0, 2):
         disk["logical_id"][i] = GetNewNodeIndex(nodes_by_old_key,
                                                 disk["logical_id"][i],

@@ -908,8 +908,8 @@ fileDriver =
   map Types.fileDriverToRaw [minBound..]
 
 -- | The set of drbd-like disk types
-ldsDrbd :: FrozenSet String
-ldsDrbd = ConstantUtils.mkSet [Types.diskTemplateToRaw DTDrbd8]
+dtsDrbd :: FrozenSet String
+dtsDrbd = ConstantUtils.mkSet [Types.diskTemplateToRaw DTDrbd8]
 
 -- * Disk access mode
 

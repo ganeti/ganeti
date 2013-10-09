@@ -30,7 +30,6 @@ import operator
 
 from ganeti import constants
 from ganeti import utils
-from ganeti import errors
 from ganeti import serializer
 from ganeti import netutils
 

@@ -3305,7 +3305,7 @@ class LUInstanceSetParams(LogicalUnit):
                         self.cfg.GetNodeName(node_uuid), msg)
 
     # if this is a DRBD disk, return its port to the pool
-    if root.dev_type in constants.LDS_DRBD:
+    if root.dev_type in constants.DTS_DRBD:
       self.cfg.AddTcpUdpPort(root.logical_id[2])
 
   def _CreateNewNic(self, idx, params, private):

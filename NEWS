@@ -26,10 +26,10 @@ New features
   procedure between two Ganeti versions that are both 2.10 or higher.
 
 
-Version 2.9.0 rc1
+Version 2.9.0 rc2
 -----------------
 
-*(Released Tue, 1 Oct 2013)*
+*(Released Wed, 9 Oct 2013)*
 
 Incompatible/important changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -95,8 +95,21 @@ Haskell
 - ``hslogger`` (http://software.complete.org/hslogger) is now always
   required, even if confd is not enabled.
 
-Since 2.9.0 beta1
-~~~~~~~~~~~~~~~~~
+Since 2.9.0 rc1
+~~~~~~~~~~~~~~~
+
+- Fix bug in cfgupgrade that led to failure when upgrading from 2.8 with
+  at least one DRBD instance.
+- Fix bug in cfgupgrade that led to an invalid 2.8 configuration after
+  downgrading.
+
+
+Version 2.9.0 rc1
+-----------------
+
+*(Released Tue, 1 Oct 2013)*
+
+The first release candidate in the 2.9 series. Since 2.9.0 beta1:
 
 - various bug fixes
 - update of the documentation, in particular installation instructions
