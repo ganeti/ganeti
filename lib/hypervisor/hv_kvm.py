@@ -1998,7 +1998,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if not match:
       raise errors.HotplugError("Try hotplug only in running instances.")
     v_major, v_min, _, _ = match.groups()
-    if (v_major, v_min) < (1, 0):
+    if (int(v_major), int(v_min)) < (1, 0):
       raise errors.HotplugError("Hotplug not supported for qemu versions < 1.0")
 
     if dev_type == constants.HOTPLUG_TARGET_DISK:
@@ -2023,6 +2023,95 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     # TODO: parse output and check if succeeded
     for line in output.stdout.splitlines():
       logging.info("%s", line)
+
+  def HotAddDevice(self, instance, dev_type, device, extra, seq):
+    """ Helper method to hot-add a new device
+
+    It gets free pci slot generates the device name and invokes the
+    device specific method.
+
+    """
+    # in case of hot-mod this is given
+    if device.pci is None:
+      self._GetFreePCISlot(instance, device)
+    kvm_devid = _GenerateDeviceKVMId(dev_type, device)
+    runtime = self._LoadKVMRuntime(instance)
+    if dev_type == constants.HOTPLUG_TARGET_DISK:
+      command = "drive_add dummy file=%s,if=none,id=%s,format=raw\n" % \
+                 (extra, kvm_devid)
+      command += ("device_add virtio-blk-pci,bus=pci.0,addr=%s,drive=%s,id=%s" %
+                  (hex(device.pci), kvm_devid, kvm_devid))
+    elif dev_type == constants.HOTPLUG_TARGET_NIC:
+      (tap, fd) = _OpenTap()
+      self._ConfigureNIC(instance, seq, device, tap)
+      self._PassTapFd(instance, fd, device)
+      command = "netdev_add tap,id=%s,fd=%s\n" % (kvm_devid, kvm_devid)
+      args = "virtio-net-pci,bus=pci.0,addr=%s,mac=%s,netdev=%s,id=%s" % \
+               (hex(device.pci), device.mac, kvm_devid, kvm_devid)
+      command += "device_add %s" % args
+      utils.WriteFile(self._InstanceNICFile(instance.name, seq), data=tap)
+
+    self._CallHotplugCommand(instance.name, command)
+    # update relevant entries in runtime file
+    index = _DEVICE_RUNTIME_INDEX[dev_type]
+    entry = _RUNTIME_ENTRY[dev_type](device, extra)
+    runtime[index].append(entry)
+    self._SaveKVMRuntime(instance, runtime)
+
+  def HotDelDevice(self, instance, dev_type, device, _, seq):
+    """ Helper method for hot-del device
+
+    It gets device info from runtime file, generates the device name and
+    invokes the device specific method.
+
+    """
+    runtime = self._LoadKVMRuntime(instance)
+    entry = _GetExistingDeviceInfo(dev_type, device, runtime)
+    kvm_device = _RUNTIME_DEVICE[dev_type](entry)
+    kvm_devid = _GenerateDeviceKVMId(dev_type, kvm_device)
+    if dev_type == constants.HOTPLUG_TARGET_DISK:
+      command = "device_del %s" % kvm_devid
+    elif dev_type == constants.HOTPLUG_TARGET_NIC:
+      command = "device_del %s\n" % kvm_devid
+      command += "netdev_del %s" % kvm_devid
+      utils.RemoveFile(self._InstanceNICFile(instance.name, seq))
+    self._CallHotplugCommand(instance.name, command)
+    index = _DEVICE_RUNTIME_INDEX[dev_type]
+    runtime[index].remove(entry)
+    self._SaveKVMRuntime(instance, runtime)
+
+    return kvm_device.pci
+
+  def HotModDevice(self, instance, dev_type, device, _, seq):
+    """ Helper method for hot-mod device
+
+    It gets device info from runtime file, generates the device name and
+    invokes the device specific method. Currently only NICs support hot-mod
+
+    """
+    if dev_type == constants.HOTPLUG_TARGET_NIC:
+      # putting it back in the same pci slot
+      device.pci = self.HotDelDevice(instance, dev_type, device, _, seq)
+      # TODO: remove sleep when socat gets removed
+      time.sleep(2)
+      self.HotAddDevice(instance, dev_type, device, _, seq)
+
+  def _PassTapFd(self, instance, fd, nic):
+    """Pass file descriptor to kvm process via monitor socket using SCM_RIGHTS
+
+    """
+    # TODO: factor out code related to unix sockets.
+    #       squash common parts between monitor and qmp
+    kvm_devid = _GenerateDeviceKVMId(constants.HOTPLUG_TARGET_NIC, nic)
+    command = "getfd %s\n" % kvm_devid
+    fds = [fd]
+    logging.info("%s", fds)
+    try:
+      monsock = MonitorSocket(self._InstanceMonitor(instance.name))
+      monsock.connect()
+      fdsend.sendfds(monsock.sock, command, fds=fds)
+    finally:
+      monsock.close()
 
   @classmethod
   def _ParseKVMVersion(cls, text):
