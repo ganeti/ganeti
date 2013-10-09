@@ -42,6 +42,10 @@ try:
   import affinity   # pylint: disable=F0401
 except ImportError:
   affinity = None
+try:
+  import fdsend   # pylint: disable=F0401
+except ImportError:
+  fdsend = None
 
 from ganeti import utils
 from ganeti import constants
@@ -1953,6 +1957,49 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       raise errors.HypervisorError("All PCI slots occupied")
 
     dev.pci = int(free)
+
+  def HotplugSupported(self, instance, action, dev_type):
+    """Check if hotplug is supported.
+
+    Hotplug is *not* supported in case of:
+     - qemu versions < 1.0
+     - security models and chroot (disk hotplug)
+     - fdsend module is missing (nic hot-add)
+
+    @raise errors.HypervisorError: in previous cases
+
+    """
+    output = self._CallMonitorCommand(instance.name, self._INFO_VERSION_CMD)
+    # TODO: search for netdev_add, drive_add, device_add.....
+    match = self._INFO_VERSION_RE.search(output.stdout)
+    if not match:
+      raise errors.HotplugError("Try hotplug only in running instances.")
+    v_major, v_min, _, _ = match.groups()
+    if (v_major, v_min) < (1, 0):
+      raise errors.HotplugError("Hotplug not supported for qemu versions < 1.0")
+
+    if dev_type == constants.HOTPLUG_TARGET_DISK:
+      hvp = instance.hvparams
+      security_model = hvp[constants.HV_SECURITY_MODEL]
+      use_chroot = hvp[constants.HV_KVM_USE_CHROOT]
+      if use_chroot:
+        raise errors.HotplugError("Disk hotplug is not supported"
+                                  " in case of chroot.")
+      if security_model != constants.HT_SM_NONE:
+        raise errors.HotplugError("Disk Hotplug is not supported in case"
+                                  " security models are used.")
+
+    if (dev_type == constants.HOTPLUG_TARGET_NIC and
+        action == constants.HOTPLUG_ACTION_ADD and not fdsend):
+      raise errors.HotplugError("Cannot hot-add NIC."
+                                " fdsend python module is missing.")
+    return True
+
+  def _CallHotplugCommand(self, name, cmd):
+    output = self._CallMonitorCommand(name, cmd)
+    # TODO: parse output and check if succeeded
+    for line in output.stdout.splitlines():
+      logging.info("%s", line)
 
   @classmethod
   def _ParseKVMVersion(cls, text):
