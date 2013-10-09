@@ -916,6 +916,21 @@ class LUClusterSetParams(LogicalUnit):
             raise errors.OpPrereqError("Cannot enable DRBD without a"
                                        " DRBD usermode helper set.")
 
+  def _CheckInstancesOfDisabledDiskTemplates(
+      self, disabled_disk_templates):
+    """Check whether we try to a disk template that is in use.
+
+    @type disabled_disk_templates: list of string
+    @param disabled_disk_templates: list of disk templates that are going to
+      be disabled by this operation
+
+    """
+    for disk_template in disabled_disk_templates:
+      if self.cfg.HasAnyDiskOfType(disk_template):
+        raise errors.OpPrereqError(
+            "Cannot disable disk template '%s', because there is at least one"
+            " instance using it." % disk_template)
+
   def CheckPrereq(self):
     """Check prerequisites.
 
