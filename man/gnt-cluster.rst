@@ -815,7 +815,8 @@ actions are done.
 
 If called with the ``--resume`` option, any pending upgrade is
 continued, that was interrupted by a power failure or similar on
-master. (This option is not yet implemented.)
+master. It will do nothing, if not run on the master node, or if no
+upgrade was in progress.
 
 
 VERIFY
