@@ -223,10 +223,12 @@ def ListInstances(opts, args):
                                                       for item in value),
                                False))
 
+  cl = GetClient(query=True)
+
   return GenericList(constants.QR_INSTANCE, selected_fields, args, opts.units,
                      opts.separator, not opts.no_headers,
                      format_override=fmtoverride, verbose=opts.verbose,
-                     force_filter=opts.force_filter)
+                     force_filter=opts.force_filter, cl=cl)
 
 
 def ListInstanceFields(opts, args):
