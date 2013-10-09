@@ -791,8 +791,8 @@ class LUClusterSetParams(LogicalUnit):
                                    errors.ECODE_ENVIRON)
 
   @staticmethod
-  def _GetEnabledDiskTemplatesInner(op_enabled_disk_templates,
-                                    old_enabled_disk_templates):
+  def _GetDiskTemplateSetsInner(op_enabled_disk_templates,
+                                old_enabled_disk_templates):
     """Determines the enabled disk templates and the subset of disk templates
        that are newly enabled by this operation.
 
@@ -808,13 +808,13 @@ class LUClusterSetParams(LogicalUnit):
       enabled_disk_templates = old_enabled_disk_templates
     return (enabled_disk_templates, new_enabled_disk_templates)
 
-  def _GetEnabledDiskTemplates(self, cluster):
+  def _GetDiskTemplateSets(self, cluster):
     """Determines the enabled disk templates and the subset of disk templates
        that are newly enabled by this operation.
 
     """
-    return self._GetEnabledDiskTemplatesInner(self.op.enabled_disk_templates,
-                                              cluster.enabled_disk_templates)
+    return self._GetDiskTemplateSetsInner(self.op.enabled_disk_templates,
+                                          cluster.enabled_disk_templates)
 
   def _CheckIpolicy(self, cluster, enabled_disk_templates):
     """Checks the ipolicy.
@@ -946,7 +946,7 @@ class LUClusterSetParams(LogicalUnit):
                              if node.uuid in node_uuids and node.vm_capable]
 
     (enabled_disk_templates, new_enabled_disk_templates) = \
-      self._GetEnabledDiskTemplates(cluster)
+      self._GetDiskTemplateSets(cluster)
 
     self._CheckVgName(vm_capable_node_uuids, enabled_disk_templates,
                       new_enabled_disk_templates)

@@ -82,7 +82,7 @@ class TestGetEnabledDiskTemplates(unittest.TestCase):
     op_dts = [constants.DT_DISKLESS]
     old_dts = [constants.DT_DISKLESS]
     (enabled_dts, new_dts) =\
-        cluster.LUClusterSetParams._GetEnabledDiskTemplatesInner(
+        cluster.LUClusterSetParams._GetDiskTemplateSetsInner(
             op_dts, old_dts)
     self.assertEqual(enabled_dts, old_dts)
     self.assertEqual(new_dts, [])
