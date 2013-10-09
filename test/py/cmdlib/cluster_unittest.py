@@ -481,6 +481,22 @@ class TestLUClusterSetParams(CmdlibTestCase):
 
     self.mcpu.assertLogContainsRegex("file storage dir already set to value")
 
+  def testUnsetFileStorageDirFileStorageEnabled(self):
+    self.cfg.SetEnabledDiskTemplates([constants.DT_FILE])
+    op = opcodes.OpClusterSetParams(file_storage_dir='')
+    self.ExecOpCodeExpectOpPrereqError(op, "Unsetting the 'file' storage")
+
+  def testUnsetFileStorageDirFileStorageDisabled(self):
+    self.cfg.SetEnabledDiskTemplates([constants.DT_PLAIN])
+    op = opcodes.OpClusterSetParams(file_storage_dir='')
+    self.ExecOpCode(op)
+
+  def testSetFileStorageDirFileStorageDisabled(self):
+    self.cfg.SetEnabledDiskTemplates([constants.DT_PLAIN])
+    op = opcodes.OpClusterSetParams(file_storage_dir='/some/path/')
+    self.ExecOpCode(op)
+    self.mcpu.assertLogContainsRegex("although file storage is not enabled")
+
   def testValidDrbdHelper(self):
     node1 = self.cfg.AddNewNode()
     node1.offline = True
