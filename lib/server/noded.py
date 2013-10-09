@@ -389,15 +389,6 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     return backend.BlockdevGetdimensions(disks)
 
   @staticmethod
-  def perspective_blockdev_export(params):
-    """Compute the sizes of the given block devices.
-
-    """
-    disk = objects.Disk.FromDict(params[0])
-    dest_node_ip, dest_path, cluster_name = params[1:]
-    return backend.BlockdevExport(disk, dest_node_ip, dest_path, cluster_name)
-
-  @staticmethod
   def perspective_blockdev_setinfo(params):
     """Sets metadata information on the given block device.
 

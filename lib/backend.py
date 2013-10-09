@@ -2489,50 +2489,6 @@ def BlockdevGetdimensions(disks):
   return result
 
 
-def BlockdevExport(disk, dest_node_ip, dest_path, cluster_name):
-  """Export a block device to a remote node.
-
-  @type disk: L{objects.Disk}
-  @param disk: the description of the disk to export
-  @type dest_node_ip: str
-  @param dest_node_ip: the destination node IP to export to
-  @type dest_path: str
-  @param dest_path: the destination path on the target node
-  @type cluster_name: str
-  @param cluster_name: the cluster name, needed for SSH hostalias
-  @rtype: None
-
-  """
-  real_disk = _OpenRealBD(disk)
-
-  # the block size on the read dd is 1MiB to match our units
-  expcmd = utils.BuildShellCmd("set -e; set -o pipefail; "
-                               "dd if=%s bs=1048576 count=%s",
-                               real_disk.dev_path, str(disk.size))
-
-  # we set here a smaller block size as, due to ssh buffering, more
-  # than 64-128k will mostly ignored; we use nocreat to fail if the
-  # device is not already there or we pass a wrong path; we use
-  # notrunc to no attempt truncate on an LV device; we use oflag=dsync
-  # to not buffer too much memory; this means that at best, we flush
-  # every 64k, which will not be very fast
-  destcmd = utils.BuildShellCmd("dd of=%s conv=nocreat,notrunc bs=65536"
-                                " oflag=dsync", dest_path)
-
-  remotecmd = _GetSshRunner(cluster_name).BuildCmd(dest_node_ip,
-                                                   constants.SSH_LOGIN_USER,
-                                                   destcmd)
-
-  # all commands have been checked, so we're safe to combine them
-  command = "|".join([expcmd, utils.ShellQuoteArgs(remotecmd)])
-
-  result = utils.RunCmd(["bash", "-c", command])
-
-  if result.failed:
-    _Fail("Disk copy command '%s' returned error: %s"
-          " output: %s", command, result.fail_reason, result.output)
-
-
 def UploadFile(file_name, data, mode, uid, gid, atime, mtime):
   """Write a file to the filesystem.
 
