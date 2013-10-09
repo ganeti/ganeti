@@ -16,7 +16,9 @@ Incompatible/important changes
   the module 'ganeti' is no longer in the python search path.
 - On instance allocation, the iallocator now considers non-LVM storage
   properly. In particular, actual file storage space information is used
-  when allocating space for a file/sharedfile instance. 
+  when allocating space for a file/sharedfile instance.
+- When disabling disk templates cluster-wide, the cluster now first
+  checks whether there are instances still using those templates.
 
 New features
 ~~~~~~~~~~~~
