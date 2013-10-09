@@ -1,0 +1,139 @@
+[
+  [
+    "/usr/bin/kvm",
+    "-name",
+    "xen-test-inst2",
+    "-m",
+    1024,
+    "-smp",
+    "1",
+    "-pidfile",
+    "/var/run/ganeti/kvm-hypervisor/pid/xen-test-inst2",
+    "-balloon",
+    "virtio",
+    "-daemonize",
+    "-machine",
+    "pc-1.1",
+    "-monitor",
+    "unix:/var/run/ganeti/kvm-hypervisor/ctrl/xen-test-inst2.monitor,server,nowait",
+    "-serial",
+    "unix:/var/run/ganeti/kvm-hypervisor/ctrl/xen-test-inst2.serial,server,nowait",
+    "-usb",
+    "-usbdevice",
+    "tablet",
+    "-vnc",
+    ":5100"
+  ],
+  [
+    {
+      "mac": "aa:00:00:bf:2f:16",
+      "nicparams": {
+        "link": "br0",
+        "mode": "bridged"
+      },
+      "pci": 6,
+      "uuid": "003fc157-66a8-4e6d-8b7e-ec4f69751396"
+    }
+  ],
+  {
+    "acpi": true,
+    "boot_order": "disk",
+    "cdrom2_image_path": "",
+    "cdrom_disk_type": "",
+    "cdrom_image_path": "",
+    "cpu_cores": 0,
+    "cpu_mask": "all",
+    "cpu_sockets": 0,
+    "cpu_threads": 0,
+    "cpu_type": "",
+    "disk_cache": "default",
+    "disk_type": "paravirtual",
+    "floppy_image_path": "",
+    "initrd_path": "",
+    "kernel_args": "ro",
+    "kernel_path": "",
+    "keymap": "",
+    "kvm_extra": "",
+    "kvm_flag": "",
+    "kvm_path": "/usr/bin/kvm",
+    "machine_version": "",
+    "mem_path": "",
+    "migration_bandwidth": 32,
+    "migration_downtime": 30,
+    "migration_mode": "live",
+    "migration_port": 8102,
+    "nic_type": "paravirtual",
+    "reboot_behavior": "reboot",
+    "root_path": "/dev/vda1",
+    "security_domain": "",
+    "security_model": "none",
+    "serial_console": true,
+    "serial_speed": 38400,
+    "soundhw": "",
+    "spice_bind": "",
+    "spice_image_compression": "",
+    "spice_ip_version": 0,
+    "spice_jpeg_wan_compression": "",
+    "spice_password_file": "",
+    "spice_playback_compression": true,
+    "spice_streaming_video": "",
+    "spice_tls_ciphers": "HIGH:-DES:-3DES:-EXPORT:-ADH",
+    "spice_use_tls": false,
+    "spice_use_vdagent": true,
+    "spice_zlib_glz_wan_compression": "",
+    "usb_devices": "",
+    "usb_mouse": "",
+    "use_chroot": false,
+    "use_localtime": false,
+    "vga": "",
+    "vhost_net": false,
+    "vnc_bind_address": "0.0.0.0",
+    "vnc_password_file": "",
+    "vnc_tls": false,
+    "vnc_x509_path": "",
+    "vnc_x509_verify": false,
+    "vnet_hdr": true
+  },
+  [
+    [
+      {
+        "dev_type": "lvm",
+        "iv_name": "disk/0",
+        "logical_id": [
+          "autovg",
+          "b9d4ee8e-c81b-42eb-9899-60481886c7ac.disk0"
+        ],
+        "mode": "rw",
+        "name": "disk0",
+        "params": {
+          "stripes": 1
+        },
+        "pci": 4,
+        "size": 1024,
+        "uuid": "7c079136-2573-4112-82d0-0d3d2aa90d8f"
+      },
+      "/var/run/ganeti/instance-disks/xen-test-inst2:0",
+      "rbd://123451214123/"
+    ],
+    [
+      {
+        "dev_type": "lvm",
+        "iv_name": "disk/1",
+        "logical_id": [
+          "autovg",
+          "602c0a3b-d09b-4ebe-9774-5f12ef654a1f.disk1"
+        ],
+        "mode": "rw",
+        "name": "disk1",
+        "params": {
+          "stripes": 1
+        },
+        "pci": 5,
+        "size": 512,
+        "uuid": "9f5c5bd4-6f60-480b-acdc-9bb1a4b7df79"
+      },
+      "/var/run/ganeti/instance-disks/xen-test-inst2:1",
+      null
+    ]
+  ]
+]

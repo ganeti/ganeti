@@ -1318,6 +1318,7 @@ TEST_FILES = \
 	test/data/kvm_0.9.1_help_boot_test.txt \
 	test/data/kvm_1.0_help.txt \
 	test/data/kvm_1.1.2_help.txt \
+	test/data/kvm_runtime.json \
 	test/data/lvs_lv.txt \
 	test/data/NEWS_OK.txt \
 	test/data/NEWS_previous_unreleased.txt \
