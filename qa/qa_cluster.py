@@ -573,7 +573,6 @@ def TestClusterModifyDiskTemplates():
   instance_template = enabled_disk_templates[0]
   instance = qa_instance.CreateInstanceByDiskTemplate(nodes, instance_template)
 
-  _TestClusterModifyUnusedDiskTemplate(instance_template)
   _TestClusterModifyUsedDiskTemplate(instance_template,
                                      enabled_disk_templates)
 
@@ -775,26 +774,6 @@ def _TestClusterModifyUsedDiskTemplate(instance_template,
      "--enabled-disk-templates=%s" % ",".join(new_disk_templates),
      "--ipolicy-disk-templates=%s" % ",".join(new_disk_templates)],
     fail=True)
-
-
-def _TestClusterModifyUnusedDiskTemplate(instance_template):
-  """Tests that unused disk templates can be disabled safely."""
-  all_disk_templates = constants.DISK_TEMPLATES
-  if not utils.IsLvmEnabled(qa_config.GetEnabledDiskTemplates()):
-    all_disk_templates = list(set(all_disk_templates) -
-                              constants.DTS_LVM)
-
-  AssertCommand(
-    ["gnt-cluster", "modify",
-     "--enabled-disk-templates=%s" % ",".join(all_disk_templates),
-     "--ipolicy-disk-templates=%s" % ",".join(all_disk_templates)],
-    fail=False)
-  new_disk_templates = [instance_template]
-  AssertCommand(
-    ["gnt-cluster", "modify",
-     "--enabled-disk-templates=%s" % ",".join(new_disk_templates),
-     "--ipolicy-disk-templates=%s" % ",".join(new_disk_templates)],
-    fail=False)
 
 
 def TestClusterModifyBe():
