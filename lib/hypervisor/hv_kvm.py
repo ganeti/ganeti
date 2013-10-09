@@ -79,6 +79,80 @@ _SPICE_ADDITIONAL_PARAMS = frozenset([
   constants.HV_KVM_SPICE_USE_TLS,
   ])
 
+# below constants show the format of runtime file
+# the nics are in second possition, while the disks in 4th (last)
+# moreover disk entries are stored in tupples of L{objects.Disk}, dev_path
+_KVM_NICS_RUNTIME_INDEX = 1
+_KVM_DISKS_RUNTIME_INDEX = 3
+_DEVICE_RUNTIME_INDEX = {
+  constants.HOTPLUG_TARGET_DISK: _KVM_DISKS_RUNTIME_INDEX,
+  constants.HOTPLUG_TARGET_NIC: _KVM_NICS_RUNTIME_INDEX
+  }
+_FIND_RUNTIME_ENTRY = {
+  constants.HOTPLUG_TARGET_NIC:
+    lambda nic, kvm_nics: [n for n in kvm_nics if n.uuid == nic.uuid],
+  constants.HOTPLUG_TARGET_DISK:
+    lambda disk, kvm_disks: [(d, l, u) for (d, l, u) in kvm_disks
+                             if d.uuid == disk.uuid]
+  }
+_RUNTIME_DEVICE = {
+  constants.HOTPLUG_TARGET_NIC: lambda d: d,
+  constants.HOTPLUG_TARGET_DISK: lambda (d, e, _): d
+  }
+_RUNTIME_ENTRY = {
+  constants.HOTPLUG_TARGET_NIC: lambda d, e: d,
+  constants.HOTPLUG_TARGET_DISK: lambda d, e: (d, e, None)
+  }
+
+
+def _GetExistingDeviceInfo(dev_type, device, runtime):
+  """Helper function to get an existing device inside the runtime file
+
+  Used when an instance is running. Load kvm runtime file and search
+  for a device based on its type and uuid.
+
+  @type dev_type: sting
+  @param dev_type: device type of param dev
+  @type device: L{objects.Disk} or L{objects.NIC}
+  @param device: the device object for which we generate a kvm name
+  @type runtime: tuple (cmd, nics, hvparams, disks)
+  @param runtime: the runtime data to search for the device
+  @raise errors.HotplugError: in case the requested device does not
+    exist (e.g. device has been added without --hotplug option) or
+    device info has not pci slot (e.g. old devices in the cluster)
+
+  """
+  index = _DEVICE_RUNTIME_INDEX[dev_type]
+  found = _FIND_RUNTIME_ENTRY[dev_type](device, runtime[index])
+  if not found:
+    raise errors.HotplugError("Cannot find runtime info for %s with UUID %s" %
+                              (dev_type, device.uuid))
+
+  return found[0]
+
+
+def _AnalyzeSerializedRuntime(serialized_runtime):
+  """Return runtime entries for a serialized runtime file
+
+  @type serialized_runtime: string
+  @param serialized_runtime: raw text data read from actual runtime file
+  @return: (cmd, nics, hvparams, bdevs)
+  @rtype: list
+
+  """
+  loaded_runtime = serializer.Load(serialized_runtime)
+  if len(loaded_runtime) == 3:
+    serialized_blockdevs = []
+    kvm_cmd, serialized_nics, hvparams = loaded_runtime
+  else:
+    kvm_cmd, serialized_nics, hvparams, serialized_blockdevs = loaded_runtime
+
+  kvm_nics = [objects.NIC.FromDict(snic) for snic in serialized_nics]
+  block_devices = [(objects.Disk.FromDict(sdisk), link, uri)
+                   for sdisk, link, uri in serialized_blockdevs]
+
+  return (kvm_cmd, kvm_nics, hvparams, block_devices)
+
 
 def _GetTunFeatures(fd, _ioctl=fcntl.ioctl):
   """Retrieves supported TUN features from file descriptor.
@@ -1451,16 +1525,17 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if hvp[constants.HV_KVM_EXTRA]:
       kvm_cmd.extend(hvp[constants.HV_KVM_EXTRA].split(" "))
 
-    bdev_opts = self._GenerateKVMBlockDevicesOptions(instance,
-                                                     block_devices,
-                                                     kvmhelp)
-    kvm_cmd.extend(bdev_opts)
-    # Save the current instance nics, but defer their expansion as parameters,
-    # as we'll need to generate executable temp files for them.
-    kvm_nics = instance.nics
+    kvm_disks = []
+    for disk, dev_path in block_devices:
+      kvm_disks.append((disk, dev_path))
+
+    kvm_nics = []
+    for nic in instance.nics:
+      kvm_nics.append(nic)
+
     hvparams = hvp
 
-    return (kvm_cmd, kvm_nics, hvparams)
+    return (kvm_cmd, kvm_nics, hvparams, kvm_disks)
 
   def _WriteKVMRuntime(self, instance_name, data):
     """Write an instance's KVM runtime
@@ -1486,9 +1561,14 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     """Save an instance's KVM runtime
 
     """
-    kvm_cmd, kvm_nics, hvparams = kvm_runtime
+    kvm_cmd, kvm_nics, hvparams, block_devices = kvm_runtime
+
     serialized_nics = [nic.ToDict() for nic in kvm_nics]
-    serialized_form = serializer.Dump((kvm_cmd, serialized_nics, hvparams))
+    serialized_blockdevs = [(blk.ToDict(), link, uri)
+                            for blk, link, uri in block_devices]
+    serialized_form = serializer.Dump((kvm_cmd, serialized_nics, hvparams,
+                                      serialized_blockdevs))
+
     self._WriteKVMRuntime(instance.name, serialized_form)
 
   def _LoadKVMRuntime(self, instance, serialized_runtime=None):
@@ -1497,10 +1577,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     """
     if not serialized_runtime:
       serialized_runtime = self._ReadKVMRuntime(instance.name)
-    loaded_runtime = serializer.Load(serialized_runtime)
-    kvm_cmd, serialized_nics, hvparams = loaded_runtime
-    kvm_nics = [objects.NIC.FromDict(snic) for snic in serialized_nics]
-    return (kvm_cmd, kvm_nics, hvparams)
+
+    return _AnalyzeSerializedRuntime(serialized_runtime)
 
   def _RunKVMCmd(self, name, kvm_cmd, tap_fds=None):
     """Run the KVM cmd and check for errors
@@ -1525,6 +1603,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if not self._InstancePidAlive(name)[2]:
       raise errors.HypervisorError("Failed to start instance %s" % name)
 
+  # 52/50 local variables
+  # pylint: disable=R0914
   def _ExecuteKVMRuntime(self, instance, kvm_runtime, kvmhelp, incoming=None):
     """Execute a KVM cmd, after completing it with some last minute data.
 
@@ -1548,7 +1628,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     temp_files = []
 
-    kvm_cmd, kvm_nics, up_hvp = kvm_runtime
+    kvm_cmd, kvm_nics, up_hvp, block_devices = kvm_runtime
     # the first element of kvm_cmd is always the path to the kvm binary
     kvm_path = kvm_cmd[0]
     up_hvp = objects.FillDict(conf_hvp, up_hvp)
@@ -1652,6 +1732,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         continue
       self._ConfigureNIC(instance, nic_seq, nic, taps[nic_seq])
 
+    bdev_opts = self._GenerateKVMBlockDevicesOptions(instance,
+                                                     block_devices,
+                                                     kvmhelp)
+    kvm_cmd.extend(bdev_opts)
     # CPU affinity requires kvm to start paused, so we set this flag if the
     # instance is not already paused and if we are not going to accept a
     # migrating instance. In the latter case, pausing is not needed.

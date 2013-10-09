@@ -102,6 +102,15 @@ class HypervisorError(GenericError):
   """
 
 
+class HotplugError(HypervisorError):
+  """Hotplug-related exception.
+
+  This is raised in case a hotplug action fails or is not supported.
+  It is currently used only by KVM hypervisor.
+
+  """
+
+
 class ProgrammerError(GenericError):
   """Programming-related error.
 
