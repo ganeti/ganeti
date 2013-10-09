@@ -1128,6 +1128,7 @@ MODIFY
 | [\--offline \| \--online]
 | [\--submit] [\--print-job-id]
 | [\--ignore-ipolicy]
+| [\--hotplug]
 | {*instance*}
 
 Modifies the memory size, number of vcpus, ip address, MAC address
@@ -1204,6 +1205,11 @@ immediately.
 
 If ``--ignore-ipolicy`` is given any instance policy violations occuring
 during this operation are ignored.
+
+If ``--hotplug`` is given any disk and nic modifications will take
+effect without the need of actual reboot. Please note that this feature
+is currently supported only for KVM hypervisor and for versions greater
+than 1.0.
 
 See **ganeti**\(7) for a description of ``--submit`` and other common
 options.
