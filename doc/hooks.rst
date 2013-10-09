@@ -1,7 +1,7 @@
 Ganeti customisation using hooks
 ================================
 
-Documents Ganeti version 2.9
+Documents Ganeti version 2.10
 
 .. contents::
 

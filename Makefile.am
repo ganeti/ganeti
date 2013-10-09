@@ -502,6 +502,7 @@ docinput = \
 	doc/design-2.7.rst \
 	doc/design-2.8.rst \
 	doc/design-2.9.rst \
+	doc/design-2.10.rst \
 	doc/design-autorepair.rst \
 	doc/design-bulk-create.rst \
 	doc/design-chained-jobs.rst \
