@@ -2255,23 +2255,28 @@ def BlockdevAssemble(disk, owner, as_primary, idx):
   This is a wrapper over _RecursiveAssembleBD.
 
   @rtype: str or boolean
-  @return: a C{/dev/...} path for primary nodes, and
-      C{True} for secondary nodes
+  @return: a tuple with the C{/dev/...} path and the created symlink
+      for primary nodes, and (C{True}, C{True}) for secondary nodes
 
   """
   try:
     result = _RecursiveAssembleBD(disk, owner, as_primary)
     if isinstance(result, BlockDev):
       # pylint: disable=E1103
-      result = result.dev_path
+      dev_path = result.dev_path
+      link_name = None
       if as_primary:
-        _SymlinkBlockDev(owner, result, idx)
+        link_name = _SymlinkBlockDev(owner, dev_path, idx)
+    elif result:
+      return result, result
+    else:
+      _Fail("Unexpected result from _RecursiveAssembleBD")
   except errors.BlockDeviceError, err:
     _Fail("Error while assembling disk: %s", err, exc=True)
   except OSError, err:
     _Fail("Error while symlinking disk: %s", err, exc=True)
 
-  return result
+  return dev_path, link_name
 
 
 def BlockdevShutdown(disk):
