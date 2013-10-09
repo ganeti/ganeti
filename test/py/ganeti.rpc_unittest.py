@@ -943,58 +943,22 @@ class TestLegacyNodeInfo(unittest.TestCase):
     KEY_NAME: VAL_VG_NAME,
     KEY_STORAGE_FREE: VAL_VG_FREE,
     KEY_STORAGE_TOTAL: VAL_VG_TOTAL,
+    KEY_SPINDLES_FREE: VAL_PV_FREE,
+    KEY_SPINDLES_TOTAL: VAL_PV_TOTAL,
     KEY_CPU_COUNT: VAL_CPU_COUNT,
     }
 
-  def testStandard(self):
-    result = rpc.MakeLegacyNodeInfo(self.STD_LST)
+  def testWithSpindles(self):
+    result = rpc.MakeLegacyNodeInfo(self.STD_LST, constants.DT_PLAIN)
     self.assertEqual(result, self.STD_DICT)
 
-  def testSpindlesRequired(self):
-    my_lst = [self.VAL_BOOT, [], [self.DICT_HV]]
-    self.assertRaises(errors.OpExecError, rpc.MakeLegacyNodeInfo, my_lst,
-        require_spindles=True)
-
-  def testNoSpindlesRequired(self):
-    my_lst = [self.VAL_BOOT, [], [self.DICT_HV]]
-    result = rpc.MakeLegacyNodeInfo(my_lst, require_spindles = False)
-    self.assertEqual(result, {self.KEY_BOOT: self.VAL_BOOT,
-                              self.KEY_CPU_COUNT: self.VAL_CPU_COUNT})
-    result = rpc.MakeLegacyNodeInfo(self.STD_LST, require_spindles = False)
-    self.assertEqual(result, self.STD_DICT)
-
-
-class TestAddDefaultStorageInfoToLegacyNodeInfo(unittest.TestCase):
-
-  def setUp(self):
-    self.free_storage_file = 23
-    self.total_storage_file = 42
-    self.free_storage_lvm = 69
-    self.total_storage_lvm = 666
-    self.node_info = [{"name": "myfile",
-                       "type": constants.ST_FILE,
-                       "storage_free": self.free_storage_file,
-                       "storage_size": self.total_storage_file},
-                      {"name": "myvg",
-                       "type": constants.ST_LVM_VG,
-                       "storage_free": self.free_storage_lvm,
-                       "storage_size": self.total_storage_lvm},
-                      {"name": "myspindle",
-                       "type": constants.ST_LVM_PV,
-                       "storage_free": 33,
-                       "storage_size": 44}]
-
-  def testAddDefaultStorageInfoToLegacyNodeInfo(self):
-    result = {}
-    rpc._AddDefaultStorageInfoToLegacyNodeInfo(result, self.node_info)
-    self.assertEqual(self.free_storage_file, result["storage_free"])
-    self.assertEqual(self.total_storage_file, result["storage_size"])
-
-  def testAddDefaultStorageInfoToLegacyNodeInfoNoDefaults(self):
-    result = {}
-    rpc._AddDefaultStorageInfoToLegacyNodeInfo(result, self.node_info[-1:])
-    self.assertFalse("storage_free" in result)
-    self.assertFalse("storage_size" in result)
+  def testNoSpindles(self):
+    my_lst = [self.VAL_BOOT, [self.DICT_VG], [self.DICT_HV]]
+    result = rpc.MakeLegacyNodeInfo(my_lst, constants.DT_PLAIN)
+    expected_dict = dict((k,v) for k, v in self.STD_DICT.iteritems())
+    expected_dict[self.KEY_SPINDLES_FREE] = 0
+    expected_dict[self.KEY_SPINDLES_TOTAL] = 0
+    self.assertEqual(result, expected_dict)
 
 
 if __name__ == "__main__":

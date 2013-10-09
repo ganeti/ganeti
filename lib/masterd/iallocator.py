@@ -415,13 +415,7 @@ class IAllocator(object):
     @return: the result of the node info RPC call
 
     """
-    if disk_templates:
-      storage_units_raw = utils.storage.GetStorageUnits(self.cfg,
-                                                        disk_templates)
-    else:
-      # FIXME: eliminate this case
-      storage_units_raw = utils.storage.GetStorageUnitsOfCluster(
-         self.cfg, include_spindles=True)
+    storage_units_raw = utils.storage.GetStorageUnits(self.cfg, disk_templates)
     storage_units = rpc.PrepareStorageUnitsForNodes(self.cfg, storage_units_raw,
                                                     node_list)
     hvspecs = [(hypervisor_name, cluster_info.hvparams[hypervisor_name])]
@@ -587,17 +581,14 @@ class IAllocator(object):
       total_disk = template_space_info["storage_size"]
       free_disk = template_space_info["storage_free"]
 
+      total_spindles = 0
+      free_spindles = 0
       if disk_template in constants.DTS_LVM:
         lvm_pv_info = utils.storage.LookupSpaceInfoByStorageType(
            space_info, constants.ST_LVM_PV)
-        if not lvm_pv_info:
-          raise errors.OpExecError("Node '%s' didn't return LVM pv space info."
-                                   % (node_name))
-        total_spindles = lvm_pv_info["storage_size"]
-        free_spindles = lvm_pv_info["storage_free"]
-      else:
-        total_spindles = 0
-        free_spindles = 0
+        if lvm_pv_info:
+          total_spindles = lvm_pv_info["storage_size"]
+          free_spindles = lvm_pv_info["storage_free"]
     return (total_disk, free_disk, total_spindles, free_spindles)
 
   @staticmethod

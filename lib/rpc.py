@@ -586,49 +586,43 @@ def _AddSpindlesToLegacyNodeInfo(result, space_info):
     result["spindles_free"] = lvm_pv_info["storage_free"]
     result["spindles_total"] = lvm_pv_info["storage_size"]
   else:
-    raise errors.OpExecError("No spindle storage information available.")
+    result["spindles_free"] = 0
+    result["spindles_total"] = 0
 
 
-def _AddDefaultStorageInfoToLegacyNodeInfo(result, space_info):
-  """Extracts the storage space information of the default storage type from
+def _AddStorageInfoToLegacyNodeInfoByTemplate(
+    result, space_info, disk_template):
+  """Extracts the storage space information of the disk template from
   the space info and adds it to the result dictionary.
 
   @see: C{_AddSpindlesToLegacyNodeInfo} for parameter information.
 
   """
-  # Check if there is at least one row for non-spindle storage info.
-  no_defaults = (len(space_info) < 1) or \
-      (space_info[0]["type"] == constants.ST_LVM_PV and len(space_info) == 1)
-
-  default_space_info = None
-  if no_defaults:
-    logging.warning("No storage info provided for default storage type.")
+  if utils.storage.DiskTemplateSupportsSpaceReporting(disk_template):
+    disk_info = utils.storage.LookupSpaceInfoByDiskTemplate(
+        space_info, disk_template)
+    result["name"] = disk_info["name"]
+    result["storage_free"] = disk_info["storage_free"]
+    result["storage_size"] = disk_info["storage_size"]
   else:
-    default_space_info = space_info[0]
-
-  if default_space_info:
-    result["name"] = default_space_info["name"]
-    result["storage_free"] = default_space_info["storage_free"]
-    result["storage_size"] = default_space_info["storage_size"]
+    # FIXME: consider displaying '-' in this case
+    result["storage_free"] = 0
+    result["storage_size"] = 0
 
 
-def MakeLegacyNodeInfo(data, require_spindles=False):
+def MakeLegacyNodeInfo(data, disk_template):
   """Formats the data returned by L{rpc.RpcRunner.call_node_info}.
 
   Converts the data into a single dictionary. This is fine for most use cases,
   but some require information from more than one volume group or hypervisor.
-
-  @param require_spindles: add spindle storage information to the legacy node
-      info
 
   """
   (bootid, space_info, (hv_info, )) = data
 
   ret = utils.JoinDisjointDicts(hv_info, {"bootid": bootid})
 
-  if require_spindles:
-    _AddSpindlesToLegacyNodeInfo(ret, space_info)
-  _AddDefaultStorageInfoToLegacyNodeInfo(ret, space_info)
+  _AddSpindlesToLegacyNodeInfo(ret, space_info)
+  _AddStorageInfoToLegacyNodeInfoByTemplate(ret, space_info, disk_template)
 
   return ret
 

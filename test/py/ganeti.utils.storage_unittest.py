@@ -26,7 +26,6 @@ import mock
 import unittest
 
 from ganeti import constants
-from ganeti import objects
 from ganeti.utils import storage
 
 import testutils
@@ -72,39 +71,6 @@ class TestGetStorageUnitForDiskTemplate(unittest.TestCase):
     self.assertEqual(storage_type, constants.ST_DISKLESS)
     self.assertEqual(storage_key, None)
 
-  def testGetDefaultStorageUnitForSpindles(self):
-    (storage_type, storage_key) = \
-        storage._GetDefaultStorageUnitForSpindles(self._cfg)
-    self.assertEqual(storage_type, constants.ST_LVM_PV)
-    self.assertEqual(storage_key, self._default_vg_name)
-
-
-class TestGetStorageUnitsOfCluster(unittest.TestCase):
-
-  def setUp(self):
-    storage._GetDefaultStorageUnitForDiskTemplate = \
-        mock.Mock(return_value=("foo", "bar"))
-
-    self._cluster_cfg = objects.Cluster()
-    self._enabled_disk_templates = \
-        [constants.DT_DRBD8, constants.DT_PLAIN, constants.DT_FILE,
-         constants.DT_SHARED_FILE]
-    self._cluster_cfg.enabled_disk_templates = \
-        self._enabled_disk_templates
-    self._cfg = mock.Mock()
-    self._cfg.GetClusterInfo = mock.Mock(return_value=self._cluster_cfg)
-    self._cfg.GetVGName = mock.Mock(return_value="some_vg_name")
-
-  def testGetStorageUnitsOfCluster(self):
-    storage_units = storage.GetStorageUnitsOfCluster(self._cfg)
-    self.assertEqual(len(storage_units), len(self._enabled_disk_templates))
-
-  def testGetStorageUnitsOfClusterWithSpindles(self):
-    storage_units = storage.GetStorageUnitsOfCluster(
-        self._cfg, include_spindles=True)
-    self.assertEqual(len(storage_units), len(self._enabled_disk_templates) + 1)
-    self.assertTrue(constants.ST_LVM_PV in [st for (st, sk) in storage_units])
-
 
 class TestGetStorageUnits(unittest.TestCase):
 
@@ -121,7 +87,7 @@ class TestGetStorageUnits(unittest.TestCase):
   def testGetStorageUnitsLvm(self):
     disk_templates = [constants.DT_PLAIN, constants.DT_DRBD8]
     storage_units = storage.GetStorageUnits(self._cfg, disk_templates)
-    self.assertEqual(len(storage_units), len(disk_templates) + 1)
+    self.assertEqual(len(storage_units), len(disk_templates))
 
 
 class TestLookupSpaceInfoByStorageType(unittest.TestCase):
