@@ -770,8 +770,12 @@ getHypervisorSpecs cfg instances =
   in zip hvs . map ((Map.!) hvParamMap . hypervisorToRaw) $ hvs
 
 -- | Collect live data from RPC query if enabled.
-collectLiveData :: Bool -> ConfigData -> [Instance] -> IO [(Instance, Runtime)]
-collectLiveData liveDataEnabled cfg instances
+collectLiveData :: Bool        -- ^ Live queries allowed
+                -> ConfigData  -- ^ The cluster config
+                -> [String]    -- ^ The requested fields
+                -> [Instance]  -- ^ The instance objects
+                -> IO [(Instance, Runtime)]
+collectLiveData liveDataEnabled cfg fields instances
   | not liveDataEnabled = return . zip instances . repeat . Left .
                             RpcResultError $ "Live data disabled"
   | otherwise = do
@@ -780,9 +784,12 @@ collectLiveData liveDataEnabled cfg instances
                             map (getNode cfg . instPrimaryNode) instances
           goodNodes = nodesWithValidConfig cfg instanceNodes
       instInfoRes <- executeRpcCall goodNodes (RpcCallAllInstancesInfo hvSpecs)
-      consInfoRes <- case getAllConsoleParams cfg instances of
-        Bad _ -> return . zip goodNodes . repeat . Left $ RpcResultError
-                   "Cannot construct parameters for console info call"
-        Ok  p -> executeRpcCalls $ consoleParamsToCalls p
+      consInfoRes <-
+        if "console" `elem` fields
+          then case getAllConsoleParams cfg instances of
+            Ok  p -> executeRpcCalls $ consoleParamsToCalls p
+            Bad _ -> return . zip goodNodes . repeat . Left $
+              RpcResultError "Cannot construct parameters for console info call"
+          else return [] -- The information is not necessary
       return . zip instances .
         map (extractLiveInfo instInfoRes consInfoRes) $ instances

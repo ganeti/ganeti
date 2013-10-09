@@ -83,6 +83,11 @@ import Ganeti.Path
 import Ganeti.Types
 import Ganeti.Utils
 
+-- | Collector type
+data CollectorType a b
+  = CollectorSimple     (Bool -> ConfigData -> [a] -> IO [(a, b)])
+  | CollectorFieldAware (Bool -> ConfigData -> [String] -> [a] -> IO [(a, b)])
+
 -- * Helper functions
 
 -- | Builds an unknown field definition.
@@ -170,8 +175,8 @@ getRequestedJobIDs qfilter =
 -- The gathered data, or the failure to get it, is expressed through a runtime
 -- object. The type of a runtime object is determined by every query type for
 -- itself, and used exclusively by that query.
-genericQuery :: FieldMap a b       -- ^ Field map
-             -> (Bool -> ConfigData -> [a] -> IO [(a, b)]) -- ^ Collector
+genericQuery :: FieldMap a b       -- ^ Maps field names to field definitions
+             -> CollectorType a b  -- ^ Collector of live data
              -> (a -> String)      -- ^ Object to name function
              -> (ConfigData -> Container a) -- ^ Get all objects from config
              -> (ConfigData -> String -> ErrorResult a) -- ^ Lookup object
@@ -192,13 +197,15 @@ genericQuery fieldsMap collector nameFn configFn getFn cfg
              [] -> Ok . niceSortKey nameFn .
                    Map.elems . fromContainer $ configFn cfg
              _  -> mapM (getFn cfg) wanted
-  -- runs first pass of the filter, without a runtime context; this
-  -- will limit the objects that we'll contact for exports
+  -- Run the first pass of the filter, without a runtime context; this will
+  -- limit the objects that we'll contact for exports
   fobjects <- resultT $ filterM (\n -> evaluateFilter cfg Nothing n cfilter)
                         objects
-  -- here run the runtime data gathering...
-  runtimes <- lift $ collector live' cfg fobjects
-  -- ... then filter again the results, based on gathered runtime data
+  -- Gather the runtime data
+  runtimes <- case collector of
+    CollectorSimple     collFn -> lift $ collFn live' cfg fobjects
+    CollectorFieldAware collFn -> lift $ collFn live' cfg fields fobjects
+  -- Filter the results again, based on the gathered data
   let fdata = map (\(obj, runtime) ->
                      map (execGetter cfg runtime obj) fgetters)
               runtimes
@@ -225,25 +232,26 @@ queryInner :: ConfigData   -- ^ The current configuration
            -> IO (ErrorResult QueryResult) -- ^ Result
 
 queryInner cfg live (Query (ItemTypeOpCode QRNode) fields qfilter) wanted =
-  genericQuery Node.fieldsMap Node.collectLiveData nodeName configNodes getNode
-               cfg live fields qfilter wanted
+  genericQuery Node.fieldsMap (CollectorSimple Node.collectLiveData) nodeName
+               configNodes getNode cfg live fields qfilter wanted
 
 queryInner cfg live (Query (ItemTypeOpCode QRInstance) fields qfilter) wanted =
-  genericQuery Instance.fieldsMap Instance.collectLiveData instName
-               configInstances getInstance cfg live fields qfilter wanted
+  genericQuery Instance.fieldsMap (CollectorFieldAware Instance.collectLiveData)
+               instName configInstances getInstance cfg live fields qfilter
+               wanted
 
 queryInner cfg live (Query (ItemTypeOpCode QRGroup) fields qfilter) wanted =
-  genericQuery Group.fieldsMap dummyCollectLiveData groupName configNodegroups
-               getGroup cfg live fields qfilter wanted
+  genericQuery Group.fieldsMap (CollectorSimple dummyCollectLiveData) groupName
+               configNodegroups getGroup cfg live fields qfilter wanted
 
 queryInner cfg live (Query (ItemTypeOpCode QRNetwork) fields qfilter) wanted =
-  genericQuery Network.fieldsMap dummyCollectLiveData
+  genericQuery Network.fieldsMap (CollectorSimple dummyCollectLiveData)
                (fromNonEmpty . networkName)
                configNetworks getNetwork cfg live fields qfilter wanted
 
 queryInner cfg live (Query (ItemTypeOpCode QRExport) fields qfilter) wanted =
-  genericQuery Export.fieldsMap Export.collectLiveData nodeName configNodes
-               getNode cfg live fields qfilter wanted
+  genericQuery Export.fieldsMap (CollectorSimple Export.collectLiveData)
+               nodeName configNodes getNode cfg live fields qfilter wanted
 
 queryInner _ _ (Query qkind _ _) _ =
   return . Bad . GenericError $ "Query '" ++ show qkind ++ "' not supported"
