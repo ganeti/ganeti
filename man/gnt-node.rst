@@ -219,6 +219,13 @@ meanings. For example, some solutions share the node memory with the
 pool of memory used for instances (KVM), whereas others have separate
 memory for the node and for the instances (Xen).
 
+Note that the field 'dtotal' and 'dfree' refer to the storage type
+that is defined by the default disk template. The default disk template
+is the first on in the list of cluster-wide enabled disk templates and
+can be set with ``gnt-cluster modify``. Currently, only the disk
+templates 'plain', 'drbd', 'file', and 'sharedfile' support storage
+reporting, for all others '0' is displayed.
+
 If exactly one argument is given and it appears to be a query filter
 (see **ganeti**\(7)), the query result is filtered accordingly. For
 ambiguous cases (e.g. a single field name as a filter) the ``--filter``
