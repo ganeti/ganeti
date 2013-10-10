@@ -1396,16 +1396,41 @@ class LUNodeQueryStorage(NoHooksLU):
         locking.LEVEL_NODE_ALLOC: locking.ALL_SET,
         }
 
+  def _DetermineStorageType(self):
+    """Determines the default storage type of the cluster.
+
+    """
+    enabled_disk_templates = self.cfg.GetClusterInfo().enabled_disk_templates
+    default_storage_type = \
+        constants.MAP_DISK_TEMPLATE_STORAGE_TYPE[enabled_disk_templates[0]]
+    return default_storage_type
+
   def CheckPrereq(self):
     """Check prerequisites.
 
     """
-    CheckStorageTypeEnabled(self.cfg.GetClusterInfo(), self.op.storage_type)
+    if self.op.storage_type:
+      CheckStorageTypeEnabled(self.cfg.GetClusterInfo(), self.op.storage_type)
+      self.storage_type = self.op.storage_type
+    else:
+      self.storage_type = self._DetermineStorageType()
+      if self.storage_type not in constants.STS_REPORT:
+        raise errors.OpPrereqError(
+            "Storage reporting for storage type '%s' is not supported. Please"
+            " use the --storage-type option to specify one of the supported"
+            " storage types (%s) or set the default disk template to one that"
+            " supports storage reporting." %
+            (self.storage_type, utils.CommaJoin(constants.STS_REPORT)))
 
   def Exec(self, feedback_fn):
     """Computes the list of nodes and their attributes.
 
     """
+    if self.op.storage_type:
+      self.storage_type = self.op.storage_type
+    else:
+      self.storage_type = self._DetermineStorageType()
+
     self.node_uuids = self.owned_locks(locking.LEVEL_NODE)
 
     # Always get name to sort by
@@ -1422,9 +1447,9 @@ class LUNodeQueryStorage(NoHooksLU):
     field_idx = dict([(name, idx) for (idx, name) in enumerate(fields)])
     name_idx = field_idx[constants.SF_NAME]
 
-    st_args = _GetStorageTypeArgs(self.cfg, self.op.storage_type)
+    st_args = _GetStorageTypeArgs(self.cfg, self.storage_type)
     data = self.rpc.call_storage_list(self.node_uuids,
-                                      self.op.storage_type, st_args,
+                                      self.storage_type, st_args,
                                       self.op.name, fields)
 
     result = []
@@ -1452,7 +1477,7 @@ class LUNodeQueryStorage(NoHooksLU):
           if field == constants.SF_NODE:
             val = node_name
           elif field == constants.SF_TYPE:
-            val = self.op.storage_type
+            val = self.storage_type
           elif field in field_idx:
             val = row[field_idx[field]]
           else:

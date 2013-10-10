@@ -19,6 +19,8 @@ Incompatible/important changes
   when allocating space for a file/sharedfile instance.
 - When disabling disk templates cluster-wide, the cluster now first
   checks whether there are instances still using those templates.
+- 'gnt-node list-storage' now also reports storage information about
+  file-based storage types.
 
 New features
 ~~~~~~~~~~~~

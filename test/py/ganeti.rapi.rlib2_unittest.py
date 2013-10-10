@@ -630,11 +630,12 @@ class TestStorageQuery(unittest.TestCase):
   def testErrors(self):
     clfactory = _FakeClientFactory(_FakeClient)
 
+    # storage type which does not support space reporting
     queryargs = {
-      "output_fields": "name,other",
+      "storage_type": constants.ST_DISKLESS,
       }
     handler = _CreateHandler(rlib2.R_2_nodes_name_storage,
-                             ["node10538"], queryargs, {}, clfactory)
+                             ["node21273"], queryargs, {}, clfactory)
     self.assertRaises(http.HttpBadRequest, handler.GET)
 
     queryargs = {
