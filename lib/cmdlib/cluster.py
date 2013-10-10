@@ -1207,7 +1207,7 @@ class LUClusterSetParams(LogicalUnit):
     """
     if self.op.enabled_disk_templates:
       self.cluster.enabled_disk_templates = \
-        list(set(self.op.enabled_disk_templates))
+        list(self.op.enabled_disk_templates)
 
     self._SetVgName(feedback_fn)
     self._SetFileStorageDir(feedback_fn)
