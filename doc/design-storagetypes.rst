@@ -52,8 +52,8 @@ template is not enabled by the cluster.
 The ipolicy also contains a list of enabled disk templates. Since the cluster-
 wide enabled disk templates should be a stronger constraint, the list of
 enabled disk templates in the ipolicy should be a subset of those. In case the
-user tries to create an inconsistent situation here, gnt-cluster should emit
-a warning.
+user tries to create an inconsistent situation here, gnt-cluster should
+display this as an error.
 
 We consider the first disk template in the list to be the default template for
 instance creation and storage reporting. This will remove the need to specify
@@ -70,6 +70,9 @@ consistently. ``lvm`` based disk templates are enabled by specifying a volume
 group name on cluster initialization and can only be disabled by explicitly
 using the option ``--no-lvm-storage``. This will be replaced by adding/removing
 ``drbd`` and ``plain`` from the set of enabled disk templates.
+
+The option ``--no-drbd-storage`` is also subsumed by dis/enabling the
+disk template ``drbd`` on the cluster.
 
 Up till now, file storage and shared file storage could be dis/enabled at
 ``./configure`` time. This will also be replaced by adding/removing the
@@ -89,7 +92,6 @@ based on the current configuration of the cluster. We propose the following
 update logic to be implemented in the online update of the config in
 the ``Cluster`` class in ``objects.py``:
 - If a ``volume_group_name`` is existing, then enable ``drbd`` and ``plain``.
-(TODO: can we narrow that down further?)
 - If ``file`` or ``sharedfile`` was enabled at configure time, add the
 respective disk template to the list of enabled disk templates.
 - For disk templates ``diskless``, ``blockdev``, ``ext``, and ``rbd``, we
@@ -139,18 +141,19 @@ type is currently only used to enable the user to mark it as (un)allocatable.
 unit that is of type ``lvm-pv`` directly, therefore it is not included in the
 mapping.
 
-The storage reporting for file storage will report space on the file storage
-dir, which is currently limited to one directory. In the future, if we'll have
-support for more directories, or for per-nodegroup directories this can be
-changed.
+The storage reporting for file and sharedfile storage will report space
+on the file storage dir, which is currently limited to one directory.
+In the future, if we'll have support for more directories, or for per-nodegroup
+directories this can be changed.
 
-For now, we will implement only the storage reporting for non-shared storage,
-that is disk templates ``file``, ``lvm``, and ``drbd``. For disk template
-``diskless``, there is obviously nothing to report about. When implementing
-storage reporting for file, we can also use it for ``sharedfile``, since it
-uses the same file system mechanisms to determine the free space. In the
-future, we can optimize storage reporting for shared storage by not querying
-all nodes that use a common shared file for the same space information.
+For now, we will implement only the storage reporting for lvm-based and
+file-based storage, that is disk templates ``file``, ``sharedfile``, ``lvm``,
+and ``drbd``. For disk template ``diskless``, there is obviously nothing to
+report about. When implementing storage reporting for file, we can also use
+it for ``sharedfile``, since it uses the same file system mechanisms to
+determine the free space. In the future, we can optimize storage reporting
+for shared storage by not querying all nodes that use a common shared file
+for the same space information.
 
 In the future, we extend storage reporting for shared storage types like
 ``rados`` and ``ext``. Note that it will not make sense to query each node for
@@ -221,6 +224,20 @@ one of the disk templates. There can be more than one storage pool based on the
 same disk template, therefore we will then start referencing the storage pool
 name instead of the disk template.
 
+Note: As of version 2.10, ``gnt-node list`` only reports storage space
+information for the default disk template, as supporting more options
+turned out to be not feasible without storage pools.
+
+Besides in ``gnt-node list``, storage space information is also
+displayed in ``gnt-node list-storage``. This will also adapt to the
+extended storage reporting capabilities. The user can specify a storage
+type using ``--storage-type``. If he requests storage information about
+a storage type which does not support space reporting, a warning is
+emitted. If no storage type is specified explicitely, ``gnt-node
+list-storage`` will try to report storage on the storage type of the
+default disk template. If the default disk template's storage type does
+not support space reporting, an error message is emitted.
+
 ``gnt-cluster info`` will report which disk templates are enabled, i.e.
 which ones are supported according to the cluster configuration. Example
 output::
@@ -244,6 +261,13 @@ disk template to the iallocator, when asking for an allocation to be
 made. Note that for DRBD nowadays we ignore the case when vg and metavg
 are different, and we only consider the main volume group. Fixing this is
 outside the scope of this design.
+
+Although the iallocator protocol itself does not need change, the
+invocation of the iallocator needs quite some adaption. So far, it
+always requested LVM storage information no matter if that was the
+disk template to be considered for the allocation. For instance
+allocation, this is the disk template of the instance.
+TODO: consider other allocator requests.
 
 With this design, we ensure forward-compatibility with respect to storage
 pools. For now, we'll report space for all available disk templates that
