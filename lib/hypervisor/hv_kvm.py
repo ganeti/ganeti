@@ -1197,10 +1197,28 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         data.append(info)
     return data
 
-  def _GenerateKVMBlockDevicesOptions(self, instance, block_devices, kvmhelp):
+  def _GenerateKVMBlockDevicesOptions(self, instance, block_devices,
+                                      kvmhelp, devlist):
+    """Generate KVM options regarding instance's block devices.
 
+    @type instance: L{objects.Instance}
+    @param instance: the instance object
+    @type block_devices: list of tuples
+    @param block_devices: list of tuples [(disk, link_name, uri)..]
+    @type kvmhelp: string
+    @param kvmhelp: output of kvm --help
+    @type devlist: string
+    @param devlist: output of kvm -device ?
+    @rtype: list
+    @return: list of command line options eventually used by kvm executable
+
+    """
     hvp = instance.hvparams
-    boot_disk = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_DISK
+    kernel_path = hvp[constants.HV_KERNEL_PATH]
+    if kernel_path:
+      boot_disk = False
+    else:
+      boot_disk = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_DISK
     kvm_path = hvp[constants.HV_KVM_PATH]
 
     # whether this is an older KVM version that uses the boot=on flag
@@ -1213,7 +1231,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if disk_type == constants.HT_DISK_PARAVIRTUAL:
       if_val = ",if=%s" % self._VIRTIO
       try:
-        devlist = self._GetKVMOutput(kvm_path, self._KVMOPT_DEVICELIST)
         if self._VIRTIO_BLK_RE.search(devlist):
           if_val = ",if=none"
           # will be passed in -device option as driver
@@ -1753,6 +1770,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     # related parameters we'll use up_hvp
     tapfds = []
     taps = []
+    devlist = self._GetKVMOutput(kvm_path, self._KVMOPT_DEVICELIST)
     if not kvm_nics:
       kvm_cmd.extend(["-net", "none"])
     else:
@@ -1762,7 +1780,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       if nic_type == constants.HT_NIC_PARAVIRTUAL:
         nic_model = self._VIRTIO
         try:
-          devlist = self._GetKVMOutput(kvm_path, self._KVMOPT_DEVICELIST)
           if self._VIRTIO_NET_RE.search(devlist):
             nic_model = self._VIRTIO_NET_PCI
             vnet_hdr = up_hvp[constants.HV_VNET_HDR]
@@ -1843,7 +1860,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     bdev_opts = self._GenerateKVMBlockDevicesOptions(instance,
                                                      block_devices,
-                                                     kvmhelp)
+                                                     kvmhelp,
+                                                     devlist)
     kvm_cmd.extend(bdev_opts)
     # CPU affinity requires kvm to start paused, so we set this flag if the
     # instance is not already paused and if we are not going to accept a
