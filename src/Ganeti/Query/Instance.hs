@@ -32,10 +32,12 @@ module Ganeti.Query.Instance
   ) where
 
 import Control.Applicative
+import Data.Either
 import Data.List
 import Data.Maybe
 import Data.Monoid
 import qualified Data.Map as Map
+import Data.Ord (comparing)
 import qualified Text.JSON as J
 import Text.Printf
 
@@ -55,14 +57,17 @@ import Ganeti.Storage.Utils
 import Ganeti.Types
 import Ganeti.Utils (formatOrdinal)
 
--- | The LiveInfo structure packs additional information beside the
--- 'InstanceInfo'. We also need to know whether the instance information was
--- found on the primary node, and encode this as a Bool.
-type LiveInfo = (InstanceInfo, Bool)
+-- | The LiveInfo consists of two entries whose presence is independent.
+-- The 'InstanceInfo' is the live instance information, accompanied by a bool
+-- signifying if it was found on its designated primary node or not.
+-- The 'InstanceConsoleInfo' describes how to connect to an instance.
+-- Any combination of these may or may not be present, depending on node and
+-- instance availability.
+type LiveInfo = (Maybe (InstanceInfo, Bool), Maybe InstanceConsoleInfo)
 
--- | Runtime possibly containing the 'LiveInfo'. See the genericQuery function
--- in the Query.hs file for an explanation of the terms used.
-type Runtime = Either RpcError (Maybe LiveInfo)
+-- | Runtime containing the 'LiveInfo'. See the genericQuery function in
+-- the Query.hs file for an explanation of the terms used.
+type Runtime = Either RpcError LiveInfo
 
 -- | The instance fields map.
 fieldsMap :: FieldMap Instance Runtime
@@ -138,8 +143,11 @@ instanceFields =
   -- Instance parameter fields, whole
   [ (FieldDefinition "hvparams" "HypervisorParameters" QFTOther
      "Hypervisor parameters (merged)",
-     FieldConfig ((rsNormal .) . getFilledInstHvParams), QffNormal)
-  , (FieldDefinition "beparams" "BackendParameters" QFTOther
+     FieldConfig
+       ((rsNormal .) . getFilledInstHvParams (C.toList C.hvcGlobals)),
+     QffNormal),
+
+    (FieldDefinition "beparams" "BackendParameters" QFTOther
      "Backend parameters (merged)",
      FieldConfig ((rsErrorNoData .) . getFilledInstBeParams), QffNormal)
   , (FieldDefinition "osparams" "OpSysParameters" QFTOther
@@ -289,7 +297,11 @@ instanceFields =
      FieldConfigRuntime statusExtract, QffNormal)
   , (FieldDefinition "oper_state" "Running" QFTBool
      "Actual state of instance",
-     FieldRuntime operStatusExtract, QffNormal)
+     FieldRuntime operStatusExtract, QffNormal),
+
+    (FieldDefinition "console" "Console" QFTOther
+     "Instance console information",
+     FieldRuntime consoleExtract, QffNormal)
   ] ++
 
   -- Simple live fields
@@ -522,7 +534,7 @@ hvParamGetter :: String -- ^ The field we're building the getter for
               -> ConfigData -> Instance -> ResultEntry
 hvParamGetter field cfg inst =
   rsMaybeUnavail . Map.lookup field . fromContainer $
-                                        getFilledInstHvParams cfg inst
+    getFilledInstHvParams (C.toList C.hvcGlobals) cfg inst
 
 -- * Live fields functionality
 
@@ -542,13 +554,13 @@ instanceLiveFieldExtract "oper_vcpus" info _ = J.showJSON $ instInfoVcpus info
 instanceLiveFieldExtract n _ _ = J.showJSON $
   "The field " ++ n ++ " is not an expected or extractable live field!"
 
--- | Helper for extracting field from RPC result.
+-- | Helper for extracting an instance live field from the RPC results.
 instanceLiveRpcCall :: FieldName -> Runtime -> Instance -> ResultEntry
-instanceLiveRpcCall fname (Right (Just (res, _))) inst =
+instanceLiveRpcCall fname (Right (Just (res, _), _)) inst =
   case instanceLiveFieldExtract fname res inst of
     J.JSNull -> rsNoData
     x        -> rsNormal x
-instanceLiveRpcCall _ (Right Nothing) _ = rsUnavail
+instanceLiveRpcCall _ (Right (Nothing, _)) _ = rsUnavail
 instanceLiveRpcCall _ (Left err) _ =
   ResultEntry (rpcErrorToStatus err) Nothing
 
@@ -593,7 +605,7 @@ isPrimaryOffline cfg inst =
      Bad    _ -> error "Programmer error - result assumed to be OK is Bad!"
 
 -- | Determines the status of a live instance
-liveInstanceStatus :: LiveInfo -> Instance -> InstanceStatus
+liveInstanceStatus :: (InstanceInfo, Bool) -> Instance -> InstanceStatus
 liveInstanceStatus (_, foundOnPrimary) inst
   | not foundOnPrimary    = WrongNode
   | adminState == AdminUp = Running
@@ -618,9 +630,9 @@ determineInstanceStatus :: ConfigData      -- ^ The configuration data
 determineInstanceStatus cfg res inst
   | isPrimaryOffline cfg inst = NodeOffline
   | otherwise = case res of
-                  Left _                -> NodeDown
-                  Right (Just liveData) -> liveInstanceStatus liveData inst
-                  Right Nothing         -> deadInstanceStatus inst
+      Left _                   -> NodeDown
+      Right (Just liveData, _) -> liveInstanceStatus liveData inst
+      Right (Nothing, _)       -> deadInstanceStatus inst
 
 -- | Extracts the instance status, retrieving it using the functions above and
 -- transforming it into a 'ResultEntry'.
@@ -634,17 +646,34 @@ operStatusExtract :: Runtime -> Instance -> ResultEntry
 operStatusExtract res _ =
   rsMaybeNoData $ J.showJSON <$>
     case res of
-      Left  _ -> Nothing
-      Right x -> Just $ isJust x
+      Left _       -> Nothing
+      Right (x, _) -> Just $ isJust x
+
+-- | Extracts the console connection information
+consoleExtract :: Runtime -> Instance -> ResultEntry
+consoleExtract (Left err) _ = ResultEntry (rpcErrorToStatus err) Nothing
+consoleExtract (Right (_, val)) _ = rsMaybeNoData val
 
 -- * Helper functions extracting information as necessary for the generic query
 -- interfaces
 
+-- | This function checks if a node with a given uuid has experienced an error
+-- or not.
+checkForNodeError :: [(String, ERpcError a)]
+                  -> String
+                  -> Maybe RpcError
+checkForNodeError uuidList uuid =
+  case snd <$> pickPairUnique uuid uuidList of
+    Just (Left err) -> Just err
+    Just (Right _)  -> Nothing
+    Nothing         -> Just . RpcResultError $
+                         "Node response not present"
+
 -- | Finds information about the instance in the info delivered by a node
-findInstanceInfo :: Instance
-                 -> ERpcError RpcResultAllInstancesInfo
-                 -> Maybe InstanceInfo
-findInstanceInfo inst nodeResponse =
+findInfoInNodeResult :: Instance
+                     -> ERpcError RpcResultAllInstancesInfo
+                     -> Maybe InstanceInfo
+findInfoInNodeResult inst nodeResponse =
   case nodeResponse of
     Left  _err    -> Nothing
     Right allInfo ->
@@ -652,50 +681,92 @@ findInstanceInfo inst nodeResponse =
           maybeMatch = pickPairUnique (instName inst) instances
       in snd <$> maybeMatch
 
--- | Finds the node information ('RPCResultError') or the instance information
--- (Maybe 'LiveInfo').
-extractLiveInfo :: [(Node, ERpcError RpcResultAllInstancesInfo)]
-                -> Instance
-                -> Runtime
-extractLiveInfo nodeResultList inst =
-  let uuidResultList = [(nodeUuid x, y) | (x, y) <- nodeResultList]
-      pNodeUuid = instPrimaryNode inst
-      maybeRPCError = getNodeStatus uuidResultList pNodeUuid
-  in case maybeRPCError of
-       Just err -> Left err
-       Nothing  -> Right $ getInstanceStatus uuidResultList pNodeUuid inst
-
--- | Tries to find out if the node given by the uuid is bad - unreachable or
--- returning errors, does not mather for the purpose of this call.
-getNodeStatus :: [(String, ERpcError RpcResultAllInstancesInfo)]
-              -> String
-              -> Maybe RpcError
-getNodeStatus uuidList uuid =
-  case snd <$> pickPairUnique uuid uuidList of
-    Just (Left err) -> Just err
-    Just (Right _)  -> Nothing
-    Nothing         -> Just . RpcResultError $
-                         "Primary node response not present"
-
 -- | Retrieves the instance information if it is present anywhere in the all
 -- instances RPC result. Notes if it originates from the primary node.
--- All nodes are represented as UUID's for ease of use.
-getInstanceStatus :: [(String, ERpcError RpcResultAllInstancesInfo)]
-                  -> String
-                  -> Instance
-                  -> Maybe LiveInfo
-getInstanceStatus uuidList pNodeUuid inst =
-  let primarySearchResult =
-        snd <$> pickPairUnique pNodeUuid uuidList >>= findInstanceInfo inst
+-- An error is delivered if there is no result, and the primary node is down.
+getInstanceInfo :: [(String, ERpcError RpcResultAllInstancesInfo)]
+                -> Instance
+                -> ERpcError (Maybe (InstanceInfo, Bool))
+getInstanceInfo uuidList inst =
+  let pNodeUuid = instPrimaryNode inst
+      primarySearchResult =
+        pickPairUnique pNodeUuid uuidList >>= findInfoInNodeResult inst . snd
   in case primarySearchResult of
-       Just instInfo -> Just (instInfo, True)
+       Just instInfo -> Right . Just $ (instInfo, True)
        Nothing       ->
          let allSearchResult =
                getFirst . mconcat $ map
-               (First . findInstanceInfo inst . snd) uuidList
+               (First . findInfoInNodeResult inst . snd) uuidList
          in case allSearchResult of
-              Just liveInfo -> Just (liveInfo, False)
-              Nothing       -> Nothing
+              Just instInfo -> Right . Just $ (instInfo, False)
+              Nothing       ->
+                case checkForNodeError uuidList pNodeUuid of
+                  Just err -> Left err
+                  Nothing  -> Right Nothing
+
+-- | Retrieves the console information if present anywhere in the given results
+getConsoleInfo :: [(String, ERpcError RpcResultInstanceConsoleInfo)]
+               -> Instance
+               -> Maybe InstanceConsoleInfo
+getConsoleInfo uuidList inst =
+  let allValidResults = concatMap rpcResInstConsInfoInstancesInfo .
+                        rights . map snd $ uuidList
+  in snd <$> pickPairUnique (instName inst) allValidResults
+
+-- | Extracts all the live information that can be extracted.
+extractLiveInfo :: [(Node, ERpcError RpcResultAllInstancesInfo)]
+                -> [(Node, ERpcError RpcResultInstanceConsoleInfo)]
+                -> Instance
+                -> Runtime
+extractLiveInfo nodeResultList nodeConsoleList inst =
+  let uuidConvert     = map (\(x, y) -> (nodeUuid x, y))
+      uuidResultList  = uuidConvert nodeResultList
+      uuidConsoleList = uuidConvert nodeConsoleList
+  in case getInstanceInfo uuidResultList inst of
+    -- If we can't get the instance info, we can't get the console info either.
+    -- Best to propagate the error further.
+    Left err  -> Left err
+    Right res -> Right (res, getConsoleInfo uuidConsoleList inst)
+
+-- | Retrieves all the parameters for the console calls.
+getAllConsoleParams :: ConfigData
+                    -> [Instance]
+                    -> ErrorResult [InstanceConsoleInfoParams]
+getAllConsoleParams cfg instances = do
+  pNodes <- mapM (getPrimaryNode cfg) instances
+  let filledHvParams = map (getFilledInstHvParams [] cfg) instances
+  filledBeParams <- mapM (getFilledInstBeParams cfg) instances
+  return . map (\(i, n, h, b) -> InstanceConsoleInfoParams i n h b) $
+    zip4 instances pNodes filledHvParams filledBeParams
+
+-- | Compares two params according to their node, needed for grouping.
+compareParamsByNode :: InstanceConsoleInfoParams
+                    -> InstanceConsoleInfoParams
+                    -> Bool
+compareParamsByNode x y = instConsInfoParamsNode x == instConsInfoParamsNode y
+
+-- | Groups instance information calls heading out to the same nodes.
+consoleParamsToCalls :: [InstanceConsoleInfoParams]
+                     -> [(Node, RpcCallInstanceConsoleInfo)]
+consoleParamsToCalls params =
+  let sortedParams = sortBy
+        (comparing (instPrimaryNode . instConsInfoParamsInstance)) params
+      groupedParams = groupBy compareParamsByNode sortedParams
+  in map (\x -> case x of
+            [] -> error "Programmer error: group must have one or more members"
+            paramGroup@(y:_) ->
+              let node = instConsInfoParamsNode y
+                  packer z = (instName $ instConsInfoParamsInstance z, z)
+              in (node, RpcCallInstanceConsoleInfo . map packer $ paramGroup)
+         ) groupedParams
+
+-- | Retrieves a list of all the hypervisors and params used by the given
+-- instances.
+getHypervisorSpecs :: ConfigData -> [Instance] -> [(Hypervisor, HvParams)]
+getHypervisorSpecs cfg instances =
+  let hvs = nub . map instHypervisor $ instances
+      hvParamMap = (fromContainer . clusterHvparams . configCluster $ cfg)
+  in zip hvs . map ((Map.!) hvParamMap . hypervisorToRaw) $ hvs
 
 -- | Collect live data from RPC query if enabled.
 collectLiveData :: Bool -> ConfigData -> [Instance] -> IO [(Instance, Runtime)]
@@ -703,9 +774,14 @@ collectLiveData liveDataEnabled cfg instances
   | not liveDataEnabled = return . zip instances . repeat . Left .
                             RpcResultError $ "Live data disabled"
   | otherwise = do
-      let hvSpec = getDefaultHypervisorSpec cfg
-          instance_nodes = nub . justOk $
-                             map (getNode cfg . instPrimaryNode) instances
-          good_nodes = nodesWithValidConfig cfg instance_nodes
-      rpcres <- executeRpcCall good_nodes $ RpcCallAllInstancesInfo [hvSpec]
-      return . zip instances . map (extractLiveInfo rpcres) $ instances
+      let hvSpecs = getHypervisorSpecs cfg instances
+          instanceNodes = nub . justOk $
+                            map (getNode cfg . instPrimaryNode) instances
+          goodNodes = nodesWithValidConfig cfg instanceNodes
+      instInfoRes <- executeRpcCall goodNodes (RpcCallAllInstancesInfo hvSpecs)
+      consInfoRes <- case getAllConsoleParams cfg instances of
+        Bad _ -> return . zip goodNodes . repeat . Left $ RpcResultError
+                   "Cannot construct parameters for console info call"
+        Ok  p -> executeRpcCalls $ consoleParamsToCalls p
+      return . zip instances .
+        map (extractLiveInfo instInfoRes consInfoRes) $ instances

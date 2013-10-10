@@ -60,7 +60,6 @@ import qualified Data.Set as S
 import qualified Text.JSON as J
 
 import Ganeti.BasicTypes
-import qualified Ganeti.ConstantUtils as C
 import qualified Ganeti.Constants as C
 import Ganeti.Errors
 import Ganeti.JSON
@@ -243,8 +242,8 @@ getNetwork cfg name =
 
 -- | Retrieves the instance hypervisor params, missing values filled with
 -- cluster defaults.
-getFilledInstHvParams :: ConfigData -> Instance -> HvParams
-getFilledInstHvParams cfg inst =
+getFilledInstHvParams :: [String] -> ConfigData -> Instance -> HvParams
+getFilledInstHvParams globals cfg inst =
   -- First get the defaults of the parent
   let hvName = hypervisorToRaw . instHypervisor $ inst
       hvParamMap = fromContainer . clusterHvparams $ configCluster cfg
@@ -257,7 +256,7 @@ getFilledInstHvParams cfg inst =
   -- Then the child
       childHvParams = fromContainer . instHvparams $ inst
   -- Helper function
-      fillFn con val = fillDict con val $ C.toList C.hvcGlobals
+      fillFn con val = fillDict con val globals
   in GenericContainer $ fillFn (fillFn parentHvParams osHvParams) childHvParams
 
 -- | Retrieves the instance backend params, missing values filled with cluster
