@@ -725,6 +725,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/Utils.hs
 
 HS_TEST_SRCS = \
+	test/hs/Test/AutoConf.hs \
 	test/hs/Test/Ganeti/Attoparsec.hs \
 	test/hs/Test/Ganeti/BasicTypes.hs \
 	test/hs/Test/Ganeti/Common.hs \
