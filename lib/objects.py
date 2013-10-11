@@ -462,8 +462,6 @@ class ConfigData(ConfigObject):
        enabled and/or used disk templates.
 
     """
-    # enabled_disk_templates in the cluster config were introduced in 2.8.
-    # Remove this code once upgrading from earlier versions is deprecated.
     if not self.cluster.enabled_disk_templates:
       template_set = \
         set([inst.disk_template for inst in self.instances.values()])
