@@ -439,10 +439,13 @@ class ConfigData(ConfigObject):
       node.UpgradeConfig()
     for instance in self.instances.values():
       instance.UpgradeConfig()
+    self._UpgradeEnabledDiskTemplates()
     if self.nodegroups is None:
       self.nodegroups = {}
     for nodegroup in self.nodegroups.values():
       nodegroup.UpgradeConfig()
+      InstancePolicy.UpgradeDiskTemplates(
+        nodegroup.ipolicy, self.cluster.enabled_disk_templates)
     if self.cluster.drbd_usermode_helper is None:
       # To decide if we set an helper let's check if at least one instance has
       # a DRBD disk. This does not cover all the possible scenarios but it
@@ -453,7 +456,6 @@ class ConfigData(ConfigObject):
       self.networks = {}
     for network in self.networks.values():
       network.UpgradeConfig()
-    self._UpgradeEnabledDiskTemplates()
 
   def _UpgradeEnabledDiskTemplates(self):
     """Upgrade the cluster's enabled disk templates by inspecting the currently
@@ -478,6 +480,8 @@ class ConfigData(ConfigObject):
           self.cluster.enabled_disk_templates.append(preferred_template)
           template_set.remove(preferred_template)
       self.cluster.enabled_disk_templates.extend(list(template_set))
+    InstancePolicy.UpgradeDiskTemplates(
+      self.cluster.ipolicy, self.cluster.enabled_disk_templates)
 
 
 class NIC(ConfigObject):
@@ -913,6 +917,15 @@ class InstancePolicy(ConfigObject):
   used as a placeholder for a few functions.
 
   """
+  @classmethod
+  def UpgradeDiskTemplates(cls, ipolicy, enabled_disk_templates):
+    """Upgrades the ipolicy configuration."""
+    if constants.IPOLICY_DTS in ipolicy:
+      if not set(ipolicy[constants.IPOLICY_DTS]).issubset(
+        set(enabled_disk_templates)):
+        ipolicy[constants.IPOLICY_DTS] = list(
+          set(ipolicy[constants.IPOLICY_DTS]) & set(enabled_disk_templates))
+
   @classmethod
   def CheckParameterSyntax(cls, ipolicy, check_std):
     """ Check the instance policy for validity.

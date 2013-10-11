@@ -223,6 +223,33 @@ class TestClusterObject(unittest.TestCase):
     cluster = objects.Cluster(ipolicy={"unknown_key": None})
     self.assertRaises(errors.ConfigurationError, cluster.UpgradeConfig)
 
+  def testUpgradeEnabledDiskTemplates(self):
+    cfg = objects.ConfigData()
+    cfg.cluster = objects.Cluster()
+    cfg.cluster.volume_group_name = "myvg"
+    instance1 = objects.Instance()
+    instance1.disk_template = constants.DT_DISKLESS
+    instance2 = objects.Instance()
+    instance2.disk_template = constants.DT_RBD
+    cfg.instances = { "myinstance1": instance1, "myinstance2": instance2 }
+    nodegroup = objects.NodeGroup()
+    nodegroup.ipolicy = {}
+    nodegroup.ipolicy[constants.IPOLICY_DTS] = [instance1.disk_template, \
+      constants.DT_BLOCK]
+    cfg.cluster.ipolicy = {}
+    cfg.cluster.ipolicy[constants.IPOLICY_DTS] = \
+      [constants.DT_EXT, constants.DT_DISKLESS]
+    cfg.nodegroups = { "mynodegroup": nodegroup }
+    cfg._UpgradeEnabledDiskTemplates()
+    expected_disk_templates = [constants.DT_DRBD8,
+                               constants.DT_PLAIN,
+                               instance1.disk_template,
+                               instance2.disk_template]
+    self.assertEqual(set(expected_disk_templates),
+                     set(cfg.cluster.enabled_disk_templates))
+    self.assertEqual(set([instance1.disk_template]),
+                     set(cfg.cluster.ipolicy[constants.IPOLICY_DTS]))
+
 
 class TestClusterObjectTcpUdpPortPool(unittest.TestCase):
   def testNewCluster(self):
