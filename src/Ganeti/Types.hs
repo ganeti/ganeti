@@ -425,6 +425,10 @@ $(THH.makeJSONInstance ''Hypervisor)
 instance THH.PyValue Hypervisor where
   showValue = show . hypervisorToRaw
 
+instance HasStringRepr Hypervisor where
+  fromStringRepr = hypervisorFromRaw
+  toStringRepr = hypervisorToRaw
+
 -- | Oob command type.
 $(THH.declareLADT ''String "OobCommand"
   [ ("OobHealth",      "health")

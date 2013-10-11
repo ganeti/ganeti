@@ -81,6 +81,7 @@ import qualified Ganeti.Path as P
 
 import Ganeti.BasicTypes
 import qualified Ganeti.Constants as C
+import Ganeti.JSON
 import Ganeti.Logging
 import Ganeti.Objects
 import Ganeti.THH
@@ -289,7 +290,7 @@ instance Rpc RpcCallInstanceInfo RpcResultInstanceInfo where
 -- | AllInstancesInfo
 --   Returns information about all running instances on the given nodes
 $(buildObject "RpcCallAllInstancesInfo" "rpcCallAllInstInfo"
-  [ simpleField "hypervisors" [t| [Hypervisor] |] ])
+  [ simpleField "hypervisors" [t| [(Hypervisor, HvParams)] |] ])
 
 $(buildObject "RpcResultAllInstancesInfo" "rpcResAllInstInfo"
   [ simpleField "instances" [t| [(String, InstanceInfo)] |] ])
@@ -298,7 +299,9 @@ instance RpcCall RpcCallAllInstancesInfo where
   rpcCallName _          = "all_instances_info"
   rpcCallTimeout _       = rpcTimeoutToRaw Urgent
   rpcCallAcceptOffline _ = False
-  rpcCallData _ call     = J.encode [rpcCallAllInstInfoHypervisors call]
+  rpcCallData _ call     = J.encode (
+    map fst $ rpcCallAllInstInfoHypervisors call,
+    GenericContainer . Map.fromList $ rpcCallAllInstInfoHypervisors call)
 
 instance Rpc RpcCallAllInstancesInfo RpcResultAllInstancesInfo where
   -- FIXME: Is there a simpler way to do it?
