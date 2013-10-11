@@ -120,14 +120,6 @@ DAEMONS_LOGFILES = \
     dict((daemon, pathutils.GetLogFilename(DAEMONS_LOGBASE[daemon]))
          for daemon in DAEMONS_LOGBASE)
 
-# Some daemons might require more than one logfile.
-# Specifically, right now only the Haskell http library "snap", used by the
-# monitoring daemon, requires multiple log files.
-
-# These are the only valid reasons for having an extra logfile
-EXTRA_LOGREASON_ACCESS = "access"
-EXTRA_LOGREASON_ERROR = "error"
-
 DAEMONS_EXTRA_LOGBASE = _constants.DAEMONS_EXTRA_LOGBASE
 
 DAEMONS_EXTRA_LOGFILES = \

@@ -126,6 +126,9 @@ daemonGroup (ExtraGroup  AdminGroup)    = AutoConf.adminGroup
 
 data ExtraLogReason = AccessLog | ErrorLog
 
+-- | Some daemons might require more than one logfile.  Specifically,
+-- right now only the Haskell http library "snap", used by the
+-- monitoring daemon, requires multiple log files.
 daemonsExtraLogbase :: GanetiDaemon -> ExtraLogReason -> String
 daemonsExtraLogbase daemon AccessLog = daemonLogBase daemon ++ "-access"
 daemonsExtraLogbase daemon ErrorLog = daemonLogBase daemon ++ "-error"
