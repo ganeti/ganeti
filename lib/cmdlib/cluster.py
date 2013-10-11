@@ -804,11 +804,11 @@ class LUClusterSetParams(LogicalUnit):
     if op_enabled_disk_templates:
       enabled_disk_templates = op_enabled_disk_templates
       new_enabled_disk_templates = \
-          list(set(enabled_disk_templates)
-               - set(old_enabled_disk_templates))
+        list(set(enabled_disk_templates)
+             - set(old_enabled_disk_templates))
       disabled_disk_templates = \
-          list(set(old_enabled_disk_templates)
-               - set(enabled_disk_templates))
+        list(set(old_enabled_disk_templates)
+             - set(enabled_disk_templates))
     else:
       enabled_disk_templates = old_enabled_disk_templates
     return (enabled_disk_templates, new_enabled_disk_templates,
@@ -930,7 +930,7 @@ class LUClusterSetParams(LogicalUnit):
 
   def _CheckInstancesOfDisabledDiskTemplates(
       self, disabled_disk_templates):
-    """Check whether we try to a disk template that is in use.
+    """Check whether we try to disable a disk template that is in use.
 
     @type disabled_disk_templates: list of string
     @param disabled_disk_templates: list of disk templates that are going to
@@ -958,7 +958,7 @@ class LUClusterSetParams(LogicalUnit):
                              if node.uuid in node_uuids and node.vm_capable]
 
     (enabled_disk_templates, new_enabled_disk_templates,
-        disabled_disk_templates) = self._GetDiskTemplateSets(cluster)
+      disabled_disk_templates) = self._GetDiskTemplateSets(cluster)
     self._CheckInstancesOfDisabledDiskTemplates(disabled_disk_templates)
 
     self._CheckVgName(vm_capable_node_uuids, enabled_disk_templates,
