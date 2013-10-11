@@ -128,11 +128,6 @@ DAEMONS_LOGFILES = \
 EXTRA_LOGREASON_ACCESS = "access"
 EXTRA_LOGREASON_ERROR = "error"
 
-VALID_EXTRA_LOGREASONS = compat.UniqueFrozenset([
-  EXTRA_LOGREASON_ACCESS,
-  EXTRA_LOGREASON_ERROR,
-  ])
-
 # These are the extra logfiles, grouped by daemon
 DAEMONS_EXTRA_LOGBASE = {
   MOND: {
