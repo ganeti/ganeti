@@ -39,6 +39,8 @@ module Ganeti.Query.Common
   , tagsFields
   , dictFieldGetter
   , buildNdParamField
+  , getDefaultHypervisorSpec
+  , getHvParamsFromCluster
   ) where
 
 import qualified Data.Map as Map
@@ -47,6 +49,7 @@ import Text.JSON (JSON, showJSON)
 
 import qualified Ganeti.Constants as C
 import Ganeti.Config
+import Ganeti.JSON
 import Ganeti.Objects
 import Ganeti.Rpc
 import Ganeti.Query.Language
@@ -176,3 +179,15 @@ buildNdParamField field =
       desc = "The \"" ++ field ++ "\" node parameter"
   in (FieldDefinition full_name title qft desc,
       FieldConfig (ndParamGetter field), QffNormal)
+
+-- | Looks up the default hypervisor and its hvparams
+getDefaultHypervisorSpec :: ConfigData -> (Hypervisor, HvParams)
+getDefaultHypervisorSpec cfg = (hv, getHvParamsFromCluster cfg hv)
+  where hv = getDefaultHypervisor cfg
+
+-- | Looks up the cluster's hvparams of the given hypervisor
+getHvParamsFromCluster :: ConfigData -> Hypervisor -> HvParams
+getHvParamsFromCluster cfg hv =
+  fromMaybe (GenericContainer Map.empty) .
+    Map.lookup (hypervisorToRaw hv) .
+      fromContainer . clusterHvparams $ configCluster cfg

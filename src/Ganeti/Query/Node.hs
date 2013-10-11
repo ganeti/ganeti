@@ -279,15 +279,3 @@ collectLiveData True cfg nodes = do
   rpcres <- executeRpcCall good_nodes (RpcCallNodeInfo storage_units hvs)
   return $ fillUpList (fillPairFromMaybe rpcResultNodeBroken pickPairUnique)
       nodes rpcres
-
--- | Looks up the default hypervisor and it's hvparams
-getDefaultHypervisorSpec :: ConfigData -> (Hypervisor, HvParams)
-getDefaultHypervisorSpec cfg = (hv, getHvParamsFromCluster cfg hv)
-  where hv = getDefaultHypervisor cfg
-
--- | Looks up the cluster's hvparams of the given hypervisor
-getHvParamsFromCluster :: ConfigData -> Hypervisor -> HvParams
-getHvParamsFromCluster cfg hv =
-  fromMaybe (GenericContainer (Map.fromList []))
-    (Map.lookup (hypervisorToRaw hv)
-       (fromContainer (clusterHvparams (configCluster cfg))))
