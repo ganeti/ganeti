@@ -1987,8 +1987,8 @@ def HotplugDevice(instance, action, dev_type, device, extra, seq):
   """
   hyper = hypervisor.GetHypervisor(instance.hypervisor)
   try:
-    hyper.HotplugSupported(instance, action, dev_type)
-  except (errors.HotplugError, errors.HypervisorError), err:
+    hyper.VerifyHotplugSupport(instance, action, dev_type)
+  except errors.HotplugError, err:
     _Fail("Hotplug is not supported: %s", err)
 
   if action == constants.HOTPLUG_ACTION_ADD:

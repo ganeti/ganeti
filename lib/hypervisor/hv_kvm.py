@@ -1999,15 +1999,15 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     dev.pci = int(free)
 
-  def HotplugSupported(self, instance, action, dev_type):
-    """Check if hotplug is supported.
+  def VerifyHotplugSupport(self, instance, action, dev_type):
+    """Verifies that hotplug is supported.
 
     Hotplug is *not* supported in case of:
      - qemu versions < 1.0
      - security models and chroot (disk hotplug)
      - fdsend module is missing (nic hot-add)
 
-    @raise errors.HypervisorError: in previous cases
+    @raise errors.HypervisorError: in one of the previous cases
 
     """
     output = self._CallMonitorCommand(instance.name, self._INFO_VERSION_CMD)
@@ -2034,7 +2034,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         action == constants.HOTPLUG_ACTION_ADD and not fdsend):
       raise errors.HotplugError("Cannot hot-add NIC."
                                 " fdsend python module is missing.")
-    return True
 
   def _CallHotplugCommand(self, name, cmd):
     output = self._CallMonitorCommand(name, cmd)

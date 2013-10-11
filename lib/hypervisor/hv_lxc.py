@@ -477,9 +477,3 @@ class LXCHypervisor(hv_base.BaseHypervisor):
 
     """
     raise HypervisorError("Migration is not supported by the LXC hypervisor")
-
-  def HotplugSupported(self, instance, action, dev_type):
-    """Whether hotplug is supported.
-
-    """
-    raise HypervisorError("Hotplug not supported by the LXC hypervisor")

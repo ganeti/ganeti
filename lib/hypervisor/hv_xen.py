@@ -948,12 +948,6 @@ class XenHypervisor(hv_base.BaseHypervisor):
         raise errors.HypervisorError("Cannot run xen ('%s'). Error: %s."
                                      % (constants.XEN_CMD_XL, result.stderr))
 
-  def HotplugSupported(self, instance, action, dev_type):
-    """Whether hotplug is supported.
-
-    """
-    raise errors.HypervisorError("Hotplug not supported by the xen hypervisor")
-
 
 class XenPvmHypervisor(XenHypervisor):
   """Xen PVM hypervisor interface"""

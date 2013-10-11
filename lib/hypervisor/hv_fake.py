@@ -354,9 +354,3 @@ class FakeHypervisor(hv_base.BaseHypervisor):
 
     """
     return objects.MigrationStatus(status=constants.HV_MIGRATION_COMPLETED)
-
-  def HotplugSupported(self, instance, action, dev_type):
-    """Whether hotplug is supported.
-
-    """
-    raise errors.HypervisorError("Hotplug not supported by the fake hypervisor")

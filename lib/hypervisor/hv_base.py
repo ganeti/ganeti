@@ -564,27 +564,41 @@ class BaseHypervisor(object):
     else:
       return None
 
+  # pylint: disable=R0201,W0613
   def HotAddDevice(self, instance, dev_type, device, extra, seq):
     """Hot-add a device.
 
     """
-    pass
+    raise errors.HotplugError("Hotplug is not supported by this hypervisor")
 
+  # pylint: disable=R0201,W0613
   def HotDelDevice(self, instance, dev_type, device, extra, seq):
     """Hot-del a device.
 
     """
-    pass
+    raise errors.HotplugError("Hotplug is not supported by this hypervisor")
 
+  # pylint: disable=R0201,W0613
   def HotModDevice(self, instance, dev_type, device, extra, seq):
     """Hot-mod a device.
 
     """
-    pass
+    raise errors.HotplugError("Hotplug is not supported by this hypervisor")
 
-  def HotplugSupported(self, instance, action, dev_type):
-    """Whether hotplug is supported.
+  # pylint: disable=R0201,W0613
+  def VerifyHotplugSupport(self, instance, action, dev_type):
+    """Verifies that hotplug is supported.
 
-    Depends on instance's hvparam, the action. and the dev_type
+    Hotplug is not supported by default. If a hypervisor wants to support
+    it it should override this method.
+
+    @type instance: L{objects.Instance}
+    @param instance: the instance object
+    @type action: string
+    @param action: one of the supported hotplug commands
+    @type dev_type: string
+    @param dev_type: one of the supported device types to hotplug
+    @raise errors.HotplugError: if hotplugging is not supported
+
     """
-    raise NotImplementedError
+    raise errors.HotplugError("Hotplug is not supported by this hypervisor")

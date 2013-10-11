@@ -329,9 +329,3 @@ class ChrootManager(hv_base.BaseHypervisor):
 
     """
     raise HypervisorError("Migration not supported by the chroot hypervisor")
-
-  def HotplugSupported(self, instance, action, dev_type):
-    """Whether hotplug is supported.
-
-    """
-    raise HypervisorError("Hotplug not supported by the chroot hypervisor")
