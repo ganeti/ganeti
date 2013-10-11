@@ -91,36 +91,33 @@ AC_ARG_WITH([xen-config-dir],
 AC_SUBST(XEN_CONFIG_DIR, $xen_config_dir)
 
 # --with-os-search-path=...
-# do a bit of black sed magic to for quoting of the strings in the list
 AC_ARG_WITH([os-search-path],
   [AS_HELP_STRING([--with-os-search-path=LIST],
     [comma separated list of directories to]
     [ search for OS images (default is /srv/ganeti/os)]
   )],
-  [os_search_path=`echo -n "$withval" | sed -e "s/\([[^,]]*\)/\1/g"`],
+  [os_search_path="$withval"],
   [os_search_path="/srv/ganeti/os"])
 AC_SUBST(OS_SEARCH_PATH, $os_search_path)
 
 # --with-extstorage-search-path=...
-# same black sed magic for quoting of the strings in the list
 AC_ARG_WITH([extstorage-search-path],
   [AS_HELP_STRING([--with-extstorage-search-path=LIST],
     [comma separated list of directories to]
     [ search for External Storage Providers]
     [ (default is /srv/ganeti/extstorage)]
   )],
-  [es_search_path=`echo -n "$withval" | sed -e "s/\([[^,]]*\)/\1/g"`],
+  [es_search_path="$withval"],
   [es_search_path="/srv/ganeti/extstorage"])
 AC_SUBST(ES_SEARCH_PATH, $es_search_path)
 
 # --with-iallocator-search-path=...
-# do a bit of black sed magic to for quoting of the strings in the list
 AC_ARG_WITH([iallocator-search-path],
   [AS_HELP_STRING([--with-iallocator-search-path=LIST],
     [comma separated list of directories to]
     [ search for instance allocators (default is $libdir/ganeti/iallocators)]
   )],
-  [iallocator_search_path=`echo -n "$withval" | sed -e "s/\([[^,]]*\)/\1/g"`],
+  [iallocator_search_path="$withval"],
   [iallocator_search_path="$libdir/$PACKAGE_NAME/iallocators"])
 AC_SUBST(IALLOCATOR_SEARCH_PATH, $iallocator_search_path)
 
