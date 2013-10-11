@@ -90,7 +90,8 @@ _AVAILABLE_PCI_SLOT = bitarray("0")
 
 # below constants show the format of runtime file
 # the nics are in second possition, while the disks in 4th (last)
-# moreover disk entries are stored in tupples of L{objects.Disk}, dev_path
+# moreover disk entries are stored as a list of in tuples
+# (L{objects.Disk}, link_name, uri)
 _KVM_NICS_RUNTIME_INDEX = 1
 _KVM_DISKS_RUNTIME_INDEX = 3
 _DEVICE_RUNTIME_INDEX = {
@@ -198,16 +199,16 @@ def _AnalyzeSerializedRuntime(serialized_runtime):
   """
   loaded_runtime = serializer.Load(serialized_runtime)
   if len(loaded_runtime) == 3:
-    serialized_blockdevs = []
+    serialized_disks = []
     kvm_cmd, serialized_nics, hvparams = loaded_runtime
   else:
-    kvm_cmd, serialized_nics, hvparams, serialized_blockdevs = loaded_runtime
+    kvm_cmd, serialized_nics, hvparams, serialized_disks = loaded_runtime
 
   kvm_nics = [objects.NIC.FromDict(snic) for snic in serialized_nics]
-  block_devices = [(objects.Disk.FromDict(sdisk), link, uri)
-                   for sdisk, link, uri in serialized_blockdevs]
+  kvm_disks = [(objects.Disk.FromDict(sdisk), link, uri)
+               for sdisk, link, uri in serialized_disks]
 
-  return (kvm_cmd, kvm_nics, hvparams, block_devices)
+  return (kvm_cmd, kvm_nics, hvparams, kvm_disks)
 
 
 def _GetTunFeatures(fd, _ioctl=fcntl.ioctl):
@@ -1197,14 +1198,14 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         data.append(info)
     return data
 
-  def _GenerateKVMBlockDevicesOptions(self, instance, block_devices,
+  def _GenerateKVMBlockDevicesOptions(self, instance, kvm_disks,
                                       kvmhelp, devlist):
     """Generate KVM options regarding instance's block devices.
 
     @type instance: L{objects.Instance}
     @param instance: the instance object
-    @type block_devices: list of tuples
-    @param block_devices: list of tuples [(disk, link_name, uri)..]
+    @type kvm_disks: list of tuples
+    @param kvm_disks: list of tuples [(disk, link_name, uri)..]
     @type kvmhelp: string
     @param kvmhelp: output of kvm --help
     @type devlist: string
@@ -1219,7 +1220,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       boot_disk = False
     else:
       boot_disk = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_DISK
-    kvm_path = hvp[constants.HV_KVM_PATH]
 
     # whether this is an older KVM version that uses the boot=on flag
     # on devices
@@ -1252,7 +1252,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       cache_val = ",cache=%s" % disk_cache
     else:
       cache_val = ""
-    for cfdev, link_name, uri in block_devices:
+    for cfdev, link_name, uri in kvm_disks:
       if cfdev.mode != constants.DISK_RDWR:
         raise errors.HypervisorError("Instance has read-only disks which"
                                      " are not supported by KVM")
@@ -1275,7 +1275,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
                   (drive_uri, if_val, boot_val, cache_val)
 
       if device_driver:
-        # block_devices are the 4th entry of runtime file that did not exist in
+        # kvm_disks are the 4th entry of runtime file that did not exist in
         # the past. That means that cfdev should always have pci slot and
         # _GenerateDeviceKVMId() will not raise a exception.
         kvm_devid = _GenerateDeviceKVMId(constants.HOTPLUG_TARGET_DISK, cfdev)
@@ -1677,13 +1677,13 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     """Save an instance's KVM runtime
 
     """
-    kvm_cmd, kvm_nics, hvparams, block_devices = kvm_runtime
+    kvm_cmd, kvm_nics, hvparams, kvm_disks = kvm_runtime
 
     serialized_nics = [nic.ToDict() for nic in kvm_nics]
-    serialized_blockdevs = [(blk.ToDict(), link, uri)
-                            for blk, link, uri in block_devices]
+    serialized_disks = [(blk.ToDict(), link, uri)
+                        for blk, link, uri in kvm_disks]
     serialized_form = serializer.Dump((kvm_cmd, serialized_nics, hvparams,
-                                      serialized_blockdevs))
+                                      serialized_disks))
 
     self._WriteKVMRuntime(instance.name, serialized_form)
 
@@ -1719,7 +1719,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if not self._InstancePidAlive(name)[2]:
       raise errors.HypervisorError("Failed to start instance %s" % name)
 
-  # 52/50 local variables
+  # too many local variables
   # pylint: disable=R0914
   def _ExecuteKVMRuntime(self, instance, kvm_runtime, kvmhelp, incoming=None):
     """Execute a KVM cmd, after completing it with some last minute data.
@@ -1744,7 +1744,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     temp_files = []
 
-    kvm_cmd, kvm_nics, up_hvp, block_devices = kvm_runtime
+    kvm_cmd, kvm_nics, up_hvp, kvm_disks = kvm_runtime
     # the first element of kvm_cmd is always the path to the kvm binary
     kvm_path = kvm_cmd[0]
     up_hvp = objects.FillDict(conf_hvp, up_hvp)
@@ -1859,7 +1859,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       self._ConfigureNIC(instance, nic_seq, nic, taps[nic_seq])
 
     bdev_opts = self._GenerateKVMBlockDevicesOptions(instance,
-                                                     block_devices,
+                                                     kvm_disks,
                                                      kvmhelp,
                                                      devlist)
     kvm_cmd.extend(bdev_opts)
